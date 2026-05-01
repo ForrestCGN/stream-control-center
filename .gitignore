@@ -1,0 +1,41 @@
+# Node / packages
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment / secrets
+.env
+.env.*
+!*.env.example
+config/secrets/.env
+config/secrets/.env.local
+config/secrets/*.env
+!config/secrets/*.env.example
+secrets/
+tokens/
+
+# Databases / runtime data
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+data/sqlite/*.sqlite
+data/**/*.sqlite
+
+# Logs
+logs/
+*.log
+
+# Local backups / generated archives
+*_BACKUP*/
+*.zip
+*.7z
+*.rar
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
