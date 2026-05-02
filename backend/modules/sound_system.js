@@ -140,7 +140,7 @@ module.exports.init = function init(ctx) {
   const SOUND_SETTINGS_SCHEMA_MODULE = "sound_system_settings";
   const SOUND_SETTINGS_SCHEMA_VERSION = 1;
   const SOUND_SETTINGS_TABLE = "sound_settings";
-  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets"];
+  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "soundsBaseDir", "allowedExtensions"];
 
   function deepMergeRuntimeSettings(base, override) {
     if (!isPlainObject(base)) base = {};
@@ -225,10 +225,24 @@ module.exports.init = function init(ctx) {
     const clean = {};
     for (const key of SOUND_SETTINGS_BLOCKS) {
       if (!hasOwn(input, key)) continue;
-      if (!isPlainObject(input[key]) && !Array.isArray(input[key])) {
+      const value = input[key];
+
+      if (key === "soundsBaseDir") {
+        if (typeof value !== "string") throw new Error(`UngÃ¼ltiger sound_settings Block: ${key}`);
+        clean[key] = value;
+        continue;
+      }
+
+      if (key === "allowedExtensions") {
+        if (!Array.isArray(value)) throw new Error(`UngÃ¼ltiger sound_settings Block: ${key}`);
+        clean[key] = value.map(v => String(v || "").trim()).filter(Boolean);
+        continue;
+      }
+
+      if (!isPlainObject(value) && !Array.isArray(value)) {
         throw new Error(`UngÃ¼ltiger sound_settings Block: ${key}`);
       }
-      clean[key] = input[key];
+      clean[key] = value;
     }
     return clean;
   }
@@ -1123,6 +1137,8 @@ module.exports.init = function init(ctx) {
 
   console.log(`[${MODULE_NAME}] loaded prefix=${prefix}`);
 };
+
+
 
 
 

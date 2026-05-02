@@ -21,3 +21,72 @@
 /* STEP007: Config previews */
 .adminconfig-preview{margin:14px 0;padding:14px;border:1px solid rgba(125,211,252,.24);border-radius:16px;background:rgba(10,18,32,.42)}
 .adminconfig-preview h3{margin:0 0 10px}.adminconfig-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}.adminconfig-chip-row span{border:1px solid rgba(124,77,255,.35);border-radius:999px;padding:5px 9px;background:rgba(124,77,255,.08);font-size:12px}.adminconfig-scene-preview{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.adminconfig-scene-preview div{padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.04)}.adminconfig-scene-preview strong{display:block}.adminconfig-scene-preview small{color:#9fb0c8}
+
+/* Admin Sound-System Expert Config */
+.adminconfig-sound-expert {
+  display: grid;
+  gap: 14px;
+}
+
+.adminconfig-sound-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.adminconfig-sound-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted, #a8b3cf);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.adminconfig-sound-grid input,
+.adminconfig-sound-grid select {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(2,6,23,.68);
+  color: #e5e7eb;
+  padding: 10px 12px;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.adminconfig-sound-grid input[type="text"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.adminconfig-raw {
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255,255,255,.03);
+}
+
+.adminconfig-raw pre {
+  overflow: auto;
+  max-height: 340px;
+  font-size: 12px;
+}
+
+html[data-theme=dark] .adminconfig-sound-grid input,
+html[data-theme=dark] .adminconfig-sound-grid select {
+  background: #181818;
+  color: #f2f2f2;
+  border-color: #3a3a3a;
+}
+
+html[data-theme=dark] .adminconfig-raw {
+  background: #202020;
+  border-color: #343434;
+}
+
+@media(max-width: 900px) {
+  .adminconfig-sound-grid {
+    grid-template-columns: 1fr;
+  }
+}

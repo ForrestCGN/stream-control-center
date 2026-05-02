@@ -559,3 +559,23 @@ html[data-theme=dark] .sound-category-row {
     grid-template-columns: 1fr;
   }
 }
+
+/* Sound Settings UI Part 2B - Expert Area */
+.sound-wide-field {
+  grid-column: span 2;
+}
+
+#soundExpertHelperPath,
+#soundExpertSoundsBaseDir,
+#soundExpertOverlayUrl,
+#soundExpertAllowedExtensions,
+#soundExpertParallelCategories {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+@media(max-width: 900px) {
+  .sound-wide-field {
+    grid-column: span 1;
+  }
+}
