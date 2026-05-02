@@ -2,7 +2,7 @@
 
 ## Status
 
-Dieser Stand beschreibt den aktuellen Sound-System-/Alert-Handoff-Zwischenstand auf Branch `dev`.
+Dieser Stand beschreibt den aktuellen Sound-System-/Alert-Handoff-/Dashboard-Zwischenstand auf Branch `dev`.
 
 Der Stand umfasst:
 
@@ -14,6 +14,10 @@ Der Stand umfasst:
 - Alert-System-Handoff an das Sound-System
 - visuelle Alert-Synchronisierung über item_starting + visualLeadMs
 - getrennte Dashboard-Vorschau und Live-Test-Buttons
+- SQLite Runtime Settings für Sound-System
+- GET/POST /api/sound/settings
+- Sound-Dashboard Settings UI Teil 1
+- Sound-Dashboard Tab-Layout im Alert-Control-Center-Stil
 ```
 
 ## Wichtige Commits dieses Arbeitsblocks
@@ -52,6 +56,7 @@ backend/modules/sound_system.js
 backend/modules/alert_system.js
 backend/modules/sound_output_config.js
 backend/modules/helpers/helper_media.js
+backend/modules/sqlite_core.js
 config/sound_system.json
 htdocs/dashboard/modules/sound.js
 htdocs/dashboard/modules/sound.css
@@ -62,6 +67,7 @@ tools/audio-device-helper/Program.cs
 tools/audio-device-helper/AudioDeviceHelper.csproj
 tools/audio-device-helper/build-helper.ps1
 docs/sound_system/STEP_sound_system_2026-05-02.md
+docs/settings/SETTINGS_DASHBOARD_COVERAGE.md
 ```
 
 ## Aktueller getesteter Sound-System-Stand
@@ -78,6 +84,13 @@ docs/sound_system/STEP_sound_system_2026-05-02.md
 - Alert-Sounds werden mit `category=alert` und Priorität `80` korrekt hinter laufende Sounds eingereiht.
 - Parallel-Sounds sind vorbereitet.
 - Dashboard-Ausgabe-Modus funktioniert mit `overlay`, `device` und `both`.
+- SQLite Runtime Settings funktionieren.
+- `GET /api/sound/settings` funktioniert.
+- `POST /api/sound/settings` funktioniert.
+- Runtime-Merge `JSON + SQLite` funktioniert.
+- Persistenz nach Backend-Neustart wurde mit `queue.maxLength=55` getestet und danach wieder auf `50` zurückgesetzt.
+- Sound-Dashboard hat jetzt Tabs: `Übersicht`, `Ausgabe`, `Queue`, `Einstellungen`, `Sounds`.
+- Die Einstellungen-Karte erscheint nur im Tab `Einstellungen`.
 
 ## Aktuelle Sound-Ausgabe-Logik
 
@@ -119,9 +132,78 @@ selectedDeviceId: {0.0.0.00000000}.{d2b8e581-1cae-48b9-9b2a-deb3d488b356}
 playbackMode: auto / WASAPI erfolgreich
 ```
 
+## SQLite Runtime Settings
+
+Das Sound-System nutzt jetzt die aktive SQLite-Datenbank:
+
+```txt
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
+```
+
+Neue Tabelle:
+
+```sql
+CREATE TABLE IF NOT EXISTS sound_settings (
+  key TEXT PRIMARY KEY,
+  value_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL DEFAULT ''
+);
+```
+
+Erlaubte Runtime-Setting-Blöcke:
+
+```txt
+output
+overlay
+queue
+priorities
+defaults
+categoryDefaults
+targets
+```
+
+Merge-Reihenfolge:
+
+```txt
+DEFAULT_CONFIG im Code
++ config/sound_system.json
++ SQLite sound_settings
+= effektive Runtime-Config
+```
+
+Aktuelle neue Endpunkte:
+
+```txt
+GET  /api/sound/settings
+POST /api/sound/settings
+```
+
+`GET /api/sound/settings` liefert:
+
+```txt
+ok
+module
+databasePath
+table
+allowedBlocks
+settings   = nur SQLite-Overrides
+effective  = effektiv gemergte Blöcke
+```
+
+Getestet:
+
+```txt
+POST queue.maxLength=55
+/api/sound/status zeigt queue.maxLength=55
+Backend-Neustart
+/api/sound/status zeigt weiterhin queue.maxLength=55
+Zurückgesetzt auf queue.maxLength=50
+```
+
 ## Queue-/Priority-Policy
 
-`config/sound_system.json` steht auf Version `0.1.8`.
+`config/sound_system.json` steht aktuell im Betrieb auf Version `0.1.8`; `DEFAULT_CONFIG` im Modul kann höher sein. Entscheidend ist die effektiv gemergte Runtime-Config aus `/api/sound/status`.
 
 Wichtige Queue-Felder:
 
@@ -208,6 +290,82 @@ visual.module=alert_system
 visual.eventId=<alert-event-id>
 ```
 
+## Dashboard: Sound-System
+
+Das Sound-Dashboard liegt unter:
+
+```txt
+htdocs/dashboard/modules/sound.js
+htdocs/dashboard/modules/sound.css
+```
+
+Aktueller Aufbau im Alert-Control-Center-Stil:
+
+```txt
+Header / Hero
+Tab-Leiste
+Bereiche je Tab
+```
+
+Tabs:
+
+```txt
+Übersicht
+Ausgabe
+Queue
+Einstellungen
+Sounds
+```
+
+Tab-Mapping:
+
+```txt
+Übersicht:
+- Status
+- Aktuell
+- Policy
+- Queue
+
+Ausgabe:
+- Ausgabemodus
+- Ausgabegerät
+- Gerät-Lautstärke
+- Ausgabe speichern
+- Geräte neu laden
+- Test Ausgabe
+
+Queue:
+- Policy
+- Queue
+
+Einstellungen:
+- Runtime Settings Teil 1
+
+Sounds:
+- Sound-Liste
+```
+
+Runtime Settings UI Teil 1 speichert über `/api/sound/settings` in SQLite:
+
+```txt
+Overlay-Lautstärke
+Device-Lautstärke
+Both-Lautstärke
+Overlay fallbackFinishMs
+Abstand zwischen Sounds
+Queue aktiv
+Max Queue
+Drop when full
+Sort by priority
+Parallel erlauben
+Max Parallel
+Alert-Sync aktiv
+visualLeadMs
+maxVisualLeadMs
+```
+
+Wichtig: Die Einstellungen-Karte darf nur im Tab `Einstellungen` angezeigt werden.
+
 ## Dashboard-Vorschau vs. Live-Test
 
 In `htdocs/dashboard/modules/alerts.js` sind lokale Vorschau und Live-Test getrennt.
@@ -253,6 +411,8 @@ Soll-Zustand:
 
 ```txt
 GET  /api/sound/status
+GET  /api/sound/settings
+POST /api/sound/settings
 GET  /api/sound/list
 GET  /api/sound/devices
 POST /api/sound/devices/select
@@ -288,6 +448,42 @@ Sound-Status:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 20
+```
+
+Sound-Settings:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/settings" | ConvertTo-Json -Depth 20
+```
+
+Sound-Settings Test-POST:
+
+```powershell
+$body = @{
+  queue = @{
+    maxLength = 55
+  }
+} | ConvertTo-Json -Depth 10
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/settings" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body $body | ConvertTo-Json -Depth 20
+```
+
+Sound-Settings Reset-Testwert:
+
+```powershell
+$body = @{
+  queue = @{
+    maxLength = 50
+  }
+} | ConvertTo-Json -Depth 10
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/settings" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body $body | ConvertTo-Json -Depth 20
 ```
 
 Alert-Status:
@@ -391,17 +587,21 @@ Kurzfristig:
 ```txt
 - git status prüfen und sicherstellen, dass alle Live-Fixes auf origin/dev gepusht sind
 - Device-Stop-/Skip-Verhalten nach jedem Sound-System-Fix kurz testen
-- finale STABLE-/Projektdatei für Sound-System + Alert-Handoff erstellen
+- finale STABLE-/Projektdatei für Sound-System + Alert-Handoff + Runtime Settings erstellen
 ```
 
 Später:
 
 ```txt
-- Sound-/Alert-Konfiguration im Dashboard ausbauen
-- liveAlert.soundSystemEnabled und OutputTarget sauber im Dashboard editierbar machen
-- Prioritäten/Parallel/Interrupt-Regeln editierbar machen
+- Sound-Dashboard Settings UI Teil 2 bauen
+- Interrupt-Regeln editierbar machen
+- Drop-Regeln editierbar machen
+- Cooldowns editierbar machen
+- Dedupe editierbar machen
+- Prioritäten-Tabelle editierbar machen
+- Kategorie-Defaults editierbar machen
+- liveAlert.soundSystemEnabled und OutputTarget sauber im Alert-Dashboard editierbar machen
 - Rollen/Rechte für Live-Test-Button absichern
-- Config optional schrittweise Richtung SQLite/Runtime-Settings bringen
 - Discord-Ausgabe über Sound-System planen
 ```
 
@@ -409,4 +609,4 @@ Später:
 
 1. `git status` lokal prüfen.
 2. Falls sauber: STABLE-/Projektdatei erstellen.
-3. Danach Sound-System-Dashboard um konfigurierbare Policy-Werte erweitern.
+3. Danach Sound-Dashboard Settings UI Teil 2 bauen.
