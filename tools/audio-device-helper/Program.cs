@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using NAudio.CoreAudioApi;
 
-const string Version = "0.1.0";
+const string Version = "0.1.1";
 
 try
 {
@@ -66,7 +66,7 @@ static List<AudioDeviceInfo> ListRenderDevices()
         )
     };
 
-    using var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+    var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
     foreach (var device in devices)
     {
         var isDefault = !string.IsNullOrWhiteSpace(defaultId) && string.Equals(device.ID, defaultId, StringComparison.OrdinalIgnoreCase);
