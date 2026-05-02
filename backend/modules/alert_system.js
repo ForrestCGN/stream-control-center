@@ -23,7 +23,7 @@ const media = require('./helpers/helper_media');
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 5;
-const MODULE_STEP = 167;
+const MODULE_STEP = 168;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -58,7 +58,27 @@ const DEFAULT_CONFIG = {
   chatMessagePostUrl: '',
   chatMessagePostMethod: 'POST',
   chatMessageTimeoutMs: 2500,
-  chatMessageOutboxLimit: 100
+  chatMessageOutboxLimit: 100,
+  preview: {
+    localBrowserAudio: true,
+    sendToLiveOverlay: false,
+    sendToSoundSystem: false
+  },
+  liveAlert: {
+    soundSystemEnabled: false,
+    soundSystemPlayUrl: 'http://127.0.0.1:8080/api/sound/play',
+    soundSystemOutputTarget: 'device',
+    soundSystemCategory: 'alert',
+    soundSystemSource: 'alert_system',
+    waitForSoundItemStarted: true,
+    fallbackShowOnSoundError: true,
+    fallbackShowAfterMs: 15000
+  },
+  dashboardSettings: {
+    preferSqliteSettings: true,
+    allowRuntimeEdit: true,
+    settingsTable: 'alert_settings'
+  }
 };
 
 const DEFAULT_MESSAGES = {
@@ -598,6 +618,10 @@ function buildFfprobeStatus() {
 
 function publicConfig() {
   const cfg = { ...state.config };
+  const runtime = getRuntimeAlertSettings();
+  cfg.preview = runtime.preview;
+  cfg.liveAlert = runtime.liveAlert;
+  cfg.dashboardSettings = runtime.dashboardSettings;
   return cfg;
 }
 
@@ -606,7 +630,9 @@ function saveAlertConfig(input = {}) {
   const boolKeys = ['enabled','overlayEnabled','dashboardEnabled','queueEnabled','uploadEnabled','allowLanUploads','autoDurationOnUpload','avatarResolveEnabled','chatMessageEnabled'];
   const numberKeys = ['maxSoundSizeBytes','maxImageSizeBytes','fallbackFinishMs','gapBetweenAlertsMs','defaultDurationMs','defaultIntroMs','defaultOutroMs','soundDurationPaddingMs','minAutoDurationMs','maxAutoDurationMs','ffprobeTimeoutMs','avatarResolveTimeoutMs','avatarResolveCacheMs','chatMessageTimeoutMs','chatMessageOutboxLimit'];
   const stringKeys = ['soundsDir','imagesDir','wsOp','avatarResolveUserinfoUrl','chatMessagePostUrl','chatMessagePostMethod'];
+  const runtimeSettingKeys = ['preview', 'liveAlert', 'dashboardSettings'];
   const next = { ...state.config };
+  const runtimeUpdates = {};
   for (const key of boolKeys) {
     if (Object.prototype.hasOwnProperty.call(input, key)) next[key] = input[key] === true || String(input[key]) === 'true' || input[key] === 1 || String(input[key]) === '1';
   }
@@ -619,11 +645,17 @@ function saveAlertConfig(input = {}) {
   for (const key of stringKeys) {
     if (Object.prototype.hasOwnProperty.call(input, key)) next[key] = cleanText(input[key]);
   }
+  for (const key of runtimeSettingKeys) {
+    if (Object.prototype.hasOwnProperty.call(input, key)) {
+      runtimeUpdates[key] = sanitizeSettingsObject(input[key]);
+    }
+  }
   state.config = { ...DEFAULT_CONFIG, ...next };
+  if (Object.keys(runtimeUpdates).length) saveSettings(runtimeUpdates);
   const configPath = configHelper.resolveConfigFile('alert_system.json');
   configHelper.writeJsonFile(configPath, state.config, { spaces: 2 });
   ensureDirs();
-  return { ok: true, config: publicConfig(), configPath };
+  return { ok: true, config: publicConfig(), settings: getSettings(), runtime: getRuntimeAlertSettings(), configPath };
 }
 
 
@@ -957,11 +989,42 @@ function probeSoundFile(filePath) {
   };
 }
 
+function readSettingsRows() {
+  try {
+    return sqlite.all(`SELECT key, value_json, updated_at FROM alert_settings ORDER BY key ASC`);
+  } catch (_) {
+    return [];
+  }
+}
+
 function getSettings() {
-  const rows = sqlite.all(`SELECT key, value_json, updated_at FROM alert_settings ORDER BY key ASC`);
   const out = {};
-  for (const row of rows) out[row.key] = parseJson(row.value_json, null);
+  for (const row of readSettingsRows()) out[row.key] = parseJson(row.value_json, null);
   return out;
+}
+
+function deepMergePlain(base, override) {
+  const out = { ...(base && typeof base === 'object' && !Array.isArray(base) ? base : {}) };
+  if (!override || typeof override !== 'object' || Array.isArray(override)) return out;
+  for (const [key, value] of Object.entries(override)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) out[key] = deepMergePlain(out[key], value);
+    else out[key] = value;
+  }
+  return out;
+}
+
+function getRuntimeAlertSettings() {
+  const settings = getSettings();
+  return {
+    preview: deepMergePlain(DEFAULT_CONFIG.preview, deepMergePlain(state.config.preview, settings.preview)),
+    liveAlert: deepMergePlain(DEFAULT_CONFIG.liveAlert, deepMergePlain(state.config.liveAlert, settings.liveAlert)),
+    dashboardSettings: deepMergePlain(DEFAULT_CONFIG.dashboardSettings, deepMergePlain(state.config.dashboardSettings, settings.dashboardSettings))
+  };
+}
+
+function sanitizeSettingsObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return JSON.parse(JSON.stringify(value));
 }
 
 function saveSettings(input) {
@@ -976,7 +1039,7 @@ function saveSettings(input) {
       ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, updated_at=excluded.updated_at
     `, { key: clean, valueJson: JSON.stringify(value), now });
   }
-  return { ok: true, settings: getSettings() };
+  return { ok: true, settings: getSettings(), runtime: getRuntimeAlertSettings() };
 }
 
 function enqueueFromRequest(req, broadcastWS, defaultSource) {
