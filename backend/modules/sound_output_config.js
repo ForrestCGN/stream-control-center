@@ -86,6 +86,14 @@ module.exports.init = function init(ctx) {
     return Math.max(min, Math.min(max, n));
   }
 
+  function getField(obj, ...names) {
+    if (!obj || typeof obj !== "object") return undefined;
+    for (const name of names) {
+      if (Object.prototype.hasOwnProperty.call(obj, name)) return obj[name];
+    }
+    return undefined;
+  }
+
   function resolveHelperPath(output) {
     const helperPath = output && output.targets && output.targets.device && output.targets.device.helper
       ? String(output.targets.device.helper.path || "")
@@ -121,6 +129,27 @@ module.exports.init = function init(ctx) {
     ];
   }
 
+  function extractDevices(parsed) {
+    if (Array.isArray(parsed)) return parsed;
+    if (!parsed || typeof parsed !== "object") return [];
+    const devices = getField(parsed, "devices", "Devices");
+    return Array.isArray(devices) ? devices : [];
+  }
+
+  function normalizeDevice(raw, selected) {
+    const id = String(getField(raw, "id", "Id", "deviceId", "DeviceId", "name", "Name") || "default");
+    const name = String(getField(raw, "name", "Name", "label", "Label", "id", "Id") || "Windows Standardgerät");
+    const type = String(getField(raw, "type", "Type") || "output");
+    const isDefaultValue = getField(raw, "isDefault", "IsDefault", "default", "Default");
+    return {
+      id,
+      name,
+      type,
+      isDefault: isDefaultValue === true || String(id) === "default",
+      selected: String(id) === String(selected)
+    };
+  }
+
   function readDevicesViaHelper(output) {
     const info = helperInfo(output);
     if (!info.enabled) return { ok: false, reason: "helper_disabled", helper: info, devices: fallbackDevices(output) };
@@ -133,8 +162,9 @@ module.exports.init = function init(ctx) {
         windowsHide: true
       });
       const parsed = core.safeJsonParse(raw, null);
-      const devices = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.devices) ? parsed.devices : []);
-      return { ok: true, reason: "helper", helper: info, devices };
+      const devices = extractDevices(parsed);
+      if (!devices.length) return { ok: false, reason: "helper_no_devices", helper: info, raw, devices: fallbackDevices(output) };
+      return { ok: true, reason: "helper", helper: info, devices, raw };
     } catch (err) {
       return { ok: false, reason: "helper_failed", error: err.message || String(err), helper: info, devices: fallbackDevices(output) };
     }
@@ -189,13 +219,7 @@ module.exports.init = function init(ctx) {
     const output = data.output || DEFAULT_OUTPUT;
     const result = readDevicesViaHelper(output);
     const selected = output.targets && output.targets.device ? output.targets.device.selectedDeviceId || "default" : "default";
-    const devices = (result.devices || []).map(device => ({
-      id: String(device.id || device.deviceId || device.name || "default"),
-      name: String(device.name || device.label || device.id || "Windows Standardgerät"),
-      type: String(device.type || "output"),
-      isDefault: device.isDefault === true || device.default === true || String(device.id || "") === "default",
-      selected: String(device.id || device.deviceId || device.name || "default") === selected
-    }));
+    const devices = (result.devices || []).map(device => normalizeDevice(device, selected));
 
     return res.json({
       ok: true,
