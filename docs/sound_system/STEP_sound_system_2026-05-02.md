@@ -2,18 +2,29 @@
 
 ## Status
 
-Dieser Stand beschreibt den aktuellen Sound-System-Zwischenstand auf Branch `dev` nach getestetem Core-Policy-Patch.
+Dieser Stand beschreibt den aktuellen Sound-System-/Alert-Handoff-Zwischenstand auf Branch `dev`.
 
-Neue Commits dieses Steps:
+Der Stand umfasst:
+
+```txt
+- Sound-System mit Device-Ausgabe über AudioDeviceHelper
+- echte Sounddauer per ffprobe
+- dynamischer Helper-Timeout für lange Sounds
+- Prioritäts-/Queue-Policy
+- Alert-System-Handoff an das Sound-System
+- visuelle Alert-Synchronisierung über item_starting + visualLeadMs
+- getrennte Dashboard-Vorschau und Live-Test-Buttons
+```
+
+## Wichtige Commits dieses Arbeitsblocks
 
 ```txt
 d625421 Apply sound core priority policy
-73ccf85 Align sound output helper defaults
-93cfa32 Show sound queue policy and alert sync state in dashboard
-8639360 Prepare sound priority and alert sync policy config
+430bcdf Prepare alert visual lead sync
+79d3904 Add alert live sound handoff
 ```
 
-Wichtige vorherige Commits:
+Weitere relevante Commits aus dem Sound-System-Aufbau:
 
 ```txt
 70f00e2 Hide redundant sound output target pills
@@ -27,70 +38,107 @@ ac9ac62 Wire sound dashboard device controls to working endpoints
 9caaf78 Fix dynamic helper timeout for long sounds
 2bc8433 Use real sound duration and prepare parallel policy
 7df137c Connect sound core to audio device helper
+73ccf85 Align sound output helper defaults
+93cfa32 Show sound queue policy and alert sync state in dashboard
+8639360 Prepare sound priority and alert sync policy config
 ```
+
+Hinweis: Falls weitere lokale Commits nach diesem Dokument erstellt wurden, `git log --oneline -10` prüfen und diese Liste ergänzen.
 
 ## Wichtige Dateien
 
 ```txt
 backend/modules/sound_system.js
+backend/modules/alert_system.js
 backend/modules/sound_output_config.js
 backend/modules/helpers/helper_media.js
 config/sound_system.json
 htdocs/dashboard/modules/sound.js
 htdocs/dashboard/modules/sound.css
+htdocs/dashboard/modules/alerts.js
 htdocs/overlays/sound_system_overlay.html
+htdocs/overlays/_overlay-alerts-v2.html
 tools/audio-device-helper/Program.cs
 tools/audio-device-helper/AudioDeviceHelper.csproj
 tools/audio-device-helper/build-helper.ps1
 docs/sound_system/STEP_sound_system_2026-05-02.md
 ```
 
-## Aktueller getesteter Funktionsstand
+## Aktueller getesteter Sound-System-Stand
 
 - AudioDeviceHelper funktioniert.
 - Direkte Ausgabe auf Windows-Audiogeräte funktioniert.
-- Getestetes Gerät: `Voicemeeter AUX Input (VB-Audio Voicemeeter VAIO)` / `{0.0.0.00000000}.{d2b8e581-1cae-48b9-9b2a-deb3d488b356}`.
+- Getestetes Gerät: `Voicemeeter AUX Input (VB-Audio Voicemeeter VAIO)`.
+- Getestete Device-ID: `{0.0.0.00000000}.{d2b8e581-1cae-48b9-9b2a-deb3d488b356}`.
 - WASAPI funktioniert für Voicemeeter AUX.
 - Echte Sounddauer wird per `ffprobe` über `helper_media.getAudioInfo()` ermittelt.
 - Lange Sounds brechen nicht mehr wegen Helper-Timeout ab.
 - Dynamischer Helper-Timeout funktioniert.
 - Queue funktioniert.
-- Parallel-Sounds sind vorbereitet und grundsätzlich getestet.
-- Sound-Dashboard ist vorhanden und wurde vereinfacht.
-- Core-Policy für `categoryDefaults`, `priorities`, `meta`, `visual` und `interruptRules` ist aktiv.
+- Alert-Sounds werden mit `category=alert` und Priorität `80` korrekt hinter laufende Sounds eingereiht.
+- Parallel-Sounds sind vorbereitet.
+- Dashboard-Ausgabe-Modus funktioniert mit `overlay`, `device` und `both`.
 
-## Neuer Stand dieses Steps
+## Aktuelle Sound-Ausgabe-Logik
 
-### 1. Alert-Sync-Policy in Config vorbereitet
+Ausgabe-Modi:
+
+```txt
+Overlay / OBS
+Audiogerät
+Beides
+```
+
+Interne Speicherlogik:
+
+```txt
+Overlay / OBS:
+  output.defaultTarget=overlay
+  output.targets.overlay.enabled=true
+  output.targets.device.enabled=false
+  output.targets.both.enabled=false
+
+Audiogerät:
+  output.defaultTarget=device
+  output.targets.overlay.enabled=false
+  output.targets.device.enabled=true
+  output.targets.both.enabled=false
+
+Beides:
+  output.defaultTarget=both
+  output.targets.overlay.enabled=true
+  output.targets.device.enabled=true
+  output.targets.both.enabled=true
+```
+
+Aktuell getestetes Device:
+
+```txt
+selectedDeviceName: Voicemeeter AUX Input (VB-Audio Voicemeeter VAIO)
+selectedDeviceId: {0.0.0.00000000}.{d2b8e581-1cae-48b9-9b2a-deb3d488b356}
+playbackMode: auto / WASAPI erfolgreich
+```
+
+## Queue-/Priority-Policy
 
 `config/sound_system.json` steht auf Version `0.1.8`.
 
-Neu bzw. erweitert:
+Wichtige Queue-Felder:
 
 ```txt
-queue.sortByPriority
-queue.allowParallel
-queue.maxParallel
-queue.parallelCategories
-queue.parallelSoundIds
-queue.alertSync
-queue.interruptRules
-queue.dropRules
-queue.cooldowns
-queue.dedupe
-priorities
-categoryDefaults
+queue.sortByPriority=true
+queue.enabled=true
+queue.maxLength=50
+queue.dropWhenFull=true
+queue.allowParallel=true
+queue.maxParallel=3
+queue.parallelCategories=[system, admin, ui, test]
+queue.alertSync.enabled=true
+queue.alertSync.visualLeadMs=150
+queue.alertSync.maxVisualLeadMs=500
 ```
 
-Wichtige Policy:
-
-```txt
-Normale Alerts unterbrechen keine laufenden Sounds/Lieder.
-Alerts werden nach Priorität in die Sound-Queue einsortiert.
-Wenn ein Alert-Sound-Item später dran ist, soll das Alert-System den visuellen Alert synchron dazu anzeigen.
-```
-
-Prioritätsidee in der Config:
+Prioritätsidee:
 
 ```txt
 100 = admin/system
@@ -105,6 +153,7 @@ Prioritätsidee in der Config:
 Alert-Defaults:
 
 ```txt
+category=alert
 priority=80
 canInterrupt=false
 canBeInterrupted=false
@@ -113,70 +162,193 @@ dropIfBusy=false
 parallelAllowed=false
 ```
 
-### 2. Dashboard erweitert
-
-`htdocs/dashboard/modules/sound.js` zeigt zusätzlich:
+Gewünschtes Verhalten:
 
 ```txt
-- Parallel-Anzahl im Status
-- Policy-Karte mit Prioritäts-Queue, Max Queue, Max Parallel, Alert-Priorität, Alert-Sync und Interrupt-Schwelle
-- Aktueller Sound mit Kategorie, Quelle, OutputTarget, Priorität und Unterbrechbar-Status
-- Queue mit Kategorie, Quelle, Priorität, OutputTarget und Lautstärke
+Normale Alerts unterbrechen keine laufenden Sounds/Lieder.
+Alerts werden nach Priorität in die Sound-Queue einsortiert.
+Wenn ein Alert-Sound-Item später dran ist, wird der visuelle Alert synchron dazu angezeigt.
 ```
 
-### 3. Output-Helper-Defaults angeglichen
+## Alert-System-Handoff an Sound-System
 
-`backend/modules/sound_output_config.js` nutzt denselben Helper-Pfad wie die echte Config:
+Aktueller Ablauf bei Live-Alerts mit Sound:
 
 ```txt
-tools/audio-device-helper/dist/AudioDeviceHelper.exe
+1. Alert-System erzeugt das Alert-Event.
+2. Alert-System sendet event=prepare ans Alert-Overlay.
+3. Alert-System ruft /api/sound/play auf.
+4. Sound-System sortiert/queued das Sound-Item nach Priorität.
+5. Wenn das Alert-Sound-Item dran ist, sendet Sound-System item_starting.
+6. Alert-Overlay zeigt den vorbereiteten Alert bei item_starting.
+7. Sound-System wartet visualLeadMs, aktuell 150 ms.
+8. Sound startet über das konfigurierte OutputTarget, aktuell meist device.
+9. Danach sendet Sound-System item_started.
 ```
 
-Außerdem sind die Defaults angeglichen:
+Wichtig:
 
 ```txt
-helper.enabled=true
-timeoutMs=30000
-playbackMode=auto
+Sound soll nicht vor dem Overlay starten.
+Overlay soll möglichst gleichzeitig oder minimal vor dem Sound erscheinen.
+Deshalb item_starting + visualLeadMs=150.
 ```
 
-### 4. Core-Policy-Patch aktiv
-
-`backend/modules/sound_system.js` wurde mit Commit `d625421` erweitert.
-
-Aktiv:
-
-```txt
-- categoryDefaults werden beim normalizePlayRequest berücksichtigt
-- priorities aus config.priorities werden als Fallback genutzt
-- queue.sortByPriority wird beachtet
-- queue.interruptRules ersetzt die harte alte Interrupt-Logik
-- meta und visual werden an Sound-Items erlaubt
-- publicItem() gibt meta/visual/lifecycle aus
-- startItem() sendet item_started WebSocket-Event für spätere Alert-Sync-Anbindung
-- Drop-Regeln bei Busy / voller Queue sind vorbereitet
-- Cooldown/Dedupe Runtime-State ist vorbereitet
-```
-
-Getesteter Alert-Simulations-Request:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&category=alert&source=alert_system&meta={%22alertId%22:%22test-alert-1%22,%22provider%22:%22test%22}&visual={%22module%22:%22alert_system%22,%22eventId%22:%22test-alert-1%22}" | ConvertTo-Json -Depth 20
-```
-
-Bestätigtes Ergebnis:
+Beispiel eines Alert-Sound-Items in der Queue:
 
 ```txt
 category=alert
 priority=80
-canInterrupt=false
-canBeInterrupted=false
-meta.alertId=test-alert-1
-meta.provider=test
-visual.module=alert_system
-visual.eventId=test-alert-1
-durationSource=ffprobe
+source=alert_system
 outputTarget=device
+meta.alertId=<alert-event-id>
+meta.provider=twitch
+meta.type=bits
+visual.module=alert_system
+visual.eventId=<alert-event-id>
+```
+
+## Dashboard-Vorschau vs. Live-Test
+
+In `htdocs/dashboard/modules/alerts.js` sind lokale Vorschau und Live-Test getrennt.
+
+Regel-Liste:
+
+```txt
+👁 Lokale Vorschau
+● Live-Test in OBS
+✎ Bearbeiten
+× Löschen
+```
+
+### 👁 Lokale Vorschau
+
+Soll-Zustand:
+
+```txt
+- läuft nur auf dem Rechner des Bearbeiters
+- öffnet lokales Popout mit /overlays/_overlay-alerts-v2.html?preview=1
+- spielt den Sound lokal über den Dashboard-Browser mit playSoundUrl(...)
+- kein OBS
+- keine Alert-Queue
+- kein Sound-System
+- kein Voicemeeter
+```
+
+Wichtig: Der lokale Vorschau-Sound wird bewusst vom Dashboard selbst abgespielt, nicht vom Overlay-Iframe. Das verhindert Browser-/Iframe-Autoplay-Probleme.
+
+### ● Live-Test in OBS
+
+Soll-Zustand:
+
+```txt
+- fragt vorher per confirm() nach
+- nutzt /api/alerts/test mit mode=live und isTest=true
+- läuft durch echte Alert-System- und Sound-System-Pipeline
+- OBS-Overlay zeigt den Alert
+- Sound läuft über konfiguriertes OutputTarget, z. B. device/Voicemeeter
+```
+
+## Aktuelle API-Endpunkte Sound-System
+
+```txt
+GET  /api/sound/status
+GET  /api/sound/list
+GET  /api/sound/devices
+POST /api/sound/devices/select
+GET  /api/sound/play
+POST /api/sound/play
+POST /api/sound/output
+POST /api/sound/reload
+POST /api/sound/stop
+POST /api/sound/skip
+POST /api/sound/clear
+POST /api/sound/reset
+```
+
+## Aktuelle API-Endpunkte Alert-System, relevant für diesen Stand
+
+```txt
+GET  /api/alerts/status
+POST /api/alerts/settings
+POST /api/alerts/test
+POST /api/alerts/clear
+POST /api/alerts/reload
+GET  /api/alerts/rules
+GET  /api/alerts/assets
+GET  /api/alerts/text-variants
+GET  /api/alerts/chat-blocks
+GET  /api/alerts/test-presets
+GET  /api/alerts/display-profiles
+```
+
+## Getestete PowerShell-Befehle
+
+Sound-Status:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 20
+```
+
+Alert-Status:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/status" | ConvertTo-Json -Depth 20
+```
+
+Alert-Sound-Handoff aktiv prüfen:
+
+```powershell
+(Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/status").config.liveAlert | ConvertTo-Json -Depth 10
+```
+
+Erwartung:
+
+```txt
+soundSystemEnabled=true
+soundSystemOutputTarget=device
+soundSystemCategory=alert
+soundSystemSource=alert_system
+```
+
+Kurzer Device-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100" | ConvertTo-Json -Depth 20
+```
+
+Langer Device-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=crew%2FAraglor%20Immer%20Dabei.mp3&outputTarget=device&volume=100&category=fun" | ConvertTo-Json -Depth 20
+```
+
+Alert während laufendem Lied einreihen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/twitch/bits?user=ForrestCGN&userLogin=forrestcgn&amount=100&message=Sound-System-Sync-Test" | ConvertTo-Json -Depth 20
+```
+
+Erwartung während das Lied läuft:
+
+```txt
+current.category=fun
+queue[0].category=alert
+queue[0].priority=80
+queue[0].source=alert_system
+queue[0].visual.module=alert_system
+```
+
+Skip-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/skip" -Method POST | ConvertTo-Json -Depth 20
+```
+
+Reset:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/reset" -Method POST | ConvertTo-Json -Depth 20
 ```
 
 ## Wichtiges Betriebsproblem / Lösung
@@ -198,88 +370,43 @@ Backups niemals mit .js-Endung direkt in backend/modules liegen lassen.
 Stattdessen .bak verwenden oder außerhalb von backend/modules ablegen.
 ```
 
-## Alert-System ist noch nicht angebunden
+## Aktive Pfad-Regel für Dashboard-Module
 
-Noch nicht geändert:
-
-```txt
-backend/modules/alert_system.js
-config/alerts*
-htdocs/dashboard/modules/alerts*
-```
-
-Ziel später:
+Für dieses Projekt gilt aktuell:
 
 ```txt
-Alert-System entscheidet, welcher Alert mit welchem Sound kommt.
-Sound-System entscheidet, wann/wie/wo der Sound läuft.
-Alert-System zeigt den visuellen Alert erst, wenn das Sound-System das Alert-Sound-Item startet.
+Repo-Pfad:
+D:\Git\stream-control-center\htdocs\dashboard\modules\*.js
+
+Live-Pfad:
+D:\Streaming\stramAssets\htdocs\dashboard\modules\*.js
 ```
 
-## Testbefehle
+Wichtig: Nicht versehentlich nach `D:\Streaming\stramAssets\dashboard\modules\` patchen, wenn die aktive Webauslieferung über `htdocs/dashboard/modules/` läuft.
 
-Status:
+## Aktuell offene Punkte
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 20
+Kurzfristig:
+
+```txt
+- git status prüfen und sicherstellen, dass alle Live-Fixes auf origin/dev gepusht sind
+- Device-Stop-/Skip-Verhalten nach jedem Sound-System-Fix kurz testen
+- finale STABLE-/Projektdatei für Sound-System + Alert-Handoff erstellen
 ```
 
-Output anzeigen:
+Später:
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/output" | ConvertTo-Json -Depth 20
-```
-
-Config reload:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/reload" -Method POST
-```
-
-Kurzer Device-Test:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100" | ConvertTo-Json -Depth 20
-```
-
-Langer Device-Test:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=crew%2FAraglor%20Immer%20Dabei.mp3&outputTarget=device&override=true&volume=100" | ConvertTo-Json -Depth 20
-```
-
-Parallel-Test:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&parallelAllowed=true&category=system" | ConvertTo-Json -Depth 20
-```
-
-Alert-Core-Test ohne echte Alert-Anbindung:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&category=alert&source=alert_system&meta={%22alertId%22:%22test-alert-1%22,%22provider%22:%22test%22}&visual={%22module%22:%22alert_system%22,%22eventId%22:%22test-alert-1%22}" | ConvertTo-Json -Depth 20
-```
-
-Reset:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/reset" -Method POST
+```txt
+- Sound-/Alert-Konfiguration im Dashboard ausbauen
+- liveAlert.soundSystemEnabled und OutputTarget sauber im Dashboard editierbar machen
+- Prioritäten/Parallel/Interrupt-Regeln editierbar machen
+- Rollen/Rechte für Live-Test-Button absichern
+- Config optional schrittweise Richtung SQLite/Runtime-Settings bringen
+- Discord-Ausgabe über Sound-System planen
 ```
 
 ## Nächster empfohlener Step
 
-1. Backup-Branch weiter behalten:
-
-```txt
-origin/backup/dev-before-sound-duration-parallel-policy
-```
-
-2. Als nächstes Alert-System-Anbindung planen:
-
-```txt
-- Alert-Regel findet Sound-Daten
-- Alert-System übergibt Sound-Item mit category=alert, meta und visual ans Sound-System
-- Alert-System zeigt den visuellen Alert erst auf item_started / passendes alertId/eventId
-```
-
-3. Danach Dashboard-Regelbearbeitung für Priorität/Parallel/Interrupt vorbereiten.
+1. `git status` lokal prüfen.
+2. Falls sauber: STABLE-/Projektdatei erstellen.
+3. Danach Sound-System-Dashboard um konfigurierbare Policy-Werte erweitern.
