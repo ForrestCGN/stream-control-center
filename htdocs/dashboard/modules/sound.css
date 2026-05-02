@@ -42,6 +42,33 @@
   border-bottom: 0;
 }
 
+.sound-field {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.sound-field span {
+  color: var(--muted, #9fb0c8);
+  font-size: 12px;
+}
+
+.sound-field select,
+.sound-field input[type="number"] {
+  width: 100%;
+  min-height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(130, 220, 255, .22);
+  background: rgba(4, 8, 18, .42);
+  color: inherit;
+  padding: 7px 10px;
+}
+
+.sound-status-row input[type="checkbox"] {
+  transform: translateY(1px);
+  margin-right: 6px;
+}
+
 .sound-muted {
   color: var(--muted, #9fb0c8);
   font-size: 12px;
