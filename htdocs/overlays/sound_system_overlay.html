@@ -13,12 +13,21 @@
       box-shadow: 0 0 24px rgba(140, 80, 255, .18); font-size: 12px;
       opacity: 0; transform: translateY(8px); transition: opacity .25s ease, transform .25s ease; pointer-events: none;
     }
-    body[data-debug="1"] #status { opacity: 1; transform: translateY(0); }
+    #unlock {
+      position: fixed; right: 16px; bottom: 16px; padding: 9px 13px;
+      border: 1px solid rgba(130, 230, 255, .45); border-radius: 999px;
+      color: rgba(255,255,255,.88); background: rgba(10, 18, 35, .72);
+      box-shadow: 0 0 24px rgba(70, 200, 255, .18); font-size: 12px;
+      cursor: pointer; opacity: 0; transform: translateY(8px); transition: opacity .25s ease, transform .25s ease;
+    }
+    body[data-debug="1"] #status, body[data-debug="1"] #unlock { opacity: 1; transform: translateY(0); }
+    body[data-audio-unlocked="1"] #unlock { display: none; }
   </style>
 </head>
 <body>
   <audio id="player" preload="auto"></audio>
   <div id="status">Sound-System Overlay</div>
+  <button id="unlock" type="button">Audio aktivieren</button>
 
   <script>
     (function(){
@@ -27,6 +36,7 @@
       const API = '/api/sound';
       const player = document.getElementById('player');
       const status = document.getElementById('status');
+      const unlockBtn = document.getElementById('unlock');
       const qs = new URLSearchParams(location.search);
       if (qs.get('debug') === '1') document.body.dataset.debug = '1';
 
@@ -35,6 +45,7 @@
       let reconnectTimer = null;
       let audioContext = null;
       let beepNodes = [];
+      let audioUnlocked = false;
 
       function setStatus(text){ if (status) status.textContent = text || 'Sound-System Overlay'; }
 
@@ -71,6 +82,32 @@
         return audioContext;
       }
 
+      async function unlockAudio(){
+        const ctx = getAudioContext();
+        if (!ctx) {
+          setStatus('AudioContext nicht verfügbar');
+          return false;
+        }
+        try {
+          if (ctx.state === 'suspended') await ctx.resume();
+          const buffer = ctx.createBuffer(1, 1, 22050);
+          const source = ctx.createBufferSource();
+          const gain = ctx.createGain();
+          gain.gain.value = 0.0001;
+          source.buffer = buffer;
+          source.connect(gain);
+          gain.connect(ctx.destination);
+          source.start(0);
+          audioUnlocked = ctx.state === 'running';
+          document.body.dataset.audioUnlocked = audioUnlocked ? '1' : '0';
+          setStatus(audioUnlocked ? 'Audio aktiv · Verbunden' : 'Audio noch blockiert');
+          return audioUnlocked;
+        } catch (err) {
+          setStatus('Audio blockiert: ' + (err && err.message ? err.message : String(err)));
+          return false;
+        }
+      }
+
       async function playGeneratedBeep(item){
         stopAudio();
         currentRequestId = item.requestId;
@@ -83,7 +120,15 @@
         }
 
         try {
-          if (ctx.state === 'suspended') await ctx.resume();
+          if (ctx.state === 'suspended') {
+            await ctx.resume();
+            if (ctx.state === 'suspended') {
+              setStatus('Audio blockiert · Button klicken');
+              await post('/client/error', { requestId: currentRequestId, error: 'audio_context_suspended' });
+              return;
+            }
+          }
+
           const durationSeconds = Math.max(0.05, Number(item.durationMs || 350) / 1000);
           const frequency = Math.max(80, Math.min(2000, Number(item.frequency || 880)));
           const volume = normalizeVolume(item.volume) * 0.35;
@@ -101,6 +146,8 @@
           osc.start(now);
           osc.stop(now + durationSeconds + 0.03);
           beepNodes = [osc, gain];
+          audioUnlocked = true;
+          document.body.dataset.audioUnlocked = '1';
 
           await post('/client/audio-started', { requestId: currentRequestId });
           setTimeout(async () => {
@@ -126,8 +173,11 @@
 
         try {
           await player.play();
+          audioUnlocked = true;
+          document.body.dataset.audioUnlocked = '1';
           await post('/client/audio-started', { requestId: currentRequestId });
         } catch (err) {
+          setStatus('Audio blockiert · Button klicken');
           await post('/client/error', { requestId: currentRequestId, error: err && err.message ? err.message : String(err) });
           stopAudio();
         }
@@ -177,11 +227,14 @@
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         ws = new WebSocket(protocol + '//' + location.host);
 
-        ws.addEventListener('open', () => { setStatus('Verbunden'); post('/client/ready', { overlay: 'sound_system_overlay' }); });
+        ws.addEventListener('open', () => { setStatus(audioUnlocked ? 'Audio aktiv · Verbunden' : 'Verbunden · Audio aktivieren'); post('/client/ready', { overlay: 'sound_system_overlay' }); });
         ws.addEventListener('message', (event) => { try { handleMessage(JSON.parse(event.data)); } catch (_) {} });
         ws.addEventListener('close', () => { setStatus('Getrennt - reconnect'); reconnectTimer = setTimeout(connect, 1500); });
         ws.addEventListener('error', () => { try { ws.close(); } catch (_) {} });
       }
+
+      unlockBtn?.addEventListener('click', unlockAudio);
+      document.body.addEventListener('pointerdown', () => { if (!audioUnlocked) unlockAudio(); }, { passive: true });
 
       connect();
       post('/client/ready', { overlay: 'sound_system_overlay', boot: true });
