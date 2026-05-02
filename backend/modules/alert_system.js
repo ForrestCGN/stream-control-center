@@ -5,6 +5,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const https = require('https');
 
 let multer = null;
 let multerLoadError = '';
@@ -1470,26 +1472,172 @@ function findMatchingRule(payload) {
   return rule ? { ...rule, meta: parseJson(rule.meta_json, {}) } : null;
 }
 
+
+function shouldUseSoundSystemForAlert(event, overlayAlert) {
+  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+  if (liveAlert.soundSystemEnabled !== true) return false;
+  if (!event || !overlayAlert || !overlayAlert.soundUrl) return false;
+  const raw = event.raw && typeof event.raw === 'object' ? event.raw : {};
+  const mode = cleanKey(raw.mode || raw.alertMode || raw.testMode || '');
+  const previewRequested = raw.preview === true || String(raw.preview || '').toLowerCase() === 'true' || mode === 'preview';
+  if (previewRequested) return false;
+  if (event.source === 'test' && mode !== 'live') return false;
+  return true;
+}
+
+function soundFileFromPublicUrl(publicUrl) {
+  const raw = cleanText(publicUrl || '');
+  if (!raw) return '';
+  let pathname = raw;
+  try {
+    pathname = new URL(raw, 'http://127.0.0.1').pathname || raw;
+  } catch (_) {
+    pathname = raw;
+  }
+  let clean = String(pathname || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  if (clean.toLowerCase().startsWith('assets/sounds/')) clean = clean.slice('assets/sounds/'.length);
+  try { clean = decodeURIComponent(clean); } catch (_) {}
+  return clean.replace(/^\/+/, '');
+}
+
+function buildSoundSystemPayload(event, overlayAlert) {
+  if (!shouldUseSoundSystemForAlert(event, overlayAlert)) return null;
+  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+  const file = soundFileFromPublicUrl(overlayAlert.soundUrl || '');
+  if (!file) return null;
+  const raw = event.raw && typeof event.raw === 'object' ? event.raw : {};
+  const rule = event.rule || {};
+  const meta = rule.meta && typeof rule.meta === 'object' ? rule.meta : {};
+  const volumeCandidate = raw.soundVolume ?? raw.volume ?? meta.soundVolume ?? meta.volume ?? liveAlert.soundSystemVolume ?? overlayAlert.soundVolume;
+  const volume = Number.isFinite(Number(volumeCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(volumeCandidate)))) : 85;
+  const outputTarget = cleanKey(raw.outputTarget || raw.soundOutputTarget || meta.outputTarget || meta.soundOutputTarget || liveAlert.soundSystemOutputTarget || 'device') || 'device';
+  const category = cleanKey(raw.soundCategory || meta.soundCategory || liveAlert.soundSystemCategory || 'alert') || 'alert';
+  const source = cleanKey(liveAlert.soundSystemSource || 'alert_system') || 'alert_system';
+  const isTest = raw.isTest === true || raw.test === true || String(raw.isTest || raw.test || '').toLowerCase() === 'true' || cleanKey(raw.mode || '') === 'live_test';
+
+  return {
+    file,
+    outputTarget,
+    volume,
+    category,
+    source,
+    requestedBy: event.user_display || event.user_login || '',
+    meta: {
+      alertId: event.eventUid,
+      provider: event.source,
+      type: event.type_key,
+      ruleId: rule.id || null,
+      isTest,
+      replayOf: event.replayOf || raw.replayOf || null
+    },
+    visual: {
+      module: 'alert_system',
+      eventId: event.eventUid
+    }
+  };
+}
+
+function postJson(targetUrl, payload, timeoutMs = 3500) {
+  return new Promise((resolve, reject) => {
+    let parsed;
+    try { parsed = new URL(targetUrl); } catch (err) { reject(err); return; }
+    const body = JSON.stringify(payload || {});
+    const transport = parsed.protocol === 'https:' ? https : http;
+    const req = transport.request({
+      method: 'POST',
+      protocol: parsed.protocol,
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path: `${parsed.pathname}${parsed.search || ''}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      },
+      timeout: Math.max(500, Number(timeoutMs) || 3500)
+    }, res => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        let json = null;
+        try { json = data ? JSON.parse(data) : null; } catch (_) { json = null; }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`http_${res.statusCode}: ${data.slice(0, 300)}`));
+          return;
+        }
+        if (json && json.ok === false) {
+          reject(new Error(json.error || json.message || 'sound_system_rejected'));
+          return;
+        }
+        resolve(json || { ok: true, raw: data });
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('sound_system_timeout')));
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 async function processQueue(broadcastWS) {
   if (state.processing || state.current) return;
   if (!state.queue.length) return;
   state.processing = true;
   const event = state.queue.shift();
   state.current = event;
-  if (event.rule && event.rule.id) event.rule = getRuleById(event.rule.id) || event.rule;
-  await enrichEventAvatar(event);
-  event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
-  event.status = 'playing';
-  event.started_at = nowIso();
-  sqlite.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, { startedAt: event.started_at, eventUid: event.eventUid });
-  const overlayAlert = buildOverlayAlert(event);
-  sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
-  dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
-  const duration = event.effectiveDurationMs;
+  try {
+    if (event.rule && event.rule.id) event.rule = getRuleById(event.rule.id) || event.rule;
+    await enrichEventAvatar(event);
+    event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
+    event.status = 'playing';
+    event.started_at = nowIso();
+    sqlite.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, { startedAt: event.started_at, eventUid: event.eventUid });
+    const overlayAlert = buildOverlayAlert(event);
+    const soundSync = await prepareSoundSyncedAlert(event, overlayAlert, broadcastWS);
+    if (!soundSync.synced) {
+      sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
+      startCurrentFallbackTimer(event, broadcastWS);
+    }
+    dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
+  } catch (err) {
+    console.warn('[alert_system] processQueue failed:', err && err.message ? err.message : err);
+    finishCurrent('process_error', broadcastWS);
+  } finally {
+    state.processing = false;
+  }
+}
+
+function startCurrentFallbackTimer(event, broadcastWS) {
+  const duration = Number(event && event.effectiveDurationMs || 0) > 0 ? Number(event.effectiveDurationMs) : Number(state.config.defaultDurationMs || 7000);
   const fallback = Math.max(duration + Number(state.config.fallbackFinishMs || 12000), duration + 1000);
   clearTimeout(state.finishTimer);
   state.finishTimer = setTimeout(() => finishCurrent('fallback_timeout', broadcastWS), fallback);
-  state.processing = false;
+}
+
+async function prepareSoundSyncedAlert(event, overlayAlert, broadcastWS) {
+  const soundPayload = buildSoundSystemPayload(event, overlayAlert);
+  if (!soundPayload) return { synced: false, reason: 'not_eligible' };
+
+  const preparedAlert = { ...overlayAlert, _soundSystemManaged: true };
+  sendOverlay(broadcastWS, { event: 'prepare', alertId: event.eventUid, eventId: event.eventUid, alert: preparedAlert });
+
+  try {
+    const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+    const url = cleanText(liveAlert.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl || 'http://127.0.0.1:8080/api/sound/play');
+    const result = await postJson(url, soundPayload, Number(liveAlert.soundSystemTimeoutMs || 3500));
+    event.soundSystem = { ok: true, request: soundPayload, result };
+    return { synced: true, result };
+  } catch (err) {
+    event.soundSystem = { ok: false, request: soundPayload, error: err && err.message ? err.message : String(err) };
+    console.warn('[alert_system] sound system handoff failed:', event.soundSystem.error);
+    const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+    if (liveAlert.fallbackShowOnSoundError !== false) {
+      sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert, soundSystemError: event.soundSystem.error });
+      startCurrentFallbackTimer(event, broadcastWS);
+      return { synced: true, fallback: true, error: event.soundSystem.error };
+    }
+    return { synced: false, error: event.soundSystem.error };
+  }
 }
 
 function finishCurrent(reason, broadcastWS) {
