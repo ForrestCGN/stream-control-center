@@ -13,7 +13,6 @@ window.SoundSystemModule = (function(){
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
   function button(label, action, extraClass){ return `<button type="button" class="${extraClass || ''}" data-sound-action="${esc(action)}">${esc(label)}</button>`; }
-  function activeLabel(value){ return value ? 'Aktiv' : 'Inaktiv'; }
 
   function renderShell(){
     if (!root) return;
@@ -89,17 +88,14 @@ window.SoundSystemModule = (function(){
     if (!el) return;
     const out = getOutputState();
     const targets = out.targets || {};
-    const overlay = targets.overlay || {};
     const device = targets.device || {};
-    const both = targets.both || {};
     const helperWarning = devices?.warning && devices.warning !== 'helper' ? `<div class="sound-note">Gerätequelle: ${esc(devices.warning)}${devices.error ? ' · ' + esc(devices.error) : ''}</div>` : '';
     const deviceList = Array.isArray(devices?.devices) ? devices.devices : [];
     const selectedId = device.selectedDeviceId || 'default';
     const selectedMissing = selectedId && !deviceList.some(d => String(d.id) === String(selectedId));
     const saveInfo = lastSaveInfo ? `
       <div class="sound-note">
-        Letztes Speichern: gesendet <strong>${esc(lastSaveInfo.sentDefaultTarget)}</strong>, gespeichert <strong>${esc(lastSaveInfo.savedDefaultTarget)}</strong> ·
-        Overlay ${esc(activeLabel(lastSaveInfo.savedOverlay))} · Audiogerät ${esc(activeLabel(lastSaveInfo.savedDevice))} · Beides ${esc(activeLabel(lastSaveInfo.savedBoth))}
+        Letztes Speichern: gesendet <strong>${esc(lastSaveInfo.sentDefaultTarget)}</strong>, gespeichert <strong>${esc(lastSaveInfo.savedDefaultTarget)}</strong>
       </div>
     ` : '';
 
@@ -113,9 +109,6 @@ window.SoundSystemModule = (function(){
           <option value="both" ${out.defaultTarget === 'both' ? 'selected' : ''}>Beides</option>
         </select>
       </label>
-      <div class="sound-status-row"><span>Overlay / OBS</span><span class="sound-pill">${esc(activeLabel(overlay.enabled !== false))}</span></div>
-      <div class="sound-status-row"><span>Audiogerät</span><span class="sound-pill">${esc(activeLabel(device.enabled === true))}</span></div>
-      <div class="sound-status-row"><span>Beides</span><span class="sound-pill">${esc(activeLabel(both.enabled === true))}</span></div>
       <label class="sound-field">
         <span>Ausgabegerät</span>
         <select id="soundDeviceSelect">
@@ -215,10 +208,7 @@ window.SoundSystemModule = (function(){
     const savedOut = fresh?.config?.output || saved?.output || {};
     lastSaveInfo = {
       sentDefaultTarget: payload.defaultTarget,
-      savedDefaultTarget: savedOut.defaultTarget || '',
-      savedOverlay: savedOut.targets?.overlay?.enabled !== false,
-      savedDevice: savedOut.targets?.device?.enabled === true,
-      savedBoth: savedOut.targets?.both?.enabled === true
+      savedDefaultTarget: savedOut.defaultTarget || ''
     };
   }
 
