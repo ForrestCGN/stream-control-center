@@ -9,29 +9,38 @@ const SCHEMA_VERSION = 1;
 
 const SESSION_COOKIE = "cgn_dashboard_session";
 const OAUTH_STATE_COOKIE = "cgn_dashboard_oauth_state";
-const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 12; // 12 Stunden
+const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+
 const DEFAULT_ROLES = [
-  { key: "owner", label: "Owner", level: 100 },
-  { key: "admin", label: "Admin", level: 90 },
-  { key: "streamer", label: "Streamer", level: 80 },
-  { key: "supermod", label: "SuperMod", level: 60 },
-  { key: "mod", label: "Mod", level: 50 },
-  { key: "user", label: "User", level: 10 }
+  { role: "owner", label: "Owner", level: 100, sortOrder: 1 },
+  { role: "admin", label: "Admin", level: 90, sortOrder: 10 },
+  { role: "streamer", label: "Streamer", level: 80, sortOrder: 20 },
+  { role: "supermod", label: "SuperMod", level: 60, sortOrder: 30 },
+  { role: "mod", label: "Mod", level: 50, sortOrder: 40 },
+  { role: "user", label: "User", level: 10, sortOrder: 100 }
 ];
 
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
+
   if (!sqlite.isInitialized()) sqlite.init(ctx);
+
   ensureSchema();
   ensureCompatibilityColumns();
   seedRoles();
 
   app.get("/api/auth/status", (req, res) => {
+    const session = readSessionFromRequest(req);
     res.json({
       ok: true,
       module: MODULE_NAME,
       version: 2,
+      authProvider: "twitch",
       twitchLoginConfigured: isTwitchConfigured(env),
+      authenticated: !!session,
+      session: session ? { user: publicUser(session), role: session.role, provider: session.provider || "" } : null,
+      roles: getRoles(),
+      databasePath: sqlite.getDbPath(),
       routes: [
         "GET /api/auth/status",
         "GET /api/auth/session",
@@ -48,22 +57,24 @@ module.exports.init = function init(ctx) {
   app.get("/api/auth/session", (req, res) => {
     const session = readSessionFromRequest(req);
     if (!session) {
-      res.json({ ok: true, authenticated: false, user: null });
+      res.json({ ok: true, module: MODULE_NAME, authenticated: false, user: null, session: null, roles: getRoles() });
       return;
     }
 
-    touchSession(session.sessionId);
+    touchSession(session.session_id || session.id);
     res.json({
       ok: true,
+      module: MODULE_NAME,
       authenticated: true,
       user: publicUser(session),
       session: {
         provider: session.provider || "",
-        role: session.role,
-        createdAt: session.created_at,
-        expiresAt: session.expires_at,
+        role: session.role || session.primary_role || "user",
+        createdAt: session.created_at || "",
+        expiresAt: session.expires_at || "",
         lastSeenAt: new Date().toISOString()
-      }
+      },
+      roles: getRoles()
     });
   });
 
@@ -79,8 +90,10 @@ module.exports.init = function init(ctx) {
     const displayName = String(req.body?.displayName || "Local Owner").trim() || "Local Owner";
     const user = createOrGetLocalOwner(displayName, now);
     const session = createSession(user.id, "owner", req, now);
+
     writeAudit(user.id, displayName, "auth.bootstrap_owner_local", "dashboard_user", String(user.id), {}, req);
     setSessionCookie(res, session.sessionId, new Date(session.expiresAt));
+
     res.json({ ok: true, authenticated: true, user: publicUser({ ...user, role: "owner", provider: "local" }) });
   });
 
@@ -88,13 +101,15 @@ module.exports.init = function init(ctx) {
     const cookies = parseCookies(req);
     const sessionId = cookies[SESSION_COOKIE] || "";
     const session = sessionId ? getSession(sessionId) : null;
+
     if (session) {
-      sqlite.run(
-        "UPDATE dashboard_sessions SET revoked_at = :revokedAt WHERE id = :id",
-        { revokedAt: nowIso(), id: sessionId }
-      );
+      sqlite.run("UPDATE dashboard_sessions SET revoked_at = :revokedAt WHERE id = :id", {
+        revokedAt: nowIso(),
+        id: sessionId
+      });
       writeAudit(session.user_id, session.display_name || "", "auth.logout", "dashboard_session", sessionId, {}, req);
     }
+
     clearCookie(res, SESSION_COOKIE);
     res.json({ ok: true, authenticated: false });
   });
@@ -129,6 +144,7 @@ module.exports.init = function init(ctx) {
       const code = String(req.query.code || "");
       const state = String(req.query.state || "");
       const expectedState = parseCookies(req)[OAUTH_STATE_COOKIE] || "";
+
       if (!code || !state || !expectedState || !safeEqual(state, expectedState)) {
         res.status(400).send("OAuth State ungültig oder abgelaufen.");
         return;
@@ -152,30 +168,34 @@ module.exports.init = function init(ctx) {
   });
 
   app.get("/api/auth/roles", (req, res) => {
-    res.json({ ok: true, roles: sqlite.all("SELECT key, label, level, is_system FROM dashboard_roles ORDER BY level DESC") || [] });
+    res.json({ ok: true, roles: getRoles() });
   });
 
   app.get("/api/auth/audit", (req, res) => {
     const session = readSessionFromRequest(req);
-    if (!session || !["owner", "admin"].includes(String(session.role || ""))) {
+    if (!session || !["owner", "admin"].includes(String(session.role || session.primary_role || ""))) {
       res.status(403).json({ ok: false, error: "forbidden" });
       return;
     }
 
     const limit = clampInt(req.query.limit, 50, 1, 250);
-    const rows = sqlite.all(
-      "SELECT id, actor_user_id, actor_display_name, action, target_type, target_id, details_json, ip, user_agent, created_at FROM dashboard_audit_log ORDER BY id DESC LIMIT :limit",
-      { limit }
-    ) || [];
+    const rows = sqlite.all(`
+      SELECT id, actor_user_id, actor_display_name, action, target_type, target_id, details_json, ip, user_agent, created_at
+      FROM dashboard_audit_log
+      ORDER BY id DESC
+      LIMIT :limit
+    `, { limit }) || [];
+
     res.json({ ok: true, rows });
   });
 
-  console.log(`[module] ${MODULE_NAME} ready`);
+  console.log(`[dashboard_auth] ready: /api/auth/status, /api/auth/session, /api/auth/twitch/login`);
 };
 
 function ensureSchema() {
   sqlite.ensureSchema(SCHEMA_MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
     if (toVersion !== 1) return;
+
     db.exec(`
       CREATE TABLE IF NOT EXISTS dashboard_users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -217,8 +237,9 @@ function ensureSchema() {
       );
 
       CREATE TABLE IF NOT EXISTS dashboard_roles (
-        key TEXT PRIMARY KEY,
+        role TEXT PRIMARY KEY,
         label TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 100,
         level INTEGER NOT NULL DEFAULT 0,
         is_system INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL
@@ -280,6 +301,7 @@ function ensureCompatibilityColumns() {
   ensureColumn("dashboard_sessions", "revoked_at", "TEXT");
 
   ensureColumn("dashboard_roles", "label", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn("dashboard_roles", "sort_order", "INTEGER NOT NULL DEFAULT 100");
   ensureColumn("dashboard_roles", "level", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn("dashboard_roles", "is_system", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn("dashboard_roles", "created_at", "TEXT NOT NULL DEFAULT ''");
@@ -301,22 +323,80 @@ function ensureCompatibilityColumns() {
 
 function ensureColumn(tableName, columnName, definition) {
   const rows = sqlite.all(`PRAGMA table_info(${tableName})`) || [];
+  if (!rows.length) return;
   if (rows.some(row => row.name === columnName)) return;
   sqlite.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
 }
 
+function roleTableColumns() {
+  return (sqlite.all("PRAGMA table_info(dashboard_roles)") || []).map(row => row.name);
+}
+
+function roleNameColumn() {
+  const cols = roleTableColumns();
+  if (cols.includes("role")) return "role";
+  if (cols.includes("key")) return "key";
+  return "role";
+}
+
+function roleSortColumn() {
+  const cols = roleTableColumns();
+  if (cols.includes("sort_order")) return "sort_order";
+  if (cols.includes("level")) return "level";
+  return "sort_order";
+}
+
 function seedRoles() {
+  const cols = roleTableColumns();
+  const nameCol = roleNameColumn();
+  const hasLabel = cols.includes("label");
+  const hasSortOrder = cols.includes("sort_order");
+  const hasLevel = cols.includes("level");
+  const hasSystem = cols.includes("is_system");
+  const hasCreatedAt = cols.includes("created_at");
   const now = nowIso();
+
   for (const role of DEFAULT_ROLES) {
-    sqlite.run(`
-      INSERT INTO dashboard_roles (key, label, level, is_system, created_at)
-      VALUES (:key, :label, :level, 1, :createdAt)
-      ON CONFLICT(key) DO UPDATE SET
-        label = excluded.label,
-        level = excluded.level,
-        is_system = 1
-    `, { key: role.key, label: role.label, level: role.level, createdAt: now });
+    const existing = sqlite.get(`SELECT ${nameCol} FROM dashboard_roles WHERE ${nameCol} = :role`, { role: role.role });
+    if (existing) {
+      const sets = [];
+      const params = { role: role.role };
+      if (hasLabel) { sets.push("label = :label"); params.label = role.label; }
+      if (hasSortOrder) { sets.push("sort_order = :sortOrder"); params.sortOrder = role.sortOrder; }
+      if (hasLevel) { sets.push("level = :level"); params.level = role.level; }
+      if (hasSystem) sets.push("is_system = 1");
+      if (sets.length) sqlite.run(`UPDATE dashboard_roles SET ${sets.join(", ")} WHERE ${nameCol} = :role`, params);
+      continue;
+    }
+
+    const insertCols = [nameCol];
+    const insertVals = [":role"];
+    const params = { role: role.role };
+
+    if (hasLabel) { insertCols.push("label"); insertVals.push(":label"); params.label = role.label; }
+    if (hasSortOrder) { insertCols.push("sort_order"); insertVals.push(":sortOrder"); params.sortOrder = role.sortOrder; }
+    if (hasLevel) { insertCols.push("level"); insertVals.push(":level"); params.level = role.level; }
+    if (hasSystem) { insertCols.push("is_system"); insertVals.push("1"); }
+    if (hasCreatedAt) { insertCols.push("created_at"); insertVals.push(":createdAt"); params.createdAt = now; }
+
+    sqlite.run(`INSERT INTO dashboard_roles (${insertCols.join(", ")}) VALUES (${insertVals.join(", ")})`, params);
   }
+}
+
+function getRoles() {
+  const cols = roleTableColumns();
+  const nameCol = roleNameColumn();
+  const sortCol = roleSortColumn();
+  const labelExpr = cols.includes("label") ? "label" : `${nameCol} AS label`;
+  const sortExpr = cols.includes("sort_order") ? "sort_order" : (cols.includes("level") ? "level AS sort_order" : "100 AS sort_order");
+  const levelExpr = cols.includes("level") ? "level" : "0 AS level";
+  const systemExpr = cols.includes("is_system") ? "is_system" : "1 AS is_system";
+
+  return sqlite.all(`
+    SELECT ${nameCol} AS role, ${labelExpr}, ${sortExpr}, ${levelExpr}, ${systemExpr}
+    FROM dashboard_roles
+    ORDER BY ${sortCol} ASC
+  `) || [];
 }
 
 function createOrGetLocalOwner(displayName, now) {
@@ -330,8 +410,15 @@ function createOrGetLocalOwner(displayName, now) {
   `, { provider, providerUserId });
 
   if (existing) {
-    sqlite.run("UPDATE dashboard_users SET display_name = :displayName, primary_role = 'owner', is_active = 1, updated_at = :updatedAt, last_login_at = :lastLoginAt WHERE id = :id",
-      { displayName, updatedAt: now, lastLoginAt: now, id: existing.id });
+    sqlite.run(`
+      UPDATE dashboard_users
+      SET display_name = :displayName,
+          primary_role = 'owner',
+          is_active = 1,
+          updated_at = :updatedAt,
+          last_login_at = :lastLoginAt
+      WHERE id = :id
+    `, { displayName, updatedAt: now, lastLoginAt: now, id: existing.id });
     return sqlite.get("SELECT *, 'local' AS provider FROM dashboard_users WHERE id = :id", { id: existing.id });
   }
 
@@ -433,6 +520,7 @@ function upsertTwitchUser(twitchUser, req) {
 function createSession(userId, role, req, now) {
   const sessionId = randomToken(48);
   const expiresAt = new Date(Date.now() + DEFAULT_SESSION_TTL_MS).toISOString();
+
   sqlite.run(`
     INSERT INTO dashboard_sessions (id, user_id, role, created_at, expires_at, last_seen_at, ip, user_agent)
     VALUES (:id, :userId, :role, :createdAt, :expiresAt, :lastSeenAt, :ip, :userAgent)
@@ -446,13 +534,20 @@ function createSession(userId, role, req, now) {
     ip: clientIp(req),
     userAgent: String(req.headers["user-agent"] || "")
   });
+
   return { sessionId, expiresAt };
 }
 
 function getSession(sessionId) {
   if (!sessionId) return null;
+
   return sqlite.get(`
-    SELECT s.id AS session_id, s.*, u.display_name, u.avatar_url, u.primary_role, u.is_active,
+    SELECT s.id AS session_id,
+           s.*,
+           u.display_name,
+           u.avatar_url,
+           u.primary_role,
+           u.is_active,
            COALESCE(i.provider, '') AS provider,
            COALESCE(i.provider_login, '') AS provider_login,
            COALESCE(i.provider_display_name, '') AS provider_display_name
@@ -470,13 +565,16 @@ function getSession(sessionId) {
 
 function readSessionFromRequest(req) {
   const cookies = parseCookies(req);
-  const sessionId = cookies[SESSION_COOKIE] || "";
-  return getSession(sessionId);
+  return getSession(cookies[SESSION_COOKIE] || "");
 }
 
 function touchSession(sessionId) {
+  if (!sessionId) return;
   try {
-    sqlite.run("UPDATE dashboard_sessions SET last_seen_at = :lastSeenAt WHERE id = :id", { lastSeenAt: nowIso(), id: sessionId });
+    sqlite.run("UPDATE dashboard_sessions SET last_seen_at = :lastSeenAt WHERE id = :id", {
+      lastSeenAt: nowIso(),
+      id: sessionId
+    });
   } catch (_) {}
 }
 
@@ -543,6 +641,7 @@ async function fetchTwitchUser(env, accessToken) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Twitch userinfo failed: ${res.status} ${JSON.stringify(data)}`);
+
   const user = Array.isArray(data.data) ? data.data[0] : null;
   if (!user) throw new Error("Twitch userinfo returned no user");
   return user;
@@ -606,6 +705,7 @@ function serializeCookie(name, value, options = {}) {
 function parseCookies(req) {
   const header = String(req.headers.cookie || "");
   const out = {};
+
   for (const part of header.split(";")) {
     const idx = part.indexOf("=");
     if (idx < 0) continue;
@@ -614,6 +714,7 @@ function parseCookies(req) {
     if (!key) continue;
     out[key] = decodeURIComponent(val || "");
   }
+
   return out;
 }
 
