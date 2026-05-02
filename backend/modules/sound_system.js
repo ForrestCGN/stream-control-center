@@ -11,7 +11,7 @@ const MESSAGES_FILE = "messages/sound_system.json";
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  version: "0.1.1",
+  version: "0.1.2",
   routes: { prefix: "/api/sound" },
   websocket: { enabled: true, op: "sound_system" },
   overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
@@ -207,6 +207,48 @@ module.exports.init = function init(ctx) {
     return !!t && t.enabled !== false;
   }
 
+  function intInRange(value, fallback, min, max) {
+    const n = Number.parseInt(value, 10);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function createBeepWavBuffer(options = {}) {
+    const sampleRate = 44100;
+    const durationMs = intInRange(options.durationMs, 350, 80, 3000);
+    const frequency = intInRange(options.frequency, 880, 80, 2000);
+    const volume = Math.max(0.01, Math.min(1, Number(options.volume || 0.35)));
+    const samples = Math.max(1, Math.floor(sampleRate * durationMs / 1000));
+    const dataSize = samples * 2;
+    const buffer = Buffer.alloc(44 + dataSize);
+
+    buffer.write("RIFF", 0, "ascii");
+    buffer.writeUInt32LE(36 + dataSize, 4);
+    buffer.write("WAVE", 8, "ascii");
+    buffer.write("fmt ", 12, "ascii");
+    buffer.writeUInt32LE(16, 16);
+    buffer.writeUInt16LE(1, 20);
+    buffer.writeUInt16LE(1, 22);
+    buffer.writeUInt32LE(sampleRate, 24);
+    buffer.writeUInt32LE(sampleRate * 2, 28);
+    buffer.writeUInt16LE(2, 32);
+    buffer.writeUInt16LE(16, 34);
+    buffer.write("data", 36, "ascii");
+    buffer.writeUInt32LE(dataSize, 40);
+
+    for (let i = 0; i < samples; i++) {
+      const t = i / sampleRate;
+      const fadeSamples = Math.min(1400, Math.floor(samples / 3));
+      const fadeIn = fadeSamples > 0 ? Math.min(1, i / fadeSamples) : 1;
+      const fadeOut = fadeSamples > 0 ? Math.min(1, (samples - i) / fadeSamples) : 1;
+      const fade = Math.max(0, Math.min(fadeIn, fadeOut));
+      const value = Math.round(Math.sin(2 * Math.PI * frequency * t) * 28000 * volume * fade);
+      buffer.writeInt16LE(value, 44 + i * 2);
+    }
+
+    return buffer;
+  }
+
   function normalizePlayRequest(raw) {
     const body = raw || {};
     const soundId = normalizeId(body.soundId || body.id || body.sound || "");
@@ -214,19 +256,26 @@ module.exports.init = function init(ctx) {
     if (soundId && !preset) throw new Error(msg("soundNotFound"));
 
     const base = { ...(config.defaults || {}), ...(preset || {}), ...body };
-    const type = String(base.type || "file").trim().toLowerCase();
+    const rawType = String(base.type || "file").trim().toLowerCase();
+    const generatedBeep = rawType === "generated_beep";
     const target = normalizeTarget(base.target);
     if (!targetEnabled(target)) throw new Error(msg("targetDisabled"));
 
     const targetConfig = (config.targets && config.targets[target]) || {};
     const volume = clampVolume(base.volume, clampVolume(targetConfig.defaultVolume, 85));
     const durationMs = Math.max(100, Number(base.durationMs || config.overlay?.fallbackFinishMs || 12000));
+    const frequency = Math.max(80, Math.min(2000, Number(base.frequency || 880)));
 
     let file = String(base.file || body.file || "").trim().replace(/\\/g, "/");
     let fullPath = "";
     let audioUrl = "";
+    let type = rawType;
 
-    if (type !== "generated_beep") {
+    if (generatedBeep) {
+      type = "file";
+      file = "generated/beep.wav";
+      audioUrl = `${(config.routes && config.routes.prefix) || "/api/sound"}/generated/beep.wav?frequency=${encodeURIComponent(frequency)}&durationMs=${encodeURIComponent(durationMs)}&volume=${encodeURIComponent(volume)}`;
+    } else {
       if (!file) throw new Error(msg("soundFileMissing"));
       const audioInfo = media.getAudioInfo(file, {
         baseDir: getSoundsBaseDir(),
@@ -235,8 +284,6 @@ module.exports.init = function init(ctx) {
       if (!audioInfo.ok) throw new Error(`${msg("soundFileMissing")} (${audioInfo.error || "unknown"}: ${file})`);
       fullPath = audioInfo.path;
       audioUrl = browserUrlFromRelative(audioInfo.relative || file);
-    } else {
-      file = "";
     }
 
     return {
@@ -251,8 +298,8 @@ module.exports.init = function init(ctx) {
       file,
       fullPath,
       audioUrl,
-      durationMs: type === "generated_beep" ? durationMs : Math.max(100, durationMs),
-      frequency: Math.max(80, Math.min(2000, Number(base.frequency || 880))),
+      durationMs: generatedBeep ? durationMs : Math.max(100, durationMs),
+      frequency,
       introMs: Number(config.overlay?.introMs || 0),
       outroMs: Number(config.overlay?.outroMs || 350),
       gapAfterMs: Number(config.overlay?.gapBetweenSoundsMs || 750),
@@ -272,14 +319,9 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  function sortQueue() {
-    state.queue.sort((a, b) => b.priority !== a.priority ? b.priority - a.priority : a.queuedAt - b.queuedAt);
-  }
+  function sortQueue() { state.queue.sort((a, b) => b.priority !== a.priority ? b.priority - a.priority : a.queuedAt - b.queuedAt); }
 
-  function clearFinishTimer() {
-    if (finishTimer) clearTimeout(finishTimer);
-    finishTimer = null;
-  }
+  function clearFinishTimer() { if (finishTimer) clearTimeout(finishTimer); finishTimer = null; }
 
   function startItem(item, reason) {
     clearFinishTimer();
@@ -333,15 +375,12 @@ module.exports.init = function init(ctx) {
         startItem(item, "interrupted_started");
         return { started: true, queued: false, queuePosition: 0, item };
       }
-
       if (item.dropIfBusy || item.queueIfBusy === false) return { started: false, queued: false, dropped: true, queuePosition: -1, item };
-
       const maxLength = Number(config.queue?.maxLength || 50);
       if (state.queue.length >= maxLength) {
         if (config.queue?.dropWhenFull !== false) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: "queue_full" };
         throw new Error(msg("queueFull"));
       }
-
       state.queue.push(item);
       sortQueue();
       state.stats.queued += 1;
@@ -371,12 +410,22 @@ module.exports.init = function init(ctx) {
     next();
   });
 
+  app.get(`${prefix}/generated/beep.wav`, (req, res) => {
+    const frequency = intInRange(req.query.frequency, 880, 80, 2000);
+    const durationMs = intInRange(req.query.durationMs, 350, 80, 3000);
+    const volume = Math.max(0.01, Math.min(1, Number(req.query.volume || 80) / 100 * 0.45));
+    const wav = createBeepWavBuffer({ frequency, durationMs, volume });
+    res.setHeader("Content-Type", "audio/wav");
+    res.setHeader("Content-Length", wav.length);
+    res.setHeader("Cache-Control", "no-store");
+    return res.end(wav);
+  });
+
   app.get(`${prefix}/status`, (req, res) => res.json(publicState()));
   app.get(`${prefix}/current`, (req, res) => res.json(core.ok({ current: state.current ? publicItem(state.current) : null })));
   app.get(`${prefix}/queue`, (req, res) => res.json(core.ok({ queue: state.queue.map(publicItem), queuedCount: state.queue.length })));
   app.get(`${prefix}/list`, (req, res) => res.json(core.ok({ sounds: getSoundList() })));
   app.get(`${prefix}/config`, (req, res) => res.json(core.ok({ config, path: state.configPath })));
-
   app.post(`${prefix}/reload`, (req, res) => { loadAll(); return res.json(core.ok({ message: msg("configReloaded"), status: publicState() })); });
 
   function playResponse(req, res, input) {
