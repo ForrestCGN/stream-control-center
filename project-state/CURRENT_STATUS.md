@@ -2,22 +2,69 @@
 
 Stand: 2026-05-01
 Arbeitsbranch: `dev`
+Aktueller Git-Import: `98775c3 Import sanitized StreamAssets project state`
 
 ## Ziel
 
-Dieses Repository dient als zentrale Referenz fuer Forrests Stream-/Dashboard-/Control-Center-Projekt.
+Dieses Repository ist ab jetzt die zentrale Referenz fuer Forrests Stream-/Dashboard-/Control-Center-Projekt.
 
-Es soll kuenftig helfen, in neuen Chats schnell den echten Projektstand zu erkennen und nicht mehr nur auf einzelne ZIPs oder Chatverlauf angewiesen zu sein.
+Es soll in neuen Chats als aktueller Projektstand dienen, damit nicht mehr nur ZIPs oder Chatverlauf als Grundlage genutzt werden muessen.
 
-## Aktueller Entwicklungsstand
+## Lokales Hauptverzeichnis
 
-Aktueller lokaler STEP-Stand aus dem Chat:
+Das lokale Hauptverzeichnis bleibt:
+
+`D:\Streaming\stramAssets\`
+
+Repo-Root spiegelt dieses Verzeichnis direkt.
+
+Beispiele:
+
+```text
+Repo:  backend/server.js
+Lokal: D:\Streaming\stramAssets\backend\server.js
+
+Repo:  htdocs/dashboard/index.html
+Lokal: D:\Streaming\stramAssets\htdocs\dashboard\index.html
+
+Repo:  config/streamdesk.json
+Lokal: D:\Streaming\stramAssets\config\streamdesk.json
+```
+
+## Aktueller Repo-Basisstand
+
+Der bereinigte lokale StreamAssets-Projektstand wurde auf `dev` importiert.
+
+Enthalten:
+
+- `backend/server.js`
+- `backend/core/*.js`
+- `backend/modules/*.js`
+- `backend/modules/helpers/*.js`
+- `config/*.json`
+- `config/messages/*.json`
+- `htdocs/dashboard/**/*`
+- `htdocs/alerts/alert.html`
+- `htdocs/overlays/*.html|*.js|*.css`
+- `htdocs/public/*.js`
+- `htdocs/ws-client.js`
+- Projektstatus-/Doku-Dateien
+
+Nicht enthalten:
+
+- echte `.env`
+- Tokens
+- Secrets
+- SQLite-Datenbanken
+- Runtime-Daten aus `htdocs/data`
+- Backups/ZIPs/Altdateien
+- `config/google_tts_service_account.json`
+
+## Aktueller Entwicklungsstand aus dem Chat
 
 - STEP005: Userinfo im Stream-Desk funktioniert.
 - STEP006: Admin > Configs vorbereitet, ENV-/Secrets-Strategie dokumentiert.
-- STEP007: Stream-Desk QuickScenes und Admin-Config-Vorschau weiter vorbereitet.
-
-Noch nicht alles aus den ZIPs ist in diesem Repo eingecheckt. Dieses Repo wurde gerade initialisiert und bekommt zuerst die sichere Grundstruktur.
+- STEP007: Stream-Desk QuickScenes und Admin-Config-Vorschau vorbereitet.
 
 ## Aktive Navigationsplanung
 
@@ -116,3 +163,10 @@ Secrets duerfen nie im Klartext angezeigt oder geloggt werden.
 - Configs moeglichst zentral und editierbar halten.
 - Backend-/Dashboard-Module getrennt halten.
 - Alles, was sinnvoll per WebSocket laufen kann, langfristig per WebSocket planen.
+
+## Naechster sinnvoller Schritt
+
+1. Repo-Stand als neue Basis verwenden.
+2. `backend/server.js` pruefen, ob `dashboard_controlcenter.js` bereits automatisch geladen wird.
+3. Dashboard im Browser testen.
+4. Danach gezielt STEP008 planen: Admin-Config-Seite / OBS QuickScenes / Audit-Vorbereitung weiter ausbauen.
