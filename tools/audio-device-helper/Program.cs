@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
-const string Version = "0.2.0";
+const string Version = "0.2.1";
 
 try
 {
@@ -193,7 +193,8 @@ static void WriteJson<T>(T value)
     var options = new JsonSerializerOptions
     {
         WriteIndented = false,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
     Console.OutputEncoding = System.Text.Encoding.UTF8;
     Console.WriteLine(JsonSerializer.Serialize(value, options));
