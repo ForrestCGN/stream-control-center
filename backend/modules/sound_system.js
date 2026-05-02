@@ -38,7 +38,7 @@ const DEFAULT_CONFIG = {
     maxParallel: 3,
     parallelCategories: ["system", "admin", "ui", "test"],
     parallelSoundIds: [],
-    alertSync: { enabled: true },
+    alertSync: { enabled: true, visualLeadMs: 150, maxVisualLeadMs: 500 },
     interruptRules: { enabled: true, minPriority: 100, requireHigherPriority: true, allowForce: true, allowOverride: false },
     dropRules: { enabled: true, dropIfQueueFullBelowPriority: 40, dropIfBusyBelowPriority: 20 },
     cooldowns: { enabled: true, defaultMs: 0, sameSoundMs: 3000, sameCategoryMs: 0, sameUserMs: 0 },
@@ -430,6 +430,30 @@ module.exports.init = function init(ctx) {
     return { durationMs: Math.max(100, fallbackMs), durationOk: false, source: "fallback" };
   }
 
+  function alertVisualLeadMs(item) {
+    if (!item) return 0;
+    const sync = config.queue?.alertSync || {};
+    if (sync.enabled === false) return 0;
+
+    const visualModule = normalizeId(item.visual && item.visual.module);
+    const category = normalizeId(item.category);
+    const hasAlertVisual = visualModule === "alert_system" || category === "alert" || category === "alert_critical";
+    if (!hasAlertVisual) return 0;
+
+    const fallbackLead = 150;
+    const rawLead = Number(sync.visualLeadMs);
+    const rawMax = Number(sync.maxVisualLeadMs);
+    const maxLead = Number.isFinite(rawMax) ? Math.max(0, Math.min(1000, rawMax)) : 500;
+    const lead = Number.isFinite(rawLead) ? rawLead : fallbackLead;
+    return Math.max(0, Math.min(maxLead, Math.round(lead)));
+  }
+
+  function itemStillActive(item, parallel) {
+    if (!item) return false;
+    if (parallel) return state.parallel.some(active => active.requestId === item.requestId);
+    return !!state.current && state.current.requestId === item.requestId;
+  }
+
   function parallelAllowedByPolicy(item) {
     if (!item.parallelAllowed) return false;
     const queueCfg = config.queue || {};
@@ -675,29 +699,59 @@ module.exports.init = function init(ctx) {
     });
   }
 
-  function startItem(item, reason, options = {}) {
+  function activateItemAudio(item, parallel) {
+    if (!itemStillActive(item, parallel)) return;
+
     item.startedAt = Date.now();
     item.endsAt = item.startedAt + item.durationMs + item.outroMs;
-    state.stats.started += 1;
-    rememberCooldown(item);
-    playDeviceOutput(item);
+    item.lifecycle = { ...(item.lifecycle || {}), audioStartedAt: item.startedAt };
 
-    if (options.parallel) {
-      state.parallel.push(item);
-      state.stats.parallelStarted += 1;
+    playDeviceOutput(item);
+    emitItemEvent("item_started", item, { parallel: !!parallel });
+
+    if (shouldUseOverlay(item)) emit("play_stream");
+
+    if (parallel) {
       setTimeout(() => finishParallel(item.requestId, "parallel_auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
-      emit(reason || "parallel_started");
-      emitItemEvent("item_started", item, { parallel: true });
-      if (shouldUseOverlay(item)) emit("play_stream");
       return;
     }
 
     clearFinishTimer();
-    state.current = item;
-    emit(reason || "started");
-    emitItemEvent("item_started", item, { parallel: false });
-    if (shouldUseOverlay(item)) emit("play_stream");
     finishTimer = setTimeout(() => finishCurrent("auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
+  }
+
+  function startItem(item, reason, options = {}) {
+    const parallel = !!options.parallel;
+    const visualLeadMs = alertVisualLeadMs(item);
+
+    item.lifecycle = {
+      ...(item.lifecycle || {}),
+      visualSync: visualLeadMs > 0,
+      visualLeadMs,
+      visualStartingAt: visualLeadMs > 0 ? Date.now() : 0,
+      startSignalEmitted: visualLeadMs > 0
+    };
+
+    state.stats.started += 1;
+    rememberCooldown(item);
+
+    if (parallel) {
+      state.parallel.push(item);
+      state.stats.parallelStarted += 1;
+      emit(reason || "parallel_started");
+    } else {
+      clearFinishTimer();
+      state.current = item;
+      emit(reason || "started");
+    }
+
+    if (visualLeadMs > 0) {
+      emitItemEvent("item_starting", item, { parallel, visualLeadMs });
+      setTimeout(() => activateItemAudio(item, parallel), visualLeadMs);
+      return;
+    }
+
+    activateItemAudio(item, parallel);
   }
 
   function finishParallel(requestId, reason) {
