@@ -78,6 +78,12 @@ window.SoundSystemModule = (function(){
     return status?.config?.output || output?.output || {};
   }
 
+  function modeFlags(mode){
+    if (mode === 'device') return { overlay: false, device: true, both: false };
+    if (mode === 'both') return { overlay: true, device: true, both: true };
+    return { overlay: true, device: false, both: false };
+  }
+
   function renderOutput(){
     const el = document.getElementById('soundOutputCard');
     if (!el) return;
@@ -100,15 +106,16 @@ window.SoundSystemModule = (function(){
     el.innerHTML = `
       <h3>Ausgabe</h3>
       <label class="sound-field">
-        <span>Standard-Ausgabe</span>
+        <span>Ausgabemodus</span>
         <select id="soundDefaultTarget">
           <option value="overlay" ${out.defaultTarget === 'overlay' ? 'selected' : ''}>Overlay / OBS</option>
           <option value="device" ${out.defaultTarget === 'device' ? 'selected' : ''}>Audiogerät</option>
           <option value="both" ${out.defaultTarget === 'both' ? 'selected' : ''}>Beides</option>
         </select>
       </label>
-      <div class="sound-status-row"><span>Overlay</span><label><input id="soundOverlayEnabled" type="checkbox" ${overlay.enabled !== false ? 'checked' : ''}> ${esc(activeLabel(overlay.enabled !== false))}</label></div>
-      <div class="sound-status-row"><span>Audiogerät</span><label><input id="soundDeviceEnabled" type="checkbox" ${device.enabled === true ? 'checked' : ''}> ${esc(activeLabel(device.enabled === true))}</label></div>
+      <div class="sound-status-row"><span>Overlay / OBS</span><span class="sound-pill">${esc(activeLabel(overlay.enabled !== false))}</span></div>
+      <div class="sound-status-row"><span>Audiogerät</span><span class="sound-pill">${esc(activeLabel(device.enabled === true))}</span></div>
+      <div class="sound-status-row"><span>Beides</span><span class="sound-pill">${esc(activeLabel(both.enabled === true))}</span></div>
       <label class="sound-field">
         <span>Ausgabegerät</span>
         <select id="soundDeviceSelect">
@@ -120,13 +127,12 @@ window.SoundSystemModule = (function(){
         <span>Gerät-Lautstärke</span>
         <input id="soundDeviceVolume" type="number" min="0" max="100" value="${esc(device.defaultVolume ?? 80)}">
       </label>
-      <div class="sound-status-row"><span>Beides</span><label><input id="soundBothEnabled" type="checkbox" ${both.enabled === true ? 'checked' : ''}> ${esc(activeLabel(both.enabled === true))}</label></div>
       <div class="sound-actions">
         ${button('Ausgabe speichern', 'save-output')}
         ${button('Geräte neu laden', 'reload-devices')}
         ${button('Test Ausgabe', 'test-output')}
       </div>
-      <div class="sound-note">Direkte Audiogerät-Ausgabe läuft über den lokalen AudioDeviceHelper. Anzeige kommt aus /api/sound/status → config.output.</div>
+      <div class="sound-note">Der Ausgabemodus setzt die passenden Ziele automatisch. Gerät und Lautstärke gelten für direkte Audiogerät-Ausgabe.</div>
       ${saveInfo}
       ${helperWarning}
     `;
@@ -188,17 +194,19 @@ window.SoundSystemModule = (function(){
     const option = select?.selectedOptions?.[0];
     const selectedDeviceId = select?.value || 'default';
     const selectedDeviceName = option?.dataset?.name || option?.textContent || 'Windows Standardgerät';
+    const mode = document.getElementById('soundDefaultTarget')?.value || 'overlay';
+    const flags = modeFlags(mode);
 
     const payload = {
-      defaultTarget: document.getElementById('soundDefaultTarget')?.value || 'overlay',
-      overlay: { enabled: !!document.getElementById('soundOverlayEnabled')?.checked },
+      defaultTarget: mode,
+      overlay: { enabled: flags.overlay },
       device: {
-        enabled: !!document.getElementById('soundDeviceEnabled')?.checked,
+        enabled: flags.device,
         selectedDeviceId,
         selectedDeviceName,
         defaultVolume: Number(document.getElementById('soundDeviceVolume')?.value || 80)
       },
-      both: { enabled: !!document.getElementById('soundBothEnabled')?.checked }
+      both: { enabled: flags.both }
     };
 
     const saved = await api('/output', { method: 'POST', body: JSON.stringify(payload) });
