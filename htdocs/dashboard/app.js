@@ -31,6 +31,14 @@ window.CGN = {
       overlayLabel: '',
       reload() { return window.OBSModule?.loadAll?.(); }
     },
+    sound_system: {
+      title: 'Sound-System',
+      panelId: 'soundModule',
+      group: 'system',
+      overlayLink: '/overlays/sound_system_overlay.html?debug=1',
+      overlayLabel: 'Sound-Overlay öffnen',
+      reload() { return window.SoundSystemModule?.loadAll?.(true); }
+    },
     adminconfigs: {
       title: 'Admin Configs',
       panelId: 'adminconfigsModule',
