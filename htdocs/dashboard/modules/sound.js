@@ -7,10 +7,12 @@ window.SoundSystemModule = (function(){
   let output = null;
   let devices = [];
   let loading = false;
+  let lastSaveInfo = null;
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
   function button(label, action, extraClass){ return `<button type="button" class="${extraClass || ''}" data-sound-action="${esc(action)}">${esc(label)}</button>`; }
+  function activeLabel(value){ return value ? 'Aktiv' : 'Inaktiv'; }
 
   function renderShell(){
     if (!root) return;
@@ -68,10 +70,14 @@ window.SoundSystemModule = (function(){
     `;
   }
 
+  function getOutputState(){
+    return status?.config?.output || output?.output || {};
+  }
+
   function renderOutput(){
     const el = document.getElementById('soundOutputCard');
     if (!el) return;
-    const out = output?.output || status?.config?.output || {};
+    const out = getOutputState();
     const targets = out.targets || {};
     const overlay = targets.overlay || {};
     const device = targets.device || {};
@@ -80,6 +86,12 @@ window.SoundSystemModule = (function(){
     const deviceList = Array.isArray(devices?.devices) ? devices.devices : [];
     const selectedId = device.selectedDeviceId || 'default';
     const selectedMissing = selectedId && !deviceList.some(d => String(d.id) === String(selectedId));
+    const saveInfo = lastSaveInfo ? `
+      <div class="sound-note">
+        Letztes Speichern: gesendet <strong>${esc(lastSaveInfo.sentDefaultTarget)}</strong>, gespeichert <strong>${esc(lastSaveInfo.savedDefaultTarget)}</strong> ·
+        Overlay ${esc(activeLabel(lastSaveInfo.savedOverlay))} · Audiogerät ${esc(activeLabel(lastSaveInfo.savedDevice))} · Beides ${esc(activeLabel(lastSaveInfo.savedBoth))}
+      </div>
+    ` : '';
 
     el.innerHTML = `
       <h3>Ausgabe</h3>
@@ -91,8 +103,8 @@ window.SoundSystemModule = (function(){
           <option value="both" ${out.defaultTarget === 'both' ? 'selected' : ''}>Beides</option>
         </select>
       </label>
-      <div class="sound-status-row"><span>Overlay</span><label><input id="soundOverlayEnabled" type="checkbox" ${overlay.enabled !== false ? 'checked' : ''}> aktiv</label></div>
-      <div class="sound-status-row"><span>Audiogerät</span><label><input id="soundDeviceEnabled" type="checkbox" ${device.enabled === true ? 'checked' : ''}> aktiv</label></div>
+      <div class="sound-status-row"><span>Overlay</span><label><input id="soundOverlayEnabled" type="checkbox" ${overlay.enabled !== false ? 'checked' : ''}> ${esc(activeLabel(overlay.enabled !== false))}</label></div>
+      <div class="sound-status-row"><span>Audiogerät</span><label><input id="soundDeviceEnabled" type="checkbox" ${device.enabled === true ? 'checked' : ''}> ${esc(activeLabel(device.enabled === true))}</label></div>
       <label class="sound-field">
         <span>Ausgabegerät</span>
         <select id="soundDeviceSelect">
@@ -104,13 +116,14 @@ window.SoundSystemModule = (function(){
         <span>Gerät-Lautstärke</span>
         <input id="soundDeviceVolume" type="number" min="0" max="100" value="${esc(device.defaultVolume ?? 80)}">
       </label>
-      <div class="sound-status-row"><span>Beides</span><label><input id="soundBothEnabled" type="checkbox" ${both.enabled === true ? 'checked' : ''}> aktiv</label></div>
+      <div class="sound-status-row"><span>Beides</span><label><input id="soundBothEnabled" type="checkbox" ${both.enabled === true ? 'checked' : ''}> ${esc(activeLabel(both.enabled === true))}</label></div>
       <div class="sound-actions">
         ${button('Ausgabe speichern', 'save-output')}
         ${button('Geräte neu laden', 'reload-devices')}
         ${button('Test Ausgabe', 'test-output')}
       </div>
-      <div class="sound-note">Direkte Audiogerät-Ausgabe läuft über den lokalen AudioDeviceHelper. Änderungen werden gespeichert und danach per Reload aktiv.</div>
+      <div class="sound-note">Direkte Audiogerät-Ausgabe läuft über den lokalen AudioDeviceHelper. Anzeige kommt aus /api/sound/status → config.output.</div>
+      ${saveInfo}
       ${helperWarning}
     `;
   }
@@ -174,26 +187,27 @@ window.SoundSystemModule = (function(){
 
     const payload = {
       defaultTarget: document.getElementById('soundDefaultTarget')?.value || 'overlay',
-      overlay: {
-        enabled: !!document.getElementById('soundOverlayEnabled')?.checked
-      },
+      overlay: { enabled: !!document.getElementById('soundOverlayEnabled')?.checked },
       device: {
         enabled: !!document.getElementById('soundDeviceEnabled')?.checked,
         selectedDeviceId,
         selectedDeviceName,
         defaultVolume: Number(document.getElementById('soundDeviceVolume')?.value || 80)
       },
-      both: {
-        enabled: !!document.getElementById('soundBothEnabled')?.checked
-      }
+      both: { enabled: !!document.getElementById('soundBothEnabled')?.checked }
     };
 
-    await api('/output', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-
+    const saved = await api('/output', { method: 'POST', body: JSON.stringify(payload) });
     await api('/reload', { method: 'POST', body: '{}' });
+    const fresh = await api('/status');
+    const savedOut = fresh?.config?.output || saved?.output || {};
+    lastSaveInfo = {
+      sentDefaultTarget: payload.defaultTarget,
+      savedDefaultTarget: savedOut.defaultTarget || '',
+      savedOverlay: savedOut.targets?.overlay?.enabled !== false,
+      savedDevice: savedOut.targets?.device?.enabled === true,
+      savedBoth: savedOut.targets?.both?.enabled === true
+    };
   }
 
   function bindActions(){
@@ -225,11 +239,9 @@ window.SoundSystemModule = (function(){
     try {
       const state = await api('/status');
       const list = await api('/list');
-      let out = null;
-      try { out = await api('/output'); } catch (_) { out = { output: state?.config?.output || {} }; }
       const dev = await api('/devices');
       status = { ...state, sounds: list.sounds || [] };
-      output = out;
+      output = { output: state?.config?.output || {} };
       devices = dev;
       render();
     } catch (err) {
