@@ -21,16 +21,17 @@ const DEFAULT_OUTPUT = {
       defaultVolume: 85
     },
     device: {
-      enabled: false,
+      enabled: true,
       label: "Audiogerät",
       mode: "local_device",
       selectedDeviceId: "default",
       selectedDeviceName: "Windows Standardgerät",
       defaultVolume: 80,
       helper: {
-        enabled: false,
-        path: "tools/audio-device-helper/AudioDeviceHelper.exe",
-        timeoutMs: 8000
+        enabled: true,
+        path: "tools/audio-device-helper/dist/AudioDeviceHelper.exe",
+        timeoutMs: 30000,
+        playbackMode: "auto"
       }
     },
     both: {
@@ -112,7 +113,8 @@ module.exports.init = function init(ctx) {
       configuredPath: helper.path || "",
       fullPath,
       exists: !!fullPath && fs.existsSync(fullPath),
-      timeoutMs: intValue(helper.timeoutMs, 8000, 1000, 60000)
+      timeoutMs: intValue(helper.timeoutMs, 30000, 1000, 300000),
+      playbackMode: helper.playbackMode || "auto"
     };
   }
 
