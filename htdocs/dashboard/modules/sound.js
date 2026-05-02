@@ -19,7 +19,7 @@ window.SoundSystemModule = (function(){
     root.innerHTML = `
       <div class="sound-card">
         <h2>Sound-System</h2>
-        <div class="sound-note">Zentrale Grundlage für Stream-Sounds, Queue, Prioritäten, Ausgabeziele und spätere Discord-Ausgabe. Bestehende Systeme werden später einzeln angebunden.</div>
+        <div class="sound-note">Zentrale Grundlage für Stream-Sounds, Queue, Prioritäten, Ausgabeziele und spätere Discord-Ausgabe. Alerts sollen später hierüber synchron mit ihrem Sound starten.</div>
         <div class="sound-actions">
           ${button('Neu laden', 'reload')}
           ${button('Stop', 'stop')}
@@ -32,6 +32,7 @@ window.SoundSystemModule = (function(){
         <div class="sound-card" id="soundStatusCard"></div>
         <div class="sound-card" id="soundOutputCard"></div>
         <div class="sound-card" id="soundCurrentCard"></div>
+        <div class="sound-card" id="soundPolicyCard"></div>
         <div class="sound-card">
           <h3>Sound-Liste</h3>
           <div id="soundList" class="sound-list"></div>
@@ -53,6 +54,7 @@ window.SoundSystemModule = (function(){
     renderStatus();
     renderOutput();
     renderCurrent();
+    renderPolicy();
     renderSounds();
     renderQueue();
   }
@@ -67,6 +69,7 @@ window.SoundSystemModule = (function(){
       <div class="sound-status-row"><span>Pause</span><span>${status?.paused ? 'Ja' : 'Nein'}</span></div>
       <div class="sound-status-row"><span>Aktueller Sound</span><span>${status?.current ? esc(status.current.label || status.current.soundId) : 'Keiner'}</span></div>
       <div class="sound-status-row"><span>Queue</span><span>${Number(status?.queuedCount || 0)}</span></div>
+      <div class="sound-status-row"><span>Parallel</span><span>${Number(status?.parallelCount || 0)}</span></div>
       <div class="sound-status-row"><span>Overlay</span><span>${status?.client?.connected ? 'Verbunden' : 'Nicht verbunden'}</span></div>
       <div class="sound-status-row"><span>Config</span><span>${cfg.ok ? 'OK' : 'Fehler'}</span></div>
       <div class="sound-note">Config: ${esc(cfg.path || '')}</div>
@@ -136,13 +139,36 @@ window.SoundSystemModule = (function(){
     if (!el) return;
     const cur = status?.current;
     if (!cur) { el.innerHTML = `<h3>Aktuell</h3><div class="sound-empty">Gerade läuft kein Sound.</div>`; return; }
+    const flags = cur.flags || {};
     el.innerHTML = `
       <h3>Aktuell</h3>
       <div class="sound-current-row"><span>Name</span><strong>${esc(cur.label || cur.soundId)}</strong></div>
-      <div class="sound-current-row"><span>Ziel</span><span class="sound-pill">${esc(cur.target)}</span></div>
+      <div class="sound-current-row"><span>Kategorie</span><span class="sound-pill">${esc(cur.category || '-')}</span></div>
+      <div class="sound-current-row"><span>Quelle</span><span>${esc(cur.source || '-')}</span></div>
+      <div class="sound-current-row"><span>Ziel</span><span class="sound-pill">${esc(cur.outputTarget || cur.target)}</span></div>
       <div class="sound-current-row"><span>Priorität</span><span>${esc(cur.priority)}</span></div>
       <div class="sound-current-row"><span>Lautstärke</span><span>${esc(cur.volume)}%</span></div>
+      <div class="sound-current-row"><span>Unterbrechbar</span><span>${flags.canBeInterrupted ? 'Ja' : 'Nein'}</span></div>
       <div class="sound-current-row"><span>Datei</span><span class="sound-muted">${esc(cur.file)}</span></div>
+    `;
+  }
+
+  function renderPolicy(){
+    const el = document.getElementById('soundPolicyCard');
+    if (!el) return;
+    const queue = status?.config?.queue || {};
+    const priorities = status?.config?.priorities || {};
+    const interrupt = queue.interruptRules || {};
+    const alertSync = queue.alertSync || {};
+    el.innerHTML = `
+      <h3>Policy</h3>
+      <div class="sound-status-row"><span>Prioritäts-Queue</span><span>${queue.sortByPriority === false ? 'FIFO' : 'Aktiv'}</span></div>
+      <div class="sound-status-row"><span>Max. Queue</span><span>${esc(queue.maxLength ?? 50)}</span></div>
+      <div class="sound-status-row"><span>Max. Parallel</span><span>${esc(queue.maxParallel ?? 0)}</span></div>
+      <div class="sound-status-row"><span>Alert-Priorität</span><span>${esc(priorities.alert ?? 80)}</span></div>
+      <div class="sound-status-row"><span>Alert-Sync</span><span>${alertSync.enabled === false ? 'Aus' : 'Vorbereitet'}</span></div>
+      <div class="sound-status-row"><span>Interrupt ab</span><span>${esc(interrupt.minPriority ?? 100)}</span></div>
+      <div class="sound-note">Normale Alerts sollen laufende Sounds nicht unterbrechen. Sie werden nach Priorität einsortiert und später erst angezeigt, wenn ihr Sound-Item startet.</div>
     `;
   }
 
@@ -155,11 +181,11 @@ window.SoundSystemModule = (function(){
       <div class="sound-sound-row">
         <div class="sound-sound-main">
           <div class="sound-sound-title">${esc(sound.label || sound.id)}</div>
-          <div class="sound-sound-meta">${esc(sound.id)} · ${esc(sound.category || 'ohne Kategorie')} · ${esc(sound.file || sound.type || '')}</div>
+          <div class="sound-sound-meta">${esc(sound.id)} · ${esc(sound.category || 'ohne Kategorie')} · ${esc(sound.source || 'config')} · ${esc(sound.file || sound.type || '')}</div>
         </div>
         <div class="sound-mini-actions">
           <span class="sound-pill">${esc(sound.outputTarget || sound.target || '')}</span>
-          <span class="sound-pill">${esc(sound.priority ?? '')}</span>
+          <span class="sound-pill">Prio ${esc(sound.priority ?? '')}</span>
           <button type="button" data-sound-play="${esc(sound.id)}">Play</button>
         </div>
       </div>
@@ -175,9 +201,12 @@ window.SoundSystemModule = (function(){
       <div class="sound-queue-row">
         <div class="sound-queue-main">
           <div class="sound-queue-title">#${index + 1} ${esc(item.label || item.soundId)}</div>
-          <div class="sound-queue-meta">${esc(item.target)} · Priorität ${esc(item.priority)} · ${esc(item.file)}</div>
+          <div class="sound-queue-meta">${esc(item.category || '-')} · ${esc(item.source || 'manual')} · Priorität ${esc(item.priority)} · ${esc(item.file)}</div>
         </div>
-        <span class="sound-pill">${esc(item.volume)}%</span>
+        <div class="sound-mini-actions">
+          <span class="sound-pill">${esc(item.outputTarget || item.target)}</span>
+          <span class="sound-pill">${esc(item.volume)}%</span>
+        </div>
       </div>
     `).join('');
   }
