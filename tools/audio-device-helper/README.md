@@ -4,7 +4,7 @@ Lokaler Windows-Helfer für das Sound-System.
 
 ## Stand
 
-STEP 3B: Geräteauflistung + Playback auf Windows-Standardgerät.
+STEP 3C: Geräteauflistung + Playback auf Windows-Standardgerät + Playback auf ausgewählter MMDevice-ID.
 
 Aktuell enthalten:
 
@@ -12,16 +12,14 @@ Aktuell enthalten:
 AudioDeviceHelper.exe version --json
 AudioDeviceHelper.exe devices --json
 AudioDeviceHelper.exe play --file "D:\\...\\sound.wav" --device default --volume 80
+AudioDeviceHelper.exe play --file "D:\\...\\sound.wav" --device "MMDEVICE-ID" --volume 80
 ```
 
 Noch nicht enthalten:
 
 ```powershell
-AudioDeviceHelper.exe play --file "D:\\...\\sound.wav" --device "echte-device-id" --volume 80
 AudioDeviceHelper.exe stop
 ```
-
-Gezielte Geräteauswahl folgt in STEP 3C.
 
 ## Build
 
@@ -48,10 +46,22 @@ tools/audio-device-helper/dist/AudioDeviceHelper.exe
 
 ## Test
 
+Geräte anzeigen:
+
 ```powershell
-.\dist\AudioDeviceHelper.exe version --json
 .\dist\AudioDeviceHelper.exe devices --json
-.\dist\AudioDeviceHelper.exe play --file "D:\\Pfad\\sound.wav" --device default --volume 80
+```
+
+Auf Windows-Standardgerät abspielen:
+
+```powershell
+.\dist\AudioDeviceHelper.exe play --file "D:\\Pfad\\sound.mp3" --device default --volume 80
+```
+
+Auf ausgewähltem Gerät abspielen:
+
+```powershell
+.\dist\AudioDeviceHelper.exe play --file "D:\\Pfad\\sound.mp3" --device "{0.0.0.00000000}.{...}" --volume 80
 ```
 
 Die Ausgabe muss JSON liefern, damit Node sie auslesen kann.
