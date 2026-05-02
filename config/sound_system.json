@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "version": "0.1.1",
+  "version": "0.1.3",
   "routes": {
     "prefix": "/api/sound"
   },
@@ -15,6 +15,38 @@
     "introMs": 0,
     "outroMs": 350,
     "gapBetweenSoundsMs": 750
+  },
+  "output": {
+    "defaultTarget": "overlay",
+    "allowPerSoundOverride": true,
+    "targets": {
+      "overlay": {
+        "enabled": true,
+        "label": "OBS Overlay",
+        "mode": "browser_overlay",
+        "overlayUrl": "/overlays/sound_system_overlay.html",
+        "defaultVolume": 85
+      },
+      "device": {
+        "enabled": false,
+        "label": "Audiogerät",
+        "mode": "local_device",
+        "selectedDeviceId": "default",
+        "selectedDeviceName": "Windows Standardgerät",
+        "defaultVolume": 80,
+        "helper": {
+          "enabled": false,
+          "path": "tools/audio-device-helper/AudioDeviceHelper.exe",
+          "timeoutMs": 8000
+        }
+      },
+      "both": {
+        "enabled": false,
+        "label": "Overlay + Audiogerät",
+        "mode": "combined",
+        "defaultVolume": 85
+      }
+    }
   },
   "queue": {
     "enabled": true,
@@ -48,6 +80,7 @@
   },
   "defaults": {
     "target": "stream",
+    "outputTarget": "overlay",
     "category": "fun",
     "priority": 50,
     "volume": 85,
@@ -68,6 +101,7 @@
       "category": "system",
       "priority": 100,
       "target": "stream",
+      "outputTarget": "overlay",
       "volume": 80,
       "durationMs": 350,
       "frequency": 880,
