@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "version": "0.1.4",
+  "version": "0.1.8",
   "routes": {
     "prefix": "/api/sound"
   },
@@ -37,7 +37,8 @@
         "helper": {
           "enabled": true,
           "path": "tools/audio-device-helper/dist/AudioDeviceHelper.exe",
-          "timeoutMs": 8000
+          "timeoutMs": 8000,
+          "playbackMode": "auto"
         }
       },
       "both": {
@@ -52,7 +53,45 @@
     "enabled": true,
     "maxLength": 50,
     "dropWhenFull": true,
-    "defaultPriority": 50
+    "defaultPriority": 50,
+    "sortByPriority": true,
+    "allowParallel": true,
+    "maxParallel": 3,
+    "parallelCategories": [
+      "system",
+      "admin",
+      "ui",
+      "test"
+    ],
+    "parallelSoundIds": [],
+    "alertSync": {
+      "enabled": true,
+      "description": "Normale Alerts werden nach Priorität einsortiert und erst angezeigt, wenn ihr Sound-Item startet. Sie unterbrechen laufende Sounds nicht."
+    },
+    "interruptRules": {
+      "enabled": true,
+      "minPriority": 100,
+      "requireHigherPriority": true,
+      "allowForce": true,
+      "allowOverride": false
+    },
+    "dropRules": {
+      "enabled": true,
+      "dropIfQueueFullBelowPriority": 40,
+      "dropIfBusyBelowPriority": 20
+    },
+    "cooldowns": {
+      "enabled": true,
+      "defaultMs": 0,
+      "sameSoundMs": 3000,
+      "sameCategoryMs": 0,
+      "sameUserMs": 0
+    },
+    "dedupe": {
+      "enabled": true,
+      "sameSoundWindowMs": 3000,
+      "sameUserSoundWindowMs": 5000
+    }
   },
   "targets": {
     "stream": {
@@ -70,13 +109,17 @@
   },
   "priorities": {
     "admin": 100,
+    "system": 100,
     "alert_critical": 90,
     "alert": 80,
     "channel_reward": 70,
     "vip": 60,
+    "crew": 60,
+    "special": 60,
     "tts": 50,
-    "fun": 40,
-    "background": 20
+    "fun": 50,
+    "background": 20,
+    "decor": 20
   },
   "defaults": {
     "target": "stream",
@@ -91,8 +134,72 @@
     "parallelAllowed": false,
     "cooldownMs": 0
   },
+  "categoryDefaults": {
+    "alert": {
+      "priority": 80,
+      "canInterrupt": false,
+      "canBeInterrupted": false,
+      "queueIfBusy": true,
+      "dropIfBusy": false,
+      "parallelAllowed": false
+    },
+    "alert_critical": {
+      "priority": 90,
+      "canInterrupt": false,
+      "canBeInterrupted": false,
+      "queueIfBusy": true,
+      "dropIfBusy": false,
+      "parallelAllowed": false
+    },
+    "admin": {
+      "priority": 100,
+      "canInterrupt": true,
+      "canBeInterrupted": false,
+      "queueIfBusy": false,
+      "dropIfBusy": false,
+      "parallelAllowed": true
+    },
+    "system": {
+      "priority": 100,
+      "canInterrupt": true,
+      "canBeInterrupted": false,
+      "queueIfBusy": false,
+      "dropIfBusy": false,
+      "parallelAllowed": true
+    },
+    "vip": {
+      "priority": 60,
+      "canInterrupt": false,
+      "canBeInterrupted": true,
+      "queueIfBusy": true,
+      "dropIfBusy": false,
+      "parallelAllowed": false
+    },
+    "fun": {
+      "priority": 50,
+      "canInterrupt": false,
+      "canBeInterrupted": true,
+      "queueIfBusy": true,
+      "dropIfBusy": false,
+      "parallelAllowed": false
+    },
+    "background": {
+      "priority": 20,
+      "canInterrupt": false,
+      "canBeInterrupted": true,
+      "queueIfBusy": true,
+      "dropIfBusy": true,
+      "parallelAllowed": false
+    }
+  },
   "soundsBaseDir": "htdocs/assets/sounds",
-  "allowedExtensions": [".mp3", ".wav", ".ogg", ".webm", ".m4a"],
+  "allowedExtensions": [
+    ".mp3",
+    ".wav",
+    ".ogg",
+    ".webm",
+    ".m4a"
+  ],
   "sounds": [
     {
       "id": "test_ping",
