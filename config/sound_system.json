@@ -1,0 +1,81 @@
+{
+  "enabled": true,
+  "version": "0.1.0",
+  "routes": {
+    "prefix": "/api/sound"
+  },
+  "websocket": {
+    "enabled": true,
+    "op": "sound_system"
+  },
+  "overlay": {
+    "enabled": true,
+    "clientRequired": true,
+    "fallbackFinishMs": 12000,
+    "introMs": 0,
+    "outroMs": 350,
+    "gapBetweenSoundsMs": 750
+  },
+  "queue": {
+    "enabled": true,
+    "maxLength": 50,
+    "dropWhenFull": true,
+    "defaultPriority": 50
+  },
+  "targets": {
+    "stream": {
+      "enabled": true,
+      "defaultVolume": 85
+    },
+    "discord": {
+      "enabled": false,
+      "defaultVolume": 80
+    },
+    "both": {
+      "enabled": false,
+      "defaultVolume": 85
+    }
+  },
+  "priorities": {
+    "admin": 100,
+    "alert_critical": 90,
+    "alert": 80,
+    "channel_reward": 70,
+    "vip": 60,
+    "tts": 50,
+    "fun": 40,
+    "background": 20
+  },
+  "defaults": {
+    "target": "stream",
+    "category": "fun",
+    "priority": 50,
+    "volume": 85,
+    "canInterrupt": false,
+    "canBeInterrupted": true,
+    "queueIfBusy": true,
+    "dropIfBusy": false,
+    "parallelAllowed": false,
+    "cooldownMs": 0
+  },
+  "soundsBaseDir": "htdocs/assets/sounds",
+  "allowedExtensions": [".mp3", ".wav", ".ogg", ".webm", ".m4a"],
+  "sounds": [
+    {
+      "id": "test_ping",
+      "label": "Test Ping",
+      "file": "test_ping.mp3",
+      "category": "system",
+      "priority": 100,
+      "target": "stream",
+      "volume": 80,
+      "enabled": true,
+      "canInterrupt": true,
+      "canBeInterrupted": false,
+      "queueIfBusy": false,
+      "dropIfBusy": false,
+      "parallelAllowed": false,
+      "cooldownMs": 0
+    }
+  ]
+}
