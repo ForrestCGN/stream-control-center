@@ -56,6 +56,12 @@ app.use("/alerts", express.static(paths.ALERTS_DIR, PUBLIC_STATIC_OPTIONS));
 app.use("/dashboard", express.static(paths.DASHBOARD_DIR, PUBLIC_STATIC_OPTIONS));
 app.use("/public", express.static(paths.PUBLIC_DIR, PUBLIC_STATIC_OPTIONS));
 
+app.get(["/dashboard", "/dashboard/"], (req, res) => {
+  const dashboardIndex = path.join(paths.DASHBOARD_DIR, "index.html");
+  if (fs.existsSync(dashboardIndex)) return res.sendFile(dashboardIndex);
+  res.status(404).json({ ok: false, error: "dashboard_index_not_found" });
+});
+
 // Legacy compatibility: several existing overlays may still fetch JSON from /data.
 // Keep for now; later migrate to explicit API routes or data/state endpoints.
 app.use("/data", express.static(paths.LEGACY_HTDOCS_DATA_DIR, PUBLIC_STATIC_OPTIONS));
