@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
-const string Version = "0.2.1";
+const string Version = "0.3.0";
 
 try
 {
@@ -70,23 +70,25 @@ static PlayResponse PlayFile(string[] argsList)
 {
     var options = ParseOptions(argsList);
     var file = options.TryGetValue("file", out var fileValue) ? fileValue : "";
-    var device = options.TryGetValue("device", out var deviceValue) ? deviceValue : "default";
+    var deviceId = options.TryGetValue("device", out var deviceValue) ? deviceValue : "default";
     var volume = options.TryGetValue("volume", out var volumeValue) ? ClampInt(volumeValue, 80, 0, 100) : 80;
 
     if (string.IsNullOrWhiteSpace(file))
     {
-        return new PlayResponse(false, "AudioDeviceHelper", Version, "file_missing", "Parameter --file fehlt.", file, device, volume, 0);
+        return new PlayResponse(false, "AudioDeviceHelper", Version, "file_missing", "Parameter --file fehlt.", file, deviceId, "", volume, 0);
     }
 
     var fullPath = Path.GetFullPath(file);
     if (!File.Exists(fullPath))
     {
-        return new PlayResponse(false, "AudioDeviceHelper", Version, "file_not_found", $"Datei nicht gefunden: {fullPath}", fullPath, device, volume, 0);
+        return new PlayResponse(false, "AudioDeviceHelper", Version, "file_not_found", $"Datei nicht gefunden: {fullPath}", fullPath, deviceId, "", volume, 0);
     }
 
-    if (!string.Equals(device, "default", StringComparison.OrdinalIgnoreCase))
+    using var enumerator = new MMDeviceEnumerator();
+    using var device = ResolveRenderDevice(enumerator, deviceId);
+    if (device == null)
     {
-        return new PlayResponse(false, "AudioDeviceHelper", Version, "device_playback_not_implemented", "STEP 3B unterstützt nur --device default. Geräteauswahl folgt in STEP 3C.", fullPath, device, volume, 0);
+        return new PlayResponse(false, "AudioDeviceHelper", Version, "device_not_found", $"Audiogerät nicht gefunden: {deviceId}", fullPath, deviceId, "", volume, 0);
     }
 
     using var reader = new AudioFileReader(fullPath)
@@ -94,12 +96,7 @@ static PlayResponse PlayFile(string[] argsList)
         Volume = Math.Clamp(volume / 100f, 0f, 1f)
     };
 
-    using var output = new WaveOutEvent
-    {
-        DeviceNumber = -1,
-        DesiredLatency = 100
-    };
-
+    using var output = new WasapiOut(device, AudioClientShareMode.Shared, false, 100);
     var done = new ManualResetEventSlim(false);
     output.PlaybackStopped += (_, _) => done.Set();
     output.Init(reader);
@@ -113,7 +110,24 @@ static PlayResponse PlayFile(string[] argsList)
         output.Stop();
     }
 
-    return new PlayResponse(true, "AudioDeviceHelper", Version, "", "Playback beendet.", fullPath, device, volume, (int)Math.Round(reader.TotalTime.TotalMilliseconds));
+    return new PlayResponse(true, "AudioDeviceHelper", Version, "", "Playback beendet.", fullPath, deviceId, SafeName(device.FriendlyName), volume, (int)Math.Round(reader.TotalTime.TotalMilliseconds));
+}
+
+static MMDevice? ResolveRenderDevice(MMDeviceEnumerator enumerator, string deviceId)
+{
+    if (string.IsNullOrWhiteSpace(deviceId) || string.Equals(deviceId, "default", StringComparison.OrdinalIgnoreCase))
+    {
+        return enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+    }
+
+    var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+    foreach (var device in devices)
+    {
+        if (string.Equals(device.ID, deviceId, StringComparison.OrdinalIgnoreCase)) return device;
+        if (string.Equals(device.FriendlyName, deviceId, StringComparison.OrdinalIgnoreCase)) return device;
+    }
+
+    return null;
 }
 
 static int ClampInt(string value, int fallback, int min, int max)
@@ -179,8 +193,9 @@ static void WriteHelp()
     Console.WriteLine("  version --json");
     Console.WriteLine("  devices --json");
     Console.WriteLine("  play --file \"D:\\Pfad\\sound.wav\" --device default --volume 80");
+    Console.WriteLine("  play --file \"D:\\Pfad\\sound.wav\" --device \"MMDEVICE-ID\" --volume 80");
     Console.WriteLine();
-    Console.WriteLine("Hinweis: STEP 3B spielt nur auf dem Windows-Standardgerät. Geräteauswahl folgt in STEP 3C.");
+    Console.WriteLine("STEP 3C: Playback auf Windows-Standardgerät und ausgewählter MMDevice-ID.");
 }
 
 static void WriteError(string message)
@@ -233,6 +248,7 @@ public sealed record PlayResponse(
     string Message,
     string File,
     string Device,
+    string DeviceName,
     int Volume,
     int DurationMs
 );
