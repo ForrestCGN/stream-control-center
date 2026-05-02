@@ -1,0 +1,15 @@
+{
+  "moduleReady": "Sound-System bereit.",
+  "systemDisabled": "Sound-System ist deaktiviert.",
+  "soundQueued": "Sound wurde in die Warteschlange gelegt.",
+  "soundStarted": "Sound wird abgespielt.",
+  "soundStopped": "Sound-Ausgabe wurde gestoppt.",
+  "soundSkipped": "Aktueller Sound wurde übersprungen.",
+  "queueCleared": "Sound-Warteschlange wurde geleert.",
+  "configReloaded": "Sound-System Config wurde neu geladen.",
+  "soundNotFound": "Sound wurde nicht gefunden.",
+  "soundFileMissing": "Sound-Datei wurde nicht gefunden.",
+  "queueFull": "Sound-Warteschlange ist voll.",
+  "targetDisabled": "Dieses Sound-Ziel ist deaktiviert.",
+  "clientMissing": "Sound-Overlay ist noch nicht verbunden."
+}
