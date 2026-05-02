@@ -1015,12 +1015,33 @@ function deepMergePlain(base, override) {
   return out;
 }
 
+function settingAlias(settings, canonicalKey, ...aliases) {
+  let merged = {};
+  for (const key of [canonicalKey, ...aliases]) {
+    if (settings && settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
+      merged = deepMergePlain(merged, settings[key]);
+    }
+  }
+  return merged;
+}
+
+function canonicalSettingsKey(rawKey) {
+  const compact = String(rawKey || '').trim().replace(/[^a-z0-9]/gi, '').toLowerCase();
+  if (compact === 'livealert') return 'liveAlert';
+  if (compact === 'dashboardsettings') return 'dashboardSettings';
+  if (compact === 'preview') return 'preview';
+  return cleanKey(rawKey);
+}
+
 function getRuntimeAlertSettings() {
   const settings = getSettings();
+  const previewSettings = settingAlias(settings, 'preview');
+  const liveAlertSettings = settingAlias(settings, 'liveAlert', 'livealert', 'live_alert');
+  const dashboardSettings = settingAlias(settings, 'dashboardSettings', 'dashboardsettings', 'dashboard_settings');
   return {
-    preview: deepMergePlain(DEFAULT_CONFIG.preview, deepMergePlain(state.config.preview, settings.preview)),
-    liveAlert: deepMergePlain(DEFAULT_CONFIG.liveAlert, deepMergePlain(state.config.liveAlert, settings.liveAlert)),
-    dashboardSettings: deepMergePlain(DEFAULT_CONFIG.dashboardSettings, deepMergePlain(state.config.dashboardSettings, settings.dashboardSettings))
+    preview: deepMergePlain(DEFAULT_CONFIG.preview, deepMergePlain(state.config.preview, previewSettings)),
+    liveAlert: deepMergePlain(DEFAULT_CONFIG.liveAlert, deepMergePlain(state.config.liveAlert, liveAlertSettings)),
+    dashboardSettings: deepMergePlain(DEFAULT_CONFIG.dashboardSettings, deepMergePlain(state.config.dashboardSettings, dashboardSettings))
   };
 }
 
@@ -1033,7 +1054,7 @@ function saveSettings(input) {
   const now = nowIso();
   const data = input.settings && typeof input.settings === 'object' ? input.settings : input;
   for (const [key, value] of Object.entries(data || {})) {
-    const clean = cleanKey(key);
+    const clean = canonicalSettingsKey(key);
     if (!clean) continue;
     sqlite.run(`
       INSERT INTO alert_settings (key, value_json, updated_at)
