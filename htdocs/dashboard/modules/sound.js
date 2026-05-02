@@ -1,14 +1,16 @@
-window.SoundSystemModule = (function(){
+﻿window.SoundSystemModule = (function(){
   'use strict';
 
   const API = '/api/sound';
   let root = null;
   let status = null;
   let output = null;
+  let settings = null;
   let devices = [];
   let loading = false;
   let lastSaveInfo = null;
   let actionsBound = false;
+  let activeSection = 'overview';
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
@@ -17,34 +19,46 @@ window.SoundSystemModule = (function(){
   function renderShell(){
     if (!root) return;
     root.innerHTML = `
-      <div class="sound-card">
-        <h2>Sound-System</h2>
-        <div class="sound-note">Zentrale Grundlage für Stream-Sounds, Queue, Prioritäten, Ausgabeziele und spätere Discord-Ausgabe. Alerts sollen später hierüber synchron mit ihrem Sound starten.</div>
-        <div class="sound-actions">
+      <div class="sound-card sound-hero">
+        <div>
+          <h2>Sound-System</h2>
+          <div class="sound-note">Zentrale Steuerung fÃ¼r Stream-Sounds, Queue, PrioritÃ¤ten, Ausgabeziele, Alert-Sync und spÃ¤tere Discord-Ausgabe.</div>
+        </div>
+        <div class="sound-actions sound-hero-actions">
           ${button('Neu laden', 'reload')}
           ${button('Stop', 'stop')}
           ${button('Skip', 'skip')}
           ${button('Queue leeren', 'clear')}
-          <a class="ghost-link" href="/overlays/sound_system_overlay.html?debug=1" target="_blank">Overlay öffnen</a>
+          <a class="ghost-link" href="/overlays/sound_system_overlay.html?debug=1" target="_blank">Overlay Ã¶ffnen</a>
         </div>
       </div>
+
+      <div class="sound-tabs" role="tablist" aria-label="Sound-System Navigation">
+        <button type="button" class="sound-tab active" data-sound-tab="overview">&Uuml;bersicht</button>
+        <button type="button" class="sound-tab" data-sound-tab="output">Ausgabe</button>
+        <button type="button" class="sound-tab" data-sound-tab="queue">Queue</button>
+        <button type="button" class="sound-tab" data-sound-tab="settings">Einstellungen</button>
+        <button type="button" class="sound-tab" data-sound-tab="sounds">Sounds</button>
+      </div>
+
       <div class="sound-grid">
-        <div class="sound-card" id="soundStatusCard"></div>
-        <div class="sound-card" id="soundOutputCard"></div>
-        <div class="sound-card" id="soundCurrentCard"></div>
-        <div class="sound-card" id="soundPolicyCard"></div>
-        <div class="sound-card">
+        <div class="sound-card" id="soundStatusCard" data-sound-section="overview"></div>
+        <div class="sound-card" id="soundCurrentCard" data-sound-section="overview"></div>
+        <div class="sound-card" id="soundPolicyCard" data-sound-section="overview queue"></div>
+        <div class="sound-card" id="soundOutputCard" data-sound-section="output"></div>
+        <div class="sound-card" id="soundSettingsCard" data-sound-section="settings"></div>
+        <div class="sound-card" data-sound-section="sounds">
           <h3>Sound-Liste</h3>
           <div id="soundList" class="sound-list"></div>
         </div>
-        <div class="sound-card">
+        <div class="sound-card" data-sound-section="queue overview">
           <h3>Queue</h3>
           <div id="soundQueue" class="sound-queue"></div>
         </div>
       </div>
     `;
+    applySoundSection();
   }
-
   function render(){
     if (!root) return;
     if (!status) {
@@ -55,8 +69,10 @@ window.SoundSystemModule = (function(){
     renderOutput();
     renderCurrent();
     renderPolicy();
+    renderSettings();
     renderSounds();
     renderQueue();
+    applySoundSection();
   }
 
   function renderStatus(){
@@ -92,7 +108,7 @@ window.SoundSystemModule = (function(){
     const out = getOutputState();
     const targets = out.targets || {};
     const device = targets.device || {};
-    const helperWarning = devices?.warning && devices.warning !== 'helper' ? `<div class="sound-note">Gerätequelle: ${esc(devices.warning)}${devices.error ? ' · ' + esc(devices.error) : ''}</div>` : '';
+    const helperWarning = devices?.warning && devices.warning !== 'helper' ? `<div class="sound-note">GerÃ¤tequelle: ${esc(devices.warning)}${devices.error ? ' Â· ' + esc(devices.error) : ''}</div>` : '';
     const deviceList = Array.isArray(devices?.devices) ? devices.devices : [];
     const selectedId = device.selectedDeviceId || 'default';
     const selectedMissing = selectedId && !deviceList.some(d => String(d.id) === String(selectedId));
@@ -108,27 +124,27 @@ window.SoundSystemModule = (function(){
         <span>Ausgabemodus</span>
         <select id="soundDefaultTarget">
           <option value="overlay" ${out.defaultTarget === 'overlay' ? 'selected' : ''}>Overlay / OBS</option>
-          <option value="device" ${out.defaultTarget === 'device' ? 'selected' : ''}>Audiogerät</option>
+          <option value="device" ${out.defaultTarget === 'device' ? 'selected' : ''}>AudiogerÃ¤t</option>
           <option value="both" ${out.defaultTarget === 'both' ? 'selected' : ''}>Beides</option>
         </select>
       </label>
       <label class="sound-field">
-        <span>Ausgabegerät</span>
+        <span>AusgabegerÃ¤t</span>
         <select id="soundDeviceSelect">
           ${selectedMissing ? `<option value="${esc(selectedId)}" data-name="${esc(device.selectedDeviceName || selectedId)}" selected>${esc(device.selectedDeviceName || selectedId)} (gespeichert)</option>` : ''}
           ${deviceList.map(d => `<option value="${esc(d.id)}" data-name="${esc(d.name)}" ${String(d.id) === String(selectedId) ? 'selected' : ''}>${esc(d.name)}${d.isDefault ? ' (Standard)' : ''}</option>`).join('')}
         </select>
       </label>
       <label class="sound-field">
-        <span>Gerät-Lautstärke</span>
+        <span>GerÃ¤t-LautstÃ¤rke</span>
         <input id="soundDeviceVolume" type="number" min="0" max="100" value="${esc(device.defaultVolume ?? 80)}">
       </label>
       <div class="sound-actions">
         ${button('Ausgabe speichern', 'save-output')}
-        ${button('Geräte neu laden', 'reload-devices')}
+        ${button('GerÃ¤te neu laden', 'reload-devices')}
         ${button('Test Ausgabe', 'test-output')}
       </div>
-      <div class="sound-note">Der Ausgabemodus setzt die passenden Ziele automatisch. Gerät und Lautstärke gelten für direkte Audiogerät-Ausgabe.</div>
+      <div class="sound-note">Der Ausgabemodus setzt die passenden Ziele automatisch. GerÃ¤t und LautstÃ¤rke gelten fÃ¼r direkte AudiogerÃ¤t-Ausgabe.</div>
       ${saveInfo}
       ${helperWarning}
     `;
@@ -138,7 +154,7 @@ window.SoundSystemModule = (function(){
     const el = document.getElementById('soundCurrentCard');
     if (!el) return;
     const cur = status?.current;
-    if (!cur) { el.innerHTML = `<h3>Aktuell</h3><div class="sound-empty">Gerade läuft kein Sound.</div>`; return; }
+    if (!cur) { el.innerHTML = `<h3>Aktuell</h3><div class="sound-empty">Gerade lÃ¤uft kein Sound.</div>`; return; }
     const flags = cur.flags || {};
     el.innerHTML = `
       <h3>Aktuell</h3>
@@ -146,8 +162,8 @@ window.SoundSystemModule = (function(){
       <div class="sound-current-row"><span>Kategorie</span><span class="sound-pill">${esc(cur.category || '-')}</span></div>
       <div class="sound-current-row"><span>Quelle</span><span>${esc(cur.source || '-')}</span></div>
       <div class="sound-current-row"><span>Ziel</span><span class="sound-pill">${esc(cur.outputTarget || cur.target)}</span></div>
-      <div class="sound-current-row"><span>Priorität</span><span>${esc(cur.priority)}</span></div>
-      <div class="sound-current-row"><span>Lautstärke</span><span>${esc(cur.volume)}%</span></div>
+      <div class="sound-current-row"><span>PrioritÃ¤t</span><span>${esc(cur.priority)}</span></div>
+      <div class="sound-current-row"><span>LautstÃ¤rke</span><span>${esc(cur.volume)}%</span></div>
       <div class="sound-current-row"><span>Unterbrechbar</span><span>${flags.canBeInterrupted ? 'Ja' : 'Nein'}</span></div>
       <div class="sound-current-row"><span>Datei</span><span class="sound-muted">${esc(cur.file)}</span></div>
     `;
@@ -162,16 +178,164 @@ window.SoundSystemModule = (function(){
     const alertSync = queue.alertSync || {};
     el.innerHTML = `
       <h3>Policy</h3>
-      <div class="sound-status-row"><span>Prioritäts-Queue</span><span>${queue.sortByPriority === false ? 'FIFO' : 'Aktiv'}</span></div>
+      <div class="sound-status-row"><span>PrioritÃ¤ts-Queue</span><span>${queue.sortByPriority === false ? 'FIFO' : 'Aktiv'}</span></div>
       <div class="sound-status-row"><span>Max. Queue</span><span>${esc(queue.maxLength ?? 50)}</span></div>
       <div class="sound-status-row"><span>Max. Parallel</span><span>${esc(queue.maxParallel ?? 0)}</span></div>
-      <div class="sound-status-row"><span>Alert-Priorität</span><span>${esc(priorities.alert ?? 80)}</span></div>
+      <div class="sound-status-row"><span>Alert-PrioritÃ¤t</span><span>${esc(priorities.alert ?? 80)}</span></div>
       <div class="sound-status-row"><span>Alert-Sync</span><span>${alertSync.enabled === false ? 'Aus' : 'Vorbereitet'}</span></div>
       <div class="sound-status-row"><span>Interrupt ab</span><span>${esc(interrupt.minPriority ?? 100)}</span></div>
-      <div class="sound-note">Normale Alerts sollen laufende Sounds nicht unterbrechen. Sie werden nach Priorität einsortiert und später erst angezeigt, wenn ihr Sound-Item startet.</div>
+      <div class="sound-note">Normale Alerts sollen laufende Sounds nicht unterbrechen. Sie werden nach PrioritÃ¤t einsortiert und spÃ¤ter erst angezeigt, wenn ihr Sound-Item startet.</div>
     `;
   }
 
+  function checked(value){ return value === false ? '' : 'checked'; }
+  function numValue(value, fallback){ const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+
+  function renderSettings(){
+    const el = document.getElementById('soundSettingsCard');
+    if (!el) return;
+    const cfg = status?.config || {};
+    const out = cfg.output || {};
+    const overlay = cfg.overlay || {};
+    const queue = cfg.queue || {};
+    const targets = out.targets || {};
+    const overlayTarget = targets.overlay || {};
+    const deviceTarget = targets.device || {};
+    const bothTarget = targets.both || {};
+    const alertSync = queue.alertSync || {};
+    el.innerHTML = `
+      <h3>Einstellungen</h3>
+      <div class="sound-note">Teil 1: Diese Werte werden Ã¼ber <code>/api/sound/settings</code> in SQLite gespeichert und beim Neustart wieder geladen.</div>
+
+      <div class="sound-settings-grid">
+        <label class="sound-field">
+          <span>Overlay-LautstÃ¤rke</span>
+          <input id="soundSettingsOverlayVolume" type="number" min="0" max="100" value="${esc(numValue(overlayTarget.defaultVolume, 85))}">
+        </label>
+        <label class="sound-field">
+          <span>Device-LautstÃ¤rke</span>
+          <input id="soundSettingsDeviceVolume" type="number" min="0" max="100" value="${esc(numValue(deviceTarget.defaultVolume, 80))}">
+        </label>
+        <label class="sound-field">
+          <span>Both-LautstÃ¤rke</span>
+          <input id="soundSettingsBothVolume" type="number" min="0" max="100" value="${esc(numValue(bothTarget.defaultVolume, 85))}">
+        </label>
+        <label class="sound-field">
+          <span>Overlay Fallback-Ende ms</span>
+          <input id="soundSettingsFallbackFinishMs" type="number" min="1000" max="120000" value="${esc(numValue(overlay.fallbackFinishMs, 12000))}">
+        </label>
+        <label class="sound-field">
+          <span>Abstand zwischen Sounds ms</span>
+          <input id="soundSettingsGapMs" type="number" min="0" max="10000" value="${esc(numValue(overlay.gapBetweenSoundsMs, 750))}">
+        </label>
+        <label class="sound-field">
+          <span>Max Queue</span>
+          <input id="soundSettingsQueueMax" type="number" min="1" max="500" value="${esc(numValue(queue.maxLength, 50))}">
+        </label>
+        <label class="sound-check">
+          <input id="soundSettingsQueueEnabled" type="checkbox" ${checked(queue.enabled)}>
+          <span>Queue aktiv</span>
+        </label>
+        <label class="sound-check">
+          <input id="soundSettingsDropWhenFull" type="checkbox" ${checked(queue.dropWhenFull)}>
+          <span>Bei voller Queue droppen</span>
+        </label>
+        <label class="sound-check">
+          <input id="soundSettingsSortPriority" type="checkbox" ${checked(queue.sortByPriority)}>
+          <span>Nach PrioritÃ¤t sortieren</span>
+        </label>
+        <label class="sound-check">
+          <input id="soundSettingsAllowParallel" type="checkbox" ${checked(queue.allowParallel)}>
+          <span>Parallel erlauben</span>
+        </label>
+        <label class="sound-field">
+          <span>Max Parallel</span>
+          <input id="soundSettingsMaxParallel" type="number" min="0" max="20" value="${esc(numValue(queue.maxParallel, 3))}">
+        </label>
+        <label class="sound-check">
+          <input id="soundSettingsAlertSyncEnabled" type="checkbox" ${checked(alertSync.enabled)}>
+          <span>Alert-Sync aktiv</span>
+        </label>
+        <label class="sound-field">
+          <span>Visual Lead ms</span>
+          <input id="soundSettingsVisualLeadMs" type="number" min="0" max="1000" value="${esc(numValue(alertSync.visualLeadMs, 150))}">
+        </label>
+        <label class="sound-field">
+          <span>Max Visual Lead ms</span>
+          <input id="soundSettingsMaxVisualLeadMs" type="number" min="0" max="1000" value="${esc(numValue(alertSync.maxVisualLeadMs, 500))}">
+        </label>
+      </div>
+
+      <div class="sound-actions">
+        ${button('Settings speichern', 'save-settings', 'success')}
+        ${button('Settings neu laden', 'reload-settings')}
+      </div>
+      <div class="sound-note">Device-Auswahl bleibt vorerst im Ausgabe-Bereich. Diese Karte speichert Runtime-Settings in SQLite.</div>
+    `;
+  }
+
+  function readNumber(id, fallback, min, max){
+    const el = document.getElementById(id);
+    const n = Number(el?.value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, Math.round(n)));
+  }
+
+  function readBool(id, fallback){
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    return !!el.checked;
+  }
+
+  async function saveRuntimeSettings(){
+    const cfg = status?.config || {};
+    const out = cfg.output || {};
+    const targets = out.targets || {};
+    const overlay = cfg.overlay || {};
+    const queue = cfg.queue || {};
+    const alertSync = queue.alertSync || {};
+
+    const payload = {
+      output: {
+        targets: {
+          overlay: {
+            defaultVolume: readNumber('soundSettingsOverlayVolume', targets.overlay?.defaultVolume ?? 85, 0, 100)
+          },
+          device: {
+            defaultVolume: readNumber('soundSettingsDeviceVolume', targets.device?.defaultVolume ?? 80, 0, 100)
+          },
+          both: {
+            defaultVolume: readNumber('soundSettingsBothVolume', targets.both?.defaultVolume ?? 85, 0, 100)
+          }
+        }
+      },
+      overlay: {
+        fallbackFinishMs: readNumber('soundSettingsFallbackFinishMs', overlay.fallbackFinishMs ?? 12000, 1000, 120000),
+        gapBetweenSoundsMs: readNumber('soundSettingsGapMs', overlay.gapBetweenSoundsMs ?? 750, 0, 10000)
+      },
+      queue: {
+        enabled: readBool('soundSettingsQueueEnabled', queue.enabled !== false),
+        maxLength: readNumber('soundSettingsQueueMax', queue.maxLength ?? 50, 1, 500),
+        dropWhenFull: readBool('soundSettingsDropWhenFull', queue.dropWhenFull !== false),
+        sortByPriority: readBool('soundSettingsSortPriority', queue.sortByPriority !== false),
+        allowParallel: readBool('soundSettingsAllowParallel', queue.allowParallel !== false),
+        maxParallel: readNumber('soundSettingsMaxParallel', queue.maxParallel ?? 3, 0, 20),
+        alertSync: {
+          ...(alertSync || {}),
+          enabled: readBool('soundSettingsAlertSyncEnabled', alertSync.enabled !== false),
+          visualLeadMs: readNumber('soundSettingsVisualLeadMs', alertSync.visualLeadMs ?? 150, 0, 1000),
+          maxVisualLeadMs: readNumber('soundSettingsMaxVisualLeadMs', alertSync.maxVisualLeadMs ?? 500, 0, 1000)
+        }
+      }
+    };
+
+    settings = await api('/settings', { method: 'POST', body: JSON.stringify(payload) });
+    await api('/reload', { method: 'POST', body: '{}' });
+    lastSaveInfo = {
+      sentDefaultTarget: 'runtime-settings',
+      savedDefaultTarget: settings?.effective?.output?.defaultTarget || status?.config?.output?.defaultTarget || ''
+    };
+  }
   function renderSounds(){
     const el = document.getElementById('soundList');
     if (!el) return;
@@ -181,7 +345,7 @@ window.SoundSystemModule = (function(){
       <div class="sound-sound-row">
         <div class="sound-sound-main">
           <div class="sound-sound-title">${esc(sound.label || sound.id)}</div>
-          <div class="sound-sound-meta">${esc(sound.id)} · ${esc(sound.category || 'ohne Kategorie')} · ${esc(sound.source || 'config')} · ${esc(sound.file || sound.type || '')}</div>
+          <div class="sound-sound-meta">${esc(sound.id)} Â· ${esc(sound.category || 'ohne Kategorie')} Â· ${esc(sound.source || 'config')} Â· ${esc(sound.file || sound.type || '')}</div>
         </div>
         <div class="sound-mini-actions">
           <span class="sound-pill">${esc(sound.outputTarget || sound.target || '')}</span>
@@ -201,7 +365,7 @@ window.SoundSystemModule = (function(){
       <div class="sound-queue-row">
         <div class="sound-queue-main">
           <div class="sound-queue-title">#${index + 1} ${esc(item.label || item.soundId)}</div>
-          <div class="sound-queue-meta">${esc(item.category || '-')} · ${esc(item.source || 'manual')} · Priorität ${esc(item.priority)} · ${esc(item.file)}</div>
+          <div class="sound-queue-meta">${esc(item.category || '-')} Â· ${esc(item.source || 'manual')} Â· PrioritÃ¤t ${esc(item.priority)} Â· ${esc(item.file)}</div>
         </div>
         <div class="sound-mini-actions">
           <span class="sound-pill">${esc(item.outputTarget || item.target)}</span>
@@ -215,7 +379,7 @@ window.SoundSystemModule = (function(){
     const select = document.getElementById('soundDeviceSelect');
     const option = select?.selectedOptions?.[0];
     const selectedDeviceId = select?.value || 'default';
-    const selectedDeviceName = option?.dataset?.name || option?.textContent || 'Windows Standardgerät';
+    const selectedDeviceName = option?.dataset?.name || option?.textContent || 'Windows StandardgerÃ¤t';
     const mode = document.getElementById('soundDefaultTarget')?.value || 'overlay';
     const flags = modeFlags(mode);
 
@@ -241,10 +405,31 @@ window.SoundSystemModule = (function(){
     };
   }
 
+
+  function applySoundSection(){
+    if (!root) return;
+
+    root.querySelectorAll('[data-sound-tab]').forEach(btn => {
+      const isActive = btn.dataset.soundTab === activeSection;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    root.querySelectorAll('[data-sound-section]').forEach(el => {
+      const sections = String(el.dataset.soundSection || '').split(/\s+/).filter(Boolean);
+      el.hidden = !sections.includes(activeSection);
+    });
+  }
   function bindActions(){
     if (!root || actionsBound) return;
     actionsBound = true;
     root.addEventListener('click', async (event) => {
+      const tabBtn = event.target.closest('[data-sound-tab]');
+      if (tabBtn) {
+        activeSection = tabBtn.dataset.soundTab || 'overview';
+        applySoundSection();
+        return;
+      }
       const actionBtn = event.target.closest('[data-sound-action]');
       const playBtn = event.target.closest('[data-sound-play]');
       if (!actionBtn && !playBtn) return;
@@ -259,6 +444,8 @@ window.SoundSystemModule = (function(){
           if (action === 'clear') await api('/clear', { method: 'POST', body: '{}' });
           if (action === 'save-output') await saveOutput();
           if (action === 'reload-devices') devices = await api('/devices');
+          if (action === 'reload-settings') settings = await api('/settings');
+          if (action === 'save-settings') await saveRuntimeSettings();
           if (action === 'test-output') await api('/play?file=opa01.mp3&outputTarget=device&volume=100', { method: 'GET' });
         }
         await loadAll(true);
@@ -273,9 +460,11 @@ window.SoundSystemModule = (function(){
       const state = await api('/status');
       const list = await api('/list');
       const dev = await api('/devices');
+      const set = await api('/settings');
       status = { ...state, sounds: list.sounds || [] };
       output = { output: state?.config?.output || {} };
       devices = dev;
+      settings = set;
       render();
     } catch (err) {
       if (root) root.innerHTML = `<div class="sound-card"><h2>Sound-System</h2><div class="sound-empty">${esc(err.message || err)}</div></div>`;
@@ -295,3 +484,5 @@ window.SoundSystemModule = (function(){
 
   return { loadAll };
 })();
+
+
