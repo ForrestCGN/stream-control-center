@@ -654,9 +654,9 @@ module.exports.init = function init(ctx) {
   app.post(`${prefix}/reset`, (req, res) => { clearFinishTimer(); state.current = null; state.parallel = []; state.queue = []; state.paused = false; emit("reset"); return res.json(core.ok({ status: publicState() })); });
 
   app.post(`${prefix}/client/ready`, (req, res) => { markClient("ready"); emit("client_ready"); return res.json(publicState()); });
-  app.post(`${prefix}/client/audio-started", (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
-  app.post(`${prefix}/client/audio-ended", (req, res) => { markClient("audio_ended"); finishCurrent("client_audio_ended"); return res.json(core.ok({ status: publicState() })); });
-  app.post(`${prefix}/client/error", (req, res) => { markClient("error"); state.stats.failed += 1; finishCurrent("client_error"); return res.json(core.ok({ status: publicState() })); });
+  app.post(`${prefix}/client/audio-started`, (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
+  app.post(`${prefix}/client/audio-ended`, (req, res) => { markClient("audio_ended"); finishCurrent("client_audio_ended"); return res.json(core.ok({ status: publicState() })); });
+  app.post(`${prefix}/client/error`, (req, res) => { markClient("error"); state.stats.failed += 1; finishCurrent("client_error"); return res.json(core.ok({ status: publicState() })); });
 
   console.log(`[${MODULE_NAME}] loaded prefix=${prefix}`);
 };
