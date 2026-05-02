@@ -1,9 +1,10 @@
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
-const string Version = "0.3.1";
+const string Version = "0.4.0";
 
 try
 {
@@ -18,6 +19,9 @@ try
             return 0;
         case "devices":
             WriteJson(new DevicesResponse(true, "AudioDeviceHelper", Version, ListRenderDevices()));
+            return 0;
+        case "probe":
+            WriteJson(ProbeDevice(argsList));
             return 0;
         case "play":
             var playResult = PlayFile(argsList);
@@ -36,7 +40,7 @@ try
 }
 catch (Exception ex)
 {
-    WriteJson(new ErrorResponse(false, "AudioDeviceHelper", Version, "helper_failed", ex.Message));
+    WriteJson(new ErrorResponse(false, "AudioDeviceHelper", Version, "helper_failed", ex.Message, HResultHex(ex)));
     return 1;
 }
 
@@ -59,116 +63,109 @@ static Dictionary<string, string> ParseOptions(string[] argsList)
     return result;
 }
 
+static ProbeResponse ProbeDevice(string[] argsList)
+{
+    var options = ParseOptions(argsList);
+    var deviceId = options.TryGetValue("device", out var deviceValue) ? deviceValue : "default";
+    using var enumerator = new MMDeviceEnumerator();
+    using var device = ResolveRenderDevice(enumerator, deviceId, true);
+    if (device == null)
+    {
+        return new ProbeResponse(false, "AudioDeviceHelper", Version, "device_not_found", $"Audiogerät nicht gefunden: {deviceId}", deviceId, "", "", false);
+    }
+
+    return new ProbeResponse(true, "AudioDeviceHelper", Version, "", "OK", deviceId, SafeName(device.FriendlyName), FormatText(device.AudioClient.MixFormat), true);
+}
+
 static PlayResponse PlayFile(string[] argsList)
 {
     var options = ParseOptions(argsList);
     var file = options.TryGetValue("file", out var fileValue) ? fileValue : "";
     var deviceId = options.TryGetValue("device", out var deviceValue) ? deviceValue : "default";
     var volume = options.TryGetValue("volume", out var volumeValue) ? ClampInt(volumeValue, 80, 0, 100) : 80;
+    var mode = options.TryGetValue("mode", out var modeValue) ? modeValue.Trim().ToLowerInvariant() : "auto";
 
-    if (string.IsNullOrWhiteSpace(file))
-    {
-        return new PlayResponse(false, "AudioDeviceHelper", Version, "file_missing", "Parameter --file fehlt.", file, deviceId, "", volume, 0);
-    }
-
+    if (string.IsNullOrWhiteSpace(file)) return Fail("file_missing", "Parameter --file fehlt.", file, deviceId, "", volume, 0, mode, "");
     var fullPath = Path.GetFullPath(file);
-    if (!File.Exists(fullPath))
+    if (!File.Exists(fullPath)) return Fail("file_not_found", $"Datei nicht gefunden: {fullPath}", fullPath, deviceId, "", volume, 0, mode, "");
+
+    if (mode == "auto")
     {
-        return new PlayResponse(false, "AudioDeviceHelper", Version, "file_not_found", $"Datei nicht gefunden: {fullPath}", fullPath, deviceId, "", volume, 0);
+        if (IsDefaultDevice(deviceId)) return PlayWaveOut(fullPath, deviceId, volume, "waveout");
+        var wasapi = PlayWasapi(fullPath, deviceId, volume, false, "wasapi");
+        if (wasapi.Ok) return wasapi;
+        var resampled = PlayWasapi(fullPath, deviceId, volume, true, "wasapi-resample");
+        if (resampled.Ok) return resampled;
+        return resampled with { Error = wasapi.Error + "; " + resampled.Error, Message = wasapi.Message + " | " + resampled.Message };
     }
 
-    if (string.IsNullOrWhiteSpace(deviceId) || string.Equals(deviceId, "default", StringComparison.OrdinalIgnoreCase))
-    {
-        return PlayDefaultDevice(fullPath, deviceId, volume);
-    }
+    if (mode == "waveout") return PlayWaveOut(fullPath, deviceId, volume, mode);
+    if (mode == "wasapi") return PlayWasapi(fullPath, deviceId, volume, false, mode);
+    if (mode == "wasapi-resample") return PlayWasapi(fullPath, deviceId, volume, true, mode);
 
-    return PlaySelectedDevice(fullPath, deviceId, volume);
+    return Fail("mode_unknown", $"Unbekannter Modus: {mode}", fullPath, deviceId, "", volume, 0, mode, "");
 }
 
-static PlayResponse PlayDefaultDevice(string fullPath, string deviceId, int volume)
+static PlayResponse PlayWaveOut(string fullPath, string deviceId, int volume, string mode)
 {
-    using var reader = new AudioFileReader(fullPath)
+    try
     {
-        Volume = Math.Clamp(volume / 100f, 0f, 1f)
-    };
-
-    using var output = new WaveOutEvent
+        using var reader = new AudioFileReader(fullPath) { Volume = Math.Clamp(volume / 100f, 0f, 1f) };
+        using var output = new WaveOutEvent { DeviceNumber = -1, DesiredLatency = 100 };
+        return RunPlayback(output, reader, fullPath, deviceId, "Windows Standardgerät", volume, mode, FormatText(reader.WaveFormat), FormatText(reader.WaveFormat));
+    }
+    catch (Exception ex)
     {
-        DeviceNumber = -1,
-        DesiredLatency = 100
-    };
+        return Fail("waveout_failed", ex.Message, fullPath, deviceId, "Windows Standardgerät", volume, 0, mode, HResultHex(ex));
+    }
+}
 
+static PlayResponse PlayWasapi(string fullPath, string deviceId, int volume, bool resample, string mode)
+{
+    try
+    {
+        using var enumerator = new MMDeviceEnumerator();
+        using var device = ResolveRenderDevice(enumerator, deviceId, true);
+        if (device == null) return Fail("device_not_found", $"Audiogerät nicht gefunden: {deviceId}", fullPath, deviceId, "", volume, 0, mode, "");
+
+        using var reader = new AudioFileReader(fullPath) { Volume = Math.Clamp(volume / 100f, 0f, 1f) };
+        var inputFormat = FormatText(reader.WaveFormat);
+        var outputFormat = FormatText(device.AudioClient.MixFormat);
+        using var output = new WasapiOut(device, AudioClientShareMode.Shared, false, 100);
+
+        if (!resample)
+        {
+            return RunPlayback(output, reader, fullPath, deviceId, SafeName(device.FriendlyName), volume, mode, inputFormat, outputFormat);
+        }
+
+        using var resampler = new MediaFoundationResampler(reader, device.AudioClient.MixFormat) { ResamplerQuality = 60 };
+        return RunPlayback(output, resampler, fullPath, deviceId, SafeName(device.FriendlyName), volume, mode, inputFormat, outputFormat);
+    }
+    catch (Exception ex)
+    {
+        return Fail("wasapi_failed", ex.Message, fullPath, deviceId, "", volume, 0, mode, HResultHex(ex));
+    }
+}
+
+static PlayResponse RunPlayback(IWavePlayer output, IWaveProvider provider, string fullPath, string deviceId, string deviceName, int volume, string mode, string inputFormat, string outputFormat)
+{
     var done = new ManualResetEventSlim(false);
     Exception? playbackError = null;
-    output.PlaybackStopped += (_, e) =>
-    {
-        playbackError = e.Exception;
-        done.Set();
-    };
-
-    output.Init(reader);
+    output.PlaybackStopped += (_, e) => { playbackError = e.Exception; done.Set(); };
+    output.Init(provider);
     output.Play();
-
-    var durationMs = (int)Math.Round(reader.TotalTime.TotalMilliseconds);
+    var durationMs = 0;
+    if (provider is WaveStream ws) durationMs = (int)Math.Round(ws.TotalTime.TotalMilliseconds);
+    if (durationMs <= 0) durationMs = 3000;
     done.Wait(Math.Max(1000, durationMs + 2500));
-
-    if (output.PlaybackState != PlaybackState.Stopped)
-    {
-        output.Stop();
-    }
-
-    if (playbackError != null)
-    {
-        return new PlayResponse(false, "AudioDeviceHelper", Version, "playback_failed", playbackError.Message, fullPath, deviceId, "Windows Standardgerät", volume, durationMs);
-    }
-
-    return new PlayResponse(true, "AudioDeviceHelper", Version, "", "Playback beendet.", fullPath, deviceId, "Windows Standardgerät", volume, durationMs);
+    if (output.PlaybackState != PlaybackState.Stopped) output.Stop();
+    if (playbackError != null) return Fail("playback_failed", playbackError.Message, fullPath, deviceId, deviceName, volume, durationMs, mode, HResultHex(playbackError), inputFormat, outputFormat);
+    return new PlayResponse(true, "AudioDeviceHelper", Version, "", "Playback beendet.", fullPath, deviceId, deviceName, volume, durationMs, mode, "", inputFormat, outputFormat);
 }
 
-static PlayResponse PlaySelectedDevice(string fullPath, string deviceId, int volume)
+static MMDevice? ResolveRenderDevice(MMDeviceEnumerator enumerator, string deviceId, bool allowDefault)
 {
-    using var enumerator = new MMDeviceEnumerator();
-    using var device = ResolveRenderDevice(enumerator, deviceId);
-    if (device == null)
-    {
-        return new PlayResponse(false, "AudioDeviceHelper", Version, "device_not_found", $"Audiogerät nicht gefunden: {deviceId}", fullPath, deviceId, "", volume, 0);
-    }
-
-    using var reader = new AudioFileReader(fullPath)
-    {
-        Volume = Math.Clamp(volume / 100f, 0f, 1f)
-    };
-
-    using var output = new WasapiOut(device, AudioClientShareMode.Shared, false, 100);
-    var done = new ManualResetEventSlim(false);
-    Exception? playbackError = null;
-    output.PlaybackStopped += (_, e) =>
-    {
-        playbackError = e.Exception;
-        done.Set();
-    };
-
-    output.Init(reader);
-    output.Play();
-
-    var durationMs = (int)Math.Round(reader.TotalTime.TotalMilliseconds);
-    done.Wait(Math.Max(1000, durationMs + 2500));
-
-    if (output.PlaybackState != PlaybackState.Stopped)
-    {
-        output.Stop();
-    }
-
-    if (playbackError != null)
-    {
-        return new PlayResponse(false, "AudioDeviceHelper", Version, "playback_failed", playbackError.Message, fullPath, deviceId, SafeName(device.FriendlyName), volume, durationMs);
-    }
-
-    return new PlayResponse(true, "AudioDeviceHelper", Version, "", "Playback beendet.", fullPath, deviceId, SafeName(device.FriendlyName), volume, durationMs);
-}
-
-static MMDevice? ResolveRenderDevice(MMDeviceEnumerator enumerator, string deviceId)
-{
+    if (allowDefault && IsDefaultDevice(deviceId)) return enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
     var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
     foreach (var device in devices)
     {
@@ -178,95 +175,60 @@ static MMDevice? ResolveRenderDevice(MMDeviceEnumerator enumerator, string devic
     return null;
 }
 
-static int ClampInt(string value, int fallback, int min, int max)
-{
-    return int.TryParse(value, out var parsed) ? Math.Max(min, Math.Min(max, parsed)) : fallback;
-}
+static bool IsDefaultDevice(string deviceId) => string.IsNullOrWhiteSpace(deviceId) || string.Equals(deviceId, "default", StringComparison.OrdinalIgnoreCase);
+static int ClampInt(string value, int fallback, int min, int max) => int.TryParse(value, out var parsed) ? Math.Max(min, Math.Min(max, parsed)) : fallback;
 
 static List<AudioDeviceInfo> ListRenderDevices()
 {
     using var enumerator = new MMDeviceEnumerator();
     var defaultId = "";
-    try
-    {
-        defaultId = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia)?.ID ?? "";
-    }
-    catch
-    {
-        defaultId = "";
-    }
-
-    var result = new List<AudioDeviceInfo>
-    {
-        new(
-            Id: "default",
-            Name: "Windows Standardgerät",
-            Type: "output",
-            State: "Virtual",
-            IsDefault: true,
-            DeviceFriendlyName: "Windows Standardgerät",
-            InterfaceFriendlyName: "Default"
-        )
-    };
-
+    try { defaultId = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia)?.ID ?? ""; } catch { }
+    var result = new List<AudioDeviceInfo> { DeviceInfo("default", "Windows Standardgerät", "Virtual", true, "Windows Standardgerät", "Default", "") };
     var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
     foreach (var device in devices)
     {
         var isDefault = !string.IsNullOrWhiteSpace(defaultId) && string.Equals(device.ID, defaultId, StringComparison.OrdinalIgnoreCase);
-        result.Add(new AudioDeviceInfo(
-            Id: device.ID,
-            Name: SafeName(device.FriendlyName),
-            Type: "output",
-            State: device.State.ToString(),
-            IsDefault: isDefault,
-            DeviceFriendlyName: SafeName(device.DeviceFriendlyName),
-            InterfaceFriendlyName: SafeName(device.AudioEndpointVolume?.HardwareSupport.ToString() ?? "")
-        ));
+        result.Add(DeviceInfo(device.ID, SafeName(device.FriendlyName), device.State.ToString(), isDefault, SafeName(device.DeviceFriendlyName), SafeName(device.AudioEndpointVolume?.HardwareSupport.ToString() ?? ""), FormatText(device.AudioClient.MixFormat)));
     }
     return result;
 }
 
-static string SafeName(string? value)
-{
-    return string.IsNullOrWhiteSpace(value) ? "Unbekanntes Audiogerät" : value.Trim();
-}
+static AudioDeviceInfo DeviceInfo(string id, string name, string state, bool isDefault, string deviceFriendlyName, string interfaceFriendlyName, string mixFormat)
+    => new(id, name, "output", state, isDefault, deviceFriendlyName, interfaceFriendlyName, mixFormat);
+
+static PlayResponse Fail(string error, string message, string file, string device, string deviceName, int volume, int durationMs, string mode, string hresult, string inputFormat = "", string outputFormat = "")
+    => new(false, "AudioDeviceHelper", Version, error, message, file, device, deviceName, volume, durationMs, mode, hresult, inputFormat, outputFormat);
+
+static string SafeName(string? value) => string.IsNullOrWhiteSpace(value) ? "Unbekanntes Audiogerät" : value.Trim();
+static string FormatText(WaveFormat? format) => format == null ? "" : $"{format.Encoding} {format.SampleRate}Hz {format.Channels}ch {format.BitsPerSample}bit";
+static string HResultHex(Exception ex) => $"0x{ex.HResult:X8}";
+static void WriteError(string message) => Console.Error.WriteLine(message);
 
 static void WriteHelp()
 {
     Console.WriteLine("AudioDeviceHelper " + Version);
-    Console.WriteLine();
-    Console.WriteLine("Befehle:");
     Console.WriteLine("  version --json");
     Console.WriteLine("  devices --json");
-    Console.WriteLine("  play --file \"D:\\Pfad\\sound.mp3\" --device default --volume 80");
-    Console.WriteLine("  play --file \"D:\\Pfad\\sound.mp3\" --device \"MMDEVICE-ID\" --volume 80");
-}
-
-static void WriteError(string message)
-{
-    Console.Error.WriteLine(message);
+    Console.WriteLine("  probe --device \"MMDEVICE-ID\" --json");
+    Console.WriteLine("  play --file \"D:\\Pfad\\sound.mp3\" --device default --volume 80 --mode auto");
+    Console.WriteLine("  play --file \"D:\\Pfad\\sound.mp3\" --device \"MMDEVICE-ID\" --volume 80 --mode wasapi-resample");
 }
 
 static void WriteJson<T>(T value)
 {
-    var options = new JsonSerializerOptions
-    {
-        WriteIndented = false,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
+    var options = new JsonSerializerOptions { WriteIndented = false, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     Console.OutputEncoding = System.Text.Encoding.UTF8;
     Console.WriteLine(JsonSerializer.Serialize(value, options));
 }
 
 static void WriteJsonOrText<T>(bool json, T value, string text)
 {
-    if (json) WriteJson(value);
-    else Console.WriteLine(text);
+    if (json) WriteJson(value); else Console.WriteLine(text);
 }
 
 public sealed record HelperVersion(string Module, string Version, string OS);
-public sealed record AudioDeviceInfo(string Id, string Name, string Type, string State, bool IsDefault, string DeviceFriendlyName, string InterfaceFriendlyName);
+public sealed record AudioDeviceInfo(string Id, string Name, string Type, string State, bool IsDefault, string DeviceFriendlyName, string InterfaceFriendlyName, string MixFormat);
 public sealed record DevicesResponse(bool Ok, string Module, string Version, List<AudioDeviceInfo> Devices);
-public sealed record PlayResponse(bool Ok, string Module, string Version, string Error, string Message, string File, string Device, string DeviceName, int Volume, int DurationMs);
-public sealed record ErrorResponse(bool Ok, string Module, string Version, string Error, string Message);
+public sealed record ProbeResponse(bool Ok, string Module, string Version, string Error, string Message, string Device, string DeviceName, string MixFormat, bool SharedModeAvailable);
+public sealed record PlayResponse(bool Ok, string Module, string Version, string Error, string Message, string File, string Device, string DeviceName, int Volume, int DurationMs, string Mode, string HResult, string InputFormat, string OutputFormat);
+public sealed record ErrorResponse(bool Ok, string Module, string Version, string Error, string Message, string HResult);
