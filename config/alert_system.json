@@ -12,8 +12,47 @@
   "fallbackFinishMs": 12000,
   "gapBetweenAlertsMs": 700,
   "defaultDurationMs": 7000,
-  "allowedSoundTypes": ["audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/webm"],
-  "allowedImageTypes": ["image/png", "image/jpeg", "image/webp", "image/gif"],
-  "allowedImageModes": ["none", "icon", "avatar", "avatar_icon", "special", "avatar_special", "random_pool"],
-  "wsOp": "alert_system"
+  "allowedSoundTypes": [
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/wav",
+    "audio/ogg",
+    "audio/webm"
+  ],
+  "allowedImageTypes": [
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/gif"
+  ],
+  "allowedImageModes": [
+    "none",
+    "icon",
+    "avatar",
+    "avatar_icon",
+    "special",
+    "avatar_special",
+    "random_pool"
+  ],
+  "wsOp": "alert_system",
+  "preview": {
+    "localBrowserAudio": true,
+    "sendToLiveOverlay": false,
+    "sendToSoundSystem": false
+  },
+  "liveAlert": {
+    "soundSystemEnabled": false,
+    "soundSystemPlayUrl": "http://127.0.0.1:8080/api/sound/play",
+    "soundSystemOutputTarget": "device",
+    "soundSystemCategory": "alert",
+    "soundSystemSource": "alert_system",
+    "waitForSoundItemStarted": true,
+    "fallbackShowOnSoundError": true,
+    "fallbackShowAfterMs": 15000
+  },
+  "dashboardSettings": {
+    "preferSqliteSettings": true,
+    "allowRuntimeEdit": true,
+    "settingsTable": "alert_settings"
+  }
 }
