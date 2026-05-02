@@ -169,13 +169,28 @@ window.SoundSystemModule = (function(){
   async function saveOutput(){
     const select = document.getElementById('soundDeviceSelect');
     const option = select?.selectedOptions?.[0];
-    const deviceId = select?.value || 'default';
-    const deviceName = option?.dataset?.name || option?.textContent || 'Windows Standardgerät';
-    const enabled = !!document.getElementById('soundDeviceEnabled')?.checked;
+    const selectedDeviceId = select?.value || 'default';
+    const selectedDeviceName = option?.dataset?.name || option?.textContent || 'Windows Standardgerät';
 
-    await api('/devices/select', {
+    const payload = {
+      defaultTarget: document.getElementById('soundDefaultTarget')?.value || 'overlay',
+      overlay: {
+        enabled: !!document.getElementById('soundOverlayEnabled')?.checked
+      },
+      device: {
+        enabled: !!document.getElementById('soundDeviceEnabled')?.checked,
+        selectedDeviceId,
+        selectedDeviceName,
+        defaultVolume: Number(document.getElementById('soundDeviceVolume')?.value || 80)
+      },
+      both: {
+        enabled: !!document.getElementById('soundBothEnabled')?.checked
+      }
+    };
+
+    await api('/output', {
       method: 'POST',
-      body: JSON.stringify({ deviceId, deviceName, enabled })
+      body: JSON.stringify(payload)
     });
 
     await api('/reload', { method: 'POST', body: '{}' });
