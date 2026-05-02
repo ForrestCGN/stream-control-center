@@ -4,21 +4,20 @@ window.SoundSystemModule = (function(){
   const API = '/api/sound';
   let root = null;
   let status = null;
+  let output = null;
+  let devices = [];
   let loading = false;
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
-
-  function button(label, action, extraClass){
-    return `<button type="button" class="${extraClass || ''}" data-sound-action="${esc(action)}">${esc(label)}</button>`;
-  }
+  function button(label, action, extraClass){ return `<button type="button" class="${extraClass || ''}" data-sound-action="${esc(action)}">${esc(label)}</button>`; }
 
   function renderShell(){
     if (!root) return;
     root.innerHTML = `
       <div class="sound-card">
         <h2>Sound-System</h2>
-        <div class="sound-note">Zentrale Grundlage für Stream-Sounds, Queue, Prioritäten und spätere Discord-Ausgabe. Bestehende Systeme werden später einzeln angebunden.</div>
+        <div class="sound-note">Zentrale Grundlage für Stream-Sounds, Queue, Prioritäten, Ausgabeziele und spätere Discord-Ausgabe. Bestehende Systeme werden später einzeln angebunden.</div>
         <div class="sound-actions">
           ${button('Neu laden', 'reload')}
           ${button('Stop', 'stop')}
@@ -29,6 +28,7 @@ window.SoundSystemModule = (function(){
       </div>
       <div class="sound-grid">
         <div class="sound-card" id="soundStatusCard"></div>
+        <div class="sound-card" id="soundOutputCard"></div>
         <div class="sound-card" id="soundCurrentCard"></div>
         <div class="sound-card">
           <h3>Sound-Liste</h3>
@@ -44,11 +44,9 @@ window.SoundSystemModule = (function(){
 
   function render(){
     if (!root) return;
-    if (!status) {
-      renderShell();
-      bindActions();
-    }
+    if (!status) { renderShell(); bindActions(); }
     renderStatus();
+    renderOutput();
     renderCurrent();
     renderSounds();
     renderQueue();
@@ -70,14 +68,56 @@ window.SoundSystemModule = (function(){
     `;
   }
 
+  function renderOutput(){
+    const el = document.getElementById('soundOutputCard');
+    if (!el) return;
+    const out = output?.output || {};
+    const targets = out.targets || {};
+    const overlay = targets.overlay || {};
+    const device = targets.device || {};
+    const both = targets.both || {};
+    const helperWarning = devices?.warning && devices.warning !== 'helper' ? `<div class="sound-note">Gerätequelle: ${esc(devices.warning)}${devices.error ? ' · ' + esc(devices.error) : ''}</div>` : '';
+    const deviceList = Array.isArray(devices?.devices) ? devices.devices : [];
+    const selectedId = device.selectedDeviceId || 'default';
+
+    el.innerHTML = `
+      <h3>Ausgabe</h3>
+      <label class="sound-field">
+        <span>Standard-Ausgabe</span>
+        <select id="soundDefaultTarget">
+          <option value="overlay" ${out.defaultTarget === 'overlay' ? 'selected' : ''}>Overlay / OBS</option>
+          <option value="device" ${out.defaultTarget === 'device' ? 'selected' : ''}>Audiogerät</option>
+          <option value="both" ${out.defaultTarget === 'both' ? 'selected' : ''}>Beides</option>
+        </select>
+      </label>
+      <div class="sound-status-row"><span>Overlay</span><label><input id="soundOverlayEnabled" type="checkbox" ${overlay.enabled !== false ? 'checked' : ''}> aktiv</label></div>
+      <div class="sound-status-row"><span>Audiogerät</span><label><input id="soundDeviceEnabled" type="checkbox" ${device.enabled === true ? 'checked' : ''}> aktiv</label></div>
+      <label class="sound-field">
+        <span>Ausgabegerät</span>
+        <select id="soundDeviceSelect">
+          ${deviceList.map(d => `<option value="${esc(d.id)}" data-name="${esc(d.name)}" ${String(d.id) === String(selectedId) ? 'selected' : ''}>${esc(d.name)}${d.isDefault ? ' (Standard)' : ''}</option>`).join('')}
+        </select>
+      </label>
+      <label class="sound-field">
+        <span>Gerät-Lautstärke</span>
+        <input id="soundDeviceVolume" type="number" min="0" max="100" value="${esc(device.defaultVolume ?? 80)}">
+      </label>
+      <div class="sound-status-row"><span>Beides</span><label><input id="soundBothEnabled" type="checkbox" ${both.enabled === true ? 'checked' : ''}> aktiv</label></div>
+      <div class="sound-actions">
+        ${button('Ausgabe speichern', 'save-output')}
+        ${button('Geräte neu laden', 'reload-devices')}
+        ${button('Test Ausgabe', 'test-output')}
+      </div>
+      <div class="sound-note">Hinweis: Geräteauswahl ist vorbereitet. Echte direkte Audiogerät-Ausgabe benötigt den lokalen Audio-Helper. Bis dahin funktioniert Overlay/OBS als Hauptausgabe.</div>
+      ${helperWarning}
+    `;
+  }
+
   function renderCurrent(){
     const el = document.getElementById('soundCurrentCard');
     if (!el) return;
     const cur = status?.current;
-    if (!cur) {
-      el.innerHTML = `<h3>Aktuell</h3><div class="sound-empty">Gerade läuft kein Sound.</div>`;
-      return;
-    }
+    if (!cur) { el.innerHTML = `<h3>Aktuell</h3><div class="sound-empty">Gerade läuft kein Sound.</div>`; return; }
     el.innerHTML = `
       <h3>Aktuell</h3>
       <div class="sound-current-row"><span>Name</span><strong>${esc(cur.label || cur.soundId)}</strong></div>
@@ -92,17 +132,15 @@ window.SoundSystemModule = (function(){
     const el = document.getElementById('soundList');
     if (!el) return;
     const sounds = Array.isArray(status?.sounds) ? status.sounds : [];
-    if (!sounds.length) {
-      el.innerHTML = `<div class="sound-empty">Keine Sounds in der Config eingetragen.</div>`;
-      return;
-    }
+    if (!sounds.length) { el.innerHTML = `<div class="sound-empty">Keine Sounds in der Config eingetragen.</div>`; return; }
     el.innerHTML = sounds.map(sound => `
       <div class="sound-sound-row">
         <div class="sound-sound-main">
           <div class="sound-sound-title">${esc(sound.label || sound.id)}</div>
-          <div class="sound-sound-meta">${esc(sound.id)} · ${esc(sound.category || 'ohne Kategorie')} · ${esc(sound.file || '')}</div>
+          <div class="sound-sound-meta">${esc(sound.id)} · ${esc(sound.category || 'ohne Kategorie')} · ${esc(sound.file || sound.type || '')}</div>
         </div>
         <div class="sound-mini-actions">
+          <span class="sound-pill">${esc(sound.outputTarget || sound.target || '')}</span>
           <span class="sound-pill">${esc(sound.priority ?? '')}</span>
           <button type="button" data-sound-play="${esc(sound.id)}">Play</button>
         </div>
@@ -114,10 +152,7 @@ window.SoundSystemModule = (function(){
     const el = document.getElementById('soundQueue');
     if (!el) return;
     const queue = Array.isArray(status?.queue) ? status.queue : [];
-    if (!queue.length) {
-      el.innerHTML = `<div class="sound-empty">Queue ist leer.</div>`;
-      return;
-    }
+    if (!queue.length) { el.innerHTML = `<div class="sound-empty">Queue ist leer.</div>`; return; }
     el.innerHTML = queue.map((item, index) => `
       <div class="sound-queue-row">
         <div class="sound-queue-main">
@@ -129,29 +164,43 @@ window.SoundSystemModule = (function(){
     `).join('');
   }
 
+  async function saveOutput(){
+    const select = document.getElementById('soundDeviceSelect');
+    const option = select?.selectedOptions?.[0];
+    const payload = {
+      defaultTarget: document.getElementById('soundDefaultTarget')?.value || 'overlay',
+      overlay: { enabled: !!document.getElementById('soundOverlayEnabled')?.checked },
+      device: {
+        enabled: !!document.getElementById('soundDeviceEnabled')?.checked,
+        selectedDeviceId: select?.value || 'default',
+        selectedDeviceName: option?.dataset?.name || option?.textContent || 'Windows Standardgerät',
+        defaultVolume: Number(document.getElementById('soundDeviceVolume')?.value || 80)
+      },
+      both: { enabled: !!document.getElementById('soundBothEnabled')?.checked }
+    };
+    await api('/output', { method: 'POST', body: JSON.stringify(payload) });
+  }
+
   function bindActions(){
     root?.addEventListener('click', async (event) => {
       const actionBtn = event.target.closest('[data-sound-action]');
       const playBtn = event.target.closest('[data-sound-play]');
       if (!actionBtn && !playBtn) return;
-
       try {
         if (playBtn) {
-          await api('/play', {
-            method: 'POST',
-            body: JSON.stringify({ soundId: playBtn.dataset.soundPlay, source: 'dashboard', override: true })
-          });
+          await api('/play', { method: 'POST', body: JSON.stringify({ soundId: playBtn.dataset.soundPlay, source: 'dashboard', override: true }) });
         } else {
           const action = actionBtn.dataset.soundAction;
           if (action === 'reload') await api('/reload', { method: 'POST', body: '{}' });
           if (action === 'stop') await api('/stop', { method: 'POST', body: '{}' });
           if (action === 'skip') await api('/skip', { method: 'POST', body: '{}' });
           if (action === 'clear') await api('/clear', { method: 'POST', body: '{}' });
+          if (action === 'save-output') await saveOutput();
+          if (action === 'reload-devices') await api('/devices');
+          if (action === 'test-output') await api('/test-output', { method: 'POST', body: JSON.stringify({ target: document.getElementById('soundDefaultTarget')?.value || 'overlay' }) });
         }
         await loadAll(true);
-      } catch (err) {
-        alert(err.message || String(err));
-      }
+      } catch (err) { alert(err.message || String(err)); }
     });
   }
 
@@ -161,28 +210,19 @@ window.SoundSystemModule = (function(){
     try {
       const state = await api('/status');
       const list = await api('/list');
+      const out = await api('/output');
+      const dev = await api('/devices');
       status = { ...state, sounds: list.sounds || [] };
+      output = out;
+      devices = dev;
       render();
     } catch (err) {
-      if (root) {
-        root.innerHTML = `<div class="sound-card"><h2>Sound-System</h2><div class="sound-empty">${esc(err.message || err)}</div></div>`;
-      }
-    } finally {
-      loading = false;
-    }
+      if (root) root.innerHTML = `<div class="sound-card"><h2>Sound-System</h2><div class="sound-empty">${esc(err.message || err)}</div></div>`;
+    } finally { loading = false; }
   }
 
-  function mount(){
-    root = document.getElementById('soundModule');
-    if (!root) return;
-    renderShell();
-    loadAll(true);
-  }
-
-  window.addEventListener('cgn:module-show', (event) => {
-    if (event.detail?.module === 'sound_system') loadAll(true);
-  });
-
+  function mount(){ root = document.getElementById('soundModule'); if (!root) return; renderShell(); loadAll(true); }
+  window.addEventListener('cgn:module-show', (event) => { if (event.detail?.module === 'sound_system') loadAll(true); });
   document.addEventListener('DOMContentLoaded', mount);
   if (document.readyState !== 'loading') mount();
 
