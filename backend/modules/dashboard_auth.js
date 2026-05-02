@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 const crypto = require("crypto");
 const sqlite = require("./sqlite_core");
@@ -521,19 +521,48 @@ function createSession(userId, role, req, now) {
   const sessionId = randomToken(48);
   const expiresAt = new Date(Date.now() + DEFAULT_SESSION_TTL_MS).toISOString();
 
-  sqlite.run(`
-    INSERT INTO dashboard_sessions (id, user_id, role, created_at, expires_at, last_seen_at, ip, user_agent)
-    VALUES (:id, :userId, :role, :createdAt, :expiresAt, :lastSeenAt, :ip, :userAgent)
-  `, {
-    id: sessionId,
-    userId,
-    role: role || "user",
-    createdAt: now,
-    expiresAt,
-    lastSeenAt: now,
-    ip: clientIp(req),
-    userAgent: String(req.headers["user-agent"] || "")
-  });
+  const info = sessionTableInfo();
+  const cols = info.map(row => row.name);
+  const idIsText = sessionIdColumnIsText(info);
+
+  let tokenCol = "";
+  if (idIsText) tokenCol = "id";
+  else if (cols.includes("session_token")) tokenCol = "session_token";
+  else if (cols.includes("token")) tokenCol = "token";
+  else if (cols.includes("session_id")) tokenCol = "session_id";
+
+  if (!tokenCol) {
+    throw new Error("dashboard_sessions has no usable session token column");
+  }
+
+  const insertCols = [];
+  const insertVals = [];
+  const params = {};
+
+  function add(col, param, value) {
+    if (!cols.includes(col)) return;
+    insertCols.push(col);
+    insertVals.push(":" + param);
+    params[param] = value;
+  }
+
+  insertCols.push(tokenCol);
+  insertVals.push(":sessionToken");
+  params.sessionToken = sessionId;
+
+  add("token_hash", "tokenHash", hashSessionToken(sessionId));
+  add("user_id", "userId", userId);
+  add("role", "role", role || "user");
+  add("created_at", "createdAt", now);
+  add("expires_at", "expiresAt", expiresAt);
+  add("last_seen_at", "lastSeenAt", now);
+  add("ip", "ip", clientIp(req));
+  add("user_agent", "userAgent", String(req.headers["user-agent"] || ""));
+
+  sqlite.run(
+    "INSERT INTO dashboard_sessions (" + insertCols.join(", ") + ") VALUES (" + insertVals.join(", ") + ")",
+    params
+  );
 
   return { sessionId, expiresAt };
 }
@@ -541,8 +570,12 @@ function createSession(userId, role, req, now) {
 function getSession(sessionId) {
   if (!sessionId) return null;
 
+  const cols = sessionTableColumns();
+  const tokenCol = sessionTokenColumn(cols);
+  if (!tokenCol) return null;
+
   return sqlite.get(`
-    SELECT s.id AS session_id,
+    SELECT s.${tokenCol} AS session_id,
            s.*,
            u.display_name,
            u.avatar_url,
@@ -554,13 +587,48 @@ function getSession(sessionId) {
     FROM dashboard_sessions s
     JOIN dashboard_users u ON u.id = s.user_id
     LEFT JOIN dashboard_identities i ON i.user_id = u.id
-    WHERE s.id = :id
-      AND s.revoked_at IS NULL
+    WHERE s.${tokenCol} = :sessionToken
+      AND (s.revoked_at IS NULL OR s.revoked_at = '')
       AND s.expires_at > :now
       AND u.is_active = 1
     ORDER BY CASE i.provider WHEN 'twitch' THEN 0 WHEN 'local' THEN 1 ELSE 2 END
     LIMIT 1
-  `, { id: sessionId, now: nowIso() });
+  `, { sessionToken: sessionId, now: nowIso() });
+}
+
+function sessionTableInfo() {
+  return sqlite.all("PRAGMA table_info(dashboard_sessions)") || [];
+}
+
+function sessionTableColumns() {
+  return sessionTableInfo().map(row => row.name);
+}
+
+function sessionIdColumnIsText(infoOrCols) {
+  const info = Array.isArray(infoOrCols) && infoOrCols.length && typeof infoOrCols[0] === "object"
+    ? infoOrCols
+    : sessionTableInfo();
+  const row = info.find(col => col.name === "id");
+  return !!row && String(row.type || "").toUpperCase().includes("TEXT");
+}
+
+function sessionTokenColumn(cols) {
+  const list = cols || sessionTableColumns();
+  if (sessionIdColumnIsText()) return "id";
+  if (list.includes("session_token")) return "session_token";
+  if (list.includes("token")) return "token";
+  if (list.includes("session_id")) return "session_id";
+  return "";
+}
+
+function revokeSession(sessionId) {
+  const cols = sessionTableColumns();
+  const tokenCol = sessionTokenColumn(cols);
+  if (!tokenCol || !cols.includes("revoked_at")) return;
+  sqlite.run(
+    "UPDATE dashboard_sessions SET revoked_at = :revokedAt WHERE " + tokenCol + " = :sessionToken",
+    { revokedAt: nowIso(), sessionToken: sessionId }
+  );
 }
 
 function readSessionFromRequest(req) {
@@ -571,10 +639,13 @@ function readSessionFromRequest(req) {
 function touchSession(sessionId) {
   if (!sessionId) return;
   try {
-    sqlite.run("UPDATE dashboard_sessions SET last_seen_at = :lastSeenAt WHERE id = :id", {
-      lastSeenAt: nowIso(),
-      id: sessionId
-    });
+    const cols = sessionTableColumns();
+    const tokenCol = sessionTokenColumn(cols);
+    if (!tokenCol || !cols.includes("last_seen_at")) return;
+    sqlite.run(
+      "UPDATE dashboard_sessions SET last_seen_at = :lastSeenAt WHERE " + tokenCol + " = :sessionToken",
+      { lastSeenAt: nowIso(), sessionToken: sessionId }
+    );
   } catch (_) {}
 }
 
@@ -740,6 +811,10 @@ function randomToken(bytes) {
   return crypto.randomBytes(bytes).toString("base64url");
 }
 
+function hashSessionToken(token) {
+  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -761,3 +836,10 @@ function safeTwitchRaw(user) {
     email_present: Boolean(user.email)
   };
 }
+
+
+
+
+
+
+
