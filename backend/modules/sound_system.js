@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 const fs = require("fs");
 const path = require("path");
@@ -6,6 +6,7 @@ const childProcess = require("child_process");
 const core = require("./helpers/helper_core");
 const cfg = require("./helpers/helper_config");
 const media = require("./helpers/helper_media");
+const sqlite = require("./sqlite_core");
 
 const MODULE_NAME = "sound_system";
 const CONFIG_FILE = "sound_system.json";
@@ -16,8 +17,8 @@ const DEFAULT_OUTPUT = {
   allowPerSoundOverride: true,
   targets: {
     overlay: { enabled: true, label: "OBS Overlay", mode: "browser_overlay", overlayUrl: "/overlays/sound_system_overlay.html", defaultVolume: 85 },
-    device: { enabled: true, label: "Audiogerät", mode: "local_device", selectedDeviceId: "default", selectedDeviceName: "Windows Standardgerät", defaultVolume: 80, helper: { enabled: true, path: "tools/audio-device-helper/dist/AudioDeviceHelper.exe", timeoutMs: 30000, playbackMode: "auto" } },
-    both: { enabled: false, label: "Overlay + Audiogerät", mode: "combined", defaultVolume: 85 }
+    device: { enabled: true, label: "AudiogerÃ¤t", mode: "local_device", selectedDeviceId: "default", selectedDeviceName: "Windows StandardgerÃ¤t", defaultVolume: 80, helper: { enabled: true, path: "tools/audio-device-helper/dist/AudioDeviceHelper.exe", timeoutMs: 30000, playbackMode: "auto" } },
+    both: { enabled: false, label: "Overlay + AudiogerÃ¤t", mode: "combined", defaultVolume: 85 }
   }
 };
 
@@ -96,7 +97,7 @@ const DEFAULT_MESSAGES = {
   soundQueued: "Sound wurde in die Warteschlange gelegt.",
   soundStarted: "Sound wird abgespielt.",
   soundStopped: "Sound-Ausgabe wurde gestoppt.",
-  soundSkipped: "Aktueller Sound wurde übersprungen.",
+  soundSkipped: "Aktueller Sound wurde Ã¼bersprungen.",
   queueCleared: "Sound-Warteschlange wurde geleert.",
   configReloaded: "Sound-System Config wurde neu geladen.",
   soundNotFound: "Sound wurde nicht gefunden.",
@@ -108,6 +109,8 @@ const DEFAULT_MESSAGES = {
 
 module.exports.init = function init(ctx) {
   const { app, broadcastWS } = ctx;
+  if (!sqlite.isInitialized()) sqlite.init(ctx);
+  // sound_settings schema is ensured lazily after constants are initialized.
 
   const state = {
     module: MODULE_NAME,
@@ -134,12 +137,137 @@ module.exports.init = function init(ctx) {
   let messages = DEFAULT_MESSAGES;
   let finishTimer = null;
   const recent = { sounds: new Map(), categories: new Map(), users: new Map(), userSounds: new Map() };
+  const SOUND_SETTINGS_SCHEMA_MODULE = "sound_system_settings";
+  const SOUND_SETTINGS_SCHEMA_VERSION = 1;
+  const SOUND_SETTINGS_TABLE = "sound_settings";
+  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets"];
+
+  function deepMergeRuntimeSettings(base, override) {
+    if (!isPlainObject(base)) base = {};
+    if (!isPlainObject(override)) return { ...base };
+    const result = { ...base };
+    for (const [key, value] of Object.entries(override)) {
+      if (isPlainObject(value) && isPlainObject(result[key])) {
+        result[key] = deepMergeRuntimeSettings(result[key], value);
+      } else if (Array.isArray(value)) {
+        result[key] = value.slice();
+      } else if (isPlainObject(value)) {
+        result[key] = deepMergeRuntimeSettings({}, value);
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
+  }
+
+  function ensureSoundSettingsSchema() {
+    if (!sqlite.isInitialized()) return false;
+    sqlite.ensureSchema(SOUND_SETTINGS_SCHEMA_MODULE, SOUND_SETTINGS_SCHEMA_VERSION, (fromVersion, toVersion, db) => {
+      if (toVersion === 1) {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS sound_settings (
+            key TEXT PRIMARY KEY,
+            value_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            updated_by TEXT NOT NULL DEFAULT ''
+          );
+        `);
+      }
+    });
+    return true;
+  }
+
+  function parseSettingJson(raw, fallback) {
+    if (raw === null || raw === undefined || raw === "") return fallback;
+    try {
+      return JSON.parse(String(raw));
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function getSoundSettings() {
+    if (!sqlite.isInitialized()) return {};
+    ensureSoundSettingsSchema();
+    const rows = sqlite.all(`SELECT key, value_json FROM ${SOUND_SETTINGS_TABLE}`) || [];
+    const settings = {};
+    for (const row of rows) {
+      const key = String(row.key || "");
+      if (!SOUND_SETTINGS_BLOCKS.includes(key)) continue;
+      settings[key] = parseSettingJson(row.value_json, {});
+    }
+    return settings;
+  }
+
+  function pickEffectiveSettings() {
+    const effective = {};
+    for (const key of SOUND_SETTINGS_BLOCKS) {
+      if (hasOwn(config, key)) effective[key] = config[key];
+    }
+    return effective;
+  }
+
+  function publicSoundSettings() {
+    const runtime = getSoundSettings();
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      databasePath: sqlite.isInitialized() ? sqlite.getDbPath() : "",
+      table: SOUND_SETTINGS_TABLE,
+      allowedBlocks: SOUND_SETTINGS_BLOCKS.slice(),
+      settings: runtime,
+      effective: pickEffectiveSettings()
+    };
+  }
+
+  function sanitizeSoundSettingsPayload(body) {
+    const input = isPlainObject(body && body.settings) ? body.settings : (isPlainObject(body) ? body : {});
+    const clean = {};
+    for (const key of SOUND_SETTINGS_BLOCKS) {
+      if (!hasOwn(input, key)) continue;
+      if (!isPlainObject(input[key]) && !Array.isArray(input[key])) {
+        throw new Error(`UngÃ¼ltiger sound_settings Block: ${key}`);
+      }
+      clean[key] = input[key];
+    }
+    return clean;
+  }
+
+  function saveSoundSettings(body, updatedBy) {
+    if (!sqlite.isInitialized()) sqlite.init({});
+    ensureSoundSettingsSchema();
+    const clean = sanitizeSoundSettingsPayload(body);
+    const keys = Object.keys(clean);
+    if (!keys.length) return publicSoundSettings();
+
+    const now = core.nowIso();
+    for (const key of keys) {
+      sqlite.run(`
+        INSERT INTO sound_settings (key, value_json, updated_at, updated_by)
+        VALUES (:key, :valueJson, :updatedAt, :updatedBy)
+        ON CONFLICT(key) DO UPDATE SET
+          value_json = excluded.value_json,
+          updated_at = excluded.updated_at,
+          updated_by = excluded.updated_by
+      `, {
+        key,
+        valueJson: JSON.stringify(clean[key]),
+        updatedAt: now,
+        updatedBy: String(updatedBy || "")
+      });
+    }
+
+    loadAll();
+    return publicSoundSettings();
+  }
 
   function loadAll() {
     const loadedConfig = cfg.loadConfig(CONFIG_FILE, DEFAULT_CONFIG, { createIfMissing: true, mergeDefaults: true });
     const loadedMessages = cfg.loadConfig(MESSAGES_FILE, DEFAULT_MESSAGES, { createIfMissing: true, mergeDefaults: true });
 
     config = loadedConfig.config || DEFAULT_CONFIG;
+    const runtimeSettings = getSoundSettings();
+    config = deepMergeRuntimeSettings(config, runtimeSettings);
     if (!config.output) config.output = DEFAULT_OUTPUT;
     if (!config.queue) config.queue = DEFAULT_CONFIG.queue;
     if (!config.priorities) config.priorities = DEFAULT_CONFIG.priorities;
@@ -655,6 +783,43 @@ module.exports.init = function init(ctx) {
   }
   function clearFinishTimer() { if (finishTimer) clearTimeout(finishTimer); finishTimer = null; }
 
+  function killProcessTree(proc, reason) {
+    if (!proc || proc.killed) return false;
+    try {
+      if (process.platform === "win32" && proc.pid) {
+        childProcess.execFile("taskkill", ["/PID", String(proc.pid), "/T", "/F"], { windowsHide: true }, () => {});
+      } else {
+        proc.kill("SIGTERM");
+      }
+      return true;
+    } catch (err) {
+      try { proc.kill(); return true; } catch (_) { return false; }
+    }
+  }
+
+  function killDeviceProcess(item, reason) {
+    if (!item || !item._deviceProcess) return false;
+    const proc = item._deviceProcess;
+    item._deviceKilled = true;
+    item._deviceKilledReason = reason || "stopped";
+    item._deviceProcess = null;
+    const killed = killProcessTree(proc, reason);
+    if (killed) {
+      state.device = {
+        lastOk: false,
+        lastAt: Date.now(),
+        lastError: reason || "device_play_stopped",
+        lastResult: { stopped: true, reason: reason || "device_play_stopped", requestId: item.requestId, file: item.file }
+      };
+      emit("device_play_stopped");
+    }
+    return killed;
+  }
+
+  function killParallelDeviceProcesses(reason) {
+    state.parallel.forEach(item => killDeviceProcess(item, reason || "parallel_stopped"));
+  }
+
   function playDeviceOutput(item) {
     if (!shouldUseDevice(item)) return;
     const helperPath = resolveHelperPath();
@@ -685,9 +850,20 @@ module.exports.init = function init(ctx) {
     state.stats.deviceStarted += 1;
     state.device = { lastOk: false, lastAt: Date.now(), lastError: "", lastResult: { started: true, helperPath, timeoutMs, args: ["play", "--file", item.file, "--device", selectedDeviceId, "--volume", String(item.volume), "--mode", mode] } };
     emit("device_play_started");
-    childProcess.execFile(helperPath, args, { windowsHide: true, timeout: timeoutMs }, (err, stdout, stderr) => {
+    const child = childProcess.execFile(helperPath, args, { windowsHide: true, timeout: timeoutMs }, (err, stdout, stderr) => {
+      if (item._deviceProcess === child) item._deviceProcess = null;
       let parsed = null;
       try { parsed = stdout ? JSON.parse(stdout) : null; } catch (_) { parsed = null; }
+      if (item._deviceKilled) {
+        state.device = {
+          lastOk: false,
+          lastAt: Date.now(),
+          lastError: item._deviceKilledReason || "device_play_stopped",
+          lastResult: { stopped: true, reason: item._deviceKilledReason || "device_play_stopped", requestId: item.requestId, file: item.file, stdout, stderr }
+        };
+        emit("device_play_stopped");
+        return;
+      }
       if (err || !parsed || parsed.ok === false) {
         state.stats.deviceFailed += 1;
         state.device = { lastOk: false, lastAt: Date.now(), lastError: err ? (err.message || String(err)) : (parsed && (parsed.error || parsed.message)) || stderr || "device_play_failed", lastResult: parsed || { stdout, stderr } };
@@ -697,6 +873,9 @@ module.exports.init = function init(ctx) {
       state.device = { lastOk: true, lastAt: Date.now(), lastError: "", lastResult: { ...parsed, timeoutMs } };
       emit("device_play_finished");
     });
+    item._deviceProcess = child;
+    item._deviceKilled = false;
+    item._deviceKilledReason = "";
   }
 
   function activateItemAudio(item, parallel) {
@@ -781,6 +960,7 @@ module.exports.init = function init(ctx) {
 
   function stopCurrent(reason) {
     const stopped = state.current;
+    if (stopped) killDeviceProcess(stopped, reason || "stopped");
     clearFinishTimer();
     state.current = null;
     state.stats.stopped += 1;
@@ -803,9 +983,15 @@ module.exports.init = function init(ctx) {
     if (state.current) {
       if (canInterruptCurrent(item, state.current)) {
         const old = state.current;
+        killDeviceProcess(old, "interrupted");
         state.current = null;
         clearFinishTimer();
-        if (old.queueIfBusy !== false) state.queue.unshift(old);
+        if (old.queueIfBusy !== false) {
+          old.startedAt = 0;
+          old.endsAt = 0;
+          old.lifecycle = { ...(old.lifecycle || {}), interruptedAt: Date.now(), restartQueued: true };
+          state.queue.unshift(old);
+        }
         startItem(item, "interrupted_started");
         return { started: true, queued: false, queuePosition: 0, item };
       }
@@ -833,6 +1019,22 @@ module.exports.init = function init(ctx) {
     touch();
   }
 
+  app.get(`${(config.routes && config.routes.prefix) || "/api/sound"}/settings`, (req, res) => {
+    try {
+      res.json(publicSoundSettings());
+    } catch (err) {
+      res.status(500).json({ ok: false, error: "sound_settings_read_failed", message: err.message || String(err) });
+    }
+  });
+
+  app.post(`${(config.routes && config.routes.prefix) || "/api/sound"}/settings`, (req, res) => {
+    try {
+      const updatedBy = req.headers["x-dashboard-user"] || req.headers["x-user"] || "";
+      res.json(saveSoundSettings(req.body || {}, updatedBy));
+    } catch (err) {
+      res.status(400).json({ ok: false, error: "sound_settings_save_failed", message: err.message || String(err) });
+    }
+  });
   loadAll();
   const prefix = (config.routes && config.routes.prefix) || "/api/sound";
 
@@ -880,6 +1082,7 @@ module.exports.init = function init(ctx) {
     const clearQueue = core.boolParam(core.getParam(req, "clearQueue", false), false);
     if (clearQueue) state.queue = [];
     const stopped = stopCurrent("manual_stop");
+    killParallelDeviceProcesses("manual_stop_parallel");
     state.parallel = [];
     emit("stop_stream");
     return res.json(core.ok({ message: msg("soundStopped"), stopped: publicItem(stopped), status: publicState() }));
@@ -901,7 +1104,17 @@ module.exports.init = function init(ctx) {
 
   app.post(`${prefix}/pause`, (req, res) => { state.paused = true; emit("paused"); return res.json(core.ok({ paused: true, status: publicState() })); });
   app.post(`${prefix}/resume`, (req, res) => { state.paused = false; const started = startNextIfPossible("resumed"); emit("resumed"); return res.json(core.ok({ paused: false, started, status: publicState() })); });
-  app.post(`${prefix}/reset`, (req, res) => { clearFinishTimer(); state.current = null; state.parallel = []; state.queue = []; state.paused = false; emit("reset"); return res.json(core.ok({ status: publicState() })); });
+  app.post(`${prefix}/reset`, (req, res) => {
+    clearFinishTimer();
+    if (state.current) killDeviceProcess(state.current, "reset_current");
+    killParallelDeviceProcesses("reset_parallel");
+    state.current = null;
+    state.parallel = [];
+    state.queue = [];
+    state.paused = false;
+    emit("reset");
+    return res.json(core.ok({ status: publicState() }));
+  });
 
   app.post(`${prefix}/client/ready`, (req, res) => { markClient("ready"); emit("client_ready"); return res.json(publicState()); });
   app.post(`${prefix}/client/audio-started`, (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
@@ -910,3 +1123,6 @@ module.exports.init = function init(ctx) {
 
   console.log(`[${MODULE_NAME}] loaded prefix=${prefix}`);
 };
+
+
+
