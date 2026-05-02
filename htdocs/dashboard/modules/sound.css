@@ -1,0 +1,126 @@
+.sound-admin {
+  display: grid;
+  gap: 18px;
+}
+
+.sound-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.3fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.sound-card {
+  border: 1px solid rgba(160, 110, 255, .24);
+  border-radius: 20px;
+  background: rgba(12, 16, 34, .54);
+  box-shadow: 0 18px 70px rgba(0,0,0,.22), inset 0 0 0 1px rgba(255,255,255,.04);
+  padding: 16px;
+}
+
+.sound-card h2,
+.sound-card h3 {
+  margin: 0 0 12px;
+}
+
+.sound-status-row,
+.sound-current-row,
+.sound-sound-row,
+.sound-queue-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.sound-status-row:last-child,
+.sound-current-row:last-child,
+.sound-sound-row:last-child,
+.sound-queue-row:last-child {
+  border-bottom: 0;
+}
+
+.sound-muted {
+  color: var(--muted, #9fb0c8);
+  font-size: 12px;
+}
+
+.sound-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(130, 220, 255, .28);
+  background: rgba(30, 90, 140, .18);
+  color: #dff7ff;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sound-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.sound-list,
+.sound-queue {
+  display: grid;
+  gap: 8px;
+}
+
+.sound-sound-main,
+.sound-queue-main {
+  min-width: 0;
+}
+
+.sound-sound-title,
+.sound-queue-title {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-sound-meta,
+.sound-queue-meta {
+  color: var(--muted, #9fb0c8);
+  font-size: 12px;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-mini-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sound-empty {
+  padding: 16px;
+  border: 1px dashed rgba(255,255,255,.16);
+  border-radius: 16px;
+  color: var(--muted, #9fb0c8);
+  text-align: center;
+}
+
+.sound-note {
+  margin-top: 10px;
+  color: var(--muted, #9fb0c8);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .sound-grid {
+    grid-template-columns: 1fr;
+  }
+}
