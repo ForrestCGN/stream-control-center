@@ -2,17 +2,27 @@
 
 ## Status
 
-Dieser Stand beschreibt den aktuell funktionierenden Sound-System-Zwischenstand auf Branch `dev`.
+Dieser Stand beschreibt den aktuellen Sound-System-Zwischenstand auf Branch `dev`.
 
-Aktueller funktionierender Commit:
+Neue Commits dieses Steps:
 
 ```txt
-8de7a2f Fix sound client routes after timeout patch
+73ccf85 Align sound output helper defaults
+93cfa32 Show sound queue policy and alert sync state in dashboard
+8639360 Prepare sound priority and alert sync policy config
 ```
 
-Relevante vorherige Commits:
+Wichtige vorherige Commits:
 
 ```txt
+70f00e2 Hide redundant sound output target pills
+18682bb Simplify sound output mode UI
+61af8e6 Bind sound dashboard actions reliably
+a9ab6cd Fix sound dashboard output state display and save feedback
+5a1cbfc Persist full sound output settings from dashboard
+ac9ac62 Wire sound dashboard device controls to working endpoints
+7726f8f Add Sound-System STEP documentation
+8de7a2f Fix sound client routes after timeout patch
 9caaf78 Fix dynamic helper timeout for long sounds
 2bc8433 Use real sound duration and prepare parallel policy
 7df137c Connect sound core to audio device helper
@@ -22,192 +32,155 @@ Relevante vorherige Commits:
 
 ```txt
 backend/modules/sound_system.js
+backend/modules/sound_output_config.js
+backend/modules/helpers/helper_media.js
 config/sound_system.json
-tools/audio-device-helper/AudioDeviceHelper.csproj
+htdocs/dashboard/modules/sound.js
+htdocs/dashboard/modules/sound.css
+htdocs/overlays/sound_system_overlay.html
 tools/audio-device-helper/Program.cs
+tools/audio-device-helper/AudioDeviceHelper.csproj
 tools/audio-device-helper/build-helper.ps1
+docs/sound_system/STEP_sound_system_2026-05-02.md
 ```
 
-Live-Pfade auf dem Stream-System:
+## Weiterhin gültiger Funktionsstand
+
+- AudioDeviceHelper funktioniert.
+- Direkte Ausgabe auf Windows-Audiogeräte funktioniert.
+- Getestetes Gerät: `Voicemeeter AUX Input (VB-Audio Voicemeeter VAIO)` / `{0.0.0.00000000}.{d2b8e581-1cae-48b9-9b2a-deb3d488b356}`.
+- WASAPI funktioniert für Voicemeeter AUX.
+- Echte Sounddauer wird per `ffprobe` über `helper_media.getAudioInfo()` ermittelt.
+- Lange Sounds brechen nicht mehr wegen Helper-Timeout ab.
+- Dynamischer Helper-Timeout funktioniert.
+- Queue funktioniert.
+- Parallel-Sounds sind vorbereitet und grundsätzlich getestet.
+- Sound-Dashboard ist vorhanden und wurde vereinfacht.
+
+## Neuer Stand dieses Steps
+
+### 1. Alert-Sync-Policy in Config vorbereitet
+
+`config/sound_system.json` wurde auf Version `0.1.8` angehoben.
+
+Neu bzw. erweitert:
 
 ```txt
-D:\Streaming\stramAssets\backend\modules\sound_system.js
-D:\Streaming\stramAssets\config\sound_system.json
-D:\Streaming\stramAssets\tools\audio-device-helper\dist\AudioDeviceHelper.exe
-D:\Streaming\stramAssets\htdocs\assets\sounds\
+queue.sortByPriority
+queue.allowParallel
+queue.maxParallel
+queue.parallelCategories
+queue.parallelSoundIds
+queue.alertSync
+queue.interruptRules
+queue.dropRules
+queue.cooldowns
+queue.dedupe
+priorities
+categoryDefaults
 ```
 
-## Getestete Funktionen
-
-### 1. Echte Sounddauer per ffprobe
-
-Dateien werden über `helper_media.getAudioInfo()` geprüft. Die Sounddauer wird aus `ffprobe` übernommen.
-
-Bestätigter Test mit:
+Wichtige Policy:
 
 ```txt
-D:\Streaming\stramAssets\htdocs\assets\sounds\opa01.mp3
+Normale Alerts unterbrechen keine laufenden Sounds/Lieder.
+Alerts werden nach Priorität in die Sound-Queue einsortiert.
+Wenn ein Alert-Sound-Item später dran ist, soll das Alert-System den visuellen Alert synchron dazu anzeigen.
 ```
 
-Erwartetes Ergebnis im API-Response:
-
-```json
-"durationOk": true,
-"durationSource": "ffprobe"
-```
-
-### 2. AudioDeviceHelper-Ausgabe
-
-Der Sound-Core kann Sounds über `AudioDeviceHelper.exe` auf ein ausgewähltes Windows-Audiogerät ausgeben.
-
-Bestätigtes Gerät:
+Prioritätsidee in der Config:
 
 ```txt
-Voicemeeter AUX Input (VB-Audio Voicemeeter VAIO)
-{0.0.0.00000000}.{d2b8e581-1cae-48b9-9b2a-deb3d488b356}
+100 = admin/system
+90  = alert_critical
+80  = alert
+70  = channel_reward
+60  = vip/crew/special
+50  = fun/tts
+20  = background/decor
 ```
 
-Bestätigtes Ergebnis:
-
-```json
-"lastOk": true,
-"deviceName": "Voicemeeter AUX Input (VB-Audio Voicemeeter VAIO)",
-"mode": "wasapi"
-```
-
-### 3. Dynamischer Helper-Timeout
-
-Der Helper-Timeout wird nicht mehr blind aus der Config übernommen. Lange Sounds werden nicht mehr nach 8 oder 30 Sekunden beendet.
-
-Logik:
+Alert-Defaults:
 
 ```txt
-effectiveTimeoutMs = max(configTimeoutMs, soundDurationMs + outroMs + 10000)
+priority=80
+canInterrupt=false
+canBeInterrupted=false
+queueIfBusy=true
+dropIfBusy=false
+parallelAllowed=false
 ```
 
-Bestätigter Test mit:
+### 2. Dashboard erweitert
+
+`htdocs/dashboard/modules/sound.js` zeigt nun zusätzlich:
 
 ```txt
-D:\Streaming\stramAssets\htdocs\assets\sounds\crew\Araglor Immer Dabei.mp3
+- Parallel-Anzahl im Status
+- Policy-Karte mit Prioritäts-Queue, Max Queue, Max Parallel, Alert-Priorität, Alert-Sync und Interrupt-Schwelle
+- Aktueller Sound mit Kategorie, Quelle, OutputTarget, Priorität und Unterbrechbar-Status
+- Queue mit Kategorie, Quelle, Priorität, OutputTarget und Lautstärke
 ```
 
-Dauer:
+### 3. Output-Helper-Defaults angeglichen
+
+`backend/modules/sound_output_config.js` nutzt jetzt denselben Helper-Pfad wie die echte Config:
 
 ```txt
-180000 ms
+tools/audio-device-helper/dist/AudioDeviceHelper.exe
 ```
 
-Erwarteter Runtime-Timeout:
+Außerdem sind die Defaults angeglichen:
 
 ```txt
-ca. 190350 ms
+helper.enabled=true
+timeoutMs=30000
+playbackMode=auto
 ```
 
-Bestätigter API-Wert:
+## Wichtige offene Punkte
 
-```json
-"timeoutMs": 190350
-```
+### 1. Sound-Core-Policy-Patch fehlt noch
 
-### 4. Queue-Verhalten
-
-Während ein langer Sound läuft, wird ein normaler zweiter Sound korrekt in die Queue gelegt.
-
-Test:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100"
-```
-
-Erwartung:
-
-```json
-"started": false,
-"queued": true,
-"queuePosition": 1
-```
-
-### 5. Parallel-Sounds
-
-Sounds mit:
+Die Config und das Dashboard sind vorbereitet. Der nächste technische Step ist der kontrollierte Patch in:
 
 ```txt
-parallelAllowed=true
-category=system
+backend/modules/sound_system.js
 ```
 
-werden parallel zum laufenden Hauptsound abgespielt, sofern die Kategorie in `queue.parallelCategories` erlaubt ist.
-
-Test:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&parallelAllowed=true&category=system"
-```
-
-Bestätigt:
+Geplant:
 
 ```txt
-Parallel-Sound wurde abgespielt.
-Parallel-Sound blieb nicht zusätzlich in der Queue hängen.
-Hauptsound lief weiter.
+- categoryDefaults beim normalizePlayRequest berücksichtigen
+- priorities aus config.priorities als Fallback nutzen
+- queue.sortByPriority beachten
+- queue.interruptRules statt hartem override/canInterrupt-Ausdruck nutzen
+- meta und visual an Sound-Items erlauben
+- publicItem() gibt meta/visual aus
+- startItem() sendet eindeutige Start-Events für spätere Alert-Sync-Anbindung
 ```
 
-### 6. Queue läuft nach Hauptsound weiter
+Dieser Core-Patch wurde in diesem Step bewusst noch nicht als riskanter Komplett-Rewrite gemacht, damit keine bestehende Funktionalität beschädigt wird.
 
-Nach Ende des langen Sounds wurde der normal gequeuete `opa01.mp3` automatisch abgespielt.
+### 2. Alert-System ist noch nicht angebunden
 
-Bestätigt:
+Noch nicht geändert:
 
 ```txt
-Araglor lief durch.
-Opa lief danach automatisch.
+backend/modules/alerts*
+config/alerts*
+htdocs/dashboard/modules/alerts*
 ```
 
-## Aktuelle bekannte offene Punkte
-
-### 1. Version-Anzeige
-
-`/api/sound/status` zeigt aktuell weiterhin:
-
-```json
-"version": "0.1.4"
-```
-
-Grund: `state.version` kommt aktuell noch aus `config.version` in `sound_system.json`.
-
-Nicht kritisch für Funktion, aber verwirrend.
-
-Geplanter Fix später, klein und kontrolliert:
-
-```json
-"version": "0.1.x",
-"moduleVersion": "0.1.x",
-"configVersion": "0.1.4"
-```
-
-Wichtig: Dieser Fix wurde einmal fehlerhaft per kompletter Datei-Ersetzung versucht und wieder verworfen. Künftig nur als kleiner Patch durchführen.
-
-### 2. Dashboard-Geräteauswahl
-
-Die Backend-API kann das Gerät speichern. Dashboard-Seite muss später sauber anzeigen, auswählen und persistieren:
+Ziel später:
 
 ```txt
-/api/sound/devices
-/api/sound/devices/select
-/api/sound/reload
+Alert-System entscheidet, welcher Alert mit welchem Sound kommt.
+Sound-System entscheidet, wann/wie/wo der Sound läuft.
+Alert-System zeigt den visuellen Alert erst, wenn das Sound-System das Alert-Sound-Item startet.
 ```
 
-### 3. Build-Ausgaben nicht committen
-
-Diese Ordner sind lokale Build-Ausgaben und gehören nicht ins Git-Repo:
-
-```txt
-tools/audio-device-helper/bin/
-tools/audio-device-helper/obj/
-tools/audio-device-helper/dist/
-```
-
-## Wichtige Testbefehle
+## Testbefehle
 
 Status:
 
@@ -215,13 +188,10 @@ Status:
 Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 20
 ```
 
-AUX setzen:
+Output anzeigen:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/devices/select" `
-  -Method POST `
-  -ContentType "application/json" `
-  -Body '{"deviceId":"{0.0.0.00000000}.{d2b8e581-1cae-48b9-9b2a-deb3d488b356}","deviceName":"Voicemeeter AUX Input (VB-Audio Voicemeeter VAIO)","enabled":true}'
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/output" | ConvertTo-Json -Depth 20
 ```
 
 Config reload:
@@ -248,24 +218,27 @@ Parallel-Test:
 Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&parallelAllowed=true&category=system" | ConvertTo-Json -Depth 20
 ```
 
+Vorbereiteter Alert-Queue-Test ohne echte Alert-Anbindung:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&category=alert&priority=80&source=alert_system&canInterrupt=false&canBeInterrupted=false&queueIfBusy=true" | ConvertTo-Json -Depth 20
+```
+
 Reset:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/sound/reset" -Method POST
 ```
 
-## Aktueller empfohlener nächster Schritt
+## Nächster empfohlener Step
 
-1. Alten Backup-Branch löschen:
+1. Lokal `git pull` auf Branch `dev`.
+2. Backend neu starten.
+3. `/api/sound/status` und Dashboard prüfen.
+4. Danach Core-Policy-Patch in `backend/modules/sound_system.js`.
 
-```powershell
-git push origin --delete backup/dev-before-sound-core-device-output
-```
-
-2. Den neueren Backup-Branch noch behalten, bis dieser STEP vollständig abgeschlossen ist:
+Backup-Branch aktuell weiter behalten:
 
 ```txt
-backup/dev-before-sound-duration-parallel-policy
+origin/backup/dev-before-sound-duration-parallel-policy
 ```
-
-3. Danach Dashboard-Geräteauswahl prüfen/verbessern.
