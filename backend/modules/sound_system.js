@@ -11,17 +11,10 @@ const MESSAGES_FILE = "messages/sound_system.json";
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  version: "0.1.0",
+  version: "0.1.1",
   routes: { prefix: "/api/sound" },
   websocket: { enabled: true, op: "sound_system" },
-  overlay: {
-    enabled: true,
-    clientRequired: true,
-    fallbackFinishMs: 12000,
-    introMs: 0,
-    outroMs: 350,
-    gapBetweenSoundsMs: 750
-  },
+  overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
   queue: { enabled: true, maxLength: 50, dropWhenFull: true, defaultPriority: 50 },
   targets: {
     stream: { enabled: true, defaultVolume: 85 },
@@ -79,19 +72,8 @@ module.exports.init = function init(ctx) {
     enabled: true,
     paused: false,
     updatedAt: core.nowIso(),
-    client: {
-      connected: false,
-      lastSeenAt: 0,
-      lastEvent: ""
-    },
-    stats: {
-      started: 0,
-      queued: 0,
-      stopped: 0,
-      skipped: 0,
-      cleared: 0,
-      failed: 0
-    }
+    client: { connected: false, lastSeenAt: 0, lastEvent: "" },
+    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0 }
   };
 
   let config = DEFAULT_CONFIG;
@@ -118,18 +100,12 @@ module.exports.init = function init(ctx) {
     emit("reloaded");
   }
 
-  function touch() {
-    state.updatedAt = core.nowIso();
-  }
+  function touch() { state.updatedAt = core.nowIso(); }
 
   function emit(reason) {
     touch();
     if (config.websocket && config.websocket.enabled !== false && typeof broadcastWS === "function") {
-      broadcastWS({
-        op: config.websocket.op || MODULE_NAME,
-        reason: reason || "state",
-        data: publicState()
-      });
+      broadcastWS({ op: config.websocket.op || MODULE_NAME, reason: reason || "state", data: publicState() });
     }
   }
 
@@ -169,6 +145,7 @@ module.exports.init = function init(ctx) {
       requestId: item.requestId,
       soundId: item.soundId,
       label: item.label,
+      type: item.type,
       category: item.category,
       target: item.target,
       priority: item.priority,
@@ -176,6 +153,7 @@ module.exports.init = function init(ctx) {
       file: item.file,
       audioUrl: item.audioUrl,
       durationMs: item.durationMs,
+      frequency: item.frequency,
       source: item.source,
       requestedBy: item.requestedBy,
       queuedAt: item.queuedAt,
@@ -193,17 +171,9 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  function msg(key) {
-    return messages[key] || DEFAULT_MESSAGES[key] || key;
-  }
-
-  function makeRequestId() {
-    return `snd_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  }
-
-  function normalizeId(value) {
-    return String(value || "").trim().toLowerCase().replace(/[^a-z0-9_.:-]/g, "_");
-  }
+  function msg(key) { return messages[key] || DEFAULT_MESSAGES[key] || key; }
+  function makeRequestId() { return `snd_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
+  function normalizeId(value) { return String(value || "").trim().toLowerCase().replace(/[^a-z0-9_.:-]/g, "_"); }
 
   function getSoundsBaseDir() {
     const raw = String(config.soundsBaseDir || "htdocs/assets/sounds").trim();
@@ -211,14 +181,8 @@ module.exports.init = function init(ctx) {
     return cfg.resolveFromRoot(raw);
   }
 
-  function getSoundList() {
-    return Array.isArray(config.sounds) ? config.sounds : [];
-  }
-
-  function findSound(soundId) {
-    const id = normalizeId(soundId);
-    return getSoundList().find(sound => normalizeId(sound.id) === id) || null;
-  }
+  function getSoundList() { return Array.isArray(config.sounds) ? config.sounds : []; }
+  function findSound(soundId) { const id = normalizeId(soundId); return getSoundList().find(sound => normalizeId(sound.id) === id) || null; }
 
   function browserUrlFromRelative(relativeFile) {
     const clean = String(relativeFile || "").replace(/\\/g, "/").replace(/^\/+/, "");
@@ -247,46 +211,48 @@ module.exports.init = function init(ctx) {
     const body = raw || {};
     const soundId = normalizeId(body.soundId || body.id || body.sound || "");
     const preset = soundId ? findSound(soundId) : null;
-
     if (soundId && !preset) throw new Error(msg("soundNotFound"));
 
-    const base = {
-      ...(config.defaults || {}),
-      ...(preset || {}),
-      ...body
-    };
-
-    const file = String(base.file || body.file || "").trim().replace(/\\/g, "/");
-    if (!file) throw new Error(msg("soundFileMissing"));
-
+    const base = { ...(config.defaults || {}), ...(preset || {}), ...body };
+    const type = String(base.type || "file").trim().toLowerCase();
     const target = normalizeTarget(base.target);
     if (!targetEnabled(target)) throw new Error(msg("targetDisabled"));
 
-    const audioInfo = media.getAudioInfo(file, {
-      baseDir: getSoundsBaseDir(),
-      allowedExtensions: Array.isArray(config.allowedExtensions) ? config.allowedExtensions : media.DEFAULT_ALLOWED_EXTENSIONS
-    });
-
-    if (!audioInfo.ok) {
-      throw new Error(`${msg("soundFileMissing")} (${audioInfo.error || "unknown"}: ${file})`);
-    }
-
     const targetConfig = (config.targets && config.targets[target]) || {};
-    const durationMs = audioInfo.durationMs > 0 ? audioInfo.durationMs : Number(config.overlay?.fallbackFinishMs || 12000);
     const volume = clampVolume(base.volume, clampVolume(targetConfig.defaultVolume, 85));
+    const durationMs = Math.max(100, Number(base.durationMs || config.overlay?.fallbackFinishMs || 12000));
+
+    let file = String(base.file || body.file || "").trim().replace(/\\/g, "/");
+    let fullPath = "";
+    let audioUrl = "";
+
+    if (type !== "generated_beep") {
+      if (!file) throw new Error(msg("soundFileMissing"));
+      const audioInfo = media.getAudioInfo(file, {
+        baseDir: getSoundsBaseDir(),
+        allowedExtensions: Array.isArray(config.allowedExtensions) ? config.allowedExtensions : media.DEFAULT_ALLOWED_EXTENSIONS
+      });
+      if (!audioInfo.ok) throw new Error(`${msg("soundFileMissing")} (${audioInfo.error || "unknown"}: ${file})`);
+      fullPath = audioInfo.path;
+      audioUrl = browserUrlFromRelative(audioInfo.relative || file);
+    } else {
+      file = "";
+    }
 
     return {
       requestId: makeRequestId(),
-      soundId: soundId || normalizeId(path.basename(file, path.extname(file))),
-      label: String(base.label || soundId || file).trim(),
+      soundId: soundId || normalizeId(file ? path.basename(file, path.extname(file)) : "generated_beep"),
+      label: String(base.label || soundId || file || "Generated Beep").trim(),
+      type,
       category: String(base.category || "fun").trim().toLowerCase(),
       target,
       priority: Number.isFinite(Number(base.priority)) ? Number(base.priority) : Number(config.queue?.defaultPriority || 50),
       volume,
       file,
-      fullPath: audioInfo.path,
-      audioUrl: browserUrlFromRelative(audioInfo.relative || file),
-      durationMs,
+      fullPath,
+      audioUrl,
+      durationMs: type === "generated_beep" ? durationMs : Math.max(100, durationMs),
+      frequency: Math.max(80, Math.min(2000, Number(base.frequency || 880))),
       introMs: Number(config.overlay?.introMs || 0),
       outroMs: Number(config.overlay?.outroMs || 350),
       gapAfterMs: Number(config.overlay?.gapBetweenSoundsMs || 750),
@@ -307,10 +273,7 @@ module.exports.init = function init(ctx) {
   }
 
   function sortQueue() {
-    state.queue.sort((a, b) => {
-      if (b.priority !== a.priority) return b.priority - a.priority;
-      return a.queuedAt - b.queuedAt;
-    });
+    state.queue.sort((a, b) => b.priority !== a.priority ? b.priority - a.priority : a.queuedAt - b.queuedAt);
   }
 
   function clearFinishTimer() {
@@ -325,14 +288,8 @@ module.exports.init = function init(ctx) {
     state.current = item;
     state.stats.started += 1;
     emit(reason || "started");
-
-    if (item.target === "stream" || item.target === "both") {
-      emit("play_stream");
-    }
-
-    finishTimer = setTimeout(() => {
-      finishCurrent("auto_finished");
-    }, Math.max(1000, item.durationMs + item.outroMs + 250));
+    if (item.target === "stream" || item.target === "both") emit("play_stream");
+    finishTimer = setTimeout(() => finishCurrent("auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
   }
 
   function startNextIfPossible(reason) {
@@ -347,7 +304,6 @@ module.exports.init = function init(ctx) {
     const finished = state.current;
     state.current = null;
     emit(reason || "finished");
-
     const gap = Number((finished && finished.gapAfterMs) || config.overlay?.gapBetweenSoundsMs || 750);
     setTimeout(() => startNextIfPossible("gap_finished"), Math.max(0, gap));
     return finished;
@@ -378,9 +334,7 @@ module.exports.init = function init(ctx) {
         return { started: true, queued: false, queuePosition: 0, item };
       }
 
-      if (item.dropIfBusy || item.queueIfBusy === false) {
-        return { started: false, queued: false, dropped: true, queuePosition: -1, item };
-      }
+      if (item.dropIfBusy || item.queueIfBusy === false) return { started: false, queued: false, dropped: true, queuePosition: -1, item };
 
       const maxLength = Number(config.queue?.maxLength || 50);
       if (state.queue.length >= maxLength) {
@@ -406,12 +360,7 @@ module.exports.init = function init(ctx) {
     touch();
   }
 
-  function apiResponse(extra) {
-    return { ...publicState(), ...(extra || {}) };
-  }
-
   loadAll();
-
   const prefix = (config.routes && config.routes.prefix) || "/api/sound";
 
   app.use(prefix, (req, res, next) => {
@@ -428,44 +377,21 @@ module.exports.init = function init(ctx) {
   app.get(`${prefix}/list`, (req, res) => res.json(core.ok({ sounds: getSoundList() })));
   app.get(`${prefix}/config`, (req, res) => res.json(core.ok({ config, path: state.configPath })));
 
-  app.post(`${prefix}/reload`, (req, res) => {
-    loadAll();
-    return res.json(core.ok(apiResponse({ message: msg("configReloaded") })));
-  });
+  app.post(`${prefix}/reload`, (req, res) => { loadAll(); return res.json(core.ok({ message: msg("configReloaded"), status: publicState() })); });
 
-  app.post(`${prefix}/play`, core.asyncRoute(async (req, res) => {
-    const item = normalizePlayRequest(req.body || {});
+  function playResponse(req, res, input) {
+    const item = normalizePlayRequest(input || {});
     const result = enqueueOrStart(item);
     return res.json(core.ok({
       message: result.started ? msg("soundStarted") : (result.queued ? msg("soundQueued") : "Sound wurde verworfen."),
-      result: {
-        started: result.started,
-        queued: result.queued,
-        dropped: !!result.dropped,
-        queuePosition: result.queuePosition,
-        reason: result.reason || ""
-      },
+      result: { started: result.started, queued: result.queued, dropped: !!result.dropped, queuePosition: result.queuePosition, reason: result.reason || "" },
       item: publicItem(item),
       status: publicState()
     }));
-  }));
+  }
 
-  app.get(`${prefix}/play`, core.asyncRoute(async (req, res) => {
-    const item = normalizePlayRequest(req.query || {});
-    const result = enqueueOrStart(item);
-    return res.json(core.ok({
-      message: result.started ? msg("soundStarted") : (result.queued ? msg("soundQueued") : "Sound wurde verworfen."),
-      result: {
-        started: result.started,
-        queued: result.queued,
-        dropped: !!result.dropped,
-        queuePosition: result.queuePosition,
-        reason: result.reason || ""
-      },
-      item: publicItem(item),
-      status: publicState()
-    }));
-  }));
+  app.post(`${prefix}/play`, core.asyncRoute(async (req, res) => playResponse(req, res, req.body || {})));
+  app.get(`${prefix}/play`, core.asyncRoute(async (req, res) => playResponse(req, res, req.query || {})));
 
   app.post(`${prefix}/stop`, (req, res) => {
     const clearQueue = core.boolParam(core.getParam(req, "clearQueue", false), false);
@@ -489,52 +415,14 @@ module.exports.init = function init(ctx) {
     return res.json(core.ok({ message: msg("queueCleared"), status: publicState() }));
   });
 
-  app.post(`${prefix}/pause`, (req, res) => {
-    state.paused = true;
-    emit("paused");
-    return res.json(core.ok({ paused: true, status: publicState() }));
-  });
+  app.post(`${prefix}/pause`, (req, res) => { state.paused = true; emit("paused"); return res.json(core.ok({ paused: true, status: publicState() })); });
+  app.post(`${prefix}/resume`, (req, res) => { state.paused = false; const started = startNextIfPossible("resumed"); emit("resumed"); return res.json(core.ok({ paused: false, started, status: publicState() })); });
+  app.post(`${prefix}/reset`, (req, res) => { clearFinishTimer(); state.current = null; state.queue = []; state.paused = false; emit("reset"); return res.json(core.ok({ status: publicState() })); });
 
-  app.post(`${prefix}/resume`, (req, res) => {
-    state.paused = false;
-    const started = startNextIfPossible("resumed");
-    emit("resumed");
-    return res.json(core.ok({ paused: false, started, status: publicState() }));
-  });
-
-  app.post(`${prefix}/reset`, (req, res) => {
-    clearFinishTimer();
-    state.current = null;
-    state.queue = [];
-    state.paused = false;
-    emit("reset");
-    return res.json(core.ok({ status: publicState() }));
-  });
-
-  app.post(`${prefix}/client/ready`, (req, res) => {
-    markClient("ready");
-    emit("client_ready");
-    return res.json(publicState());
-  });
-
-  app.post(`${prefix}/client/audio-started`, (req, res) => {
-    markClient("audio_started");
-    emit("client_audio_started");
-    return res.json(core.ok({ current: state.current ? publicItem(state.current) : null }));
-  });
-
-  app.post(`${prefix}/client/audio-ended`, (req, res) => {
-    markClient("audio_ended");
-    finishCurrent("client_audio_ended");
-    return res.json(core.ok({ status: publicState() }));
-  });
-
-  app.post(`${prefix}/client/error`, (req, res) => {
-    markClient("error");
-    state.stats.failed += 1;
-    finishCurrent("client_error");
-    return res.json(core.ok({ status: publicState() }));
-  });
+  app.post(`${prefix}/client/ready`, (req, res) => { markClient("ready"); emit("client_ready"); return res.json(publicState()); });
+  app.post(`${prefix}/client/audio-started`, (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
+  app.post(`${prefix}/client/audio-ended`, (req, res) => { markClient("audio_ended"); finishCurrent("client_audio_ended"); return res.json(core.ok({ status: publicState() })); });
+  app.post(`${prefix}/client/error`, (req, res) => { markClient("error"); state.stats.failed += 1; finishCurrent("client_error"); return res.json(core.ok({ status: publicState() })); });
 
   console.log(`[${MODULE_NAME}] loaded prefix=${prefix}`);
 };
