@@ -4,23 +4,24 @@ Lokaler Windows-Helfer für das Sound-System.
 
 ## Stand
 
-STEP 3A: Grundgerüst und Geräteauflistung.
+STEP 3B: Geräteauflistung + Playback auf Windows-Standardgerät.
 
 Aktuell enthalten:
 
 ```powershell
 AudioDeviceHelper.exe version --json
 AudioDeviceHelper.exe devices --json
+AudioDeviceHelper.exe play --file "D:\\...\\sound.wav" --device default --volume 80
 ```
 
 Noch nicht enthalten:
 
 ```powershell
-AudioDeviceHelper.exe play --file "D:\\...\\sound.wav" --device "..." --volume 80
+AudioDeviceHelper.exe play --file "D:\\...\\sound.wav" --device "echte-device-id" --volume 80
 AudioDeviceHelper.exe stop
 ```
 
-Playback folgt in STEP 3B/3C.
+Gezielte Geräteauswahl folgt in STEP 3C.
 
 ## Build
 
@@ -51,6 +52,7 @@ Wenn per `dotnet publish` nach `dist` gebaut wird, muss entweder die Config ange
 ```powershell
 .\dist\AudioDeviceHelper.exe version --json
 .\dist\AudioDeviceHelper.exe devices --json
+.\dist\AudioDeviceHelper.exe play --file "D:\\Pfad\\sound.wav" --device default --volume 80
 ```
 
 Die Ausgabe muss JSON liefern, damit Node sie auslesen kann.
