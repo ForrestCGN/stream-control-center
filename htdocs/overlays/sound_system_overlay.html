@@ -41,11 +41,13 @@
       if (qs.get('debug') === '1') document.body.dataset.debug = '1';
 
       let currentRequestId = '';
+      let lastSeenRequestId = '';
       let ws = null;
       let reconnectTimer = null;
       let audioContext = null;
       let beepNodes = [];
       let audioUnlocked = false;
+      let pollingBusy = false;
 
       function setStatus(text){ if (status) status.textContent = text || 'Sound-System Overlay'; }
 
@@ -53,6 +55,12 @@
         try {
           await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload || {}) });
         } catch (_) {}
+      }
+
+      async function getJson(path){
+        const res = await fetch(API + path, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
       }
 
       function stopBeep(){
@@ -84,10 +92,7 @@
 
       async function unlockAudio(){
         const ctx = getAudioContext();
-        if (!ctx) {
-          setStatus('AudioContext nicht verfügbar');
-          return false;
-        }
+        if (!ctx) { setStatus('AudioContext nicht verfügbar'); return false; }
         try {
           if (ctx.state === 'suspended') await ctx.resume();
           const buffer = ctx.createBuffer(1, 1, 22050);
@@ -111,13 +116,11 @@
       async function playGeneratedBeep(item){
         stopAudio();
         currentRequestId = item.requestId;
+        lastSeenRequestId = item.requestId;
         setStatus('Spiele: ' + (item.label || item.soundId || 'Generated Beep'));
 
         const ctx = getAudioContext();
-        if (!ctx) {
-          await post('/client/error', { requestId: currentRequestId, error: 'audio_context_unavailable' });
-          return;
-        }
+        if (!ctx) { await post('/client/error', { requestId: currentRequestId, error: 'audio_context_unavailable' }); return; }
 
         try {
           if (ctx.state === 'suspended') {
@@ -133,7 +136,6 @@
           const frequency = Math.max(80, Math.min(2000, Number(item.frequency || 880)));
           const volume = normalizeVolume(item.volume) * 0.35;
           const now = ctx.currentTime;
-
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -148,7 +150,6 @@
           beepNodes = [osc, gain];
           audioUnlocked = true;
           document.body.dataset.audioUnlocked = '1';
-
           await post('/client/audio-started', { requestId: currentRequestId });
           setTimeout(async () => {
             const requestId = currentRequestId;
@@ -167,6 +168,7 @@
         if (!item || !item.audioUrl || !item.requestId) return;
         stopAudio();
         currentRequestId = item.requestId;
+        lastSeenRequestId = item.requestId;
         player.volume = normalizeVolume(item.volume);
         player.src = item.audioUrl + (item.audioUrl.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(item.requestId);
         setStatus('Spiele: ' + (item.label || item.soundId || item.audioUrl));
@@ -185,6 +187,7 @@
 
       async function playSound(item){
         if (!item || !item.requestId) return;
+        if (item.requestId === lastSeenRequestId && currentRequestId === item.requestId) return;
         if (String(item.type || '').toLowerCase() === 'generated_beep') return playGeneratedBeep(item);
         return playFileSound(item);
       }
@@ -222,11 +225,26 @@
         }
       }
 
+      async function pollStatus(){
+        if (pollingBusy) return;
+        pollingBusy = true;
+        try {
+          const state = await getJson('/status');
+          const cur = state && state.current ? state.current : null;
+          if (cur && cur.requestId && cur.requestId !== lastSeenRequestId) {
+            setStatus('Polling: ' + (cur.label || cur.soundId || cur.requestId));
+            await playSound(cur);
+          }
+        } catch (_) {
+        } finally {
+          pollingBusy = false;
+        }
+      }
+
       function connect(){
         clearTimeout(reconnectTimer);
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         ws = new WebSocket(protocol + '//' + location.host);
-
         ws.addEventListener('open', () => { setStatus(audioUnlocked ? 'Audio aktiv · Verbunden' : 'Verbunden · Audio aktivieren'); post('/client/ready', { overlay: 'sound_system_overlay' }); });
         ws.addEventListener('message', (event) => { try { handleMessage(JSON.parse(event.data)); } catch (_) {} });
         ws.addEventListener('close', () => { setStatus('Getrennt - reconnect'); reconnectTimer = setTimeout(connect, 1500); });
@@ -238,6 +256,7 @@
 
       connect();
       post('/client/ready', { overlay: 'sound_system_overlay', boot: true });
+      setInterval(pollStatus, 250);
     })();
   </script>
 </body>
