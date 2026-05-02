@@ -23,7 +23,7 @@ const DEFAULT_OUTPUT = {
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  version: "0.1.6",
+  version: "0.1.7",
   routes: { prefix: "/api/sound" },
   websocket: { enabled: true, op: "sound_system" },
   overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
@@ -285,6 +285,14 @@ module.exports.init = function init(ctx) {
     return String(item.deviceMode || item.outputMode || deviceConfig.helper?.playbackMode || deviceConfig.modeHint || "auto").trim().toLowerCase();
   }
 
+  function effectiveHelperTimeoutMs(item, helper) {
+    const configured = Number(helper && helper.timeoutMs ? helper.timeoutMs : 30000);
+    const soundDuration = Number(item && item.durationMs ? item.durationMs : 0);
+    const outroMs = Number(item && item.outroMs ? item.outroMs : 0);
+    const needed = soundDuration + outroMs + 10000;
+    return Math.max(1000, Math.ceil(Math.max(configured, needed)));
+  }
+
   function createBeepWavBuffer(options = {}) {
     const sampleRate = 44100;
     const durationMs = intInRange(options.durationMs, 350, 80, 3000);
@@ -457,10 +465,11 @@ module.exports.init = function init(ctx) {
     const selectedDeviceId = String(deviceConfig.selectedDeviceId || "default");
     const mode = getDevicePlaybackMode(item);
     const args = ["play", "--file", item.fullPath, "--device", selectedDeviceId, "--volume", String(item.volume), "--mode", mode];
+    const timeoutMs = effectiveHelperTimeoutMs(item, helper);
     state.stats.deviceStarted += 1;
-    state.device = { lastOk: false, lastAt: Date.now(), lastError: "", lastResult: { started: true, helperPath, args: ["play", "--file", item.file, "--device", selectedDeviceId, "--volume", String(item.volume), "--mode", mode] } };
+    state.device = { lastOk: false, lastAt: Date.now(), lastError: "", lastResult: { started: true, helperPath, timeoutMs, args: ["play", "--file", item.file, "--device", selectedDeviceId, "--volume", String(item.volume), "--mode", mode] } };
     emit("device_play_started");
-    childProcess.execFile(helperPath, args, { windowsHide: true, timeout: Number(helper.timeoutMs || 30000) }, (err, stdout, stderr) => {
+    childProcess.execFile(helperPath, args, { windowsHide: true, timeout: timeoutMs }, (err, stdout, stderr) => {
       let parsed = null;
       try { parsed = stdout ? JSON.parse(stdout) : null; } catch (_) { parsed = null; }
       if (err || !parsed || parsed.ok === false) {
@@ -469,7 +478,7 @@ module.exports.init = function init(ctx) {
         emit("device_play_failed");
         return;
       }
-      state.device = { lastOk: true, lastAt: Date.now(), lastError: "", lastResult: parsed };
+      state.device = { lastOk: true, lastAt: Date.now(), lastError: "", lastResult: { ...parsed, timeoutMs } };
       emit("device_play_finished");
     });
   }
@@ -645,9 +654,9 @@ module.exports.init = function init(ctx) {
   app.post(`${prefix}/reset`, (req, res) => { clearFinishTimer(); state.current = null; state.parallel = []; state.queue = []; state.paused = false; emit("reset"); return res.json(core.ok({ status: publicState() })); });
 
   app.post(`${prefix}/client/ready`, (req, res) => { markClient("ready"); emit("client_ready"); return res.json(publicState()); });
-  app.post(`${prefix}/client/audio-started`, (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
-  app.post(`${prefix}/client/audio-ended`, (req, res) => { markClient("audio_ended"); finishCurrent("client_audio_ended"); return res.json(core.ok({ status: publicState() })); });
-  app.post(`${prefix}/client/error`, (req, res) => { markClient("error"); state.stats.failed += 1; finishCurrent("client_error"); return res.json(core.ok({ status: publicState() })); });
+  app.post(`${prefix}/client/audio-started", (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
+  app.post(`${prefix}/client/audio-ended", (req, res) => { markClient("audio_ended"); finishCurrent("client_audio_ended"); return res.json(core.ok({ status: publicState() })); });
+  app.post(`${prefix}/client/error", (req, res) => { markClient("error"); state.stats.failed += 1; finishCurrent("client_error"); return res.json(core.ok({ status: publicState() })); });
 
   console.log(`[${MODULE_NAME}] loaded prefix=${prefix}`);
 };
