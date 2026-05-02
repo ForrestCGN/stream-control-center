@@ -71,7 +71,7 @@ window.SoundSystemModule = (function(){
   function renderOutput(){
     const el = document.getElementById('soundOutputCard');
     if (!el) return;
-    const out = output?.output || {};
+    const out = output?.output || status?.config?.output || {};
     const targets = out.targets || {};
     const overlay = targets.overlay || {};
     const device = targets.device || {};
@@ -79,6 +79,7 @@ window.SoundSystemModule = (function(){
     const helperWarning = devices?.warning && devices.warning !== 'helper' ? `<div class="sound-note">Gerätequelle: ${esc(devices.warning)}${devices.error ? ' · ' + esc(devices.error) : ''}</div>` : '';
     const deviceList = Array.isArray(devices?.devices) ? devices.devices : [];
     const selectedId = device.selectedDeviceId || 'default';
+    const selectedMissing = selectedId && !deviceList.some(d => String(d.id) === String(selectedId));
 
     el.innerHTML = `
       <h3>Ausgabe</h3>
@@ -95,6 +96,7 @@ window.SoundSystemModule = (function(){
       <label class="sound-field">
         <span>Ausgabegerät</span>
         <select id="soundDeviceSelect">
+          ${selectedMissing ? `<option value="${esc(selectedId)}" data-name="${esc(device.selectedDeviceName || selectedId)}" selected>${esc(device.selectedDeviceName || selectedId)} (gespeichert)</option>` : ''}
           ${deviceList.map(d => `<option value="${esc(d.id)}" data-name="${esc(d.name)}" ${String(d.id) === String(selectedId) ? 'selected' : ''}>${esc(d.name)}${d.isDefault ? ' (Standard)' : ''}</option>`).join('')}
         </select>
       </label>
@@ -108,7 +110,7 @@ window.SoundSystemModule = (function(){
         ${button('Geräte neu laden', 'reload-devices')}
         ${button('Test Ausgabe', 'test-output')}
       </div>
-      <div class="sound-note">Hinweis: Geräteauswahl ist vorbereitet. Echte direkte Audiogerät-Ausgabe benötigt den lokalen Audio-Helper. Bis dahin funktioniert Overlay/OBS als Hauptausgabe.</div>
+      <div class="sound-note">Direkte Audiogerät-Ausgabe läuft über den lokalen AudioDeviceHelper. Änderungen werden gespeichert und danach per Reload aktiv.</div>
       ${helperWarning}
     `;
   }
@@ -167,18 +169,16 @@ window.SoundSystemModule = (function(){
   async function saveOutput(){
     const select = document.getElementById('soundDeviceSelect');
     const option = select?.selectedOptions?.[0];
-    const payload = {
-      defaultTarget: document.getElementById('soundDefaultTarget')?.value || 'overlay',
-      overlay: { enabled: !!document.getElementById('soundOverlayEnabled')?.checked },
-      device: {
-        enabled: !!document.getElementById('soundDeviceEnabled')?.checked,
-        selectedDeviceId: select?.value || 'default',
-        selectedDeviceName: option?.dataset?.name || option?.textContent || 'Windows Standardgerät',
-        defaultVolume: Number(document.getElementById('soundDeviceVolume')?.value || 80)
-      },
-      both: { enabled: !!document.getElementById('soundBothEnabled')?.checked }
-    };
-    await api('/output', { method: 'POST', body: JSON.stringify(payload) });
+    const deviceId = select?.value || 'default';
+    const deviceName = option?.dataset?.name || option?.textContent || 'Windows Standardgerät';
+    const enabled = !!document.getElementById('soundDeviceEnabled')?.checked;
+
+    await api('/devices/select', {
+      method: 'POST',
+      body: JSON.stringify({ deviceId, deviceName, enabled })
+    });
+
+    await api('/reload', { method: 'POST', body: '{}' });
   }
 
   function bindActions(){
@@ -196,8 +196,8 @@ window.SoundSystemModule = (function(){
           if (action === 'skip') await api('/skip', { method: 'POST', body: '{}' });
           if (action === 'clear') await api('/clear', { method: 'POST', body: '{}' });
           if (action === 'save-output') await saveOutput();
-          if (action === 'reload-devices') await api('/devices');
-          if (action === 'test-output') await api('/test-output', { method: 'POST', body: JSON.stringify({ target: document.getElementById('soundDefaultTarget')?.value || 'overlay' }) });
+          if (action === 'reload-devices') devices = await api('/devices');
+          if (action === 'test-output') await api('/play?file=opa01.mp3&outputTarget=device&volume=100', { method: 'GET' });
         }
         await loadAll(true);
       } catch (err) { alert(err.message || String(err)); }
@@ -210,7 +210,8 @@ window.SoundSystemModule = (function(){
     try {
       const state = await api('/status');
       const list = await api('/list');
-      const out = await api('/output');
+      let out = null;
+      try { out = await api('/output'); } catch (_) { out = { output: state?.config?.output || {} }; }
       const dev = await api('/devices');
       status = { ...state, sounds: list.sounds || [] };
       output = out;
