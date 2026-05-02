@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ForrestCGN Sound-System Overlay</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: Arial, sans-serif;
+    }
+    #status {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      padding: 8px 12px;
+      border: 1px solid rgba(180, 90, 255, .45);
+      border-radius: 999px;
+      color: rgba(255,255,255,.7);
+      background: rgba(10, 8, 20, .45);
+      box-shadow: 0 0 24px rgba(140, 80, 255, .18);
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .25s ease, transform .25s ease;
+      pointer-events: none;
+    }
+    body[data-debug="1"] #status {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <audio id="player" preload="auto"></audio>
+  <div id="status">Sound-System Overlay</div>
+
+  <script>
+    (function(){
+      'use strict';
+
+      const API = '/api/sound';
+      const player = document.getElementById('player');
+      const status = document.getElementById('status');
+      const qs = new URLSearchParams(location.search);
+      if (qs.get('debug') === '1') document.body.dataset.debug = '1';
+
+      let currentRequestId = '';
+      let ws = null;
+      let reconnectTimer = null;
+
+      function setStatus(text){
+        if (status) status.textContent = text || 'Sound-System Overlay';
+      }
+
+      async function post(path, payload){
+        try {
+          await fetch(API + path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload || {})
+          });
+        } catch (_) {}
+      }
+
+      function stopAudio(){
+        try {
+          player.pause();
+          player.removeAttribute('src');
+          player.load();
+        } catch (_) {}
+        currentRequestId = '';
+      }
+
+      function normalizeVolume(value){
+        const n = Number(value);
+        if (!Number.isFinite(n)) return 0.85;
+        return Math.max(0, Math.min(1, n > 1 ? n / 100 : n));
+      }
+
+      async function playSound(item){
+        if (!item || !item.audioUrl || !item.requestId) return;
+        stopAudio();
+        currentRequestId = item.requestId;
+        player.volume = normalizeVolume(item.volume);
+        player.src = item.audioUrl + (item.audioUrl.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(item.requestId);
+        setStatus('Spiele: ' + (item.label || item.soundId || item.audioUrl));
+
+        try {
+          await player.play();
+          await post('/client/audio-started', { requestId: currentRequestId });
+        } catch (err) {
+          await post('/client/error', { requestId: currentRequestId, error: err && err.message ? err.message : String(err) });
+          stopAudio();
+        }
+      }
+
+      player.addEventListener('ended', async () => {
+        const requestId = currentRequestId;
+        currentRequestId = '';
+        setStatus('Sound beendet');
+        await post('/client/audio-ended', { requestId });
+      });
+
+      player.addEventListener('error', async () => {
+        const requestId = currentRequestId;
+        await post('/client/error', { requestId, error: 'audio_error' });
+        stopAudio();
+      });
+
+      function handleMessage(message){
+        const payload = message && (message.data || message);
+        if (!payload) return;
+
+        const op = payload.op || payload.type || '';
+        const reason = payload.reason || '';
+        const data = payload.data || payload.payload || {};
+        if (op !== 'sound_system') return;
+
+        const current = data.current || null;
+        if ((reason === 'started' || reason === 'play_stream' || reason === 'interrupted_started' || reason === 'next_started' || reason === 'resumed') && current) {
+          playSound(current);
+          return;
+        }
+
+        if (reason === 'manual_stop' || reason === 'manual_skip' || reason === 'stop_stream' || reason === 'skip_stream' || reason === 'reset') {
+          stopAudio();
+          setStatus('Gestoppt');
+        }
+      }
+
+      function connect(){
+        clearTimeout(reconnectTimer);
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(protocol + '//' + location.host);
+
+        ws.addEventListener('open', () => {
+          setStatus('Verbunden');
+          post('/client/ready', { overlay: 'sound_system_overlay' });
+        });
+
+        ws.addEventListener('message', (event) => {
+          try { handleMessage(JSON.parse(event.data)); } catch (_) {}
+        });
+
+        ws.addEventListener('close', () => {
+          setStatus('Getrennt - reconnect');
+          reconnectTimer = setTimeout(connect, 1500);
+        });
+
+        ws.addEventListener('error', () => {
+          try { ws.close(); } catch (_) {}
+        });
+      }
+
+      connect();
+      post('/client/ready', { overlay: 'sound_system_overlay', boot: true });
+    })();
+  </script>
+</body>
+</html>
