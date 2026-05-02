@@ -8,6 +8,7 @@ window.SoundSystemModule = (function(){
   let devices = [];
   let loading = false;
   let lastSaveInfo = null;
+  let actionsBound = false;
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
@@ -46,7 +47,10 @@ window.SoundSystemModule = (function(){
 
   function render(){
     if (!root) return;
-    if (!status) { renderShell(); bindActions(); }
+    if (!status) {
+      renderShell();
+      bindActions();
+    }
     renderStatus();
     renderOutput();
     renderCurrent();
@@ -211,7 +215,9 @@ window.SoundSystemModule = (function(){
   }
 
   function bindActions(){
-    root?.addEventListener('click', async (event) => {
+    if (!root || actionsBound) return;
+    actionsBound = true;
+    root.addEventListener('click', async (event) => {
       const actionBtn = event.target.closest('[data-sound-action]');
       const playBtn = event.target.closest('[data-sound-play]');
       if (!actionBtn && !playBtn) return;
@@ -249,7 +255,13 @@ window.SoundSystemModule = (function(){
     } finally { loading = false; }
   }
 
-  function mount(){ root = document.getElementById('soundModule'); if (!root) return; renderShell(); loadAll(true); }
+  function mount(){
+    root = document.getElementById('soundModule');
+    if (!root) return;
+    renderShell();
+    bindActions();
+    loadAll(true);
+  }
   window.addEventListener('cgn:module-show', (event) => { if (event.detail?.module === 'sound_system') loadAll(true); });
   document.addEventListener('DOMContentLoaded', mount);
   if (document.readyState !== 'loading') mount();
