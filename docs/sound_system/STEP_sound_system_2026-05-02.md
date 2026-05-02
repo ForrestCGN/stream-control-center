@@ -2,11 +2,12 @@
 
 ## Status
 
-Dieser Stand beschreibt den aktuellen Sound-System-Zwischenstand auf Branch `dev`.
+Dieser Stand beschreibt den aktuellen Sound-System-Zwischenstand auf Branch `dev` nach getestetem Core-Policy-Patch.
 
 Neue Commits dieses Steps:
 
 ```txt
+d625421 Apply sound core priority policy
 73ccf85 Align sound output helper defaults
 93cfa32 Show sound queue policy and alert sync state in dashboard
 8639360 Prepare sound priority and alert sync policy config
@@ -44,7 +45,7 @@ tools/audio-device-helper/build-helper.ps1
 docs/sound_system/STEP_sound_system_2026-05-02.md
 ```
 
-## Weiterhin gültiger Funktionsstand
+## Aktueller getesteter Funktionsstand
 
 - AudioDeviceHelper funktioniert.
 - Direkte Ausgabe auf Windows-Audiogeräte funktioniert.
@@ -56,12 +57,13 @@ docs/sound_system/STEP_sound_system_2026-05-02.md
 - Queue funktioniert.
 - Parallel-Sounds sind vorbereitet und grundsätzlich getestet.
 - Sound-Dashboard ist vorhanden und wurde vereinfacht.
+- Core-Policy für `categoryDefaults`, `priorities`, `meta`, `visual` und `interruptRules` ist aktiv.
 
 ## Neuer Stand dieses Steps
 
 ### 1. Alert-Sync-Policy in Config vorbereitet
 
-`config/sound_system.json` wurde auf Version `0.1.8` angehoben.
+`config/sound_system.json` steht auf Version `0.1.8`.
 
 Neu bzw. erweitert:
 
@@ -113,7 +115,7 @@ parallelAllowed=false
 
 ### 2. Dashboard erweitert
 
-`htdocs/dashboard/modules/sound.js` zeigt nun zusätzlich:
+`htdocs/dashboard/modules/sound.js` zeigt zusätzlich:
 
 ```txt
 - Parallel-Anzahl im Status
@@ -124,7 +126,7 @@ parallelAllowed=false
 
 ### 3. Output-Helper-Defaults angeglichen
 
-`backend/modules/sound_output_config.js` nutzt jetzt denselben Helper-Pfad wie die echte Config:
+`backend/modules/sound_output_config.js` nutzt denselben Helper-Pfad wie die echte Config:
 
 ```txt
 tools/audio-device-helper/dist/AudioDeviceHelper.exe
@@ -138,36 +140,70 @@ timeoutMs=30000
 playbackMode=auto
 ```
 
-## Wichtige offene Punkte
+### 4. Core-Policy-Patch aktiv
 
-### 1. Sound-Core-Policy-Patch fehlt noch
+`backend/modules/sound_system.js` wurde mit Commit `d625421` erweitert.
 
-Die Config und das Dashboard sind vorbereitet. Der nächste technische Step ist der kontrollierte Patch in:
-
-```txt
-backend/modules/sound_system.js
-```
-
-Geplant:
+Aktiv:
 
 ```txt
-- categoryDefaults beim normalizePlayRequest berücksichtigen
-- priorities aus config.priorities als Fallback nutzen
-- queue.sortByPriority beachten
-- queue.interruptRules statt hartem override/canInterrupt-Ausdruck nutzen
-- meta und visual an Sound-Items erlauben
-- publicItem() gibt meta/visual aus
-- startItem() sendet eindeutige Start-Events für spätere Alert-Sync-Anbindung
+- categoryDefaults werden beim normalizePlayRequest berücksichtigt
+- priorities aus config.priorities werden als Fallback genutzt
+- queue.sortByPriority wird beachtet
+- queue.interruptRules ersetzt die harte alte Interrupt-Logik
+- meta und visual werden an Sound-Items erlaubt
+- publicItem() gibt meta/visual/lifecycle aus
+- startItem() sendet item_started WebSocket-Event für spätere Alert-Sync-Anbindung
+- Drop-Regeln bei Busy / voller Queue sind vorbereitet
+- Cooldown/Dedupe Runtime-State ist vorbereitet
 ```
 
-Dieser Core-Patch wurde in diesem Step bewusst noch nicht als riskanter Komplett-Rewrite gemacht, damit keine bestehende Funktionalität beschädigt wird.
+Getesteter Alert-Simulations-Request:
 
-### 2. Alert-System ist noch nicht angebunden
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&category=alert&source=alert_system&meta={%22alertId%22:%22test-alert-1%22,%22provider%22:%22test%22}&visual={%22module%22:%22alert_system%22,%22eventId%22:%22test-alert-1%22}" | ConvertTo-Json -Depth 20
+```
+
+Bestätigtes Ergebnis:
+
+```txt
+category=alert
+priority=80
+canInterrupt=false
+canBeInterrupted=false
+meta.alertId=test-alert-1
+meta.provider=test
+visual.module=alert_system
+visual.eventId=test-alert-1
+durationSource=ffprobe
+outputTarget=device
+```
+
+## Wichtiges Betriebsproblem / Lösung
+
+Im aktiven Modulordner darf keine `.js`-Backup-Datei liegen.
+
+Problem war:
+
+```txt
+D:\Streaming\stramAssets\backend\modules\sound_system.backup_before_core_policy.js
+```
+
+Da `backend/server.js` alle `.js` Dateien aus `backend/modules` lädt, wurde die Backup-Datei als echtes Modul geladen und registrierte alte `/api/sound/...` Routen.
+
+Regel ab jetzt:
+
+```txt
+Backups niemals mit .js-Endung direkt in backend/modules liegen lassen.
+Stattdessen .bak verwenden oder außerhalb von backend/modules ablegen.
+```
+
+## Alert-System ist noch nicht angebunden
 
 Noch nicht geändert:
 
 ```txt
-backend/modules/alerts*
+backend/modules/alert_system.js
 config/alerts*
 htdocs/dashboard/modules/alerts*
 ```
@@ -218,10 +254,10 @@ Parallel-Test:
 Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&parallelAllowed=true&category=system" | ConvertTo-Json -Depth 20
 ```
 
-Vorbereiteter Alert-Queue-Test ohne echte Alert-Anbindung:
+Alert-Core-Test ohne echte Alert-Anbindung:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&category=alert&priority=80&source=alert_system&canInterrupt=false&canBeInterrupted=false&queueIfBusy=true" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=opa01.mp3&outputTarget=device&volume=100&category=alert&source=alert_system&meta={%22alertId%22:%22test-alert-1%22,%22provider%22:%22test%22}&visual={%22module%22:%22alert_system%22,%22eventId%22:%22test-alert-1%22}" | ConvertTo-Json -Depth 20
 ```
 
 Reset:
@@ -232,13 +268,18 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/sound/reset" -Method POST
 
 ## Nächster empfohlener Step
 
-1. Lokal `git pull` auf Branch `dev`.
-2. Backend neu starten.
-3. `/api/sound/status` und Dashboard prüfen.
-4. Danach Core-Policy-Patch in `backend/modules/sound_system.js`.
-
-Backup-Branch aktuell weiter behalten:
+1. Backup-Branch weiter behalten:
 
 ```txt
 origin/backup/dev-before-sound-duration-parallel-policy
 ```
+
+2. Als nächstes Alert-System-Anbindung planen:
+
+```txt
+- Alert-Regel findet Sound-Daten
+- Alert-System übergibt Sound-Item mit category=alert, meta und visual ans Sound-System
+- Alert-System zeigt den visuellen Alert erst auf item_started / passendes alertId/eventId
+```
+
+3. Danach Dashboard-Regelbearbeitung für Priorität/Parallel/Interrupt vorbereiten.
