@@ -25,27 +25,26 @@ Gezielte Geräteauswahl folgt in STEP 3C.
 
 ## Build
 
-Im Repo-Ordner:
+Einfachster Weg:
+
+```powershell
+cd tools\audio-device-helper
+powershell -ExecutionPolicy Bypass -File .\build-helper.ps1
+```
+
+Manuell:
 
 ```powershell
 cd tools\audio-device-helper
 dotnet restore
-dotnet build -c Release
-```
-
-Optional publish:
-
-```powershell
 dotnet publish -c Release -r win-x64 --self-contained false -o dist
 ```
 
 Erwarteter Pfad für das Backend laut `config/sound_system.json`:
 
 ```txt
-tools/audio-device-helper/AudioDeviceHelper.exe
+tools/audio-device-helper/dist/AudioDeviceHelper.exe
 ```
-
-Wenn per `dotnet publish` nach `dist` gebaut wird, muss entweder die Config angepasst oder die EXE nach `tools/audio-device-helper/AudioDeviceHelper.exe` kopiert werden.
 
 ## Test
 
