@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/dashboard/modules/alerts.css" />
   <link rel="stylesheet" href="/dashboard/modules/obs.css" />
   <link rel="stylesheet" href="/dashboard/modules/adminconfigs.css" />
+  <link rel="stylesheet" href="/dashboard/modules/sound.css" />
 </head>
 <body>
   <div class="galaxy"></div>
@@ -49,7 +50,7 @@
         <div class="nav-group" data-nav-group="system">
           <button class="nav-group-head" type="button" data-nav-toggle="system"><span class="nav-icon">🧩</span><span class="nav-label">System</span><span class="nav-chevron">▾</span></button>
           <div class="nav-group-items">
-            <button class="nav-item" data-module="sound_system" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🔊</span><span class="nav-label">Sound-System</span></button>
+            <button class="nav-item" data-module="sound_system" title="Sound-System"><span class="nav-icon">🔊</span><span class="nav-label">Sound-System</span></button>
             <button class="nav-item" data-module="tts" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🗣️</span><span class="nav-label">TTS</span></button>
             <button class="nav-item" data-module="bot_systems" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🤖</span><span class="nav-label">Bot-Systeme</span></button>
             <button class="nav-item" data-module="message_rotator" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🔁</span><span class="nav-label">Message-Rotator</span></button>
@@ -105,6 +106,7 @@
       <section id="alertsModule" class="dashboard-module alerts-admin" data-module-panel="alerts" hidden></section>
       <section id="obsModule" class="dashboard-module obs-admin" data-module-panel="obs" hidden></section>
       <section id="adminconfigsModule" class="dashboard-module adminconfigs-admin" data-module-panel="adminconfigs" hidden></section>
+      <section id="soundModule" class="dashboard-module sound-admin" data-module-panel="sound_system" hidden></section>
     </main>
   </div>
   <script src="/dashboard/app.js"></script>
@@ -113,5 +115,6 @@
   <script src="/dashboard/modules/alerts.js"></script>
   <script src="/dashboard/modules/obs.js"></script>
   <script src="/dashboard/modules/adminconfigs.js"></script>
+  <script src="/dashboard/modules/sound.js"></script>
 </body>
 </html>
