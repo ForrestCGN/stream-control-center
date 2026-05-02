@@ -23,7 +23,7 @@ const DEFAULT_OUTPUT = {
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  version: "0.1.7",
+  version: "0.1.9",
   routes: { prefix: "/api/sound" },
   websocket: { enabled: true, op: "sound_system" },
   overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
@@ -33,10 +33,16 @@ const DEFAULT_CONFIG = {
     maxLength: 50,
     dropWhenFull: true,
     defaultPriority: 50,
+    sortByPriority: true,
     allowParallel: true,
     maxParallel: 3,
     parallelCategories: ["system", "admin", "ui", "test"],
-    parallelSoundIds: []
+    parallelSoundIds: [],
+    alertSync: { enabled: true },
+    interruptRules: { enabled: true, minPriority: 100, requireHigherPriority: true, allowForce: true, allowOverride: false },
+    dropRules: { enabled: true, dropIfQueueFullBelowPriority: 40, dropIfBusyBelowPriority: 20 },
+    cooldowns: { enabled: true, defaultMs: 0, sameSoundMs: 3000, sameCategoryMs: 0, sameUserMs: 0 },
+    dedupe: { enabled: true, sameSoundWindowMs: 3000, sameUserSoundWindowMs: 5000 }
   },
   targets: {
     stream: { enabled: true, defaultVolume: 85 },
@@ -55,6 +61,29 @@ const DEFAULT_CONFIG = {
     dropIfBusy: false,
     parallelAllowed: false,
     cooldownMs: 0
+  },
+  priorities: {
+    admin: 100,
+    system: 100,
+    alert_critical: 90,
+    alert: 80,
+    channel_reward: 70,
+    vip: 60,
+    crew: 60,
+    special: 60,
+    tts: 50,
+    fun: 50,
+    background: 20,
+    decor: 20
+  },
+  categoryDefaults: {
+    alert: { priority: 80, canInterrupt: false, canBeInterrupted: false, queueIfBusy: true, dropIfBusy: false, parallelAllowed: false },
+    alert_critical: { priority: 90, canInterrupt: false, canBeInterrupted: false, queueIfBusy: true, dropIfBusy: false, parallelAllowed: false },
+    admin: { priority: 100, canInterrupt: true, canBeInterrupted: false, queueIfBusy: false, dropIfBusy: false, parallelAllowed: true },
+    system: { priority: 100, canInterrupt: true, canBeInterrupted: false, queueIfBusy: false, dropIfBusy: false, parallelAllowed: true },
+    vip: { priority: 60, canInterrupt: false, canBeInterrupted: true, queueIfBusy: true, dropIfBusy: false, parallelAllowed: false },
+    fun: { priority: 50, canInterrupt: false, canBeInterrupted: true, queueIfBusy: true, dropIfBusy: false, parallelAllowed: false },
+    background: { priority: 20, canInterrupt: false, canBeInterrupted: true, queueIfBusy: true, dropIfBusy: true, parallelAllowed: false }
   },
   soundsBaseDir: "htdocs/assets/sounds",
   allowedExtensions: [".mp3", ".wav", ".ogg", ".webm", ".m4a"],
@@ -104,6 +133,7 @@ module.exports.init = function init(ctx) {
   let config = DEFAULT_CONFIG;
   let messages = DEFAULT_MESSAGES;
   let finishTimer = null;
+  const recent = { sounds: new Map(), categories: new Map(), users: new Map(), userSounds: new Map() };
 
   function loadAll() {
     const loadedConfig = cfg.loadConfig(CONFIG_FILE, DEFAULT_CONFIG, { createIfMissing: true, mergeDefaults: true });
@@ -112,6 +142,8 @@ module.exports.init = function init(ctx) {
     config = loadedConfig.config || DEFAULT_CONFIG;
     if (!config.output) config.output = DEFAULT_OUTPUT;
     if (!config.queue) config.queue = DEFAULT_CONFIG.queue;
+    if (!config.priorities) config.priorities = DEFAULT_CONFIG.priorities;
+    if (!config.categoryDefaults) config.categoryDefaults = DEFAULT_CONFIG.categoryDefaults;
     messages = loadedMessages.config || DEFAULT_MESSAGES;
 
     state.version = config.version || DEFAULT_CONFIG.version;
@@ -161,6 +193,8 @@ module.exports.init = function init(ctx) {
         output: config.output || {},
         queue: config.queue || {},
         targets: config.targets || {},
+        priorities: config.priorities || {},
+        categoryDefaults: config.categoryDefaults || {},
         defaults: config.defaults || {},
         soundsBaseDir: config.soundsBaseDir || "",
         allowedExtensions: config.allowedExtensions || []
@@ -190,6 +224,9 @@ module.exports.init = function init(ctx) {
       frequency: item.frequency,
       source: item.source,
       requestedBy: item.requestedBy,
+      meta: item.meta || {},
+      visual: item.visual || {},
+      lifecycle: item.lifecycle || {},
       queuedAt: item.queuedAt,
       startedAt: item.startedAt || 0,
       endsAt: item.endsAt || 0,
@@ -208,6 +245,57 @@ module.exports.init = function init(ctx) {
   function msg(key) { return messages[key] || DEFAULT_MESSAGES[key] || key; }
   function makeRequestId() { return `snd_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
   function normalizeId(value) { return String(value || "").trim().toLowerCase().replace(/[^a-z0-9_.:-]/g, "_"); }
+  function hasOwn(obj, key) { return !!obj && Object.prototype.hasOwnProperty.call(obj, key); }
+  function isPlainObject(value) { return !!value && typeof value === "object" && !Array.isArray(value); }
+  function objectValue(value) {
+    if (isPlainObject(value)) return value;
+    if (typeof value !== "string" || !value.trim()) return {};
+    try {
+      const parsed = JSON.parse(value);
+      return isPlainObject(parsed) ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+  function boolFromBase(base, key, fallback) { return core.boolParam(hasOwn(base, key) ? base[key] : fallback, fallback); }
+  function numberFromBase(base, key, fallback) {
+    const n = Number(hasOwn(base, key) ? base[key] : fallback);
+    return Number.isFinite(n) ? n : fallback;
+  }
+  function priorityForCategory(category, fallback) {
+    const priorities = config.priorities || {};
+    const key = normalizeId(category);
+    const direct = Number(priorities[key]);
+    if (Number.isFinite(direct)) return direct;
+    return fallback;
+  }
+  function resolvePriority(base, preset, body, category) {
+    if (hasOwn(body, "priority")) {
+      const n = Number(body.priority);
+      if (Number.isFinite(n)) return n;
+    }
+    if (hasOwn(preset, "priority")) {
+      const n = Number(preset.priority);
+      if (Number.isFinite(n)) return n;
+    }
+    const categoryDefault = (config.categoryDefaults && config.categoryDefaults[normalizeId(category)]) || {};
+    if (hasOwn(categoryDefault, "priority")) {
+      const n = Number(categoryDefault.priority);
+      if (Number.isFinite(n)) return n;
+    }
+    const byCategory = priorityForCategory(category, NaN);
+    if (Number.isFinite(byCategory)) return byCategory;
+    if (hasOwn(config.defaults || {}, "priority")) {
+      const n = Number((config.defaults || {}).priority);
+      if (Number.isFinite(n)) return n;
+    }
+    return Number(config.queue?.defaultPriority || 50);
+  }
+  function applyCategoryDefaults(defaults, preset, body) {
+    const rawCategory = String(body.category || preset.category || defaults.category || "fun").trim().toLowerCase();
+    const categoryDefaults = (config.categoryDefaults && config.categoryDefaults[normalizeId(rawCategory)]) || {};
+    return { ...defaults, ...categoryDefaults, ...preset, ...body, category: rawCategory };
+  }
 
   function getSoundsBaseDir() {
     const raw = String(config.soundsBaseDir || "htdocs/assets/sounds").trim();
@@ -361,7 +449,7 @@ module.exports.init = function init(ctx) {
     const preset = soundId ? findSound(soundId) : null;
     if (soundId && !preset) throw new Error(msg("soundNotFound"));
 
-    const base = { ...(config.defaults || {}), ...(preset || {}), ...body };
+    const base = applyCategoryDefaults(config.defaults || {}, preset || {}, body);
     const rawType = String(base.type || "file").trim().toLowerCase();
     const generatedBeep = rawType === "generated_beep";
     const target = normalizeTarget(base.target);
@@ -407,7 +495,7 @@ module.exports.init = function init(ctx) {
       category: String(base.category || "fun").trim().toLowerCase(),
       target,
       outputTarget,
-      priority: Number.isFinite(Number(base.priority)) ? Number(base.priority) : Number(config.queue?.defaultPriority || 50),
+      priority: resolvePriority(base, preset || {}, body, base.category || "fun"),
       volume,
       file,
       fullPath,
@@ -422,21 +510,125 @@ module.exports.init = function init(ctx) {
       gapAfterMs: Number(config.overlay?.gapBetweenSoundsMs || 750),
       source: String(base.source || "manual").trim(),
       requestedBy: String(base.requestedBy || base.user || "").trim(),
-      override: core.boolParam(base.override, false),
-      force: core.boolParam(base.force, false),
-      clearQueue: core.boolParam(base.clearQueue, false),
-      canInterrupt: core.boolParam(base.canInterrupt, false),
-      canBeInterrupted: core.boolParam(base.canBeInterrupted, true),
-      queueIfBusy: core.boolParam(base.queueIfBusy, true),
-      dropIfBusy: core.boolParam(base.dropIfBusy, false),
-      parallelAllowed: core.boolParam(base.parallelAllowed, false),
+      meta: objectValue(base.meta),
+      visual: objectValue(base.visual),
+      lifecycle: { startSignalEmitted: false },
+      override: boolFromBase(base, "override", false),
+      force: boolFromBase(base, "force", false),
+      clearQueue: boolFromBase(base, "clearQueue", false),
+      canInterrupt: boolFromBase(base, "canInterrupt", false),
+      canBeInterrupted: boolFromBase(base, "canBeInterrupted", true),
+      queueIfBusy: boolFromBase(base, "queueIfBusy", true),
+      dropIfBusy: boolFromBase(base, "dropIfBusy", false),
+      parallelAllowed: boolFromBase(base, "parallelAllowed", false),
+      cooldownMs: numberFromBase(base, "cooldownMs", 0),
       queuedAt: Date.now(),
       startedAt: 0,
       endsAt: 0
     };
   }
 
-  function sortQueue() { state.queue.sort((a, b) => b.priority !== a.priority ? b.priority - a.priority : a.queuedAt - b.queuedAt); }
+  function sortQueue() {
+    if (config.queue?.sortByPriority === false) {
+      state.queue.sort((a, b) => a.queuedAt - b.queuedAt);
+      return;
+    }
+    state.queue.sort((a, b) => b.priority !== a.priority ? b.priority - a.priority : a.queuedAt - b.queuedAt);
+  }
+
+  function emitItemEvent(reason, item, extra = {}) {
+    if (!item || !config.websocket || config.websocket.enabled === false || typeof broadcastWS !== "function") return;
+    broadcastWS({
+      op: config.websocket.op || MODULE_NAME,
+      reason,
+      item: publicItem(item),
+      data: publicState(),
+      ...extra
+    });
+  }
+
+  function canInterruptCurrent(item, current) {
+    if (!item || !current) return false;
+    const rules = config.queue?.interruptRules || {};
+    if (item.force && rules.allowForce !== false) return true;
+    if (rules.enabled === false) return false;
+    if (item.override && rules.allowOverride !== false) {
+      if (current.canBeInterrupted === false) return false;
+      if (rules.requireHigherPriority !== false && item.priority <= current.priority) return false;
+      return true;
+    }
+    if (!item.canInterrupt || current.canBeInterrupted === false) return false;
+    const minPriority = Number.isFinite(Number(rules.minPriority)) ? Number(rules.minPriority) : 0;
+    if (item.priority < minPriority) return false;
+    if (rules.requireHigherPriority !== false && item.priority <= current.priority) return false;
+    return true;
+  }
+
+  function shouldDropBusy(item) {
+    if (!item) return false;
+    if (item.dropIfBusy || item.queueIfBusy === false) return true;
+    const rules = config.queue?.dropRules || {};
+    if (rules.enabled === false) return false;
+    const threshold = Number(rules.dropIfBusyBelowPriority);
+    return Number.isFinite(threshold) && item.priority <= threshold;
+  }
+
+  function shouldDropQueueFull(item) {
+    if (config.queue?.dropWhenFull === false) return false;
+    const rules = config.queue?.dropRules || {};
+    if (rules.enabled === false) return true;
+    const threshold = Number(rules.dropIfQueueFullBelowPriority);
+    if (!Number.isFinite(threshold)) return true;
+    return item.priority <= threshold;
+  }
+
+  function cooldownKeyUser(item) {
+    return item.requestedBy ? normalizeId(item.requestedBy) : "";
+  }
+
+  function checkCooldown(item) {
+    const cfgCooldown = config.queue?.cooldowns || {};
+    const cfgDedupe = config.queue?.dedupe || {};
+    if (cfgCooldown.enabled === false && cfgDedupe.enabled === false && !item.cooldownMs) return null;
+    const now = Date.now();
+    const soundKey = normalizeId(item.soundId || item.file);
+    const categoryKey = normalizeId(item.category);
+    const userKey = cooldownKeyUser(item);
+    const sameSoundMs = Math.max(Number(item.cooldownMs || 0), Number(cfgCooldown.sameSoundMs || 0), Number(cfgDedupe.sameSoundWindowMs || 0));
+    if (sameSoundMs > 0 && soundKey) {
+      const last = recent.sounds.get(soundKey) || 0;
+      if (now - last < sameSoundMs) return { dropped: true, reason: "cooldown_same_sound", retryAfterMs: sameSoundMs - (now - last) };
+    }
+    const sameCategoryMs = Number(cfgCooldown.sameCategoryMs || 0);
+    if (sameCategoryMs > 0 && categoryKey) {
+      const last = recent.categories.get(categoryKey) || 0;
+      if (now - last < sameCategoryMs) return { dropped: true, reason: "cooldown_same_category", retryAfterMs: sameCategoryMs - (now - last) };
+    }
+    const sameUserMs = Number(cfgCooldown.sameUserMs || 0);
+    if (sameUserMs > 0 && userKey) {
+      const last = recent.users.get(userKey) || 0;
+      if (now - last < sameUserMs) return { dropped: true, reason: "cooldown_same_user", retryAfterMs: sameUserMs - (now - last) };
+    }
+    const sameUserSoundMs = Number(cfgDedupe.sameUserSoundWindowMs || 0);
+    if (sameUserSoundMs > 0 && userKey && soundKey) {
+      const key = `${userKey}:${soundKey}`;
+      const last = recent.userSounds.get(key) || 0;
+      if (now - last < sameUserSoundMs) return { dropped: true, reason: "dedupe_same_user_sound", retryAfterMs: sameUserSoundMs - (now - last) };
+    }
+    return null;
+  }
+
+  function rememberCooldown(item) {
+    if (!item) return;
+    const now = Date.now();
+    const soundKey = normalizeId(item.soundId || item.file);
+    const categoryKey = normalizeId(item.category);
+    const userKey = cooldownKeyUser(item);
+    if (soundKey) recent.sounds.set(soundKey, now);
+    if (categoryKey) recent.categories.set(categoryKey, now);
+    if (userKey) recent.users.set(userKey, now);
+    if (userKey && soundKey) recent.userSounds.set(`${userKey}:${soundKey}`, now);
+  }
   function clearFinishTimer() { if (finishTimer) clearTimeout(finishTimer); finishTimer = null; }
 
   function playDeviceOutput(item) {
@@ -487,6 +679,7 @@ module.exports.init = function init(ctx) {
     item.startedAt = Date.now();
     item.endsAt = item.startedAt + item.durationMs + item.outroMs;
     state.stats.started += 1;
+    rememberCooldown(item);
     playDeviceOutput(item);
 
     if (options.parallel) {
@@ -494,6 +687,7 @@ module.exports.init = function init(ctx) {
       state.stats.parallelStarted += 1;
       setTimeout(() => finishParallel(item.requestId, "parallel_auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
       emit(reason || "parallel_started");
+      emitItemEvent("item_started", item, { parallel: true });
       if (shouldUseOverlay(item)) emit("play_stream");
       return;
     }
@@ -501,6 +695,7 @@ module.exports.init = function init(ctx) {
     clearFinishTimer();
     state.current = item;
     emit(reason || "started");
+    emitItemEvent("item_started", item, { parallel: false });
     if (shouldUseOverlay(item)) emit("play_stream");
     finishTimer = setTimeout(() => finishCurrent("auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
   }
@@ -542,6 +737,8 @@ module.exports.init = function init(ctx) {
 
   function enqueueOrStart(item) {
     if (!state.enabled) throw new Error(msg("systemDisabled"));
+    const cooldown = checkCooldown(item);
+    if (cooldown) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: cooldown.reason, retryAfterMs: cooldown.retryAfterMs };
     if (item.clearQueue) state.queue = [];
 
     if (state.current && parallelAllowedByPolicy(item)) {
@@ -550,8 +747,7 @@ module.exports.init = function init(ctx) {
     }
 
     if (state.current) {
-      const mayInterrupt = item.force || item.override || (item.canInterrupt && state.current.canBeInterrupted && item.priority > state.current.priority);
-      if (mayInterrupt) {
+      if (canInterruptCurrent(item, state.current)) {
         const old = state.current;
         state.current = null;
         clearFinishTimer();
@@ -559,10 +755,10 @@ module.exports.init = function init(ctx) {
         startItem(item, "interrupted_started");
         return { started: true, queued: false, queuePosition: 0, item };
       }
-      if (item.dropIfBusy || item.queueIfBusy === false) return { started: false, queued: false, dropped: true, queuePosition: -1, item };
+      if (shouldDropBusy(item)) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: "busy_drop_policy" };
       const maxLength = Number(config.queue?.maxLength || 50);
       if (state.queue.length >= maxLength) {
-        if (config.queue?.dropWhenFull !== false) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: "queue_full" };
+        if (shouldDropQueueFull(item)) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: "queue_full" };
         throw new Error(msg("queueFull"));
       }
       state.queue.push(item);
@@ -617,7 +813,7 @@ module.exports.init = function init(ctx) {
     const result = enqueueOrStart(item);
     return res.json(core.ok({
       message: result.started ? msg("soundStarted") : (result.queued ? msg("soundQueued") : "Sound wurde verworfen."),
-      result: { started: result.started, queued: result.queued, dropped: !!result.dropped, parallel: !!result.parallel, queuePosition: result.queuePosition, reason: result.reason || "" },
+      result: { started: result.started, queued: result.queued, dropped: !!result.dropped, parallel: !!result.parallel, queuePosition: result.queuePosition, reason: result.reason || "", retryAfterMs: result.retryAfterMs || 0 },
       item: publicItem(item),
       status: publicState()
     }));
