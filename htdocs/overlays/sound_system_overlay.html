@@ -5,34 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ForrestCGN Sound-System Overlay</title>
   <style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: transparent;
-      font-family: Arial, sans-serif;
-    }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: Arial, sans-serif; }
     #status {
-      position: fixed;
-      left: 16px;
-      bottom: 16px;
-      padding: 8px 12px;
-      border: 1px solid rgba(180, 90, 255, .45);
-      border-radius: 999px;
-      color: rgba(255,255,255,.7);
-      background: rgba(10, 8, 20, .45);
-      box-shadow: 0 0 24px rgba(140, 80, 255, .18);
-      font-size: 12px;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity .25s ease, transform .25s ease;
-      pointer-events: none;
+      position: fixed; left: 16px; bottom: 16px; padding: 8px 12px;
+      border: 1px solid rgba(180, 90, 255, .45); border-radius: 999px;
+      color: rgba(255,255,255,.7); background: rgba(10, 8, 20, .45);
+      box-shadow: 0 0 24px rgba(140, 80, 255, .18); font-size: 12px;
+      opacity: 0; transform: translateY(8px); transition: opacity .25s ease, transform .25s ease; pointer-events: none;
     }
-    body[data-debug="1"] #status {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    body[data-debug="1"] #status { opacity: 1; transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -52,27 +33,28 @@
       let currentRequestId = '';
       let ws = null;
       let reconnectTimer = null;
+      let audioContext = null;
+      let beepNodes = [];
 
-      function setStatus(text){
-        if (status) status.textContent = text || 'Sound-System Overlay';
-      }
+      function setStatus(text){ if (status) status.textContent = text || 'Sound-System Overlay'; }
 
       async function post(path, payload){
         try {
-          await fetch(API + path, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload || {})
-          });
+          await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload || {}) });
         } catch (_) {}
       }
 
+      function stopBeep(){
+        for (const node of beepNodes) {
+          try { node.stop(0); } catch (_) {}
+          try { node.disconnect(); } catch (_) {}
+        }
+        beepNodes = [];
+      }
+
       function stopAudio(){
-        try {
-          player.pause();
-          player.removeAttribute('src');
-          player.load();
-        } catch (_) {}
+        stopBeep();
+        try { player.pause(); player.removeAttribute('src'); player.load(); } catch (_) {}
         currentRequestId = '';
       }
 
@@ -82,7 +64,59 @@
         return Math.max(0, Math.min(1, n > 1 ? n / 100 : n));
       }
 
-      async function playSound(item){
+      function getAudioContext(){
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return null;
+        if (!audioContext) audioContext = new AudioCtx();
+        return audioContext;
+      }
+
+      async function playGeneratedBeep(item){
+        stopAudio();
+        currentRequestId = item.requestId;
+        setStatus('Spiele: ' + (item.label || item.soundId || 'Generated Beep'));
+
+        const ctx = getAudioContext();
+        if (!ctx) {
+          await post('/client/error', { requestId: currentRequestId, error: 'audio_context_unavailable' });
+          return;
+        }
+
+        try {
+          if (ctx.state === 'suspended') await ctx.resume();
+          const durationSeconds = Math.max(0.05, Number(item.durationMs || 350) / 1000);
+          const frequency = Math.max(80, Math.min(2000, Number(item.frequency || 880)));
+          const volume = normalizeVolume(item.volume) * 0.35;
+          const now = ctx.currentTime;
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(frequency, now);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + durationSeconds);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + durationSeconds + 0.03);
+          beepNodes = [osc, gain];
+
+          await post('/client/audio-started', { requestId: currentRequestId });
+          setTimeout(async () => {
+            const requestId = currentRequestId;
+            currentRequestId = '';
+            stopBeep();
+            setStatus('Sound beendet');
+            await post('/client/audio-ended', { requestId });
+          }, Math.round(durationSeconds * 1000) + 80);
+        } catch (err) {
+          await post('/client/error', { requestId: currentRequestId, error: err && err.message ? err.message : String(err) });
+          stopAudio();
+        }
+      }
+
+      async function playFileSound(item){
         if (!item || !item.audioUrl || !item.requestId) return;
         stopAudio();
         currentRequestId = item.requestId;
@@ -97,6 +131,12 @@
           await post('/client/error', { requestId: currentRequestId, error: err && err.message ? err.message : String(err) });
           stopAudio();
         }
+      }
+
+      async function playSound(item){
+        if (!item || !item.requestId) return;
+        if (String(item.type || '').toLowerCase() === 'generated_beep') return playGeneratedBeep(item);
+        return playFileSound(item);
       }
 
       player.addEventListener('ended', async () => {
@@ -115,7 +155,6 @@
       function handleMessage(message){
         const payload = message && (message.data || message);
         if (!payload) return;
-
         const op = payload.op || payload.type || '';
         const reason = payload.reason || '';
         const data = payload.data || payload.payload || {};
@@ -138,23 +177,10 @@
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         ws = new WebSocket(protocol + '//' + location.host);
 
-        ws.addEventListener('open', () => {
-          setStatus('Verbunden');
-          post('/client/ready', { overlay: 'sound_system_overlay' });
-        });
-
-        ws.addEventListener('message', (event) => {
-          try { handleMessage(JSON.parse(event.data)); } catch (_) {}
-        });
-
-        ws.addEventListener('close', () => {
-          setStatus('Getrennt - reconnect');
-          reconnectTimer = setTimeout(connect, 1500);
-        });
-
-        ws.addEventListener('error', () => {
-          try { ws.close(); } catch (_) {}
-        });
+        ws.addEventListener('open', () => { setStatus('Verbunden'); post('/client/ready', { overlay: 'sound_system_overlay' }); });
+        ws.addEventListener('message', (event) => { try { handleMessage(JSON.parse(event.data)); } catch (_) {} });
+        ws.addEventListener('close', () => { setStatus('Getrennt - reconnect'); reconnectTimer = setTimeout(connect, 1500); });
+        ws.addEventListener('error', () => { try { ws.close(); } catch (_) {} });
       }
 
       connect();
