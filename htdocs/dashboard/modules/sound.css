@@ -512,3 +512,50 @@ html[data-theme=dark] .sound-tab.active {
     grid-column:span 12;
   }
 }
+
+/* Sound Settings UI Part 2A */
+.sound-settings-title {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 16px;
+  border: 1px solid rgba(56,189,248,.18);
+  background: rgba(56,189,248,.08);
+  color: #eafaff;
+  font-weight: 950;
+  letter-spacing: .02em;
+}
+
+.sound-category-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) repeat(5, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+}
+
+html[data-theme=dark] .sound-settings-title {
+  background: #262626;
+  border-color: #3a3a3a;
+  color: #f2f2f2;
+}
+
+html[data-theme=dark] .sound-category-row {
+  background: #202020;
+  border-color: #343434;
+}
+
+@media(max-width: 1400px) {
+  .sound-category-row {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}
+
+@media(max-width: 760px) {
+  .sound-category-row {
+    grid-template-columns: 1fr;
+  }
+}

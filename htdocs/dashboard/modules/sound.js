@@ -203,11 +203,19 @@
     const deviceTarget = targets.device || {};
     const bothTarget = targets.both || {};
     const alertSync = queue.alertSync || {};
+    const interruptRules = queue.interruptRules || {};
+    const dropRules = queue.dropRules || {};
+    const cooldowns = queue.cooldowns || {};
+    const dedupe = queue.dedupe || {};
+    const priorities = cfg.priorities || {};
+    const categoryDefaults = cfg.categoryDefaults || {};
+    const cat = key => categoryDefaults[key] || {};
     el.innerHTML = `
       <h3>Einstellungen</h3>
-      <div class="sound-note">Teil 1: Diese Werte werden Ã¼ber <code>/api/sound/settings</code> in SQLite gespeichert und beim Neustart wieder geladen.</div>
+      <div class="sound-note">Diese Werte werden Ã¼ber <code>/api/sound/settings</code> in SQLite gespeichert und beim Neustart wieder geladen.</div>
 
       <div class="sound-settings-grid">
+        <div class="sound-settings-title">Ausgabe & Overlay</div>
         <label class="sound-field">
           <span>Overlay-LautstÃ¤rke</span>
           <input id="soundSettingsOverlayVolume" type="number" min="0" max="100" value="${esc(numValue(overlayTarget.defaultVolume, 85))}">
@@ -228,13 +236,15 @@
           <span>Abstand zwischen Sounds ms</span>
           <input id="soundSettingsGapMs" type="number" min="0" max="10000" value="${esc(numValue(overlay.gapBetweenSoundsMs, 750))}">
         </label>
-        <label class="sound-field">
-          <span>Max Queue</span>
-          <input id="soundSettingsQueueMax" type="number" min="1" max="500" value="${esc(numValue(queue.maxLength, 50))}">
-        </label>
+
+        <div class="sound-settings-title">Queue & Alert-Sync</div>
         <label class="sound-check">
           <input id="soundSettingsQueueEnabled" type="checkbox" ${checked(queue.enabled)}>
           <span>Queue aktiv</span>
+        </label>
+        <label class="sound-field">
+          <span>Max Queue</span>
+          <input id="soundSettingsQueueMax" type="number" min="1" max="500" value="${esc(numValue(queue.maxLength, 50))}">
         </label>
         <label class="sound-check">
           <input id="soundSettingsDropWhenFull" type="checkbox" ${checked(queue.dropWhenFull)}>
@@ -264,16 +274,138 @@
           <span>Max Visual Lead ms</span>
           <input id="soundSettingsMaxVisualLeadMs" type="number" min="0" max="1000" value="${esc(numValue(alertSync.maxVisualLeadMs, 500))}">
         </label>
+
+        <div class="sound-settings-title">Interrupt-Regeln</div>
+        <label class="sound-check">
+          <input id="soundSettingsInterruptEnabled" type="checkbox" ${checked(interruptRules.enabled)}>
+          <span>Interrupt-Regeln aktiv</span>
+        </label>
+        <label class="sound-field">
+          <span>Interrupt ab PrioritÃ¤t</span>
+          <input id="soundSettingsInterruptMinPriority" type="number" min="0" max="200" value="${esc(numValue(interruptRules.minPriority, 100))}">
+        </label>
+        <label class="sound-check">
+          <input id="soundSettingsInterruptRequireHigher" type="checkbox" ${checked(interruptRules.requireHigherPriority)}>
+          <span>Nur bei hÃ¶herer PrioritÃ¤t</span>
+        </label>
+        <label class="sound-check">
+          <input id="soundSettingsInterruptAllowForce" type="checkbox" ${checked(interruptRules.allowForce)}>
+          <span>Force erlauben</span>
+        </label>
+        <label class="sound-check">
+          <input id="soundSettingsInterruptAllowOverride" type="checkbox" ${checked(interruptRules.allowOverride)}>
+          <span>Override erlauben</span>
+        </label>
+
+        <div class="sound-settings-title">Drop-Regeln</div>
+        <label class="sound-check">
+          <input id="soundSettingsDropRulesEnabled" type="checkbox" ${checked(dropRules.enabled)}>
+          <span>Drop-Regeln aktiv</span>
+        </label>
+        <label class="sound-field">
+          <span>Bei voller Queue droppen bis PrioritÃ¤t</span>
+          <input id="soundSettingsDropQueueFullBelow" type="number" min="0" max="200" value="${esc(numValue(dropRules.dropIfQueueFullBelowPriority, 40))}">
+        </label>
+        <label class="sound-field">
+          <span>Bei Busy droppen bis PrioritÃ¤t</span>
+          <input id="soundSettingsDropBusyBelow" type="number" min="0" max="200" value="${esc(numValue(dropRules.dropIfBusyBelowPriority, 20))}">
+        </label>
+
+        <div class="sound-settings-title">Cooldowns & Dedupe</div>
+        <label class="sound-check">
+          <input id="soundSettingsCooldownsEnabled" type="checkbox" ${checked(cooldowns.enabled)}>
+          <span>Cooldowns aktiv</span>
+        </label>
+        <label class="sound-field">
+          <span>Default Cooldown ms</span>
+          <input id="soundSettingsCooldownDefault" type="number" min="0" max="3600000" value="${esc(numValue(cooldowns.defaultMs, 0))}">
+        </label>
+        <label class="sound-field">
+          <span>Gleicher Sound ms</span>
+          <input id="soundSettingsCooldownSameSound" type="number" min="0" max="3600000" value="${esc(numValue(cooldowns.sameSoundMs, 3000))}">
+        </label>
+        <label class="sound-field">
+          <span>Gleiche Kategorie ms</span>
+          <input id="soundSettingsCooldownSameCategory" type="number" min="0" max="3600000" value="${esc(numValue(cooldowns.sameCategoryMs, 0))}">
+        </label>
+        <label class="sound-field">
+          <span>Gleicher User ms</span>
+          <input id="soundSettingsCooldownSameUser" type="number" min="0" max="3600000" value="${esc(numValue(cooldowns.sameUserMs, 0))}">
+        </label>
+        <label class="sound-check">
+          <input id="soundSettingsDedupeEnabled" type="checkbox" ${checked(dedupe.enabled)}>
+          <span>Dedupe aktiv</span>
+        </label>
+        <label class="sound-field">
+          <span>Dedupe gleicher Sound ms</span>
+          <input id="soundSettingsDedupeSameSound" type="number" min="0" max="3600000" value="${esc(numValue(dedupe.sameSoundWindowMs, 3000))}">
+        </label>
+        <label class="sound-field">
+          <span>Dedupe User+Sound ms</span>
+          <input id="soundSettingsDedupeSameUserSound" type="number" min="0" max="3600000" value="${esc(numValue(dedupe.sameUserSoundWindowMs, 5000))}">
+        </label>
+
+        <div class="sound-settings-title">PrioritÃ¤ten</div>
+        ${priorityField('Admin', 'soundPriorityAdmin', priorities.admin, 100)}
+        ${priorityField('System', 'soundPrioritySystem', priorities.system, 100)}
+        ${priorityField('Kritischer Alert', 'soundPriorityAlertCritical', priorities.alert_critical, 90)}
+        ${priorityField('Alert', 'soundPriorityAlert', priorities.alert, 80)}
+        ${priorityField('Channel Reward', 'soundPriorityChannelReward', priorities.channel_reward, 70)}
+        ${priorityField('VIP', 'soundPriorityVip', priorities.vip, 60)}
+        ${priorityField('Crew', 'soundPriorityCrew', priorities.crew, 60)}
+        ${priorityField('Special', 'soundPrioritySpecial', priorities.special, 60)}
+        ${priorityField('TTS', 'soundPriorityTts', priorities.tts, 50)}
+        ${priorityField('Fun', 'soundPriorityFun', priorities.fun, 50)}
+        ${priorityField('Background', 'soundPriorityBackground', priorities.background, 20)}
+        ${priorityField('Decor', 'soundPriorityDecor', priorities.decor, 20)}
+
+        <div class="sound-settings-title">Kategorie-Defaults</div>
+        ${categoryRow('Alert', 'Alert', 'soundCatAlert', cat('alert'), 80)}
+        ${categoryRow('Kritischer Alert', 'AlertCritical', 'soundCatAlertCritical', cat('alert_critical'), 90)}
+        ${categoryRow('Admin', 'Admin', 'soundCatAdmin', cat('admin'), 100)}
+        ${categoryRow('System', 'System', 'soundCatSystem', cat('system'), 100)}
+        ${categoryRow('VIP', 'Vip', 'soundCatVip', cat('vip'), 60)}
+        ${categoryRow('Fun', 'Fun', 'soundCatFun', cat('fun'), 50)}
+        ${categoryRow('Background', 'Background', 'soundCatBackground', cat('background'), 20)}
       </div>
 
       <div class="sound-actions">
         ${button('Settings speichern', 'save-settings', 'success')}
         ${button('Settings neu laden', 'reload-settings')}
       </div>
-      <div class="sound-note">Device-Auswahl bleibt vorerst im Ausgabe-Bereich. Diese Karte speichert Runtime-Settings in SQLite.</div>
+      <div class="sound-note">Ã„nderungen werden in SQLite gespeichert. Technische Pfade und Sound-Bibliothek kommen spÃ¤ter in einen Expertenbereich.</div>
     `;
   }
 
+  function priorityField(label, id, value, fallback){
+    return `
+      <label class="sound-field">
+        <span>${esc(label)}</span>
+        <input id="${esc(id)}" type="number" min="0" max="200" value="${esc(numValue(value, fallback))}">
+      </label>
+    `;
+  }
+
+  function categoryRow(label, suffix, prefix, data, fallbackPriority){
+    const canInterrupt = data.canInterrupt === true;
+    const canBeInterrupted = data.canBeInterrupted !== false;
+    const queueIfBusy = data.queueIfBusy !== false;
+    const dropIfBusy = data.dropIfBusy === true;
+    const parallelAllowed = data.parallelAllowed === true;
+    return `
+      <div class="sound-category-row">
+        <label class="sound-field">
+          <span>${esc(label)} PrioritÃ¤t</span>
+          <input id="${esc(prefix)}Priority" type="number" min="0" max="200" value="${esc(numValue(data.priority, fallbackPriority))}">
+        </label>
+        <label class="sound-check"><input id="${esc(prefix)}CanInterrupt" type="checkbox" ${canInterrupt ? 'checked' : ''}><span>Interrupt</span></label>
+        <label class="sound-check"><input id="${esc(prefix)}CanBeInterrupted" type="checkbox" ${canBeInterrupted ? 'checked' : ''}><span>unterbrechbar</span></label>
+        <label class="sound-check"><input id="${esc(prefix)}QueueIfBusy" type="checkbox" ${queueIfBusy ? 'checked' : ''}><span>Queue wenn busy</span></label>
+        <label class="sound-check"><input id="${esc(prefix)}DropIfBusy" type="checkbox" ${dropIfBusy ? 'checked' : ''}><span>Drop wenn busy</span></label>
+        <label class="sound-check"><input id="${esc(prefix)}ParallelAllowed" type="checkbox" ${parallelAllowed ? 'checked' : ''}><span>Parallel</span></label>
+      </div>
+    `;
+  }
   function readNumber(id, fallback, min, max){
     const el = document.getElementById(id);
     const n = Number(el?.value);
@@ -294,6 +426,24 @@
     const overlay = cfg.overlay || {};
     const queue = cfg.queue || {};
     const alertSync = queue.alertSync || {};
+    const interruptRules = queue.interruptRules || {};
+    const dropRules = queue.dropRules || {};
+    const cooldowns = queue.cooldowns || {};
+    const dedupe = queue.dedupe || {};
+    const categoryDefaults = cfg.categoryDefaults || {};
+    const cat = key => categoryDefaults[key] || {};
+
+    function readCategory(prefix, data, fallbackPriority){
+      return {
+        ...(data || {}),
+        priority: readNumber(`${prefix}Priority`, data?.priority ?? fallbackPriority, 0, 200),
+        canInterrupt: readBool(`${prefix}CanInterrupt`, data?.canInterrupt === true),
+        canBeInterrupted: readBool(`${prefix}CanBeInterrupted`, data?.canBeInterrupted !== false),
+        queueIfBusy: readBool(`${prefix}QueueIfBusy`, data?.queueIfBusy !== false),
+        dropIfBusy: readBool(`${prefix}DropIfBusy`, data?.dropIfBusy === true),
+        parallelAllowed: readBool(`${prefix}ParallelAllowed`, data?.parallelAllowed === true)
+      };
+    }
 
     const payload = {
       output: {
@@ -325,7 +475,58 @@
           enabled: readBool('soundSettingsAlertSyncEnabled', alertSync.enabled !== false),
           visualLeadMs: readNumber('soundSettingsVisualLeadMs', alertSync.visualLeadMs ?? 150, 0, 1000),
           maxVisualLeadMs: readNumber('soundSettingsMaxVisualLeadMs', alertSync.maxVisualLeadMs ?? 500, 0, 1000)
+        },
+        interruptRules: {
+          ...(interruptRules || {}),
+          enabled: readBool('soundSettingsInterruptEnabled', interruptRules.enabled !== false),
+          minPriority: readNumber('soundSettingsInterruptMinPriority', interruptRules.minPriority ?? 100, 0, 200),
+          requireHigherPriority: readBool('soundSettingsInterruptRequireHigher', interruptRules.requireHigherPriority !== false),
+          allowForce: readBool('soundSettingsInterruptAllowForce', interruptRules.allowForce !== false),
+          allowOverride: readBool('soundSettingsInterruptAllowOverride', interruptRules.allowOverride === true)
+        },
+        dropRules: {
+          ...(dropRules || {}),
+          enabled: readBool('soundSettingsDropRulesEnabled', dropRules.enabled !== false),
+          dropIfQueueFullBelowPriority: readNumber('soundSettingsDropQueueFullBelow', dropRules.dropIfQueueFullBelowPriority ?? 40, 0, 200),
+          dropIfBusyBelowPriority: readNumber('soundSettingsDropBusyBelow', dropRules.dropIfBusyBelowPriority ?? 20, 0, 200)
+        },
+        cooldowns: {
+          ...(cooldowns || {}),
+          enabled: readBool('soundSettingsCooldownsEnabled', cooldowns.enabled !== false),
+          defaultMs: readNumber('soundSettingsCooldownDefault', cooldowns.defaultMs ?? 0, 0, 3600000),
+          sameSoundMs: readNumber('soundSettingsCooldownSameSound', cooldowns.sameSoundMs ?? 3000, 0, 3600000),
+          sameCategoryMs: readNumber('soundSettingsCooldownSameCategory', cooldowns.sameCategoryMs ?? 0, 0, 3600000),
+          sameUserMs: readNumber('soundSettingsCooldownSameUser', cooldowns.sameUserMs ?? 0, 0, 3600000)
+        },
+        dedupe: {
+          ...(dedupe || {}),
+          enabled: readBool('soundSettingsDedupeEnabled', dedupe.enabled !== false),
+          sameSoundWindowMs: readNumber('soundSettingsDedupeSameSound', dedupe.sameSoundWindowMs ?? 3000, 0, 3600000),
+          sameUserSoundWindowMs: readNumber('soundSettingsDedupeSameUserSound', dedupe.sameUserSoundWindowMs ?? 5000, 0, 3600000)
         }
+      },
+      priorities: {
+        admin: readNumber('soundPriorityAdmin', cfg.priorities?.admin ?? 100, 0, 200),
+        system: readNumber('soundPrioritySystem', cfg.priorities?.system ?? 100, 0, 200),
+        alert_critical: readNumber('soundPriorityAlertCritical', cfg.priorities?.alert_critical ?? 90, 0, 200),
+        alert: readNumber('soundPriorityAlert', cfg.priorities?.alert ?? 80, 0, 200),
+        channel_reward: readNumber('soundPriorityChannelReward', cfg.priorities?.channel_reward ?? 70, 0, 200),
+        vip: readNumber('soundPriorityVip', cfg.priorities?.vip ?? 60, 0, 200),
+        crew: readNumber('soundPriorityCrew', cfg.priorities?.crew ?? 60, 0, 200),
+        special: readNumber('soundPrioritySpecial', cfg.priorities?.special ?? 60, 0, 200),
+        tts: readNumber('soundPriorityTts', cfg.priorities?.tts ?? 50, 0, 200),
+        fun: readNumber('soundPriorityFun', cfg.priorities?.fun ?? 50, 0, 200),
+        background: readNumber('soundPriorityBackground', cfg.priorities?.background ?? 20, 0, 200),
+        decor: readNumber('soundPriorityDecor', cfg.priorities?.decor ?? 20, 0, 200)
+      },
+      categoryDefaults: {
+        alert: readCategory('soundCatAlert', cat('alert'), 80),
+        alert_critical: readCategory('soundCatAlertCritical', cat('alert_critical'), 90),
+        admin: readCategory('soundCatAdmin', cat('admin'), 100),
+        system: readCategory('soundCatSystem', cat('system'), 100),
+        vip: readCategory('soundCatVip', cat('vip'), 60),
+        fun: readCategory('soundCatFun', cat('fun'), 50),
+        background: readCategory('soundCatBackground', cat('background'), 20)
       }
     };
 
@@ -484,5 +685,6 @@
 
   return { loadAll };
 })();
+
 
 
