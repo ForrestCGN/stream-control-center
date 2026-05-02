@@ -1,0 +1,190 @@
+window.SoundSystemModule = (function(){
+  'use strict';
+
+  const API = '/api/sound';
+  let root = null;
+  let status = null;
+  let loading = false;
+
+  function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
+  async function api(path, options){ return window.CGN.api(API + path, options || {}); }
+
+  function button(label, action, extraClass){
+    return `<button type="button" class="${extraClass || ''}" data-sound-action="${esc(action)}">${esc(label)}</button>`;
+  }
+
+  function renderShell(){
+    if (!root) return;
+    root.innerHTML = `
+      <div class="sound-card">
+        <h2>Sound-System</h2>
+        <div class="sound-note">Zentrale Grundlage für Stream-Sounds, Queue, Prioritäten und spätere Discord-Ausgabe. Bestehende Systeme werden später einzeln angebunden.</div>
+        <div class="sound-actions">
+          ${button('Neu laden', 'reload')}
+          ${button('Stop', 'stop')}
+          ${button('Skip', 'skip')}
+          ${button('Queue leeren', 'clear')}
+          <a class="ghost-link" href="/overlays/sound_system_overlay.html?debug=1" target="_blank">Overlay öffnen</a>
+        </div>
+      </div>
+      <div class="sound-grid">
+        <div class="sound-card" id="soundStatusCard"></div>
+        <div class="sound-card" id="soundCurrentCard"></div>
+        <div class="sound-card">
+          <h3>Sound-Liste</h3>
+          <div id="soundList" class="sound-list"></div>
+        </div>
+        <div class="sound-card">
+          <h3>Queue</h3>
+          <div id="soundQueue" class="sound-queue"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function render(){
+    if (!root) return;
+    if (!status) {
+      renderShell();
+      bindActions();
+    }
+    renderStatus();
+    renderCurrent();
+    renderSounds();
+    renderQueue();
+  }
+
+  function renderStatus(){
+    const el = document.getElementById('soundStatusCard');
+    if (!el) return;
+    const cfg = status?.config || {};
+    el.innerHTML = `
+      <h3>Status</h3>
+      <div class="sound-status-row"><span>Modul</span><span class="sound-pill">${status?.enabled ? 'Aktiv' : 'Inaktiv'}</span></div>
+      <div class="sound-status-row"><span>Pause</span><span>${status?.paused ? 'Ja' : 'Nein'}</span></div>
+      <div class="sound-status-row"><span>Aktueller Sound</span><span>${status?.current ? esc(status.current.label || status.current.soundId) : 'Keiner'}</span></div>
+      <div class="sound-status-row"><span>Queue</span><span>${Number(status?.queuedCount || 0)}</span></div>
+      <div class="sound-status-row"><span>Overlay</span><span>${status?.client?.connected ? 'Verbunden' : 'Nicht verbunden'}</span></div>
+      <div class="sound-status-row"><span>Config</span><span>${cfg.ok ? 'OK' : 'Fehler'}</span></div>
+      <div class="sound-note">Config: ${esc(cfg.path || '')}</div>
+    `;
+  }
+
+  function renderCurrent(){
+    const el = document.getElementById('soundCurrentCard');
+    if (!el) return;
+    const cur = status?.current;
+    if (!cur) {
+      el.innerHTML = `<h3>Aktuell</h3><div class="sound-empty">Gerade läuft kein Sound.</div>`;
+      return;
+    }
+    el.innerHTML = `
+      <h3>Aktuell</h3>
+      <div class="sound-current-row"><span>Name</span><strong>${esc(cur.label || cur.soundId)}</strong></div>
+      <div class="sound-current-row"><span>Ziel</span><span class="sound-pill">${esc(cur.target)}</span></div>
+      <div class="sound-current-row"><span>Priorität</span><span>${esc(cur.priority)}</span></div>
+      <div class="sound-current-row"><span>Lautstärke</span><span>${esc(cur.volume)}%</span></div>
+      <div class="sound-current-row"><span>Datei</span><span class="sound-muted">${esc(cur.file)}</span></div>
+    `;
+  }
+
+  function renderSounds(){
+    const el = document.getElementById('soundList');
+    if (!el) return;
+    const sounds = Array.isArray(status?.sounds) ? status.sounds : [];
+    if (!sounds.length) {
+      el.innerHTML = `<div class="sound-empty">Keine Sounds in der Config eingetragen.</div>`;
+      return;
+    }
+    el.innerHTML = sounds.map(sound => `
+      <div class="sound-sound-row">
+        <div class="sound-sound-main">
+          <div class="sound-sound-title">${esc(sound.label || sound.id)}</div>
+          <div class="sound-sound-meta">${esc(sound.id)} · ${esc(sound.category || 'ohne Kategorie')} · ${esc(sound.file || '')}</div>
+        </div>
+        <div class="sound-mini-actions">
+          <span class="sound-pill">${esc(sound.priority ?? '')}</span>
+          <button type="button" data-sound-play="${esc(sound.id)}">Play</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderQueue(){
+    const el = document.getElementById('soundQueue');
+    if (!el) return;
+    const queue = Array.isArray(status?.queue) ? status.queue : [];
+    if (!queue.length) {
+      el.innerHTML = `<div class="sound-empty">Queue ist leer.</div>`;
+      return;
+    }
+    el.innerHTML = queue.map((item, index) => `
+      <div class="sound-queue-row">
+        <div class="sound-queue-main">
+          <div class="sound-queue-title">#${index + 1} ${esc(item.label || item.soundId)}</div>
+          <div class="sound-queue-meta">${esc(item.target)} · Priorität ${esc(item.priority)} · ${esc(item.file)}</div>
+        </div>
+        <span class="sound-pill">${esc(item.volume)}%</span>
+      </div>
+    `).join('');
+  }
+
+  function bindActions(){
+    root?.addEventListener('click', async (event) => {
+      const actionBtn = event.target.closest('[data-sound-action]');
+      const playBtn = event.target.closest('[data-sound-play]');
+      if (!actionBtn && !playBtn) return;
+
+      try {
+        if (playBtn) {
+          await api('/play', {
+            method: 'POST',
+            body: JSON.stringify({ soundId: playBtn.dataset.soundPlay, source: 'dashboard', override: true })
+          });
+        } else {
+          const action = actionBtn.dataset.soundAction;
+          if (action === 'reload') await api('/reload', { method: 'POST', body: '{}' });
+          if (action === 'stop') await api('/stop', { method: 'POST', body: '{}' });
+          if (action === 'skip') await api('/skip', { method: 'POST', body: '{}' });
+          if (action === 'clear') await api('/clear', { method: 'POST', body: '{}' });
+        }
+        await loadAll(true);
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+  }
+
+  async function loadAll(force){
+    if (loading && !force) return;
+    loading = true;
+    try {
+      const state = await api('/status');
+      const list = await api('/list');
+      status = { ...state, sounds: list.sounds || [] };
+      render();
+    } catch (err) {
+      if (root) {
+        root.innerHTML = `<div class="sound-card"><h2>Sound-System</h2><div class="sound-empty">${esc(err.message || err)}</div></div>`;
+      }
+    } finally {
+      loading = false;
+    }
+  }
+
+  function mount(){
+    root = document.getElementById('soundModule');
+    if (!root) return;
+    renderShell();
+    loadAll(true);
+  }
+
+  window.addEventListener('cgn:module-show', (event) => {
+    if (event.detail?.module === 'sound_system') loadAll(true);
+  });
+
+  document.addEventListener('DOMContentLoaded', mount);
+  if (document.readyState !== 'loading') mount();
+
+  return { loadAll };
+})();
