@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "routes": {
     "prefix": "/api/sound"
   },
@@ -64,11 +64,13 @@
     {
       "id": "test_ping",
       "label": "Test Ping",
-      "file": "test_ping.mp3",
+      "type": "generated_beep",
       "category": "system",
       "priority": 100,
       "target": "stream",
       "volume": 80,
+      "durationMs": 350,
+      "frequency": 880,
       "enabled": true,
       "canInterrupt": true,
       "canBeInterrupted": false,
