@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Birthday Overlay</title>
+
+<style>
+    :root {
+        --cgn-purple: #6a1aff;
+        --cgn-purple-soft: #a580fc;
+        --cgn-blue: #1b7bff;
+        --cgn-white: #ffffff;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: transparent;
+        font-family: 'Montserrat', system-ui, sans-serif;
+    }
+
+    .overlay-root {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.8s ease;
+    }
+
+    body.hide .overlay-root {
+        opacity: 0;
+    }
+
+    .frame {
+        position: relative;
+        min-width: 900px;
+        max-width: 1200px;
+        padding: 40px 60px;
+        border-radius: 24px;
+        background: rgba(2, 4, 12, 0.65);
+        box-shadow: 0 0 40px rgba(0,0,0,0.9);
+    }
+
+    .frame::before {
+        content: "";
+        position: absolute;
+        inset: -3px;
+        border-radius: 26px;
+        background: linear-gradient(135deg, var(--cgn-purple), var(--cgn-blue));
+        filter: drop-shadow(0 0 25px rgba(106, 26, 255, 0.7));
+        z-index: -2;
+        animation: frameGlow 3.5s ease-in-out infinite;
+    }
+
+    .frame::after {
+        content: "";
+        position: absolute;
+        inset: 16%;
+        border-radius: 40px;
+        background:
+            radial-gradient(circle at 20% 0%, rgba(165,128,252,0.55), transparent 60%),
+            radial-gradient(circle at 80% 100%, rgba(27,123,255,0.35), transparent 70%);
+        filter: blur(6px);
+        z-index: -3;
+    }
+
+    .content {
+        text-align: center;
+        color: var(--cgn-white);
+    }
+
+    .headline {
+        font-size: 82px;
+        font-weight: 900;
+        text-transform: uppercase;
+        margin: 0 0 5px 0;
+        text-shadow:
+            0 0 15px var(--cgn-purple-soft),
+            0 0 30px var(--cgn-purple),
+            0 0 40px rgba(106,26,255,1);
+    }
+
+    .subline {
+        font-size: 28px;
+        margin-bottom: 12px;
+        text-shadow:
+            0 0 10px rgba(0,0,0,0.8),
+            0 0 15px rgba(106,26,255,0.5);
+    }
+
+    .username-wrapper {
+        position: relative;
+        display: inline-block;
+        margin-top: 10px;
+        padding: 10px 10px;
+    }
+
+    .username-orbit-layer {
+        position: absolute;
+        inset: -35px -60px;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .username {
+        font-size: 90px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        position: relative;
+        line-height: 1.1;
+        padding: 6px 20px;
+        z-index: 1;
+
+        text-shadow:
+            0 0 22px var(--cgn-purple-soft),
+            0 0 45px var(--cgn-purple),
+            0 0 70px var(--cgn-blue);
+
+        animation:
+            userIntro 0.7s ease-out forwards,
+            userPulseGlow 2.8s ease-in-out infinite 0.7s,
+            userFloat 4s ease-in-out infinite 0.7s;
+    }
+
+    .username::before {
+        content: "";
+        position: absolute;
+        inset: -20px -40px;
+        background: radial-gradient(circle, rgba(106,26,255,0.25), transparent 70%);
+        z-index: -1;
+        filter: blur(10px);
+        animation: spotlightPulse 3s ease-in-out infinite;
+    }
+
+    .highlight {
+        background: linear-gradient(135deg, var(--cgn-purple-soft), var(--cgn-blue));
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+
+    .name-particle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #ffffff, var(--cgn-purple-soft));
+        box-shadow:
+            0 0 10px rgba(165,128,252,0.9),
+            0 0 16px rgba(27,123,255,0.7);
+        transform-origin: center;
+        opacity: 0.9;
+        animation:
+            nameOrbit var(--orbitDuration, 5s) linear infinite,
+            nameTwinkle 2.8s ease-in-out infinite;
+    }
+
+    .dots {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    .dot {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--cgn-purple-soft);
+        box-shadow: 0 0 12px rgba(165,128,252,0.9);
+        opacity: 0.8;
+        animation: moveDot 6s linear infinite;
+    }
+
+    .dot.dot-lg {
+        width: 14px;
+        height: 14px;
+        box-shadow: 0 0 20px rgba(27,123,255,0.9);
+        background: var(--cgn-blue);
+    }
+
+    .confetti {
+        position: absolute;
+        width: 9px;
+        height: 14px;
+        border-radius: 2px;
+        opacity: 0.95;
+        animation: confettiFall linear forwards;
+    }
+
+    .balloon {
+        position: absolute;
+        width: 45px;
+        height: 60px;
+        border-radius: 50% 50% 45% 45%;
+        background: radial-gradient(circle at 30% 20%, #ffffff, var(--cgn-purple-soft));
+        animation: balloonFloat linear forwards;
+        opacity: 0.95;
+    }
+
+    .balloon::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -20px;
+        width: 2px;
+        height: 26px;
+        background: rgba(255,255,255,0.7);
+        transform: translateX(-50%);
+    }
+
+    /* Keyframes */
+
+    @keyframes userIntro {
+        0% { opacity: 0; transform: scale(0.6) translateY(25px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes userPulseGlow {
+        0%,100% {
+            text-shadow:
+                0 0 22px var(--cgn-purple-soft),
+                0 0 45px var(--cgn-purple),
+                0 0 70px var(--cgn-blue);
+        }
+        50% {
+            text-shadow:
+                0 0 30px var(--cgn-blue),
+                0 0 60px var(--cgn-purple-soft),
+                0 0 90px var(--cgn-purple);
+        }
+    }
+
+    @keyframes userFloat {
+        0%,100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+    }
+
+    @keyframes spotlightPulse {
+        0%,100% { opacity: 0.45; }
+        50% { opacity: 0.75; }
+    }
+
+    @keyframes moveDot {
+        0% { transform: translate3d(0,0,0); opacity: 0.8; }
+        100% { transform: translate3d(35px,-25px,0); opacity: 0.3; }
+    }
+
+    @keyframes confettiFall {
+        0% { transform: translateY(-60px); opacity: 1; }
+        100% { transform: translateY(1200px); opacity: 0; }
+    }
+
+    @keyframes balloonFloat {
+        0% { transform: translateY(60px); opacity: 0; }
+        10% { opacity: 1; }
+        100% { transform: translateY(-900px); opacity: 0; }
+    }
+
+    /* Orbit um den Namen */
+    @keyframes nameOrbit {
+        0% {
+            transform:
+                rotate(0deg)
+                translateX(var(--orbitRadius, 80px))
+                rotate(0deg);
+        }
+        100% {
+            transform:
+                rotate(360deg)
+                translateX(var(--orbitRadius, 80px))
+                rotate(-360deg);
+        }
+    }
+
+    @keyframes nameTwinkle {
+        0%,100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.25); }
+    }
+
+    @keyframes frameGlow {
+        0%, 100% {
+            filter: drop-shadow(0 0 18px rgba(106, 26, 255, 0.8));
+            opacity: 1;
+        }
+        50% {
+            filter: drop-shadow(0 0 32px rgba(165, 128, 252, 1));
+            opacity: 1;
+        }
+    }
+</style>
+</head>
+<body>
+
+<audio id="birthday-audio" src="/assets/sounds/birthday.mp3"></audio>
+
+<div class="overlay-root">
+    <div class="frame">
+        <div class="dots" id="dots-layer"></div>
+
+        <div class="content">
+            <div class="headline">HAPPY BIRTHDAY</div>
+            <div class="subline">wünscht die CGN-Crew</div>
+
+            <div class="username-wrapper">
+                <div class="username-orbit-layer" id="username-orbit"></div>
+                <div class="username" id="username">
+                    <span class="highlight">User</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* USERNAME */
+    const params = new URLSearchParams(window.location.search);
+    let user = params.get("user") || "Unknown";
+    user = user.replace(/^@+/, "").trim();
+    document.getElementById("username").innerHTML =
+        `<span class="highlight">${user}</span>`;
+
+    const body = document.body;
+    const dotsLayer = document.getElementById("dots-layer");
+    const orbitLayer = document.getElementById("username-orbit");
+
+    /* 15 Sekunden Gesamtlaufzeit */
+    const DURATION_MS = 16000;
+
+    /* Audio startet nach 1 Sekunde */
+    function delayedAudioStart() {
+        setTimeout(() => {
+            const audio = document.getElementById("birthday-audio");
+            if (!audio) return;
+            audio.currentTime = 0;
+            audio.play().catch(()=>{});
+        }, 1000);
+    }
+
+    /* Overlay fade-out */
+    function startAutoHide() {
+        setTimeout(() => {
+            body.classList.add("hide");
+            const audio = document.getElementById("birthday-audio");
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        }, DURATION_MS);
+    }
+
+    function spawnDots() {
+        const positions = [
+            { top: "12%", left: "8%" },
+            { top: "20%", right: "10%" },
+            { bottom: "18%", left: "12%" },
+            { bottom: "10%", right: "15%" },
+            { top: "50%", left: "-4%" },
+            { top: "55%", right: "-4%" }
+        ];
+
+        positions.forEach((pos, idx) => {
+            const d = document.createElement("div");
+            d.classList.add("dot");
+            if (idx % 2 === 0) d.classList.add("dot-lg");
+            Object.assign(d.style, pos);
+            d.style.animationDelay = (idx * 0.7) + "s";
+            dotsLayer.appendChild(d);
+        });
+    }
+
+    function spawnConfetti(count = 130) {
+        const w = window.innerWidth;
+        for (let i = 0; i < count; i++) {
+            const piece = document.createElement("div");
+            piece.classList.add("confetti");
+
+            const size = 7 + Math.random() * 8;
+            piece.style.width = size+"px";
+            piece.style.height = (size*1.3)+"px";
+
+            piece.style.left = (Math.random()*w)+"px";
+            piece.style.top = (-60 - Math.random()*250)+"px";
+
+            const colors = ["#a580fc","#6a1aff","#1b7bff","#ffffff"];
+            piece.style.background =
+                colors[Math.floor(Math.random()*colors.length)];
+
+            piece.style.animationDuration = (4+Math.random()*3)+"s";
+
+            body.appendChild(piece);
+            setTimeout(() => piece.remove(), 9000);
+        }
+    }
+
+    function spawnBalloons(count = 12) {
+        const w = window.innerWidth;
+        for (let i = 0; i < count; i++) {
+            const b = document.createElement("div");
+            b.classList.add("balloon");
+            b.style.left = (w * 0.2 + Math.random() * w * 0.6) + "px";
+            b.style.bottom = "-130px";
+            b.style.animationDuration = (9+Math.random()*5)+"s";
+            b.style.animationDelay = (Math.random()*3)+"s";
+            body.appendChild(b);
+            setTimeout(() => b.remove(), 15000);
+        }
+    }
+
+    function spawnNameParticles(count = 16) {
+        if (!orbitLayer) return;
+        const baseRadius = 75;
+        for (let i = 0; i < count; i++) {
+            const p = document.createElement("div");
+            p.classList.add("name-particle");
+
+            const angle = (360 / count) * i;
+            const radiusJitter = Math.random() * 15 - 7;
+            const radius = baseRadius + radiusJitter;
+            const duration = 4.2 + Math.random() * 2;
+            const delay = Math.random() * 1.5;
+
+            p.style.setProperty("--orbitRadius", radius + "px");
+            p.style.setProperty("--orbitDuration", duration + "s");
+            p.style.animationDelay = delay + "s";
+
+            p.style.transform = `rotate(${angle}deg) translateX(${radius}px)`;
+
+            orbitLayer.appendChild(p);
+        }
+    }
+
+    /* Start */
+    spawnDots();
+    spawnConfetti(150);
+    spawnBalloons(13);
+    spawnNameParticles(16);
+
+    setTimeout(() => spawnConfetti(70), 4000);
+    setTimeout(() => spawnConfetti(60), 8000);
+
+    delayedAudioStart();
+    startAutoHide();
+</script>
+
+</body>
+</html>
+
+

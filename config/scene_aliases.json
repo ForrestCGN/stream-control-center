@@ -1,0 +1,37 @@
+{
+  "Start": {
+    "id": 1,
+    "display": "Start",
+    "aliases": ["start", "starting", "intro"]
+  },
+  "Live Gameplay Forrest": {
+    "id": 2,
+    "display": "Fo",
+    "aliases": ["fo", "forrest"]
+  },
+  "Live Gameplay Forrest&Engel": {
+    "id": 3,
+    "display": "FoEn",
+    "aliases": ["foen", "forrestengel"]
+  },
+  "Live Gameplay Engel&Forrest": {
+    "id": 4,
+    "display": "EnFo",
+    "aliases": ["enfo", "engelforrest"]
+  },
+  "Live Gameplay Engel": {
+    "id": 5,
+    "display": "En",
+    "aliases": ["en", "engel"]
+  },
+  "Pause": {
+    "id": 6,
+    "display": "Pause",
+    "aliases": ["pause", "brb"]
+  },
+  "Ende": {
+    "id": 7,
+    "display": "Ende",
+    "aliases": ["ende", "end", "outro"]
+  }
+}

@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ForrestCGN TTS Overlay</title>
+  <style>
+    :root {
+      --bg: rgba(8, 10, 24, 0.84);
+      --border: rgba(177, 68, 255, 0.95);
+      --glow: rgba(110, 55, 255, 0.65);
+      --blue: rgba(0, 210, 255, 0.9);
+      --text: #f8fbff;
+      --muted: #b8c7e6;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+    }
+
+    #wrap {
+      position: absolute;
+      left: 50%;
+      bottom: 74px;
+      transform: translateX(-50%) translateY(30px);
+      min-width: 520px;
+      max-width: 980px;
+      opacity: 0;
+      transition: opacity 240ms ease, transform 240ms ease;
+      pointer-events: none;
+    }
+
+    #wrap.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .card {
+      position: relative;
+      border: 2px solid var(--border);
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(12, 16, 38, 0.94), rgba(20, 8, 42, 0.90));
+      box-shadow: 0 0 22px var(--glow), inset 0 0 18px rgba(0, 210, 255, 0.08);
+      padding: 18px 22px 18px 22px;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      background: linear-gradient(90deg, transparent, rgba(0, 210, 255, 0.20), transparent);
+      transform: translateX(-100%);
+      animation: runner 2.6s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes runner {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(130, 63, 255, 0.25);
+      box-shadow: 0 0 14px rgba(177, 68, 255, 0.7);
+      font-size: 18px;
+      flex: 0 0 auto;
+    }
+
+    .meta {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .label {
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .user {
+      font-size: 22px;
+      line-height: 1.1;
+      font-weight: 800;
+      text-shadow: 0 0 10px rgba(177, 68, 255, 0.65);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .text {
+      font-size: 24px;
+      line-height: 1.25;
+      font-weight: 650;
+      color: var(--text);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+      word-break: break-word;
+    }
+
+    .role {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(0,0,0,0.22);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div class="card">
+      <div class="head">
+        <div class="icon">🎙️</div>
+        <div class="meta">
+          <div class="label">Text to Speech</div>
+          <div id="user" class="user">ForrestCGN</div>
+        </div>
+        <div id="role" class="role">TTS</div>
+      </div>
+      <div id="text" class="text">...</div>
+    </div>
+  </div>
+
+  <audio id="player" preload="auto"></audio>
+
+  <script>
+    const wrap = document.getElementById("wrap");
+    const userEl = document.getElementById("user");
+    const roleEl = document.getElementById("role");
+    const textEl = document.getElementById("text");
+    const player = document.getElementById("player");
+
+    let currentId = null;
+    let reconnectTimer = null;
+    let gapAfterMs = 350;
+
+    function wsUrl() {
+      const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      return `${proto}//${location.host}`;
+    }
+
+    function show(item) {
+      userEl.textContent = item.user || "Unbekannt";
+      roleEl.textContent = item.role || "tts";
+      textEl.textContent = item.text || "";
+      wrap.classList.add("show");
+    }
+
+    function hide() {
+      wrap.classList.remove("show");
+    }
+
+    async function markDone(id) {
+      try {
+        await fetch(`/api/tts/done?id=${encodeURIComponent(id || "")}`, { cache: "no-store" });
+      } catch (err) {
+        console.error("TTS done failed", err);
+      }
+    }
+
+    function stopAudio(markAsDone) {
+      try {
+        player.pause();
+        player.removeAttribute("src");
+        player.load();
+      } catch (_) {}
+      hide();
+      if (markAsDone && currentId) {
+        const id = currentId;
+        currentId = null;
+        markDone(id);
+      }
+    }
+
+    player.addEventListener("ended", () => {
+      const id = currentId;
+      currentId = null;
+      setTimeout(() => {
+        hide();
+        markDone(id);
+      }, gapAfterMs || 350);
+    });
+
+    player.addEventListener("error", () => {
+      const id = currentId;
+      currentId = null;
+      hide();
+      markDone(id);
+    });
+
+    function connect() {
+      const ws = new WebSocket(wsUrl());
+
+      ws.addEventListener("open", () => {
+        console.log("TTS Overlay WS connected");
+      });
+
+      ws.addEventListener("message", async (event) => {
+        let msg;
+        try { msg = JSON.parse(event.data); } catch (_) { return; }
+
+        if (msg.op === "tts_play") {
+          const item = msg.item || {};
+          currentId = item.id;
+          gapAfterMs = Number(msg.gapAfterMs || 350);
+          show(item);
+
+          player.src = msg.audioUrl + `?t=${Date.now()}`;
+          player.volume = 1.0;
+
+          try {
+            await player.play();
+          } catch (err) {
+            console.error("TTS audio play failed", err);
+            const id = currentId;
+            currentId = null;
+            hide();
+            markDone(id);
+          }
+        }
+
+        if (msg.op === "tts_stop") {
+          stopAudio(true);
+        }
+      });
+
+      ws.addEventListener("close", () => {
+        console.log("TTS Overlay WS disconnected");
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connect, 1500);
+      });
+
+      ws.addEventListener("error", () => {
+        try { ws.close(); } catch (_) {}
+      });
+    }
+
+    connect();
+  </script>
+</body>
+</html>

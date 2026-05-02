@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 4,
+  "updatedAt": "2026-05-01",
+  "enabled": true,
+  "title": "Stream-Desk",
+  "layout": "three_column",
+  "refreshMs": 3000,
+  "rules": {
+    "purpose": "Live-Hauptseite für Streamer, Mods und SuperMods während des Streams.",
+    "notFor": "Keine System-/Secret-/Datenbank-Verwaltung auf dieser Seite.",
+    "twitchActions": "Twitch-Aktionen laufen später mit OAuth-Token des eingeloggten Mods und werden von Twitch final geprüft.",
+    "rightsPreparedOnly": "Rechte/Freigaben sind vorbereitet, aber noch nicht live aktiviert."
+  },
+  "obsQuickScenes": [
+    {
+      "label": "Start",
+      "sceneName": "Start",
+      "confirm": false
+    },
+    {
+      "label": "Forrest",
+      "sceneName": "Live Gameplay Forrest",
+      "confirm": false
+    },
+    {
+      "label": "Forrest & Engel",
+      "sceneName": "Live Gameplay Forrest&Engel",
+      "confirm": false
+    },
+    {
+      "label": "Engel & Forrest",
+      "sceneName": "Live Gameplay Engel&Forrest",
+      "confirm": false
+    },
+    {
+      "label": "Engel",
+      "sceneName": "Live Gameplay Engel",
+      "confirm": false
+    },
+    {
+      "label": "Pause",
+      "sceneName": "Pause",
+      "confirm": false
+    },
+    {
+      "label": "Ende",
+      "sceneName": "Ende",
+      "confirm": true
+    }
+  ],
+  "widgets": {
+    "chat": true,
+    "userinfo": true,
+    "obsQuickControl": true,
+    "streamStatus": true,
+    "alerts": true,
+    "soundQueue": true,
+    "clipButton": true,
+    "tagebuchQuickEntry": true,
+    "todoQuickEntry": true,
+    "challengeStatus": true,
+    "moderation": true,
+    "twitchLoginStatus": true
+  },
+  "chat": {
+    "maxMessages": 80,
+    "clickUserToInfo": true,
+    "showBadges": true,
+    "showEmotes": true,
+    "sendModes": [
+      "own_twitch",
+      "bot_fallback"
+    ],
+    "filters": [
+      "Alle",
+      "Mods/VIPs",
+      "Subs",
+      "Erstchatter",
+      "System"
+    ]
+  },
+  "userinfo": {
+    "enableSearch": true,
+    "allowNotes": true,
+    "quickActions": [
+      "shoutout",
+      "mention",
+      "todo",
+      "tagebuch"
+    ],
+    "openInModal": true,
+    "endpoints": [
+      "/userinfo?login={login}",
+      "/api/userinfo?login={login}",
+      "/api/twitch/userinfo?login={login}"
+    ],
+    "notes": "STEP005: Userinfo ist im Stream-Desk funktionsfähig vorbereitet und öffnet Daten in einem Modal. Nutzt vorhandene Userinfo-Route mit Fallbacks."
+  },
+  "step": "007",
+  "twitchLogin": {
+    "showStatusWidget": true,
+    "enabled": false,
+    "prepared": true,
+    "labels": [
+      "Angemeldet als",
+      "Dashboard-Rolle",
+      "Twitch-Mod im Kanal",
+      "Chatten als eigener Account",
+      "Moderation über eigenen Account"
+    ]
+  },
+  "obsQuickScenesNote": "Diese Liste steuert die Buttons im Stream-Desk. Nur wichtige, sichtbare Szenen eintragen; keine _Hilfsszenen.",
+  "obsQuickControl": {
+    "enabled": true,
+    "showCurrentScene": true,
+    "showSceneNameUnderLabel": true,
+    "confirmOnScenes": [
+      "Ende"
+    ],
+    "switchEndpoint": "/api/obs/scene/switch",
+    "statusEndpoint": "/api/obs/dashboard/status",
+    "fallbackSwitchEndpoints": [
+      "/api/obs/scene/switch",
+      "/api/scene/switch"
+    ],
+    "notes": "STEP007: Stream-Desk zeigt QuickScenes klarer an und markiert die aktuelle Szene, wenn die OBS-Statusroute sie liefert."
+  }
+}

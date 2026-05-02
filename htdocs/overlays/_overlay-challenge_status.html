@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Challenge Overlay V2</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Montserrat:700,900&display=swap');
+        html, body {
+            margin: 0; padding: 0; background: transparent;
+            font-family: 'Montserrat', Arial, sans-serif;
+        }
+        #challengeContainer {
+            width: 230px;
+            min-height: 156px;
+            position: relative;
+            overflow: visible;
+        }
+        .challenge-box {
+            width: 230px;
+            height: 55px;
+            background: rgba(24,18,42,0.88);
+            border-radius: 19px;
+            box-shadow: 0 0 13px #a580fc44;
+            border: 2.5px solid #5021c9cc;
+            opacity: 0;
+            pointer-events: none;
+            position: absolute;
+            left: 0;
+            overflow: hidden;
+            padding: 7px 14px 6px 7px;
+            display: flex;
+            align-items: flex-start;
+            z-index: 1;
+            transform: translateX(120%) translateY(var(--slideY,0));
+            transition:
+                opacity 0.5s cubic-bezier(.8,0,.4,1.05),
+                transform 0.8s cubic-bezier(.69,0,.29,1);
+        }
+        .visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0) translateY(var(--slideY,0));
+        }
+        .exiting {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(120%) translateY(var(--slideY,0));
+        }
+        .challenge-inner {
+            width: 100%;
+            display: flex;
+            align-items: flex-start;
+            overflow: hidden;
+        }
+        .challenge-icon {
+            font-size: 23px;
+            filter: drop-shadow(0 0 2.5px #a580fc99);
+            flex-shrink: 0;
+            margin-right: 8px;
+            margin-top: 2px;
+        }
+        .challenge-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .challenge-mode {
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            line-height: 1.08;
+            text-shadow: 0 0 1px #7647e6a0, 0 0 1px #a580fc30;
+            color: #b3a1ff;
+            text-transform: uppercase;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 220px;
+            margin-bottom: 0;
+        }
+        .challenge-countdown {
+            font-size: 18px;
+            font-weight: 900;
+            margin-top: 0;
+            letter-spacing: 1px;
+            min-width: 56px;
+            color: #ffe7ff;
+            background: linear-gradient(90deg, #fff5ff 60%, #b3cfff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 1px 2px #fff9, 0 0 1px #933dff18;
+            transition: color 0.3s linear;
+            display: inline-block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .challenge-username {
+            font-size: 13px;
+            color: #81aaff;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-shadow: 0 0 1px #593cdb44;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-top: 1px;
+        }
+    </style>
+</head>
+<body>
+<div id="challengeContainer"></div>
+<script src="http://localhost:8080/ws-client.js"></script>
+<script>
+const BASE = location.protocol.startsWith("http") ? "" : "http://localhost:8080";
+const SPACING = 84;
+let activeBox = null;
+let queueBox = null;
+let currentState = { active: null, queue: [] };
+let lastActiveId = null;
+
+function formatTime(secs) {
+    const n = Math.max(0, Number.isFinite(Number(secs)) ? Math.ceil(Number(secs)) : 0);
+    const m = Math.floor(n / 60);
+    const s = n % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function playUrl(url) {
+    if (!url) return;
+    try {
+        const a = new Audio(url.startsWith("/") ? BASE + url : url);
+        a.preload = "auto";
+        a.muted = false;
+        a.volume = 1.0;
+        a.play().catch(err => {
+            console.warn("[CHALLENGE AUDIO] play() failed:", err, "URL:", url);
+            setTimeout(() => a.play().catch(() => {}), 150);
+        });
+    } catch (e) {
+        console.warn("[CHALLENGE AUDIO] new Audio() error:", e, "URL:", url);
+    }
+}
+
+function fallbackSound(mode) {
+    if (mode === "NichtFluchen") return "/assets/sounds/nichtfluchen.mp3";
+    if (mode === "NichtReden") return "/assets/sounds/nichtreden.mp3";
+    return "";
+}
+
+function normalizeEntry(entry) {
+    if (!entry) return null;
+    return {
+        id: entry.id || `${entry.mode || "unknown"}-${entry.startedAt || entry.createdAt || ""}`,
+        mode: entry.mode || "Unbekannt",
+        label: entry.label || entry.mode || "Unbekannt",
+        displayTitle: entry.displayTitle || (entry.mode === "NichtFluchen" ? "NICHT FLUCHEN" : (entry.mode === "NichtReden" ? "NICHT REDEN" : entry.label || "Unbekannt")),
+        icon: entry.icon || (entry.mode === "NichtFluchen" ? "🚫" : (entry.mode === "NichtReden" ? "🤐" : "❔")),
+        user: entry.user || "",
+        duration: Number(entry.duration || 60),
+        remainingSeconds: Number(entry.remainingSeconds ?? entry.duration ?? 60),
+        overlaySound: entry.overlaySound || fallbackSound(entry.mode)
+    };
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function buildChallengeHTML(entry, kind) {
+    const safe = normalizeEntry(entry) || {};
+    let html = '<div class="challenge-inner">';
+    html += `<span class="challenge-icon">${safe.icon || "❔"}</span>`;
+    html += `<span class="challenge-info">`;
+    html += `<span class="challenge-mode">${escapeHtml(safe.displayTitle || "Unbekannt")}</span>`;
+    if (kind === "active") {
+        html += `<span class="challenge-countdown" data-countdown="1">${formatTime(safe.remainingSeconds)}</span>`;
+    } else {
+        html += `<span class="challenge-countdown" style="font-size:14px;font-weight:900;text-shadow:0 0 7px #e3e3ff,0 0 3px #fff;">WARTESCHLANGE</span>`;
+    }
+    if (safe.user) html += `<span class="challenge-username">von ${escapeHtml(safe.user)}</span>`;
+    html += `</span></div>`;
+    return html;
+}
+
+function ensureBox(kind, entry) {
+    const box = document.createElement("div");
+    box.className = "challenge-box";
+    box.dataset.kind = kind;
+    box.dataset.id = entry.id || "";
+    box.style.setProperty("--slideY", kind === "queue" ? `${SPACING}px` : "0px");
+    box.innerHTML = buildChallengeHTML(entry, kind);
+    document.getElementById("challengeContainer").appendChild(box);
+    setTimeout(() => box.classList.add("visible"), 20);
+    return box;
+}
+
+function removeBox(box) {
+    if (!box) return;
+    box.classList.add("exiting");
+    setTimeout(() => {
+        if (box.parentNode) box.parentNode.removeChild(box);
+    }, 800);
+}
+
+function updateCountdown(box, entry) {
+    if (!box || !entry) return;
+    const countdownEl = box.querySelector('[data-countdown="1"]');
+    if (!countdownEl) return;
+    const left = Math.max(0, Math.ceil(Number(entry.remainingSeconds || 0)));
+    countdownEl.textContent = formatTime(left);
+    if (left <= 10) {
+        countdownEl.style.color = "#ff6200";
+        countdownEl.style.webkitTextFillColor = "#ff6200";
+        countdownEl.style.textShadow = "0 0 12px #ffeedd,0 0 7px #e3402099";
+    } else {
+        countdownEl.style.color = "";
+        countdownEl.style.webkitTextFillColor = "";
+        countdownEl.style.textShadow = "";
+    }
+}
+
+function renderState(state, event) {
+    const active = normalizeEntry(state && state.active);
+    const queue = Array.isArray(state && state.queue) ? state.queue.map(normalizeEntry).filter(Boolean) : [];
+    const next = queue[0] || null;
+
+    if (active) {
+        if (!activeBox || activeBox.dataset.id !== active.id) {
+            removeBox(activeBox);
+            activeBox = ensureBox("active", active);
+        } else {
+            activeBox.innerHTML = buildChallengeHTML(active, "active");
+        }
+        updateCountdown(activeBox, active);
+
+        if (event === "started" && active.id !== lastActiveId) {
+            lastActiveId = active.id;
+            playUrl(active.overlaySound || fallbackSound(active.mode));
+        }
+    } else {
+        removeBox(activeBox);
+        activeBox = null;
+        lastActiveId = null;
+    }
+
+    if (next) {
+        if (!queueBox || queueBox.dataset.id !== next.id) {
+            removeBox(queueBox);
+            queueBox = ensureBox("queue", next);
+        } else {
+            queueBox.innerHTML = buildChallengeHTML(next, "queue");
+        }
+    } else {
+        removeBox(queueBox);
+        queueBox = null;
+    }
+}
+
+function handleChallengeMessage(msg) {
+    if (!msg) return;
+    if (msg.type === "challenge_status" && msg.data) {
+        currentState = msg.data;
+        renderState(currentState, msg.event || msg.data.event || "status");
+        return;
+    }
+    if (msg.type === "challenge" && msg.data) {
+        const entry = normalizeEntry(msg.data);
+        currentState = { active: entry, queue: [] };
+        renderState(currentState, msg.event || "started");
+    }
+}
+
+window.addChallenge = function addChallenge(entry) {
+    const normalized = normalizeEntry(entry);
+    if (!normalized) return;
+    currentState = { active: normalized, queue: [] };
+    renderState(currentState, "started");
+};
+
+window.addEventListener("overlay-message", (e) => {
+    try { handleChallengeMessage(e.detail); } catch (err) { console.warn("[CHALLENGE] overlay-message error", err); }
+});
+
+if (typeof createOverlaySocket === "function") {
+    createOverlaySocket();
+} else {
+    console.error("ws-client.js not loaded");
+    try {
+        const ws = new WebSocket("ws://localhost:8080");
+        ws.addEventListener("message", (event) => handleChallengeMessage(JSON.parse(event.data)));
+    } catch (e) {}
+}
+</script>
+</body>
+</html>

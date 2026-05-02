@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "description": "Zentrale Platzhalter für Message-Texte. Kann pro Streamer einfach angepasst werden."
+  },
+  "_placeholders": {
+    "youtubeUrl": "https://www.youtube.com/@ForrestCGN",
+    "discordUrl": "https://discord.gg/CGN-Community",
+    "respectUrl": ""
+  }
+}

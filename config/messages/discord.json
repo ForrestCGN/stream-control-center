@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "description": "Discord- und Community-Hinweise."
+  },
+  "discord_reminder": [
+    "[•] Langeweile? Redebedarf? Lust auf Chaos im Voice? Dann nix wie rauf auf unseren Discord-Server! 💬 Nur gute Laune müsst ihr selbst mitbringen. 😎 --> {discordUrl} <--",
+    "[•] Auf unserem Discord findet ihr Streampläne, Infos und die Community – schaut gern vorbei: --> {discordUrl} <--",
+    "[•] Wenn ihr auch abseits vom Stream mit uns und der Community quatschen wollt, kommt gern auf unseren Discord: --> {discordUrl} <--",
+    "[•] Unser Discord freut sich immer über Verstärkung! 💬 Ob zum Quatschen, Zocken oder einfach nur Mitlesen – schaut gern vorbei: --> {discordUrl} <--",
+    "[•] Ihr wollt nichts verpassen? Auf unserem Discord findet ihr Streampläne, Infos rund um uns und die CGN-Streamer: --> {discordUrl} <--",
+    "[•] Wenn ihr mit uns und den CGN-Streamern auch abseits vom Stream in Kontakt bleiben wollt, kommt gern auf unseren Discord: --> {discordUrl} <--"
+  ]
+}

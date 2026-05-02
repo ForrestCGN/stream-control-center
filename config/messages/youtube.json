@@ -1,0 +1,12 @@
+{
+  "_meta": {
+    "description": "YouTube-Hinweise. Kurz gehalten und für Duo-Formulierungen vorbereitet."
+  },
+  "youtube_reminder": [
+    "🎥 Unser YouTube: {youtubeUrl} – Schaut vorbei und lasst ein Abo da!",
+    "▶️ Mehr von uns auf YouTube: {youtubeUrl} – Gern abonnieren!",
+    "📺 Unser Kanal auf YouTube: {youtubeUrl} – Lasst gern ein Abo da!",
+    "🔔 Highlights & mehr auf unserem YouTube: {youtubeUrl} – Gern abonnieren!",
+    "🎬 Mehr Content von uns: {youtubeUrl} – Schaut vorbei und lasst ein Abo da!"
+  ]
+}

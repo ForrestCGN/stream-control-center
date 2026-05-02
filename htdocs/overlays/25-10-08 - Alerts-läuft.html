@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CGN Alert v1.3.3 (Follow-Badge Glow)</title>
+<style>
+html,body{
+  margin:0;padding:0;background:transparent;overflow:hidden;
+  font-family:'Segoe UI',Tahoma,Verdana,sans-serif;
+}
+#wrapper{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100vw;
+  height:100vh;
+}
+
+/* ==== BOX ==== */
+#alert-box{
+  position:relative;
+  width:900px;
+  height:300px;
+  border:6px solid #5a3fc0;
+  border-radius:30px;
+  background:rgba(10,10,30,1);
+  overflow:visible; /* Badge darf überstehen */
+  transform:scale(0);
+  opacity:0;
+  box-shadow:0 0 60px #5a3fc0,0 0 120px #1e90ff,inset 0 0 40px #5a3fc0;
+}
+#bg{
+  position:absolute;
+  inset:0;
+  background:url('../assets/images/domspitzen_overlay.png') center/cover no-repeat;
+  opacity:.04;
+}
+#avatar{
+  position:absolute;left:40px;top:50%;transform:translateY(-50%);
+  width:180px;height:180px;border-radius:50%;
+  border:4px solid #fff;object-fit:cover;
+  box-shadow:0 0 25px #fff,0 0 40px #5a3fc0;
+}
+#text{
+  position:absolute;left:250px;top:0;right:180px;bottom:0;
+  display:flex;flex-direction:column;justify-content:center;color:#fff;
+}
+#headline{font-size:42px;font-weight:700;text-shadow:0 0 10px #5a3fc0,0 0 20px #1e90ff;}
+#username{font-size:58px;font-weight:900;color:#1e90ff;text-shadow:0 0 25px #1e90ff;line-height:1;}
+#subline{font-size:28px;opacity:.9;}
+
+/* ==== FOLLOW BADGE ==== */
+#alert-icon{
+  position:absolute;
+  left:50%;
+  transform:translate(-50%, -100%) scale(1); /* Unterkante bündig mit oberem Boxrand */
+  width:220px;
+  height:220px;
+  opacity:0;
+  z-index:5;
+  object-fit:contain;
+  pointer-events:none;
+  /* Neon-Glow hinter dem Icon */
+  filter:
+    drop-shadow(0 -4px 12px rgba(90,63,192,0.9))
+    drop-shadow(0 0 35px rgba(30,144,255,0.6))
+    drop-shadow(0 0 65px rgba(165,128,252,0.65));
+  will-change:transform,opacity,filter;
+}
+@keyframes badgeIn {
+  0%   {opacity:0;transform:translate(-50%,-80%) scale(0.85);}
+  60%  {opacity:1;transform:translate(-50%,-103%) scale(1.07);}
+  100% {opacity:1;transform:translate(-50%,-100%) scale(1);}
+}
+@keyframes badgeOut {
+  0%   {opacity:1;transform:translate(-50%,-100%) scale(1);}
+  100% {opacity:0;transform:translate(-50%,-80%) scale(0.85);}
+}
+
+/* ==== DOT & SPARK ==== */
+#dot{
+  position:fixed;width:40px;height:40px;border-radius:50%;
+  background:radial-gradient(circle at center,
+      rgba(165,128,252,1) 0%,
+      rgba(165,128,252,0.6) 40%,
+      rgba(30,144,255,0.3) 70%,
+      rgba(30,144,255,0.05) 100%);
+  filter:blur(4px);
+  mix-blend-mode:screen;
+  opacity:0;
+  pointer-events:none;
+  transform:translate(-50%,-50%) scale(0.9);
+}
+.spark{
+  position:fixed;width:8px;height:8px;border-radius:50%;
+  background:radial-gradient(circle,#a580fc 0%,rgba(165,128,252,0.2) 100%);
+  opacity:.6;pointer-events:none;
+  animation:fadeSpark .9s linear forwards;
+  filter:blur(2px);
+}
+@keyframes fadeSpark{
+  0%{opacity:.7;transform:scale(1)}
+  100%{opacity:0;transform:scale(0.1)}
+}
+
+/* ==== BOX ANIM ==== */
+@keyframes boxIn {
+  0%{transform:scale(.2);opacity:0}
+  60%{transform:scale(1.06);opacity:1}
+  100%{transform:scale(1);opacity:1}
+}
+@keyframes boxOut {
+  0%{transform:scale(1);opacity:1}
+  100%{transform:scale(.2);opacity:0}
+}
+@keyframes borderPulse {
+  0%,100%{box-shadow:0 0 60px #5a3fc0,0 0 120px #1e90ff,inset 0 0 40px #5a3fc0}
+  50%{box-shadow:0 0 80px #5a3fc0,0 0 150px #1e90ff,inset 0 0 50px #5a3fc0}
+}
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <div id="alert-box">
+    <div id="bg"></div>
+    <img id="avatar" src="../assets/images/default_avatar.png" alt="Avatar">
+    <div id="text">
+      <div id="headline">NEUER FOLLOW</div>
+      <div id="username">StreamerName</div>
+      <div id="subline">Willkommen bei CGN ✨</div>
+    </div>
+    <img id="alert-icon" src="">
+  </div>
+</div>
+<div id="dot"></div>
+
+<script>
+/* ===== CONFIG ===== */
+const BADGE_CONFIG = {
+  follow: {
+    enabled: true,
+    src: '../assets/images/alerts/follow/fst-Follow2.png',
+    inMs: 520,
+    outMs: 360
+  }
+};
+
+/* ===== PARAMS ===== */
+const q=new URLSearchParams(location.search);
+const type=(q.get('type')||'follow').toLowerCase();
+const user=q.get('user')||'Unknown';
+const avatar=q.get('avatar')||'../assets/images/default_avatar.png';
+const volume=parseFloat(q.get('volume')||'1');
+
+const SOUND={
+  follow:'../assets/sounds/alerts/follow.mp3',
+  sub:'../assets/sounds/alerts/sub.mp3',
+  raid:'../assets/sounds/alerts/raid.mp3'
+};
+
+/* ===== DOM ===== */
+const box=document.getElementById('alert-box');
+const dot=document.getElementById('dot');
+const iconEl=document.getElementById('alert-icon');
+document.getElementById('avatar').src=avatar;
+document.getElementById('headline').textContent='NEUER FOLLOW';
+document.getElementById('username').textContent=user;
+document.getElementById('subline').textContent='Willkommen bei CGN ✨';
+
+/* ===== Helpers ===== */
+const rand=(a,b)=>Math.random()*(b-a)+a;
+function bezier(p0,p1,p2,p3,t){
+  const u=1-t,tt=t*t,uu=u*u,uuu=uu*u,ttt=tt*t;
+  return{x:uuu*p0.x+3*uu*t*p1.x+3*u*tt*p2.x+ttt*p3.x,
+         y:uuu*p0.y+3*uu*t*p1.y+3*u*tt*p2.y+ttt*p3.y};
+}
+function edgePoint(w,h){
+  const s=Math.floor(Math.random()*4);
+  if(s===0)return{x:0,y:rand(0,h)};
+  if(s===1)return{x:w,y:rand(0,h)};
+  if(s===2)return{x:rand(0,w),y:0};
+  return{x:rand(0,w),y:h};
+}
+function spawnSpark(x,y){
+  const s=document.createElement('div');
+  s.className='spark';
+  s.style.left=x+'px';
+  s.style.top=y+'px';
+  document.body.appendChild(s);
+  const dx=rand(-25,25),dy=rand(-25,25);
+  s.animate([{transform:`translate(${dx}px,${dy}px) scale(1)`},
+             {transform:`translate(${dx*1.5}px,${dy*1.5}px) scale(0.1)`}],
+             {duration:900,easing:'ease-out',fill:'forwards'});
+  setTimeout(()=>s.remove(),900);
+}
+function fly(p0,p1,p2,p3,duration){
+  return new Promise(res=>{
+    dot.style.display='block';dot.style.opacity='1';
+    let t0=null;
+    function step(ts){
+      if(!t0)t0=ts;
+      let t=(ts-t0)/duration;
+      if(t>1){dot.style.display='none';return res();}
+      const {x,y}=bezier(p0,p1,p2,p3,t);
+      dot.style.left=x+'px';dot.style.top=y+'px';
+      if(Math.random()<0.25)spawnSpark(x,y);
+      dot.style.transform=`translate(-50%,-50%) scale(${0.8+0.2*Math.sin(t*Math.PI)})`;
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* ===== Ablauf ===== */
+(async function run(){
+  const cfg = BADGE_CONFIG[type];
+  if(cfg && cfg.enabled){
+    iconEl.src=cfg.src;
+  }
+
+  const w=innerWidth,h=innerHeight;
+  const center={x:w/2,y:h/2};
+  const start=edgePoint(w,h);
+  const cp1={x:(start.x+center.x)/2+rand(-220,220),y:(start.y+center.y)/2-220};
+  const cp2={x:(start.x+center.x)/2+rand(-160,160),y:(start.y+center.y)/2+120};
+  await fly(start,cp1,cp2,center,2800);
+
+  // Box In
+  box.style.animation='boxIn 620ms cubic-bezier(.4,0,.2,1) forwards, borderPulse 3.2s ease-in-out infinite';
+
+  // Sound
+  const a=new Audio(SOUND[type]||SOUND.follow);
+  a.volume=volume; a.play().catch(()=>{});
+
+  // Badge ein
+  if(cfg && cfg.enabled){
+    iconEl.style.animation=`badgeIn ${cfg.inMs}ms cubic-bezier(.4,0,.2,1) forwards`;
+  }
+
+  await new Promise(r=>setTimeout(r,4000));
+
+  // Box & Badge aus
+  box.style.animation='boxOut 620ms cubic-bezier(.4,0,.2,1) forwards';
+  if(cfg && cfg.enabled){
+    iconEl.style.animation=`badgeOut ${cfg.outMs}ms cubic-bezier(.4,0,.2,1) forwards`;
+  }
+
+  // Dot raus
+  const rect=box.getBoundingClientRect();
+  const from={x:rect.left+rect.width/2,y:rect.top+rect.height/2};
+  await new Promise(r=>setTimeout(r,380));
+  const end=edgePoint(w,h);
+  const cpA={x:(from.x+end.x)/2+rand(-180,180),y:(from.y+end.y)/2-180};
+  const cpB={x:(from.x+end.x)/2+rand(-140,140),y:(from.y+end.y)/2+140};
+  await fly(from,cpA,cpB,end,2800);
+  try{a.pause();a.currentTime=0;}catch{}
+})();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,34 @@
+{
+  "chatClipActivated": {
+    "enabled": true,
+    "content": "/me 🎬 !clip aktiviert!!"
+  },
+  "chatClipCreated": {
+    "enabled": true,
+    "content": "/me 📺 Twitch-Clip: {clipUrl}"
+  },
+  "chatClipFailed": {
+    "enabled": true,
+    "content": "/me ❌ Twitch-Clip konnte nicht erstellt werden."
+  },
+  "chatClipCreatedWithoutUrl": {
+    "enabled": true,
+    "content": "/me ⚠️ Twitch-Clip wurde erstellt, aber URL/ID ist noch nicht verfügbar."
+  },
+  "chatLocalReplayMissing": {
+    "enabled": true,
+    "content": "/me ❌ Kein frischer Replay-Clip gefunden."
+  },
+  "chatLocalReplayInvalidDir": {
+    "enabled": true,
+    "content": "/me ⚠️ Ungültiger Clip-Ordner: {clipsDir}"
+  },
+  "chatReplaySaved": {
+    "enabled": false,
+    "content": "/me ✅ Wiederholung gespeichert!"
+  },
+  "discordClipPost": {
+    "enabled": true,
+    "content": "🎬 Die Heimleitung hat einen neuen Clip gesichert.\n\n**Titel:** {clipTitle}\n**Spiel:** {gameName}\n**Ausgelöst von:** {triggerUser}\n\n{clipUrl}"
+  }
+}

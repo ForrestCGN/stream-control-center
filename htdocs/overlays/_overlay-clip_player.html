@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>CGN Clip Shoutout (VIP30 Style)</title>
+  <meta name="viewport" content="width=1920, height=1080">
+
+  <!-- VIP30 Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 1920px; height: 1080px;
+      background: transparent;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    .wrapper {
+      position: absolute;
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      width: 980px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .wrapper.show { animation: intro 0.9s ease-out forwards; }
+    .wrapper.hide { animation: outro 0.7s ease-in forwards; }
+
+    @keyframes intro {
+      from { opacity: 0; transform: translate(-130%, -50%) scale(0.8); }
+      to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+    @keyframes outro {
+      from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      to   { opacity: 0; transform: translate(-50%, -60%) scale(0.6); }
+    }
+
+    .panel {
+      display: grid;
+      grid-template-columns: 190px 3px 1fr;
+      gap: 0;
+      padding: 22px 30px;
+      border-radius: 40px;
+      background: radial-gradient(circle at 15% 50%, #a580fc, #5a3fc0 55%, #28123f);
+      border: 3px solid rgba(18, 8, 38, 0.9);
+      box-shadow: 0 12px 22px rgba(0,0,0,0.9);
+    }
+
+    .divider {
+      width: 3px;
+      height: 360px;
+      background: linear-gradient(180deg, transparent, #55c4ff, #a580fc, transparent);
+      box-shadow: 0 0 14px rgba(165,128,252,0.9);
+      border-radius: 99px;
+      margin: auto 0;
+    }
+
+    /* LEFT: Avatar vertically centered to match video height */
+    .left {
+      display: flex;
+      align-items: center;      /* vertical center */
+      justify-content: center;  /* horizontal center */
+      padding-right: 18px;
+      height: 360px;            /* match video-frame height */
+    }
+
+    .avatar-wrap {
+      width: 150px; height: 150px;
+      padding: 7px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #a580fc, #28123f);
+      box-shadow: 0 0 24px rgba(165,128,252,0.95);
+    }
+
+    .avatar-inner {
+      width: 100%; height: 100%;
+      border-radius: inherit;
+      overflow: hidden;
+      background: #140627;
+      border: 3px solid #120822;
+      position: relative;
+    }
+
+    .avatar-inner::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: inherit;
+      border: 3px solid #1e90ff;
+      box-shadow: 0 0 14px rgba(30,144,255,0.9);
+      pointer-events: none;
+    }
+
+    .avatar-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .avatar-ph {
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 52px;
+      font-weight: 800;
+      color: white;
+      text-shadow: 0 0 12px rgba(30,144,255,0.9);
+    }
+
+    /* RIGHT: video + name underneath */
+    .right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      padding-left: 22px;
+    }
+
+    .video-frame {
+      width: 100%;
+      height: 360px;
+      border-radius: 26px;
+      overflow: hidden;
+      background: black;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.7);
+    }
+
+    video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 250ms ease-in-out;
+    }
+
+    .right-name {
+      margin-top: 10px;
+      font-family: "Pacifico", cursive;
+      font-size: 34px;
+      color: white;
+      text-shadow: 0 0 10px rgba(165,128,252,0.9);
+      text-align: center;
+    }
+
+    .right-sub {
+      font-size: 16px;
+      color: #d0c9ff;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrapper" id="wrap">
+    <div class="panel">
+      <div class="left">
+        <div class="avatar-wrap">
+          <div class="avatar-inner">
+            <img id="avatarImg" class="avatar-img" alt="avatar">
+            <div id="avatarPh" class="avatar-ph">?</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="right">
+        <div class="video-frame">
+          <video id="clipplayer" playsinline webkit-playsinline></video>
+        </div>
+
+        <div class="right-name" id="whoName">@User</div>
+        <div class="right-sub">🧓 Altersheim-TV</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function qs(n){ return new URLSearchParams(location.search).get(n); }
+
+    async function setAvatarAndName(user) {
+      const img = document.getElementById("avatarImg");
+      const ph  = document.getElementById("avatarPh");
+      const who = document.getElementById("whoName");
+
+      const login = (user || "").replace(/^@+/, "").trim();
+
+      // Fallback sofort
+      who.textContent = login ? ("@" + login) : "Clip";
+      ph.textContent  = login ? login[0].toUpperCase() : "?";
+      img.style.display = "none";
+      ph.style.display  = "flex";
+
+      if (!login) return;
+
+      try {
+        const res = await fetch("http://localhost:8080/userinfo?login=" + encodeURIComponent(login), { cache: "no-store" });
+        if (!res.ok) throw new Error("userinfo http " + res.status);
+
+        const json = await res.json();
+        const u = json && json.data && json.data[0] ? json.data[0] : null;
+        if (!u) throw new Error("userinfo missing data[0]");
+
+        const displayName = (u.display_name || login).trim();
+        const avatarUrl   = (u.profile_image_url || "").trim();
+
+        who.textContent = "@" + displayName;
+
+        if (avatarUrl) {
+          img.src = avatarUrl;
+          img.style.display = "block";
+          ph.style.display = "none";
+        }
+      } catch (e) {
+        // Fallback bleibt
+        console.warn("userinfo failed:", e);
+      }
+    }
+
+    async function loadClip(clipId) {
+      const res = await fetch("https://gql.twitch.tv/gql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko"
+        },
+        body: JSON.stringify({
+          operationName: "VideoAccessToken_Clip",
+          variables: { slug: clipId },
+          extensions: {
+            persistedQuery: {
+              version: 1,
+              sha256Hash: "36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11"
+            }
+          }
+        })
+      });
+
+      if (!res.ok) throw new Error("twitch gql http " + res.status);
+
+      const j = await res.json();
+      const clip = j && j.data && j.data.clip ? j.data.clip : null;
+      if (!clip) throw new Error("clip missing");
+
+      const qualities = clip.videoQualities || [];
+      if (!qualities.length) throw new Error("no qualities");
+
+      qualities.sort((a,b)=> (b.quality||0) - (a.quality||0));
+      const best = qualities[0];
+
+      return best.sourceURL
+        + "?sig=" + encodeURIComponent(clip.playbackAccessToken.signature)
+        + "&token=" + encodeURIComponent(clip.playbackAccessToken.value);
+    }
+
+    async function play(mp4) {
+      const wrap = document.getElementById("wrap");
+      const v = document.getElementById("clipplayer");
+
+      wrap.classList.remove("show","hide");
+      void wrap.offsetWidth;
+      wrap.classList.add("show");
+
+      v.src = mp4;
+      v.load();
+
+      // Autoplay: try with sound, fallback muted
+      v.muted = false;
+
+      try { await v.play(); }
+      catch { v.muted = true; await v.play(); }
+
+      v.style.opacity = 1;
+
+      v.onended = () => {
+        v.style.opacity = 0;
+        wrap.classList.remove("show");
+        wrap.classList.add("hide");
+      };
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const clipId = qs("clipId");
+      const user = qs("user") || "";
+
+      if (!clipId) return;
+
+      setAvatarAndName(user);
+
+      try {
+        const mp4 = await loadClip(clipId);
+        await play(mp4);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>

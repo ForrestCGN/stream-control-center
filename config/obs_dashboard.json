@@ -1,0 +1,9 @@
+{
+  "autoRefreshEnabled": true,
+  "fastRefreshMs": 2000,
+  "fullRefreshMs": 5000,
+  "showStatusLine": true,
+  "showPerformance": true,
+  "showOverview": true,
+  "hideInternalScenesOnMain": true
+}

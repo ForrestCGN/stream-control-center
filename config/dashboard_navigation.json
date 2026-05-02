@@ -1,0 +1,292 @@
+{
+  "schemaVersion": 3,
+  "updatedAt": "2026-05-01",
+  "step": "006",
+  "defaultRoute": "streamdesk",
+  "activationState": "prepared_only",
+  "rules": {
+    "mainGroups": "Hauptbereiche sind Live, Control, System, Community und Admin. Keine endlose Modul-Liste.",
+    "live": "Live ist die Bedienoberfläche während des Streams: Chat, Userinfo, OBS Quick, Clips, Tagesnotizen.",
+    "control": "Control enthält Stream-Ausgabe und Konfiguration rund um Alerts, Overlays, OBS und Stream-Steuerung.",
+    "system": "System enthält technische/globale Stream-Systeme wie Sound-System, TTS, Bot-Systeme, Automationen, Integrationen und Modulstatus.",
+    "community": "Community enthält Chat-/Viewer-/Interaktionssysteme wie Hug, Chat-Overlay, Deathcounter, Challenges, Tagebuch, Todo und Commands.",
+    "admin": "Admin bleibt nur für sensible Verwaltung: Benutzer, Rollen, Configs, Logs, Datenbank, Backups, Tokens/Secrets, Diagnose.",
+    "rights": "Rollen/Permissions sind vorbereitet, aber noch nicht scharf geschaltet. Backend muss später final prüfen.",
+    "adminConfigs": "Admin > Configs ist als zentrale Konfigurationsseite vorbereitet. Schreiben bleibt bis Auth/Rechteprüfung gesperrt."
+  },
+  "groups": [
+    {
+      "id": "live",
+      "label": "Live",
+      "requiredPermission": "streamdesk.view",
+      "items": [
+        {
+          "id": "streamdesk",
+          "label": "Stream-Desk",
+          "module": "streamdesk",
+          "enabled": true,
+          "requiredPermission": "streamdesk.view"
+        },
+        {
+          "id": "chat",
+          "label": "Chat",
+          "module": "chat",
+          "enabled": false,
+          "requiredPermission": "chat.read"
+        },
+        {
+          "id": "userinfo",
+          "label": "Userinfo",
+          "module": "userinfo",
+          "enabled": false,
+          "requiredPermission": "userinfo.view"
+        },
+        {
+          "id": "obsquick",
+          "label": "OBS Quick",
+          "module": "obsquick",
+          "enabled": false,
+          "requiredPermission": "obs.quick.view"
+        },
+        {
+          "id": "clips",
+          "label": "Clips",
+          "module": "clips",
+          "enabled": false,
+          "requiredPermission": "clips.create"
+        },
+        {
+          "id": "daily_notes",
+          "label": "Tagesnotizen",
+          "module": "daily_notes",
+          "enabled": false,
+          "requiredPermission": "tagebuch.write"
+        }
+      ]
+    },
+    {
+      "id": "control",
+      "label": "Control",
+      "requiredPermission": "control.view",
+      "items": [
+        {
+          "id": "controlhome",
+          "label": "Übersicht",
+          "module": "controlhome",
+          "enabled": true,
+          "requiredPermission": "control.view"
+        },
+        {
+          "id": "alerts",
+          "label": "Alerts V2",
+          "module": "alerts",
+          "enabled": true,
+          "requiredPermission": "alerts.view"
+        },
+        {
+          "id": "overlays",
+          "label": "Overlays",
+          "module": "overlays",
+          "enabled": false,
+          "requiredPermission": "overlays.view"
+        },
+        {
+          "id": "obs",
+          "label": "OBS Details",
+          "module": "obs",
+          "enabled": true,
+          "requiredPermission": "obs.detail.view"
+        },
+        {
+          "id": "stream_control",
+          "label": "Stream-Steuerung",
+          "module": "stream_control",
+          "enabled": false,
+          "requiredPermission": "stream.control.view"
+        }
+      ]
+    },
+    {
+      "id": "system",
+      "label": "System",
+      "requiredPermission": "system.view",
+      "items": [
+        {
+          "id": "sound_system",
+          "label": "Sound-System",
+          "module": "sound_system",
+          "enabled": false,
+          "requiredPermission": "sounds.view"
+        },
+        {
+          "id": "tts",
+          "label": "TTS",
+          "module": "tts",
+          "enabled": false,
+          "requiredPermission": "tts.view"
+        },
+        {
+          "id": "bot_systems",
+          "label": "Bot-Systeme",
+          "module": "bot_systems",
+          "enabled": false,
+          "requiredPermission": "bot_systems.view"
+        },
+        {
+          "id": "message_rotator",
+          "label": "Message-Rotator",
+          "module": "message_rotator",
+          "enabled": false,
+          "requiredPermission": "message_rotator.view"
+        },
+        {
+          "id": "automations",
+          "label": "Automationen",
+          "module": "automations",
+          "enabled": false,
+          "requiredPermission": "automations.view"
+        },
+        {
+          "id": "integrations",
+          "label": "Integrationen",
+          "module": "integrations",
+          "enabled": false,
+          "requiredPermission": "integrations.view"
+        },
+        {
+          "id": "module_status",
+          "label": "Modulstatus",
+          "module": "module_status",
+          "enabled": false,
+          "requiredPermission": "modules.view"
+        }
+      ]
+    },
+    {
+      "id": "community",
+      "label": "Community",
+      "requiredPermission": "community.view",
+      "items": [
+        {
+          "id": "hug",
+          "label": "Hug-System",
+          "module": "hug",
+          "enabled": false,
+          "requiredPermission": "hug.view"
+        },
+        {
+          "id": "chat_overlay",
+          "label": "Chat-Overlay",
+          "module": "chat_overlay",
+          "enabled": false,
+          "requiredPermission": "chat_overlay.view"
+        },
+        {
+          "id": "deathcounter",
+          "label": "Deathcounter",
+          "module": "deathcounter",
+          "enabled": false,
+          "requiredPermission": "deathcounter.view"
+        },
+        {
+          "id": "challenges",
+          "label": "Challenges",
+          "module": "challenges",
+          "enabled": false,
+          "requiredPermission": "challenges.view"
+        },
+        {
+          "id": "tagebuch",
+          "label": "Tagebuch",
+          "module": "tagebuch",
+          "enabled": false,
+          "requiredPermission": "tagebuch.write"
+        },
+        {
+          "id": "todo",
+          "label": "Todo",
+          "module": "todo",
+          "enabled": false,
+          "requiredPermission": "todo.write"
+        },
+        {
+          "id": "commands",
+          "label": "Commands",
+          "module": "commands",
+          "enabled": false,
+          "requiredPermission": "commands.view"
+        },
+        {
+          "id": "community_stats",
+          "label": "Community-Stats",
+          "module": "community_stats",
+          "enabled": false,
+          "requiredPermission": "community.stats.view"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "label": "Admin",
+      "requiredPermission": "admin.local.view",
+      "items": [
+        {
+          "id": "users",
+          "label": "Benutzer",
+          "module": "users",
+          "enabled": false,
+          "requiredPermission": "users.manage"
+        },
+        {
+          "id": "roles",
+          "label": "Rollen & Rechte",
+          "module": "roles",
+          "enabled": false,
+          "requiredPermission": "roles.manage"
+        },
+        {
+          "id": "adminconfigs",
+          "label": "Configs",
+          "module": "adminconfigs",
+          "enabled": true,
+          "requiredPermission": "admin.config.view"
+        },
+        {
+          "id": "logs",
+          "label": "Logs",
+          "module": "logs",
+          "enabled": false,
+          "requiredPermission": "system.logs.view"
+        },
+        {
+          "id": "database",
+          "label": "Datenbank",
+          "module": "database",
+          "enabled": false,
+          "requiredPermission": "database.view"
+        },
+        {
+          "id": "backups",
+          "label": "Backups",
+          "module": "backups",
+          "enabled": false,
+          "requiredPermission": "system.backup.create"
+        },
+        {
+          "id": "tokens",
+          "label": "Tokens / Secrets",
+          "module": "tokens",
+          "enabled": false,
+          "requiredPermission": "secrets.view"
+        },
+        {
+          "id": "diagnostics",
+          "label": "Diagnose",
+          "module": "diagnostics",
+          "enabled": false,
+          "requiredPermission": "system.diagnostics.run"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "description": "Texte, die Streamer.bot direkt als Chat-Nachricht verwenden kann."
+  },
+  "welcome_first_message": [
+    "Willkommen im Stream {displayName} 💜"
+  ],
+  "welcome_delayed": [
+    "Schön, dass du da bist, {displayName} 💜"
+  ]
+}

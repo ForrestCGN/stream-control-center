@@ -1,0 +1,63 @@
+{
+  "_meta": {
+    "description": "Texte und Hinweis-Karten für das Start-Overlay V2 / Neon Galaxy. Linke obere zwei Felder rotieren; Heute im Stream bleibt fest."
+  },
+  "rightRotatorMessages": [
+    {
+      "icon": "🔔",
+      "title": "Folgen lohnt sich",
+      "text": "Dann verpasst du keinen Stream mehr."
+    },
+    {
+      "icon": "▶",
+      "title": "YouTube Highlights",
+      "text": "Clips und Highlights findet ihr auch später auf YouTube."
+    },
+    {
+      "icon": "💬",
+      "title": "Discord",
+      "text": "Komm gern in die Community und bleib auf dem Laufenden."
+    },
+    {
+      "icon": "♡",
+      "title": "Bleibt legendär",
+      "text": "Danke fürs Zuschauen und Unterstützen."
+    }
+  ],
+  "fallbackChatMessages": [
+    {
+      "user": "ForrestCGN",
+      "text": "Willkommen im Stream 💜"
+    },
+    {
+      "user": "EngelCGN",
+      "text": "Gleich geht es los."
+    },
+    {
+      "user": "HeimaufsichtCGN",
+      "text": "Bitte langsam reinrollen. Rentner-Tempo."
+    }
+  ],
+  "leftRotatorMessages": [
+    {
+      "icon": "🔔",
+      "title": "Folgen lohnt sich",
+      "text": "Dann verpasst du keinen Stream mehr."
+    },
+    {
+      "icon": "▶",
+      "title": "YouTube Highlights",
+      "text": "Clips und Highlights findet ihr auch später auf YouTube."
+    },
+    {
+      "icon": "💬",
+      "title": "Discord",
+      "text": "Komm gern in die Community und bleib auf dem Laufenden."
+    },
+    {
+      "icon": "♡",
+      "title": "Bleibt legendär",
+      "text": "Danke fürs Zuschauen und Unterstützen."
+    }
+  ]
+}

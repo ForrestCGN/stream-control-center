@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 2,
+  "updatedAt": "2026-05-01",
+  "permissionGroups": {
+    "chat": [
+      "chat.read",
+      "chat.send.own_twitch",
+      "chat.send.bot_fallback"
+    ],
+    "userinfo": [
+      "userinfo.view",
+      "userinfo.notes.write"
+    ],
+    "obs": [
+      "obs.quick.view",
+      "obs.quick.switch",
+      "obs.detail.view",
+      "obs.source.toggle",
+      "obs.overlay.toggle"
+    ],
+    "alerts": [
+      "alerts.view",
+      "alerts.replay",
+      "alerts.test",
+      "alerts.config.edit",
+      "alerts.queue.manage"
+    ],
+    "sounds": [
+      "sounds.view",
+      "sounds.play",
+      "sounds.stop",
+      "sounds.queue.manage",
+      "sounds.config.edit"
+    ],
+    "moderation": [
+      "moderation.timeout",
+      "moderation.delete_message",
+      "moderation.shoutout",
+      "moderation.ban",
+      "moderation.unban",
+      "moderation.clear_chat",
+      "moderation.modlog.view"
+    ],
+    "admin": [
+      "system.logs.view",
+      "system.config.edit",
+      "system.modules.reload",
+      "system.diagnostics.run",
+      "system.backup.create",
+      "database.view",
+      "database.write",
+      "secrets.view",
+      "secrets.edit",
+      "roles.manage",
+      "users.manage"
+    ],
+    "system": [
+      "system.view",
+      "sounds.view",
+      "sounds.play",
+      "sounds.stop",
+      "sounds.queue.manage",
+      "sounds.config.edit",
+      "tts.view",
+      "tts.config.edit",
+      "bot_systems.view",
+      "message_rotator.view",
+      "message_rotator.config.edit",
+      "automations.view",
+      "integrations.view",
+      "modules.view"
+    ],
+    "community": [
+      "community.view",
+      "hug.view",
+      "chat_overlay.view",
+      "deathcounter.view",
+      "challenges.view",
+      "tagebuch.write",
+      "todo.write",
+      "commands.view",
+      "community.stats.view"
+    ],
+    "stream_control": [
+      "stream.control.view",
+      "obs.stream.startstop"
+    ],
+    "auth": [
+      "dashboard.login",
+      "auth.twitch.login",
+      "auth.twitch.status.view",
+      "auth.twitch.token.refresh"
+    ]
+  },
+  "twitchNativePermissions": [
+    "chat.send.own_twitch",
+    "moderation.timeout",
+    "moderation.delete_message",
+    "moderation.shoutout",
+    "moderation.ban",
+    "moderation.unban",
+    "moderation.clear_chat"
+  ],
+  "requiresModLog": [
+    "chat.send.own_twitch",
+    "moderation.timeout",
+    "moderation.delete_message",
+    "moderation.shoutout",
+    "moderation.ban",
+    "moderation.unban",
+    "moderation.clear_chat",
+    "obs.quick.switch",
+    "alerts.replay",
+    "sounds.stop",
+    "sounds.queue.manage"
+  ],
+  "dangerousActions": [
+    "moderation.ban",
+    "moderation.unban",
+    "moderation.clear_chat",
+    "obs.stream.startstop",
+    "system.modules.enable_disable",
+    "database.write",
+    "secrets.edit",
+    "system.restore",
+    "danger.zone"
+  ],
+  "step": "004",
+  "activationState": "prepared_only",
+  "rules": {
+    "preparedOnly": "Diese Permissions sind Struktur/Planung. Sie sind noch nicht als echtes Login-/Rechtesystem live geschaltet.",
+    "twitchNativeActions": "Twitch-native Aktionen werden später mit dem OAuth-Token des eingeloggten Twitch-Users ausgeführt. Twitch prüft final.",
+    "dashboardActions": "Nicht-Twitch-Aktionen laufen über Dashboard-Permissions.",
+    "localAdminActions": "Lokale Admin-Aktionen brauchen zusätzlich lokalen/LAN-Kontext."
+  },
+  "admin": {
+    "admin.config.view": "Admin-Config-Seite ansehen.",
+    "admin.config.edit": "Erlaubte Configs über Admin-Seite ändern. Noch nicht live scharf geschaltet.",
+    "admin.secrets.replace": "Secrets/Tokens ersetzen, aber niemals im Klartext anzeigen.",
+    "admin.secrets.view_masked": "Maskierte Secret-Platzhalter sehen.",
+    "admin.system.reload": "System-/Modul-Reload auslösen. Später local_admin/owner."
+  }
+}

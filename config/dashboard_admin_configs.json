@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-01",
+  "step": "007",
+  "mode": "prepared_only",
+  "writeEnabled": false,
+  "rules": {
+    "allowlistOnly": "Admin-Config-Seite darf nur hier erlaubte Configs lesen/schreiben.",
+    "noPlainSecrets": "Secrets/Tokens niemals im Klartext an das Frontend geben.",
+    "auditRequired": "Jede spätere Änderung muss ins Audit-Log, ohne Secret-Werte zu speichern.",
+    "authRequiredLater": "Schreiben wird erst mit echter Auth, Rollen-/Permission- und Local-Admin-Prüfung aktiviert.",
+    "step007": "Admin > Configs zeigt jetzt bessere Detail-/Vorschau-Karten für Stream-Desk/QuickScenes. Schreiben bleibt gesperrt."
+  },
+  "configs": [
+    {
+      "id": "streamdesk",
+      "label": "Stream-Desk",
+      "path": "streamdesk.json",
+      "displayPath": "config/streamdesk.json",
+      "category": "Live",
+      "read": true,
+      "writePrepared": true,
+      "requiredReadPermission": "admin.config.view",
+      "requiredWritePermission": "admin.config.edit",
+      "description": "OBS-QuickScenes, sichtbare Widgets und Stream-Desk-Verhalten."
+    },
+    {
+      "id": "dashboard_navigation",
+      "label": "Navigation",
+      "path": "dashboard_navigation.json",
+      "displayPath": "config/dashboard_navigation.json",
+      "category": "Dashboard",
+      "read": true,
+      "writePrepared": true,
+      "requiredReadPermission": "admin.config.view",
+      "requiredWritePermission": "admin.config.edit",
+      "description": "Hauptbereiche Live, Control, System, Community und Admin."
+    },
+    {
+      "id": "dashboard_roles",
+      "label": "Rollen",
+      "path": "dashboard_roles.json",
+      "displayPath": "config/dashboard_roles.json",
+      "category": "Rechte",
+      "read": true,
+      "writePrepared": true,
+      "requiredReadPermission": "roles.view",
+      "requiredWritePermission": "roles.manage",
+      "description": "Rollen user, mod, supermod, streamer, local_admin, owner."
+    },
+    {
+      "id": "dashboard_permissions",
+      "label": "Permissions",
+      "path": "dashboard_permissions.json",
+      "displayPath": "config/dashboard_permissions.json",
+      "category": "Rechte",
+      "read": true,
+      "writePrepared": true,
+      "requiredReadPermission": "roles.view",
+      "requiredWritePermission": "roles.manage",
+      "description": "Einzelrechte für Dashboard-, Twitch-, System- und Admin-Aktionen."
+    },
+    {
+      "id": "dashboard_access",
+      "label": "Zugriff / Local Admin",
+      "path": "dashboard_access.json",
+      "displayPath": "config/dashboard_access.json",
+      "category": "Sicherheit",
+      "read": true,
+      "writePrepared": true,
+      "requiredReadPermission": "admin.config.view",
+      "requiredWritePermission": "admin.config.edit",
+      "description": "LAN-/Local-Admin-Regeln und Zugriffsvorbereitung."
+    },
+    {
+      "id": "dashboard_logging",
+      "label": "Audit-Logging",
+      "path": "dashboard_logging.json",
+      "displayPath": "config/dashboard_logging.json",
+      "category": "System",
+      "read": true,
+      "writePrepared": true,
+      "requiredReadPermission": "system.logs.view",
+      "requiredWritePermission": "admin.config.edit",
+      "description": "Audit-Log in eigener SQLite-Datei, Retention in Tagen konfigurierbar."
+    },
+    {
+      "id": "twitch_dashboard_auth",
+      "label": "Twitch Login",
+      "path": "twitch_dashboard_auth.json",
+      "displayPath": "config/twitch_dashboard_auth.json",
+      "category": "Auth",
+      "read": true,
+      "writePrepared": true,
+      "requiredReadPermission": "admin.config.view",
+      "requiredWritePermission": "admin.config.edit",
+      "description": "OAuth-/Scope-Vorbereitung für Dashboard-Login und echte Mod-Rechte."
+    },
+    {
+      "id": "env_strategy",
+      "label": "ENV / Secrets Strategie",
+      "path": "dashboard_env_strategy.json",
+      "displayPath": "config/dashboard_env_strategy.json",
+      "category": "Secrets",
+      "read": true,
+      "writePrepared": false,
+      "requiredReadPermission": "admin.config.view",
+      "requiredWritePermission": "owner.all",
+      "description": "Geplante Trennung von normalen JSON-Configs und Secrets/ENV."
+    },
+    {
+      "id": "backend_general",
+      "label": "Backend Allgemein",
+      "path": "dashboard_backend_general.json",
+      "displayPath": "config/dashboard_backend_general.json",
+      "category": "Backend",
+      "read": true,
+      "writePrepared": true,
+      "requiredReadPermission": "admin.config.view",
+      "requiredWritePermission": "admin.config.edit",
+      "description": "Vorbereitung für allgemeine Backend-Einstellungen wie Basis-URLs, Modul-Reload, Diagnose und Pfade."
+    },
+    {
+      "id": "streamdesk_scenes_help",
+      "label": "Stream-Desk Szenen-Hilfe",
+      "path": "streamdesk.json",
+      "displayPath": "config/streamdesk.json > obsQuickScenes",
+      "category": "Live",
+      "read": true,
+      "writePrepared": false,
+      "requiredReadPermission": "admin.config.view",
+      "requiredWritePermission": "admin.config.edit",
+      "description": "Erklärung/Preview der Szenenliste. Szenen werden später über diese Admin-Seite verwaltet."
+    }
+  ],
+  "secrets": [
+    {
+      "id": "twitch_client_id",
+      "label": "Twitch Client ID",
+      "storage": "config/secrets/.env",
+      "masked": "************",
+      "replacePrepared": true
+    },
+    {
+      "id": "twitch_client_secret",
+      "label": "Twitch Client Secret",
+      "storage": "config/secrets/.env",
+      "masked": "************",
+      "replacePrepared": true
+    },
+    {
+      "id": "discord_webhooks",
+      "label": "Discord Webhooks",
+      "storage": "config/secrets/.env",
+      "masked": "************",
+      "replacePrepared": true
+    },
+    {
+      "id": "dashboard_session_secret",
+      "label": "Dashboard Session Secret",
+      "storage": "config/secrets/.env",
+      "masked": "************",
+      "replacePrepared": true
+    }
+  ]
+}

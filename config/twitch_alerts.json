@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "enqueueUrl": "http://127.0.0.1:8080/api/alerts/twitch",
+  "includeRawEvent": true,
+  "minBits": 1,
+  "minRaidViewers": 1,
+  "typeMap": {
+    "follow": "follow",
+    "bits": "bits",
+    "raid": "raid",
+    "sub": "sub",
+    "resub": "sub",
+    "giftSub": "gift_sub",
+    "channelPoints": "channel_points"
+  },
+  "forward": {
+    "follow": true,
+    "bits": true,
+    "raid": true,
+    "sub": true,
+    "resub": true,
+    "giftSub": true,
+    "channelPoints": false
+  },
+  "ignoredRewardTitles": []
+}

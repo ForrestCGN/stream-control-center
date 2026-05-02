@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 3,
+  "updatedAt": "2026-05-01",
+  "roleOrder": [
+    "user",
+    "mod",
+    "supermod",
+    "streamer",
+    "local_admin",
+    "owner"
+  ],
+  "rules": {
+    "twitchNativeActions": "Mods und SuperMods dürfen über das Dashboard bei Twitch nur Aktionen ausführen, die ihr eigener Twitch-Account im Kanal auch ausführen darf. Dashboard-Rollen erweitern keine Twitch-Rechte. Alle Twitch-Moderationsaktionen laufen über den OAuth-Token des eingeloggten Mods und werden im Mod-Log gespeichert.",
+    "dashboardActions": "Nicht-Twitch-Aktionen werden über Dashboard-Permissions geprüft.",
+    "localAdminActions": "Lokale Admin-Aktionen brauchen zusätzlich erlaubte lokale IP/LAN-Herkunft. Buttons im Frontend reichen nicht als Schutz; Backend muss prüfen.",
+    "preparedOnly": "Rollen/Permissions sind vorbereitet, aber noch nicht live aktiviert. UI darf sie anzeigen, Backend muss später jede Aktion final prüfen.",
+    "twitchLogin": "Twitch-Login wird vorbereitet, aber echte Mod-/Chat-Aktionen werden erst später aktiviert."
+  },
+  "roles": {
+    "user": {
+      "label": "User",
+      "description": "Vorbereitete Basisrolle für normale Nutzer. Aktuell praktisch keine Dashboard-Rechte.",
+      "inherits": [],
+      "permissions": [
+        "dashboard.login"
+      ]
+    },
+    "mod": {
+      "label": "Mod",
+      "description": "Normale Twitch-Mods. Twitch-native Aktionen nur, wenn der eigene Twitch-Account sie im Kanal darf.",
+      "inherits": [
+        "user"
+      ],
+      "permissions": [
+        "streamdesk.view",
+        "chat.read",
+        "chat.send.own_twitch",
+        "chat.send.bot_fallback",
+        "userinfo.view",
+        "userinfo.notes.write",
+        "clips.create",
+        "clips.replaybuffer.save",
+        "alerts.view",
+        "alerts.replay",
+        "sounds.view",
+        "sounds.stop",
+        "moderation.timeout",
+        "moderation.delete_message",
+        "moderation.shoutout",
+        "tagebuch.write",
+        "todo.write",
+        "auth.twitch.login",
+        "auth.twitch.status.view",
+        "community.view",
+        "chat_overlay.view",
+        "commands.view"
+      ]
+    },
+    "supermod": {
+      "label": "SuperMod",
+      "description": "Erweiterte Live-Werkzeuge für sehr vertrauenswürdige Mods. Twitch-Rechte werden trotzdem final durch Twitch geprüft.",
+      "inherits": [
+        "mod"
+      ],
+      "permissions": [
+        "obs.quick.view",
+        "obs.quick.switch",
+        "moderation.ban",
+        "moderation.unban",
+        "moderation.clear_chat",
+        "moderation.modlog.view",
+        "user.flags.manage",
+        "user.warning.manage",
+        "alerts.queue.manage",
+        "sounds.queue.manage",
+        "deathcounter.view",
+        "challenges.view",
+        "community.stats.view"
+      ]
+    },
+    "streamer": {
+      "label": "Streamer",
+      "description": "Streamer-Rolle für Live- und Control-Bereich ohne automatische System-/Secret-Rechte.",
+      "inherits": [
+        "supermod"
+      ],
+      "permissions": [
+        "control.view",
+        "obs.detail.view",
+        "obs.source.toggle",
+        "obs.overlay.toggle",
+        "alerts.test",
+        "alerts.config.edit",
+        "sounds.play",
+        "sounds.config.edit",
+        "overlays.view",
+        "overlays.preview",
+        "overlays.config.edit",
+        "community.config.edit",
+        "system.view",
+        "stream.control.view",
+        "tts.view",
+        "bot_systems.view",
+        "message_rotator.view",
+        "automations.view",
+        "integrations.view",
+        "modules.view",
+        "hug.view",
+        "commands.view"
+      ]
+    },
+    "local_admin": {
+      "label": "Lokaler Admin",
+      "description": "Admin-Rechte für Systemverwaltung, nur lokal/LAN.",
+      "inherits": [
+        "streamer"
+      ],
+      "requiresLocalAccess": true,
+      "permissions": [
+        "admin.local.view",
+        "system.logs.view",
+        "system.config.edit",
+        "system.modules.reload",
+        "system.diagnostics.run",
+        "system.backup.create",
+        "database.view",
+        "tts.config.edit",
+        "message_rotator.config.edit",
+        "modules.view",
+        "admin.config.view",
+        "admin.config.edit",
+        "admin.secrets.view_masked",
+        "admin.system.reload"
+      ]
+    },
+    "owner": {
+      "label": "Owner",
+      "description": "Vollzugriff. Nur für Forrest.",
+      "inherits": [
+        "local_admin"
+      ],
+      "permissions": [
+        "owner.all",
+        "users.manage",
+        "roles.manage",
+        "tokens.manage",
+        "secrets.view",
+        "secrets.edit",
+        "database.write",
+        "system.modules.enable_disable",
+        "system.restore",
+        "danger.zone",
+        "admin.config.view",
+        "admin.config.edit",
+        "admin.secrets.view_masked",
+        "admin.system.reload",
+        "admin.secrets.replace"
+      ]
+    }
+  },
+  "defaultRole": "mod",
+  "step": "004",
+  "activationState": "prepared_only"
+}

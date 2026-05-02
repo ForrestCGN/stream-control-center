@@ -1,0 +1,6 @@
+{
+  "moduleReady": "[ALERT] Alert-System V2 bereit.",
+  "alertQueued": "[ALERT] Alert wurde eingereiht.",
+  "alertPlayed": "[ALERT] Alert wurde abgespielt.",
+  "noMatchingRule": "[ALERT] Keine passende Regel gefunden."
+}

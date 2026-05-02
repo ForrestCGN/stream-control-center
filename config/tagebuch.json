@@ -1,0 +1,28 @@
+{
+  "enabled": true,
+  "requireActiveStreamForEntries": true,
+  "timezoneMode": "local",
+  "webhookUrlEnv": "DISCORD_WEBHOOK_TAGEBUCH",
+  "apiKeyEnvFallbacks": [
+    "DISCORD_API_KEY",
+    "API_KEY"
+  ],
+  "userinfoBaseUrl": "http://127.0.0.1:8080/userinfo",
+  "pageTitle": "📚 Streamtagebuch Seite {page} 📚",
+  "postPageHeader": true,
+  "useDiscordWebhook": true,
+  "reset": {
+    "allowHardReset": false,
+    "hardResetConfirm": "RESET_PAGE_COUNTER"
+  },
+  "routes": {
+    "legacyDiscordRoutes": true,
+    "apiRoutes": true
+  },
+  "stats": {
+    "enabled": true,
+    "countSystemEntries": false,
+    "defaultLimit": 10,
+    "maxLimit": 50
+  }
+}

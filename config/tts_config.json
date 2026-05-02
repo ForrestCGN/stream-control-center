@@ -1,0 +1,119 @@
+{
+  "enabled": true,
+  "command": "!tts",
+  "defaultVoice": "google_wavenet_h",
+  "fallbackVoice": "piper_thorsten",
+  "rejectWhenFallbackUnavailable": true,
+  "limits": {
+    "googleDailyCharacterLimit": 15000,
+    "googleMonthlyCharacterLimit": 300000
+  },
+  "queue": {
+    "maxSize": 8,
+    "gapAfterMs": 350,
+    "deleteGeneratedAfterHours": 6
+  },
+  "text": {
+    "removeUrls": true,
+    "blockEmpty": true,
+    "maxRepeatedChar": 5
+  },
+  "voices": {
+    "google_wavenet_h": {
+      "enabled": true,
+      "engine": "google",
+      "label": "Google Deutsch Wavenet H",
+      "keyFile": "D:\\Streaming\\stramAssets\\config\\google_tts_service_account.json",
+      "languageCode": "de-DE",
+      "name": "de-DE-Wavenet-H",
+      "audioEncoding": "MP3",
+      "speakingRate": 1,
+      "pitch": 0
+    },
+    "piper_thorsten": {
+      "enabled": true,
+      "engine": "piper",
+      "label": "Piper Thorsten High",
+      "exe": "D:\\Streaming\\stramAssets\\tools\\piper\\piper.exe",
+      "model": "D:\\Streaming\\stramAssets\\tools\\piper\\voice\\de_DE-thorsten-high.onnx",
+      "config": "D:\\Streaming\\stramAssets\\tools\\piper\\voice\\de_DE-thorsten-high.onnx.json",
+      "audioEncoding": "WAV"
+    }
+  },
+  "roles": {
+    "broadcaster": {
+      "enabled": true,
+      "voice": "google_wavenet_h",
+      "maxLength": 5000,
+      "userCooldownSeconds": 0,
+      "globalCooldownSeconds": 0,
+      "priority": 100
+    },
+    "moderator": {
+      "enabled": true,
+      "voice": "google_wavenet_h",
+      "maxLength": 400,
+      "userCooldownSeconds": 30,
+      "globalCooldownSeconds": 0,
+      "priority": 90
+    },
+    "vip": {
+      "enabled": true,
+      "voice": "google_wavenet_h",
+      "maxLength": 320,
+      "userCooldownSeconds": 60,
+      "globalCooldownSeconds": 10,
+      "priority": 70
+    },
+    "subscriber": {
+      "enabled": true,
+      "voice": "piper_thorsten",
+      "maxLength": 260,
+      "userCooldownSeconds": 120,
+      "globalCooldownSeconds": 15,
+      "priority": 40
+    },
+    "viewer": {
+      "enabled": false,
+      "voice": "piper_thorsten",
+      "maxLength": 120,
+      "userCooldownSeconds": 900,
+      "globalCooldownSeconds": 120,
+      "priority": 0
+    }
+  },
+  "permissions": {
+    "moderatorCommands": [
+      "on",
+      "off",
+      "status",
+      "stop",
+      "clear",
+      "mute",
+      "unmute",
+      "list",
+      "help",
+      "reload"
+    ],
+    "broadcasterOnlyCommands": [
+      "ban",
+      "unban",
+      "debug"
+    ],
+    "banManagers": [
+      "engelcgn",
+      "roxxyfoxxycgn"
+    ]
+  },
+  "system": {
+    "enabled": true,
+    "requireKey": false,
+    "key": "",
+    "respectGlobalEnabled": true,
+    "voice": "google_wavenet_h",
+    "user": "heimaufsichtcgn",
+    "displayName": "HeimaufsichtCGN",
+    "maxLength": 500,
+    "priority": 95
+  }
+}

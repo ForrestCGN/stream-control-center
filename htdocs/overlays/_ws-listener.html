@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>WS Listener</title>
+  <style>
+    html,body{margin:0;padding:0;background:rgba(0,0,0,.3);color:#fff;font:14px monospace}
+    #box{position:absolute;left:10px;top:10px;right:10px;bottom:10px;overflow:auto;white-space:pre-wrap}
+  </style>
+</head>
+<body>
+  <div id="box">connecting…</div>
+  <script>
+    const box = document.getElementById("box");
+    const ws = new WebSocket("ws://127.0.0.1:8080/");
+    ws.onopen = () => box.textContent = "CONNECTED\n";
+    ws.onmessage = (ev) => box.textContent = "CONNECTED\n\nLAST MESSAGE:\n" + ev.data;
+    ws.onerror = () => box.textContent = "ERROR";
+    ws.onclose = () => box.textContent = "CLOSED";
+  </script>
+</body>
+</html>

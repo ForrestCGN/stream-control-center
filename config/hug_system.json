@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "enabled": true,
+  "rehugWindowSeconds": 300,
+  "topLimit": 5
+}

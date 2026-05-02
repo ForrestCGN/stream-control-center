@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Easter Egg Winner</title>
+  <meta name="viewport" content="width=1920, height=1080">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --c-bg-deep:      #0c0618;
+      --c-purple-dark:  #28123f;
+      --c-purple-main:  #5a3fc0;
+      --c-purple-light: #a580fc;
+      --c-blue-main:    #1e90ff;
+      --c-blue-soft:    #55c4ff;
+      --c-text-main:    #ffffff;
+      --c-text-sub:     #d0c9ff;
+      --c-gold:         #ffd36a;
+      --c-gold2:        #ff9f1a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      background: transparent;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--c-text-main);
+    }
+
+    .wrap {
+      position: absolute;
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      width: 980px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes intro {
+      0% { opacity: 0; transform: translate(-130%, -50%) scale(0.8); filter: blur(10px); }
+      40% { opacity: 1; transform: translate(-46%, -50%) scale(1.04); filter: blur(0); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @keyframes outro {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -55%) scale(0.65); filter: blur(8px); }
+    }
+
+    .wrap.show { animation: intro 0.9s ease-out forwards; }
+    .wrap.hide { animation: outro 0.7s ease-in forwards; }
+
+    .panel {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 26px;
+      padding: 24px 42px;
+      border-radius: 40px;
+      background: radial-gradient(circle at 15% 50%, var(--c-purple-light), var(--c-purple-dark));
+      box-shadow: 0 12px 24px rgba(0,0,0,0.9);
+    }
+
+    .badge {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 58px;
+      font-weight: 900;
+      background: radial-gradient(circle, #241045, #140627);
+      box-shadow: 0 0 20px rgba(165,128,252,0.9);
+    }
+
+    .content { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+
+    .line1 {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+    }
+
+    .user {
+      font-family: "Pacifico", cursive;
+      color: var(--c-blue-soft);
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+
+    .line2 { font-size: 22px; }
+    .line3 { font-size: 19px; color: var(--c-text-sub); }
+
+    .prize {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--c-gold);
+      text-shadow: 0 0 10px rgba(255,159,26,0.6);
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap" id="wrap">
+  <div class="panel">
+    <div class="badge">🏆</div>
+    <div class="content">
+      <div class="line1"><span class="user" id="user">User</span></div>
+      <div class="line2" id="headline">hat ein Geheimnis gelüftet!</div>
+      <div class="line3">Silvester-Easter-Egg gefunden 🎆</div>
+      <div class="prize" id="prize">Gewinn: Gutschein</div>
+    </div>
+  </div>
+</div>
+
+<!-- 🔊 Sound -->
+<audio id="sound" src="/assets/sounds/easter-egg.mp3" preload="auto"></audio>
+
+<script>
+  function qp(name, def="") {
+    return new URLSearchParams(window.location.search).get(name) || def;
+  }
+
+  const data = {
+    user: decodeURIComponent(qp("u","Unbekannt")),
+    prize: decodeURIComponent(qp("p","Gutschein")),
+    text: decodeURIComponent(qp("t",""))
+  };
+
+  const wrap = document.getElementById("wrap");
+  document.getElementById("user").textContent = data.user;
+  document.getElementById("prize").textContent = "Gewinn: " + data.prize;
+  if (data.text) document.getElementById("headline").textContent = data.text;
+
+  wrap.classList.add("show");
+
+  const sound = document.getElementById("sound");
+  sound.currentTime = 0;
+  sound.volume = 1.0;
+  sound.play().catch(()=>{});
+
+  setTimeout(() => {
+    wrap.classList.remove("show");
+    wrap.classList.add("hide");
+  }, 20000);
+</script>
+
+</body>
+</html>

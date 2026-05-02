@@ -1,0 +1,36 @@
+{
+  "enabled": true,
+  "websocket": {
+    "enabled": true,
+    "configEventOp": "start_overlay_config",
+    "chatMessageOp": "start_chat_message",
+    "chatSnapshotOp": "start_chat_snapshot",
+    "chatClearOp": "start_chat_clear"
+  },
+  "chat": {
+    "enabled": true,
+    "maxMessages": 6,
+    "maxStoredMessages": 60,
+    "maxTextLength": 500,
+    "allowEmptyMessages": false,
+    "ignoreUsers": [
+      "streamelements",
+      "streamlabs",
+      "nightbot"
+    ],
+    "fallbackLabel": "Fallback / wartet auf WebSocket",
+    "liveLabel": "Live über WebSocket"
+  },
+  "rightRotator": {
+    "enabled": true,
+    "mode": "random",
+    "intervalMs": 300000,
+    "demoFastIntervalMs": 12000
+  },
+  "leftRotator": {
+    "enabled": true,
+    "mode": "random",
+    "intervalMs": 300000,
+    "demoFastIntervalMs": 12000
+  }
+}

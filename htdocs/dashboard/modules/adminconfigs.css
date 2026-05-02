@@ -1,0 +1,23 @@
+
+.adminconfigs-grid { align-items: start; }
+.adminconfigs-hero p { max-width: 980px; }
+.adminconfigs-layout { display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: 16px; }
+.adminconfigs-list { display: grid; gap: 10px; }
+.adminconfig-item { width: 100%; text-align: left; justify-content: flex-start; display: grid; gap: 4px; padding: 12px; border-radius: 14px; }
+.adminconfig-item strong { font-size: 14px; }
+.adminconfig-item span { font-size: 12px; opacity: .74; }
+.adminconfig-item.active { outline: 1px solid rgba(132, 92, 255, .65); box-shadow: 0 0 0 1px rgba(64, 220, 255, .12) inset; }
+.adminconfig-detail { min-height: 420px; }
+.adminconfig-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.adminconfig-meta .quick-card { min-height: auto; }
+.adminconfig-editor { width: 100%; min-height: 280px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 12px; line-height: 1.45; border-radius: 14px; padding: 12px; color: var(--text); background: rgba(6, 10, 22, .72); border: 1px solid rgba(255,255,255,.13); }
+.adminconfig-secret-row { display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.11); border-radius: 14px; background: rgba(255,255,255,.045); margin-bottom: 8px; }
+.adminconfig-secret-row code { opacity: .8; }
+.adminconfig-actions { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.adminconfigs-warning { border-color: rgba(255, 193, 7, .35); }
+@media (max-width: 980px) { .adminconfigs-layout { grid-template-columns: 1fr; } .adminconfig-meta { grid-template-columns: 1fr; } }
+
+
+/* STEP007: Config previews */
+.adminconfig-preview{margin:14px 0;padding:14px;border:1px solid rgba(125,211,252,.24);border-radius:16px;background:rgba(10,18,32,.42)}
+.adminconfig-preview h3{margin:0 0 10px}.adminconfig-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}.adminconfig-chip-row span{border:1px solid rgba(124,77,255,.35);border-radius:999px;padding:5px 9px;background:rgba(124,77,255,.08);font-size:12px}.adminconfig-scene-preview{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.adminconfig-scene-preview div{padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.04)}.adminconfig-scene-preview strong{display:block}.adminconfig-scene-preview small{color:#9fb0c8}

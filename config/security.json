@@ -1,0 +1,30 @@
+{
+  "enabled": true,
+  "allowLocalhostWithoutAuth": true,
+  "allowConfiguredNetworksWithoutAuth": true,
+  "allowAllPrivateNetworksWithoutAuth": false,
+  "allowedNetworks": [
+    "127.0.0.1",
+    "::1",
+    "192.168.16.0/24"
+  ],
+  "requireAuthForExternal": true,
+  "blockExternalWithoutAuth": true,
+  "trustedProxyHeaders": false,
+  "authParamNames": [
+    "auth",
+    "key",
+    "apiKey",
+    "token"
+  ],
+  "authHeaderNames": [
+    "x-api-key",
+    "x-auth-token"
+  ],
+  "envAuthNames": [
+    "API_AUTH",
+    "API_KEY",
+    "DISCORD_API_KEY",
+    "LOCAL_API_KEY"
+  ]
+}

@@ -1,0 +1,388 @@
+{
+  "version": 1,
+  "hugAllTexts": [
+    "{from} verteilt einfach mal eine große Umarmung an den ganzen Chat 🤗",
+    "{from} drückt heute einmal den kompletten Chat an sich 💜",
+    "{from} wirft eine herzliche Umarmung in die ganze Runde 🤗",
+    "{from} schickt dem gesamten Chat eine extra warme Umarmung 💜",
+    "{from} packt den ganzen Chat in eine gemeinsame Umarmung 🤗",
+    "{from} gönnt heute einfach allen im Chat eine Umarmung 💜",
+    "{from} verteilt eine Rundum-Umarmung an alle, die gerade da sind 🤗",
+    "{from} nimmt den ganzen Chat einmal kollektiv in den Arm 💜",
+    "{from} schmeißt eine große Umarmung in die Runde und trifft einfach alle 🤗",
+    "{from} sorgt heute für eine chatweite Umarmung mit Extra-Herz 💜",
+    "{from} verteilt eine Umarmung an den ganzen Chat, noch bevor das Kaffeekränzchen eröffnet wird 🧓🤗",
+    "{from} nimmt heute einmal das komplette Seniorenzentrum namens Chat in den Arm 💜",
+    "{from} wirft eine gepflegte Rentner-Umarmung in die Runde – bitte ordentlich anstellen 🧓🤗",
+    "{from} verteilt heute Umarmungen an alle, solange der Rollator noch mitmacht 🧓💜",
+    "{from} drückt den ganzen Chat einmal herzlich an sich, bevor es wieder zur Mittagsruhe geht 😴🤗",
+    "{from} spendiert dem gesamten Chat eine Umarmung mit Altersheim-Qualitätssiegel 🧓✅🤗",
+    "{from} umarmt einfach mal die ganze Runde, als wäre heute Tag der offenen Wärmedecke 🛏️💜",
+    "{from} verteilt eine gemütliche Sammelumarmung an alle, die noch nicht im Fernsehzimmer eingeschlafen sind 📺🤗",
+    "{from} nimmt den ganzen Chat in den Arm, ganz langsam, aber mit würdevoller Präzision 🧓💜",
+    "{from} schmeißt eine Großraum-Umarmung in die Runde – Rollatoren bitte kurz in die Parkposition 🧓🤗"
+  ],
+  "hugTypes": [
+    {
+      "id": 1,
+      "name": "Rollator",
+      "weight": 1,
+      "hugTexts": [
+        "{from} stellt seinen Rollator kurz beiseite und umarmt {to} mit voller Überzeugung 🧓🤗"
+      ],
+      "rehugTexts": [
+        "{from} stellt ebenfalls seinen Rollator kurz ab und umarmt {to} direkt herzlich zurück 🧓🤗"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Premium",
+      "weight": 1,
+      "hugTexts": [
+        "{from} serviert {to} eine Premium-Umarmung mit CGN-Qualitätssiegel ✅🤗"
+      ],
+      "rehugTexts": [
+        "{from} gibt {to} die Premium-Umarmung auf CGN-Niveau direkt zurück ✅🤗"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Turbo",
+      "weight": 1,
+      "hugTexts": [
+        "{from} startet den Rentner-Turbo und rauscht direkt in eine Umarmung mit {to} 🚀🤗"
+      ],
+      "rehugTexts": [
+        "{from} wirft den Gegenturbo an und kontert die Umarmung von {to} sofort mit voller Fahrt 🚀💜"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "KuschelExpress",
+      "weight": 1,
+      "hugTexts": [
+        "{from} startet den Kuschel-Express Richtung {to} und liefert pünktlich eine Umarmung ab 🚆🤗"
+      ],
+      "rehugTexts": [
+        "{from} lässt den Kuschel-Express direkt weiterrollen und erwidert die Umarmung von {to} ohne Verspätung 🚆💜"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "KaffeeKeks",
+      "weight": 1,
+      "hugTexts": [
+        "{from} kommt mit Kaffee-und-Keks-Energie an und drückt {to} herzlich an sich ☕🍪🤗"
+      ],
+      "rehugTexts": [
+        "{from} revanchiert sich bei {to} mit einer warmen Umarmung auf Kaffee-und-Keks-Niveau ☕🍪💜"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Baerenumarmung",
+      "weight": 1,
+      "hugTexts": [
+        "{from} zieht {to} in eine kräftige Bärenumarmung mit überraschend viel Nachdruck 🐻🤗"
+      ],
+      "rehugTexts": [
+        "{from} kontert die Bärenumarmung von {to} mit voller Bärenenergie 🐻💜"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Deluxe",
+      "weight": 1,
+      "hugTexts": [
+        "{from} gönnt {to} eine Deluxe-Umarmung mit Extra-Wärme und leichtem Glow ✨🤗"
+      ],
+      "rehugTexts": [
+        "{from} beantwortet die Deluxe-Umarmung von {to} mit einer luxuriösen Runde Extra-Wärme ✨💜"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Ueberraschung",
+      "weight": 1,
+      "hugTexts": [
+        "{from} taucht plötzlich vor {to} auf und landet direkt in einer Überraschungs-Umarmung 🎁🤗"
+      ],
+      "rehugTexts": [
+        "{from} lässt {to} keine Pause und erwidert die Überraschungs-Umarmung direkt 🎁🤗"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Stabil",
+      "weight": 1,
+      "hugTexts": [
+        "{from} umarmt {to} in stabiler CGN-Manier – sauber, fest und ohne Wackler ✅🤗"
+      ],
+      "rehugTexts": [
+        "{from} erwidert die stabile Umarmung von {to} genauso fest, sauber und ohne Wackler ✅💜"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "CGNSiegel",
+      "weight": 1,
+      "hugTexts": [
+        "{from} verpasst {to} eine offiziell CGN-zertifizierte Umarmung mit Gütesiegel 🏅🤗"
+      ],
+      "rehugTexts": [
+        "{from} gibt {to} die passende CGN-zertifizierte Umarmung direkt zurück 🏅🤗"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Sofa",
+      "weight": 1,
+      "hugTexts": [
+        "{from} erhebt sich mit letzter Kraft vom Sofa und umarmt {to} heldenhaft 🛋️🤗"
+      ],
+      "rehugTexts": [
+        "{from} gibt {to} die heldenhafte Sofa-Umarmung direkt herzlich zurück 🛋️🤗"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Bandscheibe",
+      "weight": 1,
+      "hugTexts": [
+        "{from} setzt alles auf eine bandscheibenfreundliche, aber trotzdem herzliche Umarmung für {to} 🦴🤗"
+      ],
+      "rehugTexts": [
+        "{from} erwidert die Umarmung von {to} – vorsichtig, herzlich und bandscheibenfreundlich 🦴🤗"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Treppenlift",
+      "weight": 1,
+      "hugTexts": [
+        "{from} fährt mit dem Treppenlift zu {to} hoch und zieht {to} direkt in eine bequeme Umarmung 🛗🤗"
+      ],
+      "rehugTexts": [
+        "{from} fährt mit {to} eng umarmt wieder runter und hofft, dass der Treppenlift das Drama aushält 🛗🤗"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Mittagsschlaf",
+      "weight": 1,
+      "hugTexts": [
+        "{from} opfert kurz den gepflegten Mittagsschlaf und drückt {to} dafür extra herzlich an sich 😴🤗"
+      ],
+      "rehugTexts": [
+        "{from} revanchiert sich bei {to} noch halb im Mittagsschlaf mit einer müden Umarmung 😴💜"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Waermedecke",
+      "weight": 1,
+      "hugTexts": [
+        "{from} zieht {to} in eine Umarmung mit echter Wärmedecken-Gemütlichkeit 🛏️🤗"
+      ],
+      "rehugTexts": [
+        "{from} revanchiert sich bei {to} mit einer extra kuscheligen Umarmung auf Wärmedecken-Niveau 🛏️💜"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Kaffeekraenzchen",
+      "weight": 1,
+      "hugTexts": [
+        "{from} legt eine Umarmung hin, als wäre {to} Ehrengast beim Kaffeekränzchen ☕🤗"
+      ],
+      "rehugTexts": [
+        "{from} bedankt sich bei {to} mit einer genauso herzlichen Umarmung wie beim besten Kaffeekränzchen ☕💜"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "NeonCGN",
+      "weight": 1,
+      "hugTexts": [
+        "{from} zieht {to} in eine neonleuchtende CGN-Umarmung, die kurz den ganzen Chat aufwärmt 💜💙🤗"
+      ],
+      "rehugTexts": [
+        "{from} revanchiert sich bei {to} mit einer ebenso neonleuchtenden Umarmung und der Chat glüht direkt mit 💜💙💜"
+      ]
+    },
+    {
+      "id": 18,
+      "name": "HerzUpgrade",
+      "weight": 1,
+      "hugTexts": [
+        "{from} installiert bei {to} kurz ein Herz-Upgrade und liefert die passende Umarmung direkt mit ❤️🤗"
+      ],
+      "rehugTexts": [
+        "{from} kontert das Herz-Upgrade von {to} direkt mit einer Umarmung voller Extra-Herz ❤️💜"
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Wuerde",
+      "weight": 1,
+      "hugTexts": [
+        "{from} umarmt {to} mit der Ruhe und Würde eines echten Rentner-Profis 🧓🤗"
+      ],
+      "rehugTexts": [
+        "{from} revanchiert sich bei {to} mit einer ruhigen, würdevollen Umarmung 🧓💜"
+      ]
+    },
+    {
+      "id": 20,
+      "name": "LetzterKeks",
+      "weight": 1,
+      "hugTexts": [
+        "{from} umarmt {to}, als wäre {to} der letzte Keks auf dem Teller 🍪🤗"
+      ],
+      "rehugTexts": [
+        "{from} revanchiert sich bei {to} mit genau derselben Hingabe, als ginge es um den letzten Keks 🍪💜"
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Herzlich",
+      "weight": 1,
+      "hugTexts": [
+        "{from} zieht {to} in eine richtig herzliche Umarmung 🤗"
+      ],
+      "rehugTexts": [
+        "{from} erwidert die herzliche Umarmung von {to} direkt mit genauso viel Wärme 💜"
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Spontan",
+      "weight": 1,
+      "hugTexts": [
+        "{from} umarmt {to} ganz spontan und ohne Vorwarnung 🤗"
+      ],
+      "rehugTexts": [
+        "{from} lässt sich nicht lange bitten und umarmt {to} direkt zurück 💜"
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Warm",
+      "weight": 1,
+      "hugTexts": [
+        "{from} schenkt {to} eine wunderbar warme Umarmung 🤗"
+      ],
+      "rehugTexts": [
+        "{from} gibt {to} die warme Umarmung direkt zurück 💜"
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Fest",
+      "weight": 1,
+      "hugTexts": [
+        "{from} drückt {to} einmal richtig fest an sich 🤗"
+      ],
+      "rehugTexts": [
+        "{from} kontert die feste Umarmung von {to} mit genauso viel Nachdruck 💜"
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Sanft",
+      "weight": 1,
+      "hugTexts": [
+        "{from} nimmt {to} in eine sanfte und liebevolle Umarmung 🤗"
+      ],
+      "rehugTexts": [
+        "{from} erwidert die sanfte Umarmung von {to} ganz liebevoll 💜"
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Freude",
+      "weight": 1,
+      "hugTexts": [
+        "{from} umarmt {to} voller echter Freude 🤗"
+      ],
+      "rehugTexts": [
+        "{from} strahlt zurück und erwidert die freudige Umarmung von {to} sofort 💜"
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Naehe",
+      "weight": 1,
+      "hugTexts": [
+        "{from} zieht {to} einfach mal ganz nah in eine schöne Umarmung 🤗"
+      ],
+      "rehugTexts": [
+        "{from} genießt die Nähe und umarmt {to} direkt zurück 💜"
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Schwung",
+      "weight": 1,
+      "hugTexts": [
+        "{from} kommt mit Schwung an und landet direkt in einer Umarmung mit {to} 🤗"
+      ],
+      "rehugTexts": [
+        "{from} nimmt den Schwung direkt mit und erwidert die Umarmung von {to} sofort 💜"
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Trost",
+      "weight": 1,
+      "hugTexts": [
+        "{from} schenkt {to} eine Umarmung, die einfach guttut 🤗"
+      ],
+      "rehugTexts": [
+        "{from} gibt {to} dieselbe wohltuende Umarmung direkt zurück 💜"
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Glueck",
+      "weight": 1,
+      "hugTexts": [
+        "{from} umarmt {to}, als wäre gerade ein richtig guter Moment entstanden 🤗"
+      ],
+      "rehugTexts": [
+        "{from} hält den guten Moment fest und erwidert die Umarmung von {to} direkt 💜"
+      ]
+    }
+  ],
+  "responses": {
+    "hugsEnabled": "@{actor}, Hugs sind für dich wieder aktiviert. 🤗",
+    "hugsDisabled": "@{actor}, du hast Hugs für dich deaktiviert.",
+    "userNotFound": "@{actor}, den Benutzer '{target}' gibt es nicht.",
+    "selfHug": "@{actor}, dich selbst zu umarmen ist etwas ineffizient 😄",
+    "selfRehug": "@{actor}, dich selbst zu rehuggen ist Quatsch 😄",
+    "targetDisabled": "@{actor}, {targetDisplay} möchte derzeit keine Hugs erhalten.",
+    "noPendingRehug": "@{actor}, du kannst {targetDisplay} nur rehuggen, wenn {targetDisplay} dich vorher gehuggt hat.",
+    "rehugExpired": "@{actor}, der Hug von {targetDisplay} ist älter als {minutes} Minuten. Das Rehug-Fenster ist abgelaufen.",
+    "missingRehugType": "@{actor}, der passende Rehug-Typ wurde nicht gefunden.",
+    "unknownAction": "Unbekannte Aktion '{action}'.",
+    "missingAction": "Fehlende Aktion.",
+    "missingActorData": "Fehlende Actor-Daten.",
+    "missingRequesterData": "Fehlende Requester-Daten.",
+    "noStats": "@{actor}, für diesen User gibt es noch keine Hug-Daten.",
+    "stats": "@{actor} | {targetDisplay} | vergeben: {givenTotal} | erhalten: {receivedTotal} | Rehugs vergeben: {rehugGivenTotal} | Rehugs erhalten: {rehugReceivedTotal}",
+    "topNoData": "{title}: Noch keine Daten vorhanden.",
+    "topList": "{title}: {items}",
+    "reloadOk": "Hug-System V2 wurde neu geladen.",
+    "reloadFailed": "Hug-System V2 konnte nicht neu geladen werden.",
+    "identityMismatch": "@{actor}, Twitch-ID und Login passen nicht zusammen. Bitte echte Twitch-User-ID verwenden.",
+    "internalError": "Interner Fehler im Hug-System.",
+    "internalStatsError": "Interner Fehler bei Hug-Stats.",
+    "internalTopError": "Interner Fehler bei Hug-Topliste.",
+    "systemDisabled": "@{actor}, das Hug-System ist aktuell deaktiviert."
+  },
+  "topTitles": {
+    "given": "Top Hugs",
+    "received": "Top erhaltene Hugs",
+    "rehug": "Top Rehugs"
+  }
+}

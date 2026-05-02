@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "description": "Allgemeine Community- und Stream-Hinweise."
+  },
+  "rules_reminder": [
+    "Bitte bleibt respektvoll im Chat. Wir wollen hier gemeinsam eine gute Zeit haben.",
+    "Kleiner Hinweis der Heimleitung: freundlich bleiben, dann bleibt der Stream für alle entspannt."
+  ],
+  "clip_reminder": [
+    "Guter Moment? Mit !clip könnt ihr direkt einen Clip erstellen.",
+    "Wenn gerade etwas Clip-würdig war: !clip reicht aus."
+  ]
+}

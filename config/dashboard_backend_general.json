@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "step": "007",
+  "updatedAt": "2026-05-01",
+  "mode": "prepared_only",
+  "rules": {
+    "noSecrets": "Keine Tokens/Secrets in diese Datei. Secrets gehören langfristig nach config/secrets/.env.",
+    "paths": "Pfade zentral halten, nicht hart in Modulen verteilen.",
+    "writeDisabled": "Bearbeitung über Dashboard erst nach Auth/Rechteprüfung und Audit-Log aktivieren."
+  },
+  "backend": {
+    "publicBaseUrl": "http://127.0.0.1:8080",
+    "dashboardPath": "/dashboard/",
+    "apiPrefix": "/api",
+    "reloadModulesPrepared": true
+  },
+  "diagnostics": {
+    "enabled": true,
+    "preparedOnly": true
+  },
+  "notes": "Vorbereitungsdatei für spätere zentrale Backend-Einstellungen im Admin-Config-Bereich."
+}

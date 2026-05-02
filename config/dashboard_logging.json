@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-01",
+  "enabled": false,
+  "preparedOnly": true,
+  "databasePath": "data/sqlite/dashboard_audit.sqlite",
+  "retentionDays": 30,
+  "cleanupOnStartup": true,
+  "cleanupIntervalHours": 24,
+  "compactStorage": true,
+  "storeIp": true,
+  "storeDetailsJson": true,
+  "maxDetailsLength": 1000,
+  "rules": {
+    "purpose": "Spätere kompakte Audit-Logs für Dashboard-/Mod-/Admin-/Systemaktionen.",
+    "separateDatabase": "Audit-Logs liegen in eigener SQLite-Datei, nicht in app.sqlite.",
+    "retention": "Aufbewahrung x Tage ist konfigurierbar.",
+    "privacy": "Keine Tokens, Secrets, kompletten API-Antworten oder unnötig große Daten speichern."
+  }
+}

@@ -1,0 +1,80 @@
+﻿{
+  "enabled": true,
+  "description": "Konfiguration fuer wiederkehrende Chat-Hinweise. Texte kommen aus config/messages/*.json.",
+  "runtime": {
+    "onlyWhenLive": true,
+    "startActiveOnServerStart": false,
+    "firstMessageDelayMinutes": 15,
+    "globalCooldownMinutes": 20,
+    "minChatMessagesBetweenRotations": 8,
+    "resetChatCounterAfterSend": true,
+    "avoidSameItemBackToBack": true
+  },
+  "chat": {
+    "ignoreBots": true,
+    "botNames": [
+      "streamelements",
+      "nightbot",
+      "heimaufsichtcgn"
+    ]
+  },
+  "messageOptions": {
+    "target": "twitch_chat",
+    "maxLength": 450
+  },
+  "items": [
+    {
+      "id": "follow",
+      "enabled": true,
+      "messageKey": "follow_reminder",
+      "cooldownMinutes": 45,
+      "weight": 8,
+      "manualEnabled": true,
+      "manualCooldownSeconds": 30,
+      "commands": [
+        "!follow"
+      ],
+      "category": "follow",
+      "messageFile": "follow.json"
+    },
+    {
+      "id": "discord",
+      "enabled": true,
+      "messageKey": "discord_reminder",
+      "cooldownMinutes": 60,
+      "weight": 7,
+      "manualEnabled": true,
+      "manualCooldownSeconds": 30,
+      "commands": [
+        "!discord",
+        "!dc"
+      ],
+      "category": "discord",
+      "messageFile": "discord.json"
+    },
+    {
+      "id": "youtube",
+      "enabled": true,
+      "messageKey": "youtube_reminder",
+      "cooldownMinutes": 50,
+      "weight": 7,
+      "manualEnabled": true,
+      "manualCooldownSeconds": 30,
+      "commands": [
+        "!youtube",
+        "!yt"
+      ],
+      "category": "youtube",
+      "messageFile": "youtube.json"
+    }
+  ],
+  "liveStatus": {
+    "enabled": true,
+    "mode": "twitch_stream_route",
+    "url": "http://localhost:8080/api/twitch/stream?login=forrestcgn",
+    "onlineCheck": "data_has_items",
+    "timeoutMs": 3000,
+    "failClosed": true,
+    "cacheSeconds": 15
+  }
+}

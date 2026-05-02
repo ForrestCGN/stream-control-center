@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920, height=1080" />
+  <title>VIP Sound Overlay V1.5</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #fff;
+    }
+
+    :root {
+      --card-w: 560px;
+      --card-h: 114px;
+      --card-radius: 22px;
+      --right: 56px;
+      --bottom: 56px;
+      --intro-ms: 620ms;
+      --outro-ms: 620ms;
+      --scroll-hidden-x: calc(var(--card-w) + var(--right) + 420px);
+    }
+
+    #vip-root {
+      position: absolute;
+      right: var(--right);
+      bottom: var(--bottom);
+      width: var(--card-w);
+      height: var(--card-h);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(var(--scroll-hidden-x));
+      will-change: transform, opacity;
+    }
+
+    #vip-root.is-visible {
+      visibility: visible;
+    }
+
+    #vip-root.enter {
+      animation: vipEnter var(--intro-ms) cubic-bezier(.18,.84,.28,1) forwards;
+    }
+
+    #vip-root.exit {
+      animation: vipExit var(--outro-ms) cubic-bezier(.55,.08,.78,.19) forwards;
+    }
+
+    @keyframes vipEnter {
+      from {
+        opacity: 1;
+        transform: translateX(var(--scroll-hidden-x));
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes vipExit {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(var(--scroll-hidden-x));
+      }
+    }
+
+    .panel-wrap {
+      position: relative;
+      width: 560px;
+      height: 114px;
+      border-radius: 22px;
+      overflow: visible;
+    }
+
+    .border-svg {
+      position: absolute;
+      inset: 0;
+      width: 560px;
+      height: 114px;
+      z-index: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .panel {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 90px 3px 1fr;
+      column-gap: 14px;
+      width: 560px;
+      height: 114px;
+      padding: 12px 18px;
+      box-sizing: border-box;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 12% 28%, rgba(120,90,220,0.72) 0%, rgba(72,46,150,0.76) 32%, rgba(28,18,56,0.94) 100%);
+      box-shadow:
+        0 8px 18px rgba(0,0,0,0.58),
+        inset 0 0 20px rgba(120,90,220,0.06);
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .left, .divider, .right {
+      position: relative;
+      z-index: 2;
+    }
+
+    .left {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-wrap {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-svg {
+      position: absolute;
+      inset: 0;
+      width: 90px;
+      height: 90px;
+      filter:
+        drop-shadow(0 0 4px rgba(85,196,255,0.28))
+        drop-shadow(0 0 8px rgba(165,128,252,0.20));
+      animation: spinRing 3.2s linear infinite;
+      z-index: 1;
+      pointer-events: none;
+      overflow: visible;
+      opacity: 0.72;
+    }
+
+    .avatar-inner {
+      position: relative;
+      width: 78px;
+      height: 78px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #120822;
+      border: 2px solid rgba(18, 8, 38, 0.96);
+      z-index: 2;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.28);
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: inherit;
+    }
+
+    .avatar-fallback {
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 800;
+      color: #f7f2ff;
+      background: radial-gradient(circle at 30% 30%, #6e50c9, #261544);
+      border-radius: inherit;
+      text-transform: uppercase;
+    }
+
+    .divider {
+      width: 3px;
+      height: 64px;
+      align-self: center;
+      border-radius: 99px;
+      background: linear-gradient(
+        180deg,
+        rgba(0,0,0,0) 0%,
+        rgba(85,196,255,0.95) 28%,
+        rgba(165,128,252,0.98) 64%,
+        rgba(0,0,0,0) 100%
+      );
+      box-shadow:
+        0 0 7px rgba(165,128,252,0.45),
+        0 0 4px rgba(85,196,255,0.34);
+    }
+
+    .right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .name {
+      display: inline-block;
+      font-size: 25px;
+      line-height: 1.04;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow:
+        0 0 8px rgba(85,196,255,0.22),
+        0 0 12px rgba(165,128,252,0.18),
+        0 0 18px rgba(165,128,252,0.08);
+      letter-spacing: 0.005em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 410px;
+    
+      animation: namePulse 3.2s ease-in-out infinite;
+    }
+
+    .message {
+      font-size: 19px;
+      line-height: 1.08;
+      font-weight: 700;
+      color: #e8e7ff;
+      text-shadow:
+        0 0 6px rgba(165,128,252,0.16),
+        0 0 6px rgba(85,196,255,0.10);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 410px;
+    }
+
+    .message.is-tight {
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+
+    @keyframes spinRing {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+  
+    @keyframes namePulse {
+      0%   { transform: translateY(0) scale(1); opacity: 0.98; }
+      50%  { transform: translateY(-0.4px) scale(1.012); opacity: 1; }
+      100% { transform: translateY(0) scale(1); opacity: 0.98; }
+    }
+
+</style>
+</head>
+<body>
+  <div id="vip-root" aria-hidden="true">
+    <div class="panel-wrap">
+      <svg class="border-svg" viewBox="0 0 560 114" aria-hidden="true">
+        <defs>
+          <path id="cardPath" d="M 22 1 H 538 A 21 21 0 0 1 559 22 V 92 A 21 21 0 0 1 538 113 H 22 A 21 21 0 0 1 1 92 V 22 A 21 21 0 0 1 22 1 Z" />
+          <filter id="baseGlow" x="-32%" y="-75%" width="175%" height="250%">
+            <feGaussianBlur stdDeviation="4.2" result="blur1"/>
+            <feColorMatrix in="blur1" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.88 0" result="glow1"/>
+            <feGaussianBlur stdDeviation="10.2" result="blur2"/>
+            <feColorMatrix in="blur2" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.36 0" result="glow2"/>
+            <feMerge><feMergeNode in="glow2"/><feMergeNode in="glow1"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="runnerGlow" x="-40%" y="-85%" width="180%" height="270%">
+            <feGaussianBlur stdDeviation="4.4" result="blur1"/>
+            <feColorMatrix in="blur1" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.82 0" result="glow1"/>
+            <feGaussianBlur stdDeviation="9.4" result="blur2"/>
+            <feColorMatrix in="blur2" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.28 0" result="glow2"/>
+            <feMerge><feMergeNode in="glow2"/><feMergeNode in="glow1"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <linearGradient id="ringFade" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#55c4ff" stop-opacity="0.92"/>
+            <stop offset="50%" stop-color="#a580fc" stop-opacity="0.88"/>
+            <stop offset="100%" stop-color="#55c4ff" stop-opacity="0.10"/>
+          </linearGradient>
+        </defs>
+
+        <use href="#cardPath" fill="none" stroke="#ca9eff" stroke-width="3.5" stroke-linecap="round" opacity="1" filter="url(#baseGlow)" />
+        <use href="#cardPath" fill="none" stroke="#9e6eff" stroke-width="2.0" stroke-linecap="round" opacity="0.72" filter="url(#baseGlow)" />
+
+        <path id="runner-path" d="M 22 1 H 538 A 21 21 0 0 1 559 22 V 92 A 21 21 0 0 1 538 113 H 22 A 21 21 0 0 1 1 92 V 22 A 21 21 0 0 1 22 1 Z"
+              fill="none" stroke="#5ed0ff" stroke-width="4.0" stroke-linecap="round" filter="url(#runnerGlow)" />
+      </svg>
+
+      <div class="panel">
+        <div class="left">
+          <div class="avatar-wrap">
+            <svg class="ring-svg" viewBox="0 0 90 90" aria-hidden="true">
+              <circle cx="45" cy="45" r="42" fill="none" stroke="url(#ringFade)" stroke-width="4" stroke-linecap="round" stroke-dasharray="88 176" />
+            </svg>
+            <div class="avatar-inner">
+              <img id="avatar-img" class="avatar-img" alt="Avatar" />
+              <div id="avatar-fallback" class="avatar-fallback">?</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="right">
+          <div id="name" class="name">CrazyMeerschweinchen</div>
+          <div id="message" class="message">Danke, dass du da bist</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="vip-audio" preload="auto"></audio>
+
+  <script>
+    const STATE_URL = "/api/vip-sound-overlay/state";
+    const AUDIO_STARTED_URL = "/api/vip-sound-overlay/client/audio-started";
+    const AUDIO_ENDED_URL = "/api/vip-sound-overlay/client/audio-ended";
+    const FINISHED_URL = "/api/vip-sound-overlay/client/finished";
+
+    const root = document.getElementById("vip-root");
+    const nameEl = document.getElementById("name");
+    const messageEl = document.getElementById("message");
+    const avatarImg = document.getElementById("avatar-img");
+    const avatarFallback = document.getElementById("avatar-fallback");
+    const audio = document.getElementById("vip-audio");
+
+    const INTRO_FALLBACK_MS = 620;
+    const OUTRO_FALLBACK_MS = 620;
+
+    function parseMs(value, fallback) {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      const raw = String(value || "").trim();
+      if (!raw) return fallback;
+      if (raw.endsWith("ms")) {
+        const n = Number(raw.slice(0, -2));
+        return Number.isFinite(n) ? n : fallback;
+      }
+      if (raw.endsWith("s")) {
+        const n = Number(raw.slice(0, -1));
+        return Number.isFinite(n) ? n * 1000 : fallback;
+      }
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function getCssVarMs(name, fallback) {
+      return parseMs(getComputedStyle(root).getPropertyValue(name), fallback);
+    }
+    const POLL_MS = 250;
+
+    let currentRequestId = "";
+    let currentOverlay = null;
+    let phase = "idle"; // idle | intro | audio | outro
+    let pollTimer = null;
+    let introTimer = null;
+    let outroTimer = null;
+    let runnerBuilt = false;
+    let finishedSentForRequest = "";
+
+    function postJson(url, payload) {
+      return fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload || {})
+      }).catch(() => null);
+    }
+
+    function initialsFromName(name) {
+      const cleaned = (name || "").trim();
+      if (!cleaned) return "?";
+      const parts = cleaned.split(/\s+/).filter(Boolean);
+      if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+
+
+    function escapeRegExp(value) {
+      return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function normalizeLowerText(rawText, displayName) {
+      let text = String(rawText || "").trim();
+      const name = String(displayName || "").trim();
+
+      if (!text) return "";
+
+      if (name) {
+        const escapedName = escapeRegExp(name);
+        const leadingPatterns = [
+          new RegExp("^danke,?\\s*" + escapedName + "\\s*,?\\s*", "i"),
+          new RegExp("^" + escapedName + "\\s*[:-]?\\s*", "i")
+        ];
+
+        for (const pattern of leadingPatterns) {
+          text = text.replace(pattern, "");
+        }
+      }
+
+      text = text.replace(/^,\s*/, "").trim();
+
+      if (!text) return "Danke, dass du da bist";
+      return text;
+    }
+
+
+    function resolveOverlayText(overlay) {
+      const type = String(
+        overlay.soundType ||
+        overlay.type ||
+        overlay.userType ||
+        ""
+      ).trim().toLowerCase();
+
+      const cleaned = normalizeLowerText(
+        overlay.text || "",
+        overlay.displayName || overlay.title || ""
+      );
+
+      const looksLikeOldTemplate =
+        !cleaned ||
+        /^dass du da bist[.!]?$/i.test(cleaned) ||
+        /^du da bist[.!]?$/i.test(cleaned);
+
+      if (!looksLikeOldTemplate) {
+        return cleaned;
+      }
+
+      switch (type) {
+        case "mod":
+          return "Danke für deinen Support als Mod";
+        case "vip":
+          return "Danke, dass du da bist";
+        default:
+          return "Danke, dass du da bist";
+      }
+    }
+
+    function setAvatar(url, displayName) {
+      const fallbackText = initialsFromName(displayName);
+      avatarFallback.textContent = fallbackText;
+
+      if (!url) {
+        avatarImg.style.display = "none";
+        avatarFallback.style.display = "flex";
+        avatarImg.removeAttribute("src");
+        return;
+      }
+
+      avatarImg.onload = () => {
+        avatarImg.style.display = "block";
+        avatarFallback.style.display = "none";
+      };
+
+      avatarImg.onerror = () => {
+        avatarImg.style.display = "none";
+        avatarFallback.style.display = "flex";
+      };
+
+      avatarImg.src = url;
+    }
+
+    function fitLowerText() {
+      messageEl.classList.remove("is-tight");
+
+      const maxWidth = 410;
+      if (messageEl.scrollWidth > maxWidth) {
+        messageEl.classList.add("is-tight");
+      }
+    }
+
+    function applyOverlayData(overlay) {
+      nameEl.textContent = overlay.displayName || overlay.title || "";
+      messageEl.textContent = resolveOverlayText(overlay);
+      setAvatar(overlay.avatarUrl || "", overlay.displayName || "");
+      requestAnimationFrame(() => fitLowerText());
+    }
+
+    function clearTimers() {
+      if (introTimer) {
+        clearTimeout(introTimer);
+        introTimer = null;
+      }
+      if (outroTimer) {
+        clearTimeout(outroTimer);
+        outroTimer = null;
+      }
+    }
+
+    function resetAudio() {
+      try {
+        audio.pause();
+      } catch {}
+      audio.removeAttribute("src");
+      audio.load();
+      audio.onended = null;
+      audio.onerror = null;
+    }
+
+    function fullyHide() {
+      clearTimers();
+      resetAudio();
+      root.classList.remove("enter", "exit", "is-visible");
+      root.style.opacity = "";
+      root.style.visibility = "";
+      root.style.transform = "";
+      root.setAttribute("aria-hidden", "true");
+      phase = "idle";
+      currentOverlay = null;
+      currentRequestId = "";
+    }
+
+    function finalizeOverlay() {
+      if (!currentRequestId) return;
+      if (finishedSentForRequest !== currentRequestId) {
+        finishedSentForRequest = currentRequestId;
+        postJson(FINISHED_URL, { requestId: currentRequestId });
+      }
+      fullyHide();
+    }
+
+    function startOutro() {
+      if (!currentOverlay || phase === "outro") return;
+      phase = "outro";
+
+      postJson(AUDIO_ENDED_URL, { requestId: currentRequestId });
+
+      const cssOutroMs = getCssVarMs("--outro-ms", OUTRO_FALLBACK_MS);
+      const outroMs = Number(currentOverlay.outroMs) > 0 ? Number(currentOverlay.outroMs) : cssOutroMs;
+      root.style.setProperty("--outro-ms", `${outroMs}ms`);
+
+      root.classList.remove("enter");
+      root.classList.add("is-visible", "exit");
+
+      outroTimer = setTimeout(() => {
+        if (phase === "outro") {
+          finalizeOverlay();
+        }
+      }, outroMs + 80);
+    }
+
+    async function startAudioAfterIntro() {
+      if (!currentOverlay || phase !== "intro") return;
+
+      const src = currentOverlay.audioUrl || "";
+      if (!src) {
+        startOutro();
+        return;
+      }
+
+      phase = "audio";
+      audio.src = src;
+      audio.currentTime = 0;
+
+      audio.onerror = () => {
+        startOutro();
+      };
+
+      audio.onended = () => {
+        startOutro();
+      };
+
+      try {
+        await audio.play();
+        postJson(AUDIO_STARTED_URL, { requestId: currentRequestId });
+      } catch {
+        startOutro();
+      }
+    }
+
+    function startOverlay(overlay) {
+      clearTimers();
+      resetAudio();
+
+      currentOverlay = overlay;
+      currentRequestId = overlay.requestId || "";
+      finishedSentForRequest = "";
+
+      applyOverlayData(overlay);
+
+      const cssIntroMs = getCssVarMs("--intro-ms", INTRO_FALLBACK_MS);
+      const introMs = Number(overlay.introMs) > 0 ? Number(overlay.introMs) : cssIntroMs;
+      root.style.setProperty("--intro-ms", `${introMs}ms`);
+
+      root.classList.remove("exit");
+      root.classList.add("is-visible", "enter");
+      root.setAttribute("aria-hidden", "false");
+
+      phase = "intro";
+
+      introTimer = setTimeout(() => {
+        startAudioAfterIntro();
+      }, introMs);
+    }
+
+    async function pollState() {
+      try {
+        const res = await fetch(STATE_URL, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.ok || !data.overlay) return;
+
+        const overlay = data.overlay;
+        const incomingRequestId = overlay.requestId || "";
+
+        if (overlay.visible && incomingRequestId) {
+          if (incomingRequestId !== currentRequestId && phase === "idle") {
+            startOverlay(overlay);
+          }
+          return;
+        }
+      } catch {}
+    }
+
+    function buildRunner() {
+      if (runnerBuilt) return;
+      runnerBuilt = true;
+
+      const allSvgs = document.querySelectorAll(".border-svg");
+      allSvgs.forEach((svg) => {
+        const path = svg.querySelector("#runner-path");
+        if (!path) return;
+
+        const total = path.getTotalLength();
+        const coreRatio = 0.46;
+        const featherRatio = 0.11;
+        const visible = total * coreRatio + total * featherRatio * 2;
+        const segCount = 40;
+        const dur = 16.875;
+
+        path.style.display = "none";
+        const parent = path.parentNode;
+
+        for (let i = 0; i < segCount; i++) {
+          const t = i / (segCount - 1);
+          const x = (t - 0.5) / 0.5;
+          const alpha = Math.exp(-3.8 * x * x);
+          const width = 3.05 + alpha * 1.15;
+          const segLen = visible / segCount;
+          const gap = total - segLen;
+
+          const clone = path.cloneNode(false);
+          clone.style.display = "";
+          clone.setAttribute("stroke-width", width.toFixed(2));
+          clone.setAttribute("opacity", (0.008 + alpha * 0.992).toFixed(3));
+          clone.setAttribute("stroke-dasharray", `${segLen} ${gap}`);
+
+          const offset = -(t * visible);
+          const anim = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+          anim.setAttribute("attributeName", "stroke-dashoffset");
+          anim.setAttribute("from", String(offset));
+          anim.setAttribute("to", String(offset - total));
+          anim.setAttribute("dur", `${dur}s`);
+          anim.setAttribute("repeatCount", "indefinite");
+          clone.appendChild(anim);
+
+          parent.appendChild(clone);
+        }
+      });
+    }
+
+
+    root.addEventListener("animationend", (event) => {
+      if (event.target !== root) return;
+      if (event.animationName === "vipExit" && phase === "outro") {
+        finalizeOverlay();
+      }
+    });
+
+    function init() {
+      buildRunner();
+      pollState();
+      pollTimer = setInterval(pollState, POLL_MS);
+    }
+
+    window.addEventListener("beforeunload", () => {
+      clearTimers();
+      if (pollTimer) clearInterval(pollTimer);
+      resetAudio();
+    });
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "enabled": false,
+  "autoConnect": true,
+  "connectOnBoot": true,
+  "apiKey": "",
+  "username": "",
+  "socketSiteUrl": "https://api.tipeeestream.com/v2.0/site/socket",
+  "allowedTypes": ["donation"],
+  "enqueueUrl": "http://127.0.0.1:8080/api/alerts/enqueue",
+  "includeRawEvent": true,
+  "allowLocalhostWithoutSecret": true,
+  "publicStatusAllowed": false,
+  "publicTestAllowed": false,
+  "duplicateMemoryLimit": 500,
+  "reconnectDelayMs": 5000,
+  "debug": false
+}

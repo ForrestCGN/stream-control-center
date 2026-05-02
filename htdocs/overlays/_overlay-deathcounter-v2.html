@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Deathcounter V2 Dynamic Layout</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --top-offset: 6px;
+
+      --bar-height: 50px;
+      --bar-radius: 19px;
+      --bar-border: 2px;
+      --bar-padding-x: 12px;
+      --slot-gap: 6px;
+
+      --name-w: 164px;
+      --count-w: 54px;
+      --sep-w: 42px;
+
+      --extra-name-w: 142px;
+      --extra-count-w: 50px;
+
+      --name-size: 18px;
+      --count-size: 24px;
+      --extra-name-size: 18px;
+      --extra-count-size: 24px;
+
+      --fg-main: #b8a5ff;
+      --fg-count-a: #a388ff;
+      --fg-count-b: #42a7ff;
+      --bg-a: rgba(25, 16, 39, 0.97);
+      --bg-b: rgba(28, 42, 94, 0.97);
+      --stroke: rgba(143, 25, 255, 0.92);
+      --inner-stroke: rgba(122, 56, 255, 0.62);
+      --count-bg: rgba(40, 16, 80, 0.72);
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Montserrat", "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: var(--top-offset);
+      pointer-events: none;
+    }
+
+    .stage {
+      width: 1920px;
+      height: 80px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: visible;
+    }
+
+    .bar {
+      min-height: var(--bar-height);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--slot-gap);
+      padding: 0 var(--bar-padding-x);
+      border-radius: var(--bar-radius);
+      border: var(--bar-border) solid var(--stroke);
+      background: linear-gradient(90deg, var(--bg-a) 0%, rgba(33, 19, 60, 0.98) 52%, var(--bg-b) 100%);
+      box-shadow:
+        0 0 16px rgba(143, 25, 255, 0.42),
+        0 0 30px rgba(23, 16, 95, 0.42) inset;
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+
+    .bar.hidden {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    .slot {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .name-slot {
+      width: var(--name-w);
+    }
+
+    .count-slot {
+      width: var(--count-w);
+    }
+
+    .extra-name-slot {
+      width: var(--extra-name-w);
+    }
+
+    .extra-count-slot {
+      width: var(--extra-count-w);
+    }
+
+    .sep-slot {
+      width: var(--sep-w);
+    }
+
+    .name-label,
+    .extra-name-label {
+      width: auto;
+      min-width: 0;
+      text-align: center;
+      white-space: nowrap;
+      overflow: visible;
+      text-overflow: clip;
+      text-transform: uppercase;
+      color: var(--fg-main);
+      text-shadow:
+        0 0 9px rgba(122, 71, 230, 0.78),
+        0 0 16px rgba(158, 112, 255, 0.28);
+      line-height: 1;
+      letter-spacing: 0.7px;
+      user-select: none;
+      padding: 0 2px;
+      font-weight: 700;
+    }
+
+    .name-label { font-size: var(--name-size); }
+    .extra-name-label { font-size: var(--extra-name-size); }
+
+    .count-box {
+      width: 100%;
+      min-height: 40px;
+      padding: 2px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--count-bg);
+      border-radius: 13px;
+      box-shadow:
+        0 0 12px rgba(180, 109, 255, 0.28),
+        0 0 0 2px var(--inner-stroke) inset;
+    }
+
+    .count-value,
+    .extra-count-value {
+      line-height: 1;
+      text-align: center;
+      font-weight: 800;
+      min-width: 24px;
+      background: linear-gradient(90deg, var(--fg-count-a) 40%, var(--fg-count-b) 92%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow:
+        0 2px 7px rgba(24, 15, 42, 0.62),
+        0 0 8px rgba(147, 61, 255, 0.28);
+      will-change: transform, opacity;
+    }
+
+    .count-value { font-size: var(--count-size); }
+    .extra-count-value { font-size: var(--extra-count-size); }
+
+    .sep-img {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 0 10px rgba(143, 25, 255, 0.72));
+      user-select: none;
+    }
+
+
+    .name-track,
+    .extra-name-track {
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      position: relative;
+      display: block;
+      padding: 0 10px;
+      mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+    }
+
+    .name-track-inner,
+    .extra-name-track-inner {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      white-space: nowrap;
+      min-width: max-content;
+      max-width: none;
+      will-change: transform;
+      transform: translateX(0);
+    }
+
+    .name-track.is-centered,
+    .extra-name-track.is-centered {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .name-track.is-marquee,
+    .extra-name-track.is-marquee {
+      display: block;
+    }
+
+    .name-track.is-marquee .name-track-inner,
+    .extra-name-track.is-marquee .extra-name-track-inner {
+      will-change: transform;
+    }
+
+
+    .name-label span,
+    .extra-name-label span {
+      display: inline-block;
+      will-change: transform, opacity;
+      pointer-events: none;
+    }
+
+    .name-label.explode span,
+    .extra-name-label.explode span {
+      animation: explodeLetter 0.7s cubic-bezier(.47,1.65,.41,.95) forwards;
+    }
+
+    @keyframes explodeLetter {
+      0% { opacity: 1; transform: translate(0,0) scale(1) rotate(0deg); }
+      60% { opacity: .85; }
+      80% { opacity: .25; }
+      100% {
+        opacity: 0;
+        transform:
+          translate(calc(-85px + 170px * var(--rand-x)), calc(-75px + 150px * var(--rand-y)))
+          scale(0.12)
+          rotate(calc(-180deg + 360deg * var(--rand-x)));
+      }
+    }
+
+    .name-label.popin span,
+    .extra-name-label.popin span {
+      animation: popInLetter 0.42s cubic-bezier(.7,1.4,.5,.9) 1;
+    }
+
+    @keyframes popInLetter {
+      0% { opacity: 0; transform: scale(0); }
+      60% { opacity: 1; transform: scale(1.16); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .count-value.scalein,
+    .extra-count-value.scalein {
+      animation: scaleInCount 0.34s cubic-bezier(.41,2.05,.67,.97) 1;
+    }
+
+    @keyframes scaleInCount {
+      0% { opacity: 0; transform: scale(1.45); }
+      60% { opacity: 1; transform: scale(1.10); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="bar hidden" id="bar"></div>
+  </div>
+
+  <template id="tpl-name">
+    <div class="slot name-slot">
+      <div class="name-track">
+        <div class="name-track-inner">
+          <div class="name-label"></div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-count">
+    <div class="slot count-slot"><div class="count-box"><span class="count-value">0</span></div></div>
+  </template>
+
+  <template id="tpl-extra-name">
+    <div class="slot extra-name-slot">
+      <div class="extra-name-track">
+        <div class="extra-name-track-inner">
+          <div class="extra-name-label"></div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-extra-count">
+    <div class="slot extra-count-slot"><div class="count-box"><span class="extra-count-value">0</span></div></div>
+  </template>
+
+  <template id="tpl-sep">
+    <div class="slot sep-slot"><img class="sep-img" src="../assets/images/sensenmann.png" alt="Trennzeichen" /></div>
+  </template>
+
+  <script>
+    const bar = document.getElementById('bar');
+
+    const templates = {
+      name: document.getElementById('tpl-name'),
+      count: document.getElementById('tpl-count'),
+      extraName: document.getElementById('tpl-extra-name'),
+      extraCount: document.getElementById('tpl-extra-count'),
+      sep: document.getElementById('tpl-sep'),
+    };
+
+    const cache = {
+      visible: false,
+      names: new Map(),
+      counts: new Map(),
+      refs: new Map(),
+      lastRenderSignature: null
+    };
+
+    const marqueeState = {
+      items: new Map(),
+      rafId: null
+    };
+
+    function stopMarqueeFor(trackEl, innerEl) {
+      if (!trackEl || !innerEl) return;
+      marqueeState.items.delete(trackEl);
+      trackEl.classList.remove('is-marquee', 'is-centered');
+      innerEl.style.transform = 'translateX(0px)';
+    }
+
+    function startMarqueeFor(trackEl, innerEl, shift) {
+      if (!trackEl || !innerEl) return;
+
+      const now = performance.now();
+      marqueeState.items.set(trackEl, {
+        trackEl,
+        innerEl,
+        shift,
+        pxPerSec: 18,
+        holdMs: 1200,
+        direction: 1,   // 1 = to end, -1 = back to start
+        pos: 0,
+        phase: 'hold-start',
+        holdUntil: now + 1200,
+        lastTs: now
+      });
+
+      trackEl.classList.remove('is-centered');
+      trackEl.classList.add('is-marquee');
+      innerEl.style.transform = 'translateX(0px)';
+
+      ensureMarqueeLoop();
+    }
+
+    function ensureMarqueeLoop() {
+      if (marqueeState.rafId != null) return;
+
+      const tick = (ts) => {
+        if (marqueeState.items.size === 0) {
+          marqueeState.rafId = null;
+          return;
+        }
+
+        for (const [key, item] of marqueeState.items.entries()) {
+          const dt = Math.max(0, (ts - item.lastTs) / 1000);
+          item.lastTs = ts;
+
+          if (item.phase === 'hold-start' || item.phase === 'hold-end') {
+            if (ts >= item.holdUntil) {
+              item.phase = 'move';
+            }
+          } else {
+            const delta = item.pxPerSec * dt * item.direction;
+            item.pos += delta;
+
+            if (item.direction === 1 && item.pos >= item.shift) {
+              item.pos = item.shift;
+              item.direction = -1;
+              item.phase = 'hold-end';
+              item.holdUntil = ts + item.holdMs;
+            } else if (item.direction === -1 && item.pos <= 0) {
+              item.pos = 0;
+              item.direction = 1;
+              item.phase = 'hold-start';
+              item.holdUntil = ts + item.holdMs;
+            }
+          }
+
+          item.innerEl.style.transform = `translateX(${-item.pos}px)`;
+        }
+
+        marqueeState.rafId = requestAnimationFrame(tick);
+      };
+
+      marqueeState.rafId = requestAnimationFrame(tick);
+    }
+
+    function setTextAsSpans(el, text) {
+      el.innerHTML = "";
+      const safe = (text || "").trim() || "---";
+      for (let i = 0; i < safe.length; i++) {
+        const span = document.createElement("span");
+        span.textContent = safe[i];
+        span.style.setProperty("--rand-x", Math.random());
+        span.style.setProperty("--rand-y", Math.random());
+        el.appendChild(span);
+      }
+    }
+
+    function playNameExplosion(el, text) {
+      setTextAsSpans(el, text);
+      el.classList.remove("popin", "explode");
+      void el.offsetWidth;
+      el.classList.add("explode");
+      setTimeout(() => {
+        setTextAsSpans(el, text);
+        el.classList.remove("explode", "popin");
+        void el.offsetWidth;
+        el.classList.add("popin");
+      }, 700);
+    }
+
+    function animateCount(el) {
+      el.classList.remove('scalein');
+      void el.offsetWidth;
+      el.classList.add('scalein');
+    }
+
+    function applyMarquee(trackEl, innerEl) {
+      if (!trackEl || !innerEl) return;
+
+      stopMarqueeFor(trackEl, innerEl);
+
+      const labelEl = innerEl.firstElementChild;
+      const style = getComputedStyle(trackEl);
+      const padL = parseFloat(style.paddingLeft || '0') || 0;
+      const padR = parseFloat(style.paddingRight || '0') || 0;
+
+      const viewportWidth = Math.max(0, Math.floor((trackEl.clientWidth || 0) - padL - padR));
+      const textWidth = Math.ceil(
+        Math.max(
+          innerEl.scrollWidth || 0,
+          innerEl.getBoundingClientRect().width || 0,
+          labelEl ? labelEl.scrollWidth : 0,
+          labelEl ? labelEl.getBoundingClientRect().width : 0
+        )
+      );
+
+      const shift = Math.max(0, textWidth - viewportWidth);
+
+      if (shift > 6) {
+        startMarqueeFor(trackEl, innerEl, Math.ceil(shift));
+      } else {
+        trackEl.classList.add('is-centered');
+        innerEl.style.transform = 'translateX(0px)';
+      }
+    }
+
+    function normalizeWsUrl() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${proto}//${location.host}`;
+    }
+
+    function extractOverlayVisible(payload) {
+      if (!payload || typeof payload !== 'object') return false;
+      if (typeof payload.visible === 'boolean') return payload.visible;
+      if (typeof payload.overlay?.visible === 'boolean') return payload.overlay.visible;
+      return false;
+    }
+
+    function setOverlayVisible(visible) {
+      cache.visible = !!visible;
+      bar.classList.toggle('hidden', !cache.visible);
+    }
+
+    function mapPlayersById(players) {
+      const map = new Map();
+      (Array.isArray(players) ? players : []).forEach(p => {
+        if (p && p.id) map.set(String(p.id), p);
+      });
+      return map;
+    }
+
+    function getDisplayPlayers(state, overlayPayload) {
+      const overlay = overlayPayload?.overlay || state.overlay || {};
+      const players = Array.isArray(state.players) ? state.players : [];
+      const byId = mapPlayersById(players);
+
+      const selected = Array.isArray(overlay.selectedPlayerIds)
+        ? overlay.selectedPlayerIds.map(id => byId.get(String(id))).filter(Boolean)
+        : [];
+
+      const extras = Array.isArray(overlay.extraPlayerIds)
+        ? overlay.extraPlayerIds.map(id => byId.get(String(id))).filter(Boolean).slice(0, 2)
+        : [];
+
+      return { selected, extras };
+    }
+
+    function getSession(player, currentGame) {
+      return Number(player?.games?.[currentGame]?.session || 0);
+    }
+
+    function getName(player, fallback) {
+      return (player?.displayName || player?.login || fallback || '---').toUpperCase();
+    }
+
+    function buildRenderSignature(state, overlayPayload) {
+      const currentGame = state.currentGame || 'Kein Spiel gesetzt';
+      const { selected, extras } = getDisplayPlayers(state, overlayPayload);
+
+      const forrest = selected[0] || null;
+      const engel = selected[1] || null;
+      const extra1 = extras[0] || null;
+      const extra2 = extras[1] || null;
+
+      return JSON.stringify({
+        currentGame,
+        forrest: {
+          id: forrest?.id || 'forrest',
+          name: getName(forrest, 'FORREST'),
+          count: getSession(forrest, currentGame)
+        },
+        engel: {
+          id: engel?.id || 'engel',
+          name: getName(engel, 'ENGEL'),
+          count: getSession(engel, currentGame)
+        },
+        extra1: extra1 ? {
+          id: extra1.id,
+          name: getName(extra1, 'EXTRA'),
+          count: getSession(extra1, currentGame)
+        } : null,
+        extra2: extra2 ? {
+          id: extra2.id,
+          name: getName(extra2, 'EXTRA'),
+          count: getSession(extra2, currentGame)
+        } : null
+      });
+    }
+
+    function maybeRender(state, overlayPayload) {
+      const signature = buildRenderSignature(state, overlayPayload);
+      if (signature === cache.lastRenderSignature && bar.childElementCount > 0) {
+        return;
+      }
+
+      cache.lastRenderSignature = signature;
+      render(state, overlayPayload);
+    }
+
+    function makeName(roleKey, nameText, extra = false) {
+      const node = templates[extra ? 'extraName' : 'name'].content.firstElementChild.cloneNode(true);
+      const label = node.querySelector(extra ? '.extra-name-label' : '.name-label');
+      const track = node.querySelector(extra ? '.extra-name-track' : '.name-track');
+      const inner = node.querySelector(extra ? '.extra-name-track-inner' : '.name-track-inner');
+      const prev = cache.names.get(roleKey);
+
+      if (prev !== nameText) {
+        setTextAsSpans(label, nameText);
+      } else {
+        label.textContent = nameText;
+      }
+
+      label.title = nameText;
+      cache.refs.set(roleKey + ':name', label);
+      cache.refs.set(roleKey + ':track', track);
+      cache.refs.set(roleKey + ':inner', inner);
+      return node;
+    }
+
+    function makeCount(roleKey, value, extra = false) {
+      const node = templates[extra ? 'extraCount' : 'count'].content.firstElementChild.cloneNode(true);
+      const label = node.querySelector(extra ? '.extra-count-value' : '.count-value');
+      const prev = cache.counts.get(roleKey);
+      label.textContent = String(value);
+      if (prev !== null && prev !== undefined && prev !== value) animateCount(label);
+      cache.refs.set(roleKey + ':count', label);
+      return node;
+    }
+
+    function makeSep() {
+      return templates.sep.content.firstElementChild.cloneNode(true);
+    }
+
+    function updateAnimations(roleKey, nameText, countValue) {
+      const prevName = cache.names.get(roleKey);
+      const prevCount = cache.counts.get(roleKey);
+      const nameEl = cache.refs.get(roleKey + ':name');
+      const countEl = cache.refs.get(roleKey + ':count');
+      const trackEl = cache.refs.get(roleKey + ':track');
+      const innerEl = cache.refs.get(roleKey + ':inner');
+
+      if (nameEl) {
+        if (prevName === nameText) {
+          nameEl.textContent = nameText;
+        }
+        if (prevCount !== null && prevCount !== undefined && prevCount !== countValue) {
+          playNameExplosion(nameEl, nameText);
+        } else if (prevName !== nameText) {
+          setTextAsSpans(nameEl, nameText);
+        }
+      }
+
+      if (countEl) {
+        countEl.textContent = String(countValue);
+      }
+
+      cache.names.set(roleKey, nameText);
+      cache.counts.set(roleKey, countValue);
+
+      requestAnimationFrame(() => applyMarquee(trackEl, innerEl));
+    }
+
+    function clearRefs() {
+      cache.refs.clear();
+    }
+
+    function render(state, overlayPayload) {
+      const currentGame = state.currentGame || 'Kein Spiel gesetzt';
+      const { selected, extras } = getDisplayPlayers(state, overlayPayload);
+
+      const forrest = selected[0] || null;
+      const engel = selected[1] || null;
+      const extra1 = extras[0] || null; // first extra -> right
+      const extra2 = extras[1] || null; // second extra -> left
+
+      const fName = getName(forrest, 'FORREST');
+      const eName = getName(engel, 'ENGEL');
+      const fCount = getSession(forrest, currentGame);
+      const eCount = getSession(engel, currentGame);
+
+      const x1Name = extra1 ? getName(extra1, 'EXTRA') : null;
+      const x1Count = extra1 ? getSession(extra1, currentGame) : null;
+      const x2Name = extra2 ? getName(extra2, 'EXTRA') : null;
+      const x2Count = extra2 ? getSession(extra2, currentGame) : null;
+
+      clearRefs();
+      bar.innerHTML = '';
+
+      const parts = [];
+
+      if (extra2) {
+        parts.push(makeCount('extra2', x2Count, true));
+        parts.push(makeName('extra2', x2Name, true));
+        parts.push(makeSep());
+      }
+
+      parts.push(makeName('forrest', fName, false));
+      parts.push(makeCount('forrest', fCount, false));
+      parts.push(makeSep());
+      parts.push(makeCount('engel', eCount, false));
+      parts.push(makeName('engel', eName, false));
+
+      if (extra1) {
+        parts.push(makeSep());
+        parts.push(makeName('extra1', x1Name, true));
+        parts.push(makeCount('extra1', x1Count, true));
+      }
+
+      parts.forEach(p => bar.appendChild(p));
+
+      updateAnimations('forrest', fName, fCount);
+      updateAnimations('engel', eName, eCount);
+      if (extra1) updateAnimations('extra1', x1Name, x1Count);
+      else {
+        cache.names.delete('extra1');
+        cache.counts.delete('extra1');
+      }
+      if (extra2) updateAnimations('extra2', x2Name, x2Count);
+      else {
+        cache.names.delete('extra2');
+        cache.counts.delete('extra2');
+      }
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      return res.json();
+    }
+
+    async function syncAll() {
+      try {
+        const [state, overlay] = await Promise.all([
+          fetchJson('/api/deathcounter/v2/state'),
+          fetchJson('/api/deathcounter/v2/overlay')
+        ]);
+
+        if (state?.ok) maybeRender(state, overlay);
+        if (overlay?.ok) setOverlayVisible(extractOverlayVisible(overlay));
+      } catch (err) {
+        console.warn('[deathcounter-v2] sync failed:', err.message || err);
+      }
+    }
+
+    function handleWsMessage(msg) {
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.type === 'deathcounter_v2_overlay_changed') {
+        setOverlayVisible(extractOverlayVisible(msg));
+        if (msg.state) maybeRender(msg.state, msg);
+        return;
+      }
+
+      if (msg.type && msg.type.startsWith('deathcounter_v2_')) {
+        if (msg.state) maybeRender(msg.state, msg);
+        else syncAll();
+      }
+    }
+
+    function connectWs() {
+      let ws;
+      try {
+        ws = new WebSocket(normalizeWsUrl());
+      } catch (err) {
+        console.warn('[deathcounter-v2] ws connect failed:', err.message || err);
+        return;
+      }
+
+      ws.addEventListener('message', ev => {
+        try { handleWsMessage(JSON.parse(ev.data)); } catch (_) {}
+      });
+
+      ws.addEventListener('close', () => {
+        setTimeout(connectWs, 2500);
+      });
+
+      ws.addEventListener('error', () => {
+        try { ws.close(); } catch (_) {}
+      });
+    }
+
+    syncAll();
+    connectWs();
+    setInterval(syncAll, 5000);
+
+    window.addEventListener('resize', () => {
+      ['forrest', 'engel', 'extra1', 'extra2'].forEach(roleKey => {
+        requestAnimationFrame(() => applyMarquee(
+          cache.refs.get(roleKey + ':track'),
+          cache.refs.get(roleKey + ':inner')
+        ));
+      });
+    });
+  </script>
+</body>
+</html>

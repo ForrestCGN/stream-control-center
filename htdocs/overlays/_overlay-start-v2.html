@@ -1,0 +1,376 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Start Overlay â€“ CGN dual-path border soft transition</title>
+  <style>
+    :root{
+      --c-purple:#CA9EFF;
+      --c-purple-2:#9E6EFF;
+      --c-blue:#5ED0FF;
+      --c-cyan:#55C4FF;
+      --c-violet:#A580FC;
+      --w:1600px;
+      --h:800px;
+    }
+
+    html, body {
+      margin:0;padding:0;background:transparent;overflow:hidden;width:100vw;height:100vh;
+      display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,Arial;
+    }
+
+    #container {
+      position:relative;width:var(--w);height:var(--h);
+      border-radius:40px;
+      overflow:hidden;
+      background:rgba(10,10,30,.85);
+      background-size:cover;background-position:center;
+      box-shadow:0 0 22px rgba(202,158,255,.18), 0 0 44px rgba(94,208,255,.10), inset 0 0 26px rgba(120,90,220,.10);
+    }
+
+    #frameSvg{
+      position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;overflow:visible;
+    }
+
+    #frameBase1,#frameBase2,.runner-seg{
+      vector-effect:non-scaling-stroke;
+    }
+
+    /* Avatar */
+    #avatarWrap{
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:360px;height:360px;display:grid;place-items:center;z-index:3;
+    }
+
+    #avatarRing{
+      position:absolute;inset:0;width:360px;height:360px;pointer-events:none;
+      filter:drop-shadow(0 0 8px rgba(85,196,255,.24)) drop-shadow(0 0 14px rgba(165,128,252,.20));
+      animation:spinRing 3.2s linear infinite;
+      opacity:.82;
+    }
+
+    #avatarInner{
+      position:relative;width:350px;height:350px;border-radius:50%;overflow:hidden;
+      background:#120822;border:4px solid rgba(18,8,38,.96);
+      box-shadow:0 0 18px rgba(202,158,255,.16), inset 0 0 10px rgba(0,0,0,.28);
+    }
+
+    #avatar{
+      width:100%;height:100%;border-radius:50%;object-fit:cover;
+      box-shadow:0 0 24px rgba(255,255,255,.20), 0 0 34px rgba(202,158,255,.16);
+      animation:pulseGlow 4s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow{
+      0%,100%{transform:scale(1);box-shadow:0 0 24px rgba(255,255,255,.20),0 0 34px rgba(202,158,255,.16)}
+      50%{transform:scale(1.05);box-shadow:0 0 34px rgba(255,255,255,.26),0 0 54px rgba(202,158,255,.22)}
+    }
+    @keyframes spinRing{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+    /* Counter framed */
+    #counterBox{
+      position:absolute;left:50%;transform:translateX(-50%);padding:6px 18px;border-radius:16px;min-width:220px;
+      text-align:center;font-size:42px;font-weight:700;color:#fff;background:rgba(10,10,30,.45);
+      border:1px solid rgba(202,158,255,.42);
+      box-shadow:0 0 10px rgba(202,158,255,.30),inset 0 0 12px rgba(94,208,255,.18);
+      text-shadow:0 0 10px rgba(202,158,255,.30),0 0 20px rgba(94,208,255,.18);z-index:5;
+      backdrop-filter: blur(3px);
+    }
+    #counterLabel{display:block;font-size:14px;font-weight:600;opacity:.9;margin-bottom:2px;color:#E3EBFF}
+    #counterTime{display:block;font-size:42px;font-weight:700}
+
+    /* Subline */
+    #subline{
+      position:absolute;top:calc(50% + 175px + 60px);left:0;white-space:nowrap;font-size:80px;font-weight:500;color:#fff;
+      text-shadow:0 0 8px rgba(202,158,255,.52),0 0 15px rgba(202,158,255,.34),0 0 20px rgba(94,208,255,.24),0 0 30px rgba(94,208,255,.16);
+      z-index:3;will-change:transform
+    }
+
+    /* TwisterTwins video top-right when title contains 'TwisterTwins' */
+    #ttWrap{
+      position:absolute;top:24px;right:24px;width:300px;height:300px;display:none;z-index:5;pointer-events:none;
+      filter:drop-shadow(0 0 10px rgba(202,158,255,.28)) drop-shadow(0 0 18px rgba(94,208,255,.18))
+    }
+    #ttVideo{width:100%;height:100%;object-fit:contain;border-radius:16px}
+
+    /* Hidden measuring span */
+    #measure{position:absolute;visibility:hidden;white-space:nowrap;font:inherit;font-size:80px;font-weight:500}
+
+    /* Optional overlays */
+    #nowPlaying{
+      position:absolute;top:18px;left:18px;z-index:6;color:#fff;font:16px/1.4 Segoe UI,Arial;background:rgba(0,0,0,.45);
+      padding:8px 10px;border-radius:10px;display:none;border:1px solid rgba(202,158,255,.28);
+      box-shadow:0 0 8px rgba(202,158,255,.20),0 0 14px rgba(94,208,255,.12)
+    }
+    #debug{
+      position:absolute;bottom:12px;left:12px;max-width:90%;font:18px/1.5 monospace;color:#fff;background:rgba(0,0,0,.7);
+      padding:10px 12px;border-radius:10px;display:none;white-space:pre-wrap;border:1px solid rgba(202,158,255,.28)
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <svg id="frameSvg" viewBox="0 0 1600 800" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <path id="framePath" d="M 43 3 H 1557 A 37 37 0 0 1 1597 43 V 757 A 37 37 0 0 1 1557 797 H 43 A 37 37 0 0 1 3 757 V 43 A 37 37 0 0 1 43 3 Z" />
+        <filter id="baseGlow" x="-32%" y="-75%" width="175%" height="250%">
+          <feGaussianBlur stdDeviation="4.2" result="blur1"/>
+          <feColorMatrix in="blur1" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.88 0" result="glow1"/>
+          <feGaussianBlur stdDeviation="10.2" result="blur2"/>
+          <feColorMatrix in="blur2" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.36 0" result="glow2"/>
+          <feMerge><feMergeNode in="glow2"/><feMergeNode in="glow1"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="runnerGlowPurple" x="-22%" y="-55%" width="144%" height="210%">
+          <feGaussianBlur stdDeviation="2.8" result="blur1"/>
+          <feColorMatrix in="blur1" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.42 0" result="glow1"/>
+          <feGaussianBlur stdDeviation="6.4" result="blur2"/>
+          <feColorMatrix in="blur2" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.12 0" result="glow2"/>
+          <feMerge><feMergeNode in="glow2"/><feMergeNode in="glow1"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="runnerGlowBlue" x="-22%" y="-55%" width="144%" height="210%">
+          <feGaussianBlur stdDeviation="2.8" result="blur1"/>
+          <feColorMatrix in="blur1" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.52 0" result="glow1"/>
+          <feGaussianBlur stdDeviation="6.4" result="blur2"/>
+          <feColorMatrix in="blur2" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.16 0" result="glow2"/>
+          <feMerge><feMergeNode in="glow2"/><feMergeNode in="glow1"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <linearGradient id="ringFade" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#55c4ff" stop-opacity="0.92"/>
+          <stop offset="50%" stop-color="#a580fc" stop-opacity="0.88"/>
+          <stop offset="100%" stop-color="#55c4ff" stop-opacity="0.10"/>
+        </linearGradient>
+      </defs>
+      <use id="frameBase1" href="#framePath" fill="none" stroke="#ca9eff" stroke-width="2.8" stroke-linecap="round" opacity="0.32" filter="url(#baseGlow)" />
+      <use id="frameBase2" href="#framePath" fill="none" stroke="#9e6eff" stroke-width="1.6" stroke-linecap="round" opacity="0.18" filter="url(#baseGlow)" />
+      <path id="runnerPurple" d="M 43 3 H 1557 A 37 37 0 0 1 1597 43 V 757 A 37 37 0 0 1 1557 797 H 43 A 37 37 0 0 1 3 757 V 43 A 37 37 0 0 1 43 3 Z"
+            fill="none" stroke="#ca9eff" stroke-width="4.2" stroke-linecap="round" filter="url(#runnerGlowPurple)" />
+      <path id="runnerBlue" d="M 43 3 H 1557 A 37 37 0 0 1 1597 43 V 757 A 37 37 0 0 1 1557 797 H 43 A 37 37 0 0 1 3 757 V 43 A 37 37 0 0 1 43 3 Z"
+            fill="none" stroke="#5ed0ff" stroke-width="4.2" stroke-linecap="round" filter="url(#runnerGlowBlue)" />
+      <path id="runnerPurpleFeatherA" d="M 43 3 H 1557 A 37 37 0 0 1 1597 43 V 757 A 37 37 0 0 1 1557 797 H 43 A 37 37 0 0 1 3 757 V 43 A 37 37 0 0 1 43 3 Z"
+            fill="none" stroke="#ca9eff" stroke-width="6.0" stroke-linecap="round" filter="url(#runnerGlowPurple)" opacity="0.42" />
+      <path id="runnerPurpleFeatherB" d="M 43 3 H 1557 A 37 37 0 0 1 1597 43 V 757 A 37 37 0 0 1 1557 797 H 43 A 37 37 0 0 1 3 757 V 43 A 37 37 0 0 1 43 3 Z"
+            fill="none" stroke="#ca9eff" stroke-width="6.0" stroke-linecap="round" filter="url(#runnerGlowPurple)" opacity="0.42" />
+      <path id="runnerBlueFeatherA" d="M 43 3 H 1557 A 37 37 0 0 1 1597 43 V 757 A 37 37 0 0 1 1557 797 H 43 A 37 37 0 0 1 3 757 V 43 A 37 37 0 0 1 43 3 Z"
+            fill="none" stroke="#5ed0ff" stroke-width="6.0" stroke-linecap="round" filter="url(#runnerGlowBlue)" opacity="0.42" />
+      <path id="runnerBlueFeatherB" d="M 43 3 H 1557 A 37 37 0 0 1 1597 43 V 757 A 37 37 0 0 1 1557 797 H 43 A 37 37 0 0 1 3 757 V 43 A 37 37 0 0 1 43 3 Z"
+            fill="none" stroke="#5ed0ff" stroke-width="6.0" stroke-linecap="round" filter="url(#runnerGlowBlue)" opacity="0.42" />
+    </svg>
+
+    <div id="avatarWrap">
+      <svg id="avatarRing" viewBox="0 0 360 360" aria-hidden="true">
+        <circle cx="180" cy="180" r="171" fill="none" stroke="url(#ringFade)" stroke-width="14" stroke-linecap="round" stroke-dasharray="350 730" />
+      </svg>
+      <div id="avatarInner"><img id="avatar" src="/assets/images/avatar_forrest.png" alt="Avatar"/></div>
+    </div>
+    <div id="ttWrap"><video id="ttVideo" muted loop playsinline preload="auto"></video></div>
+    <div id="counterBox"><span id="counterLabel">Stream startet in</span><span id="counterTime">12:30</span></div>
+    <div id="subline"></div><div id="measure"></div>
+    <div id="nowPlaying"></div>
+    <div id="debug"></div>
+  </div>
+  <audio id="playlistAudio" preload="auto" muted autoplay></audio>
+
+  <script>
+    // === CONFIG ===
+    const OVERLAY_DATA_URL="/api/overlay/start-data";
+    const DEFAULT_GAME="Minecraft";
+    const IMAGES_BASE="/assets/images/";
+    const VIDEOS_BASE="/assets/videos/";
+    const TT_VIDEO_FILE="tt-muenze.webm";
+    const SOUNDLIST_URL="http://localhost:8080/assets/sounds/start/startsoundlist.json";
+    const REFRESH_MS=15000, MARQUEE_SPEED=200, PAUSE_S=2;
+    const MIN_SECONDS=750, EXTRA_LONG=150;
+    const GAP_SECONDS=3;
+    const DEBUG = new URLSearchParams(location.search).get("debug")==="1";
+    const SHOW_NP = new URLSearchParams(location.search).get("np")==="1";
+
+    // === STATE ===
+    let gameBackgrounds={}, animFrame=null, stopMarquee=false, nextText=null, runningText=null, counterTimer=null, audioStarted=false;
+    const qid=(id)=>document.getElementById(id);
+    const cacheBust=(u)=>u+(u.includes("?")?"&":"?")+"t="+Date.now();
+    const dlog=(...a)=>{ if(!DEBUG) return; const box=qid("debug"); box.style.display="block"; box.textContent+=a.join(" ")+"\n"; };
+    function setNowPlaying(n){ const el=qid("nowPlaying"); if(!SHOW_NP) return; el.style.display="block"; el.textContent="Now Playing: "+n; }
+    function buildRunner(){
+      const purple = qid('runnerPurple');
+      const blue = qid('runnerBlue');
+      const purpleFeatherA = qid('runnerPurpleFeatherA');
+      const purpleFeatherB = qid('runnerPurpleFeatherB');
+      const blueFeatherA = qid('runnerBlueFeatherA');
+      const blueFeatherB = qid('runnerBlueFeatherB');
+      if(!purple || !blue || !purpleFeatherA || !purpleFeatherB || !blueFeatherA || !blueFeatherB) return;
+
+      const total = purple.getTotalLength();
+      const half = total / 2;
+      const feather = total * 0.05;
+      const dur = '16.875s';
+
+      const animatePath = (el, dashLen, phase) => {
+        el.style.strokeDasharray = `${dashLen} ${Math.max(0, total - dashLen)}`;
+        el.style.strokeDashoffset = String(phase);
+        const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        anim.setAttribute('attributeName', 'stroke-dashoffset');
+        anim.setAttribute('from', String(phase));
+        anim.setAttribute('to', String(phase - total));
+        anim.setAttribute('dur', dur);
+        anim.setAttribute('repeatCount', 'indefinite');
+        el.appendChild(anim);
+      };
+
+      animatePath(purple, half, 0);
+      animatePath(blue, half, -half);
+
+      animatePath(purpleFeatherA, feather, -(half - feather * 0.5));
+      animatePath(blueFeatherA, feather, -half);
+      animatePath(purpleFeatherB, feather, -(total - feather * 0.5));
+      animatePath(blueFeatherB, feather, 0);
+    }
+
+    // === Layout helpers ===
+    function placeCounter(){
+      const cont=qid("container").getBoundingClientRect(), av=qid("avatar").getBoundingClientRect();
+      const mid=(av.top-cont.top)/2; const box=qid("counterBox"); box.style.top=(Math.round(mid-box.offsetHeight/2))+"px";
+    }
+    function formatTime(s){ s=Math.max(0,Math.ceil(s)); const m=Math.floor(s/60), sec=s%60; return (m<10?"0":"")+m+":"+(sec<10?"0":"")+sec; }
+    function startCounter(totalSeconds){
+      const el=qid("counterTime"); if(counterTimer) clearInterval(counterTimer);
+      let end=performance.now()+totalSeconds*1000; el.textContent=formatTime(totalSeconds);
+      counterTimer=setInterval(()=>{ let left=(end-performance.now())/1000; el.textContent=formatTime(left); if(left<=0){clearInterval(counterTimer); el.textContent="00:00";} }, 500);
+      placeCounter();
+    }
+
+    // === Data fetch ===
+    async function safeJson(u){
+      const url=cacheBust(u);
+      try{
+        const r=await fetch(url,{cache:"no-store"}); if(!r.ok) return null;
+        return await r.json();
+      }catch{ return null; }
+    }
+    async function fetchOverlayData(){
+      const j=await safeJson(OVERLAY_DATA_URL);
+      return {
+        stream: j?.stream || {},
+        backgrounds: j?.backgrounds || {}
+      };
+    }
+    async function fetchStreamInfo(){
+      const data = await fetchOverlayData();
+      gameBackgrounds = data.backgrounds || {};
+      return {
+        title: data.stream?.title ?? null,
+        game: data.stream?.game_name ?? null
+      };
+    }
+    async function fetchBackgrounds(){
+      const data = await fetchOverlayData();
+      if(data.backgrounds && typeof data.backgrounds === "object") gameBackgrounds = data.backgrounds;
+    }
+
+    // === Visuals ===
+    function setBackgroundForGame(g){
+      const f=g||DEFAULT_GAME; const bg=IMAGES_BASE+(gameBackgrounds?.[f]||gameBackgrounds?.[DEFAULT_GAME]||"");
+      qid("container").style.backgroundImage=`url("${bg}")`;
+    }
+    function toggleTT(title){
+      const w=qid("ttWrap"), v=qid("ttVideo");
+      const show=!!(title && title.toLowerCase().includes("twistertwins"));
+      if(show){ w.style.display="block"; const src=cacheBust(VIDEOS_BASE+TT_VIDEO_FILE); if(v.getAttribute("src")!==src) v.setAttribute("src",src); v.play().catch(()=>{}); }
+      else { w.style.display="none"; try{ v.pause(); }catch{} }
+    }
+    function runMarquee(text){
+      const sub=qid("subline"), measure=qid("measure"), cw=parseInt(getComputedStyle(document.documentElement).getPropertyValue("--w"));
+      if(runningText===text) return; if(runningText!==null){ nextText=text; return; }
+      measure.textContent=text; sub.textContent=text; const w=measure.offsetWidth||sub.offsetWidth||1000;
+      const startX=cw, endX=-w, distance=startX-endX, dur=(distance/MARQUEE_SPEED)*1000; let startT=null; runningText=text; stopMarquee=false;
+      function step(ts){ if(stopMarquee){runningText=null;return} if(startT===null) startT=ts; let t=(ts-startT)/dur; if(t>1) t=1; let x=startX+(endX-startX)*t; sub.style.transform=`translateX(${x}px)`;
+        if(t<1){ animFrame=requestAnimationFrame(step); } else { setTimeout(()=>{ runningText=null; if(nextText){ const nt=nextText; nextText=null; runMarquee(nt); } else { runMarquee(text); } }, PAUSE_S*1000); } }
+      cancelAnimationFrame(animFrame); animFrame=requestAnimationFrame(step);
+    }
+
+    function buildSequence(schema){
+      if(!schema) return {urls:[], names:[], total:0};
+      const base = schema.base_url || "/assets/sounds/start/";
+      const files = Array.isArray(schema.files)?schema.files:[];
+      const exclude = new Set(schema.exclude_from_random || []);
+      const pool = files.filter(f=>f && f.name && !exclude.has(f.name));
+      function pickTwo(arr){ if(arr.length<=1) return arr.slice(0,1); const i=Math.floor(Math.random()*arr.length); let j=Math.floor(Math.random()*arr.length); if(j===i) j=(j+1)%arr.length; return [arr[i],arr[j]]; }
+      const chosen = pickTwo(pool);
+      const thirdName = schema.fixed_tracks?.third || null;
+      const endName = schema.fixed_tracks?.end || null;
+      const third = files.find(f=>f.name===thirdName);
+      const end = files.find(f=>f.name===endName);
+      const seq = [...chosen]; if(third) seq.push(third); if(end) seq.push(end);
+      const names = seq.map(s=>s.name);
+      const urls  = seq.map(s=> encodeURI((schema.base_url||base) + s.name));
+      const total = seq.reduce((a,s)=> a + (s.duration||0), 0);
+      return {urls, names, total};
+    }
+    async function startAudioOnce(){
+      if(audioStarted) return; audioStarted=true;
+      const schema = await safeJson(SOUNDLIST_URL);
+      if(!schema){ return; }
+      const {urls, names, total} = buildSequence(schema);
+      if(!urls.length){ return; }
+
+      const gapsCount = Math.max(0, urls.length - 1);
+      const totalWithGaps = total + gapsCount * GAP_SECONDS;
+
+      const finalSeconds = totalWithGaps >= MIN_SECONDS ? Math.round(totalWithGaps + EXTRA_LONG) : MIN_SECONDS;
+      const delayBeforeStart = Math.max(0, finalSeconds - totalWithGaps);
+      dlog("MusicTotal=", total.toFixed(2), "Tracks=", urls.length, "Gaps=", gapsCount, "TotalWithGaps=", totalWithGaps, "FinalCounter=", finalSeconds, "DelayBeforeStart=", delayBeforeStart);
+      startCounter(finalSeconds);
+
+      const player=qid("playlistAudio"); player.volume=1.0; player.muted=true;
+      let idx=0, unmuted=false;
+
+      function playIndex(i){
+        if(i>=urls.length){ return; }
+        const src=cacheBust(urls[i]); const nice=decodeURI(names[i]||urls[i]).split('/').pop();
+        setNowPlaying(nice);
+        player.src=src; player.load();
+        player.play().then(()=>{ if(!unmuted){ setTimeout(()=>{ try{ player.muted=false; unmuted=true; }catch(e){} }, 400);} })
+          .catch(()=>{ setTimeout(()=>player.play().catch(()=>{}), 300); });
+      }
+
+      function playNextWithGap(){
+        idx++;
+        if(idx>=urls.length){ return; }
+        setTimeout(()=> playIndex(idx), GAP_SECONDS*1000);
+      }
+
+      player.onended=()=>{ playNextWithGap(); };
+      player.onerror=()=>{ playNextWithGap(); };
+
+      setTimeout(()=>{
+        let tries=0; const watch=setInterval(()=>{ if(player.paused && player.currentTime===0 && tries<8){ tries++; player.play().catch(()=>{}); } else if(!player.paused || tries>=8){ clearInterval(watch); } }, 500);
+        playIndex(idx);
+      }, delayBeforeStart*1000);
+    }
+
+    // === Main loop ===
+    async function updateOverlay(){
+      const j=await fetchStreamInfo();
+      const text = j.title || "Herzlich Willkommen";
+      setBackgroundForGame(j.game);
+      toggleTT(j.title);
+      runMarquee(text);
+      startAudioOnce();
+    }
+    async function init(){
+      buildRunner();
+      await fetchBackgrounds();
+      await updateOverlay();
+      setInterval(updateOverlay, REFRESH_MS);
+      window.addEventListener('resize', placeCounter);
+      placeCounter();
+    }
+    window.addEventListener('beforeunload', ()=>{
+      stopMarquee=true; cancelAnimationFrame(animFrame); if(counterTimer) clearInterval(counterTimer);
+      try{ qid("ttVideo")?.pause(); }catch{}
+    });
+    init();
+  </script>
+</body>
+</html>
+

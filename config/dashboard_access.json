@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "updatedAt": "2026-05-01",
+  "localAccess": {
+    "enabled": true,
+    "allowedIpRanges": [
+      "127.0.0.1/32",
+      "::1/128",
+      "192.168.0.0/16",
+      "10.0.0.0/8",
+      "172.16.0.0/12"
+    ]
+  },
+  "login": {
+    "mode": "prepared",
+    "provider": "twitch",
+    "requireLoginForLive": false,
+    "requireLoginForControl": false,
+    "requireLoginForAdmin": true,
+    "twitchLoginPrepared": true,
+    "requireLoginForSystem": false,
+    "requireLoginForCommunity": false,
+    "note": "Login/Rechte sind vorbereitet, aber noch nicht scharf geschaltet. Bis zur Aktivierung bleiben Live/Control wie bisher zugänglich."
+  },
+  "modLog": {
+    "enabled": true,
+    "target": "sqlite",
+    "table": "dashboard_modlog",
+    "note": "Tabelle später per sanfter Migration CREATE TABLE IF NOT EXISTS anlegen. Bestehende app.sqlite niemals ersetzen."
+  },
+  "step": "004",
+  "activationState": "prepared_only",
+  "twitchAuth": {
+    "enabled": false,
+    "prepared": true,
+    "configFile": "config/twitch_dashboard_auth.json",
+    "tokenStorage": "sqlite_later",
+    "noTokensInFrontend": true
+  }
+}

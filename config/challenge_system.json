@@ -1,0 +1,85 @@
+{
+  "enabled": true,
+  "version": 2,
+  "defaults": {
+    "timezone": "Europe/Berlin",
+    "maxQueueSize": 10,
+    "sendQueuedMessage": false,
+    "sendStartedMessage": true,
+    "sendFinishedMessage": true,
+    "broadcastEverySecond": true,
+    "persistState": false,
+    "delayBetweenChallengesMs": 3000,
+    "statsEnabled": true
+  },
+  "chat": {
+    "enabled": true,
+    "provider": "twitch_presence",
+    "sendQueuedMessage": false,
+    "sendStartedMessage": true,
+    "sendFinishedMessage": true,
+    "failSilently": true
+  },
+  "routes": {
+    "apiPrefix": "/api/challenge",
+    "legacyPrefix": "/scripts/challenge"
+  },
+  "websocket": {
+    "enabled": true,
+    "eventType": "challenge",
+    "statusEventType": "challenge_status"
+  },
+  "discordSound": {
+    "enabled": true,
+    "baseUrl": "http://127.0.0.1:8080",
+    "path": "/discord/play",
+    "authQueryName": "auth",
+    "authQueryValue": "1608",
+    "timeoutMs": 2500
+  },
+  "modes": {
+    "NichtFluchen": {
+      "enabled": true,
+      "aliases": [
+        "NichtFluchen",
+        "Nicht Fluchen",
+        "nichtfluchen",
+        "nicht fluchen",
+        "fluchen"
+      ],
+      "label": "Nicht fluchen",
+      "displayTitle": "NICHT FLUCHEN",
+      "icon": "🚫",
+      "defaultDurationSeconds": 120,
+      "overlaySound": "/assets/sounds/nichtfluchen.mp3",
+      "discordSoundEnabled": true,
+      "discordSoundKey": "nichtfluchen"
+    },
+    "NichtReden": {
+      "enabled": true,
+      "aliases": [
+        "NichtReden",
+        "Nicht Reden",
+        "nichtreden",
+        "nicht reden",
+        "reden"
+      ],
+      "label": "Nicht reden",
+      "displayTitle": "NICHT REDEN",
+      "icon": "🤐",
+      "defaultDurationSeconds": 300,
+      "overlaySound": "/assets/sounds/nichtreden.mp3",
+      "discordSoundEnabled": true,
+      "discordSoundKey": "nichtreden"
+    }
+  },
+  "timing": {
+    "delayBetweenChallengesMs": 3000
+  },
+  "stats": {
+    "enabled": true,
+    "schemaVersion": 1,
+    "keepRuntimeEvents": true,
+    "maxEventsReturned": 50
+  }
+}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CGN Alert Template v1.3.4 (alert higher)</title>
+  <style>
+    :root {
+      --c-bg: rgba(7,10,24,0.0);
+      --c-card: rgba(10,12,30,0.72);
+      --c-card-strong: rgba(10,12,30,0.88);
+      --c-text: #e9ecff;
+      --c-sub: #b9c3ff;
+      --c-accent-1: #8a2be2;
+      --c-accent-2: #1e90ff;
+      --radius: 20px;
+      --gap: 18px;
+      --pad: 18px;
+      --shadow-md: 0 0 18px var(--c-accent-1), 0 0 28px var(--c-accent-2);
+      --font-title: "Montserrat", system-ui;
+      --font-sub: "Montserrat", system-ui;
+      --enter: 520ms;
+      --exit: 480ms;
+    }
+
+    html, body {width: 100vw; height: 100vh; margin: 0; overflow: hidden; background: var(--c-bg); font-family: var(--font-sub); color: var(--c-text);} 
+    .stage { position: relative; width: 100%; height: 100%; pointer-events: none; overflow:hidden; }
+    /* move alert higher: top 100px */
+    .anchor { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; width: auto; }
+
+    .star {width:20px;height:20px;border-radius:50%;background: radial-gradient(circle,#fff 0%,var(--c-accent-1) 60%,transparent 80%);box-shadow:0 0 20px var(--c-accent-1),0 0 40px var(--c-accent-2);position:absolute;opacity:0;pointer-events:none;transform:translate(-50%,-50%);z-index:10000;}
+
+    .alert {display:grid;grid-auto-flow:column;align-items:center;gap:var(--gap);padding:var(--pad);border-radius:var(--radius);background:linear-gradient(180deg,var(--c-card) 0%,var(--c-card-strong) 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06),var(--shadow-md);outline:2px solid rgba(138,43,226,0.35);opacity:0;position:relative;transform:translateY(6px);z-index:1000;}
+    .avatar{width:88px;height:88px;border-radius:16px;overflow:hidden;background:#0a0e1f}.avatar img{width:100%;height:100%;object-fit:cover}
+    .copy{display:grid;gap:6px}.title{font:800 28px/1.15 var(--font-title);text-shadow:0 0 10px var(--c-accent-1), 0 0 18px var(--c-accent-2)}.subtitle{font:600 16px/1.25 var(--font-sub);color:var(--c-sub)}
+    .in{animation:appear var(--enter) ease-out forwards}.out{animation:disappear var(--exit) ease-in forwards}
+    @keyframes appear{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes disappear{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(4px)}}
+
+    .progress{position:absolute;left:10px;right:10px;bottom:8px;height:4px;border-radius:4px;background:rgba(255,255,255,0.08)}
+    .bar{width:100%;height:100%;transform-origin:left center;background:linear-gradient(90deg,var(--c-accent-1),var(--c-accent-2))}
+
+    .outline-svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:9000}
+    .outline-stroke{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .outline-glow{fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+    .trail{position:absolute;inset:0;pointer-events:none;z-index:9500}
+    .trail .p{position:absolute;width:10px;height:10px;border-radius:50%;opacity:.9;transform:translate(-50%,-50%) scale(1);will-change:transform,opacity;background:radial-gradient(circle,rgba(255,255,255,.95) 0%,rgba(255,255,255,.5) 35%,rgba(255,255,255,0) 70%)}
+    @keyframes puff{to{transform:translate(var(--dx,0),var(--dy,0)) scale(.2);opacity:0}}
+
+    .devpanel{position:fixed;right:12px;top:12px;z-index:20000;pointer-events:auto;font-family:var(--font-sub)}
+    .devpanel button{margin-left:6px;padding:8px 12px;border-radius:10px;border:none;cursor:pointer;background:#1b1f3a;color:#e9ecff;box-shadow:0 0 10px rgba(138,43,226,.35)}
+
+    .measure{transform:none!important;opacity:0!important;visibility:hidden!important}
+  </style>
+</head>
+<body>
+  <div class="devpanel">
+    <button id="btnAlert">Test Alert</button>
+    <button id="btnProgress2">Progress 2s</button>
+    <button id="btnProgress5">Progress 5s</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="trail" id="trail"></div>
+    <div class="star" id="star"></div>
+    <div class="anchor" id="anchor">
+      <div class="alert" id="alert" aria-hidden="true">
+        <div class="avatar"><img id="avatar" alt="avatar"/></div>
+        <div class="copy">
+          <div class="title" id="title">NEUER FOLLOW</div>
+          <div class="subtitle" id="subtitle">von <strong>ViewerName</strong> – Danke dir! 💜</div>
+        </div>
+        <div class="progress"><div class="bar" id="bar"></div></div>
+      </div>
+    </div>
+  </div>
+  <audio id="snd" preload="auto"></audio>
+  <script>
+    const $alert=document.getElementById('alert');
+    const $title=document.getElementById('title');
+    const $subtitle=document.getElementById('subtitle');
+    const $avatar=document.getElementById('avatar');
+    const $bar=document.getElementById('bar');
+    const $snd=document.getElementById('snd');
+    const $star=document.getElementById('star');
+    const $stage=document.getElementById('stage');
+    const $trail=document.getElementById('trail');
+
+    function progress(durationMs){
+      if(!$bar) return;
+      $bar.style.transition='none';
+      $bar.style.transform='scaleX(1)';
+      void $bar.offsetWidth;
+      $bar.style.transition=`transform ${Math.max(0,durationMs|0)}ms linear`;
+      $bar.style.transform='scaleX(0)';
+    }
+
+    async function triggerAlert(opts={}){
+      const title=opts.title||'NEUER FOLLOW';const subtitle=opts.subtitle||'';const avatar=opts.avatar||'';const sound=opts.sound||'';const duration=Math.max(1500,Number(opts.duration)||6500);
+      $title.textContent=title;$subtitle.innerHTML=subtitle;if(avatar)$avatar.src=avatar;
+      $alert.classList.remove('out');$alert.classList.add('in');$alert.setAttribute('aria-hidden','false');
+      progress(duration);
+    }
+
+    document.getElementById('btnAlert').addEventListener('click',()=>triggerAlert({ title:'TEST ALERT', subtitle:'manuell', avatar:'https://placehold.co/200x200/png', duration:3000 }));
+    document.getElementById('btnProgress2').addEventListener('click',()=>progress(2000));
+    document.getElementById('btnProgress5').addEventListener('click',()=>progress(5000));
+
+    window.triggerAlert=triggerAlert;
+    document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{triggerAlert({title:'NEUER FOLLOW',subtitle:'von <strong>ViewerName</strong>',avatar:'https://placehold.co/200x200/png',duration:4200})},400)});
+  </script>
+</body>
+</html>

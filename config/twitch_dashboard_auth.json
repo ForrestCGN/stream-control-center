@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-01",
+  "step": "004",
+  "enabled": false,
+  "mode": "prepared_only",
+  "provider": "twitch",
+  "purpose": "Vorbereitung für Dashboard-Login per Twitch. Noch nicht live aktiviert.",
+  "rules": {
+    "noTokenLeak": "Access-/Refresh-Tokens dürfen nie ins Frontend gesendet werden.",
+    "twitchIsSourceOfTruth": "Twitch entscheidet final, ob der eingeloggte Account Mod-/Chat-Aktionen ausführen darf.",
+    "dashboardRolesDoNotGrantTwitchRights": "Dashboard-Rollen erweitern keine Twitch-Rechte.",
+    "modLog": "Jede spätere Twitch-Mod-Aktion wird im Mod-Log gespeichert."
+  },
+  "plannedScopes": {
+    "chat": [
+      "user:write:chat"
+    ],
+    "chatRead": [
+      "user:read:chat"
+    ],
+    "moderation": [
+      "moderation:read",
+      "moderator:manage:banned_users",
+      "moderator:manage:chat_messages",
+      "moderator:read:chatters"
+    ]
+  },
+  "plannedRoutes": {
+    "loginStart": "GET /api/dashboard/auth/twitch/start",
+    "callback": "GET /api/dashboard/auth/twitch/callback",
+    "me": "GET /api/dashboard/auth/me",
+    "logout": "POST /api/dashboard/auth/logout",
+    "twitchStatus": "GET /api/dashboard/auth/twitch/status"
+  },
+  "plannedDatabaseTables": [
+    "dashboard_users",
+    "dashboard_user_roles",
+    "dashboard_twitch_tokens",
+    "dashboard_login_sessions",
+    "dashboard_modlog"
+  ],
+  "statusLabels": {
+    "notConnected": "Nicht mit Twitch verbunden",
+    "connectedNoMod": "Twitch verbunden, aber keine Mod-Rechte im Kanal bestätigt",
+    "connectedMod": "Twitch verbunden, Mod-Rechte bestätigt",
+    "connectedBroadcaster": "Twitch verbunden, Broadcaster/Streamer bestätigt"
+  }
+}

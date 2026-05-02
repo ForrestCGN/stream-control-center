@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920, height=1080" />
+  <title>Ende Overlay (Credits) – Neon Galaxy STEP113</title>
+
+  <style>
+    :root {
+      --w: 1920px;
+      --h: 1080px;
+      --purple-1: #6f32ff;
+      --purple-2: #b86cff;
+      --purple-3: #e0b7ff;
+      --cyan-1: #21d8ff;
+      --cyan-2: #7beaff;
+      --text: #ffffff;
+      --muted: #cbb8ff;
+      --soft: rgba(255,255,255,.72);
+      --radius-lg: 34px;
+      --radius-md: 22px;
+      --shadow-purple: 0 0 22px rgba(153, 75, 255, .62);
+      --shadow-cyan: 0 0 18px rgba(33, 216, 255, .34);
+      --shadow-soft: 0 22px 70px rgba(0,0,0,.72);
+      --panel-shadow: 0 0 0 1px rgba(123, 246, 255, 0.14), 0 0 12px rgba(191, 88, 255, 0.26), inset 0 0 18px rgba(122, 66, 255, 0.16);
+      --panel-border: rgba(187, 108, 255, 0.90);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: var(--w);
+      height: var(--h);
+      overflow: hidden;
+      background: transparent;
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    }
+
+    body { position: relative; }
+
+    #stage {
+      position: relative;
+      width: var(--w);
+      height: var(--h);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(133, 55, 255, .24), transparent 24%),
+        radial-gradient(circle at 80% 18%, rgba(33, 216, 255, .12), transparent 26%),
+        radial-gradient(circle at 55% 82%, rgba(173, 83, 255, .22), transparent 28%),
+        linear-gradient(135deg, rgba(5,3,12,.96), rgba(16,7,31,.95) 48%, rgba(4,4,14,.96));
+    }
+
+    #background {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background:
+        linear-gradient(180deg, rgba(3, 4, 12, 0.20), rgba(3, 4, 12, 0.48)),
+        url("/assets/images/cosmic_nebula_in_vibrant_colors.png") center center / cover no-repeat;
+      filter: saturate(1.12) contrast(1.08);
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    #stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.9) 0 1px, transparent 1.5px),
+        radial-gradient(circle, rgba(184,108,255,.65) 0 1px, transparent 1.5px),
+        radial-gradient(circle, rgba(33,216,255,.55) 0 1px, transparent 1.5px);
+      background-size: 170px 170px, 240px 240px, 310px 310px;
+      background-position: 20px 50px, 80px 120px, 150px 30px;
+      opacity: .30;
+      pointer-events: none;
+    }
+
+    #stage::after {
+      content: "";
+      position: absolute;
+      inset: -12%;
+      z-index: 1;
+      background:
+        linear-gradient(115deg, transparent 0 32%, rgba(150,75,255,.18) 33%, transparent 35% 100%),
+        linear-gradient(25deg, transparent 0 62%, rgba(33,216,255,.12) 63%, transparent 65% 100%);
+      opacity: .65;
+      pointer-events: none;
+    }
+
+    .neon-panel {
+      position: relative;
+      background:
+        linear-gradient(135deg, rgba(20, 11, 43, .90), rgba(8, 7, 22, .80)),
+        radial-gradient(circle at 15% 0%, rgba(184,108,255,.20), transparent 34%);
+      border: 2px solid rgba(184,108,255,.82);
+      border-radius: var(--radius-lg);
+      box-shadow:
+        var(--shadow-soft),
+        var(--shadow-purple),
+        inset 0 0 22px rgba(33,216,255,.08);
+      overflow: hidden;
+      transform: translateZ(0);
+      z-index: 5;
+    }
+
+    .neon-panel::before {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(33,216,255,.30);
+      border-radius: calc(var(--radius-lg) - 6px);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .runner::after {
+      content: "";
+      position: absolute;
+      left: -40%;
+      top: 0;
+      width: 34%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(33,216,255,.16), transparent);
+      transform: skewX(-18deg);
+      opacity: .50;
+      animation: runner 5.6s linear infinite;
+      pointer-events: none;
+      z-index: 9;
+    }
+
+    @keyframes runner {
+      0% { transform: translateX(-120%) skewX(-18deg); }
+      100% { transform: translateX(520%) skewX(-18deg); }
+    }
+
+    #mainPanel {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 1580px;
+      height: 800px;
+      display: grid;
+      grid-template-columns: 420px 1fr 420px;
+      grid-template-rows: 140px 1fr 140px;
+      gap: 22px;
+      padding: 28px;
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 26px)) scale(.99);
+      animation: enterPanel 620ms cubic-bezier(.18,.9,.22,1) 120ms forwards;
+      background: linear-gradient(180deg, rgba(9, 8, 24, 0.38), rgba(9, 8, 24, 0.52));
+      border-color: rgba(190, 96, 255, 0.95);
+      box-shadow:
+        0 0 0 1px rgba(122, 246, 255, 0.13),
+        0 0 28px rgba(195, 82, 255, 0.18),
+        inset 0 0 25px rgba(87, 47, 162, 0.16);
+      backdrop-filter: blur(2px);
+    }
+
+    @keyframes enterPanel {
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    #brandBlock {
+      grid-column: 1 / 4;
+      display: grid;
+      grid-template-columns: 300px 1fr 300px;
+      align-items: center;
+      gap: 28px;
+      padding: 16px 30px;
+      border-radius: 28px;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(8, 7, 20, 0.58), rgba(7, 6, 18, 0.70));
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--panel-shadow);
+    }
+
+    #brandBlock::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(144, 50, 255, 0.15), rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(0, 221, 255, 0.12)),
+        url("/assets/images/cosmic_nebula_in_vibrant_colors.png") center/cover no-repeat;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    #avatarWrap {
+      position: relative;
+      z-index: 1;
+      width: 108px;
+      height: 108px;
+      border-radius: 999px;
+      justify-self: start;
+      margin-left: 20px;
+      padding: 6px;
+      background: linear-gradient(180deg, rgba(8, 7, 24, 0.92), rgba(12, 9, 30, 0.72));
+      box-shadow: 0 0 18px rgba(207, 89, 255, 0.32), inset 0 0 12px rgba(255,255,255,0.06);
+    }
+
+    #avatarInner {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      overflow: hidden;
+      background: rgba(0,0,0,.38);
+      border: 3px solid rgba(5,3,12,.88);
+    }
+
+    #headerAvatar,
+    #centerAvatar {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    #headlineWrap {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transform: translateY(1px);
+    }
+
+    #headlineTop {
+      color: var(--cyan-2);
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(33,216,255,.50);
+      margin: 0 0 -1px;
+      transform: translateY(-5px);
+    }
+
+    #headline {
+      margin-top: 0;
+      font-size: 48px;
+      line-height: .92;
+      font-weight: 950;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 15px rgba(184,108,255,.78),
+        0 0 24px rgba(33,216,255,.30);
+      white-space: nowrap;
+    }
+
+    #statusBox {
+      justify-self: center;
+      align-self: center;
+      width: 205px;
+      min-height: 78px;
+      border-radius: 22px;
+      padding: 0 18px;
+      border: 1px solid rgba(33,216,255,.85);
+      background: linear-gradient(180deg, rgba(6, 11, 24, 0.86), rgba(4, 8, 20, 0.62));
+      box-shadow: 0 0 0 1px rgba(98, 234, 255, 0.12), 0 0 18px rgba(73, 222, 255, 0.18), inset 0 0 12px rgba(255,255,255,0.04);
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+    }
+
+    #statusLabel {
+      display: none !important;
+    }
+
+    #statusText {
+      display: block;
+      margin-top: 0;
+      font-size: 36px;
+      line-height: 1;
+      font-weight: 950;
+      text-shadow:
+        0 0 18px rgba(184,108,255,.9),
+        0 0 22px rgba(33,216,255,.36);
+    }
+
+    #leftCredits,
+    #rightCredits,
+    #titleBar,
+    #centerStage {
+      background: linear-gradient(180deg, rgba(8, 7, 20, 0.62), rgba(8, 7, 20, 0.74));
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--panel-shadow);
+      border-radius: 26px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #leftCredits { grid-column: 1; grid-row: 2; }
+    #centerStage { grid-column: 2; grid-row: 2; }
+    #rightCredits { grid-column: 3; grid-row: 2; }
+
+    #leftCredits::before,
+    #rightCredits::before,
+    #titleBar::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(142, 48, 255, 0.08), rgba(0, 229, 255, 0.03));
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .creditsHeader {
+      position: absolute;
+      top: 18px;
+      left: 24px;
+      right: 24px;
+      z-index: 4;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0;
+      border-bottom: 0;
+    }
+
+    .panelKicker {
+      color: var(--cyan-2);
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 10px rgba(33,216,255,.55),
+        0 0 18px rgba(184,108,255,.28);
+    }
+
+    .panelHint {
+      color: rgba(255,255,255,.58);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      transform: translateY(-1px);
+    }
+
+    .vertical-list {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      top: 72px;
+      bottom: 24px;
+      overflow: hidden;
+      z-index: 3;
+      text-align: left;
+      mask-image: linear-gradient(180deg, transparent 0%, #000 7%, #000 90%, transparent 100%);
+    }
+
+    .vertical-list::before,
+    .vertical-list::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 34px;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .vertical-list::before {
+      top: 0;
+      background: linear-gradient(180deg, rgba(8,7,20,.86), rgba(8,7,20,0));
+    }
+
+    .vertical-list::after {
+      bottom: 0;
+      background: linear-gradient(0deg, rgba(8,7,20,.86), rgba(8,7,20,0));
+    }
+
+    .vertical-content {
+      position: absolute;
+      width: 100%;
+      left: 0;
+      color: #ffffff;
+      font-size: 22px;
+      line-height: 1.22;
+      text-shadow: 0 0 8px rgba(184,108,255,.62);
+      white-space: normal;
+      padding: 4px 0 8px;
+    }
+
+    .creditGroup {
+      display: block;
+      margin: 0 0 22px;
+    }
+
+    .vertical-content span.category {
+      display: block;
+      margin: 0 0 12px;
+      padding: 0 0 0 14px;
+      color: var(--cyan-2);
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      font-size: 25px;
+      line-height: 1.05;
+      font-weight: 950;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 10px rgba(33,216,255,.50),
+        0 0 16px rgba(184,108,255,.30);
+      position: relative;
+    }
+
+    .vertical-content span.category::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 2px;
+      bottom: 2px;
+      width: 4px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--cyan-1), var(--purple-2));
+      box-shadow: 0 0 10px rgba(33,216,255,.36);
+    }
+
+    .creditName {
+      display: block;
+      position: relative;
+      margin: 0 0 7px;
+      padding: 3px 4px 4px 24px;
+      border-radius: 0;
+      color: rgba(255,255,255,.94);
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      font-size: 22px;
+      line-height: 1.12;
+      font-weight: 880;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-shadow:
+        0 0 8px rgba(184,108,255,.48),
+        0 0 12px rgba(33,216,255,.12);
+    }
+
+    .creditName::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      transform: translateY(-50%);
+      background: rgba(123,234,255,.92);
+      box-shadow:
+        0 0 8px rgba(33,216,255,.68),
+        0 0 12px rgba(184,108,255,.38);
+    }
+
+    .creditGap {
+      display: block;
+      height: 8px;
+    }
+
+    .emptyCredits {
+      display: block;
+      color: rgba(255,255,255,.70);
+      font-size: 18px;
+      font-weight: 850;
+      line-height: 1.25;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, rgba(184,108,255,.13), rgba(33,216,255,.045));
+      border: 0;
+      box-shadow: inset 0 0 14px rgba(33,216,255,.035);
+    }
+
+    #centerStage {
+      display: grid;
+      place-items: center;
+      isolation: isolate;
+      background:
+        linear-gradient(180deg, rgba(6,7,18,0.28), rgba(6,7,18,0.42)),
+        url("/assets/images/cosmic_nebula_in_vibrant_colors.png") center center / cover no-repeat;
+    }
+
+    #centerGlow {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle, rgba(184,108,255,.18), transparent 56%),
+        radial-gradient(circle, rgba(33,216,255,.08), transparent 65%);
+      filter: blur(2px);
+      opacity: .9;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #centerStage::after {
+      content: "";
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      border-radius: 999px;
+      background: url("/assets/images/cosmic_portal_with_glowing_rings.png") center/cover no-repeat;
+      opacity: 0.38;
+      mix-blend-mode: screen;
+      filter: saturate(1.15) brightness(1.02);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #centerContent {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    #centerTitle {
+      font-size: 58px;
+      line-height: .9;
+      font-weight: 950;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 15px rgba(184,108,255,.78),
+        0 0 24px rgba(33,216,255,.30);
+      margin-bottom: 18px;
+    }
+
+    #centerAvatarWrap {
+      position: relative;
+      width: 210px;
+      height: 210px;
+      border-radius: 999px;
+      padding: 8px;
+      background: conic-gradient(from 180deg, rgba(184,108,255,.98), rgba(33,216,255,.98), rgba(141,72,255,.98), rgba(184,108,255,.98));
+      box-shadow:
+        0 0 36px rgba(184,108,255,.70),
+        0 0 24px rgba(33,216,255,.24),
+        inset 0 0 18px rgba(255,255,255,.10);
+      animation: avatarBreath 4.2s ease-in-out infinite;
+    }
+
+    #centerAvatarInner {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      overflow: hidden;
+      background: rgba(0,0,0,.46);
+      border: 4px solid rgba(5,3,12,.88);
+    }
+
+    #orbit {
+      position: absolute;
+      width: 292px;
+      height: 292px;
+      border-radius: 999px;
+      border: 1px solid rgba(184,108,255,.34);
+      box-shadow: inset 0 0 18px rgba(33,216,255,.08), 0 0 24px rgba(184,108,255,.14);
+      z-index: -1;
+      pointer-events: none;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .orbitDot {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 12px;
+      height: 12px;
+      margin-left: -6px;
+      margin-top: -6px;
+      border-radius: 999px;
+      background: #76f6ff;
+      box-shadow: 0 0 10px rgba(33,216,255,.92), 0 0 18px rgba(184,108,255,.62);
+      animation: orbitDot 10s linear infinite;
+    }
+
+    .orbitDot.second {
+      animation-delay: -5s;
+      background: #cb86ff;
+    }
+
+    @keyframes orbitDot {
+      from { transform: rotate(0deg) translateX(146px) rotate(0deg); }
+      to { transform: rotate(360deg) translateX(146px) rotate(-360deg); }
+    }
+
+    @keyframes avatarBreath {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(184,108,255,.30)); }
+      50% { transform: scale(1.022); filter: drop-shadow(0 0 18px rgba(33,216,255,.28)); }
+    }
+
+    #centerSub {
+      margin-top: 22px;
+      font-size: 22px;
+      font-weight: 950;
+      line-height: 1.1;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.92);
+      text-shadow:
+        0 0 10px rgba(184,108,255,.74),
+        0 0 16px rgba(33,216,255,.24);
+    }
+
+    #titleBar {
+      grid-column: 1 / 4;
+      grid-row: 3;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(10, 8, 24, 0.72), rgba(10, 8, 24, 0.84));
+    }
+
+    #titleBar::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      top: 14px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(0,0,0,0), rgba(111, 240, 255, 0.33), rgba(206, 103, 255, 0.44), rgba(0,0,0,0));
+      opacity: 0.7;
+      z-index: 2;
+    }
+
+    #subline {
+      position: absolute;
+      left: 1580px;
+      top: 50%;
+      transform: translateY(-50%);
+      white-space: nowrap;
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 900;
+      color: var(--text);
+      text-shadow:
+        0 0 10px rgba(184,108,255,.78),
+        0 0 20px rgba(33,216,255,.28);
+      will-change: left;
+      z-index: 3;
+      transition: none;
+    }
+
+    #debugCredits {
+      position: absolute;
+      left: 36px;
+      bottom: 18px;
+      z-index: 20;
+      display: none;
+      max-width: 1200px;
+      max-height: 170px;
+      overflow: hidden;
+      white-space: pre-wrap;
+      font: 14px/1.35 Consolas, monospace;
+      color: #fff;
+      background: rgba(0,0,0,.78);
+      border: 1px solid rgba(184,108,255,.55);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    body.debug #debugCredits { display: block; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div id="background"></div>
+
+    <main id="mainPanel" class="neon-panel runner">
+      <section id="brandBlock">
+        <div id="avatarWrap">
+          <div id="avatarInner">
+            <img id="headerAvatar" src="/assets/images/avatar_forrest.png" alt="Avatar" />
+          </div>
+        </div>
+
+        <div id="headlineWrap">
+          <div id="headlineTop">ForrestCGN · CGN Community</div>
+          <div id="headline">Stream endet</div>
+        </div>
+
+        <div id="statusBox">
+          <span id="statusLabel">Status</span>
+          <span id="statusText">Danke</span>
+        </div>
+      </section>
+
+      <section id="leftCredits">
+        <div class="creditsHeader">
+          <div class="panelKicker">Events</div>
+          <div class="panelHint">Support</div>
+        </div>
+        <div class="vertical-list" id="left-list">
+          <div class="vertical-content" id="left-content"></div>
+        </div>
+      </section>
+
+      <section id="centerStage">
+        <div id="centerGlow"></div>
+        <div id="centerContent">
+          <div id="centerTitle">Danke</div>
+          <div id="centerAvatarWrap">
+            <div id="orbit">
+              <div class="orbitDot"></div>
+              <div class="orbitDot second"></div>
+            </div>
+            <div id="centerAvatarInner">
+              <img id="centerAvatar" src="/assets/images/avatar_forrest.png" alt="Avatar" />
+            </div>
+          </div>
+          <div id="centerSub">für euren Support</div>
+        </div>
+      </section>
+
+      <section id="rightCredits">
+        <div class="creditsHeader">
+          <div class="panelKicker">Community</div>
+          <div class="panelHint">Credits</div>
+        </div>
+        <div class="vertical-list" id="right-list">
+          <div class="vertical-content" id="right-content"></div>
+        </div>
+      </section>
+
+      <section id="titleBar">
+        <div id="subline">Vielen Dank, dass ihr dabei gewesen seid</div>
+      </section>
+    </main>
+
+    <pre id="debugCredits"></pre>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const DEBUG = params.get("debug") === "1";
+    if (DEBUG) document.body.classList.add("debug");
+
+    const url = params.get("creditsUrl") || "http://localhost:8080/credits";
+    const ignoreBots = ["cgnstreambot", "streamelements", "streamstickers"];
+
+    const debugEl = document.getElementById("debugCredits");
+    function debugLog(message, data) {
+      if (!DEBUG || !debugEl) return;
+      const suffix = data ? "\n" + safeJson(data) : "";
+      debugEl.textContent = `[EndeCredits] ${message}${suffix}`;
+    }
+
+    function safeJson(value) {
+      try { return JSON.stringify(value, null, 2); }
+      catch { return String(value); }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function buildListHTML(title, items) {
+      if (!items || items.length === 0) return "";
+      return `<div class="creditGroup"><span class="category">${escapeHtml(title)}</span>` +
+        items.map(name => `<span class="creditName">${escapeHtml(name)}</span>`).join("") +
+        `<span class="creditGap"></span></div>`;
+    }
+
+    function sortAndFilterCredits(data) {
+      const seen = new Set();
+      const lower = (s) => (s || "").toLowerCase();
+      function accept(u) {
+        const l = lower(u);
+        return !!l && !ignoreBots.includes(l) && !seen.has(l);
+      }
+
+      const modsSrc = data?.users?.moderators || [];
+      const vipsSrc = data?.users?.vips || [];
+      const subsSrc = data?.users?.subscribers || [];
+      const usersSrc = data?.users?.users || [];
+
+      const mods = modsSrc.filter(accept);
+      mods.forEach((u) => seen.add(lower(u)));
+
+      const vips = vipsSrc.filter(accept);
+      vips.forEach((u) => seen.add(lower(u)));
+
+      const subs = subsSrc.filter(accept);
+      subs.forEach((u) => seen.add(lower(u)));
+
+      const users = usersSrc.filter(accept);
+      users.forEach((u) => seen.add(lower(u)));
+
+      return { mods, vips, subs, users };
+    }
+
+    function getEventCategory(data, key, ignore, excludeSet = new Set()) {
+      const arr = data?.events?.[key] || [];
+      const unique = [];
+      for (const name of arr) {
+        const lname = (name || "").toLowerCase();
+        if (lname && !ignore.includes(lname) && !excludeSet.has(lname)) {
+          unique.push(name);
+          excludeSet.add(lname);
+        }
+      }
+      return unique;
+    }
+
+    fetch(url, { cache: "no-store" })
+      .then((resp) => {
+        if (!resp.ok) throw new Error(`credits_http_${resp.status}`);
+        return resp.json();
+      })
+      .then((data) => {
+        const sorted = sortAndFilterCredits(data);
+
+        const excludeNames = new Set();
+
+        const giftbombs = getEventCategory(data, "giftbombs", ignoreBots, excludeNames);
+        const cheers = getEventCategory(data, "cheers", ignoreBots, excludeNames);
+        const giftsubs = getEventCategory(data, "giftsubs", ignoreBots, excludeNames);
+        const newsubs = getEventCategory(data, "subs", ignoreBots, excludeNames);
+        const follows = getEventCategory(data, "follows", ignoreBots, excludeNames);
+
+        const leftHTML =
+          buildListHTML("GiftBombs", giftbombs) +
+          buildListHTML("Cheers", cheers) +
+          buildListHTML("GiftSubs", giftsubs) +
+          buildListHTML("New Subs", newsubs) +
+          buildListHTML("New Follows", follows);
+
+        const rightHTML =
+          buildListHTML("MODs", sorted.mods) +
+          buildListHTML("VIPs", sorted.vips) +
+          buildListHTML("SUBs", sorted.subs) +
+          buildListHTML("USERs", sorted.users);
+
+        animateVerticalScroll("left-list", leftHTML || "<span class='emptyCredits'>Keine Event-Credits geladen.</span>");
+        animateVerticalScroll("right-list", rightHTML || "<span class='emptyCredits'>Keine Community-Credits geladen.</span>");
+
+        scrollSubline(buildRaidSubline(data));
+        debugLog("Credits geladen", {
+          events: { giftbombs: giftbombs.length, cheers: cheers.length, giftsubs: giftsubs.length, newsubs: newsubs.length, follows: follows.length },
+          users: { mods: sorted.mods.length, vips: sorted.vips.length, subs: sorted.subs.length, users: sorted.users.length }
+        });
+      })
+      .catch((e) => {
+        document.getElementById("right-content").innerHTML =
+          "<span class='category'>Keine Credits geladen</span><span class='emptyCredits'>Community-Credits konnten nicht geladen werden.</span>";
+        document.getElementById("left-content").innerHTML =
+          "<span class='category'>Keine Credits geladen</span><span class='emptyCredits'>Event-Credits konnten nicht geladen werden.</span>";
+        scrollSubline("Vielen Dank euch allen dafür, dass ihr dabei gewesen seid und uns unterstützt habt.");
+        debugLog("Credits-Fehler", { error: String(e?.message || e), url });
+        console.error(e);
+      });
+
+    function animateVerticalScroll(listId, html, pauseTime = 1500) {
+      const listEl = document.getElementById(listId);
+      if (!listEl) return;
+      listEl.innerHTML = `<div class="vertical-content" id="${listId}-content">${html}</div>`;
+      const contentEl = document.getElementById(`${listId}-content`);
+      if (!contentEl) return;
+
+      const listHeight = listEl.clientHeight || 350;
+      const contentHeight = contentEl.scrollHeight || contentEl.offsetHeight || 1;
+
+      contentEl.style.transition = "none";
+
+      // Wenn wenig Inhalt vorhanden ist, bleibt er ruhig sichtbar.
+      // Erst bei echten langen Credits wird gescrollt.
+      if (contentHeight <= listHeight - 18) {
+        contentEl.style.top = "8px";
+        return;
+      }
+
+      const distance = contentHeight + listHeight;
+      const pxPerSec = 48;
+      const duration = Math.max(6500, Math.ceil((distance / pxPerSec) * 1000));
+
+      contentEl.style.top = `${listHeight}px`;
+      void contentEl.offsetWidth;
+
+      setTimeout(() => {
+        contentEl.style.transition = `top ${duration}ms linear`;
+        contentEl.style.top = `-${contentHeight}px`;
+      }, 120);
+
+      setTimeout(() => animateVerticalScroll(listId, html, pauseTime), duration + pauseTime);
+    }
+
+    function buildRaidSubline(data) {
+      const raids = getEventCategory(data, "raided", ignoreBots);
+      let text = "";
+      if (raids.length === 1) {
+        text = `Wir danken "${raids[0]}" für den Raid! `;
+      } else if (raids.length > 1) {
+        const last = raids.pop();
+        text = `Wir danken "${raids.join('", "')}" und "${last}" für die Raids! `;
+      }
+      text +=
+        "Vielen Dank euch allen dafür, dass ihr dabei gewesen seid und uns unterstützt habt.";
+      return text;
+    }
+
+    function scrollSubline(text) {
+      const sublineEl = document.getElementById("subline");
+      if (!sublineEl) return;
+      const containerWidth = document.getElementById("titleBar")?.clientWidth || 1580;
+      const scrollSpeed = 155;
+      const scrollPause = 5;
+      sublineEl.textContent = text;
+      sublineEl.style.transition = "none";
+      sublineEl.style.left = containerWidth + "px";
+      void sublineEl.offsetWidth;
+      setTimeout(() => {
+        const textWidth = sublineEl.offsetWidth;
+        const distance = containerWidth + textWidth;
+        const duration = (distance / scrollSpeed) * 1000;
+        sublineEl.style.transition = `left ${duration}ms linear`;
+        sublineEl.style.left = `-${textWidth}px`;
+        setTimeout(() => {
+          setTimeout(() => scrollSubline(text), scrollPause * 1000);
+        }, duration);
+      }, 30);
+    }
+  </script>
+</body>
+</html>
+

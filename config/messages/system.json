@@ -1,0 +1,14 @@
+{
+  "_meta": {
+    "description": "Allgemeine System- und Fallback-Texte für das zentrale Message-System."
+  },
+  "default_error": [
+    "Da ist gerade etwas schiefgelaufen. Die Heimleitung schaut drauf."
+  ],
+  "default_success": [
+    "Erledigt."
+  ],
+  "command_cooldown": [
+    "{displayName}, bitte kurz warten. Der Befehl ist noch im Cooldown."
+  ]
+}

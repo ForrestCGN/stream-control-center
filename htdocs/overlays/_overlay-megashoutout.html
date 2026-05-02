@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1600, initial-scale=1.0"/>
+  <title>Mega Shoutout</title>
+  <script src="streamerbot.js"></script>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100vw; height: 100vh;
+    }
+    #container {
+      position: relative;
+      width: 1600px; height: 600px;
+      border: 6px solid #5a3fc0;
+      box-shadow: 0 0 60px #5a3fc0, 0 0 120px #1e90ff, inset 0 0 40px #5a3fc0;
+      border-radius: 40px;
+      background: rgba(10, 10, 30, 1.0);
+      overflow: hidden;
+      animation: fadeIn 2s ease-out, fadeOut 2s ease-in 12s forwards;
+    }
+    #background {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: url('../assets/images/domspitzen_overlay.png') no-repeat center;
+      background-size: cover;
+      opacity: 0.01;
+      z-index: 1;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    @keyframes pulseGlow {
+      0%, 100% {
+        text-shadow:
+          0 0 8px #5a3fc0,
+          0 0 15px #5a3fc0,
+          0 0 20px #1e90ff,
+          0 0 30px #1e90ff;
+        transform: scale(1);
+      }
+      50% {
+        text-shadow:
+          0 0 12px #5a3fc0,
+          0 0 25px #5a3fc0,
+          0 0 30px #1e90ff,
+          0 0 40px #1e90ff;
+        transform: scale(1.05);
+      }
+    }
+    #avatar {
+      position: absolute;
+      top: 150px; left: 100px;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      border: 4px solid #ffffff;
+      object-fit: cover;
+      box-shadow: 0 0 40px #ffffff, 0 0 60px #5a3fc0;
+      z-index: 2;
+      animation: pulseGlow 4s infinite ease-in-out;
+    }
+    #headline {
+      position: absolute;
+      top: 60px; left: 480px;
+      width: 1000px;
+      text-align: center;
+      font-size: 72px;
+      color: #ffffff;
+      text-shadow:
+        0 0 8px #5a3fc0,
+        0 0 15px #5a3fc0,
+        0 0 20px #1e90ff,
+        0 0 30px #1e90ff;
+      font-weight: 700;
+      z-index: 2;
+      animation: pulseGlow 3s infinite ease-in-out;
+      background: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #name {
+      position: absolute;
+      top: 290px; left: 480px;
+      width: 1000px;
+      text-align: center;
+      font-size: 96px;
+      line-height: 1;
+      color: #1e90ff;
+      text-shadow: 0 0 30px #1e90ff;
+      font-weight: 900;
+      z-index: 2;
+      transform: translateY(-52%);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #subline {
+      position: absolute;
+      top: 460px; left: 480px;
+      width: 1000px;
+      text-align: center;
+      font-size: 44px;
+      color: #ffffff;
+      text-shadow: 0 0 10px #ffffff;
+      font-weight: 400;
+      z-index: 2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+  <script>
+    function getUrlParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+    function updateFromStreamerBot() {
+      try {
+        const avatar   = getUrlParam("avatar")   || (typeof SBGlobal !== "undefined" && SBGlobal.get("mso_avatar"))   || "../assets/images/default_avatar.png";
+        const headline = getUrlParam("headline") || (typeof SBGlobal !== "undefined" && SBGlobal.get("mso_headline")) || "MEGA SHOUTOUT";
+        const name     = getUrlParam("name")     || (typeof SBGlobal !== "undefined" && SBGlobal.get("mso_name"))     || "StreamerName";
+        const subline  = getUrlParam("subline")  || (typeof SBGlobal !== "undefined" && SBGlobal.get("mso_subline"))  || "Schau gerne mal vorbei";
+        const soundfile = getUrlParam("soundfile") || (typeof SBGlobal !== "undefined" && SBGlobal.get("mso_soundfile")) || "default.mp3";
+        document.getElementById("avatar").src = avatar;
+        document.getElementById("headline").textContent = headline;
+        document.getElementById("name").textContent = name;
+        document.getElementById("subline").textContent = subline;
+        // Sound abspielen (immer neu laden)
+        const audio = document.getElementById("mso-sound");
+        if (audio) {
+          audio.src = "../assets/sounds/" + soundfile;
+          audio.load();
+          audio.play();
+        }
+      } catch(e) {}
+    }
+    document.addEventListener("SBReady", function() {
+      updateFromStreamerBot();
+      setInterval(updateFromStreamerBot, 500);
+    });
+    document.addEventListener("DOMContentLoaded", updateFromStreamerBot);
+  </script>
+</head>
+<body>
+  <div id="wrapper">
+    <div id="container">
+      <div id="background"></div>
+      <img id="avatar" src="../assets/images/default_avatar.png" alt="Avatar" />
+      <div id="headline">MEGA SHOUTOUT</div>
+      <div id="name">StreamerName</div>
+      <div id="subline">Schau gerne mal vorbei</div>
+      <audio id="mso-sound" autoplay></audio>
+    </div>
+  </div>
+</body>
+</html>
+
+

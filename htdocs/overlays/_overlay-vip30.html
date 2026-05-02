@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>VIP 30 Tage Alert</title>
+  <meta name="viewport" content="width=1920, height=1080">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --c-bg-deep:      #0c0618;
+      --c-purple-dark:  #28123f;
+      --c-purple-main:  #5a3fc0;
+      --c-purple-light: #a580fc;
+      --c-blue-main:    #1e90ff;
+      --c-blue-soft:    #55c4ff;
+      --c-text-main:    #ffffff;
+      --c-text-sub:     #d0c9ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    body {
+      background: transparent;
+      color: var(--c-text-main);
+    }
+
+    /* Wrapper – Position/Animation wie gehabt */
+    .vip-wrapper {
+      position: absolute;
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      width: 720px;
+      max-width: 90vw;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes alertIntro {
+      0% {
+        opacity: 0;
+        transform: translate(-130%, -50%) scale(0.8) skewX(-10deg);
+        filter: blur(10px);
+      }
+      40% {
+        opacity: 1;
+        transform: translate(-46%, -50%) scale(1.04) skewX(3deg);
+        filter: blur(0);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.0) skewX(0deg);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes alertOutro {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.0) skewX(0deg);
+        filter: blur(0);
+      }
+      30% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.08) skewX(0deg);
+        filter: blur(1px);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -55%) scale(0.65) skewX(0deg);
+        filter: blur(6px);
+      }
+    }
+
+    .vip-wrapper.play-intro {
+      animation: alertIntro 0.9s ease-out forwards;
+    }
+
+    .vip-wrapper.play-outro {
+      animation: alertOutro 0.7s ease-in forwards;
+    }
+
+    /* =========
+       PANEL – wie Follow-Alert-Panel
+       ========= */
+    .vip-panel {
+      position: relative;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 22px;
+      padding: 22px 40px;
+      border-radius: 40px;
+
+      background:
+        radial-gradient(circle at 15% 50%,
+          #a580fc,
+          #5a3fc0 55%,
+          #28123f);
+
+      border: 3px solid rgba(18, 8, 38, 0.9);
+
+      box-shadow:
+        0 12px 22px rgba(0, 0, 0, 0.9),
+        inset 0 2px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.7);
+      z-index: 2;
+    }
+
+    .vip-panel::before {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border-radius: 34px;
+      border: 2px solid rgba(0, 0, 0, 0.55);
+      box-shadow:
+        inset 0 0 6px rgba(0, 0, 0, 0.85),
+        0 0 6px rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+    }
+
+    .vip-divider {
+      position: absolute;
+      left: 190px;
+      top: 18px;
+      bottom: 18px;
+      width: 3px;
+      background: linear-gradient(
+        180deg,
+        transparent,
+        #55c4ff,
+        #a580fc,
+        transparent
+      );
+      box-shadow: 0 0 14px rgba(165,128,252,0.9);
+      pointer-events: none;
+    }
+
+    /* =========
+       AVATAR – Position wie in deiner .laeuft (nach links geschoben)
+       ========= */
+    .vip-avatar-wrap {
+      position: relative;
+      left: -20px;              /* aus der .laeuft übernommen: Kreis leicht nach links */
+      width: 150px;
+      height: 150px;
+      padding: 7px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #a580fc, #28123f);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 0 24px rgba(165,128,252,0.95),
+        0 0 34px rgba(85,196,255,0.85);
+    }
+
+    .vip-avatar-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      overflow: hidden;
+      background: #140627;
+      border: 3px solid #120822;
+    }
+
+    .vip-avatar-inner::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: inherit;
+      border: 3px solid #1e90ff;
+      box-shadow: 0 0 14px rgba(30,144,255,0.9);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .vip-avatar {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: relative;
+      z-index: 0;
+    }
+
+    .vip-avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      z-index: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow:
+        0 0 12px rgba(30,144,255,0.9);
+    }
+
+    .vip-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    /* Username – VIP-Style */
+    .vip-username-line {
+      font-size: 40px;
+      font-family: "Pacifico", system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-weight: 400;
+      text-shadow:
+        0 0 6px rgba(165,128,252,0.8),
+        0 0 10px rgba(85,196,255,0.7);
+      transform-origin: left center;
+      animation: vipUserPulse 1.6s ease-in-out infinite;
+      animation-delay: 0.3s;
+      margin-bottom: 20px;
+    }
+
+    @keyframes vipUserPulse {
+      0%   { transform: scale(1.0);   text-shadow: 0 0 6px rgba(165,128,252,0.7), 0 0 10px rgba(85,196,255,0.7); }
+      50%  { transform: scale(1.04);  text-shadow: 0 0 10px rgba(165,128,252,1), 0 0 16px rgba(85,196,255,1); }
+      100% { transform: scale(1.0);   text-shadow: 0 0 6px rgba(165,128,252,0.7), 0 0 10px rgba(85,196,255,0.7); }
+    }
+
+    .vip-mainline {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 6px rgba(165,128,252,0.7),
+        0 0 10px rgba(85,196,255,0.6);
+    }
+
+    .vip-subline {
+      font-size: 21px;
+      color: var(--c-text-sub);
+    }
+
+    /* Partikel */
+    .particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #ffffff, var(--c-blue-main));
+      opacity: 0.0;
+      animation: particleFloat 5s ease-out infinite;
+      pointer-events: none;
+    }
+
+    .p1 { top: 20%; left: 55%; animation-delay: 0.1s; }
+    .p2 { top: 76%; left: 88%; animation-delay: 0.2s; }
+    .p3 { top: 60%; left: 30%; animation-delay: 0.3s; }
+    .p4 { top: 32%; left: 80%; animation-delay: 0.4s; }
+
+    @keyframes particleFloat {
+      0%   { opacity: 0; transform: translateY(10px) scale(0.4); }
+      15%  { opacity: 1; transform: translateY(-8px) scale(1.0); }
+      70%  { opacity: 0.7; transform: translateY(-40px) scale(1.1); }
+      100% { opacity: 0; transform: translateY(-60px) scale(0.2); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="vip-wrapper" id="vipWrapper">
+    <div class="vip-panel">
+      <div class="vip-avatar-wrap">
+        <div class="vip-avatar-inner">
+          <img id="vipAvatar" class="vip-avatar" src="" style="display:none;">
+          <div id="vipAvatarPlaceholder" class="vip-avatar-placeholder">?</div>
+        </div>
+      </div>
+
+      <div class="vip-divider"></div>
+
+      <div class="vip-content">
+        <div class="vip-username-line" id="vipUser">
+          Username
+        </div>
+
+        <div class="vip-mainline">
+          hat sich soeben 30 Tage VIP gegönnt.
+        </div>
+
+        <div class="vip-subline">
+          💜 Vielen Dank für deine Treue 💜
+        </div>
+      </div>
+
+      <div class="particle p1"></div>
+      <div class="particle p2"></div>
+      <div class="particle p3"></div>
+      <div class="particle p4"></div>
+    </div>
+  </div>
+
+  <!-- Sound: d:\Streaming\stramAssets\htdocs\assets\sounds\vip30.mp3 -->
+  <audio id="vipSound" src="/assets/sounds/vip30.mp3" preload="auto"></audio>
+
+  <script>
+    function getQueryParams() {
+      var p = new URLSearchParams(window.location.search);
+      return {
+        user:   p.get("user")   || "Unbekannt",
+        avatar: p.get("avatar") || ""
+      };
+    }
+
+    function configureAvatar(data) {
+      var avatarImg = document.getElementById("vipAvatar");
+      var avatarPh  = document.getElementById("vipAvatarPlaceholder");
+
+      if (data.avatar) {
+        avatarImg.src = data.avatar;
+        avatarImg.style.display = "block";
+        avatarPh.style.display = "none";
+      } else {
+        avatarImg.style.display = "none";
+        avatarPh.style.display = "flex";
+        avatarPh.textContent = (data.user[0] || "?").toUpperCase();
+      }
+    }
+
+    function playVipSound(onEnded) {
+      var audio = document.getElementById("vipSound");
+      if (!audio) {
+        if (onEnded) onEnded();
+        return;
+      }
+
+      audio.currentTime = 0;
+
+      var finished = false;
+      function safeEnd() {
+        if (finished) return;
+        finished = true;
+        if (onEnded) onEnded();
+      }
+
+      audio.onended = safeEnd;
+
+      var playPromise = audio.play();
+      if (playPromise && playPromise.catch) {
+        playPromise.catch(function(err) {
+          console.warn("VIP-Sound konnte nicht automatisch abgespielt werden:", err);
+          safeEnd();
+        });
+      }
+
+      // Fallback, falls onended nie feuert
+      setTimeout(safeEnd, 20000);
+    }
+
+    function showVipAlert(data) {
+      var wrapper  = document.getElementById("vipWrapper");
+      var userSpan = document.getElementById("vipUser");
+
+      userSpan.textContent = data.user;
+      configureAvatar(data);
+
+      var introMs = 900; // muss zu alertIntro passen
+
+      wrapper.classList.remove("play-intro", "play-outro");
+      void wrapper.offsetWidth; // reflow
+
+      wrapper.classList.add("play-intro");
+
+      // Sound erst starten, wenn Panel steht
+      setTimeout(function() {
+        playVipSound(function() {
+          wrapper.classList.remove("play-intro");
+          wrapper.classList.add("play-outro");
+        });
+      }, introMs);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      var data = getQueryParams();
+      showVipAlert(data);
+    });
+  </script>
+</body>
+</html>
+

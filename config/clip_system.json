@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "defaultClipTitle": "Clip",
+  "includeGameInCustomTitle": true,
+  "twitchClipDurationSeconds": 30,
+  "obsReplaySaveDelayMs": 30000,
+  "localReplayRenameDelayMs": 3000,
+  "localReplayDir": "d:\\Aufnahme\\Clips",
+  "localReplayLookbackMinutes": 5,
+  "sendClipActivatedMessage": true,
+  "sendTwitchClipResultMessage": true,
+  "discordPostEnabled": true,
+  "discordChannelKey": "clips",
+  "postOnlyWhenLive": false,
+  "saveHistory": true,
+  "messagesPath": "messages/clips.json"
+}

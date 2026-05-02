@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Challenge Overlay</title>
+<style>
+body {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+#challenge-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100vh;
+}
+.challenge-box {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  background: rgba(30, 34, 51, 0.95);
+  border-radius: 32px;
+  box-shadow: 0 6px 48px #0008, 0 2px 8px #0015;
+  margin: 12px auto;
+  padding: 24px 32px 18px 32px;
+  width: 300px;
+  height: 200px;
+  max-width: 300px;
+  min-width: 300px;
+  max-height: 200px;
+  min-height: 200px;
+  border: 2.5px solid #675aff;
+  position: relative;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  animation: boxIn 0.6s cubic-bezier(.42,0,.25,1.05);
+  transition: box-shadow 0.2s;
+  box-sizing: border-box;
+}
+@keyframes boxIn {
+  0% {opacity: 0; transform: translateY(30px) scale(0.95);}
+  100% {opacity: 1; transform: translateY(0) scale(1);}
+}
+.challenge-title {
+  font-size: 1.45em;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 8px;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.challenge-time {
+  font-size: 2.0em;
+  font-weight: 700;
+  color: #fffb8b;
+  text-align: center;
+  margin: 0 auto 5px auto;
+}
+.challenge-user {
+  font-size: 1.15em;
+  color: #e9e9f6;
+  margin-top: 20px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  display: block;
+  text-align: center;
+}
+.challenge-icon {
+  font-size: 2.2em;
+  text-align: center;
+  margin: 0 auto 8px auto;
+}
+</style>
+</head>
+<body>
+<div id="challenge-queue"></div>
+<script>
+let queue = [];
+let running = false;
+
+function addChallenge(challenge) {
+    if (!challenge || !challenge.mode) return;
+    queue.push(challenge);
+    if (!running) runNext();
+}
+
+function runNext() {
+    if (queue.length === 0) {
+        running = false;
+        return;
+    }
+    running = true;
+    const challenge = queue.shift();
+    showChallenge(challenge, runNext);
+}
+
+function showChallenge(challenge, onDone) {
+    const parent = document.getElementById('challenge-queue');
+    const box = document.createElement('div');
+    box.className = 'challenge-box';
+
+    // Icon
+    const icon = document.createElement('div');
+    icon.className = 'challenge-icon';
+    if (/fluch/i.test(challenge.mode)) icon.innerText = '🤬';
+    else if (/red/i.test(challenge.mode)) icon.innerText = '🤐';
+    else icon.innerText = '🏆';
+    box.appendChild(icon);
+
+    // Titel
+    const boxTitle = document.createElement('div');
+    boxTitle.className = 'challenge-title';
+    boxTitle.innerText = challenge.mode; // Keine Punkte mehr anhängen
+    box.appendChild(boxTitle);
+
+    // Timer
+    const time = document.createElement('div');
+    time.className = 'challenge-time';
+    box.appendChild(time);
+    let remaining = challenge.duration || 60;
+    updateTime();
+    let timer = setInterval(() => {
+        remaining--;
+        updateTime();
+        if (remaining <= 0) finish();
+    }, 1000);
+    function updateTime() {
+        let mm = String(Math.floor(remaining/60)).padStart(2,'0');
+        let ss = String(remaining%60).padStart(2,'0');
+        time.innerText = mm+':'+ss;
+    }
+
+    // User
+    const user = document.createElement('div');
+    user.className = 'challenge-user';
+    user.title = challenge.user || '';
+    user.innerText = challenge.user || '';
+    box.appendChild(user);
+
+    parent.appendChild(box);
+
+    function finish() {
+        clearInterval(timer);
+        box.style.opacity = 0;
+        setTimeout(()=>{
+            parent.removeChild(box);
+            onDone();
+        }, 600);
+    }
+}
+
+// WebSocket-Empfang für Challenges
+const socket = new WebSocket("ws://localhost:8080");
+socket.addEventListener("message", (event) => {
+    try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "challenge") {
+            addChallenge(msg.data);
+        }
+    } catch (e) {}
+});
+</script>
+</body>
+</html>

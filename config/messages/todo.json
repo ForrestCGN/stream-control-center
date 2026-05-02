@@ -1,0 +1,15 @@
+{
+  "help": "Mit !todo <name> <dein Text> kannst du ein Todo im passenden Discord-Channel eintragen. Beispiel: !todo @ForrestCGN Alles testen...",
+  "added": "Todo wurde eingetragen.",
+  "invalidTarget": "Ungültiges Ziel. Erlaubt sind: {targets}.",
+  "missingChannel": "Todo-Channel für {targetLabel} ist nicht konfiguriert.",
+  "missingText": "Bitte gib einen Todo-Text an. Beispiel: !todo @ForrestCGN Alles testen...",
+  "missingMessage": "Bitte gib ein Ziel und einen Todo-Text an. Beispiel: !todo @ForrestCGN Alles testen...",
+  "unauthorized": "Nicht autorisiert.",
+  "failed": "Todo konnte nicht eingetragen werden.",
+  "reloadOk": "Todo-Konfiguration wurde neu geladen.",
+  "statsEmpty": "Noch keine Todo-Statistik vorhanden.",
+  "statsHeader": "Todo-Statistik:",
+  "statsTodayHeader": "Todo-Statistik heute:",
+  "discordPost": "Todo von {authorDisplay}:\n\n{todoText}"
+}

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "ffmpeg": {
+    "enabled": true,
+    "path": "D:\\Streaming\\stramAssets\\tools\\ffmpeg\\ffmpeg.exe",
+    "fallbackPaths": [
+      "D:\\Streaming\\stramAssets\\tools\\ffmpeg\\ffmpeg.exe",
+      "D:\\Streaming\\stramAssets\\tools\\ffmpeg\\ffmpeg\\ffmpeg.exe",
+      "tools\\ffmpeg\\ffmpeg.exe",
+      "tools\\ffmpeg\\ffmpeg\\ffmpeg.exe"
+    ]
+  },
+  "ffprobe": {
+    "enabled": true,
+    "path": "D:\\Streaming\\stramAssets\\tools\\ffmpeg\\ffprobe.exe",
+    "fallbackPaths": [
+      "D:\\Streaming\\stramAssets\\tools\\ffmpeg\\ffprobe.exe",
+      "D:\\Streaming\\stramAssets\\tools\\ffmpeg\\ffmpeg\\ffprobe.exe",
+      "tools\\ffmpeg\\ffprobe.exe",
+      "tools\\ffmpeg\\ffmpeg\\ffprobe.exe"
+    ]
+  }
+}

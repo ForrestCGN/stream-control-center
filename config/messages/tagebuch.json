@@ -1,0 +1,19 @@
+{
+  "emptyEndNotice": "Heute blieb das Streamtagebuch noch leer.\nWenn du etwas festhalten möchtest, nutze im Twitch-Chat: !tagebuch <dein Text>",
+  "usageNotice": "Mit !tagebuch <dein Text> kannst du besondere Momente oder lustige Dinge im Streamtagebuch festhalten.\nBeispiel: !tagebuch Forrest stirbt zum dritten Mal an derselben Stelle",
+  "streamInactive": "Tagebucheinträge sind nur während eines aktiven Streams möglich.",
+  "entrySaved": "Tagebuch-Eintrag wurde gespeichert.",
+  "streamStartCreated": "Neue Tagebuchseite für heute wurde angelegt.",
+  "streamStartExists": "Tagebuchseite für heute ist bereits vorhanden.",
+  "streamEnd": "Stream beendet.",
+  "streamEndEmptyNotice": "Stream beendet. Leer-Hinweis wurde gepostet.",
+  "resetSoft": "Aktiver Tagebuch-Status wurde zurückgesetzt.",
+  "resetHard": "Tagebuch wurde komplett zurückgesetzt.",
+  "resetHardBlocked": "Hard-Reset ist blockiert oder wurde nicht bestätigt.",
+  "unauthorized": "Unauthorized",
+  "entryFailed": "Tagebuch-Eintrag konnte nicht gespeichert werden.",
+  "startFailed": "Streamstart konnte nicht verarbeitet werden.",
+  "endFailed": "Streamende konnte nicht verarbeitet werden.",
+  "statusFailed": "Tagebuch-Status konnte nicht gelesen werden.",
+  "resetFailed": "Tagebuch-Reset fehlgeschlagen."
+}

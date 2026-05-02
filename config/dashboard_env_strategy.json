@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-01",
+  "step": "006",
+  "status": "prepared_only",
+  "recommendation": "Bestehende backend/.env vorerst nicht blind verschieben. Langfristig Secrets zentral unter config/secrets/.env speichern und beim Backend-Start laden.",
+  "normalConfigs": "D:/Streaming/stramAssets/config/*.json",
+  "secretConfigs": "D:/Streaming/stramAssets/config/secrets/.env",
+  "examples": {
+    "backendEnvCurrent": "D:/Streaming/stramAssets/backend/.env",
+    "futureCentralSecrets": "D:/Streaming/stramAssets/config/secrets/.env",
+    "futureLocalOverride": "D:/Streaming/stramAssets/config/secrets/.env.local"
+  },
+  "rules": [
+    "Secrets niemals ins Frontend ausgeben.",
+    "Secrets im Admin-UI nur maskiert anzeigen.",
+    "Secrets nur ersetzen, nicht auslesen.",
+    "Secret-Änderungen ohne Werte ins Audit-Log schreiben.",
+    "Normale veränderbare Einstellungen in JSON-Configs, nicht in ENV.",
+    "ENV nur für Start-/Sicherheitswerte, Tokens, Secrets, Ports und externe Zugangsdaten."
+  ]
+}

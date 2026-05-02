@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>CGN Alert</title>
+  <meta name="viewport" content="width=1920, height=1080">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --c-bg-deep:      #0c0618;
+      --c-purple-dark:  #28123f;
+      --c-purple-main:  #5a3fc0;
+      --c-purple-light: #a580fc;
+      --c-blue-main:    #1e90ff;
+      --c-blue-soft:    #55c4ff;
+      --c-text-main:    #ffffff;
+      --c-text-sub:     #d0c9ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    body {
+      background: transparent;
+      color: var(--c-text-main);
+    }
+
+    /* Wrapper / Animation identisch zu VIP */
+    .vip-wrapper {
+      position: absolute;
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      width: 720px;
+      max-width: 90vw;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes alertIntro {
+      0% {
+        opacity: 0;
+        transform: translate(-130%, -50%) scale(0.8) skewX(-10deg);
+        filter: blur(10px);
+      }
+      40% {
+        opacity: 1;
+        transform: translate(-46%, -50%) scale(1.04) skewX(3deg);
+        filter: blur(0);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.0) skewX(0deg);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes alertOutro {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.0) skewX(0deg);
+        filter: blur(0);
+      }
+      30% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.08) skewX(0deg);
+        filter: blur(1px);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -55%) scale(0.65) skewX(0deg);
+        filter: blur(6px);
+      }
+    }
+
+    .vip-wrapper.play-intro {
+      animation: alertIntro 0.9s ease-out forwards;
+    }
+
+    .vip-wrapper.play-outro {
+      animation: alertOutro 0.7s ease-in forwards;
+    }
+
+    /* Panel 1:1 vom VIP */
+    .vip-panel {
+      position: relative;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 22px;
+      padding: 22px 40px;
+      border-radius: 40px;
+
+      background:
+        radial-gradient(circle at 15% 50%,
+          #a580fc,
+          #5a3fc0 55%,
+          #28123f);
+
+      border: 3px solid rgba(18, 8, 38, 0.9);
+
+      box-shadow:
+        0 12px 22px rgba(0, 0, 0, 0.9),
+        inset 0 2px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.7);
+      z-index: 2;
+    }
+
+    .vip-panel::before {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border-radius: 34px;
+      border: 2px solid rgba(0, 0, 0, 0.55);
+      box-shadow:
+        inset 0 0 6px rgba(0, 0, 0, 0.85),
+        0 0 6px rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+    }
+
+    .vip-divider {
+      position: absolute;
+      left: 190px;
+      top: 18px;
+      bottom: 18px;
+      width: 3px;
+      background: linear-gradient(
+        180deg,
+        transparent,
+        #55c4ff,
+        #a580fc,
+        transparent
+      );
+      box-shadow: 0 0 14px rgba(165,128,252,0.9);
+      pointer-events: none;
+    }
+
+    /* Avatar-Kreis wie im VIP-Overlay */
+    .vip-avatar-wrap {
+      position: relative;
+      left: -20px;
+      width: 150px;
+      height: 150px;
+      padding: 7px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #a580fc, #28123f);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 0 24px rgba(165,128,252,0.95),
+        0 0 34px rgba(85,196,255,0.85);
+    }
+
+    .vip-avatar-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      overflow: hidden;
+      background: #140627;
+      border: 3px solid #120822;
+    }
+
+    .vip-avatar-inner::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: inherit;
+      border: 3px solid #1e90ff;
+      box-shadow: 0 0 14px rgba(30,144,255,0.9);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .vip-avatar {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: relative;
+      z-index: 0;
+    }
+
+    .vip-avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      z-index: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow:
+        0 0 12px rgba(30,144,255,0.9);
+    }
+
+    .vip-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    /* Username – wie VIP */
+    .vip-username-line {
+      font-size: 40px;
+      font-family: "Pacifico", system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-weight: 400;
+      text-shadow:
+        0 0 6px rgba(165,128,252,0.8),
+        0 0 10px rgba(85,196,255,0.7);
+      transform-origin: left center;
+      animation: vipUserPulse 1.6s ease-in-out infinite;
+      animation-delay: 0.3s;
+      margin-bottom: 20px;
+    }
+
+    @keyframes vipUserPulse {
+      0%   { transform: scale(1.0);   text-shadow: 0 0 6px rgba(165,128,252,0.7), 0 0 10px rgba(85,196,255,0.7); }
+      50%  { transform: scale(1.04);  text-shadow: 0 0 10px rgba(165,128,252,1), 0 0 16px rgba(85,196,255,1); }
+      100% { transform: scale(1.0);   text-shadow: 0 0 6px rgba(165,128,252,0.7), 0 0 10px rgba(85,196,255,0.7); }
+    }
+
+    .vip-mainline {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 6px rgba(165,128,252,0.7),
+        0 0 10px rgba(85,196,255,0.6);
+    }
+
+    .vip-subline {
+      font-size: 21px;
+      color: var(--c-text-sub);
+    }
+
+    /* Partikel */
+    .particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #ffffff, var(--c-blue-main));
+      opacity: 0.0;
+      animation: particleFloat 5s ease-out infinite;
+      pointer-events: none;
+    }
+
+    .p1 { top: 20%; left: 55%; animation-delay: 0.1s; }
+    .p2 { top: 76%; left: 88%; animation-delay: 0.2s; }
+    .p3 { top: 60%; left: 30%; animation-delay: 0.3s; }
+    .p4 { top: 32%; left: 80%; animation-delay: 0.4s; }
+
+    @keyframes particleFloat {
+      0%   { opacity: 0; transform: translateY(10px) scale(0.4); }
+      15%  { opacity: 1; transform: translateY(-8px) scale(1.0); }
+      70%  { opacity: 0.7; transform: translateY(-40px) scale(1.1); }
+      100% { opacity: 0; transform: translateY(-60px) scale(0.2); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="vip-wrapper" id="alertWrapper">
+    <div class="vip-panel">
+      <div class="vip-avatar-wrap">
+        <div class="vip-avatar-inner">
+          <img id="alertAvatar" class="vip-avatar" src="" style="display:none;">
+          <div id="alertAvatarPlaceholder" class="vip-avatar-placeholder">?</div>
+        </div>
+      </div>
+
+      <div class="vip-divider"></div>
+
+      <div class="vip-content">
+        <div class="vip-username-line" id="alertUser">
+          Username
+        </div>
+
+        <div class="vip-mainline" id="alertMainline">
+          Alert Text
+        </div>
+
+        <div class="vip-subline" id="alertSubline">
+          Subtext
+        </div>
+      </div>
+
+      <div class="particle p1"></div>
+      <div class="particle p2"></div>
+      <div class="particle p3"></div>
+      <div class="particle p4"></div>
+    </div>
+  </div>
+
+  <!-- Sound wird per JS gesetzt -->
+  <audio id="alertSound" preload="auto"></audio>
+
+  <script>
+    // --- Konfig für Sounds & Standard-Texte ---
+    const ALERT_CONFIG = {
+      follow: {
+        sound: "/assets/sounds/alerts/follow.mp3",
+        main:  "folgt jetzt dem Kanal!",
+        sub:   "Willkommen in der CGN-Community 💜"
+      },
+      sub_new: {
+        sound: "/assets/sounds/alerts/sub_new.mp3",
+        main:  "hat soeben ein Abo dagelassen!",
+        sub:   "Danke für deinen Support 💜"
+      },
+      sub_resub: {
+        sound: "/assets/sounds/alerts/sub_resub.mp3",
+        main:  "verlängert sein Abo!",
+        sub:   "Danke für deine Treue 💜"
+      },
+      sub_gift: {
+        sound: "/assets/sounds/alerts/sub_gift.mp3",
+        main:  "verschenkt ein Abo!",
+        sub:   "Ehrenmove für die CGN-Community 💜"
+      },
+      bits: {
+        // tier-spezifisch nach Bits-Anzahl
+        tiers: [
+          {
+            min: 1, max: 99,
+            sound: "/assets/sounds/alerts/bits_small.mp3",
+            main:  "wirft ein paar Bits in den Hut!",
+            sub:   "Danke für deinen Support 💜"
+          },
+          {
+            min: 100, max: 999,
+            sound: "/assets/sounds/alerts/bits_medium.mp3",
+            main:  "haut Bits raus!",
+            sub:   "Das kracht im Rentnerheim 💜"
+          },
+          {
+            min: 1000, max: 999999,
+            sound: "/assets/sounds/alerts/bits_big.mp3",
+            main:  "dreht komplett durch mit den Bits!",
+            sub:   "Rentner-Alarm im CGN-Bunker 💜"
+          }
+        ]
+      },
+      tip: {
+        // TipeeStream
+        tipee: {
+          sound: "/assets/sounds/alerts/tip_tipee.mp3",
+          main:  "hat über Tipee gespendet!",
+          sub:   "Vielen Dank für deine Unterstützung 💜"
+        },
+        // Ko-fi
+        kofi: {
+          sound: "/assets/sounds/alerts/tip_kofi.mp3",
+          main:  "hat bei Ko-fi unterstützt!",
+          sub:   "Danke für den virtuellen Kaffee 💜"
+        },
+        // Fallback
+        defaultProvider: {
+          sound: "/assets/sounds/alerts/tip_default.mp3",
+          main:  "hat eine Spende dagelassen!",
+          sub:   "Vielen Dank für deinen Support 💜"
+        }
+      }
+    };
+
+    function getQueryParams() {
+      const p = new URLSearchParams(window.location.search);
+
+      return {
+        type:      (p.get("type") || "follow").toLowerCase(), // follow, sub, resub, subgift, bits, tip, kofi
+        user:      p.get("user")   || "Unbekannt",
+        avatar:    p.get("avatar") || "",
+        // Beträge
+        amount:    p.get("amount") || "",   // z.B. "5.00"
+        currency:  p.get("currency") || "", // z.B. "EUR"
+        bits:      parseInt(p.get("bits") || "0", 10),
+        // Subs
+        months:        parseInt(p.get("months") || "0", 10),
+        totalMonths:   parseInt(p.get("totalmonths") || "0", 10),
+        giftCount:     parseInt(p.get("gifts") || "0", 10),
+        // Provider / Nachricht
+        provider: (p.get("provider") || "").toLowerCase(), // "tipee", "kofi"
+        message:  p.get("message") || "",
+        tier:     p.get("tier") || "", // optional: z.B. sub tier
+        // Overrides
+        mainOverride: p.get("main") || "",
+        subOverride:  p.get("sub")  || "",
+        soundOverride: p.get("sound") || "", // kompletter Pfad /assets/...
+        durationOverride: parseFloat(p.get("duration") || "0") // Sekunden
+      };
+    }
+
+    function configureAvatar(data) {
+      const avatarImg = document.getElementById("alertAvatar");
+      const avatarPh  = document.getElementById("alertAvatarPlaceholder");
+
+      if (data.avatar) {
+        avatarImg.src = data.avatar;
+        avatarImg.style.display = "block";
+        avatarPh.style.display = "none";
+      } else {
+        avatarImg.style.display = "none";
+        avatarPh.style.display = "flex";
+        avatarPh.textContent = (data.user[0] || "?").toUpperCase();
+      }
+    }
+
+    function getBitsTierConfig(bits) {
+      if (!ALERT_CONFIG.bits || !ALERT_CONFIG.bits.tiers) return null;
+      for (const t of ALERT_CONFIG.bits.tiers) {
+        if (bits >= t.min && bits <= t.max) return t;
+      }
+      return ALERT_CONFIG.bits.tiers[0] || null;
+    }
+
+    function selectSound(data) {
+      // Harte Override per URL: &sound=/assets/sounds/foo.mp3
+      if (data.soundOverride) {
+        return data.soundOverride;
+      }
+
+      switch (data.type) {
+        case "follow":
+          return ALERT_CONFIG.follow.sound;
+
+        case "sub":
+          return ALERT_CONFIG.sub_new.sound;
+
+        case "resub":
+          return ALERT_CONFIG.sub_resub.sound;
+
+        case "subgift":
+        case "gift":
+          return ALERT_CONFIG.sub_gift.sound;
+
+        case "bits":
+          const bitsConf = getBitsTierConfig(data.bits || 0);
+          return bitsConf ? bitsConf.sound : "";
+
+        case "tip":
+        case "donation":
+          if (data.provider === "tipee") {
+            return ALERT_CONFIG.tip.tipee.sound;
+          }
+          if (data.provider === "kofi") {
+            return ALERT_CONFIG.tip.kofi.sound;
+          }
+          return ALERT_CONFIG.tip.defaultProvider.sound;
+
+        case "kofi":
+          return ALERT_CONFIG.tip.kofi.sound;
+
+        default:
+          // Fallback
+          return ALERT_CONFIG.follow.sound;
+      }
+    }
+
+    function buildText(data) {
+      const user = data.user;
+      let main = "";
+      let sub  = "";
+
+      switch (data.type) {
+        case "follow":
+          main = `${user} ${ALERT_CONFIG.follow.main}`;
+          sub  = ALERT_CONFIG.follow.sub;
+          break;
+
+        case "sub":
+          main = `${user} ${ALERT_CONFIG.sub_new.main}`;
+          if (data.months > 1) {
+            sub = `Schon ${data.months} Monate am Start – Ehre!`;
+          } else {
+            sub = ALERT_CONFIG.sub_new.sub;
+          }
+          break;
+
+        case "resub":
+          main = `${user} ${ALERT_CONFIG.sub_resub.main}`;
+          if (data.totalMonths > 0) {
+            sub = `Insgesamt ${data.totalMonths} Monate CGN-Power 💜`;
+          } else {
+            sub = ALERT_CONFIG.sub_resub.sub;
+          }
+          break;
+
+        case "subgift":
+        case "gift":
+          if (data.giftCount > 1) {
+            main = `${user} verschenkt ${data.giftCount} Abos!`;
+          } else {
+            main = `${user} ${ALERT_CONFIG.sub_gift.main}`;
+          }
+          sub = ALERT_CONFIG.sub_gift.sub;
+          break;
+
+        case "bits":
+          const bitsConf = getBitsTierConfig(data.bits || 0);
+          if (bitsConf) {
+            main = `${user} ${bitsConf.main}`;
+            sub  = `${bitsConf.sub} (${data.bits} Bits)`;
+          } else {
+            main = `${user} haut Bits raus!`;
+            sub  = `${data.bits} Bits – Danke dir 💜`;
+          }
+          break;
+
+        case "tip":
+        case "donation":
+          let providerConf;
+          if (data.provider === "tipee") providerConf = ALERT_CONFIG.tip.tipee;
+          else if (data.provider === "kofi") providerConf = ALERT_CONFIG.tip.kofi;
+          else providerConf = ALERT_CONFIG.tip.defaultProvider;
+
+          if (data.amount) {
+            main = `${user} ${providerConf.main}`;
+            sub  = `${data.amount} ${data.currency || ""} – ${providerConf.sub}`;
+          } else {
+            main = `${user} ${providerConf.main}`;
+            sub  = providerConf.sub;
+          }
+          break;
+
+        case "kofi":
+          main = `${user} ${ALERT_CONFIG.tip.kofi.main}`;
+          sub  = ALERT_CONFIG.tip.kofi.sub;
+          break;
+
+        default:
+          main = `${user} löst einen Alert aus!`;
+          sub  = `CGN-Community sagt Danke 💜`;
+      }
+
+      // URL-Overrides
+      if (data.mainOverride) main = data.mainOverride;
+      if (data.subOverride)  sub  = data.subOverride;
+
+      return { main, sub };
+    }
+
+    function playAlertSound(src, durationOverrideSec, onEnded) {
+      const audio = document.getElementById("alertSound");
+
+      // Wenn kein Sound definiert -> nur Timer / sofortige Outro-Logik
+      if (!src) {
+        if (durationOverrideSec > 0) {
+          setTimeout(onEnded, durationOverrideSec * 1000);
+        } else {
+          // Default 6s wenn gar nichts gesetzt ist
+          setTimeout(onEnded, 6000);
+        }
+        return;
+      }
+
+      audio.src = src;
+      audio.currentTime = 0;
+
+      let finished = false;
+      function safeEnd() {
+        if (finished) return;
+        finished = true;
+        if (onEnded) onEnded();
+      }
+
+      // Wenn durationOverride gesetzt -> harte Obergrenze
+      let timeoutMs = 25000; // genereller Fallback
+      if (durationOverrideSec > 0) {
+        timeoutMs = durationOverrideSec * 1000;
+      }
+
+      audio.onended = safeEnd;
+
+      const playPromise = audio.play();
+      if (playPromise && playPromise.catch) {
+        playPromise.catch(err => {
+          console.warn("Alert-Sound konnte nicht automatisch abgespielt werden:", err);
+          safeEnd();
+        });
+      }
+
+      // Fallback-Timer, falls onended nie feuert
+      setTimeout(safeEnd, timeoutMs);
+    }
+
+    function showAlert(data) {
+      const wrapper    = document.getElementById("alertWrapper");
+      const userSpan   = document.getElementById("alertUser");
+      const mainlineEl = document.getElementById("alertMainline");
+      const sublineEl  = document.getElementById("alertSubline");
+
+      userSpan.textContent = data.user;
+      configureAvatar(data);
+
+      const txt = buildText(data);
+      mainlineEl.textContent = txt.main;
+      sublineEl.textContent  = txt.sub;
+
+      const introMs = 900;
+
+      wrapper.classList.remove("play-intro", "play-outro");
+      void wrapper.offsetWidth; // reflow reset
+
+      wrapper.classList.add("play-intro");
+
+      const soundSrc = selectSound(data);
+
+      // Sound starten, wenn Panel steht
+      setTimeout(() => {
+        playAlertSound(soundSrc, data.durationOverride, () => {
+          wrapper.classList.remove("play-intro");
+          wrapper.classList.add("play-outro");
+        });
+      }, introMs);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const data = getQueryParams();
+      showAlert(data);
+    });
+  </script>
+</body>
+</html>
