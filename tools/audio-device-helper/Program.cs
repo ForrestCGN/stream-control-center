@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
-const string Version = "0.4.1";
+const string Version = "0.4.2";
 
 try
 {
@@ -128,8 +128,8 @@ static PlayResponse PlayDirectSound(string fullPath, string deviceId, int volume
         var directDevice = ResolveDirectSoundDevice(deviceId);
         if (directDevice == null) return Fail("directsound_device_not_found", $"DirectSound-Gerät nicht gefunden: {deviceId}", fullPath, deviceId, "", volume, 0, mode, "");
         using var reader = new AudioFileReader(fullPath) { Volume = Math.Clamp(volume / 100f, 0f, 1f) };
-        using var output = new DirectSoundOut(directDevice.Value.Guid, 100);
-        return RunPlayback(output, reader, fullPath, deviceId, directDevice.Value.Description, volume, mode, FormatText(reader.WaveFormat), FormatText(reader.WaveFormat));
+        using var output = new DirectSoundOut(directDevice.Guid, 100);
+        return RunPlayback(output, reader, fullPath, deviceId, directDevice.Description, volume, mode, FormatText(reader.WaveFormat), FormatText(reader.WaveFormat));
     }
     catch (Exception ex)
     {
@@ -188,7 +188,10 @@ static DirectSoundDeviceInfo? ResolveDirectSoundDevice(string deviceId)
     return null;
 }
 
-static string NormalizeName(string value) => String(value).ToLowerInvariant().Replace(" ", "").Replace("(", "").Replace(")", "");
+static string NormalizeName(string value)
+{
+    return (value ?? string.Empty).ToLowerInvariant().Replace(" ", "").Replace("(", "").Replace(")", "");
+}
 
 static MMDevice? ResolveRenderDevice(MMDeviceEnumerator enumerator, string deviceId, bool allowDefault)
 {
