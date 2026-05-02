@@ -1,6 +1,8 @@
 "use strict";
 
+const fs = require("fs");
 const path = require("path");
+const childProcess = require("child_process");
 const core = require("./helpers/helper_core");
 const cfg = require("./helpers/helper_config");
 const media = require("./helpers/helper_media");
@@ -9,12 +11,23 @@ const MODULE_NAME = "sound_system";
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
 
+const DEFAULT_OUTPUT = {
+  defaultTarget: "overlay",
+  allowPerSoundOverride: true,
+  targets: {
+    overlay: { enabled: true, label: "OBS Overlay", mode: "browser_overlay", overlayUrl: "/overlays/sound_system_overlay.html", defaultVolume: 85 },
+    device: { enabled: true, label: "Audiogerät", mode: "local_device", selectedDeviceId: "default", selectedDeviceName: "Windows Standardgerät", defaultVolume: 80, helper: { enabled: true, path: "tools/audio-device-helper/dist/AudioDeviceHelper.exe", timeoutMs: 30000, playbackMode: "auto" } },
+    both: { enabled: false, label: "Overlay + Audiogerät", mode: "combined", defaultVolume: 85 }
+  }
+};
+
 const DEFAULT_CONFIG = {
   enabled: true,
-  version: "0.1.2",
+  version: "0.1.5",
   routes: { prefix: "/api/sound" },
   websocket: { enabled: true, op: "sound_system" },
   overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
+  output: DEFAULT_OUTPUT,
   queue: { enabled: true, maxLength: 50, dropWhenFull: true, defaultPriority: 50 },
   targets: {
     stream: { enabled: true, defaultVolume: 85 },
@@ -23,6 +36,7 @@ const DEFAULT_CONFIG = {
   },
   defaults: {
     target: "stream",
+    outputTarget: "overlay",
     category: "fun",
     priority: 50,
     volume: 85,
@@ -73,7 +87,8 @@ module.exports.init = function init(ctx) {
     paused: false,
     updatedAt: core.nowIso(),
     client: { connected: false, lastSeenAt: 0, lastEvent: "" },
-    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0 }
+    device: { lastOk: false, lastAt: 0, lastError: "", lastResult: null },
+    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0 }
   };
 
   let config = DEFAULT_CONFIG;
@@ -85,6 +100,7 @@ module.exports.init = function init(ctx) {
     const loadedMessages = cfg.loadConfig(MESSAGES_FILE, DEFAULT_MESSAGES, { createIfMissing: true, mergeDefaults: true });
 
     config = loadedConfig.config || DEFAULT_CONFIG;
+    if (!config.output) config.output = DEFAULT_OUTPUT;
     messages = loadedMessages.config || DEFAULT_MESSAGES;
 
     state.version = config.version || DEFAULT_CONFIG.version;
@@ -120,6 +136,7 @@ module.exports.init = function init(ctx) {
       queue: state.queue.map(publicItem),
       queuedCount: state.queue.length,
       client: { ...state.client },
+      device: { ...state.device },
       stats: { ...state.stats },
       config: {
         path: state.configPath,
@@ -128,6 +145,7 @@ module.exports.init = function init(ctx) {
         routes: config.routes || {},
         websocket: config.websocket || {},
         overlay: config.overlay || {},
+        output: config.output || {},
         queue: config.queue || {},
         targets: config.targets || {},
         defaults: config.defaults || {},
@@ -148,6 +166,7 @@ module.exports.init = function init(ctx) {
       type: item.type,
       category: item.category,
       target: item.target,
+      outputTarget: item.outputTarget,
       priority: item.priority,
       volume: item.volume,
       file: item.file,
@@ -202,15 +221,58 @@ module.exports.init = function init(ctx) {
     return fallback;
   }
 
+  function normalizeOutputTarget(rawOutputTarget, legacyTarget) {
+    const fallback = (config.output && config.output.defaultTarget) || (config.defaults && config.defaults.outputTarget) || "overlay";
+    const value = String(rawOutputTarget || fallback).trim().toLowerCase();
+    if (["overlay", "device", "both"].includes(value)) return value;
+    if (legacyTarget === "both") return "both";
+    return fallback;
+  }
+
+  function shouldUseOverlay(item) {
+    return item.outputTarget === "overlay" || item.outputTarget === "both";
+  }
+
+  function shouldUseDevice(item) {
+    return item.outputTarget === "device" || item.outputTarget === "both";
+  }
+
   function targetEnabled(target) {
     const t = config.targets && config.targets[target];
     return !!t && t.enabled !== false;
+  }
+
+  function outputTargetEnabled(outputTarget) {
+    const output = config.output || DEFAULT_OUTPUT;
+    const targets = output.targets || DEFAULT_OUTPUT.targets;
+    if (outputTarget === "overlay") return targets.overlay && targets.overlay.enabled !== false;
+    if (outputTarget === "device") return targets.device && targets.device.enabled !== false;
+    if (outputTarget === "both") return (targets.both && targets.both.enabled !== false) || true;
+    return true;
   }
 
   function intInRange(value, fallback, min, max) {
     const n = Number.parseInt(value, 10);
     if (!Number.isFinite(n)) return fallback;
     return Math.max(min, Math.min(max, n));
+  }
+
+  function resolveHelperPath() {
+    const output = config.output || DEFAULT_OUTPUT;
+    const helper = output.targets?.device?.helper || DEFAULT_OUTPUT.targets.device.helper;
+    const raw = String(helper.path || "tools/audio-device-helper/dist/AudioDeviceHelper.exe");
+    if (path.isAbsolute(raw)) return raw;
+    return cfg.resolveFromRoot(raw);
+  }
+
+  function getDeviceConfig() {
+    const output = config.output || DEFAULT_OUTPUT;
+    return output.targets?.device || DEFAULT_OUTPUT.targets.device;
+  }
+
+  function getDevicePlaybackMode(item) {
+    const deviceConfig = getDeviceConfig();
+    return String(item.deviceMode || item.outputMode || deviceConfig.helper?.playbackMode || deviceConfig.modeHint || "auto").trim().toLowerCase();
   }
 
   function createBeepWavBuffer(options = {}) {
@@ -259,10 +321,13 @@ module.exports.init = function init(ctx) {
     const rawType = String(base.type || "file").trim().toLowerCase();
     const generatedBeep = rawType === "generated_beep";
     const target = normalizeTarget(base.target);
+    const outputTarget = normalizeOutputTarget(base.outputTarget || base.output || base.targetOutput, target);
     if (!targetEnabled(target)) throw new Error(msg("targetDisabled"));
+    if (!outputTargetEnabled(outputTarget)) throw new Error(`Sound-Ausgabeziel ist deaktiviert: ${outputTarget}`);
 
     const targetConfig = (config.targets && config.targets[target]) || {};
-    const volume = clampVolume(base.volume, clampVolume(targetConfig.defaultVolume, 85));
+    const outputConfig = config.output?.targets?.[outputTarget] || {};
+    const volume = clampVolume(base.volume, clampVolume(outputConfig.defaultVolume, clampVolume(targetConfig.defaultVolume, 85)));
     const durationMs = Math.max(100, Number(base.durationMs || config.overlay?.fallbackFinishMs || 12000));
     const frequency = Math.max(80, Math.min(2000, Number(base.frequency || 880)));
 
@@ -293,6 +358,7 @@ module.exports.init = function init(ctx) {
       type,
       category: String(base.category || "fun").trim().toLowerCase(),
       target,
+      outputTarget,
       priority: Number.isFinite(Number(base.priority)) ? Number(base.priority) : Number(config.queue?.defaultPriority || 50),
       volume,
       file,
@@ -300,6 +366,7 @@ module.exports.init = function init(ctx) {
       audioUrl,
       durationMs: generatedBeep ? durationMs : Math.max(100, durationMs),
       frequency,
+      deviceMode: base.deviceMode || base.outputMode || "",
       introMs: Number(config.overlay?.introMs || 0),
       outroMs: Number(config.overlay?.outroMs || 350),
       gapAfterMs: Number(config.overlay?.gapBetweenSoundsMs || 750),
@@ -320,8 +387,59 @@ module.exports.init = function init(ctx) {
   }
 
   function sortQueue() { state.queue.sort((a, b) => b.priority !== a.priority ? b.priority - a.priority : a.queuedAt - b.queuedAt); }
-
   function clearFinishTimer() { if (finishTimer) clearTimeout(finishTimer); finishTimer = null; }
+
+  function playDeviceOutput(item) {
+    if (!shouldUseDevice(item)) return;
+
+    const helperPath = resolveHelperPath();
+    const deviceConfig = getDeviceConfig();
+    const helper = deviceConfig.helper || {};
+    if (helper.enabled === false) {
+      state.device = { lastOk: false, lastAt: Date.now(), lastError: "helper_disabled", lastResult: null };
+      state.stats.deviceFailed += 1;
+      emit("device_helper_disabled");
+      return;
+    }
+    if (!fs.existsSync(helperPath)) {
+      state.device = { lastOk: false, lastAt: Date.now(), lastError: `helper_missing: ${helperPath}`, lastResult: null };
+      state.stats.deviceFailed += 1;
+      emit("device_helper_missing");
+      return;
+    }
+    if (!item.fullPath || !fs.existsSync(item.fullPath)) {
+      state.device = { lastOk: false, lastAt: Date.now(), lastError: `device_file_missing: ${item.fullPath || item.file}`, lastResult: null };
+      state.stats.deviceFailed += 1;
+      emit("device_file_missing");
+      return;
+    }
+
+    const selectedDeviceId = String(deviceConfig.selectedDeviceId || "default");
+    const mode = getDevicePlaybackMode(item);
+    const args = ["play", "--file", item.fullPath, "--device", selectedDeviceId, "--volume", String(item.volume), "--mode", mode];
+
+    state.stats.deviceStarted += 1;
+    state.device = { lastOk: false, lastAt: Date.now(), lastError: "", lastResult: { started: true, helperPath, args: ["play", "--file", item.file, "--device", selectedDeviceId, "--volume", String(item.volume), "--mode", mode] } };
+    emit("device_play_started");
+
+    childProcess.execFile(helperPath, args, { windowsHide: true, timeout: Number(helper.timeoutMs || 30000) }, (err, stdout, stderr) => {
+      let parsed = null;
+      try { parsed = stdout ? JSON.parse(stdout) : null; } catch (_) { parsed = null; }
+      if (err || !parsed || parsed.ok === false) {
+        state.stats.deviceFailed += 1;
+        state.device = {
+          lastOk: false,
+          lastAt: Date.now(),
+          lastError: err ? (err.message || String(err)) : (parsed && (parsed.error || parsed.message)) || stderr || "device_play_failed",
+          lastResult: parsed || { stdout, stderr }
+        };
+        emit("device_play_failed");
+        return;
+      }
+      state.device = { lastOk: true, lastAt: Date.now(), lastError: "", lastResult: parsed };
+      emit("device_play_finished");
+    });
+  }
 
   function startItem(item, reason) {
     clearFinishTimer();
@@ -329,8 +447,9 @@ module.exports.init = function init(ctx) {
     item.endsAt = item.startedAt + item.durationMs + item.outroMs;
     state.current = item;
     state.stats.started += 1;
+    playDeviceOutput(item);
     emit(reason || "started");
-    if (item.target === "stream" || item.target === "both") emit("play_stream");
+    if (shouldUseOverlay(item)) emit("play_stream");
     finishTimer = setTimeout(() => finishCurrent("auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
   }
 
