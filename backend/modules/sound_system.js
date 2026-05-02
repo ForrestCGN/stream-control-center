@@ -23,12 +23,21 @@ const DEFAULT_OUTPUT = {
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  version: "0.1.5",
+  version: "0.1.6",
   routes: { prefix: "/api/sound" },
   websocket: { enabled: true, op: "sound_system" },
   overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
   output: DEFAULT_OUTPUT,
-  queue: { enabled: true, maxLength: 50, dropWhenFull: true, defaultPriority: 50 },
+  queue: {
+    enabled: true,
+    maxLength: 50,
+    dropWhenFull: true,
+    defaultPriority: 50,
+    allowParallel: true,
+    maxParallel: 3,
+    parallelCategories: ["system", "admin", "ui", "test"],
+    parallelSoundIds: []
+  },
   targets: {
     stream: { enabled: true, defaultVolume: 85 },
     discord: { enabled: false, defaultVolume: 80 },
@@ -82,13 +91,14 @@ module.exports.init = function init(ctx) {
     configError: "",
     messagesError: "",
     current: null,
+    parallel: [],
     queue: [],
     enabled: true,
     paused: false,
     updatedAt: core.nowIso(),
     client: { connected: false, lastSeenAt: 0, lastEvent: "" },
     device: { lastOk: false, lastAt: 0, lastError: "", lastResult: null },
-    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0 }
+    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0, parallelStarted: 0 }
   };
 
   let config = DEFAULT_CONFIG;
@@ -101,6 +111,7 @@ module.exports.init = function init(ctx) {
 
     config = loadedConfig.config || DEFAULT_CONFIG;
     if (!config.output) config.output = DEFAULT_OUTPUT;
+    if (!config.queue) config.queue = DEFAULT_CONFIG.queue;
     messages = loadedMessages.config || DEFAULT_MESSAGES;
 
     state.version = config.version || DEFAULT_CONFIG.version;
@@ -133,6 +144,8 @@ module.exports.init = function init(ctx) {
       enabled: state.enabled,
       paused: state.paused,
       current: state.current ? publicItem(state.current) : null,
+      parallel: state.parallel.map(publicItem),
+      parallelCount: state.parallel.length,
       queue: state.queue.map(publicItem),
       queuedCount: state.queue.length,
       client: { ...state.client },
@@ -172,6 +185,8 @@ module.exports.init = function init(ctx) {
       file: item.file,
       audioUrl: item.audioUrl,
       durationMs: item.durationMs,
+      durationOk: !!item.durationOk,
+      durationSource: item.durationSource || "",
       frequency: item.frequency,
       source: item.source,
       requestedBy: item.requestedBy,
@@ -229,13 +244,8 @@ module.exports.init = function init(ctx) {
     return fallback;
   }
 
-  function shouldUseOverlay(item) {
-    return item.outputTarget === "overlay" || item.outputTarget === "both";
-  }
-
-  function shouldUseDevice(item) {
-    return item.outputTarget === "device" || item.outputTarget === "both";
-  }
+  function shouldUseOverlay(item) { return item.outputTarget === "overlay" || item.outputTarget === "both"; }
+  function shouldUseDevice(item) { return item.outputTarget === "device" || item.outputTarget === "both"; }
 
   function targetEnabled(target) {
     const t = config.targets && config.targets[target];
@@ -307,8 +317,34 @@ module.exports.init = function init(ctx) {
       const value = Math.round(Math.sin(2 * Math.PI * frequency * t) * 28000 * volume * fade);
       buffer.writeInt16LE(value, 44 + i * 2);
     }
-
     return buffer;
+  }
+
+  function resolveDurationMs(base, audioInfo, fallbackMs, generatedBeep) {
+    const explicit = Number(base.durationMs);
+    if (Number.isFinite(explicit) && explicit > 0) {
+      return { durationMs: Math.max(100, Math.round(explicit)), durationOk: true, source: "explicit" };
+    }
+    if (generatedBeep) {
+      return { durationMs: Math.max(100, fallbackMs), durationOk: true, source: "generated" };
+    }
+    if (audioInfo && audioInfo.durationOk && Number(audioInfo.durationMs) > 0) {
+      return { durationMs: Math.max(100, Math.round(Number(audioInfo.durationMs))), durationOk: true, source: "ffprobe" };
+    }
+    return { durationMs: Math.max(100, fallbackMs), durationOk: false, source: "fallback" };
+  }
+
+  function parallelAllowedByPolicy(item) {
+    if (!item.parallelAllowed) return false;
+    const queueCfg = config.queue || {};
+    if (queueCfg.allowParallel === false) return false;
+    const maxParallel = Number(queueCfg.maxParallel || 0);
+    if (maxParallel > 0 && state.parallel.length >= maxParallel) return false;
+
+    const categories = Array.isArray(queueCfg.parallelCategories) ? queueCfg.parallelCategories.map(v => normalizeId(v)) : [];
+    const ids = Array.isArray(queueCfg.parallelSoundIds) ? queueCfg.parallelSoundIds.map(v => normalizeId(v)) : [];
+    if (!categories.length && !ids.length) return true;
+    return categories.includes(normalizeId(item.category)) || ids.includes(normalizeId(item.soundId));
   }
 
   function normalizePlayRequest(raw) {
@@ -328,21 +364,23 @@ module.exports.init = function init(ctx) {
     const targetConfig = (config.targets && config.targets[target]) || {};
     const outputConfig = config.output?.targets?.[outputTarget] || {};
     const volume = clampVolume(base.volume, clampVolume(outputConfig.defaultVolume, clampVolume(targetConfig.defaultVolume, 85)));
-    const durationMs = Math.max(100, Number(base.durationMs || config.overlay?.fallbackFinishMs || 12000));
+    const fallbackDurationMs = Math.max(100, Number(config.overlay?.fallbackFinishMs || 12000));
     const frequency = Math.max(80, Math.min(2000, Number(base.frequency || 880)));
 
     let file = String(base.file || body.file || "").trim().replace(/\\/g, "/");
     let fullPath = "";
     let audioUrl = "";
     let type = rawType;
+    let audioInfo = null;
 
     if (generatedBeep) {
       type = "file";
       file = "generated/beep.wav";
-      audioUrl = `${(config.routes && config.routes.prefix) || "/api/sound"}/generated/beep.wav?frequency=${encodeURIComponent(frequency)}&durationMs=${encodeURIComponent(durationMs)}&volume=${encodeURIComponent(volume)}`;
+      const beepDuration = Number(base.durationMs || 350);
+      audioUrl = `${(config.routes && config.routes.prefix) || "/api/sound"}/generated/beep.wav?frequency=${encodeURIComponent(frequency)}&durationMs=${encodeURIComponent(beepDuration)}&volume=${encodeURIComponent(volume)}`;
     } else {
       if (!file) throw new Error(msg("soundFileMissing"));
-      const audioInfo = media.getAudioInfo(file, {
+      audioInfo = media.getAudioInfo(file, {
         baseDir: getSoundsBaseDir(),
         allowedExtensions: Array.isArray(config.allowedExtensions) ? config.allowedExtensions : media.DEFAULT_ALLOWED_EXTENSIONS
       });
@@ -350,6 +388,8 @@ module.exports.init = function init(ctx) {
       fullPath = audioInfo.path;
       audioUrl = browserUrlFromRelative(audioInfo.relative || file);
     }
+
+    const resolvedDuration = resolveDurationMs(base, audioInfo, fallbackDurationMs, generatedBeep);
 
     return {
       requestId: makeRequestId(),
@@ -364,7 +404,9 @@ module.exports.init = function init(ctx) {
       file,
       fullPath,
       audioUrl,
-      durationMs: generatedBeep ? durationMs : Math.max(100, durationMs),
+      durationMs: resolvedDuration.durationMs,
+      durationOk: resolvedDuration.durationOk,
+      durationSource: resolvedDuration.source,
       frequency,
       deviceMode: base.deviceMode || base.outputMode || "",
       introMs: Number(config.overlay?.introMs || 0),
@@ -391,7 +433,6 @@ module.exports.init = function init(ctx) {
 
   function playDeviceOutput(item) {
     if (!shouldUseDevice(item)) return;
-
     const helperPath = resolveHelperPath();
     const deviceConfig = getDeviceConfig();
     const helper = deviceConfig.helper || {};
@@ -413,26 +454,18 @@ module.exports.init = function init(ctx) {
       emit("device_file_missing");
       return;
     }
-
     const selectedDeviceId = String(deviceConfig.selectedDeviceId || "default");
     const mode = getDevicePlaybackMode(item);
     const args = ["play", "--file", item.fullPath, "--device", selectedDeviceId, "--volume", String(item.volume), "--mode", mode];
-
     state.stats.deviceStarted += 1;
     state.device = { lastOk: false, lastAt: Date.now(), lastError: "", lastResult: { started: true, helperPath, args: ["play", "--file", item.file, "--device", selectedDeviceId, "--volume", String(item.volume), "--mode", mode] } };
     emit("device_play_started");
-
     childProcess.execFile(helperPath, args, { windowsHide: true, timeout: Number(helper.timeoutMs || 30000) }, (err, stdout, stderr) => {
       let parsed = null;
       try { parsed = stdout ? JSON.parse(stdout) : null; } catch (_) { parsed = null; }
       if (err || !parsed || parsed.ok === false) {
         state.stats.deviceFailed += 1;
-        state.device = {
-          lastOk: false,
-          lastAt: Date.now(),
-          lastError: err ? (err.message || String(err)) : (parsed && (parsed.error || parsed.message)) || stderr || "device_play_failed",
-          lastResult: parsed || { stdout, stderr }
-        };
+        state.device = { lastOk: false, lastAt: Date.now(), lastError: err ? (err.message || String(err)) : (parsed && (parsed.error || parsed.message)) || stderr || "device_play_failed", lastResult: parsed || { stdout, stderr } };
         emit("device_play_failed");
         return;
       }
@@ -441,16 +474,34 @@ module.exports.init = function init(ctx) {
     });
   }
 
-  function startItem(item, reason) {
-    clearFinishTimer();
+  function startItem(item, reason, options = {}) {
     item.startedAt = Date.now();
     item.endsAt = item.startedAt + item.durationMs + item.outroMs;
-    state.current = item;
     state.stats.started += 1;
     playDeviceOutput(item);
+
+    if (options.parallel) {
+      state.parallel.push(item);
+      state.stats.parallelStarted += 1;
+      setTimeout(() => finishParallel(item.requestId, "parallel_auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
+      emit(reason || "parallel_started");
+      if (shouldUseOverlay(item)) emit("play_stream");
+      return;
+    }
+
+    clearFinishTimer();
+    state.current = item;
     emit(reason || "started");
     if (shouldUseOverlay(item)) emit("play_stream");
     finishTimer = setTimeout(() => finishCurrent("auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
+  }
+
+  function finishParallel(requestId, reason) {
+    const index = state.parallel.findIndex(item => item.requestId === requestId);
+    if (index < 0) return null;
+    const [finished] = state.parallel.splice(index, 1);
+    emit(reason || "parallel_finished");
+    return finished;
   }
 
   function startNextIfPossible(reason) {
@@ -483,6 +534,11 @@ module.exports.init = function init(ctx) {
   function enqueueOrStart(item) {
     if (!state.enabled) throw new Error(msg("systemDisabled"));
     if (item.clearQueue) state.queue = [];
+
+    if (state.current && parallelAllowedByPolicy(item)) {
+      startItem(item, "parallel_started", { parallel: true });
+      return { started: true, queued: false, parallel: true, queuePosition: 0, item };
+    }
 
     if (state.current) {
       const mayInterrupt = item.force || item.override || (item.canInterrupt && state.current.canBeInterrupted && item.priority > state.current.priority);
@@ -552,7 +608,7 @@ module.exports.init = function init(ctx) {
     const result = enqueueOrStart(item);
     return res.json(core.ok({
       message: result.started ? msg("soundStarted") : (result.queued ? msg("soundQueued") : "Sound wurde verworfen."),
-      result: { started: result.started, queued: result.queued, dropped: !!result.dropped, queuePosition: result.queuePosition, reason: result.reason || "" },
+      result: { started: result.started, queued: result.queued, dropped: !!result.dropped, parallel: !!result.parallel, queuePosition: result.queuePosition, reason: result.reason || "" },
       item: publicItem(item),
       status: publicState()
     }));
@@ -565,6 +621,7 @@ module.exports.init = function init(ctx) {
     const clearQueue = core.boolParam(core.getParam(req, "clearQueue", false), false);
     if (clearQueue) state.queue = [];
     const stopped = stopCurrent("manual_stop");
+    state.parallel = [];
     emit("stop_stream");
     return res.json(core.ok({ message: msg("soundStopped"), stopped: publicItem(stopped), status: publicState() }));
   });
@@ -585,7 +642,7 @@ module.exports.init = function init(ctx) {
 
   app.post(`${prefix}/pause`, (req, res) => { state.paused = true; emit("paused"); return res.json(core.ok({ paused: true, status: publicState() })); });
   app.post(`${prefix}/resume`, (req, res) => { state.paused = false; const started = startNextIfPossible("resumed"); emit("resumed"); return res.json(core.ok({ paused: false, started, status: publicState() })); });
-  app.post(`${prefix}/reset`, (req, res) => { clearFinishTimer(); state.current = null; state.queue = []; state.paused = false; emit("reset"); return res.json(core.ok({ status: publicState() })); });
+  app.post(`${prefix}/reset`, (req, res) => { clearFinishTimer(); state.current = null; state.parallel = []; state.queue = []; state.paused = false; emit("reset"); return res.json(core.ok({ status: publicState() })); });
 
   app.post(`${prefix}/client/ready`, (req, res) => { markClient("ready"); emit("client_ready"); return res.json(publicState()); });
   app.post(`${prefix}/client/audio-started`, (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
