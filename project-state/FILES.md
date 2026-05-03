@@ -38,6 +38,7 @@ STEP-Dokumentation:
 - project-state/STEP010_OBS_DASHBOARD_API_ACTIONS_2026-05-03.md
 - project-state/STEP011_DOCUMENTATION_STRUCTURE_2026-05-03.md
 - project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
+- project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
 
 ## Doku-Struktur
 
@@ -97,6 +98,23 @@ VIP/Sound relevant:
 - htdocs/overlays/vip_sound_overlay.html
 - htdocs/overlays/sound_system_overlay.html
 
+VIP aktuelle Tabellen in app.sqlite:
+
+- vip_sound_daily_usage
+- vip_sound_message_templates
+
+Sound-System relevante Route fuer VIP:
+
+- POST /api/sound/play
+
+VIP relevante Routen:
+
+- GET/POST /api/vip-sound/command
+- GET/POST /api/vip-sound-overlay/command
+- GET /api/vip-sound/status
+- GET /api/vip-sound/db/status
+- GET /api/vip-sound-overlay/state
+
 Dashboard:
 
 - htdocs/dashboard/app.js
@@ -120,6 +138,7 @@ VIP-Sounddateien live:
 
 - D:\Streaming\stramAssets\htdocs\assets\sounds\vip\
 - Dateiregel aktuell: Anzeigename.mp3
+- Beispiel getestet: D:\Streaming\stramAssets\htdocs\assets\sounds\vip\araglor.mp3
 
 Wichtig:
 
