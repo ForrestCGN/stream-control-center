@@ -5,6 +5,16 @@ window.HugModule = (function(){
   let status = null;
   let loading = false;
   let actionsBound = false;
+  let activeTab = 'overview';
+
+  const tabs = [
+    ['overview', 'Übersicht'],
+    ['texts', 'Texte'],
+    ['types', 'Typen'],
+    ['config', 'Config'],
+    ['stats', 'Statistiken'],
+    ['diagnostics', 'Diagnose']
+  ];
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   function num(v){ return Number(v || 0).toLocaleString('de-DE'); }
@@ -25,29 +35,63 @@ window.HugModule = (function(){
   function renderShell(){
     if (!root) return;
     root.innerHTML = `
-      <div class="hug-card hug-hero">
-        <div>
-          <h2>Hug-System</h2>
-          <div class="hug-note">Zentrale Übersicht für Hug/Rehug, DB-Texte, Statistiken und Diagnose. Schreiben/Bearbeiten bleibt in dieser Phase bewusst deaktiviert.</div>
+      <div class="alert-tabs hug-tabs glass" role="tablist" aria-label="Hug-System Navigation">
+        ${tabs.map(([id, label]) => `<button type="button" class="tab-btn ${id === activeTab ? 'active' : ''}" data-hug-tab="${esc(id)}">${esc(label)}</button>`).join('')}
+      </div>
+
+      <div class="hug-tab-panel" data-hug-panel="overview">
+        <div class="hug-card hug-hero page-card">
+          <div>
+            <h2>Hug-System</h2>
+            <div class="hug-note">Zentrale Übersicht für Hug/Rehug, DB-Texte, Statistiken und Diagnose.</div>
+          </div>
+          <div class="hug-actions head-actions">
+            <button type="button" data-hug-action="reload">Neu laden</button>
+            <button type="button" data-hug-action="reload-hug">Hug-Reload testen</button>
+          </div>
         </div>
-        <div class="hug-actions">
-          <button type="button" data-hug-action="reload">Neu laden</button>
-          <button type="button" data-hug-action="reload-hug">Hug-Reload testen</button>
+        <div class="hug-grid">
+          <div class="hug-card" id="hugStatusCard"></div>
+          <div class="hug-card" id="hugStatsCard"></div>
+          <div class="hug-card" id="hugOutputCard"></div>
+          <div class="hug-card" id="hugDbCard"></div>
         </div>
       </div>
 
-      <div class="hug-grid">
-        <div class="hug-card" id="hugStatusCard"></div>
-        <div class="hug-card" id="hugStatsCard"></div>
-        <div class="hug-card" id="hugOutputCard"></div>
-        <div class="hug-card" id="hugDbCard"></div>
-        <div class="hug-card hug-wide" id="hugTopCard"></div>
-        <div class="hug-card hug-wide" id="hugRecentCard"></div>
-        <div class="hug-card hug-wide" id="hugTextCard"></div>
-        <div class="hug-card hug-wide" id="hugTypeCard"></div>
-        <div class="hug-card hug-wide" id="hugDiagCard"></div>
+      <div class="hug-tab-panel" data-hug-panel="texts" hidden>
+        <div class="hug-card page-card" id="hugTextCard"></div>
+      </div>
+
+      <div class="hug-tab-panel" data-hug-panel="types" hidden>
+        <div class="hug-card page-card" id="hugTypeCard"></div>
+      </div>
+
+      <div class="hug-tab-panel" data-hug-panel="config" hidden>
+        <div class="hug-card page-card" id="hugConfigCard"></div>
+      </div>
+
+      <div class="hug-tab-panel" data-hug-panel="stats" hidden>
+        <div class="hug-card page-card" id="hugTopCard"></div>
+        <div class="hug-card page-card" id="hugRecentCard"></div>
+      </div>
+
+      <div class="hug-tab-panel" data-hug-panel="diagnostics" hidden>
+        <div class="hug-card page-card" id="hugDiagCard"></div>
       </div>
     `;
+    applyTab();
+  }
+
+  function applyTab(){
+    if (!root) return;
+    root.querySelectorAll('[data-hug-tab]').forEach(btn => {
+      const active = btn.dataset.hugTab === activeTab;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    root.querySelectorAll('[data-hug-panel]').forEach(panel => {
+      panel.hidden = panel.dataset.hugPanel !== activeTab;
+    });
   }
 
   function render(){
@@ -65,7 +109,9 @@ window.HugModule = (function(){
     renderRecent();
     renderTexts();
     renderTypes();
+    renderConfig();
     renderDiag();
+    applyTab();
   }
 
   function renderStatus(){
@@ -115,20 +161,20 @@ window.HugModule = (function(){
       <div class="hug-row"><span>Prefer</span><span>${esc(out.prefer || '-')}</span></div>
       <div class="hug-row"><span>Fallback Streamer</span><span>${out.fallbackToStreamer === false ? 'Nein' : 'Ja'}</span></div>
       <div class="hug-row"><span>Fallback Streamer.bot</span><span>${out.fallbackToStreamerbot === false ? 'Nein' : 'Ja'}</span></div>
-      <div class="hug-note">Änderungen am Output-Modus bleiben erstmal bewusst nicht im Dashboard schreibbar.</div>
+      <div class="hug-note">Später editierbar über Rechte/Audit. Aktuell nur Anzeige.</div>
     `;
   }
 
   function renderDatabase(){
     const el = document.getElementById('hugDbCard');
     if (!el) return;
-    const db = status?.database || {};
+    const database = status?.database || {};
     el.innerHTML = `
       <h3>Datenbank</h3>
-      <div class="hug-row"><span>Adapter</span><span>${esc(db.adapter || '-')}</span></div>
-      <div class="hug-row"><span>Dialect</span><span>${esc(db.dialect || '-')}</span></div>
-      <div class="hug-row"><span>MariaDB</span><span>${esc(db.mariaDbReady || 'vorbereitet')}</span></div>
-      <div class="hug-note">Pfad: ${esc(db.path || '')}</div>
+      <div class="hug-row"><span>Adapter</span><span>${esc(database.adapter || '-')}</span></div>
+      <div class="hug-row"><span>Dialect</span><span>${esc(database.dialect || '-')}</span></div>
+      <div class="hug-row"><span>MariaDB</span><span>${esc(database.mariaDbReady || 'vorbereitet')}</span></div>
+      <div class="hug-note">Pfad: ${esc(database.path || '')}</div>
     `;
   }
 
@@ -137,7 +183,7 @@ window.HugModule = (function(){
     if (!el) return;
     const top = status?.top || {};
     el.innerHTML = `
-      <h3>Toplisten</h3>
+      <div class="card-head big-head"><h2>Statistiken</h2><div class="small-note">Toplisten aus den aktuellen Hug-Daten.</div></div>
       <div class="hug-top-grid">
         ${topList('Top Hugger', top.given, 'givenTotal')}
         ${topList('Top Empfänger', top.received, 'receivedTotal')}
@@ -158,9 +204,9 @@ window.HugModule = (function(){
     if (!el) return;
     const rows = Array.isArray(status?.recentPairs) ? status.recentPairs : [];
     el.innerHTML = `
-      <h3>Letzte Hug-Aktionen</h3>
+      <h2>Letzte Hug-Aktionen</h2>
       <div class="hug-table-wrap">
-        <table class="hug-table">
+        <table class="hug-table table">
           <thead><tr><th>Von</th><th>An</th><th>Hugs</th><th>Rehugs</th><th>Letzter Hug</th><th>Letzter Rehug</th></tr></thead>
           <tbody>
             ${rows.length ? rows.map(row => `
@@ -184,11 +230,20 @@ window.HugModule = (function(){
     if (!el) return;
     const kinds = Array.isArray(status?.textKinds) ? status.textKinds : [];
     el.innerHTML = `
-      <h3>Texte / Messages</h3>
+      <div class="card-head big-head">
+        <div>
+          <h2>Texte</h2>
+          <div class="small-note">Hug-, Rehug- und Systemtexte liegen bereits in der Datenbank. Bearbeiten wird hier vorbereitet.</div>
+        </div>
+        <div class="head-actions">
+          <button type="button" disabled title="Kommt mit Rechte-/Audit-Konzept">Neuer Text</button>
+          <button type="button" disabled title="Kommt mit Rechte-/Audit-Konzept">Speichern deaktiviert</button>
+        </div>
+      </div>
       <div class="hug-kind-grid">
         ${kinds.length ? kinds.map(k => `<div class="hug-kind"><strong>${num(k.count)}</strong><span>${esc(k.kind)}</span></div>`).join('') : '<div class="hug-empty">Keine Textdaten gefunden.</div>'}
       </div>
-      <div class="hug-note">Texte liegen in der Datenbank. Datei-Import/Reload bleibt Diagnose, Bearbeiten folgt später mit Rollen/Rechte/Audit.</div>
+      <div class="hug-note">Nächster Schritt: API für Textlisten + Bearbeiten einzelner Texte mit Rollenprüfung und Audit-Logging.</div>
     `;
   }
 
@@ -197,7 +252,13 @@ window.HugModule = (function(){
     if (!el) return;
     const types = Array.isArray(status?.types) ? status.types : [];
     el.innerHTML = `
-      <h3>Hug-Typen</h3>
+      <div class="card-head big-head">
+        <div>
+          <h2>Hug-Typen</h2>
+          <div class="small-note">Typen, Gewichtung und zugeordnete Hug-/Rehug-Texte.</div>
+        </div>
+        <div class="head-actions"><button type="button" disabled>Typen bearbeiten später</button></div>
+      </div>
       <div class="hug-type-list">
         ${types.length ? types.map(t => `
           <div class="hug-type">
@@ -209,12 +270,39 @@ window.HugModule = (function(){
     `;
   }
 
+  function renderConfig(){
+    const el = document.getElementById('hugConfigCard');
+    if (!el) return;
+    const out = status?.output || {};
+    el.innerHTML = `
+      <div class="card-head big-head">
+        <div>
+          <h2>Config</h2>
+          <div class="small-note">Aktuelle Einstellungen. Schreiben folgt später mit Rollen/Rechte/Audit.</div>
+        </div>
+        <div class="head-actions"><button type="button" disabled>Config speichern später</button></div>
+      </div>
+      <div class="config-grid">
+        <label><span>Aktiv</span><input value="${status?.enabled ? 'Aktiv' : 'Inaktiv'}" disabled></label>
+        <label><span>Top-Limit</span><input value="${esc(status?.topLimit ?? '')}" disabled></label>
+        <label><span>Rehug-Fenster Sekunden</span><input value="${esc(status?.rehugWindowSeconds ?? '')}" disabled></label>
+        <label><span>Output-Modus</span><input value="${esc(out.mode || '')}" disabled></label>
+        <label><span>Prefer</span><input value="${esc(out.prefer || '')}" disabled></label>
+        <label><span>Fallback Streamer</span><input value="${out.fallbackToStreamer === false ? 'Nein' : 'Ja'}" disabled></label>
+        <label><span>Fallback Streamer.bot</span><input value="${out.fallbackToStreamerbot === false ? 'Nein' : 'Ja'}" disabled></label>
+      </div>
+    `;
+  }
+
   function renderDiag(){
     const el = document.getElementById('hugDiagCard');
     if (!el) return;
     const lastImport = status?.lastImport || {};
     el.innerHTML = `
-      <h3>Diagnose</h3>
+      <div class="card-head big-head">
+        <div><h2>Diagnose</h2><div class="small-note">Technischer Zustand der Hug-Integration.</div></div>
+        <div class="head-actions"><button type="button" data-hug-action="reload">Neu laden</button><button type="button" data-hug-action="reload-hug">Hug-Reload testen</button></div>
+      </div>
       <div class="hug-row"><span>Config</span><span>${esc(status?.configPath || '-')}</span></div>
       <div class="hug-row"><span>Messages</span><span>${esc(status?.messagesPath || '-')}</span></div>
       <div class="hug-row"><span>Letzter Import</span><span>${lastImport.importedAt ? esc(lastImport.importedAt) : esc(lastImport.reason || '-')}</span></div>
@@ -227,6 +315,13 @@ window.HugModule = (function(){
     if (actionsBound || !root) return;
     actionsBound = true;
     root.addEventListener('click', async ev => {
+      const tab = ev.target.closest('[data-hug-tab]');
+      if (tab) {
+        activeTab = tab.dataset.hugTab || 'overview';
+        applyTab();
+        return;
+      }
+
       const btn = ev.target.closest('[data-hug-action]');
       if (!btn) return;
       const action = btn.dataset.hugAction;
