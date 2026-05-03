@@ -306,7 +306,7 @@
       return;
     }
     try {
-      await CGN.api('/obs/scene/switch', { method:'POST', body: JSON.stringify({ scene: sceneName }) });
+      await CGN.api('/api/obs/scene/switch', { method:'POST', body: JSON.stringify({ scene: sceneName }) });
       await loadAll();
     } catch (err) {
       state.error = err && err.message ? err.message : String(err || 'Szenenwechsel fehlgeschlagen.');
@@ -316,7 +316,7 @@
 
   async function saveReplay(){
     try {
-      await CGN.api('/obs/replay/save', { method:'POST', body:'{}' });
+      await CGN.api('/api/obs/replay/save', { method:'POST', body:'{}' });
       state.error = '';
       state.lastReplaySave = time();
       await loadAll();
