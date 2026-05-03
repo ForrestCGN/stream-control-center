@@ -1,4 +1,4 @@
-﻿# CURRENT STATUS - stream-control-center
+# CURRENT STATUS - stream-control-center
 
 Stand: 2026-05-03
 
@@ -26,7 +26,7 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Der aktuelle Stand nach STEP011 ist sauber dokumentiert.
+Der aktuelle Stand nach STEP015 ist dokumentiert.
 
 Zuletzt abgeschlossen:
 
@@ -35,26 +35,45 @@ Zuletzt abgeschlossen:
 - STEP007 Mojibake in sound/adminconfigs repariert
 - STEP008 Fireworks-Doppelroute dokumentiert, kein Umbau
 - STEP010 OBS Dashboard Aktionen auf /api/obs/*
-- STEP011 Doku-Struktur in Repo und Live eingeführt
+- STEP011 Doku-Struktur in Repo und Live eingefuehrt
+- STEP015 VIP-/Sound-/Overlay-Planung dokumentiert
 
 ## Repo/Live-Abgleich
 
-Zuletzt geprüft:
+Zuletzt fuer STEP015 geprueft:
 
-- backend/modules/obs.js Same=True
-- htdocs/dashboard/modules/obs.js Same=True
-- htdocs/dashboard/modules/sound.js Same=True
-- htdocs/dashboard/modules/adminconfigs.js Same=True
-- docs/current/CURRENT_SYSTEM_STATUS.md Same=True
+- backend/modules/sound_system.js Same=True
+- backend/modules/vip_sound_overlay.js Same=True
+- backend/modules/helpers/helper_messages.js Same=True
+- backend/modules/helpers/helper_texts.js Same=True
+- backend/modules/helpers/helper_chat_output.js Same=True
+- config/sound_system.json Same=True
 
-Live-Routen geprüft:
+Live-Routen geprueft:
 
 - GET /api/_status
-- GET /api/obs/status
-- GET /api/obs/scenes
 - GET /api/sound/status
+- GET /api/vip-sound/status
+- GET /api/vip-sound-overlay/state
 
-Alle Prüfungen waren erfolgreich.
+Alle Pruefungen waren erfolgreich.
+
+## VIP-/Sound-/Overlay-Zielstand
+
+Dokumentiert in:
+
+- project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
+
+Kernentscheidungen:
+
+- Streamer.bot nimmt kuenftig nur noch Befehle an und uebergibt Minimaldaten an Node.
+- Node/VIP-Modul prueft Daily-Usage pro User/pro Stream-Tag.
+- VIP-Nachrichten werden als mehrere Heimleitungs-Zufallstexte pro Event-Key in SQLite gespeichert.
+- VIP-Soundpfad wird konfigurierbar, aktueller Pfad: D:\Streaming\stramAssets\htdocs\assets\sounds\vip\
+- Dateiregel aktuell: Anzeigename.mp3
+- Sound-System verwaltet Prioritaet und Queue.
+- VIP-Einblendung erscheint erst beim echten Soundstart, nicht beim Enqueue.
+- Keine Queue-Position mehr in VIP-Chatnachrichten.
 
 ## Doku-Struktur
 
@@ -80,21 +99,25 @@ Historische Analyse-Snapshots:
 
 ## Wichtige Regeln
 
-- Keine Funktionalität entfernen.
-- Vor Änderungen echten Dateistand prüfen.
+- Keine Funktionalitaet entfernen.
+- Vor Aenderungen echten Dateistand pruefen.
 - GitHub/dev und Live bewusst synchron halten.
 - Keine Secrets committen.
 - Keine SQLite-Dateien committen.
 - Keine Backups/Altdateien committen.
-- Historische Analyse-Snapshots nicht überschreiben.
+- Historische Analyse-Snapshots nicht ueberschreiben.
 - Aktuellen Stand in docs/current/CURRENT_SYSTEM_STATUS.md und project-state aktuell halten.
 - Nach jedem abgeschlossenen Block STEP-Doku schreiben.
 
 ## Bewusst offen
 
-- Fireworks später neu aufbauen.
+- STEP016 VIP-Minimalroute mit Daily-Usage und DB-Message-Templates.
+- Sound-System-Kopplung fuer VIP-Soundstart.
+- VIP-Overlay-Synchronisierung mit echtem Soundstart.
+- VIP-Dashboard fuer Texte/Settings.
+- Fireworks spaeter neu aufbauen.
 - Dashboard-Modulstandard definieren.
-- Hug-Textbearbeitung später sauber neu planen.
-- Alerts-Modul später behutsam splitten.
+- Hug-Textbearbeitung spaeter sauber neu planen.
+- Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
-- tools/sync_streamassets_to_repo.ps1 später prüfen.
+- tools/sync_streamassets_to_repo.ps1 spaeter pruefen.
