@@ -93,6 +93,7 @@ app.get("/api/_status", (req, res) => {
     webrootDir: paths.WEBROOT_DIR,
     modulesDir,
     modules: loadedModules,
+    skippedModules: skippedModules,
     wsClients: wss.clients.size
   });
 });
@@ -158,10 +159,25 @@ wss.on("connection", ws => {
 // --------------------------------------------------
 const modulesDir = paths.CURRENT_MODULES_DIR;
 const loadedModules = [];
+const skippedModules = [];
+const disabledModules = new Set([
+  // STEP014: Hug wurde in backend/modules/hug.js konsolidiert.
+  // Diese Zwischen-/Legacy-Module bleiben vorerst als Verlauf/Backup im Repo,
+  // duerfen aber nicht parallel Routen registrieren.
+  "hug_00_api_db.js",
+  "hug_output_mode.js",
+  "hug_text_store.js",
+  "hug_system.js"
+]);
 
 if (fs.existsSync(modulesDir)) {
   fs.readdirSync(modulesDir).forEach(file => {
     if (!file.endsWith(".js")) return;
+    if (disabledModules.has(file)) {
+      skippedModules.push(file);
+      console.log(`[module] skipped: ${file}`);
+      return;
+    }
 
     try {
       const mod = require(path.join(modulesDir, file));
