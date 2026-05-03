@@ -716,12 +716,35 @@
 
       if (op !== "sound_system") return;
 
-      const current = data.current || null;
-      const startReasons = ["started", "play_stream", "interrupted_started", "next_started", "resumed", "parallel_started"];
-      const stopReasons = ["finished", "auto_finished", "client_audio_ended", "manual_stop", "manual_skip", "stop_stream", "skip_stream", "stopped", "reset"];
+      const item = data.item || payload.item || data.current || null;
 
-      if (startReasons.includes(reason) && current && isVipVisual(current)) {
-        const overlay = overlayFromSoundItem(current);
+      const startReasons = [
+        "item_starting",
+        "started",
+        "play_stream",
+        "interrupted_started",
+        "next_started",
+        "resumed",
+        "parallel_started",
+        "device_play_started"
+      ];
+
+      const stopReasons = [
+        "finished",
+        "auto_finished",
+        "client_audio_ended",
+        "device_play_finished",
+        "device_play_stopped",
+        "manual_stop",
+        "manual_skip",
+        "stop_stream",
+        "skip_stream",
+        "stopped",
+        "reset"
+      ];
+
+      if (startReasons.includes(reason) && item && isVipVisual(item)) {
+        const overlay = overlayFromSoundItem(item);
         if (overlay.requestId && overlay.requestId !== currentRequestId) {
           startOverlay(overlay);
         }
