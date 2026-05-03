@@ -2,6 +2,50 @@
 
 ## 2026-05-03
 
+### STEP017 - VIP-Sounds ueber Sound-System queued
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.7.0` aktualisiert.
+- VIP-Command prueft jetzt vor Daily-Usage:
+  - Duplicate pro User/pro Stream-Tag.
+  - vorhandene MP3 unter `htdocs/assets/sounds/vip/<Anzeigename>.mp3`.
+- VIP-Command sendet bei vorhandener MP3 einen Request an:
+  - `POST /api/sound/play`
+- Daily-Usage wird erst geschrieben, wenn das Sound-System den Request akzeptiert.
+- Wenn MP3 fehlt, wird keine Daily-Usage geschrieben und `sound_missing` ueber Heimleitungs-Bot gesendet.
+- Chat-Ausgabe laeuft weiter ueber `helper_chat_output.js` / Bot.
+- Live getestet mit `araglor`:
+  - `vip/araglor.mp3` wurde ueber AudioDeviceHelper abgespielt.
+  - Duplicate wurde danach korrekt geblockt.
+  - `vip_sound_daily_usage` enthaelt `araglor` genau einmal.
+- Neue STEP-Doku:
+  - `project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md`
+
+### STEP016.1 - VIP-Chat-Ausgabe ueber Heimleitungs-Bot
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.6.1` aktualisiert.
+- VIP-Command-Antworten werden ueber `helper_chat_output.js` gesendet.
+- Streamer.bot soll die Antwort nicht mehr selbst posten.
+- Response-Felder:
+  - `send=false`
+  - `streamerbot_send="0"`
+  - `chatMessage=""`
+- Live getestet mit Duplicate-Response fuer `araglor`.
+
+### STEP016 - VIP-Daily-Usage und DB-Message-Templates
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.6.0` aktualisiert.
+- Neue Routen:
+  - `GET/POST /api/vip-sound/command`
+  - `GET/POST /api/vip-sound-overlay/command`
+  - `GET /api/vip-sound/db/status`
+  - `GET /api/vip-sound-overlay/db/status`
+- Neue Tabellen in bestehender `app.sqlite`:
+  - `vip_sound_daily_usage`
+  - `vip_sound_message_templates`
+- Standard-Heimleitungstexte werden nur geseedet, wenn Tabelle leer ist.
+- Keine bestehende SQLite-Datei ersetzt.
+- Keine Dashboard-/Overlay-Dateien geaendert.
+
 ### STEP015 - VIP-/Sound-/Overlay-Planung dokumentiert
 
 - `project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md` ergaenzt.
