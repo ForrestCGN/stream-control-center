@@ -1,0 +1,1665 @@
+ForrestCGN – Datenbank-Übersicht app.sqlite
+Stand der Analyse: 2026-05-03
+Quelle: hochgeladene Dateien app.sqlite + app.sqlite-wal + app.sqlite-shm
+
+WICHTIG
+- Die Datenbank nutzt WAL-Modus. Die hochgeladene WAL-Datei wurde beim Lesen berücksichtigt, weil sie neben app.sqlite lag.
+- Integritätsprüfung: ok
+- Foreign-Key-Check: keine Fehler
+- PRAGMA foreign_keys war beim Analyse-Connect AUS. Das ist SQLite-Default pro Verbindung und heißt nicht automatisch, dass dein Backend es nicht aktiviert.
+- Sensible Werte wie Tokens, Secrets, API-Keys, Session-Hashes und E-Mail-Adressen werden in dieser Übersicht bewusst nicht im Klartext ausgegeben.
+
+KURZFAZIT
+- Tabellen gesamt: 32
+- Views: 0
+- Trigger: 0
+- Explizite Indizes: 20
+- Hauptbereiche: Alert-System, Dashboard/Auth/Audit, Hug/Rehug, Tagebuch, ToDo, Challenge, Sound-System-Settings, Schema-Versionen.
+- Die Datenbank enthält aktuell keine Clip-, Message-Rotator- oder vollständigen Tagebuch-/ToDo-Inhaltstabellen. Für Tagebuch/ToDo sind hier vor allem State/Event-/Statistikdaten vorhanden; Inhalte gehen nach bisherigem Stand primär über Discord bzw. externe Ausgabewege.
+
+MODUL-ZUORDNUNG
+- Alert-System / Alert-Dashboard / Provider-Bridges: alert_assets, alert_chat_blocks, alert_display_profiles, alert_events, alert_provider_events, alert_rules, alert_settings, alert_test_presets, alert_text_variants, alert_types
+- Challenge-System (Nicht fluchen / Nicht reden): challenge_runtime_events, challenge_user_mode_stats
+- Dashboard Auth / Rollen / Audit: dashboard_audit_log, dashboard_identities, dashboard_permissions, dashboard_roles, dashboard_sessions, dashboard_users
+- Hug/Rehug-System: hug_pair_stats, hug_pending_rehugs, hug_settings, hug_texts, hug_types, hug_users
+- Sound-System Settings: sound_settings
+- Tagebuch V2: tagebuch_daily_user_stats, tagebuch_runtime_events, tagebuch_state, tagebuch_user_stats
+- ToDo V2: todo_daily_stats, todo_user_stats
+- Zentrale Migration-/Schema-Verwaltung: schema_versions
+
+TABELLEN-ÜBERSICHT MIT ZEILENANZAHL
+- alert_assets: 27 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- alert_chat_blocks: 9 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- alert_display_profiles: 18 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- alert_events: 307 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- alert_provider_events: 18 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- alert_rules: 20 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- alert_settings: 4 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- alert_test_presets: 6 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- alert_text_variants: 16 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- alert_types: 15 Zeilen — Alert-System / Alert-Dashboard / Provider-Bridges
+- challenge_runtime_events: 6 Zeilen — Challenge-System (Nicht fluchen / Nicht reden)
+- challenge_user_mode_stats: 1 Zeilen — Challenge-System (Nicht fluchen / Nicht reden)
+- dashboard_audit_log: 8 Zeilen — Dashboard Auth / Rollen / Audit
+- dashboard_identities: 2 Zeilen — Dashboard Auth / Rollen / Audit
+- dashboard_permissions: 40 Zeilen — Dashboard Auth / Rollen / Audit
+- dashboard_roles: 6 Zeilen — Dashboard Auth / Rollen / Audit
+- dashboard_sessions: 4 Zeilen — Dashboard Auth / Rollen / Audit
+- dashboard_users: 2 Zeilen — Dashboard Auth / Rollen / Audit
+- hug_pair_stats: 193 Zeilen — Hug/Rehug-System
+- hug_pending_rehugs: 0 Zeilen — Hug/Rehug-System
+- hug_settings: 1 Zeilen — Hug/Rehug-System
+- hug_texts: 107 Zeilen — Hug/Rehug-System
+- hug_types: 30 Zeilen — Hug/Rehug-System
+- hug_users: 59 Zeilen — Hug/Rehug-System
+- schema_versions: 12 Zeilen — Zentrale Migration-/Schema-Verwaltung
+- sound_settings: 7 Zeilen — Sound-System Settings
+- tagebuch_daily_user_stats: 2 Zeilen — Tagebuch V2
+- tagebuch_runtime_events: 13 Zeilen — Tagebuch V2
+- tagebuch_state: 1 Zeilen — Tagebuch V2
+- tagebuch_user_stats: 2 Zeilen — Tagebuch V2
+- todo_daily_stats: 2 Zeilen — ToDo V2
+- todo_user_stats: 2 Zeilen — ToDo V2
+
+SCHEMA-VERSIONEN
+- alert_system: Version 5, updated_at 2026-05-01T14:40:12.406Z
+- challenge: Version 1, updated_at 2026-05-03T12:07:27.482Z
+- dashboard_auth: Version 1, updated_at 2026-05-02T19:58:24.230Z
+- hug: Version 2, updated_at 2026-05-03T11:50:07.476Z
+- hug_00_api_db: Version 1, updated_at 2026-05-03T11:11:36.188Z
+- hug_system: Version 1, updated_at 2026-04-07T05:57:29.947Z
+- hug_text_store: Version 1, updated_at 2026-05-03T11:02:29.145Z
+- kofi: Version 1, updated_at 2026-04-30T07:33:28.160Z
+- sound_system_settings: Version 1, updated_at 2026-05-02T18:06:47.543Z
+- tagebuch: Version 5, updated_at 2026-04-29T09:19:45.903Z
+- tipeee: Version 1, updated_at 2026-04-30T09:07:52.743Z
+- todo: Version 1, updated_at 2026-04-29T10:27:36.525Z
+
+====================================================================================================
+TABELLE: alert_assets
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: Hochgeladene Alert-Medien: Sounds/Bilder inkl. Pfad, öffentlicher URL, Dauer/ffprobe-Metadaten.
+Zeilen: 27
+
+Spalten:
+  - id: INTEGER PK
+  - asset_type: TEXT NOT NULL
+  - label: TEXT NOT NULL
+  - file_path: TEXT NOT NULL
+  - public_url: TEXT NOT NULL
+  - mime_type: TEXT NOT NULL DEFAULT ''
+  - size_bytes: INTEGER NOT NULL DEFAULT 0
+  - original_name: TEXT NOT NULL DEFAULT ''
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - meta_json: TEXT NOT NULL DEFAULT '{}'
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+  - duration_ms: INTEGER NOT NULL DEFAULT 0
+  - probe_json: TEXT NOT NULL DEFAULT '{}'
+Foreign Keys: keine deklariert
+Indizes/Constraints: keine zusätzlichen
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-01T13:21:33.895Z bis 2026-05-03T12:17:54.058Z
+  - updated_at: 2026-05-01T13:21:33.895Z bis 2026-05-03T12:17:54.058Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - meta_json: 27 geprüfte JSON-Werte; Keys: imageCategory, uploadedBy, durationMs, durationOk, durationError
+    Beispiel sanitisiert: {"imageCategory": "", "uploadedBy": "", "durationMs": 11349, "durationOk": true, "durationError": ""}
+  - probe_json: 27 geprüfte JSON-Werte; Keys: ok, durationMs, error, cached, probedAt, ffprobePath
+    Beispiel sanitisiert: {"ok": true, "durationMs": 11349, "cached": false, "error": "", "probedAt": "2026-05-01T13:21:33.921Z", "ffprobePath": "D:\\Streaming\\stramAssets\\tools\\ffmpeg\\ffprobe.exe"}
+Verteilung asset_type:
+  sound=17; image=10
+Verteilung enabled:
+  1=27
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "8", "asset_type": "sound", "label": "Follower", "file_path": "htdocs/assets/sounds/alerts/1777641693891_I_Will_Follow_Him-stream.mp3", "public_url": "/assets/sounds/alerts/1777641693891_I_Will_Follow_Him-stream.mp3", "mime_type": "audio/mpeg", "size_bytes": "182490", "original_name": "I Will Follow Him-stream.mp3", "enabled": "1", "meta_json": "{\"imageCategory\": \"\", \"uploadedBy\": \"\", \"durationMs\": 11349, \"durationOk\": true, \"durationError\": \"\"}", "created_at": "2026-05-01T13:21:33.895Z", "updated_at": "2026-05-01T13:21:33.895Z", "duration_ms": "11349", "probe_json": "{\"ok\": true, \"durationMs\": 11349, \"cached\": false, \"error\": \"\", \"probedAt\": \"2026-05-01T13:21:33.921Z\", \"ffprobePath\": \"D:\\\\Streaming\\\\stramAssets\\\\tools\\\\ffmpeg\\\\ffprobe.exe\"}"}
+  - {"id": "10", "asset_type": "image", "label": "Neuer Follower", "file_path": "htdocs/assets/images/alerts/1777641764868_Follower.png", "public_url": "/assets/images/alerts/1777641764868_Follower.png", "mime_type": "image/png", "size_bytes": "2262726", "original_name": "Follower.png", "enabled": "1", "meta_json": "{\"imageCategory\": \"\", \"uploadedBy\": \"\", \"durationMs\": 0, \"durationOk\": false, \"durationError\": \"not_sound\"}", "created_at": "2026-05-01T13:22:44.887Z", "updated_at": "2026-05-01T13:22:44.887Z", "duration_ms": "0", "probe_json": "{\"ok\": false, \"durationMs\": 0, \"error\": \"not_sound\"}"}
+
+====================================================================================================
+TABELLE: alert_chat_blocks
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: Gruppen von Chat-Ausgabetexten pro Provider/Alert-Typ; texts_json enthält mehrere Varianten.
+Zeilen: 9
+
+Spalten:
+  - id: INTEGER PK
+  - source: TEXT NOT NULL DEFAULT 'twitch'
+  - type_key: TEXT NOT NULL
+  - label: TEXT NOT NULL DEFAULT ''
+  - texts_json: TEXT NOT NULL DEFAULT '[]'
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - sort_order: INTEGER NOT NULL DEFAULT 100
+  - meta_json: TEXT NOT NULL DEFAULT '{}'
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_alert_chat_blocks_lookup: (source, type_key, enabled, sort_order)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-01 14:53:07 bis 2026-05-01 14:53:07
+  - updated_at: 2026-05-01 14:53:07 bis 2026-05-01 14:53:07
+JSON-Spalten / erkannte Top-Level-Keys:
+  - texts_json: 9 geprüfte JSON-Werte; Keys: [array]
+    Beispiel sanitisiert: ["📋 Heimleitung notiert: {userDisplayName} hat die Besucherliste unterschrieben. Willkommen im CGN-Heim 💜", "🔔 Neuzugang im Aufenthaltsraum: {userDisplayName} folgt jetzt. Bitte einmal freundlich winken 💜", "🧾 Akte angelegt: {userDisplayName} ist jetzt Teil der CGN-Community. Willkommen!", "🚪 Die Heimleitung öffnet die Tür: Willkommen {userDisplayName}, mach es dir gemütlich 💜", "💜 {userDisplayName} folgt jetzt. Die Heimleitung sagt: schön, dass du da bist!"]
+  - meta_json: 9 geprüfte JSON-Werte; Keys: theme, import
+    Beispiel sanitisiert: {"theme": "heimleitung", "import": "2026-05-01"}
+Verteilung source:
+  twitch=7; kofi=1; tipeee=1
+Verteilung type_key:
+  donation=2; bits=1; follow=1; gift_bomb=1; gift_sub=1; raid=1; resub=1; sub=1
+Verteilung enabled:
+  1=9
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "6", "source": "twitch", "type_key": "follow", "label": "Heimleitung · Follow Begrüßung", "texts_json": "[\"📋 Heimleitung notiert: {userDisplayName} hat die Besucherliste unterschrieben. Willkommen im CGN-Heim 💜\", \"🔔 Neuzugang im Aufenthaltsraum: {userDisplayName} folgt jetzt. Bitte einmal freundlich winken 💜\", \"🧾 Akte angelegt: {userDisplayName} ist jetzt Teil der CGN-Community. Willkommen!\", \"🚪 Die Heimleitung öffnet die Tür: Willkommen {userDisplayName}, mach es dir gemütlich 💜\", \"💜 {userDisplayName} folgt jetzt. Die Heimleitung sagt: schön, dass du da bist!\"]", "enabled": "1", "sort_order": "10", "meta_json": "{\"theme\": \"heimleitung\", \"import\": \"2026-05-01\"}", "created_at": "2026-05-01 14:53:07", "updated_at": "2026-05-01 14:53:07"}
+  - {"id": "7", "source": "twitch", "type_key": "bits", "label": "Heimleitung · Bits Danke", "texts_json": "[\"💜 Heimleitung meldet: {userDisplayName} hat {amountFormatted} in die Kaffeekasse geworfen. Danke dir!\", \"🧾 Spendenquittung wird laminiert: {userDisplayName} unterstützt mit {amountFormatted}. Stark!\", \"🔔 Durchsage: {userDisplayName} haut {amountFormatted} raus. Die Heimleitung ist begeistert 💜\", \"☕ {amountFormatted} von {userDisplayName}. Der Kaffee im CGN-Heim ist für heute gerettet!\", \"📋 Vermerkt: {userDisplayName} unterstützt die Einrichtung mit {amountFormatted}. Vielen lieben Dank 💜\", \"... 1 weitere\"]", "enabled": "1", "sort_order": "20", "meta_json": "{\"theme\": \"heimleitung\", \"import\": \"2026-05-01\"}", "created_at": "2026-05-01 14:53:07", "updated_at": "2026-05-01 14:53:07"}
+
+====================================================================================================
+TABELLE: alert_display_profiles
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: Design-/Overlay-Profile für Alerts; settings_json enthält Layout, Grafik, Farben, Positionen.
+Zeilen: 18
+
+Spalten:
+  - id: INTEGER PK
+  - name: TEXT NOT NULL
+  - description: TEXT NOT NULL DEFAULT ''
+  - is_default: INTEGER NOT NULL DEFAULT 0
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - settings_json: TEXT NOT NULL DEFAULT '{}'
+  - sort_order: INTEGER NOT NULL DEFAULT 100
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_alert_display_profiles_default: (enabled, is_default, sort_order)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-04-30T16:47:56.347Z bis 2026-05-03T12:13:16.602Z
+  - updated_at: 2026-05-02T14:58:32.697Z bis 2026-05-03T12:18:15.781Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - settings_json: 18 geprüfte JSON-Werte; Keys: widthMode, overlayPosition, positionX, positionY, cardWidthPx, cardHeightPx, sizeScale, fontScale, headlineScale, valueScale, avatarPosition, avatarSize, providerLogoStyle, topGraphicAssetId, topGraphicUrl, topGraphicScale, topGraphicOffsetY, topGraphicShape, topGraphicFrameStrength, topGraphicImageZoom
+    Beispiel sanitisiert: {"widthMode": "custom", "overlayPosition": "custom", "positionX": 53, "positionY": 50, "cardWidthPx": 790, "cardHeightPx": 180, "sizeScale": 0.89, "fontScale": 1.28, "headlineScale": 1.15, "valueScale": 1.17, "avatarPosition": "right", "avatarSize": "large", "providerLogoStyle": "round", "topGraphicAssetId": "10", "topGraphicUrl": "/assets/images/alerts/1777641764868_Follower.png", "topGraphicScale": 1, "topGraphicOffsetY": -18, "topGraphicShape": "round", "topGraphicFrameStrength": "normal", "topGraphicImageZoom": 1, "topGraphicImageX": 50, "topGraphicImageY": 50, "topGraphicFrameStyle": "rou... [gekürzt]
+Verteilung enabled:
+  1=18
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "3", "name": "testfollow", "description": "Breiter und präsenter für große Alerts", "is_default": "1", "enabled": "1", "settings_json": "{\"widthMode\": \"custom\", \"overlayPosition\": \"custom\", \"positionX\": 53, \"positionY\": 50, \"cardWidthPx\": 790, \"cardHeightPx\": 180, \"sizeScale\": 0.89, \"fontScale\": 1.28, \"headlineScale\": 1.15, \"valueScale\": 1.17, \"avatarPosition\": \"right\", \"avatarSize\": \"large\", \"providerLogoStyle\": \"round\", \"topGraphicAssetId\": \"10\", \"topGraphicUrl\": \"/assets/images/alerts/1777641764868_Follower.png\", \"topGraphicScale\": 1, \"topGraphicOffsetY\": -18, \"topGraphicShape\": \"round\", \"topGraphicFrameStrength\": \"normal\", \"topGraphicImageZoom\": 1, \"topGraphicImageX\": 50, \"topGraphicImageY\": 50, \"topGraphicFrameStyle\": \"round\", \"cardBorderColorA\": \"#8ff4ff\", \"cardBorderColorB\": \"#c45cff\", \"innerBorderEnabled\": true, \"prev", "sort_order": "30", "created_at": "2026-04-30T16:47:56.347Z", "updated_at": "2026-05-02T14:58:32.697Z"}
+  - {"id": "7", "name": "Follower", "description": "Follower him", "is_default": "0", "enabled": "1", "settings_json": "{\"widthMode\": \"custom\", \"overlayPosition\": \"custom\", \"positionX\": 50, \"positionY\": 50, \"cardWidthPx\": 710, \"cardHeightPx\": 190, \"sizeScale\": 0.84, \"fontScale\": 1.17, \"headlineScale\": 1.19, \"valueScale\": 1.07, \"avatarPosition\": \"right\", \"avatarSize\": \"normal\", \"providerLogoStyle\": \"round\", \"topGraphicAssetId\": \"10\", \"topGraphicUrl\": \"/assets/images/alerts/1777641764868_Follower.png\", \"topGraphicScale\": 1, \"topGraphicOffsetY\": -18, \"topGraphicShape\": \"round\", \"topGraphicFrameStrength\": \"soft\", \"topGraphicImageZoom\": 1, \"topGraphicImageX\": 50, \"topGraphicImageY\": 50, \"topGraphicFrameStyle\": \"round\", \"cardBorderColorA\": \"#8ff4ff\", \"cardBorderColorB\": \"#c45cff\", \"innerBorderEnabled\": true, \"previ", "sort_order": "100", "created_at": "2026-05-02T13:55:47.705Z", "updated_at": "2026-05-02T15:05:12.450Z"}
+
+====================================================================================================
+TABELLE: alert_events
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: Alert-Queue-/Historien-Tabelle; speichert eingegangene/gestartete/fertige Alerts inkl. finaler Anzeige- und Chatdaten.
+Zeilen: 307
+
+Spalten:
+  - id: INTEGER PK
+  - event_uid: TEXT NOT NULL
+  - source: TEXT NOT NULL
+  - type_key: TEXT NOT NULL
+  - user_login: TEXT NOT NULL DEFAULT ''
+  - user_display: TEXT NOT NULL DEFAULT ''
+  - amount: REAL NOT NULL DEFAULT 0
+  - message: TEXT NOT NULL DEFAULT ''
+  - rule_id: INTEGER
+  - status: TEXT NOT NULL DEFAULT 'queued'
+  - payload_json: TEXT NOT NULL DEFAULT '{}'
+  - created_at: TEXT NOT NULL
+  - started_at: TEXT
+  - finished_at: TEXT
+  - final_title: TEXT NOT NULL DEFAULT ''
+  - final_headline: TEXT NOT NULL DEFAULT ''
+  - final_value: TEXT NOT NULL DEFAULT ''
+  - final_subline: TEXT NOT NULL DEFAULT ''
+  - final_message: TEXT NOT NULL DEFAULT ''
+  - text_variant_id: INTEGER
+  - provider_logo_url: TEXT NOT NULL DEFAULT ''
+  - display_profile_id: INTEGER
+  - display_settings_json: TEXT NOT NULL DEFAULT '{}'
+  - final_chat_message: TEXT NOT NULL DEFAULT ''
+Foreign Keys:
+  - rule_id -> alert_rules.id ON UPDATE NO ACTION ON DELETE SET NULL
+Indizes/Constraints:
+  - idx_alert_events_created: (created_at)
+  - UNIQUE sqlite_autoindex_alert_events_1: (event_uid)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-04-30T06:31:33.144Z bis 2026-05-02T17:34:36.221Z
+  - started_at: 2026-04-30T06:31:33.145Z bis 2026-05-02T17:34:36.224Z
+  - finished_at: 2026-04-30T06:31:40.356Z bis 2026-05-02T17:34:43.024Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - payload_json: 30 geprüfte JSON-Werte; Keys: message, user, amount, source, type, user_login, title, raw, currency, providerEventId, type_key, provider, eventsubType, login, avatar_url
+    Beispiel sanitisiert: {"message": "folgt jetzt dem Kanal!", "user": "TestUser", "type": "follow"}
+  - display_settings_json: 30 geprüfte JSON-Werte; Keys: (keine / Array)
+    Beispiel sanitisiert: {}
+Verteilung source:
+  twitch=276; kofi=20; tipeee=9; test=2
+Verteilung type_key:
+  bits=221; follow=51; donation=28; sub=3; gift_sub=2; membership=1; raid=1
+Verteilung status:
+  finished=305; playing=2
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "event_uid": "al_1777530693144_533bcd6d", "source": "test", "type_key": "follow", "user_login": "testuser", "user_display": "TestUser", "amount": "0.0", "message": "folgt jetzt dem Kanal!", "rule_id": "NULL", "status": "finished", "payload_json": "{\"message\": \"folgt jetzt dem Kanal!\", \"user\": \"TestUser\", \"type\": \"follow\"}", "created_at": "2026-04-30T06:31:33.144Z", "started_at": "2026-04-30T06:31:33.145Z", "finished_at": "2026-04-30T06:31:40.356Z", "final_title": "", "final_headline": "", "final_value": "", "final_subline": "", "final_message": "", "text_variant_id": "NULL", "provider_logo_url": "", "display_profile_id": "NULL", "display_settings_json": "{}", "final_chat_message": ""}
+  - {"id": "2", "event_uid": "al_1777530717985_10f07459", "source": "test", "type_key": "follow", "user_login": "testuser", "user_display": "TestUser", "amount": "0.0", "message": "folgt jetzt dem Kanal!", "rule_id": "NULL", "status": "finished", "payload_json": "{\"message\": \"folgt jetzt dem Kanal!\", \"user\": \"TestUser\", \"type\": \"follow\"}", "created_at": "2026-04-30T06:31:57.985Z", "started_at": "2026-04-30T06:31:57.988Z", "finished_at": "2026-04-30T06:32:05.317Z", "final_title": "", "final_headline": "", "final_value": "", "final_subline": "", "final_message": "", "text_variant_id": "NULL", "provider_logo_url": "", "display_profile_id": "NULL", "display_settings_json": "{}", "final_chat_message": ""}
+
+====================================================================================================
+TABELLE: alert_provider_events
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: Roh-/Normalisierungslog für externe Provider-Events (Ko-fi, Tipeee etc.) zur Deduplizierung und Nachverfolgung.
+Zeilen: 18
+
+Spalten:
+  - id: INTEGER PK
+  - provider: TEXT NOT NULL
+  - provider_event_id: TEXT NOT NULL
+  - source: TEXT NOT NULL
+  - type_key: TEXT NOT NULL
+  - user_display: TEXT NOT NULL DEFAULT ''
+  - amount: REAL NOT NULL DEFAULT 0
+  - currency: TEXT NOT NULL DEFAULT ''
+  - status: TEXT NOT NULL DEFAULT 'received'
+  - forwarded_event_uid: TEXT NOT NULL DEFAULT ''
+  - raw_json: TEXT NOT NULL DEFAULT '{}'
+  - created_at: TEXT NOT NULL
+  - forwarded_at: TEXT
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_alert_provider_events_created: (created_at)
+  - UNIQUE sqlite_autoindex_alert_provider_events_1: (provider, provider_event_id)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-04-30T07:34:53.184Z bis 2026-05-02T16:56:32.060Z
+  - forwarded_at: 2026-04-30T07:34:53.200Z bis 2026-05-02T07:38:56.971Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - raw_json: 18 geprüfte JSON-Werte; Keys: normalizedData, data, event, normalizedEvent, originalMeta, localTest, appKey
+    Beispiel sanitisiert: {"localTest": true, "normalizedData": {"verification_token": "[REDACTED str]", "message_id": "local_test_1777534493184_77eae4", "timestamp": "2026-04-30T07:34:53.184Z", "type": "Donation", "is_public": true, "from_name": "ForrestCGN", "message": "Ko-fi Test", "amount": "3", "currency": "EUR", "is_subscription_payment": false, "is_first_subscription_payment": false, "kofi_transaction_id": "local_tx_1777534493184", "shop_items": null, "tier_name": null}}
+Verteilung source:
+  kofi=12; tipeee=6
+Verteilung type_key:
+  donation=13; subscription=4; membership=1
+Verteilung status:
+  forwarded=14; ignored_type=4
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "provider": "kofi", "provider_event_id": "local_test_1777534493184_77eae4", "source": "kofi", "type_key": "donation", "user_display": "ForrestCGN", "amount": "3.0", "currency": "EUR", "status": "forwarded", "forwarded_event_uid": "al_1777534493195_7b880840", "raw_json": "{\"localTest\": true, \"normalizedData\": {\"verification_token\": \"[REDACTED str]\", \"message_id\": \"local_test_1777534493184_77eae4\", \"timestamp\": \"2026-04-30T07:34:53.184Z\", \"type\": \"Donation\", \"is_public\": true, \"from_name\": \"ForrestCGN\", \"message\": \"Ko-fi Test\", \"amount\": \"3\", \"currency\": \"EUR\", \"is_subscription_payment\": false, \"is_first_subscription_payment\": false, \"kofi_transaction_id\": \"local_tx_1777534493184\", \"shop_items\": null, \"tier_name\": null}}", "created_at": "2026-04-30T07:34:53.184Z", "forwarded_at": "2026-04-30T07:34:53.200Z"}
+  - {"id": "2", "provider": "kofi", "provider_event_id": "manual_test_001", "source": "kofi", "type_key": "donation", "user_display": "ForrestCGN", "amount": "3.0", "currency": "EUR", "status": "forwarded", "forwarded_event_uid": "al_1777534535223_1270c63c", "raw_json": "{\"data\": \"{\\\"is_public\\\":true,\\\"from_name\\\":\\\"ForrestCGN\\\",\\\"amount\\\":\\\"3.00\\\",\\\"timestamp\\\":\\\"2026-04-30T07:35:33Z\\\",\\\"is_first_subscription_pay... [gekürzt]\", \"normalizedData\": {\"is_public\": true, \"from_name\": \"ForrestCGN\", \"amount\": \"3.00\", \"timestamp\": \"2026-04-30T07:35:33Z\", \"is_first_subscription_payment\": false, \"is_subscription_payment\": false, \"type\": \"Donation\", \"message_id\": \"manual_test_001\", \"shop_items\": null, \"shipping\": null, \"currency\": \"EUR\", \"kofi_transaction_id\": \"manual_tx_001\", \"verification_token\": \"[REDACTED str]\", \"tier_name\": null, \"message\": \"Manueller Ko-fi POST\"}}", "created_at": "2026-04-30T07:35:35.221Z", "forwarded_at": "2026-04-30T07:35:35.226Z"}
+
+====================================================================================================
+TABELLE: alert_rules
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: Regeln/Staffelungen je Alert-Typ, z.B. Bits-Bereiche, Sound, Designprofil, Textvariante, Dauer.
+Zeilen: 20
+
+Spalten:
+  - id: INTEGER PK
+  - source: TEXT NOT NULL DEFAULT 'twitch'
+  - type_key: TEXT NOT NULL
+  - label: TEXT NOT NULL
+  - min_value: REAL
+  - max_value: REAL
+  - tier: TEXT NOT NULL DEFAULT 'normal'
+  - priority: INTEGER NOT NULL DEFAULT 100
+  - duration_ms: INTEGER NOT NULL DEFAULT 7000
+  - animation: TEXT NOT NULL DEFAULT 'neon_card'
+  - image_mode: TEXT NOT NULL DEFAULT 'none'
+  - sound_asset_id: INTEGER
+  - image_asset_id: INTEGER
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - meta_json: TEXT NOT NULL DEFAULT '{}'
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+  - duration_mode: TEXT NOT NULL DEFAULT 'fixed'
+  - tts_enabled: INTEGER NOT NULL DEFAULT 0
+  - tts_timing: TEXT NOT NULL DEFAULT 'after_alert'
+  - tts_mode: TEXT NOT NULL DEFAULT 'audio_only'
+  - tts_template: TEXT NOT NULL DEFAULT '{user} schreibt: {message}'
+  - tts_max_chars: INTEGER NOT NULL DEFAULT 250
+  - tts_min_amount: REAL
+  - display_profile_id: INTEGER
+Foreign Keys:
+  - image_asset_id -> alert_assets.id ON UPDATE NO ACTION ON DELETE SET NULL
+  - sound_asset_id -> alert_assets.id ON UPDATE NO ACTION ON DELETE SET NULL
+Indizes/Constraints:
+  - idx_alert_rules_lookup: (source, type_key, enabled, min_value, max_value, priority)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-04-30T06:25:29.382Z bis 2026-05-03T11:53:08.596Z
+  - updated_at: 2026-05-02T16:27:52.313Z bis 2026-05-03T12:15:13.667Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - meta_json: 20 geprüfte JSON-Werte; Keys: chatMessage
+    Beispiel sanitisiert: {"chatMessage": {"enabled": true, "blockId": 12}}
+Verteilung source:
+  twitch=15; kofi=4; tipeee=1
+Verteilung type_key:
+  bits=9; donation=2; gift_bomb=2; commission=1; follow=1; membership=1; raid=1; resub=1; shop=1; sub=1
+Verteilung enabled:
+  1=20
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "5", "source": "twitch", "type_key": "raid", "label": "Raid Standard", "min_value": "NULL", "max_value": "NULL", "tier": "normal", "priority": "60", "duration_ms": "10000", "animation": "neon_card", "image_mode": "none", "sound_asset_id": "38", "image_asset_id": "NULL", "enabled": "1", "meta_json": "{\"chatMessage\": {\"enabled\": true, \"blockId\": 12}}", "created_at": "2026-04-30T06:25:29.382Z", "updated_at": "2026-05-03T07:53:07.648Z", "duration_mode": "sound", "tts_enabled": "1", "tts_timing": "after_alert", "tts_mode": "audio_only", "tts_template": "{user} schreibt: {message}", "tts_max_chars": "250", "tts_min_amount": "NULL", "display_profile_id": "19"}
+  - {"id": "8", "source": "kofi", "type_key": "donation", "label": "Ko-fi Donation Standard", "min_value": "0.0", "max_value": "NULL", "tier": "normal", "priority": "80", "duration_ms": "8000", "animation": "neon_card", "image_mode": "none", "sound_asset_id": "33", "image_asset_id": "NULL", "enabled": "1", "meta_json": "{\"chatMessage\": {\"enabled\": true, \"blockId\": 13}}", "created_at": "2026-04-30T07:33:28.165Z", "updated_at": "2026-05-03T11:52:09.521Z", "duration_mode": "sound", "tts_enabled": "0", "tts_timing": "after_alert", "tts_mode": "audio_only", "tts_template": "{user} schreibt: {message}", "tts_max_chars": "250", "tts_min_amount": "NULL", "display_profile_id": "23"}
+
+====================================================================================================
+TABELLE: alert_settings
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: JSON-Key-Value-Settings für Alert-Provider und Livealert/Sound-Anbindung.
+Zeilen: 4
+
+Spalten:
+  - key: TEXT PK
+  - value_json: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_alert_settings_1: (key)
+Zeit-/Datumsbereiche:
+  - updated_at: 2026-04-30T07:02:10.015Z bis 2026-05-02T16:53:16.677Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - value_json: 4 geprüfte JSON-Werte; Keys: enabled, enqueueUrl, includeRawEvent, typeMap, secretHeader, secretHeaderValue, allowLocalhostWithoutSecret, allowPublicStatus, allowPublicTest, allowPublicReload, currencyDefault, minAmount, duplicateWindowDays, minBits, minRaidViewers, forward, ignoredRewardTitles, secretRequired, verificationToken, autoConnect
+    Beispiel sanitisiert: {"enabled": true, "enqueueUrl": "http://127.0.0.1:8080/api/alerts/twitch", "includeRawEvent": true, "minBits": 1, "minRaidViewers": 1, "typeMap": {"follow": "follow", "bits": "bits", "raid": "raid", "sub": "sub", "resub": "sub", "giftSub": "gift_sub", "channelPoints": "channel_points"}, "forward": {"follow": true, "bits": true, "raid": true, "sub": true, "resub": true, "giftSub": true, "channelPoints": false}, "ignoredRewardTitles": []}
+Verteilung key:
+  livealert=1; provider_kofi_webhook=1; provider_tipeee_socket=1; provider_twitch_eventsub=1
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"key": "provider_twitch_eventsub", "value_json": "{\"enabled\": true, \"enqueueUrl\": \"http://127.0.0.1:8080/api/alerts/twitch\", \"includeRawEvent\": true, \"minBits\": 1, \"minRaidViewers\": 1, \"typeMap\": {\"follow\": \"follow\", \"bits\": \"bits\", \"raid\": \"raid\", \"sub\": \"sub\", \"resub\": \"sub\", \"giftSub\": \"gift_sub\", \"channelPoints\": \"channel_points\"}, \"forward\": {\"follow\": true, \"bits\": true, \"raid\": true, \"sub\": true, \"resub\": true, \"giftSub\": true, \"channelPoints\": false}, \"ignoredRewardTitles\": []}", "updated_at": "2026-04-30T07:02:10.015Z"}
+  - {"key": "provider_kofi_webhook", "value_json": "{\"enabled\": true, \"secretRequired\": \"[REDACTED bool]\", \"verificationToken\": \"[REDACTED str]\", \"secretHeader\": \"[REDACTED str]\", \"secretHeaderValue\": \"[REDACTED str]\", \"allowLocalhostWithoutSecret\": \"[REDACTED bool]\", \"allowPublicStatus\": false, \"allowPublicTest\": false, \"allowPublicReload\": false, \"enqueueUrl\": \"http://127.0.0.1:8080/api/alerts/enqueue\", \"currencyDefault\": \"EUR\", \"minAmount\": 0, \"includeRawEvent\": true, \"duplicateWindowDays\": 30, \"typeMap\": {\"donation\": \"donation\", \"membership\": \"membership\", \"subscription\": \"membership\", \"commission\": \"commission\", \"shop\": \"shop\"}}", "updated_at": "2026-04-30T08:41:32.934Z"}
+
+====================================================================================================
+TABELLE: alert_test_presets
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: Testvorlagen für Alerts im Dashboard.
+Zeilen: 6
+
+Spalten:
+  - id: INTEGER PK
+  - source: TEXT NOT NULL DEFAULT 'twitch'
+  - type_key: TEXT NOT NULL
+  - rule_id: INTEGER
+  - label: TEXT NOT NULL
+  - payload_json: TEXT NOT NULL DEFAULT '{}'
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - sort_order: INTEGER NOT NULL DEFAULT 100
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys:
+  - rule_id -> alert_rules.id ON UPDATE NO ACTION ON DELETE SET NULL
+Indizes/Constraints:
+  - idx_alert_test_presets_lookup: (source, type_key, enabled, sort_order)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-04-30T15:40:20.719Z bis 2026-04-30T15:40:20.723Z
+  - updated_at: 2026-04-30T15:40:20.720Z bis 2026-04-30T16:08:13.696Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - payload_json: 6 geprüfte JSON-Werte; Keys: amount, user, userLogin, avatarUrl, message, currency, viewerCount
+    Beispiel sanitisiert: {"amount": 1, "user": "ForrestCGN", "userLogin": "forrestcgn", "avatarUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/bd8363e2-eacf-4805-831f-7a1bce3cc514-profile_image-300x300.png"}
+Verteilung source:
+  twitch=4; kofi=1; tipeee=1
+Verteilung type_key:
+  donation=2; bits=1; follow=1; raid=1; sub=1
+Verteilung enabled:
+  1=6
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "source": "twitch", "type_key": "follow", "rule_id": "NULL", "label": "Follow Test", "payload_json": "{\"amount\": 1, \"user\": \"ForrestCGN\", \"userLogin\": \"forrestcgn\", \"avatarUrl\": \"https://static-cdn.jtvnw.net/jtv_user_pictures/bd8363e2-eacf-4805-831f-7a1bce3cc514-profile_image-300x300.png\"}", "enabled": "1", "sort_order": "10", "created_at": "2026-04-30T15:40:20.719Z", "updated_at": "2026-04-30T16:07:42.970Z"}
+  - {"id": "2", "source": "twitch", "type_key": "bits", "rule_id": "NULL", "label": "100 Bits Test", "payload_json": "{\"amount\": 100, \"message\": \"Test für neue Staffel\", \"user\": \"ForrestCGN\", \"userLogin\": \"forrestcgn\", \"avatarUrl\": \"https://static-cdn.jtvnw.net/jtv_user_pictures/bd8363e2-eacf-4805-831f-7a1bce3cc514-profile_image-300x300.png\"}", "enabled": "1", "sort_order": "20", "created_at": "2026-04-30T15:40:20.720Z", "updated_at": "2026-04-30T16:08:13.696Z"}
+
+====================================================================================================
+TABELLE: alert_text_variants
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: Overlay-Textvarianten/Headline/Value/Subline pro Alert-Typ.
+Zeilen: 16
+
+Spalten:
+  - id: INTEGER PK
+  - source: TEXT NOT NULL DEFAULT 'twitch'
+  - type_key: TEXT NOT NULL
+  - rule_id: INTEGER
+  - label: TEXT NOT NULL DEFAULT ''
+  - title_template: TEXT NOT NULL DEFAULT ''
+  - headline_template: TEXT NOT NULL DEFAULT ''
+  - value_template: TEXT NOT NULL DEFAULT ''
+  - subline_template: TEXT NOT NULL DEFAULT ''
+  - message_template: TEXT NOT NULL DEFAULT ''
+  - message_mode: TEXT NOT NULL DEFAULT 'auto'
+  - hide_subline_when_message_exists: INTEGER NOT NULL DEFAULT 1
+  - pick_weight: INTEGER NOT NULL DEFAULT 100
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - sort_order: INTEGER NOT NULL DEFAULT 100
+  - meta_json: TEXT NOT NULL DEFAULT '{}'
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys:
+  - rule_id -> alert_rules.id ON UPDATE NO ACTION ON DELETE CASCADE
+Indizes/Constraints:
+  - idx_alert_text_variants_lookup: (source, type_key, rule_id, enabled, sort_order)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-04-30T15:40:20.708Z bis 2026-04-30T18:04:46.481Z
+  - updated_at: 2026-04-30T15:40:20.708Z bis 2026-04-30T19:30:27.231Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - meta_json: 16 geprüfte JSON-Werte; Keys: (keine / Array)
+    Beispiel sanitisiert: {}
+Verteilung source:
+  twitch=8; kofi=4; tipeee=4
+Verteilung type_key:
+  follow=3; donation=2; bits=1; commission=1; gift_bomb=1; gift_sub=1; hosting=1; membership=1; raid=1; resub=1; shop=1; sub=1; subscription=1
+Verteilung enabled:
+  1=16
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "source": "twitch", "type_key": "follow", "rule_id": "NULL", "label": "Follow Standard", "title_template": "TWITCH FOLLOW", "headline_template": "{userDisplayName}", "value_template": "folgt jetzt dem Kanal", "subline_template": "Willkommen in der CGN-Community!", "message_template": "", "message_mode": "never", "hide_subline_when_message_exists": "1", "pick_weight": "100", "enabled": "1", "sort_order": "10", "meta_json": "{}", "created_at": "2026-04-30T15:40:20.708Z", "updated_at": "2026-04-30T15:40:20.708Z"}
+  - {"id": "2", "source": "twitch", "type_key": "follow", "rule_id": "NULL", "label": "Follow CGN", "title_template": "TWITCH FOLLOW", "headline_template": "{userDisplayName}", "value_template": "ist jetzt Teil der CGN-Community", "subline_template": "Schön, dass du da bist!", "message_template": "", "message_mode": "never", "hide_subline_when_message_exists": "1", "pick_weight": "100", "enabled": "1", "sort_order": "20", "meta_json": "{}", "created_at": "2026-04-30T15:40:20.710Z", "updated_at": "2026-04-30T15:40:20.710Z"}
+
+====================================================================================================
+TABELLE: alert_types
+Modul/Nutzer: Alert-System / Alert-Dashboard / Provider-Bridges
+Zweck: Katalog der verfügbaren Alert-Typen je Quelle/Provider.
+Zeilen: 15
+
+Spalten:
+  - id: INTEGER PK
+  - source: TEXT NOT NULL DEFAULT 'twitch'
+  - type_key: TEXT NOT NULL
+  - label: TEXT NOT NULL
+  - value_kind: TEXT NOT NULL DEFAULT 'amount'
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - sort_order: INTEGER NOT NULL DEFAULT 100
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_alert_types_1: (source, type_key)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-04-30T06:25:29.369Z bis 2026-04-30T09:07:52.746Z
+  - updated_at: 2026-05-03T12:07:27.438Z bis 2026-05-03T12:07:27.898Z
+Verteilung source:
+  twitch=7; kofi=4; tipeee=4
+Verteilung type_key:
+  donation=2; follow=2; bits=1; commission=1; gift_bomb=1; gift_sub=1; hosting=1; membership=1; raid=1; resub=1; shop=1; sub=1; subscription=1
+Verteilung enabled:
+  1=15
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "source": "twitch", "type_key": "follow", "label": "Follow", "value_kind": "count", "enabled": "1", "sort_order": "10", "created_at": "2026-04-30T06:25:29.369Z", "updated_at": "2026-05-03T12:07:27.438Z"}
+  - {"id": "2", "source": "twitch", "type_key": "bits", "label": "Bits / Cheers", "value_kind": "amount", "enabled": "1", "sort_order": "20", "created_at": "2026-04-30T06:25:29.369Z", "updated_at": "2026-05-03T12:07:27.438Z"}
+
+====================================================================================================
+TABELLE: challenge_runtime_events
+Modul/Nutzer: Challenge-System (Nicht fluchen / Nicht reden)
+Zweck: Challenge-Laufzeitereignisse, z.B. Starts/Stops/Queue.
+Zeilen: 6
+
+Spalten:
+  - id: INTEGER PK
+  - event_type: TEXT NOT NULL
+  - challenge_id: TEXT
+  - mode: TEXT
+  - label: TEXT
+  - user_key: TEXT
+  - user_display: TEXT
+  - duration_seconds: INTEGER NOT NULL DEFAULT 0
+  - created_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints: keine zusätzlichen
+Zeit-/Datumsbereiche:
+  - created_at: 2026-04-29T13:09:59.807Z bis 2026-04-29T13:11:12.578Z
+Verteilung event_type:
+  finished=2; requested=2; started=2
+Verteilung mode:
+  NichtFluchen=6
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "event_type": "requested", "challenge_id": "1777468199807-1", "mode": "NichtFluchen", "label": "Nicht fluchen", "user_key": "forrestcgn", "user_display": "ForrestCGN", "duration_seconds": "5", "created_at": "2026-04-29T13:09:59.807Z"}
+  - {"id": "2", "event_type": "started", "challenge_id": "1777468199807-1", "mode": "NichtFluchen", "label": "Nicht fluchen", "user_key": "forrestcgn", "user_display": "ForrestCGN", "duration_seconds": "5", "created_at": "2026-04-29T13:09:59.812Z"}
+
+====================================================================================================
+TABELLE: challenge_user_mode_stats
+Modul/Nutzer: Challenge-System (Nicht fluchen / Nicht reden)
+Zweck: Challenge-Statistik je User und Modus.
+Zeilen: 1
+
+Spalten:
+  - user_key: TEXT PK NOT NULL
+  - user_display: TEXT NOT NULL
+  - mode: TEXT PK NOT NULL
+  - label: TEXT NOT NULL
+  - requested_count: INTEGER NOT NULL DEFAULT 0
+  - queued_count: INTEGER NOT NULL DEFAULT 0
+  - started_count: INTEGER NOT NULL DEFAULT 0
+  - finished_count: INTEGER NOT NULL DEFAULT 0
+  - total_duration_seconds: INTEGER NOT NULL DEFAULT 0
+  - first_requested_at: TEXT
+  - last_requested_at: TEXT
+  - last_started_at: TEXT
+  - last_finished_at: TEXT
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_challenge_user_mode_stats_1: (user_key, mode)
+Zeit-/Datumsbereiche:
+  - updated_at: 2026-04-29T13:11:12.578Z bis 2026-04-29T13:11:12.578Z
+Verteilung mode:
+  NichtFluchen=1
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"user_key": "forrestcgn", "user_display": "ForrestCGN", "mode": "NichtFluchen", "label": "Nicht fluchen", "requested_count": "2", "queued_count": "0", "started_count": "2", "finished_count": "2", "total_duration_seconds": "10", "first_requested_at": "NULL", "last_requested_at": "NULL", "last_started_at": "NULL", "last_finished_at": "NULL", "updated_at": "2026-04-29T13:11:12.578Z"}
+
+====================================================================================================
+TABELLE: dashboard_audit_log
+Modul/Nutzer: Dashboard Auth / Rollen / Audit
+Zweck: Audit-Log: wer hat im Dashboard/System was wann gemacht.
+Zeilen: 8
+
+Spalten:
+  - id: INTEGER PK
+  - actor_user_id: INTEGER
+  - actor_display_name: TEXT
+  - action: TEXT NOT NULL
+  - target_type: TEXT
+  - target_id: TEXT
+  - details_json: TEXT
+  - ip: TEXT
+  - user_agent: TEXT
+  - created_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_dashboard_audit_created_at: (created_at)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-02T19:59:21.262Z bis 2026-05-02T20:52:07.193Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - details_json: 8 geprüfte JSON-Werte; Keys: login, localOnly
+    Beispiel sanitisiert: {"localOnly": true}
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "actor_user_id": "1", "actor_display_name": "Local Owner", "action": "auth.bootstrap_owner_local", "target_type": "dashboard_user", "target_id": "1", "details_json": "{\"localOnly\": true}", "ip": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0", "created_at": "2026-05-02T19:59:21.262Z"}
+  - {"id": "2", "actor_user_id": "1", "actor_display_name": "Local Owner", "action": "auth.logout", "target_type": "dashboard_session", "target_id": "1", "details_json": "{}", "ip": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0", "created_at": "2026-05-02T19:59:23.247Z"}
+
+====================================================================================================
+TABELLE: dashboard_identities
+Modul/Nutzer: Dashboard Auth / Rollen / Audit
+Zweck: Externe Identitäten/Login-Verknüpfungen der Dashboard-User, z.B. Twitch.
+Zeilen: 2
+
+Spalten:
+  - id: INTEGER PK
+  - user_id: INTEGER NOT NULL
+  - provider: TEXT NOT NULL
+  - provider_user_id: TEXT NOT NULL
+  - provider_login: TEXT
+  - provider_email: TEXT
+  - provider_display_name: TEXT
+  - avatar_url: TEXT
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+  - last_login_at: TEXT
+  - raw_json: TEXT NOT NULL DEFAULT '{}'
+Foreign Keys:
+  - user_id -> dashboard_users.id ON UPDATE NO ACTION ON DELETE CASCADE
+Indizes/Constraints:
+  - idx_dashboard_identities_user_id: (user_id)
+  - UNIQUE sqlite_autoindex_dashboard_identities_1: (provider, provider_user_id)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-02T19:59:21.256Z bis 2026-05-02T20:33:57.152Z
+  - updated_at: 2026-05-02T20:01:03.490Z bis 2026-05-02T20:52:07.188Z
+  - last_login_at: 2026-05-02T20:01:03.490Z bis 2026-05-02T20:01:03.490Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - raw_json: 2 geprüfte JSON-Werte; Keys: id, login, display_name, profile_image_url, broadcaster_type, type, email_present
+    Beispiel sanitisiert: {}
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "user_id": "1", "provider": "local", "provider_user_id": "local-owner", "provider_login": "local-owner", "provider_email": "NULL", "provider_display_name": "Local Owner", "avatar_url": "", "created_at": "2026-05-02T19:59:21.256Z", "updated_at": "2026-05-02T20:01:03.490Z", "last_login_at": "2026-05-02T20:01:03.490Z", "raw_json": "{}"}
+  - {"id": "3", "user_id": "2", "provider": "twitch", "provider_user_id": "127709954", "provider_login": "forrestcgn", "provider_email": "NULL", "provider_display_name": "ForrestCGN", "avatar_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/bd8363e2-eacf-4805-831f-7a1bce3cc514-profile_image-300x300.png", "created_at": "2026-05-02T20:33:57.152Z", "updated_at": "2026-05-02T20:52:07.188Z", "last_login_at": "NULL", "raw_json": "{\"id\": \"127709954\", \"login\": \"forrestcgn\", \"display_name\": \"ForrestCGN\", \"profile_image_url\": \"https://static-cdn.jtvnw.net/jtv_user_pictures/bd8363e2-eacf-4805-831f-7a1bce3cc514-profile_image-300x300.png\", \"broadcaster_type\": \"affiliate\", \"type\": \"\", \"email_present\": \"[REDACTED bool]\"}"}
+
+====================================================================================================
+TABELLE: dashboard_permissions
+Modul/Nutzer: Dashboard Auth / Rollen / Audit
+Zweck: Rechte je Rolle.
+Zeilen: 40
+
+Spalten:
+  - id: INTEGER PK
+  - role: TEXT NOT NULL
+  - permission: TEXT NOT NULL
+  - created_at: TEXT NOT NULL
+  - label: TEXT NOT NULL DEFAULT ''
+  - description: TEXT NOT NULL DEFAULT ''
+Foreign Keys:
+  - role -> dashboard_roles.role ON UPDATE NO ACTION ON DELETE CASCADE
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_dashboard_permissions_1: (role, permission)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-02T19:58:24.229Z bis 2026-05-02T19:58:24.230Z
+Verteilung role:
+  admin=15; streamer=9; supermod=8; mod=6; owner=1; user=1
+Verteilung permission:
+  dashboard.view=5; alerts.view=4; obs.switch_scene=4; sound.play=4; sound.view=4; streamdesk.view=4; alerts.live_test=3; sound.stop=3; sound.settings=2; *=1; admin.audit.view=1; admin.config.edit=1; admin.config.view=1; admin.roles.manage=1; admin.users.manage=1; alerts.edit=1
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "role": "owner", "permission": "*", "created_at": "2026-05-02T19:58:24.229Z", "label": "", "description": ""}
+  - {"id": "2", "role": "admin", "permission": "dashboard.view", "created_at": "2026-05-02T19:58:24.229Z", "label": "", "description": ""}
+
+====================================================================================================
+TABELLE: dashboard_roles
+Modul/Nutzer: Dashboard Auth / Rollen / Audit
+Zweck: Systemrollen für Dashboard-Rechte.
+Zeilen: 6
+
+Spalten:
+  - role: TEXT PK
+  - label: TEXT NOT NULL
+  - sort_order: INTEGER NOT NULL DEFAULT 100
+  - is_system: INTEGER NOT NULL DEFAULT 1
+  - level: INTEGER NOT NULL DEFAULT 0
+  - created_at: TEXT NOT NULL DEFAULT ''
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_dashboard_roles_1: (role)
+Zeit-/Datumsbereiche:
+Verteilung role:
+  admin=1; mod=1; owner=1; streamer=1; supermod=1; user=1
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"role": "owner", "label": "Owner", "sort_order": "1", "is_system": "1", "level": "100", "created_at": ""}
+  - {"role": "admin", "label": "Admin", "sort_order": "10", "is_system": "1", "level": "90", "created_at": ""}
+
+====================================================================================================
+TABELLE: dashboard_sessions
+Modul/Nutzer: Dashboard Auth / Rollen / Audit
+Zweck: Aktive/alte Dashboard-Sessions, Token-Hashes, Ablaufzeiten.
+Zeilen: 4
+
+Spalten:
+  - id: INTEGER PK
+  - user_id: INTEGER NOT NULL
+  - token_hash: TEXT NOT NULL
+  - created_at: TEXT NOT NULL
+  - expires_at: TEXT NOT NULL
+  - last_seen_at: TEXT
+  - revoked_at: TEXT
+  - ip: TEXT
+  - user_agent: TEXT
+  - role: TEXT NOT NULL DEFAULT 'user'
+  - session_token: TEXT NOT NULL DEFAULT ''
+Foreign Keys:
+  - user_id -> dashboard_users.id ON UPDATE NO ACTION ON DELETE CASCADE
+Indizes/Constraints:
+  - idx_dashboard_sessions_user_id: (user_id)
+  - idx_dashboard_sessions_token_hash: (token_hash)
+  - UNIQUE sqlite_autoindex_dashboard_sessions_1: (token_hash)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-02T19:59:21.256Z bis 2026-05-02T20:52:07.191Z
+  - expires_at: 2026-05-03T08:49:46.999Z bis 2026-05-16T20:01:03.493Z
+  - last_seen_at: 2026-05-02T19:59:23.244Z bis 2026-05-03T07:24:02.831Z
+  - revoked_at: 2026-05-02T19:59:23.246Z bis 2026-05-02T20:16:23.422Z
+Verteilung role:
+  user=4
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "user_id": "1", "token_hash": "[REDACTED len=64]", "created_at": "2026-05-02T19:59:21.256Z", "expires_at": "2026-05-16T19:59:21.260Z", "last_seen_at": "2026-05-02T19:59:23.244Z", "revoked_at": "2026-05-02T19:59:23.246Z", "ip": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0", "role": "user", "session_token": "''"}
+  - {"id": "2", "user_id": "1", "token_hash": "[REDACTED len=64]", "created_at": "2026-05-02T20:01:03.490Z", "expires_at": "2026-05-16T20:01:03.493Z", "last_seen_at": "2026-05-02T20:16:23.419Z", "revoked_at": "2026-05-02T20:16:23.422Z", "ip": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0", "role": "user", "session_token": "''"}
+
+====================================================================================================
+TABELLE: dashboard_users
+Modul/Nutzer: Dashboard Auth / Rollen / Audit
+Zweck: Dashboard-Benutzerkonten.
+Zeilen: 2
+
+Spalten:
+  - id: INTEGER PK
+  - display_name: TEXT NOT NULL
+  - role: TEXT NOT NULL DEFAULT 'user'
+  - is_enabled: INTEGER NOT NULL DEFAULT 1
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+  - last_login_at: TEXT
+  - avatar_url: TEXT NOT NULL DEFAULT ''
+  - primary_role: TEXT NOT NULL DEFAULT 'user'
+  - is_active: INTEGER NOT NULL DEFAULT 1
+Foreign Keys: keine deklariert
+Indizes/Constraints: keine zusätzlichen
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-02T19:59:21.256Z bis 2026-05-02T20:33:57.152Z
+  - updated_at: 2026-05-02T20:01:03.490Z bis 2026-05-02T20:52:07.188Z
+  - last_login_at: 2026-05-02T20:01:03.490Z bis 2026-05-02T20:52:07.188Z
+Verteilung role:
+  owner=1; user=1
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "display_name": "Local Owner", "role": "owner", "is_enabled": "1", "created_at": "2026-05-02T19:59:21.256Z", "updated_at": "2026-05-02T20:01:03.490Z", "last_login_at": "2026-05-02T20:01:03.490Z", "avatar_url": "", "primary_role": "user", "is_active": "1"}
+  - {"id": "2", "display_name": "ForrestCGN", "role": "user", "is_enabled": "1", "created_at": "2026-05-02T20:33:57.152Z", "updated_at": "2026-05-02T20:52:07.188Z", "last_login_at": "2026-05-02T20:52:07.188Z", "avatar_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/bd8363e2-eacf-4805-831f-7a1bce3cc514-profile_image-300x300.png", "primary_role": "user", "is_active": "1"}
+
+====================================================================================================
+TABELLE: hug_pair_stats
+Modul/Nutzer: Hug/Rehug-System
+Zweck: Statistik pro Actor/Ziel-Paar.
+Zeilen: 193
+
+Spalten:
+  - from_user_id: TEXT PK NOT NULL
+  - to_user_id: TEXT PK NOT NULL
+  - given_count: INTEGER NOT NULL DEFAULT 0
+  - rehug_count: INTEGER NOT NULL DEFAULT 0
+  - last_hug_at: TEXT
+  - last_rehug_at: TEXT
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_hug_pair_stats_1: (from_user_id, to_user_id)
+Zeit-/Datumsbereiche:
+  - last_hug_at: 2026-04-07T12:43:27.732Z bis 2026-05-03T12:03:05.660Z
+  - last_rehug_at: 2026-04-07T12:43:41.921Z bis 2026-05-03T12:03:05.660Z
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"from_user_id": "416346187", "to_user_id": "101562664", "given_count": "1", "rehug_count": "0", "last_hug_at": "NULL", "last_rehug_at": "NULL"}
+  - {"from_user_id": "416346187", "to_user_id": "127709954", "given_count": "3", "rehug_count": "1", "last_hug_at": "2026-04-08T15:09:26.199Z", "last_rehug_at": "2026-04-07T12:43:41.921Z"}
+
+====================================================================================================
+TABELLE: hug_pending_rehugs
+Modul/Nutzer: Hug/Rehug-System
+Zweck: Temporäre Rehug-Fenster/Wartestatus; aktuell leer wenn keine Rehugs offen sind.
+Zeilen: 0
+
+Spalten:
+  - id: INTEGER PK
+  - target_user_id: TEXT NOT NULL
+  - from_user_id: TEXT NOT NULL
+  - type_id: INTEGER NOT NULL
+  - created_at: TEXT NOT NULL
+  - expires_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_hug_pending_expires: (expires_at)
+  - idx_hug_pending_target_from: (target_user_id, from_user_id)
+  - idx_hug_pending_target: (target_user_id)
+
+====================================================================================================
+TABELLE: hug_settings
+Modul/Nutzer: Hug/Rehug-System
+Zweck: Hug-System Einstellungen als JSON.
+Zeilen: 1
+
+Spalten:
+  - key: TEXT PK
+  - value_json: TEXT NOT NULL
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_hug_settings_1: (key)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-03T11:02:29.147Z bis 2026-05-03T11:02:29.147Z
+  - updated_at: 2026-05-03T11:17:08.705Z bis 2026-05-03T11:17:08.705Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - value_json: 1 geprüfte JSON-Werte; Keys: version, enabled, rehugWindowSeconds, topLimit, output
+    Beispiel sanitisiert: {"version": 1, "enabled": true, "rehugWindowSeconds": 300, "topLimit": 5, "output": {"mode": "central", "prefer": "bot", "fallbackToStreamer": true, "fallbackToStreamerbot": true, "returnChatMessage": true}}
+Verteilung key:
+  main=1
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"key": "main", "value_json": "{\"version\": 1, \"enabled\": true, \"rehugWindowSeconds\": 300, \"topLimit\": 5, \"output\": {\"mode\": \"central\", \"prefer\": \"bot\", \"fallbackToStreamer\": true, \"fallbackToStreamerbot\": true, \"returnChatMessage\": true}}", "created_at": "2026-05-03T11:02:29.147Z", "updated_at": "2026-05-03T11:17:08.705Z"}
+
+====================================================================================================
+TABELLE: hug_texts
+Modul/Nutzer: Hug/Rehug-System
+Zweck: Textbausteine für Hug/Rehug-Ausgaben.
+Zeilen: 107
+
+Spalten:
+  - id: INTEGER PK
+  - text_key: TEXT NOT NULL DEFAULT ''
+  - type_id: INTEGER
+  - kind: TEXT NOT NULL
+  - text: TEXT NOT NULL
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - weight: INTEGER NOT NULL DEFAULT 1
+  - sort_order: INTEGER NOT NULL DEFAULT 0
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_hug_texts_key: (text_key, kind, enabled)
+  - idx_hug_texts_kind_type: (kind, type_id, enabled, sort_order, id)
+  - UNIQUE sqlite_autoindex_hug_texts_1: (text_key, type_id, kind, text)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-03T11:02:29.147Z bis 2026-05-03T11:02:29.149Z
+  - updated_at: 2026-05-03T11:02:29.147Z bis 2026-05-03T11:02:29.149Z
+Verteilung enabled:
+  1=107
+Verteilung kind:
+  hug=30; rehug=30; response=24; hug_all=20; top_title=3
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "text_key": "hug_all", "type_id": "NULL", "kind": "hug_all", "text": "{from} verteilt einfach mal eine große Umarmung an den ganzen Chat 🤗", "enabled": "1", "weight": "1", "sort_order": "0", "created_at": "2026-05-03T11:02:29.147Z", "updated_at": "2026-05-03T11:02:29.147Z"}
+  - {"id": "2", "text_key": "hug_all", "type_id": "NULL", "kind": "hug_all", "text": "{from} drückt heute einmal den kompletten Chat an sich 💜", "enabled": "1", "weight": "1", "sort_order": "1", "created_at": "2026-05-03T11:02:29.147Z", "updated_at": "2026-05-03T11:02:29.147Z"}
+
+====================================================================================================
+TABELLE: hug_types
+Modul/Nutzer: Hug/Rehug-System
+Zweck: Hug-Kategorien/Stile inkl. Gewichtung und Sortierung.
+Zeilen: 30
+
+Spalten:
+  - id: INTEGER PK
+  - name: TEXT NOT NULL
+  - weight: INTEGER NOT NULL DEFAULT 1
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - sort_order: INTEGER NOT NULL DEFAULT 0
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_hug_types_enabled_sort: (enabled, sort_order, id)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-05-03T11:02:29.148Z bis 2026-05-03T11:02:29.149Z
+  - updated_at: 2026-05-03T11:02:29.148Z bis 2026-05-03T11:02:29.149Z
+Verteilung enabled:
+  1=30
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "name": "Rollator", "weight": "1", "enabled": "1", "sort_order": "0", "created_at": "2026-05-03T11:02:29.148Z", "updated_at": "2026-05-03T11:02:29.148Z"}
+  - {"id": "2", "name": "Premium", "weight": "1", "enabled": "1", "sort_order": "1", "created_at": "2026-05-03T11:02:29.148Z", "updated_at": "2026-05-03T11:02:29.148Z"}
+
+====================================================================================================
+TABELLE: hug_users
+Modul/Nutzer: Hug/Rehug-System
+Zweck: User-Statistik für Hug/Rehug: gegeben, erhalten, Rehug gegeben/erhalten.
+Zeilen: 59
+
+Spalten:
+  - user_id: TEXT PK
+  - login: TEXT NOT NULL
+  - display_name: TEXT NOT NULL
+  - enabled: INTEGER NOT NULL DEFAULT 1
+  - given_total: INTEGER NOT NULL DEFAULT 0
+  - received_total: INTEGER NOT NULL DEFAULT 0
+  - rehug_given_total: INTEGER NOT NULL DEFAULT 0
+  - rehug_received_total: INTEGER NOT NULL DEFAULT 0
+  - created_at: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_hug_users_display_name: (display_name)
+  - UNIQUE sqlite_autoindex_hug_users_2: (login)
+  - UNIQUE sqlite_autoindex_hug_users_1: (user_id)
+Zeit-/Datumsbereiche:
+  - created_at: 2026-04-07T08:28:03.670Z bis 2026-04-29T11:11:39.804Z
+  - updated_at: 2026-04-07T08:28:03.670Z bis 2026-05-03T12:03:05.660Z
+Verteilung enabled:
+  1=58; 0=1
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"user_id": "416346187", "login": "roxxyfoxxycgn", "display_name": "RoxxyFoxxyCGN", "enabled": "1", "given_total": "62", "received_total": "55", "rehug_given_total": "12", "rehug_received_total": "2", "created_at": "2026-04-07T08:28:03.670Z", "updated_at": "2026-05-02T13:56:10.935Z"}
+  - {"user_id": "1251938436", "login": "harley__28", "display_name": "harley__28", "enabled": "1", "given_total": "6", "received_total": "2", "rehug_given_total": "0", "rehug_received_total": "0", "created_at": "2026-04-07T08:28:03.670Z", "updated_at": "2026-04-08T15:38:16.316Z"}
+
+====================================================================================================
+TABELLE: schema_versions
+Modul/Nutzer: Zentrale Migration-/Schema-Verwaltung
+Zweck: Registry der ausgeführten DB-Migrationen/Schema-Versionen pro Modul.
+Zeilen: 12
+
+Spalten:
+  - module_name: TEXT PK
+  - version: INTEGER NOT NULL
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_schema_versions_1: (module_name)
+Zeit-/Datumsbereiche:
+  - updated_at: 2026-04-07T05:57:29.947Z bis 2026-05-03T12:07:27.482Z
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"module_name": "hug_system", "version": "1", "updated_at": "2026-04-07T05:57:29.947Z"}
+  - {"module_name": "tagebuch", "version": "5", "updated_at": "2026-04-29T09:19:45.903Z"}
+
+====================================================================================================
+TABELLE: sound_settings
+Modul/Nutzer: Sound-System Settings
+Zweck: Key-Value-JSON-Konfiguration für Sound-System: Queue, Ausgabe, Kategorien, Prioritäten usw.
+Zeilen: 7
+
+Spalten:
+  - key: TEXT PK
+  - value_json: TEXT NOT NULL
+  - updated_at: TEXT NOT NULL
+  - updated_by: TEXT NOT NULL DEFAULT ''
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_sound_settings_1: (key)
+Zeit-/Datumsbereiche:
+  - updated_at: 2026-05-02T18:45:53.995Z bis 2026-05-02T19:16:34.579Z
+JSON-Spalten / erkannte Top-Level-Keys:
+  - value_json: 7 geprüfte JSON-Werte; Keys: admin, system, alert_critical, alert, vip, fun, background, enabled, maxLength, dropWhenFull, defaultPriority, sortByPriority, allowParallel, maxParallel, parallelCategories, parallelSoundIds, alertSync, interruptRules, dropRules, cooldowns
+    Beispiel sanitisiert: {"enabled": true, "maxLength": 50, "dropWhenFull": true, "defaultPriority": 50, "sortByPriority": true, "allowParallel": true, "maxParallel": 3, "parallelCategories": ["system", "admin", "ui", "test"], "parallelSoundIds": [], "alertSync": {"enabled": true, "visualLeadMs": 150, "maxVisualLeadMs": 500, "description": "Normale Alerts werden nach Priorität einsortiert und erst angezeigt, wenn ihr Sound-Item startet. Sie unterbrechen laufe... [gekürzt]"}, "interruptRules": {"enabled": true, "minPriority": 100, "requireHigherPriority": true, "allowForce": true, "allowOverride": false}, "dropRules": ... [gekürzt]
+Verteilung key:
+  allowedExtensions=1; categoryDefaults=1; output=1; overlay=1; priorities=1; queue=1; soundsBaseDir=1
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"key": "queue", "value_json": "{\"enabled\": true, \"maxLength\": 50, \"dropWhenFull\": true, \"defaultPriority\": 50, \"sortByPriority\": true, \"allowParallel\": true, \"maxParallel\": 3, \"parallelCategories\": [\"system\", \"admin\", \"ui\", \"test\"], \"parallelSoundIds\": [], \"alertSync\": {\"enabled\": true, \"visualLeadMs\": 150, \"maxVisualLeadMs\": 500, \"description\": \"Normale Alerts werden nach Priorität einsortiert und erst angezeigt, wenn ihr Sound-Item startet. Sie unterbrechen laufe... [gekürzt]\"}, \"interruptRules\": {\"enabled\": true, \"minPriority\": 100, \"requireHigherPriority\": true, \"allowForce\": true, \"allowOverride\": false}, \"dropRules\": {\"enabled\": true, \"dropIfQueueFullBelowPriority\": 40, \"dropIfBusyBelowPriority\": 20}, \"cooldowns\": {", "updated_at": "2026-05-02T19:16:34.579Z", "updated_by": ""}
+  - {"key": "output", "value_json": "{\"targets\": {\"overlay\": {\"enabled\": false, \"label\": \"OBS Overlay\", \"mode\": \"browser_overlay\", \"overlayUrl\": \"/overlays/sound_system_overlay.html\", \"defaultVolume\": 85}, \"device\": {\"enabled\": true, \"label\": \"Audiogerät\", \"mode\": \"local_device\", \"selectedDeviceId\": \"{0.0.0.00000000}.{d2b8e581-1cae-48b9-9b2a-deb3d488b356}\", \"selectedDeviceName\": \"Voicemeeter AUX Input (VB-Audio Voicemeeter VAIO)\", \"defaultVolume\": 80, \"helper\": {\"enabled\": true, \"path\": \"tools/audio-device-helper/dist/AudioDeviceHelper.exe\", \"timeoutMs\": 8000, \"playbackMode\": \"auto\"}}}}", "updated_at": "2026-05-02T19:16:34.579Z", "updated_by": ""}
+
+====================================================================================================
+TABELLE: tagebuch_daily_user_stats
+Modul/Nutzer: Tagebuch V2
+Zweck: Tages-/Seitenspezifische Tagebuch-Statistik pro User.
+Zeilen: 2
+
+Spalten:
+  - page_date: TEXT PK NOT NULL
+  - page_number: INTEGER NOT NULL
+  - user_key: TEXT PK NOT NULL
+  - user_id: TEXT
+  - login: TEXT
+  - display_name: TEXT
+  - entry_count: INTEGER NOT NULL DEFAULT 0
+  - first_entry_at: TEXT
+  - last_entry_at: TEXT
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_tagebuch_daily_user_stats_page: (page_date, entry_count)
+  - UNIQUE sqlite_autoindex_tagebuch_daily_user_stats_1: (page_date, user_key)
+Zeit-/Datumsbereiche:
+  - page_date: 2026-04-29 bis 2026-05-01
+  - first_entry_at: 2026-04-29T09:20:36.441Z bis 2026-05-01T17:24:35.542Z
+  - last_entry_at: 2026-04-29T09:20:36.441Z bis 2026-05-01T17:24:35.542Z
+  - updated_at: 2026-04-29T09:20:36.441Z bis 2026-05-01T17:24:35.542Z
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"page_date": "2026-04-29", "page_number": "10", "user_key": "id:127709954", "user_id": "127709954", "login": "forrestcgn", "display_name": "ForrestCGN", "entry_count": "1", "first_entry_at": "2026-04-29T09:20:36.441Z", "last_entry_at": "2026-04-29T09:20:36.441Z", "updated_at": "2026-04-29T09:20:36.441Z"}
+  - {"page_date": "2026-05-01", "page_number": "11", "user_key": "id:129876170", "user_id": "129876170", "login": "tigerpranke01", "display_name": "Tigerpranke01", "entry_count": "1", "first_entry_at": "2026-05-01T17:24:35.542Z", "last_entry_at": "2026-05-01T17:24:35.542Z", "updated_at": "2026-05-01T17:24:35.542Z"}
+
+====================================================================================================
+TABELLE: tagebuch_runtime_events
+Modul/Nutzer: Tagebuch V2
+Zweck: Tagebuch-Ereignislog: page_created, stream_start, entry_posted usw.
+Zeilen: 13
+
+Spalten:
+  - id: INTEGER PK
+  - event_type: TEXT NOT NULL
+  - page_number: INTEGER
+  - page_date: TEXT
+  - actor_login: TEXT
+  - actor_display: TEXT
+  - system: INTEGER NOT NULL DEFAULT 0
+  - created_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints: keine zusätzlichen
+Zeit-/Datumsbereiche:
+  - page_date: 2026-04-29 bis 2026-05-01
+  - created_at: 2026-04-29T08:53:33.365Z bis 2026-05-01T17:54:55.776Z
+Verteilung event_type:
+  stream_end=4; stream_start=4; entry_posted=3; page_created=2
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "event_type": "page_created", "page_number": "10", "page_date": "2026-04-29", "actor_login": "NULL", "actor_display": "NULL", "system": "0", "created_at": "2026-04-29T08:53:33.365Z"}
+  - {"id": "2", "event_type": "stream_start", "page_number": "10", "page_date": "2026-04-29", "actor_login": "NULL", "actor_display": "NULL", "system": "0", "created_at": "2026-04-29T08:53:33.368Z"}
+
+====================================================================================================
+TABELLE: tagebuch_state
+Modul/Nutzer: Tagebuch V2
+Zweck: Aktueller Laufzeitstand des Tagebuchs: aktuelle Seite, Datum, Stream aktiv, letzte Start/Ende-Zeit.
+Zeilen: 1
+
+Spalten:
+  - id: INTEGER PK
+  - current_page_number: INTEGER NOT NULL DEFAULT 0
+  - current_page_date: TEXT
+  - last_stream_started_at: TEXT
+  - last_stream_ended_at: TEXT
+  - active_stream: INTEGER NOT NULL DEFAULT 0
+  - has_entries_for_current_date: INTEGER NOT NULL DEFAULT 0
+  - end_notice_posted_for_current_date: INTEGER NOT NULL DEFAULT 0
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints: keine zusätzlichen
+Zeit-/Datumsbereiche:
+  - last_stream_started_at: 2026-05-01T17:54:47.212Z bis 2026-05-01T17:54:47.212Z
+  - last_stream_ended_at: 2026-05-01T17:54:55.773Z bis 2026-05-01T17:54:55.773Z
+  - updated_at: 2026-05-01T17:54:55.773Z bis 2026-05-01T17:54:55.773Z
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"id": "1", "current_page_number": "11", "current_page_date": "2026-05-01", "last_stream_started_at": "2026-05-01T17:54:47.212Z", "last_stream_ended_at": "2026-05-01T17:54:55.773Z", "active_stream": "0", "has_entries_for_current_date": "1", "end_notice_posted_for_current_date": "0", "updated_at": "2026-05-01T17:54:55.773Z"}
+
+====================================================================================================
+TABELLE: tagebuch_user_stats
+Modul/Nutzer: Tagebuch V2
+Zweck: Gesamtstatistik Tagebuch-Einträge pro User.
+Zeilen: 2
+
+Spalten:
+  - user_key: TEXT PK
+  - user_id: TEXT
+  - login: TEXT
+  - display_name: TEXT
+  - entry_count: INTEGER NOT NULL DEFAULT 0
+  - first_entry_at: TEXT
+  - last_entry_at: TEXT
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - idx_tagebuch_user_stats_entry_count: (entry_count, last_entry_at)
+  - UNIQUE sqlite_autoindex_tagebuch_user_stats_1: (user_key)
+Zeit-/Datumsbereiche:
+  - first_entry_at: 2026-04-29T09:20:36.441Z bis 2026-05-01T17:24:35.542Z
+  - last_entry_at: 2026-04-29T09:20:36.441Z bis 2026-05-01T17:24:35.542Z
+  - updated_at: 2026-04-29T09:20:36.441Z bis 2026-05-01T17:24:35.542Z
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"user_key": "id:127709954", "user_id": "127709954", "login": "forrestcgn", "display_name": "ForrestCGN", "entry_count": "1", "first_entry_at": "2026-04-29T09:20:36.441Z", "last_entry_at": "2026-04-29T09:20:36.441Z", "updated_at": "2026-04-29T09:20:36.441Z"}
+  - {"user_key": "id:129876170", "user_id": "129876170", "login": "tigerpranke01", "display_name": "Tigerpranke01", "entry_count": "1", "first_entry_at": "2026-05-01T17:24:35.542Z", "last_entry_at": "2026-05-01T17:24:35.542Z", "updated_at": "2026-05-01T17:24:35.542Z"}
+
+====================================================================================================
+TABELLE: todo_daily_stats
+Modul/Nutzer: ToDo V2
+Zweck: Tagesstatistik ToDo-Einträge pro Autor/Ziel.
+Zeilen: 2
+
+Spalten:
+  - stat_date: TEXT PK NOT NULL
+  - user_key: TEXT PK NOT NULL
+  - target_key: TEXT PK NOT NULL
+  - author_login: TEXT
+  - author_display_name: TEXT
+  - target_label: TEXT NOT NULL
+  - entry_count: INTEGER NOT NULL DEFAULT 0
+  - first_entry_at: TEXT
+  - last_entry_at: TEXT
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_todo_daily_stats_1: (stat_date, user_key, target_key)
+Zeit-/Datumsbereiche:
+  - stat_date: 2026-04-29 bis 2026-04-29
+  - first_entry_at: 2026-04-29T10:27:53.522Z bis 2026-04-29T10:31:37.861Z
+  - last_entry_at: 2026-04-29T10:36:54.880Z bis 2026-04-29T10:37:03.662Z
+  - updated_at: 2026-04-29T10:36:54.880Z bis 2026-04-29T10:37:03.662Z
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"stat_date": "2026-04-29", "user_key": "forrestcgn", "target_key": "forrest", "author_login": "forrestcgn", "author_display_name": "ForrestCGN", "target_label": "Forrest", "entry_count": "3", "first_entry_at": "2026-04-29T10:27:53.522Z", "last_entry_at": "2026-04-29T10:36:54.880Z", "updated_at": "2026-04-29T10:36:54.880Z"}
+  - {"stat_date": "2026-04-29", "user_key": "forrestcgn", "target_key": "engel", "author_login": "forrestcgn", "author_display_name": "ForrestCGN", "target_label": "Engel", "entry_count": "3", "first_entry_at": "2026-04-29T10:31:37.861Z", "last_entry_at": "2026-04-29T10:37:03.662Z", "updated_at": "2026-04-29T10:37:03.662Z"}
+
+====================================================================================================
+TABELLE: todo_user_stats
+Modul/Nutzer: ToDo V2
+Zweck: Gesamtstatistik ToDo-Einträge pro Autor/Ziel.
+Zeilen: 2
+
+Spalten:
+  - user_key: TEXT PK NOT NULL
+  - target_key: TEXT PK NOT NULL
+  - author_login: TEXT
+  - author_display_name: TEXT
+  - target_label: TEXT NOT NULL
+  - entry_count: INTEGER NOT NULL DEFAULT 0
+  - first_entry_at: TEXT
+  - last_entry_at: TEXT
+  - updated_at: TEXT NOT NULL
+Foreign Keys: keine deklariert
+Indizes/Constraints:
+  - UNIQUE sqlite_autoindex_todo_user_stats_1: (user_key, target_key)
+Zeit-/Datumsbereiche:
+  - first_entry_at: 2026-04-29T10:27:53.522Z bis 2026-04-29T10:31:37.861Z
+  - last_entry_at: 2026-04-29T10:36:54.880Z bis 2026-04-29T10:37:03.662Z
+  - updated_at: 2026-04-29T10:36:54.880Z bis 2026-04-29T10:37:03.662Z
+Beispielzeilen (max. 2, sensible Werte redigiert/gekürzt):
+  - {"user_key": "forrestcgn", "target_key": "forrest", "author_login": "forrestcgn", "author_display_name": "ForrestCGN", "target_label": "Forrest", "entry_count": "3", "first_entry_at": "2026-04-29T10:27:53.522Z", "last_entry_at": "2026-04-29T10:36:54.880Z", "updated_at": "2026-04-29T10:36:54.880Z"}
+  - {"user_key": "forrestcgn", "target_key": "engel", "author_login": "forrestcgn", "author_display_name": "ForrestCGN", "target_label": "Engel", "entry_count": "3", "first_entry_at": "2026-04-29T10:31:37.861Z", "last_entry_at": "2026-04-29T10:37:03.662Z", "updated_at": "2026-04-29T10:37:03.662Z"}
+
+====================================================================================================
+BEZIEHUNGEN / WICHTIGE DATENFLÜSSE
+
+Alert-System
+- alert_types definiert, welche Alert-Typen überhaupt existieren: z.B. twitch/follow, twitch/bits, kofi/donation, tipeee/donation.
+- alert_rules hängt logisch an source + type_key und optional an Schwellenwerten min_value/max_value. Regeln referenzieren Sound-Assets, Display-Profile, Textvarianten und Chat-Blöcke meist über IDs.
+- alert_assets enthält hochgeladene Dateien. public_url zeigt auf /assets/..., file_path auf htdocs/assets/...; duration_ms/probe_json kommen von ffprobe.
+- alert_display_profiles enthält die visuelle Darstellung. alert_events speichert zusätzlich display_settings_json als Snapshot, damit ein bereits erzeugter Alert nicht zwingend nachträglich sein Aussehen ändert.
+- alert_events ist Queue + History. status zeigt den Stand. final_* Felder enthalten die fertig gerenderten Texte/Werte.
+- alert_provider_events ist vorgeschaltetes Provider-Log für Ko-fi/Tipeee und enthält raw_json. Diese Tabelle ist wichtig für Deduplizierung und Debugging, kann aber sensible Rohdaten enthalten.
+- alert_settings enthält Provider-Konfigurationen. In der DB liegen erkennbare Secret-/Token-/API-Key-Felder; diese sollten langfristig eher in Secrets/.env oder verschlüsselt liegen, nicht offen in SQLite.
+
+Sound-System
+- sound_settings ist eine Key-Value-Konfiguration. Aktuell liegen Queue-/Output-/Overlay-/Kategorie-/Prioritätsregeln als JSON in value_json.
+- Alert-System livealert verweist in alert_settings auf /api/sound/play und koppelt Alert-Anzeige mit Sound-Start.
+
+Dashboard/Auth/Audit
+- dashboard_users ist der interne Benutzerstamm.
+- dashboard_identities verknüpft externe Provider-Identitäten wie Twitch mit dashboard_users.
+- dashboard_sessions speichert Sessions über token_hash, nicht Klartext-Token.
+- dashboard_roles und dashboard_permissions bilden Rollen/Rechte ab. owner hat Wildcard *.
+- dashboard_audit_log speichert Aktionen. Das passt zu deinem Ziel, später nachvollziehen zu können, welcher User was gemacht hat.
+
+Hug/Rehug
+- hug_users speichert pro User Gesamtzähler.
+- hug_pair_stats speichert Paarstatistik Actor -> Target.
+- hug_texts und hug_types bilden editierbare Text-/Typ-Basis für zufällige Hug-Ausgaben.
+- hug_pending_rehugs ist die temporäre Tabelle für offene Rehug-Fenster; aktuell leer.
+- hug_settings hält globale Optionen wie enabled und rehugWindowSeconds.
+
+Tagebuch
+- tagebuch_state ist der aktuelle Runtime-State: aktuelle Seite, Datum, Stream aktiv/inaktiv.
+- tagebuch_runtime_events ist ein Ereignislog, keine vollständige Inhaltsspeicherung.
+- tagebuch_user_stats und tagebuch_daily_user_stats speichern aggregierte Entry-Zähler. Die eigentlichen Tagebuchtexte liegen in dieser Datenbank nicht als eigene Tabelle vor.
+
+ToDo
+- todo_user_stats und todo_daily_stats speichern nur Statistik nach Autor/Ziel. Die eigentlichen ToDo-Inhalte sind in dieser DB nicht als Einzeltabelle sichtbar.
+
+Challenge
+- challenge_runtime_events enthält Laufzeitereignisse.
+- challenge_user_mode_stats aggregiert User-/Mode-Statistiken.
+
+====================================================================================================
+AUFFÄLLIGKEITEN / PRÜFPUNKTE
+
+- Keine Views vorhanden: True.
+- Keine Trigger vorhanden: True.
+- Leere Tabellen: hug_pending_rehugs
+- alert_events.rule_id ohne passende alert_rules.id: 0
+- alert_rules.sound_asset_id ohne passende alert_assets.id: 0
+- alert_rules.display_profile_id ohne passende alert_display_profiles.id: 0
+- alert_display_profiles mit is_default=1: 1 -> 3:testfollow
+- alert_settings enthält Schlüssel/Werte mit Secret/Token/API-Key-Hinweisen: provider_kofi_webhook, provider_tipeee_socket
+
+Konkrete Bewertung
+- Die DB ist strukturell sauber lesbar; integrity_check ist ok und foreign_key_check meldet keine Fehler.
+- Es gibt nur wenige echte Foreign Keys. Vieles ist logisch per IDs/JSON gekoppelt. Für spätere Module heißt das: Beim Löschen/Umbenennen im Dashboard muss der Code Referenzen sauber prüfen, weil SQLite das nicht überall erzwingt.
+- Viele Einstellungen liegen als JSON in Key-Value-Tabellen. Das ist flexibel und passt zu deinem Dashboard-Ziel, ist aber weniger gut für Suche/Filter/Validierung. Für stark strukturierte Bereiche wie Alert-Regeln ist die aktuelle Mischung aus Tabellen + JSON sinnvoll.
+- Provider-Rohdaten können sensible Daten enthalten. Für produktiven Betrieb sollten raw_json-Retention, Redaction und/oder Verschlüsselung fest eingeplant werden.
+- Für neue Module sollte immer schema_versions genutzt werden, Migrationen idempotent per CREATE TABLE IF NOT EXISTS / ALTER TABLE defensiv, ohne bestehende Daten zu überschreiben.
+
+====================================================================================================
+EMPFOHLENER STANDARD FÜR NEUE MODULE
+
+1. Modul-Schema
+- Eigene Tabellen mit eindeutigem Prefix, z.B. hug_*, alert_*, sound_*.
+- Eine Settings-Tabelle nur dann, wenn das Modul viele flexible JSON-Einstellungen braucht. Sonst lieber konkrete Spalten.
+- schema_versions pro Modul setzen/prüfen.
+- created_at und updated_at konsequent als ISO-Text speichern.
+- enabled als INTEGER 0/1 nutzen, wenn Einträge aktiv/inaktiv schaltbar sind.
+- Für User immer mindestens login + display_name speichern; wenn möglich user_id als stabilen Schlüssel nutzen.
+
+2. Config/JSON
+- JSON-Spalten nur für flexible Layouts/Provider-Payloads/verschachtelte Optionen verwenden.
+- Keine Secrets im Klartext in value_json speichern. Mindestens redigieren, besser aus .env/secrets lesen und in DB nur Status/Referenz speichern.
+- Bei JSON immer Default-Werte im Code mergen, damit alte Datensätze nach Updates nicht kaputt gehen.
+
+3. Dashboard
+- Änderungen an Tabellen/Settings immer in dashboard_audit_log schreiben.
+- Rollen/Rechte über dashboard_permissions prüfen, nicht im Frontend vertrauen.
+- Löschfunktionen bei verknüpften Daten mit Referenzprüfung bauen, weil viele Beziehungen logisch statt per FK laufen.
+
+4. Datenbankzugriff
+- Bestehende DB D:\Streaming\stramAssets\data\sqlite\app.sqlite erweitern, niemals ersetzen.
+- Migrationen sanft und rückwärtskompatibel schreiben.
+- Für Statistik/History separate Tabellen verwenden; keine History in Config-JSON verstecken.
+- Für große Rohdaten/Events Retention einplanen, sonst wächst app.sqlite unnötig.
+
+====================================================================================================
+CREATE-SCHEMA / SQL-DEFINITIONEN
+
+-- index: idx_alert_chat_blocks_lookup (alert_chat_blocks)
+CREATE INDEX idx_alert_chat_blocks_lookup ON alert_chat_blocks(source, type_key, enabled, sort_order);
+
+-- index: idx_alert_display_profiles_default (alert_display_profiles)
+CREATE INDEX idx_alert_display_profiles_default ON alert_display_profiles(enabled, is_default, sort_order);
+
+-- index: idx_alert_events_created (alert_events)
+CREATE INDEX idx_alert_events_created ON alert_events(created_at DESC);
+
+-- index: idx_alert_provider_events_created (alert_provider_events)
+CREATE INDEX idx_alert_provider_events_created ON alert_provider_events(created_at DESC);
+
+-- index: idx_alert_rules_lookup (alert_rules)
+CREATE INDEX idx_alert_rules_lookup ON alert_rules(source, type_key, enabled, min_value, max_value, priority);
+
+-- index: idx_alert_test_presets_lookup (alert_test_presets)
+CREATE INDEX idx_alert_test_presets_lookup ON alert_test_presets(source, type_key, enabled, sort_order);
+
+-- index: idx_alert_text_variants_lookup (alert_text_variants)
+CREATE INDEX idx_alert_text_variants_lookup ON alert_text_variants(source, type_key, rule_id, enabled, sort_order);
+
+-- index: idx_dashboard_audit_created_at (dashboard_audit_log)
+CREATE INDEX idx_dashboard_audit_created_at ON dashboard_audit_log(created_at);
+
+-- index: idx_dashboard_identities_user_id (dashboard_identities)
+CREATE INDEX idx_dashboard_identities_user_id ON dashboard_identities(user_id);
+
+-- index: idx_dashboard_sessions_token_hash (dashboard_sessions)
+CREATE INDEX idx_dashboard_sessions_token_hash ON dashboard_sessions(token_hash);
+
+-- index: idx_dashboard_sessions_user_id (dashboard_sessions)
+CREATE INDEX idx_dashboard_sessions_user_id ON dashboard_sessions(user_id);
+
+-- index: idx_hug_pending_expires (hug_pending_rehugs)
+CREATE INDEX idx_hug_pending_expires
+          ON hug_pending_rehugs(expires_at);
+
+-- index: idx_hug_pending_target (hug_pending_rehugs)
+CREATE INDEX idx_hug_pending_target
+          ON hug_pending_rehugs(target_user_id);
+
+-- index: idx_hug_pending_target_from (hug_pending_rehugs)
+CREATE INDEX idx_hug_pending_target_from
+          ON hug_pending_rehugs(target_user_id, from_user_id);
+
+-- index: idx_hug_texts_key (hug_texts)
+CREATE INDEX idx_hug_texts_key
+          ON hug_texts(text_key, kind, enabled);
+
+-- index: idx_hug_texts_kind_type (hug_texts)
+CREATE INDEX idx_hug_texts_kind_type
+          ON hug_texts(kind, type_id, enabled, sort_order, id);
+
+-- index: idx_hug_types_enabled_sort (hug_types)
+CREATE INDEX idx_hug_types_enabled_sort
+          ON hug_types(enabled, sort_order, id);
+
+-- index: idx_hug_users_display_name (hug_users)
+CREATE INDEX idx_hug_users_display_name
+          ON hug_users(display_name);
+
+-- index: idx_tagebuch_daily_user_stats_page (tagebuch_daily_user_stats)
+CREATE INDEX idx_tagebuch_daily_user_stats_page
+          ON tagebuch_daily_user_stats(page_date DESC, entry_count DESC);
+
+-- index: idx_tagebuch_user_stats_entry_count (tagebuch_user_stats)
+CREATE INDEX idx_tagebuch_user_stats_entry_count
+          ON tagebuch_user_stats(entry_count DESC, last_entry_at DESC);
+
+-- table: alert_assets (alert_assets)
+CREATE TABLE alert_assets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_type TEXT NOT NULL,
+        label TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        public_url TEXT NOT NULL,
+        mime_type TEXT NOT NULL DEFAULT '',
+        size_bytes INTEGER NOT NULL DEFAULT 0,
+        original_name TEXT NOT NULL DEFAULT '',
+        enabled INTEGER NOT NULL DEFAULT 1,
+        meta_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      , duration_ms INTEGER NOT NULL DEFAULT 0, probe_json TEXT NOT NULL DEFAULT '{}');
+
+-- table: alert_chat_blocks (alert_chat_blocks)
+CREATE TABLE alert_chat_blocks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source TEXT NOT NULL DEFAULT 'twitch',
+      type_key TEXT NOT NULL,
+      label TEXT NOT NULL DEFAULT '',
+      texts_json TEXT NOT NULL DEFAULT '[]',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 100,
+      meta_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+-- table: alert_display_profiles (alert_display_profiles)
+CREATE TABLE alert_display_profiles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        is_default INTEGER NOT NULL DEFAULT 0,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        settings_json TEXT NOT NULL DEFAULT '{}',
+        sort_order INTEGER NOT NULL DEFAULT 100,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+-- table: alert_events (alert_events)
+CREATE TABLE alert_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_uid TEXT NOT NULL UNIQUE,
+        source TEXT NOT NULL,
+        type_key TEXT NOT NULL,
+        user_login TEXT NOT NULL DEFAULT '',
+        user_display TEXT NOT NULL DEFAULT '',
+        amount REAL NOT NULL DEFAULT 0,
+        message TEXT NOT NULL DEFAULT '',
+        rule_id INTEGER,
+        status TEXT NOT NULL DEFAULT 'queued',
+        payload_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        started_at TEXT,
+        finished_at TEXT, final_title TEXT NOT NULL DEFAULT '', final_headline TEXT NOT NULL DEFAULT '', final_value TEXT NOT NULL DEFAULT '', final_subline TEXT NOT NULL DEFAULT '', final_message TEXT NOT NULL DEFAULT '', text_variant_id INTEGER, provider_logo_url TEXT NOT NULL DEFAULT '', display_profile_id INTEGER, display_settings_json TEXT NOT NULL DEFAULT '{}', final_chat_message TEXT NOT NULL DEFAULT '',
+        FOREIGN KEY(rule_id) REFERENCES alert_rules(id) ON DELETE SET NULL
+      );
+
+-- table: alert_provider_events (alert_provider_events)
+CREATE TABLE alert_provider_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL,
+        provider_event_id TEXT NOT NULL,
+        source TEXT NOT NULL,
+        type_key TEXT NOT NULL,
+        user_display TEXT NOT NULL DEFAULT '',
+        amount REAL NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'received',
+        forwarded_event_uid TEXT NOT NULL DEFAULT '',
+        raw_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        forwarded_at TEXT,
+        UNIQUE(provider, provider_event_id)
+      );
+
+-- table: alert_rules (alert_rules)
+CREATE TABLE alert_rules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL DEFAULT 'twitch',
+        type_key TEXT NOT NULL,
+        label TEXT NOT NULL,
+        min_value REAL,
+        max_value REAL,
+        tier TEXT NOT NULL DEFAULT 'normal',
+        priority INTEGER NOT NULL DEFAULT 100,
+        duration_ms INTEGER NOT NULL DEFAULT 7000,
+        animation TEXT NOT NULL DEFAULT 'neon_card',
+        image_mode TEXT NOT NULL DEFAULT 'none',
+        sound_asset_id INTEGER,
+        image_asset_id INTEGER,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        meta_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL, duration_mode TEXT NOT NULL DEFAULT 'fixed', tts_enabled INTEGER NOT NULL DEFAULT 0, tts_timing TEXT NOT NULL DEFAULT 'after_alert', tts_mode TEXT NOT NULL DEFAULT 'audio_only', tts_template TEXT NOT NULL DEFAULT '{user} schreibt: {message}', tts_max_chars INTEGER NOT NULL DEFAULT 250, tts_min_amount REAL, display_profile_id INTEGER,
+        FOREIGN KEY(sound_asset_id) REFERENCES alert_assets(id) ON DELETE SET NULL,
+        FOREIGN KEY(image_asset_id) REFERENCES alert_assets(id) ON DELETE SET NULL
+      );
+
+-- table: alert_settings (alert_settings)
+CREATE TABLE alert_settings (
+        key TEXT PRIMARY KEY,
+        value_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+-- table: alert_test_presets (alert_test_presets)
+CREATE TABLE alert_test_presets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL DEFAULT 'twitch',
+        type_key TEXT NOT NULL,
+        rule_id INTEGER,
+        label TEXT NOT NULL,
+        payload_json TEXT NOT NULL DEFAULT '{}',
+        enabled INTEGER NOT NULL DEFAULT 1,
+        sort_order INTEGER NOT NULL DEFAULT 100,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY(rule_id) REFERENCES alert_rules(id) ON DELETE SET NULL
+      );
+
+-- table: alert_text_variants (alert_text_variants)
+CREATE TABLE alert_text_variants (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL DEFAULT 'twitch',
+        type_key TEXT NOT NULL,
+        rule_id INTEGER,
+        label TEXT NOT NULL DEFAULT '',
+        title_template TEXT NOT NULL DEFAULT '',
+        headline_template TEXT NOT NULL DEFAULT '',
+        value_template TEXT NOT NULL DEFAULT '',
+        subline_template TEXT NOT NULL DEFAULT '',
+        message_template TEXT NOT NULL DEFAULT '',
+        message_mode TEXT NOT NULL DEFAULT 'auto',
+        hide_subline_when_message_exists INTEGER NOT NULL DEFAULT 1,
+        pick_weight INTEGER NOT NULL DEFAULT 100,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        sort_order INTEGER NOT NULL DEFAULT 100,
+        meta_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY(rule_id) REFERENCES alert_rules(id) ON DELETE CASCADE
+      );
+
+-- table: alert_types (alert_types)
+CREATE TABLE alert_types (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL DEFAULT 'twitch',
+        type_key TEXT NOT NULL,
+        label TEXT NOT NULL,
+        value_kind TEXT NOT NULL DEFAULT 'amount',
+        enabled INTEGER NOT NULL DEFAULT 1,
+        sort_order INTEGER NOT NULL DEFAULT 100,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(source, type_key)
+      );
+
+-- table: challenge_runtime_events (challenge_runtime_events)
+CREATE TABLE challenge_runtime_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        challenge_id TEXT,
+        mode TEXT,
+        label TEXT,
+        user_key TEXT,
+        user_display TEXT,
+        duration_seconds INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      );
+
+-- table: challenge_user_mode_stats (challenge_user_mode_stats)
+CREATE TABLE challenge_user_mode_stats (
+        user_key TEXT NOT NULL,
+        user_display TEXT NOT NULL,
+        mode TEXT NOT NULL,
+        label TEXT NOT NULL,
+        requested_count INTEGER NOT NULL DEFAULT 0,
+        queued_count INTEGER NOT NULL DEFAULT 0,
+        started_count INTEGER NOT NULL DEFAULT 0,
+        finished_count INTEGER NOT NULL DEFAULT 0,
+        total_duration_seconds INTEGER NOT NULL DEFAULT 0,
+        first_requested_at TEXT,
+        last_requested_at TEXT,
+        last_started_at TEXT,
+        last_finished_at TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (user_key, mode)
+      );
+
+-- table: dashboard_audit_log (dashboard_audit_log)
+CREATE TABLE dashboard_audit_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          actor_user_id INTEGER,
+          actor_display_name TEXT,
+          action TEXT NOT NULL,
+          target_type TEXT,
+          target_id TEXT,
+          details_json TEXT,
+          ip TEXT,
+          user_agent TEXT,
+          created_at TEXT NOT NULL
+        );
+
+-- table: dashboard_identities (dashboard_identities)
+CREATE TABLE dashboard_identities (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          provider TEXT NOT NULL,
+          provider_user_id TEXT NOT NULL,
+          provider_login TEXT,
+          provider_email TEXT,
+          provider_display_name TEXT,
+          avatar_url TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          last_login_at TEXT, raw_json TEXT NOT NULL DEFAULT '{}',
+          UNIQUE(provider, provider_user_id),
+          FOREIGN KEY(user_id) REFERENCES dashboard_users(id) ON DELETE CASCADE
+        );
+
+-- table: dashboard_permissions (dashboard_permissions)
+CREATE TABLE dashboard_permissions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          role TEXT NOT NULL,
+          permission TEXT NOT NULL,
+          created_at TEXT NOT NULL, label TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '',
+          UNIQUE(role, permission),
+          FOREIGN KEY(role) REFERENCES dashboard_roles(role) ON DELETE CASCADE
+        );
+
+-- table: dashboard_roles (dashboard_roles)
+CREATE TABLE dashboard_roles (
+          role TEXT PRIMARY KEY,
+          label TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 100,
+          is_system INTEGER NOT NULL DEFAULT 1
+        , level INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT '');
+
+-- table: dashboard_sessions (dashboard_sessions)
+CREATE TABLE dashboard_sessions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          token_hash TEXT NOT NULL UNIQUE,
+          created_at TEXT NOT NULL,
+          expires_at TEXT NOT NULL,
+          last_seen_at TEXT,
+          revoked_at TEXT,
+          ip TEXT,
+          user_agent TEXT, role TEXT NOT NULL DEFAULT 'user', session_token TEXT NOT NULL DEFAULT '',
+          FOREIGN KEY(user_id) REFERENCES dashboard_users(id) ON DELETE CASCADE
+        );
+
+-- table: dashboard_users (dashboard_users)
+CREATE TABLE dashboard_users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          display_name TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'user',
+          is_enabled INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          last_login_at TEXT
+        , avatar_url TEXT NOT NULL DEFAULT '', primary_role TEXT NOT NULL DEFAULT 'user', is_active INTEGER NOT NULL DEFAULT 1);
+
+-- table: hug_pair_stats (hug_pair_stats)
+CREATE TABLE hug_pair_stats (
+          from_user_id TEXT NOT NULL,
+          to_user_id TEXT NOT NULL,
+          given_count INTEGER NOT NULL DEFAULT 0,
+          rehug_count INTEGER NOT NULL DEFAULT 0,
+          last_hug_at TEXT NULL,
+          last_rehug_at TEXT NULL,
+          PRIMARY KEY (from_user_id, to_user_id)
+        );
+
+-- table: hug_pending_rehugs (hug_pending_rehugs)
+CREATE TABLE hug_pending_rehugs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          target_user_id TEXT NOT NULL,
+          from_user_id TEXT NOT NULL,
+          type_id INTEGER NOT NULL,
+          created_at TEXT NOT NULL,
+          expires_at TEXT NOT NULL
+        );
+
+-- table: hug_settings (hug_settings)
+CREATE TABLE hug_settings (
+          key TEXT PRIMARY KEY,
+          value_json TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+
+-- table: hug_texts (hug_texts)
+CREATE TABLE hug_texts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          text_key TEXT NOT NULL DEFAULT '',
+          type_id INTEGER NULL,
+          kind TEXT NOT NULL,
+          text TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          weight INTEGER NOT NULL DEFAULT 1,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          UNIQUE(text_key, type_id, kind, text)
+        );
+
+-- table: hug_types (hug_types)
+CREATE TABLE hug_types (
+          id INTEGER PRIMARY KEY,
+          name TEXT NOT NULL,
+          weight INTEGER NOT NULL DEFAULT 1,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+
+-- table: hug_users (hug_users)
+CREATE TABLE hug_users (
+          user_id TEXT PRIMARY KEY,
+          login TEXT NOT NULL UNIQUE,
+          display_name TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          given_total INTEGER NOT NULL DEFAULT 0,
+          received_total INTEGER NOT NULL DEFAULT 0,
+          rehug_given_total INTEGER NOT NULL DEFAULT 0,
+          rehug_received_total INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+
+-- table: schema_versions (schema_versions)
+CREATE TABLE schema_versions (
+      module_name TEXT PRIMARY KEY,
+      version INTEGER NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+-- table: sound_settings (sound_settings)
+CREATE TABLE sound_settings (
+            key TEXT PRIMARY KEY,
+            value_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            updated_by TEXT NOT NULL DEFAULT ''
+          );
+
+-- table: tagebuch_daily_user_stats (tagebuch_daily_user_stats)
+CREATE TABLE tagebuch_daily_user_stats (
+          page_date TEXT NOT NULL,
+          page_number INTEGER NOT NULL,
+          user_key TEXT NOT NULL,
+          user_id TEXT,
+          login TEXT,
+          display_name TEXT,
+          entry_count INTEGER NOT NULL DEFAULT 0,
+          first_entry_at TEXT,
+          last_entry_at TEXT,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (page_date, user_key)
+        );
+
+-- table: tagebuch_runtime_events (tagebuch_runtime_events)
+CREATE TABLE tagebuch_runtime_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          event_type TEXT NOT NULL,
+          page_number INTEGER,
+          page_date TEXT,
+          actor_login TEXT,
+          actor_display TEXT,
+          system INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL
+        );
+
+-- table: tagebuch_state (tagebuch_state)
+CREATE TABLE "tagebuch_state" (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            current_page_number INTEGER NOT NULL DEFAULT 0,
+            current_page_date TEXT,
+            last_stream_started_at TEXT,
+            last_stream_ended_at TEXT,
+            active_stream INTEGER NOT NULL DEFAULT 0,
+            has_entries_for_current_date INTEGER NOT NULL DEFAULT 0,
+            end_notice_posted_for_current_date INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL
+          );
+
+-- table: tagebuch_user_stats (tagebuch_user_stats)
+CREATE TABLE tagebuch_user_stats (
+          user_key TEXT PRIMARY KEY,
+          user_id TEXT,
+          login TEXT,
+          display_name TEXT,
+          entry_count INTEGER NOT NULL DEFAULT 0,
+          first_entry_at TEXT,
+          last_entry_at TEXT,
+          updated_at TEXT NOT NULL
+        );
+
+-- table: todo_daily_stats (todo_daily_stats)
+CREATE TABLE todo_daily_stats (
+          stat_date TEXT NOT NULL,
+          user_key TEXT NOT NULL,
+          target_key TEXT NOT NULL,
+          author_login TEXT,
+          author_display_name TEXT,
+          target_label TEXT NOT NULL,
+          entry_count INTEGER NOT NULL DEFAULT 0,
+          first_entry_at TEXT,
+          last_entry_at TEXT,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (stat_date, user_key, target_key)
+        );
+
+-- table: todo_user_stats (todo_user_stats)
+CREATE TABLE todo_user_stats (
+          user_key TEXT NOT NULL,
+          target_key TEXT NOT NULL,
+          author_login TEXT,
+          author_display_name TEXT,
+          target_label TEXT NOT NULL,
+          entry_count INTEGER NOT NULL DEFAULT 0,
+          first_entry_at TEXT,
+          last_entry_at TEXT,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (user_key, target_key)
+        );

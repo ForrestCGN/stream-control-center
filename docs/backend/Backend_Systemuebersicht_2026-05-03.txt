@@ -1,0 +1,1244 @@
+FORRESTCGN BACKEND - SYSTEMUEBERSICHT
+Stand der Analyse: 2026-05-03
+Quelle: hochgeladenes Archiv backend.tgz
+Analysierter Ordner im Sandbox-System: /mnt/data/backend_extract
+
+WICHTIGER HINWEIS
+Diese Uebersicht basiert auf dem tatsaechlich hochgeladenen Archiv. Sie ersetzt keine Live-Pruefung deines laufenden Windows-Systems, weil Konfigurationsdateien ausserhalb von backend/ im Archiv nicht vollstaendig enthalten sind. Routen, aktive Module und Datei-Beziehungen wurden statisch aus dem Code analysiert.
+
+============================================================
+1. KURZFAZIT
+============================================================
+
+Das Backend ist ein Node.js/Express-System mit WebSocket-Server auf Port 8080.
+Der Server laedt automatisch alle .js-Dateien direkt aus:
+  D:\Streaming\stramAssets\backend\modules
+
+Nicht automatisch geladen werden:
+  - Dateien in modules/helpers/
+  - Dateien ohne Endung .js
+  - .bak-Dateien
+  - .old-Dateien
+  - twitch.js.bak_original_uploaded
+
+Aktive Kernstruktur:
+  - server.js: Express/HTTP/WebSocket, statische Pfade, Modul-Loader, Fireworks-Basisroute
+  - core/: zentrale Pfade, Datenbank-Fassade, Config-/FS-/Logger-Helfer
+  - modules/: echte Funktionsmodule
+  - modules/helpers/: wiederverwendbare Helper
+  - SQLite: zentrale DB unter D:\Streaming\stramAssets\data\sqlite\app.sqlite
+
+Auffaellige Punkte:
+  1. /api/fireworks ist doppelt registriert: einmal direkt in server.js und einmal in modules/fireworks_api.js.
+     Der Handler aus server.js antwortet zuerst; der Modul-Handler ist dadurch praktisch ueberdeckt.
+  2. Es gibt viele absichtliche Legacy-/API-Doppelrouten, z. B. /discord/... und /api/discord/..., /messages/... und /api/messages/...
+     Das ist funktional okay, aber langfristig unuebersichtlich.
+  3. OBS-Routen liegen weiterhin unter /obs/... statt /api/obs/...
+     Das ist inkonsistent zum neueren API-Aufbau.
+  4. Deathcounter nutzt weiterhin /api/deathcounter/v2/...
+     Funktional okay, aber langfristig waere ein stabiler /api/deathcounter/... Alias sauberer.
+  5. Es liegen viele Backup-Dateien direkt im modules-Ordner. Sie werden aktuell nicht geladen, sollten aber spaeter in archive/ oder data/backups/ verschoben werden.
+  6. TTS-Modul hat im aktuellen Archiv nur eine Statusroute. Wenn TTS mehr koennen soll, fehlen im aktuellen Stand sichtbare API-Routen.
+  7. Dashboard/Auth/Control-Center ist vorhanden, aber noch Grundgeruest. Benutzerrollen, Audit und Admin-Konfiguration sind vorbereitet, aber nicht ueberall durchgezogen.
+
+============================================================
+2. START, SERVER UND MODUL-LOADING
+============================================================
+
+Datei:
+  backend/server.js
+
+Server:
+  - Express HTTP Server
+  - WebSocket Server ueber ws
+  - Port: 8080
+  - Bind: 0.0.0.0
+  - dotenv wird ueber core/paths geladen:
+      D:\Streaming\stramAssets\.env
+
+Modul-Loading:
+  server.js liest alle Dateien in:
+      D:\Streaming\stramAssets\backend\modules
+  und laedt nur Dateien mit Endung .js.
+
+  Danach wird pro Modul geprueft:
+      if (typeof mod.init === "function") mod.init(...)
+
+  Das bedeutet:
+    - alert_system.js wird geladen
+    - sound_system.js wird geladen
+    - obs_shared.js wird require'd, hat aber kein init und wird nicht als Modul gestartet
+    - .bak-Dateien werden nicht geladen
+    - twitch_chat_overlay.js.old wird nicht geladen
+    - twitch.js.bak_original_uploaded wird nicht geladen
+
+Statische oeffentliche Pfade:
+  /overlays  -> D:\Streaming\stramAssets\htdocs\overlays
+  /assets    -> D:\Streaming\stramAssets\htdocs\assets
+  /alerts    -> D:\Streaming\stramAssets\htdocs\alerts
+  /dashboard -> D:\Streaming\stramAssets\htdocs\dashboard
+  /public    -> D:\Streaming\stramAssets\htdocs\public
+  /data      -> D:\Streaming\stramAssets\htdocs\data   [Legacy, bewusst noch offen]
+
+Blockierte interne Pfade:
+  /scripts
+  /tokens
+  /config
+  /secrets
+  /backend
+  /archive
+  /docs
+
+Root-Dateien:
+  /             -> D:\Streaming\stramAssets\htdocs\index.htm
+  /ws-client.js -> D:\Streaming\stramAssets\htdocs\ws-client.js
+
+Globale Statusroute:
+  GET /api/_status
+
+WebSocket:
+  - wss haengt am selben HTTP-Server
+  - broadcastWS(payload) sendet JSON an alle verbundenen Clients
+  - genutzt u. a. von Fireworks, Alerts, Sound/Overlays je nach Modul
+
+============================================================
+3. ZENTRALE PFADE
+============================================================
+
+Datei:
+  backend/core/paths.js
+
+Root:
+  D:\Streaming\stramAssets
+  oder per ENV:
+  STREAM_ASSETS_ROOT
+
+Wichtige Zielpfade:
+  Backend:       D:\Streaming\stramAssets\backend
+  Module:        D:\Streaming\stramAssets\backend\modules
+  Core:          D:\Streaming\stramAssets\backend\core
+  Webroot:       D:\Streaming\stramAssets\htdocs
+  Overlays:      D:\Streaming\stramAssets\htdocs\overlays
+  Assets:        D:\Streaming\stramAssets\htdocs\assets
+  Alerts:        D:\Streaming\stramAssets\htdocs\alerts
+  Dashboard:     D:\Streaming\stramAssets\htdocs\dashboard
+  Config:        D:\Streaming\stramAssets\config
+  Secrets:       D:\Streaming\stramAssets\secrets
+  Data:          D:\Streaming\stramAssets\data
+  State:         D:\Streaming\stramAssets\data\state
+  SQLite:        D:\Streaming\stramAssets\data\sqlite
+  Logs:          D:\Streaming\stramAssets\data\logs
+  Tools:         D:\Streaming\stramAssets\tools
+  Docs:          D:\Streaming\stramAssets\docs
+  Archive:       D:\Streaming\stramAssets\archive
+
+============================================================
+4. DATENBANK / SQLITE / DB-PORTABILITAET
+============================================================
+
+Aktuelle SQLite-Datei:
+  D:\Streaming\stramAssets\data\sqlite\app.sqlite
+
+Wichtige Dateien:
+  backend/modules/sqlite_core.js
+  backend/core/database.js
+  backend/modules/database_core.js
+
+sqlite_core.js:
+  - nutzt node:sqlite DatabaseSync
+  - erstellt/verwaltet schema_versions
+  - setzt PRAGMA journal_mode=WAL
+  - setzt PRAGMA synchronous=FULL
+  - setzt PRAGMA foreign_keys=ON
+  - setzt PRAGMA busy_timeout=5000
+
+core/database.js:
+  - DB-Fassade fuer spaetere Adapter
+  - aktuell nur SQLite umgesetzt
+  - DB_ADAPTER/DATABASE_ADAPTER kann mariadb erkennen, aber MariaDB ist noch nicht implementiert
+
+Routen:
+  GET /api/database/status
+  GET /api/system/database/status
+
+Module mit SQLite-Nutzung:
+  - alert_system.js / kofi.js / tipeee.js: Alert-Regeln, Provider-Events, Settings
+  - dashboard_auth.js: Dashboard-User, Sessions, Audit/Status
+  - hug.js: Hug-User, Pair-Stats, Texte, Typen, Settings
+  - tagebuch.js: Tagebuch-State, Runtime-Events, Userstats
+  - todo.js: Todo-Stats
+  - sound_system.js: Sound-Runtime-Settings
+  - sqlite_core.js: Schema-Versionen
+
+Bewertung:
+  Die zentrale DB-Richtung ist richtig. Fuer neue Module sollte core/database.js bzw. die bestehende sqlite_core-Schicht genutzt werden. Keine neue app.sqlite anlegen.
+
+============================================================
+5. AKTIVE MODULE - FUNKTIONEN UND ZWECK
+============================================================
+
+alert_system.js
+  Zweck:
+    Zentrales Alert-System fuer Twitch/Ko-fi/Tipeee/Tests, Queue, Rules, Assets, Chat-Texte, Display-Profile.
+  Nutzt:
+    - config/alert_system.json
+    - config/messages/alerts.json
+    - SQLite alert_* Tabellen
+    - WebSocket broadcast fuer Overlay/Queue
+    - optional sound_system ueber http://127.0.0.1:8080/api/sound/play
+  Wichtig:
+    Das ist aktuell eines der groessten Kernmodule.
+
+challenge.js
+  Zweck:
+    Challenge-System fuer "Nicht fluchen" / "Nicht reden" bzw. queued Challenges.
+  Routen:
+    /api/challenge/* und Legacy /scripts/challenge
+  Nutzt:
+    Discord-Sound optional ueber /discord/play
+
+chat_output.js
+  Zweck:
+    Zentraler Chat-Ausgabe-Endpunkt.
+  Nutzt:
+    helper_chat_output.js
+  Relevanz:
+    Wichtig fuer spaetere Zentralisierung von Chat-Nachrichten.
+
+clips.js
+  Zweck:
+    Clip-Titel generieren und Clip-Registrierung entgegennehmen.
+  Nutzt:
+    config/clip_system.json
+    config/messages/clips.json
+    Twitch Channel Summary API als Quelle fuer Titel/Game
+
+credits.js
+  Zweck:
+    Proxy fuer Streamer.bot Credits.
+  Route:
+    /credits und /api/credits
+
+Dashboard/Auth/Control-Center:
+  dashboard_auth.js
+    Zweck: Lokale Dashboard-Session/Auth, Twitch-Login, Rollen, Audit.
+  dashboard_controlcenter.js
+    Zweck: Control-Center-API fuer Navigation, Rollen, Permissions, Streamdesk, Twitch-Auth, Logging, Admin-Configs.
+  Bewertung:
+    Grundgeruest vorhanden. Noch nicht jedes Modul erzwingt diese Rollen-/Rechtepruefung.
+
+Deathcounter:
+  deathcounter_v2.js
+    Zweck: Deathcounter V2, Overlay-Spieler, Game-Sync, RIP/DEL/Tode, Session-/Total-Reset.
+    Daten:
+      D:\Streaming\stramAssets\data\deathcounter\deathcounter.v2.json
+    Hinweis:
+      Route ist /api/deathcounter/v2. Langfristig API-Alias ohne v2 sinnvoll.
+
+Discord:
+  discord.js
+    Zweck: Discord Bot, Voice Join/Leave, Sound Queue, Channel/Webhook Post.
+    Nutzt:
+      config/tools.json fuer ffmpeg-Konfiguration
+      htdocs/assets/sounds als Sound-Quelle
+
+Fireworks:
+  fireworks_api.js und server.js
+    Zweck: WebSocket-Fireworks Trigger.
+    Problem:
+      /api/fireworks ist doppelt registriert. Details siehe Abschnitt 8.
+
+Hug:
+  hug.js
+    Zweck: Hug/Rehug-System mit DB-Store, Hug-Typen, Hug-Texte, Stats, Output-Mode.
+    Nutzt:
+      config/hug_system.json
+      config/messages/hug.json
+      SQLite: hug_users, hug_pair_stats, hug_pending_rehugs, hug_settings, hug_types, hug_texts
+    Status:
+      Bereits stark in Richtung Dashboard/DB vorbereitet.
+
+Ko-fi:
+  kofi.js
+    Zweck: Ko-fi Webhook und Test-Integration fuer Alerts.
+    Nutzt:
+      SQLite alert_settings, alert_types, alert_rules, alert_provider_events
+    Public-Relevanz:
+      Webhook kann ueber Cloudflare Tunnel erreichbar sein.
+
+Message Rotator:
+  message_rotator.js
+    Zweck: automatische Chat-Hinweise nach Intervall/Chat-Aktivitaet/Live-Status.
+    Nutzt:
+      config/message_rotator.json
+      helper_texts/messages
+    Hat Legacy- und API-Routen.
+
+Messages:
+  messages.js
+    Zweck: Allgemeiner Message/Text-Renderer und optional Sender.
+    Nutzt:
+      helper_texts
+    Routen:
+      /messages/* und /api/messages/*
+
+OBS:
+  obs.js
+    Zweck: OBS WebSocket Steuerung, Szenen, Quellen, Audio, Replay Buffer, Filter, Browserquellen.
+    Nutzt:
+      obs_shared.js
+      config/obs_dashboard.json
+    Problem:
+      Routen liegen unter /obs/* statt /api/obs/*. Funktional okay, aber inkonsistent.
+
+obs_shared.js
+  Zweck:
+    Gemeinsame OBS-Verbindung und Hilfsfunktionen.
+  Wird nicht direkt als Modul gestartet, sondern von obs.js und scene_control.js verwendet.
+  Das ist korrekt.
+
+Overlay Data:
+  overlay_data.js
+    Zweck: Start-Overlay-Daten.
+
+Scene Control:
+  scene_control.js
+    Zweck: einfache Szenensteuerung ueber Aliase.
+    Nutzt:
+      obs_shared.js
+      wahrscheinlich config/scene_aliases.json ueber obs_shared
+
+Security:
+  security.js
+    Zweck: Statusroute fuer Security-Konfiguration.
+  Helper:
+    helper_security.js liest config/security.json
+
+Sound:
+  sound_system.js
+    Zweck: zentrales Sound-System mit Queue, Prioritaeten, Kategorien, Overlay-Client-Handshake, Settings.
+    Nutzt:
+      config/sound_system.json
+      config/messages/sound_system.json
+      SQLite sound_settings
+  sound_output_config.js
+    Zweck: Sound-Output-/Device-Konfiguration fuer Dashboard.
+    Nutzt ebenfalls config/sound_system.json.
+  Bewertung:
+    Sinnvoll getrennt, aber beide Module greifen auf dieselbe Config zu. Gut dokumentieren, damit keine konkurrierenden Writes entstehen.
+
+Start Overlay:
+  start_overlay.js
+    Zweck: Startscreen-Konfig, Start-Chat/Overlay-Chat-Daten, Reload.
+    Nutzt:
+      config/start_overlay.json
+      config/messages/start_overlay.json
+  Achtung:
+    Es gibt daneben twitch_chat_overlay.js mit /api/overlay/chat/*. Nicht verwechseln.
+
+Tagebuch:
+  tagebuch.js
+    Zweck: Stream-Tagebuch, Seitenlogik, Stream Start/Ende, Entry, Stats.
+    Nutzt:
+      config/tagebuch.json
+      config/messages/tagebuch.json
+      SQLite tagebuch_state, tagebuch_runtime_events, tagebuch_user_stats, tagebuch_daily_user_stats
+
+Tipeee:
+  tipeee.js
+    Zweck: TipeeeStream Socket/Webhook/Test-Integration fuer Alerts.
+    Nutzt:
+      SQLite alert_provider_events / alert_settings / alert_rules / alert_types
+
+Todo:
+  todo.js
+    Zweck: ToDo-Eintraege per Chat/Discord, Ziel-Aliase, Stats.
+    Nutzt:
+      config/discord_channels.json
+      config/messages/todo.json
+      SQLite todo-Stats
+
+TTS:
+  tts_system.js
+    Zweck laut Modulname: TTS-System.
+    Sichtbar im Archiv:
+      nur GET /api/tts/status
+    Bewertung:
+      Entweder noch Stub/Fruehstand oder die eigentliche TTS-Funktion liegt nicht im Archiv.
+
+Twitch:
+  twitch.js
+    Zweck: Twitch OAuth, Bot OAuth, Helix-Endpunkte, Channel/User/Stream-Infos, EventSub, Alerts-Bridge.
+    Wichtig:
+      Viele Legacy-Routen und API-Aliase.
+
+Twitch Chat Overlay:
+  twitch_chat_overlay.js
+    Zweck: IRC-basierter Chat fuer Overlay, inklusive Emote-Aufbereitung.
+    Routen:
+      /api/overlay/chat/* und Legacy-/Startchat-Aliase.
+
+Twitch Presence:
+  twitch_presence.js
+    Zweck: Bot-Presence im Twitch Chat und Send-Route.
+    Wird auch von helper_chat_output genutzt.
+
+VIP Sound Overlay:
+  vip_sound_overlay.js
+    Zweck: VIP Sound Overlay mit State, Queue, Audio-Client-Rueckmeldungen.
+    Routen unter:
+      /api/vip-sound-overlay/*
+      /api/vip-sound/*
+
+============================================================
+6. ROUTENUEBERSICHT NACH MODUL
+============================================================
+
+SERVER / STATISCHE ROUTEN
+  USE /overlays
+  USE /assets
+  USE /alerts
+  USE /dashboard
+  USE /public
+  USE /data                 [Legacy]
+  GET /
+  GET /dashboard
+  GET /dashboard/
+  GET /ws-client.js
+  GET /api/_status
+  GET /api/fireworks        [DOPPELT mit fireworks_api.js]
+  GET /api/fireworks/stop   [DOPPELT mit fireworks_api.js]
+  GET /api/fireworks/clear  [DOPPELT mit fireworks_api.js]
+
+BLOCKIERTE PFADE
+  USE /scripts
+  USE /tokens
+  USE /config
+  USE /secrets
+  USE /backend
+  USE /archive
+  USE /docs
+
+ALERT SYSTEM
+  GET    /api/alerts/status
+  GET    /api/alerts/health
+  GET    /api/alerts/queue
+  POST   /api/alerts/clear
+  POST   /api/alerts/reload
+  POST   /api/alerts/enqueue
+  POST   /api/alerts/test
+  GET    /api/alerts/text-variants
+  POST   /api/alerts/text-variants
+  PUT    /api/alerts/text-variants/:id
+  DELETE /api/alerts/text-variants/:id
+  GET    /api/alerts/chat-blocks
+  POST   /api/alerts/chat-blocks
+  PUT    /api/alerts/chat-blocks/:id
+  DELETE /api/alerts/chat-blocks/:id
+  GET    /api/alerts/chat-outbox
+  POST   /api/alerts/chat-outbox/:id/sent
+  POST   /api/alerts/chat-outbox/:id/consumed
+  POST   /api/alerts/chat-outbox/:id/error
+  GET    /api/alerts/test-presets
+  POST   /api/alerts/test-presets
+  PUT    /api/alerts/test-presets/:id
+  DELETE /api/alerts/test-presets/:id
+  POST   /api/alerts/test-presets/:id/play
+  GET    /api/alerts/display-profiles
+  POST   /api/alerts/display-profiles
+  PUT    /api/alerts/display-profiles/:id
+  DELETE /api/alerts/display-profiles/:id
+  POST   /api/alerts/display-profiles/:id/play
+  GET    /api/alerts/integration-check
+  POST   /api/alerts/events/:eventUid/replay
+  GET    /api/alerts/twitch/follow
+  GET    /api/alerts/twitch/raid
+  GET    /api/alerts/twitch/bits
+  POST   /api/alerts/twitch
+  GET    /api/alerts/rules
+  POST   /api/alerts/rules
+  PUT    /api/alerts/rules/:id
+  DELETE /api/alerts/rules/:id
+  POST   /api/alerts/rules/validate
+  GET    /api/alerts/assets
+  POST   /api/alerts/assets/upload
+  DELETE /api/alerts/assets/:id
+  GET    /api/alerts/assets/:id/usage
+  POST   /api/alerts/assets/scan-durations
+  GET    /api/alerts/settings
+  POST   /api/alerts/settings
+  GET    /api/alerts/config
+  POST   /api/alerts/config
+
+KOFI ALERT PROVIDER
+  GET  /api/alerts/kofi/status
+  POST /api/alerts/kofi/reload
+  POST /api/alerts/kofi/config
+  GET  /api/alerts/kofi/test
+  POST /api/alerts/kofi/webhook
+
+TIPEEE ALERT PROVIDER
+  GET  /api/alerts/tipeee/status
+  POST /api/alerts/tipeee/reload
+  POST /api/alerts/tipeee/config
+  POST /api/alerts/tipeee/connect
+  POST /api/alerts/tipeee/disconnect
+  POST /api/alerts/tipeee/reconnect
+  GET  /api/alerts/tipeee/events/recent
+  GET  /api/alerts/tipeee/test
+  POST /api/alerts/tipeee/webhook
+
+CHALLENGE
+  GET/POST /api/challenge
+  GET/POST /scripts/challenge        [Legacy]
+  GET/POST /api/challenge/start
+  GET/POST /api/challenge/status
+  GET/POST /api/challenge/remove-next
+  GET/POST /api/challenge/remove
+  GET/POST /api/challenge/reset
+  GET/POST /api/challenge/reload
+  GET/POST /api/challenge/stats
+  GET      /api/challenge/stats/top
+  GET      /api/challenge/stats/user
+
+CHAT OUTPUT
+  GET  /api/chat-output/status
+  POST /api/chat-output/send
+  POST /api/chat-output/reload
+
+CLIPS
+  GET  /api/clip/status
+  GET  /api/clip/title
+  GET  /api/clip/register
+  POST /api/clip/register
+
+CREDITS
+  GET /credits
+  GET /api/credits
+
+DASHBOARD AUTH
+  GET  /api/auth/status
+  GET  /api/auth/session
+  POST /api/auth/bootstrap-owner-local
+  POST /api/auth/logout
+  GET  /api/auth/twitch/login
+  GET  /api/auth/twitch/callback
+  GET  /api/auth/roles
+  GET  /api/auth/audit
+
+DASHBOARD CONTROL-CENTER
+  GET  /api/dashboard/controlcenter/status
+  GET  /api/dashboard/controlcenter/navigation
+  GET  /api/dashboard/controlcenter/roles
+  GET  /api/dashboard/controlcenter/permissions
+  GET  /api/dashboard/controlcenter/access
+  GET  /api/dashboard/controlcenter/streamdesk
+  GET  /api/dashboard/controlcenter/twitch-auth
+  GET  /api/dashboard/controlcenter/logging
+  GET  /api/dashboard/controlcenter/admin-configs
+  GET  /api/dashboard/controlcenter/config/:id
+  POST /api/dashboard/controlcenter/config/:id
+
+DATABASE
+  GET /api/database/status
+  GET /api/system/database/status
+
+DEATHCOUNTER V2
+  GET  /api/deathcounter/v2/state
+  GET  /api/deathcounter/v2/players
+  POST /api/deathcounter/v2/players
+  GET  /api/deathcounter/v2/overlay
+  GET/POST /api/deathcounter/v2/show
+  GET/POST /api/deathcounter/v2/hide
+  GET/POST /api/deathcounter/v2/overlay/show
+  GET/POST /api/deathcounter/v2/overlay/hide
+  GET/POST /api/deathcounter/v2/overlay/toggle
+  GET      /api/deathcounter/v2/game
+  POST     /api/deathcounter/v2/game
+  GET      /api/deathcounter/v2/game/set
+  GET      /api/deathcounter/v2/sync/channelinfo
+  GET      /api/deathcounter/v2/stream-online-sync
+  POST     /api/deathcounter/v2/overlay/players
+  GET      /api/deathcounter/v2/overlay/resetplayers
+  GET/POST /api/deathcounter/v2/overlay/replace
+  GET/POST /api/deathcounter/v2/rip
+  GET/POST /api/deathcounter/v2/del
+  GET      /api/deathcounter/v2/tode
+  POST     /api/deathcounter/v2/session-reset
+  POST     /api/deathcounter/v2/total-reset
+
+DIAGNOSTICS
+  GET /diag/ping
+  GET /api/diag/ping
+  GET /diag/env
+  GET /api/diag/env
+  GET /diag/ws
+  GET /api/diag/ws
+
+DISCORD
+  GET      /discord/status
+  GET      /api/discord/status
+  GET      /discord/sounds
+  GET      /api/discord/sounds
+  GET      /discord/queue/status
+  GET      /api/discord/queue/status
+  GET/POST /discord/queue/clear
+  GET/POST /api/discord/queue/clear
+  GET/POST /discord/join
+  GET/POST /api/discord/join
+  GET/POST /discord/leave
+  GET/POST /api/discord/leave
+  GET/POST /discord/play
+  GET/POST /api/discord/play
+  POST     /discord/post/channel
+  POST     /api/discord/post/channel
+  POST     /discord/post/webhook
+  POST     /api/discord/post/webhook
+  POST     /discord/post/message
+  POST     /api/discord/post/message
+
+FIREWORKS
+  GET /api/fireworks        [DOPPELT: server.js + fireworks_api.js]
+  GET /api/fireworks/stop   [DOPPELT: server.js + fireworks_api.js]
+  GET /api/fireworks/clear  [DOPPELT: server.js + fireworks_api.js]
+
+HUG
+  POST /hug/action
+  POST /api/hug/action
+  POST /hug/stats
+  POST /api/hug/stats
+  GET  /hug/cmd
+  GET  /api/hug/cmd
+  GET  /hug/statscmd
+  GET  /api/hug/statscmd
+  GET  /hug/top
+  GET  /api/hug/top
+  GET  /hug/reload
+  GET  /api/hug/reload
+  GET/POST /api/hug/command
+  GET /api/hug/db/status
+  GET /api/dashboard/community/hug/status
+  GET /api/hug/text-store/status
+  GET /api/dashboard/community/hug/text-store/status
+  POST /api/hug/text-store/reload
+  GET /api/hug/db/output-mode
+  POST /api/hug/db/output-mode
+  GET /api/hug/types
+  GET /api/hug/texts
+
+MESSAGE ROTATOR
+  GET      /message-rotator/status
+  GET      /api/message-rotator/status
+  GET/POST /message-rotator/reload
+  GET/POST /api/message-rotator/reload
+  GET/POST /message-rotator/start
+  GET/POST /api/message-rotator/start
+  GET/POST /message-rotator/stop
+  GET/POST /api/message-rotator/stop
+  GET/POST /message-rotator/tick
+  GET/POST /api/message-rotator/tick
+  GET/POST /message-rotator/next
+  GET/POST /api/message-rotator/next
+  GET/POST /message-rotator/manual
+  GET/POST /api/message-rotator/manual
+  GET/POST /message-rotator/live-status
+  GET/POST /api/message-rotator/live-status
+
+MESSAGES
+  GET      /messages/status
+  GET      /api/messages/status
+  GET/POST /messages/reload
+  GET/POST /api/messages/reload
+  GET/POST /messages/random
+  GET/POST /api/messages/random
+  GET/POST /messages/render
+  GET/POST /api/messages/render
+  GET/POST /messages/send
+  GET/POST /api/messages/send
+  POST     /messages/scheduler/start
+  POST     /api/messages/scheduler/start
+  POST     /messages/scheduler/stop
+  POST     /api/messages/scheduler/stop
+  GET      /messages/scheduler/status
+  GET      /api/messages/scheduler/status
+
+OBS
+  GET  /obs/health
+  GET  /obs/status
+  GET  /obs/stats
+  GET  /obs/scenes
+  GET  /obs/sources
+  GET  /obs/browser-sources
+  GET  /obs/scene-items
+  POST /obs/scene/switch
+  POST /obs/scene/preview
+  POST /obs/studio/transition
+  POST /obs/source/show
+  POST /obs/source/hide
+  POST /obs/source/toggle
+  GET  /obs/audio/busy
+  GET  /obs/audio/state
+  GET  /obs/audio/busy/text
+  POST /obs/audio/mute
+  POST /obs/audio/unmute
+  POST /obs/audio/toggle
+  POST /obs/audio/volume
+  POST /obs/media/action
+  GET  /obs/replay/status
+  POST /obs/replay/start
+  POST /obs/replay/stop
+  POST /obs/replay/save
+  GET  /obs/filter/list
+  POST /obs/filter/enable
+  POST /obs/filter/disable
+  POST /obs/filter/toggle
+  GET  /obs/dashboard/config
+  POST /obs/dashboard/config
+
+OVERLAY DATA / START
+  GET /api/overlay/start-data
+  GET /api/overlay/start/status
+  GET /api/overlay/start/config
+  GET/POST /api/overlay/start-chat
+  GET/POST /api/overlay/start-chat/clear
+  GET/POST /api/overlay/start/reload
+
+SCENE CONTROL
+  GET /api/scene/health
+  GET /api/scene/list
+  GET /api/scene/set
+
+SECURITY
+  GET /api/security/status
+
+SOUND SYSTEM
+  GET  /api/sound/settings
+  POST /api/sound/settings
+  GET  /api/sound/generated/beep.wav
+  GET  /api/sound/status
+  GET  /api/sound/current
+  GET  /api/sound/queue
+  GET  /api/sound/list
+  GET  /api/sound/config
+  POST /api/sound/reload
+  GET  /api/sound/play
+  POST /api/sound/play
+  POST /api/sound/stop
+  POST /api/sound/skip
+  POST /api/sound/clear
+  POST /api/sound/pause
+  POST /api/sound/resume
+  POST /api/sound/reset
+  POST /api/sound/client/ready
+  POST /api/sound/client/audio-started
+  POST /api/sound/client/audio-ended
+  POST /api/sound/client/error
+
+SOUND OUTPUT CONFIG
+  GET  /api/sound/output
+  POST /api/sound/output
+  GET  /api/sound/devices
+  POST /api/sound/devices/select
+  POST /api/sound/test-output
+
+TAGEBUCH
+  GET/POST /discord/stream/start
+  GET/POST /api/tagebuch/stream/start
+  GET/POST /discord/stream/end
+  GET/POST /api/tagebuch/stream/end
+  GET/POST /discord/tagebuch
+  GET/POST /api/tagebuch/entry
+  GET      /discord/tagebuch/status
+  GET      /api/tagebuch/status
+  GET      /api/tagebuch/stats
+  GET      /api/tagebuch/stats/top
+  GET      /api/tagebuch/stats/today
+  GET      /api/tagebuch/stats/user
+  GET/POST /discord/tagebuch/reset
+  GET/POST /api/tagebuch/reset
+  GET/POST /api/tagebuch/reload
+
+TODO
+  GET      /discord/todo/status
+  GET      /api/todo/status
+  GET/POST /discord/todo
+  GET/POST /api/todo/add
+  GET      /api/todo/stats
+  GET      /api/todo/stats/top
+  GET      /api/todo/stats/today
+  GET/POST /api/todo/reload
+
+TTS
+  GET /api/tts/status
+
+TWITCH AUTH / TWITCH API / EVENTSUB
+  GET /auth/login
+  GET /auth/callback
+  GET /auth/status
+  GET /auth/logout
+  GET /auth/bot/login
+  GET /auth/bot/callback
+  GET /auth/bot/status
+  GET /auth/bot/logout
+  GET /twitch/me
+
+  GET /userinfo
+  GET /twitch/user
+  GET /api/twitch/user
+  GET /streaminfo
+  GET /twitch/stream
+  GET /api/twitch/stream
+  GET /channelinfo
+  GET /twitch/channel
+  GET /api/twitch/channel
+  GET /twitch/user-by-id
+  GET /api/twitch/user/by-id
+  GET /twitch/resolve-user
+  GET /api/twitch/user/resolve
+  GET /twitch/channel-summary
+  GET /api/twitch/channel/summary
+  GET /twitch/stream-summary
+  GET /api/twitch/stream/summary
+  GET /twitch/chat-settings
+  GET /api/twitch/chat/settings
+  GET /twitch/chatters
+  GET /api/twitch/chatters
+  GET /twitch/goals
+  GET /api/twitch/goals
+  GET /twitch/schedule
+  GET /api/twitch/schedule
+  GET /twitch/polls
+  GET /api/twitch/polls
+  GET /twitch/predictions
+  GET /api/twitch/predictions
+
+  Hinweis: zusaetzlich gibt es dynamisch registrierte Helix-Aliase fuer:
+    /followers, /subscriptions, /emotes, /rewards, /clips, /videos, /raids, /moderators, /vips, /badges
+    plus jeweils /twitch/... und /api/twitch/...
+
+  GET /eventsub/cache
+  GET /api/twitch/eventsub/cache
+  GET /eventsub/cache_all
+  GET /api/twitch/eventsub/cache/all
+  GET /hypetrain/cache
+  GET /twitch/hypetrain
+  GET /api/twitch/hypetrain
+  GET /api/twitch/hypetrain/cache
+  GET /hypetrain/cache_raw
+  GET /twitch/hypetrain/raw
+  GET /api/twitch/hypetrain/raw
+  GET /api/twitch/hypetrain/cache/raw
+  GET /api/twitch/alerts/status
+  GET /twitch/alerts/status
+  POST /api/twitch/alerts/reload
+  POST /twitch/alerts/reload
+  GET /api/twitch/alerts/settings
+  GET /twitch/alerts/settings
+  POST /api/twitch/alerts/settings
+  POST /twitch/alerts/settings
+  GET /api/twitch/alerts/test
+  GET /twitch/alerts/test
+
+  GET /eventsub/status
+  GET /twitch/eventsub/status
+  GET /api/twitch/eventsub/status
+  GET /eventsub/reconcile
+  GET /twitch/eventsub/reconcile
+  GET /api/twitch/eventsub/reconcile
+  GET /eventsub/cleanup-disconnected
+  GET /twitch/eventsub/cleanup-disconnected
+  GET /api/twitch/eventsub/cleanup-disconnected
+  GET /eventsub/reconnect
+  GET /twitch/eventsub/reconnect
+  GET /api/twitch/eventsub/reconnect
+
+TWITCH CHAT OVERLAY
+  GET      /api/overlay/chat/status
+  GET      /api/overlay/start-chat/irc/status
+  GET/POST /api/overlay/chat/start
+  GET/POST /api/overlay/start-chat/irc/start
+  GET/POST /api/overlay/chat/stop
+  GET/POST /api/overlay/start-chat/irc/stop
+  GET/POST /api/overlay/chat/reconnect
+  GET/POST /api/overlay/start-chat/irc/reconnect
+  GET/POST /api/overlay/chat/clear
+  GET/POST /api/overlay/start-chat/clear-live
+  GET      /api/overlay/chat/emotes/lookup
+  GET      /api/overlay/start-chat/emotes/lookup
+  GET      /api/overlay/chat/debug
+  GET      /api/overlay/start-chat/debug
+  GET      /api/overlay/chat/emotes/status
+  GET      /api/overlay/start-chat/emotes/status
+  GET/POST /api/overlay/chat/emotes/reload
+  GET/POST /api/overlay/start-chat/emotes/reload
+
+TWITCH PRESENCE
+  GET      /twitch/presence/start
+  GET      /api/twitch/presence/start
+  GET      /twitch/presence/stop
+  GET      /api/twitch/presence/stop
+  GET      /twitch/presence/status
+  GET      /api/twitch/presence/status
+  GET/POST /twitch/presence/send
+  GET/POST /api/twitch/presence/send
+
+VIP SOUND OVERLAY
+  GET      /api/vip-sound-overlay/state
+  GET      /api/vip-sound-overlay/status
+  GET/POST /api/vip-sound-overlay/enqueue
+  POST     /api/vip-sound-overlay/client/audio-started
+  POST     /api/vip-sound-overlay/client/audio-ended
+  POST     /api/vip-sound-overlay/client/finished
+  POST     /api/vip-sound-overlay/reset
+
+  GET      /api/vip-sound/state
+  GET      /api/vip-sound/status
+  GET/POST /api/vip-sound/enqueue
+  POST     /api/vip-sound/client/audio-started
+  POST     /api/vip-sound/client/audio-ended
+  POST     /api/vip-sound/client/finished
+  POST     /api/vip-sound/reset
+
+============================================================
+7. HELPER UND WIEDERVERWENDBARE BAUSTEINE
+============================================================
+
+modules/helpers/helper_core.js
+  - Request-Parameter lesen
+  - JSON-Dateien lesen/schreiben
+  - Zeiten/Antworten/kleine Utilities
+
+modules/helpers/helper_config.js
+  - Config-Pfade unter D:\Streaming\stramAssets\config aufloesen
+  - Config-Dateien laden/schreiben
+
+modules/helpers/helper_routes.js
+  - registerGet/registerPost/registerPut/registerDelete
+  - unterstuetzt Arrays von Alias-Routen
+  - wichtig fuer saubere API/Legacy-Parallelrouten
+
+modules/helpers/helper_security.js
+  - liest config/security.json
+  - prueft lokale/private/externe Zugriffe
+
+modules/helpers/helper_chat_output.js
+  - zentrale Chat-Ausgabe
+  - nutzt wahrscheinlich twitch_presence zum Senden
+  - wichtig fuer zukuenftige Vereinheitlichung aller Chat-Texte
+
+modules/helpers/helper_messages.js / helper_texts.js
+  - Textauswahl, Placeholder, Randomisierung, Message-Dateien
+
+modules/helpers/helper_queue.js
+  - Queue-Utilities
+
+modules/helpers/helper_cooldown.js
+  - Cooldown-Utilities
+
+modules/helpers/helper_media.js
+  - ffmpeg/ffprobe und Mediendauer-Erkennung
+
+modules/helpers/helper_state.js
+  - State-Dateien atomar schreiben/lesen
+
+modules/helpers/helper_dashboard_auth.js
+  - Dashboard Auth Helper
+
+modules/helpers/helper_dashboard_audit.js
+  - Audit-Eintrag-Helfer
+  - aktuell nur Helper, nicht selbst Route
+
+Bewertung:
+  Die Helper-Struktur ist sinnvoll. Neue Systeme sollten diese Helper benutzen statt eigene Mini-Helfer parallel zu bauen.
+
+============================================================
+8. DOPPELTE FUNKTIONEN / DOPPELTE ROUTEN
+============================================================
+
+ECHTE DOPPLUNG / PROBLEM
+
+1. Fireworks:
+   Dateien:
+     backend/server.js
+     backend/modules/fireworks_api.js
+   Doppelte Routen:
+     GET /api/fireworks
+     GET /api/fireworks/stop
+     GET /api/fireworks/clear
+
+   Bewertung:
+     Das ist keine sinnvolle Legacy-Dopplung, sondern wirklich doppelt registriert.
+     Da server.js die Route vor dem Modul-Loader registriert, antwortet server.js zuerst.
+     Der Handler aus fireworks_api.js wird dadurch faktisch nicht genutzt.
+
+   Empfehlung:
+     Fireworks aus server.js entfernen und nur fireworks_api.js behalten.
+     ABER erst nach Test, weil keine Funktionalitaet verloren gehen darf.
+
+ABSICHTLICHE LEGACY/API-DOPPLUNGEN
+
+Diese Dopplungen sind aktuell wahrscheinlich gewollt, damit alte Streamer.bot- oder Overlay-URLs weiter funktionieren:
+  - /discord/... und /api/discord/...
+  - /messages/... und /api/messages/...
+  - /message-rotator/... und /api/message-rotator/...
+  - /twitch/... und /api/twitch/...
+  - /discord/tagebuch und /api/tagebuch/entry
+  - /discord/todo und /api/todo/add
+  - /api/overlay/start-chat/... und /api/overlay/chat/...
+
+Empfehlung:
+  Nicht entfernen.
+  Erst dokumentieren, dann spaeter pro Modul entscheiden, welche Route offiziell ist.
+  Alte Routen koennen als Legacy-Aliase bleiben.
+
+INKONSISTENTE NAMEN / STRUKTUR
+
+1. OBS:
+   Nur /obs/... statt /api/obs/...
+   Empfehlung: zusaetzliche /api/obs/... Aliase einfuehren, alte /obs/... behalten.
+
+2. Deathcounter:
+   /api/deathcounter/v2/...
+   Empfehlung: zusaetzliche /api/deathcounter/... Aliase vorbereiten, v2 behalten.
+
+3. Twitch Auth:
+   /auth/... liegt ohne /api.
+   Das ist fuer OAuth-Redirects okay, aber Status/Logout koennten zusaetzlich API-Aliase bekommen.
+
+4. Start Chat vs Twitch Chat Overlay:
+   start_overlay.js nutzt /api/overlay/start-chat
+   twitch_chat_overlay.js nutzt /api/overlay/chat und /api/overlay/start-chat/irc
+   Empfehlung: sauber dokumentieren, welcher Chat wofuer ist:
+     - start_overlay.js = Startscreen-Chatdaten/Startscreen-Kontext
+     - twitch_chat_overlay.js = echter IRC Overlay Chat
+
+============================================================
+9. UNGENUTZTE ODER VERDAECHTIGE DATEIEN/FUNKTIONEN
+============================================================
+
+Sicher nicht automatisch geladen:
+  modules/alert_system.backup_before_live_sound_handoff.js.bak
+  modules/alert_system.backup_before_settings_patch.js.bak
+  modules/alert_system.js.bak_step101a_20260430_124246
+  modules/sound_system.backup_before_core_policy.js.bak
+  modules/sound_system.backup_before_device_stop_fix.js.bak
+  modules/sound_system.backup_before_runtime_settings_20260502_195424.bak
+  modules/sound_system.backup_before_runtime_settings_schema_fix_20260502_200636.bak
+  modules/sound_system.backup_before_runtime_settings_tdz_fix_20260502_200329.bak
+  modules/sound_system.backup_before_settings_part2b_20260502_205351.bak
+  modules/sound_system.backup_before_settings_part2b_v2_20260502_205623.bak
+  modules/sound_system.backup_before_visual_lead.js.bak
+  modules/twitch.js.bak_original_uploaded
+  modules/twitch_chat_overlay.js.old
+
+Bewertung:
+  Diese Dateien sind nicht aktiv, aber stoeren die Uebersicht. Sie sollten in archive/ oder data/backups/ verschoben werden. Nicht loeschen, solange sie noch als Rollback gebraucht werden.
+
+obs_shared.js:
+  - Hat kein init und wird nicht als Modul geladen.
+  - Das ist NICHT ungenutzt, weil obs.js und scene_control.js es require'n.
+
+helper-Dateien:
+  - Werden nicht direkt geladen.
+  - Das ist korrekt, weil sie von Modulen require'd werden.
+
+TTS:
+  - tts_system.js hat im sichtbaren Archiv nur /api/tts/status.
+  - Wenn TTS aktiv nutzbar sein soll, fehlen Routen wie play/speak/queue/config.
+  - Falls das geplant war, ist das Modul aktuell eher Status/Stub.
+
+Fireworks-Modul:
+  - Wegen server.js-Dopplung vermutlich ueberdeckt.
+  - Nicht ungenutzt im Dateisinn, aber Route-Handler wahrscheinlich nicht erreichbar.
+
+============================================================
+10. WICHTIGE CONFIG- UND DATEN-DATEIEN AUS DEM CODE
+============================================================
+
+Zentrale Configs:
+  config/security.json
+  config/tools.json
+  config/alert_system.json
+  config/message_rotator.json
+  config/sound_system.json
+  config/start_overlay.json
+  config/tagebuch.json
+  config/hug_system.json
+  config/obs_dashboard.json
+  config/discord_channels.json
+
+Message-/Text-Dateien:
+  config/messages/alerts.json
+  config/messages/sound_system.json
+  config/messages/start_overlay.json
+  config/messages/tagebuch.json
+  config/messages/hug.json
+  config/messages/todo.json
+  config/messages/clips.json
+
+Daten:
+  data/sqlite/app.sqlite
+  data/deathcounter/deathcounter.v2.json
+  htdocs/data/                 [Legacy public JSON fuer alte Overlays]
+
+Assets:
+  htdocs/assets/sounds
+  htdocs/assets/sounds/alerts
+  htdocs/alerts
+  htdocs/overlays
+  htdocs/dashboard
+
+Secrets/Auth:
+  secrets/                     [laut Pfadstruktur]
+  .env                         [Root]
+
+============================================================
+11. EMPFOHLENE OFFIZIELLE ROUTEN-KONVENTION
+============================================================
+
+Kurzfristig:
+  Alte Routen behalten, nichts entfernen.
+  Neue Dokumentation sagt aber klar:
+    Offizielle neue APIs beginnen mit /api/...
+
+Empfohlene offizielle Hauptbereiche:
+  /api/alerts/*
+  /api/alerts/kofi/*
+  /api/alerts/tipeee/*
+  /api/auth/*
+  /api/dashboard/*
+  /api/database/status
+  /api/discord/*
+  /api/hug/*
+  /api/messages/*
+  /api/message-rotator/*
+  /api/obs/*                 [fehlt aktuell als Alias]
+  /api/overlay/*
+  /api/scene/*
+  /api/security/status
+  /api/sound/*
+  /api/tagebuch/*
+  /api/todo/*
+  /api/twitch/*
+  /api/vip-sound/*
+
+Legacy behalten:
+  /discord/*
+  /messages/*
+  /message-rotator/*
+  /obs/*
+  /twitch/*
+  /auth/*
+  /discord/tagebuch
+  /discord/todo
+  /scripts/challenge
+
+============================================================
+12. KONKRETE AUFRAEUM-EMPFEHLUNGEN OHNE FUNKTIONSVERLUST
+============================================================
+
+Reihenfolge, sicher und pragmatisch:
+
+1. Backup-Dateien aus modules/ rausziehen
+   Ziel z. B.:
+     D:\Streaming\stramAssets\archive\module_backups\2026-05-03\
+   Nicht loeschen.
+   Vorteil: Module-Ordner wird lesbar.
+
+2. Fireworks-Dopplung bereinigen
+   Sauberer Zielzustand:
+     - fireworks_api.js bleibt aktives Modul
+     - server.js enthaelt nur Server/Loader/Static/WebSocket-Grundlagen
+   Wichtig:
+     Vorher testen:
+       Invoke-RestMethod "http://127.0.0.1:8080/api/fireworks?intensity=5&duration_ms=1000"
+
+3. OBS API-Aliase ergaenzen
+   Alte /obs/* Routen behalten.
+   Neue /api/obs/* Routen parallel registrieren.
+   Keine Funktionalitaet entfernen.
+
+4. Deathcounter Alias vorbereiten
+   /api/deathcounter/v2/* behalten.
+   Spaeter zusaetzlich /api/deathcounter/* anbieten.
+
+5. Startchat-Begriffe klaeren
+   Dokumentieren:
+     /api/overlay/chat/* = echter Twitch-Chat fuer Overlay
+     /api/overlay/start-chat/* = Startscreen-/Startoverlay-Kontext
+
+6. Chat-Ausgaben zentralisieren
+   Bei neuen Modulen nicht direkt Twitch/Discord ansprechen, sondern helper_chat_output / chat_output nutzen, sofern passend.
+
+7. Config-Writes absichern
+   sound_system.js und sound_output_config.js schreiben beide in sound_system.json.
+   Das ist okay, sollte aber immer merge-basiert passieren, nie komplette fremde Bereiche ueberschreiben.
+
+8. Dashboard-Rechte konsequent nachziehen
+   dashboard_auth.js existiert.
+   Fuer gefaehrliche Routen wie Config-Saves, OBS-Steuerung, Sound-Steuerung, Alert-Uploads spaeter Rechte/Audit einbauen.
+
+============================================================
+13. SCHNELLTESTS FUER DEN LIVE-STAND
+============================================================
+
+Basis:
+  Invoke-RestMethod "http://127.0.0.1:8080/api/_status" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/api/database/status" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/api/security/status" | ConvertTo-Json -Depth 10
+
+Wichtige Module:
+  Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/status" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/api/discord/status" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/obs/health" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/status" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/api/overlay/chat/status" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/api/tagebuch/status" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/api/todo/status" | ConvertTo-Json -Depth 10
+  Invoke-RestMethod "http://127.0.0.1:8080/api/hug/db/status" | ConvertTo-Json -Depth 10
+
+Fireworks-Dopplung testen:
+  Invoke-RestMethod "http://127.0.0.1:8080/api/fireworks?intensity=3&duration_ms=1000&mode=test"
+
+============================================================
+14. PRIORITAETEN FUER DEN NAECHSTEN UMBAU
+============================================================
+
+Prioritaet A - Ordnung ohne Risiko:
+  - Backup-Dateien aus modules/ archivieren
+  - Projektstruktur-Doku aktualisieren
+  - Routenliste offiziell als Referenz ablegen
+
+Prioritaet B - echte technische Bereinigung:
+  - Fireworks-Dopplung entfernen
+  - OBS /api/obs Aliase ergaenzen
+  - Startchat/Twitchchat klarer trennen/dokumentieren
+
+Prioritaet C - Dashboard-Zukunft:
+  - Auth/Audit auf kritische Routen ausweiten
+  - Admin-Config-Seite an echte config/*.json anbinden
+  - Sound/Alerts/Hug/Tagebuch/Todo als Dashboard-Module sauber einhaengen
+
+Prioritaet D - Datenhaltung:
+  - Alle neuen Daten in app.sqlite oder klar definierte Config-Dateien
+  - Keine neue SQLite-Datei neben app.sqlite
+  - Bei MariaDB-Zukunft ueber core/database.js gehen
+
+============================================================
+15. ABSCHLUSSBEWERTUNG
+============================================================
+
+Das Backend ist funktional schon sehr weit, aber historisch gewachsen. Die groessten Risiken sind nicht fehlende Funktionen, sondern Unuebersichtlichkeit, Legacy-Aliase, doppelte Routen und verstreute Backup-Dateien.
+
+Technisch wichtigste echte Dopplung:
+  /api/fireworks in server.js und fireworks_api.js
+
+Wichtigste strukturelle Inkonsistenz:
+  OBS liegt unter /obs/* statt /api/obs/*
+
+Wichtigste Regel fuer weitere Arbeit:
+  Nichts entfernen, bevor die betroffene Route getestet und ein Legacy-Alias gesichert ist.
+
+Empfohlener offizieller Stand:
+  Diese Datei als aktuelle Systemuebersicht speichern und bei neuen Chats zusammen mit dem aktuellen Projekt-ZIP hochladen.

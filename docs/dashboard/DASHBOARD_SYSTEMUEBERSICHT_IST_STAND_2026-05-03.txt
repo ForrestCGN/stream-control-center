@@ -1,0 +1,520 @@
+SYSTEMÜBERSICHT DASHBOARD - IST-STAND UND ANALYSE
+Stand der Analyse: 2026-05-03
+Quelle: hochgeladenes dashboard.zip
+
+WICHTIGER RAHMEN
+- Analysiert wurde der Inhalt des hochgeladenen dashboard.zip.
+- Das ZIP enthält nur das Dashboard-Frontend unter dashboard/.
+- Nicht enthalten sind: backend-Module, echte config/*.json-Dateien, SQLite-Datenbank, Overlays selbst, .env/secrets.
+- Daher ist die Frontend-Struktur vollständig geprüft. Backend-Routen, echte Config-Schemas und Datenbanktabellen können hier nur anhand der vom Dashboard erwarteten API-Verträge bewertet werden.
+
+DATEIBESTAND IM ZIP
+- Gesamtanzahl Dateien: 44
+- Aktive Dashboard-Dateien: 19
+- Backup-/Altdateien im ZIP: 25
+
+Aktive Dateien:
+  - app.css
+  - app.js
+  - index.html
+  - modules/adminconfigs.css
+  - modules/adminconfigs.js
+  - modules/alerts.css
+  - modules/alerts.js
+  - modules/controlhome.css
+  - modules/controlhome.js
+  - modules/hug.css
+  - modules/hug.js
+  - modules/obs.css
+  - modules/obs.js
+  - modules/sectionhome.css
+  - modules/sectionhome.js
+  - modules/sound.css
+  - modules/sound.js
+  - modules/streamdesk.css
+  - modules/streamdesk.js
+
+Backup-/Altdateien, die im produktiven htdocs/dashboard NICHT liegen sollten:
+  - app.backup_before_auth_step1_20260502_215422.css.bak
+  - app.backup_before_auth_step1_20260502_215422.js.bak
+  - app.backup_before_auth_step1_fix_v2_20260502_215759.css.bak
+  - app.backup_before_auth_step1_fix_v2_20260502_215759.js.bak
+  - modules/adminconfigs.backup_before_sound_expert_20260502_211117.css.bak
+  - modules/adminconfigs.backup_before_sound_expert_20260502_211117.js.bak
+  - modules/sound.backup_before_alert_style_20260502_202041.css.bak
+  - modules/sound.backup_before_remove_expert_from_sound_page_20260502_210339.js.bak
+  - modules/sound.backup_before_remove_expert_from_sound_page_20260502_210659.js.bak
+  - modules/sound.backup_before_settings_part2a_20260502_204417.css.bak
+  - modules/sound.backup_before_settings_part2a_20260502_204417.js.bak
+  - modules/sound.backup_before_settings_part2b_20260502_205351.css.bak
+  - modules/sound.backup_before_settings_part2b_20260502_205351.js.bak
+  - modules/sound.backup_before_settings_part2b_v2_20260502_205623.css.bak
+  - modules/sound.backup_before_settings_part2b_v2_20260502_205623.js.bak
+  - modules/sound.backup_before_settings_ui_part1_20260502_201251.bak
+  - modules/sound.backup_before_settings_ui_part1_20260502_201330.bak
+  - modules/sound.backup_before_settings_ui_part1_v2_20260502_201510.bak
+  - modules/sound.backup_before_tabs_fix_20260502_203035.js.bak
+  - modules/sound.backup_before_tabs_layout_20260502_202310.css.bak
+  - modules/sound.backup_before_tabs_layout_20260502_202310.js.bak
+  - modules/sound.backup_before_tabs_layout_20260502_202314.css.bak
+  - modules/sound.backup_before_tabs_layout_20260502_202314.js.bak
+  - modules/sound.backup_before_tabs_layout_v3_20260502_202633.css.bak
+  - modules/sound.backup_before_tabs_layout_v3_20260502_202633.js.bak
+
+KURZBEWERTUNG
+- Das Dashboard ist grundsätzlich modular aufgebaut: index.html lädt app.js und danach einzelne Moduldateien aus dashboard/modules/.
+- Die meisten aktiven Module hängen sich an window.CGN oder reagieren auf das Event cgn:module-show.
+- Es gibt aber noch keinen wirklich einheitlichen Modulstandard. Module nutzen unterschiedliche Initialisierungsmuster, unterschiedliche API-Basen, unterschiedliche Config-Strategien und unterschiedlich harte Fallbacks.
+- Für neue Module ist die vorhandene Struktur nutzbar, aber vor weiterer Skalierung sollte ein verbindlicher Modulvertrag festgelegt werden.
+- Auffälligster echter Fehler im Frontend: Mojibake/Encoding-Fehler in adminconfigs.js und sound.js. Texte wie fÃ¼r, GerÃ¤t, Â·, PrioritÃ¤t werden dem Benutzer falsch angezeigt.
+- Ebenfalls wichtig: Backup-Dateien liegen im Dashboard-Archiv. Wenn diese in htdocs landen, sind alte JS/CSS-Stände öffentlich abrufbar und erzeugen Verwechslungsgefahr.
+
+BOOT- UND LADEABLAUF
+1. index.html lädt CSS-Dateien: app.css und je Modul eine CSS-Datei.
+2. index.html definiert feste Panel-Container:
+   - #sectionhomeModule => data-module-panel="sectionhome"
+   - #streamdeskModule => data-module-panel="streamdesk"
+   - #controlhomeModule => data-module-panel="controlhome"
+   - #alertsModule => data-module-panel="alerts"
+   - #obsModule => data-module-panel="obs"
+   - #adminconfigsModule => data-module-panel="adminconfigs"
+   - #soundModule => data-module-panel="sound_system"
+   - #hugModule => data-module-panel="hug"
+3. app.js erstellt window.CGN als globalen Dashboard-Kern.
+4. app.js registriert harte Modul-Metadaten in window.CGN.modules und Navigationsbereiche in window.CGN.sections/moduleCatalog.
+5. app.js ruft refreshAuth() auf und fragt /api/auth/session + /api/auth/status ab.
+6. app.js liest localStorage für aktives Modul und aktive Section.
+7. Bei Modulwechsel setzt app.js Panel sichtbar/unsichtbar und feuert cgn:module-show.
+8. Die Module laden ihre Daten meist erst beim cgn:module-show oder direkt beim Mount.
+
+GLOBALER DASHBOARD-KERN app.js
+- window.CGN.activeModule: aktuell sichtbares Modul, Standard sectionhome.
+- window.CGN.activeSection: aktueller Hauptbereich, Standard live.
+- window.CGN.auth: Auth-Status mit authenticated, user, twitchLoginConfigured.
+- window.CGN.modules: harte Liste aktiver Module mit title, panelId, group, overlayLink und reload().
+- window.CGN.sections: harte Hauptnavigation Live, Control, Community, System, Admin.
+- window.CGN.moduleCatalog: harte Kachel-/Modulliste inklusive vieler vorbereiteter, aber noch deaktivierter Module.
+- window.CGN.favorites: aktuell alerts, hug, obs, sound_system. Wird im geprüften Frontend nicht sichtbar genutzt.
+- window.CGN.api(path, options): zentrale Fetch-Hilfe. Erwartet JSON, wirft bei HTTP-Fehler oder data.ok === false einen Error.
+- window.CGN.el(): kleiner DOM-Helper, im aktuellen Bestand kaum/nicht genutzt.
+- window.CGN.esc(): HTML-Escape für dynamische Texte.
+- setActiveSection(): setzt eine Section und öffnet sectionhome.
+- setActiveModule(): schaltet Panels, Navigation, Titel, Breadcrumb, Overlay-Link und localStorage.
+- reloadActiveModule(): ruft reload() des aktiven Moduls.
+- refreshAuth(): liest Auth-Status und rendert Loginbox.
+
+AUTH IM DASHBOARD
+- Gelesene Routen:
+  - GET /api/auth/session
+  - GET /api/auth/status
+- Aktionen:
+  - POST /api/auth/logout
+  - POST /api/auth/bootstrap-owner-local mit { displayName: "Local Owner" }
+  - Link /api/auth/twitch/login
+- Bewertung: Auth-Anzeige ist eingebaut, aber Frontend-seitig werden Module/Buttons noch nicht konsequent anhand von Rollen/Rechten gesperrt. Viele Texte sagen vorbereitet/gesperrt, echte Rechteprüfung muss backendseitig und in den Modulen noch sauber vereinheitlicht werden.
+
+NAVIGATION UND MODULE
+- Hauptnavigation links besteht aus festen Buttons für Sections, nicht aus Modul-Buttons.
+- Die eigentlichen Modul-Kacheln werden in sectionhome.js aus window.CGN.sections und window.CGN.moduleCatalog generiert.
+- app.js enthält noch Code für .nav-item[data-module]. Solche Elemente existieren in index.html nicht. Das ist vermutlich Altcode/toter Code aus der vorherigen Navigation.
+- Neue Module müssen aktuell an mindestens drei Stellen eingetragen werden:
+  1. index.html: CSS/JS einbinden und section-Container anlegen.
+  2. app.js: window.CGN.modules ergänzen.
+  3. app.js: moduleCatalog ergänzen und in sections.items einem Bereich zuordnen.
+- Besser wäre später: Navigation/Modulkatalog aus config/dashboard_navigation.json oder einer Backend-Route laden. Aktuell ist diese Config im Adminbereich nur vorbereitet, app.js nutzt sie nicht.
+
+MODULSTANDARD - IST-ZUSTAND
+- Gemeinsamer Nenner: Module sind normale Browser-JS-Dateien, meist IIFE, hängen eine globale Variable an window.*Module und reagieren auf cgn:module-show.
+- Es gibt keinen einheitlichen Namen für aktive Unterseiten: alerts nutzt state.page/state.modal, obs nutzt state.activeTab, sound nutzt activeSection, hug nutzt activeTab.
+- Es gibt keinen gemeinsamen Modul-Base-Helper für: root finden, loading/error rendering, Tab-Handling, API-Basis, Rechteprüfung, Toast/Note, Dirty-State, Speichern/Reload.
+- Das ist noch wartbar bei wenigen Modulen, wird aber bei vielen Modulen schnell unübersichtlich.
+
+AKTIVE MODULE IM DETAIL
+
+1) sectionhome.js
+- Zweck: Übersicht/Kachelseite für die aktive Hauptsection.
+- Datenquelle: window.CGN.sections + window.CGN.moduleCatalog + window.CGN.modules.
+- API: keine.
+- Schreiben: nein.
+- Besonderheit: enabled ist nur aktiv, wenn moduleCatalog[id].enabled === true UND window.CGN.modules[id] existiert.
+- Bewertung: sauber und klein. Gute Basis für Startseiten. CSS-Datei ist allerdings leer/Minimaldatei.
+
+2) streamdesk.js
+- Zweck: Live-Bedienoberfläche für schnelle OBS-Szenen und Userinfo.
+- Liest Config über GET /api/dashboard/controlcenter/streamdesk.
+- Fallback-Config hart im Frontend, falls Route fehlt: Titel, Layout, refreshMs, obsQuickScenes, obsQuickControl, userinfo-Endpunkte.
+- Liest Status:
+  - GET /api/obs/dashboard/status
+  - GET /api/alerts/status
+  - GET /api/overlay/chat/status
+- Schreibt/führt aus:
+  - POST /api/obs/scene/switch oder fallback /api/scene/switch
+- Userinfo-Fallbackkette:
+  - /userinfo?login={login}
+  - /api/userinfo?login={login}
+  - /api/twitch/userinfo?login={login}
+- Bewertung: Praktisch, aber Config-Fallback ist im Frontend hart codiert. Schreib-/Speicherfunktion für streamdesk.json gibt es im Dashboard nicht. Userinfo unterstützt mehrere Payload-Formate, was robust ist, aber die API sollte langfristig ein einheitliches Format liefern.
+
+3) controlhome.js
+- Zweck: Control-Bereich-Übersicht mit Links zu Alerts und OBS und vorbereiteten Bereichen.
+- API: keine.
+- Schreiben: nein.
+- Daten sind hart im Modul als Array modules hinterlegt.
+- Bewertung: Einfach, aber ebenfalls hart codiert. Wenn moduleCatalog/Navigation zentralisiert wird, sollte diese Übersicht daraus generiert werden.
+
+4) alerts.js
+- Zweck: Großes Alert Control Center für Status, Regeln, Designs/Profile, Textvarianten, Chat-Textblöcke, Assets, Testpresets, Historie/Replay und Config.
+- Größe: ca. 2073 Zeilen. Das ist ein Monolith.
+- Initiales Laden per Promise.all:
+  - GET /api/alerts/status
+  - GET /api/alerts/rules
+  - GET /api/alerts/assets
+  - GET /api/alerts/text-variants
+  - GET /api/alerts/chat-blocks
+  - GET /api/alerts/test-presets
+  - GET /api/alerts/display-profiles
+- Schreib-/Aktionsrouten:
+  - POST /api/alerts/reload
+  - POST /api/alerts/config
+  - POST /api/alerts/clear
+  - POST /api/alerts/test
+  - POST /api/alerts/assets/upload
+  - POST /api/alerts/assets/scan-durations
+  - DELETE /api/alerts/assets/:id
+  - POST /api/alerts/rules
+  - PUT /api/alerts/rules/:id
+  - DELETE /api/alerts/rules/:id
+  - POST /api/alerts/text-variants
+  - PUT /api/alerts/text-variants/:id
+  - DELETE /api/alerts/text-variants/:id
+  - POST /api/alerts/chat-blocks
+  - PUT /api/alerts/chat-blocks/:id
+  - DELETE /api/alerts/chat-blocks/:id
+  - POST /api/alerts/test-presets
+  - PUT /api/alerts/test-presets/:id
+  - DELETE /api/alerts/test-presets/:id
+  - POST /api/alerts/test-presets/:id/play
+  - POST /api/alerts/display-profiles
+  - PUT /api/alerts/display-profiles/:id
+  - DELETE /api/alerts/display-profiles/:id
+  - POST /api/alerts/display-profiles/:id/play
+  - POST /api/alerts/events/:eventUid/replay
+- Overlay-Links:
+  - /overlays/_overlay-alerts-v2.html
+  - /overlays/_overlay-alerts-v2.html?preview=1&dashboardPreview=1&v=...
+- Config-Schreiben: readConfigForm() sammelt Alert-System-Config aus Formularfeldern und speichert über /api/alerts/config.
+- Regeln: readRuleForm()/normalizeRule()/defaultRule() bauen Regel-Payloads. Toggle nutzt PUT auf komplette Regel mit rulePayloadFromState().
+- Assets: Upload nutzt bewusst fetch statt window.CGN.api wegen FormData.
+- Bewertung: Funktionsreich, aber zu groß. Für weitere Wartung sollte Alerts in Teilmodule gesplittet werden: alerts.api.js, alerts.rules.js, alerts.designs.js, alerts.assets.js, alerts.texts.js, alerts.presets.js, alerts.history.js. Achtung: Nichts entfernen, nur strukturieren.
+
+5) obs.js
+- Zweck: OBS Control Center mit Übersicht, Szenen, Overlays/BrowserSources, Audio, Replay, Config.
+- Eigene Default-Config im Frontend: autoRefreshEnabled, fastRefreshMs, fullRefreshMs, showStatusLine, showPerformance, showOverview, hideInternalScenesOnMain.
+- Liest/schreibt Dashboard-Config:
+  - GET /obs/dashboard/config
+  - POST /obs/dashboard/config mit { config: payload }
+- Liest Status/Listen:
+  - GET /obs/status
+  - GET /obs/scenes
+  - GET /obs/replay/status
+  - GET /obs/audio/state
+  - GET /obs/stats
+  - GET /obs/browser-sources
+  - GET /obs/sources
+- Aktionen:
+  - POST /obs/scene/switch mit { scene }
+  - POST /obs/replay/save
+- Refresh-Konzept:
+  - fastTimer für schnelle Statuswerte.
+  - fullTimer für komplette Listen.
+  - Timer laufen nur sinnvoll, wenn Modul sichtbar ist; Funktion isObsModuleVisible/resetRefreshTimers vorhanden.
+- Interne Szenen: Namen mit führendem Unterstrich werden über isInternalScene erkannt und je nach Config auf der Hauptansicht ausgeblendet.
+- Bewertung: Inhaltlich gut getrennt und mit optionalApi robust gegen fehlende Routen. Ungereimtheit: nutzt /obs/* ohne /api, während Streamdesk /api/obs/* nutzt. Das sollte langfristig vereinheitlicht oder bewusst als Legacy dokumentiert werden.
+
+6) adminconfigs.js
+- Zweck: Admin-Config-Übersicht und Spezialeditor für Sound-System-Expertenwerte.
+- Fallback-Registry im Frontend:
+  - streamdesk -> config/streamdesk.json
+  - dashboard_navigation -> config/dashboard_navigation.json
+  - dashboard_logging -> config/dashboard_logging.json
+  - twitch_dashboard_auth -> config/twitch_dashboard_auth.json
+  - backend_general -> config/dashboard_backend_general.json
+  - sound_system_expert -> SQLite sound_settings + config/sound_system.json
+  - env_strategy -> config/dashboard_env_strategy.json
+- Liest Registry: GET /api/dashboard/controlcenter/admin-configs
+- Liest einzelne Config: GET /api/dashboard/controlcenter/config/:id
+- Spezialfall Sound-System:
+  - GET /api/sound/settings
+  - POST /api/sound/settings
+- Bewertung: Gute Idee als zentrale Config-Seite. Aber aktuell nur Sound-System wirklich schreibbar. Alle anderen sind vorbereitet/readonly. Außerdem enthält diese Datei echte Encoding-Fehler und sollte korrigiert werden.
+
+7) sound.js
+- Zweck: Sound-System-Dashboard mit Status, Output, aktuellem Sound, Queue, Settings, Sounds und Geräteauswahl.
+- API-Basis: /api/sound
+- Initiales Laden:
+  - GET /api/sound/status
+  - GET /api/sound/list
+  - GET /api/sound/devices
+  - GET /api/sound/settings
+- Aktionen:
+  - POST /api/sound/play mit { soundId, source: dashboard, override: true }
+  - GET /api/sound/play?file=opa01.mp3&outputTarget=device&volume=100 für Testausgabe
+  - POST /api/sound/reload
+  - POST /api/sound/stop
+  - POST /api/sound/skip
+  - POST /api/sound/clear
+  - POST /api/sound/output
+  - POST /api/sound/settings
+- Nach Speichern von output/settings wird zusätzlich /api/sound/reload aufgerufen.
+- Overlay-Link: /overlays/sound_system_overlay.html?debug=1
+- Bewertung: Funktional breit. Speichern ist zweigeteilt: Output geht über /output, Laufzeit-/Queue-/Prioritätssettings über /settings. Das kann ok sein, muss aber als API-Vertrag dokumentiert werden. Encoding-Fehler in sichtbaren Texten vorhanden.
+
+8) hug.js
+- Zweck: Hug-System-Übersicht mit Status, DB, Toplisten, Text-/Typen-/Config-/Diagnoseanzeige.
+- Liest: GET /api/dashboard/community/hug/status
+- Aktion: GET/POST-artig über window.CGN.api auf /api/hug/reload. Im Code ohne method, also GET.
+- Schreiben/Bearbeiten: noch nicht aktiv. Buttons sind disabled und Texte sagen Rechte/Audit kommen später.
+- Besonderheit: registerModule() setzt window.CGN.modules.hug nochmal, obwohl hug bereits in app.js registriert ist. Das ist redundant, derzeit aber nicht kaputt.
+- Bewertung: Gutes Readonly-Modul. Für echte Bearbeitung fehlen Listen-/Editier-APIs für Texte/Typen/Config plus Rechte/Audit.
+
+CONFIG LESEN UND SCHREIBEN - IST-ZUSTAND
+- Es gibt keine einheitliche Config-Strategie im Dashboard-Frontend.
+- app.js liest keine Dashboard-Konfiguration vom Backend. Navigation, Sections und Module sind hart codiert.
+- streamdesk.js liest eine Backend-Config, fällt aber auf hart codierte Fallback-Config zurück. Kein Speichern.
+- adminconfigs.js ist als zentrale Config-Ansicht vorbereitet, liest Registry und Configs über /api/dashboard/controlcenter/*, schreibt aber aktuell nur Sound-System-Spezialwerte über /api/sound/settings.
+- obs.js liest/schreibt seine Config über /obs/dashboard/config. Das ist ein separater Config-Weg außerhalb /api/dashboard/controlcenter/config/:id.
+- alerts.js liest/schreibt Alert-System-Config über /api/alerts/config und viele DB-nahe Alert-Ressourcen über eigene CRUD-Routen.
+- sound.js liest/schreibt über /api/sound/settings und /api/sound/output. Nach Schreiben wird reload ausgelöst.
+- hug.js liest nur einen zusammengefassten Dashboard-Status. Kein Config-Schreiben.
+
+EMPFOHLENER CONFIG-STANDARD FÜR NEUE MODULE
+- Jedes Modul sollte eine eigene Backend-Config-Route haben: GET /api/dashboard/<section>/<module>/config und PUT/POST /api/dashboard/<section>/<module>/config oder über den bestehenden Controlcenter-Config-Registry-Ansatz.
+- Readonly-Status separat: GET /api/dashboard/<section>/<module>/status.
+- Schreibende Aktionen separat: POST /api/<module>/<action>.
+- Normale Configs in config/*.json oder SQLite-Settings, aber der Weg muss pro Modul dokumentiert sein.
+- Secrets nie ans Frontend ausgeben. Nur masked/status/hasSecret.
+- Jede Änderung später mit Auth/Rollenprüfung und Audit-Log.
+- Frontend sollte keine produktiven Fallback-Configs enthalten, die zu stark vom Backend abweichen können. Fallbacks sind ok für Anzeige, aber nicht als heimlicher zweiter Source of Truth.
+
+API-ROUTEN, DIE DAS DASHBOARD ERWARTET
+  - GET          /api/auth/session                                       | app.js                       | Auth Session lesen
+  - GET          /api/auth/status                                        | app.js                       | Auth/Twitch-Login Status lesen
+  - POST         /api/auth/logout                                        | app.js                       | Logout
+  - POST         /api/auth/bootstrap-owner-local                         | app.js                       | Lokalen Owner anlegen/einloggen
+  - LINK         /api/auth/twitch/login                                  | app.js                       | Twitch OAuth starten
+  - GET          /api/dashboard/controlcenter/streamdesk                 | streamdesk.js                | Stream-Desk Config lesen
+  - GET          /api/obs/dashboard/status                               | streamdesk.js                | OBS Kurzübersicht lesen
+  - GET          /api/alerts/status                                      | streamdesk.js, alerts.js     | Alert Status lesen
+  - GET          /api/overlay/chat/status                                | streamdesk.js                | Chat Overlay Status lesen
+  - POST         /api/obs/scene/switch                                   | streamdesk.js                | OBS Szene wechseln
+  - POST         /api/scene/switch                                       | streamdesk.js                | Fallback Szene wechseln
+  - GET          /userinfo?login=                                        | streamdesk.js                | Userinfo Legacy
+  - GET          /api/userinfo?login=                                    | streamdesk.js                | Userinfo API
+  - GET          /api/twitch/userinfo?login=                             | streamdesk.js                | Twitch Userinfo
+  - GET          /api/alerts/status                                      | alerts.js                    | Alert Status
+  - GET/POST     /api/alerts/rules                                       | alerts.js                    | Regeln lesen/neu
+  - PUT/DELETE   /api/alerts/rules/:id                                   | alerts.js                    | Regeln ändern/löschen
+  - GET          /api/alerts/assets                                      | alerts.js                    | Assets lesen
+  - POST multipart /api/alerts/assets/upload                               | alerts.js                    | Asset Upload
+  - POST         /api/alerts/assets/scan-durations                       | alerts.js                    | Asset-Dauern scannen
+  - DELETE       /api/alerts/assets/:id                                  | alerts.js                    | Asset löschen
+  - GET/POST     /api/alerts/text-variants                               | alerts.js                    | Textvarianten
+  - PUT/DELETE   /api/alerts/text-variants/:id                           | alerts.js                    | Textvariante ändern/löschen
+  - GET/POST     /api/alerts/chat-blocks                                 | alerts.js                    | Chat-Textblöcke
+  - PUT/DELETE   /api/alerts/chat-blocks/:id                             | alerts.js                    | Chat-Textblock ändern/löschen
+  - GET/POST     /api/alerts/test-presets                                | alerts.js                    | Testpresets
+  - PUT/DELETE   /api/alerts/test-presets/:id                            | alerts.js                    | Testpreset ändern/löschen
+  - POST         /api/alerts/test-presets/:id/play                       | alerts.js                    | Testpreset abspielen
+  - GET/POST     /api/alerts/display-profiles                            | alerts.js                    | Display/Designprofile
+  - PUT/DELETE   /api/alerts/display-profiles/:id                        | alerts.js                    | Designprofil ändern/löschen
+  - POST         /api/alerts/display-profiles/:id/play                   | alerts.js                    | Designprofil live testen
+  - POST         /api/alerts/events/:eventUid/replay                     | alerts.js                    | Alert wiederholen
+  - POST         /api/alerts/test                                        | alerts.js                    | Alert-Test auslösen
+  - POST         /api/alerts/config                                      | alerts.js                    | Alert Config speichern
+  - POST         /api/alerts/clear                                       | alerts.js                    | Alert Queue leeren
+  - POST         /api/alerts/reload                                      | alerts.js                    | Alert API reload
+  - GET/POST     /obs/dashboard/config                                   | obs.js                       | OBS Dashboard Config lesen/speichern
+  - GET          /obs/status                                             | obs.js                       | OBS Status
+  - GET          /obs/scenes                                             | obs.js                       | OBS Szenen
+  - GET          /obs/replay/status                                      | obs.js                       | Replay Status
+  - GET          /obs/audio/state                                        | obs.js                       | Audio State
+  - GET          /obs/stats                                              | obs.js                       | OBS Stats
+  - GET          /obs/browser-sources                                    | obs.js                       | Browser Sources
+  - GET          /obs/sources                                            | obs.js                       | Sources
+  - POST         /obs/scene/switch                                       | obs.js                       | OBS Szene wechseln
+  - POST         /obs/replay/save                                        | obs.js                       | Replay speichern
+  - GET          /api/dashboard/controlcenter/admin-configs              | adminconfigs.js              | Config-Registry lesen
+  - GET          /api/dashboard/controlcenter/config/:id                 | adminconfigs.js              | Config lesen
+  - GET/POST     /api/sound/settings                                     | adminconfigs.js, sound.js    | Sound Settings lesen/speichern
+  - GET          /api/sound/status                                       | sound.js                     | Sound Status
+  - GET          /api/sound/list                                         | sound.js                     | Soundliste
+  - GET          /api/sound/devices                                      | sound.js                     | Audiogeräte
+  - POST         /api/sound/output                                       | sound.js                     | Sound Output speichern
+  - POST         /api/sound/reload                                       | sound.js                     | Sound reload
+  - POST         /api/sound/stop                                         | sound.js                     | Sound stoppen
+  - POST         /api/sound/skip                                         | sound.js                     | Sound skip
+  - POST         /api/sound/clear                                        | sound.js                     | Sound Queue leeren
+  - POST/GET     /api/sound/play                                         | sound.js                     | Sound abspielen/Test
+  - GET          /api/dashboard/community/hug/status                     | hug.js                       | Hug Dashboard Status
+  - GET          /api/hug/reload                                         | hug.js                       | Hug Reload testen
+
+UNGEREIMTHEITEN / FEHLER / RISIKEN
+1. Encoding/Mojibake
+   - Betroffen: modules/adminconfigs.js und modules/sound.js.
+   - Beispiele: fÃ¼r statt für, GerÃ¤t statt Gerät, PrioritÃ¤t statt Priorität, Â· statt ·.
+   - Auswirkung: sichtbare UI-Texte sehen kaputt aus. Muss korrigiert werden.
+
+2. Backup-Dateien im Dashboard
+   - Viele *.bak und backup_before_*.js/css liegen im Dashboard-Verzeichnis.
+   - Risiko: werden öffentlich über /dashboard/... auslieferbar, blähen Deployment auf, erschweren Analyse und können bei manueller Arbeit verwechselt werden.
+   - Empfehlung: aus htdocs/dashboard entfernen und in docs/archive oder _backup außerhalb Webroot ablegen.
+
+3. Uneinheitliche API-Präfixe
+   - Streamdesk nutzt /api/obs/...
+   - OBS-Modul nutzt /obs/...
+   - Streamdesk hat zusätzlich /api/scene/switch fallback.
+   - Empfehlung: ein offizieller Pfad je Funktion. Legacy-Routen dürfen bleiben, aber Dashboard sollte auf den offiziellen Pfad zeigen.
+
+4. Navigation ist nicht wirklich config-getrieben
+   - Adminconfigs kennt dashboard_navigation.json, app.js nutzt sie aber nicht.
+   - Neue Module müssen hart in app.js und index.html eingetragen werden.
+   - Empfehlung: mittelfristig Modul-/Navigation-Registry vom Backend laden.
+
+5. Config-Schreiben ist pro Modul anders
+   - Alerts: /api/alerts/config plus viele CRUD-Routen.
+   - OBS: /obs/dashboard/config.
+   - Sound: /api/sound/settings und /api/sound/output.
+   - AdminConfigs: /api/dashboard/controlcenter/config/:id nur lesen, Sound-Spezialfall schreibt direkt.
+   - Empfehlung: einheitlicher Config-Vertrag und je Modul Dokumentation.
+
+6. Fehlende zentrale Rechteprüfung im Frontend
+   - Auth wird angezeigt, aber Buttons/Module werden nicht systematisch anhand von Permissions deaktiviert.
+   - OBS-Modul definiert PERMISSIONS, nutzt sie im Frontend aber nicht sichtbar zur Freigabe.
+   - Wichtig: Backend muss ohnehin final entscheiden. Frontend sollte zusätzlich sauber anzeigen/verstecken/deaktivieren.
+
+7. Toter/alter Navigationscode
+   - app.js sucht .nav-item[data-module], index.html hat aber nur .nav-main-item und Section-Kacheln.
+   - Vermutlich Altcode. Nicht kritisch, aber aufräumen oder an neue Navigation anpassen.
+
+8. Alert-Modul ist zu groß
+   - alerts.js mit über 2000 Zeilen enthält API, State, Renderlogik, Tabellen, Modals, Preview, Upload und Tests in einer Datei.
+   - Funktioniert, wird aber bei weiteren Änderungen fehleranfällig.
+   - Empfehlung: behutsam splitten, ohne Funktionalität zu entfernen.
+
+9. Unterschiedliche Fehlerbehandlung
+   - app.js/api wirft Error.
+   - OBS nutzt optionalApi und zeigt teilweise degradierte Panels.
+   - Alerts bricht beim initialen Promise.all komplett ab, wenn eine Route fehlt.
+   - Streamdesk schluckt Statusfehler still.
+   - Empfehlung: gemeinsamer Fehler-/Partial-Load-Standard.
+
+10. Upload geht an window.CGN.api vorbei
+   - In alerts.js wird /api/alerts/assets/upload direkt mit fetch(FormData) genutzt. Das ist technisch ok, aber wenn Auth-Header/CSRF später zentral in CGN.api ergänzt werden, muss Upload separat nachgezogen werden.
+
+11. CSS-Organisation uneinheitlich
+   - alerts.css und sound.css sind groß.
+   - sectionhome.css/controlhome.css/hug.css sind leer oder fast leer.
+   - Einige Auth-Styles werden direkt per JS in app.js injiziert statt in app.css.
+   - Empfehlung: UI-Basis in app.css, Modulstyles in jeweilige Modul-CSS, keine größeren Styleblöcke per JS außer echte dynamische Notfälle.
+
+12. Source of Truth teilweise doppelt
+   - moduleCatalog in app.js, controlhome modules array, adminconfigs fallbackRegistry und Streamdesk fallbackConfig überschneiden sich teilweise mit Backend-Configs.
+   - Empfehlung: eine Backend-Registry für Module/Configs, Frontend-Fallback nur minimal.
+
+NEUES MODUL INTEGRIEREN - AKTUELLER PRAKTISCHER WEG
+1. Datei anlegen: dashboard/modules/<modul>.js
+2. Datei anlegen: dashboard/modules/<modul>.css
+3. index.html ergänzen:
+   - <link rel="stylesheet" href="/dashboard/modules/<modul>.css" />
+   - <section id="<modul>Module" class="dashboard-module <modul>-admin" data-module-panel="<modul>" hidden></section>
+   - <script src="/dashboard/modules/<modul>.js"></script>
+4. app.js window.CGN.modules ergänzen:
+   <modul>: { title, panelId:"<modul>Module", group:"community|control|system|admin|live", overlayLink:"", reload(){ return window.<ModulName>Module?.loadAll?.(true); } }
+5. app.js moduleCatalog ergänzen:
+   <modul>: { label, icon, enabled:true, description }
+6. app.js sections.<bereich>.items ergänzen, damit die Kachel auftaucht.
+7. Modul-JS nach Standard aufbauen:
+   - IIFE mit root = document.getElementById("<modul>Module")
+   - lokales state-Objekt
+   - esc() über window.CGN.esc
+   - api() über window.CGN.api
+   - renderShell(), render(), bindActions(), loadAll(force)
+   - window.addEventListener("cgn:module-show", event => { if (event.detail?.module === "<modul>") loadAll(true); })
+   - window.<ModulName>Module = { loadAll }
+8. Backend-Routen vorher festlegen und im Modul nur diese offiziellen Routen verwenden.
+9. Config-Lesen/Speichern dokumentieren: Datei/DB, Route, Payload, Rechte, Reload nötig ja/nein.
+10. Keine Funktionen entfernen: Bei Umbauten erst stabilen Stand kopieren, dann refactor in kleinen Schritten.
+
+EMPFOHLENER MODUL-JS-SKELETTSTANDARD
+(function(){
+  const root = document.getElementById('<modul>Module');
+  if (!root) return;
+
+  const state = {
+    loading: false,
+    error: '',
+    note: '',
+    data: null,
+    activeTab: 'overview'
+  };
+
+  function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
+  async function api(path, options){ return window.CGN.api(path, options || {}); }
+
+  function render(){
+    if (!root) return;
+    if (state.loading) { root.innerHTML = '<section class="card glass"><h2>Lädt...</h2></section>'; return; }
+    if (state.error) { root.innerHTML = `<section class="card glass"><h2>Fehler</h2><p class="bad">${esc(state.error)}</p></section>`; return; }
+    root.innerHTML = `...`;
+    bindActions();
+  }
+
+  function bindActions(){
+    // Eventdelegation bevorzugen, nicht nach jedem Render unkontrolliert neue Listener stapeln.
+  }
+
+  async function loadAll(force){
+    if (state.loading && !force) return;
+    state.loading = true;
+    state.error = '';
+    render();
+    try {
+      state.data = await api('/api/dashboard/<section>/<modul>/status');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.loading = false;
+      render();
+    }
+  }
+
+  window.addEventListener('cgn:module-show', event => {
+    if (event.detail?.module === '<modul>') loadAll(true);
+  });
+
+  window.<ModulName>Module = { loadAll };
+})();
+
+EMPFOHLENE PRIORITÄTEN
+Priorität 1 - Sofort sauber machen:
+- Encoding-Fehler in adminconfigs.js und sound.js korrigieren.
+- Backup-Dateien aus dem produktiven Dashboard entfernen.
+- Offizielle OBS-Routen festlegen: /api/obs/* oder /obs/*, dann Dashboard vereinheitlichen.
+
+Priorität 2 - Modulstandard festlegen:
+- Einheitlicher Modul-Skeleton für neue Module.
+- Einheitliches Tab-/Loading-/Error-/Note-Verhalten.
+- Einheitliche Config-Lese-/Schreibroute pro Modul.
+- Zentrale Permission-Anzeige im Frontend vorbereiten.
+
+Priorität 3 - Struktur verbessern ohne Funktionsverlust:
+- alerts.js in logische Teilbereiche splitten.
+- app.js Navigation mittelfristig aus Backend-Registry laden.
+- controlhome.js aus moduleCatalog/Registry generieren statt eigener Liste.
+- AdminConfigs zu echter zentraler Config-Verwaltung ausbauen, aber mit Auth/Audit als Pflicht.
+
+FAZIT
+- Das Dashboard ist als Grundlage brauchbar und hat bereits klare Bereiche: Live, Control, Community, System, Admin.
+- Die vorhandenen Module zeigen, wie neue Module funktionieren können, aber es gibt noch keinen harten, einheitlichen Standard.
+- Für neue Module sollte ab jetzt ein gemeinsamer Modulvertrag verwendet werden, sonst entstehen weitere Sonderfälle.
+- Wichtigster technischer nächster Schritt: echten Backend-/Config-Stand zusätzlich analysieren, damit diese Frontend-Übersicht mit echten Dateien, Routenimplementierungen, Config-Schemas und Datenbanktabellen abgeglichen werden kann.

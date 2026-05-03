@@ -1,0 +1,855 @@
+FORRESTCGN - OVERLAY / DASHBOARD IST-STAND ANALYSE
+Stand der Analyse: 2026-05-03
+Quelle: overlays.zip
+Analysierter Root im Archiv: overlays/
+
+==========================================================================================
+1. KURZFAZIT
+==========================================================================================
+Dieses Archiv enthält den Overlay-Bestand, aber keine vollständige Dashboard-Codebasis.
+Nicht enthalten sind insbesondere typische Dashboard-Dateien wie htdocs/dashboard/index.html, dashboard-modul-js/css, Backend-Module unter backend/modules oder Config-Dateien unter config/.
+Damit kann der Overlay-/Client-Aufbau vollständig aus diesem ZIP dokumentiert werden; das eigentliche Schreiben/Lesen von Configs im Backend kann hier nur über die verwendeten Client-Endpunkte abgeleitet werden.
+
+Wichtigster Befund: Die Overlays sind historisch gewachsen und nicht einheitlich aufgebaut. Es gibt mehrere Generationen gleicher Overlays, direkte localhost-URLs, relative /api-Endpunkte, mehrere WebSocket-Implementierungen, alte Backup-/Alt-Dateien und sehr große monolithische HTML-Dateien. Für neue Module sollte ein einheitliches Pattern festgelegt werden.
+
+Konkrete Auffälligkeiten:
+- Keine zentrale Overlay-Client-Library, obwohl sich WebSocket, Fetch, Reconnect, Escape, Statusanzeige und Cache-Busting mehrfach wiederholen.
+- Gemischte API-Basis: teils relative /api/..., teils http://localhost:8080/..., teils http://127.0.0.1:8080/....
+- WebSocket teils dynamisch über location.host, teils hart auf localhost/127.0.0.1 gesetzt.
+- Mehrere Versions-/Backup-Dateien liegen direkt produktiv neben den aktiven Overlays: .bak, .alt, .new.
+- Start/Pause/Alert-Overlays sind sehr groß und enthalten CSS, HTML und JS komplett in einer Datei. Wartung ist dadurch fehleranfällig.
+- Einige Overlays laden externe Fonts/Skripte/CDNs oder Twitch-GQL direkt aus dem Browser. Für OBS-Browserquellen ist das unnötig fragil.
+- Fireworks ist ein Fremd-/Legacy-System mit eigener localStorage-Konfiguration und eigenen alten WebSocket-Zielen.
+
+==========================================================================================
+2. ARCHIV-STRUKTUR
+==========================================================================================
+Anzahl Dateien gesamt: 45
+
+- 25-10-08 - Alerts-l?uft.html (8,172 Bytes)
+- MyMath.js (2,171 Bytes)
+- Stage-0.1.4.js (10,192 Bytes)
+- _overlay-alert1.html (18,856 Bytes)
+- _overlay-alerts-v2.backup_before_visual_lead.html.bak (115,373 Bytes)
+- _overlay-alerts-v2.html (117,302 Bytes)
+- _overlay-alerts-v2.html.alt (7,949 Bytes)
+- _overlay-birthday.html (12,982 Bytes)
+- _overlay-challenge_neu.html (4,293 Bytes)
+- _overlay-challenge_status.html (10,334 Bytes)
+- _overlay-clip_player.html (8,624 Bytes)
+- _overlay-deathcounter-v2.html (21,980 Bytes)
+- _overlay-easteregg_winner.html (4,327 Bytes)
+- _overlay-ende.html (28,300 Bytes)
+- _overlay-ende.html.alt (10,188 Bytes)
+- _overlay-fireworks.html (351 Bytes)
+- _overlay-megashoutout.html (5,530 Bytes)
+- _overlay-pause.html (379,292 Bytes)
+- _overlay-start-v2-neon-galaxy.html (407,688 Bytes)
+- _overlay-start-v2-neon-galaxy.html.new (67,442 Bytes)
+- _overlay-start-v2.html (19,559 Bytes)
+- _overlay-start.html (13,224 Bytes)
+- _overlay-tts.html (6,487 Bytes)
+- _overlay-vip30.html (10,996 Bytes)
+- _rahmen.html (1,487 Bytes)
+- _ws-listener.html (768 Bytes)
+- assets/images/cosmic_nebula_in_vibrant_colors.png (2,001,614 Bytes)
+- assets/images/cosmic_portal_with_glowing_rings.png (1,807,162 Bytes)
+- audio/burst-sm-1.mp3 (28,992 Bytes)
+- audio/burst-sm-2.mp3 (25,344 Bytes)
+- audio/burst1.mp3 (34,512 Bytes)
+- audio/burst2.mp3 (32,208 Bytes)
+- audio/crackle-sm-1.mp3 (42,240 Bytes)
+- audio/crackle1.mp3 (40,608 Bytes)
+- audio/lift1.mp3 (8,500 Bytes)
+- audio/lift2.mp3 (8,108 Bytes)
+- audio/lift3.mp3 (7,561 Bytes)
+- audioblobs.js (0 Bytes)
+- fireworks.css (7,840 Bytes)
+- fireworks.html (6,655 Bytes)
+- fireworks.js (378,124 Bytes)
+- fscreen-1.0.1.js (2,486 Bytes)
+- sound_system_overlay.html (11,087 Bytes)
+- vip_sound_overlay.html (19,768 Bytes)
+- ws-client.js (1,825 Bytes)
+
+==========================================================================================
+3. DATEIEN UND AUFGABEN
+==========================================================================================
+--- 25-10-08 - Alerts-l?uft.html
+    Größe/Zeilen: 8,172 Bytes / 264 Zeilen
+    Title: CGN Alert v1.3.3 (Follow-Badge Glow)
+    Wichtige Funktionen: bezier, edgePoint, spawnSpark, fly, step, run, rand
+
+--- MyMath.js
+    Größe/Zeilen: 2,171 Bytes / 72 Zeilen
+    Wichtige Funktionen: MyMathFactory, randomChoice, clamp
+
+--- Stage-0.1.4.js
+    Größe/Zeilen: 10,192 Bytes / 304 Zeilen
+    Erkannte WS op/type-Nachrichten: mousemove, mouseup, start, touchend, touchmove
+    Wichtige Funktionen: TickerFactory, addListener, queueFrame, frameHandler, StageFactory, Stage, addEventListener, dispatchEvent, resize, windowToCanvas, mouseHandler, touchHandler, pointerEvent
+
+--- _overlay-alert1.html
+    Größe/Zeilen: 18,856 Bytes / 645 Zeilen
+    Title: CGN Alert
+    Aufgabe/Einschätzung: Älteres CGN-Alert-Overlay über URL-Parameter. Enthält Sound-/Avatar-/Bits-Tier-Logik direkt im HTML.
+    Genutzte URLs/Endpoints:
+      - https://fonts.googleapis.com
+      - https://fonts.googleapis.com/css2?family=Pacifico&display=swap
+      - https://fonts.gstatic.com
+    Wichtige Funktionen: getQueryParams, configureAvatar, getBitsTierConfig, selectSound, buildText, playAlertSound, safeEnd, showAlert
+
+--- _overlay-alerts-v2.backup_before_visual_lead.html.bak
+    Größe/Zeilen: 115,373 Bytes / 2255 Zeilen
+    Title: ForrestCGN Alerts V2
+    Aufgabe/Einschätzung: Backup des Alert-V2-Overlays vor visuellen Änderungen. Sollte nicht produktiv als aktive OBS-Quelle genutzt werden.
+    Genutzte URLs/Endpoints:
+      - http://www.w3.org/2000/svg
+      - https://static-cdn.jtvnw.net/jtv_user_pictures/bd8363e2-eacf-4805-831f-7a1bce3cc514-profile_image-300x300.png
+    WebSocket-Verbindung:
+      - `${proto}//${location.host}`
+    Erkannte WS op/type-Nachrichten: alert_system, bits
+    Wichtige Funktionen: stageMetrics, applyCardRenderMetrics, updateStageScale, connect, send, playAlert, displaySettings, displayClasses, cardWidth, cardHeight, buildAvatarSlot, firstInitial, chooseBadgeImage, chooseAvatar, chooseBadgeSvg, svgCgnCore, svgBadgeOrbit, svgBadgeHex, svgBadgeShield, svgBadgeWave, svgBadgeCgn, svgBadgeDotgrid, svgBadgeTriad, svgBadgeSlash, svgBadgeDoubleRing, svgBadgeCross, svgBadgeCube, svgBadgeBolt, svgBadgeRing, svgBadgePulse, svgBadgeMinimal, svgHeart, svgDiamond, svgCrown, svgPortal ...
+
+--- _overlay-alerts-v2.html
+    Größe/Zeilen: 117,302 Bytes / 2317 Zeilen
+    Title: ForrestCGN Alerts V2
+    Aufgabe/Einschätzung: Aktuelles großes Alert-V2-Overlay. WebSocket-basiert, hört auf alert_system und zusätzlich sound_system, rendert Alertkarte, Avatar/Badge/Sound/Celebration.
+    Genutzte URLs/Endpoints:
+      - http://www.w3.org/2000/svg
+      - https://static-cdn.jtvnw.net/jtv_user_pictures/bd8363e2-eacf-4805-831f-7a1bce3cc514-profile_image-300x300.png
+    WebSocket-Verbindung:
+      - `${proto}//${location.host}`
+    Erkannte WS op/type-Nachrichten: alert_system, bits, sound_system
+    Wichtige Funktionen: stageMetrics, applyCardRenderMetrics, updateStageScale, connect, preparedAlertId, prepareAlert, soundVisualEventId, isAlertVisualItem, handleSoundSystemEvent, send, playAlert, displaySettings, displayClasses, cardWidth, cardHeight, buildAvatarSlot, firstInitial, chooseBadgeImage, chooseAvatar, chooseBadgeSvg, svgCgnCore, svgBadgeOrbit, svgBadgeHex, svgBadgeShield, svgBadgeWave, svgBadgeCgn, svgBadgeDotgrid, svgBadgeTriad, svgBadgeSlash, svgBadgeDoubleRing, svgBadgeCross, svgBadgeCube, svgBadgeBolt, svgBadgeRing, svgBadgePulse ...
+
+--- _overlay-alerts-v2.html.alt
+    Größe/Zeilen: 7,949 Bytes / 133 Zeilen
+    Title: ForrestCGN Alerts V2
+    Aufgabe/Einschätzung: Stark vereinfachte Alt-Version von Alert V2. Nur als Referenz/Backup behandeln.
+    WebSocket-Verbindung:
+      - `${proto}//${location.host}`
+    Erkannte WS op/type-Nachrichten: alert_system
+    Wichtige Funktionen: connect, send, playAlert, chooseImage, clearAlert, escapeHtml, escapeAttr, escapeCss
+
+--- _overlay-birthday.html
+    Größe/Zeilen: 12,982 Bytes / 458 Zeilen
+    Title: Birthday Overlay
+    Aufgabe/Einschätzung: Birthday-Overlay über URL-Parameter user, mit Partikel-/Sound-/Auto-Hide-Logik.
+    Erkannte WS op/type-Nachrichten: 12%, 20%, 50%, 55%
+    Query-Parameter: user
+    Wichtige Funktionen: delayedAudioStart, startAutoHide, spawnDots, spawnConfetti, spawnBalloons, spawnNameParticles
+
+--- _overlay-challenge_neu.html
+    Größe/Zeilen: 4,293 Bytes / 174 Zeilen
+    Title: Challenge Overlay
+    Aufgabe/Einschätzung: Älteres Challenge-Queue-Overlay. WebSocket hart auf ws://localhost:8080.
+    WebSocket-Verbindung:
+      - "ws://localhost:8080"
+    Erkannte WS op/type-Nachrichten: challenge
+    Wichtige Funktionen: addChallenge, runNext, showChallenge, updateTime, finish
+
+--- _overlay-challenge_status.html
+    Größe/Zeilen: 10,334 Bytes / 304 Zeilen
+    Title: Challenge Overlay V2
+    Aufgabe/Einschätzung: Aktuelles Challenge-Status-Overlay V2. WebSocket-basiert, zeigt Challenge-Modus/Countdown, Sounds lokal aus assets/sounds.
+    Genutzte URLs/Endpoints:
+      - http://localhost:8080
+      - http://localhost:8080/ws-client.js
+      - https://fonts.googleapis.com/css?family=Montserrat:700,900&display=swap
+    WebSocket-Verbindung:
+      - "ws://localhost:8080"
+    Erkannte WS op/type-Nachrichten: challenge, challenge_status
+    Wichtige Funktionen: formatTime, playUrl, fallbackSound, normalizeEntry, escapeHtml, buildChallengeHTML, ensureBox, removeBox, updateCountdown, renderState, handleChallengeMessage, addChallenge
+
+--- _overlay-clip_player.html
+    Größe/Zeilen: 8,624 Bytes / 306 Zeilen
+    Title: CGN Clip Shoutout (VIP30 Style)
+    Aufgabe/Einschätzung: Clip-Player/Shoutout-Overlay. Holt Userinfo lokal und nutzt Twitch GraphQL direkt für Clip-Daten.
+    Genutzte URLs/Endpoints:
+      - http://localhost:8080/userinfo?login=
+      - https://fonts.googleapis.com
+      - https://fonts.googleapis.com/css2?family=Pacifico&display=swap
+      - https://fonts.gstatic.com
+      - https://gql.twitch.tv/gql
+    Wichtige Funktionen: qs, setAvatarAndName, loadClip, play
+
+--- _overlay-deathcounter-v2.html
+    Größe/Zeilen: 21,980 Bytes / 757 Zeilen
+    Title: Deathcounter V2 Dynamic Layout
+    Aufgabe/Einschätzung: Deathcounter V2 Overlay. Liest /api/deathcounter/v2/state und /overlay, WebSocket-Reconnect, dynamisches Layout/Marquee.
+    Genutzte URLs/Endpoints:
+      - /api/deathcounter/v2/overlay
+      - /api/deathcounter/v2/state
+    WebSocket-Verbindung:
+      - normalizeWsUrl(
+    Erkannte WS op/type-Nachrichten: deathcounter_v2_overlay_changed
+    Wichtige Funktionen: stopMarqueeFor, startMarqueeFor, ensureMarqueeLoop, setTextAsSpans, playNameExplosion, animateCount, applyMarquee, normalizeWsUrl, extractOverlayVisible, setOverlayVisible, mapPlayersById, getDisplayPlayers, getSession, getName, buildRenderSignature, maybeRender, makeName, makeCount, makeSep, updateAnimations, clearRefs, render, fetchJson, syncAll, handleWsMessage, connectWs, tick
+
+--- _overlay-easteregg_winner.html
+    Größe/Zeilen: 4,327 Bytes / 157 Zeilen
+    Title: Easter Egg Winner
+    Aufgabe/Einschätzung: Easteregg-Winner Overlay über Query-Parameter.
+    Genutzte URLs/Endpoints:
+      - https://fonts.googleapis.com
+      - https://fonts.googleapis.com/css2?family=Pacifico&display=swap
+      - https://fonts.gstatic.com
+    Wichtige Funktionen: qp
+
+--- _overlay-ende.html
+    Größe/Zeilen: 28,300 Bytes / 964 Zeilen
+    Title: Ende Overlay (Credits) – Neon Galaxy STEP113
+    Aufgabe/Einschätzung: Ende-/Credits-Overlay Neon Galaxy. Holt Credits von localhost:8080/credits bzw. creditsUrl Query-Parameter.
+    Genutzte URLs/Endpoints:
+      - http://localhost:8080/credits
+    Query-Parameter: creditsUrl, debug
+    Wichtige Funktionen: debugLog, safeJson, escapeHtml, buildListHTML, sortAndFilterCredits, accept, getEventCategory, animateVerticalScroll, buildRaidSubline, scrollSubline, lower
+
+--- _overlay-ende.html.alt
+    Größe/Zeilen: 10,188 Bytes / 301 Zeilen
+    Title: Ende Overlay (Credits)
+    Aufgabe/Einschätzung: Ältere/alternative Ende-Overlay-Version.
+    Genutzte URLs/Endpoints:
+      - http://localhost:8080/credits
+    Wichtige Funktionen: buildListHTML, sortAndFilterCredits, accept, getEventCategory, animateVerticalScroll, buildRaidSubline, scrollSubline, lower
+
+--- _overlay-fireworks.html
+    Größe/Zeilen: 351 Bytes / 16 Zeilen
+    Aufgabe/Einschätzung: Minimaler Wrapper mit Canvas für Fireworks.
+
+--- _overlay-megashoutout.html
+    Größe/Zeilen: 5,530 Bytes / 175 Zeilen
+    Title: Mega Shoutout
+    Aufgabe/Einschätzung: Mega-Shoutout-Overlay. Rein URL-Parameter-basiert für Avatar, Name, Headline/Subline/Sound.
+    Wichtige Funktionen: getUrlParam, updateFromStreamerBot
+
+--- _overlay-pause.html
+    Größe/Zeilen: 379,292 Bytes / 1274 Zeilen
+    Title: ForrestCGN Pause Overlay – Neon Galaxy v2 – STEP107
+    Aufgabe/Einschätzung: Großes Pause-Overlay Neon Galaxy. Nutzt Startdaten und Chat-Status/Debug als Snapshot-Fallback plus WebSocket-Chat.
+    Genutzte URLs/Endpoints:
+      - /api/overlay/chat/debug
+      - /api/overlay/chat/status
+      - /api/overlay/start-data
+    WebSocket-Verbindung:
+      - wsUrl(
+    Erkannte WS op/type-Nachrichten: chat_clear, chat_message, chat_snapshot, chat_snapshot_request, emote, overlay_chat_snapshot, overlay_chat_snapshot_request, overlay_hello, start_chat_clear, start_chat_message, start_chat_snapshot, start_chat_snapshot_request
+    Query-Parameter: chat, chatMax, chatRefreshMs, debug
+    Wichtige Funktionen: dlog, escapeDisplayText, setChatStatus, createChatTextNode, appendChatSegments, renderChatList, renderDemoChat, addChatMessage, clearChatMessages, wsUrl, normalizeChatItem, isChatItemLike, findChatArrays, chatSignature, pickChatItems, extractChatSnapshotItems, refreshChatSnapshot, requestChatSnapshot, startChatSnapshotPolling, connectChatWebSocket, fetchOverlayData, setData, st, msg, norm, append, render, json, load
+
+--- _overlay-start-v2-neon-galaxy.html
+    Größe/Zeilen: 407,688 Bytes / 2642 Zeilen
+    Title: ForrestCGN Start Overlay – Neon Galaxy v2 – STEP100
+    Aufgabe/Einschätzung: Aktuelles großes Start-Overlay Neon Galaxy v2. Liest Startdaten und Start-Konfig, nutzt Chat-WebSocket, Rotator, Audio-Playlist, Background-Mapping.
+    Genutzte URLs/Endpoints:
+      - /api/overlay/start-data
+      - /api/overlay/start/config
+    WebSocket-Verbindung:
+      - wsUrl(
+    Erkannte WS op/type-Nachrichten: chat_message, emote, overlay_hello, start_chat_clear, start_chat_message, start_chat_snapshot, start_overlay_config
+    Wichtige Funktionen: cacheBust, dlog, setNowPlaying, setLoading, formatTime, startCounter, safeJson, fetchOverlayData, fetchStreamInfo, fetchBackgrounds, fetchStartOverlayConfig, applyStartOverlayConfig, setBackgroundForGame, toggleTT, runMarquee, step, buildSequence, norm, itemKey, findByFileOrName, pickTwo, startAudioOnce, playIndex, playNextWithGap, escapeDisplayText, setChatStatus, createChatTextNode, appendChatSegments, renderChatList, renderDemoChat, addChatMessage, clearChatMessages, wsUrl, connectChatWebSocket, getFollowStartIndex ...
+
+--- _overlay-start-v2-neon-galaxy.html.new
+    Größe/Zeilen: 67,442 Bytes / 2542 Zeilen
+    Title: ForrestCGN Start Overlay – Neon Galaxy v2
+    Aufgabe/Einschätzung: Alternative/neuere Zwischenfassung des Start-Overlays. Inhaltlich ähnlich, aber deutlich kleiner. Muss manuell gegen die aktive Datei verglichen werden, bevor sie ersetzt wird.
+    Genutzte URLs/Endpoints:
+      - /api/overlay/start-data
+      - /api/overlay/start/config
+    WebSocket-Verbindung:
+      - wsUrl(
+    Erkannte WS op/type-Nachrichten: chat_message, emote, overlay_hello, start_chat_clear, start_chat_message, start_chat_snapshot, start_overlay_config
+    Wichtige Funktionen: cacheBust, dlog, setNowPlaying, setLoading, formatTime, startCounter, safeJson, fetchOverlayData, fetchStreamInfo, fetchBackgrounds, fetchStartOverlayConfig, applyStartOverlayConfig, setBackgroundForGame, toggleTT, runMarquee, step, buildSequence, norm, itemKey, findByFileOrName, pickTwo, startAudioOnce, playIndex, playNextWithGap, escapeDisplayText, setChatStatus, createChatTextNode, appendChatSegments, renderChatList, renderDemoChat, addChatMessage, clearChatMessages, wsUrl, connectChatWebSocket, getFollowStartIndex ...
+
+--- _overlay-start-v2.html
+    Größe/Zeilen: 19,559 Bytes / 377 Zeilen
+    Title: Start Overlay â€“ CGN dual-path border soft transition
+    Aufgabe/Einschätzung: Älteres Start-V2-Overlay. Nutzt /api/overlay/start-data und lokale startsoundlist.json.
+    Genutzte URLs/Endpoints:
+      - /api/overlay/start-data
+      - http://localhost:8080/assets/sounds/start/startsoundlist.json
+      - http://www.w3.org/2000/svg
+    Wichtige Funktionen: setNowPlaying, buildRunner, placeCounter, formatTime, startCounter, safeJson, fetchOverlayData, fetchStreamInfo, fetchBackgrounds, setBackgroundForGame, toggleTT, runMarquee, step, buildSequence, pickTwo, startAudioOnce, playIndex, playNextWithGap, updateOverlay, init, qid, cacheBust, dlog, animatePath
+
+--- _overlay-start.html
+    Größe/Zeilen: 13,224 Bytes / 241 Zeilen
+    Title: Start Overlay â€“ v16 (3s Gaps)
+    Aufgabe/Einschätzung: Noch ältere Start-Overlay-Version. Nutzt /api/overlay/start-data und lokale startsoundlist.json.
+    Genutzte URLs/Endpoints:
+      - /api/overlay/start-data
+      - http://localhost:8080/assets/sounds/start/startsoundlist.json
+    Wichtige Funktionen: setNowPlaying, placeCounter, formatTime, startCounter, safeJson, fetchOverlayData, fetchStreamInfo, fetchBackgrounds, setBackgroundForGame, toggleTT, runMarquee, step, buildSequence, pickTwo, startAudioOnce, playIndex, playNextWithGap, updateOverlay, init, qid, cacheBust, dlog
+
+--- _overlay-tts.html
+    Größe/Zeilen: 6,487 Bytes / 268 Zeilen
+    Title: ForrestCGN TTS Overlay
+    Aufgabe/Einschätzung: TTS Overlay. WebSocket hört tts_play/tts_stop, meldet Fertig über /api/tts/done?id=...
+    Genutzte URLs/Endpoints:
+      - /api/tts/done?id=${encodeURIComponent(id
+    WebSocket-Verbindung:
+      - wsUrl(
+    Erkannte WS op/type-Nachrichten: tts_play, tts_stop
+    Wichtige Funktionen: wsUrl, show, hide, markDone, stopAudio, connect
+
+--- _overlay-vip30.html
+    Größe/Zeilen: 10,996 Bytes / 408 Zeilen
+    Title: VIP 30 Tage Alert
+    Aufgabe/Einschätzung: Älteres VIP-30-Tage-Alert-Overlay über Query-Parameter.
+    Genutzte URLs/Endpoints:
+      - https://fonts.googleapis.com
+      - https://fonts.googleapis.com/css2?family=Pacifico&display=swap
+      - https://fonts.gstatic.com
+    Wichtige Funktionen: getQueryParams, configureAvatar, playVipSound, safeEnd, showVipAlert
+
+--- _rahmen.html
+    Größe/Zeilen: 1,487 Bytes / 67 Zeilen
+    Title: Bildrahmen Overlay
+    Aufgabe/Einschätzung: Einfaches Bildrahmen-Overlay ohne Backend-Anbindung.
+
+--- _ws-listener.html
+    Größe/Zeilen: 768 Bytes / 23 Zeilen
+    Title: WS Listener
+    Aufgabe/Einschätzung: Sehr einfacher WebSocket-Testlistener gegen ws://127.0.0.1:8080/.
+    WebSocket-Verbindung:
+      - "ws://127.0.0.1:8080/"
+
+--- audioblobs.js
+    Größe/Zeilen: 0 Bytes / 1 Zeilen
+
+--- fireworks.css
+    Größe/Zeilen: 7,840 Bytes / 343 Zeilen
+
+--- fireworks.html
+    Größe/Zeilen: 6,655 Bytes / 128 Zeilen
+    Title: OmgItsFireworks
+    Aufgabe/Einschätzung: Original/Legacy Fireworks-UI mit externem jQuery-CDN.
+    Genutzte URLs/Endpoints:
+      - http://www.w3.org/2000/svg
+      - https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
+      - https://cmiller.tech/
+      - https://codepen.io/MillerTime/pen/XgpNwb
+
+--- fireworks.js
+    Größe/Zeilen: 378,124 Bytes / 2548 Zeilen
+    Aufgabe/Einschätzung: Großes Fireworks-Script mit eigener Store-/localStorage-Konfiguration und alten WebSocket-Zielen.
+    WebSocket-Verbindung:
+      - "ws://127.0.0.1:3337/streamlabs"
+      - "ws://127.0.0.1:8087/"
+    Erkannte WS op/type-Nachrichten: audio/mp3, burstSmall, chat, fireworks, hello
+    localStorage-Keys: cm_fireworks_data, configSize, schemaVersion
+    Wichtige Funktionen: getDefaultScaleFactor, fullscreenEnabled, isFullscreen, toggleFullscreen, togglePause, toggleSound, toggleMenu, updateConfig, configDidUpdate, renderApp, handleStateChange, getConfigFromDOM, randomColorSimple, randomColor, whiteOrGold, makePistilColor, randomShellName, randomShell, shellFromConfig, randomFastShell, init, setOptionsForSelect, fitShellPositionInBoundsH, fitShellPositionInBoundsV, getRandomShellPositionH, getRandomShellPositionV, getRandomShellSize, launchShellFromConfig, seqRandomShell, seqRandomFastShell, seqTwoRandom, seqTriple, seqPyramid, launchShell, seqSmallBarrage ...
+
+--- fscreen-1.0.1.js
+    Größe/Zeilen: 2,486 Bytes / 66 Zeilen
+    Genutzte URLs/Endpoints:
+      - https://github.com/rafrex/fscreen
+    Wichtige Funktionen: requestFullscreen, requestFullscreenFunction, addEventListener, removeEventListener
+
+--- sound_system_overlay.html
+    Größe/Zeilen: 11,087 Bytes / 264 Zeilen
+    Title: ForrestCGN Sound-System Overlay
+    Aufgabe/Einschätzung: Sound-System Overlay. Verbindet mit /api/sound per HTTP und WebSocket, spielt Queue-Sounds/Beep, meldet Client-Ready/Started/Ended/Error.
+    Genutzte URLs/Endpoints:
+      - /api/sound
+    WebSocket-Verbindung:
+      - protocol + '//' + location.host
+    Query-Parameter: debug
+    Wichtige Funktionen: setStatus, post, getJson, stopBeep, stopAudio, normalizeVolume, getAudioContext, unlockAudio, playGeneratedBeep, playFileSound, playSound, handleMessage, pollStatus, connect
+
+--- vip_sound_overlay.html
+    Größe/Zeilen: 19,768 Bytes / 690 Zeilen
+    Title: VIP Sound Overlay V1.5
+    Aufgabe/Einschätzung: VIP Sound Overlay V1.5. Pollt /api/vip-sound-overlay/state und meldet Audio-/Finished-Events per POST.
+    Genutzte URLs/Endpoints:
+      - /api/vip-sound-overlay/client/audio-ended
+      - /api/vip-sound-overlay/client/audio-started
+      - /api/vip-sound-overlay/client/finished
+      - /api/vip-sound-overlay/state
+      - http://www.w3.org/2000/svg
+    Wichtige Funktionen: parseMs, getCssVarMs, postJson, initialsFromName, escapeRegExp, normalizeLowerText, resolveOverlayText, setAvatar, fitLowerText, applyOverlayData, clearTimers, resetAudio, fullyHide, finalizeOverlay, startOutro, startAudioAfterIntro, startOverlay, pollState, buildRunner, init
+
+--- ws-client.js
+    Größe/Zeilen: 1,825 Bytes / 47 Zeilen
+    Aufgabe/Einschätzung: Kleiner generischer WS-Client für challenge-Nachrichten. Erwartet ws://<host> bzw. übergebenen URL.
+    Genutzte URLs/Endpoints:
+      - http://localhost:8080/ws-client.js
+    WebSocket-Verbindung:
+      - url
+    Erkannte WS op/type-Nachrichten: challenge
+    Wichtige Funktionen: pickWsUrl, connect
+
+==========================================================================================
+4. ROUTEN / ENDPOINTS, DIE VON DEN OVERLAYS ERWARTET WERDEN
+==========================================================================================
+- /api/deathcounter/v2/overlay
+    nutzt: _overlay-deathcounter-v2.html
+- /api/deathcounter/v2/state
+    nutzt: _overlay-deathcounter-v2.html
+- /api/overlay/chat/debug
+    nutzt: _overlay-pause.html
+- /api/overlay/chat/status
+    nutzt: _overlay-pause.html
+- /api/overlay/start-data
+    nutzt: _overlay-pause.html
+    nutzt: _overlay-start-v2-neon-galaxy.html
+    nutzt: _overlay-start-v2-neon-galaxy.html.new
+    nutzt: _overlay-start-v2.html
+    nutzt: _overlay-start.html
+- /api/overlay/start/config
+    nutzt: _overlay-start-v2-neon-galaxy.html
+    nutzt: _overlay-start-v2-neon-galaxy.html.new
+- /api/sound
+    nutzt: sound_system_overlay.html
+- /api/tts/done?id=${encodeURIComponent(id
+    nutzt: _overlay-tts.html
+- /api/vip-sound-overlay/client/audio-ended
+    nutzt: vip_sound_overlay.html
+- /api/vip-sound-overlay/client/audio-started
+    nutzt: vip_sound_overlay.html
+- /api/vip-sound-overlay/client/finished
+    nutzt: vip_sound_overlay.html
+- /api/vip-sound-overlay/state
+    nutzt: vip_sound_overlay.html
+- http://localhost:8080
+    nutzt: _overlay-challenge_status.html
+- http://localhost:8080/assets/sounds/start/startsoundlist.json
+    nutzt: _overlay-start-v2.html
+    nutzt: _overlay-start.html
+- http://localhost:8080/credits
+    nutzt: _overlay-ende.html
+    nutzt: _overlay-ende.html.alt
+- http://localhost:8080/userinfo?login=
+    nutzt: _overlay-clip_player.html
+- http://localhost:8080/ws-client.js
+    nutzt: _overlay-challenge_status.html
+    nutzt: ws-client.js
+- http://www.w3.org/2000/svg
+    nutzt: _overlay-alerts-v2.backup_before_visual_lead.html.bak
+    nutzt: _overlay-alerts-v2.html
+    nutzt: _overlay-start-v2.html
+    nutzt: fireworks.html
+    nutzt: vip_sound_overlay.html
+- https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
+    nutzt: fireworks.html
+- https://cmiller.tech/
+    nutzt: fireworks.html
+- https://codepen.io/MillerTime/pen/XgpNwb
+    nutzt: fireworks.html
+- https://fonts.googleapis.com
+    nutzt: _overlay-alert1.html
+    nutzt: _overlay-clip_player.html
+    nutzt: _overlay-easteregg_winner.html
+    nutzt: _overlay-vip30.html
+- https://fonts.googleapis.com/css2?family=Pacifico&display=swap
+    nutzt: _overlay-alert1.html
+    nutzt: _overlay-clip_player.html
+    nutzt: _overlay-easteregg_winner.html
+    nutzt: _overlay-vip30.html
+- https://fonts.googleapis.com/css?family=Montserrat:700,900&display=swap
+    nutzt: _overlay-challenge_status.html
+- https://fonts.gstatic.com
+    nutzt: _overlay-alert1.html
+    nutzt: _overlay-clip_player.html
+    nutzt: _overlay-easteregg_winner.html
+    nutzt: _overlay-vip30.html
+- https://github.com/rafrex/fscreen
+    nutzt: fscreen-1.0.1.js
+- https://gql.twitch.tv/gql
+    nutzt: _overlay-clip_player.html
+- https://static-cdn.jtvnw.net/jtv_user_pictures/bd8363e2-eacf-4805-831f-7a1bce3cc514-profile_image-300x300.png
+    nutzt: _overlay-alerts-v2.backup_before_visual_lead.html.bak
+    nutzt: _overlay-alerts-v2.html
+
+Abgeleitete interne Backend-Routen aus diesem Archiv:
+- /api/deathcounter/v2/overlay
+- /api/deathcounter/v2/state
+- /api/overlay/chat/debug
+- /api/overlay/chat/status
+- /api/overlay/start-data
+- /api/overlay/start/config
+- /api/sound
+- /api/tts/done?id=${encodeURIComponent(id
+- /api/vip-sound-overlay/client/audio-ended
+- /api/vip-sound-overlay/client/audio-started
+- /api/vip-sound-overlay/client/finished
+- /api/vip-sound-overlay/state
+- http://localhost:8080
+- http://localhost:8080/assets/sounds/start/startsoundlist.json
+- http://localhost:8080/credits
+- http://localhost:8080/userinfo?login=
+- http://localhost:8080/ws-client.js
+
+==========================================================================================
+5. WEBSOCKET-AUFBAU
+==========================================================================================
+Es gibt kein einheitliches WebSocket-Client-Pattern. Folgende Varianten kommen vor:
+- "ws://127.0.0.1:3337/streamlabs"
+    nutzt: fireworks.js
+- "ws://127.0.0.1:8080/"
+    nutzt: _ws-listener.html
+- "ws://127.0.0.1:8087/"
+    nutzt: fireworks.js
+- "ws://localhost:8080"
+    nutzt: _overlay-challenge_neu.html
+    nutzt: _overlay-challenge_status.html
+- `${proto}//${location.host}`
+    nutzt: _overlay-alerts-v2.backup_before_visual_lead.html.bak
+    nutzt: _overlay-alerts-v2.html
+    nutzt: _overlay-alerts-v2.html.alt
+- normalizeWsUrl(
+    nutzt: _overlay-deathcounter-v2.html
+- protocol + '//' + location.host
+    nutzt: sound_system_overlay.html
+- url
+    nutzt: ws-client.js
+- wsUrl(
+    nutzt: _overlay-pause.html
+    nutzt: _overlay-start-v2-neon-galaxy.html
+    nutzt: _overlay-start-v2-neon-galaxy.html.new
+    nutzt: _overlay-tts.html
+
+Empfohlenes Zielpattern für neue Module:
+- Immer dynamisch: const proto = location.protocol === "https:" ? "wss:" : "ws:"; new WebSocket(`${proto}//${location.host}`)
+- Beim open ein hello senden, z. B. { op: "<module>", client: "overlay", event: "hello" }.
+- Nachrichten über op/type normalisieren.
+- Reconnect mit Timer und sauberem close/error-Handling.
+- Initialzustand zusätzlich per HTTP GET laden, damit ein Overlay auch nach Reload sofort korrekt ist.
+
+==========================================================================================
+6. CONFIG-LESEN / CONFIG-SCHREIBEN
+==========================================================================================
+Aus dem Archiv direkt sichtbar:
+- Overlays lesen überwiegend nur. Sie fragen API-Routen ab oder bekommen Daten per WebSocket.
+- Config-Schreiben im Sinne von Dashboard-Formular -> Backend -> JSON/SQLite ist im ZIP nicht vorhanden.
+- Sichtbar ist nur Client-Kommunikation mit existierenden Backend-Routen.
+
+Konkrete Config-/State-Lese- und Schreibmuster:
+- Start-Overlay liest /api/overlay/start-data und /api/overlay/start/config. Außerdem erwartet es per WebSocket op=start_overlay_config Live-Updates der Start-Konfig.
+- Pause-Overlay liest /api/overlay/start-data und nutzt /api/overlay/chat/debug bzw. /api/overlay/chat/status als Snapshot-Fallback.
+- Deathcounter liest /api/deathcounter/v2/state und /api/deathcounter/v2/overlay und reagiert auf deathcounter_v2_* WebSocket-Meldungen.
+- Sound-System liest /api/sound/status und schreibt Client-Status an /api/sound/client/ready, /started, /ended, /error.
+- VIP-Sound-Overlay liest /api/vip-sound-overlay/state und schreibt /client/audio-started, /client/audio-ended, /client/finished.
+- TTS-Overlay meldet Abschluss an /api/tts/done?id=...
+- Fireworks speichert seine UI-Konfiguration lokal im Browser per localStorage, nicht im Backend.
+
+Gefundene Config-/localStorage-Stellen:
+- 25-10-08 - Alerts-l?uft.html
+    L140: /* ===== CONFIG ===== */
+    L141: const BADGE_CONFIG = {
+    L218: const cfg = BADGE_CONFIG[type];
+- _overlay-alert1.html
+    L321: const ALERT_CONFIG = {
+    L414: function configureAvatar(data) {
+    L429: function getBitsTierConfig(bits) {
+    L430: if (!ALERT_CONFIG.bits || !ALERT_CONFIG.bits.tiers) return null;
+    L431: for (const t of ALERT_CONFIG.bits.tiers) {
+    L434: return ALERT_CONFIG.bits.tiers[0] || null;
+    L445: return ALERT_CONFIG.follow.sound;
+    L448: return ALERT_CONFIG.sub_new.sound;
+    L451: return ALERT_CONFIG.sub_resub.sound;
+    L455: return ALERT_CONFIG.sub_gift.sound;
+    L458: const bitsConf = getBitsTierConfig(data.bits || 0);
+    L464: return ALERT_CONFIG.tip.tipee.sound;
+- _overlay-alerts-v2.backup_before_visual_lead.html.bak
+    L1330: <!-- STEP141: clean badge without inner orb + configurable top graphic frame/crop -->
+- _overlay-alerts-v2.html
+    L1330: <!-- STEP141: clean badge without inner orb + configurable top graphic frame/crop -->
+- _overlay-pause.html
+    L1013: if (/^(emotes|backgrounds|config|meta|lastSegments|segments)$/i.test(key)) continue;
+- _overlay-start-v2-neon-galaxy.html
+    L1770: // CONFIG
+    L1774: const START_OVERLAY_CONFIG_URL = "/api/overlay/start/config";
+    L1797: let LEFT_ROTATOR_INTERVAL_MS = 300000; // wird aus /api/overlay/start/config überschrieben
+    L1961: async function fetchStartOverlayConfig() {
+    L1962: const j = await safeJson(START_OVERLAY_CONFIG_URL);
+    L1966: function applyStartOverlayConfig(j) {
+    L2496: if (msg.op === "start_overlay_config") {
+    L2497: applyStartOverlayConfig(msg.data || msg.config || msg);
+    L2611: const startConfig = await fetchStartOverlayConfig();
+    L2612: applyStartOverlayConfig(startConfig);
+- _overlay-start-v2-neon-galaxy.html.new
+    L1676: // CONFIG
+    L1680: const START_OVERLAY_CONFIG_URL = "/api/overlay/start/config";
+    L1703: let LEFT_ROTATOR_INTERVAL_MS = 300000; // wird aus /api/overlay/start/config überschrieben
+    L1867: async function fetchStartOverlayConfig() {
+    L1868: const j = await safeJson(START_OVERLAY_CONFIG_URL);
+    L1872: function applyStartOverlayConfig(j) {
+    L2397: if (msg.op === "start_overlay_config") {
+    L2398: applyStartOverlayConfig(msg.data || msg.config || msg);
+    L2511: const startConfig = await fetchStartOverlayConfig();
+    L2512: applyStartOverlayConfig(startConfig);
+- _overlay-start-v2.html
+    L175: // === CONFIG ===
+- _overlay-start.html
+    L65: // === CONFIG ===
+- _overlay-vip30.html
+    L332: function configureAvatar(data) {
+    L382: configureAvatar(data);
+- fireworks.js
+    L40: // All quality globals will be overwritten and updated via `configDidUpdate`.
+    L124: // Note that config values used for <select>s must be strings, unless manually converting values to strings
+    L126: config: {
+    L127: quality: String(IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL), // will be mirrored to a global variable named `quality` in `configDidUpdate`, for perf.
+    L155: // Load / persist select state to localStorage
+    L158: const serializedData = localStorage.getItem('cm_fireworks_data');
+    L165: const config = this.state.config;
+    L168: config.quality = data.quality;
+    L169: config.size = data.size;
+    L170: config.skyLighting = data.skyLighting;
+    L173: config.quality = data.quality;
+    L174: config.size = data.size;
+
+Bewertung:
+Für neue Dashboard-Module reicht dieses Archiv allein nicht als Vorlage für Config-Schreiben. Das richtige Schreib-/Lese-Pattern muss aus den Backend- und Dashboard-Dateien ergänzt werden. Aus Overlay-Sicht ist aber klar: Neue Overlays sollten ihren Initialzustand über GET /api/<modul>/state oder /api/<modul>/config laden und Live-Updates über WebSocket bekommen.
+
+==========================================================================================
+7. EINHEITLICHKEIT / UNGEREIMTHEITEN
+==========================================================================================
+- Fehlende Dashboard-Dateien: Das Archiv enthält keine echte Dashboard-Modulstruktur. Damit fehlen UI-Seiten, Formularlogik, Config-Save-Routen und Backend-Middleware.
+- Backup-Dateien im Produktivordner: Mehrere .bak/.alt/.new Dateien liegen neben aktiven Dateien. Das erhöht die Gefahr, in OBS oder beim Editieren die falsche Datei zu nutzen.
+- Hartcodierte localhost-URLs: Einige Dateien nutzen http://localhost:8080 oder ws://localhost:8080 statt relativer URLs/location.host. Das bricht bei Cloudflare, anderem Hostnamen oder anderer OBS-URL.
+- Gemischte WebSocket-Strategien: Manche Overlays nutzen location.host, andere 127.0.0.1, andere localhost, andere normalizeWsUrl. Das sollte vereinheitlicht werden.
+- Monolithische HTML-Dateien: Start, Pause und Alerts enthalten sehr viel CSS/JS direkt im HTML. Fehlerkorrekturen und Wiederverwendung sind unnötig schwer.
+- Doppelte Chat-Logik: Start und Pause haben sehr ähnliche Chat-WebSocket-/Snapshot-/Render-Logik. Diese sollte als shared overlay client ausgelagert werden.
+- Doppelte Escape-/Fetch-/CacheBust-Helper: escapeHtml, safeJson, cacheBust, wsUrl, dlog usw. sind mehrfach vorhanden.
+- Direkte externe Abhängigkeiten: Fonts/CDNs/Twitch-GQL werden teilweise direkt aus dem Overlay geladen. Für OBS ist lokale Auslieferung stabiler.
+- Legacy Fireworks: Fireworks bringt eigene Config, localStorage, Audio-Blobs und alte WS-Ziele mit. Sollte klar als Legacy/externe Komponente abgegrenzt werden.
+- Clip-Overlay nutzt Twitch GraphQL direkt: Das sollte besser über das Backend laufen, damit Tokens/Client-ID/Fehlerhandling zentral bleiben.
+- Uneinheitliche Benennung: Dateien nutzen gemischte Namen mit Unterstrich, v2, alt, new, Datum, Leerzeichen und Umlauten. Für produktive Quellen sollte es klare Namen geben.
+- Keine klare aktive Datei-Markierung: Aus dem Ordner allein ist nicht eindeutig erkennbar, welche Version in OBS aktiv ist. Aktive Quellen sollten in einer Strukturdatei dokumentiert werden.
+
+==========================================================================================
+8. EMPFOHLENER STANDARD FÜR NEUE OVERLAY-/DASHBOARD-MODULE
+==========================================================================================
+Neue Module sollten sich an folgendem Zielaufbau orientieren:
+
+Backend:
+- backend/modules/<module>.js
+- registriert Routen unter /api/<module>/...
+- nutzt vorhandene Helper für Config, Response, Security, State, Logging und ggf. SQLite
+- Initialstatus: GET /api/<module>/status
+- Overlay-Zustand: GET /api/<module>/state
+- Konfiguration: GET /api/<module>/config und POST /api/<module>/config
+- Test/Trigger: POST /api/<module>/test oder /api/<module>/enqueue
+- WebSocket-Broadcast bei Änderungen: { op: "<module>", type/reason: "state_changed", data: ... }
+
+Dashboard:
+- htdocs/dashboard/modules/<module>.js
+- htdocs/dashboard/modules/<module>.css
+- liest Config per GET /api/<module>/config
+- speichert Config per POST /api/<module>/config
+- zeigt Status per GET /api/<module>/status
+- keine hartcodierten Pfade; API-Basis relativ oder über zentralen Dashboard-Helper
+- Audit-/Logging-Hook für Änderungen vorbereiten
+
+Overlay:
+- htdocs/overlays/_overlay-<module>.html
+- Initialzustand per GET /api/<module>/state
+- Live-Updates per WebSocket
+- keine Secrets, Tokens oder direkten Fremd-APIs im Browser
+- relative URLs verwenden
+- gemeinsame Helper für wsUrl, safeJson, escapeHtml, cacheBust und reconnect nutzen
+
+Config/DB:
+- Kleine, selten geänderte Moduleinstellungen können in config/<module>.json liegen.
+- Laufzeitdaten, Queues, Historien, Statistiken und userbezogene Daten gehören in data/sqlite/app.sqlite.
+- Später MariaDB mitdenken: SQL/Migrationen nicht unnötig SQLite-spezifisch bauen.
+- Keine zweite Datenbank anlegen. Die aktive app.sqlite unter data/sqlite/app.sqlite bleibt Single Source of Truth.
+
+==========================================================================================
+9. DATEI-BEWERTUNG: AKTIV / LEGACY / PRÜFEN
+==========================================================================================
+Vermutlich aktive/aktuell relevante Dateien:
+- _overlay-alerts-v2.html
+- _overlay-start-v2-neon-galaxy.html
+- _overlay-pause.html
+- _overlay-ende.html
+- _overlay-challenge_status.html
+- _overlay-deathcounter-v2.html
+- sound_system_overlay.html
+- vip_sound_overlay.html
+- _overlay-tts.html
+- _overlay-megashoutout.html
+
+Legacy/Backup/prüfen vor weiterer Nutzung:
+- _overlay-alert1.html
+- 25-10-08 - Alerts-läuft.html
+- _overlay-alerts-v2.html.alt
+- _overlay-alerts-v2.backup_before_visual_lead.html.bak
+- _overlay-start.html
+- _overlay-start-v2.html
+- _overlay-start-v2-neon-galaxy.html.new
+- _overlay-ende.html.alt
+- _overlay-challenge_neu.html
+- _overlay-vip30.html
+- fireworks.html
+- fireworks.js
+- _ws-listener.html
+
+Hinweis: Diese Einstufung basiert auf Dateinamen, Datum, bekannten Projektständen und Codeinhalt. Die echte OBS-Aktivität kann nur mit der OBS-Szenen-/Quellenliste bestätigt werden.
+
+==========================================================================================
+10. KONKRETE NÄCHSTE AUFRÄUMSCHRITTE
+==========================================================================================
+1. Aktive OBS-Quellen gegen diese Dateiliste abgleichen.
+2. Produktive Overlay-Dateien festlegen und alle .bak/.alt/.new in archive/ oder _quarantine verschieben, nicht löschen.
+3. Einheitliches Overlay-Client-Pattern bauen: overlay_client.js für WebSocket, safeJson, escapeHtml, cacheBust, debug, reconnect.
+4. Start/Pause Chat-Logik in gemeinsamen Client auslagern.
+5. Hartcodierte localhost-/127.0.0.1-URLs durch relative URLs/location.host ersetzen, außer bei bewusst lokalen Sonderfällen.
+6. Externe Fonts/Skripte lokal spiegeln oder bewusst dokumentieren.
+7. Clip-Player Twitch-GQL aus dem Overlay entfernen und über Backend-route laufen lassen.
+8. Fireworks als Legacy kapseln oder später sauber in /api/fireworks + Overlay-Client integrieren.
+9. Für jedes aktive Overlay in einer Strukturdatei dokumentieren: OBS-Quelle, Datei, API-Routen, WebSocket-op, Config-Datei/DB-Tabelle.
+10. Für Dashboard-Analyse zusätzlich backend/, htdocs/dashboard/ und config/ bereitstellen.
+
+==========================================================================================
+11. WAS FÜR EINE VOLLSTÄNDIGE DASHBOARD-ANALYSE NOCH FEHLT
+==========================================================================================
+Für eine echte komplette Dashboard-Analyse werden zusätzlich benötigt:
+- backend/server.js
+- backend/modules/*.js
+- backend/modules/helpers/*.js
+- backend/core/*.js
+- htdocs/dashboard/**
+- config/*.json und config/messages/*.json
+- aktuelle Struktur.md / PROJECT_STRUCTURE_AND_ROUTES.md, falls vorhanden
+- optional: bereinigte Dateiliste von htdocs/ ohne riesige Assets
+
+Ohne diese Dateien kann man aus diesem ZIP nur prüfen, welche API-/WS-Verträge die Overlays erwarten, aber nicht, ob das Dashboard diese Configs korrekt schreibt oder ob Backend-Routen doppelt/ungenutzt sind.
+
+==========================================================================================
+12. INTEGRATIONS-CHECKLISTE FÜR NEUE MODULE
+==========================================================================================
+1. Name des Moduls festlegen: <module>
+2. Backend-Modul backend/modules/<module>.js erstellen oder vorhandenes erweitern.
+3. Routen konsistent unter /api/<module>/... registrieren.
+4. GET /api/<module>/status liefert ok, module, version, enabled, Pfade/DB-Info.
+5. GET /api/<module>/config liefert editierbare Einstellungen ohne Secrets im Klartext.
+6. POST /api/<module>/config validiert und speichert Einstellungen.
+7. GET /api/<module>/state liefert aktuellen Overlay-/Runtime-Zustand.
+8. WebSocket-Broadcast bei state/config changes senden.
+9. Dashboard-Modul lädt Config/Status, speichert Änderungen und zeigt Fehler klar an.
+10. Overlay lädt initial state/config und hört zusätzlich WebSocket.
+11. Streamer.bot triggert möglichst nur Start-/Event-Endpunkte, keine Dauerlogik.
+12. Alle Texte in config/messages oder DB auslagern, nicht hart im Code.
+13. Alle Pfade zentral über Config/Helper auflösen.
+14. Keine bestehende Funktionalität entfernen; Legacy-Routen nur als Alias erhalten, wenn nötig.
+15. Doku/Strukturdatei aktualisieren: Dateien, Routen, Configs, OBS-Quelle, Tests, Rollback.
+
+==========================================================================================
+13. MASCHINELL ERKANNTE FUNKTIONSLISTE PRO DATEI
+==========================================================================================
+- 25-10-08 - Alerts-l?uft.html:
+    bezier, edgePoint, spawnSpark, fly, step, run, rand
+- MyMath.js:
+    MyMathFactory, randomChoice, clamp
+- Stage-0.1.4.js:
+    TickerFactory, addListener, queueFrame, frameHandler, StageFactory, Stage, addEventListener, dispatchEvent,
+    resize, windowToCanvas, mouseHandler, touchHandler, pointerEvent
+- _overlay-alert1.html:
+    getQueryParams, configureAvatar, getBitsTierConfig, selectSound, buildText, playAlertSound, safeEnd, showAlert
+- _overlay-alerts-v2.backup_before_visual_lead.html.bak:
+    stageMetrics, applyCardRenderMetrics, updateStageScale, connect, send, playAlert, displaySettings,
+    displayClasses, cardWidth, cardHeight, buildAvatarSlot, firstInitial, chooseBadgeImage, chooseAvatar,
+    chooseBadgeSvg, svgCgnCore, svgBadgeOrbit, svgBadgeHex, svgBadgeShield, svgBadgeWave, svgBadgeCgn,
+    svgBadgeDotgrid, svgBadgeTriad, svgBadgeSlash, svgBadgeDoubleRing, svgBadgeCross, svgBadgeCube, svgBadgeBolt,
+    svgBadgeRing, svgBadgePulse, svgBadgeMinimal, svgHeart, svgDiamond, svgCrown, svgPortal, svgGift, svgSpark,
+    buildSource, buildDisplay, amountText, defaultTitle, buildCelebrationLayer, normalizeCelebrationStrength,
+    normalizeCelebrationType, clearAlert, escapeHtml, escapeAttr, escapeCss, pick, num, color
+- _overlay-alerts-v2.html:
+    stageMetrics, applyCardRenderMetrics, updateStageScale, connect, preparedAlertId, prepareAlert,
+    soundVisualEventId, isAlertVisualItem, handleSoundSystemEvent, send, playAlert, displaySettings,
+    displayClasses, cardWidth, cardHeight, buildAvatarSlot, firstInitial, chooseBadgeImage, chooseAvatar,
+    chooseBadgeSvg, svgCgnCore, svgBadgeOrbit, svgBadgeHex, svgBadgeShield, svgBadgeWave, svgBadgeCgn,
+    svgBadgeDotgrid, svgBadgeTriad, svgBadgeSlash, svgBadgeDoubleRing, svgBadgeCross, svgBadgeCube, svgBadgeBolt,
+    svgBadgeRing, svgBadgePulse, svgBadgeMinimal, svgHeart, svgDiamond, svgCrown, svgPortal, svgGift, svgSpark,
+    buildSource, buildDisplay, amountText, defaultTitle, buildCelebrationLayer, normalizeCelebrationStrength,
+    normalizeCelebrationType, clearAlert, escapeHtml, escapeAttr, escapeCss, pick, num, color
+- _overlay-alerts-v2.html.alt:
+    connect, send, playAlert, chooseImage, clearAlert, escapeHtml, escapeAttr, escapeCss
+- _overlay-birthday.html:
+    delayedAudioStart, startAutoHide, spawnDots, spawnConfetti, spawnBalloons, spawnNameParticles
+- _overlay-challenge_neu.html:
+    addChallenge, runNext, showChallenge, updateTime, finish
+- _overlay-challenge_status.html:
+    formatTime, playUrl, fallbackSound, normalizeEntry, escapeHtml, buildChallengeHTML, ensureBox, removeBox,
+    updateCountdown, renderState, handleChallengeMessage, addChallenge
+- _overlay-clip_player.html:
+    qs, setAvatarAndName, loadClip, play
+- _overlay-deathcounter-v2.html:
+    stopMarqueeFor, startMarqueeFor, ensureMarqueeLoop, setTextAsSpans, playNameExplosion, animateCount,
+    applyMarquee, normalizeWsUrl, extractOverlayVisible, setOverlayVisible, mapPlayersById, getDisplayPlayers,
+    getSession, getName, buildRenderSignature, maybeRender, makeName, makeCount, makeSep, updateAnimations,
+    clearRefs, render, fetchJson, syncAll, handleWsMessage, connectWs, tick
+- _overlay-easteregg_winner.html:
+    qp
+- _overlay-ende.html:
+    debugLog, safeJson, escapeHtml, buildListHTML, sortAndFilterCredits, accept, getEventCategory,
+    animateVerticalScroll, buildRaidSubline, scrollSubline, lower
+- _overlay-ende.html.alt:
+    buildListHTML, sortAndFilterCredits, accept, getEventCategory, animateVerticalScroll, buildRaidSubline,
+    scrollSubline, lower
+- _overlay-megashoutout.html:
+    getUrlParam, updateFromStreamerBot
+- _overlay-pause.html:
+    dlog, escapeDisplayText, setChatStatus, createChatTextNode, appendChatSegments, renderChatList,
+    renderDemoChat, addChatMessage, clearChatMessages, wsUrl, normalizeChatItem, isChatItemLike, findChatArrays,
+    chatSignature, pickChatItems, extractChatSnapshotItems, refreshChatSnapshot, requestChatSnapshot,
+    startChatSnapshotPolling, connectChatWebSocket, fetchOverlayData, setData, st, msg, norm, append, render,
+    json, load
+- _overlay-start-v2-neon-galaxy.html:
+    cacheBust, dlog, setNowPlaying, setLoading, formatTime, startCounter, safeJson, fetchOverlayData,
+    fetchStreamInfo, fetchBackgrounds, fetchStartOverlayConfig, applyStartOverlayConfig, setBackgroundForGame,
+    toggleTT, runMarquee, step, buildSequence, norm, itemKey, findByFileOrName, pickTwo, startAudioOnce,
+    playIndex, playNextWithGap, escapeDisplayText, setChatStatus, createChatTextNode, appendChatSegments,
+    renderChatList, renderDemoChat, addChatMessage, clearChatMessages, wsUrl, connectChatWebSocket,
+    getFollowStartIndex, pickNextLeftRotatorIndex, applyLeftRotatorMessage, startLeftRotator, updateOverlay, init,
+    qid
+- _overlay-start-v2-neon-galaxy.html.new:
+    cacheBust, dlog, setNowPlaying, setLoading, formatTime, startCounter, safeJson, fetchOverlayData,
+    fetchStreamInfo, fetchBackgrounds, fetchStartOverlayConfig, applyStartOverlayConfig, setBackgroundForGame,
+    toggleTT, runMarquee, step, buildSequence, norm, itemKey, findByFileOrName, pickTwo, startAudioOnce,
+    playIndex, playNextWithGap, escapeDisplayText, setChatStatus, createChatTextNode, appendChatSegments,
+    renderChatList, renderDemoChat, addChatMessage, clearChatMessages, wsUrl, connectChatWebSocket,
+    getFollowStartIndex, pickNextLeftRotatorIndex, applyLeftRotatorMessage, startLeftRotator, updateOverlay, init,
+    qid
+- _overlay-start-v2.html:
+    setNowPlaying, buildRunner, placeCounter, formatTime, startCounter, safeJson, fetchOverlayData,
+    fetchStreamInfo, fetchBackgrounds, setBackgroundForGame, toggleTT, runMarquee, step, buildSequence, pickTwo,
+    startAudioOnce, playIndex, playNextWithGap, updateOverlay, init, qid, cacheBust, dlog, animatePath
+- _overlay-start.html:
+    setNowPlaying, placeCounter, formatTime, startCounter, safeJson, fetchOverlayData, fetchStreamInfo,
+    fetchBackgrounds, setBackgroundForGame, toggleTT, runMarquee, step, buildSequence, pickTwo, startAudioOnce,
+    playIndex, playNextWithGap, updateOverlay, init, qid, cacheBust, dlog
+- _overlay-tts.html:
+    wsUrl, show, hide, markDone, stopAudio, connect
+- _overlay-vip30.html:
+    getQueryParams, configureAvatar, playVipSound, safeEnd, showVipAlert
+- fireworks.js:
+    getDefaultScaleFactor, fullscreenEnabled, isFullscreen, toggleFullscreen, togglePause, toggleSound,
+    toggleMenu, updateConfig, configDidUpdate, renderApp, handleStateChange, getConfigFromDOM, randomColorSimple,
+    randomColor, whiteOrGold, makePistilColor, randomShellName, randomShell, shellFromConfig, randomFastShell,
+    init, setOptionsForSelect, fitShellPositionInBoundsH, fitShellPositionInBoundsV, getRandomShellPositionH,
+    getRandomShellPositionV, getRandomShellSize, launchShellFromConfig, seqRandomShell, seqRandomFastShell,
+    seqTwoRandom, seqTriple, seqPyramid, launchShell, seqSmallBarrage, startSequence, handlePointerStart,
+    handlePointerEnd, handlePointerMove, handleKeydown, handleResize, updateSpeedFromEvent, updateGlobals, update,
+    render, colorSky, createParticleArc, createBurst, crossetteEffect, floralEffect, fallingLeavesEffect,
+    crackleEffect, createParticleCollection, convertDataURIToBinary, checkStatus, setLoadingStatus, fireRandom,
+    enqueueFireworks, playNextFromQueue, connectWebsocket, IS_HIGH_END_DEVICE, isRunning, soundEnabledSelector,
+    canPlaySoundSelector, qualitySelector, shellNameSelector, shellSizeSelector, finaleSelector,
+    skyLightingSelector, scaleFactorSelector, updateConfigNoEvent, crysanthemumShell, ghostShell, strobeShell,
+    palmShell, ringShell, crossetteShell, floralShell, fallingLeavesShell, willowShell, crackleShell,
+    horsetailShell, starFactory
+- fscreen-1.0.1.js:
+    requestFullscreen, requestFullscreenFunction, addEventListener, removeEventListener
+- sound_system_overlay.html:
+    setStatus, post, getJson, stopBeep, stopAudio, normalizeVolume, getAudioContext, unlockAudio,
+    playGeneratedBeep, playFileSound, playSound, handleMessage, pollStatus, connect
+- vip_sound_overlay.html:
+    parseMs, getCssVarMs, postJson, initialsFromName, escapeRegExp, normalizeLowerText, resolveOverlayText,
+    setAvatar, fitLowerText, applyOverlayData, clearTimers, resetAudio, fullyHide, finalizeOverlay, startOutro,
+    startAudioAfterIntro, startOverlay, pollState, buildRunner, init
+- ws-client.js:
+    pickWsUrl, connect
+
+ENDE DER ANALYSE

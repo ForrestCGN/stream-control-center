@@ -1,0 +1,795 @@
+FORRESTCGN STREAM-/CONTROL-CENTER-SYSTEM
+SYSTEM-INSPEKTION + MASTER-TODO v1 FINAL
+Stand: 2026-05-03
+
+BASIS DIESES STANDS
+- backend.tgz
+- config.zip
+- dashboard.zip
+- overlays.zip
+- app.sqlite + app.sqlite-wal + app.sqlite-shm
+- deathcounter.v2.json
+- ws-client.js
+- dateiliste.txt
+- vorherige Analyseberichte Backend / Dashboard / Overlay / Datenbank
+- GitHub-Workflow-Skripte 01 bis 04 fuer Pull/Deploy/Status/Restore
+
+STATUS
+Diese Datei ist jetzt der finale Inspektions- und Umbauplan auf Basis der aktuell hochgeladenen echten Dateien.
+Es wurde noch KEIN Code verändert. Diese Datei ist eine Entscheidungs- und Arbeitsgrundlage.
+
+GRUNDREGELN
+1. Keine Funktionalität entfernen.
+2. Alte Routen nicht löschen; neue offizielle Routen als Alias ergänzen, wenn nötig.
+3. Aktive DB bleibt: D:\Streaming\stramAssets\data\sqlite\app.sqlite.
+4. Keine zweite app.sqlite erzeugen.
+5. Secrets nie in Dashboard/Overlays/öffentliche Dateien schreiben.
+6. Große Umbauten immer als STEP-/STABLE-ZIP mit eindeutiger Versionsnummer liefern.
+7. Vor jedem Patch echten Dateistand prüfen.
+8. Dashboard, Backend, Config, Overlays und Doku getrennt dokumentieren.
+9. htdocs/dashboard und htdocs/overlays sind produktive Webroot-Ziele.
+10. Backups erst verschieben/archivieren, nicht löschen.
+11. GitHub-Repo https://github.com/ForrestCGN/stream-control-center und Branch dev als Code-Single-Source-of-Truth berücksichtigen.
+
+
+======================================================================
+0. GITHUB-/DEPLOY-WORKFLOW ALS VERBINDLICHER STANDARD
+======================================================================
+
+GitHub-Repository:
+- https://github.com/ForrestCGN/stream-control-center
+
+Lokales Repository:
+- D:\Git\stream-control-center
+
+Live-System / Deploy-Ziel:
+- D:\Streaming\stramAssets
+
+Arbeitsbranch:
+- dev
+
+GRUNDREGEL FÜR WEITERE ARBEIT
+- GitHub ist ab jetzt als Single Source of Truth fuer Code-/Projektstaende zu beruecksichtigen.
+- Live-Dateien unter D:\Streaming\stramAssets duerfen nicht als dauerhafte Parallelwelt behandelt werden.
+- Aenderungen sollen entweder aus dem Repo ins Live-System deployed werden oder bewusst aus dem Live-System ins Repo zurueckgefuehrt werden.
+- Jede neue STEP-/STABLE-Uebergabe muss erwaehnen, ob sie repo-ready ist und welche Pfade betroffen sind.
+
+VORHANDENE STANDARD-SKRIPTE
+
+1) 01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd
+Zweck:
+- Live-System aus GitHub/dev aktualisieren.
+Ablauf:
+- wechselt nach D:\Git\stream-control-center
+- setzt Branch dev
+- fuehrt git pull origin dev aus
+- deployed danach mit tools\deploy_repo_to_streamassets.ps1 nach D:\Streaming\stramAssets
+- legt ein Deploy-Backup unter D:\Streaming\stramAssets_DEPLOY_BACKUP an
+
+2) 02_LOKALE_AENDERUNGEN_ZU_GITHUB_HOCHLADEN.cmd
+Zweck:
+- lokale Live-Aenderungen kontrolliert ins GitHub-Repo uebernehmen und nach dev pushen.
+Ablauf:
+- wechselt nach D:\Git\stream-control-center
+- setzt Branch dev
+- kopiert erlaubte Live-Aenderungen mit tools\upload_streamassets_changes.ps1 ins Repo
+- merkt diese Pfade vor: backend, config, htdocs, project-state, docs, tools
+- fuehrt vor Commit einen Sicherheitscheck auf verdaechtige Dateinamen aus
+- stoppt bei Treffern wie .env, .sqlite, .db, token, secret, google_tts_service_account, .bak, .old, .alt, .new, .zip, .7z
+- committet mit Standardmeldung "Update local StreamAssets changes"
+- pusht nach origin/dev
+
+3) 03_NUR_STATUS_PRUEFEN.cmd
+Zweck:
+- Git-Status ohne Aenderung pruefen.
+Ausgabe:
+- Branch
+- git status
+- letzte 5 Commits
+- Remotes
+
+4) 04_BACKUP_ZURUECKSPIELEN.cmd
+Zweck:
+- letztes Deploy-Backup aus D:\Streaming\stramAssets_DEPLOY_BACKUP nach D:\Streaming\stramAssets zurueckspielen.
+Wichtig:
+- fragt vorher per choice J/N nach Bestaetigung
+- nutzt robocopy /E
+
+SICHERHEITSREGELN FUER GITHUB
+- Keine Secrets committen.
+- Keine .env committen.
+- Keine SQLite-Dateien committen, ausser es wird ausdruecklich und bewusst fuer eine Analyse-/Snapshot-Datei anders entschieden.
+- Keine WAL/SHM-Dateien committen.
+- Keine grossen Medien-Assets ungeprueft committen.
+- Keine Backup-Dateien aus produktiven Webroot-Ordnern committen.
+- Vor jedem Push Statusskript ausfuehren oder mindestens git status pruefen.
+
+EMPFOHLENER ARBEITSABLAUF AB JETZT
+1. Vor Aenderungen: 03_NUR_STATUS_PRUEFEN.cmd ausfuehren.
+2. Wenn am Repo gearbeitet wird: Code im Repo pflegen, danach 01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd zum Deploy nutzen.
+3. Wenn live getestet und dort geaendert wurde: 02_LOKALE_AENDERUNGEN_ZU_GITHUB_HOCHLADEN.cmd nutzen, aber Sicherheitsausgabe pruefen.
+4. Bei Fehldeploy: 04_BACKUP_ZURUECKSPIELEN.cmd nutzen.
+5. Bei jeder neuen Doku/Projektdatei GitHub-Status und betroffene Repo-Pfade mitfuehren.
+
+======================================================================
+1. UPLOAD-/DATEIBESTAND
+======================================================================
+
+Gezählter Dateibestand aus den hochgeladenen Archiven:
+- backend/: 69 Dateien, davon 14 Backup/Alt-Dateien
+- config/: 48 Dateien, davon 1 Backup/Alt-Dateien
+- dashboard/: 44 Dateien, davon 25 Backup/Alt-Dateien
+- overlays/: 34 Dateien, davon 4 Backup/Alt-Dateien
+
+Wichtige Realstruktur laut Dateiliste:
+- D:\Streaming\stramAssets\backend
+- D:\Streaming\stramAssets\config
+- D:\Streaming\stramAssets\htdocs\dashboard
+- D:\Streaming\stramAssets\htdocs\overlays
+- D:\Streaming\stramAssets\data\sqlite
+- D:\Streaming\stramAssets\data\deathcounter
+- D:\Streaming\stramAssets\docs
+
+Auffällige parallele Strukturen:
+- D:\Streaming\stramAssets\dashboard existiert zusätzlich zu htdocs\dashboard.
+  Das ist eine Verwechslungsquelle. Produktiv ausgeliefert wird laut Backend /dashboard -> htdocs\dashboard.
+- D:\Streaming\stramAssets\config_BACKUP_vor_controlcenter_step002 ist Backup.
+- D:\Streaming\stramAssets\htdocs\dashboard_BACKUP_vor_controlcenter_step002 ist Backup.
+- archive/ und _quarantine/ enthalten alte Zustände und dürfen nicht in normale Arbeits-ZIPs.
+
+======================================================================
+2. BACKEND-STAND
+======================================================================
+
+Server:
+- backend/server.js
+- Express + HTTP + WebSocket ws
+- Port 8080
+- Bind 0.0.0.0
+- statische Auslieferung:
+  /overlays  -> htdocs/overlays
+  /assets    -> htdocs/assets
+  /alerts    -> htdocs/alerts
+  /dashboard -> htdocs/dashboard
+  /public    -> htdocs/public
+  /data      -> htdocs/data  [Legacy, öffentlich]
+  /ws-client.js -> htdocs/ws-client.js
+
+Aktive Backend-Module (33):
+- alert_system.js
+- challenge.js
+- chat_output.js
+- clips.js
+- credits.js
+- dashboard_auth.js
+- dashboard_controlcenter.js
+- database_core.js
+- deathcounter_v2.js
+- diagnostics.js
+- discord.js
+- fireworks_api.js
+- hug.js
+- kofi.js
+- message_rotator.js
+- messages.js
+- obs.js
+- obs_shared.js
+- overlay_data.js
+- scene_control.js
+- security.js
+- sound_output_config.js
+- sound_system.js
+- sqlite_core.js
+- start_overlay.js
+- tagebuch.js
+- tipeee.js
+- todo.js
+- tts_system.js
+- twitch.js
+- twitch_chat_overlay.js
+- twitch_presence.js
+- vip_sound_overlay.js
+
+Nicht automatisch geladene Backup-/Alt-Dateien in backend/modules (13):
+- alert_system.backup_before_live_sound_handoff.js.bak
+- alert_system.backup_before_settings_patch.js.bak
+- alert_system.js.bak_step101a_20260430_124246
+- sound_system.backup_before_core_policy.js.bak
+- sound_system.backup_before_device_stop_fix.js.bak
+- sound_system.backup_before_runtime_settings_20260502_195424.bak
+- sound_system.backup_before_runtime_settings_schema_fix_20260502_200636.bak
+- sound_system.backup_before_runtime_settings_tdz_fix_20260502_200329.bak
+- sound_system.backup_before_settings_part2b_20260502_205351.bak
+- sound_system.backup_before_settings_part2b_v2_20260502_205623.bak
+- sound_system.backup_before_visual_lead.js.bak
+- twitch.js.bak_original_uploaded
+- twitch_chat_overlay.js.old
+
+Bewertung:
+- Die Modulstruktur ist grundsätzlich richtig.
+- Helper liegen unter backend/modules/helpers und sollen weiter genutzt werden.
+- Neue Parallel-Helper vermeiden.
+- Backup-Dateien im aktiven modules-Ordner stören die Wartbarkeit, werden aber nicht geladen.
+
+======================================================================
+3. DATENBANK-STAND
+======================================================================
+
+SQLite:
+- app.sqlite vorhanden
+- app.sqlite-wal vorhanden
+- app.sqlite-shm vorhanden
+- journal_mode: WAL
+- integrity_check: ok
+- fachliche Tabellen: 32
+
+Tabellen / Zeilen:
+- alert_assets: 27
+
+Bewertung:
+- DB-Stand ist grundsätzlich sauber.
+- Alert, Dashboard/Auth/Audit, Hug/Rehug, Challenge, Sound-Settings, Tagebuch und ToDo nutzen SQLite.
+- Deathcounter ist noch JSON-basiert.
+- Clips und Message-Rotator sind noch nicht vollständig DB-zentralisiert.
+- Migrationen künftig über schema_versions pflegen.
+
+======================================================================
+4. CONFIG-STAND
+======================================================================
+
+Aktive Config-Dateien aus config.zip:
+- alert_system.json
+- alerts_tipeee.example.json
+- challenge_system.json
+- chat_output.json
+- clip_system.json
+- dashboard_access.json
+- dashboard_admin_configs.json
+- dashboard_backend_general.json
+- dashboard_env_strategy.json
+- dashboard_logging.json
+- dashboard_navigation.json
+- dashboard_permissions.json
+- dashboard_roles.json
+- discord_channels.json
+- google_tts_service_account.json  [SENSIBEL]
+- hug_system.json
+- message_rotator.json
+- obs_dashboard.json
+- scene_aliases.json
+- security.json
+- sound_system.json
+- start_overlay.json
+- streamdesk.json
+- tagebuch.json
+- tools.json
+- tts_bans.json
+- tts_config.json
+- tts_messages.json
+- tts_state.json
+- twitch_alerts.json
+- twitch_dashboard_auth.json
+
+Message-Dateien:
+- config/messages/alerts.json
+- config/messages/challenge.json
+- config/messages/clips.json
+- config/messages/community.json
+- config/messages/discord.json
+- config/messages/follow.json
+- config/messages/hug.json
+- config/messages/placeholders.json
+- config/messages/respect.json
+- config/messages/sound_system.json
+- config/messages/start_overlay.json
+- config/messages/streamerbot.json
+- config/messages/system.json
+- config/messages/tagebuch.json
+- config/messages/todo.json
+- config/messages/youtube.json
+
+JSON-Validität:
+- Alle geprüften JSON-Dateien im config-Upload sind syntaktisch gültig.
+
+Wichtig:
+- google_tts_service_account.json enthält Service-Account-Daten und darf künftig nicht in normale Analyse-/Arbeits-ZIPs.
+- config/secrets/.env.example ist ok, echte .env nicht hochladen.
+
+======================================================================
+5. DASHBOARD-STAND
+======================================================================
+
+Dashboard-Upload enthält 44 Dateien.
+Aktive Nicht-Backup-Dateien:
+- dashboard/app.css
+- dashboard/app.js
+- dashboard/index.html
+- dashboard/modules/alerts.css
+- dashboard/modules/alerts.js
+- dashboard/modules/obs.css
+- dashboard/modules/obs.js
+- dashboard/modules/adminconfigs.css
+- dashboard/modules/adminconfigs.js
+- dashboard/modules/controlhome.css
+- dashboard/modules/controlhome.js
+- dashboard/modules/hug.css
+- dashboard/modules/hug.js
+- dashboard/modules/sectionhome.css
+- dashboard/modules/sectionhome.js
+- dashboard/modules/sound.css
+- dashboard/modules/sound.js
+- dashboard/modules/streamdesk.css
+- dashboard/modules/streamdesk.js
+
+Backup-/Alt-Dateien im Dashboard-Upload (25):
+- dashboard/app.backup_before_auth_step1_20260502_215422.css.bak
+- dashboard/app.backup_before_auth_step1_20260502_215422.js.bak
+- dashboard/app.backup_before_auth_step1_fix_v2_20260502_215759.css.bak
+- dashboard/app.backup_before_auth_step1_fix_v2_20260502_215759.js.bak
+- dashboard/modules/adminconfigs.backup_before_sound_expert_20260502_211117.css.bak
+- dashboard/modules/adminconfigs.backup_before_sound_expert_20260502_211117.js.bak
+- dashboard/modules/sound.backup_before_alert_style_20260502_202041.css.bak
+- dashboard/modules/sound.backup_before_remove_expert_from_sound_page_20260502_210339.js.bak
+- dashboard/modules/sound.backup_before_remove_expert_from_sound_page_20260502_210659.js.bak
+- dashboard/modules/sound.backup_before_settings_part2a_20260502_204417.css.bak
+- dashboard/modules/sound.backup_before_settings_part2a_20260502_204417.js.bak
+- dashboard/modules/sound.backup_before_settings_part2b_20260502_205351.css.bak
+- dashboard/modules/sound.backup_before_settings_part2b_20260502_205351.js.bak
+- dashboard/modules/sound.backup_before_settings_part2b_v2_20260502_205623.css.bak
+- dashboard/modules/sound.backup_before_settings_part2b_v2_20260502_205623.js.bak
+- dashboard/modules/sound.backup_before_settings_ui_part1_20260502_201251.bak
+- dashboard/modules/sound.backup_before_settings_ui_part1_20260502_201330.bak
+- dashboard/modules/sound.backup_before_settings_ui_part1_v2_20260502_201510.bak
+- dashboard/modules/sound.backup_before_tabs_fix_20260502_203035.js.bak
+- dashboard/modules/sound.backup_before_tabs_layout_20260502_202310.css.bak
+- dashboard/modules/sound.backup_before_tabs_layout_20260502_202310.js.bak
+- dashboard/modules/sound.backup_before_tabs_layout_20260502_202314.css.bak
+- dashboard/modules/sound.backup_before_tabs_layout_20260502_202314.js.bak
+- dashboard/modules/sound.backup_before_tabs_layout_v3_20260502_202633.css.bak
+- dashboard/modules/sound.backup_before_tabs_layout_v3_20260502_202633.js.bak
+
+Aktive Module laut index/app:
+- sectionhome
+- streamdesk
+- controlhome
+- alerts
+- obs
+- adminconfigs
+- sound_system
+- hug
+
+Dashboard-Bewertung:
+- Dashboard ist modular, aber noch nicht einheitlich genug.
+- Neue Module müssen aktuell in index.html, app.js/window.CGN.modules, moduleCatalog und sections eingetragen werden.
+- Navigation ist noch hart im Frontend und nutzt dashboard_navigation.json noch nicht konsequent als Single Source of Truth.
+- Module nutzen unterschiedliche State-/Tab-Begriffe:
+  alerts: state.page/state.modal
+  obs: state.activeTab
+  sound: activeSection
+  hug: activeTab
+- alerts.js ist mit ca. 129 KB ein Monolith und sollte später behutsam gesplittet werden.
+- sound.js und adminconfigs.js enthalten sichtbare Encoding-/Mojibake-Fehler.
+
+Encoding-Befund:
+- dashboard/modules/adminconfigs.js: 18 auffällige Zeichen/Sequenzen
+- dashboard/modules/sound.js: 44 auffällige Zeichen/Sequenzen
+
+Dashboard API-Muster:
+- app.js nutzt /api/auth/*
+- alerts.js nutzt /api/alerts/*
+- sound.js nutzt /api/sound/*
+- adminconfigs.js nutzt /api/dashboard/controlcenter/* und /api/sound/settings
+- streamdesk.js nutzt /api/dashboard/controlcenter/streamdesk, /api/obs/dashboard/status, /api/alerts/status, /api/overlay/chat/status
+- obs.js nutzt weiterhin /obs/* statt /api/obs/*
+
+Bewertung:
+- /obs/* nicht entfernen.
+- Zusätzlich /api/obs/* Aliase vorbereiten und Dashboard später auf offizielle API-Pfade umstellen.
+- Rechte/Audit sind vorbereitet, aber Frontend und Backend müssen noch konsequent pro Aktion prüfen.
+
+======================================================================
+6. OVERLAY-STAND
+======================================================================
+
+Overlay-Upload enthält 34 Dateien.
+Vermutlich aktive/aktuelle Overlays:
+- overlays/sound_system_overlay.html
+- overlays/vip_sound_overlay.html
+- overlays/_overlay-alerts-v2.html
+- overlays/_overlay-challenge_status.html
+- overlays/_overlay-clip_player.html
+- overlays/_overlay-deathcounter-v2.html
+- overlays/_overlay-ende.html
+- overlays/_overlay-fireworks.html
+- overlays/_overlay-megashoutout.html
+- overlays/_overlay-pause.html
+- overlays/_overlay-start-v2-neon-galaxy.html
+- overlays/_overlay-tts.html
+
+Legacy/Backup/prüfen:
+- overlays/25-10-08 - Alerts-l?uft.html
+- overlays/audioblobs.js
+- overlays/fireworks.css
+- overlays/fireworks.html
+- overlays/fireworks.js
+- overlays/fscreen-1.0.1.js
+- overlays/MyMath.js
+- overlays/Stage-0.1.4.js
+- overlays/ws-client.js
+- overlays/_overlay-alert1.html
+- overlays/_overlay-alerts-v2.backup_before_visual_lead.html.bak
+- overlays/_overlay-alerts-v2.html.alt
+- overlays/_overlay-birthday.html
+- overlays/_overlay-challenge_neu.html
+- overlays/_overlay-easteregg_winner.html
+- overlays/_overlay-ende.html.alt
+- overlays/_overlay-start-v2-neon-galaxy.html.new
+- overlays/_overlay-start-v2.html
+- overlays/_overlay-start.html
+- overlays/_overlay-vip30.html
+- overlays/_rahmen.html
+- overlays/_ws-listener.html
+
+Overlay-Bewertung:
+- Overlays sind historisch gewachsen.
+- Es gibt kein einheitliches Overlay-Client-Pattern.
+- WebSocket-Verbindungen sind gemischt: location.host, localhost, 127.0.0.1, eigene ws-client.js, alte Fireworks-WS-Ziele.
+- Start/Pause/Alerts sind sehr große monolithische HTML-Dateien.
+- Start und Pause enthalten ähnliche Chat-/Snapshot-/Reconnect-Logik.
+- Einige Overlays nutzen externe Fonts/CDNs/Twitch-GQL direkt aus dem Browser.
+- Fireworks ist Legacy/Fremdsystem und nutzt eigene alte WebSocket-Ziele.
+
+Zielstandard für Overlays:
+- Initialzustand per GET /api/<module>/state oder /api/<module>/config.
+- Liveupdates per WebSocket über location.host.
+- Gemeinsamer Client: overlay_client.js.
+- Keine Secrets/Tokens/Fremd-APIs im Overlay-Browser.
+- Keine hart codierten localhost-Pfade, außer bewusst lokaler Sonderfall.
+
+======================================================================
+7. HARTE/LOKALE URLS UND PFADBEFUNDE
+======================================================================
+
+Gefundene relevante harte Referenzen:
+
+http://localhost:
+  - config/message_rotator.json
+  - overlays/ws-client.js
+  - overlays/_overlay-challenge_status.html
+  - overlays/_overlay-clip_player.html
+  - overlays/_overlay-ende.html
+  - overlays/_overlay-start-v2.html
+  - overlays/_overlay-start.html
+  - backend/modules/message_rotator.js
+  - backend/modules/twitch.js
+
+ws://localhost:
+  - overlays/_overlay-challenge_neu.html
+  - overlays/_overlay-challenge_status.html
+
+http://127.0.0.1:
+  - backend/server.js
+  - config/challenge_system.json
+  - config/tagebuch.json
+  - config/alerts_tipeee.example.json
+  - config/alert_system.json
+  - config/twitch_alerts.json
+  - config/dashboard_backend_general.json
+  - backend/modules/alert_system.js
+  - backend/modules/challenge.js
+  - backend/modules/clips.js
+  - backend/modules/credits.js
+  - backend/modules/deathcounter_v2.js
+  - backend/modules/kofi.js
+  - backend/modules/tagebuch.js
+  - backend/modules/tipeee.js
+  - backend/modules/todo.js
+  - backend/modules/twitch.js
+  - backend/modules/vip_sound_overlay.js
+
+ws://127.0.0.1:
+  - overlays/fireworks.js
+  - overlays/_ws-listener.html
+  - backend/modules/obs_shared.js
+
+127.0.0.1:
+  - backend/server.js
+  - config/challenge_system.json
+  - config/security.json
+  - config/tagebuch.json
+  - config/alerts_tipeee.example.json
+  - config/alert_system.json
+  - config/twitch_alerts.json
+  - config/dashboard_access.json
+  - config/dashboard_backend_general.json
+  - overlays/fireworks.js
+  - overlays/_ws-listener.html
+  - backend/modules/alert_system.js
+  - backend/modules/challenge.js
+  - backend/modules/clips.js
+  - backend/modules/credits.js
+  - backend/modules/dashboard_auth.js
+  - backend/modules/deathcounter_v2.js
+  - backend/modules/kofi.js
+  - backend/modules/obs_shared.js
+  - backend/modules/tagebuch.js
+  - backend/modules/tipeee.js
+  - backend/modules/todo.js
+  - backend/modules/twitch.js
+  - backend/modules/vip_sound_overlay.js
+  - backend/modules/helpers/helper_dashboard_auth.js
+  - backend/modules/helpers/helper_security.js
+
+localhost:
+  - backend/server.js
+  - config/message_rotator.json
+  - overlays/ws-client.js
+  - overlays/_overlay-challenge_neu.html
+  - overlays/_overlay-challenge_status.html
+  - overlays/_overlay-clip_player.html
+  - overlays/_overlay-ende.html
+  - overlays/_overlay-start-v2.html
+  - overlays/_overlay-start.html
+  - backend/modules/dashboard_auth.js
+  - backend/modules/diagnostics.js
+  - backend/modules/kofi.js
+  - backend/modules/message_rotator.js
+  - backend/modules/tipeee.js
+  - backend/modules/twitch.js
+  - backend/modules/helpers/helper_dashboard_auth.js
+  - backend/modules/helpers/helper_security.js
+
+D:\Streaming:
+  - backend/core/paths.js
+  - backend/modules/tts_system.js
+  - backend/modules/twitch.js
+
+Bewertung:
+- Nicht jeder 127.0.0.1/localhost-Fund ist falsch. Interne Backend-zu-Backend-Aufrufe können bewusst lokal sein.
+- Für Overlays/Dashboard sollte langfristig relativ oder location.host genutzt werden.
+- D:\Streaming in config/tools.json oder paths.js ist ok, sofern über Root/Config steuerbar.
+
+======================================================================
+8. ROUTEN-/STRUKTUR-PROBLEME
+======================================================================
+
+ECHTES PROBLEM 1: Fireworks doppelt
+- server.js registriert:
+  GET /api/fireworks
+  GET /api/fireworks/stop
+  GET /api/fireworks/clear
+- fireworks_api.js registriert dieselben Routen.
+- Da server.js vor dem Modul-Loader registriert, gewinnt wahrscheinlich server.js.
+
+Maßnahme:
+- Nicht sofort löschen.
+- Erst Verhalten testen.
+- Dann Fireworks sauber in fireworks_api.js zentralisieren.
+- server.js nur noch allgemeine Infrastruktur machen lassen.
+
+ECHTES PROBLEM 2: OBS ohne /api-Präfix
+- obs.js nutzt /obs/*.
+- Dashboard obs.js nutzt /obs/*.
+- Streamdesk nutzt teils /api/obs/*.
+
+Maßnahme:
+- /obs/* behalten.
+- /api/obs/* Aliase ergänzen.
+- Dashboard schrittweise auf /api/obs/* umstellen.
+
+ECHTES PROBLEM 3: Produktive Backup-Dateien sichtbar
+- dashboard enthält 25 Backup-/Alt-Dateien.
+- overlays enthält .bak/.alt/.new/alte HTML-Stände.
+- backend/modules enthält 13 Backup-/Alt-Dateien.
+
+Maßnahme:
+- Nicht löschen.
+- In archive/system_cleanup_stepXXX verschieben.
+- ZIP/Doku mit Dateiliste erstellen.
+- Danach prüfen, dass Backend/Dashboard/Overlays weiterhin laufen.
+
+ECHTES PROBLEM 4: Dashboard-Doppelstruktur
+- Root dashboard/ existiert zusätzlich zu htdocs/dashboard/.
+- Server liefert /dashboard aus htdocs/dashboard aus.
+
+Maßnahme:
+- htdocs/dashboard als produktive Quelle festlegen.
+- Root dashboard/ als Arbeits-/Exportstruktur kennzeichnen oder archivieren.
+
+ECHTES PROBLEM 5: TTS sensible Config
+- google_tts_service_account.json ist im config.zip enthalten.
+- TTS nutzt diese Datei als KeyFile.
+
+Maßnahme:
+- In künftigen Upload-ZIPs ausschließen.
+- In Doku als sensibel markieren.
+- Dashboard darf nur Status hasGoogleCredentials anzeigen, niemals Inhalt.
+
+======================================================================
+9. MODULWEISE EINORDNUNG
+======================================================================
+
+Alerts:
+- Größtes und kritischstes Modul.
+- DB nutzt alert_* Tabellen.
+- Dashboard alerts.js ist groß und funktionsreich.
+- Nicht als erstes refactoren, außer kleine UI-/Bugfixes.
+
+Sound-System:
+- Backend sound_system.js + sound_output_config.js.
+- DB sound_settings.
+- Dashboard sound.js mit Encoding-Fehlern.
+- Guter Kandidat für frühe Vereinheitlichung nach Backup-Aufräumen.
+
+Dashboard/Auth/Admin:
+- dashboard_auth.js + dashboard_controlcenter.js.
+- DB dashboard_* Tabellen.
+- Rollen/Audit vorbereitet.
+- Nächster Schritt: Rechteprüfung konsistent machen, nicht nur anzeigen.
+
+OBS:
+- Funktional vorhanden.
+- API-Pfade inkonsistent.
+- Früh /api/obs Aliase bauen.
+
+Overlays:
+- Nicht sofort große HTML-Dateien zerlegen.
+- Erst gemeinsames overlay_client.js vorbereiten.
+- Danach ein Overlay nach dem anderen umstellen.
+
+Hug:
+- Schon DB-nah und Dashboard-readonly vorhanden.
+- Guter Kandidat für Dashboard-Bearbeitung später.
+
+Tagebuch/ToDo:
+- Relativ stabil.
+- Nur angleichen, wenn ein Dashboard-Modul dafür kommt.
+
+Deathcounter:
+- JSON-basiert.
+- Aktive Daten vorhanden.
+- Nicht vorschnell in DB migrieren.
+- Erst Status dokumentieren und optional Dashboard-Ansicht planen.
+
+Clips:
+- Titel/Register vorhanden.
+- DB fehlt noch für vollständige Clip-Historie.
+- Später in SQLite integrieren.
+
+Message-Rotator:
+- Config-basiert.
+- Kandidat für Dashboard-Bearbeitung und später DB/Text-Zentralisierung.
+
+TTS:
+- Backend ist funktionsreicher als alte Übersicht vermutete.
+- Routen: /api/tts/run, /say, /done, /status, /on, /off, /stop, /clear, /reload, /command.
+- Sensible Google-Key-Datei beachten.
+
+======================================================================
+10. PRIORISIERTE MASTER-TODO
+======================================================================
+
+PHASE 0 - Sicherheits-/Arbeitsbasis
+[ ] STABLE-ZIP vom kompletten aktuellen Arbeitsstand ohne Secrets erstellen.
+[ ] Exclude-Liste verbindlich machen: node_modules, secrets, .env, google_tts_service_account.json, große Sounds/Videos, archive.
+[ ] docs/Projektdatei aktualisieren.
+[ ] Aktive OBS-Quellenliste ergänzen.
+[ ] Live-Routencheck per PowerShell ergänzen.
+
+PHASE 1 - Aufräumen ohne Funktionsänderung
+[ ] Backup-/Alt-Dateien aus backend/modules in archive/system_cleanup_step001 verschieben.
+[ ] Backup-/Alt-Dateien aus htdocs/dashboard in archive/system_cleanup_step001 verschieben.
+[ ] Backup-/Alt-Dateien aus htdocs/overlays in archive/system_cleanup_step001 verschieben.
+[ ] Root dashboard/ klären: produktiv nein, Arbeitskopie/Archiv ja.
+[ ] Nach jedem Verschieben Node starten und Dashboard/Overlays testen.
+
+PHASE 2 - Offizielle Standards festlegen
+[ ] Offizielle API-Regel: neue/aktive APIs unter /api/*.
+[ ] Legacy-Routen dokumentieren und behalten.
+[ ] /api/obs/* Aliase ergänzen.
+[ ] /api/deathcounter/* Aliase optional vorbereiten, /v2 behalten.
+[ ] Einheitliches Response-Format über Helper erzwingen: ok, module, data/error.
+[ ] Einheitliches Error-Logging und Audit-Hook definieren.
+
+PHASE 3 - Dashboard vereinheitlichen
+[ ] Modul-Skeleton festlegen: state, renderShell, render, bindActions, loadAll.
+[ ] Gemeinsame Dashboard-Helper erweitern: Toast, Errorbox, Loading, Permission-Check.
+[ ] Encoding in adminconfigs.js korrigieren.
+[ ] Encoding in sound.js korrigieren.
+[ ] app.js so vorbereiten, dass Navigation später aus /api/dashboard/controlcenter/navigation kommen kann.
+[ ] Keine produktiven Fallback-Configs mehr als heimliche zweite Wahrheit verwenden.
+
+PHASE 4 - Overlay vereinheitlichen
+[ ] htdocs/overlays/overlay_client.js erstellen.
+[ ] WebSocket-URL überall über location.host oder Helper.
+[ ] safeJson, escapeHtml, cacheBust, reconnect zentralisieren.
+[ ] Start/Pause Chat-Logik später auslagern.
+[ ] Clip-Player Twitch-GQL aus Browser entfernen und Backend-Route nutzen.
+[ ] Fireworks als Legacy markieren oder sauber integrieren.
+
+PHASE 5 - Modulweise Angleichung
+[ ] Sound-System Dashboard + Backend sauber angleichen.
+[ ] OBS /api-Aliase + Dashboard anpassen.
+[ ] Hug Dashboard von readonly zu bearbeitbar erweitern.
+[ ] Message-Rotator Dashboard-Modul planen.
+[ ] Clips Historie/Discord-Post/DB vollständig machen.
+[ ] Deathcounter optional in Dashboard sichtbar machen, JSON vorerst behalten.
+[ ] Alerts erst nach Stabilisierung in Teilmodule splitten.
+
+PHASE 6 - Sicherheit/Rechte/Audit
+[ ] Backend-Rechteprüfung je schreibender Route.
+[ ] Dashboard-Buttons anhand Permissions deaktivieren/verstecken.
+[ ] Audit-Logging für Config-Änderungen, Sound-Aktionen, OBS-Schaltungen, Alert-Tests.
+[ ] Retention aus dashboard_logging.json nutzen.
+[ ] Sensible Config-Werte maskieren.
+
+======================================================================
+11. EMPFOHLENER ERSTER PATCH-SCHRITT
+======================================================================
+
+Nicht direkt Alerts umbauen.
+Nicht direkt große Overlays zerlegen.
+Nicht direkt DB-Migrationen starten.
+
+Empfohlenes erstes Arbeitspaket:
+STEP001_SAFE_CLEANUP_AND_DOCS
+
+Inhalt:
+1. Backup-/Alt-Dateien in archive verschieben, nicht löschen.
+2. Strukturdatei aktualisieren.
+3. Offizielle aktive Pfade dokumentieren.
+4. Dashboard-Encoding-Fix vorbereiten, aber erst nach Backup anwenden.
+5. Fireworks-Dopplung nur dokumentieren, noch nicht ändern.
+6. /api/obs-Alias-Arbeitspaket als STEP002 vormerken.
+
+Warum:
+- Minimales Risiko.
+- Keine Funktionalität wird entfernt.
+- Danach ist die Projektstruktur sauber genug für echte technische Umbauten.
+
+======================================================================
+12. KONKRETE NÄCHSTE DATEIEN/ARBEITSPAKETE
+======================================================================
+
+Nächstes zu erstellendes ZIP:
+- ForrestCGN_SYSTEM_STEP001_SAFE_CLEANUP_PLAN.zip
+
+Soll enthalten:
+- README_STEP001_SAFE_CLEANUP.md
+- scripts/list_cleanup_candidates.ps1
+- scripts/apply_cleanup_candidates.ps1  [erst nach deiner Freigabe nutzen]
+- docs/SYSTEM_INSPEKTION_MASTER_TODO_v1_FINAL_2026-05-03.txt
+- docs/CLEANUP_CANDIDATES_STEP001.txt
+
+Wichtig:
+- apply_cleanup_candidates.ps1 darf Dateien nur verschieben, nicht löschen.
+- Vor Ausführung muss es ein Backup-Ziel unter archive/system_cleanup_step001 erstellen.
+- Danach soll ein Check ausgeben, welche produktiven Dateien noch aktiv sind.
+
+======================================================================
+13. OFFENE INFOS, DIE NOCH NÜTZLICH SIND
+======================================================================
+
+Nicht blockierend, aber hilfreich:
+- OBS-Szenen-/Quellenliste mit Browser-URLs.
+- Live-Routencheck per PowerShell.
+- Node-Startlog nach aktuellem Stand.
+- Welche Overlays wirklich aktiv in OBS eingebunden sind.
+- Welche Dashboard-Version du aktuell im Browser nutzt: /dashboard aus htdocs oder Root dashboard manuell.
+
+======================================================================
+14. FAZIT
+======================================================================
+
+Das System ist nicht kaputt, aber historisch gewachsen und an mehreren Stellen uneinheitlich.
+Die größten Risiken sind nicht einzelne Bugs, sondern Verwechslung durch Altdateien, uneinheitliche Routen, zu große Frontend-Monolithen und fehlende konsequente Standards.
+
+Die richtige Strategie ist:
+1. sicher aufräumen,
+2. Standards festlegen,
+3. Aliase statt Brüche einführen,
+4. Dashboard/Overlays behutsam vereinheitlichen,
+5. Module einzeln modernisieren,
+6. nach jedem STEP Doku + ZIP + Struktur aktualisieren.
+
+ENDE
