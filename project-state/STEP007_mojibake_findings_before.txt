@@ -1,0 +1,152 @@
+﻿FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\adminconfigs.js
+LINE: 12
+TEXT:       { id:'twitch_dashboard_auth', label:'Twitch Login', path:'config/twitch_dashboard_auth.json', category:'Auth', writablePrepared:false, description:'OAuth-/Scope-Vorbereitung fÃ¼r Dashboard-Login und Mod-Rechte.' },
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\adminconfigs.js
+LINE: 13
+TEXT:       { id:'backend_general', label:'Backend Allgemein', path:'config/dashboard_backend_general.json', category:'Backend', writablePrepared:false, description:'Vorbereitung fÃ¼r zentrale Backend-Optionen.' },
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\adminconfigs.js
+LINE: 100
+TEXT:         <p class="muted">Diese Werte sind technische Systemwerte. Sie gehÃ¶ren nicht auf die normale Sound-Seite. Speicherung lÃ¤uft Ã¼ber <code>/api/sound/settings</code> nach SQLite.</p>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\adminconfigs.js
+LINE: 144
+TEXT:           <strong>Hinweis:</strong> Secrets/Tokens werden hier nicht angezeigt. Ã„nderungen sollten spÃ¤ter mit Rollen/Rechten und Audit-Logging abgesichert werden.
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\adminconfigs.js
+LINE: 200
+TEXT:       return `<div class="adminconfig-preview"><h3>Stream-Desk Vorschau</h3><div class="adminconfig-chip-row"><span>${scenes.length} QuickScenes</span><span>${Object.values(widgets).filter(Boolean).length} aktive Widgets</span><span>${config.twitchLogin?.enabled ? 'Twitch-Login aktiv' : 'Twitch-Login vorbereitet'}</span></div><div class="adminconfig-scene-preview">${scenes.map(s => `<div><strong>${window.CGN.esc(s.label || s.sceneName)}</strong><small>${window.CGN.esc(s.sceneName || '')}${s.confirm ? ' Â· BestÃ¤tigung' : ''}</small></div>`).join('') || '<p class="muted">Keine Szenen im geladenen Payload.</p>'}</div><p class="muted">Diese Szenen bestimmen spÃ¤ter die OBS-Buttons im Stream-Desk. Nur wichtige sichtbare Szenen eintragen, keine _Hilfsszenen.</p></div>`;
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\adminconfigs.js
+LINE: 203
+TEXT:       return `<div class="adminconfig-preview"><h3>Audit-Logging</h3><div class="adminconfig-chip-row"><span>Retention: ${window.CGN.esc(config.retentionDays ?? 'â€”')} Tage</span><span>${config.logToDatabase ? 'SQLite aktiv geplant' : 'SQLite vorbereitet'}</span><span>${window.CGN.esc(config.databasePath || 'data/sqlite/dashboard_audit.sqlite')}</span></div><p class="muted">Logs werden kompakt und separat geplant. Keine Tokens, keine kompletten API-Antworten.</p></div>`;
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\adminconfigs.js
+LINE: 208
+TEXT:     return `<div class="adminconfig-preview"><h3>Hinweis</h3><p>Diese Config ist vorbereitet. Lesen funktioniert erst vollstÃ¤ndig, wenn <code>dashboard_controlcenter.js</code> im Backend registriert ist.</p></div>`;
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\adminconfigs.js
+LINE: 218
+TEXT:         <section class="card glass span-12 adminconfigs-hero"><span class="role-badge">Admin / vorbereitet</span><h2>Admin Configs</h2><p>Zentrale Konfigurationsseite fÃ¼r Stream-Desk, Navigation, Logging, Twitch-Login, Backend-Optionen und Secrets. Rechte sind weiterhin nicht live scharf geschaltet.</p><div class="placeholder-note adminconfigs-warning"><strong>Wichtig:</strong> Schreiben, Secret-Ersetzen und echte RechteprÃ¼fung bleiben gesperrt, bis Auth + Audit-Log aktiv sind.</div></section>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\adminconfigs.js
+LINE: 219
+TEXT:         <section class="card glass span-12"><div class="adminconfigs-layout"><aside><h2>Config-Bereiche</h2><div class="adminconfigs-list">${configs.map(c => `<button class="adminconfig-item ${c.id === state.selectedId ? 'active' : ''}" data-config-id="${window.CGN.esc(c.id)}"><strong>${window.CGN.esc(c.label)}</strong><span>${window.CGN.esc(c.category || 'Config')} Â· ${window.CGN.esc(c.displayPath || c.path || '')}</span></button>`).join('')}</div></aside><section class="adminconfig-detail"><span class="role-badge">${window.CGN.esc(item.category || 'Config')}</span><h2>${window.CGN.esc(item.label || 'Config')}</h2><p>${window.CGN.esc(item.description || '')}</p><div class="adminconfig-meta"><div class="quick-card"><h3>Pfad</h3><p><code>${window.CGN.esc(item.displayPath || item.path || 'â€”')}</code></p></div><div class="quick-card"><h3>Status</h3><p>${state.loading ? 'lÃ¤dt...' : (payload ? 'lesbar' : 'vorbereitet')}</p></div><div class="quick-card"><h3>Schreiben</h3><p>${canEdit ? 'aktiv' : 'noch gesperrt'}</p></div></div>${state.error ? `<div class="placeholder-note bad">${window.CGN.esc(state.error)}</div>` : ''}${renderPreview(state.selectedId, payload)}<textarea class="adminconfig-editor" spellcheck="false" readonly>${window.CGN.esc(payload ? pretty(payload) : pretty({ preparedOnly:true, note:'Backend-Endpunkt oder Datei noch nicht aktiv. Struktur ist vorbereitet.' }))}</textarea><div class="adminconfig-actions"><button type="button" data-reload-config="${window.CGN.esc(state.selectedId)}">Neu laden</button><button type="button" disabled title="Schreiben wird erst mit Auth/RechteprÃ¼fung aktiviert">Speichern vorbereitet</button><button type="button" disabled title="Ã„nderungen werden spÃ¤ter ins Audit-Log geschrieben">Audit-Vorschau vorbereitet</button></div>${state.note ? `<p class="muted">${window.CGN.esc(state.note)}</p>` : ''}</section></div></section>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 25
+TEXT:           <div class="sound-note">Zentrale Steuerung fÃ¼r Stream-Sounds, Queue, PrioritÃ¤ten, Ausgabeziele, Alert-Sync und spÃ¤tere Discord-Ausgabe.</div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 32
+TEXT:           <a class="ghost-link" href="/overlays/sound_system_overlay.html?debug=1" target="_blank">Overlay Ã¶ffnen</a>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 111
+TEXT:     const helperWarning = devices?.warning && devices.warning !== 'helper' ? `<div class="sound-note">GerÃ¤tequelle: ${esc(devices.warning)}${devices.error ? ' Â· ' + esc(devices.error) : ''}</div>` : '';
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 127
+TEXT:           <option value="device" ${out.defaultTarget === 'device' ? 'selected' : ''}>AudiogerÃ¤t</option>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 132
+TEXT:         <span>AusgabegerÃ¤t</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 139
+TEXT:         <span>GerÃ¤t-LautstÃ¤rke</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 144
+TEXT:         ${button('GerÃ¤te neu laden', 'reload-devices')}
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 147
+TEXT:       <div class="sound-note">Der Ausgabemodus setzt die passenden Ziele automatisch. GerÃ¤t und LautstÃ¤rke gelten fÃ¼r direkte AudiogerÃ¤t-Ausgabe.</div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 157
+TEXT:     if (!cur) { el.innerHTML = `<h3>Aktuell</h3><div class="sound-empty">Gerade lÃ¤uft kein Sound.</div>`; return; }
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 165
+TEXT:       <div class="sound-current-row"><span>PrioritÃ¤t</span><span>${esc(cur.priority)}</span></div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 166
+TEXT:       <div class="sound-current-row"><span>LautstÃ¤rke</span><span>${esc(cur.volume)}%</span></div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 181
+TEXT:       <div class="sound-status-row"><span>PrioritÃ¤ts-Queue</span><span>${queue.sortByPriority === false ? 'FIFO' : 'Aktiv'}</span></div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 184
+TEXT:       <div class="sound-status-row"><span>Alert-PrioritÃ¤t</span><span>${esc(priorities.alert ?? 80)}</span></div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 187
+TEXT:       <div class="sound-note">Normale Alerts sollen laufende Sounds nicht unterbrechen. Sie werden nach PrioritÃ¤t einsortiert und spÃ¤ter erst angezeigt, wenn ihr Sound-Item startet.</div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 215
+TEXT:       <div class="sound-note">Diese Werte werden Ã¼ber <code>/api/sound/settings</code> in SQLite gespeichert und beim Neustart wieder geladen.</div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 220
+TEXT:           <span>Overlay-LautstÃ¤rke</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 224
+TEXT:           <span>Device-LautstÃ¤rke</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 228
+TEXT:           <span>Both-LautstÃ¤rke</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 255
+TEXT:           <span>Nach PrioritÃ¤t sortieren</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 284
+TEXT:           <span>Interrupt ab PrioritÃ¤t</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 289
+TEXT:           <span>Nur bei hÃ¶herer PrioritÃ¤t</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 306
+TEXT:           <span>Bei voller Queue droppen bis PrioritÃ¤t</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 310
+TEXT:           <span>Bei Busy droppen bis PrioritÃ¤t</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 348
+TEXT:         <div class="sound-settings-title">PrioritÃ¤ten</div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 376
+TEXT:       <div class="sound-note">Ã„nderungen werden in SQLite gespeichert. Technische Pfade und Sound-Bibliothek kommen spÃ¤ter in einen Expertenbereich.</div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 398
+TEXT:           <span>${esc(label)} PrioritÃ¤t</span>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 549
+TEXT:           <div class="sound-sound-meta">${esc(sound.id)} Â· ${esc(sound.category || 'ohne Kategorie')} Â· ${esc(sound.source || 'config')} Â· ${esc(sound.file || sound.type || '')}</div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 569
+TEXT:           <div class="sound-queue-meta">${esc(item.category || '-')} Â· ${esc(item.source || 'manual')} Â· PrioritÃ¤t ${esc(item.priority)} Â· ${esc(item.file)}</div>
+
+FILE: D:\Git\stream-control-center\htdocs\dashboard\modules\sound.js
+LINE: 583
+TEXT:     const selectedDeviceName = option?.dataset?.name || option?.textContent || 'Windows StandardgerÃ¤t';
+

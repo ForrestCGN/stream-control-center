@@ -22,14 +22,14 @@
       <div class="sound-card sound-hero">
         <div>
           <h2>Sound-System</h2>
-          <div class="sound-note">Zentrale Steuerung fÃ¼r Stream-Sounds, Queue, PrioritÃ¤ten, Ausgabeziele, Alert-Sync und spÃ¤tere Discord-Ausgabe.</div>
+          <div class="sound-note">Zentrale Steuerung für Stream-Sounds, Queue, Prioritäten, Ausgabeziele, Alert-Sync und spätere Discord-Ausgabe.</div>
         </div>
         <div class="sound-actions sound-hero-actions">
           ${button('Neu laden', 'reload')}
           ${button('Stop', 'stop')}
           ${button('Skip', 'skip')}
           ${button('Queue leeren', 'clear')}
-          <a class="ghost-link" href="/overlays/sound_system_overlay.html?debug=1" target="_blank">Overlay Ã¶ffnen</a>
+          <a class="ghost-link" href="/overlays/sound_system_overlay.html?debug=1" target="_blank">Overlay öffnen</a>
         </div>
       </div>
 
@@ -108,7 +108,7 @@
     const out = getOutputState();
     const targets = out.targets || {};
     const device = targets.device || {};
-    const helperWarning = devices?.warning && devices.warning !== 'helper' ? `<div class="sound-note">GerÃ¤tequelle: ${esc(devices.warning)}${devices.error ? ' Â· ' + esc(devices.error) : ''}</div>` : '';
+    const helperWarning = devices?.warning && devices.warning !== 'helper' ? `<div class="sound-note">Gerätequelle: ${esc(devices.warning)}${devices.error ? ' · ' + esc(devices.error) : ''}</div>` : '';
     const deviceList = Array.isArray(devices?.devices) ? devices.devices : [];
     const selectedId = device.selectedDeviceId || 'default';
     const selectedMissing = selectedId && !deviceList.some(d => String(d.id) === String(selectedId));
@@ -124,27 +124,27 @@
         <span>Ausgabemodus</span>
         <select id="soundDefaultTarget">
           <option value="overlay" ${out.defaultTarget === 'overlay' ? 'selected' : ''}>Overlay / OBS</option>
-          <option value="device" ${out.defaultTarget === 'device' ? 'selected' : ''}>AudiogerÃ¤t</option>
+          <option value="device" ${out.defaultTarget === 'device' ? 'selected' : ''}>Audiogerät</option>
           <option value="both" ${out.defaultTarget === 'both' ? 'selected' : ''}>Beides</option>
         </select>
       </label>
       <label class="sound-field">
-        <span>AusgabegerÃ¤t</span>
+        <span>Ausgabegerät</span>
         <select id="soundDeviceSelect">
           ${selectedMissing ? `<option value="${esc(selectedId)}" data-name="${esc(device.selectedDeviceName || selectedId)}" selected>${esc(device.selectedDeviceName || selectedId)} (gespeichert)</option>` : ''}
           ${deviceList.map(d => `<option value="${esc(d.id)}" data-name="${esc(d.name)}" ${String(d.id) === String(selectedId) ? 'selected' : ''}>${esc(d.name)}${d.isDefault ? ' (Standard)' : ''}</option>`).join('')}
         </select>
       </label>
       <label class="sound-field">
-        <span>GerÃ¤t-LautstÃ¤rke</span>
+        <span>Gerät-Lautstärke</span>
         <input id="soundDeviceVolume" type="number" min="0" max="100" value="${esc(device.defaultVolume ?? 80)}">
       </label>
       <div class="sound-actions">
         ${button('Ausgabe speichern', 'save-output')}
-        ${button('GerÃ¤te neu laden', 'reload-devices')}
+        ${button('Geräte neu laden', 'reload-devices')}
         ${button('Test Ausgabe', 'test-output')}
       </div>
-      <div class="sound-note">Der Ausgabemodus setzt die passenden Ziele automatisch. GerÃ¤t und LautstÃ¤rke gelten fÃ¼r direkte AudiogerÃ¤t-Ausgabe.</div>
+      <div class="sound-note">Der Ausgabemodus setzt die passenden Ziele automatisch. Gerät und Lautstärke gelten für direkte Audiogerät-Ausgabe.</div>
       ${saveInfo}
       ${helperWarning}
     `;
@@ -154,7 +154,7 @@
     const el = document.getElementById('soundCurrentCard');
     if (!el) return;
     const cur = status?.current;
-    if (!cur) { el.innerHTML = `<h3>Aktuell</h3><div class="sound-empty">Gerade lÃ¤uft kein Sound.</div>`; return; }
+    if (!cur) { el.innerHTML = `<h3>Aktuell</h3><div class="sound-empty">Gerade läuft kein Sound.</div>`; return; }
     const flags = cur.flags || {};
     el.innerHTML = `
       <h3>Aktuell</h3>
@@ -162,8 +162,8 @@
       <div class="sound-current-row"><span>Kategorie</span><span class="sound-pill">${esc(cur.category || '-')}</span></div>
       <div class="sound-current-row"><span>Quelle</span><span>${esc(cur.source || '-')}</span></div>
       <div class="sound-current-row"><span>Ziel</span><span class="sound-pill">${esc(cur.outputTarget || cur.target)}</span></div>
-      <div class="sound-current-row"><span>PrioritÃ¤t</span><span>${esc(cur.priority)}</span></div>
-      <div class="sound-current-row"><span>LautstÃ¤rke</span><span>${esc(cur.volume)}%</span></div>
+      <div class="sound-current-row"><span>Priorität</span><span>${esc(cur.priority)}</span></div>
+      <div class="sound-current-row"><span>Lautstärke</span><span>${esc(cur.volume)}%</span></div>
       <div class="sound-current-row"><span>Unterbrechbar</span><span>${flags.canBeInterrupted ? 'Ja' : 'Nein'}</span></div>
       <div class="sound-current-row"><span>Datei</span><span class="sound-muted">${esc(cur.file)}</span></div>
     `;
@@ -178,13 +178,13 @@
     const alertSync = queue.alertSync || {};
     el.innerHTML = `
       <h3>Policy</h3>
-      <div class="sound-status-row"><span>PrioritÃ¤ts-Queue</span><span>${queue.sortByPriority === false ? 'FIFO' : 'Aktiv'}</span></div>
+      <div class="sound-status-row"><span>Prioritäts-Queue</span><span>${queue.sortByPriority === false ? 'FIFO' : 'Aktiv'}</span></div>
       <div class="sound-status-row"><span>Max. Queue</span><span>${esc(queue.maxLength ?? 50)}</span></div>
       <div class="sound-status-row"><span>Max. Parallel</span><span>${esc(queue.maxParallel ?? 0)}</span></div>
-      <div class="sound-status-row"><span>Alert-PrioritÃ¤t</span><span>${esc(priorities.alert ?? 80)}</span></div>
+      <div class="sound-status-row"><span>Alert-Priorität</span><span>${esc(priorities.alert ?? 80)}</span></div>
       <div class="sound-status-row"><span>Alert-Sync</span><span>${alertSync.enabled === false ? 'Aus' : 'Vorbereitet'}</span></div>
       <div class="sound-status-row"><span>Interrupt ab</span><span>${esc(interrupt.minPriority ?? 100)}</span></div>
-      <div class="sound-note">Normale Alerts sollen laufende Sounds nicht unterbrechen. Sie werden nach PrioritÃ¤t einsortiert und spÃ¤ter erst angezeigt, wenn ihr Sound-Item startet.</div>
+      <div class="sound-note">Normale Alerts sollen laufende Sounds nicht unterbrechen. Sie werden nach Priorität einsortiert und später erst angezeigt, wenn ihr Sound-Item startet.</div>
     `;
   }
 
@@ -212,20 +212,20 @@
     const cat = key => categoryDefaults[key] || {};
     el.innerHTML = `
       <h3>Einstellungen</h3>
-      <div class="sound-note">Diese Werte werden Ã¼ber <code>/api/sound/settings</code> in SQLite gespeichert und beim Neustart wieder geladen.</div>
+      <div class="sound-note">Diese Werte werden über <code>/api/sound/settings</code> in SQLite gespeichert und beim Neustart wieder geladen.</div>
 
       <div class="sound-settings-grid">
         <div class="sound-settings-title">Ausgabe & Overlay</div>
         <label class="sound-field">
-          <span>Overlay-LautstÃ¤rke</span>
+          <span>Overlay-Lautstärke</span>
           <input id="soundSettingsOverlayVolume" type="number" min="0" max="100" value="${esc(numValue(overlayTarget.defaultVolume, 85))}">
         </label>
         <label class="sound-field">
-          <span>Device-LautstÃ¤rke</span>
+          <span>Device-Lautstärke</span>
           <input id="soundSettingsDeviceVolume" type="number" min="0" max="100" value="${esc(numValue(deviceTarget.defaultVolume, 80))}">
         </label>
         <label class="sound-field">
-          <span>Both-LautstÃ¤rke</span>
+          <span>Both-Lautstärke</span>
           <input id="soundSettingsBothVolume" type="number" min="0" max="100" value="${esc(numValue(bothTarget.defaultVolume, 85))}">
         </label>
         <label class="sound-field">
@@ -252,7 +252,7 @@
         </label>
         <label class="sound-check">
           <input id="soundSettingsSortPriority" type="checkbox" ${checked(queue.sortByPriority)}>
-          <span>Nach PrioritÃ¤t sortieren</span>
+          <span>Nach Priorität sortieren</span>
         </label>
         <label class="sound-check">
           <input id="soundSettingsAllowParallel" type="checkbox" ${checked(queue.allowParallel)}>
@@ -281,12 +281,12 @@
           <span>Interrupt-Regeln aktiv</span>
         </label>
         <label class="sound-field">
-          <span>Interrupt ab PrioritÃ¤t</span>
+          <span>Interrupt ab Priorität</span>
           <input id="soundSettingsInterruptMinPriority" type="number" min="0" max="200" value="${esc(numValue(interruptRules.minPriority, 100))}">
         </label>
         <label class="sound-check">
           <input id="soundSettingsInterruptRequireHigher" type="checkbox" ${checked(interruptRules.requireHigherPriority)}>
-          <span>Nur bei hÃ¶herer PrioritÃ¤t</span>
+          <span>Nur bei höherer Priorität</span>
         </label>
         <label class="sound-check">
           <input id="soundSettingsInterruptAllowForce" type="checkbox" ${checked(interruptRules.allowForce)}>
@@ -303,11 +303,11 @@
           <span>Drop-Regeln aktiv</span>
         </label>
         <label class="sound-field">
-          <span>Bei voller Queue droppen bis PrioritÃ¤t</span>
+          <span>Bei voller Queue droppen bis Priorität</span>
           <input id="soundSettingsDropQueueFullBelow" type="number" min="0" max="200" value="${esc(numValue(dropRules.dropIfQueueFullBelowPriority, 40))}">
         </label>
         <label class="sound-field">
-          <span>Bei Busy droppen bis PrioritÃ¤t</span>
+          <span>Bei Busy droppen bis Priorität</span>
           <input id="soundSettingsDropBusyBelow" type="number" min="0" max="200" value="${esc(numValue(dropRules.dropIfBusyBelowPriority, 20))}">
         </label>
 
@@ -345,7 +345,7 @@
           <input id="soundSettingsDedupeSameUserSound" type="number" min="0" max="3600000" value="${esc(numValue(dedupe.sameUserSoundWindowMs, 5000))}">
         </label>
 
-        <div class="sound-settings-title">PrioritÃ¤ten</div>
+        <div class="sound-settings-title">Prioritäten</div>
         ${priorityField('Admin', 'soundPriorityAdmin', priorities.admin, 100)}
         ${priorityField('System', 'soundPrioritySystem', priorities.system, 100)}
         ${priorityField('Kritischer Alert', 'soundPriorityAlertCritical', priorities.alert_critical, 90)}
@@ -373,7 +373,7 @@
         ${button('Settings speichern', 'save-settings', 'success')}
         ${button('Settings neu laden', 'reload-settings')}
       </div>
-      <div class="sound-note">Ã„nderungen werden in SQLite gespeichert. Technische Pfade und Sound-Bibliothek kommen spÃ¤ter in einen Expertenbereich.</div>
+      <div class="sound-note">Änderungen werden in SQLite gespeichert. Technische Pfade und Sound-Bibliothek kommen später in einen Expertenbereich.</div>
     `;
   }
 
@@ -395,7 +395,7 @@
     return `
       <div class="sound-category-row">
         <label class="sound-field">
-          <span>${esc(label)} PrioritÃ¤t</span>
+          <span>${esc(label)} Priorität</span>
           <input id="${esc(prefix)}Priority" type="number" min="0" max="200" value="${esc(numValue(data.priority, fallbackPriority))}">
         </label>
         <label class="sound-check"><input id="${esc(prefix)}CanInterrupt" type="checkbox" ${canInterrupt ? 'checked' : ''}><span>Interrupt</span></label>
@@ -546,7 +546,7 @@
       <div class="sound-sound-row">
         <div class="sound-sound-main">
           <div class="sound-sound-title">${esc(sound.label || sound.id)}</div>
-          <div class="sound-sound-meta">${esc(sound.id)} Â· ${esc(sound.category || 'ohne Kategorie')} Â· ${esc(sound.source || 'config')} Â· ${esc(sound.file || sound.type || '')}</div>
+          <div class="sound-sound-meta">${esc(sound.id)} · ${esc(sound.category || 'ohne Kategorie')} · ${esc(sound.source || 'config')} · ${esc(sound.file || sound.type || '')}</div>
         </div>
         <div class="sound-mini-actions">
           <span class="sound-pill">${esc(sound.outputTarget || sound.target || '')}</span>
@@ -566,7 +566,7 @@
       <div class="sound-queue-row">
         <div class="sound-queue-main">
           <div class="sound-queue-title">#${index + 1} ${esc(item.label || item.soundId)}</div>
-          <div class="sound-queue-meta">${esc(item.category || '-')} Â· ${esc(item.source || 'manual')} Â· PrioritÃ¤t ${esc(item.priority)} Â· ${esc(item.file)}</div>
+          <div class="sound-queue-meta">${esc(item.category || '-')} · ${esc(item.source || 'manual')} · Priorität ${esc(item.priority)} · ${esc(item.file)}</div>
         </div>
         <div class="sound-mini-actions">
           <span class="sound-pill">${esc(item.outputTarget || item.target)}</span>
@@ -580,7 +580,7 @@
     const select = document.getElementById('soundDeviceSelect');
     const option = select?.selectedOptions?.[0];
     const selectedDeviceId = select?.value || 'default';
-    const selectedDeviceName = option?.dataset?.name || option?.textContent || 'Windows StandardgerÃ¤t';
+    const selectedDeviceName = option?.dataset?.name || option?.textContent || 'Windows Standardgerät';
     const mode = document.getElementById('soundDefaultTarget')?.value || 'overlay';
     const flags = modeFlags(mode);
 
