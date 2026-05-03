@@ -41,25 +41,68 @@ GitHub:
 - STEP010 OBS Dashboard Aktionen auf /api/obs/*
 - STEP011 Doku-Struktur in Repo und Live vorbereitet
 - STEP015 VIP-/Sound-/Overlay-Planung dokumentiert
+- STEP016 VIP-Daily-Usage und DB-Message-Templates vorbereitet
+- STEP016.1 VIP-Chat-Ausgabe auf helper_chat_output/Heimleitungs-Bot umgestellt
+- STEP017 VIP-Sounds ueber Sound-System vor Daily-Usage queued
 
 ## Aktueller sauberer Zustand
 
-- Repo/dev war vor STEP015 sauber und auf origin/dev.
-- STEP015 war reine Planung/Dokumentation ohne Codeaenderung.
-- Repo/Live-SHA256 war fuer die relevanten VIP-/Sound-/Helper-Dateien identisch:
-  - backend/modules/sound_system.js Same=True
-  - backend/modules/vip_sound_overlay.js Same=True
-  - backend/modules/helpers/helper_messages.js Same=True
-  - backend/modules/helpers/helper_texts.js Same=True
-  - backend/modules/helpers/helper_chat_output.js Same=True
-  - config/sound_system.json Same=True
+- Repo/dev ist sauber und auf origin/dev.
+- STEP017 ist live getestet.
+- Aktuelles VIP-Modul: backend/modules/vip_sound_overlay.js
+- VIP-Modul-Version live: 1.7.0
 
 Live-Routen geprueft:
 
 - GET /api/_status
 - GET /api/sound/status
 - GET /api/vip-sound/status
+- GET /api/vip-sound/db/status
+- GET /api/vip-sound/command
 - GET /api/vip-sound-overlay/state
+
+## VIP-System aktueller Stand
+
+Dokumentation:
+
+- project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
+- project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
+
+Aktueller Ablauf fuer `/api/vip-sound/command`:
+
+1. Userdaten werden aufgeloest.
+2. Daily-Usage wird geprueft.
+3. Wenn User bereits genutzt hat:
+   - kein Sound-System-Request
+   - keine neue Daily-Usage
+   - Duplicate-Nachricht ueber Heimleitungs-Bot
+4. Wenn User noch nicht genutzt hat:
+   - VIP-MP3 wird gesucht
+   - aktueller Fallback-Pfad: `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`
+   - Dateiregel: `Anzeigename.mp3`
+5. Wenn MP3 fehlt:
+   - keine Daily-Usage
+   - `sound_missing`-Nachricht ueber Heimleitungs-Bot
+6. Wenn MP3 existiert:
+   - POST an `http://127.0.0.1:8080/api/sound/play`
+   - Payload nutzt `file: "vip/<Anzeigename>.mp3"`
+   - Kategorie `vip`
+   - Output `device`
+7. Nur wenn Sound-System akzeptiert:
+   - Daily-Usage wird geschrieben
+   - Accepted-Nachricht ueber Heimleitungs-Bot
+
+Chat-Ausgabe:
+
+- laeuft ueber backend/modules/helpers/helper_chat_output.js
+- Streamer.bot soll nicht mehr posten
+- Response: `send=false`, `streamerbot_send="0"`, `chatMessage=""`
+
+Live-Test:
+
+- `araglor` wurde erfolgreich ueber Sound-System abgespielt.
+- AudioDeviceHelper spielte `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\araglor.mp3`.
+- Duplicate-Test fuer `araglor` blockte korrekt ohne Sound-System-Request.
 
 ## Doku-Struktur
 
@@ -83,10 +126,6 @@ Snapshots:
 - docs/overlays/
 - docs/database/
 
-Aktueller VIP-Plan:
-
-- project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
-
 ## Wichtige Regeln
 
 - Keine Funktionalitaet entfernen.
@@ -99,10 +138,9 @@ Aktueller VIP-Plan:
 
 ## Offene Punkte
 
-- STEP016 VIP-Minimalroute mit Daily-Usage und DB-Message-Templates planen/umsetzen.
-- VIP-Sounds ueber Sound-System-Prioritaet/Queue fuehren.
-- VIP-Einblendung erst bei echtem Soundstart anzeigen.
-- VIP-Soundpfad konfigurierbar machen.
+- VIP-Overlay erst bei echtem Sound-System-Start anzeigen.
+- `soundSystemRequestId` sauber aus `/api/sound/play` Response uebernehmen.
+- VIP-Soundpfad konfigurierbar ueber DB/Dashboard machen.
 - VIP-Nachrichten spaeter im Dashboard bearbeitbar machen.
 - Fireworks spaeter neu aufbauen.
 - Dashboard-Modulstandard definieren.
@@ -112,12 +150,9 @@ Aktueller VIP-Plan:
 
 ## Naechster empfohlener Schritt
 
-STEP016 klein halten:
+STEP018 klein halten:
 
-1. VIP-DB-Schema fuer Daily-Usage migrationssicher anlegen.
-2. VIP-DB-Schema fuer Message-Templates migrationssicher anlegen.
-3. Standard-Heimleitungstexte nur seed'en, wenn leer.
-4. Neue/minimale VIP-Command-Route vorbereiten.
-5. Duplicate-Pruefung einbauen.
-6. chatMessage ueber helper_messages zurueckgeben.
-7. Noch kein Dashboard- und Overlay-Umbau.
+1. Sound-System-Visualdaten fuer `vip_sound_overlay` auswerten.
+2. VIP-Overlay erst bei echtem Soundstart anzeigen.
+3. Keine neue parallele Sound-Queue bauen.
+4. Bestehende alte `/enqueue`-Routen vorerst kompatibel lassen.
