@@ -108,4 +108,8 @@ function register(app, options = {}) {
   return { name: 'dashboard_controlcenter', step: '007' };
 }
 
-module.exports = { register };
+function init(ctx) {
+  return register(ctx.app, ctx);
+}
+
+module.exports = { register, init };
