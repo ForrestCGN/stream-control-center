@@ -2,6 +2,24 @@
 
 ## 2026-05-03
 
+### STEP010 - DB-backed Hug/Rehug API Bridge vorbereitet
+
+- `backend/modules/hug_00_api_db.js` ergänzt.
+- Bestehende Streamer.bot-GET-Routen werden vorgeschaltet weiter bedient:
+  - `GET /api/hug/cmd`
+  - `GET /api/hug/statscmd`
+  - `GET /api/hug/top`
+  - `GET /api/hug/reload`
+- Hug-/Rehug-Texte, Response-Texte und Top-Titel werden aus SQLite gelesen:
+  - `hug_types`
+  - `hug_texts`
+  - `hug_settings`
+- Zentrale Chat-Ausgabe über `helper_chat_output.js` wird unterstützt.
+- Das alte `backend/modules/hug_system.js` wurde nicht entfernt und nicht überschrieben.
+- Neue Diagnose-Routen:
+  - `GET /api/hug/db/status`
+  - `GET /api/dashboard/community/hug/status`
+
 ### STEP009 - Hug-Text-Store in SQLite vorbereitet
 
 - `backend/modules/hug_text_store.js` ergänzt.
