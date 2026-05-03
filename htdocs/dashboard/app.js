@@ -1,7 +1,15 @@
 window.CGN = {
-  activeModule: 'streamdesk',
+  activeModule: 'sectionhome',
+  activeSection: 'live',
   auth: { authenticated: false, user: null, twitchLoginConfigured: false },
   modules: {
+    sectionhome: {
+      title: 'Dashboard',
+      panelId: 'sectionhomeModule',
+      group: 'home',
+      overlayLink: '',
+      reload() { return window.SectionHomeModule?.render?.(); }
+    },
     streamdesk: {
       title: 'Stream-Desk',
       panelId: 'streamdeskModule',
@@ -56,13 +64,71 @@ window.CGN = {
     }
   },
 
-  navigation: {
-    live: { label: 'Live', role: 'mod/supermod/streamer' },
-    control: { label: 'Control', role: 'streamer/local_admin/owner' },
-    system: { label: 'System', role: 'streamer/local_admin/owner' },
-    community: { label: 'Community', role: 'mod/supermod/streamer' },
-    admin: { label: 'Admin', role: 'local_admin/owner' }
+  sections: {
+    live: {
+      label: 'Live', icon: '📡', role: 'mod/supermod/streamer',
+      description: 'Bedienoberfläche während des Streams.',
+      items: ['streamdesk', 'chat', 'userinfo', 'clips', 'daily_notes']
+    },
+    control: {
+      label: 'Control', icon: '🧭', role: 'streamer/local_admin/owner',
+      description: 'Alerts, OBS, Overlays und Stream-Steuerung.',
+      items: ['controlhome', 'alerts', 'obs', 'overlays', 'stream_control']
+    },
+    community: {
+      label: 'Community', icon: '👥', role: 'mod/supermod/streamer',
+      description: 'Chat-, Viewer- und Interaktionssysteme.',
+      items: ['hug', 'chat_overlay', 'deathcounter', 'challenges', 'tagebuch', 'todo', 'commands', 'community_stats']
+    },
+    system: {
+      label: 'System', icon: '🧩', role: 'streamer/local_admin/owner',
+      description: 'Technische Stream-Systeme, Sounds, TTS und Integrationen.',
+      items: ['sound_system', 'tts', 'bot_systems', 'message_rotator', 'automations', 'integrations', 'module_status']
+    },
+    admin: {
+      label: 'Admin', icon: '🔐', role: 'local_admin/owner',
+      description: 'Sensible Verwaltung, Configs, Logs, Datenbank und Diagnose.',
+      items: ['adminconfigs', 'users', 'roles', 'logs', 'database', 'backups', 'tokens', 'diagnostics']
+    }
   },
+
+  moduleCatalog: {
+    streamdesk: { label: 'Stream-Desk', icon: '🎛', enabled: true, description: 'Zentrale Live-Bedienung und schnelle Stream-Aktionen.' },
+    chat: { label: 'Chat', icon: '💬', enabled: false, description: 'Chat-Ansicht und spätere Chat-Moderation.' },
+    userinfo: { label: 'Userinfo', icon: '🔎', enabled: false, description: 'Twitch-User schnell prüfen.' },
+    clips: { label: 'Clips', icon: '✂️', enabled: false, description: 'Clip-Erstellung und Clip-Verwaltung.' },
+    daily_notes: { label: 'Tagesnotizen', icon: '📝', enabled: false, description: 'Kurze Notizen während des Streams.' },
+    controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
+    alerts: { label: 'Alerts V2', icon: '⚡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
+    obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
+    overlays: { label: 'Overlays', icon: '🖼', enabled: false, description: 'Overlay-Verwaltung vorbereitet.' },
+    stream_control: { label: 'Stream-Steuerung', icon: '📺', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },
+    hug: { label: 'Hug-System', icon: '🤗', enabled: true, description: 'Hug/Rehug-Statistiken, Texte, Typen und Diagnose.' },
+    chat_overlay: { label: 'Chat-Overlay', icon: '💬', enabled: false, description: 'Chat-Overlay Steuerung vorbereitet.' },
+    deathcounter: { label: 'Deathcounter', icon: '💀', enabled: false, description: 'Deathcounter V2 Verwaltung vorbereitet.' },
+    challenges: { label: 'Challenges', icon: '🎯', enabled: false, description: 'Challenge-System Verwaltung vorbereitet.' },
+    tagebuch: { label: 'Tagebuch', icon: '📖', enabled: false, description: 'Stream-Tagebuch Verwaltung vorbereitet.' },
+    todo: { label: 'Todo', icon: '✅', enabled: false, description: 'ToDo-System vorbereitet.' },
+    commands: { label: 'Commands', icon: '⌨️', enabled: false, description: 'Chat-Befehle vorbereitet.' },
+    community_stats: { label: 'Community-Stats', icon: '📈', enabled: false, description: 'Community-Statistiken vorbereitet.' },
+    sound_system: { label: 'Sound-System', icon: '🔊', enabled: true, description: 'Zentrale Soundausgabe, Queue und Prioritäten.' },
+    tts: { label: 'TTS', icon: '🗣️', enabled: false, description: 'Text-to-Speech vorbereitet.' },
+    bot_systems: { label: 'Bot-Systeme', icon: '🤖', enabled: false, description: 'Bot- und Automationssysteme vorbereitet.' },
+    message_rotator: { label: 'Message-Rotator', icon: '🔁', enabled: false, description: 'Automatische Chat-Meldungen vorbereitet.' },
+    automations: { label: 'Automationen', icon: '⏱️', enabled: false, description: 'Zeit- und Event-Automationen vorbereitet.' },
+    integrations: { label: 'Integrationen', icon: '🔌', enabled: false, description: 'Externe Dienste und APIs vorbereitet.' },
+    module_status: { label: 'Modulstatus', icon: '📊', enabled: false, description: 'Modulstatus vorbereitet.' },
+    adminconfigs: { label: 'Configs', icon: '⚙️', enabled: true, description: 'Admin-Konfigurationen einsehen.' },
+    users: { label: 'Benutzer', icon: '👤', enabled: false, description: 'Benutzerverwaltung vorbereitet.' },
+    roles: { label: 'Rollen & Rechte', icon: '🔑', enabled: false, description: 'Rechteverwaltung vorbereitet.' },
+    logs: { label: 'Logs', icon: '📜', enabled: false, description: 'Audit-/Systemlogs vorbereitet.' },
+    database: { label: 'Datenbank', icon: '🗄️', enabled: false, description: 'Datenbankstatus und Wartung vorbereitet.' },
+    backups: { label: 'Backups', icon: '💾', enabled: false, description: 'Backup-System vorbereitet.' },
+    tokens: { label: 'Tokens / Secrets', icon: '🔒', enabled: false, description: 'Sensible Werte vorbereitet.' },
+    diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
+  },
+
+  favorites: ['alerts', 'hug', 'obs', 'sound_system'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
@@ -84,9 +150,20 @@ window.CGN = {
 
   esc(v) { return String(v ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); },
 
+  setActiveSection(sectionId, options = {}) {
+    const section = this.sections[sectionId] ? sectionId : 'live';
+    this.activeSection = section;
+    this.setActiveModule('sectionhome', { ...options, section });
+  },
+
   setActiveModule(name, options = {}) {
-    const fallback = this.modules[name] ? name : 'streamdesk';
-    const moduleName = this.modules[fallback] ? fallback : 'alerts';
+    const fallback = this.modules[name] ? name : 'sectionhome';
+    const moduleName = this.modules[fallback] ? fallback : 'sectionhome';
+    const meta = this.modules[moduleName] || this.modules.sectionhome;
+
+    if (options.section && this.sections[options.section]) this.activeSection = options.section;
+    else if (moduleName !== 'sectionhome' && meta.group) this.activeSection = meta.group;
+
     this.activeModule = moduleName;
 
     document.querySelectorAll('[data-module-panel]').forEach(panel => {
@@ -103,9 +180,24 @@ window.CGN = {
       btn.setAttribute('aria-current', isActive ? 'page' : 'false');
     });
 
-    const meta = this.modules[moduleName] || this.modules.streamdesk;
+    document.querySelectorAll('.nav-main-item[data-section]').forEach(btn => {
+      const isActive = btn.dataset.section === this.activeSection && moduleName === 'sectionhome';
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+    });
+
     const title = document.getElementById('pageTitle');
-    if (title) title.textContent = meta.title;
+    if (title) {
+      if (moduleName === 'sectionhome') title.textContent = this.sections[this.activeSection]?.label || 'Dashboard';
+      else title.textContent = meta.title;
+    }
+
+    const crumb = document.getElementById('pageBreadcrumb');
+    if (crumb) {
+      const sectionLabel = this.sections[this.activeSection]?.label || '';
+      const moduleLabel = moduleName === 'sectionhome' ? 'Übersicht' : (this.moduleCatalog[moduleName]?.label || meta.title || moduleName);
+      crumb.textContent = sectionLabel ? `${sectionLabel} / ${moduleLabel}` : moduleLabel;
+    }
 
     const overlayLink = document.getElementById('overlayOpenLink');
     if (overlayLink) {
@@ -118,13 +210,13 @@ window.CGN = {
       }
     }
 
-    if (meta.group) openNavGroup(meta.group);
     localStorage.setItem('cgn-dashboard-active-module', moduleName);
-    window.dispatchEvent(new CustomEvent('cgn:module-show', { detail: { module: moduleName, initial: !!options.initial } }));
+    localStorage.setItem('cgn-dashboard-active-section', this.activeSection);
+    window.dispatchEvent(new CustomEvent('cgn:module-show', { detail: { module: moduleName, section: this.activeSection, initial: !!options.initial } }));
   },
 
   reloadActiveModule() {
-    const meta = this.modules[this.activeModule] || this.modules.streamdesk;
+    const meta = this.modules[this.activeModule] || this.modules.sectionhome;
     return meta.reload?.();
   },
 
@@ -146,13 +238,6 @@ window.CGN = {
     return this.auth;
   }
 };
-
-function openNavGroup(groupId){
-  document.querySelectorAll('.nav-group').forEach(group => {
-    const isOpen = group.dataset.navGroup === groupId;
-    if (isOpen) group.classList.remove('is-collapsed');
-  });
-}
 
 function injectAuthStyles(){
   if (document.getElementById('dashboardAuthStyles')) return;
@@ -237,10 +322,10 @@ document.querySelectorAll('.nav-item[data-module]').forEach(btn => {
   });
 });
 
-document.querySelectorAll('[data-nav-toggle]').forEach(btn => {
+document.querySelectorAll('.nav-main-item[data-section]').forEach(btn => {
   btn.addEventListener('click', () => {
-    const group = btn.closest('.nav-group');
-    group?.classList.toggle('is-collapsed');
+    if (btn.disabled) return;
+    window.CGN.setActiveSection(btn.dataset.section);
   });
 });
 
@@ -252,13 +337,11 @@ document.querySelectorAll('[data-nav-toggle]').forEach(btn => {
     document.querySelectorAll('.nav-item[data-module]').forEach(btn => {
       const text = btn.textContent.toLowerCase();
       const hit = !q || text.includes(q) || String(btn.dataset.module || '').includes(q);
-      btn.closest('.nav-group')?.classList.toggle('has-search-hit', !!q && hit);
       btn.hidden = !hit;
     });
-    document.querySelectorAll('.nav-group').forEach(group => {
-      const anyVisible = Array.from(group.querySelectorAll('.nav-item')).some(item => !item.hidden);
-      group.hidden = !!q && !anyVisible;
-      if (q && anyVisible) group.classList.remove('is-collapsed');
+    document.querySelectorAll('.nav-section-block').forEach(block => {
+      const anyVisible = Array.from(block.querySelectorAll('.nav-item')).some(item => !item.hidden);
+      block.hidden = !!q && !anyVisible;
     });
   });
 })();
@@ -299,6 +382,8 @@ document.querySelectorAll('[data-nav-toggle]').forEach(btn => {
 })();
 
 (function(){
-  const wanted = localStorage.getItem('cgn-dashboard-active-module') || 'streamdesk';
-  window.CGN.setActiveModule(wanted, { initial: true });
+  const wantedSection = localStorage.getItem('cgn-dashboard-active-section') || 'live';
+  const wantedModule = localStorage.getItem('cgn-dashboard-active-module') || 'sectionhome';
+  if (wantedModule && wantedModule !== 'sectionhome' && window.CGN.modules[wantedModule]) window.CGN.setActiveModule(wantedModule, { initial: true });
+  else window.CGN.setActiveSection(wantedSection, { initial: true });
 })();
