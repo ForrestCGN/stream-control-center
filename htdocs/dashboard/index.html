@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ForrestCGN Control-Center</title>
   <link rel="stylesheet" href="/dashboard/app.css" />
+  <link rel="stylesheet" href="/dashboard/modules/sectionhome.css" />
   <link rel="stylesheet" href="/dashboard/modules/streamdesk.css" />
   <link rel="stylesheet" href="/dashboard/modules/controlhome.css" />
   <link rel="stylesheet" href="/dashboard/modules/alerts.css" />
@@ -23,68 +24,25 @@
       </div>
 
       <div class="nav-search-wrap">
-        <input id="globalSearch" class="nav-search" type="search" placeholder="Suchen: OBS, Alerts, Sounds, Hug..." autocomplete="off" />
+        <input id="globalSearch" class="nav-search" type="search" placeholder="Suchen: Alerts, Hug, OBS..." autocomplete="off" />
       </div>
 
-      <nav id="mainNav" class="main-nav" aria-label="Hauptnavigation">
-        <div class="nav-group" data-nav-group="live">
-          <button class="nav-group-head" type="button" data-nav-toggle="live"><span class="nav-icon">📡</span><span class="nav-label">Live</span><span class="nav-chevron">▾</span></button>
-          <div class="nav-group-items">
-            <button class="nav-item active" data-module="streamdesk"><span class="nav-icon">🎛</span><span class="nav-label">Stream-Desk</span></button>
-            <button class="nav-item" data-module="chat" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">💬</span><span class="nav-label">Chat</span></button>
-            <button class="nav-item" data-module="userinfo" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🔎</span><span class="nav-label">Userinfo</span></button>
-            <button class="nav-item" data-module="clips" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">✂️</span><span class="nav-label">Clips</span></button>
-          </div>
+      <nav id="mainNav" class="main-nav main-nav-v2" aria-label="Hauptnavigation">
+        <div class="nav-section-block nav-favorites-block">
+          <div class="nav-section-title">Favoriten</div>
+          <button class="nav-item" data-module="alerts"><span class="nav-icon">⚡</span><span class="nav-label">Alerts V2</span></button>
+          <button class="nav-item" data-module="hug"><span class="nav-icon">🤗</span><span class="nav-label">Hug-System</span></button>
+          <button class="nav-item" data-module="obs"><span class="nav-icon">🎮</span><span class="nav-label">OBS Details</span></button>
+          <button class="nav-item" data-module="sound_system"><span class="nav-icon">🔊</span><span class="nav-label">Sound-System</span></button>
         </div>
 
-        <div class="nav-group" data-nav-group="control">
-          <button class="nav-group-head" type="button" data-nav-toggle="control"><span class="nav-icon">🧭</span><span class="nav-label">Control</span><span class="nav-chevron">▾</span></button>
-          <div class="nav-group-items">
-            <button class="nav-item" data-module="controlhome"><span class="nav-icon">🏠</span><span class="nav-label">Übersicht</span></button>
-            <button class="nav-item" data-module="alerts"><span class="nav-icon">⚡</span><span class="nav-label">Alerts V2</span></button>
-            <button class="nav-item" data-module="obs"><span class="nav-icon">🎮</span><span class="nav-label">OBS Details</span></button>
-            <button class="nav-item" data-module="overlays" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🖼</span><span class="nav-label">Overlays</span></button>
-            <button class="nav-item" data-module="stream_control" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">📺</span><span class="nav-label">Stream-Steuerung</span></button>
-          </div>
-        </div>
-
-        <div class="nav-group" data-nav-group="system">
-          <button class="nav-group-head" type="button" data-nav-toggle="system"><span class="nav-icon">🧩</span><span class="nav-label">System</span><span class="nav-chevron">▾</span></button>
-          <div class="nav-group-items">
-            <button class="nav-item" data-module="sound_system" title="Sound-System"><span class="nav-icon">🔊</span><span class="nav-label">Sound-System</span></button>
-            <button class="nav-item" data-module="tts" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🗣️</span><span class="nav-label">TTS</span></button>
-            <button class="nav-item" data-module="bot_systems" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🤖</span><span class="nav-label">Bot-Systeme</span></button>
-            <button class="nav-item" data-module="message_rotator" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🔁</span><span class="nav-label">Message-Rotator</span></button>
-            <button class="nav-item" data-module="automations" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">⏱️</span><span class="nav-label">Automationen</span></button>
-            <button class="nav-item" data-module="integrations" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🔌</span><span class="nav-label">Integrationen</span></button>
-            <button class="nav-item" data-module="module_status" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">📊</span><span class="nav-label">Modulstatus</span></button>
-          </div>
-        </div>
-
-        <div class="nav-group" data-nav-group="community">
-          <button class="nav-group-head" type="button" data-nav-toggle="community"><span class="nav-icon">👥</span><span class="nav-label">Community</span><span class="nav-chevron">▾</span></button>
-          <div class="nav-group-items">
-            <button class="nav-item" data-module="hug" title="Hug-System"><span class="nav-icon">🤗</span><span class="nav-label">Hug-System</span></button>
-            <button class="nav-item" data-module="chat_overlay" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">💬</span><span class="nav-label">Chat-Overlay</span></button>
-            <button class="nav-item" data-module="deathcounter" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">💀</span><span class="nav-label">Deathcounter</span></button>
-            <button class="nav-item" data-module="challenges" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🎯</span><span class="nav-label">Challenges</span></button>
-            <button class="nav-item" data-module="tagebuch" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">📖</span><span class="nav-label">Tagebuch</span></button>
-            <button class="nav-item" data-module="todo" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">✅</span><span class="nav-label">Todo</span></button>
-            <button class="nav-item" data-module="commands" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">⌨️</span><span class="nav-label">Commands</span></button>
-          </div>
-        </div>
-
-        <div class="nav-group" data-nav-group="admin">
-          <button class="nav-group-head" type="button" data-nav-toggle="admin"><span class="nav-icon">🔐</span><span class="nav-label">Admin</span><span class="nav-chevron">▾</span></button>
-          <div class="nav-group-items">
-            <button class="nav-item" data-module="users" disabled title="Benutzerverwaltung vorbereitet"><span class="nav-icon">👤</span><span class="nav-label">Benutzer</span></button>
-            <button class="nav-item" data-module="roles" disabled title="Rollen/Rechte vorbereitet"><span class="nav-icon">🔑</span><span class="nav-label">Rollen & Rechte</span></button>
-            <button class="nav-item" data-module="logs" disabled title="Logs vorbereitet"><span class="nav-icon">📜</span><span class="nav-label">Logs</span></button>
-            <button class="nav-item" data-module="adminconfigs" title="Admin-Configs vorbereitet"><span class="nav-icon">⚙️</span><span class="nav-label">Configs</span></button>
-            <button class="nav-item" data-module="database" disabled title="Datenbank vorbereitet"><span class="nav-icon">🗄️</span><span class="nav-label">Datenbank</span></button>
-            <button class="nav-item" data-module="tokens" disabled title="Tokens/Secrets vorbereitet"><span class="nav-icon">🔒</span><span class="nav-label">Tokens / Secrets</span></button>
-            <button class="nav-item" data-module="diagnostics" disabled title="Diagnose vorbereitet"><span class="nav-icon">🩺</span><span class="nav-label">Diagnose</span></button>
-          </div>
+        <div class="nav-section-block">
+          <div class="nav-section-title">Bereiche</div>
+          <button class="nav-main-item active" data-section="live"><span class="nav-icon">📡</span><span class="nav-label">Live</span></button>
+          <button class="nav-main-item" data-section="control"><span class="nav-icon">🧭</span><span class="nav-label">Control</span></button>
+          <button class="nav-main-item" data-section="community"><span class="nav-icon">👥</span><span class="nav-label">Community</span></button>
+          <button class="nav-main-item" data-section="system"><span class="nav-icon">🧩</span><span class="nav-label">System</span></button>
+          <button class="nav-main-item" data-section="admin"><span class="nav-icon">🔐</span><span class="nav-label">Admin</span></button>
         </div>
       </nav>
     </aside>
@@ -92,7 +50,8 @@
     <main class="main">
       <header class="topbar glass">
         <div>
-          <h1 id="pageTitle">Stream-Desk</h1>
+          <div id="pageBreadcrumb" class="page-breadcrumb">Live / Übersicht</div>
+          <h1 id="pageTitle">Live</h1>
         </div>
         <div class="top-actions">
           <button id="navToggle" class="nav-toggle" title="Navigation ein-/ausklappen">☰</button>
@@ -102,7 +61,8 @@
         </div>
       </header>
 
-      <section id="streamdeskModule" class="dashboard-module streamdesk-admin" data-module-panel="streamdesk"></section>
+      <section id="sectionhomeModule" class="dashboard-module sectionhome-admin" data-module-panel="sectionhome"></section>
+      <section id="streamdeskModule" class="dashboard-module streamdesk-admin" data-module-panel="streamdesk" hidden></section>
       <section id="controlhomeModule" class="dashboard-module controlhome-admin" data-module-panel="controlhome" hidden></section>
       <section id="alertsModule" class="dashboard-module alerts-admin" data-module-panel="alerts" hidden></section>
       <section id="obsModule" class="dashboard-module obs-admin" data-module-panel="obs" hidden></section>
@@ -112,6 +72,7 @@
     </main>
   </div>
   <script src="/dashboard/app.js"></script>
+  <script src="/dashboard/modules/sectionhome.js"></script>
   <script src="/dashboard/modules/streamdesk.js"></script>
   <script src="/dashboard/modules/controlhome.js"></script>
   <script src="/dashboard/modules/alerts.js"></script>
