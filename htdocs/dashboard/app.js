@@ -40,6 +40,13 @@ window.CGN = {
       overlayLabel: 'Sound-Overlay öffnen',
       reload() { return window.SoundSystemModule?.loadAll?.(true); }
     },
+    hug: {
+      title: 'Hug-System',
+      panelId: 'hugModule',
+      group: 'community',
+      overlayLink: '',
+      reload() { return window.HugModule?.loadAll?.(true); }
+    },
     adminconfigs: {
       title: 'Admin Configs',
       panelId: 'adminconfigsModule',
