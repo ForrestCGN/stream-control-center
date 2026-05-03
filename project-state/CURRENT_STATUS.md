@@ -26,7 +26,7 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Der aktuelle Stand nach STEP015 ist dokumentiert.
+Der aktuelle Stand nach STEP017 ist dokumentiert und live getestet.
 
 Zuletzt abgeschlossen:
 
@@ -37,43 +37,60 @@ Zuletzt abgeschlossen:
 - STEP010 OBS Dashboard Aktionen auf /api/obs/*
 - STEP011 Doku-Struktur in Repo und Live eingefuehrt
 - STEP015 VIP-/Sound-/Overlay-Planung dokumentiert
+- STEP016 VIP-Daily-Usage und DB-Message-Templates vorbereitet
+- STEP016.1 VIP-Chat-Ausgabe auf helper_chat_output/Heimleitungs-Bot umgestellt
+- STEP017 VIP-Sounds ueber Sound-System vor Daily-Usage queued
 
 ## Repo/Live-Abgleich
 
-Zuletzt fuer STEP015 geprueft:
+Zuletzt fuer STEP017:
 
-- backend/modules/sound_system.js Same=True
-- backend/modules/vip_sound_overlay.js Same=True
-- backend/modules/helpers/helper_messages.js Same=True
-- backend/modules/helpers/helper_texts.js Same=True
-- backend/modules/helpers/helper_chat_output.js Same=True
-- config/sound_system.json Same=True
+- Repo/dev sauber
+- origin/dev auf gleichem Stand
+- Live deployed
+- Backend neu gestartet
+- Live-Test erfolgreich
 
 Live-Routen geprueft:
 
 - GET /api/_status
 - GET /api/sound/status
 - GET /api/vip-sound/status
+- GET /api/vip-sound/db/status
+- GET /api/vip-sound/command
 - GET /api/vip-sound-overlay/state
 
-Alle Pruefungen waren erfolgreich.
-
-## VIP-/Sound-/Overlay-Zielstand
+## VIP-/Sound-/Overlay-Stand
 
 Dokumentiert in:
 
 - project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
+- project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
 
-Kernentscheidungen:
+Aktueller Modulstand:
 
-- Streamer.bot nimmt kuenftig nur noch Befehle an und uebergibt Minimaldaten an Node.
-- Node/VIP-Modul prueft Daily-Usage pro User/pro Stream-Tag.
-- VIP-Nachrichten werden als mehrere Heimleitungs-Zufallstexte pro Event-Key in SQLite gespeichert.
-- VIP-Soundpfad wird konfigurierbar, aktueller Pfad: D:\Streaming\stramAssets\htdocs\assets\sounds\vip\
-- Dateiregel aktuell: Anzeigename.mp3
-- Sound-System verwaltet Prioritaet und Queue.
-- VIP-Einblendung erscheint erst beim echten Soundstart, nicht beim Enqueue.
-- Keine Queue-Position mehr in VIP-Chatnachrichten.
+- backend/modules/vip_sound_overlay.js
+- Version: 1.7.0
+
+Kernentscheidungen / aktueller Ablauf:
+
+- Streamer.bot nimmt nur noch Befehle an und uebergibt Minimaldaten an Node.
+- VIP-Command prueft Daily-Usage pro User/pro Stream-Tag.
+- VIP-Command sucht Sounddatei unter `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
+- Dateiregel aktuell: `Anzeigename.mp3`.
+- Wenn Datei fehlt, wird keine Daily-Usage geschrieben.
+- Wenn Datei existiert, wird `/api/sound/play` genutzt.
+- Nur wenn das Sound-System akzeptiert, wird Daily-Usage geschrieben.
+- Chat-Ausgabe erfolgt ueber helper_chat_output / Heimleitungs-Bot.
+- Streamer.bot soll `chatMessage` nicht mehr selbst posten.
+- Response fuer Streamer.bot: `send=false`, `streamerbot_send="0"`, `chatMessage=""`.
+- VIP-Einblendung erscheint noch nicht ueber den neuen Sound-System-Start; das bleibt offen fuer STEP018.
+
+Live-Test:
+
+- `araglor` wurde erfolgreich mit `vip/araglor.mp3` ueber Sound-System/AudioDeviceHelper abgespielt.
+- Duplicate-Test fuer `araglor` blockte korrekt ohne Sound-System-Request.
+- `vip_sound_daily_usage` enthaelt `araglor` genau einmal fuer `2026-05-03`.
 
 ## Doku-Struktur
 
@@ -111,9 +128,9 @@ Historische Analyse-Snapshots:
 
 ## Bewusst offen
 
-- STEP016 VIP-Minimalroute mit Daily-Usage und DB-Message-Templates.
-- Sound-System-Kopplung fuer VIP-Soundstart.
-- VIP-Overlay-Synchronisierung mit echtem Soundstart.
+- STEP018: VIP-Overlay erst bei echtem Sound-System-Start anzeigen.
+- `soundSystemRequestId` sauber aus `/api/sound/play` Response uebernehmen.
+- VIP-Soundpfad ueber DB/Dashboard konfigurierbar machen.
 - VIP-Dashboard fuer Texte/Settings.
 - Fireworks spaeter neu aufbauen.
 - Dashboard-Modulstandard definieren.
