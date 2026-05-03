@@ -4,6 +4,8 @@ const fs = require("fs");
 const http = require("http");
 const https = require("https");
 const core = require("./helpers/helper_core");
+const messages = require("./helpers/helper_messages");
+const database = require("../core/database");
 
 module.exports.init = function init(ctx) {
   const { app, broadcastWS } = ctx;
@@ -13,6 +15,69 @@ module.exports.init = function init(ctx) {
   const DEFAULT_OUTRO_MS = 280;
   const DEFAULT_GAP_MS = 2000;
   const DEFAULT_PHASE = "idle";
+  const VIP_SCHEMA_MODULE = "vip_sound_overlay";
+  const VIP_SCHEMA_VERSION = 1;
+  const VIP_DAILY_USAGE_TABLE = "vip_sound_daily_usage";
+  const VIP_MESSAGE_TABLE = "vip_sound_message_templates";
+  const VIP_MESSAGE_STYLE = "heimleitung";
+
+  const DEFAULT_VIP_MESSAGES = [
+    {
+      event_key: "accepted_vip",
+      message_text: "@{displayName}, Heimleitung hat deinen VIP-Sound notiert. Wird abgespielt, sobald das System dich dranlaesst.",
+      weight: 1
+    },
+    {
+      event_key: "accepted_vip",
+      message_text: "@{displayName}, VIP-Antrag angenommen. Bitte im Wartebereich Platz nehmen, die Beschallung folgt.",
+      weight: 1
+    },
+    {
+      event_key: "accepted_mod",
+      message_text: "@{displayName}, Mod-Sound wurde von der Heimleitung durchgewunken.",
+      weight: 1
+    },
+    {
+      event_key: "accepted_mod",
+      message_text: "@{displayName}, Sonderfreigabe fuers Mod-Buero wurde erteilt. Sound ist eingereiht.",
+      weight: 1
+    },
+    {
+      event_key: "duplicate_vip",
+      message_text: "@{displayName}, Antrag abgelehnt. Dein VIP-Sound wurde heute bereits ordnungsgemaess verbraten.",
+      weight: 1
+    },
+    {
+      event_key: "duplicate_vip",
+      message_text: "@{displayName}, Heimleitung sagt nein. Ein VIP-Sound pro Tag, wir sind hier nicht im Wunschkonzert.",
+      weight: 1
+    },
+    {
+      event_key: "duplicate_mod",
+      message_text: "@{displayName}, Einspruch zwecklos. Dein Mod-Sound war heute schon dran.",
+      weight: 1
+    },
+    {
+      event_key: "duplicate_mod",
+      message_text: "@{displayName}, Mod-Sonderrechte schoen und gut, aber heute gab es deinen Sound bereits.",
+      weight: 1
+    },
+    {
+      event_key: "system_disabled",
+      message_text: "@{displayName}, Heimleitung meldet: VIP-Sounds sind gerade ausser Betrieb.",
+      weight: 1
+    },
+    {
+      event_key: "sound_missing",
+      message_text: "@{displayName}, Heimleitung findet deine Soundakte gerade nicht. Da fehlt wohl die passende MP3.",
+      weight: 1
+    },
+    {
+      event_key: "error_generic",
+      message_text: "@{displayName}, Heimleitung hat einen Fehler im Formular gefunden. Versuch es spaeter nochmal.",
+      weight: 1
+    }
+  ];
 
   const webRoot = normalizeWinPath(
     process.env.VIP_OVERLAY_WEB_ROOT ||
@@ -26,7 +91,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.5.2",
+    version: "1.6.0",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -36,6 +101,13 @@ module.exports.init = function init(ctx) {
     client: {
       connected: false,
       lastSeenAt: 0
+    },
+    db: {
+      initialized: false,
+      schemaVersion: 0,
+      messageTemplates: 0,
+      dailyUsageRows: 0,
+      lastError: ""
     }
   };
 
@@ -67,7 +139,20 @@ module.exports.init = function init(ctx) {
     return core.nowIso();
   }
 
+  function refreshDbStats() {
+    if (!state.db.initialized) return;
+    try {
+      state.db.schemaVersion = database.getSchemaVersion(VIP_SCHEMA_MODULE) || 0;
+      state.db.messageTemplates = database.count(VIP_MESSAGE_TABLE);
+      state.db.dailyUsageRows = database.count(VIP_DAILY_USAGE_TABLE);
+      state.db.lastError = "";
+    } catch (err) {
+      state.db.lastError = err.message || String(err);
+    }
+  }
+
   function publicState() {
+    refreshDbStats();
     return {
       ok: true,
       version: state.version,
@@ -77,6 +162,7 @@ module.exports.init = function init(ctx) {
       isActive: state.isActive,
       lastFinishedAt: state.lastFinishedAt,
       client: { ...state.client },
+      db: { ...state.db },
       updatedAt: state.updatedAt
     };
   }
@@ -106,6 +192,13 @@ module.exports.init = function init(ctx) {
     return core.getParam(req, key, undefined);
   }
 
+  function requestData(req) {
+    return {
+      ...(req.query && typeof req.query === "object" ? req.query : {}),
+      ...(req.body && typeof req.body === "object" ? req.body : {})
+    };
+  }
+
   function intOrDefault(v, d) {
     const n = core.intParam(v, d);
     return Number.isFinite(n) && n >= 0 ? n : d;
@@ -113,6 +206,14 @@ module.exports.init = function init(ctx) {
 
   function normalizeWinPath(p) {
     return (p || "").replace(/\//g, "\\").toLowerCase();
+  }
+
+  function normalizeLogin(value) {
+    return String(value || "").trim().replace(/^@/, "").toLowerCase();
+  }
+
+  function cleanDisplayName(value) {
+    return String(value || "").trim().replace(/^@/, "");
   }
 
   function fileExistsSafe(p) {
@@ -144,6 +245,147 @@ module.exports.init = function init(ctx) {
     const t = (raw || "").toString().trim().toLowerCase();
     if (t === "mod") return "mod";
     return "vip";
+  }
+
+  function eventKey(base, soundType) {
+    return `${base}_${normalizeSoundType(soundType)}`;
+  }
+
+  function getBerlinDate() {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Berlin",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(new Date());
+
+    const data = {};
+    for (const part of parts) data[part.type] = part.value;
+    return `${data.year}-${data.month}-${data.day}`;
+  }
+
+  function ensureVipSchema() {
+    try {
+      database.init(ctx);
+      database.ensureSchema(VIP_SCHEMA_MODULE, VIP_SCHEMA_VERSION, (fromVersion, toVersion, db) => {
+        if (toVersion === 1) {
+          db.exec(`
+            CREATE TABLE IF NOT EXISTS vip_sound_daily_usage (
+              usage_date TEXT NOT NULL,
+              user_login TEXT NOT NULL,
+              user_display_name TEXT NOT NULL DEFAULT '',
+              sound_type TEXT NOT NULL DEFAULT 'vip',
+              source TEXT NOT NULL DEFAULT '',
+              triggered_at TEXT NOT NULL,
+              PRIMARY KEY (usage_date, user_login, sound_type)
+            );
+
+            CREATE TABLE IF NOT EXISTS vip_sound_message_templates (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              event_key TEXT NOT NULL,
+              style TEXT NOT NULL DEFAULT 'heimleitung',
+              message_text TEXT NOT NULL,
+              enabled INTEGER NOT NULL DEFAULT 1,
+              weight INTEGER NOT NULL DEFAULT 1,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              UNIQUE(event_key, style, message_text)
+            );
+          `);
+        }
+      });
+      seedDefaultMessagesIfEmpty();
+      state.db.initialized = true;
+      state.db.lastError = "";
+      refreshDbStats();
+      return true;
+    } catch (err) {
+      state.db.initialized = false;
+      state.db.lastError = err.message || String(err);
+      console.warn(`[${MODULE_NAME}] db schema unavailable: ${state.db.lastError}`);
+      return false;
+    }
+  }
+
+  function seedDefaultMessagesIfEmpty() {
+    const row = database.get(`SELECT COUNT(*) AS count FROM ${VIP_MESSAGE_TABLE}`);
+    if (Number(row?.count || 0) > 0) return;
+
+    const now = nowIso();
+    for (const item of DEFAULT_VIP_MESSAGES) {
+      database.run(`
+        INSERT OR IGNORE INTO vip_sound_message_templates
+          (event_key, style, message_text, enabled, weight, created_at, updated_at)
+        VALUES
+          (:eventKey, :style, :messageText, 1, :weight, :createdAt, :updatedAt)
+      `, {
+        eventKey: item.event_key,
+        style: VIP_MESSAGE_STYLE,
+        messageText: item.message_text,
+        weight: Number(item.weight || 1),
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+  }
+
+  function pickWeightedMessage(rows) {
+    const list = Array.isArray(rows) ? rows.filter(Boolean) : [];
+    if (!list.length) return "";
+
+    const total = list.reduce((sum, row) => {
+      const weight = Math.max(1, Number(row.weight || 1));
+      return sum + weight;
+    }, 0);
+
+    let pick = Math.random() * total;
+    for (const row of list) {
+      pick -= Math.max(1, Number(row.weight || 1));
+      if (pick <= 0) return String(row.message_text || "");
+    }
+
+    return String(list[list.length - 1].message_text || "");
+  }
+
+  function getMessageTemplate(key) {
+    const rows = database.all(`
+      SELECT message_text, weight
+      FROM vip_sound_message_templates
+      WHERE event_key = :eventKey
+        AND style = :style
+        AND enabled = 1
+      ORDER BY id ASC
+    `, {
+      eventKey: key,
+      style: VIP_MESSAGE_STYLE
+    });
+
+    return pickWeightedMessage(rows);
+  }
+
+  function fallbackMessage(key, displayName) {
+    const name = displayName || "User";
+    if (key === "accepted_mod") return `@${name}, Mod-Sound wurde von der Heimleitung durchgewunken.`;
+    if (key === "duplicate_mod") return `@${name}, Einspruch zwecklos. Dein Mod-Sound war heute schon dran.`;
+    if (key === "duplicate_vip") return `@${name}, Heimleitung sagt nein. Dein VIP-Sound wurde heute bereits genutzt.`;
+    if (key === "system_disabled") return `@${name}, Heimleitung meldet: VIP-Sounds sind gerade ausser Betrieb.`;
+    if (key === "sound_missing") return `@${name}, Heimleitung findet deine Soundakte gerade nicht.`;
+    if (key === "error_generic") return `@${name}, Heimleitung hat einen Fehler im Formular gefunden.`;
+    return `@${name}, Heimleitung hat deinen VIP-Sound notiert.`;
+  }
+
+  function buildVipChatResponse(key, context, extra = {}) {
+    const template = state.db.initialized ? getMessageTemplate(key) : "";
+    const raw = template || fallbackMessage(key, context.displayName || context.login);
+    const text = messages.replacePlaceholders(raw, context);
+    return messages.buildSendResponse(text, {
+      reason: key,
+      extra: {
+        module: MODULE_NAME,
+        eventKey: key,
+        ...extra
+      }
+    });
   }
 
   function buildQueuedChatMessage(item, queuePosition) {
@@ -182,7 +424,6 @@ module.exports.init = function init(ctx) {
   function beautifyDisplayName(name) {
     const s = (name || "").toString().trim();
     if (!s) return "";
-    // Nur minimal hübscher machen: erster Buchstabe groß.
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
@@ -254,6 +495,121 @@ module.exports.init = function init(ctx) {
     }
   }
 
+  async function resolveCommandUser(raw) {
+    const loginRaw = normalizeLogin(raw.actorLogin || raw.login || raw.userLogin || raw.userName || raw.username || raw.user || "");
+    const displayRaw = cleanDisplayName(raw.actorDisplayName || raw.displayName || raw.userDisplayName || raw.display || raw.user || loginRaw || "");
+    const lookupKey = loginRaw || displayRaw;
+    const info = await fetchUserInfo(lookupKey);
+
+    const login = normalizeLogin((info && info.login) || loginRaw || displayRaw);
+    const displayName = cleanDisplayName(displayRaw || (info && info.displayName) || login);
+    const avatarUrl = String((info && info.avatarUrl) || raw.avatarUrl || "").trim();
+
+    return {
+      login,
+      displayName: displayName || login,
+      avatarUrl
+    };
+  }
+
+  async function handleVipCommand(raw) {
+    const dbReady = ensureVipSchema();
+    const soundType = normalizeSoundType(raw.soundType || raw.type);
+    const trigger = String(raw.trigger || raw.command || "").trim();
+    const source = String(raw.source || "streamerbot").trim() || "streamerbot";
+    const user = await resolveCommandUser(raw);
+
+    if (!user.login) {
+      const context = {
+        displayName: user.displayName || "User",
+        login: "",
+        soundType,
+        trigger,
+        date: getBerlinDate()
+      };
+      return buildVipChatResponse("error_generic", context, {
+        accepted: false,
+        duplicate: false,
+        dbReady,
+        error: "missing_user_login"
+      });
+    }
+
+    const usageDate = getBerlinDate();
+    const context = {
+      displayName: user.displayName || user.login,
+      login: user.login,
+      soundType,
+      trigger,
+      date: usageDate
+    };
+
+    if (!dbReady) {
+      return buildVipChatResponse("error_generic", context, {
+        accepted: false,
+        duplicate: false,
+        dbReady: false,
+        error: state.db.lastError || "db_unavailable"
+      });
+    }
+
+    const existing = database.get(`
+      SELECT usage_date, user_login, sound_type, triggered_at
+      FROM vip_sound_daily_usage
+      WHERE usage_date = :usageDate
+        AND user_login = :userLogin
+        AND sound_type = :soundType
+    `, {
+      usageDate,
+      userLogin: user.login,
+      soundType
+    });
+
+    if (existing) {
+      return buildVipChatResponse(eventKey("duplicate", soundType), context, {
+        accepted: false,
+        duplicate: true,
+        usageDate,
+        userLogin: user.login,
+        soundType,
+        trigger,
+        source,
+        previousTriggeredAt: existing.triggered_at || ""
+      });
+    }
+
+    const requestId = makeRequestId();
+    database.run(`
+      INSERT INTO vip_sound_daily_usage
+        (usage_date, user_login, user_display_name, sound_type, source, triggered_at)
+      VALUES
+        (:usageDate, :userLogin, :userDisplayName, :soundType, :source, :triggeredAt)
+    `, {
+      usageDate,
+      userLogin: user.login,
+      userDisplayName: user.displayName || user.login,
+      soundType,
+      source,
+      triggeredAt: nowIso()
+    });
+    refreshDbStats();
+
+    return buildVipChatResponse(eventKey("accepted", soundType), context, {
+      accepted: true,
+      duplicate: false,
+      requestId,
+      usageDate,
+      userLogin: user.login,
+      userDisplayName: user.displayName || user.login,
+      avatarUrl: user.avatarUrl,
+      soundType,
+      trigger,
+      source,
+      soundSystemQueued: false,
+      note: "STEP016 records usage and returns chatMessage only. Sound-System integration follows later."
+    });
+  }
+
   async function normalizeItem(raw) {
     const loginRaw = (raw.login || "").toString().trim();
     const displayRaw = (raw.displayName || "").toString().trim();
@@ -271,9 +627,6 @@ module.exports.init = function init(ctx) {
     const info = await fetchUserInfo(lookupKey);
 
     const resolvedLogin = ((info && info.login) || loginRaw || displayRaw).toString().trim().toLowerCase();
-
-    // Self: Streamer.bot liefert im Regelfall schon den Chatter-Namen -> displayRaw priorisieren.
-    // Target: wenn displayRaw nur klein ist, minimal hübsch machen.
     const preferredDisplay = displayRaw || ((info && info.displayName) || loginRaw || "");
     const resolvedDisplay = beautifyDisplayName(preferredDisplay);
 
@@ -374,6 +727,7 @@ module.exports.init = function init(ctx) {
 
     app.get(`${prefix}/status`, (req, res) => {
       markClientSeen();
+      refreshDbStats();
       return res.json({
         ok: true,
         phase: state.overlay.phase,
@@ -383,8 +737,46 @@ module.exports.init = function init(ctx) {
         requestId: state.overlay.requestId || "",
         lastFinishedAt: state.lastFinishedAt,
         client: { ...state.client },
+        db: { ...state.db },
         updatedAt: state.updatedAt
       });
+    });
+
+    app.get(`${prefix}/db/status`, (req, res) => {
+      markClientSeen();
+      ensureVipSchema();
+      refreshDbStats();
+      return res.json({
+        ok: state.db.initialized,
+        module: MODULE_NAME,
+        schemaModule: VIP_SCHEMA_MODULE,
+        schemaVersion: state.db.schemaVersion,
+        dailyUsageTable: VIP_DAILY_USAGE_TABLE,
+        messageTable: VIP_MESSAGE_TABLE,
+        messageTemplates: state.db.messageTemplates,
+        dailyUsageRows: state.db.dailyUsageRows,
+        databasePath: database.getDbPath ? database.getDbPath() : "",
+        lastError: state.db.lastError,
+        updatedAt: nowIso()
+      });
+    });
+
+    app.post(`${prefix}/command`, async (req, res) => {
+      try {
+        const result = await handleVipCommand(requestData(req));
+        return res.json(result);
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/command`, async (req, res) => {
+      try {
+        const result = await handleVipCommand(requestData(req));
+        return res.json(result);
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
     });
 
     app.post(`${prefix}/enqueue`, async (req, res) => {
@@ -509,6 +901,7 @@ module.exports.init = function init(ctx) {
     });
   }
 
+  ensureVipSchema();
   apiPrefixes.forEach(registerApiPrefix);
 
   console.log(`[${MODULE_NAME}] loaded`);
