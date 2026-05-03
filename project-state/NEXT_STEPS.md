@@ -15,62 +15,80 @@ Vor jedem neuen STEP:
 
 ## Empfohlene naechste Arbeitspakete
 
-### 1. STEP016 - VIP-Minimalroute mit Daily-Usage und DB-Texten
+### 1. STEP018 - VIP-Overlay an echten Sound-System-Start koppeln
 
 Ziel:
 
-- Streamer.bot sendet nur Minimaldaten an Node.
-- VIP-Modul prueft Daily-Usage pro User/pro Stream-Tag.
-- VIP-Modul waehlt Heimleitungs-Zufallstext aus SQLite.
-- VIP-Modul gibt einfache chatMessage zurueck.
-- Keine Queue-Position mehr.
-- Noch kein Dashboard-Umbau.
-- Noch kein Overlay-Umbau.
+- VIP-Overlay darf nicht beim Command oder Enqueue erscheinen.
+- VIP-Overlay soll erst erscheinen, wenn das Sound-System den VIP-Sound wirklich startet.
+- Sound-System-Visualdaten fuer `vip_sound_overlay` auswerten.
+- Keine neue parallele Sound-Queue bauen.
+- Alte `/api/vip-sound/enqueue`-Routen vorerst kompatibel lassen.
 
 Vorher pruefen:
 
-- project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
+- project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
 - backend/modules/vip_sound_overlay.js
 - backend/modules/sound_system.js
-- backend/core/database.js
-- backend/modules/sqlite_core.js
-- backend/modules/helpers/helper_messages.js
-- backend/modules/helpers/helper_config.js
-
-Voraussichtlich betroffene Code-Dateien:
-
-- backend/modules/vip_sound_overlay.js
-
-Nur falls noetig:
-
-- backend/core/database.js oder backend/modules/sqlite_core.js
+- htdocs/overlays/vip_sound_overlay.html
+- htdocs/overlays/sound_system_overlay.html
 
 Wichtig:
 
-- app.sqlite niemals neu bauen oder ersetzen.
-- Tabellen nur migrationssicher anlegen.
-- Standardtexte nur seed'en, wenn Tabelle leer ist.
 - Keine Funktionalitaet entfernen.
+- Sound-System bleibt Quelle fuer Prioritaet/Queue/Start.
+- VIP-Modul darf keinen eigenen neuen Soundstart erzeugen.
 
 ---
 
-### 2. VIP-Sound-System-Kopplung
+### 2. Kleiner VIP-Folgestep: soundSystemRequestId sauber zurueckgeben
 
 Ziel:
 
-- VIP-Sound-Requests an sound_system uebergeben.
-- Prioritaet/Queue/Cooldown des Sound-Systems nutzen.
-- VIP-Overlay erst bei echtem Soundstart anzeigen.
+- `soundSystemRequestId` aus `/api/sound/play` Response korrekt in VIP-Response uebernehmen.
+- Wenn Sound-System die ID nicht direkt liefert, Response-Struktur pruefen und ggf. Sound-System-Response minimal erweitern.
 
 Wichtig:
 
-- Nicht gleichzeitig mit STEP016 erzwingen, wenn es zu gross wird.
-- Sound-System nicht unnoetig umbauen.
-- Bestehende alertSync-Logik als Orientierung verwenden.
+- Nur kleine Aenderung.
+- Keine Queue-Logik umbauen.
 
 ---
 
-### 3. Dashboard-Modulstandard definieren
+### 3. VIP-Soundpfad konfigurierbar machen
+
+Ziel:
+
+- Aktueller Fallback bleibt: `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
+- Ziel: Pfad/Dateiregel ueber DB/Config und spaeter Dashboard bearbeitbar.
+- Keine hart codierten Pfade als Endloesung.
+
+Wichtig:
+
+- Bestehende ENV-Fallbacks nicht entfernen.
+- Dashboard erst nach stabiler Backend-API.
+
+---
+
+### 4. VIP-Dashboard spaeter bauen
+
+Ziel:
+
+- VIP-Status anzeigen.
+- Heimleitungs-Texte pro Event-Key bearbeiten.
+- Texte aktivieren/deaktivieren.
+- Gewichtung einstellen.
+- VIP-Soundpfad und Dateiregel konfigurieren.
+- Testausloesung ermoeglichen.
+
+Wichtig:
+
+- Erst nach stabiler Backend-API.
+- Dashboard soll API nutzen, nicht direkt Dateien/SQL anfassen.
+
+---
+
+### 5. Dashboard-Modulstandard definieren
 
 Ziel:
 
@@ -94,25 +112,7 @@ Wichtig:
 
 ---
 
-### 4. VIP-Dashboard spaeter bauen
-
-Ziel:
-
-- VIP-Status anzeigen.
-- Heimleitungs-Texte pro Event-Key bearbeiten.
-- Texte aktivieren/deaktivieren.
-- Gewichtung einstellen.
-- VIP-Soundpfad und Dateiregel konfigurieren.
-- Testausloesung ermoeglichen.
-
-Wichtig:
-
-- Erst nach stabiler Backend-API.
-- Dashboard soll API nutzen, nicht direkt Dateien/SQL anfassen.
-
----
-
-### 5. Fireworks spaeter neu aufbauen
+### 6. Fireworks spaeter neu aufbauen
 
 Aktueller Zustand:
 
@@ -129,7 +129,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 6. Hug-Textbearbeitung spaeter sauber neu planen
+### 7. Hug-Textbearbeitung spaeter sauber neu planen
 
 Aktueller Zustand:
 
@@ -145,7 +145,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 7. Alerts-Modul spaeter behutsam splitten
+### 8. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 
