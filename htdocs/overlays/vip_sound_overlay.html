@@ -357,6 +357,8 @@
     let currentOverlay = null;
     let phase = "idle"; // idle | intro | audio | outro
     let pollTimer = null;
+    let ws = null;
+    let reconnectTimer = null;
     let introTimer = null;
     let outroTimer = null;
     let runnerBuilt = false;
@@ -516,10 +518,13 @@
 
     function finalizeOverlay() {
       if (!currentRequestId) return;
-      if (finishedSentForRequest !== currentRequestId) {
+
+      const externalAudio = !!(currentOverlay && currentOverlay.externalAudio);
+      if (!externalAudio && finishedSentForRequest !== currentRequestId) {
         finishedSentForRequest = currentRequestId;
         postJson(FINISHED_URL, { requestId: currentRequestId });
       }
+
       fullyHide();
     }
 
@@ -527,7 +532,9 @@
       if (!currentOverlay || phase === "outro") return;
       phase = "outro";
 
-      postJson(AUDIO_ENDED_URL, { requestId: currentRequestId });
+      if (!(currentOverlay && currentOverlay.externalAudio)) {
+        postJson(AUDIO_ENDED_URL, { requestId: currentRequestId });
+      }
 
       const cssOutroMs = getCssVarMs("--outro-ms", OUTRO_FALLBACK_MS);
       const outroMs = Number(currentOverlay.outroMs) > 0 ? Number(currentOverlay.outroMs) : cssOutroMs;
@@ -593,6 +600,11 @@
       phase = "intro";
 
       introTimer = setTimeout(() => {
+        if (currentOverlay && currentOverlay.externalAudio) {
+          phase = "audio";
+          return;
+        }
+
         startAudioAfterIntro();
       }, introMs);
     }
@@ -671,15 +683,89 @@
       }
     });
 
+    function isVipVisual(current) {
+      const visual = current && current.visual ? current.visual : {};
+      return String(visual.module || "").trim() === "vip_sound_overlay";
+    }
+
+    function overlayFromSoundItem(current) {
+      const visual = current && current.visual ? current.visual : {};
+      return {
+        requestId: visual.requestId || current.requestId || "",
+        title: visual.title || current.label || "VIP-Sound",
+        text: visual.text || "",
+        displayName: visual.displayName || visual.userDisplayName || current.requestedBy || "",
+        login: visual.login || current.requestedBy || "",
+        avatarUrl: visual.avatarUrl || "",
+        soundType: visual.type || current.category || "vip",
+        introMs: visual.introMs || 620,
+        outroMs: visual.outroMs || 620,
+        audioUrl: "",
+        externalAudio: true,
+        source: "sound_system"
+      };
+    }
+
+    function handleSoundSystemMessage(message) {
+      const payload = message && (message.data || message);
+      if (!payload) return;
+
+      const op = payload.op || payload.type || "";
+      const reason = payload.reason || "";
+      const data = payload.data || payload.payload || {};
+
+      if (op !== "sound_system") return;
+
+      const current = data.current || null;
+      const startReasons = ["started", "play_stream", "interrupted_started", "next_started", "resumed", "parallel_started"];
+      const stopReasons = ["finished", "auto_finished", "client_audio_ended", "manual_stop", "manual_skip", "stop_stream", "skip_stream", "stopped", "reset"];
+
+      if (startReasons.includes(reason) && current && isVipVisual(current)) {
+        const overlay = overlayFromSoundItem(current);
+        if (overlay.requestId && overlay.requestId !== currentRequestId) {
+          startOverlay(overlay);
+        }
+        return;
+      }
+
+      if (stopReasons.includes(reason) && currentOverlay && currentOverlay.externalAudio) {
+        startOutro();
+      }
+    }
+
+    function connectSoundSystemWs() {
+      clearTimeout(reconnectTimer);
+
+      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(protocol + "//" + location.host);
+
+      ws.addEventListener("message", (event) => {
+        try {
+          handleSoundSystemMessage(JSON.parse(event.data));
+        } catch {}
+      });
+
+      ws.addEventListener("close", () => {
+        reconnectTimer = setTimeout(connectSoundSystemWs, 1500);
+      });
+
+      ws.addEventListener("error", () => {
+        try { ws.close(); } catch {}
+      });
+    }
+
     function init() {
       buildRunner();
       pollState();
       pollTimer = setInterval(pollState, POLL_MS);
+      connectSoundSystemWs();
     }
 
     window.addEventListener("beforeunload", () => {
       clearTimers();
       if (pollTimer) clearInterval(pollTimer);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      try { if (ws) ws.close(); } catch {}
       resetAudio();
     });
 
