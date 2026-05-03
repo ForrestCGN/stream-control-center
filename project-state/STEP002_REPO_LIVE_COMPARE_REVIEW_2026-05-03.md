@@ -16,7 +16,7 @@ Unterschiedliche Dateigröße: 2
 
 ## Wichtigster Befund
 
-Das Repo ist beim Hug-System weiter als das Live-System.
+Das Repo enthielt beim Hug-System eine nicht gewünschte Zusatzdatei, die nicht ins Live-System übernommen werden soll.
 
 Nur im Repo vorhanden:
 
@@ -34,7 +34,7 @@ Das passt zu den letzten Commits:
 
 ## Bewertung
 
-GitHub/dev enthält neue Hug-Textbearbeitungsfunktionalität, die im Live-System noch nicht vollständig angekommen ist.
+GitHub/dev enthielt eine nicht gewünschte Hug-Text-Admin-Datei. Diese wird vor einem Deploy entfernt, damit Live nicht versehentlich eine falsche Parallelfunktion bekommt.
 
 Live läuft aktuell stabil, aber Live und Repo sind nicht synchron.
 
@@ -67,10 +67,7 @@ Diese sollten später geordnet in project-state/ oder docs/system-inspection/ ü
 
 ## Nächster Schritt
 
-Repo/dev sollte kontrolliert ins Live-System deployed werden, damit mindestens diese Repo-only Codeänderungen live ankommen:
-
-- backend/modules/hug_text_admin.js
-- htdocs/dashboard/modules/hug.js
+Vor einem Deploy muss zuerst backend/modules/hug_text_admin.js aus dem Repo entfernt werden. Danach muss htdocs/dashboard/modules/hug.js separat geprüft werden, weil diese Datei im Repo und Live unterschiedliche Größen hat.
 
 Empfohlener Standardweg:
 
@@ -81,5 +78,5 @@ Danach erneuter Funktionstest:
 - GET /api/_status
 - GET /api/hug/db/status
 - GET /api/dashboard/community/hug/status
-- ggf. neue Hug-Text-Admin-Routen prüfen
+
 
