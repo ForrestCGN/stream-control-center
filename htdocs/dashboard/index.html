@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/dashboard/modules/obs.css" />
   <link rel="stylesheet" href="/dashboard/modules/adminconfigs.css" />
   <link rel="stylesheet" href="/dashboard/modules/sound.css" />
+  <link rel="stylesheet" href="/dashboard/modules/hug.css" />
 </head>
 <body>
   <div class="galaxy"></div>
@@ -63,7 +64,7 @@
         <div class="nav-group" data-nav-group="community">
           <button class="nav-group-head" type="button" data-nav-toggle="community"><span class="nav-icon">👥</span><span class="nav-label">Community</span><span class="nav-chevron">▾</span></button>
           <div class="nav-group-items">
-            <button class="nav-item" data-module="hug" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🤗</span><span class="nav-label">Hug-System</span></button>
+            <button class="nav-item" data-module="hug" title="Hug-System"><span class="nav-icon">🤗</span><span class="nav-label">Hug-System</span></button>
             <button class="nav-item" data-module="chat_overlay" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">💬</span><span class="nav-label">Chat-Overlay</span></button>
             <button class="nav-item" data-module="deathcounter" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">💀</span><span class="nav-label">Deathcounter</span></button>
             <button class="nav-item" data-module="challenges" disabled title="Vorbereitet, noch nicht aktiv"><span class="nav-icon">🎯</span><span class="nav-label">Challenges</span></button>
@@ -107,6 +108,7 @@
       <section id="obsModule" class="dashboard-module obs-admin" data-module-panel="obs" hidden></section>
       <section id="adminconfigsModule" class="dashboard-module adminconfigs-admin" data-module-panel="adminconfigs" hidden></section>
       <section id="soundModule" class="dashboard-module sound-admin" data-module-panel="sound_system" hidden></section>
+      <section id="hugModule" class="dashboard-module hug-admin" data-module-panel="hug" hidden></section>
     </main>
   </div>
   <script src="/dashboard/app.js"></script>
@@ -116,5 +118,6 @@
   <script src="/dashboard/modules/obs.js"></script>
   <script src="/dashboard/modules/adminconfigs.js"></script>
   <script src="/dashboard/modules/sound.js"></script>
+  <script src="/dashboard/modules/hug.js"></script>
 </body>
 </html>
