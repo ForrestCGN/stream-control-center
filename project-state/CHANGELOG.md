@@ -2,6 +2,28 @@
 
 ## 2026-05-03
 
+### STEP015 - VIP-/Sound-/Overlay-Planung dokumentiert
+
+- `project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md` ergaenzt.
+- Keine Codeaenderung.
+- Keine Datenbankaenderung.
+- Keine Live-Dateiaenderung.
+- Repo/Live-SHA256 fuer relevante VIP-/Sound-/Helper-Dateien geprueft:
+  - `backend/modules/sound_system.js`
+  - `backend/modules/vip_sound_overlay.js`
+  - `backend/modules/helpers/helper_messages.js`
+  - `backend/modules/helpers/helper_texts.js`
+  - `backend/modules/helpers/helper_chat_output.js`
+  - `config/sound_system.json`
+- VIP-Zielrichtung festgelegt:
+  - Streamer.bot nimmt nur noch Befehle an und sendet Minimaldaten an Node.
+  - Node/VIP prueft Daily-Usage pro User/pro Stream-Tag.
+  - Heimleitungs-Zufallstexte werden spaeter in SQLite gespeichert und per Dashboard bearbeitbar.
+  - Sound-System verwaltet Prioritaet und Queue.
+  - VIP-Einblendung erscheint erst beim echten Soundstart, nicht beim Enqueue.
+  - Keine Queue-Position mehr in VIP-Chatnachrichten.
+  - VIP-Soundpfad wird konfigurierbar; aktueller Live-Pfad: `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
+
 ### STEP014 - Hug-System konsolidiert
 
 - `backend/modules/hug.js` als finales aktives Hug/Rehug-Modul ergänzt.
@@ -156,4 +178,3 @@
 - project-state/FILES.md aktualisiert.
 - Keine Codeänderung.
 - Keine Funktionalität entfernt.
-
