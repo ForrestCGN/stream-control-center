@@ -2,6 +2,27 @@
 
 ## 2026-05-03
 
+### STEP014 - Hug-System konsolidiert
+
+- `backend/modules/hug.js` als finales aktives Hug/Rehug-Modul ergänzt.
+- Hug nutzt jetzt die zentrale Core-Datenbank-Schicht:
+  - `backend/core/database.js`
+- Zusammengeführt in `hug.js`:
+  - DB-Textstore / Initial-Import aus `config/messages/hug.json`
+  - Hug/Rehug-Logik
+  - zentrale Command-Route `GET/POST /api/hug/command`
+  - Output-Modus-Umschalter `GET/POST /api/hug/db/output-mode`
+  - Status-/Dashboard-Routen
+  - bestehende Legacy-Routen für Streamer.bot-Kompatibilität
+- `backend/modules/hug_command.js` entfernt, da Funktion jetzt in `hug.js` steckt.
+- `backend/server.js` überspringt alte Hug-Zwischenmodule, damit keine doppelten Routen registriert werden:
+  - `hug_00_api_db.js`
+  - `hug_output_mode.js`
+  - `hug_text_store.js`
+  - `hug_system.js`
+- Die alten Zwischenmodule bleiben vorerst im Repo als Verlauf/Backup, werden aber nicht mehr aktiv geladen.
+- `/api/_status` zeigt zusätzlich `skippedModules`.
+
 ### STEP013 - Zentrale Core-Datenbank-Schicht vorbereitet
 
 - `backend/core/database.js` ergänzt.
