@@ -2,6 +2,17 @@
 
 ## 2026-05-03
 
+### STEP011 - Hug-Output-Modus sicher umschaltbar
+
+- `backend/modules/hug_output_mode.js` ergänzt.
+- Neue Routen:
+  - `GET /api/hug/db/output-mode`
+  - `POST /api/hug/db/output-mode`
+- Erlaubte Modi:
+  - `streamerbot`
+  - `central`
+- Zweck: Hug/Rehug kontrolliert von Streamer.bot-Ausgabe auf zentrale Heimleitung-/Bot-Ausgabe umstellen.
+
 ### STEP010 - DB-backed Hug/Rehug API Bridge vorbereitet
 
 - `backend/modules/hug_00_api_db.js` ergänzt.
