@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("fs");
+const path = require("path");
 const http = require("http");
 const https = require("https");
 const core = require("./helpers/helper_core");
@@ -21,6 +22,7 @@ module.exports.init = function init(ctx) {
   const VIP_DAILY_USAGE_TABLE = "vip_sound_daily_usage";
   const VIP_MESSAGE_TABLE = "vip_sound_message_templates";
   const VIP_MESSAGE_STYLE = "heimleitung";
+  const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
 
   const DEFAULT_VIP_MESSAGES = [
     {
@@ -92,7 +94,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.6.1",
+    version: "1.7.0",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -501,6 +503,141 @@ module.exports.init = function init(ctx) {
     });
   }
 
+  function httpPostJson(url, payload) {
+    return new Promise((resolve, reject) => {
+      const body = JSON.stringify(payload || {});
+      const target = new URL(url);
+      const lib = target.protocol === "https:" ? https : http;
+
+      const req = lib.request({
+        method: "POST",
+        hostname: target.hostname,
+        port: target.port || (target.protocol === "https:" ? 443 : 80),
+        path: `${target.pathname}${target.search || ""}`,
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body)
+        },
+        timeout: 8000
+      }, (res) => {
+        let raw = "";
+        res.setEncoding("utf8");
+        res.on("data", chunk => { raw += chunk; });
+        res.on("end", () => {
+          let json = null;
+          try { json = raw ? JSON.parse(raw) : null; } catch (_) { json = null; }
+
+          if (res.statusCode < 200 || res.statusCode >= 300) {
+            const msg = json && (json.error || json.message) ? (json.error || json.message) : `HTTP ${res.statusCode}`;
+            const err = new Error(msg);
+            err.statusCode = res.statusCode;
+            err.response = json || raw;
+            return reject(err);
+          }
+
+          resolve(json || {});
+        });
+      });
+
+      req.on("error", reject);
+      req.on("timeout", () => req.destroy(new Error(`Timeout for ${url}`)));
+      req.write(body);
+      req.end();
+    });
+  }
+
+  function getVipSoundBaseDir() {
+    const raw = String(process.env.VIP_SOUND_BASE_DIR || "").trim();
+    if (raw) {
+      if (path.isAbsolute(raw)) return raw;
+      return path.join(process.cwd(), raw);
+    }
+
+    return path.join(webRoot, "assets", "sounds", "vip");
+  }
+
+  function resolveVipSoundFile(user) {
+    const displayName = cleanDisplayName(user.displayName || user.login || "");
+    const fileName = `${displayName}.mp3`;
+    const fullPath = path.join(getVipSoundBaseDir(), fileName);
+    const relativeFile = `vip/${fileName}`.replace(/\\/g, "/");
+
+    return {
+      displayName,
+      fileName,
+      fullPath,
+      relativeFile,
+      exists: fileExistsSafe(fullPath)
+    };
+  }
+
+  async function queueVipSoundInSoundSystem(user, soundType, context, requestId, source) {
+    const sound = resolveVipSoundFile(user);
+
+    if (!sound.exists) {
+      return {
+        ok: false,
+        reason: "sound_missing",
+        sound,
+        error: `VIP sound file missing: ${sound.fullPath}`
+      };
+    }
+
+    const category = soundType === "mod" ? "crew" : "vip";
+    const payload = {
+      file: sound.relativeFile,
+      label: `${buildOverlayTitle(soundType)} - ${user.displayName || user.login}`,
+      category,
+      priority: soundType === "mod" ? 60 : 60,
+      target: "stream",
+      outputTarget: "device",
+      volume: 85,
+      queueIfBusy: true,
+      dropIfBusy: false,
+      parallelAllowed: false,
+      source: source || MODULE_NAME,
+      requestedBy: user.login || "",
+      meta: {
+        module: MODULE_NAME,
+        requestId,
+        usageDate: context.date,
+        soundType,
+        login: user.login || "",
+        displayName: user.displayName || user.login || "",
+        soundFile: sound.relativeFile
+      },
+      visual: {
+        module: MODULE_NAME,
+        type: soundType,
+        requestId,
+        title: buildOverlayTitle(soundType),
+        text: buildOverlayText(soundType, user.displayName || user.login || ""),
+        displayName: user.displayName || user.login || "",
+        login: user.login || "",
+        avatarUrl: user.avatarUrl || ""
+      }
+    };
+
+    const response = await httpPostJson(VIP_SOUND_SYSTEM_PLAY_URL, payload);
+    const result = response && response.result ? response.result : {};
+    const accepted = !!response.ok && !result.dropped && (
+      result.started === true ||
+      result.queued === true ||
+      result.parallel === true ||
+      !!response.item
+    );
+
+    return {
+      ok: accepted,
+      reason: accepted ? "sound_accepted" : "sound_rejected",
+      sound,
+      payload,
+      response,
+      result,
+      error: accepted ? "" : (response && (response.error || response.message)) || "sound_system_rejected"
+    };
+  }
+
   async function fetchUserInfo(loginOrDisplayName) {
     const key = (loginOrDisplayName || "").toString().trim().toLowerCase();
     if (!key) return null;
@@ -621,6 +758,29 @@ module.exports.init = function init(ctx) {
     }
 
     const requestId = makeRequestId();
+    const soundQueue = await queueVipSoundInSoundSystem(user, soundType, context, requestId, source);
+
+    if (!soundQueue.ok) {
+      const missing = soundQueue.reason === "sound_missing";
+      return await buildVipChatResponse(missing ? "sound_missing" : "error_generic", context, {
+        accepted: false,
+        duplicate: false,
+        requestId,
+        usageDate,
+        userLogin: user.login,
+        userDisplayName: user.displayName || user.login,
+        avatarUrl: user.avatarUrl,
+        soundType,
+        trigger,
+        source,
+        soundSystemQueued: false,
+        soundError: soundQueue.error || "",
+        soundFile: soundQueue.sound ? soundQueue.sound.relativeFile : "",
+        soundPath: soundQueue.sound ? soundQueue.sound.fullPath : "",
+        soundSystemResponse: soundQueue.response || null
+      });
+    }
+
     database.run(`
       INSERT INTO vip_sound_daily_usage
         (usage_date, user_login, user_display_name, sound_type, source, triggered_at)
@@ -647,8 +807,13 @@ module.exports.init = function init(ctx) {
       soundType,
       trigger,
       source,
-      soundSystemQueued: false,
-      note: "STEP016 records usage and returns chatMessage only. Sound-System integration follows later."
+      soundSystemQueued: true,
+      soundSystemStarted: !!soundQueue.result.started,
+      soundSystemQueuePosition: Number(soundQueue.result.queuePosition || 0),
+      soundSystemRequestId: soundQueue.result.requestId || (soundQueue.response && soundQueue.response.requestId) || "",
+      soundFile: soundQueue.sound.relativeFile,
+      soundPath: soundQueue.sound.fullPath,
+      note: "STEP017 queued VIP sound via sound_system before writing daily usage."
     });
   }
 
