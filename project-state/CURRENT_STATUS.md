@@ -1,172 +1,100 @@
-# Stream Control Center - Current Status
+﻿# CURRENT STATUS - stream-control-center
 
-Stand: 2026-05-01
-Arbeitsbranch: `dev`
-Aktueller Git-Import: `98775c3 Import sanitized StreamAssets project state`
+Stand: 2026-05-03
 
-## Ziel
+## Single Source of Truth
 
-Dieses Repository ist ab jetzt die zentrale Referenz fuer Forrests Stream-/Dashboard-/Control-Center-Projekt.
+Repo:
 
-Es soll in neuen Chats als aktueller Projektstand dienen, damit nicht mehr nur ZIPs oder Chatverlauf als Grundlage genutzt werden muessen.
+- D:\Git\stream-control-center
 
-## Lokales Hauptverzeichnis
+GitHub:
 
-Das lokale Hauptverzeichnis bleibt:
+- https://github.com/ForrestCGN/stream-control-center
 
-`D:\Streaming\stramAssets\`
+Branch:
 
-Repo-Root spiegelt dieses Verzeichnis direkt.
+- dev
 
-Beispiele:
+Live-System:
 
-```text
-Repo:  backend/server.js
-Lokal: D:\Streaming\stramAssets\backend\server.js
+- D:\Streaming\stramAssets
 
-Repo:  htdocs/dashboard/index.html
-Lokal: D:\Streaming\stramAssets\htdocs\dashboard\index.html
+Aktueller Doku-Einstieg:
 
-Repo:  config/streamdesk.json
-Lokal: D:\Streaming\stramAssets\config\streamdesk.json
-```
+- docs/current/CURRENT_SYSTEM_STATUS.md
 
-## Aktueller Repo-Basisstand
+## Aktueller Arbeitsstand
 
-Der bereinigte lokale StreamAssets-Projektstand wurde auf `dev` importiert.
+Der aktuelle Stand nach STEP011 ist sauber dokumentiert.
 
-Enthalten:
+Zuletzt abgeschlossen:
 
-- `backend/server.js`
-- `backend/core/*.js`
-- `backend/modules/*.js`
-- `backend/modules/helpers/*.js`
-- `config/*.json`
-- `config/messages/*.json`
-- `htdocs/dashboard/**/*`
-- `htdocs/alerts/alert.html`
-- `htdocs/overlays/*.html|*.js|*.css`
-- `htdocs/public/*.js`
-- `htdocs/ws-client.js`
-- Projektstatus-/Doku-Dateien
+- STEP005 OBS API-Aliase /api/obs/*
+- STEP006 OBS Dashboard Leserouten auf /api/obs/*
+- STEP007 Mojibake in sound/adminconfigs repariert
+- STEP008 Fireworks-Doppelroute dokumentiert, kein Umbau
+- STEP010 OBS Dashboard Aktionen auf /api/obs/*
+- STEP011 Doku-Struktur in Repo und Live eingeführt
 
-Nicht enthalten:
+## Repo/Live-Abgleich
 
-- echte `.env`
-- Tokens
-- Secrets
-- SQLite-Datenbanken
-- Runtime-Daten aus `htdocs/data`
-- Backups/ZIPs/Altdateien
-- `config/google_tts_service_account.json`
+Zuletzt geprüft:
 
-## Aktueller Entwicklungsstand aus dem Chat
+- backend/modules/obs.js Same=True
+- htdocs/dashboard/modules/obs.js Same=True
+- htdocs/dashboard/modules/sound.js Same=True
+- htdocs/dashboard/modules/adminconfigs.js Same=True
+- docs/current/CURRENT_SYSTEM_STATUS.md Same=True
 
-- STEP005: Userinfo im Stream-Desk funktioniert.
-- STEP006: Admin > Configs vorbereitet, ENV-/Secrets-Strategie dokumentiert.
-- STEP007: Stream-Desk QuickScenes und Admin-Config-Vorschau vorbereitet.
+Live-Routen geprüft:
 
-## Aktive Navigationsplanung
+- GET /api/_status
+- GET /api/obs/status
+- GET /api/obs/scenes
+- GET /api/sound/status
 
-Hauptbereiche:
+Alle Prüfungen waren erfolgreich.
 
-- Live
-- Control
-- System
-- Community
-- Admin
+## Doku-Struktur
 
-Einordnung:
+Repo-Doku:
 
-- Live: Stream-Desk, Chat, Userinfo, OBS Quick, Clips, Tagesnotizen.
-- Control: Alerts, Overlays, OBS Details, Stream-Steuerung.
-- System: Sound-System, TTS, Bot-Systeme, Message-Rotator, Automationen, Integrationen, Modulstatus.
-- Community: Hug-System, Chat-Overlay, Deathcounter, Challenges, Tagebuch, Todo, Commands, Community-Stats.
-- Admin: Benutzer, Rollen/Rechte, Configs, Logs, Datenbank, Backups, Tokens/Secrets, Diagnose.
+- D:\Git\stream-control-center\docs
 
-## Rollenplanung
+Live-Doku:
 
-Vorbereitet, aber noch nicht live scharf geschaltet:
+- D:\Streaming\stramAssets\docs
 
-- user
-- mod
-- supermod
-- streamer
-- local_admin
-- owner
+Aktuelle Statusdatei:
 
-Wichtige Regel:
+- docs/current/CURRENT_SYSTEM_STATUS.md
 
-Mods und SuperMods duerfen ueber das Dashboard bei Twitch nur Aktionen ausfuehren, die ihr eigener Twitch-Account im Kanal auch ausfuehren darf. Dashboard-Rollen erweitern keine Twitch-Rechte. Alle Twitch-Moderationsaktionen laufen spaeter ueber den OAuth-Token des eingeloggten Mods und werden geloggt.
+Historische Analyse-Snapshots:
 
-## Twitch-Login
+- docs/backend/Backend_Systemuebersicht_2026-05-03.txt
+- docs/dashboard/DASHBOARD_SYSTEMUEBERSICHT_IST_STAND_2026-05-03.txt
+- docs/database/ForrestCGN_Datenbank_Uebersicht_app_sqlite_2026-05-03.txt
+- docs/overlays/overlay_iststand_analyse.txt
+- docs/system-inspection/2026-05-03/SYSTEM_INSPEKTION_MASTER_TODO_v1_1_FINAL_GITHUB_2026-05-03.txt
 
-Twitch-Login ist geplant und vorbereitet, aber noch nicht aktiv.
+## Wichtige Regeln
 
-Ziel spaeter:
+- Keine Funktionalität entfernen.
+- Vor Änderungen echten Dateistand prüfen.
+- GitHub/dev und Live bewusst synchron halten.
+- Keine Secrets committen.
+- Keine SQLite-Dateien committen.
+- Keine Backups/Altdateien committen.
+- Historische Analyse-Snapshots nicht überschreiben.
+- Aktuellen Stand in docs/current/CURRENT_SYSTEM_STATUS.md und project-state aktuell halten.
+- Nach jedem abgeschlossenen Block STEP-Doku schreiben.
 
-- Mod meldet sich mit eigenem Twitch-Account an.
-- Dashboard erkennt Twitch-ID, Login, Displayname und Token-Scopes.
-- Dashboard prueft, ob der Account echter Mod im Kanal ist.
-- Chat-/Moderationsaktionen laufen ueber den Account des eingeloggten Mods.
+## Bewusst offen
 
-## Audit-/Logging-Regel
-
-Logging ist Pflicht.
-
-Jede relevante Aktion soll spaeter speichern:
-
-- Wer?
-- Wann?
-- Von wo?
-- Welche Aktion?
-- Welches Ziel?
-- Ergebnis?
-- Fehler/Grund?
-
-Speicherort geplant:
-
-- `data/sqlite/dashboard_audit.sqlite`
-
-Retention:
-
-- konfigurierbar in Tagen ueber `config/dashboard_logging.json`
-
-Wichtig:
-
-- kompakt speichern
-- keine Tokens
-- keine kompletten API-Antworten
-- keine Secrets im Klartext
-
-## Admin > Configs
-
-Eine zentrale Admin-Config-Seite ist geplant.
-
-Dort sollen spaeter verwaltet werden:
-
-- Stream-Desk-Szenen
-- allgemeine Backend-Einstellungen
-- System-/Modul-Configs
-- Logging-Retention
-- Twitch-/Discord-/OBS-Einstellungen
-- Keys/Tokens/Secrets nur maskiert und ersetzbar
-
-Secrets duerfen nie im Klartext angezeigt oder geloggt werden.
-
-## Wichtige Arbeitsregeln
-
-- Keine Funktionalitaet entfernen, ausser Forrest erlaubt es ausdruecklich.
-- ZIPs immer mit echten Zielpfaden ab `D:\Streaming\stramAssets\` bauen.
-- Bestehenden echten Dateistand immer als Single Source of Truth pruefen.
-- Keine Secrets, Tokens, echte `.env` oder SQLite-Datenbanken ins Repo committen.
-- Configs moeglichst zentral und editierbar halten.
-- Backend-/Dashboard-Module getrennt halten.
-- Alles, was sinnvoll per WebSocket laufen kann, langfristig per WebSocket planen.
-
-## Naechster sinnvoller Schritt
-
-1. Repo-Stand als neue Basis verwenden.
-2. `backend/server.js` pruefen, ob `dashboard_controlcenter.js` bereits automatisch geladen wird.
-3. Dashboard im Browser testen.
-4. Danach gezielt STEP008 planen: Admin-Config-Seite / OBS QuickScenes / Audit-Vorbereitung weiter ausbauen.
+- Fireworks später neu aufbauen.
+- Dashboard-Modulstandard definieren.
+- Hug-Textbearbeitung später sauber neu planen.
+- Alerts-Modul später behutsam splitten.
+- Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
+- tools/sync_streamassets_to_repo.ps1 später prüfen.

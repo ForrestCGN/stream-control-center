@@ -130,3 +130,30 @@
 - STEP005: Userinfo im Stream-Desk funktioniert.
 - STEP006: Admin > Configs und ENV-/Secrets-Strategie vorbereitet.
 - STEP007: Stream-Desk QuickScenes / Config-UI vorbereitet.
+
+## 2026-05-03 - STEP011/STEP012 Dokumentation synchronisiert
+
+### STEP011 - Dokumentationsstruktur eingeführt
+
+- Repo-Doku unter docs/ geordnet.
+- Live-Doku unter D:\Streaming\stramAssets\docs geordnet.
+- Aktueller Einstiegspunkt erstellt:
+  - docs/current/CURRENT_SYSTEM_STATUS.md
+- Historische Analyse-Snapshots einsortiert:
+  - docs/backend/
+  - docs/dashboard/
+  - docs/database/
+  - docs/overlays/
+  - docs/system-inspection/2026-05-03/
+- Lose Analyse-Dateien im Live-docs-Root archiviert:
+  - D:\Streaming\stramAssets\archive\docs_root_cleanup_step011\
+
+### STEP012 - project-state an CURRENT_SYSTEM_STATUS angeglichen
+
+- project-state/CURRENT_STATUS.md aktualisiert.
+- project-state/NEXT_STEPS.md aktualisiert.
+- project-state/CHANGELOG.md aktualisiert.
+- project-state/FILES.md aktualisiert.
+- Keine Codeänderung.
+- Keine Funktionalität entfernt.
+

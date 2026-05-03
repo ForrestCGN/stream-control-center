@@ -1,95 +1,107 @@
-# Files / Target Paths
+﻿# FILES - stream-control-center
 
-## Lokales Hauptverzeichnis
+Stand: 2026-05-03
 
-Das lokale Hauptverzeichnis des Projekts ist:
+## Hauptpfade
 
-`D:\Streaming\stramAssets\`
+Repo:
 
-Wichtig: Das Repository spiegelt dieses Hauptverzeichnis. Es wird **kein zusaetzlicher Ordner `StreamAssets` oder `stramAssets`** im Repo angelegt.
+- D:\Git\stream-control-center
 
-Beispiel:
+Live:
 
-```text
-Repo:    backend/server.js
-Lokal:   D:\Streaming\stramAssets\backend\server.js
+- D:\Streaming\stramAssets
 
-Repo:    htdocs/dashboard/index.html
-Lokal:   D:\Streaming\stramAssets\htdocs\dashboard\index.html
+GitHub:
 
-Repo:    config/streamdesk.json
-Lokal:   D:\Streaming\stramAssets\config\streamdesk.json
-```
+- https://github.com/ForrestCGN/stream-control-center
 
-## Wichtige Zielpfade
+## Wichtige Projektdateien
 
-```text
-backend/
-backend/core/
-backend/modules/
-backend/modules/helpers/
-config/
-config/secrets/
-htdocs/dashboard/
-htdocs/dashboard/modules/
-htdocs/overlays/
-htdocs/assets/
-data/sqlite/
-docs/
-project-state/
-```
+Aktueller Projektstand:
 
-## Repo-Regel
+- docs/current/CURRENT_SYSTEM_STATUS.md
+- project-state/CURRENT_STATUS.md
+- project-state/NEXT_STEPS.md
+- project-state/CHANGELOG.md
+- project-state/FILES.md
 
-Dateien im Repository sollen mit denselben relativen Zielpfaden liegen, damit ZIPs spaeter direkt nach `D:\Streaming\stramAssets\` entpackt werden koennen.
+STEP-Dokumentation:
 
-## Nicht ins Repo
+- project-state/STEP002_REPO_LIVE_COMPARE_REVIEW_2026-05-03.md
+- project-state/STEP003_DEPLOY_REPO_TO_LIVE_HUG_CLEAN_2026-05-03.md
+- project-state/STEP004_FOCUSED_REPO_LIVE_COMPARE_2026-05-03.md
+- project-state/STEP005_OBS_API_ALIASES_2026-05-03.md
+- project-state/STEP006_OBS_DASHBOARD_API_READS_2026-05-03.md
+- project-state/STEP007_DASHBOARD_MOJIBAKE_FIX_2026-05-03.md
+- project-state/STEP008_FIREWORKS_DUPLICATE_ROUTES_REVIEW_2026-05-03.md
+- project-state/STEP010_OBS_DASHBOARD_API_ACTIONS_2026-05-03.md
+- project-state/STEP011_DOCUMENTATION_STRUCTURE_2026-05-03.md
 
-```text
-.env
-.env.*
-config/secrets/.env
-config/secrets/.env.local
-secrets/
-tokens/
-*.sqlite
-*.sqlite3
-*.db
-*.db-shm
-*.db-wal
-backend/data/*.sqlite
-data/sqlite/*.sqlite
-data/**/*.sqlite
-logs/
-*_BACKUP*/
-*.zip
-*.7z
-*.rar
-*.bak*
-*.old
-```
+## Doku-Struktur
 
-## Ins Repo erlaubt
+Repo-Doku:
 
-```text
-.env.example
-config/secrets/.env.example
-config/*.json
-config/*.example.json
-backend/**/*.js
-htdocs/dashboard/**/*
-docs/**/*
-project-state/**/*
-```
+- docs/current/
+- docs/backend/
+- docs/dashboard/
+- docs/database/
+- docs/overlays/
+- docs/system-inspection/2026-05-03/
+- docs/admin/
+- docs/auth/
+- docs/settings/
+- docs/sound_system/
+- docs/user/
+- docs/_generated/
 
-Vor echten Config-Dateien immer pruefen, ob Secrets enthalten sind.
+Live-Doku:
 
-## Upload-Regel
+- D:\Streaming\stramAssets\docs\current\
+- D:\Streaming\stramAssets\docs\backend\
+- D:\Streaming\stramAssets\docs\dashboard\
+- D:\Streaming\stramAssets\docs\database\
+- D:\Streaming\stramAssets\docs\overlays\
+- D:\Streaming\stramAssets\docs\system-inspection\2026-05-03\
 
-Wenn ZIPs hochgeladen werden, werden sie vor Repo-Uebernahme bereinigt:
+Historische Analyse-Snapshots:
 
-- keine SQLite-Datenbanken
-- keine echten `.env`
-- keine Token-/Secret-Dateien
-- keine `.bak`-/`.old`-Altdateien ohne ausdrueckliche Freigabe
-- keine generierten Archive
+- docs/backend/Backend_Systemuebersicht_2026-05-03.txt
+- docs/dashboard/DASHBOARD_SYSTEMUEBERSICHT_IST_STAND_2026-05-03.txt
+- docs/database/ForrestCGN_Datenbank_Uebersicht_app_sqlite_2026-05-03.txt
+- docs/overlays/overlay_iststand_analyse.txt
+- docs/system-inspection/2026-05-03/SYSTEM_INSPEKTION_MASTER_TODO_v1_1_FINAL_GITHUB_2026-05-03.txt
+
+## Wichtige Codebereiche
+
+Backend:
+
+- backend/server.js
+- backend/modules/
+- backend/modules/helpers/
+- backend/core/
+
+Dashboard:
+
+- htdocs/dashboard/app.js
+- htdocs/dashboard/app.css
+- htdocs/dashboard/index.html
+- htdocs/dashboard/modules/
+
+Overlays:
+
+- htdocs/overlays/
+
+Configs:
+
+- config/
+
+Datenbank:
+
+- D:\Streaming\stramAssets\data\sqlite\app.sqlite
+
+Wichtig:
+
+- app.sqlite niemals committen.
+- .env/secrets niemals committen.
+- Backup-/Altdateien nicht committen.
