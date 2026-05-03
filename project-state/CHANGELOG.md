@@ -2,6 +2,25 @@
 
 ## 2026-05-03
 
+### STEP012 - Zentrale Hug/Rehug Command-Route
+
+- `backend/modules/hug_command.js` ergänzt.
+- Neue Route:
+  - `POST /api/hug/command`
+  - `GET /api/hug/command` fuer einfache Tests
+- Zweck: Streamer.bot muss künftig keine C#-URL-Bau-Scripte mehr ausführen.
+- Streamer.bot sendet nur noch Command, Actor-Daten und Inputs an Node.
+- Node entscheidet intern:
+  - `!hug top`
+  - `!hug top received`
+  - `!hug top rehug`
+  - `!hug reload`
+  - `!hug all`
+  - `!hug on/off`
+  - `!hug stats [user]`
+  - `!hug @user`
+  - `!rehug @user`
+
 ### STEP011 - Hug-Output-Modus sicher umschaltbar
 
 - `backend/modules/hug_output_mode.js` ergänzt.
