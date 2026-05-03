@@ -5,6 +5,7 @@ const http = require("http");
 const https = require("https");
 const core = require("./helpers/helper_core");
 const messages = require("./helpers/helper_messages");
+const chatOutput = require("./helpers/helper_chat_output");
 const database = require("../core/database");
 
 module.exports.init = function init(ctx) {
@@ -91,7 +92,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.6.0",
+    version: "1.6.1",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -108,6 +109,13 @@ module.exports.init = function init(ctx) {
       messageTemplates: 0,
       dailyUsageRows: 0,
       lastError: ""
+    },
+    chat: {
+      mode: "central",
+      lastOk: false,
+      lastAt: "",
+      lastError: "",
+      lastVia: ""
     }
   };
 
@@ -163,6 +171,7 @@ module.exports.init = function init(ctx) {
       lastFinishedAt: state.lastFinishedAt,
       client: { ...state.client },
       db: { ...state.db },
+      chat: { ...state.chat },
       updatedAt: state.updatedAt
     };
   }
@@ -374,18 +383,51 @@ module.exports.init = function init(ctx) {
     return `@${name}, Heimleitung hat deinen VIP-Sound notiert.`;
   }
 
-  function buildVipChatResponse(key, context, extra = {}) {
+  async function buildVipChatResponse(key, context, extra = {}) {
     const template = state.db.initialized ? getMessageTemplate(key) : "";
     const raw = template || fallbackMessage(key, context.displayName || context.login);
-    const text = messages.replacePlaceholders(raw, context);
-    return messages.buildSendResponse(text, {
-      reason: key,
-      extra: {
-        module: MODULE_NAME,
-        eventKey: key,
-        ...extra
-      }
-    });
+    const text = messages.sanitizeChatMessage(messages.replacePlaceholders(raw, context), 450);
+    const meta = {
+      module: MODULE_NAME,
+      eventKey: key,
+      ...extra
+    };
+
+    let output;
+    try {
+      output = await chatOutput.sendChatMessage(text, {
+        source: MODULE_NAME,
+        reason: key,
+        fallbackToStreamerbot: false,
+        directSendEnabled: true
+      });
+
+      state.chat.lastOk = !!output.ok && output.sent === true;
+      state.chat.lastAt = nowIso();
+      state.chat.lastError = output.ok ? "" : (output.reason || output.error || "chat_output_failed");
+      state.chat.lastVia = output.via || output.account || "";
+    } catch (err) {
+      output = messages.buildErrorResponse("chat_output_exception", {
+        extra: { error: err.message || String(err) }
+      });
+
+      state.chat.lastOk = false;
+      state.chat.lastAt = nowIso();
+      state.chat.lastError = err.message || String(err);
+      state.chat.lastVia = "none";
+    }
+
+    return {
+      ...output,
+      send: false,
+      chatMessage: "",
+      streamerbot_send: "0",
+      streamerbot_message: "",
+      message: text,
+      text,
+      centralChat: output,
+      ...meta
+    };
   }
 
   function buildQueuedChatMessage(item, queuePosition) {
@@ -527,7 +569,7 @@ module.exports.init = function init(ctx) {
         trigger,
         date: getBerlinDate()
       };
-      return buildVipChatResponse("error_generic", context, {
+      return await buildVipChatResponse("error_generic", context, {
         accepted: false,
         duplicate: false,
         dbReady,
@@ -545,7 +587,7 @@ module.exports.init = function init(ctx) {
     };
 
     if (!dbReady) {
-      return buildVipChatResponse("error_generic", context, {
+      return await buildVipChatResponse("error_generic", context, {
         accepted: false,
         duplicate: false,
         dbReady: false,
@@ -566,7 +608,7 @@ module.exports.init = function init(ctx) {
     });
 
     if (existing) {
-      return buildVipChatResponse(eventKey("duplicate", soundType), context, {
+      return await buildVipChatResponse(eventKey("duplicate", soundType), context, {
         accepted: false,
         duplicate: true,
         usageDate,
@@ -594,7 +636,7 @@ module.exports.init = function init(ctx) {
     });
     refreshDbStats();
 
-    return buildVipChatResponse(eventKey("accepted", soundType), context, {
+    return await buildVipChatResponse(eventKey("accepted", soundType), context, {
       accepted: true,
       duplicate: false,
       requestId,
@@ -730,6 +772,7 @@ module.exports.init = function init(ctx) {
       refreshDbStats();
       return res.json({
         ok: true,
+        version: state.version,
         phase: state.overlay.phase,
         visible: state.overlay.visible,
         isActive: state.isActive,
