@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "enabled": true,
+  "directSendEnabled": true,
+  "prefer": "bot",
+  "fallbackToStreamer": true,
+  "fallbackToStreamerbot": true,
+  "maxLength": 450,
+  "irc": {
+    "enabled": true,
+    "url": "wss://irc-ws.chat.twitch.tv:443",
+    "joinDelayMs": 700,
+    "timeoutMs": 10000
+  },
+  "accounts": {
+    "bot": {
+      "enabled": true,
+      "usernameEnv": "TWITCH_BOT_USERNAME",
+      "channelEnv": "TWITCH_BOT_CHANNEL",
+      "clientIdEnv": "TWITCH_BOT_CLIENT_ID",
+      "clientSecretEnv": "TWITCH_BOT_CLIENT_SECRET",
+      "tokenStoreEnv": "TWITCH_BOT_TOKEN_STORE",
+      "defaultTokenStore": "tokens/twitch_bot_user.json"
+    },
+    "streamer": {
+      "enabled": true,
+      "usernameEnv": "TWITCH_CHANNEL_LOGIN",
+      "channelEnv": "TWITCH_CHANNEL_LOGIN",
+      "clientIdEnv": "TWITCH_CLIENT_ID",
+      "clientSecretEnv": "TWITCH_CLIENT_SECRET",
+      "tokenStoreEnv": "TWITCH_TOKEN_STORE",
+      "defaultTokenStore": "tokens/twitch_user.json"
+    }
+  },
+  "notes": {
+    "purpose": "Zentrale Chat-Ausgabe fuer Backend-Module. Bevorzugt Bot/Heimleitung, optional Fallback auf Streamer-Account, danach Streamer.bot-Fallback.",
+    "noSecrets": "Diese Datei enthaelt keine Tokens oder Secrets. Tokens bleiben lokal im tokens-Verzeichnis und duerfen nicht committet werden."
+  }
+}
