@@ -14,15 +14,9 @@ window.SectionHomeModule = (function(){
     const items = Array.isArray(section.items) ? section.items : [];
 
     root.innerHTML = `
-      <div class="section-hero glass">
-        <div>
-          <div class="section-kicker">${esc(section.role || '')}</div>
-          <h2>${esc(section.icon || '')} ${esc(section.label || 'Dashboard')}</h2>
-          <p>${esc(section.description || '')}</p>
-        </div>
-        <div class="section-hero-actions">
-          <button type="button" data-section-refresh>Aktualisieren</button>
-        </div>
+      <div class="section-toolbar">
+        <div class="section-toolbar-text">${esc(section.description || '')}</div>
+        <button type="button" data-section-refresh>Aktualisieren</button>
       </div>
 
       <div class="section-grid">
