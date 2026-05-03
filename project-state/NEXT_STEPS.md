@@ -1,4 +1,4 @@
-﻿# NEXT STEPS - stream-control-center
+# NEXT STEPS - stream-control-center
 
 Stand: 2026-05-03
 
@@ -6,21 +6,76 @@ Stand: 2026-05-03
 
 Vor jedem neuen STEP:
 
-1. git status prüfen.
+1. git status pruefen.
 2. docs/current/CURRENT_SYSTEM_STATUS.md lesen.
 3. project-state/CURRENT_STATUS.md lesen.
-4. Reale Dateien prüfen, keine Annahmen.
-5. Kleine Änderung planen.
-6. Nach Änderung testen, dokumentieren, committen, pushen und Live prüfen.
+4. Reale Dateien pruefen, keine Annahmen.
+5. Kleine Aenderung planen.
+6. Nach Aenderung testen, dokumentieren, committen, pushen und Live pruefen.
 
-## Empfohlene nächste Arbeitspakete
+## Empfohlene naechste Arbeitspakete
 
-### 1. Dashboard-Modulstandard definieren
+### 1. STEP016 - VIP-Minimalroute mit Daily-Usage und DB-Texten
 
 Ziel:
 
-- Einheitlicher Aufbau für Dashboard-Module.
-- Klare Struktur für init/load/render/bindActions.
+- Streamer.bot sendet nur Minimaldaten an Node.
+- VIP-Modul prueft Daily-Usage pro User/pro Stream-Tag.
+- VIP-Modul waehlt Heimleitungs-Zufallstext aus SQLite.
+- VIP-Modul gibt einfache chatMessage zurueck.
+- Keine Queue-Position mehr.
+- Noch kein Dashboard-Umbau.
+- Noch kein Overlay-Umbau.
+
+Vorher pruefen:
+
+- project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
+- backend/modules/vip_sound_overlay.js
+- backend/modules/sound_system.js
+- backend/core/database.js
+- backend/modules/sqlite_core.js
+- backend/modules/helpers/helper_messages.js
+- backend/modules/helpers/helper_config.js
+
+Voraussichtlich betroffene Code-Dateien:
+
+- backend/modules/vip_sound_overlay.js
+
+Nur falls noetig:
+
+- backend/core/database.js oder backend/modules/sqlite_core.js
+
+Wichtig:
+
+- app.sqlite niemals neu bauen oder ersetzen.
+- Tabellen nur migrationssicher anlegen.
+- Standardtexte nur seed'en, wenn Tabelle leer ist.
+- Keine Funktionalitaet entfernen.
+
+---
+
+### 2. VIP-Sound-System-Kopplung
+
+Ziel:
+
+- VIP-Sound-Requests an sound_system uebergeben.
+- Prioritaet/Queue/Cooldown des Sound-Systems nutzen.
+- VIP-Overlay erst bei echtem Soundstart anzeigen.
+
+Wichtig:
+
+- Nicht gleichzeitig mit STEP016 erzwingen, wenn es zu gross wird.
+- Sound-System nicht unnoetig umbauen.
+- Bestehende alertSync-Logik als Orientierung verwenden.
+
+---
+
+### 3. Dashboard-Modulstandard definieren
+
+Ziel:
+
+- Einheitlicher Aufbau fuer Dashboard-Module.
+- Klare Struktur fuer init/load/render/bindActions.
 - Einheitliches API-Verhalten.
 - Einheitliche Loading/Error/Empty-States.
 - Einheitliche Config-Strategie.
@@ -39,21 +94,25 @@ Wichtig:
 
 ---
 
-### 2. VIP-/Sound-/Overlay-System weiterentwickeln
+### 4. VIP-Dashboard spaeter bauen
 
-Nur starten, wenn vorher der aktuelle Stand geprüft wurde.
+Ziel:
 
-Vorher prüfen:
+- VIP-Status anzeigen.
+- Heimleitungs-Texte pro Event-Key bearbeiten.
+- Texte aktivieren/deaktivieren.
+- Gewichtung einstellen.
+- VIP-Soundpfad und Dateiregel konfigurieren.
+- Testausloesung ermoeglichen.
 
-- docs/current/CURRENT_SYSTEM_STATUS.md
-- docs/sound_system/
-- htdocs/dashboard/modules/sound.js
-- backend/modules/sound_system.js
-- backend/modules/vip_sound_overlay.js
+Wichtig:
+
+- Erst nach stabiler Backend-API.
+- Dashboard soll API nutzen, nicht direkt Dateien/SQL anfassen.
 
 ---
 
-### 3. Fireworks später neu aufbauen
+### 5. Fireworks spaeter neu aufbauen
 
 Aktueller Zustand:
 
@@ -61,41 +120,39 @@ Aktueller Zustand:
 - Dokumentiert in STEP008.
 - Kein kurzfristiger Umbau.
 
-Späterer Zielzustand:
+Spaeterer Zielzustand:
 
-- Fireworks vollständig in eigenes Modul.
+- Fireworks vollstaendig in eigenes Modul.
 - server.js von Fireworks-Spezialrouten befreien.
 - Einheitliches /api/fireworks/* System.
 - WebSocket-Broadcast zentralisieren.
 
 ---
 
-### 4. Hug-Textbearbeitung später sauber neu planen
+### 6. Hug-Textbearbeitung spaeter sauber neu planen
 
 Aktueller Zustand:
 
-- Hug-System läuft.
-- Unfertiges hug_text_admin.js wurde entfernt.
+- Hug-System laeuft.
 - Dashboard-Hug ist funktionierender Live-Stand.
 
-Späterer Zielzustand:
+Spaeterer Zielzustand:
 
-- Keine alte unfertige Version wiederbeleben.
-- Rechte-/Rollenprüfung.
+- Rechte-/Rollenpruefung.
 - Audit-Logging.
 - Nutzung vorhandener Helper.
 - Kein Parallelmodul.
 
 ---
 
-### 5. Alerts-Modul später behutsam splitten
+### 7. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 
-- alerts.js ist groß und funktionsreich.
+- alerts.js ist gross und funktionsreich.
 - Nicht blind umbauen.
 
-Späterer Zielzustand:
+Spaeterer Zielzustand:
 
 - alerts.api.js
 - alerts.rules.js
