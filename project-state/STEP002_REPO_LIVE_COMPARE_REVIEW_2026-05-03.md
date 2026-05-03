@@ -80,3 +80,24 @@ Danach erneuter Funktionstest:
 - GET /api/dashboard/community/hug/status
 
 
+
+## Nachtrag: Hug-Korrektur nach STEP002
+
+Die beim Abgleich aufgefallenen Hug-Abweichungen wurden bereinigt.
+
+Wichtig:
+- Der Live-Stand des Hug-Systems funktionierte bereits.
+- Die späteren Hug-Text-Admin-Arbeiten aus einem vorherigen Chat waren unfertig/nicht freigegeben.
+- Diese unfertigen Änderungen wurden nicht nach Live deployed.
+
+Durchgeführte Korrektur:
+- ackend/modules/hug_text_admin.js wurde aus dem Repo entfernt.
+- htdocs/dashboard/modules/hug.js wurde aus dem funktionierenden Live-Stand zurück ins Repo übernommen.
+- Die unerwünschten Dashboard-Aufrufe auf /api/hug/admin/texts... wurden damit entfernt.
+- Live enthielt ackend/modules/hug_text_admin.js nicht und musste dafür nicht bereinigt werden.
+
+Ergebnis:
+- Repo und Live sind beim Hug-Dashboard wieder logisch auf dem funktionierenden Stand.
+- Kein Hug-Admin-Texteditor ist aktiv.
+- Eine spätere Hug-Textbearbeitung darf erst neu geplant werden, mit vorhandenen Helpern, Rechte-/Audit-Konzept und sauberem STEP.
+
