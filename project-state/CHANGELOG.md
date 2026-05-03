@@ -2,6 +2,24 @@
 
 ## 2026-05-03
 
+### STEP009 - Hug-Text-Store in SQLite vorbereitet
+
+- `backend/modules/hug_text_store.js` ergänzt.
+- Neue Tabellen werden migrationssicher angelegt:
+  - `hug_settings`
+  - `hug_types`
+  - `hug_texts`
+- Bestehende Statistik-Tabellen bleiben unverändert:
+  - `hug_users`
+  - `hug_pair_stats`
+  - `hug_pending_rehugs`
+- Erstimport aus `config/messages/hug.json` in SQLite, aber nur wenn DB-Typen/Texte noch leer sind.
+- Neue Diagnose-Routen:
+  - `GET /api/hug/text-store/status`
+  - `GET /api/dashboard/community/hug/text-store/status`
+  - `POST /api/hug/text-store/reload`
+- Bestehende Hug-/Rehug-Kommandos und Routen wurden nicht verändert.
+
 ### STEP008 - Zentrale Chat-Ausgabe vorbereitet
 
 - `backend/modules/helpers/helper_chat_output.js` ergänzt.
