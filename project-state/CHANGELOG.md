@@ -2,6 +2,21 @@
 
 ## 2026-05-03
 
+### STEP013 - Zentrale Core-Datenbank-Schicht vorbereitet
+
+- `backend/core/database.js` ergänzt.
+- `backend/modules/database_core.js` ergänzt.
+- Neue Diagnose-Routen:
+  - `GET /api/database/status`
+  - `GET /api/system/database/status`
+- Zweck:
+  - Neue Module sollen langfristig nicht mehr direkt an `sqlite_core.js` hängen.
+  - Aktuell wird SQLite über die zentrale Core-Schicht gekapselt.
+  - MariaDB-Adapter ist strukturell vorbereitet, aber noch nicht implementiert.
+- Wichtig:
+  - Bestehende SQLite-Datenbank `data/sqlite/app.sqlite` wird nicht ersetzt.
+  - Bestehende Module wurden noch nicht umgestellt.
+
 ### STEP012 - Zentrale Hug/Rehug Command-Route
 
 - `backend/modules/hug_command.js` ergänzt.
