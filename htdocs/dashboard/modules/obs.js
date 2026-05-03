@@ -97,7 +97,7 @@
   }
 
   async function loadDashboardConfig() {
-    const res = await optionalApi('/obs/dashboard/config', null);
+    const res = await optionalApi('/api/obs/dashboard/config', null);
     if (res.ok && res.data && res.data.config) {
       state.config = sanitizeLocalConfig(res.data.config);
       state.configLoaded = true;
@@ -113,7 +113,7 @@
     state.savingConfig = true;
     state.configError = '';
     render();
-    const res = await optionalApi('/obs/dashboard/config', null, { method:'POST', body: JSON.stringify({ config: payload }) });
+    const res = await optionalApi('/api/obs/dashboard/config', null, { method:'POST', body: JSON.stringify({ config: payload }) });
     state.savingConfig = false;
     if (!res.ok || !res.data || !res.data.config) {
       state.configError = res.error || 'Config konnte nicht gespeichert werden.';
@@ -133,13 +133,13 @@
     render();
     try {
       const [statusRes, scenesRes, replayRes, audioRes, statsRes, browserRes, sourcesRes] = await Promise.all([
-        optionalApi('/obs/status', null),
-        optionalApi('/obs/scenes', { scenes:[], aliases:[] }),
-        optionalApi('/obs/replay/status', null),
-        optionalApi('/obs/audio/state', ''),
-        optionalApi('/obs/stats', null),
-        optionalApi('/obs/browser-sources', null),
-        optionalApi('/obs/sources', null)
+        optionalApi('/api/obs/status', null),
+        optionalApi('/api/obs/scenes', { scenes:[], aliases:[] }),
+        optionalApi('/api/obs/replay/status', null),
+        optionalApi('/api/obs/audio/state', ''),
+        optionalApi('/api/obs/stats', null),
+        optionalApi('/api/obs/browser-sources', null),
+        optionalApi('/api/obs/sources', null)
       ]);
 
       if (statusRes.ok) state.status = statusRes.data || {};
@@ -178,13 +178,13 @@
     state.error = '';
     try {
       const [statusRes, scenesRes, replayRes, audioRes, statsRes, browserRes, sourcesRes] = await Promise.all([
-        optionalApi('/obs/status', null),
-        optionalApi('/obs/scenes', { scenes:[], aliases:[] }),
-        optionalApi('/obs/replay/status', null),
-        optionalApi('/obs/audio/state', ''),
-        optionalApi('/obs/stats', null),
-        optionalApi('/obs/browser-sources', null),
-        optionalApi('/obs/sources', null)
+        optionalApi('/api/obs/status', null),
+        optionalApi('/api/obs/scenes', { scenes:[], aliases:[] }),
+        optionalApi('/api/obs/replay/status', null),
+        optionalApi('/api/obs/audio/state', ''),
+        optionalApi('/api/obs/stats', null),
+        optionalApi('/api/obs/browser-sources', null),
+        optionalApi('/api/obs/sources', null)
       ]);
 
       if (statusRes.ok) state.status = statusRes.data || {};
@@ -222,10 +222,10 @@
     state.error = '';
     try {
       const [statusRes, replayRes, audioRes, statsRes] = await Promise.all([
-        optionalApi('/obs/status', null),
-        optionalApi('/obs/replay/status', null),
-        optionalApi('/obs/audio/state', ''),
-        optionalApi('/obs/stats', null)
+        optionalApi('/api/obs/status', null),
+        optionalApi('/api/obs/replay/status', null),
+        optionalApi('/api/obs/audio/state', ''),
+        optionalApi('/api/obs/stats', null)
       ]);
       if (statusRes.ok) state.status = statusRes.data || {};
       else state.error = statusRes.error || 'OBS-Status konnte nicht geladen werden.';
