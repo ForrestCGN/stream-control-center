@@ -1,10 +1,10 @@
-﻿# CURRENT SYSTEM STATUS
+# CURRENT SYSTEM STATUS
 
 Stand: 2026-05-03
 
 ## Zweck
 
-Diese Datei ist der aktuelle Einstiegspunkt für den Projektstand.
+Diese Datei ist der aktuelle Einstiegspunkt fuer den Projektstand.
 
 Historische Analyse-Snapshots liegen unter:
 
@@ -40,16 +40,26 @@ GitHub:
 - STEP008 Fireworks-Doppelroute dokumentiert, kein Umbau
 - STEP010 OBS Dashboard Aktionen auf /api/obs/*
 - STEP011 Doku-Struktur in Repo und Live vorbereitet
+- STEP015 VIP-/Sound-/Overlay-Planung dokumentiert
 
 ## Aktueller sauberer Zustand
 
-- Repo working tree clean vor STEP011
-- Repo/dev war auf origin/dev
-- Geänderte Dateien wurden mit Live per SHA256 verglichen
-- backend/modules/obs.js Same=True
-- htdocs/dashboard/modules/obs.js Same=True
-- htdocs/dashboard/modules/sound.js Same=True
-- htdocs/dashboard/modules/adminconfigs.js Same=True
+- Repo/dev war vor STEP015 sauber und auf origin/dev.
+- STEP015 war reine Planung/Dokumentation ohne Codeaenderung.
+- Repo/Live-SHA256 war fuer die relevanten VIP-/Sound-/Helper-Dateien identisch:
+  - backend/modules/sound_system.js Same=True
+  - backend/modules/vip_sound_overlay.js Same=True
+  - backend/modules/helpers/helper_messages.js Same=True
+  - backend/modules/helpers/helper_texts.js Same=True
+  - backend/modules/helpers/helper_chat_output.js Same=True
+  - config/sound_system.json Same=True
+
+Live-Routen geprueft:
+
+- GET /api/_status
+- GET /api/sound/status
+- GET /api/vip-sound/status
+- GET /api/vip-sound-overlay/state
 
 ## Doku-Struktur
 
@@ -73,29 +83,41 @@ Snapshots:
 - docs/overlays/
 - docs/database/
 
+Aktueller VIP-Plan:
+
+- project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
+
 ## Wichtige Regeln
 
-- Keine Funktionalität entfernen.
-- Vor Änderungen echten Dateistand prüfen.
+- Keine Funktionalitaet entfernen.
+- Vor Aenderungen echten Dateistand pruefen.
 - GitHub/dev und Live bewusst synchron halten.
 - Keine Secrets committen.
 - Keine SQLite-Dateien committen.
-- Doku-Snapshots nicht überschreiben, sondern neue CURRENT-Dateien pflegen.
+- Doku-Snapshots nicht ueberschreiben, sondern neue CURRENT-Dateien pflegen.
 - STEP-Dokus nach jedem abgeschlossenen Block schreiben.
 
 ## Offene Punkte
 
-- Fireworks später neu aufbauen.
+- STEP016 VIP-Minimalroute mit Daily-Usage und DB-Message-Templates planen/umsetzen.
+- VIP-Sounds ueber Sound-System-Prioritaet/Queue fuehren.
+- VIP-Einblendung erst bei echtem Soundstart anzeigen.
+- VIP-Soundpfad konfigurierbar machen.
+- VIP-Nachrichten spaeter im Dashboard bearbeitbar machen.
+- Fireworks spaeter neu aufbauen.
 - Dashboard-Modulstandard definieren.
-- Hug-Textbearbeitung später sauber neu planen.
-- Alerts-Modul später behutsam splitten.
+- Hug-Textbearbeitung spaeter sauber neu planen.
+- Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
-- Lose alte Analyse-Dateien im Live-docs-Root später entfernen, wenn Repo-Doku committed und geprüft ist.
 
-## Nächster empfohlener Schritt
+## Naechster empfohlener Schritt
 
-STEP011 abschließen:
+STEP016 klein halten:
 
-1. docs/current/CURRENT_SYSTEM_STATUS.md committen.
-2. Analyse-Snapshots im Repo committen.
-3. Danach Live-docs-Root aufräumen, aber erst nach Kontrolle.
+1. VIP-DB-Schema fuer Daily-Usage migrationssicher anlegen.
+2. VIP-DB-Schema fuer Message-Templates migrationssicher anlegen.
+3. Standard-Heimleitungstexte nur seed'en, wenn leer.
+4. Neue/minimale VIP-Command-Route vorbereiten.
+5. Duplicate-Pruefung einbauen.
+6. chatMessage ueber helper_messages zurueckgeben.
+7. Noch kein Dashboard- und Overlay-Umbau.
