@@ -136,19 +136,25 @@ module.exports.init = function init(ctx) {
     res.status(204).end();
   });
 
+  function obsRoutes(legacyPath) {
+    if (!legacyPath || typeof legacyPath !== "string") return legacyPath;
+    if (!legacyPath.startsWith("/obs/") && legacyPath !== "/obs") return legacyPath;
+    return [legacyPath, `/api${legacyPath}`];
+  }
+
   // Legacy routes behalten
-  app.get("/obs/audio/busy", (req, res) => {
+  app.get(obsRoutes("/obs/audio/busy"), (req, res) => {
     setCommonHeaders(res);
     res.json(shared.getLegacyAudioState());
   });
 
-  app.get("/obs/audio/state", (req, res) => {
+  app.get(obsRoutes("/obs/audio/state"), (req, res) => {
     setCommonHeaders(res);
     res.type("text/plain; charset=utf-8");
     res.send(shared.state.audioBusy ? "BUSY" : "IDLE");
   });
 
-  app.get("/obs/health", (req, res) => {
+  app.get(obsRoutes("/obs/health"), (req, res) => {
     setCommonHeaders(res);
     const s = shared.getPublicStatus();
     res.json({
@@ -159,14 +165,14 @@ module.exports.init = function init(ctx) {
     });
   });
 
-  app.get("/obs/audio/busy/text", (req, res) => {
+  app.get(obsRoutes("/obs/audio/busy/text"), (req, res) => {
     setCommonHeaders(res);
     res.type("text/plain; charset=utf-8");
     res.send(shared.state.audioBusy ? `Ton aktiv auf: ${shared.state.audioActive.join(", ")}` : "Kein Ton aktiv");
   });
 
   // Neue Routen
-  app.get("/obs/dashboard/config", (req, res) => {
+  app.get(obsRoutes("/obs/dashboard/config"), (req, res) => {
     const route = "/obs/dashboard/config";
     try {
       const loaded = loadDashboardConfig();
@@ -176,7 +182,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/dashboard/config", (req, res) => {
+  app.post(obsRoutes("/obs/dashboard/config"), (req, res) => {
     const route = "/obs/dashboard/config";
     try {
       const saved = saveDashboardConfig(req.body || {});
@@ -186,7 +192,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.get("/obs/status", async (req, res) => {
+  app.get(obsRoutes("/obs/status"), async (req, res) => {
     const route = "/obs/status";
     try {
       await shared.refreshSnapshot();
@@ -196,7 +202,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.get("/obs/stats", async (req, res) => {
+  app.get(obsRoutes("/obs/stats"), async (req, res) => {
     const route = "/obs/stats";
     try {
       await shared.refreshSnapshot();
@@ -236,7 +242,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.get("/obs/scenes", async (req, res) => {
+  app.get(obsRoutes("/obs/scenes"), async (req, res) => {
     const route = "/obs/scenes";
     try {
       const scenes = await shared.refreshScenes();
@@ -252,7 +258,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/scene/switch", async (req, res) => {
+  app.post(obsRoutes("/obs/scene/switch"), async (req, res) => {
     const route = "/obs/scene/switch";
     try {
       const input = body(req, "scene") || body(req, "alias");
@@ -276,7 +282,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/scene/preview", async (req, res) => {
+  app.post(obsRoutes("/obs/scene/preview"), async (req, res) => {
     const route = "/obs/scene/preview";
     try {
       const input = body(req, "scene") || body(req, "alias");
@@ -295,7 +301,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/studio/transition", async (req, res) => {
+  app.post(obsRoutes("/obs/studio/transition"), async (req, res) => {
     const route = "/obs/studio/transition";
     try {
       await shared.refreshSnapshot();
@@ -310,7 +316,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.get("/obs/sources", async (req, res) => {
+  app.get(obsRoutes("/obs/sources"), async (req, res) => {
     const route = "/obs/sources";
     try {
       const inputs = await shared.getInputList();
@@ -328,7 +334,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.get("/obs/browser-sources", async (req, res) => {
+  app.get(obsRoutes("/obs/browser-sources"), async (req, res) => {
     const route = "/obs/browser-sources";
 
     try {
@@ -371,7 +377,7 @@ module.exports.init = function init(ctx) {
       fail(res, route, err.code || "GET_BROWSER_SOURCES_FAILED", err.message || "Browserquellen konnten nicht gelesen werden.", null, status);
     }
   });
-  app.get("/obs/scene-items", async (req, res) => {
+  app.get(obsRoutes("/obs/scene-items"), async (req, res) => {
     const route = "/obs/scene-items";
     try {
       const input = core.pickFirst(core.getParam(req, "scene"), core.getParam(req, "alias"));
@@ -436,11 +442,11 @@ module.exports.init = function init(ctx) {
     }
   }
 
-  app.post("/obs/source/show", (req, res) => handleSceneItemVisibility(req, res, "show"));
-  app.post("/obs/source/hide", (req, res) => handleSceneItemVisibility(req, res, "hide"));
-  app.post("/obs/source/toggle", (req, res) => handleSceneItemVisibility(req, res, "toggle"));
+  app.post(obsRoutes("/obs/source/show"), (req, res) => handleSceneItemVisibility(req, res, "show"));
+  app.post(obsRoutes("/obs/source/hide"), (req, res) => handleSceneItemVisibility(req, res, "hide"));
+  app.post(obsRoutes("/obs/source/toggle"), (req, res) => handleSceneItemVisibility(req, res, "toggle"));
 
-  app.post("/obs/audio/mute", async (req, res) => {
+  app.post(obsRoutes("/obs/audio/mute"), async (req, res) => {
     const route = "/obs/audio/mute";
     try {
       const input = body(req, "inputName") || body(req, "source") || body(req, "alias");
@@ -457,7 +463,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/audio/unmute", async (req, res) => {
+  app.post(obsRoutes("/obs/audio/unmute"), async (req, res) => {
     const route = "/obs/audio/unmute";
     try {
       const input = body(req, "inputName") || body(req, "source") || body(req, "alias");
@@ -474,7 +480,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/audio/toggle", async (req, res) => {
+  app.post(obsRoutes("/obs/audio/toggle"), async (req, res) => {
     const route = "/obs/audio/toggle";
     try {
       const input = body(req, "inputName") || body(req, "source") || body(req, "alias");
@@ -491,7 +497,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/audio/volume", async (req, res) => {
+  app.post(obsRoutes("/obs/audio/volume"), async (req, res) => {
     const route = "/obs/audio/volume";
     try {
       const input = body(req, "inputName") || body(req, "source") || body(req, "alias");
@@ -524,7 +530,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/media/action", async (req, res) => {
+  app.post(obsRoutes("/obs/media/action"), async (req, res) => {
     const route = "/obs/media/action";
     try {
       const input = body(req, "inputName") || body(req, "source") || body(req, "alias");
@@ -555,7 +561,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.get("/obs/replay/status", async (req, res) => {
+  app.get(obsRoutes("/obs/replay/status"), async (req, res) => {
     const route = "/obs/replay/status";
     try {
       const replayBufferActive = await shared.getReplayBufferStatus();
@@ -566,7 +572,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/replay/start", async (req, res) => {
+  app.post(obsRoutes("/obs/replay/start"), async (req, res) => {
     const route = "/obs/replay/start";
     try {
       await shared.startReplayBuffer();
@@ -577,7 +583,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/replay/stop", async (req, res) => {
+  app.post(obsRoutes("/obs/replay/stop"), async (req, res) => {
     const route = "/obs/replay/stop";
     try {
       await shared.stopReplayBuffer();
@@ -588,7 +594,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.post("/obs/replay/save", async (req, res) => {
+  app.post(obsRoutes("/obs/replay/save"), async (req, res) => {
     const route = "/obs/replay/save";
     try {
       await shared.saveReplayBuffer();
@@ -599,7 +605,7 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  app.get("/obs/filter/list", async (req, res) => {
+  app.get(obsRoutes("/obs/filter/list"), async (req, res) => {
     const route = "/obs/filter/list";
     try {
       const sourceInput = core.pickFirst(core.getParam(req, "sourceName"), core.getParam(req, "source"), core.getParam(req, "alias"));
@@ -652,9 +658,9 @@ module.exports.init = function init(ctx) {
     }
   }
 
-  app.post("/obs/filter/enable", (req, res) => handleFilter(req, res, "enable"));
-  app.post("/obs/filter/disable", (req, res) => handleFilter(req, res, "disable"));
-  app.post("/obs/filter/toggle", (req, res) => handleFilter(req, res, "toggle"));
+  app.post(obsRoutes("/obs/filter/enable"), (req, res) => handleFilter(req, res, "enable"));
+  app.post(obsRoutes("/obs/filter/disable"), (req, res) => handleFilter(req, res, "disable"));
+  app.post(obsRoutes("/obs/filter/toggle"), (req, res) => handleFilter(req, res, "toggle"));
 
   console.log("[obs] Legacy- und neue OBS-Routen aktiv.");
 };
