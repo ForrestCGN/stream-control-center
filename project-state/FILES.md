@@ -1,4 +1,4 @@
-﻿# FILES - stream-control-center
+# FILES - stream-control-center
 
 Stand: 2026-05-03
 
@@ -37,6 +37,7 @@ STEP-Dokumentation:
 - project-state/STEP008_FIREWORKS_DUPLICATE_ROUTES_REVIEW_2026-05-03.md
 - project-state/STEP010_OBS_DASHBOARD_API_ACTIONS_2026-05-03.md
 - project-state/STEP011_DOCUMENTATION_STRUCTURE_2026-05-03.md
+- project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
 
 ## Doku-Struktur
 
@@ -81,6 +82,21 @@ Backend:
 - backend/modules/helpers/
 - backend/core/
 
+VIP/Sound relevant:
+
+- backend/modules/vip_sound_overlay.js
+- backend/modules/sound_system.js
+- backend/modules/helpers/helper_messages.js
+- backend/modules/helpers/helper_texts.js
+- backend/modules/helpers/helper_chat_output.js
+- backend/modules/helpers/helper_config.js
+- backend/modules/helpers/helper_media.js
+- backend/modules/sqlite_core.js
+- backend/core/database.js
+- config/sound_system.json
+- htdocs/overlays/vip_sound_overlay.html
+- htdocs/overlays/sound_system_overlay.html
+
 Dashboard:
 
 - htdocs/dashboard/app.js
@@ -100,8 +116,14 @@ Datenbank:
 
 - D:\Streaming\stramAssets\data\sqlite\app.sqlite
 
+VIP-Sounddateien live:
+
+- D:\Streaming\stramAssets\htdocs\assets\sounds\vip\
+- Dateiregel aktuell: Anzeigename.mp3
+
 Wichtig:
 
 - app.sqlite niemals committen.
 - .env/secrets niemals committen.
 - Backup-/Altdateien nicht committen.
+- VIP-Soundpfad spaeter konfigurierbar machen.
