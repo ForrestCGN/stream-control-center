@@ -9,7 +9,7 @@
       --card-w: 900px;
       --card-min-h: 128px;
       --x: 50%;
-      --y: calc(100% - 74px);
+      --y: calc(100% - 110px - (var(--card-min-h) / 2));
       --scale: 1;
       --cyan: #8ff4ff;
       --purple: #c45cff;
@@ -91,8 +91,8 @@
       position: relative;
       min-height: var(--card-min-h);
       display: grid;
-      grid-template-columns: 76px minmax(0, 1fr);
-      gap: 16px;
+      grid-template-columns: 82px minmax(0, 1fr);
+      gap: 18px;
       align-items: center;
       padding: 18px 26px;
       border: 4px solid transparent;
@@ -136,27 +136,49 @@
 
     @keyframes runner { to { transform: translateX(132%); } }
 
-    .orb {
+    .avatar-shell {
       position: relative;
       z-index: 3;
-      width: 70px;
-      height: 70px;
+      width: 76px;
+      height: 76px;
       display: grid;
       place-items: center;
       border-radius: 50%;
-      background:
-        radial-gradient(circle at 34% 18%, rgba(255,255,255,.38), transparent 32%),
-        radial-gradient(circle at 50% 50%, rgba(143,244,255,.26), transparent 50%),
-        linear-gradient(135deg, rgba(11, 16, 45, .98), rgba(121, 45, 220, .95) 53%, rgba(24, 199, 239, .82));
-      border: 3px solid rgba(255,255,255,.92);
+      background: conic-gradient(from 0deg, var(--cyan), var(--purple), var(--pink), var(--cyan));
       box-shadow: 0 0 24px rgba(143,244,255,.32), 0 0 34px rgba(196,92,255,.42);
+      padding: 3px;
     }
 
-    .orb svg {
-      width: 31px;
-      height: 31px;
+    .avatar-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 34% 18%, rgba(255,255,255,.32), transparent 32%),
+        linear-gradient(135deg, rgba(11, 16, 45, .98), rgba(121, 45, 220, .95) 53%, rgba(24, 199, 239, .82));
+      border: 2px solid rgba(255,255,255,.88);
+      display: grid;
+      place-items: center;
+    }
+
+    #avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    #avatar-fallback {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
       color: #fff;
-      filter: drop-shadow(0 0 8px rgba(255,255,255,.32)) drop-shadow(0 0 16px rgba(196,92,255,.32));
+      font-size: 28px;
+      font-weight: 950;
+      text-shadow: 0 0 14px rgba(255,255,255,.28), 0 0 20px rgba(196,92,255,.38);
     }
 
     .content {
@@ -259,13 +281,11 @@
 
   <div id="wrap" aria-hidden="true">
     <div class="card">
-      <div class="orb" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-          <path d="M12 19v3" />
-          <path d="M8 22h8" />
-        </svg>
+      <div class="avatar-shell" aria-hidden="true">
+        <div class="avatar-frame">
+          <img id="avatar-img" alt="Avatar" />
+          <div id="avatar-fallback">?</div>
+        </div>
       </div>
       <div class="content">
         <div class="toprow">
@@ -285,11 +305,15 @@
     const debugEnabled = params.get("debug") === "1";
     const pollEnabled = params.get("poll") !== "0";
     const pollMs = Math.max(200, Math.min(5000, Number(params.get("pollMs") || 350)));
+    const userInfoBaseUrl = params.get("userInfoUrl") || "/userinfo?login=";
+    const avatarEnabled = params.get("avatar") !== "0";
 
     const wrap = document.getElementById("wrap");
     const userEl = document.getElementById("user");
     const roleEl = document.getElementById("role");
     const textEl = document.getElementById("text");
+    const avatarImg = document.getElementById("avatar-img");
+    const avatarFallback = document.getElementById("avatar-fallback");
     const metaEl = document.getElementById("meta");
     const debugEl = document.getElementById("debug");
 
@@ -312,11 +336,60 @@
       return text || fallback;
     }
 
+
+    function initials(name) {
+      const n = safe(name, "?");
+      const parts = n.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return n.slice(0, 2).toUpperCase();
+    }
+
+    function setAvatar(url, displayName) {
+      if (!avatarImg || !avatarFallback) return;
+      avatarFallback.textContent = initials(displayName);
+      avatarImg.onload = () => {
+        avatarImg.style.display = "block";
+        avatarFallback.style.display = "none";
+      };
+      avatarImg.onerror = () => {
+        avatarImg.style.display = "none";
+        avatarFallback.style.display = "grid";
+      };
+      if (!url || !avatarEnabled) {
+        avatarImg.removeAttribute("src");
+        avatarImg.style.display = "none";
+        avatarFallback.style.display = "grid";
+        return;
+      }
+      avatarImg.src = url;
+    }
+
+    const userInfoCache = new Map();
+    async function resolveUserInfo(login) {
+      const key = safe(login).replace(/^@+/, "").toLowerCase();
+      if (!key) return null;
+      if (userInfoCache.has(key)) return userInfoCache.get(key);
+      try {
+        const res = await fetch(userInfoBaseUrl + encodeURIComponent(key), { cache: "no-store" });
+        if (!res.ok) return null;
+        const raw = await res.json();
+        const data = raw && raw.data && Array.isArray(raw.data) ? raw.data[0] : raw;
+        const info = {
+          displayName: safe(data.displayName || data.display_name || data.display || data.userDisplayName || data.login || key, key),
+          avatarUrl: safe(data.avatarUrl || data.avatar_url || data.profileImageUrl || data.profile_image_url || data.profileImage || "")
+        };
+        userInfoCache.set(key, info);
+        return info;
+      } catch (_) {
+        return null;
+      }
+    }
+
     function applyParams() {
       const pos = safe(params.get("position"), "bottom").toLowerCase();
       const width = Number(params.get("width") || 900);
       const scale = Number(params.get("scale") || 1);
-      const bottom = Number(params.get("bottom") || 74);
+      const bottom = Number(params.get("bottom") || 110);
       const top = Number(params.get("top") || 0);
       const x = Number(params.get("x") || 50);
 
@@ -329,7 +402,7 @@
       } else if (pos === "top") {
         document.documentElement.style.setProperty("--y", `${Math.max(40, top || 120)}px`);
       } else {
-        document.documentElement.style.setProperty("--y", `calc(100% - ${Math.max(40, bottom)}px)`);
+        document.documentElement.style.setProperty("--y", `calc(100% - ${Math.max(40, bottom)}px - (var(--card-min-h) / 2))`);
       }
     }
 
@@ -356,8 +429,9 @@
       return {
         soundRequestId: requestId,
         requestId: safe(visual.requestId || requestId),
-        displayName: safe(visual.displayName || visual.user || item.requestedBy || item.user, "TTS"),
-        login: safe(visual.login || item.requestedBy || item.user),
+        displayName: safe(visual.displayName || visual.userDisplayName || visual.user || item.displayName || item.requestedBy || item.user, "TTS"),
+        login: safe(visual.login || item.login || item.requestedBy || item.user),
+        avatarUrl: safe(visual.avatarUrl || visual.avatar_url || visual.profileImageUrl || visual.profile_image_url || item.avatarUrl || ""),
         role: safe(visual.role || item.role || "tts", "tts"),
         text: safe(visual.text || item.text || item.label || ""),
         voiceLabel: safe(visual.voiceLabel || visual.voice || ""),
@@ -373,7 +447,15 @@
       currentSoundRequestId = data.soundRequestId || data.requestId;
       visible = true;
 
-      userEl.textContent = data.displayName || "TTS";
+      userEl.textContent = data.displayName || data.login || "TTS";
+      setAvatar(data.avatarUrl || "", data.displayName || data.login || "TTS");
+      if ((!data.avatarUrl || String(data.displayName || "").toLowerCase() === String(data.login || "").toLowerCase()) && data.login) {
+        resolveUserInfo(data.login).then(info => {
+          if (!info || currentSoundRequestId !== (data.soundRequestId || data.requestId)) return;
+          if (info.displayName) userEl.textContent = info.displayName;
+          if (info.avatarUrl) setAvatar(info.avatarUrl, info.displayName || data.displayName || data.login);
+        });
+      }
       roleEl.textContent = data.role || "";
       textEl.textContent = data.text || "";
       metaEl.textContent = [data.engine, data.voiceLabel].filter(Boolean).join(" · ");
@@ -388,6 +470,8 @@
         "requestId=" + data.requestId,
         "soundRequestId=" + data.soundRequestId,
         "displayName=" + data.displayName,
+        "login=" + data.login,
+        "avatar=" + Boolean(data.avatarUrl),
         "role=" + data.role,
         "text=" + data.text,
         "durationMs=" + data.durationMs
