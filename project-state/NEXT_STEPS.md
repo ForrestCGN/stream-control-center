@@ -6,16 +6,28 @@ Stand: 2026-05-04
 
 Vor jedem neuen STEP:
 
-1. git status pruefen.
+1. `tools\easy\03_NUR_STATUS_PRUEFEN.cmd` oder `git status --short` pruefen.
 2. docs/current/CURRENT_SYSTEM_STATUS.md lesen.
 3. project-state/CURRENT_STATUS.md lesen.
 4. Reale Dateien pruefen, keine Annahmen.
-5. Kleine Aenderung planen.
-6. Nach Aenderung testen, dokumentieren, committen, pushen und Live pruefen.
+5. Wenn GitHub/Toolausgaben grosse Dateien kuerzen, echte Datei von Forrest anfordern und diese als Basis nutzen.
+6. Kleine Aenderung planen.
+7. Nach Aenderung testen, dokumentieren, committen, pushen und Live ueber `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd` aktualisieren.
 
 ## Empfohlene naechste Arbeitspakete
 
 ### 1. STEP026 deployen und testen
+
+Workflow:
+
+- Repo-Dateien nach `D:\Git\stream-control-center` entpacken.
+- Syntax pruefen.
+- Commit/Push nach `dev`.
+- Live-Aktualisierung ueber `D:\Git\stream-control-center\tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd`.
+- Backend neu starten.
+- Live-Test ausfuehren.
+
+### 1.1 STEP026 Funktionstest
 
 Ziel:
 

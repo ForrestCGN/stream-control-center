@@ -16,6 +16,25 @@ GitHub:
 
 - https://github.com/ForrestCGN/stream-control-center
 
+## Easy-Scripts / Deploy-Workflow
+
+Verbindlicher Script-Pfad:
+
+- `D:\Git\stream-control-center\tools\easy\`
+
+Standard-Scripte:
+
+- `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd`
+- `tools\easy\02_LOKALE_AENDERUNGEN_ZU_GITHUB_HOCHLADEN.cmd`
+- `tools\easy\03_NUR_STATUS_PRUEFEN.cmd`
+- `tools\easy\04_BACKUP_ZURUECKSPIELEN.cmd`
+
+Wichtig:
+
+- Diese Easy-Scripts sind der Standard fuer GitHub-/Live-Arbeiten.
+- Nicht auf alte Root-Script-Pfade ausweichen, wenn die Easy-Scripts vorhanden sind.
+- Wenn grosse Dateien ueber GitHub/Tools nur gekuerzt gelesen werden koennen, stellt Forrest die echte Datei bereit. Diese echte Datei ist dann die Arbeitsbasis.
+
 ## Wichtige Projektdateien
 
 Aktueller Projektstand:

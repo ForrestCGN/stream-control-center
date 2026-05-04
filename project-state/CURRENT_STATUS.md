@@ -24,6 +24,18 @@ Aktueller Doku-Einstieg:
 
 - docs/current/CURRENT_SYSTEM_STATUS.md
 
+## Verbindlicher GitHub-/Live-Workflow
+
+- Gearbeitet wird immer auf GitHub/dev und im lokalen Repo `D:\Git\stream-control-center`.
+- Live wird nicht mehr ueber alte Root-Scripte aktualisiert, sondern ueber:
+  - `D:\Git\stream-control-center\tools\easy\`
+- Standard-Scripte:
+  - `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd`
+  - `tools\easy\02_LOKALE_AENDERUNGEN_ZU_GITHUB_HOCHLADEN.cmd`
+  - `tools\easy\03_NUR_STATUS_PRUEFEN.cmd`
+  - `tools\easy\04_BACKUP_ZURUECKSPIELEN.cmd`
+- Wenn GitHub-/Toolausgaben grosse Dateien kuerzen oder nicht vollstaendig liefern, wird nicht geraten und nicht mit riskanten Patch-Scripten gearbeitet. Dann stellt Forrest die echte Datei aus Repo/Live bereit und diese Datei ist fuer die Bearbeitung massgeblich.
+
 ## Aktueller Arbeitsstand
 
 Der aktuelle Stand nach STEP026 ist fuer GitHub/dev vorbereitet.

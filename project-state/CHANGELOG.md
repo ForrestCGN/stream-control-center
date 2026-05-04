@@ -5,6 +5,8 @@
 ### STEP026 - VIP Twitch-Rollenhelper vorbereitet
 
 - Neue Datei `backend/modules/helpers/helper_twitch_roles.js` ergänzt.
+- Projekt-Doku aktualisiert: Live-Aktualisierung erfolgt verbindlich ueber `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd`.
+- Arbeitsregel ergaenzt: Wenn GitHub/Tools grosse Dateien kuerzen, stellt Forrest die echte Datei bereit; diese wird dann als Bearbeitungsbasis genutzt.
 - `backend/modules/vip_sound_overlay.js` auf Version `1.7.4` vorbereitet.
 - Zieluser-Rollenprüfung für VIP-Sounds nutzt jetzt zuerst Twitch:
   - Login-Auflösung über `/helix/users`
