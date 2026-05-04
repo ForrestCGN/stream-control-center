@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 const fs = require("fs");
 const path = require("path");
@@ -24,7 +24,7 @@ const DEFAULT_OUTPUT = {
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  version: "0.1.9",
+  version: "0.1.10",
   routes: { prefix: "/api/sound" },
   websocket: { enabled: true, op: "sound_system" },
   overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
