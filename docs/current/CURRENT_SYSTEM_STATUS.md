@@ -34,56 +34,48 @@ GitHub:
 
 ## Zuletzt abgeschlossen
 
-- STEP005 OBS API-Aliase /api/obs/*
-- STEP006 OBS Dashboard Leserouten auf /api/obs/*
-- STEP007 Mojibake in sound/adminconfigs repariert
-- STEP008 Fireworks-Doppelroute dokumentiert, kein Umbau
-- STEP010 OBS Dashboard Aktionen auf /api/obs/*
-- STEP011 Doku-Struktur in Repo und Live vorbereitet
-- STEP015 VIP-/Sound-/Overlay-Planung dokumentiert
-- STEP016 VIP-Daily-Usage und DB-Message-Templates vorbereitet
-- STEP016.1 VIP-Chat-Ausgabe auf helper_chat_output/Heimleitungs-Bot umgestellt
-- STEP017 VIP-Sounds ueber Sound-System vor Daily-Usage queued
-- STEP019 VIP Sound Override dokumentiert und Projektstatus aktualisiert
-- STEP020 VIP Override live getestet
-- STEP021 Sound-System RequestId in VIP-Response gefixt
-- STEP022 Streamer.bot VIP-Argumente geprueft
-- STEP023 VIP Streamer.bot -> Sound-System -> Overlay V2 getestet
+- STEP040 VIP Backend Reference / Dashboard Ready Status
+- STEP041 TTS / Alert / Sound-System Analyseplan
+- STEP042 Alert-TTS Vorbereitung und Timing-Support
+- STEP043 TTS generated files unter `htdocs/assets/sounds/tts/generated/`
+- STEP044 Chat-TTS ueber Sound-System vorbereitet
+- STEP044.4 TTS-Overlay nach VIP-Prinzip ueber Sound-System Visual State
+- STEP044.5 bis STEP044.8 TTS-Overlay Layout/Avatar/adaptive Breite finalisiert
+- STEP045 TTS Queue Sync mit Sound-System vorbereitet
+- STEP046 Alert-Hauptsound frueh ins Sound-System eingereiht, damit Prioritaet korrekt greift
+- STEP047 VIP Dashboard Base
 
 ## Aktueller sauberer Zustand
 
-- GitHub/dev wurde fuer STEP023 aktualisiert.
-- Aktuelles VIP-Modul: backend/modules/vip_sound_overlay.js
-- VIP-Modul-Version im Repo/Live: 1.7.1
-- Sound-System-Version live: 0.1.8
-- VIP Override ist live bestaetigt.
-- `soundSystemRequestId` wird korrekt in der VIP-Response ausgegeben.
-- Echte Streamer.bot-Argumente passen zum aktuellen VIP-Modul.
-- Echter `!vip`-Command laeuft jetzt ueber `/api/vip-sound/command`.
-- OBS nutzt fuer VIP die V2-Browserquelle `vip_sound_overlay_v2.html`.
-- Fuer STEP023 war keine Backend-Codeaenderung noetig.
+- GitHub/dev wurde fuer STEP047 aktualisiert.
+- Aktuelles VIP-Modul: `backend/modules/vip_sound_overlay.js`
+- VIP-Modul-Version live/API: `1.8.5`
+- VIP-DB-Schema-Version: `4`
+- Aktives VIP-Overlay: `htdocs/overlays/vip_sound_overlay_v2.html`
+- Neues Dashboard-Modul: `htdocs/dashboard/modules/vip.js`
+- Neues Dashboard-CSS: `htdocs/dashboard/modules/vip.css`
+- VIP ist in der Dashboard-Community-Sektion registriert.
+- VIP nutzt DB-Settings ueber `vip_sound_settings`.
+- VIP nutzt DB-Texte ueber `vip_sound_message_templates`.
+- VIP nutzt DB-Rollen-Fallbacks ueber `vip_sound_role_overrides`.
+- VIP Events/Stats laufen ueber `vip_sound_events`.
+- VIP Daily-Usage laeuft ueber `vip_sound_daily_usage`.
+- Soundausgabe laeuft ueber `sound_system`.
+- Chat-Ausgabe laeuft zentral ueber `helper_chat_output` / Heimaufsicht-Bot.
 
-Live/Streamer.bot/OBS geprueft:
+Live/API geprueft fuer STEP047:
 
-- POST /api/vip-sound/command
-- GET /api/vip-sound/status
-- GET /api/vip-sound-overlay/state
-- GET /api/vip-sound/db/status
-- GET /api/sound/status
-- Streamer.bot Command-Argumente fuer Actor/Target/Moderator-Status
-- OBS-Browserquelle fuer VIP Overlay V2
+- `node -c htdocs/dashboard/modules/vip.js`
+- `GET /api/vip-sound/admin/summary`
+- `GET /api/vip-sound/settings`
+- `GET /api/vip-sound/texts?limit=5`
 
 ## VIP-System aktueller Stand
 
 Dokumentation:
 
-- project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
-- project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
-- project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
-- project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
-- project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
-- project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
-- project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
+- `project-state/STEP040_VIP_BACKEND_REFERENCE_DASHBOARD_READY_2026-05-04.md`
+- `project-state/STEP047_VIP_DASHBOARD_BASE_2026-05-04.md`
 
 Aktueller Ablauf fuer `!vip`:
 
@@ -94,53 +86,76 @@ Aktueller Ablauf fuer `!vip`:
 5. Optionaler Zieluser wird erkannt.
 6. Wenn ein Zieluser angegeben wurde und Actor nicht identisch mit Zieluser ist, gilt der Request als Override-Versuch.
 7. Override wird nur erlaubt, wenn die Actor-Rolle in `VIP_OVERRIDE_ALLOWED_ROLES` enthalten ist.
-8. Standardrollen: `moderator,mod,broadcaster`.
-9. Ohne Override wird Daily-Usage pro User/pro Stream-Tag geprueft.
-10. Wenn User bereits genutzt hat:
+8. Ohne Override wird Daily-Usage pro User/pro Stream-Tag geprueft.
+9. Wenn User bereits genutzt hat:
    - kein Sound-System-Request
    - keine neue Daily-Usage
-   - Duplicate-Nachricht ueber Heimleitungs-Bot
-11. Wenn User noch nicht genutzt hat oder Override erlaubt ist:
-   - VIP-MP3 wird gesucht
-   - aktueller Fallback-Pfad: `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`
-   - Dateiregel: `Anzeigename.mp3`
-12. Wenn MP3 fehlt:
+   - Duplicate-Nachricht ueber Heimaufsicht-Bot
+10. Wenn User noch nicht genutzt hat oder Override erlaubt ist:
+   - VIP-/Mod-MP3 wird ueber DB-Settings gesucht
+   - aktueller Soundpfad: `D:/Streaming/stramAssets/htdocs/assets/sounds/vip`
+   - aktuelle Dateiendung: `.mp3`
+11. Wenn MP3 fehlt:
    - keine Daily-Usage
-   - `sound_missing`-Nachricht ueber Heimleitungs-Bot
-13. Wenn MP3 existiert:
+   - `sound_missing`-Nachricht ueber Heimaufsicht-Bot
+12. Wenn MP3 existiert:
    - POST an Sound-System `/api/sound/play`
-   - Payload nutzt `file: "vip/<Anzeigename>.mp3"`
-   - Kategorie `vip` oder `crew` je nach Soundtyp
-   - Output `device`
-   - Visualdaten werden unter `sound_system.current.visual` gesetzt
-14. Nur wenn Sound-System akzeptiert:
+   - Sound-System bekommt Visualdaten fuer Overlay V2
+13. Nur wenn Sound-System akzeptiert:
    - normale Ausloesung schreibt Daily-Usage
-   - erlaubter Override ueberspringt Daily-Usage-Pruefung bewusst
-   - Accepted-/Override-Nachricht ueber Heimleitungs-Bot
-15. OBS Overlay V2 liest direkt Sound-System-WebSocket/Polling und zeigt `visual.module = vip_sound_overlay` an.
+   - erlaubter Override ueberspringt Daily-Usage bewusst
+   - Accepted-/Override-Nachricht ueber Heimaufsicht-Bot
+14. OBS Overlay V2 liest direkt Sound-System-WebSocket/Polling und zeigt `visual.module = vip_sound_overlay` an.
 
-Streamer.bot Argumente:
+## Dashboard-Stand
 
-- `userName` passt fuer Actor-Login.
-- `user` passt fuer Actor-DisplayName.
-- `input0` passt fuer Target-Login ohne Mention-Zeichen.
-- `rawInput` enthaelt die rohe Eingabe.
-- `isModerator` wird geliefert und bereits von `actorCanOverride()` erkannt.
+Aktive Dashboard-Module:
 
-Chat-Ausgabe:
+- Stream-Desk
+- Control-Uebersicht
+- Alerts V2
+- OBS Details
+- Sound-System
+- Hug-System
+- VIP-System
+- Admin Configs
 
-- laeuft ueber backend/modules/helpers/helper_chat_output.js
-- Streamer.bot soll nicht mehr posten
-- Response: `send=false`, `streamerbot_send="0"`, `chatMessage=""`
+VIP-Dashboard kann aktuell:
 
-STEP023 Live-Test bestaetigt:
+- Status/Uebersicht anzeigen
+- Settings anzeigen und speichern
+- Texte aus DB anzeigen, filtern, anlegen, bearbeiten und aktivieren/deaktivieren
+- Rollen-Fallbacks anzeigen, anlegen und entfernen
+- Daily-Usage anzeigen
+- Events/Stats anzeigen
+- Admin-Testausloesung vorbereiten
 
-- `!vip @araglor` startete Sound ueber `sound_system`.
-- `sound_system.current.visual.module = vip_sound_overlay` war gesetzt.
-- OBS zeigte VIP Overlay V2 korrekt an.
-- Chat-Ausgabe kam ueber Heimaufsicht/Bot.
-- Nach Soundende war `sound_system.current = null`, Queue leer und `device.lastOk = true`.
-- `vip-sound-overlay/state` bleibt fuer Overlay V2 bewusst idle, weil V2 direkt Sound-System-Daten nutzt.
+Bewusst nicht in STEP047 enthalten:
+
+- VIP-Song-Upload
+- Backend-Umbau
+- generischer DB-Text-Helper
+- Migration anderer Module
+- Dashboard-Rollen/Rechte/Audit-Logging
+
+## Modulstandard ab STEP047
+
+Fuer alle kuenftigen Dashboard-Module gilt als Zielstandard:
+
+1. Dashboardfaehige Settings liegen in DB.
+2. Dashboardfaehige Texte liegen in DB.
+3. JSON-Dateien bleiben technische Config, Import oder Fallback.
+4. Dashboard greift nie direkt auf SQLite oder Dateien zu.
+5. Dashboard nutzt nur Backend-APIs.
+6. Vorhandene Helper werden genutzt, keine Parallelstrukturen.
+7. Harte Texte im Code sind nur Seed-Defaults, nicht dauerhafte Quelle.
+
+Aktuelle Helper-Lage:
+
+- `helper_settings.js` ist DB-Settings-Standard.
+- VIP nutzt DB-Texte modulnah.
+- Alerts haben DB-Textbereiche.
+- `helper_texts.js` ist aktuell noch JSON-basiert und muss spaeter fuer DB-Texte erweitert oder durch einen DB-Text-Helper ergaenzt werden.
 
 ## Doku-Struktur
 
@@ -176,20 +191,20 @@ Snapshots:
 
 ## Offene Punkte
 
+- Browser-/Live-Test des neuen VIP-Dashboard-Moduls nach Deploy bestaetigen.
+- VIP-Song-Upload separat planen und nach Helper-/Upload-Standard bauen.
+- Alle Module auf DB-Settings/DB-Texte/Helper-Standard auditieren.
+- Zentralen DB-Text-Helper planen.
 - Debug-Parameter `?debug=1` in OBS wieder entfernen, wenn nicht mehr gebraucht.
 - Alte VIP-Action in Streamer.bot deaktiviert lassen oder spaeter nach Backup sauber entfernen.
-- Legacy-Routen `/api/vip-sound/enqueue` und `/api/vip-sound-overlay/enqueue` vorerst fuer Kompatibilitaet behalten, aber nicht mehr fuer normalen `!vip` nutzen.
-- Optional echten Mod-Account testen, ob auch dort `isModerator` geliefert wird.
-- VIP-Soundpfad ueber DB/Dashboard konfigurierbar machen.
-- VIP-Nachrichten spaeter im Dashboard bearbeitbar machen.
+- Legacy-Routen `/api/vip-sound/enqueue` und `/api/vip-sound-overlay/enqueue` vorerst fuer Kompatibilitaet behalten.
 - Fireworks spaeter neu aufbauen.
-- Dashboard-Modulstandard definieren.
 - Hug-Textbearbeitung spaeter sauber neu planen.
 - Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
 
 ## Naechster empfohlener Schritt
 
-1. Debug-Parameter `?debug=1` in OBS entfernen, falls noch aktiv.
-2. Alte VIP-Action in Streamer.bot deaktiviert lassen oder spaeter nach Backup sauber entfernen.
-3. Danach VIP-Soundpfad/Dateiregel konfigurierbar machen oder VIP-Dashboard planen.
+1. STEP047 per Live-Deploy im Browser pruefen.
+2. Danach Modul-Audit fuer Texte/Settings/Helper vorbereiten.
+3. Danach VIP-Song-Upload als separaten STEP planen.
