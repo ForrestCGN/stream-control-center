@@ -16,18 +16,22 @@ Vor jedem neuen STEP:
 
 ## Empfohlene naechste Arbeitspakete
 
-### 1. VIP-Daily-Usage API testen
+### 1. VIP-Daily-Usage Retention spaeter konfigurierbar machen
 
 Ziel:
 
-- Neue Daily-Usage-Routen nach Deploy pruefen.
-- `GET /api/vip-sound/daily-usage/today`
-- `POST /api/vip-sound/daily-usage/reset-today`
-- Danach `!vip @araglor` erneut testen.
+- Alte Daily-Usage-Eintraege spaeter automatisch bereinigen koennen.
+- Einstellung nicht hart codieren, sondern ueber Config/Dashboard steuerbar machen.
+
+Geplante Optionen:
+
+- `dailyUsageRetentionDays`
+- `cleanupDailyUsageOnStartup`
 
 Wichtig:
 
-- Keine temporären DB-Loeschscripts mehr fuer normale Tests nutzen.
+- Aktuell keine automatische Loeschlogik erzwingen.
+- Dashboard soll diese Einstellung spaeter bearbeiten koennen.
 - SQLite weiterhin niemals ersetzen.
 
 ---

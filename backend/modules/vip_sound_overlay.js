@@ -137,7 +137,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.5",
+    version: "1.7.6",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -452,61 +452,88 @@ module.exports.init = function init(ctx) {
     return raw;
   }
 
-  function listDailyUsageRows(date, limitValue) {
-    const usageDate = normalizeUsageDate(date);
+  function optionalUsageDate(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      throw new Error("Invalid usage_date. Expected YYYY-MM-DD.");
+    }
+    return raw;
+  }
+
+  function buildDailyUsageFilters(raw = {}) {
+    const usageDate = optionalUsageDate(raw.date || raw.usageDate || raw.usage_date);
+    const userLogin = normalizeLogin(raw.login || raw.userLogin || raw.user_login || raw.targetLogin || raw.target);
+    const soundTypeRaw = String(raw.soundType || raw.sound_type || raw.type || "").trim();
+    const soundType = soundTypeRaw ? normalizeSoundType(soundTypeRaw) : "";
+
+    const where = [];
+    const params = {};
+
+    if (usageDate) {
+      where.push("usage_date = :usageDate");
+      params.usageDate = usageDate;
+    }
+
+    if (userLogin) {
+      where.push("user_login = :userLogin");
+      params.userLogin = userLogin;
+    }
+
+    if (soundType) {
+      where.push("sound_type = :soundType");
+      params.soundType = soundType;
+    }
+
+    return {
+      usageDate,
+      userLogin,
+      soundType,
+      whereSql: where.length ? `WHERE ${where.join(" AND ")}` : "",
+      params
+    };
+  }
+
+  function listDailyUsageRows(raw = {}, limitValue) {
+    const filters = buildDailyUsageFilters(raw);
     const limit = Math.max(1, Math.min(500, intOrDefault(limitValue, 200)));
 
     const rows = database.all(`
       SELECT usage_date, user_login, user_display_name, sound_type, source, triggered_at
       FROM vip_sound_daily_usage
-      WHERE usage_date = :usageDate
-      ORDER BY triggered_at ASC
+      ${filters.whereSql}
+      ORDER BY usage_date DESC, triggered_at DESC
       LIMIT :limit
     `, {
-      usageDate,
+      ...filters.params,
       limit
     });
 
     return {
-      usageDate,
+      usageDate: filters.usageDate,
+      userLogin: filters.userLogin,
+      soundType: filters.soundType,
+      filtered: !!(filters.usageDate || filters.userLogin || filters.soundType),
       limit,
       rows: Array.isArray(rows) ? rows : []
     };
   }
 
   function resetDailyUsageRows(raw = {}) {
-    const usageDate = normalizeUsageDate(raw.date || raw.usageDate || raw.usage_date);
-    const userLogin = normalizeLogin(raw.login || raw.userLogin || raw.user_login || raw.targetLogin || raw.target);
-    const soundTypeRaw = String(raw.soundType || raw.sound_type || raw.type || "").trim();
-    const soundType = soundTypeRaw ? normalizeSoundType(soundTypeRaw) : "";
+    const filters = buildDailyUsageFilters(raw);
 
-    let result;
-    if (userLogin && soundType) {
-      result = database.run(`
-        DELETE FROM vip_sound_daily_usage
-        WHERE usage_date = :usageDate
-          AND user_login = :userLogin
-          AND sound_type = :soundType
-      `, { usageDate, userLogin, soundType });
-    } else if (userLogin) {
-      result = database.run(`
-        DELETE FROM vip_sound_daily_usage
-        WHERE usage_date = :usageDate
-          AND user_login = :userLogin
-      `, { usageDate, userLogin });
-    } else {
-      result = database.run(`
-        DELETE FROM vip_sound_daily_usage
-        WHERE usage_date = :usageDate
-      `, { usageDate });
-    }
+    const result = database.run(`
+      DELETE FROM vip_sound_daily_usage
+      ${filters.whereSql}
+    `, filters.params);
 
     refreshDbStats();
 
     return {
-      usageDate,
-      userLogin,
-      soundType,
+      usageDate: filters.usageDate,
+      userLogin: filters.userLogin,
+      soundType: filters.soundType,
+      filtered: !!(filters.usageDate || filters.userLogin || filters.soundType),
       deleted: result && typeof result.changes === "number" ? result.changes : 0
     };
   }
@@ -1353,7 +1380,7 @@ module.exports.init = function init(ctx) {
       try {
         markClientSeen();
         ensureVipSchema();
-        const data = listDailyUsageRows(bodyOrQuery(req, "date") || bodyOrQuery(req, "usageDate"), bodyOrQuery(req, "limit"));
+        const data = listDailyUsageRows(requestData(req), bodyOrQuery(req, "limit"));
         return res.json({
           ok: true,
           module: MODULE_NAME,
@@ -1370,7 +1397,7 @@ module.exports.init = function init(ctx) {
       try {
         markClientSeen();
         ensureVipSchema();
-        const data = listDailyUsageRows(getBerlinDate(), bodyOrQuery(req, "limit"));
+        const data = listDailyUsageRows({ ...requestData(req), date: getBerlinDate() }, bodyOrQuery(req, "limit"));
         return res.json({
           ok: true,
           module: MODULE_NAME,

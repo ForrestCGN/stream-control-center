@@ -66,6 +66,7 @@ STEP-Dokumentation:
 - project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
 - project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 - project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
+- project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
 - project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
 - project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 
@@ -158,6 +159,14 @@ VIP relevante Routen:
 - GET /api/vip-sound/daily-usage/today
 - POST /api/vip-sound/daily-usage/reset
 - POST /api/vip-sound/daily-usage/reset-today
+
+VIP Daily-Usage API Semantik:
+
+- `/daily-usage` zeigt ohne Filter alle Eintraege.
+- `/daily-usage/today` zeigt nur heute.
+- `/daily-usage/reset` loescht ohne Filter alle Eintraege.
+- `/daily-usage/reset-today` loescht nur heute.
+- Filter: `date`/`usageDate`, `login`, `soundType`, `limit`.
 
 VIP Override relevant:
 

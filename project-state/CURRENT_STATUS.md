@@ -38,7 +38,7 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Der aktuelle Stand nach STEP026 ist fuer GitHub/dev vorbereitet.
+Der aktuelle Stand nach STEP029 ist fuer GitHub/dev vorbereitet.
 
 Zuletzt abgeschlossen:
 
@@ -60,6 +60,7 @@ Zuletzt abgeschlossen:
 - STEP026 VIP Target-Mod-Erkennung ueber Twitch umgesetzt
 - STEP027 VIP-Chat-Wording von Heimleitung auf Heimaufsicht angepasst
 - STEP028 VIP-Daily-Usage API fuer Tests/Dashboard vorbereitet
+- STEP029 VIP-Daily-Usage API-Semantik korrigiert
 - STEP026 VIP Target-Mod-Erkennung ueber Twitch-Helper umgesetzt
 - STEP027 VIP-Default-Chattexte von Heimleitung auf Heimaufsicht umgestellt
 - STEP024 VIP-Overlay-Texte aus SQLite bestaetigt
@@ -90,11 +91,13 @@ Dokumentiert in:
 - project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
 - project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
 - project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
+- project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
+- project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
 
 Aktueller Modulstand:
 
 - backend/modules/vip_sound_overlay.js
-- Version vorbereitet: 1.7.4
+- Version: 1.7.6
 - htdocs/overlays/vip_sound_overlay_v2.html ist die aktive OBS-VIP-Browserquelle.
 
 Kernentscheidungen / aktueller Ablauf:
@@ -133,6 +136,14 @@ STEP028 Ergebnis:
 - VIP-Daily-Usage kann ueber API angezeigt und fuer Tests geloescht werden.
 - Neue Routen: `/api/vip-sound/daily-usage/today`, `/api/vip-sound/daily-usage/reset-today`, `/api/vip-sound/daily-usage/reset`.
 - Temporäre Node-Scripte zum Tages-Reset sind nicht mehr noetig.
+
+STEP029 Ergebnis:
+
+- `/api/vip-sound/daily-usage` zeigt ohne Filter alle Daily-Usage-Eintraege.
+- `/api/vip-sound/daily-usage/today` zeigt nur den aktuellen Tag.
+- `/api/vip-sound/daily-usage/reset` loescht ohne Filter alle Eintraege und optional nach Datum/Login/SoundType.
+- `/api/vip-sound/daily-usage/reset-today` loescht nur den aktuellen Tag, optional nach Login/SoundType.
+- Automatische Retention bleibt bewusst offen und soll spaeter ueber Config/Dashboard einstellbar werden.
 
 ## Doku-Struktur
 
