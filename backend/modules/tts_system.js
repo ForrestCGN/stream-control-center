@@ -294,7 +294,7 @@ function init(ctx) {
       { key: 'permissions', value: DEFAULT_CONFIG.permissions, valueType: 'json', description: 'TTS Command-Rechte' },
       { key: 'system', value: { enabled: true, requireKey: false, key: '', respectGlobalEnabled: true, voice: DEFAULT_CONFIG.defaultVoice, user: 'heimaufsichtcgn', displayName: 'HeimaufsichtCGN', maxLength: 500, priority: 95 }, valueType: 'json', description: 'System-/Alert-TTS Defaults' },
       { key: 'alertTts', value: { enabled: true, voice: DEFAULT_CONFIG.defaultVoice, maxChars: 500, delayAfterSoundMs: 0, outroBufferMs: 900 }, valueType: 'json', description: 'Defaults fuer Alert-TTS' },
-      { key: 'chatTts', value: { playbackMode: 'sound_system', overlayVisualEnabled: true, soundSystemEnabled: true, soundSystemPlayUrl: 'http://127.0.0.1:8080/api/sound/play', soundSystemStatusUrl: 'http://127.0.0.1:8080/api/sound/status', soundSystemCategory: 'tts', soundSystemSource: 'tts_system', soundSystemOutputTarget: 'device', soundSystemVolume: 100, soundSystemPriority: 50, doneMode: 'sound_system_status', doneExtraBufferMs: 500, statusPollMs: 350, statusMaxWaitMs: 120000, fallbackToOverlay: true }, valueType: 'json', description: 'Chat-TTS Ausgabe ueber Sound-System oder Overlay' }
+      { key: 'chatTts', value: { playbackMode: 'sound_system', overlayVisualEnabled: true, soundSystemEnabled: true, soundSystemPlayUrl: 'http://127.0.0.1:8080/api/sound/play', soundSystemStatusUrl: 'http://127.0.0.1:8080/api/sound/status', soundSystemCategory: 'tts', soundSystemSource: 'tts_system', soundSystemOutputTarget: 'device', soundSystemVolume: 100, soundSystemPriority: 50, doneMode: 'sound_system_status', doneExtraBufferMs: 500, statusPollMs: 350, statusMaxWaitMs: 120000, fallbackToOverlay: true, blockDuringAlerts: true, alertStatusUrl: 'http://127.0.0.1:8080/api/alerts/queue', alertPollMs: 350, alertMaxWaitMs: 120000, overlayDelayAfterAlertMs: 1500 }, valueType: 'json', description: 'Chat-TTS Ausgabe ueber Sound-System oder Overlay' }
     ];
   }
 
@@ -656,8 +656,78 @@ function init(ctx) {
       doneExtraBufferMs: Math.max(0, Number(raw.doneExtraBufferMs ?? 500) || 0),
       statusPollMs: Math.max(150, Number(raw.statusPollMs ?? 350) || 350),
       statusMaxWaitMs: Math.max(5000, Number(raw.statusMaxWaitMs ?? 120000) || 120000),
-      fallbackToOverlay: raw.fallbackToOverlay !== false
+      fallbackToOverlay: raw.fallbackToOverlay !== false,
+      blockDuringAlerts: raw.blockDuringAlerts !== false,
+      alertStatusUrl: String(raw.alertStatusUrl || 'http://127.0.0.1:8080/api/alerts/queue'),
+      alertPollMs: Math.max(150, Number(raw.alertPollMs ?? 350) || 350),
+      alertMaxWaitMs: Math.max(1000, Number(raw.alertMaxWaitMs ?? 120000) || 120000),
+      overlayDelayAfterAlertMs: Math.max(0, Number(raw.overlayDelayAfterAlertMs ?? 1500) || 0)
     };
+  }
+
+
+  function isNormalChatTtsItem(item) {
+    if (!item) return false;
+    const source = String(item.source || 'chat').toLowerCase();
+    const mode = String(item.mode || 'chat').toLowerCase();
+    return source === 'chat' && mode === 'chat';
+  }
+
+  function sleepMs(ms) {
+    return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms || 0))));
+  }
+
+  function alertQueueIsBusy(status) {
+    if (!status || status.ok === false) return false;
+    return Boolean(status.current) || Number(status.queueLength || 0) > 0;
+  }
+
+  async function waitForChatTtsPlaybackSlot(item, chatCfg) {
+    if (!chatCfg || chatCfg.blockDuringAlerts === false) return { waited: false, reason: 'disabled' };
+    if (!isNormalChatTtsItem(item)) return { waited: false, reason: 'not_chat_tts' };
+
+    const statusUrl = String(chatCfg.alertStatusUrl || '').trim();
+    if (!statusUrl) return { waited: false, reason: 'missing_alert_status_url' };
+
+    const pollMs = Math.max(150, Number(chatCfg.alertPollMs || 350));
+    const maxWaitMs = Math.max(1000, Number(chatCfg.alertMaxWaitMs || 120000));
+    const startedAt = Date.now();
+    let waited = false;
+    let lastBusy = false;
+    let lastError = '';
+
+    while ((Date.now() - startedAt) < maxWaitMs) {
+      try {
+        const status = await getJson(statusUrl, 3500);
+        const busy = alertQueueIsBusy(status);
+        if (!busy) {
+          if (waited || lastBusy) {
+            const delayMs = Math.max(0, Number(chatCfg.overlayDelayAfterAlertMs || 0));
+            if (delayMs > 0) await sleepMs(delayMs);
+          }
+          return { waited, reason: waited ? 'alerts_finished' : 'alerts_idle' };
+        }
+        waited = true;
+        lastBusy = true;
+        item.alertBlockWait = {
+          startedAt: item.alertBlockWait?.startedAt || core.nowIso(),
+          lastSeenAt: core.nowIso(),
+          statusCurrent: status.current ? (status.current.eventUid || status.current.id || true) : null,
+          queueLength: Number(status.queueLength || 0)
+        };
+        insertTtsEvent(item, 'waiting_for_alerts', { meta: item.alertBlockWait });
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        item.alertBlockWaitError = lastError;
+        break;
+      }
+      await sleepMs(pollMs);
+    }
+
+    if (waited) {
+      insertTtsEvent(item, 'alert_wait_timeout', { error: lastError, meta: { maxWaitMs, waited } });
+    }
+    return { waited, reason: waited ? 'timeout' : 'status_error', error: lastError };
   }
 
   function postJson(url, payload, timeoutMs = 8000) {
@@ -1071,13 +1141,17 @@ function init(ctx) {
       item.durationMs = duration.durationMs;
       item.durationOk = duration.durationOk;
       item.durationSource = duration.source;
+
+      const chatCfg = getChatTtsConfig();
+      const alertWaitResult = await waitForChatTtsPlaybackSlot(item, chatCfg);
+      if (alertWaitResult && alertWaitResult.waited) item.alertWaitResult = alertWaitResult;
+
       item.startedAtMs = Date.now();
       item.displayStartedAtMs = item.startedAtMs;
       item.displayStartedAt = core.nowIso();
-      insertTtsEvent(item, "playing", { startedAt: item.displayStartedAt, durationMs: item.durationMs });
+      insertTtsEvent(item, "playing", { startedAt: item.displayStartedAt, durationMs: item.durationMs, meta: { alertWaitResult } });
       recordUsageDaily(item.source || "chat", item.mode || "chat", item.engineUsed || "", item.chars, item.durationMs, true);
 
-      const chatCfg = getChatTtsConfig();
       const playbackMode = normalizePlaybackMode(chatCfg.playbackMode, 'sound_system');
       item.playbackMode = playbackMode;
 

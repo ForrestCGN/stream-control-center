@@ -25,7 +25,7 @@ const media = require('./helpers/helper_media');
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 5;
-const MODULE_STEP = 170;
+const MODULE_STEP = 171;
 
 const DEFAULT_CONFIG = {
   enabled: true,
