@@ -78,6 +78,10 @@ Zuletzt abgeschlossen:
 - STEP024 VIP-Overlay-Texte aus SQLite bestaetigt
 - STEP025 VIP-Zielrollen-Fallback per config/vip_sound_roles.json vorbereitet
 - STEP026 VIP-Twitch-Rollenhelper fuer echte Mod-Erkennung vorbereitet
+- STEP033 VIP-Event-/Statistik-Tabelle vorbereitet
+- STEP034 VIP-Rollen-Fallbacks in SQLite verschoben
+- STEP034.1 VIP-Rollen-Config-Pfad korrigiert
+- STEP035 VIP-Text-API vorbereitet
 
 ## Repo/Live-Abgleich
 
@@ -103,6 +107,15 @@ Dokumentiert in:
 - project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
 - project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
 - project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
+- project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
+- project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
+- project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
+- project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
+- project-state/STEP032_VIP_SOUND_FILE_SETTINGS_ACTIVE_2026-05-04.md
+- project-state/STEP033_VIP_EVENTS_STATS_BASE_2026-05-04.md
+- project-state/STEP034_VIP_ROLE_OVERRIDES_DB_2026-05-04.md
+- project-state/STEP034_1_VIP_ROLE_CONFIG_PATH_FIX_2026-05-04.md
+- project-state/STEP035_VIP_TEXT_API_2026-05-04.md
 - project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
 - project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
 - project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
@@ -288,3 +301,11 @@ STEP031 Ergebnis:
 - `config/vip_sound_roles.json` wird jetzt ueber `helper_config.js` aufgeloest.
 - Der falsche Live-Pfad `backend\config\vip_sound_roles.json` wurde behoben.
 - DB-Rollen bleiben primaer; die JSON-Datei bleibt Fallback-/Importquelle.
+
+
+## STEP035 vorbereitet - VIP Text API
+
+- VIP-/Mod-/Overlay-Texte werden weiterhin in `vip_sound_message_templates` gespeichert.
+- Neue API-Routen `/api/vip-sound/texts*` lesen/bearbeiten diese Texte.
+- Dashboard soll spaeter diese API nutzen, nicht direkt SQLite.
+- Interne Style-ID `heimleitung` bleibt bestehen; sichtbarer Begriff bleibt `Heimaufsicht`.

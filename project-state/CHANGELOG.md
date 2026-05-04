@@ -2,6 +2,24 @@
 
 ## 2026-05-04
 
+### STEP035 - VIP Text API vorbereitet
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.8.2` aktualisiert.
+- Neue API fuer `vip_sound_message_templates` ergaenzt:
+  - `GET /api/vip-sound/texts`
+  - `GET /api/vip-sound/texts/event-keys`
+  - `POST /api/vip-sound/texts/upsert`
+  - `POST /api/vip-sound/texts/toggle`
+  - `POST /api/vip-sound/texts/delete`
+- Gleiche Routen auch unter `/api/vip-sound-overlay/*` verfuegbar.
+- Ziel: Dashboard soll VIP-/Mod-/Overlay-Texte spaeter ueber API bearbeiten, nicht direkt SQLite.
+- Default-Text fuer normalen `accepted_mod` entschaerft, damit normale Mod-Sounds nicht wie Sonderfreigaben klingen.
+- Keine Sound-System-, Daily-Usage-, Twitch-, Rollen- oder Override-Logik geaendert.
+- Neue STEP-Doku:
+  - `project-state/STEP035_VIP_TEXT_API_2026-05-04.md`
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
+
 ### STEP034.1 - VIP Role Config Pfad-Fix
 
 - `backend/modules/vip_sound_overlay.js` auf Version `1.8.1` aktualisiert.

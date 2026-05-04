@@ -73,6 +73,7 @@ STEP-Dokumentation:
 - project-state/STEP033_VIP_EVENTS_STATS_BASE_2026-05-04.md
 - project-state/STEP034_VIP_ROLE_OVERRIDES_DB_2026-05-04.md
 - project-state/STEP034_1_VIP_ROLE_CONFIG_PATH_FIX_2026-05-04.md
+- project-state/STEP035_VIP_TEXT_API_2026-05-04.md
 - project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
 - project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
 - project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
@@ -303,3 +304,11 @@ Lesereihenfolge: SQLite -> Config-Fallback ueber `helper_config.js` -> Code-Defa
 - Import-/Fallbackquelle: `config/vip_sound_roles.json`.
 - Pfadauflösung erfolgt ueber `backend/modules/helpers/helper_config.js` / `resolveConfigFile`.
 - Live-Zielpfad: `D:\Streaming\stramAssets\config\vip_sound_roles.json`.
+
+VIP Text-API relevante Routen:
+
+- GET /api/vip-sound/texts
+- GET /api/vip-sound/texts/event-keys
+- POST /api/vip-sound/texts/upsert
+- POST /api/vip-sound/texts/toggle
+- POST /api/vip-sound/texts/delete

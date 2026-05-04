@@ -94,7 +94,7 @@ module.exports.init = function init(ctx) {
     },
     {
       event_key: "accepted_mod",
-      message_text: "@{displayName}, Sonderfreigabe fuers Mod-Buero wurde erteilt. Sound ist eingereiht.",
+      message_text: "@{displayName}, Mod-Sound ist angenommen. Danke fuer deinen Einsatz im Mod-Team.",
       weight: 1
     },
     {
@@ -185,7 +185,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.1",
+    version: "1.8.2",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -668,6 +668,219 @@ module.exports.init = function init(ctx) {
       roleType: roleRaw ? params.roleType : "",
       deleted: result && typeof result.changes === "number" ? result.changes : 0
     };
+  }
+
+  function normalizeMessageStyle(value) {
+    const style = String(value || "").trim().toLowerCase();
+    if (style === "overlay") return VIP_OVERLAY_STYLE;
+    if (style === "chat" || style === "bot" || style === "heimaufsicht") return VIP_MESSAGE_STYLE;
+    if (style === VIP_MESSAGE_STYLE) return VIP_MESSAGE_STYLE;
+    return VIP_MESSAGE_STYLE;
+  }
+
+  function normalizeMessageEventKey(value) {
+    const key = String(value || "").trim().toLowerCase();
+    if (!key) throw new Error("Missing eventKey");
+    if (!/^[a-z0-9_:-]+$/.test(key)) throw new Error("Invalid eventKey");
+    return key;
+  }
+
+  function normalizeMessageWeight(value) {
+    const n = Number(value ?? 1);
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(1, Math.min(1000, Math.floor(n)));
+  }
+
+  function listVipMessageTemplates(raw = {}, limitValue) {
+    const eventKeyRaw = String(raw.eventKey || raw.event_key || "").trim();
+    const styleRaw = String(raw.style || "").trim();
+    const enabledRaw = String(raw.enabled ?? "").trim().toLowerCase();
+    const search = String(raw.search || raw.q || "").trim();
+    const limit = Math.max(1, Math.min(1000, intOrDefault(limitValue || raw.limit, 300)));
+
+    const where = [];
+    const params = { limit };
+
+    if (eventKeyRaw) {
+      where.push("event_key = :eventKey");
+      params.eventKey = normalizeMessageEventKey(eventKeyRaw);
+    }
+
+    if (styleRaw) {
+      where.push("style = :style");
+      params.style = normalizeMessageStyle(styleRaw);
+    }
+
+    if (enabledRaw) {
+      where.push("enabled = :enabled");
+      params.enabled = boolish(enabledRaw) ? 1 : 0;
+    }
+
+    if (search) {
+      where.push("message_text LIKE :search");
+      params.search = `%${search}%`;
+    }
+
+    const sql = `
+      SELECT id, event_key, style, message_text, enabled, weight, created_at, updated_at
+      FROM vip_sound_message_templates
+      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+      ORDER BY style ASC, event_key ASC, enabled DESC, weight DESC, id ASC
+      LIMIT :limit
+    `;
+
+    const rows = database.all(sql, params).map(row => ({
+      id: Number(row.id || 0),
+      eventKey: row.event_key || "",
+      style: row.style || "",
+      messageText: row.message_text || "",
+      enabled: Number(row.enabled || 0) === 1,
+      weight: Number(row.weight || 1),
+      createdAt: row.created_at || "",
+      updatedAt: row.updated_at || ""
+    }));
+
+    return {
+      table: VIP_MESSAGE_TABLE,
+      filters: {
+        eventKey: eventKeyRaw ? normalizeMessageEventKey(eventKeyRaw) : "",
+        style: styleRaw ? normalizeMessageStyle(styleRaw) : "",
+        enabled: enabledRaw,
+        search
+      },
+      limit,
+      rows
+    };
+  }
+
+  function listVipMessageEventKeys() {
+    const rows = database.all(`
+      SELECT event_key, style,
+             COUNT(*) AS total,
+             SUM(CASE WHEN enabled = 1 THEN 1 ELSE 0 END) AS enabled_count
+      FROM vip_sound_message_templates
+      GROUP BY event_key, style
+      ORDER BY style ASC, event_key ASC
+    `).map(row => ({
+      eventKey: row.event_key || "",
+      style: row.style || "",
+      total: Number(row.total || 0),
+      enabled: Number(row.enabled_count || 0)
+    }));
+
+    return {
+      table: VIP_MESSAGE_TABLE,
+      rows,
+      count: rows.length
+    };
+  }
+
+  function upsertVipMessageTemplate(raw = {}) {
+    const id = Number(raw.id || 0);
+    const eventKey = normalizeMessageEventKey(raw.eventKey || raw.event_key);
+    const style = normalizeMessageStyle(raw.style || VIP_MESSAGE_STYLE);
+    const messageText = String(raw.messageText || raw.message_text || raw.text || "").trim();
+    if (!messageText) throw new Error("Missing messageText");
+
+    const enabled = raw.enabled === undefined ? true : boolish(raw.enabled);
+    const weight = normalizeMessageWeight(raw.weight);
+    const now = nowIso();
+
+    if (id > 0) {
+      const result = database.run(`
+        UPDATE vip_sound_message_templates
+        SET event_key = :eventKey,
+            style = :style,
+            message_text = :messageText,
+            enabled = :enabled,
+            weight = :weight,
+            updated_at = :updatedAt
+        WHERE id = :id
+      `, {
+        id,
+        eventKey,
+        style,
+        messageText,
+        enabled: enabled ? 1 : 0,
+        weight,
+        updatedAt: now
+      });
+
+      refreshDbStats();
+      return { id, eventKey, style, messageText, enabled, weight, updated: result.changes || 0 };
+    }
+
+    database.run(`
+      INSERT INTO vip_sound_message_templates
+        (event_key, style, message_text, enabled, weight, created_at, updated_at)
+      VALUES
+        (:eventKey, :style, :messageText, :enabled, :weight, :createdAt, :updatedAt)
+      ON CONFLICT(event_key, style, message_text) DO UPDATE SET
+        enabled = excluded.enabled,
+        weight = excluded.weight,
+        updated_at = excluded.updated_at
+    `, {
+      eventKey,
+      style,
+      messageText,
+      enabled: enabled ? 1 : 0,
+      weight,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    const row = database.get(`
+      SELECT id
+      FROM vip_sound_message_templates
+      WHERE event_key = :eventKey
+        AND style = :style
+        AND message_text = :messageText
+      LIMIT 1
+    `, { eventKey, style, messageText });
+
+    refreshDbStats();
+    return {
+      id: row && row.id ? Number(row.id) : 0,
+      eventKey,
+      style,
+      messageText,
+      enabled,
+      weight,
+      updated: 1
+    };
+  }
+
+  function toggleVipMessageTemplate(raw = {}) {
+    const id = Number(raw.id || 0);
+    if (id <= 0) throw new Error("Missing id");
+
+    const enabled = boolish(raw.enabled);
+    const result = database.run(`
+      UPDATE vip_sound_message_templates
+      SET enabled = :enabled,
+          updated_at = :updatedAt
+      WHERE id = :id
+    `, {
+      id,
+      enabled: enabled ? 1 : 0,
+      updatedAt: nowIso()
+    });
+
+    refreshDbStats();
+    return { id, enabled, changed: result.changes || 0 };
+  }
+
+  function deleteVipMessageTemplate(raw = {}) {
+    const id = Number(raw.id || 0);
+    if (id <= 0) throw new Error("Missing id");
+
+    const result = database.run(`
+      DELETE FROM vip_sound_message_templates
+      WHERE id = :id
+    `, { id });
+
+    refreshDbStats();
+    return { id, deleted: result.changes || 0 };
   }
 
   async function detectSoundTypeForTarget(requestedSoundType, targetUser) {
@@ -2278,6 +2491,97 @@ module.exports.init = function init(ctx) {
           count: data.settings.length,
           settings: data.settings,
           config: data.config,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/texts`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        refreshDbStats();
+        const data = listVipMessageTemplates(requestData(req), bodyOrQuery(req, "limit"));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          messageTable: VIP_MESSAGE_TABLE,
+          ...data,
+          count: data.rows.length,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/texts/event-keys`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        refreshDbStats();
+        const data = listVipMessageEventKeys();
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          messageTable: VIP_MESSAGE_TABLE,
+          ...data,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/texts/upsert`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const textTemplate = upsertVipMessageTemplate(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          textTemplate,
+          texts: listVipMessageTemplates({ eventKey: textTemplate.eventKey, style: textTemplate.style }, 300),
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/texts/toggle`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = toggleVipMessageTemplate(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/texts/delete`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = deleteVipMessageTemplate(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
           db: { ...state.db },
           updatedAt: nowIso()
         });

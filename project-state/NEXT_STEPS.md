@@ -55,6 +55,25 @@ Ziel:
 
 ## Empfohlene naechste Arbeitspakete
 
+
+### VIP-Text-API testen
+
+Ziel:
+
+- STEP035 nach Deploy testen.
+- `GET /api/vip-sound/texts`
+- `GET /api/vip-sound/texts/event-keys`
+- `GET /api/vip-sound/texts?eventKey=accepted_mod&style=heimleitung`
+- Einen Testtext per `POST /api/vip-sound/texts/upsert` anlegen/aktualisieren.
+
+Wichtig:
+
+- Dashboard soll spaeter diese API nutzen.
+- Interne Style-ID `heimleitung` nicht blind umbenennen.
+
+---
+
+
 ### Naechster VIP-Schritt: VIP-Text-API fuer SQLite-Texte
 
 Ziel:
