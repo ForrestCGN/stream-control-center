@@ -15,31 +15,46 @@ Vor jedem neuen STEP:
 
 ## Empfohlene naechste Arbeitspakete
 
-### 1. STEP020 - VIP Override live pruefen
+### 1. STEP021 - soundSystemRequestId sauber in VIP-Response uebernehmen
 
 Ziel:
 
-- GitHub/dev nach Live deployen.
-- Backend neu starten.
-- VIP-Override mit echten Streamer.bot-Parametern pruefen.
-- Sicherstellen, dass Rollen/Badges aus Streamer.bot korrekt in `backend/modules/vip_sound_overlay.js` erkannt werden.
+- `soundSystemRequestId` aus `/api/sound/play` Response korrekt in der VIP-Response ausgeben.
+- Wenn Sound-System die ID nicht direkt liefert, Response-Struktur zuerst pruefen.
+- Nur falls noetig Sound-System-Response minimal erweitern.
 
-Tests:
+Vorher pruefen:
 
-- Normaler VIP-Sound fuer User ohne Tagesnutzung muss akzeptiert werden.
-- Duplicate ohne Override muss blocken.
-- Moderator/Broadcaster mit Zieluser muss Override akzeptieren.
-- Normaler User mit Zieluser muss Override ablehnen.
+- backend/modules/vip_sound_overlay.js
+- backend/modules/sound_system.js
+- project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
+- project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
 
 Wichtig:
 
-- Keine Queue-/Sound-System-Logik umbauen.
-- Falls Parameter fehlen, nur Rollen-/Badge-Mapping erweitern.
+- Kleine Aenderung.
+- Keine Queue-Logik umbauen.
+- Keine Funktionalitaet entfernen.
+- Nach Aenderung `node -c` fuer betroffene JS-Dateien ausfuehren.
+- Danach normale VIP-Ausloesung und Override erneut kurz testen.
+
+---
+
+### 2. Reale Streamer.bot-Rollen-/Badge-Parameter pruefen
+
+Ziel:
+
+- Sicherstellen, dass Streamer.bot 1.0.4 bei echten Commands die Rollen-/Badge-Daten so liefert, dass `actorCanOverride()` sie erkennt.
+- Falls Streamer.bot andere Feldnamen liefert, nur das Mapping in `backend/modules/vip_sound_overlay.js` erweitern.
+
+Wichtig:
+
+- Keine Sound-/Queue-Logik umbauen.
 - Keine Funktionalitaet entfernen.
 
 ---
 
-### 2. VIP-Overlay an echten Sound-System-Start koppeln / verifizieren
+### 3. VIP-Overlay an echten Sound-System-Start koppeln / verifizieren
 
 Ziel:
 
@@ -53,6 +68,7 @@ Vorher pruefen:
 
 - project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
 - project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
+- project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
 - backend/modules/vip_sound_overlay.js
 - backend/modules/sound_system.js
 - htdocs/overlays/vip_sound_overlay.html
@@ -64,20 +80,6 @@ Wichtig:
 - Keine Funktionalitaet entfernen.
 - Sound-System bleibt Quelle fuer Prioritaet/Queue/Start.
 - VIP-Modul darf keinen eigenen neuen Soundstart erzeugen.
-
----
-
-### 3. Kleiner VIP-Folgestep: soundSystemRequestId sauber zurueckgeben
-
-Ziel:
-
-- `soundSystemRequestId` aus `/api/sound/play` Response korrekt in VIP-Response uebernehmen.
-- Wenn Sound-System die ID nicht direkt liefert, Response-Struktur pruefen und ggf. Sound-System-Response minimal erweitern.
-
-Wichtig:
-
-- Nur kleine Aenderung.
-- Keine Queue-Logik umbauen.
 
 ---
 
