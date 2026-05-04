@@ -28,9 +28,9 @@ function init(ctx) {
   const { app, broadcastWS } = ctx;
 
   const MODULE_DIR = __dirname;
-  const SCRIPTS_DIR = path.resolve(MODULE_DIR, "..");
-  const HTDOCS_DIR = path.resolve(SCRIPTS_DIR, "..");
-  const ROOT_DIR = path.resolve(HTDOCS_DIR, "..");
+  const BACKEND_DIR = path.resolve(MODULE_DIR, "..");
+  const ROOT_DIR = path.resolve(BACKEND_DIR, "..");
+  const HTDOCS_DIR = path.join(ROOT_DIR, "htdocs");
   const CONFIG_DIR = path.join(ROOT_DIR, "config");
   const GENERATED_DIR = path.join(HTDOCS_DIR, "assets", "tts", "generated");
 
