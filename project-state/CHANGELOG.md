@@ -2,6 +2,135 @@
 
 ## 2026-05-04
 
+### STEP046 - Alert-Sounds frueh in Sound-System-Queue eingereiht
+
+- `backend/modules/alert_system.js` angepasst.
+- Alert-Hauptsound wird jetzt frueher beim Alert-Enqueue an das Sound-System uebergeben.
+- Ziel: Alerts mit hoeherer Prioritaet koennen wartende Chat-TTS-Sounds ueberholen.
+- Sound-System-Prio wurde isoliert getestet:
+  - `alert` Prioritaet 80 vor `tts` Prioritaet 50.
+  - `sortByPriority=true`.
+  - `allowParallel=false`.
+  - `maxParallel=1`.
+- Realtest bestaetigt:
+  - Crew-Sound laeuft zuerst fertig.
+  - Danach Alert-Sound.
+  - Danach Chat-TTS.
+- Abschlussstatus sauber:
+  - Sound-System current/queue leer.
+  - TTS playing/current/queue leer.
+  - Alert current/queue leer.
+- Keine Funktionalitaet entfernt.
+
+### STEP045 - Chat-TTS Queue mit Sound-System synchronisiert
+
+- `backend/modules/tts_system.js` erweitert.
+- Chat-TTS laeuft weiterhin ueber Sound-System.
+- TTS-interne Freigabe wurde auf Sound-System-Status vorbereitet.
+- DB-Setting `chatTts.doneMode = sound_system_status` vorgesehen.
+- Ziel: Sound-System bleibt Audio-Wahrheit; TTS-Queue soll nicht nur auf lokale Dauer-Timer vertrauen.
+- Keine Overlay-Audio-Ausgabe fuer Chat-TTS im Sound-System-Modus.
+
+### STEP044.8 - TTS Overlay adaptive Breite
+
+- `htdocs/overlays/_overlay-tts.html` angepasst.
+- TTS-Overlay nutzt adaptive Breite:
+  - kurze Texte wirken nicht verloren.
+  - lange Texte koennen bis zur Maximalbreite wachsen.
+  - sehr lange Texte bleiben per Clamp begrenzt.
+  - lange Anzeigenamen bleiben einzeilig mit Ellipsis.
+- Avatar/Layout bleibt stabil.
+
+### STEP044.7 - TTS Overlay Border-/Avatar-Tweak
+
+- Innere Umrandung im TTS-Overlay entfernt.
+- Aeusserer Neon-Rahmen bleibt erhalten.
+- Avatar leicht vergroessert.
+- Long-Text-Verhalten blieb erhalten.
+- Spaetere Dashboard-Settings fuer Overlay-Optik vorgemerkt.
+
+### STEP044.6 - TTS Overlay Avatar, Displayname und Position korrigiert
+
+- TTS-Overlay zeigt Avatar-Kreis statt generischem Mikrofon-Orb.
+- Avatar/Displayname werden ueber Visualdaten und Userinfo-Fallback aufgeloest.
+- Anzeigename wird bevorzugt gegenueber Login angezeigt.
+- Position wurde hoeher gesetzt, damit die Card nicht am unteren Rand klebt.
+
+### STEP044.5 - TTS Overlay Layout bereinigt
+
+- `TEXT TO SPEECH`-Titel entfernt.
+- Rollen-Badge wie `BROADCASTER` entfernt.
+- Voice-/Engine-Footer im normalen Streambetrieb ausgeblendet.
+- Debug-Informationen nur noch bei Debug-Parametern vorgesehen.
+
+### STEP044.4 - TTS Overlay ueber Sound-System Visual State
+
+- Chat-TTS-Overlay wurde nach VIP-Prinzip umgebaut.
+- Sound-System ist Anzeigequelle:
+  - TTS-System erzeugt Audio.
+  - TTS-System gibt Audio an `/api/sound/play`.
+  - Sound-System spielt Audio.
+  - TTS-Overlay pollt `/api/sound/status`.
+  - Overlay zeigt nur Sound-System-current mit `visual.module = tts_overlay`.
+- Kein Audio mehr aus dem TTS-Overlay im Sound-System-Modus.
+
+### STEP044.3 - TTS Overlay-State Endpoint vorbereitet
+
+- `GET /api/tts/overlay-state` vorbereitet.
+- Backendgefuehrter TTS-Overlay-State wurde getestet, aber spaeter durch Sound-System-Visual-State als stabileren VIP-Ansatz abgeloest.
+
+### STEP044.2 - TTS Overlay Poll-Fallback vorbereitet
+
+- TTS-Overlay bekam Polling-Fallback fuer visuelle Anzeige.
+- Zwischenstand, spaeter durch Sound-System-Visual-State ersetzt.
+
+### STEP044.1 - TTS Visual vor Sound-System Playback vorbereitet
+
+- Visual-Event fuer Chat-TTS wurde frueher ausgeliefert.
+- Zwischenstand, spaeter durch Sound-System-Visual-State ersetzt.
+
+### STEP044 - Chat-TTS ueber Sound-System vorbereitet
+
+- Normales Chat-TTS kann ueber Sound-System ausgegeben werden.
+- TTS-Overlay wurde auf reine Anzeige im Sound-System-Modus vorbereitet.
+- DB-Setting `chatTts` eingefuehrt/vorgesehen:
+  - `playbackMode`
+  - `soundSystemPlayUrl`
+  - `soundSystemOutputTarget`
+  - `doneMode`
+  - `fallbackToOverlay`
+- Ziel: Chat-TTS Audio nicht mehr vom OBS-Browseroverlay abhaengig machen.
+
+### STEP043 - TTS generierte Dateien unter Sound-System-Basis abgelegt
+
+- Generierte TTS-Dateien werden unter `htdocs/assets/sounds/tts/generated/` abgelegt.
+- Dateien sind dadurch direkt ueber Sound-System-kompatible Pfade nutzbar.
+- `soundSystemFile` wird als relativer Sound-System-Pfad zurueckgegeben.
+
+### STEP042 - Alert-TTS Vorbereitung und Timing-Support
+
+- Alert-TTS fuer Ko-fi/Tipeee vorbereitet.
+- `/api/tts/prepare-alert` erstellt Audio und liefert Dauerinformationen.
+- Alert-System nutzt TTS-Dauer zur Anzeigezeitberechnung.
+- Alert bleibt bis nach TTS-Ausgabe sichtbar.
+- Alert-TTS kann nach dem Alert-Hauptsound abgespielt werden.
+
+### STEP041 - TTS / Alert / Sound-System Analyseplan
+
+- Ist-Analyse fuer TTS, Sound-System und Alerts vorbereitet.
+- Zielrichtung festgelegt:
+  - dashboardfaehige Werte in DB.
+  - `helper_settings.js` fuer DB-Settings.
+  - `helper_config.js` fuer JSON/Fallbacks/Imports.
+  - ENV/Secrets nur fuer Secrets/systemnahe Pfade.
+
+### Dependency - Google Text-to-Speech Manifest gesichert
+
+- `package.json` und `package-lock.json` ins Repo uebernommen.
+- `@google-cloud/text-to-speech` als Node-Dependency gesichert.
+- Grund: Google-TTS muss nach frischem Deploy/Setup reproduzierbar installiert werden koennen.
+- `node_modules` wurde nicht committed.
+
 ### STEP040 - VIP Backend Reference / Dashboard Ready Status
 
 - Neuer Referenzstand fuer den spaeteren VIP-Dashboard-Chat angelegt:
