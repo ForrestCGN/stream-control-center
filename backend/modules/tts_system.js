@@ -294,7 +294,7 @@ function init(ctx) {
       { key: 'permissions', value: DEFAULT_CONFIG.permissions, valueType: 'json', description: 'TTS Command-Rechte' },
       { key: 'system', value: { enabled: true, requireKey: false, key: '', respectGlobalEnabled: true, voice: DEFAULT_CONFIG.defaultVoice, user: 'heimaufsichtcgn', displayName: 'HeimaufsichtCGN', maxLength: 500, priority: 95 }, valueType: 'json', description: 'System-/Alert-TTS Defaults' },
       { key: 'alertTts', value: { enabled: true, voice: DEFAULT_CONFIG.defaultVoice, maxChars: 500, delayAfterSoundMs: 0, outroBufferMs: 900 }, valueType: 'json', description: 'Defaults fuer Alert-TTS' },
-      { key: 'chatTts', value: { playbackMode: 'sound_system', overlayVisualEnabled: true, soundSystemEnabled: true, soundSystemPlayUrl: 'http://127.0.0.1:8080/api/sound/play', soundSystemCategory: 'tts', soundSystemSource: 'tts_system', soundSystemOutputTarget: 'device', soundSystemVolume: 100, soundSystemPriority: 50, doneMode: 'duration_timer', doneExtraBufferMs: 500, fallbackToOverlay: true }, valueType: 'json', description: 'Chat-TTS Ausgabe ueber Sound-System oder Overlay' }
+      { key: 'chatTts', value: { playbackMode: 'sound_system', overlayVisualEnabled: true, soundSystemEnabled: true, soundSystemPlayUrl: 'http://127.0.0.1:8080/api/sound/play', soundSystemStatusUrl: 'http://127.0.0.1:8080/api/sound/status', soundSystemCategory: 'tts', soundSystemSource: 'tts_system', soundSystemOutputTarget: 'device', soundSystemVolume: 100, soundSystemPriority: 50, doneMode: 'sound_system_status', doneExtraBufferMs: 500, statusPollMs: 350, statusMaxWaitMs: 120000, fallbackToOverlay: true }, valueType: 'json', description: 'Chat-TTS Ausgabe ueber Sound-System oder Overlay' }
     ];
   }
 
@@ -622,6 +622,23 @@ function init(ctx) {
     return fallback;
   }
 
+  function normalizeChatDoneMode(value) {
+    const mode = String(value || '').trim().toLowerCase();
+    if (['sound_system_status', 'sound-status', 'sound_status', 'status', 'sound_system'].includes(mode)) return 'sound_system_status';
+    if (['duration_timer', 'timer', 'duration'].includes(mode)) return 'duration_timer';
+    return 'sound_system_status';
+  }
+
+  function deriveSoundSystemStatusUrl(playUrl) {
+    try {
+      const u = new URL(String(playUrl || 'http://127.0.0.1:8080/api/sound/play'));
+      u.pathname = u.pathname.replace(/\/play\/?$/i, '/status');
+      return u.toString();
+    } catch (_) {
+      return 'http://127.0.0.1:8080/api/sound/status';
+    }
+  }
+
   function getChatTtsConfig() {
     const raw = config.chatTts && typeof config.chatTts === 'object' ? config.chatTts : {};
     return {
@@ -629,13 +646,16 @@ function init(ctx) {
       overlayVisualEnabled: raw.overlayVisualEnabled !== false,
       soundSystemEnabled: raw.soundSystemEnabled !== false,
       soundSystemPlayUrl: String(raw.soundSystemPlayUrl || 'http://127.0.0.1:8080/api/sound/play'),
+      soundSystemStatusUrl: String(raw.soundSystemStatusUrl || deriveSoundSystemStatusUrl(raw.soundSystemPlayUrl || 'http://127.0.0.1:8080/api/sound/play')),
       soundSystemCategory: String(raw.soundSystemCategory || 'tts'),
       soundSystemSource: String(raw.soundSystemSource || 'tts_system'),
       soundSystemOutputTarget: String(raw.soundSystemOutputTarget || 'device'),
       soundSystemVolume: Math.max(0, Math.min(100, Number(raw.soundSystemVolume ?? 100) || 100)),
       soundSystemPriority: Number(raw.soundSystemPriority ?? 50) || 50,
-      doneMode: String(raw.doneMode || 'duration_timer'),
+      doneMode: normalizeChatDoneMode(raw.doneMode || 'sound_system_status'),
       doneExtraBufferMs: Math.max(0, Number(raw.doneExtraBufferMs ?? 500) || 0),
+      statusPollMs: Math.max(150, Number(raw.statusPollMs ?? 350) || 350),
+      statusMaxWaitMs: Math.max(5000, Number(raw.statusMaxWaitMs ?? 120000) || 120000),
       fallbackToOverlay: raw.fallbackToOverlay !== false
     };
   }
@@ -670,6 +690,112 @@ function init(ctx) {
       req.write(body);
       req.end();
     });
+  }
+
+  function getJson(url, timeoutMs = 5000) {
+    return new Promise((resolve, reject) => {
+      let parsed;
+      try { parsed = new URL(url); } catch (err) { reject(err); return; }
+      const lib = parsed.protocol === 'https:' ? https : http;
+      const req = lib.request({
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+        path: `${parsed.pathname}${parsed.search || ''}`,
+        method: 'GET',
+        timeout: timeoutMs
+      }, (res) => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          let json = null;
+          try { json = data ? JSON.parse(data) : null; } catch (_) { json = { raw: data }; }
+          if (res.statusCode >= 200 && res.statusCode < 300) resolve(json || { ok: true });
+          else reject(new Error(`http_${res.statusCode}:${data}`));
+        });
+      });
+      req.on('timeout', () => { req.destroy(new Error('request_timeout')); });
+      req.on('error', reject);
+      req.end();
+    });
+  }
+
+  function soundItemMatchesTts(item, soundItem) {
+    if (!item || !soundItem) return false;
+    const ttsId = String(item.id || '');
+    const visual = soundItem.visual || {};
+    const meta = soundItem.meta || soundItem.meta_json || {};
+    const values = [
+      soundItem.id,
+      soundItem.requestId,
+      soundItem.request_id,
+      visual.requestId,
+      visual.ttsId,
+      meta.ttsId,
+      meta.tts_id
+    ].map(v => String(v || '')).filter(Boolean);
+    if (ttsId && values.includes(ttsId)) return true;
+    const file = String(soundItem.file || soundItem.soundFile || soundItem.path || '');
+    return !!(item.soundSystemFile && file && file.includes(item.soundSystemFile));
+  }
+
+  function findMatchingSoundItem(status, item) {
+    if (!status || !item) return null;
+    const candidates = [];
+    if (status.current) candidates.push(status.current);
+    if (Array.isArray(status.parallel)) candidates.push(...status.parallel);
+    if (Array.isArray(status.queue)) candidates.push(...status.queue);
+    return candidates.find(x => soundItemMatchesTts(item, x)) || null;
+  }
+
+  function waitForSoundSystemFinish(item, chatCfg) {
+    const statusUrl = chatCfg.soundSystemStatusUrl || deriveSoundSystemStatusUrl(chatCfg.soundSystemPlayUrl);
+    const pollMs = Math.max(150, Number(chatCfg.statusPollMs || 350));
+    const maxWaitMs = Math.max(
+      Number(chatCfg.statusMaxWaitMs || 0),
+      Number(item.durationMs || 0) + Number(chatCfg.doneExtraBufferMs || 0) + 15000
+    );
+    const startedAtMs = Date.now();
+    let seenStarted = false;
+    let startEventWritten = false;
+    let stopped = false;
+
+    const finish = (reason) => {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(timer);
+      finishCurrentById(item.id, reason);
+    };
+
+    const tick = async () => {
+      if (stopped) return;
+      try {
+        const status = await getJson(statusUrl, 3500);
+        const match = findMatchingSoundItem(status, item);
+        if (match) {
+          seenStarted = true;
+          if (!startEventWritten) {
+            startEventWritten = true;
+            item.soundSystemStartedAt = core.nowIso();
+            insertTtsEvent(item, 'sound_system_current', { startedAt: item.soundSystemStartedAt, meta: { soundRequestId: match.requestId || match.id || '' } });
+          }
+          return;
+        }
+        if (seenStarted) return finish('sound_system_status_finished');
+      } catch (err) {
+        item.soundSystemStatusError = err.message || String(err);
+      }
+
+      if ((Date.now() - startedAtMs) > maxWaitMs) {
+        insertTtsEvent(item, 'sound_system_status_timeout', { error: item.soundSystemStatusError || '', meta: { maxWaitMs, seenStarted } });
+        return finish(seenStarted ? 'sound_system_status_timeout_after_start' : 'sound_system_status_timeout_before_start');
+      }
+    };
+
+    const timer = setInterval(tick, pollMs);
+    timer.unref?.();
+    setTimeout(tick, 40).unref?.();
   }
 
   async function playChatTtsViaSoundSystem(item, chatCfg) {
@@ -1009,9 +1135,16 @@ function init(ctx) {
         }
       }
 
-      if (effectiveMode === 'sound_system' || effectiveMode === 'off') {
+      if (effectiveMode === 'sound_system') {
+        if (chatCfg.doneMode === 'sound_system_status') {
+          waitForSoundSystemFinish(item, chatCfg);
+        } else {
+          const waitMs = Math.max(250, Number(item.durationMs || 0) + Number(chatCfg.doneExtraBufferMs || 0));
+          setTimeout(() => finishCurrentById(item.id, 'sound_system_timer'), waitMs).unref?.();
+        }
+      } else if (effectiveMode === 'off') {
         const waitMs = Math.max(250, Number(item.durationMs || 0) + Number(chatCfg.doneExtraBufferMs || 0));
-        setTimeout(() => finishCurrentById(item.id, effectiveMode === 'off' ? 'off_timer' : 'sound_system_timer'), waitMs).unref?.();
+        setTimeout(() => finishCurrentById(item.id, 'off_timer'), waitMs).unref?.();
       }
 
       broadcastState();
