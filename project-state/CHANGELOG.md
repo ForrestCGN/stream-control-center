@@ -2,6 +2,25 @@
 
 ## 2026-05-04
 
+### STEP023 - VIP Streamer.bot -> Sound-System -> Overlay V2 getestet
+
+- Echter Streamer.bot-Command `!vip` wurde neu auf den neuen Backend-/Sound-System-Ablauf aufgebaut.
+- Neue/saubere Streamer.bot-Action nutzt nur noch Fetch URL auf:
+  - `/api/vip-sound/command`
+- Alte direkte Legacy-Overlay-Ausloesung wurde vom normalen `!vip`-Ablauf getrennt.
+- OBS-Browserquelle fuer VIP wurde auf Overlay V2 gesetzt:
+  - `/overlays/vip_sound_overlay_v2.html`
+- Live-Test erfolgreich:
+  - `!vip @araglor` startete Sound ueber `sound_system`.
+  - `sound_system.current.visual.module = vip_sound_overlay` war gesetzt.
+  - OBS zeigte VIP Overlay V2 korrekt an.
+  - Chat-Ausgabe kam ueber Heimaufsicht/Bot.
+  - Nach Soundende war `sound_system.current = null`, Queue leer und `device.lastOk = true`.
+- Neue STEP-Doku angelegt:
+  - `project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md`
+- Keine Backend-Codeaenderung in STEP023.
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
 ### STEP022 - Streamer.bot VIP-Argumente geprueft
 
 - Echte Streamer.bot 1.0.4 Command-Argumente mit temporärem Debug-Command geprüft.
