@@ -8,6 +8,7 @@ const core = require("./helpers/helper_core");
 const messages = require("./helpers/helper_messages");
 const chatOutput = require("./helpers/helper_chat_output");
 const configHelper = require("./helpers/helper_config");
+const settingsHelper = require("./helpers/helper_settings");
 const database = require("../core/database");
 const twitchRoles = require("./helpers/helper_twitch_roles");
 
@@ -185,7 +186,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.2",
+    version: "1.8.3",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -1030,37 +1031,18 @@ module.exports.init = function init(ctx) {
   }
 
 
-  function encodeSettingValue(value, valueType) {
-    if (valueType === "boolean") return value ? "true" : "false";
-    if (valueType === "number") return String(Number(value));
-    if (valueType === "json") return JSON.stringify(value ?? null);
-    return String(value ?? "");
-  }
-
-  function decodeSettingValue(value, valueType, fallback = null) {
-    if (valueType === "boolean") return boolish(value);
-    if (valueType === "number") {
-      const n = Number(value);
-      return Number.isFinite(n) ? n : fallback;
-    }
-    if (valueType === "json") {
-      try { return JSON.parse(String(value)); } catch (_) { return fallback; }
-    }
-    return String(value ?? "");
-  }
-
-  function getNestedValue(obj, pathParts) {
-    let current = obj;
-    for (const part of pathParts) {
-      if (!current || typeof current !== "object" || !(part in current)) return undefined;
-      current = current[part];
-    }
-    return current;
+  function vipSettingDefaults() {
+    return Object.entries(DEFAULT_VIP_SETTINGS).map(([key, def]) => ({
+      key,
+      value: def.value,
+      valueType: def.value_type,
+      description: def.description || ""
+    }));
   }
 
   function readVipSettingsConfig() {
     try {
-      const loaded = configHelper.loadConfig(VIP_SETTINGS_CONFIG_FILE, {}, {
+      const loaded = settingsHelper.readConfigFallback(VIP_SETTINGS_CONFIG_FILE, {}, {
         createIfMissing: false,
         mergeDefaults: true
       });
@@ -1081,6 +1063,11 @@ module.exports.init = function init(ctx) {
         error: err.message || String(err)
       };
     }
+  }
+
+  function getNestedValue(obj, pathParts) {
+    const dotted = Array.isArray(pathParts) ? pathParts.join(".") : String(pathParts || "");
+    return settingsHelper.getNestedValue(obj, dotted, undefined);
   }
 
   function getConfigSettingValue(key, config) {
@@ -1105,87 +1092,72 @@ module.exports.init = function init(ctx) {
     return undefined;
   }
 
-  function normalizeSettingForDb(key, value, valueType, description) {
-    return {
-      settingKey: key,
-      settingValue: encodeSettingValue(value, valueType),
-      valueType,
-      description: description || ""
-    };
-  }
-
   function seedDefaultSettingsIfMissing() {
-    const now = nowIso();
     const loadedConfig = readVipSettingsConfig();
     const cfg = loadedConfig.config || {};
+    const defaults = vipSettingDefaults().map(item => {
+      const configValue = getConfigSettingValue(item.key, cfg);
+      return {
+        ...item,
+        value: configValue === undefined ? item.value : configValue
+      };
+    });
 
-    for (const [key, def] of Object.entries(DEFAULT_VIP_SETTINGS)) {
-      const configValue = getConfigSettingValue(key, cfg);
-      const value = configValue === undefined ? def.value : configValue;
-      const row = normalizeSettingForDb(key, value, def.value_type, def.description);
-
-      database.run(`
-        INSERT OR IGNORE INTO vip_sound_settings
-          (setting_key, setting_value, value_type, description, created_at, updated_at)
-        VALUES
-          (:settingKey, :settingValue, :valueType, :description, :createdAt, :updatedAt)
-      `, {
-        ...row,
-        createdAt: now,
-        updatedAt: now
-      });
-    }
+    settingsHelper.seedDefaults(VIP_SETTINGS_TABLE, defaults);
   }
 
   function listVipSettings() {
     const loadedConfig = readVipSettingsConfig();
     const cfg = loadedConfig.config || {};
-    const dbRows = database.all(`
-      SELECT setting_key, setting_value, value_type, description, created_at, updated_at
-      FROM vip_sound_settings
-      ORDER BY setting_key ASC
-    `);
-    const rowByKey = new Map((Array.isArray(dbRows) ? dbRows : []).map(row => [row.setting_key, row]));
-
+    const defaults = vipSettingDefaults();
     const settings = [];
-    for (const [key, def] of Object.entries(DEFAULT_VIP_SETTINGS)) {
-      const row = rowByKey.get(key);
-      const configValue = getConfigSettingValue(key, cfg);
 
-      if (row) {
+    for (const def of defaults) {
+      const row = settingsHelper.getSetting(VIP_SETTINGS_TABLE, def.key, undefined, {
+        valueType: def.valueType,
+        description: def.description
+      });
+
+      if (row && row.found) {
         settings.push({
-          key,
-          value: decodeSettingValue(row.setting_value, row.value_type, def.value),
-          rawValue: row.setting_value,
-          valueType: row.value_type,
+          key: row.key,
+          value: row.value,
+          rawValue: row.rawValue,
+          valueType: row.valueType,
           description: row.description || def.description || "",
           source: "database",
-          createdAt: row.created_at || "",
-          updatedAt: row.updated_at || ""
+          createdAt: row.createdAt || "",
+          updatedAt: row.updatedAt || ""
         });
-      } else if (configValue !== undefined) {
+        continue;
+      }
+
+      const configValue = getConfigSettingValue(def.key, cfg);
+      if (configValue !== undefined) {
+        const valueType = settingsHelper.normalizeValueType(def.valueType, configValue);
         settings.push({
-          key,
-          value: decodeSettingValue(encodeSettingValue(configValue, def.value_type), def.value_type, def.value),
-          rawValue: encodeSettingValue(configValue, def.value_type),
-          valueType: def.value_type,
+          key: def.key,
+          value: settingsHelper.decodeValue(settingsHelper.encodeValue(configValue, valueType), valueType, def.value),
+          rawValue: settingsHelper.encodeValue(configValue, valueType),
+          valueType,
           description: def.description || "",
           source: "config",
           createdAt: "",
           updatedAt: ""
         });
-      } else {
-        settings.push({
-          key,
-          value: def.value,
-          rawValue: encodeSettingValue(def.value, def.value_type),
-          valueType: def.value_type,
-          description: def.description || "",
-          source: "default",
-          createdAt: "",
-          updatedAt: ""
-        });
+        continue;
       }
+
+      settings.push({
+        key: def.key,
+        value: def.value,
+        rawValue: settingsHelper.encodeValue(def.value, def.valueType),
+        valueType: def.valueType,
+        description: def.description || "",
+        source: "default",
+        createdAt: "",
+        updatedAt: ""
+      });
     }
 
     return {
@@ -1203,15 +1175,15 @@ module.exports.init = function init(ctx) {
   function getVipSetting(key, fallback = undefined) {
     const def = DEFAULT_VIP_SETTINGS[key];
     const defaultValue = fallback !== undefined ? fallback : (def ? def.value : undefined);
+    const valueType = def ? def.value_type : settingsHelper.normalizeValueType("", defaultValue);
 
     try {
-      const row = database.get(`
-        SELECT setting_value, value_type
-        FROM vip_sound_settings
-        WHERE setting_key = :key
-      `, { key });
+      const row = settingsHelper.getSetting(VIP_SETTINGS_TABLE, key, undefined, {
+        valueType,
+        description: def ? def.description : ""
+      });
 
-      if (row) return decodeSettingValue(row.setting_value, row.value_type, defaultValue);
+      if (row && row.found) return row.value;
     } catch (_) {
       // DB may not be ready during early boot; fallback below.
     }
@@ -1219,7 +1191,7 @@ module.exports.init = function init(ctx) {
     const loadedConfig = readVipSettingsConfig();
     const configValue = getConfigSettingValue(key, loadedConfig.config || {});
     if (configValue !== undefined && def) {
-      return decodeSettingValue(encodeSettingValue(configValue, def.value_type), def.value_type, defaultValue);
+      return settingsHelper.decodeValue(settingsHelper.encodeValue(configValue, valueType), valueType, defaultValue);
     }
 
     return defaultValue;
