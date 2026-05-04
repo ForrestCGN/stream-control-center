@@ -385,6 +385,8 @@
     const bottom = Number(params.get("bottom") || "118") || 118;
     const top = Number(params.get("top") || "160") || 160;
     const x = Number(params.get("x") || "50") || 50;
+    const pollStatus = String(params.get("poll") || "1") !== "0";
+    const pollMs = Math.max(250, Math.min(2500, Number(params.get("pollMs") || "500") || 500));
 
     document.documentElement.style.setProperty("--scale", String(Math.max(.65, Math.min(1.35, scale))));
     document.documentElement.style.setProperty("--card-w", `${Math.max(520, Math.min(1200, width))}px`);
@@ -402,6 +404,8 @@
     let gapAfterMs = 350;
     let activeWs = null;
     let visualTimer = null;
+    let lastVisualId = null;
+    let statusPollTimer = null;
 
     function wsUrl() {
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -481,6 +485,53 @@
       markDone(id);
     });
 
+
+    function showVisualOnly(item, durationMs, extraMs) {
+      if (!item || !item.id) return;
+      currentId = item.id;
+      lastVisualId = item.id;
+      show(item);
+      clearTimeout(visualTimer);
+      const showMs = Math.max(1200, Number(durationMs || item.durationMs || 2500) + Number(extraMs || gapAfterMs || 350) + 450);
+      visualTimer = setTimeout(() => {
+        if (currentId === item.id) currentId = null;
+        hide();
+      }, showMs);
+    }
+
+    async function pollTtsStatus() {
+      if (!pollStatus) return;
+      try {
+        const res = await fetch(`/api/tts/overlay-state?t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const state = await res.json();
+        const item = state && state.item ? state.item : null;
+        if (state && state.show && item && item.id) {
+          if (item.id !== lastVisualId || !wrap.classList.contains("show")) {
+            showVisualOnly(item, Number(item.remainingMs || item.durationMs || 2500), 0);
+          }
+          return;
+        }
+        if (state && !state.show && currentId) {
+          currentId = null;
+          hide();
+        }
+      } catch (err) {
+        try {
+          const res = await fetch(`/api/tts/status?t=${Date.now()}`, { cache: "no-store" });
+          if (!res.ok) return;
+          const status = await res.json();
+          const item = status && status.current ? status.current : null;
+          if (status && status.playing && item && item.id && item.id !== lastVisualId) {
+            showVisualOnly(item, Number(item.durationMs || 2500), gapAfterMs);
+          } else if (status && !status.playing && currentId) {
+            currentId = null;
+            hide();
+          }
+        } catch (_) {}
+      }
+    }
+
     function connect() {
       const ws = new WebSocket(wsUrl());
       activeWs = ws;
@@ -493,27 +544,23 @@
         let msg;
         try { msg = JSON.parse(event.data); } catch (_) { return; }
 
-        if (msg.op === "tts_play") {
+        if (msg.op === "tts_play" || msg.op === "tts_visual") {
           const item = msg.item || {};
           currentId = item.id;
           gapAfterMs = Number(msg.gapAfterMs || 350);
-          show(item);
 
           clearTimeout(visualTimer);
           visualTimer = null;
 
           const playbackMode = String(msg.playbackMode || item.playbackMode || "overlay").toLowerCase();
-          const visualOnly = msg.visualOnly === true || playbackMode === "sound_system" || playbackMode === "off" || !msg.audioUrl;
+          const visualOnly = msg.op === "tts_visual" || msg.visualOnly === true || playbackMode === "sound_system" || playbackMode === "off" || !msg.audioUrl;
 
           if (visualOnly) {
-            const showMs = Math.max(1200, Number(msg.durationMs || item.durationMs || 2500) + gapAfterMs + 450);
-            visualTimer = setTimeout(() => {
-              currentId = null;
-              hide();
-            }, showMs);
+            showVisualOnly(item, Number(msg.durationMs || item.durationMs || 2500), gapAfterMs);
             return;
           }
 
+          show(item);
           player.src = `${msg.audioUrl}?t=${Date.now()}`;
           player.volume = 1.0;
 
@@ -545,6 +592,10 @@
     }
 
     connect();
+    if (pollStatus) {
+      statusPollTimer = setInterval(pollTtsStatus, pollMs);
+      setTimeout(pollTtsStatus, 300);
+    }
   </script>
 </body>
 </html>

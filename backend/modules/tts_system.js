@@ -855,6 +855,46 @@ function init(ctx) {
     };
   }
 
+  function publicOverlayItem(item) {
+    if (!item) return null;
+    const now = Date.now();
+    const durationMs = Number(item.durationMs || 0);
+    const displayStartedAtMs = Number(item.displayStartedAtMs || item.startedAtMs || item.createdAtMs || now);
+    const displayEndsAtMs = Number(item.displayEndsAtMs || (displayStartedAtMs + Math.max(1200, durationMs + Number(config.queue?.gapAfterMs || 350) + 500)));
+    return {
+      id: item.id,
+      user: item.displayName,
+      role: item.role,
+      text: item.text,
+      chars: item.chars,
+      voice: item.voiceUsed || item.voice,
+      voiceLabel: item.voiceLabel || '',
+      engine: item.engineUsed || null,
+      playbackMode: item.playbackMode || 'overlay',
+      visualOnly: item.playbackMode === 'sound_system' || item.playbackMode === 'off',
+      durationMs,
+      startedAt: item.displayStartedAt || item.createdAt || null,
+      endsAt: item.displayEndsAt || null,
+      displayStartedAtMs,
+      displayEndsAtMs,
+      remainingMs: Math.max(0, displayEndsAtMs - now)
+    };
+  }
+
+  function publicOverlayState() {
+    const item = playing && current ? publicOverlayItem(current) : null;
+    return {
+      ok: true,
+      module: 'tts_system',
+      overlay: true,
+      show: Boolean(item),
+      playing: Boolean(playing),
+      item,
+      queueSize: queue.length,
+      updatedAt: core.nowIso()
+    };
+  }
+
   function broadcastState() {
     broadcastWS({ op: "tts_state", data: publicStatus() });
   }
@@ -889,7 +929,10 @@ function init(ctx) {
       item.durationMs = duration.durationMs;
       item.durationOk = duration.durationOk;
       item.durationSource = duration.source;
-      insertTtsEvent(item, "playing", { startedAt: core.nowIso(), durationMs: item.durationMs });
+      item.startedAtMs = Date.now();
+      item.displayStartedAtMs = item.startedAtMs;
+      item.displayStartedAt = core.nowIso();
+      insertTtsEvent(item, "playing", { startedAt: item.displayStartedAt, durationMs: item.durationMs });
       recordUsageDaily(item.source || "chat", item.mode || "chat", item.engineUsed || "", item.chars, item.durationMs, true);
 
       const chatCfg = getChatTtsConfig();
@@ -898,6 +941,10 @@ function init(ctx) {
 
       let effectiveMode = item.playbackMode || playbackMode;
       let visualOnly = effectiveMode === 'sound_system' || effectiveMode === 'off';
+      const visualGapMs = Number(config.queue?.gapAfterMs || 350);
+      const doneBufferMs = Number(chatCfg.doneExtraBufferMs || 0);
+      item.displayEndsAtMs = item.displayStartedAtMs + Math.max(1200, Number(item.durationMs || 0) + visualGapMs + doneBufferMs + 250);
+      item.displayEndsAt = new Date(item.displayEndsAtMs).toISOString();
 
       if (chatCfg.overlayVisualEnabled !== false || effectiveMode === 'overlay') {
         broadcastWS({
@@ -1380,6 +1427,7 @@ function init(ctx) {
   app.all("/api/tts/say", (req, res) => res.json(sayWithData(getRequestData(req))));
   app.all("/api/tts/done", done);
   app.get("/api/tts/status", (req, res) => res.json(publicStatus()));
+  app.get("/api/tts/overlay-state", (req, res) => res.json(publicOverlayState()));
 
   // Compatibility endpoints.
   app.all("/api/tts/on", (req, res) => res.json(handleSubcommand("on", "", getRequestData(req))));
