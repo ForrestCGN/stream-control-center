@@ -16,44 +16,178 @@ Vor jedem neuen STEP:
 
 ## Empfohlene naechste Arbeitspakete
 
-### 1. VIP auf helper_settings.js umstellen
+### 1. TTS / Sound-System / Alerts dashboardfaehig machen
+
+Aktueller Stand:
+
+- Chat-TTS laeuft ueber Sound-System.
+- TTS-Overlay zeigt Sound-System-Visual-State nach VIP-Prinzip.
+- Google fuer Broadcaster/Mods/VIPs funktioniert.
+- Piper fuer Subscriber funktioniert.
+- Ko-fi Donation-TTS und Tipeee Donation-TTS sind aktiviert/getestet.
+- Alert-Sound wird seit STEP046 frueh in Sound-System-Queue eingereiht.
+- Sound-System-Prio funktioniert mit `sortByPriority=true`, `allowParallel=false`, `maxParallel=1`.
 
 Ziel:
 
-- Die aktuell im VIP-Modul vorhandenen internen Settings-Hilfsfunktionen kontrolliert auf `backend/modules/helpers/helper_settings.js` umstellen.
-- Lesereihenfolge bleibt:
-  1. Datenbank
-  2. JSON-Fallback ueber `helper_config.js`
-  3. Code-Default
+- TTS-/Alert-TTS-/Sound-System-Werte im Dashboard anzeigen und bearbeiten.
+- Dashboard schreibt nur ueber Backend-APIs.
+- Dashboardfaehige Werte primaer in DB/Settings.
+- JSON bleibt fuer technische Fallbacks/Imports.
+- Keine direkten Datei- oder SQLite-Zugriffe aus dem Dashboard.
+
+Dashboard-relevante Felder:
+
+- TTS allgemein: enabled, command, defaultVoice, fallbackVoice, Limits, Textfilter.
+- TTS Rollen: broadcaster, moderator, vip, subscriber, viewer.
+- TTS Overlay: position, width, minWidth, bottom, scale, avatarSize, showAvatar, maxTextLines, debug.
+- Chat-TTS Playback: playbackMode, soundSystemOutputTarget, volume, priority, doneMode, fallbackToOverlay.
+- Alert-TTS pro Regel: enabled, timing, mode, template, maxChars, minAmount, voice, output target, volume, delay.
+- Sound-System Queue: sortByPriority, allowParallel, maxParallel, priorities, categoryDefaults.
+- Provider-/Alert-Settings: Secrets maskieren, keine Tokens im Klartext anzeigen.
+
+Wichtig:
+
+- Kein grosser Blind-Umbau.
+- Zuerst API-/Settings-Stand pruefen.
+- `liveAlert`/`livealert` Duplikat in Alert-Settings bereinigen.
+- Bestehende Funktionalitaet darf nicht entfernt werden.
+
+---
+
+### 2. Alert-Sound + Alert-TTS Kopplung pruefen
+
+Aktueller Test:
+
+- Crew -> Chat-TTS -> Ko-fi Alert wurde getestet.
+- Ergebnis nach STEP046: Crew -> Alert -> TTS korrekt.
+
+Noch gezielt pruefen:
+
+- Ko-fi mit aktivem Alert-TTS: Alert-Sound -> Alert-TTS -> Chat-TTS.
+- Tipeee mit aktivem Alert-TTS: Alert-Sound -> Alert-TTS -> Chat-TTS.
+- Kein anderes Sound-Item darf zwischen Alert-Sound und dessen Alert-TTS rutschen, wenn diese logisch zusammengehoeren.
+
+Falls noetig:
+
+- Alert-TTS als gekoppelte Folgeausgabe des Alert-Sounds behandeln.
+- Sound-System bleibt Audio-Wahrheit.
+
+---
+
+### 3. Sound-System Runtime-Settings sauber dokumentieren und dashboardfaehig machen
+
+Aktueller Befund:
+
+- `config/sound_system.json` wird durch DB-Tabelle `sound_settings` ueberlagert.
+- Runtime-/DB-Settings gewinnen gegenueber JSON.
+- Beispiel: Queue-Werte mussten ueber `/api/sound/settings` gesetzt werden, nicht nur per JSON.
+
+Ziel:
+
+- Dashboard-Seite fuer Sound-System Settings.
+- Sichtbar machen, welche Werte aus DB kommen und welche aus JSON-Fallback.
+- Bearbeitbar machen:
+  - Queue-Modus / Prioritaet
+  - Parallel erlaubt
+  - MaxParallel
+  - Kategorien/Prioritaeten
+  - Output-Ziele
+  - Geraeteausgabe
+  - Lautstaerken
+
+---
+
+### 4. TTS-Overlay-Settings in DB/API vorbereiten
+
+Aktueller Stand:
+
+- Overlay-Optik ist aktuell per URL/CSS/HTML gesteuert.
+- Funktioniert mit Avatar, Displayname, adaptiver Breite und Text-Clamp.
+
+Ziel:
+
+- TTS-Overlay-Settings als DB-Block vorbereiten, z. B. `ttsOverlay` in `tts_settings`.
+- Overlay soll spaeter optional Settings aus Backend laden.
+- OBS-URL soll langfristig weniger Parameter brauchen.
+
+Moegliche Werte:
+
+- `position`
+- `width`
+- `minWidth`
+- `bottom`
+- `scale`
+- `avatarSize`
+- `showAvatar`
+- `showInnerBorder`
+- `maxTextLines`
+- `fontSizeName`
+- `fontSizeText`
+- `debug`
+
+---
+
+### 5. Alert-Regel-TTS im Dashboard integrieren
+
+Aktueller Stand:
+
+- Alert-Regeln besitzen TTS-Felder:
+  - `tts_enabled`
+  - `tts_timing`
+  - `tts_mode`
+  - `tts_template`
+  - `tts_max_chars`
+  - `tts_min_amount`
+- Ko-fi Donation und Tipeee Donation koennen TTS nutzen.
+
+Ziel:
+
+- Diese Felder im Alert-Dashboard sichtbar und editierbar machen.
+- Template-Hilfe mit Platzhaltern anzeigen.
+- Aktiv/Inaktiv klar darstellen.
+- Spaeter ggf. Stimme/Output/Lautstaerke pro Regel ergaenzen.
+
+---
+
+### 6. Provider-/Settings-Ausgaben maskieren
+
+Problem:
+
+- `/api/alerts/settings` kann Provider-Keys/Secrets enthalten.
+- Dashboard darf Secrets nicht im Klartext anzeigen.
+
+Ziel:
+
+- Public-/Dashboard-Ausgabe maskiert sensible Felder.
+- Schreiben von Secrets nur ueber gesonderte, geschuetzte API.
+- Audit-Logging spaeter einplanen.
+
+---
+
+### 7. VIP auf helper_settings.js weiter angleichen / Dashboard bauen
+
+Ziel:
+
+- VIP ist dashboard-ready dokumentiert.
+- Spaeter Dashboard-Modul fuer VIP bauen.
+- Einstellungen, Texte, Rollen, Daily-Usage, Events und Stats ueber API anzeigen/bearbeiten.
 
 Wichtig:
 
 - Keine bestehende VIP-Funktionalitaet entfernen.
 - Vorher aktuellen `vip_sound_overlay.js`-Stand hochladen, falls GitHub/Tools die Datei kuerzen.
-- Erst nach erfolgreichem Test Dashboard bauen.
 
 ---
 
-### 2. Dashboard-Settings spaeter schreiben/lesen
+### 8. Bestehende Systeme vor Dashboard-Bau pruefen und ggf. umbauen
 
 Ziel:
 
-- Dashboard soll alle wichtigen Modulwerte lesen und schreiben koennen.
-- Schreibziel fuer dashboardfaehige Werte ist primaer die Datenbank.
-- Datei-Configs werden nur fuer technische Configs, Fallbacks oder bewusste Imports genutzt.
-- Secrets/Tokens bleiben ausserhalb des Dashboards und werden nicht im Klartext angezeigt.
-
----
-
-### 3. Bestehende Systeme vor Dashboard-Bau pruefen und ggf. umbauen
-
-Ziel:
-
-- Vor dem eigentlichen Dashboard-Ausbau alle bisherigen Systeme noch einmal gegen den neuen Standard pruefen.
-- Relevante Systeme: VIP, Sound-System, Alerts, Hug, Messages/Rotator, Tagebuch, Todo, OBS/Scene-Control, Twitch/Presence, Overlay-Chat.
+- Vor dem eigentlichen Dashboard-Ausbau alle bisherigen Systeme gegen den neuen Standard pruefen.
+- Relevante Systeme: VIP, Sound-System, Alerts, TTS, Hug, Messages/Rotator, Tagebuch, Todo, OBS/Scene-Control, Twitch/Presence, Overlay-Chat.
 - Pruefen, welche Werte noch hart codiert, nur in JSON-Dateien oder uneinheitlich gespeichert sind.
 - Dashboard-faehige Werte schrittweise in DB-/Settings-Strukturen ueberfuehren.
-- Bestehende JSON-Configs nur dort behalten, wo sie technische Fallbacks, Imports oder systemnahe Konfiguration sind.
 - APIs vereinheitlichen, damit das Dashboard spaeter nicht direkt Dateien oder SQLite anfassen muss.
 
 Wichtig:
@@ -65,97 +199,7 @@ Wichtig:
 
 ---
 
-### 4. VIP-Soundpfad und Dateiregel spaeter im Dashboard einstellbar machen
-
-Aktueller Stand:
-
-- `soundBaseDir`, `fileNameMode` und `fileExtension` liegen in `vip_sound_settings`.
-- Seit STEP032 werden diese Werte aktiv fuer die Sounddatei-Aufloesung genutzt.
-
-Ziel:
-
-- Dashboard kann diese Werte anzeigen und bearbeiten.
-- Aenderungen laufen ueber Backend-API und DB, nicht ueber direkte Datei-/SQL-Zugriffe.
-- Bestehender Fallback bleibt: `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
-
----
-
-### 5. VIP-Textverwaltung spaeter ins Dashboard bringen
-
-Ziel:
-
-- VIP-/Mod-Chattexte und Overlaytexte aus `vip_sound_message_templates` anzeigen.
-- Texte aktivieren/deaktivieren.
-- Texte bearbeiten.
-- Gewichtung einstellen.
-- Event-Keys verstaendlich gruppieren.
-
-Wichtig:
-
-- Interne Style-ID `heimleitung` bleibt vorerst aus Kompatibilitaetsgruenden bestehen.
-- Sichtbarer Begriff bleibt `Heimaufsicht`.
-
----
-
-### 6. VIP-Rollen-Fallbacks spaeter im Dashboard bearbeiten
-
-Ziel:
-
-- Rollen-Fallbacks aus `vip_sound_role_overrides` anzeigen und bearbeiten.
-- `config/vip_sound_roles.json` bleibt nur Import-/Fallback-Quelle.
-- Twitch-Erkennung bleibt primaer.
-
----
-
-### 7. VIP-Daily-Usage und Events/Statistiken spaeter im Dashboard anzeigen
-
-Ziel:
-
-- Heutige Nutzung anzeigen.
-- Daily-Usage resetten.
-- Letzte VIP-Events anzeigen.
-- Statistiken aus `vip_sound_events` anzeigen.
-- Retention/Cleanup spaeter konfigurierbar machen.
-
-Wichtig:
-
-- Auto-Cleanup noch nicht hart aktivieren.
-- Retention spaeter ueber DB/Dashboard einstellbar machen.
-
----
-
-### 8. Debug-Option in OBS entfernen
-
-Ziel:
-
-- Falls die VIP-Browserquelle noch mit `?debug=1` laeuft, Debug-Parameter wieder entfernen.
-- Ziel-URL fuer normalen Betrieb:
-  - `/overlays/vip_sound_overlay_v2.html`
-
-Wichtig:
-
-- Keine Backend-Aenderung noetig.
-- Debug nicht dauerhaft im Stream aktiv lassen.
-
----
-
-### 9. Alte VIP-Action in Streamer.bot sichern/deaktiviert lassen
-
-Ziel:
-
-- Alte direkte Legacy-VIP-Overlay-Action nicht mehr am `!vip`-Command betreiben.
-- Alte Action vorerst deaktiviert lassen oder spaeter nach Backup entfernen.
-- Neuer `!vip`-Ablauf bleibt:
-  - Fetch URL -> `/api/vip-sound/command`
-
-Wichtig:
-
-- Nicht einfach loeschen, falls noch alte Referenzen geprueft werden muessen.
-- Keine doppelte Ausloesung von `/api/vip-sound/enqueue`.
-
----
-
-### 10. Dashboard-Modulstandard definieren
+### 9. Dashboard-Modulstandard definieren
 
 Ziel:
 
@@ -179,7 +223,7 @@ Wichtig:
 
 ---
 
-### 11. Fireworks spaeter neu aufbauen
+### 10. Fireworks spaeter neu aufbauen
 
 Aktueller Zustand:
 
@@ -196,7 +240,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 12. Hug-Textbearbeitung spaeter sauber neu planen
+### 11. Hug-Textbearbeitung spaeter sauber neu planen
 
 Aktueller Zustand:
 
@@ -212,11 +256,11 @@ Spaeterer Zielzustand:
 
 ---
 
-### 13. Alerts-Modul spaeter behutsam splitten
+### 12. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 
-- alerts.js ist gross und funktionsreich.
+- `alert_system.js` ist gross und funktionsreich.
 - Nicht blind umbauen.
 
 Spaeterer Zielzustand:
