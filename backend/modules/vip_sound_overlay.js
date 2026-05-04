@@ -22,6 +22,7 @@ module.exports.init = function init(ctx) {
   const VIP_DAILY_USAGE_TABLE = "vip_sound_daily_usage";
   const VIP_MESSAGE_TABLE = "vip_sound_message_templates";
   const VIP_MESSAGE_STYLE = "heimleitung";
+  const VIP_OVERLAY_STYLE = "overlay";
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
   const VIP_OVERRIDE_ALLOWED_ROLES_RAW = process.env.VIP_OVERRIDE_ALLOWED_ROLES || "moderator,mod,broadcaster";
 
@@ -103,6 +104,25 @@ module.exports.init = function init(ctx) {
     }
   ];
 
+  const DEFAULT_VIP_OVERLAY_MESSAGES = [
+    { event_key: "overlay_title_vip", message_text: "VIP-Sound", weight: 1 },
+    { event_key: "overlay_title_mod", message_text: "Mod-Sound", weight: 1 },
+
+    { event_key: "overlay_text_vip", message_text: "Schön, dass du da bist", weight: 1 },
+    { event_key: "overlay_text_vip", message_text: "Danke, dass du Teil der Community bist", weight: 1 },
+    { event_key: "overlay_text_vip", message_text: "Es ist schön, dich hier zu haben", weight: 1 },
+    { event_key: "overlay_text_vip", message_text: "Danke, dass du mit dabei bist", weight: 1 },
+    { event_key: "overlay_text_vip", message_text: "Es bedeutet viel, dass du da bist", weight: 1 },
+    { event_key: "overlay_text_vip", message_text: "Danke, dass du die Community bereicherst", weight: 1 },
+
+    { event_key: "overlay_text_mod", message_text: "Danke, dass du uns als Mod unterstützt", weight: 1 },
+    { event_key: "overlay_text_mod", message_text: "Schön, dass wir dich im Mod-Team haben", weight: 1 },
+    { event_key: "overlay_text_mod", message_text: "Danke für deine Hilfe und deinen Einsatz", weight: 1 },
+    { event_key: "overlay_text_mod", message_text: "Danke, dass du für die Community da bist", weight: 1 },
+    { event_key: "overlay_text_mod", message_text: "Schön, dass du uns als Mod zur Seite stehst", weight: 1 },
+    { event_key: "overlay_text_mod", message_text: "Es bedeutet viel, dich im Team zu haben", weight: 1 }
+  ];
+
   const webRoot = normalizeWinPath(
     process.env.VIP_OVERLAY_WEB_ROOT ||
     "d:\\Streaming\\stramAssets\\htdocs"
@@ -115,7 +135,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.1",
+    version: "1.7.2",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -399,20 +419,27 @@ module.exports.init = function init(ctx) {
 
   function seedDefaultMessagesIfEmpty() {
     const now = nowIso();
-    for (const item of DEFAULT_VIP_MESSAGES) {
-      database.run(`
-        INSERT OR IGNORE INTO vip_sound_message_templates
-          (event_key, style, message_text, enabled, weight, created_at, updated_at)
-        VALUES
-          (:eventKey, :style, :messageText, 1, :weight, :createdAt, :updatedAt)
-      `, {
-        eventKey: item.event_key,
-        style: VIP_MESSAGE_STYLE,
-        messageText: item.message_text,
-        weight: Number(item.weight || 1),
-        createdAt: now,
-        updatedAt: now
-      });
+    const seedGroups = [
+      { style: VIP_MESSAGE_STYLE, items: DEFAULT_VIP_MESSAGES },
+      { style: VIP_OVERLAY_STYLE, items: DEFAULT_VIP_OVERLAY_MESSAGES }
+    ];
+
+    for (const group of seedGroups) {
+      for (const item of group.items) {
+        database.run(`
+          INSERT OR IGNORE INTO vip_sound_message_templates
+            (event_key, style, message_text, enabled, weight, created_at, updated_at)
+          VALUES
+            (:eventKey, :style, :messageText, 1, :weight, :createdAt, :updatedAt)
+        `, {
+          eventKey: item.event_key,
+          style: group.style,
+          messageText: item.message_text,
+          weight: Number(item.weight || 1),
+          createdAt: now,
+          updatedAt: now
+        });
+      }
     }
   }
 
@@ -434,7 +461,7 @@ module.exports.init = function init(ctx) {
     return String(list[list.length - 1].message_text || "");
   }
 
-  function getMessageTemplate(key) {
+  function getMessageTemplate(key, style = VIP_MESSAGE_STYLE) {
     const rows = database.all(`
       SELECT message_text, weight
       FROM vip_sound_message_templates
@@ -444,10 +471,19 @@ module.exports.init = function init(ctx) {
       ORDER BY id ASC
     `, {
       eventKey: key,
-      style: VIP_MESSAGE_STYLE
+      style
     });
 
     return pickWeightedMessage(rows);
+  }
+
+  function renderDbTemplate(template, context = {}, maxLength = 180) {
+    const raw = messages.replacePlaceholders(String(template || ""), context);
+    return messages.sanitizeChatMessage(raw, maxLength);
+  }
+
+  function overlayEventKey(prefix, soundType) {
+    return `${prefix}_${normalizeSoundType(soundType)}`;
   }
 
   function fallbackMessage(key, displayName) {
@@ -518,31 +554,32 @@ module.exports.init = function init(ctx) {
     return `@${mentionName} – Dein ${label} wurde in die Warteschlange gepackt (Position ${queuePosition}).`;
   }
 
-  function buildOverlayTitle(soundType) {
+  function fallbackOverlayTitle(soundType) {
     return soundType === "mod" ? "Mod-Sound" : "VIP-Sound";
   }
 
-  function buildOverlayText(soundType, displayName) {
-    const vipTexts = [
-      "Schön, dass du da bist",
-      "Danke, dass du Teil der Community bist",
-      "Es ist schön, dich hier zu haben",
-      "Danke, dass du mit dabei bist",
-      "Es bedeutet viel, dass du da bist",
-      "Danke, dass du die Community bereicherst"
-    ];
+  function fallbackOverlayText(soundType) {
+    return soundType === "mod"
+      ? "Danke, dass du uns als Mod unterstützt"
+      : "Schön, dass du da bist";
+  }
 
-    const modTexts = [
-      "Danke, dass du uns als Mod unterstützt",
-      "Schön, dass wir dich im Mod-Team haben",
-      "Danke für deine Hilfe und deinen Einsatz",
-      "Danke, dass du für die Community da bist",
-      "Schön, dass du uns als Mod zur Seite stehst",
-      "Es bedeutet viel, dich im Team zu haben"
-    ];
+  function buildOverlayTitle(soundType, context = {}) {
+    if (state.db.initialized) {
+      const template = getMessageTemplate(overlayEventKey("overlay_title", soundType), VIP_OVERLAY_STYLE);
+      if (template) return renderDbTemplate(template, context, 80);
+    }
 
-    const pool = soundType === "mod" ? modTexts : vipTexts;
-    return pool[Math.floor(Math.random() * pool.length)];
+    return fallbackOverlayTitle(soundType);
+  }
+
+  function buildOverlayText(soundType, context = {}) {
+    if (state.db.initialized) {
+      const template = getMessageTemplate(overlayEventKey("overlay_text", soundType), VIP_OVERLAY_STYLE);
+      if (template) return renderDbTemplate(template, context, 180);
+    }
+
+    return fallbackOverlayText(soundType);
   }
 
   function beautifyDisplayName(name) {
@@ -664,9 +701,20 @@ module.exports.init = function init(ctx) {
     }
 
     const category = soundType === "mod" ? "crew" : "vip";
+    const overlayContext = {
+      ...context,
+      displayName: user.displayName || user.login || "",
+      login: user.login || "",
+      targetDisplayName: user.displayName || user.login || "",
+      targetLogin: user.login || "",
+      soundType
+    };
+    const overlayTitle = buildOverlayTitle(soundType, overlayContext);
+    const overlayText = buildOverlayText(soundType, overlayContext);
+
     const payload = {
       file: sound.relativeFile,
-      label: `${buildOverlayTitle(soundType)} - ${user.displayName || user.login}`,
+      label: `${overlayTitle} - ${user.displayName || user.login}`,
       category,
       priority: soundType === "mod" ? 60 : 60,
       target: "stream",
@@ -690,8 +738,8 @@ module.exports.init = function init(ctx) {
         module: MODULE_NAME,
         type: soundType,
         requestId,
-        title: buildOverlayTitle(soundType),
-        text: buildOverlayText(soundType, user.displayName || user.login || ""),
+        title: overlayTitle,
+        text: overlayText,
         displayName: user.displayName || user.login || "",
         login: user.login || "",
         avatarUrl: user.avatarUrl || ""
@@ -1034,10 +1082,10 @@ module.exports.init = function init(ctx) {
 
     return {
       requestId: makeRequestId(),
-      title: titleRaw || buildOverlayTitle(soundType),
-      text: textRaw || buildOverlayText(soundType, resolvedDisplay),
-      finalTitle: buildOverlayTitle(soundType),
-      finalText: buildOverlayText(soundType, resolvedDisplay),
+      title: titleRaw || buildOverlayTitle(soundType, { displayName: resolvedDisplay, login: resolvedLogin, soundType }),
+      text: textRaw || buildOverlayText(soundType, { displayName: resolvedDisplay, login: resolvedLogin, soundType }),
+      finalTitle: buildOverlayTitle(soundType, { displayName: resolvedDisplay, login: resolvedLogin, soundType }),
+      finalText: buildOverlayText(soundType, { displayName: resolvedDisplay, login: resolvedLogin, soundType }),
       displayName: resolvedDisplay,
       login: resolvedLogin,
       avatarUrl: resolvedAvatar,
