@@ -1,0 +1,15 @@
+{
+  "enabled": true,
+  "autoDetectTargetRole": true,
+  "mods": [
+    "araglor"
+  ],
+  "moderators": [],
+  "crew": [],
+  "vips": [],
+  "notes": [
+    "STEP025: Zieluser-Rollen fuer automatische VIP-/Mod-Sound-Erkennung.",
+    "Wenn targetLogin in mods oder crew steht, wird soundType automatisch zu mod.",
+    "Diese Datei ist spaeter Dashboard-editierbar geplant."
+  ]
+}

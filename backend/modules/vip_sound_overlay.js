@@ -25,6 +25,7 @@ module.exports.init = function init(ctx) {
   const VIP_OVERLAY_STYLE = "overlay";
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
   const VIP_OVERRIDE_ALLOWED_ROLES_RAW = process.env.VIP_OVERRIDE_ALLOWED_ROLES || "moderator,mod,broadcaster";
+  const VIP_ROLES_CONFIG_PATH = process.env.VIP_ROLES_CONFIG_PATH || path.join(process.cwd(), "config", "vip_sound_roles.json");
 
   const DEFAULT_VIP_MESSAGES = [
     {
@@ -135,7 +136,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.2",
+    version: "1.7.3",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -333,7 +334,13 @@ module.exports.init = function init(ctx) {
       roles.add("broadcaster");
     }
 
-    if (boolish(raw.actorIsMod) || boolish(raw.isMod) || boolish(raw.isModerator) || boolish(raw.moderator)) {
+    if (
+      boolish(raw.actorIsMod) ||
+      boolish(raw.actorIsModerator) ||
+      boolish(raw.isMod) ||
+      boolish(raw.isModerator) ||
+      boolish(raw.moderator)
+    ) {
       roles.add("moderator");
       roles.add("mod");
     }
@@ -343,6 +350,63 @@ module.exports.init = function init(ctx) {
     }
 
     return false;
+  }
+
+  function readVipRolesConfig() {
+    const fallback = {
+      enabled: true,
+      autoDetectTargetRole: true,
+      mods: [],
+      moderators: [],
+      crew: [],
+      vips: []
+    };
+
+    try {
+      if (!fs.existsSync(VIP_ROLES_CONFIG_PATH)) return fallback;
+      const raw = fs.readFileSync(VIP_ROLES_CONFIG_PATH, "utf8");
+      const parsed = JSON.parse(raw);
+
+      return {
+        ...fallback,
+        ...(parsed && typeof parsed === "object" ? parsed : {})
+      };
+    } catch (err) {
+      console.warn(`[${MODULE_NAME}] vip roles config unavailable: ${err.message || String(err)}`);
+      return fallback;
+    }
+  }
+
+  function normalizedRoleSet(list) {
+    const set = new Set();
+    if (!Array.isArray(list)) return set;
+
+    for (const item of list) {
+      const login = normalizeLogin(item);
+      if (login) set.add(login);
+    }
+
+    return set;
+  }
+
+  function detectSoundTypeForTarget(requestedSoundType, targetUser) {
+    const requested = normalizeSoundType(requestedSoundType);
+    const cfg = readVipRolesConfig();
+
+    if (cfg.enabled === false || cfg.autoDetectTargetRole === false) return requested;
+
+    const login = normalizeLogin(targetUser && (targetUser.login || targetUser.displayName));
+    if (!login) return requested;
+
+    const mods = normalizedRoleSet([
+      ...(Array.isArray(cfg.mods) ? cfg.mods : []),
+      ...(Array.isArray(cfg.moderators) ? cfg.moderators : [])
+    ]);
+    const crew = normalizedRoleSet(cfg.crew);
+
+    if (mods.has(login) || crew.has(login)) return "mod";
+
+    return requested;
   }
 
   function hasExplicitTarget(raw) {
@@ -865,7 +929,7 @@ module.exports.init = function init(ctx) {
 
   async function handleVipCommand(raw) {
     const dbReady = ensureVipSchema();
-    const soundType = normalizeSoundType(raw.soundType || raw.type);
+    const requestedSoundType = normalizeSoundType(raw.soundType || raw.type);
     const trigger = String(raw.trigger || raw.command || "").trim();
     const source = String(raw.source || "streamerbot").trim() || "streamerbot";
 
@@ -873,6 +937,7 @@ module.exports.init = function init(ctx) {
     const target = await resolveCommandTargetUser(raw, actor);
     const user = target.user;
 
+    const soundType = detectSoundTypeForTarget(requestedSoundType, user);
     const isOverrideRequest = target.explicit && normalizeLogin(user.login) !== normalizeLogin(actor.login);
     const overrideAllowed = isOverrideRequest && actorCanOverride(raw);
     const skipDailyUsage = isOverrideRequest && overrideAllowed;
