@@ -15,21 +15,38 @@ Vor jedem neuen STEP:
 
 ## Empfohlene naechste Arbeitspakete
 
-### 1. Debug-Command in Streamer.bot entfernen/deaktivieren
+### 1. Debug-Option in OBS entfernen
 
 Ziel:
 
-- Temporaeren Debug-Command `!vipdebug` wieder entfernen oder deaktivieren.
-- Temporaere Action `CGN - DEBUG - Dump Command Args` entfernen oder deaktivieren.
+- Falls die VIP-Browserquelle noch mit `?debug=1` laeuft, Debug-Parameter wieder entfernen.
+- Ziel-URL fuer normalen Betrieb:
+  - `/overlays/vip_sound_overlay_v2.html`
 
 Wichtig:
 
 - Keine Backend-Aenderung noetig.
-- Debug-Command nicht im Live-Chat aktiv lassen.
+- Debug nicht dauerhaft im Stream aktiv lassen.
 
 ---
 
-### 2. Optional: echten Mod-Account testen
+### 2. Alte VIP-Action in Streamer.bot sichern/deaktiviert lassen
+
+Ziel:
+
+- Alte direkte Legacy-VIP-Overlay-Action nicht mehr am `!vip`-Command betreiben.
+- Alte Action vorerst deaktiviert lassen oder spaeter nach Backup entfernen.
+- Neuer `!vip`-Ablauf bleibt:
+  - Fetch URL -> `/api/vip-sound/command`
+
+Wichtig:
+
+- Nicht einfach loeschen, falls noch alte Referenzen geprueft werden muessen.
+- Keine doppelte Ausloesung von `/api/vip-sound/enqueue`.
+
+---
+
+### 3. Optional: echten Mod-Account testen
 
 Ziel:
 
@@ -40,37 +57,6 @@ Wichtig:
 
 - Nur notwendig, wenn wir absolut sicher sein wollen.
 - Kein Code-Fix erwartet.
-
----
-
-### 3. VIP-Overlay an echten Sound-System-Start koppeln / verifizieren
-
-Ziel:
-
-- VIP-Overlay darf nicht beim Command oder Enqueue erscheinen.
-- VIP-Overlay soll erst erscheinen, wenn das Sound-System den VIP-Sound wirklich startet.
-- Sound-System-Visualdaten fuer `vip_sound_overlay` auswerten.
-- Keine neue parallele Sound-Queue bauen.
-- Alte `/api/vip-sound/enqueue`-Routen vorerst kompatibel lassen.
-
-Vorher pruefen:
-
-- project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
-- project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
-- project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
-- project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
-- project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
-- backend/modules/vip_sound_overlay.js
-- backend/modules/sound_system.js
-- htdocs/overlays/vip_sound_overlay.html
-- htdocs/overlays/vip_sound_overlay_v2.html
-- htdocs/overlays/sound_system_overlay.html
-
-Wichtig:
-
-- Keine Funktionalitaet entfernen.
-- Sound-System bleibt Quelle fuer Prioritaet/Queue/Start.
-- VIP-Modul darf keinen eigenen neuen Soundstart erzeugen.
 
 ---
 
