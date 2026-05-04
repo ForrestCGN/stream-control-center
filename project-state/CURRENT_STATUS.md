@@ -37,28 +37,99 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Der aktuelle VIP-Backend-Block ist bis STEP040 abgeschlossen und fuer das spaetere Dashboard vorbereitet.
+Der VIP-Backend-Block ist bis STEP040 abgeschlossen und fuer das spaetere Dashboard vorbereitet.
+
+Der TTS-/Sound-/Alert-Block ist bis STEP046 abgeschlossen und live getestet.
 
 Zuletzt abgeschlossen:
 
-- STEP026 VIP Target-Mod-Erkennung ueber Twitch-Helper umgesetzt
-- STEP027 VIP-Default-Chattexte von Heimleitung auf Heimaufsicht umgestellt
-- STEP028 VIP-Daily-Usage API vorbereitet
-- STEP029 VIP-Daily-Usage API Semantik korrigiert
-- STEP030 VIP-Referenzstand dokumentiert
-- STEP031 VIP DB-Settings-Basis vorbereitet
-- STEP032 VIP-Soundpfad/Dateiregel aus DB-Settings aktiv genutzt
-- STEP033 VIP-Events-/Statistikbasis vorbereitet
-- STEP034 VIP-Rollen-Fallbacks in DB verschoben
-- STEP034.1 VIP-Rollen-Config-Pfad korrigiert
-- STEP035 VIP-Text-API vorbereitet
-- STEP036 Zentraler Settings-Helper vorbereitet
-- STEP037 VIP nutzt zentralen `helper_settings.js`
-- STEP038 VIP-Settings Write-API vorbereitet
-- STEP039 VIP Admin-/Test-Routen vorbereitet
-- STEP040 VIP Backend Reference / Dashboard Ready Status dokumentiert
+- STEP041 TTS / Alert / Sound-System Analyseplan
+- STEP042 Alert-TTS Vorbereitung und Timing-Support
+- STEP043 TTS generated files unter `htdocs/assets/sounds/tts/generated/`
+- STEP044 Chat-TTS ueber Sound-System vorbereitet
+- STEP044.4 TTS-Overlay nach VIP-Prinzip ueber Sound-System Visual State
+- STEP044.5 bis STEP044.8 TTS-Overlay Layout/Avatar/adaptive Breite finalisiert
+- STEP045 TTS Queue Sync mit Sound-System vorbereitet
+- STEP046 Alert-Hauptsound frueh ins Sound-System eingereiht, damit Prioritaet korrekt greift
 
-## VIP-/Sound-/Overlay-Stand
+## Aktueller TTS-/Sound-/Alert-Stand
+
+Aktiver technischer Stand:
+
+- Chat-TTS Audio laeuft ueber Sound-System.
+- TTS-Overlay spielt keinen eigenen Ton mehr im Sound-System-Modus.
+- TTS-Overlay zeigt Visuals nach VIP-Prinzip ueber `/api/sound/status` und `sound_system.current.visual`.
+- TTS-Overlay zeigt Avatar + Anzeigename und nutzt adaptive Breite.
+- Google-TTS ist wieder aktiv fuer Broadcaster/Mods/VIPs.
+- Piper bleibt fuer Subscriber.
+- Viewer sind deaktiviert.
+- Google Node-Dependency wurde im Repo gesichert:
+  - `package.json`
+  - `package-lock.json`
+  - `@google-cloud/text-to-speech`
+- Generierte TTS-Dateien liegen unter:
+  - `htdocs/assets/sounds/tts/generated/`
+- Sound-System-kompatibler relativer Pfad wird als `soundSystemFile` verwendet.
+
+Aktuelle Rollenlogik TTS:
+
+- Broadcaster: `google_wavenet_h`
+- Moderator: `google_wavenet_h`
+- VIP: `google_wavenet_h`
+- Subscriber: `piper_thorsten`
+- Viewer: deaktiviert
+
+Alert-TTS:
+
+- Ko-fi Donation-TTS ist aktiviert und getestet.
+- Tipeee Donation-TTS ist aktiviert und getestet.
+- Alert-TTS nutzt Google, sofern `alertTts.voice = google_wavenet_h` bzw. Regel/Default entsprechend gesetzt ist.
+- Alert-Hauptsound und Alert-TTS laufen ueber Sound-System.
+- Alert bleibt bis nach TTS sichtbar.
+
+Sound-System Queue-/Prioritaetsstand:
+
+- `sortByPriority=true`
+- `allowParallel=false`
+- `maxParallel=1`
+- Sound-System-Prioritaet wurde isoliert getestet:
+  - `alert` Priority 80 vor `tts` Priority 50.
+- Realtest nach STEP046 bestaetigt:
+  - Crew-Sound startet.
+  - Chat-TTS wird danach eingereiht.
+  - Ko-fi Alert wird danach gesendet.
+  - Ausgabe erfolgt korrekt: Crew -> Alert -> TTS.
+- Abschlussstatus nach Test:
+  - Sound-System current/queue leer.
+  - TTS playing/current/queue leer.
+  - Alert current/queue leer.
+
+Wichtige betroffene Dateien:
+
+- `backend/modules/tts_system.js`
+- `backend/modules/alert_system.js`
+- `htdocs/overlays/_overlay-tts.html`
+- `package.json`
+- `package-lock.json`
+- `config/sound_system.json` / DB-Tabelle `sound_settings` fuer Runtime-Settings
+
+Wichtige Routen:
+
+- `GET /api/tts/status`
+- `GET /api/tts/settings`
+- `GET /api/tts/stats`
+- `GET /api/tts/prepare-alert`
+- `GET /api/tts/overlay-state` (vorhanden, Normalbetrieb nutzt aber Sound-System Visual State)
+- `POST /api/sound/play`
+- `GET /api/sound/status`
+- `GET/POST /api/sound/settings`
+- `POST /api/alerts/enqueue`
+- `GET /api/alerts/rules`
+- `PUT /api/alerts/rules/:id`
+- `GET /api/alerts/queue`
+- `GET/POST /api/alerts/settings`
+
+## Aktueller VIP-/Sound-/Overlay-Stand
 
 Dokumentiert in:
 
@@ -87,10 +158,7 @@ Kernentscheidungen / aktueller Ablauf:
 - Chat-Ausgabe erfolgt ueber `helper_chat_output` / Heimaufsicht-Bot.
 - Response fuer Streamer.bot: `send=false`, `streamerbot_send="0"`, `chatMessage=""`.
 - VIP-Override: Mods/Broadcaster duerfen fuer Zieluser erneut ausloesen.
-- Override-/Zielrollen-Erkennung laeuft ueber:
-  1. Twitch-Erkennung
-  2. DB-Rollen-Fallbacks
-  3. JSON-Import-/Fallback-Quelle
+- Override-/Zielrollen-Erkennung laeuft ueber Twitch-Erkennung, DB-Rollen-Fallbacks und JSON-Import-/Fallback-Quelle.
 - Overlay V2 liest Visualdaten aus `sound_system.current.visual` bzw. Sound-System-WebSocket/Polling.
 
 ## VIP-Datenbanktabellen
@@ -103,45 +171,6 @@ Aktive VIP-Tabellen in `D:\Streaming\stramAssets\data\sqlite\app.sqlite`:
 - `vip_sound_events`
 - `vip_sound_role_overrides`
 
-Wichtig:
-
-- `app.sqlite` niemals committen.
-- Keine SQLite-Dateien ersetzen.
-- Schemaaenderungen nur migrationssicher.
-
-## VIP Dashboard-Ready APIs
-
-Wichtige Routen:
-
-- `GET /api/vip-sound/status`
-- `GET /api/vip-sound/db/status`
-- `GET /api/vip-sound/admin/summary`
-- `GET/POST /api/vip-sound/command`
-- `POST /api/vip-sound/test`
-- `POST /api/vip-sound/admin/test`
-- `GET /api/vip-sound/daily-usage`
-- `GET /api/vip-sound/daily-usage/today`
-- `POST /api/vip-sound/daily-usage/reset`
-- `POST /api/vip-sound/daily-usage/reset-today`
-- `GET/POST /api/vip-sound/admin/reset-daily`
-- `GET /api/vip-sound/events`
-- `GET /api/vip-sound/events/recent`
-- `GET /api/vip-sound/stats`
-- `GET /api/vip-sound/settings`
-- `GET /api/vip-sound/config`
-- `POST /api/vip-sound/settings/upsert`
-- `POST /api/vip-sound/settings/delete`
-- `POST /api/vip-sound/settings/reset-defaults`
-- `GET /api/vip-sound/roles`
-- `POST /api/vip-sound/roles/upsert`
-- `POST /api/vip-sound/roles/delete`
-- `POST /api/vip-sound/roles/import-config`
-- `GET /api/vip-sound/texts`
-- `GET /api/vip-sound/texts/event-keys`
-- `POST /api/vip-sound/texts/upsert`
-- `POST /api/vip-sound/texts/toggle`
-- `POST /api/vip-sound/texts/delete`
-
 ## Dashboard-/Systemstandard
 
 Fuer neue und bestehende Systeme gilt:
@@ -153,6 +182,14 @@ Fuer neue und bestehende Systeme gilt:
 - Keine direkten Dashboard-Zugriffe auf SQLite oder Dateien.
 - Bestehende Systeme spaeter gezielt pruefen und ggf. schrittweise angleichen.
 - Keine Funktionalitaet entfernen.
+
+Dashboard-relevante naechste Kandidaten:
+
+- TTS-Settings und Rollen.
+- TTS-Overlay-Settings wie Position, Breite, Avatar, Textzeilen, Skalierung.
+- Sound-System Queue-Settings wie Prioritaet, Parallel, MaxParallel, Zielgeraet, Lautstaerke.
+- Alert-Regel-TTS-Felder wie aktiv, Template, max Zeichen, Mindestbetrag, Timing, Voice, Output.
+- Alert-/Provider-Settings mit Secret-Maskierung.
 
 ## Doku-Struktur
 
@@ -190,10 +227,13 @@ Historische Analyse-Snapshots:
 
 ## Bewusst offen
 
-- VIP-Dashboard in neuem Chat bauen.
-- Dashboard-Modulstandard definieren.
+- Dashboard-Modul fuer TTS/Sound/Alert-Settings bauen.
+- Sound-System Runtime-Settings im Dashboard bearbeitbar machen.
+- Alert-Regel-TTS-Felder im Dashboard sichtbar/editierbar machen.
+- Provider-Secrets in Settings-Ausgaben maskieren.
+- `liveAlert`/`livealert` Duplikat in Alert-Settings bereinigen.
+- VIP-Dashboard in eigenem Schritt bauen.
 - Dashboard-Rollen/Rechte und Audit-Logging vorbereiten.
-- Bestehende Systeme vor Dashboard-Bau pruefen und ggf. auf DB-/Settings-/API-Standard umbauen.
 - Debug-Parameter `?debug=1` in OBS wieder entfernen, wenn nicht mehr gebraucht.
 - Alte VIP-Action in Streamer.bot deaktiviert lassen oder spaeter nach Backup sauber entfernen.
 - Fireworks spaeter neu aufbauen.
