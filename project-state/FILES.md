@@ -49,6 +49,7 @@ Wichtigste aktuelle Referenzstaende:
 
 - `project-state/STEP040_VIP_BACKEND_REFERENCE_DASHBOARD_READY_2026-05-04.md`
 - `project-state/STEP046_ALERT_SOUND_EARLY_QUEUE_2026-05-04.md`
+- `project-state/STEP047_VIP_DASHBOARD_BASE_2026-05-04.md`
 
 ## STEP-Dokumentation TTS / Sound / Alerts aktuell
 
@@ -65,10 +66,6 @@ Wichtigste aktuelle Referenzstaende:
 - `project-state/STEP044_8_TTS_OVERLAY_ADAPTIVE_WIDTH_2026-05-04.md`
 - `project-state/STEP045_TTS_SOUND_SYSTEM_QUEUE_SYNC_2026-05-04.md`
 - `project-state/STEP046_ALERT_SOUND_EARLY_QUEUE_2026-05-04.md`
-
-Hinweis:
-
-- Falls einzelne Zwischen-STEP-Dateien in aelteren Chats/Zips erzeugt, aber nicht im Repo liegen, ist der aktuelle Code- und Projektstatus in `CURRENT_STATUS.md`, `CHANGELOG.md` und `STEP046_ALERT_SOUND_EARLY_QUEUE_2026-05-04.md` massgeblich.
 
 ## STEP-Dokumentation VIP aktuell
 
@@ -88,6 +85,7 @@ Hinweis:
 - `project-state/STEP038_VIP_SETTINGS_WRITE_API_2026-05-04.md`
 - `project-state/STEP039_VIP_ADMIN_TEST_ROUTES_2026-05-04.md`
 - `project-state/STEP040_VIP_BACKEND_REFERENCE_DASHBOARD_READY_2026-05-04.md`
+- `project-state/STEP047_VIP_DASHBOARD_BASE_2026-05-04.md`
 
 ## Doku-Struktur
 
@@ -143,6 +141,30 @@ Zentrale Helper:
 - `backend/modules/helpers/helper_twitch_roles.js`
 - `backend/core/database.js`
 
+Dashboard:
+
+- `htdocs/dashboard/app.js`
+- `htdocs/dashboard/app.css`
+- `htdocs/dashboard/index.html`
+- `htdocs/dashboard/modules/sectionhome.js`
+- `htdocs/dashboard/modules/sectionhome.css`
+- `htdocs/dashboard/modules/streamdesk.js`
+- `htdocs/dashboard/modules/streamdesk.css`
+- `htdocs/dashboard/modules/controlhome.js`
+- `htdocs/dashboard/modules/controlhome.css`
+- `htdocs/dashboard/modules/alerts.js`
+- `htdocs/dashboard/modules/alerts.css`
+- `htdocs/dashboard/modules/obs.js`
+- `htdocs/dashboard/modules/obs.css`
+- `htdocs/dashboard/modules/sound.js`
+- `htdocs/dashboard/modules/sound.css`
+- `htdocs/dashboard/modules/hug.js`
+- `htdocs/dashboard/modules/hug.css`
+- `htdocs/dashboard/modules/vip.js`
+- `htdocs/dashboard/modules/vip.css`
+- `htdocs/dashboard/modules/adminconfigs.js`
+- `htdocs/dashboard/modules/adminconfigs.css`
+
 TTS / Sound / Alerts relevant:
 
 - `backend/modules/tts_system.js`
@@ -168,6 +190,8 @@ VIP/Sound relevant:
 - `htdocs/overlays/vip_sound_overlay.html`
 - `htdocs/overlays/vip_sound_overlay_v2.html`
 - `htdocs/overlays/sound_system_overlay.html`
+- `htdocs/dashboard/modules/vip.js`
+- `htdocs/dashboard/modules/vip.css`
 
 ## Aktuelle Datenbanktabellen in app.sqlite, relevant fuer aktuelle Arbeit
 
@@ -293,7 +317,18 @@ Texte:
 - `htdocs/dashboard/index.html`
 - `htdocs/dashboard/modules/`
 
-Dashboard soll spaeter nicht direkt SQLite oder Dateien anfassen, sondern Backend-APIs nutzen.
+Aktive Dashboard-Module:
+
+- Stream-Desk
+- Control-Uebersicht
+- Alerts V2
+- OBS Details
+- Sound-System
+- Hug-System
+- VIP-System
+- Admin Configs
+
+Dashboard soll nicht direkt SQLite oder Dateien anfassen, sondern Backend-APIs nutzen.
 
 ## Datenbank
 
@@ -331,12 +366,14 @@ Beispiel getestet:
 ## Settings-/Config-Strategie
 
 - Dashboard-faehige Werte primaer in DB.
+- Dashboard-faehige Texte primaer in DB.
 - JSON-Dateien nur fuer technische Configs, Fallbacks oder Imports.
 - `helper_config.js` bleibt fuer JSON-Dateien/Pfade.
 - `helper_settings.js` ist zentrale DB-Settings-Schicht.
 - ENV/Secrets bleiben ausserhalb von DB und Repo.
 - `sound_settings` kann `config/sound_system.json` ueberlagern.
 - Alert-Settings koennen Runtime-/DB-Werte enthalten; Secrets muessen fuer Dashboard-Ausgaben maskiert werden.
+- `helper_texts.js` ist aktuell noch JSON-basiert und muss spaeter fuer DB-Texte erweitert oder durch einen DB-Text-Helper ergaenzt werden.
 
 ## Spaeter pruefen / angleichen
 
