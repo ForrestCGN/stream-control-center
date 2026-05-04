@@ -72,22 +72,11 @@ const DEFAULT_CONFIG = {
     soundSystemOutputTarget: 'device',
     soundSystemCategory: 'alert',
     soundSystemSource: 'alert_system',
+    earlySoundQueueEnabled: true,
+    earlySoundQueueTimeoutMs: 3500,
     waitForSoundItemStarted: true,
     fallbackShowOnSoundError: true,
-    fallbackShowAfterMs: 15000,
-    alertTtsEnabled: true,
-    alertTtsPlaybackMode: 'sound_system',
-    alertTtsOverlayPlaybackEnabled: false,
-    alertTtsPrepareUrl: 'http://127.0.0.1:8080/api/tts/prepare-alert',
-    alertTtsTimeoutMs: 15000,
-    alertTtsDelayAfterSoundMs: 0,
-    alertTtsOutroBufferMs: 900,
-    alertTtsSoundSystemEnabled: true,
-    alertTtsSoundSystemCategory: 'alert_tts',
-    alertTtsSoundSystemSource: 'alert_system',
-    alertTtsSoundSystemOutputTarget: 'device',
-    alertTtsSoundSystemVolume: 100,
-    alertTtsSoundSystemPriority: 82
+    fallbackShowAfterMs: 15000
   },
   dashboardSettings: {
     preferSqliteSettings: true,
@@ -237,7 +226,7 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, '/api/alerts/assets/:id/usage', guard, (req, res) => res.json(assetUsage(req.params.id)));
   routes.registerPost(app, '/api/alerts/assets/scan-durations', guard, (req, res) => res.json(scanSoundDurations(req.body || {})));
 
-  routes.registerGet(app, '/api/alerts/settings', guard, (req, res) => res.json({ ok: true, settings: publicSettings(), config: publicConfig() }));
+  routes.registerGet(app, '/api/alerts/settings', guard, (req, res) => res.json({ ok: true, settings: getSettings(), config: publicConfig() }));
   routes.registerPost(app, '/api/alerts/settings', guard, (req, res) => res.json(saveSettings(req.body || {})));
   routes.registerGet(app, '/api/alerts/config', guard, (req, res) => res.json({ ok: true, config: publicConfig() }));
   routes.registerPost(app, '/api/alerts/config', guard, (req, res) => res.json(saveAlertConfig(req.body || {})));
@@ -631,35 +620,13 @@ function buildFfprobeStatus() {
   };
 }
 
-function maskSensitiveValue(key, value) {
-  const k = String(key || '').toLowerCase();
-  if (/(apikey|api_key|token|secret|password|webhook|authorization|bearer)/.test(k)) {
-    if (value === undefined || value === null || value === '') return value;
-    return '***masked***';
-  }
-  if (Array.isArray(value)) return value.map(item => maskSensitiveObject(item));
-  if (value && typeof value === 'object') return maskSensitiveObject(value);
-  return value;
-}
-
-function maskSensitiveObject(obj) {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
-  const out = {};
-  for (const [key, value] of Object.entries(obj)) out[key] = maskSensitiveValue(key, value);
-  return out;
-}
-
-function publicSettings() {
-  return maskSensitiveObject(getSettings());
-}
-
 function publicConfig() {
   const cfg = { ...state.config };
   const runtime = getRuntimeAlertSettings();
   cfg.preview = runtime.preview;
   cfg.liveAlert = runtime.liveAlert;
   cfg.dashboardSettings = runtime.dashboardSettings;
-  return maskSensitiveObject(cfg);
+  return cfg;
 }
 
 
@@ -1036,16 +1003,7 @@ function readSettingsRows() {
 
 function getSettings() {
   const out = {};
-  for (const row of readSettingsRows()) {
-    const key = canonicalSettingsKey(row.key);
-    const value = parseJson(row.value_json, null);
-    if (!key) continue;
-    if (out[key] && out[key] && typeof out[key] === 'object' && !Array.isArray(out[key]) && value && typeof value === 'object' && !Array.isArray(value)) {
-      out[key] = deepMergePlain(out[key], value);
-    } else {
-      out[key] = value;
-    }
-  }
+  for (const row of readSettingsRows()) out[row.key] = parseJson(row.value_json, null);
   return out;
 }
 
@@ -1100,15 +1058,13 @@ function saveSettings(input) {
   for (const [key, value] of Object.entries(data || {})) {
     const clean = canonicalSettingsKey(key);
     if (!clean) continue;
-    if (clean === 'liveAlert') sqlite.run(`DELETE FROM alert_settings WHERE key IN ('livealert', 'live_alert')`);
-    if (clean === 'dashboardSettings') sqlite.run(`DELETE FROM alert_settings WHERE key IN ('dashboardsettings', 'dashboard_settings')`);
     sqlite.run(`
       INSERT INTO alert_settings (key, value_json, updated_at)
       VALUES (:key, :valueJson, :now)
       ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, updated_at=excluded.updated_at
     `, { key: clean, valueJson: JSON.stringify(value), now });
   }
-  return { ok: true, settings: publicSettings(), runtime: getRuntimeAlertSettings() };
+  return { ok: true, settings: getSettings(), runtime: getRuntimeAlertSettings() };
 }
 
 function enqueueFromRequest(req, broadcastWS, defaultSource) {
@@ -1181,6 +1137,7 @@ function enqueueAlertWithRule(payload, rule, broadcastWS, options = {}) {
     displayProfileId: event.display_profile_id || null,
     now
   });
+  prepareEarlySoundSystemQueue(event, broadcastWS);
   state.queue.push(event);
   processQueue(broadcastWS);
   return { ok: true, queued: true, eventUid, replayOf: options.replayOf || null, queueLength: state.queue.length, current: state.current ? state.current.eventUid : null, matchedRule: rule ? rule.id : null, warning: rule ? '' : 'no_matching_rule' };
@@ -1646,6 +1603,47 @@ function postJson(targetUrl, payload, timeoutMs = 3500) {
   });
 }
 
+
+function prepareEarlySoundSystemQueue(event, broadcastWS) {
+  try {
+    if (!event || !event.rule) return null;
+    const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+    if (liveAlert.earlySoundQueueEnabled === false) return null;
+    if (state.current || state.processing) return null;
+    if (event.soundSystemEarlyPromise || event.soundSystem) return event.soundSystemEarlyPromise || null;
+
+    event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
+    const overlayAlert = buildOverlayAlert(event);
+    const soundPayload = buildSoundSystemPayload(event, overlayAlert);
+    if (!soundPayload) return null;
+
+    const preparedAlert = { ...overlayAlert, _soundSystemManaged: true, _earlySoundQueued: true };
+    event.preparedOverlayAlert = preparedAlert;
+    event.soundSystemEarly = { scheduled: true, request: soundPayload, createdAt: nowIso() };
+    sendOverlay(broadcastWS, { event: 'prepare', alertId: event.eventUid, eventId: event.eventUid, alert: preparedAlert });
+
+    const url = cleanText(liveAlert.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl || 'http://127.0.0.1:8080/api/sound/play');
+    const timeoutMs = Number(liveAlert.earlySoundQueueTimeoutMs || liveAlert.soundSystemTimeoutMs || 3500);
+    event.soundSystemEarlyPromise = postJson(url, soundPayload, timeoutMs)
+      .then(result => {
+        event.soundSystem = { ok: true, early: true, request: soundPayload, result };
+        event.soundSystemEarly = { ...(event.soundSystemEarly || {}), ok: true, result, queuedAt: nowIso() };
+        return { synced: true, early: true, result };
+      })
+      .catch(err => {
+        const error = err && err.message ? err.message : String(err);
+        event.soundSystem = { ok: false, early: true, request: soundPayload, error };
+        event.soundSystemEarly = { ...(event.soundSystemEarly || {}), ok: false, error };
+        console.warn('[alert_system] early sound system handoff failed:', error);
+        return { synced: false, early: true, error };
+      });
+    return event.soundSystemEarlyPromise;
+  } catch (err) {
+    console.warn('[alert_system] early sound queue prepare failed:', err && err.message ? err.message : err);
+    return null;
+  }
+}
+
 async function processQueue(broadcastWS) {
   if (state.processing || state.current) return;
   if (!state.queue.length) return;
@@ -1656,8 +1654,6 @@ async function processQueue(broadcastWS) {
     if (event.rule && event.rule.id) event.rule = getRuleById(event.rule.id) || event.rule;
     await enrichEventAvatar(event);
     event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
-    await prepareAlertTtsForEvent(event);
-    event.effectiveDurationMs = resolveFinalAlertDurationMs(event, event.rule);
     event.status = 'playing';
     event.started_at = nowIso();
     sqlite.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, { startedAt: event.started_at, eventUid: event.eventUid });
@@ -1667,7 +1663,6 @@ async function processQueue(broadcastWS) {
       sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
       startCurrentFallbackTimer(event, broadcastWS);
     }
-    scheduleAlertTtsSoundSystem(event);
     dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
   } catch (err) {
     console.warn('[alert_system] processQueue failed:', err && err.message ? err.message : err);
@@ -1685,10 +1680,23 @@ function startCurrentFallbackTimer(event, broadcastWS) {
 }
 
 async function prepareSoundSyncedAlert(event, overlayAlert, broadcastWS) {
+  if (event && event.soundSystemEarlyPromise) {
+    const earlyResult = await event.soundSystemEarlyPromise;
+    if (earlyResult && earlyResult.synced) return earlyResult;
+    if (event.soundSystem && event.soundSystem.error) {
+      const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+      if (liveAlert.fallbackShowOnSoundError !== false) {
+        sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert, soundSystemError: event.soundSystem.error });
+        startCurrentFallbackTimer(event, broadcastWS);
+        return { synced: true, fallback: true, early: true, error: event.soundSystem.error };
+      }
+    }
+  }
+
   const soundPayload = buildSoundSystemPayload(event, overlayAlert);
   if (!soundPayload) return { synced: false, reason: 'not_eligible' };
 
-  const preparedAlert = { ...overlayAlert, _soundSystemManaged: true };
+  const preparedAlert = event && event.preparedOverlayAlert ? event.preparedOverlayAlert : { ...overlayAlert, _soundSystemManaged: true };
   sendOverlay(broadcastWS, { event: 'prepare', alertId: event.eventUid, eventId: event.eventUid, alert: preparedAlert });
 
   try {
@@ -1708,79 +1716,6 @@ async function prepareSoundSyncedAlert(event, overlayAlert, broadcastWS) {
     }
     return { synced: false, error: event.soundSystem.error };
   }
-}
-
-function normalizeAlertTtsPlaybackMode(liveAlert) {
-  const raw = cleanKey(liveAlert.alertTtsPlaybackMode || 'sound_system');
-  if (raw === 'overlay' || raw === 'browser_overlay') return 'overlay';
-  if (raw === 'off' || raw === 'disabled' || raw === 'none') return 'off';
-  return 'sound_system';
-}
-
-function buildAlertTtsSoundSystemPayload(event) {
-  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
-  const tts = event && event.alertTts;
-  if (!event || !tts || tts.enabled === false || tts.ok === false) return null;
-  if (liveAlert.alertTtsSoundSystemEnabled === false) return null;
-  if (normalizeAlertTtsPlaybackMode(liveAlert) !== 'sound_system') return null;
-
-  const file = cleanText(tts.soundSystemFile || soundFileFromPublicUrl(tts.audioUrl || ''));
-  if (!file) return null;
-
-  const volumeCandidate = tts.volume ?? liveAlert.alertTtsSoundSystemVolume ?? liveAlert.soundSystemVolume ?? 100;
-  const volume = Number.isFinite(Number(volumeCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(volumeCandidate)))) : 100;
-  const priorityCandidate = tts.priority ?? liveAlert.alertTtsSoundSystemPriority ?? 82;
-  const priority = Number.isFinite(Number(priorityCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(priorityCandidate)))) : 82;
-  const outputTarget = cleanKey(tts.outputTarget || liveAlert.alertTtsSoundSystemOutputTarget || liveAlert.soundSystemOutputTarget || 'device') || 'device';
-  const category = cleanKey(liveAlert.alertTtsSoundSystemCategory || 'alert_tts') || 'alert_tts';
-  const source = cleanKey(liveAlert.alertTtsSoundSystemSource || liveAlert.soundSystemSource || 'alert_system') || 'alert_system';
-
-  return {
-    file,
-    outputTarget,
-    volume,
-    category,
-    source,
-    priority,
-    requestedBy: event.user_display || event.user_login || 'alert_system',
-    meta: {
-      alertId: event.eventUid,
-      provider: event.source,
-      type: event.type_key,
-      ruleId: event.rule?.id || null,
-      tts: true,
-      durationMs: Number(tts.durationMs || 0),
-      startAfterMs: Number(tts.startAfterMs || 0)
-    }
-  };
-}
-
-function scheduleAlertTtsSoundSystem(event) {
-  const payload = buildAlertTtsSoundSystemPayload(event);
-  if (!payload) return false;
-
-  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
-  const tts = event.alertTts || {};
-  const delayMs = Math.max(0, Number(tts.startAfterMs || 0) || 0);
-  event.alertTts = { ...tts, playbackMode: 'sound_system', overlayPlaybackEnabled: false, soundSystem: { scheduled: true, delayMs, request: payload } };
-
-  setTimeout(() => {
-    const url = cleanText(liveAlert.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl || 'http://127.0.0.1:8080/api/sound/play');
-    postJson(url, payload, Number(liveAlert.soundSystemTimeoutMs || 3500))
-      .then(result => {
-        if (state.current && state.current.eventUid === event.eventUid && state.current.alertTts) {
-          state.current.alertTts.soundSystem = { ...(state.current.alertTts.soundSystem || {}), ok: true, result };
-        }
-      })
-      .catch(err => {
-        console.warn('[alert_system] alert tts sound system handoff failed:', err && err.message ? err.message : err);
-        if (state.current && state.current.eventUid === event.eventUid && state.current.alertTts) {
-          state.current.alertTts.soundSystem = { ...(state.current.alertTts.soundSystem || {}), ok: false, error: err && err.message ? err.message : String(err) };
-        }
-      });
-  }, delayMs);
-
-  return true;
 }
 
 function finishCurrent(reason, broadcastWS) {
@@ -1892,28 +1827,11 @@ function resolveEventCelebration(event, rule = {}, displaySettings = {}) {
   return 'none';
 }
 
-function overlaySafeAlertTtsPayload(tts) {
-  if (!tts || typeof tts !== 'object') return tts;
-  const playbackMode = cleanKey(tts.playbackMode || '');
-  const overlayPlaybackEnabled = tts.overlayPlaybackEnabled === true || playbackMode === 'overlay';
-  if (overlayPlaybackEnabled) return tts;
-
-  return {
-    ...tts,
-    playbackMode: playbackMode || 'sound_system',
-    overlayPlaybackEnabled: false,
-    overlayAudioSuppressed: true,
-    audioUrl: '',
-    audioFile: ''
-  };
-}
-
 function buildOverlayAlert(event) {
   const rule = event.rule || {};
   const text = buildOverlayText(event, rule);
   const displayProfile = resolveDisplayProfile(event, rule);
   const durationMs = Number(event.effectiveDurationMs || 0) > 0 ? Number(event.effectiveDurationMs) : resolveAlertDurationMs(rule);
-  const overlayTts = overlaySafeAlertTtsPayload(event.alertTts || buildTtsPayload(event, rule));
   const alert = {
     id: event.eventUid,
     source: event.source,
@@ -1948,7 +1866,7 @@ function buildOverlayAlert(event) {
     imageUrl: rule.image_url || '',
     ruleId: rule.id || null,
     textVariantId: text.variantId || null,
-    tts: overlayTts,
+    tts: buildTtsPayload(event, rule),
     chatMessage: buildAlertChatMessage(event, rule, text.context),
     createdAt: event.created_at,
     startedAt: event.started_at
@@ -2118,100 +2036,6 @@ function persistRenderedAlert(eventUid, alert) {
   } catch (_) {}
 }
 
-
-
-function resolveFinalAlertDurationMs(event, rule = {}) {
-  const baseDuration = resolveAlertDurationMs(rule);
-  const tts = event && event.alertTts;
-  if (!tts || tts.enabled === false || !tts.ok || !Number(tts.durationMs || 0)) return baseDuration;
-  const soundDurationMs = Number(rule?.sound_duration_ms || event?.soundDurationMs || 0);
-  const startAfterMs = Number(tts.startAfterMs || tts.ttsStartAfterMs || soundDurationMs || 0);
-  const ttsEndMs = startAfterMs + Number(tts.durationMs || 0);
-  const outroBufferMs = Number(tts.outroBufferMs ?? 900) || 0;
-  const finalDurationMs = Math.max(baseDuration, ttsEndMs + outroBufferMs);
-  return clamp(finalDurationMs, 1000, Math.max(60000, finalDurationMs));
-}
-
-async function prepareAlertTtsForEvent(event) {
-  if (!event || !event.rule) return null;
-  const payload = buildTtsPayload(event, event.rule);
-  event.alertTts = payload;
-  if (!payload || payload.enabled === false || !payload.text) return payload;
-
-  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
-  if (liveAlert.alertTtsEnabled === false) {
-    event.alertTts = { ...payload, enabled:false, reason:'alert_tts_disabled_by_config' };
-    return event.alertTts;
-  }
-
-  const playbackMode = normalizeAlertTtsPlaybackMode(liveAlert);
-  if (playbackMode === 'off') {
-    event.alertTts = { ...payload, enabled:false, ok:false, reason:'alert_tts_playback_off', playbackMode };
-    return event.alertTts;
-  }
-
-  const soundDurationMs = Number(event.rule?.sound_duration_ms || 0);
-  const startAfterMs = soundDurationMs + Math.max(0, Number(liveAlert.alertTtsDelayAfterSoundMs || 0));
-  const request = {
-    source: 'alert',
-    mode: 'alert',
-    text: payload.text,
-    message: payload.text,
-    user: event.user_display || event.user_login || 'Alert-System',
-    userLogin: event.user_login || 'alert_system',
-    displayName: event.user_display || event.user_login || 'Alert-System',
-    voice: payload.voice || '',
-    maxChars: payload.maxChars || 250,
-    startAfterMs,
-    delayAfterSoundMs: 0,
-    outroBufferMs: Number(liveAlert.alertTtsOutroBufferMs || 900),
-    meta: {
-      alertId: event.eventUid,
-      provider: event.source,
-      type: event.type_key,
-      ruleId: event.rule?.id || null,
-      timing: payload.timing || 'after_alert',
-      mode: payload.mode || 'audio_only',
-      playbackMode
-    }
-  };
-
-  try {
-    const url = cleanText(liveAlert.alertTtsPrepareUrl || DEFAULT_CONFIG.liveAlert.alertTtsPrepareUrl || 'http://127.0.0.1:8080/api/tts/prepare-alert');
-    const result = await postJson(url, request, Number(liveAlert.alertTtsTimeoutMs || 15000));
-    event.alertTts = {
-      ...payload,
-      ...result,
-      enabled: result && result.ok !== false,
-      ok: result && result.ok !== false,
-      startAfterMs: Number(result?.startAfterMs ?? startAfterMs),
-      endsAfterMs: Number(result?.endsAfterMs ?? (startAfterMs + Number(result?.durationMs || 0))),
-      source: 'alert_system',
-      playbackMode,
-      overlayPlaybackEnabled: playbackMode === 'overlay' || liveAlert.alertTtsOverlayPlaybackEnabled === true
-    };
-  } catch (err) {
-    event.alertTts = {
-      ...payload,
-      enabled: false,
-      ok: false,
-      reason: 'alert_tts_prepare_failed',
-      error: err && err.message ? err.message : String(err)
-    };
-    console.warn('[alert_system] alert tts prepare failed:', event.alertTts.error);
-  }
-
-  try {
-    const rawPayload = event.raw && typeof event.raw === 'object' ? { ...event.raw } : {};
-    rawPayload.alertTts = event.alertTts;
-    sqlite.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
-      eventUid: event.eventUid,
-      payloadJson: JSON.stringify(rawPayload)
-    });
-  } catch (_) {}
-
-  return event.alertTts;
-}
 
 function resolveAlertDurationMs(rule = {}) {
   const fixed = Number(rule?.duration_ms || state.config.defaultDurationMs || 7000);
