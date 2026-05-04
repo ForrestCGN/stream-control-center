@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/dashboard/modules/adminconfigs.css" />
   <link rel="stylesheet" href="/dashboard/modules/sound.css" />
   <link rel="stylesheet" href="/dashboard/modules/hug.css" />
+  <link rel="stylesheet" href="/dashboard/modules/vip.css" />
 </head>
 <body>
   <div class="galaxy"></div>
@@ -24,7 +25,7 @@
       </div>
 
       <div class="nav-search-wrap">
-        <input id="globalSearch" class="nav-search" type="search" placeholder="Suchen: Alerts, Hug, OBS..." autocomplete="off" />
+        <input id="globalSearch" class="nav-search" type="search" placeholder="Suchen: Alerts, Hug, VIP, OBS..." autocomplete="off" />
       </div>
 
       <nav id="mainNav" class="main-nav main-nav-v2" aria-label="Hauptnavigation">
@@ -32,7 +33,7 @@
           <div class="nav-section-title">Navigation</div>
           <button class="nav-main-item active" data-section="live"><span class="nav-icon">📡</span><span class="nav-label"><strong>Live</strong><small>Stream-Desk, Chat, Clips</small></span></button>
           <button class="nav-main-item" data-section="control"><span class="nav-icon">🧭</span><span class="nav-label"><strong>Control</strong><small>Alerts, OBS, Overlays</small></span></button>
-          <button class="nav-main-item" data-section="community"><span class="nav-icon">👥</span><span class="nav-label"><strong>Community</strong><small>Hug, Deathcounter, Tagebuch</small></span></button>
+          <button class="nav-main-item" data-section="community"><span class="nav-icon">👥</span><span class="nav-label"><strong>Community</strong><small>VIP, Hug, Deathcounter, Tagebuch</small></span></button>
           <button class="nav-main-item" data-section="system"><span class="nav-icon">🧩</span><span class="nav-label"><strong>System</strong><small>Sound, TTS, Module</small></span></button>
           <button class="nav-main-item" data-section="admin"><span class="nav-icon">🔐</span><span class="nav-label"><strong>Admin</strong><small>Configs, Rechte, Logs</small></span></button>
         </div>
@@ -61,6 +62,7 @@
       <section id="adminconfigsModule" class="dashboard-module adminconfigs-admin" data-module-panel="adminconfigs" hidden></section>
       <section id="soundModule" class="dashboard-module sound-admin" data-module-panel="sound_system" hidden></section>
       <section id="hugModule" class="dashboard-module hug-admin" data-module-panel="hug" hidden></section>
+      <section id="vipModule" class="dashboard-module vip-admin" data-module-panel="vip" hidden></section>
     </main>
   </div>
   <script src="/dashboard/app.js"></script>
@@ -72,5 +74,6 @@
   <script src="/dashboard/modules/adminconfigs.js"></script>
   <script src="/dashboard/modules/sound.js"></script>
   <script src="/dashboard/modules/hug.js"></script>
+  <script src="/dashboard/modules/vip.js"></script>
 </body>
 </html>
