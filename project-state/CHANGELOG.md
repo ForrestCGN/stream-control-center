@@ -2,6 +2,20 @@
 
 ## 2026-05-04
 
+### STEP021 - Sound-System RequestId in VIP-Response gefixt
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.7.1` aktualisiert.
+- `soundSystemRequestId` wird jetzt aus `soundQueue.response.item.requestId` uebernommen, wenn `result.requestId` und `response.requestId` leer sind.
+- Ursache: Das Sound-System gab die ID bereits in `item.requestId` zurueck, VIP las dieses Feld bisher nicht aus.
+- Live-Test erfolgreich:
+  - Broadcaster-Override akzeptiert.
+  - Sound-System startete den VIP-Sound.
+  - `soundSystemRequestId` enthaelt jetzt eine gueltige `snd_...` ID.
+- Neue STEP-Doku angelegt:
+  - `project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md`
+- Keine Aenderung an Queue-, Daily-Usage-, Override- oder Sound-System-Logik.
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
 ### STEP020 - VIP Override live getestet
 
 - VIP-System im Live-System unter `D:\Streaming\stramAssets` getestet.
