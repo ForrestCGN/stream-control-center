@@ -47,23 +47,27 @@ GitHub:
 - STEP019 VIP Sound Override dokumentiert und Projektstatus aktualisiert
 - STEP020 VIP Override live getestet
 - STEP021 Sound-System RequestId in VIP-Response gefixt
+- STEP022 Streamer.bot VIP-Argumente geprueft
 
 ## Aktueller sauberer Zustand
 
-- GitHub/dev wurde fuer STEP021 aktualisiert.
+- GitHub/dev wurde fuer STEP022 aktualisiert.
 - Aktuelles VIP-Modul: backend/modules/vip_sound_overlay.js
 - VIP-Modul-Version im Repo/Live: 1.7.1
 - Sound-System-Version live: 0.1.8
 - VIP Override ist live bestaetigt.
-- `soundSystemRequestId` wird jetzt korrekt in der VIP-Response ausgegeben.
+- `soundSystemRequestId` wird korrekt in der VIP-Response ausgegeben.
+- Echte Streamer.bot-Argumente passen zum aktuellen VIP-Modul.
+- Fuer STEP022 war keine Codeaenderung noetig.
 
-Live-Routen geprueft:
+Live/Streamer.bot geprueft:
 
 - POST /api/vip-sound/command
 - GET /api/vip-sound/status
 - GET /api/vip-sound-overlay/state
 - GET /api/vip-sound/db/status
 - GET /api/sound/status
+- Streamer.bot Command-Argumente fuer Actor/Target/Moderator-Status
 
 ## VIP-System aktueller Stand
 
@@ -74,6 +78,7 @@ Dokumentation:
 - project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
 - project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
 - project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
+- project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
 
 Aktueller Ablauf fuer `/api/vip-sound/command`:
 
@@ -103,34 +108,23 @@ Aktueller Ablauf fuer `/api/vip-sound/command`:
    - normale Ausloesung schreibt Daily-Usage
    - erlaubter Override ueberspringt Daily-Usage-Pruefung bewusst
    - Accepted-/Override-Nachricht ueber Heimleitungs-Bot
-12. Die VIP-Response enthaelt nun:
+12. Die VIP-Response enthaelt:
    - eigene VIP-RequestId `requestId`
    - Sound-System-ID `soundSystemRequestId`
+
+Streamer.bot Argumente:
+
+- `userName` passt fuer Actor-Login.
+- `user` passt fuer Actor-DisplayName.
+- `input0` passt fuer Target-Login ohne Mention-Zeichen.
+- `rawInput` enthaelt die rohe Eingabe.
+- `isModerator` wird geliefert und bereits von `actorCanOverride()` erkannt.
 
 Chat-Ausgabe:
 
 - laeuft ueber backend/modules/helpers/helper_chat_output.js
 - Streamer.bot soll nicht mehr posten
 - Response: `send=false`, `streamerbot_send="0"`, `chatMessage=""`
-
-STEP020 Live-Test bestaetigt:
-
-- VIP-Status idle: `phase=idle`, `visible=false`, `isActive=false`, `queuedCount=0`.
-- VIP-Overlay-State idle und nicht haengend.
-- VIP-DB bereit: Schema 1, 15 Message-Templates, 3 Daily-Usage-Rows nach Test.
-- Sound-System bereit: Version 0.1.8, Device-Ausgabe aktiv.
-- Normale VIP-Ausloesung fuer `araglor`: akzeptiert, Sound gestartet, Daily-Usage geschrieben.
-- Broadcaster-Override durch `forrestcgn` fuer `araglor`: akzeptiert, Sound erneut gestartet, keine Daily-Usage geschrieben.
-- Duplicate ohne Override fuer `araglor`: korrekt geblockt.
-- Unerlaubter Override durch `normaluser`: korrekt geblockt.
-- AudioDeviceHelper spielte `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\araglor.mp3` erfolgreich ab.
-
-STEP021 Live-Test bestaetigt:
-
-- Broadcaster-Override wurde erneut getestet.
-- Sound-System startete den VIP-Sound.
-- `soundSystemRequestId` enthaelt jetzt eine gueltige `snd_...` ID.
-- Keine Queue-, Daily-Usage-, Override- oder Sound-System-Logik wurde umgebaut.
 
 ## Doku-Struktur
 
@@ -166,8 +160,8 @@ Snapshots:
 
 ## Offene Punkte
 
-- Reale Streamer.bot-Rollen-/Badge-Parameter bei Produktion weiter beobachten.
-- Falls noetig nur Rollenmapping erweitern, keine Sound-/Queue-Logik umbauen.
+- Temporaeren Debug-Command `!vipdebug` in Streamer.bot wieder entfernen oder deaktivieren.
+- Optional echten Mod-Account testen, ob auch dort `isModerator` geliefert wird.
 - VIP-Overlay-Startverhalten gegen echten Sound-System-Start weiter verifizieren.
 - VIP-Soundpfad konfigurierbar ueber DB/Dashboard machen.
 - VIP-Nachrichten spaeter im Dashboard bearbeitbar machen.
@@ -179,8 +173,6 @@ Snapshots:
 
 ## Naechster empfohlener Schritt
 
-Naechster kleiner VIP-Step:
-
-1. Reale Streamer.bot-Argumente fuer Rollen/Badges pruefen.
-2. Falls noetig nur `actorCanOverride()` Mapping erweitern.
+1. `!vipdebug` / Debug-Action in Streamer.bot entfernen oder deaktivieren.
+2. Optional echten Mod-Test fuer VIP-Override durchfuehren.
 3. Danach VIP-Overlay-Startverhalten mit echtem Sound-System-Start weiter verifizieren.
