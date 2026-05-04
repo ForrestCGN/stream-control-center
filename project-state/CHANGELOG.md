@@ -2,6 +2,17 @@
 
 ## 2026-05-04
 
+### STEP032 - VIP Soundpfad und Dateiregel aus DB-Settings aktiv genutzt
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.7.8` aktualisiert.
+- `soundBaseDir`, `fileNameMode`, `fileExtension` und `enabled` werden jetzt aus `vip_sound_settings` gelesen.
+- Lesereihenfolge bleibt: SQLite -> Config-Fallback ueber `helper_config.js` -> Code-Default.
+- Standardverhalten bleibt gleich: Soundpfad `D:/Streaming/stramAssets/htdocs/assets/sounds/vip`, Dateiregel `displayName + .mp3`.
+- Keine Daily-Usage-, Twitch-Rollen-, Rollen-Fallback- oder Overlay-Logik entfernt.
+- Neue STEP-Doku angelegt:
+  - `project-state/STEP032_VIP_SOUND_FILE_SETTINGS_ACTIVE_2026-05-04.md`
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
 ### STEP031 - VIP DB-Settings Basis vorbereitet
 
 - `backend/modules/vip_sound_overlay.js` auf Version `1.7.7` aktualisiert.

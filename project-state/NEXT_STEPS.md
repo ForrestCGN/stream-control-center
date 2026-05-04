@@ -55,6 +55,46 @@ Ziel:
 
 ## Empfohlene naechste Arbeitspakete
 
+### 1. STEP032 testen
+
+Ziel:
+
+- `vip_sound_overlay.js` Version `1.7.8` deployen.
+- Pruefen, dass `soundBaseDir`, `fileNameMode`, `fileExtension` und `enabled` aus `vip_sound_settings` genutzt werden.
+- `!vip @araglor` muss weiterhin Mod-Sound abspielen.
+
+Checks:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/status" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/settings" | ConvertTo-Json -Depth 20
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip-sound/daily-usage/reset-today" | ConvertTo-Json -Depth 20
+```
+
+Danach Twitch-Chat:
+
+```text
+!vip @araglor
+```
+
+---
+
+### 2. VIP-Settings Schreib-API bauen
+
+Ziel:
+
+- `GET /api/vip-sound/settings` existiert bereits.
+- Als naechstes `POST /api/vip-sound/settings` oder gezielte Update-Route bauen.
+- Settings sollen spaeter dashboardfaehig sein, aber Dashboard erst nach stabiler API.
+
+Wichtig:
+
+- Keine direkte Dashboard-SQL-Bearbeitung.
+- Validierung fuer Pfade, Dateiregeln und Boolean/Number-Werte.
+- Aenderungen spaeter auditierbar machen.
+
+---
+
 ### 1. VIP-Daily-Usage Retention spaeter konfigurierbar machen
 
 Ziel:

@@ -63,6 +63,10 @@ Zuletzt abgeschlossen:
 - STEP029 VIP-Daily-Usage API-Semantik korrigiert
 - STEP030 VIP-Referenzstand dokumentiert
 - STEP031 VIP-DB-Settings-Basis vorbereitet
+- STEP032 VIP-Soundpfad und Dateiregel aus DB-Settings aktiv genutzt
+- STEP029 VIP-Daily-Usage API-Semantik korrigiert
+- STEP030 VIP-Referenzstand dokumentiert
+- STEP031 VIP-DB-Settings-Basis vorbereitet
 - STEP026 VIP Target-Mod-Erkennung ueber Twitch-Helper umgesetzt
 - STEP027 VIP-Default-Chattexte von Heimleitung auf Heimaufsicht umgestellt
 - STEP024 VIP-Overlay-Texte aus SQLite bestaetigt
@@ -97,6 +101,11 @@ Dokumentiert in:
 - project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
 - project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
 - project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
+- project-state/STEP032_VIP_SOUND_FILE_SETTINGS_ACTIVE_2026-05-04.md
+- project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
+- project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
+- project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
+- project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
 
 Aktueller Modulstand:
 
@@ -111,8 +120,8 @@ Kernentscheidungen / aktueller Ablauf:
 - Streamer.bot sendet keinen VIP-Chattext mehr selbst.
 - Streamer.bot startet kein VIP-Overlay mehr direkt.
 - VIP-Command prueft Daily-Usage pro User/pro Stream-Tag.
-- VIP-Command sucht Sounddatei unter `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
-- Dateiregel aktuell: `Anzeigename.mp3`.
+- VIP-Command sucht Sounddateien jetzt ueber DB-Setting `soundBaseDir`, Fallback bleibt `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
+- Dateiregel kommt jetzt aus DB-Settings `fileNameMode` + `fileExtension`, Fallback bleibt `Anzeigename.mp3`.
 - Wenn Datei fehlt, wird keine Daily-Usage geschrieben.
 - Wenn Datei existiert, wird `/api/sound/play` genutzt.
 - Nur wenn das Sound-System akzeptiert, wird Daily-Usage geschrieben.
@@ -238,3 +247,11 @@ STEP031 Ergebnis:
 - Lesereihenfolge fuer spaetere Dashboard-Werte: SQLite > Config > Default.
 - Neue Routen: `/api/vip-sound/settings` und `/api/vip-sound/config`.
 - Soundpfad-/Dateiregel-Verhalten bleibt in STEP031 unveraendert; Umstellung folgt in STEP032.
+
+
+## STEP032 Ergebnis
+
+- VIP-Soundpfad und Dateiregel werden jetzt aktiv aus `vip_sound_settings` gelesen.
+- Aktive Settings: `enabled`, `soundBaseDir`, `fileNameMode`, `fileExtension`.
+- Lesereihenfolge: SQLite -> Config-Fallback ueber `helper_config.js` -> Code-Default.
+- Dashboard kann spaeter auf dieser Basis eine Settings-Oberflaeche bekommen.

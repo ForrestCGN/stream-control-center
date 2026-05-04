@@ -69,6 +69,10 @@ STEP-Dokumentation:
 - project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
 - project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
 - project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
+- project-state/STEP032_VIP_SOUND_FILE_SETTINGS_ACTIVE_2026-05-04.md
+- project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
+- project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
+- project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
 - project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
 - project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 
@@ -145,6 +149,7 @@ VIP aktuelle Tabellen in app.sqlite:
 - vip_sound_daily_usage
 - vip_sound_message_templates
 - vip_sound_settings
+- vip_sound_settings
 
 Sound-System relevante Route fuer VIP:
 
@@ -213,7 +218,7 @@ Wichtig:
 - app.sqlite niemals committen.
 - .env/secrets niemals committen.
 - Backup-/Altdateien nicht committen.
-- VIP-Soundpfad spaeter konfigurierbar machen.
+- VIP-Soundpfad und Dateiregel sind backendseitig ueber `vip_sound_settings` vorbereitet/aktiv; Dashboard-UI folgt spaeter.
 
 
 ## STEP026 VIP Twitch-Rollenhelper
@@ -252,3 +257,19 @@ Lesereihenfolge:
 1. SQLite
 2. Config-Fallback ueber `helper_config.js`
 3. Default im Code
+
+
+## VIP Settings relevant
+
+Aktive DB-Settings in `vip_sound_settings`:
+
+- `enabled`
+- `soundBaseDir`
+- `fileNameMode`
+- `fileExtension`
+- `dailyUsageRetentionDays`
+- `cleanupDailyUsageOnStartup`
+- `autoDetectTargetRole`
+- `fallbackRolesEnabled`
+
+Lesereihenfolge: SQLite -> Config-Fallback ueber `helper_config.js` -> Code-Default.

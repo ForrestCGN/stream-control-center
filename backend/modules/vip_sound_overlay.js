@@ -183,7 +183,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.7",
+    version: "1.7.8",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -1085,27 +1085,73 @@ module.exports.init = function init(ctx) {
     });
   }
 
+  function normalizeFileExtension(value) {
+    let ext = String(value || ".mp3").trim();
+    if (!ext) ext = ".mp3";
+    if (!ext.startsWith(".")) ext = `.${ext}`;
+    return ext;
+  }
+
+  function sanitizeSoundFileBaseName(value, fallback) {
+    const raw = String(value || fallback || "").trim();
+    return raw.replace(/[\\/:*?"<>|]/g, "_").trim();
+  }
+
   function getVipSoundBaseDir() {
-    const raw = String(process.env.VIP_SOUND_BASE_DIR || "").trim();
-    if (raw) {
-      if (path.isAbsolute(raw)) return raw;
-      return path.join(process.cwd(), raw);
+    const defaultDir = process.env.VIP_SOUND_BASE_DIR || path.join(webRoot, "assets", "sounds", "vip");
+    const raw = String(getVipSetting("soundBaseDir", defaultDir) || "").trim();
+    const selected = raw || defaultDir;
+
+    if (path.isAbsolute(selected)) return selected;
+    return path.join(process.cwd(), selected);
+  }
+
+  function getVipSoundFileName(user) {
+    const login = normalizeLogin(user.login || "");
+    const displayName = cleanDisplayName(user.displayName || user.login || "");
+    const mode = String(getVipSetting("fileNameMode", "displayName") || "displayName").trim().toLowerCase();
+    const extension = normalizeFileExtension(getVipSetting("fileExtension", ".mp3"));
+
+    let baseName = displayName || login;
+    if (mode === "login") {
+      baseName = login || displayName;
+    } else if (mode === "displayname_lower" || mode === "displayname-lower" || mode === "displaynamelower") {
+      baseName = (displayName || login).toLowerCase();
     }
 
-    return path.join(webRoot, "assets", "sounds", "vip");
+    return `${sanitizeSoundFileBaseName(baseName, login || displayName || "vip")}${extension}`;
+  }
+
+  function toSoundSystemFileReference(fullPath) {
+    const soundsRoot = path.join(webRoot, "assets", "sounds");
+    const rootWin = String(soundsRoot).replace(/\//g, "\\");
+    const fullWin = String(fullPath).replace(/\//g, "\\");
+    const rootWithSlash = rootWin.endsWith("\\") ? rootWin : `${rootWin}\\`;
+    const rootCompare = normalizeWinPath(rootWithSlash);
+    const fullCompare = normalizeWinPath(fullWin);
+
+    if (fullCompare.startsWith(rootCompare)) {
+      return fullWin.slice(rootWithSlash.length).replace(/\\/g, "/");
+    }
+
+    return fullPath;
   }
 
   function resolveVipSoundFile(user) {
     const displayName = cleanDisplayName(user.displayName || user.login || "");
-    const fileName = `${displayName}.mp3`;
-    const fullPath = path.join(getVipSoundBaseDir(), fileName);
-    const relativeFile = `vip/${fileName}`.replace(/\\/g, "/");
+    const baseDir = getVipSoundBaseDir();
+    const fileName = getVipSoundFileName(user);
+    const fullPath = path.join(baseDir, fileName);
+    const relativeFile = toSoundSystemFileReference(fullPath);
 
     return {
       displayName,
       fileName,
+      baseDir,
       fullPath,
       relativeFile,
+      fileNameMode: String(getVipSetting("fileNameMode", "displayName") || "displayName"),
+      fileExtension: normalizeFileExtension(getVipSetting("fileExtension", ".mp3")),
       exists: fileExistsSafe(fullPath)
     };
   }
@@ -1332,6 +1378,27 @@ module.exports.init = function init(ctx) {
       date: usageDate,
       override: skipDailyUsage ? "1" : "0"
     };
+
+    if (!getVipSetting("enabled", true)) {
+      return await buildVipChatResponse("system_disabled", context, {
+        accepted: false,
+        duplicate: false,
+        dbReady,
+        systemDisabled: true,
+        dailyUsageWritten: false,
+        usageDate,
+        actorLogin: actor.login,
+        actorDisplayName: actor.displayName || actor.login,
+        targetLogin: user.login,
+        targetDisplayName: user.displayName || user.login,
+        userLogin: user.login,
+        userDisplayName: user.displayName || user.login,
+        soundType,
+        trigger,
+        source,
+        soundSystemQueued: false
+      });
+    }
 
     if (!dbReady) {
       return await buildVipChatResponse("error_generic", context, {
