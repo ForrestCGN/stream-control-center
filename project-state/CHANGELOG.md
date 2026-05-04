@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-05-04
+
+### STEP019 - VIP Sound Override dokumentiert
+
+- Mitgelieferte VIP-Override-Statusdateien beruecksichtigt und in den bestehenden Projektstand eingearbeitet.
+- GitHub/dev geprueft: `backend/modules/vip_sound_overlay.js` enthaelt bereits die Override-Logik ueber `VIP_OVERRIDE_ALLOWED_ROLES`.
+- GitHub/dev geprueft: `htdocs/overlays/vip_sound_overlay_v2.html` ist vorhanden und wertet Sound-System/WebSocket-Status fuer VIP-Visuals aus.
+- Neue STEP-Doku angelegt:
+  - `project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md`
+- Projektindex aktualisiert:
+  - `project-state/FILES.md`
+- Keine Codeaenderung in diesem Dokumentations-Commit.
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
 ## 2026-05-03
 
 ### STEP017 - VIP-Sounds ueber Sound-System queued
