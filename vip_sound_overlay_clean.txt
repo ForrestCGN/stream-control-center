@@ -23,7 +23,6 @@ module.exports.init = function init(ctx) {
   const VIP_MESSAGE_TABLE = "vip_sound_message_templates";
   const VIP_MESSAGE_STYLE = "heimleitung";
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
-  const VIP_OVERRIDE_ALLOWED_ROLES_RAW = process.env.VIP_OVERRIDE_ALLOWED_ROLES || "moderator,mod,broadcaster";
 
   const DEFAULT_VIP_MESSAGES = [
     {
@@ -44,26 +43,6 @@ module.exports.init = function init(ctx) {
     {
       event_key: "accepted_mod",
       message_text: "@{displayName}, Sonderfreigabe fuers Mod-Buero wurde erteilt. Sound ist eingereiht.",
-      weight: 1
-    },
-    {
-      event_key: "accepted_override_vip",
-      message_text: "@{displayName}, Heimleitung hat eine Sonderfreigabe erteilt. Der VIP-Sound wird erneut abgespielt.",
-      weight: 1
-    },
-    {
-      event_key: "accepted_override_mod",
-      message_text: "@{displayName}, Heimleitung hat eine Mod-Sonderfreigabe erteilt. Der Sound wird erneut abgespielt.",
-      weight: 1
-    },
-    {
-      event_key: "denied_override_vip",
-      message_text: "@{actorDisplayName}, Antrag abgelehnt. VIP-Sound-Sonderfreigaben gibt es nur fuer Mods und die Sendeleitung.",
-      weight: 1
-    },
-    {
-      event_key: "denied_override_mod",
-      message_text: "@{actorDisplayName}, Antrag abgelehnt. Mod-Sound-Sonderfreigaben gibt es nur fuer Mods und die Sendeleitung.",
       weight: 1
     },
     {
@@ -283,64 +262,6 @@ module.exports.init = function init(ctx) {
     return `${base}_${normalizeSoundType(soundType)}`;
   }
 
-  function csvList(value) {
-    return String(value || "")
-      .split(",")
-      .map(v => v.trim().toLowerCase())
-      .filter(Boolean);
-  }
-
-  function boolish(value) {
-    const s = String(value ?? "").trim().toLowerCase();
-    return s === "1" || s === "true" || s === "yes" || s === "ja" || s === "y";
-  }
-
-  function actorCanOverride(raw) {
-    const allowed = new Set(csvList(VIP_OVERRIDE_ALLOWED_ROLES_RAW));
-    const roles = new Set();
-
-    for (const key of ["actorRole", "userRole", "role", "badges", "actorBadges"]) {
-      const value = raw[key];
-
-      if (Array.isArray(value)) {
-        for (const item of value) roles.add(String(item || "").trim().toLowerCase());
-      } else {
-        for (const item of csvList(value)) roles.add(item);
-      }
-    }
-
-    if (boolish(raw.actorIsBroadcaster) || boolish(raw.isBroadcaster) || boolish(raw.broadcaster)) {
-      roles.add("broadcaster");
-    }
-
-    if (boolish(raw.actorIsMod) || boolish(raw.isMod) || boolish(raw.isModerator) || boolish(raw.moderator)) {
-      roles.add("moderator");
-      roles.add("mod");
-    }
-
-    for (const role of roles) {
-      if (allowed.has(role)) return true;
-    }
-
-    return false;
-  }
-
-  function hasExplicitTarget(raw) {
-    const keys = [
-      "targetLogin",
-      "targetUserLogin",
-      "targetUserName",
-      "targetUsername",
-      "target",
-      "targetDisplayName",
-      "targetUserDisplayName",
-      "input0",
-      "input1"
-    ];
-
-    return keys.some(key => String(raw[key] || "").trim() !== "");
-  }
-
   function getBerlinDate() {
     const parts = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Europe/Berlin",
@@ -398,6 +319,9 @@ module.exports.init = function init(ctx) {
   }
 
   function seedDefaultMessagesIfEmpty() {
+    const row = database.get(`SELECT COUNT(*) AS count FROM ${VIP_MESSAGE_TABLE}`);
+    if (Number(row?.count || 0) > 0) return;
+
     const now = nowIso();
     for (const item of DEFAULT_VIP_MESSAGES) {
       database.run(`
@@ -453,10 +377,6 @@ module.exports.init = function init(ctx) {
   function fallbackMessage(key, displayName) {
     const name = displayName || "User";
     if (key === "accepted_mod") return `@${name}, Mod-Sound wurde von der Heimleitung durchgewunken.`;
-    if (key === "accepted_override_vip") return `@${name}, Heimleitung hat eine Sonderfreigabe erteilt. Der VIP-Sound wird erneut abgespielt.`;
-    if (key === "accepted_override_mod") return `@${name}, Heimleitung hat eine Mod-Sonderfreigabe erteilt. Der Sound wird erneut abgespielt.`;
-    if (key === "denied_override_vip") return `@${name}, Antrag abgelehnt. VIP-Sound-Sonderfreigaben gibt es nur fuer Mods und die Sendeleitung.`;
-    if (key === "denied_override_mod") return `@${name}, Antrag abgelehnt. Mod-Sound-Sonderfreigaben gibt es nur fuer Mods und die Sendeleitung.`;
     if (key === "duplicate_mod") return `@${name}, Einspruch zwecklos. Dein Mod-Sound war heute schon dran.`;
     if (key === "duplicate_vip") return `@${name}, Heimleitung sagt nein. Dein VIP-Sound wurde heute bereits genutzt.`;
     if (key === "system_disabled") return `@${name}, Heimleitung meldet: VIP-Sounds sind gerade ausser Betrieb.`;
@@ -771,75 +691,21 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  async function resolveCommandTargetUser(raw, actor) {
-    if (!hasExplicitTarget(raw)) {
-      return { explicit: false, user: actor };
-    }
-
-    const targetRaw = normalizeLogin(
-      raw.targetLogin ||
-      raw.targetUserLogin ||
-      raw.targetUserName ||
-      raw.targetUsername ||
-      raw.target ||
-      raw.input0 ||
-      raw.input1 ||
-      ""
-    );
-
-    const targetDisplayRaw = cleanDisplayName(
-      raw.targetDisplayName ||
-      raw.targetUserDisplayName ||
-      raw.targetDisplay ||
-      raw.target ||
-      raw.input0 ||
-      raw.input1 ||
-      targetRaw ||
-      ""
-    );
-
-    const lookupKey = targetRaw || targetDisplayRaw;
-    const info = await fetchUserInfo(lookupKey);
-
-    const login = normalizeLogin((info && info.login) || targetRaw || targetDisplayRaw);
-    const displayName = cleanDisplayName(targetDisplayRaw || (info && info.displayName) || login);
-    const avatarUrl = String((info && info.avatarUrl) || raw.targetAvatarUrl || "").trim();
-
-    return {
-      explicit: true,
-      user: {
-        login,
-        displayName: displayName || login,
-        avatarUrl
-      }
-    };
-  }
-
   async function handleVipCommand(raw) {
     const dbReady = ensureVipSchema();
     const soundType = normalizeSoundType(raw.soundType || raw.type);
     const trigger = String(raw.trigger || raw.command || "").trim();
     const source = String(raw.source || "streamerbot").trim() || "streamerbot";
+    const user = await resolveCommandUser(raw);
 
-    const actor = await resolveCommandUser(raw);
-    const target = await resolveCommandTargetUser(raw, actor);
-    const user = target.user;
-
-    const isOverrideRequest = target.explicit && normalizeLogin(user.login) !== normalizeLogin(actor.login);
-    const overrideAllowed = isOverrideRequest && actorCanOverride(raw);
-    const skipDailyUsage = isOverrideRequest && overrideAllowed;
-
-    if (!actor.login || !user.login) {
+    if (!user.login) {
       const context = {
-        displayName: (user && user.displayName) || (actor && actor.displayName) || "User",
-        login: (user && user.login) || "",
-        actorDisplayName: (actor && actor.displayName) || "User",
-        actorLogin: (actor && actor.login) || "",
+        displayName: user.displayName || "User",
+        login: "",
         soundType,
         trigger,
         date: getBerlinDate()
       };
-
       return await buildVipChatResponse("error_generic", context, {
         accepted: false,
         duplicate: false,
@@ -852,14 +718,9 @@ module.exports.init = function init(ctx) {
     const context = {
       displayName: user.displayName || user.login,
       login: user.login,
-      actorDisplayName: actor.displayName || actor.login,
-      actorLogin: actor.login,
-      targetDisplayName: user.displayName || user.login,
-      targetLogin: user.login,
       soundType,
       trigger,
-      date: usageDate,
-      override: skipDailyUsage ? "1" : "0"
+      date: usageDate
     };
 
     if (!dbReady) {
@@ -871,56 +732,24 @@ module.exports.init = function init(ctx) {
       });
     }
 
-    if (isOverrideRequest && !overrideAllowed) {
-      return await buildVipChatResponse(eventKey("denied_override", soundType), context, {
-        accepted: false,
-        duplicate: false,
-        override: true,
-        overrideAllowed: false,
-        dailyUsageWritten: false,
-        usageDate,
-        actorLogin: actor.login,
-        actorDisplayName: actor.displayName || actor.login,
-        targetLogin: user.login,
-        targetDisplayName: user.displayName || user.login,
-        userLogin: user.login,
-        userDisplayName: user.displayName || user.login,
-        soundType,
-        trigger,
-        source,
-        soundSystemQueued: false
-      });
-    }
-
-    let existing = null;
-    if (!skipDailyUsage) {
-      existing = database.get(`
-        SELECT usage_date, user_login, sound_type, triggered_at
-        FROM vip_sound_daily_usage
-        WHERE usage_date = :usageDate
-          AND user_login = :userLogin
-          AND sound_type = :soundType
-      `, {
-        usageDate,
-        userLogin: user.login,
-        soundType
-      });
-    }
+    const existing = database.get(`
+      SELECT usage_date, user_login, sound_type, triggered_at
+      FROM vip_sound_daily_usage
+      WHERE usage_date = :usageDate
+        AND user_login = :userLogin
+        AND sound_type = :soundType
+    `, {
+      usageDate,
+      userLogin: user.login,
+      soundType
+    });
 
     if (existing) {
       return await buildVipChatResponse(eventKey("duplicate", soundType), context, {
         accepted: false,
         duplicate: true,
-        override: false,
-        overrideAllowed: false,
-        dailyUsageWritten: false,
         usageDate,
-        actorLogin: actor.login,
-        actorDisplayName: actor.displayName || actor.login,
-        targetLogin: user.login,
-        targetDisplayName: user.displayName || user.login,
         userLogin: user.login,
-        userDisplayName: user.displayName || user.login,
         soundType,
         trigger,
         source,
@@ -936,15 +765,8 @@ module.exports.init = function init(ctx) {
       return await buildVipChatResponse(missing ? "sound_missing" : "error_generic", context, {
         accepted: false,
         duplicate: false,
-        override: skipDailyUsage,
-        overrideAllowed,
-        dailyUsageWritten: false,
         requestId,
         usageDate,
-        actorLogin: actor.login,
-        actorDisplayName: actor.displayName || actor.login,
-        targetLogin: user.login,
-        targetDisplayName: user.displayName || user.login,
         userLogin: user.login,
         userDisplayName: user.displayName || user.login,
         avatarUrl: user.avatarUrl,
@@ -959,35 +781,26 @@ module.exports.init = function init(ctx) {
       });
     }
 
-    if (!skipDailyUsage) {
-      database.run(`
-        INSERT INTO vip_sound_daily_usage
-          (usage_date, user_login, user_display_name, sound_type, source, triggered_at)
-        VALUES
-          (:usageDate, :userLogin, :userDisplayName, :soundType, :source, :triggeredAt)
-      `, {
-        usageDate,
-        userLogin: user.login,
-        userDisplayName: user.displayName || user.login,
-        soundType,
-        source,
-        triggeredAt: nowIso()
-      });
-      refreshDbStats();
-    }
+    database.run(`
+      INSERT INTO vip_sound_daily_usage
+        (usage_date, user_login, user_display_name, sound_type, source, triggered_at)
+      VALUES
+        (:usageDate, :userLogin, :userDisplayName, :soundType, :source, :triggeredAt)
+    `, {
+      usageDate,
+      userLogin: user.login,
+      userDisplayName: user.displayName || user.login,
+      soundType,
+      source,
+      triggeredAt: nowIso()
+    });
+    refreshDbStats();
 
-    return await buildVipChatResponse(skipDailyUsage ? eventKey("accepted_override", soundType) : eventKey("accepted", soundType), context, {
+    return await buildVipChatResponse(eventKey("accepted", soundType), context, {
       accepted: true,
       duplicate: false,
-      override: skipDailyUsage,
-      overrideAllowed,
-      dailyUsageWritten: !skipDailyUsage,
       requestId,
       usageDate,
-      actorLogin: actor.login,
-      actorDisplayName: actor.displayName || actor.login,
-      targetLogin: user.login,
-      targetDisplayName: user.displayName || user.login,
       userLogin: user.login,
       userDisplayName: user.displayName || user.login,
       avatarUrl: user.avatarUrl,
@@ -1000,9 +813,7 @@ module.exports.init = function init(ctx) {
       soundSystemRequestId: soundQueue.result.requestId || (soundQueue.response && soundQueue.response.requestId) || "",
       soundFile: soundQueue.sound.relativeFile,
       soundPath: soundQueue.sound.fullPath,
-      note: skipDailyUsage
-        ? "STEP019 override queued VIP sound via sound_system without daily usage."
-        : "STEP017 queued VIP sound via sound_system before writing daily usage."
+      note: "STEP017 queued VIP sound via sound_system before writing daily usage."
     });
   }
 
