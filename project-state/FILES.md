@@ -65,6 +65,9 @@ STEP-Dokumentation:
 - project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
 - project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
 - project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
+- project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
+- project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
+- project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 
 ## Doku-Struktur
 
@@ -151,6 +154,10 @@ VIP relevante Routen:
 - GET /api/vip-sound/db/status
 - GET /api/vip-sound-overlay/state
 - POST /api/vip-sound/reset
+- GET /api/vip-sound/daily-usage
+- GET /api/vip-sound/daily-usage/today
+- POST /api/vip-sound/daily-usage/reset
+- POST /api/vip-sound/daily-usage/reset-today
 
 VIP Override relevant:
 

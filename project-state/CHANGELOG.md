@@ -2,6 +2,22 @@
 
 ## 2026-05-04
 
+### STEP028 - VIP Daily-Usage API vorbereitet
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.7.5` aktualisiert.
+- Neue Daily-Usage-Routen ergaenzt:
+  - `GET /api/vip-sound/daily-usage`
+  - `GET /api/vip-sound/daily-usage/today`
+  - `POST /api/vip-sound/daily-usage/reset`
+  - `POST /api/vip-sound/daily-usage/reset-today`
+- Dieselben Routen sind aus Kompatibilitaetsgruenden auch unter `/api/vip-sound-overlay/*` erreichbar.
+- Reset kann den kompletten Tag, einen User oder User+SoundType loeschen.
+- Zweck: Tests und spaeteres Dashboard ohne temporaere SQLite-Loeschscripts.
+- Neue STEP-Doku angelegt:
+  - `project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md`
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
+
 ### STEP027 - VIP-Texte auf Heimaufsicht umgestellt
 
 - `backend/modules/vip_sound_overlay.js` aktualisiert.

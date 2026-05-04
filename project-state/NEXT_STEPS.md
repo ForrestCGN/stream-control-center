@@ -16,6 +16,22 @@ Vor jedem neuen STEP:
 
 ## Empfohlene naechste Arbeitspakete
 
+### 1. VIP-Daily-Usage API testen
+
+Ziel:
+
+- Neue Daily-Usage-Routen nach Deploy pruefen.
+- `GET /api/vip-sound/daily-usage/today`
+- `POST /api/vip-sound/daily-usage/reset-today`
+- Danach `!vip @araglor` erneut testen.
+
+Wichtig:
+
+- Keine temporären DB-Loeschscripts mehr fuer normale Tests nutzen.
+- SQLite weiterhin niemals ersetzen.
+
+---
+
 ### 1. STEP026 deployen und testen
 
 Workflow:

@@ -137,7 +137,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.4",
+    version: "1.7.5",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -440,6 +440,75 @@ module.exports.init = function init(ctx) {
     const data = {};
     for (const part of parts) data[part.type] = part.value;
     return `${data.year}-${data.month}-${data.day}`;
+  }
+
+
+  function normalizeUsageDate(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return getBerlinDate();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      throw new Error("Invalid usage_date. Expected YYYY-MM-DD.");
+    }
+    return raw;
+  }
+
+  function listDailyUsageRows(date, limitValue) {
+    const usageDate = normalizeUsageDate(date);
+    const limit = Math.max(1, Math.min(500, intOrDefault(limitValue, 200)));
+
+    const rows = database.all(`
+      SELECT usage_date, user_login, user_display_name, sound_type, source, triggered_at
+      FROM vip_sound_daily_usage
+      WHERE usage_date = :usageDate
+      ORDER BY triggered_at ASC
+      LIMIT :limit
+    `, {
+      usageDate,
+      limit
+    });
+
+    return {
+      usageDate,
+      limit,
+      rows: Array.isArray(rows) ? rows : []
+    };
+  }
+
+  function resetDailyUsageRows(raw = {}) {
+    const usageDate = normalizeUsageDate(raw.date || raw.usageDate || raw.usage_date);
+    const userLogin = normalizeLogin(raw.login || raw.userLogin || raw.user_login || raw.targetLogin || raw.target);
+    const soundTypeRaw = String(raw.soundType || raw.sound_type || raw.type || "").trim();
+    const soundType = soundTypeRaw ? normalizeSoundType(soundTypeRaw) : "";
+
+    let result;
+    if (userLogin && soundType) {
+      result = database.run(`
+        DELETE FROM vip_sound_daily_usage
+        WHERE usage_date = :usageDate
+          AND user_login = :userLogin
+          AND sound_type = :soundType
+      `, { usageDate, userLogin, soundType });
+    } else if (userLogin) {
+      result = database.run(`
+        DELETE FROM vip_sound_daily_usage
+        WHERE usage_date = :usageDate
+          AND user_login = :userLogin
+      `, { usageDate, userLogin });
+    } else {
+      result = database.run(`
+        DELETE FROM vip_sound_daily_usage
+        WHERE usage_date = :usageDate
+      `, { usageDate });
+    }
+
+    refreshDbStats();
+
+    return {
+      usageDate,
+      userLogin,
+      soundType,
+      deleted: result && typeof result.changes === "number" ? result.changes : 0
+    };
   }
 
   function ensureVipSchema() {
@@ -1277,6 +1346,117 @@ module.exports.init = function init(ctx) {
         lastError: state.db.lastError,
         updatedAt: nowIso()
       });
+    });
+
+
+    app.get(`${prefix}/daily-usage`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const data = listDailyUsageRows(bodyOrQuery(req, "date") || bodyOrQuery(req, "usageDate"), bodyOrQuery(req, "limit"));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...data,
+          count: data.rows.length,
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/daily-usage/today`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const data = listDailyUsageRows(getBerlinDate(), bodyOrQuery(req, "limit"));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...data,
+          count: data.rows.length,
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/daily-usage/reset`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = resetDailyUsageRows(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/daily-usage/reset`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = resetDailyUsageRows(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/daily-usage/reset-today`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const raw = requestData(req);
+        const result = resetDailyUsageRows({
+          ...raw,
+          date: getBerlinDate()
+        });
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/daily-usage/reset-today`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const raw = requestData(req);
+        const result = resetDailyUsageRows({
+          ...raw,
+          date: getBerlinDate()
+        });
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
     });
 
     app.post(`${prefix}/command`, async (req, res) => {

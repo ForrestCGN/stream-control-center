@@ -57,6 +57,9 @@ Zuletzt abgeschlossen:
 - STEP021 Sound-System RequestId in VIP-Response gefixt
 - STEP022 Streamer.bot VIP-Argumente geprueft
 - STEP023 VIP Streamer.bot -> Sound-System -> Overlay V2 getestet
+- STEP026 VIP Target-Mod-Erkennung ueber Twitch umgesetzt
+- STEP027 VIP-Chat-Wording von Heimleitung auf Heimaufsicht angepasst
+- STEP028 VIP-Daily-Usage API fuer Tests/Dashboard vorbereitet
 - STEP026 VIP Target-Mod-Erkennung ueber Twitch-Helper umgesetzt
 - STEP027 VIP-Default-Chattexte von Heimleitung auf Heimaufsicht umgestellt
 - STEP024 VIP-Overlay-Texte aus SQLite bestaetigt
@@ -123,6 +126,13 @@ STEP023 Ergebnis:
 - Chat-Ausgabe kam ueber Heimaufsicht/Bot.
 - Nach Soundende war `sound_system.current = null`, Queue leer und `device.lastOk = true`.
 - `vip-sound-overlay/state` bleibt fuer Overlay V2 bewusst idle, weil V2 direkt Sound-System-Daten nutzt.
+
+
+STEP028 Ergebnis:
+
+- VIP-Daily-Usage kann ueber API angezeigt und fuer Tests geloescht werden.
+- Neue Routen: `/api/vip-sound/daily-usage/today`, `/api/vip-sound/daily-usage/reset-today`, `/api/vip-sound/daily-usage/reset`.
+- Temporäre Node-Scripte zum Tages-Reset sind nicht mehr noetig.
 
 ## Doku-Struktur
 
@@ -200,3 +210,7 @@ Wichtig:
 - Keine Secrets committen.
 - `twitch_user.json` nicht anzeigen und nicht committen.
 - Nach Deploy Backend neu starten und mit `!vip @araglor` testen.
+
+## Arbeitsregel fuer grosse Dateien
+
+Wenn GitHub-/Tool-Ausgaben grosse Dateien gekuerzt liefern, stellt Forrest die echte Datei bereit. Dann wird auf Basis der echten Datei gearbeitet, nicht auf Basis geratener Patch-Scripte.
