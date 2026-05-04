@@ -24,21 +24,9 @@ Aktueller Doku-Einstieg:
 
 - docs/current/CURRENT_SYSTEM_STATUS.md
 
-## Verbindlicher GitHub-/Live-Workflow
-
-- Gearbeitet wird immer auf GitHub/dev und im lokalen Repo `D:\Git\stream-control-center`.
-- Live wird nicht mehr ueber alte Root-Scripte aktualisiert, sondern ueber:
-  - `D:\Git\stream-control-center\tools\easy\`
-- Standard-Scripte:
-  - `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd`
-  - `tools\easy\02_LOKALE_AENDERUNGEN_ZU_GITHUB_HOCHLADEN.cmd`
-  - `tools\easy\03_NUR_STATUS_PRUEFEN.cmd`
-  - `tools\easy\04_BACKUP_ZURUECKSPIELEN.cmd`
-- Wenn GitHub-/Toolausgaben grosse Dateien kuerzen oder nicht vollstaendig liefern, wird nicht geraten und nicht mit riskanten Patch-Scripten gearbeitet. Dann stellt Forrest die echte Datei aus Repo/Live bereit und diese Datei ist fuer die Bearbeitung massgeblich.
-
 ## Aktueller Arbeitsstand
 
-Der aktuelle Stand nach STEP031 ist fuer GitHub/dev vorbereitet.
+Der aktuelle Stand nach STEP023 ist auf GitHub/dev dokumentiert.
 
 Zuletzt abgeschlossen:
 
@@ -57,31 +45,6 @@ Zuletzt abgeschlossen:
 - STEP021 Sound-System RequestId in VIP-Response gefixt
 - STEP022 Streamer.bot VIP-Argumente geprueft
 - STEP023 VIP Streamer.bot -> Sound-System -> Overlay V2 getestet
-- STEP026 VIP Target-Mod-Erkennung ueber Twitch umgesetzt
-- STEP027 VIP-Chat-Wording von Heimleitung auf Heimaufsicht angepasst
-- STEP028 VIP-Daily-Usage API fuer Tests/Dashboard vorbereitet
-- STEP029 VIP-Daily-Usage API-Semantik korrigiert
-- STEP030 VIP-Referenzstand dokumentiert
-- STEP031 VIP-DB-Settings-Basis vorbereitet
-- STEP032 VIP-Soundpfad/Dateiregel aktiv aus DB gelesen
-- STEP033 VIP-Events-/Statistikbasis vorbereitet
-- STEP034 VIP-Rollen-Fallbacks in SQLite vorbereitet
-- STEP029 VIP-Daily-Usage API-Semantik korrigiert
-- STEP030 VIP-Referenzstand dokumentiert
-- STEP031 VIP-DB-Settings-Basis vorbereitet
-- STEP032 VIP-Soundpfad und Dateiregel aus DB-Settings aktiv genutzt
-- STEP029 VIP-Daily-Usage API-Semantik korrigiert
-- STEP030 VIP-Referenzstand dokumentiert
-- STEP031 VIP-DB-Settings-Basis vorbereitet
-- STEP026 VIP Target-Mod-Erkennung ueber Twitch-Helper umgesetzt
-- STEP027 VIP-Default-Chattexte von Heimleitung auf Heimaufsicht umgestellt
-- STEP024 VIP-Overlay-Texte aus SQLite bestaetigt
-- STEP025 VIP-Zielrollen-Fallback per config/vip_sound_roles.json vorbereitet
-- STEP026 VIP-Twitch-Rollenhelper fuer echte Mod-Erkennung vorbereitet
-- STEP033 VIP-Event-/Statistik-Tabelle vorbereitet
-- STEP034 VIP-Rollen-Fallbacks in SQLite verschoben
-- STEP034.1 VIP-Rollen-Config-Pfad korrigiert
-- STEP035 VIP-Text-API vorbereitet
 
 ## Repo/Live-Abgleich
 
@@ -105,31 +68,11 @@ Dokumentiert in:
 - project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
 - project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
 - project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
-- project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
-- project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
-- project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
-- project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
-- project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
-- project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
-- project-state/STEP032_VIP_SOUND_FILE_SETTINGS_ACTIVE_2026-05-04.md
-- project-state/STEP033_VIP_EVENTS_STATS_BASE_2026-05-04.md
-- project-state/STEP034_VIP_ROLE_OVERRIDES_DB_2026-05-04.md
-- project-state/STEP034_1_VIP_ROLE_CONFIG_PATH_FIX_2026-05-04.md
-- project-state/STEP035_VIP_TEXT_API_2026-05-04.md
-- project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
-- project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
-- project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
-- project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
-- project-state/STEP032_VIP_SOUND_FILE_SETTINGS_ACTIVE_2026-05-04.md
-- project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
-- project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
-- project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
-- project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
 
 Aktueller Modulstand:
 
 - backend/modules/vip_sound_overlay.js
-- Version: 1.7.6
+- Version im Repo/Live: 1.7.1
 - htdocs/overlays/vip_sound_overlay_v2.html ist die aktive OBS-VIP-Browserquelle.
 
 Kernentscheidungen / aktueller Ablauf:
@@ -139,13 +82,12 @@ Kernentscheidungen / aktueller Ablauf:
 - Streamer.bot sendet keinen VIP-Chattext mehr selbst.
 - Streamer.bot startet kein VIP-Overlay mehr direkt.
 - VIP-Command prueft Daily-Usage pro User/pro Stream-Tag.
-- VIP-Command sucht Sounddateien jetzt ueber DB-Setting `soundBaseDir`, Fallback bleibt `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
-- Dateiregel kommt jetzt aus DB-Settings `fileNameMode` + `fileExtension`, Fallback bleibt `Anzeigename.mp3`.
+- VIP-Command sucht Sounddatei unter `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
+- Dateiregel aktuell: `Anzeigename.mp3`.
 - Wenn Datei fehlt, wird keine Daily-Usage geschrieben.
 - Wenn Datei existiert, wird `/api/sound/play` genutzt.
 - Nur wenn das Sound-System akzeptiert, wird Daily-Usage geschrieben.
 - Chat-Ausgabe erfolgt ueber helper_chat_output / Heimleitungs-Bot.
-- Sichtbare VIP-/Mod-Chattexte nutzen jetzt `Heimaufsicht`; die interne SQLite-Style-ID `heimleitung` bleibt fuer Kompatibilitaet bestehen.
 - Response fuer Streamer.bot: `send=false`, `streamerbot_send="0"`, `chatMessage=""`.
 - VIP-Override: Mods/Broadcaster duerfen fuer Zieluser erneut ausloesen.
 - Override-Rollen werden ueber `VIP_OVERRIDE_ALLOWED_ROLES` gesteuert.
@@ -161,21 +103,6 @@ STEP023 Ergebnis:
 - Chat-Ausgabe kam ueber Heimaufsicht/Bot.
 - Nach Soundende war `sound_system.current = null`, Queue leer und `device.lastOk = true`.
 - `vip-sound-overlay/state` bleibt fuer Overlay V2 bewusst idle, weil V2 direkt Sound-System-Daten nutzt.
-
-
-STEP028 Ergebnis:
-
-- VIP-Daily-Usage kann ueber API angezeigt und fuer Tests geloescht werden.
-- Neue Routen: `/api/vip-sound/daily-usage/today`, `/api/vip-sound/daily-usage/reset-today`, `/api/vip-sound/daily-usage/reset`.
-- Temporäre Node-Scripte zum Tages-Reset sind nicht mehr noetig.
-
-STEP029 Ergebnis:
-
-- `/api/vip-sound/daily-usage` zeigt ohne Filter alle Daily-Usage-Eintraege.
-- `/api/vip-sound/daily-usage/today` zeigt nur den aktuellen Tag.
-- `/api/vip-sound/daily-usage/reset` loescht ohne Filter alle Eintraege und optional nach Datum/Login/SoundType.
-- `/api/vip-sound/daily-usage/reset-today` loescht nur den aktuellen Tag, optional nach Login/SoundType.
-- Automatische Retention bleibt bewusst offen und soll spaeter ueber Config/Dashboard einstellbar werden.
 
 ## Doku-Struktur
 
@@ -226,86 +153,20 @@ Historische Analyse-Snapshots:
 - tools/sync_streamassets_to_repo.ps1 spaeter pruefen.
 
 
-## STEP026 vorbereitet - VIP Twitch-Rollenhelper
+## STEP036 - Zentraler Settings-Helper
+
+Vorbereitet wurde:
+
+- `backend/modules/helpers/helper_settings.js`
 
 Ziel:
 
-- `!vip @araglor` soll automatisch als Mod-Sound laufen, wenn Twitch `araglor` als Moderator erkennt.
-- Die Datei `config/vip_sound_roles.json` bleibt als Fallback/Override erhalten.
-
-Geaenderte/Neue Dateien:
-
-- `backend/modules/vip_sound_overlay.js`
-  - Version `1.7.4`
-  - nutzt `helper_twitch_roles.js`
-  - `detectSoundTypeForTarget()` prueft zuerst Twitch, danach die lokale Rollen-Config
-- `backend/modules/helpers/helper_twitch_roles.js`
-  - liest `TWITCH_CLIENT_ID` aus ENV
-  - liest User-Token aus `D:/Streaming/stramAssets/secrets/tokens/twitch_user.json`
-  - nutzt `TWITCH_BROADCASTER_ID`, Fallback `127709954`
-  - prueft `/helix/users` und `/helix/moderation/moderators`
-  - cached Ergebnisse 10 Minuten
-- `config/vip_sound_roles.json`
-  - bleibt Fallback/Override
+- Dashboardfaehige Modul-Settings zentral ueber die Datenbank lesen/schreiben.
+- JSON-Dateien bleiben Fallback-/Import-Schicht ueber `helper_config.js`.
+- ENV/Secrets bleiben ausserhalb von DB und Repo.
 
 Wichtig:
 
-- Keine Secrets committen.
-- `twitch_user.json` nicht anzeigen und nicht committen.
-- Nach Deploy Backend neu starten und mit `!vip @araglor` testen.
-
-## Arbeitsregel fuer grosse Dateien
-
-Wenn GitHub-/Tool-Ausgaben grosse Dateien gekuerzt liefern, stellt Forrest die echte Datei bereit. Dann wird auf Basis der echten Datei gearbeitet, nicht auf Basis geratener Patch-Scripte.
-
-
-STEP031 Ergebnis:
-
-- VIP-Settings werden in SQLite vorbereitet (`vip_sound_settings`).
-- `helper_config.js` wird als Config-/Fallback-Layer genutzt.
-- Lesereihenfolge fuer spaetere Dashboard-Werte: SQLite > Config > Default.
-- Neue Routen: `/api/vip-sound/settings` und `/api/vip-sound/config`.
-- Soundpfad-/Dateiregel-Verhalten bleibt in STEP031 unveraendert; Umstellung folgt in STEP032.
-
-
-## STEP032 Ergebnis
-
-- VIP-Soundpfad und Dateiregel werden jetzt aktiv aus `vip_sound_settings` gelesen.
-- Aktive Settings: `enabled`, `soundBaseDir`, `fileNameMode`, `fileExtension`.
-- Lesereihenfolge: SQLite -> Config-Fallback ueber `helper_config.js` -> Code-Default.
-- Dashboard kann spaeter auf dieser Basis eine Settings-Oberflaeche bekommen.
-
-
-## STEP033 vorbereitet - VIP Events-/Statistik-Basis
-
-- Neue Tabelle: `vip_sound_events`.
-- Zweck: Historie, Statistik, Audit und spaeteres Dashboard.
-- `vip_sound_daily_usage` bleibt fuer Tageslimit/Verbrauch.
-- Neue Routen:
-  - `GET /api/vip-sound/events`
-  - `GET /api/vip-sound/events/recent`
-  - `GET /api/vip-sound/stats`
-- Soundpfad/Dateiregel bleiben weiterhin DB-backed ueber `vip_sound_settings`.
-
-
-## STEP034 Ergebnis
-
-- VIP-Rollen-Fallbacks liegen jetzt in `vip_sound_role_overrides`.
-- `config/vip_sound_roles.json` bleibt Import-/Fallback-Quelle.
-- Neue Routen: `/api/vip-sound/roles`, `/roles/upsert`, `/roles/delete`, `/roles/import-config`.
-- Ziel bleibt: Dashboard bearbeitet spaeter DB/API, nicht direkt JSON-Dateien.
-
-## STEP034.1 Ergebnis - VIP Role Config Pfad-Fix
-
-- `backend/modules/vip_sound_overlay.js` Version `1.8.1`.
-- `config/vip_sound_roles.json` wird jetzt ueber `helper_config.js` aufgeloest.
-- Der falsche Live-Pfad `backend\config\vip_sound_roles.json` wurde behoben.
-- DB-Rollen bleiben primaer; die JSON-Datei bleibt Fallback-/Importquelle.
-
-
-## STEP035 vorbereitet - VIP Text API
-
-- VIP-/Mod-/Overlay-Texte werden weiterhin in `vip_sound_message_templates` gespeichert.
-- Neue API-Routen `/api/vip-sound/texts*` lesen/bearbeiten diese Texte.
-- Dashboard soll spaeter diese API nutzen, nicht direkt SQLite.
-- Interne Style-ID `heimleitung` bleibt bestehen; sichtbarer Begriff bleibt `Heimaufsicht`.
+- `helper_config.js` wird nicht mit DB-Logik ueberladen.
+- `helper_settings.js` nutzt `helper_config.js` fuer Datei-Fallbacks.
+- Bestehende Funktionalitaet wurde nicht geaendert.

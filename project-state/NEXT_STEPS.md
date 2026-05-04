@@ -6,180 +6,16 @@ Stand: 2026-05-04
 
 Vor jedem neuen STEP:
 
-1. `tools\easy\03_NUR_STATUS_PRUEFEN.cmd` oder `git status --short` pruefen.
+1. git status pruefen.
 2. docs/current/CURRENT_SYSTEM_STATUS.md lesen.
 3. project-state/CURRENT_STATUS.md lesen.
 4. Reale Dateien pruefen, keine Annahmen.
-5. Wenn GitHub/Toolausgaben grosse Dateien kuerzen, echte Datei von Forrest anfordern und diese als Basis nutzen.
-6. Kleine Aenderung planen.
-7. Nach Aenderung testen, dokumentieren, committen, pushen und Live ueber `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd` aktualisieren.
-
-## Naechste VIP-Arbeitspakete vor Dashboard
-
-### STEP032 - Soundpfad und Dateiregel aus DB-Settings nutzen
-
-Ziel:
-
-- `soundBaseDir`, `fileNameMode` und `fileExtension` aus `vip_sound_settings` lesen.
-- Bestehendes Verhalten bleibt Default:
-  - `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`
-  - `Anzeigename.mp3`
-- Fallback-Reihenfolge: SQLite > Config > ENV/Default.
-- Keine Funktionalitaet entfernen.
-
-### STEP033 - Daily-Usage Retention vorbereiten
-
-Ziel:
-
-- `dailyUsageRetentionDays` und `cleanupDailyUsageOnStartup` aus DB-Settings nutzen.
-- Noch vorsichtig: keine harte Auto-Loeschung ohne klaren Schalter.
-- Spaeter Dashboard-editierbar.
-
-### STEP034 - Rollen-Fallbacks in DB ueberfuehren
-
-Ziel:
-
-- `config/vip_sound_roles.json` bleibt Import-/Fallback-Datei.
-- Neue DB-Tabelle fuer Rollen-Overrides vorbereiten.
-- Dashboard kann spaeter Rollen sortieren/suchen/aktivieren/deaktivieren.
-
-### STEP035 - VIP-Text-API fuer SQLite-Texte
-
-Ziel:
-
-- Texte aus `vip_sound_message_templates` per API lesen/bearbeiten.
-- Aktiv/Inaktiv und Gewichtung vorbereiten.
-- Erst danach Dashboard.
-
----
+5. Kleine Aenderung planen.
+6. Nach Aenderung testen, dokumentieren, committen, pushen und Live pruefen.
 
 ## Empfohlene naechste Arbeitspakete
 
-
-### VIP-Text-API testen
-
-Ziel:
-
-- STEP035 nach Deploy testen.
-- `GET /api/vip-sound/texts`
-- `GET /api/vip-sound/texts/event-keys`
-- `GET /api/vip-sound/texts?eventKey=accepted_mod&style=heimleitung`
-- Einen Testtext per `POST /api/vip-sound/texts/upsert` anlegen/aktualisieren.
-
-Wichtig:
-
-- Dashboard soll spaeter diese API nutzen.
-- Interne Style-ID `heimleitung` nicht blind umbenennen.
-
----
-
-
-### Naechster VIP-Schritt: VIP-Text-API fuer SQLite-Texte
-
-Ziel:
-
-- `vip_sound_message_templates` per API lesen/bearbeiten.
-- Texte aktivieren/deaktivieren.
-- Gewichtung anpassen.
-- Normale `accepted_mod`-Texte von Override-/Sonderfreigabe-Texten sauber trennen.
-- Dashboard soll spaeter diese API nutzen, nicht direkt SQLite anfassen.
-
----
-
-### 1. STEP032 testen
-
-Ziel:
-
-- `vip_sound_overlay.js` Version `1.7.8` deployen.
-- Pruefen, dass `soundBaseDir`, `fileNameMode`, `fileExtension` und `enabled` aus `vip_sound_settings` genutzt werden.
-- `!vip @araglor` muss weiterhin Mod-Sound abspielen.
-
-Checks:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/status" | ConvertTo-Json -Depth 20
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/settings" | ConvertTo-Json -Depth 20
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip-sound/daily-usage/reset-today" | ConvertTo-Json -Depth 20
-```
-
-Danach Twitch-Chat:
-
-```text
-!vip @araglor
-```
-
----
-
-### 2. VIP-Settings Schreib-API bauen
-
-Ziel:
-
-- `GET /api/vip-sound/settings` existiert bereits.
-- Als naechstes `POST /api/vip-sound/settings` oder gezielte Update-Route bauen.
-- Settings sollen spaeter dashboardfaehig sein, aber Dashboard erst nach stabiler API.
-
-Wichtig:
-
-- Keine direkte Dashboard-SQL-Bearbeitung.
-- Validierung fuer Pfade, Dateiregeln und Boolean/Number-Werte.
-- Aenderungen spaeter auditierbar machen.
-
----
-
-### 1. VIP-Daily-Usage Retention spaeter konfigurierbar machen
-
-Ziel:
-
-- Alte Daily-Usage-Eintraege spaeter automatisch bereinigen koennen.
-- Einstellung nicht hart codieren, sondern ueber Config/Dashboard steuerbar machen.
-
-Geplante Optionen:
-
-- `dailyUsageRetentionDays`
-- `cleanupDailyUsageOnStartup`
-
-Wichtig:
-
-- Aktuell keine automatische Loeschlogik erzwingen.
-- Dashboard soll diese Einstellung spaeter bearbeiten koennen.
-- SQLite weiterhin niemals ersetzen.
-
----
-
-### 1. STEP026 deployen und testen
-
-Workflow:
-
-- Repo-Dateien nach `D:\Git\stream-control-center` entpacken.
-- Syntax pruefen.
-- Commit/Push nach `dev`.
-- Live-Aktualisierung ueber `D:\Git\stream-control-center\tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd`.
-- Backend neu starten.
-- Live-Test ausfuehren.
-
-### 1.1 STEP026 Funktionstest
-
-Ziel:
-
-- Neue Datei `backend/modules/helpers/helper_twitch_roles.js` deployen.
-- `backend/modules/vip_sound_overlay.js` Version `1.7.4` deployen.
-- Backend neu starten.
-- `!vip @araglor` testen.
-
-Erwartung:
-
-- `sound_system.current.category = crew`
-- `sound_system.current.visual.type = mod`
-- `sound_system.current.visual.title = Mod-Sound`
-
-Wichtig:
-
-- Token-Datei nicht anzeigen/committen.
-- Falls Twitch-Abfrage `null` liefert, greift weiterhin `config/vip_sound_roles.json`.
-
----
-
-### 2. Debug-Option in OBS entfernen
+### 1. Debug-Option in OBS entfernen
 
 Ziel:
 
@@ -194,7 +30,7 @@ Wichtig:
 
 ---
 
-### 3. Alte VIP-Action in Streamer.bot sichern/deaktiviert lassen
+### 2. Alte VIP-Action in Streamer.bot sichern/deaktiviert lassen
 
 Ziel:
 
@@ -210,7 +46,7 @@ Wichtig:
 
 ---
 
-### 4. Optional: echten Mod-Account testen
+### 3. Optional: echten Mod-Account testen
 
 Ziel:
 
@@ -224,7 +60,7 @@ Wichtig:
 
 ---
 
-### 5. VIP-Soundpfad konfigurierbar machen
+### 4. VIP-Soundpfad konfigurierbar machen
 
 Ziel:
 
@@ -239,17 +75,16 @@ Wichtig:
 
 ---
 
-### 6. VIP-Dashboard spaeter bauen
+### 5. VIP-Dashboard spaeter bauen
 
 Ziel:
 
 - VIP-Status anzeigen.
-- Heimaufsicht-Texte pro Event-Key bearbeiten.
+- Heimleitungs-Texte pro Event-Key bearbeiten.
 - Texte aktivieren/deaktivieren.
 - Gewichtung einstellen.
 - VIP-Soundpfad und Dateiregel konfigurieren.
 - Testausloesung ermoeglichen.
-- VIP-Events/Statistiken anzeigen.
 
 Wichtig:
 
@@ -258,7 +93,7 @@ Wichtig:
 
 ---
 
-### 7. Dashboard-Modulstandard definieren
+### 6. Dashboard-Modulstandard definieren
 
 Ziel:
 
@@ -282,7 +117,7 @@ Wichtig:
 
 ---
 
-### 8. Fireworks spaeter neu aufbauen
+### 7. Fireworks spaeter neu aufbauen
 
 Aktueller Zustand:
 
@@ -299,7 +134,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 9. Hug-Textbearbeitung spaeter sauber neu planen
+### 8. Hug-Textbearbeitung spaeter sauber neu planen
 
 Aktueller Zustand:
 
@@ -315,7 +150,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 10. Alerts-Modul spaeter behutsam splitten
+### 9. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 
@@ -336,70 +171,30 @@ Wichtig:
 - Nur schrittweise.
 - Erst Tests und Doku.
 
-
 ---
 
-### 10. VIP-Textbestand in SQLite pruefen
+### 11. VIP auf helper_settings.js umstellen
 
 Ziel:
 
-- Nach STEP027 sicherstellen, dass Live-SQLite keine sichtbaren `Heimleitung`-Texte mehr enthaelt.
-- Gewuenschter sichtbarer Begriff: `Heimaufsicht`.
-
-Check:
-
-```powershell
-Set-Location "D:\Streaming\stramAssets"
-
-@'
-const { DatabaseSync } = require("node:sqlite");
-const db = new DatabaseSync("D:/Streaming/stramAssets/data/sqlite/app.sqlite");
-try {
-  console.log(db.prepare(`
-    SELECT id, event_key, style, message_text
-    FROM vip_sound_message_templates
-    WHERE message_text LIKE '%Heimleitung%'
-    ORDER BY id ASC
-  `).all());
-} finally {
-  db.close();
-}
-'@ | Set-Content ".\check_vip_heimleitung_texts.js" -Encoding UTF8
-
-node ".\check_vip_heimleitung_texts.js"
-Remove-Item ".\check_vip_heimleitung_texts.js"
-```
+- Die aktuell im VIP-Modul vorhandenen internen Settings-Hilfsfunktionen kontrolliert auf `backend/modules/helpers/helper_settings.js` umstellen.
+- Lesereihenfolge bleibt:
+  1. Datenbank
+  2. JSON-Fallback ueber `helper_config.js`
+  3. Code-Default
 
 Wichtig:
 
-- Die interne Style-ID `heimleitung` nicht blind umbenennen, solange bestehende Queries diese ID nutzen.
-- Erst Dashboard-/Textverwaltung bauen, wenn die Backend-API stabil ist.
+- Keine bestehende VIP-Funktionalitaet entfernen.
+- Vorher aktuellen `vip_sound_overlay.js`-Stand hochladen, falls GitHub/Tools die Datei kuerzen.
+- Erst nach erfolgreichem Test Dashboard bauen.
 
 ---
 
-### VIP Rollen-Config-Pfad nach STEP034.1 pruefen
+### 12. Dashboard-Settings spaeter schreiben/lesen
 
 Ziel:
 
-- Nach Deploy von STEP034.1 sicherstellen, dass `/api/vip-sound/roles` den korrekten Config-Fallback-Pfad zeigt.
-
-Check:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/roles" | ConvertTo-Json -Depth 20
-```
-
-Erwartung:
-
-- `configFallback.path = D:\Streaming\stramAssets\config\vip_sound_roles.json`
-- `configFallback.exists = true`, sofern Datei vorhanden ist.
-
----
-
-### Naechster VIP-Schritt: Text-API vorbereiten
-
-Ziel:
-
-- `vip_sound_message_templates` per API les-/bearbeitbar machen.
-- Grundlage fuer spaeteres VIP-Dashboard schaffen.
-- Accepted-/Override-Texte sauber trennen, damit normale Mod-Sounds nicht mit Sonderfreigabe-Texten antworten.
+- Dashboard soll alle wichtigen Modulwerte lesen und schreiben koennen.
+- Schreibziel fuer dashboardfaehige Werte ist primaer die Datenbank.
+- Datei-Configs werden nur fuer technische Configs, Fallbacks oder bewusste Imports genutzt.
