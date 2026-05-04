@@ -45,24 +45,24 @@ GitHub:
 - STEP016.1 VIP-Chat-Ausgabe auf helper_chat_output/Heimleitungs-Bot umgestellt
 - STEP017 VIP-Sounds ueber Sound-System vor Daily-Usage queued
 - STEP019 VIP Sound Override dokumentiert und Projektstatus aktualisiert
+- STEP020 VIP Override live getestet
 
 ## Aktueller sauberer Zustand
 
-- GitHub/dev wurde fuer STEP019 aktualisiert.
-- STEP019 ist ein Dokumentations-/Status-Abgleich auf Basis der mitgelieferten Dateien.
-- Code wurde in STEP019 nicht veraendert, weil die VIP-Override-Logik bereits im Repo vorhanden ist.
+- GitHub/dev wurde fuer STEP020 aktualisiert.
+- STEP020 war ein Live-Test-/Dokumentationsstep.
+- Code wurde in STEP020 nicht geaendert.
 - Aktuelles VIP-Modul: backend/modules/vip_sound_overlay.js
-- VIP-Modul-Version im Repo: 1.7.0
-- Live-Deploy/Live-Test fuer STEP019 steht noch aus.
+- VIP-Modul-Version im Repo/Live: 1.7.0
+- Sound-System-Version live: 0.1.8
+- VIP Override ist live bestaetigt.
 
-Live-Routen, die nach Deploy/Restart erneut geprueft werden sollen:
+Live-Routen geprueft:
 
-- GET /api/_status
-- GET /api/sound/status
 - GET /api/vip-sound/status
-- GET /api/vip-sound/db/status
-- GET /api/vip-sound/command
 - GET /api/vip-sound-overlay/state
+- GET /api/vip-sound/db/status
+- GET /api/sound/status
 
 ## VIP-System aktueller Stand
 
@@ -71,6 +71,7 @@ Dokumentation:
 - project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
 - project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
 - project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
+- project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
 
 Aktueller Ablauf fuer `/api/vip-sound/command`:
 
@@ -107,11 +108,17 @@ Chat-Ausgabe:
 - Streamer.bot soll nicht mehr posten
 - Response: `send=false`, `streamerbot_send="0"`, `chatMessage=""`
 
-Zuletzt bekannter Live-Test aus STEP017:
+STEP020 Live-Test bestaetigt:
 
-- `araglor` wurde erfolgreich ueber Sound-System abgespielt.
-- AudioDeviceHelper spielte `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\araglor.mp3`.
-- Duplicate-Test fuer `araglor` blockte korrekt ohne Sound-System-Request.
+- VIP-Status idle: `phase=idle`, `visible=false`, `isActive=false`, `queuedCount=0`.
+- VIP-Overlay-State idle und nicht haengend.
+- VIP-DB bereit: Schema 1, 15 Message-Templates, 3 Daily-Usage-Rows nach Test.
+- Sound-System bereit: Version 0.1.8, Device-Ausgabe aktiv.
+- Normale VIP-Ausloesung fuer `araglor`: akzeptiert, Sound gestartet, Daily-Usage geschrieben.
+- Broadcaster-Override durch `forrestcgn` fuer `araglor`: akzeptiert, Sound erneut gestartet, keine Daily-Usage geschrieben.
+- Duplicate ohne Override fuer `araglor`: korrekt geblockt.
+- Unerlaubter Override durch `normaluser`: korrekt geblockt.
+- AudioDeviceHelper spielte `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\araglor.mp3` erfolgreich ab.
 
 ## Doku-Struktur
 
@@ -147,11 +154,10 @@ Snapshots:
 
 ## Offene Punkte
 
-- STEP020: VIP Override live pruefen.
-- Rollen-/Badge-Parameter aus Streamer.bot real testen.
+- STEP021: `soundSystemRequestId` sauber aus `/api/sound/play` Response uebernehmen.
+- Reale Streamer.bot-Rollen-/Badge-Parameter bei Produktion weiter beobachten.
 - Falls noetig nur Rollenmapping erweitern, keine Sound-/Queue-Logik umbauen.
-- VIP-Overlay-Startverhalten gegen echten Sound-System-Start verifizieren.
-- `soundSystemRequestId` sauber aus `/api/sound/play` Response uebernehmen.
+- VIP-Overlay-Startverhalten gegen echten Sound-System-Start weiter verifizieren.
 - VIP-Soundpfad konfigurierbar ueber DB/Dashboard machen.
 - VIP-Nachrichten spaeter im Dashboard bearbeitbar machen.
 - Fireworks spaeter neu aufbauen.
@@ -162,10 +168,10 @@ Snapshots:
 
 ## Naechster empfohlener Schritt
 
-STEP020 klein halten:
+STEP021 klein halten:
 
-1. GitHub/dev lokal pullen/deployen.
-2. Backend neu starten.
-3. VIP-Statusrouten pruefen.
-4. VIP-Override mit echten Streamer.bot-Daten testen.
-5. Ergebnisse dokumentieren.
+1. Response-Struktur von `/api/sound/play` pruefen.
+2. `soundSystemRequestId` sauber in VIP-Response uebernehmen.
+3. Nur falls noetig Sound-System-Response minimal erweitern.
+4. `node -c` fuer betroffene JS-Dateien.
+5. Kurzer Live-Test normale VIP-Ausloesung + Override.
