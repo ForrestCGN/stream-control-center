@@ -186,7 +186,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.4",
+    version: "1.8.5",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -2155,6 +2155,122 @@ module.exports.init = function init(ctx) {
     };
   }
 
+
+  function buildVipAdminSummary(raw = {}) {
+    ensureVipSchema();
+    refreshDbStats();
+
+    const data = raw && typeof raw === "object" ? raw : {};
+    const today = getBerlinDate();
+    const usageDate = String(data.date || data.usageDate || today).trim();
+    const eventLimit = Math.max(1, Math.min(100, intOrDefault(data.eventLimit || data.limit, 20)));
+    const dailyLimit = Math.max(1, Math.min(200, intOrDefault(data.dailyLimit, 50)));
+
+    const settings = listVipSettings();
+    const roles = listVipRoleOverrides(true);
+    const dailyUsage = listDailyUsageRows({ date: usageDate }, dailyLimit);
+    const events = listVipEvents({ usageDate }, eventLimit);
+    const stats = getVipStats({ usageDate });
+    const allStats = getVipStats({});
+
+    return {
+      module: MODULE_NAME,
+      version: state.version,
+      usageDate,
+      status: {
+        phase: state.overlay.phase,
+        visible: state.overlay.visible,
+        isActive: state.isActive,
+        queuedCount: state.queue.length,
+        requestId: state.overlay.requestId || "",
+        lastFinishedAt: state.lastFinishedAt,
+        client: { ...state.client }
+      },
+      db: { ...state.db },
+      settings: {
+        count: settings.settings.length,
+        rows: settings.settings,
+        config: settings.config
+      },
+      roles,
+      dailyUsage: {
+        ...dailyUsage,
+        count: dailyUsage.rows.length
+      },
+      events: {
+        ...events,
+        count: events.rows.length
+      },
+      stats,
+      allStats
+    };
+  }
+
+  function resetVipAdminDaily(raw = {}) {
+    const data = raw && typeof raw === "object" ? raw : {};
+    const usageDate = String(data.date || data.usageDate || getBerlinDate()).trim();
+    const result = resetDailyUsageRows({ ...data, date: usageDate });
+    refreshDbStats();
+    return {
+      ...result,
+      usageDate,
+      dailyUsage: listDailyUsageRows({ date: usageDate }, data.limit || 50)
+    };
+  }
+
+  async function runVipAdminTest(raw = {}) {
+    const data = raw && typeof raw === "object" ? raw : {};
+    const targetLogin = normalizeLogin(data.targetLogin || data.login || data.userLogin || data.target || data.userName || data.user || "");
+    if (!targetLogin) throw new Error("Missing login or targetLogin");
+
+    const targetDisplayName = cleanDisplayName(data.targetDisplayName || data.displayName || data.userDisplayName || data.target || data.user || targetLogin);
+    const consumeDaily = boolish(data.consumeDaily || data.selfTrigger || data.writeDailyUsage);
+
+    const actorLogin = normalizeLogin(data.actorLogin || data.actorUserLogin || (consumeDaily ? targetLogin : "forrestcgn"));
+    const actorDisplayName = cleanDisplayName(data.actorDisplayName || data.actor || (consumeDaily ? targetDisplayName : "ForrestCGN"));
+
+    const payload = {
+      ...data,
+      trigger: String(data.trigger || "!vip"),
+      source: String(data.source || "dashboard-test"),
+      actorLogin,
+      actorDisplayName,
+      login: actorLogin,
+      userName: actorLogin,
+      user: actorDisplayName,
+      displayName: actorDisplayName
+    };
+
+    if (consumeDaily) {
+      delete payload.targetLogin;
+      delete payload.targetDisplayName;
+      delete payload.target;
+      delete payload.input0;
+      delete payload.input1;
+    } else {
+      payload.targetLogin = targetLogin;
+      payload.targetDisplayName = targetDisplayName;
+      payload.input0 = targetLogin;
+      payload.actorIsBroadcaster = data.actorIsBroadcaster === undefined ? "true" : data.actorIsBroadcaster;
+      payload.isBroadcaster = data.isBroadcaster === undefined ? "true" : data.isBroadcaster;
+    }
+
+    const result = await handleVipCommand(payload);
+    return {
+      ...result,
+      adminTest: true,
+      consumeDaily,
+      simulatedActor: {
+        login: actorLogin,
+        displayName: actorDisplayName
+      },
+      simulatedTarget: {
+        login: targetLogin,
+        displayName: targetDisplayName
+      }
+    };
+  }
+
   async function handleVipCommand(raw) {
     const dbReady = ensureVipSchema();
     const requestedSoundType = normalizeSoundType(raw.soundType || raw.type);
@@ -2953,6 +3069,75 @@ module.exports.init = function init(ctx) {
           db: { ...state.db },
           updatedAt: nowIso()
         });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+
+    app.get(`${prefix}/admin/summary`, (req, res) => {
+      try {
+        markClientSeen();
+        const summary = buildVipAdminSummary(requestData(req));
+        return res.json({
+          ok: true,
+          ...summary,
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/admin/reset-daily`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = resetVipAdminDaily(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/admin/reset-daily`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = resetVipAdminDaily(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/test`, async (req, res) => {
+      try {
+        markClientSeen();
+        const result = await runVipAdminTest(requestData(req));
+        return res.json(result);
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/admin/test`, async (req, res) => {
+      try {
+        markClientSeen();
+        const result = await runVipAdminTest(requestData(req));
+        return res.json(result);
       } catch (err) {
         return fail(res, 400, err.message || String(err));
       }
