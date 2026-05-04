@@ -2170,6 +2170,8 @@
 
       const tts = alert && alert.tts;
       if (!tts || tts.enabled === false || tts.ok === false || !tts.audioUrl) return;
+      const playbackMode = String(tts.playbackMode || '').toLowerCase();
+      if (playbackMode === 'sound_system' || tts.overlayPlaybackEnabled === false) return;
 
       const startAfterMs = Math.max(0, Number(tts.startAfterMs || tts.ttsStartAfterMs || alert.soundDurationMs || 0) || 0);
       currentTtsTimer = setTimeout(async () => {

@@ -32,7 +32,9 @@ function init(ctx) {
   const ROOT_DIR = path.resolve(BACKEND_DIR, "..");
   const HTDOCS_DIR = path.join(ROOT_DIR, "htdocs");
   const CONFIG_DIR = path.join(ROOT_DIR, "config");
-  const GENERATED_DIR = path.join(HTDOCS_DIR, "assets", "tts", "generated");
+  const GENERATED_DIR = path.join(HTDOCS_DIR, "assets", "sounds", "tts", "generated");
+  const GENERATED_PUBLIC_URL = "/assets/sounds/tts/generated";
+  const GENERATED_SOUND_SYSTEM_PREFIX = "tts/generated";
 
   const MODULE_NAME = "tts_system";
   const TTS_SCHEMA_MODULE = "tts_system";
@@ -655,7 +657,7 @@ function init(ctx) {
     fs.writeFileSync(outputFile, response.audioContent, "binary");
     addUsage("google", item.chars);
 
-    return { file: outputFile, url: `/assets/tts/generated/${fileName}`, engine: "google", voice: voiceId, label: vc.label || vc.name };
+    return { file: outputFile, url: `${GENERATED_PUBLIC_URL}/${fileName}`, soundSystemFile: `${GENERATED_SOUND_SYSTEM_PREFIX}/${fileName}`, engine: "google", voice: voiceId, label: vc.label || vc.name };
   }
 
   async function synthesizePiper(item, voiceId, vc) {
@@ -682,7 +684,7 @@ function init(ctx) {
     });
 
     addUsage("piper", item.chars);
-    return { file: outputFile, url: `/assets/tts/generated/${fileName}`, engine: "piper", voice: voiceId, label: vc.label || voiceId };
+    return { file: outputFile, url: `${GENERATED_PUBLIC_URL}/${fileName}`, soundSystemFile: `${GENERATED_SOUND_SYSTEM_PREFIX}/${fileName}`, engine: "piper", voice: voiceId, label: vc.label || voiceId };
   }
 
   async function synthesize(item) {
@@ -780,6 +782,7 @@ function init(ctx) {
       const audio = await synthesize(item);
       item.audioFile = audio.file;
       item.audioUrl = audio.url;
+      item.soundSystemFile = audio.soundSystemFile || "";
       item.engineUsed = audio.engine;
       item.voiceUsed = audio.voice;
       item.voiceLabel = audio.label;
@@ -1132,6 +1135,7 @@ function init(ctx) {
       const audio = await synthesize(item);
       item.audioFile = audio.file;
       item.audioUrl = audio.url;
+      item.soundSystemFile = audio.soundSystemFile || "";
       item.engineUsed = audio.engine;
       item.voiceUsed = audio.voice;
       item.voiceLabel = audio.label;
@@ -1149,6 +1153,7 @@ function init(ctx) {
         chars: item.chars,
         audioUrl: item.audioUrl,
         audioFile: item.audioFile,
+        soundSystemFile: item.soundSystemFile || "",
         durationMs: item.durationMs,
         durationOk: item.durationOk,
         durationSource: item.durationSource,
