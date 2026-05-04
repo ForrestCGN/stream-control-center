@@ -336,10 +336,10 @@
         </div>
 
         <div class="text-block">
-          <div class="eyebrow"><span class="dot"></span><span id="headline">VIP Sound</span></div>
+          <div class="eyebrow"><span class="dot"></span><span id="headline"></span></div>
           <div id="display-name">ForrestCGN</div>
           <div id="message">Danke, dass du da bist.</div>
-          <div class="meta-row"><span class="pill" id="type-pill">VIP</span><span>Sound-System Visual</span></div>
+          <div class="meta-row" id="meta-row"></div>
         </div>
       </div>
     </div>
@@ -355,7 +355,7 @@
     const nameEl = document.getElementById("display-name");
     const msgEl = document.getElementById("message");
     const headlineEl = document.getElementById("headline");
-    const typePillEl = document.getElementById("type-pill");
+    const metaRowEl = document.getElementById("meta-row");
     const avatarImg = document.getElementById("avatar-img");
     const avatarFallback = document.getElementById("avatar-fallback");
     const debugEl = document.getElementById("vip-debug");
@@ -405,7 +405,7 @@
         displayName,
         login: safeString(visual.login || item.requestedBy),
         avatarUrl: safeString(visual.avatarUrl),
-        title: safeString(visual.title, type === "mod" || type === "crew" ? "Mod Sound" : "VIP Sound"),
+        title: safeString(visual.title, ""),
         text: safeString(visual.text, type === "mod" || type === "crew" ? "Danke fuer deinen Support als Mod." : "Danke, dass du da bist."),
         type
       };
@@ -441,10 +441,10 @@
       lastSoundRequestId = overlay.soundRequestId || overlay.requestId;
       visible = true;
 
-      headlineEl.textContent = overlay.title || "VIP Sound";
+      headlineEl.textContent = overlay.title || "";
       nameEl.textContent = overlay.displayName || "VIP";
       msgEl.textContent = overlay.text || "Danke, dass du da bist.";
-      typePillEl.textContent = overlay.type === "crew" || overlay.type === "mod" ? "MOD" : "VIP";
+      if (metaRowEl) metaRowEl.textContent = "";
       setAvatar(overlay.avatarUrl || "", overlay.displayName || "");
 
       root.style.setProperty("--intro-ms", INTRO_MS + "ms");
