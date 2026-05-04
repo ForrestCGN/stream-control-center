@@ -15,7 +15,29 @@ Vor jedem neuen STEP:
 
 ## Empfohlene naechste Arbeitspakete
 
-### 1. Debug-Option in OBS entfernen
+### 1. STEP026 deployen und testen
+
+Ziel:
+
+- Neue Datei `backend/modules/helpers/helper_twitch_roles.js` deployen.
+- `backend/modules/vip_sound_overlay.js` Version `1.7.4` deployen.
+- Backend neu starten.
+- `!vip @araglor` testen.
+
+Erwartung:
+
+- `sound_system.current.category = crew`
+- `sound_system.current.visual.type = mod`
+- `sound_system.current.visual.title = Mod-Sound`
+
+Wichtig:
+
+- Token-Datei nicht anzeigen/committen.
+- Falls Twitch-Abfrage `null` liefert, greift weiterhin `config/vip_sound_roles.json`.
+
+---
+
+### 2. Debug-Option in OBS entfernen
 
 Ziel:
 
@@ -30,7 +52,7 @@ Wichtig:
 
 ---
 
-### 2. Alte VIP-Action in Streamer.bot sichern/deaktiviert lassen
+### 3. Alte VIP-Action in Streamer.bot sichern/deaktiviert lassen
 
 Ziel:
 
@@ -46,7 +68,7 @@ Wichtig:
 
 ---
 
-### 3. Optional: echten Mod-Account testen
+### 4. Optional: echten Mod-Account testen
 
 Ziel:
 
@@ -60,7 +82,7 @@ Wichtig:
 
 ---
 
-### 4. VIP-Soundpfad konfigurierbar machen
+### 5. VIP-Soundpfad konfigurierbar machen
 
 Ziel:
 
@@ -75,7 +97,7 @@ Wichtig:
 
 ---
 
-### 5. VIP-Dashboard spaeter bauen
+### 6. VIP-Dashboard spaeter bauen
 
 Ziel:
 
@@ -93,7 +115,7 @@ Wichtig:
 
 ---
 
-### 6. Dashboard-Modulstandard definieren
+### 7. Dashboard-Modulstandard definieren
 
 Ziel:
 
@@ -117,7 +139,7 @@ Wichtig:
 
 ---
 
-### 7. Fireworks spaeter neu aufbauen
+### 8. Fireworks spaeter neu aufbauen
 
 Aktueller Zustand:
 
@@ -134,7 +156,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 8. Hug-Textbearbeitung spaeter sauber neu planen
+### 9. Hug-Textbearbeitung spaeter sauber neu planen
 
 Aktueller Zustand:
 
@@ -150,7 +172,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 9. Alerts-Modul spaeter behutsam splitten
+### 10. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 

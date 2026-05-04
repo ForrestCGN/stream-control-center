@@ -26,7 +26,7 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Der aktuelle Stand nach STEP023 ist auf GitHub/dev dokumentiert.
+Der aktuelle Stand nach STEP026 ist fuer GitHub/dev vorbereitet.
 
 Zuletzt abgeschlossen:
 
@@ -45,6 +45,9 @@ Zuletzt abgeschlossen:
 - STEP021 Sound-System RequestId in VIP-Response gefixt
 - STEP022 Streamer.bot VIP-Argumente geprueft
 - STEP023 VIP Streamer.bot -> Sound-System -> Overlay V2 getestet
+- STEP024 VIP-Overlay-Texte aus SQLite bestaetigt
+- STEP025 VIP-Zielrollen-Fallback per config/vip_sound_roles.json vorbereitet
+- STEP026 VIP-Twitch-Rollenhelper fuer echte Mod-Erkennung vorbereitet
 
 ## Repo/Live-Abgleich
 
@@ -72,7 +75,7 @@ Dokumentiert in:
 Aktueller Modulstand:
 
 - backend/modules/vip_sound_overlay.js
-- Version im Repo/Live: 1.7.1
+- Version vorbereitet: 1.7.4
 - htdocs/overlays/vip_sound_overlay_v2.html ist die aktive OBS-VIP-Browserquelle.
 
 Kernentscheidungen / aktueller Ablauf:
@@ -151,3 +154,32 @@ Historische Analyse-Snapshots:
 - Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
 - tools/sync_streamassets_to_repo.ps1 spaeter pruefen.
+
+
+## STEP026 vorbereitet - VIP Twitch-Rollenhelper
+
+Ziel:
+
+- `!vip @araglor` soll automatisch als Mod-Sound laufen, wenn Twitch `araglor` als Moderator erkennt.
+- Die Datei `config/vip_sound_roles.json` bleibt als Fallback/Override erhalten.
+
+Geaenderte/Neue Dateien:
+
+- `backend/modules/vip_sound_overlay.js`
+  - Version `1.7.4`
+  - nutzt `helper_twitch_roles.js`
+  - `detectSoundTypeForTarget()` prueft zuerst Twitch, danach die lokale Rollen-Config
+- `backend/modules/helpers/helper_twitch_roles.js`
+  - liest `TWITCH_CLIENT_ID` aus ENV
+  - liest User-Token aus `D:/Streaming/stramAssets/secrets/tokens/twitch_user.json`
+  - nutzt `TWITCH_BROADCASTER_ID`, Fallback `127709954`
+  - prueft `/helix/users` und `/helix/moderation/moderators`
+  - cached Ergebnisse 10 Minuten
+- `config/vip_sound_roles.json`
+  - bleibt Fallback/Override
+
+Wichtig:
+
+- Keine Secrets committen.
+- `twitch_user.json` nicht anzeigen und nicht committen.
+- Nach Deploy Backend neu starten und mit `!vip @araglor` testen.

@@ -2,6 +2,22 @@
 
 ## 2026-05-04
 
+### STEP026 - VIP Twitch-Rollenhelper vorbereitet
+
+- Neue Datei `backend/modules/helpers/helper_twitch_roles.js` ergänzt.
+- `backend/modules/vip_sound_overlay.js` auf Version `1.7.4` vorbereitet.
+- Zieluser-Rollenprüfung für VIP-Sounds nutzt jetzt zuerst Twitch:
+  - Login-Auflösung über `/helix/users`
+  - Moderatorprüfung über `/helix/moderation/moderators`
+  - Ergebnis-Cache 10 Minuten
+- `config/vip_sound_roles.json` bleibt als Fallback/Override erhalten.
+- Erwartetes Verhalten:
+  - `!vip @araglor` wird automatisch als Mod-Sound erkannt, wenn Twitch `araglor` als Moderator zurückgibt.
+- Keine SQLite-Datei ersetzt.
+- Keine Secrets/Tokens committed.
+- Neue STEP-Doku angelegt:
+  - `project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md`
+
 ### STEP023 - VIP Streamer.bot -> Sound-System -> Overlay V2 getestet
 
 - Echter Streamer.bot-Command `!vip` wurde neu auf den neuen Backend-/Sound-System-Ablauf aufgebaut.

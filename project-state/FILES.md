@@ -44,6 +44,7 @@ STEP-Dokumentation:
 - project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
 - project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
 - project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
+- project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
 
 ## Doku-Struktur
 
@@ -96,10 +97,12 @@ VIP/Sound relevant:
 - backend/modules/helpers/helper_texts.js
 - backend/modules/helpers/helper_chat_output.js
 - backend/modules/helpers/helper_config.js
+- backend/modules/helpers/helper_twitch_roles.js
 - backend/modules/helpers/helper_media.js
 - backend/modules/sqlite_core.js
 - backend/core/database.js
 - config/sound_system.json
+- config/vip_sound_roles.json
 - htdocs/overlays/vip_sound_overlay.html
 - htdocs/overlays/vip_sound_overlay_v2.html
 - htdocs/overlays/sound_system_overlay.html
@@ -163,3 +166,20 @@ Wichtig:
 - .env/secrets niemals committen.
 - Backup-/Altdateien nicht committen.
 - VIP-Soundpfad spaeter konfigurierbar machen.
+
+
+## STEP026 VIP Twitch-Rollenhelper
+
+Neu/Geaendert:
+
+- backend/modules/helpers/helper_twitch_roles.js
+- backend/modules/vip_sound_overlay.js
+- config/vip_sound_roles.json
+- project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
+
+ENV/Secret-Nutzung:
+
+- TWITCH_CLIENT_ID
+- TWITCH_BROADCASTER_ID optional, Fallback 127709954
+- VIP_TWITCH_USER_TOKEN_PATH optional, Fallback D:/Streaming/stramAssets/secrets/tokens/twitch_user.json
+- Token-Datei niemals committen.

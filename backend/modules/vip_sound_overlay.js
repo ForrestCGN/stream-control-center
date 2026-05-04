@@ -8,6 +8,7 @@ const core = require("./helpers/helper_core");
 const messages = require("./helpers/helper_messages");
 const chatOutput = require("./helpers/helper_chat_output");
 const database = require("../core/database");
+const twitchRoles = require("./helpers/helper_twitch_roles");
 
 module.exports.init = function init(ctx) {
   const { app, broadcastWS } = ctx;
@@ -136,7 +137,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.3",
+    version: "1.7.4",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -389,7 +390,7 @@ module.exports.init = function init(ctx) {
     return set;
   }
 
-  function detectSoundTypeForTarget(requestedSoundType, targetUser) {
+  async function detectSoundTypeForTarget(requestedSoundType, targetUser) {
     const requested = normalizeSoundType(requestedSoundType);
     const cfg = readVipRolesConfig();
 
@@ -397,6 +398,9 @@ module.exports.init = function init(ctx) {
 
     const login = normalizeLogin(targetUser && (targetUser.login || targetUser.displayName));
     if (!login) return requested;
+
+    const twitchModeratorResult = await twitchRoles.isTargetModerator(login);
+    if (twitchModeratorResult === true) return "mod";
 
     const mods = normalizedRoleSet([
       ...(Array.isArray(cfg.mods) ? cfg.mods : []),
@@ -937,7 +941,7 @@ module.exports.init = function init(ctx) {
     const target = await resolveCommandTargetUser(raw, actor);
     const user = target.user;
 
-    const soundType = detectSoundTypeForTarget(requestedSoundType, user);
+    const soundType = await detectSoundTypeForTarget(requestedSoundType, user);
     const isOverrideRequest = target.explicit && normalizeLogin(user.login) !== normalizeLogin(actor.login);
     const overrideAllowed = isOverrideRequest && actorCanOverride(raw);
     const skipDailyUsage = isOverrideRequest && overrideAllowed;
