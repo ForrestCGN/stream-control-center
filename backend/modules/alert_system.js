@@ -74,7 +74,12 @@ const DEFAULT_CONFIG = {
     soundSystemSource: 'alert_system',
     waitForSoundItemStarted: true,
     fallbackShowOnSoundError: true,
-    fallbackShowAfterMs: 15000
+    fallbackShowAfterMs: 15000,
+    alertTtsEnabled: true,
+    alertTtsPrepareUrl: 'http://127.0.0.1:8080/api/tts/prepare-alert',
+    alertTtsTimeoutMs: 15000,
+    alertTtsDelayAfterSoundMs: 0,
+    alertTtsOutroBufferMs: 900
   },
   dashboardSettings: {
     preferSqliteSettings: true,
@@ -1610,6 +1615,8 @@ async function processQueue(broadcastWS) {
     if (event.rule && event.rule.id) event.rule = getRuleById(event.rule.id) || event.rule;
     await enrichEventAvatar(event);
     event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
+    await prepareAlertTtsForEvent(event);
+    event.effectiveDurationMs = resolveFinalAlertDurationMs(event, event.rule);
     event.status = 'playing';
     event.started_at = nowIso();
     sqlite.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, { startedAt: event.started_at, eventUid: event.eventUid });
@@ -1809,7 +1816,7 @@ function buildOverlayAlert(event) {
     imageUrl: rule.image_url || '',
     ruleId: rule.id || null,
     textVariantId: text.variantId || null,
-    tts: buildTtsPayload(event, rule),
+    tts: event.alertTts || buildTtsPayload(event, rule),
     chatMessage: buildAlertChatMessage(event, rule, text.context),
     createdAt: event.created_at,
     startedAt: event.started_at
@@ -1979,6 +1986,91 @@ function persistRenderedAlert(eventUid, alert) {
   } catch (_) {}
 }
 
+
+
+function resolveFinalAlertDurationMs(event, rule = {}) {
+  const baseDuration = resolveAlertDurationMs(rule);
+  const tts = event && event.alertTts;
+  if (!tts || tts.enabled === false || !tts.ok || !Number(tts.durationMs || 0)) return baseDuration;
+  const soundDurationMs = Number(rule?.sound_duration_ms || event?.soundDurationMs || 0);
+  const startAfterMs = Number(tts.startAfterMs || tts.ttsStartAfterMs || soundDurationMs || 0);
+  const ttsEndMs = startAfterMs + Number(tts.durationMs || 0);
+  const outroBufferMs = Number(tts.outroBufferMs ?? 900) || 0;
+  const finalDurationMs = Math.max(baseDuration, ttsEndMs + outroBufferMs);
+  return clamp(finalDurationMs, 1000, Math.max(60000, finalDurationMs));
+}
+
+async function prepareAlertTtsForEvent(event) {
+  if (!event || !event.rule) return null;
+  const payload = buildTtsPayload(event, event.rule);
+  event.alertTts = payload;
+  if (!payload || payload.enabled === false || !payload.text) return payload;
+
+  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+  if (liveAlert.alertTtsEnabled === false) {
+    event.alertTts = { ...payload, enabled:false, reason:'alert_tts_disabled_by_config' };
+    return event.alertTts;
+  }
+
+  const soundDurationMs = Number(event.rule?.sound_duration_ms || 0);
+  const startAfterMs = soundDurationMs + Math.max(0, Number(liveAlert.alertTtsDelayAfterSoundMs || 0));
+  const request = {
+    source: 'alert',
+    mode: 'alert',
+    text: payload.text,
+    message: payload.text,
+    user: event.user_display || event.user_login || 'Alert-System',
+    userLogin: event.user_login || 'alert_system',
+    displayName: event.user_display || event.user_login || 'Alert-System',
+    voice: payload.voice || '',
+    maxChars: payload.maxChars || 250,
+    startAfterMs,
+    delayAfterSoundMs: 0,
+    outroBufferMs: Number(liveAlert.alertTtsOutroBufferMs || 900),
+    meta: {
+      alertId: event.eventUid,
+      provider: event.source,
+      type: event.type_key,
+      ruleId: event.rule?.id || null,
+      timing: payload.timing || 'after_alert',
+      mode: payload.mode || 'audio_only'
+    }
+  };
+
+  try {
+    const url = cleanText(liveAlert.alertTtsPrepareUrl || DEFAULT_CONFIG.liveAlert.alertTtsPrepareUrl || 'http://127.0.0.1:8080/api/tts/prepare-alert');
+    const result = await postJson(url, request, Number(liveAlert.alertTtsTimeoutMs || 15000));
+    event.alertTts = {
+      ...payload,
+      ...result,
+      enabled: result && result.ok !== false,
+      ok: result && result.ok !== false,
+      startAfterMs: Number(result?.startAfterMs ?? startAfterMs),
+      endsAfterMs: Number(result?.endsAfterMs ?? (startAfterMs + Number(result?.durationMs || 0))),
+      source: 'alert_system'
+    };
+  } catch (err) {
+    event.alertTts = {
+      ...payload,
+      enabled: false,
+      ok: false,
+      reason: 'alert_tts_prepare_failed',
+      error: err && err.message ? err.message : String(err)
+    };
+    console.warn('[alert_system] alert tts prepare failed:', event.alertTts.error);
+  }
+
+  try {
+    const rawPayload = event.raw && typeof event.raw === 'object' ? { ...event.raw } : {};
+    rawPayload.alertTts = event.alertTts;
+    sqlite.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
+      eventUid: event.eventUid,
+      payloadJson: JSON.stringify(rawPayload)
+    });
+  } catch (_) {}
+
+  return event.alertTts;
+}
 
 function resolveAlertDurationMs(rule = {}) {
   const fixed = Number(rule?.duration_ms || state.config.defaultDurationMs || 7000);

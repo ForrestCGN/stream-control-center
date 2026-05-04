@@ -10,6 +10,10 @@
 const fs = require("fs");
 const path = require("path");
 const core = require("./helpers/helper_core");
+const cfg = require("./helpers/helper_config");
+const media = require("./helpers/helper_media");
+const settingsHelper = require("./helpers/helper_settings");
+const database = require("../core/database");
 const crypto = require("crypto");
 const { spawn } = require("child_process");
 
@@ -29,6 +33,13 @@ function init(ctx) {
   const ROOT_DIR = path.resolve(HTDOCS_DIR, "..");
   const CONFIG_DIR = path.join(ROOT_DIR, "config");
   const GENERATED_DIR = path.join(HTDOCS_DIR, "assets", "tts", "generated");
+
+  const MODULE_NAME = "tts_system";
+  const TTS_SCHEMA_MODULE = "tts_system";
+  const TTS_SCHEMA_VERSION = 1;
+  const TTS_SETTINGS_TABLE = "tts_settings";
+  const TTS_EVENTS_TABLE = "tts_events";
+  const TTS_USAGE_TABLE = "tts_usage_daily";
 
   const CONFIG_FILE = path.join(CONFIG_DIR, "tts_config.json");
   const MESSAGES_FILE = path.join(CONFIG_DIR, "tts_messages.json");
@@ -148,10 +159,16 @@ function init(ctx) {
   core.ensureDir(CONFIG_DIR);
   core.ensureDir(GENERATED_DIR);
 
+  try { database.ensureReady(ctx); } catch (err) { console.error(`[TTS] database init failed: ${err.message}`); }
+
   let config = loadJson(CONFIG_FILE, DEFAULT_CONFIG);
   let messages = loadJson(MESSAGES_FILE, DEFAULT_MESSAGES);
   let state = loadJson(STATE_FILE, DEFAULT_STATE);
   let bans = loadJson(BANS_FILE, DEFAULT_BANS);
+
+  ensureDbSchema();
+  seedDbSettings();
+  applyDbSettingsToConfig();
   let googleClients = {};
   let current = null;
   let playing = false;
@@ -205,10 +222,109 @@ function init(ctx) {
   function saveState() { saveJson(STATE_FILE, state); }
   function saveBans() { saveJson(BANS_FILE, bans); }
 
+  function dbReady() {
+    try { database.ensureReady(); return true; } catch (_) { return false; }
+  }
+
+  function ensureDbSchema() {
+    if (!dbReady()) return false;
+    database.ensureSchema(TTS_SCHEMA_MODULE, TTS_SCHEMA_VERSION, (fromVersion, toVersion, db) => {
+      if (toVersion !== 1) return;
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tts_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          event_uid TEXT NOT NULL UNIQUE,
+          source TEXT NOT NULL DEFAULT 'chat',
+          mode TEXT NOT NULL DEFAULT 'chat',
+          status TEXT NOT NULL DEFAULT 'queued',
+          user_login TEXT NOT NULL DEFAULT '',
+          user_display TEXT NOT NULL DEFAULT '',
+          role_key TEXT NOT NULL DEFAULT '',
+          text TEXT NOT NULL DEFAULT '',
+          chars INTEGER NOT NULL DEFAULT 0,
+          voice_id TEXT NOT NULL DEFAULT '',
+          engine TEXT NOT NULL DEFAULT '',
+          audio_file TEXT NOT NULL DEFAULT '',
+          audio_url TEXT NOT NULL DEFAULT '',
+          duration_ms INTEGER NOT NULL DEFAULT 0,
+          error TEXT NOT NULL DEFAULT '',
+          meta_json TEXT NOT NULL DEFAULT '{}',
+          created_at TEXT NOT NULL,
+          started_at TEXT,
+          finished_at TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_tts_events_created ON tts_events(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_tts_events_source_mode ON tts_events(source, mode, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS tts_usage_daily (
+          usage_date TEXT NOT NULL,
+          source TEXT NOT NULL DEFAULT 'chat',
+          mode TEXT NOT NULL DEFAULT 'chat',
+          engine TEXT NOT NULL DEFAULT '',
+          requests_total INTEGER NOT NULL DEFAULT 0,
+          requests_ok INTEGER NOT NULL DEFAULT 0,
+          requests_failed INTEGER NOT NULL DEFAULT 0,
+          chars_total INTEGER NOT NULL DEFAULT 0,
+          duration_ms_total INTEGER NOT NULL DEFAULT 0,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (usage_date, source, mode, engine)
+        );
+      `);
+    });
+    settingsHelper.ensureSettingsTable(TTS_SETTINGS_TABLE);
+    return true;
+  }
+
+  function defaultSettingsBlocks() {
+    return [
+      { key: 'enabled', value: DEFAULT_CONFIG.enabled, valueType: 'boolean', description: 'TTS insgesamt aktiv/inaktiv' },
+      { key: 'command', value: DEFAULT_CONFIG.command, valueType: 'string', description: 'Chat-Befehl fuer TTS' },
+      { key: 'defaultVoice', value: DEFAULT_CONFIG.defaultVoice, valueType: 'string', description: 'Standard-Stimme' },
+      { key: 'fallbackVoice', value: DEFAULT_CONFIG.fallbackVoice, valueType: 'string', description: 'Fallback-Stimme' },
+      { key: 'rejectWhenFallbackUnavailable', value: DEFAULT_CONFIG.rejectWhenFallbackUnavailable, valueType: 'boolean', description: 'Ablehnen wenn Fallback fehlt' },
+      { key: 'limits', value: DEFAULT_CONFIG.limits, valueType: 'json', description: 'Google/Piper Limits' },
+      { key: 'queue', value: DEFAULT_CONFIG.queue, valueType: 'json', description: 'Queue- und Cleanup-Regeln' },
+      { key: 'text', value: DEFAULT_CONFIG.text, valueType: 'json', description: 'Textfilter' },
+      { key: 'voices', value: DEFAULT_CONFIG.voices, valueType: 'json', description: 'Voice-Konfiguration ohne Secret-Inhalt' },
+      { key: 'roles', value: DEFAULT_CONFIG.roles, valueType: 'json', description: 'Rollenregeln fuer Chat-TTS' },
+      { key: 'permissions', value: DEFAULT_CONFIG.permissions, valueType: 'json', description: 'TTS Command-Rechte' },
+      { key: 'system', value: { enabled: true, requireKey: false, key: '', respectGlobalEnabled: true, voice: DEFAULT_CONFIG.defaultVoice, user: 'heimaufsichtcgn', displayName: 'HeimaufsichtCGN', maxLength: 500, priority: 95 }, valueType: 'json', description: 'System-/Alert-TTS Defaults' },
+      { key: 'alertTts', value: { enabled: true, voice: DEFAULT_CONFIG.defaultVoice, maxChars: 500, delayAfterSoundMs: 0, outroBufferMs: 900 }, valueType: 'json', description: 'Defaults fuer Alert-TTS' }
+    ];
+  }
+
+  function seedDbSettings() {
+    if (!dbReady()) return false;
+    try { settingsHelper.seedDefaults(TTS_SETTINGS_TABLE, defaultSettingsBlocks()); return true; }
+    catch (err) { console.error(`[TTS] settings seed failed: ${err.message}`); return false; }
+  }
+
+  function listDbSettingsMap() {
+    if (!dbReady()) return {};
+    try {
+      const result = settingsHelper.listSettings(TTS_SETTINGS_TABLE, { limit: 1000 });
+      const map = {};
+      for (const row of result.rows || []) map[row.key] = row.value;
+      return map;
+    } catch (err) {
+      console.error(`[TTS] settings read failed: ${err.message}`);
+      return {};
+    }
+  }
+
+  function applyDbSettingsToConfig() {
+    const dbSettings = listDbSettingsMap();
+    if (!dbSettings || typeof dbSettings !== 'object') return config;
+    config = deepMerge(config, dbSettings);
+    return config;
+  }
+
   function reloadAllConfig() {
     config = loadJson(CONFIG_FILE, DEFAULT_CONFIG);
     messages = loadJson(MESSAGES_FILE, DEFAULT_MESSAGES);
     bans = loadJson(BANS_FILE, DEFAULT_BANS);
+    seedDbSettings();
+    applyDbSettingsToConfig();
     googleClients = {};
     normalizeUsageDate();
     saveState();
@@ -415,6 +531,85 @@ function init(ctx) {
     saveState();
   }
 
+  function recordUsageDaily(source, mode, engine, chars, durationMs, ok) {
+    if (!dbReady()) return;
+    try {
+      const usageDate = todayKey();
+      database.run(`
+        INSERT INTO tts_usage_daily (usage_date, source, mode, engine, requests_total, requests_ok, requests_failed, chars_total, duration_ms_total, updated_at)
+        VALUES (:usageDate, :source, :mode, :engine, 1, :okCount, :failedCount, :chars, :durationMs, :updatedAt)
+        ON CONFLICT(usage_date, source, mode, engine) DO UPDATE SET
+          requests_total = requests_total + 1,
+          requests_ok = requests_ok + excluded.requests_ok,
+          requests_failed = requests_failed + excluded.requests_failed,
+          chars_total = chars_total + excluded.chars_total,
+          duration_ms_total = duration_ms_total + excluded.duration_ms_total,
+          updated_at = excluded.updated_at
+      `, {
+        usageDate,
+        source: String(source || 'chat'),
+        mode: String(mode || 'chat'),
+        engine: String(engine || ''),
+        okCount: ok ? 1 : 0,
+        failedCount: ok ? 0 : 1,
+        chars: Number(chars || 0),
+        durationMs: Number(durationMs || 0),
+        updatedAt: core.nowIso()
+      });
+    } catch (err) {
+      console.error(`[TTS] usage db write failed: ${err.message}`);
+    }
+  }
+
+  function insertTtsEvent(item, status, extra = {}) {
+    if (!dbReady() || !item) return;
+    try {
+      database.run(`
+        INSERT INTO tts_events (event_uid, source, mode, status, user_login, user_display, role_key, text, chars, voice_id, engine, audio_file, audio_url, duration_ms, error, meta_json, created_at, started_at, finished_at)
+        VALUES (:eventUid, :source, :mode, :status, :userLogin, :userDisplay, :roleKey, :text, :chars, :voiceId, :engine, :audioFile, :audioUrl, :durationMs, :error, :metaJson, :createdAt, :startedAt, :finishedAt)
+        ON CONFLICT(event_uid) DO UPDATE SET
+          status=excluded.status,
+          engine=excluded.engine,
+          audio_file=excluded.audio_file,
+          audio_url=excluded.audio_url,
+          duration_ms=excluded.duration_ms,
+          error=excluded.error,
+          meta_json=excluded.meta_json,
+          started_at=COALESCE(excluded.started_at, started_at),
+          finished_at=COALESCE(excluded.finished_at, finished_at)
+      `, {
+        eventUid: item.id,
+        source: String(item.source || extra.source || 'chat'),
+        mode: String(item.mode || extra.mode || 'chat'),
+        status: String(status || item.status || 'queued'),
+        userLogin: String(item.user || ''),
+        userDisplay: String(item.displayName || ''),
+        roleKey: String(item.role || ''),
+        text: String(item.text || ''),
+        chars: Number(item.chars || 0),
+        voiceId: String(item.voiceUsed || item.voice || ''),
+        engine: String(item.engineUsed || extra.engine || ''),
+        audioFile: String(item.audioFile || extra.audioFile || ''),
+        audioUrl: String(item.audioUrl || extra.audioUrl || ''),
+        durationMs: Number(item.durationMs || extra.durationMs || 0),
+        error: String(extra.error || item.error || ''),
+        metaJson: JSON.stringify(extra.meta || item.meta || {}),
+        createdAt: item.createdAt || core.nowIso(),
+        startedAt: extra.startedAt || null,
+        finishedAt: extra.finishedAt || null
+      });
+    } catch (err) {
+      console.error(`[TTS] event db write failed: ${err.message}`);
+    }
+  }
+
+  function readAudioDurationMs(audioFile, chars = 0) {
+    const probed = media.readAudioDurationMs(audioFile, { timeoutMs: 5000 });
+    if (probed.ok && Number(probed.durationMs) > 0) return { durationMs: Number(probed.durationMs), durationOk: true, source: 'ffprobe' };
+    const estimated = Math.max(900, Math.min(60000, Math.round(Number(chars || 0) * 72 + 650)));
+    return { durationMs: estimated, durationOk: false, source: probed.error || 'estimated' };
+  }
+
   function googleAvailable(vc) {
     if (!vc?.enabled) return { ok: false, reason: "google_voice_disabled" };
     if (!textToSpeech) return { ok: false, reason: "google_package_missing" };
@@ -526,7 +721,11 @@ function init(ctx) {
       engine: item.engineUsed || null,
       priority: item.priority,
       createdAt: item.createdAt,
-      audioUrl: item.audioUrl || null
+      audioUrl: item.audioUrl || null,
+      audioFile: item.audioFile || null,
+      durationMs: item.durationMs || 0,
+      durationOk: !!item.durationOk,
+      durationSource: item.durationSource || ""
     };
   }
 
@@ -584,6 +783,12 @@ function init(ctx) {
       item.engineUsed = audio.engine;
       item.voiceUsed = audio.voice;
       item.voiceLabel = audio.label;
+      const duration = readAudioDurationMs(item.audioFile, item.chars);
+      item.durationMs = duration.durationMs;
+      item.durationOk = duration.durationOk;
+      item.durationSource = duration.source;
+      insertTtsEvent(item, "playing", { startedAt: core.nowIso(), durationMs: item.durationMs });
+      recordUsageDaily(item.source || "chat", item.mode || "chat", item.engineUsed || "", item.chars, item.durationMs, true);
 
       broadcastWS({
         op: "tts_play",
@@ -594,6 +799,9 @@ function init(ctx) {
       broadcastState();
     } catch (err) {
       console.error(`[TTS] synth failed: ${err.message}`);
+      item.error = err.message;
+      insertTtsEvent(item, "failed", { error: err.message, finishedAt: core.nowIso() });
+      recordUsageDaily(item.source || "chat", item.mode || "chat", item.engineUsed || "", item.chars, 0, false);
       broadcastWS({ op: "tts_error", error: err.message, item: publicItem(item) });
       current = null;
       playing = false;
@@ -602,6 +810,7 @@ function init(ctx) {
   }
 
   function enqueue(item) {
+    insertTtsEvent(item, "queued");
     queue.push(item);
     sortQueue();
     setTimeout(startNext, 10);
@@ -678,7 +887,10 @@ function init(ctx) {
       voice: voiceId,
       priority: Number(rc.priority || 10),
       createdAt: core.nowIso(),
-      createdAtMs: Date.now()
+      createdAtMs: Date.now(),
+      source: String(data.source || "chat"),
+      mode: String(data.mode || "chat"),
+      meta: data.meta && typeof data.meta === "object" ? data.meta : {}
     };
 
     touchCooldown(role, user);
@@ -691,6 +903,7 @@ function init(ctx) {
     const data = getRequestData(req);
     const id = String(data.id || "");
     if (current && (!id || current.id === id)) {
+      insertTtsEvent(current, "finished", { finishedAt: core.nowIso(), durationMs: current.durationMs || 0 });
       current = null;
       playing = false;
       saveState();
@@ -883,6 +1096,101 @@ function init(ctx) {
     return { ok: false, reason: "unknown_command", chat: msg("unknownCommand") };
   }
 
+  async function prepareAlertTts(data) {
+    normalizeUsageDate();
+    const systemCfg = config.system || {};
+    const alertCfg = config.alertTts || {};
+    const rawText = String(data.text || data.message || data.input || '').trim();
+    const text = sanitizeText(rawText);
+    const maxLength = Number(data.maxChars || alertCfg.maxChars || systemCfg.maxLength || 500);
+
+    if (alertCfg.enabled === false || systemCfg.enabled === false) return { ok: false, enabled: false, reason: 'alert_tts_disabled' };
+    if (!text) return { ok: false, enabled: false, reason: 'empty_text' };
+    if (text.length > maxLength) return { ok: false, enabled: false, reason: 'text_too_long', maxLength, chars: text.length };
+    if (systemCfg.respectGlobalEnabled !== false && (!state.enabled || !config.enabled)) return { ok: false, enabled: false, reason: 'tts_disabled' };
+
+    const voiceId = String(data.voice || alertCfg.voice || systemCfg.voice || config.defaultVoice || 'google_wavenet_h');
+    const item = {
+      id: makeId(),
+      user: normalizeLogin(data.userLogin || data.user || systemCfg.user || 'alert_system') || 'alert_system',
+      displayName: String(data.displayName || data.userDisplay || data.user || systemCfg.displayName || 'Alert-System'),
+      role: 'system',
+      text,
+      chars: text.length,
+      voice: voiceId,
+      priority: Number(systemCfg.priority || 95),
+      createdAt: core.nowIso(),
+      createdAtMs: Date.now(),
+      source: String(data.source || 'alert'),
+      mode: 'alert',
+      meta: data.meta && typeof data.meta === 'object' ? data.meta : {}
+    };
+
+    insertTtsEvent(item, 'preparing');
+
+    try {
+      const audio = await synthesize(item);
+      item.audioFile = audio.file;
+      item.audioUrl = audio.url;
+      item.engineUsed = audio.engine;
+      item.voiceUsed = audio.voice;
+      item.voiceLabel = audio.label;
+      const duration = readAudioDurationMs(item.audioFile, item.chars);
+      item.durationMs = duration.durationMs;
+      item.durationOk = duration.durationOk;
+      item.durationSource = duration.source;
+      const delayAfterSoundMs = Math.max(0, Number(data.delayAfterSoundMs ?? alertCfg.delayAfterSoundMs ?? 0) || 0);
+      const startAfterMs = Math.max(0, Number(data.startAfterMs || 0) || 0) + delayAfterSoundMs;
+      const result = {
+        ok: true,
+        enabled: true,
+        id: item.id,
+        text: item.text,
+        chars: item.chars,
+        audioUrl: item.audioUrl,
+        audioFile: item.audioFile,
+        durationMs: item.durationMs,
+        durationOk: item.durationOk,
+        durationSource: item.durationSource,
+        voice: item.voiceUsed,
+        voiceLabel: item.voiceLabel,
+        engine: item.engineUsed,
+        startAfterMs,
+        endsAfterMs: startAfterMs + item.durationMs,
+        outroBufferMs: Math.max(0, Number(data.outroBufferMs ?? alertCfg.outroBufferMs ?? 900) || 0)
+      };
+      insertTtsEvent(item, 'prepared', { durationMs: item.durationMs, finishedAt: core.nowIso(), meta: result });
+      recordUsageDaily(item.source, item.mode, item.engineUsed || '', item.chars, item.durationMs, true);
+      return result;
+    } catch (err) {
+      item.error = err.message || String(err);
+      insertTtsEvent(item, 'failed', { error: item.error, finishedAt: core.nowIso() });
+      recordUsageDaily(item.source, item.mode, '', item.chars, 0, false);
+      return { ok: false, enabled: true, reason: 'synthesize_failed', error: item.error };
+    }
+  }
+
+  function listEvents(filter = {}) {
+    if (!dbReady()) return { ok: false, error: 'database_unavailable', rows: [] };
+    const limit = Math.max(1, Math.min(500, Number(filter.limit || 100)));
+    const source = String(filter.source || '').trim();
+    const mode = String(filter.mode || '').trim();
+    const where = [];
+    const params = { limit };
+    if (source) { where.push('source = :source'); params.source = source; }
+    if (mode) { where.push('mode = :mode'); params.mode = mode; }
+    const rows = database.all(`SELECT * FROM tts_events ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY id DESC LIMIT :limit`, params);
+    return { ok: true, rows, count: rows.length };
+  }
+
+  function stats() {
+    if (!dbReady()) return { ok: false, error: 'database_unavailable' };
+    const usage = database.all(`SELECT * FROM tts_usage_daily ORDER BY usage_date DESC, source ASC, mode ASC, engine ASC LIMIT 500`);
+    const totals = database.get(`SELECT COUNT(*) AS events, COALESCE(SUM(chars),0) AS chars, COALESCE(SUM(duration_ms),0) AS durationMs FROM tts_events`);
+    const recent = database.all(`SELECT source, mode, status, COUNT(*) AS count FROM tts_events GROUP BY source, mode, status ORDER BY count DESC`);
+    return { ok: true, totals, usage, byStatus: recent };
+  }
+
   function run(req, res) {
     const data = getRequestData(req);
     const raw = parseRawInput(data);
@@ -933,6 +1241,30 @@ function init(ctx) {
     const command = String(data.cmd || data.command || "status").toLowerCase().trim();
     res.json(handleSubcommand(command, String(data.rest || ""), data));
   });
+
+  app.get("/api/tts/settings", (req, res) => res.json({ ok: true, table: TTS_SETTINGS_TABLE, settings: settingsHelper.listSettings(TTS_SETTINGS_TABLE, { limit: 1000 }), effective: config }));
+  app.post("/api/tts/settings/upsert", (req, res) => {
+    try {
+      const data = getRequestData(req);
+      const key = String(data.key || data.settingKey || '').trim();
+      if (key) {
+        const value = data.value !== undefined ? data.value : data.setting_value;
+        const saved = settingsHelper.setSetting(TTS_SETTINGS_TABLE, key, value, { valueType: data.valueType || data.type || '', description: data.description || '' });
+        reloadAllConfig();
+        return res.json({ ok: true, setting: saved, effective: config });
+      }
+      const settings = data.settings && typeof data.settings === 'object' ? data.settings : {};
+      for (const [settingKey, value] of Object.entries(settings)) settingsHelper.setSetting(TTS_SETTINGS_TABLE, settingKey, value);
+      reloadAllConfig();
+      return res.json({ ok: true, settings: settingsHelper.listSettings(TTS_SETTINGS_TABLE, { limit: 1000 }), effective: config });
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: 'settings_upsert_failed', message: err.message || String(err) });
+    }
+  });
+  app.get("/api/tts/events", (req, res) => res.json(listEvents(req.query || {})));
+  app.get("/api/tts/stats", (req, res) => res.json(stats()));
+  app.all("/api/tts/prepare-alert", async (req, res) => res.json(await prepareAlertTts(getRequestData(req))));
+  app.all("/api/tts/synthesize", async (req, res) => res.json(await prepareAlertTts({ ...getRequestData(req), source: getRequestData(req).source || 'api', mode: getRequestData(req).mode || 'prepare' })));
 
   setInterval(() => {
     normalizeUsageDate();

@@ -1672,13 +1672,16 @@
 <body>
   <div class="stage" id="stage"></div>
   <audio id="sound" preload="auto"></audio>
+  <audio id="ttsSound" preload="auto"></audio>
 
   <script>
     const stage = document.getElementById('stage');
     const audio = document.getElementById('sound');
+    const ttsAudio = document.getElementById('ttsSound');
     let ws;
     let currentTimer = null;
     let currentAlertId = null;
+    let currentTtsTimer = null;
     const preparedAlerts = new Map();
     const PREVIEW_MODE = new URLSearchParams(location.search).has('preview');
 
@@ -1883,6 +1886,8 @@
         audio.currentTime = 0;
         audio.play().catch(() => {});
       }
+
+      scheduleAlertTts(alert);
 
       const duration = Math.max(1000, Number(alert.durationMs || 7000));
       currentTimer = setTimeout(() => clearAlert('finished', true), duration);
@@ -2154,6 +2159,31 @@
     }
 
 
+    function scheduleAlertTts(alert) {
+      clearTimeout(currentTtsTimer);
+      currentTtsTimer = null;
+      try {
+        ttsAudio.pause();
+        ttsAudio.removeAttribute('src');
+        ttsAudio.load();
+      } catch (_) {}
+
+      const tts = alert && alert.tts;
+      if (!tts || tts.enabled === false || tts.ok === false || !tts.audioUrl) return;
+
+      const startAfterMs = Math.max(0, Number(tts.startAfterMs || tts.ttsStartAfterMs || alert.soundDurationMs || 0) || 0);
+      currentTtsTimer = setTimeout(async () => {
+        try {
+          ttsAudio.src = String(tts.audioUrl) + `?t=${Date.now()}`;
+          ttsAudio.currentTime = 0;
+          ttsAudio.volume = 1.0;
+          await ttsAudio.play();
+        } catch (err) {
+          console.error('Alert-TTS audio play failed', err);
+        }
+      }, startAfterMs);
+    }
+
     function buildCelebrationLayer(alert) {
       const selected = normalizeCelebrationType(
         alert.celebration ||
@@ -2262,6 +2292,13 @@
 
       audio.pause();
       audio.removeAttribute('src');
+      clearTimeout(currentTtsTimer);
+      currentTtsTimer = null;
+      try {
+        ttsAudio.pause();
+        ttsAudio.removeAttribute('src');
+        ttsAudio.load();
+      } catch (_) {}
 
       if (ack && currentAlertId) send({ op: 'alert_system', client: 'overlay', event: 'finished', alertId: currentAlertId, reason });
       currentAlertId = null;
