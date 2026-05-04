@@ -46,19 +46,20 @@ GitHub:
 - STEP017 VIP-Sounds ueber Sound-System vor Daily-Usage queued
 - STEP019 VIP Sound Override dokumentiert und Projektstatus aktualisiert
 - STEP020 VIP Override live getestet
+- STEP021 Sound-System RequestId in VIP-Response gefixt
 
 ## Aktueller sauberer Zustand
 
-- GitHub/dev wurde fuer STEP020 aktualisiert.
-- STEP020 war ein Live-Test-/Dokumentationsstep.
-- Code wurde in STEP020 nicht geaendert.
+- GitHub/dev wurde fuer STEP021 aktualisiert.
 - Aktuelles VIP-Modul: backend/modules/vip_sound_overlay.js
-- VIP-Modul-Version im Repo/Live: 1.7.0
+- VIP-Modul-Version im Repo/Live: 1.7.1
 - Sound-System-Version live: 0.1.8
 - VIP Override ist live bestaetigt.
+- `soundSystemRequestId` wird jetzt korrekt in der VIP-Response ausgegeben.
 
 Live-Routen geprueft:
 
+- POST /api/vip-sound/command
 - GET /api/vip-sound/status
 - GET /api/vip-sound-overlay/state
 - GET /api/vip-sound/db/status
@@ -72,6 +73,7 @@ Dokumentation:
 - project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
 - project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
 - project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
+- project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
 
 Aktueller Ablauf fuer `/api/vip-sound/command`:
 
@@ -93,7 +95,7 @@ Aktueller Ablauf fuer `/api/vip-sound/command`:
    - keine Daily-Usage
    - `sound_missing`-Nachricht ueber Heimleitungs-Bot
 10. Wenn MP3 existiert:
-   - POST an `http://127.0.0.1:8080/api/sound/play`
+   - POST an Sound-System `/api/sound/play`
    - Payload nutzt `file: "vip/<Anzeigename>.mp3"`
    - Kategorie `vip` oder `crew` je nach Soundtyp
    - Output `device`
@@ -101,6 +103,9 @@ Aktueller Ablauf fuer `/api/vip-sound/command`:
    - normale Ausloesung schreibt Daily-Usage
    - erlaubter Override ueberspringt Daily-Usage-Pruefung bewusst
    - Accepted-/Override-Nachricht ueber Heimleitungs-Bot
+12. Die VIP-Response enthaelt nun:
+   - eigene VIP-RequestId `requestId`
+   - Sound-System-ID `soundSystemRequestId`
 
 Chat-Ausgabe:
 
@@ -119,6 +124,13 @@ STEP020 Live-Test bestaetigt:
 - Duplicate ohne Override fuer `araglor`: korrekt geblockt.
 - Unerlaubter Override durch `normaluser`: korrekt geblockt.
 - AudioDeviceHelper spielte `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\araglor.mp3` erfolgreich ab.
+
+STEP021 Live-Test bestaetigt:
+
+- Broadcaster-Override wurde erneut getestet.
+- Sound-System startete den VIP-Sound.
+- `soundSystemRequestId` enthaelt jetzt eine gueltige `snd_...` ID.
+- Keine Queue-, Daily-Usage-, Override- oder Sound-System-Logik wurde umgebaut.
 
 ## Doku-Struktur
 
@@ -154,7 +166,6 @@ Snapshots:
 
 ## Offene Punkte
 
-- STEP021: `soundSystemRequestId` sauber aus `/api/sound/play` Response uebernehmen.
 - Reale Streamer.bot-Rollen-/Badge-Parameter bei Produktion weiter beobachten.
 - Falls noetig nur Rollenmapping erweitern, keine Sound-/Queue-Logik umbauen.
 - VIP-Overlay-Startverhalten gegen echten Sound-System-Start weiter verifizieren.
@@ -168,10 +179,8 @@ Snapshots:
 
 ## Naechster empfohlener Schritt
 
-STEP021 klein halten:
+Naechster kleiner VIP-Step:
 
-1. Response-Struktur von `/api/sound/play` pruefen.
-2. `soundSystemRequestId` sauber in VIP-Response uebernehmen.
-3. Nur falls noetig Sound-System-Response minimal erweitern.
-4. `node -c` fuer betroffene JS-Dateien.
-5. Kurzer Live-Test normale VIP-Ausloesung + Override.
+1. Reale Streamer.bot-Argumente fuer Rollen/Badges pruefen.
+2. Falls noetig nur `actorCanOverride()` Mapping erweitern.
+3. Danach VIP-Overlay-Startverhalten mit echtem Sound-System-Start weiter verifizieren.
