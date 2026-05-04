@@ -2,6 +2,22 @@
 
 ## 2026-05-04
 
+### STEP022 - Streamer.bot VIP-Argumente geprueft
+
+- Echte Streamer.bot 1.0.4 Command-Argumente mit temporärem Debug-Command geprüft.
+- Ergebnis: Kein Code-Fix erforderlich.
+- Relevante Felder werden passend geliefert:
+  - `userName` fuer Actor-Login
+  - `user` fuer Actor-DisplayName
+  - `input0` fuer Target-Login ohne Mention-Zeichen
+  - `rawInput` fuer rohe Eingabe
+  - `isModerator` fuer Override-Erkennung
+- Das bestehende VIP-Modul erkennt `isModerator` bereits in `actorCanOverride()`.
+- Neue STEP-Doku angelegt:
+  - `project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md`
+- Keine Codeaenderung in STEP022.
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
 ### STEP021 - Sound-System RequestId in VIP-Response gefixt
 
 - `backend/modules/vip_sound_overlay.js` auf Version `1.7.1` aktualisiert.
