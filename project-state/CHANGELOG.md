@@ -2,6 +2,32 @@
 
 ## 2026-05-04
 
+### STEP020 - VIP Override live getestet
+
+- VIP-System im Live-System unter `D:\Streaming\stramAssets` getestet.
+- Statusrouten erfolgreich geprüft:
+  - `GET /api/vip-sound/status`
+  - `GET /api/vip-sound-overlay/state`
+  - `GET /api/vip-sound/db/status`
+  - `GET /api/sound/status`
+- Bestätigt:
+  - VIP-Modul Version `1.7.0` läuft.
+  - VIP-Overlay-State ist idle und hängt nicht.
+  - VIP-DB-Schema ist bereit.
+  - Sound-System Version `0.1.8` läuft.
+- Funktionstests erfolgreich:
+  - normale VIP-Auslösung für `araglor`
+  - Duplicate-Block für `araglor`
+  - Broadcaster-Override durch `forrestcgn`
+  - abgelehnter Override durch normalen User
+- Sound-System spielte `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\araglor.mp3` über AudioDeviceHelper ab.
+- Neue STEP-Doku angelegt:
+  - `project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md`
+- Offener Folgepunkt:
+  - `soundSystemRequestId` ist in der VIP-Response noch leer.
+- Keine Codeänderung in STEP020.
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
 ### STEP019 - VIP Sound Override dokumentiert
 
 - Mitgelieferte VIP-Override-Statusdateien beruecksichtigt und in den bestehenden Projektstand eingearbeitet.
