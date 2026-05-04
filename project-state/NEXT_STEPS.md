@@ -6,16 +6,125 @@ Stand: 2026-05-04
 
 Vor jedem neuen STEP:
 
-1. git status pruefen.
+1. `tools\easy\03_NUR_STATUS_PRUEFEN.cmd` oder `git status --short` pruefen.
 2. docs/current/CURRENT_SYSTEM_STATUS.md lesen.
 3. project-state/CURRENT_STATUS.md lesen.
 4. Reale Dateien pruefen, keine Annahmen.
-5. Kleine Aenderung planen.
-6. Nach Aenderung testen, dokumentieren, committen, pushen und Live pruefen.
+5. Wenn GitHub/Toolausgaben grosse Dateien kuerzen, echte Datei von Forrest anfordern und diese als Basis nutzen.
+6. Kleine Aenderung planen.
+7. Nach Aenderung testen, dokumentieren, committen, pushen und Live ueber `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd` aktualisieren.
 
 ## Empfohlene naechste Arbeitspakete
 
-### 1. Debug-Option in OBS entfernen
+### 1. VIP auf helper_settings.js umstellen
+
+Ziel:
+
+- Die aktuell im VIP-Modul vorhandenen internen Settings-Hilfsfunktionen kontrolliert auf `backend/modules/helpers/helper_settings.js` umstellen.
+- Lesereihenfolge bleibt:
+  1. Datenbank
+  2. JSON-Fallback ueber `helper_config.js`
+  3. Code-Default
+
+Wichtig:
+
+- Keine bestehende VIP-Funktionalitaet entfernen.
+- Vorher aktuellen `vip_sound_overlay.js`-Stand hochladen, falls GitHub/Tools die Datei kuerzen.
+- Erst nach erfolgreichem Test Dashboard bauen.
+
+---
+
+### 2. Dashboard-Settings spaeter schreiben/lesen
+
+Ziel:
+
+- Dashboard soll alle wichtigen Modulwerte lesen und schreiben koennen.
+- Schreibziel fuer dashboardfaehige Werte ist primaer die Datenbank.
+- Datei-Configs werden nur fuer technische Configs, Fallbacks oder bewusste Imports genutzt.
+- Secrets/Tokens bleiben ausserhalb des Dashboards und werden nicht im Klartext angezeigt.
+
+---
+
+### 3. Bestehende Systeme vor Dashboard-Bau pruefen und ggf. umbauen
+
+Ziel:
+
+- Vor dem eigentlichen Dashboard-Ausbau alle bisherigen Systeme noch einmal gegen den neuen Standard pruefen.
+- Relevante Systeme: VIP, Sound-System, Alerts, Hug, Messages/Rotator, Tagebuch, Todo, OBS/Scene-Control, Twitch/Presence, Overlay-Chat.
+- Pruefen, welche Werte noch hart codiert, nur in JSON-Dateien oder uneinheitlich gespeichert sind.
+- Dashboard-faehige Werte schrittweise in DB-/Settings-Strukturen ueberfuehren.
+- Bestehende JSON-Configs nur dort behalten, wo sie technische Fallbacks, Imports oder systemnahe Konfiguration sind.
+- APIs vereinheitlichen, damit das Dashboard spaeter nicht direkt Dateien oder SQLite anfassen muss.
+
+Wichtig:
+
+- Kein Blind-Umbau grosser Module.
+- Erst Bestand je System dokumentieren, dann kleine Steps.
+- Keine Funktionalitaet entfernen.
+- Bestehende Live-Funktion immer nach jedem Umbau testen.
+
+---
+
+### 4. VIP-Soundpfad und Dateiregel spaeter im Dashboard einstellbar machen
+
+Aktueller Stand:
+
+- `soundBaseDir`, `fileNameMode` und `fileExtension` liegen in `vip_sound_settings`.
+- Seit STEP032 werden diese Werte aktiv fuer die Sounddatei-Aufloesung genutzt.
+
+Ziel:
+
+- Dashboard kann diese Werte anzeigen und bearbeiten.
+- Aenderungen laufen ueber Backend-API und DB, nicht ueber direkte Datei-/SQL-Zugriffe.
+- Bestehender Fallback bleibt: `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
+
+---
+
+### 5. VIP-Textverwaltung spaeter ins Dashboard bringen
+
+Ziel:
+
+- VIP-/Mod-Chattexte und Overlaytexte aus `vip_sound_message_templates` anzeigen.
+- Texte aktivieren/deaktivieren.
+- Texte bearbeiten.
+- Gewichtung einstellen.
+- Event-Keys verstaendlich gruppieren.
+
+Wichtig:
+
+- Interne Style-ID `heimleitung` bleibt vorerst aus Kompatibilitaetsgruenden bestehen.
+- Sichtbarer Begriff bleibt `Heimaufsicht`.
+
+---
+
+### 6. VIP-Rollen-Fallbacks spaeter im Dashboard bearbeiten
+
+Ziel:
+
+- Rollen-Fallbacks aus `vip_sound_role_overrides` anzeigen und bearbeiten.
+- `config/vip_sound_roles.json` bleibt nur Import-/Fallback-Quelle.
+- Twitch-Erkennung bleibt primaer.
+
+---
+
+### 7. VIP-Daily-Usage und Events/Statistiken spaeter im Dashboard anzeigen
+
+Ziel:
+
+- Heutige Nutzung anzeigen.
+- Daily-Usage resetten.
+- Letzte VIP-Events anzeigen.
+- Statistiken aus `vip_sound_events` anzeigen.
+- Retention/Cleanup spaeter konfigurierbar machen.
+
+Wichtig:
+
+- Auto-Cleanup noch nicht hart aktivieren.
+- Retention spaeter ueber DB/Dashboard einstellbar machen.
+
+---
+
+### 8. Debug-Option in OBS entfernen
 
 Ziel:
 
@@ -30,7 +139,7 @@ Wichtig:
 
 ---
 
-### 2. Alte VIP-Action in Streamer.bot sichern/deaktiviert lassen
+### 9. Alte VIP-Action in Streamer.bot sichern/deaktiviert lassen
 
 Ziel:
 
@@ -46,54 +155,7 @@ Wichtig:
 
 ---
 
-### 3. Optional: echten Mod-Account testen
-
-Ziel:
-
-- Ein echter Mod testet einmal den VIP-Override-Command mit Target.
-- Erwartung: Streamer.bot liefert ebenfalls `isModerator=True`.
-
-Wichtig:
-
-- Nur notwendig, wenn wir absolut sicher sein wollen.
-- Kein Code-Fix erwartet.
-
----
-
-### 4. VIP-Soundpfad konfigurierbar machen
-
-Ziel:
-
-- Aktueller Fallback bleibt: `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
-- Ziel: Pfad/Dateiregel ueber DB/Config und spaeter Dashboard bearbeitbar.
-- Keine hart codierten Pfade als Endloesung.
-
-Wichtig:
-
-- Bestehende ENV-Fallbacks nicht entfernen.
-- Dashboard erst nach stabiler Backend-API.
-
----
-
-### 5. VIP-Dashboard spaeter bauen
-
-Ziel:
-
-- VIP-Status anzeigen.
-- Heimleitungs-Texte pro Event-Key bearbeiten.
-- Texte aktivieren/deaktivieren.
-- Gewichtung einstellen.
-- VIP-Soundpfad und Dateiregel konfigurieren.
-- Testausloesung ermoeglichen.
-
-Wichtig:
-
-- Erst nach stabiler Backend-API.
-- Dashboard soll API nutzen, nicht direkt Dateien/SQL anfassen.
-
----
-
-### 6. Dashboard-Modulstandard definieren
+### 10. Dashboard-Modulstandard definieren
 
 Ziel:
 
@@ -117,7 +179,7 @@ Wichtig:
 
 ---
 
-### 7. Fireworks spaeter neu aufbauen
+### 11. Fireworks spaeter neu aufbauen
 
 Aktueller Zustand:
 
@@ -134,7 +196,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 8. Hug-Textbearbeitung spaeter sauber neu planen
+### 12. Hug-Textbearbeitung spaeter sauber neu planen
 
 Aktueller Zustand:
 
@@ -150,7 +212,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 9. Alerts-Modul spaeter behutsam splitten
+### 13. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 
@@ -170,31 +232,3 @@ Wichtig:
 
 - Nur schrittweise.
 - Erst Tests und Doku.
-
----
-
-### 11. VIP auf helper_settings.js umstellen
-
-Ziel:
-
-- Die aktuell im VIP-Modul vorhandenen internen Settings-Hilfsfunktionen kontrolliert auf `backend/modules/helpers/helper_settings.js` umstellen.
-- Lesereihenfolge bleibt:
-  1. Datenbank
-  2. JSON-Fallback ueber `helper_config.js`
-  3. Code-Default
-
-Wichtig:
-
-- Keine bestehende VIP-Funktionalitaet entfernen.
-- Vorher aktuellen `vip_sound_overlay.js`-Stand hochladen, falls GitHub/Tools die Datei kuerzen.
-- Erst nach erfolgreichem Test Dashboard bauen.
-
----
-
-### 12. Dashboard-Settings spaeter schreiben/lesen
-
-Ziel:
-
-- Dashboard soll alle wichtigen Modulwerte lesen und schreiben koennen.
-- Schreibziel fuer dashboardfaehige Werte ist primaer die Datenbank.
-- Datei-Configs werden nur fuer technische Configs, Fallbacks oder bewusste Imports genutzt.
