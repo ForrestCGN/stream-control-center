@@ -2,6 +2,44 @@
 
 ## 2026-05-04
 
+### STEP047 - VIP Dashboard Base
+
+- Neues Dashboard-Modul fuer VIP angelegt:
+  - `htdocs/dashboard/modules/vip.js`
+  - `htdocs/dashboard/modules/vip.css`
+- Dashboard-Registrierung ergaenzt:
+  - `htdocs/dashboard/app.js`
+  - `htdocs/dashboard/index.html`
+- VIP-System ist jetzt in der Community-Sektion sichtbar.
+- VIP-Overlay-Link zeigt auf `/overlays/vip_sound_overlay_v2.html`.
+- VIP-Dashboard nutzt bestehende Backend-APIs, kein direkter SQLite-/Dateizugriff.
+- Vorhandene VIP-APIs werden genutzt fuer:
+  - Status/Summary
+  - Settings
+  - Texte
+  - Rollen
+  - Daily-Usage
+  - Events/Stats
+  - Admin-Testausloesung
+- VIP-Settings bleiben in `vip_sound_settings`.
+- VIP-Texte bleiben in `vip_sound_message_templates`.
+- VIP-Rollen-Fallbacks bleiben in `vip_sound_role_overrides`.
+- VIP-Events bleiben in `vip_sound_events`.
+- Kein Backend-Umbau in diesem STEP.
+- Kein VIP-Song-Upload in diesem STEP.
+- Modulstandard dokumentiert:
+  - Settings in DB.
+  - Texte in DB.
+  - JSON nur technische Config, Import oder Fallback.
+  - Dashboard nur ueber Backend-APIs.
+  - vorhandene Helper nutzen, keine Parallelstrukturen.
+- Tests:
+  - `node -c htdocs/dashboard/modules/vip.js` erfolgreich.
+  - `GET /api/vip-sound/admin/summary` erfolgreich.
+  - `GET /api/vip-sound/settings` erfolgreich.
+  - `GET /api/vip-sound/texts?limit=5` erfolgreich.
+- `docs/current/CURRENT_SYSTEM_STATUS.md` wurde auf VIP `1.8.5`/STEP047 aktualisiert.
+
 ### STEP046 - Alert-Sounds frueh in Sound-System-Queue eingereiht
 
 - `backend/modules/alert_system.js` angepasst.
