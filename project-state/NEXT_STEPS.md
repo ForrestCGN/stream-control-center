@@ -1,6 +1,6 @@
 # NEXT STEPS - stream-control-center
 
-Stand: 2026-05-03
+Stand: 2026-05-04
 
 ## Wichtigster Grundsatz
 
@@ -15,7 +15,31 @@ Vor jedem neuen STEP:
 
 ## Empfohlene naechste Arbeitspakete
 
-### 1. STEP018 - VIP-Overlay an echten Sound-System-Start koppeln
+### 1. STEP020 - VIP Override live pruefen
+
+Ziel:
+
+- GitHub/dev nach Live deployen.
+- Backend neu starten.
+- VIP-Override mit echten Streamer.bot-Parametern pruefen.
+- Sicherstellen, dass Rollen/Badges aus Streamer.bot korrekt in `backend/modules/vip_sound_overlay.js` erkannt werden.
+
+Tests:
+
+- Normaler VIP-Sound fuer User ohne Tagesnutzung muss akzeptiert werden.
+- Duplicate ohne Override muss blocken.
+- Moderator/Broadcaster mit Zieluser muss Override akzeptieren.
+- Normaler User mit Zieluser muss Override ablehnen.
+
+Wichtig:
+
+- Keine Queue-/Sound-System-Logik umbauen.
+- Falls Parameter fehlen, nur Rollen-/Badge-Mapping erweitern.
+- Keine Funktionalitaet entfernen.
+
+---
+
+### 2. VIP-Overlay an echten Sound-System-Start koppeln / verifizieren
 
 Ziel:
 
@@ -28,9 +52,11 @@ Ziel:
 Vorher pruefen:
 
 - project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
+- project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
 - backend/modules/vip_sound_overlay.js
 - backend/modules/sound_system.js
 - htdocs/overlays/vip_sound_overlay.html
+- htdocs/overlays/vip_sound_overlay_v2.html
 - htdocs/overlays/sound_system_overlay.html
 
 Wichtig:
@@ -41,7 +67,7 @@ Wichtig:
 
 ---
 
-### 2. Kleiner VIP-Folgestep: soundSystemRequestId sauber zurueckgeben
+### 3. Kleiner VIP-Folgestep: soundSystemRequestId sauber zurueckgeben
 
 Ziel:
 
@@ -55,7 +81,7 @@ Wichtig:
 
 ---
 
-### 3. VIP-Soundpfad konfigurierbar machen
+### 4. VIP-Soundpfad konfigurierbar machen
 
 Ziel:
 
@@ -70,7 +96,7 @@ Wichtig:
 
 ---
 
-### 4. VIP-Dashboard spaeter bauen
+### 5. VIP-Dashboard spaeter bauen
 
 Ziel:
 
@@ -88,7 +114,7 @@ Wichtig:
 
 ---
 
-### 5. Dashboard-Modulstandard definieren
+### 6. Dashboard-Modulstandard definieren
 
 Ziel:
 
@@ -112,7 +138,7 @@ Wichtig:
 
 ---
 
-### 6. Fireworks spaeter neu aufbauen
+### 7. Fireworks spaeter neu aufbauen
 
 Aktueller Zustand:
 
@@ -129,7 +155,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 7. Hug-Textbearbeitung spaeter sauber neu planen
+### 8. Hug-Textbearbeitung spaeter sauber neu planen
 
 Aktueller Zustand:
 
@@ -145,7 +171,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 8. Alerts-Modul spaeter behutsam splitten
+### 9. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 
