@@ -1892,11 +1892,28 @@ function resolveEventCelebration(event, rule = {}, displaySettings = {}) {
   return 'none';
 }
 
+function overlaySafeAlertTtsPayload(tts) {
+  if (!tts || typeof tts !== 'object') return tts;
+  const playbackMode = cleanKey(tts.playbackMode || '');
+  const overlayPlaybackEnabled = tts.overlayPlaybackEnabled === true || playbackMode === 'overlay';
+  if (overlayPlaybackEnabled) return tts;
+
+  return {
+    ...tts,
+    playbackMode: playbackMode || 'sound_system',
+    overlayPlaybackEnabled: false,
+    overlayAudioSuppressed: true,
+    audioUrl: '',
+    audioFile: ''
+  };
+}
+
 function buildOverlayAlert(event) {
   const rule = event.rule || {};
   const text = buildOverlayText(event, rule);
   const displayProfile = resolveDisplayProfile(event, rule);
   const durationMs = Number(event.effectiveDurationMs || 0) > 0 ? Number(event.effectiveDurationMs) : resolveAlertDurationMs(rule);
+  const overlayTts = overlaySafeAlertTtsPayload(event.alertTts || buildTtsPayload(event, rule));
   const alert = {
     id: event.eventUid,
     source: event.source,
@@ -1931,7 +1948,7 @@ function buildOverlayAlert(event) {
     imageUrl: rule.image_url || '',
     ruleId: rule.id || null,
     textVariantId: text.variantId || null,
-    tts: event.alertTts || buildTtsPayload(event, rule),
+    tts: overlayTts,
     chatMessage: buildAlertChatMessage(event, rule, text.context),
     createdAt: event.created_at,
     startedAt: event.started_at
