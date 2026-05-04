@@ -1,0 +1,257 @@
+window.VipModule = (function(){
+  'use strict';
+
+  const API = '/api/vip-sound';
+  let root = null;
+  let state = {
+    page: 'overview',
+    summary: null,
+    settings: null,
+    roles: null,
+    texts: null,
+    eventKeys: null,
+    daily: null,
+    events: null,
+    stats: null,
+    note: '',
+    loading: false,
+    textFilterStyle: '',
+    textFilterEventKey: '',
+    textSearch: ''
+  };
+
+  function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
+  function api(path, options){ return window.CGN.api(API + path, options || {}); }
+  function post(path, payload){ return api(path, { method: 'POST', body: JSON.stringify(payload || {}) }); }
+  function boolText(v){ return v ? 'Aktiv' : 'Inaktiv'; }
+  function badge(text, cls){ return `<span class="vip-pill ${cls || ''}">${esc(text)}</span>`; }
+  function fmt(v){ return v === null || v === undefined || v === '' ? '—' : esc(v); }
+  function count(v){ return Number(v || 0); }
+
+  async function loadAll(keepNote){
+    if (!root) root = document.getElementById('vipModule');
+    if (!root) return;
+    state.loading = true;
+    if (!keepNote) state.note = '';
+    renderLoading();
+    try {
+      const [summary, settings, roles, texts, eventKeys, daily, events, stats] = await Promise.all([
+        api('/admin/summary'),
+        api('/settings'),
+        api('/roles'),
+        loadTexts(),
+        api('/texts/event-keys').catch(() => ({ ok:false, rows:[] })),
+        api('/daily-usage/today').catch(() => ({ ok:false, rows:[] })),
+        api('/events/recent').catch(() => ({ ok:false, rows:[] })),
+        api('/stats').catch(() => ({ ok:false }))
+      ]);
+      state.summary = summary;
+      state.settings = settings;
+      state.roles = roles;
+      state.texts = texts;
+      state.eventKeys = eventKeys;
+      state.daily = daily;
+      state.events = events;
+      state.stats = stats;
+    } catch (err) {
+      state.note = `Fehler beim Laden: ${err.message || err}`;
+    } finally {
+      state.loading = false;
+      render();
+    }
+  }
+
+  function loadTexts(){
+    const params = new URLSearchParams();
+    params.set('limit', '300');
+    if (state.textFilterStyle) params.set('style', state.textFilterStyle);
+    if (state.textFilterEventKey) params.set('eventKey', state.textFilterEventKey);
+    if (state.textSearch) params.set('search', state.textSearch);
+    return api('/texts?' + params.toString());
+  }
+
+  function renderLoading(){
+    if (!root) return;
+    root.innerHTML = `<section class="vip-card glass"><h2>VIP-System</h2><p class="vip-muted">Lade VIP-Daten...</p></section>`;
+  }
+
+  function render(){
+    if (!root) return;
+    root.innerHTML = `${noteHtml()}${heroHtml()}${tabsHtml()}${pageHtml()}`;
+    bind();
+  }
+
+  function noteHtml(){
+    if (!state.note) return '';
+    const cls = state.note.startsWith('Fehler') ? 'bad' : 'ok';
+    return `<section class="vip-note glass ${cls}">${esc(state.note)}</section>`;
+  }
+
+  function heroHtml(){
+    const s = state.summary || {};
+    const status = s.status || {};
+    const db = s.db || {};
+    return `<section class="vip-card vip-hero glass"><div><h2>VIP-System</h2><p>VIP-/Mod-Sounds, DB-Texte, Rollen-Fallbacks, Daily-Usage und Event-Statistik.</p><div class="vip-hero-meta">${badge(s.version ? `v${s.version}` : 'Version unbekannt')}${badge(status.client?.connected ? 'Overlay verbunden' : 'Overlay getrennt', status.client?.connected ? 'ok' : 'warn')}${badge(db.initialized ? `DB Schema ${db.schemaVersion || 0}` : 'DB nicht bereit', db.initialized ? 'ok' : 'bad')}</div></div><div class="vip-actions"><button type="button" data-vip-action="reload">Neu laden</button><a class="ghost-link" href="/overlays/vip_sound_overlay_v2.html" target="_blank">VIP-Overlay öffnen</a></div></section>`;
+  }
+
+  function tabsHtml(){
+    const tabs = [['overview','Übersicht'],['settings','Settings'],['texts','Texte'],['roles','Rollen'],['daily','Daily-Usage'],['events','Events'],['test','Test']];
+    return `<div class="vip-tabs glass">${tabs.map(([id,label]) => `<button type="button" class="vip-tab ${state.page === id ? 'active' : ''}" data-vip-page="${id}">${esc(label)}</button>`).join('')}</div>`;
+  }
+
+  function pageHtml(){
+    if (state.page === 'settings') return settingsPage();
+    if (state.page === 'texts') return textsPage();
+    if (state.page === 'roles') return rolesPage();
+    if (state.page === 'daily') return dailyPage();
+    if (state.page === 'events') return eventsPage();
+    if (state.page === 'test') return testPage();
+    return overviewPage();
+  }
+
+  function overviewPage(){
+    const s = state.summary || {};
+    const db = s.db || {};
+    const status = s.status || {};
+    const stats = s.stats || {};
+    const totals = stats.totals || {};
+    return `<div class="vip-grid">${metricCard('System', s.version ? 'Aktiv' : 'Unbekannt', `Version ${fmt(s.version)}`, s.version ? 'ok' : 'warn')}${metricCard('Overlay', status.client?.connected ? 'Verbunden' : 'Getrennt', status.visible ? 'sichtbar' : 'idle', status.client?.connected ? 'ok' : 'warn')}${metricCard('Settings', count(db.settingsRows), 'DB-Settings', '')}${metricCard('Texte', count(db.messageTemplates), 'Chat-/Overlaytexte', '')}${metricCard('Rollen', count(db.roleOverridesRows), 'Fallbacks/Overrides', '')}${metricCard('Events heute', count(totals.total_events), `${count(totals.accepted_events)} akzeptiert`, '')}<section class="vip-card glass span-12"><div class="vip-card-head"><h3>Aktueller VIP-Standard</h3></div><div class="vip-standard-list"><div><strong>Settings:</strong> DB über <code>vip_sound_settings</code>, JSON nur Fallback.</div><div><strong>Texte:</strong> DB über <code>vip_sound_message_templates</code>, editierbar über API.</div><div><strong>Sound:</strong> Ausgabe über <code>sound_system</code>, Overlay V2 liest Visual-State.</div><div><strong>Dashboard:</strong> Kein direkter SQLite-/Dateizugriff, nur Backend-APIs.</div></div></section><section class="vip-card glass span-12"><div class="vip-card-head"><h3>Letzte Events</h3><button type="button" data-vip-page="events">Alle anzeigen</button></div>${eventsTable((state.events?.rows || []).slice(0, 5), true)}</section></div>`;
+  }
+
+  function metricCard(title, value, sub, cls){ return `<section class="vip-card glass vip-metric"><h3>${esc(title)}</h3><div class="vip-metric-value ${cls || ''}">${esc(value)}</div><p>${esc(sub || '')}</p></section>`; }
+
+  function settingsPage(){
+    const rows = state.settings?.settings || state.summary?.settings?.rows || [];
+    return `<section class="vip-card glass span-12"><div class="vip-card-head"><div><h3>Settings</h3><p>Dashboardfähige VIP-Einstellungen aus der Datenbank. JSON bleibt nur Fallback/Import.</p></div></div><div class="vip-table-wrap"><table class="vip-table"><thead><tr><th>Key</th><th>Wert</th><th>Typ</th><th>Quelle</th><th>Beschreibung</th><th>Aktion</th></tr></thead><tbody>${rows.map(settingRow).join('') || '<tr><td colspan="6">Keine Settings gefunden.</td></tr>'}</tbody></table></div></section>`;
+  }
+
+  function settingRow(row){
+    const key = row.key || '';
+    const type = row.valueType || 'string';
+    const value = row.rawValue ?? row.value ?? '';
+    return `<tr><td><code>${esc(key)}</code></td><td><input class="vip-input" data-setting-value="${esc(key)}" value="${esc(value)}"></td><td><select class="vip-input" data-setting-type="${esc(key)}">${['string','number','boolean','json'].map(t => `<option value="${t}" ${t === type ? 'selected' : ''}>${t}</option>`).join('')}</select></td><td>${badge(row.source || 'database')}</td><td class="vip-muted">${esc(row.description || '')}</td><td><button type="button" data-save-setting="${esc(key)}">Speichern</button></td></tr>`;
+  }
+
+  function textsPage(){
+    const rows = state.texts?.rows || [];
+    const keys = state.eventKeys?.rows || [];
+    const eventOptions = ['', ...Array.from(new Set(keys.map(k => k.eventKey || k.event_key).filter(Boolean)))];
+    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>Texte</h3><p>VIP-Texte kommen aus der Datenbank. Harte Texte im Code sollen langfristig nur Seed-Defaults sein.</p></div><button type="button" class="success" data-vip-action="new-text">Neuer Text</button></div><div class="vip-filter-row"><label>Style <select id="vipTextStyle"><option value="">Alle</option><option value="heimleitung" ${state.textFilterStyle === 'heimleitung' ? 'selected' : ''}>heimleitung / Chat</option><option value="overlay" ${state.textFilterStyle === 'overlay' ? 'selected' : ''}>overlay</option></select></label><label>Event-Key <select id="vipTextEventKey">${eventOptions.map(k => `<option value="${esc(k)}" ${state.textFilterEventKey === k ? 'selected' : ''}>${esc(k || 'Alle')}</option>`).join('')}</select></label><label>Suche <input id="vipTextSearch" value="${esc(state.textSearch)}" placeholder="Text suchen..."></label><button type="button" data-vip-action="apply-text-filter">Filtern</button></div><div class="vip-text-list">${rows.map(textCard).join('') || '<div class="vip-empty">Keine Texte gefunden.</div>'}</div></section>`;
+  }
+
+  function textCard(row){
+    const id = Number(row.id || 0);
+    return `<article class="vip-text-card ${row.enabled ? '' : 'disabled'}"><div class="vip-text-meta">${badge(row.style || '')}${badge(row.eventKey || '')}${badge(row.enabled ? 'Aktiv' : 'Inaktiv', row.enabled ? 'ok' : 'warn')}<span class="vip-muted">ID ${id} · Gewicht ${esc(row.weight || 1)}</span></div><div class="vip-text-edit-grid"><label>Event-Key <input class="vip-input" data-text-event="${id}" value="${esc(row.eventKey || '')}"></label><label>Style <select class="vip-input" data-text-style="${id}"><option value="heimleitung" ${row.style === 'heimleitung' ? 'selected' : ''}>heimleitung / Chat</option><option value="overlay" ${row.style === 'overlay' ? 'selected' : ''}>overlay</option></select></label><label>Gewicht <input class="vip-input" type="number" min="1" max="1000" data-text-weight="${id}" value="${esc(row.weight || 1)}"></label><label class="vip-check"><input type="checkbox" data-text-enabled="${id}" ${row.enabled ? 'checked' : ''}> Aktiv</label></div><textarea class="vip-textarea" data-text-message="${id}">${esc(row.messageText || '')}</textarea><div class="vip-actions right"><button type="button" data-save-text="${id}">Speichern</button><button type="button" data-toggle-text="${id}">${row.enabled ? 'Deaktivieren' : 'Aktivieren'}</button></div></article>`;
+  }
+
+  function rolesPage(){
+    const rows = state.roles?.rows || [];
+    return `<section class="vip-card glass span-12"><div class="vip-card-head"><div><h3>Rollen-Fallbacks</h3><p>DB-Rollen werden genutzt, wenn Twitch-Erkennung nicht reicht. JSON bleibt Import/Fallback.</p></div></div><div class="vip-form-row"><input id="vipRoleLogin" placeholder="login"><input id="vipRoleDisplay" placeholder="Anzeigename"><select id="vipRoleType"><option value="vip">VIP</option><option value="mod">Mod</option><option value="crew">Crew</option></select><input id="vipRoleNote" placeholder="Notiz"><button type="button" data-vip-action="save-role">Rolle speichern</button></div><div class="vip-table-wrap"><table class="vip-table"><thead><tr><th>Login</th><th>Name</th><th>Rolle</th><th>Status</th><th>Quelle</th><th>Notiz</th><th></th></tr></thead><tbody>${rows.map(roleRow).join('') || '<tr><td colspan="7">Keine Rollen-Fallbacks vorhanden.</td></tr>'}</tbody></table></div></section>`;
+  }
+
+  function roleRow(row){ return `<tr><td><code>${esc(row.login)}</code></td><td>${esc(row.displayName || row.login)}</td><td>${badge(row.roleType || 'vip')}</td><td>${badge(boolText(row.enabled), row.enabled ? 'ok' : 'warn')}</td><td>${esc(row.source || '')}</td><td class="vip-muted">${esc(row.note || '')}</td><td><button type="button" class="danger" data-delete-role="${esc(row.login)}" data-role-type="${esc(row.roleType || '')}">Entfernen</button></td></tr>`; }
+
+  function dailyPage(){
+    const rows = state.daily?.rows || state.summary?.dailyUsage?.rows || [];
+    return `<section class="vip-card glass span-12"><div class="vip-card-head"><div><h3>Daily-Usage</h3><p>Anzeige der heutigen VIP-/Mod-Sound-Nutzung. Reset-Aktionen bleiben bewusst getrennt und gesichert.</p></div></div><div class="vip-table-wrap"><table class="vip-table"><thead><tr><th>Datum</th><th>User</th><th>Typ</th><th>Request</th><th>Erstellt</th></tr></thead><tbody>${rows.map(r => `<tr><td>${fmt(r.usage_date || r.usageDate)}</td><td>${fmt(r.user_display_name || r.userDisplayName || r.user_login || r.userLogin)}</td><td>${badge(r.sound_type || r.soundType || '')}</td><td>${fmt(r.request_id || r.requestId)}</td><td>${fmt(r.created_at || r.createdAt)}</td></tr>`).join('') || '<tr><td colspan="5">Heute keine Daily-Usage-Einträge.</td></tr>'}</tbody></table></div></section>`;
+  }
+
+  function eventsPage(){
+    const rows = state.events?.rows || state.summary?.events?.rows || [];
+    return `<section class="vip-card glass span-12"><div class="vip-card-head"><div><h3>Events / Statistik</h3><p>Letzte VIP-Events aus der Datenbank.</p></div></div>${eventsTable(rows, false)}</section>`;
+  }
+
+  function eventsTable(rows, compact){
+    return `<div class="vip-table-wrap"><table class="vip-table"><thead><tr><th>Zeit</th><th>User</th><th>Typ</th><th>Event</th><th>Status</th><th>Quelle</th>${compact ? '' : '<th>Sound</th>'}</tr></thead><tbody>${rows.map(r => `<tr><td>${fmt(r.created_at || r.createdAt)}</td><td>${fmt(r.user_display_name || r.userDisplayName || r.user_login || r.userLogin)}</td><td>${badge(r.sound_type || r.soundType || '')}</td><td>${fmt(r.event_type || r.eventType || r.event_key || r.eventKey)}</td><td>${badge(Number(r.accepted || 0) ? 'accepted' : (r.error_code || 'denied'), Number(r.accepted || 0) ? 'ok' : 'warn')}</td><td>${fmt(r.source)}</td>${compact ? '' : `<td class="vip-muted">${fmt(r.sound_file || r.soundFile)}</td>`}</tr>`).join('') || `<tr><td colspan="${compact ? 6 : 7}">Keine Events vorhanden.</td></tr>`}</tbody></table></div>`;
+  }
+
+  function testPage(){
+    return `<section class="vip-card glass span-12"><div class="vip-card-head"><div><h3>Testauslösung</h3><p>Testet den VIP-Command über die vorhandene Admin-Test-API. Kein Streamer.bot nötig.</p></div></div><div class="vip-form-row test"><input id="vipTestActor" placeholder="Actor Login, z. B. forrestcgn"><input id="vipTestTarget" placeholder="Target Login, optional"><select id="vipTestRole"><option value="broadcaster">Broadcaster</option><option value="moderator">Moderator</option><option value="vip">VIP</option><option value="viewer">Viewer</option></select><button type="button" data-vip-action="run-test">Test starten</button></div><div class="vip-muted">Der echte Upload von VIP-Songs ist bewusst nicht in STEP047 enthalten und folgt separat nach Helper-/Upload-Standard.</div></section>`;
+  }
+
+  function bind(){
+    root.querySelectorAll('[data-vip-page]').forEach(btn => btn.addEventListener('click', () => { state.page = btn.dataset.vipPage; render(); }));
+    root.querySelectorAll('[data-vip-action]').forEach(btn => btn.addEventListener('click', () => handleAction(btn.dataset.vipAction)));
+    root.querySelectorAll('[data-save-setting]').forEach(btn => btn.addEventListener('click', () => saveSetting(btn.dataset.saveSetting)));
+    root.querySelectorAll('[data-save-text]').forEach(btn => btn.addEventListener('click', () => saveText(Number(btn.dataset.saveText || 0))));
+    root.querySelectorAll('[data-toggle-text]').forEach(btn => btn.addEventListener('click', () => toggleText(Number(btn.dataset.toggleText || 0))));
+    root.querySelectorAll('[data-delete-role]').forEach(btn => btn.addEventListener('click', () => deleteRole(btn.dataset.deleteRole, btn.dataset.roleType)));
+  }
+
+  async function handleAction(action){
+    try {
+      if (action === 'reload') return loadAll(false);
+      if (action === 'apply-text-filter') {
+        state.textFilterStyle = document.getElementById('vipTextStyle')?.value || '';
+        state.textFilterEventKey = document.getElementById('vipTextEventKey')?.value || '';
+        state.textSearch = document.getElementById('vipTextSearch')?.value || '';
+        state.texts = await loadTexts();
+        state.note = 'Textfilter aktualisiert.';
+        return render();
+      }
+      if (action === 'new-text') return newText();
+      if (action === 'save-role') return saveRole();
+      if (action === 'run-test') return runTest();
+    } catch (err) { state.note = `Fehler: ${err.message || err}`; render(); }
+  }
+
+  async function saveSetting(key){
+    const value = root.querySelector(`[data-setting-value="${CSS.escape(key)}"]`)?.value ?? '';
+    const valueType = root.querySelector(`[data-setting-type="${CSS.escape(key)}"]`)?.value || 'string';
+    await post('/settings/upsert', { key, value, valueType });
+    state.note = `Setting gespeichert: ${key}`;
+    await loadAll(true);
+  }
+
+  function readTextPayload(id){ return { id: id > 0 ? id : undefined, eventKey: root.querySelector(`[data-text-event="${id}"]`)?.value || '', style: root.querySelector(`[data-text-style="${id}"]`)?.value || 'heimleitung', weight: Number(root.querySelector(`[data-text-weight="${id}"]`)?.value || 1), enabled: !!root.querySelector(`[data-text-enabled="${id}"]`)?.checked, messageText: root.querySelector(`[data-text-message="${id}"]`)?.value || '' }; }
+
+  async function saveText(id){
+    await post('/texts/upsert', readTextPayload(id));
+    state.note = id > 0 ? `Text gespeichert: ID ${id}` : 'Text angelegt.';
+    state.texts = await loadTexts();
+    render();
+  }
+
+  async function toggleText(id){
+    const current = !!root.querySelector(`[data-text-enabled="${id}"]`)?.checked;
+    await post('/texts/toggle', { id, enabled: !current });
+    state.note = `Text ${!current ? 'aktiviert' : 'deaktiviert'}: ID ${id}`;
+    state.texts = await loadTexts();
+    render();
+  }
+
+  function newText(){
+    const row = { id: 0, eventKey: state.textFilterEventKey || 'accepted_vip', style: state.textFilterStyle || 'heimleitung', messageText: '', enabled: true, weight: 1 };
+    state.texts = state.texts || { rows: [] };
+    state.texts.rows = [row, ...(state.texts.rows || [])];
+    state.note = 'Neuer Text vorbereitet. Bitte ausfüllen und speichern.';
+    render();
+  }
+
+  async function saveRole(){
+    const payload = { login: document.getElementById('vipRoleLogin')?.value || '', displayName: document.getElementById('vipRoleDisplay')?.value || '', roleType: document.getElementById('vipRoleType')?.value || 'vip', note: document.getElementById('vipRoleNote')?.value || '', enabled: true };
+    await post('/roles/upsert', payload);
+    state.note = `Rolle gespeichert: ${payload.login}`;
+    await loadAll(true);
+  }
+
+  async function deleteRole(login, roleType){
+    if (!confirm(`Rollen-Fallback wirklich entfernen?\n${login} / ${roleType || 'alle Rollen'}`)) return;
+    await post('/roles/delete', { login, roleType });
+    state.note = `Rolle entfernt: ${login}`;
+    await loadAll(true);
+  }
+
+  async function runTest(){
+    const actor = document.getElementById('vipTestActor')?.value || 'forrestcgn';
+    const target = document.getElementById('vipTestTarget')?.value || '';
+    const role = document.getElementById('vipTestRole')?.value || 'broadcaster';
+    const payload = { userName: actor, user: actor, input0: target, rawInput: target ? '@' + target : '', actorRole: role, isModerator: role === 'moderator' ? 'true' : 'false', isBroadcaster: role === 'broadcaster' ? 'true' : 'false', source: 'dashboard-test' };
+    const result = await post('/admin/test', payload);
+    state.note = result.ok ? 'VIP-Test wurde ausgelöst.' : `VIP-Test fehlgeschlagen: ${result.error || 'unknown'}`;
+    await loadAll(true);
+  }
+
+  window.addEventListener('cgn:module-show', ev => { if (ev.detail?.module === 'vip') loadAll(true); });
+  return { loadAll };
+})();
