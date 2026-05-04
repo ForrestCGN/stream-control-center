@@ -25,7 +25,7 @@ const media = require('./helpers/helper_media');
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 5;
-const MODULE_STEP = 168;
+const MODULE_STEP = 169;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -76,7 +76,17 @@ const DEFAULT_CONFIG = {
     earlySoundQueueTimeoutMs: 3500,
     waitForSoundItemStarted: true,
     fallbackShowOnSoundError: true,
-    fallbackShowAfterMs: 15000
+    fallbackShowAfterMs: 15000,
+    alertTtsEnabled: true,
+    alertTtsPrepareUrl: 'http://127.0.0.1:8080/api/tts/prepare-alert',
+    alertTtsTimeoutMs: 15000,
+    alertTtsSoundSystemEnabled: true,
+    alertTtsSoundSystemCategory: 'alert_tts',
+    alertTtsSoundSystemSource: 'alert_system',
+    alertTtsSoundSystemOutputTarget: 'device',
+    alertTtsSoundSystemVolume: 100,
+    alertTtsSoundSystemPriority: 82,
+    alertTtsOutroBufferMs: 1500
   },
   dashboardSettings: {
     preferSqliteSettings: true,
@@ -1137,7 +1147,6 @@ function enqueueAlertWithRule(payload, rule, broadcastWS, options = {}) {
     displayProfileId: event.display_profile_id || null,
     now
   });
-  prepareEarlySoundSystemQueue(event, broadcastWS);
   state.queue.push(event);
   processQueue(broadcastWS);
   return { ok: true, queued: true, eventUid, replayOf: options.replayOf || null, queueLength: state.queue.length, current: state.current ? state.current.eventUid : null, matchedRule: rule ? rule.id : null, warning: rule ? '' : 'no_matching_rule' };
@@ -1603,47 +1612,6 @@ function postJson(targetUrl, payload, timeoutMs = 3500) {
   });
 }
 
-
-function prepareEarlySoundSystemQueue(event, broadcastWS) {
-  try {
-    if (!event || !event.rule) return null;
-    const liveAlert = getRuntimeAlertSettings().liveAlert || {};
-    if (liveAlert.earlySoundQueueEnabled === false) return null;
-    if (state.current || state.processing) return null;
-    if (event.soundSystemEarlyPromise || event.soundSystem) return event.soundSystemEarlyPromise || null;
-
-    event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
-    const overlayAlert = buildOverlayAlert(event);
-    const soundPayload = buildSoundSystemPayload(event, overlayAlert);
-    if (!soundPayload) return null;
-
-    const preparedAlert = { ...overlayAlert, _soundSystemManaged: true, _earlySoundQueued: true };
-    event.preparedOverlayAlert = preparedAlert;
-    event.soundSystemEarly = { scheduled: true, request: soundPayload, createdAt: nowIso() };
-    sendOverlay(broadcastWS, { event: 'prepare', alertId: event.eventUid, eventId: event.eventUid, alert: preparedAlert });
-
-    const url = cleanText(liveAlert.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl || 'http://127.0.0.1:8080/api/sound/play');
-    const timeoutMs = Number(liveAlert.earlySoundQueueTimeoutMs || liveAlert.soundSystemTimeoutMs || 3500);
-    event.soundSystemEarlyPromise = postJson(url, soundPayload, timeoutMs)
-      .then(result => {
-        event.soundSystem = { ok: true, early: true, request: soundPayload, result };
-        event.soundSystemEarly = { ...(event.soundSystemEarly || {}), ok: true, result, queuedAt: nowIso() };
-        return { synced: true, early: true, result };
-      })
-      .catch(err => {
-        const error = err && err.message ? err.message : String(err);
-        event.soundSystem = { ok: false, early: true, request: soundPayload, error };
-        event.soundSystemEarly = { ...(event.soundSystemEarly || {}), ok: false, error };
-        console.warn('[alert_system] early sound system handoff failed:', error);
-        return { synced: false, early: true, error };
-      });
-    return event.soundSystemEarlyPromise;
-  } catch (err) {
-    console.warn('[alert_system] early sound queue prepare failed:', err && err.message ? err.message : err);
-    return null;
-  }
-}
-
 async function processQueue(broadcastWS) {
   if (state.processing || state.current) return;
   if (!state.queue.length) return;
@@ -1654,6 +1622,8 @@ async function processQueue(broadcastWS) {
     if (event.rule && event.rule.id) event.rule = getRuleById(event.rule.id) || event.rule;
     await enrichEventAvatar(event);
     event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
+    await prepareAlertTtsForEvent(event);
+    event.effectiveDurationMs = resolveFinalAlertDurationMs(event, event.rule);
     event.status = 'playing';
     event.started_at = nowIso();
     sqlite.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, { startedAt: event.started_at, eventUid: event.eventUid });
@@ -1663,6 +1633,7 @@ async function processQueue(broadcastWS) {
       sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
       startCurrentFallbackTimer(event, broadcastWS);
     }
+    scheduleAlertTtsSoundSystem(event);
     dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
   } catch (err) {
     console.warn('[alert_system] processQueue failed:', err && err.message ? err.message : err);
@@ -1680,23 +1651,10 @@ function startCurrentFallbackTimer(event, broadcastWS) {
 }
 
 async function prepareSoundSyncedAlert(event, overlayAlert, broadcastWS) {
-  if (event && event.soundSystemEarlyPromise) {
-    const earlyResult = await event.soundSystemEarlyPromise;
-    if (earlyResult && earlyResult.synced) return earlyResult;
-    if (event.soundSystem && event.soundSystem.error) {
-      const liveAlert = getRuntimeAlertSettings().liveAlert || {};
-      if (liveAlert.fallbackShowOnSoundError !== false) {
-        sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert, soundSystemError: event.soundSystem.error });
-        startCurrentFallbackTimer(event, broadcastWS);
-        return { synced: true, fallback: true, early: true, error: event.soundSystem.error };
-      }
-    }
-  }
-
   const soundPayload = buildSoundSystemPayload(event, overlayAlert);
   if (!soundPayload) return { synced: false, reason: 'not_eligible' };
 
-  const preparedAlert = event && event.preparedOverlayAlert ? event.preparedOverlayAlert : { ...overlayAlert, _soundSystemManaged: true };
+  const preparedAlert = { ...overlayAlert, _soundSystemManaged: true };
   sendOverlay(broadcastWS, { event: 'prepare', alertId: event.eventUid, eventId: event.eventUid, alert: preparedAlert });
 
   try {
@@ -1716,6 +1674,217 @@ async function prepareSoundSyncedAlert(event, overlayAlert, broadcastWS) {
     }
     return { synced: false, error: event.soundSystem.error };
   }
+}
+
+function getJson(targetUrl, timeoutMs = 3500) {
+  return new Promise((resolve, reject) => {
+    let parsed;
+    try { parsed = new URL(targetUrl); } catch (err) { reject(err); return; }
+    const transport = parsed.protocol === 'https:' ? https : http;
+    const req = transport.request({
+      method: 'GET',
+      protocol: parsed.protocol,
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path: `${parsed.pathname}${parsed.search || ''}`,
+      timeout: Math.max(500, Number(timeoutMs) || 3500)
+    }, res => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        let json = null;
+        try { json = data ? JSON.parse(data) : null; } catch (_) { json = null; }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`http_${res.statusCode}: ${data.slice(0, 300)}`));
+          return;
+        }
+        if (json && json.ok === false) {
+          reject(new Error(json.error || json.message || 'request_rejected'));
+          return;
+        }
+        resolve(json || { ok: true, raw: data });
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('request_timeout')));
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function appendQueryParams(targetUrl, params = {}) {
+  const url = new URL(targetUrl);
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value === undefined || value === null || value === '') continue;
+    url.searchParams.set(key, String(value));
+  }
+  return url.toString();
+}
+
+function normalizeAlertTtsPlaybackMode(liveAlert) {
+  const raw = cleanKey(liveAlert.alertTtsPlaybackMode || 'sound_system');
+  if (raw === 'overlay' || raw === 'browser_overlay') return 'overlay';
+  if (raw === 'off' || raw === 'disabled' || raw === 'none') return 'off';
+  return 'sound_system';
+}
+
+async function prepareAlertTtsForEvent(event) {
+  const rule = event && event.rule ? event.rule : {};
+  const payload = buildTtsPayload(event, rule);
+  if (!event) return null;
+  if (!payload || payload.enabled === false) {
+    event.alertTts = payload || null;
+    return event.alertTts;
+  }
+
+  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+  if (liveAlert.alertTtsEnabled === false) {
+    event.alertTts = { ...payload, enabled: false, ok: false, reason: 'alert_tts_disabled' };
+    return event.alertTts;
+  }
+
+  const playbackMode = normalizeAlertTtsPlaybackMode(liveAlert);
+  if (playbackMode === 'off') {
+    event.alertTts = { ...payload, enabled: false, ok: false, reason: 'alert_tts_playback_off' };
+    return event.alertTts;
+  }
+
+  const voice = cleanText(
+    liveAlert.alertTtsVoice ||
+    liveAlert.voice ||
+    (event.raw && typeof event.raw === 'object' && (event.raw.ttsVoice || event.raw.voice)) ||
+    ''
+  );
+  const prepareUrl = cleanText(liveAlert.alertTtsPrepareUrl || DEFAULT_CONFIG.liveAlert.alertTtsPrepareUrl || 'http://127.0.0.1:8080/api/tts/prepare-alert');
+  const timeoutMs = Number(liveAlert.alertTtsTimeoutMs || DEFAULT_CONFIG.liveAlert.alertTtsTimeoutMs || 15000);
+  const user = event.user_display || event.user_login || 'Alert-System';
+
+  try {
+    const url = appendQueryParams(prepareUrl, {
+      text: payload.text,
+      user,
+      voice,
+      maxChars: payload.maxChars || 500,
+      source: 'alert_system',
+      mode: 'alert',
+      alertId: event.eventUid,
+      provider: event.source,
+      type: event.type_key,
+      ruleId: rule.id || ''
+    });
+    const result = await getJson(url, timeoutMs);
+    event.alertTts = {
+      ...payload,
+      ...result,
+      enabled: result && result.ok !== false,
+      ok: result && result.ok !== false,
+      source: 'alert_system',
+      playbackMode,
+      overlayPlaybackEnabled: playbackMode === 'overlay' || liveAlert.alertTtsOverlayPlaybackEnabled === true
+    };
+  } catch (err) {
+    event.alertTts = {
+      ...payload,
+      enabled: false,
+      ok: false,
+      reason: 'alert_tts_prepare_failed',
+      error: err && err.message ? err.message : String(err)
+    };
+    console.warn('[alert_system] alert tts prepare failed:', event.alertTts.error);
+  }
+
+  try {
+    const rawPayload = event.raw && typeof event.raw === 'object' ? { ...event.raw } : {};
+    rawPayload.alertTts = event.alertTts;
+    sqlite.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
+      eventUid: event.eventUid,
+      payloadJson: JSON.stringify(rawPayload)
+    });
+  } catch (_) {}
+
+  return event.alertTts;
+}
+
+function resolveFinalAlertDurationMs(event, rule = {}) {
+  const baseDuration = Number(event && event.effectiveDurationMs || 0) > 0 ? Number(event.effectiveDurationMs) : resolveAlertDurationMs(rule);
+  const tts = event && event.alertTts;
+  if (!tts || tts.enabled === false || tts.ok === false) return baseDuration;
+  const ttsDuration = Number(tts.durationMs || 0);
+  if (!Number.isFinite(ttsDuration) || ttsDuration <= 0) return baseDuration;
+  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+  const outroBuffer = Number(liveAlert.alertTtsOutroBufferMs ?? DEFAULT_CONFIG.liveAlert.alertTtsOutroBufferMs ?? 1500) || 1500;
+  const combined = baseDuration + ttsDuration + Math.max(0, outroBuffer);
+  return clamp(combined, 1000, Number(state.config.maxAutoDurationMs || 60000));
+}
+
+function buildAlertTtsSoundSystemPayload(event) {
+  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+  const tts = event && event.alertTts;
+  if (!event || !tts || tts.enabled === false || tts.ok === false) return null;
+  if (liveAlert.alertTtsSoundSystemEnabled === false) return null;
+  if (normalizeAlertTtsPlaybackMode(liveAlert) !== 'sound_system') return null;
+
+  const file = cleanText(tts.soundSystemFile || soundFileFromPublicUrl(tts.audioUrl || ''));
+  if (!file) return null;
+
+  const volumeCandidate = tts.volume ?? liveAlert.alertTtsSoundSystemVolume ?? liveAlert.soundSystemVolume ?? 100;
+  const volume = Number.isFinite(Number(volumeCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(volumeCandidate)))) : 100;
+  const priorityCandidate = tts.priority ?? liveAlert.alertTtsSoundSystemPriority ?? 82;
+  const priority = Number.isFinite(Number(priorityCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(priorityCandidate)))) : 82;
+  const outputTarget = cleanKey(tts.outputTarget || liveAlert.alertTtsSoundSystemOutputTarget || liveAlert.soundSystemOutputTarget || 'device') || 'device';
+  const category = cleanKey(liveAlert.alertTtsSoundSystemCategory || 'alert_tts') || 'alert_tts';
+  const source = cleanKey(liveAlert.alertTtsSoundSystemSource || liveAlert.soundSystemSource || 'alert_system') || 'alert_system';
+
+  return {
+    file,
+    outputTarget,
+    volume,
+    category,
+    source,
+    priority,
+    queueIfBusy: true,
+    canInterrupt: false,
+    canBeInterrupted: false,
+    parallelAllowed: false,
+    durationMs: Number(tts.durationMs || 0),
+    requestedBy: event.user_display || event.user_login || '',
+    meta: {
+      alertId: event.eventUid,
+      provider: event.source,
+      type: event.type_key,
+      ruleId: event.rule?.id || null,
+      alertTts: true,
+      ttsId: tts.id || ''
+    },
+    visual: {
+      module: 'alert_system_tts',
+      eventId: event.eventUid,
+      ttsId: tts.id || '',
+      text: tts.text || '',
+      durationMs: Number(tts.durationMs || 0)
+    }
+  };
+}
+
+function scheduleAlertTtsSoundSystem(event) {
+  const payload = buildAlertTtsSoundSystemPayload(event);
+  if (!payload) return null;
+  const liveAlert = getRuntimeAlertSettings().liveAlert || {};
+  const url = cleanText(liveAlert.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl || 'http://127.0.0.1:8080/api/sound/play');
+  const timeoutMs = Number(liveAlert.alertTtsSoundSystemTimeoutMs || liveAlert.soundSystemTimeoutMs || 3500);
+  event.alertTtsSoundSystem = { scheduled: true, request: payload, createdAt: nowIso() };
+  postJson(url, payload, timeoutMs)
+    .then(result => {
+      event.alertTtsSoundSystem.ok = true;
+      event.alertTtsSoundSystem.result = result;
+      event.alertTtsSoundSystem.queuedAt = nowIso();
+    })
+    .catch(err => {
+      event.alertTtsSoundSystem.ok = false;
+      event.alertTtsSoundSystem.error = err && err.message ? err.message : String(err);
+      console.warn('[alert_system] alert tts sound handoff failed:', event.alertTtsSoundSystem.error);
+    });
+  return event.alertTtsSoundSystem;
 }
 
 function finishCurrent(reason, broadcastWS) {
@@ -1866,7 +2035,7 @@ function buildOverlayAlert(event) {
     imageUrl: rule.image_url || '',
     ruleId: rule.id || null,
     textVariantId: text.variantId || null,
-    tts: buildTtsPayload(event, rule),
+    tts: event.alertTts || buildTtsPayload(event, rule),
     chatMessage: buildAlertChatMessage(event, rule, text.context),
     createdAt: event.created_at,
     startedAt: event.started_at
