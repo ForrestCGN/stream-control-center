@@ -41,6 +41,7 @@ STEP-Dokumentation:
 - project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
 - project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
 - project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
+- project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
 
 ## Doku-Struktur
 
@@ -124,6 +125,7 @@ VIP Override relevant:
 - Standardrollen: moderator, mod, broadcaster
 - STEP-Doku: project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
 - Live-Test-Doku: project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
+- RequestId-Fix-Doku: project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
 
 Dashboard:
 
