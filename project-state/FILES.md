@@ -70,6 +70,7 @@ STEP-Dokumentation:
 - project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
 - project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
 - project-state/STEP032_VIP_SOUND_FILE_SETTINGS_ACTIVE_2026-05-04.md
+- project-state/STEP033_VIP_EVENTS_STATS_BASE_2026-05-04.md
 - project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
 - project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
 - project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
@@ -149,6 +150,8 @@ VIP aktuelle Tabellen in app.sqlite:
 - vip_sound_daily_usage
 - vip_sound_message_templates
 - vip_sound_settings
+- vip_sound_events
+- vip_sound_settings
 - vip_sound_settings
 
 Sound-System relevante Route fuer VIP:
@@ -167,6 +170,9 @@ VIP relevante Routen:
 - GET /api/vip-sound/daily-usage/today
 - POST /api/vip-sound/daily-usage/reset
 - POST /api/vip-sound/daily-usage/reset-today
+- GET /api/vip-sound/stats
+- GET /api/vip-sound/events/recent
+- GET /api/vip-sound/events
 - GET /api/vip-sound/settings
 - GET /api/vip-sound/config
 

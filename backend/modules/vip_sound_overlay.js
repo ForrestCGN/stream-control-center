@@ -20,10 +20,11 @@ module.exports.init = function init(ctx) {
   const DEFAULT_GAP_MS = 2000;
   const DEFAULT_PHASE = "idle";
   const VIP_SCHEMA_MODULE = "vip_sound_overlay";
-  const VIP_SCHEMA_VERSION = 2;
+  const VIP_SCHEMA_VERSION = 3;
   const VIP_DAILY_USAGE_TABLE = "vip_sound_daily_usage";
   const VIP_MESSAGE_TABLE = "vip_sound_message_templates";
   const VIP_SETTINGS_TABLE = "vip_sound_settings";
+  const VIP_EVENTS_TABLE = "vip_sound_events";
   const VIP_MESSAGE_STYLE = "heimleitung";
   const VIP_OVERLAY_STYLE = "overlay";
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
@@ -183,7 +184,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.8",
+    version: "1.7.9",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -200,6 +201,7 @@ module.exports.init = function init(ctx) {
       messageTemplates: 0,
       dailyUsageRows: 0,
       settingsRows: 0,
+      eventsRows: 0,
       lastError: ""
     },
     chat: {
@@ -246,6 +248,7 @@ module.exports.init = function init(ctx) {
       state.db.messageTemplates = database.count(VIP_MESSAGE_TABLE);
       state.db.dailyUsageRows = database.count(VIP_DAILY_USAGE_TABLE);
       state.db.settingsRows = database.count(VIP_SETTINGS_TABLE);
+      state.db.eventsRows = database.count(VIP_EVENTS_TABLE);
       state.db.lastError = "";
     } catch (err) {
       state.db.lastError = err.message || String(err);
@@ -824,6 +827,49 @@ module.exports.init = function init(ctx) {
             );
           `);
         }
+
+        if (toVersion === 3) {
+          db.exec(`
+            CREATE TABLE IF NOT EXISTS vip_sound_events (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              created_at TEXT NOT NULL,
+              usage_date TEXT NOT NULL DEFAULT '',
+              event_key TEXT NOT NULL DEFAULT '',
+              event_type TEXT NOT NULL DEFAULT '',
+              actor_login TEXT NOT NULL DEFAULT '',
+              actor_display_name TEXT NOT NULL DEFAULT '',
+              target_login TEXT NOT NULL DEFAULT '',
+              target_display_name TEXT NOT NULL DEFAULT '',
+              user_login TEXT NOT NULL DEFAULT '',
+              user_display_name TEXT NOT NULL DEFAULT '',
+              sound_type TEXT NOT NULL DEFAULT '',
+              source TEXT NOT NULL DEFAULT '',
+              trigger TEXT NOT NULL DEFAULT '',
+              request_id TEXT NOT NULL DEFAULT '',
+              sound_system_request_id TEXT NOT NULL DEFAULT '',
+              sound_file TEXT NOT NULL DEFAULT '',
+              sound_path TEXT NOT NULL DEFAULT '',
+              accepted INTEGER NOT NULL DEFAULT 0,
+              duplicate INTEGER NOT NULL DEFAULT 0,
+              override INTEGER NOT NULL DEFAULT 0,
+              override_allowed INTEGER NOT NULL DEFAULT 0,
+              daily_usage_written INTEGER NOT NULL DEFAULT 0,
+              sound_system_queued INTEGER NOT NULL DEFAULT 0,
+              sound_system_started INTEGER NOT NULL DEFAULT 0,
+              error_code TEXT NOT NULL DEFAULT '',
+              message_text TEXT NOT NULL DEFAULT ''
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_vip_sound_events_created_at
+              ON vip_sound_events(created_at);
+            CREATE INDEX IF NOT EXISTS idx_vip_sound_events_usage_date
+              ON vip_sound_events(usage_date);
+            CREATE INDEX IF NOT EXISTS idx_vip_sound_events_user_login
+              ON vip_sound_events(user_login);
+            CREATE INDEX IF NOT EXISTS idx_vip_sound_events_event_type
+              ON vip_sound_events(event_type);
+          `);
+        }
       });
       seedDefaultMessagesIfEmpty();
       seedDefaultSettingsIfMissing();
@@ -1331,6 +1377,247 @@ module.exports.init = function init(ctx) {
     };
   }
 
+
+  function boolToInt(value) {
+    return value ? 1 : 0;
+  }
+
+  function eventTypeFromResult(extra = {}, eventKeyValue = "") {
+    if (extra.duplicate) return "duplicate";
+    if (extra.override && extra.accepted) return "override_accepted";
+    if (extra.override && extra.overrideAllowed === false) return "override_denied";
+    if (extra.accepted) return "accepted";
+    if (extra.systemDisabled) return "system_disabled";
+    if (extra.error || extra.soundError) return String(extra.soundError || extra.error || "error");
+    if (eventKeyValue === "sound_missing") return "sound_missing";
+    return eventKeyValue || "unknown";
+  }
+
+  function recordVipSoundEvent(event = {}) {
+    if (!state.db.initialized) return false;
+
+    try {
+      database.run(`
+        INSERT INTO vip_sound_events
+          (created_at, usage_date, event_key, event_type,
+           actor_login, actor_display_name, target_login, target_display_name,
+           user_login, user_display_name, sound_type, source, trigger,
+           request_id, sound_system_request_id, sound_file, sound_path,
+           accepted, duplicate, override, override_allowed, daily_usage_written,
+           sound_system_queued, sound_system_started, error_code, message_text)
+        VALUES
+          (:createdAt, :usageDate, :eventKey, :eventType,
+           :actorLogin, :actorDisplayName, :targetLogin, :targetDisplayName,
+           :userLogin, :userDisplayName, :soundType, :source, :trigger,
+           :requestId, :soundSystemRequestId, :soundFile, :soundPath,
+           :accepted, :duplicate, :override, :overrideAllowed, :dailyUsageWritten,
+           :soundSystemQueued, :soundSystemStarted, :errorCode, :messageText)
+      `, {
+        createdAt: event.createdAt || nowIso(),
+        usageDate: String(event.usageDate || ""),
+        eventKey: String(event.eventKey || event.messageKey || ""),
+        eventType: String(event.eventType || eventTypeFromResult(event, event.eventKey || "")),
+        actorLogin: normalizeLogin(event.actorLogin || ""),
+        actorDisplayName: cleanDisplayName(event.actorDisplayName || ""),
+        targetLogin: normalizeLogin(event.targetLogin || event.userLogin || ""),
+        targetDisplayName: cleanDisplayName(event.targetDisplayName || event.userDisplayName || ""),
+        userLogin: normalizeLogin(event.userLogin || event.targetLogin || ""),
+        userDisplayName: cleanDisplayName(event.userDisplayName || event.targetDisplayName || ""),
+        soundType: normalizeSoundType(event.soundType || "vip"),
+        source: String(event.source || ""),
+        trigger: String(event.trigger || ""),
+        requestId: String(event.requestId || ""),
+        soundSystemRequestId: String(event.soundSystemRequestId || ""),
+        soundFile: String(event.soundFile || ""),
+        soundPath: String(event.soundPath || ""),
+        accepted: boolToInt(event.accepted),
+        duplicate: boolToInt(event.duplicate),
+        override: boolToInt(event.override),
+        overrideAllowed: boolToInt(event.overrideAllowed),
+        dailyUsageWritten: boolToInt(event.dailyUsageWritten),
+        soundSystemQueued: boolToInt(event.soundSystemQueued),
+        soundSystemStarted: boolToInt(event.soundSystemStarted),
+        errorCode: String(event.errorCode || event.error || event.soundError || ""),
+        messageText: messages.sanitizeChatMessage(String(event.messageText || event.message || ""), 500)
+      });
+
+      refreshDbStats();
+      return true;
+    } catch (err) {
+      console.warn(`[${MODULE_NAME}] event log unavailable: ${err.message || String(err)}`);
+      return false;
+    }
+  }
+
+  async function finishVipCommand(eventKeyValue, context, extra = {}) {
+    const response = await buildVipChatResponse(eventKeyValue, context, extra);
+
+    recordVipSoundEvent({
+      eventKey: eventKeyValue,
+      eventType: eventTypeFromResult(extra, eventKeyValue),
+      usageDate: extra.usageDate || context.date || "",
+      actorLogin: extra.actorLogin || context.actorLogin || "",
+      actorDisplayName: extra.actorDisplayName || context.actorDisplayName || "",
+      targetLogin: extra.targetLogin || context.targetLogin || extra.userLogin || context.login || "",
+      targetDisplayName: extra.targetDisplayName || context.targetDisplayName || extra.userDisplayName || context.displayName || "",
+      userLogin: extra.userLogin || extra.targetLogin || context.targetLogin || context.login || "",
+      userDisplayName: extra.userDisplayName || extra.targetDisplayName || context.targetDisplayName || context.displayName || "",
+      soundType: extra.soundType || context.soundType || "vip",
+      source: extra.source || "",
+      trigger: extra.trigger || context.trigger || "",
+      requestId: extra.requestId || "",
+      soundSystemRequestId: extra.soundSystemRequestId || "",
+      soundFile: extra.soundFile || "",
+      soundPath: extra.soundPath || "",
+      accepted: !!extra.accepted,
+      duplicate: !!extra.duplicate,
+      override: !!extra.override,
+      overrideAllowed: !!extra.overrideAllowed,
+      dailyUsageWritten: !!extra.dailyUsageWritten,
+      soundSystemQueued: !!extra.soundSystemQueued,
+      soundSystemStarted: !!extra.soundSystemStarted,
+      errorCode: extra.error || extra.soundError || "",
+      messageText: response.message || response.text || ""
+    });
+
+    return response;
+  }
+
+  function buildVipEventFilters(raw = {}) {
+    const data = raw && typeof raw === "object" ? raw : {};
+    const usageDate = String(data.date || data.usageDate || "").trim();
+    const login = normalizeLogin(data.login || data.userLogin || data.targetLogin || data.actorLogin || "");
+    const soundTypeRaw = String(data.soundType || "").trim().toLowerCase();
+    const soundType = soundTypeRaw ? normalizeSoundType(soundTypeRaw) : "";
+    const eventType = String(data.eventType || data.type || "").trim().toLowerCase();
+    const acceptedRaw = String(data.accepted ?? "").trim().toLowerCase();
+    const where = [];
+    const params = {};
+
+    if (usageDate) {
+      where.push("usage_date = :usageDate");
+      params.usageDate = usageDate;
+    }
+
+    if (login) {
+      where.push("(user_login = :login OR actor_login = :login OR target_login = :login)");
+      params.login = login;
+    }
+
+    if (soundType) {
+      where.push("sound_type = :soundType");
+      params.soundType = soundType;
+    }
+
+    if (eventType) {
+      where.push("event_type = :eventType");
+      params.eventType = eventType;
+    }
+
+    if (acceptedRaw === "true" || acceptedRaw === "1" || acceptedRaw === "false" || acceptedRaw === "0") {
+      where.push("accepted = :accepted");
+      params.accepted = (acceptedRaw === "true" || acceptedRaw === "1") ? 1 : 0;
+    }
+
+    return {
+      usageDate,
+      login,
+      soundType,
+      eventType,
+      accepted: acceptedRaw,
+      whereSql: where.length ? `WHERE ${where.join(" AND ")}` : "",
+      params
+    };
+  }
+
+  function listVipEvents(raw = {}, limitValue) {
+    const filters = buildVipEventFilters(raw);
+    const limit = Math.max(1, Math.min(500, intOrDefault(limitValue, 100)));
+
+    const rows = database.all(`
+      SELECT id, created_at, usage_date, event_key, event_type,
+             actor_login, actor_display_name, target_login, target_display_name,
+             user_login, user_display_name, sound_type, source, trigger,
+             request_id, sound_system_request_id, sound_file, sound_path,
+             accepted, duplicate, override, override_allowed, daily_usage_written,
+             sound_system_queued, sound_system_started, error_code, message_text
+      FROM vip_sound_events
+      ${filters.whereSql}
+      ORDER BY created_at DESC, id DESC
+      LIMIT :limit
+    `, {
+      ...filters.params,
+      limit
+    });
+
+    return {
+      filters: {
+        usageDate: filters.usageDate,
+        login: filters.login,
+        soundType: filters.soundType,
+        eventType: filters.eventType,
+        accepted: filters.accepted
+      },
+      filtered: !!(filters.usageDate || filters.login || filters.soundType || filters.eventType || filters.accepted),
+      limit,
+      rows: Array.isArray(rows) ? rows : []
+    };
+  }
+
+  function getVipStats(raw = {}) {
+    const data = raw && typeof raw === "object" ? raw : {};
+    const usageDate = String(data.date || data.usageDate || "").trim();
+    const filters = buildVipEventFilters(usageDate ? { usageDate } : {});
+    const params = filters.params;
+    const whereSql = filters.whereSql;
+
+    const totals = database.get(`
+      SELECT
+        COUNT(*) AS total_events,
+        SUM(CASE WHEN accepted = 1 THEN 1 ELSE 0 END) AS accepted_events,
+        SUM(CASE WHEN duplicate = 1 THEN 1 ELSE 0 END) AS duplicate_events,
+        SUM(CASE WHEN override = 1 THEN 1 ELSE 0 END) AS override_events,
+        SUM(CASE WHEN daily_usage_written = 1 THEN 1 ELSE 0 END) AS daily_usage_written_events,
+        SUM(CASE WHEN error_code <> '' THEN 1 ELSE 0 END) AS error_events
+      FROM vip_sound_events
+      ${whereSql}
+    `, params) || {};
+
+    const bySoundType = database.all(`
+      SELECT sound_type, COUNT(*) AS count
+      FROM vip_sound_events
+      ${whereSql}
+      GROUP BY sound_type
+      ORDER BY count DESC, sound_type ASC
+    `, params);
+
+    const topUsers = database.all(`
+      SELECT user_login, user_display_name, COUNT(*) AS count
+      FROM vip_sound_events
+      ${whereSql}
+      GROUP BY user_login, user_display_name
+      ORDER BY count DESC, user_login ASC
+      LIMIT 20
+    `, params);
+
+    const recent = database.all(`
+      SELECT id, created_at, event_type, user_login, user_display_name, sound_type, accepted, duplicate, override, daily_usage_written, source
+      FROM vip_sound_events
+      ${whereSql}
+      ORDER BY created_at DESC, id DESC
+      LIMIT 10
+    `, params);
+
+    return {
+      usageDate,
+      filtered: !!usageDate,
+      totals,
+      bySoundType: Array.isArray(bySoundType) ? bySoundType : [],
+      topUsers: Array.isArray(topUsers) ? topUsers : [],
+      recent: Array.isArray(recent) ? recent : []
+    };
+  }
+
   async function handleVipCommand(raw) {
     const dbReady = ensureVipSchema();
     const requestedSoundType = normalizeSoundType(raw.soundType || raw.type);
@@ -1357,7 +1644,7 @@ module.exports.init = function init(ctx) {
         date: getBerlinDate()
       };
 
-      return await buildVipChatResponse("error_generic", context, {
+      return await finishVipCommand("error_generic", context, {
         accepted: false,
         duplicate: false,
         dbReady,
@@ -1380,7 +1667,7 @@ module.exports.init = function init(ctx) {
     };
 
     if (!getVipSetting("enabled", true)) {
-      return await buildVipChatResponse("system_disabled", context, {
+      return await finishVipCommand("system_disabled", context, {
         accepted: false,
         duplicate: false,
         dbReady,
@@ -1401,7 +1688,7 @@ module.exports.init = function init(ctx) {
     }
 
     if (!dbReady) {
-      return await buildVipChatResponse("error_generic", context, {
+      return await finishVipCommand("error_generic", context, {
         accepted: false,
         duplicate: false,
         dbReady: false,
@@ -1410,7 +1697,7 @@ module.exports.init = function init(ctx) {
     }
 
     if (isOverrideRequest && !overrideAllowed) {
-      return await buildVipChatResponse(eventKey("denied_override", soundType), context, {
+      return await finishVipCommand(eventKey("denied_override", soundType), context, {
         accepted: false,
         duplicate: false,
         override: true,
@@ -1446,7 +1733,7 @@ module.exports.init = function init(ctx) {
     }
 
     if (existing) {
-      return await buildVipChatResponse(eventKey("duplicate", soundType), context, {
+      return await finishVipCommand(eventKey("duplicate", soundType), context, {
         accepted: false,
         duplicate: true,
         override: false,
@@ -1471,7 +1758,7 @@ module.exports.init = function init(ctx) {
 
     if (!soundQueue.ok) {
       const missing = soundQueue.reason === "sound_missing";
-      return await buildVipChatResponse(missing ? "sound_missing" : "error_generic", context, {
+      return await finishVipCommand(missing ? "sound_missing" : "error_generic", context, {
         accepted: false,
         duplicate: false,
         override: skipDailyUsage,
@@ -1514,7 +1801,7 @@ module.exports.init = function init(ctx) {
       refreshDbStats();
     }
 
-    return await buildVipChatResponse(skipDailyUsage ? eventKey("accepted_override", soundType) : eventKey("accepted", soundType), context, {
+    return await finishVipCommand(skipDailyUsage ? eventKey("accepted_override", soundType) : eventKey("accepted", soundType), context, {
       accepted: true,
       duplicate: false,
       override: skipDailyUsage,
@@ -1696,6 +1983,8 @@ module.exports.init = function init(ctx) {
         messageTemplates: state.db.messageTemplates,
         dailyUsageRows: state.db.dailyUsageRows,
         settingsRows: state.db.settingsRows,
+        eventsTable: VIP_EVENTS_TABLE,
+        eventsRows: state.db.eventsRows,
         databasePath: database.getDbPath ? database.getDbPath() : "",
         lastError: state.db.lastError,
         updatedAt: nowIso()
@@ -1738,6 +2027,63 @@ module.exports.init = function init(ctx) {
           count: data.settings.length,
           settings: data.settings,
           config: data.config,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+
+    app.get(`${prefix}/events`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const data = listVipEvents(requestData(req), bodyOrQuery(req, "limit"));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          eventsTable: VIP_EVENTS_TABLE,
+          ...data,
+          count: data.rows.length,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/events/recent`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const data = listVipEvents(requestData(req), bodyOrQuery(req, "limit") || 20);
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          eventsTable: VIP_EVENTS_TABLE,
+          ...data,
+          count: data.rows.length,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/stats`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const data = getVipStats(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          eventsTable: VIP_EVENTS_TABLE,
+          ...data,
           db: { ...state.db },
           updatedAt: nowIso()
         });

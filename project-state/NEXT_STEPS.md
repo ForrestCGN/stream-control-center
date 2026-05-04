@@ -218,6 +218,7 @@ Ziel:
 - Gewichtung einstellen.
 - VIP-Soundpfad und Dateiregel konfigurieren.
 - Testausloesung ermoeglichen.
+- VIP-Events/Statistiken anzeigen.
 
 Wichtig:
 

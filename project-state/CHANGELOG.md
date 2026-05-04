@@ -2,6 +2,25 @@
 
 ## 2026-05-04
 
+### STEP033 - VIP Events-/Statistik-Basis vorbereitet
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.7.9` aktualisiert.
+- Schema-Version `vip_sound_overlay` auf `3` erhoeht.
+- Neue Tabelle `vip_sound_events` vorbereitet.
+- VIP-Command-Ergebnisse werden als Event-Historie protokolliert:
+  - accepted / duplicate / override / dailyUsageWritten
+  - Actor / Target / User
+  - Soundtyp, Source, Trigger
+  - RequestIds und Sounddatei
+  - Fehlercode und Antworttext
+- Neue Routen:
+  - `GET /api/vip-sound/events`
+  - `GET /api/vip-sound/events/recent`
+  - `GET /api/vip-sound/stats`
+- `vip_sound_daily_usage` bleibt weiterhin nur fuer Tageslimit/Verbrauch.
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
+
 ### STEP032 - VIP Soundpfad und Dateiregel aus DB-Settings aktiv genutzt
 
 - `backend/modules/vip_sound_overlay.js` auf Version `1.7.8` aktualisiert.

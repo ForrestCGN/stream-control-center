@@ -255,3 +255,15 @@ STEP031 Ergebnis:
 - Aktive Settings: `enabled`, `soundBaseDir`, `fileNameMode`, `fileExtension`.
 - Lesereihenfolge: SQLite -> Config-Fallback ueber `helper_config.js` -> Code-Default.
 - Dashboard kann spaeter auf dieser Basis eine Settings-Oberflaeche bekommen.
+
+
+## STEP033 vorbereitet - VIP Events-/Statistik-Basis
+
+- Neue Tabelle: `vip_sound_events`.
+- Zweck: Historie, Statistik, Audit und spaeteres Dashboard.
+- `vip_sound_daily_usage` bleibt fuer Tageslimit/Verbrauch.
+- Neue Routen:
+  - `GET /api/vip-sound/events`
+  - `GET /api/vip-sound/events/recent`
+  - `GET /api/vip-sound/stats`
+- Soundpfad/Dateiregel bleiben weiterhin DB-backed ueber `vip_sound_settings`.
