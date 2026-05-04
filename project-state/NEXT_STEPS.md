@@ -14,6 +14,45 @@ Vor jedem neuen STEP:
 6. Kleine Aenderung planen.
 7. Nach Aenderung testen, dokumentieren, committen, pushen und Live ueber `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd` aktualisieren.
 
+## Naechste VIP-Arbeitspakete vor Dashboard
+
+### STEP032 - Soundpfad und Dateiregel aus DB-Settings nutzen
+
+Ziel:
+
+- `soundBaseDir`, `fileNameMode` und `fileExtension` aus `vip_sound_settings` lesen.
+- Bestehendes Verhalten bleibt Default:
+  - `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`
+  - `Anzeigename.mp3`
+- Fallback-Reihenfolge: SQLite > Config > ENV/Default.
+- Keine Funktionalitaet entfernen.
+
+### STEP033 - Daily-Usage Retention vorbereiten
+
+Ziel:
+
+- `dailyUsageRetentionDays` und `cleanupDailyUsageOnStartup` aus DB-Settings nutzen.
+- Noch vorsichtig: keine harte Auto-Loeschung ohne klaren Schalter.
+- Spaeter Dashboard-editierbar.
+
+### STEP034 - Rollen-Fallbacks in DB ueberfuehren
+
+Ziel:
+
+- `config/vip_sound_roles.json` bleibt Import-/Fallback-Datei.
+- Neue DB-Tabelle fuer Rollen-Overrides vorbereiten.
+- Dashboard kann spaeter Rollen sortieren/suchen/aktivieren/deaktivieren.
+
+### STEP035 - VIP-Text-API fuer SQLite-Texte
+
+Ziel:
+
+- Texte aus `vip_sound_message_templates` per API lesen/bearbeiten.
+- Aktiv/Inaktiv und Gewichtung vorbereiten.
+- Erst danach Dashboard.
+
+---
+
 ## Empfohlene naechste Arbeitspakete
 
 ### 1. VIP-Daily-Usage Retention spaeter konfigurierbar machen

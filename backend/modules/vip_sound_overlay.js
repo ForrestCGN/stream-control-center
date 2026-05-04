@@ -7,6 +7,7 @@ const https = require("https");
 const core = require("./helpers/helper_core");
 const messages = require("./helpers/helper_messages");
 const chatOutput = require("./helpers/helper_chat_output");
+const configHelper = require("./helpers/helper_config");
 const database = require("../core/database");
 const twitchRoles = require("./helpers/helper_twitch_roles");
 
@@ -19,14 +20,59 @@ module.exports.init = function init(ctx) {
   const DEFAULT_GAP_MS = 2000;
   const DEFAULT_PHASE = "idle";
   const VIP_SCHEMA_MODULE = "vip_sound_overlay";
-  const VIP_SCHEMA_VERSION = 1;
+  const VIP_SCHEMA_VERSION = 2;
   const VIP_DAILY_USAGE_TABLE = "vip_sound_daily_usage";
   const VIP_MESSAGE_TABLE = "vip_sound_message_templates";
+  const VIP_SETTINGS_TABLE = "vip_sound_settings";
   const VIP_MESSAGE_STYLE = "heimleitung";
   const VIP_OVERLAY_STYLE = "overlay";
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
   const VIP_OVERRIDE_ALLOWED_ROLES_RAW = process.env.VIP_OVERRIDE_ALLOWED_ROLES || "moderator,mod,broadcaster";
   const VIP_ROLES_CONFIG_PATH = process.env.VIP_ROLES_CONFIG_PATH || path.join(process.cwd(), "config", "vip_sound_roles.json");
+  const VIP_SETTINGS_CONFIG_FILE = process.env.VIP_SETTINGS_CONFIG_FILE || "vip_sound.json";
+
+  const DEFAULT_VIP_SETTINGS = {
+    enabled: {
+      value: true,
+      value_type: "boolean",
+      description: "Aktiviert oder deaktiviert das VIP-Sound-System."
+    },
+    soundBaseDir: {
+      value: process.env.VIP_SOUND_BASE_DIR || "D:/Streaming/stramAssets/htdocs/assets/sounds/vip",
+      value_type: "string",
+      description: "Basisordner fuer VIP-Sounddateien. Dashboard-editierbar geplant."
+    },
+    fileNameMode: {
+      value: "displayName",
+      value_type: "string",
+      description: "Dateinamensregel fuer VIP-Sounds. Aktuell: displayName."
+    },
+    fileExtension: {
+      value: ".mp3",
+      value_type: "string",
+      description: "Dateiendung fuer VIP-Sounddateien."
+    },
+    dailyUsageRetentionDays: {
+      value: 14,
+      value_type: "number",
+      description: "Geplante Aufbewahrungsdauer fuer Daily-Usage-Eintraege. Noch nicht automatisch aktiv."
+    },
+    cleanupDailyUsageOnStartup: {
+      value: false,
+      value_type: "boolean",
+      description: "Geplanter Auto-Cleanup beim Backend-Start. Noch nicht automatisch aktiv."
+    },
+    autoDetectTargetRole: {
+      value: true,
+      value_type: "boolean",
+      description: "Zieluser-Rolle automatisch per Twitch pruefen."
+    },
+    fallbackRolesEnabled: {
+      value: true,
+      value_type: "boolean",
+      description: "Lokale Rollen-Fallbacks erlauben, wenn Twitch nicht verfuegbar ist."
+    }
+  };
 
   const DEFAULT_VIP_MESSAGES = [
     {
@@ -137,7 +183,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.6",
+    version: "1.7.7",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -153,6 +199,7 @@ module.exports.init = function init(ctx) {
       schemaVersion: 0,
       messageTemplates: 0,
       dailyUsageRows: 0,
+      settingsRows: 0,
       lastError: ""
     },
     chat: {
@@ -198,6 +245,7 @@ module.exports.init = function init(ctx) {
       state.db.schemaVersion = database.getSchemaVersion(VIP_SCHEMA_MODULE) || 0;
       state.db.messageTemplates = database.count(VIP_MESSAGE_TABLE);
       state.db.dailyUsageRows = database.count(VIP_DAILY_USAGE_TABLE);
+      state.db.settingsRows = database.count(VIP_SETTINGS_TABLE);
       state.db.lastError = "";
     } catch (err) {
       state.db.lastError = err.message || String(err);
@@ -538,6 +586,202 @@ module.exports.init = function init(ctx) {
     };
   }
 
+
+  function encodeSettingValue(value, valueType) {
+    if (valueType === "boolean") return value ? "true" : "false";
+    if (valueType === "number") return String(Number(value));
+    if (valueType === "json") return JSON.stringify(value ?? null);
+    return String(value ?? "");
+  }
+
+  function decodeSettingValue(value, valueType, fallback = null) {
+    if (valueType === "boolean") return boolish(value);
+    if (valueType === "number") {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    if (valueType === "json") {
+      try { return JSON.parse(String(value)); } catch (_) { return fallback; }
+    }
+    return String(value ?? "");
+  }
+
+  function getNestedValue(obj, pathParts) {
+    let current = obj;
+    for (const part of pathParts) {
+      if (!current || typeof current !== "object" || !(part in current)) return undefined;
+      current = current[part];
+    }
+    return current;
+  }
+
+  function readVipSettingsConfig() {
+    try {
+      const loaded = configHelper.loadConfig(VIP_SETTINGS_CONFIG_FILE, {}, {
+        createIfMissing: false,
+        mergeDefaults: true
+      });
+
+      return {
+        ok: !!loaded.ok,
+        path: loaded.path || "",
+        exists: !!loaded.exists,
+        config: loaded.config || loaded.data || {},
+        error: loaded.error || ""
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        path: "",
+        exists: false,
+        config: {},
+        error: err.message || String(err)
+      };
+    }
+  }
+
+  function getConfigSettingValue(key, config) {
+    const cfg = config && typeof config === "object" ? config : {};
+
+    const candidates = {
+      enabled: [["enabled"]],
+      soundBaseDir: [["soundBaseDir"], ["sound", "baseDir"], ["sound", "soundBaseDir"]],
+      fileNameMode: [["fileNameMode"], ["sound", "fileNameMode"]],
+      fileExtension: [["fileExtension"], ["sound", "fileExtension"]],
+      dailyUsageRetentionDays: [["dailyUsageRetentionDays"], ["dailyUsage", "retentionDays"]],
+      cleanupDailyUsageOnStartup: [["cleanupDailyUsageOnStartup"], ["dailyUsage", "cleanupOnStartup"]],
+      autoDetectTargetRole: [["autoDetectTargetRole"], ["roles", "autoDetectTargetRole"]],
+      fallbackRolesEnabled: [["fallbackRolesEnabled"], ["roles", "fallbackRolesEnabled"]]
+    };
+
+    for (const parts of candidates[key] || [[key]]) {
+      const value = getNestedValue(cfg, parts);
+      if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+    }
+
+    return undefined;
+  }
+
+  function normalizeSettingForDb(key, value, valueType, description) {
+    return {
+      settingKey: key,
+      settingValue: encodeSettingValue(value, valueType),
+      valueType,
+      description: description || ""
+    };
+  }
+
+  function seedDefaultSettingsIfMissing() {
+    const now = nowIso();
+    const loadedConfig = readVipSettingsConfig();
+    const cfg = loadedConfig.config || {};
+
+    for (const [key, def] of Object.entries(DEFAULT_VIP_SETTINGS)) {
+      const configValue = getConfigSettingValue(key, cfg);
+      const value = configValue === undefined ? def.value : configValue;
+      const row = normalizeSettingForDb(key, value, def.value_type, def.description);
+
+      database.run(`
+        INSERT OR IGNORE INTO vip_sound_settings
+          (setting_key, setting_value, value_type, description, created_at, updated_at)
+        VALUES
+          (:settingKey, :settingValue, :valueType, :description, :createdAt, :updatedAt)
+      `, {
+        ...row,
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+  }
+
+  function listVipSettings() {
+    const loadedConfig = readVipSettingsConfig();
+    const cfg = loadedConfig.config || {};
+    const dbRows = database.all(`
+      SELECT setting_key, setting_value, value_type, description, created_at, updated_at
+      FROM vip_sound_settings
+      ORDER BY setting_key ASC
+    `);
+    const rowByKey = new Map((Array.isArray(dbRows) ? dbRows : []).map(row => [row.setting_key, row]));
+
+    const settings = [];
+    for (const [key, def] of Object.entries(DEFAULT_VIP_SETTINGS)) {
+      const row = rowByKey.get(key);
+      const configValue = getConfigSettingValue(key, cfg);
+
+      if (row) {
+        settings.push({
+          key,
+          value: decodeSettingValue(row.setting_value, row.value_type, def.value),
+          rawValue: row.setting_value,
+          valueType: row.value_type,
+          description: row.description || def.description || "",
+          source: "database",
+          createdAt: row.created_at || "",
+          updatedAt: row.updated_at || ""
+        });
+      } else if (configValue !== undefined) {
+        settings.push({
+          key,
+          value: decodeSettingValue(encodeSettingValue(configValue, def.value_type), def.value_type, def.value),
+          rawValue: encodeSettingValue(configValue, def.value_type),
+          valueType: def.value_type,
+          description: def.description || "",
+          source: "config",
+          createdAt: "",
+          updatedAt: ""
+        });
+      } else {
+        settings.push({
+          key,
+          value: def.value,
+          rawValue: encodeSettingValue(def.value, def.value_type),
+          valueType: def.value_type,
+          description: def.description || "",
+          source: "default",
+          createdAt: "",
+          updatedAt: ""
+        });
+      }
+    }
+
+    return {
+      settings,
+      config: {
+        file: VIP_SETTINGS_CONFIG_FILE,
+        path: loadedConfig.path || "",
+        exists: !!loadedConfig.exists,
+        ok: !!loadedConfig.ok,
+        error: loadedConfig.error || ""
+      }
+    };
+  }
+
+  function getVipSetting(key, fallback = undefined) {
+    const def = DEFAULT_VIP_SETTINGS[key];
+    const defaultValue = fallback !== undefined ? fallback : (def ? def.value : undefined);
+
+    try {
+      const row = database.get(`
+        SELECT setting_value, value_type
+        FROM vip_sound_settings
+        WHERE setting_key = :key
+      `, { key });
+
+      if (row) return decodeSettingValue(row.setting_value, row.value_type, defaultValue);
+    } catch (_) {
+      // DB may not be ready during early boot; fallback below.
+    }
+
+    const loadedConfig = readVipSettingsConfig();
+    const configValue = getConfigSettingValue(key, loadedConfig.config || {});
+    if (configValue !== undefined && def) {
+      return decodeSettingValue(encodeSettingValue(configValue, def.value_type), def.value_type, defaultValue);
+    }
+
+    return defaultValue;
+  }
+
   function ensureVipSchema() {
     try {
       database.init(ctx);
@@ -567,8 +811,22 @@ module.exports.init = function init(ctx) {
             );
           `);
         }
+
+        if (toVersion === 2) {
+          db.exec(`
+            CREATE TABLE IF NOT EXISTS vip_sound_settings (
+              setting_key TEXT PRIMARY KEY,
+              setting_value TEXT NOT NULL,
+              value_type TEXT NOT NULL DEFAULT 'string',
+              description TEXT NOT NULL DEFAULT '',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+          `);
+        }
       });
       seedDefaultMessagesIfEmpty();
+      seedDefaultSettingsIfMissing();
       state.db.initialized = true;
       state.db.lastError = "";
       refreshDbStats();
@@ -1367,12 +1625,58 @@ module.exports.init = function init(ctx) {
         schemaVersion: state.db.schemaVersion,
         dailyUsageTable: VIP_DAILY_USAGE_TABLE,
         messageTable: VIP_MESSAGE_TABLE,
+        settingsTable: VIP_SETTINGS_TABLE,
         messageTemplates: state.db.messageTemplates,
         dailyUsageRows: state.db.dailyUsageRows,
+        settingsRows: state.db.settingsRows,
         databasePath: database.getDbPath ? database.getDbPath() : "",
         lastError: state.db.lastError,
         updatedAt: nowIso()
       });
+    });
+
+
+    app.get(`${prefix}/settings`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        refreshDbStats();
+        const data = listVipSettings();
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          settingsTable: VIP_SETTINGS_TABLE,
+          count: data.settings.length,
+          settings: data.settings,
+          config: data.config,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/config`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        refreshDbStats();
+        const data = listVipSettings();
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          note: "DB-backed VIP settings. Config file is fallback only.",
+          settingsTable: VIP_SETTINGS_TABLE,
+          count: data.settings.length,
+          settings: data.settings,
+          config: data.config,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
     });
 
 

@@ -67,6 +67,8 @@ STEP-Dokumentation:
 - project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 - project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
 - project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
+- project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
+- project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
 - project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
 - project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 
@@ -142,6 +144,7 @@ VIP aktuelle Tabellen in app.sqlite:
 
 - vip_sound_daily_usage
 - vip_sound_message_templates
+- vip_sound_settings
 
 Sound-System relevante Route fuer VIP:
 
@@ -159,6 +162,8 @@ VIP relevante Routen:
 - GET /api/vip-sound/daily-usage/today
 - POST /api/vip-sound/daily-usage/reset
 - POST /api/vip-sound/daily-usage/reset-today
+- GET /api/vip-sound/settings
+- GET /api/vip-sound/config
 
 VIP Daily-Usage API Semantik:
 
@@ -227,3 +232,23 @@ ENV/Secret-Nutzung:
 - TWITCH_BROADCASTER_ID optional, Fallback 127709954
 - VIP_TWITCH_USER_TOKEN_PATH optional, Fallback D:/Streaming/stramAssets/secrets/tokens/twitch_user.json
 - Token-Datei niemals committen.
+
+
+## VIP DB-Settings
+
+Neue Tabelle ab STEP031:
+
+- `vip_sound_settings`
+
+Zweck:
+
+- spaetere Dashboard-bearbeitbare VIP-Settings
+- Soundpfad/Dateiregel
+- Daily-Usage-Retention
+- Rollen-/Fallback-Schalter
+
+Lesereihenfolge:
+
+1. SQLite
+2. Config-Fallback ueber `helper_config.js`
+3. Default im Code

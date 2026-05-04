@@ -2,6 +2,31 @@
 
 ## 2026-05-04
 
+### STEP031 - VIP DB-Settings Basis vorbereitet
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.7.7` aktualisiert.
+- Neue Tabelle `vip_sound_settings` fuer spaetere Dashboard-/Config-Werte vorbereitet.
+- Schema-Version des VIP-Moduls auf `2` erhoeht.
+- `helper_config.js` wird als JSON-/Fallback-Config-Helper genutzt.
+- Neue Read-Routen ergaenzt:
+  - `GET /api/vip-sound/settings`
+  - `GET /api/vip-sound/config`
+  - kompatibel auch unter `/api/vip-sound-overlay/*`
+- Settings werden nach dem Prinzip vorbereitet: SQLite > Config-Fallback > Default.
+- Noch keine Soundpfad-/Dateiregel-Logik geaendert; Nutzung folgt in STEP032.
+- Neue STEP-Doku:
+  - `project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md`
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
+### STEP030 - VIP Referenzstand dokumentiert
+
+- Stabiler VIP-Zwischenstand nach STEP026 bis STEP029 dokumentiert.
+- Bestaetigt: Twitch-Mod-Erkennung, Heimaufsicht-Wording, korrigierte Daily-Usage API.
+- Offene Backend-Schritte vor Dashboard sortiert.
+- Neue STEP-Doku:
+  - `project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md`
+
+
 ### STEP029 - VIP Daily-Usage API korrigiert
 
 - `backend/modules/vip_sound_overlay.js` auf Version `1.7.6` aktualisiert.

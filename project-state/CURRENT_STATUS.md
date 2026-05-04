@@ -38,7 +38,7 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Der aktuelle Stand nach STEP029 ist fuer GitHub/dev vorbereitet.
+Der aktuelle Stand nach STEP031 ist fuer GitHub/dev vorbereitet.
 
 Zuletzt abgeschlossen:
 
@@ -61,6 +61,8 @@ Zuletzt abgeschlossen:
 - STEP027 VIP-Chat-Wording von Heimleitung auf Heimaufsicht angepasst
 - STEP028 VIP-Daily-Usage API fuer Tests/Dashboard vorbereitet
 - STEP029 VIP-Daily-Usage API-Semantik korrigiert
+- STEP030 VIP-Referenzstand dokumentiert
+- STEP031 VIP-DB-Settings-Basis vorbereitet
 - STEP026 VIP Target-Mod-Erkennung ueber Twitch-Helper umgesetzt
 - STEP027 VIP-Default-Chattexte von Heimleitung auf Heimaufsicht umgestellt
 - STEP024 VIP-Overlay-Texte aus SQLite bestaetigt
@@ -93,6 +95,8 @@ Dokumentiert in:
 - project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 - project-state/STEP028_VIP_DAILY_USAGE_API_2026-05-04.md
 - project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
+- project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
+- project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
 
 Aktueller Modulstand:
 
@@ -225,3 +229,12 @@ Wichtig:
 ## Arbeitsregel fuer grosse Dateien
 
 Wenn GitHub-/Tool-Ausgaben grosse Dateien gekuerzt liefern, stellt Forrest die echte Datei bereit. Dann wird auf Basis der echten Datei gearbeitet, nicht auf Basis geratener Patch-Scripte.
+
+
+STEP031 Ergebnis:
+
+- VIP-Settings werden in SQLite vorbereitet (`vip_sound_settings`).
+- `helper_config.js` wird als Config-/Fallback-Layer genutzt.
+- Lesereihenfolge fuer spaetere Dashboard-Werte: SQLite > Config > Default.
+- Neue Routen: `/api/vip-sound/settings` und `/api/vip-sound/config`.
+- Soundpfad-/Dateiregel-Verhalten bleibt in STEP031 unveraendert; Umstellung folgt in STEP032.
