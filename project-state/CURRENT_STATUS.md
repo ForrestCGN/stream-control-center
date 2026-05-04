@@ -26,7 +26,7 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Der aktuelle Stand nach STEP022 ist auf GitHub/dev dokumentiert.
+Der aktuelle Stand nach STEP023 ist auf GitHub/dev dokumentiert.
 
 Zuletzt abgeschlossen:
 
@@ -44,14 +44,17 @@ Zuletzt abgeschlossen:
 - STEP020 VIP Override live getestet
 - STEP021 Sound-System RequestId in VIP-Response gefixt
 - STEP022 Streamer.bot VIP-Argumente geprueft
+- STEP023 VIP Streamer.bot -> Sound-System -> Overlay V2 getestet
 
 ## Repo/Live-Abgleich
 
-Zuletzt fuer STEP022:
+Zuletzt fuer STEP023:
 
-- Echte Streamer.bot 1.0.4 Command-Argumente mit temporaerem Debug-Command geprueft.
-- Code wurde in STEP022 nicht geaendert.
-- GitHub/dev wurde mit der STEP022-Doku aktualisiert.
+- Echte Streamer.bot-Action fuer `!vip` neu auf Fetch URL zu `/api/vip-sound/command` aufgebaut.
+- OBS-Browserquelle auf `vip_sound_overlay_v2.html` gesetzt.
+- Live-Test erfolgreich: Sound-System startete VIP-Sound, OBS zeigte Overlay V2, danach alles wieder idle.
+- Code wurde in STEP023 nicht geaendert.
+- GitHub/dev wurde mit der STEP023-Doku aktualisiert.
 - Keine SQLite-/Secret-/Backup-Dateien committed.
 
 ## VIP-/Sound-/Overlay-Stand
@@ -64,15 +67,20 @@ Dokumentiert in:
 - project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
 - project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
 - project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
+- project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
 
 Aktueller Modulstand:
 
 - backend/modules/vip_sound_overlay.js
 - Version im Repo/Live: 1.7.1
+- htdocs/overlays/vip_sound_overlay_v2.html ist die aktive OBS-VIP-Browserquelle.
 
 Kernentscheidungen / aktueller Ablauf:
 
 - Streamer.bot nimmt nur noch Befehle an und uebergibt Minimaldaten an Node.
+- `!vip` nutzt Fetch URL zu `/api/vip-sound/command`.
+- Streamer.bot sendet keinen VIP-Chattext mehr selbst.
+- Streamer.bot startet kein VIP-Overlay mehr direkt.
 - VIP-Command prueft Daily-Usage pro User/pro Stream-Tag.
 - VIP-Command sucht Sounddatei unter `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`.
 - Dateiregel aktuell: `Anzeigename.mp3`.
@@ -80,22 +88,21 @@ Kernentscheidungen / aktueller Ablauf:
 - Wenn Datei existiert, wird `/api/sound/play` genutzt.
 - Nur wenn das Sound-System akzeptiert, wird Daily-Usage geschrieben.
 - Chat-Ausgabe erfolgt ueber helper_chat_output / Heimleitungs-Bot.
-- Streamer.bot soll `chatMessage` nicht mehr selbst posten.
 - Response fuer Streamer.bot: `send=false`, `streamerbot_send="0"`, `chatMessage=""`.
 - VIP-Override: Mods/Broadcaster duerfen fuer Zieluser erneut ausloesen.
 - Override-Rollen werden ueber `VIP_OVERRIDE_ALLOWED_ROLES` gesteuert.
 - Standardrollen: `moderator,mod,broadcaster`.
 - `soundSystemRequestId` wird korrekt aus der Sound-System-Response uebernommen.
+- Overlay V2 liest Visualdaten aus `sound_system.current.visual` bzw. Sound-System-WebSocket/Polling.
 
-STEP022 Ergebnis:
+STEP023 Ergebnis:
 
-- Streamer.bot liefert `userName` fuer Actor-Login.
-- Streamer.bot liefert `user` fuer Actor-DisplayName.
-- Streamer.bot liefert `input0` fuer Target-Login ohne Mention-Zeichen.
-- Streamer.bot liefert `rawInput` fuer rohe Eingabe.
-- Streamer.bot liefert `isModerator` fuer Override-Erkennung.
-- Das VIP-Modul prueft `isModerator` bereits in `actorCanOverride()`.
-- Kein Code-Fix noetig.
+- `!vip @araglor` startete den Sound ueber `sound_system`.
+- `sound_system.current.visual.module = vip_sound_overlay` war gesetzt.
+- OBS zeigte VIP Overlay V2 korrekt an.
+- Chat-Ausgabe kam ueber Heimaufsicht/Bot.
+- Nach Soundende war `sound_system.current = null`, Queue leer und `device.lastOk = true`.
+- `vip-sound-overlay/state` bleibt fuer Overlay V2 bewusst idle, weil V2 direkt Sound-System-Daten nutzt.
 
 ## Doku-Struktur
 
@@ -133,9 +140,9 @@ Historische Analyse-Snapshots:
 
 ## Bewusst offen
 
-- Optional echten Mod-Account testen, ob auch dort `isModerator` geliefert wird.
-- Debug-Command `!vipdebug` in Streamer.bot wieder entfernen oder deaktivieren.
-- VIP-Overlay-Startverhalten gegen echten Sound-System-Start weiter verifizieren.
+- Debug-Parameter `?debug=1` in OBS wieder entfernen, wenn nicht mehr gebraucht.
+- Alte VIP-Action in Streamer.bot deaktiviert lassen oder spaeter nach Backup sauber entfernen.
+- Legacy-Routen `/api/vip-sound/enqueue` und `/api/vip-sound-overlay/enqueue` vorerst fuer Kompatibilitaet behalten, aber nicht mehr fuer normalen `!vip` nutzen.
 - VIP-Soundpfad ueber DB/Dashboard konfigurierbar machen.
 - VIP-Dashboard fuer Texte/Settings.
 - Fireworks spaeter neu aufbauen.
