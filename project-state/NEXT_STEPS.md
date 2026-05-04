@@ -355,3 +355,32 @@ Wichtig:
 
 - Die interne Style-ID `heimleitung` nicht blind umbenennen, solange bestehende Queries diese ID nutzen.
 - Erst Dashboard-/Textverwaltung bauen, wenn die Backend-API stabil ist.
+
+---
+
+### VIP Rollen-Config-Pfad nach STEP034.1 pruefen
+
+Ziel:
+
+- Nach Deploy von STEP034.1 sicherstellen, dass `/api/vip-sound/roles` den korrekten Config-Fallback-Pfad zeigt.
+
+Check:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/roles" | ConvertTo-Json -Depth 20
+```
+
+Erwartung:
+
+- `configFallback.path = D:\Streaming\stramAssets\config\vip_sound_roles.json`
+- `configFallback.exists = true`, sofern Datei vorhanden ist.
+
+---
+
+### Naechster VIP-Schritt: Text-API vorbereiten
+
+Ziel:
+
+- `vip_sound_message_templates` per API les-/bearbeitbar machen.
+- Grundlage fuer spaeteres VIP-Dashboard schaffen.
+- Accepted-/Override-Texte sauber trennen, damit normale Mod-Sounds nicht mit Sonderfreigabe-Texten antworten.

@@ -2,6 +2,17 @@
 
 ## 2026-05-04
 
+### STEP034.1 - VIP Role Config Pfad-Fix
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.8.1` aktualisiert.
+- Der Fallback-/Importpfad fuer `config/vip_sound_roles.json` wird jetzt ueber `helper_config.js` aufgeloest.
+- Korrekte Live-Aufloesung: `D:\Streaming\stramAssets\config\vip_sound_roles.json`.
+- Falsche Aufloesung nach `backend\config\vip_sound_roles.json` behoben.
+- Keine Twitch-, Daily-Usage-, Sound-System-, Event-, Statistik- oder Textlogik geaendert.
+- Neue STEP-Doku:
+  - `project-state/STEP034_1_VIP_ROLE_CONFIG_PATH_FIX_2026-05-04.md`
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
 ### STEP034 - VIP Rollen-Fallbacks in SQLite vorbereitet
 
 - `backend/modules/vip_sound_overlay.js` auf Version `1.8.0` aktualisiert.

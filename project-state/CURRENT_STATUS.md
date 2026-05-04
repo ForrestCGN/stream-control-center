@@ -281,3 +281,10 @@ STEP031 Ergebnis:
 - `config/vip_sound_roles.json` bleibt Import-/Fallback-Quelle.
 - Neue Routen: `/api/vip-sound/roles`, `/roles/upsert`, `/roles/delete`, `/roles/import-config`.
 - Ziel bleibt: Dashboard bearbeitet spaeter DB/API, nicht direkt JSON-Dateien.
+
+## STEP034.1 Ergebnis - VIP Role Config Pfad-Fix
+
+- `backend/modules/vip_sound_overlay.js` Version `1.8.1`.
+- `config/vip_sound_roles.json` wird jetzt ueber `helper_config.js` aufgeloest.
+- Der falsche Live-Pfad `backend\config\vip_sound_roles.json` wurde behoben.
+- DB-Rollen bleiben primaer; die JSON-Datei bleibt Fallback-/Importquelle.

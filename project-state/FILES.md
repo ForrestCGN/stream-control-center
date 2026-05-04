@@ -72,6 +72,7 @@ STEP-Dokumentation:
 - project-state/STEP032_VIP_SOUND_FILE_SETTINGS_ACTIVE_2026-05-04.md
 - project-state/STEP033_VIP_EVENTS_STATS_BASE_2026-05-04.md
 - project-state/STEP034_VIP_ROLE_OVERRIDES_DB_2026-05-04.md
+- project-state/STEP034_1_VIP_ROLE_CONFIG_PATH_FIX_2026-05-04.md
 - project-state/STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md
 - project-state/STEP030_VIP_REFERENCE_STATUS_2026-05-04.md
 - project-state/STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md
@@ -295,3 +296,10 @@ Aktive DB-Settings in `vip_sound_settings`:
 - `fallbackRolesEnabled`
 
 Lesereihenfolge: SQLite -> Config-Fallback ueber `helper_config.js` -> Code-Default.
+
+## VIP Rollen-Fallback/Import
+
+- Primaere Quelle: SQLite-Tabelle `vip_sound_role_overrides`.
+- Import-/Fallbackquelle: `config/vip_sound_roles.json`.
+- Pfadauflösung erfolgt ueber `backend/modules/helpers/helper_config.js` / `resolveConfigFile`.
+- Live-Zielpfad: `D:\Streaming\stramAssets\config\vip_sound_roles.json`.

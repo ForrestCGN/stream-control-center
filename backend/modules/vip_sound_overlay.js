@@ -30,7 +30,7 @@ module.exports.init = function init(ctx) {
   const VIP_OVERLAY_STYLE = "overlay";
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
   const VIP_OVERRIDE_ALLOWED_ROLES_RAW = process.env.VIP_OVERRIDE_ALLOWED_ROLES || "moderator,mod,broadcaster";
-  const VIP_ROLES_CONFIG_PATH = process.env.VIP_ROLES_CONFIG_PATH || path.join(process.cwd(), "config", "vip_sound_roles.json");
+  const VIP_ROLES_CONFIG_PATH = process.env.VIP_ROLES_CONFIG_PATH || configHelper.resolveConfigFile("vip_sound_roles.json");
   const VIP_SETTINGS_CONFIG_FILE = process.env.VIP_SETTINGS_CONFIG_FILE || "vip_sound.json";
 
   const DEFAULT_VIP_SETTINGS = {
@@ -185,7 +185,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.0",
+    version: "1.8.1",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
