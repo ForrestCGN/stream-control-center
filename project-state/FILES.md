@@ -43,6 +43,7 @@ STEP-Dokumentation:
 - project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
 - project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
 - project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
+- project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
 
 ## Doku-Struktur
 
@@ -119,6 +120,7 @@ VIP relevante Routen:
 - GET /api/vip-sound/status
 - GET /api/vip-sound/db/status
 - GET /api/vip-sound-overlay/state
+- POST /api/vip-sound/reset
 
 VIP Override relevant:
 
@@ -128,6 +130,7 @@ VIP Override relevant:
 - Live-Test-Doku: project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
 - RequestId-Fix-Doku: project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
 - Streamer.bot Args-Doku: project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
+- Streamer.bot/Sound-System/Overlay-V2-Doku: project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
 
 Dashboard:
 
