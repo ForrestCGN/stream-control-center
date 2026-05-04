@@ -115,7 +115,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.0",
+    version: "1.7.1",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -997,7 +997,11 @@ module.exports.init = function init(ctx) {
       soundSystemQueued: true,
       soundSystemStarted: !!soundQueue.result.started,
       soundSystemQueuePosition: Number(soundQueue.result.queuePosition || 0),
-      soundSystemRequestId: soundQueue.result.requestId || (soundQueue.response && soundQueue.response.requestId) || "",
+      soundSystemRequestId:
+        soundQueue.result.requestId ||
+        (soundQueue.response && soundQueue.response.requestId) ||
+        (soundQueue.response && soundQueue.response.item && soundQueue.response.item.requestId) ||
+        "",
       soundFile: soundQueue.sound.relativeFile,
       soundPath: soundQueue.sound.fullPath,
       note: skipDailyUsage
