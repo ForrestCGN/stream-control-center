@@ -15,22 +15,35 @@ Vor jedem neuen STEP:
 
 ## Empfohlene naechste Arbeitspakete
 
-### 1. Reale Streamer.bot-Rollen-/Badge-Parameter pruefen
+### 1. Debug-Command in Streamer.bot entfernen/deaktivieren
 
 Ziel:
 
-- Sicherstellen, dass Streamer.bot 1.0.4 bei echten Commands die Rollen-/Badge-Daten so liefert, dass `actorCanOverride()` sie erkennt.
-- Falls Streamer.bot andere Feldnamen liefert, nur das Mapping in `backend/modules/vip_sound_overlay.js` erweitern.
+- Temporaeren Debug-Command `!vipdebug` wieder entfernen oder deaktivieren.
+- Temporaere Action `CGN - DEBUG - Dump Command Args` entfernen oder deaktivieren.
 
 Wichtig:
 
-- Keine Sound-/Queue-Logik umbauen.
-- Keine Funktionalitaet entfernen.
-- Erst echte Streamer.bot-Argumente ausgeben/anzeigen lassen, dann gezielt erweitern.
+- Keine Backend-Aenderung noetig.
+- Debug-Command nicht im Live-Chat aktiv lassen.
 
 ---
 
-### 2. VIP-Overlay an echten Sound-System-Start koppeln / verifizieren
+### 2. Optional: echten Mod-Account testen
+
+Ziel:
+
+- Ein echter Mod testet einmal den VIP-Override-Command mit Target.
+- Erwartung: Streamer.bot liefert ebenfalls `isModerator=True`.
+
+Wichtig:
+
+- Nur notwendig, wenn wir absolut sicher sein wollen.
+- Kein Code-Fix erwartet.
+
+---
+
+### 3. VIP-Overlay an echten Sound-System-Start koppeln / verifizieren
 
 Ziel:
 
@@ -46,6 +59,7 @@ Vorher pruefen:
 - project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
 - project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
 - project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
+- project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
 - backend/modules/vip_sound_overlay.js
 - backend/modules/sound_system.js
 - htdocs/overlays/vip_sound_overlay.html
@@ -60,7 +74,7 @@ Wichtig:
 
 ---
 
-### 3. VIP-Soundpfad konfigurierbar machen
+### 4. VIP-Soundpfad konfigurierbar machen
 
 Ziel:
 
@@ -75,7 +89,7 @@ Wichtig:
 
 ---
 
-### 4. VIP-Dashboard spaeter bauen
+### 5. VIP-Dashboard spaeter bauen
 
 Ziel:
 
@@ -93,7 +107,7 @@ Wichtig:
 
 ---
 
-### 5. Dashboard-Modulstandard definieren
+### 6. Dashboard-Modulstandard definieren
 
 Ziel:
 
@@ -117,7 +131,7 @@ Wichtig:
 
 ---
 
-### 6. Fireworks spaeter neu aufbauen
+### 7. Fireworks spaeter neu aufbauen
 
 Aktueller Zustand:
 
@@ -134,7 +148,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 7. Hug-Textbearbeitung spaeter sauber neu planen
+### 8. Hug-Textbearbeitung spaeter sauber neu planen
 
 Aktueller Zustand:
 
@@ -150,7 +164,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 8. Alerts-Modul spaeter behutsam splitten
+### 9. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 
