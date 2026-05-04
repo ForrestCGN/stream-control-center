@@ -16,6 +16,8 @@ const settingsHelper = require("./helpers/helper_settings");
 const database = require("../core/database");
 const crypto = require("crypto");
 const { spawn } = require("child_process");
+const http = require("http");
+const https = require("https");
 
 let textToSpeech = null;
 try {
@@ -291,7 +293,8 @@ function init(ctx) {
       { key: 'roles', value: DEFAULT_CONFIG.roles, valueType: 'json', description: 'Rollenregeln fuer Chat-TTS' },
       { key: 'permissions', value: DEFAULT_CONFIG.permissions, valueType: 'json', description: 'TTS Command-Rechte' },
       { key: 'system', value: { enabled: true, requireKey: false, key: '', respectGlobalEnabled: true, voice: DEFAULT_CONFIG.defaultVoice, user: 'heimaufsichtcgn', displayName: 'HeimaufsichtCGN', maxLength: 500, priority: 95 }, valueType: 'json', description: 'System-/Alert-TTS Defaults' },
-      { key: 'alertTts', value: { enabled: true, voice: DEFAULT_CONFIG.defaultVoice, maxChars: 500, delayAfterSoundMs: 0, outroBufferMs: 900 }, valueType: 'json', description: 'Defaults fuer Alert-TTS' }
+      { key: 'alertTts', value: { enabled: true, voice: DEFAULT_CONFIG.defaultVoice, maxChars: 500, delayAfterSoundMs: 0, outroBufferMs: 900 }, valueType: 'json', description: 'Defaults fuer Alert-TTS' },
+      { key: 'chatTts', value: { playbackMode: 'sound_system', overlayVisualEnabled: true, soundSystemEnabled: true, soundSystemPlayUrl: 'http://127.0.0.1:8080/api/sound/play', soundSystemCategory: 'tts', soundSystemSource: 'tts_system', soundSystemOutputTarget: 'device', soundSystemVolume: 100, soundSystemPriority: 50, doneMode: 'duration_timer', doneExtraBufferMs: 500, fallbackToOverlay: true }, valueType: 'json', description: 'Chat-TTS Ausgabe ueber Sound-System oder Overlay' }
     ];
   }
 
@@ -612,6 +615,102 @@ function init(ctx) {
     return { durationMs: estimated, durationOk: false, source: probed.error || 'estimated' };
   }
 
+  function normalizePlaybackMode(value, fallback = 'sound_system') {
+    const mode = String(value || fallback || '').trim().toLowerCase();
+    if (mode === 'sound-system' || mode === 'soundsystem' || mode === 'sound') return 'sound_system';
+    if (['sound_system', 'overlay', 'off'].includes(mode)) return mode;
+    return fallback;
+  }
+
+  function getChatTtsConfig() {
+    const raw = config.chatTts && typeof config.chatTts === 'object' ? config.chatTts : {};
+    return {
+      playbackMode: normalizePlaybackMode(raw.playbackMode, 'sound_system'),
+      overlayVisualEnabled: raw.overlayVisualEnabled !== false,
+      soundSystemEnabled: raw.soundSystemEnabled !== false,
+      soundSystemPlayUrl: String(raw.soundSystemPlayUrl || 'http://127.0.0.1:8080/api/sound/play'),
+      soundSystemCategory: String(raw.soundSystemCategory || 'tts'),
+      soundSystemSource: String(raw.soundSystemSource || 'tts_system'),
+      soundSystemOutputTarget: String(raw.soundSystemOutputTarget || 'device'),
+      soundSystemVolume: Math.max(0, Math.min(100, Number(raw.soundSystemVolume ?? 100) || 100)),
+      soundSystemPriority: Number(raw.soundSystemPriority ?? 50) || 50,
+      doneMode: String(raw.doneMode || 'duration_timer'),
+      doneExtraBufferMs: Math.max(0, Number(raw.doneExtraBufferMs ?? 500) || 0),
+      fallbackToOverlay: raw.fallbackToOverlay !== false
+    };
+  }
+
+  function postJson(url, payload, timeoutMs = 8000) {
+    return new Promise((resolve, reject) => {
+      let parsed;
+      try { parsed = new URL(url); } catch (err) { reject(err); return; }
+      const body = JSON.stringify(payload || {});
+      const lib = parsed.protocol === 'https:' ? https : http;
+      const req = lib.request({
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+        path: `${parsed.pathname}${parsed.search || ''}`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+        timeout: timeoutMs
+      }, (res) => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          let json = null;
+          try { json = data ? JSON.parse(data) : null; } catch (_) { json = { raw: data }; }
+          if (res.statusCode >= 200 && res.statusCode < 300) resolve(json || { ok: true });
+          else reject(new Error(`http_${res.statusCode}:${data}`));
+        });
+      });
+      req.on('timeout', () => { req.destroy(new Error('request_timeout')); });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+  }
+
+  async function playChatTtsViaSoundSystem(item, chatCfg) {
+    if (!item.soundSystemFile) throw new Error('tts_sound_system_file_missing');
+    const payload = {
+      file: item.soundSystemFile,
+      category: chatCfg.soundSystemCategory || 'tts',
+      source: chatCfg.soundSystemSource || 'tts_system',
+      outputTarget: chatCfg.soundSystemOutputTarget || 'device',
+      volume: Number(chatCfg.soundSystemVolume ?? 100),
+      priority: Number(chatCfg.soundSystemPriority ?? item.priority ?? 50),
+      queueIfBusy: true,
+      canInterrupt: false,
+      canBeInterrupted: true,
+      durationMs: Number(item.durationMs || 0),
+      meta: {
+        tts: true,
+        mode: 'chat',
+        ttsId: item.id,
+        user: item.user,
+        displayName: item.displayName,
+        role: item.role
+      }
+    };
+    return postJson(chatCfg.soundSystemPlayUrl, payload, 10000);
+  }
+
+  function finishCurrentById(id, reason = 'timer') {
+    if (current && (!id || current.id === id)) {
+      current.finishedAt = core.nowIso();
+      insertTtsEvent(current, 'finished', { finishedAt: current.finishedAt, durationMs: current.durationMs || 0, meta: { reason } });
+      current = null;
+      playing = false;
+      saveState();
+      broadcastState();
+      setTimeout(startNext, Number(config.queue?.gapAfterMs || 350));
+      return true;
+    }
+    return false;
+  }
+
   function googleAvailable(vc) {
     if (!vc?.enabled) return { ok: false, reason: "google_voice_disabled" };
     if (!textToSpeech) return { ok: false, reason: "google_package_missing" };
@@ -793,12 +892,43 @@ function init(ctx) {
       insertTtsEvent(item, "playing", { startedAt: core.nowIso(), durationMs: item.durationMs });
       recordUsageDaily(item.source || "chat", item.mode || "chat", item.engineUsed || "", item.chars, item.durationMs, true);
 
-      broadcastWS({
-        op: "tts_play",
-        item: publicItem(item),
-        audioUrl: item.audioUrl,
-        gapAfterMs: Number(config.queue?.gapAfterMs || 350)
-      });
+      const chatCfg = getChatTtsConfig();
+      const playbackMode = normalizePlaybackMode(chatCfg.playbackMode, 'sound_system');
+      item.playbackMode = playbackMode;
+
+      if (playbackMode === 'sound_system' && chatCfg.soundSystemEnabled) {
+        try {
+          const soundResult = await playChatTtsViaSoundSystem(item, chatCfg);
+          item.soundSystemResult = soundResult || null;
+          insertTtsEvent(item, 'sound_system_started', { meta: { soundResult } });
+        } catch (soundErr) {
+          console.error(`[TTS] sound-system playback failed: ${soundErr.message}`);
+          item.soundSystemError = soundErr.message || String(soundErr);
+          insertTtsEvent(item, 'sound_system_failed', { error: item.soundSystemError });
+          if (!chatCfg.fallbackToOverlay) throw soundErr;
+          item.playbackMode = 'overlay';
+        }
+      }
+
+      const effectiveMode = item.playbackMode || playbackMode;
+      const visualOnly = effectiveMode === 'sound_system' || effectiveMode === 'off';
+      if (chatCfg.overlayVisualEnabled !== false || effectiveMode === 'overlay') {
+        broadcastWS({
+          op: "tts_play",
+          item: publicItem(item),
+          audioUrl: effectiveMode === 'overlay' ? item.audioUrl : '',
+          playbackMode: effectiveMode,
+          visualOnly,
+          durationMs: Number(item.durationMs || 0),
+          gapAfterMs: Number(config.queue?.gapAfterMs || 350)
+        });
+      }
+
+      if (effectiveMode === 'sound_system' || effectiveMode === 'off') {
+        const waitMs = Math.max(250, Number(item.durationMs || 0) + Number(chatCfg.doneExtraBufferMs || 0));
+        setTimeout(() => finishCurrentById(item.id, effectiveMode === 'off' ? 'off_timer' : 'sound_system_timer'), waitMs).unref?.();
+      }
+
       broadcastState();
     } catch (err) {
       console.error(`[TTS] synth failed: ${err.message}`);
@@ -905,13 +1035,7 @@ function init(ctx) {
   function done(req, res) {
     const data = getRequestData(req);
     const id = String(data.id || "");
-    if (current && (!id || current.id === id)) {
-      insertTtsEvent(current, "finished", { finishedAt: core.nowIso(), durationMs: current.durationMs || 0 });
-      current = null;
-      playing = false;
-      saveState();
-      broadcastState();
-      setTimeout(startNext, Number(config.queue?.gapAfterMs || 350));
+    if (finishCurrentById(id, 'overlay_done')) {
       return res.json({ ok: true, nextQueueSize: queue.length });
     }
     res.json({ ok: true, ignored: true, current: current ? current.id : null });

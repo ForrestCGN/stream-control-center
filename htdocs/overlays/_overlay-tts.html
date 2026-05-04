@@ -401,6 +401,7 @@
     let reconnectTimer = null;
     let gapAfterMs = 350;
     let activeWs = null;
+    let visualTimer = null;
 
     function wsUrl() {
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -449,6 +450,8 @@
     }
 
     function stopAudio(markAsDone) {
+      clearTimeout(visualTimer);
+      visualTimer = null;
       try {
         player.pause();
         player.removeAttribute("src");
@@ -495,6 +498,23 @@
           currentId = item.id;
           gapAfterMs = Number(msg.gapAfterMs || 350);
           show(item);
+
+          clearTimeout(visualTimer);
+          visualTimer = null;
+
+          const playbackMode = String(msg.playbackMode || item.playbackMode || "overlay").toLowerCase();
+          const visualOnly = msg.visualOnly === true || playbackMode === "sound_system" || playbackMode === "off" || !msg.audioUrl;
+
+          if (visualOnly) {
+            const showMs = Math.max(1200, Number(msg.durationMs || item.durationMs || 2500) + gapAfterMs + 450);
+            visualTimer = setTimeout(() => {
+              const id = currentId;
+              currentId = null;
+              hide();
+              markDone(id);
+            }, showMs);
+            return;
+          }
 
           player.src = `${msg.audioUrl}?t=${Date.now()}`;
           player.volume = 1.0;
