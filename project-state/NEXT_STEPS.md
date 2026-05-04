@@ -14,9 +14,144 @@ Vor jedem neuen STEP:
 6. Kleine Aenderung planen.
 7. Nach Aenderung testen, dokumentieren, committen, pushen und Live ueber `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd` aktualisieren.
 
-## Empfohlene naechste Arbeitspakete
+## Aktuell naechste empfohlene Arbeitspakete
 
-### 1. TTS / Sound-System / Alerts dashboardfaehig machen
+### 1. STEP047 live im Browser bestaetigen
+
+Aktueller Stand:
+
+- VIP-Dashboard-Basismodul wurde im Repo vorbereitet.
+- `node -c htdocs/dashboard/modules/vip.js` war erfolgreich.
+- VIP-APIs wurden erfolgreich getestet:
+  - `GET /api/vip-sound/admin/summary`
+  - `GET /api/vip-sound/settings`
+  - `GET /api/vip-sound/texts?limit=5`
+
+Noch offen:
+
+- Live-Deploy ueber `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd`, falls noch nicht erfolgt.
+- Browser-Test:
+  - Dashboard oeffnen.
+  - Community -> VIP-System.
+  - Statuskarten laden.
+  - Settings sichtbar.
+  - Texte sichtbar.
+  - Rollen sichtbar.
+  - Events sichtbar.
+
+---
+
+### 2. Modul-Audit: Texte / Settings / Helper vereinheitlichen
+
+Ziel:
+
+Alle Module sollen langfristig gleich aufgebaut sein und dieselben Helper/Muster nutzen.
+
+Pruefen pro Modul:
+
+- Wo liegen Settings?
+- Liegen dashboardfaehige Settings in DB?
+- Wo liegen Texte?
+- Liegen dashboardfaehige Texte in DB?
+- Gibt es harte Texte im Code?
+- Gibt es JSON-Texte?
+- Welche Helper werden genutzt?
+- Gibt es eigene Sonderlogik oder Parallelstrukturen?
+- Welche APIs fehlen fuer Dashboard-Bearbeitung?
+
+Relevante Module:
+
+- VIP
+- Sound-System
+- Alerts
+- TTS
+- Hug
+- Messages/Rotator
+- Tagebuch
+- Todo
+- OBS/Scene-Control
+- Twitch/Presence
+- Overlay-Chat
+- Challenge
+- Deathcounter
+
+Wichtiger Befund:
+
+- `helper_settings.js` ist bereits DB-Settings-Standard.
+- VIP nutzt DB-Texte ueber `vip_sound_message_templates`.
+- Alerts haben DB-Textbereiche (`alert_text_variants`, `alert_chat_blocks`).
+- `helper_texts.js` ist aktuell noch JSON-basiert.
+
+Empfohlener Folge-STEP:
+
+- `STEP048_MODULE_TEXT_SETTINGS_AUDIT_2026-05-04`
+
+---
+
+### 3. Zentralen DB-Text-Helper planen
+
+Ziel:
+
+Ein einheitlicher Helper fuer modulbasierte DB-Texte, damit neue und migrierte Module denselben Standard nutzen.
+
+Moegliche Richtung:
+
+- `backend/modules/helpers/helper_module_texts.js`
+
+oder saubere Erweiterung von:
+
+- `backend/modules/helpers/helper_texts.js`
+
+Ziel-Funktionen:
+
+- `ensureTextTable(tableName)`
+- `seedTextDefaults(tableName, defaults)`
+- `listTexts(tableName, filters)`
+- `getText(tableName, key/style)`
+- `pickText(tableName, key/style)`
+- `renderText(template, context)`
+- `upsertText(tableName, ...)`
+- `toggleText(tableName, id)`
+- `deleteText(tableName, id)`
+
+Wichtig:
+
+- Keine vorhandenen VIP-/Alert-Texte verlieren.
+- Keine Massenmigration ohne Audit.
+- Harte Texte im Code nur als Seed-Defaults.
+
+---
+
+### 4. VIP-Song-Upload separat bauen
+
+Ziel:
+
+VIP-Sounds sollen wie Alert-Sounds ueber das Dashboard hochladbar werden.
+
+Wichtig:
+
+- Nicht in STEP047 enthalten.
+- Erst Alert-Upload und `helper_media.js` als Basis nutzen.
+- Keine zweite wilde Upload-Parallelstruktur.
+
+Bekannter Befund:
+
+- Alert-Upload nutzt aktuell `multer` direkt in `backend/modules/alert_system.js`.
+- `helper_media.js` hat bereits:
+  - sichere Pfadpruefung
+  - erlaubte Audio-Endungen
+  - ffprobe/Dauer-Lesen
+- `helper_media.js` hat noch keinen generischen Upload-Helper.
+
+Empfohlene Richtung:
+
+- Erst Helper-/Upload-Standard planen.
+- Dann VIP-Upload-Route bauen.
+- Danach Dashboard-Upload-Feld in VIP ergaenzen.
+
+---
+
+### 5. TTS / Sound-System / Alerts dashboardfaehig machen
 
 Aktueller Stand:
 
@@ -36,31 +171,9 @@ Ziel:
 - JSON bleibt fuer technische Fallbacks/Imports.
 - Keine direkten Datei- oder SQLite-Zugriffe aus dem Dashboard.
 
-Dashboard-relevante Felder:
-
-- TTS allgemein: enabled, command, defaultVoice, fallbackVoice, Limits, Textfilter.
-- TTS Rollen: broadcaster, moderator, vip, subscriber, viewer.
-- TTS Overlay: position, width, minWidth, bottom, scale, avatarSize, showAvatar, maxTextLines, debug.
-- Chat-TTS Playback: playbackMode, soundSystemOutputTarget, volume, priority, doneMode, fallbackToOverlay.
-- Alert-TTS pro Regel: enabled, timing, mode, template, maxChars, minAmount, voice, output target, volume, delay.
-- Sound-System Queue: sortByPriority, allowParallel, maxParallel, priorities, categoryDefaults.
-- Provider-/Alert-Settings: Secrets maskieren, keine Tokens im Klartext anzeigen.
-
-Wichtig:
-
-- Kein grosser Blind-Umbau.
-- Zuerst API-/Settings-Stand pruefen.
-- `liveAlert`/`livealert` Duplikat in Alert-Settings bereinigen.
-- Bestehende Funktionalitaet darf nicht entfernt werden.
-
 ---
 
-### 2. Alert-Sound + Alert-TTS Kopplung pruefen
-
-Aktueller Test:
-
-- Crew -> Chat-TTS -> Ko-fi Alert wurde getestet.
-- Ergebnis nach STEP046: Crew -> Alert -> TTS korrekt.
+### 6. Alert-Sound + Alert-TTS Kopplung pruefen
 
 Noch gezielt pruefen:
 
@@ -75,82 +188,7 @@ Falls noetig:
 
 ---
 
-### 3. Sound-System Runtime-Settings sauber dokumentieren und dashboardfaehig machen
-
-Aktueller Befund:
-
-- `config/sound_system.json` wird durch DB-Tabelle `sound_settings` ueberlagert.
-- Runtime-/DB-Settings gewinnen gegenueber JSON.
-- Beispiel: Queue-Werte mussten ueber `/api/sound/settings` gesetzt werden, nicht nur per JSON.
-
-Ziel:
-
-- Dashboard-Seite fuer Sound-System Settings.
-- Sichtbar machen, welche Werte aus DB kommen und welche aus JSON-Fallback.
-- Bearbeitbar machen:
-  - Queue-Modus / Prioritaet
-  - Parallel erlaubt
-  - MaxParallel
-  - Kategorien/Prioritaeten
-  - Output-Ziele
-  - Geraeteausgabe
-  - Lautstaerken
-
----
-
-### 4. TTS-Overlay-Settings in DB/API vorbereiten
-
-Aktueller Stand:
-
-- Overlay-Optik ist aktuell per URL/CSS/HTML gesteuert.
-- Funktioniert mit Avatar, Displayname, adaptiver Breite und Text-Clamp.
-
-Ziel:
-
-- TTS-Overlay-Settings als DB-Block vorbereiten, z. B. `ttsOverlay` in `tts_settings`.
-- Overlay soll spaeter optional Settings aus Backend laden.
-- OBS-URL soll langfristig weniger Parameter brauchen.
-
-Moegliche Werte:
-
-- `position`
-- `width`
-- `minWidth`
-- `bottom`
-- `scale`
-- `avatarSize`
-- `showAvatar`
-- `showInnerBorder`
-- `maxTextLines`
-- `fontSizeName`
-- `fontSizeText`
-- `debug`
-
----
-
-### 5. Alert-Regel-TTS im Dashboard integrieren
-
-Aktueller Stand:
-
-- Alert-Regeln besitzen TTS-Felder:
-  - `tts_enabled`
-  - `tts_timing`
-  - `tts_mode`
-  - `tts_template`
-  - `tts_max_chars`
-  - `tts_min_amount`
-- Ko-fi Donation und Tipeee Donation koennen TTS nutzen.
-
-Ziel:
-
-- Diese Felder im Alert-Dashboard sichtbar und editierbar machen.
-- Template-Hilfe mit Platzhaltern anzeigen.
-- Aktiv/Inaktiv klar darstellen.
-- Spaeter ggf. Stimme/Output/Lautstaerke pro Regel ergaenzen.
-
----
-
-### 6. Provider-/Settings-Ausgaben maskieren
+### 7. Provider-/Settings-Ausgaben maskieren
 
 Problem:
 
@@ -165,41 +203,7 @@ Ziel:
 
 ---
 
-### 7. VIP auf helper_settings.js weiter angleichen / Dashboard bauen
-
-Ziel:
-
-- VIP ist dashboard-ready dokumentiert.
-- Spaeter Dashboard-Modul fuer VIP bauen.
-- Einstellungen, Texte, Rollen, Daily-Usage, Events und Stats ueber API anzeigen/bearbeiten.
-
-Wichtig:
-
-- Keine bestehende VIP-Funktionalitaet entfernen.
-- Vorher aktuellen `vip_sound_overlay.js`-Stand hochladen, falls GitHub/Tools die Datei kuerzen.
-
----
-
-### 8. Bestehende Systeme vor Dashboard-Bau pruefen und ggf. umbauen
-
-Ziel:
-
-- Vor dem eigentlichen Dashboard-Ausbau alle bisherigen Systeme gegen den neuen Standard pruefen.
-- Relevante Systeme: VIP, Sound-System, Alerts, TTS, Hug, Messages/Rotator, Tagebuch, Todo, OBS/Scene-Control, Twitch/Presence, Overlay-Chat.
-- Pruefen, welche Werte noch hart codiert, nur in JSON-Dateien oder uneinheitlich gespeichert sind.
-- Dashboard-faehige Werte schrittweise in DB-/Settings-Strukturen ueberfuehren.
-- APIs vereinheitlichen, damit das Dashboard spaeter nicht direkt Dateien oder SQLite anfassen muss.
-
-Wichtig:
-
-- Kein Blind-Umbau grosser Module.
-- Erst Bestand je System dokumentieren, dann kleine Steps.
-- Keine Funktionalitaet entfernen.
-- Bestehende Live-Funktion immer nach jedem Umbau testen.
-
----
-
-### 9. Dashboard-Modulstandard definieren
+### 8. Dashboard-Modulstandard definieren
 
 Ziel:
 
@@ -216,14 +220,9 @@ Betroffene Bereiche:
 - docs/dashboard/
 - docs/current/CURRENT_SYSTEM_STATUS.md
 
-Wichtig:
-
-- Erst dokumentieren, dann ein kleines Referenzmodul anpassen.
-- Keine Funktionen entfernen.
-
 ---
 
-### 10. Fireworks spaeter neu aufbauen
+### 9. Fireworks spaeter neu aufbauen
 
 Aktueller Zustand:
 
@@ -240,7 +239,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 11. Hug-Textbearbeitung spaeter sauber neu planen
+### 10. Hug-Textbearbeitung spaeter sauber neu planen
 
 Aktueller Zustand:
 
@@ -256,7 +255,7 @@ Spaeterer Zielzustand:
 
 ---
 
-### 12. Alerts-Modul spaeter behutsam splitten
+### 11. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 
