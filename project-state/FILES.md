@@ -64,6 +64,7 @@ STEP-Dokumentation:
 - project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
 - project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
 - project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
+- project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 
 ## Doku-Struktur
 
@@ -125,6 +126,13 @@ VIP/Sound relevant:
 - htdocs/overlays/vip_sound_overlay.html
 - htdocs/overlays/vip_sound_overlay_v2.html
 - htdocs/overlays/sound_system_overlay.html
+
+VIP sichtbare Chattexte:
+
+- Default-Texte im Code: `backend/modules/vip_sound_overlay.js`
+- Live-Texte aus SQLite: `vip_sound_message_templates`
+- Sichtbarer Begriff: `Heimaufsicht`
+- Interne Style-ID bleibt: `heimleitung`
 
 VIP aktuelle Tabellen in app.sqlite:
 
@@ -195,6 +203,7 @@ Neu/Geaendert:
 - backend/modules/vip_sound_overlay.js
 - config/vip_sound_roles.json
 - project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
+- project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 
 ENV/Secret-Nutzung:
 

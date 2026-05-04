@@ -31,7 +31,7 @@ module.exports.init = function init(ctx) {
   const DEFAULT_VIP_MESSAGES = [
     {
       event_key: "accepted_vip",
-      message_text: "@{displayName}, Heimleitung hat deinen VIP-Sound notiert. Wird abgespielt, sobald das System dich dranlaesst.",
+      message_text: "@{displayName}, Heimaufsicht hat deinen VIP-Sound notiert. Wird abgespielt, sobald das System dich dranlaesst.",
       weight: 1
     },
     {
@@ -41,7 +41,7 @@ module.exports.init = function init(ctx) {
     },
     {
       event_key: "accepted_mod",
-      message_text: "@{displayName}, Mod-Sound wurde von der Heimleitung durchgewunken.",
+      message_text: "@{displayName}, Mod-Sound wurde von der Heimaufsicht durchgewunken.",
       weight: 1
     },
     {
@@ -51,12 +51,12 @@ module.exports.init = function init(ctx) {
     },
     {
       event_key: "accepted_override_vip",
-      message_text: "@{displayName}, Heimleitung hat eine Sonderfreigabe erteilt. Der VIP-Sound wird erneut abgespielt.",
+      message_text: "@{displayName}, Heimaufsicht hat eine Sonderfreigabe erteilt. Der VIP-Sound wird erneut abgespielt.",
       weight: 1
     },
     {
       event_key: "accepted_override_mod",
-      message_text: "@{displayName}, Heimleitung hat eine Mod-Sonderfreigabe erteilt. Der Sound wird erneut abgespielt.",
+      message_text: "@{displayName}, Heimaufsicht hat eine Mod-Sonderfreigabe erteilt. Der Sound wird erneut abgespielt.",
       weight: 1
     },
     {
@@ -76,7 +76,7 @@ module.exports.init = function init(ctx) {
     },
     {
       event_key: "duplicate_vip",
-      message_text: "@{displayName}, Heimleitung sagt nein. Ein VIP-Sound pro Tag, wir sind hier nicht im Wunschkonzert.",
+      message_text: "@{displayName}, Heimaufsicht sagt nein. Ein VIP-Sound pro Tag, wir sind hier nicht im Wunschkonzert.",
       weight: 1
     },
     {
@@ -91,17 +91,17 @@ module.exports.init = function init(ctx) {
     },
     {
       event_key: "system_disabled",
-      message_text: "@{displayName}, Heimleitung meldet: VIP-Sounds sind gerade ausser Betrieb.",
+      message_text: "@{displayName}, Heimaufsicht meldet: VIP-Sounds sind gerade ausser Betrieb.",
       weight: 1
     },
     {
       event_key: "sound_missing",
-      message_text: "@{displayName}, Heimleitung findet deine Soundakte gerade nicht. Da fehlt wohl die passende MP3.",
+      message_text: "@{displayName}, Heimaufsicht findet deine Soundakte gerade nicht. Da fehlt wohl die passende MP3.",
       weight: 1
     },
     {
       event_key: "error_generic",
-      message_text: "@{displayName}, Heimleitung hat einen Fehler im Formular gefunden. Versuch es spaeter nochmal.",
+      message_text: "@{displayName}, Heimaufsicht hat einen Fehler im Formular gefunden. Versuch es spaeter nochmal.",
       weight: 1
     }
   ];
@@ -556,17 +556,17 @@ module.exports.init = function init(ctx) {
 
   function fallbackMessage(key, displayName) {
     const name = displayName || "User";
-    if (key === "accepted_mod") return `@${name}, Mod-Sound wurde von der Heimleitung durchgewunken.`;
-    if (key === "accepted_override_vip") return `@${name}, Heimleitung hat eine Sonderfreigabe erteilt. Der VIP-Sound wird erneut abgespielt.`;
-    if (key === "accepted_override_mod") return `@${name}, Heimleitung hat eine Mod-Sonderfreigabe erteilt. Der Sound wird erneut abgespielt.`;
+    if (key === "accepted_mod") return `@${name}, Mod-Sound wurde von der Heimaufsicht durchgewunken.`;
+    if (key === "accepted_override_vip") return `@${name}, Heimaufsicht hat eine Sonderfreigabe erteilt. Der VIP-Sound wird erneut abgespielt.`;
+    if (key === "accepted_override_mod") return `@${name}, Heimaufsicht hat eine Mod-Sonderfreigabe erteilt. Der Sound wird erneut abgespielt.`;
     if (key === "denied_override_vip") return `@${name}, Antrag abgelehnt. VIP-Sound-Sonderfreigaben gibt es nur fuer Mods und die Sendeleitung.`;
     if (key === "denied_override_mod") return `@${name}, Antrag abgelehnt. Mod-Sound-Sonderfreigaben gibt es nur fuer Mods und die Sendeleitung.`;
     if (key === "duplicate_mod") return `@${name}, Einspruch zwecklos. Dein Mod-Sound war heute schon dran.`;
-    if (key === "duplicate_vip") return `@${name}, Heimleitung sagt nein. Dein VIP-Sound wurde heute bereits genutzt.`;
-    if (key === "system_disabled") return `@${name}, Heimleitung meldet: VIP-Sounds sind gerade ausser Betrieb.`;
-    if (key === "sound_missing") return `@${name}, Heimleitung findet deine Soundakte gerade nicht.`;
-    if (key === "error_generic") return `@${name}, Heimleitung hat einen Fehler im Formular gefunden.`;
-    return `@${name}, Heimleitung hat deinen VIP-Sound notiert.`;
+    if (key === "duplicate_vip") return `@${name}, Heimaufsicht sagt nein. Dein VIP-Sound wurde heute bereits genutzt.`;
+    if (key === "system_disabled") return `@${name}, Heimaufsicht meldet: VIP-Sounds sind gerade ausser Betrieb.`;
+    if (key === "sound_missing") return `@${name}, Heimaufsicht findet deine Soundakte gerade nicht.`;
+    if (key === "error_generic") return `@${name}, Heimaufsicht hat einen Fehler im Formular gefunden.`;
+    return `@${name}, Heimaufsicht hat deinen VIP-Sound notiert.`;
   }
 
   async function buildVipChatResponse(key, context, extra = {}) {

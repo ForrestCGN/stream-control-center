@@ -204,3 +204,42 @@ Wichtig:
 
 - Nur schrittweise.
 - Erst Tests und Doku.
+
+
+---
+
+### 10. VIP-Textbestand in SQLite pruefen
+
+Ziel:
+
+- Nach STEP027 sicherstellen, dass Live-SQLite keine sichtbaren `Heimleitung`-Texte mehr enthaelt.
+- Gewuenschter sichtbarer Begriff: `Heimaufsicht`.
+
+Check:
+
+```powershell
+Set-Location "D:\Streaming\stramAssets"
+
+@'
+const { DatabaseSync } = require("node:sqlite");
+const db = new DatabaseSync("D:/Streaming/stramAssets/data/sqlite/app.sqlite");
+try {
+  console.log(db.prepare(`
+    SELECT id, event_key, style, message_text
+    FROM vip_sound_message_templates
+    WHERE message_text LIKE '%Heimleitung%'
+    ORDER BY id ASC
+  `).all());
+} finally {
+  db.close();
+}
+'@ | Set-Content ".\check_vip_heimleitung_texts.js" -Encoding UTF8
+
+node ".\check_vip_heimleitung_texts.js"
+Remove-Item ".\check_vip_heimleitung_texts.js"
+```
+
+Wichtig:
+
+- Die interne Style-ID `heimleitung` nicht blind umbenennen, solange bestehende Queries diese ID nutzen.
+- Erst Dashboard-/Textverwaltung bauen, wenn die Backend-API stabil ist.

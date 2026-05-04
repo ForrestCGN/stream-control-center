@@ -2,6 +2,17 @@
 
 ## 2026-05-04
 
+### STEP027 - VIP-Texte auf Heimaufsicht umgestellt
+
+- `backend/modules/vip_sound_overlay.js` aktualisiert.
+- Sichtbare Default-Chattexte sagen jetzt `Heimaufsicht` statt `Heimleitung`.
+- Interne Style-ID `heimleitung` bleibt unveraendert, damit bestehende SQLite-Daten und Queries kompatibel bleiben.
+- Bestehende Live-SQLite-Texte muessen einmalig per UPDATE angepasst werden.
+- Keine Daily-Usage-, Sound-System-, Twitch-Rollen-, Override- oder Overlay-Logik geaendert.
+- Neue STEP-Doku:
+  - `project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md`
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
 ### STEP026 - VIP Twitch-Rollenhelper vorbereitet
 
 - Neue Datei `backend/modules/helpers/helper_twitch_roles.js` ergänzt.

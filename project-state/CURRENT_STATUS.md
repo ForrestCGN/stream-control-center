@@ -57,6 +57,8 @@ Zuletzt abgeschlossen:
 - STEP021 Sound-System RequestId in VIP-Response gefixt
 - STEP022 Streamer.bot VIP-Argumente geprueft
 - STEP023 VIP Streamer.bot -> Sound-System -> Overlay V2 getestet
+- STEP026 VIP Target-Mod-Erkennung ueber Twitch-Helper umgesetzt
+- STEP027 VIP-Default-Chattexte von Heimleitung auf Heimaufsicht umgestellt
 - STEP024 VIP-Overlay-Texte aus SQLite bestaetigt
 - STEP025 VIP-Zielrollen-Fallback per config/vip_sound_roles.json vorbereitet
 - STEP026 VIP-Twitch-Rollenhelper fuer echte Mod-Erkennung vorbereitet
@@ -83,6 +85,8 @@ Dokumentiert in:
 - project-state/STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md
 - project-state/STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md
 - project-state/STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md
+- project-state/STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md
+- project-state/STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md
 
 Aktueller Modulstand:
 
@@ -103,6 +107,7 @@ Kernentscheidungen / aktueller Ablauf:
 - Wenn Datei existiert, wird `/api/sound/play` genutzt.
 - Nur wenn das Sound-System akzeptiert, wird Daily-Usage geschrieben.
 - Chat-Ausgabe erfolgt ueber helper_chat_output / Heimleitungs-Bot.
+- Sichtbare VIP-/Mod-Chattexte nutzen jetzt `Heimaufsicht`; die interne SQLite-Style-ID `heimleitung` bleibt fuer Kompatibilitaet bestehen.
 - Response fuer Streamer.bot: `send=false`, `streamerbot_send="0"`, `chatMessage=""`.
 - VIP-Override: Mods/Broadcaster duerfen fuer Zieluser erneut ausloesen.
 - Override-Rollen werden ueber `VIP_OVERRIDE_ALLOWED_ROLES` gesteuert.
