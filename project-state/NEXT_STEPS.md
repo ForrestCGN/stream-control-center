@@ -55,6 +55,18 @@ Ziel:
 
 ## Empfohlene naechste Arbeitspakete
 
+### Naechster VIP-Schritt: VIP-Text-API fuer SQLite-Texte
+
+Ziel:
+
+- `vip_sound_message_templates` per API lesen/bearbeiten.
+- Texte aktivieren/deaktivieren.
+- Gewichtung anpassen.
+- Normale `accepted_mod`-Texte von Override-/Sonderfreigabe-Texten sauber trennen.
+- Dashboard soll spaeter diese API nutzen, nicht direkt SQLite anfassen.
+
+---
+
 ### 1. STEP032 testen
 
 Ziel:
@@ -213,7 +225,7 @@ Wichtig:
 Ziel:
 
 - VIP-Status anzeigen.
-- Heimleitungs-Texte pro Event-Key bearbeiten.
+- Heimaufsicht-Texte pro Event-Key bearbeiten.
 - Texte aktivieren/deaktivieren.
 - Gewichtung einstellen.
 - VIP-Soundpfad und Dateiregel konfigurieren.

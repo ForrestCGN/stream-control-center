@@ -2,6 +2,21 @@
 
 ## 2026-05-04
 
+### STEP034 - VIP Rollen-Fallbacks in SQLite vorbereitet
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.8.0` aktualisiert.
+- Schema-Version auf `4` erhöht.
+- Neue Tabelle `vip_sound_role_overrides` ergänzt.
+- Lokale Rollen-Fallbacks werden künftig aus SQLite gelesen.
+- `config/vip_sound_roles.json` bleibt als Import-/Fallback-Quelle erhalten.
+- Beim ersten Start wird die Config in die DB importiert, wenn die Rollen-Tabelle leer ist.
+- Neue Routen:
+  - `GET /api/vip-sound/roles`
+  - `POST /api/vip-sound/roles/upsert`
+  - `POST /api/vip-sound/roles/delete`
+  - `POST /api/vip-sound/roles/import-config`
+- Keine SQLite-/Secret-/Backup-Dateien committed.
+
 ### STEP033 - VIP Events-/Statistik-Basis vorbereitet
 
 - `backend/modules/vip_sound_overlay.js` auf Version `1.7.9` aktualisiert.

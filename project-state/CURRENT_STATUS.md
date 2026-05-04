@@ -63,6 +63,12 @@ Zuletzt abgeschlossen:
 - STEP029 VIP-Daily-Usage API-Semantik korrigiert
 - STEP030 VIP-Referenzstand dokumentiert
 - STEP031 VIP-DB-Settings-Basis vorbereitet
+- STEP032 VIP-Soundpfad/Dateiregel aktiv aus DB gelesen
+- STEP033 VIP-Events-/Statistikbasis vorbereitet
+- STEP034 VIP-Rollen-Fallbacks in SQLite vorbereitet
+- STEP029 VIP-Daily-Usage API-Semantik korrigiert
+- STEP030 VIP-Referenzstand dokumentiert
+- STEP031 VIP-DB-Settings-Basis vorbereitet
 - STEP032 VIP-Soundpfad und Dateiregel aus DB-Settings aktiv genutzt
 - STEP029 VIP-Daily-Usage API-Semantik korrigiert
 - STEP030 VIP-Referenzstand dokumentiert
@@ -267,3 +273,11 @@ STEP031 Ergebnis:
   - `GET /api/vip-sound/events/recent`
   - `GET /api/vip-sound/stats`
 - Soundpfad/Dateiregel bleiben weiterhin DB-backed ueber `vip_sound_settings`.
+
+
+## STEP034 Ergebnis
+
+- VIP-Rollen-Fallbacks liegen jetzt in `vip_sound_role_overrides`.
+- `config/vip_sound_roles.json` bleibt Import-/Fallback-Quelle.
+- Neue Routen: `/api/vip-sound/roles`, `/roles/upsert`, `/roles/delete`, `/roles/import-config`.
+- Ziel bleibt: Dashboard bearbeitet spaeter DB/API, nicht direkt JSON-Dateien.

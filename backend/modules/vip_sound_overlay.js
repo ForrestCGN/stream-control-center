@@ -20,11 +20,12 @@ module.exports.init = function init(ctx) {
   const DEFAULT_GAP_MS = 2000;
   const DEFAULT_PHASE = "idle";
   const VIP_SCHEMA_MODULE = "vip_sound_overlay";
-  const VIP_SCHEMA_VERSION = 3;
+  const VIP_SCHEMA_VERSION = 4;
   const VIP_DAILY_USAGE_TABLE = "vip_sound_daily_usage";
   const VIP_MESSAGE_TABLE = "vip_sound_message_templates";
   const VIP_SETTINGS_TABLE = "vip_sound_settings";
   const VIP_EVENTS_TABLE = "vip_sound_events";
+  const VIP_ROLE_OVERRIDES_TABLE = "vip_sound_role_overrides";
   const VIP_MESSAGE_STYLE = "heimleitung";
   const VIP_OVERLAY_STYLE = "overlay";
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
@@ -184,7 +185,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.7.9",
+    version: "1.8.0",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -249,6 +250,7 @@ module.exports.init = function init(ctx) {
       state.db.dailyUsageRows = database.count(VIP_DAILY_USAGE_TABLE);
       state.db.settingsRows = database.count(VIP_SETTINGS_TABLE);
       state.db.eventsRows = database.count(VIP_EVENTS_TABLE);
+      state.db.roleOverridesRows = database.count(VIP_ROLE_OVERRIDES_TABLE);
       state.db.lastError = "";
     } catch (err) {
       state.db.lastError = err.message || String(err);
@@ -441,25 +443,250 @@ module.exports.init = function init(ctx) {
     return set;
   }
 
+  function normalizeRoleType(value) {
+    const role = String(value || "").trim().toLowerCase();
+    if (role === "moderator" || role === "mod") return "mod";
+    if (role === "crew") return "crew";
+    if (role === "vip") return "vip";
+    return "vip";
+  }
+
+  function buildRoleSetsFromConfig(cfg) {
+    const data = cfg && typeof cfg === "object" ? cfg : readVipRolesConfig();
+
+    return {
+      enabled: data.enabled !== false,
+      autoDetectTargetRole: data.autoDetectTargetRole !== false,
+      mods: normalizedRoleSet([
+        ...(Array.isArray(data.mods) ? data.mods : []),
+        ...(Array.isArray(data.moderators) ? data.moderators : [])
+      ]),
+      crew: normalizedRoleSet(data.crew),
+      vips: normalizedRoleSet(data.vips)
+    };
+  }
+
+  function getVipRoleOverrideRows(includeDisabled = false) {
+    try {
+      const where = includeDisabled ? "" : "WHERE enabled = 1";
+      const rows = database.all(`
+        SELECT login, display_name, role_type, enabled, source, note, created_at, updated_at
+        FROM vip_sound_role_overrides
+        ${where}
+        ORDER BY role_type ASC, login ASC
+      `);
+
+      return Array.isArray(rows) ? rows : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function buildRoleSetsFromDbOrFallback() {
+    try {
+      const rows = getVipRoleOverrideRows(false);
+      const mods = new Set();
+      const crew = new Set();
+      const vips = new Set();
+
+      for (const row of rows) {
+        const login = normalizeLogin(row.login);
+        if (!login) continue;
+
+        const role = normalizeRoleType(row.role_type);
+        if (role === "mod") mods.add(login);
+        else if (role === "crew") crew.add(login);
+        else if (role === "vip") vips.add(login);
+      }
+
+      return {
+        source: "database",
+        enabled: true,
+        autoDetectTargetRole: !!getVipSetting("autoDetectTargetRole", true),
+        fallbackRolesEnabled: !!getVipSetting("fallbackRolesEnabled", true),
+        mods,
+        crew,
+        vips,
+        rows
+      };
+    } catch (err) {
+      const cfg = readVipRolesConfig();
+      const sets = buildRoleSetsFromConfig(cfg);
+      return {
+        source: "config_fallback",
+        enabled: cfg.enabled !== false,
+        autoDetectTargetRole: cfg.autoDetectTargetRole !== false,
+        fallbackRolesEnabled: true,
+        mods: sets.mods,
+        crew: sets.crew,
+        vips: sets.vips,
+        rows: []
+      };
+    }
+  }
+
+  function importVipRoleConfigIfEmpty() {
+    const count = database.count(VIP_ROLE_OVERRIDES_TABLE);
+    if (count > 0) return { imported: 0, skippedExisting: true };
+    return importVipRolesFromConfig();
+  }
+
+  function importVipRolesFromConfig() {
+    const cfg = readVipRolesConfig();
+    const now = nowIso();
+    const rows = [];
+
+    function addRows(items, roleType, sourceKey) {
+      if (!Array.isArray(items)) return;
+      for (const item of items) {
+        const login = normalizeLogin(item);
+        if (!login) continue;
+        rows.push({ login, displayName: cleanDisplayName(item), roleType, sourceKey });
+      }
+    }
+
+    addRows(cfg.mods, "mod", "mods");
+    addRows(cfg.moderators, "mod", "moderators");
+    addRows(cfg.crew, "crew", "crew");
+    addRows(cfg.vips, "vip", "vips");
+
+    let imported = 0;
+    for (const row of rows) {
+      const result = database.run(`
+        INSERT OR IGNORE INTO vip_sound_role_overrides
+          (login, display_name, role_type, enabled, source, note, created_at, updated_at)
+        VALUES
+          (:login, :displayName, :roleType, 1, 'config_import', :note, :createdAt, :updatedAt)
+      `, {
+        login: row.login,
+        displayName: row.displayName || row.login,
+        roleType: row.roleType,
+        note: `Import aus ${path.basename(VIP_ROLES_CONFIG_PATH)}:${row.sourceKey}`,
+        createdAt: now,
+        updatedAt: now
+      });
+
+      if (result && typeof result.changes === "number") imported += result.changes;
+    }
+
+    refreshDbStats();
+    return { imported, skippedExisting: false, sourcePath: VIP_ROLES_CONFIG_PATH };
+  }
+
+  function listVipRoleOverrides(includeDisabled = true) {
+    const cfg = readVipRolesConfig();
+    const rows = getVipRoleOverrideRows(includeDisabled).map(row => ({
+      login: normalizeLogin(row.login),
+      displayName: cleanDisplayName(row.display_name || row.login),
+      roleType: normalizeRoleType(row.role_type),
+      enabled: Number(row.enabled || 0) === 1,
+      source: row.source || "database",
+      note: row.note || "",
+      createdAt: row.created_at || "",
+      updatedAt: row.updated_at || ""
+    }));
+
+    return {
+      table: VIP_ROLE_OVERRIDES_TABLE,
+      count: rows.length,
+      rows,
+      settings: {
+        autoDetectTargetRole: !!getVipSetting("autoDetectTargetRole", true),
+        fallbackRolesEnabled: !!getVipSetting("fallbackRolesEnabled", true)
+      },
+      configFallback: {
+        path: VIP_ROLES_CONFIG_PATH,
+        exists: fs.existsSync(VIP_ROLES_CONFIG_PATH),
+        enabled: cfg.enabled !== false,
+        autoDetectTargetRole: cfg.autoDetectTargetRole !== false,
+        counts: {
+          mods: Array.isArray(cfg.mods) ? cfg.mods.length : 0,
+          moderators: Array.isArray(cfg.moderators) ? cfg.moderators.length : 0,
+          crew: Array.isArray(cfg.crew) ? cfg.crew.length : 0,
+          vips: Array.isArray(cfg.vips) ? cfg.vips.length : 0
+        }
+      }
+    };
+  }
+
+  function upsertVipRoleOverride(raw = {}) {
+    const login = normalizeLogin(raw.login || raw.userLogin || raw.targetLogin || raw.user || raw.name || "");
+    if (!login) throw new Error("Missing login");
+
+    const roleType = normalizeRoleType(raw.roleType || raw.role || raw.type || "vip");
+    const displayName = cleanDisplayName(raw.displayName || raw.userDisplayName || raw.targetDisplayName || login);
+    const enabled = raw.enabled === undefined ? true : boolish(raw.enabled);
+    const note = String(raw.note || "").trim();
+    const now = nowIso();
+
+    database.run(`
+      INSERT INTO vip_sound_role_overrides
+        (login, display_name, role_type, enabled, source, note, created_at, updated_at)
+      VALUES
+        (:login, :displayName, :roleType, :enabled, 'api', :note, :createdAt, :updatedAt)
+      ON CONFLICT(login, role_type) DO UPDATE SET
+        display_name = excluded.display_name,
+        enabled = excluded.enabled,
+        source = 'api',
+        note = excluded.note,
+        updated_at = excluded.updated_at
+    `, {
+      login,
+      displayName: displayName || login,
+      roleType,
+      enabled: enabled ? 1 : 0,
+      note,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    refreshDbStats();
+    return { login, displayName: displayName || login, roleType, enabled, note };
+  }
+
+  function deleteVipRoleOverride(raw = {}) {
+    const login = normalizeLogin(raw.login || raw.userLogin || raw.targetLogin || raw.user || raw.name || "");
+    if (!login) throw new Error("Missing login");
+
+    const roleRaw = String(raw.roleType || raw.role || raw.type || "").trim();
+    const params = { login };
+    let where = "login = :login";
+
+    if (roleRaw) {
+      where += " AND role_type = :roleType";
+      params.roleType = normalizeRoleType(roleRaw);
+    }
+
+    const result = database.run(`
+      DELETE FROM vip_sound_role_overrides
+      WHERE ${where}
+    `, params);
+
+    refreshDbStats();
+    return {
+      login,
+      roleType: roleRaw ? params.roleType : "",
+      deleted: result && typeof result.changes === "number" ? result.changes : 0
+    };
+  }
+
   async function detectSoundTypeForTarget(requestedSoundType, targetUser) {
     const requested = normalizeSoundType(requestedSoundType);
-    const cfg = readVipRolesConfig();
+    const roles = buildRoleSetsFromDbOrFallback();
 
-    if (cfg.enabled === false || cfg.autoDetectTargetRole === false) return requested;
+    if (!roles.enabled) return requested;
 
     const login = normalizeLogin(targetUser && (targetUser.login || targetUser.displayName));
     if (!login) return requested;
 
-    const twitchModeratorResult = await twitchRoles.isTargetModerator(login);
-    if (twitchModeratorResult === true) return "mod";
+    if (roles.autoDetectTargetRole) {
+      const twitchModeratorResult = await twitchRoles.isTargetModerator(login);
+      if (twitchModeratorResult === true) return "mod";
+    }
 
-    const mods = normalizedRoleSet([
-      ...(Array.isArray(cfg.mods) ? cfg.mods : []),
-      ...(Array.isArray(cfg.moderators) ? cfg.moderators : [])
-    ]);
-    const crew = normalizedRoleSet(cfg.crew);
+    if (!roles.fallbackRolesEnabled) return requested;
 
-    if (mods.has(login) || crew.has(login)) return "mod";
+    if (roles.mods.has(login) || roles.crew.has(login)) return "mod";
 
     return requested;
   }
@@ -870,9 +1097,31 @@ module.exports.init = function init(ctx) {
               ON vip_sound_events(event_type);
           `);
         }
+
+        if (toVersion === 4) {
+          db.exec(`
+            CREATE TABLE IF NOT EXISTS vip_sound_role_overrides (
+              login TEXT NOT NULL,
+              display_name TEXT NOT NULL DEFAULT '',
+              role_type TEXT NOT NULL DEFAULT 'vip',
+              enabled INTEGER NOT NULL DEFAULT 1,
+              source TEXT NOT NULL DEFAULT 'manual',
+              note TEXT NOT NULL DEFAULT '',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              PRIMARY KEY (login, role_type)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_vip_sound_role_overrides_role_type
+              ON vip_sound_role_overrides(role_type);
+            CREATE INDEX IF NOT EXISTS idx_vip_sound_role_overrides_enabled
+              ON vip_sound_role_overrides(enabled);
+          `);
+        }
       });
       seedDefaultMessagesIfEmpty();
       seedDefaultSettingsIfMissing();
+      importVipRoleConfigIfEmpty();
       state.db.initialized = true;
       state.db.lastError = "";
       refreshDbStats();
@@ -1985,6 +2234,8 @@ module.exports.init = function init(ctx) {
         settingsRows: state.db.settingsRows,
         eventsTable: VIP_EVENTS_TABLE,
         eventsRows: state.db.eventsRows,
+        roleOverridesTable: VIP_ROLE_OVERRIDES_TABLE,
+        roleOverridesRows: state.db.roleOverridesRows,
         databasePath: database.getDbPath ? database.getDbPath() : "",
         lastError: state.db.lastError,
         updatedAt: nowIso()
@@ -2027,6 +2278,97 @@ module.exports.init = function init(ctx) {
           count: data.settings.length,
           settings: data.settings,
           config: data.config,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/roles`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        refreshDbStats();
+        const includeDisabled = String(bodyOrQuery(req, "includeDisabled") ?? "true").trim().toLowerCase() !== "false";
+        const data = listVipRoleOverrides(includeDisabled);
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...data,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/roles/upsert`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const role = upsertVipRoleOverride(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          role,
+          roles: listVipRoleOverrides(true),
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/roles/delete`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = deleteVipRoleOverride(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          roles: listVipRoleOverrides(true),
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/roles/import-config`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = importVipRolesFromConfig();
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          roles: listVipRoleOverrides(true),
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/roles/import-config`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = importVipRolesFromConfig();
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...result,
+          roles: listVipRoleOverrides(true),
           db: { ...state.db },
           updatedAt: nowIso()
         });
