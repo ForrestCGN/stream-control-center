@@ -25,7 +25,7 @@ const media = require('./helpers/helper_media');
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 5;
-const MODULE_STEP = 169;
+const MODULE_STEP = 170;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -85,7 +85,7 @@ const DEFAULT_CONFIG = {
     alertTtsSoundSystemSource: 'alert_system',
     alertTtsSoundSystemOutputTarget: 'device',
     alertTtsSoundSystemVolume: 100,
-    alertTtsSoundSystemPriority: 82,
+    alertTtsSoundSystemPriority: 79,
     alertTtsOutroBufferMs: 1500
   },
   dashboardSettings: {
@@ -1543,6 +1543,8 @@ function buildSoundSystemPayload(event, overlayAlert) {
   const meta = rule.meta && typeof rule.meta === 'object' ? rule.meta : {};
   const volumeCandidate = raw.soundVolume ?? raw.volume ?? meta.soundVolume ?? meta.volume ?? liveAlert.soundSystemVolume ?? overlayAlert.soundVolume;
   const volume = Number.isFinite(Number(volumeCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(volumeCandidate)))) : 85;
+  const priorityCandidate = raw.soundPriority ?? meta.soundPriority ?? liveAlert.soundSystemPriority ?? rule.priority ?? 80;
+  const priority = Number.isFinite(Number(priorityCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(priorityCandidate)))) : 80;
   const outputTarget = cleanKey(raw.outputTarget || raw.soundOutputTarget || meta.outputTarget || meta.soundOutputTarget || liveAlert.soundSystemOutputTarget || 'device') || 'device';
   const category = cleanKey(raw.soundCategory || meta.soundCategory || liveAlert.soundSystemCategory || 'alert') || 'alert';
   const source = cleanKey(liveAlert.soundSystemSource || 'alert_system') || 'alert_system';
@@ -1554,6 +1556,7 @@ function buildSoundSystemPayload(event, overlayAlert) {
     volume,
     category,
     source,
+    priority,
     requestedBy: event.user_display || event.user_login || '',
     meta: {
       alertId: event.eventUid,
@@ -1829,8 +1832,11 @@ function buildAlertTtsSoundSystemPayload(event) {
 
   const volumeCandidate = tts.volume ?? liveAlert.alertTtsSoundSystemVolume ?? liveAlert.soundSystemVolume ?? 100;
   const volume = Number.isFinite(Number(volumeCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(volumeCandidate)))) : 100;
-  const priorityCandidate = tts.priority ?? liveAlert.alertTtsSoundSystemPriority ?? 82;
-  const priority = Number.isFinite(Number(priorityCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(priorityCandidate)))) : 82;
+  const alertPriorityCandidate = event.soundSystem?.request?.priority ?? event.soundSystemEarly?.request?.priority ?? event.rule?.priority ?? liveAlert.soundSystemPriority ?? 80;
+  const alertPriority = Number.isFinite(Number(alertPriorityCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(alertPriorityCandidate)))) : 80;
+  const configuredTtsPriorityCandidate = tts.priority ?? liveAlert.alertTtsSoundSystemPriority;
+  const configuredTtsPriority = Number.isFinite(Number(configuredTtsPriorityCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(configuredTtsPriorityCandidate)))) : Math.max(0, alertPriority - 1);
+  const priority = Math.max(0, Math.min(configuredTtsPriority, Math.max(0, alertPriority - 1)));
   const outputTarget = cleanKey(tts.outputTarget || liveAlert.alertTtsSoundSystemOutputTarget || liveAlert.soundSystemOutputTarget || 'device') || 'device';
   const category = cleanKey(liveAlert.alertTtsSoundSystemCategory || 'alert_tts') || 'alert_tts';
   const source = cleanKey(liveAlert.alertTtsSoundSystemSource || liveAlert.soundSystemSource || 'alert_system') || 'alert_system';
