@@ -186,7 +186,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.3",
+    version: "1.8.4",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -1195,6 +1195,109 @@ module.exports.init = function init(ctx) {
     }
 
     return defaultValue;
+  }
+
+
+  function normalizeVipSettingKey(value) {
+    const key = String(value || "").trim();
+    if (!key) throw new Error("setting_key_required");
+    if (!Object.prototype.hasOwnProperty.call(DEFAULT_VIP_SETTINGS, key)) {
+      throw new Error(`invalid_vip_setting:${key}`);
+    }
+    return key;
+  }
+
+  function upsertVipSetting(raw = {}) {
+    const key = normalizeVipSettingKey(raw.key || raw.settingKey || raw.name);
+    const def = DEFAULT_VIP_SETTINGS[key];
+
+    let value;
+    if (Object.prototype.hasOwnProperty.call(raw, "value")) value = raw.value;
+    else if (Object.prototype.hasOwnProperty.call(raw, "settingValue")) value = raw.settingValue;
+    else if (Object.prototype.hasOwnProperty.call(raw, "rawValue")) value = raw.rawValue;
+    else throw new Error("setting_value_required");
+
+    const valueType = settingsHelper.normalizeValueType(raw.valueType || raw.type || def.value_type, value);
+    const description = String(raw.description || def.description || "");
+
+    const row = settingsHelper.setSetting(VIP_SETTINGS_TABLE, key, value, {
+      valueType,
+      description
+    });
+
+    refreshDbStats();
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      settingsTable: VIP_SETTINGS_TABLE,
+      setting: {
+        key: row.key,
+        value: row.value,
+        rawValue: row.rawValue,
+        valueType: row.valueType,
+        description: row.description || description,
+        source: "database",
+        createdAt: row.createdAt || "",
+        updatedAt: row.updatedAt || ""
+      },
+      db: { ...state.db },
+      updatedAt: nowIso()
+    };
+  }
+
+  function deleteVipSetting(raw = {}) {
+    const key = normalizeVipSettingKey(raw.key || raw.settingKey || raw.name);
+    const result = settingsHelper.deleteSetting(VIP_SETTINGS_TABLE, key);
+
+    refreshDbStats();
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      settingsTable: VIP_SETTINGS_TABLE,
+      key,
+      deleted: result.deleted || 0,
+      db: { ...state.db },
+      updatedAt: nowIso()
+    };
+  }
+
+  function resetVipSettingsToDefaults(raw = {}) {
+    const onlyKey = String(raw.key || raw.settingKey || raw.name || "").trim();
+    const defaults = vipSettingDefaults().filter(item => !onlyKey || item.key === normalizeVipSettingKey(onlyKey));
+    if (onlyKey && !defaults.length) throw new Error(`invalid_vip_setting:${onlyKey}`);
+
+    const changed = [];
+    for (const item of defaults) {
+      const row = settingsHelper.setSetting(VIP_SETTINGS_TABLE, item.key, item.value, {
+        valueType: item.valueType,
+        description: item.description
+      });
+      changed.push({
+        key: row.key,
+        value: row.value,
+        rawValue: row.rawValue,
+        valueType: row.valueType,
+        description: row.description || item.description || "",
+        source: "database",
+        createdAt: row.createdAt || "",
+        updatedAt: row.updatedAt || ""
+      });
+    }
+
+    refreshDbStats();
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      settingsTable: VIP_SETTINGS_TABLE,
+      resetAll: !onlyKey,
+      count: changed.length,
+      settings: changed,
+      db: { ...state.db },
+      updatedAt: nowIso()
+    };
   }
 
   function ensureVipSchema() {
@@ -2444,6 +2547,40 @@ module.exports.init = function init(ctx) {
           db: { ...state.db },
           updatedAt: nowIso()
         });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+
+    app.post(`${prefix}/settings/upsert`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = upsertVipSetting(requestData(req));
+        return res.json(result);
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/settings/delete`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = deleteVipSetting(requestData(req));
+        return res.json(result);
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/settings/reset-defaults`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = resetVipSettingsToDefaults(requestData(req));
+        return res.json(result);
       } catch (err) {
         return fail(res, 400, err.message || String(err));
       }
