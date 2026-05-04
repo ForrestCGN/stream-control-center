@@ -26,7 +26,7 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Der aktuelle Stand nach STEP019 ist auf GitHub/dev dokumentiert.
+Der aktuelle Stand nach STEP020 ist auf GitHub/dev dokumentiert.
 
 Zuletzt abgeschlossen:
 
@@ -41,26 +41,23 @@ Zuletzt abgeschlossen:
 - STEP016.1 VIP-Chat-Ausgabe auf helper_chat_output/Heimleitungs-Bot umgestellt
 - STEP017 VIP-Sounds ueber Sound-System vor Daily-Usage queued
 - STEP019 VIP Sound Override dokumentiert und Projektstatus aktualisiert
+- STEP020 VIP Override live getestet
 
 ## Repo/Live-Abgleich
 
-Zuletzt fuer STEP019:
+Zuletzt fuer STEP020:
 
-- GitHub/dev wurde geprueft.
-- `backend/modules/vip_sound_overlay.js` enthaelt bereits VIP-Override-Logik.
-- `htdocs/overlays/vip_sound_overlay_v2.html` ist im Repo vorhanden.
-- Die mitgelieferten Statusdateien wurden nicht blind uebernommen, sondern in die bestehenden Projekt-Dokus eingearbeitet.
-- Code wurde in STEP019 nicht geaendert.
-- Live-Deploy und Live-Test stehen noch aus, weil das Live-System nur lokal bei Forrest sichtbar ist.
+- Live-System unter `D:\Streaming\stramAssets` getestet.
+- Code wurde in STEP020 nicht geaendert.
+- GitHub/dev wurde mit der Live-Test-Doku aktualisiert.
+- Keine SQLite-/Secret-/Backup-Dateien committed.
 
-Live-Routen, die nach Deploy/Restart erneut geprueft werden sollen:
+Live-Routen geprueft:
 
-- GET /api/_status
-- GET /api/sound/status
 - GET /api/vip-sound/status
-- GET /api/vip-sound/db/status
-- GET /api/vip-sound/command
 - GET /api/vip-sound-overlay/state
+- GET /api/vip-sound/db/status
+- GET /api/sound/status
 
 ## VIP-/Sound-/Overlay-Stand
 
@@ -69,11 +66,12 @@ Dokumentiert in:
 - project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
 - project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
 - project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
+- project-state/STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md
 
 Aktueller Modulstand:
 
 - backend/modules/vip_sound_overlay.js
-- Version im Repo: 1.7.0
+- Version im Repo/Live: 1.7.0
 
 Kernentscheidungen / aktueller Ablauf:
 
@@ -91,11 +89,15 @@ Kernentscheidungen / aktueller Ablauf:
 - Override-Rollen werden ueber `VIP_OVERRIDE_ALLOWED_ROLES` gesteuert.
 - Standardrollen: `moderator,mod,broadcaster`.
 
-Zuletzt bekannter Live-Test aus STEP017:
+STEP020 Live-Test bestaetigt:
 
-- `araglor` wurde erfolgreich mit `vip/araglor.mp3` ueber Sound-System/AudioDeviceHelper abgespielt.
-- Duplicate-Test fuer `araglor` blockte korrekt ohne Sound-System-Request.
-- `vip_sound_daily_usage` enthaelt `araglor` genau einmal fuer `2026-05-03`.
+- VIP-Status: idle, nicht sichtbar, nicht aktiv.
+- VIP-DB: Schema 1, MessageTemplates 15, DailyUsageRows 3.
+- Sound-System: Version 0.1.8, Device-Ausgabe erfolgreich.
+- Normale VIP-Ausloesung fuer `araglor`: akzeptiert und Daily-Usage geschrieben.
+- Broadcaster-Override durch `forrestcgn`: akzeptiert, Sound erneut gestartet, keine Daily-Usage geschrieben.
+- Duplicate ohne Override: korrekt geblockt.
+- Unerlaubter Override durch normalen User: korrekt geblockt.
 
 ## Doku-Struktur
 
@@ -133,8 +135,8 @@ Historische Analyse-Snapshots:
 
 ## Bewusst offen
 
-- Live-Deploy von STEP019-Doku/Repo-Stand pruefen.
-- VIP-Override mit echten Streamer.bot-Rollen-/Badge-Parametern testen.
+- `soundSystemRequestId` ist in der VIP-Response noch leer.
+- Reale Streamer.bot-Rollen-/Badge-Parameter bei Produktion weiter beobachten.
 - Falls Streamer.bot andere Rollenfeldnamen liefert, nur Mapping in `vip_sound_overlay.js` erweitern.
 - VIP-Soundpfad ueber DB/Dashboard konfigurierbar machen.
 - VIP-Dashboard fuer Texte/Settings.
