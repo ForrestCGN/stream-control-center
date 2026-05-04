@@ -37,9 +37,11 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Der VIP-Backend-Block ist bis STEP040 abgeschlossen und fuer das spaetere Dashboard vorbereitet.
+Der VIP-Backend-Block ist bis STEP040 abgeschlossen und fuer das Dashboard vorbereitet.
 
 Der TTS-/Sound-/Alert-Block ist bis STEP046 abgeschlossen und live getestet.
+
+Das VIP-Dashboard-Basismodul ist mit STEP047 im Repo vorbereitet.
 
 Zuletzt abgeschlossen:
 
@@ -51,6 +53,7 @@ Zuletzt abgeschlossen:
 - STEP044.5 bis STEP044.8 TTS-Overlay Layout/Avatar/adaptive Breite finalisiert
 - STEP045 TTS Queue Sync mit Sound-System vorbereitet
 - STEP046 Alert-Hauptsound frueh ins Sound-System eingereiht, damit Prioritaet korrekt greift
+- STEP047 VIP Dashboard Base
 
 ## Aktueller TTS-/Sound-/Alert-Stand
 
@@ -70,14 +73,6 @@ Aktiver technischer Stand:
 - Generierte TTS-Dateien liegen unter:
   - `htdocs/assets/sounds/tts/generated/`
 - Sound-System-kompatibler relativer Pfad wird als `soundSystemFile` verwendet.
-
-Aktuelle Rollenlogik TTS:
-
-- Broadcaster: `google_wavenet_h`
-- Moderator: `google_wavenet_h`
-- VIP: `google_wavenet_h`
-- Subscriber: `piper_thorsten`
-- Viewer: deaktiviert
 
 Alert-TTS:
 
@@ -99,10 +94,6 @@ Sound-System Queue-/Prioritaetsstand:
   - Chat-TTS wird danach eingereiht.
   - Ko-fi Alert wird danach gesendet.
   - Ausgabe erfolgt korrekt: Crew -> Alert -> TTS.
-- Abschlussstatus nach Test:
-  - Sound-System current/queue leer.
-  - TTS playing/current/queue leer.
-  - Alert current/queue leer.
 
 Wichtige betroffene Dateien:
 
@@ -113,33 +104,21 @@ Wichtige betroffene Dateien:
 - `package-lock.json`
 - `config/sound_system.json` / DB-Tabelle `sound_settings` fuer Runtime-Settings
 
-Wichtige Routen:
-
-- `GET /api/tts/status`
-- `GET /api/tts/settings`
-- `GET /api/tts/stats`
-- `GET /api/tts/prepare-alert`
-- `GET /api/tts/overlay-state` (vorhanden, Normalbetrieb nutzt aber Sound-System Visual State)
-- `POST /api/sound/play`
-- `GET /api/sound/status`
-- `GET/POST /api/sound/settings`
-- `POST /api/alerts/enqueue`
-- `GET /api/alerts/rules`
-- `PUT /api/alerts/rules/:id`
-- `GET /api/alerts/queue`
-- `GET/POST /api/alerts/settings`
-
 ## Aktueller VIP-/Sound-/Overlay-Stand
 
 Dokumentiert in:
 
 - `project-state/STEP040_VIP_BACKEND_REFERENCE_DASHBOARD_READY_2026-05-04.md`
+- `project-state/STEP047_VIP_DASHBOARD_BASE_2026-05-04.md`
 
 Aktueller Modulstand:
 
 - `backend/modules/vip_sound_overlay.js`
-- Live-Version getestet: `1.8.5`
+- Live-Version/API-Version: `1.8.5`
+- VIP-DB-Schema-Version: `4`
 - `htdocs/overlays/vip_sound_overlay_v2.html` ist die aktive OBS-VIP-Browserquelle.
+- `htdocs/dashboard/modules/vip.js` ist das neue VIP-Dashboard-Modul.
+- `htdocs/dashboard/modules/vip.css` enthaelt die VIP-Dashboard-Styles.
 
 Kernentscheidungen / aktueller Ablauf:
 
@@ -161,6 +140,16 @@ Kernentscheidungen / aktueller Ablauf:
 - Override-/Zielrollen-Erkennung laeuft ueber Twitch-Erkennung, DB-Rollen-Fallbacks und JSON-Import-/Fallback-Quelle.
 - Overlay V2 liest Visualdaten aus `sound_system.current.visual` bzw. Sound-System-WebSocket/Polling.
 
+VIP-Dashboard kann aktuell:
+
+- Status/Uebersicht anzeigen.
+- DB-Settings anzeigen und speichern.
+- DB-Texte anzeigen, filtern, anlegen, bearbeiten und aktivieren/deaktivieren.
+- Rollen-Fallbacks anzeigen, anlegen und entfernen.
+- Daily-Usage anzeigen.
+- Events/Statistiken anzeigen.
+- Admin-Testausloesung vorbereiten.
+
 ## VIP-Datenbanktabellen
 
 Aktive VIP-Tabellen in `D:\Streaming\stramAssets\data\sqlite\app.sqlite`:
@@ -176,6 +165,7 @@ Aktive VIP-Tabellen in `D:\Streaming\stramAssets\data\sqlite\app.sqlite`:
 Fuer neue und bestehende Systeme gilt:
 
 - Dashboard-faehige Werte primaer in Datenbank/Settings-Strukturen.
+- Dashboard-faehige Texte primaer in Datenbank/Text-Strukturen.
 - JSON-Dateien nur fuer technische Configs, Imports oder Fallbacks.
 - ENV/Secrets bleiben ausserhalb von DB und Repo.
 - Dashboard liest/schreibt nur ueber Backend-APIs.
@@ -183,8 +173,18 @@ Fuer neue und bestehende Systeme gilt:
 - Bestehende Systeme spaeter gezielt pruefen und ggf. schrittweise angleichen.
 - Keine Funktionalitaet entfernen.
 
+Aktuelle Helper-Lage:
+
+- `backend/modules/helpers/helper_settings.js` ist DB-Settings-Standard.
+- VIP nutzt DB-Texte modulnah.
+- Alerts haben DB-Textbereiche (`alert_text_variants`, `alert_chat_blocks`).
+- `backend/modules/helpers/helper_texts.js` ist aktuell noch JSON-basiert und muss spaeter erweitert oder durch einen DB-Text-Helper ergaenzt werden.
+
 Dashboard-relevante naechste Kandidaten:
 
+- Modul-Audit: Texte/Settings/Helper pro System pruefen.
+- Zentralen DB-Text-Helper planen.
+- VIP-Song-Upload nach Helper-/Upload-Standard bauen.
 - TTS-Settings und Rollen.
 - TTS-Overlay-Settings wie Position, Breite, Avatar, Textzeilen, Skalierung.
 - Sound-System Queue-Settings wie Prioritaet, Parallel, MaxParallel, Zielgeraet, Lautstaerke.
@@ -227,12 +227,13 @@ Historische Analyse-Snapshots:
 
 ## Bewusst offen
 
+- Browser-/Live-Test des neuen VIP-Dashboard-Moduls nach Deploy bestaetigen.
+- VIP-Song-Upload separat planen und nach Helper-/Upload-Standard bauen.
+- Modul-Audit fuer Texte/Settings/Helper-Standard durchfuehren.
+- Zentralen DB-Text-Helper planen.
 - Dashboard-Modul fuer TTS/Sound/Alert-Settings bauen.
-- Sound-System Runtime-Settings im Dashboard bearbeitbar machen.
-- Alert-Regel-TTS-Felder im Dashboard sichtbar/editierbar machen.
 - Provider-Secrets in Settings-Ausgaben maskieren.
 - `liveAlert`/`livealert` Duplikat in Alert-Settings bereinigen.
-- VIP-Dashboard in eigenem Schritt bauen.
 - Dashboard-Rollen/Rechte und Audit-Logging vorbereiten.
 - Debug-Parameter `?debug=1` in OBS wieder entfernen, wenn nicht mehr gebraucht.
 - Alte VIP-Action in Streamer.bot deaktiviert lassen oder spaeter nach Backup sauber entfernen.
