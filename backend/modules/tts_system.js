@@ -896,22 +896,9 @@ function init(ctx) {
       const playbackMode = normalizePlaybackMode(chatCfg.playbackMode, 'sound_system');
       item.playbackMode = playbackMode;
 
-      if (playbackMode === 'sound_system' && chatCfg.soundSystemEnabled) {
-        try {
-          const soundResult = await playChatTtsViaSoundSystem(item, chatCfg);
-          item.soundSystemResult = soundResult || null;
-          insertTtsEvent(item, 'sound_system_started', { meta: { soundResult } });
-        } catch (soundErr) {
-          console.error(`[TTS] sound-system playback failed: ${soundErr.message}`);
-          item.soundSystemError = soundErr.message || String(soundErr);
-          insertTtsEvent(item, 'sound_system_failed', { error: item.soundSystemError });
-          if (!chatCfg.fallbackToOverlay) throw soundErr;
-          item.playbackMode = 'overlay';
-        }
-      }
+      let effectiveMode = item.playbackMode || playbackMode;
+      let visualOnly = effectiveMode === 'sound_system' || effectiveMode === 'off';
 
-      const effectiveMode = item.playbackMode || playbackMode;
-      const visualOnly = effectiveMode === 'sound_system' || effectiveMode === 'off';
       if (chatCfg.overlayVisualEnabled !== false || effectiveMode === 'overlay') {
         broadcastWS({
           op: "tts_play",
@@ -922,6 +909,41 @@ function init(ctx) {
           durationMs: Number(item.durationMs || 0),
           gapAfterMs: Number(config.queue?.gapAfterMs || 350)
         });
+      }
+
+      if (playbackMode === 'sound_system' && chatCfg.soundSystemEnabled) {
+        try {
+          playChatTtsViaSoundSystem(item, chatCfg)
+            .then(soundResult => {
+              item.soundSystemResult = soundResult || null;
+              insertTtsEvent(item, 'sound_system_started', { meta: { soundResult } });
+            })
+            .catch(soundErr => {
+              console.error(`[TTS] sound-system playback failed: ${soundErr.message}`);
+              item.soundSystemError = soundErr.message || String(soundErr);
+              insertTtsEvent(item, 'sound_system_failed', { error: item.soundSystemError });
+            });
+        } catch (soundErr) {
+          console.error(`[TTS] sound-system playback dispatch failed: ${soundErr.message}`);
+          item.soundSystemError = soundErr.message || String(soundErr);
+          insertTtsEvent(item, 'sound_system_failed', { error: item.soundSystemError });
+          if (chatCfg.fallbackToOverlay) {
+            effectiveMode = 'overlay';
+            item.playbackMode = 'overlay';
+            visualOnly = false;
+            broadcastWS({
+              op: "tts_play",
+              item: publicItem(item),
+              audioUrl: item.audioUrl,
+              playbackMode: 'overlay',
+              visualOnly: false,
+              durationMs: Number(item.durationMs || 0),
+              gapAfterMs: Number(config.queue?.gapAfterMs || 350)
+            });
+          } else {
+            throw soundErr;
+          }
+        }
       }
 
       if (effectiveMode === 'sound_system' || effectiveMode === 'off') {

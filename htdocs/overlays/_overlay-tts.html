@@ -508,10 +508,8 @@
           if (visualOnly) {
             const showMs = Math.max(1200, Number(msg.durationMs || item.durationMs || 2500) + gapAfterMs + 450);
             visualTimer = setTimeout(() => {
-              const id = currentId;
               currentId = null;
               hide();
-              markDone(id);
             }, showMs);
             return;
           }
