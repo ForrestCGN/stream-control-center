@@ -45,9 +45,30 @@ Aktueller Projektstand:
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-Wichtigster VIP-Dashboard-Einstieg:
+Wichtigste aktuelle Referenzstaende:
 
 - `project-state/STEP040_VIP_BACKEND_REFERENCE_DASHBOARD_READY_2026-05-04.md`
+- `project-state/STEP046_ALERT_SOUND_EARLY_QUEUE_2026-05-04.md`
+
+## STEP-Dokumentation TTS / Sound / Alerts aktuell
+
+- `project-state/STEP041_TTS_ALERT_SOUND_ANALYSIS_PLAN_2026-05-04.md`
+- `project-state/STEP042_TTS_ALERT_TTS_CODE_READY_2026-05-04.md`
+- `project-state/STEP044_CHAT_TTS_SOUND_SYSTEM_PLAYBACK_2026-05-04.md`
+- `project-state/STEP044_1_CHAT_TTS_VISUAL_BEFORE_SOUND_SYSTEM_2026-05-04.md`
+- `project-state/STEP044_2_TTS_OVERLAY_VISUAL_POLL_FALLBACK_2026-05-04.md`
+- `project-state/STEP044_3_TTS_OVERLAY_STATE_ENDPOINT_2026-05-04.md`
+- `project-state/STEP044_4_TTS_OVERLAY_SOUND_SYSTEM_VISUAL_STATE_2026-05-04.md`
+- `project-state/STEP044_5_TTS_OVERLAY_CLEAN_LAYOUT_2026-05-04.md`
+- `project-state/STEP044_6_TTS_OVERLAY_AVATAR_DISPLAY_POSITION_FIX_2026-05-04.md`
+- `project-state/STEP044_7_TTS_OVERLAY_BORDER_AVATAR_TWEAK_2026-05-04.md`
+- `project-state/STEP044_8_TTS_OVERLAY_ADAPTIVE_WIDTH_2026-05-04.md`
+- `project-state/STEP045_TTS_SOUND_SYSTEM_QUEUE_SYNC_2026-05-04.md`
+- `project-state/STEP046_ALERT_SOUND_EARLY_QUEUE_2026-05-04.md`
+
+Hinweis:
+
+- Falls einzelne Zwischen-STEP-Dateien in aelteren Chats/Zips erzeugt, aber nicht im Repo liegen, ist der aktuelle Code- und Projektstatus in `CURRENT_STATUS.md`, `CHANGELOG.md` und `STEP046_ALERT_SOUND_EARLY_QUEUE_2026-05-04.md` massgeblich.
 
 ## STEP-Dokumentation VIP aktuell
 
@@ -122,6 +143,22 @@ Zentrale Helper:
 - `backend/modules/helpers/helper_twitch_roles.js`
 - `backend/core/database.js`
 
+TTS / Sound / Alerts relevant:
+
+- `backend/modules/tts_system.js`
+- `backend/modules/sound_system.js`
+- `backend/modules/alert_system.js`
+- `htdocs/overlays/_overlay-tts.html`
+- `htdocs/overlays/_overlay-alerts-v2.html`
+- `htdocs/overlays/sound_system_overlay.html`
+- `config/sound_system.json`
+- `config/alert_system.json`
+- `package.json`
+- `package-lock.json`
+- `htdocs/assets/sounds/tts/generated/`
+- `htdocs/assets/sounds/alerts/`
+- `htdocs/assets/sounds/crew/`
+
 VIP/Sound relevant:
 
 - `backend/modules/vip_sound_overlay.js`
@@ -132,13 +169,70 @@ VIP/Sound relevant:
 - `htdocs/overlays/vip_sound_overlay_v2.html`
 - `htdocs/overlays/sound_system_overlay.html`
 
-## VIP aktuelle Tabellen in app.sqlite
+## Aktuelle Datenbanktabellen in app.sqlite, relevant fuer aktuelle Arbeit
+
+TTS:
+
+- `tts_settings`
+- `tts_events` / Statistik-/Eventtabellen, sofern im Modul angelegt
+
+Sound-System:
+
+- `sound_settings`
+
+Alerts:
+
+- `alert_settings`
+- `alert_types`
+- `alert_assets`
+- `alert_rules`
+- `alert_events`
+- `alert_text_variants`
+- `alert_chat_blocks`
+- `alert_chat_outbox`
+- `alert_test_presets`
+- `alert_display_profiles`
+
+VIP:
 
 - `vip_sound_daily_usage`
 - `vip_sound_message_templates`
 - `vip_sound_settings`
 - `vip_sound_events`
 - `vip_sound_role_overrides`
+
+## TTS / Sound / Alerts relevante Routen
+
+TTS:
+
+- `GET /api/tts/status`
+- `GET /api/tts/settings`
+- `POST /api/tts/settings/upsert`
+- `GET /api/tts/stats`
+- `GET /api/tts/prepare-alert`
+- `GET /api/tts/overlay-state`
+- `GET /api/tts/done`
+
+Sound-System:
+
+- `GET /api/sound/status`
+- `POST /api/sound/play`
+- `GET/POST /api/sound/settings`
+- `POST /api/sound/clear` oder ggf. `POST /api/sound/queue/clear`, je nach Live-Route
+
+Alerts:
+
+- `GET /api/alerts/status`
+- `GET /api/alerts/queue`
+- `POST /api/alerts/enqueue`
+- `GET /api/alerts/rules`
+- `POST /api/alerts/rules`
+- `PUT /api/alerts/rules/:id`
+- `DELETE /api/alerts/rules/:id`
+- `GET/POST /api/alerts/settings`
+- `GET/POST /api/alerts/config`
+- `GET /api/alerts/assets`
+- `POST /api/alerts/assets/upload`
 
 ## VIP relevante Routen
 
@@ -192,10 +286,6 @@ Texte:
 - `POST /api/vip-sound/texts/toggle`
 - `POST /api/vip-sound/texts/delete`
 
-Sound-System relevante Route fuer VIP:
-
-- `POST /api/sound/play`
-
 ## Dashboard
 
 - `htdocs/dashboard/app.js`
@@ -214,16 +304,29 @@ Wichtig:
 - `app.sqlite` niemals committen.
 - `.env`/Secrets niemals committen.
 - Backup-/Altdateien nicht committen.
+- `node_modules` niemals committen.
 
-## VIP-Sounddateien live
+## Aktuelle wichtige Live-Pfade
+
+TTS generated:
+
+- `D:\Streaming\stramAssets\htdocs\assets\sounds\tts\generated\`
+
+Alert-Sounds:
+
+- `D:\Streaming\stramAssets\htdocs\assets\sounds\alerts\`
+
+Crew-Test-Sound:
+
+- `D:\Streaming\stramAssets\htdocs\assets\sounds\crew\Araglor Immer Dabei.mp3`
+
+VIP-Sounds:
 
 - `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\`
-- Aktuell per DB-Settings steuerbar:
-  - `soundBaseDir`
-  - `fileNameMode`
-  - `fileExtension`
-- Beispiel getestet:
-  - `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\araglor.mp3`
+
+Beispiel getestet:
+
+- `D:\Streaming\stramAssets\htdocs\assets\sounds\vip\araglor.mp3`
 
 ## Settings-/Config-Strategie
 
@@ -232,6 +335,8 @@ Wichtig:
 - `helper_config.js` bleibt fuer JSON-Dateien/Pfade.
 - `helper_settings.js` ist zentrale DB-Settings-Schicht.
 - ENV/Secrets bleiben ausserhalb von DB und Repo.
+- `sound_settings` kann `config/sound_system.json` ueberlagern.
+- Alert-Settings koennen Runtime-/DB-Werte enthalten; Secrets muessen fuer Dashboard-Ausgaben maskiert werden.
 
 ## Spaeter pruefen / angleichen
 
@@ -240,6 +345,7 @@ Bestehende Systeme sollen vor oder waehrend des Dashboard-Ausbaus auf denselben 
 - VIP
 - Sound-System
 - Alerts
+- TTS
 - Hug
 - Messages/Rotator
 - Tagebuch
