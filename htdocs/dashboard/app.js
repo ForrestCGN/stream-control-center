@@ -55,6 +55,14 @@ window.CGN = {
       overlayLink: '',
       reload() { return window.HugModule?.loadAll?.(true); }
     },
+    vip: {
+      title: 'VIP-System',
+      panelId: 'vipModule',
+      group: 'community',
+      overlayLink: '/overlays/vip_sound_overlay_v2.html',
+      overlayLabel: 'VIP-Overlay öffnen',
+      reload() { return window.VipModule?.loadAll?.(true); }
+    },
     adminconfigs: {
       title: 'Admin Configs',
       panelId: 'adminconfigsModule',
@@ -78,7 +86,7 @@ window.CGN = {
     community: {
       label: 'Community', icon: '👥', role: 'mod/supermod/streamer',
       description: 'Chat-, Viewer- und Interaktionssysteme.',
-      items: ['hug', 'chat_overlay', 'deathcounter', 'challenges', 'tagebuch', 'todo', 'commands', 'community_stats']
+      items: ['vip', 'hug', 'chat_overlay', 'deathcounter', 'challenges', 'tagebuch', 'todo', 'commands', 'community_stats']
     },
     system: {
       label: 'System', icon: '🧩', role: 'streamer/local_admin/owner',
@@ -103,6 +111,7 @@ window.CGN = {
     obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
     overlays: { label: 'Overlays', icon: '🖼', enabled: false, description: 'Overlay-Verwaltung vorbereitet.' },
     stream_control: { label: 'Stream-Steuerung', icon: '📺', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },
+    vip: { label: 'VIP-System', icon: '💎', enabled: true, description: 'VIP-/Mod-Sounds, DB-Texte, Rollen, Daily-Usage und Events.' },
     hug: { label: 'Hug-System', icon: '🤗', enabled: true, description: 'Hug/Rehug-Statistiken, Texte, Typen und Diagnose.' },
     chat_overlay: { label: 'Chat-Overlay', icon: '💬', enabled: false, description: 'Chat-Overlay Steuerung vorbereitet.' },
     deathcounter: { label: 'Deathcounter', icon: '💀', enabled: false, description: 'Deathcounter V2 Verwaltung vorbereitet.' },
@@ -128,7 +137,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['alerts', 'hug', 'obs', 'sound_system'],
+  favorites: ['alerts', 'vip', 'hug', 'obs', 'sound_system'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
