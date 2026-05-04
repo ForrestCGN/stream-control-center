@@ -1,6 +1,6 @@
 # FILES - stream-control-center
 
-Stand: 2026-05-03
+Stand: 2026-05-04
 
 ## Hauptpfade
 
@@ -39,6 +39,7 @@ STEP-Dokumentation:
 - project-state/STEP011_DOCUMENTATION_STRUCTURE_2026-05-03.md
 - project-state/STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md
 - project-state/STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md
+- project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
 
 ## Doku-Struktur
 
@@ -96,6 +97,7 @@ VIP/Sound relevant:
 - backend/core/database.js
 - config/sound_system.json
 - htdocs/overlays/vip_sound_overlay.html
+- htdocs/overlays/vip_sound_overlay_v2.html
 - htdocs/overlays/sound_system_overlay.html
 
 VIP aktuelle Tabellen in app.sqlite:
@@ -114,6 +116,12 @@ VIP relevante Routen:
 - GET /api/vip-sound/status
 - GET /api/vip-sound/db/status
 - GET /api/vip-sound-overlay/state
+
+VIP Override relevant:
+
+- ENV/Config: VIP_OVERRIDE_ALLOWED_ROLES
+- Standardrollen: moderator, mod, broadcaster
+- STEP-Doku: project-state/STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md
 
 Dashboard:
 
