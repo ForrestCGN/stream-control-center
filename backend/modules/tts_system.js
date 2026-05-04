@@ -692,6 +692,22 @@ function init(ctx) {
         user: item.user,
         displayName: item.displayName,
         role: item.role
+      },
+      visual: {
+        module: 'tts_overlay',
+        type: 'chat_tts',
+        requestId: item.id,
+        displayName: item.displayName || item.user || 'TTS',
+        login: item.user || '',
+        user: item.displayName || item.user || 'TTS',
+        role: item.role || 'tts',
+        text: item.text || '',
+        title: 'Text to Speech',
+        voice: item.voiceUsed || item.voice || '',
+        voiceLabel: item.voiceLabel || '',
+        engine: item.engineUsed || '',
+        durationMs: Number(item.durationMs || 0),
+        source: 'tts_system'
       }
     };
     return postJson(chatCfg.soundSystemPlayUrl, payload, 10000);

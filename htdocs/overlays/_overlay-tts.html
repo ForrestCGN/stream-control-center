@@ -2,142 +2,108 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=1920, height=1080" />
   <title>ForrestCGN TTS Overlay</title>
   <style>
     :root {
-      --card-w: 860px;
-      --card-min-h: 146px;
-      --stage-x: 50%;
-      --stage-y: calc(100% - 118px);
+      --card-w: 900px;
+      --card-min-h: 148px;
+      --x: 50%;
+      --y: calc(100% - 120px);
       --scale: 1;
-      --panel: rgba(5, 7, 22, .94);
-      --panel-2: rgba(10, 13, 34, .96);
-      --inner: rgba(7, 11, 28, .94);
       --cyan: #8ff4ff;
-      --cyan-soft: rgba(143, 244, 255, .34);
       --purple: #c45cff;
-      --purple-soft: rgba(196, 92, 255, .42);
-      --pink: #d77cff;
-      --white: #f8fbff;
+      --pink: #ff5eea;
       --text: #f8fbff;
       --muted: #b9c7e8;
-      --danger: #ff6f9d;
-      --ok: #8ff4ff;
+      --panel-a: rgba(5, 7, 22, .94);
+      --panel-b: rgba(18, 10, 46, .92);
     }
 
     * { box-sizing: border-box; }
 
-    html,
-    body {
-      width: 100%;
-      height: 100%;
+    html, body {
+      width: 1920px;
+      height: 1080px;
       margin: 0;
+      padding: 0;
       overflow: hidden;
       background: transparent;
-      font-family: Inter, "Segoe UI", Arial, sans-serif;
       color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     }
 
-    body {
+    body { pointer-events: none; }
+
+    body[data-debug="1"] #debug { display: block; }
+
+    #debug {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      z-index: 99999;
+      display: none;
+      min-width: 520px;
+      max-width: 900px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(143, 244, 255, .78);
+      background: rgba(3, 6, 18, .88);
+      color: #dff7ff;
+      font: 13px/1.35 Consolas, monospace;
+      white-space: pre-wrap;
+      box-shadow: 0 0 18px rgba(143, 244, 255, .25);
       pointer-events: none;
     }
 
     #wrap {
-      position: fixed;
-      left: var(--stage-x);
-      top: var(--stage-y);
-      width: min(var(--card-w), calc(100vw - 52px));
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: min(var(--card-w), calc(100vw - 64px));
       min-height: var(--card-min-h);
-      transform: translate(-50%, -50%) translateY(34px) scale(calc(var(--scale) * .96));
       opacity: 0;
-      filter: blur(7px);
-      transition:
-        opacity .34s ease,
-        transform .56s cubic-bezier(.16, 1, .3, 1),
-        filter .42s ease;
-      will-change: transform, opacity, filter;
+      visibility: hidden;
+      transform: translate(-50%, -50%) translateY(34px) scale(calc(var(--scale) * .96));
+      transform-origin: center center;
+      filter: blur(6px);
+      transition: opacity .32s ease, transform .48s cubic-bezier(.16,1,.3,1), filter .36s ease;
+      will-change: opacity, transform, filter;
+      z-index: 50;
     }
 
-    #wrap.show {
+    #wrap.visible {
       opacity: 1;
+      visibility: visible;
       transform: translate(-50%, -50%) translateY(0) scale(var(--scale));
       filter: blur(0);
     }
 
-    #wrap.hide {
+    #wrap.exiting {
       opacity: 0;
-      transform: translate(-50%, -50%) translateY(-24px) scale(calc(var(--scale) * .985));
-      filter: blur(5px);
-    }
-
-    .lines {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: calc(100% + 260px);
-      height: 34px;
-      transform: translate(-50%, -50%);
-      z-index: 0;
-      opacity: .78;
-    }
-
-    .line {
-      position: absolute;
-      top: 50%;
-      width: 132px;
-      height: 3px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, transparent, var(--purple), var(--cyan), transparent);
-      box-shadow: 0 0 16px var(--purple-soft), 0 0 22px rgba(143,244,255,.18);
-    }
-
-    .line.left { left: 0; transform: translateY(-50%); }
-    .line.right { right: 0; transform: translateY(-50%) scaleX(-1); }
-
-    .diamond {
-      position: absolute;
-      top: 50%;
-      width: 18px;
-      height: 18px;
-      background: var(--white);
-      transform: translateY(-50%) rotate(45deg);
-      box-shadow: 0 0 12px rgba(255,255,255,.62), 0 0 24px var(--purple-soft);
-      opacity: .9;
-    }
-
-    .diamond.left { left: 74px; animation: diamondLeft 5.8s ease-in-out infinite; }
-    .diamond.right { right: 74px; animation: diamondRight 5.8s ease-in-out infinite; animation-delay: -2.9s; }
-
-    @keyframes diamondLeft {
-      0%, 100% { transform: translateY(-50%) rotate(45deg) translateX(0); opacity: .72; }
-      50% { transform: translateY(-50%) rotate(45deg) translateX(42px); opacity: 1; }
-    }
-
-    @keyframes diamondRight {
-      0%, 100% { transform: translateY(-50%) rotate(45deg) translateX(0); opacity: .72; }
-      50% { transform: translateY(-50%) rotate(45deg) translateX(-42px); opacity: 1; }
+      visibility: visible;
+      transform: translate(-50%, -50%) translateY(-22px) scale(calc(var(--scale) * .985));
+      filter: blur(4px);
     }
 
     .card {
       position: relative;
-      z-index: 2;
       min-height: var(--card-min-h);
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-columns: 82px minmax(0, 1fr);
       gap: 18px;
       align-items: center;
       padding: 22px 28px;
       border: 4px solid transparent;
-      border-radius: 42px;
+      border-radius: 40px;
       background:
-        radial-gradient(circle at 12% 50%, rgba(143,244,255,.10), transparent 31%) padding-box,
-        linear-gradient(135deg, var(--panel-2), var(--panel)) padding-box,
-        linear-gradient(180deg, var(--cyan) 0%, var(--purple) 34%, var(--purple) 100%) border-box;
+        radial-gradient(circle at 12% 50%, rgba(143,244,255,.13), transparent 34%) padding-box,
+        linear-gradient(135deg, var(--panel-b), var(--panel-a)) padding-box,
+        linear-gradient(120deg, var(--cyan), var(--purple) 42%, var(--pink) 72%, var(--cyan)) border-box;
       box-shadow:
-        0 0 34px rgba(196,92,255,.48),
-        0 0 80px rgba(143,244,255,.09),
-        inset 0 0 30px rgba(143,244,255,.06);
+        0 0 34px rgba(196,92,255,.44),
+        0 0 80px rgba(143,244,255,.10),
+        inset 0 0 30px rgba(143,244,255,.055);
       overflow: hidden;
       isolation: isolate;
     }
@@ -146,12 +112,11 @@
       content: "";
       position: absolute;
       inset: 15px 18px;
-      border-radius: 30px;
+      border-radius: 29px;
       border: 2px solid transparent;
       background:
-        linear-gradient(180deg, var(--inner), rgba(4, 7, 20, .94)) padding-box,
-        linear-gradient(180deg, rgba(143,244,255,.82), rgba(196,92,255,.86)) border-box;
-      box-shadow: inset 0 0 20px rgba(143,244,255,.045);
+        linear-gradient(180deg, rgba(7,11,28,.95), rgba(4,7,20,.94)) padding-box,
+        linear-gradient(180deg, rgba(143,244,255,.78), rgba(196,92,255,.82)) border-box;
       z-index: 0;
       pointer-events: none;
     }
@@ -159,11 +124,11 @@
     .card::after {
       content: "";
       position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, transparent 0%, rgba(143,244,255,.10) 30%, rgba(255,255,255,.10) 47%, rgba(196,92,255,.16) 62%, transparent 82%);
+      inset: -30px;
+      background: linear-gradient(90deg, transparent 0%, rgba(143,244,255,.08) 30%, rgba(255,255,255,.11) 47%, rgba(196,92,255,.16) 62%, transparent 82%);
       transform: translateX(-132%);
       animation: runner 4.6s linear infinite;
-      opacity: .46;
+      opacity: .48;
       z-index: 1;
       pointer-events: none;
     }
@@ -173,8 +138,8 @@
     .orb {
       position: relative;
       z-index: 3;
-      width: 78px;
-      height: 78px;
+      width: 76px;
+      height: 76px;
       display: grid;
       place-items: center;
       border-radius: 50%;
@@ -184,21 +149,9 @@
         linear-gradient(135deg, rgba(11, 16, 45, .98), rgba(121, 45, 220, .95) 53%, rgba(24, 199, 239, .82));
       border: 3px solid rgba(255,255,255,.92);
       box-shadow: 0 0 24px rgba(143,244,255,.32), 0 0 34px rgba(196,92,255,.42);
-      flex: 0 0 auto;
     }
 
-    .orb::before {
-      content: "";
-      position: absolute;
-      inset: 12px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,.42);
-      box-shadow: inset 0 0 12px rgba(255,255,255,.08);
-    }
-
-    .mic {
-      position: relative;
-      z-index: 2;
+    .orb svg {
       width: 34px;
       height: 34px;
       color: #fff;
@@ -247,10 +200,9 @@
       50% { opacity: 1; transform: scale(1.22); }
     }
 
-    .user {
+    #user {
       min-width: 0;
-      max-width: 100%;
-      color: var(--white);
+      color: #fff;
       font-size: 28px;
       line-height: 1.02;
       font-weight: 950;
@@ -261,341 +213,285 @@
       text-overflow: ellipsis;
     }
 
-    .role {
+    #role {
       margin-left: auto;
       flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      min-height: 24px;
-      padding: 4px 11px;
+      padding: 4px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(143,244,255,.30);
-      background: rgba(57,230,255,.075);
-      color: #eafaff;
-      font-size: 11px;
+      border: 1px solid rgba(143,244,255,.34);
+      background: rgba(143,244,255,.08);
+      color: #dff7ff;
+      font-size: 12px;
       font-weight: 900;
-      letter-spacing: .09em;
+      letter-spacing: .08em;
       text-transform: uppercase;
-      box-shadow: 0 0 16px rgba(143,244,255,.10);
     }
 
-    .role.role-broadcaster { border-color: rgba(215,124,255,.42); color: #f3ddff; background: rgba(196,92,255,.12); }
-    .role.role-moderator { border-color: rgba(143,244,255,.42); color: #dffaff; }
-    .role.role-vip { border-color: rgba(215,124,255,.48); color: #f7e4ff; }
-    .role.role-subscriber { border-color: rgba(255,255,255,.28); color: #eaf1ff; }
-
-    .text {
-      color: #eaf1ff;
-      font-size: 24px;
-      line-height: 1.24;
-      font-weight: 750;
-      letter-spacing: .003em;
-      text-shadow: 0 2px 9px rgba(0,0,0,.58);
+    #text {
+      color: var(--text);
+      font-size: 25px;
+      line-height: 1.18;
+      font-weight: 760;
+      text-shadow: 0 2px 10px rgba(0,0,0,.55);
       overflow-wrap: anywhere;
-      word-break: normal;
-      max-height: 3.8em;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
     }
 
-    .spark {
-      position: absolute;
-      z-index: 1;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--cyan);
-      box-shadow: 0 0 16px var(--cyan);
-      opacity: .65;
-      animation: sparkFloat 5.6s ease-in-out infinite;
-      pointer-events: none;
-    }
-
-    .spark.s1 { top: 24%; left: 6%; }
-    .spark.s2 { bottom: 20%; right: 8%; animation-delay: -1.1s; background: var(--pink); box-shadow: 0 0 16px var(--pink); }
-    .spark.s3 { top: 23%; right: 17%; animation-delay: -2.5s; background: var(--purple); box-shadow: 0 0 16px var(--purple); }
-
-    @keyframes sparkFloat {
-      0%, 100% { transform: translateY(0) scale(1); opacity: .38; }
-      50% { transform: translateY(-16px) scale(1.44); opacity: .95; }
-    }
-
-    @media (max-width: 760px) {
-      :root { --card-w: calc(100vw - 24px); --card-min-h: 132px; --stage-y: calc(100% - 92px); }
-      .lines { display: none; }
-      .card { grid-template-columns: 1fr; padding: 20px 22px; border-radius: 34px; }
-      .card::before { inset: 12px 14px; border-radius: 24px; }
-      .orb { display: none; }
-      .user { font-size: 23px; }
-      .text { font-size: 20px; max-height: 4.9em; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: .001ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: .001ms !important;
-      }
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   </style>
 </head>
 <body>
-  <div id="wrap" aria-live="polite">
-    <div class="lines" aria-hidden="true">
-      <div class="line left"></div>
-      <div class="line right"></div>
-      <div class="diamond left"></div>
-      <div class="diamond right"></div>
-    </div>
+  <div id="debug">TTS overlay boot...</div>
 
+  <div id="wrap" aria-hidden="true">
     <div class="card">
-      <div class="spark s1"></div>
-      <div class="spark s2"></div>
-      <div class="spark s3"></div>
-
       <div class="orb" aria-hidden="true">
-        <svg class="mic" viewBox="0 0 64 64" role="img" aria-label="Mikrofon">
-          <path fill="currentColor" d="M32 7c-7.1 0-12.8 5.7-12.8 12.8v12.4C19.2 39.3 24.9 45 32 45s12.8-5.7 12.8-12.8V19.8C44.8 12.7 39.1 7 32 7Zm0 43.2c-10.3 0-18.7-8.4-18.7-18.7a2.7 2.7 0 1 0-5.4 0c0 12.3 9.4 22.5 21.4 23.7v4.1h-7.1a2.7 2.7 0 0 0 0 5.4h19.6a2.7 2.7 0 1 0 0-5.4h-7.1v-4.1c12-1.3 21.4-11.4 21.4-23.7a2.7 2.7 0 1 0-5.4 0c0 10.3-8.4 18.7-18.7 18.7Z"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <path d="M12 19v3" />
+          <path d="M8 22h8" />
         </svg>
       </div>
-
       <div class="content">
         <div class="toprow">
-          <div class="label"><span class="label-dot"></span>Text to Speech</div>
-          <div id="role" class="role">TTS</div>
+          <div class="label"><span class="label-dot"></span><span>Text to Speech</span></div>
+          <div id="role">TTS</div>
         </div>
-        <div id="user" class="user">ForrestCGN</div>
-        <div id="text" class="text">...</div>
+        <div id="user">ForrestCGN</div>
+        <div id="text">...</div>
+        <div class="meta" id="meta">Sound-System Visual</div>
       </div>
     </div>
   </div>
 
-  <audio id="player" preload="auto"></audio>
-
   <script>
+    const SOUND_STATUS_URL = "/api/sound/status";
+    const params = new URLSearchParams(location.search);
+    const debugEnabled = params.get("debug") === "1";
+    const pollEnabled = params.get("poll") !== "0";
+    const pollMs = Math.max(200, Math.min(5000, Number(params.get("pollMs") || 350)));
+
     const wrap = document.getElementById("wrap");
     const userEl = document.getElementById("user");
     const roleEl = document.getElementById("role");
     const textEl = document.getElementById("text");
-    const player = document.getElementById("player");
+    const metaEl = document.getElementById("meta");
+    const debugEl = document.getElementById("debug");
 
-    const params = new URLSearchParams(location.search);
-    const position = String(params.get("position") || "bottom").toLowerCase();
-    const scale = Number(params.get("scale") || "1") || 1;
-    const width = Number(params.get("width") || "860") || 860;
-    const bottom = Number(params.get("bottom") || "118") || 118;
-    const top = Number(params.get("top") || "160") || 160;
-    const x = Number(params.get("x") || "50") || 50;
-    const pollStatus = String(params.get("poll") || "1") !== "0";
-    const pollMs = Math.max(250, Math.min(2500, Number(params.get("pollMs") || "500") || 500));
+    if (debugEnabled) document.body.dataset.debug = "1";
 
-    document.documentElement.style.setProperty("--scale", String(Math.max(.65, Math.min(1.35, scale))));
-    document.documentElement.style.setProperty("--card-w", `${Math.max(520, Math.min(1200, width))}px`);
-    document.documentElement.style.setProperty("--stage-x", `${Math.max(0, Math.min(100, x))}%`);
-    if (position === "top") {
-      document.documentElement.style.setProperty("--stage-y", `${Math.max(40, Math.min(980, top))}px`);
-    } else if (position === "center" || position === "middle") {
-      document.documentElement.style.setProperty("--stage-y", "50%");
-    } else {
-      document.documentElement.style.setProperty("--stage-y", `calc(100% - ${Math.max(40, Math.min(420, bottom))}px)`);
-    }
-
-    let currentId = null;
+    let ws = null;
     let reconnectTimer = null;
-    let gapAfterMs = 350;
-    let activeWs = null;
-    let visualTimer = null;
-    let lastVisualId = null;
-    let statusPollTimer = null;
+    let pollTimer = null;
+    let hideTimer = null;
+    let visible = false;
+    let currentSoundRequestId = "";
 
-    function wsUrl() {
-      const proto = location.protocol === "https:" ? "wss:" : "ws:";
-      return `${proto}//${location.host}`;
+    function setDebug(lines) {
+      if (!debugEnabled || !debugEl) return;
+      debugEl.textContent = (Array.isArray(lines) ? lines : [String(lines || "")]).join("\n");
     }
 
-    function roleLabel(role) {
-      const raw = String(role || "tts").trim().toLowerCase();
-      const map = {
-        broadcaster: "Chefetage",
-        moderator: "Mod",
-        vip: "VIP",
-        subscriber: "Sub",
-        viewer: "Viewer",
-        system: "System",
-        tts: "TTS"
+    function safe(value, fallback = "") {
+      const text = String(value == null ? "" : value).trim();
+      return text || fallback;
+    }
+
+    function applyParams() {
+      const pos = safe(params.get("position"), "bottom").toLowerCase();
+      const width = Number(params.get("width") || 900);
+      const scale = Number(params.get("scale") || 1);
+      const bottom = Number(params.get("bottom") || 120);
+      const top = Number(params.get("top") || 0);
+      const x = Number(params.get("x") || 50);
+
+      document.documentElement.style.setProperty("--card-w", Math.max(420, Math.min(1500, width)) + "px");
+      document.documentElement.style.setProperty("--scale", (Number.isFinite(scale) && scale > 0 ? scale : 1).toString());
+      document.documentElement.style.setProperty("--x", `${Math.max(0, Math.min(100, x))}%`);
+
+      if (pos === "center" || pos === "middle") {
+        document.documentElement.style.setProperty("--y", "50%");
+      } else if (pos === "top") {
+        document.documentElement.style.setProperty("--y", `${Math.max(40, top || 120)}px`);
+      } else {
+        document.documentElement.style.setProperty("--y", `calc(100% - ${Math.max(40, bottom)}px)`);
+      }
+    }
+
+    function isTtsItem(item) {
+      const visual = item && item.visual ? item.visual : {};
+      return safe(visual.module).toLowerCase() === "tts_overlay";
+    }
+
+    function findTtsItem(state) {
+      if (!state || !state.ok) return null;
+      if (state.current && isTtsItem(state.current)) return state.current;
+      if (Array.isArray(state.parallel)) {
+        return state.parallel.find(isTtsItem) || null;
+      }
+      if (Array.isArray(state.queue)) {
+        return state.queue.find(isTtsItem) || null;
+      }
+      return null;
+    }
+
+    function visualFromItem(item) {
+      const visual = item && item.visual ? item.visual : {};
+      const requestId = safe(item.requestId || visual.soundRequestId || visual.requestId || item.id || item.soundId);
+      return {
+        soundRequestId: requestId,
+        requestId: safe(visual.requestId || requestId),
+        displayName: safe(visual.displayName || visual.user || item.requestedBy || item.user, "TTS"),
+        login: safe(visual.login || item.requestedBy || item.user),
+        role: safe(visual.role || item.role || "tts", "tts"),
+        text: safe(visual.text || item.text || item.label || ""),
+        voiceLabel: safe(visual.voiceLabel || visual.voice || ""),
+        engine: safe(visual.engine || ""),
+        durationMs: Number(visual.durationMs || item.durationMs || 0)
       };
-      return map[raw] || raw;
     }
 
-    function roleClass(role) {
-      return String(role || "tts").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "") || "tts";
+    function showOverlay(data, reason) {
+      if (!data || !data.requestId) return;
+
+      clearTimeout(hideTimer);
+      currentSoundRequestId = data.soundRequestId || data.requestId;
+      visible = true;
+
+      userEl.textContent = data.displayName || "TTS";
+      roleEl.textContent = data.role || "tts";
+      textEl.textContent = data.text || "";
+      metaEl.textContent = [data.engine, data.voiceLabel].filter(Boolean).join(" · ") || "Sound-System";
+
+      wrap.classList.remove("exiting");
+      wrap.classList.add("visible");
+      wrap.setAttribute("aria-hidden", "false");
+
+      setDebug([
+        "SHOW TTS OVERLAY",
+        "reason=" + reason,
+        "requestId=" + data.requestId,
+        "soundRequestId=" + data.soundRequestId,
+        "displayName=" + data.displayName,
+        "role=" + data.role,
+        "text=" + data.text,
+        "durationMs=" + data.durationMs
+      ]);
     }
 
-    function show(item) {
-      const role = item.role || "tts";
-      userEl.textContent = item.user || "Unbekannt";
-      roleEl.textContent = roleLabel(role);
-      roleEl.className = `role role-${roleClass(role)}`;
-      textEl.textContent = item.text || "";
-      wrap.classList.remove("hide");
-      requestAnimationFrame(() => wrap.classList.add("show"));
+    function hideOverlay(reason) {
+      if (!visible) return;
+      visible = false;
+      wrap.classList.remove("visible");
+      wrap.classList.add("exiting");
+      wrap.setAttribute("aria-hidden", "true");
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        wrap.classList.remove("exiting");
+        currentSoundRequestId = "";
+      }, 450);
+      setDebug(["HIDE TTS OVERLAY", "reason=" + reason]);
     }
 
-    function hide() {
-      wrap.classList.remove("show");
-      wrap.classList.add("hide");
+    function handleSoundItem(item, reason) {
+      if (!item || !isTtsItem(item)) return false;
+      const data = visualFromItem(item);
+      showOverlay(data, reason || "sound_item");
+      return true;
     }
 
-    async function markDone(id) {
+    async function pollSoundStatus() {
       try {
-        await fetch(`/api/tts/done?id=${encodeURIComponent(id || "")}`, { cache: "no-store" });
-      } catch (err) {
-        console.error("TTS done failed", err);
-      }
-    }
-
-    function stopAudio(markAsDone) {
-      clearTimeout(visualTimer);
-      visualTimer = null;
-      try {
-        player.pause();
-        player.removeAttribute("src");
-        player.load();
-      } catch (_) {}
-      hide();
-      if (markAsDone && currentId) {
-        const id = currentId;
-        currentId = null;
-        markDone(id);
-      }
-    }
-
-    player.addEventListener("ended", () => {
-      const id = currentId;
-      currentId = null;
-      setTimeout(() => {
-        hide();
-        markDone(id);
-      }, gapAfterMs || 350);
-    });
-
-    player.addEventListener("error", () => {
-      const id = currentId;
-      currentId = null;
-      hide();
-      markDone(id);
-    });
-
-
-    function showVisualOnly(item, durationMs, extraMs) {
-      if (!item || !item.id) return;
-      currentId = item.id;
-      lastVisualId = item.id;
-      show(item);
-      clearTimeout(visualTimer);
-      const showMs = Math.max(1200, Number(durationMs || item.durationMs || 2500) + Number(extraMs || gapAfterMs || 350) + 450);
-      visualTimer = setTimeout(() => {
-        if (currentId === item.id) currentId = null;
-        hide();
-      }, showMs);
-    }
-
-    async function pollTtsStatus() {
-      if (!pollStatus) return;
-      try {
-        const res = await fetch(`/api/tts/overlay-state?t=${Date.now()}`, { cache: "no-store" });
+        const res = await fetch(`${SOUND_STATUS_URL}?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) return;
         const state = await res.json();
-        const item = state && state.item ? state.item : null;
-        if (state && state.show && item && item.id) {
-          if (item.id !== lastVisualId || !wrap.classList.contains("show")) {
-            showVisualOnly(item, Number(item.remainingMs || item.durationMs || 2500), 0);
-          }
+        const item = findTtsItem(state);
+        if (item) {
+          handleSoundItem(item, "status_poll");
           return;
         }
-        if (state && !state.show && currentId) {
-          currentId = null;
-          hide();
-        }
+        if (visible) hideOverlay("status_poll_empty");
       } catch (err) {
-        try {
-          const res = await fetch(`/api/tts/status?t=${Date.now()}`, { cache: "no-store" });
-          if (!res.ok) return;
-          const status = await res.json();
-          const item = status && status.current ? status.current : null;
-          if (status && status.playing && item && item.id && item.id !== lastVisualId) {
-            showVisualOnly(item, Number(item.durationMs || 2500), gapAfterMs);
-          } else if (status && !status.playing && currentId) {
-            currentId = null;
-            hide();
-          }
-        } catch (_) {}
+        setDebug(["poll failed", err && err.message ? err.message : String(err)]);
       }
     }
 
-    function connect() {
-      const ws = new WebSocket(wsUrl());
-      activeWs = ws;
+    function handleSoundSystemEvent(payload) {
+      if (!payload || payload.op !== "sound_system") return;
+      const reason = safe(payload.reason);
+      const data = payload.data || payload.payload || {};
+      const item = payload.item || data.item || data.current || null;
 
-      ws.addEventListener("open", () => {
-        console.log("TTS Overlay WS connected");
+      setDebug([
+        "SOUND EVENT",
+        "reason=" + reason,
+        "hasItem=" + Boolean(item),
+        "requestId=" + safe(item && item.requestId),
+        "visual.module=" + safe(item && item.visual && item.visual.module),
+        "isTts=" + Boolean(item && isTtsItem(item))
+      ]);
+
+      const startReasons = ["started", "device_play_started", "item_started", "item_starting", "play_stream", "next_started", "interrupted_started", "parallel_started", "resumed"];
+      const stopReasons = ["auto_finished", "finished", "device_play_finished", "device_play_stopped", "manual_stop", "manual_skip", "stop_stream", "skip_stream", "stopped", "reset"];
+
+      if (startReasons.includes(reason)) {
+        handleSoundItem(item, reason);
+        return;
+      }
+
+      if (stopReasons.includes(reason)) {
+        hideOverlay(reason);
+      }
+    }
+
+    function connectWs() {
+      clearTimeout(reconnectTimer);
+      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(protocol + "//" + location.host);
+
+      setDebug(["TTS overlay WS connecting", "host=" + location.host]);
+
+      ws.addEventListener("open", () => setDebug(["TTS overlay WS open", "host=" + location.host]));
+      ws.addEventListener("message", (event) => {
+        try { handleSoundSystemEvent(JSON.parse(event.data)); } catch (_) {}
       });
-
-      ws.addEventListener("message", async (event) => {
-        let msg;
-        try { msg = JSON.parse(event.data); } catch (_) { return; }
-
-        if (msg.op === "tts_play" || msg.op === "tts_visual") {
-          const item = msg.item || {};
-          currentId = item.id;
-          gapAfterMs = Number(msg.gapAfterMs || 350);
-
-          clearTimeout(visualTimer);
-          visualTimer = null;
-
-          const playbackMode = String(msg.playbackMode || item.playbackMode || "overlay").toLowerCase();
-          const visualOnly = msg.op === "tts_visual" || msg.visualOnly === true || playbackMode === "sound_system" || playbackMode === "off" || !msg.audioUrl;
-
-          if (visualOnly) {
-            showVisualOnly(item, Number(msg.durationMs || item.durationMs || 2500), gapAfterMs);
-            return;
-          }
-
-          show(item);
-          player.src = `${msg.audioUrl}?t=${Date.now()}`;
-          player.volume = 1.0;
-
-          try {
-            await player.play();
-          } catch (err) {
-            console.error("TTS audio play failed", err);
-            const id = currentId;
-            currentId = null;
-            hide();
-            markDone(id);
-          }
-        }
-
-        if (msg.op === "tts_stop") {
-          stopAudio(true);
-        }
-      });
-
       ws.addEventListener("close", () => {
-        console.log("TTS Overlay WS disconnected");
-        clearTimeout(reconnectTimer);
-        if (activeWs === ws) reconnectTimer = setTimeout(connect, 1500);
+        setDebug(["TTS overlay WS closed", "reconnect in 1500ms"]);
+        reconnectTimer = setTimeout(connectWs, 1500);
       });
-
-      ws.addEventListener("error", () => {
-        try { ws.close(); } catch (_) {}
-      });
+      ws.addEventListener("error", () => { try { ws.close(); } catch (_) {} });
     }
 
-    connect();
-    if (pollStatus) {
-      statusPollTimer = setInterval(pollTtsStatus, pollMs);
-      setTimeout(pollTtsStatus, 300);
+    function init() {
+      applyParams();
+      connectWs();
+      if (pollEnabled) {
+        pollSoundStatus();
+        pollTimer = setInterval(pollSoundStatus, pollMs);
+      }
     }
+
+    window.addEventListener("beforeunload", () => {
+      clearTimeout(reconnectTimer);
+      clearTimeout(hideTimer);
+      clearInterval(pollTimer);
+      try { if (ws) ws.close(); } catch (_) {}
+    });
+
+    init();
   </script>
 </body>
 </html>
