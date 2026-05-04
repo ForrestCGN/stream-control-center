@@ -255,9 +255,32 @@
       100% { transform: translateY(0) scale(1); opacity: 0.98; }
     }
 
+    #vip-debug {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      z-index: 99999;
+      display: none;
+      min-width: 420px;
+      max-width: 760px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.82);
+      border: 1px solid rgba(120, 190, 255, 0.8);
+      color: #dff6ff;
+      font: 13px/1.35 Consolas, monospace;
+      white-space: pre-wrap;
+      pointer-events: none;
+    }
+
+    body[data-debug="1"] #vip-debug {
+      display: block;
+    }
+
 </style>
 </head>
 <body>
+  <div id="vip-debug">VIP debug boot...</div>
   <div id="vip-root" aria-hidden="true">
     <div class="panel-wrap">
       <svg class="border-svg" viewBox="0 0 560 114" aria-hidden="true">
@@ -328,6 +351,15 @@
     const avatarImg = document.getElementById("avatar-img");
     const avatarFallback = document.getElementById("avatar-fallback");
     const audio = document.getElementById("vip-audio");
+    const debugEnabled = new URLSearchParams(location.search).get("debug") === "1";
+    const debugEl = document.getElementById("vip-debug");
+    if (debugEnabled) document.body.dataset.debug = "1";
+
+    function setDebug(lines) {
+      if (!debugEnabled || !debugEl) return;
+      const arr = Array.isArray(lines) ? lines : [String(lines || "")];
+      debugEl.textContent = arr.join("\n");
+    }
 
     const INTRO_FALLBACK_MS = 620;
     const OUTRO_FALLBACK_MS = 620;
@@ -580,6 +612,12 @@
     }
 
     function startOverlay(overlay) {
+      setDebug([
+        "startOverlay()",
+        "requestId=" + (overlay.requestId || ""),
+        "displayName=" + (overlay.displayName || ""),
+        "externalAudio=" + (!!overlay.externalAudio)
+      ]);
       clearTimers();
       resetAudio();
 
@@ -621,7 +659,14 @@
 
         if (overlay.visible && incomingRequestId) {
           if (incomingRequestId !== currentRequestId && phase === "idle") {
-            startOverlay(overlay);
+            setDebug([
+            "START OVERLAY",
+            "reason=" + reason,
+            "requestId=" + overlay.requestId,
+            "displayName=" + overlay.displayName,
+            "text=" + overlay.text
+          ]);
+          startOverlay(overlay);
           }
           return;
         }
@@ -717,6 +762,21 @@
       if (op !== "sound_system") return;
 
       const item = data.item || payload.item || data.current || null;
+      const visual = item && item.visual ? item.visual : {};
+      const vipVisual = item ? isVipVisual(item) : false;
+
+      setDebug([
+        "sound_system event",
+        "reason=" + reason,
+        "hasItem=" + (!!item),
+        "itemId=" + ((item && item.requestId) || ""),
+        "category=" + ((item && item.category) || ""),
+        "visual.module=" + (visual.module || ""),
+        "visual.type=" + (visual.type || ""),
+        "vipVisual=" + vipVisual,
+        "phase=" + phase,
+        "currentRequestId=" + currentRequestId
+      ]);
 
       const startReasons = [
         "item_starting",
@@ -747,6 +807,13 @@
       if (startReasons.includes(reason) && item && isVipVisual(item)) {
         const overlay = overlayFromSoundItem(item);
         if (overlay.requestId && overlay.requestId !== currentRequestId) {
+          setDebug([
+            "START OVERLAY",
+            "reason=" + reason,
+            "requestId=" + overlay.requestId,
+            "displayName=" + overlay.displayName,
+            "text=" + overlay.text
+          ]);
           startOverlay(overlay);
         }
         return;
@@ -762,6 +829,11 @@
 
       const protocol = location.protocol === "https:" ? "wss:" : "ws:";
       ws = new WebSocket(protocol + "//" + location.host);
+      setDebug(["WS connecting", "host=" + location.host]);
+
+      ws.addEventListener("open", () => {
+        setDebug(["WS open", "host=" + location.host]);
+      });
 
       ws.addEventListener("message", (event) => {
         try {
