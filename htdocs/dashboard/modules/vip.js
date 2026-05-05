@@ -100,7 +100,7 @@ window.VipModule = (function(){
 
   function render(){
     if (!root) return;
-    root.innerHTML = `${noteHtml()}${heroHtml()}${tabsHtml()}${pageHtml()}`;
+    root.innerHTML = `${noteHtml()}${tabsHtml()}${pageHtml()}`;
     bind();
   }
 
@@ -114,7 +114,7 @@ window.VipModule = (function(){
     const s = state.summary || {};
     const status = s.status || {};
     const db = s.db || {};
-    return `<section class="vip-card vip-hero glass"><div><h2>VIP-System</h2><p>VIP-/Mod-Sounds, DB-Texte, Twitch-Sync, lokale Fallbacks, Daily-Usage und Event-Statistik.</p><div class="vip-hero-meta">${badge(s.version ? `v${s.version}` : 'Version unbekannt')}${badge(status.client?.connected ? 'Overlay verbunden' : 'Overlay getrennt', status.client?.connected ? 'ok' : 'warn')}${badge(db.initialized ? `DB Schema ${db.schemaVersion || 0}` : 'DB nicht bereit', db.initialized ? 'ok' : 'bad')}</div></div><div class="vip-actions"><button type="button" data-vip-action="reload">Neu laden</button><a class="ghost-link" href="/overlays/vip_sound_overlay_v2.html" target="_blank">VIP-Overlay öffnen</a></div></section>`;
+    return '';
   }
 
   function tabsHtml(){
@@ -139,7 +139,7 @@ window.VipModule = (function(){
     const status = s.status || {};
     const stats = s.stats || {};
     const totals = stats.totals || {};
-    return `<div class="vip-grid">${metricCard('System', s.version ? 'Aktiv' : 'Unbekannt', `Version ${fmt(s.version)}`, s.version ? 'ok' : 'warn')}${metricCard('Overlay', status.client?.connected ? 'Verbunden' : 'Getrennt', status.visible ? 'sichtbar' : 'idle', status.client?.connected ? 'ok' : 'warn')}${metricCard('Settings', count(db.settingsRows), 'DB-Settings', '')}${metricCard('Texte', count(db.messageTemplates), 'Chat-/Overlaytexte', '')}${metricCard('VIPs & Mods', count(state.soundUsers?.rows?.length || 0), `${count(db.roleOverridesRows)} lokale Overrides`, '')}${metricCard('Events heute', count(totals.total_events), `${count(totals.accepted_events)} akzeptiert`, '')}<section class="vip-card glass span-12"><div class="vip-card-head"><h3>Aktueller VIP-Standard</h3></div><div class="vip-standard-list"><div><strong>Settings:</strong> DB über <code>vip_sound_settings</code>, JSON nur Fallback.</div><div><strong>Texte:</strong> DB über <code>vip_sound_message_templates</code>, editierbar über API.</div><div><strong>Sound:</strong> Ausgabe über <code>sound_system</code>, Overlay V2 liest Visual-State.</div><div><strong>Twitch-Sync:</strong> VIPs/Mods werden lokal gecached und können manuell oder automatisch alle 24h aktualisiert werden.</div><div><strong>Dashboard:</strong> Kein direkter SQLite-/Dateizugriff, nur Backend-APIs.</div></div></section><section class="vip-card glass span-12"><div class="vip-card-head"><h3>Letzte Events</h3><button type="button" data-vip-page="events">Alle anzeigen</button></div>${eventsTable((state.events?.rows || []).slice(0, 5), true)}</section></div>`;
+    return `<div class="vip-grid">${metricCard('System', s.version ? 'Aktiv' : 'Unbekannt', `Version ${fmt(s.version)}`, s.version ? 'ok' : 'warn')}${metricCard('Overlay', status.client?.connected ? 'Verbunden' : 'Getrennt', status.visible ? 'sichtbar' : 'idle', status.client?.connected ? 'ok' : 'warn')}${metricCard('Settings', count(db.settingsRows), 'DB-Settings', '')}${metricCard('Texte', count(db.messageTemplates), 'Chat-/Overlaytexte', '')}${metricCard('VIPs & Mods', count(state.soundUsers?.rows?.length || 0), `${count(db.twitchUsersRows || 0)} im Twitch-Cache`, '')}${metricCard('Events heute', count(totals.total_events), `${count(totals.accepted_events)} akzeptiert`, '')}<section class="vip-card glass span-12"><div class="vip-card-head"><h3>Aktueller VIP-Standard</h3></div><div class="vip-standard-list"><div><strong>Settings:</strong> DB über <code>vip_sound_settings</code>, JSON nur Fallback.</div><div><strong>Texte:</strong> DB über <code>vip_sound_message_templates</code>, editierbar über API.</div><div><strong>Sound:</strong> Ausgabe über <code>sound_system</code>, Overlay V2 liest Visual-State.</div><div><strong>Twitch-Sync:</strong> VIPs/Mods werden lokal gecached und können manuell oder automatisch alle 24h aktualisiert werden.</div><div><strong>Dashboard:</strong> Kein direkter SQLite-/Dateizugriff, nur Backend-APIs.</div></div></section><section class="vip-card glass span-12"><div class="vip-card-head"><h3>Letzte Events</h3><button type="button" data-vip-page="events">Alle anzeigen</button></div>${eventsTable((state.events?.rows || []).slice(0, 5), true)}</section></div>`;
   }
 
   function metricCard(title, value, sub, cls){ return `<section class="vip-card glass vip-metric"><h3>${esc(title)}</h3><div class="vip-metric-value ${cls || ''}">${esc(value)}</div><p>${esc(sub || '')}</p></section>`; }
@@ -178,7 +178,7 @@ window.VipModule = (function(){
     const expectedExt = settings.fileExtension || sound.fileExtension || '.mp3';
     const maxMb = settings.maxSoundUploadBytes ? Math.round(Number(settings.maxSoundUploadBytes) / 1024 / 1024) : 15;
     const stats = soundStats(users);
-    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>Sounds</h3><p>VIP-/Mod-Sounds verwalten. Die Datei wird automatisch nach der bestehenden VIP-Dateinamenlogik gespeichert.</p></div><button type="button" data-vip-action="reload-sounds">Sounds neu laden</button></div><div class="vip-mini-grid">${soundMetricCard('Bekannte User', stats.total, 'lokale DB-Quellen', '')}${soundMetricCard('Sounds vorhanden', stats.withSound, `${stats.missing} fehlen`, stats.missing ? 'warn' : 'ok')}${soundMetricCard('Ø Soundlänge', stats.avg ? formatMs(stats.avg) : '—', 'ffprobe', '')}${soundMetricCard('Längster Sound', stats.longest?.displayName || '—', stats.longest?.sound?.durationMs ? formatMs(stats.longest.sound.durationMs) : '', '')}</div><div class="vip-sound-grid"><div class="vip-sound-panel"><label>Bekannten VIP/Mod/User auswählen<select id="vipSoundUser">${users.map(u => `<option value="${esc(u.login || '')}" ${selected === u.login ? 'selected' : ''}>${esc(u.displayName || u.login)}${u.roleTypes?.length ? ' · ' + esc(u.roleTypes.join('/')) : ''}${u.sound?.exists ? ' · Sound vorhanden' : ''}</option>`).join('')}</select></label><label>Oder manuell Login eingeben<input id="vipSoundManualLogin" value="${esc(state.soundManualLogin || '')}" placeholder="z. B. araglor"></label><button type="button" data-vip-action="resolve-sound-user">User prüfen</button><div class="vip-muted">Später kommt hier ein Twitch-Sync für aktuelle VIP-/Mod-Listen dazu. Aktuell nutzt das Dashboard lokale DB-Daten.</div></div><div class="vip-sound-panel"><h4>Aktueller Soundstatus</h4><div class="vip-standard-list"><div><strong>User:</strong> ${fmt(status.user?.displayName || selectedUser?.displayName || selected || '—')}</div><div><strong>Datei:</strong> <code>${fmt(sound.fileName)}</code></div><div><strong>Vorhanden:</strong> ${badge(sound.exists ? 'Ja' : 'Nein', sound.exists ? 'ok' : 'warn')}</div><div><strong>Dauer:</strong> ${sound.durationMs ? esc(formatMs(sound.durationMs)) : '—'}</div><div><strong>Pfad:</strong> <span class="vip-muted">${fmt(sound.relativeFile || sound.fullPath)}</span></div><div><strong>Erwartete Endung:</strong> <code>${esc(expectedExt)}</code> · max. ${esc(maxMb)} MB</div></div></div></div><div class="vip-upload-box"><label>Neue Sounddatei auswählen<input id="vipSoundFile" type="file" accept="audio/*,.mp3,.wav,.ogg,.webm,.m4a"></label><label class="vip-check"><input id="vipSoundOverwrite" type="checkbox"> vorhandenen Song ersetzen</label><button type="button" class="success" data-vip-action="upload-sound">Sound hochladen</button></div></section>`;
+    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>Sounds</h3><p>VIP-/Mod-Sounds verwalten. Die Datei wird automatisch nach der bestehenden VIP-Dateinamenlogik gespeichert.</p></div><button type="button" data-vip-action="reload-sounds">Sounds neu laden</button></div><div class="vip-mini-grid">${soundMetricCard('Bekannte User', stats.total, 'Twitch-Cache', '')}${soundMetricCard('Sounds vorhanden', stats.withSound, `${stats.missing} fehlen`, stats.missing ? 'warn' : 'ok')}${soundMetricCard('Ø Soundlänge', stats.avg ? formatMs(stats.avg) : '—', 'ffprobe', '')}${soundMetricCard('Längster Sound', stats.longest?.displayName || '—', stats.longest?.sound?.durationMs ? formatMs(stats.longest.sound.durationMs) : '', '')}</div><div class="vip-sound-grid"><div class="vip-sound-panel"><label>Twitch VIP/Mod auswählen<select id="vipSoundUser">${users.map(u => `<option value="${esc(u.login || '')}" ${selected === u.login ? 'selected' : ''}>${esc(u.displayName || u.login)}${u.roleTypes?.length ? ' · ' + esc(u.roleTypes.join('/')) : ''}${u.sound?.exists ? ' · Sound vorhanden' : ''}</option>`).join('')}</select></label><label>Oder manuell Login eingeben<input id="vipSoundManualLogin" value="${esc(state.soundManualLogin || '')}" placeholder="z. B. araglor"></label><button type="button" data-vip-action="resolve-sound-user">User prüfen</button><div class="vip-muted">Die Liste kommt aus dem lokalen Twitch-Cache. Berechtigt sind nur Twitch-VIPs und Twitch-Mods.</div></div><div class="vip-sound-panel"><h4>Aktueller Soundstatus</h4><div class="vip-standard-list"><div><strong>User:</strong> ${fmt(status.user?.displayName || selectedUser?.displayName || selected || '—')}</div><div><strong>Datei:</strong> <code>${fmt(sound.fileName)}</code></div><div><strong>Vorhanden:</strong> ${badge(sound.exists ? 'Ja' : 'Nein', sound.exists ? 'ok' : 'warn')}</div><div><strong>Dauer:</strong> ${sound.durationMs ? esc(formatMs(sound.durationMs)) : '—'}</div><div><strong>Pfad:</strong> <span class="vip-muted">${fmt(sound.relativeFile || sound.fullPath)}</span></div><div><strong>Erwartete Endung:</strong> <code>${esc(expectedExt)}</code> · max. ${esc(maxMb)} MB</div></div></div></div><div class="vip-upload-box"><label>Neue Sounddatei auswählen<input id="vipSoundFile" type="file" accept="audio/*,.mp3,.wav,.ogg,.webm,.m4a"></label><label class="vip-check"><input id="vipSoundOverwrite" type="checkbox"> vorhandenen Song ersetzen</label><button type="button" class="success" data-vip-action="upload-sound">Sound hochladen</button></div></section>`;
   }
 
   function formatMs(ms){
@@ -245,8 +245,11 @@ window.VipModule = (function(){
   }
 
   function sourceLabels(row){
-    const map = { twitch_sync: 'Twitch-Cache', role_override: 'alte lokale Daten', daily_usage: 'Nutzung', events: 'Events' };
-    return (row.sources || []).map(v => map[v] || v).join(', ');
+    const sources = Array.isArray(row.sources) ? row.sources : [];
+    const labels = [];
+    if (sources.includes('twitch_sync')) labels.push('Twitch-Cache');
+    if (sources.some(v => ['role_override','daily_usage','events'].includes(v))) labels.push('alte Daten');
+    return labels.join(' + ');
   }
 
 
@@ -281,10 +284,9 @@ window.VipModule = (function(){
   }
 
   function twitchStatusPills(row){
-    const roles = [];
-    if (userHasTwitchRole(row, 'vip')) roles.push('VIP');
-    if (userHasTwitchRole(row, 'mod')) roles.push('Mod');
-    return roles.length ? roles.map(r => badge('Twitch ' + r, 'ok')).join('') : badge('nicht berechtigt', 'warn');
+    if (userHasTwitchRole(row, 'mod')) return badge('Twitch Mod', 'ok');
+    if (userHasTwitchRole(row, 'vip')) return badge('Twitch VIP', 'ok');
+    return badge('nicht berechtigt', 'warn');
   }
 
   function localStatusPills(row){
