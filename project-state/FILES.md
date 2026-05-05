@@ -1,6 +1,6 @@
 # FILES - stream-control-center
 
-Stand: 2026-05-04
+Stand: 2026-05-05
 
 ## Hauptpfade
 
@@ -15,6 +15,22 @@ Live:
 GitHub:
 
 - `https://github.com/ForrestCGN/stream-control-center`
+
+Branch:
+
+- `dev`
+
+## Aktueller bekannter Git-/Live-Stand
+
+Vor dieser Doku-Aktualisierung bestaetigt:
+
+- `HEAD/origin/dev = 1fc35236f90d7627b4ec800baf85b8e2bebb9c1c`
+- Letzter bekannter Commit: `docs: save step171 step172 sound alert tts status`
+- Live `alert_system`: Version `3`, Step `171`
+
+Aktuelle neue Referenzdatei:
+
+- `project-state/STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md`
 
 ## Easy-Scripts / Deploy-Workflow
 
@@ -48,8 +64,9 @@ Aktueller Projektstand:
 Wichtigste aktuelle Referenzstaende:
 
 - `project-state/STEP040_VIP_BACKEND_REFERENCE_DASHBOARD_READY_2026-05-04.md`
-- `project-state/STEP046_ALERT_SOUND_EARLY_QUEUE_2026-05-04.md`
 - `project-state/STEP047_VIP_DASHBOARD_BASE_2026-05-04.md`
+- `project-state/STEP048_ALERT_TTS_REGRESSION_CONTEXT_2026-05-04.md`
+- `project-state/STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md`
 
 ## STEP-Dokumentation TTS / Sound / Alerts aktuell
 
@@ -66,6 +83,8 @@ Wichtigste aktuelle Referenzstaende:
 - `project-state/STEP044_8_TTS_OVERLAY_ADAPTIVE_WIDTH_2026-05-04.md`
 - `project-state/STEP045_TTS_SOUND_SYSTEM_QUEUE_SYNC_2026-05-04.md`
 - `project-state/STEP046_ALERT_SOUND_EARLY_QUEUE_2026-05-04.md`
+- `project-state/STEP048_ALERT_TTS_REGRESSION_CONTEXT_2026-05-04.md`
+- `project-state/STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md`
 
 ## STEP-Dokumentation VIP aktuell
 
@@ -233,7 +252,7 @@ TTS:
 - `GET /api/tts/settings`
 - `POST /api/tts/settings/upsert`
 - `GET /api/tts/stats`
-- `GET /api/tts/prepare-alert`
+- `GET/POST /api/tts/prepare-alert`
 - `GET /api/tts/overlay-state`
 - `GET /api/tts/done`
 
