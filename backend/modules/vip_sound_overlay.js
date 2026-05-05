@@ -2256,6 +2256,43 @@ module.exports.init = function init(ctx) {
     if (!list.includes(clean)) list.push(clean);
   }
 
+  function finalizeVipSoundCandidate(user) {
+    const isMod = !!(user.twitch && user.twitch.isMod);
+    const isVip = !!(user.twitch && user.twitch.isVip);
+    const isBroadcaster = !!(user.twitch && user.twitch.isBroadcaster);
+    const primaryRole = isMod || isBroadcaster ? "mod" : (isVip ? "vip" : "");
+
+    user.roleTypes = primaryRole ? [primaryRole] : [];
+    user.soundTypes = primaryRole ? [primaryRole === "mod" ? "mod" : "vip"] : [];
+    user.twitchRoles = user.roleTypes.slice();
+
+    user.twitch = {
+      ...(user.twitch || {}),
+      isVip,
+      isMod,
+      isBroadcaster,
+      allowed: !!primaryRole,
+      primaryRole,
+      statusLabel: isMod || isBroadcaster ? "Twitch Mod" : (isVip ? "Twitch VIP" : "nicht berechtigt")
+    };
+
+    user.history = {
+      ...(user.history || {}),
+      soundTypes: Array.isArray(user.history?.soundTypes) ? user.history.soundTypes : [],
+      sources: Array.isArray(user.history?.sources) ? user.history.sources : [],
+      hasUsage: Array.isArray(user.history?.soundTypes) && user.history.soundTypes.length > 0
+    };
+
+    user.local = {
+      ...(user.local || {}),
+      roles: Array.isArray(user.local?.roles) ? user.local.roles : [],
+      ignoredForPermission: true
+    };
+
+    user.permissionSource = primaryRole ? "twitch_cache" : "none";
+    return user;
+  }
+
   function addVipSoundCandidate(map, raw = {}) {
     const login = normalizeLogin(raw.login || raw.user_login || raw.target_login || raw.actor_login || "");
     const displayName = cleanDisplayName(raw.displayName || raw.display_name || raw.user_display_name || raw.target_display_name || raw.actor_display_name || login);
@@ -2276,15 +2313,21 @@ module.exports.init = function init(ctx) {
       twitch: {
         isVip: false,
         isMod: false,
-        isBroadcaster: false
+        isBroadcaster: false,
+        allowed: false,
+        primaryRole: "",
+        statusLabel: "nicht berechtigt"
       },
       local: {
-        roles: []
+        roles: [],
+        ignoredForPermission: true
       },
       history: {
         soundTypes: [],
-        sources: []
-      }
+        sources: [],
+        hasUsage: false
+      },
+      permissionSource: "none"
     };
 
     if (displayName && (!existing.displayName || existing.displayName === existing.login)) existing.displayName = displayName;
@@ -2303,14 +2346,9 @@ module.exports.init = function init(ctx) {
       : normalizeSoundType(rawSound);
 
     if (source === "twitch_sync") {
-      if (roleType) {
-        addUnique(existing.roleTypes, roleType);
-        addUnique(existing.twitchRoles, roleType);
-        if (roleType === "vip") existing.twitch.isVip = true;
-        if (roleType === "mod") existing.twitch.isMod = true;
-        if (roleType === "crew") existing.twitch.isBroadcaster = true;
-      }
-      if (soundType) addUnique(existing.soundTypes, soundType);
+      if (roleType === "vip") existing.twitch.isVip = true;
+      if (roleType === "mod") existing.twitch.isMod = true;
+      if (roleType === "crew") existing.twitch.isBroadcaster = true;
     } else if (source === "role_override") {
       if (roleType) {
         addUnique(existing.localRoles, roleType);
@@ -2322,21 +2360,15 @@ module.exports.init = function init(ctx) {
         addUnique(existing.history.soundTypes, soundType);
       }
       addUnique(existing.history.sources, source);
-    } else {
-      if (roleType) addUnique(existing.roleTypes, roleType);
-      if (soundType) addUnique(existing.soundTypes, soundType);
     }
 
-    existing.roleTypes.sort();
-    existing.soundTypes.sort();
-    existing.twitchRoles.sort();
     existing.localRoles.sort();
     existing.historySoundTypes.sort();
     existing.local.roles.sort();
     existing.history.soundTypes.sort();
     existing.history.sources.sort();
 
-    map.set(key, existing);
+    map.set(key, finalizeVipSoundCandidate(existing));
   }
 
   function listVipSoundUsers(raw = {}) {
@@ -2346,19 +2378,18 @@ module.exports.init = function init(ctx) {
 
     try {
       for (const row of listCachedTwitchUsers(limit)) {
-        if (row.isVip) {
-          addVipSoundCandidate(map, {
-            login: row.login,
-            displayName: row.displayName,
-            roleType: "vip",
-            source: "twitch_sync"
-          });
-        }
-        if (row.isMod) {
+        if (row.isMod || row.isBroadcaster) {
           addVipSoundCandidate(map, {
             login: row.login,
             displayName: row.displayName,
             roleType: "mod",
+            source: "twitch_sync"
+          });
+        } else if (row.isVip) {
+          addVipSoundCandidate(map, {
+            login: row.login,
+            displayName: row.displayName,
+            roleType: "vip",
             source: "twitch_sync"
           });
         }
@@ -2424,7 +2455,8 @@ module.exports.init = function init(ctx) {
       });
 
     return {
-      tableSources: [VIP_TWITCH_USERS_TABLE, VIP_ROLE_OVERRIDES_TABLE, VIP_DAILY_USAGE_TABLE, VIP_EVENTS_TABLE],
+      tableSources: [VIP_TWITCH_USERS_TABLE, VIP_DAILY_USAGE_TABLE, VIP_EVENTS_TABLE],
+      ignoredSources: [VIP_ROLE_OVERRIDES_TABLE],
       count: rows.length,
       rows,
       settings: {
