@@ -3,17 +3,28 @@ window.HugModule = (function(){
 
   let root = null;
   let status = null;
+  let textPairs = null;
+  let textPairsError = '';
   let loading = false;
   let actionsBound = false;
   let activeTab = 'overview';
+  let activeTextCategory = 'pairs';
+  let pairFilterType = 'all';
+  let pairSearch = '';
 
   const tabs = [
     ['overview', 'Übersicht'],
     ['texts', 'Texte'],
-    ['types', 'Typen'],
     ['config', 'Config'],
     ['stats', 'Statistiken'],
     ['diagnostics', 'Diagnose']
+  ];
+
+  const textCategories = [
+    ['pairs', 'Hug/Rehug-Paare'],
+    ['hug_all', 'Chatweite Hugs'],
+    ['responses', 'Systemantworten'],
+    ['top_titles', 'Toplisten']
   ];
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
@@ -117,6 +128,7 @@ window.HugModule = (function(){
   function renderStatus(){
     const el = document.getElementById('hugStatusCard');
     if (!el) return;
+    const c = status?.counts || {};
     el.innerHTML = `
       <h3>Status</h3>
       <div class="hug-row"><span>Modul</span><strong class="hug-pill ${status?.enabled ? 'ok' : 'warn'}">${status?.enabled ? 'Aktiv' : 'Inaktiv'}</strong></div>
@@ -124,6 +136,7 @@ window.HugModule = (function(){
       <div class="hug-row"><span>Schema</span><span>${esc(status?.schemaVersion ?? '-')}</span></div>
       <div class="hug-row"><span>Cache</span><span>${esc(status?.cacheLoadedAt || '-')}</span></div>
       <div class="hug-row"><span>Rehug-Fenster</span><span>${esc(status?.rehugWindowSeconds ?? '-')}s</span></div>
+      <div class="hug-row"><span>Textpaare</span><span>${num(c.activeHugTextPairs ?? textPairs?.activeCount ?? 0)} / ${num(c.hugTextPairs ?? textPairs?.count ?? 0)}</span></div>
       <div class="hug-row"><span>Top-Limit</span><span>${esc(status?.topLimit ?? '-')}</span></div>
     `;
   }
@@ -161,7 +174,7 @@ window.HugModule = (function(){
       <div class="hug-row"><span>Prefer</span><span>${esc(out.prefer || '-')}</span></div>
       <div class="hug-row"><span>Fallback Streamer</span><span>${out.fallbackToStreamer === false ? 'Nein' : 'Ja'}</span></div>
       <div class="hug-row"><span>Fallback Streamer.bot</span><span>${out.fallbackToStreamerbot === false ? 'Nein' : 'Ja'}</span></div>
-      <div class="hug-note">Später editierbar über Rechte/Audit. Aktuell nur Anzeige.</div>
+      <div class="hug-note">Schreiben der Ausgabe-Settings kommt später separat. Aktuell bleibt die vorhandene Logik erhalten.</div>
     `;
   }
 
@@ -228,22 +241,133 @@ window.HugModule = (function(){
   function renderTexts(){
     const el = document.getElementById('hugTextCard');
     if (!el) return;
+    const pairs = textPairs?.pairs || [];
     const kinds = Array.isArray(status?.textKinds) ? status.textKinds : [];
     el.innerHTML = `
       <div class="card-head big-head">
         <div>
           <h2>Texte</h2>
-          <div class="small-note">Hug-, Rehug- und Systemtexte liegen bereits in der Datenbank. Bearbeiten wird hier vorbereitet.</div>
+          <div class="small-note">Hug/Rehug wird als einfache Textpaar-Liste verwaltet: Text 1 passt zu Antwort 1, Text 2 passt zu Antwort 2.</div>
         </div>
         <div class="head-actions">
-          <button type="button" disabled title="Kommt mit Rechte-/Audit-Konzept">Neuer Text</button>
-          <button type="button" disabled title="Kommt mit Rechte-/Audit-Konzept">Speichern deaktiviert</button>
+          <button type="button" data-hug-action="reload-text-pairs">Textpaare neu laden</button>
         </div>
       </div>
-      <div class="hug-kind-grid">
-        ${kinds.length ? kinds.map(k => `<div class="hug-kind"><strong>${num(k.count)}</strong><span>${esc(k.kind)}</span></div>`).join('') : '<div class="hug-empty">Keine Textdaten gefunden.</div>'}
+
+      <div class="hug-text-category-tabs">
+        ${textCategories.map(([id, label]) => `<button type="button" class="${activeTextCategory === id ? 'active' : ''}" data-hug-text-category="${esc(id)}">${esc(label)}</button>`).join('')}
       </div>
-      <div class="hug-note">Nächster Schritt: API für Textlisten + Bearbeiten einzelner Texte mit Rollenprüfung und Audit-Logging.</div>
+
+      ${renderTextCategoryBody(pairs, kinds)}
+    `;
+  }
+
+  function renderTextCategoryBody(pairs, kinds){
+    if (activeTextCategory === 'pairs') return renderTextPairsEditor(pairs);
+    if (activeTextCategory === 'hug_all') return renderTextCategoryPlaceholder('Chatweite Hugs', 'hug_all', kinds);
+    if (activeTextCategory === 'responses') return renderTextCategoryPlaceholder('Systemantworten', 'response', kinds);
+    if (activeTextCategory === 'top_titles') return renderTextCategoryPlaceholder('Toplisten', 'top_title', kinds);
+    return '<div class="hug-empty">Unbekannte Textkategorie.</div>';
+  }
+
+  function renderTextCategoryPlaceholder(title, kind, kinds){
+    const item = kinds.find(k => k.kind === kind);
+    return `
+      <div class="hug-sub-card">
+        <h3>${esc(title)}</h3>
+        <div class="hug-note">Diese Kategorie ist sichtbar, wird aber in diesem STEP noch nicht editiert. Zuerst werden die fachlich wichtigen Hug/Rehug-Paare sauber gekoppelt.</div>
+        <div class="hug-kind-grid">
+          <div class="hug-kind"><strong>${num(item?.count || 0)}</strong><span>${esc(kind)}</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTextPairsEditor(pairs){
+    if (textPairsError) {
+      return `<div class="hug-error">Textpaare konnten nicht geladen werden: ${esc(textPairsError)}</div>`;
+    }
+    if (!textPairs) {
+      return `<div class="hug-empty">Textpaare werden geladen oder Backend-STEP181.1 ist noch nicht deployed.</div>`;
+    }
+
+    const types = Array.isArray(textPairs.types) ? textPairs.types : [];
+    const filtered = filterPairs(pairs);
+    return `
+      <div class="hug-pair-summary">
+        <div class="hug-kind"><strong>${num(textPairs.activeCount)}</strong><span>aktive Paare</span></div>
+        <div class="hug-kind"><strong>${num(textPairs.count)}</strong><span>Paare gesamt</span></div>
+        <div class="hug-kind"><strong>${num(filtered.length)}</strong><span>angezeigt</span></div>
+      </div>
+
+      <div class="hug-pair-controls simple">
+        <label>
+          <span>Suche</span>
+          <input data-hug-pair-search value="${esc(pairSearch)}" placeholder="Text oder Antwort suchen">
+        </label>
+      </div>
+
+      ${renderNewPairForm(types)}
+
+      <div class="hug-pair-list">
+        ${filtered.length ? filtered.map(pair => renderPairCard(pair, types)).join('') : '<div class="hug-empty">Keine passenden Textpaare gefunden.</div>'}
+      </div>
+    `;
+  }
+
+  function filterPairs(pairs){
+    const q = String(pairSearch || '').trim().toLowerCase();
+    return (pairs || []).filter(pair => {
+      if (!q) return true;
+      return [pair.name, pair.hugText, pair.rehugText, pair.typeName].some(v => String(v || '').toLowerCase().includes(q));
+    });
+  }
+
+  function renderNewPairForm(types){
+    return `
+      <details class="hug-pair-new">
+        <summary>Neues Hug/Rehug-Paar anlegen</summary>
+        <div class="hug-pair-form" data-hug-pair-form="new">
+          <input type="hidden" data-pair-field="typeId" value="1">
+          <input type="hidden" data-pair-field="name" value="">
+          <label><span>Aktiv</span><select data-pair-field="enabled"><option value="true">Aktiv</option><option value="false">Inaktiv</option></select></label>
+          <label><span>Gewichtung</span><input data-pair-field="weight" type="number" min="1" value="1"></label>
+          <label><span>Sortierung</span><input data-pair-field="sortOrder" type="number" value="0"></label>
+          <label class="wide"><span>Text</span><textarea data-pair-field="hugText" rows="3" placeholder="{from} umarmt {to} ..."></textarea></label>
+          <label class="wide"><span>Antwort-Text</span><textarea data-pair-field="rehugText" rows="3" placeholder="{from} erwidert die Umarmung von {to} ..."></textarea></label>
+          <div class="hug-pair-actions wide">
+            <button type="button" data-hug-action="save-pair" data-pair-id="new">Paar speichern</button>
+          </div>
+        </div>
+      </details>
+    `;
+  }
+
+  function renderPairCard(pair, types){
+    const typeOptions = types.map(t => `<option value="${esc(t.id)}"${String(t.id) === String(pair.typeId) ? ' selected' : ''}>#${esc(t.id)} ${esc(t.name)}</option>`).join('');
+    return `
+      <div class="hug-pair-card" data-hug-pair-form="${esc(pair.id)}">
+        <div class="hug-pair-card-head">
+          <div>
+            <strong>Text ${esc(pair.id)} / Antwort ${esc(pair.id)}</strong>
+            <span>${pair.enabled ? 'aktiv' : 'inaktiv'} · Gewicht ${esc(pair.weight || 1)} · Quelle ${esc(pair.source || '-')}</span>
+          </div>
+          <div class="hug-pair-card-actions">
+            <button type="button" data-hug-action="save-pair" data-pair-id="${esc(pair.id)}">Speichern</button>
+            <button type="button" class="danger" data-hug-action="delete-pair" data-pair-id="${esc(pair.id)}">Löschen</button>
+          </div>
+        </div>
+        <div class="hug-pair-form">
+          <input type="hidden" data-pair-field="id" value="${esc(pair.id)}">
+          <input type="hidden" data-pair-field="typeId" value="${esc(pair.typeId || 1)}">
+          <input type="hidden" data-pair-field="name" value="${esc(pair.name || '')}">
+          <label><span>Aktiv</span><select data-pair-field="enabled"><option value="true"${pair.enabled ? ' selected' : ''}>Aktiv</option><option value="false"${!pair.enabled ? ' selected' : ''}>Inaktiv</option></select></label>
+          <label><span>Gewichtung</span><input data-pair-field="weight" type="number" min="1" value="${esc(pair.weight || 1)}"></label>
+          <label><span>Sortierung</span><input data-pair-field="sortOrder" type="number" value="${esc(pair.sortOrder || 0)}"></label>
+          <label class="wide"><span>Text</span><textarea data-pair-field="hugText" rows="3">${esc(pair.hugText || '')}</textarea></label>
+          <label class="wide"><span>Antwort-Text</span><textarea data-pair-field="rehugText" rows="3">${esc(pair.rehugText || '')}</textarea></label>
+        </div>
+      </div>
     `;
   }
 
@@ -255,7 +379,7 @@ window.HugModule = (function(){
       <div class="card-head big-head">
         <div>
           <h2>Hug-Typen</h2>
-          <div class="small-note">Typen, Gewichtung und zugeordnete Hug-/Rehug-Texte.</div>
+          <div class="small-note">Typen, Gewichtung und zugeordnete gekoppelte Hug-/Rehug-Texte.</div>
         </div>
         <div class="head-actions"><button type="button" disabled>Typen bearbeiten später</button></div>
       </div>
@@ -263,7 +387,7 @@ window.HugModule = (function(){
         ${types.length ? types.map(t => `
           <div class="hug-type">
             <strong>#${esc(t.id)} ${esc(t.name)}</strong>
-            <span>Gewicht ${esc(t.weight)} · ${t.enabled ? 'aktiv' : 'inaktiv'} · Hug-Texte ${esc(t.hugTexts ?? t.hugTextCount ?? '-')} · Rehug-Texte ${esc(t.rehugTexts ?? t.rehugTextCount ?? '-')}</span>
+            <span>Gewicht ${esc(t.weight)} · ${t.enabled ? 'aktiv' : 'inaktiv'} · Hug-Texte ${esc(t.hugTexts ?? t.hugTextCount ?? '-')} · Rehug-Texte ${esc(t.rehugTexts ?? t.rehugTextCount ?? '-')} · Paare ${esc(t.activeTextPairs ?? t.activeTextPairCount ?? '-')}/${esc(t.textPairs ?? t.textPairCount ?? '-')}</span>
           </div>
         `).join('') : '<div class="hug-empty">Keine Hug-Typen gefunden.</div>'}
       </div>
@@ -305,10 +429,62 @@ window.HugModule = (function(){
       </div>
       <div class="hug-row"><span>Config</span><span>${esc(status?.configPath || '-')}</span></div>
       <div class="hug-row"><span>Messages</span><span>${esc(status?.messagesPath || '-')}</span></div>
+      <div class="hug-row"><span>Textpaare</span><span>${num(textPairs?.activeCount || 0)} aktiv / ${num(textPairs?.count || 0)} gesamt</span></div>
       <div class="hug-row"><span>Letzter Import</span><span>${lastImport.importedAt ? esc(lastImport.importedAt) : esc(lastImport.reason || '-')}</span></div>
-      <div class="hug-row"><span>Letzter Fehler</span><span>${esc(status?.lastError || '-')}</span></div>
-      <pre class="hug-json">${esc(JSON.stringify({ module: status?.module, counts: status?.counts, output: status?.output }, null, 2))}</pre>
+      <div class="hug-row"><span>Letzter Fehler</span><span>${esc(status?.lastError || textPairsError || '-')}</span></div>
+      <pre class="hug-json">${esc(JSON.stringify({ module: status?.module, counts: status?.counts, output: status?.output, textPairs: { count: textPairs?.count, activeCount: textPairs?.activeCount } }, null, 2))}</pre>
     `;
+  }
+
+  function collectPairForm(pairId){
+    const form = root?.querySelector(`[data-hug-pair-form="${CSS.escape(String(pairId))}"]`);
+    if (!form) throw new Error('Formular nicht gefunden.');
+    const data = {};
+    form.querySelectorAll('[data-pair-field]').forEach(field => {
+      const key = field.dataset.pairField;
+      if (!key) return;
+      data[key] = field.value;
+    });
+    if (pairId !== 'new') data.id = pairId;
+    data.typeId = Number(data.typeId || 0);
+    data.weight = Math.max(1, Number(data.weight || 1));
+    data.sortOrder = Number(data.sortOrder || 0);
+    data.enabled = data.enabled !== 'false';
+    data.hugText = String(data.hugText || '').trim();
+    data.rehugText = String(data.rehugText || '').trim();
+    if (!data.typeId) throw new Error('Typ fehlt.');
+    if (!data.hugText) throw new Error('Hug-Text fehlt.');
+    if (!data.rehugText) throw new Error('Rehug-Antwort fehlt.');
+    return data;
+  }
+
+  async function loadTextPairs(){
+    textPairsError = '';
+    try {
+      textPairs = await api('/api/dashboard/community/hug/text-pairs');
+    } catch (err) {
+      textPairs = null;
+      textPairsError = err.message || String(err);
+    }
+  }
+
+  async function savePair(pairId){
+    const pair = collectPairForm(pairId);
+    await api('/api/dashboard/community/hug/text-pairs', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'savePair', pair })
+    });
+    await loadAll(true);
+  }
+
+  async function deletePair(pairId){
+    if (!pairId || pairId === 'new') return;
+    if (!confirm('Dieses Hug/Rehug-Paar wirklich löschen?')) return;
+    await api('/api/dashboard/community/hug/text-pairs', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'deletePair', id: pairId })
+    });
+    await loadAll(true);
   }
 
   function bindActions(){
@@ -322,6 +498,13 @@ window.HugModule = (function(){
         return;
       }
 
+      const textCat = ev.target.closest('[data-hug-text-category]');
+      if (textCat) {
+        activeTextCategory = textCat.dataset.hugTextCategory || 'pairs';
+        renderTexts();
+        return;
+      }
+
       const btn = ev.target.closest('[data-hug-action]');
       if (!btn) return;
       const action = btn.dataset.hugAction;
@@ -332,10 +515,34 @@ window.HugModule = (function(){
           await api('/api/hug/reload');
           await loadAll(true);
         }
+        if (action === 'reload-text-pairs') {
+          await loadTextPairs();
+          renderTexts();
+          renderStatus();
+          renderDiag();
+        }
+        if (action === 'save-pair') await savePair(btn.dataset.pairId || 'new');
+        if (action === 'delete-pair') await deletePair(btn.dataset.pairId || '');
       } catch (err) {
         alert(`Hug-Fehler: ${err.message}`);
       } finally {
         btn.disabled = false;
+      }
+    });
+
+    root.addEventListener('change', ev => {
+      const typeSelect = ev.target.closest('[data-hug-pair-filter-type]');
+      if (typeSelect) {
+        pairFilterType = typeSelect.value || 'all';
+        renderTexts();
+      }
+    });
+
+    root.addEventListener('input', ev => {
+      const search = ev.target.closest('[data-hug-pair-search]');
+      if (search) {
+        pairSearch = search.value || '';
+        renderTexts();
       }
     });
   }
@@ -345,6 +552,7 @@ window.HugModule = (function(){
     loading = true;
     try {
       status = await api('/api/dashboard/community/hug/status');
+      await loadTextPairs();
       render();
     } catch (err) {
       if (root) root.innerHTML = `<div class="hug-card"><h2>Hug-System</h2><div class="hug-error">${esc(err.message)}</div></div>`;

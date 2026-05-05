@@ -19,7 +19,7 @@ const routes = require("./helpers/helper_routes");
 const chatOutput = require("./helpers/helper_chat_output");
 
 const MODULE_NAME = "hug";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 let appRef = null;
 let systemConfigPath = "";
@@ -206,7 +206,274 @@ function ensureSchema(ctx) {
         CREATE INDEX IF NOT EXISTS idx_hug_texts_key ON hug_texts(text_key, kind, enabled);
       `);
     }
+
+    if (toVersion === 3) {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS hug_text_pairs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          type_id INTEGER NOT NULL,
+          category TEXT NOT NULL DEFAULT 'hug_pairs',
+          name TEXT NOT NULL DEFAULT '',
+          hug_text TEXT NOT NULL,
+          rehug_text TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          weight INTEGER NOT NULL DEFAULT 1,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          source TEXT NOT NULL DEFAULT 'database',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_hug_text_pairs_type_enabled ON hug_text_pairs(type_id, enabled, sort_order, id);
+        CREATE INDEX IF NOT EXISTS idx_hug_text_pairs_category ON hug_text_pairs(category, enabled, sort_order, id);
+      `);
+    }
   });
+}
+
+
+function columnExists(tableName, columnName) {
+  const safeTable = String(tableName || "").trim();
+  const safeColumn = String(columnName || "").trim();
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(safeTable) || !safeColumn) return false;
+  try {
+    return db.all(`PRAGMA table_info(${safeTable})`).some(row => row.name === safeColumn);
+  } catch (_) {
+    return false;
+  }
+}
+
+function ensureHugTextPairSchema() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS hug_text_pairs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type_id INTEGER NOT NULL,
+      category TEXT NOT NULL DEFAULT 'hug_pairs',
+      name TEXT NOT NULL DEFAULT '',
+      hug_text TEXT NOT NULL,
+      rehug_text TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      weight INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      source TEXT NOT NULL DEFAULT 'database',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_hug_text_pairs_type_enabled ON hug_text_pairs(type_id, enabled, sort_order, id);
+    CREATE INDEX IF NOT EXISTS idx_hug_text_pairs_category ON hug_text_pairs(category, enabled, sort_order, id);
+  `);
+
+  if (!columnExists("hug_pending_rehugs", "pair_id")) {
+    db.exec(`ALTER TABLE hug_pending_rehugs ADD COLUMN pair_id INTEGER NULL;`);
+  }
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_hug_pending_pair ON hug_pending_rehugs(pair_id);`);
+}
+
+function rowToTextPair(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    typeId: Number(row.type_id),
+    category: row.category || "hug_pairs",
+    name: row.name || "",
+    hugText: row.hug_text || "",
+    rehugText: row.rehug_text || "",
+    enabled: Number(row.enabled) === 1,
+    weight: Math.max(1, Number(row.weight || 1)),
+    sortOrder: Number(row.sort_order || 0),
+    source: row.source || "database",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function getTextPairs(typeId = null, options = {}) {
+  const where = [];
+  const params = {};
+  if (typeId !== null && typeId !== undefined && String(typeId) !== "") {
+    where.push("type_id=:typeId");
+    params.typeId = Number(typeId);
+  }
+  if (options.activeOnly === true) where.push("enabled=1");
+  const sqlWhere = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  return db.all(`
+    SELECT id, type_id, category, name, hug_text, rehug_text, enabled, weight, sort_order, source, created_at, updated_at
+    FROM hug_text_pairs
+    ${sqlWhere}
+    ORDER BY type_id ASC, sort_order ASC, id ASC
+  `, params).map(rowToTextPair);
+}
+
+function getTextPairById(pairId, options = {}) {
+  const id = Number(pairId || 0);
+  if (!id) return null;
+  const activeWhere = options.activeOnly === true ? " AND enabled=1" : "";
+  return rowToTextPair(db.get(`
+    SELECT id, type_id, category, name, hug_text, rehug_text, enabled, weight, sort_order, source, created_at, updated_at
+    FROM hug_text_pairs
+    WHERE id=:id${activeWhere}
+    LIMIT 1
+  `, { id }));
+}
+
+function insertTextPairIfMissing({ typeId, category = "hug_pairs", name = "", hugText, rehugText, weight = 1, sortOrder = 0, source = "legacy_hug_texts" }) {
+  const cleanHug = clean(hugText);
+  const cleanRehug = clean(rehugText);
+  const numericTypeId = Number(typeId || 0);
+  if (!numericTypeId || !cleanHug || !cleanRehug) return false;
+  const existing = db.get(`
+    SELECT id FROM hug_text_pairs
+    WHERE type_id=:typeId AND hug_text=:hugText AND rehug_text=:rehugText
+    LIMIT 1
+  `, { typeId: numericTypeId, hugText: cleanHug, rehugText: cleanRehug });
+  if (existing) return false;
+  db.run(`
+    INSERT INTO hug_text_pairs
+      (type_id, category, name, hug_text, rehug_text, enabled, weight, sort_order, source, created_at, updated_at)
+    VALUES
+      (:typeId, :category, :name, :hugText, :rehugText, 1, :weight, :sortOrder, :source, :now, :now)
+  `, {
+    typeId: numericTypeId,
+    category: String(category || "hug_pairs"),
+    name: String(name || ""),
+    hugText: cleanHug,
+    rehugText: cleanRehug,
+    weight: Math.max(1, Number(weight || 1)),
+    sortOrder: Number(sortOrder || 0),
+    source: String(source || "legacy_hug_texts"),
+    now: nowIso()
+  });
+  return true;
+}
+
+function migrateTextPairsFromLegacyTexts() {
+  ensureHugTextPairSchema();
+  const types = db.all(`SELECT id, name, weight FROM hug_types ORDER BY sort_order ASC, id ASC`);
+  let insertedPairs = 0;
+  for (const type of types) {
+    const typeId = Number(type.id);
+    const hugs = getTexts("hug", typeId);
+    const rehugs = getTexts("rehug", typeId);
+    const pairCount = Math.min(hugs.length, rehugs.length);
+    for (let index = 0; index < pairCount; index += 1) {
+      if (insertTextPairIfMissing({
+        typeId,
+        category: "hug_pairs",
+        name: `${type.name || `Typ ${typeId}`} ${index + 1}`,
+        hugText: hugs[index].text,
+        rehugText: rehugs[index].text,
+        weight: Math.max(1, Number(hugs[index].weight || rehugs[index].weight || type.weight || 1)),
+        sortOrder: index,
+        source: "legacy_hug_texts"
+      })) insertedPairs += 1;
+    }
+  }
+  if (lastImport && typeof lastImport === "object") lastImport.textPairs = { table: "hug_text_pairs", inserted: insertedPairs, total: count("hug_text_pairs") };
+  return { ok: true, insertedPairs, totalPairs: count("hug_text_pairs") };
+}
+
+function pickTextPairForType(typeId) {
+  const pairs = getTextPairs(typeId, { activeOnly: true });
+  return pickWeighted(pairs);
+}
+
+function pickWeightedTextPair() {
+  const pairs = getTextPairs(null, { activeOnly: true });
+  return pickWeighted(pairs);
+}
+
+function pickWeightedHugTypeWithPairs() {
+  const available = getCache().hugTypes.filter(type => Number(type.textPairCount || 0) > 0);
+  return pickWeighted(available.map(type => ({ ...type, weight: type.weight || 1 }))) || available[0] || pickWeightedHugType();
+}
+
+function saveTextPair(pair = {}) {
+  ensureHugTextPairSchema();
+  const id = Number(pair.id || pair.pairId || 0);
+  const typeId = Number(pair.typeId || pair.type_id || 1);
+  const hugText = String(pair.hugText ?? pair.hug_text ?? "").trim();
+  const rehugText = String(pair.rehugText ?? pair.rehug_text ?? "").trim();
+  if (!typeId) throw new Error("type_id_required");
+  if (!hugText) throw new Error("hug_text_required");
+  if (!rehugText) throw new Error("rehug_text_required");
+  const data = {
+    id,
+    typeId,
+    category: String(pair.category || "hug_pairs"),
+    name: String(pair.name || ""),
+    hugText,
+    rehugText,
+    enabled: pair.enabled === false || pair.enabled === 0 || pair.enabled === "false" ? 0 : 1,
+    weight: Math.max(1, Number(pair.weight || 1)),
+    sortOrder: Number(pair.sortOrder ?? pair.sort_order ?? 0) || 0,
+    now: nowIso()
+  };
+
+  if (id > 0) {
+    db.run(`
+      UPDATE hug_text_pairs
+      SET type_id=:typeId,
+          category=:category,
+          name=:name,
+          hug_text=:hugText,
+          rehug_text=:rehugText,
+          enabled=:enabled,
+          weight=:weight,
+          sort_order=:sortOrder,
+          source='database',
+          updated_at=:now
+      WHERE id=:id
+    `, data);
+  } else {
+    db.run(`
+      INSERT INTO hug_text_pairs
+        (type_id, category, name, hug_text, rehug_text, enabled, weight, sort_order, source, created_at, updated_at)
+      VALUES
+        (:typeId, :category, :name, :hugText, :rehugText, :enabled, :weight, :sortOrder, 'database', :now, :now)
+    `, data);
+  }
+  cache = null;
+  return getTextPairEditorPayload();
+}
+
+function deleteTextPair(pairId) {
+  const id = Number(pairId || 0);
+  if (!id) throw new Error("pair_id_required");
+  const result = db.run(`DELETE FROM hug_text_pairs WHERE id=:id`, { id });
+  cache = null;
+  return { ok: true, deleted: Number(result?.changes || 0), pairs: getTextPairEditorPayload() };
+}
+
+function getTextPairEditorPayload() {
+  ensureHugTextPairSchema();
+  migrateTextPairsFromLegacyTexts();
+  const pairs = getTextPairs(null, { activeOnly: false });
+  const types = getTypes().map(type => ({
+    ...type,
+    textPairs: pairs.filter(pair => pair.typeId === type.id),
+    textPairCount: pairs.filter(pair => pair.typeId === type.id).length,
+    activeTextPairCount: pairs.filter(pair => pair.typeId === type.id && pair.enabled).length
+  }));
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    table: "hug_text_pairs",
+    category: "hug_pairs",
+    categories: [{ id: "hug_pairs", key: "hug_pairs", label: "Hug/Rehug-Paare", count: pairs.length, variantCount: pairs.length }],
+    count: pairs.length,
+    activeCount: pairs.filter(pair => pair.enabled).length,
+    types,
+    pairs
+  };
+}
+
+function handleTextPairsPayload(payload = {}) {
+  const body = payload && typeof payload === "object" ? payload : {};
+  const action = String(body.action || "").trim();
+  if (action === "deletePair" || action === "delete_pair") return deleteTextPair(body.id || body.pairId);
+  if (action === "savePair" || action === "save_pair" || body.pair) return { ok: true, pairs: saveTextPair(body.pair || body) };
+  return getTextPairEditorPayload();
 }
 
 function count(tableName) {
@@ -313,6 +580,7 @@ function pickText(items, fallback = "") { const item = pickWeighted(items); retu
 
 function loadCache() {
   importJsonIfEmpty({ force: false });
+  migrateTextPairsFromLegacyTexts();
   const dbSettings = getSettingFromDb();
   const fileSettings = readJsonIfExists(systemConfigPath, {});
   // DB gewinnt vor JSON, damit spaetere Dashboard-Aenderungen nicht von JSON ueberstimmt werden.
@@ -320,7 +588,19 @@ function loadCache() {
   saveMainSettingIfMissing(settings);
 
   const typeRows = db.all(`SELECT id, name, weight FROM hug_types WHERE enabled=1 ORDER BY sort_order ASC, id ASC`);
-  const types = typeRows.map(row => ({ id: Number(row.id), name: row.name, weight: Math.max(1, Number(row.weight || 1)), hugTexts: getTexts("hug", Number(row.id)).map(x => x.text), rehugTexts: getTexts("rehug", Number(row.id)).map(x => x.text) })).filter(type => type.hugTexts.length > 0 && type.rehugTexts.length > 0);
+  const types = typeRows.map(row => {
+    const typeId = Number(row.id);
+    const textPairs = getTextPairs(typeId, { activeOnly: true });
+    return {
+      id: typeId,
+      name: row.name,
+      weight: Math.max(1, Number(row.weight || 1)),
+      hugTexts: getTexts("hug", typeId).map(x => x.text),
+      rehugTexts: getTexts("rehug", typeId).map(x => x.text),
+      textPairCount: textPairs.length,
+      textPairs
+    };
+  }).filter(type => type.textPairCount > 0 || (type.hugTexts.length > 0 && type.rehugTexts.length > 0));
 
   const responses = { ...(DEFAULT_MESSAGES.responses || {}) };
   db.all(`SELECT text_key, text FROM hug_texts WHERE kind='response' AND enabled=1 ORDER BY sort_order ASC, id ASC`).forEach(row => { if (row.text_key) responses[row.text_key] = row.text; });
@@ -366,7 +646,7 @@ function getStatsByUserId(userId) { return db.get(`SELECT user_id, login, displa
 function cleanupExpiredPendingForTarget(targetUserId) { db.run(`DELETE FROM hug_pending_rehugs WHERE target_user_id=:targetUserId AND expires_at < :now`, { targetUserId, now: nowIso() }); }
 function cleanupExpiredPendingGlobal() { db.run(`DELETE FROM hug_pending_rehugs WHERE expires_at < :now`, { now: nowIso() }); }
 
-const doHugTx = db.transaction((actor, target, type) => {
+const doHugTx = db.transaction((actor, target, type, textPair) => {
   const now = new Date();
   const createdAt = now.toISOString();
   const expiresAt = new Date(now.getTime() + (Number(getCache().rehugWindowSeconds || 300) * 1000)).toISOString();
@@ -375,7 +655,7 @@ const doHugTx = db.transaction((actor, target, type) => {
   db.run(`UPDATE hug_users SET received_total=received_total+1, updated_at=:now WHERE user_id=:userId`, { userId: target.userId, now: createdAt });
   db.run(`UPDATE hug_pair_stats SET given_count=given_count+1, last_hug_at=:now WHERE from_user_id=:fromUserId AND to_user_id=:toUserId`, { fromUserId: actor.userId, toUserId: target.userId, now: createdAt });
   db.run(`DELETE FROM hug_pending_rehugs WHERE target_user_id=:targetUserId AND from_user_id=:fromUserId`, { targetUserId: target.userId, fromUserId: actor.userId });
-  db.run(`INSERT INTO hug_pending_rehugs (target_user_id, from_user_id, type_id, created_at, expires_at) VALUES (:targetUserId, :fromUserId, :typeId, :createdAt, :expiresAt)`, { targetUserId: target.userId, fromUserId: actor.userId, typeId: Number(type.id), createdAt, expiresAt });
+  db.run(`INSERT INTO hug_pending_rehugs (target_user_id, from_user_id, type_id, pair_id, created_at, expires_at) VALUES (:targetUserId, :fromUserId, :typeId, :pairId, :createdAt, :expiresAt)`, { targetUserId: target.userId, fromUserId: actor.userId, typeId: Number(type.id), pairId: textPair?.id ? Number(textPair.id) : null, createdAt, expiresAt });
 });
 
 const doRehugTx = db.transaction((actor, target, pendingRow) => {
@@ -406,21 +686,25 @@ async function executeAction(action, actorUser, targetLogin) {
 
   if (action === "hug") {
     cleanupExpiredPendingForTarget(targetUser.userId);
-    const type = pickWeightedHugType();
-    doHugTx(actorUser, targetUser, type);
-    const msg = renderTemplate(pickText(getTexts("hug", Number(type.id)), type.hugTexts[0]), { from: actorUser.displayName, to: targetUser.displayName });
-    return mergeResult({ ok: true, action, typeId: Number(type.id) }, await outputResponse(msg, { action }));
+    const textPair = pickWeightedTextPair();
+    if (!textPair) return mergeResult({ ok: false, action }, await outputResponse(responseText("missingRehugType", { actor: actorUser.displayName }), { action }));
+    const type = getTypeById(textPair.typeId) || pickWeightedHugTypeWithPairs() || pickWeightedHugType();
+    doHugTx(actorUser, targetUser, type, textPair);
+    const msg = renderTemplate(textPair.hugText, { from: actorUser.displayName, to: targetUser.displayName });
+    return mergeResult({ ok: true, action, typeId: Number(type.id), pairId: Number(textPair.id) }, await outputResponse(msg, { action }));
   }
   if (action === "rehug") {
     cleanupExpiredPendingForTarget(actorUser.userId);
-    const pending = db.get(`SELECT id, type_id, created_at, expires_at FROM hug_pending_rehugs WHERE target_user_id=:targetUserId AND from_user_id=:fromUserId ORDER BY created_at DESC LIMIT 1`, { targetUserId: actorUser.userId, fromUserId: targetUser.userId });
+    const pending = db.get(`SELECT id, type_id, pair_id, created_at, expires_at FROM hug_pending_rehugs WHERE target_user_id=:targetUserId AND from_user_id=:fromUserId ORDER BY created_at DESC LIMIT 1`, { targetUserId: actorUser.userId, fromUserId: targetUser.userId });
     if (!pending) return mergeResult({ ok: false, action }, await outputResponse(responseText("noPendingRehug", { actor: actorUser.displayName, targetDisplay: targetUser.displayName }), { action }));
     if (new Date(pending.expires_at).getTime() < nowMs()) { db.run(`DELETE FROM hug_pending_rehugs WHERE id=:id`, { id: pending.id }); return mergeResult({ ok: false, action }, await outputResponse(responseText("rehugExpired", { actor: actorUser.displayName, targetDisplay: targetUser.displayName, minutes: getRehugWindowMinutes() }), { action })); }
     const type = getTypeById(pending.type_id);
-    if (!type) { db.run(`DELETE FROM hug_pending_rehugs WHERE id=:id`, { id: pending.id }); return mergeResult({ ok: false, action }, await outputResponse(responseText("missingRehugType", { actor: actorUser.displayName }), { action })); }
+    const textPair = pending.pair_id ? getTextPairById(pending.pair_id, { activeOnly: false }) : null;
+    if (!type || (pending.pair_id && !textPair)) { db.run(`DELETE FROM hug_pending_rehugs WHERE id=:id`, { id: pending.id }); return mergeResult({ ok: false, action }, await outputResponse(responseText("missingRehugType", { actor: actorUser.displayName }), { action })); }
     doRehugTx(actorUser, targetUser, pending);
-    const msg = renderTemplate(pickText(getTexts("rehug", Number(type.id)), type.rehugTexts[0]), { from: actorUser.displayName, to: targetUser.displayName });
-    return mergeResult({ ok: true, action, typeId: Number(type.id) }, await outputResponse(msg, { action }));
+    const fallbackRehug = pickText(getTexts("rehug", Number(type.id)), type.rehugTexts[0]);
+    const msg = renderTemplate(textPair ? textPair.rehugText : fallbackRehug, { from: actorUser.displayName, to: targetUser.displayName });
+    return mergeResult({ ok: true, action, typeId: Number(type.id), pairId: textPair ? Number(textPair.id) : null }, await outputResponse(msg, { action }));
   }
   return mergeResult({ ok: false, action }, await outputResponse(responseText("unknownAction", { action }), { action }));
 }
@@ -496,10 +780,10 @@ async function handleCommand(req, res) {
 }
 function setOutputMode(mode) { const cleanMode = normalizeLogin(mode); if (cleanMode !== "central" && cleanMode !== "streamerbot") return { ok: false, error: "invalid_output_mode", allowed: ["streamerbot", "central"] }; const settings = deepMerge(DEFAULT_SETTINGS, getSettingFromDb()); settings.output = deepMerge(DEFAULT_SETTINGS.output, settings.output || {}); settings.output.mode = cleanMode; saveSettings(settings); loadCache(); return { ok: true, mode: cleanMode, output: settings.output }; }
 function getTextKindCounts() { return db.all(`SELECT kind, COUNT(*) AS count FROM hug_texts GROUP BY kind ORDER BY kind ASC`).map(row => ({ kind: row.kind, count: Number(row.count || 0) })); }
-function getDashboardStatus() { const cfg = getCache(); const totals = db.get(`SELECT COALESCE(SUM(given_total),0) AS given, COALESCE(SUM(received_total),0) AS received, COALESCE(SUM(rehug_given_total),0) AS rehug_given, COALESCE(SUM(rehug_received_total),0) AS rehug_received, COALESCE(SUM(CASE WHEN enabled=1 THEN 1 ELSE 0 END),0) AS enabled_users, COALESCE(SUM(CASE WHEN enabled=0 THEN 1 ELSE 0 END),0) AS disabled_users FROM hug_users`) || {}; return { ok: true, module: MODULE_NAME, schemaVersion: SCHEMA_VERSION, source: cfg.source, cacheLoadedAt, database: { adapter: db.getAdapter(), dialect: db.getDialect(), path: db.getDbPath(), mariaDbReady: "core_database_layer_prepared" }, configPath: systemConfigPath, messagesPath, enabled: cfg.enabled, output: cfg.output, topLimit: cfg.topLimit, rehugWindowSeconds: cfg.rehugWindowSeconds, counts: { users: count("hug_users"), enabledUsers: Number(totals.enabled_users || 0), disabledUsers: Number(totals.disabled_users || 0), pairStats: count("hug_pair_stats"), pendingRehugs: count("hug_pending_rehugs"), hugTypes: count("hug_types"), hugAllTexts: cfg.hugAllTexts.length, dbTexts: count("hug_texts"), totalHugsGiven: Number(totals.given || 0), totalHugsReceived: Number(totals.received || 0), totalRehugsGiven: Number(totals.rehug_given || 0), totalRehugsReceived: Number(totals.rehug_received || 0) }, textKinds: getTextKindCounts(), top: { given: topRows("given"), received: topRows("received"), rehug: topRows("rehug") }, recentPairs: recentPairs(), lastImport, lastError }; }
+function getDashboardStatus() { const cfg = getCache(); const totals = db.get(`SELECT COALESCE(SUM(given_total),0) AS given, COALESCE(SUM(received_total),0) AS received, COALESCE(SUM(rehug_given_total),0) AS rehug_given, COALESCE(SUM(rehug_received_total),0) AS rehug_received, COALESCE(SUM(CASE WHEN enabled=1 THEN 1 ELSE 0 END),0) AS enabled_users, COALESCE(SUM(CASE WHEN enabled=0 THEN 1 ELSE 0 END),0) AS disabled_users FROM hug_users`) || {}; return { ok: true, module: MODULE_NAME, schemaVersion: SCHEMA_VERSION, source: cfg.source, cacheLoadedAt, database: { adapter: db.getAdapter(), dialect: db.getDialect(), path: db.getDbPath(), mariaDbReady: "core_database_layer_prepared" }, configPath: systemConfigPath, messagesPath, enabled: cfg.enabled, output: cfg.output, topLimit: cfg.topLimit, rehugWindowSeconds: cfg.rehugWindowSeconds, counts: { users: count("hug_users"), enabledUsers: Number(totals.enabled_users || 0), disabledUsers: Number(totals.disabled_users || 0), pairStats: count("hug_pair_stats"), pendingRehugs: count("hug_pending_rehugs"), hugTypes: count("hug_types"), hugTextPairs: count("hug_text_pairs"), activeHugTextPairs: getTextPairs(null, { activeOnly: true }).length, hugAllTexts: cfg.hugAllTexts.length, dbTexts: count("hug_texts"), totalHugsGiven: Number(totals.given || 0), totalHugsReceived: Number(totals.received || 0), totalRehugsGiven: Number(totals.rehug_given || 0), totalRehugsReceived: Number(totals.rehug_received || 0) }, textKinds: getTextKindCounts(), top: { given: topRows("given"), received: topRows("received"), rehug: topRows("rehug") }, recentPairs: recentPairs(), lastImport, lastError }; }
 function topRows(mode) { let col = "given_total"; if (mode === "received") col = "received_total"; if (mode === "rehug") col = "rehug_given_total"; return db.all(`SELECT login, display_name, given_total, received_total, rehug_given_total, rehug_received_total, enabled FROM hug_users ORDER BY ${col} DESC, display_name ASC LIMIT :limit`, { limit: Math.max(1, Number(getCache().topLimit || 5)) }).map(r => ({ login: r.login, displayName: r.display_name, givenTotal: Number(r.given_total || 0), receivedTotal: Number(r.received_total || 0), rehugGivenTotal: Number(r.rehug_given_total || 0), rehugReceivedTotal: Number(r.rehug_received_total || 0), enabled: Number(r.enabled) === 1 })); }
 function recentPairs() { return db.all(`SELECT p.given_count, p.rehug_count, p.last_hug_at, p.last_rehug_at, fu.display_name AS from_display, tu.display_name AS to_display FROM hug_pair_stats p LEFT JOIN hug_users fu ON fu.user_id=p.from_user_id LEFT JOIN hug_users tu ON tu.user_id=p.to_user_id ORDER BY COALESCE(p.last_rehug_at, p.last_hug_at) DESC LIMIT 10`).map(r => ({ fromDisplayName: r.from_display || "", toDisplayName: r.to_display || "", givenCount: Number(r.given_count || 0), rehugCount: Number(r.rehug_count || 0), lastHugAt: r.last_hug_at || null, lastRehugAt: r.last_rehug_at || null })); }
-function getTypes() { return db.all(`SELECT id, name, weight, enabled, sort_order FROM hug_types ORDER BY sort_order ASC, id ASC`).map(r => ({ id: Number(r.id), name: r.name, weight: Number(r.weight || 1), enabled: Number(r.enabled) === 1, sortOrder: Number(r.sort_order || 0), hugTexts: getTexts("hug", Number(r.id)).length, rehugTexts: getTexts("rehug", Number(r.id)).length })); }
+function getTypes() { return db.all(`SELECT id, name, weight, enabled, sort_order FROM hug_types ORDER BY sort_order ASC, id ASC`).map(r => { const typeId = Number(r.id); return { id: typeId, name: r.name, weight: Number(r.weight || 1), enabled: Number(r.enabled) === 1, sortOrder: Number(r.sort_order || 0), hugTexts: getTexts("hug", typeId).length, rehugTexts: getTexts("rehug", typeId).length, textPairs: getTextPairs(typeId, { activeOnly: false }).length, activeTextPairs: getTextPairs(typeId, { activeOnly: true }).length }; }); }
 
 function init(ctx) {
   appRef = ctx.app;
@@ -507,7 +791,9 @@ function init(ctx) {
   systemConfigPath = config.resolveFromConfig("hug_system.json");
   messagesPath = config.resolveFromConfig("messages", "hug.json");
   ensureSchema(ctx);
+  ensureHugTextPairSchema();
   importJsonIfEmpty({ force: false });
+  migrateTextPairsFromLegacyTexts();
   cleanupExpiredPendingGlobal();
   loadCache();
 
@@ -519,15 +805,17 @@ function init(ctx) {
   routes.registerGet(appRef, ["/hug/reload", "/api/hug/reload"], handleReload);
   routes.registerPost(appRef, ["/api/hug/command"], handleCommand);
   routes.registerGet(appRef, ["/api/hug/command"], handleCommand);
-  routes.registerGet(appRef, ["/api/hug/db/status", "/api/dashboard/community/hug/status"], (req, res) => res.json(getDashboardStatus()));
+  routes.registerGet(appRef, ["/api/hug/status", "/api/hug/db/status", "/api/dashboard/community/hug/status"], (req, res) => res.json(getDashboardStatus()));
   routes.registerGet(appRef, ["/api/hug/text-store/status", "/api/dashboard/community/hug/text-store/status"], (req, res) => res.json(getDashboardStatus()));
   routes.registerPost(appRef, ["/api/hug/text-store/reload"], (req, res) => { const result = importJsonIfEmpty({ force: false }); cache = null; loadCache(); res.json({ ok: true, result, status: getDashboardStatus() }); });
   routes.registerGet(appRef, ["/api/hug/db/output-mode"], (req, res) => res.json({ ok: true, mode: getCache().output.mode, output: getCache().output }));
   routes.registerPost(appRef, ["/api/hug/db/output-mode"], (req, res) => { const result = setOutputMode(req.body?.mode); if (!result.ok) return res.status(400).json(result); res.json({ ok: true, mode: result.mode, output: result.output }); });
   routes.registerGet(appRef, ["/api/hug/types"], (req, res) => res.json({ ok: true, types: getTypes() }));
   routes.registerGet(appRef, ["/api/hug/texts"], (req, res) => res.json({ ok: true, texts: getTexts(clean(core.getParam(req, "kind", "")), core.getParam(req, "typeId", "") || null, null) }));
+  routes.registerGet(appRef, ["/api/hug/admin/text-pairs", "/api/dashboard/community/hug/text-pairs"], (req, res) => res.json(getTextPairEditorPayload()));
+  routes.registerPost(appRef, ["/api/hug/admin/text-pairs", "/api/dashboard/community/hug/text-pairs"], (req, res) => { try { res.json(handleTextPairsPayload(req.body)); } catch (err) { res.status(400).json({ ok: false, error: err.message || String(err) }); } });
 
-  return { name: MODULE_NAME, step: "014" };
+  return { name: MODULE_NAME, step: "181.1" };
 }
 
-module.exports = { init, loadCache, getDashboardStatus, setOutputMode };
+module.exports = { init, loadCache, getDashboardStatus, setOutputMode, getTextPairEditorPayload };
