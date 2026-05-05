@@ -214,3 +214,13 @@ Aktuelle Helper-Lage:
    git log -8 --oneline
    ```
 2. Danach ein neues Modul oder den naechsten VIP-Feinschliff nur als kleinen STEP planen.
+
+
+## STEP179 Text-Varianten-Editor
+
+- `helper_texts.js` unterstuetzt jetzt zentrale DB-Textvarianten ueber `module_text_variants`.
+- `module_texts` bleibt als Kompatibilitaets-/Legacy-Ebene erhalten.
+- Tagebuch und Todo koennen mehrere aktive/inaktive Varianten pro Text-Key verwalten.
+- Backend-Ausgaben waehlen zufaellig eine aktive Variante.
+- Dashboard-Texte fuer Tagebuch/Todo sind kategoriebasiert: Kategorie auswaehlen, Text-Keys sehen, Varianten hinzufuegen/bearbeiten/deaktivieren/loeschen.
+- JSON-Dateien bleiben Seed/Fallback und werden nicht entfernt.

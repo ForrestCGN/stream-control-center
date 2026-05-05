@@ -62,6 +62,34 @@ const DEFAULT_MESSAGES = {
   resetFailed: 'Tagebuch-Reset fehlgeschlagen.'
 };
 
+const TEXT_CATEGORY_LABELS = {
+  chat: 'Chat-Antworten',
+  discord: 'Discord-Posts',
+  lifecycle: 'Streamstart / Streamende',
+  reset: 'Reset / System',
+  errors: 'Fehlertexte'
+};
+
+const TEXT_CATEGORIES = {
+  usageNotice: 'chat',
+  streamInactive: 'chat',
+  entrySaved: 'chat',
+  unauthorized: 'chat',
+  emptyEndNotice: 'discord',
+  streamStartCreated: 'lifecycle',
+  streamStartExists: 'lifecycle',
+  streamEnd: 'lifecycle',
+  streamEndEmptyNotice: 'lifecycle',
+  resetSoft: 'reset',
+  resetHard: 'reset',
+  resetHardBlocked: 'reset',
+  entryFailed: 'errors',
+  startFailed: 'errors',
+  endFailed: 'errors',
+  statusFailed: 'errors',
+  resetFailed: 'errors'
+};
+
 let runtimeConfig = null;
 let runtimeMessages = null;
 
@@ -224,19 +252,20 @@ function setAdminSettings(payload) {
   return { ok: true, module: MODULE_NAME, table: SETTINGS_TABLE, updated: rows.length, rows, status: buildStatus() };
 }
 
+function textEditorOptions() {
+  return {
+    categories: TEXT_CATEGORIES,
+    categoryLabels: TEXT_CATEGORY_LABELS,
+    defaultCategory: 'chat'
+  };
+}
+
 function listAdminTexts() {
-  return texts.listModuleTexts(TEXTS_MODULE, getMessages(), { seed: true });
+  return texts.listModuleTextEditor(TEXTS_MODULE, runtimeMessages || loadRuntimeMessages(), { ...textEditorOptions(), seed: true });
 }
 
 function setAdminTexts(payload) {
-  const body = payload && typeof payload === 'object' ? payload : {};
-  const updates = body.texts && typeof body.texts === 'object' && !Array.isArray(body.texts)
-    ? body.texts
-    : (body.key ? { [body.key]: body.value } : {});
-
-  if (!Object.keys(updates).length) throw new Error('texts_payload_empty');
-
-  const result = texts.setModuleTexts(TEXTS_MODULE, updates);
+  const result = texts.handleModuleTextEditorPayload(TEXTS_MODULE, payload, textEditorOptions());
   reloadRuntime();
   return { ok: true, module: MODULE_NAME, ...result, status: buildStatus() };
 }
@@ -309,7 +338,18 @@ function getConfig() {
 }
 
 function getMessages() {
-  return runtimeMessages || loadRuntimeMessages();
+  const base = runtimeMessages || loadRuntimeMessages();
+  return new Proxy(base, {
+    get(target, prop) {
+      if (typeof prop !== 'string' || prop.startsWith('_')) return target[prop];
+      if (!Object.prototype.hasOwnProperty.call(target, prop)) return target[prop];
+      try {
+        return texts.pickModuleText(TEXTS_MODULE, prop, target, { ...textEditorOptions(), seed: false }) || target[prop];
+      } catch (err) {
+        return target[prop];
+      }
+    }
+  });
 }
 
 function reloadRuntime() {

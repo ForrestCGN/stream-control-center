@@ -83,3 +83,14 @@ Todo:
 - Technische/sensible Settings schuetzen oder als erweitert markieren.
 - Optional Sammel-Speichern fuer Texte/Settings ergaenzen.
 - Todo-Ziele als sicherere Formularstruktur statt reinem JSON-Textarea planen.
+
+
+
+## Nach STEP179 empfohlen
+
+### STEP180 - Live-/UX-Feinschliff Textvarianten
+
+- Live-Test: Varianten hinzufuegen, deaktivieren, loeschen und zufaellige Ausgabe pruefen.
+- Editor-UX verbessern: bessere Beschreibungen je Text-Key, Platzhalter-Hinweise, technische Keys gruppieren.
+- Textvarianten-Editor als wiederverwendbares Dashboard-Konzept fuer weitere Module planen.
+- Audit-Logging fuer Admin-Aenderungen vorbereiten.

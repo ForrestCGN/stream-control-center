@@ -74,6 +74,30 @@ const DEFAULT_MESSAGES = {
   discordPost: "Todo von {authorDisplay}:\n\n{todoText}"
 };
 
+const TEXT_CATEGORY_LABELS = {
+  chat: "Chat-Antworten",
+  discord: "Discord-Posts",
+  stats: "Statistiktexte",
+  errors: "Fehlertexte",
+  system: "Systemtexte"
+};
+
+const TEXT_CATEGORIES = {
+  help: "chat",
+  added: "chat",
+  invalidTarget: "errors",
+  missingChannel: "errors",
+  missingText: "errors",
+  missingMessage: "errors",
+  unauthorized: "errors",
+  failed: "errors",
+  reloadOk: "system",
+  statsEmpty: "stats",
+  statsHeader: "stats",
+  statsTodayHeader: "stats",
+  discordPost: "discord"
+};
+
 let runtime = {
   channels: {},
   messages: { ...DEFAULT_MESSAGES },
@@ -253,19 +277,20 @@ function setAdminSettings(payload) {
   return { ok: true, module: MODULE_NAME, table: SETTINGS_TABLE, updated: rows.length, rows, status: buildStatus() };
 }
 
+function textEditorOptions() {
+  return {
+    categories: TEXT_CATEGORIES,
+    categoryLabels: TEXT_CATEGORY_LABELS,
+    defaultCategory: "chat"
+  };
+}
+
 function listAdminTexts() {
-  return texts.listModuleTexts(TEXTS_MODULE, runtime.messages || DEFAULT_MESSAGES, { seed: true });
+  return texts.listModuleTextEditor(TEXTS_MODULE, runtime.messages || DEFAULT_MESSAGES, { ...textEditorOptions(), seed: true });
 }
 
 function setAdminTexts(payload) {
-  const body = payload && typeof payload === "object" ? payload : {};
-  const updates = body.texts && typeof body.texts === "object" && !Array.isArray(body.texts)
-    ? body.texts
-    : (body.key ? { [body.key]: body.value } : {});
-
-  if (!Object.keys(updates).length) throw new Error("texts_payload_empty");
-
-  const result = texts.setModuleTexts(TEXTS_MODULE, updates);
+  const result = texts.handleModuleTextEditorPayload(TEXTS_MODULE, payload, textEditorOptions());
   loadRuntime();
   return { ok: true, module: MODULE_NAME, ...result, status: buildStatus() };
 }
@@ -332,11 +357,15 @@ function loadRuntime() {
 }
 
 function t(key, values = {}) {
-  const template = String(runtime.messages?.[key] || DEFAULT_MESSAGES[key] || key);
-  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, name) => {
-    if (Object.prototype.hasOwnProperty.call(values, name)) return String(values[name] ?? "");
-    return match;
-  });
+  try {
+    return texts.renderModuleText(TEXTS_MODULE, key, runtime.messages || DEFAULT_MESSAGES, values, { ...textEditorOptions(), seed: false }) || String(runtime.messages?.[key] || DEFAULT_MESSAGES[key] || key);
+  } catch (err) {
+    const template = String(runtime.messages?.[key] || DEFAULT_MESSAGES[key] || key);
+    return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, name) => {
+      if (Object.prototype.hasOwnProperty.call(values, name)) return String(values[name] ?? "");
+      return match;
+    });
+  }
 }
 
 function nowIso() {

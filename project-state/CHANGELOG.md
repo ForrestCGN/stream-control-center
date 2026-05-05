@@ -126,3 +126,11 @@
 - Neue Dashboard-Module fuer Status, DB-Settings, DB-Texte und Statistiken ergaenzt.
 - `index.html`, `app.js` und `controlhome.js` entsprechend erweitert.
 - Keine Backend- oder Datenbankdateien geaendert.
+
+
+## STEP179 - Text-Varianten-Editor fuer Tagebuch/Todo
+
+- Zentrale DB-Tabelle `module_text_variants` fuer mehrere Textvarianten pro Modul/Text-Key ergaenzt.
+- Tagebuch und Todo nutzen zufaellige aktive Varianten bei Textausgabe.
+- Dashboard-Texte-Tabs von Einzeltexten auf Kategorie-/Varianten-Editor umgestellt.
+- JSON bleibt Seed/Fallback; bestehende Funktionen bleiben erhalten.

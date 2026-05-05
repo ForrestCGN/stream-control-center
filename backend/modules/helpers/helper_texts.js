@@ -423,6 +423,12 @@ function setModuleText(moduleName, key, value, options = {}) {
     updatedAt: now
   });
 
+  try {
+    setModuleTextVariant(moduleKey, { key: textKey, value: textValue, enabled: Boolean(enabled), description }, options);
+  } catch (err) {
+    // Legacy single-text storage must continue to work even if the variants layer is unavailable.
+  }
+
   return listModuleTexts(moduleKey, {}, { tableName: table, seed: false }).rows.find(row => row.key === textKey) || null;
 }
 
@@ -439,6 +445,433 @@ function setModuleTexts(moduleName, values = {}, options = {}) {
     module: cleanTextModule(moduleName),
     count: rows.length,
     rows
+  };
+}
+
+
+
+const DEFAULT_MODULE_TEXT_VARIANTS_TABLE = 'module_text_variants';
+
+function cleanVariantsTable(value) {
+  const table = String(value || DEFAULT_MODULE_TEXT_VARIANTS_TABLE).trim();
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) throw new Error(`invalid_text_variants_table:${table}`);
+  return table;
+}
+
+function ensureModuleTextVariantsTable(tableName = DEFAULT_MODULE_TEXT_VARIANTS_TABLE) {
+  const table = cleanVariantsTable(tableName);
+  const qTable = database.quoteIdentifier(table);
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS ${qTable} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      module_name TEXT NOT NULL,
+      text_key TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'general',
+      text_value TEXT NOT NULL DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      weight INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      description TEXT NOT NULL DEFAULT '',
+      source TEXT NOT NULL DEFAULT 'database',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_${table}_module_key ON ${qTable} (module_name, text_key);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_${table}_module_category ON ${qTable} (module_name, category);`);
+  return table;
+}
+
+function normalizeCategory(value) {
+  const category = String(value || 'general').trim() || 'general';
+  if (!/^[a-zA-Z0-9_.:-]+$/.test(category)) return 'general';
+  return category;
+}
+
+function resolveTextCategory(key, options = {}) {
+  const categories = options.categories && typeof options.categories === 'object' ? options.categories : {};
+  const direct = categories[key];
+  if (typeof direct === 'string') return normalizeCategory(direct);
+  if (direct && typeof direct === 'object') return normalizeCategory(direct.category || direct.id || direct.key);
+  return normalizeCategory(options.defaultCategory || 'general');
+}
+
+function resolveCategoryLabel(category, options = {}) {
+  const labels = options.categoryLabels && typeof options.categoryLabels === 'object' ? options.categoryLabels : {};
+  const value = labels[category];
+  if (value && typeof value === 'object') return String(value.label || value.name || category);
+  if (value) return String(value);
+  return String(category);
+}
+
+function normalizeDefaultTextVariants(defaults = {}, options = {}) {
+  if (!defaults || typeof defaults !== 'object' || Array.isArray(defaults)) return [];
+  const items = [];
+  let index = 0;
+
+  for (const [rawKey, rawValue] of Object.entries(defaults)) {
+    if (!rawKey || String(rawKey).startsWith('_')) continue;
+    const key = cleanTextKey(rawKey);
+    const category = resolveTextCategory(key, options);
+    const description = rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)
+      ? String(rawValue.description || '')
+      : '';
+    const values = normalizeTextList(rawValue);
+
+    for (const value of values) {
+      items.push({
+        key,
+        category,
+        value,
+        enabled: true,
+        weight: 1,
+        sortOrder: index,
+        description
+      });
+      index += 1;
+    }
+  }
+
+  return items;
+}
+
+function rowToModuleTextVariant(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    module: row.module_name,
+    key: row.text_key,
+    category: row.category || 'general',
+    value: row.text_value || '',
+    text: row.text_value || '',
+    enabled: Number(row.enabled) !== 0,
+    weight: Number(row.weight || 1),
+    sortOrder: Number(row.sort_order || 0),
+    description: row.description || '',
+    source: row.source || 'database',
+    createdAt: row.created_at || '',
+    updatedAt: row.updated_at || ''
+  };
+}
+
+function seedModuleTextVariants(moduleName, defaults = {}, options = {}) {
+  const table = ensureModuleTextVariantsTable(options.variantsTableName || DEFAULT_MODULE_TEXT_VARIANTS_TABLE);
+  const qTable = database.quoteIdentifier(table);
+  const moduleKey = cleanTextModule(moduleName);
+  const now = core.nowIso();
+  let inserted = 0;
+
+  for (const item of normalizeDefaultTextVariants(defaults, options)) {
+    const exists = database.get(`
+      SELECT id FROM ${qTable}
+      WHERE module_name = :moduleName AND text_key = :textKey AND text_value = :textValue
+      LIMIT 1
+    `, { moduleName: moduleKey, textKey: item.key, textValue: item.value });
+    if (exists) continue;
+
+    const result = database.run(`
+      INSERT INTO ${qTable}
+        (module_name, text_key, category, text_value, enabled, weight, sort_order, description, source, created_at, updated_at)
+      VALUES
+        (:moduleName, :textKey, :category, :textValue, :enabled, :weight, :sortOrder, :description, :source, :createdAt, :updatedAt)
+    `, {
+      moduleName: moduleKey,
+      textKey: item.key,
+      category: item.category,
+      textValue: item.value,
+      enabled: item.enabled ? 1 : 0,
+      weight: item.weight || 1,
+      sortOrder: item.sortOrder || 0,
+      description: item.description || '',
+      source: options.source || 'seed',
+      createdAt: now,
+      updatedAt: now
+    });
+    inserted += Number(result?.changes || 0);
+  }
+
+  return { ok: true, table, module: moduleKey, inserted };
+}
+
+function migrateLegacyModuleTextsToVariants(moduleName, options = {}) {
+  const variantsTable = ensureModuleTextVariantsTable(options.variantsTableName || DEFAULT_MODULE_TEXT_VARIANTS_TABLE);
+  const legacyTable = ensureModuleTextsTable(options.tableName || DEFAULT_MODULE_TEXTS_TABLE);
+  const qVariants = database.quoteIdentifier(variantsTable);
+  const qLegacy = database.quoteIdentifier(legacyTable);
+  const moduleKey = cleanTextModule(moduleName);
+  const now = core.nowIso();
+  let inserted = 0;
+
+  const legacyRows = database.all(`
+    SELECT module_name, text_key, text_value, enabled, description, source
+    FROM ${qLegacy}
+    WHERE module_name = :moduleName
+  `, { moduleName: moduleKey });
+
+  for (const row of legacyRows) {
+    const textValue = String(row.text_value || '').trim();
+    if (!textValue) continue;
+    const exists = database.get(`
+      SELECT id FROM ${qVariants}
+      WHERE module_name = :moduleName AND text_key = :textKey AND text_value = :textValue
+      LIMIT 1
+    `, { moduleName: moduleKey, textKey: row.text_key, textValue });
+    if (exists) continue;
+
+    const result = database.run(`
+      INSERT INTO ${qVariants}
+        (module_name, text_key, category, text_value, enabled, weight, sort_order, description, source, created_at, updated_at)
+      VALUES
+        (:moduleName, :textKey, :category, :textValue, :enabled, :weight, :sortOrder, :description, :source, :createdAt, :updatedAt)
+    `, {
+      moduleName: moduleKey,
+      textKey: cleanTextKey(row.text_key),
+      category: resolveTextCategory(row.text_key, options),
+      textValue,
+      enabled: Number(row.enabled) !== 0 ? 1 : 0,
+      weight: 1,
+      sortOrder: 0,
+      description: row.description || '',
+      source: row.source === 'seed' ? 'seed' : 'legacy',
+      createdAt: now,
+      updatedAt: now
+    });
+    inserted += Number(result?.changes || 0);
+  }
+
+  return { ok: true, module: moduleKey, table: variantsTable, legacyTable, inserted };
+}
+
+function listModuleTextVariants(moduleName, defaults = {}, options = {}) {
+  const table = ensureModuleTextVariantsTable(options.variantsTableName || DEFAULT_MODULE_TEXT_VARIANTS_TABLE);
+  const qTable = database.quoteIdentifier(table);
+  const moduleKey = cleanTextModule(moduleName);
+
+  if (options.seed !== false) seedModuleTextVariants(moduleKey, defaults, options);
+  if (options.migrateLegacy !== false) migrateLegacyModuleTextsToVariants(moduleKey, options);
+
+  return database.all(`
+    SELECT id, module_name, text_key, category, text_value, enabled, weight, sort_order, description, source, created_at, updated_at
+    FROM ${qTable}
+    WHERE module_name = :moduleName
+    ORDER BY category ASC, text_key ASC, sort_order ASC, id ASC
+  `, { moduleName: moduleKey }).map(rowToModuleTextVariant);
+}
+
+function buildModuleTextEditorPayload(moduleName, defaults = {}, options = {}) {
+  const moduleKey = cleanTextModule(moduleName);
+  const variantsTable = ensureModuleTextVariantsTable(options.variantsTableName || DEFAULT_MODULE_TEXT_VARIANTS_TABLE);
+  const rows = listModuleTextVariants(moduleKey, defaults, options);
+  const keyMap = new Map();
+  const categoryMap = new Map();
+
+  for (const row of rows) {
+    const category = normalizeCategory(row.category || resolveTextCategory(row.key, options));
+    const item = keyMap.get(row.key) || {
+      key: row.key,
+      category,
+      label: row.key,
+      variants: [],
+      activeCount: 0,
+      totalCount: 0
+    };
+    item.variants.push(row);
+    item.totalCount += 1;
+    if (row.enabled) item.activeCount += 1;
+    keyMap.set(row.key, item);
+
+    const cat = categoryMap.get(category) || {
+      id: category,
+      key: category,
+      label: resolveCategoryLabel(category, options),
+      count: 0,
+      keyCount: 0,
+      variantCount: 0
+    };
+    cat.variantCount += 1;
+    categoryMap.set(category, cat);
+  }
+
+  for (const item of keyMap.values()) {
+    const cat = categoryMap.get(item.category);
+    if (cat) cat.keyCount += 1;
+  }
+
+  const categories = Array.from(categoryMap.values())
+    .map(cat => ({ ...cat, count: cat.keyCount }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  const keys = Array.from(keyMap.values())
+    .sort((a, b) => a.category.localeCompare(b.category) || a.key.localeCompare(b.key));
+
+  const compatibilityRows = keys.map(item => {
+    const active = item.variants.find(variant => variant.enabled) || item.variants[0] || null;
+    return active ? {
+      id: active.id,
+      module: moduleKey,
+      key: item.key,
+      category: item.category,
+      value: active.value,
+      text: active.text,
+      enabled: active.enabled,
+      description: active.description,
+      source: active.source,
+      variantCount: item.variants.length,
+      activeCount: item.activeCount,
+      createdAt: active.createdAt,
+      updatedAt: active.updatedAt
+    } : null;
+  }).filter(Boolean);
+
+  return {
+    ok: true,
+    table: variantsTable,
+    variantsTable,
+    legacyTable: options.tableName || DEFAULT_MODULE_TEXTS_TABLE,
+    module: moduleKey,
+    count: keys.length,
+    variantCount: rows.length,
+    categories,
+    keys,
+    rows: compatibilityRows
+  };
+}
+
+function listModuleTextEditor(moduleName, defaults = {}, options = {}) {
+  return buildModuleTextEditorPayload(moduleName, defaults, options);
+}
+
+function pickWeightedVariant(variants) {
+  const active = (variants || []).filter(row => row && row.enabled && String(row.value || '').trim());
+  if (active.length === 0) return null;
+  const totalWeight = active.reduce((sum, row) => sum + Math.max(1, Number(row.weight || 1)), 0);
+  let roll = Math.random() * totalWeight;
+  for (const row of active) {
+    roll -= Math.max(1, Number(row.weight || 1));
+    if (roll <= 0) return row;
+  }
+  return active[active.length - 1];
+}
+
+function pickModuleText(moduleName, key, defaults = {}, options = {}) {
+  const moduleKey = cleanTextModule(moduleName);
+  const textKey = cleanTextKey(key);
+  const variants = listModuleTextVariants(moduleKey, defaults, options).filter(row => row.key === textKey);
+  const picked = pickWeightedVariant(variants);
+  if (picked) return picked.value;
+
+  const fallback = defaults && Object.prototype.hasOwnProperty.call(defaults, textKey) ? defaults[textKey] : '';
+  const list = normalizeTextList(fallback);
+  if (list.length === 0) return '';
+  if (options.mode === 'first') return list[0];
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function renderModuleText(moduleName, key, defaults = {}, context = {}, options = {}) {
+  return renderTemplate(pickModuleText(moduleName, key, defaults, options), context);
+}
+
+function setModuleTextVariant(moduleName, variant = {}, options = {}) {
+  const table = ensureModuleTextVariantsTable(options.variantsTableName || DEFAULT_MODULE_TEXT_VARIANTS_TABLE);
+  const qTable = database.quoteIdentifier(table);
+  const moduleKey = cleanTextModule(moduleName);
+  const id = Number.parseInt(variant.id || variant.variantId || 0, 10);
+  const textKey = cleanTextKey(variant.key || variant.textKey);
+  const category = normalizeCategory(variant.category || resolveTextCategory(textKey, options));
+  const textValue = String(variant.value ?? variant.text ?? '');
+  const enabled = variant.enabled === false || variant.enabled === 0 || variant.enabled === 'false' ? 0 : 1;
+  const weight = Math.max(1, Number.parseInt(variant.weight || 1, 10) || 1);
+  const sortOrder = Number.parseInt(variant.sortOrder ?? variant.sort_order ?? 0, 10) || 0;
+  const description = String(variant.description || '');
+  const now = core.nowIso();
+
+  if (id > 0) {
+    database.run(`
+      UPDATE ${qTable}
+      SET text_key = :textKey,
+          category = :category,
+          text_value = :textValue,
+          enabled = :enabled,
+          weight = :weight,
+          sort_order = :sortOrder,
+          description = :description,
+          source = 'database',
+          updated_at = :updatedAt
+      WHERE id = :id AND module_name = :moduleName
+    `, { id, moduleName: moduleKey, textKey, category, textValue, enabled, weight, sortOrder, description, updatedAt: now });
+  } else {
+    database.run(`
+      INSERT INTO ${qTable}
+        (module_name, text_key, category, text_value, enabled, weight, sort_order, description, source, created_at, updated_at)
+      VALUES
+        (:moduleName, :textKey, :category, :textValue, :enabled, :weight, :sortOrder, :description, :source, :createdAt, :updatedAt)
+    `, {
+      moduleName: moduleKey,
+      textKey,
+      category,
+      textValue,
+      enabled,
+      weight,
+      sortOrder,
+      description,
+      source: 'database',
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  return buildModuleTextEditorPayload(moduleKey, {}, { ...options, seed: false, migrateLegacy: false });
+}
+
+function deleteModuleTextVariant(moduleName, id, options = {}) {
+  const table = ensureModuleTextVariantsTable(options.variantsTableName || DEFAULT_MODULE_TEXT_VARIANTS_TABLE);
+  const qTable = database.quoteIdentifier(table);
+  const moduleKey = cleanTextModule(moduleName);
+  const variantId = Number.parseInt(id || 0, 10);
+  if (!variantId) throw new Error('variant_id_required');
+
+  const result = database.run(`DELETE FROM ${qTable} WHERE id = :id AND module_name = :moduleName`, {
+    id: variantId,
+    moduleName: moduleKey
+  });
+
+  return {
+    ok: true,
+    module: moduleKey,
+    deleted: Number(result?.changes || 0),
+    texts: buildModuleTextEditorPayload(moduleKey, {}, { ...options, seed: false, migrateLegacy: false })
+  };
+}
+
+function handleModuleTextEditorPayload(moduleName, payload = {}, options = {}) {
+  const body = payload && typeof payload === 'object' ? payload : {};
+  const action = String(body.action || '').trim();
+
+  if (action === 'deleteVariant' || action === 'delete_variant') {
+    return deleteModuleTextVariant(moduleName, body.id || body.variantId, options);
+  }
+
+  if (action === 'saveVariant' || action === 'save_variant' || body.variant) {
+    return {
+      ok: true,
+      module: cleanTextModule(moduleName),
+      texts: setModuleTextVariant(moduleName, body.variant || body, options)
+    };
+  }
+
+  const updates = body.texts && typeof body.texts === 'object' && !Array.isArray(body.texts)
+    ? body.texts
+    : (body.key ? { [body.key]: body.value } : {});
+
+  for (const [key, value] of Object.entries(updates)) {
+    setModuleTextVariant(moduleName, { key, value, category: resolveTextCategory(key, options), enabled: true }, options);
+  }
+
+  return {
+    ok: true,
+    module: cleanTextModule(moduleName),
+    texts: buildModuleTextEditorPayload(moduleName, {}, { ...options, seed: false, migrateLegacy: false })
   };
 }
 
@@ -556,12 +989,22 @@ function buildChatResult(key, context = {}, options = {}) {
 
 module.exports = {
   DEFAULT_MODULE_TEXTS_TABLE,
+  DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
   ensureModuleTextsTable,
+  ensureModuleTextVariantsTable,
   seedModuleTexts,
+  seedModuleTextVariants,
   listModuleTexts,
+  listModuleTextVariants,
+  listModuleTextEditor,
   getModuleTexts,
+  pickModuleText,
+  renderModuleText,
   setModuleText,
   setModuleTexts,
+  setModuleTextVariant,
+  deleteModuleTextVariant,
+  handleModuleTextEditorPayload,
   getMessagesDir,
   ensureDefaultMessageFiles,
   reload,

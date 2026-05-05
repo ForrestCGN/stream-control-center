@@ -199,3 +199,12 @@ Aktuelle Helper-Lage:
 - Neue Dateien: `htdocs/dashboard/modules/tagebuch.js`, `tagebuch.css`, `todo.js`, `todo.css`.
 - Dashboard nutzt die STEP177-Admin-Routen fuer DB-Settings und DB-Texte.
 - Keine Backend-Funktionalitaet entfernt.
+
+
+## STEP179 Text-Varianten-Editor
+
+- `backend/modules/helpers/helper_texts.js` ist ab STEP179 nicht mehr nur JSON-/Einzeltext-Helfer, sondern unterstuetzt zentrale DB-Textvarianten via `module_text_variants`.
+- `module_texts` bleibt fuer Kompatibilitaet erhalten.
+- Tagebuch und Todo nutzen mehrere Varianten pro Text-Key und zufaellige Auswahl aktiver Varianten.
+- Dashboard-Texte werden fuer Tagebuch/Todo kategoriebasiert bearbeitet.
+- Neue Regel: Alle ausgebbaren Texte sollen langfristig Varianten pro Key unterstuetzen.

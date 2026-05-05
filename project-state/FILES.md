@@ -115,3 +115,13 @@ Tagebuch/Todo Dashboard-Dateien folgen erst in STEP178.
 - `htdocs/dashboard/modules/todo.js` - Dashboard-Modul fuer Todo-Status, Ziele, DB-Settings, DB-Texte und Statistik.
 - `htdocs/dashboard/modules/todo.css` - Styles fuer Todo-Dashboard.
 - `project-state/STEP178_TAGEBUCH_TODO_DASHBOARD_INTEGRATION_2026-05-05.md` - STEP178-Dokumentation.
+
+
+## STEP179 relevante Dateien
+
+- `backend/modules/helpers/helper_texts.js` - zentrale DB-Textvarianten/Editor-Helper.
+- `backend/modules/tagebuch.js` - Tagebuch-Kategorien und Varianten-Auswahl.
+- `backend/modules/todo.js` - Todo-Kategorien und Varianten-Auswahl.
+- `htdocs/dashboard/modules/tagebuch.js` / `.css` - Tagebuch Varianten-Editor.
+- `htdocs/dashboard/modules/todo.js` / `.css` - Todo Varianten-Editor.
+- `project-state/STEP179_TEXT_VARIANTS_EDITOR_2026-05-05.md` - STEP-Doku.

@@ -11,7 +11,7 @@ window.TagebuchModule = (function(){
   };
 
   let root = null;
-  let state = { status:null, settings:null, texts:null, statsTop:null, statsToday:null, loading:false, error:'', tab:'overview' };
+  let state = { status:null, settings:null, texts:null, statsTop:null, statsToday:null, loading:false, error:'', tab:'overview', textCategory:'' };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
   function rows(data){ return Array.isArray(data?.rows) ? data.rows : []; }
@@ -69,10 +69,51 @@ window.TagebuchModule = (function(){
     await loadAll(true);
   }
 
-  async function saveText(key){
-    const el = root?.querySelector(`[data-text-input="${CSS.escape(key)}"]`);
-    if (!el) return;
-    await window.CGN.api(api.texts, { method:'POST', body: JSON.stringify({ key, value: el.value }) });
+  function textData(){ return state.texts?.texts || state.texts || {}; }
+  function textCategories(){ return Array.isArray(textData().categories) ? textData().categories : []; }
+  function textKeys(){ return Array.isArray(textData().keys) ? textData().keys : []; }
+  function selectedTextCategory(){
+    const cats = textCategories();
+    if (!cats.length) return '';
+    if (!state.textCategory || !cats.some(c => c.id === state.textCategory)) state.textCategory = cats[0].id;
+    return state.textCategory;
+  }
+
+  async function saveVariant(id, key){
+    const safeId = String(id || 'new');
+    const textEl = root?.querySelector(`[data-variant-text="${CSS.escape(safeId)}"][data-variant-key="${CSS.escape(key)}"]`);
+    const enabledEl = root?.querySelector(`[data-variant-enabled="${CSS.escape(safeId)}"][data-variant-key="${CSS.escape(key)}"]`);
+    const weightEl = root?.querySelector(`[data-variant-weight="${CSS.escape(safeId)}"][data-variant-key="${CSS.escape(key)}"]`);
+    if (!textEl) return;
+    await window.CGN.api(api.texts, { method:'POST', body: JSON.stringify({
+      action: 'saveVariant',
+      variant: {
+        id: id && id !== 'new' ? Number(id) : undefined,
+        key,
+        category: selectedTextCategory() || 'general',
+        value: textEl.value,
+        enabled: enabledEl ? enabledEl.checked : true,
+        weight: weightEl ? Number(weightEl.value || 1) : 1
+      }
+    }) });
+    await loadAll(true);
+  }
+
+  async function addVariant(key){
+    const el = root?.querySelector(`[data-new-variant="${CSS.escape(key)}"]`);
+    const value = String(el?.value || '').trim();
+    if (!value) throw new Error('Bitte zuerst einen neuen Text eintragen.');
+    await window.CGN.api(api.texts, { method:'POST', body: JSON.stringify({
+      action: 'saveVariant',
+      variant: { key, category: selectedTextCategory() || 'general', value, enabled: true, weight: 1 }
+    }) });
+    await loadAll(true);
+  }
+
+  async function deleteVariant(id){
+    if (!id) return;
+    if (!window.confirm('Diese Textvariante wirklich löschen?')) return;
+    await window.CGN.api(api.texts, { method:'POST', body: JSON.stringify({ action:'deleteVariant', id:Number(id) }) });
     await loadAll(true);
   }
 
@@ -128,13 +169,29 @@ window.TagebuchModule = (function(){
   }
 
   function renderTexts(){
-    const list = rows(state.texts?.texts);
-    return `<section class="tagebuch-card"><h3>Texte aus DB</h3><p class="tagebuch-note">Diese Texte werden vom Backend genutzt. Platzhalter wie <code>{page}</code> bleiben unverändert erhalten.</p><div class="tagebuch-text-list">${list.map(row => `
-      <article class="tagebuch-text-row">
-        <div class="tagebuch-text-head"><strong>${esc(row.key)}</strong><span>${esc(row.source || '')}</span></div>
-        <textarea data-text-input="${esc(row.key)}" spellcheck="false">${esc(row.value ?? row.text ?? '')}</textarea>
-        <div class="tagebuch-row-actions"><button type="button" data-save-text="${esc(row.key)}">Text speichern</button></div>
-      </article>`).join('')}</div></section>`;
+    const cats = textCategories();
+    const selected = selectedTextCategory();
+    const keys = textKeys().filter(item => !selected || item.category === selected);
+    return `<section class="tagebuch-card"><h3>Texte / Varianten</h3><p class="tagebuch-note">Kategorien auswählen, dann pro Text-Key mehrere aktive Varianten verwalten. Das Backend wählt bei Ausgabe zufällig eine aktive Variante.</p>
+      <div class="tagebuch-text-toolbar">
+        <label>Kategorie auswählen<select data-text-category>${cats.map(cat => `<option value="${esc(cat.id)}" ${cat.id === selected ? 'selected' : ''}>${esc(cat.label || cat.id)} (${esc(cat.keyCount ?? cat.count ?? 0)} Keys / ${esc(cat.variantCount ?? 0)} Varianten)</option>`).join('')}</select></label>
+      </div>
+      <div class="tagebuch-text-list">${keys.map(item => `
+        <article class="tagebuch-text-row">
+          <div class="tagebuch-text-head"><strong>${esc(item.key)}</strong><span>${esc(item.activeCount || 0)} aktiv / ${esc(item.totalCount || item.variants?.length || 0)} Varianten</span></div>
+          <div class="tagebuch-variant-list">${(item.variants || []).map(variant => `
+            <div class="tagebuch-variant-row">
+              <textarea data-variant-text="${esc(variant.id)}" data-variant-key="${esc(item.key)}" spellcheck="false">${esc(variant.value ?? variant.text ?? '')}</textarea>
+              <div class="tagebuch-variant-meta">
+                <label><input type="checkbox" data-variant-enabled="${esc(variant.id)}" data-variant-key="${esc(item.key)}" ${variant.enabled ? 'checked' : ''}> Aktiv</label>
+                <label>Gewicht <input type="number" min="1" max="99" data-variant-weight="${esc(variant.id)}" data-variant-key="${esc(item.key)}" value="${esc(variant.weight || 1)}"></label>
+                <span>${esc(variant.source || '')}</span>
+              </div>
+              <div class="tagebuch-row-actions"><button type="button" data-save-variant="${esc(variant.id)}" data-variant-key="${esc(item.key)}">Speichern</button><button type="button" class="danger" data-delete-variant="${esc(variant.id)}">Löschen</button></div>
+            </div>`).join('')}</div>
+          <div class="tagebuch-new-variant"><textarea data-new-variant="${esc(item.key)}" placeholder="Neue Variante für ${esc(item.key)} hinzufügen..." spellcheck="false"></textarea><button type="button" data-add-variant="${esc(item.key)}">Variante hinzufügen</button></div>
+        </article>`).join('')}</div>
+      ${!keys.length ? '<div class="tagebuch-empty">Keine Texte in dieser Kategorie.</div>' : ''}</section>`;
   }
 
   function renderStats(){
@@ -170,7 +227,10 @@ window.TagebuchModule = (function(){
     root?.querySelector('[data-tagebuch-reload]')?.addEventListener('click', () => reloadBackend().catch(err => { state.error = err.message; render(); }));
     root?.querySelectorAll('[data-tagebuch-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.tagebuchTab || 'overview'; render(); }));
     root?.querySelectorAll('[data-save-setting]').forEach(btn => btn.addEventListener('click', () => saveSetting(btn.dataset.saveSetting).catch(err => { state.error = err.message; render(); })));
-    root?.querySelectorAll('[data-save-text]').forEach(btn => btn.addEventListener('click', () => saveText(btn.dataset.saveText).catch(err => { state.error = err.message; render(); })));
+    root?.querySelector('[data-text-category]')?.addEventListener('change', ev => { state.textCategory = ev.target.value; render(); });
+    root?.querySelectorAll('[data-save-variant]').forEach(btn => btn.addEventListener('click', () => saveVariant(btn.dataset.saveVariant, btn.dataset.variantKey).catch(err => { state.error = err.message; render(); })));
+    root?.querySelectorAll('[data-add-variant]').forEach(btn => btn.addEventListener('click', () => addVariant(btn.dataset.addVariant).catch(err => { state.error = err.message; render(); })));
+    root?.querySelectorAll('[data-delete-variant]').forEach(btn => btn.addEventListener('click', () => deleteVariant(btn.dataset.deleteVariant).catch(err => { state.error = err.message; render(); })));
   }
 
   window.addEventListener('cgn:module-show', ev => { if (ev.detail?.module === 'tagebuch') loadAll(false); });
