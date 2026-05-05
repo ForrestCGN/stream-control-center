@@ -4,51 +4,44 @@ Stand: 2026-05-05
 
 ## Naechster empfohlener Schritt
 
-### STEP182 - Hug/Rehug Dashboard Live-Feinschliff
+### STEP183 - Hug/Rehug finaler Browser-UX-Check oder naechstes Modul
 
-Ziel:
+Der Hug-Texte-Bereich ist technisch komplett:
 
-- Hug/Rehug-Dashboard im Browser pruefen.
-- Textpaar-Editor praktisch testen.
-- Keine neue Fachlogik, nur UX-/Fehlerkorrekturen falls sichtbar noetig.
+- Hug/Rehug-Paare editierbar
+- Chatweite Hugs editierbar
+- Systemantworten editierbar
+- Toplisten editierbar
 
-Pruefung:
+Empfohlene kurze Pruefung:
 
 1. Dashboard oeffnen:
    ```text
-   Community -> Hug-System -> Texte -> Hug/Rehug-Paare
+   Community -> Hug-System -> Texte
    ```
-2. Pruefen:
-   - Werden 30 Textpaare angezeigt?
-   - Suche funktioniert?
-   - Aktiv/Inaktiv sichtbar?
-   - Gewichtung und Sortierung sichtbar?
-   - Text und Antwort-Text bleiben als Paar zusammen?
-3. Testweise ein Textpaar minimal bearbeiten, speichern, neu laden und wieder zuruecksetzen.
+2. Alle vier Kategorien anklicken:
+   - Hug/Rehug-Paare
+   - Chatweite Hugs
+   - Systemantworten
+   - Toplisten
+3. Pruefen:
+   - Textfelder breit genug?
+   - Kleine Felder kompakt genug?
+   - Speichern sichtbar?
+   - Loeschen sichtbar?
+   - Keine Typen-Komplexitaet sichtbar?
+   - Text/Antwort bleiben bei Hug/Rehug gekoppelt?
 
-Voraussichtlich betroffene Dateien, falls UX-Korrektur noetig:
-
-- `htdocs/dashboard/modules/hug.js`
-- `htdocs/dashboard/modules/hug.css`
-- ggf. `backend/modules/hug.js`, falls API-Ausgabe nicht passt
-- `project-state/*`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
+Wenn UX passt, ist Hug/Rehug fuer diesen Block abgeschlossen.
 
 ## Danach moeglich
 
-### Hug/Rehug naechste Text-Kategorien
+### Hug/Rehug optional
 
-Nach erfolgreichem Textpaar-Test koennen weitere Kategorien editierbar gemacht werden:
-
-- `hug_all` / Chatweite Hugs
-- Systemantworten
-- Toplisten-Titel
-
-Wichtig:
-
-- Hug/Rehug-Paare bleiben gekoppelt.
-- `hug_all` und Systemantworten duerfen als normale Varianten/Einzeltexte behandelt werden.
-- Keine Rueckkehr zur komplizierten Typen-Bedienung.
+- Audit-Logging fuer Textaenderungen.
+- Bessere Hilfe je Text-Key bei Systemantworten.
+- Sammel-Speichern statt Einzel-Speichern.
+- Rollen/Rechte fuer Textbearbeitung vorbereiten.
 
 ### VIP
 
@@ -81,9 +74,9 @@ cd D:\Git\stream-control-center
 Beispiele:
 
 ```powershell
-.\stepdone.cmd "fix: improve hug text pair dashboard"
-.\stepdone.cmd "docs: sync hug rehug project status"
-.\stepdone.cmd "feat: add hug all text editor"
+.\stepdone.cmd "fix: improve hug text editor ux"
+.\stepdone.cmd "docs: sync hug text editor status"
+.\stepdone.cmd "feat: add vip 30 day stats"
 ```
 
 ## Wichtige Regel fuer Hug/Rehug

@@ -33,12 +33,6 @@ Standard-Scripte:
 - `tools\easy\03_NUR_STATUS_PRUEFEN.cmd`
 - `tools\easy\04_BACKUP_ZURUECKSPIELEN.cmd`
 
-Wichtig:
-
-- Diese Easy-Scripts sind der Standard fuer GitHub-/Live-Arbeiten.
-- Nicht auf alte Root-Script-Pfade ausweichen, wenn die Easy-Scripts vorhanden sind.
-- Wenn grosse Dateien ueber GitHub/Tools nur gekuerzt gelesen werden koennen, stellt Forrest die echte Datei bereit. Diese echte Datei ist dann die Arbeitsbasis.
-
 ## Stepdone Workflow
 
 Nach manuellem Entpacken eines ZIPs nach Repo-Root:
@@ -101,7 +95,7 @@ Zweck:
 - `htdocs/dashboard/modules/vip.js`
 - `htdocs/dashboard/modules/vip.css`
 
-## STEP181 Hug/Rehug relevante Dateien
+## STEP181/182 Hug/Rehug relevante Dateien
 
 Backend:
 
@@ -129,8 +123,14 @@ Doku:
 - `project-state/STEP181_4_HUG_SIMPLIFY_NO_TYPES_2026-05-05.md`
 - `project-state/STEP181_7_STEPDONE_CMD_ONLY_2026-05-05.md`
 - `project-state/STEP181_8_HUG_REHUG_DOC_SYNC_2026-05-05.md`
+- `project-state/STEP182_1_HUG_DASHBOARD_UX_TEXTPAIR_LABELS_2026-05-05.md`
+- `project-state/STEP182_2_HUG_DASHBOARD_UX_TEXTAREA_WIDTH_2026-05-05.md`
+- `project-state/STEP182_3_HUG_ALL_TEXT_EDITOR_2026-05-05.md`
+- `project-state/STEP182_4_HUG_RESPONSE_TEXT_EDITOR_2026-05-05.md`
+- `project-state/STEP182_5_HUG_TOP_TITLE_EDITOR_2026-05-05.md`
+- `project-state/STEP182_6_HUG_TEXT_EDITOR_DOC_SYNC_2026-05-05.md`
 
-## STEP181 neue/benutzte DB-Strukturen
+## STEP181/182 DB-Strukturen
 
 Sanft per `CREATE TABLE IF NOT EXISTS` / Migration:
 
@@ -146,9 +146,16 @@ Bestehende Tabellen bleiben erhalten:
 - `hug_types`
 - `hug_texts`
 
+Hug-Texte:
+
+- `hug_text_pairs` fuer gekoppelte Hug/Rehug-Paare
+- `hug_texts.kind = hug_all` fuer chatweite Hugs
+- `hug_texts.kind = response` fuer Systemantworten
+- `hug_texts.kind = top_title` fuer Toplisten-Titel
+
 Keine SQLite-Datei wird committed oder ersetzt.
 
-## STEP181 neue/aktualisierte Routen
+## STEP181/182 Hug-Routen
 
 Status:
 
@@ -162,6 +169,27 @@ Textpaare:
 - `POST /api/hug/admin/text-pairs`
 - `GET /api/dashboard/community/hug/text-pairs`
 - `POST /api/dashboard/community/hug/text-pairs`
+
+Chatweite Hugs:
+
+- `GET /api/hug/admin/hug-all-texts`
+- `POST /api/hug/admin/hug-all-texts`
+- `GET /api/dashboard/community/hug/hug-all-texts`
+- `POST /api/dashboard/community/hug/hug-all-texts`
+
+Systemantworten:
+
+- `GET /api/hug/admin/response-texts`
+- `POST /api/hug/admin/response-texts`
+- `GET /api/dashboard/community/hug/response-texts`
+- `POST /api/dashboard/community/hug/response-texts`
+
+Toplisten:
+
+- `GET /api/hug/admin/top-title-texts`
+- `POST /api/hug/admin/top-title-texts`
+- `GET /api/dashboard/community/hug/top-title-texts`
+- `POST /api/dashboard/community/hug/top-title-texts`
 
 Bestehende Hug-/Rehug-Routen und Streamer.bot-Kompatibilitaet bleiben erhalten.
 

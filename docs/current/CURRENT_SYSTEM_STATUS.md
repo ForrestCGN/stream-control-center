@@ -38,7 +38,10 @@ Aktueller Arbeitsgrundsatz:
 
 - GitHub/dev ist Single Source of Truth.
 - Live wird ueber `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd` aktualisiert.
-- Nach manuellem Entpacken eines STEP-ZIPs kann der Standardabschluss ueber `.\stepdone.cmd "commit beschreibung"` laufen.
+- Nach manuellem Entpacken eines STEP-ZIPs ist der Standardabschluss:
+  ```powershell
+  .\stepdone.cmd "commit beschreibung"
+  ```
 - Nach abgeschlossenen Blocks werden `docs/current/CURRENT_SYSTEM_STATUS.md` und `project-state/*` aktualisiert.
 - Keine Secrets, `.env`, SQLite-/DB-Dateien, Backups, ZIPs oder Tokens committen.
 - Keine Funktionalitaet entfernen.
@@ -75,7 +78,7 @@ Hinweis:
 
 ## Zuletzt abgeschlossene Hauptbereiche
 
-### Hug / Rehug - STEP181
+### Hug / Rehug - STEP181 bis STEP182
 
 Aktueller Stand:
 
@@ -84,23 +87,58 @@ Aktueller Stand:
 - `hug_pending_rehugs` speichert `pair_id`, damit ein Rehug exakt den passenden Antworttext zum urspruenglich gezogenen Hug-Text nutzt.
 - Bestehende alte `hug_texts` wurden sanft in 30 gekoppelte Textpaare migriert.
 - `hug_types` und `type_id` bleiben aus Kompatibilitaets-/Migrationsgruenden bestehen, sind aber fuer die Bedienung nicht mehr prominent relevant.
-- Dashboard-Bedienung wurde vereinfacht: Text / Antwort-Text statt Typen-Komplexitaet.
-- Neue Status-/Admin-Routen:
-  - `GET /api/hug/status`
-  - `GET /api/hug/db/status`
-  - `GET /api/dashboard/community/hug/status`
-  - `GET /api/hug/admin/text-pairs`
-  - `POST /api/hug/admin/text-pairs`
-  - `GET /api/dashboard/community/hug/text-pairs`
-  - `POST /api/dashboard/community/hug/text-pairs`
+- Dashboard-Bedienung wurde vereinfacht: Textpaar / Text / Antwort-Text statt Typen-Komplexitaet.
+- STEP182 hat den Hug-Texte-Bereich komplett editierbar gemacht.
+
+Aktive Hug-Texte-Kategorien im Dashboard:
+
+- `Hug/Rehug-Paare`:
+  - Tabelle `hug_text_pairs`
+  - gekoppelte Textpaare
+  - Text und Antwort bleiben immer zusammen
+- `Chatweite Hugs`:
+  - Tabelle `hug_texts`
+  - `kind = hug_all`
+  - einfache Einzeltexte fuer Hug ohne Zielperson
+- `Systemantworten`:
+  - Tabelle `hug_texts`
+  - `kind = response`
+  - Bot-Antworten fuer Fehler, Hinweise und Statusmeldungen
+- `Toplisten`:
+  - Tabelle `hug_texts`
+  - `kind = top_title`
+  - Titel fuer Hug-Toplisten
 
 Live bestaetigt:
 
 ```text
-/api/hug/status -> ok: true
+GET /api/hug/status
+ok: true
 schemaVersion: 3
 hugTextPairs: 30
 activeHugTextPairs: 30
+```
+
+Weitere live bestaetigte Editor-Routen:
+
+```text
+GET /api/dashboard/community/hug/hug-all-texts
+ok: true
+kind: hug_all
+count: 20
+activeCount: 20
+
+GET /api/dashboard/community/hug/response-texts
+ok: true
+kind: response
+count: 24
+activeCount: 24
+
+GET /api/dashboard/community/hug/top-title-texts
+ok: true
+kind: top_title
+count: 3
+activeCount: 3
 ```
 
 Aktive Dateien:
@@ -111,13 +149,19 @@ Aktive Dateien:
 - `config/hug_system.json`
 - `config/messages/hug.json`
 
-Wichtige STEP181-Dokus:
+Wichtige Hug/Rehug-Dokus:
 
 - `project-state/STEP181_HUG_REHUG_TEXT_PAIRS_BACKEND_2026-05-05.md`
 - `project-state/STEP181_2_HUG_REHUG_TEXT_PAIR_DASHBOARD_2026-05-05.md`
 - `project-state/STEP181_4_HUG_SIMPLIFY_NO_TYPES_2026-05-05.md`
 - `project-state/STEP181_7_STEPDONE_CMD_ONLY_2026-05-05.md`
 - `project-state/STEP181_8_HUG_REHUG_DOC_SYNC_2026-05-05.md`
+- `project-state/STEP182_1_HUG_DASHBOARD_UX_TEXTPAIR_LABELS_2026-05-05.md`
+- `project-state/STEP182_2_HUG_DASHBOARD_UX_TEXTAREA_WIDTH_2026-05-05.md`
+- `project-state/STEP182_3_HUG_ALL_TEXT_EDITOR_2026-05-05.md`
+- `project-state/STEP182_4_HUG_RESPONSE_TEXT_EDITOR_2026-05-05.md`
+- `project-state/STEP182_5_HUG_TOP_TITLE_EDITOR_2026-05-05.md`
+- `project-state/STEP182_6_HUG_TEXT_EDITOR_DOC_SYNC_2026-05-05.md`
 
 ### Tagebuch / Todo
 
@@ -155,12 +199,6 @@ Kernstatus:
 - Chat-TTS wartet, bis Alert-Kette idle ist.
 - Overlay bleibt bis nach Alert-TTS sichtbar.
 - Sound-System bleibt Audio-Wahrheit.
-
-Prioritaeten:
-
-- Alert-Hauptsound: `alert`, Prioritaet 80
-- Alert-TTS: `alert_tts`, Prioritaet 79
-- Chat-TTS: `tts`, Prioritaet 50
 
 ### VIP / VIP-Sound Dashboard
 
@@ -218,6 +256,7 @@ Aktuelle Helper-Lage:
 - VIP nutzt DB-Texte modulnah.
 - Alerts haben DB-Textbereiche.
 - Hug/Rehug nutzt wegen notwendiger Text-Antwort-Kopplung eine eigene Paarstruktur `hug_text_pairs`.
+- Hug-Einzeltexte nutzen `hug_texts` mit `kind = hug_all`, `response` und `top_title`.
 
 ## Wichtige Regeln
 
@@ -236,13 +275,12 @@ Aktuelle Helper-Lage:
 
 ### Hug / Rehug
 
-- Dashboard optisch im Live-Browser pruefen.
-- Speichern eines Test-Textpaares pruefen und wieder zuruecksetzen.
-- Spaeter optional:
-  - `hug_all` im Dashboard editierbar machen
-  - Systemantworten editierbar machen
-  - Toplisten-Titel editierbar machen
-  - Audit-Logging fuer Textaenderungen einbauen
+- Finaler Browser-UX-Check fuer alle vier Text-Kategorien.
+- Optional spaeter:
+  - Audit-Logging fuer Textaenderungen
+  - bessere Platzhalter-/Key-Hilfe je Systemantwort
+  - Sammel-Speichern statt Einzel-Speichern
+  - Rollen/Rechte fuer Textbearbeitung
 
 ### VIP
 
@@ -266,11 +304,13 @@ Aktuelle Helper-Lage:
 
 ## Naechster empfohlener Schritt
 
-1. Hug-Dashboard im Browser pruefen:
+1. Hug-Dashboard im Browser final pruefen:
    ```text
-   Community -> Hug-System -> Texte -> Hug/Rehug-Paare
+   Community -> Hug-System -> Texte
    ```
-2. Testweise ein Textpaar minimal bearbeiten, speichern, neu laden und zuruecksetzen.
-3. Danach optional naechsten Mini-STEP planen:
-   - Hug `hug_all` / Systemantworten im Dashboard editierbar machen
-   - oder naechstes Modul auf DB-/Dashboard-Standard bringen
+2. Alle vier Kategorien kurz anklicken:
+   - Hug/Rehug-Paare
+   - Chatweite Hugs
+   - Systemantworten
+   - Toplisten
+3. Danach naechstes Modul planen oder Hug-UX nur noch mit kleinen Fixes nachziehen.
