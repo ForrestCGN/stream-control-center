@@ -1127,30 +1127,26 @@ module.exports.init = function init(ctx) {
 
 function ensureClipSchema() {
   database.ensureReady();
-  database.ensureSchema(MODULE_NAME, CLIP_SCHEMA_VERSION, () => {
-    database.exec(`
-      CREATE TABLE IF NOT EXISTS ${CLIP_HISTORY_TABLE} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        clip_id TEXT NOT NULL DEFAULT '',
-        clip_url TEXT NOT NULL DEFAULT '',
-        clip_title TEXT NOT NULL DEFAULT '',
-        custom_title TEXT NOT NULL DEFAULT '',
-        stream_title TEXT NOT NULL DEFAULT '',
-        game_name TEXT NOT NULL DEFAULT '',
-        trigger_user TEXT NOT NULL DEFAULT '',
-        status TEXT NOT NULL DEFAULT 'created',
-        reason TEXT NOT NULL DEFAULT '',
-        source_method TEXT NOT NULL DEFAULT '',
-        discord_posted INTEGER NOT NULL DEFAULT 0,
-        discord_error TEXT NOT NULL DEFAULT '',
-        raw_payload_json TEXT NOT NULL DEFAULT '{}',
-        created_at TEXT NOT NULL
-      );
-    `);
-    database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_created_at ON ${CLIP_HISTORY_TABLE} (created_at);`);
-    database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_clip_id ON ${CLIP_HISTORY_TABLE} (clip_id);`);
-    database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_job_id ON ${CLIP_HISTORY_TABLE} (job_id);`);
-  });
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS ${CLIP_HISTORY_TABLE} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      clip_id TEXT NOT NULL DEFAULT '',
+      clip_url TEXT NOT NULL DEFAULT '',
+      clip_title TEXT NOT NULL DEFAULT '',
+      custom_title TEXT NOT NULL DEFAULT '',
+      stream_title TEXT NOT NULL DEFAULT '',
+      game_name TEXT NOT NULL DEFAULT '',
+      trigger_user TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'created',
+      reason TEXT NOT NULL DEFAULT '',
+      source_method TEXT NOT NULL DEFAULT '',
+      discord_posted INTEGER NOT NULL DEFAULT 0,
+      discord_error TEXT NOT NULL DEFAULT '',
+      raw_payload_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+  `);
 
   safeAddClipHistoryColumn('job_id', "TEXT NOT NULL DEFAULT ''");
   safeAddClipHistoryColumn('twitch_edit_url', "TEXT NOT NULL DEFAULT ''");
@@ -1160,6 +1156,16 @@ function ensureClipSchema() {
   safeAddClipHistoryColumn('obs_replay_error', "TEXT NOT NULL DEFAULT ''");
   safeAddClipHistoryColumn('obs_replay_requested_at', "TEXT NOT NULL DEFAULT ''");
   safeAddClipHistoryColumn('updated_at', "TEXT NOT NULL DEFAULT ''");
+
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_created_at ON ${CLIP_HISTORY_TABLE} (created_at);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_clip_id ON ${CLIP_HISTORY_TABLE} (clip_id);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_job_id ON ${CLIP_HISTORY_TABLE} (job_id);`);
+
+  try {
+    database.setSchemaVersion(MODULE_NAME, CLIP_SCHEMA_VERSION);
+  } catch (err) {
+    console.warn('[clips] Schema-Version konnte nicht gesetzt werden:', err.message || String(err));
+  }
 }
 
 function safeAddClipHistoryColumn(columnName, definition) {
