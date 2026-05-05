@@ -17,7 +17,13 @@ window.CGN = {
       overlayLink: '',
       reload() { return window.StreamdeskModule?.loadAll?.(true); }
     },
-    controlhome: {
+    clips: {
+      title: 'Clip-System',
+      panelId: 'clipsModule',
+      group: 'live',
+      overlayLink: '',
+      reload() { return window.ClipsModule?.loadAll?.(true); }
+    },    controlhome: {
       title: 'Control Übersicht',
       panelId: 'controlhomeModule',
       group: 'control',
@@ -118,9 +124,15 @@ window.CGN = {
     streamdesk: { label: 'Stream-Desk', icon: '🎛', enabled: true, description: 'Zentrale Live-Bedienung und schnelle Stream-Aktionen.' },
     chat: { label: 'Chat', icon: '💬', enabled: false, description: 'Chat-Ansicht und spätere Chat-Moderation.' },
     userinfo: { label: 'Userinfo', icon: '🔎', enabled: false, description: 'Twitch-User schnell prüfen.' },
-    clips: { label: 'Clips', icon: '✂️', enabled: false, description: 'Clip-Erstellung und Clip-Verwaltung.' },
+    clips: { label: 'Clips', icon: '✂️', enabled: true, description: 'Clip-Status, Settings, Textvarianten, Discord-Ziel und History.' },
     daily_notes: { label: 'Tagesnotizen', icon: '📝', enabled: false, description: 'Kurze Notizen während des Streams.' },
-    controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
+    clips: {
+      title: 'Clip-System',
+      panelId: 'clipsModule',
+      group: 'live',
+      overlayLink: '',
+      reload() { return window.ClipsModule?.loadAll?.(true); }
+    },    controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
     alerts: { label: 'Alerts V2', icon: '⚡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
     obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
     overlays: { label: 'Overlays', icon: '🖼', enabled: false, description: 'Overlay-Verwaltung vorbereitet.' },
@@ -151,7 +163,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['alerts', 'vip', 'hug', 'tagebuch', 'todo', 'obs', 'sound_system'],
+  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'obs', 'sound_system'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
