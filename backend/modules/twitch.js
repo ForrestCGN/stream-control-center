@@ -64,7 +64,7 @@ module.exports.init = function init(ctx) {
   const TW_CLIENT_SECRET = env.TWITCH_CLIENT_SECRET || '';
   const TW_REDIRECT_URI = env.TWITCH_REDIRECT_URI || 'http://localhost:8080/auth/callback';
   const TW_OAUTH_SCOPES = (env.TWITCH_OAUTH_SCOPES ||
-    'channel:read:subscriptions moderator:read:followers channel:read:vips channel:read:hype_train channel:read:goals moderator:read:chat_settings moderator:read:chatters user:read:email')
+    'channel:read:subscriptions moderator:read:followers channel:read:vips channel:read:hype_train channel:read:goals moderator:read:chat_settings moderator:read:chatters user:read:email clips:edit')
     .split(/\s+/).filter(Boolean);
 
 
@@ -310,6 +310,7 @@ module.exports.init = function init(ctx) {
   sharedApi.resolveUserByLogin = resolveUserByLoginInternal;
   sharedApi.getStoredBotToken = getStoredBotToken;
   sharedApi.getBotAccessTokenWithRefresh = getBotAccessTokenWithRefresh;
+  sharedApi.validateStoredUserToken = validateStoredUserToken;
 
 
   // OAuth
@@ -339,6 +340,62 @@ module.exports.init = function init(ctx) {
     const data=readJSON(TOKEN_STORE,null);const now=epoch();
     res.json({ ok:true, store:TOKEN_STORE, present:!!data, expires_at:data?.expires_at||null, expires_in:data?.expires_at?data.expires_at-now:null, has_refresh:!!data?.refresh_token });
   });
+
+  async function validateStoredUserToken() {
+    const token = await getUserAccessTokenWithRefresh();
+    if (!token) {
+      return {
+        ok: false,
+        store: TOKEN_STORE,
+        present: false,
+        error: 'No stored user OAuth token. Bitte zuerst /auth/login ausfuehren.'
+      };
+    }
+
+    const r = await axios.get('https://id.twitch.tv/oauth2/validate', {
+      headers: { Authorization: `OAuth ${token}` }
+    });
+
+    const scopes = Array.isArray(r.data?.scopes) ? r.data.scopes.map(String) : [];
+    const userId = String(r.data?.user_id || '');
+    const login = String(r.data?.login || '');
+    const broadcasterId = String(DEFAULT_BROADCASTER_ID || '').trim();
+
+    return {
+      ok: true,
+      store: TOKEN_STORE,
+      present: true,
+      clientId: String(r.data?.client_id || ''),
+      login,
+      userId,
+      broadcasterId,
+      tokenUserMatchesBroadcaster: Boolean(broadcasterId && userId && broadcasterId === userId),
+      scopes,
+      hasClipsEdit: scopes.includes('clips:edit'),
+      expiresIn: Number(r.data?.expires_in || 0),
+      raw: r.data
+    };
+  }
+
+  const handleAuthValidate = async (_req, res) => {
+    try {
+      const result = await validateStoredUserToken();
+      const statusCode = result.ok ? 200 : 401;
+      return res.status(statusCode).json(result);
+    } catch (e) {
+      const statusCode = e.response?.status || 500;
+      return res.status(statusCode).json({
+        ok: false,
+        store: TOKEN_STORE,
+        present: !!getStoredUserToken(),
+        error: e.response?.data || e.message || String(e)
+      });
+    }
+  };
+
+  app.get('/auth/validate', handleAuthValidate);
+  app.get('/twitch/auth/validate', handleAuthValidate);
+  app.get('/api/twitch/auth/validate', handleAuthValidate);
 
   // Diagnose: zeigt den Twitch-User, zu dem der aktuell gespeicherte User-OAuth-Token gehört.
   // Wichtig für Endpoints wie /twitch/moderators, bei denen broadcaster_id zur Token-User-ID passen muss.
@@ -1693,4 +1750,11 @@ module.exports.getBotAccessTokenWithRefresh = async function getBotAccessTokenWi
     throw new Error('twitch bot access token helper not initialized yet');
   }
   return await sharedApi.getBotAccessTokenWithRefresh();
+};
+
+module.exports.validateStoredUserToken = async function validateStoredUserTokenExport() {
+  if (typeof sharedApi.validateStoredUserToken !== 'function') {
+    throw new Error('twitch user token validate helper not initialized yet');
+  }
+  return await sharedApi.validateStoredUserToken();
 };

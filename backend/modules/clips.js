@@ -1,9 +1,10 @@
 // modules/clips.js
-// STEP183 — Clip-System Backend-Integration.
+// STEP184 — Clip-System Backend-Integration + API-Readiness.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
 // - Clip-Texte koennen ueber den zentralen helper_texts als module_text_variants vorbereitet werden
+// - Twitch-/OBS-/Discord-Readiness wird fuer den spaeteren Backend-Create-Flow sichtbar gemacht
 
 'use strict';
 
@@ -130,6 +131,132 @@ module.exports.init = function init(ctx) {
     }
   }
 
+  function localApiBaseUrl() {
+    return `http://127.0.0.1:${String(env?.PORT || process.env.PORT || 8080).trim()}`;
+  }
+
+  async function loadTwitchAuthReadiness(cfg) {
+    const url = `${localApiBaseUrl()}/api/twitch/auth/validate`;
+    try {
+      const data = await httpJsonGet(url, 3500);
+      const tokenUserMatchesBroadcaster = Boolean(data?.tokenUserMatchesBroadcaster);
+      const hasClipsEdit = Boolean(data?.hasClipsEdit);
+      const broadcasterIdConfigured = Boolean(cfg.broadcasterId);
+      const readyForCreateClip = Boolean(data?.ok && broadcasterIdConfigured && tokenUserMatchesBroadcaster && hasClipsEdit);
+      const blockers = [];
+
+      if (!data?.ok) blockers.push('token_validate_failed');
+      if (!broadcasterIdConfigured) blockers.push('broadcaster_id_missing');
+      if (data?.ok && !tokenUserMatchesBroadcaster) blockers.push('token_user_does_not_match_broadcaster');
+      if (data?.ok && !hasClipsEdit) blockers.push('missing_scope_clips_edit');
+
+      return {
+        ok: Boolean(data?.ok),
+        validateUrl: url,
+        tokenPresent: Boolean(data?.present),
+        login: String(data?.login || ''),
+        userId: String(data?.userId || ''),
+        broadcasterId: String(data?.broadcasterId || cfg.broadcasterId || ''),
+        tokenUserMatchesBroadcaster,
+        hasClipsEdit,
+        expiresIn: Number(data?.expiresIn || 0),
+        scopes: Array.isArray(data?.scopes) ? data.scopes : [],
+        readyForCreateClip,
+        blockers
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        validateUrl: url,
+        tokenPresent: false,
+        login: '',
+        userId: '',
+        broadcasterId: cfg.broadcasterId || '',
+        tokenUserMatchesBroadcaster: false,
+        hasClipsEdit: false,
+        expiresIn: 0,
+        scopes: [],
+        readyForCreateClip: false,
+        blockers: ['token_validate_route_unavailable'],
+        error: err.message || String(err)
+      };
+    }
+  }
+
+  async function loadObsReplayReadiness(cfg) {
+    const url = `${localApiBaseUrl()}/api/obs/replay/status`;
+    try {
+      const data = await httpJsonGet(url, 3500);
+      const replayBufferActive = Boolean(data?.data?.replayBufferActive);
+      const readyForBackendSave = Boolean(data?.ok && replayBufferActive);
+      const blockers = [];
+      if (!data?.ok) blockers.push('obs_replay_status_failed');
+      if (!replayBufferActive) blockers.push('obs_replay_buffer_not_active');
+
+      return {
+        ok: Boolean(data?.ok),
+        statusUrl: url,
+        bridgeAvailable: Boolean(data?.ok),
+        replayBufferActive,
+        readyForBackendSave,
+        targetReplayWindowSeconds: 60,
+        targetPreTriggerSeconds: 30,
+        targetPostTriggerSeconds: 30,
+        configuredPostTriggerDelayMs: cfg.obsReplaySaveDelayMs,
+        blockers
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        statusUrl: url,
+        bridgeAvailable: false,
+        replayBufferActive: false,
+        readyForBackendSave: false,
+        targetReplayWindowSeconds: 60,
+        targetPreTriggerSeconds: 30,
+        targetPostTriggerSeconds: 30,
+        configuredPostTriggerDelayMs: cfg.obsReplaySaveDelayMs,
+        blockers: ['obs_replay_status_route_unavailable'],
+        error: err.message || String(err)
+      };
+    }
+  }
+
+  function buildDiscordReadiness(cfg, channels) {
+    const channelConfigured = Boolean(channels && channels[cfg.discordChannelKey]);
+    const bridgeAvailable = Boolean(app.locals.discordBridge && typeof app.locals.discordBridge.postToChannel === 'function');
+    const readyForPost = Boolean(!cfg.discordPostEnabled || (channelConfigured && bridgeAvailable));
+    const blockers = [];
+
+    if (cfg.discordPostEnabled && !channelConfigured) blockers.push('discord_channel_not_configured');
+    if (cfg.discordPostEnabled && !bridgeAvailable) blockers.push('discord_bridge_unavailable');
+
+    return {
+      discordPostEnabled: cfg.discordPostEnabled,
+      discordChannelKey: cfg.discordChannelKey,
+      discordChannelConfigured: channelConfigured,
+      bridgeAvailable,
+      readyForPost,
+      blockers
+    };
+  }
+
+  function buildBackendCreateReadiness(cfg, twitchApi, obsReplay, discord) {
+    const blockers = [];
+    if (!cfg.enabled) blockers.push('clip_system_disabled');
+    if (!twitchApi.readyForCreateClip) blockers.push(...(twitchApi.blockers || ['twitch_not_ready']));
+    if (!obsReplay.readyForBackendSave) blockers.push(...(obsReplay.blockers || ['obs_replay_not_ready']));
+    if (!discord.readyForPost) blockers.push(...(discord.blockers || ['discord_not_ready']));
+
+    return {
+      ready: blockers.length === 0,
+      twitchCreateReady: Boolean(twitchApi.readyForCreateClip),
+      obsReplayReady: Boolean(obsReplay.readyForBackendSave),
+      discordReady: Boolean(discord.readyForPost),
+      blockers: Array.from(new Set(blockers))
+    };
+  }
+
   function buildClipTitle(input, cfg, channelInfo) {
     const rawInput = String(input || '').trim();
     const customTitle = extractCustomTitle(rawInput);
@@ -196,6 +323,10 @@ module.exports.init = function init(ctx) {
     const channelInfo = await loadChannelInfoFromApi(cfg);
     const clipMessagesPath = resolveMaybeAbsolute(configDir, cfg.messagesPath);
     const dbStatus = getClipDbStatus();
+    const twitchApi = await loadTwitchAuthReadiness(cfg);
+    const obsReplay = await loadObsReplayReadiness(cfg);
+    const discord = buildDiscordReadiness(cfg, channels);
+    const backendCreate = buildBackendCreateReadiness(cfg, twitchApi, obsReplay, discord);
 
     res.json({
       ok: true,
@@ -209,6 +340,9 @@ module.exports.init = function init(ctx) {
         broadcasterIdConfigured: Boolean(cfg.broadcasterId),
         twitchClipDurationSeconds: cfg.twitchClipDurationSeconds,
         obsReplaySaveDelayMs: cfg.obsReplaySaveDelayMs,
+        obsReplayWindowSeconds: 60,
+        obsReplayPreTriggerSeconds: 30,
+        obsReplayPostTriggerSeconds: 30,
         localReplayRenameDelayMs: cfg.localReplayRenameDelayMs,
         localReplayDirConfigured: Boolean(cfg.localReplayDir),
         localReplayLookbackMinutes: cfg.localReplayLookbackMinutes,
@@ -226,12 +360,10 @@ module.exports.init = function init(ctx) {
         messagesDir,
         messagesDirExists: fs.existsSync(messagesDir)
       },
-      discord: {
-        discordPostEnabled: cfg.discordPostEnabled,
-        discordChannelKey: cfg.discordChannelKey,
-        discordChannelConfigured: Boolean(channels && channels[cfg.discordChannelKey]),
-        bridgeAvailable: Boolean(app.locals.discordBridge && typeof app.locals.discordBridge.postToChannel === 'function')
-      },
+      twitchApi,
+      obsReplay,
+      discord,
+      backendCreate,
       messages: {
         chatClipActivatedConfigured: Boolean(resolveClipMessage(messages, 'chatClipActivated')),
         chatClipCreatedConfigured: Boolean(resolveClipMessage(messages, 'chatClipCreated')),
