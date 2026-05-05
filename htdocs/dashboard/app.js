@@ -23,7 +23,8 @@ window.CGN = {
       group: 'live',
       overlayLink: '',
       reload() { return window.ClipsModule?.loadAll?.(true); }
-    },    controlhome: {
+    },
+    controlhome: {
       title: 'Control Übersicht',
       panelId: 'controlhomeModule',
       group: 'control',
@@ -126,13 +127,7 @@ window.CGN = {
     userinfo: { label: 'Userinfo', icon: '🔎', enabled: false, description: 'Twitch-User schnell prüfen.' },
     clips: { label: 'Clips', icon: '✂️', enabled: true, description: 'Clip-Status, Settings, Textvarianten, Discord-Ziel und History.' },
     daily_notes: { label: 'Tagesnotizen', icon: '📝', enabled: false, description: 'Kurze Notizen während des Streams.' },
-    clips: {
-      title: 'Clip-System',
-      panelId: 'clipsModule',
-      group: 'live',
-      overlayLink: '',
-      reload() { return window.ClipsModule?.loadAll?.(true); }
-    },    controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
+    controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
     alerts: { label: 'Alerts V2', icon: '⚡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
     obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
     overlays: { label: 'Overlays', icon: '🖼', enabled: false, description: 'Overlay-Verwaltung vorbereitet.' },
