@@ -330,13 +330,13 @@ window.HugModule = (function(){
         <div class="hug-pair-form" data-hug-pair-form="new">
           <input type="hidden" data-pair-field="typeId" value="1">
           <input type="hidden" data-pair-field="name" value="">
-          <label><span>Aktiv</span><select data-pair-field="enabled"><option value="true">Aktiv</option><option value="false">Inaktiv</option></select></label>
-          <label><span>Gewichtung</span><input data-pair-field="weight" type="number" min="1" value="1"></label>
-          <label><span>Sortierung</span><input data-pair-field="sortOrder" type="number" value="0"></label>
+          <label class="compact compact-aktiv"><span>Aktiv</span><select data-pair-field="enabled"><option value="true">Aktiv</option><option value="false">Inaktiv</option></select></label>
+          <label class="compact compact-weight"><span>Gewichtung</span><input data-pair-field="weight" type="number" min="1" value="1"></label>
+          <label class="compact compact-sort"><span>Sortierung</span><input data-pair-field="sortOrder" type="number" value="0"></label>
           <label class="wide"><span>Text</span><textarea data-pair-field="hugText" rows="3" placeholder="{from} umarmt {to} ..."></textarea></label>
           <label class="wide"><span>Antwort-Text</span><textarea data-pair-field="rehugText" rows="3" placeholder="{from} erwidert die Umarmung von {to} ..."></textarea></label>
           <div class="hug-pair-actions wide">
-            <button type="button" data-hug-action="save-pair" data-pair-id="new">Paar speichern</button>
+            <button type="button" data-hug-action="save-pair" data-pair-id="new">Textpaar speichern</button>
           </div>
         </div>
       </details>
@@ -349,8 +349,8 @@ window.HugModule = (function(){
       <div class="hug-pair-card" data-hug-pair-form="${esc(pair.id)}">
         <div class="hug-pair-card-head">
           <div>
-            <strong>Text ${esc(pair.id)} / Antwort ${esc(pair.id)}</strong>
-            <span>${pair.enabled ? 'aktiv' : 'inaktiv'} · Gewicht ${esc(pair.weight || 1)} · Quelle ${esc(pair.source || '-')}</span>
+            <strong>Textpaar ${esc(pair.id)}</strong>
+            <span>${pair.enabled ? 'aktiv' : 'inaktiv'} · Gewicht ${esc(pair.weight || 1)} · Quelle ${esc(pair.source || '-')} · Text und Antwort bleiben gekoppelt</span>
           </div>
           <div class="hug-pair-card-actions">
             <button type="button" data-hug-action="save-pair" data-pair-id="${esc(pair.id)}">Speichern</button>
@@ -361,9 +361,9 @@ window.HugModule = (function(){
           <input type="hidden" data-pair-field="id" value="${esc(pair.id)}">
           <input type="hidden" data-pair-field="typeId" value="${esc(pair.typeId || 1)}">
           <input type="hidden" data-pair-field="name" value="${esc(pair.name || '')}">
-          <label><span>Aktiv</span><select data-pair-field="enabled"><option value="true"${pair.enabled ? ' selected' : ''}>Aktiv</option><option value="false"${!pair.enabled ? ' selected' : ''}>Inaktiv</option></select></label>
-          <label><span>Gewichtung</span><input data-pair-field="weight" type="number" min="1" value="${esc(pair.weight || 1)}"></label>
-          <label><span>Sortierung</span><input data-pair-field="sortOrder" type="number" value="${esc(pair.sortOrder || 0)}"></label>
+          <label class="compact compact-aktiv"><span>Aktiv</span><select data-pair-field="enabled"><option value="true"${pair.enabled ? ' selected' : ''}>Aktiv</option><option value="false"${!pair.enabled ? ' selected' : ''}>Inaktiv</option></select></label>
+          <label class="compact compact-weight"><span>Gewichtung</span><input data-pair-field="weight" type="number" min="1" value="${esc(pair.weight || 1)}"></label>
+          <label class="compact compact-sort"><span>Sortierung</span><input data-pair-field="sortOrder" type="number" value="${esc(pair.sortOrder || 0)}"></label>
           <label class="wide"><span>Text</span><textarea data-pair-field="hugText" rows="3">${esc(pair.hugText || '')}</textarea></label>
           <label class="wide"><span>Antwort-Text</span><textarea data-pair-field="rehugText" rows="3">${esc(pair.rehugText || '')}</textarea></label>
         </div>
