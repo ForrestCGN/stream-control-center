@@ -134,3 +134,12 @@
 - Tagebuch und Todo nutzen zufaellige aktive Varianten bei Textausgabe.
 - Dashboard-Texte-Tabs von Einzeltexten auf Kategorie-/Varianten-Editor umgestellt.
 - JSON bleibt Seed/Fallback; bestehende Funktionen bleiben erhalten.
+
+
+## STEP180 - Textvarianten Status-/UX-Cleanup
+
+- Status-Ausgaben fuer Tagebuch/Todo auf `module_text_variants` als aktive Varianten-Tabelle bereinigt.
+- `module_texts` bleibt als Legacy-Tabelle ausgewiesen.
+- Tagebuch-/Todo-Texteditor zeigt lesbarere Labels und kurze Hinweise je Text-Key.
+- Platzhalter fuer neue Varianten nutzen lesbare Textnamen.
+- Keine bestehende Funktionalitaet entfernt.

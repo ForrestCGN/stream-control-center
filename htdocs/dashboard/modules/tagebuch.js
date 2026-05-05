@@ -11,6 +11,8 @@ window.TagebuchModule = (function(){
   };
 
   let root = null;
+  const TEXT_KEY_LABELS = {"entrySaved": "Eintrag gespeichert", "streamInactive": "Stream nicht aktiv", "unauthorized": "Nicht autorisiert", "usageNotice": "Nutzungshinweis", "emptyEndNotice": "Leerer Tagesabschluss", "endFailed": "Streamende fehlgeschlagen", "entryFailed": "Eintrag fehlgeschlagen", "resetFailed": "Reset fehlgeschlagen", "startFailed": "Streamstart fehlgeschlagen", "statusFailed": "Status fehlgeschlagen", "streamEnd": "Streamende", "streamEndEmptyNotice": "Leerer Streamende-Hinweis", "streamStartCreated": "Seite angelegt", "streamStartExists": "Seite existiert bereits", "resetHard": "Hard-Reset erfolgreich", "resetHardBlocked": "Hard-Reset blockiert", "resetSoft": "Soft-Reset erfolgreich"};
+  const TEXT_KEY_HINTS = {"entrySaved": "Chat-Antwort nach erfolgreichem !tagebuch-Eintrag.", "streamInactive": "Chat-Antwort, wenn !tagebuch außerhalb eines aktiven Streams genutzt wird.", "usageNotice": "Hilfetext/Nutzungshinweis für den Chat.", "emptyEndNotice": "Discord-Text, wenn ein Stream ohne Tagebuch-Einträge endet.", "streamStartCreated": "Systemantwort beim Anlegen einer neuen Tagesseite.", "streamStartExists": "Systemantwort, wenn die Tagesseite schon vorhanden ist."};
   let state = { status:null, settings:null, texts:null, statsTop:null, statsToday:null, loading:false, error:'', tab:'overview', textCategory:'' };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -72,6 +74,11 @@ window.TagebuchModule = (function(){
   function textData(){ return state.texts?.texts || state.texts || {}; }
   function textCategories(){ return Array.isArray(textData().categories) ? textData().categories : []; }
   function textKeys(){ return Array.isArray(textData().keys) ? textData().keys : []; }
+
+  function textKeyLabel(key){ return TEXT_KEY_LABELS[key] || key; }
+  function textKeyHint(key){ return TEXT_KEY_HINTS[key] || 'Mehrere aktive Varianten sind möglich. Das Backend wählt zufällig eine davon.'; }
+  function variantPlaceholder(key){ return `Neue Variante für ${textKeyLabel(key)} hinzufügen...`; }
+
   function selectedTextCategory(){
     const cats = textCategories();
     if (!cats.length) return '';
@@ -172,13 +179,13 @@ window.TagebuchModule = (function(){
     const cats = textCategories();
     const selected = selectedTextCategory();
     const keys = textKeys().filter(item => !selected || item.category === selected);
-    return `<section class="tagebuch-card"><h3>Texte / Varianten</h3><p class="tagebuch-note">Kategorien auswählen, dann pro Text-Key mehrere aktive Varianten verwalten. Das Backend wählt bei Ausgabe zufällig eine aktive Variante.</p>
+    return `<section class="tagebuch-card"><h3>Texte / Varianten</h3><p class="tagebuch-note">Erst Kategorie auswählen, dann pro Text-Key beliebig viele Varianten verwalten. Mehrere aktive Varianten werden bei Ausgabe zufällig gewählt.</p>
       <div class="tagebuch-text-toolbar">
         <label>Kategorie auswählen<select data-text-category>${cats.map(cat => `<option value="${esc(cat.id)}" ${cat.id === selected ? 'selected' : ''}>${esc(cat.label || cat.id)} (${esc(cat.keyCount ?? cat.count ?? 0)} Keys / ${esc(cat.variantCount ?? 0)} Varianten)</option>`).join('')}</select></label>
       </div>
       <div class="tagebuch-text-list">${keys.map(item => `
         <article class="tagebuch-text-row">
-          <div class="tagebuch-text-head"><strong>${esc(item.key)}</strong><span>${esc(item.activeCount || 0)} aktiv / ${esc(item.totalCount || item.variants?.length || 0)} Varianten</span></div>
+          <div class="tagebuch-text-head"><div><strong>${esc(textKeyLabel(item.key))}</strong><small>${esc(item.key)} · ${esc(textKeyHint(item.key))}</small></div><span>${esc(item.activeCount || 0)} aktiv / ${esc(item.totalCount || item.variants?.length || 0)} Varianten</span></div>
           <div class="tagebuch-variant-list">${(item.variants || []).map(variant => `
             <div class="tagebuch-variant-row">
               <textarea data-variant-text="${esc(variant.id)}" data-variant-key="${esc(item.key)}" spellcheck="false">${esc(variant.value ?? variant.text ?? '')}</textarea>
@@ -189,7 +196,7 @@ window.TagebuchModule = (function(){
               </div>
               <div class="tagebuch-row-actions"><button type="button" data-save-variant="${esc(variant.id)}" data-variant-key="${esc(item.key)}">Speichern</button><button type="button" class="danger" data-delete-variant="${esc(variant.id)}">Löschen</button></div>
             </div>`).join('')}</div>
-          <div class="tagebuch-new-variant"><textarea data-new-variant="${esc(item.key)}" placeholder="Neue Variante für ${esc(item.key)} hinzufügen..." spellcheck="false"></textarea><button type="button" data-add-variant="${esc(item.key)}">Variante hinzufügen</button></div>
+          <div class="tagebuch-new-variant"><textarea data-new-variant="${esc(item.key)}" placeholder="${esc(variantPlaceholder(item.key))}" spellcheck="false"></textarea><button type="button" data-add-variant="${esc(item.key)}">Variante hinzufügen</button></div>
         </article>`).join('')}</div>
       ${!keys.length ? '<div class="tagebuch-empty">Keine Texte in dieser Kategorie.</div>' : ''}</section>`;
   }

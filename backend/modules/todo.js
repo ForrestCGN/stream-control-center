@@ -224,14 +224,16 @@ function loadDbMessages(baseMessages) {
     const result = texts.getModuleTexts(TEXTS_MODULE, fallback, { seed: true });
     return {
       ...result.texts,
-      _textsTable: result.table,
-      _textsSource: "database_with_json_fallback"
+      _textsTable: texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+      _legacyTextsTable: result.table,
+      _textsSource: "database_variants_with_json_fallback"
     };
   } catch (err) {
     runtime.lastLoadError = runtime.lastLoadError || `todo texts fallback: ${err.message}`;
     return {
       ...fallback,
-      _textsTable: texts.DEFAULT_MODULE_TEXTS_TABLE,
+      _textsTable: texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+      _legacyTextsTable: texts.DEFAULT_MODULE_TEXTS_TABLE,
       _textsSource: "json_fallback",
       _textsError: err.message
     };
@@ -778,7 +780,8 @@ function buildStatus() {
     userinfoBaseUrl: runtime.settings?.userinfoBaseUrl || DEFAULT_USERINFO_BASE_URL,
     settings: publicSettings(),
     settingsTable: SETTINGS_TABLE,
-    textsTable: runtime.messages?._textsTable || texts.DEFAULT_MODULE_TEXTS_TABLE,
+    textsTable: runtime.messages?._textsTable || texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+    legacyTextsTable: runtime.messages?._legacyTextsTable || texts.DEFAULT_MODULE_TEXTS_TABLE,
     textsSource: runtime.messages?._textsSource || "unknown",
     targets: getTargets(),
     aliases: Object.fromEntries(Object.values(getTargets()).map(target => [target.key, target.aliases])),

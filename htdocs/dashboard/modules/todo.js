@@ -11,6 +11,8 @@ window.TodoModule = (function(){
   };
 
   let root = null;
+  const TEXT_KEY_LABELS = {"added": "Todo eingetragen", "help": "Nutzungshinweis", "discordPost": "Discord-Post", "failed": "Todo fehlgeschlagen", "invalidTarget": "Ungültiges Ziel", "missingChannel": "Channel fehlt", "missingMessage": "Ziel oder Text fehlt", "missingText": "Todo-Text fehlt", "unauthorized": "Nicht autorisiert", "statsEmpty": "Statistik leer", "statsHeader": "Statistik-Überschrift", "statsTodayHeader": "Heute-Statistik-Überschrift", "reloadOk": "Reload erfolgreich"};
+  const TEXT_KEY_HINTS = {"added": "Chat-Antwort nach erfolgreichem !todo-Eintrag.", "help": "Hilfetext/Nutzungshinweis für den Chat.", "discordPost": "Nachricht, die in Discord gepostet wird. Platzhalter: {authorDisplay}, {todoText}.", "invalidTarget": "Chat-Antwort bei unbekanntem Ziel. Platzhalter: {targets}.", "missingChannel": "Antwort, wenn kein Discord-Kanal für das Ziel konfiguriert ist. Platzhalter: {targetLabel}.", "statsEmpty": "Antwort, wenn noch keine Statistikdaten vorhanden sind."};
   let state = { status:null, settings:null, texts:null, statsTop:null, statsToday:null, loading:false, error:'', tab:'overview', textCategory:'' };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -69,6 +71,11 @@ window.TodoModule = (function(){
   function textData(){ return state.texts?.texts || state.texts || {}; }
   function textCategories(){ return Array.isArray(textData().categories) ? textData().categories : []; }
   function textKeys(){ return Array.isArray(textData().keys) ? textData().keys : []; }
+
+  function textKeyLabel(key){ return TEXT_KEY_LABELS[key] || key; }
+  function textKeyHint(key){ return TEXT_KEY_HINTS[key] || 'Mehrere aktive Varianten sind möglich. Das Backend wählt zufällig eine davon.'; }
+  function variantPlaceholder(key){ return `Neue Variante für ${textKeyLabel(key)} hinzufügen...`; }
+
   function selectedTextCategory(){
     const cats = textCategories();
     if (!cats.length) return '';
@@ -172,13 +179,13 @@ window.TodoModule = (function(){
     const cats = textCategories();
     const selected = selectedTextCategory();
     const keys = textKeys().filter(item => !selected || item.category === selected);
-    return `<section class="todo-card"><h3>Texte / Varianten</h3><p class="todo-note">Kategorien auswählen, dann pro Text-Key mehrere aktive Varianten verwalten. Das Backend wählt bei Ausgabe zufällig eine aktive Variante.</p>
+    return `<section class="todo-card"><h3>Texte / Varianten</h3><p class="todo-note">Erst Kategorie auswählen, dann pro Text-Key beliebig viele Varianten verwalten. Mehrere aktive Varianten werden bei Ausgabe zufällig gewählt.</p>
       <div class="todo-text-toolbar">
         <label>Kategorie auswählen<select data-text-category>${cats.map(cat => `<option value="${esc(cat.id)}" ${cat.id === selected ? 'selected' : ''}>${esc(cat.label || cat.id)} (${esc(cat.keyCount ?? cat.count ?? 0)} Keys / ${esc(cat.variantCount ?? 0)} Varianten)</option>`).join('')}</select></label>
       </div>
       <div class="todo-text-list">${keys.map(item => `
         <article class="todo-text-row">
-          <div class="todo-text-head"><strong>${esc(item.key)}</strong><span>${esc(item.activeCount || 0)} aktiv / ${esc(item.totalCount || item.variants?.length || 0)} Varianten</span></div>
+          <div class="todo-text-head"><div><strong>${esc(textKeyLabel(item.key))}</strong><small>${esc(item.key)} · ${esc(textKeyHint(item.key))}</small></div><span>${esc(item.activeCount || 0)} aktiv / ${esc(item.totalCount || item.variants?.length || 0)} Varianten</span></div>
           <div class="todo-variant-list">${(item.variants || []).map(variant => `
             <div class="todo-variant-row">
               <textarea data-variant-text="${esc(variant.id)}" data-variant-key="${esc(item.key)}" spellcheck="false">${esc(variant.value ?? variant.text ?? '')}</textarea>
@@ -189,7 +196,7 @@ window.TodoModule = (function(){
               </div>
               <div class="todo-row-actions"><button type="button" data-save-variant="${esc(variant.id)}" data-variant-key="${esc(item.key)}">Speichern</button><button type="button" class="danger" data-delete-variant="${esc(variant.id)}">Löschen</button></div>
             </div>`).join('')}</div>
-          <div class="todo-new-variant"><textarea data-new-variant="${esc(item.key)}" placeholder="Neue Variante für ${esc(item.key)} hinzufügen..." spellcheck="false"></textarea><button type="button" data-add-variant="${esc(item.key)}">Variante hinzufügen</button></div>
+          <div class="todo-new-variant"><textarea data-new-variant="${esc(item.key)}" placeholder="${esc(variantPlaceholder(item.key))}" spellcheck="false"></textarea><button type="button" data-add-variant="${esc(item.key)}">Variante hinzufügen</button></div>
         </article>`).join('')}</div>
       ${!keys.length ? '<div class="todo-empty">Keine Texte in dieser Kategorie.</div>' : ''}</section>`;
   }

@@ -94,3 +94,13 @@ Todo:
 - Editor-UX verbessern: bessere Beschreibungen je Text-Key, Platzhalter-Hinweise, technische Keys gruppieren.
 - Textvarianten-Editor als wiederverwendbares Dashboard-Konzept fuer weitere Module planen.
 - Audit-Logging fuer Admin-Aenderungen vorbereiten.
+
+
+## Nach STEP180 empfohlen
+
+### STEP181 - Praxistest Textvarianten
+
+- Im Dashboard je eine zweite aktive Variante fuer `todo.added` und `tagebuch.entrySaved` anlegen.
+- Live-Ausgabe pruefen, ob zufaellige aktive Varianten verwendet werden.
+- Kleine UI-Fehler im Varianten-Editor beheben, falls beim Praxistest auffaellig.
+- Danach den Varianten-Editor als wiederverwendbares Muster fuer weitere Module planen.

@@ -121,21 +121,25 @@ Referenz:
 
 ### Tagebuch / Todo
 
-Aktueller Tagebuch-/Todo-Block ist bis STEP178 abgeschlossen.
+Aktueller Tagebuch-/Todo-Block ist bis STEP180 abgeschlossen.
 
 Referenzen:
 
 - `project-state/STEP176_TAGEBUCH_TODO_DB_DASHBOARD_AUDIT_2026-05-05.md`
 - `project-state/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md`
 - `project-state/STEP178_TAGEBUCH_TODO_DASHBOARD_INTEGRATION_2026-05-05.md`
+- `project-state/STEP179_TEXT_VARIANTS_EDITOR_2026-05-05.md`
+- `project-state/STEP180_TEXT_VARIANTS_STATUS_UX_CLEANUP_2026-05-05.md`
 
 Kernstatus:
 
 - Tagebuch nutzt DB-Settings ueber `tagebuch_settings`.
 - Todo nutzt DB-Settings ueber `todo_settings`.
-- Tagebuch- und Todo-Texte liegen dashboardfaehig in `module_texts`.
+- Tagebuch- und Todo-Texte liegen dashboardfaehig und variantenfaehig in `module_text_variants`.
+- `module_texts` bleibt als Legacy-/Kompatibilitaetsschicht erhalten.
 - JSON-Dateien bleiben Seed/Fallback.
 - Dashboard-Module fuer Tagebuch und Todo sind im Community-Bereich aktiv.
+- Texte werden als Kategorie-/Key-/Varianten-Editor dargestellt.
 - Dashboard bearbeitet Settings/Texte nur ueber Backend-APIs.
 
 ## Aktive Dashboard-Module
@@ -169,7 +173,7 @@ Aktuelle Helper-Lage:
 - `helper_settings.js` ist DB-Settings-Standard.
 - VIP nutzt DB-Texte modulnah.
 - Alerts haben DB-Textbereiche.
-- `helper_texts.js` ist aktuell noch JSON-basiert und muss spaeter fuer DB-Texte erweitert oder durch einen DB-Text-Helper ergaenzt werden.
+- `helper_texts.js` unterstuetzt zentrale DB-Modultexte und Textvarianten via `module_texts`/`module_text_variants`; JSON bleibt Seed/Fallback.
 
 ## Wichtige Regeln
 
@@ -224,3 +228,11 @@ Aktuelle Helper-Lage:
 - Backend-Ausgaben waehlen zufaellig eine aktive Variante.
 - Dashboard-Texte fuer Tagebuch/Todo sind kategoriebasiert: Kategorie auswaehlen, Text-Keys sehen, Varianten hinzufuegen/bearbeiten/deaktivieren/loeschen.
 - JSON-Dateien bleiben Seed/Fallback und werden nicht entfernt.
+
+
+## STEP180 Textvarianten Status-/UX-Cleanup
+
+- Status-Ausgaben fuer Tagebuch/Todo benennen `module_text_variants` als aktive Varianten-Tabelle.
+- `module_texts` bleibt Legacy-/Kompatibilitaetstabelle.
+- Dashboard-Texteditor zeigt lesbarere Labels, technische Keys und kurze Hinweise pro Text-Key.
+- Keine Backend-Funktionsrouten entfernt.

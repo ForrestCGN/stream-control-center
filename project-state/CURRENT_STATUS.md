@@ -51,6 +51,9 @@ Zuletzt abgeschlossene/aktuelle Bloecke:
 - STEP175.5 Projekt-Dokus nach VIP-Block synchronisiert
 - STEP176 Tagebuch/Todo DB-/Dashboard-Audit erstellt
 - STEP177 Tagebuch/Todo DB-Settings und DB-Texte Backend-Grundlage
+- STEP178 Tagebuch/Todo Dashboard-Integration
+- STEP179 Text-Varianten-Editor fuer Tagebuch/Todo
+- STEP180 Textvarianten Status-/UX-Cleanup
 
 Aktuelle wichtigste Referenzdokus:
 
@@ -59,14 +62,18 @@ Aktuelle wichtigste Referenzdokus:
 - `project-state/STEP175_5_PROJECT_DOC_SYNC_AFTER_VIP_BLOCK_2026-05-05.md`
 - `project-state/STEP176_TAGEBUCH_TODO_DB_DASHBOARD_AUDIT_2026-05-05.md`
 - `project-state/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md`
+- `project-state/STEP178_TAGEBUCH_TODO_DASHBOARD_INTEGRATION_2026-05-05.md`
+- `project-state/STEP179_TEXT_VARIANTS_EDITOR_2026-05-05.md`
+- `project-state/STEP180_TEXT_VARIANTS_STATUS_UX_CLEANUP_2026-05-05.md`
 
 ## Aktueller Tagebuch/Todo-Stand
 
-STEP177 fuehrt die Backend-Grundlage fuer Tagebuch/Todo ein:
+Tagebuch/Todo sind bis STEP180 im Backend und Dashboard integriert:
 
-- `helper_texts.js` hat eine zentrale DB-Textschicht ueber `module_texts`.
-- Tagebuch nutzt `tagebuch_settings` und `module_texts` mit JSON-Fallback.
-- Todo nutzt `todo_settings` und `module_texts` mit JSON-Fallback.
+- `helper_texts.js` hat eine zentrale DB-Textschicht ueber `module_texts` und Varianten ueber `module_text_variants`.
+- Tagebuch nutzt `tagebuch_settings` und `module_text_variants` mit JSON-Fallback.
+- Todo nutzt `todo_settings` und `module_text_variants` mit JSON-Fallback.
+- `module_texts` bleibt Legacy-/Kompatibilitaetsschicht.
 - Neue Admin-Routen fuer spaetere Dashboard-Integration:
   - `GET/POST /api/tagebuch/admin/settings`
   - `GET/POST /api/tagebuch/admin/texts`
@@ -74,7 +81,8 @@ STEP177 fuehrt die Backend-Grundlage fuer Tagebuch/Todo ein:
   - `GET/POST /api/todo/admin/texts`
 - Bestehende Tagebuch-/Todo-Routen bleiben erhalten.
 - JSON-Dateien bleiben technische Config, Seed oder Fallback.
-- Dashboard-Frontend fuer Tagebuch/Todo folgt erst in STEP178.
+- Dashboard-Frontend fuer Tagebuch/Todo ist aktiv.
+- Texte werden kategoriebasiert als Varianten pro Text-Key verwaltet.
 
 ## Aktueller Sound-/Alert-/TTS-Stand
 

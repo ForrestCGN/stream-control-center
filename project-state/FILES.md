@@ -125,3 +125,12 @@ Tagebuch/Todo Dashboard-Dateien folgen erst in STEP178.
 - `htdocs/dashboard/modules/tagebuch.js` / `.css` - Tagebuch Varianten-Editor.
 - `htdocs/dashboard/modules/todo.js` / `.css` - Todo Varianten-Editor.
 - `project-state/STEP179_TEXT_VARIANTS_EDITOR_2026-05-05.md` - STEP-Doku.
+
+
+## STEP180 relevante Dateien
+
+- `backend/modules/tagebuch.js` - Status-Metadaten fuer Textvarianten bereinigt.
+- `backend/modules/todo.js` - Status-Metadaten fuer Textvarianten bereinigt.
+- `htdocs/dashboard/modules/tagebuch.js` / `.css` - bessere Labels/Hinweise im Varianten-Editor.
+- `htdocs/dashboard/modules/todo.js` / `.css` - bessere Labels/Hinweise im Varianten-Editor.
+- `project-state/STEP180_TEXT_VARIANTS_STATUS_UX_CLEANUP_2026-05-05.md` - STEP-Doku.

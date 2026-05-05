@@ -4,3 +4,7 @@
 .tagebuch-text-toolbar{display:grid;grid-template-columns:minmax(240px,420px);gap:10px;margin:12px 0 16px}.tagebuch-text-toolbar label{display:grid;gap:6px;color:var(--muted);font-size:13px;font-weight:900}.tagebuch-variant-list{display:grid;gap:10px}.tagebuch-variant-row{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:12px;background:rgba(255,255,255,.035);display:grid;gap:10px}.tagebuch-variant-row textarea,.tagebuch-new-variant textarea{min-height:74px;resize:vertical}.tagebuch-variant-meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:12px;font-weight:800}.tagebuch-variant-meta label{display:flex;align-items:center;gap:6px}.tagebuch-variant-meta input[type="checkbox"]{width:auto}.tagebuch-variant-meta input[type="number"]{width:76px;padding:6px 8px}.tagebuch-new-variant{margin-top:12px;border:1px dashed rgba(255,255,255,.16);border-radius:16px;padding:12px;display:grid;gap:10px;background:rgba(255,255,255,.025)}.tagebuch-row-actions .danger{border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.10)}
 html[data-theme=dark] .tagebuch-variant-row,html[data-theme=dark] .tagebuch-new-variant{background:#202020;border-color:#343434}
 @media(max-width:760px){.tagebuch-text-toolbar{grid-template-columns:1fr}.tagebuch-variant-meta{display:grid;align-items:start}}
+
+/* STEP180: Textvarianten-Editor lesbarer */
+.tagebuch-text-head small{display:block;margin-top:4px;color:var(--muted);font-size:12px;font-weight:700;line-height:1.35}
+.tagebuch-text-head>div{min-width:0}

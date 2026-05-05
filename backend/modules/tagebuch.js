@@ -189,14 +189,16 @@ function applyDbMessages(baseMessages) {
     const result = texts.getModuleTexts(TEXTS_MODULE, fallback, { seed: true });
     return {
       ...result.texts,
-      _textsTable: result.table,
-      _textsSource: 'database_with_json_fallback'
+      _textsTable: texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+      _legacyTextsTable: result.table,
+      _textsSource: 'database_variants_with_json_fallback'
     };
   } catch (err) {
     console.warn(`[tagebuch] db texts unavailable, using json fallback: ${err.message}`);
     return {
       ...fallback,
-      _textsTable: texts.DEFAULT_MODULE_TEXTS_TABLE,
+      _textsTable: texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+      _legacyTextsTable: texts.DEFAULT_MODULE_TEXTS_TABLE,
       _textsSource: 'json_fallback',
       _textsError: err.message
     };
@@ -220,7 +222,10 @@ function safePublicConfig(cfg) {
     statsMaxLimit: Number(cfg.stats?.maxLimit || 50),
     settingsTable: cfg.settingsTable || SETTINGS_TABLE,
     settingsSource: cfg.settingsSource || 'unknown',
-    settingsError: cfg.settingsError || ''
+    settingsError: cfg.settingsError || '',
+    textsTable: runtimeMessages?._textsTable || texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+    legacyTextsTable: runtimeMessages?._legacyTextsTable || texts.DEFAULT_MODULE_TEXTS_TABLE,
+    textsSource: runtimeMessages?._textsSource || 'unknown'
   };
 }
 
