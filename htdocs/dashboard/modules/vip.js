@@ -234,7 +234,14 @@ window.VipModule = (function(){
     const filtered = showMissingQuickAccess ? filteredRaw.filter(u => !!u.sound?.exists) : filteredRaw;
     const selectedTitle = status.user?.displayName || selectedUser?.displayName || selected || 'Kein User ausgewählt';
     const currentPreview = soundPreviewButton(sound, 'Sound anhören');
-    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>Sounds</h3><p>VIP-/Mod-Sounds verwalten. Fokus: fehlende Sounds schnell finden, User auswählen, Datei hochladen oder ersetzen.</p></div><button type="button" data-vip-action="reload-sounds">Sounds neu laden</button></div><div class="vip-mini-grid">${soundMetricCard('Bekannte User', stats.total, 'Twitch-Cache', '')}${soundMetricCard('Sounds vorhanden', stats.withSound, `${stats.missing} fehlen`, stats.missing ? 'warn' : 'ok')}${soundMetricCard('Ø Soundlänge', stats.avg ? formatMs(stats.avg) : '—', 'ffprobe', '')}${soundMetricCard('Längster Sound', stats.longest?.displayName || '—', stats.longest?.sound?.durationMs ? formatMs(stats.longest.sound.durationMs) : '', '')}</div><div class="vip-sound-filter-row"><label>Status <select id="vipSoundFilter"><option value="all" ${filter === 'all' ? 'selected' : ''}>Alle</option><option value="missing" ${filter === 'missing' ? 'selected' : ''}>Ohne Sound</option><option value="withsound" ${filter === 'withsound' ? 'selected' : ''}>Mit Sound</option><option value="vip" ${filter === 'vip' ? 'selected' : ''}>Twitch VIP</option><option value="mod" ${filter === 'mod' ? 'selected' : ''}>Twitch Mod</option></select></label><label>Suche <input id="vipSoundSearch" value="${esc(search)}" placeholder="Login oder Anzeigename"></label><label>Sortierung <select id="vipSoundSort"><option value="missing" ${sort === 'missing' ? 'selected' : ''}>Fehlende zuerst</option><option value="name" ${sort === 'name' ? 'selected' : ''}>Name A-Z</option><option value="role" ${sort === 'role' ? 'selected' : ''}>Rolle</option><option value="duration" ${sort === 'duration' ? 'selected' : ''}>Längste Sounds</option></select></label><button type="button" data-vip-action="apply-sound-filter">Anzeigen</button><div class="vip-muted">${esc(filtered.length)} von ${esc(users.length)} Usern sichtbar. Upload bleibt auf Twitch-VIPs und Twitch-Mods aus dem Cache ausgerichtet.</div></div><div class="vip-sound-workbench"><div class="vip-sound-panel"><h4>User auswählen</h4><label>Twitch VIP/Mod<select id="vipSoundUser">${filtered.map(u => `<option value="${esc(u.login || '')}" ${selected === u.login ? 'selected' : ''}>${esc(soundUserOptionLabel(u))}</option>`).join('') || users.map(u => `<option value="${esc(u.login || '')}" ${selected === u.login ? 'selected' : ''}>${esc(soundUserOptionLabel(u))}</option>`).join('')}</select></label><label>Oder Login manuell<input id="vipSoundManualLogin" value="${esc(state.soundManualLogin || '')}" placeholder="z. B. araglor"></label><div class="vip-actions"><button type="button" data-vip-action="resolve-sound-user">User prüfen</button><button type="button" data-vip-action="apply-sound-filter">Liste aktualisieren</button></div><div class="vip-muted">Manuelle Eingabe prüft nur den Status. Berechtigungen kommen weiterhin aus dem Twitch-Cache.</div></div><div class="vip-sound-panel vip-current-sound"><h4>Aktueller Soundstatus</h4><div class="vip-current-sound-title"><strong>${esc(selectedTitle)}</strong><span>${esc(twitchStatusLabel(selectedUser || status.user || {}))}</span></div><div class="vip-standard-list"><div><strong>Datei:</strong> <code>${fmt(sound.fileName)}</code></div><div><strong>Vorhanden:</strong> ${badge(sound.exists ? 'Ja' : 'Nein', sound.exists ? 'ok' : 'warn')}</div><div><strong>Dauer:</strong> ${sound.durationMs ? esc(formatMs(sound.durationMs)) : '—'}</div><div><strong>Größe:</strong> ${sound.sizeBytes ? esc(fileSizeText(sound.sizeBytes)) : '—'}</div><div><strong>Pfad:</strong> <span class="vip-muted">${fmt(sound.relativeFile || sound.fullPath)}</span></div><div><strong>Upload-Regel:</strong> <code>${esc(expectedExt)}</code> · max. ${esc(maxMb)} MB</div></div>${currentPreview ? `<div class="vip-current-sound-actions">${currentPreview}</div>` : ''}</div></div><div class="vip-upload-box vip-upload-box-strong"><label>Neue Sounddatei auswählen<input id="vipSoundFile" type="file" accept="audio/*,.mp3,.wav,.ogg,.webm,.m4a"></label><label class="vip-check"><input id="vipSoundOverwrite" type="checkbox"> vorhandenen Sound ersetzen</label><button type="button" class="success" data-vip-action="upload-sound">Sound hochladen</button><div class="vip-muted">Nach dem Upload wird die Userliste neu geladen und der ausgewählte User aktualisiert.</div></div>${showMissingQuickAccess ? `<section class="vip-sound-missing-box"><div class="vip-card-head"><div><h3>Schnellzugriff: fehlende Sounds</h3><p>Die ersten ${esc(missing.length)} User ohne Sounddatei.</p></div><button type="button" data-vip-action="show-missing-sounds">Ohne Sound anzeigen</button></div><div class="vip-sound-card-grid">${missing.map(soundUserCard).join('')}</div></section>` : `<div class="vip-ok-box">${badge('Keine fehlenden Sounds', 'ok')}<span>Alle aktuell bekannten Twitch-VIPs/Mods haben eine Sounddatei.</span></div>`}<section class="vip-sound-list-box"><div class="vip-card-head"><div><h3>Soundliste</h3><p>Gefilterte Übersicht. Fehlende Sounds werden oben separat gezeigt; für Upload oder Änderung auf „Auswählen“ klicken.</p></div></div><div class="vip-sound-card-grid">${filtered.map(soundUserCard).join('') || '<div class="vip-empty">Keine User für diesen Filter gefunden.</div>'}</div></section></section>`;
+    const uploadTarget = uploadTargetFileName(status, selectedUser, sound, expectedExt);
+    const uploadMode = sound.exists ? 'Ersetzen' : 'Neu hochladen';
+    const uploadModeClass = sound.exists ? 'warn' : 'ok';
+    const uploadHint = sound.exists
+      ? 'Für diesen User existiert bereits ein Sound. Zum Ersetzen muss die Checkbox aktiv sein.'
+      : 'Für diesen User fehlt noch ein Sound. Upload legt die Datei nach der bestehenden VIP-Dateinamenregel an.';
+
+    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>Sounds</h3><p>VIP-/Mod-Sounds verwalten. Fokus: fehlende Sounds schnell finden, User auswählen, Datei hochladen oder ersetzen.</p></div><button type="button" data-vip-action="reload-sounds">Sounds neu laden</button></div><div class="vip-mini-grid">${soundMetricCard('Bekannte User', stats.total, 'Twitch-Cache', '')}${soundMetricCard('Sounds vorhanden', stats.withSound, `${stats.missing} fehlen`, stats.missing ? 'warn' : 'ok')}${soundMetricCard('Ø Soundlänge', stats.avg ? formatMs(stats.avg) : '—', 'ffprobe', '')}${soundMetricCard('Längster Sound', stats.longest?.displayName || '—', stats.longest?.sound?.durationMs ? formatMs(stats.longest.sound.durationMs) : '', '')}</div><div class="vip-sound-filter-row"><label>Status <select id="vipSoundFilter"><option value="all" ${filter === 'all' ? 'selected' : ''}>Alle</option><option value="missing" ${filter === 'missing' ? 'selected' : ''}>Ohne Sound</option><option value="withsound" ${filter === 'withsound' ? 'selected' : ''}>Mit Sound</option><option value="vip" ${filter === 'vip' ? 'selected' : ''}>Twitch VIP</option><option value="mod" ${filter === 'mod' ? 'selected' : ''}>Twitch Mod</option></select></label><label>Suche <input id="vipSoundSearch" value="${esc(search)}" placeholder="Login oder Anzeigename"></label><label>Sortierung <select id="vipSoundSort"><option value="missing" ${sort === 'missing' ? 'selected' : ''}>Fehlende zuerst</option><option value="name" ${sort === 'name' ? 'selected' : ''}>Name A-Z</option><option value="role" ${sort === 'role' ? 'selected' : ''}>Rolle</option><option value="duration" ${sort === 'duration' ? 'selected' : ''}>Längste Sounds</option></select></label><button type="button" data-vip-action="apply-sound-filter">Anzeigen</button><div class="vip-muted">${esc(filtered.length)} von ${esc(users.length)} Usern sichtbar. Upload bleibt auf Twitch-VIPs und Twitch-Mods aus dem Cache ausgerichtet.</div></div><div class="vip-sound-workbench"><div class="vip-sound-panel"><h4>User auswählen</h4><label>Twitch VIP/Mod<select id="vipSoundUser">${filtered.map(u => `<option value="${esc(u.login || '')}" ${selected === u.login ? 'selected' : ''}>${esc(soundUserOptionLabel(u))}</option>`).join('') || users.map(u => `<option value="${esc(u.login || '')}" ${selected === u.login ? 'selected' : ''}>${esc(soundUserOptionLabel(u))}</option>`).join('')}</select></label><label>Oder Login manuell<input id="vipSoundManualLogin" value="${esc(state.soundManualLogin || '')}" placeholder="z. B. araglor"></label><div class="vip-actions"><button type="button" data-vip-action="resolve-sound-user">User prüfen</button><button type="button" data-vip-action="apply-sound-filter">Liste aktualisieren</button></div><div class="vip-muted">Manuelle Eingabe prüft nur den Status. Berechtigungen kommen weiterhin aus dem Twitch-Cache.</div></div><div class="vip-sound-panel vip-current-sound"><h4>Aktueller Soundstatus</h4><div class="vip-current-sound-title"><strong>${esc(selectedTitle)}</strong><span>${esc(twitchStatusLabel(selectedUser || status.user || {}))}</span></div><div class="vip-standard-list"><div><strong>Datei:</strong> <code>${fmt(sound.fileName)}</code></div><div><strong>Vorhanden:</strong> ${badge(sound.exists ? 'Ja' : 'Nein', sound.exists ? 'ok' : 'warn')}</div><div><strong>Dauer:</strong> ${sound.durationMs ? esc(formatMs(sound.durationMs)) : '—'}</div><div><strong>Größe:</strong> ${sound.sizeBytes ? esc(fileSizeText(sound.sizeBytes)) : '—'}</div><div><strong>Pfad:</strong> <span class="vip-muted">${fmt(sound.relativeFile || sound.fullPath)}</span></div><div><strong>Upload-Regel:</strong> <code>${esc(expectedExt)}</code> · max. ${esc(maxMb)} MB</div></div>${currentPreview ? `<div class="vip-current-sound-actions">${currentPreview}</div>` : ''}</div></div><div class="vip-upload-box vip-upload-box-strong"><div class="vip-upload-head"><div><h4>Sound hochladen</h4><p>${esc(uploadHint)}</p></div>${badge(uploadMode, uploadModeClass)}</div><div class="vip-upload-details"><div><span>Ziel-User</span><strong>${esc(selectedTitle)}</strong></div><div><span>Ziel-Datei</span><code>${esc(uploadTarget || '—')}</code></div><div><span>Erlaubt</span><strong>${esc(expectedExt)} · max. ${esc(maxMb)} MB</strong></div></div><label>Neue Sounddatei auswählen<input id="vipSoundFile" type="file" accept="audio/*,.mp3,.wav,.ogg,.webm,.m4a"></label><div id="vipUploadFileInfo" class="vip-upload-file-info">Noch keine Datei ausgewählt.</div><label class="vip-check vip-overwrite-check"><input id="vipSoundOverwrite" type="checkbox"> vorhandenen Sound ersetzen</label><div class="vip-actions"><button type="button" class="success" data-vip-action="upload-sound">Sound hochladen</button><button type="button" data-vip-action="resolve-sound-user">Status prüfen</button></div><div class="vip-muted">Nach dem Upload wird die Userliste neu geladen und der ausgewählte User aktualisiert.</div></div>${showMissingQuickAccess ? `<section class="vip-sound-missing-box"><div class="vip-card-head"><div><h3>Schnellzugriff: fehlende Sounds</h3><p>Die ersten ${esc(missing.length)} User ohne Sounddatei.</p></div><button type="button" data-vip-action="show-missing-sounds">Ohne Sound anzeigen</button></div><div class="vip-sound-card-grid">${missing.map(soundUserCard).join('')}</div></section>` : `<div class="vip-ok-box">${badge('Keine fehlenden Sounds', 'ok')}<span>Alle aktuell bekannten Twitch-VIPs/Mods haben eine Sounddatei.</span></div>`}<section class="vip-sound-list-box"><div class="vip-card-head"><div><h3>Soundliste</h3><p>Gefilterte Übersicht. Fehlende Sounds werden oben separat gezeigt; für Upload oder Änderung auf „Auswählen“ klicken.</p></div></div><div class="vip-sound-card-grid">${filtered.map(soundUserCard).join('') || '<div class="vip-empty">Keine User für diesen Filter gefunden.</div>'}</div></section></section>`;
   }
 
   function formatMs(ms){
@@ -297,6 +304,38 @@ window.VipModule = (function(){
     if (n >= 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
     if (n >= 1024) return `${Math.round(n / 1024)} KB`;
     return `${n} B`;
+  }
+
+  function uploadTargetFileName(status, selectedUser, sound, expectedExt){
+    const explicit = String(sound?.fileName || '').trim();
+    if (explicit) return explicit;
+    const name = status?.user?.displayName || selectedUser?.displayName || selectedUser?.login || state.selectedSoundLogin || '';
+    if (!name) return '';
+    const ext = String(expectedExt || '.mp3').startsWith('.') ? String(expectedExt || '.mp3') : `.${expectedExt}`;
+    return `${String(name).replace(/^@/, '')}${ext}`;
+  }
+
+  function selectedUploadSound(login){
+    const clean = String(login || '').trim().toLowerCase();
+    const statusLogin = String(state.soundStatus?.user?.login || state.soundStatus?.login || '').trim().toLowerCase();
+    if (clean && statusLogin === clean && state.soundStatus?.sound) return state.soundStatus.sound;
+    const row = (state.soundUsers?.rows || []).find(u => String(u.login || '').trim().toLowerCase() === clean);
+    return row?.sound || null;
+  }
+
+  function updateUploadFileInfo(){
+    const box = document.getElementById('vipUploadFileInfo');
+    const file = document.getElementById('vipSoundFile')?.files?.[0] || null;
+    if (!box) return;
+    if (!file) {
+      box.textContent = 'Noch keine Datei ausgewählt.';
+      box.classList.remove('ok', 'warn');
+      return;
+    }
+    const size = fileSizeText(file.size || 0);
+    box.textContent = `${file.name} · ${size}`;
+    box.classList.add('ok');
+    box.classList.remove('warn');
   }
 
   function soundUserCard(row){
@@ -611,6 +650,8 @@ window.VipModule = (function(){
     root.querySelectorAll('[data-delete-role]').forEach(btn => btn.addEventListener('click', () => deleteRole(btn.dataset.deleteRole, btn.dataset.roleType)));
     root.querySelectorAll('[data-select-sound-login]').forEach(btn => btn.addEventListener('click', async () => { state.selectedSoundLogin = btn.dataset.selectSoundLogin || ''; state.soundManualLogin = ''; state.soundStatus = await loadSoundStatus(state.selectedSoundLogin); state.page = 'sounds'; state.note = `Soundverwaltung geöffnet: ${state.selectedSoundLogin}`; render(); }));
     root.querySelectorAll('[data-preview-sound-url]').forEach(btn => btn.addEventListener('click', async (ev) => { ev.preventDefault(); ev.stopPropagation(); await previewSound(btn.dataset.previewSoundUrl || ''); }));
+    const uploadFile = document.getElementById('vipSoundFile');
+    if (uploadFile) uploadFile.addEventListener('change', updateUploadFileInfo);
   }
 
   async function handleAction(action){
@@ -711,6 +752,13 @@ window.VipModule = (function(){
     const overwrite = !!document.getElementById('vipSoundOverwrite')?.checked;
     if (!login) throw new Error('Bitte VIP/Mod/User auswählen oder Login eingeben.');
     if (!file) throw new Error('Bitte eine Sounddatei auswählen.');
+
+    const currentSound = selectedUploadSound(login);
+    if (currentSound?.exists && !overwrite) {
+      throw new Error('Für diesen User existiert bereits ein Sound. Zum Ersetzen bitte die Checkbox aktivieren.');
+    }
+    if (currentSound?.exists && overwrite && !confirm(`Vorhandenen Sound wirklich ersetzen?
+${login}`)) return;
 
     const form = new FormData();
     form.append('login', login);
