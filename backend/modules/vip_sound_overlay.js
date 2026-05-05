@@ -214,6 +214,11 @@ module.exports.init = function init(ctx) {
       weight: 1
     },
     {
+      event_key: "not_twitch_vip_or_mod",
+      message_text: "@{displayName}, VIP-Sounds sind nur fuer aktuelle Twitch-VIPs und Twitch-Mods freigegeben.",
+      weight: 1
+    },
+    {
       event_key: "error_generic",
       message_text: "@{displayName}, Heimaufsicht hat einen Fehler im Formular gefunden. Versuch es spaeter nochmal.",
       weight: 1
@@ -958,25 +963,54 @@ module.exports.init = function init(ctx) {
     return { id, deleted: result.changes || 0 };
   }
 
+  function getCachedTwitchUser(loginRaw) {
+    const login = normalizeLogin(loginRaw);
+    if (!login) return null;
+    try {
+      const row = database.get(`
+        SELECT login, display_name, twitch_user_id, is_vip, is_mod, is_broadcaster, source, last_seen_at, last_sync_at, created_at, updated_at
+        FROM vip_sound_twitch_users
+        WHERE login = :login
+        LIMIT 1
+      `, { login });
+      if (!row) return null;
+      return {
+        login: normalizeLogin(row.login),
+        displayName: cleanDisplayName(row.display_name || row.login),
+        twitchUserId: String(row.twitch_user_id || ""),
+        isVip: Number(row.is_vip || 0) === 1,
+        isMod: Number(row.is_mod || 0) === 1,
+        isBroadcaster: Number(row.is_broadcaster || 0) === 1,
+        source: row.source || "twitch",
+        lastSeenAt: row.last_seen_at || "",
+        lastSyncAt: row.last_sync_at || "",
+        createdAt: row.created_at || "",
+        updatedAt: row.updated_at || ""
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function twitchSoundAccessForUser(user) {
+    const login = normalizeLogin(user && (user.login || user.displayName));
+    const cached = getCachedTwitchUser(login);
+    const allowed = !!(cached && (cached.isVip || cached.isMod || cached.isBroadcaster));
+    const soundType = cached && (cached.isMod || cached.isBroadcaster) ? "mod" : "vip";
+    return {
+      allowed,
+      soundType,
+      login,
+      cached,
+      reason: allowed ? "twitch_cache_allowed" : "not_twitch_vip_or_mod"
+    };
+  }
+
   async function detectSoundTypeForTarget(requestedSoundType, targetUser) {
     const requested = normalizeSoundType(requestedSoundType);
-    const roles = buildRoleSetsFromDbOrFallback();
-
-    if (!roles.enabled) return requested;
-
-    const login = normalizeLogin(targetUser && (targetUser.login || targetUser.displayName));
-    if (!login) return requested;
-
-    if (roles.autoDetectTargetRole) {
-      const twitchModeratorResult = await twitchRoles.isTargetModerator(login);
-      if (twitchModeratorResult === true) return "mod";
-    }
-
-    if (!roles.fallbackRolesEnabled) return requested;
-
-    if (roles.mods.has(login) || roles.crew.has(login)) return "mod";
-
-    return requested;
+    const access = twitchSoundAccessForUser(targetUser);
+    if (!access.allowed) return requested;
+    return access.soundType || requested;
   }
 
   function hasExplicitTarget(raw) {
@@ -1612,6 +1646,7 @@ module.exports.init = function init(ctx) {
     if (key === "duplicate_vip") return `@${name}, Heimaufsicht sagt nein. Dein VIP-Sound wurde heute bereits genutzt.`;
     if (key === "system_disabled") return `@${name}, Heimaufsicht meldet: VIP-Sounds sind gerade ausser Betrieb.`;
     if (key === "sound_missing") return `@${name}, Heimaufsicht findet deine Soundakte gerade nicht.`;
+    if (key === "not_twitch_vip_or_mod") return `@${name}, VIP-Sounds sind nur fuer aktuelle Twitch-VIPs und Twitch-Mods freigegeben.`;
     if (key === "error_generic") return `@${name}, Heimaufsicht hat einen Fehler im Formular gefunden.`;
     return `@${name}, Heimaufsicht hat deinen VIP-Sound notiert.`;
   }
@@ -2278,14 +2313,11 @@ module.exports.init = function init(ctx) {
       if (soundType) addUnique(existing.soundTypes, soundType);
     } else if (source === "role_override") {
       if (roleType) {
-        addUnique(existing.roleTypes, roleType);
         addUnique(existing.localRoles, roleType);
         addUnique(existing.local.roles, roleType);
       }
-      if (soundType) addUnique(existing.soundTypes, soundType);
     } else if (source === "daily_usage" || source === "events") {
       if (soundType) {
-        addUnique(existing.soundTypes, soundType);
         addUnique(existing.historySoundTypes, soundType);
         addUnique(existing.history.soundTypes, soundType);
       }
@@ -2333,16 +2365,8 @@ module.exports.init = function init(ctx) {
       }
     } catch (_) {}
 
-    try {
-      for (const row of getVipRoleOverrideRows(false)) {
-        addVipSoundCandidate(map, {
-          login: row.login,
-          displayName: row.display_name,
-          roleType: row.role_type,
-          source: "role_override"
-        });
-      }
-    } catch (_) {}
+    // Lokale Rollen-Overrides werden nicht mehr als VIP-Sound-Berechtigung gewertet.
+    // Sie bleiben in der Datenbank fuer Alt-/Diagnosezwecke, werden hier aber nicht als eigene Kandidaten aufgenommen.
 
     try {
       const rows = database.all(`
@@ -2354,6 +2378,8 @@ module.exports.init = function init(ctx) {
       `, { limit });
 
       for (const row of rows) {
+        const login = normalizeLogin(row.user_login);
+        if (!map.has(login)) continue;
         addVipSoundCandidate(map, {
           login: row.user_login,
           displayName: row.user_display_name,
@@ -2374,6 +2400,8 @@ module.exports.init = function init(ctx) {
       `, { limit });
 
       for (const row of rows) {
+        const login = normalizeLogin(row.user_login);
+        if (!map.has(login)) continue;
         addVipSoundCandidate(map, {
           login: row.user_login,
           displayName: row.user_display_name,
@@ -3040,6 +3068,29 @@ module.exports.init = function init(ctx) {
       date: usageDate,
       override: skipDailyUsage ? "1" : "0"
     };
+
+    const twitchAccess = twitchSoundAccessForUser(user);
+    if (!twitchAccess.allowed) {
+      return await finishVipCommand("not_twitch_vip_or_mod", context, {
+        accepted: false,
+        duplicate: false,
+        dbReady,
+        twitchOnlyDenied: true,
+        error: "not_twitch_vip_or_mod",
+        dailyUsageWritten: false,
+        usageDate,
+        actorLogin: actor.login,
+        actorDisplayName: actor.displayName || actor.login,
+        targetLogin: user.login,
+        targetDisplayName: user.displayName || user.login,
+        userLogin: user.login,
+        userDisplayName: user.displayName || user.login,
+        soundType,
+        trigger,
+        source,
+        soundSystemQueued: false
+      });
+    }
 
     if (!getVipSetting("enabled", true)) {
       return await finishVipCommand("system_disabled", context, {
