@@ -1,5 +1,5 @@
 // modules/clips.js
-// STEP185.5 — Clip-System Discord-Channel-Setting + Textkategorie-Cleanup.
+// STEP186 — Clip Backend-Create: Twitch API, Job, Discord und OBS-Save-Timing.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
@@ -16,8 +16,11 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
+const crypto = require('crypto');
 
 const database = require('../core/database');
+const twitch = require('./twitch');
+const { getSharedObs } = require('./obs_shared');
 const messageHelper = require('./helpers/helper_messages');
 let settingsHelper = null;
 try {
@@ -33,7 +36,7 @@ try {
 }
 
 const MODULE_NAME = 'clips';
-const CLIP_SCHEMA_VERSION = 1;
+const CLIP_SCHEMA_VERSION = 2;
 const CLIP_HISTORY_TABLE = 'clip_history';
 const CLIP_SETTINGS_TABLE = 'clip_settings';
 
@@ -146,6 +149,7 @@ const DEFAULT_CLIP_TEXTS = {
 
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
+  const sharedObs = getSharedObs(env, console);
 
   const rootDir = resolveRootDir(ctx, env);
   const configDir = path.join(rootDir, 'config');
@@ -634,6 +638,26 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  app.get('/api/clip/create', async (req, res) => {
+    await handleClipCreate(req, res, req.query || {}, 'get');
+  });
+
+  app.post('/api/clip/create', async (req, res) => {
+    await handleClipCreate(req, res, req.body || {}, 'post');
+  });
+
+  app.get('/api/clip/job/:jobId', (req, res) => {
+    try {
+      const jobId = String(req.params.jobId || '').trim();
+      if (!jobId) return res.status(400).json({ ok: false, error: 'job_id_required' });
+      const row = getClipHistoryByJobId(jobId);
+      if (!row) return res.status(404).json({ ok: false, error: 'job_not_found', jobId });
+      return res.json({ ok: true, module: MODULE_NAME, jobId, row });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
   function sendClipSettingsPayload(res) {
     try {
       const cfg = loadClipConfig();
@@ -726,6 +750,263 @@ module.exports.init = function init(ctx) {
       res.status(500).json({ ok: false, error: err.message || String(err) });
     }
   });
+
+  async function handleClipCreate(req, res, source, method) {
+    const cfg = loadClipConfig();
+    const messages = loadClipMessages(cfg);
+    const channels = loadDiscordChannels();
+    const input = firstString(source.input, source.rawInput, source.commandRawInput, source.text, '');
+    const triggerUser = firstString(source.triggerUser, source.trigger_user, source.user, source.displayName, source.userName, source.username, '');
+    const triggerLogin = firstString(source.triggerLogin, source.trigger_login, source.login, source.userLogin, '');
+    const channelInfo = await loadChannelInfoFromApi(cfg);
+    const title = buildClipTitle(input, cfg, channelInfo);
+    const baseContext = {
+      ...title,
+      triggerUser,
+      triggerLogin,
+      status: 'starting',
+      reason: ''
+    };
+    const startMessage = cfg.sendClipActivatedMessage ? renderClipMessage(messages, 'chatClipActivated', baseContext) : '';
+
+    if (!cfg.enabled) {
+      return res.status(503).json({
+        ok: false,
+        accepted: false,
+        error: 'clip_system_disabled',
+        sendChat: cfg.sendChatResponse,
+        chatMessage: renderClipMessage(messages, 'systemDisabled', baseContext) || startMessage
+      });
+    }
+
+    if (!cfg.backendCreateEnabled) {
+      return res.status(409).json({
+        ok: false,
+        accepted: false,
+        error: 'backend_create_disabled',
+        sendChat: cfg.sendChatResponse,
+        chatMessage: renderClipMessage(messages, 'systemBackendNotReady', baseContext) || startMessage
+      });
+    }
+
+    const twitchApi = await loadTwitchAuthReadiness(cfg);
+    const obsReplay = await loadObsReplayReadiness(cfg);
+    const discord = buildDiscordReadiness(cfg, channels);
+    const backendCreate = buildBackendCreateReadiness(cfg, twitchApi, obsReplay, discord);
+
+    if (!backendCreate.ready) {
+      const reason = backendCreate.blockers.join(',') || 'backend_not_ready';
+      const key = backendCreate.blockers.includes('missing_scope_clips_edit') ? 'systemTwitchScopeMissing'
+        : backendCreate.blockers.some(x => String(x).includes('obs')) ? 'systemObsReplayNotReady'
+          : 'systemBackendNotReady';
+      return res.status(409).json({
+        ok: false,
+        accepted: false,
+        error: 'backend_not_ready',
+        reason,
+        backendCreate,
+        sendChat: cfg.sendChatResponse,
+        chatMessage: renderClipMessage(messages, key, { ...baseContext, reason }) || startMessage
+      });
+    }
+
+    let created;
+    try {
+      if (!twitch || typeof twitch.createClipForBroadcaster !== 'function') throw new Error('twitch_create_helper_unavailable');
+      created = await twitch.createClipForBroadcaster(cfg.broadcasterId, { hasDelay: false });
+    } catch (err) {
+      const reason = err.message || String(err);
+      const failed = {
+        clipId: '',
+        clipUrl: '',
+        clipTitle: title.clipTitle,
+        customTitle: title.customTitle,
+        streamTitle: title.streamTitle,
+        gameName: title.gameName,
+        triggerUser,
+        status: 'failed',
+        reason
+      };
+      const history = cfg.saveHistory ? saveClipHistory(failed, 'backend_create_failed', { ...source, error: reason }) : { saved: false, id: null, error: '' };
+      return res.status(502).json({
+        ok: false,
+        accepted: false,
+        error: 'twitch_create_failed',
+        reason,
+        history,
+        sendChat: cfg.sendChatResponse,
+        chatMessage: renderClipMessage(messages, 'chatClipFailed', failed)
+      });
+    }
+
+    const clipId = String(created.clipId || created.clip?.id || '').trim();
+    const editUrl = String(created.editUrl || created.clip?.edit_url || '').trim();
+    const fallbackClipUrl = clipId ? `https://clips.twitch.tv/${clipId}` : '';
+    const jobId = makeJobId();
+    const now = nowIso();
+    const received = {
+      jobId,
+      clipId,
+      clipUrl: fallbackClipUrl,
+      editUrl,
+      clipTitle: title.clipTitle,
+      customTitle: title.customTitle,
+      streamTitle: title.streamTitle,
+      gameName: title.gameName,
+      triggerUser,
+      triggerLogin,
+      status: 'twitch_created',
+      reason: '',
+      createdAt: now
+    };
+
+    let history = { saved: false, id: null, error: '' };
+    if (cfg.saveHistory) {
+      history = saveClipHistory(received, 'backend_create', { ...source, twitch: created, jobId });
+      if (history.saved) {
+        updateClipHistoryExtra(history.id, {
+          job_id: jobId,
+          twitch_edit_url: editUrl,
+          twitch_status: 'created',
+          updated_at: now
+        });
+      }
+    }
+
+    runBackendClipJob({
+      cfg,
+      messages,
+      historyId: history.id,
+      jobId,
+      title,
+      triggerUser,
+      triggerLogin,
+      clipId,
+      editUrl,
+      fallbackClipUrl,
+      sourceMethod: method
+    }).catch(err => {
+      console.warn('[clips] Backend-Clip-Job fehlgeschlagen:', err.message || String(err));
+      if (history.saved) updateClipHistoryExtra(history.id, { status: 'partial', reason: err.message || String(err), updated_at: nowIso() });
+    });
+
+    return res.json({
+      ok: true,
+      accepted: true,
+      module: MODULE_NAME,
+      method,
+      jobId,
+      history,
+      twitch: {
+        clipId,
+        editUrl,
+        clipUrl: fallbackClipUrl,
+        raw: created.raw || null
+      },
+      title,
+      timing: {
+        twitchClipDurationSeconds: cfg.twitchClipDurationSeconds,
+        obsReplayWindowSeconds: cfg.obsReplayWindowSeconds,
+        obsReplayPreTriggerSeconds: cfg.obsReplayPreTriggerSeconds,
+        obsReplayPostTriggerSeconds: cfg.obsReplayPostTriggerSeconds,
+        obsReplaySaveDelayMs: cfg.obsReplaySaveDelayMs,
+        localReplayRenameDelayMs: cfg.localReplayRenameDelayMs
+      },
+      sendChat: cfg.sendChatResponse && Boolean(startMessage),
+      chatMessage: startMessage,
+      next: {
+        pollTwitchClip: true,
+        postDiscord: cfg.discordPostEnabled,
+        obsReplaySaveScheduled: cfg.obsReplaySaveEnabled,
+        localReplayRenameScheduled: false
+      }
+    });
+  }
+
+  async function runBackendClipJob(job) {
+    const obsPromise = scheduleObsReplaySave(job);
+    const poll = await pollTwitchClip(job.clipId, job.cfg);
+    const clip = poll.clip || null;
+    const clipUrl = firstString(clip?.url, job.fallbackClipUrl);
+    const status = poll.found ? 'created' : 'partial';
+    const reason = poll.found ? '' : 'twitch_clip_not_available_after_polling';
+    const received = {
+      jobId: job.jobId,
+      clipId: job.clipId,
+      clipUrl,
+      editUrl: job.editUrl,
+      clipTitle: job.title.clipTitle,
+      customTitle: job.title.customTitle,
+      streamTitle: job.title.streamTitle,
+      gameName: job.title.gameName,
+      triggerUser: job.triggerUser,
+      triggerLogin: job.triggerLogin,
+      status,
+      reason,
+      createdAt: nowIso()
+    };
+
+    if (job.historyId) {
+      updateClipHistoryExtra(job.historyId, {
+        clip_url: clipUrl,
+        status,
+        reason,
+        twitch_status: poll.found ? 'available' : 'pending',
+        updated_at: nowIso()
+      });
+    }
+
+    const discord = await maybePostClipToDiscord({ cfg: job.cfg, messages: job.messages, received });
+    if (job.historyId && discord) markClipDiscordResult(job.historyId, discord);
+
+    const obs = await obsPromise;
+    if (job.historyId && obs) {
+      updateClipHistoryExtra(job.historyId, {
+        obs_replay_requested: obs.requested ? 1 : 0,
+        obs_replay_saved: obs.saved ? 1 : 0,
+        obs_replay_error: obs.error || obs.reason || '',
+        obs_replay_requested_at: obs.requestedAt || '',
+        updated_at: nowIso()
+      });
+    }
+
+    return { ok: true, jobId: job.jobId, poll, discord, obs };
+  }
+
+  async function pollTwitchClip(clipId, cfg) {
+    const id = String(clipId || '').trim();
+    if (!id) return { found: false, clip: null, attempts: 0, error: 'clip_id_missing' };
+    const maxAttempts = toInt(cfg.twitchClipPollMaxAttempts, 8, 1, 30);
+    const waitMs = toInt(cfg.twitchClipPollMs, 2000, 500, 10000);
+    let lastError = '';
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      if (attempt > 1) await sleep(waitMs);
+      try {
+        if (!twitch || typeof twitch.getClipById !== 'function') throw new Error('twitch_get_clip_helper_unavailable');
+        const result = await twitch.getClipById(id);
+        if (result?.ok && result.clip) return { found: true, clip: result.clip, attempts: attempt, error: '' };
+      } catch (err) {
+        lastError = err.message || String(err);
+      }
+    }
+
+    return { found: false, clip: null, attempts: maxAttempts, error: lastError };
+  }
+
+  async function scheduleObsReplaySave(job) {
+    if (!job.cfg.obsReplaySaveEnabled) return { requested: false, saved: false, skipped: true, reason: 'obs_replay_disabled' };
+    const delayMs = toInt(job.cfg.obsReplaySaveDelayMs, 30000, 0, 300000);
+    await sleep(delayMs);
+    const requestedAt = nowIso();
+    try {
+      if (!sharedObs || typeof sharedObs.saveReplayBuffer !== 'function') throw new Error('obs_shared_save_unavailable');
+      await sharedObs.saveReplayBuffer();
+      return { requested: true, saved: true, skipped: false, requestedAt, error: '' };
+    } catch (err) {
+      return { requested: true, saved: false, skipped: false, requestedAt, error: err.message || String(err) };
+    }
+  }
 
   async function handleClipRegister(req, res, source, method) {
     const cfg = loadClipConfig();
@@ -841,7 +1122,7 @@ module.exports.init = function init(ctx) {
     }
   }
 
-  console.log('[clips] /api/clip/status, /api/clip/title, /api/clip/register und /api/clip/history aktiv');
+  console.log('[clips] /api/clip/status, /api/clip/title, /api/clip/register, /api/clip/history und /api/clip/create aktiv');
 };
 
 function ensureClipSchema() {
@@ -868,7 +1149,28 @@ function ensureClipSchema() {
     `);
     database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_created_at ON ${CLIP_HISTORY_TABLE} (created_at);`);
     database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_clip_id ON ${CLIP_HISTORY_TABLE} (clip_id);`);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_job_id ON ${CLIP_HISTORY_TABLE} (job_id);`);
   });
+
+  safeAddClipHistoryColumn('job_id', "TEXT NOT NULL DEFAULT ''");
+  safeAddClipHistoryColumn('twitch_edit_url', "TEXT NOT NULL DEFAULT ''");
+  safeAddClipHistoryColumn('twitch_status', "TEXT NOT NULL DEFAULT ''");
+  safeAddClipHistoryColumn('obs_replay_requested', 'INTEGER NOT NULL DEFAULT 0');
+  safeAddClipHistoryColumn('obs_replay_saved', 'INTEGER NOT NULL DEFAULT 0');
+  safeAddClipHistoryColumn('obs_replay_error', "TEXT NOT NULL DEFAULT ''");
+  safeAddClipHistoryColumn('obs_replay_requested_at', "TEXT NOT NULL DEFAULT ''");
+  safeAddClipHistoryColumn('updated_at', "TEXT NOT NULL DEFAULT ''");
+}
+
+function safeAddClipHistoryColumn(columnName, definition) {
+  try {
+    database.exec(`ALTER TABLE ${CLIP_HISTORY_TABLE} ADD COLUMN ${columnName} ${definition};`);
+  } catch (err) {
+    const msg = String(err?.message || err || '').toLowerCase();
+    if (!msg.includes('duplicate column')) {
+      console.warn(`[clips] Spalte ${columnName} konnte nicht angelegt werden:`, err.message || String(err));
+    }
+  }
 }
 
 function getClipDbStatus() {
@@ -946,7 +1248,8 @@ function listClipHistory(limit) {
   ensureClipSchema();
   return database.all(`
     SELECT id, clip_id, clip_url, clip_title, custom_title, stream_title, game_name, trigger_user, status, reason,
-           source_method, discord_posted, discord_error, created_at
+           source_method, discord_posted, discord_error, job_id, twitch_edit_url, twitch_status,
+           obs_replay_requested, obs_replay_saved, obs_replay_error, obs_replay_requested_at, updated_at, created_at
     FROM ${CLIP_HISTORY_TABLE}
     ORDER BY id DESC
     LIMIT :limit
@@ -964,8 +1267,86 @@ function listClipHistory(limit) {
     sourceMethod: row.source_method || '',
     discordPosted: Number(row.discord_posted || 0) === 1,
     discordError: row.discord_error || '',
+    jobId: row.job_id || '',
+    twitchEditUrl: row.twitch_edit_url || '',
+    twitchStatus: row.twitch_status || '',
+    obsReplayRequested: Number(row.obs_replay_requested || 0) === 1,
+    obsReplaySaved: Number(row.obs_replay_saved || 0) === 1,
+    obsReplayError: row.obs_replay_error || '',
+    obsReplayRequestedAt: row.obs_replay_requested_at || '',
+    updatedAt: row.updated_at || '',
     createdAt: row.created_at || ''
   }));
+}
+
+function getClipHistoryByJobId(jobId) {
+  ensureClipSchema();
+  const row = database.get(`
+    SELECT id, clip_id, clip_url, clip_title, custom_title, stream_title, game_name, trigger_user, status, reason,
+           source_method, discord_posted, discord_error, job_id, twitch_edit_url, twitch_status,
+           obs_replay_requested, obs_replay_saved, obs_replay_error, obs_replay_requested_at, updated_at, created_at
+    FROM ${CLIP_HISTORY_TABLE}
+    WHERE job_id = :jobId
+    LIMIT 1
+  `, { jobId: String(jobId || '').trim() });
+  if (!row) return null;
+  return {
+    id: row.id,
+    clipId: row.clip_id || '',
+    clipUrl: row.clip_url || '',
+    clipTitle: row.clip_title || '',
+    customTitle: row.custom_title || '',
+    streamTitle: row.stream_title || '',
+    gameName: row.game_name || '',
+    triggerUser: row.trigger_user || '',
+    status: row.status || '',
+    reason: row.reason || '',
+    sourceMethod: row.source_method || '',
+    discordPosted: Number(row.discord_posted || 0) === 1,
+    discordError: row.discord_error || '',
+    jobId: row.job_id || '',
+    twitchEditUrl: row.twitch_edit_url || '',
+    twitchStatus: row.twitch_status || '',
+    obsReplayRequested: Number(row.obs_replay_requested || 0) === 1,
+    obsReplaySaved: Number(row.obs_replay_saved || 0) === 1,
+    obsReplayError: row.obs_replay_error || '',
+    obsReplayRequestedAt: row.obs_replay_requested_at || '',
+    updatedAt: row.updated_at || '',
+    createdAt: row.created_at || ''
+  };
+}
+
+function updateClipHistoryExtra(historyId, patch = {}) {
+  const id = Number(historyId || 0);
+  if (!id || !patch || typeof patch !== 'object') return false;
+  const allowed = new Set([
+    'clip_url', 'status', 'reason', 'job_id', 'twitch_edit_url', 'twitch_status',
+    'obs_replay_requested', 'obs_replay_saved', 'obs_replay_error', 'obs_replay_requested_at', 'updated_at'
+  ]);
+  const entries = Object.entries(patch).filter(([key]) => allowed.has(key));
+  if (!entries.length) return false;
+  const setSql = entries.map(([key]) => `${key} = :${key}`).join(', ');
+  const params = { id };
+  for (const [key, value] of entries) params[key] = value === undefined || value === null ? '' : value;
+  try {
+    database.run(`UPDATE ${CLIP_HISTORY_TABLE} SET ${setSql} WHERE id = :id`, params);
+    return true;
+  } catch (err) {
+    console.warn('[clips] History-Update fehlgeschlagen:', err.message || String(err));
+    return false;
+  }
+}
+
+function makeJobId() {
+  return `clip_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+}
+
+function nowIso() {
+  return database.nowIso ? database.nowIso() : new Date().toISOString();
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
 }
 
 function resolveRootDir(ctx, env) {

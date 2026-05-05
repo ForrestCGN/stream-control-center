@@ -12,7 +12,10 @@ const sqlite = require('./sqlite_core');
 const sharedApi = {
   resolveUserByLogin: null,
   getStoredBotToken: null,
-  getBotAccessTokenWithRefresh: null
+  getBotAccessTokenWithRefresh: null,
+  validateStoredUserToken: null,
+  createClipForBroadcaster: null,
+  getClipById: null
 };
 
 const DEFAULT_TWITCH_ALERT_CONFIG = {
@@ -307,10 +310,57 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  async function createClipForBroadcasterInternal(broadcasterIdInput, options = {}) {
+    const broadcasterId = String(broadcasterIdInput || DEFAULT_BROADCASTER_ID || '').trim();
+    if (!broadcasterId) throw new Error('broadcaster_id_missing');
+
+    const token = await getUserAccessTokenWithRefresh();
+    if (!token) throw new Error('twitch_user_token_missing');
+
+    const url = new URL('https://api.twitch.tv/helix/clips');
+    url.searchParams.set('broadcaster_id', broadcasterId);
+
+    if (options && Object.prototype.hasOwnProperty.call(options, 'hasDelay')) {
+      url.searchParams.set('has_delay', options.hasDelay ? 'true' : 'false');
+    }
+
+    const r = await axios.post(url.toString(), null, { headers: helixHeaders(token) });
+    const data = Array.isArray(r.data?.data) ? r.data.data : [];
+    const clip = data[0] || null;
+
+    return {
+      ok: Boolean(clip && clip.id),
+      broadcasterId,
+      clipId: clip?.id ? String(clip.id) : '',
+      editUrl: clip?.edit_url ? String(clip.edit_url) : '',
+      data,
+      raw: r.data
+    };
+  }
+
+  async function getClipByIdInternal(clipIdInput) {
+    const clipId = String(clipIdInput || '').trim();
+    if (!clipId) throw new Error('clip_id_missing');
+
+    const data = await helixGet('/clips', { id: clipId });
+    const rows = Array.isArray(data?.data) ? data.data : [];
+    const clip = rows[0] || null;
+
+    return {
+      ok: Boolean(clip),
+      clipId,
+      clip,
+      data: rows,
+      raw: data
+    };
+  }
+
   sharedApi.resolveUserByLogin = resolveUserByLoginInternal;
   sharedApi.getStoredBotToken = getStoredBotToken;
   sharedApi.getBotAccessTokenWithRefresh = getBotAccessTokenWithRefresh;
   sharedApi.validateStoredUserToken = validateStoredUserToken;
+  sharedApi.createClipForBroadcaster = createClipForBroadcasterInternal;
+  sharedApi.getClipById = getClipByIdInternal;
 
 
   // OAuth
@@ -1757,4 +1807,19 @@ module.exports.validateStoredUserToken = async function validateStoredUserTokenE
     throw new Error('twitch user token validate helper not initialized yet');
   }
   return await sharedApi.validateStoredUserToken();
+};
+
+
+module.exports.createClipForBroadcaster = async function createClipForBroadcaster(broadcasterId, options = {}) {
+  if (typeof sharedApi.createClipForBroadcaster !== 'function') {
+    throw new Error('twitch create clip helper not initialized yet');
+  }
+  return await sharedApi.createClipForBroadcaster(broadcasterId, options);
+};
+
+module.exports.getClipById = async function getClipById(clipId) {
+  if (typeof sharedApi.getClipById !== 'function') {
+    throw new Error('twitch get clip helper not initialized yet');
+  }
+  return await sharedApi.getClipById(clipId);
 };
