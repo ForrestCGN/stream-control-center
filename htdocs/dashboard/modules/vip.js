@@ -178,7 +178,7 @@ window.VipModule = (function(){
     const expectedExt = settings.fileExtension || sound.fileExtension || '.mp3';
     const maxMb = settings.maxSoundUploadBytes ? Math.round(Number(settings.maxSoundUploadBytes) / 1024 / 1024) : 15;
     const stats = soundStats(users);
-    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>Sounds</h3><p>VIP-/Mod-Sounds verwalten. Die Datei wird automatisch nach der bestehenden VIP-Dateinamenlogik gespeichert.</p></div><button type="button" data-vip-action="reload-sounds">Sounds neu laden</button></div><div class="vip-mini-grid">${soundMetricCard('Bekannte User', stats.total, 'Twitch-Cache', '')}${soundMetricCard('Sounds vorhanden', stats.withSound, `${stats.missing} fehlen`, stats.missing ? 'warn' : 'ok')}${soundMetricCard('Ø Soundlänge', stats.avg ? formatMs(stats.avg) : '—', 'ffprobe', '')}${soundMetricCard('Längster Sound', stats.longest?.displayName || '—', stats.longest?.sound?.durationMs ? formatMs(stats.longest.sound.durationMs) : '', '')}</div><div class="vip-sound-grid"><div class="vip-sound-panel"><label>Twitch VIP/Mod auswählen<select id="vipSoundUser">${users.map(u => `<option value="${esc(u.login || '')}" ${selected === u.login ? 'selected' : ''}>${esc(u.displayName || u.login)}${u.roleTypes?.length ? ' · ' + esc(u.roleTypes.join('/')) : ''}${u.sound?.exists ? ' · Sound vorhanden' : ''}</option>`).join('')}</select></label><label>Oder manuell Login eingeben<input id="vipSoundManualLogin" value="${esc(state.soundManualLogin || '')}" placeholder="z. B. araglor"></label><button type="button" data-vip-action="resolve-sound-user">User prüfen</button><div class="vip-muted">Die Liste kommt aus dem lokalen Twitch-Cache. Berechtigt sind nur Twitch-VIPs und Twitch-Mods.</div></div><div class="vip-sound-panel"><h4>Aktueller Soundstatus</h4><div class="vip-standard-list"><div><strong>User:</strong> ${fmt(status.user?.displayName || selectedUser?.displayName || selected || '—')}</div><div><strong>Datei:</strong> <code>${fmt(sound.fileName)}</code></div><div><strong>Vorhanden:</strong> ${badge(sound.exists ? 'Ja' : 'Nein', sound.exists ? 'ok' : 'warn')}</div><div><strong>Dauer:</strong> ${sound.durationMs ? esc(formatMs(sound.durationMs)) : '—'}</div><div><strong>Pfad:</strong> <span class="vip-muted">${fmt(sound.relativeFile || sound.fullPath)}</span></div><div><strong>Erwartete Endung:</strong> <code>${esc(expectedExt)}</code> · max. ${esc(maxMb)} MB</div></div></div></div><div class="vip-upload-box"><label>Neue Sounddatei auswählen<input id="vipSoundFile" type="file" accept="audio/*,.mp3,.wav,.ogg,.webm,.m4a"></label><label class="vip-check"><input id="vipSoundOverwrite" type="checkbox"> vorhandenen Song ersetzen</label><button type="button" class="success" data-vip-action="upload-sound">Sound hochladen</button></div></section>`;
+    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>Sounds</h3><p>VIP-/Mod-Sounds verwalten. Die Datei wird automatisch nach der bestehenden VIP-Dateinamenlogik gespeichert.</p></div><button type="button" data-vip-action="reload-sounds">Sounds neu laden</button></div><div class="vip-mini-grid">${soundMetricCard('Bekannte User', stats.total, 'Twitch-Cache', '')}${soundMetricCard('Sounds vorhanden', stats.withSound, `${stats.missing} fehlen`, stats.missing ? 'warn' : 'ok')}${soundMetricCard('Ø Soundlänge', stats.avg ? formatMs(stats.avg) : '—', 'ffprobe', '')}${soundMetricCard('Längster Sound', stats.longest?.displayName || '—', stats.longest?.sound?.durationMs ? formatMs(stats.longest.sound.durationMs) : '', '')}</div><div class="vip-sound-grid"><div class="vip-sound-panel"><label>Twitch VIP/Mod auswählen<select id="vipSoundUser">${users.map(u => `<option value="${esc(u.login || '')}" ${selected === u.login ? 'selected' : ''}>${esc(soundUserOptionLabel(u))}</option>`).join('')}</select></label><label>Oder manuell Login eingeben<input id="vipSoundManualLogin" value="${esc(state.soundManualLogin || '')}" placeholder="z. B. araglor"></label><button type="button" data-vip-action="resolve-sound-user">User prüfen</button><div class="vip-muted">Die Liste kommt aus dem lokalen Twitch-Cache. Berechtigt sind nur Twitch-VIPs und Twitch-Mods.</div></div><div class="vip-sound-panel"><h4>Aktueller Soundstatus</h4><div class="vip-standard-list"><div><strong>User:</strong> ${fmt(status.user?.displayName || selectedUser?.displayName || selected || '—')}</div><div><strong>Datei:</strong> <code>${fmt(sound.fileName)}</code></div><div><strong>Vorhanden:</strong> ${badge(sound.exists ? 'Ja' : 'Nein', sound.exists ? 'ok' : 'warn')}</div><div><strong>Dauer:</strong> ${sound.durationMs ? esc(formatMs(sound.durationMs)) : '—'}</div><div><strong>Pfad:</strong> <span class="vip-muted">${fmt(sound.relativeFile || sound.fullPath)}</span></div><div><strong>Erwartete Endung:</strong> <code>${esc(expectedExt)}</code> · max. ${esc(maxMb)} MB</div></div></div></div><div class="vip-upload-box"><label>Neue Sounddatei auswählen<input id="vipSoundFile" type="file" accept="audio/*,.mp3,.wav,.ogg,.webm,.m4a"></label><label class="vip-check"><input id="vipSoundOverwrite" type="checkbox"> vorhandenen Song ersetzen</label><button type="button" class="success" data-vip-action="upload-sound">Sound hochladen</button></div></section>`;
   }
 
   function formatMs(ms){
@@ -216,40 +216,80 @@ window.VipModule = (function(){
     return value === true || value === 1 || String(value || '').toLowerCase() === 'true' || String(value || '').toLowerCase() === '1';
   }
 
+  function twitchInfo(row){
+    return row && typeof row.twitch === 'object' ? row.twitch : {};
+  }
+
+  function twitchPrimaryRole(row){
+    const twitch = twitchInfo(row);
+    const direct = String(twitch.primaryRole || '').toLowerCase();
+    if (direct === 'mod' || direct === 'vip' || direct === 'broadcaster') return direct;
+    if (truthyRoleValue(twitch.isBroadcaster)) return 'broadcaster';
+    if (truthyRoleValue(twitch.isMod)) return 'mod';
+    if (truthyRoleValue(twitch.isVip)) return 'vip';
+    if (listHas(row?.twitchRoles, 'mod')) return 'mod';
+    if (listHas(row?.twitchRoles, 'vip')) return 'vip';
+    return '';
+  }
+
+  function twitchAllowed(row){
+    const twitch = twitchInfo(row);
+    if (Object.prototype.hasOwnProperty.call(twitch, 'allowed')) return truthyRoleValue(twitch.allowed);
+    return ['mod', 'vip', 'broadcaster'].includes(twitchPrimaryRole(row));
+  }
+
+  function twitchStatusLabel(row){
+    const twitch = twitchInfo(row);
+    const label = String(twitch.statusLabel || '').trim();
+    if (label) return label;
+    const role = twitchPrimaryRole(row);
+    if (role === 'mod') return 'Twitch Mod';
+    if (role === 'vip') return 'Twitch VIP';
+    if (role === 'broadcaster') return 'Broadcaster';
+    return 'nicht berechtigt';
+  }
+
+  function soundUserOptionLabel(row){
+    const name = row?.displayName || row?.login || '';
+    const status = twitchStatusLabel(row);
+    const soundText = row?.sound?.exists ? 'Sound vorhanden' : 'kein Sound';
+    return `${name} · ${status} · ${soundText}`;
+  }
+
   function userHasTwitchRole(row, role){
     const r = String(role || '').toLowerCase();
-    const twitch = row && typeof row.twitch === 'object' ? row.twitch : {};
-    if (r === 'vip' && (truthyRoleValue(twitch.isVip) || truthyRoleValue(row.isVip) || truthyRoleValue(row.twitchIsVip))) return true;
-    if ((r === 'mod' || r === 'moderator') && (truthyRoleValue(twitch.isMod) || truthyRoleValue(row.isMod) || truthyRoleValue(row.twitchIsMod))) return true;
-    if ((r === 'broadcaster') && (truthyRoleValue(twitch.isBroadcaster) || truthyRoleValue(row.isBroadcaster) || truthyRoleValue(row.twitchIsBroadcaster))) return true;
-    return listHas(row.twitchRoles, r) || listHas(row.twitch_roles, r) || listHas(row.roleTypes, r);
+    const twitch = twitchInfo(row);
+    if (r === 'vip') return truthyRoleValue(twitch.isVip) || twitchPrimaryRole(row) === 'vip' || listHas(row?.twitchRoles, 'vip');
+    if (r === 'mod' || r === 'moderator') return truthyRoleValue(twitch.isMod) || twitchPrimaryRole(row) === 'mod' || listHas(row?.twitchRoles, 'mod');
+    if (r === 'broadcaster') return truthyRoleValue(twitch.isBroadcaster) || twitchPrimaryRole(row) === 'broadcaster';
+    return false;
   }
 
   function userHasLocalRole(row, role){
     const r = String(role || '').toLowerCase();
-    return listHas(row.localRoles, r) || listHas(row.local?.roles, r);
+    return listHas(row?.localRoles, r) || listHas(row?.local?.roles, r);
   }
 
   function userHasHistorySound(row, soundType){
     const s = String(soundType || '').toLowerCase();
-    return listHas(row.historySoundTypes, s) || listHas(row.history?.soundTypes, s);
+    return listHas(row?.historySoundTypes, s) || listHas(row?.history?.soundTypes, s);
   }
 
   function userMatchesFilter(row, filter){
     const f = String(filter || 'all').toLowerCase();
     if (f === 'missing') return !row.sound?.exists;
     if (f === 'withsound') return !!row.sound?.exists;
-    if (f === 'vip' || f === 'twitch_vip') return userHasTwitchRole(row, 'vip');
-    if (f === 'mod' || f === 'twitch_mod') return userHasTwitchRole(row, 'mod');
+    if (f === 'vip' || f === 'twitch_vip') return twitchPrimaryRole(row) === 'vip' || truthyRoleValue(row?.twitch?.isVip);
+    if (f === 'mod' || f === 'twitch_mod') return twitchPrimaryRole(row) === 'mod' || truthyRoleValue(row?.twitch?.isMod);
     return true;
   }
 
   function sourceLabels(row){
-    const sources = Array.isArray(row.sources) ? row.sources : [];
     const labels = [];
-    if (sources.includes('twitch_sync')) labels.push('Twitch-Cache');
-    if (sources.some(v => ['role_override','daily_usage','events'].includes(v))) labels.push('alte Daten');
-    return labels.join(' + ');
+    if (row?.permissionSource === 'twitch_cache' || listHas(row?.sources, 'twitch_sync')) labels.push('Twitch-Cache');
+    if (row?.history?.hasUsage || (Array.isArray(row?.history?.sources) && row.history.sources.length)) labels.push('Historie');
+    if (row?.local?.ignoredForPermission) labels.push('lokale Overrides ignoriert');
+    return labels.join(' · ');
   }
 
 
@@ -284,18 +324,20 @@ window.VipModule = (function(){
   }
 
   function twitchStatusPills(row){
-    if (userHasTwitchRole(row, 'mod')) return badge('Twitch Mod', 'ok');
-    if (userHasTwitchRole(row, 'vip')) return badge('Twitch VIP', 'ok');
-    return badge('nicht berechtigt', 'warn');
+    const label = twitchStatusLabel(row);
+    return badge(label, twitchAllowed(row) ? 'ok' : 'warn');
   }
 
   function localStatusPills(row){
-    return rolePills(row.localRoles || row.local?.roles || [], 'kein Override');
+    const ignored = row?.local?.ignoredForPermission;
+    const roles = row?.local?.roles || row?.localRoles || [];
+    if (ignored) return badge('lokale Overrides ignoriert', 'warn');
+    return rolePills(roles, 'kein Override');
   }
 
   function historyStatusPills(row){
-    const list = row.historySoundTypes || row.history?.soundTypes || [];
-    return list.length ? list.map(r => badge(`${r}-Sound`)).join('') : badge('keine Historie', 'warn');
+    const list = row?.history?.soundTypes || row?.historySoundTypes || [];
+    return list.length ? list.map(r => badge(`${r}-Historie`)).join('') : badge('keine Historie', 'warn');
   }
 
   function soundUserRow(row){
