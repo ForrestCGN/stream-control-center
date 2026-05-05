@@ -2,19 +2,41 @@
 
 ## 2026-05-05
 
+### STEP177 - Tagebuch/Todo DB-Settings und DB-Texte Backend-Grundlage
+
+- `backend/modules/helpers/helper_texts.js` erweitert:
+  - neue zentrale Tabelle `module_texts`
+  - neue Helper fuer Modultexte: Seed, List, Get, Set
+  - bestehende JSON-Message-Funktionen bleiben erhalten
+- `backend/modules/tagebuch.js` erweitert:
+  - `tagebuch_settings` als DB-Settings-Schicht
+  - `module_texts` mit `module_name = tagebuch` als DB-Text-Schicht
+  - neue Admin-Routen:
+    - `GET/POST /api/tagebuch/admin/settings`
+    - `GET/POST /api/tagebuch/admin/texts`
+- `backend/modules/todo.js` erweitert:
+  - `todo_settings` als DB-Settings-Schicht
+  - `module_texts` mit `module_name = todo` als DB-Text-Schicht
+  - neue Admin-Routen:
+    - `GET/POST /api/todo/admin/settings`
+    - `GET/POST /api/todo/admin/texts`
+- JSON-Dateien bleiben Seed/Fallback.
+- Bestehende Tagebuch-/Todo-Routen bleiben erhalten.
+- Keine Dashboard-Frontend-Dateien in diesem STEP geaendert.
+- Neue STEP-Doku:
+  - `project-state/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md`
+
+### STEP176 - Tagebuch/Todo DB-/Dashboard-Audit
+
+- Audit-/Plan-Doku fuer Tagebuch/Todo erstellt.
+- Keine Codeaenderung.
+- Neue STEP-Doku:
+  - `project-state/STEP176_TAGEBUCH_TODO_DB_DASHBOARD_AUDIT_2026-05-05.md`
+
 ### STEP175.5 - Projekt-Dokus nach VIP-Block synchronisiert
 
-- Zentrale Doku-Einstiegspunkte nach STEP174.8 bis STEP175.4 aktualisiert:
-  - `docs/current/CURRENT_SYSTEM_STATUS.md`
-  - `project-state/CURRENT_STATUS.md`
-  - `project-state/CHANGELOG.md`
-  - `project-state/FILES.md`
-  - `project-state/NEXT_STEPS.md`
-- Neue STEP-Doku:
-  - `project-state/STEP175_5_PROJECT_DOC_SYNC_AFTER_VIP_BLOCK_2026-05-05.md`
-- VIP-Handoff als aktuelle Referenz verankert:
-  - `project-state/STEP175_VIP_SOUND_BLOCK_HANDOFF_2026-05-05.md`
-- Veraltete Hinweise auf alten VIP-/Upload-Stand korrigiert.
+- Zentrale Doku-Einstiegspunkte nach STEP174.8 bis STEP175.4 aktualisiert.
+- VIP-Handoff als aktuelle Referenz verankert.
 - Keine Codeaenderung.
 - Keine Backend-Aenderung.
 - Keine Datenbank-Aenderung.
@@ -30,7 +52,7 @@
 - Vorschau-Buttons bleiben erhalten.
 - Keine Backend-/DB-Aenderung.
 
-### STEP175.3 - Großer VIP-Upload-Umbau verworfen / vereinfacht
+### STEP175.3 - Grosser VIP-Upload-Umbau verworfen / vereinfacht
 
 - Der grosse Upload-Block mit Ziel-User/Ziel-Datei/Erlaubt wurde als zu dominant und verwirrend bewertet.
 - Der Ansatz wurde bewusst verworfen.
@@ -47,17 +69,6 @@
 ### STEP175.1 - VIP-Sound-Verwaltung aufgeraeumt
 
 - Sounds-Seite mit Filter, Suche und Sortierung verbessert.
-- Filter:
-  - Alle
-  - Ohne Sound
-  - Mit Sound
-  - Twitch VIP
-  - Twitch Mod
-- Sortierung:
-  - Fehlende zuerst
-  - Name A-Z
-  - Rolle
-  - laengste Sounds
 - Schnellzugriff fuer fehlende Sounds ergaenzt.
 - Doppelte Anzeige fehlender Sounds reduziert.
 - Keine Backend-/DB-Aenderung.
@@ -65,12 +76,7 @@
 ### STEP174.9 - VIP-Statistikseite ergaenzt
 
 - Neuer Tab `Statistik` im VIP-Dashboard.
-- Nutzt vorhandene Routen:
-  - `GET /api/vip-sound/stats`
-  - `GET /api/vip-sound/events/recent`
-  - `GET /api/vip-sound/daily-usage/today`
-  - `GET /api/vip-sound/sounds/users`
-- Zeigt Events, Top User, Sound-Typen, Sounddatei-Statistik, letzte Ausloesungen, fehlende Sounds und letzte Nutzung pro User.
+- Nutzt vorhandene VIP-Routen.
 - Keine neue Tabelle.
 - Keine Backend-Route geaendert.
 
@@ -78,56 +84,32 @@
 
 - Technische Standardbox aus der VIP-Uebersicht entfernt.
 - Rohe Event-Tabelle aus der Uebersicht entfernt.
-- Uebersicht zeigt jetzt kompakte Metriken, Statuskarten und Warnkarten.
+- Uebersicht zeigt kompakte Metriken, Statuskarten und Warnkarten.
 - Events bleiben im Tab `Events`.
 - Keine Backend-/DB-Aenderung.
 
 ### STEP172 - Sound / Alert / TTS Status Current
 
-- Aktueller Sound-/Alert-/TTS-Stand als neue Referenz dokumentiert:
-  - `project-state/STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md`
-- Zentrale Einstiegspunkte auf den damaligen Stand nachgezogen.
-- Live bestaetigt:
-  - `alert_system` Version `3`
-  - `alert_system` Step `171`
-  - Queue leer
-  - Current null
-  - Overlay-Client verbunden
-  - Schema-Version `5`
-- Dokumentiert wurden die relevanten Fix-Commits.
-- Aktueller Soll-Ablauf dokumentiert:
-  - Alert-Hauptsound ueber Sound-System
-  - Alert-TTS als eigenes Sound-System-Item hinter Alert-Hauptsound
-  - Chat-TTS wartet, bis Alert-Kette idle ist
-  - Overlay bleibt bis nach Alert-TTS sichtbar
-  - Sound-System bleibt Audio-Wahrheit
+- Aktueller Sound-/Alert-/TTS-Stand als neue Referenz dokumentiert.
 - Keine Codeaenderung in diesem Doku-STEP.
 
 ## 2026-05-04
 
 ### STEP047 - VIP Dashboard Base
 
-- Neues Dashboard-Modul fuer VIP angelegt:
-  - `htdocs/dashboard/modules/vip.js`
-  - `htdocs/dashboard/modules/vip.css`
-- Dashboard-Registrierung ergaenzt.
+- Neues Dashboard-Modul fuer VIP angelegt.
 - VIP-System ist jetzt in der Community-Sektion sichtbar.
-- VIP-Overlay-Link zeigt auf `/overlays/vip_sound_overlay_v2.html`.
 - VIP-Dashboard nutzt bestehende Backend-APIs, kein direkter SQLite-/Dateizugriff.
-- Kein Backend-Umbau in diesem STEP.
-- Kein VIP-Song-Upload in diesem STEP.
 
 ### STEP046 bis STEP040
 
 - Sound-/Alert-/TTS- und VIP-Backend-Vorarbeiten dokumentiert.
-- Details siehe historische STEP-Dateien unter `project-state/`.
 
 ## 2026-05-03
 
 ### STEP017 bis STEP015
 
 - VIP-Sound-System-Vorarbeiten und Dokumentation.
-- Details siehe historische STEP-Dateien unter `project-state/`.
 
 ## 2026-05-01
 

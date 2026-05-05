@@ -7,9 +7,13 @@ const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const security = require('./helpers/helper_security');
 const config = require('./helpers/helper_config');
+const settings = require('./helpers/helper_settings');
+const texts = require('./helpers/helper_texts');
 
 const MODULE_NAME = 'tagebuch';
 const SCHEMA_VERSION = 5;
+const SETTINGS_TABLE = 'tagebuch_settings';
+const TEXTS_MODULE = 'tagebuch';
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -90,6 +94,153 @@ function deepMerge(base, extra) {
   return out;
 }
 
+
+function flattenSettingsObject(input, prefix = '') {
+  const result = [];
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return result;
+
+  for (const [key, value] of Object.entries(input)) {
+    if (!key || ['configPath', 'messagesPath', 'webhookUrl'].includes(key)) continue;
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      result.push(...flattenSettingsObject(value, fullKey));
+    } else {
+      result.push({
+        key: fullKey,
+        value,
+        valueType: settings.normalizeValueType('', value),
+        description: ''
+      });
+    }
+  }
+
+  return result;
+}
+
+function setNestedValue(target, dottedKey, value) {
+  const parts = String(dottedKey || '').split('.').map(part => part.trim()).filter(Boolean);
+  if (!parts.length) return target;
+
+  let current = target;
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    const part = parts[i];
+    if (!current[part] || typeof current[part] !== 'object' || Array.isArray(current[part])) current[part] = {};
+    current = current[part];
+  }
+
+  current[parts[parts.length - 1]] = value;
+  return target;
+}
+
+function applyDbSettings(baseConfig) {
+  const merged = deepMerge({}, baseConfig || {});
+
+  try {
+    settings.seedDefaults(SETTINGS_TABLE, flattenSettingsObject(baseConfig || {}));
+    const listed = settings.listSettings(SETTINGS_TABLE, { limit: 1000 });
+    for (const row of listed.rows || []) {
+      setNestedValue(merged, row.key, row.value);
+    }
+    merged.settingsTable = SETTINGS_TABLE;
+    merged.settingsSource = 'database_with_json_fallback';
+    return merged;
+  } catch (err) {
+    console.warn(`[tagebuch] db settings unavailable, using json fallback: ${err.message}`);
+    merged.settingsTable = SETTINGS_TABLE;
+    merged.settingsSource = 'json_fallback';
+    merged.settingsError = err.message;
+    return merged;
+  }
+}
+
+function applyDbMessages(baseMessages) {
+  const fallback = deepMerge(DEFAULT_MESSAGES, baseMessages || {});
+
+  try {
+    const result = texts.getModuleTexts(TEXTS_MODULE, fallback, { seed: true });
+    return {
+      ...result.texts,
+      _textsTable: result.table,
+      _textsSource: 'database_with_json_fallback'
+    };
+  } catch (err) {
+    console.warn(`[tagebuch] db texts unavailable, using json fallback: ${err.message}`);
+    return {
+      ...fallback,
+      _textsTable: texts.DEFAULT_MODULE_TEXTS_TABLE,
+      _textsSource: 'json_fallback',
+      _textsError: err.message
+    };
+  }
+}
+
+function safePublicConfig(cfg) {
+  return {
+    enabled: Boolean(cfg.enabled),
+    requireActiveStreamForEntries: Boolean(cfg.requireActiveStreamForEntries),
+    postPageHeader: Boolean(cfg.postPageHeader),
+    useDiscordWebhook: Boolean(cfg.useDiscordWebhook),
+    hasWebhookUrl: Boolean(cfg.webhookUrl),
+    userinfoBaseUrl: cfg.userinfoBaseUrl,
+    pageTitle: cfg.pageTitle,
+    timezoneMode: cfg.timezoneMode,
+    resetAllowHardReset: Boolean(cfg.reset?.allowHardReset),
+    statsEnabled: Boolean(cfg.stats?.enabled),
+    statsCountSystemEntries: Boolean(cfg.stats?.countSystemEntries),
+    statsDefaultLimit: Number(cfg.stats?.defaultLimit || 10),
+    statsMaxLimit: Number(cfg.stats?.maxLimit || 50),
+    settingsTable: cfg.settingsTable || SETTINGS_TABLE,
+    settingsSource: cfg.settingsSource || 'unknown',
+    settingsError: cfg.settingsError || ''
+  };
+}
+
+function getAdminPayload(req) {
+  if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) return req.body;
+  return req.query && typeof req.query === 'object' ? req.query : {};
+}
+
+function listAdminSettings() {
+  settings.seedDefaults(SETTINGS_TABLE, flattenSettingsObject(getConfig()));
+  return settings.listSettings(SETTINGS_TABLE, { limit: 1000 });
+}
+
+function setAdminSettings(payload) {
+  const body = payload && typeof payload === 'object' ? payload : {};
+  const updates = body.settings && typeof body.settings === 'object' && !Array.isArray(body.settings)
+    ? body.settings
+    : (body.key ? { [body.key]: body.value } : {});
+
+  if (!Object.keys(updates).length) throw new Error('settings_payload_empty');
+
+  const rows = [];
+  for (const [key, value] of Object.entries(updates)) {
+    if (['webhookUrl', 'configPath', 'messagesPath'].includes(String(key))) continue;
+    rows.push(settings.setSetting(SETTINGS_TABLE, key, value));
+  }
+
+  reloadRuntime();
+  return { ok: true, module: MODULE_NAME, table: SETTINGS_TABLE, updated: rows.length, rows, status: buildStatus() };
+}
+
+function listAdminTexts() {
+  return texts.listModuleTexts(TEXTS_MODULE, getMessages(), { seed: true });
+}
+
+function setAdminTexts(payload) {
+  const body = payload && typeof payload === 'object' ? payload : {};
+  const updates = body.texts && typeof body.texts === 'object' && !Array.isArray(body.texts)
+    ? body.texts
+    : (body.key ? { [body.key]: body.value } : {});
+
+  if (!Object.keys(updates).length) throw new Error('texts_payload_empty');
+
+  const result = texts.setModuleTexts(TEXTS_MODULE, updates);
+  reloadRuntime();
+  return { ok: true, module: MODULE_NAME, ...result, status: buildStatus() };
+}
+
 function readJsonIfExists(filePath, fallback) {
   try {
     if (!fs.existsSync(filePath)) return fallback;
@@ -123,7 +274,7 @@ function loadRuntimeConfig() {
   const file = configPath();
   writeJsonIfMissing(file, DEFAULT_CONFIG);
   const fromFile = readJsonIfExists(file, {});
-  const merged = deepMerge(DEFAULT_CONFIG, fromFile);
+  const merged = applyDbSettings(deepMerge(DEFAULT_CONFIG, fromFile));
 
   const envWebhook = safeString(process.env[merged.webhookUrlEnv] || process.env.DISCORD_WEBHOOK_TAGEBUCH);
   const envUserinfo = safeString(process.env.TWITCH_USERINFO_BASE_URL || process.env.USERINFO_BASE_URL);
@@ -145,7 +296,7 @@ function loadRuntimeMessages() {
   const file = messagesPath();
   writeJsonIfMissing(file, DEFAULT_MESSAGES);
   const fromFile = readJsonIfExists(file, {});
-  runtimeMessages = deepMerge(DEFAULT_MESSAGES, fromFile);
+  runtimeMessages = applyDbMessages(deepMerge(DEFAULT_MESSAGES, fromFile));
 
   if (safeString(process.env.DISCORD_DIARY_EMPTY_END_NOTICE)) runtimeMessages.emptyEndNotice = process.env.DISCORD_DIARY_EMPTY_END_NOTICE;
   if (safeString(process.env.DISCORD_DIARY_USAGE_NOTICE)) runtimeMessages.usageNotice = process.env.DISCORD_DIARY_USAGE_NOTICE;
@@ -876,17 +1027,7 @@ function buildStatus() {
     databasePath: typeof sqlite.getDbPath === 'function' ? sqlite.getDbPath() : null,
     configPath: cfg.configPath,
     messagesPath: cfg.messagesPath,
-    config: {
-      enabled: Boolean(cfg.enabled),
-      requireActiveStreamForEntries: Boolean(cfg.requireActiveStreamForEntries),
-      postPageHeader: Boolean(cfg.postPageHeader),
-      useDiscordWebhook: Boolean(cfg.useDiscordWebhook),
-      hasWebhookUrl: Boolean(cfg.webhookUrl),
-      userinfoBaseUrl: cfg.userinfoBaseUrl,
-      resetAllowHardReset: Boolean(cfg.reset?.allowHardReset),
-      statsEnabled: Boolean(cfg.stats?.enabled),
-      statsCountSystemEntries: Boolean(cfg.stats?.countSystemEntries),
-    },
+    config: safePublicConfig(cfg),
     state: publicState(state),
   };
 }
@@ -1006,6 +1147,43 @@ function registerRoutes(ctx) {
     }
   }
 
+
+  function handleAdminSettingsGet(req, res) {
+    if (!authOk(req)) return jsonForbidden(res);
+    try {
+      return res.json({ ok: true, module: MODULE_NAME, settings: listAdminSettings(), status: buildStatus() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: 'Tagebuch-Settings konnten nicht gelesen werden.' });
+    }
+  }
+
+  function handleAdminSettingsPost(req, res) {
+    if (!authOk(req)) return jsonForbidden(res);
+    try {
+      return res.json(setAdminSettings(getAdminPayload(req)));
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: 'Tagebuch-Settings konnten nicht gespeichert werden.' });
+    }
+  }
+
+  function handleAdminTextsGet(req, res) {
+    if (!authOk(req)) return jsonForbidden(res);
+    try {
+      return res.json({ ok: true, module: MODULE_NAME, texts: listAdminTexts(), status: buildStatus() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: 'Tagebuch-Texte konnten nicht gelesen werden.' });
+    }
+  }
+
+  function handleAdminTextsPost(req, res) {
+    if (!authOk(req)) return jsonForbidden(res);
+    try {
+      return res.json(setAdminTexts(getAdminPayload(req)));
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: 'Tagebuch-Texte konnten nicht gespeichert werden.' });
+    }
+  }
+
   const streamStartRoutes = ['/discord/stream/start', '/api/tagebuch/stream/start'];
   const streamEndRoutes = ['/discord/stream/end', '/api/tagebuch/stream/end'];
   const entryRoutes = ['/discord/tagebuch', '/api/tagebuch/entry'];
@@ -1015,6 +1193,8 @@ function registerRoutes(ctx) {
   const statsUserRoutes = ['/api/tagebuch/stats/user'];
   const resetRoutes = ['/discord/tagebuch/reset', '/api/tagebuch/reset'];
   const reloadRoutes = ['/api/tagebuch/reload'];
+  const adminSettingsRoutes = ['/api/tagebuch/admin/settings'];
+  const adminTextsRoutes = ['/api/tagebuch/admin/texts'];
 
   routes.registerPost(app, streamStartRoutes, handleStreamStart);
   routes.registerGet(app, streamStartRoutes, handleStreamStart);
@@ -1030,6 +1210,10 @@ function registerRoutes(ctx) {
   routes.registerGet(app, resetRoutes, handleReset);
   routes.registerPost(app, reloadRoutes, handleReload);
   routes.registerGet(app, reloadRoutes, handleReload);
+  routes.registerGet(app, adminSettingsRoutes, handleAdminSettingsGet);
+  routes.registerPost(app, adminSettingsRoutes, handleAdminSettingsPost);
+  routes.registerGet(app, adminTextsRoutes, handleAdminTextsGet);
+  routes.registerPost(app, adminTextsRoutes, handleAdminTextsPost);
 }
 
 function init(ctx) {
@@ -1043,5 +1227,7 @@ function init(ctx) {
 module.exports = {
   init,
   buildStatus,
-  reloadRuntime
+  reloadRuntime,
+  listAdminSettings,
+  listAdminTexts
 };

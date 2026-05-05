@@ -6,10 +6,14 @@ const path = require("path");
 const core = require("./helpers/helper_core");
 const routes = require("./helpers/helper_routes");
 const security = require("./helpers/helper_security");
+const settings = require("./helpers/helper_settings");
+const texts = require("./helpers/helper_texts");
 const sqlite = require("./sqlite_core");
 
 const MODULE_NAME = "todo";
 const SCHEMA_VERSION = 1;
+const SETTINGS_TABLE = "todo_settings";
+const TEXTS_MODULE = "todo";
 
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
 const DISCORD_CHANNELS_PATH = path.join(ROOT_DIR, "config", "discord_channels.json");
@@ -44,6 +48,16 @@ const TARGETS = {
   }
 };
 
+const DEFAULT_SETTINGS = {
+  enabled: true,
+  userinfoBaseUrl: DEFAULT_USERINFO_BASE_URL,
+  stats: {
+    defaultLimit: 10,
+    maxLimit: 50
+  },
+  targets: TARGETS
+};
+
 const DEFAULT_MESSAGES = {
   help: "Mit !todo <name> <dein Text> kannst du ein Todo im passenden Discord-Channel eintragen. Beispiel: !todo @ForrestCGN Alles testen...",
   added: "Todo wurde eingetragen.",
@@ -63,12 +77,198 @@ const DEFAULT_MESSAGES = {
 let runtime = {
   channels: {},
   messages: { ...DEFAULT_MESSAGES },
+  settings: { ...DEFAULT_SETTINGS },
+  targets: { ...TARGETS },
   loadedAt: null,
   lastLoadError: null,
   lastUserinfoError: null,
   schemaReady: false,
   schemaError: null
 };
+
+
+function deepClone(value) {
+  if (Array.isArray(value)) return value.map(deepClone);
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const [key, item] of Object.entries(value)) out[key] = deepClone(item);
+    return out;
+  }
+  return value;
+}
+
+function deepMerge(base, extra) {
+  const out = deepClone(base || {});
+  if (!extra || typeof extra !== "object" || Array.isArray(extra)) return out;
+
+  for (const [key, value] of Object.entries(extra)) {
+    if (value && typeof value === "object" && !Array.isArray(value) && out[key] && typeof out[key] === "object" && !Array.isArray(out[key])) {
+      out[key] = deepMerge(out[key], value);
+    } else {
+      out[key] = deepClone(value);
+    }
+  }
+
+  return out;
+}
+
+function flattenSettingsObject(input, prefix = "") {
+  const result = [];
+  if (!input || typeof input !== "object" || Array.isArray(input)) return result;
+
+  for (const [key, value] of Object.entries(input)) {
+    if (!key) continue;
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+
+    if (value && typeof value === "object" && !Array.isArray(value) && fullKey !== "targets") {
+      result.push(...flattenSettingsObject(value, fullKey));
+    } else {
+      result.push({
+        key: fullKey,
+        value,
+        valueType: settings.normalizeValueType("", value),
+        description: ""
+      });
+    }
+  }
+
+  return result;
+}
+
+function setNestedValue(target, dottedKey, value) {
+  const parts = String(dottedKey || "").split(".").map(part => part.trim()).filter(Boolean);
+  if (!parts.length) return target;
+
+  let current = target;
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    const part = parts[i];
+    if (!current[part] || typeof current[part] !== "object" || Array.isArray(current[part])) current[part] = {};
+    current = current[part];
+  }
+
+  current[parts[parts.length - 1]] = value;
+  return target;
+}
+
+function normalizeTargets(input) {
+  const source = input && typeof input === "object" && !Array.isArray(input) ? input : TARGETS;
+  const result = {};
+
+  for (const [rawKey, rawTarget] of Object.entries(source)) {
+    if (!rawTarget || typeof rawTarget !== "object" || Array.isArray(rawTarget)) continue;
+    const key = normalizeAlias(rawTarget.key || rawKey);
+    if (!key) continue;
+    const label = String(rawTarget.label || key).trim() || key;
+    const channelKey = String(rawTarget.channelKey || `todo_${key}`).trim();
+    const aliases = Array.isArray(rawTarget.aliases) ? rawTarget.aliases : [key];
+    const cleanAliases = aliases.map(normalizeAlias).filter(Boolean);
+    if (!cleanAliases.includes(key)) cleanAliases.unshift(key);
+
+    result[key] = { key, label, channelKey, aliases: cleanAliases };
+  }
+
+  return Object.keys(result).length ? result : deepClone(TARGETS);
+}
+
+function getTargets() {
+  return runtime.targets && typeof runtime.targets === "object" ? runtime.targets : TARGETS;
+}
+
+function loadDbSettings() {
+  const merged = deepMerge(DEFAULT_SETTINGS, {});
+
+  try {
+    settings.seedDefaults(SETTINGS_TABLE, flattenSettingsObject(merged));
+    const listed = settings.listSettings(SETTINGS_TABLE, { limit: 1000 });
+    for (const row of listed.rows || []) setNestedValue(merged, row.key, row.value);
+    merged.settingsTable = SETTINGS_TABLE;
+    merged.settingsSource = "database_with_json_fallback";
+    return merged;
+  } catch (err) {
+    runtime.lastLoadError = runtime.lastLoadError || `todo settings fallback: ${err.message}`;
+    merged.settingsTable = SETTINGS_TABLE;
+    merged.settingsSource = "default_fallback";
+    merged.settingsError = err.message;
+    return merged;
+  }
+}
+
+function loadDbMessages(baseMessages) {
+  const fallback = { ...DEFAULT_MESSAGES, ...(baseMessages && typeof baseMessages === "object" ? baseMessages : {}) };
+
+  try {
+    const result = texts.getModuleTexts(TEXTS_MODULE, fallback, { seed: true });
+    return {
+      ...result.texts,
+      _textsTable: result.table,
+      _textsSource: "database_with_json_fallback"
+    };
+  } catch (err) {
+    runtime.lastLoadError = runtime.lastLoadError || `todo texts fallback: ${err.message}`;
+    return {
+      ...fallback,
+      _textsTable: texts.DEFAULT_MODULE_TEXTS_TABLE,
+      _textsSource: "json_fallback",
+      _textsError: err.message
+    };
+  }
+}
+
+function publicSettings() {
+  return {
+    enabled: runtime.settings?.enabled !== false,
+    userinfoBaseUrl: runtime.settings?.userinfoBaseUrl || DEFAULT_USERINFO_BASE_URL,
+    statsDefaultLimit: Number(runtime.settings?.stats?.defaultLimit || 10),
+    statsMaxLimit: Number(runtime.settings?.stats?.maxLimit || 50),
+    settingsTable: runtime.settings?.settingsTable || SETTINGS_TABLE,
+    settingsSource: runtime.settings?.settingsSource || "unknown",
+    settingsError: runtime.settings?.settingsError || ""
+  };
+}
+
+function getAdminPayload(req) {
+  if (req.body && typeof req.body === "object" && !Array.isArray(req.body)) return req.body;
+  return req.query && typeof req.query === "object" ? req.query : {};
+}
+
+function listAdminSettings() {
+  settings.seedDefaults(SETTINGS_TABLE, flattenSettingsObject(DEFAULT_SETTINGS));
+  return settings.listSettings(SETTINGS_TABLE, { limit: 1000 });
+}
+
+function setAdminSettings(payload) {
+  const body = payload && typeof payload === "object" ? payload : {};
+  const updates = body.settings && typeof body.settings === "object" && !Array.isArray(body.settings)
+    ? body.settings
+    : (body.key ? { [body.key]: body.value } : {});
+
+  if (!Object.keys(updates).length) throw new Error("settings_payload_empty");
+
+  const rows = [];
+  for (const [key, value] of Object.entries(updates)) {
+    rows.push(settings.setSetting(SETTINGS_TABLE, key, value));
+  }
+
+  loadRuntime();
+  return { ok: true, module: MODULE_NAME, table: SETTINGS_TABLE, updated: rows.length, rows, status: buildStatus() };
+}
+
+function listAdminTexts() {
+  return texts.listModuleTexts(TEXTS_MODULE, runtime.messages || DEFAULT_MESSAGES, { seed: true });
+}
+
+function setAdminTexts(payload) {
+  const body = payload && typeof payload === "object" ? payload : {};
+  const updates = body.texts && typeof body.texts === "object" && !Array.isArray(body.texts)
+    ? body.texts
+    : (body.key ? { [body.key]: body.value } : {});
+
+  if (!Object.keys(updates).length) throw new Error("texts_payload_empty");
+
+  const result = texts.setModuleTexts(TEXTS_MODULE, updates);
+  loadRuntime();
+  return { ok: true, module: MODULE_NAME, ...result, status: buildStatus() };
+}
 
 function normalizeAlias(value) {
   return String(value || "")
@@ -124,7 +324,9 @@ function loadRuntime() {
   const messages = readJsonSafe(MESSAGES_PATH, DEFAULT_MESSAGES);
 
   runtime.channels = channels && typeof channels === "object" ? channels : {};
-  runtime.messages = { ...DEFAULT_MESSAGES, ...(messages && typeof messages === "object" ? messages : {}) };
+  runtime.settings = loadDbSettings();
+  runtime.targets = normalizeTargets(runtime.settings.targets || TARGETS);
+  runtime.messages = loadDbMessages(messages);
   runtime.loadedAt = nowIso();
   return runtime;
 }
@@ -236,7 +438,7 @@ async function resolveAuthorInfo(input) {
   }
 
   try {
-    const baseUrl = String(input.userinfoBaseUrl || DEFAULT_USERINFO_BASE_URL).trim();
+    const baseUrl = String(input.userinfoBaseUrl || runtime.settings?.userinfoBaseUrl || DEFAULT_USERINFO_BASE_URL).trim();
     const url = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}login=${encodeURIComponent(authorLogin)}`;
     const payload = await fetchJsonWithTimeout(url, USERINFO_TIMEOUT_MS);
     const displayName = extractDisplayNameFromUserinfo(payload);
@@ -284,14 +486,14 @@ function parseTodoMessage(rawMessage) {
 
 function resolveTodoTarget(rawTarget) {
   const value = normalizeAlias(rawTarget);
-  for (const target of Object.values(TARGETS)) {
+  for (const target of Object.values(getTargets())) {
     if (target.aliases.some(alias => normalizeAlias(alias) === value)) return target;
   }
   return null;
 }
 
 function getTargetListText() {
-  return Object.values(TARGETS).map(tg => tg.key).join(", ");
+  return Object.values(getTargets()).map(tg => tg.key).join(", ");
 }
 
 function getTodoChannelIdForTarget(target) {
@@ -302,7 +504,7 @@ function getTodoChannelIdForTarget(target) {
 
 function getChannelStatus() {
   const result = {};
-  for (const target of Object.values(TARGETS)) {
+  for (const target of Object.values(getTargets())) {
     result[target.key] = {
       label: target.label,
       channelKey: target.channelKey,
@@ -445,10 +647,12 @@ function formatStatsRows(rows, headerKey) {
   return lines.join("\n");
 }
 
-function getLimit(req, fallback = 10, max = 50) {
-  const raw = Number(getInput(req, "limit") || fallback);
-  if (!Number.isFinite(raw) || raw <= 0) return fallback;
-  return Math.min(Math.floor(raw), max);
+function getLimit(req, fallback = null, max = null) {
+  const defaultLimit = Number(fallback || runtime.settings?.stats?.defaultLimit || 10);
+  const maxLimit = Number(max || runtime.settings?.stats?.maxLimit || 50);
+  const raw = Number(getInput(req, "limit") || defaultLimit);
+  if (!Number.isFinite(raw) || raw <= 0) return defaultLimit;
+  return Math.min(Math.floor(raw), maxLimit);
 }
 
 async function postTodoEntry(ctx, input) {
@@ -542,8 +746,13 @@ function buildStatus() {
     loadedAt: runtime.loadedAt,
     lastLoadError: runtime.lastLoadError,
     lastUserinfoError: runtime.lastUserinfoError,
-    userinfoBaseUrl: DEFAULT_USERINFO_BASE_URL,
-    aliases: Object.fromEntries(Object.values(TARGETS).map(target => [target.key, target.aliases])),
+    userinfoBaseUrl: runtime.settings?.userinfoBaseUrl || DEFAULT_USERINFO_BASE_URL,
+    settings: publicSettings(),
+    settingsTable: SETTINGS_TABLE,
+    textsTable: runtime.messages?._textsTable || texts.DEFAULT_MODULE_TEXTS_TABLE,
+    textsSource: runtime.messages?._textsSource || "unknown",
+    targets: getTargets(),
+    aliases: Object.fromEntries(Object.values(getTargets()).map(target => [target.key, target.aliases])),
     channels: getChannelStatus()
   };
 }
@@ -624,6 +833,47 @@ function init(ctx) {
     });
   });
 
+
+  routes.registerGet(app, ["/api/todo/admin/settings"], async (req, res) => {
+    const auth = checkAuth(req);
+    if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
+    try {
+      return res.json({ ok: true, module: MODULE_NAME, settings: listAdminSettings(), status: buildStatus() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: "Todo-Settings konnten nicht gelesen werden." });
+    }
+  });
+
+  routes.registerPost(app, ["/api/todo/admin/settings"], async (req, res) => {
+    const auth = checkAuth(req);
+    if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
+    try {
+      return res.json(setAdminSettings(getAdminPayload(req)));
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: "Todo-Settings konnten nicht gespeichert werden." });
+    }
+  });
+
+  routes.registerGet(app, ["/api/todo/admin/texts"], async (req, res) => {
+    const auth = checkAuth(req);
+    if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
+    try {
+      return res.json({ ok: true, module: MODULE_NAME, texts: listAdminTexts(), status: buildStatus() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: "Todo-Texte konnten nicht gelesen werden." });
+    }
+  });
+
+  routes.registerPost(app, ["/api/todo/admin/texts"], async (req, res) => {
+    const auth = checkAuth(req);
+    if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
+    try {
+      return res.json(setAdminTexts(getAdminPayload(req)));
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: "Todo-Texte konnten nicht gespeichert werden." });
+    }
+  });
+
   const reloadHandler = async (req, res) => {
     const auth = checkAuth(req);
     if (!auth.ok) return reply(req, res, { ok: false, error: "unauthorized", message: t("unauthorized") }, 401);
@@ -639,5 +889,7 @@ function init(ctx) {
 module.exports = {
   init,
   buildStatus,
-  reloadRuntime: loadRuntime
+  reloadRuntime: loadRuntime,
+  listAdminSettings,
+  listAdminTexts
 };

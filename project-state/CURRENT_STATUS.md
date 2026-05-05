@@ -33,11 +33,12 @@ Aktueller Doku-Einstieg:
   - `tools\easy\02_LOKALE_AENDERUNGEN_ZU_GITHUB_HOCHLADEN.cmd`
   - `tools\easy\03_NUR_STATUS_PRUEFEN.cmd`
   - `tools\easy\04_BACKUP_ZURUECKSPIELEN.cmd`
-- Wenn GitHub-/Toolausgaben grosse Dateien kuerzen oder nicht vollstaendig liefern, wird nicht geraten und nicht mit riskanten Patch-Scripten gearbeitet. Dann stellt Forrest die echte Datei aus Repo/Live bereit und diese Datei ist fuer die Bearbeitung massgeblich.
+- Wenn GitHub-/Toolausgaben grosse Dateien kuerzen oder nicht vollstaendig liefern, wird nicht geraten und nicht mit riskanten Patch-Scripten gearbeitet.
+- Dann stellt Forrest die echte Datei aus Repo/Live bereit und diese Datei ist fuer die Bearbeitung massgeblich.
 
 ## Aktueller Arbeitsstand
 
-Zuletzt abgeschlossene Bloecke:
+Zuletzt abgeschlossene/aktuelle Bloecke:
 
 - STEP171 Sound / Alert / Alert-TTS Fix-Kette
 - STEP172 Sound / Alert / TTS Status Current
@@ -48,12 +49,32 @@ Zuletzt abgeschlossene Bloecke:
 - STEP175.3 grosser VIP-Upload-Umbau verworfen / vereinfacht
 - STEP175.4 VIP-Sound Upload-Auswahlfluss verbessert
 - STEP175.5 Projekt-Dokus nach VIP-Block synchronisiert
+- STEP176 Tagebuch/Todo DB-/Dashboard-Audit erstellt
+- STEP177 Tagebuch/Todo DB-Settings und DB-Texte Backend-Grundlage
 
 Aktuelle wichtigste Referenzdokus:
 
 - `project-state/STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md`
 - `project-state/STEP175_VIP_SOUND_BLOCK_HANDOFF_2026-05-05.md`
 - `project-state/STEP175_5_PROJECT_DOC_SYNC_AFTER_VIP_BLOCK_2026-05-05.md`
+- `project-state/STEP176_TAGEBUCH_TODO_DB_DASHBOARD_AUDIT_2026-05-05.md`
+- `project-state/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md`
+
+## Aktueller Tagebuch/Todo-Stand
+
+STEP177 fuehrt die Backend-Grundlage fuer Tagebuch/Todo ein:
+
+- `helper_texts.js` hat eine zentrale DB-Textschicht ueber `module_texts`.
+- Tagebuch nutzt `tagebuch_settings` und `module_texts` mit JSON-Fallback.
+- Todo nutzt `todo_settings` und `module_texts` mit JSON-Fallback.
+- Neue Admin-Routen fuer spaetere Dashboard-Integration:
+  - `GET/POST /api/tagebuch/admin/settings`
+  - `GET/POST /api/tagebuch/admin/texts`
+  - `GET/POST /api/todo/admin/settings`
+  - `GET/POST /api/todo/admin/texts`
+- Bestehende Tagebuch-/Todo-Routen bleiben erhalten.
+- JSON-Dateien bleiben technische Config, Seed oder Fallback.
+- Dashboard-Frontend fuer Tagebuch/Todo folgt erst in STEP178.
 
 ## Aktueller Sound-/Alert-/TTS-Stand
 
@@ -102,27 +123,10 @@ Aktuelle VIP-Routen, die fuer Dashboard/Statistik genutzt werden:
 - `GET /api/vip-sound/events/recent`
 - `GET /api/vip-sound/stats`
 - `GET /api/vip-sound/sounds/users`
-- `GET /api/vip-sound/sounds/status?login=<login>`
+- `GET /api/vip-sound/sounds/status?login=`
 - `GET /api/vip-sound/upload/status`
 - `GET /api/vip-sound/twitch-sync/status`
 - `POST /api/vip-sound/twitch-sync/run`
-
-Aktuelle VIP-Dashboard-Funktionen:
-
-- kompakte Uebersicht mit Status-/Warnkarten
-- Statistik-Tab
-- Settings anzeigen/speichern
-- Texte anzeigen, filtern, anlegen, bearbeiten, aktivieren/deaktivieren
-- VIPs & Mods aus Twitch-Sync-Cache anzeigen
-- Soundstatus je User anzeigen
-- Sound-Vorschau per Browser-Audio
-- Sound-Verwaltung mit Filter/Suche/Sortierung
-- fehlende Sounds schnell finden
-- Upload-Zieluser klar auswaehlen
-- Klick auf Hochladen/Aendern setzt User und scrollt zum Upload-Bereich
-- Daily-Usage anzeigen
-- Events anzeigen
-- Admin-Testausloesung vorbereiten
 
 Fachliche VIP-Regel:
 
@@ -147,17 +151,17 @@ Fuer neue und bestehende Systeme gilt:
 Aktuelle Helper-Lage:
 
 - `backend/modules/helpers/helper_settings.js` ist DB-Settings-Standard.
+- `backend/modules/helpers/helper_texts.js` unterstuetzt ab STEP177 zentrale DB-Modultexte via `module_texts` und behaelt JSON-Message-Funktionen.
 - VIP nutzt DB-Texte modulnah.
 - Alerts haben DB-Textbereiche (`alert_text_variants`, `alert_chat_blocks`).
-- `backend/modules/helpers/helper_texts.js` ist aktuell noch JSON-basiert und muss spaeter erweitert oder durch einen DB-Text-Helper ergaenzt werden.
 
 ## Dashboard-relevante naechste Kandidaten
 
+- STEP178: Dashboard-Module fuer Tagebuch/Todo bauen.
 - VIP-Statistik backendseitig mit echten 7-/30-Tage-Auswertungen erweitern.
 - VIP-Sound-Vorschau optional verbessern.
 - Upload-UX nur behutsam weiter verbessern.
 - Modul-Audit: Texte/Settings/Helper pro System pruefen.
-- Zentralen DB-Text-Helper planen.
 - TTS-Settings und Rollen.
 - TTS-Overlay-Settings wie Position, Breite, Avatar, Textzeilen, Skalierung.
 - Sound-System Queue-Settings wie Prioritaet, Parallel, MaxParallel, Zielgeraet, Lautstaerke.
@@ -178,10 +182,8 @@ Aktuelle Helper-Lage:
 
 ## Bewusst offen
 
+- STEP178 Dashboard-Frontend fuer Tagebuch/Todo.
 - VIP echte 7-/30-Tage-Statistik backendseitig.
-- Modul-Audit fuer Texte/Settings/Helper-Standard.
-- Zentralen DB-Text-Helper planen.
-- Dashboard-Modul fuer TTS/Sound/Alert-Settings bauen.
 - Provider-Secrets in Settings-Ausgaben maskieren.
 - `liveAlert`/`livealert` Duplikat in Alert-Settings bereinigen.
 - Dashboard-Rollen/Rechte und Audit-Logging vorbereiten.

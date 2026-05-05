@@ -5,6 +5,7 @@ const path = require('path');
 const core = require('./helper_core');
 const config = require('./helper_config');
 const messages = require('./helper_messages');
+const database = require('../../core/database');
 
 const DEFAULT_MESSAGE_FILES = {
   'system.json': {
@@ -218,6 +219,229 @@ function reload() {
   return loadMessageFiles();
 }
 
+
+const DEFAULT_MODULE_TEXTS_TABLE = 'module_texts';
+
+function cleanTextModule(value) {
+  const moduleName = String(value || '').trim();
+  if (!moduleName) throw new Error('text_module_required');
+  if (!/^[a-zA-Z0-9_.:-]+$/.test(moduleName)) throw new Error(`invalid_text_module:${moduleName}`);
+  return moduleName;
+}
+
+function cleanTextKey(value) {
+  const key = String(value || '').trim();
+  if (!key) throw new Error('text_key_required');
+  if (!/^[a-zA-Z0-9_.:-]+$/.test(key)) throw new Error(`invalid_text_key:${key}`);
+  return key;
+}
+
+function cleanTextsTable(value) {
+  const table = String(value || DEFAULT_MODULE_TEXTS_TABLE).trim();
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) throw new Error(`invalid_texts_table:${table}`);
+  return table;
+}
+
+function ensureModuleTextsTable(tableName = DEFAULT_MODULE_TEXTS_TABLE) {
+  const table = cleanTextsTable(tableName);
+  const qTable = database.quoteIdentifier(table);
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS ${qTable} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      module_name TEXT NOT NULL,
+      text_key TEXT NOT NULL,
+      text_value TEXT NOT NULL DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      description TEXT NOT NULL DEFAULT '',
+      source TEXT NOT NULL DEFAULT 'database',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(module_name, text_key)
+    );
+  `);
+
+  return table;
+}
+
+function normalizeModuleTextDefaults(defaults = {}) {
+  if (!defaults || typeof defaults !== 'object' || Array.isArray(defaults)) return [];
+
+  return Object.entries(defaults)
+    .filter(([key]) => key && !String(key).startsWith('_'))
+    .map(([key, value]) => {
+      let text = '';
+      if (Array.isArray(value)) text = value.map(item => String(item ?? '').trim()).filter(Boolean).join('\n');
+      else if (value && typeof value === 'object' && Array.isArray(value.texts)) text = normalizeTextList(value).join('\n');
+      else text = String(value ?? '');
+
+      return {
+        key: cleanTextKey(key),
+        value: text,
+        enabled: true,
+        description: value && typeof value === 'object' && !Array.isArray(value) ? String(value.description || '') : ''
+      };
+    });
+}
+
+function rowToModuleText(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    module: row.module_name,
+    key: row.text_key,
+    value: row.text_value || '',
+    text: row.text_value || '',
+    enabled: Number(row.enabled) !== 0,
+    description: row.description || '',
+    source: row.source || 'database',
+    createdAt: row.created_at || '',
+    updatedAt: row.updated_at || ''
+  };
+}
+
+function seedModuleTexts(moduleName, defaults = {}, options = {}) {
+  const table = ensureModuleTextsTable(options.tableName || DEFAULT_MODULE_TEXTS_TABLE);
+  const qTable = database.quoteIdentifier(table);
+  const moduleKey = cleanTextModule(moduleName);
+  const now = core.nowIso();
+  let inserted = 0;
+
+  for (const item of normalizeModuleTextDefaults(defaults)) {
+    const result = database.run(`
+      INSERT OR IGNORE INTO ${qTable}
+        (module_name, text_key, text_value, enabled, description, source, created_at, updated_at)
+      VALUES
+        (:moduleName, :textKey, :textValue, :enabled, :description, :source, :createdAt, :updatedAt)
+    `, {
+      moduleName: moduleKey,
+      textKey: item.key,
+      textValue: item.value,
+      enabled: item.enabled ? 1 : 0,
+      description: item.description || '',
+      source: options.source || 'seed',
+      createdAt: now,
+      updatedAt: now
+    });
+
+    inserted += Number(result?.changes || 0);
+  }
+
+  return { ok: true, table, module: moduleKey, inserted };
+}
+
+function listModuleTexts(moduleName, defaults = {}, options = {}) {
+  const table = ensureModuleTextsTable(options.tableName || DEFAULT_MODULE_TEXTS_TABLE);
+  const qTable = database.quoteIdentifier(table);
+  const moduleKey = cleanTextModule(moduleName);
+
+  if (options.seed !== false) seedModuleTexts(moduleKey, defaults, options);
+
+  const rows = database.all(`
+    SELECT id, module_name, text_key, text_value, enabled, description, source, created_at, updated_at
+    FROM ${qTable}
+    WHERE module_name = :moduleName
+    ORDER BY text_key ASC
+  `, { moduleName: moduleKey }).map(rowToModuleText);
+
+  const rowMap = new Map(rows.map(row => [row.key, row]));
+  for (const item of normalizeModuleTextDefaults(defaults)) {
+    if (!rowMap.has(item.key)) {
+      rows.push({
+        id: null,
+        module: moduleKey,
+        key: item.key,
+        value: item.value,
+        text: item.value,
+        enabled: true,
+        description: item.description || '',
+        source: 'default',
+        createdAt: '',
+        updatedAt: ''
+      });
+    }
+  }
+
+  rows.sort((a, b) => String(a.key).localeCompare(String(b.key)));
+
+  return {
+    ok: true,
+    table,
+    module: moduleKey,
+    count: rows.length,
+    rows
+  };
+}
+
+function getModuleTexts(moduleName, defaults = {}, options = {}) {
+  const listed = listModuleTexts(moduleName, defaults, options);
+  const texts = { ...(defaults || {}) };
+
+  for (const row of listed.rows) {
+    if (row.enabled) texts[row.key] = row.value;
+  }
+
+  return {
+    ok: true,
+    table: listed.table,
+    module: listed.module,
+    count: listed.count,
+    texts,
+    rows: listed.rows
+  };
+}
+
+function setModuleText(moduleName, key, value, options = {}) {
+  const table = ensureModuleTextsTable(options.tableName || DEFAULT_MODULE_TEXTS_TABLE);
+  const qTable = database.quoteIdentifier(table);
+  const moduleKey = cleanTextModule(moduleName);
+  const textKey = cleanTextKey(key);
+  const textValue = String(value ?? '');
+  const enabled = options.enabled === false ? 0 : 1;
+  const description = String(options.description || '');
+  const now = core.nowIso();
+
+  database.run(`
+    INSERT INTO ${qTable}
+      (module_name, text_key, text_value, enabled, description, source, created_at, updated_at)
+    VALUES
+      (:moduleName, :textKey, :textValue, :enabled, :description, :source, :createdAt, :updatedAt)
+    ON CONFLICT(module_name, text_key) DO UPDATE SET
+      text_value = excluded.text_value,
+      enabled = excluded.enabled,
+      description = CASE WHEN excluded.description = '' THEN ${qTable}.description ELSE excluded.description END,
+      source = 'database',
+      updated_at = excluded.updated_at
+  `, {
+    moduleName: moduleKey,
+    textKey,
+    textValue,
+    enabled,
+    description,
+    source: 'database',
+    createdAt: now,
+    updatedAt: now
+  });
+
+  return listModuleTexts(moduleKey, {}, { tableName: table, seed: false }).rows.find(row => row.key === textKey) || null;
+}
+
+function setModuleTexts(moduleName, values = {}, options = {}) {
+  if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error('texts_object_required');
+  const rows = [];
+
+  for (const [key, value] of Object.entries(values)) {
+    rows.push(setModuleText(moduleName, key, value, options));
+  }
+
+  return {
+    ok: true,
+    module: cleanTextModule(moduleName),
+    count: rows.length,
+    rows
+  };
+}
+
 function getStore() {
   if (!cache) loadMessageFiles();
   return cache || {};
@@ -331,6 +555,13 @@ function buildChatResult(key, context = {}, options = {}) {
 }
 
 module.exports = {
+  DEFAULT_MODULE_TEXTS_TABLE,
+  ensureModuleTextsTable,
+  seedModuleTexts,
+  listModuleTexts,
+  getModuleTexts,
+  setModuleText,
+  setModuleTexts,
   getMessagesDir,
   ensureDefaultMessageFiles,
   reload,

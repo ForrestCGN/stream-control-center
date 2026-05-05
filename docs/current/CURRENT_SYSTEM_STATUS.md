@@ -98,6 +98,26 @@ Aktueller VIP-Dashboard-Zustand:
 - VIPs-&-Mods-Tab zeigt Twitch-VIP-/Mod-Cache, Soundstatus und Sound-Vorschau.
 - Events/Daily/Settings/Texte bleiben als getrennte Tabs erhalten.
 
+## Aktueller Tagebuch/Todo-Stand
+
+STEP177 vorbereitet/umgesetzt:
+
+- Tagebuch/Todo Backend-Grundlage fuer DB-Settings und DB-Texte.
+- `helper_texts.js` wurde um zentrale DB-Modultexte via `module_texts` erweitert.
+- Tagebuch nutzt `tagebuch_settings` und `module_texts` mit JSON-Fallback.
+- Todo nutzt `todo_settings` und `module_texts` mit JSON-Fallback.
+- Neue Admin-Routen fuer spaetere Dashboard-Integration:
+  - `GET/POST /api/tagebuch/admin/settings`
+  - `GET/POST /api/tagebuch/admin/texts`
+  - `GET/POST /api/todo/admin/settings`
+  - `GET/POST /api/todo/admin/texts`
+- Bestehende Tagebuch-/Todo-Routen bleiben erhalten.
+- JSON-Dateien bleiben Seed/Fallback, keine Funktionalitaet entfernt.
+
+Referenz:
+
+- `project-state/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md`
+
 ## Aktive Dashboard-Module
 
 - Stream-Desk
