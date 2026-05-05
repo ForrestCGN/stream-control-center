@@ -1,4 +1,4 @@
-// STEP189 - Clip Dashboard: History-Details und vorbereitete Repost/Retry-UX ohne Backend-Schreibzugriff.
+// STEP190 - Clip Dashboard: Settings Cleanup, technische Felder aus normaler Bedienung ausgeblendet.
 window.ClipsModule = (function(){
   'use strict';
 
@@ -45,32 +45,32 @@ window.ClipsModule = (function(){
     {
       id: 'core',
       label: 'Basis',
-      keys: ['enabled', 'backendCreateEnabled', 'defaultClipTitle', 'includeGameInCustomTitle', 'saveHistory', 'duplicatePolicy']
-    },
-    {
-      id: 'twitch',
-      label: 'Twitch',
-      keys: ['twitchClipDurationSeconds', 'twitchClipPollMs', 'twitchClipPollMaxAttempts']
+      note: 'Normale Bedienung für den Clip-Flow.',
+      keys: ['enabled', 'backendCreateEnabled', 'defaultClipTitle', 'includeGameInCustomTitle', 'saveHistory']
     },
     {
       id: 'obs',
       label: 'OBS Replay',
-      keys: ['obsReplaySaveEnabled', 'obsReplayWindowSeconds', 'obsReplayPreTriggerSeconds', 'obsReplayPostTriggerSeconds', 'obsReplaySaveDelayMs', 'localReplayRenameEnabled', 'localReplayRenameDelayMs', 'localReplayDir', 'localReplayLookbackMinutes']
+      note: 'OBS-Replay-Handling. Ziel bleibt 30 Sekunden vor und 30 Sekunden nach !clip.',
+      keys: ['obsReplaySaveEnabled', 'obsReplaySaveDelayMs', 'localReplayRenameEnabled', 'localReplayRenameDelayMs', 'localReplayDir']
     },
     {
       id: 'discord',
       label: 'Discord',
+      note: 'Discord läuft im Dashboard direkt über die DB-Channel-ID. JSON-Key bleibt nur Legacy/Fallback.',
       keys: ['discordPostEnabled', 'discordChannelId', 'postOnlyWhenLive']
     },
     {
       id: 'chat',
-      label: 'Chat-Ausgaben',
+      label: 'Chat',
+      note: 'Chat-Ausgaben, die Streamer.bot aus der Backend-Antwort nutzen kann.',
       keys: ['sendClipActivatedMessage', 'sendTwitchClipResultMessage', 'sendChatResponse']
     },
     {
       id: 'advanced',
       label: 'Erweitert',
-      keys: ['messagesPath']
+      note: 'Technische Werte. Nur ändern, wenn du wirklich weißt, warum.',
+      keys: ['obsReplayWindowSeconds', 'obsReplayPreTriggerSeconds', 'obsReplayPostTriggerSeconds', 'localReplayLookbackMinutes', 'twitchClipDurationSeconds', 'twitchClipPollMs', 'twitchClipPollMaxAttempts', 'duplicatePolicy']
     }
   ];
 
@@ -318,11 +318,63 @@ window.ClipsModule = (function(){
 
   function settingDisplayLabel(key){
     const labels = {
+      enabled: 'Clip-System aktiv',
+      backendCreateEnabled: 'Backend-Create aktiv',
+      defaultClipTitle: 'Standard-Clip-Titel',
+      includeGameInCustomTitle: 'Game an eigenen Titel anhängen',
+      saveHistory: 'History speichern',
+
+      obsReplaySaveEnabled: 'OBS Replay speichern',
+      obsReplaySaveDelayMs: 'OBS Save-Delay in ms',
+      localReplayRenameEnabled: 'Lokale Datei suchen/umbenennen',
+      localReplayRenameDelayMs: 'Wartezeit nach OBS-Save in ms',
+      localReplayDir: 'Replay-Ordner',
+
       discordPostEnabled: 'Discord-Post aktiv',
       discordChannelId: 'Discord Channel-ID',
-      postOnlyWhenLive: 'Nur posten, wenn Stream live ist'
+      postOnlyWhenLive: 'Nur posten, wenn Stream live ist',
+
+      sendClipActivatedMessage: 'Startmeldung senden',
+      sendTwitchClipResultMessage: 'Ergebnisnachricht senden',
+      sendChatResponse: 'Chatantworten aktiv',
+
+      obsReplayWindowSeconds: 'Replay-Gesamtlänge',
+      obsReplayPreTriggerSeconds: 'Sekunden vor !clip',
+      obsReplayPostTriggerSeconds: 'Sekunden nach !clip',
+      localReplayLookbackMinutes: 'Suchfenster lokale Datei',
+      twitchClipDurationSeconds: 'Twitch Clip-Zielwert',
+      twitchClipPollMs: 'Twitch Polling-Abstand',
+      twitchClipPollMaxAttempts: 'Twitch Polling-Versuche',
+      duplicatePolicy: 'Duplikat-Regel'
     };
     return labels[key] || key;
+  }
+
+  function settingHelpText(key, row){
+    const hints = {
+      enabled: 'Schaltet das Clip-System grundsätzlich ein oder aus.',
+      backendCreateEnabled: 'Wenn aktiv, darf das Backend Twitch-Clip, Discord-Post und OBS-Replay zentral steuern.',
+      defaultClipTitle: 'Fallback, wenn kein eigener Titel, Streamtitel oder Game gefunden wird.',
+      includeGameInCustomTitle: 'Bei !clip eigener Titel wird das Game angehängt, z. B. Titel | Spiel.',
+      saveHistory: 'Schreibt Clip-Läufe in die History-Tabelle.',
+
+      obsReplaySaveEnabled: 'Speichert zusätzlich zum Twitch-Clip einen lokalen OBS-Replay-Clip.',
+      obsReplaySaveDelayMs: 'Delay nach !clip bis SaveReplayBuffer. 30000 ms = 30 Sekunden Nachlauf.',
+      localReplayRenameEnabled: 'Sucht die frische OBS-Datei und benennt sie passend um.',
+      localReplayRenameDelayMs: 'Wartezeit nach SaveReplayBuffer, bevor die Datei gesucht wird.',
+      localReplayDir: 'Ordner, in dem OBS ReplayBuffer-Dateien landen.',
+
+      discordPostEnabled: 'Postet fertige Clips in Discord.',
+      discordChannelId: 'Direkte Discord Channel-ID. Wird in der DB gespeichert.',
+      postOnlyWhenLive: 'Wenn aktiv, wird nur bei Live-Stream nach Discord gepostet.',
+
+      sendClipActivatedMessage: 'Backend liefert eine Startmeldung für den Chat zurück.',
+      sendTwitchClipResultMessage: 'Backend liefert eine Ergebnisnachricht mit Clip-Link zurück.',
+      sendChatResponse: 'Aktiviert Chatantworten aus dem Backend grundsätzlich.',
+
+      duplicatePolicy: 'Technische Duplikat-Regel: ignore, update oder allow.'
+    };
+    return hints[key] || row?.description || '';
   }
 
   function renderSettingInput(row){
@@ -423,16 +475,14 @@ window.ClipsModule = (function(){
   function renderSettings(){
     const list = settingsRows();
     const group = SETTING_GROUPS.find(g => g.id === state.settingGroup) || SETTING_GROUPS[0];
-    const keyed = group.keys.map(k => list.find(r => r.key === k)).filter(Boolean);
-    const rest = list.filter(r => !SETTING_GROUPS.some(g => g.keys.includes(r.key)));
-    const visible = group.id === 'advanced' ? keyed.concat(rest) : keyed;
+    const visible = group.keys.map(k => list.find(r => r.key === k)).filter(Boolean);
 
     return `
       <section class="clips-card">
         <div class="clips-card-head">
           <div>
             <h3>Settings</h3>
-            <p>DB-Settings aus dem Backend bearbeiten. Keine direkten Datei- oder DB-Zugriffe im Dashboard.</p>
+            <p>DB-Settings aus dem Backend bearbeiten. Normale Ansicht zeigt nur die wirklich relevanten Felder.</p>
           </div>
         </div>
 
@@ -440,13 +490,15 @@ window.ClipsModule = (function(){
           ${SETTING_GROUPS.map(g => `<button type="button" class="${state.settingGroup === g.id ? 'active' : ''}" data-clips-setting-group="${esc(g.id)}">${esc(g.label)}</button>`).join('')}
         </div>
 
+        ${group.note ? `<div class="clips-setting-note">${esc(group.note)}</div>` : ''}
+
         <div class="clips-setting-list">
           ${visible.map(row => `
             <article class="clips-setting-row ${row.key && row.key.startsWith('discord') ? 'is-discord' : ''}">
               <div class="clips-setting-info">
                 <strong>${esc(settingDisplayLabel(row.key))}</strong>
-                <span>${esc(row.valueType || 'string')} · ${esc(row.source || '')}</span>
-                <small>${esc(row.description || '')}</small>
+                <span>${esc(row.key)} · ${esc(row.valueType || 'string')} · ${esc(row.source || '')}</span>
+                <small>${esc(settingHelpText(row.key, row))}</small>
               </div>
               <div class="clips-setting-input">${renderSettingInput(row)}</div>
               <button type="button" data-save-setting="${esc(row.key)}">Speichern</button>
@@ -456,8 +508,8 @@ window.ClipsModule = (function(){
 
         ${state.settingGroup === 'discord' ? `
           <div class="clips-discord-savebar">
-            <button type="button" data-save-discord-settings>Discord-Ziel komplett speichern</button>
-            <span>Speichert Discord aktiv, direkte Channel-ID und Live-only. JSON-Key bleibt nur Legacy/Fallback.</span>
+            <button type="button" data-save-discord-settings>Discord-Ziel speichern</button>
+            <span>Speichert Discord aktiv, direkte Channel-ID und Live-only. JSON-Key bleibt nur Legacy/Fallback/Import.</span>
           </div>
         ` : ''}
 

@@ -582,3 +582,26 @@ html[data-theme="light"] .clips-variant-meta input{
     gap:3px;
   }
 }
+
+.clips-setting-note{
+  border:1px solid rgba(34,211,238,.22);
+  background:rgba(34,211,238,.07);
+  border-radius:16px;
+  padding:11px 13px;
+  margin:12px 0 2px;
+  color:var(--muted);
+}
+
+.clips-setting-row .clips-setting-info span{
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:11px;
+}
+
+.clips-setting-row .clips-setting-info small{
+  line-height:1.35;
+}
+
+.clips-setting-row.is-discord{
+  border-color:rgba(34,211,238,.20);
+  background:rgba(34,211,238,.045);
+}
