@@ -34,16 +34,40 @@ function getClientId() {
   return cleanString(process.env.TWITCH_CLIENT_ID || process.env.CLIENT_ID || "");
 }
 
-function readUserAccessToken() {
+function readStoredUserToken() {
   const tokenPath = getTokenPath();
-  if (!tokenPath || !fs.existsSync(tokenPath)) return "";
+  if (!tokenPath || !fs.existsSync(tokenPath)) return null;
 
   try {
     const parsed = JSON.parse(fs.readFileSync(tokenPath, "utf8"));
-    return cleanString(parsed.access_token || parsed.accessToken || "");
+    return parsed && typeof parsed === "object" ? parsed : null;
   } catch (_) {
-    return "";
+    return null;
   }
+}
+
+function readUserAccessToken() {
+  const parsed = readStoredUserToken();
+  return cleanString(parsed && (parsed.access_token || parsed.accessToken));
+}
+
+function tokenStatus(options = {}) {
+  const tokenPath = cleanString(options.tokenPath || getTokenPath());
+  const parsed = readStoredUserToken();
+  const expiresAt = Number(parsed && parsed.expires_at || 0);
+  const now = Math.floor(Date.now() / 1000);
+  return {
+    ok: !!(parsed && (parsed.access_token || parsed.accessToken)),
+    tokenPath,
+    present: !!parsed,
+    hasAccessToken: !!(parsed && (parsed.access_token || parsed.accessToken)),
+    hasRefreshToken: !!(parsed && (parsed.refresh_token || parsed.refreshToken)),
+    expiresAt: expiresAt || null,
+    expiresIn: expiresAt ? expiresAt - now : null,
+    expired: expiresAt ? expiresAt <= now : false,
+    clientIdPresent: !!cleanString(options.clientId || getClientId()),
+    broadcasterId: cleanString(options.broadcasterId || getBroadcasterId())
+  };
 }
 
 function httpGetJson(url, headers) {
@@ -122,6 +146,87 @@ async function resolveUserId(login, headers) {
   return userId || "";
 }
 
+async function helixPaged(pathname, params = {}, options = {}) {
+  const clientId = cleanString(options.clientId || getClientId());
+  const broadcasterId = cleanString(options.broadcasterId || getBroadcasterId());
+  const accessToken = cleanString(options.accessToken || readUserAccessToken());
+
+  if (!clientId) throw new Error("missing_twitch_client_id");
+  if (!accessToken) throw new Error("missing_twitch_user_token");
+  if (!broadcasterId) throw new Error("missing_twitch_broadcaster_id");
+
+  const headers = buildHeaders(clientId, accessToken);
+  const rows = [];
+  let after = "";
+  let pages = 0;
+  const maxPages = Math.max(1, Math.min(50, Number(options.maxPages || 20)));
+
+  do {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(params || {})) {
+      if (value !== undefined && value !== null && value !== "") search.set(key, String(value));
+    }
+    if (!search.has("broadcaster_id")) search.set("broadcaster_id", broadcasterId);
+    if (!search.has("first")) search.set("first", String(options.first || 100));
+    if (after) search.set("after", after);
+
+    const json = await httpGetJson(`https://api.twitch.tv/helix${pathname}?${search.toString()}`, headers);
+    if (Array.isArray(json.data)) rows.push(...json.data);
+    after = cleanString(json.pagination && json.pagination.cursor);
+    pages += 1;
+  } while (after && pages < maxPages);
+
+  return { rows, pages, hasMore: !!after, broadcasterId };
+}
+
+function mapVipUser(row = {}) {
+  return {
+    twitchUserId: cleanString(row.user_id || row.id),
+    login: normalizeLogin(row.user_login || row.login),
+    displayName: cleanString(row.user_name || row.display_name || row.user_login || row.login),
+    isVip: true,
+    isMod: false,
+    source: "twitch_vip"
+  };
+}
+
+function mapModeratorUser(row = {}) {
+  return {
+    twitchUserId: cleanString(row.user_id || row.id),
+    login: normalizeLogin(row.user_login || row.login),
+    displayName: cleanString(row.user_name || row.display_name || row.user_login || row.login),
+    isVip: false,
+    isMod: true,
+    source: "twitch_mod"
+  };
+}
+
+async function listChannelVips(options = {}) {
+  const result = await helixPaged("/channels/vips", {}, options);
+  return {
+    ok: true,
+    type: "vips",
+    broadcasterId: result.broadcasterId,
+    count: result.rows.length,
+    pages: result.pages,
+    hasMore: result.hasMore,
+    rows: result.rows.map(mapVipUser).filter(row => row.login)
+  };
+}
+
+async function listChannelModerators(options = {}) {
+  const result = await helixPaged("/moderation/moderators", {}, options);
+  return {
+    ok: true,
+    type: "moderators",
+    broadcasterId: result.broadcasterId,
+    count: result.rows.length,
+    pages: result.pages,
+    hasMore: result.hasMore,
+    rows: result.rows.map(mapModeratorUser).filter(row => row.login)
+  };
+}
+
 async function isTargetModerator(login, options = {}) {
   const targetLogin = normalizeLogin(login);
   if (!targetLogin) return null;
@@ -165,6 +270,9 @@ function clearCache() {
 
 module.exports = {
   isTargetModerator,
+  listChannelVips,
+  listChannelModerators,
+  tokenStatus,
   clearCache,
   normalizeLogin
 };

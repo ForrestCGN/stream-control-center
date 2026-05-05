@@ -30,12 +30,13 @@ module.exports.init = function init(ctx) {
   const DEFAULT_GAP_MS = 2000;
   const DEFAULT_PHASE = "idle";
   const VIP_SCHEMA_MODULE = "vip_sound_overlay";
-  const VIP_SCHEMA_VERSION = 4;
+  const VIP_SCHEMA_VERSION = 5;
   const VIP_DAILY_USAGE_TABLE = "vip_sound_daily_usage";
   const VIP_MESSAGE_TABLE = "vip_sound_message_templates";
   const VIP_SETTINGS_TABLE = "vip_sound_settings";
   const VIP_EVENTS_TABLE = "vip_sound_events";
   const VIP_ROLE_OVERRIDES_TABLE = "vip_sound_role_overrides";
+  const VIP_TWITCH_USERS_TABLE = "vip_sound_twitch_users";
   const VIP_MESSAGE_STYLE = "heimleitung";
   const VIP_OVERLAY_STYLE = "overlay";
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
@@ -88,6 +89,56 @@ module.exports.init = function init(ctx) {
       value: true,
       value_type: "boolean",
       description: "Lokale Rollen-Fallbacks erlauben, wenn Twitch nicht verfuegbar ist."
+    },
+    twitchSyncEnabled: {
+      value: true,
+      value_type: "boolean",
+      description: "Automatischen Twitch-VIP-/Mod-Sync aktivieren."
+    },
+    twitchSyncIntervalHours: {
+      value: 24,
+      value_type: "number",
+      description: "Intervall fuer automatischen Twitch-VIP-/Mod-Sync in Stunden."
+    },
+    twitchSyncOnStartup: {
+      value: true,
+      value_type: "boolean",
+      description: "Beim Backend-Start synchronisieren, wenn der letzte Sync zu alt ist."
+    },
+    twitchSyncOnStartupIfOlderThanHours: {
+      value: 24,
+      value_type: "number",
+      description: "Beim Start nur synchronisieren, wenn der letzte Sync aelter als diese Stunden ist."
+    },
+    twitchSyncIncludeVips: {
+      value: true,
+      value_type: "boolean",
+      description: "Twitch-VIPs beim Sync abrufen."
+    },
+    twitchSyncIncludeMods: {
+      value: true,
+      value_type: "boolean",
+      description: "Twitch-Mods beim Sync abrufen."
+    },
+    twitchSyncLastAt: {
+      value: "",
+      value_type: "string",
+      description: "Zeitpunkt des letzten Twitch-Syncs."
+    },
+    twitchSyncLastOk: {
+      value: false,
+      value_type: "boolean",
+      description: "Status des letzten Twitch-Syncs."
+    },
+    twitchSyncLastError: {
+      value: "",
+      value_type: "string",
+      description: "Fehlertext des letzten Twitch-Syncs."
+    },
+    twitchSyncLastCounts: {
+      value: { vips: 0, mods: 0, total: 0 },
+      value_type: "json",
+      description: "Zaehler des letzten Twitch-Syncs."
     }
   };
 
@@ -200,7 +251,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.6",
+    version: "1.8.7",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -226,6 +277,14 @@ module.exports.init = function init(ctx) {
       lastAt: "",
       lastError: "",
       lastVia: ""
+    },
+    twitchSync: {
+      running: false,
+      timerStarted: false,
+      lastAutoCheckAt: "",
+      lastRunStartedAt: "",
+      lastRunFinishedAt: "",
+      lastError: ""
     }
   };
 
@@ -266,6 +325,7 @@ module.exports.init = function init(ctx) {
       state.db.settingsRows = database.count(VIP_SETTINGS_TABLE);
       state.db.eventsRows = database.count(VIP_EVENTS_TABLE);
       state.db.roleOverridesRows = database.count(VIP_ROLE_OVERRIDES_TABLE);
+      try { state.db.twitchUsersRows = database.count(VIP_TWITCH_USERS_TABLE); } catch (_) { state.db.twitchUsersRows = 0; }
       state.db.lastError = "";
     } catch (err) {
       state.db.lastError = err.message || String(err);
@@ -1096,7 +1156,17 @@ module.exports.init = function init(ctx) {
       dailyUsageRetentionDays: [["dailyUsageRetentionDays"], ["dailyUsage", "retentionDays"]],
       cleanupDailyUsageOnStartup: [["cleanupDailyUsageOnStartup"], ["dailyUsage", "cleanupOnStartup"]],
       autoDetectTargetRole: [["autoDetectTargetRole"], ["roles", "autoDetectTargetRole"]],
-      fallbackRolesEnabled: [["fallbackRolesEnabled"], ["roles", "fallbackRolesEnabled"]]
+      fallbackRolesEnabled: [["fallbackRolesEnabled"], ["roles", "fallbackRolesEnabled"]],
+      twitchSyncEnabled: [["twitchSyncEnabled"], ["twitchSync", "enabled"]],
+      twitchSyncIntervalHours: [["twitchSyncIntervalHours"], ["twitchSync", "intervalHours"]],
+      twitchSyncOnStartup: [["twitchSyncOnStartup"], ["twitchSync", "onStartup"]],
+      twitchSyncOnStartupIfOlderThanHours: [["twitchSyncOnStartupIfOlderThanHours"], ["twitchSync", "onStartupIfOlderThanHours"]],
+      twitchSyncIncludeVips: [["twitchSyncIncludeVips"], ["twitchSync", "includeVips"]],
+      twitchSyncIncludeMods: [["twitchSyncIncludeMods"], ["twitchSync", "includeMods"]],
+      twitchSyncLastAt: [["twitchSyncLastAt"], ["twitchSync", "lastAt"]],
+      twitchSyncLastOk: [["twitchSyncLastOk"], ["twitchSync", "lastOk"]],
+      twitchSyncLastError: [["twitchSyncLastError"], ["twitchSync", "lastError"]],
+      twitchSyncLastCounts: [["twitchSyncLastCounts"], ["twitchSync", "lastCounts"]]
     };
 
     for (const parts of candidates[key] || [[key]]) {
@@ -1419,6 +1489,31 @@ module.exports.init = function init(ctx) {
               ON vip_sound_role_overrides(role_type);
             CREATE INDEX IF NOT EXISTS idx_vip_sound_role_overrides_enabled
               ON vip_sound_role_overrides(enabled);
+          `);
+        }
+
+        if (toVersion === 5) {
+          db.exec(`
+            CREATE TABLE IF NOT EXISTS vip_sound_twitch_users (
+              login TEXT PRIMARY KEY,
+              display_name TEXT NOT NULL DEFAULT '',
+              twitch_user_id TEXT NOT NULL DEFAULT '',
+              is_vip INTEGER NOT NULL DEFAULT 0,
+              is_mod INTEGER NOT NULL DEFAULT 0,
+              is_broadcaster INTEGER NOT NULL DEFAULT 0,
+              source TEXT NOT NULL DEFAULT 'twitch',
+              last_seen_at TEXT NOT NULL DEFAULT '',
+              last_sync_at TEXT NOT NULL DEFAULT '',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_vip_sound_twitch_users_is_vip
+              ON vip_sound_twitch_users(is_vip);
+            CREATE INDEX IF NOT EXISTS idx_vip_sound_twitch_users_is_mod
+              ON vip_sound_twitch_users(is_mod);
+            CREATE INDEX IF NOT EXISTS idx_vip_sound_twitch_users_last_sync_at
+              ON vip_sound_twitch_users(last_sync_at);
           `);
         }
       });
@@ -1868,6 +1963,258 @@ module.exports.init = function init(ctx) {
     };
   }
 
+
+  function setVipSettingInternal(key, value, valueType) {
+    const def = DEFAULT_VIP_SETTINGS[key] || {};
+    try {
+      settingsHelper.setSetting(VIP_SETTINGS_TABLE, key, value, {
+        valueType: valueType || def.value_type || settingsHelper.normalizeValueType("", value),
+        description: def.description || ""
+      });
+    } catch (err) {
+      state.db.lastError = err.message || String(err);
+    }
+  }
+
+  function numberSetting(key, fallback) {
+    const n = Number(getVipSetting(key, fallback));
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  }
+
+  function twitchSyncSettings() {
+    return {
+      enabled: !!getVipSetting("twitchSyncEnabled", true),
+      intervalHours: numberSetting("twitchSyncIntervalHours", 24),
+      onStartup: !!getVipSetting("twitchSyncOnStartup", true),
+      onStartupIfOlderThanHours: numberSetting("twitchSyncOnStartupIfOlderThanHours", 24),
+      includeVips: !!getVipSetting("twitchSyncIncludeVips", true),
+      includeMods: !!getVipSetting("twitchSyncIncludeMods", true),
+      lastAt: String(getVipSetting("twitchSyncLastAt", "") || ""),
+      lastOk: !!getVipSetting("twitchSyncLastOk", false),
+      lastError: String(getVipSetting("twitchSyncLastError", "") || ""),
+      lastCounts: getVipSetting("twitchSyncLastCounts", { vips: 0, mods: 0, total: 0 }) || { vips: 0, mods: 0, total: 0 }
+    };
+  }
+
+  function ageHours(iso) {
+    const time = Date.parse(String(iso || ""));
+    if (!Number.isFinite(time)) return Infinity;
+    return (Date.now() - time) / 3600000;
+  }
+
+  function listCachedTwitchUsers(limitValue = 1000) {
+    try {
+      const limit = Math.max(1, Math.min(5000, intOrDefault(limitValue, 1000)));
+      return database.all(`
+        SELECT login, display_name, twitch_user_id, is_vip, is_mod, is_broadcaster, source, last_seen_at, last_sync_at, created_at, updated_at
+        FROM vip_sound_twitch_users
+        ORDER BY display_name COLLATE NOCASE ASC, login ASC
+        LIMIT :limit
+      `, { limit }).map(row => ({
+        login: normalizeLogin(row.login),
+        displayName: cleanDisplayName(row.display_name || row.login),
+        twitchUserId: String(row.twitch_user_id || ""),
+        isVip: Number(row.is_vip || 0) === 1,
+        isMod: Number(row.is_mod || 0) === 1,
+        isBroadcaster: Number(row.is_broadcaster || 0) === 1,
+        source: row.source || "twitch",
+        lastSeenAt: row.last_seen_at || "",
+        lastSyncAt: row.last_sync_at || "",
+        createdAt: row.created_at || "",
+        updatedAt: row.updated_at || ""
+      }));
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function cachedTwitchCounts() {
+    try {
+      const row = database.get(`
+        SELECT COUNT(*) AS total,
+               SUM(CASE WHEN is_vip = 1 THEN 1 ELSE 0 END) AS vips,
+               SUM(CASE WHEN is_mod = 1 THEN 1 ELSE 0 END) AS mods,
+               MAX(last_sync_at) AS last_sync_at
+        FROM vip_sound_twitch_users
+      `) || {};
+      return {
+        total: Number(row.total || 0),
+        vips: Number(row.vips || 0),
+        mods: Number(row.mods || 0),
+        lastSyncAt: row.last_sync_at || ""
+      };
+    } catch (_) {
+      return { total: 0, vips: 0, mods: 0, lastSyncAt: "" };
+    }
+  }
+
+  function upsertTwitchUsers(rows, syncAt, includeVips, includeMods) {
+    if (includeVips) database.run(`UPDATE vip_sound_twitch_users SET is_vip = 0, updated_at = :now WHERE is_vip = 1`, { now: syncAt });
+    if (includeMods) database.run(`UPDATE vip_sound_twitch_users SET is_mod = 0, updated_at = :now WHERE is_mod = 1`, { now: syncAt });
+
+    for (const row of rows) {
+      const login = normalizeLogin(row.login);
+      if (!login) continue;
+      database.run(`
+        INSERT INTO vip_sound_twitch_users
+          (login, display_name, twitch_user_id, is_vip, is_mod, is_broadcaster, source, last_seen_at, last_sync_at, created_at, updated_at)
+        VALUES
+          (:login, :displayName, :twitchUserId, :isVip, :isMod, :isBroadcaster, 'twitch', :lastSeenAt, :lastSyncAt, :createdAt, :updatedAt)
+        ON CONFLICT(login) DO UPDATE SET
+          display_name = CASE WHEN excluded.display_name <> '' THEN excluded.display_name ELSE vip_sound_twitch_users.display_name END,
+          twitch_user_id = CASE WHEN excluded.twitch_user_id <> '' THEN excluded.twitch_user_id ELSE vip_sound_twitch_users.twitch_user_id END,
+          is_vip = CASE WHEN excluded.is_vip = 1 THEN 1 ELSE vip_sound_twitch_users.is_vip END,
+          is_mod = CASE WHEN excluded.is_mod = 1 THEN 1 ELSE vip_sound_twitch_users.is_mod END,
+          is_broadcaster = CASE WHEN excluded.is_broadcaster = 1 THEN 1 ELSE vip_sound_twitch_users.is_broadcaster END,
+          source = 'twitch',
+          last_seen_at = excluded.last_seen_at,
+          last_sync_at = excluded.last_sync_at,
+          updated_at = excluded.updated_at
+      `, {
+        login,
+        displayName: cleanDisplayName(row.displayName || row.display_name || login),
+        twitchUserId: String(row.twitchUserId || row.twitch_user_id || ""),
+        isVip: row.isVip ? 1 : 0,
+        isMod: row.isMod ? 1 : 0,
+        isBroadcaster: row.isBroadcaster ? 1 : 0,
+        lastSeenAt: syncAt,
+        lastSyncAt: syncAt,
+        createdAt: syncAt,
+        updatedAt: syncAt
+      });
+    }
+  }
+
+  async function runTwitchVipModSync(raw = {}) {
+    ensureVipSchema();
+    if (state.twitchSync.running) throw new Error("twitch_sync_already_running");
+
+    const cfg = twitchSyncSettings();
+    const includeVips = raw.includeVips === undefined ? cfg.includeVips : boolish(raw.includeVips);
+    const includeMods = raw.includeMods === undefined ? cfg.includeMods : boolish(raw.includeMods);
+    if (!includeVips && !includeMods) throw new Error("twitch_sync_no_sources_enabled");
+
+    const syncAt = nowIso();
+    state.twitchSync.running = true;
+    state.twitchSync.lastRunStartedAt = syncAt;
+    state.twitchSync.lastError = "";
+
+    try {
+      const merged = new Map();
+      let vipResult = { count: 0, rows: [] };
+      let modResult = { count: 0, rows: [] };
+
+      if (includeVips) {
+        vipResult = await twitchRoles.listChannelVips({ maxPages: 25 });
+        for (const row of vipResult.rows || []) {
+          const key = normalizeLogin(row.login);
+          if (!key) continue;
+          const existing = merged.get(key) || { ...row, isVip: false, isMod: false };
+          existing.isVip = true;
+          existing.displayName = row.displayName || existing.displayName || key;
+          existing.twitchUserId = row.twitchUserId || existing.twitchUserId || "";
+          merged.set(key, existing);
+        }
+      }
+
+      if (includeMods) {
+        modResult = await twitchRoles.listChannelModerators({ maxPages: 25 });
+        for (const row of modResult.rows || []) {
+          const key = normalizeLogin(row.login);
+          if (!key) continue;
+          const existing = merged.get(key) || { ...row, isVip: false, isMod: false };
+          existing.isMod = true;
+          existing.displayName = row.displayName || existing.displayName || key;
+          existing.twitchUserId = row.twitchUserId || existing.twitchUserId || "";
+          merged.set(key, existing);
+        }
+      }
+
+      const rows = Array.from(merged.values());
+      upsertTwitchUsers(rows, syncAt, includeVips, includeMods);
+
+      const counts = cachedTwitchCounts();
+      setVipSettingInternal("twitchSyncLastAt", syncAt, "string");
+      setVipSettingInternal("twitchSyncLastOk", true, "boolean");
+      setVipSettingInternal("twitchSyncLastError", "", "string");
+      setVipSettingInternal("twitchSyncLastCounts", { vips: counts.vips, mods: counts.mods, total: counts.total }, "json");
+
+      state.twitchSync.running = false;
+      state.twitchSync.lastRunFinishedAt = nowIso();
+      state.twitchSync.lastError = "";
+      refreshDbStats();
+
+      return {
+        ok: true,
+        module: MODULE_NAME,
+        syncedAt: syncAt,
+        includeVips,
+        includeMods,
+        fetched: {
+          vips: Number(vipResult.count || (vipResult.rows || []).length || 0),
+          mods: Number(modResult.count || (modResult.rows || []).length || 0)
+        },
+        counts,
+        rows: listCachedTwitchUsers(1000)
+      };
+    } catch (err) {
+      const msg = err && err.message ? err.message : String(err);
+      setVipSettingInternal("twitchSyncLastAt", syncAt, "string");
+      setVipSettingInternal("twitchSyncLastOk", false, "boolean");
+      setVipSettingInternal("twitchSyncLastError", msg, "string");
+      state.twitchSync.running = false;
+      state.twitchSync.lastRunFinishedAt = nowIso();
+      state.twitchSync.lastError = msg;
+      refreshDbStats();
+      throw err;
+    }
+  }
+
+  function twitchSyncStatus() {
+    ensureVipSchema();
+    const settings = twitchSyncSettings();
+    const counts = cachedTwitchCounts();
+    const token = typeof twitchRoles.tokenStatus === "function" ? twitchRoles.tokenStatus() : { ok: false };
+    const intervalMs = Math.max(1, Number(settings.intervalHours || 24)) * 3600000;
+    const lastMs = Date.parse(settings.lastAt || counts.lastSyncAt || "");
+    const nextAt = Number.isFinite(lastMs) ? new Date(lastMs + intervalMs).toISOString() : "";
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      settings,
+      running: !!state.twitchSync.running,
+      runtime: { ...state.twitchSync },
+      token,
+      counts,
+      nextSyncAt: nextAt,
+      shouldSyncNow: settings.enabled && (!Number.isFinite(lastMs) || Date.now() - lastMs >= intervalMs),
+      rows: listCachedTwitchUsers(1000),
+      updatedAt: nowIso()
+    };
+  }
+
+  function maybeStartTwitchAutoSync(reason) {
+    const settings = twitchSyncSettings();
+    if (!settings.enabled || state.twitchSync.running) return;
+    const threshold = reason === "startup" ? settings.onStartupIfOlderThanHours : settings.intervalHours;
+    if (reason === "startup" && !settings.onStartup) return;
+    if (ageHours(settings.lastAt) < threshold) return;
+
+    runTwitchVipModSync({ source: `auto_${reason || "timer"}` })
+      .catch(err => console.warn(`[${MODULE_NAME}] Twitch sync failed: ${err.message || String(err)}`));
+  }
+
+  function startTwitchSyncTimer() {
+    if (state.twitchSync.timerStarted) return;
+    state.twitchSync.timerStarted = true;
+    setTimeout(() => maybeStartTwitchAutoSync("startup"), 5000);
+    setInterval(() => {
+      state.twitchSync.lastAutoCheckAt = nowIso();
+      maybeStartTwitchAutoSync("timer");
+    }, 60 * 60 * 1000);
+  }
+
   function addVipSoundCandidate(map, raw = {}) {
     const login = normalizeLogin(raw.login || raw.user_login || raw.target_login || raw.actor_login || "");
     const displayName = cleanDisplayName(raw.displayName || raw.display_name || raw.user_display_name || raw.target_display_name || raw.actor_display_name || login);
@@ -1902,6 +2249,27 @@ module.exports.init = function init(ctx) {
     const includeSoundInfo = String(raw.includeSoundInfo ?? "true").trim().toLowerCase() !== "false";
     const limit = Math.max(1, Math.min(1000, intOrDefault(raw.limit, 300)));
     const map = new Map();
+
+    try {
+      for (const row of listCachedTwitchUsers(limit)) {
+        if (row.isVip) {
+          addVipSoundCandidate(map, {
+            login: row.login,
+            displayName: row.displayName,
+            roleType: "vip",
+            source: "twitch_sync"
+          });
+        }
+        if (row.isMod) {
+          addVipSoundCandidate(map, {
+            login: row.login,
+            displayName: row.displayName,
+            roleType: "mod",
+            source: "twitch_sync"
+          });
+        }
+      }
+    } catch (_) {}
 
     try {
       for (const row of getVipRoleOverrideRows(false)) {
@@ -1966,7 +2334,7 @@ module.exports.init = function init(ctx) {
       });
 
     return {
-      tableSources: [VIP_ROLE_OVERRIDES_TABLE, VIP_DAILY_USAGE_TABLE, VIP_EVENTS_TABLE],
+      tableSources: [VIP_TWITCH_USERS_TABLE, VIP_ROLE_OVERRIDES_TABLE, VIP_DAILY_USAGE_TABLE, VIP_EVENTS_TABLE],
       count: rows.length,
       rows,
       settings: {
@@ -1975,11 +2343,7 @@ module.exports.init = function init(ctx) {
         fileExtension: normalizeFileExtension(getVipSetting("fileExtension", ".mp3")),
         maxSoundUploadBytes: Number(getVipSetting("maxSoundUploadBytes", 15728640)) || 15728640
       },
-      twitchSync: {
-        available: false,
-        planned: true,
-        note: "Twitch VIP-/Mod-Sync ist fuer einen spaeteren STEP vorgesehen."
-      }
+      twitchSync: twitchSyncStatus()
     };
   }
 
@@ -2488,6 +2852,7 @@ module.exports.init = function init(ctx) {
         config: settings.config
       },
       roles,
+      twitchSync: twitchSyncStatus(),
       dailyUsage: {
         ...dailyUsage,
         count: dailyUsage.rows.length
@@ -3452,13 +3817,31 @@ module.exports.init = function init(ctx) {
             maxSoundUploadBytes: Number(getVipSetting("maxSoundUploadBytes", 15728640)) || 15728640
           },
           allowedExtensions: media.DEFAULT_ALLOWED_EXTENSIONS,
-          twitchSync: {
-            available: false,
-            planned: true,
-            note: "Twitch VIP-/Mod-Sync ist fuer einen spaeteren STEP vorgesehen."
-          },
+          twitchSync: twitchSyncStatus(),
           updatedAt: nowIso()
         });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+
+    app.get(`${prefix}/twitch-sync/status`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        return res.json(twitchSyncStatus());
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/twitch-sync/run`, async (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const result = await runTwitchVipModSync(requestData(req));
+        return res.json(result);
       } catch (err) {
         return fail(res, 400, err.message || String(err));
       }
@@ -3674,6 +4057,7 @@ module.exports.init = function init(ctx) {
 
   ensureVipSchema();
   apiPrefixes.forEach(registerApiPrefix);
+  startTwitchSyncTimer();
 
   console.log(`[${MODULE_NAME}] loaded`);
   console.log(`[${MODULE_NAME}] webRoot=${webRoot}`);
