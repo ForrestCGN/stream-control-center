@@ -73,3 +73,36 @@ html[data-theme=light] .hug-pair-controls select,html[data-theme=light] .hug-pai
     max-width:none;
   }
 }
+
+
+/* STEP182.2 - Textfelder nutzen die Kartenbreite besser aus */
+.hug-pair-form{
+  grid-template-columns: 120px 150px 120px minmax(260px,1fr);
+  column-gap: 12px;
+  row-gap: 12px;
+}
+
+.hug-pair-form .pair-textarea{
+  grid-column: 1 / -1;
+}
+
+.hug-pair-form .pair-textarea textarea{
+  width: 100%;
+  min-height: 84px;
+}
+
+.hug-pair-actions.wide{
+  grid-column: 1 / -1;
+}
+
+@media(max-width:1100px){
+  .hug-pair-form{
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:760px){
+  .hug-pair-form{
+    grid-template-columns: 1fr;
+  }
+}
