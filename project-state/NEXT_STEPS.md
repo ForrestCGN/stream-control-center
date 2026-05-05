@@ -4,58 +4,51 @@ Stand: 2026-05-05
 
 ## Naechster empfohlener Schritt
 
-### STEP178 - Tagebuch/Todo Dashboard-Integration
+### STEP182 - Hug/Rehug Dashboard Live-Feinschliff
 
 Ziel:
 
-- Tagebuch und Todo im Dashboard sichtbar und bedienbar machen.
-- Neue Backend-Routen aus STEP177 nutzen.
-- Keine direkten Dashboard-Zugriffe auf SQLite oder Dateien.
-- Keine bestehende Funktionalitaet entfernen.
+- Hug/Rehug-Dashboard im Browser pruefen.
+- Textpaar-Editor praktisch testen.
+- Keine neue Fachlogik, nur UX-/Fehlerkorrekturen falls sichtbar noetig.
 
-Voraussichtlich betroffene Dateien:
+Pruefung:
 
-- `htdocs/dashboard/index.html`
-- `htdocs/dashboard/app.js`
-- `htdocs/dashboard/modules/sectionhome.js`
-- `htdocs/dashboard/modules/controlhome.js`
-- `htdocs/dashboard/modules/tagebuch.js`
-- `htdocs/dashboard/modules/tagebuch.css`
-- `htdocs/dashboard/modules/todo.js`
-- `htdocs/dashboard/modules/todo.css`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
+1. Dashboard oeffnen:
+   ```text
+   Community -> Hug-System -> Texte -> Hug/Rehug-Paare
+   ```
+2. Pruefen:
+   - Werden 30 Textpaare angezeigt?
+   - Suche funktioniert?
+   - Aktiv/Inaktiv sichtbar?
+   - Gewichtung und Sortierung sichtbar?
+   - Text und Antwort-Text bleiben als Paar zusammen?
+3. Testweise ein Textpaar minimal bearbeiten, speichern, neu laden und wieder zuruecksetzen.
+
+Voraussichtlich betroffene Dateien, falls UX-Korrektur noetig:
+
+- `htdocs/dashboard/modules/hug.js`
+- `htdocs/dashboard/modules/hug.css`
+- ggf. `backend/modules/hug.js`, falls API-Ausgabe nicht passt
 - `project-state/*`
-
-Vorgesehene Dashboard-Funktionen:
-
-Tagebuch:
-
-- Status anzeigen
-- aktive Seite/naechste Seite anzeigen
-- Stream aktiv/inaktiv anzeigen
-- Stats anzeigen
-- Settings aus `/api/tagebuch/admin/settings` anzeigen/bearbeiten
-- Texte aus `/api/tagebuch/admin/texts` anzeigen/bearbeiten
-- Reload ausloesen
-- Reset/Hardreset nicht prominent einbauen
-
-Todo:
-
-- Status anzeigen
-- Targets und Discord-Channel-Status anzeigen
-- Stats anzeigen
-- Settings aus `/api/todo/admin/settings` anzeigen/bearbeiten
-- Texte aus `/api/todo/admin/texts` anzeigen/bearbeiten
-- Reload ausloesen
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
 
 ## Danach moeglich
 
-### STEP179 - Tagebuch/Todo Feinschliff
+### Hug/Rehug naechste Text-Kategorien
 
-- Text-Editor UX verbessern
-- Settings-Felder benennen/beschreiben
-- Zielpersonen/Targets fuer Todo komfortabler editierbar machen
-- Audit-Logging fuer Admin-Aenderungen vorbereiten
+Nach erfolgreichem Textpaar-Test koennen weitere Kategorien editierbar gemacht werden:
+
+- `hug_all` / Chatweite Hugs
+- Systemantworten
+- Toplisten-Titel
+
+Wichtig:
+
+- Hug/Rehug-Paare bleiben gekoppelt.
+- `hug_all` und Systemantworten duerfen als normale Varianten/Einzeltexte behandelt werden.
+- Keine Rueckkehr zur komplizierten Typen-Bedienung.
 
 ### VIP
 
@@ -72,35 +65,40 @@ Todo:
 - `liveAlert`/`livealert` Duplikat in Alert-Settings spaeter bereinigen.
 - Dashboard-Rollen/Rechte und Audit-Logging vorbereiten.
 - Fireworks spaeter neu aufbauen.
-- Hug-Textbearbeitung spaeter sauber neu planen.
 - Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
+- Module weiter auf DB-Settings/DB-Texte/Helper-Standard auditieren.
 
+## Aktueller Standardabschluss nach ZIP-Entpacken
 
-## STEP179 Tagebuch/Todo UX Feinschliff
+Nach jedem neuen ZIP:
 
-- Bekannte Settings mit besseren Labels/Beschreibungen darstellen.
-- Technische/sensible Settings schuetzen oder als erweitert markieren.
-- Optional Sammel-Speichern fuer Texte/Settings ergaenzen.
-- Todo-Ziele als sicherere Formularstruktur statt reinem JSON-Textarea planen.
+```powershell
+cd D:\Git\stream-control-center
+.\stepdone.cmd "passende commit beschreibung"
+```
 
+Beispiele:
 
+```powershell
+.\stepdone.cmd "fix: improve hug text pair dashboard"
+.\stepdone.cmd "docs: sync hug rehug project status"
+.\stepdone.cmd "feat: add hug all text editor"
+```
 
-## Nach STEP179 empfohlen
+## Wichtige Regel fuer Hug/Rehug
 
-### STEP180 - Live-/UX-Feinschliff Textvarianten
+Bei Hug/Rehug duerfen Text und Antwort nicht getrennt zufaellig werden.
 
-- Live-Test: Varianten hinzufuegen, deaktivieren, loeschen und zufaellige Ausgabe pruefen.
-- Editor-UX verbessern: bessere Beschreibungen je Text-Key, Platzhalter-Hinweise, technische Keys gruppieren.
-- Textvarianten-Editor als wiederverwendbares Dashboard-Konzept fuer weitere Module planen.
-- Audit-Logging fuer Admin-Aenderungen vorbereiten.
+Richtig:
 
+```text
+Text 1 -> Antwort-Text 1
+Text 2 -> Antwort-Text 2
+```
 
-## Nach STEP180 empfohlen
+Falsch:
 
-### STEP181 - Praxistest Textvarianten
-
-- Im Dashboard je eine zweite aktive Variante fuer `todo.added` und `tagebuch.entrySaved` anlegen.
-- Live-Ausgabe pruefen, ob zufaellige aktive Varianten verwendet werden.
-- Kleine UI-Fehler im Varianten-Editor beheben, falls beim Praxistest auffaellig.
-- Danach den Varianten-Editor als wiederverwendbares Muster fuer weitere Module planen.
+```text
+Text 1 -> zufaellige Antwort 8
+```

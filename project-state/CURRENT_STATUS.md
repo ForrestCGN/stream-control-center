@@ -33,6 +33,10 @@ Aktueller Doku-Einstieg:
   - `tools\easy\02_LOKALE_AENDERUNGEN_ZU_GITHUB_HOCHLADEN.cmd`
   - `tools\easy\03_NUR_STATUS_PRUEFEN.cmd`
   - `tools\easy\04_BACKUP_ZURUECKSPIELEN.cmd`
+- Nach manuellem Entpacken eines STEP-ZIPs ist der Standardabschluss:
+  ```powershell
+  .\stepdone.cmd "commit beschreibung"
+  ```
 - Wenn GitHub-/Toolausgaben grosse Dateien kuerzen oder nicht vollstaendig liefern, wird nicht geraten und nicht mit riskanten Patch-Scripten gearbeitet.
 - Dann stellt Forrest die echte Datei aus Repo/Live bereit und diese Datei ist fuer die Bearbeitung massgeblich.
 
@@ -54,6 +58,8 @@ Zuletzt abgeschlossene/aktuelle Bloecke:
 - STEP178 Tagebuch/Todo Dashboard-Integration
 - STEP179 Text-Varianten-Editor fuer Tagebuch/Todo
 - STEP180 Textvarianten Status-/UX-Cleanup
+- STEP181 Hug/Rehug gekoppelte Textpaare, vereinfachter Dashboard-Editor und Stepdone-Workflow
+- STEP181.8 Hug/Rehug Doku-Sync
 
 Aktuelle wichtigste Referenzdokus:
 
@@ -65,6 +71,63 @@ Aktuelle wichtigste Referenzdokus:
 - `project-state/STEP178_TAGEBUCH_TODO_DASHBOARD_INTEGRATION_2026-05-05.md`
 - `project-state/STEP179_TEXT_VARIANTS_EDITOR_2026-05-05.md`
 - `project-state/STEP180_TEXT_VARIANTS_STATUS_UX_CLEANUP_2026-05-05.md`
+- `project-state/STEP181_HUG_REHUG_TEXT_PAIRS_BACKEND_2026-05-05.md`
+- `project-state/STEP181_2_HUG_REHUG_TEXT_PAIR_DASHBOARD_2026-05-05.md`
+- `project-state/STEP181_4_HUG_SIMPLIFY_NO_TYPES_2026-05-05.md`
+- `project-state/STEP181_7_STEPDONE_CMD_ONLY_2026-05-05.md`
+- `project-state/STEP181_8_HUG_REHUG_DOC_SYNC_2026-05-05.md`
+
+## Aktueller Hug/Rehug-Stand
+
+Hug/Rehug ist bis STEP181 auf aktuellen Stand gebracht.
+
+Backend:
+
+- `backend/modules/hug.js`
+- Schema-Version: `3`
+- Neue Tabelle: `hug_text_pairs`
+- `hug_pending_rehugs` hat `pair_id`
+- Bestehende 30 Hug/Rehug-Texte wurden in 30 gekoppelte Textpaare migriert.
+- Runtime waehlt ein aktives Textpaar global.
+- Rehug nutzt die gespeicherte `pair_id` und damit exakt den passenden Antworttext.
+- `hug_types` bleibt nur noch als internes Kompatibilitaets-/Migrationsfeld relevant.
+
+Dashboard:
+
+- `htdocs/dashboard/modules/hug.js`
+- `htdocs/dashboard/modules/hug.css`
+- Typen-Komplexitaet wurde aus der Bedienung entfernt.
+- Texte werden als einfache Liste dargestellt:
+  - Text
+  - Antwort-Text
+  - Aktiv/Inaktiv
+  - Gewichtung
+  - Sortierung
+- Kategorien im Texte-Tab:
+  - Hug/Rehug-Paare
+  - Chatweite Hugs
+  - Systemantworten
+  - Toplisten
+
+Live bestaetigt:
+
+```text
+GET /api/hug/status
+ok: true
+schemaVersion: 3
+hugTextPairs: 30
+activeHugTextPairs: 30
+```
+
+Wichtige Routen:
+
+- `GET /api/hug/status`
+- `GET /api/hug/db/status`
+- `GET /api/dashboard/community/hug/status`
+- `GET /api/hug/admin/text-pairs`
+- `POST /api/hug/admin/text-pairs`
+- `GET /api/dashboard/community/hug/text-pairs`
+- `POST /api/dashboard/community/hug/text-pairs`
 
 ## Aktueller Tagebuch/Todo-Stand
 
@@ -74,13 +137,6 @@ Tagebuch/Todo sind bis STEP180 im Backend und Dashboard integriert:
 - Tagebuch nutzt `tagebuch_settings` und `module_text_variants` mit JSON-Fallback.
 - Todo nutzt `todo_settings` und `module_text_variants` mit JSON-Fallback.
 - `module_texts` bleibt Legacy-/Kompatibilitaetsschicht.
-- Neue Admin-Routen fuer spaetere Dashboard-Integration:
-  - `GET/POST /api/tagebuch/admin/settings`
-  - `GET/POST /api/tagebuch/admin/texts`
-  - `GET/POST /api/todo/admin/settings`
-  - `GET/POST /api/todo/admin/texts`
-- Bestehende Tagebuch-/Todo-Routen bleiben erhalten.
-- JSON-Dateien bleiben technische Config, Seed oder Fallback.
 - Dashboard-Frontend fuer Tagebuch/Todo ist aktiv.
 - Texte werden kategoriebasiert als Varianten pro Text-Key verwaltet.
 
@@ -101,12 +157,6 @@ Soll-Ablauf fuer Ko-fi/Tipeee Donation mit Alert-TTS:
 7. Overlay bleibt bis nach Alert-TTS sichtbar.
 8. Sound-System bleibt Audio-Wahrheit.
 
-Prioritaeten:
-
-- Alert-Hauptsound: `alert`, Prioritaet 80
-- Alert-TTS: `alert_tts`, Prioritaet 79
-- Chat-TTS: `tts`, Prioritaet 50
-
 ## Aktueller VIP-/Sound-/Overlay-Stand
 
 Neue zentrale Referenz:
@@ -120,28 +170,11 @@ Aktive VIP-Dateien:
 - `htdocs/dashboard/modules/vip.css`
 - `htdocs/overlays/vip_sound_overlay_v2.html`
 
-Aktuelle VIP-Routen, die fuer Dashboard/Statistik genutzt werden:
-
-- `GET /api/vip-sound/admin/summary`
-- `GET /api/vip-sound/settings`
-- `GET /api/vip-sound/roles`
-- `GET /api/vip-sound/texts`
-- `GET /api/vip-sound/texts/event-keys`
-- `GET /api/vip-sound/daily-usage/today`
-- `GET /api/vip-sound/events/recent`
-- `GET /api/vip-sound/stats`
-- `GET /api/vip-sound/sounds/users`
-- `GET /api/vip-sound/sounds/status?login=`
-- `GET /api/vip-sound/upload/status`
-- `GET /api/vip-sound/twitch-sync/status`
-- `POST /api/vip-sound/twitch-sync/run`
-
 Fachliche VIP-Regel:
 
 - Nur Twitch VIP oder Twitch Mod ist berechtigt.
 - Keine Berechtigung aus lokalen Overrides.
 - Keine Berechtigung aus Daily-Usage, Events oder Historie.
-- Lokale Overrides duerfen Diagnose-/Altdaten bleiben, aber keine Rechte erzeugen.
 
 ## Dashboard-/Systemstandard
 
@@ -159,13 +192,15 @@ Fuer neue und bestehende Systeme gilt:
 Aktuelle Helper-Lage:
 
 - `backend/modules/helpers/helper_settings.js` ist DB-Settings-Standard.
-- `backend/modules/helpers/helper_texts.js` unterstuetzt ab STEP177 zentrale DB-Modultexte via `module_texts` und behaelt JSON-Message-Funktionen.
+- `backend/modules/helpers/helper_texts.js` unterstuetzt zentrale DB-Modultexte via `module_texts` und Textvarianten via `module_text_variants`.
 - VIP nutzt DB-Texte modulnah.
 - Alerts haben DB-Textbereiche (`alert_text_variants`, `alert_chat_blocks`).
+- Hug/Rehug nutzt `hug_text_pairs`, weil Text und Antwort fachlich fest gekoppelt bleiben muessen.
 
 ## Dashboard-relevante naechste Kandidaten
 
-- STEP178: Dashboard-Module fuer Tagebuch/Todo bauen.
+- Hug-Dashboard-Live-UX pruefen und ggf. kleine Korrekturen.
+- Hug `hug_all`, Systemantworten und Toplisten spaeter editierbar machen.
 - VIP-Statistik backendseitig mit echten 7-/30-Tage-Auswertungen erweitern.
 - VIP-Sound-Vorschau optional verbessern.
 - Upload-UX nur behutsam weiter verbessern.
@@ -187,32 +222,15 @@ Aktuelle Helper-Lage:
 - Historische Analyse-Snapshots nicht ueberschreiben.
 - Aktuellen Stand in `docs/current/CURRENT_SYSTEM_STATUS.md` und `project-state/*` aktuell halten.
 - Nach jedem abgeschlossenen Block STEP-Doku schreiben.
+- Bei Hug/Rehug duerfen Text und Antwort nicht getrennt zufaellig behandelt werden.
 
 ## Bewusst offen
 
-- STEP178 Dashboard-Frontend fuer Tagebuch/Todo.
+- Hug: `hug_all`, Systemantworten und Toplisten-Texte im Dashboard editierbar machen.
 - VIP echte 7-/30-Tage-Statistik backendseitig.
 - Provider-Secrets in Settings-Ausgaben maskieren.
 - `liveAlert`/`livealert` Duplikat in Alert-Settings bereinigen.
 - Dashboard-Rollen/Rechte und Audit-Logging vorbereiten.
 - Fireworks spaeter neu aufbauen.
-- Hug-Textbearbeitung spaeter sauber neu planen.
 - Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
-
-
-## STEP178 Tagebuch/Todo Dashboard
-
-- Tagebuch und Todo sind als Dashboard-Module im Community-Bereich aktiv.
-- Neue Dateien: `htdocs/dashboard/modules/tagebuch.js`, `tagebuch.css`, `todo.js`, `todo.css`.
-- Dashboard nutzt die STEP177-Admin-Routen fuer DB-Settings und DB-Texte.
-- Keine Backend-Funktionalitaet entfernt.
-
-
-## STEP179 Text-Varianten-Editor
-
-- `backend/modules/helpers/helper_texts.js` ist ab STEP179 nicht mehr nur JSON-/Einzeltext-Helfer, sondern unterstuetzt zentrale DB-Textvarianten via `module_text_variants`.
-- `module_texts` bleibt fuer Kompatibilitaet erhalten.
-- Tagebuch und Todo nutzen mehrere Varianten pro Text-Key und zufaellige Auswahl aktiver Varianten.
-- Dashboard-Texte werden fuer Tagebuch/Todo kategoriebasiert bearbeitet.
-- Neue Regel: Alle ausgebbaren Texte sollen langfristig Varianten pro Key unterstuetzen.
