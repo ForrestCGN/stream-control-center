@@ -44,6 +44,11 @@ Aktueller bekannter sauberer Stand vor dieser Doku-Aktualisierung:
 - Lokaler Status bei Pruefung: clean
 - Live `alert_system`: Version `3`, Step `171`
 
+Manueller Sicherheitsstand:
+
+- Forrest hat am 2026-05-05 vor der weiteren Dashboard-Arbeit ein vollstaendiges Backup des kompletten `D:\Streaming\stramAssets`-Verzeichnisses erstellt.
+- Backup-Pfad/Dateiname wurde in diesem Chat nicht angegeben und wird deshalb hier bewusst nicht erfunden.
+
 Zuletzt abgeschlossen:
 
 - STEP047 VIP Dashboard Base
