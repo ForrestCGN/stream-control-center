@@ -1,4 +1,4 @@
-// STEP190 - Clip Dashboard: Settings Cleanup, technische Felder aus normaler Bedienung ausgeblendet.
+// STEP191 - Clip Dashboard: Textvarianten UX Cleanup mit verständlichen Labels und Platzhalter-Hinweisen.
 window.ClipsModule = (function(){
   'use strict';
 
@@ -12,33 +12,55 @@ window.ClipsModule = (function(){
   let root = null;
 
   const TEXT_KEY_LABELS = {
-    chatClipActivated: 'Clip gestartet',
-    chatClipCreated: 'Twitch-Clip erstellt',
-    chatClipFailed: 'Clip fehlgeschlagen',
-    chatClipCreatedWithoutUrl: 'Clip ohne URL',
-    chatLocalReplayMissing: 'Replay fehlt',
-    chatLocalReplayInvalidDir: 'Replay-Ordner ungültig',
-    chatReplaySaved: 'Replay gespeichert',
-    chatClipDuplicate: 'Doppelter Clip',
-    discordClipPost: 'Discord-Clip-Post',
-    discordClipPartial: 'Discord Teilstatus',
-    discordClipFailed: 'Discord Fehlerpost',
-    systemDisabled: 'System deaktiviert',
-    systemBackendNotReady: 'Backend nicht bereit',
-    systemTwitchScopeMissing: 'Twitch-Scope fehlt',
-    systemObsReplayNotReady: 'OBS Replay nicht bereit',
-    systemStreamNotLive: 'Stream nicht live'
+    chatClipActivated: 'Chat: Clip-Sicherung gestartet',
+    chatClipCreated: 'Chat: Twitch-Clip-Link ausgeben',
+    chatClipFailed: 'Chat: Clip-Erstellung fehlgeschlagen',
+    chatClipCreatedWithoutUrl: 'Chat: Clip erstellt, aber noch ohne URL',
+    chatLocalReplayMissing: 'Chat: lokale Replay-Datei nicht gefunden',
+    chatLocalReplayInvalidDir: 'Chat: Replay-Ordner ungültig',
+    chatReplaySaved: 'Chat: lokaler Replay-Clip gespeichert',
+    chatClipDuplicate: 'Chat: Clip bereits verarbeitet',
+
+    discordClipPost: 'Discord: fertigen Clip posten',
+    discordClipPartial: 'Discord: teilweise verarbeitet',
+    discordClipFailed: 'Discord: Verarbeitung fehlgeschlagen',
+
+    systemDisabled: 'System: Clip-System deaktiviert',
+    systemBackendNotReady: 'System: Backend nicht bereit',
+    systemTwitchScopeMissing: 'System: Twitch-Scope fehlt',
+    systemObsReplayNotReady: 'System: OBS Replay nicht bereit',
+    systemStreamNotLive: 'System: Stream ist nicht live'
   };
 
   const TEXT_KEY_HINTS = {
-    chatClipActivated: 'Chat-Antwort direkt nach !clip. Platzhalter je nach Flow möglich.',
-    chatClipCreated: 'Chat-Antwort mit Twitch-Clip-Link. Platzhalter: {clipUrl}, {clipTitle}, {gameName}, {triggerUser}.',
-    chatClipFailed: 'Chat-Antwort, wenn der Twitch-Clip nicht erstellt werden konnte.',
-    chatReplaySaved: 'Chat-Antwort, wenn der lokale OBS-Replay-Clip gespeichert wurde.',
-    discordClipPost: 'Discord-Nachricht für vollständige Clips. Platzhalter: {clipUrl}, {clipTitle}, {gameName}, {triggerUser}.',
-    discordClipPartial: 'Discord-Nachricht bei Teil-Erfolg. Platzhalter: {status}, {reason}, {clipUrl}.',
-    discordClipFailed: 'Discord-Nachricht bei fehlgeschlagener Verarbeitung.',
-    systemStreamNotLive: 'Systemtext, wenn Clip-Erstellung nur live erlaubt ist.'
+    chatClipActivated: 'Wird direkt nach dem Clip-Start als Chatmeldung genutzt.',
+    chatClipCreated: 'Wird genutzt, wenn ein Twitch-Clip-Link verfügbar ist.',
+    chatClipFailed: 'Wird genutzt, wenn Twitch oder Backend die Clip-Erstellung ablehnt.',
+    chatClipCreatedWithoutUrl: 'Wird genutzt, wenn Twitch zwar eine Clip-ID liefert, aber noch keine fertige URL.',
+    chatLocalReplayMissing: 'Wird genutzt, wenn keine passende lokale OBS-Replay-Datei gefunden wurde.',
+    chatLocalReplayInvalidDir: 'Wird genutzt, wenn der konfigurierte Replay-Ordner ungültig ist.',
+    chatReplaySaved: 'Wird genutzt, wenn der lokale OBS-Replay-Clip erfolgreich gesichert wurde.',
+    chatClipDuplicate: 'Wird genutzt, wenn ein Clip schon verarbeitet wurde.',
+
+    discordClipPost: 'Discord-Post für erfolgreich verarbeitete Clips.',
+    discordClipPartial: 'Discord-Post, wenn Twitch/OBS/Discord nur teilweise erfolgreich waren.',
+    discordClipFailed: 'Discord-Post, wenn die Clip-Verarbeitung fehlgeschlagen ist.',
+
+    systemDisabled: 'Interner Systemtext, wenn das Clip-System deaktiviert ist.',
+    systemBackendNotReady: 'Interner Systemtext, wenn Backend-Create blockiert ist.',
+    systemTwitchScopeMissing: 'Interner Systemtext, wenn der OAuth-Scope clips:edit fehlt.',
+    systemObsReplayNotReady: 'Interner Systemtext, wenn OBS Replay nicht bereit ist.',
+    systemStreamNotLive: 'Interner Systemtext, wenn Clips nur live erlaubt sind.'
+  };
+
+  const TEXT_KEY_PLACEHOLDERS = {
+    chatClipCreated: ['{clipUrl}', '{clipTitle}', '{gameName}', '{triggerUser}'],
+    chatClipCreatedWithoutUrl: ['{clipTitle}', '{clipId}'],
+    chatLocalReplayInvalidDir: ['{clipsDir}'],
+    discordClipPost: ['{clipUrl}', '{clipTitle}', '{gameName}', '{triggerUser}'],
+    discordClipPartial: ['{clipUrl}', '{clipTitle}', '{gameName}', '{triggerUser}', '{status}', '{reason}'],
+    discordClipFailed: ['{clipTitle}', '{gameName}', '{triggerUser}', '{reason}'],
+    systemStreamNotLive: ['{clipTitle}', '{gameName}', '{triggerUser}']
   };
 
   const SETTING_GROUPS = [
@@ -252,6 +274,12 @@ window.ClipsModule = (function(){
 
   function textKeyHint(key){
     return TEXT_KEY_HINTS[key] || 'Mehrere aktive Varianten sind möglich. Das Backend wählt zufällig eine aktive Variante.';
+  }
+
+  function textKeyPlaceholders(key){
+    const values = TEXT_KEY_PLACEHOLDERS[key] || [];
+    if (!values.length) return '';
+    return values.map(value => `<code>${esc(value)}</code>`).join(' ');
   }
 
   async function saveVariant(id, key){
@@ -527,52 +555,57 @@ window.ClipsModule = (function(){
         <div class="clips-card-head">
           <div>
             <h3>Textvarianten</h3>
-            <p>Kategorisiert wie Tagebuch/Todo: Kategorie wählen, Text-Key öffnen, Varianten bearbeiten.</p>
+            <p>Texte werden DB-basiert verwaltet. Pro Textbereich können mehrere aktive Varianten existieren; das Backend wählt zufällig.</p>
           </div>
         </div>
 
         <div class="clips-text-toolbar">
           <label>Kategorie
             <select data-text-category>
-              ${cats.map(cat => `<option value="${esc(cat.id)}" ${cat.id === selected ? 'selected' : ''}>${esc(cat.label || cat.id)} (${esc(cat.keyCount ?? cat.count ?? 0)} Keys / ${esc(cat.variantCount ?? 0)} Varianten)</option>`).join('')}
+              ${cats.map(cat => `<option value="${esc(cat.id)}" ${cat.id === selected ? 'selected' : ''}>${esc(cat.label || cat.id)} (${esc(cat.keyCount ?? cat.count ?? 0)} Bereiche / ${esc(cat.variantCount ?? 0)} Varianten)</option>`).join('')}
             </select>
           </label>
         </div>
 
         <div class="clips-text-list">
-          ${keys.map(item => `
-            <article class="clips-text-row">
-              <div class="clips-text-head">
-                <div>
-                  <strong>${esc(textKeyLabel(item.key))}</strong>
-                  <small>${esc(item.key)} · ${esc(textKeyHint(item.key))}</small>
-                </div>
-                <span>${esc(item.activeCount || 0)} aktiv / ${esc(item.totalCount || item.variants?.length || 0)} Varianten</span>
-              </div>
-
-              <div class="clips-variant-list">
-                ${arr(item.variants).map(variant => `
-                  <div class="clips-variant-row">
-                    <textarea data-variant-text="${esc(variant.id)}" data-variant-key="${esc(item.key)}" spellcheck="false">${esc(variant.value ?? variant.text ?? '')}</textarea>
-                    <div class="clips-variant-meta">
-                      <label><input type="checkbox" data-variant-enabled="${esc(variant.id)}" data-variant-key="${esc(item.key)}" ${variant.enabled ? 'checked' : ''}> Aktiv</label>
-                      <label>Gewicht <input type="number" min="1" max="99" data-variant-weight="${esc(variant.id)}" data-variant-key="${esc(item.key)}" value="${esc(variant.weight || 1)}"></label>
-                      <span>${esc(variant.source || '')}</span>
-                    </div>
-                    <div class="clips-row-actions">
-                      <button type="button" data-save-variant="${esc(variant.id)}" data-variant-key="${esc(item.key)}">Speichern</button>
-                      <button type="button" class="danger" data-delete-variant="${esc(variant.id)}">Löschen</button>
-                    </div>
+          ${keys.map(item => {
+            const placeholders = textKeyPlaceholders(item.key);
+            return `
+              <article class="clips-text-row">
+                <div class="clips-text-head">
+                  <div>
+                    <strong>${esc(textKeyLabel(item.key))}</strong>
+                    <small><code>${esc(item.key)}</code></small>
+                    <p>${esc(textKeyHint(item.key))}</p>
+                    ${placeholders ? `<div class="clips-placeholder-list"><span>Platzhalter:</span> ${placeholders}</div>` : ''}
                   </div>
-                `).join('')}
-              </div>
+                  <span>${esc(item.activeCount || 0)} aktiv / ${esc(item.totalCount || item.variants?.length || 0)} Varianten</span>
+                </div>
 
-              <div class="clips-new-variant">
-                <textarea data-new-variant="${esc(item.key)}" placeholder="Neue Variante für ${esc(textKeyLabel(item.key))} hinzufügen..." spellcheck="false"></textarea>
-                <button type="button" data-add-variant="${esc(item.key)}">Variante hinzufügen</button>
-              </div>
-            </article>
-          `).join('')}
+                <div class="clips-new-variant clips-new-variant-top">
+                  <textarea data-new-variant="${esc(item.key)}" placeholder="Neue Textvariante eintragen..." spellcheck="false"></textarea>
+                  <button type="button" data-add-variant="${esc(item.key)}">Neue Variante speichern</button>
+                </div>
+
+                <div class="clips-variant-list">
+                  ${arr(item.variants).map(variant => `
+                    <div class="clips-variant-row">
+                      <textarea data-variant-text="${esc(variant.id)}" data-variant-key="${esc(item.key)}" spellcheck="false">${esc(variant.value ?? variant.text ?? '')}</textarea>
+                      <div class="clips-variant-meta">
+                        <label><input type="checkbox" data-variant-enabled="${esc(variant.id)}" data-variant-key="${esc(item.key)}" ${variant.enabled ? 'checked' : ''}> Aktiv</label>
+                        <label>Gewicht <input type="number" min="1" max="99" data-variant-weight="${esc(variant.id)}" data-variant-key="${esc(item.key)}" value="${esc(variant.weight || 1)}"></label>
+                        <span>${esc(variant.source || '')}</span>
+                        <span>ID ${esc(variant.id || '')}</span>
+                      </div>
+                      <div class="clips-row-actions">
+                        <button type="button" data-save-variant="${esc(variant.id)}" data-variant-key="${esc(item.key)}">Speichern</button>
+                        <button type="button" class="danger" data-delete-variant="${esc(variant.id)}">Löschen</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </article>`;
+          }).join('')}
         </div>
 
         ${!keys.length ? '<div class="clips-empty">Keine Texte in dieser Kategorie.</div>' : ''}

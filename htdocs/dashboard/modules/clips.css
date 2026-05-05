@@ -605,3 +605,45 @@ html[data-theme="light"] .clips-variant-meta input{
   border-color:rgba(34,211,238,.20);
   background:rgba(34,211,238,.045);
 }
+
+.clips-text-head p{
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.clips-text-head code,
+.clips-placeholder-list code{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:999px;
+  padding:2px 7px;
+  background:rgba(255,255,255,.06);
+  font-size:11px;
+}
+
+.clips-placeholder-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  align-items:center;
+  margin-top:8px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.clips-new-variant-top{
+  border:1px solid rgba(34,211,238,.24);
+  background:rgba(34,211,238,.055);
+  border-radius:16px;
+  padding:10px;
+  margin:0 0 12px;
+}
+
+.clips-new-variant-top button{
+  border-color:rgba(34,211,238,.42);
+}
+
+.clips-variant-meta span:last-child{
+  opacity:.75;
+}
