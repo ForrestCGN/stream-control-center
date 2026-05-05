@@ -85,7 +85,8 @@ const CLIP_TEXT_CATEGORIES = {
   systemDisabled: 'system',
   systemBackendNotReady: 'system',
   systemTwitchScopeMissing: 'system',
-  systemObsReplayNotReady: 'system'
+  systemObsReplayNotReady: 'system',
+  systemStreamNotLive: 'system'
 };
 
 const CLIP_TEXT_CATEGORY_LABELS = {
@@ -144,6 +145,10 @@ const DEFAULT_CLIP_TEXTS = {
   ],
   systemObsReplayNotReady: [
     'OBS Replay Buffer ist nicht bereit.'
+  ],
+  systemStreamNotLive: [
+    'Clips koennen nur erstellt werden, wenn der Stream live ist.',
+    'Der Stream ist gerade nicht live. Clip-Erstellung wurde uebersprungen.'
   ]
 };
 
@@ -786,6 +791,38 @@ module.exports.init = function init(ctx) {
         error: 'backend_create_disabled',
         sendChat: cfg.sendChatResponse,
         chatMessage: renderClipMessage(messages, 'systemBackendNotReady', baseContext) || startMessage
+      });
+    }
+
+    if (channelInfo && channelInfo.is_live === false) {
+      const reason = 'stream_not_live';
+      const skipped = {
+        clipId: '',
+        clipUrl: '',
+        clipTitle: title.clipTitle,
+        customTitle: title.customTitle,
+        streamTitle: title.streamTitle,
+        gameName: title.gameName,
+        triggerUser,
+        triggerLogin,
+        status: 'skipped',
+        reason
+      };
+      const history = cfg.saveHistory ? saveClipHistory(skipped, 'backend_create_offline', { ...source, reason }) : { saved: false, id: null, error: '' };
+      return res.status(409).json({
+        ok: false,
+        accepted: false,
+        error: reason,
+        reason,
+        history,
+        channelInfo: {
+          ok: !!channelInfo.ok,
+          isLive: channelInfo.is_live,
+          source: channelInfo.source || 'api',
+          error: channelInfo.error || ''
+        },
+        sendChat: cfg.sendChatResponse,
+        chatMessage: renderClipMessage(messages, 'systemStreamNotLive', { ...baseContext, ...skipped }) || renderClipMessage(messages, 'chatClipFailed', skipped)
       });
     }
 
