@@ -119,3 +119,10 @@
 - Branch `dev` angelegt.
 - `.gitignore` angelegt.
 - Projektstatus-Dateien vorbereitet.
+
+## 2026-05-05 - STEP178 Tagebuch/Todo Dashboard Integration
+
+- Tagebuch und Todo im Community-Dashboard aktiviert.
+- Neue Dashboard-Module fuer Status, DB-Settings, DB-Texte und Statistiken ergaenzt.
+- `index.html`, `app.js` und `controlhome.js` entsprechend erweitert.
+- Keine Backend- oder Datenbankdateien geaendert.

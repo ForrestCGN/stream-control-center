@@ -107,3 +107,11 @@ Todo:
 - `htdocs/dashboard/modules/vip.css`
 
 Tagebuch/Todo Dashboard-Dateien folgen erst in STEP178.
+
+## STEP178 Tagebuch/Todo Dashboard
+
+- `htdocs/dashboard/modules/tagebuch.js` - Dashboard-Modul fuer Tagebuch-Status, DB-Settings, DB-Texte und Statistik.
+- `htdocs/dashboard/modules/tagebuch.css` - Styles fuer Tagebuch-Dashboard.
+- `htdocs/dashboard/modules/todo.js` - Dashboard-Modul fuer Todo-Status, Ziele, DB-Settings, DB-Texte und Statistik.
+- `htdocs/dashboard/modules/todo.css` - Styles fuer Todo-Dashboard.
+- `project-state/STEP178_TAGEBUCH_TODO_DASHBOARD_INTEGRATION_2026-05-05.md` - STEP178-Dokumentation.

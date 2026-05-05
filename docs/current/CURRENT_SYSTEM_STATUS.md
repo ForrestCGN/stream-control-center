@@ -118,6 +118,26 @@ Referenz:
 
 - `project-state/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md`
 
+
+### Tagebuch / Todo
+
+Aktueller Tagebuch-/Todo-Block ist bis STEP178 abgeschlossen.
+
+Referenzen:
+
+- `project-state/STEP176_TAGEBUCH_TODO_DB_DASHBOARD_AUDIT_2026-05-05.md`
+- `project-state/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md`
+- `project-state/STEP178_TAGEBUCH_TODO_DASHBOARD_INTEGRATION_2026-05-05.md`
+
+Kernstatus:
+
+- Tagebuch nutzt DB-Settings ueber `tagebuch_settings`.
+- Todo nutzt DB-Settings ueber `todo_settings`.
+- Tagebuch- und Todo-Texte liegen dashboardfaehig in `module_texts`.
+- JSON-Dateien bleiben Seed/Fallback.
+- Dashboard-Module fuer Tagebuch und Todo sind im Community-Bereich aktiv.
+- Dashboard bearbeitet Settings/Texte nur ueber Backend-APIs.
+
 ## Aktive Dashboard-Module
 
 - Stream-Desk
@@ -126,6 +146,8 @@ Referenz:
 - OBS Details
 - Sound-System
 - Hug-System
+- Tagebuch
+- Todo
 - VIP-System
 - Admin Configs
 

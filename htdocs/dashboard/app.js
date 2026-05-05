@@ -55,6 +55,20 @@ window.CGN = {
       overlayLink: '',
       reload() { return window.HugModule?.loadAll?.(true); }
     },
+    tagebuch: {
+      title: 'Tagebuch',
+      panelId: 'tagebuchModule',
+      group: 'community',
+      overlayLink: '',
+      reload() { return window.TagebuchModule?.loadAll?.(true); }
+    },
+    todo: {
+      title: 'Todo',
+      panelId: 'todoModule',
+      group: 'community',
+      overlayLink: '',
+      reload() { return window.TodoModule?.loadAll?.(true); }
+    },
     vip: {
       title: 'VIP-System',
       panelId: 'vipModule',
@@ -116,8 +130,8 @@ window.CGN = {
     chat_overlay: { label: 'Chat-Overlay', icon: '💬', enabled: false, description: 'Chat-Overlay Steuerung vorbereitet.' },
     deathcounter: { label: 'Deathcounter', icon: '💀', enabled: false, description: 'Deathcounter V2 Verwaltung vorbereitet.' },
     challenges: { label: 'Challenges', icon: '🎯', enabled: false, description: 'Challenge-System Verwaltung vorbereitet.' },
-    tagebuch: { label: 'Tagebuch', icon: '📖', enabled: false, description: 'Stream-Tagebuch Verwaltung vorbereitet.' },
-    todo: { label: 'Todo', icon: '✅', enabled: false, description: 'ToDo-System vorbereitet.' },
+    tagebuch: { label: 'Tagebuch', icon: '📖', enabled: true, description: 'Stream-Tagebuch, DB-Texte, Settings und Statistiken.' },
+    todo: { label: 'Todo', icon: '✅', enabled: true, description: 'Todo-Ziele, DB-Texte, Settings und Statistiken.' },
     commands: { label: 'Commands', icon: '⌨️', enabled: false, description: 'Chat-Befehle vorbereitet.' },
     community_stats: { label: 'Community-Stats', icon: '📈', enabled: false, description: 'Community-Statistiken vorbereitet.' },
     sound_system: { label: 'Sound-System', icon: '🔊', enabled: true, description: 'Zentrale Soundausgabe, Queue und Prioritäten.' },
@@ -137,7 +151,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['alerts', 'vip', 'hug', 'obs', 'sound_system'],
+  favorites: ['alerts', 'vip', 'hug', 'tagebuch', 'todo', 'obs', 'sound_system'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });

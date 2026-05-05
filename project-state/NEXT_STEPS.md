@@ -75,3 +75,11 @@ Todo:
 - Hug-Textbearbeitung spaeter sauber neu planen.
 - Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
+
+
+## STEP179 Tagebuch/Todo UX Feinschliff
+
+- Bekannte Settings mit besseren Labels/Beschreibungen darstellen.
+- Technische/sensible Settings schuetzen oder als erweitert markieren.
+- Optional Sammel-Speichern fuer Texte/Settings ergaenzen.
+- Todo-Ziele als sicherere Formularstruktur statt reinem JSON-Textarea planen.

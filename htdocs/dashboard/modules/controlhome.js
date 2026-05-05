@@ -7,7 +7,7 @@
     { id:'obs', label:'OBS', status:'aktiv', text:'Szenen, Quellen, Stats und Detailansicht.', open:'obs' },
     { id:'overlays', label:'Overlays', status:'geplant', text:'Start/Pause/Ende, Overlay-Vorschau und Stream-Ausgabe.' },
     { id:'system', label:'System', status:'vorbereitet', text:'Sound-System, TTS, Bot-Systeme, Message-Rotator, Automationen, Integrationen.' },
-    { id:'community', label:'Community', status:'vorbereitet', text:'Hug, Chat-Overlay, Deathcounter, Challenges, Tagebuch, Todo, Commands.' },
+    { id:'community', label:'Community', status:'teilaktiv', text:'Hug, VIP, Tagebuch und Todo sind aktiv; Chat-Overlay, Deathcounter, Challenges und Commands sind vorbereitet.', open:'tagebuch' },
     { id:'admin', label:'Rollen & Rechte', status:'vorbereitet', text:'User, Mod, SuperMod, Streamer, Local Admin, Owner.' }
   ];
 

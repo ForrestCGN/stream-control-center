@@ -191,3 +191,11 @@ Aktuelle Helper-Lage:
 - Hug-Textbearbeitung spaeter sauber neu planen.
 - Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
+
+
+## STEP178 Tagebuch/Todo Dashboard
+
+- Tagebuch und Todo sind als Dashboard-Module im Community-Bereich aktiv.
+- Neue Dateien: `htdocs/dashboard/modules/tagebuch.js`, `tagebuch.css`, `todo.js`, `todo.css`.
+- Dashboard nutzt die STEP177-Admin-Routen fuer DB-Settings und DB-Texte.
+- Keine Backend-Funktionalitaet entfernt.
