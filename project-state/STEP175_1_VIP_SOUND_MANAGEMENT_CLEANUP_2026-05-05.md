@@ -4,44 +4,45 @@ Stand: 2026-05-05
 
 ## Ziel
 
-Die bestehende VIP-Sounds-Seite im Dashboard praktischer machen, ohne Backend, Datenbank oder Berechtigungslogik zu ändern.
+VIP-Sound-Seite besser nutzbar machen, ohne Backend-, Datenbank- oder Berechtigungslogik zu ändern.
 
 ## Geänderte Dateien
 
 - `htdocs/dashboard/modules/vip.js`
 - `htdocs/dashboard/modules/vip.css`
 
-## Änderung
+## Änderungen
 
-- Sounds-Seite neu strukturiert: Kennzahlen, Filter, Workbench, Upload, Schnellzugriff auf fehlende Sounds und gefilterte Soundliste.
-- Filter ergänzt: Alle, Ohne Sound, Mit Sound, Twitch VIP, Twitch Mod.
+- Sounds-Seite strukturiert in Metriken, Filter, User-Auswahl, aktuellen Soundstatus, Upload und Listenansicht.
+- Filter ergänzt für `Alle`, `Ohne Sound`, `Mit Sound`, `Twitch VIP`, `Twitch Mod`.
 - Suche nach Login/Anzeigename ergänzt.
-- Sortierung ergänzt: Fehlende zuerst, Name A-Z, Rolle, längste Sounds.
-- Aktueller Soundstatus kompakter und verständlicher dargestellt.
-- Uploadbereich klarer formuliert und sichtbar vom Statusbereich getrennt.
-- Schnellzugriff auf die ersten User ohne Sounddatei ergänzt.
-- Nach Upload bleibt die vorhandene Aktualisierung der Userliste bestehen.
+- Sortierung ergänzt nach fehlenden Sounds, Name, Rolle und längster Sounddauer.
+- Schnellzugriff für fehlende Sounds ergänzt.
+- Duplikate aus Schnellzugriff und Soundliste entfernt:
+  - Wenn der Schnellzugriff fehlende Sounds zeigt, werden diese fehlenden Einträge unten in der Soundliste nicht erneut angezeigt.
+  - Wenn explizit der Filter `Ohne Sound` gewählt wird, wird der Schnellzugriff ausgeblendet und die fehlenden Sounds erscheinen nur in der Soundliste.
+- Button `Ohne Sound anzeigen` setzt den Soundfilter direkt auf fehlende Sounds.
+- Uploadbereich verständlicher beschriftet.
 
 ## Bewusst nicht geändert
 
 - Keine Backend-Routen geändert.
 - Keine Datenbank geändert.
 - Keine Berechtigungslogik geändert.
-- Keine neue Parallelstruktur gebaut.
-- Keine Sound-System-Logik ergänzt.
-- Kein Play-/Preview-Button, weil dafür zuerst die saubere Browser-URL-Strategie geprüft werden soll.
+- Keine vorhandenen Tabs oder Funktionen entfernt.
+- Soundrechte bleiben ausschließlich Twitch-VIP/Twitch-Mod aus dem Twitch-Sync-Cache.
 
 ## Tests
 
-Vor Commit lokal ausführen:
+Lokal ausführen:
 
 ```powershell
 cd D:\Git\stream-control-center
-node -c .\htdocs\dashboard\modulesip.js
-Select-String -Path .\htdocs\dashboard\modulesip.js,.\htdocs\dashboard\modulesip.css -Pattern "Ã|â|Â|﻿" -SimpleMatch
+node -c .\htdocs\dashboard\modules\vip.js
+Select-String -Path .\htdocs\dashboard\modules\vip.js,.\htdocs\dashboard\modules\vip.css -Pattern "Ã|â|Â|﻿" -SimpleMatch
 ```
 
 ## Offen
 
-- STEP175.2: Sound-Vorschau/Play-Button prüfen, aber erst nach Prüfung der sicheren Browser-URL für vorhandene Sounddateien.
-- STEP175.3: Upload robuster machen, z. B. klarere Überschreib-Bestätigung und Upload-Fehlertexte.
+- Nach Sichtprüfung ggf. optische Feinabstände anpassen.
+- Sound-Vorschau/Play-Button separat planen, falls vorhandene Datei-URLs sauber und sicher genutzt werden können.
