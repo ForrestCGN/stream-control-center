@@ -139,10 +139,51 @@ window.VipModule = (function(){
     const status = s.status || {};
     const stats = s.stats || {};
     const totals = stats.totals || {};
-    return `<div class="vip-grid">${metricCard('System', s.version ? 'Aktiv' : 'Unbekannt', `Version ${fmt(s.version)}`, s.version ? 'ok' : 'warn')}${metricCard('Overlay', status.client?.connected ? 'Verbunden' : 'Getrennt', status.visible ? 'sichtbar' : 'idle', status.client?.connected ? 'ok' : 'warn')}${metricCard('Settings', count(db.settingsRows), 'DB-Settings', '')}${metricCard('Texte', count(db.messageTemplates), 'Chat-/Overlaytexte', '')}${metricCard('VIPs & Mods', count(state.soundUsers?.rows?.length || 0), `${count(db.twitchUsersRows || 0)} im Twitch-Cache`, '')}${metricCard('Events heute', count(totals.total_events), `${count(totals.accepted_events)} akzeptiert`, '')}<section class="vip-card glass span-12"><div class="vip-card-head"><h3>Aktueller VIP-Standard</h3></div><div class="vip-standard-list"><div><strong>Settings:</strong> DB über <code>vip_sound_settings</code>, JSON nur Fallback.</div><div><strong>Texte:</strong> DB über <code>vip_sound_message_templates</code>, editierbar über API.</div><div><strong>Sound:</strong> Ausgabe über <code>sound_system</code>, Overlay V2 liest Visual-State.</div><div><strong>Twitch-Sync:</strong> VIPs/Mods werden lokal gecached und können manuell oder automatisch alle 24h aktualisiert werden.</div><div><strong>Dashboard:</strong> Kein direkter SQLite-/Dateizugriff, nur Backend-APIs.</div></div></section><section class="vip-card glass span-12"><div class="vip-card-head"><h3>Letzte Events</h3><button type="button" data-vip-page="events">Alle anzeigen</button></div>${eventsTable((state.events?.rows || []).slice(0, 5), true)}</section></div>`;
+    const sync = state.twitchSync || state.summary?.twitchSync || state.soundUsers?.twitchSync || {};
+    const syncSettings = sync.settings || {};
+    const syncCounts = sync.counts || {};
+    const token = sync.token || {};
+    const users = state.soundUsers?.rows || [];
+    const sound = soundStats(users);
+    const lastSyncAt = syncSettings.lastAt || syncCounts.lastSyncAt || '';
+    const lastSyncOk = syncSettings.lastOk;
+    const nextSyncAt = nextSyncTime(lastSyncAt, syncSettings.intervalHours || 24);
+    const syncError = syncSettings.lastError || sync.runtime?.lastError || '';
+    const warnings = overviewWarnings({ syncSettings, sync, token, sound, syncError, lastSyncAt, lastSyncOk });
+    return `<div class="vip-grid">${metricCard('VIP-System', s.version ? 'Aktiv' : 'Unbekannt', `Version ${fmt(s.version)}`, s.version ? 'ok' : 'warn')}${metricCard('Twitch-Sync', sync.running ? 'Läuft' : (lastSyncOk === false ? 'Warnung' : 'Bereit'), lastSyncAt ? `Letzter Sync: ${formatDateTime(lastSyncAt)}` : 'Noch kein Sync', sync.running ? 'warn' : (lastSyncOk === false ? 'bad' : 'ok'))}${metricCard('VIPs & Mods', count(syncCounts.total || users.length), `VIPs ${count(syncCounts.vips)} · Mods ${count(syncCounts.mods)}`, '')}${metricCard('Sounds', sound.withSound, `${sound.missing} fehlen`, sound.missing ? 'warn' : 'ok')}${metricCard('Nächster Sync', nextSyncAt ? formatDateTime(nextSyncAt) : '—', `${syncSettings.intervalHours || 24}h Intervall`, nextSyncAt ? '' : 'warn')}${metricCard('Events heute', count(totals.total_events), `${count(totals.accepted_events)} akzeptiert`, '')}<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>Status & Warnungen</h3><p>Kurze Übersicht für den Betrieb. Technische Details bleiben in den passenden Tabs.</p></div><div class="vip-actions"><button type="button" data-vip-action="reload">Aktualisieren</button><button type="button" class="success" data-vip-action="run-twitch-sync">Twitch-Sync starten</button></div></div><div class="vip-status-grid">${overviewStatusCard('System', s.version ? 'VIP-System aktiv' : 'Status unbekannt', status.client?.connected ? 'Overlay verbunden' : 'Overlay nicht verbunden', s.version ? 'ok' : 'warn')}${overviewStatusCard('Twitch', token.ok ? 'Token vorhanden' : 'Token fehlt', syncError || (lastSyncAt ? `Letzter Sync: ${formatDateTime(lastSyncAt)}` : 'Noch kein Sync durchgeführt'), token.ok && !syncError ? 'ok' : 'warn')}${overviewStatusCard('Sounds', `${sound.withSound} von ${sound.total} vorhanden`, sound.missing ? `${sound.missing} VIPs/Mods ohne Sound` : 'Alle bekannten User haben einen Sound', sound.missing ? 'warn' : 'ok')}${overviewStatusCard('Datenbank', `${count(db.settingsRows)} Settings · ${count(db.messageTemplates)} Texte`, `${count(db.twitchUsersRows || syncCounts.total || users.length)} Twitch-Cache-Einträge`, '')}</div>${warnings.length ? `<div class="vip-warning-list">${warnings.map(w => overviewWarningCard(w.title, w.text, w.cls, w.actionPage)).join('')}</div>` : `<div class="vip-ok-box">${badge('Keine akuten Warnungen', 'ok')}<span>VIP-System, Twitch-Sync und Sounds sehen nach aktuellem Dashboard-Stand sauber aus.</span></div>`}</section></div>`;
   }
 
   function metricCard(title, value, sub, cls){ return `<section class="vip-card glass vip-metric"><h3>${esc(title)}</h3><div class="vip-metric-value ${cls || ''}">${esc(value)}</div><p>${esc(sub || '')}</p></section>`; }
+
+  function overviewStatusCard(title, value, sub, cls){
+    return `<article class="vip-status-card ${cls || ''}"><h4>${esc(title)}</h4><strong>${esc(value)}</strong><span>${esc(sub || '')}</span></article>`;
+  }
+
+  function overviewWarningCard(title, text, cls, actionPage){
+    const action = actionPage ? `<button type="button" data-vip-page="${esc(actionPage)}">Öffnen</button>` : '';
+    return `<article class="vip-warning-card ${cls || 'warn'}"><div><h4>${esc(title)}</h4><p>${esc(text)}</p></div>${action}</article>`;
+  }
+
+  function overviewWarnings(data){
+    const warnings = [];
+    if (!data.token.ok) warnings.push({ title:'Twitch-Token prüfen', text:'Der Twitch-Sync meldet keinen gültigen Token. VIP-/Mod-Cache kann dann nicht aktualisiert werden.', cls:'bad', actionPage:'roles' });
+    if (data.syncError) warnings.push({ title:'Letzter Twitch-Sync fehlerhaft', text:data.syncError, cls:'bad', actionPage:'roles' });
+    if (!data.lastSyncAt) warnings.push({ title:'Noch kein Twitch-Sync', text:'Der lokale VIP-/Mod-Cache wurde noch nicht synchronisiert.', cls:'warn', actionPage:'roles' });
+    else if (data.lastSyncOk === false) warnings.push({ title:'Letzter Twitch-Sync nicht erfolgreich', text:'Der Cache ist vorhanden, aber der letzte Sync wurde nicht als erfolgreich gemeldet.', cls:'warn', actionPage:'roles' });
+    if (data.sound.missing > 0) warnings.push({ title:'VIPs/Mods ohne Sound', text:`${data.sound.missing} von ${data.sound.total} bekannten Twitch-VIPs/Mods haben noch keine Sounddatei.`, cls:'warn', actionPage:'sounds' });
+    if (data.sound.brokenDuration > 0) warnings.push({ title:'Sounddauer unklar', text:`Bei ${data.sound.brokenDuration} vorhandenen Sounddateien konnte keine saubere Dauer gelesen werden.`, cls:'warn', actionPage:'sounds' });
+    if (data.syncSettings.enabled === false) warnings.push({ title:'Auto-Sync deaktiviert', text:'Der automatische Twitch-Sync ist ausgeschaltet.', cls:'warn', actionPage:'roles' });
+    if (data.sync.running) warnings.push({ title:'Sync läuft gerade', text:'Der Twitch-Sync ist aktuell aktiv. Werte können sich gleich ändern.', cls:'warn', actionPage:'roles' });
+    return warnings;
+  }
+
+  function nextSyncTime(lastAt, intervalHours){
+    if (!lastAt) return '';
+    const d = new Date(lastAt);
+    if (Number.isNaN(d.getTime())) return '';
+    const hours = Math.max(1, Number(intervalHours || 24));
+    return new Date(d.getTime() + hours * 60 * 60 * 1000).toISOString();
+  }
 
   function settingsPage(){
     const rows = state.settings?.settings || state.summary?.settings?.rows || [];
