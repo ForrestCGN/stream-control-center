@@ -1,4 +1,4 @@
-// STEP188.2 - Clip Dashboard: Discord-Ziel direkt per DB-Channel-ID, JSON-Key nur noch Legacy/Fallback.
+// STEP189 - Clip Dashboard: History-Details und vorbereitete Repost/Retry-UX ohne Backend-Schreibzugriff.
 window.ClipsModule = (function(){
   'use strict';
 
@@ -85,7 +85,8 @@ window.ClipsModule = (function(){
     tab: 'overview',
     textCategory: '',
     settingGroup: 'core',
-    historyLimit: 50
+    historyLimit: 50,
+    selectedHistoryId: ''
   };
 
   function esc(v){
@@ -526,57 +527,183 @@ window.ClipsModule = (function(){
       </section>`;
   }
 
-  function renderHistory(){
+
+  function pick(row, ...keys){
+    for (const key of keys) {
+      const value = row?.[key];
+      if (value !== undefined && value !== null && value !== '') return value;
+    }
+    return '';
+  }
+
+  function clipStatusLabel(status){
+    const value = String(status || '').toLowerCase();
+    if (value === 'created') return 'Erstellt';
+    if (value === 'failed') return 'Fehler';
+    if (value === 'skipped') return 'Übersprungen';
+    if (value === 'pending') return 'Wartet';
+    if (value === 'processing') return 'Läuft';
+    return status || '-';
+  }
+
+  function clipStatusClass(status){
+    const value = String(status || '').toLowerCase();
+    if (value === 'created') return 'ok';
+    if (value === 'failed') return 'bad';
+    if (value === 'skipped') return 'warn';
+    if (value === 'pending' || value === 'processing') return 'muted';
+    return 'muted';
+  }
+
+  function renderStatusBadge(status){
+    return `<span class="clips-badge ${clipStatusClass(status)}">${esc(clipStatusLabel(status))}</span>`;
+  }
+
+  function renderBoolState(value, labelTrue, labelFalse, error){
+    if (error) return `<span class="clips-badge bad" title="${esc(error)}">Fehler</span>`;
+    return value ? `<span class="clips-badge ok">${esc(labelTrue || 'OK')}</span>` : `<span class="clips-badge muted">${esc(labelFalse || 'Offen')}</span>`;
+  }
+
+  function selectedHistoryRow(){
     const list = historyRows();
+    if (!list.length) return null;
+    if (!state.selectedHistoryId) return list[0];
+    return list.find(row => String(row.id || row.jobId || row.clipId || '') === String(state.selectedHistoryId)) || list[0];
+  }
+
+  function renderDetailRow(label, value){
+    return `<div><span>${esc(label)}</span><strong>${fmt(value)}</strong></div>`;
+  }
+
+  function renderHistoryDetails(row){
+    if (!row) return '<section class="clips-card"><div class="clips-empty">Kein Clip ausgewählt.</div></section>';
+
+    const clipUrl = pick(row, 'clipUrl', 'clip_url');
+    const editUrl = pick(row, 'twitchEditUrl', 'twitch_edit_url');
+    const localPath = pick(row, 'localReplayPath', 'localReplayFile', 'localReplayPath', 'local_file_path', 'localFilePath');
+    const reason = pick(row, 'reason', 'error', 'lastError');
+    const discordError = pick(row, 'discordError', 'discord_error');
+    const obsError = pick(row, 'obsReplayError', 'obs_replay_error');
+    const localError = pick(row, 'localReplayError', 'local_replay_error');
+    const jobId = pick(row, 'jobId', 'job_id');
 
     return `
-      <section class="clips-card">
+      <section class="clips-card clips-history-detail">
         <div class="clips-card-head">
           <div>
-            <h3>History</h3>
-            <p>Letzte Clip-Verarbeitungen aus dem Backend. Details/Repost können später auf dieser Basis ergänzt werden.</p>
+            <h3>Clip-Details</h3>
+            <p>${fmt(pick(row, 'clipTitle', 'clip_title', 'title'))}</p>
           </div>
-          <button type="button" data-clips-refresh-history>History aktualisieren</button>
+          <div class="clips-detail-actions">
+            <button type="button" disabled title="Backend-Route für Repost fehlt noch.">Repost vorbereitet</button>
+            <button type="button" disabled title="Backend-Route für Retry fehlt noch.">Retry vorbereitet</button>
+          </div>
         </div>
 
-        ${list.length ? `
-          <div class="clips-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Zeit</th>
-                  <th>Titel</th>
-                  <th>User</th>
-                  <th>Twitch</th>
-                  <th>OBS</th>
-                  <th>Discord</th>
-                  <th>Links</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${list.map(row => `
-                  <tr>
-                    <td>${esc(normalizeDate(row.created_at || row.createdAt || row.updated_at || row.updatedAt || ''))}</td>
-                    <td>
-                      <strong>${fmt(row.clip_title || row.clipTitle || row.title)}</strong>
-                      <small>${fmt(row.game_name || row.gameName)}</small>
-                    </td>
-                    <td>${fmt(row.trigger_user || row.triggerUser || row.trigger_login || row.triggerLogin)}</td>
-                    <td>${fmt(row.twitch_status || row.twitchStatus || row.status)}</td>
-                    <td>${row.obs_replay_saved || row.obsReplaySaved ? '<span class="clips-badge ok">saved</span>' : row.obs_replay_error || row.obsReplayError ? '<span class="clips-badge bad">error</span>' : '<span class="clips-badge muted">offen</span>'}</td>
-                    <td>${row.discord_posted || row.discordPosted ? '<span class="clips-badge ok">posted</span>' : row.discord_error || row.discordError ? '<span class="clips-badge bad">error</span>' : '<span class="clips-badge muted">offen</span>'}</td>
-                    <td class="clips-link-cell">
-                      ${row.clip_url || row.clipUrl ? `<a href="${esc(row.clip_url || row.clipUrl)}" target="_blank" rel="noopener">Clip</a>` : ''}
-                      ${row.twitch_edit_url || row.twitchEditUrl ? `<a href="${esc(row.twitch_edit_url || row.twitchEditUrl)}" target="_blank" rel="noopener">Edit</a>` : ''}
-                      ${row.local_file_path || row.localFilePath ? `<span title="${esc(row.local_file_path || row.localFilePath)}">Lokal</span>` : ''}
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+        <div class="clips-detail-summary">
+          <div>${renderStatusBadge(pick(row, 'status', 'twitchStatus', 'twitch_status'))}<span>Status</span></div>
+          <div>${renderBoolState(Boolean(pick(row, 'discordPosted', 'discord_posted')), 'Gepostet', 'Nicht gepostet', discordError)}<span>Discord</span></div>
+          <div>${renderBoolState(Boolean(pick(row, 'obsReplaySaved', 'obs_replay_saved')), 'Gespeichert', 'Nicht gespeichert', obsError)}<span>OBS Replay</span></div>
+          <div>${renderBoolState(Boolean(pick(row, 'localReplaySaved', 'local_replay_saved')), 'Gefunden', 'Offen', localError)}<span>Lokale Datei</span></div>
+        </div>
+
+        ${(reason || discordError || obsError || localError) ? `
+          <div class="clips-detail-errors">
+            ${reason ? `<div><strong>Grund:</strong> ${esc(reason)}</div>` : ''}
+            ${discordError ? `<div><strong>Discord:</strong> ${esc(discordError)}</div>` : ''}
+            ${obsError ? `<div><strong>OBS:</strong> ${esc(obsError)}</div>` : ''}
+            ${localError ? `<div><strong>Lokal:</strong> ${esc(localError)}</div>` : ''}
           </div>
-        ` : '<div class="clips-empty">Keine Clip-History gefunden.</div>'}
+        ` : ''}
+
+        <div class="clips-detail-grid">
+          ${renderDetailRow('ID', pick(row, 'id'))}
+          ${renderDetailRow('Job-ID', jobId)}
+          ${renderDetailRow('Twitch Clip-ID', pick(row, 'clipId', 'clip_id'))}
+          ${renderDetailRow('Titel', pick(row, 'clipTitle', 'clip_title', 'title'))}
+          ${renderDetailRow('Eigener Titel', pick(row, 'customTitle', 'custom_title'))}
+          ${renderDetailRow('Streamtitel', pick(row, 'streamTitle', 'stream_title'))}
+          ${renderDetailRow('Spiel', pick(row, 'gameName', 'game_name'))}
+          ${renderDetailRow('Ausgelöst von', pick(row, 'triggerUser', 'trigger_user', 'triggerLogin', 'trigger_login'))}
+          ${renderDetailRow('Quelle', pick(row, 'sourceMethod', 'source_method'))}
+          ${renderDetailRow('Erstellt', normalizeDate(pick(row, 'createdAt', 'created_at')))}
+          ${renderDetailRow('Aktualisiert', normalizeDate(pick(row, 'updatedAt', 'updated_at')))}
+          ${renderDetailRow('OBS angefragt', normalizeDate(pick(row, 'obsReplayRequestedAt', 'obs_replay_requested_at')))}
+          ${renderDetailRow('Lokal umbenannt', normalizeDate(pick(row, 'localReplayRenamedAt', 'local_replay_renamed_at')))}
+          ${renderDetailRow('Lokale Datei', localPath)}
+        </div>
+
+        <div class="clips-detail-links">
+          ${clipUrl ? `<a href="${esc(clipUrl)}" target="_blank" rel="noopener">Twitch Clip öffnen</a>` : ''}
+          ${editUrl ? `<a href="${esc(editUrl)}" target="_blank" rel="noopener">Twitch Edit öffnen</a>` : ''}
+          ${localPath ? `<span title="${esc(localPath)}">Lokale Datei vorhanden</span>` : ''}
+          ${jobId ? `<span>Job-ID: ${esc(jobId)}</span>` : '<span>Keine Job-ID vorhanden</span>'}
+        </div>
       </section>`;
+  }
+
+  function renderHistory(){
+    const list = historyRows();
+    const selected = selectedHistoryRow();
+
+    return `
+      <div class="clips-history-layout">
+        <section class="clips-card">
+          <div class="clips-card-head">
+            <div>
+              <h3>History</h3>
+              <p>Letzte Clip-Verarbeitungen. Eine Zeile auswählen, um Details zu sehen.</p>
+            </div>
+            <button type="button" data-clips-refresh-history>History aktualisieren</button>
+          </div>
+
+          ${list.length ? `
+            <div class="clips-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Zeit</th>
+                    <th>Titel</th>
+                    <th>User</th>
+                    <th>Status</th>
+                    <th>OBS</th>
+                    <th>Discord</th>
+                    <th>Links</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${list.map(row => {
+                    const rowKey = String(row.id || row.jobId || row.clipId || '');
+                    const selectedClass = selected && String(selected.id || selected.jobId || selected.clipId || '') === rowKey ? 'is-selected' : '';
+                    const clipUrl = pick(row, 'clipUrl', 'clip_url');
+                    const editUrl = pick(row, 'twitchEditUrl', 'twitch_edit_url');
+                    const localPath = pick(row, 'localReplayPath', 'localReplayFile', 'local_file_path', 'localFilePath');
+                    return `
+                      <tr class="clips-history-row ${selectedClass}" data-history-id="${esc(rowKey)}">
+                        <td>${esc(normalizeDate(pick(row, 'createdAt', 'created_at', 'updatedAt', 'updated_at')))}</td>
+                        <td>
+                          <strong>${fmt(pick(row, 'clipTitle', 'clip_title', 'title'))}</strong>
+                          <small>${fmt(pick(row, 'gameName', 'game_name'))}</small>
+                        </td>
+                        <td>${fmt(pick(row, 'triggerUser', 'trigger_user', 'triggerLogin', 'trigger_login'))}</td>
+                        <td>${renderStatusBadge(pick(row, 'status', 'twitchStatus', 'twitch_status'))}</td>
+                        <td>${renderBoolState(Boolean(pick(row, 'obsReplaySaved', 'obs_replay_saved')), 'saved', 'offen', pick(row, 'obsReplayError', 'obs_replay_error'))}</td>
+                        <td>${renderBoolState(Boolean(pick(row, 'discordPosted', 'discord_posted')), 'posted', 'offen', pick(row, 'discordError', 'discord_error'))}</td>
+                        <td class="clips-link-cell">
+                          ${clipUrl ? `<a href="${esc(clipUrl)}" target="_blank" rel="noopener">Clip</a>` : ''}
+                          ${editUrl ? `<a href="${esc(editUrl)}" target="_blank" rel="noopener">Edit</a>` : ''}
+                          ${localPath ? `<span title="${esc(localPath)}">Lokal</span>` : ''}
+                        </td>
+                      </tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : '<div class="clips-empty">Keine Clip-History gefunden.</div>'}
+        </section>
+
+        ${renderHistoryDetails(selected)}
+      </div>`;
   }
 
   function render(){
@@ -627,6 +754,14 @@ window.ClipsModule = (function(){
         state.error = err.message || String(err);
         render();
       }
+    });
+
+    root?.querySelectorAll('[data-history-id]').forEach(row => {
+      row.addEventListener('click', ev => {
+        if (ev.target && String(ev.target.tagName || '').toLowerCase() === 'a') return;
+        state.selectedHistoryId = row.dataset.historyId || '';
+        render();
+      });
     });
 
     root?.querySelectorAll('[data-clips-tab]').forEach(btn => {
