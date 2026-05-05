@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="de" data-theme="light">
 <head>
   <meta charset="utf-8" />
@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="/dashboard/app.css" />
   <link rel="stylesheet" href="/dashboard/modules/sectionhome.css" />
   <link rel="stylesheet" href="/dashboard/modules/streamdesk.css" />
-  <link rel="stylesheet" href="/dashboard/modules/clips.css" />
   <link rel="stylesheet" href="/dashboard/modules/controlhome.css" />
   <link rel="stylesheet" href="/dashboard/modules/alerts.css" />
   <link rel="stylesheet" href="/dashboard/modules/obs.css" />
@@ -34,11 +33,11 @@
       <nav id="mainNav" class="main-nav main-nav-v2" aria-label="Hauptnavigation">
         <div class="nav-section-block nav-main-block">
           <div class="nav-section-title">Navigation</div>
-          <button class="nav-main-item active" data-section="live"><span class="nav-icon">ðŸ“¡</span><span class="nav-label"><strong>Live</strong><small>Stream-Desk, Chat, Clips</small></span></button>
-          <button class="nav-main-item" data-section="control"><span class="nav-icon">ðŸ§­</span><span class="nav-label"><strong>Control</strong><small>Alerts, OBS, Overlays</small></span></button>
-          <button class="nav-main-item" data-section="community"><span class="nav-icon">ðŸ‘¥</span><span class="nav-label"><strong>Community</strong><small>VIP, Hug, Deathcounter, Tagebuch</small></span></button>
-          <button class="nav-main-item" data-section="system"><span class="nav-icon">ðŸ§©</span><span class="nav-label"><strong>System</strong><small>Sound, TTS, Module</small></span></button>
-          <button class="nav-main-item" data-section="admin"><span class="nav-icon">ðŸ”</span><span class="nav-label"><strong>Admin</strong><small>Configs, Rechte, Logs</small></span></button>
+          <button class="nav-main-item active" data-section="live"><span class="nav-icon">📡</span><span class="nav-label"><strong>Live</strong><small>Stream-Desk, Chat, Clips</small></span></button>
+          <button class="nav-main-item" data-section="control"><span class="nav-icon">🧭</span><span class="nav-label"><strong>Control</strong><small>Alerts, OBS, Overlays</small></span></button>
+          <button class="nav-main-item" data-section="community"><span class="nav-icon">👥</span><span class="nav-label"><strong>Community</strong><small>VIP, Hug, Deathcounter, Tagebuch</small></span></button>
+          <button class="nav-main-item" data-section="system"><span class="nav-icon">🧩</span><span class="nav-label"><strong>System</strong><small>Sound, TTS, Module</small></span></button>
+          <button class="nav-main-item" data-section="admin"><span class="nav-icon">🔐</span><span class="nav-label"><strong>Admin</strong><small>Configs, Rechte, Logs</small></span></button>
         </div>
       </nav>
     </aside>
@@ -46,20 +45,19 @@
     <main class="main">
       <header class="topbar glass">
         <div>
-          <div id="pageBreadcrumb" class="page-breadcrumb">Live / Ãœbersicht</div>
+          <div id="pageBreadcrumb" class="page-breadcrumb">Live / Übersicht</div>
           <h1 id="pageTitle">Live</h1>
         </div>
         <div class="top-actions">
-          <button id="navToggle" class="nav-toggle" title="Navigation ein-/ausklappen">â˜°</button>
-          <button id="themeToggle" class="theme-toggle" title="Hell/Dunkel umschalten">ðŸŒ™ Dunkel</button>
-          <a id="overlayOpenLink" class="ghost-link" href="/overlays/_overlay-alerts-v2.html" target="_blank" hidden>Overlay Ã¶ffnen</a>
+          <button id="navToggle" class="nav-toggle" title="Navigation ein-/ausklappen">☰</button>
+          <button id="themeToggle" class="theme-toggle" title="Hell/Dunkel umschalten">🌙 Dunkel</button>
+          <a id="overlayOpenLink" class="ghost-link" href="/overlays/_overlay-alerts-v2.html" target="_blank" hidden>Overlay öffnen</a>
           <button id="reloadBtn">Reload</button>
         </div>
       </header>
 
       <section id="sectionhomeModule" class="dashboard-module sectionhome-admin" data-module-panel="sectionhome"></section>
       <section id="streamdeskModule" class="dashboard-module streamdesk-admin" data-module-panel="streamdesk" hidden></section>
-      <section id="clipsModule" class="dashboard-module clips-admin" data-module-panel="clips" hidden></section>
       <section id="controlhomeModule" class="dashboard-module controlhome-admin" data-module-panel="controlhome" hidden></section>
       <section id="alertsModule" class="dashboard-module alerts-admin" data-module-panel="alerts" hidden></section>
       <section id="obsModule" class="dashboard-module obs-admin" data-module-panel="obs" hidden></section>
@@ -74,7 +72,6 @@
   <script src="/dashboard/app.js"></script>
   <script src="/dashboard/modules/sectionhome.js"></script>
   <script src="/dashboard/modules/streamdesk.js"></script>
-  <script src="/dashboard/modules/clips.js"></script>
   <script src="/dashboard/modules/controlhome.js"></script>
   <script src="/dashboard/modules/alerts.js"></script>
   <script src="/dashboard/modules/obs.js"></script>
@@ -86,4 +83,3 @@
   <script src="/dashboard/modules/vip.js"></script>
 </body>
 </html>
-

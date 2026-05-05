@@ -1,4 +1,4 @@
-﻿window.CGN = {
+window.CGN = {
   activeModule: 'sectionhome',
   activeSection: 'live',
   auth: { authenticated: false, user: null, twitchLoginConfigured: false },
@@ -17,15 +17,8 @@
       overlayLink: '',
       reload() { return window.StreamdeskModule?.loadAll?.(true); }
     },
-    clips: {
-      title: 'Clip-System',
-      panelId: 'clipsModule',
-      group: 'live',
-      overlayLink: '',
-      reload() { return window.ClipsModule?.loadAll?.(true); }
-    },
     controlhome: {
-      title: 'Control Ãœbersicht',
+      title: 'Control Übersicht',
       panelId: 'controlhomeModule',
       group: 'control',
       overlayLink: '',
@@ -36,7 +29,7 @@
       panelId: 'alertsModule',
       group: 'control',
       overlayLink: '/overlays/_overlay-alerts-v2.html',
-      overlayLabel: 'Alert-Overlay Ã¶ffnen',
+      overlayLabel: 'Alert-Overlay öffnen',
       reload() { return window.AlertsModule?.loadAll?.(true); }
     },
     obs: {
@@ -52,7 +45,7 @@
       panelId: 'soundModule',
       group: 'system',
       overlayLink: '/overlays/sound_system_overlay.html?debug=1',
-      overlayLabel: 'Sound-Overlay Ã¶ffnen',
+      overlayLabel: 'Sound-Overlay öffnen',
       reload() { return window.SoundSystemModule?.loadAll?.(true); }
     },
     hug: {
@@ -81,7 +74,7 @@
       panelId: 'vipModule',
       group: 'community',
       overlayLink: '/overlays/vip_sound_overlay_v2.html',
-      overlayLabel: 'VIP-Overlay Ã¶ffnen',
+      overlayLabel: 'VIP-Overlay öffnen',
       reload() { return window.VipModule?.loadAll?.(true); }
     },
     adminconfigs: {
@@ -95,70 +88,70 @@
 
   sections: {
     live: {
-      label: 'Live', icon: 'ðŸ“¡', role: 'mod/supermod/streamer',
-      description: 'BedienoberflÃ¤che wÃ¤hrend des Streams.',
+      label: 'Live', icon: '📡', role: 'mod/supermod/streamer',
+      description: 'Bedienoberfläche während des Streams.',
       items: ['streamdesk', 'chat', 'userinfo', 'clips', 'daily_notes']
     },
     control: {
-      label: 'Control', icon: 'ðŸ§­', role: 'streamer/local_admin/owner',
+      label: 'Control', icon: '🧭', role: 'streamer/local_admin/owner',
       description: 'Alerts, OBS, Overlays und Stream-Steuerung.',
       items: ['controlhome', 'alerts', 'obs', 'overlays', 'stream_control']
     },
     community: {
-      label: 'Community', icon: 'ðŸ‘¥', role: 'mod/supermod/streamer',
+      label: 'Community', icon: '👥', role: 'mod/supermod/streamer',
       description: 'Chat-, Viewer- und Interaktionssysteme.',
       items: ['vip', 'hug', 'chat_overlay', 'deathcounter', 'challenges', 'tagebuch', 'todo', 'commands', 'community_stats']
     },
     system: {
-      label: 'System', icon: 'ðŸ§©', role: 'streamer/local_admin/owner',
+      label: 'System', icon: '🧩', role: 'streamer/local_admin/owner',
       description: 'Technische Stream-Systeme, Sounds, TTS und Integrationen.',
       items: ['sound_system', 'tts', 'bot_systems', 'message_rotator', 'automations', 'integrations', 'module_status']
     },
     admin: {
-      label: 'Admin', icon: 'ðŸ”', role: 'local_admin/owner',
+      label: 'Admin', icon: '🔐', role: 'local_admin/owner',
       description: 'Sensible Verwaltung, Configs, Logs, Datenbank und Diagnose.',
       items: ['adminconfigs', 'users', 'roles', 'logs', 'database', 'backups', 'tokens', 'diagnostics']
     }
   },
 
   moduleCatalog: {
-    streamdesk: { label: 'Stream-Desk', icon: 'ðŸŽ›', enabled: true, description: 'Zentrale Live-Bedienung und schnelle Stream-Aktionen.' },
-    chat: { label: 'Chat', icon: 'ðŸ’¬', enabled: false, description: 'Chat-Ansicht und spÃ¤tere Chat-Moderation.' },
-    userinfo: { label: 'Userinfo', icon: 'ðŸ”Ž', enabled: false, description: 'Twitch-User schnell prÃ¼fen.' },
-    clips: { label: 'Clips', icon: 'âœ‚ï¸', enabled: false, description: 'Clip-Erstellung und Clip-Verwaltung.' },
-    daily_notes: { label: 'Tagesnotizen', icon: 'ðŸ“', enabled: false, description: 'Kurze Notizen wÃ¤hrend des Streams.' },
-    controlhome: { label: 'Ãœbersicht', icon: 'ðŸ ', enabled: true, description: 'Control-Center Ãœbersicht.' },
-    alerts: { label: 'Alerts V2', icon: 'âš¡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
-    obs: { label: 'OBS Details', icon: 'ðŸŽ®', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
-    overlays: { label: 'Overlays', icon: 'ðŸ–¼', enabled: false, description: 'Overlay-Verwaltung vorbereitet.' },
-    stream_control: { label: 'Stream-Steuerung', icon: 'ðŸ“º', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },
-    vip: { label: 'VIP-System', icon: 'ðŸ’Ž', enabled: true, description: 'VIP-/Mod-Sounds, DB-Texte, Rollen, Daily-Usage und Events.' },
-    hug: { label: 'Hug-System', icon: 'ðŸ¤—', enabled: true, description: 'Hug/Rehug-Statistiken, Texte, Typen und Diagnose.' },
-    chat_overlay: { label: 'Chat-Overlay', icon: 'ðŸ’¬', enabled: false, description: 'Chat-Overlay Steuerung vorbereitet.' },
-    deathcounter: { label: 'Deathcounter', icon: 'ðŸ’€', enabled: false, description: 'Deathcounter V2 Verwaltung vorbereitet.' },
-    challenges: { label: 'Challenges', icon: 'ðŸŽ¯', enabled: false, description: 'Challenge-System Verwaltung vorbereitet.' },
-    tagebuch: { label: 'Tagebuch', icon: 'ðŸ“–', enabled: true, description: 'Stream-Tagebuch, DB-Texte, Settings und Statistiken.' },
-    todo: { label: 'Todo', icon: 'âœ…', enabled: true, description: 'Todo-Ziele, DB-Texte, Settings und Statistiken.' },
-    commands: { label: 'Commands', icon: 'âŒ¨ï¸', enabled: false, description: 'Chat-Befehle vorbereitet.' },
-    community_stats: { label: 'Community-Stats', icon: 'ðŸ“ˆ', enabled: false, description: 'Community-Statistiken vorbereitet.' },
-    sound_system: { label: 'Sound-System', icon: 'ðŸ”Š', enabled: true, description: 'Zentrale Soundausgabe, Queue und PrioritÃ¤ten.' },
-    tts: { label: 'TTS', icon: 'ðŸ—£ï¸', enabled: false, description: 'Text-to-Speech vorbereitet.' },
-    bot_systems: { label: 'Bot-Systeme', icon: 'ðŸ¤–', enabled: false, description: 'Bot- und Automationssysteme vorbereitet.' },
-    message_rotator: { label: 'Message-Rotator', icon: 'ðŸ”', enabled: false, description: 'Automatische Chat-Meldungen vorbereitet.' },
-    automations: { label: 'Automationen', icon: 'â±ï¸', enabled: false, description: 'Zeit- und Event-Automationen vorbereitet.' },
-    integrations: { label: 'Integrationen', icon: 'ðŸ”Œ', enabled: false, description: 'Externe Dienste und APIs vorbereitet.' },
-    module_status: { label: 'Modulstatus', icon: 'ðŸ“Š', enabled: false, description: 'Modulstatus vorbereitet.' },
-    adminconfigs: { label: 'Configs', icon: 'âš™ï¸', enabled: true, description: 'Admin-Konfigurationen einsehen.' },
-    users: { label: 'Benutzer', icon: 'ðŸ‘¤', enabled: false, description: 'Benutzerverwaltung vorbereitet.' },
-    roles: { label: 'Rollen & Rechte', icon: 'ðŸ”‘', enabled: false, description: 'Rechteverwaltung vorbereitet.' },
-    logs: { label: 'Logs', icon: 'ðŸ“œ', enabled: false, description: 'Audit-/Systemlogs vorbereitet.' },
-    database: { label: 'Datenbank', icon: 'ðŸ—„ï¸', enabled: false, description: 'Datenbankstatus und Wartung vorbereitet.' },
-    backups: { label: 'Backups', icon: 'ðŸ’¾', enabled: false, description: 'Backup-System vorbereitet.' },
-    tokens: { label: 'Tokens / Secrets', icon: 'ðŸ”’', enabled: false, description: 'Sensible Werte vorbereitet.' },
-    diagnostics: { label: 'Diagnose', icon: 'ðŸ©º', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
+    streamdesk: { label: 'Stream-Desk', icon: '🎛', enabled: true, description: 'Zentrale Live-Bedienung und schnelle Stream-Aktionen.' },
+    chat: { label: 'Chat', icon: '💬', enabled: false, description: 'Chat-Ansicht und spätere Chat-Moderation.' },
+    userinfo: { label: 'Userinfo', icon: '🔎', enabled: false, description: 'Twitch-User schnell prüfen.' },
+    clips: { label: 'Clips', icon: '✂️', enabled: false, description: 'Clip-Erstellung und Clip-Verwaltung.' },
+    daily_notes: { label: 'Tagesnotizen', icon: '📝', enabled: false, description: 'Kurze Notizen während des Streams.' },
+    controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
+    alerts: { label: 'Alerts V2', icon: '⚡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
+    obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
+    overlays: { label: 'Overlays', icon: '🖼', enabled: false, description: 'Overlay-Verwaltung vorbereitet.' },
+    stream_control: { label: 'Stream-Steuerung', icon: '📺', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },
+    vip: { label: 'VIP-System', icon: '💎', enabled: true, description: 'VIP-/Mod-Sounds, DB-Texte, Rollen, Daily-Usage und Events.' },
+    hug: { label: 'Hug-System', icon: '🤗', enabled: true, description: 'Hug/Rehug-Statistiken, Texte, Typen und Diagnose.' },
+    chat_overlay: { label: 'Chat-Overlay', icon: '💬', enabled: false, description: 'Chat-Overlay Steuerung vorbereitet.' },
+    deathcounter: { label: 'Deathcounter', icon: '💀', enabled: false, description: 'Deathcounter V2 Verwaltung vorbereitet.' },
+    challenges: { label: 'Challenges', icon: '🎯', enabled: false, description: 'Challenge-System Verwaltung vorbereitet.' },
+    tagebuch: { label: 'Tagebuch', icon: '📖', enabled: true, description: 'Stream-Tagebuch, DB-Texte, Settings und Statistiken.' },
+    todo: { label: 'Todo', icon: '✅', enabled: true, description: 'Todo-Ziele, DB-Texte, Settings und Statistiken.' },
+    commands: { label: 'Commands', icon: '⌨️', enabled: false, description: 'Chat-Befehle vorbereitet.' },
+    community_stats: { label: 'Community-Stats', icon: '📈', enabled: false, description: 'Community-Statistiken vorbereitet.' },
+    sound_system: { label: 'Sound-System', icon: '🔊', enabled: true, description: 'Zentrale Soundausgabe, Queue und Prioritäten.' },
+    tts: { label: 'TTS', icon: '🗣️', enabled: false, description: 'Text-to-Speech vorbereitet.' },
+    bot_systems: { label: 'Bot-Systeme', icon: '🤖', enabled: false, description: 'Bot- und Automationssysteme vorbereitet.' },
+    message_rotator: { label: 'Message-Rotator', icon: '🔁', enabled: false, description: 'Automatische Chat-Meldungen vorbereitet.' },
+    automations: { label: 'Automationen', icon: '⏱️', enabled: false, description: 'Zeit- und Event-Automationen vorbereitet.' },
+    integrations: { label: 'Integrationen', icon: '🔌', enabled: false, description: 'Externe Dienste und APIs vorbereitet.' },
+    module_status: { label: 'Modulstatus', icon: '📊', enabled: false, description: 'Modulstatus vorbereitet.' },
+    adminconfigs: { label: 'Configs', icon: '⚙️', enabled: true, description: 'Admin-Konfigurationen einsehen.' },
+    users: { label: 'Benutzer', icon: '👤', enabled: false, description: 'Benutzerverwaltung vorbereitet.' },
+    roles: { label: 'Rollen & Rechte', icon: '🔑', enabled: false, description: 'Rechteverwaltung vorbereitet.' },
+    logs: { label: 'Logs', icon: '📜', enabled: false, description: 'Audit-/Systemlogs vorbereitet.' },
+    database: { label: 'Datenbank', icon: '🗄️', enabled: false, description: 'Datenbankstatus und Wartung vorbereitet.' },
+    backups: { label: 'Backups', icon: '💾', enabled: false, description: 'Backup-System vorbereitet.' },
+    tokens: { label: 'Tokens / Secrets', icon: '🔒', enabled: false, description: 'Sensible Werte vorbereitet.' },
+    diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'obs', 'sound_system'],
+  favorites: ['alerts', 'vip', 'hug', 'tagebuch', 'todo', 'obs', 'sound_system'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
@@ -225,7 +218,7 @@
     const crumb = document.getElementById('pageBreadcrumb');
     if (crumb) {
       const sectionLabel = this.sections[this.activeSection]?.label || '';
-      const moduleLabel = moduleName === 'sectionhome' ? 'Ãœbersicht' : (this.moduleCatalog[moduleName]?.label || meta.title || moduleName);
+      const moduleLabel = moduleName === 'sectionhome' ? 'Übersicht' : (this.moduleCatalog[moduleName]?.label || meta.title || moduleName);
       crumb.textContent = sectionLabel ? `${sectionLabel} / ${moduleLabel}` : moduleLabel;
     }
 
@@ -234,7 +227,7 @@
       if (meta.overlayLink) {
         overlayLink.hidden = false;
         overlayLink.href = meta.overlayLink;
-        overlayLink.textContent = meta.overlayLabel || 'Overlay Ã¶ffnen';
+        overlayLink.textContent = meta.overlayLabel || 'Overlay öffnen';
       } else {
         overlayLink.hidden = true;
       }
@@ -417,4 +410,3 @@ document.querySelectorAll('.nav-main-item[data-section]').forEach(btn => {
   if (wantedModule && wantedModule !== 'sectionhome' && window.CGN.modules[wantedModule]) window.CGN.setActiveModule(wantedModule, { initial: true });
   else window.CGN.setActiveSection(wantedSection, { initial: true });
 })();
-
