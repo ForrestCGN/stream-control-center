@@ -2215,6 +2215,12 @@ module.exports.init = function init(ctx) {
     }, 60 * 60 * 1000);
   }
 
+  function addUnique(list, value) {
+    const clean = String(value || "").trim().toLowerCase();
+    if (!clean) return;
+    if (!list.includes(clean)) list.push(clean);
+  }
+
   function addVipSoundCandidate(map, raw = {}) {
     const login = normalizeLogin(raw.login || raw.user_login || raw.target_login || raw.actor_login || "");
     const displayName = cleanDisplayName(raw.displayName || raw.display_name || raw.user_display_name || raw.target_display_name || raw.actor_display_name || login);
@@ -2228,19 +2234,75 @@ module.exports.init = function init(ctx) {
       displayName: displayName || key,
       roleTypes: [],
       soundTypes: [],
-      sources: []
+      sources: [],
+      twitchRoles: [],
+      localRoles: [],
+      historySoundTypes: [],
+      twitch: {
+        isVip: false,
+        isMod: false,
+        isBroadcaster: false
+      },
+      local: {
+        roles: []
+      },
+      history: {
+        soundTypes: [],
+        sources: []
+      }
     };
 
     if (displayName && (!existing.displayName || existing.displayName === existing.login)) existing.displayName = displayName;
 
-    const roleType = normalizeRoleType(raw.roleType || raw.role_type || raw.role || "vip");
-    if (roleType && !existing.roleTypes.includes(roleType)) existing.roleTypes.push(roleType);
-
-    const soundType = normalizeSoundType(raw.soundType || raw.sound_type || (roleType === "mod" || roleType === "crew" ? "mod" : "vip"));
-    if (soundType && !existing.soundTypes.includes(soundType)) existing.soundTypes.push(soundType);
-
     const source = String(raw.source || "").trim();
     if (source && !existing.sources.includes(source)) existing.sources.push(source);
+
+    const rawRole = raw.roleType ?? raw.role_type ?? raw.role;
+    const roleType = rawRole === undefined || rawRole === null || String(rawRole).trim() === ""
+      ? ""
+      : normalizeRoleType(rawRole);
+
+    const rawSound = raw.soundType ?? raw.sound_type;
+    const soundType = rawSound === undefined || rawSound === null || String(rawSound).trim() === ""
+      ? (roleType === "mod" || roleType === "crew" ? "mod" : (roleType === "vip" ? "vip" : ""))
+      : normalizeSoundType(rawSound);
+
+    if (source === "twitch_sync") {
+      if (roleType) {
+        addUnique(existing.roleTypes, roleType);
+        addUnique(existing.twitchRoles, roleType);
+        if (roleType === "vip") existing.twitch.isVip = true;
+        if (roleType === "mod") existing.twitch.isMod = true;
+        if (roleType === "crew") existing.twitch.isBroadcaster = true;
+      }
+      if (soundType) addUnique(existing.soundTypes, soundType);
+    } else if (source === "role_override") {
+      if (roleType) {
+        addUnique(existing.roleTypes, roleType);
+        addUnique(existing.localRoles, roleType);
+        addUnique(existing.local.roles, roleType);
+      }
+      if (soundType) addUnique(existing.soundTypes, soundType);
+    } else if (source === "daily_usage" || source === "events") {
+      if (soundType) {
+        addUnique(existing.soundTypes, soundType);
+        addUnique(existing.historySoundTypes, soundType);
+        addUnique(existing.history.soundTypes, soundType);
+      }
+      addUnique(existing.history.sources, source);
+    } else {
+      if (roleType) addUnique(existing.roleTypes, roleType);
+      if (soundType) addUnique(existing.soundTypes, soundType);
+    }
+
+    existing.roleTypes.sort();
+    existing.soundTypes.sort();
+    existing.twitchRoles.sort();
+    existing.localRoles.sort();
+    existing.historySoundTypes.sort();
+    existing.local.roles.sort();
+    existing.history.soundTypes.sort();
+    existing.history.sources.sort();
 
     map.set(key, existing);
   }

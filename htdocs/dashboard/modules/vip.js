@@ -204,20 +204,44 @@ window.VipModule = (function(){
     return `<section class="vip-mini-metric"><h4>${esc(title)}</h4><strong class="${cls || ''}">${esc(value)}</strong><span>${esc(sub || '')}</span></section>`;
   }
 
+  function listHas(list, value){
+    return Array.isArray(list) && list.map(String).map(v => v.toLowerCase()).includes(String(value || '').toLowerCase());
+  }
+
   function userHasRole(row, role){
-    return Array.isArray(row.roleTypes) && row.roleTypes.map(String).map(v => v.toLowerCase()).includes(role);
+    return listHas(row.roleTypes, role);
+  }
+
+  function userHasTwitchRole(row, role){
+    const r = String(role || '').toLowerCase();
+    if (r === 'vip' && row.twitch?.isVip === true) return true;
+    if ((r === 'mod' || r === 'moderator') && row.twitch?.isMod === true) return true;
+    return listHas(row.twitchRoles, r);
+  }
+
+  function userHasLocalRole(row, role){
+    const r = String(role || '').toLowerCase();
+    return listHas(row.localRoles, r) || listHas(row.local?.roles, r);
+  }
+
+  function userHasHistorySound(row, soundType){
+    const s = String(soundType || '').toLowerCase();
+    return listHas(row.historySoundTypes, s) || listHas(row.history?.soundTypes, s);
   }
 
   function userMatchesFilter(row, filter){
     const f = String(filter || 'all').toLowerCase();
     if (f === 'missing') return !row.sound?.exists;
     if (f === 'withsound') return !!row.sound?.exists;
-    if (f === 'vip') return userHasRole(row, 'vip');
-    if (f === 'mod') return userHasRole(row, 'mod') || userHasRole(row, 'moderator');
+    if (f === 'vip') return userHasTwitchRole(row, 'vip') || userHasLocalRole(row, 'vip');
+    if (f === 'mod') return userHasTwitchRole(row, 'mod') || userHasLocalRole(row, 'mod');
     if (f === 'twitch') return Array.isArray(row.sources) && row.sources.includes('twitch_sync');
-    if (f === 'twitch_vip') return Array.isArray(row.sources) && row.sources.includes('twitch_sync') && userHasRole(row, 'vip');
-    if (f === 'twitch_mod') return Array.isArray(row.sources) && row.sources.includes('twitch_sync') && (userHasRole(row, 'mod') || userHasRole(row, 'moderator'));
+    if (f === 'twitch_vip') return userHasTwitchRole(row, 'vip');
+    if (f === 'twitch_mod') return userHasTwitchRole(row, 'mod');
     if (f === 'override') return Array.isArray(row.sources) && row.sources.includes('role_override');
+    if (f === 'history') return Array.isArray(row.sources) && (row.sources.includes('daily_usage') || row.sources.includes('events'));
+    if (f === 'history_vip') return userHasHistorySound(row, 'vip');
+    if (f === 'history_mod') return userHasHistorySound(row, 'mod');
     return true;
   }
 
@@ -249,14 +273,33 @@ window.VipModule = (function(){
     const stats = soundStats(users);
     const filter = state.vipUserFilter || 'all';
     const filtered = users.filter(row => userMatchesFilter(row, filter));
-    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>VIPs & Mods</h3><p>Aktuelle Twitch-VIPs/-Mods aus lokalem Sync-Cache, lokale Overrides und Soundstatus.</p></div><button type="button" data-vip-action="reload-sounds">Liste neu laden</button></div>${syncStatusHtml()}<div class="vip-mini-grid">${soundMetricCard('Bekannte User', stats.total, 'Twitch + lokale DB', '')}${soundMetricCard('Sounds vorhanden', stats.withSound, `${stats.missing} fehlen`, stats.missing ? 'warn' : 'ok')}${soundMetricCard('Ø Soundlänge', stats.avg ? formatMs(stats.avg) : '—', 'ffprobe', '')}${soundMetricCard('Längster Sound', stats.longest?.displayName || '—', stats.longest?.sound?.durationMs ? formatMs(stats.longest.sound.durationMs) : '', '')}</div><div class="vip-filter-row vip-filter-compact"><label>Filter <select id="vipUserFilter"><option value="all" ${filter === 'all' ? 'selected' : ''}>Alle</option><option value="missing" ${filter === 'missing' ? 'selected' : ''}>Ohne Sound</option><option value="withsound" ${filter === 'withsound' ? 'selected' : ''}>Mit Sound</option><option value="vip" ${filter === 'vip' ? 'selected' : ''}>VIP</option><option value="mod" ${filter === 'mod' ? 'selected' : ''}>Mod</option><option value="twitch" ${filter === 'twitch' ? 'selected' : ''}>Twitch-Sync</option><option value="twitch_vip" ${filter === 'twitch_vip' ? 'selected' : ''}>Twitch VIP</option><option value="twitch_mod" ${filter === 'twitch_mod' ? 'selected' : ''}>Twitch Mod</option><option value="override" ${filter === 'override' ? 'selected' : ''}>Lokale Overrides</option></select></label><button type="button" data-vip-action="apply-user-filter">Anzeigen</button><div class="vip-muted">Filter zeigt ${esc(filtered.length)} von ${esc(users.length)} Usern. Fehlende Sounds koennen direkt hochgeladen werden.</div></div><div class="vip-table-wrap"><table class="vip-table vip-users-table"><thead><tr><th>User</th><th>Status</th><th>Quellen</th><th>Sound</th><th>Dauer</th><th>Datei</th><th>Aktion</th></tr></thead><tbody>${filtered.map(soundUserRow).join('') || '<tr><td colspan="7">Keine User fuer diesen Filter gefunden.</td></tr>'}</tbody></table></div></section>${roleFallbackSection()}`;
+    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>VIPs & Mods</h3><p>Aktuelle Twitch-VIPs/-Mods aus lokalem Sync-Cache, lokale Overrides, Historie und Soundstatus klar getrennt.</p></div><button type="button" data-vip-action="reload-sounds">Liste neu laden</button></div>${syncStatusHtml()}<div class="vip-mini-grid">${soundMetricCard('Bekannte User', stats.total, 'Twitch + lokale DB', '')}${soundMetricCard('Sounds vorhanden', stats.withSound, `${stats.missing} fehlen`, stats.missing ? 'warn' : 'ok')}${soundMetricCard('Ø Soundlänge', stats.avg ? formatMs(stats.avg) : '—', 'ffprobe', '')}${soundMetricCard('Längster Sound', stats.longest?.displayName || '—', stats.longest?.sound?.durationMs ? formatMs(stats.longest.sound.durationMs) : '', '')}</div><div class="vip-filter-row vip-filter-compact"><label>Filter <select id="vipUserFilter"><option value="all" ${filter === 'all' ? 'selected' : ''}>Alle</option><option value="missing" ${filter === 'missing' ? 'selected' : ''}>Ohne Sound</option><option value="withsound" ${filter === 'withsound' ? 'selected' : ''}>Mit Sound</option><option value="vip" ${filter === 'vip' ? 'selected' : ''}>VIP (Twitch/Lokal)</option><option value="mod" ${filter === 'mod' ? 'selected' : ''}>Mod (Twitch/Lokal)</option><option value="twitch" ${filter === 'twitch' ? 'selected' : ''}>Twitch-Sync</option><option value="twitch_vip" ${filter === 'twitch_vip' ? 'selected' : ''}>Twitch VIP</option><option value="twitch_mod" ${filter === 'twitch_mod' ? 'selected' : ''}>Twitch Mod</option><option value="override" ${filter === 'override' ? 'selected' : ''}>Lokale Overrides</option><option value="history" ${filter === 'history' ? 'selected' : ''}>Historie vorhanden</option><option value="history_vip" ${filter === 'history_vip' ? 'selected' : ''}>Historie VIP-Sound</option><option value="history_mod" ${filter === 'history_mod' ? 'selected' : ''}>Historie Mod-Sound</option></select></label><button type="button" data-vip-action="apply-user-filter">Anzeigen</button><div class="vip-muted">Filter zeigt ${esc(filtered.length)} von ${esc(users.length)} Usern. Twitch-Status, lokale Overrides und Historie werden getrennt angezeigt.</div></div><div class="vip-table-wrap"><table class="vip-table vip-users-table"><thead><tr><th>User</th><th>Twitch-Status</th><th>Lokaler Override</th><th>Historie</th><th>Sound</th><th>Dauer</th><th>Datei</th><th>Aktion</th></tr></thead><tbody>${filtered.map(soundUserRow).join('') || '<tr><td colspan="8">Keine User fuer diesen Filter gefunden.</td></tr>'}</tbody></table></div></section>${roleFallbackSection()}`;
+  }
+
+  function rolePills(list, emptyLabel){
+    const rows = Array.isArray(list) ? list : [];
+    return rows.length ? rows.map(r => badge(r)).join('') : badge(emptyLabel || '—', 'warn');
+  }
+
+  function twitchStatusPills(row){
+    const roles = [];
+    if (userHasTwitchRole(row, 'vip')) roles.push('VIP');
+    if (userHasTwitchRole(row, 'mod')) roles.push('Mod');
+    return roles.length ? roles.map(r => badge(r, 'ok')).join('') : badge('kein Twitch-Status', 'warn');
+  }
+
+  function localStatusPills(row){
+    return rolePills(row.localRoles || row.local?.roles || [], 'kein Override');
+  }
+
+  function historyStatusPills(row){
+    const list = row.historySoundTypes || row.history?.soundTypes || [];
+    return list.length ? list.map(r => badge(`${r}-Sound`)).join('') : badge('keine Historie', 'warn');
   }
 
   function soundUserRow(row){
-    const roles = (row.roleTypes || []).map(r => badge(r)).join('') || badge('bekannt');
-    const sounds = (row.soundTypes || []).map(r => badge(r, '')) .join('');
     const sound = row.sound || {};
-    return `<tr><td><strong>${esc(row.displayName || row.login)}</strong><br><code>${esc(row.login || '')}</code></td><td><div class="vip-pill-wrap">${roles}${sounds}</div></td><td class="vip-muted">${esc(sourceLabels(row) || '—')}</td><td>${badge(sound.exists ? 'vorhanden' : 'fehlt', sound.exists ? 'ok' : 'warn')}</td><td>${sound.durationMs ? esc(formatMs(sound.durationMs)) : '—'}</td><td><code>${esc(sound.fileName || '—')}</code></td><td><button type="button" data-select-sound-login="${esc(row.login || '')}">${sound.exists ? 'Song ändern' : 'Song hochladen'}</button></td></tr>`;
+    return `<tr><td><strong>${esc(row.displayName || row.login)}</strong><br><code>${esc(row.login || '')}</code><br><span class="vip-muted">${esc(sourceLabels(row) || '—')}</span></td><td><div class="vip-pill-wrap">${twitchStatusPills(row)}</div></td><td><div class="vip-pill-wrap">${localStatusPills(row)}</div></td><td><div class="vip-pill-wrap">${historyStatusPills(row)}</div></td><td>${badge(sound.exists ? 'vorhanden' : 'fehlt', sound.exists ? 'ok' : 'warn')}</td><td>${sound.durationMs ? esc(formatMs(sound.durationMs)) : '—'}</td><td><code>${esc(sound.fileName || '—')}</code></td><td><button type="button" data-select-sound-login="${esc(row.login || '')}">${sound.exists ? 'Song ändern' : 'Song hochladen'}</button></td></tr>`;
   }
 
   function roleFallbackSection(){
