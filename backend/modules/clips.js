@@ -1,5 +1,5 @@
 // modules/clips.js
-// STEP186 — Clip Backend-Create: Twitch API, Job, Discord und OBS-Save-Timing.
+// STEP187 — Clip Backend-Create: lokales OBS-Replay-Dateihandling.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
@@ -9,6 +9,7 @@
 // - Clip-Texte werden ueber helper_texts in module_text_variants kategorisiert und variantenfaehig vorbereitet
 // - Discord-Zielkanal kann per Key oder direkter Channel-ID aus DB-Settings kommen
 // - alte Clip-Textkategorie "clip" wird sanft auf chat/discord/errors/system migriert
+// - lokale OBS-Replay-Dateien werden nach SaveReplayBuffer gesucht, freigeprueft und umbenannt
 
 'use strict';
 
@@ -36,7 +37,7 @@ try {
 }
 
 const MODULE_NAME = 'clips';
-const CLIP_SCHEMA_VERSION = 2;
+const CLIP_SCHEMA_VERSION = 3;
 const CLIP_HISTORY_TABLE = 'clip_history';
 const CLIP_SETTINGS_TABLE = 'clip_settings';
 
@@ -955,7 +956,7 @@ module.exports.init = function init(ctx) {
         pollTwitchClip: true,
         postDiscord: cfg.discordPostEnabled,
         obsReplaySaveScheduled: cfg.obsReplaySaveEnabled,
-        localReplayRenameScheduled: false
+        localReplayRenameScheduled: cfg.localReplayRenameEnabled
       }
     });
   }
@@ -993,21 +994,31 @@ module.exports.init = function init(ctx) {
       });
     }
 
-    const discord = await maybePostClipToDiscord({ cfg: job.cfg, messages: job.messages, received });
-    if (job.historyId && discord) markClipDiscordResult(job.historyId, discord);
-
     const obs = await obsPromise;
+    if (obs?.localReplaySaved) {
+      received.localReplayPath = obs.localReplayPath || '';
+      received.localReplayFile = obs.localReplayFile || '';
+    }
+
     if (job.historyId && obs) {
       updateClipHistoryExtra(job.historyId, {
         obs_replay_requested: obs.requested ? 1 : 0,
         obs_replay_saved: obs.saved ? 1 : 0,
         obs_replay_error: obs.error || obs.reason || '',
         obs_replay_requested_at: obs.requestedAt || '',
+        local_replay_saved: obs.localReplaySaved ? 1 : 0,
+        local_replay_path: obs.localReplayPath || '',
+        local_replay_file: obs.localReplayFile || '',
+        local_replay_error: obs.localReplayError || '',
+        local_replay_renamed_at: obs.localReplayRenamedAt || '',
         updated_at: nowIso()
       });
     }
 
-    return { ok: true, jobId: job.jobId, poll, discord, obs };
+    const discord = await maybePostClipToDiscord({ cfg: job.cfg, messages: job.messages, received });
+    if (job.historyId && discord) markClipDiscordResult(job.historyId, discord);
+
+    return { ok: true, jobId: job.jobId, poll, obs, discord };
   }
 
   async function pollTwitchClip(clipId, cfg) {
@@ -1032,17 +1043,157 @@ module.exports.init = function init(ctx) {
   }
 
   async function scheduleObsReplaySave(job) {
-    if (!job.cfg.obsReplaySaveEnabled) return { requested: false, saved: false, skipped: true, reason: 'obs_replay_disabled' };
+    const base = {
+      requested: false,
+      saved: false,
+      skipped: false,
+      requestedAt: '',
+      error: '',
+      localReplaySaved: false,
+      localReplayPath: '',
+      localReplayFile: '',
+      localReplayError: '',
+      localReplayRenamedAt: ''
+    };
+
+    if (!job.cfg.obsReplaySaveEnabled) return { ...base, skipped: true, reason: 'obs_replay_disabled' };
+
     const delayMs = toInt(job.cfg.obsReplaySaveDelayMs, 30000, 0, 300000);
     await sleep(delayMs);
     const requestedAt = nowIso();
+
     try {
       if (!sharedObs || typeof sharedObs.saveReplayBuffer !== 'function') throw new Error('obs_shared_save_unavailable');
       await sharedObs.saveReplayBuffer();
-      return { requested: true, saved: true, skipped: false, requestedAt, error: '' };
+      const result = { ...base, requested: true, saved: true, requestedAt, error: '' };
+      const local = await handleLocalReplayFile(job);
+      return { ...result, ...local };
     } catch (err) {
-      return { requested: true, saved: false, skipped: false, requestedAt, error: err.message || String(err) };
+      return { ...base, requested: true, saved: false, requestedAt, error: err.message || String(err) };
     }
+  }
+
+  async function handleLocalReplayFile(job) {
+    const out = {
+      localReplaySaved: false,
+      localReplayPath: '',
+      localReplayFile: '',
+      localReplayError: '',
+      localReplayRenamedAt: ''
+    };
+
+    if (!job.cfg.localReplayRenameEnabled) return { ...out, localReplayError: 'local_replay_rename_disabled' };
+
+    const clipsDir = String(job.cfg.localReplayDir || '').trim();
+    if (!clipsDir || !fs.existsSync(clipsDir)) {
+      return { ...out, localReplayError: 'local_replay_dir_invalid' };
+    }
+
+    const renameDelayMs = toInt(job.cfg.localReplayRenameDelayMs, 3000, 0, 60000);
+    if (renameDelayMs > 0) await sleep(renameDelayMs);
+
+    const newest = findNewestRecentReplayFile(clipsDir, job.cfg.localReplayLookbackMinutes);
+    if (!newest) {
+      return { ...out, localReplayError: 'local_replay_file_missing' };
+    }
+
+    const ready = await waitForFileReady(newest.fullPath, 5000, 200);
+    if (!ready) {
+      return { ...out, localReplayError: `local_replay_file_locked:${path.basename(newest.fullPath)}` };
+    }
+
+    try {
+      const targetPath = buildLocalReplayTargetPath(clipsDir, newest.fullPath, job);
+      fs.renameSync(newest.fullPath, targetPath);
+      return {
+        localReplaySaved: true,
+        localReplayPath: targetPath,
+        localReplayFile: path.basename(targetPath),
+        localReplayError: '',
+        localReplayRenamedAt: nowIso()
+      };
+    } catch (err) {
+      return { ...out, localReplayError: err.message || String(err) };
+    }
+  }
+
+  function findNewestRecentReplayFile(dir, lookbackMinutes) {
+    const maxAgeMs = Math.max(1, toInt(lookbackMinutes, 5, 1, 60)) * 60 * 1000;
+    const now = Date.now();
+    let newest = null;
+
+    try {
+      const names = fs.readdirSync(dir);
+      for (const name of names) {
+        const fullPath = path.join(dir, name);
+        let stat;
+        try { stat = fs.statSync(fullPath); } catch (_) { continue; }
+        if (!stat.isFile()) continue;
+        if (stat.size <= 0) continue;
+        if ((now - stat.mtimeMs) > maxAgeMs) continue;
+        if (!newest || stat.mtimeMs > newest.mtimeMs) {
+          newest = { fullPath, mtimeMs: stat.mtimeMs, size: stat.size };
+        }
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return newest;
+  }
+
+  async function waitForFileReady(filePath, maxWaitMs = 5000, pollEveryMs = 200) {
+    const started = Date.now();
+    while ((Date.now() - started) <= maxWaitMs) {
+      if (isFileReady(filePath)) return true;
+      await sleep(pollEveryMs);
+    }
+    return isFileReady(filePath);
+  }
+
+  function isFileReady(filePath) {
+    try {
+      const stat = fs.statSync(filePath);
+      if (!stat.isFile() || stat.size <= 0) return false;
+      const fd = fs.openSync(filePath, 'r+');
+      fs.closeSync(fd);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function buildLocalReplayTargetPath(clipsDir, sourcePath, job) {
+    const ext = path.extname(sourcePath) || '.mp4';
+    const stamp = formatLocalTimestamp(new Date());
+    const userPart = sanitizeFileName(job.triggerUser || job.triggerLogin || 'unknown');
+    const titlePart = sanitizeFileName(job.title?.customTitle || job.title?.clipTitle || 'Clip');
+    const parts = ['Clip', stamp];
+    if (userPart) parts.push(userPart);
+    if (titlePart) parts.push(titlePart);
+    const base = parts.join('-');
+    let target = path.join(clipsDir, base + ext);
+    let index = 1;
+    while (fs.existsSync(target)) {
+      target = path.join(clipsDir, `${base}_${index}${ext}`);
+      index += 1;
+    }
+    return target;
+  }
+
+  function formatLocalTimestamp(date) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+  }
+
+  function sanitizeFileName(input) {
+    return String(input || '')
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/[\s]+/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 80);
   }
 
   async function handleClipRegister(req, res, source, method) {
@@ -1192,6 +1343,11 @@ function ensureClipSchema() {
   safeAddClipHistoryColumn('obs_replay_saved', 'INTEGER NOT NULL DEFAULT 0');
   safeAddClipHistoryColumn('obs_replay_error', "TEXT NOT NULL DEFAULT ''");
   safeAddClipHistoryColumn('obs_replay_requested_at', "TEXT NOT NULL DEFAULT ''");
+  safeAddClipHistoryColumn('local_replay_saved', 'INTEGER NOT NULL DEFAULT 0');
+  safeAddClipHistoryColumn('local_replay_path', "TEXT NOT NULL DEFAULT ''");
+  safeAddClipHistoryColumn('local_replay_file', "TEXT NOT NULL DEFAULT ''");
+  safeAddClipHistoryColumn('local_replay_error', "TEXT NOT NULL DEFAULT ''");
+  safeAddClipHistoryColumn('local_replay_renamed_at', "TEXT NOT NULL DEFAULT ''");
   safeAddClipHistoryColumn('updated_at', "TEXT NOT NULL DEFAULT ''");
 
   database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_created_at ON ${CLIP_HISTORY_TABLE} (created_at);`);
@@ -1292,7 +1448,7 @@ function listClipHistory(limit) {
   return database.all(`
     SELECT id, clip_id, clip_url, clip_title, custom_title, stream_title, game_name, trigger_user, status, reason,
            source_method, discord_posted, discord_error, job_id, twitch_edit_url, twitch_status,
-           obs_replay_requested, obs_replay_saved, obs_replay_error, obs_replay_requested_at, updated_at, created_at
+           obs_replay_requested, obs_replay_saved, obs_replay_error, obs_replay_requested_at, local_replay_saved, local_replay_path, local_replay_file, local_replay_error, local_replay_renamed_at, updated_at, created_at
     FROM ${CLIP_HISTORY_TABLE}
     ORDER BY id DESC
     LIMIT :limit
@@ -1317,6 +1473,11 @@ function listClipHistory(limit) {
     obsReplaySaved: Number(row.obs_replay_saved || 0) === 1,
     obsReplayError: row.obs_replay_error || '',
     obsReplayRequestedAt: row.obs_replay_requested_at || '',
+    localReplaySaved: Number(row.local_replay_saved || 0) === 1,
+    localReplayPath: row.local_replay_path || '',
+    localReplayFile: row.local_replay_file || '',
+    localReplayError: row.local_replay_error || '',
+    localReplayRenamedAt: row.local_replay_renamed_at || '',
     updatedAt: row.updated_at || '',
     createdAt: row.created_at || ''
   }));
@@ -1327,7 +1488,7 @@ function getClipHistoryByJobId(jobId) {
   const row = database.get(`
     SELECT id, clip_id, clip_url, clip_title, custom_title, stream_title, game_name, trigger_user, status, reason,
            source_method, discord_posted, discord_error, job_id, twitch_edit_url, twitch_status,
-           obs_replay_requested, obs_replay_saved, obs_replay_error, obs_replay_requested_at, updated_at, created_at
+           obs_replay_requested, obs_replay_saved, obs_replay_error, obs_replay_requested_at, local_replay_saved, local_replay_path, local_replay_file, local_replay_error, local_replay_renamed_at, updated_at, created_at
     FROM ${CLIP_HISTORY_TABLE}
     WHERE job_id = :jobId
     LIMIT 1
@@ -1354,6 +1515,11 @@ function getClipHistoryByJobId(jobId) {
     obsReplaySaved: Number(row.obs_replay_saved || 0) === 1,
     obsReplayError: row.obs_replay_error || '',
     obsReplayRequestedAt: row.obs_replay_requested_at || '',
+    localReplaySaved: Number(row.local_replay_saved || 0) === 1,
+    localReplayPath: row.local_replay_path || '',
+    localReplayFile: row.local_replay_file || '',
+    localReplayError: row.local_replay_error || '',
+    localReplayRenamedAt: row.local_replay_renamed_at || '',
     updatedAt: row.updated_at || '',
     createdAt: row.created_at || ''
   };
@@ -1364,7 +1530,8 @@ function updateClipHistoryExtra(historyId, patch = {}) {
   if (!id || !patch || typeof patch !== 'object') return false;
   const allowed = new Set([
     'clip_url', 'status', 'reason', 'job_id', 'twitch_edit_url', 'twitch_status',
-    'obs_replay_requested', 'obs_replay_saved', 'obs_replay_error', 'obs_replay_requested_at', 'updated_at'
+    'obs_replay_requested', 'obs_replay_saved', 'obs_replay_error', 'obs_replay_requested_at',
+    'local_replay_saved', 'local_replay_path', 'local_replay_file', 'local_replay_error', 'local_replay_renamed_at', 'updated_at'
   ]);
   const entries = Object.entries(patch).filter(([key]) => allowed.has(key));
   if (!entries.length) return false;
