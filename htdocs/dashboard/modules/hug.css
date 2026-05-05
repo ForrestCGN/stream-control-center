@@ -257,3 +257,9 @@ html[data-theme=light] .hug-response-form textarea{
     grid-template-columns:1fr;
   }
 }
+
+
+/* STEP182.5 - Toplisten-Titel Editor nutzt Response-Form-Layout */
+.hug-response-form textarea[data-top-title-field="text"]{
+  min-height:64px;
+}

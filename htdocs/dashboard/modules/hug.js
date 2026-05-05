@@ -9,6 +9,8 @@ window.HugModule = (function(){
   let hugAllTextsError = '';
   let responseTexts = null;
   let responseTextsError = '';
+  let topTitleTexts = null;
+  let topTitleTextsError = '';
   let loading = false;
   let actionsBound = false;
   let activeTab = 'overview';
@@ -270,7 +272,7 @@ window.HugModule = (function(){
     if (activeTextCategory === 'pairs') return renderTextPairsEditor(pairs);
     if (activeTextCategory === 'hug_all') return renderHugAllEditor();
     if (activeTextCategory === 'responses') return renderResponseEditor();
-    if (activeTextCategory === 'top_titles') return renderTextCategoryPlaceholder('Toplisten', 'top_title', kinds);
+    if (activeTextCategory === 'top_titles') return renderTopTitleEditor();
     return '<div class="hug-empty">Unbekannte Textkategorie.</div>';
   }
 
@@ -431,6 +433,86 @@ window.HugModule = (function(){
       topEmpty: 'Topliste leer'
     };
     return labels[key] || `Systemantwort ${key}`;
+  }
+
+  function renderTopTitleEditor(){
+    if (topTitleTextsError) return `<div class="hug-error">Toplisten-Titel konnten nicht geladen werden: ${esc(topTitleTextsError)}</div>`;
+    if (!topTitleTexts) return `<div class="hug-empty">Toplisten-Titel werden geladen oder Backend-STEP182.5 ist noch nicht deployed.</div>`;
+    const rows = Array.isArray(topTitleTexts.texts) ? topTitleTexts.texts : [];
+    return `
+      <div class="hug-sub-card">
+        <div class="card-head big-head hug-compact-head">
+          <div>
+            <h3>Toplisten</h3>
+            <div class="small-note">Titel fuer Hug-Toplisten. Der Text-Key bestimmt, welche Topliste diesen Titel nutzt.</div>
+          </div>
+          <div class="head-actions">
+            <button type="button" data-hug-action="reload-top-titles">Neu laden</button>
+          </div>
+        </div>
+
+        <div class="hug-pair-summary">
+          <div class="hug-kind"><strong>${num(topTitleTexts.activeCount || 0)}</strong><span>aktive Titel</span></div>
+          <div class="hug-kind"><strong>${num(topTitleTexts.count || 0)}</strong><span>Titel gesamt</span></div>
+        </div>
+
+        ${renderNewTopTitleForm()}
+
+        <div class="hug-text-list">
+          ${rows.length ? rows.map(row => renderTopTitleCard(row)).join('') : '<div class="hug-empty">Keine Toplisten-Titel vorhanden.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderNewTopTitleForm(){
+    return `
+      <details class="hug-pair-new">
+        <summary>Neuen Toplisten-Titel anlegen</summary>
+        <div class="hug-response-form" data-top-title-form="new">
+          <label class="response-key"><span>Text-Key</span><input data-top-title-field="textKey" placeholder="z. B. customTop"></label>
+          <label class="compact compact-aktiv"><span>Aktiv</span><select data-top-title-field="enabled"><option value="true">Aktiv</option><option value="false">Inaktiv</option></select></label>
+          <label class="compact compact-weight"><span>Gewichtung</span><input data-top-title-field="weight" type="number" min="1" value="1"></label>
+          <label class="compact compact-sort"><span>Sortierung</span><input data-top-title-field="sortOrder" type="number" value="0"></label>
+          <label class="wide pair-textarea"><span>Titel</span><textarea data-top-title-field="text" rows="2" placeholder="z. B. Top Hugs"></textarea></label>
+          <div class="hug-pair-actions wide"><button type="button" data-hug-action="save-top-title" data-text-id="new">Titel speichern</button></div>
+        </div>
+      </details>
+    `;
+  }
+
+  function renderTopTitleCard(row){
+    return `
+      <div class="hug-pair-card" data-top-title-form="${esc(row.id)}">
+        <div class="hug-pair-card-head">
+          <div>
+            <strong>${esc(topTitleLabel(row.textKey || row.id))}</strong>
+            <span>Key: ${esc(row.textKey || '-')} · ${row.enabled ? 'aktiv' : 'inaktiv'} · Gewicht ${esc(row.weight || 1)}</span>
+          </div>
+          <div class="hug-pair-card-actions">
+            <button type="button" data-hug-action="save-top-title" data-text-id="${esc(row.id)}">Speichern</button>
+            <button type="button" class="danger" data-hug-action="delete-top-title" data-text-id="${esc(row.id)}">Löschen</button>
+          </div>
+        </div>
+        <div class="hug-response-form">
+          <input type="hidden" data-top-title-field="id" value="${esc(row.id)}">
+          <label class="response-key"><span>Text-Key</span><input data-top-title-field="textKey" value="${esc(row.textKey || '')}"></label>
+          <label class="compact compact-aktiv"><span>Aktiv</span><select data-top-title-field="enabled"><option value="true"${row.enabled ? ' selected' : ''}>Aktiv</option><option value="false"${!row.enabled ? ' selected' : ''}>Inaktiv</option></select></label>
+          <label class="compact compact-weight"><span>Gewichtung</span><input data-top-title-field="weight" type="number" min="1" value="${esc(row.weight || 1)}"></label>
+          <label class="compact compact-sort"><span>Sortierung</span><input data-top-title-field="sortOrder" type="number" value="${esc(row.sortOrder || 0)}"></label>
+          <label class="wide pair-textarea"><span>Titel</span><textarea data-top-title-field="text" rows="2">${esc(row.text || '')}</textarea></label>
+        </div>
+      </div>
+    `;
+  }
+
+  function topTitleLabel(key){
+    const labels = {
+      given: 'Top Hugs vergeben',
+      received: 'Top Hugs erhalten',
+      rehug: 'Top Rehugs'
+    };
+    return labels[key] || `Toplisten-Titel ${key}`;
   }
 
   function renderTextCategoryPlaceholder(title, kind, kinds){
@@ -688,6 +770,16 @@ window.HugModule = (function(){
     }
   }
 
+  async function loadTopTitleTexts(){
+    topTitleTextsError = '';
+    try {
+      topTitleTexts = await api('/api/dashboard/community/hug/top-title-texts');
+    } catch (err) {
+      topTitleTexts = null;
+      topTitleTextsError = err.message || String(err);
+    }
+  }
+
   async function saveHugAllText(textId){
     const text = collectHugAllForm(textId);
     await api('/api/dashboard/community/hug/hug-all-texts', {
@@ -746,6 +838,45 @@ window.HugModule = (function(){
     await loadAll(true);
   }
 
+  function collectTopTitleForm(textId){
+    const form = root?.querySelector(`[data-top-title-form="${CSS.escape(String(textId))}"]`);
+    if (!form) throw new Error('Formular nicht gefunden.');
+    const data = {};
+    form.querySelectorAll('[data-top-title-field]').forEach(field => {
+      const key = field.dataset.topTitleField;
+      if (!key) return;
+      data[key] = field.value;
+    });
+    if (textId !== 'new') data.id = textId;
+    data.weight = Math.max(1, Number(data.weight || 1));
+    data.sortOrder = Number(data.sortOrder || 0);
+    data.enabled = data.enabled !== 'false';
+    data.textKey = String(data.textKey || '').trim();
+    data.text = String(data.text || '').trim();
+    if (!data.textKey) throw new Error('Text-Key fehlt.');
+    if (!data.text) throw new Error('Titel fehlt.');
+    return data;
+  }
+
+  async function saveTopTitleText(textId){
+    const text = collectTopTitleForm(textId);
+    await api('/api/dashboard/community/hug/top-title-texts', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveText', text })
+    });
+    await loadAll(true);
+  }
+
+  async function deleteTopTitleText(textId){
+    if (!textId || textId === 'new') return;
+    if (!confirm('Diesen Toplisten-Titel wirklich löschen?')) return;
+    await api('/api/dashboard/community/hug/top-title-texts', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'deleteText', id: textId })
+    });
+    await loadAll(true);
+  }
+
   function bindActions(){
     if (actionsBound || !root) return;
     actionsBound = true;
@@ -794,6 +925,12 @@ window.HugModule = (function(){
         }
         if (action === 'save-response') await saveResponseText(btn.dataset.textId || 'new');
         if (action === 'delete-response') await deleteResponseText(btn.dataset.textId || '');
+        if (action === 'reload-top-titles') {
+          await loadTopTitleTexts();
+          renderTexts();
+        }
+        if (action === 'save-top-title') await saveTopTitleText(btn.dataset.textId || 'new');
+        if (action === 'delete-top-title') await deleteTopTitleText(btn.dataset.textId || '');
       } catch (err) {
         alert(`Hug-Fehler: ${err.message}`);
       } finally {
@@ -826,6 +963,7 @@ window.HugModule = (function(){
       await loadTextPairs();
       await loadHugAllTexts();
       await loadResponseTexts();
+      await loadTopTitleTexts();
       render();
     } catch (err) {
       if (root) root.innerHTML = `<div class="hug-card"><h2>Hug-System</h2><div class="hug-error">${esc(err.message)}</div></div>`;

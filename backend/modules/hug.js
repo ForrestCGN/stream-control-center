@@ -571,7 +571,7 @@ function getTexts(kind, typeId = null, textKey = null) {
 }
 
 function getTextsForEditor(kind, options = {}) {
-  const allowedKinds = new Set(["hug_all", "response"]);
+  const allowedKinds = new Set(["hug_all", "response", "top_title"]);
   const cleanKind = String(kind || "").trim();
   if (!allowedKinds.has(cleanKind)) throw new Error("unsupported_text_kind");
   const activeOnly = options.activeOnly === true;
@@ -599,7 +599,7 @@ function getTextsForEditor(kind, options = {}) {
 
 function saveHugTextItem(item = {}, forcedKind = "hug_all") {
   const kind = String(forcedKind || item.kind || "").trim();
-  const allowedKinds = new Set(["hug_all", "response"]);
+  const allowedKinds = new Set(["hug_all", "response", "top_title"]);
   if (!allowedKinds.has(kind)) throw new Error("unsupported_text_kind");
   const id = Number(item.id || item.textId || 0);
   const text = String(item.text || "").trim();
@@ -645,7 +645,7 @@ function deleteHugTextItem(id, forcedKind = "hug_all") {
   const textId = Number(id || 0);
   const kind = String(forcedKind || "hug_all").trim();
   if (!textId) throw new Error("text_id_required");
-  if (!["hug_all", "response"].includes(kind)) throw new Error("unsupported_text_kind");
+  if (!["hug_all", "response", "top_title"].includes(kind)) throw new Error("unsupported_text_kind");
   const result = db.run(`DELETE FROM hug_texts WHERE id=:id AND kind=:kind`, { id: textId, kind });
   cache = null;
   return { ok: true, deleted: Number(result?.changes || 0), texts: getHugAllTextEditorPayload() };
@@ -695,6 +695,29 @@ function handleResponseTextPayload(payload = {}) {
   if (action === "deleteText" || action === "delete_text") return deleteHugTextItem(body.id || body.textId, "response");
   if (action === "saveText" || action === "save_text" || body.text) return { ok: true, texts: saveHugTextItem(body.text || body, "response") };
   return getResponseTextEditorPayload();
+}
+
+function getTopTitleTextEditorPayload() {
+  const texts = getTextsForEditor("top_title", { activeOnly: false });
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    table: "hug_texts",
+    kind: "top_title",
+    category: "top_titles",
+    label: "Toplisten",
+    count: texts.length,
+    activeCount: texts.filter(item => item.enabled).length,
+    texts
+  };
+}
+
+function handleTopTitleTextPayload(payload = {}) {
+  const body = payload && typeof payload === "object" ? payload : {};
+  const action = String(body.action || "").trim();
+  if (action === "deleteText" || action === "delete_text") return deleteHugTextItem(body.id || body.textId, "top_title");
+  if (action === "saveText" || action === "save_text" || body.text) return { ok: true, texts: saveHugTextItem(body.text || body, "top_title") };
+  return getTopTitleTextEditorPayload();
 }
 function pickWeighted(items) {
   if (!Array.isArray(items) || items.length === 0) return null;
@@ -945,8 +968,10 @@ function init(ctx) {
   routes.registerPost(appRef, ["/api/hug/admin/hug-all-texts", "/api/dashboard/community/hug/hug-all-texts"], (req, res) => { try { res.json(handleHugAllTextPayload(req.body)); } catch (err) { res.status(400).json({ ok: false, error: err.message || String(err) }); } });
   routes.registerGet(appRef, ["/api/hug/admin/response-texts", "/api/dashboard/community/hug/response-texts"], (req, res) => res.json(getResponseTextEditorPayload()));
   routes.registerPost(appRef, ["/api/hug/admin/response-texts", "/api/dashboard/community/hug/response-texts"], (req, res) => { try { res.json(handleResponseTextPayload(req.body)); } catch (err) { res.status(400).json({ ok: false, error: err.message || String(err) }); } });
+  routes.registerGet(appRef, ["/api/hug/admin/top-title-texts", "/api/dashboard/community/hug/top-title-texts"], (req, res) => res.json(getTopTitleTextEditorPayload()));
+  routes.registerPost(appRef, ["/api/hug/admin/top-title-texts", "/api/dashboard/community/hug/top-title-texts"], (req, res) => { try { res.json(handleTopTitleTextPayload(req.body)); } catch (err) { res.status(400).json({ ok: false, error: err.message || String(err) }); } });
 
   return { name: MODULE_NAME, step: "181.1" };
 }
 
-module.exports = { init, loadCache, getDashboardStatus, setOutputMode, getTextPairEditorPayload, getHugAllTextEditorPayload, getResponseTextEditorPayload };
+module.exports = { init, loadCache, getDashboardStatus, setOutputMode, getTextPairEditorPayload, getHugAllTextEditorPayload, getResponseTextEditorPayload, getTopTitleTextEditorPayload };
