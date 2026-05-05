@@ -6,3 +6,16 @@
 
 .vip-sound-grid{display:grid;grid-template-columns:minmax(260px,1fr) minmax(320px,1.2fr);gap:14px;margin:10px 0 14px}.vip-sound-panel{border:1px solid rgba(143,244,255,.12);border-radius:16px;padding:12px;background:rgba(255,255,255,.035)}.vip-sound-panel h4{margin:0 0 10px;font-size:16px}.vip-sound-panel label,.vip-upload-box label{display:grid;gap:6px;margin-bottom:10px;font-size:12px;color:var(--muted);font-weight:800}.vip-sound-panel select,.vip-sound-panel input,.vip-upload-box input[type=file]{width:100%;border:1px solid rgba(143,244,255,.18);border-radius:12px;background:rgba(5,8,18,.45);color:var(--text);padding:9px 10px}.vip-upload-box{display:flex;gap:12px;align-items:end;flex-wrap:wrap;border:1px solid rgba(143,244,255,.12);border-radius:16px;padding:12px;background:rgba(255,255,255,.03)}.vip-upload-box label:first-child{min-width:280px;flex:1}.vip-upload-box .vip-check{display:flex!important;margin-bottom:8px}.vip-upload-box button{margin-bottom:2px}
 @media(max-width:900px){.vip-sound-grid{grid-template-columns:1fr}.vip-upload-box{display:grid;grid-template-columns:1fr}}
+
+.vip-mini-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.vip-mini-metric{border:1px solid rgba(143,244,255,.13);border-radius:14px;padding:12px;background:rgba(255,255,255,.035)}
+.vip-mini-metric h4{margin:0 0 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.vip-mini-metric strong{display:block;font-size:22px;line-height:1.1;color:var(--text)}
+.vip-mini-metric strong.ok{color:#74f7c8}.vip-mini-metric strong.warn{color:#ffe08a}.vip-mini-metric strong.bad{color:#ff8a9a}
+.vip-mini-metric span{display:block;margin-top:4px;color:var(--muted);font-size:12px}
+.vip-filter-compact{grid-template-columns:200px auto 1fr}
+.vip-pill-wrap{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.vip-users-table td:first-child{min-width:180px}
+.vip-users-table td:nth-child(2){min-width:140px}
+@media(max-width:1100px){.vip-mini-grid{grid-template-columns:1fr 1fr}.vip-filter-compact{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.vip-mini-grid,.vip-filter-compact{grid-template-columns:1fr}}
