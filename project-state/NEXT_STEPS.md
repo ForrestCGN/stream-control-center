@@ -4,37 +4,74 @@ Stand: 2026-05-05
 
 ## Naechster empfohlener Schritt
 
-### STEP183 - Hug/Rehug finaler Browser-UX-Check oder naechstes Modul
+### Clip-System Live-Test
 
-Der Hug-Texte-Bereich ist technisch komplett:
+Der Clip-Backend-Flow ist bis STEP187 vorbereitet. Ein echter End-to-End-Test ist erst sinnvoll, wenn der Stream live ist, weil Twitch Create Clip offline erwartungsgemaess nicht funktioniert.
 
-- Hug/Rehug-Paare editierbar
-- Chatweite Hugs editierbar
-- Systemantworten editierbar
-- Toplisten editierbar
+Vor dem Test pruefen:
 
-Empfohlene kurze Pruefung:
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip/status" | ConvertTo-Json -Depth 30
+```
 
-1. Dashboard oeffnen:
-   ```text
-   Community -> Hug-System -> Texte
-   ```
-2. Alle vier Kategorien anklicken:
-   - Hug/Rehug-Paare
-   - Chatweite Hugs
-   - Systemantworten
-   - Toplisten
-3. Pruefen:
-   - Textfelder breit genug?
-   - Kleine Felder kompakt genug?
-   - Speichern sichtbar?
-   - Loeschen sichtbar?
-   - Keine Typen-Komplexitaet sichtbar?
-   - Text/Antwort bleiben bei Hug/Rehug gekoppelt?
+Erwartung:
 
-Wenn UX passt, ist Hug/Rehug fuer diesen Block abgeschlossen.
+```text
+backendCreate.ready = true
+twitchApi.readyForCreateClip = true
+obsReplay.readyForBackendSave = true
+discord.readyForPost = true
+channelInfo.is_live = true
+```
+
+Dann Live-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip/create?input=!clip%20LiveTest&triggerUser=ForrestCGN&triggerLogin=forrestcgn" | ConvertTo-Json -Depth 30
+```
+
+Direkt danach:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip/history?limit=5" | ConvertTo-Json -Depth 30
+```
+
+Nach ca. 35 Sekunden erneut:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip/history?limit=5" | ConvertTo-Json -Depth 30
+```
+
+Erwartung nach erfolgreichem Live-Test:
+
+```text
+status = created oder partial
+clipId gesetzt
+clipUrl gesetzt oder Twitch-Polling-Status sichtbar
+obsReplayRequested = true
+obsReplaySaved = true
+localReplaySaved = true oder localReplayError gesetzt
+discordPosted = true oder discordError gesetzt
+```
 
 ## Danach moeglich
+
+### Clip-System
+
+1. Streamer.bot-Action reduzieren:
+   - aktuell alte ClipV2-Action mit mehreren Scripts/Sub-Actions
+   - Ziel: nur noch Backend-Call zu `/api/clip/create` und Chat-Ausgabe aus Backend-Antwort
+2. Clip-Dashboard bauen:
+   - Status
+   - letzte Clips / History
+   - Filter
+   - Settings
+   - Textvarianten
+   - Discord-Zielkanal
+   - Repost/Verwaltung
+3. Optional History-Testdaten verwalten:
+   - alte Offline-/Testeintraege ausblenden
+   - spaeter Soft-Delete statt hartes Loeschen
 
 ### Hug/Rehug optional
 
@@ -74,12 +111,31 @@ cd D:\Git\stream-control-center
 Beispiele:
 
 ```powershell
-.\stepdone.cmd "fix: improve hug text editor ux"
-.\stepdone.cmd "docs: sync hug text editor status"
-.\stepdone.cmd "feat: add vip 30 day stats"
+.\stepdone.cmd "fix: improve clip live flow"
+.\stepdone.cmd "docs: sync clip backend status"
+.\stepdone.cmd "feat: add clip dashboard"
 ```
 
-## Wichtige Regel fuer Hug/Rehug
+## Wichtige Regeln
+
+### Clip-System
+
+OBS lokal muss 60 Sekunden speichern:
+
+```text
+30 Sekunden vor !clip
+30 Sekunden nach !clip
+```
+
+Daher gilt:
+
+```text
+T+0s  -> Twitch Create Clip sofort
+T+30s -> OBS SaveReplayBuffer
+T+33s -> lokale Datei suchen/umbenennen
+```
+
+### Hug/Rehug
 
 Bei Hug/Rehug duerfen Text und Antwort nicht getrennt zufaellig werden.
 

@@ -46,21 +46,18 @@ Zuletzt abgeschlossene/aktuelle Bloecke:
 
 - STEP171 Sound / Alert / Alert-TTS Fix-Kette
 - STEP172 Sound / Alert / TTS Status Current
-- STEP174.8 VIP-Uebersicht aufgeraeumt
-- STEP174.9 VIP-Statistikseite ergaenzt
-- STEP175.1 VIP-Sound-Verwaltung aufgeraeumt
-- STEP175.2 VIP-Sound-Vorschau-Buttons ergaenzt
-- STEP175.3 grosser VIP-Upload-Umbau verworfen / vereinfacht
-- STEP175.4 VIP-Sound Upload-Auswahlfluss verbessert
-- STEP175.5 Projekt-Dokus nach VIP-Block synchronisiert
-- STEP176 Tagebuch/Todo DB-/Dashboard-Audit erstellt
-- STEP177 Tagebuch/Todo DB-Settings und DB-Texte Backend-Grundlage
-- STEP178 Tagebuch/Todo Dashboard-Integration
-- STEP179 Text-Varianten-Editor fuer Tagebuch/Todo
-- STEP180 Textvarianten Status-/UX-Cleanup
-- STEP181 Hug/Rehug gekoppelte Textpaare, vereinfachter Dashboard-Editor und Stepdone-Workflow
-- STEP182 kompletter Hug-Texte-Editor im Dashboard
-- STEP182.6 Hug/Rehug Texteditor Doku-Sync
+- STEP174.8 bis STEP175.5 VIP-/Sound-/Overlay-Block
+- STEP176 bis STEP180 Tagebuch/Todo DB-/Dashboard-/Textvarianten-Block
+- STEP181 bis STEP182.6 Hug/Rehug Texteditor-Block
+- STEP183 Clip Backend-History + Discord-Register
+- STEP184 Clip API Readiness mit Twitch Token Validate
+- STEP185 Clip DB-Settings und DB-Textvarianten
+- STEP185.5 Clip Discord-Channel-Setting und Textkategorien-Cleanup
+- STEP186 Clip Backend-Create-Grundlage fuer Twitch/Discord/OBS-Job
+- STEP186.1 Clip History Schema-Migration-Fix
+- STEP186.2 Clip Create Offline-Guard
+- STEP187 Clip Local Replay File Handling
+- STEP187.5 Clip Backend Flow Doku-Sync
 
 Aktuelle wichtigste Referenzdokus:
 
@@ -73,12 +70,103 @@ Aktuelle wichtigste Referenzdokus:
 - `project-state/STEP179_TEXT_VARIANTS_EDITOR_2026-05-05.md`
 - `project-state/STEP180_TEXT_VARIANTS_STATUS_UX_CLEANUP_2026-05-05.md`
 - `project-state/STEP181_HUG_REHUG_TEXT_PAIRS_BACKEND_2026-05-05.md`
-- `project-state/STEP181_4_HUG_SIMPLIFY_NO_TYPES_2026-05-05.md`
 - `project-state/STEP181_8_HUG_REHUG_DOC_SYNC_2026-05-05.md`
-- `project-state/STEP182_3_HUG_ALL_TEXT_EDITOR_2026-05-05.md`
-- `project-state/STEP182_4_HUG_RESPONSE_TEXT_EDITOR_2026-05-05.md`
-- `project-state/STEP182_5_HUG_TOP_TITLE_EDITOR_2026-05-05.md`
 - `project-state/STEP182_6_HUG_TEXT_EDITOR_DOC_SYNC_2026-05-05.md`
+- `project-state/STEP187_5_CLIP_BACKEND_FLOW_DOC_SYNC_2026-05-05.md`
+
+## Aktueller Clip-Stand
+
+Clip ist bis STEP187 im Backend vorbereitet.
+
+Backend:
+
+- `backend/modules/clips.js`
+- `backend/modules/twitch.js`
+- Schema-Version Clip-History: `3`
+- Settings-Tabelle: `clip_settings`
+- History-Tabelle: `clip_history`
+- Textvarianten: `module_text_variants` mit `module = clips`
+
+Aktive Clip-Routen:
+
+- `GET /api/clip/status`
+- `GET /api/clip/title`
+- `GET/POST /api/clip/register`
+- `GET /api/clip/history`
+- `GET/POST /api/clip/create`
+- `GET /api/clip/job/:jobId`
+- `GET/POST /api/clip/admin/settings`
+- `GET/POST /api/dashboard/clips/settings`
+- `GET/POST /api/clip/admin/texts`
+- `GET/POST /api/dashboard/clips/texts`
+
+Twitch-Readiness:
+
+- `GET /api/twitch/auth/validate`
+- Token live bestaetigt fuer `forrestcgn` / `127709954`
+- Scope `clips:edit` vorhanden
+
+OBS-Readiness:
+
+- `GET /api/obs/replay/status`
+- `obs_shared.js` liefert `SaveReplayBuffer`
+- Fachregel: 60 Sekunden lokaler OBS-Clip, 30s vor `!clip` und 30s nach `!clip`
+- `obsReplaySaveDelayMs = 30000`
+
+Discord:
+
+- Discord-Post nutzt `app.locals.discordBridge`.
+- Kein eigener Discord-Client im Clip-Modul.
+- Zielkanal ist konfigurierbar:
+  - `discordChannelMode = key|custom`
+  - `discordChannelKey`
+  - `discordChannelId`
+
+Texte:
+
+- Clip-Texte sind in `module_text_variants`.
+- Kategorien:
+  - `chat`
+  - `discord`
+  - `errors`
+  - `system`
+- Texte werden zufaellig aus aktiven Varianten gezogen.
+- JSON bleibt Seed/Fallback: `config/messages/clips.json`.
+
+Settings:
+
+- Clip-Settings liegen in `clip_settings`.
+- JSON bleibt Seed/Fallback: `config/clip_system.json`.
+
+Live bestaetigt:
+
+```text
+GET /api/clip/status
+schemaVersion: 3
+database.ok: true
+twitchApi.readyForCreateClip: true
+obsReplay.readyForBackendSave: true
+discord.readyForPost: true
+backendCreate.ready: true
+```
+
+Offline-Guard live bestaetigt:
+
+```text
+/api/clip/create?...OfflineGuard...
+error: stream_not_live
+history.saved: true
+History:
+status = skipped
+reason = stream_not_live
+sourceMethod = backend_create_offline
+```
+
+Bewusst offen:
+
+- Echter End-to-End-Test mit Twitch Create Clip, wenn Stream live ist.
+- Danach Streamer.bot-Action auf Backend-Call reduzieren.
+- Danach Clip-Dashboard bauen.
 
 ## Aktueller Hug/Rehug-Stand
 
@@ -94,72 +182,16 @@ Backend:
   - `kind = hug_all`
   - `kind = response`
   - `kind = top_title`
-- Bestehende 30 Hug/Rehug-Texte wurden in 30 gekoppelte Textpaare migriert.
-- Runtime waehlt ein aktives Textpaar global.
-- Rehug nutzt die gespeicherte `pair_id` und damit exakt den passenden Antworttext.
-- `hug_types` bleibt nur noch als internes Kompatibilitaets-/Migrationsfeld relevant.
 
 Dashboard:
 
 - `htdocs/dashboard/modules/hug.js`
 - `htdocs/dashboard/modules/hug.css`
-- Typen-Komplexitaet wurde aus der Bedienung entfernt.
 - Alle Kategorien im Texte-Tab sind editierbar:
   - Hug/Rehug-Paare
   - Chatweite Hugs
   - Systemantworten
   - Toplisten
-- Editor-Funktionen:
-  - Anzeigen
-  - Anlegen
-  - Bearbeiten
-  - Aktiv/Inaktiv
-  - Gewichtung
-  - Sortierung
-  - Loeschen
-
-Live bestaetigt:
-
-```text
-GET /api/hug/status
-ok: true
-schemaVersion: 3
-hugTextPairs: 30
-activeHugTextPairs: 30
-```
-
-Weitere live bestaetigte Routen:
-
-```text
-GET /api/dashboard/community/hug/hug-all-texts
-ok: true
-count: 20
-activeCount: 20
-
-GET /api/dashboard/community/hug/response-texts
-ok: true
-count: 24
-activeCount: 24
-
-GET /api/dashboard/community/hug/top-title-texts
-ok: true
-count: 3
-activeCount: 3
-```
-
-Wichtige Routen:
-
-- `GET /api/hug/status`
-- `GET /api/hug/db/status`
-- `GET /api/dashboard/community/hug/status`
-- `GET/POST /api/hug/admin/text-pairs`
-- `GET/POST /api/dashboard/community/hug/text-pairs`
-- `GET/POST /api/hug/admin/hug-all-texts`
-- `GET/POST /api/dashboard/community/hug/hug-all-texts`
-- `GET/POST /api/hug/admin/response-texts`
-- `GET/POST /api/dashboard/community/hug/response-texts`
-- `GET/POST /api/hug/admin/top-title-texts`
-- `GET/POST /api/dashboard/community/hug/top-title-texts`
 
 ## Aktueller Tagebuch/Todo-Stand
 
@@ -170,7 +202,6 @@ Tagebuch/Todo sind bis STEP180 im Backend und Dashboard integriert:
 - Todo nutzt `todo_settings` und `module_text_variants` mit JSON-Fallback.
 - `module_texts` bleibt Legacy-/Kompatibilitaetsschicht.
 - Dashboard-Frontend fuer Tagebuch/Todo ist aktiv.
-- Texte werden kategoriebasiert als Varianten pro Text-Key verwaltet.
 
 ## Aktueller Sound-/Alert-/TTS-Stand
 
@@ -218,31 +249,8 @@ Fuer neue und bestehende Systeme gilt:
 - ENV/Secrets bleiben ausserhalb von DB und Repo.
 - Dashboard liest/schreibt nur ueber Backend-APIs.
 - Keine direkten Dashboard-Zugriffe auf SQLite oder Dateien.
-- Bestehende Systeme spaeter gezielt pruefen und ggf. schrittweise angleichen.
+- Vorhandene Helper nutzen, keine Parallelstrukturen.
 - Keine Funktionalitaet entfernen.
-
-Aktuelle Helper-Lage:
-
-- `backend/modules/helpers/helper_settings.js` ist DB-Settings-Standard.
-- `backend/modules/helpers/helper_texts.js` unterstuetzt zentrale DB-Modultexte via `module_texts` und Textvarianten via `module_text_variants`.
-- VIP nutzt DB-Texte modulnah.
-- Alerts haben DB-Textbereiche (`alert_text_variants`, `alert_chat_blocks`).
-- Hug/Rehug nutzt `hug_text_pairs`, weil Text und Antwort fachlich fest gekoppelt bleiben muessen.
-- Hug-Einzeltexte nutzen `hug_texts`.
-
-## Dashboard-relevante naechste Kandidaten
-
-- Finaler Hug-Dashboard-UX-Check.
-- Optional Hug-Audit-Logging fuer Textaenderungen.
-- VIP-Statistik backendseitig mit echten 7-/30-Tage-Auswertungen erweitern.
-- VIP-Sound-Vorschau optional verbessern.
-- Upload-UX nur behutsam weiter verbessern.
-- Modul-Audit: Texte/Settings/Helper pro System pruefen.
-- TTS-Settings und Rollen.
-- TTS-Overlay-Settings wie Position, Breite, Avatar, Textzeilen, Skalierung.
-- Sound-System Queue-Settings wie Prioritaet, Parallel, MaxParallel, Zielgeraet, Lautstaerke.
-- Alert-Regel-TTS-Felder wie aktiv, Template, max Zeichen, Mindestbetrag, Timing, Voice, Output.
-- Alert-/Provider-Settings mit Secret-Maskierung.
 
 ## Wichtige Regeln
 
@@ -259,10 +267,12 @@ Aktuelle Helper-Lage:
 
 ## Bewusst offen
 
+- Clip: echter Live-Test von `/api/clip/create`.
+- Clip: Streamer.bot-Action nach Live-Test reduzieren.
+- Clip: Dashboard-Modul bauen.
 - Hug: optional Audit-Logging und bessere Key-Hilfe.
 - VIP echte 7-/30-Tage-Statistik backendseitig.
 - Provider-Secrets in Settings-Ausgaben maskieren.
-- `liveAlert`/`livealert` Duplikat in Alert-Settings bereinigen.
 - Dashboard-Rollen/Rechte und Audit-Logging vorbereiten.
 - Fireworks spaeter neu aufbauen.
 - Alerts-Modul spaeter behutsam splitten.

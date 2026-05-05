@@ -2,6 +2,101 @@
 
 ## 2026-05-05
 
+### STEP187.5 - Clip Backend Flow Doku-Sync
+
+- Zentrale Projekt-Dokus nach Clip STEP183 bis STEP187 aktualisiert.
+- Dokumentiert:
+  - Clip Backend-History und Discord-Register
+  - Twitch Token Validate und `clips:edit` Readiness
+  - Clip DB-Settings ueber `clip_settings`
+  - Clip DB-Textvarianten ueber `module_text_variants`
+  - Discord-Channel-Mode `key|custom`
+  - Backend `/api/clip/create`
+  - Offline-Guard bei `stream_not_live`
+  - OBS-Replay-Regel 60 Sekunden lokal, 30s vor und 30s nach `!clip`
+  - lokales Replay-Datei-Handling bis DB-Schema-Version 3
+- Keine Codeaenderung in diesem STEP.
+
+### STEP187 - Clip Local Replay File Handling
+
+- `clip_history` auf Schema-Version 3 erweitert.
+- Lokale Replay-Felder ergaenzt:
+  - `localReplaySaved`
+  - `localReplayPath`
+  - `localReplayFile`
+  - `localReplayError`
+  - `localReplayRenamedAt`
+- Nach `SaveReplayBuffer` wartet das Backend `localReplayRenameDelayMs`.
+- Neueste Datei im `localReplayDir` wird gesucht.
+- `localReplayLookbackMinutes` wird beachtet.
+- Datei wird auf Freigabe geprueft und umbenannt.
+- Discord-Post laeuft im Backend-Job nach OBS-/Local-Replay-Verarbeitung.
+
+### STEP186.2 - Clip Create Offline-Guard
+
+- `/api/clip/create` prueft vor Twitch Create Clip, ob der Stream live ist.
+- Wenn `channelInfo.is_live = false`:
+  - kein Twitch-API-Create-Aufruf
+  - Rueckgabe `stream_not_live`
+  - History `status = skipped`
+  - `sourceMethod = backend_create_offline`
+- Neuer Text-Key `systemStreamNotLive`.
+
+### STEP186.1 - Clip History Schema-Migration-Fix
+
+- Migration fuer bestehende `clip_history` repariert.
+- Neue Spalten werden vor Index-/Query-Nutzung sanft per `ALTER TABLE` ergaenzt.
+- Fehler `no such column: job_id` behoben.
+
+### STEP186 - Clip Backend Create Twitch/Discord
+
+- Neue Route `GET/POST /api/clip/create`.
+- Neue Route `GET /api/clip/job/:jobId`.
+- Twitch-Modul erweitert:
+  - `createClipForBroadcaster(...)`
+  - `getClipById(...)`
+- Clip-Create nutzt vorhandene Twitch-OAuth-/Helix-Struktur.
+- OBS-Save wird im Backend-Job nach 30 Sekunden ausgeloest.
+- Discord-Post laeuft ueber vorhandene `discordBridge`.
+- Texte kommen aus DB-Textvarianten.
+- Settings kommen aus `clip_settings`.
+- Bestehende `/api/clip/title`, `/api/clip/register`, `/api/clip/history` bleiben erhalten.
+
+### STEP185.5 - Clip Discord Channel Setting und Textkategorien-Cleanup
+
+- `discordChannelMode` ergaenzt.
+- `discordChannelId` ergaenzt.
+- Discord-Zielkanal kann per Key oder direkter Channel-ID kommen.
+- `/api/clip/status` zeigt effektive Channel-ID und Quelle.
+- Alte Textkategorie `clip` wird sanft auf `chat`, `discord`, `errors`, `system` migriert.
+- Keine Texte werden geloescht.
+
+### STEP185 - Clip DB-Settings und DB-Textvarianten
+
+- Clip-Settings ueber `helper_settings` vorbereitet.
+- Neue Settings-Tabelle: `clip_settings`.
+- JSON `config/clip_system.json` bleibt Seed/Fallback.
+- Clip-Texte ueber `helper_texts` vorbereitet.
+- Textvarianten laufen ueber `module_text_variants`.
+- Kategorien: Chat-Texte, Discord-Texte, Fehlertexte, Systemtexte.
+- Neue Admin/API-Routen fuer Settings und Texte.
+
+### STEP184 - Clip API Readiness
+
+- Neue Twitch-Token-Validate-Routen:
+  - `GET /auth/validate`
+  - `GET /twitch/auth/validate`
+  - `GET /api/twitch/auth/validate`
+- Twitch-Validate prueft Token, User-ID, Broadcaster-ID, Scopes und `clips:edit`.
+- `/api/clip/status` um Twitch-/OBS-/Discord-/Backend-Readiness erweitert.
+
+### STEP183 - Clip Backend Integration
+
+- Vorhandene `/api/clip/status`, `/api/clip/title` und `/api/clip/register` bleiben erhalten.
+- Clip-Historie wird in `app.sqlite` ueber `clip_history` gespeichert.
+- Discord-Posting nutzt vorhandene Discord-Bridge.
+- Neue Route `GET /api/clip/history`.
+
 ### STEP182.6 - Hug/Rehug Texteditor Doku-Sync
 
 - Zentrale Projekt-Dokus nach Abschluss des Hug-Texte-Editors aktualisiert.
@@ -19,9 +114,6 @@
   - `GET/POST /api/hug/admin/top-title-texts`
   - `GET/POST /api/dashboard/community/hug/top-title-texts`
 - Nutzt `hug_texts` mit `kind = top_title`.
-- Live-Test bestaetigt:
-  - `count = 3`
-  - `activeCount = 3`
 
 ### STEP182.4 - Hug Systemantworten Editor
 
@@ -30,9 +122,6 @@
   - `GET/POST /api/hug/admin/response-texts`
   - `GET/POST /api/dashboard/community/hug/response-texts`
 - Nutzt `hug_texts` mit `kind = response`.
-- Live-Test bestaetigt:
-  - `count = 24`
-  - `activeCount = 24`
 
 ### STEP182.3 - Hug Chatweite Hugs Editor
 
@@ -41,9 +130,6 @@
   - `GET/POST /api/hug/admin/hug-all-texts`
   - `GET/POST /api/dashboard/community/hug/hug-all-texts`
 - Nutzt `hug_texts` mit `kind = hug_all`.
-- Live-Test bestaetigt:
-  - `count = 20`
-  - `activeCount = 20`
 
 ### STEP182.2 - Hug Dashboard UX Textarea Width
 
@@ -69,8 +155,6 @@
 - `stepdone.cmd` als reines Batch-Script bereitgestellt.
 - Ziel: Nach manuellem ZIP-Entpacken reicht kuenftig ein Befehl:
   - `.\stepdone.cmd "commit beschreibung"`
-- Das Script prueft JS-Syntax, staged relevante Projektdateien, blockiert sensible Dateien, committed, pushed nach `origin/dev` und startet das bekannte Live-Deploy-Script.
-- Die PowerShell-Variante wurde wegen Parserproblemen verworfen.
 
 ### STEP181.4 - Hug/Rehug ohne Typen-Komplexitaet
 

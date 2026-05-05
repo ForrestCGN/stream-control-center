@@ -64,8 +64,18 @@ Zweck:
 - `backend/modules/hug.js`
 - `backend/modules/tagebuch.js`
 - `backend/modules/todo.js`
+- `backend/modules/clips.js`
+- `backend/modules/twitch.js`
+- `backend/modules/obs.js`
+- `backend/modules/obs_shared.js`
+- `backend/modules/discord.js`
+- `backend/core/database.js`
 - `backend/modules/helpers/helper_texts.js`
 - `backend/modules/helpers/helper_settings.js`
+- `backend/modules/helpers/helper_messages.js`
+- `backend/modules/helpers/helper_config.js`
+- `backend/modules/helpers/helper_core.js`
+- `backend/modules/helpers/helper_routes.js`
 
 ## Aktive bekannte Dashboard-Dateien
 
@@ -95,6 +105,111 @@ Zweck:
 - `htdocs/dashboard/modules/vip.js`
 - `htdocs/dashboard/modules/vip.css`
 
+Clip-Dashboard ist noch offen.
+
+## STEP183-187 Clip relevante Dateien
+
+Backend:
+
+- `backend/modules/clips.js`
+- `backend/modules/twitch.js`
+- `backend/modules/obs_shared.js`
+- `backend/modules/discord.js`
+- `backend/core/database.js`
+- `backend/modules/helpers/helper_settings.js`
+- `backend/modules/helpers/helper_texts.js`
+- `backend/modules/helpers/helper_messages.js`
+
+Config/Fallback:
+
+- `config/clip_system.json`
+- `config/messages/clips.json`
+- `config/discord_channels.json`
+
+DB-Strukturen:
+
+- `clip_history`
+- `clip_settings`
+- `module_text_variants` mit `module = clips`
+
+Clip-History Schema-Version:
+
+- `3`
+
+Clip-Settings:
+
+- `enabled`
+- `backendCreateEnabled`
+- `defaultClipTitle`
+- `includeGameInCustomTitle`
+- `twitchClipDurationSeconds`
+- `twitchClipPollMs`
+- `twitchClipPollMaxAttempts`
+- `obsReplaySaveEnabled`
+- `obsReplayWindowSeconds`
+- `obsReplayPreTriggerSeconds`
+- `obsReplayPostTriggerSeconds`
+- `obsReplaySaveDelayMs`
+- `localReplayRenameEnabled`
+- `localReplayRenameDelayMs`
+- `localReplayDir`
+- `localReplayLookbackMinutes`
+- `sendClipActivatedMessage`
+- `sendTwitchClipResultMessage`
+- `sendChatResponse`
+- `discordPostEnabled`
+- `discordChannelMode`
+- `discordChannelKey`
+- `discordChannelId`
+- `postOnlyWhenLive`
+- `saveHistory`
+- `duplicatePolicy`
+
+Clip-Textkategorien:
+
+- `chat`
+- `discord`
+- `errors`
+- `system`
+
+Clip-Routen:
+
+- `GET /api/clip/status`
+- `GET /api/clip/title`
+- `GET/POST /api/clip/register`
+- `GET /api/clip/history`
+- `GET/POST /api/clip/create`
+- `GET /api/clip/job/:jobId`
+- `GET/POST /api/clip/admin/settings`
+- `GET/POST /api/dashboard/clips/settings`
+- `GET/POST /api/clip/admin/texts`
+- `GET/POST /api/dashboard/clips/texts`
+
+Twitch-Validate-Routen:
+
+- `GET /auth/validate`
+- `GET /twitch/auth/validate`
+- `GET /api/twitch/auth/validate`
+
+OBS-Replay-Routen:
+
+- `GET /api/obs/replay/status`
+- `POST /api/obs/replay/start`
+- `POST /api/obs/replay/stop`
+- `POST /api/obs/replay/save`
+
+Clip-Dokus:
+
+- `project-state/STEP183_CLIP_BACKEND_INTEGRATION_2026-05-05.md`
+- `project-state/STEP184_CLIP_API_READINESS_2026-05-05.md`
+- `project-state/STEP185_CLIP_DB_SETTINGS_TEXTS_2026-05-05.md`
+- `project-state/STEP185_5_CLIP_DISCORD_CHANNEL_AND_TEXT_CLEANUP_2026-05-05.md`
+- `project-state/STEP186_CLIP_BACKEND_CREATE_TWITCH_DISCORD_2026-05-05.md`
+- `project-state/STEP186_1_CLIP_SCHEMA_MIGRATION_FIX_2026-05-05.md`
+- `project-state/STEP186_2_CLIP_CREATE_OFFLINE_GUARD_2026-05-05.md`
+- `project-state/STEP187_CLIP_LOCAL_REPLAY_FILE_HANDLING_2026-05-05.md`
+- `project-state/STEP187_5_CLIP_BACKEND_FLOW_DOC_SYNC_2026-05-05.md`
+
 ## STEP181/182 Hug/Rehug relevante Dateien
 
 Backend:
@@ -111,87 +226,16 @@ Config/Fallback:
 - `config/hug_system.json`
 - `config/messages/hug.json`
 
-Doku:
-
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/STEP181_HUG_REHUG_TEXT_PAIRS_BACKEND_2026-05-05.md`
-- `project-state/STEP181_2_HUG_REHUG_TEXT_PAIR_DASHBOARD_2026-05-05.md`
-- `project-state/STEP181_4_HUG_SIMPLIFY_NO_TYPES_2026-05-05.md`
-- `project-state/STEP181_7_STEPDONE_CMD_ONLY_2026-05-05.md`
-- `project-state/STEP181_8_HUG_REHUG_DOC_SYNC_2026-05-05.md`
-- `project-state/STEP182_1_HUG_DASHBOARD_UX_TEXTPAIR_LABELS_2026-05-05.md`
-- `project-state/STEP182_2_HUG_DASHBOARD_UX_TEXTAREA_WIDTH_2026-05-05.md`
-- `project-state/STEP182_3_HUG_ALL_TEXT_EDITOR_2026-05-05.md`
-- `project-state/STEP182_4_HUG_RESPONSE_TEXT_EDITOR_2026-05-05.md`
-- `project-state/STEP182_5_HUG_TOP_TITLE_EDITOR_2026-05-05.md`
-- `project-state/STEP182_6_HUG_TEXT_EDITOR_DOC_SYNC_2026-05-05.md`
-
-## STEP181/182 DB-Strukturen
-
-Sanft per `CREATE TABLE IF NOT EXISTS` / Migration:
+DB-Strukturen:
 
 - `hug_text_pairs`
 - `hug_pending_rehugs.pair_id`
-
-Bestehende Tabellen bleiben erhalten:
-
 - `hug_users`
 - `hug_pair_stats`
 - `hug_pending_rehugs`
 - `hug_settings`
 - `hug_types`
 - `hug_texts`
-
-Hug-Texte:
-
-- `hug_text_pairs` fuer gekoppelte Hug/Rehug-Paare
-- `hug_texts.kind = hug_all` fuer chatweite Hugs
-- `hug_texts.kind = response` fuer Systemantworten
-- `hug_texts.kind = top_title` fuer Toplisten-Titel
-
-Keine SQLite-Datei wird committed oder ersetzt.
-
-## STEP181/182 Hug-Routen
-
-Status:
-
-- `GET /api/hug/status`
-- `GET /api/hug/db/status`
-- `GET /api/dashboard/community/hug/status`
-
-Textpaare:
-
-- `GET /api/hug/admin/text-pairs`
-- `POST /api/hug/admin/text-pairs`
-- `GET /api/dashboard/community/hug/text-pairs`
-- `POST /api/dashboard/community/hug/text-pairs`
-
-Chatweite Hugs:
-
-- `GET /api/hug/admin/hug-all-texts`
-- `POST /api/hug/admin/hug-all-texts`
-- `GET /api/dashboard/community/hug/hug-all-texts`
-- `POST /api/dashboard/community/hug/hug-all-texts`
-
-Systemantworten:
-
-- `GET /api/hug/admin/response-texts`
-- `POST /api/hug/admin/response-texts`
-- `GET /api/dashboard/community/hug/response-texts`
-- `POST /api/dashboard/community/hug/response-texts`
-
-Toplisten:
-
-- `GET /api/hug/admin/top-title-texts`
-- `POST /api/hug/admin/top-title-texts`
-- `GET /api/dashboard/community/hug/top-title-texts`
-- `POST /api/dashboard/community/hug/top-title-texts`
-
-Bestehende Hug-/Rehug-Routen und Streamer.bot-Kompatibilitaet bleiben erhalten.
 
 ## STEP177/179/180 Tagebuch/Todo relevante Dateien
 
