@@ -16,27 +16,15 @@ Vor jedem neuen STEP:
 
 ## Aktueller Ausgangspunkt
 
-Der Sound-/Alert-/TTS-Block ist nach den Step171/172-Fixes wieder lauffaehig und dokumentiert.
+Der VIP-Dashboard-/VIP-Sound-Block ist nach STEP175.4 in einem brauchbaren Stand und mit STEP175.5 in den zentralen Dokus synchronisiert.
 
-Aktuelle Referenz:
+Aktuelle VIP-Referenz:
+
+- `project-state/STEP175_VIP_SOUND_BLOCK_HANDOFF_2026-05-05.md`
+
+Aktuelle Sound-/Alert-/TTS-Referenz:
 
 - `project-state/STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md`
-
-Live bestaetigt:
-
-- `alert_system` Version `3`
-- `alert_system` Step `171`
-- Queue leer
-- Current null
-- Overlay-Client verbunden
-
-Wichtige Fix-Kette:
-
-- Alert-Hauptsound ueber Sound-System
-- Alert-TTS als eigenes Sound-System-Item hinter Alert-Hauptsound
-- Chat-TTS wartet bis Alert-Kette idle ist
-- Overlay bleibt bis nach Alert-TTS sichtbar
-- Sound-System bleibt Audio-Wahrheit
 
 ## 1. Lokalen Stand nach Doku-Aktualisierung ziehen
 
@@ -55,48 +43,52 @@ Danach optional Live-Doku deployen:
 .\tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd
 ```
 
-## 2. Dashboard-Arbeit fortsetzen
+## 2. VIP naechste sinnvolle Schritte
 
-Aktive Dashboard-Module:
-
-- Stream-Desk
-- Control-Uebersicht
-- Alerts V2
-- OBS Details
-- Sound-System
-- Hug-System
-- VIP-System
-- Admin Configs
-
-Naechster fachlicher Fokus:
-
-- VIP-System weiter ins Dashboard integrieren.
-- VIP-Song-Upload nach Alert-Upload-/Helper-Standard bauen.
-- Modul-Audit fuer DB-Settings/DB-Texte/Helper-Nutzung starten.
-
-## 3. VIP-Song-Upload separat bauen
+### 2.1 VIP-Statistik backendseitig erweitern
 
 Ziel:
 
-VIP-Sounds sollen wie Alert-Sounds ueber das Dashboard hochladbar werden.
+- echte 7-Tage-Auswertung
+- echte 30-Tage-Auswertung
+- Top User pro Zeitraum
+- abgelehnte Events pro Zeitraum
+- letzte Nutzung pro User backendseitig
+- optional Query-Parameter wie:
+  - `days=7`
+  - `days=30`
+  - `usageDate=YYYY-MM-DD`
 
 Wichtig:
 
-- Alert-Upload und `helper_media.js` als Basis nutzen.
-- Keine zweite Upload-Parallelstruktur.
-- Dashboard greift nur auf Backend-APIs zu.
-- Upload-Ziel fuer VIP-Sounds ist aktuell `htdocs/assets/sounds/vip/`.
-- Aktive VIP-Sound-Settings kommen aus DB.
+- keine neue Tabelle blind anlegen
+- bestehende Tabellen verwenden:
+  - `vip_sound_events`
+  - `vip_sound_daily_usage`
+- bestehende Route `/api/vip-sound/stats` erweitern oder saubere neue Zusatzroute bauen
 
-Empfohlene Richtung:
+### 2.2 VIP-Sound-Vorschau optional verbessern
 
-1. Alert-Upload-Muster genau pruefen.
-2. Entscheiden, ob kleiner VIP-spezifischer Upload zuerst reicht oder ob ein generischer Upload-Helper sinnvoller ist.
-3. VIP-Upload-Route bauen.
-4. Dashboard-Upload-Feld im VIP-Modul ergaenzen.
-5. Test mit echter MP3.
+Moeglich:
 
-## 4. Modul-Audit: Texte / Settings / Helper vereinheitlichen
+- Stop-Button
+- aktuell laufende Vorschau optisch markieren
+- lokale Dashboard-Lautstaerke
+- kein Einfluss auf Sound-System
+- kein Queue-Eintrag
+
+### 2.3 VIP-Upload-UX nur behutsam weiter verbessern
+
+Der grosse Upload-Block aus STEP175.3 wurde verworfen.
+
+Kuenftig nur kleine Verbesserungen:
+
+- Datei-Auswahl klarer anzeigen
+- Upload-Erfolg klarer bestaetigen
+- nach Upload gezielt Userstatus aktualisieren
+- keine doppelte/ueberladene Upload-Karte
+
+## 3. Modul-Audit: Texte / Settings / Helper vereinheitlichen
 
 Ziel:
 
@@ -137,7 +129,7 @@ Wichtiger Befund:
 - Alerts haben DB-Textbereiche (`alert_text_variants`, `alert_chat_blocks`).
 - `helper_texts.js` ist aktuell noch JSON-basiert.
 
-## 5. Zentralen DB-Text-Helper planen
+## 4. Zentralen DB-Text-Helper planen
 
 Ziel:
 
@@ -157,7 +149,7 @@ Wichtig:
 - Keine Massenmigration ohne Audit.
 - Harte Texte im Code nur als Seed-Defaults.
 
-## 6. Sensible Dashboard-Ausgaben maskieren
+## 5. Sensible Dashboard-Ausgaben maskieren
 
 Ziel:
 
@@ -165,7 +157,7 @@ Ziel:
 - Schreiben sensibler Werte nur ueber gesonderte, geschuetzte APIs.
 - Audit-Logging spaeter einplanen.
 
-## 7. Dashboard-Modulstandard definieren
+## 6. Dashboard-Modulstandard definieren
 
 Ziel:
 
@@ -182,7 +174,7 @@ Betroffene Bereiche:
 - `docs/dashboard/`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 
-## 8. Alerts-Modul spaeter behutsam splitten
+## 7. Alerts-Modul spaeter behutsam splitten
 
 Aktueller Zustand:
 
@@ -203,7 +195,7 @@ Wichtig:
 - Nur schrittweise.
 - Erst Tests und Doku.
 
-## 9. Weitere offene Bereiche
+## 8. Weitere offene Bereiche
 
 - Fireworks spaeter neu aufbauen.
 - Hug-Textbearbeitung spaeter sauber neu planen.

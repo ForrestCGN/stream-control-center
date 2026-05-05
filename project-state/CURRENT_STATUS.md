@@ -6,23 +6,23 @@ Stand: 2026-05-05
 
 Repo:
 
-- D:\Git\stream-control-center
+- `D:\Git\stream-control-center`
 
 GitHub:
 
-- https://github.com/ForrestCGN/stream-control-center
+- `https://github.com/ForrestCGN/stream-control-center`
 
 Branch:
 
-- dev
+- `dev`
 
 Live-System:
 
-- D:\Streaming\stramAssets
+- `D:\Streaming\stramAssets`
 
 Aktueller Doku-Einstieg:
 
-- docs/current/CURRENT_SYSTEM_STATUS.md
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
 
 ## Verbindlicher GitHub-/Live-Workflow
 
@@ -37,86 +37,40 @@ Aktueller Doku-Einstieg:
 
 ## Aktueller Arbeitsstand
 
-Aktueller bekannter sauberer Stand vor dieser Doku-Aktualisierung:
+Zuletzt abgeschlossene Bloecke:
 
-- `HEAD/origin/dev = 1fc35236f90d7627b4ec800baf85b8e2bebb9c1c`
-- Letzter bekannter Commit: `docs: save step171 step172 sound alert tts status`
-- Lokaler Status bei Pruefung: clean
-- Live `alert_system`: Version `3`, Step `171`
-
-Manueller Sicherheitsstand:
-
-- Forrest hat am 2026-05-05 vor der weiteren Dashboard-Arbeit ein vollstaendiges Backup des kompletten `D:\Streaming\stramAssets`-Verzeichnisses erstellt.
-- Backup-Pfad/Dateiname wurde in diesem Chat nicht angegeben und wird deshalb hier bewusst nicht erfunden.
-
-Zuletzt abgeschlossen:
-
-- STEP047 VIP Dashboard Base
 - STEP171 Sound / Alert / Alert-TTS Fix-Kette
 - STEP172 Sound / Alert / TTS Status Current
+- STEP174.8 VIP-Uebersicht aufgeraeumt
+- STEP174.9 VIP-Statistikseite ergaenzt
+- STEP175.1 VIP-Sound-Verwaltung aufgeraeumt
+- STEP175.2 VIP-Sound-Vorschau-Buttons ergaenzt
+- STEP175.3 grosser VIP-Upload-Umbau verworfen / vereinfacht
+- STEP175.4 VIP-Sound Upload-Auswahlfluss verbessert
+- STEP175.5 Projekt-Dokus nach VIP-Block synchronisiert
 
-Aktuelle Referenzdokus:
+Aktuelle wichtigste Referenzdokus:
 
-- `project-state/STEP047_VIP_DASHBOARD_BASE_2026-05-04.md`
-- `project-state/STEP048_ALERT_TTS_REGRESSION_CONTEXT_2026-05-04.md`
 - `project-state/STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md`
+- `project-state/STEP175_VIP_SOUND_BLOCK_HANDOFF_2026-05-05.md`
+- `project-state/STEP175_5_PROJECT_DOC_SYNC_AFTER_VIP_BLOCK_2026-05-05.md`
 
 ## Aktueller Sound-/Alert-/TTS-Stand
 
-Live bestaetigt ueber:
+Referenz:
 
-- `GET /api/alerts/status`
+- `project-state/STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md`
 
-Kernwerte:
-
-- `module = alert_system`
-- `version = 3`
-- `step = 171`
-- `queueLength = 0`
-- `current = null`
-- `overlayClients = 1`
-- `schemaVersion = 5`
-- `multerReady = true`
-- `ffprobe.available = true`
-- `soundAssetsWithDuration = 18`
-- `soundAssetsWithoutDuration = 0`
-
-Relevante Fix-Commits:
-
-- `6f9bccf fix: restore alert tts playback through sound system`
-- `c2f77cb fix: keep alert tts behind alert sound`
-- `de4671c fix: delay chat tts until alert queue is idle`
-- `8743042 fix: respect sound output target in overlay`
-- `1fc3523 docs: save step171 step172 sound alert tts status`
-
-Aktueller Soll-Ablauf fuer Ko-fi/Tipeee Donation mit Alert-TTS:
+Soll-Ablauf fuer Ko-fi/Tipeee Donation mit Alert-TTS:
 
 1. Alert wird angenommen.
 2. Alert-Hauptsound geht ins Sound-System.
 3. Alert-Overlay zeigt Visuals und spielt im Sound-System-Modus keinen Hauptsound doppelt.
 4. Alert-TTS wird ueber `/api/tts/prepare-alert` vorbereitet.
 5. Alert-TTS geht als eigenes Sound-System-Item hinter den Alert-Hauptsound.
-6. Normale Chat-TTS wird verzögert, bis die Alert-Queue/Alert-Kette idle ist.
+6. Normale Chat-TTS wird verzoegert, bis die Alert-Queue/Alert-Kette idle ist.
 7. Overlay bleibt bis nach Alert-TTS sichtbar.
 8. Sound-System bleibt Audio-Wahrheit.
-
-Aktive Alert-Live-Settings kommen aus Datenbank/Runtime-Settings; JSON-Dateien sind nur Default/Fallback.
-
-Wichtige aktive Werte:
-
-- `liveAlert.soundSystemEnabled = true`
-- `liveAlert.soundSystemOutputTarget = device`
-- `liveAlert.soundSystemCategory = alert`
-- `liveAlert.earlySoundQueueEnabled = false`
-- `liveAlert.waitForSoundItemStarted = true`
-- `liveAlert.alertTtsEnabled = true`
-- `liveAlert.alertTtsPrepareUrl = http://127.0.0.1:8080/api/tts/prepare-alert`
-- `liveAlert.alertTtsSoundSystemEnabled = true`
-- `liveAlert.alertTtsSoundSystemCategory = alert_tts`
-- `liveAlert.alertTtsSoundSystemOutputTarget = device`
-- `liveAlert.alertTtsSoundSystemVolume = 100`
-- `liveAlert.alertTtsSoundSystemPriority = 79`
-- `liveAlert.alertTtsOutroBufferMs = 1500`
 
 Prioritaeten:
 
@@ -126,29 +80,56 @@ Prioritaeten:
 
 ## Aktueller VIP-/Sound-/Overlay-Stand
 
-Dokumentiert in:
+Neue zentrale Referenz:
 
-- `project-state/STEP040_VIP_BACKEND_REFERENCE_DASHBOARD_READY_2026-05-04.md`
-- `project-state/STEP047_VIP_DASHBOARD_BASE_2026-05-04.md`
+- `project-state/STEP175_VIP_SOUND_BLOCK_HANDOFF_2026-05-05.md`
 
-Aktueller Modulstand:
+Aktive VIP-Dateien:
 
 - `backend/modules/vip_sound_overlay.js`
-- Live/API-Version zuletzt: `1.8.5`
-- VIP-DB-Schema-Version zuletzt: `4`
-- `htdocs/overlays/vip_sound_overlay_v2.html` ist die aktive OBS-VIP-Browserquelle.
-- `htdocs/dashboard/modules/vip.js` ist das neue VIP-Dashboard-Modul.
-- `htdocs/dashboard/modules/vip.css` enthaelt die VIP-Dashboard-Styles.
+- `htdocs/dashboard/modules/vip.js`
+- `htdocs/dashboard/modules/vip.css`
+- `htdocs/overlays/vip_sound_overlay_v2.html`
 
-VIP-Dashboard kann aktuell:
+Aktuelle VIP-Routen, die fuer Dashboard/Statistik genutzt werden:
 
-- Status/Uebersicht anzeigen.
-- DB-Settings anzeigen und speichern.
-- DB-Texte anzeigen, filtern, anlegen, bearbeiten und aktivieren/deaktivieren.
-- Rollen-Fallbacks anzeigen, anlegen und entfernen.
-- Daily-Usage anzeigen.
-- Events/Statistiken anzeigen.
-- Admin-Testausloesung vorbereiten.
+- `GET /api/vip-sound/admin/summary`
+- `GET /api/vip-sound/settings`
+- `GET /api/vip-sound/roles`
+- `GET /api/vip-sound/texts`
+- `GET /api/vip-sound/texts/event-keys`
+- `GET /api/vip-sound/daily-usage/today`
+- `GET /api/vip-sound/events/recent`
+- `GET /api/vip-sound/stats`
+- `GET /api/vip-sound/sounds/users`
+- `GET /api/vip-sound/sounds/status?login=<login>`
+- `GET /api/vip-sound/upload/status`
+- `GET /api/vip-sound/twitch-sync/status`
+- `POST /api/vip-sound/twitch-sync/run`
+
+Aktuelle VIP-Dashboard-Funktionen:
+
+- kompakte Uebersicht mit Status-/Warnkarten
+- Statistik-Tab
+- Settings anzeigen/speichern
+- Texte anzeigen, filtern, anlegen, bearbeiten, aktivieren/deaktivieren
+- VIPs & Mods aus Twitch-Sync-Cache anzeigen
+- Soundstatus je User anzeigen
+- Sound-Vorschau per Browser-Audio
+- Sound-Verwaltung mit Filter/Suche/Sortierung
+- fehlende Sounds schnell finden
+- Upload-Zieluser klar auswaehlen
+- Klick auf Hochladen/Aendern setzt User und scrollt zum Upload-Bereich
+- Daily-Usage anzeigen
+- Events anzeigen
+- Admin-Testausloesung vorbereiten
+
+Fachliche VIP-Regel:
+
+- Nur Twitch VIP oder Twitch Mod ist berechtigt.
+- Keine Berechtigung aus lokalen Overrides.
+- Keine Berechtigung aus Daily-Usage, Events oder Historie.
+- Lokale Overrides duerfen Diagnose-/Altdaten bleiben, aber keine Rechte erzeugen.
 
 ## Dashboard-/Systemstandard
 
@@ -172,7 +153,9 @@ Aktuelle Helper-Lage:
 
 ## Dashboard-relevante naechste Kandidaten
 
-- VIP-Song-Upload nach Alert-Upload-/Helper-Standard bauen.
+- VIP-Statistik backendseitig mit echten 7-/30-Tage-Auswertungen erweitern.
+- VIP-Sound-Vorschau optional verbessern.
+- Upload-UX nur behutsam weiter verbessern.
 - Modul-Audit: Texte/Settings/Helper pro System pruefen.
 - Zentralen DB-Text-Helper planen.
 - TTS-Settings und Rollen.
@@ -190,13 +173,13 @@ Aktuelle Helper-Lage:
 - Keine SQLite-Dateien committen.
 - Keine Backups/Altdateien committen.
 - Historische Analyse-Snapshots nicht ueberschreiben.
-- Aktuellen Stand in docs/current/CURRENT_SYSTEM_STATUS.md und project-state aktuell halten.
+- Aktuellen Stand in `docs/current/CURRENT_SYSTEM_STATUS.md` und `project-state/*` aktuell halten.
 - Nach jedem abgeschlossenen Block STEP-Doku schreiben.
 
 ## Bewusst offen
 
-- VIP-Song-Upload separat planen und nach Helper-/Upload-Standard bauen.
-- Modul-Audit fuer Texte/Settings/Helper-Standard durchfuehren.
+- VIP echte 7-/30-Tage-Statistik backendseitig.
+- Modul-Audit fuer Texte/Settings/Helper-Standard.
 - Zentralen DB-Text-Helper planen.
 - Dashboard-Modul fuer TTS/Sound/Alert-Settings bauen.
 - Provider-Secrets in Settings-Ausgaben maskieren.
