@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "version": "0.1.8",
+  "version": "0.1.11",
   "routes": {
     "prefix": "/api/sound"
   },
@@ -12,6 +12,8 @@
     "enabled": true,
     "clientRequired": true,
     "fallbackFinishMs": 12000,
+    "videoFallbackBufferMs": 5000,
+    "videoFallbackFinishMs": 300000,
     "introMs": 0,
     "outroMs": 350,
     "gapBetweenSoundsMs": 750
@@ -198,7 +200,8 @@
     ".wav",
     ".ogg",
     ".webm",
-    ".m4a"
+    ".m4a",
+    ".mp4"
   ],
   "sounds": [
     {

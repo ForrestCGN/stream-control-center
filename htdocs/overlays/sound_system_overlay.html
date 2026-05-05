@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
@@ -6,6 +6,20 @@
   <title>ForrestCGN Sound-System Overlay</title>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: Arial, sans-serif; }
+    #videoPlayer {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: auto;
+      height: auto;
+      max-width: 1920px;
+      max-height: 1080px;
+      transform: translate(-50%, -50%);
+      object-fit: contain;
+      background: transparent;
+      display: none;
+      pointer-events: none;
+    }
     #status {
       position: fixed; left: 16px; bottom: 16px; padding: 8px 12px;
       border: 1px solid rgba(180, 90, 255, .45); border-radius: 999px;
@@ -26,6 +40,7 @@
 </head>
 <body>
   <audio id="player" preload="auto"></audio>
+  <video id="videoPlayer" preload="auto" playsinline></video>
   <div id="status">Sound-System Overlay</div>
   <button id="unlock" type="button">Audio aktivieren</button>
 
@@ -35,6 +50,7 @@
 
       const API = '/api/sound';
       const player = document.getElementById('player');
+      const videoPlayer = document.getElementById('videoPlayer');
       const status = document.getElementById('status');
       const unlockBtn = document.getElementById('unlock');
       const qs = new URLSearchParams(location.search);
@@ -48,6 +64,7 @@
       let beepNodes = [];
       let audioUnlocked = false;
       let pollingBusy = false;
+      let videoFallbackTimer = null;
 
       function setStatus(text){ if (status) status.textContent = text || 'Sound-System Overlay'; }
 
@@ -71,8 +88,24 @@
         beepNodes = [];
       }
 
+      function clearVideoFallbackTimer(){
+        if (videoFallbackTimer) clearTimeout(videoFallbackTimer);
+        videoFallbackTimer = null;
+      }
+
+      function hideVideo(){
+        clearVideoFallbackTimer();
+        try {
+          videoPlayer.pause();
+          videoPlayer.removeAttribute('src');
+          videoPlayer.load();
+          videoPlayer.style.display = 'none';
+        } catch (_) {}
+      }
+
       function stopAudio(){
         stopBeep();
+        hideVideo();
         try { player.pause(); player.removeAttribute('src'); player.load(); } catch (_) {}
         currentRequestId = '';
       }
@@ -87,6 +120,17 @@
       function shouldPlayInOverlay(item){
         const target = String(item && item.outputTarget || '').toLowerCase();
         return target === 'overlay' || target === 'both';
+      }
+
+      function isVideoItem(item){
+        const mediaType = String(item && (item.mediaType || item.type) || '').toLowerCase();
+        return mediaType === 'video' || !!(item && (item.videoUrl || (item.mediaUrl && mediaType === 'video')));
+      }
+
+      function cacheBust(url, requestId){
+        const clean = String(url || '');
+        if (!clean) return '';
+        return clean + (clean.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(requestId || Date.now());
       }
 
       function getAudioContext(){
@@ -176,7 +220,7 @@
         currentRequestId = item.requestId;
         lastSeenRequestId = item.requestId;
         player.volume = normalizeVolume(item.volume);
-        player.src = item.audioUrl + (item.audioUrl.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(item.requestId);
+        player.src = cacheBust(item.audioUrl, item.requestId);
         setStatus('Spiele: ' + (item.label || item.soundId || item.audioUrl));
 
         try {
@@ -191,10 +235,45 @@
         }
       }
 
+      async function playVideoFile(item){
+        const url = item && (item.videoUrl || item.mediaUrl || item.audioUrl);
+        if (!item || !url || !item.requestId) return;
+        stopAudio();
+        currentRequestId = item.requestId;
+        lastSeenRequestId = item.requestId;
+        videoPlayer.volume = normalizeVolume(item.volume);
+        videoPlayer.src = cacheBust(url, item.requestId);
+        videoPlayer.style.display = 'block';
+        setStatus('Video: ' + (item.label || item.soundId || url));
+
+        try {
+          await videoPlayer.play();
+          audioUnlocked = true;
+          document.body.dataset.audioUnlocked = '1';
+          await post('/client/audio-started', { requestId: currentRequestId, mediaType: 'video' });
+
+          const durationMs = Number(item.durationMs || 0);
+          const fallbackMs = durationMs > 0 ? Math.max(5000, durationMs + 5000) : 300000;
+          clearVideoFallbackTimer();
+          videoFallbackTimer = setTimeout(async () => {
+            const requestId = currentRequestId;
+            currentRequestId = '';
+            hideVideo();
+            setStatus('Video beendet (Fallback)');
+            await post('/client/audio-ended', { requestId, mediaType: 'video', fallback: true });
+          }, fallbackMs);
+        } catch (err) {
+          setStatus('Video blockiert/fehlerhaft');
+          await post('/client/error', { requestId: currentRequestId, mediaType: 'video', error: err && err.message ? err.message : String(err) });
+          stopAudio();
+        }
+      }
+
       async function playSound(item){
         if (!item || !item.requestId) return;
         if (!shouldPlayInOverlay(item)) return;
         if (item.requestId === lastSeenRequestId && currentRequestId === item.requestId) return;
+        if (isVideoItem(item)) return playVideoFile(item);
         if (String(item.type || '').toLowerCase() === 'generated_beep') return playGeneratedBeep(item);
         return playFileSound(item);
       }
@@ -209,6 +288,20 @@
       player.addEventListener('error', async () => {
         const requestId = currentRequestId;
         await post('/client/error', { requestId, error: 'audio_error' });
+        stopAudio();
+      });
+
+      videoPlayer.addEventListener('ended', async () => {
+        const requestId = currentRequestId;
+        currentRequestId = '';
+        hideVideo();
+        setStatus('Video beendet');
+        await post('/client/audio-ended', { requestId, mediaType: 'video' });
+      });
+
+      videoPlayer.addEventListener('error', async () => {
+        const requestId = currentRequestId;
+        await post('/client/error', { requestId, mediaType: 'video', error: 'video_error' });
         stopAudio();
       });
 

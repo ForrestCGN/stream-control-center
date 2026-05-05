@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
@@ -6,8 +6,9 @@ const childProcess = require('child_process');
 const core = require('./helper_core');
 const config = require('./helper_config');
 
-const DEFAULT_ALLOWED_EXTENSIONS = ['.mp3', '.wav', '.ogg', '.webm', '.m4a'];
+const DEFAULT_ALLOWED_EXTENSIONS = ['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4'];
 const durationCache = new Map();
+const mediaInfoCache = new Map();
 
 function normalizeSlashes(value) {
   return String(value || '').replace(/\\/g, '/');
@@ -97,30 +98,101 @@ function readAudioDurationMs(filePath, options = {}) {
   }
 }
 
-function getAudioInfo(fileName, options = {}) {
+function readMediaInfo(filePath, options = {}) {
+  const target = core.normalizePath(filePath);
+  if (!target || !fs.existsSync(target)) return { ok: false, durationMs: 0, error: 'file_not_found', hasAudio: false, hasVideo: false };
+
+  const cacheKey = target.toLowerCase();
+  if (options.cache !== false && mediaInfoCache.has(cacheKey)) {
+    return { ...mediaInfoCache.get(cacheKey), cached: true };
+  }
+
+  try {
+    const ffprobe = findFfprobe(options);
+    const output = childProcess.execFileSync(ffprobe, [
+      '-v', 'error',
+      '-show_format',
+      '-show_streams',
+      '-of', 'json',
+      target
+    ], { encoding: 'utf8', timeout: Number(options.timeoutMs) || 5000 });
+
+    const parsed = JSON.parse(String(output || '{}'));
+    const streams = Array.isArray(parsed.streams) ? parsed.streams : [];
+    const videoStream = streams.find(stream => String(stream.codec_type || '').toLowerCase() === 'video') || null;
+    const audioStream = streams.find(stream => String(stream.codec_type || '').toLowerCase() === 'audio') || null;
+    const format = parsed.format || {};
+    const rawDuration = Number(format.duration || (videoStream && videoStream.duration) || (audioStream && audioStream.duration) || 0);
+    const durationMs = Number.isFinite(rawDuration) && rawDuration > 0 ? Math.round(rawDuration * 1000) : 0;
+    const width = videoStream ? Number(videoStream.width || 0) : 0;
+    const height = videoStream ? Number(videoStream.height || 0) : 0;
+
+    const info = {
+      ok: durationMs > 0 || !!videoStream || !!audioStream,
+      durationMs,
+      durationOk: durationMs > 0,
+      hasVideo: !!videoStream,
+      hasAudio: !!audioStream,
+      width: Number.isFinite(width) ? width : 0,
+      height: Number.isFinite(height) ? height : 0,
+      formatName: String(format.format_name || ''),
+      formatLongName: String(format.format_long_name || ''),
+      videoCodec: videoStream ? String(videoStream.codec_name || '') : '',
+      audioCodec: audioStream ? String(audioStream.codec_name || '') : '',
+      cached: false,
+      error: durationMs > 0 || videoStream || audioStream ? '' : 'media_info_unavailable'
+    };
+
+    if (info.ok) mediaInfoCache.set(cacheKey, info);
+    if (durationMs > 0) durationCache.set(cacheKey, durationMs);
+    return info;
+  } catch (err) {
+    return { ok: false, durationMs: 0, durationOk: false, hasVideo: false, hasAudio: false, width: 0, height: 0, formatName: '', formatLongName: '', videoCodec: '', audioCodec: '', cached: false, error: err.message || String(err) };
+  }
+}
+
+function readVideoInfo(filePath, options = {}) {
+  const info = readMediaInfo(filePath, options);
+  return { ...info, ok: !!info.hasVideo && info.ok, error: info.hasVideo ? info.error : (info.error || 'video_stream_missing') };
+}
+
+function getMediaInfo(fileName, options = {}) {
   const resolved = resolveMediaPath(fileName, options);
   if (!resolved.ok) {
     if (options.fallbackFile && resolved.error !== 'unsafe_path') {
       const fallback = resolveMediaPath(options.fallbackFile, options);
       if (fallback.ok) {
-        const duration = readAudioDurationMs(fallback.path, options);
-        return { ok: true, ...fallback, durationMs: duration.durationMs, durationOk: duration.ok, fallback: true, originalError: resolved.error };
+        const mediaInfo = readMediaInfo(fallback.path, options);
+        return { ok: true, ...fallback, ...mediaInfo, fallback: true, originalError: resolved.error };
       }
     }
-    return { ok: false, ...resolved, durationMs: 0, durationOk: false };
+    return { ok: false, ...resolved, durationMs: 0, durationOk: false, hasVideo: false, hasAudio: false, width: 0, height: 0 };
   }
 
-  const duration = readAudioDurationMs(resolved.path, options);
-  return { ok: true, ...resolved, durationMs: duration.durationMs, durationOk: duration.ok, fallback: false, durationError: duration.error || '' };
+  const mediaInfo = readMediaInfo(resolved.path, options);
+  return { ok: true, ...resolved, ...mediaInfo, fallback: false, durationError: mediaInfo.error || '' };
+}
+
+function getAudioInfo(fileName, options = {}) {
+  const mediaInfo = getMediaInfo(fileName, options);
+  if (!mediaInfo.ok) return { ok: false, ...mediaInfo, durationMs: 0, durationOk: false };
+  return {
+    ...mediaInfo,
+    ok: true,
+    durationMs: mediaInfo.durationMs || 0,
+    durationOk: !!mediaInfo.durationOk,
+    durationError: mediaInfo.durationError || mediaInfo.error || ''
+  };
 }
 
 function clearDurationCache() {
   durationCache.clear();
+  mediaInfoCache.clear();
   return true;
 }
 
 function durationCacheInfo() {
-  return { size: durationCache.size, keys: Array.from(durationCache.keys()) };
+  return { size: durationCache.size, keys: Array.from(durationCache.keys()), mediaInfoSize: mediaInfoCache.size, mediaInfoKeys: Array.from(mediaInfoCache.keys()) };
 }
 
 module.exports = {
@@ -130,8 +202,10 @@ module.exports = {
   resolveMediaPath,
   findFfprobe,
   readAudioDurationMs,
+  readMediaInfo,
+  readVideoInfo,
+  getMediaInfo,
   getAudioInfo,
   clearDurationCache,
   durationCacheInfo
 };
-

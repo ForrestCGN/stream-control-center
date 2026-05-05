@@ -87,7 +87,7 @@ const DEFAULT_CONFIG = {
     background: { priority: 20, canInterrupt: false, canBeInterrupted: true, queueIfBusy: true, dropIfBusy: true, parallelAllowed: false }
   },
   soundsBaseDir: "htdocs/assets/sounds",
-  allowedExtensions: [".mp3", ".wav", ".ogg", ".webm", ".m4a"],
+  allowedExtensions: [".mp3", ".wav", ".ogg", ".webm", ".m4a", ".mp4"],
   sounds: []
 };
 
@@ -360,6 +360,13 @@ module.exports.init = function init(ctx) {
       volume: item.volume,
       file: item.file,
       audioUrl: item.audioUrl,
+      mediaType: item.mediaType || "audio",
+      mediaUrl: item.mediaUrl || item.audioUrl || item.videoUrl || "",
+      videoUrl: item.videoUrl || "",
+      videoWidth: Number(item.videoWidth || 0),
+      videoHeight: Number(item.videoHeight || 0),
+      hasAudio: item.hasAudio !== false,
+      hasVideo: !!item.hasVideo,
       durationMs: item.durationMs,
       durationOk: !!item.durationOk,
       durationSource: item.durationSource || "",
@@ -476,6 +483,17 @@ module.exports.init = function init(ctx) {
 
   function shouldUseOverlay(item) { return item.outputTarget === "overlay" || item.outputTarget === "both"; }
   function shouldUseDevice(item) { return item.outputTarget === "device" || item.outputTarget === "both"; }
+  function isVideoItem(item) { return String(item && item.mediaType || item && item.type || "").toLowerCase() === "video" || !!(item && item.videoUrl); }
+  function shouldWaitForOverlayEnd(item) { return isVideoItem(item) && shouldUseOverlay(item); }
+  function videoFallbackFinishMs(item) {
+    const overlayCfg = config.overlay || {};
+    const duration = Number(item && item.durationMs || 0);
+    const outro = Number(item && item.outroMs || 0);
+    const buffer = Math.max(1000, Number(overlayCfg.videoFallbackBufferMs || 5000));
+    const hardFallback = Math.max(30000, Number(overlayCfg.videoFallbackFinishMs || 300000));
+    if (item && item.durationOk && duration > 0) return Math.max(5000, duration + outro + buffer);
+    return hardFallback;
+  }
 
   function targetEnabled(target) {
     const t = config.targets && config.targets[target];
@@ -632,26 +650,49 @@ module.exports.init = function init(ctx) {
     let file = String(base.file || body.file || "").trim().replace(/\\/g, "/");
     let fullPath = "";
     let audioUrl = "";
+    let mediaUrl = "";
+    let videoUrl = "";
     let type = rawType;
-    let audioInfo = null;
+    let mediaType = String(base.mediaType || base.kind || "").trim().toLowerCase();
+    let mediaInfo = null;
+    let hasAudio = true;
+    let hasVideo = false;
+    let videoWidth = 0;
+    let videoHeight = 0;
 
     if (generatedBeep) {
       type = "file";
+      mediaType = "audio";
       file = "generated/beep.wav";
       const beepDuration = Number(base.durationMs || 350);
       audioUrl = `${(config.routes && config.routes.prefix) || "/api/sound"}/generated/beep.wav?frequency=${encodeURIComponent(frequency)}&durationMs=${encodeURIComponent(beepDuration)}&volume=${encodeURIComponent(volume)}`;
+      mediaUrl = audioUrl;
+      hasAudio = true;
+      hasVideo = false;
     } else {
       if (!file) throw new Error(msg("soundFileMissing"));
-      audioInfo = media.getAudioInfo(file, {
+      mediaInfo = media.getMediaInfo(file, {
         baseDir: getSoundsBaseDir(),
         allowedExtensions: Array.isArray(config.allowedExtensions) ? config.allowedExtensions : media.DEFAULT_ALLOWED_EXTENSIONS
       });
-      if (!audioInfo.ok) throw new Error(`${msg("soundFileMissing")} (${audioInfo.error || "unknown"}: ${file})`);
-      fullPath = audioInfo.path;
-      audioUrl = browserUrlFromRelative(audioInfo.relative || file);
+      if (!mediaInfo.ok) throw new Error(`${msg("soundFileMissing")} (${mediaInfo.error || "unknown"}: ${file})`);
+      fullPath = mediaInfo.path;
+      mediaUrl = browserUrlFromRelative(mediaInfo.relative || file);
+      hasAudio = mediaInfo.hasAudio !== false;
+      hasVideo = !!mediaInfo.hasVideo;
+      videoWidth = Number(mediaInfo.width || 0);
+      videoHeight = Number(mediaInfo.height || 0);
+      if (!mediaType || !["audio", "video"].includes(mediaType)) mediaType = hasVideo || rawType === "video" ? "video" : "audio";
+      type = mediaType === "video" ? "video" : (rawType === "video" ? "file" : rawType);
+      if (mediaType === "video") {
+        videoUrl = mediaUrl;
+      } else {
+        audioUrl = mediaUrl;
+      }
     }
 
-    const resolvedDuration = resolveDurationMs(base, audioInfo, fallbackDurationMs, generatedBeep);
+    const resolvedDuration = resolveDurationMs(base, mediaInfo, fallbackDurationMs, generatedBeep);
+    const effectiveOutputTarget = mediaType === "video" ? "overlay" : outputTarget;
 
     return {
       requestId: makeRequestId(),
@@ -660,12 +701,19 @@ module.exports.init = function init(ctx) {
       type,
       category: String(base.category || "fun").trim().toLowerCase(),
       target,
-      outputTarget,
+      outputTarget: effectiveOutputTarget,
       priority: resolvePriority(base, preset || {}, body, base.category || "fun"),
       volume,
       file,
       fullPath,
       audioUrl,
+      mediaType,
+      mediaUrl,
+      videoUrl,
+      videoWidth,
+      videoHeight,
+      hasAudio,
+      hasVideo,
       durationMs: resolvedDuration.durationMs,
       durationOk: resolvedDuration.durationOk,
       durationSource: resolvedDuration.source,
@@ -835,6 +883,7 @@ module.exports.init = function init(ctx) {
   }
 
   function playDeviceOutput(item) {
+    if (isVideoItem(item)) return;
     if (!shouldUseDevice(item)) return;
     const helperPath = resolveHelperPath();
     const deviceConfig = getDeviceConfig();
@@ -905,12 +954,14 @@ module.exports.init = function init(ctx) {
     if (shouldUseOverlay(item)) emit("play_stream");
 
     if (parallel) {
-      setTimeout(() => finishParallel(item.requestId, "parallel_auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
+      const parallelWaitMs = shouldWaitForOverlayEnd(item) ? videoFallbackFinishMs(item) : Math.max(1000, item.durationMs + item.outroMs + 250);
+      setTimeout(() => finishParallel(item.requestId, shouldWaitForOverlayEnd(item) ? "parallel_overlay_fallback_finished" : "parallel_auto_finished"), parallelWaitMs);
       return;
     }
 
     clearFinishTimer();
-    finishTimer = setTimeout(() => finishCurrent("auto_finished"), Math.max(1000, item.durationMs + item.outroMs + 250));
+    const waitMs = shouldWaitForOverlayEnd(item) ? videoFallbackFinishMs(item) : Math.max(1000, item.durationMs + item.outroMs + 250);
+    finishTimer = setTimeout(() => finishCurrent(shouldWaitForOverlayEnd(item) ? "overlay_fallback_finished" : "auto_finished"), waitMs);
   }
 
   function startItem(item, reason, options = {}) {
@@ -1033,6 +1084,12 @@ module.exports.init = function init(ctx) {
     touch();
   }
 
+  function clientRequestMatchesCurrent(req) {
+    const requestId = String((req.body && req.body.requestId) || (req.query && req.query.requestId) || "").trim();
+    if (!requestId) return true;
+    return !!state.current && state.current.requestId === requestId;
+  }
+
   app.get(`${(config.routes && config.routes.prefix) || "/api/sound"}/settings`, (req, res) => {
     try {
       res.json(publicSoundSettings());
@@ -1132,8 +1189,17 @@ module.exports.init = function init(ctx) {
 
   app.post(`${prefix}/client/ready`, (req, res) => { markClient("ready"); emit("client_ready"); return res.json(publicState()); });
   app.post(`${prefix}/client/audio-started`, (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
-  app.post(`${prefix}/client/audio-ended`, (req, res) => { markClient("audio_ended"); finishCurrent("client_audio_ended"); return res.json(core.ok({ status: publicState() })); });
-  app.post(`${prefix}/client/error`, (req, res) => { markClient("error"); state.stats.failed += 1; finishCurrent("client_error"); return res.json(core.ok({ status: publicState() })); });
+  app.post(`${prefix}/client/audio-ended`, (req, res) => {
+    markClient("audio_ended");
+    if (clientRequestMatchesCurrent(req)) finishCurrent("client_audio_ended");
+    return res.json(core.ok({ status: publicState() }));
+  });
+  app.post(`${prefix}/client/error`, (req, res) => {
+    markClient("error");
+    state.stats.failed += 1;
+    if (clientRequestMatchesCurrent(req)) finishCurrent("client_error");
+    return res.json(core.ok({ status: publicState() }));
+  });
 
   console.log(`[${MODULE_NAME}] loaded prefix=${prefix}`);
 };
