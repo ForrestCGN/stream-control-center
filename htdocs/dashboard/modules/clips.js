@@ -1,4 +1,4 @@
-// STEP188.1 - Clip Dashboard: Settings speichern im Clip-Backend-Format { settings: {...} }
+// STEP188.2 - Clip Dashboard: Discord-Ziel direkt per DB-Channel-ID, JSON-Key nur noch Legacy/Fallback.
 window.ClipsModule = (function(){
   'use strict';
 
@@ -60,7 +60,7 @@ window.ClipsModule = (function(){
     {
       id: 'discord',
       label: 'Discord',
-      keys: ['discordPostEnabled', 'discordChannelMode', 'discordChannelKey', 'discordChannelId', 'postOnlyWhenLive']
+      keys: ['discordPostEnabled', 'discordChannelId', 'postOnlyWhenLive']
     },
     {
       id: 'chat',
@@ -206,22 +206,30 @@ window.ClipsModule = (function(){
     const row = rowByKey(key);
     if (!row) return;
     const value = getInputValue(row);
+    const settings = { [key]: value };
+
+    if (key === 'discordChannelId') {
+      settings.discordChannelMode = 'custom';
+    }
+
     await window.CGN.api(api.settings, {
       method: 'POST',
-      body: JSON.stringify({ settings: { [key]: value } })
+      body: JSON.stringify({ settings })
     });
     state.notice = `Setting "${key}" gespeichert.`;
     await loadAll(true);
   }
 
   async function saveDiscordSettings(){
-    const keys = ['discordChannelMode', 'discordChannelKey', 'discordChannelId', 'discordPostEnabled', 'postOnlyWhenLive'];
-    const settings = {};
+    const keys = ['discordPostEnabled', 'discordChannelId', 'postOnlyWhenLive'];
+    const settings = { discordChannelMode: 'custom' };
+
     for (const key of keys) {
       const row = rowByKey(key);
       if (!row) continue;
       settings[key] = getInputValue(row);
     }
+
     await window.CGN.api(api.settings, {
       method: 'POST',
       body: JSON.stringify({ settings })
@@ -305,6 +313,15 @@ window.ClipsModule = (function(){
 
     state.notice = 'Textvariante gelöscht.';
     await loadAll(true);
+  }
+
+  function settingDisplayLabel(key){
+    const labels = {
+      discordPostEnabled: 'Discord-Post aktiv',
+      discordChannelId: 'Discord Channel-ID',
+      postOnlyWhenLive: 'Nur posten, wenn Stream live ist'
+    };
+    return labels[key] || key;
   }
 
   function renderSettingInput(row){
@@ -426,7 +443,7 @@ window.ClipsModule = (function(){
           ${visible.map(row => `
             <article class="clips-setting-row ${row.key && row.key.startsWith('discord') ? 'is-discord' : ''}">
               <div class="clips-setting-info">
-                <strong>${esc(row.key)}</strong>
+                <strong>${esc(settingDisplayLabel(row.key))}</strong>
                 <span>${esc(row.valueType || 'string')} · ${esc(row.source || '')}</span>
                 <small>${esc(row.description || '')}</small>
               </div>
@@ -439,7 +456,7 @@ window.ClipsModule = (function(){
         ${state.settingGroup === 'discord' ? `
           <div class="clips-discord-savebar">
             <button type="button" data-save-discord-settings>Discord-Ziel komplett speichern</button>
-            <span>Speichert Mode, Key, direkte Channel-ID, Discord aktiv und Live-only zusammen.</span>
+            <span>Speichert Discord aktiv, direkte Channel-ID und Live-only. JSON-Key bleibt nur Legacy/Fallback.</span>
           </div>
         ` : ''}
 
