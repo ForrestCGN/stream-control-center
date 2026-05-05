@@ -118,7 +118,7 @@ window.VipModule = (function(){
   }
 
   function tabsHtml(){
-    const tabs = [['overview','Übersicht'],['settings','Settings'],['texts','Texte'],['sounds','Sounds'],['roles','VIPs & Mods'],['daily','Daily-Usage'],['events','Events'],['test','Test']];
+    const tabs = [['overview','Übersicht'],['settings','Settings'],['texts','Texte'],['sounds','Sounds'],['roles','VIPs & Mods'],['stats','Statistik'],['daily','Daily-Usage'],['events','Events'],['test','Test']];
     return `<div class="vip-tabs glass">${tabs.map(([id,label]) => `<button type="button" class="vip-tab ${state.page === id ? 'active' : ''}" data-vip-page="${id}">${esc(label)}</button>`).join('')}</div>`;
   }
 
@@ -127,6 +127,7 @@ window.VipModule = (function(){
     if (state.page === 'texts') return textsPage();
     if (state.page === 'sounds') return soundsPage();
     if (state.page === 'roles') return rolesPage();
+    if (state.page === 'stats') return statsPage();
     if (state.page === 'daily') return dailyPage();
     if (state.page === 'events') return eventsPage();
     if (state.page === 'test') return testPage();
@@ -392,6 +393,92 @@ window.VipModule = (function(){
   }
 
   function roleRow(row){ return `<tr><td><code>${esc(row.login)}</code></td><td>${esc(row.displayName || row.login)}</td><td>${badge(row.roleType || 'vip')}</td><td>${badge(boolText(row.enabled), row.enabled ? 'ok' : 'warn')}</td><td>${esc(row.source || '')}</td><td class="vip-muted">${esc(row.note || '')}</td><td><button type="button" class="danger" data-delete-role="${esc(row.login)}" data-role-type="${esc(row.roleType || '')}">Entfernen</button></td></tr>`; }
+
+
+  function statsPage(){
+    const stats = state.stats || {};
+    const totals = stats.totals || {};
+    const users = state.soundUsers?.rows || [];
+    const sound = soundStats(users);
+    const recent = Array.isArray(stats.recent) && stats.recent.length ? stats.recent : (state.events?.rows || []);
+    const topUsers = Array.isArray(stats.topUsers) && stats.topUsers.length ? stats.topUsers : buildTopUsers(recent);
+    const bySoundType = Array.isArray(stats.bySoundType) ? stats.bySoundType : buildSoundTypeStats(recent);
+    const dailyRows = state.daily?.rows || [];
+    const denied = recent.filter(isDeniedEvent);
+    const missingUsers = users.filter(u => !u.sound?.exists);
+    const attemptedMissing = missingUsers.filter(u => userHasMissingAttempt(u, recent));
+    const lastUsage = buildLastUsageRows(recent).slice(0, 10);
+    const started = recent.filter(r => Number(r.sound_system_started || r.soundSystemStarted || 0) === 1).length;
+    const queued = recent.filter(r => Number(r.sound_system_queued || r.soundSystemQueued || 0) === 1).length;
+    return `<div class="vip-grid">${metricCard('Events gesamt', count(totals.total_events || recent.length), 'aus vorhandener Statistikroute', '')}${metricCard('Akzeptiert', count(totals.accepted_events), `${count(totals.override_events)} Override`, 'ok')}${metricCard('Abgelehnt / Fehler', count(totals.error_events || denied.length), `${count(totals.duplicate_events)} Duplikate`, (totals.error_events || denied.length) ? 'warn' : 'ok')}${metricCard('Heute genutzt', count(dailyRows.length), 'Daily-Usage heute', '')}${metricCard('Sound-Queue', queued, `${started} gestartet`, '')}${metricCard('Sounds', sound.withSound, `${sound.missing} fehlen`, sound.missing ? 'warn' : 'ok')}<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>VIP-Statistik</h3><p>Aus bestehenden VIP-Routen berechnet. Keine neue Tabelle, keine Backend-Änderung.</p></div><div class="vip-actions"><button type="button" data-vip-action="reload">Aktualisieren</button><button type="button" data-vip-page="events">Events öffnen</button></div></div><div class="vip-stat-grid"><div>${statBlock('Top User', topUsers.slice(0, 8).map(r => statLine(r.user_display_name || r.userDisplayName || r.user_login || r.userLogin, `${count(r.count)}x`)).join('') || emptyStatLine('Noch keine User-Statistik'))}</div><div>${statBlock('Sound-Typen', bySoundType.map(r => statLine(r.sound_type || r.soundType || '—', `${count(r.count)}x`)).join('') || emptyStatLine('Keine Typ-Daten'))}</div><div>${statBlock('Sounddateien', [statLine('Vorhanden', `${sound.withSound} von ${sound.total}`), statLine('Fehlen', `${sound.missing}`), statLine('Ø Dauer', sound.avg ? formatMs(sound.avg) : '—'), statLine('Längster Sound', sound.longest?.displayName ? `${sound.longest.displayName} · ${formatMs(sound.longest.sound?.durationMs)}` : '—')].join(''))}</div></div></section><section class="vip-card glass span-12"><div class="vip-card-head"><div><h3>Letzte Auslösungen</h3><p>Komprimierte Ansicht aus den vorhandenen Eventdaten.</p></div></div>${statsRecentList(recent.slice(0, 8))}</section><section class="vip-card glass span-12"><div class="vip-card-head"><div><h3>Abgelehnt / Handlungsbedarf</h3><p>Duplikate, fehlende Sounds und sonstige Fehler aus den letzten Events.</p></div></div>${denied.length ? statsRecentList(denied.slice(0, 8)) : `<div class="vip-ok-box">${badge('Keine Ablehnungen in den geladenen Events', 'ok')}<span>Die vorhandenen Eventdaten zeigen keinen akuten Fehler.</span></div>`}</section><section class="vip-card glass span-12"><div class="vip-card-head"><div><h3>User ohne Sound</h3><p>Aus Twitch-Cache und Soundprüfung. User mit Versuch werden hervorgehoben.</p></div><button type="button" data-vip-page="sounds">Sounds öffnen</button></div>${missingUsers.length ? `<div class="vip-stat-user-grid">${missingUsers.map(u => missingSoundCard(u, attemptedMissing.includes(u))).join('')}</div>` : `<div class="vip-ok-box">${badge('Alle Sounds vorhanden', 'ok')}<span>Für alle bekannten VIPs/Mods existiert aktuell eine Sounddatei.</span></div>`}</section><section class="vip-card glass span-12"><div class="vip-card-head"><div><h3>Letzte Nutzung pro User</h3><p>Aus den geladenen Recent-Events abgeleitet.</p></div></div>${lastUsage.length ? statsLastUsageTable(lastUsage) : '<div class="vip-empty">Noch keine Nutzungsdaten vorhanden.</div>'}</section></div>`;
+  }
+
+  function statBlock(title, body){
+    return `<div class="vip-stat-block"><h4>${esc(title)}</h4><div>${body}</div></div>`;
+  }
+
+  function statLine(label, value){
+    return `<div class="vip-stat-line"><span>${esc(label || '—')}</span><strong>${esc(value || '—')}</strong></div>`;
+  }
+
+  function emptyStatLine(text){
+    return `<div class="vip-muted">${esc(text)}</div>`;
+  }
+
+  function isDeniedEvent(row){
+    return !Number(row.accepted || 0) || !!(row.error_code || row.errorCode) || Number(row.duplicate || 0) === 1;
+  }
+
+  function buildTopUsers(rows){
+    const map = new Map();
+    for (const row of rows || []) {
+      const login = String(row.user_login || row.userLogin || '').toLowerCase();
+      if (!login) continue;
+      const current = map.get(login) || { user_login: login, user_display_name: row.user_display_name || row.userDisplayName || login, count: 0 };
+      current.count += 1;
+      map.set(login, current);
+    }
+    return Array.from(map.values()).sort((a,b) => count(b.count) - count(a.count));
+  }
+
+  function buildSoundTypeStats(rows){
+    const map = new Map();
+    for (const row of rows || []) {
+      const type = String(row.sound_type || row.soundType || 'unknown').toLowerCase();
+      map.set(type, (map.get(type) || 0) + 1);
+    }
+    return Array.from(map.entries()).map(([sound_type, c]) => ({ sound_type, count: c })).sort((a,b) => count(b.count) - count(a.count));
+  }
+
+  function userHasMissingAttempt(user, rows){
+    const login = String(user?.login || '').toLowerCase();
+    if (!login) return false;
+    return (rows || []).some(r => String(r.user_login || r.userLogin || '').toLowerCase() === login && (String(r.event_key || r.eventKey || '').includes('sound_missing') || String(r.error_code || r.errorCode || r.event_type || r.eventType || '').toLowerCase().includes('missing')));
+  }
+
+  function buildLastUsageRows(rows){
+    const map = new Map();
+    for (const row of rows || []) {
+      const login = String(row.user_login || row.userLogin || '').toLowerCase();
+      if (!login) continue;
+      const old = map.get(login);
+      const at = row.created_at || row.createdAt || '';
+      if (!old || new Date(at).getTime() > new Date(old.created_at || old.createdAt || 0).getTime()) map.set(login, row);
+    }
+    return Array.from(map.values()).sort((a,b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
+  }
+
+  function statsRecentList(rows){
+    return `<div class="vip-stat-event-list">${(rows || []).map(r => `<article class="vip-stat-event ${isDeniedEvent(r) ? 'warn' : 'ok'}"><div><strong>${fmt(r.user_display_name || r.userDisplayName || r.user_login || r.userLogin)}</strong><span>${fmt(r.event_type || r.eventType || r.event_key || r.eventKey)}</span></div><div class="vip-pill-wrap">${badge(r.sound_type || r.soundType || '—')}${badge(Number(r.accepted || 0) ? 'akzeptiert' : (Number(r.duplicate || 0) ? 'Duplikat' : 'Fehler'), Number(r.accepted || 0) ? 'ok' : 'warn')}${r.error_code || r.errorCode ? badge('Fehler', 'bad') : ''}</div><time>${fmt(formatDateTime(r.created_at || r.createdAt))}</time></article>`).join('') || '<div class="vip-empty">Keine Events vorhanden.</div>'}</div>`;
+  }
+
+  function missingSoundCard(user, attempted){
+    return `<article class="vip-missing-card ${attempted ? 'warn' : ''}"><div><strong>${esc(user.displayName || user.login || '—')}</strong><span>${esc(twitchStatusLabel(user))}</span></div>${badge(attempted ? 'bereits versucht' : 'kein Versuch geladen', attempted ? 'warn' : '')}<button type="button" data-select-sound-login="${esc(user.login || '')}">Sound hochladen</button></article>`;
+  }
+
+  function statsLastUsageTable(rows){
+    return `<div class="vip-table-wrap"><table class="vip-table"><thead><tr><th>User</th><th>Letzte Nutzung</th><th>Typ</th><th>Status</th><th>Quelle</th></tr></thead><tbody>${rows.map(r => `<tr><td>${fmt(r.user_display_name || r.userDisplayName || r.user_login || r.userLogin)}</td><td>${fmt(formatDateTime(r.created_at || r.createdAt))}</td><td>${badge(r.sound_type || r.soundType || '')}</td><td>${badge(Number(r.accepted || 0) ? 'akzeptiert' : (Number(r.duplicate || 0) ? 'Duplikat' : 'Fehler'), Number(r.accepted || 0) ? 'ok' : 'warn')}</td><td>${fmt(r.source)}</td></tr>`).join('')}</tbody></table></div>`;
+  }
 
   function dailyPage(){
     const rows = state.daily?.rows || state.summary?.dailyUsage?.rows || [];
