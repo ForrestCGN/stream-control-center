@@ -212,11 +212,17 @@ window.VipModule = (function(){
     return userHasTwitchRole(row, role);
   }
 
+  function truthyRoleValue(value){
+    return value === true || value === 1 || String(value || '').toLowerCase() === 'true' || String(value || '').toLowerCase() === '1';
+  }
+
   function userHasTwitchRole(row, role){
     const r = String(role || '').toLowerCase();
-    if (r === 'vip' && row.twitch?.isVip === true) return true;
-    if ((r === 'mod' || r === 'moderator') && row.twitch?.isMod === true) return true;
-    return listHas(row.twitchRoles, r);
+    const twitch = row && typeof row.twitch === 'object' ? row.twitch : {};
+    if (r === 'vip' && (truthyRoleValue(twitch.isVip) || truthyRoleValue(row.isVip) || truthyRoleValue(row.twitchIsVip))) return true;
+    if ((r === 'mod' || r === 'moderator') && (truthyRoleValue(twitch.isMod) || truthyRoleValue(row.isMod) || truthyRoleValue(row.twitchIsMod))) return true;
+    if ((r === 'broadcaster') && (truthyRoleValue(twitch.isBroadcaster) || truthyRoleValue(row.isBroadcaster) || truthyRoleValue(row.twitchIsBroadcaster))) return true;
+    return listHas(row.twitchRoles, r) || listHas(row.twitch_roles, r) || listHas(row.roleTypes, r);
   }
 
   function userHasLocalRole(row, role){
@@ -239,7 +245,7 @@ window.VipModule = (function(){
   }
 
   function sourceLabels(row){
-    const map = { twitch_sync: 'Twitch-Sync', role_override: 'alte lokale Daten', daily_usage: 'Nutzung', events: 'Events' };
+    const map = { twitch_sync: 'Twitch-Cache', role_override: 'alte lokale Daten', daily_usage: 'Nutzung', events: 'Events' };
     return (row.sources || []).map(v => map[v] || v).join(', ');
   }
 
@@ -278,7 +284,7 @@ window.VipModule = (function(){
     const roles = [];
     if (userHasTwitchRole(row, 'vip')) roles.push('VIP');
     if (userHasTwitchRole(row, 'mod')) roles.push('Mod');
-    return roles.length ? roles.map(r => badge(r, 'ok')).join('') : badge('kein Twitch-Status', 'warn');
+    return roles.length ? roles.map(r => badge('Twitch ' + r, 'ok')).join('') : badge('nicht berechtigt', 'warn');
   }
 
   function localStatusPills(row){
