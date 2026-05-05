@@ -5,6 +5,8 @@ window.HugModule = (function(){
   let status = null;
   let textPairs = null;
   let textPairsError = '';
+  let hugAllTexts = null;
+  let hugAllTextsError = '';
   let loading = false;
   let actionsBound = false;
   let activeTab = 'overview';
@@ -264,10 +266,79 @@ window.HugModule = (function(){
 
   function renderTextCategoryBody(pairs, kinds){
     if (activeTextCategory === 'pairs') return renderTextPairsEditor(pairs);
-    if (activeTextCategory === 'hug_all') return renderTextCategoryPlaceholder('Chatweite Hugs', 'hug_all', kinds);
+    if (activeTextCategory === 'hug_all') return renderHugAllEditor();
     if (activeTextCategory === 'responses') return renderTextCategoryPlaceholder('Systemantworten', 'response', kinds);
     if (activeTextCategory === 'top_titles') return renderTextCategoryPlaceholder('Toplisten', 'top_title', kinds);
     return '<div class="hug-empty">Unbekannte Textkategorie.</div>';
+  }
+
+  function renderHugAllEditor(){
+    if (hugAllTextsError) return `<div class="hug-error">Chatweite Hugs konnten nicht geladen werden: ${esc(hugAllTextsError)}</div>`;
+    if (!hugAllTexts) return `<div class="hug-empty">Chatweite Hugs werden geladen oder Backend-STEP182.3 ist noch nicht deployed.</div>`;
+    const rows = Array.isArray(hugAllTexts.texts) ? hugAllTexts.texts : [];
+    return `
+      <div class="hug-sub-card">
+        <div class="card-head big-head hug-compact-head">
+          <div>
+            <h3>Chatweite Hugs</h3>
+            <div class="small-note">Texte fuer Hug ohne Zielperson. Beispiel: <code>{from}</code> verteilt eine Umarmung an den ganzen Chat.</div>
+          </div>
+          <div class="head-actions">
+            <button type="button" data-hug-action="reload-hug-all">Neu laden</button>
+          </div>
+        </div>
+
+        <div class="hug-pair-summary">
+          <div class="hug-kind"><strong>${num(hugAllTexts.activeCount || 0)}</strong><span>aktive Texte</span></div>
+          <div class="hug-kind"><strong>${num(hugAllTexts.count || 0)}</strong><span>Texte gesamt</span></div>
+        </div>
+
+        ${renderNewHugAllForm()}
+
+        <div class="hug-text-list">
+          ${rows.length ? rows.map(row => renderHugAllCard(row)).join('') : '<div class="hug-empty">Keine chatweiten Hug-Texte vorhanden.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderNewHugAllForm(){
+    return `
+      <details class="hug-pair-new">
+        <summary>Neuen chatweiten Hug-Text anlegen</summary>
+        <div class="hug-text-form" data-hug-all-form="new">
+          <label class="compact compact-aktiv"><span>Aktiv</span><select data-hug-all-field="enabled"><option value="true">Aktiv</option><option value="false">Inaktiv</option></select></label>
+          <label class="compact compact-weight"><span>Gewichtung</span><input data-hug-all-field="weight" type="number" min="1" value="1"></label>
+          <label class="compact compact-sort"><span>Sortierung</span><input data-hug-all-field="sortOrder" type="number" value="0"></label>
+          <label class="wide pair-textarea"><span>Text</span><textarea data-hug-all-field="text" rows="3" placeholder="{from} verteilt eine Umarmung an den ganzen Chat 🤗"></textarea></label>
+          <div class="hug-pair-actions wide"><button type="button" data-hug-action="save-hug-all" data-text-id="new">Text speichern</button></div>
+        </div>
+      </details>
+    `;
+  }
+
+  function renderHugAllCard(row){
+    return `
+      <div class="hug-pair-card" data-hug-all-form="${esc(row.id)}">
+        <div class="hug-pair-card-head">
+          <div>
+            <strong>Chatweiter Hug ${esc(row.id)}</strong>
+            <span>${row.enabled ? 'aktiv' : 'inaktiv'} · Gewicht ${esc(row.weight || 1)}</span>
+          </div>
+          <div class="hug-pair-card-actions">
+            <button type="button" data-hug-action="save-hug-all" data-text-id="${esc(row.id)}">Speichern</button>
+            <button type="button" class="danger" data-hug-action="delete-hug-all" data-text-id="${esc(row.id)}">Löschen</button>
+          </div>
+        </div>
+        <div class="hug-text-form">
+          <input type="hidden" data-hug-all-field="id" value="${esc(row.id)}">
+          <label class="compact compact-aktiv"><span>Aktiv</span><select data-hug-all-field="enabled"><option value="true"${row.enabled ? ' selected' : ''}>Aktiv</option><option value="false"${!row.enabled ? ' selected' : ''}>Inaktiv</option></select></label>
+          <label class="compact compact-weight"><span>Gewichtung</span><input data-hug-all-field="weight" type="number" min="1" value="${esc(row.weight || 1)}"></label>
+          <label class="compact compact-sort"><span>Sortierung</span><input data-hug-all-field="sortOrder" type="number" value="${esc(row.sortOrder || 0)}"></label>
+          <label class="wide pair-textarea"><span>Text</span><textarea data-hug-all-field="text" rows="3">${esc(row.text || '')}</textarea></label>
+        </div>
+      </div>
+    `;
   }
 
   function renderTextCategoryPlaceholder(title, kind, kinds){
@@ -487,6 +558,53 @@ window.HugModule = (function(){
     await loadAll(true);
   }
 
+  function collectHugAllForm(textId){
+    const form = root?.querySelector(`[data-hug-all-form="${CSS.escape(String(textId))}"]`);
+    if (!form) throw new Error('Formular nicht gefunden.');
+    const data = {};
+    form.querySelectorAll('[data-hug-all-field]').forEach(field => {
+      const key = field.dataset.hugAllField;
+      if (!key) return;
+      data[key] = field.value;
+    });
+    if (textId !== 'new') data.id = textId;
+    data.weight = Math.max(1, Number(data.weight || 1));
+    data.sortOrder = Number(data.sortOrder || 0);
+    data.enabled = data.enabled !== 'false';
+    data.text = String(data.text || '').trim();
+    if (!data.text) throw new Error('Text fehlt.');
+    return data;
+  }
+
+  async function loadHugAllTexts(){
+    hugAllTextsError = '';
+    try {
+      hugAllTexts = await api('/api/dashboard/community/hug/hug-all-texts');
+    } catch (err) {
+      hugAllTexts = null;
+      hugAllTextsError = err.message || String(err);
+    }
+  }
+
+  async function saveHugAllText(textId){
+    const text = collectHugAllForm(textId);
+    await api('/api/dashboard/community/hug/hug-all-texts', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveText', text })
+    });
+    await loadAll(true);
+  }
+
+  async function deleteHugAllText(textId){
+    if (!textId || textId === 'new') return;
+    if (!confirm('Diesen chatweiten Hug-Text wirklich löschen?')) return;
+    await api('/api/dashboard/community/hug/hug-all-texts', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'deleteText', id: textId })
+    });
+    await loadAll(true);
+  }
+
   function bindActions(){
     if (actionsBound || !root) return;
     actionsBound = true;
@@ -523,6 +641,12 @@ window.HugModule = (function(){
         }
         if (action === 'save-pair') await savePair(btn.dataset.pairId || 'new');
         if (action === 'delete-pair') await deletePair(btn.dataset.pairId || '');
+        if (action === 'reload-hug-all') {
+          await loadHugAllTexts();
+          renderTexts();
+        }
+        if (action === 'save-hug-all') await saveHugAllText(btn.dataset.textId || 'new');
+        if (action === 'delete-hug-all') await deleteHugAllText(btn.dataset.textId || '');
       } catch (err) {
         alert(`Hug-Fehler: ${err.message}`);
       } finally {
@@ -553,6 +677,7 @@ window.HugModule = (function(){
     try {
       status = await api('/api/dashboard/community/hug/status');
       await loadTextPairs();
+      await loadHugAllTexts();
       render();
     } catch (err) {
       if (root) root.innerHTML = `<div class="hug-card"><h2>Hug-System</h2><div class="hug-error">${esc(err.message)}</div></div>`;

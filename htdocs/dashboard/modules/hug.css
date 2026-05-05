@@ -106,3 +106,84 @@ html[data-theme=light] .hug-pair-controls select,html[data-theme=light] .hug-pai
     grid-template-columns: 1fr;
   }
 }
+
+
+/* STEP182.3 - Chatweite Hugs Editor */
+.hug-text-form{
+  display:grid;
+  grid-template-columns:120px 150px 120px minmax(260px,1fr);
+  column-gap:12px;
+  row-gap:12px;
+  margin-top:12px;
+  align-items:start;
+}
+
+.hug-text-form label{
+  display:grid;
+  gap:6px;
+  font-size:12px;
+  color:var(--muted);
+  font-weight:800;
+}
+
+.hug-text-form select,
+.hug-text-form input,
+.hug-text-form textarea{
+  width:100%;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.22);
+  color:var(--text);
+  border-radius:14px;
+  padding:10px 12px;
+  font:inherit;
+  box-sizing:border-box;
+}
+
+.hug-text-form textarea{
+  min-height:84px;
+  resize:vertical;
+  line-height:1.35;
+}
+
+.hug-text-form .pair-textarea{
+  grid-column:1 / -1;
+}
+
+.hug-text-list{
+  display:grid;
+  gap:14px;
+  margin-top:14px;
+}
+
+.hug-compact-head{
+  align-items:flex-start;
+  margin-bottom:12px;
+}
+
+html[data-theme=dark] .hug-text-form select,
+html[data-theme=dark] .hug-text-form input,
+html[data-theme=dark] .hug-text-form textarea{
+  background:#181818;
+  border-color:#343434;
+  color:#f2f2f2;
+}
+
+html[data-theme=light] .hug-text-form select,
+html[data-theme=light] .hug-text-form input,
+html[data-theme=light] .hug-text-form textarea{
+  background:rgba(255,255,255,.72);
+  border-color:rgba(16,24,45,.14);
+  color:#17142a;
+}
+
+@media(max-width:1100px){
+  .hug-text-form{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:760px){
+  .hug-text-form{
+    grid-template-columns:1fr;
+  }
+}

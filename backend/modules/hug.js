@@ -569,6 +569,110 @@ function getTexts(kind, typeId = null, textKey = null) {
   return db.all(`SELECT id, text_key, type_id, kind, text, enabled, weight, sort_order, updated_at FROM hug_texts WHERE ${where.join(" AND ")} ORDER BY sort_order ASC, id ASC`, params)
     .map(row => ({ id: Number(row.id), textKey: row.text_key || "", typeId: row.type_id === null || row.type_id === undefined ? null : Number(row.type_id), kind: row.kind || "", text: row.text || "", enabled: Number(row.enabled) === 1, weight: Math.max(1, Number(row.weight || 1)), sortOrder: Number(row.sort_order || 0), updatedAt: row.updated_at || null }));
 }
+
+function getTextsForEditor(kind, options = {}) {
+  const allowedKinds = new Set(["hug_all"]);
+  const cleanKind = String(kind || "").trim();
+  if (!allowedKinds.has(cleanKind)) throw new Error("unsupported_text_kind");
+  const activeOnly = options.activeOnly === true;
+  const where = ["kind=:kind"];
+  const params = { kind: cleanKind };
+  if (activeOnly) where.push("enabled=1");
+  return db.all(`
+    SELECT id, text_key, type_id, kind, text, enabled, weight, sort_order, created_at, updated_at
+    FROM hug_texts
+    WHERE ${where.join(" AND ")}
+    ORDER BY sort_order ASC, id ASC
+  `, params).map(row => ({
+    id: Number(row.id),
+    textKey: row.text_key || cleanKind,
+    typeId: row.type_id === null || row.type_id === undefined ? null : Number(row.type_id),
+    kind: row.kind || cleanKind,
+    text: row.text || "",
+    enabled: Number(row.enabled) === 1,
+    weight: Math.max(1, Number(row.weight || 1)),
+    sortOrder: Number(row.sort_order || 0),
+    createdAt: row.created_at || null,
+    updatedAt: row.updated_at || null
+  }));
+}
+
+function saveHugTextItem(item = {}, forcedKind = "hug_all") {
+  const kind = String(forcedKind || item.kind || "").trim();
+  const allowedKinds = new Set(["hug_all"]);
+  if (!allowedKinds.has(kind)) throw new Error("unsupported_text_kind");
+  const id = Number(item.id || item.textId || 0);
+  const text = String(item.text || "").trim();
+  if (!text) throw new Error("text_required");
+  const data = {
+    id,
+    textKey: String(item.textKey || item.text_key || kind),
+    typeId: item.typeId === null || item.typeId === undefined || item.typeId === "" ? null : Number(item.typeId),
+    kind,
+    text,
+    enabled: item.enabled === false || item.enabled === 0 || item.enabled === "false" ? 0 : 1,
+    weight: Math.max(1, Number(item.weight || 1)),
+    sortOrder: Number(item.sortOrder ?? item.sort_order ?? 0) || 0,
+    now: nowIso()
+  };
+
+  if (id > 0) {
+    db.run(`
+      UPDATE hug_texts
+      SET text_key=:textKey,
+          type_id=:typeId,
+          kind=:kind,
+          text=:text,
+          enabled=:enabled,
+          weight=:weight,
+          sort_order=:sortOrder,
+          updated_at=:now
+      WHERE id=:id AND kind=:kind
+    `, data);
+  } else {
+    db.run(`
+      INSERT INTO hug_texts
+        (text_key, type_id, kind, text, enabled, weight, sort_order, created_at, updated_at)
+      VALUES
+        (:textKey, :typeId, :kind, :text, :enabled, :weight, :sortOrder, :now, :now)
+    `, data);
+  }
+  cache = null;
+  return getHugAllTextEditorPayload();
+}
+
+function deleteHugTextItem(id, forcedKind = "hug_all") {
+  const textId = Number(id || 0);
+  const kind = String(forcedKind || "hug_all").trim();
+  if (!textId) throw new Error("text_id_required");
+  if (kind !== "hug_all") throw new Error("unsupported_text_kind");
+  const result = db.run(`DELETE FROM hug_texts WHERE id=:id AND kind=:kind`, { id: textId, kind });
+  cache = null;
+  return { ok: true, deleted: Number(result?.changes || 0), texts: getHugAllTextEditorPayload() };
+}
+
+function getHugAllTextEditorPayload() {
+  const texts = getTextsForEditor("hug_all", { activeOnly: false });
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    table: "hug_texts",
+    kind: "hug_all",
+    category: "hug_all",
+    label: "Chatweite Hugs",
+    count: texts.length,
+    activeCount: texts.filter(item => item.enabled).length,
+    texts
+  };
+}
+
+function handleHugAllTextPayload(payload = {}) {
+  const body = payload && typeof payload === "object" ? payload : {};
+  const action = String(body.action || "").trim();
+  if (action === "deleteText" || action === "delete_text") return deleteHugTextItem(body.id || body.textId, "hug_all");
+  if (action === "saveText" || action === "save_text" || body.text) return { ok: true, texts: saveHugTextItem(body.text || body, "hug_all") };
+  return getHugAllTextEditorPayload();
+}
 function pickWeighted(items) {
   if (!Array.isArray(items) || items.length === 0) return null;
   const total = items.reduce((sum, item) => sum + Math.max(1, Number(item.weight || 1)), 0);
@@ -814,8 +918,10 @@ function init(ctx) {
   routes.registerGet(appRef, ["/api/hug/texts"], (req, res) => res.json({ ok: true, texts: getTexts(clean(core.getParam(req, "kind", "")), core.getParam(req, "typeId", "") || null, null) }));
   routes.registerGet(appRef, ["/api/hug/admin/text-pairs", "/api/dashboard/community/hug/text-pairs"], (req, res) => res.json(getTextPairEditorPayload()));
   routes.registerPost(appRef, ["/api/hug/admin/text-pairs", "/api/dashboard/community/hug/text-pairs"], (req, res) => { try { res.json(handleTextPairsPayload(req.body)); } catch (err) { res.status(400).json({ ok: false, error: err.message || String(err) }); } });
+  routes.registerGet(appRef, ["/api/hug/admin/hug-all-texts", "/api/dashboard/community/hug/hug-all-texts"], (req, res) => res.json(getHugAllTextEditorPayload()));
+  routes.registerPost(appRef, ["/api/hug/admin/hug-all-texts", "/api/dashboard/community/hug/hug-all-texts"], (req, res) => { try { res.json(handleHugAllTextPayload(req.body)); } catch (err) { res.status(400).json({ ok: false, error: err.message || String(err) }); } });
 
   return { name: MODULE_NAME, step: "181.1" };
 }
 
-module.exports = { init, loadCache, getDashboardStatus, setOutputMode, getTextPairEditorPayload };
+module.exports = { init, loadCache, getDashboardStatus, setOutputMode, getTextPairEditorPayload, getHugAllTextEditorPayload };
