@@ -1,10 +1,12 @@
 // modules/clips.js
-// STEP184 — Clip-System Backend-Integration + API-Readiness.
+// STEP185 — Clip-System DB-Settings + DB-Textvarianten.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
 // - Clip-Texte koennen ueber den zentralen helper_texts als module_text_variants vorbereitet werden
 // - Twitch-/OBS-/Discord-Readiness wird fuer den spaeteren Backend-Create-Flow sichtbar gemacht
+// - Clip-Settings werden ueber helper_settings in clip_settings vorbereitet
+// - Clip-Texte werden ueber helper_texts in module_text_variants kategorisiert und variantenfaehig vorbereitet
 
 'use strict';
 
@@ -15,6 +17,12 @@ const https = require('https');
 
 const database = require('../core/database');
 const messageHelper = require('./helpers/helper_messages');
+let settingsHelper = null;
+try {
+  settingsHelper = require('./helpers/helper_settings');
+} catch (_) {
+  settingsHelper = null;
+}
 let textHelper = null;
 try {
   textHelper = require('./helpers/helper_texts');
@@ -25,6 +33,112 @@ try {
 const MODULE_NAME = 'clips';
 const CLIP_SCHEMA_VERSION = 1;
 const CLIP_HISTORY_TABLE = 'clip_history';
+const CLIP_SETTINGS_TABLE = 'clip_settings';
+
+const DEFAULT_CLIP_SETTINGS_META = [
+  { key: 'enabled', valueType: 'boolean', description: 'Clip-System aktiv/inaktiv.' },
+  { key: 'backendCreateEnabled', valueType: 'boolean', description: 'Backend darf spaeter Twitch-Clip und OBS-Replay zentral erstellen.' },
+  { key: 'defaultClipTitle', valueType: 'string', description: 'Fallback-Titel, wenn kein Streamtitel/Game gefunden wird.' },
+  { key: 'includeGameInCustomTitle', valueType: 'boolean', description: 'Game-Name an eigene Clip-Titel anhaengen.' },
+  { key: 'twitchClipDurationSeconds', valueType: 'number', description: 'Zielwert fuer Twitch-Clips; Twitch veroeffentlicht standardmaessig bis ca. 30 Sekunden.' },
+  { key: 'twitchClipPollMs', valueType: 'number', description: 'Polling-Abstand fuer spaetere Twitch-Clip-Abfrage.' },
+  { key: 'twitchClipPollMaxAttempts', valueType: 'number', description: 'Maximale Polling-Versuche fuer spaetere Twitch-Clip-Abfrage.' },
+  { key: 'obsReplaySaveEnabled', valueType: 'boolean', description: 'Lokalen OBS-Replay-Clip speichern.' },
+  { key: 'obsReplayWindowSeconds', valueType: 'number', description: 'Fachliche OBS-Replay-Gesamtlaenge. Ziel: 60 Sekunden.' },
+  { key: 'obsReplayPreTriggerSeconds', valueType: 'number', description: 'Sekunden vor !clip im lokalen OBS-Replay. Ziel: 30 Sekunden.' },
+  { key: 'obsReplayPostTriggerSeconds', valueType: 'number', description: 'Sekunden nach !clip im lokalen OBS-Replay. Ziel: 30 Sekunden.' },
+  { key: 'obsReplaySaveDelayMs', valueType: 'number', description: 'Delay nach !clip bis SaveReplayBuffer. Ziel: 30000ms fuer 30s Nachlauf.' },
+  { key: 'localReplayRenameEnabled', valueType: 'boolean', description: 'OBS-Replay-Datei nach dem Speichern automatisch suchen/umbenennen.' },
+  { key: 'localReplayRenameDelayMs', valueType: 'number', description: 'Wartezeit nach SaveReplayBuffer vor der Dateisuche.' },
+  { key: 'localReplayDir', valueType: 'string', description: 'Ordner, in dem OBS ReplayBuffer-Dateien landen.' },
+  { key: 'localReplayLookbackMinutes', valueType: 'number', description: 'Wie weit rueckwaerts nach einer frischen Replay-Datei gesucht wird.' },
+  { key: 'sendClipActivatedMessage', valueType: 'boolean', description: 'Startmeldung im Twitch-Chat vorbereiten.' },
+  { key: 'sendTwitchClipResultMessage', valueType: 'boolean', description: 'Ergebnisnachricht im Twitch-Chat vorbereiten.' },
+  { key: 'sendChatResponse', valueType: 'boolean', description: 'Backend gibt Chat-Antworten fuer Streamer.bot zurueck.' },
+  { key: 'discordPostEnabled', valueType: 'boolean', description: 'Clip-Eintraege nach Discord posten.' },
+  { key: 'discordChannelKey', valueType: 'string', description: 'Key aus config/discord_channels.json fuer Clip-Posts.' },
+  { key: 'postOnlyWhenLive', valueType: 'boolean', description: 'Discord-Post nur wenn Twitch live ist.' },
+  { key: 'saveHistory', valueType: 'boolean', description: 'Clip-Historie in app.sqlite speichern.' },
+  { key: 'duplicatePolicy', valueType: 'string', description: 'Umgang mit Duplikaten: ignore, update oder allow.' },
+  { key: 'messagesPath', valueType: 'string', description: 'JSON-Fallback fuer Clip-Texte.' }
+];
+
+const CLIP_TEXT_CATEGORIES = {
+  chatClipActivated: 'chat',
+  chatClipCreated: 'chat',
+  chatClipFailed: 'errors',
+  chatClipCreatedWithoutUrl: 'errors',
+  chatLocalReplayMissing: 'errors',
+  chatLocalReplayInvalidDir: 'errors',
+  chatReplaySaved: 'chat',
+  chatClipDuplicate: 'chat',
+  discordClipPost: 'discord',
+  discordClipPartial: 'discord',
+  discordClipFailed: 'discord',
+  systemDisabled: 'system',
+  systemBackendNotReady: 'system',
+  systemTwitchScopeMissing: 'system',
+  systemObsReplayNotReady: 'system'
+};
+
+const CLIP_TEXT_CATEGORY_LABELS = {
+  chat: 'Chat-Texte',
+  discord: 'Discord-Texte',
+  errors: 'Fehlertexte',
+  system: 'Systemtexte'
+};
+
+const DEFAULT_CLIP_TEXTS = {
+  chatClipActivated: [
+    '/me 🎬 Clip wird gesichert...',
+    '/me 🎥 Moment markiert. Die Heimleitung sichert den Clip.'
+  ],
+  chatClipCreated: [
+    '/me 📺 Twitch-Clip: {clipUrl}',
+    '/me 🎬 Clip ist da: {clipUrl}'
+  ],
+  chatClipFailed: [
+    '/me ❌ Twitch-Clip konnte nicht erstellt werden.',
+    '/me ⚠️ Clip-Erstellung ist gerade fehlgeschlagen.'
+  ],
+  chatClipCreatedWithoutUrl: [
+    '/me ⚠️ Twitch-Clip wurde erstellt, aber URL/ID ist noch nicht verfügbar.'
+  ],
+  chatLocalReplayMissing: [
+    '/me ❌ Kein frischer Replay-Clip gefunden.'
+  ],
+  chatLocalReplayInvalidDir: [
+    '/me ⚠️ Ungültiger Clip-Ordner: {clipsDir}'
+  ],
+  chatReplaySaved: [
+    '/me ✅ Lokaler Replay-Clip wurde gespeichert.'
+  ],
+  chatClipDuplicate: [
+    '/me ℹ️ Dieser Clip wurde bereits verarbeitet.'
+  ],
+  discordClipPost: [
+    '🎬 Die Heimleitung hat einen neuen Clip gesichert.\n\n**Titel:** {clipTitle}\n**Spiel:** {gameName}\n**Ausgelöst von:** {triggerUser}\n\n{clipUrl}',
+    '📺 Neuer Clip im Archiv.\n\n**{clipTitle}**\nGame: {gameName}\nAusgelöst von: {triggerUser}\n\n{clipUrl}'
+  ],
+  discordClipPartial: [
+    '⚠️ Clip teilweise verarbeitet.\n\n**Titel:** {clipTitle}\n**Status:** {status}\n**Grund:** {reason}\n{clipUrl}'
+  ],
+  discordClipFailed: [
+    '❌ Clip konnte nicht vollständig verarbeitet werden.\n\n**Titel:** {clipTitle}\n**Grund:** {reason}'
+  ],
+  systemDisabled: [
+    'Clip-System ist deaktiviert.'
+  ],
+  systemBackendNotReady: [
+    'Clip-Backend ist noch nicht bereit.'
+  ],
+  systemTwitchScopeMissing: [
+    'Twitch-OAuth-Scope clips:edit fehlt.'
+  ],
+  systemObsReplayNotReady: [
+    'OBS Replay Buffer ist nicht bereit.'
+  ]
+};
 
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
@@ -43,32 +157,52 @@ module.exports.init = function init(ctx) {
   }
 
   function loadClipConfig() {
-    const cfg = readJsonSafe(clipConfigPath, {});
+    const raw = readJsonSafe(clipConfigPath, {});
+    const base = buildClipConfigFromRaw(raw, env);
+    const settingsSeed = buildClipSettingsSeed(base);
+    seedClipSettings(settingsSeed);
 
-    return {
-      enabled: cfg.enabled !== false,
-      defaultClipTitle: String(cfg.defaultClipTitle || 'Clip').trim() || 'Clip',
-      includeGameInCustomTitle: cfg.includeGameInCustomTitle !== false,
+    const cfg = { ...base };
+    const settingSources = {};
 
-      twitchClipDurationSeconds: toInt(cfg.twitchClipDurationSeconds, 30, 1, 120),
-      obsReplaySaveDelayMs: toInt(cfg.obsReplaySaveDelayMs, 30000, 0, 300000),
-      localReplayRenameDelayMs: toInt(cfg.localReplayRenameDelayMs, 3000, 0, 60000),
-      localReplayDir: String(cfg.localReplayDir || '').trim(),
-      localReplayLookbackMinutes: toInt(cfg.localReplayLookbackMinutes, 5, 1, 60),
+    for (const item of DEFAULT_CLIP_SETTINGS_META) {
+      const result = readClipSetting(item.key, base[item.key], item.valueType, item.description);
+      cfg[item.key] = result.value;
+      settingSources[item.key] = result.source;
+    }
 
-      sendClipActivatedMessage: cfg.sendClipActivatedMessage !== false,
-      sendTwitchClipResultMessage: cfg.sendTwitchClipResultMessage !== false,
+    cfg.enabled = Boolean(cfg.enabled);
+    cfg.backendCreateEnabled = Boolean(cfg.backendCreateEnabled);
+    cfg.defaultClipTitle = String(cfg.defaultClipTitle || 'Clip').trim() || 'Clip';
+    cfg.includeGameInCustomTitle = Boolean(cfg.includeGameInCustomTitle);
+    cfg.twitchClipDurationSeconds = toInt(cfg.twitchClipDurationSeconds, 30, 1, 120);
+    cfg.twitchClipPollMs = toInt(cfg.twitchClipPollMs, 2000, 500, 10000);
+    cfg.twitchClipPollMaxAttempts = toInt(cfg.twitchClipPollMaxAttempts, 8, 1, 30);
+    cfg.obsReplaySaveEnabled = Boolean(cfg.obsReplaySaveEnabled);
+    cfg.obsReplayWindowSeconds = toInt(cfg.obsReplayWindowSeconds, 60, 1, 600);
+    cfg.obsReplayPreTriggerSeconds = toInt(cfg.obsReplayPreTriggerSeconds, 30, 0, 300);
+    cfg.obsReplayPostTriggerSeconds = toInt(cfg.obsReplayPostTriggerSeconds, 30, 0, 300);
+    cfg.obsReplaySaveDelayMs = toInt(cfg.obsReplaySaveDelayMs, cfg.obsReplayPostTriggerSeconds * 1000, 0, 300000);
+    cfg.localReplayRenameEnabled = Boolean(cfg.localReplayRenameEnabled);
+    cfg.localReplayRenameDelayMs = toInt(cfg.localReplayRenameDelayMs, 3000, 0, 60000);
+    cfg.localReplayDir = String(cfg.localReplayDir || '').trim();
+    cfg.localReplayLookbackMinutes = toInt(cfg.localReplayLookbackMinutes, 5, 1, 60);
+    cfg.sendClipActivatedMessage = Boolean(cfg.sendClipActivatedMessage);
+    cfg.sendTwitchClipResultMessage = Boolean(cfg.sendTwitchClipResultMessage);
+    cfg.sendChatResponse = Boolean(cfg.sendChatResponse);
+    cfg.discordPostEnabled = Boolean(cfg.discordPostEnabled);
+    cfg.discordChannelKey = String(cfg.discordChannelKey || 'clips').trim() || 'clips';
+    cfg.postOnlyWhenLive = Boolean(cfg.postOnlyWhenLive);
+    cfg.saveHistory = Boolean(cfg.saveHistory);
+    cfg.duplicatePolicy = normalizeDuplicatePolicy(cfg.duplicatePolicy);
+    cfg.messagesPath = String(cfg.messagesPath || 'messages/clips.json').trim() || 'messages/clips.json';
+    cfg.broadcasterId = base.broadcasterId;
+    cfg.channelSummaryUrl = base.channelSummaryUrl;
+    cfg.settingsTable = CLIP_SETTINGS_TABLE;
+    cfg.settingsFromDbPrepared = Boolean(settingsHelper);
+    cfg.settingSources = settingSources;
 
-      discordPostEnabled: cfg.discordPostEnabled === true,
-      discordChannelKey: String(cfg.discordChannelKey || 'clips').trim() || 'clips',
-      postOnlyWhenLive: cfg.postOnlyWhenLive === true,
-      saveHistory: cfg.saveHistory !== false,
-
-      messagesPath: String(cfg.messagesPath || 'messages/clips.json').trim() || 'messages/clips.json',
-
-      broadcasterId: String(env?.TWITCH_BROADCASTER_ID || process.env.TWITCH_BROADCASTER_ID || '').trim(),
-      channelSummaryUrl: `http://127.0.0.1:${String(env?.PORT || process.env.PORT || 8080).trim()}/api/twitch/channel/summary`
-    };
+    return cfg;
   }
 
   function loadDiscordChannels() {
@@ -199,9 +333,9 @@ module.exports.init = function init(ctx) {
         bridgeAvailable: Boolean(data?.ok),
         replayBufferActive,
         readyForBackendSave,
-        targetReplayWindowSeconds: 60,
-        targetPreTriggerSeconds: 30,
-        targetPostTriggerSeconds: 30,
+        targetReplayWindowSeconds: cfg.obsReplayWindowSeconds,
+        targetPreTriggerSeconds: cfg.obsReplayPreTriggerSeconds,
+        targetPostTriggerSeconds: cfg.obsReplayPostTriggerSeconds,
         configuredPostTriggerDelayMs: cfg.obsReplaySaveDelayMs,
         blockers
       };
@@ -212,9 +346,9 @@ module.exports.init = function init(ctx) {
         bridgeAvailable: false,
         replayBufferActive: false,
         readyForBackendSave: false,
-        targetReplayWindowSeconds: 60,
-        targetPreTriggerSeconds: 30,
-        targetPostTriggerSeconds: 30,
+        targetReplayWindowSeconds: cfg.obsReplayWindowSeconds,
+        targetPreTriggerSeconds: cfg.obsReplayPreTriggerSeconds,
+        targetPostTriggerSeconds: cfg.obsReplayPostTriggerSeconds,
         configuredPostTriggerDelayMs: cfg.obsReplaySaveDelayMs,
         blockers: ['obs_replay_status_route_unavailable'],
         error: err.message || String(err)
@@ -244,6 +378,7 @@ module.exports.init = function init(ctx) {
   function buildBackendCreateReadiness(cfg, twitchApi, obsReplay, discord) {
     const blockers = [];
     if (!cfg.enabled) blockers.push('clip_system_disabled');
+    if (!cfg.backendCreateEnabled) blockers.push('backend_create_disabled');
     if (!twitchApi.readyForCreateClip) blockers.push(...(twitchApi.blockers || ['twitch_not_ready']));
     if (!obsReplay.readyForBackendSave) blockers.push(...(obsReplay.blockers || ['obs_replay_not_ready']));
     if (!discord.readyForPost) blockers.push(...(discord.blockers || ['discord_not_ready']));
@@ -302,17 +437,27 @@ module.exports.init = function init(ctx) {
 
   function publicClipRuntimeConfig(cfg) {
     return {
+      backendCreateEnabled: cfg.backendCreateEnabled,
       twitchClipDurationSeconds: cfg.twitchClipDurationSeconds,
+      twitchClipPollMs: cfg.twitchClipPollMs,
+      twitchClipPollMaxAttempts: cfg.twitchClipPollMaxAttempts,
+      obsReplaySaveEnabled: cfg.obsReplaySaveEnabled,
+      obsReplayWindowSeconds: cfg.obsReplayWindowSeconds,
+      obsReplayPreTriggerSeconds: cfg.obsReplayPreTriggerSeconds,
+      obsReplayPostTriggerSeconds: cfg.obsReplayPostTriggerSeconds,
       obsReplaySaveDelayMs: cfg.obsReplaySaveDelayMs,
+      localReplayRenameEnabled: cfg.localReplayRenameEnabled,
       localReplayRenameDelayMs: cfg.localReplayRenameDelayMs,
       localReplayDir: cfg.localReplayDir,
       localReplayLookbackMinutes: cfg.localReplayLookbackMinutes,
       sendClipActivatedMessage: cfg.sendClipActivatedMessage,
       sendTwitchClipResultMessage: cfg.sendTwitchClipResultMessage,
+      sendChatResponse: cfg.sendChatResponse,
       discordPostEnabled: cfg.discordPostEnabled,
       discordChannelKey: cfg.discordChannelKey,
       postOnlyWhenLive: cfg.postOnlyWhenLive,
-      saveHistory: cfg.saveHistory
+      saveHistory: cfg.saveHistory,
+      duplicatePolicy: cfg.duplicatePolicy
     };
   }
 
@@ -338,16 +483,25 @@ module.exports.init = function init(ctx) {
       config: {
         channelInfoSource: 'api',
         broadcasterIdConfigured: Boolean(cfg.broadcasterId),
+        backendCreateEnabled: cfg.backendCreateEnabled,
         twitchClipDurationSeconds: cfg.twitchClipDurationSeconds,
+        twitchClipPollMs: cfg.twitchClipPollMs,
+        twitchClipPollMaxAttempts: cfg.twitchClipPollMaxAttempts,
+        obsReplaySaveEnabled: cfg.obsReplaySaveEnabled,
         obsReplaySaveDelayMs: cfg.obsReplaySaveDelayMs,
-        obsReplayWindowSeconds: 60,
-        obsReplayPreTriggerSeconds: 30,
-        obsReplayPostTriggerSeconds: 30,
+        obsReplayWindowSeconds: cfg.obsReplayWindowSeconds,
+        obsReplayPreTriggerSeconds: cfg.obsReplayPreTriggerSeconds,
+        obsReplayPostTriggerSeconds: cfg.obsReplayPostTriggerSeconds,
+        localReplayRenameEnabled: cfg.localReplayRenameEnabled,
         localReplayRenameDelayMs: cfg.localReplayRenameDelayMs,
         localReplayDirConfigured: Boolean(cfg.localReplayDir),
         localReplayLookbackMinutes: cfg.localReplayLookbackMinutes,
         saveHistory: cfg.saveHistory,
-        messagesFromDbPrepared: Boolean(textHelper)
+        duplicatePolicy: cfg.duplicatePolicy,
+        settingsTable: CLIP_SETTINGS_TABLE,
+        settingsFromDbPrepared: Boolean(settingsHelper),
+        messagesFromDbPrepared: Boolean(textHelper),
+        textCategories: CLIP_TEXT_CATEGORY_LABELS
       },
       database: dbStatus,
       files: {
@@ -436,6 +590,99 @@ module.exports.init = function init(ctx) {
       const limit = toInt(req.query.limit, 20, 1, 100);
       const rows = listClipHistory(limit);
       res.json({ ok: true, module: MODULE_NAME, table: CLIP_HISTORY_TABLE, limit, count: rows.length, rows });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  function sendClipSettingsPayload(res) {
+    try {
+      const cfg = loadClipConfig();
+      const rows = listClipSettings(cfg);
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        table: CLIP_SETTINGS_TABLE,
+        settingsAvailable: Boolean(settingsHelper),
+        count: rows.length,
+        rows,
+        config: publicClipRuntimeConfig(cfg)
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  }
+
+  app.get(['/api/clip/admin/settings', '/api/dashboard/clips/settings'], (req, res) => {
+    sendClipSettingsPayload(res);
+  });
+
+  app.post(['/api/clip/admin/settings', '/api/dashboard/clips/settings'], (req, res) => {
+    try {
+      if (!settingsHelper || typeof settingsHelper.setSetting !== 'function') {
+        return res.status(501).json({ ok: false, error: 'helper_settings_unavailable' });
+      }
+
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const values = body.settings && typeof body.settings === 'object' ? body.settings : body;
+      const updates = {};
+
+      for (const item of DEFAULT_CLIP_SETTINGS_META) {
+        if (Object.prototype.hasOwnProperty.call(values, item.key)) {
+          updates[item.key] = values[item.key];
+        }
+      }
+
+      for (const [key, value] of Object.entries(updates)) {
+        const meta = DEFAULT_CLIP_SETTINGS_META.find(x => x.key === key) || { valueType: 'string', description: '' };
+        settingsHelper.setSetting(CLIP_SETTINGS_TABLE, key, value, { valueType: meta.valueType, description: meta.description });
+      }
+
+      const cfg = loadClipConfig();
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        table: CLIP_SETTINGS_TABLE,
+        updated: Object.keys(updates),
+        count: Object.keys(updates).length,
+        rows: listClipSettings(cfg),
+        config: publicClipRuntimeConfig(cfg)
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  function sendClipTextsPayload(res, messages) {
+    try {
+      if (!textHelper || typeof textHelper.listModuleTextEditor !== 'function') {
+        return res.status(501).json({ ok: false, error: 'helper_texts_unavailable' });
+      }
+      const payload = textHelper.listModuleTextEditor(MODULE_NAME, buildTextDefaults(messages), clipTextOptions());
+      res.json({ ok: true, module: MODULE_NAME, texts: payload });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  }
+
+  app.get(['/api/clip/admin/texts', '/api/dashboard/clips/texts'], (req, res) => {
+    const cfg = loadClipConfig();
+    const messages = loadClipMessages(cfg);
+    sendClipTextsPayload(res, messages);
+  });
+
+  app.post(['/api/clip/admin/texts', '/api/dashboard/clips/texts'], (req, res) => {
+    try {
+      if (!textHelper || typeof textHelper.handleModuleTextEditorPayload !== 'function') {
+        return res.status(501).json({ ok: false, error: 'helper_texts_editor_unavailable' });
+      }
+      const cfg = loadClipConfig();
+      const messages = loadClipMessages(cfg);
+      const result = textHelper.handleModuleTextEditorPayload(MODULE_NAME, req.body || {}, {
+        ...clipTextOptions(),
+        defaults: buildTextDefaults(messages)
+      });
+      res.json({ ok: true, module: MODULE_NAME, result });
     } catch (err) {
       res.status(500).json({ ok: false, error: err.message || String(err) });
     }
@@ -744,48 +991,62 @@ function messageContent(messages, key) {
 
 function buildTextDefaults(messages) {
   const defaults = {};
-  for (const key of [
-    'chatClipActivated',
-    'chatClipCreated',
-    'chatClipFailed',
-    'chatClipCreatedWithoutUrl',
-    'chatLocalReplayMissing',
-    'chatLocalReplayInvalidDir',
-    'chatReplaySaved',
-    'discordClipPost'
-  ]) {
-    const value = messageContent(messages, key);
-    if (value) defaults[key] = value;
+  const knownKeys = new Set([...Object.keys(DEFAULT_CLIP_TEXTS), ...Object.keys(messages || {}).filter(key => !String(key).startsWith('_'))]);
+
+  for (const key of knownKeys) {
+    const values = [];
+    const configured = messageContent(messages, key);
+    if (configured) values.push(configured);
+
+    const base = DEFAULT_CLIP_TEXTS[key];
+    if (Array.isArray(base)) {
+      for (const item of base) {
+        const text = String(item || '').trim();
+        if (text && !values.includes(text)) values.push(text);
+      }
+    } else if (typeof base === 'string' && base.trim() && !values.includes(base.trim())) {
+      values.push(base.trim());
+    }
+
+    if (values.length === 1) defaults[key] = values[0];
+    else if (values.length > 1) defaults[key] = values;
   }
+
   return defaults;
+}
+
+function clipTextOptions() {
+  return {
+    defaultCategory: 'system',
+    categories: CLIP_TEXT_CATEGORIES,
+    categoryLabels: CLIP_TEXT_CATEGORY_LABELS,
+    source: 'seed'
+  };
 }
 
 function seedClipTexts(messages) {
   if (!textHelper || typeof textHelper.listModuleTextEditor !== 'function') return;
   try {
-    textHelper.listModuleTextEditor(MODULE_NAME, buildTextDefaults(messages), {
-      defaultCategory: 'clip',
-      categoryLabels: { clip: 'Clip-System' },
-      source: 'seed'
-    });
+    textHelper.listModuleTextEditor(MODULE_NAME, buildTextDefaults(messages), clipTextOptions());
   } catch (err) {
     console.warn('[clips] Text-Seed konnte nicht vorbereitet werden:', err.message || String(err));
   }
 }
 
 function resolveClipMessage(messages, key) {
-  const fallback = messageContent(messages, key);
+  const fallback = messageContent(messages, key) || firstDefaultText(DEFAULT_CLIP_TEXTS[key]);
   if (!textHelper || typeof textHelper.pickModuleText !== 'function') return fallback;
 
   try {
-    return String(textHelper.pickModuleText(MODULE_NAME, key, buildTextDefaults(messages), {
-      defaultCategory: 'clip',
-      categoryLabels: { clip: 'Clip-System' },
-      source: 'seed'
-    }) || fallback || '').trim();
+    return String(textHelper.pickModuleText(MODULE_NAME, key, buildTextDefaults(messages), clipTextOptions()) || fallback || '').trim();
   } catch (_) {
     return fallback;
   }
+}
+
+function firstDefaultText(value) {
+  if (Array.isArray(value)) return String(value.find(item => String(item || '').trim()) || '').trim();
+  return String(value || '').trim();
 }
 
 function renderClipMessage(messages, key, context) {
@@ -793,14 +1054,116 @@ function renderClipMessage(messages, key, context) {
   return messageHelper.replacePlaceholders(template, {
     clipId: context.clipId || '',
     clipUrl: context.clipUrl || '',
+    editUrl: context.editUrl || '',
     clipTitle: context.clipTitle || '',
     customTitle: context.customTitle || '',
     streamTitle: context.streamTitle || '',
     gameName: context.gameName || '',
     triggerUser: context.triggerUser || '',
+    localReplayFile: context.localReplayFile || '',
+    localReplayPath: context.localReplayPath || '',
+    createdAt: context.createdAt || '',
     status: context.status || '',
-    reason: context.reason || ''
+    reason: context.reason || '',
+    clipsDir: context.clipsDir || ''
   });
+}
+
+function buildClipConfigFromRaw(raw, env) {
+  const cfg = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const postSeconds = toInt(cfg.obsReplayPostTriggerSeconds, 30, 0, 300);
+
+  return {
+    enabled: cfg.enabled !== false,
+    backendCreateEnabled: cfg.backendCreateEnabled !== false,
+    defaultClipTitle: String(cfg.defaultClipTitle || 'Clip').trim() || 'Clip',
+    includeGameInCustomTitle: cfg.includeGameInCustomTitle !== false,
+    twitchClipDurationSeconds: toInt(cfg.twitchClipDurationSeconds, 30, 1, 120),
+    twitchClipPollMs: toInt(cfg.twitchClipPollMs, 2000, 500, 10000),
+    twitchClipPollMaxAttempts: toInt(cfg.twitchClipPollMaxAttempts, 8, 1, 30),
+    obsReplaySaveEnabled: cfg.obsReplaySaveEnabled !== false,
+    obsReplayWindowSeconds: toInt(cfg.obsReplayWindowSeconds, 60, 1, 600),
+    obsReplayPreTriggerSeconds: toInt(cfg.obsReplayPreTriggerSeconds, 30, 0, 300),
+    obsReplayPostTriggerSeconds: postSeconds,
+    obsReplaySaveDelayMs: toInt(cfg.obsReplaySaveDelayMs, postSeconds * 1000, 0, 300000),
+    localReplayRenameEnabled: cfg.localReplayRenameEnabled !== false,
+    localReplayRenameDelayMs: toInt(cfg.localReplayRenameDelayMs, 3000, 0, 60000),
+    localReplayDir: String(cfg.localReplayDir || '').trim(),
+    localReplayLookbackMinutes: toInt(cfg.localReplayLookbackMinutes, 5, 1, 60),
+    sendClipActivatedMessage: cfg.sendClipActivatedMessage !== false,
+    sendTwitchClipResultMessage: cfg.sendTwitchClipResultMessage !== false,
+    sendChatResponse: cfg.sendChatResponse !== false,
+    discordPostEnabled: cfg.discordPostEnabled === true,
+    discordChannelKey: String(cfg.discordChannelKey || 'clips').trim() || 'clips',
+    postOnlyWhenLive: cfg.postOnlyWhenLive === true,
+    saveHistory: cfg.saveHistory !== false,
+    duplicatePolicy: normalizeDuplicatePolicy(cfg.duplicatePolicy || 'ignore'),
+    messagesPath: String(cfg.messagesPath || 'messages/clips.json').trim() || 'messages/clips.json',
+    broadcasterId: String(env?.TWITCH_BROADCASTER_ID || process.env.TWITCH_BROADCASTER_ID || '').trim(),
+    channelSummaryUrl: `http://127.0.0.1:${String(env?.PORT || process.env.PORT || 8080).trim()}/api/twitch/channel/summary`
+  };
+}
+
+function buildClipSettingsSeed(base) {
+  return DEFAULT_CLIP_SETTINGS_META.map(item => ({
+    key: item.key,
+    value: base[item.key],
+    valueType: item.valueType,
+    description: item.description
+  }));
+}
+
+function seedClipSettings(defaults) {
+  if (!settingsHelper || typeof settingsHelper.seedDefaults !== 'function') return;
+  try {
+    settingsHelper.seedDefaults(CLIP_SETTINGS_TABLE, defaults);
+  } catch (err) {
+    console.warn('[clips] Settings-Seed konnte nicht vorbereitet werden:', err.message || String(err));
+  }
+}
+
+function readClipSetting(key, fallback, valueType, description) {
+  if (!settingsHelper || typeof settingsHelper.getSetting !== 'function') {
+    return { key, value: fallback, source: 'config', found: false };
+  }
+
+  try {
+    return settingsHelper.getSetting(CLIP_SETTINGS_TABLE, key, fallback, { valueType, description });
+  } catch (err) {
+    return { key, value: fallback, source: 'fallback', found: false, error: err.message || String(err) };
+  }
+}
+
+function listClipSettings(cfg) {
+  if (!settingsHelper || typeof settingsHelper.listSettings !== 'function') {
+    return DEFAULT_CLIP_SETTINGS_META.map(item => ({
+      key: item.key,
+      value: cfg[item.key],
+      valueType: item.valueType,
+      description: item.description,
+      source: 'config'
+    }));
+  }
+
+  try {
+    seedClipSettings(buildClipSettingsSeed(cfg));
+    return settingsHelper.listSettings(CLIP_SETTINGS_TABLE).rows || [];
+  } catch (err) {
+    return DEFAULT_CLIP_SETTINGS_META.map(item => ({
+      key: item.key,
+      value: cfg[item.key],
+      valueType: item.valueType,
+      description: item.description,
+      source: 'fallback',
+      error: err.message || String(err)
+    }));
+  }
+}
+
+function normalizeDuplicatePolicy(value) {
+  const policy = String(value || 'ignore').trim().toLowerCase();
+  if (policy === 'allow' || policy === 'update' || policy === 'ignore') return policy;
+  return 'ignore';
 }
 
 function appendQuery(baseUrl, params) {
