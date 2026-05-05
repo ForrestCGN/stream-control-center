@@ -7,6 +7,8 @@ window.HugModule = (function(){
   let textPairsError = '';
   let hugAllTexts = null;
   let hugAllTextsError = '';
+  let responseTexts = null;
+  let responseTextsError = '';
   let loading = false;
   let actionsBound = false;
   let activeTab = 'overview';
@@ -267,7 +269,7 @@ window.HugModule = (function(){
   function renderTextCategoryBody(pairs, kinds){
     if (activeTextCategory === 'pairs') return renderTextPairsEditor(pairs);
     if (activeTextCategory === 'hug_all') return renderHugAllEditor();
-    if (activeTextCategory === 'responses') return renderTextCategoryPlaceholder('Systemantworten', 'response', kinds);
+    if (activeTextCategory === 'responses') return renderResponseEditor();
     if (activeTextCategory === 'top_titles') return renderTextCategoryPlaceholder('Toplisten', 'top_title', kinds);
     return '<div class="hug-empty">Unbekannte Textkategorie.</div>';
   }
@@ -339,6 +341,96 @@ window.HugModule = (function(){
         </div>
       </div>
     `;
+  }
+
+  function renderResponseEditor(){
+    if (responseTextsError) return `<div class="hug-error">Systemantworten konnten nicht geladen werden: ${esc(responseTextsError)}</div>`;
+    if (!responseTexts) return `<div class="hug-empty">Systemantworten werden geladen oder Backend-STEP182.4 ist noch nicht deployed.</div>`;
+    const rows = Array.isArray(responseTexts.texts) ? responseTexts.texts : [];
+    return `
+      <div class="hug-sub-card">
+        <div class="card-head big-head hug-compact-head">
+          <div>
+            <h3>Systemantworten</h3>
+            <div class="small-note">Bot-Antworten fuer Fehler, Hinweise und Statusmeldungen. Der Text-Key bleibt wichtig und sollte nicht wahllos geaendert werden.</div>
+          </div>
+          <div class="head-actions">
+            <button type="button" data-hug-action="reload-responses">Neu laden</button>
+          </div>
+        </div>
+
+        <div class="hug-pair-summary">
+          <div class="hug-kind"><strong>${num(responseTexts.activeCount || 0)}</strong><span>aktive Antworten</span></div>
+          <div class="hug-kind"><strong>${num(responseTexts.count || 0)}</strong><span>Antworten gesamt</span></div>
+        </div>
+
+        ${renderNewResponseForm()}
+
+        <div class="hug-text-list">
+          ${rows.length ? rows.map(row => renderResponseCard(row)).join('') : '<div class="hug-empty">Keine Systemantworten vorhanden.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderNewResponseForm(){
+    return `
+      <details class="hug-pair-new">
+        <summary>Neue Systemantwort anlegen</summary>
+        <div class="hug-response-form" data-response-form="new">
+          <label class="response-key"><span>Text-Key</span><input data-response-field="textKey" placeholder="z. B. customInfo"></label>
+          <label class="compact compact-aktiv"><span>Aktiv</span><select data-response-field="enabled"><option value="true">Aktiv</option><option value="false">Inaktiv</option></select></label>
+          <label class="compact compact-weight"><span>Gewichtung</span><input data-response-field="weight" type="number" min="1" value="1"></label>
+          <label class="compact compact-sort"><span>Sortierung</span><input data-response-field="sortOrder" type="number" value="0"></label>
+          <label class="wide pair-textarea"><span>Text</span><textarea data-response-field="text" rows="3" placeholder="@{actor}, ..."></textarea></label>
+          <div class="hug-pair-actions wide"><button type="button" data-hug-action="save-response" data-text-id="new">Antwort speichern</button></div>
+        </div>
+      </details>
+    `;
+  }
+
+  function renderResponseCard(row){
+    return `
+      <div class="hug-pair-card" data-response-form="${esc(row.id)}">
+        <div class="hug-pair-card-head">
+          <div>
+            <strong>${esc(responseLabel(row.textKey || row.id))}</strong>
+            <span>Key: ${esc(row.textKey || '-')} · ${row.enabled ? 'aktiv' : 'inaktiv'} · Gewicht ${esc(row.weight || 1)}</span>
+          </div>
+          <div class="hug-pair-card-actions">
+            <button type="button" data-hug-action="save-response" data-text-id="${esc(row.id)}">Speichern</button>
+            <button type="button" class="danger" data-hug-action="delete-response" data-text-id="${esc(row.id)}">Löschen</button>
+          </div>
+        </div>
+        <div class="hug-response-form">
+          <input type="hidden" data-response-field="id" value="${esc(row.id)}">
+          <label class="response-key"><span>Text-Key</span><input data-response-field="textKey" value="${esc(row.textKey || '')}"></label>
+          <label class="compact compact-aktiv"><span>Aktiv</span><select data-response-field="enabled"><option value="true"${row.enabled ? ' selected' : ''}>Aktiv</option><option value="false"${!row.enabled ? ' selected' : ''}>Inaktiv</option></select></label>
+          <label class="compact compact-weight"><span>Gewichtung</span><input data-response-field="weight" type="number" min="1" value="${esc(row.weight || 1)}"></label>
+          <label class="compact compact-sort"><span>Sortierung</span><input data-response-field="sortOrder" type="number" value="${esc(row.sortOrder || 0)}"></label>
+          <label class="wide pair-textarea"><span>Text</span><textarea data-response-field="text" rows="3">${esc(row.text || '')}</textarea></label>
+        </div>
+      </div>
+    `;
+  }
+
+  function responseLabel(key){
+    const labels = {
+      disabled: 'System deaktiviert',
+      missingUser: 'User nicht gefunden',
+      selfHug: 'Selbst-Hug',
+      disabledTarget: 'Ziel hat Hug deaktiviert',
+      disabledActor: 'Auslöser hat Hug deaktiviert',
+      noPendingRehug: 'Kein offener Rehug',
+      missingRehugType: 'Rehug-Typ fehlt',
+      usage: 'Nutzungshinweis',
+      optIn: 'Hug aktiviert',
+      optOut: 'Hug deaktiviert',
+      reloadOk: 'Reload erfolgreich',
+      statsTitle: 'Stats-Titel',
+      topEmpty: 'Topliste leer'
+    };
+    return labels[key] || `Systemantwort ${key}`;
   }
 
   function renderTextCategoryPlaceholder(title, kind, kinds){
@@ -586,6 +678,16 @@ window.HugModule = (function(){
     }
   }
 
+  async function loadResponseTexts(){
+    responseTextsError = '';
+    try {
+      responseTexts = await api('/api/dashboard/community/hug/response-texts');
+    } catch (err) {
+      responseTexts = null;
+      responseTextsError = err.message || String(err);
+    }
+  }
+
   async function saveHugAllText(textId){
     const text = collectHugAllForm(textId);
     await api('/api/dashboard/community/hug/hug-all-texts', {
@@ -599,6 +701,45 @@ window.HugModule = (function(){
     if (!textId || textId === 'new') return;
     if (!confirm('Diesen chatweiten Hug-Text wirklich löschen?')) return;
     await api('/api/dashboard/community/hug/hug-all-texts', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'deleteText', id: textId })
+    });
+    await loadAll(true);
+  }
+
+  function collectResponseForm(textId){
+    const form = root?.querySelector(`[data-response-form="${CSS.escape(String(textId))}"]`);
+    if (!form) throw new Error('Formular nicht gefunden.');
+    const data = {};
+    form.querySelectorAll('[data-response-field]').forEach(field => {
+      const key = field.dataset.responseField;
+      if (!key) return;
+      data[key] = field.value;
+    });
+    if (textId !== 'new') data.id = textId;
+    data.weight = Math.max(1, Number(data.weight || 1));
+    data.sortOrder = Number(data.sortOrder || 0);
+    data.enabled = data.enabled !== 'false';
+    data.textKey = String(data.textKey || '').trim();
+    data.text = String(data.text || '').trim();
+    if (!data.textKey) throw new Error('Text-Key fehlt.');
+    if (!data.text) throw new Error('Text fehlt.');
+    return data;
+  }
+
+  async function saveResponseText(textId){
+    const text = collectResponseForm(textId);
+    await api('/api/dashboard/community/hug/response-texts', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveText', text })
+    });
+    await loadAll(true);
+  }
+
+  async function deleteResponseText(textId){
+    if (!textId || textId === 'new') return;
+    if (!confirm('Diese Systemantwort wirklich löschen?')) return;
+    await api('/api/dashboard/community/hug/response-texts', {
       method: 'POST',
       body: JSON.stringify({ action: 'deleteText', id: textId })
     });
@@ -647,6 +788,12 @@ window.HugModule = (function(){
         }
         if (action === 'save-hug-all') await saveHugAllText(btn.dataset.textId || 'new');
         if (action === 'delete-hug-all') await deleteHugAllText(btn.dataset.textId || '');
+        if (action === 'reload-responses') {
+          await loadResponseTexts();
+          renderTexts();
+        }
+        if (action === 'save-response') await saveResponseText(btn.dataset.textId || 'new');
+        if (action === 'delete-response') await deleteResponseText(btn.dataset.textId || '');
       } catch (err) {
         alert(`Hug-Fehler: ${err.message}`);
       } finally {
@@ -678,6 +825,7 @@ window.HugModule = (function(){
       status = await api('/api/dashboard/community/hug/status');
       await loadTextPairs();
       await loadHugAllTexts();
+      await loadResponseTexts();
       render();
     } catch (err) {
       if (root) root.innerHTML = `<div class="hug-card"><h2>Hug-System</h2><div class="hug-error">${esc(err.message)}</div></div>`;
