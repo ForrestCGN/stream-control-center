@@ -13,6 +13,11 @@ window.VipModule = (function(){
     daily: null,
     events: null,
     stats: null,
+    soundUsers: null,
+    soundStatus: null,
+    uploadStatus: null,
+    selectedSoundLogin: '',
+    soundManualLogin: '',
     note: '',
     loading: false,
     textFilterStyle: '',
@@ -35,7 +40,7 @@ window.VipModule = (function(){
     if (!keepNote) state.note = '';
     renderLoading();
     try {
-      const [summary, settings, roles, texts, eventKeys, daily, events, stats] = await Promise.all([
+      const [summary, settings, roles, texts, eventKeys, daily, events, stats, soundUsers, uploadStatus] = await Promise.all([
         api('/admin/summary'),
         api('/settings'),
         api('/roles'),
@@ -43,7 +48,9 @@ window.VipModule = (function(){
         api('/texts/event-keys').catch(() => ({ ok:false, rows:[] })),
         api('/daily-usage/today').catch(() => ({ ok:false, rows:[] })),
         api('/events/recent').catch(() => ({ ok:false, rows:[] })),
-        api('/stats').catch(() => ({ ok:false }))
+        api('/stats').catch(() => ({ ok:false })),
+        api('/sounds/users').catch(() => ({ ok:false, rows:[] })),
+        api('/upload/status').catch(() => ({ ok:false }))
       ]);
       state.summary = summary;
       state.settings = settings;
@@ -53,6 +60,10 @@ window.VipModule = (function(){
       state.daily = daily;
       state.events = events;
       state.stats = stats;
+      state.soundUsers = soundUsers;
+      state.uploadStatus = uploadStatus;
+      if (!state.selectedSoundLogin && soundUsers?.rows?.length) state.selectedSoundLogin = soundUsers.rows[0].login || '';
+      if (state.selectedSoundLogin) state.soundStatus = await loadSoundStatus(state.selectedSoundLogin);
     } catch (err) {
       state.note = `Fehler beim Laden: ${err.message || err}`;
     } finally {
@@ -68,6 +79,15 @@ window.VipModule = (function(){
     if (state.textFilterEventKey) params.set('eventKey', state.textFilterEventKey);
     if (state.textSearch) params.set('search', state.textSearch);
     return api('/texts?' + params.toString());
+  }
+
+
+  function loadSoundStatus(login){
+    const clean = String(login || '').trim();
+    if (!clean) return Promise.resolve(null);
+    const params = new URLSearchParams();
+    params.set('login', clean);
+    return api('/sounds/status?' + params.toString()).catch(() => null);
   }
 
   function renderLoading(){
@@ -95,13 +115,14 @@ window.VipModule = (function(){
   }
 
   function tabsHtml(){
-    const tabs = [['overview','Übersicht'],['settings','Settings'],['texts','Texte'],['roles','Rollen'],['daily','Daily-Usage'],['events','Events'],['test','Test']];
+    const tabs = [['overview','Übersicht'],['settings','Settings'],['texts','Texte'],['sounds','Sounds'],['roles','Rollen'],['daily','Daily-Usage'],['events','Events'],['test','Test']];
     return `<div class="vip-tabs glass">${tabs.map(([id,label]) => `<button type="button" class="vip-tab ${state.page === id ? 'active' : ''}" data-vip-page="${id}">${esc(label)}</button>`).join('')}</div>`;
   }
 
   function pageHtml(){
     if (state.page === 'settings') return settingsPage();
     if (state.page === 'texts') return textsPage();
+    if (state.page === 'sounds') return soundsPage();
     if (state.page === 'roles') return rolesPage();
     if (state.page === 'daily') return dailyPage();
     if (state.page === 'events') return eventsPage();
@@ -142,6 +163,25 @@ window.VipModule = (function(){
   function textCard(row){
     const id = Number(row.id || 0);
     return `<article class="vip-text-card ${row.enabled ? '' : 'disabled'}"><div class="vip-text-meta">${badge(row.style || '')}${badge(row.eventKey || '')}${badge(row.enabled ? 'Aktiv' : 'Inaktiv', row.enabled ? 'ok' : 'warn')}<span class="vip-muted">ID ${id} · Gewicht ${esc(row.weight || 1)}</span></div><div class="vip-text-edit-grid"><label>Event-Key <input class="vip-input" data-text-event="${id}" value="${esc(row.eventKey || '')}"></label><label>Style <select class="vip-input" data-text-style="${id}"><option value="heimleitung" ${row.style === 'heimleitung' ? 'selected' : ''}>heimleitung / Chat</option><option value="overlay" ${row.style === 'overlay' ? 'selected' : ''}>overlay</option></select></label><label>Gewicht <input class="vip-input" type="number" min="1" max="1000" data-text-weight="${id}" value="${esc(row.weight || 1)}"></label><label class="vip-check"><input type="checkbox" data-text-enabled="${id}" ${row.enabled ? 'checked' : ''}> Aktiv</label></div><textarea class="vip-textarea" data-text-message="${id}">${esc(row.messageText || '')}</textarea><div class="vip-actions right"><button type="button" data-save-text="${id}">Speichern</button><button type="button" data-toggle-text="${id}">${row.enabled ? 'Deaktivieren' : 'Aktivieren'}</button></div></article>`;
+  }
+
+  function soundsPage(){
+    const users = state.soundUsers?.rows || [];
+    const settings = state.uploadStatus?.settings || state.soundUsers?.settings || {};
+    const selected = state.selectedSoundLogin || '';
+    const selectedUser = users.find(u => u.login === selected) || null;
+    const status = state.soundStatus || selectedUser || {};
+    const sound = status.sound || selectedUser?.sound || {};
+    const expectedExt = settings.fileExtension || sound.fileExtension || '.mp3';
+    const maxMb = settings.maxSoundUploadBytes ? Math.round(Number(settings.maxSoundUploadBytes) / 1024 / 1024) : 15;
+    return `<section class="vip-card glass span-12"><div class="vip-card-head big"><div><h3>Sounds</h3><p>VIP-/Mod-Sounds verwalten. Die Datei wird automatisch nach der bestehenden VIP-Dateinamenlogik gespeichert.</p></div><button type="button" data-vip-action="reload-sounds">Sounds neu laden</button></div><div class="vip-sound-grid"><div class="vip-sound-panel"><label>Bekannten VIP/Mod/User auswählen<select id="vipSoundUser">${users.map(u => `<option value="${esc(u.login || '')}" ${selected === u.login ? 'selected' : ''}>${esc(u.displayName || u.login)}${u.roleTypes?.length ? ' · ' + esc(u.roleTypes.join('/')) : ''}${u.sound?.exists ? ' · Sound vorhanden' : ''}</option>`).join('')}</select></label><label>Oder manuell Login eingeben<input id="vipSoundManualLogin" value="${esc(state.soundManualLogin || '')}" placeholder="z. B. araglor"></label><button type="button" data-vip-action="resolve-sound-user">User prüfen</button><div class="vip-muted">Später kommt hier ein Twitch-Sync für aktuelle VIP-/Mod-Listen dazu. Aktuell nutzt das Dashboard lokale DB-Daten.</div></div><div class="vip-sound-panel"><h4>Aktueller Soundstatus</h4><div class="vip-standard-list"><div><strong>User:</strong> ${fmt(status.user?.displayName || selectedUser?.displayName || selected || '—')}</div><div><strong>Datei:</strong> <code>${fmt(sound.fileName)}</code></div><div><strong>Vorhanden:</strong> ${badge(sound.exists ? 'Ja' : 'Nein', sound.exists ? 'ok' : 'warn')}</div><div><strong>Dauer:</strong> ${sound.durationMs ? esc(formatMs(sound.durationMs)) : '—'}</div><div><strong>Pfad:</strong> <span class="vip-muted">${fmt(sound.relativeFile || sound.fullPath)}</span></div><div><strong>Erwartete Endung:</strong> <code>${esc(expectedExt)}</code> · max. ${esc(maxMb)} MB</div></div></div></div><div class="vip-upload-box"><label>Neue Sounddatei auswählen<input id="vipSoundFile" type="file" accept="audio/*,.mp3,.wav,.ogg,.webm,.m4a"></label><label class="vip-check"><input id="vipSoundOverwrite" type="checkbox"> vorhandenen Song ersetzen</label><button type="button" class="success" data-vip-action="upload-sound">Sound hochladen</button></div></section>`;
+  }
+
+  function formatMs(ms){
+    const n = Math.max(0, Number(ms || 0));
+    if (!n) return '—';
+    const sec = n / 1000;
+    return sec >= 60 ? `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')} min` : `${sec.toFixed(1).replace('.', ',')} s`;
   }
 
   function rolesPage(){
@@ -190,6 +230,9 @@ window.VipModule = (function(){
         return render();
       }
       if (action === 'new-text') return newText();
+      if (action === 'reload-sounds') return reloadSounds();
+      if (action === 'resolve-sound-user') return resolveSoundUser();
+      if (action === 'upload-sound') return uploadVipSound();
       if (action === 'save-role') return saveRole();
       if (action === 'run-test') return runTest();
     } catch (err) { state.note = `Fehler: ${err.message || err}`; render(); }
@@ -225,6 +268,56 @@ window.VipModule = (function(){
     state.texts = state.texts || { rows: [] };
     state.texts.rows = [row, ...(state.texts.rows || [])];
     state.note = 'Neuer Text vorbereitet. Bitte ausfüllen und speichern.';
+    render();
+  }
+
+  async function reloadSounds(){
+    state.soundUsers = await api('/sounds/users');
+    state.uploadStatus = await api('/upload/status').catch(() => state.uploadStatus || null);
+    if (!state.selectedSoundLogin && state.soundUsers?.rows?.length) state.selectedSoundLogin = state.soundUsers.rows[0].login || '';
+    if (state.selectedSoundLogin) state.soundStatus = await loadSoundStatus(state.selectedSoundLogin);
+    state.note = 'Soundliste aktualisiert.';
+    render();
+  }
+
+  async function resolveSoundUser(){
+    const manual = document.getElementById('vipSoundManualLogin')?.value || '';
+    const selected = document.getElementById('vipSoundUser')?.value || '';
+    const login = manual.trim() || selected.trim();
+    if (!login) throw new Error('Bitte VIP/Mod/User auswählen oder Login eingeben.');
+    state.soundManualLogin = manual.trim();
+    state.selectedSoundLogin = login;
+    state.soundStatus = await loadSoundStatus(login);
+    state.note = `Soundstatus geladen: ${login}`;
+    render();
+  }
+
+  async function uploadVipSound(){
+    const manual = document.getElementById('vipSoundManualLogin')?.value || '';
+    const selected = document.getElementById('vipSoundUser')?.value || '';
+    const login = manual.trim() || selected.trim() || state.selectedSoundLogin;
+    const file = document.getElementById('vipSoundFile')?.files?.[0] || null;
+    const overwrite = !!document.getElementById('vipSoundOverwrite')?.checked;
+    if (!login) throw new Error('Bitte VIP/Mod/User auswählen oder Login eingeben.');
+    if (!file) throw new Error('Bitte eine Sounddatei auswählen.');
+
+    const form = new FormData();
+    form.append('login', login);
+    form.append('overwrite', overwrite ? 'true' : 'false');
+    form.append('file', file);
+
+    const res = await fetch(API + '/sounds/upload', { method: 'POST', body: form });
+    let json = null;
+    try { json = await res.json(); } catch (_) { json = null; }
+    if (!res.ok || !json || json.ok === false) {
+      throw new Error((json && (json.message || json.error)) || `Upload fehlgeschlagen (${res.status})`);
+    }
+
+    state.selectedSoundLogin = json.user?.login || login;
+    state.soundManualLogin = '';
+    state.soundStatus = json;
+    state.soundUsers = await api('/sounds/users').catch(() => state.soundUsers);
+    state.note = json.sound?.overwritten ? 'Sound wurde ersetzt.' : 'Sound wurde hochgeladen.';
     render();
   }
 

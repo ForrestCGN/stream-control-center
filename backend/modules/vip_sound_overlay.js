@@ -11,6 +11,15 @@ const configHelper = require("./helpers/helper_config");
 const settingsHelper = require("./helpers/helper_settings");
 const database = require("../core/database");
 const twitchRoles = require("./helpers/helper_twitch_roles");
+const media = require("./helpers/helper_media");
+
+let multer = null;
+let multerLoadError = "";
+try {
+  multer = require("multer");
+} catch (err) {
+  multerLoadError = err && err.message ? err.message : String(err);
+}
 
 module.exports.init = function init(ctx) {
   const { app, broadcastWS } = ctx;
@@ -54,6 +63,11 @@ module.exports.init = function init(ctx) {
       value: ".mp3",
       value_type: "string",
       description: "Dateiendung fuer VIP-Sounddateien."
+    },
+    maxSoundUploadBytes: {
+      value: 15728640,
+      value_type: "number",
+      description: "Maximale Dateigroesse fuer VIP-Sound-Uploads ueber das Dashboard."
     },
     dailyUsageRetentionDays: {
       value: 14,
@@ -186,7 +200,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.5",
+    version: "1.8.6",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -1078,6 +1092,7 @@ module.exports.init = function init(ctx) {
       soundBaseDir: [["soundBaseDir"], ["sound", "baseDir"], ["sound", "soundBaseDir"]],
       fileNameMode: [["fileNameMode"], ["sound", "fileNameMode"]],
       fileExtension: [["fileExtension"], ["sound", "fileExtension"]],
+      maxSoundUploadBytes: [["maxSoundUploadBytes"], ["sound", "maxUploadBytes"], ["sound", "maxSoundUploadBytes"]],
       dailyUsageRetentionDays: [["dailyUsageRetentionDays"], ["dailyUsage", "retentionDays"]],
       cleanupDailyUsageOnStartup: [["cleanupDailyUsageOnStartup"], ["dailyUsage", "cleanupOnStartup"]],
       autoDetectTargetRole: [["autoDetectTargetRole"], ["roles", "autoDetectTargetRole"]],
@@ -1736,6 +1751,286 @@ module.exports.init = function init(ctx) {
       fileNameMode: String(getVipSetting("fileNameMode", "displayName") || "displayName"),
       fileExtension: normalizeFileExtension(getVipSetting("fileExtension", ".mp3")),
       exists: fileExistsSafe(fullPath)
+    };
+  }
+
+
+  function createVipSoundUploadMiddleware() {
+    if (!multer) return null;
+
+    return multer({
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: Math.max(1024, Number(getVipSetting("maxSoundUploadBytes", 15728640)) || 15728640)
+      },
+      fileFilter(req, file, cb) {
+        const originalName = String(file.originalname || "");
+        const mime = String(file.mimetype || "").toLowerCase();
+        const allowedByExt = media.extensionAllowed(originalName, media.DEFAULT_ALLOWED_EXTENSIONS);
+        const allowedByMime = mime.startsWith("audio/") || mime === "application/octet-stream";
+        if (!allowedByExt || !allowedByMime) {
+          return cb(new Error(`Dateityp nicht erlaubt: ${file.originalname || file.mimetype || "unknown"}`));
+        }
+        return cb(null, true);
+      }
+    });
+  }
+
+  async function resolveUploadTargetUser(raw = {}) {
+    const loginRaw = normalizeLogin(raw.login || raw.userLogin || raw.targetLogin || raw.user || raw.name || "");
+    const displayRaw = cleanDisplayName(raw.displayName || raw.userDisplayName || raw.targetDisplayName || raw.display || raw.name || loginRaw);
+    const lookupKey = loginRaw || displayRaw;
+    let info = null;
+
+    if (lookupKey) {
+      try {
+        info = await fetchUserInfo(lookupKey);
+      } catch (_) {
+        info = null;
+      }
+    }
+
+    const login = normalizeLogin((info && info.login) || loginRaw || displayRaw);
+    const displayName = cleanDisplayName((info && info.displayName) || displayRaw || login);
+    if (!login && !displayName) throw new Error("login_required");
+
+    return {
+      login: login || normalizeLogin(displayName),
+      displayName: displayName || login
+    };
+  }
+
+  function ensurePathInsideBase(targetPath, baseDir) {
+    const base = path.resolve(baseDir);
+    const target = path.resolve(targetPath);
+    if (target !== base && !target.startsWith(base + path.sep)) {
+      throw new Error("upload_target_outside_base_dir");
+    }
+    return target;
+  }
+
+  function vipSoundDurationInfo(sound) {
+    if (!sound || !sound.exists) {
+      return { durationMs: 0, durationOk: false, durationError: sound ? "file_not_found" : "sound_missing", sizeBytes: 0 };
+    }
+
+    const duration = media.readAudioDurationMs(sound.fullPath, { cache: false });
+    let sizeBytes = 0;
+    try {
+      sizeBytes = fs.statSync(sound.fullPath).size || 0;
+    } catch (_) {
+      sizeBytes = 0;
+    }
+
+    return {
+      durationMs: Number(duration.durationMs || 0),
+      durationOk: !!duration.ok,
+      durationError: duration.error || "",
+      sizeBytes
+    };
+  }
+
+  function publicVipSoundInfo(sound, extra = {}) {
+    return {
+      fileName: sound.fileName || "",
+      relativeFile: sound.relativeFile || "",
+      fullPath: sound.fullPath || "",
+      baseDir: sound.baseDir || "",
+      exists: !!sound.exists,
+      fileNameMode: sound.fileNameMode || "",
+      fileExtension: sound.fileExtension || "",
+      durationMs: Number(extra.durationMs || 0),
+      durationOk: !!extra.durationOk,
+      durationError: extra.durationError || "",
+      sizeBytes: Number(extra.sizeBytes || 0),
+      originalName: extra.originalName || "",
+      overwritten: !!extra.overwritten
+    };
+  }
+
+  async function buildVipSoundStatus(raw = {}) {
+    const user = await resolveUploadTargetUser(raw);
+    const sound = resolveVipSoundFile(user);
+    const info = vipSoundDurationInfo(sound);
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      user,
+      sound: publicVipSoundInfo(sound, info),
+      settings: {
+        soundBaseDir: getVipSoundBaseDir(),
+        fileNameMode: String(getVipSetting("fileNameMode", "displayName") || "displayName"),
+        fileExtension: normalizeFileExtension(getVipSetting("fileExtension", ".mp3")),
+        maxSoundUploadBytes: Number(getVipSetting("maxSoundUploadBytes", 15728640)) || 15728640
+      },
+      updatedAt: nowIso()
+    };
+  }
+
+  function addVipSoundCandidate(map, raw = {}) {
+    const login = normalizeLogin(raw.login || raw.user_login || raw.target_login || raw.actor_login || "");
+    const displayName = cleanDisplayName(raw.displayName || raw.display_name || raw.user_display_name || raw.target_display_name || raw.actor_display_name || login);
+    if (!login && !displayName) return;
+
+    const key = login || normalizeLogin(displayName);
+    if (!key) return;
+
+    const existing = map.get(key) || {
+      login: key,
+      displayName: displayName || key,
+      roleTypes: [],
+      soundTypes: [],
+      sources: []
+    };
+
+    if (displayName && (!existing.displayName || existing.displayName === existing.login)) existing.displayName = displayName;
+
+    const roleType = normalizeRoleType(raw.roleType || raw.role_type || raw.role || "vip");
+    if (roleType && !existing.roleTypes.includes(roleType)) existing.roleTypes.push(roleType);
+
+    const soundType = normalizeSoundType(raw.soundType || raw.sound_type || (roleType === "mod" || roleType === "crew" ? "mod" : "vip"));
+    if (soundType && !existing.soundTypes.includes(soundType)) existing.soundTypes.push(soundType);
+
+    const source = String(raw.source || "").trim();
+    if (source && !existing.sources.includes(source)) existing.sources.push(source);
+
+    map.set(key, existing);
+  }
+
+  function listVipSoundUsers(raw = {}) {
+    const includeSoundInfo = String(raw.includeSoundInfo ?? "true").trim().toLowerCase() !== "false";
+    const limit = Math.max(1, Math.min(1000, intOrDefault(raw.limit, 300)));
+    const map = new Map();
+
+    try {
+      for (const row of getVipRoleOverrideRows(false)) {
+        addVipSoundCandidate(map, {
+          login: row.login,
+          displayName: row.display_name,
+          roleType: row.role_type,
+          source: "role_override"
+        });
+      }
+    } catch (_) {}
+
+    try {
+      const rows = database.all(`
+        SELECT user_login, user_display_name, sound_type, MAX(triggered_at) AS last_seen_at
+        FROM vip_sound_daily_usage
+        GROUP BY user_login, user_display_name, sound_type
+        ORDER BY last_seen_at DESC
+        LIMIT :limit
+      `, { limit });
+
+      for (const row of rows) {
+        addVipSoundCandidate(map, {
+          login: row.user_login,
+          displayName: row.user_display_name,
+          soundType: row.sound_type,
+          source: "daily_usage"
+        });
+      }
+    } catch (_) {}
+
+    try {
+      const rows = database.all(`
+        SELECT user_login, user_display_name, sound_type, MAX(created_at) AS last_seen_at
+        FROM vip_sound_events
+        WHERE user_login <> ''
+        GROUP BY user_login, user_display_name, sound_type
+        ORDER BY last_seen_at DESC
+        LIMIT :limit
+      `, { limit });
+
+      for (const row of rows) {
+        addVipSoundCandidate(map, {
+          login: row.user_login,
+          displayName: row.user_display_name,
+          soundType: row.sound_type,
+          source: "events"
+        });
+      }
+    } catch (_) {}
+
+    const rows = Array.from(map.values())
+      .sort((a, b) => String(a.displayName || a.login).localeCompare(String(b.displayName || b.login), "de", { sensitivity: "base" }))
+      .slice(0, limit)
+      .map(user => {
+        const sound = resolveVipSoundFile(user);
+        const info = includeSoundInfo ? vipSoundDurationInfo(sound) : { durationMs: 0, durationOk: false, durationError: "", sizeBytes: 0 };
+        return {
+          ...user,
+          sound: publicVipSoundInfo(sound, info)
+        };
+      });
+
+    return {
+      tableSources: [VIP_ROLE_OVERRIDES_TABLE, VIP_DAILY_USAGE_TABLE, VIP_EVENTS_TABLE],
+      count: rows.length,
+      rows,
+      settings: {
+        soundBaseDir: getVipSoundBaseDir(),
+        fileNameMode: String(getVipSetting("fileNameMode", "displayName") || "displayName"),
+        fileExtension: normalizeFileExtension(getVipSetting("fileExtension", ".mp3")),
+        maxSoundUploadBytes: Number(getVipSetting("maxSoundUploadBytes", 15728640)) || 15728640
+      },
+      twitchSync: {
+        available: false,
+        planned: true,
+        note: "Twitch VIP-/Mod-Sync ist fuer einen spaeteren STEP vorgesehen."
+      }
+    };
+  }
+
+  async function saveUploadedVipSound(raw = {}, file) {
+    if (!file) throw new Error("missing_file");
+
+    const user = await resolveUploadTargetUser(raw);
+    const uploadExt = path.extname(String(file.originalname || "")).toLowerCase();
+    if (!media.extensionAllowed(file.originalname || "", media.DEFAULT_ALLOWED_EXTENSIONS)) {
+      throw new Error(`extension_not_allowed:${uploadExt || "none"}`);
+    }
+
+    const sound = resolveVipSoundFile(user);
+    const expectedExt = String(sound.fileExtension || ".mp3").toLowerCase();
+    if (uploadExt !== expectedExt) {
+      throw new Error(`extension_mismatch:expected_${expectedExt}_got_${uploadExt || "none"}`);
+    }
+
+    const targetPath = ensurePathInsideBase(sound.fullPath, sound.baseDir);
+    const overwrite = boolish(raw.overwrite);
+    const existedBefore = fs.existsSync(targetPath);
+    if (existedBefore && !overwrite) {
+      throw new Error("sound_file_exists");
+    }
+
+    core.ensureDir(sound.baseDir);
+    fs.writeFileSync(targetPath, file.buffer);
+
+    const duration = media.readAudioDurationMs(targetPath, { cache: false });
+    const savedSound = resolveVipSoundFile(user);
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      uploaded: true,
+      user,
+      sound: publicVipSoundInfo(savedSound, {
+        durationMs: duration.durationMs || 0,
+        durationOk: !!duration.ok,
+        durationError: duration.error || "",
+        sizeBytes: Number(file.size || 0),
+        originalName: file.originalname || "",
+        overwritten: existedBefore
+      }),
+      settings: {
+        soundBaseDir: getVipSoundBaseDir(),
+        fileNameMode: String(getVipSetting("fileNameMode", "displayName") || "displayName"),
+        fileExtension: normalizeFileExtension(getVipSetting("fileExtension", ".mp3")),
+        maxSoundUploadBytes: Number(getVipSetting("maxSoundUploadBytes", 15728640)) || 15728640
+      },
+      updatedAt: nowIso()
     };
   }
 
@@ -3074,6 +3369,100 @@ module.exports.init = function init(ctx) {
       }
     });
 
+
+
+    app.get(`${prefix}/sounds/users`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        refreshDbStats();
+        const data = listVipSoundUsers(requestData(req));
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          ...data,
+          db: { ...state.db },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/sounds/status`, async (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const data = await buildVipSoundStatus(requestData(req));
+        return res.json(data);
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/sounds/resolve`, async (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const data = await buildVipSoundStatus(requestData(req));
+        return res.json(data);
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/sounds/upload`, (req, res) => {
+      markClientSeen();
+      ensureVipSchema();
+      const upload = createVipSoundUploadMiddleware();
+      if (!upload) {
+        return res.status(500).json({
+          ok: false,
+          module: MODULE_NAME,
+          error: "multer_not_available",
+          message: "Uploads sind nicht verfuegbar, weil multer nicht geladen werden konnte.",
+          detail: multerLoadError || ""
+        });
+      }
+
+      upload.single("file")(req, res, async err => {
+        if (err) return fail(res, 400, err.message || String(err));
+        try {
+          const result = await saveUploadedVipSound(requestData(req), req.file);
+          return res.status(201).json(result);
+        } catch (e) {
+          return fail(res, 400, e.message || String(e));
+        }
+      });
+    });
+
+    app.get(`${prefix}/upload/status`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          multerReady: !!multer,
+          multerLoadError,
+          settings: {
+            soundBaseDir: getVipSoundBaseDir(),
+            fileNameMode: String(getVipSetting("fileNameMode", "displayName") || "displayName"),
+            fileExtension: normalizeFileExtension(getVipSetting("fileExtension", ".mp3")),
+            maxSoundUploadBytes: Number(getVipSetting("maxSoundUploadBytes", 15728640)) || 15728640
+          },
+          allowedExtensions: media.DEFAULT_ALLOWED_EXTENSIONS,
+          twitchSync: {
+            available: false,
+            planned: true,
+            note: "Twitch VIP-/Mod-Sync ist fuer einen spaeteren STEP vorgesehen."
+          },
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
 
     app.get(`${prefix}/admin/summary`, (req, res) => {
       try {
