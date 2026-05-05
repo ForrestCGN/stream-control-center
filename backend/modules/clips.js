@@ -1,5 +1,5 @@
 // modules/clips.js
-// STEP185 — Clip-System DB-Settings + DB-Textvarianten.
+// STEP185.5 — Clip-System Discord-Channel-Setting + Textkategorie-Cleanup.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
@@ -7,6 +7,8 @@
 // - Twitch-/OBS-/Discord-Readiness wird fuer den spaeteren Backend-Create-Flow sichtbar gemacht
 // - Clip-Settings werden ueber helper_settings in clip_settings vorbereitet
 // - Clip-Texte werden ueber helper_texts in module_text_variants kategorisiert und variantenfaehig vorbereitet
+// - Discord-Zielkanal kann per Key oder direkter Channel-ID aus DB-Settings kommen
+// - alte Clip-Textkategorie "clip" wird sanft auf chat/discord/errors/system migriert
 
 'use strict';
 
@@ -56,7 +58,9 @@ const DEFAULT_CLIP_SETTINGS_META = [
   { key: 'sendTwitchClipResultMessage', valueType: 'boolean', description: 'Ergebnisnachricht im Twitch-Chat vorbereiten.' },
   { key: 'sendChatResponse', valueType: 'boolean', description: 'Backend gibt Chat-Antworten fuer Streamer.bot zurueck.' },
   { key: 'discordPostEnabled', valueType: 'boolean', description: 'Clip-Eintraege nach Discord posten.' },
+  { key: 'discordChannelMode', valueType: 'string', description: 'Discord-Ziel: key nutzt discord_channels.json, custom nutzt discordChannelId.' },
   { key: 'discordChannelKey', valueType: 'string', description: 'Key aus config/discord_channels.json fuer Clip-Posts.' },
+  { key: 'discordChannelId', valueType: 'string', description: 'Direkte Discord-Channel-ID fuer Clip-Posts, wenn discordChannelMode=custom.' },
   { key: 'postOnlyWhenLive', valueType: 'boolean', description: 'Discord-Post nur wenn Twitch live ist.' },
   { key: 'saveHistory', valueType: 'boolean', description: 'Clip-Historie in app.sqlite speichern.' },
   { key: 'duplicatePolicy', valueType: 'string', description: 'Umgang mit Duplikaten: ignore, update oder allow.' },
@@ -191,7 +195,9 @@ module.exports.init = function init(ctx) {
     cfg.sendTwitchClipResultMessage = Boolean(cfg.sendTwitchClipResultMessage);
     cfg.sendChatResponse = Boolean(cfg.sendChatResponse);
     cfg.discordPostEnabled = Boolean(cfg.discordPostEnabled);
+    cfg.discordChannelMode = normalizeDiscordChannelMode(cfg.discordChannelMode);
     cfg.discordChannelKey = String(cfg.discordChannelKey || 'clips').trim() || 'clips';
+    cfg.discordChannelId = normalizeDiscordChannelId(cfg.discordChannelId);
     cfg.postOnlyWhenLive = Boolean(cfg.postOnlyWhenLive);
     cfg.saveHistory = Boolean(cfg.saveHistory);
     cfg.duplicatePolicy = normalizeDuplicatePolicy(cfg.duplicatePolicy);
@@ -356,19 +362,47 @@ module.exports.init = function init(ctx) {
     }
   }
 
+  function resolveEffectiveDiscordChannel(cfg, channels) {
+    const mode = normalizeDiscordChannelMode(cfg.discordChannelMode);
+    const customId = normalizeDiscordChannelId(cfg.discordChannelId);
+    const key = String(cfg.discordChannelKey || 'clips').trim() || 'clips';
+    const keyId = normalizeDiscordChannelId(channels?.[key]);
+
+    if (mode === 'custom') {
+      return {
+        mode,
+        channelKey: key,
+        channelId: customId,
+        source: customId ? 'clip_settings.discordChannelId' : '',
+        configured: Boolean(customId)
+      };
+    }
+
+    return {
+      mode: 'key',
+      channelKey: key,
+      channelId: keyId,
+      source: keyId ? 'config/discord_channels.json' : '',
+      configured: Boolean(keyId)
+    };
+  }
+
   function buildDiscordReadiness(cfg, channels) {
-    const channelConfigured = Boolean(channels && channels[cfg.discordChannelKey]);
+    const effectiveChannel = resolveEffectiveDiscordChannel(cfg, channels);
     const bridgeAvailable = Boolean(app.locals.discordBridge && typeof app.locals.discordBridge.postToChannel === 'function');
-    const readyForPost = Boolean(!cfg.discordPostEnabled || (channelConfigured && bridgeAvailable));
+    const readyForPost = Boolean(!cfg.discordPostEnabled || (effectiveChannel.configured && bridgeAvailable));
     const blockers = [];
 
-    if (cfg.discordPostEnabled && !channelConfigured) blockers.push('discord_channel_not_configured');
+    if (cfg.discordPostEnabled && !effectiveChannel.configured) blockers.push('discord_channel_not_configured');
     if (cfg.discordPostEnabled && !bridgeAvailable) blockers.push('discord_bridge_unavailable');
 
     return {
       discordPostEnabled: cfg.discordPostEnabled,
-      discordChannelKey: cfg.discordChannelKey,
-      discordChannelConfigured: channelConfigured,
+      discordChannelMode: effectiveChannel.mode,
+      discordChannelKey: effectiveChannel.channelKey,
+      discordChannelId: effectiveChannel.channelId,
+      discordChannelSource: effectiveChannel.source,
+      discordChannelConfigured: effectiveChannel.configured,
       bridgeAvailable,
       readyForPost,
       blockers
@@ -454,7 +488,9 @@ module.exports.init = function init(ctx) {
       sendTwitchClipResultMessage: cfg.sendTwitchClipResultMessage,
       sendChatResponse: cfg.sendChatResponse,
       discordPostEnabled: cfg.discordPostEnabled,
+      discordChannelMode: cfg.discordChannelMode,
       discordChannelKey: cfg.discordChannelKey,
+      discordChannelId: cfg.discordChannelId,
       postOnlyWhenLive: cfg.postOnlyWhenLive,
       saveHistory: cfg.saveHistory,
       duplicatePolicy: cfg.duplicatePolicy
@@ -496,6 +532,9 @@ module.exports.init = function init(ctx) {
         localReplayRenameDelayMs: cfg.localReplayRenameDelayMs,
         localReplayDirConfigured: Boolean(cfg.localReplayDir),
         localReplayLookbackMinutes: cfg.localReplayLookbackMinutes,
+        discordChannelMode: cfg.discordChannelMode,
+        discordChannelKey: cfg.discordChannelKey,
+        discordChannelIdConfigured: Boolean(cfg.discordChannelId),
         saveHistory: cfg.saveHistory,
         duplicatePolicy: cfg.duplicatePolicy,
         settingsTable: CLIP_SETTINGS_TABLE,
@@ -748,7 +787,9 @@ module.exports.init = function init(ctx) {
       planned: {
         saveHistory: cfg.saveHistory,
         discordPostEnabled: cfg.discordPostEnabled,
-        discordChannelKey: cfg.discordChannelKey
+        discordChannelMode: cfg.discordChannelMode,
+        discordChannelKey: cfg.discordChannelKey,
+        discordChannelId: cfg.discordChannelId
       }
     });
   }
@@ -758,23 +799,35 @@ module.exports.init = function init(ctx) {
     if (received.status === 'skipped') return { attempted: false, posted: false, skipped: true, reason: 'clip_skipped' };
 
     const channels = loadDiscordChannels();
-    const channelId = String(channels?.[cfg.discordChannelKey] || '').trim();
-    if (!channelId) return { attempted: false, posted: false, skipped: true, reason: 'discord_channel_not_configured', channelKey: cfg.discordChannelKey };
+    const effectiveChannel = resolveEffectiveDiscordChannel(cfg, channels);
+    const channelId = effectiveChannel.channelId;
+    if (!channelId) {
+      return {
+        attempted: false,
+        posted: false,
+        skipped: true,
+        reason: 'discord_channel_not_configured',
+        channelMode: effectiveChannel.mode,
+        channelKey: effectiveChannel.channelKey,
+        channelId: '',
+        channelSource: effectiveChannel.source
+      };
+    }
 
     if (cfg.postOnlyWhenLive) {
       const liveInfo = await loadChannelInfoFromApi(cfg);
       if (liveInfo.is_live === false) {
-        return { attempted: false, posted: false, skipped: true, reason: 'not_live', channelKey: cfg.discordChannelKey };
+        return { attempted: false, posted: false, skipped: true, reason: 'not_live', channelMode: effectiveChannel.mode, channelKey: effectiveChannel.channelKey, channelId, channelSource: effectiveChannel.source };
       }
     }
 
     const bridge = app.locals.discordBridge;
     if (!bridge || typeof bridge.postToChannel !== 'function') {
-      return { attempted: false, posted: false, skipped: true, reason: 'discord_bridge_unavailable', channelKey: cfg.discordChannelKey };
+      return { attempted: false, posted: false, skipped: true, reason: 'discord_bridge_unavailable', channelMode: effectiveChannel.mode, channelKey: effectiveChannel.channelKey, channelId, channelSource: effectiveChannel.source };
     }
 
     const content = renderClipMessage(messages, 'discordClipPost', received);
-    if (!content) return { attempted: false, posted: false, skipped: true, reason: 'discord_message_empty', channelKey: cfg.discordChannelKey };
+    if (!content) return { attempted: false, posted: false, skipped: true, reason: 'discord_message_empty', channelMode: effectiveChannel.mode, channelKey: effectiveChannel.channelKey, channelId, channelSource: effectiveChannel.source };
 
     try {
       const result = await bridge.postToChannel({
@@ -782,9 +835,9 @@ module.exports.init = function init(ctx) {
         content,
         allowedMentions: { parse: [] }
       });
-      return { attempted: true, posted: true, skipped: false, channelKey: cfg.discordChannelKey, channelId, result };
+      return { attempted: true, posted: true, skipped: false, channelMode: effectiveChannel.mode, channelKey: effectiveChannel.channelKey, channelId, channelSource: effectiveChannel.source, result };
     } catch (err) {
-      return { attempted: true, posted: false, skipped: false, channelKey: cfg.discordChannelKey, channelId, error: err.message || String(err) };
+      return { attempted: true, posted: false, skipped: false, channelMode: effectiveChannel.mode, channelKey: effectiveChannel.channelKey, channelId, channelSource: effectiveChannel.source, error: err.message || String(err) };
     }
   }
 
@@ -1024,10 +1077,35 @@ function clipTextOptions() {
   };
 }
 
+function migrateLegacyClipTextCategories() {
+  if (!textHelper) return;
+  try {
+    database.ensureReady();
+    for (const [textKey, category] of Object.entries(CLIP_TEXT_CATEGORIES)) {
+      database.run(`
+        UPDATE module_text_variants
+        SET category = :category,
+            updated_at = :updatedAt
+        WHERE module_name = :moduleName
+          AND text_key = :textKey
+          AND category = 'clip'
+      `, {
+        moduleName: MODULE_NAME,
+        textKey,
+        category,
+        updatedAt: database.nowIso ? database.nowIso() : new Date().toISOString()
+      });
+    }
+  } catch (err) {
+    console.warn('[clips] Legacy-Textkategorien konnten nicht bereinigt werden:', err.message || String(err));
+  }
+}
+
 function seedClipTexts(messages) {
   if (!textHelper || typeof textHelper.listModuleTextEditor !== 'function') return;
   try {
     textHelper.listModuleTextEditor(MODULE_NAME, buildTextDefaults(messages), clipTextOptions());
+    migrateLegacyClipTextCategories();
   } catch (err) {
     console.warn('[clips] Text-Seed konnte nicht vorbereitet werden:', err.message || String(err));
   }
@@ -1094,7 +1172,9 @@ function buildClipConfigFromRaw(raw, env) {
     sendTwitchClipResultMessage: cfg.sendTwitchClipResultMessage !== false,
     sendChatResponse: cfg.sendChatResponse !== false,
     discordPostEnabled: cfg.discordPostEnabled === true,
+    discordChannelMode: normalizeDiscordChannelMode(cfg.discordChannelMode || 'key'),
     discordChannelKey: String(cfg.discordChannelKey || 'clips').trim() || 'clips',
+    discordChannelId: normalizeDiscordChannelId(cfg.discordChannelId || ''),
     postOnlyWhenLive: cfg.postOnlyWhenLive === true,
     saveHistory: cfg.saveHistory !== false,
     duplicatePolicy: normalizeDuplicatePolicy(cfg.duplicatePolicy || 'ignore'),
@@ -1158,6 +1238,15 @@ function listClipSettings(cfg) {
       error: err.message || String(err)
     }));
   }
+}
+
+function normalizeDiscordChannelMode(value) {
+  const mode = String(value || 'key').trim().toLowerCase();
+  return mode === 'custom' ? 'custom' : 'key';
+}
+
+function normalizeDiscordChannelId(value) {
+  return String(value || '').trim().replace(/[^0-9]/g, '');
 }
 
 function normalizeDuplicatePolicy(value) {
