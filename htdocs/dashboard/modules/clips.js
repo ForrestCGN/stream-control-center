@@ -1,3 +1,4 @@
+// STEP188.1 - Clip Dashboard: Settings speichern im Clip-Backend-Format { settings: {...} }
 window.ClipsModule = (function(){
   'use strict';
 
@@ -207,7 +208,7 @@ window.ClipsModule = (function(){
     const value = getInputValue(row);
     await window.CGN.api(api.settings, {
       method: 'POST',
-      body: JSON.stringify({ key, value })
+      body: JSON.stringify({ settings: { [key]: value } })
     });
     state.notice = `Setting "${key}" gespeichert.`;
     await loadAll(true);
@@ -215,15 +216,16 @@ window.ClipsModule = (function(){
 
   async function saveDiscordSettings(){
     const keys = ['discordChannelMode', 'discordChannelKey', 'discordChannelId', 'discordPostEnabled', 'postOnlyWhenLive'];
+    const settings = {};
     for (const key of keys) {
       const row = rowByKey(key);
       if (!row) continue;
-      const value = getInputValue(row);
-      await window.CGN.api(api.settings, {
-        method: 'POST',
-        body: JSON.stringify({ key, value })
-      });
+      settings[key] = getInputValue(row);
     }
+    await window.CGN.api(api.settings, {
+      method: 'POST',
+      body: JSON.stringify({ settings })
+    });
     state.notice = 'Discord-Clip-Ziel gespeichert.';
     await loadAll(true);
   }
