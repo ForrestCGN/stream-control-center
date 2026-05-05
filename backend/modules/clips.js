@@ -1,15 +1,29 @@
 // modules/clips.js
-// STEP87D.4 — Clip-System Config-/Message-Cleanup.
-// - TWITCH_BROADCASTER_ID kommt aus .env
-// - keine dauerhafte Channelinfo-Datei mehr
-// - Clip-Optionen aus config/clip_system.json
-// - Texte aus config/messages/clips.json
-// - /api/clip/title liefert Clip-Titel + relevante Config/Message-Werte für Streamer.bot
+// STEP183 — Clip-System Backend-Integration.
+// - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
+// - Clip-Historie wird sanft in app.sqlite gespeichert
+// - Discord-Posting nutzt die vorhandene Discord-Bridge
+// - Clip-Texte koennen ueber den zentralen helper_texts als module_text_variants vorbereitet werden
+
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
+
+const database = require('../core/database');
+const messageHelper = require('./helpers/helper_messages');
+let textHelper = null;
+try {
+  textHelper = require('./helpers/helper_texts');
+} catch (_) {
+  textHelper = null;
+}
+
+const MODULE_NAME = 'clips';
+const CLIP_SCHEMA_VERSION = 1;
+const CLIP_HISTORY_TABLE = 'clip_history';
 
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
@@ -20,6 +34,12 @@ module.exports.init = function init(ctx) {
 
   const clipConfigPath = path.join(configDir, 'clip_system.json');
   const discordChannelsPath = path.join(configDir, 'discord_channels.json');
+
+  try {
+    ensureClipSchema();
+  } catch (err) {
+    console.warn('[clips] DB-Schema konnte beim Start nicht vorbereitet werden:', err.message || String(err));
+  }
 
   function loadClipConfig() {
     const cfg = readJsonSafe(clipConfigPath, {});
@@ -55,7 +75,9 @@ module.exports.init = function init(ctx) {
   }
 
   function loadClipMessages(cfg) {
-    return readJsonSafe(resolveMaybeAbsolute(configDir, cfg.messagesPath), {});
+    const fallback = readJsonSafe(resolveMaybeAbsolute(configDir, cfg.messagesPath), {});
+    seedClipTexts(fallback);
+    return fallback;
   }
 
   async function loadChannelInfoFromApi(cfg) {
@@ -140,14 +162,14 @@ module.exports.init = function init(ctx) {
 
   function publicMessages(messages) {
     return {
-      chatClipActivated: messageContent(messages, 'chatClipActivated'),
-      chatClipCreated: messageContent(messages, 'chatClipCreated'),
-      chatClipFailed: messageContent(messages, 'chatClipFailed'),
-      chatClipCreatedWithoutUrl: messageContent(messages, 'chatClipCreatedWithoutUrl'),
-      chatLocalReplayMissing: messageContent(messages, 'chatLocalReplayMissing'),
-      chatLocalReplayInvalidDir: messageContent(messages, 'chatLocalReplayInvalidDir'),
-      chatReplaySaved: messageContent(messages, 'chatReplaySaved'),
-      discordClipPost: messageContent(messages, 'discordClipPost')
+      chatClipActivated: resolveClipMessage(messages, 'chatClipActivated'),
+      chatClipCreated: resolveClipMessage(messages, 'chatClipCreated'),
+      chatClipFailed: resolveClipMessage(messages, 'chatClipFailed'),
+      chatClipCreatedWithoutUrl: resolveClipMessage(messages, 'chatClipCreatedWithoutUrl'),
+      chatLocalReplayMissing: resolveClipMessage(messages, 'chatLocalReplayMissing'),
+      chatLocalReplayInvalidDir: resolveClipMessage(messages, 'chatLocalReplayInvalidDir'),
+      chatReplaySaved: resolveClipMessage(messages, 'chatReplaySaved'),
+      discordClipPost: resolveClipMessage(messages, 'discordClipPost')
     };
   }
 
@@ -173,10 +195,13 @@ module.exports.init = function init(ctx) {
     const messages = loadClipMessages(cfg);
     const channelInfo = await loadChannelInfoFromApi(cfg);
     const clipMessagesPath = resolveMaybeAbsolute(configDir, cfg.messagesPath);
+    const dbStatus = getClipDbStatus();
 
     res.json({
       ok: true,
-      module: 'clips',
+      module: MODULE_NAME,
+      version: 2,
+      schemaVersion: CLIP_SCHEMA_VERSION,
       enabled: cfg.enabled,
       rootDir,
       config: {
@@ -186,29 +211,35 @@ module.exports.init = function init(ctx) {
         obsReplaySaveDelayMs: cfg.obsReplaySaveDelayMs,
         localReplayRenameDelayMs: cfg.localReplayRenameDelayMs,
         localReplayDirConfigured: Boolean(cfg.localReplayDir),
-        localReplayLookbackMinutes: cfg.localReplayLookbackMinutes
+        localReplayLookbackMinutes: cfg.localReplayLookbackMinutes,
+        saveHistory: cfg.saveHistory,
+        messagesFromDbPrepared: Boolean(textHelper)
       },
+      database: dbStatus,
       files: {
         clipConfigPath,
         clipConfigExists: fs.existsSync(clipConfigPath),
         discordChannelsPath,
         discordChannelsExists: fs.existsSync(discordChannelsPath),
         clipMessagesPath,
-        clipMessagesExists: fs.existsSync(clipMessagesPath)
+        clipMessagesExists: fs.existsSync(clipMessagesPath),
+        messagesDir,
+        messagesDirExists: fs.existsSync(messagesDir)
       },
       discord: {
         discordPostEnabled: cfg.discordPostEnabled,
         discordChannelKey: cfg.discordChannelKey,
-        discordChannelConfigured: Boolean(channels && channels[cfg.discordChannelKey])
+        discordChannelConfigured: Boolean(channels && channels[cfg.discordChannelKey]),
+        bridgeAvailable: Boolean(app.locals.discordBridge && typeof app.locals.discordBridge.postToChannel === 'function')
       },
       messages: {
-        chatClipActivatedConfigured: Boolean(messages?.chatClipActivated?.content),
-        chatClipCreatedConfigured: Boolean(messages?.chatClipCreated?.content),
-        chatClipFailedConfigured: Boolean(messages?.chatClipFailed?.content),
-        chatClipCreatedWithoutUrlConfigured: Boolean(messages?.chatClipCreatedWithoutUrl?.content),
-        chatLocalReplayMissingConfigured: Boolean(messages?.chatLocalReplayMissing?.content),
-        chatLocalReplayInvalidDirConfigured: Boolean(messages?.chatLocalReplayInvalidDir?.content),
-        discordClipPostConfigured: Boolean(messages?.discordClipPost?.content)
+        chatClipActivatedConfigured: Boolean(resolveClipMessage(messages, 'chatClipActivated')),
+        chatClipCreatedConfigured: Boolean(resolveClipMessage(messages, 'chatClipCreated')),
+        chatClipFailedConfigured: Boolean(resolveClipMessage(messages, 'chatClipFailed')),
+        chatClipCreatedWithoutUrlConfigured: Boolean(resolveClipMessage(messages, 'chatClipCreatedWithoutUrl')),
+        chatLocalReplayMissingConfigured: Boolean(resolveClipMessage(messages, 'chatLocalReplayMissing')),
+        chatLocalReplayInvalidDirConfigured: Boolean(resolveClipMessage(messages, 'chatLocalReplayInvalidDir')),
+        discordClipPostConfigured: Boolean(resolveClipMessage(messages, 'discordClipPost'))
       },
       channelInfo: {
         ok: channelInfo.ok,
@@ -245,35 +276,46 @@ module.exports.init = function init(ctx) {
       config: publicClipRuntimeConfig(cfg),
       messages: publicMessages(messages),
 
-      // Flache Felder für Streamer.bot, damit C# ohne echten JSON-Parser leicht lesen kann.
+      // Flache Felder fuer Streamer.bot, damit C# ohne echten JSON-Parser leicht lesen kann.
       twitchClipDurationSeconds: cfg.twitchClipDurationSeconds,
       obsReplaySaveDelayMs: cfg.obsReplaySaveDelayMs,
       localReplayRenameDelayMs: cfg.localReplayRenameDelayMs,
       localReplayDir: cfg.localReplayDir,
       localReplayLookbackMinutes: cfg.localReplayLookbackMinutes,
-      chatClipActivatedMessage: messageContent(messages, 'chatClipActivated'),
-      chatClipCreatedMessage: messageContent(messages, 'chatClipCreated'),
-      chatClipFailedMessage: messageContent(messages, 'chatClipFailed'),
-      chatClipCreatedWithoutUrlMessage: messageContent(messages, 'chatClipCreatedWithoutUrl'),
-      chatLocalReplayMissingMessage: messageContent(messages, 'chatLocalReplayMissing'),
-      chatLocalReplayInvalidDirMessage: messageContent(messages, 'chatLocalReplayInvalidDir')
+      chatClipActivatedMessage: resolveClipMessage(messages, 'chatClipActivated'),
+      chatClipCreatedMessage: resolveClipMessage(messages, 'chatClipCreated'),
+      chatClipFailedMessage: resolveClipMessage(messages, 'chatClipFailed'),
+      chatClipCreatedWithoutUrlMessage: resolveClipMessage(messages, 'chatClipCreatedWithoutUrl'),
+      chatLocalReplayMissingMessage: resolveClipMessage(messages, 'chatLocalReplayMissing'),
+      chatLocalReplayInvalidDirMessage: resolveClipMessage(messages, 'chatLocalReplayInvalidDir')
     });
   });
 
-  app.get('/api/clip/register', (req, res) => {
-    handleClipRegister(req, res, req.query || {}, 'get');
+  app.get('/api/clip/register', async (req, res) => {
+    await handleClipRegister(req, res, req.query || {}, 'get');
   });
 
-  app.post('/api/clip/register', (req, res) => {
-    handleClipRegister(req, res, req.body || {}, 'post');
+  app.post('/api/clip/register', async (req, res) => {
+    await handleClipRegister(req, res, req.body || {}, 'post');
   });
 
-  function handleClipRegister(req, res, source, method) {
+  app.get('/api/clip/history', (req, res) => {
+    try {
+      const limit = toInt(req.query.limit, 20, 1, 100);
+      const rows = listClipHistory(limit);
+      res.json({ ok: true, module: MODULE_NAME, table: CLIP_HISTORY_TABLE, limit, count: rows.length, rows });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  async function handleClipRegister(req, res, source, method) {
     const cfg = loadClipConfig();
     if (!cfg.enabled) {
       return res.status(503).json({ ok: false, error: 'Clip-System ist deaktiviert.' });
     }
 
+    const messages = loadClipMessages(cfg);
     const clipId = firstString(source.clipId, source.clip_id, source.id, '');
     const clipUrl = firstString(source.clipUrl, source.clip_url, source.url, '');
     const clipTitle = firstString(source.clipTitle, source.clip_title, source.title, '');
@@ -303,14 +345,27 @@ module.exports.init = function init(ctx) {
       reason
     };
 
+    let history = { saved: false, id: null, error: '' };
+    if (cfg.saveHistory) {
+      history = saveClipHistory(received, method, source);
+    }
+
+    const discord = await maybePostClipToDiscord({ cfg, messages, received });
+
+    if (history.saved && discord) {
+      markClipDiscordResult(history.id, discord);
+    }
+
     console.log('[clips] register ' + method + ': status=' + status + ' clip=' + (clipId || clipUrl || '-') + ' title=' + (clipTitle || '-') + ' user=' + (triggerUser || '-') + (reason ? ' reason=' + reason : ''));
 
     res.json({
       ok: true,
-      registered: false,
+      registered: history.saved,
       method,
-      message: 'Register-Endpunkt ist GET/POST-kompatibel vorbereitet. SQLite/Discord werden im nächsten Schritt aktiviert.',
+      message: 'Clip wurde verarbeitet. History/Discord laufen ueber das integrierte Backend.',
       received,
+      history,
+      discord,
       planned: {
         saveHistory: cfg.saveHistory,
         discordPostEnabled: cfg.discordPostEnabled,
@@ -319,8 +374,167 @@ module.exports.init = function init(ctx) {
     });
   }
 
-  console.log('[clips] /api/clip/status, /api/clip/title und /api/clip/register aktiv');
+  async function maybePostClipToDiscord({ cfg, messages, received }) {
+    if (!cfg.discordPostEnabled) return { attempted: false, posted: false, skipped: true, reason: 'discord_disabled' };
+    if (received.status === 'skipped') return { attempted: false, posted: false, skipped: true, reason: 'clip_skipped' };
+
+    const channels = loadDiscordChannels();
+    const channelId = String(channels?.[cfg.discordChannelKey] || '').trim();
+    if (!channelId) return { attempted: false, posted: false, skipped: true, reason: 'discord_channel_not_configured', channelKey: cfg.discordChannelKey };
+
+    if (cfg.postOnlyWhenLive) {
+      const liveInfo = await loadChannelInfoFromApi(cfg);
+      if (liveInfo.is_live === false) {
+        return { attempted: false, posted: false, skipped: true, reason: 'not_live', channelKey: cfg.discordChannelKey };
+      }
+    }
+
+    const bridge = app.locals.discordBridge;
+    if (!bridge || typeof bridge.postToChannel !== 'function') {
+      return { attempted: false, posted: false, skipped: true, reason: 'discord_bridge_unavailable', channelKey: cfg.discordChannelKey };
+    }
+
+    const content = renderClipMessage(messages, 'discordClipPost', received);
+    if (!content) return { attempted: false, posted: false, skipped: true, reason: 'discord_message_empty', channelKey: cfg.discordChannelKey };
+
+    try {
+      const result = await bridge.postToChannel({
+        channelId,
+        content,
+        allowedMentions: { parse: [] }
+      });
+      return { attempted: true, posted: true, skipped: false, channelKey: cfg.discordChannelKey, channelId, result };
+    } catch (err) {
+      return { attempted: true, posted: false, skipped: false, channelKey: cfg.discordChannelKey, channelId, error: err.message || String(err) };
+    }
+  }
+
+  console.log('[clips] /api/clip/status, /api/clip/title, /api/clip/register und /api/clip/history aktiv');
 };
+
+function ensureClipSchema() {
+  database.ensureReady();
+  database.ensureSchema(MODULE_NAME, CLIP_SCHEMA_VERSION, () => {
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS ${CLIP_HISTORY_TABLE} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clip_id TEXT NOT NULL DEFAULT '',
+        clip_url TEXT NOT NULL DEFAULT '',
+        clip_title TEXT NOT NULL DEFAULT '',
+        custom_title TEXT NOT NULL DEFAULT '',
+        stream_title TEXT NOT NULL DEFAULT '',
+        game_name TEXT NOT NULL DEFAULT '',
+        trigger_user TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'created',
+        reason TEXT NOT NULL DEFAULT '',
+        source_method TEXT NOT NULL DEFAULT '',
+        discord_posted INTEGER NOT NULL DEFAULT 0,
+        discord_error TEXT NOT NULL DEFAULT '',
+        raw_payload_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL
+      );
+    `);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_created_at ON ${CLIP_HISTORY_TABLE} (created_at);`);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_history_clip_id ON ${CLIP_HISTORY_TABLE} (clip_id);`);
+  });
+}
+
+function getClipDbStatus() {
+  try {
+    ensureClipSchema();
+    return {
+      ok: true,
+      databasePath: database.getDbPath(),
+      table: CLIP_HISTORY_TABLE,
+      schemaVersion: database.getSchemaVersion(MODULE_NAME),
+      historyCount: database.count(CLIP_HISTORY_TABLE)
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      databasePath: database.getDbPath ? database.getDbPath() : null,
+      table: CLIP_HISTORY_TABLE,
+      schemaVersion: null,
+      historyCount: 0,
+      error: err.message || String(err)
+    };
+  }
+}
+
+function saveClipHistory(received, method, rawPayload) {
+  try {
+    ensureClipSchema();
+    const now = database.nowIso ? database.nowIso() : new Date().toISOString();
+    const result = database.run(`
+      INSERT INTO ${CLIP_HISTORY_TABLE}
+        (clip_id, clip_url, clip_title, custom_title, stream_title, game_name, trigger_user, status, reason, source_method, raw_payload_json, created_at)
+      VALUES
+        (:clipId, :clipUrl, :clipTitle, :customTitle, :streamTitle, :gameName, :triggerUser, :status, :reason, :sourceMethod, :rawPayloadJson, :createdAt)
+    `, {
+      clipId: received.clipId || '',
+      clipUrl: received.clipUrl || '',
+      clipTitle: received.clipTitle || '',
+      customTitle: received.customTitle || '',
+      streamTitle: received.streamTitle || '',
+      gameName: received.gameName || '',
+      triggerUser: received.triggerUser || '',
+      status: received.status || 'created',
+      reason: received.reason || '',
+      sourceMethod: method || '',
+      rawPayloadJson: safeJson(rawPayload),
+      createdAt: now
+    });
+
+    return { saved: true, id: Number(result?.lastInsertRowid || result?.lastID || 0), error: '' };
+  } catch (err) {
+    return { saved: false, id: null, error: err.message || String(err) };
+  }
+}
+
+function markClipDiscordResult(historyId, discord) {
+  const id = Number(historyId || 0);
+  if (!id) return;
+  try {
+    database.run(`
+      UPDATE ${CLIP_HISTORY_TABLE}
+      SET discord_posted = :posted,
+          discord_error = :error
+      WHERE id = :id
+    `, {
+      id,
+      posted: discord?.posted ? 1 : 0,
+      error: discord?.error || discord?.reason || ''
+    });
+  } catch (err) {
+    console.warn('[clips] Discord-Status konnte nicht in History gespeichert werden:', err.message || String(err));
+  }
+}
+
+function listClipHistory(limit) {
+  ensureClipSchema();
+  return database.all(`
+    SELECT id, clip_id, clip_url, clip_title, custom_title, stream_title, game_name, trigger_user, status, reason,
+           source_method, discord_posted, discord_error, created_at
+    FROM ${CLIP_HISTORY_TABLE}
+    ORDER BY id DESC
+    LIMIT :limit
+  `, { limit }).map(row => ({
+    id: row.id,
+    clipId: row.clip_id || '',
+    clipUrl: row.clip_url || '',
+    clipTitle: row.clip_title || '',
+    customTitle: row.custom_title || '',
+    streamTitle: row.stream_title || '',
+    gameName: row.game_name || '',
+    triggerUser: row.trigger_user || '',
+    status: row.status || '',
+    reason: row.reason || '',
+    sourceMethod: row.source_method || '',
+    discordPosted: Number(row.discord_posted || 0) === 1,
+    discordError: row.discord_error || '',
+    createdAt: row.created_at || ''
+  }));
+}
 
 function resolveRootDir(ctx, env) {
   const candidates = [
@@ -396,6 +610,67 @@ function messageContent(messages, key) {
   return String(entry.content || '').trim();
 }
 
+function buildTextDefaults(messages) {
+  const defaults = {};
+  for (const key of [
+    'chatClipActivated',
+    'chatClipCreated',
+    'chatClipFailed',
+    'chatClipCreatedWithoutUrl',
+    'chatLocalReplayMissing',
+    'chatLocalReplayInvalidDir',
+    'chatReplaySaved',
+    'discordClipPost'
+  ]) {
+    const value = messageContent(messages, key);
+    if (value) defaults[key] = value;
+  }
+  return defaults;
+}
+
+function seedClipTexts(messages) {
+  if (!textHelper || typeof textHelper.listModuleTextEditor !== 'function') return;
+  try {
+    textHelper.listModuleTextEditor(MODULE_NAME, buildTextDefaults(messages), {
+      defaultCategory: 'clip',
+      categoryLabels: { clip: 'Clip-System' },
+      source: 'seed'
+    });
+  } catch (err) {
+    console.warn('[clips] Text-Seed konnte nicht vorbereitet werden:', err.message || String(err));
+  }
+}
+
+function resolveClipMessage(messages, key) {
+  const fallback = messageContent(messages, key);
+  if (!textHelper || typeof textHelper.pickModuleText !== 'function') return fallback;
+
+  try {
+    return String(textHelper.pickModuleText(MODULE_NAME, key, buildTextDefaults(messages), {
+      defaultCategory: 'clip',
+      categoryLabels: { clip: 'Clip-System' },
+      source: 'seed'
+    }) || fallback || '').trim();
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function renderClipMessage(messages, key, context) {
+  const template = resolveClipMessage(messages, key);
+  return messageHelper.replacePlaceholders(template, {
+    clipId: context.clipId || '',
+    clipUrl: context.clipUrl || '',
+    clipTitle: context.clipTitle || '',
+    customTitle: context.customTitle || '',
+    streamTitle: context.streamTitle || '',
+    gameName: context.gameName || '',
+    triggerUser: context.triggerUser || '',
+    status: context.status || '',
+    reason: context.reason || ''
+  });
+}
+
 function appendQuery(baseUrl, params) {
   const urlObj = new URL(baseUrl);
 
@@ -441,4 +716,12 @@ function httpJsonGet(url, timeoutMs) {
     req.on('error', reject);
     req.end();
   });
+}
+
+function safeJson(value) {
+  try {
+    return JSON.stringify(value || {});
+  } catch (_) {
+    return '{}';
+  }
 }
