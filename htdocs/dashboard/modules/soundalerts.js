@@ -71,16 +71,49 @@ window.SoundAlertsModule = (function(){
     return CATEGORY_OPTIONS.find(item => item.value === value) || CATEGORY_OPTIONS[0];
   }
 
+  function categoryName(value){
+    return categoryOption(value || '').label;
+  }
+
   function categoryLabel(value){
     const opt = categoryOption(value || '');
     return opt.priority === null ? opt.label : `${opt.label} (${opt.priority})`;
   }
 
-  function effectivePriority(rule){
-    if (rule?.priority !== undefined && rule?.priority !== null && rule?.priority !== '') return Number(rule.priority);
+  function standardPriority(rule){
     const opt = categoryOption(rule?.category || '');
     if (opt.priority !== null) return opt.priority;
     return defaultPriority();
+  }
+
+  function priorityOverrideValue(rule){
+    if (rule?.priority === undefined || rule?.priority === null || rule?.priority === '') return '';
+    const num = Number(rule.priority);
+    if (!Number.isFinite(num)) return '';
+    return Math.round(num) === Math.round(standardPriority(rule)) ? '' : Math.round(num);
+  }
+
+  function effectivePriority(rule){
+    const override = priorityOverrideValue(rule);
+    if (override !== '') return Number(override);
+    return standardPriority(rule);
+  }
+
+  function priorityLabel(rule){
+    const override = priorityOverrideValue(rule);
+    const standard = standardPriority(rule);
+    return override === '' ? `Standard ${standard}` : `Eigene Priorität ${override} · Standard ${standard}`;
+  }
+
+  function priorityPlaceholder(rule){
+    return `leer = Standard ${standardPriority(rule)}`;
+  }
+
+  function normalizePriorityOverride(value){
+    if (value === undefined || value === null || value === '') return null;
+    const num = Number(value);
+    if (!Number.isFinite(num)) return null;
+    return Math.max(0, Math.min(200, Math.round(num)));
   }
 
   function statusLabel(statusValue){
@@ -284,8 +317,8 @@ window.SoundAlertsModule = (function(){
           <div class="sa-entry-meta">
             <span>${esc(rule.soundAlertName || '-')}</span>
             <span>${esc(rule.file || 'Keine Datei')}</span>
-            <span>${esc(categoryLabel(rule.category || ''))}</span>
-            <span>Prio ${esc(effectivePriority(rule))}</span>
+            <span>${esc(categoryName(rule.category || ''))}</span>
+            <span>${esc(priorityLabel(rule))}</span>
             <span>${esc(value(rule.volume, defaultVolume()))}%</span>
           </div>
         </div>
@@ -320,10 +353,10 @@ window.SoundAlertsModule = (function(){
         <label class="sa-field"><span>Typ</span><select data-sa-rule-field="mediaType"><option value="audio" ${rule.mediaType === 'audio' ? 'selected' : ''}>Audio</option><option value="video" ${rule.mediaType === 'video' ? 'selected' : ''}>Video</option></select></label>
         <label class="sa-field sa-wide"><span>Datei</span><input data-sa-rule-field="file" type="text" value="${esc(rule.file || '')}"></label>
         <label class="sa-field"><span>Kategorie</span>${renderCategorySelect(rule)}</label>
-        <label class="sa-field"><span>Priorität</span><input data-sa-rule-field="priority" type="number" min="0" max="200" value="${esc(effectivePriority(rule))}"></label>
+        <label class="sa-field"><span>Priorität überschreiben</span><input data-sa-rule-field="priority" type="number" min="0" max="200" placeholder="${esc(priorityPlaceholder(rule))}" value="${esc(priorityOverrideValue(rule))}"></label>
         <label class="sa-field"><span>Lautstärke</span><input data-sa-rule-field="volume" type="number" min="0" max="100" value="${esc(value(rule.volume, defaultVolume()))}"></label>
       </div>
-      <div class="sa-note">Kategorie setzt eine sinnvolle Standard-Priorität. Die Zahl kann pro Eintrag bewusst überschrieben werden.</div>
+      <div class="sa-note" data-sa-priority-hint>Priorität leer lassen = Kategorie-Standard ${esc(standardPriority(rule))}. Nur eintragen, wenn dieser SoundAlert bewusst abweichen soll.</div>
     `;
   }
 
@@ -397,7 +430,7 @@ window.SoundAlertsModule = (function(){
       file: String(rule.file || '').trim(),
       mediaType,
       category: String(rule.category || '').trim(),
-      priority: Math.max(0, Math.min(200, Number(value(rule.priority, effectivePriority(rule))))),
+      priority: normalizePriorityOverride(rule.priority),
       volume: Math.max(0, Math.min(100, Number(value(rule.volume, defaultVolume()))))
     };
   }
@@ -419,7 +452,7 @@ window.SoundAlertsModule = (function(){
       file: String(field('file')?.value || '').trim(),
       mediaType: String(field('mediaType')?.value || 'audio').trim(),
       category: String(field('category')?.value || '').trim(),
-      priority: Math.max(0, Math.min(200, Number(field('priority')?.value || defaultPriority()))),
+      priority: normalizePriorityOverride(field('priority')?.value),
       volume: Math.max(0, Math.min(100, Number(field('volume')?.value || defaultVolume())))
     }, idx);
     config = { ...(config || {}), rules: list };
@@ -489,7 +522,7 @@ window.SoundAlertsModule = (function(){
       file: seed?.file || 'soundalerts/audio/',
       mediaType: seed?.mediaType || 'audio',
       category: seed?.category || 'channel_reward',
-      priority: seed?.priority ?? 70,
+      priority: seed?.priority ?? null,
       volume: seed?.volume ?? defaultVolume()
     }, 0);
     list.unshift(next);
@@ -530,7 +563,7 @@ window.SoundAlertsModule = (function(){
       file: file || 'soundalerts/audio/',
       mediaType: file.toLowerCase().endsWith('.mp4') || file.toLowerCase().endsWith('.webm') ? 'video' : 'audio',
       category: 'channel_reward',
-      priority: 70,
+      priority: null,
       volume: defaultVolume()
     });
   }
@@ -596,11 +629,12 @@ window.SoundAlertsModule = (function(){
       }
       const category = ev.target.closest('[data-sa-rule-field="category"]');
       if (category) {
-        const opt = category.selectedOptions?.[0];
-        const prio = opt ? Number(opt.dataset.priority) : NaN;
         const box = category.closest('[data-sa-rule-index]');
         const prioInput = box?.querySelector('[data-sa-rule-field="priority"]');
-        if (prioInput && Number.isFinite(prio)) prioInput.value = String(prio);
+        const hint = box?.parentElement?.querySelector('[data-sa-priority-hint]');
+        const fakeRule = { category: String(category.value || ''), priority: prioInput?.value || null };
+        if (prioInput && String(prioInput.value || '').trim() === '') prioInput.placeholder = priorityPlaceholder(fakeRule);
+        if (hint) hint.textContent = `Priorität leer lassen = Kategorie-Standard ${standardPriority(fakeRule)}. Nur eintragen, wenn dieser SoundAlert bewusst abweichen soll.`;
       }
     });
 
