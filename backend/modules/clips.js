@@ -1,5 +1,5 @@
 // modules/clips.js
-// STEP193.2 — Clip Backend-Create: Live-Guard entfernt und lokales Replay-Finden überspringt gesperrte OBS-Dateien.
+// STEP193.3 — Clip Backend-Create: Live-Guard entfernt und lokale Replay-Dateisuche nutzt nur OBS-Replay-Dateien mit Prefix 'Replay '.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
@@ -1119,15 +1119,24 @@ module.exports.init = function init(ctx) {
   function listRecentReplayCandidates(dir, lookbackMinutes, requestedAt = '') {
     const maxAgeMs = Math.max(1, toInt(lookbackMinutes, 5, 1, 60)) * 60 * 1000;
     const now = Date.now();
-    const minMtimeMs = requestedAt ? Math.max(0, new Date(requestedAt).getTime() - 10000) : 0;
+    const minMtimeMs = requestedAt ? Math.max(0, new Date(requestedAt).getTime() - 15000) : 0;
     const allowedExt = new Set(['.mp4', '.mkv', '.mov', '.flv', '.ts', '.m4v', '.webm']);
     const candidates = [];
 
     try {
       const names = fs.readdirSync(dir);
+
       for (const name of names) {
         const fullPath = path.join(dir, name);
         const ext = path.extname(name).toLowerCase();
+
+        // STEP193.3:
+        // OBS ReplayBuffer-Dateien heißen bei Forrest z. B.:
+        // "Replay 2026-05-06 19-02-19.mp4"
+        // Normale laufende Aufnahmen heißen z. B.:
+        // "2026-05-06 18-14-05.mp4"
+        // Deshalb dürfen hier nur Replay-Dateien berücksichtigt werden.
+        if (!/^Replay\s+/i.test(name)) continue;
 
         if (!allowedExt.has(ext)) continue;
         if (/^Clip-\d{4}-\d{2}-\d{2}_/i.test(name)) continue;
@@ -1138,6 +1147,9 @@ module.exports.init = function init(ctx) {
         if (!stat.isFile()) continue;
         if (stat.size <= 0) continue;
         if ((now - stat.mtimeMs) > maxAgeMs) continue;
+
+        // Die Replay-Datei muss zeitlich zum aktuellen SaveReplayBuffer-Vorgang passen.
+        // Damit werden alte Replay-Dateien nicht versehentlich genommen.
         if (minMtimeMs && stat.mtimeMs < minMtimeMs) continue;
 
         candidates.push({
