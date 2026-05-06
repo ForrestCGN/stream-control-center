@@ -9,7 +9,7 @@ const core = require('./helpers/helper_core');
 const cfg = require('./helpers/helper_config');
 const media = require('./helpers/helper_media');
 const settingsHelper = require('./helpers/helper_settings');
-const sqlite = require('./sqlite_core');
+const database = require('../core/database');
 
 let multer = null;
 let multerLoadError = '';
@@ -20,7 +20,7 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.4';
+const VERSION = '0.1.5';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
@@ -161,7 +161,8 @@ const state = {
     inserted: 0,
     lastError: '',
     source: 'default'
-  }
+  },
+  databaseLastError: ''
 };
 
 let config = DEFAULT_CONFIG;
@@ -353,6 +354,40 @@ function listSoundAlertSettings() {
 }
 
 
+function ensureDatabaseReady(ctx = {}) {
+  try {
+    database.ensureReady(ctx);
+    state.databaseLastError = '';
+    return true;
+  } catch (err) {
+    state.databaseLastError = err && err.message ? err.message : String(err);
+    return false;
+  }
+}
+
+function databaseStatus() {
+  try {
+    const status = database.status();
+    const sqliteInfo = status && status.sqlite ? status.sqlite : null;
+    return {
+      ok: !!(status && status.ok),
+      adapter: status && status.adapter || 'sqlite',
+      dialect: status && status.dialect || 'sqlite',
+      path: sqliteInfo && sqliteInfo.databasePath ? sqliteInfo.databasePath : (typeof database.getDbPath === 'function' ? database.getDbPath() : ''),
+      lastError: status && status.lastError ? status.lastError : state.databaseLastError
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      adapter: 'unknown',
+      dialect: 'unknown',
+      path: '',
+      lastError: err && err.message ? err.message : String(err)
+    };
+  }
+}
+
+
 function normalizeLogin(value) {
   return String(value || '').trim().replace(/^@/, '').toLowerCase();
 }
@@ -409,8 +444,8 @@ function effectivePriority(rule) {
 }
 
 function ensureSchema() {
-  if (!sqlite.isInitialized()) return false;
-  sqlite.ensureSchema(SCHEMA_MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
+  if (!ensureDatabaseReady()) return false;
+  database.ensureSchema(SCHEMA_MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
     if (toVersion === 1) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS soundalerts_bridge_events (
@@ -534,9 +569,9 @@ function dbRowToRule(row) {
 }
 
 function getMetaValue(key) {
-  if (!sqlite.isInitialized()) return '';
+  if (!ensureDatabaseReady()) return '';
   try {
-    const row = sqlite.get('SELECT value FROM soundalerts_bridge_meta WHERE key = :key', { key: String(key || '') });
+    const row = database.get('SELECT value FROM soundalerts_bridge_meta WHERE key = :key', { key: String(key || '') });
     return row ? String(row.value || '') : '';
   } catch (_) {
     return '';
@@ -544,8 +579,8 @@ function getMetaValue(key) {
 }
 
 function setMetaValue(key, value) {
-  if (!sqlite.isInitialized()) return false;
-  sqlite.run(`
+  if (!ensureDatabaseReady()) return false;
+  database.run(`
     INSERT INTO soundalerts_bridge_meta (key, value, updated_at)
     VALUES (:key, :value, :updatedAt)
     ON CONFLICT(key) DO UPDATE SET
@@ -556,9 +591,9 @@ function setMetaValue(key, value) {
 }
 
 function entriesTableReady() {
-  if (!sqlite.isInitialized()) return false;
+  if (!ensureDatabaseReady()) return false;
   try {
-    sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries');
+    database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries');
     return true;
   } catch (_) {
     return false;
@@ -566,9 +601,9 @@ function entriesTableReady() {
 }
 
 function ensureEntriesSeededFromConfig() {
-  if (!sqlite.isInitialized() || !entriesTableReady()) return false;
+  if (!ensureDatabaseReady() || !entriesTableReady()) return false;
   const seeded = getMetaValue('entries_seeded_from_json') === '1';
-  const count = Number(sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries')?.c || 0);
+  const count = Number(database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries')?.c || 0);
   if (seeded || count > 0) return false;
 
   const rules = Array.isArray(config && config.rules) ? config.rules : [];
@@ -585,9 +620,9 @@ function ensureEntriesSeededFromConfig() {
 }
 
 function upsertEntryRule(rule, fallback = '') {
-  if (!sqlite.isInitialized() || !entriesTableReady()) return false;
+  if (!ensureDatabaseReady() || !entriesTableReady()) return false;
   const row = normalizeRuleForDb(rule, fallback);
-  sqlite.run(`
+  database.run(`
     INSERT INTO soundalerts_bridge_entries (
       entry_key, enabled, status, soundalert_name, label, file, media_type, category, priority, volume,
       output_target, created_from, created_at, updated_at, meta_json
@@ -613,10 +648,10 @@ function upsertEntryRule(rule, fallback = '') {
 }
 
 function replaceEntryRules(rules) {
-  if (!sqlite.isInitialized() || !entriesTableReady()) return false;
+  if (!ensureDatabaseReady() || !entriesTableReady()) return false;
   const list = Array.isArray(rules) ? rules : [];
-  const tx = sqlite.transaction(() => {
-    sqlite.run('DELETE FROM soundalerts_bridge_entries');
+  const tx = database.transaction(() => {
+    database.run('DELETE FROM soundalerts_bridge_entries');
     for (let i = 0; i < list.length; i++) {
       upsertEntryRule(list[i], `dashboard_rule_${i + 1}`);
     }
@@ -628,9 +663,9 @@ function replaceEntryRules(rules) {
 
 function listEntryRules() {
   ensureSchema();
-  if (!sqlite.isInitialized() || !entriesTableReady()) return null;
+  if (!ensureDatabaseReady() || !entriesTableReady()) return null;
   try {
-    return sqlite.all(`
+    return database.all(`
       SELECT * FROM soundalerts_bridge_entries
       ORDER BY enabled DESC, soundalert_name COLLATE NOCASE ASC, label COLLATE NOCASE ASC, id ASC
     `).map(dbRowToRule).filter(Boolean);
@@ -679,10 +714,10 @@ function remember(entry) {
 
 function insertEvent(event) {
   ensureSchema();
-  if (!sqlite.isInitialized()) return null;
+  if (!ensureDatabaseReady()) return null;
   const now = core.nowIso();
   const meta = event.meta && typeof event.meta === 'object' ? event.meta : {};
-  const result = sqlite.run(`
+  const result = database.run(`
     INSERT INTO soundalerts_bridge_events (
       event_uid, created_at, bot_login, bot_display_name, trigger_user_display, trigger_user_login,
       soundalert_name, amount, currency, raw_text, status, matched_rule_id, sound_request_id,
@@ -1188,19 +1223,19 @@ function publicStatus() {
   let dbStats = null;
   let entriesStats = null;
   try {
-    if (sqlite.isInitialized()) {
+    if (ensureDatabaseReady()) {
       dbStats = {
-        total: sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_events')?.c || 0,
-        unmatched: sqlite.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_events WHERE status='unmatched'")?.c || 0,
-        fileMissing: sqlite.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_events WHERE status='file_missing'")?.c || 0,
-        queued: sqlite.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_events WHERE status='queued'")?.c || 0
+        total: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_events')?.c || 0,
+        unmatched: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_events WHERE status='unmatched'")?.c || 0,
+        fileMissing: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_events WHERE status='file_missing'")?.c || 0,
+        queued: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_events WHERE status='queued'")?.c || 0
       };
       if (entriesTableReady()) {
         entriesStats = {
-          total: sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries')?.c || 0,
-          active: sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=1')?.c || 0,
-          inactive: sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=0')?.c || 0,
-          missingFile: sqlite.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE file=''")?.c || 0,
+          total: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries')?.c || 0,
+          active: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=1')?.c || 0,
+          inactive: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=0')?.c || 0,
+          missingFile: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE file=''")?.c || 0,
           seededFromJson: getMetaValue('entries_seeded_from_json') === '1'
         };
       }
@@ -1220,8 +1255,8 @@ function publicStatus() {
     multerLoadError,
     stats: { ...state.stats },
     database: {
-      ok: sqlite.isInitialized(),
-      path: sqlite.isInitialized() ? sqlite.getDbPath() : '',
+      ok: ensureDatabaseReady(),
+      path: ensureDatabaseReady() ? database.getDbPath() : '',
       table: 'soundalerts_bridge_events',
       stats: dbStats,
       entriesTable: 'soundalerts_bridge_entries',
@@ -1237,9 +1272,9 @@ function publicStatus() {
 
 function listEvents(limit) {
   ensureSchema();
-  if (!sqlite.isInitialized()) return [];
+  if (!ensureDatabaseReady()) return [];
   const safeLimit = Math.max(1, Math.min(500, Number.parseInt(limit || 50, 10) || 50));
-  return sqlite.all(`
+  return database.all(`
     SELECT * FROM soundalerts_bridge_events
     ORDER BY id DESC
     LIMIT ${safeLimit}
@@ -1251,9 +1286,9 @@ function listEvents(limit) {
 
 function statsRows() {
   ensureSchema();
-  if (!sqlite.isInitialized()) return { bySound: [], byUser: [], byStatus: [] };
+  if (!ensureDatabaseReady()) return { bySound: [], byUser: [], byStatus: [] };
   return {
-    bySound: sqlite.all(`
+    bySound: database.all(`
       SELECT soundalert_name AS soundAlertName, COUNT(*) AS count,
              SUM(CASE WHEN status='queued' THEN 1 ELSE 0 END) AS queued,
              SUM(CASE WHEN status='unmatched' THEN 1 ELSE 0 END) AS unmatched,
@@ -1264,7 +1299,7 @@ function statsRows() {
       ORDER BY count DESC, soundalert_name ASC
       LIMIT 100
     `),
-    byUser: sqlite.all(`
+    byUser: database.all(`
       SELECT trigger_user_display AS user, COUNT(*) AS count, MAX(created_at) AS lastAt
       FROM soundalerts_bridge_events
       WHERE trigger_user_display <> ''
@@ -1272,7 +1307,7 @@ function statsRows() {
       ORDER BY count DESC, user ASC
       LIMIT 100
     `),
-    byStatus: sqlite.all(`
+    byStatus: database.all(`
       SELECT status, COUNT(*) AS count
       FROM soundalerts_bridge_events
       GROUP BY status
@@ -1284,7 +1319,7 @@ function statsRows() {
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
   envRef = env || process.env;
-  if (!sqlite.isInitialized()) sqlite.init(ctx);
+  ensureDatabaseReady(ctx);
   try { twitchAuth = require('./twitch'); } catch (_) { twitchAuth = null; }
   loadConfig();
   ensureSchema();
