@@ -11,6 +11,7 @@ window.SoundAlertsModule = (function(){
   let loading = false;
   let bound = false;
   let selectedRuleIndex = 0;
+  let ruleFilter = 'all';
   let uploadState = { active: false, index: -1, progress: 0, message: '', fileName: '', sizeMb: 0, error: '' };
 
   const CATEGORY_OPTIONS = [
@@ -94,7 +95,6 @@ window.SoundAlertsModule = (function(){
 
   function ruleNeedsSetup(rule){
     if (!rule || isIgnoredRule(rule)) return false;
-    if (rule.enabled === false) return true;
     if (!String(rule.soundAlertName || '').trim()) return true;
     if (isPlaceholderFile(rule.file)) return true;
     return false;
@@ -105,7 +105,6 @@ window.SoundAlertsModule = (function(){
     if (isIgnoredRule(rule)) return 'Ignoriert';
     if (!String(rule.soundAlertName || '').trim()) return 'Name fehlt';
     if (isPlaceholderFile(rule.file)) return 'Datei fehlt';
-    if (rule.enabled === false) return 'Inaktiv / neu';
     return 'Einrichtung nötig';
   }
 
@@ -245,6 +244,37 @@ window.SoundAlertsModule = (function(){
     return out;
   }
 
+  function ruleMatchesFilter(rule){
+    const filter = String(ruleFilter || 'all').toLowerCase();
+    if (filter === 'active') return rule?.enabled !== false && !isIgnoredRule(rule);
+    if (filter === 'inactive') return rule?.enabled === false && !isIgnoredRule(rule);
+    if (filter === 'missing_file') return ruleStatusKey(rule) === 'missing_file';
+    if (filter === 'ignored') return isIgnoredRule(rule);
+    return true;
+  }
+
+  function filteredRuleEntries(){
+    return rules()
+      .map((rule, idx) => ({ rule, idx }))
+      .filter(item => ruleMatchesFilter(item.rule));
+  }
+
+  function clampSelectedRuleToFilter(){
+    const entries = filteredRuleEntries();
+    if (!entries.length) return;
+    if (!entries.some(item => item.idx === selectedRuleIndex)) {
+      selectedRuleIndex = entries[0].idx;
+    }
+  }
+
+  function ruleFilterLabel(){
+    if (ruleFilter === 'active') return 'Aktiv';
+    if (ruleFilter === 'inactive') return 'Inaktiv';
+    if (ruleFilter === 'missing_file') return 'Datei fehlt';
+    if (ruleFilter === 'ignored') return 'Ignoriert';
+    return 'Alle';
+  }
+
   function renderKpi(label, value, cls, action){
     return `
       <button type="button" class="sa-kpi ${esc(cls || '')}" ${action ? `data-sa-action="${esc(action)}"` : ''}>
@@ -344,11 +374,11 @@ window.SoundAlertsModule = (function(){
       ` : ''}
       <div class="sa-kpi-grid">
         ${renderKpi('Gesamt', counts.total, '', 'show-rules')}
-        ${renderKpi('Aktiv', counts.active, 'ok', 'show-rules')}
-        ${renderKpi('Inaktiv', counts.inactive, 'muted', 'show-rules')}
-        ${renderKpi('Datei fehlt', counts.missing_file, counts.missing_file ? 'warn' : '', 'show-rules')}
-        ${renderKpi('Ignoriert', counts.ignored, 'muted', 'show-rules')}
-        ${renderKpi('Datei gefunden', counts.file_matched, 'ok', 'show-rules')}
+        ${renderKpi('Aktiv', counts.active + counts.file_matched, 'ok', 'show-rules:active')}
+        ${renderKpi('Inaktiv', counts.inactive, 'muted', 'show-rules:inactive')}
+        ${renderKpi('Datei fehlt', counts.missing_file, counts.missing_file ? 'warn' : '', 'show-rules:missing_file')}
+        ${renderKpi('Ignoriert', counts.ignored, 'muted', 'show-rules:ignored')}
+        ${renderKpi('Datei gefunden', counts.file_matched, 'ok', 'show-rules:active')}
       </div>
       <div class="sa-overview-mini-grid">
         <div class="sa-mini-state"><span>Modul</span><strong>${statusText(cfg.enabled !== false)}</strong></div>
@@ -465,8 +495,11 @@ window.SoundAlertsModule = (function(){
   function renderRules(){
     const el = document.getElementById('saRulesCard');
     if (!el) return;
+    clampSelectedRuleToFilter();
     const list = rules();
+    const entries = filteredRuleEntries();
     const selected = selectedRule();
+    const counts = ruleStatusCounts();
     el.innerHTML = `
       <div class="sa-section-head">
         <div>
@@ -481,18 +514,32 @@ window.SoundAlertsModule = (function(){
 
       ${renderPendingNotice()}
 
+      <div class="sa-entry-toolbar">
+        <label class="sa-field sa-filter-field">
+          <span>Einträge anzeigen</span>
+          <select id="saRuleFilter" data-sa-rule-filter>
+            <option value="all" ${ruleFilter === 'all' ? 'selected' : ''}>Alle (${esc(counts.total)})</option>
+            <option value="active" ${ruleFilter === 'active' ? 'selected' : ''}>Aktiv (${esc(counts.active + counts.file_matched)})</option>
+            <option value="inactive" ${ruleFilter === 'inactive' ? 'selected' : ''}>Inaktiv (${esc(counts.inactive)})</option>
+            <option value="missing_file" ${ruleFilter === 'missing_file' ? 'selected' : ''}>Datei fehlt (${esc(counts.missing_file)})</option>
+            <option value="ignored" ${ruleFilter === 'ignored' ? 'selected' : ''}>Ignoriert (${esc(counts.ignored)})</option>
+          </select>
+        </label>
+        <div class="sa-muted">Aktueller Filter: ${esc(ruleFilterLabel())} · ${esc(entries.length)} von ${esc(list.length)} Einträgen sichtbar.</div>
+      </div>
+
       <div class="sa-entry-layout sa-entry-layout-clean">
         <aside class="sa-entry-sidebar">
-          <label class="sa-field sa-picker-field"><span>SoundAlert auswählen</span>${renderRuleSelect(list)}</label>
+          <label class="sa-field sa-picker-field"><span>SoundAlert auswählen</span>${renderRuleSelect(entries)}</label>
           <div class="sa-entry-list">
-            ${list.map((rule, idx) => renderRuleCard(rule, idx)).join('') || '<div class="sa-empty">Noch keine SoundAlerts.</div>'}
+            ${entries.map(item => renderRuleCard(item.rule, item.idx)).join('') || '<div class="sa-empty">Keine Einträge für diesen Filter.</div>'}
           </div>
         </aside>
         <section class="sa-entry-editor">
           ${selected ? renderRuleEditor(selected, selectedRuleIndex) : '<div class="sa-empty">SoundAlert auswählen oder neu erstellen.</div>'}
         </section>
       </div>
-      <div class="sa-note sa-bottom-note">Dateien sind relativ zu <code>htdocs/assets/sounds</code>, z. B. <code>soundalerts/video/name.mp4</code>.</div>
+      <div class="sa-note sa-bottom-note">Dateien sind relativ zu <code>htdocs/assets/sounds</code>, z. B. <code>soundalerts/video/name.mp4</code>. Inaktiv bedeutet bewusst deaktiviert und ist keine offene Einrichtung.</div>
     `;
   }
 
@@ -508,7 +555,7 @@ window.SoundAlertsModule = (function(){
       <div class="sa-setup-notice">
         <div>
           <strong>${pending.length} SoundAlert${pending.length === 1 ? '' : 's'} brauchen Einrichtung</strong>
-          <div class="sa-muted">Automatisch oder neu angelegte Einträge bleiben inaktiv, bis Datei/Label/Kategorie geprüft sind.</div>
+          <div class="sa-muted">Einrichtung ist nur nötig, wenn Name oder Datei fehlen. Bewusst inaktive Einträge zählen nicht als offen.</div>
           <div class="sa-setup-chips">${preview}</div>
         </div>
         <div class="sa-actions sa-setup-actions">
@@ -518,8 +565,9 @@ window.SoundAlertsModule = (function(){
     `;
   }
 
-  function renderRuleSelect(list){
-    return `<select id="saRulePicker" data-sa-rule-picker>${list.map((rule, idx) => `<option value="${idx}" ${idx === selectedRuleIndex ? 'selected' : ''}>${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</option>`).join('')}</select>`;
+  function renderRuleSelect(entries){
+    if (!entries.length) return '<select id="saRulePicker" data-sa-rule-picker disabled><option>Keine Einträge</option></select>';
+    return `<select id="saRulePicker" data-sa-rule-picker>${entries.map(item => `<option value="${item.idx}" ${item.idx === selectedRuleIndex ? 'selected' : ''}>${esc(item.rule.label || item.rule.soundAlertName || `SoundAlert ${item.idx + 1}`)}</option>`).join('')}</select>`;
   }
 
   function renderRuleCard(rule, idx){
@@ -1004,6 +1052,14 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
     if (bound) return;
     bound = true;
     document.addEventListener('change', ev => {
+      const filter = ev.target.closest('[data-sa-rule-filter]');
+      if (filter) {
+        saveActiveRuleFromDom();
+        ruleFilter = String(filter.value || 'all');
+        clampSelectedRuleToFilter();
+        render();
+        return;
+      }
       const picker = ev.target.closest('[data-sa-rule-picker]');
       if (picker) {
         saveActiveRuleFromDom();
@@ -1060,7 +1116,8 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
         }
         else if (action === 'save-config') await saveConfig();
         else if (action === 'show-events') { activeTab = 'events'; applyTab(); }
-        else if (action === 'show-rules') { activeTab = 'rules'; render(); }
+        else if (action === 'show-rules') { ruleFilter = 'all'; activeTab = 'rules'; render(); }
+        else if (action.startsWith('show-rules:')) { ruleFilter = action.split(':')[1] || 'all'; activeTab = 'rules'; render(); }
         else if (action === 'show-stats') { activeTab = 'stats'; applyTab(); }
         else if (action === 'add-rule') addRule();
         else if (action.startsWith('remove-rule:')) await removeRule(Number(action.split(':')[1]));

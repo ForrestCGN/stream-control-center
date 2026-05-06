@@ -19,6 +19,8 @@ Dashboard:
 - `htdocs/dashboard/modules/soundalerts.js`
 - `htdocs/dashboard/modules/soundalerts.css`
 - SoundAlert-Eintraege koennen bearbeitet/gespeichert werden.
+- Eintraege koennen im Dashboard nach `Alle`, `Aktiv`, `Inaktiv`, `Datei fehlt`, `Ignoriert` gefiltert werden.
+- Inaktive vollstaendig konfigurierte Eintraege zaehlen nicht mehr als offene Einrichtung.
 - Upload zeigt Status/Fortschritt.
 - Loeschen/Ignorieren sind direkte Backend-Aktionen und brauchen kein Config-Speichern mehr.
 - Uebersicht zeigt ab STEP193.7 kompakte Kennzahlen und die letzten 5 Events mit Schnellaktionen.

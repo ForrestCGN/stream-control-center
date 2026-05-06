@@ -65,7 +65,7 @@ Stand: 2026-05-06
 - Vollstaendige Event-/Statistiklisten bleiben in eigenen Tabs.
 - Keine Backend-/API-/DB-Aenderung.
 
-## STEP193.5 bestaetigt
+## STEP193.5 bis STEP193.7.1 bestaetigt
 
 - Video-Upload-Limit ist live auf 1 GB gesetzt: `upload.maxVideoSizeBytes = 1073741824`.
 - Dashboard zeigt Upload-Status/Fortschritt.
@@ -98,6 +98,13 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
   "volume": 100
 }
 ```
+
+
+## STEP193.7.1 Dashboard-Regel
+
+- Inaktive, vollstaendig konfigurierte SoundAlert-Eintraege gelten als bewusst deaktiviert und nicht als offene Einrichtung.
+- Einrichtung noetig ist nur bei fehlendem Namen oder fehlender/Platzhalter-Datei.
+- Der Eintraege-Tab kann nach `Alle`, `Aktiv`, `Inaktiv`, `Datei fehlt` und `Ignoriert` gefiltert werden.
 
 ## Globaler DB-Portability-Standard
 

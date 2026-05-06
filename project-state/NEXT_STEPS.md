@@ -50,3 +50,8 @@ Naechster sinnvoller Schritt, falls die Eintragsliste weiter waechst:
 - Ignored-Eintraege werden nicht neu als offene Auto-Eintraege erzeugt.
 - Aktuelles Video-Upload-Limit live: `1073741824` Bytes / 1 GB.
 - `_SoundAlerts_Loader` bleibt als aktive, stumme 1x1-OBS-Browserquelle geladen.
+
+## STEP193.7.1 erledigt
+
+- Inaktiv ist keine offene Einrichtung mehr, solange Name und Datei vorhanden sind.
+- Eintraege-Tab hat Filter fuer Alle/Aktiv/Inaktiv/Datei fehlt/Ignoriert.

@@ -66,6 +66,8 @@ SoundAlerts-Auto-Entry-Statuswerte:
 SoundAlerts-Dokus:
 
 - `project-state/STEP193_5_SOUNDALERTS_UPLOAD_UX_IGNORE_DELETE_DOC_SYNC_2026-05-06.md`
+- `project-state/STEP193_7_SOUNDALERTS_OVERVIEW_DASHBOARD_2026-05-06.md`
+- `project-state/STEP193_7_1_SOUNDALERTS_INACTIVE_FILTER_FIX_2026-05-06.md`
 - `project-state/STEP193_6_SOUNDALERTS_DASHBOARD_LAYOUT_CLEANUP_2026-05-06.md`
 - `project-state/STEP193_6_1_SOUNDALERTS_OBS_LOADER_STANDARD_2026-05-06.md`
 - `project-state/STEP193_7_SOUNDALERTS_OVERVIEW_DASHBOARD_2026-05-06.md`
@@ -85,3 +87,8 @@ OBS Loader Standard:
 - Backups
 - ZIP/7z-Dateien
 - temporaere Dateien
+
+## STEP193.7.1 Dashboard-Regel
+
+- `enabled: false` ist keine offene Einrichtung, wenn Name und Datei vorhanden sind.
+- Eintraege-Filter im Dashboard: Alle, Aktiv, Inaktiv, Datei fehlt, Ignoriert.

@@ -2,6 +2,13 @@
 
 ## 2026-05-06
 
+### STEP193.7.1 - SoundAlerts Inaktiv/Filter Fix
+
+- Fachregel korrigiert: `enabled: false` ist nicht automatisch „Einrichtung nötig“.
+- Einträge-Tab um Filter `Alle`, `Aktiv`, `Inaktiv`, `Datei fehlt`, `Ignoriert` ergänzt.
+- Übersicht-KPI-Klicks öffnen passende Eintragsfilter.
+- Keine Backend-/API-/DB-Änderung.
+
 ### STEP193.7 - SoundAlerts Overview Dashboard
 
 - SoundAlerts-Uebersichtsseite aufgeraeumt.

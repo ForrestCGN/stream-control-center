@@ -1071,3 +1071,43 @@ html[data-theme=dark] .sa-kpi.muted {
     grid-template-columns: 1fr;
   }
 }
+
+/* STEP193.7.1: Entry filter and inactive setup correction */
+.sa-entry-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.025);
+}
+
+.sa-filter-field {
+  min-width: 220px;
+  margin: 0;
+}
+
+.sa-entry-toolbar .sa-muted {
+  text-align: right;
+  line-height: 1.4;
+}
+
+html[data-theme=dark] .sa-entry-toolbar {
+  background: #202020;
+  border-color: #343434;
+}
+
+@media (max-width: 820px) {
+  .sa-entry-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .sa-entry-toolbar .sa-muted {
+    text-align: left;
+  }
+}
