@@ -8,9 +8,9 @@ window.SoundAlertsModule = (function(){
   let stats = null;
   let config = null;
   let activeTab = 'overview';
-  let selectedRuleIndex = 0;
   let loading = false;
   let bound = false;
+  let selectedRuleIndex = 0;
 
   const CATEGORY_OPTIONS = [
     { value: '', label: 'Standard / global', priority: null },
@@ -24,39 +24,9 @@ window.SoundAlertsModule = (function(){
     { value: 'system', label: 'System', priority: 100 }
   ];
 
-  const STATUS_LABELS = {
-    queued: 'In Warteschlange',
-    played: 'Abgespielt',
-    success: 'Erfolgreich',
-    unmatched: 'Nicht eingerichtet',
-    no_mapping: 'Kein Eintrag',
-    file_missing: 'Datei fehlt',
-    missing_file: 'Datei fehlt',
-    failed: 'Fehler',
-    ignored: 'Ignoriert'
-  };
-
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
   function btn(label, action, cls){ return `<button type="button" class="${esc(cls || '')}" data-sa-action="${esc(action)}">${esc(label)}</button>`; }
-  function statusText(value){ return value ? 'Aktiv' : 'Inaktiv'; }
-  function value(v, fallback){ return v === undefined || v === null || v === '' ? fallback : v; }
-  function normalizeKey(v){ return String(v || '').trim().toLowerCase(); }
-  function statusLabel(v){ return STATUS_LABELS[String(v || '').toLowerCase()] || (v || '-'); }
-  function categoryOption(value){ return CATEGORY_OPTIONS.find(o => o.value === value) || CATEGORY_OPTIONS[0]; }
-  function categoryDefaultPriority(category){
-    const opt = categoryOption(category);
-    if (Number.isFinite(opt.priority)) return opt.priority;
-    const cfgDefault = Number(config?.soundSystem?.defaultPriority);
-    return Number.isFinite(cfgDefault) ? cfgDefault : 70;
-  }
-  function categoryLabel(category){
-    const opt = categoryOption(category);
-    return opt.priority === null ? opt.label : `${opt.label} (${opt.priority})`;
-  }
-  function categorySelect(name, selected){
-    return `<select data-sa-rule-field="${esc(name)}">${CATEGORY_OPTIONS.map(opt => `<option value="${esc(opt.value)}" ${selected === opt.value ? 'selected' : ''}>${esc(opt.priority === null ? opt.label : `${opt.label} (${opt.priority})`)}</option>`).join('')}</select>`;
-  }
 
   function registerDashboardModule(){
     if (!window.CGN) return;
@@ -72,7 +42,7 @@ window.SoundAlertsModule = (function(){
       label: 'SoundAlerts',
       icon: '🔔',
       enabled: true,
-      description: 'SoundAlerts-Chatmeldungen erkennen, SoundAlert-Einträge verwalten und ins Sound-System geben.'
+      description: 'SoundAlerts erkennen, einrichten und ins Sound-System geben.'
     };
     const items = window.CGN.sections?.system?.items;
     if (Array.isArray(items) && !items.includes('soundalerts')) {
@@ -80,13 +50,61 @@ window.SoundAlertsModule = (function(){
       if (idx >= 0) items.splice(idx + 1, 0, 'soundalerts');
       else items.push('soundalerts');
     }
+    if (Array.isArray(window.CGN.favorites) && !window.CGN.favorites.includes('soundalerts')) {
+      window.CGN.favorites.push('soundalerts');
+    }
   }
 
   function ensureRoot(){
     root = document.getElementById('soundalertsModule');
-    if (!root) return false;
-    root.classList.add('soundalerts-admin');
-    return true;
+    return !!root;
+  }
+
+  function statusText(value){ return value ? 'Aktiv' : 'Inaktiv'; }
+  function value(v, fallback){ return v === undefined || v === null || v === '' ? fallback : v; }
+  function rules(){ return Array.isArray(config?.rules) ? config.rules : []; }
+  function selectedRule(){ return rules()[selectedRuleIndex] || null; }
+  function defaultPriority(){ return Number(config?.soundSystem?.defaultPriority ?? 70); }
+  function defaultVolume(){ return Number(config?.soundSystem?.defaultVolume ?? 100); }
+
+  function categoryOption(value){
+    return CATEGORY_OPTIONS.find(item => item.value === value) || CATEGORY_OPTIONS[0];
+  }
+
+  function categoryLabel(value){
+    const opt = categoryOption(value || '');
+    return opt.priority === null ? opt.label : `${opt.label} (${opt.priority})`;
+  }
+
+  function effectivePriority(rule){
+    if (rule?.priority !== undefined && rule?.priority !== null && rule?.priority !== '') return Number(rule.priority);
+    const opt = categoryOption(rule?.category || '');
+    if (opt.priority !== null) return opt.priority;
+    return defaultPriority();
+  }
+
+  function statusLabel(statusValue){
+    const s = String(statusValue || '').toLowerCase();
+    if (s === 'queued') return 'In Warteschlange';
+    if (s === 'played' || s === 'success' || s === 'done') return 'Abgespielt';
+    if (s === 'unmatched') return 'Nicht eingerichtet';
+    if (s === 'no_mapping') return 'Kein Eintrag';
+    if (s === 'file_missing') return 'Datei fehlt';
+    if (s === 'failed') return 'Fehler';
+    return statusValue || '-';
+  }
+
+  function statusClass(statusValue){
+    const s = String(statusValue || '').toLowerCase();
+    if (s === 'no_mapping') return 'unmatched';
+    if (s === 'success' || s === 'played' || s === 'done') return 'queued';
+    return s || 'unknown';
+  }
+
+  function findRuleIndexForEvent(ev){
+    const name = String(ev?.soundalert_name || ev?.soundAlertName || '').trim().toLowerCase();
+    if (!name) return -1;
+    return rules().findIndex(rule => String(rule.soundAlertName || '').trim().toLowerCase() === name);
   }
 
   function renderShell(){
@@ -95,7 +113,7 @@ window.SoundAlertsModule = (function(){
       <div class="sa-card sa-hero">
         <div>
           <h2>SoundAlerts</h2>
-          <div class="sa-note">SoundAlerts-Chatmeldungen werden erkannt, als Einträge verwaltet und als Audio/Video in die Sound-System-Queue gegeben.</div>
+          <div class="sa-note">SoundAlerts erkennen, Einträge verwalten und als Audio/Video in die Sound-System-Queue geben.</div>
         </div>
         <div class="sa-actions sa-hero-actions">
           ${btn('Neu laden', 'reload')}
@@ -131,6 +149,7 @@ window.SoundAlertsModule = (function(){
       renderShell();
       bind();
     }
+    clampSelectedRule();
     renderOverview();
     renderLastEvent();
     renderSettings();
@@ -151,6 +170,7 @@ window.SoundAlertsModule = (function(){
       <div class="sa-row"><span>Modul</span><strong>${statusText(cfg.enabled !== false)}</strong></div>
       <div class="sa-row"><span>WebSocket</span><strong>${st.wsConnected ? 'Verbunden' : 'Nicht verbunden'}</strong></div>
       <div class="sa-row"><span>Bot-Login</span><strong>${esc(cfg.bot?.login || '-')}</strong></div>
+      <div class="sa-row"><span>Einträge</span><strong>${esc(rules().length)}</strong></div>
       <div class="sa-row"><span>Events DB</span><strong>${esc(db.stats?.total ?? 0)}</strong></div>
       <div class="sa-row"><span>Queued</span><strong>${esc(db.stats?.queued ?? 0)}</strong></div>
       <div class="sa-row"><span>Nicht eingerichtet</span><strong>${esc(db.stats?.unmatched ?? 0)}</strong></div>
@@ -167,14 +187,19 @@ window.SoundAlertsModule = (function(){
       el.innerHTML = `<h3>Letztes Event</h3><div class="sa-empty">Noch kein Event verarbeitet.</div>`;
       return;
     }
+    const idx = findRuleIndexForEvent(ev);
     el.innerHTML = `
       <h3>Letztes Event</h3>
-      <div class="sa-row"><span>Status</span><strong class="sa-pill ${esc(ev.status || '')}">${esc(statusLabel(ev.status))}</strong></div>
+      <div class="sa-row"><span>Status</span><strong class="sa-pill ${esc(statusClass(ev.status))}">${esc(statusLabel(ev.status))}</strong></div>
       <div class="sa-row"><span>User</span><strong>${esc(ev.triggerUserDisplay || '-')}</strong></div>
-      <div class="sa-row"><span>SoundAlert</span><strong>${esc(ev.soundAlertName || '-')}</strong></div>
+      <div class="sa-row"><span>SoundAlert</span><strong>${esc(ev.soundAlertName || ev.soundalert_name || '-')}</strong></div>
       <div class="sa-row"><span>Betrag</span><strong>${esc(ev.amount ?? 0)} ${esc(ev.currency || '')}</strong></div>
       <div class="sa-row"><span>Datei</span><span class="sa-muted">${esc(ev.file || '-')}</span></div>
-      <div class="sa-note">${esc(ev.rawText || '')}</div>
+      <div class="sa-actions">
+        ${ev.file ? btn('Erneut abspielen', 'replay-last-event') : ''}
+        ${idx >= 0 ? btn('Eintrag bearbeiten', `edit-rule:${idx}`) : btn('Eintrag erstellen', 'create-from-last-event')}
+      </div>
+      <div class="sa-note">${esc(ev.rawText || ev.raw_text || '')}</div>
     `;
   }
 
@@ -189,14 +214,14 @@ window.SoundAlertsModule = (function(){
     el.innerHTML = `
       <h3>Bot & Settings</h3>
       <div class="sa-form-grid">
-        <label class="sa-check"><input id="saEnabled" type="checkbox" ${cfg.enabled === false ? '' : 'checked'}><span>Bridge aktiv</span></label>
+        <label class="sa-check"><input id="saEnabled" type="checkbox" ${cfg.enabled === false ? '' : 'checked'}><span>SoundAlerts aktiv</span></label>
         <label class="sa-field"><span>Bot-Login</span><input id="saBotLogin" type="text" value="${esc(bot.login || 'soundalerts')}"></label>
         <label class="sa-field"><span>Bot User-ID</span><input id="saBotUserId" type="text" value="${esc(bot.userId || '')}"></label>
         <label class="sa-field"><span>Bot DisplayName</span><input id="saBotDisplayName" type="text" value="${esc(bot.displayName || 'SoundAlerts')}"></label>
         <label class="sa-field"><span>Default-Kategorie</span><input id="saDefaultCategory" type="text" value="${esc(sound.defaultCategory || 'channel_reward')}"></label>
         <label class="sa-field"><span>Default-Priorität</span><input id="saDefaultPriority" type="number" min="0" max="200" value="${esc(value(sound.defaultPriority, 70))}"></label>
-        <label class="sa-field"><span>Audio-Ziel</span><select id="saAudioTarget"><option value="device" ${sound.audioOutputTarget === 'device' ? 'selected' : ''}>Audiogerät</option><option value="overlay" ${sound.audioOutputTarget === 'overlay' ? 'selected' : ''}>OBS Overlay</option><option value="both" ${sound.audioOutputTarget === 'both' ? 'selected' : ''}>Beides</option></select></label>
-        <label class="sa-field"><span>Video-Ziel</span><select id="saVideoTarget"><option value="overlay" ${sound.videoOutputTarget !== 'device' ? 'selected' : ''}>OBS Overlay</option><option value="device" ${sound.videoOutputTarget === 'device' ? 'selected' : ''}>Audiogerät</option><option value="both" ${sound.videoOutputTarget === 'both' ? 'selected' : ''}>Beides</option></select></label>
+        <label class="sa-field"><span>Audio-Ziel</span><select id="saAudioTarget"><option value="device" ${sound.audioOutputTarget === 'device' ? 'selected' : ''}>Device</option><option value="overlay" ${sound.audioOutputTarget === 'overlay' ? 'selected' : ''}>Overlay</option><option value="both" ${sound.audioOutputTarget === 'both' ? 'selected' : ''}>Beides</option></select></label>
+        <label class="sa-field"><span>Video-Ziel</span><select id="saVideoTarget"><option value="overlay" ${sound.videoOutputTarget !== 'device' ? 'selected' : ''}>Overlay</option><option value="device" ${sound.videoOutputTarget === 'device' ? 'selected' : ''}>Device</option><option value="both" ${sound.videoOutputTarget === 'both' ? 'selected' : ''}>Beides</option></select></label>
         <label class="sa-field"><span>Standard-Lautstärke</span><input id="saDefaultVolume" type="number" min="0" max="100" value="${esc(value(sound.defaultVolume, 100))}"></label>
         <label class="sa-check"><input id="saDedupeEnabled" type="checkbox" ${dedupe.enabled === false ? '' : 'checked'}><span>Dedupe aktiv</span></label>
         <label class="sa-field"><span>Dedupe-Fenster ms</span><input id="saDedupeMs" type="number" min="0" max="600000" value="${esc(value(dedupe.windowMs, 3000))}"></label>
@@ -204,127 +229,101 @@ window.SoundAlertsModule = (function(){
         <label class="sa-check"><input id="saChatUnmatched" type="checkbox" ${chat.onUnmatched === true ? 'checked' : ''}><span>Chatmeldung bei unbekanntem Sound</span></label>
         <label class="sa-field"><span>Chat-Cooldown ms</span><input id="saChatCooldown" type="number" min="0" max="600000" value="${esc(value(chat.cooldownMs, 15000))}"></label>
       </div>
-      <div class="sa-note">Normale SoundAlerts sollten als Kategorie <code>channel_reward</code> laufen. Videos bleiben fachlich immer Overlay.</div>
+      <div class="sa-note">Unbekannte SoundAlerts werden geloggt. Einträge können später aus Events erstellt und aktiviert werden.</div>
     `;
-  }
-
-  function syncSelectedRuleFromDom(){
-    const rules = Array.isArray(config?.rules) ? config.rules.slice() : [];
-    const box = document.querySelector('[data-sa-rule-editor="1"]');
-    if (!box || !rules[selectedRuleIndex]) return;
-    function field(name){ return box.querySelector(`[data-sa-rule-field="${name}"]`); }
-    const soundAlertName = String(field('soundAlertName')?.value || '').trim();
-    const category = String(field('category')?.value || '').trim();
-    const priorityRaw = String(field('priority')?.value || '').trim();
-    const priority = priorityRaw === '' ? categoryDefaultPriority(category) : Math.max(0, Math.min(200, Number(priorityRaw || 70)));
-    rules[selectedRuleIndex] = {
-      ...(rules[selectedRuleIndex] || {}),
-      id: (soundAlertName || `rule_${selectedRuleIndex + 1}`).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || `rule_${selectedRuleIndex + 1}`,
-      enabled: !!field('enabled')?.checked,
-      soundAlertName,
-      label: String(field('label')?.value || soundAlertName).trim(),
-      file: String(field('file')?.value || '').trim(),
-      mediaType: String(field('mediaType')?.value || 'audio').trim(),
-      category,
-      priority,
-      volume: Math.max(0, Math.min(100, Number(field('volume')?.value || 100)))
-    };
-    config = { ...(config || {}), rules };
-  }
-
-  function getRules(){ return Array.isArray(config?.rules) ? config.rules : []; }
-
-  function findRuleIndexForEvent(ev){
-    const key = normalizeKey(ev.soundalert_name || ev.soundAlertName || ev.soundAlert || '');
-    if (!key) return -1;
-    return getRules().findIndex(rule => normalizeKey(rule.soundAlertName) === key || normalizeKey(rule.label) === key);
   }
 
   function renderRules(){
     const el = document.getElementById('saRulesCard');
     if (!el) return;
-    const rules = getRules();
-    if (!rules.length) selectedRuleIndex = 0;
-    else selectedRuleIndex = Math.max(0, Math.min(selectedRuleIndex, rules.length - 1));
-    const selected = rules[selectedRuleIndex];
+    const list = rules();
+    const selected = selectedRule();
     el.innerHTML = `
       <div class="sa-section-head">
         <div>
-          <h3>SoundAlert-Einträge</h3>
-          <div class="sa-muted">Einträge sind die Zuordnung von SoundAlerts-Namen zu Dateien, Kategorie, Priorität und Lautstärke.</div>
+          <h3>SoundAlerts</h3>
+          <div class="sa-note">Einträge ordnen SoundAlert-Namen Dateien, Kategorie, Priorität und Lautstärke zu.</div>
         </div>
         <div class="sa-actions sa-section-actions">
           ${btn('Neuer SoundAlert', 'add-rule')}
           ${btn('Einträge speichern', 'save-config', 'success')}
         </div>
       </div>
-      <div class="sa-picker-row">
-        <label class="sa-field sa-picker-field"><span>SoundAlert auswählen</span><select id="saRulePicker" data-sa-action="select-rule-picker">
-          ${rules.map((rule, idx) => `<option value="${idx}" ${idx === selectedRuleIndex ? 'selected' : ''}>${esc(rule.label || rule.soundAlertName || `Eintrag ${idx + 1}`)}</option>`).join('') || '<option value="0">Noch kein Eintrag</option>'}
-        </select></label>
-        <div class="sa-muted">Normale SoundAlerts: <code>channel_reward</code> / Standard-Prio 70. Priorität kann pro Eintrag überschrieben werden.</div>
+
+      <div class="sa-entry-layout sa-entry-layout-clean">
+        <aside class="sa-entry-sidebar">
+          <label class="sa-field sa-picker-field"><span>SoundAlert auswählen</span>${renderRuleSelect(list)}</label>
+          <div class="sa-entry-list">
+            ${list.map((rule, idx) => renderRuleCard(rule, idx)).join('') || '<div class="sa-empty">Noch keine SoundAlerts.</div>'}
+          </div>
+        </aside>
+        <section class="sa-entry-editor">
+          ${selected ? renderRuleEditor(selected, selectedRuleIndex) : '<div class="sa-empty">SoundAlert auswählen oder neu erstellen.</div>'}
+        </section>
       </div>
-      <div class="sa-entry-layout">
-        <div class="sa-entry-list">
-          ${rules.map((rule, idx) => renderRuleCard(rule, idx)).join('') || '<div class="sa-empty">Noch keine SoundAlert-Einträge.</div>'}
-        </div>
-        <div class="sa-entry-editor">
-          ${selected ? renderRuleEditor(selected, selectedRuleIndex) : '<div class="sa-empty">Wähle einen Eintrag oder lege einen neuen SoundAlert an.</div>'}
-        </div>
-      </div>
-      <div class="sa-note">Dateien sind relativ zu <code>htdocs/assets/sounds</code>, z. B. <code>soundalerts/video/name.mp4</code>.</div>
+      <div class="sa-note sa-bottom-note">Dateien sind relativ zu <code>htdocs/assets/sounds</code>, z. B. <code>soundalerts/video/name.mp4</code>.</div>
     `;
+  }
+
+  function renderRuleSelect(list){
+    return `<select id="saRulePicker" data-sa-rule-picker>${list.map((rule, idx) => `<option value="${idx}" ${idx === selectedRuleIndex ? 'selected' : ''}>${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</option>`).join('')}</select>`;
   }
 
   function renderRuleCard(rule, idx){
-    const type = rule.mediaType === 'video' ? 'Video' : 'Audio';
-    const category = rule.category || config?.soundSystem?.defaultCategory || 'channel_reward';
-    const prio = value(rule.priority, categoryDefaultPriority(category));
+    const active = idx === selectedRuleIndex ? ' active' : '';
+    const media = String(rule.mediaType || 'audio').toLowerCase();
+    const enabled = rule.enabled === false ? false : true;
     return `
-      <div class="sa-entry-card ${idx === selectedRuleIndex ? 'active' : ''}" data-sa-rule-card="${idx}">
+      <article class="sa-entry-card${active}" data-sa-select-rule="${idx}">
         <div class="sa-entry-main">
           <div class="sa-entry-title">
-            <strong>${esc(rule.label || rule.soundAlertName || `Eintrag ${idx + 1}`)}</strong>
-            <span class="sa-pill">${esc(type)}</span>
-            <span class="sa-pill ${rule.enabled === false ? 'failed' : 'queued'}">${esc(rule.enabled === false ? 'Inaktiv' : 'Aktiv')}</span>
+            <strong>${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</strong>
+            <span class="sa-pill">${esc(media === 'video' ? 'Video' : 'Audio')}</span>
+            <span class="sa-pill ${enabled ? 'queued' : 'failed'}">${enabled ? 'Aktiv' : 'Inaktiv'}</span>
           </div>
           <div class="sa-entry-meta">
             <span>${esc(rule.soundAlertName || '-')}</span>
-            <span>${esc(rule.file || 'keine Datei')}</span>
-            <span>${esc(categoryLabel(category))}</span>
-            <span>Prio: ${esc(prio)}</span>
-            <span>Lautstärke: ${esc(value(rule.volume, 100))}%</span>
+            <span>${esc(rule.file || 'Keine Datei')}</span>
+            <span>${esc(categoryLabel(rule.category || ''))}</span>
+            <span>Prio ${esc(effectivePriority(rule))}</span>
+            <span>${esc(value(rule.volume, defaultVolume()))}%</span>
           </div>
         </div>
         <div class="sa-entry-actions">
-          ${btn('Bearbeiten', `select-rule:${idx}`)}
+          ${btn('Bearbeiten', `edit-rule:${idx}`)}
           ${btn('Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
-      </div>
+      </article>
     `;
   }
 
+  function renderCategorySelect(rule){
+    const current = rule.category || '';
+    return `<select data-sa-rule-field="category">${CATEGORY_OPTIONS.map(opt => `<option value="${esc(opt.value)}" data-priority="${esc(opt.priority ?? '')}" ${opt.value === current ? 'selected' : ''}>${esc(opt.priority === null ? opt.label : `${opt.label} (${opt.priority})`)}</option>`).join('')}</select>`;
+  }
+
   function renderRuleEditor(rule, idx){
-    const category = rule.category || config?.soundSystem?.defaultCategory || 'channel_reward';
     return `
       <div class="sa-editor-head">
         <div>
           <h4>Eintrag bearbeiten</h4>
-          <div class="sa-muted">${esc(rule.label || rule.soundAlertName || `Eintrag ${idx + 1}`)}</div>
+          <div class="sa-muted">${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</div>
         </div>
-        <div class="sa-actions sa-editor-actions">${btn('Löschen', `remove-rule:${idx}`, 'danger')}</div>
+        <div class="sa-actions sa-editor-actions">
+          ${btn('Löschen', `remove-rule:${idx}`, 'danger')}
+        </div>
       </div>
-      <div class="sa-form-grid sa-rule-editor" data-sa-rule-editor="1" data-sa-rule-index="${idx}">
+      <div class="sa-rule sa-rule-editor" data-sa-rule-index="${idx}">
         <label class="sa-check"><input data-sa-rule-field="enabled" type="checkbox" ${rule.enabled === false ? '' : 'checked'}><span>Aktiv</span></label>
         <label class="sa-field"><span>SoundAlerts-Name</span><input data-sa-rule-field="soundAlertName" type="text" value="${esc(rule.soundAlertName || '')}"></label>
         <label class="sa-field"><span>Label</span><input data-sa-rule-field="label" type="text" value="${esc(rule.label || rule.soundAlertName || '')}"></label>
+        <label class="sa-field"><span>Typ</span><select data-sa-rule-field="mediaType"><option value="audio" ${rule.mediaType === 'audio' ? 'selected' : ''}>Audio</option><option value="video" ${rule.mediaType === 'video' ? 'selected' : ''}>Video</option></select></label>
         <label class="sa-field sa-wide"><span>Datei</span><input data-sa-rule-field="file" type="text" value="${esc(rule.file || '')}"></label>
-        <label class="sa-field"><span>Typ</span><select data-sa-rule-field="mediaType"><option value="audio" ${rule.mediaType !== 'video' ? 'selected' : ''}>Audio</option><option value="video" ${rule.mediaType === 'video' ? 'selected' : ''}>Video</option></select></label>
-        <label class="sa-field"><span>Kategorie</span>${categorySelect('category', category)}</label>
-        <label class="sa-field"><span>Priorität</span><input data-sa-rule-field="priority" type="number" min="0" max="200" value="${esc(value(rule.priority, categoryDefaultPriority(category)))}"></label>
-        <label class="sa-field"><span>Lautstärke</span><input data-sa-rule-field="volume" type="number" min="0" max="100" value="${esc(value(rule.volume, 100))}"></label>
+        <label class="sa-field"><span>Kategorie</span>${renderCategorySelect(rule)}</label>
+        <label class="sa-field"><span>Priorität</span><input data-sa-rule-field="priority" type="number" min="0" max="200" value="${esc(effectivePriority(rule))}"></label>
+        <label class="sa-field"><span>Lautstärke</span><input data-sa-rule-field="volume" type="number" min="0" max="100" value="${esc(value(rule.volume, defaultVolume()))}"></label>
       </div>
-      <div class="sa-note">Kategorie setzt die sinnvolle Standard-Priorität. Die Zahl kann pro Eintrag bewusst überschrieben werden.</div>
+      <div class="sa-note">Kategorie setzt eine sinnvolle Standard-Priorität. Die Zahl kann pro Eintrag bewusst überschrieben werden.</div>
     `;
   }
 
@@ -340,27 +339,23 @@ window.SoundAlertsModule = (function(){
   }
 
   function renderEvent(ev, idx){
-    const status = String(ev.status || '').toLowerCase();
     const ruleIdx = findRuleIndexForEvent(ev);
-    const canReplay = !!(ev.raw_text || ev.rawText || ev.soundalert_name || ev.soundAlertName);
-    const isUnknown = status === 'unmatched' || status === 'no_mapping';
-    const isFileMissing = status === 'file_missing' || status === 'missing_file';
-    const actions = [];
-    if (canReplay && !isUnknown && !isFileMissing) actions.push(btn('Erneut abspielen', `replay-event:${idx}`, 'success'));
-    if (ruleIdx >= 0) actions.push(btn('Eintrag bearbeiten', `select-rule:${ruleIdx}`));
-    if (isUnknown || isFileMissing || ruleIdx < 0) actions.push(btn('Eintrag erstellen', `create-rule-from-event:${idx}`));
+    const hasFile = !!ev.file;
+    const unmatched = ['unmatched', 'no_mapping'].includes(String(ev.status || '').toLowerCase()) || ruleIdx < 0;
     return `
-      <div class="sa-event sa-event-${esc(status || 'unknown')}">
+      <div class="sa-event sa-event-card">
         <div class="sa-event-main">
-          <strong>${esc(ev.soundalert_name || ev.soundAlertName || '-')}</strong>
-          <small>${esc(ev.trigger_user_display || ev.triggerUserDisplay || '-')} · ${esc(ev.amount ?? 0)} ${esc(ev.currency || '')} · ${esc(ev.created_at || ev.createdAt || '')}</small>
-          <small>${esc(ev.file || ev.error || ev.raw_text || ev.rawText || '')}</small>
-          ${isUnknown ? '<small class="sa-event-hint">Kein SoundAlert-Eintrag vorhanden. Erstelle daraus einen Eintrag und weise danach eine Datei zu.</small>' : ''}
-          ${isFileMissing ? '<small class="sa-event-hint">Eintrag gefunden, aber Datei fehlt. Datei hochladen oder Pfad korrigieren.</small>' : ''}
+          <strong>${esc(ev.soundalert_name || '-')}</strong>
+          <small>${esc(ev.trigger_user_display || '-')} · ${esc(ev.amount ?? 0)} ${esc(ev.currency || '')} · ${esc(ev.created_at || '')}</small>
+          <small>${esc(ev.file || ev.error || ev.raw_text || '')}</small>
         </div>
         <div class="sa-event-side">
-          <span class="sa-pill ${esc(status || '')}">${esc(statusLabel(status))}</span>
-          <div class="sa-event-actions">${actions.join('')}</div>
+          <span class="sa-pill ${esc(statusClass(ev.status))}">${esc(statusLabel(ev.status))}</span>
+          <div class="sa-actions sa-event-actions">
+            ${hasFile ? btn('Erneut abspielen', `replay-event:${idx}`) : ''}
+            ${ruleIdx >= 0 ? btn('Eintrag bearbeiten', `edit-rule:${ruleIdx}`) : ''}
+            ${unmatched ? btn('Eintrag erstellen', `create-from-event:${idx}`, 'success') : ''}
+          </div>
         </div>
       </div>
     `;
@@ -377,7 +372,7 @@ window.SoundAlertsModule = (function(){
       <div class="sa-stat-columns">
         <div><h4>Sounds</h4>${bySound.map(r => `<div class="sa-row"><span>${esc(r.soundAlertName || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}</div>
         <div><h4>User</h4>${byUser.map(r => `<div class="sa-row"><span>${esc(r.user || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}</div>
-        <div><h4>Status</h4>${byStatus.map(r => `<div class="sa-row"><span>${esc(statusLabel(r.status))}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}</div>
+        <div><h4>Status</h4>${byStatus.map(r => `<div class="sa-row"><span>${esc(statusLabel(r.status || '-'))}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}</div>
       </div>
     `;
   }
@@ -390,9 +385,49 @@ window.SoundAlertsModule = (function(){
   function readBool(id){ return !!document.getElementById(id)?.checked; }
   function readText(id){ return String(document.getElementById(id)?.value || '').trim(); }
 
+  function normalizeRule(rule, idx){
+    const soundAlertName = String(rule.soundAlertName || '').trim();
+    const mediaType = String(rule.mediaType || 'audio').trim();
+    return {
+      ...rule,
+      id: String(rule.id || soundAlertName || `rule_${idx + 1}`).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || `rule_${idx + 1}`,
+      enabled: rule.enabled === false ? false : true,
+      soundAlertName,
+      label: String(rule.label || soundAlertName).trim(),
+      file: String(rule.file || '').trim(),
+      mediaType,
+      category: String(rule.category || '').trim(),
+      priority: Math.max(0, Math.min(200, Number(value(rule.priority, effectivePriority(rule))))),
+      volume: Math.max(0, Math.min(100, Number(value(rule.volume, defaultVolume()))))
+    };
+  }
+
+  function saveActiveRuleFromDom(){
+    const box = document.querySelector('[data-sa-rule-index]');
+    if (!box || !config) return;
+    const idx = Number(box.dataset.saRuleIndex);
+    const list = rules().slice();
+    if (!Number.isInteger(idx) || idx < 0 || idx >= list.length) return;
+    function field(name){ return box.querySelector(`[data-sa-rule-field="${name}"]`); }
+    const current = list[idx] || {};
+    const soundAlertName = String(field('soundAlertName')?.value || '').trim();
+    list[idx] = normalizeRule({
+      ...current,
+      enabled: !!field('enabled')?.checked,
+      soundAlertName,
+      label: String(field('label')?.value || soundAlertName).trim(),
+      file: String(field('file')?.value || '').trim(),
+      mediaType: String(field('mediaType')?.value || 'audio').trim(),
+      category: String(field('category')?.value || '').trim(),
+      priority: Math.max(0, Math.min(200, Number(field('priority')?.value || defaultPriority()))),
+      volume: Math.max(0, Math.min(100, Number(field('volume')?.value || defaultVolume())))
+    }, idx);
+    config = { ...(config || {}), rules: list };
+  }
+
   function readRulesFromState(){
-    syncSelectedRuleFromDom();
-    return getRules().filter(rule => rule.soundAlertName || rule.file);
+    saveActiveRuleFromDom();
+    return rules().map(normalizeRule).filter(rule => rule.soundAlertName || rule.file);
   }
 
   function buildConfigFromDom(){
@@ -438,79 +473,80 @@ window.SoundAlertsModule = (function(){
     await loadAll(true);
   }
 
+  function clampSelectedRule(){
+    const count = rules().length;
+    if (count <= 0) selectedRuleIndex = 0;
+    else selectedRuleIndex = Math.max(0, Math.min(selectedRuleIndex, count - 1));
+  }
+
   function addRule(seed){
-    syncSelectedRuleFromDom();
-    const rules = Array.isArray(config?.rules) ? config.rules.slice() : [];
-    const category = seed?.category || config?.soundSystem?.defaultCategory || 'channel_reward';
-    rules.unshift({
-      enabled: seed?.enabled ?? true,
+    saveActiveRuleFromDom();
+    const list = rules().slice();
+    const next = normalizeRule({
+      enabled: false,
       soundAlertName: seed?.soundAlertName || '',
       label: seed?.label || seed?.soundAlertName || '',
-      file: seed?.file || '',
+      file: seed?.file || 'soundalerts/audio/',
       mediaType: seed?.mediaType || 'audio',
-      category,
-      priority: seed?.priority ?? categoryDefaultPriority(category),
-      volume: seed?.volume ?? (config?.soundSystem?.defaultVolume ?? 100)
-    });
-    config = { ...(config || {}), rules };
+      category: seed?.category || 'channel_reward',
+      priority: seed?.priority ?? 70,
+      volume: seed?.volume ?? defaultVolume()
+    }, 0);
+    list.unshift(next);
+    config = { ...(config || {}), rules: list };
     selectedRuleIndex = 0;
     activeTab = 'rules';
     render();
   }
 
   function removeRule(idx){
-    const rules = Array.isArray(config?.rules) ? config.rules.slice() : [];
-    const rule = rules[idx];
-    if (!rule) return;
-    const label = rule.label || rule.soundAlertName || `Eintrag ${idx + 1}`;
-    if (!confirm(`SoundAlert-Eintrag wirklich löschen?\n\n${label}`)) return;
-    rules.splice(idx, 1);
-    config = { ...(config || {}), rules };
-    selectedRuleIndex = Math.max(0, Math.min(selectedRuleIndex, rules.length - 1));
+    saveActiveRuleFromDom();
+    const list = rules().slice();
+    const item = list[idx];
+    if (!item) return;
+    if (!confirm(`SoundAlert "${item.label || item.soundAlertName || 'Eintrag'}" wirklich löschen?`)) return;
+    list.splice(idx, 1);
+    config = { ...(config || {}), rules: list };
+    if (selectedRuleIndex >= list.length) selectedRuleIndex = Math.max(0, list.length - 1);
+    render();
+    activeTab = 'rules';
+    applyTab();
+  }
+
+  function editRule(idx){
+    saveActiveRuleFromDom();
+    selectedRuleIndex = Number(idx) || 0;
     activeTab = 'rules';
     render();
   }
 
-  function selectRule(idx){
-    syncSelectedRuleFromDom();
-    const rules = getRules();
-    selectedRuleIndex = Math.max(0, Math.min(Number(idx) || 0, Math.max(0, rules.length - 1)));
-    activeTab = 'rules';
-    render();
-  }
-
-  function createRuleFromEvent(idx){
-    const ev = events[Number(idx)];
-    if (!ev) return;
-    const name = String(ev.soundalert_name || ev.soundAlertName || '').trim();
-    const file = String(ev.file || '').trim();
-    const category = 'channel_reward';
+  function createRuleFromEvent(ev){
+    const name = String(ev?.soundalert_name || ev?.soundAlertName || '').trim();
+    if (!name) return;
+    const file = String(ev?.file || '').trim();
     addRule({
-      enabled: false,
       soundAlertName: name,
       label: name,
-      file: file && !String(ev.status || '').includes('missing') ? file : '',
+      file: file || 'soundalerts/audio/',
       mediaType: file.toLowerCase().endsWith('.mp4') || file.toLowerCase().endsWith('.webm') ? 'video' : 'audio',
-      category,
-      priority: categoryDefaultPriority(category),
-      volume: config?.soundSystem?.defaultVolume ?? 100
+      category: 'channel_reward',
+      priority: 70,
+      volume: defaultVolume()
     });
   }
 
-  function eventReplayText(ev){
-    const raw = ev.raw_text || ev.rawText;
-    if (raw) return raw;
-    const user = ev.trigger_user_display || ev.triggerUserDisplay || config?.bot?.displayName || 'SoundAlerts';
-    const sound = ev.soundalert_name || ev.soundAlertName || '';
-    const amount = ev.amount ?? 0;
-    const currency = ev.currency || 'Bits';
-    return `${user} spielt ${sound} für ${amount} ${currency}!`;
+  function buildReplayText(ev){
+    if (ev?.raw_text) return String(ev.raw_text);
+    if (ev?.rawText) return String(ev.rawText);
+    const user = ev?.trigger_user_display || ev?.triggerUserDisplay || config?.bot?.displayName || 'SoundAlerts';
+    const name = ev?.soundalert_name || ev?.soundAlertName || 'Unbekannter Sound';
+    const amount = ev?.amount ?? 0;
+    const currency = ev?.currency || 'Bits';
+    return `${user} spielt ${name} für ${amount} ${currency}!`;
   }
 
-  async function replayEvent(idx){
-    const ev = events[Number(idx)];
-    if (!ev) return;
-    await runTest(eventReplayText(ev));
+  async function replayEvent(ev){
+    await runTest(buildReplayText(ev));
   }
 
   async function runTest(text){
@@ -551,22 +587,34 @@ window.SoundAlertsModule = (function(){
     if (bound) return;
     bound = true;
     document.addEventListener('change', ev => {
-      if (ev.target?.id === 'saRulePicker') selectRule(Number(ev.target.value));
-      if (ev.target?.matches('[data-sa-rule-field="category"]')) {
-        const box = ev.target.closest('[data-sa-rule-editor="1"]');
-        const prio = box?.querySelector('[data-sa-rule-field="priority"]');
-        if (prio) prio.value = String(categoryDefaultPriority(String(ev.target.value || '')));
+      const picker = ev.target.closest('[data-sa-rule-picker]');
+      if (picker) {
+        saveActiveRuleFromDom();
+        selectedRuleIndex = Number(picker.value) || 0;
+        render();
+        return;
+      }
+      const category = ev.target.closest('[data-sa-rule-field="category"]');
+      if (category) {
+        const opt = category.selectedOptions?.[0];
+        const prio = opt ? Number(opt.dataset.priority) : NaN;
+        const box = category.closest('[data-sa-rule-index]');
+        const prioInput = box?.querySelector('[data-sa-rule-field="priority"]');
+        if (prioInput && Number.isFinite(prio)) prioInput.value = String(prio);
       }
     });
+
     document.addEventListener('click', async ev => {
-      const card = ev.target.closest('[data-sa-rule-card]');
-      if (card && !ev.target.closest('button')) {
-        selectRule(Number(card.dataset.saRuleCard));
+      const selectCard = ev.target.closest('[data-sa-select-rule]');
+      if (selectCard && !ev.target.closest('button')) {
+        saveActiveRuleFromDom();
+        selectedRuleIndex = Number(selectCard.dataset.saSelectRule) || 0;
+        render();
         return;
       }
       const tab = ev.target.closest('[data-sa-tab]');
       if (tab) {
-        syncSelectedRuleFromDom();
+        saveActiveRuleFromDom();
         activeTab = tab.dataset.saTab || 'overview';
         applyTab();
         return;
@@ -578,10 +626,12 @@ window.SoundAlertsModule = (function(){
         if (action === 'reload') await loadAll(true);
         else if (action === 'save-config') await saveConfig();
         else if (action === 'add-rule') addRule();
-        else if (action.startsWith('select-rule:')) selectRule(Number(action.split(':')[1]));
         else if (action.startsWith('remove-rule:')) removeRule(Number(action.split(':')[1]));
-        else if (action.startsWith('create-rule-from-event:')) createRuleFromEvent(Number(action.split(':')[1]));
-        else if (action.startsWith('replay-event:')) await replayEvent(Number(action.split(':')[1]));
+        else if (action.startsWith('edit-rule:')) editRule(Number(action.split(':')[1]));
+        else if (action.startsWith('create-from-event:')) createRuleFromEvent(events[Number(action.split(':')[1])]);
+        else if (action === 'create-from-last-event') createRuleFromEvent(status?.lastEvent);
+        else if (action.startsWith('replay-event:')) await replayEvent(events[Number(action.split(':')[1])]);
+        else if (action === 'replay-last-event') await replayEvent(status?.lastEvent);
         else if (action === 'test-known') await runTest('ForrestCGN spielt Fahrstuhl Sound für 0 Bits!');
         else if (action === 'test-unknown') await runTest('ForrestCGN spielt Unbekannter Testsound für 0 Bits!');
       } catch (err) {
