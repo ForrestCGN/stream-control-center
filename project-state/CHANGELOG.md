@@ -2,6 +2,14 @@
 
 ## 2026-05-06
 
+
+### STEP193.11.1 - SoundAlerts Parser Settings Serialization Fix
+
+- `soundalerts_bridge` auf Version `0.1.12` gesetzt.
+- Fehler behoben, bei dem `parser.messageFormats` als `[object Object]` gespeichert/geladen wurde.
+- Parser faellt bei kaputten Format-Werten automatisch auf die Default-Formate zurueck.
+- Keine DB-Schema-/Dashboard-Aenderung.
+
 ### STEP193.11 - SoundAlerts konfigurierbare Parser-Formate
 
 - `soundalerts_bridge` auf Version `0.1.11` gesetzt.

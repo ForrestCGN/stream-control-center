@@ -47,7 +47,7 @@ Pruefen:
 - SQLite `app.sqlite` niemals ersetzen oder neu bauen.
 - Keine Secrets, Tokens, `.env`, DBs, Backups oder ZIPs committen.
 - Dashboard greift nicht direkt auf SQLite/Dateien zu, sondern nutzt Backend-APIs.
-- SoundAlerts Bridge Version aktuell: `0.1.11`.
+- SoundAlerts Bridge Version aktuell: `0.1.12`.
 - `_SoundAlerts_Loader` bleibt aktive, stumme 1x1-OBS-Browserquelle.
 
 ## Parser-Regel

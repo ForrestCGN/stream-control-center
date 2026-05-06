@@ -20,7 +20,7 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.11';
+const VERSION = '0.1.12';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
@@ -244,6 +244,58 @@ function hasNestedValue(object, dottedPath) {
   return true;
 }
 
+
+function cloneDefaultParserMessageFormats() {
+  return DEFAULT_PARSER_MESSAGE_FORMATS.map(format => ({ ...format }));
+}
+
+function normalizeParserMessageFormatItem(item) {
+  let source = item;
+  if (typeof source === 'string') {
+    const raw = source.trim();
+    if (!raw || raw === '[object Object]') return null;
+    try {
+      source = JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
+  const pattern = String(source.pattern || '').trim();
+  if (!pattern) return null;
+  return {
+    id: String(source.id || '').trim() || 'custom',
+    enabled: source.enabled === false ? false : true,
+    pattern,
+    flags: String(source.flags || 'i').trim() || 'i',
+    triggerGroup: Number.parseInt(source.triggerGroup || 1, 10),
+    soundGroup: Number.parseInt(source.soundGroup || 2, 10),
+    amountGroup: Number.parseInt(source.amountGroup || 3, 10),
+    currencyGroup: Number.parseInt(source.currencyGroup || 4, 10)
+  };
+}
+
+function normalizeParserMessageFormats(value) {
+  const source = Array.isArray(value) ? value : [];
+  const formats = source
+    .map(normalizeParserMessageFormatItem)
+    .filter(format => format && format.enabled !== false && format.triggerGroup > 0 && format.soundGroup > 0 && format.amountGroup > 0 && format.currencyGroup > 0);
+  return formats.length ? formats : cloneDefaultParserMessageFormats();
+}
+
+function normalizeJsonSettingArray(value) {
+  return value
+    .map(item => {
+      if (typeof item === 'string') return item.trim();
+      if (item && typeof item === 'object') return Array.isArray(item) ? item.slice() : { ...item };
+      return item;
+    })
+    .filter(item => {
+      if (typeof item === 'string') return !!item;
+      return item !== undefined && item !== null;
+    });
+}
+
 function normalizeSettingValue(def, value) {
   const key = String(def && def.key || '');
   const type = String(def && def.valueType || '').toLowerCase();
@@ -260,11 +312,24 @@ function normalizeSettingValue(def, value) {
   }
 
   if (type === 'json') {
-    if (Array.isArray(value)) return value.map(item => String(item || '').trim()).filter(Boolean);
+    if (key === 'parser.messageFormats') {
+      if (Array.isArray(value)) return normalizeParserMessageFormats(value);
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          return normalizeParserMessageFormats(parsed);
+        } catch (_) {
+          return cloneDefaultParserMessageFormats();
+        }
+      }
+      return cloneDefaultParserMessageFormats();
+    }
+
+    if (Array.isArray(value)) return normalizeJsonSettingArray(value);
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
-        if (Array.isArray(parsed)) return parsed.map(item => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(parsed)) return normalizeJsonSettingArray(parsed);
         return parsed;
       } catch (_) {
         return value.split(',').map(item => item.trim()).filter(Boolean);
@@ -837,19 +902,7 @@ function insertEvent(event) {
 }
 function parserMessageFormats() {
   const configured = config && config.parser && Array.isArray(config.parser.messageFormats) ? config.parser.messageFormats : [];
-  const source = configured.length ? configured : DEFAULT_PARSER_MESSAGE_FORMATS;
-  return source
-    .filter(format => format && format.enabled !== false && String(format.pattern || '').trim())
-    .map(format => ({
-      id: String(format.id || '').trim() || 'custom',
-      pattern: String(format.pattern || '').trim(),
-      flags: String(format.flags || 'i').trim() || 'i',
-      triggerGroup: Number.parseInt(format.triggerGroup || 1, 10),
-      soundGroup: Number.parseInt(format.soundGroup || 2, 10),
-      amountGroup: Number.parseInt(format.amountGroup || 3, 10),
-      currencyGroup: Number.parseInt(format.currencyGroup || 4, 10)
-    }))
-    .filter(format => format.triggerGroup > 0 && format.soundGroup > 0 && format.amountGroup > 0 && format.currencyGroup > 0);
+  return normalizeParserMessageFormats(configured);
 }
 
 function normalizeParsedSoundName(value) {

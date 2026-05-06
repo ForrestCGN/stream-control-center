@@ -15,7 +15,7 @@ Stand: 2026-05-06
 
 Aktueller Modulstand:
 
-- `soundalerts_bridge` Version: `0.1.11`
+- `soundalerts_bridge` Version: `0.1.12`
 - Dashboard-Dateien:
   - `htdocs/dashboard/modules/soundalerts.js`
   - `htdocs/dashboard/modules/soundalerts.css`
@@ -203,6 +203,14 @@ id, enabled, pattern, flags, triggerGroup, soundGroup, amountGroup, currencyGrou
 ```
 
 Damit muessen neue SoundAlerts-Chattexte nicht mehr hart im Parser-Code verdrahtet werden, solange sie mit Regex + Gruppen-Zuordnung abbildbar sind.
+
+## STEP193.11.1 Parser-Settings-Fix
+
+- `parser.messageFormats` darf nicht als `[object Object]` gespeichert/geladen werden.
+- Kaputte Formatwerte werden automatisch auf die Default-Formate zurueckgesetzt.
+- Dadurch werden beide bekannten SoundAlerts-Chattexte wieder erkannt:
+  - `spielt ... fuer ...`
+  - `loest ... mit ... aus`
 
 ## Bewusst offen
 

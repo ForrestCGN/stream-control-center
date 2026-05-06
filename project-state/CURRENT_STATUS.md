@@ -9,7 +9,7 @@ SoundAlerts ist bis `STEP193.8.1` technisch umgesetzt, mit `STEP193.9` als stabi
 Backend:
 
 - `backend/modules/soundalerts_bridge.js`
-- Version: `0.1.11`
+- Version: `0.1.12`
 - DB-Zugriffe laufen ueber `backend/core/database.js`.
 - Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
 - JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback.
