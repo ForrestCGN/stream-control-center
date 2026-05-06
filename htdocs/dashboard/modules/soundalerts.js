@@ -67,6 +67,38 @@ window.SoundAlertsModule = (function(){
   function defaultPriority(){ return Number(config?.soundSystem?.defaultPriority ?? 70); }
   function defaultVolume(){ return Number(config?.soundSystem?.defaultVolume ?? 100); }
 
+  function isPlaceholderFile(file){
+    const f = String(file || '').trim().toLowerCase();
+    return !f || f === 'soundalerts/audio/' || f === 'soundalerts/video/' || f.endsWith('/');
+  }
+
+  function ruleNeedsSetup(rule){
+    if (!rule) return false;
+    if (rule.enabled === false) return true;
+    if (!String(rule.soundAlertName || '').trim()) return true;
+    if (isPlaceholderFile(rule.file)) return true;
+    return false;
+  }
+
+  function setupReason(rule){
+    if (!rule) return 'Einrichtung nötig';
+    if (!String(rule.soundAlertName || '').trim()) return 'Name fehlt';
+    if (isPlaceholderFile(rule.file)) return 'Datei fehlt';
+    if (rule.enabled === false) return 'Inaktiv / neu';
+    return 'Einrichtung nötig';
+  }
+
+  function pendingRuleIndexes(){
+    return rules().map((rule, idx) => ruleNeedsSetup(rule) ? idx : -1).filter(idx => idx >= 0);
+  }
+
+  function unmatchedEvents(){
+    return (events || []).filter(ev => {
+      const s = String(ev?.status || '').toLowerCase();
+      return ['unmatched', 'no_mapping', 'file_missing'].includes(s) || findRuleIndexForEvent(ev) < 0;
+    });
+  }
+
   function categoryOption(value){
     return CATEGORY_OPTIONS.find(item => item.value === value) || CATEGORY_OPTIONS[0];
   }
@@ -198,12 +230,28 @@ window.SoundAlertsModule = (function(){
     const st = status || {};
     const cfg = config || st.config || {};
     const db = st.database || {};
+    const pending = pendingRuleIndexes();
+    const unknown = unmatchedEvents();
+    const firstPending = pending[0];
     el.innerHTML = `
       <h3>Status</h3>
+      ${(pending.length || unknown.length) ? `
+        <div class="sa-attention">
+          <div>
+            <strong>Neue / offene SoundAlerts</strong>
+            <span>${pending.length ? `${pending.length} Eintrag${pending.length === 1 ? '' : 'e'} zur Einrichtung` : 'Keine offenen Einträge'} · ${unknown.length ? `${unknown.length} unbekannte Event${unknown.length === 1 ? '' : 's'}` : 'keine unbekannten Events'}</span>
+          </div>
+          <div class="sa-actions sa-attention-actions">
+            ${firstPending !== undefined ? btn('Offenen Eintrag bearbeiten', `edit-rule:${firstPending}`, 'success') : ''}
+            ${unknown.length ? btn('Events prüfen', 'show-events') : ''}
+          </div>
+        </div>
+      ` : ''}
       <div class="sa-row"><span>Modul</span><strong>${statusText(cfg.enabled !== false)}</strong></div>
       <div class="sa-row"><span>WebSocket</span><strong>${st.wsConnected ? 'Verbunden' : 'Nicht verbunden'}</strong></div>
       <div class="sa-row"><span>Bot-Login</span><strong>${esc(cfg.bot?.login || '-')}</strong></div>
       <div class="sa-row"><span>Einträge</span><strong>${esc(rules().length)}</strong></div>
+      <div class="sa-row"><span>Davon offen</span><strong>${esc(pending.length)}</strong></div>
       <div class="sa-row"><span>Events DB</span><strong>${esc(db.stats?.total ?? 0)}</strong></div>
       <div class="sa-row"><span>Queued</span><strong>${esc(db.stats?.queued ?? 0)}</strong></div>
       <div class="sa-row"><span>Nicht eingerichtet</span><strong>${esc(db.stats?.unmatched ?? 0)}</strong></div>
@@ -283,6 +331,8 @@ window.SoundAlertsModule = (function(){
         </div>
       </div>
 
+      ${renderPendingNotice()}
+
       <div class="sa-entry-layout sa-entry-layout-clean">
         <aside class="sa-entry-sidebar">
           <label class="sa-field sa-picker-field"><span>SoundAlert auswählen</span>${renderRuleSelect(list)}</label>
@@ -298,6 +348,28 @@ window.SoundAlertsModule = (function(){
     `;
   }
 
+  function renderPendingNotice(){
+    const pending = pendingRuleIndexes();
+    if (!pending.length) return '';
+    const first = pending[0];
+    const preview = pending.slice(0, 4).map(idx => {
+      const rule = rules()[idx] || {};
+      return `<span class="sa-setup-chip">${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)} · ${esc(setupReason(rule))}</span>`;
+    }).join('');
+    return `
+      <div class="sa-setup-notice">
+        <div>
+          <strong>${pending.length} SoundAlert${pending.length === 1 ? '' : 's'} brauchen Einrichtung</strong>
+          <div class="sa-muted">Automatisch oder neu angelegte Einträge bleiben inaktiv, bis Datei/Label/Kategorie geprüft sind.</div>
+          <div class="sa-setup-chips">${preview}</div>
+        </div>
+        <div class="sa-actions sa-setup-actions">
+          ${btn('Ersten offenen Eintrag bearbeiten', `edit-rule:${first}`, 'success')}
+        </div>
+      </div>
+    `;
+  }
+
   function renderRuleSelect(list){
     return `<select id="saRulePicker" data-sa-rule-picker>${list.map((rule, idx) => `<option value="${idx}" ${idx === selectedRuleIndex ? 'selected' : ''}>${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</option>`).join('')}</select>`;
   }
@@ -306,6 +378,7 @@ window.SoundAlertsModule = (function(){
     const active = idx === selectedRuleIndex ? ' active' : '';
     const media = String(rule.mediaType || 'audio').toLowerCase();
     const enabled = rule.enabled === false ? false : true;
+    const needsSetup = ruleNeedsSetup(rule);
     return `
       <article class="sa-entry-card${active}" data-sa-select-rule="${idx}">
         <div class="sa-entry-main">
@@ -313,6 +386,7 @@ window.SoundAlertsModule = (function(){
             <strong>${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</strong>
             <span class="sa-pill">${esc(media === 'video' ? 'Video' : 'Audio')}</span>
             <span class="sa-pill ${enabled ? 'queued' : 'failed'}">${enabled ? 'Aktiv' : 'Inaktiv'}</span>
+            ${needsSetup ? `<span class="sa-pill setup">${esc(setupReason(rule))}</span>` : ''}
           </div>
           <div class="sa-entry-meta">
             <span>${esc(rule.soundAlertName || '-')}</span>
@@ -659,6 +733,7 @@ window.SoundAlertsModule = (function(){
       try {
         if (action === 'reload') await loadAll(true);
         else if (action === 'save-config') await saveConfig();
+        else if (action === 'show-events') { activeTab = 'events'; applyTab(); }
         else if (action === 'add-rule') addRule();
         else if (action.startsWith('remove-rule:')) removeRule(Number(action.split(':')[1]));
         else if (action.startsWith('edit-rule:')) editRule(Number(action.split(':')[1]));

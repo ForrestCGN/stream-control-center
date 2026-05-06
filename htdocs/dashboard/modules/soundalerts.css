@@ -531,3 +531,92 @@ html[data-theme=dark] .sa-entry-card.active {
     grid-column: span 1;
   }
 }
+
+/* STEP190.4: SoundAlerts offene/automatische Eintraege sichtbar machen */
+.sa-attention,
+.sa-setup-notice {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 13px 14px;
+  margin: 12px 0 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(251,191,36,.30);
+  background: linear-gradient(135deg, rgba(251,191,36,.10), rgba(56,189,248,.045));
+}
+
+.sa-attention strong,
+.sa-setup-notice strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #fff7ed;
+  font-weight: 950;
+}
+
+.sa-attention span,
+.sa-setup-notice .sa-muted {
+  color: var(--muted, #a8b3cf);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sa-attention-actions,
+.sa-setup-actions {
+  margin-top: 0;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.sa-setup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sa-setup-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(251,191,36,.28);
+  background: rgba(251,191,36,.08);
+  color: #fef3c7;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sa-pill.setup {
+  border-color: rgba(251,191,36,.45);
+  background: rgba(245,158,11,.16);
+  color: #fef3c7;
+}
+
+html[data-theme=dark] .sa-attention,
+html[data-theme=dark] .sa-setup-notice {
+  background: #242116;
+  border-color: #514522;
+  box-shadow: none;
+}
+
+html[data-theme=dark] .sa-setup-chip,
+html[data-theme=dark] .sa-pill.setup {
+  background: #332a14;
+  border-color: #6b5720;
+  color: #fef3c7;
+}
+
+@media (max-width: 760px) {
+  .sa-attention,
+  .sa-setup-notice {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .sa-attention-actions,
+  .sa-setup-actions {
+    justify-content: flex-start;
+  }
+}
