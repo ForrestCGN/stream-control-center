@@ -1,5 +1,5 @@
 // modules/clips.js
-// STEP193.3 — Clip Backend-Create: Live-Guard entfernt und lokale Replay-Dateisuche nutzt nur OBS-Replay-Dateien mit Prefix 'Replay '.
+// STEP194 — Clip Backend-Create: Chat-Ausgaben backendseitig über twitch_presence/helper_texts.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
@@ -21,6 +21,7 @@ const crypto = require('crypto');
 
 const database = require('../core/database');
 const twitch = require('./twitch');
+const twitchPresence = require('./twitch_presence');
 const { getSharedObs } = require('./obs_shared');
 const messageHelper = require('./helpers/helper_messages');
 let settingsHelper = null;
@@ -757,6 +758,42 @@ module.exports.init = function init(ctx) {
     }
   });
 
+
+  async function sendClipChatMessage(cfg, message, meta = {}) {
+    if (!cfg || !cfg.sendChatResponse) {
+      return { ok: false, skipped: true, reason: 'chat_response_disabled' };
+    }
+
+    const text = String(message || '').trim();
+    if (!text) {
+      return { ok: false, skipped: true, reason: 'empty_message' };
+    }
+
+    if (!twitchPresence || typeof twitchPresence.sendChatMessage !== 'function') {
+      return { ok: false, skipped: true, reason: 'twitch_presence_helper_unavailable' };
+    }
+
+    try {
+      return await twitchPresence.sendChatMessage(text, {
+        trigger: 'clip-system',
+        module: MODULE_NAME,
+        ...meta
+      });
+    } catch (err) {
+      return { ok: false, error: err.message || String(err), trigger: meta.trigger || 'clip-system' };
+    }
+  }
+
+  async function sendAndBuildChatMeta(cfg, message, meta = {}) {
+    const result = await sendClipChatMessage(cfg, message, meta);
+    return {
+      sendChat: Boolean(cfg?.sendChatResponse),
+      chatMessage: String(message || ''),
+      chatSent: Boolean(result?.ok),
+      chatResult: result
+    };
+  }
+
   async function handleClipCreate(req, res, source, method) {
     const cfg = loadClipConfig();
     const messages = loadClipMessages(cfg);
@@ -776,22 +813,24 @@ module.exports.init = function init(ctx) {
     const startMessage = cfg.sendClipActivatedMessage ? renderClipMessage(messages, 'chatClipActivated', baseContext) : '';
 
     if (!cfg.enabled) {
+      const chatMessage = renderClipMessage(messages, 'systemDisabled', baseContext) || startMessage;
+      const chatMeta = await sendAndBuildChatMeta(cfg, chatMessage, { trigger: 'clip-disabled' });
       return res.status(503).json({
         ok: false,
         accepted: false,
         error: 'clip_system_disabled',
-        sendChat: cfg.sendChatResponse,
-        chatMessage: renderClipMessage(messages, 'systemDisabled', baseContext) || startMessage
+        ...chatMeta
       });
     }
 
     if (!cfg.backendCreateEnabled) {
+      const chatMessage = renderClipMessage(messages, 'systemBackendNotReady', baseContext) || startMessage;
+      const chatMeta = await sendAndBuildChatMeta(cfg, chatMessage, { trigger: 'clip-backend-disabled' });
       return res.status(409).json({
         ok: false,
         accepted: false,
         error: 'backend_create_disabled',
-        sendChat: cfg.sendChatResponse,
-        chatMessage: renderClipMessage(messages, 'systemBackendNotReady', baseContext) || startMessage
+        ...chatMeta
       });
     }
 
@@ -811,14 +850,15 @@ module.exports.init = function init(ctx) {
       const key = backendCreate.blockers.includes('missing_scope_clips_edit') ? 'systemTwitchScopeMissing'
         : backendCreate.blockers.some(x => String(x).includes('obs')) ? 'systemObsReplayNotReady'
           : 'systemBackendNotReady';
+      const chatMessage = renderClipMessage(messages, key, { ...baseContext, reason }) || startMessage;
+      const chatMeta = await sendAndBuildChatMeta(cfg, chatMessage, { trigger: 'clip-backend-not-ready', reason });
       return res.status(409).json({
         ok: false,
         accepted: false,
         error: 'backend_not_ready',
         reason,
         backendCreate,
-        sendChat: cfg.sendChatResponse,
-        chatMessage: renderClipMessage(messages, key, { ...baseContext, reason }) || startMessage
+        ...chatMeta
       });
     }
 
@@ -840,14 +880,15 @@ module.exports.init = function init(ctx) {
         reason
       };
       const history = cfg.saveHistory ? saveClipHistory(failed, 'backend_create_failed', { ...source, error: reason }) : { saved: false, id: null, error: '' };
+      const chatMessage = renderClipMessage(messages, 'chatClipFailed', failed);
+      const chatMeta = await sendAndBuildChatMeta(cfg, chatMessage, { trigger: 'clip-twitch-create-failed', reason });
       return res.status(502).json({
         ok: false,
         accepted: false,
         error: 'twitch_create_failed',
         reason,
         history,
-        sendChat: cfg.sendChatResponse,
-        chatMessage: renderClipMessage(messages, 'chatClipFailed', failed)
+        ...chatMeta
       });
     }
 
@@ -902,6 +943,8 @@ module.exports.init = function init(ctx) {
       if (history.saved) updateClipHistoryExtra(history.id, { status: 'partial', reason: err.message || String(err), updated_at: nowIso() });
     });
 
+    const chatMeta = await sendAndBuildChatMeta(cfg, startMessage, { trigger: 'clip-started', jobId, clipId });
+
     return res.json({
       ok: true,
       accepted: true,
@@ -924,8 +967,7 @@ module.exports.init = function init(ctx) {
         obsReplaySaveDelayMs: cfg.obsReplaySaveDelayMs,
         localReplayRenameDelayMs: cfg.localReplayRenameDelayMs
       },
-      sendChat: cfg.sendChatResponse && Boolean(startMessage),
-      chatMessage: startMessage,
+      ...chatMeta,
       next: {
         pollTwitchClip: true,
         postDiscord: cfg.discordPostEnabled,
@@ -992,7 +1034,19 @@ module.exports.init = function init(ctx) {
     const discord = await maybePostClipToDiscord({ cfg: job.cfg, messages: job.messages, received });
     if (job.historyId && discord) markClipDiscordResult(job.historyId, discord);
 
-    return { ok: true, jobId: job.jobId, poll, obs, discord };
+    let chat = { ok: false, skipped: true, reason: 'result_message_disabled' };
+    if (job.cfg.sendTwitchClipResultMessage) {
+      const messageKey = status === 'created' ? 'chatClipCreated' : 'chatClipCreatedWithoutUrl';
+      const resultMessage = renderClipMessage(job.messages, messageKey, received);
+      chat = await sendClipChatMessage(job.cfg, resultMessage, {
+        trigger: 'clip-result',
+        jobId: job.jobId,
+        clipId: job.clipId,
+        status
+      });
+    }
+
+    return { ok: true, jobId: job.jobId, poll, obs, discord, chat };
   }
 
   async function pollTwitchClip(clipId, cfg) {
