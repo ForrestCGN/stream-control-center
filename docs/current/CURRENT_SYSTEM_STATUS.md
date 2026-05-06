@@ -9,9 +9,9 @@ Stand: 2026-05-06
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
-## SoundAlerts / Sound-System - aktueller Stand bis STEP193.17.1
+## SoundAlerts / Sound-System - aktueller Stand bis STEP193.17.2
 
-SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte technische Stand ist `STEP193.17.1`.
+SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte dokumentierte Stand ist `STEP193.17.2` nach dem Filter-Fix und Doku-Sync.
 
 Aktueller Modulstand:
 
@@ -86,10 +86,12 @@ ForrestCGN spielt Lily was here fuer 0 Bits!
 ForrestCGN loest Airhorn mit 0 Bits aus
 ```
 
-Wichtiger Fix aus STEP193.11.1:
+Wichtige Parser-Regeln:
 
 - `parser.messageFormats` darf nicht als `[object Object]` gespeichert werden.
-- Live bestaetigt wurde `0.1.12`, bei dem `messageFormats` wieder als echtes Objekt-Array geladen wurde.
+- Werte muessen als echtes Objekt-Array in `soundalerts_bridge_settings` erhalten bleiben.
+- Format-Editor liegt im Dashboard unter `SoundAlerts > Bot & Settings > Chat-Erkennung`.
+- Der lokale Parser-Test im Dashboard darf keinen Event-/DB-Eintrag erzeugen.
 
 ## Dashboard-Workflow SoundAlerts
 
@@ -124,12 +126,15 @@ Eintraege koennen gefiltert werden:
 - Datei fehlt
 - Ignoriert
 
+Der Filter-Regression-Bug aus `STEP193.17` ist in `STEP193.17.1` behoben.
+
 Editor-Regeln:
 
 - Ausgabe wird im Eintrag-Editor nicht mehr manuell gesetzt.
 - Ausgabe orientiert sich automatisch am Typ: Audio nutzt das globale Audio-Ziel, Video nutzt das globale Video-Ziel.
 - Beim Wechsel von Audio/Video wird das passende Ausgabeziel automatisch gesetzt.
-- Nach Upload/Speichern bleibt der aktuell bearbeitete Eintrag selektiert; bei Filterwechsel springt die Ansicht auf `Alle`, statt auf den naechsten Eintrag.
+- Nach Upload/Speichern bleibt der aktuell bearbeitete Eintrag selektiert.
+- Falls der Eintrag durch Speichern aus dem aktuellen Filter faellt, springt die Ansicht auf `Alle`, statt auf den naechsten Eintrag.
 
 Fachregel:
 
@@ -151,7 +156,7 @@ Statuslogik:
 - `missing_file` = Name oder Datei fehlt
 - `ignored` = bewusst ignoriert, nicht prominent im Normalfluss
 
-Wichtige Korrektur:
+Wichtige Korrekturen:
 
 - `Speichern / Freigeben` finalisiert nur den aktuell bearbeiteten Eintrag.
 - Globales `Config speichern` gibt keine anderen `Zur Pruefung`-Eintraege frei.

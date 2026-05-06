@@ -2,6 +2,18 @@
 
 ## 2026-05-06
 
+### STEP193.17.2 - SoundAlerts Final Documentation Sync
+
+- Zentrale Projekt-Dokus nach `STEP193.17.1` synchronisiert.
+- Dokumentiert:
+  - `soundalerts_bridge` Version `0.1.14`
+  - Parser-Formate als dashboardfaehige Settings
+  - Review-Workflow fuer neue SoundAlerts
+  - automatische Ausgabe nach Medientyp/globalem Audio-/Video-Ziel
+  - Filter-Regression-Fix aus `STEP193.17.1`
+  - lokaler Overlay-Test und temporaerer Overlay-Test-Override
+  - offene Overlay-Bugs als naechster Schwerpunkt
+- Keine Code-/API-/DB-Aenderung.
 
 ### STEP193.17.1 - SoundAlerts Filter Regression Fix
 

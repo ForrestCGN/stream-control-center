@@ -6,7 +6,7 @@ Stand: 2026-05-06
 
 ### Sound-System Overlay Bugs bereinigen
 
-Nach `STEP193.17` ist der SoundAlerts-Dashboard-/Backend-Block vorerst gut nutzbar. Die naechsten offenen Punkte liegen vor allem im lokalen Sound-System Overlay.
+Nach `STEP193.17.2` ist der SoundAlerts-Dashboard-/Backend-Block vorerst gut nutzbar und dokumentiert. Die naechsten offenen Punkte liegen vor allem im lokalen Sound-System Overlay.
 
 Pruefen/Beheben:
 
@@ -15,7 +15,8 @@ Pruefen/Beheben:
 3. Device-Test und Overlay-Test klar voneinander trennen.
 4. Debug-/Statusanzeige im Overlay verbessern.
 5. Sicherstellen, dass Video mit Ton und reine Audio-Tests nachvollziehbar laufen.
-6. Nach Overlay-Fix erneuten Doku-Sync machen.
+6. Klaeren, ob und wann das Overlay automatisch neue Dateien/Queue-Status erkennt oder gezielt aktualisiert werden muss.
+7. Nach Overlay-Fix erneuten Doku-Sync machen.
 
 ## Danach moeglich
 

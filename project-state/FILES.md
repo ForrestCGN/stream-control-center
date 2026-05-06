@@ -58,6 +58,14 @@ upload.maxVideoSizeBytes = 1073741824
 - Werttyp: JSON / Objekt-Array
 - Darf nicht als `[object Object]` gespeichert werden.
 
+## Ausgabe-/Testlogik
+
+- Audio nutzt das globale Audio-Ziel.
+- Video nutzt das globale Video-Ziel.
+- Manuelles Ausgabe-Dropdown ist aus dem Eintrag-Editor entfernt.
+- Normaler Test nutzt gespeichertes Ausgabeziel.
+- Overlay-Test darf temporaer `outputTarget=overlay` senden.
+
 ## SoundAlerts Dokus
 
 - `project-state/STEP193_10_SOUNDALERTS_PARSER_FORMAT_FIX_2026-05-06.md`
@@ -71,6 +79,7 @@ upload.maxVideoSizeBytes = 1073741824
 - `project-state/STEP193_16_SOUNDALERTS_ENTRY_EDITOR_OUTPUT_AND_SELECTION_FIX_2026-05-06.md`
 - `project-state/STEP193_17_SOUNDALERTS_OUTPUT_FIELD_CLEANUP_2026-05-06.md`
 - `project-state/STEP193_17_1_SOUNDALERTS_FILTER_REGRESSION_FIX_2026-05-06.md`
+- `project-state/STEP193_17_2_SOUNDALERTS_FINAL_DOC_SYNC_2026-05-06.md`
 
 ## OBS Loader Standard
 
