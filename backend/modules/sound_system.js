@@ -1030,7 +1030,12 @@ module.exports.init = function init(ctx) {
     state.current = null;
     state.stats.stopped += 1;
     emit(reason || "stopped");
-    setTimeout(() => startNextIfPossible("after_stop"), 0);
+
+    const needsOverlayStopGap = !!stopped && shouldUseOverlay(stopped);
+    const stopGapMs = needsOverlayStopGap
+      ? Math.max(250, Number(config.overlay?.gapBetweenSoundsMs || 750))
+      : 0;
+    setTimeout(() => startNextIfPossible("after_stop"), stopGapMs);
     return stopped;
   }
 
