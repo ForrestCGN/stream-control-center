@@ -1,7 +1,8 @@
 'use strict';
 
-// STEP100C — TipeeeStream Socket Provider for ForrestCGN Alert-System
+// STEP180 — TipeeeStream Socket Provider for ForrestCGN Alert-System
 // TipeeeStream Socket.io -> Node Provider -> Alert-System V2 -> Overlay
+// Donation-only default seed; non-donation Tipeee alert rules are disabled defensively.
 // No Streamer.bot required.
 
 const http = require('http');
@@ -19,7 +20,7 @@ try {
 }
 
 const MODULE = 'tipeee';
-const STEP = '100C';
+const STEP = '180';
 const SCHEMA_VERSION = 1;
 const SETTINGS_KEY = 'provider_tipeee_socket';
 
@@ -411,10 +412,7 @@ function updateSettings(patch) {
 function seedAlertTypesAndRules() {
   const now = nowIso();
   const types = [
-    ['tipeee', 'donation', 'TipeeeStream Donation', 'amount', 110],
-    ['tipeee', 'subscription', 'TipeeeStream Subscription', 'amount', 111],
-    ['tipeee', 'follow', 'TipeeeStream Follow', 'count', 112],
-    ['tipeee', 'hosting', 'TipeeeStream Hosting', 'count', 113]
+    ['tipeee', 'donation', 'TipeeeStream Donation', 'amount', 110]
   ];
 
   for (const [source, typeKey, label, valueKind, sortOrder] of types) {
@@ -430,10 +428,7 @@ function seedAlertTypesAndRules() {
   }
 
   const defaults = [
-    { type_key: 'donation', label: 'Tipeee Donation Standard', min_value: 0, max_value: null, tier: 'medium', priority: 80, duration_ms: 8000, image_mode: 'avatar_icon' },
-    { type_key: 'subscription', label: 'Tipeee Subscription Standard', min_value: 0, max_value: null, tier: 'big', priority: 75, duration_ms: 9500, image_mode: 'avatar_special' },
-    { type_key: 'follow', label: 'Tipeee Follow Standard', min_value: 0, max_value: null, tier: 'small', priority: 120, duration_ms: 6500, image_mode: 'none' },
-    { type_key: 'hosting', label: 'Tipeee Hosting Standard', min_value: 0, max_value: null, tier: 'medium', priority: 95, duration_ms: 8000, image_mode: 'icon' }
+    { type_key: 'donation', label: 'Tipeee Donation Standard', min_value: 0, max_value: null, tier: 'medium', priority: 80, duration_ms: 8000, image_mode: 'avatar_icon' }
   ];
 
   for (const rule of defaults) {
@@ -453,6 +448,25 @@ function seedAlertTypesAndRules() {
       imageMode: rule.image_mode,
       now
     });
+  }
+
+  disableNonDonationTipeeeDefaults(now);
+}
+
+function disableNonDonationTipeeeDefaults(now) {
+  const disabledTypes = ['subscription', 'follow', 'hosting', 'host'];
+  for (const typeKey of disabledTypes) {
+    sqlite.run(`
+      UPDATE alert_types
+      SET enabled=0, updated_at=:now
+      WHERE source='tipeee' AND type_key=:typeKey
+    `, { typeKey, now });
+
+    sqlite.run(`
+      UPDATE alert_rules
+      SET enabled=0, updated_at=:now
+      WHERE source='tipeee' AND type_key=:typeKey
+    `, { typeKey, now });
   }
 }
 
