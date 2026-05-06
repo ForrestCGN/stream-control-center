@@ -1191,3 +1191,18 @@ html[data-theme=dark] .sa-stat-box {
     grid-template-columns: 1fr;
   }
 }
+
+/* STEP193.7.3: Overview action state cleanup */
+.sa-kpi-grid {
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+}
+
+.sa-overview-event .sa-event-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 1500px) {
+  .sa-kpi-grid {
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+  }
+}

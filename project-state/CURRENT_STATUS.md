@@ -79,6 +79,14 @@ Loeschen = Eintrag wird entfernt. Kommt derselbe SoundAlert wieder rein, wird er
 Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAlert wieder rein, wird er nicht als neuer offener Eintrag angelegt.
 ```
 
+
+## STEP193.7.3 SoundAlerts Uebersicht
+
+- "Handlung noetig" erscheint nur noch, wenn Eintraege wirklich Einrichtung brauchen.
+- Historische unbekannte Events sind kein Handlungsbedarf mehr.
+- "Auto-zugeordnet" wurde aus der Uebersicht entfernt.
+- Letzte 5 Events auf der Uebersicht sind jetzt nur abgespielte Events mit Datei und koennen direkt neu gestartet werden.
+
 ## Bewusst offen
 
 - Upload-/Zuweisungsfluss weiter UX-seitig verbessern.

@@ -279,6 +279,11 @@ window.SoundAlertsModule = (function(){
     return new Set(['played', 'success', 'done']);
   }
 
+  function isPlayedReplayEvent(ev){
+    const statusValue = String(ev?.status || '').toLowerCase();
+    return playedStatusKeys().has(statusValue) && !!ev?.file;
+  }
+
   function countRows(rows){
     return Array.isArray(rows) ? rows.reduce((sum, row) => sum + Number(row?.count || 0), 0) : 0;
   }
@@ -365,7 +370,6 @@ window.SoundAlertsModule = (function(){
     const st = status || {};
     const cfg = config || st.config || {};
     const pending = pendingRuleIndexes();
-    const unknown = unmatchedEvents();
     const counts = ruleStatusCounts();
     const firstPending = pending[0];
     const playedCount = playedCountFromStats();
@@ -381,15 +385,14 @@ window.SoundAlertsModule = (function(){
           ${btn('Events öffnen', 'show-events')}
         </div>
       </div>
-      ${(pending.length || unknown.length) ? `
+      ${pending.length ? `
         <div class="sa-attention">
           <div>
             <strong>Handlung nötig</strong>
-            <span>${pending.length ? `${pending.length} Eintrag${pending.length === 1 ? '' : 'e'} brauchen Einrichtung` : 'Keine offenen Einträge'} · ${unknown.length ? `${unknown.length} unbekannte Event${unknown.length === 1 ? '' : 's'}` : 'keine unbekannten Events'}</span>
+            <span>${pending.length} Eintrag${pending.length === 1 ? '' : 'e'} brauchen Einrichtung, weil Name oder Datei fehlt.</span>
           </div>
           <div class="sa-actions sa-attention-actions">
             ${firstPending !== undefined ? btn('Ersten offenen Eintrag', `edit-rule:${firstPending}`, 'success') : ''}
-            ${unknown.length ? btn('Events prüfen', 'show-events') : ''}
           </div>
         </div>
       ` : ''}
@@ -399,7 +402,6 @@ window.SoundAlertsModule = (function(){
         ${renderKpi('Inaktiv', counts.inactive, 'muted', 'show-rules:inactive')}
         ${renderKpi('Datei fehlt', counts.missing_file, counts.missing_file ? 'warn' : '', 'show-rules:missing_file')}
         ${renderKpi('Ignoriert', counts.ignored, 'muted', 'show-rules:ignored')}
-        ${renderKpi('Auto-zugeordnet', counts.file_matched, 'ok', 'show-rules:active')}
       </div>
       <div class="sa-overview-mini-grid">
         <div class="sa-mini-state"><span>Modul</span><strong>${statusText(cfg.enabled !== false)}</strong></div>
@@ -416,27 +418,28 @@ window.SoundAlertsModule = (function(){
   function renderOverviewLog(){
     const el = document.getElementById('saOverviewLogCard');
     if (!el) return;
-    const recent = (events || []).slice(0, 5);
+    const recent = (events || [])
+      .map((ev, idx) => ({ ev, idx }))
+      .filter(item => isPlayedReplayEvent(item.ev))
+      .slice(0, 5);
     el.innerHTML = `
       <div class="sa-section-head sa-overview-head">
         <div>
-          <h3>Letzte 5 Events</h3>
-          <div class="sa-note">Schneller Log-Auszug mit direktem Replay oder Eintrag-Bearbeitung.</div>
+          <h3>Letzte 5 abgespielte Events</h3>
+          <div class="sa-note">Nur Events mit erfolgreicher Wiedergabe und Datei. Gedacht zum schnellen Neu starten.</div>
         </div>
         <div class="sa-actions sa-section-actions">
           ${btn('Alle Events', 'show-events')}
         </div>
       </div>
       <div class="sa-event-list sa-overview-event-list">
-        ${recent.map((ev, idx) => renderOverviewEvent(ev, idx)).join('') || '<div class="sa-empty">Noch keine Events.</div>'}
+        ${recent.map(item => renderOverviewEvent(item.ev, item.idx)).join('') || '<div class="sa-empty">Noch keine abgespielten Events mit Datei.</div>'}
       </div>
     `;
   }
 
   function renderOverviewEvent(ev, idx){
-    const ruleIdx = findRuleIndexForEvent(ev);
     const hasFile = !!ev.file;
-    const unmatched = ['unmatched', 'no_mapping'].includes(String(ev.status || '').toLowerCase()) || ruleIdx < 0;
     return `
       <div class="sa-event sa-event-card sa-overview-event">
         <div class="sa-event-main">
@@ -447,9 +450,7 @@ window.SoundAlertsModule = (function(){
         <div class="sa-event-side">
           <span class="sa-pill ${esc(statusClass(ev.status))}">${esc(statusLabel(ev.status))}</span>
           <div class="sa-actions sa-event-actions">
-            ${hasFile ? btn('Neu starten', `replay-event:${idx}`) : ''}
-            ${ruleIdx >= 0 ? btn('Bearbeiten', `edit-rule:${ruleIdx}`) : ''}
-            ${unmatched ? btn('Eintrag erstellen', `create-from-event:${idx}`, 'success') : ''}
+            ${hasFile ? btn('Neu starten', `replay-event:${idx}`, 'success') : ''}
           </div>
         </div>
       </div>

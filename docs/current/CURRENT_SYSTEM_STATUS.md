@@ -124,6 +124,14 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 - MariaDB ist Ziel/Plan, aber erst aktiv, wenn der echte Adapter in `backend/core/database.js` implementiert und getestet ist.
 - Bis dahin darf keine Aenderung die bestehende SQLite-Funktionalitaet brechen.
 
+
+## STEP193.7.3 bestaetigt
+
+- SoundAlerts-Uebersicht zeigt "Handlung noetig" nur noch bei echtem Einrichtungsbedarf.
+- Historische/unbekannte Events im Log zaehlen nicht mehr als offener Handlungsbedarf.
+- "Auto-zugeordnet" wurde aus den Uebersichts-KPIs entfernt.
+- Letzte 5 Events auf der Uebersicht zeigen nur noch abgespielte Events mit Datei und dienen als Replay-Schnellzugriff.
+
 ## Naechster empfohlener Schritt
 
 `STEP193.8 - SoundAlerts Eintragsfilter / Ansichten`

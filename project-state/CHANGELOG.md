@@ -2,6 +2,14 @@
 
 ## 2026-05-06
 
+### STEP193.7.3 - SoundAlerts Overview Action-State Cleanup
+
+- "Handlung noetig" auf der SoundAlerts-Uebersicht erscheint nur noch bei echtem Einrichtungsbedarf.
+- Unbekannte historische Events loesen keine Handlung-noetig-Box mehr aus.
+- KPI "Auto-zugeordnet" wurde aus der Uebersicht entfernt.
+- Letzte-5-Events-Bereich zeigt nur noch abgespielte Events mit Datei und dient nur noch zum schnellen Neu starten.
+
+
 ### STEP193.7.2 - SoundAlerts Uebersicht / Statistik Cleanup
 
 - Test-Buttons aus der SoundAlerts-Hero-Leiste entfernt.
