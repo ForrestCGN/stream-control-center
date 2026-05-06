@@ -4,7 +4,7 @@ Stand: 2026-05-06
 
 ## Aktueller SoundAlerts-Stand nach STEP193.17
 
-SoundAlerts ist bis `STEP193.17` technisch umgesetzt und live getestet. Der aktuelle Backend-Stand ist `soundalerts_bridge` Version `0.1.14`.
+SoundAlerts ist bis `STEP193.17.1` technisch umgesetzt und live getestet. Der aktuelle Backend-Stand ist `soundalerts_bridge` Version `0.1.14`.
 
 Backend:
 
@@ -19,7 +19,7 @@ Dashboard:
 - `htdocs/dashboard/modules/soundalerts.js`
 - `htdocs/dashboard/modules/soundalerts.css`
 - Uebersicht zeigt relevante Kennzahlen und die letzten 5 abspielbaren Events.
-- Eintraege koennen gefiltert werden: Alle, Aktiv, Inaktiv, Zur Pruefung, Datei fehlt, Ignoriert.
+- Eintraege koennen gefiltert werden: Alle, Aktiv, Inaktiv, Zur Pruefung, Datei fehlt, Ignoriert. Der Filter-Regression-Bug aus STEP193.17 ist in STEP193.17.1 behoben.
 - Automatisch erkannte Eintraege bleiben `Zur Pruefung`, bis sie einzeln gespeichert/freigegeben werden.
 - Globales Speichern gibt keine anderen Review-Eintraege frei.
 - Inaktive vollstaendige Eintraege zaehlen nicht als offene Einrichtung.

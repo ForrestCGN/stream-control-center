@@ -1216,13 +1216,13 @@ window.SoundAlertsModule = (function(){
   }
 
   function ruleMatchesFilter(rule, filterValue){
-    const filter = String(filterValue || 'all').toLowerCase();
+    const filter = String(filterValue === undefined ? ruleFilter : (filterValue || 'all')).toLowerCase();
     if (filter === 'all') return true;
-    if (filter === 'active') return rule?.enabled !== false && String(rule?.status || '').toLowerCase() === 'active';
-    if (filter === 'inactive') return rule?.enabled === false || String(rule?.status || '').toLowerCase() === 'inactive' || String(rule?.status || '').toLowerCase() === 'disabled';
-    if (filter === 'review_required') return isReviewRule(rule);
-    if (filter === 'missing_file') return ruleNeedsSetup(rule);
-    if (filter === 'ignored') return isIgnoredRule(rule);
+    if (filter === 'active') return ruleStatusKey(rule) === 'active';
+    if (filter === 'inactive') return ruleStatusKey(rule) === 'inactive';
+    if (filter === 'review_required') return ruleStatusKey(rule) === 'review_required';
+    if (filter === 'missing_file') return ruleStatusKey(rule) === 'missing_file';
+    if (filter === 'ignored') return ruleStatusKey(rule) === 'ignored';
     return true;
   }
 

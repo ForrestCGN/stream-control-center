@@ -9,9 +9,9 @@ Stand: 2026-05-06
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
-## SoundAlerts / Sound-System - aktueller Stand bis STEP193.17
+## SoundAlerts / Sound-System - aktueller Stand bis STEP193.17.1
 
-SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte technische Stand ist `STEP193.17`.
+SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte technische Stand ist `STEP193.17.1`.
 
 Aktueller Modulstand:
 

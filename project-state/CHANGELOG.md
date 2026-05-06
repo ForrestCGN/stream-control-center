@@ -2,6 +2,14 @@
 
 ## 2026-05-06
 
+
+### STEP193.17.1 - SoundAlerts Filter Regression Fix
+
+- Regression im Eintraege-Filter behoben.
+- `ruleMatchesFilter` nutzt wieder den aktiven globalen Filter, wenn kein expliziter Filterwert uebergeben wird.
+- Filter fuer Alle/Aktiv/Inaktiv/Zur Pruefung/Datei fehlt/Ignoriert funktionieren wieder ueber die zentrale Statuslogik.
+- Keine Backend-/API-/DB-Aenderung.
+
 ### STEP193.17 - SoundAlerts Output Field Cleanup
 
 - Manuelles Ausgabe-Dropdown aus dem Eintrag-Editor entfernt.
