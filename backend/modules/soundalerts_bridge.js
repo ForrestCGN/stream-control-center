@@ -19,10 +19,10 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -174,8 +174,211 @@ function ensureSchema() {
       db.exec(`CREATE INDEX IF NOT EXISTS idx_soundalerts_bridge_events_soundalert_name ON soundalerts_bridge_events(soundalert_name);`);
       db.exec(`CREATE INDEX IF NOT EXISTS idx_soundalerts_bridge_events_status ON soundalerts_bridge_events(status);`);
     }
+
+    if (toVersion === 2) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS soundalerts_bridge_entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          entry_key TEXT NOT NULL DEFAULT '',
+          enabled INTEGER NOT NULL DEFAULT 0,
+          status TEXT NOT NULL DEFAULT 'inactive',
+          soundalert_name TEXT NOT NULL DEFAULT '',
+          label TEXT NOT NULL DEFAULT '',
+          file TEXT NOT NULL DEFAULT '',
+          media_type TEXT NOT NULL DEFAULT '',
+          category TEXT NOT NULL DEFAULT '',
+          priority INTEGER,
+          volume INTEGER,
+          output_target TEXT NOT NULL DEFAULT '',
+          created_from TEXT NOT NULL DEFAULT '',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          meta_json TEXT NOT NULL DEFAULT '{}'
+        );
+      `);
+      db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_soundalerts_bridge_entries_entry_key ON soundalerts_bridge_entries(entry_key);`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_soundalerts_bridge_entries_soundalert_name ON soundalerts_bridge_entries(soundalert_name);`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_soundalerts_bridge_entries_status ON soundalerts_bridge_entries(status);`);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS soundalerts_bridge_meta (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL DEFAULT '',
+          updated_at TEXT NOT NULL
+        );
+      `);
+    }
   });
+  ensureEntriesSeededFromConfig();
   return true;
+}
+
+function entryKeyFromRule(rule, fallback = '') {
+  const base = String(rule && (rule.id || rule.entry_key || rule.soundAlertName || rule.soundalert_name || rule.label) || fallback || '').trim();
+  return normalizeFilenameBase(base || `entry_${Date.now()}`);
+}
+
+function normalizeRuleForDb(rule, fallback = '') {
+  const now = core.nowIso();
+  const meta = rule && rule.meta && typeof rule.meta === 'object' ? rule.meta : {};
+  const entryKey = entryKeyFromRule(rule, fallback);
+  const enabled = rule && rule.enabled !== false ? 1 : 0;
+  const soundAlertName = String(rule && (rule.soundAlertName || rule.soundalert_name || rule.name) || '').trim();
+  const label = String(rule && rule.label || soundAlertName || entryKey).trim();
+  const file = String(rule && rule.file || '').trim().replace(/\\/g, '/');
+  const mediaType = String(rule && (rule.mediaType || rule.media_type) || '').trim().toLowerCase();
+  const status = String(rule && rule.status || (enabled ? 'active' : 'disabled')).trim() || (enabled ? 'active' : 'disabled');
+  const priorityRaw = rule && rule.priority !== undefined && rule.priority !== null && String(rule.priority).trim() !== '' ? Number.parseInt(rule.priority, 10) : null;
+  const volumeRaw = rule && rule.volume !== undefined && rule.volume !== null && String(rule.volume).trim() !== '' ? Number.parseInt(rule.volume, 10) : null;
+
+  return {
+    entryKey,
+    enabled,
+    status,
+    soundAlertName,
+    label,
+    file,
+    mediaType,
+    category: String(rule && rule.category || '').trim(),
+    priority: Number.isFinite(priorityRaw) ? priorityRaw : null,
+    volume: Number.isFinite(volumeRaw) ? volumeRaw : null,
+    outputTarget: String(rule && (rule.outputTarget || rule.output_target) || '').trim(),
+    createdFrom: String(rule && (rule.createdFrom || rule.created_from) || 'json_seed').trim(),
+    createdAt: String(rule && (rule.createdAt || rule.created_at) || now).trim(),
+    updatedAt: now,
+    metaJson: JSON.stringify(meta)
+  };
+}
+
+function dbRowToRule(row) {
+  if (!row) return null;
+  const rule = {
+    id: String(row.entry_key || ''),
+    enabled: Number(row.enabled || 0) ? true : false,
+    status: String(row.status || ''),
+    soundAlertName: String(row.soundalert_name || ''),
+    label: String(row.label || ''),
+    file: String(row.file || ''),
+    mediaType: String(row.media_type || ''),
+    category: String(row.category || ''),
+    outputTarget: String(row.output_target || '')
+  };
+  if (row.priority !== null && row.priority !== undefined) rule.priority = Number(row.priority);
+  if (row.volume !== null && row.volume !== undefined) rule.volume = Number(row.volume);
+  const meta = core.safeJsonParse(row.meta_json, {});
+  if (meta && Object.keys(meta).length) rule.meta = meta;
+  return rule;
+}
+
+function getMetaValue(key) {
+  if (!sqlite.isInitialized()) return '';
+  try {
+    const row = sqlite.get('SELECT value FROM soundalerts_bridge_meta WHERE key = :key', { key: String(key || '') });
+    return row ? String(row.value || '') : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function setMetaValue(key, value) {
+  if (!sqlite.isInitialized()) return false;
+  sqlite.run(`
+    INSERT INTO soundalerts_bridge_meta (key, value, updated_at)
+    VALUES (:key, :value, :updatedAt)
+    ON CONFLICT(key) DO UPDATE SET
+      value = excluded.value,
+      updated_at = excluded.updated_at
+  `, { key: String(key || ''), value: String(value || ''), updatedAt: core.nowIso() });
+  return true;
+}
+
+function entriesTableReady() {
+  if (!sqlite.isInitialized()) return false;
+  try {
+    sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries');
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function ensureEntriesSeededFromConfig() {
+  if (!sqlite.isInitialized() || !entriesTableReady()) return false;
+  const seeded = getMetaValue('entries_seeded_from_json') === '1';
+  const count = Number(sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries')?.c || 0);
+  if (seeded || count > 0) return false;
+
+  const rules = Array.isArray(config && config.rules) ? config.rules : [];
+  if (!rules.length) {
+    setMetaValue('entries_seeded_from_json', '1');
+    return false;
+  }
+
+  for (let i = 0; i < rules.length; i++) {
+    upsertEntryRule(rules[i], `json_rule_${i + 1}`);
+  }
+  setMetaValue('entries_seeded_from_json', '1');
+  return true;
+}
+
+function upsertEntryRule(rule, fallback = '') {
+  if (!sqlite.isInitialized() || !entriesTableReady()) return false;
+  const row = normalizeRuleForDb(rule, fallback);
+  sqlite.run(`
+    INSERT INTO soundalerts_bridge_entries (
+      entry_key, enabled, status, soundalert_name, label, file, media_type, category, priority, volume,
+      output_target, created_from, created_at, updated_at, meta_json
+    ) VALUES (
+      :entryKey, :enabled, :status, :soundAlertName, :label, :file, :mediaType, :category, :priority, :volume,
+      :outputTarget, :createdFrom, :createdAt, :updatedAt, :metaJson
+    )
+    ON CONFLICT(entry_key) DO UPDATE SET
+      enabled = excluded.enabled,
+      status = excluded.status,
+      soundalert_name = excluded.soundalert_name,
+      label = excluded.label,
+      file = excluded.file,
+      media_type = excluded.media_type,
+      category = excluded.category,
+      priority = excluded.priority,
+      volume = excluded.volume,
+      output_target = excluded.output_target,
+      updated_at = excluded.updated_at,
+      meta_json = excluded.meta_json
+  `, row);
+  return true;
+}
+
+function replaceEntryRules(rules) {
+  if (!sqlite.isInitialized() || !entriesTableReady()) return false;
+  const list = Array.isArray(rules) ? rules : [];
+  const tx = sqlite.transaction(() => {
+    sqlite.run('DELETE FROM soundalerts_bridge_entries');
+    for (let i = 0; i < list.length; i++) {
+      upsertEntryRule(list[i], `dashboard_rule_${i + 1}`);
+    }
+    setMetaValue('entries_seeded_from_json', '1');
+  });
+  tx();
+  return true;
+}
+
+function listEntryRules() {
+  ensureSchema();
+  if (!sqlite.isInitialized() || !entriesTableReady()) return null;
+  try {
+    return sqlite.all(`
+      SELECT * FROM soundalerts_bridge_entries
+      ORDER BY enabled DESC, soundalert_name COLLATE NOCASE ASC, label COLLATE NOCASE ASC, id ASC
+    `).map(dbRowToRule).filter(Boolean);
+  } catch (_) {
+    return null;
+  }
+}
+
+function getEffectiveRules() {
+  const dbRules = listEntryRules();
+  if (Array.isArray(dbRules)) return dbRules;
+  return Array.isArray(config.rules) ? config.rules : [];
 }
 
 function loadConfig() {
@@ -196,7 +399,7 @@ function publicConfig() {
     upload: config.upload || {},
     chatMessages: config.chatMessages || {},
     dedupe: config.dedupe || {},
-    rules: Array.isArray(config.rules) ? config.rules : []
+    rules: getEffectiveRules()
   };
 }
 
@@ -278,7 +481,7 @@ function parseSoundAlertsText(text) {
 
 function findRule(soundAlertName) {
   const wanted = normalizeName(soundAlertName);
-  const rules = Array.isArray(config.rules) ? config.rules : [];
+  const rules = getEffectiveRules();
   return rules.find(rule => rule && rule.enabled !== false && normalizeName(rule.soundAlertName || rule.name || rule.id) === wanted) || null;
 }
 
@@ -717,6 +920,7 @@ function connectInternalWs(port) {
 function publicStatus() {
   ensureSchema();
   let dbStats = null;
+  let entriesStats = null;
   try {
     if (sqlite.isInitialized()) {
       dbStats = {
@@ -725,6 +929,15 @@ function publicStatus() {
         fileMissing: sqlite.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_events WHERE status='file_missing'")?.c || 0,
         queued: sqlite.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_events WHERE status='queued'")?.c || 0
       };
+      if (entriesTableReady()) {
+        entriesStats = {
+          total: sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries')?.c || 0,
+          active: sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=1')?.c || 0,
+          inactive: sqlite.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=0')?.c || 0,
+          missingFile: sqlite.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE file=''")?.c || 0,
+          seededFromJson: getMetaValue('entries_seeded_from_json') === '1'
+        };
+      }
     }
   } catch (_) {}
   return {
@@ -744,7 +957,9 @@ function publicStatus() {
       ok: sqlite.isInitialized(),
       path: sqlite.isInitialized() ? sqlite.getDbPath() : '',
       table: 'soundalerts_bridge_events',
-      stats: dbStats
+      stats: dbStats,
+      entriesTable: 'soundalerts_bridge_entries',
+      entriesStats
     },
     config: publicConfig(),
     lastEvent: state.lastEvent,
@@ -812,10 +1027,23 @@ module.exports.init = function init(ctx) {
   app.get('/api/soundalerts/events', (req, res) => res.json(core.ok({ events: listEvents(req.query.limit) })));
   app.get('/api/soundalerts/stats', (_req, res) => res.json(core.ok({ stats: statsRows() })));
   app.get('/api/soundalerts/config', (_req, res) => res.json(core.ok({ config: publicConfig(), path: state.configPath })));
+  app.get('/api/soundalerts/entries', (_req, res) => res.json(core.ok({ entries: getEffectiveRules(), source: Array.isArray(listEntryRules()) ? 'db' : 'json_fallback' })));
+
   app.post('/api/soundalerts/config', (req, res) => {
-    const next = mergePlain(config, req.body && req.body.config ? req.body.config : req.body || {});
+    const incoming = req.body && req.body.config ? req.body.config : req.body || {};
+    const incomingRules = Array.isArray(incoming.rules) ? incoming.rules : null;
+    const nextInput = mergePlain({}, incoming);
+    delete nextInput.rules;
+    const next = mergePlain(config, nextInput);
+
+    if (incomingRules) {
+      replaceEntryRules(incomingRules);
+      next.rules = Array.isArray(config.rules) ? config.rules : [];
+    }
+
     core.writeJson(state.configPath || cfg.resolveFromRoot('config', CONFIG_FILE), next, { spaces: 2 });
     loadConfig();
+    ensureSchema();
     return res.json(core.ok({ config: publicConfig(), path: state.configPath }));
   });
   app.post('/api/soundalerts/upload', (req, res) => {
@@ -842,6 +1070,7 @@ module.exports.init = function init(ctx) {
   }));
   app.post('/api/soundalerts/reload', (_req, res) => {
     loadConfig();
+    ensureSchema();
     return res.json(core.ok({ config: publicConfig(), path: state.configPath }));
   });
 
