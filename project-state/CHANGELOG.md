@@ -2,6 +2,14 @@
 
 ## 2026-05-06
 
+### STEP193.10 - SoundAlerts Parser Format Fix
+
+- `soundalerts_bridge` auf Version `0.1.10` gesetzt.
+- Parser erkennt jetzt zusätzlich das Format `<user> löst <sound> mit <amount> Bits aus`.
+- Live-Fehler `parse_failed` bei `ForrestCGN löst Airhorn mit 0 Bits aus` behoben.
+- Bestehendes Format `<user> spielt <sound> für <amount> Bits!` bleibt erhalten.
+- Keine Dashboard-/API-/DB-Schemaänderung.
+
 ### STEP193.9 - SoundAlerts Stable Handoff / Doku-Sync
 
 - Stabilen SoundAlerts-Zwischenstand nach STEP193.8.1 dokumentiert.

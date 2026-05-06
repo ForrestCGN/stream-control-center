@@ -2,17 +2,24 @@
 
 Stand: 2026-05-06
 
-## Aktueller SoundAlerts-Stand nach STEP193.9
+## Aktueller SoundAlerts-Stand nach STEP193.10
 
-SoundAlerts ist bis `STEP193.8.1` technisch umgesetzt und mit `STEP193.9` als stabiler Doku-/Handoff-Stand zusammengefasst.
+SoundAlerts ist bis `STEP193.8.1` technisch umgesetzt, mit `STEP193.9` als stabiler Doku-/Handoff-Stand zusammengefasst und mit `STEP193.10` um einen Parser-Fix erweitert.
 
 Backend:
 
 - `backend/modules/soundalerts_bridge.js`
-- Version: `0.1.9`
+- Version: `0.1.10`
 - DB-Zugriffe laufen ueber `backend/core/database.js`.
 - Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
 - JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback.
+
+
+Parser:
+
+- Erkennt altes Format: `<user> spielt <sound> für <amount> Bits!`.
+- Erkennt neues Format: `<user> löst <sound> mit <amount> Bits aus`.
+- Behebt `parse_failed` bei `ForrestCGN löst Airhorn mit 0 Bits aus`.
 
 Dashboard:
 

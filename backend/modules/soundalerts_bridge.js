@@ -20,7 +20,7 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.9';
+const VERSION = '0.1.10';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
@@ -812,37 +812,49 @@ function insertEvent(event) {
   });
   return result && result.lastInsertRowid ? Number(result.lastInsertRowid) : null;
 }
-
 function parseSoundAlertsText(text) {
   const clean = String(text || '').trim().replace(/\s+/g, ' ');
   if (!clean) return null;
 
-  const spieltMatch = clean.match(/^(.+?)\s+spielt\s+(.+)$/i);
-  if (!spieltMatch) return null;
+  function buildResult(triggerUserDisplay, soundAlertName, amountValue, currencyValue) {
+    const trigger = String(triggerUserDisplay || '').trim();
+    const sound = String(soundAlertName || '').trim().replace(/^"|"$/g, '').trim();
+    const amount = Number.parseInt(amountValue || 0, 10) || 0;
+    const currency = String(currencyValue || '').trim().replace(/[!.]+$/g, '').trim();
+    if (!trigger || !sound || !currency) return null;
 
-  const triggerUserDisplay = String(spieltMatch[1] || '').trim();
-  const rest = String(spieltMatch[2] || '').trim();
-  if (!triggerUserDisplay || !rest) return null;
+    return {
+      triggerUserDisplay: trigger,
+      triggerUserLogin: '',
+      soundAlertName: sound,
+      amount,
+      currency,
+      rawText: clean
+    };
+  }
 
   const fuerPattern = '(?:für|fuer|fur|fÃ¼r|f.r)';
-  let m = rest.match(new RegExp('^"([^"]+)"\\s+' + fuerPattern + '\\s+(\\d+)\\s+(.+?)!?$', 'i'));
-  if (!m) m = rest.match(new RegExp('^(.+?)\\s+' + fuerPattern + '\\s+(\\d+)\\s+(.+?)!?$', 'i'));
-  if (!m) return null;
+  const loestPattern = '(?:löst|loest|lost|lÃ¶st|l.st)';
 
-  const soundAlertName = String(m[1] || '').trim().replace(/^"|"$/g, '').trim();
-  const amount = Number.parseInt(m[2], 10) || 0;
-  const currency = String(m[3] || '').trim().replace(/!+$/, '').trim();
-  if (!soundAlertName || !currency) return null;
+  const spieltMatch = clean.match(/^(.+?)\s+spielt\s+(.+)$/i);
+  if (spieltMatch) {
+    const triggerUserDisplay = String(spieltMatch[1] || '').trim();
+    const rest = String(spieltMatch[2] || '').trim();
+    if (!triggerUserDisplay || !rest) return null;
 
-  return {
-    triggerUserDisplay,
-    triggerUserLogin: '',
-    soundAlertName,
-    amount,
-    currency,
-    rawText: clean
-  };
+    let m = rest.match(new RegExp('^"([^"]+)"\\s+' + fuerPattern + '\\s+(\\d+)\\s+(.+?)!?$', 'i'));
+    if (!m) m = rest.match(new RegExp('^(.+?)\\s+' + fuerPattern + '\\s+(\\d+)\\s+(.+?)!?$', 'i'));
+    if (m) return buildResult(triggerUserDisplay, m[1], m[2], m[3]);
+  }
+
+  const loestMatch = clean.match(new RegExp('^(.+?)\\s+' + loestPattern + '\\s+(.+?)\\s+mit\\s+(\\d+)\\s+(.+?)\\s+aus[!.]?$', 'i'));
+  if (loestMatch) {
+    return buildResult(loestMatch[1], loestMatch[2], loestMatch[3], loestMatch[4]);
+  }
+
+  return null;
 }
+
 
 function findRule(soundAlertName) {
   const wanted = normalizeName(soundAlertName);

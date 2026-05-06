@@ -9,13 +9,13 @@ Stand: 2026-05-06
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
-## SoundAlerts / Sound-System - stabiler Stand bis STEP193.9
+## SoundAlerts / Sound-System - aktueller Stand bis STEP193.10
 
-`STEP193.9` ist ein Doku-/Stabilisierungsstand nach dem SoundAlerts-Dashboard- und Review-Workflow-Umbau. Es wurden keine neuen Code-, API- oder DB-Aenderungen vorgenommen.
+`STEP193.10` erweitert den SoundAlerts-Parser fuer ein weiteres deutsches SoundAlerts-Chatformat. Der Dashboard-/Review-Workflow aus STEP193.9 bleibt unveraendert.
 
 Aktueller Modulstand:
 
-- `soundalerts_bridge` Version: `0.1.9`
+- `soundalerts_bridge` Version: `0.1.10`
 - Dashboard-Dateien:
   - `htdocs/dashboard/modules/soundalerts.js`
   - `htdocs/dashboard/modules/soundalerts.css`
@@ -27,6 +27,24 @@ Aktueller Modulstand:
 - JSON bleibt Seed/Fallback/Notfall.
 - SoundAlerts-DB-Zugriffe laufen ueber `backend/core/database.js` bzw. Helper-Schichten.
 - SQLite ist produktiv aktiv; MariaDB bleibt spaeteres Ziel, aber ist noch nicht aktiv.
+
+
+## STEP193.10 Parser-Fix
+
+Live erkanntes neues SoundAlerts-Format:
+
+```text
+ForrestCGN löst Airhorn mit 0 Bits aus
+```
+
+wurde vorher als `parse_failed` gespeichert. Der Parser erkennt jetzt beide Formate:
+
+```text
+<user> spielt <sound> für <amount> Bits!
+<user> löst <sound> mit <amount> Bits aus
+```
+
+Damit kann fuer neue/unbekannte Sounds wie `Airhorn` wieder die Auto-Entry-Logik greifen.
 
 ## OBS Loader Standard
 
