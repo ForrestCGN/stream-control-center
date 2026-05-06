@@ -10,8 +10,16 @@ const cfg = require('./helpers/helper_config');
 const media = require('./helpers/helper_media');
 const sqlite = require('./sqlite_core');
 
+let multer = null;
+let multerLoadError = '';
+try {
+  multer = require('multer');
+} catch (err) {
+  multerLoadError = err && err.message ? err.message : String(err);
+}
+
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 1;
@@ -38,6 +46,18 @@ const DEFAULT_CONFIG = {
     audioOutputTarget: 'device',
     videoOutputTarget: 'overlay',
     defaultVolume: 100
+  },
+  upload: {
+    enabled: true,
+    audioDir: 'htdocs/assets/sounds/soundalerts/audio',
+    videoDir: 'htdocs/assets/sounds/soundalerts/video',
+    audioRelativePrefix: 'soundalerts/audio',
+    videoRelativePrefix: 'soundalerts/video',
+    allowOverwrite: true,
+    maxAudioSizeBytes: 15728640,
+    maxVideoSizeBytes: 104857600,
+    allowedAudioExtensions: ['.mp3', '.wav', '.ogg', '.webm', '.m4a'],
+    allowedVideoExtensions: ['.mp4', '.webm']
   },
   chatMessages: {
     enabled: true,
@@ -88,7 +108,10 @@ const state = {
     fileMissing: 0,
     duplicate: 0,
     chatMessagesSent: 0,
-    chatMessagesFailed: 0
+    chatMessagesFailed: 0,
+    uploads: 0,
+    uploadOverwrites: 0,
+    uploadFailed: 0
   },
   lastEvent: null,
   recent: []
@@ -170,6 +193,7 @@ function publicConfig() {
     bot: config.bot || {},
     parser: config.parser || {},
     soundSystem: config.soundSystem || {},
+    upload: config.upload || {},
     chatMessages: config.chatMessages || {},
     dedupe: config.dedupe || {},
     rules: Array.isArray(config.rules) ? config.rules : []
@@ -274,6 +298,102 @@ function detectMediaType(rule, resolved) {
   if (['.mp4', '.mov', '.mkv'].includes(ext)) return 'video';
   if (ext === '.webm') return 'video';
   return 'audio';
+}
+
+function normalizeFilenameBase(value) {
+  const raw = String(value || '').trim().replace(/\.[a-z0-9]+$/i, '');
+  const normalized = raw
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return normalized || `soundalert_${Date.now()}`;
+}
+
+function getUploadConfig() {
+  return mergePlain(DEFAULT_CONFIG.upload, config.upload || {});
+}
+
+function uploadTargetFor(mediaType, originalName, requestedName) {
+  const uploadCfg = getUploadConfig();
+  const type = String(mediaType || '').toLowerCase() === 'video' ? 'video' : 'audio';
+  const ext = path.extname(String(originalName || '')).toLowerCase();
+  const allowed = type === 'video' ? uploadCfg.allowedVideoExtensions : uploadCfg.allowedAudioExtensions;
+  if (!media.extensionAllowed(`x${ext}`, allowed)) {
+    return { ok: false, error: 'extension_not_allowed', allowed, type };
+  }
+
+  const dirRaw = type === 'video' ? uploadCfg.videoDir : uploadCfg.audioDir;
+  const prefixRaw = type === 'video' ? uploadCfg.videoRelativePrefix : uploadCfg.audioRelativePrefix;
+  const targetDir = path.isAbsolute(dirRaw) ? dirRaw : cfg.resolveFromRoot(dirRaw);
+  const baseName = normalizeFilenameBase(requestedName || originalName);
+  const fileName = `${baseName}${ext}`;
+  const fullPath = path.resolve(targetDir, fileName);
+  const normalizedDir = path.resolve(targetDir);
+  if (!fullPath.startsWith(normalizedDir)) {
+    return { ok: false, error: 'outside_upload_dir', type };
+  }
+  const relative = `${String(prefixRaw || '').replace(/^\/+|\/+$/g, '')}/${fileName}`.replace(/\\/g, '/');
+  return { ok: true, type, ext, targetDir, fullPath, relative, fileName, allowed };
+}
+
+async function handleUploadRequest(req, res) {
+  if (!multer) return res.status(500).json(core.fail ? core.fail('multer_unavailable', multerLoadError) : { ok: false, error: 'multer_unavailable', message: multerLoadError });
+  const uploadCfg = getUploadConfig();
+  if (uploadCfg.enabled === false) return res.status(403).json({ ok: false, error: 'upload_disabled' });
+  if (!req.file || !req.file.buffer) return res.status(400).json({ ok: false, error: 'file_missing' });
+
+  const mediaType = String(req.body.mediaType || req.body.type || '').toLowerCase() === 'video' ? 'video' : 'audio';
+  const maxSize = mediaType === 'video' ? Number(uploadCfg.maxVideoSizeBytes || 0) : Number(uploadCfg.maxAudioSizeBytes || 0);
+  if (maxSize > 0 && req.file.size > maxSize) {
+    state.stats.uploadFailed++;
+    return res.status(413).json({ ok: false, error: 'file_too_large', maxSizeBytes: maxSize });
+  }
+
+  const target = uploadTargetFor(mediaType, req.file.originalname, req.body.name || req.body.soundAlertName || '');
+  if (!target.ok) {
+    state.stats.uploadFailed++;
+    return res.status(400).json({ ok: false, error: target.error, allowedExtensions: target.allowed || [] });
+  }
+
+  const overwrite = String(req.body.overwrite || '').toLowerCase() === 'true' || req.body.overwrite === true;
+  const exists = fs.existsSync(target.fullPath);
+  if (exists && !overwrite) {
+    return res.status(409).json({
+      ok: false,
+      error: 'file_exists',
+      message: 'Datei existiert bereits.',
+      file: target.relative,
+      fileName: target.fileName,
+      mediaType: target.type
+    });
+  }
+
+  try {
+    fs.mkdirSync(target.targetDir, { recursive: true });
+    fs.writeFileSync(target.fullPath, req.file.buffer);
+    const info = media.readMediaInfo(target.fullPath, { cache: false });
+    media.clearDurationCache();
+    state.stats.uploads++;
+    if (exists && overwrite) state.stats.uploadOverwrites++;
+    return res.json(core.ok({
+      file: target.relative,
+      fileName: target.fileName,
+      mediaType: target.type,
+      publicUrl: `/assets/sounds/${target.relative}`,
+      overwritten: !!(exists && overwrite),
+      existsBefore: !!exists,
+      sizeBytes: req.file.size,
+      mediaInfo: info
+    }));
+  } catch (err) {
+    state.stats.uploadFailed++;
+    return res.status(500).json({ ok: false, error: 'upload_failed', message: err && err.message ? err.message : String(err) });
+  }
 }
 
 function postJson(urlString, payload, timeoutMs = 5000) {
@@ -617,6 +737,8 @@ function publicStatus() {
     configError: state.configError,
     wsConnected: state.wsConnected,
     wsLastError: state.wsLastError,
+    multerReady: !!multer,
+    multerLoadError,
     stats: { ...state.stats },
     database: {
       ok: sqlite.isInitialized(),
@@ -684,6 +806,8 @@ module.exports.init = function init(ctx) {
   loadConfig();
   ensureSchema();
 
+  const uploadMiddleware = multer ? multer({ storage: multer.memoryStorage() }).single('file') : null;
+
   app.get('/api/soundalerts/status', (_req, res) => res.json(publicStatus()));
   app.get('/api/soundalerts/events', (req, res) => res.json(core.ok({ events: listEvents(req.query.limit) })));
   app.get('/api/soundalerts/stats', (_req, res) => res.json(core.ok({ stats: statsRows() })));
@@ -693,6 +817,16 @@ module.exports.init = function init(ctx) {
     core.writeJson(state.configPath || cfg.resolveFromRoot('config', CONFIG_FILE), next, { spaces: 2 });
     loadConfig();
     return res.json(core.ok({ config: publicConfig(), path: state.configPath }));
+  });
+  app.post('/api/soundalerts/upload', (req, res) => {
+    if (!uploadMiddleware) return res.status(500).json({ ok: false, error: 'multer_unavailable', message: multerLoadError });
+    uploadMiddleware(req, res, err => {
+      if (err) {
+        state.stats.uploadFailed++;
+        return res.status(400).json({ ok: false, error: 'upload_parse_failed', message: err.message || String(err) });
+      }
+      return handleUploadRequest(req, res);
+    });
   });
   app.post('/api/soundalerts/test/chat', core.asyncRoute(async (req, res) => {
     const item = {

@@ -425,7 +425,12 @@ window.SoundAlertsModule = (function(){
         <label class="sa-field"><span>SoundAlerts-Name</span><input data-sa-rule-field="soundAlertName" type="text" value="${esc(rule.soundAlertName || '')}"></label>
         <label class="sa-field"><span>Label</span><input data-sa-rule-field="label" type="text" value="${esc(rule.label || rule.soundAlertName || '')}"></label>
         <label class="sa-field"><span>Typ</span><select data-sa-rule-field="mediaType"><option value="audio" ${rule.mediaType === 'audio' ? 'selected' : ''}>Audio</option><option value="video" ${rule.mediaType === 'video' ? 'selected' : ''}>Video</option></select></label>
-        <label class="sa-field sa-wide"><span>Datei</span><input data-sa-rule-field="file" type="text" value="${esc(rule.file || '')}"></label>
+        <label class="sa-field sa-wide sa-file-field"><span>Datei</span><input data-sa-rule-field="file" type="text" value="${esc(rule.file || '')}"></label>
+        <div class="sa-upload-row sa-wide">
+          <input data-sa-file-input="${idx}" type="file" hidden accept=".mp3,.wav,.ogg,.webm,.m4a,.mp4">
+          ${btn('Datei hochladen', `upload-rule-file:${idx}`)}
+          <span class="sa-muted">Audio/Video wird passend unter dem konfigurierten SoundAlerts-Upload-Pfad gespeichert.</span>
+        </div>
         <label class="sa-field"><span>Kategorie</span>${renderCategorySelect(rule)}</label>
         <label class="sa-field"><span>Priorität überschreiben</span><input data-sa-rule-field="priority" type="number" min="0" max="200" placeholder="${esc(priorityPlaceholder(rule))}" value="${esc(priorityOverrideValue(rule))}"></label>
         <label class="sa-field"><span>Lautstärke</span><input data-sa-rule-field="volume" type="number" min="0" max="100" value="${esc(value(rule.volume, defaultVolume()))}"></label>
@@ -656,6 +661,58 @@ window.SoundAlertsModule = (function(){
     await runTest(buildReplayText(ev));
   }
 
+  function inferUploadName(rule, fileObj){
+    const fromRule = String(rule?.soundAlertName || rule?.label || '').trim();
+    if (fromRule) return fromRule;
+    return String(fileObj?.name || '').replace(/\.[a-z0-9]+$/i, '');
+  }
+
+  async function uploadRuleFile(idx, fileObj, overwrite){
+    if (!fileObj) return;
+    saveActiveRuleFromDom();
+    const list = rules().slice();
+    const rule = list[idx];
+    if (!rule) return;
+    const mediaType = String(rule.mediaType || '').toLowerCase() === 'video' ? 'video' : 'audio';
+    const body = new FormData();
+    body.append('file', fileObj);
+    body.append('mediaType', mediaType);
+    body.append('name', inferUploadName(rule, fileObj));
+    body.append('soundAlertName', rule.soundAlertName || rule.label || '');
+    if (overwrite) body.append('overwrite', 'true');
+
+    let result;
+    try {
+      const response = await fetch(`${API}/upload`, { method: 'POST', body });
+      result = await response.json().catch(() => ({}));
+      if (response.status === 409 && result?.error === 'file_exists' && !overwrite) {
+        if (!confirm(`Datei existiert bereits:\n${result.file || fileObj.name}\n\nÜberschreiben?`)) return;
+        return uploadRuleFile(idx, fileObj, true);
+      }
+      if (!response.ok || result?.ok === false) throw new Error(result?.message || result?.error || `Upload fehlgeschlagen (${response.status})`);
+    } catch (err) {
+      alert(err.message || String(err));
+      return;
+    }
+
+    const data = result || {};
+    const uploadedFile = data.file || data.result?.file || '';
+    if (!uploadedFile) {
+      alert('Upload erfolgreich, aber es wurde kein Dateipfad zurückgegeben.');
+      return;
+    }
+
+    list[idx] = normalizeRule({
+      ...rule,
+      file: uploadedFile,
+      mediaType: data.mediaType || mediaType
+    }, idx);
+    config = { ...(config || {}), rules: list };
+    selectedRuleIndex = idx;
+    activeTab = 'rules';
+    await saveConfig();
+  }
+
   async function runTest(text){
     await api('/test/chat', { method: 'POST', body: JSON.stringify({ login: config?.bot?.login || 'soundalerts', user: config?.bot?.displayName || 'SoundAlerts', text }) });
     await loadAll(true);
@@ -712,6 +769,15 @@ window.SoundAlertsModule = (function(){
       }
     });
 
+    document.addEventListener('change', async ev => {
+      const input = ev.target.closest('[data-sa-file-input]');
+      if (!input) return;
+      const idx = Number(input.dataset.saFileInput);
+      const fileObj = input.files && input.files[0] ? input.files[0] : null;
+      input.value = '';
+      if (fileObj) await uploadRuleFile(idx, fileObj, false);
+    });
+
     document.addEventListener('click', async ev => {
       const selectCard = ev.target.closest('[data-sa-select-rule]');
       if (selectCard && !ev.target.closest('button')) {
@@ -732,6 +798,12 @@ window.SoundAlertsModule = (function(){
       const action = actionEl.dataset.saAction || '';
       try {
         if (action === 'reload') await loadAll(true);
+        else if (action.startsWith('upload-rule-file:')) {
+          const idx = Number(action.split(':')[1]);
+          saveActiveRuleFromDom();
+          const input = document.querySelector(`[data-sa-file-input="${idx}"]`);
+          if (input) input.click();
+        }
         else if (action === 'save-config') await saveConfig();
         else if (action === 'show-events') { activeTab = 'events'; applyTab(); }
         else if (action === 'add-rule') addRule();
