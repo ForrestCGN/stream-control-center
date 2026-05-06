@@ -1,0 +1,54 @@
+{
+  "enabled": true,
+  "bot": {
+    "login": "soundalerts",
+    "userId": "216527497",
+    "displayName": "SoundAlerts",
+    "validateUserinfo": true
+  },
+  "parser": {
+    "language": "de",
+    "allowQuotedSoundNames": true,
+    "allowUnquotedSoundNames": true
+  },
+  "soundSystem": {
+    "playUrl": "http://127.0.0.1:8080/api/sound/play",
+    "soundsBaseDir": "htdocs/assets/sounds",
+    "allowedExtensions": [
+      ".mp3",
+      ".wav",
+      ".ogg",
+      ".webm",
+      ".m4a",
+      ".mp4"
+    ],
+    "defaultCategory": "soundalerts",
+    "defaultPriority": 70,
+    "audioOutputTarget": "device",
+    "videoOutputTarget": "overlay",
+    "defaultVolume": 100
+  },
+  "chatMessages": {
+    "enabled": true,
+    "onMissingFile": true,
+    "onUnmatched": false,
+    "cooldownMs": 15000,
+    "missingFileTemplate": "⚠ SoundAlert \"{soundAlertName}\" ist eingerichtet, aber die lokale Datei fehlt. Bitte später im Dashboard prüfen."
+  },
+  "dedupe": {
+    "enabled": true,
+    "windowMs": 3000
+  },
+  "rules": [
+    {
+      "id": "fahrstuhl_sound",
+      "enabled": true,
+      "soundAlertName": "Fahrstuhl Sound",
+      "label": "Fahrstuhl Sound",
+      "file": "soundalerts/video/3cgn.mp4",
+      "mediaType": "video",
+      "priority": 70,
+      "volume": 100
+    }
+  ]
+}
