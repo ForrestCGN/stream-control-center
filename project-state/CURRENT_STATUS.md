@@ -100,3 +100,10 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 - Geloeschte oder nicht mehr vorhandene Eintraege erscheinen im Events-Tab als `Kein aktueller Eintrag` statt als aktuelle Aufgabe.
 - Parse-Fehler werden als `Parse-Fehler` angezeigt.
 - Die Uebersicht bleibt auf echte Aufgaben und abgespielte Replay-Events fokussiert.
+
+## STEP193.8 - SoundAlerts Review Workflow
+
+- Automatisch erkannte SoundAlerts bleiben im Dashboard `Zur Pruefung`, bis sie gespeichert/freigegeben wurden.
+- `Aktiv` zaehlt nur noch freigegebene aktive Eintraege.
+- Inaktive gespeicherte Eintraege sind bewusst deaktiviert und keine offene Aufgabe.
+- Ignorieren bleibt technisch verfuegbar, ist aber nicht mehr prominent in der Kartenliste.

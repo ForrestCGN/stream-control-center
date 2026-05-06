@@ -103,3 +103,22 @@ Dashboard-Event-Log-Klartext:
 - `htdocs/dashboard/modules/soundalerts.js`
 - `htdocs/dashboard/modules/soundalerts.css`
 - `project-state/STEP193_7_4_SOUNDALERTS_EVENT_LOG_CLARITY_2026-05-06.md`
+
+## STEP193.8 SoundAlerts Review Workflow
+
+Geaenderte Dateien:
+
+- `htdocs/dashboard/modules/soundalerts.js`
+- `htdocs/dashboard/modules/soundalerts.css`
+
+Neue Doku:
+
+- `project-state/STEP193_8_SOUNDALERTS_REVIEW_WORKFLOW_2026-05-06.md`
+
+Statusregel:
+
+- `file_matched` / `review_required` = `Zur Pruefung`
+- `active` = gespeichert/freigegeben und aktiv
+- `inactive` = gespeichert, aber bewusst deaktiviert
+- `missing_file` = Name oder Datei fehlt
+- `ignored` = bewusst ignoriert

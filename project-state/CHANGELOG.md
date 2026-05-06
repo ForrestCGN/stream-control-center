@@ -2,6 +2,16 @@
 
 ## 2026-05-06
 
+### STEP193.8 - SoundAlerts Review Workflow
+
+- `file_matched`/`review_required` werden als `Zur Pruefung` angezeigt.
+- Zur Pruefung zaehlt als Handlung, bis ein Eintrag gespeichert/freigegeben wurde.
+- Speichern/Freigeben setzt gueltige Eintraege auf `active` oder `inactive`.
+- Eintraege mit fehlendem Namen oder fehlender Datei bleiben `missing_file`.
+- Ignorieren aus den normalen Eintragskarten entfernt, im Editor weniger prominent behalten.
+- Keine Backend-/DB-Aenderung.
+
+
 ### STEP193.7.3 - SoundAlerts Overview Action-State Cleanup
 
 - "Handlung noetig" auf der SoundAlerts-Uebersicht erscheint nur noch bei echtem Einrichtungsbedarf.

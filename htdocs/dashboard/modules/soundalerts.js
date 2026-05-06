@@ -88,6 +88,11 @@ window.SoundAlertsModule = (function(){
     return String(rule?.status || '').toLowerCase() === 'ignored';
   }
 
+  function isReviewRule(rule){
+    const raw = String(rule?.status || '').toLowerCase();
+    return raw === 'file_matched' || raw === 'review_required';
+  }
+
   function isPlaceholderFile(file){
     const f = String(file || '').trim().toLowerCase();
     return !f || f === 'soundalerts/audio/' || f === 'soundalerts/video/' || f.endsWith('/');
@@ -100,16 +105,22 @@ window.SoundAlertsModule = (function(){
     return false;
   }
 
+  function ruleNeedsAction(rule){
+    if (!rule || isIgnoredRule(rule)) return false;
+    return ruleNeedsSetup(rule) || isReviewRule(rule);
+  }
+
   function setupReason(rule){
     if (!rule) return 'Einrichtung nötig';
     if (isIgnoredRule(rule)) return 'Ignoriert';
     if (!String(rule.soundAlertName || '').trim()) return 'Name fehlt';
     if (isPlaceholderFile(rule.file)) return 'Datei fehlt';
-    return 'Einrichtung nötig';
+    if (isReviewRule(rule)) return 'Zur Prüfung';
+    return 'Geprüft';
   }
 
   function pendingRuleIndexes(){
-    return rules().map((rule, idx) => ruleNeedsSetup(rule) ? idx : -1).filter(idx => idx >= 0);
+    return rules().map((rule, idx) => ruleNeedsAction(rule) ? idx : -1).filter(idx => idx >= 0);
   }
 
   function unmatchedEvents(){
@@ -197,7 +208,9 @@ window.SoundAlertsModule = (function(){
     if (s === 'unmatched') return 'Nicht eingerichtet';
     if (s === 'no_mapping') return 'Kein Eintrag';
     if (s === 'file_missing' || s === 'missing_file') return 'Datei fehlt';
-    if (s === 'file_matched') return 'Auto-zugeordnet';
+    if (s === 'file_matched' || s === 'review_required') return 'Zur Prüfung';
+    if (s === 'inactive') return 'Inaktiv';
+    if (s === 'active') return 'Aktiv';
     if (s === 'ignored') return 'Ignoriert';
     if (s === 'failed') return 'Fehler';
     return statusValue || '-';
@@ -207,7 +220,7 @@ window.SoundAlertsModule = (function(){
     const s = String(statusValue || '').toLowerCase();
     if (s === 'no_mapping') return 'unmatched';
     if (s === 'missing_file') return 'file_missing';
-    if (s === 'file_matched') return 'queued';
+    if (s === 'file_matched' || s === 'review_required') return 'setup';
     if (s === 'ignored') return 'ignored';
     if (s === 'success' || s === 'played' || s === 'done') return 'queued';
     return s || 'unknown';
@@ -267,27 +280,28 @@ window.SoundAlertsModule = (function(){
   function ruleStatusKey(rule){
     const raw = String(rule?.status || '').toLowerCase();
     if (raw === 'ignored') return 'ignored';
-    if (raw === 'file_matched') return 'file_matched';
+    if (raw === 'file_matched' || raw === 'review_required') return 'review_required';
     if (raw === 'missing_file' || raw === 'file_missing' || ruleNeedsSetup(rule)) return 'missing_file';
-    if (rule?.enabled === false) return 'inactive';
+    if (rule?.enabled === false || raw === 'inactive') return 'inactive';
     return 'active';
   }
 
   function ruleStatusCounts(){
-    const out = { total: 0, active: 0, inactive: 0, missing_file: 0, ignored: 0, file_matched: 0, pending: 0 };
+    const out = { total: 0, active: 0, inactive: 0, missing_file: 0, ignored: 0, review_required: 0, pending: 0 };
     for (const rule of rules()) {
       out.total += 1;
       const key = ruleStatusKey(rule);
       out[key] = (out[key] || 0) + 1;
-      if (ruleNeedsSetup(rule)) out.pending += 1;
+      if (ruleNeedsAction(rule)) out.pending += 1;
     }
     return out;
   }
 
   function ruleMatchesFilter(rule){
     const filter = String(ruleFilter || 'all').toLowerCase();
-    if (filter === 'active') return rule?.enabled !== false && !isIgnoredRule(rule);
-    if (filter === 'inactive') return rule?.enabled === false && !isIgnoredRule(rule);
+    if (filter === 'active') return ruleStatusKey(rule) === 'active';
+    if (filter === 'inactive') return ruleStatusKey(rule) === 'inactive';
+    if (filter === 'review_required') return ruleStatusKey(rule) === 'review_required';
     if (filter === 'missing_file') return ruleStatusKey(rule) === 'missing_file';
     if (filter === 'ignored') return isIgnoredRule(rule);
     return true;
@@ -310,6 +324,7 @@ window.SoundAlertsModule = (function(){
   function ruleFilterLabel(){
     if (ruleFilter === 'active') return 'Aktiv';
     if (ruleFilter === 'inactive') return 'Inaktiv';
+    if (ruleFilter === 'review_required') return 'Zur Prüfung';
     if (ruleFilter === 'missing_file') return 'Datei fehlt';
     if (ruleFilter === 'ignored') return 'Ignoriert';
     return 'Alle';
@@ -429,7 +444,7 @@ window.SoundAlertsModule = (function(){
         <div class="sa-attention">
           <div>
             <strong>Handlung nötig</strong>
-            <span>${pending.length} Eintrag${pending.length === 1 ? '' : 'e'} brauchen Einrichtung, weil Name oder Datei fehlt.</span>
+            <span>${pending.length} Eintrag${pending.length === 1 ? '' : 'e'} warten auf Prüfung oder brauchen noch Name/Datei.</span>
           </div>
           <div class="sa-actions sa-attention-actions">
             ${firstPending !== undefined ? btn('Ersten offenen Eintrag', `edit-rule:${firstPending}`, 'success') : ''}
@@ -438,7 +453,8 @@ window.SoundAlertsModule = (function(){
       ` : ''}
       <div class="sa-kpi-grid">
         ${renderKpi('Gesamt', counts.total, '', 'show-rules')}
-        ${renderKpi('Aktiv', counts.active + counts.file_matched, 'ok', 'show-rules:active')}
+        ${renderKpi('Aktiv', counts.active, 'ok', 'show-rules:active')}
+        ${renderKpi('Zur Prüfung', counts.review_required, counts.review_required ? 'warn' : '', 'show-rules:review_required')}
         ${renderKpi('Inaktiv', counts.inactive, 'muted', 'show-rules:inactive')}
         ${renderKpi('Datei fehlt', counts.missing_file, counts.missing_file ? 'warn' : '', 'show-rules:missing_file')}
         ${renderKpi('Ignoriert', counts.ignored, 'muted', 'show-rules:ignored')}
@@ -583,8 +599,9 @@ window.SoundAlertsModule = (function(){
           <span>Einträge anzeigen</span>
           <select id="saRuleFilter" data-sa-rule-filter>
             <option value="all" ${ruleFilter === 'all' ? 'selected' : ''}>Alle (${esc(counts.total)})</option>
-            <option value="active" ${ruleFilter === 'active' ? 'selected' : ''}>Aktiv (${esc(counts.active + counts.file_matched)})</option>
+            <option value="active" ${ruleFilter === 'active' ? 'selected' : ''}>Aktiv (${esc(counts.active)})</option>
             <option value="inactive" ${ruleFilter === 'inactive' ? 'selected' : ''}>Inaktiv (${esc(counts.inactive)})</option>
+            <option value="review_required" ${ruleFilter === 'review_required' ? 'selected' : ''}>Zur Prüfung (${esc(counts.review_required)})</option>
             <option value="missing_file" ${ruleFilter === 'missing_file' ? 'selected' : ''}>Datei fehlt (${esc(counts.missing_file)})</option>
             <option value="ignored" ${ruleFilter === 'ignored' ? 'selected' : ''}>Ignoriert (${esc(counts.ignored)})</option>
           </select>
@@ -603,7 +620,7 @@ window.SoundAlertsModule = (function(){
           ${selected ? renderRuleEditor(selected, selectedRuleIndex) : '<div class="sa-empty">SoundAlert auswählen oder neu erstellen.</div>'}
         </section>
       </div>
-      <div class="sa-note sa-bottom-note">Dateien sind relativ zu <code>htdocs/assets/sounds</code>, z. B. <code>soundalerts/video/name.mp4</code>. Inaktiv bedeutet bewusst deaktiviert und ist keine offene Einrichtung.</div>
+      <div class="sa-note sa-bottom-note">Dateien sind relativ zu <code>htdocs/assets/sounds</code>, z. B. <code>soundalerts/video/name.mp4</code>. Automatisch erkannte Einträge bleiben <strong>Zur Prüfung</strong>, bis sie gespeichert/freigegeben werden.</div>
     `;
   }
 
@@ -618,8 +635,8 @@ window.SoundAlertsModule = (function(){
     return `
       <div class="sa-setup-notice">
         <div>
-          <strong>${pending.length} SoundAlert${pending.length === 1 ? '' : 's'} brauchen Einrichtung</strong>
-          <div class="sa-muted">Einrichtung ist nur nötig, wenn Name oder Datei fehlen. Bewusst inaktive Einträge zählen nicht als offen.</div>
+          <strong>${pending.length} SoundAlert${pending.length === 1 ? '' : 's'} brauchen Prüfung</strong>
+          <div class="sa-muted">Automatisch erkannte Einträge bleiben zur Prüfung sichtbar, bis sie gespeichert/freigegeben wurden. Bewusst inaktive Einträge zählen nicht als offen.</div>
           <div class="sa-setup-chips">${preview}</div>
         </div>
         <div class="sa-actions sa-setup-actions">
@@ -638,7 +655,7 @@ window.SoundAlertsModule = (function(){
     const active = idx === selectedRuleIndex ? ' active' : '';
     const media = String(rule.mediaType || 'audio').toLowerCase();
     const enabled = rule.enabled === false ? false : true;
-    const needsSetup = ruleNeedsSetup(rule);
+    const needsSetup = ruleNeedsAction(rule);
     return `
       <article class="sa-entry-card${active}" data-sa-select-rule="${idx}">
         <div class="sa-entry-main">
@@ -659,7 +676,6 @@ window.SoundAlertsModule = (function(){
         </div>
         <div class="sa-entry-actions">
           ${btn('Bearbeiten', `edit-rule:${idx}`)}
-          ${!isIgnoredRule(rule) && rule.enabled === false ? btn('Ignorieren', `ignore-rule:${idx}`) : ''}
           ${btn('Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
       </article>
@@ -698,7 +714,8 @@ window.SoundAlertsModule = (function(){
           <div class="sa-muted">${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</div>
         </div>
         <div class="sa-actions sa-editor-actions">
-          ${!isIgnoredRule(rule) && rule.enabled === false ? btn('Ignorieren', `ignore-rule:${idx}`) : ''}
+          ${isReviewRule(rule) || ruleNeedsSetup(rule) ? btn('Speichern / Freigeben', 'save-config', 'success') : ''}
+          ${!isIgnoredRule(rule) ? btn('Ignorieren', `ignore-rule:${idx}`, 'secondary sa-less-important') : ''}
           ${btn('Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
       </div>
@@ -851,9 +868,26 @@ window.SoundAlertsModule = (function(){
     config = { ...(config || {}), rules: list };
   }
 
+  function finalizeRuleForSave(rule, idx){
+    const normalized = normalizeRule(rule, idx);
+    if (isIgnoredRule(normalized)) return normalized;
+    const hasName = !!String(normalized.soundAlertName || '').trim();
+    const hasFile = !isPlaceholderFile(normalized.file);
+    if (hasName && hasFile) {
+      return {
+        ...normalized,
+        status: normalized.enabled === false ? 'inactive' : 'active'
+      };
+    }
+    return {
+      ...normalized,
+      status: 'missing_file'
+    };
+  }
+
   function readRulesFromState(){
     saveActiveRuleFromDom();
-    return rules().map(normalizeRule).filter(rule => rule.soundAlertName || rule.file);
+    return rules().map(finalizeRuleForSave).filter(rule => rule.soundAlertName || rule.file);
   }
 
   function buildConfigFromDom(){

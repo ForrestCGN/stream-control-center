@@ -51,3 +51,12 @@ Falls die Eintragsliste weiter waechst:
 - SoundAlerts Events im Live-Dashboard pruefen.
 - Falls gewuenscht: Events-Tab spaeter mit Filter `Alle / Abgespielt / Fehler / Kein aktueller Eintrag` erweitern.
 - Danach SoundAlerts-Flow weiter live testen.
+
+### SoundAlerts Review Workflow
+
+- `Zur Pruefung` ist der Standard fuer automatisch erkannte, noch nicht freigegebene Eintraege.
+
+## Naechster sinnvoller Schritt nach STEP193.8
+
+- Dashboard live testen: neue Auto-Eintraege, Speichern/Freigeben, Aktiv/Inaktiv-Filter.
+- Danach bei Bedarf Feinschliff an Statistik oder Event-Historie.
