@@ -91,3 +91,12 @@
 ### STEP193 - SoundAlerts Inbox / Auto Entries
 
 - Unbekannte SoundAlerts erzeugen automatisch einen Eintrag in `soundalerts_bridge_entries`.
+
+
+### STEP193.7.4 - SoundAlerts Event-Log Klartext
+
+- Events-Tab unterscheidet jetzt klarer zwischen aktueller Aufgabe und historischem Log-Eintrag.
+- Alte geloeschte/unbekannte Events werden als `Kein aktueller Eintrag` angezeigt.
+- Parse-Fehler werden als `Parse-Fehler` angezeigt.
+- Unbrauchbare Roh-/Parse-Events bieten kein `Eintrag erstellen` mehr an.
+- Keine Backend-/API-/DB-Aenderung.

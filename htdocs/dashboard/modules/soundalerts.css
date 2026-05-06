@@ -1206,3 +1206,31 @@ html[data-theme=dark] .sa-stat-box {
     grid-template-columns: repeat(3, minmax(130px, 1fr));
   }
 }
+
+/* STEP193.7.4: Event-Log klarer von aktuellen Eintraegen trennen */
+.sa-pill.log_only {
+  border-color: rgba(148,163,184,.38);
+  background: rgba(100,116,139,.13);
+  color: #cbd5e1;
+}
+
+.sa-event-log-only {
+  opacity: .88;
+}
+
+.sa-event-log-only .sa-event-detail {
+  color: #cbd5e1;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+html[data-theme=dark] .sa-pill.log_only {
+  background: #242424;
+  border-color: #444;
+  color: #cfcfcf;
+}
+
+html[data-theme=dark] .sa-event-log-only .sa-event-detail {
+  color: #bdbdbd;
+}

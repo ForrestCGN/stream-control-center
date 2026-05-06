@@ -197,7 +197,7 @@ window.SoundAlertsModule = (function(){
     if (s === 'unmatched') return 'Nicht eingerichtet';
     if (s === 'no_mapping') return 'Kein Eintrag';
     if (s === 'file_missing' || s === 'missing_file') return 'Datei fehlt';
-    if (s === 'file_matched') return 'Datei gefunden';
+    if (s === 'file_matched') return 'Auto-zugeordnet';
     if (s === 'ignored') return 'Ignoriert';
     if (s === 'failed') return 'Fehler';
     return statusValue || '-';
@@ -223,6 +223,46 @@ window.SoundAlertsModule = (function(){
   function eventUserName(ev){ return ev?.trigger_user_display || ev?.triggerUserDisplay || '-'; }
   function eventCreatedAt(ev){ return ev?.created_at || ev?.createdAt || ''; }
   function eventRawText(ev){ return ev?.raw_text || ev?.rawText || ''; }
+
+  function eventStatusValue(ev){ return String(ev?.status || '').toLowerCase(); }
+
+  function hasUsableEventName(ev){
+    const name = String(eventSoundName(ev) || '').trim();
+    return !!name && name !== '-' && name.toLowerCase() !== 'parse_failed';
+  }
+
+  function isCurrentMissingEvent(ev, ruleIdx){
+    const s = eventStatusValue(ev);
+    return ['unmatched', 'no_mapping'].includes(s) || (ruleIdx < 0 && !ev?.file);
+  }
+
+  function eventDisplayStatus(ev, ruleIdx){
+    const s = eventStatusValue(ev);
+    if (s === 'parse_failed') return 'Parse-Fehler';
+    if (isCurrentMissingEvent(ev, ruleIdx)) return 'Kein aktueller Eintrag';
+    return statusLabel(ev?.status);
+  }
+
+  function eventDisplayClass(ev, ruleIdx){
+    const s = eventStatusValue(ev);
+    if (s === 'parse_failed') return 'failed';
+    if (isCurrentMissingEvent(ev, ruleIdx)) return 'log_only';
+    return statusClass(ev?.status);
+  }
+
+  function eventDetailLine(ev, ruleIdx){
+    const s = eventStatusValue(ev);
+    if (s === 'parse_failed') return 'Rohdaten konnten nicht sauber gelesen werden. Kein SoundAlert-Name erkannt.';
+    if (isCurrentMissingEvent(ev, ruleIdx)) return 'Historischer Log-Eintrag: passender Eintrag existiert aktuell nicht oder wurde gelöscht.';
+    return ev?.file || ev?.error || eventRawText(ev) || '';
+  }
+
+  function canCreateEntryFromEvent(ev, ruleIdx){
+    if (ruleIdx >= 0) return false;
+    if (!hasUsableEventName(ev)) return false;
+    const s = eventStatusValue(ev);
+    return ['unmatched', 'no_mapping', 'file_missing', 'missing_file'].includes(s);
+  }
 
   function ruleStatusKey(rule){
     const raw = String(rule?.status || '').toLowerCase();
@@ -466,18 +506,20 @@ window.SoundAlertsModule = (function(){
       return;
     }
     const idx = findRuleIndexForEvent(ev);
+    const canCreate = canCreateEntryFromEvent(ev, idx);
     el.innerHTML = `
       <h3>Letztes Event</h3>
-      <div class="sa-row"><span>Status</span><strong class="sa-pill ${esc(statusClass(ev.status))}">${esc(statusLabel(ev.status))}</strong></div>
-      <div class="sa-row"><span>User</span><strong>${esc(ev.triggerUserDisplay || '-')}</strong></div>
-      <div class="sa-row"><span>SoundAlert</span><strong>${esc(ev.soundAlertName || ev.soundalert_name || '-')}</strong></div>
+      <div class="sa-row"><span>Status</span><strong class="sa-pill ${esc(eventDisplayClass(ev, idx))}">${esc(eventDisplayStatus(ev, idx))}</strong></div>
+      <div class="sa-row"><span>User</span><strong>${esc(eventUserName(ev))}</strong></div>
+      <div class="sa-row"><span>SoundAlert</span><strong>${esc(eventSoundName(ev))}</strong></div>
       <div class="sa-row"><span>Betrag</span><strong>${esc(ev.amount ?? 0)} ${esc(ev.currency || '')}</strong></div>
-      <div class="sa-row"><span>Datei</span><span class="sa-muted">${esc(ev.file || '-')}</span></div>
+      <div class="sa-row"><span>Info</span><span class="sa-muted">${esc(eventDetailLine(ev, idx) || '-')}</span></div>
       <div class="sa-actions">
         ${ev.file ? btn('Erneut abspielen', 'replay-last-event') : ''}
-        ${idx >= 0 ? btn('Eintrag bearbeiten', `edit-rule:${idx}`) : btn('Eintrag erstellen', 'create-from-last-event')}
+        ${idx >= 0 ? btn('Eintrag bearbeiten', `edit-rule:${idx}`) : ''}
+        ${canCreate ? btn('Eintrag erstellen', 'create-from-last-event', 'success') : ''}
       </div>
-      <div class="sa-note">${esc(ev.rawText || ev.raw_text || '')}</div>
+      <div class="sa-note">${esc(eventRawText(ev))}</div>
     `;
   }
 
@@ -694,20 +736,21 @@ window.SoundAlertsModule = (function(){
   function renderEvent(ev, idx){
     const ruleIdx = findRuleIndexForEvent(ev);
     const hasFile = !!ev.file;
-    const unmatched = ['unmatched', 'no_mapping'].includes(String(ev.status || '').toLowerCase()) || ruleIdx < 0;
+    const canCreate = canCreateEntryFromEvent(ev, ruleIdx);
+    const detail = eventDetailLine(ev, ruleIdx);
     return `
-      <div class="sa-event sa-event-card">
+      <div class="sa-event sa-event-card ${isCurrentMissingEvent(ev, ruleIdx) ? 'sa-event-log-only' : ''}">
         <div class="sa-event-main">
           <strong>${esc(eventSoundName(ev))}</strong>
           <small>${esc(eventUserName(ev))} · ${esc(ev.amount ?? 0)} ${esc(ev.currency || '')} · ${esc(eventCreatedAt(ev))}</small>
-          <small>${esc(ev.file || ev.error || eventRawText(ev) || '')}</small>
+          <small class="sa-event-detail">${esc(detail || '')}</small>
         </div>
         <div class="sa-event-side">
-          <span class="sa-pill ${esc(statusClass(ev.status))}">${esc(statusLabel(ev.status))}</span>
+          <span class="sa-pill ${esc(eventDisplayClass(ev, ruleIdx))}">${esc(eventDisplayStatus(ev, ruleIdx))}</span>
           <div class="sa-actions sa-event-actions">
             ${hasFile ? btn('Erneut abspielen', `replay-event:${idx}`) : ''}
             ${ruleIdx >= 0 ? btn('Eintrag bearbeiten', `edit-rule:${ruleIdx}`) : ''}
-            ${unmatched ? btn('Eintrag erstellen', `create-from-event:${idx}`, 'success') : ''}
+            ${canCreate ? btn('Eintrag erstellen', `create-from-event:${idx}`, 'success') : ''}
           </div>
         </div>
       </div>

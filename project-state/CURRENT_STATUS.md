@@ -92,3 +92,11 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 - Upload-/Zuweisungsfluss weiter UX-seitig verbessern.
 - Clip: echter Live-Test von `/api/clip/create`.
 - Echten MariaDB-Adapter spaeter in `backend/core/database.js` implementieren.
+
+
+## STEP193.7.4 Event-Log-Klartext
+
+- SoundAlerts Events werden klarer dargestellt, wenn sie nur historische Log-Eintraege sind.
+- Geloeschte oder nicht mehr vorhandene Eintraege erscheinen im Events-Tab als `Kein aktueller Eintrag` statt als aktuelle Aufgabe.
+- Parse-Fehler werden als `Parse-Fehler` angezeigt.
+- Die Uebersicht bleibt auf echte Aufgaben und abgespielte Replay-Events fokussiert.

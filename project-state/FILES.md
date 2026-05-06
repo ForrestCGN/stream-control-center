@@ -94,3 +94,12 @@ OBS Loader Standard:
 
 - `enabled: false` ist keine offene Einrichtung, wenn Name und Datei vorhanden sind.
 - Eintraege-Filter im Dashboard: Alle, Aktiv, Inaktiv, Datei fehlt, Ignoriert.
+
+
+## STEP193.7.4 zusaetzlich relevant
+
+Dashboard-Event-Log-Klartext:
+
+- `htdocs/dashboard/modules/soundalerts.js`
+- `htdocs/dashboard/modules/soundalerts.css`
+- `project-state/STEP193_7_4_SOUNDALERTS_EVENT_LOG_CLARITY_2026-05-06.md`

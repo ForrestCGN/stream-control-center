@@ -138,3 +138,11 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 
 - Optional Filter fuer `active`, `missing_file`, `ignored`, `file_matched`.
 - Keine neue Backend-Funktionalitaet, wenn vorhandene Daten reichen.
+
+
+## STEP193.7.4 - Event-Log-Klartext
+
+- Events im SoundAlerts-Dashboard unterscheiden nun deutlicher zwischen aktuellem Eintrag und historischem Log-Eintrag.
+- Alte Events zu geloeschten/unbekannten SoundAlerts werden als `Kein aktueller Eintrag` angezeigt.
+- Parse-Fehler werden als `Parse-Fehler` angezeigt.
+- Keine Backend-/API-/DB-Aenderung.

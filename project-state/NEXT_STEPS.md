@@ -44,3 +44,10 @@ Falls die Eintragsliste weiter waechst:
 - Ignored-Eintraege werden nicht neu als offene Auto-Eintraege erzeugt.
 - Aktuelles Video-Upload-Limit live: `1073741824` Bytes / 1 GB.
 - `_SoundAlerts_Loader` bleibt als aktive, stumme 1x1-OBS-Browserquelle geladen.
+
+
+## Nach STEP193.7.4
+
+- SoundAlerts Events im Live-Dashboard pruefen.
+- Falls gewuenscht: Events-Tab spaeter mit Filter `Alle / Abgespielt / Fehler / Kein aktueller Eintrag` erweitern.
+- Danach SoundAlerts-Flow weiter live testen.
