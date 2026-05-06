@@ -9,13 +9,13 @@ Stand: 2026-05-06
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
-## SoundAlerts / Sound-System - aktueller Stand bis STEP193.10
+## SoundAlerts / Sound-System - aktueller Stand bis STEP193.11
 
-`STEP193.10` erweitert den SoundAlerts-Parser fuer ein weiteres deutsches SoundAlerts-Chatformat. Der Dashboard-/Review-Workflow aus STEP193.9 bleibt unveraendert.
+`STEP193.11` erweitert den SoundAlerts-Parser fuer ein weiteres deutsches SoundAlerts-Chatformat. Der Dashboard-/Review-Workflow aus STEP193.9 bleibt unveraendert.
 
 Aktueller Modulstand:
 
-- `soundalerts_bridge` Version: `0.1.10`
+- `soundalerts_bridge` Version: `0.1.11`
 - Dashboard-Dateien:
   - `htdocs/dashboard/modules/soundalerts.js`
   - `htdocs/dashboard/modules/soundalerts.css`
@@ -29,7 +29,7 @@ Aktueller Modulstand:
 - SQLite ist produktiv aktiv; MariaDB bleibt spaeteres Ziel, aber ist noch nicht aktiv.
 
 
-## STEP193.10 Parser-Fix
+## STEP193.11 Parser-Fix
 
 Live erkanntes neues SoundAlerts-Format:
 
@@ -182,6 +182,27 @@ Ignorieren ist nicht mehr prominent im normalen Kartenfluss, bleibt aber technis
 ```text
 upload.maxVideoSizeBytes = 1073741824
 ```
+
+## Parser-Formate / STEP193.11
+
+Der SoundAlerts-Parser ist ab `0.1.11` ueber `parser.messageFormats` konfigurierbar.
+
+Aktive Standardformate:
+
+```text
+ForrestCGN spielt Lily was here fuer 0 Bits!
+ForrestCGN loest Airhorn mit 0 Bits aus
+```
+
+Die Formate werden als JSON-Setting `parser.messageFormats` in `soundalerts_bridge_settings` geseedet und koennen spaeter ueber Config/API angepasst werden.
+
+Formatfelder:
+
+```text
+id, enabled, pattern, flags, triggerGroup, soundGroup, amountGroup, currencyGroup
+```
+
+Damit muessen neue SoundAlerts-Chattexte nicht mehr hart im Parser-Code verdrahtet werden, solange sie mit Regex + Gruppen-Zuordnung abbildbar sind.
 
 ## Bewusst offen
 

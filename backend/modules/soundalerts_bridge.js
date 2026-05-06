@@ -20,13 +20,34 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.10';
+const VERSION = '0.1.11';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
 const SETTINGS_TABLE = 'soundalerts_bridge_settings';
 const OLD_DEFAULT_MAX_VIDEO_SIZE_BYTES = 104857600;
 const DEFAULT_MAX_VIDEO_SIZE_BYTES = 524288000;
+
+const DEFAULT_PARSER_MESSAGE_FORMATS = [
+  {
+    id: 'spielt_fuer',
+    enabled: true,
+    pattern: '^(.+?)\\s+spielt\\s+(.+?)\\s+(?:für|fuer|fur|fÃ¼r|f.r)\\s+(\\d+)\\s+(.+?)!?$',
+    triggerGroup: 1,
+    soundGroup: 2,
+    amountGroup: 3,
+    currencyGroup: 4
+  },
+  {
+    id: 'loest_mit_aus',
+    enabled: true,
+    pattern: '^(.+?)\\s+(?:löst|loest|lost|lÃ¶st|l.st)\\s+(.+?)\\s+mit\\s+(\\d+)\\s+(.+?)\\s+aus[!.]?$',
+    triggerGroup: 1,
+    soundGroup: 2,
+    amountGroup: 3,
+    currencyGroup: 4
+  }
+];
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -39,7 +60,8 @@ const DEFAULT_CONFIG = {
   parser: {
     language: 'de',
     allowQuotedSoundNames: true,
-    allowUnquotedSoundNames: true
+    allowUnquotedSoundNames: true,
+    messageFormats: DEFAULT_PARSER_MESSAGE_FORMATS
   },
   soundSystem: {
     playUrl: 'http://127.0.0.1:8080/api/sound/play',
@@ -97,6 +119,7 @@ const SETTINGS_DEFINITIONS = [
   { key: 'parser.language', path: 'parser.language', valueType: 'string', description: 'Parser-Sprache fuer SoundAlerts-Chattexte.' },
   { key: 'parser.allowQuotedSoundNames', path: 'parser.allowQuotedSoundNames', valueType: 'boolean', description: 'Soundnamen in Anfuehrungszeichen erlauben.' },
   { key: 'parser.allowUnquotedSoundNames', path: 'parser.allowUnquotedSoundNames', valueType: 'boolean', description: 'Soundnamen ohne Anfuehrungszeichen erlauben.' },
+  { key: 'parser.messageFormats', path: 'parser.messageFormats', valueType: 'json', description: 'Konfigurierbare SoundAlerts-Chatformate mit Regex und Gruppen-Zuordnung.' },
   { key: 'soundSystem.playUrl', path: 'soundSystem.playUrl', valueType: 'string', description: 'Interne Sound-System-Play-URL.' },
   { key: 'soundSystem.soundsBaseDir', path: 'soundSystem.soundsBaseDir', valueType: 'string', description: 'Basisverzeichnis fuer SoundAlerts-Dateien.' },
   { key: 'soundSystem.allowedExtensions', path: 'soundSystem.allowedExtensions', valueType: 'json', description: 'Erlaubte Dateiendungen fuer SoundAlerts-Wiedergabe.' },
@@ -812,13 +835,34 @@ function insertEvent(event) {
   });
   return result && result.lastInsertRowid ? Number(result.lastInsertRowid) : null;
 }
+function parserMessageFormats() {
+  const configured = config && config.parser && Array.isArray(config.parser.messageFormats) ? config.parser.messageFormats : [];
+  const source = configured.length ? configured : DEFAULT_PARSER_MESSAGE_FORMATS;
+  return source
+    .filter(format => format && format.enabled !== false && String(format.pattern || '').trim())
+    .map(format => ({
+      id: String(format.id || '').trim() || 'custom',
+      pattern: String(format.pattern || '').trim(),
+      flags: String(format.flags || 'i').trim() || 'i',
+      triggerGroup: Number.parseInt(format.triggerGroup || 1, 10),
+      soundGroup: Number.parseInt(format.soundGroup || 2, 10),
+      amountGroup: Number.parseInt(format.amountGroup || 3, 10),
+      currencyGroup: Number.parseInt(format.currencyGroup || 4, 10)
+    }))
+    .filter(format => format.triggerGroup > 0 && format.soundGroup > 0 && format.amountGroup > 0 && format.currencyGroup > 0);
+}
+
+function normalizeParsedSoundName(value) {
+  return String(value || '').trim().replace(/^"|"$/g, '').trim();
+}
+
 function parseSoundAlertsText(text) {
   const clean = String(text || '').trim().replace(/\s+/g, ' ');
   if (!clean) return null;
 
   function buildResult(triggerUserDisplay, soundAlertName, amountValue, currencyValue) {
     const trigger = String(triggerUserDisplay || '').trim();
-    const sound = String(soundAlertName || '').trim().replace(/^"|"$/g, '').trim();
+    const sound = normalizeParsedSoundName(soundAlertName);
     const amount = Number.parseInt(amountValue || 0, 10) || 0;
     const currency = String(currencyValue || '').trim().replace(/[!.]+$/g, '').trim();
     if (!trigger || !sound || !currency) return null;
@@ -833,28 +877,25 @@ function parseSoundAlertsText(text) {
     };
   }
 
-  const fuerPattern = '(?:für|fuer|fur|fÃ¼r|f.r)';
-  const loestPattern = '(?:löst|loest|lost|lÃ¶st|l.st)';
-
-  const spieltMatch = clean.match(/^(.+?)\s+spielt\s+(.+)$/i);
-  if (spieltMatch) {
-    const triggerUserDisplay = String(spieltMatch[1] || '').trim();
-    const rest = String(spieltMatch[2] || '').trim();
-    if (!triggerUserDisplay || !rest) return null;
-
-    let m = rest.match(new RegExp('^"([^"]+)"\\s+' + fuerPattern + '\\s+(\\d+)\\s+(.+?)!?$', 'i'));
-    if (!m) m = rest.match(new RegExp('^(.+?)\\s+' + fuerPattern + '\\s+(\\d+)\\s+(.+?)!?$', 'i'));
-    if (m) return buildResult(triggerUserDisplay, m[1], m[2], m[3]);
-  }
-
-  const loestMatch = clean.match(new RegExp('^(.+?)\\s+' + loestPattern + '\\s+(.+?)\\s+mit\\s+(\\d+)\\s+(.+?)\\s+aus[!.]?$', 'i'));
-  if (loestMatch) {
-    return buildResult(loestMatch[1], loestMatch[2], loestMatch[3], loestMatch[4]);
+  for (const format of parserMessageFormats()) {
+    try {
+      const regex = new RegExp(format.pattern, format.flags);
+      const match = clean.match(regex);
+      if (!match) continue;
+      const parsed = buildResult(
+        match[format.triggerGroup],
+        match[format.soundGroup],
+        match[format.amountGroup],
+        match[format.currencyGroup]
+      );
+      if (parsed) return parsed;
+    } catch (err) {
+      state.configError = `parser.messageFormats.${format.id}: ${err && err.message ? err.message : String(err)}`;
+    }
   }
 
   return null;
 }
-
 
 function findRule(soundAlertName) {
   const wanted = normalizeName(soundAlertName);

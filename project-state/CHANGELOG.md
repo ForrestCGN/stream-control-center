@@ -2,6 +2,17 @@
 
 ## 2026-05-06
 
+### STEP193.11 - SoundAlerts konfigurierbare Parser-Formate
+
+- `soundalerts_bridge` auf Version `0.1.11` gesetzt.
+- Parser-Formate ueber `parser.messageFormats` konfigurierbar gemacht.
+- Standardformate geseedet:
+  - `<user> spielt <sound> fuer <amount> <currency>`
+  - `<user> loest <sound> mit <amount> <currency> aus`
+- `parser.messageFormats` als JSON-Setting in `soundalerts_bridge_settings` ergaenzt.
+- Keine DB-Schemaaenderung und keine Dashboard-Aenderung.
+
+
 ### STEP193.10 - SoundAlerts Parser Format Fix
 
 - `soundalerts_bridge` auf Version `0.1.10` gesetzt.

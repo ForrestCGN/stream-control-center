@@ -31,7 +31,7 @@ DB-Strukturen:
 
 SoundAlerts-Version:
 
-- `0.1.10`
+- `0.1.11`
 
 Aktueller Upload-Wert live:
 
@@ -60,6 +60,7 @@ upload.maxVideoSizeBytes = 1073741824
 - `project-state/STEP193_8_1_SOUNDALERTS_REVIEW_SAVE_SCOPE_FIX_2026-05-06.md`
 - `project-state/STEP193_9_SOUNDALERTS_STABLE_HANDOFF_2026-05-06.md`
 - `project-state/STEP193_10_SOUNDALERTS_PARSER_FORMAT_FIX_2026-05-06.md`
+- `project-state/STEP193_11_SOUNDALERTS_CONFIGURABLE_PARSER_FORMATS_2026-05-06.md`
 
 
 ## SoundAlerts Parser-Formate
@@ -83,3 +84,8 @@ upload.maxVideoSizeBytes = 1073741824
 - Backups
 - ZIP/7z-Dateien
 - temporaere Dateien
+
+## SoundAlerts Parser-Settings
+
+- `parser.messageFormats` = JSON-Liste fuer erkennbare SoundAlerts-Chattexte.
+- Pro Format: `id`, `enabled`, `pattern`, `flags`, `triggerGroup`, `soundGroup`, `amountGroup`, `currencyGroup`.

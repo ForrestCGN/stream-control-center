@@ -2,14 +2,14 @@
 
 Stand: 2026-05-06
 
-## Aktueller SoundAlerts-Stand nach STEP193.10
+## Aktueller SoundAlerts-Stand nach STEP193.11
 
 SoundAlerts ist bis `STEP193.8.1` technisch umgesetzt, mit `STEP193.9` als stabiler Doku-/Handoff-Stand zusammengefasst und mit `STEP193.10` um einen Parser-Fix erweitert.
 
 Backend:
 
 - `backend/modules/soundalerts_bridge.js`
-- Version: `0.1.10`
+- Version: `0.1.11`
 - DB-Zugriffe laufen ueber `backend/core/database.js`.
 - Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
 - JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback.
@@ -64,3 +64,16 @@ Ignoriert = technisch vorhanden, aber nicht prominent im normalen Workflow.
 - Falls gewuenscht spaeter Statistik backendseitig erweitern.
 - Clip-System live testen.
 - MariaDB-Adapter spaeter zentral implementieren.
+
+## SoundAlerts Parser-Formate
+
+Ab `STEP193.11` sind die SoundAlerts-Chattext-Formate ueber das JSON-Setting `parser.messageFormats` konfigurierbar.
+
+Standardmaessig aktiv:
+
+```text
+<user> spielt <sound> fuer <amount> <currency>
+<user> loest <sound> mit <amount> <currency> aus
+```
+
+Neue Formate koennen ueber Regex + Gruppen-Zuordnung ergaenzt werden, ohne die Parser-Funktion selbst umzubauen.
