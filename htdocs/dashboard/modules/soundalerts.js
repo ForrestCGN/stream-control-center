@@ -30,6 +30,9 @@ window.SoundAlertsModule = (function(){
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
   function btn(label, action, cls){ return `<button type="button" class="${esc(cls || '')}" data-sa-action="${esc(action)}">${esc(label)}</button>`; }
+  function iconBtn(icon, label, action, cls){
+    return `<button type="button" class="sa-icon-btn ${esc(cls || '')}" data-sa-action="${esc(action)}" title="${esc(label)}" aria-label="${esc(label)}"><span aria-hidden="true">${esc(icon)}</span><span class="sa-sr-only">${esc(label)}</span></button>`;
+  }
 
   function registerDashboardModule(){
     if (!window.CGN) return;
@@ -104,6 +107,13 @@ window.SoundAlertsModule = (function(){
     if (!String(rule.soundAlertName || '').trim()) return true;
     if (isPlaceholderFile(rule.file)) return true;
     return false;
+  }
+
+  function canTestRule(rule){
+    if (!rule || isIgnoredRule(rule)) return false;
+    if (!String(rule.soundAlertName || rule.label || '').trim()) return false;
+    if (isPlaceholderFile(rule.file)) return false;
+    return true;
   }
 
   function ruleNeedsAction(rule){
@@ -875,9 +885,10 @@ window.SoundAlertsModule = (function(){
             <span>${esc(value(rule.volume, defaultVolume()))}%</span>
           </div>
         </div>
-        <div class="sa-entry-actions">
-          ${btn('Bearbeiten', `edit-rule:${idx}`)}
-          ${btn('Löschen', `remove-rule:${idx}`, 'danger')}
+        <div class="sa-entry-actions sa-icon-actions">
+          ${canTestRule(rule) ? iconBtn('▶', 'Eintrag testen', `test-rule:${idx}`, 'success') : ''}
+          ${iconBtn('✏️', 'Bearbeiten', `edit-rule:${idx}`)}
+          ${iconBtn('🗑️', 'Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
       </article>
     `;
@@ -914,10 +925,11 @@ window.SoundAlertsModule = (function(){
           <h4>Eintrag bearbeiten</h4>
           <div class="sa-muted">${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</div>
         </div>
-        <div class="sa-actions sa-editor-actions">
-          ${isReviewRule(rule) || ruleNeedsSetup(rule) ? btn('Speichern / Freigeben', `save-current-rule:${idx}`, 'success') : ''}
-          ${!isIgnoredRule(rule) ? btn('Ignorieren', `ignore-rule:${idx}`, 'secondary sa-less-important') : ''}
-          ${btn('Löschen', `remove-rule:${idx}`, 'danger')}
+        <div class="sa-actions sa-editor-actions sa-icon-actions">
+          ${iconBtn('💾', isReviewRule(rule) || ruleNeedsSetup(rule) ? 'Speichern / Freigeben' : 'Speichern', `save-current-rule:${idx}`, 'success')}
+          ${canTestRule(rule) ? iconBtn('▶', 'Eintrag testen', `test-rule:${idx}`, 'success') : ''}
+          ${!isIgnoredRule(rule) ? iconBtn('🚫', 'Ignorieren', `ignore-rule:${idx}`, 'secondary sa-less-important') : ''}
+          ${iconBtn('🗑️', 'Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
       </div>
       <div class="sa-rule sa-rule-editor" data-sa-rule-index="${idx}">
@@ -928,7 +940,7 @@ window.SoundAlertsModule = (function(){
         <label class="sa-field sa-wide sa-file-field"><span>Datei</span><input data-sa-rule-field="file" type="text" value="${esc(rule.file || '')}"></label>
         <div class="sa-upload-row sa-wide">
           <input data-sa-file-input="${idx}" type="file" hidden accept=".mp3,.wav,.ogg,.webm,.m4a,.mp4">
-          <button type="button" data-sa-action="upload-rule-file:${idx}" ${uploadState.active && uploadState.index === idx ? 'disabled' : ''}>${uploadState.active && uploadState.index === idx ? 'Upload läuft…' : 'Datei hochladen'}</button>
+          <button type="button" data-sa-action="upload-rule-file:${idx}" ${uploadState.active && uploadState.index === idx ? 'disabled' : ''}>${uploadState.active && uploadState.index === idx ? '⏳ Upload läuft…' : '⬆ Datei hochladen'}</button>
           <span class="sa-muted">Audio/Video wird passend gespeichert. Max. Audio: ${esc(uploadLimitMb(config?.upload || {}, 'maxAudioSizeBytes', 15))} MB · Max. Video: ${esc(uploadLimitMb(config?.upload || {}, 'maxVideoSizeBytes', 500))} MB.</span>
           ${renderUploadStatus(idx)}
         </div>
@@ -1254,6 +1266,25 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
     await runTest(buildReplayText(ev));
   }
 
+  function buildRuleTestText(rule){
+    const user = status?.lastEvent?.triggerUserDisplay || 'ForrestCGN';
+    const name = String(rule?.soundAlertName || rule?.label || '').trim() || 'Unbekannter Sound';
+    return `${user} spielt ${name} für 0 Bits!`;
+  }
+
+  async function testRule(idx){
+    saveActiveRuleFromDom();
+    const rule = rules()[idx];
+    if (!rule) return;
+    if (!canTestRule(rule)) {
+      alert('Dieser Eintrag kann noch nicht getestet werden. Es braucht mindestens einen SoundAlerts-Namen und eine Datei.');
+      return;
+    }
+    selectedRuleIndex = idx;
+    activeTab = 'rules';
+    await runTest(buildRuleTestText(rule));
+  }
+
   function inferUploadName(rule, fileObj){
     const fromRule = String(rule?.soundAlertName || rule?.label || '').trim();
     if (fromRule) return fromRule;
@@ -1459,6 +1490,7 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
         else if (action === 'reset-parser-formats') resetParserFormats();
         else if (action === 'test-parser-format') testParserFormats();
         else if (action === 'add-rule') addRule();
+        else if (action.startsWith('test-rule:')) await testRule(Number(action.split(':')[1]));
         else if (action.startsWith('remove-rule:')) await removeRule(Number(action.split(':')[1]));
         else if (action.startsWith('ignore-rule:')) await ignoreRule(Number(action.split(':')[1]));
         else if (action.startsWith('edit-rule:')) editRule(Number(action.split(':')[1]));

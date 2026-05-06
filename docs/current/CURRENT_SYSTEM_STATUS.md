@@ -227,3 +227,11 @@ Damit muessen neue SoundAlerts-Chattexte nicht mehr hart im Parser-Code verdraht
 - `parser.messageFormats` kann dort angezeigt, aktiviert/deaktiviert und erweitert werden.
 - Beispieltexte koennen lokal getestet werden, ohne Event-/DB-Eintrag anzulegen.
 - Speichern nutzt die bestehende Settings-API; keine Backend-/DB-Schemaaenderung.
+
+## STEP193.13 - Entry-Test im Dashboard
+
+- Einzelne SoundAlerts-Eintraege koennen im Dashboard direkt getestet werden.
+- Eintragskarten und Detail-Editor nutzen kompakte Icon-Aktionen fuer Testen, Bearbeiten/Speichern und Loeschen.
+- Der Test nutzt die bestehende `/api/soundalerts/test/chat`-Route.
+- Testen ist nur sichtbar, wenn ein Eintrag einen SoundAlerts-Namen und eine Datei hat.
+- Keine Backend-/API-/DB-Aenderung.

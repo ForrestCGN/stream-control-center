@@ -2,6 +2,14 @@
 
 ## 2026-05-06
 
+### STEP193.13 - SoundAlerts Entry Test Buttons
+
+- Eintragskarten und Detail-Editor um Test-Aktion erweitert.
+- Icon-Buttons fuer Eintragsaktionen ergaenzt.
+- Aktive Eintraege koennen im Editor direkt gespeichert werden.
+- Test-Aktion nutzt bestehende `/api/soundalerts/test/chat`-Route.
+- Keine Backend-/API-/DB-Aenderung.
+
 ### STEP193.12 - SoundAlerts Parser-Formate im Dashboard
 
 - `Bot & Settings` um Bereich `Chat-Erkennung` erweitert.
