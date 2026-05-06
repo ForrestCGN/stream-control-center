@@ -225,16 +225,29 @@ function parseSoundAlertsText(text) {
   const clean = String(text || '').trim().replace(/\s+/g, ' ');
   if (!clean) return null;
 
-  let m = clean.match(/^(.+?)\s+spielt\s+"([^"]+)"\s+f(?:ü|u)r\s+(\d+)\s+(.+?)!?$/i);
-  if (!m) m = clean.match(/^(.+?)\s+spielt\s+(.+?)\s+f(?:ü|u)r\s+(\d+)\s+(.+?)!?$/i);
+  const spieltMatch = clean.match(/^(.+?)\s+spielt\s+(.+)$/i);
+  if (!spieltMatch) return null;
+
+  const triggerUserDisplay = String(spieltMatch[1] || '').trim();
+  const rest = String(spieltMatch[2] || '').trim();
+  if (!triggerUserDisplay || !rest) return null;
+
+  const fuerPattern = '(?:für|fuer|fur|fÃ¼r|f.r)';
+  let m = rest.match(new RegExp('^"([^"]+)"\\s+' + fuerPattern + '\\s+(\\d+)\\s+(.+?)!?$', 'i'));
+  if (!m) m = rest.match(new RegExp('^(.+?)\\s+' + fuerPattern + '\\s+(\\d+)\\s+(.+?)!?$', 'i'));
   if (!m) return null;
 
+  const soundAlertName = String(m[1] || '').trim().replace(/^"|"$/g, '').trim();
+  const amount = Number.parseInt(m[2], 10) || 0;
+  const currency = String(m[3] || '').trim().replace(/!+$/, '').trim();
+  if (!soundAlertName || !currency) return null;
+
   return {
-    triggerUserDisplay: String(m[1] || '').trim(),
+    triggerUserDisplay,
     triggerUserLogin: '',
-    soundAlertName: String(m[2] || '').trim(),
-    amount: Number.parseInt(m[3], 10) || 0,
-    currency: String(m[4] || '').trim().replace(/!+$/, '').trim(),
+    soundAlertName,
+    amount,
+    currency,
     rawText: clean
   };
 }
@@ -485,6 +498,16 @@ async function handleChatItem(item) {
     const parsed = parseSoundAlertsText(item.text || '');
     if (!parsed) {
       state.stats.ignored++;
+      const row = {
+        eventUid: item.id || '',
+        botLogin: item.login || '',
+        botDisplayName: item.user || '',
+        rawText: item.text || '',
+        status: 'parse_failed',
+        error: 'parse_failed'
+      };
+      insertEvent(row);
+      remember(row);
       return { ok: false, ignored: true, reason: 'parse_failed' };
     }
     state.stats.parsed++;
