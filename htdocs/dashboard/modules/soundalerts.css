@@ -1,0 +1,300 @@
+.soundalerts-admin,
+#soundalertsModule {
+  display: block;
+  width: 100%;
+}
+
+.sa-card {
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.035);
+  box-shadow: 0 18px 70px rgba(0,0,0,.22), inset 0 0 0 1px rgba(255,255,255,.035);
+  color: var(--text, #f8fafc);
+}
+
+.sa-card:first-child { margin-bottom: 16px; }
+.sa-card h2 { margin: 0 0 10px; font-size: 22px; line-height: 1.15; font-weight: 950; }
+.sa-card h3 { margin: 0 0 12px; font-size: 16px; line-height: 1.2; font-weight: 950; }
+.sa-card h4 { margin: 0 0 10px; font-size: 14px; font-weight: 950; }
+
+.sa-note {
+  margin-top: 10px;
+  color: var(--muted, #a8b3cf);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sa-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.sa-hero-actions { margin-top: 0; justify-content: flex-end; }
+
+.sa-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  margin: 0 0 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+
+.sa-tab {
+  flex: 0 0 auto;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+  color: #e5e7eb;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.sa-tab.active {
+  border-color: rgba(56,189,248,.75);
+  background: linear-gradient(135deg,rgba(56,189,248,.22),rgba(168,85,247,.18));
+  box-shadow: 0 0 24px rgba(56,189,248,.18);
+  color: #fff;
+}
+
+.sa-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+#saOverviewCard,
+#saLastEventCard {
+  grid-column: span 6;
+}
+
+#saSettingsCard,
+#saRulesCard,
+#saEventsCard,
+#saStatsCard {
+  grid-column: span 12;
+}
+
+.sa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  align-items: center;
+}
+
+.sa-actions button,
+.sa-card button {
+  border: 1px solid rgba(255,255,255,.13);
+  background: rgba(255,255,255,.06);
+  color: #f8fafc;
+  border-radius: 14px;
+  padding: 10px 13px;
+  font-weight: 900;
+  cursor: pointer;
+  line-height: 1;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sa-actions button:hover,
+.sa-card button:hover {
+  border-color: rgba(56,189,248,.75);
+  background: rgba(56,189,248,.10);
+}
+
+.sa-actions button.success,
+.sa-card button.success { border-color: rgba(52,211,153,.55); background: rgba(16,185,129,.14); }
+.sa-actions button.danger,
+.sa-card button.danger { border-color: rgba(248,113,113,.55); background: rgba(244,63,94,.12); }
+
+.sa-row,
+.sa-event {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.sa-row:last-child,
+.sa-event:last-child { border-bottom: 0; }
+.sa-row > span:first-child { color: var(--muted, #a8b3cf); font-size: 13px; font-weight: 800; }
+.sa-row strong { font-weight: 950; }
+
+.sa-muted { color: var(--muted, #a8b3cf); font-size: 12px; overflow-wrap: anywhere; }
+
+.sa-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(56,189,248,.25);
+  background: rgba(14,165,233,.14);
+  color: #dff7ff;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.sa-pill.queued { border-color: rgba(52,211,153,.45); background: rgba(16,185,129,.15); color: #d1fae5; }
+.sa-pill.unmatched { border-color: rgba(251,191,36,.45); background: rgba(245,158,11,.16); color: #fef3c7; }
+.sa-pill.file_missing,
+.sa-pill.failed { border-color: rgba(248,113,113,.55); background: rgba(244,63,94,.12); color: #fee2e2; }
+
+.sa-form-grid,
+.sa-rule {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+
+.sa-rule {
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+}
+
+.sa-rule-list,
+.sa-event-list { display: grid; gap: 10px; }
+
+.sa-field {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted, #a8b3cf);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.sa-field span { color: var(--muted, #a8b3cf); font-size: 13px; font-weight: 800; }
+.sa-wide { grid-column: span 2; }
+
+.sa-field select,
+.sa-field input[type="number"],
+.sa-field input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(2,6,23,.68);
+  color: #e5e7eb;
+  padding: 10px 12px;
+  font-weight: 800;
+}
+
+.sa-field select:focus,
+.sa-field input:focus {
+  outline: none;
+  border-color: rgba(56,189,248,.72);
+  box-shadow: 0 0 0 3px rgba(56,189,248,.12);
+}
+
+.sa-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.035);
+  color: var(--muted, #a8b3cf);
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.sa-check input { width: auto; min-width: 18px; min-height: 18px; accent-color: #38bdf8; }
+.sa-rule-actions { align-self: end; margin-top: 0; }
+
+.sa-event-main { display: grid; gap: 4px; min-width: 0; }
+.sa-event-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sa-event-main small { color: var(--muted, #a8b3cf); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sa-stat-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.sa-empty {
+  padding: 18px;
+  border: 1px dashed rgba(255,255,255,.16);
+  border-radius: 18px;
+  color: var(--muted, #a8b3cf);
+  text-align: center;
+  background: rgba(255,255,255,.025);
+}
+
+[data-sa-section][hidden] { display: none !important; }
+
+.sa-card code {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(57,230,255,.08);
+  border: 1px solid rgba(57,230,255,.12);
+  color: #eafaff;
+  font-size: 12px;
+}
+
+html[data-theme=dark] .sa-card,
+html[data-theme=dark] .sa-tabs { background: #1e1e1e; border-color: #343434; box-shadow: none; color: #f2f2f2; }
+html[data-theme=dark] .sa-rule,
+html[data-theme=dark] .sa-check { background: #202020; border-color: #343434; }
+html[data-theme=dark] .sa-tab,
+html[data-theme=dark] .sa-actions button,
+html[data-theme=dark] .sa-card button { background: #2a2a2a; color: #f2f2f2; border-color: #3a3a3a; box-shadow: none; }
+html[data-theme=dark] .sa-tab.active { background: #3a3a3a; border-color: #5a5a5a; box-shadow: none; color: #fff; }
+html[data-theme=dark] .sa-field select,
+html[data-theme=dark] .sa-field input[type="number"],
+html[data-theme=dark] .sa-field input[type="text"] { background: #181818; color: #f2f2f2; border-color: #3a3a3a; }
+html[data-theme=dark] .sa-note,
+html[data-theme=dark] .sa-muted,
+html[data-theme=dark] .sa-field span,
+html[data-theme=dark] .sa-check,
+html[data-theme=dark] .sa-row > span:first-child,
+html[data-theme=dark] .sa-event-main small { color: #a7a7a7; }
+html[data-theme=dark] .sa-empty { background: #202020; border-color: #3a3a3a; color: #a7a7a7; }
+html[data-theme=dark] .sa-row,
+html[data-theme=dark] .sa-event { border-color: #343434; }
+
+@media (max-width: 1280px) {
+  #saOverviewCard,
+  #saLastEventCard { grid-column: span 12; }
+  .sa-form-grid,
+  .sa-rule,
+  .sa-stat-columns { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+  .sa-wide { grid-column: span 2; }
+}
+
+@media (max-width: 760px) {
+  .sa-grid { grid-template-columns: 1fr; }
+  #saOverviewCard,
+  #saLastEventCard,
+  #saSettingsCard,
+  #saRulesCard,
+  #saEventsCard,
+  #saStatsCard { grid-column: 1; }
+  .sa-hero { display: grid; }
+  .sa-hero-actions { justify-content: flex-start; }
+  .sa-form-grid,
+  .sa-rule,
+  .sa-stat-columns { grid-template-columns: 1fr; }
+  .sa-wide { grid-column: span 1; }
+  .sa-row,
+  .sa-event { align-items: flex-start; flex-direction: column; }
+  .sa-card { padding: 14px; border-radius: 18px; }
+}
