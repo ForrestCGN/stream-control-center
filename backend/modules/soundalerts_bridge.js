@@ -20,7 +20,7 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.5';
+const VERSION = '0.1.6';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
@@ -845,6 +845,79 @@ function uploadTargetFor(mediaType, originalName, requestedName) {
   return { ok: true, type, ext, targetDir, fullPath, relative, fileName, allowed };
 }
 
+function findExistingRuleBySoundAlertName(soundAlertName) {
+  const wanted = normalizeName(soundAlertName);
+  if (!wanted) return null;
+  const rules = getEffectiveRules();
+  return rules.find(rule => rule && normalizeName(rule.soundAlertName || rule.name || rule.id) === wanted) || null;
+}
+
+function candidateAutoEntryFiles(soundAlertName) {
+  const uploadCfg = getUploadConfig();
+  const baseName = normalizeFilenameBase(soundAlertName);
+  const candidates = [];
+
+  const videoPrefix = String(uploadCfg.videoRelativePrefix || 'soundalerts/video').replace(/^\/+|\/+$/g, '');
+  const audioPrefix = String(uploadCfg.audioRelativePrefix || 'soundalerts/audio').replace(/^\/+|\/+$/g, '');
+  const videoExts = Array.isArray(uploadCfg.allowedVideoExtensions) ? uploadCfg.allowedVideoExtensions : DEFAULT_CONFIG.upload.allowedVideoExtensions;
+  const audioExts = Array.isArray(uploadCfg.allowedAudioExtensions) ? uploadCfg.allowedAudioExtensions : DEFAULT_CONFIG.upload.allowedAudioExtensions;
+
+  for (const ext of videoExts) candidates.push({ mediaType: 'video', file: `${videoPrefix}/${baseName}${String(ext || '').trim()}` });
+  for (const ext of audioExts) candidates.push({ mediaType: 'audio', file: `${audioPrefix}/${baseName}${String(ext || '').trim()}` });
+
+  return candidates.filter(item => item.file && !item.file.endsWith('/'));
+}
+
+function findExistingAutoEntryFile(soundAlertName) {
+  for (const candidate of candidateAutoEntryFiles(soundAlertName)) {
+    const resolved = resolveFile({ file: candidate.file, mediaType: candidate.mediaType });
+    if (resolved && resolved.ok) {
+      return {
+        found: true,
+        file: resolved.relative || candidate.file,
+        mediaType: candidate.mediaType,
+        resolved
+      };
+    }
+  }
+
+  return { found: false, file: '', mediaType: 'audio', resolved: null };
+}
+
+function ensureAutoEntryForParsed(parsed, item) {
+  const existing = findExistingRuleBySoundAlertName(parsed && parsed.soundAlertName);
+  if (existing) return { ok: true, created: false, entry: existing, reason: 'entry_exists' };
+  if (!parsed || !String(parsed.soundAlertName || '').trim()) return { ok: false, created: false, reason: 'soundalert_name_missing' };
+
+  const matchedFile = findExistingAutoEntryFile(parsed.soundAlertName);
+  const mediaType = normalizeMediaType(matchedFile.mediaType, matchedFile.file);
+  const entry = {
+    id: entryKeyFromRule({ soundAlertName: parsed.soundAlertName }),
+    enabled: false,
+    status: matchedFile.found ? 'file_matched' : 'missing_file',
+    soundAlertName: parsed.soundAlertName,
+    label: parsed.soundAlertName,
+    file: matchedFile.file || '',
+    mediaType,
+    category: normalizeCategory(config?.soundSystem?.defaultCategory || 'channel_reward'),
+    outputTarget: normalizeOutputTarget('', mediaType),
+    volume: Number(config?.soundSystem?.defaultVolume ?? DEFAULT_CONFIG.soundSystem.defaultVolume ?? 100),
+    createdFrom: 'auto_detected',
+    meta: {
+      autoDetected: true,
+      detectedAt: core.nowIso(),
+      triggerUserDisplay: parsed.triggerUserDisplay || '',
+      amount: parsed.amount || 0,
+      currency: parsed.currency || '',
+      sourceEventUid: item && item.id || '',
+      fileAutoMatched: !!matchedFile.found
+    }
+  };
+
+  upsertEntryRule(entry, 'auto_detected');
+  return { ok: true, created: true, entry: findExistingRuleBySoundAlertName(parsed.soundAlertName) || entry, reason: matchedFile.found ? 'file_matched' : 'missing_file' };
+}
+
 async function handleUploadRequest(req, res) {
   if (!multer) return res.status(500).json(core.fail ? core.fail('multer_unavailable', multerLoadError) : { ok: false, error: 'multer_unavailable', message: multerLoadError });
   const uploadCfg = getUploadConfig();
@@ -1151,6 +1224,7 @@ async function handleChatItem(item) {
     const rule = findRule(parsed.soundAlertName);
     if (!rule) {
       state.stats.unmatched++;
+      const autoEntry = ensureAutoEntryForParsed(parsed, item);
       const row = {
         eventUid: item.id || '',
         botLogin: item.login || '',
@@ -1162,11 +1236,15 @@ async function handleChatItem(item) {
         currency: parsed.currency,
         rawText: parsed.rawText,
         status: 'unmatched',
-        error: 'no_mapping'
+        matchedRuleId: autoEntry && autoEntry.entry ? String(autoEntry.entry.id || autoEntry.entry.soundAlertName || '') : '',
+        error: autoEntry && autoEntry.created ? 'auto_entry_created' : 'no_active_mapping',
+        mediaType: autoEntry && autoEntry.entry ? String(autoEntry.entry.mediaType || '') : '',
+        file: autoEntry && autoEntry.entry ? String(autoEntry.entry.file || '') : '',
+        meta: { autoEntry }
       };
       insertEvent(row);
       remember(row);
-      return { ok: false, status: 'unmatched' };
+      return { ok: false, status: 'unmatched', autoEntry };
     }
 
     state.stats.matched++;
@@ -1235,7 +1313,9 @@ function publicStatus() {
           total: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries')?.c || 0,
           active: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=1')?.c || 0,
           inactive: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=0')?.c || 0,
-          missingFile: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE file=''")?.c || 0,
+          missingFile: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE file='' OR status='missing_file'")?.c || 0,
+          newDetected: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE status='new_detected'")?.c || 0,
+          fileMatched: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE status='file_matched'")?.c || 0,
           seededFromJson: getMetaValue('entries_seeded_from_json') === '1'
         };
       }
@@ -1393,3 +1473,4 @@ module.exports.init = function init(ctx) {
 
 module.exports.handleChatItem = handleChatItem;
 module.exports.parseSoundAlertsText = parseSoundAlertsText;
+module.exports.ensureAutoEntryForParsed = ensureAutoEntryForParsed;
