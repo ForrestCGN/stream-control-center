@@ -2,126 +2,6 @@
 
 Stand: 2026-05-06
 
-## Hauptpfade
-
-Repo:
-
-- `D:\Git\stream-control-center`
-
-Live:
-
-- `D:\Streaming\stramAssets`
-
-GitHub:
-
-- `https://github.com/ForrestCGN/stream-control-center`
-
-Branch:
-
-- `dev`
-
-
-## Globaler DB-Portability-Standard
-
-Fuer alle Module gilt:
-
-- SQLite/app.sqlite ist aktuell aktiv und darf nicht ersetzt oder ueberschrieben werden.
-- Neue DB-Features sollen spaeter MariaDB-tauglich bleiben.
-- Zentrale Zielschicht fuer neue DB-Zugriffe: `backend/core/database.js`.
-- Zentrale Settings-Schicht: `backend/modules/helpers/helper_settings.js`.
-- Zentrale Text-/Varianten-Schicht: `backend/modules/helpers/helper_texts.js`.
-- Direkte neue Kopplung an `backend/modules/sqlite_core.js` vermeiden, sofern ein zentraler Helper/Core-Weg moeglich ist.
-- MariaDB-Adapter ist geplant, aber noch nicht implementiert; bis dahin bleibt SQLite der funktionierende Standard.
-
-## Easy-Scripts / Deploy-Workflow
-
-Verbindlicher Script-Pfad:
-
-- `D:\Git\stream-control-center\tools\easy\`
-
-Standard-Scripte:
-
-- `tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd`
-- `tools\easy\02_LOKALE_AENDERUNGEN_ZU_GITHUB_HOCHLADEN.cmd`
-- `tools\easy\03_NUR_STATUS_PRUEFEN.cmd`
-- `tools\easy\04_BACKUP_ZURUECKSPIELEN.cmd`
-
-## Stepdone Workflow
-
-Nach manuellem Entpacken eines ZIPs nach Repo-Root:
-
-```powershell
-cd D:\Git\stream-control-center
-.\stepdone.cmd "commit beschreibung"
-```
-
-Relevante Datei:
-
-- `stepdone.cmd`
-
-Zweck:
-
-- Git-Status anzeigen
-- JS-Syntax pruefen
-- relevante Projektdateien vormerken
-- Sicherheitscheck gegen Secrets/DB/Backups/ZIPs
-- Commit
-- Push nach `origin/dev`
-- Live-Deploy ueber bekanntes Easy-Script
-
-## Aktive bekannte Backend-Dateien
-
-- `backend/modules/alert_system.js`
-- `backend/modules/tts_system.js`
-- `backend/modules/soundalerts_bridge.js`
-- `backend/modules/vip_sound_overlay.js`
-- `backend/modules/hug.js`
-- `backend/modules/tagebuch.js`
-- `backend/modules/todo.js`
-- `backend/modules/clips.js`
-- `backend/modules/twitch.js`
-- `backend/modules/obs.js`
-- `backend/modules/obs_shared.js`
-- `backend/modules/discord.js`
-- `backend/core/database.js`
-- `backend/modules/helpers/helper_texts.js`
-- `backend/modules/helpers/helper_settings.js`
-- `backend/modules/helpers/helper_messages.js`
-- `backend/modules/helpers/helper_config.js`
-- `backend/modules/helpers/helper_core.js`
-- `backend/modules/helpers/helper_routes.js`
-
-## Aktive bekannte Dashboard-Dateien
-
-- `htdocs/dashboard/index.html`
-- `htdocs/dashboard/app.js`
-- `htdocs/dashboard/app.css`
-- `htdocs/dashboard/modules/sectionhome.js`
-- `htdocs/dashboard/modules/sectionhome.css`
-- `htdocs/dashboard/modules/streamdesk.js`
-- `htdocs/dashboard/modules/streamdesk.css`
-- `htdocs/dashboard/modules/controlhome.js`
-- `htdocs/dashboard/modules/controlhome.css`
-- `htdocs/dashboard/modules/alerts.js`
-- `htdocs/dashboard/modules/alerts.css`
-- `htdocs/dashboard/modules/obs.js`
-- `htdocs/dashboard/modules/obs.css`
-- `htdocs/dashboard/modules/adminconfigs.js`
-- `htdocs/dashboard/modules/adminconfigs.css`
-- `htdocs/dashboard/modules/sound.js`
-- `htdocs/dashboard/modules/sound.css`
-- `htdocs/dashboard/modules/soundalerts.js`
-- `htdocs/dashboard/modules/hug.js`
-- `htdocs/dashboard/modules/hug.css`
-- `htdocs/dashboard/modules/tagebuch.js`
-- `htdocs/dashboard/modules/tagebuch.css`
-- `htdocs/dashboard/modules/todo.js`
-- `htdocs/dashboard/modules/todo.css`
-- `htdocs/dashboard/modules/vip.js`
-- `htdocs/dashboard/modules/vip.css`
-
-Clip-Dashboard ist noch offen.
-
 ## STEP192/193 SoundAlerts relevante Dateien
 
 Backend:
@@ -136,6 +16,7 @@ Backend:
 Dashboard:
 
 - `htdocs/dashboard/modules/soundalerts.js`
+- `htdocs/dashboard/modules/soundalerts.css`
 
 Config/Fallback:
 
@@ -150,7 +31,7 @@ DB-Strukturen:
 
 SoundAlerts-Version:
 
-- `0.1.6`
+- `0.1.9`
 
 SoundAlerts-Routen:
 
@@ -159,170 +40,32 @@ SoundAlerts-Routen:
 - `POST /api/soundalerts/settings`
 - `GET /api/soundalerts/entries`
 - `POST /api/soundalerts/entries`
+- `DELETE /api/soundalerts/entries/:entryKey`
+- `POST /api/soundalerts/entries/:entryKey/delete`
+- `POST /api/soundalerts/entries/:entryKey/ignore`
 - `GET /api/soundalerts/config`
 - `POST /api/soundalerts/config`
 - `POST /api/soundalerts/test/chat`
 - `GET /api/soundalerts/events`
+- `GET /api/soundalerts/stats`
 
-SoundAlerts-Settings:
+Aktueller Upload-Wert live:
 
-- `enabled`
-- `bot.login`
-- `bot.userId`
-- `bot.displayName`
-- `bot.validateUserinfo`
-- `parser.language`
-- `parser.allowQuotedSoundNames`
-- `parser.allowUnquotedSoundNames`
-- `soundSystem.playUrl`
-- `soundSystem.soundsBaseDir`
-- `soundSystem.allowedExtensions`
-- `soundSystem.defaultCategory`
-- `soundSystem.defaultPriority`
-- `soundSystem.audioOutputTarget`
-- `soundSystem.videoOutputTarget`
-- `soundSystem.defaultVolume`
-- `upload.enabled`
-- `upload.audioDir`
-- `upload.videoDir`
-- `upload.audioRelativePrefix`
-- `upload.videoRelativePrefix`
-- `upload.allowOverwrite`
-- `upload.maxAudioSizeBytes`
-- `upload.maxVideoSizeBytes`
-- `upload.allowedAudioExtensions`
-- `upload.allowedVideoExtensions`
-- `chatMessages.enabled`
-- `chatMessages.onMissingFile`
-- `chatMessages.onUnmatched`
-- `chatMessages.cooldownMs`
-- `chatMessages.missingFileTemplate`
-- `dedupe.enabled`
-- `dedupe.windowMs`
-
+```text
+upload.maxVideoSizeBytes = 1073741824
+```
 
 SoundAlerts-Auto-Entry-Statuswerte:
 
 - `active` = aktiv nutzbarer Eintrag
 - `missing_file` = automatisch erkannt, aber Datei fehlt
 - `file_matched` = automatisch erkannt und Datei wurde passend gefunden
+- `ignored` = bewusst ignorierter Auto-Eintrag, wird nicht erneut als offen angelegt
 - `disabled`/inaktiv = bewusst nicht abspielbereit
 
 SoundAlerts-Dokus:
 
-- `project-state/STEP192_1_1_SOUNDALERTS_DEFAULTS_SAVE_CLEANUP_2026-05-06.md`
-- `project-state/STEP192_2_SOUNDALERTS_SETTINGS_DB_2026-05-06.md`
-- `project-state/STEP192_2_1_SOUNDALERTS_DB_CORE_PORTABILITY_2026-05-06.md`
-- `project-state/STEP192_3_SOUNDALERTS_DOC_SYNC_2026-05-06.md`
-- `project-state/STEP192_3_1_GLOBAL_DB_PORTABILITY_STANDARD_2026-05-06.md`
-- `project-state/STEP193_SOUNDALERTS_INBOX_AUTO_ENTRIES_2026-05-06.md`
-- `project-state/STEP193_1_SOUNDALERTS_INBOX_DOC_SYNC_2026-05-06.md`
-
-## STEP183-187 Clip relevante Dateien
-
-Backend:
-
-- `backend/modules/clips.js`
-- `backend/modules/twitch.js`
-- `backend/modules/obs_shared.js`
-- `backend/modules/discord.js`
-- `backend/core/database.js`
-- `backend/modules/helpers/helper_settings.js`
-- `backend/modules/helpers/helper_texts.js`
-- `backend/modules/helpers/helper_messages.js`
-
-Config/Fallback:
-
-- `config/clip_system.json`
-- `config/messages/clips.json`
-- `config/discord_channels.json`
-
-DB-Strukturen:
-
-- `clip_history`
-- `clip_settings`
-- `module_text_variants` mit `module = clips`
-
-Clip-History Schema-Version:
-
-- `3`
-
-Clip-Routen:
-
-- `GET /api/clip/status`
-- `GET /api/clip/title`
-- `GET/POST /api/clip/register`
-- `GET /api/clip/history`
-- `GET/POST /api/clip/create`
-- `GET /api/clip/job/:jobId`
-- `GET/POST /api/clip/admin/settings`
-- `GET/POST /api/dashboard/clips/settings`
-- `GET/POST /api/clip/admin/texts`
-- `GET/POST /api/dashboard/clips/texts`
-
-## STEP181/182 Hug/Rehug relevante Dateien
-
-Backend:
-
-- `backend/modules/hug.js`
-
-Dashboard:
-
-- `htdocs/dashboard/modules/hug.js`
-- `htdocs/dashboard/modules/hug.css`
-
-Config/Fallback:
-
-- `config/hug_system.json`
-- `config/messages/hug.json`
-
-DB-Strukturen:
-
-- `hug_text_pairs`
-- `hug_pending_rehugs.pair_id`
-- `hug_users`
-- `hug_pair_stats`
-- `hug_pending_rehugs`
-- `hug_settings`
-- `hug_types`
-- `hug_texts`
-
-## STEP177/179/180 Tagebuch/Todo relevante Dateien
-
-Backend:
-
-- `backend/modules/helpers/helper_texts.js`
-- `backend/modules/tagebuch.js`
-- `backend/modules/todo.js`
-
-Dashboard:
-
-- `htdocs/dashboard/modules/tagebuch.js`
-- `htdocs/dashboard/modules/tagebuch.css`
-- `htdocs/dashboard/modules/todo.js`
-- `htdocs/dashboard/modules/todo.css`
-
-DB-Strukturen:
-
-- `module_texts`
-- `module_text_variants`
-- `tagebuch_settings`
-- `todo_settings`
-
-## STEP175 VIP relevante Dateien
-
-Backend:
-
-- `backend/modules/vip_sound_overlay.js`
-
-Dashboard:
-
-- `htdocs/dashboard/modules/vip.js`
-- `htdocs/dashboard/modules/vip.css`
-
-Overlay:
-
-- `htdocs/overlays/vip_sound_overlay_v2.html`
+- `project-state/STEP193_5_SOUNDALERTS_UPLOAD_UX_IGNORE_DELETE_DOC_SYNC_2026-05-06.md`
 
 ## Nie committen
 
@@ -333,4 +76,3 @@ Overlay:
 - Backups
 - ZIP/7z-Dateien
 - temporaere Dateien
-- alte kaputte Chat-Reste
