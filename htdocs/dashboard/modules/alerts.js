@@ -479,6 +479,43 @@
     return soundAssetById(id)?.public_url || '';
   }
 
+  function soundRoutingTargetOptions(selected){
+    const current = selected == null ? '' : String(selected);
+    return [
+      opt('', 'Standard / global', current),
+      opt('device', 'Audiogerät', current),
+      opt('overlay', 'OBS Overlay', current)
+    ].join('');
+  }
+
+  function soundRoutingCategoryOptions(selected){
+    const current = selected == null ? '' : String(selected);
+    return [
+      opt('', 'Standard / global', current),
+      opt('alert', 'Alert / Support', current),
+      opt('alert_critical', 'Kritischer Alert', current),
+      opt('channel_reward', 'Kanalpunkte / Reward', current),
+      opt('vip', 'VIP / Crew', current),
+      opt('fun', 'Fun / Community', current),
+      opt('tts', 'TTS', current),
+      opt('admin', 'Admin', current),
+      opt('system', 'System', current)
+    ].join('');
+  }
+
+  function soundRoutingSummary(r){
+    const targetMap = { device:'Audiogerät', overlay:'Overlay' };
+    const categoryMap = {
+      alert:'Alert', alert_critical:'Kritisch', channel_reward:'Kanalpunkte',
+      vip:'VIP', fun:'Fun', tts:'TTS', admin:'Admin', system:'System'
+    };
+    const target = r?.sound_output_target ? (targetMap[r.sound_output_target] || r.sound_output_target) : 'Standard';
+    const category = r?.sound_category ? (categoryMap[r.sound_category] || r.sound_category) : 'Standard';
+    const priority = r?.sound_priority !== null && r?.sound_priority !== undefined && r?.sound_priority !== '' ? r.sound_priority : 'Standard';
+    const volume = r?.sound_volume !== null && r?.sound_volume !== undefined && r?.sound_volume !== '' ? `${r.sound_volume}%` : 'Standard';
+    return `${target} · ${category} · Prio ${priority} · ${volume}`;
+  }
+
 
   function displayProfileLabel(r){
     if (!r) return '';
@@ -905,6 +942,7 @@
       source, type_key, label:'Neue Staffel', min_value:0, max_value:null, tier:'normal', priority:100,
       duration_ms:7000, duration_mode:'fixed', animation:'neon_card', image_mode:'avatar_icon', enabled:1,
       sound_asset_id:null, image_asset_id:null, display_profile_id:null,
+      sound_output_target:'', sound_category:'', sound_priority:null, sound_volume:null,
       tts_enabled:0, tts_timing:'after_alert', tts_mode:'audio_only', tts_template:'{user} schreibt: {message}', tts_max_chars:250, tts_min_amount:null,
       meta:{ chatMessage:{ enabled:false, blockId:null } }
     });
@@ -923,6 +961,7 @@
       source:'twitch', type_key:'bits', label:'Neue Staffel', min_value:0, max_value:null, tier:'normal', priority:100,
       duration_ms:7000, duration_mode:'fixed', animation:'neon_card', image_mode:'avatar_icon', enabled:1,
       sound_asset_id:null, image_asset_id:null, display_profile_id:null,
+      sound_output_target:'', sound_category:'', sound_priority:null, sound_volume:null,
       tts_enabled:0, tts_timing:'after_alert', tts_mode:'audio_only', tts_template:'{user} schreibt: {message}', tts_max_chars:250, tts_min_amount:null,
       meta_json:'{}', meta:{ chatMessage:{ enabled:false, blockId:null } }
     };
@@ -930,6 +969,10 @@
     r.duration_mode = r.duration_mode === 'sound' ? 'sound' : 'fixed';
     r.enabled = Number(r.enabled ?? 1);
     r.tts_enabled = Number(r.tts_enabled ?? 0);
+    r.sound_output_target = r.sound_output_target || '';
+    r.sound_category = r.sound_category || '';
+    r.sound_priority = r.sound_priority === '' || r.sound_priority === undefined ? null : r.sound_priority;
+    r.sound_volume = r.sound_volume === '' || r.sound_volume === undefined ? null : r.sound_volume;
     return r;
   }
 
@@ -965,6 +1008,12 @@
           <label class="wide-field">Sound<div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten Sound abspielen" aria-label="Ausgewählten Sound abspielen">▶</button></div></label>
           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
         </div><p class="small-note">Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil. Leer = aktuelles Standardprofil.</p></div>
+        <div class="form-section sound-routing-section"><h3>Sound-Ausgabe & Queue</h3><div class="form-grid editor-grid">
+          <label>Ausgabe<select id="ruleSoundOutputTarget">${soundRoutingTargetOptions(r.sound_output_target || '')}</select></label>
+          <label>Kategorie<select id="ruleSoundCategory">${soundRoutingCategoryOptions(r.sound_category || '')}</select></label>
+          <label>Sound-Prio<input id="ruleSoundPriority" type="number" value="${esc(empty(r.sound_priority))}" placeholder="Standard"></label>
+          <label>Lautstärke %<input id="ruleSoundVolume" type="number" min="0" max="100" value="${esc(empty(r.sound_volume))}" placeholder="Standard"></label>
+        </div><p class="small-note">Leer = globale Alert-Sound-Settings. Geld-/Support-Alerts typischerweise <strong>alert</strong> mit höherer Prio, Kanalpunkte eher <strong>channel_reward</strong> mit niedrigerer Prio. Video-Dateien bleiben immer Overlay.</p></div>
         <div class="form-section"><h3>Chat-Nachricht</h3><div class="form-grid editor-grid">
           <label class="wide-field">Chat-Textblock<select id="ruleChatBlock">${chatBlockOptions(r.source, r.type_key, r.meta?.chatMessage?.blockId || r.meta?.chatMessage?.block_id || '')}</select></label>
         </div><p class="small-note">Nein = kein Chat-Post. Bei Auswahl eines Textblocks wird pro Alert genau ein zufälliger Text aus diesem Block gesendet. Es wird kein einzelner Text pro Regel ausgewählt.</p></div>
@@ -1007,6 +1056,7 @@
       <span>Priorität: ${esc(r.priority ?? 100)}</span>
       <span>Dauer-Modus: ${esc((r.duration_mode || 'fixed') === 'sound' ? 'Nach Soundlänge' : 'Manuell')}</span>
       <span>Sound-ID: ${esc(r.sound_asset_id ?? '—')}${sound ? ` · ${esc(fmtMs(sound))}` : ''}</span>
+      <span>Sound-Routing: ${esc(soundRoutingSummary(r))}</span>
       <span>Design: ${esc(displayProfileLabel(r))}</span>
     </div>`;
   }
@@ -1149,6 +1199,10 @@
       sound_asset_id: valOrNull('ruleSound'),
       image_asset_id: null,
       display_profile_id: valOrNull('ruleDisplayProfile'),
+      sound_output_target: valOrNull('ruleSoundOutputTarget') || '',
+      sound_category: valOrNull('ruleSoundCategory') || '',
+      sound_priority: numOrNull('ruleSoundPriority'),
+      sound_volume: numOrNull('ruleSoundVolume'),
       tts_enabled: Number(document.getElementById('ruleTtsEnabled').value || 0),
       tts_timing: document.getElementById('ruleTtsTiming').value,
       tts_mode: document.getElementById('ruleTtsMode').value,
@@ -1760,6 +1814,10 @@
       sound_asset_id: r.sound_asset_id ?? null,
       image_asset_id: null,
       display_profile_id: r.display_profile_id ?? null,
+      sound_output_target: r.sound_output_target || '',
+      sound_category: r.sound_category || '',
+      sound_priority: r.sound_priority ?? null,
+      sound_volume: r.sound_volume ?? null,
       tts_enabled: Number(r.tts_enabled ?? 0),
       tts_timing: r.tts_timing || 'after_alert',
       tts_mode: r.tts_mode || 'audio_only',

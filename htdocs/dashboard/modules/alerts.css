@@ -544,3 +544,7 @@ html[data-theme=dark] .sort-th:hover,html[data-theme=dark] .sort-th.active{color
 .design-section .wide-field{grid-column:auto!important;}
 @media(max-width:1350px){.design-section .design-grid,.design-section:first-child + .design-section .design-grid{grid-template-columns:repeat(2,minmax(135px,1fr))!important;}}
 @media(max-width:1050px){.design-form-panel{max-height:none!important;overflow:visible!important;}.design-preview-panel{position:relative!important;top:auto!important;}}
+
+/* STEP188.3: Alert-Regel Sound-Routing */
+.sound-routing-section .small-note strong { color: var(--text, #f8fafc); }
+html[data-theme=dark] .sound-routing-section .small-note strong { color:#f2f2f2; }
