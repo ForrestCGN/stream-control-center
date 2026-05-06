@@ -31,6 +31,7 @@ Dashboard:
 - Globales Speichern gibt keine anderen Review-Eintraege frei.
 - Inaktive vollstaendige Eintraege zaehlen nicht als offene Einrichtung.
 - Events werden als Historie klarer dargestellt: Kein aktueller Eintrag / Parse-Fehler / Replay nur bei Datei.
+- Lokaler Overlay-Test ist im Dashboard verfügbar. Ausgabeziel pro Eintrag ist sichtbar/bearbeitbar: Device, Overlay oder Beides.
 - Eintraege koennen direkt getestet werden, wenn SoundAlerts-Name und Datei vorhanden sind.
 - Eintragsaktionen nutzen kompakte Icons fuer Testen, Bearbeiten/Speichern und Loeschen.
 

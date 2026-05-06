@@ -154,6 +154,15 @@ Klartextregeln:
 - Unbrauchbare Parse-Events bieten keinen sinnlosen `Eintrag erstellen`-Button an.
 - Replay wird nur angeboten, wenn eine Datei vorhanden ist.
 
+### Lokaler Test
+
+- Das lokale Sound-System-Overlay kann im Dashboard über `🖥️ Lokales Overlay` geöffnet werden.
+- URL: `/overlays/sound_system_overlay.html?debug=1`
+- Einträge zeigen ihr Ausgabeziel: `Device`, `Overlay` oder `Beides`.
+- Das Ausgabeziel ist im Eintrag-Editor bearbeitbar.
+- Device-Tests laufen über das lokale Audio-Gerät.
+- Overlay-/Beides-Tests brauchen ein geöffnetes lokales oder OBS-Sound-Overlay.
+
 ### Statistik
 
 Die Statistik ist fachlich auf nutzbare Werte ausgerichtet:

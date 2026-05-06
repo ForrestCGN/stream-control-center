@@ -2,6 +2,17 @@
 
 ## 2026-05-06
 
+### STEP193.14 - SoundAlerts Local Overlay Test Workflow
+
+- Lokalen Overlay-Test im Dashboard ergänzt.
+- Hero-Button `🖥️ Lokales Overlay` öffnet `/overlays/sound_system_overlay.html?debug=1`.
+- Unter `Bot & Settings` wurde ein Bereich `Lokaler Overlay-Test` ergänzt.
+- Einträge zeigen das Ausgabeziel klarer als `Device`, `Overlay` oder `Beides`.
+- Ausgabeziel ist im Eintrag-Editor bearbeitbar.
+- Test-Hinweis ergänzt: Overlay-/Beides-Tests benötigen ein geöffnetes lokales/OBS-Sound-Overlay; Device-Tests laufen über das lokale Audio-Gerät.
+- Doppelte/widersprüchliche Status-Chips bei Einträgen mit fehlender Datei reduziert.
+- Keine Backend-/API-/DB-Änderung.
+
 ### STEP193.13 - SoundAlerts Entry Test Buttons
 
 - Eintragskarten und Detail-Editor um Test-Aktion erweitert.

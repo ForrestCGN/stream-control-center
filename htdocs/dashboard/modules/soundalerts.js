@@ -378,6 +378,34 @@ window.SoundAlertsModule = (function(){
     `;
   }
 
+  function localOverlayUrl(){
+    return '/overlays/sound_system_overlay.html?debug=1';
+  }
+
+  function outputTargetLabel(value, mediaType){
+    const target = normalizeOutputTarget(value, mediaType || 'audio');
+    if (target === 'overlay') return 'Overlay';
+    if (target === 'both') return 'Beides';
+    return 'Device';
+  }
+
+  function renderRuleBadges(rule){
+    const media = String(rule?.mediaType || 'audio').toLowerCase();
+    const enabled = rule?.enabled === false ? false : true;
+    const badges = [`<span class="sa-pill">${esc(media === 'video' ? 'Video' : 'Audio')}</span>`];
+    if (isIgnoredRule(rule)) {
+      badges.push(`<span class="sa-pill ignored">Ignoriert</span>`);
+    } else if (ruleNeedsSetup(rule)) {
+      badges.push(`<span class="sa-pill setup">${esc(setupReason(rule))}</span>`);
+    } else if (isReviewRule(rule)) {
+      badges.push(`<span class="sa-pill setup">Zur Prüfung</span>`);
+    } else {
+      badges.push(`<span class="sa-pill ${enabled ? 'queued' : 'failed'}">${enabled ? 'Aktiv' : 'Inaktiv'}</span>`);
+    }
+    badges.push(`<span class="sa-pill target">${esc(outputTargetLabel(rule?.outputTarget || rule?.output_target, media))}</span>`);
+    return badges.join('');
+  }
+
   function renderShell(){
     if (!root) return;
     root.innerHTML = `
@@ -388,6 +416,7 @@ window.SoundAlertsModule = (function(){
         </div>
         <div class="sa-actions sa-hero-actions">
           ${btn('Neu laden', 'reload')}
+          ${btn('🖥️ Lokales Overlay', 'open-local-overlay')}
           ${btn('Config speichern', 'save-config', 'success')}
         </div>
       </div>
@@ -749,6 +778,25 @@ window.SoundAlertsModule = (function(){
     renderSettings();
   }
 
+  function renderLocalOverlayTest(){
+    const url = localOverlayUrl();
+    return `
+      <div class="sa-local-overlay-panel">
+        <div class="sa-section-head sa-local-overlay-head">
+          <div>
+            <h4>Lokaler Overlay-Test</h4>
+            <div class="sa-note">Für Einträge mit Ausgabeziel <strong>Overlay</strong> oder <strong>Beides</strong> muss ein Sound-System-Overlay geöffnet sein. Device-Tests laufen über das lokale Audio-Gerät.</div>
+          </div>
+          <div class="sa-actions sa-section-actions">
+            ${btn('🖥️ Overlay öffnen', 'open-local-overlay', 'success')}
+          </div>
+        </div>
+        <div class="sa-local-overlay-url">${esc(location.origin + url)}</div>
+        <div class="sa-note">Für OBS bleibt die Browserquelle <code>/overlays/sound_system_overlay.html</code> relevant. Für reine lokale Tests kann dieses Overlay im Browser geöffnet bleiben.</div>
+      </div>
+    `;
+  }
+
   function renderSettings(){
     const el = document.getElementById('saSettingsCard');
     if (!el) return;
@@ -872,15 +920,13 @@ window.SoundAlertsModule = (function(){
         <div class="sa-entry-main">
           <div class="sa-entry-title">
             <strong>${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</strong>
-            <span class="sa-pill">${esc(media === 'video' ? 'Video' : 'Audio')}</span>
-            <span class="sa-pill ${enabled ? 'queued' : 'failed'}">${enabled ? 'Aktiv' : 'Inaktiv'}</span>
-            ${rule.status ? `<span class="sa-pill ${esc(statusClass(rule.status))}">${esc(statusLabel(rule.status))}</span>` : ''}
-            ${needsSetup ? `<span class="sa-pill setup">${esc(setupReason(rule))}</span>` : ''}
+            ${renderRuleBadges(rule)}
           </div>
           <div class="sa-entry-meta">
             <span>${esc(rule.soundAlertName || '-')}</span>
             <span>${esc(rule.file || 'Keine Datei')}</span>
             <span>${esc(categoryName(rule.category || ''))}</span>
+            <span>Ausgabe: ${esc(outputTargetLabel(rule.outputTarget || rule.output_target, rule.mediaType))}</span>
             <span>${esc(priorityLabel(rule))}</span>
             <span>${esc(value(rule.volume, defaultVolume()))}%</span>
           </div>
@@ -937,6 +983,7 @@ window.SoundAlertsModule = (function(){
         <label class="sa-field"><span>SoundAlerts-Name</span><input data-sa-rule-field="soundAlertName" type="text" value="${esc(rule.soundAlertName || '')}"></label>
         <label class="sa-field"><span>Label</span><input data-sa-rule-field="label" type="text" value="${esc(rule.label || rule.soundAlertName || '')}"></label>
         <label class="sa-field"><span>Typ</span><select data-sa-rule-field="mediaType"><option value="audio" ${rule.mediaType === 'audio' ? 'selected' : ''}>Audio</option><option value="video" ${rule.mediaType === 'video' ? 'selected' : ''}>Video</option></select></label>
+        <label class="sa-field"><span>Ausgabe</span><select data-sa-rule-field="outputTarget"><option value="device" ${normalizeOutputTarget(rule.outputTarget || rule.output_target, rule.mediaType) === 'device' ? 'selected' : ''}>Device</option><option value="overlay" ${normalizeOutputTarget(rule.outputTarget || rule.output_target, rule.mediaType) === 'overlay' ? 'selected' : ''}>Overlay</option><option value="both" ${normalizeOutputTarget(rule.outputTarget || rule.output_target, rule.mediaType) === 'both' ? 'selected' : ''}>Beides</option></select></label>
         <label class="sa-field sa-wide sa-file-field"><span>Datei</span><input data-sa-rule-field="file" type="text" value="${esc(rule.file || '')}"></label>
         <div class="sa-upload-row sa-wide">
           <input data-sa-file-input="${idx}" type="file" hidden accept=".mp3,.wav,.ogg,.webm,.m4a,.mp4">
@@ -949,6 +996,7 @@ window.SoundAlertsModule = (function(){
         <label class="sa-field"><span>Lautstärke</span><input data-sa-rule-field="volume" type="number" min="0" max="100" value="${esc(value(rule.volume, defaultVolume()))}"></label>
       </div>
       <div class="sa-note" data-sa-priority-hint>Priorität leer lassen = Kategorie-Standard ${esc(standardPriority(rule))}. Nur eintragen, wenn dieser SoundAlert bewusst abweichen soll.</div>
+      <div class="sa-note sa-output-hint">Test nutzt das gespeicherte Ausgabeziel. Für Overlay/Beides vorher das lokale Overlay öffnen und Änderungen speichern.</div>
     `;
   }
 
@@ -1074,7 +1122,7 @@ window.SoundAlertsModule = (function(){
       file: String(field('file')?.value || '').trim(),
       mediaType: String(field('mediaType')?.value || 'audio').trim(),
       category: normalizeCategory(field('category')?.value),
-      outputTarget: normalizeOutputTarget(current.outputTarget || current.output_target, String(field('mediaType')?.value || 'audio').trim()),
+      outputTarget: normalizeOutputTarget(field('outputTarget')?.value || current.outputTarget || current.output_target, String(field('mediaType')?.value || 'audio').trim()),
       priority: normalizePriorityOverride(field('priority')?.value),
       volume: Math.max(0, Math.min(100, Number(field('volume')?.value || defaultVolume())))
     }, idx);
@@ -1481,6 +1529,7 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
           if (input) input.click();
         }
         else if (action === 'save-config') await saveConfig();
+        else if (action === 'open-local-overlay') window.open(localOverlayUrl(), 'cgn_sound_overlay_test', 'width=960,height=540,noopener,noreferrer');
         else if (action.startsWith('save-current-rule:')) await saveConfig(Number(action.split(':')[1]));
         else if (action === 'show-events') { activeTab = 'events'; applyTab(); }
         else if (action === 'show-rules') { ruleFilter = 'all'; activeTab = 'rules'; render(); }

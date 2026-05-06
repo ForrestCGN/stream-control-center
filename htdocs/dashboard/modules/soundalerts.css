@@ -1447,3 +1447,53 @@ html[data-theme=dark] .sa-parser-format textarea {
     justify-content: flex-start;
   }
 }
+
+/* STEP193.14: Lokaler Overlay-Test und klarere Eintragschips */
+.sa-pill.target {
+  border-color: rgba(125, 211, 252, .34);
+  background: rgba(14, 165, 233, .10);
+  color: #e0f2fe;
+}
+
+.sa-local-overlay-panel {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(56,189,248,.16);
+  background: rgba(56,189,248,.045);
+}
+
+.sa-local-overlay-head {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.sa-local-overlay-url {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(2,6,23,.42);
+  color: #dbeafe;
+  font-size: 12px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.sa-output-hint {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(251,191,36,.18);
+  background: rgba(251,191,36,.055);
+}
+
+html[data-theme=dark] .sa-local-overlay-panel {
+  background: #1b232c;
+  border-color: #334155;
+}
+
+html[data-theme=dark] .sa-local-overlay-url,
+html[data-theme=dark] .sa-output-hint {
+  background: #181818;
+  border-color: #343434;
+}
