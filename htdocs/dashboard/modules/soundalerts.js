@@ -11,6 +11,7 @@ window.SoundAlertsModule = (function(){
   let loading = false;
   let bound = false;
   let selectedRuleIndex = 0;
+  let uploadState = { active: false, index: -1, progress: 0, message: '', fileName: '', sizeMb: 0, error: '' };
 
   const CATEGORY_OPTIONS = [
     { value: '', label: 'Standard / global', priority: null },
@@ -66,6 +67,25 @@ window.SoundAlertsModule = (function(){
   function selectedRule(){ return rules()[selectedRuleIndex] || null; }
   function defaultPriority(){ return Number(config?.soundSystem?.defaultPriority ?? 70); }
   function defaultVolume(){ return Number(config?.soundSystem?.defaultVolume ?? 100); }
+  function bytesToMb(bytes, fallback){
+    const n = Number(bytes);
+    if (!Number.isFinite(n) || n <= 0) return fallback;
+    return Math.round((n / 1024 / 1024) * 10) / 10;
+  }
+  function mbToBytes(mb, fallbackMb){
+    const n = Number(mb);
+    const safe = Number.isFinite(n) && n > 0 ? n : fallbackMb;
+    return Math.round(safe * 1024 * 1024);
+  }
+  function uploadLimitMb(upload, key, fallbackMb){
+    return bytesToMb(upload?.[key], fallbackMb);
+  }
+  function fileSizeMb(fileObj){
+    return bytesToMb(fileObj?.size, 0);
+  }
+  function isIgnoredRule(rule){
+    return String(rule?.status || '').toLowerCase() === 'ignored';
+  }
 
   function isPlaceholderFile(file){
     const f = String(file || '').trim().toLowerCase();
@@ -73,7 +93,7 @@ window.SoundAlertsModule = (function(){
   }
 
   function ruleNeedsSetup(rule){
-    if (!rule) return false;
+    if (!rule || isIgnoredRule(rule)) return false;
     if (rule.enabled === false) return true;
     if (!String(rule.soundAlertName || '').trim()) return true;
     if (isPlaceholderFile(rule.file)) return true;
@@ -82,6 +102,7 @@ window.SoundAlertsModule = (function(){
 
   function setupReason(rule){
     if (!rule) return 'Einrichtung nötig';
+    if (isIgnoredRule(rule)) return 'Ignoriert';
     if (!String(rule.soundAlertName || '').trim()) return 'Name fehlt';
     if (isPlaceholderFile(rule.file)) return 'Datei fehlt';
     if (rule.enabled === false) return 'Inaktiv / neu';
@@ -176,7 +197,9 @@ window.SoundAlertsModule = (function(){
     if (s === 'played' || s === 'success' || s === 'done') return 'Abgespielt';
     if (s === 'unmatched') return 'Nicht eingerichtet';
     if (s === 'no_mapping') return 'Kein Eintrag';
-    if (s === 'file_missing') return 'Datei fehlt';
+    if (s === 'file_missing' || s === 'missing_file') return 'Datei fehlt';
+    if (s === 'file_matched') return 'Datei gefunden';
+    if (s === 'ignored') return 'Ignoriert';
     if (s === 'failed') return 'Fehler';
     return statusValue || '-';
   }
@@ -184,6 +207,9 @@ window.SoundAlertsModule = (function(){
   function statusClass(statusValue){
     const s = String(statusValue || '').toLowerCase();
     if (s === 'no_mapping') return 'unmatched';
+    if (s === 'missing_file') return 'file_missing';
+    if (s === 'file_matched') return 'queued';
+    if (s === 'ignored') return 'ignored';
     if (s === 'success' || s === 'played' || s === 'done') return 'queued';
     return s || 'unknown';
   }
@@ -314,6 +340,7 @@ window.SoundAlertsModule = (function(){
     const sound = cfg.soundSystem || {};
     const chat = cfg.chatMessages || {};
     const dedupe = cfg.dedupe || {};
+    const upload = cfg.upload || {};
     el.innerHTML = `
       <h3>Bot & Settings</h3>
       <div class="sa-form-grid">
@@ -326,13 +353,15 @@ window.SoundAlertsModule = (function(){
         <label class="sa-field"><span>Audio-Ziel</span><select id="saAudioTarget"><option value="device" ${sound.audioOutputTarget === 'device' ? 'selected' : ''}>Device</option><option value="overlay" ${sound.audioOutputTarget === 'overlay' ? 'selected' : ''}>Overlay</option><option value="both" ${sound.audioOutputTarget === 'both' ? 'selected' : ''}>Beides</option></select></label>
         <label class="sa-field"><span>Video-Ziel</span><select id="saVideoTarget"><option value="overlay" ${sound.videoOutputTarget !== 'device' ? 'selected' : ''}>Overlay</option><option value="device" ${sound.videoOutputTarget === 'device' ? 'selected' : ''}>Device</option><option value="both" ${sound.videoOutputTarget === 'both' ? 'selected' : ''}>Beides</option></select></label>
         <label class="sa-field"><span>Standard-Lautstärke</span><input id="saDefaultVolume" type="number" min="0" max="100" value="${esc(value(sound.defaultVolume, 100))}"></label>
+        <label class="sa-field"><span>Max. Audio-Upload (MB)</span><input id="saMaxAudioMb" type="number" min="1" max="20480" step="1" value="${esc(uploadLimitMb(upload, 'maxAudioSizeBytes', 15))}"></label>
+        <label class="sa-field"><span>Max. Video-Upload (MB)</span><input id="saMaxVideoMb" type="number" min="1" max="20480" step="1" value="${esc(uploadLimitMb(upload, 'maxVideoSizeBytes', 500))}"></label>
         <label class="sa-check"><input id="saDedupeEnabled" type="checkbox" ${dedupe.enabled === false ? '' : 'checked'}><span>Dedupe aktiv</span></label>
         <label class="sa-field"><span>Dedupe-Fenster ms</span><input id="saDedupeMs" type="number" min="0" max="600000" value="${esc(value(dedupe.windowMs, 3000))}"></label>
         <label class="sa-check"><input id="saChatMissing" type="checkbox" ${chat.onMissingFile === false ? '' : 'checked'}><span>Chatmeldung bei fehlender Datei</span></label>
         <label class="sa-check"><input id="saChatUnmatched" type="checkbox" ${chat.onUnmatched === true ? 'checked' : ''}><span>Chatmeldung bei unbekanntem Sound</span></label>
         <label class="sa-field"><span>Chat-Cooldown ms</span><input id="saChatCooldown" type="number" min="0" max="600000" value="${esc(value(chat.cooldownMs, 15000))}"></label>
       </div>
-      <div class="sa-note">Unbekannte SoundAlerts werden geloggt. Einträge können später aus Events erstellt und aktiviert werden.</div>
+      <div class="sa-note">Upload-Limits werden in <code>soundalerts_bridge_settings</code> gespeichert. Unbekannte SoundAlerts werden als offene Einträge erkannt und können bei Bedarf ignoriert werden.</div>
     `;
   }
 
@@ -408,6 +437,7 @@ window.SoundAlertsModule = (function(){
             <strong>${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</strong>
             <span class="sa-pill">${esc(media === 'video' ? 'Video' : 'Audio')}</span>
             <span class="sa-pill ${enabled ? 'queued' : 'failed'}">${enabled ? 'Aktiv' : 'Inaktiv'}</span>
+            ${rule.status ? `<span class="sa-pill ${esc(statusClass(rule.status))}">${esc(statusLabel(rule.status))}</span>` : ''}
             ${needsSetup ? `<span class="sa-pill setup">${esc(setupReason(rule))}</span>` : ''}
           </div>
           <div class="sa-entry-meta">
@@ -420,6 +450,7 @@ window.SoundAlertsModule = (function(){
         </div>
         <div class="sa-entry-actions">
           ${btn('Bearbeiten', `edit-rule:${idx}`)}
+          ${!isIgnoredRule(rule) && rule.enabled === false ? btn('Ignorieren', `ignore-rule:${idx}`) : ''}
           ${btn('Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
       </article>
@@ -431,6 +462,25 @@ window.SoundAlertsModule = (function(){
     return `<select data-sa-rule-field="category">${CATEGORY_OPTIONS.map(opt => `<option value="${esc(opt.value)}" data-priority="${esc(opt.priority ?? '')}" ${opt.value === current ? 'selected' : ''}>${esc(opt.priority === null ? opt.label : `${opt.label} (${opt.priority})`)}</option>`).join('')}</select>`;
   }
 
+  function renderUploadStatus(idx){
+    if (!uploadState.active && uploadState.index !== idx) return '';
+    const active = uploadState.active && uploadState.index === idx;
+    const progress = Math.max(0, Math.min(100, Number(uploadState.progress || 0)));
+    const cls = uploadState.error ? ' error' : (active ? ' active' : ' done');
+    const message = uploadState.error || uploadState.message || (active ? 'Upload läuft…' : 'Upload abgeschlossen');
+    const details = uploadState.fileName ? `${uploadState.fileName}${uploadState.sizeMb ? ` · ${uploadState.sizeMb} MB` : ''}` : '';
+    return `
+      <div class="sa-upload-status${cls}" data-sa-upload-status>
+        <div class="sa-upload-status-head">
+          <strong>${esc(message)}</strong>
+          <span>${active ? `${Math.round(progress)}%` : ''}</span>
+        </div>
+        ${details ? `<div class="sa-muted">${esc(details)}</div>` : ''}
+        <div class="sa-upload-progress"><span style="width:${esc(progress)}%"></span></div>
+      </div>
+    `;
+  }
+
   function renderRuleEditor(rule, idx){
     return `
       <div class="sa-editor-head">
@@ -439,6 +489,7 @@ window.SoundAlertsModule = (function(){
           <div class="sa-muted">${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</div>
         </div>
         <div class="sa-actions sa-editor-actions">
+          ${!isIgnoredRule(rule) && rule.enabled === false ? btn('Ignorieren', `ignore-rule:${idx}`) : ''}
           ${btn('Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
       </div>
@@ -450,8 +501,9 @@ window.SoundAlertsModule = (function(){
         <label class="sa-field sa-wide sa-file-field"><span>Datei</span><input data-sa-rule-field="file" type="text" value="${esc(rule.file || '')}"></label>
         <div class="sa-upload-row sa-wide">
           <input data-sa-file-input="${idx}" type="file" hidden accept=".mp3,.wav,.ogg,.webm,.m4a,.mp4">
-          ${btn('Datei hochladen', `upload-rule-file:${idx}`)}
-          <span class="sa-muted">Audio/Video wird passend unter dem konfigurierten SoundAlerts-Upload-Pfad gespeichert.</span>
+          <button type="button" data-sa-action="upload-rule-file:${idx}" ${uploadState.active && uploadState.index === idx ? 'disabled' : ''}>${uploadState.active && uploadState.index === idx ? 'Upload läuft…' : 'Datei hochladen'}</button>
+          <span class="sa-muted">Audio/Video wird passend gespeichert. Max. Audio: ${esc(uploadLimitMb(config?.upload || {}, 'maxAudioSizeBytes', 15))} MB · Max. Video: ${esc(uploadLimitMb(config?.upload || {}, 'maxVideoSizeBytes', 500))} MB.</span>
+          ${renderUploadStatus(idx)}
         </div>
         <label class="sa-field"><span>Kategorie</span>${renderCategorySelect(rule)}</label>
         <label class="sa-field"><span>Priorität überschreiben</span><input data-sa-rule-field="priority" type="number" min="0" max="200" placeholder="${esc(priorityPlaceholder(rule))}" value="${esc(priorityOverrideValue(rule))}"></label>
@@ -586,6 +638,11 @@ window.SoundAlertsModule = (function(){
         videoOutputTarget: readText('saVideoTarget') || 'overlay',
         defaultVolume: readNumber('saDefaultVolume', 100, 0, 100)
       },
+      upload: {
+        ...(current.upload || {}),
+        maxAudioSizeBytes: mbToBytes(readNumber('saMaxAudioMb', uploadLimitMb(current.upload || {}, 'maxAudioSizeBytes', 15), 1, 20480), 15),
+        maxVideoSizeBytes: mbToBytes(readNumber('saMaxVideoMb', uploadLimitMb(current.upload || {}, 'maxVideoSizeBytes', 500), 1, 20480), 500)
+      },
       dedupe: {
         ...(current.dedupe || {}),
         enabled: readBool('saDedupeEnabled'),
@@ -651,6 +708,29 @@ window.SoundAlertsModule = (function(){
     applyTab();
   }
 
+  function ignoreRule(idx){
+    saveActiveRuleFromDom();
+    const list = rules().slice();
+    const item = list[idx];
+    if (!item) return;
+    if (!confirm(`SoundAlert "${item.label || item.soundAlertName || 'Eintrag'}" ignorieren?\n\nIgnorierte Einträge werden nicht mehr automatisch neu angelegt, wenn derselbe SoundAlerts-Chat erneut kommt.`)) return;
+    list[idx] = normalizeRule({
+      ...item,
+      enabled: false,
+      status: 'ignored',
+      file: String(item.file || '').trim(),
+      meta: {
+        ...(item.meta || {}),
+        ignoredAt: new Date().toISOString(),
+        ignoredFromDashboard: true
+      }
+    }, idx);
+    config = { ...(config || {}), rules: list };
+    selectedRuleIndex = idx;
+    activeTab = 'rules';
+    saveConfig().catch(err => alert(err.message || String(err)));
+  }
+
   function editRule(idx){
     saveActiveRuleFromDom();
     selectedRuleIndex = Number(idx) || 0;
@@ -693,6 +773,31 @@ window.SoundAlertsModule = (function(){
     return String(fileObj?.name || '').replace(/\.[a-z0-9]+$/i, '');
   }
 
+  function setUploadState(next){
+    uploadState = { ...uploadState, ...(next || {}) };
+    render();
+  }
+
+  function uploadFormDataWithProgress(body, idx){
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API}/upload`);
+      xhr.upload.onprogress = ev => {
+        if (!ev.lengthComputable) return;
+        const progress = Math.round((ev.loaded / ev.total) * 100);
+        setUploadState({ active: true, index: idx, progress, message: `Upload läuft… ${progress}%` });
+      };
+      xhr.onload = () => {
+        let json = {};
+        try { json = xhr.responseText ? JSON.parse(xhr.responseText) : {}; } catch (_) { json = { raw: xhr.responseText || '' }; }
+        resolve({ status: xhr.status, ok: xhr.status >= 200 && xhr.status < 300, json });
+      };
+      xhr.onerror = () => reject(new Error('Upload fehlgeschlagen: Netzwerkfehler.'));
+      xhr.onabort = () => reject(new Error('Upload abgebrochen.'));
+      xhr.send(body);
+    });
+  }
+
   async function uploadRuleFile(idx, fileObj, overwrite){
     if (!fileObj) return;
     saveActiveRuleFromDom();
@@ -700,6 +805,18 @@ window.SoundAlertsModule = (function(){
     const rule = list[idx];
     if (!rule) return;
     const mediaType = String(rule.mediaType || '').toLowerCase() === 'video' ? 'video' : 'audio';
+    const sizeMb = fileSizeMb(fileObj);
+    uploadState = {
+      active: true,
+      index: idx,
+      progress: 0,
+      message: 'Upload startet…',
+      fileName: fileObj.name || '',
+      sizeMb,
+      error: ''
+    };
+    render();
+
     const body = new FormData();
     body.append('file', fileObj);
     body.append('mediaType', mediaType);
@@ -709,14 +826,16 @@ window.SoundAlertsModule = (function(){
 
     let result;
     try {
-      const response = await fetch(`${API}/upload`, { method: 'POST', body });
-      result = await response.json().catch(() => ({}));
+      const response = await uploadFormDataWithProgress(body, idx);
+      result = response.json || {};
       if (response.status === 409 && result?.error === 'file_exists' && !overwrite) {
+        setUploadState({ active: false, progress: 0, message: 'Datei existiert bereits.', error: '' });
         if (!confirm(`Datei existiert bereits:\n${result.file || fileObj.name}\n\nÜberschreiben?`)) return;
         return uploadRuleFile(idx, fileObj, true);
       }
       if (!response.ok || result?.ok === false) throw new Error(result?.message || result?.error || `Upload fehlgeschlagen (${response.status})`);
     } catch (err) {
+      setUploadState({ active: false, progress: 0, message: '', error: err.message || String(err) });
       alert(err.message || String(err));
       return;
     }
@@ -724,6 +843,7 @@ window.SoundAlertsModule = (function(){
     const data = result || {};
     const uploadedFile = data.file || data.result?.file || '';
     if (!uploadedFile) {
+      setUploadState({ active: false, progress: 100, message: '', error: 'Upload erfolgreich, aber kein Dateipfad erhalten.' });
       alert('Upload erfolgreich, aber es wurde kein Dateipfad zurückgegeben.');
       return;
     }
@@ -731,12 +851,14 @@ window.SoundAlertsModule = (function(){
     list[idx] = normalizeRule({
       ...rule,
       file: uploadedFile,
+      status: rule.enabled === false ? 'file_matched' : 'active',
       mediaType: data.mediaType || mediaType,
       outputTarget: normalizeOutputTarget(rule.outputTarget || rule.output_target, data.mediaType || mediaType)
     }, idx);
     config = { ...(config || {}), rules: list };
     selectedRuleIndex = idx;
     activeTab = 'rules';
+    setUploadState({ active: false, progress: 100, message: 'Upload abgeschlossen.', error: '' });
     await saveConfig();
   }
 
@@ -826,6 +948,7 @@ window.SoundAlertsModule = (function(){
       try {
         if (action === 'reload') await loadAll(true);
         else if (action.startsWith('upload-rule-file:')) {
+          if (uploadState.active) return;
           const idx = Number(action.split(':')[1]);
           saveActiveRuleFromDom();
           const input = document.querySelector(`[data-sa-file-input="${idx}"]`);
@@ -835,6 +958,7 @@ window.SoundAlertsModule = (function(){
         else if (action === 'show-events') { activeTab = 'events'; applyTab(); }
         else if (action === 'add-rule') addRule();
         else if (action.startsWith('remove-rule:')) removeRule(Number(action.split(':')[1]));
+        else if (action.startsWith('ignore-rule:')) ignoreRule(Number(action.split(':')[1]));
         else if (action.startsWith('edit-rule:')) editRule(Number(action.split(':')[1]));
         else if (action.startsWith('create-from-event:')) createRuleFromEvent(events[Number(action.split(':')[1])]);
         else if (action === 'create-from-last-event') createRuleFromEvent(status?.lastEvent);

@@ -20,7 +20,7 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.7';
+const VERSION = '0.1.8';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
@@ -1345,7 +1345,8 @@ function publicStatus() {
           total: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries')?.c || 0,
           active: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=1')?.c || 0,
           inactive: database.get('SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE enabled=0')?.c || 0,
-          missingFile: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE file='' OR status='missing_file'")?.c || 0,
+          missingFile: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE (file='' OR status='missing_file') AND status<>'ignored'")?.c || 0,
+          ignored: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE status='ignored'")?.c || 0,
           newDetected: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE status='new_detected'")?.c || 0,
           fileMatched: database.get("SELECT COUNT(*) AS c FROM soundalerts_bridge_entries WHERE status='file_matched'")?.c || 0,
           seededFromJson: getMetaValue('entries_seeded_from_json') === '1'

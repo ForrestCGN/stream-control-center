@@ -149,6 +149,7 @@
 .sa-pill.unmatched { border-color: rgba(251,191,36,.45); background: rgba(245,158,11,.16); color: #fef3c7; }
 .sa-pill.file_missing,
 .sa-pill.failed { border-color: rgba(248,113,113,.55); background: rgba(244,63,94,.12); color: #fee2e2; }
+.sa-pill.ignored { border-color: rgba(148,163,184,.42); background: rgba(100,116,139,.16); color: #e2e8f0; }
 
 .sa-form-grid,
 .sa-rule {
@@ -635,4 +636,82 @@ html[data-theme=dark] .sa-pill.setup {
 .sa-upload-row .sa-muted {
   font-size: 12px;
   line-height: 1.35;
+}
+
+
+/* STEP193.3: Upload feedback and ignored entries */
+.sa-upload-row button[disabled] {
+  opacity: .62;
+  cursor: wait;
+}
+
+.sa-upload-status {
+  flex: 1 1 100%;
+  display: grid;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(56,189,248,.22);
+  background: rgba(56,189,248,.065);
+}
+
+.sa-upload-status.done {
+  border-color: rgba(52,211,153,.36);
+  background: rgba(16,185,129,.10);
+}
+
+.sa-upload-status.error {
+  border-color: rgba(248,113,113,.48);
+  background: rgba(244,63,94,.10);
+}
+
+.sa-upload-status-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sa-upload-status-head span {
+  color: var(--muted, #a8b3cf);
+  font-weight: 900;
+}
+
+.sa-upload-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15,23,42,.55);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.sa-upload-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(56,189,248,.90), rgba(168,85,247,.90));
+  transition: width .18s ease;
+}
+
+html[data-theme=dark] .sa-upload-status {
+  background: #1d2630;
+  border-color: #334155;
+}
+
+html[data-theme=dark] .sa-upload-status.done {
+  background: #17251f;
+  border-color: #285846;
+}
+
+html[data-theme=dark] .sa-upload-status.error {
+  background: #2a171d;
+  border-color: #69313e;
+}
+
+html[data-theme=dark] .sa-upload-progress {
+  background: #121212;
+  border-color: #343434;
 }
