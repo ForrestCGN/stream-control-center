@@ -324,6 +324,19 @@ module.exports.init = function init(ctx) {
       url.searchParams.set('has_delay', options.hasDelay ? 'true' : 'false');
     }
 
+    // STEP195_TWITCH_CLIP_TITLE_DURATION_PARAMS
+    // Streamer.bot kann Clip Title/Duration beim Create Clip übergeben.
+    // Twitch-Referenzen sind hier nicht überall konsistent, deshalb testen wir dieselben
+    // Query-Parameter direkt im Backend.
+    if (options && typeof options.title === 'string' && options.title.trim()) {
+      url.searchParams.set('title', options.title.trim());
+    }
+
+    if (options && Number.isFinite(Number(options.duration))) {
+      const duration = Math.max(5, Math.min(60, Math.floor(Number(options.duration))));
+      url.searchParams.set('duration', String(duration));
+    }
+
     const r = await axios.post(url.toString(), null, { headers: helixHeaders(token) });
     const data = Array.isArray(r.data?.data) ? r.data.data : [];
     const clip = data[0] || null;

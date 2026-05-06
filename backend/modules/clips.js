@@ -1,5 +1,5 @@
 // modules/clips.js
-// STEP194 — Clip Backend-Create: Chat-Ausgaben backendseitig über twitch_presence/helper_texts.
+// STEP195 — Clip Backend-Create: Twitch Create Clip sendet title/duration direkt mit.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
@@ -865,7 +865,11 @@ module.exports.init = function init(ctx) {
     let created;
     try {
       if (!twitch || typeof twitch.createClipForBroadcaster !== 'function') throw new Error('twitch_create_helper_unavailable');
-      created = await twitch.createClipForBroadcaster(cfg.broadcasterId, { hasDelay: false });
+      created = await twitch.createClipForBroadcaster(cfg.broadcasterId, {
+        hasDelay: false,
+        title: title.clipTitle,
+        duration: cfg.twitchClipDurationSeconds
+      }); // STEP195_TWITCH_CREATE_TITLE_DURATION
     } catch (err) {
       const reason = err.message || String(err);
       const failed = {
