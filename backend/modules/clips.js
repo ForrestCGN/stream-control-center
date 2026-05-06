@@ -1,5 +1,5 @@
 // modules/clips.js
-// STEP193.1 — Clip Backend-Create: Vorab-Live-Guard entfernt; Twitch Create Clip entscheidet selbst.
+// STEP193.2 — Clip Backend-Create: Live-Guard entfernt und lokales Replay-Finden überspringt gesperrte OBS-Dateien.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
@@ -1040,14 +1040,14 @@ module.exports.init = function init(ctx) {
       if (!sharedObs || typeof sharedObs.saveReplayBuffer !== 'function') throw new Error('obs_shared_save_unavailable');
       await sharedObs.saveReplayBuffer();
       const result = { ...base, requested: true, saved: true, requestedAt, error: '' };
-      const local = await handleLocalReplayFile(job);
+      const local = await handleLocalReplayFile(job, requestedAt);
       return { ...result, ...local };
     } catch (err) {
       return { ...base, requested: true, saved: false, requestedAt, error: err.message || String(err) };
     }
   }
 
-  async function handleLocalReplayFile(job) {
+  async function handleLocalReplayFile(job, requestedAt = '') {
     const out = {
       localReplaySaved: false,
       localReplayPath: '',
@@ -1066,19 +1066,19 @@ module.exports.init = function init(ctx) {
     const renameDelayMs = toInt(job.cfg.localReplayRenameDelayMs, 3000, 0, 60000);
     if (renameDelayMs > 0) await sleep(renameDelayMs);
 
-    const newest = findNewestRecentReplayFile(clipsDir, job.cfg.localReplayLookbackMinutes);
-    if (!newest) {
-      return { ...out, localReplayError: 'local_replay_file_missing' };
-    }
+    const candidate = await findNewestReadyReplayFile(clipsDir, job.cfg.localReplayLookbackMinutes, {
+      requestedAt,
+      maxWaitMs: 20000,
+      pollEveryMs: 500
+    });
 
-    const ready = await waitForFileReady(newest.fullPath, 5000, 200);
-    if (!ready) {
-      return { ...out, localReplayError: `local_replay_file_locked:${path.basename(newest.fullPath)}` };
+    if (!candidate) {
+      return { ...out, localReplayError: 'local_replay_file_missing_or_locked' };
     }
 
     try {
-      const targetPath = buildLocalReplayTargetPath(clipsDir, newest.fullPath, job);
-      fs.renameSync(newest.fullPath, targetPath);
+      const targetPath = buildLocalReplayTargetPath(clipsDir, candidate.fullPath, job);
+      fs.renameSync(candidate.fullPath, targetPath);
       return {
         localReplaySaved: true,
         localReplayPath: targetPath,
@@ -1091,29 +1091,74 @@ module.exports.init = function init(ctx) {
     }
   }
 
-  function findNewestRecentReplayFile(dir, lookbackMinutes) {
+  async function findNewestReadyReplayFile(dir, lookbackMinutes, options = {}) {
+    const maxWaitMs = toInt(options.maxWaitMs, 20000, 0, 60000);
+    const pollEveryMs = toInt(options.pollEveryMs, 500, 100, 5000);
+    const started = Date.now();
+    let lastCandidates = [];
+
+    while ((Date.now() - started) <= maxWaitMs) {
+      const candidates = listRecentReplayCandidates(dir, lookbackMinutes, options.requestedAt);
+      lastCandidates = candidates;
+
+      for (const candidate of candidates) {
+        if (isFileReady(candidate.fullPath)) return candidate;
+      }
+
+      await sleep(pollEveryMs);
+    }
+
+    const candidates = lastCandidates.length ? lastCandidates : listRecentReplayCandidates(dir, lookbackMinutes, options.requestedAt);
+    for (const candidate of candidates) {
+      if (isFileReady(candidate.fullPath)) return candidate;
+    }
+
+    return null;
+  }
+
+  function listRecentReplayCandidates(dir, lookbackMinutes, requestedAt = '') {
     const maxAgeMs = Math.max(1, toInt(lookbackMinutes, 5, 1, 60)) * 60 * 1000;
     const now = Date.now();
-    let newest = null;
+    const minMtimeMs = requestedAt ? Math.max(0, new Date(requestedAt).getTime() - 10000) : 0;
+    const allowedExt = new Set(['.mp4', '.mkv', '.mov', '.flv', '.ts', '.m4v', '.webm']);
+    const candidates = [];
 
     try {
       const names = fs.readdirSync(dir);
       for (const name of names) {
         const fullPath = path.join(dir, name);
+        const ext = path.extname(name).toLowerCase();
+
+        if (!allowedExt.has(ext)) continue;
+        if (/^Clip-\d{4}-\d{2}-\d{2}_/i.test(name)) continue;
+
         let stat;
         try { stat = fs.statSync(fullPath); } catch (_) { continue; }
+
         if (!stat.isFile()) continue;
         if (stat.size <= 0) continue;
         if ((now - stat.mtimeMs) > maxAgeMs) continue;
-        if (!newest || stat.mtimeMs > newest.mtimeMs) {
-          newest = { fullPath, mtimeMs: stat.mtimeMs, size: stat.size };
-        }
+        if (minMtimeMs && stat.mtimeMs < minMtimeMs) continue;
+
+        candidates.push({
+          fullPath,
+          name,
+          mtimeMs: stat.mtimeMs,
+          birthtimeMs: stat.birthtimeMs || 0,
+          size: stat.size
+        });
       }
     } catch (_) {
-      return null;
+      return [];
     }
 
-    return newest;
+    candidates.sort((a, b) => {
+      if (b.mtimeMs !== a.mtimeMs) return b.mtimeMs - a.mtimeMs;
+      if (b.birthtimeMs !== a.birthtimeMs) return b.birthtimeMs - a.birthtimeMs;
+      return b.size - a.size;
+    });
+
+    return candidates;
   }
 
   async function waitForFileReady(filePath, maxWaitMs = 5000, pollEveryMs = 200) {
