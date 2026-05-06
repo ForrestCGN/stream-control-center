@@ -20,11 +20,13 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.6';
+const VERSION = '0.1.7';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
 const SETTINGS_TABLE = 'soundalerts_bridge_settings';
+const OLD_DEFAULT_MAX_VIDEO_SIZE_BYTES = 104857600;
+const DEFAULT_MAX_VIDEO_SIZE_BYTES = 524288000;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -57,7 +59,7 @@ const DEFAULT_CONFIG = {
     videoRelativePrefix: 'soundalerts/video',
     allowOverwrite: true,
     maxAudioSizeBytes: 15728640,
-    maxVideoSizeBytes: 104857600,
+    maxVideoSizeBytes: DEFAULT_MAX_VIDEO_SIZE_BYTES,
     allowedAudioExtensions: ['.mp3', '.wav', '.ogg', '.webm', '.m4a'],
     allowedVideoExtensions: ['.mp4', '.webm']
   },
@@ -110,7 +112,7 @@ const SETTINGS_DEFINITIONS = [
   { key: 'upload.videoRelativePrefix', path: 'upload.videoRelativePrefix', valueType: 'string', description: 'Relativer Sound-System-Prefix fuer Video-Dateien.' },
   { key: 'upload.allowOverwrite', path: 'upload.allowOverwrite', valueType: 'boolean', description: 'Ueberschreiben existierender Upload-Dateien erlauben.' },
   { key: 'upload.maxAudioSizeBytes', path: 'upload.maxAudioSizeBytes', valueType: 'number', description: 'Maximale Audio-Uploadgroesse in Bytes.' },
-  { key: 'upload.maxVideoSizeBytes', path: 'upload.maxVideoSizeBytes', valueType: 'number', description: 'Maximale Video-Uploadgroesse in Bytes.' },
+  { key: 'upload.maxVideoSizeBytes', path: 'upload.maxVideoSizeBytes', valueType: 'number', description: 'Maximale Video-Uploadgroesse in Bytes. Standard: 524288000 Bytes / 500 MB.' },
   { key: 'upload.allowedAudioExtensions', path: 'upload.allowedAudioExtensions', valueType: 'json', description: 'Erlaubte Audio-Dateiendungen fuer Uploads.' },
   { key: 'upload.allowedVideoExtensions', path: 'upload.allowedVideoExtensions', valueType: 'json', description: 'Erlaubte Video-Dateiendungen fuer Uploads.' },
   { key: 'chatMessages.enabled', path: 'chatMessages.enabled', valueType: 'boolean', description: 'Chat-Hinweise der SoundAlerts Bridge aktivieren.' },
@@ -276,6 +278,24 @@ function settingDefaultsFromConfig(sourceConfig) {
   });
 }
 
+
+function upgradeLegacyUploadLimitSetting() {
+  try {
+    const row = settingsHelper.getSetting(SETTINGS_TABLE, 'upload.maxVideoSizeBytes', DEFAULT_MAX_VIDEO_SIZE_BYTES, { valueType: 'number' });
+    const current = Number(row && row.value);
+    if (Number.isFinite(current) && Math.round(current) === OLD_DEFAULT_MAX_VIDEO_SIZE_BYTES) {
+      settingsHelper.setSetting(SETTINGS_TABLE, 'upload.maxVideoSizeBytes', DEFAULT_MAX_VIDEO_SIZE_BYTES, {
+        valueType: 'number',
+        description: 'Maximale Video-Uploadgroesse in Bytes. Standard: 524288000 Bytes / 500 MB.'
+      });
+      return true;
+    }
+  } catch (err) {
+    state.settings.lastError = err && err.message ? err.message : String(err);
+  }
+  return false;
+}
+
 function ensureSettingsSeeded(sourceConfig) {
   try {
     const result = settingsHelper.seedDefaults(SETTINGS_TABLE, settingDefaultsFromConfig(sourceConfig));
@@ -283,6 +303,7 @@ function ensureSettingsSeeded(sourceConfig) {
     state.settings.table = result.table || SETTINGS_TABLE;
     state.settings.inserted = Number(result.inserted || 0);
     state.settings.lastError = '';
+    upgradeLegacyUploadLimitSetting();
     const listed = settingsHelper.listSettings(SETTINGS_TABLE, { limit: 1000 });
     state.settings.count = Number(listed.count || 0);
     return result;
@@ -928,7 +949,18 @@ async function handleUploadRequest(req, res) {
   const maxSize = mediaType === 'video' ? Number(uploadCfg.maxVideoSizeBytes || 0) : Number(uploadCfg.maxAudioSizeBytes || 0);
   if (maxSize > 0 && req.file.size > maxSize) {
     state.stats.uploadFailed++;
-    return res.status(413).json({ ok: false, error: 'file_too_large', maxSizeBytes: maxSize });
+    const maxSizeMb = Math.round((maxSize / 1024 / 1024) * 10) / 10;
+    const sizeMb = Math.round((Number(req.file.size || 0) / 1024 / 1024) * 10) / 10;
+    return res.status(413).json({
+      ok: false,
+      error: 'file_too_large',
+      message: `Datei ist zu gross (${sizeMb} MB). Erlaubt sind maximal ${maxSizeMb} MB.`,
+      mediaType,
+      sizeBytes: req.file.size,
+      sizeMb,
+      maxSizeBytes: maxSize,
+      maxSizeMb
+    });
   }
 
   const target = uploadTargetFor(mediaType, req.file.originalname, req.body.name || req.body.soundAlertName || '');
