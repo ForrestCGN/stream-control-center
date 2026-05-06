@@ -673,6 +673,22 @@ window.SoundAlertsModule = (function(){
     else selectedRuleIndex = Math.max(0, Math.min(selectedRuleIndex, count - 1));
   }
 
+  function entryKey(rule){
+    return String(rule?.id || rule?.entry_key || rule?.soundAlertName || rule?.label || '').trim();
+  }
+
+  async function deleteEntryNow(rule){
+    const key = entryKey(rule);
+    if (!key) throw new Error('Eintrag hat keine ID und kann nicht direkt geloescht werden.');
+    return api(`/entries/${encodeURIComponent(key)}`, { method: 'DELETE' });
+  }
+
+  async function ignoreEntryNow(rule){
+    const key = entryKey(rule);
+    if (!key) throw new Error('Eintrag hat keine ID und kann nicht direkt ignoriert werden.');
+    return api(`/entries/${encodeURIComponent(key)}/ignore`, { method: 'POST', body: '{}' });
+  }
+
   function addRule(seed){
     saveActiveRuleFromDom();
     const list = rules().slice();
@@ -694,41 +710,32 @@ window.SoundAlertsModule = (function(){
     render();
   }
 
-  function removeRule(idx){
+  async function removeRule(idx){
     saveActiveRuleFromDom();
-    const list = rules().slice();
-    const item = list[idx];
+    const item = rules()[idx];
     if (!item) return;
-    if (!confirm(`SoundAlert "${item.label || item.soundAlertName || 'Eintrag'}" wirklich löschen?`)) return;
-    list.splice(idx, 1);
-    config = { ...(config || {}), rules: list };
-    if (selectedRuleIndex >= list.length) selectedRuleIndex = Math.max(0, list.length - 1);
-    render();
+    const label = item.label || item.soundAlertName || 'Eintrag';
+    if (!confirm(`SoundAlert "${label}" wirklich dauerhaft löschen?
+
+Wenn derselbe SoundAlerts-Chat später erneut kommt, wird er wieder als neuer offener Eintrag angelegt.`)) return;
+    await deleteEntryNow(item);
     activeTab = 'rules';
-    applyTab();
+    selectedRuleIndex = Math.max(0, idx - 1);
+    await loadAll(true);
   }
 
-  function ignoreRule(idx){
+  async function ignoreRule(idx){
     saveActiveRuleFromDom();
-    const list = rules().slice();
-    const item = list[idx];
+    const item = rules()[idx];
     if (!item) return;
-    if (!confirm(`SoundAlert "${item.label || item.soundAlertName || 'Eintrag'}" ignorieren?\n\nIgnorierte Einträge werden nicht mehr automatisch neu angelegt, wenn derselbe SoundAlerts-Chat erneut kommt.`)) return;
-    list[idx] = normalizeRule({
-      ...item,
-      enabled: false,
-      status: 'ignored',
-      file: String(item.file || '').trim(),
-      meta: {
-        ...(item.meta || {}),
-        ignoredAt: new Date().toISOString(),
-        ignoredFromDashboard: true
-      }
-    }, idx);
-    config = { ...(config || {}), rules: list };
-    selectedRuleIndex = idx;
+    const label = item.label || item.soundAlertName || 'Eintrag';
+    if (!confirm(`SoundAlert "${label}" ignorieren?
+
+Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu als offener Eintrag angelegt.`)) return;
+    await ignoreEntryNow(item);
     activeTab = 'rules';
-    saveConfig().catch(err => alert(err.message || String(err)));
+    selectedRuleIndex = idx;
+    await loadAll(true);
   }
 
   function editRule(idx){
@@ -957,8 +964,8 @@ window.SoundAlertsModule = (function(){
         else if (action === 'save-config') await saveConfig();
         else if (action === 'show-events') { activeTab = 'events'; applyTab(); }
         else if (action === 'add-rule') addRule();
-        else if (action.startsWith('remove-rule:')) removeRule(Number(action.split(':')[1]));
-        else if (action.startsWith('ignore-rule:')) ignoreRule(Number(action.split(':')[1]));
+        else if (action.startsWith('remove-rule:')) await removeRule(Number(action.split(':')[1]));
+        else if (action.startsWith('ignore-rule:')) await ignoreRule(Number(action.split(':')[1]));
         else if (action.startsWith('edit-rule:')) editRule(Number(action.split(':')[1]));
         else if (action.startsWith('create-from-event:')) createRuleFromEvent(events[Number(action.split(':')[1])]);
         else if (action === 'create-from-last-event') createRuleFromEvent(status?.lastEvent);

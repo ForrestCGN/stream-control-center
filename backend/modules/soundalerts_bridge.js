@@ -20,7 +20,7 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.8';
+const VERSION = '0.1.9';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
@@ -680,6 +680,49 @@ function replaceEntryRules(rules) {
   });
   tx();
   return true;
+}
+
+function findEntryByKey(entryKey) {
+  if (!ensureDatabaseReady() || !entriesTableReady()) return null;
+  const key = String(entryKey || '').trim();
+  if (!key) return null;
+  try {
+    const row = database.get('SELECT * FROM soundalerts_bridge_entries WHERE entry_key = :entryKey', { entryKey: key });
+    return row ? dbRowToRule(row) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function deleteEntryRule(entryKey) {
+  if (!ensureDatabaseReady() || !entriesTableReady()) return { ok: false, error: 'database_unavailable' };
+  const key = String(entryKey || '').trim();
+  if (!key) return { ok: false, error: 'entry_key_missing' };
+  const before = findEntryByKey(key);
+  if (!before) return { ok: false, error: 'entry_not_found', entryKey: key };
+  const result = database.run('DELETE FROM soundalerts_bridge_entries WHERE entry_key = :entryKey', { entryKey: key });
+  return { ok: true, deleted: Number(result && result.changes || 0), entryKey: key, entry: before };
+}
+
+function ignoreEntryRule(entryKey, source = 'dashboard') {
+  if (!ensureDatabaseReady() || !entriesTableReady()) return { ok: false, error: 'database_unavailable' };
+  const key = String(entryKey || '').trim();
+  if (!key) return { ok: false, error: 'entry_key_missing' };
+  const existing = findEntryByKey(key);
+  if (!existing) return { ok: false, error: 'entry_not_found', entryKey: key };
+  const meta = existing.meta && typeof existing.meta === 'object' ? existing.meta : {};
+  const next = {
+    ...existing,
+    enabled: false,
+    status: 'ignored',
+    meta: {
+      ...meta,
+      ignoredAt: core.nowIso(),
+      ignoredFromDashboard: source === 'dashboard'
+    }
+  };
+  upsertEntryRule(next, 'ignored_entry');
+  return { ok: true, entryKey: key, entry: findEntryByKey(key) || next };
 }
 
 function listEntryRules() {
@@ -1445,6 +1488,27 @@ module.exports.init = function init(ctx) {
   app.get('/api/soundalerts/config', (_req, res) => res.json(core.ok({ config: publicConfig(), path: state.configPath, settingsTable: SETTINGS_TABLE, settingsSource: state.settings.source })));
   app.get('/api/soundalerts/settings', (_req, res) => res.json(core.ok({ settings: listSoundAlertSettings(), table: SETTINGS_TABLE })));
   app.get('/api/soundalerts/entries', (_req, res) => res.json(core.ok({ entries: getEffectiveRules(), source: Array.isArray(listEntryRules()) ? 'db' : 'json_fallback' })));
+  app.delete('/api/soundalerts/entries/:entryKey', (req, res) => {
+    const result = deleteEntryRule(req.params.entryKey);
+    if (!result.ok) return res.status(result.error === 'entry_not_found' ? 404 : 400).json(result);
+    loadConfig();
+    ensureSchema();
+    return res.json(core.ok({ ...result, entries: getEffectiveRules(), source: 'db' }));
+  });
+  app.post('/api/soundalerts/entries/:entryKey/delete', (req, res) => {
+    const result = deleteEntryRule(req.params.entryKey);
+    if (!result.ok) return res.status(result.error === 'entry_not_found' ? 404 : 400).json(result);
+    loadConfig();
+    ensureSchema();
+    return res.json(core.ok({ ...result, entries: getEffectiveRules(), source: 'db' }));
+  });
+  app.post('/api/soundalerts/entries/:entryKey/ignore', (req, res) => {
+    const result = ignoreEntryRule(req.params.entryKey, 'dashboard');
+    if (!result.ok) return res.status(result.error === 'entry_not_found' ? 404 : 400).json(result);
+    loadConfig();
+    ensureSchema();
+    return res.json(core.ok({ ...result, entries: getEffectiveRules(), source: 'db' }));
+  });
 
   app.post('/api/soundalerts/config', (req, res) => {
     const incoming = req.body && req.body.config ? req.body.config : req.body || {};
@@ -1507,3 +1571,5 @@ module.exports.init = function init(ctx) {
 module.exports.handleChatItem = handleChatItem;
 module.exports.parseSoundAlertsText = parseSoundAlertsText;
 module.exports.ensureAutoEntryForParsed = ensureAutoEntryForParsed;
+module.exports.deleteEntryRule = deleteEntryRule;
+module.exports.ignoreEntryRule = ignoreEntryRule;

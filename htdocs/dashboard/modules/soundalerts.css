@@ -715,3 +715,35 @@ html[data-theme=dark] .sa-upload-progress {
   background: #121212;
   border-color: #343434;
 }
+
+/* STEP193.4: SoundAlerts Entry-Aktionen direkt und Sidebar lesbarer */
+.sa-entry-sidebar .sa-entry-card {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+
+.sa-entry-sidebar .sa-entry-actions {
+  justify-content: flex-start;
+  margin-top: 2px;
+}
+
+.sa-entry-sidebar .sa-entry-actions button {
+  flex: 0 0 auto;
+}
+
+.sa-entry-sidebar .sa-entry-title strong {
+  flex: 1 1 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.sa-entry-sidebar .sa-entry-meta {
+  grid-template-columns: 1fr;
+  line-height: 1.35;
+}
+
+.sa-card button:disabled,
+.sa-actions button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
