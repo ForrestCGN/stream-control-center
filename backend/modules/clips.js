@@ -1,5 +1,5 @@
 // modules/clips.js
-// STEP187 — Clip Backend-Create: lokales OBS-Replay-Dateihandling.
+// STEP193.1 — Clip Backend-Create: Vorab-Live-Guard entfernt; Twitch Create Clip entscheidet selbst.
 // - vorhandene /api/clip/status, /api/clip/title und /api/clip/register bleiben erhalten
 // - Clip-Historie wird sanft in app.sqlite gespeichert
 // - Discord-Posting nutzt die vorhandene Discord-Bridge
@@ -795,37 +795,11 @@ module.exports.init = function init(ctx) {
       });
     }
 
-    if (channelInfo && channelInfo.is_live === false) {
-      const reason = 'stream_not_live';
-      const skipped = {
-        clipId: '',
-        clipUrl: '',
-        clipTitle: title.clipTitle,
-        customTitle: title.customTitle,
-        streamTitle: title.streamTitle,
-        gameName: title.gameName,
-        triggerUser,
-        triggerLogin,
-        status: 'skipped',
-        reason
-      };
-      const history = cfg.saveHistory ? saveClipHistory(skipped, 'backend_create_offline', { ...source, reason }) : { saved: false, id: null, error: '' };
-      return res.status(409).json({
-        ok: false,
-        accepted: false,
-        error: reason,
-        reason,
-        history,
-        channelInfo: {
-          ok: !!channelInfo.ok,
-          isLive: channelInfo.is_live,
-          source: channelInfo.source || 'api',
-          error: channelInfo.error || ''
-        },
-        sendChat: cfg.sendChatResponse,
-        chatMessage: renderClipMessage(messages, 'systemStreamNotLive', { ...baseContext, ...skipped }) || renderClipMessage(messages, 'chatClipFailed', skipped)
-      });
-    }
+    // STEP193.1:
+    // Der Vorab-Live-Guard wurde bewusst entfernt.
+    // Grund: Twitch Helix /streams meldete im Live-Test data: [], obwohl der Kanal live war.
+    // /api/clip/create blockiert deshalb nicht mehr anhand von channelInfo.is_live === false.
+    // Wenn der Kanal wirklich offline ist, entscheidet Twitch Create Clip selbst und der Flow schreibt failed statt skipped.
 
     const twitchApi = await loadTwitchAuthReadiness(cfg);
     const obsReplay = await loadObsReplayReadiness(cfg);
