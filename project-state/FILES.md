@@ -20,6 +20,19 @@ Branch:
 
 - `dev`
 
+
+## Globaler DB-Portability-Standard
+
+Fuer alle Module gilt:
+
+- SQLite/app.sqlite ist aktuell aktiv und darf nicht ersetzt oder ueberschrieben werden.
+- Neue DB-Features sollen spaeter MariaDB-tauglich bleiben.
+- Zentrale Zielschicht fuer neue DB-Zugriffe: `backend/core/database.js`.
+- Zentrale Settings-Schicht: `backend/modules/helpers/helper_settings.js`.
+- Zentrale Text-/Varianten-Schicht: `backend/modules/helpers/helper_texts.js`.
+- Direkte neue Kopplung an `backend/modules/sqlite_core.js` vermeiden, sofern ein zentraler Helper/Core-Weg moeglich ist.
+- MariaDB-Adapter ist geplant, aber noch nicht implementiert; bis dahin bleibt SQLite der funktionierende Standard.
+
 ## Easy-Scripts / Deploy-Workflow
 
 Verbindlicher Script-Pfad:

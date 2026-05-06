@@ -2,6 +2,16 @@
 
 ## 2026-05-06
 
+### STEP192.3.1 - Globaler DB-Portability-Standard
+
+- Projekt-Dokus ergaenzt: MariaDB-Tauglichkeit ist ab jetzt Standard fuer alle Module, nicht nur fuer SoundAlerts.
+- SQLite bleibt aktuell die aktive Datenbank und muss weiterhin funktionieren.
+- Neue DB-Zugriffe sollen bevorzugt ueber `backend/core/database.js` oder vorhandene Helper laufen.
+- Neue dashboardfaehige Settings sollen ueber `helper_settings.js` laufen.
+- Neue dashboardfaehige Texte sollen ueber `helper_texts.js` laufen.
+- MariaDB-Adapter bleibt geplanter spaeterer Schritt in `backend/core/database.js`.
+- Keine Codeaenderung in diesem STEP.
+
 ### STEP192.3 - SoundAlerts Doku-Sync
 
 - Zentrale Projekt-Dokus nach STEP192.1 bis STEP192.2.1 aktualisiert.

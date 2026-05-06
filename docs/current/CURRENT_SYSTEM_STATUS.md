@@ -289,6 +289,18 @@ Fuer alle kuenftigen Dashboard-Module gilt als Zielstandard:
 8. Keine Funktionalitaet entfernen.
 9. Neue DB-Logik nach Moeglichkeit ueber `backend/core/database.js` oder vorhandene Helper aufbauen.
 
+### Globaler DB-Portability-Standard
+
+Fuer alle Module gilt ab jetzt verbindlich:
+
+- SQLite ist aktuell die aktive Datenbank und bleibt der funktionierende Standard/Fallback.
+- Neue Module und neue DB-Features muessen so geplant werden, dass sie spaeter auf MariaDB umgestellt werden koennen.
+- Neue DB-Zugriffe sollen nicht direkt an `sqlite_core.js` gekoppelt werden, wenn eine Nutzung ueber `backend/core/database.js` oder vorhandene Helper moeglich ist.
+- Dashboardfaehige Settings sollen ueber `helper_settings.js` oder eine gleichwertige zentrale Settings-Schicht laufen.
+- Dashboardfaehige Texte sollen ueber `helper_texts.js` oder eine gleichwertige zentrale Text-Schicht laufen.
+- SQLite-spezifische SQL-Syntax darf bei neuen Arbeiten nicht unnoetig in Modulcode verteilt werden. Wenn sie noetig ist, muss sie dokumentiert und spaeter zentral kapselbar bleiben.
+- MariaDB wird erst aktiv genutzt, wenn der echte Adapter in `backend/core/database.js` implementiert und getestet ist. Bis dahin duerfen Module nicht so gebaut werden, dass SQLite kaputtgeht.
+
 Aktuelle Helper-Lage:
 
 - `helper_settings.js` ist DB-Settings-Standard.
@@ -306,6 +318,7 @@ Aktuelle Helper-Lage:
 - GitHub/dev und Live bewusst synchron halten.
 - Keine Secrets committen.
 - Keine SQLite-Dateien committen.
+- Alle Module langfristig MariaDB-tauglich planen; SQLite bleibt aktuell aktiv und muss weiter funktionieren.
 - Keine Backups/Altdateien committen.
 - Historische Analyse-Snapshots nicht ueberschreiben.
 - Aktuellen Stand in `docs/current/CURRENT_SYSTEM_STATUS.md` und `project-state/*` aktuell halten.

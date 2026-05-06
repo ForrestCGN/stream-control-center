@@ -42,6 +42,7 @@ Wichtig:
 - DB bleibt Hauptspeicher fuer dashboardfaehige Daten.
 - Neue DB-Logik nach Moeglichkeit ueber `backend/core/database.js` oder vorhandene Helper bauen.
 - MariaDB spaeter mitdenken, aber nicht ungetestet als aktiv voraussetzen.
+- Diese DB-Portability-Regel gilt fuer alle Module, nicht nur fuer SoundAlerts.
 
 ## Danach moeglich
 
@@ -111,6 +112,8 @@ Wichtig:
 
 ### System allgemein
 
+- Globaler Standard: Alle neuen Module und neuen DB-Features MariaDB-tauglich planen; SQLite bleibt aktuell produktiv und muss weiter funktionieren.
+- Neue DB-Zugriffe bevorzugt ueber `backend/core/database.js` oder vorhandene Helper bauen, nicht direkt ueber `sqlite_core.js`.
 - Provider-/Settings-Ausgaben maskieren, da Settings sensible Werte enthalten koennen.
 - `liveAlert`/`livealert` Duplikat in Alert-Settings spaeter bereinigen.
 - Dashboard-Rollen/Rechte und Audit-Logging vorbereiten.

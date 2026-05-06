@@ -284,6 +284,19 @@ Fuer neue und bestehende Systeme gilt:
 - Neue DB-Logik nach Moeglichkeit ueber `backend/core/database.js` oder vorhandene Helper aufbauen.
 - Keine Funktionalitaet entfernen.
 
+## Globaler DB-Portability-Standard
+
+Diese Regel gilt fuer alle Module, nicht nur fuer SoundAlerts:
+
+- SQLite ist aktuell die produktive Datenbank und bleibt Standard/Fallback.
+- Neue Module und neue DB-Features muessen so gebaut werden, dass eine spaetere MariaDB-Nutzung moeglich bleibt.
+- Neue DB-Zugriffe sollen bevorzugt ueber `backend/core/database.js` oder vorhandene Helper laufen, nicht direkt ueber `sqlite_core.js`.
+- Neue dashboardfaehige Settings sollen ueber `helper_settings.js` oder eine zentrale Settings-Schicht laufen.
+- Neue dashboardfaehige Texte sollen ueber `helper_texts.js` oder eine zentrale Text-Schicht laufen.
+- SQLite-spezifische SQL-Syntax in Modulcode soll vermieden oder klar dokumentiert werden.
+- MariaDB ist Ziel/Plan, aber erst aktiv, wenn der echte Adapter in `backend/core/database.js` implementiert und getestet ist.
+- Bis dahin darf keine Aenderung die bestehende SQLite-Funktionalitaet brechen.
+
 ## Wichtige Regeln
 
 - Keine Funktionalitaet entfernen.
@@ -291,6 +304,7 @@ Fuer neue und bestehende Systeme gilt:
 - GitHub/dev und Live bewusst synchron halten.
 - Keine Secrets committen.
 - Keine SQLite-Dateien committen.
+- Alle Module langfristig MariaDB-tauglich planen; SQLite bleibt aktuell aktiv und muss weiter funktionieren.
 - Keine Backups/Altdateien committen.
 - Historische Analyse-Snapshots nicht ueberschreiben.
 - Aktuellen Stand in `docs/current/CURRENT_SYSTEM_STATUS.md` und `project-state/*` aktuell halten.
