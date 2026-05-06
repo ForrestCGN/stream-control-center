@@ -14,7 +14,7 @@ window.SoundAlertsModule = (function(){
 
   const CATEGORY_OPTIONS = [
     { value: '', label: 'Standard / global', priority: null },
-    { value: 'channel_reward', label: 'Kanalpunkte / SoundAlert', priority: 70 },
+    { value: 'channel_reward', label: 'SoundAlerts / Kanalpunkte', priority: 70 },
     { value: 'alert', label: 'Alert / Support', priority: 80 },
     { value: 'alert_critical', label: 'Kritischer Alert', priority: 90 },
     { value: 'vip', label: 'VIP / Crew', priority: 60 },
@@ -146,6 +146,28 @@ window.SoundAlertsModule = (function(){
     const num = Number(value);
     if (!Number.isFinite(num)) return null;
     return Math.max(0, Math.min(200, Math.round(num)));
+  }
+
+  function normalizeMediaType(value, file){
+    const raw = String(value || '').trim().toLowerCase();
+    if (raw === 'video' || raw === 'audio') return raw;
+    const f = String(file || '').trim().toLowerCase();
+    return f.endsWith('.mp4') || f.endsWith('.webm') ? 'video' : 'audio';
+  }
+
+  function defaultOutputTargetForMedia(mediaType){
+    return mediaType === 'video' ? 'overlay' : 'device';
+  }
+
+  function normalizeOutputTarget(value, mediaType){
+    const raw = String(value || '').trim().toLowerCase();
+    if (['overlay', 'device', 'both'].includes(raw)) return raw;
+    return defaultOutputTargetForMedia(mediaType);
+  }
+
+  function normalizeCategory(value){
+    const raw = String(value || '').trim();
+    return raw || 'channel_reward';
   }
 
   function statusLabel(statusValue){
@@ -499,16 +521,18 @@ window.SoundAlertsModule = (function(){
 
   function normalizeRule(rule, idx){
     const soundAlertName = String(rule.soundAlertName || '').trim();
-    const mediaType = String(rule.mediaType || 'audio').trim();
+    const file = String(rule.file || '').trim();
+    const mediaType = normalizeMediaType(rule.mediaType, file);
     return {
       ...rule,
       id: String(rule.id || soundAlertName || `rule_${idx + 1}`).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || `rule_${idx + 1}`,
       enabled: rule.enabled === false ? false : true,
       soundAlertName,
       label: String(rule.label || soundAlertName).trim(),
-      file: String(rule.file || '').trim(),
+      file,
       mediaType,
-      category: String(rule.category || '').trim(),
+      category: normalizeCategory(rule.category),
+      outputTarget: normalizeOutputTarget(rule.outputTarget || rule.output_target, mediaType),
       priority: normalizePriorityOverride(rule.priority),
       volume: Math.max(0, Math.min(100, Number(value(rule.volume, defaultVolume()))))
     };
@@ -530,7 +554,8 @@ window.SoundAlertsModule = (function(){
       label: String(field('label')?.value || soundAlertName).trim(),
       file: String(field('file')?.value || '').trim(),
       mediaType: String(field('mediaType')?.value || 'audio').trim(),
-      category: String(field('category')?.value || '').trim(),
+      category: normalizeCategory(field('category')?.value),
+      outputTarget: normalizeOutputTarget(current.outputTarget || current.output_target, String(field('mediaType')?.value || 'audio').trim()),
       priority: normalizePriorityOverride(field('priority')?.value),
       volume: Math.max(0, Math.min(100, Number(field('volume')?.value || defaultVolume())))
     }, idx);
@@ -601,6 +626,7 @@ window.SoundAlertsModule = (function(){
       file: seed?.file || 'soundalerts/audio/',
       mediaType: seed?.mediaType || 'audio',
       category: seed?.category || 'channel_reward',
+      outputTarget: seed?.outputTarget || '',
       priority: seed?.priority ?? null,
       volume: seed?.volume ?? defaultVolume()
     }, 0);
@@ -705,7 +731,8 @@ window.SoundAlertsModule = (function(){
     list[idx] = normalizeRule({
       ...rule,
       file: uploadedFile,
-      mediaType: data.mediaType || mediaType
+      mediaType: data.mediaType || mediaType,
+      outputTarget: normalizeOutputTarget(rule.outputTarget || rule.output_target, data.mediaType || mediaType)
     }, idx);
     config = { ...(config || {}), rules: list };
     selectedRuleIndex = idx;

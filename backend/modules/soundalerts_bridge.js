@@ -19,7 +19,7 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.2';
+const VERSION = '0.1.3';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
@@ -144,6 +144,53 @@ function normalizeName(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+function normalizeMediaType(value, file) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'audio' || raw === 'video') return raw;
+  const f = String(file || '').trim().toLowerCase();
+  return f.endsWith('.mp4') || f.endsWith('.webm') ? 'video' : 'audio';
+}
+
+function normalizeCategory(value) {
+  const raw = String(value || '').trim();
+  return raw || 'channel_reward';
+}
+
+function normalizeOutputTarget(value, mediaType) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (['overlay', 'device', 'both'].includes(raw)) return raw;
+  return mediaType === 'video' ? 'overlay' : 'device';
+}
+
+function categoryDefaultPriority(category) {
+  const key = String(category || '').trim();
+  const map = {
+    channel_reward: 70,
+    alert: 80,
+    alert_critical: 90,
+    vip: 60,
+    crew: 60,
+    special: 60,
+    fun: 50,
+    tts: 50,
+    admin: 100,
+    system: 100,
+    background: 20,
+    decor: 20,
+    soundalerts: 70
+  };
+  return Number.isFinite(map[key]) ? map[key] : null;
+}
+
+function effectivePriority(rule) {
+  const priorityRaw = rule && rule.priority !== undefined && rule.priority !== null && String(rule.priority).trim() !== '' ? Number.parseInt(rule.priority, 10) : null;
+  if (Number.isFinite(priorityRaw)) return priorityRaw;
+  const byCategory = categoryDefaultPriority(rule && rule.category);
+  if (Number.isFinite(byCategory)) return byCategory;
+  const fallback = Number.parseInt(config?.soundSystem?.defaultPriority ?? DEFAULT_CONFIG.soundSystem.defaultPriority ?? 70, 10);
+  return Number.isFinite(fallback) ? fallback : 70;
+}
+
 function ensureSchema() {
   if (!sqlite.isInitialized()) return false;
   sqlite.ensureSchema(SCHEMA_MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
@@ -225,7 +272,7 @@ function normalizeRuleForDb(rule, fallback = '') {
   const soundAlertName = String(rule && (rule.soundAlertName || rule.soundalert_name || rule.name) || '').trim();
   const label = String(rule && rule.label || soundAlertName || entryKey).trim();
   const file = String(rule && rule.file || '').trim().replace(/\\/g, '/');
-  const mediaType = String(rule && (rule.mediaType || rule.media_type) || '').trim().toLowerCase();
+  const mediaType = normalizeMediaType(rule && (rule.mediaType || rule.media_type), file);
   const status = String(rule && rule.status || (enabled ? 'active' : 'disabled')).trim() || (enabled ? 'active' : 'disabled');
   const priorityRaw = rule && rule.priority !== undefined && rule.priority !== null && String(rule.priority).trim() !== '' ? Number.parseInt(rule.priority, 10) : null;
   const volumeRaw = rule && rule.volume !== undefined && rule.volume !== null && String(rule.volume).trim() !== '' ? Number.parseInt(rule.volume, 10) : null;
@@ -238,10 +285,10 @@ function normalizeRuleForDb(rule, fallback = '') {
     label,
     file,
     mediaType,
-    category: String(rule && rule.category || '').trim(),
+    category: normalizeCategory(rule && rule.category),
     priority: Number.isFinite(priorityRaw) ? priorityRaw : null,
     volume: Number.isFinite(volumeRaw) ? volumeRaw : null,
-    outputTarget: String(rule && (rule.outputTarget || rule.output_target) || '').trim(),
+    outputTarget: normalizeOutputTarget(rule && (rule.outputTarget || rule.output_target), mediaType),
     createdFrom: String(rule && (rule.createdFrom || rule.created_from) || 'json_seed').trim(),
     createdAt: String(rule && (rule.createdAt || rule.created_at) || now).trim(),
     updatedAt: now,
@@ -258,9 +305,9 @@ function dbRowToRule(row) {
     soundAlertName: String(row.soundalert_name || ''),
     label: String(row.label || ''),
     file: String(row.file || ''),
-    mediaType: String(row.media_type || ''),
-    category: String(row.category || ''),
-    outputTarget: String(row.output_target || '')
+    mediaType: normalizeMediaType(row.media_type, row.file),
+    category: normalizeCategory(row.category),
+    outputTarget: normalizeOutputTarget(row.output_target, normalizeMediaType(row.media_type, row.file))
   };
   if (row.priority !== null && row.priority !== undefined) rule.priority = Number(row.priority);
   if (row.volume !== null && row.volume !== undefined) rule.volume = Number(row.volume);
@@ -725,7 +772,7 @@ async function queueSound(parsed, rule, item) {
   const soundCfg = config.soundSystem || {};
   const resolved = resolveFile(rule);
   const mediaType = detectMediaType(rule, resolved);
-  const outputTarget = String(rule.outputTarget || (mediaType === 'video' ? soundCfg.videoOutputTarget : soundCfg.audioOutputTarget) || 'device').trim().toLowerCase();
+  const outputTarget = normalizeOutputTarget(rule.outputTarget || (mediaType === 'video' ? soundCfg.videoOutputTarget : soundCfg.audioOutputTarget), mediaType);
 
   if (!resolved.ok) {
     state.stats.fileMissing++;
@@ -766,8 +813,8 @@ async function queueSound(parsed, rule, item) {
     file: resolved.relative || rule.file,
     label: String(rule.label || parsed.soundAlertName),
     mediaType,
-    category: String(rule.category || soundCfg.defaultCategory || 'soundalerts'),
-    priority: Number(rule.priority ?? soundCfg.defaultPriority ?? 70),
+    category: normalizeCategory(rule.category || soundCfg.defaultCategory || 'channel_reward'),
+    priority: effectivePriority(rule),
     outputTarget,
     volume: Number(rule.volume ?? soundCfg.defaultVolume ?? 100),
     source: 'soundalerts_bridge',
