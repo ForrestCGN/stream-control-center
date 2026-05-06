@@ -9,13 +9,13 @@ Stand: 2026-05-06
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
-## SoundAlerts / Sound-System - aktueller Stand bis STEP193.15
+## SoundAlerts / Sound-System - aktueller Stand bis STEP193.16
 
-SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte technische Stand ist `STEP193.15`.
+SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte technische Stand ist `STEP193.16`.
 
 Aktueller Modulstand:
 
-- `soundalerts_bridge` Version: `0.1.13`
+- `soundalerts_bridge` Version: `0.1.14`
 - Backend-Datei:
   - `backend/modules/soundalerts_bridge.js`
 - Dashboard-Dateien:
@@ -124,6 +124,12 @@ Eintraege koennen gefiltert werden:
 - Datei fehlt
 - Ignoriert
 
+Editor-Regeln:
+
+- Ausgabe orientiert sich am Typ: Audio nutzt das Audio-Ziel, Video nutzt das Video-Ziel.
+- Beim Wechsel von Audio/Video wird das passende Ausgabeziel gesetzt.
+- Nach Upload/Speichern bleibt der aktuell bearbeitete Eintrag selektiert; bei Filterwechsel springt die Ansicht auf `Alle`, statt auf den naechsten Eintrag.
+
 Fachregel:
 
 ```text
@@ -203,7 +209,7 @@ Ignorieren ist nicht prominent im normalen Kartenfluss, bleibt aber technisch vo
 ## Live bestaetigte Referenzwerte
 
 ```text
-soundalerts_bridge version = 0.1.13
+soundalerts_bridge version = 0.1.14
 upload.maxVideoSizeBytes = 1073741824
 parser.messageFormats = echtes Objekt-Array, nicht [object Object]
 ```

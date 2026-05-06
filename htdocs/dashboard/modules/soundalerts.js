@@ -198,7 +198,23 @@ window.SoundAlertsModule = (function(){
   }
 
   function defaultOutputTargetForMedia(mediaType){
+    const soundCfg = config?.soundSystem || {};
+    const raw = mediaType === 'video' ? soundCfg.videoOutputTarget : soundCfg.audioOutputTarget;
+    const value = String(raw || '').trim().toLowerCase();
+    if (['overlay', 'device', 'both'].includes(value)) return value;
     return mediaType === 'video' ? 'overlay' : 'device';
+  }
+
+  function outputTargetSelectOptions(rule){
+    const mediaType = normalizeMediaType(rule?.mediaType, rule?.file);
+    const selected = normalizeOutputTarget(rule?.outputTarget || rule?.output_target, mediaType);
+    const defaultTarget = defaultOutputTargetForMedia(mediaType);
+    const label = mediaType === 'video' ? 'Video-Ziel' : 'Audio-Ziel';
+    return [
+      `<option value="device" ${selected === 'device' ? 'selected' : ''}>Device${defaultTarget === 'device' ? ` · ${label}` : ''}</option>`,
+      `<option value="overlay" ${selected === 'overlay' ? 'selected' : ''}>Overlay${defaultTarget === 'overlay' ? ` · ${label}` : ''}</option>`,
+      `<option value="both" ${selected === 'both' ? 'selected' : ''}>Beides${defaultTarget === 'both' ? ` · ${label}` : ''}</option>`
+    ].join('');
   }
 
   function normalizeOutputTarget(value, mediaType){
@@ -985,7 +1001,7 @@ window.SoundAlertsModule = (function(){
         <label class="sa-field"><span>SoundAlerts-Name</span><input data-sa-rule-field="soundAlertName" type="text" value="${esc(rule.soundAlertName || '')}"></label>
         <label class="sa-field"><span>Label</span><input data-sa-rule-field="label" type="text" value="${esc(rule.label || rule.soundAlertName || '')}"></label>
         <label class="sa-field"><span>Typ</span><select data-sa-rule-field="mediaType"><option value="audio" ${rule.mediaType === 'audio' ? 'selected' : ''}>Audio</option><option value="video" ${rule.mediaType === 'video' ? 'selected' : ''}>Video</option></select></label>
-        <label class="sa-field"><span>Ausgabe</span><select data-sa-rule-field="outputTarget"><option value="device" ${normalizeOutputTarget(rule.outputTarget || rule.output_target, rule.mediaType) === 'device' ? 'selected' : ''}>Device</option><option value="overlay" ${normalizeOutputTarget(rule.outputTarget || rule.output_target, rule.mediaType) === 'overlay' ? 'selected' : ''}>Overlay</option><option value="both" ${normalizeOutputTarget(rule.outputTarget || rule.output_target, rule.mediaType) === 'both' ? 'selected' : ''}>Beides</option></select></label>
+        <label class="sa-field"><span>Ausgabe</span><select data-sa-rule-field="outputTarget">${outputTargetSelectOptions(rule)}</select><small class="sa-field-help">Orientiert sich am Typ: Audio nutzt das Audio-Ziel, Video nutzt das Video-Ziel.</small></label>
         <label class="sa-field sa-wide sa-file-field"><span>Datei</span><input data-sa-rule-field="file" type="text" value="${esc(rule.file || '')}"></label>
         <div class="sa-upload-row sa-wide">
           <input data-sa-file-input="${idx}" type="file" hidden accept=".mp3,.wav,.ogg,.webm,.m4a,.mp4">
@@ -1200,13 +1216,41 @@ window.SoundAlertsModule = (function(){
     };
   }
 
+  function ruleMatchesFilter(rule, filterValue){
+    const filter = String(filterValue || 'all').toLowerCase();
+    if (filter === 'all') return true;
+    if (filter === 'active') return rule?.enabled !== false && String(rule?.status || '').toLowerCase() === 'active';
+    if (filter === 'inactive') return rule?.enabled === false || String(rule?.status || '').toLowerCase() === 'inactive' || String(rule?.status || '').toLowerCase() === 'disabled';
+    if (filter === 'review_required') return isReviewRule(rule);
+    if (filter === 'missing_file') return ruleNeedsSetup(rule);
+    if (filter === 'ignored') return isIgnoredRule(rule);
+    return true;
+  }
+
+  function findRuleIndexByKey(key){
+    const wanted = String(key || '').trim();
+    if (!wanted) return -1;
+    return rules().findIndex(rule => entryKey(rule) === wanted);
+  }
+
   async function saveConfig(finalizeIndex){
+    saveActiveRuleFromDom();
+    const preserveRule = Number.isInteger(finalizeIndex) ? rules()[finalizeIndex] : selectedRule();
+    const preserveKey = entryKey(preserveRule);
     const next = buildConfigFromDom(finalizeIndex);
     await api('/settings', { method: 'POST', body: JSON.stringify({ settings: { 'parser.messageFormats': next.parser?.messageFormats || [] } }) });
     const saved = await api('/config', { method: 'POST', body: JSON.stringify({ config: next }) });
     config = saved.config || next;
     await api('/reload', { method: 'POST', body: '{}' }).catch(() => null);
     await loadAll(true);
+    const idx = findRuleIndexByKey(preserveKey);
+    if (idx >= 0) {
+      selectedRuleIndex = idx;
+      const selected = rules()[idx];
+      if (!ruleMatchesFilter(selected, ruleFilter)) ruleFilter = 'all';
+      activeTab = 'rules';
+      render();
+    }
   }
 
   function clampSelectedRule(){
@@ -1424,7 +1468,7 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
       file: uploadedFile,
       status: 'review_required',
       mediaType: data.mediaType || mediaType,
-      outputTarget: normalizeOutputTarget(rule.outputTarget || rule.output_target, data.mediaType || mediaType)
+      outputTarget: defaultOutputTargetForMedia(data.mediaType || mediaType)
     }, idx);
     config = { ...(config || {}), rules: list };
     selectedRuleIndex = idx;
@@ -1491,6 +1535,13 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
         saveActiveRuleFromDom();
         selectedRuleIndex = Number(picker.value) || 0;
         render();
+        return;
+      }
+      const mediaTypeSelect = ev.target.closest('[data-sa-rule-field="mediaType"]');
+      if (mediaTypeSelect) {
+        const box = mediaTypeSelect.closest('[data-sa-rule-index]');
+        const outputSelect = box?.querySelector('[data-sa-rule-field="outputTarget"]');
+        if (outputSelect) outputSelect.value = defaultOutputTargetForMedia(String(mediaTypeSelect.value || 'audio').trim());
         return;
       }
       const category = ev.target.closest('[data-sa-rule-field="category"]');

@@ -2,6 +2,15 @@
 
 ## 2026-05-06
 
+### STEP193.16 - SoundAlerts Entry Editor Output/Selection Fix
+
+- `soundalerts_bridge` auf Version `0.1.14` gesetzt.
+- Ausgabeziel im Eintrag-Editor orientiert sich an Medientyp und globalem Audio-/Video-Ziel.
+- Wechsel von Audio/Video setzt das passende Ausgabeziel.
+- Nach Upload/Speichern bleibt der aktuell bearbeitete SoundAlert ausgewaehlt.
+- Wenn der Eintrag durch Speichern den Filterbereich verlaesst, wechselt die Ansicht auf `Alle`, statt auf den naechsten Eintrag zu springen.
+- Keine DB-Schemaaenderung.
+
 ### STEP193.15 - SoundAlerts Test Output Override
 
 - `soundalerts_bridge` auf Version `0.1.13` gesetzt.

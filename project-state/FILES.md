@@ -35,7 +35,7 @@ DB-Strukturen:
 
 SoundAlerts-Version:
 
-- `0.1.13`
+- `0.1.14`
 
 Aktueller Upload-Wert live:
 
@@ -68,6 +68,7 @@ upload.maxVideoSizeBytes = 1073741824
 - `project-state/STEP193_14_SOUNDALERTS_LOCAL_OVERLAY_TEST_WORKFLOW_2026-05-06.md`
 - `project-state/STEP193_15_SOUNDALERTS_TEST_OUTPUT_OVERRIDE_2026-05-06.md`
 - `project-state/STEP193_15_1_SOUNDALERTS_DOC_SYNC_2026-05-06.md`
+- `project-state/STEP193_16_SOUNDALERTS_ENTRY_EDITOR_OUTPUT_AND_SELECTION_FIX_2026-05-06.md`
 
 ## OBS Loader Standard
 

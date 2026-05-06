@@ -2,14 +2,14 @@
 
 Stand: 2026-05-06
 
-## Aktueller SoundAlerts-Stand nach STEP193.15
+## Aktueller SoundAlerts-Stand nach STEP193.16
 
-SoundAlerts ist bis `STEP193.15` technisch umgesetzt und live getestet. Der aktuelle Backend-Stand ist `soundalerts_bridge` Version `0.1.13`.
+SoundAlerts ist bis `STEP193.16` technisch umgesetzt und live getestet. Der aktuelle Backend-Stand ist `soundalerts_bridge` Version `0.1.14`.
 
 Backend:
 
 - `backend/modules/soundalerts_bridge.js`
-- Version: `0.1.13`
+- Version: `0.1.14`
 - DB-Zugriffe laufen ueber `backend/core/database.js`.
 - Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
 - JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback.
@@ -27,6 +27,8 @@ Dashboard:
 - Parser-Formate sind unter `Bot & Settings > Chat-Erkennung` dashboardfaehig.
 - Eintraege haben Test-Buttons.
 - Lokaler Overlay-Test ist vorbereitet.
+- Nach Upload/Speichern bleibt der aktuell bearbeitete Eintrag selektiert.
+- Ausgabeziel orientiert sich an Medientyp und globalem Audio-/Video-Ziel.
 
 DB-Strukturen:
 

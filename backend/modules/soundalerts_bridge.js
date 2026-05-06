@@ -20,7 +20,7 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.13';
+const VERSION = '0.1.14';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
@@ -517,10 +517,18 @@ function normalizeCategory(value) {
   return raw || 'channel_reward';
 }
 
+function defaultOutputTargetForMedia(mediaType) {
+  const soundCfg = config && config.soundSystem ? config.soundSystem : DEFAULT_CONFIG.soundSystem;
+  const raw = mediaType === 'video' ? soundCfg.videoOutputTarget : soundCfg.audioOutputTarget;
+  const value = String(raw || '').trim().toLowerCase();
+  if (['overlay', 'device', 'both'].includes(value)) return value;
+  return mediaType === 'video' ? 'overlay' : 'device';
+}
+
 function normalizeOutputTarget(value, mediaType) {
   const raw = String(value || '').trim().toLowerCase();
   if (['overlay', 'device', 'both'].includes(raw)) return raw;
-  return mediaType === 'video' ? 'overlay' : 'device';
+  return defaultOutputTargetForMedia(mediaType);
 }
 
 function categoryDefaultPriority(category) {

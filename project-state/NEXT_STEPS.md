@@ -6,7 +6,7 @@ Stand: 2026-05-06
 
 ### Sound-System Overlay Bugs bereinigen
 
-Nach `STEP193.15` ist der SoundAlerts-Dashboard-/Backend-Block vorerst gut nutzbar. Die naechsten offenen Punkte liegen vor allem im lokalen Sound-System Overlay.
+Nach `STEP193.16` ist der SoundAlerts-Dashboard-/Backend-Block vorerst gut nutzbar. Die naechsten offenen Punkte liegen vor allem im lokalen Sound-System Overlay.
 
 Pruefen/Beheben:
 
@@ -43,6 +43,6 @@ Pruefen/Beheben:
 - SQLite `app.sqlite` niemals ersetzen oder neu bauen.
 - Keine Secrets, Tokens, `.env`, DBs, Backups oder ZIPs committen.
 - Dashboard greift nicht direkt auf SQLite/Dateien zu, sondern nutzt Backend-APIs.
-- SoundAlerts Bridge Version aktuell: `0.1.13`.
+- SoundAlerts Bridge Version aktuell: `0.1.14`.
 - `_SoundAlerts_Loader` bleibt aktive, stumme 1x1-OBS-Browserquelle.
 - Parser-Formate muessen als echtes Objekt-Array erhalten bleiben.
