@@ -24,8 +24,8 @@ const security = require('./helpers/helper_security');
 const media = require('./helpers/helper_media');
 
 const MODULE = 'alert_system';
-const SCHEMA_VERSION = 5;
-const MODULE_STEP = 171;
+const SCHEMA_VERSION = 6;
+const MODULE_STEP = 188;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -440,6 +440,14 @@ function ensureSchema() {
       createChatBlocksSchema(db);
       return;
     }
+
+    if (toVersion === 6) {
+      addColumnIfMissing(db, 'alert_rules', 'sound_output_target', "TEXT NOT NULL DEFAULT ''");
+      addColumnIfMissing(db, 'alert_rules', 'sound_category', "TEXT NOT NULL DEFAULT ''");
+      addColumnIfMissing(db, 'alert_rules', 'sound_priority', 'INTEGER');
+      addColumnIfMissing(db, 'alert_rules', 'sound_volume', 'INTEGER');
+      return;
+    }
   });
 }
 
@@ -792,7 +800,26 @@ function listRules() {
     LEFT JOIN alert_assets i ON i.id = r.image_asset_id
     LEFT JOIN alert_display_profiles dp ON dp.id = r.display_profile_id
     ORDER BY r.source ASC, r.type_key ASC, COALESCE(r.min_value, -999999) ASC, r.priority ASC, r.id ASC
-  `).map(row => ({ ...row, meta: parseJson(row.meta_json, {}) }));
+  `).map(enrichAlertRuleRow);
+}
+
+function enrichAlertRuleRow(row) {
+  if (!row) return null;
+  const meta = parseJson(row.meta_json, {});
+  const soundOutputTarget = cleanKey(row.sound_output_target || '');
+  const soundCategory = cleanKey(row.sound_category || '');
+  const soundPriority = row.sound_priority === null || row.sound_priority === undefined || row.sound_priority === '' ? null : Number(row.sound_priority);
+  const soundVolume = row.sound_volume === null || row.sound_volume === undefined || row.sound_volume === '' ? null : Number(row.sound_volume);
+  return {
+    ...row,
+    meta,
+    soundRouting: {
+      outputTarget: soundOutputTarget,
+      category: soundCategory,
+      priority: Number.isFinite(soundPriority) ? soundPriority : null,
+      volume: Number.isFinite(soundVolume) ? soundVolume : null
+    }
+  };
 }
 
 function saveRule(input, silent = false) {
@@ -811,6 +838,10 @@ function saveRule(input, silent = false) {
     animation: 'neon_card',
     imageMode: 'none',
     soundAssetId: nullableInt(input.sound_asset_id ?? input.soundAssetId),
+    soundOutputTarget: validateSoundOutputTarget(input.sound_output_target ?? input.soundOutputTarget ?? input.outputTarget ?? ''),
+    soundCategory: validateSoundCategory(input.sound_category ?? input.soundCategory ?? ''),
+    soundPriority: nullablePriority(input.sound_priority ?? input.soundPriority),
+    soundVolume: nullableVolume(input.sound_volume ?? input.soundVolume),
     imageAssetId: null,
     displayProfileId: nullableInt(input.display_profile_id ?? input.displayProfileId),
     enabled: boolInt(input.enabled, true),
@@ -829,7 +860,8 @@ function saveRule(input, silent = false) {
       UPDATE alert_rules SET
         source=:source, type_key=:typeKey, label=:label, min_value=:minValue, max_value=:maxValue, tier=:tier,
         priority=:priority, duration_ms=:durationMs, duration_mode=:durationMode, animation=:animation, image_mode=:imageMode,
-        sound_asset_id=:soundAssetId, image_asset_id=:imageAssetId, display_profile_id=:displayProfileId, enabled=:enabled,
+        sound_asset_id=:soundAssetId, sound_output_target=:soundOutputTarget, sound_category=:soundCategory, sound_priority=:soundPriority, sound_volume=:soundVolume,
+        image_asset_id=:imageAssetId, display_profile_id=:displayProfileId, enabled=:enabled,
         tts_enabled=:ttsEnabled, tts_timing=:ttsTiming, tts_mode=:ttsMode, tts_template=:ttsTemplate, tts_max_chars=:ttsMaxChars, tts_min_amount=:ttsMinAmount,
         meta_json=:metaJson, updated_at=:now
       WHERE id=:id
@@ -838,8 +870,8 @@ function saveRule(input, silent = false) {
   }
 
   const result = sqlite.run(`
-    INSERT INTO alert_rules (source, type_key, label, min_value, max_value, tier, priority, duration_ms, duration_mode, animation, image_mode, sound_asset_id, image_asset_id, display_profile_id, enabled, tts_enabled, tts_timing, tts_mode, tts_template, tts_max_chars, tts_min_amount, meta_json, created_at, updated_at)
-    VALUES (:source, :typeKey, :label, :minValue, :maxValue, :tier, :priority, :durationMs, :durationMode, :animation, :imageMode, :soundAssetId, :imageAssetId, :displayProfileId, :enabled, :ttsEnabled, :ttsTiming, :ttsMode, :ttsTemplate, :ttsMaxChars, :ttsMinAmount, :metaJson, :now, :now)
+    INSERT INTO alert_rules (source, type_key, label, min_value, max_value, tier, priority, duration_ms, duration_mode, animation, image_mode, sound_asset_id, sound_output_target, sound_category, sound_priority, sound_volume, image_asset_id, display_profile_id, enabled, tts_enabled, tts_timing, tts_mode, tts_template, tts_max_chars, tts_min_amount, meta_json, created_at, updated_at)
+    VALUES (:source, :typeKey, :label, :minValue, :maxValue, :tier, :priority, :durationMs, :durationMode, :animation, :imageMode, :soundAssetId, :soundOutputTarget, :soundCategory, :soundPriority, :soundVolume, :imageAssetId, :displayProfileId, :enabled, :ttsEnabled, :ttsTiming, :ttsMode, :ttsTemplate, :ttsMaxChars, :ttsMinAmount, :metaJson, :now, :now)
   `, { ...rule, now });
   const newId = Number(result.lastInsertRowid || 0);
   if (!silent) return { ok: true, id: newId, rule: sqlite.get(`SELECT * FROM alert_rules WHERE id=:id`, { id: newId }) };
@@ -1191,7 +1223,7 @@ function getRuleById(id) {
     LEFT JOIN alert_assets i ON i.id = r.image_asset_id AND i.enabled = 1
     WHERE r.id=:id AND r.enabled = 1
   `, { id: Number(id) });
-  return rule ? { ...rule, meta: parseJson(rule.meta_json, {}) } : null;
+  return rule ? enrichAlertRuleRow(rule) : null;
 }
 
 
@@ -1502,7 +1534,7 @@ function findMatchingRule(payload) {
     LIMIT 1
   `, { source, typeKey, amount });
 
-  return rule ? { ...rule, meta: parseJson(rule.meta_json, {}) } : null;
+  return rule ? enrichAlertRuleRow(rule) : null;
 }
 
 
@@ -1541,12 +1573,17 @@ function buildSoundSystemPayload(event, overlayAlert) {
   const raw = event.raw && typeof event.raw === 'object' ? event.raw : {};
   const rule = event.rule || {};
   const meta = rule.meta && typeof rule.meta === 'object' ? rule.meta : {};
-  const volumeCandidate = raw.soundVolume ?? raw.volume ?? meta.soundVolume ?? meta.volume ?? liveAlert.soundSystemVolume ?? overlayAlert.soundVolume;
+  const ruleSoundRouting = rule.soundRouting && typeof rule.soundRouting === 'object' ? rule.soundRouting : {};
+  const ruleSoundOutputTarget = cleanKey(rule.sound_output_target || rule.soundOutputTarget || ruleSoundRouting.outputTarget || '');
+  const ruleSoundCategory = cleanKey(rule.sound_category || rule.soundCategory || ruleSoundRouting.category || '');
+  const ruleSoundPriority = nullablePriority(rule.sound_priority ?? rule.soundPriority ?? ruleSoundRouting.priority);
+  const ruleSoundVolume = nullableVolume(rule.sound_volume ?? rule.soundVolume ?? ruleSoundRouting.volume);
+  const volumeCandidate = raw.soundVolume ?? raw.volume ?? ruleSoundVolume ?? meta.soundVolume ?? meta.volume ?? liveAlert.soundSystemVolume ?? overlayAlert.soundVolume;
   const volume = Number.isFinite(Number(volumeCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(volumeCandidate)))) : 85;
-  const priorityCandidate = raw.soundPriority ?? meta.soundPriority ?? liveAlert.soundSystemPriority ?? rule.priority ?? 80;
+  const priorityCandidate = raw.soundPriority ?? ruleSoundPriority ?? meta.soundPriority ?? liveAlert.soundSystemPriority ?? rule.priority ?? 80;
   const priority = Number.isFinite(Number(priorityCandidate)) ? Math.max(0, Math.min(100, Math.round(Number(priorityCandidate)))) : 80;
-  const outputTarget = cleanKey(raw.outputTarget || raw.soundOutputTarget || meta.outputTarget || meta.soundOutputTarget || liveAlert.soundSystemOutputTarget || 'device') || 'device';
-  const category = cleanKey(raw.soundCategory || meta.soundCategory || liveAlert.soundSystemCategory || 'alert') || 'alert';
+  const outputTarget = cleanKey(raw.outputTarget || raw.soundOutputTarget || ruleSoundOutputTarget || meta.outputTarget || meta.soundOutputTarget || liveAlert.soundSystemOutputTarget || 'device') || 'device';
+  const category = cleanKey(raw.soundCategory || ruleSoundCategory || meta.soundCategory || liveAlert.soundSystemCategory || 'alert') || 'alert';
   const source = cleanKey(liveAlert.soundSystemSource || 'alert_system') || 'alert_system';
   const isTest = raw.isTest === true || raw.test === true || String(raw.isTest || raw.test || '').toLowerCase() === 'true' || cleanKey(raw.mode || '') === 'live_test';
 
@@ -2472,6 +2509,30 @@ function normalizeCelebrationAlias(value) {
 function cleanTemplate(v) { return String(v ?? '').trim().slice(0, 1200); }
 function boolish(v, fallback) { if (v === undefined || v === null || v === '') return !!fallback; return v === true || v === 1 || v === '1' || v === 'true' || v === 'on'; }
 function validateMessageMode(v) { const mode = cleanKey(v || 'auto'); return ['auto','always','never'].includes(mode) ? mode : 'auto'; }
+function validateSoundOutputTarget(value) {
+  const key = cleanKey(value || '');
+  if (!key) return '';
+  return ['device', 'overlay', 'both'].includes(key) ? key : '';
+}
+
+function validateSoundCategory(value) {
+  const key = cleanKey(value || '');
+  if (!key) return '';
+  return ['alert', 'alert_critical', 'channel_reward', 'vip', 'crew', 'special', 'tts', 'fun', 'background', 'decor', 'admin', 'system', 'ui', 'test'].includes(key) ? key : '';
+}
+
+function nullablePriority(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
+}
+
+function nullableVolume(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
+}
+
 function cleanKey(v) { return String(v ?? '').trim().toLowerCase().replace(/[^a-z0-9_.-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80); }
 function toInt(v, fallback) { const n = Number.parseInt(v, 10); return Number.isFinite(n) ? n : fallback; }
 function nullableInt(v) { if (v === '' || v === null || v === undefined) return null; const n = Number.parseInt(v, 10); return Number.isFinite(n) && n > 0 ? n : null; }
