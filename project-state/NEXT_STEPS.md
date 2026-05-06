@@ -10,6 +10,8 @@ Nach `STEP193.10` den Parser-Fix live prüfen und danach erstmal keine weiteren 
 
 Pruefen:
 
+0. Overlay-Test fuer Eintraege live mit lokalem Overlay pruefen.
+
 1. Neues Format `löst ... mit ... aus` testen.
 2. Neuer unbekannter SoundAlert kommt rein.
 3. Eintrag erscheint unter `Zur Pruefung`.
@@ -48,7 +50,7 @@ Pruefen:
 - SQLite `app.sqlite` niemals ersetzen oder neu bauen.
 - Keine Secrets, Tokens, `.env`, DBs, Backups oder ZIPs committen.
 - Dashboard greift nicht direkt auf SQLite/Dateien zu, sondern nutzt Backend-APIs.
-- SoundAlerts Bridge Version aktuell: `0.1.12`.
+- SoundAlerts Bridge Version aktuell: `0.1.13`.
 - `_SoundAlerts_Loader` bleibt aktive, stumme 1x1-OBS-Browserquelle.
 
 ## Parser-Regel

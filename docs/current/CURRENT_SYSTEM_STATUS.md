@@ -15,7 +15,7 @@ Stand: 2026-05-06
 
 Aktueller Modulstand:
 
-- `soundalerts_bridge` Version: `0.1.12`
+- `soundalerts_bridge` Version: `0.1.13`
 - Dashboard-Dateien:
   - `htdocs/dashboard/modules/soundalerts.js`
   - `htdocs/dashboard/modules/soundalerts.css`
@@ -244,3 +244,11 @@ Damit muessen neue SoundAlerts-Chattexte nicht mehr hart im Parser-Code verdraht
 - Der Test nutzt die bestehende `/api/soundalerts/test/chat`-Route.
 - Testen ist nur sichtbar, wenn ein Eintrag einen SoundAlerts-Namen und eine Datei hat.
 - Keine Backend-/API-/DB-Aenderung.
+
+## STEP193.15 - Test-Ausgabeziel Override
+
+- Eintraege koennen normal mit gespeichertem Ausgabeziel getestet werden.
+- Zusaetzlich gibt es einen Overlay-Test, der den Test einmalig mit `outputTarget=overlay` an das Sound-System sendet.
+- Das gespeicherte Ausgabeziel des Eintrags wird dadurch nicht veraendert.
+- Fuer Overlay-Tests muss das lokale Sound-System-Overlay oder die OBS-Overlayquelle aktiv geladen sein.
+

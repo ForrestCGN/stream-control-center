@@ -933,6 +933,7 @@ window.SoundAlertsModule = (function(){
         </div>
         <div class="sa-entry-actions sa-icon-actions">
           ${canTestRule(rule) ? iconBtn('▶', 'Eintrag testen', `test-rule:${idx}`, 'success') : ''}
+          ${canTestRule(rule) ? iconBtn('🖥️', 'Im Overlay testen', `test-rule-overlay:${idx}`, 'secondary') : ''}
           ${iconBtn('✏️', 'Bearbeiten', `edit-rule:${idx}`)}
           ${iconBtn('🗑️', 'Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
@@ -974,6 +975,7 @@ window.SoundAlertsModule = (function(){
         <div class="sa-actions sa-editor-actions sa-icon-actions">
           ${iconBtn('💾', isReviewRule(rule) || ruleNeedsSetup(rule) ? 'Speichern / Freigeben' : 'Speichern', `save-current-rule:${idx}`, 'success')}
           ${canTestRule(rule) ? iconBtn('▶', 'Eintrag testen', `test-rule:${idx}`, 'success') : ''}
+          ${canTestRule(rule) ? iconBtn('🖥️', 'Im Overlay testen', `test-rule-overlay:${idx}`, 'secondary') : ''}
           ${!isIgnoredRule(rule) ? iconBtn('🚫', 'Ignorieren', `ignore-rule:${idx}`, 'secondary sa-less-important') : ''}
           ${iconBtn('🗑️', 'Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
@@ -996,7 +998,7 @@ window.SoundAlertsModule = (function(){
         <label class="sa-field"><span>Lautstärke</span><input data-sa-rule-field="volume" type="number" min="0" max="100" value="${esc(value(rule.volume, defaultVolume()))}"></label>
       </div>
       <div class="sa-note" data-sa-priority-hint>Priorität leer lassen = Kategorie-Standard ${esc(standardPriority(rule))}. Nur eintragen, wenn dieser SoundAlert bewusst abweichen soll.</div>
-      <div class="sa-note sa-output-hint">Test nutzt das gespeicherte Ausgabeziel. Für Overlay/Beides vorher das lokale Overlay öffnen und Änderungen speichern.</div>
+      <div class="sa-note sa-output-hint">▶ Test nutzt das gespeicherte Ausgabeziel. 🖥️ Overlay-Test sendet diesen Test einmalig ans Overlay, ohne das gespeicherte Ausgabeziel zu ändern. Für Overlay-Tests vorher das lokale Overlay öffnen.</div>
     `;
   }
 
@@ -1320,7 +1322,7 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
     return `${user} spielt ${name} für 0 Bits!`;
   }
 
-  async function testRule(idx){
+  async function testRule(idx, options){
     saveActiveRuleFromDom();
     const rule = rules()[idx];
     if (!rule) return;
@@ -1330,7 +1332,10 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
     }
     selectedRuleIndex = idx;
     activeTab = 'rules';
-    await runTest(buildRuleTestText(rule));
+    await runTest(buildRuleTestText(rule), {
+      outputTarget: options && options.outputTarget ? options.outputTarget : '',
+      mediaType: normalizeMediaType(rule.mediaType, rule.file)
+    });
   }
 
   function inferUploadName(rule, fileObj){
@@ -1428,8 +1433,15 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
     await saveConfig();
   }
 
-  async function runTest(text){
-    await api('/test/chat', { method: 'POST', body: JSON.stringify({ login: config?.bot?.login || 'soundalerts', user: config?.bot?.displayName || 'SoundAlerts', text }) });
+  async function runTest(text, options){
+    const payload = {
+      login: config?.bot?.login || 'soundalerts',
+      user: config?.bot?.displayName || 'SoundAlerts',
+      text
+    };
+    if (options && options.outputTarget) payload.outputTarget = options.outputTarget;
+    if (options && options.mediaType) payload.mediaType = options.mediaType;
+    await api('/test/chat', { method: 'POST', body: JSON.stringify(payload) });
     await loadAll(true);
   }
 
@@ -1539,6 +1551,7 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
         else if (action === 'reset-parser-formats') resetParserFormats();
         else if (action === 'test-parser-format') testParserFormats();
         else if (action === 'add-rule') addRule();
+        else if (action.startsWith('test-rule-overlay:')) await testRule(Number(action.split(':')[1]), { outputTarget: 'overlay' });
         else if (action.startsWith('test-rule:')) await testRule(Number(action.split(':')[1]));
         else if (action.startsWith('remove-rule:')) await removeRule(Number(action.split(':')[1]));
         else if (action.startsWith('ignore-rule:')) await ignoreRule(Number(action.split(':')[1]));

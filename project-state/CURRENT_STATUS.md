@@ -9,7 +9,7 @@ SoundAlerts ist bis `STEP193.8.1` technisch umgesetzt, mit `STEP193.9` als stabi
 Backend:
 
 - `backend/modules/soundalerts_bridge.js`
-- Version: `0.1.12`
+- Version: `0.1.13`
 - DB-Zugriffe laufen ueber `backend/core/database.js`.
 - Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
 - JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback.
@@ -88,3 +88,10 @@ Neue Formate koennen ueber Regex + Gruppen-Zuordnung ergaenzt werden, ohne die P
 - `parser.messageFormats` kann dort angezeigt, aktiviert/deaktiviert und erweitert werden.
 - Beispieltexte koennen lokal getestet werden, ohne Event-/DB-Eintrag anzulegen.
 - Speichern nutzt die bestehende Settings-API; keine Backend-/DB-Schemaaenderung.
+
+## STEP193.15
+
+- Entry-Testbuttons erweitert: normaler Test nutzt das gespeicherte Ausgabeziel.
+- Overlay-Test sendet einzelne Testausloesungen temporaer mit `outputTarget=overlay`.
+- Gespeicherte Eintragsdaten werden dadurch nicht geaendert.
+- Backend-Version: `0.1.13`.

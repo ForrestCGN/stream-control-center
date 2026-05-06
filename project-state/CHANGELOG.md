@@ -2,6 +2,15 @@
 
 ## 2026-05-06
 
+### STEP193.15 - SoundAlerts Test Output Override
+
+- `soundalerts_bridge` auf Version `0.1.13` gesetzt.
+- Test-Route kann ein temporaeres `outputTarget` annehmen.
+- Dashboard ergaenzt einen Overlay-Test pro Eintrag.
+- Normaler Test nutzt weiterhin das gespeicherte Ausgabeziel.
+- Overlay-Test veraendert den gespeicherten Eintrag nicht.
+
+
 ### STEP193.14 - SoundAlerts Local Overlay Test Workflow
 
 - Lokalen Overlay-Test im Dashboard ergänzt.

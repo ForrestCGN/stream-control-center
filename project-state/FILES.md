@@ -72,6 +72,8 @@ upload.maxVideoSizeBytes = 1073741824
 - `<user> spielt <sound> für <amount> Bits!`
 - `<user> löst <sound> mit <amount> Bits aus`
 
+- `project-state/STEP193_15_SOUNDALERTS_TEST_OUTPUT_OVERRIDE_2026-05-06.md`
+
 ## OBS Loader Standard
 
 - `_SoundAlerts_Loader` als dauerhaft aktive 1x1-OBS-Browserquelle.

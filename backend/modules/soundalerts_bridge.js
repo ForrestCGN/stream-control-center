@@ -20,7 +20,7 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.12';
+const VERSION = '0.1.13';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
@@ -1276,11 +1276,12 @@ async function sendChatNotice(message) {
   }
 }
 
-async function queueSound(parsed, rule, item) {
+async function queueSound(parsed, rule, item, options = {}) {
   const soundCfg = config.soundSystem || {};
   const resolved = resolveFile(rule);
   const mediaType = detectMediaType(rule, resolved);
-  const outputTarget = normalizeOutputTarget(rule.outputTarget || (mediaType === 'video' ? soundCfg.videoOutputTarget : soundCfg.audioOutputTarget), mediaType);
+  const requestedOutputTarget = options && options.outputTarget !== undefined ? options.outputTarget : '';
+  const outputTarget = normalizeOutputTarget(requestedOutputTarget || rule.outputTarget || (mediaType === 'video' ? soundCfg.videoOutputTarget : soundCfg.audioOutputTarget), mediaType);
 
   if (!resolved.ok) {
     state.stats.fileMissing++;
@@ -1333,7 +1334,8 @@ async function queueSound(parsed, rule, item) {
       amount: parsed.amount,
       currency: parsed.currency,
       botLogin: item.login || '',
-      eventUid: item.id || ''
+      eventUid: item.id || '',
+      testOutputTarget: options && options.outputTarget ? outputTarget : ''
     }
   };
 
@@ -1354,7 +1356,7 @@ async function queueSound(parsed, rule, item) {
     soundRequestId,
     mediaType,
     file: String(payload.file || ''),
-    meta: { soundResult: result && result.result ? result.result : {} }
+    meta: { soundResult: result && result.result ? result.result : {}, testOutputTarget: options && options.outputTarget ? outputTarget : '' }
   };
   insertEvent(row);
   remember(row);
@@ -1429,7 +1431,7 @@ async function handleChatItem(item) {
     }
 
     state.stats.matched++;
-    return await queueSound(parsed, rule, item);
+    return await queueSound(parsed, rule, item, { outputTarget: item && item.outputTarget });
   } catch (err) {
     state.stats.failed++;
     const row = {
@@ -1657,6 +1659,7 @@ module.exports.init = function init(ctx) {
       user: String(req.body && req.body.user || (config.bot && config.bot.displayName) || 'SoundAlerts'),
       login: normalizeLogin(req.body && req.body.login || (config.bot && config.bot.login) || 'soundalerts'),
       text: String(req.body && req.body.text || ''),
+      outputTarget: normalizeOutputTarget(req.body && (req.body.outputTarget || req.body.testOutputTarget), String(req.body && req.body.mediaType || 'audio')),
       source: 'manual_test',
       createdAt: core.nowIso()
     };
