@@ -55,6 +55,9 @@ Zuletzt abgeschlossene/aktuelle Bloecke:
 - STEP192.2 SoundAlerts Settings in DB
 - STEP192.2.1 SoundAlerts DB-Core-Portability
 - STEP192.3 SoundAlerts Doku-Sync
+- STEP192.3.1 Globaler DB-Portability-Standard
+- STEP193 SoundAlerts Inbox / Auto Entries
+- STEP193.1 SoundAlerts Inbox Doku-Sync
 
 Aktuelle wichtigste Referenzdokus:
 
@@ -68,15 +71,18 @@ Aktuelle wichtigste Referenzdokus:
 - `project-state/STEP192_2_SOUNDALERTS_SETTINGS_DB_2026-05-06.md`
 - `project-state/STEP192_2_1_SOUNDALERTS_DB_CORE_PORTABILITY_2026-05-06.md`
 - `project-state/STEP192_3_SOUNDALERTS_DOC_SYNC_2026-05-06.md`
+- `project-state/STEP192_3_1_GLOBAL_DB_PORTABILITY_STANDARD_2026-05-06.md`
+- `project-state/STEP193_SOUNDALERTS_INBOX_AUTO_ENTRIES_2026-05-06.md`
+- `project-state/STEP193_1_SOUNDALERTS_INBOX_DOC_SYNC_2026-05-06.md`
 
 ## Aktueller SoundAlerts-Stand
 
-SoundAlerts Bridge ist bis STEP192.2.1 im Backend vorbereitet und live getestet.
+SoundAlerts Bridge ist bis STEP193 im Backend vorbereitet und live getestet.
 
 Backend:
 
 - `backend/modules/soundalerts_bridge.js`
-- Version: `0.1.5`
+- Version: `0.1.6`
 - DB-Zugriffe im Modul laufen ueber `backend/core/database.js`.
 - Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
 - JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback.
@@ -107,7 +113,7 @@ Live bestaetigt:
 
 ```text
 GET /api/soundalerts/status
-version: 0.1.5
+version: 0.1.6
 database.ok: true
 entriesTable: soundalerts_bridge_entries
 settingsTable: soundalerts_bridge_settings
@@ -148,12 +154,27 @@ MariaDB-Vorbereitung:
 - Spaetere MariaDB-Unterstuetzung braucht weiterhin einen echten Adapter in `backend/core/database.js`.
 - SQL-Dialekt-Unterschiede muessen spaeter zentral gekapselt werden.
 
+STEP193 Live-Test bestaetigt:
+
+```text
+POST /api/soundalerts/test/chat
+text: ForrestCGN spielt Neuer Test Sound fuer 0 Bits!
+result.status: unmatched
+autoEntry.created: true
+autoEntry.entry.id: neuer_test_sound
+autoEntry.entry.enabled: false
+autoEntry.entry.status: missing_file
+entries.source: db
+entriesStats.total: 2
+entriesStats.inactive: 1
+entriesStats.missingFile: 1
+```
+
 Bewusst offen:
 
-- STEP193 SoundAlerts Inbox / Auto Entries.
-- Unbekannte SoundAlerts automatisch als DB-Eintrag sichtbar machen.
-- Datei fehlt/vorhanden sauber als Status abbilden.
-- Upload/Zuordnung direkt aus dem Eintrag heraus.
+- Dashboard-UX fuer offene Auto-Eintraege pruefen.
+- Upload/Zuordnung direkt aus dem Eintrag heraus testen und ggf. verbessern.
+- Optional Testeintraege spaeter per Admin-Funktion ausblenden/loeschen.
 
 ## Aktueller Clip-Stand
 

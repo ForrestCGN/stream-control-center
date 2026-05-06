@@ -65,11 +65,11 @@ Das Script macht Syntaxcheck, Git-Add, Sicherheitscheck, Commit, Push nach `orig
 
 ## Zuletzt abgeschlossene Hauptbereiche
 
-### SoundAlerts / Sound-System - STEP192 bis STEP192.3
+### SoundAlerts / Sound-System - STEP192 bis STEP193.1
 
 Aktueller Stand:
 
-- `soundalerts_bridge` laeuft live auf Version `0.1.5`.
+- `soundalerts_bridge` laeuft live auf Version `0.1.6`.
 - SoundAlerts Bridge ist erfolgreich mit Sound-System und Dashboard verbunden.
 - Echter SoundAlerts-Chattrigger wurde erfolgreich getestet:
   - `ForrestCGN spielt Fahrstuhl Sound fuer 0 Bits!`
@@ -137,13 +137,29 @@ Wichtige SoundAlerts-Dokus:
 - `project-state/STEP192_2_SOUNDALERTS_SETTINGS_DB_2026-05-06.md`
 - `project-state/STEP192_2_1_SOUNDALERTS_DB_CORE_PORTABILITY_2026-05-06.md`
 - `project-state/STEP192_3_SOUNDALERTS_DOC_SYNC_2026-05-06.md`
+- `project-state/STEP192_3_1_GLOBAL_DB_PORTABILITY_STANDARD_2026-05-06.md`
+- `project-state/STEP193_SOUNDALERTS_INBOX_AUTO_ENTRIES_2026-05-06.md`
+- `project-state/STEP193_1_SOUNDALERTS_INBOX_DOC_SYNC_2026-05-06.md`
+
+STEP193 Live-Test bestaetigt:
+
+- Unbekannter Test-Trigger `ForrestCGN spielt Neuer Test Sound fuer 0 Bits!` wurde verarbeitet.
+- Backend erzeugte automatisch einen inaktiven DB-Eintrag:
+  - `id = neuer_test_sound`
+  - `enabled = false`
+  - `status = missing_file`
+  - `soundAlertName = Neuer Test Sound`
+  - `category = channel_reward`
+  - `outputTarget = device`
+  - `volume = 100`
+- `entries.source = db`.
+- Bestehender Eintrag `fahrstuhl_sound` blieb unveraendert aktiv.
 
 Bewusst offen fuer SoundAlerts:
 
-- STEP193 SoundAlerts Inbox / Auto Entries.
-- Neue unbekannte SoundAlerts automatisch als DB-Eintrag sichtbar machen.
-- Datei fehlt/vorhanden sauber als Status abbilden.
-- Upload/Zuordnung direkt aus dem Eintrag heraus.
+- Dashboard-UX fuer offene Auto-Eintraege pruefen/verbessern.
+- Datei hochladen/zuweisen direkt aus einem erkannten Eintrag testen und ggf. verbessern.
+- Optional Testeintraege spaeter per Admin-Funktion ausblenden/loeschen.
 - Admin-Config UI fuer SoundAlerts spaeter sauber vom Sound-System trennen.
 - Grosse Video-Uploads optional ueber DB-Setting erhoehen.
 - Echter MariaDB-Adapter spaeter in `backend/core/database.js`.
@@ -330,11 +346,10 @@ Aktuelle Helper-Lage:
 
 ### SoundAlerts
 
-- STEP193 SoundAlerts Inbox / Auto Entries.
-- Automatische Erkennung unbekannter SoundAlerts.
-- Statuslogik fuer `new_detected`, `missing_file`, `file_matched`, `ready`.
-- Dashboard-Anbindung fuer neue/inbox Eintraege.
-- Datei hochladen/zuweisen direkt aus einem erkannten Eintrag.
+- Dashboard-UX fuer automatisch erkannte offene Eintraege pruefen.
+- Upload-/Zuweisungsfluss fuer `missing_file`-Eintraege testen.
+- Optional Test-/Alt-Eintraege spaeter per Admin-Funktion verwalten.
+- Admin-Config UI fuer SoundAlerts sauber vom Sound-System trennen.
 
 ### Clip-System
 
@@ -364,8 +379,8 @@ Aktuelle Helper-Lage:
 
 ## Naechster empfohlener Schritt
 
-1. SoundAlerts Inbox / Auto Entries planen und bauen:
-   - unbekannte SoundAlerts automatisch in DB sichtbar machen
-   - Datei fehlt/vorhanden als Status speichern
-   - Dashboard soll Eintraege direkt bearbeiten/zuweisen koennen
+1. SoundAlerts Dashboard-UX fuer offene Auto-Eintraege pruefen:
+   - `missing_file`-Eintraege sichtbar und verstaendlich darstellen
+   - Datei hochladen/zuweisen aus dem Eintrag heraus testen
+   - aktivieren erst nach bewusster Pruefung
 2. Danach weiterhin Clip-Live-Test beim naechsten aktiven Stream offen halten.

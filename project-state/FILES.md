@@ -122,7 +122,7 @@ Zweck:
 
 Clip-Dashboard ist noch offen.
 
-## STEP192 SoundAlerts relevante Dateien
+## STEP192/193 SoundAlerts relevante Dateien
 
 Backend:
 
@@ -150,7 +150,7 @@ DB-Strukturen:
 
 SoundAlerts-Version:
 
-- `0.1.5`
+- `0.1.6`
 
 SoundAlerts-Routen:
 
@@ -161,6 +161,8 @@ SoundAlerts-Routen:
 - `POST /api/soundalerts/entries`
 - `GET /api/soundalerts/config`
 - `POST /api/soundalerts/config`
+- `POST /api/soundalerts/test/chat`
+- `GET /api/soundalerts/events`
 
 SoundAlerts-Settings:
 
@@ -198,12 +200,23 @@ SoundAlerts-Settings:
 - `dedupe.enabled`
 - `dedupe.windowMs`
 
+
+SoundAlerts-Auto-Entry-Statuswerte:
+
+- `active` = aktiv nutzbarer Eintrag
+- `missing_file` = automatisch erkannt, aber Datei fehlt
+- `file_matched` = automatisch erkannt und Datei wurde passend gefunden
+- `disabled`/inaktiv = bewusst nicht abspielbereit
+
 SoundAlerts-Dokus:
 
 - `project-state/STEP192_1_1_SOUNDALERTS_DEFAULTS_SAVE_CLEANUP_2026-05-06.md`
 - `project-state/STEP192_2_SOUNDALERTS_SETTINGS_DB_2026-05-06.md`
 - `project-state/STEP192_2_1_SOUNDALERTS_DB_CORE_PORTABILITY_2026-05-06.md`
 - `project-state/STEP192_3_SOUNDALERTS_DOC_SYNC_2026-05-06.md`
+- `project-state/STEP192_3_1_GLOBAL_DB_PORTABILITY_STANDARD_2026-05-06.md`
+- `project-state/STEP193_SOUNDALERTS_INBOX_AUTO_ENTRIES_2026-05-06.md`
+- `project-state/STEP193_1_SOUNDALERTS_INBOX_DOC_SYNC_2026-05-06.md`
 
 ## STEP183-187 Clip relevante Dateien
 

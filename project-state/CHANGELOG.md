@@ -2,6 +2,28 @@
 
 ## 2026-05-06
 
+### STEP193.1 - SoundAlerts Inbox Auto Entries Doku-Sync
+
+- Zentrale Projekt-Dokus nach erfolgreichem STEP193-Live-Test aktualisiert.
+- Dokumentiert:
+  - `soundalerts_bridge` Version `0.1.6`
+  - automatische inaktive DB-Eintraege fuer unbekannte SoundAlerts
+  - Status `missing_file` bei fehlender Datei
+  - Dashboard liest Auto-Eintraege ueber `/api/soundalerts/entries`
+  - `fahrstuhl_sound` bleibt unveraendert aktiv
+- Keine Codeaenderung in diesem STEP.
+
+### STEP193 - SoundAlerts Inbox / Auto Entries
+
+- Unbekannte SoundAlerts erzeugen automatisch einen Eintrag in `soundalerts_bridge_entries`.
+- Neue Auto-Eintraege bleiben bewusst inaktiv (`enabled = false`).
+- Status wird auf `missing_file` gesetzt, wenn keine passende lokale Datei gefunden wird.
+- Status kann `file_matched` werden, wenn eine passende lokale Datei automatisch erkannt wird.
+- Event wird weiterhin in `soundalerts_bridge_events` protokolliert.
+- Auto-Entry-Meta enthaelt Erkennungszeit, Trigger-User, Betrag, Currency und Source-Event-UID.
+- Live-Test mit `Neuer Test Sound` erfolgreich.
+
+
 ### STEP192.3.1 - Globaler DB-Portability-Standard
 
 - Projekt-Dokus ergaenzt: MariaDB-Tauglichkeit ist ab jetzt Standard fuer alle Module, nicht nur fuer SoundAlerts.

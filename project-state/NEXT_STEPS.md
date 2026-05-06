@@ -4,35 +4,28 @@ Stand: 2026-05-06
 
 ## Naechster empfohlener Schritt
 
-### STEP193 - SoundAlerts Inbox / Auto Entries
+### SoundAlerts Dashboard-UX fuer Auto-Eintraege
 
-Der SoundAlerts-Backend-Stand ist bis STEP192.2.1 vorbereitet und live getestet:
+STEP193 ist live getestet:
 
 ```text
-soundalerts_bridge version = 0.1.5
-entries = soundalerts_bridge_entries
-settings = soundalerts_bridge_settings
-events = soundalerts_bridge_events
-meta = soundalerts_bridge_meta
-JSON bleibt Seed/Fallback
+soundalerts_bridge version = 0.1.6
+Unbekannter Trigger: ForrestCGN spielt Neuer Test Sound fuer 0 Bits!
+autoEntry.created = true
+entry.id = neuer_test_sound
+entry.enabled = false
+entry.status = missing_file
+entries.source = db
+fahrstuhl_sound bleibt aktiv
 ```
 
-Ziel fuer STEP193:
+Naechster sinnvoller Schritt:
 
-Wenn ein echter SoundAlerts-Chateintrag kommt, der noch keinen bekannten DB-Eintrag hat, soll das System automatisch einen sichtbaren DB-Eintrag erstellen.
-
-Geplanter Ablauf:
-
-1. SoundAlerts-Chatnachricht wird gesehen und geparst.
-2. Es wird kein passender Eintrag in `soundalerts_bridge_entries` gefunden.
-3. Es wird automatisch ein neuer Eintrag angelegt.
-4. Status wird sauber gesetzt:
-   - `new_detected` fuer neu erkannt
-   - `missing_file` wenn keine passende lokale Datei vorhanden ist
-   - `file_matched` wenn eine passende Datei gefunden wurde
-   - `ready` wenn der Eintrag spielbereit ist
-5. Dashboard zeigt neue Eintraege sichtbar an.
-6. Datei kann aus dem Eintrag heraus hochgeladen/zugewiesen werden.
+1. Dashboard pruefen, ob automatisch erkannte Eintraege klar sichtbar sind.
+2. UX fuer `missing_file` verbessern, falls noetig.
+3. Datei aus dem Eintrag heraus hochladen/zuweisen testen.
+4. Eintrag erst nach bewusster Pruefung aktivieren.
+5. Optional Test-/Alt-Eintraege spaeter per Admin-Funktion verwalten.
 
 Wichtig:
 
@@ -48,7 +41,7 @@ Wichtig:
 
 ### SoundAlerts
 
-1. Dashboard-Inbox aufraeumen:
+1. Dashboard-Inbox/Auto-Eintraege aufraeumen:
    - Filter nach `new_detected`, `missing_file`, `active`, `disabled`, `ignored`
    - kompakte Bearbeitung direkt im Eintrag
 2. Upload-UX verbessern:
@@ -148,7 +141,7 @@ Beispiele:
 - Technische Settings: `soundalerts_bridge_settings`
 - Events/Logs: `soundalerts_bridge_events`
 - JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback.
-- SoundAlerts Bridge Version aktuell: `0.1.5`.
+- SoundAlerts Bridge Version aktuell: `0.1.6`.
 - Fuer normale SoundAlerts ist die Standard-Kategorie `channel_reward`.
 - Video geht standardmaessig nach `overlay`.
 - Audio geht standardmaessig nach `device`.
