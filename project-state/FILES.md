@@ -2,7 +2,7 @@
 
 Stand: 2026-05-06
 
-## STEP192/193 SoundAlerts relevante Dateien
+## SoundAlerts relevante Dateien
 
 Backend:
 
@@ -33,52 +33,39 @@ SoundAlerts-Version:
 
 - `0.1.9`
 
-SoundAlerts-Routen:
-
-- `GET /api/soundalerts/status`
-- `GET /api/soundalerts/settings`
-- `POST /api/soundalerts/settings`
-- `GET /api/soundalerts/entries`
-- `POST /api/soundalerts/entries`
-- `DELETE /api/soundalerts/entries/:entryKey`
-- `POST /api/soundalerts/entries/:entryKey/delete`
-- `POST /api/soundalerts/entries/:entryKey/ignore`
-- `GET /api/soundalerts/config`
-- `POST /api/soundalerts/config`
-- `POST /api/soundalerts/test/chat`
-- `GET /api/soundalerts/events`
-- `GET /api/soundalerts/stats`
-
 Aktueller Upload-Wert live:
 
 ```text
 upload.maxVideoSizeBytes = 1073741824
 ```
 
-SoundAlerts-Auto-Entry-Statuswerte:
+## SoundAlerts Statuswerte im Dashboard
 
+- `review_required` / `file_matched` = `Zur Pruefung`
 - `active` = aktiv nutzbarer Eintrag
-- `missing_file` = automatisch erkannt, aber Datei fehlt
-- `file_matched` = automatisch erkannt und Datei wurde passend gefunden
-- `ignored` = bewusst ignorierter Auto-Eintrag, wird nicht erneut als offen angelegt
-- `disabled`/inaktiv = bewusst nicht abspielbereit
+- `inactive` = gespeichert, aber bewusst deaktiviert
+- `missing_file` = Name/Datei fehlt oder Platzhalter-Datei
+- `ignored` = bewusst ignoriert, nicht prominent im normalen Workflow
 
-SoundAlerts-Dokus:
+## SoundAlerts Dokus
 
-- `project-state/STEP193_5_SOUNDALERTS_UPLOAD_UX_IGNORE_DELETE_DOC_SYNC_2026-05-06.md`
-- `project-state/STEP193_7_3_SOUNDALERTS_OVERVIEW_ACTION_STATE_CLEANUP_2026-05-06.md`
-- `project-state/STEP193_7_2_SOUNDALERTS_OVERVIEW_STATS_CLEANUP_2026-05-06.md`
-- `project-state/STEP193_7_SOUNDALERTS_OVERVIEW_DASHBOARD_2026-05-06.md`
-- `project-state/STEP193_7_1_SOUNDALERTS_INACTIVE_FILTER_FIX_2026-05-06.md`
 - `project-state/STEP193_6_SOUNDALERTS_DASHBOARD_LAYOUT_CLEANUP_2026-05-06.md`
 - `project-state/STEP193_6_1_SOUNDALERTS_OBS_LOADER_STANDARD_2026-05-06.md`
 - `project-state/STEP193_7_SOUNDALERTS_OVERVIEW_DASHBOARD_2026-05-06.md`
+- `project-state/STEP193_7_1_SOUNDALERTS_INACTIVE_FILTER_FIX_2026-05-06.md`
+- `project-state/STEP193_7_2_SOUNDALERTS_OVERVIEW_STATS_CLEANUP_2026-05-06.md`
+- `project-state/STEP193_7_3_SOUNDALERTS_OVERVIEW_ACTION_STATE_CLEANUP_2026-05-06.md`
+- `project-state/STEP193_7_4_SOUNDALERTS_EVENT_LOG_CLARITY_2026-05-06.md`
+- `project-state/STEP193_8_SOUNDALERTS_REVIEW_WORKFLOW_2026-05-06.md`
+- `project-state/STEP193_8_1_SOUNDALERTS_REVIEW_SAVE_SCOPE_FIX_2026-05-06.md`
+- `project-state/STEP193_9_SOUNDALERTS_STABLE_HANDOFF_2026-05-06.md`
 
-OBS Loader Standard:
+## OBS Loader Standard
 
 - `_SoundAlerts_Loader` als dauerhaft aktive 1x1-OBS-Browserquelle.
 - Audio im OBS-Mixer stumm.
 - Quelle nicht per Auge deaktivieren.
+- Bild/Ton-Ausgabe ueber eigenes Sound-System.
 
 ## Nie committen
 
@@ -89,43 +76,3 @@ OBS Loader Standard:
 - Backups
 - ZIP/7z-Dateien
 - temporaere Dateien
-
-## STEP193.7.1 Dashboard-Regel
-
-- `enabled: false` ist keine offene Einrichtung, wenn Name und Datei vorhanden sind.
-- Eintraege-Filter im Dashboard: Alle, Aktiv, Inaktiv, Datei fehlt, Ignoriert.
-
-
-## STEP193.7.4 zusaetzlich relevant
-
-Dashboard-Event-Log-Klartext:
-
-- `htdocs/dashboard/modules/soundalerts.js`
-- `htdocs/dashboard/modules/soundalerts.css`
-- `project-state/STEP193_7_4_SOUNDALERTS_EVENT_LOG_CLARITY_2026-05-06.md`
-
-## STEP193.8 SoundAlerts Review Workflow
-
-Geaenderte Dateien:
-
-- `htdocs/dashboard/modules/soundalerts.js`
-- `htdocs/dashboard/modules/soundalerts.css`
-
-Neue Doku:
-
-- `project-state/STEP193_8_SOUNDALERTS_REVIEW_WORKFLOW_2026-05-06.md`
-
-Statusregel:
-
-- `file_matched` / `review_required` = `Zur Pruefung`
-- `active` = gespeichert/freigegeben und aktiv
-- `inactive` = gespeichert, aber bewusst deaktiviert
-- `missing_file` = Name oder Datei fehlt
-- `ignored` = bewusst ignoriert
-
-
-## STEP193.8.1
-
-Geaenderte Datei: `htdocs/dashboard/modules/soundalerts.js`
-
-Review-Save-Scope: `save-current-rule:<index>` finalisiert nur den aktuellen Eintrag; `save-config` bleibt globale Konfigurationsspeicherung ohne Massenfreigabe.

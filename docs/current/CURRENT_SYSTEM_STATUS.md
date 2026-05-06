@@ -9,36 +9,46 @@ Stand: 2026-05-06
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
-## SoundAlerts / Sound-System - aktueller Stand bis STEP193.7
+## SoundAlerts / Sound-System - stabiler Stand bis STEP193.9
 
-- `soundalerts_bridge` laeuft live auf Version `0.1.9`.
-- SoundAlerts Bridge ist erfolgreich mit Sound-System und Dashboard verbunden.
-- Aktive DB-Strukturen:
-  - `soundalerts_bridge_events`
-  - `soundalerts_bridge_entries`
-  - `soundalerts_bridge_meta`
-  - `soundalerts_bridge_settings`
-- DB ist Hauptspeicher fuer dashboardfaehige SoundAlert-Eintraege und technische Settings.
-- JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback/Notfall.
+`STEP193.9` ist ein Doku-/Stabilisierungsstand nach dem SoundAlerts-Dashboard- und Review-Workflow-Umbau. Es wurden keine neuen Code-, API- oder DB-Aenderungen vorgenommen.
+
+Aktueller Modulstand:
+
+- `soundalerts_bridge` Version: `0.1.9`
+- Dashboard-Dateien:
+  - `htdocs/dashboard/modules/soundalerts.js`
+  - `htdocs/dashboard/modules/soundalerts.css`
+- Backend-Datei:
+  - `backend/modules/soundalerts_bridge.js`
+- Config/Fallback:
+  - `config/soundalerts_bridge.json`
+- DB ist Hauptspeicher fuer Eintraege, Events, Meta und technische Settings.
+- JSON bleibt Seed/Fallback/Notfall.
 - SoundAlerts-DB-Zugriffe laufen ueber `backend/core/database.js` bzw. Helper-Schichten.
-- MariaDB ist vorbereitet, aber echter Adapter ist noch offen.
+- SQLite ist produktiv aktiv; MariaDB bleibt spaeteres Ziel, aber ist noch nicht aktiv.
 
-## OBS Loader Standard fuer SoundAlerts
+## OBS Loader Standard
 
-- SoundAlerts benoetigt weiterhin eine aktiv geladene Browserquelle.
-- Aktueller Standard: OBS-Browserquelle `_SoundAlerts_Loader` bleibt dauerhaft sichtbar/aktiv, aber nur 1x1 px und im OBS-Mixer stumm.
-- Die Quelle darf nicht per Auge deaktiviert werden.
-- `Quelle herunterfahren, wenn nicht sichtbar` bleibt AUS.
-- `Browser aktualisieren, wenn Szene aktiv wird` bleibt AUS.
-- Bild-/Ton-Ausgabe laeuft nicht ueber SoundAlerts, sondern ueber das eigene Sound-System.
-- Kein Node-/Headless-Browser-Loader, solange diese OBS-Loader-Loesung stabil funktioniert.
+SoundAlerts benoetigt weiterhin eine aktiv geladene Browserquelle. Diese Quelle wird nicht als sichtbare/hoerbare Ausgabe genutzt.
 
-## Aktive SoundAlerts-Dateien
+Aktueller Standard:
 
-- `backend/modules/soundalerts_bridge.js`
-- `htdocs/dashboard/modules/soundalerts.js`
-- `htdocs/dashboard/modules/soundalerts.css`
-- `config/soundalerts_bridge.json`
+```text
+OBS-Quelle: _SoundAlerts_Loader
+URL: SoundAlerts Browser Source URL
+Groesse: 1x1 px
+Audio: im OBS-Mixer stumm
+Sichtbar: Ja, nicht per Auge deaktivieren
+Quelle herunterfahren, wenn nicht sichtbar: AUS
+Browser aktualisieren, wenn Szene aktiv wird: AUS
+```
+
+Fachregel:
+
+- Bild/Ton-Ausgabe laeuft ueber das eigene Sound-System.
+- Die SoundAlerts-Quelle bleibt nur als aktiver Loader geladen.
+- Kein Node-/Headless-Browser-Loader, solange diese OBS-Loesung stabil funktioniert.
 
 ## Aktive SoundAlerts-Routen
 
@@ -56,101 +66,109 @@ Stand: 2026-05-06
 - `GET /api/soundalerts/events`
 - `GET /api/soundalerts/stats`
 
-## STEP193.7 bestaetigt / vorbereitet
+## Dashboard-Workflow SoundAlerts
 
-- SoundAlerts-Uebersichtsseite zeigt kompakte Kennzahlen fuer Gesamt/Aktiv/Inaktiv/Datei fehlt/Ignoriert/Datei gefunden.
-- Uebersicht zeigt wichtige Systemwerte und Statuswerte kompakt.
-- Uebersicht zeigt die letzten 5 Events mit direkten Aktionen.
-- Events koennen aus der Uebersicht erneut gestartet werden, sofern eine Datei vorhanden ist.
-- Vollstaendige Event-/Statistiklisten bleiben in eigenen Tabs.
-- Keine Backend-/API-/DB-Aenderung.
+### Uebersicht
 
-## STEP193.5 bis STEP193.7.1 bestaetigt
+Die Uebersicht zeigt nur noch wirklich relevante Werte und Schnellzugriffe:
 
-- Video-Upload-Limit ist live auf 1 GB gesetzt: `upload.maxVideoSizeBytes = 1073741824`.
-- Dashboard zeigt Upload-Status/Fortschritt.
-- Max Audio/Video Uploadgroessen sind dashboardfaehig.
-- `file_too_large` gibt lesbare Groessenwerte zurueck.
-- `neuer_test_sound` wurde erfolgreich auf `ignored` gesetzt.
-- Wiederkehr-Test erzeugte keinen zweiten Eintrag.
-- `loesch_test_sound` wurde direkt geloescht, ohne `Config speichern`.
+- Gesamt
+- Aktiv
+- Inaktiv
+- Datei fehlt
+- Zur Pruefung
+- Letzte 5 abspielbare Events mit Datei als Replay-Schnellzugriff
 
-## Fachregel SoundAlerts
+Nicht mehr als Handlungsbedarf zaehlen:
+
+- alte/unbekannte Events aus dem Log
+- geloeschte Alt-Events
+- reine Historie ohne aktuellen Eintrag
+- bewusst inaktive vollstaendige Eintraege
+
+`Handlung noetig` erscheint nur, wenn ein aktueller Eintrag wirklich bearbeitet werden muss.
+
+### Eintraege
+
+Eintraege koennen gefiltert werden:
+
+- Alle
+- Aktiv
+- Inaktiv
+- Zur Pruefung
+- Datei fehlt
+- Ignoriert
+
+Fachregel:
+
+```text
+Inaktiv = bewusst deaktiviert und kein offener Arbeitsstand, sofern Name/Datei vorhanden sind.
+Zur Pruefung = automatisch erkannt, noch nicht einzeln gespeichert/freigegeben.
+Datei fehlt = Name/Datei fehlt oder Platzhalter-Datei.
+```
+
+### Review Workflow
+
+Automatisch erkannte Eintraege bleiben sichtbar, bis sie einzeln geprueft und gespeichert/freigegeben werden.
+
+Statuslogik:
+
+- `review_required` / `file_matched` = `Zur Pruefung`
+- `active` = gespeichert/freigegeben und aktiv
+- `inactive` = gespeichert, aber bewusst deaktiviert
+- `missing_file` = Name oder Datei fehlt
+- `ignored` = bewusst ignoriert, nicht prominent im Normalfluss
+
+Wichtige Korrektur aus STEP193.8.1:
+
+- `Speichern / Freigeben` finalisiert nur den aktuell bearbeiteten Eintrag.
+- Globales `Config speichern` gibt keine anderen `Zur Pruefung`-Eintraege frei.
+- Uploads bleiben bis zur expliziten Freigabe im Status `review_required`.
+
+### Events
+
+Der Events-Tab ist Historie/Logbuch, nicht automatisch eine aktuelle Aufgabenliste.
+
+Klartextregeln:
+
+- Alte Events zu geloeschten/unbekannten Eintraegen werden als `Kein aktueller Eintrag` dargestellt.
+- Parse-/Rohdatenfehler werden als `Parse-Fehler` dargestellt.
+- Unbrauchbare Parse-Events bieten keinen sinnlosen `Eintrag erstellen`-Button an.
+- Replay wird nur angeboten, wenn eine Datei vorhanden ist.
+
+### Statistik
+
+Die Statistik ist fachlich auf nutzbare Werte ausgerichtet:
+
+- abgespielte Sounds
+- Sound-Ausloesungen
+- User-Ausloesungen
+- verschiedene Sounds
+- verschiedene User
+- Top-Sounds
+- Top-User
+
+`Nicht eingerichtet` und `In Warteschlange` sind keine Hauptwerte mehr.
+
+## Loeschen / Ignorieren
 
 ```text
 Loeschen = Eintrag wird entfernt. Kommt derselbe SoundAlert wieder rein, wird er neu erkannt und neu angelegt.
 Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAlert wieder rein, wird er nicht als neuer offener Eintrag angelegt.
 ```
 
-## Aktiver getesteter Produktiv-Eintrag
+Ignorieren ist nicht mehr prominent im normalen Kartenfluss, bleibt aber technisch vorhanden.
 
-```json
-{
-  "id": "fahrstuhl_sound",
-  "enabled": true,
-  "status": "active",
-  "soundAlertName": "Fahrstuhl Sound",
-  "label": "Fahrstuhl Sound",
-  "file": "soundalerts/video/3cgn.mp4",
-  "mediaType": "video",
-  "category": "channel_reward",
-  "outputTarget": "overlay",
-  "volume": 100
-}
+## Live bestaetigter Referenzwert
+
+```text
+upload.maxVideoSizeBytes = 1073741824
 ```
 
+## Bewusst offen
 
-## STEP193.7.1 Dashboard-Regel
-
-- Inaktive, vollstaendig konfigurierte SoundAlert-Eintraege gelten als bewusst deaktiviert und nicht als offene Einrichtung.
-- Einrichtung noetig ist nur bei fehlendem Namen oder fehlender/Platzhalter-Datei.
-- Der Eintraege-Tab kann nach `Alle`, `Aktiv`, `Inaktiv`, `Datei fehlt` und `Ignoriert` gefiltert werden.
-
-
-## STEP193.7.2 Uebersicht / Statistik Cleanup
-
-- Hero-Leiste enthaelt keine Test-Buttons mehr.
-- Tab-Reihenfolge: Uebersicht, Eintraege, Events, Statistik, Bot & Settings.
-- KPI `Datei gefunden` wurde zu `Auto-zugeordnet` umbenannt.
-- Statistik zeigt nutzbare Kennzahlen, Top-Sounds und Top-User.
-- `Nicht eingerichtet` und `In Warteschlange` werden in der Statistik nicht mehr als Hauptwerte angezeigt.
-- Keine Backend-/API-/DB-Aenderung.
-
-## Globaler DB-Portability-Standard
-
-- SQLite ist aktuell die produktive Datenbank und bleibt Standard/Fallback.
-- Neue Module und neue DB-Features muessen so gebaut werden, dass eine spaetere MariaDB-Nutzung moeglich bleibt.
-- Neue DB-Zugriffe sollen bevorzugt ueber `backend/core/database.js` oder vorhandene Helper laufen.
-- MariaDB ist Ziel/Plan, aber erst aktiv, wenn der echte Adapter in `backend/core/database.js` implementiert und getestet ist.
-- Bis dahin darf keine Aenderung die bestehende SQLite-Funktionalitaet brechen.
-
-
-## STEP193.7.3 bestaetigt
-
-- SoundAlerts-Uebersicht zeigt "Handlung noetig" nur noch bei echtem Einrichtungsbedarf.
-- Historische/unbekannte Events im Log zaehlen nicht mehr als offener Handlungsbedarf.
-- "Auto-zugeordnet" wurde aus den Uebersichts-KPIs entfernt.
-- Letzte 5 Events auf der Uebersicht zeigen nur noch abgespielte Events mit Datei und dienen als Replay-Schnellzugriff.
-
-## Naechster empfohlener Schritt
-
-`STEP193.8 - SoundAlerts Eintragsfilter / Ansichten`
-
-- Optional Filter fuer `active`, `missing_file`, `ignored`, `file_matched`.
-- Keine neue Backend-Funktionalitaet, wenn vorhandene Daten reichen.
-
-
-## STEP193.7.4 - Event-Log-Klartext
-
-- Events im SoundAlerts-Dashboard unterscheiden nun deutlicher zwischen aktuellem Eintrag und historischem Log-Eintrag.
-- Alte Events zu geloeschten/unbekannten SoundAlerts werden als `Kein aktueller Eintrag` angezeigt.
-- Parse-Fehler werden als `Parse-Fehler` angezeigt.
-- Keine Backend-/API-/DB-Aenderung.
-
-
-## STEP193.8.1 - Review Save Scope Fix
-
-- `Speichern / Freigeben` im SoundAlerts-Eintrag finalisiert nur noch den aktuell bearbeiteten Eintrag.
-- Andere `Zur Pruefung`-Eintraege bleiben offen und werden nicht versehentlich mit freigegeben.
-- Uploads bleiben bis zur expliziten Freigabe im Status `review_required`.
-- Keine Backend-/API-/DB-Aenderung.
+- SoundAlerts weiter live beim echten Einrichten testen.
+- Bei Bedarf Event-Tab spaeter filtern: Alle / Abgespielt / Fehler / Kein aktueller Eintrag.
+- Bei Bedarf Statistik spaeter backendseitig robuster machen, falls Live-Daten weitere Felder brauchen.
+- Clip-System spaeter live testen.
+- MariaDB-Adapter spaeter in `backend/core/database.js` implementieren.
