@@ -714,7 +714,7 @@ window.SoundAlertsModule = (function(){
           <div class="sa-muted">${esc(rule.label || rule.soundAlertName || `SoundAlert ${idx + 1}`)}</div>
         </div>
         <div class="sa-actions sa-editor-actions">
-          ${isReviewRule(rule) || ruleNeedsSetup(rule) ? btn('Speichern / Freigeben', 'save-config', 'success') : ''}
+          ${isReviewRule(rule) || ruleNeedsSetup(rule) ? btn('Speichern / Freigeben', `save-current-rule:${idx}`, 'success') : ''}
           ${!isIgnoredRule(rule) ? btn('Ignorieren', `ignore-rule:${idx}`, 'secondary sa-less-important') : ''}
           ${btn('Löschen', `remove-rule:${idx}`, 'danger')}
         </div>
@@ -885,12 +885,15 @@ window.SoundAlertsModule = (function(){
     };
   }
 
-  function readRulesFromState(){
+  function readRulesFromState(finalizeIndex){
     saveActiveRuleFromDom();
-    return rules().map(finalizeRuleForSave).filter(rule => rule.soundAlertName || rule.file);
+    const releaseIndex = Number.isInteger(finalizeIndex) ? finalizeIndex : -1;
+    return rules()
+      .map((rule, idx) => idx === releaseIndex ? finalizeRuleForSave(rule, idx) : normalizeRule(rule, idx))
+      .filter(rule => rule.soundAlertName || rule.file);
   }
 
-  function buildConfigFromDom(){
+  function buildConfigFromDom(finalizeIndex){
     const current = config || {};
     return {
       ...current,
@@ -926,12 +929,12 @@ window.SoundAlertsModule = (function(){
         onUnmatched: readBool('saChatUnmatched'),
         cooldownMs: readNumber('saChatCooldown', 15000, 0, 600000)
       },
-      rules: readRulesFromState()
+      rules: readRulesFromState(finalizeIndex)
     };
   }
 
-  async function saveConfig(){
-    const next = buildConfigFromDom();
+  async function saveConfig(finalizeIndex){
+    const next = buildConfigFromDom(finalizeIndex);
     const saved = await api('/config', { method: 'POST', body: JSON.stringify({ config: next }) });
     config = saved.config || next;
     await api('/reload', { method: 'POST', body: '{}' }).catch(() => null);
@@ -1129,7 +1132,7 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
     list[idx] = normalizeRule({
       ...rule,
       file: uploadedFile,
-      status: rule.enabled === false ? 'file_matched' : 'active',
+      status: 'review_required',
       mediaType: data.mediaType || mediaType,
       outputTarget: normalizeOutputTarget(rule.outputTarget || rule.output_target, data.mediaType || mediaType)
     }, idx);
@@ -1241,6 +1244,7 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
           if (input) input.click();
         }
         else if (action === 'save-config') await saveConfig();
+        else if (action.startsWith('save-current-rule:')) await saveConfig(Number(action.split(':')[1]));
         else if (action === 'show-events') { activeTab = 'events'; applyTab(); }
         else if (action === 'show-rules') { ruleFilter = 'all'; activeTab = 'rules'; render(); }
         else if (action.startsWith('show-rules:')) { ruleFilter = action.split(':')[1] || 'all'; activeTab = 'rules'; render(); }

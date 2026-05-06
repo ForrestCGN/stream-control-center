@@ -60,3 +60,8 @@ Falls die Eintragsliste weiter waechst:
 
 - Dashboard live testen: neue Auto-Eintraege, Speichern/Freigeben, Aktiv/Inaktiv-Filter.
 - Danach bei Bedarf Feinschliff an Statistik oder Event-Historie.
+
+
+## STEP193.8.1 Hinweis
+
+Review-Workflow korrigiert: Beim Speichern/Freigeben wird nur der aktuell bearbeitete Eintrag freigegeben. Globale Speicherung gibt keine weiteren Review-Eintraege frei.

@@ -122,3 +122,10 @@ Statusregel:
 - `inactive` = gespeichert, aber bewusst deaktiviert
 - `missing_file` = Name oder Datei fehlt
 - `ignored` = bewusst ignoriert
+
+
+## STEP193.8.1
+
+Geaenderte Datei: `htdocs/dashboard/modules/soundalerts.js`
+
+Review-Save-Scope: `save-current-rule:<index>` finalisiert nur den aktuellen Eintrag; `save-config` bleibt globale Konfigurationsspeicherung ohne Massenfreigabe.

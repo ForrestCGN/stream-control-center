@@ -2,6 +2,13 @@
 
 ## 2026-05-06
 
+### STEP193.8.1 - SoundAlerts Review Save Scope Fix
+
+- `Speichern / Freigeben` finalisiert nur noch den aktuell bearbeiteten Eintrag.
+- Globales `Config speichern` gibt keine anderen `Zur Pruefung`-Eintraege frei.
+- Upload bleibt bis zur expliziten Freigabe im Status `review_required`.
+- Keine Backend-/API-/DB-Aenderung.
+
 ### STEP193.8 - SoundAlerts Review Workflow
 
 - `file_matched`/`review_required` werden als `Zur Pruefung` angezeigt.

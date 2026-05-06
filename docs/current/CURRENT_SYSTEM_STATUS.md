@@ -146,3 +146,11 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 - Alte Events zu geloeschten/unbekannten SoundAlerts werden als `Kein aktueller Eintrag` angezeigt.
 - Parse-Fehler werden als `Parse-Fehler` angezeigt.
 - Keine Backend-/API-/DB-Aenderung.
+
+
+## STEP193.8.1 - Review Save Scope Fix
+
+- `Speichern / Freigeben` im SoundAlerts-Eintrag finalisiert nur noch den aktuell bearbeiteten Eintrag.
+- Andere `Zur Pruefung`-Eintraege bleiben offen und werden nicht versehentlich mit freigegeben.
+- Uploads bleiben bis zur expliziten Freigabe im Status `review_required`.
+- Keine Backend-/API-/DB-Aenderung.

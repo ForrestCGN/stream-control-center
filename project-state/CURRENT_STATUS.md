@@ -107,3 +107,11 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 - `Aktiv` zaehlt nur noch freigegebene aktive Eintraege.
 - Inaktive gespeicherte Eintraege sind bewusst deaktiviert und keine offene Aufgabe.
 - Ignorieren bleibt technisch verfuegbar, ist aber nicht mehr prominent in der Kartenliste.
+
+
+## STEP193.8.1 - Review Save Scope Fix
+
+- `Speichern / Freigeben` im SoundAlerts-Eintrag finalisiert nur noch den aktuell bearbeiteten Eintrag.
+- Andere `Zur Pruefung`-Eintraege bleiben offen und werden nicht versehentlich mit freigegeben.
+- Uploads bleiben bis zur expliziten Freigabe im Status `review_required`.
+- Keine Backend-/API-/DB-Aenderung.
