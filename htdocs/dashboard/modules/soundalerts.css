@@ -299,183 +299,60 @@ html[data-theme=dark] .sa-event { border-color: #343434; }
   .sa-card { padding: 14px; border-radius: 18px; }
 }
 
-
-/* STEP190: SoundAlert-Eintraege UX Cleanup */
-.sa-section-head,
-.sa-editor-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
-  margin-bottom: 14px;
-}
-
-.sa-section-head h3,
-.sa-editor-head h4 {
-  margin-bottom: 4px;
-}
-
-.sa-section-actions,
-.sa-editor-actions {
-  margin-top: 0;
+/* STEP190.1: Events Actions & Priority UX */
+.sa-event-side {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
   flex: 0 0 auto;
 }
 
-.sa-picker-row {
-  display: grid;
-  grid-template-columns: minmax(260px, 480px) 1fr;
-  gap: 14px;
-  align-items: end;
-  margin: 14px 0 16px;
-  padding: 12px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.025);
-}
-
-.sa-picker-field {
-  margin: 0;
-}
-
-.sa-entry-layout {
-  display: grid;
-  grid-template-columns: minmax(320px, 42%) 1fr;
-  gap: 16px;
-  align-items: start;
-}
-
-.sa-entry-list {
-  display: grid;
-  gap: 10px;
-}
-
-.sa-entry-card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 13px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.09);
-  background: rgba(255,255,255,.028);
-  cursor: pointer;
-}
-
-.sa-entry-card:hover {
-  border-color: rgba(56,189,248,.55);
-  background: rgba(56,189,248,.06);
-}
-
-.sa-entry-card.active {
-  border-color: rgba(56,189,248,.75);
-  background: linear-gradient(135deg,rgba(56,189,248,.12),rgba(168,85,247,.08));
-  box-shadow: 0 0 24px rgba(56,189,248,.12);
-}
-
-.sa-entry-main {
-  min-width: 0;
-  display: grid;
-  gap: 6px;
-}
-
-.sa-entry-title {
+.sa-event-actions {
   display: flex;
-  gap: 8px;
-  align-items: center;
-  min-width: 0;
-}
-
-.sa-entry-title strong {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sa-entry-meta {
-  display: flex;
-  gap: 10px;
   flex-wrap: wrap;
-  color: var(--muted, #a8b3cf);
-  font-size: 12px;
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
-.sa-entry-actions {
-  display: flex;
+  justify-content: flex-end;
   gap: 8px;
-  align-items: center;
-  flex-wrap: nowrap;
 }
 
-.sa-entry-actions button {
-  min-height: 34px;
-  padding: 8px 10px;
+.sa-event-actions button {
+  min-height: 32px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: 12px;
 }
 
-.sa-entry-editor {
+.sa-event-hint {
+  color: #fef3c7 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.sa-pill.no_mapping,
+.sa-pill.missing_file {
+  border-color: rgba(251,191,36,.45);
+  background: rgba(245,158,11,.16);
+  color: #fef3c7;
+}
+
+.sa-event-no_mapping,
+.sa-event-unmatched,
+.sa-event-file_missing,
+.sa-event-missing_file {
+  background: linear-gradient(90deg, rgba(245,158,11,.045), transparent 48%);
+}
+
+.sa-entry-meta span {
   min-width: 0;
-  padding: 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.025);
-}
-
-.sa-rule-editor {
-  grid-template-columns: repeat(2, minmax(160px, 1fr));
-  margin-top: 12px;
-}
-
-.sa-rule-editor .sa-wide {
-  grid-column: span 2;
-}
-
-html[data-theme=dark] .sa-picker-row,
-html[data-theme=dark] .sa-entry-card,
-html[data-theme=dark] .sa-entry-editor {
-  background: #202020;
-  border-color: #343434;
-  box-shadow: none;
-}
-
-html[data-theme=dark] .sa-entry-card:hover,
-html[data-theme=dark] .sa-entry-card.active {
-  background: #262626;
-  border-color: #5a5a5a;
-  box-shadow: none;
-}
-
-@media (max-width: 1180px) {
-  .sa-entry-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .sa-entry-list {
-    grid-template-columns: repeat(2, minmax(260px, 1fr));
-  }
 }
 
 @media (max-width: 760px) {
-  .sa-section-head,
-  .sa-editor-head,
-  .sa-picker-row,
-  .sa-entry-card {
-    display: grid;
-    grid-template-columns: 1fr;
+  .sa-event-side {
+    justify-items: start;
+    width: 100%;
   }
 
-  .sa-entry-list,
-  .sa-rule-editor {
-    grid-template-columns: 1fr;
-  }
-
-  .sa-rule-editor .sa-wide {
-    grid-column: span 1;
-  }
-
-  .sa-entry-actions {
+  .sa-event-actions {
     justify-content: flex-start;
-    flex-wrap: wrap;
   }
 }
