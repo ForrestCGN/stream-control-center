@@ -8,6 +8,7 @@ const WebSocket = require('ws');
 const core = require('./helpers/helper_core');
 const cfg = require('./helpers/helper_config');
 const media = require('./helpers/helper_media');
+const settingsHelper = require('./helpers/helper_settings');
 const sqlite = require('./sqlite_core');
 
 let multer = null;
@@ -19,10 +20,11 @@ try {
 }
 
 const MODULE_NAME = 'soundalerts_bridge';
-const VERSION = '0.1.3';
+const VERSION = '0.1.4';
 const CONFIG_FILE = 'soundalerts_bridge.json';
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
+const SETTINGS_TABLE = 'soundalerts_bridge_settings';
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -41,7 +43,7 @@ const DEFAULT_CONFIG = {
     playUrl: 'http://127.0.0.1:8080/api/sound/play',
     soundsBaseDir: 'htdocs/assets/sounds',
     allowedExtensions: ['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4'],
-    defaultCategory: 'soundalerts',
+    defaultCategory: 'channel_reward',
     defaultPriority: 70,
     audioOutputTarget: 'device',
     videoOutputTarget: 'overlay',
@@ -84,6 +86,43 @@ const DEFAULT_CONFIG = {
   ]
 };
 
+const SETTINGS_DEFINITIONS = [
+  { key: 'enabled', path: 'enabled', valueType: 'boolean', description: 'SoundAlerts Bridge global aktivieren/deaktivieren.' },
+  { key: 'bot.login', path: 'bot.login', valueType: 'string', description: 'Twitch-Login des SoundAlerts-Bots.' },
+  { key: 'bot.userId', path: 'bot.userId', valueType: 'string', description: 'Twitch-User-ID des SoundAlerts-Bots.' },
+  { key: 'bot.displayName', path: 'bot.displayName', valueType: 'string', description: 'Anzeigename des SoundAlerts-Bots.' },
+  { key: 'bot.validateUserinfo', path: 'bot.validateUserinfo', valueType: 'boolean', description: 'SoundAlerts-Bot per Userinfo validieren.' },
+  { key: 'parser.language', path: 'parser.language', valueType: 'string', description: 'Parser-Sprache fuer SoundAlerts-Chattexte.' },
+  { key: 'parser.allowQuotedSoundNames', path: 'parser.allowQuotedSoundNames', valueType: 'boolean', description: 'Soundnamen in Anfuehrungszeichen erlauben.' },
+  { key: 'parser.allowUnquotedSoundNames', path: 'parser.allowUnquotedSoundNames', valueType: 'boolean', description: 'Soundnamen ohne Anfuehrungszeichen erlauben.' },
+  { key: 'soundSystem.playUrl', path: 'soundSystem.playUrl', valueType: 'string', description: 'Interne Sound-System-Play-URL.' },
+  { key: 'soundSystem.soundsBaseDir', path: 'soundSystem.soundsBaseDir', valueType: 'string', description: 'Basisverzeichnis fuer SoundAlerts-Dateien.' },
+  { key: 'soundSystem.allowedExtensions', path: 'soundSystem.allowedExtensions', valueType: 'json', description: 'Erlaubte Dateiendungen fuer SoundAlerts-Wiedergabe.' },
+  { key: 'soundSystem.defaultCategory', path: 'soundSystem.defaultCategory', valueType: 'string', description: 'Standard-Kategorie fuer normale SoundAlerts.' },
+  { key: 'soundSystem.defaultPriority', path: 'soundSystem.defaultPriority', valueType: 'number', description: 'Fallback-Prioritaet, wenn Kategorie keine Prioritaet liefert.' },
+  { key: 'soundSystem.audioOutputTarget', path: 'soundSystem.audioOutputTarget', valueType: 'string', description: 'Standard-Ausgabeziel fuer Audio-SoundAlerts.' },
+  { key: 'soundSystem.videoOutputTarget', path: 'soundSystem.videoOutputTarget', valueType: 'string', description: 'Standard-Ausgabeziel fuer Video-SoundAlerts.' },
+  { key: 'soundSystem.defaultVolume', path: 'soundSystem.defaultVolume', valueType: 'number', description: 'Standard-Lautstaerke fuer SoundAlerts.' },
+  { key: 'upload.enabled', path: 'upload.enabled', valueType: 'boolean', description: 'SoundAlerts-Upload aktivieren/deaktivieren.' },
+  { key: 'upload.audioDir', path: 'upload.audioDir', valueType: 'string', description: 'Zielordner fuer Audio-Uploads.' },
+  { key: 'upload.videoDir', path: 'upload.videoDir', valueType: 'string', description: 'Zielordner fuer Video-Uploads.' },
+  { key: 'upload.audioRelativePrefix', path: 'upload.audioRelativePrefix', valueType: 'string', description: 'Relativer Sound-System-Prefix fuer Audio-Dateien.' },
+  { key: 'upload.videoRelativePrefix', path: 'upload.videoRelativePrefix', valueType: 'string', description: 'Relativer Sound-System-Prefix fuer Video-Dateien.' },
+  { key: 'upload.allowOverwrite', path: 'upload.allowOverwrite', valueType: 'boolean', description: 'Ueberschreiben existierender Upload-Dateien erlauben.' },
+  { key: 'upload.maxAudioSizeBytes', path: 'upload.maxAudioSizeBytes', valueType: 'number', description: 'Maximale Audio-Uploadgroesse in Bytes.' },
+  { key: 'upload.maxVideoSizeBytes', path: 'upload.maxVideoSizeBytes', valueType: 'number', description: 'Maximale Video-Uploadgroesse in Bytes.' },
+  { key: 'upload.allowedAudioExtensions', path: 'upload.allowedAudioExtensions', valueType: 'json', description: 'Erlaubte Audio-Dateiendungen fuer Uploads.' },
+  { key: 'upload.allowedVideoExtensions', path: 'upload.allowedVideoExtensions', valueType: 'json', description: 'Erlaubte Video-Dateiendungen fuer Uploads.' },
+  { key: 'chatMessages.enabled', path: 'chatMessages.enabled', valueType: 'boolean', description: 'Chat-Hinweise der SoundAlerts Bridge aktivieren.' },
+  { key: 'chatMessages.onMissingFile', path: 'chatMessages.onMissingFile', valueType: 'boolean', description: 'Chat-Hinweis senden, wenn Datei fehlt.' },
+  { key: 'chatMessages.onUnmatched', path: 'chatMessages.onUnmatched', valueType: 'boolean', description: 'Chat-Hinweis fuer unbekannte SoundAlerts senden.' },
+  { key: 'chatMessages.cooldownMs', path: 'chatMessages.cooldownMs', valueType: 'number', description: 'Cooldown fuer Chat-Hinweise in Millisekunden.' },
+  { key: 'chatMessages.missingFileTemplate', path: 'chatMessages.missingFileTemplate', valueType: 'string', description: 'Textvorlage fuer fehlende lokale SoundAlert-Dateien.' },
+  { key: 'dedupe.enabled', path: 'dedupe.enabled', valueType: 'boolean', description: 'Dedupe-Schutz fuer doppelte SoundAlerts aktivieren.' },
+  { key: 'dedupe.windowMs', path: 'dedupe.windowMs', valueType: 'number', description: 'Dedupe-Zeitfenster in Millisekunden.' }
+];
+
+
 const state = {
   module: MODULE_NAME,
   version: VERSION,
@@ -114,7 +153,15 @@ const state = {
     uploadFailed: 0
   },
   lastEvent: null,
-  recent: []
+  recent: [],
+  settings: {
+    ok: false,
+    table: SETTINGS_TABLE,
+    count: 0,
+    inserted: 0,
+    lastError: '',
+    source: 'default'
+  }
 };
 
 let config = DEFAULT_CONFIG;
@@ -135,6 +182,176 @@ function mergePlain(base, extra) {
   }
   return out;
 }
+
+function getNestedValue(object, dottedPath, fallback = undefined) {
+  if (!object || typeof object !== 'object') return fallback;
+  const parts = String(dottedPath || '').split('.').map(part => part.trim()).filter(Boolean);
+  let current = object;
+  for (const part of parts) {
+    if (!current || typeof current !== 'object' || !(part in current)) return fallback;
+    current = current[part];
+  }
+  return current === undefined ? fallback : current;
+}
+
+function setNestedValue(object, dottedPath, value) {
+  const parts = String(dottedPath || '').split('.').map(part => part.trim()).filter(Boolean);
+  if (!parts.length) return object;
+  let current = object;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (!current[part] || typeof current[part] !== 'object' || Array.isArray(current[part])) current[part] = {};
+    current = current[part];
+  }
+  current[parts[parts.length - 1]] = value;
+  return object;
+}
+
+function hasNestedValue(object, dottedPath) {
+  if (!object || typeof object !== 'object') return false;
+  const parts = String(dottedPath || '').split('.').map(part => part.trim()).filter(Boolean);
+  let current = object;
+  for (const part of parts) {
+    if (!current || typeof current !== 'object' || !(part in current)) return false;
+    current = current[part];
+  }
+  return true;
+}
+
+function normalizeSettingValue(def, value) {
+  const key = String(def && def.key || '');
+  const type = String(def && def.valueType || '').toLowerCase();
+
+  if (type === 'boolean') {
+    if (value === true || value === 1) return true;
+    const raw = String(value).trim().toLowerCase();
+    return ['1', 'true', 'yes', 'ja', 'on'].includes(raw);
+  }
+
+  if (type === 'number') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : Number(getNestedValue(DEFAULT_CONFIG, def.path, 0) || 0);
+  }
+
+  if (type === 'json') {
+    if (Array.isArray(value)) return value.map(item => String(item || '').trim()).filter(Boolean);
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed.map(item => String(item || '').trim()).filter(Boolean);
+        return parsed;
+      } catch (_) {
+        return value.split(',').map(item => item.trim()).filter(Boolean);
+      }
+    }
+    return value && typeof value === 'object' ? value : getNestedValue(DEFAULT_CONFIG, def.path, []);
+  }
+
+  if (key === 'soundSystem.defaultCategory') {
+    const raw = String(value || '').trim();
+    if (!raw || raw === 'soundalerts') return 'channel_reward';
+    return raw;
+  }
+
+  if (key === 'soundSystem.audioOutputTarget' || key === 'soundSystem.videoOutputTarget') {
+    const raw = String(value || '').trim().toLowerCase();
+    return ['overlay', 'device', 'both'].includes(raw) ? raw : (key === 'soundSystem.videoOutputTarget' ? 'overlay' : 'device');
+  }
+
+  return String(value ?? '').trim();
+}
+
+function settingDefaultsFromConfig(sourceConfig) {
+  const source = sourceConfig && typeof sourceConfig === 'object' ? sourceConfig : DEFAULT_CONFIG;
+  return SETTINGS_DEFINITIONS.map(def => {
+    const fallback = getNestedValue(DEFAULT_CONFIG, def.path, null);
+    const value = getNestedValue(source, def.path, fallback);
+    return {
+      key: def.key,
+      value: normalizeSettingValue(def, value),
+      valueType: def.valueType,
+      description: def.description
+    };
+  });
+}
+
+function ensureSettingsSeeded(sourceConfig) {
+  try {
+    const result = settingsHelper.seedDefaults(SETTINGS_TABLE, settingDefaultsFromConfig(sourceConfig));
+    state.settings.ok = true;
+    state.settings.table = result.table || SETTINGS_TABLE;
+    state.settings.inserted = Number(result.inserted || 0);
+    state.settings.lastError = '';
+    const listed = settingsHelper.listSettings(SETTINGS_TABLE, { limit: 1000 });
+    state.settings.count = Number(listed.count || 0);
+    return result;
+  } catch (err) {
+    state.settings.ok = false;
+    state.settings.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, error: state.settings.lastError };
+  }
+}
+
+function applySettingsToConfig(baseConfig) {
+  const next = mergePlain(DEFAULT_CONFIG, baseConfig || {});
+  const sources = { database: 0, default: 0, config: 0 };
+
+  for (const def of SETTINGS_DEFINITIONS) {
+    const fallback = getNestedValue(next, def.path, getNestedValue(DEFAULT_CONFIG, def.path, null));
+    try {
+      const setting = settingsHelper.getSetting(SETTINGS_TABLE, def.key, fallback, { valueType: def.valueType, description: def.description });
+      const value = normalizeSettingValue(def, setting.value);
+      setNestedValue(next, def.path, value);
+      const source = setting.found ? 'database' : 'default';
+      sources[source] = Number(sources[source] || 0) + 1;
+    } catch (err) {
+      setNestedValue(next, def.path, normalizeSettingValue(def, fallback));
+      sources.config = Number(sources.config || 0) + 1;
+      state.settings.lastError = err && err.message ? err.message : String(err);
+    }
+  }
+
+  state.settings.source = sources.database > 0 ? 'database' : 'config_fallback';
+  return next;
+}
+
+function saveSettingsFromConfigInput(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  let saved = 0;
+  const rows = [];
+
+  for (const def of SETTINGS_DEFINITIONS) {
+    let value;
+    let found = false;
+
+    if (Object.prototype.hasOwnProperty.call(source, def.key)) {
+      value = source[def.key];
+      found = true;
+    } else if (hasNestedValue(source, def.path)) {
+      value = getNestedValue(source, def.path);
+      found = true;
+    }
+
+    if (!found) continue;
+    const normalized = normalizeSettingValue(def, value);
+    const row = settingsHelper.setSetting(SETTINGS_TABLE, def.key, normalized, { valueType: def.valueType, description: def.description });
+    rows.push(row);
+    saved++;
+  }
+
+  return { ok: true, table: SETTINGS_TABLE, saved, rows };
+}
+
+function listSoundAlertSettings() {
+  ensureSettingsSeeded(config);
+  const listed = settingsHelper.listSettings(SETTINGS_TABLE, { limit: 1000 });
+  return {
+    ...listed,
+    definitions: SETTINGS_DEFINITIONS.map(def => ({ ...def })),
+    config: publicConfig()
+  };
+}
+
 
 function normalizeLogin(value) {
   return String(value || '').trim().replace(/^@/, '').toLowerCase();
@@ -430,10 +647,12 @@ function getEffectiveRules() {
 
 function loadConfig() {
   const loaded = cfg.loadConfig(CONFIG_FILE, DEFAULT_CONFIG, { createIfMissing: true, mergeDefaults: true });
-  config = mergePlain(DEFAULT_CONFIG, loaded.config || {});
+  const fileConfig = mergePlain(DEFAULT_CONFIG, loaded.config || {});
   state.configPath = loaded.path || '';
   state.configOk = !!loaded.ok;
   state.configError = loaded.error || '';
+  ensureSettingsSeeded(fileConfig);
+  config = applySettingsToConfig(fileConfig);
   return config;
 }
 
@@ -1006,7 +1225,9 @@ function publicStatus() {
       table: 'soundalerts_bridge_events',
       stats: dbStats,
       entriesTable: 'soundalerts_bridge_entries',
-      entriesStats
+      entriesStats,
+      settingsTable: SETTINGS_TABLE,
+      settingsStats: { ...state.settings }
     },
     config: publicConfig(),
     lastEvent: state.lastEvent,
@@ -1073,7 +1294,8 @@ module.exports.init = function init(ctx) {
   app.get('/api/soundalerts/status', (_req, res) => res.json(publicStatus()));
   app.get('/api/soundalerts/events', (req, res) => res.json(core.ok({ events: listEvents(req.query.limit) })));
   app.get('/api/soundalerts/stats', (_req, res) => res.json(core.ok({ stats: statsRows() })));
-  app.get('/api/soundalerts/config', (_req, res) => res.json(core.ok({ config: publicConfig(), path: state.configPath })));
+  app.get('/api/soundalerts/config', (_req, res) => res.json(core.ok({ config: publicConfig(), path: state.configPath, settingsTable: SETTINGS_TABLE, settingsSource: state.settings.source })));
+  app.get('/api/soundalerts/settings', (_req, res) => res.json(core.ok({ settings: listSoundAlertSettings(), table: SETTINGS_TABLE })));
   app.get('/api/soundalerts/entries', (_req, res) => res.json(core.ok({ entries: getEffectiveRules(), source: Array.isArray(listEntryRules()) ? 'db' : 'json_fallback' })));
 
   app.post('/api/soundalerts/config', (req, res) => {
@@ -1081,6 +1303,7 @@ module.exports.init = function init(ctx) {
     const incomingRules = Array.isArray(incoming.rules) ? incoming.rules : null;
     const nextInput = mergePlain({}, incoming);
     delete nextInput.rules;
+    const savedSettings = saveSettingsFromConfigInput(nextInput);
     const next = mergePlain(config, nextInput);
 
     if (incomingRules) {
@@ -1091,7 +1314,14 @@ module.exports.init = function init(ctx) {
     core.writeJson(state.configPath || cfg.resolveFromRoot('config', CONFIG_FILE), next, { spaces: 2 });
     loadConfig();
     ensureSchema();
-    return res.json(core.ok({ config: publicConfig(), path: state.configPath }));
+    return res.json(core.ok({ config: publicConfig(), path: state.configPath, settings: savedSettings }));
+  });
+  app.post('/api/soundalerts/settings', (req, res) => {
+    const incoming = req.body && req.body.settings ? req.body.settings : req.body || {};
+    const savedSettings = saveSettingsFromConfigInput(incoming);
+    loadConfig();
+    ensureSchema();
+    return res.json(core.ok({ config: publicConfig(), path: state.configPath, settings: savedSettings }));
   });
   app.post('/api/soundalerts/upload', (req, res) => {
     if (!uploadMiddleware) return res.status(500).json({ ok: false, error: 'multer_unavailable', message: multerLoadError });
