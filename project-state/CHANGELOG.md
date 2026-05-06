@@ -2,6 +2,16 @@
 
 ## 2026-05-06
 
+### STEP193.7.2 - SoundAlerts Uebersicht / Statistik Cleanup
+
+- Test-Buttons aus der SoundAlerts-Hero-Leiste entfernt.
+- `Bot & Settings` in der Tab-Reihenfolge nach hinten verschoben.
+- KPI `Datei gefunden` zu `Auto-zugeordnet` umbenannt.
+- Uebersicht um irrelevante Miniwerte bereinigt.
+- Statistik optisch und fachlich auf Top-Sounds, Top-User und Abspiel-Kennzahlen fokussiert.
+- Keine Backend-/API-/DB-Aenderung.
+
+
 ### STEP193.7.1 - SoundAlerts Inaktiv/Filter Fix
 
 - Fachregel korrigiert: `enabled: false` ist nicht automatisch „Einrichtung nötig“.

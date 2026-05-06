@@ -2,39 +2,33 @@
 
 Stand: 2026-05-06
 
+## Aktueller Stand
+
+SoundAlerts ist bis STEP193.7.2 fuer den naechsten Deploy vorbereitet.
+
+Erledigt:
+
+- Uebersicht mit Kennzahlen und letzten 5 Events.
+- Direkte Aktionen aus der Uebersicht.
+- Eintraege-Filter fuer Alle/Aktiv/Inaktiv/Datei fehlt/Ignoriert.
+- Inaktiv zaehlt nicht mehr automatisch als Einrichtung noetig.
+- OBS-Loader-Standard dokumentiert.
+- Hero-Leiste ohne Test-Buttons.
+- `Bot & Settings` steht in der Tab-Reihenfolge hinten.
+- Statistik fokussiert auf abgespielte Sounds, Top-Sounds und Top-User.
+
 ## Naechster empfohlener Schritt
 
-### STEP193.8 - SoundAlerts Eintragsfilter / Ansichten
+### STEP193.8 - SoundAlerts Suche / Feinschliff nur bei Bedarf
 
-STEP193.7 ist vorbereitet:
+Falls die Eintragsliste weiter waechst:
 
-```text
-SoundAlerts-Uebersicht zeigt kompakte Kennzahlen.
-Letzte 5 Events sind auf der Uebersicht sichtbar.
-Replay/Bearbeiten/Eintrag erstellen sind direkt aus der Uebersicht moeglich.
-Keine Backend-/API-/DB-Aenderung.
-```
-
-Naechster sinnvoller Schritt, falls die Eintragsliste weiter waechst:
-
-1. Filter/Ansichten fuer Eintraege ergaenzen:
-   - Alle
-   - Aktiv
-   - Inaktiv
-   - Datei fehlt
-   - Datei gefunden
-   - Ignoriert
-2. Suche nach SoundAlert-Name/Label/Datei ergaenzen.
-3. Keine neue Backend-Funktionalitaet, wenn vorhandene `config.rules`-Daten reichen.
-4. Keine bestehende Funktionalitaet entfernen.
+1. Suche nach SoundAlert-Name/Label/Datei.
+2. Optional Filter fuer `Auto-zugeordnet`.
+3. Optional bessere Upload-Zuweisung.
+4. Keine neue Backend-Funktionalitaet, wenn vorhandene Daten reichen.
 
 ## Danach moeglich
-
-### SoundAlerts
-
-- Upload-/Zuweisungsfluss weiter verbessern.
-- Optional Test-/Alt-Eintraege verwalten.
-- Optional OBS-Loader-Status als reine Doku-/Checkliste im Dashboard anzeigen, ohne SoundAlerts-URL im Backend zu laden.
 
 ### Clip-System
 
@@ -50,8 +44,3 @@ Naechster sinnvoller Schritt, falls die Eintragsliste weiter waechst:
 - Ignored-Eintraege werden nicht neu als offene Auto-Eintraege erzeugt.
 - Aktuelles Video-Upload-Limit live: `1073741824` Bytes / 1 GB.
 - `_SoundAlerts_Loader` bleibt als aktive, stumme 1x1-OBS-Browserquelle geladen.
-
-## STEP193.7.1 erledigt
-
-- Inaktiv ist keine offene Einrichtung mehr, solange Name und Datei vorhanden sind.
-- Eintraege-Tab hat Filter fuer Alle/Aktiv/Inaktiv/Datei fehlt/Ignoriert.

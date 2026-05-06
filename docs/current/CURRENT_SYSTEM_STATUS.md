@@ -106,6 +106,16 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 - Einrichtung noetig ist nur bei fehlendem Namen oder fehlender/Platzhalter-Datei.
 - Der Eintraege-Tab kann nach `Alle`, `Aktiv`, `Inaktiv`, `Datei fehlt` und `Ignoriert` gefiltert werden.
 
+
+## STEP193.7.2 Uebersicht / Statistik Cleanup
+
+- Hero-Leiste enthaelt keine Test-Buttons mehr.
+- Tab-Reihenfolge: Uebersicht, Eintraege, Events, Statistik, Bot & Settings.
+- KPI `Datei gefunden` wurde zu `Auto-zugeordnet` umbenannt.
+- Statistik zeigt nutzbare Kennzahlen, Top-Sounds und Top-User.
+- `Nicht eingerichtet` und `In Warteschlange` werden in der Statistik nicht mehr als Hauptwerte angezeigt.
+- Keine Backend-/API-/DB-Aenderung.
+
 ## Globaler DB-Portability-Standard
 
 - SQLite ist aktuell die produktive Datenbank und bleibt Standard/Fallback.

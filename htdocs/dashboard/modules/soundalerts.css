@@ -1111,3 +1111,83 @@ html[data-theme=dark] .sa-entry-toolbar {
     text-align: left;
   }
 }
+
+
+/* STEP193.7.2: SoundAlerts overview/statistics cleanup */
+.sa-stats-head {
+  margin-bottom: 14px;
+}
+
+.sa-stats-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sa-stat-tile {
+  display: grid;
+  gap: 4px;
+  min-height: 62px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(56,189,248,.16);
+  background: rgba(56,189,248,.055);
+}
+
+.sa-stat-tile span {
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sa-stat-tile strong {
+  color: #fff;
+  font-size: 23px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.sa-stat-columns-clean {
+  align-items: start;
+}
+
+.sa-stat-box {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.025);
+}
+
+.sa-stat-box h4 {
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+.sa-stat-box .sa-row {
+  padding: 11px 0;
+}
+
+.sa-stat-box .sa-row span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+html[data-theme=dark] .sa-stat-tile,
+html[data-theme=dark] .sa-stat-box {
+  background: #202020;
+  border-color: #343434;
+}
+
+@media (max-width: 1280px) {
+  .sa-stats-summary {
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .sa-stats-summary {
+    grid-template-columns: 1fr;
+  }
+}

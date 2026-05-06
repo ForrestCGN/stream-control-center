@@ -275,6 +275,29 @@ window.SoundAlertsModule = (function(){
     return 'Alle';
   }
 
+  function playedStatusKeys(){
+    return new Set(['played', 'success', 'done']);
+  }
+
+  function countRows(rows){
+    return Array.isArray(rows) ? rows.reduce((sum, row) => sum + Number(row?.count || 0), 0) : 0;
+  }
+
+  function playedCountFromStats(){
+    const rows = Array.isArray(stats?.byStatus) ? stats.byStatus : [];
+    const keys = playedStatusKeys();
+    const played = rows
+      .filter(row => keys.has(String(row?.status || '').toLowerCase()))
+      .reduce((sum, row) => sum + Number(row?.count || 0), 0);
+    return played || countRows(stats?.bySound);
+  }
+
+  function usefulStatusRows(){
+    const rows = Array.isArray(stats?.byStatus) ? stats.byStatus : [];
+    const allowed = new Set(['played', 'success', 'done', 'failed', 'file_missing', 'missing_file']);
+    return rows.filter(row => allowed.has(String(row?.status || '').toLowerCase()));
+  }
+
   function renderKpi(label, value, cls, action){
     return `
       <button type="button" class="sa-kpi ${esc(cls || '')}" ${action ? `data-sa-action="${esc(action)}"` : ''}>
@@ -295,17 +318,15 @@ window.SoundAlertsModule = (function(){
         <div class="sa-actions sa-hero-actions">
           ${btn('Neu laden', 'reload')}
           ${btn('Config speichern', 'save-config', 'success')}
-          ${btn('Test Fahrstuhl', 'test-known')}
-          ${btn('Test Unbekannt', 'test-unknown')}
         </div>
       </div>
 
       <div class="sa-tabs" role="tablist" aria-label="SoundAlerts Navigation">
         <button type="button" class="sa-tab active" data-sa-tab="overview">Übersicht</button>
-        <button type="button" class="sa-tab" data-sa-tab="settings">Bot & Settings</button>
         <button type="button" class="sa-tab" data-sa-tab="rules">Einträge</button>
         <button type="button" class="sa-tab" data-sa-tab="events">Events</button>
         <button type="button" class="sa-tab" data-sa-tab="stats">Statistik</button>
+        <button type="button" class="sa-tab" data-sa-tab="settings">Bot & Settings</button>
       </div>
 
       <div class="sa-grid">
@@ -343,11 +364,11 @@ window.SoundAlertsModule = (function(){
     if (!el) return;
     const st = status || {};
     const cfg = config || st.config || {};
-    const db = st.database || {};
     const pending = pendingRuleIndexes();
     const unknown = unmatchedEvents();
     const counts = ruleStatusCounts();
     const firstPending = pending[0];
+    const playedCount = playedCountFromStats();
     el.innerHTML = `
       <div class="sa-section-head sa-overview-head">
         <div>
@@ -378,15 +399,15 @@ window.SoundAlertsModule = (function(){
         ${renderKpi('Inaktiv', counts.inactive, 'muted', 'show-rules:inactive')}
         ${renderKpi('Datei fehlt', counts.missing_file, counts.missing_file ? 'warn' : '', 'show-rules:missing_file')}
         ${renderKpi('Ignoriert', counts.ignored, 'muted', 'show-rules:ignored')}
-        ${renderKpi('Datei gefunden', counts.file_matched, 'ok', 'show-rules:active')}
+        ${renderKpi('Auto-zugeordnet', counts.file_matched, 'ok', 'show-rules:active')}
       </div>
       <div class="sa-overview-mini-grid">
         <div class="sa-mini-state"><span>Modul</span><strong>${statusText(cfg.enabled !== false)}</strong></div>
         <div class="sa-mini-state"><span>WebSocket</span><strong>${st.wsConnected ? 'Verbunden' : 'Nicht verbunden'}</strong></div>
         <div class="sa-mini-state"><span>Bot</span><strong>${esc(cfg.bot?.login || '-')}</strong></div>
-        <div class="sa-mini-state"><span>Events DB</span><strong>${esc(db.stats?.total ?? 0)}</strong></div>
-        <div class="sa-mini-state"><span>Nicht eingerichtet</span><strong>${esc(db.stats?.unmatched ?? 0)}</strong></div>
-        <div class="sa-mini-state"><span>Datei fehlt Events</span><strong>${esc(db.stats?.fileMissing ?? 0)}</strong></div>
+        <div class="sa-mini-state"><span>Events gesamt</span><strong>${esc(events?.length || 0)}</strong></div>
+        <div class="sa-mini-state"><span>Abgespielt</span><strong>${esc(playedCount)}</strong></div>
+        <div class="sa-mini-state"><span>Top-Sounds</span><strong>${esc(Array.isArray(stats?.bySound) ? stats.bySound.length : 0)}</strong></div>
       </div>
       <div class="sa-note">Config: ${esc(st.configPath || '')}</div>
     `;
@@ -695,15 +716,42 @@ window.SoundAlertsModule = (function(){
   function renderStats(){
     const el = document.getElementById('saStatsCard');
     if (!el) return;
-    const bySound = stats?.bySound || [];
-    const byUser = stats?.byUser || [];
-    const byStatus = stats?.byStatus || [];
+    const bySound = Array.isArray(stats?.bySound) ? stats.bySound : [];
+    const byUser = Array.isArray(stats?.byUser) ? stats.byUser : [];
+    const statusRows = usefulStatusRows();
+    const playedCount = playedCountFromStats();
+    const soundTotal = countRows(bySound);
+    const userTotal = countRows(byUser);
     el.innerHTML = `
-      <h3>Statistik</h3>
-      <div class="sa-stat-columns">
-        <div><h4>Sounds</h4>${bySound.map(r => `<div class="sa-row"><span>${esc(r.soundAlertName || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}</div>
-        <div><h4>User</h4>${byUser.map(r => `<div class="sa-row"><span>${esc(r.user || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}</div>
-        <div><h4>Status</h4>${byStatus.map(r => `<div class="sa-row"><span>${esc(statusLabel(r.status || '-'))}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}</div>
+      <div class="sa-section-head sa-stats-head">
+        <div>
+          <h3>Statistik</h3>
+          <div class="sa-note">Nutzbare Auswertung: abgespielte Sounds, Top-Sounds und aktive User.</div>
+        </div>
+        <div class="sa-actions sa-section-actions">
+          ${btn('Neu laden', 'reload')}
+        </div>
+      </div>
+      <div class="sa-stats-summary">
+        <div class="sa-stat-tile"><span>Abgespielt</span><strong>${esc(playedCount)}</strong></div>
+        <div class="sa-stat-tile"><span>Sound-Auslösungen</span><strong>${esc(soundTotal)}</strong></div>
+        <div class="sa-stat-tile"><span>User-Auslösungen</span><strong>${esc(userTotal)}</strong></div>
+        <div class="sa-stat-tile"><span>Verschiedene Sounds</span><strong>${esc(bySound.length)}</strong></div>
+        <div class="sa-stat-tile"><span>Verschiedene User</span><strong>${esc(byUser.length)}</strong></div>
+      </div>
+      <div class="sa-stat-columns sa-stat-columns-clean">
+        <div class="sa-stat-box">
+          <h4>Top Sounds</h4>
+          ${bySound.slice(0, 10).map(r => `<div class="sa-row"><span>${esc(r.soundAlertName || r.soundalert_name || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}
+        </div>
+        <div class="sa-stat-box">
+          <h4>Top User</h4>
+          ${byUser.slice(0, 10).map(r => `<div class="sa-row"><span>${esc(r.user || r.triggerUserDisplay || r.trigger_user_display || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}
+        </div>
+        <div class="sa-stat-box">
+          <h4>Abspiel-Status</h4>
+          ${statusRows.map(r => `<div class="sa-row"><span>${esc(statusLabel(r.status || '-'))}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Noch keine Abspiel-Daten</div>'}
+        </div>
       </div>
     `;
   }

@@ -4,7 +4,7 @@ Stand: 2026-05-06
 
 ## Aktueller SoundAlerts-Stand
 
-SoundAlerts Bridge ist bis STEP193.7 im Backend/Dashboard vorbereitet und live getestet bzw. fuer den naechsten Deploy vorbereitet.
+SoundAlerts Bridge ist bis STEP193.7.2 im Backend/Dashboard vorbereitet und live getestet bzw. fuer den naechsten Deploy vorbereitet.
 
 Backend:
 
@@ -24,6 +24,7 @@ Dashboard:
 - Upload zeigt Status/Fortschritt.
 - Loeschen/Ignorieren sind direkte Backend-Aktionen und brauchen kein Config-Speichern mehr.
 - Uebersicht zeigt ab STEP193.7 kompakte Kennzahlen und die letzten 5 Events mit Schnellaktionen.
+- STEP193.7.2 entfernt die Test-Buttons aus der Hero-Leiste, benennt `Datei gefunden` zu `Auto-zugeordnet` um und macht die Statistik nutzbarer.
 
 DB-Strukturen:
 
@@ -80,7 +81,6 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 
 ## Bewusst offen
 
-- Dashboard-Eintragsfilter fuer `active`, `missing_file`, `ignored`, `file_matched`.
 - Upload-/Zuweisungsfluss weiter UX-seitig verbessern.
 - Clip: echter Live-Test von `/api/clip/create`.
 - Echten MariaDB-Adapter spaeter in `backend/core/database.js` implementieren.
