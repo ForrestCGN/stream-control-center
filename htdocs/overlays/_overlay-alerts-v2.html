@@ -1672,17 +1672,13 @@
 <body>
   <div class="stage" id="stage"></div>
   <audio id="sound" preload="auto"></audio>
-  <audio id="ttsSound" preload="auto"></audio>
 
   <script>
     const stage = document.getElementById('stage');
     const audio = document.getElementById('sound');
-    const ttsAudio = document.getElementById('ttsSound');
     let ws;
     let currentTimer = null;
     let currentAlertId = null;
-    let currentTtsTimer = null;
-    const preparedAlerts = new Map();
     const PREVIEW_MODE = new URLSearchParams(location.search).has('preview');
 
     function stageMetrics() {
@@ -1725,71 +1721,11 @@
       ws.addEventListener('message', ev => {
         let data;
         try { data = JSON.parse(ev.data); } catch (_) { return; }
-        if (!data || !data.op) return;
-
-        if (data.op === 'sound_system') {
-          handleSoundSystemEvent(data);
-          return;
-        }
-
-        if (data.op !== 'alert_system') return;
-        if (data.event === 'prepare' && data.alert) prepareAlert(data.alert, data);
+        if (!data || data.op !== 'alert_system') return;
         if (data.event === 'play' && data.alert) playAlert(data.alert);
         if (data.event === 'clear') clearAlert('clear');
       });
       ws.addEventListener('close', () => setTimeout(connect, 1500));
-    }
-
-    function preparedAlertId(alert, envelope = {}) {
-      return String(
-        envelope.eventId ||
-        envelope.alertId ||
-        alert?.visual?.eventId ||
-        alert?.meta?.alertId ||
-        alert?.eventUid ||
-        alert?.event_uid ||
-        alert?.id ||
-        ''
-      ).trim();
-    }
-
-    function prepareAlert(alert, envelope = {}) {
-      const id = preparedAlertId(alert, envelope);
-      if (!id) return;
-      preparedAlerts.set(id, alert);
-    }
-
-    function soundVisualEventId(item) {
-      return String(
-        item?.visual?.eventId ||
-        item?.meta?.alertId ||
-        item?.meta?.eventUid ||
-        ''
-      ).trim();
-    }
-
-    function isAlertVisualItem(item) {
-      const moduleName = String(item?.visual?.module || '').toLowerCase();
-      const category = String(item?.category || '').toLowerCase();
-      return moduleName === 'alert_system' || category === 'alert' || category === 'alert_critical';
-    }
-
-    function handleSoundSystemEvent(data) {
-      if (data.reason !== 'item_starting') return;
-      const item = data.item || {};
-      if (!isAlertVisualItem(item)) return;
-
-      const eventId = soundVisualEventId(item);
-      if (!eventId || !preparedAlerts.has(eventId)) return;
-
-      const alert = preparedAlerts.get(eventId);
-      preparedAlerts.delete(eventId);
-
-      playAlert(Object.assign({}, alert, {
-        _soundSystemManaged: true,
-        _soundSystemRequestId: item.requestId || '',
-        _soundSystemOutputTarget: item.outputTarget || ''
-      }));
     }
 
     function send(payload) {
@@ -1881,13 +1817,11 @@
       stage.appendChild(card);
       requestAnimationFrame(() => card.classList.add('show'));
 
-      if (alert.soundUrl && !alert._soundSystemManaged) {
+      if (alert.soundUrl) {
         audio.src = alert.soundUrl;
         audio.currentTime = 0;
         audio.play().catch(() => {});
       }
-
-      scheduleAlertTts(alert);
 
       const duration = Math.max(1000, Number(alert.durationMs || 7000));
       currentTimer = setTimeout(() => clearAlert('finished', true), duration);
@@ -2159,34 +2093,6 @@
     }
 
 
-    function scheduleAlertTts(alert) {
-      clearTimeout(currentTtsTimer);
-      currentTtsTimer = null;
-      try {
-        ttsAudio.pause();
-        ttsAudio.removeAttribute('src');
-        ttsAudio.load();
-      } catch (_) {}
-
-      const tts = alert && alert.tts;
-      if (!tts || tts.enabled === false || tts.ok === false || !tts.audioUrl) return;
-      const playbackMode = String(tts.playbackMode || '').toLowerCase();
-      const overlayPlaybackEnabled = tts.overlayPlaybackEnabled === true || playbackMode === 'overlay';
-      if (!overlayPlaybackEnabled) return;
-
-      const startAfterMs = Math.max(0, Number(tts.startAfterMs || tts.ttsStartAfterMs || alert.soundDurationMs || 0) || 0);
-      currentTtsTimer = setTimeout(async () => {
-        try {
-          ttsAudio.src = String(tts.audioUrl) + `?t=${Date.now()}`;
-          ttsAudio.currentTime = 0;
-          ttsAudio.volume = 1.0;
-          await ttsAudio.play();
-        } catch (err) {
-          console.error('Alert-TTS audio play failed', err);
-        }
-      }, startAfterMs);
-    }
-
     function buildCelebrationLayer(alert) {
       const selected = normalizeCelebrationType(
         alert.celebration ||
@@ -2281,7 +2187,6 @@
     }
 
     function clearAlert(reason, ack = true) {
-      if (reason === 'clear' || reason === 'replace' || reason === 'manual') preparedAlerts.clear();
       clearTimeout(currentTimer);
       currentTimer = null;
 
@@ -2295,13 +2200,6 @@
 
       audio.pause();
       audio.removeAttribute('src');
-      clearTimeout(currentTtsTimer);
-      currentTtsTimer = null;
-      try {
-        ttsAudio.pause();
-        ttsAudio.removeAttribute('src');
-        ttsAudio.load();
-      } catch (_) {}
 
       if (ack && currentAlertId) send({ op: 'alert_system', client: 'overlay', event: 'finished', alertId: currentAlertId, reason });
       currentAlertId = null;

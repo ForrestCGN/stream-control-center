@@ -22,8 +22,7 @@
     displayProfileId: null,
     previewPopout: null,
     previewVariantId: null,
-    placeholderTarget: null,
-    rulePreviewPopout: null
+    placeholderTarget: null
   };
 
   const SOURCE_LABELS = { all:'Alle', twitch:'Twitch', kofi:'Ko-fi', tipeee:'Tipeee' };
@@ -109,7 +108,7 @@
       .rules-table .col-rule-chat{width:230px;}
       .rules-table .col-rule-sound{width:290px;}
       .rules-table .col-rule-duration{width:96px;}
-      .rules-table .col-rule-actions{width:164px;}
+      .rules-table .col-rule-actions{width:118px;}
       .rules-table .chat-text-cell{display:block;min-width:0;}
       .rules-table .chat-text-cell strong{display:block;max-width:210px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .rules-table .sound-inline{max-width:300px;}
@@ -120,7 +119,6 @@
       .icon-action-btn.edit{color:#fff;}
       .icon-action-btn.test{color:#fff;border-color:rgba(143,244,255,.30);}
       .icon-action-btn.danger{color:#fff;}
-      .icon-action-btn.live{color:#ff9fa8;border-color:rgba(255,96,120,.42);background:rgba(255,96,120,.08);}
       .icon-action-btn:hover{transform:translateY(-1px);}
       .rules-table .actions-head{text-align:right;}
 
@@ -450,7 +448,7 @@
       <td>${chatBlockInline(r)}</td>
       <td>${assetInline(r.sound_label, r.sound_url)}</td>
       <td><strong>${esc(duration)}</strong></td>
-      <td class="actions-cell"><div class="row-actions"><button class="icon-action-btn test" data-test-rule="${esc(r.id)}" title="Lokale Vorschau auf diesem Rechner" aria-label="Lokale Vorschau">👁</button><button class="icon-action-btn live" data-live-test-rule="${esc(r.id)}" title="Live-Test in OBS auslösen" aria-label="Live-Test in OBS">●</button><button class="icon-action-btn edit" data-edit-rule="${esc(r.id)}" title="Regel bearbeiten" aria-label="Regel bearbeiten">✎</button><button class="icon-action-btn danger" data-del-rule="${esc(r.id)}" title="Regel löschen" aria-label="Regel löschen">×</button></div></td>
+      <td class="actions-cell"><div class="row-actions"><button class="icon-action-btn edit" data-edit-rule="${esc(r.id)}" title="Regel bearbeiten" aria-label="Regel bearbeiten">✎</button><button class="icon-action-btn test" data-test-rule="${esc(r.id)}" title="Alert testen" aria-label="Alert testen">▶</button><button class="icon-action-btn danger" data-del-rule="${esc(r.id)}" title="Regel löschen" aria-label="Regel löschen">×</button></div></td>
     </tr>`;
   }
 
@@ -477,43 +475,6 @@
 
   function selectedSoundUrl(id){
     return soundAssetById(id)?.public_url || '';
-  }
-
-  function soundRoutingTargetOptions(selected){
-    const current = selected == null ? '' : String(selected);
-    return [
-      opt('', 'Standard / global', current),
-      opt('device', 'Audiogerät', current),
-      opt('overlay', 'OBS Overlay', current)
-    ].join('');
-  }
-
-  function soundRoutingCategoryOptions(selected){
-    const current = selected == null ? '' : String(selected);
-    return [
-      opt('', 'Standard / global', current),
-      opt('alert', 'Alert / Support', current),
-      opt('alert_critical', 'Kritischer Alert', current),
-      opt('channel_reward', 'Kanalpunkte / Reward', current),
-      opt('vip', 'VIP / Crew', current),
-      opt('fun', 'Fun / Community', current),
-      opt('tts', 'TTS', current),
-      opt('admin', 'Admin', current),
-      opt('system', 'System', current)
-    ].join('');
-  }
-
-  function soundRoutingSummary(r){
-    const targetMap = { device:'Audiogerät', overlay:'Overlay' };
-    const categoryMap = {
-      alert:'Alert', alert_critical:'Kritisch', channel_reward:'Kanalpunkte',
-      vip:'VIP', fun:'Fun', tts:'TTS', admin:'Admin', system:'System'
-    };
-    const target = r?.sound_output_target ? (targetMap[r.sound_output_target] || r.sound_output_target) : 'Standard';
-    const category = r?.sound_category ? (categoryMap[r.sound_category] || r.sound_category) : 'Standard';
-    const priority = r?.sound_priority !== null && r?.sound_priority !== undefined && r?.sound_priority !== '' ? r.sound_priority : 'Standard';
-    const volume = r?.sound_volume !== null && r?.sound_volume !== undefined && r?.sound_volume !== '' ? `${r.sound_volume}%` : 'Standard';
-    return `${target} · ${category} · Prio ${priority} · ${volume}`;
   }
 
 
@@ -942,7 +903,6 @@
       source, type_key, label:'Neue Staffel', min_value:0, max_value:null, tier:'normal', priority:100,
       duration_ms:7000, duration_mode:'fixed', animation:'neon_card', image_mode:'avatar_icon', enabled:1,
       sound_asset_id:null, image_asset_id:null, display_profile_id:null,
-      sound_output_target:'', sound_category:'', sound_priority:null, sound_volume:null,
       tts_enabled:0, tts_timing:'after_alert', tts_mode:'audio_only', tts_template:'{user} schreibt: {message}', tts_max_chars:250, tts_min_amount:null,
       meta:{ chatMessage:{ enabled:false, blockId:null } }
     });
@@ -961,7 +921,6 @@
       source:'twitch', type_key:'bits', label:'Neue Staffel', min_value:0, max_value:null, tier:'normal', priority:100,
       duration_ms:7000, duration_mode:'fixed', animation:'neon_card', image_mode:'avatar_icon', enabled:1,
       sound_asset_id:null, image_asset_id:null, display_profile_id:null,
-      sound_output_target:'', sound_category:'', sound_priority:null, sound_volume:null,
       tts_enabled:0, tts_timing:'after_alert', tts_mode:'audio_only', tts_template:'{user} schreibt: {message}', tts_max_chars:250, tts_min_amount:null,
       meta_json:'{}', meta:{ chatMessage:{ enabled:false, blockId:null } }
     };
@@ -969,10 +928,6 @@
     r.duration_mode = r.duration_mode === 'sound' ? 'sound' : 'fixed';
     r.enabled = Number(r.enabled ?? 1);
     r.tts_enabled = Number(r.tts_enabled ?? 0);
-    r.sound_output_target = r.sound_output_target || '';
-    r.sound_category = r.sound_category || '';
-    r.sound_priority = r.sound_priority === '' || r.sound_priority === undefined ? null : r.sound_priority;
-    r.sound_volume = r.sound_volume === '' || r.sound_volume === undefined ? null : r.sound_volume;
     return r;
   }
 
@@ -1008,12 +963,6 @@
           <label class="wide-field">Sound<div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten Sound abspielen" aria-label="Ausgewählten Sound abspielen">▶</button></div></label>
           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
         </div><p class="small-note">Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil. Leer = aktuelles Standardprofil.</p></div>
-        <div class="form-section sound-routing-section"><h3>Sound-Ausgabe & Queue</h3><div class="form-grid editor-grid">
-          <label>Ausgabe<select id="ruleSoundOutputTarget">${soundRoutingTargetOptions(r.sound_output_target || '')}</select></label>
-          <label>Kategorie<select id="ruleSoundCategory">${soundRoutingCategoryOptions(r.sound_category || '')}</select></label>
-          <label>Sound-Prio<input id="ruleSoundPriority" type="number" value="${esc(empty(r.sound_priority))}" placeholder="Standard"></label>
-          <label>Lautstärke %<input id="ruleSoundVolume" type="number" min="0" max="100" value="${esc(empty(r.sound_volume))}" placeholder="Standard"></label>
-        </div><p class="small-note">Leer = globale Alert-Sound-Settings. Geld-/Support-Alerts typischerweise <strong>alert</strong> mit höherer Prio, Kanalpunkte eher <strong>channel_reward</strong> mit niedrigerer Prio. Video-Dateien bleiben immer Overlay.</p></div>
         <div class="form-section"><h3>Chat-Nachricht</h3><div class="form-grid editor-grid">
           <label class="wide-field">Chat-Textblock<select id="ruleChatBlock">${chatBlockOptions(r.source, r.type_key, r.meta?.chatMessage?.blockId || r.meta?.chatMessage?.block_id || '')}</select></label>
         </div><p class="small-note">Nein = kein Chat-Post. Bei Auswahl eines Textblocks wird pro Alert genau ein zufälliger Text aus diesem Block gesendet. Es wird kein einzelner Text pro Regel ausgewählt.</p></div>
@@ -1056,7 +1005,6 @@
       <span>Priorität: ${esc(r.priority ?? 100)}</span>
       <span>Dauer-Modus: ${esc((r.duration_mode || 'fixed') === 'sound' ? 'Nach Soundlänge' : 'Manuell')}</span>
       <span>Sound-ID: ${esc(r.sound_asset_id ?? '—')}${sound ? ` · ${esc(fmtMs(sound))}` : ''}</span>
-      <span>Sound-Routing: ${esc(soundRoutingSummary(r))}</span>
       <span>Design: ${esc(displayProfileLabel(r))}</span>
     </div>`;
   }
@@ -1199,10 +1147,6 @@
       sound_asset_id: valOrNull('ruleSound'),
       image_asset_id: null,
       display_profile_id: valOrNull('ruleDisplayProfile'),
-      sound_output_target: valOrNull('ruleSoundOutputTarget') || '',
-      sound_category: valOrNull('ruleSoundCategory') || '',
-      sound_priority: numOrNull('ruleSoundPriority'),
-      sound_volume: numOrNull('ruleSoundVolume'),
       tts_enabled: Number(document.getElementById('ruleTtsEnabled').value || 0),
       tts_timing: document.getElementById('ruleTtsTiming').value,
       tts_mode: document.getElementById('ruleTtsMode').value,
@@ -1354,7 +1298,6 @@
       await openEditRule(Number(btn.dataset.editRule));
     }));
     root.querySelectorAll('[data-test-rule]').forEach(btn => btn.addEventListener('click', async () => testRule(Number(btn.dataset.testRule))));
-    root.querySelectorAll('[data-live-test-rule]').forEach(btn => btn.addEventListener('click', async () => liveTestRule(Number(btn.dataset.liveTestRule))));
     root.querySelectorAll('[data-toggle-rule]').forEach(btn => btn.addEventListener('click', async () => toggleRuleEnabled(Number(btn.dataset.toggleRule))));
     root.querySelectorAll('[data-del-rule]').forEach(btn => btn.addEventListener('click', async () => {
       if (!confirm('Regel wirklich löschen?')) return;
@@ -1814,10 +1757,6 @@
       sound_asset_id: r.sound_asset_id ?? null,
       image_asset_id: null,
       display_profile_id: r.display_profile_id ?? null,
-      sound_output_target: r.sound_output_target || '',
-      sound_category: r.sound_category || '',
-      sound_priority: r.sound_priority ?? null,
-      sound_volume: r.sound_volume ?? null,
       tts_enabled: Number(r.tts_enabled ?? 0),
       tts_timing: r.tts_timing || 'after_alert',
       tts_mode: r.tts_mode || 'audio_only',
@@ -1855,138 +1794,11 @@
   async function testRule(id){
     const r = state.rules.find(x => Number(x.id) === Number(id));
     if (!r) return;
-    openRulePreviewPopout();
-    const alert = buildRulePreviewAlert(r);
-    postRulePreviewAlert(alert);
-
-    // Lokale Vorschau-Sounds müssen auf dem Rechner des Bearbeiters laufen.
-    // Deshalb spielt das Dashboard den Sound selbst ab und verlässt sich nicht
-    // auf Audio im Overlay-Iframe/Popout. So wird kein OBS, keine Alert-Queue
-    // und kein Sound-System ausgelöst.
-    const localSoundUrl = r.sound_url || selectedSoundUrl(r.sound_asset_id) || "";
-    if (localSoundUrl) playSoundUrl(localSoundUrl, null);
-
-    state.note = `Lokale Vorschau gestartet · Regel ${r.id}`;
-    render();
-  }
-
-  async function liveTestRule(id){
-    const r = state.rules.find(x => Number(x.id) === Number(id));
-    if (!r) return;
-    if (!confirm(`Live-Test wirklich in OBS auslösen?\n\n${r.label || ('Regel ' + r.id)}\n\nDieser Test läuft über Alert-System, Sound-System, OBS-Overlay und Audiogerät.`)) return;
     const amount = r.max_value !== null && r.max_value !== undefined ? Number(r.max_value) : Number(r.min_value || 0);
-    const payload = { source:r.source, type_key:r.type_key, ruleId:r.id, user:'ForrestCGN', userLogin:'forrestcgn', amount, message:`Live-Test für ${r.label}`, displayProfileId:r.display_profile_id || undefined, mode:'live', isTest:true, dashboardLiveTest:true };
+    const payload = { source:r.source, type_key:r.type_key, ruleId:r.id, user:'ForrestCGN', amount, message:`Test für ${r.label}`, displayProfileId:r.display_profile_id || undefined };
     const res = await CGN.api('/api/alerts/test', { method:'POST', body:JSON.stringify(payload) });
-    state.note = `Live-Test gesendet · matchedRule: ${res.matchedRule ?? '—'}`;
+    state.note = `Regeltest gesendet · matchedRule: ${res.matchedRule ?? '—'}`;
     await loadAll(true);
-  }
-
-  function openRulePreviewPopout(){
-    const existing = state.rulePreviewPopout;
-    if (existing && !existing.closed) return existing;
-    const win = window.open('', 'cgnAlertRulePreview', 'width=1280,height=720,resizable=yes,scrollbars=no');
-    if (!win) {
-      state.note = 'Lokale Vorschau konnte nicht geöffnet werden. Popup-Blocker prüfen.';
-      return null;
-    }
-    state.rulePreviewPopout = win;
-    win.document.open();
-    win.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>CGN Alert lokale Vorschau</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050716;color:#fff;font-family:Inter,Segoe UI,Arial,sans-serif}.hint{position:absolute;left:12px;top:12px;z-index:5;padding:8px 12px;border-radius:12px;background:rgba(3,5,16,.72);border:1px solid rgba(143,244,255,.24);font-size:13px}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body><div class="hint">Lokale Alert-Vorschau · kein OBS · keine Live-Queue</div><iframe id="rulePreviewFrame" src="/overlays/_overlay-alerts-v2.html?preview=1&dashboardPreview=1&v=' + Date.now() + '"></iframe></body></html>');
-    win.document.close();
-    return win;
-  }
-
-  function postRulePreviewAlert(alert){
-    const win = state.rulePreviewPopout;
-    if (!win || win.closed) return;
-    const send = () => {
-      try {
-        const frame = win.document.getElementById('rulePreviewFrame');
-        frame?.contentWindow?.postMessage({ op:'cgn_alert_preview', event:'render', alert }, '*');
-      } catch (_) {}
-    };
-    setTimeout(send, 80);
-    setTimeout(send, 280);
-    setTimeout(send, 650);
-  }
-
-  function buildRulePreviewAlert(r){
-    const amount = r.max_value !== null && r.max_value !== undefined ? Number(r.max_value) : Number(r.min_value || 0);
-    const source = r.source || 'twitch';
-    const type = r.type_key || 'bits';
-    const profile = state.displayProfiles.find(p => Number(p.id) === Number(r.display_profile_id)) || state.displayProfiles.find(p => Number(p.is_default) === 1) || state.displayProfiles[0] || { id:null, name:'Standard', settings:{} };
-    const variant = findPreviewVariantForRule(r);
-    const ctx = {
-      userDisplayName:'ForrestCGN',
-      userLogin:'forrestcgn',
-      user:'ForrestCGN',
-      amount,
-      amountFormatted:formatPreviewAmount(amount, type, source),
-      currency:'EUR',
-      months:7,
-      streakMonths:3,
-      viewerCount:amount || 23,
-      recipientDisplayName:'EngelCGN',
-      tier:'normal',
-      provider:source,
-      source,
-      type,
-      message:`Lokale Vorschau für ${r.label || 'Regel'}`
-    };
-    const tpl = v => renderPreviewTemplate(v || '', ctx);
-    let headline = variant ? tpl(variant.headline_template) : 'ForrestCGN';
-    let value = variant ? tpl(variant.value_template) : formatPreviewAmount(amount, type, source);
-    let subline = variant ? tpl(variant.subline_template) : (r.label || 'Lokale Vorschau');
-    let msg = ctx.message;
-    if (variant) {
-      const mode = String(variant.message_mode || 'auto').toLowerCase();
-      if (variant.message_template) msg = tpl(variant.message_template);
-      if (mode === 'never') msg = '';
-      if (mode === 'always' && !msg) msg = ctx.message;
-      if (msg && Number(variant.hide_subline_when_message_exists ?? 1)) subline = '';
-    }
-    return {
-      id:'dashboard_rule_preview_' + Date.now(),
-      source,
-      provider:source,
-      type,
-      type_key:type,
-      tier:'normal',
-      title:(source + ' ' + type).toUpperCase(),
-      headline,
-      value,
-      subline,
-      message:msg,
-      user:'ForrestCGN',
-      userLogin:'forrestcgn',
-      userDisplayName:'ForrestCGN',
-      avatarUrl:'',
-      amount,
-      amountFormatted:ctx.amountFormatted,
-      durationMs:Math.max(3000, Number(effectiveDurationMs(r) || r.duration_ms || 7000)),
-      celebration:profile.settings?.previewCelebration || 'none',
-      meta:{ preview:true, localDashboardPreview:true },
-      display:{ id:profile.id || null, name:profile.name || 'Standard', settings:profile.settings || {} },
-      soundUrl:r.sound_url || selectedSoundUrl(r.sound_asset_id) || '',
-      soundVolume:100,
-      ruleId:r.id || null,
-      createdAt:new Date().toISOString(),
-      startedAt:new Date().toISOString()
-    };
-  }
-
-  function findPreviewVariantForRule(r){
-    const rows = (state.textVariants || []).filter(v => Number(v.enabled ?? 1) === 1 && v.source === r.source && v.type_key === r.type_key);
-    return rows.find(v => Number(v.rule_id || 0) === Number(r.id || 0)) || rows.find(v => !v.rule_id) || null;
-  }
-
-  function formatPreviewAmount(amount, type, source){
-    const n = Number(amount || 0);
-    if (type === 'bits') return `${n || 100} Bits`;
-    if (type === 'raid') return `${n || 23} Leute`;
-    if (type === 'gift_sub' || type === 'gift_bomb') return `${n || 1} Subs`;
-    if (source === 'kofi' || source === 'tipeee' || type === 'donation') return `${(n || 5).toFixed(2).replace('.', ',')} €`;
-    return n ? String(n) : '';
   }
 
   function numOrNull(id){ const v = document.getElementById(id)?.value; return v === '' || v === undefined ? null : Number(v); }
