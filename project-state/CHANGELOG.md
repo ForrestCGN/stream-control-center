@@ -1,5 +1,61 @@
 # Changelog
 
+## 2026-05-06
+
+### STEP192.3 - SoundAlerts Doku-Sync
+
+- Zentrale Projekt-Dokus nach STEP192.1 bis STEP192.2.1 aktualisiert.
+- Dokumentiert:
+  - SoundAlerts Bridge Version `0.1.5`
+  - Entries in `soundalerts_bridge_entries`
+  - Events in `soundalerts_bridge_events`
+  - Meta in `soundalerts_bridge_meta`
+  - Settings in `soundalerts_bridge_settings`
+  - Settings ueber `helper_settings.js`
+  - DB-Zugriff ueber `backend/core/database.js`
+  - JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback
+  - MariaDB ist vorbereitet, aber echter Adapter ist noch offen
+  - naechster fachlicher Schritt: STEP193 SoundAlerts Inbox / Auto Entries
+- Keine Codeaenderung in diesem STEP.
+
+### STEP192.2.1 - SoundAlerts DB-Core-Portability
+
+- `soundalerts_bridge` auf Version `0.1.5` gesetzt.
+- Direkter Import von `./sqlite_core` im SoundAlerts-Modul entfernt.
+- SoundAlerts nutzt fuer Entries, Events, Meta, Stats und Listen `backend/core/database.js`.
+- Settings nutzen weiterhin `helper_settings.js`.
+- Bestehende Tabellen bleiben unveraendert.
+- Ziel: besser vorbereitet fuer spaetere MariaDB-Unterstuetzung.
+
+### STEP192.2 - SoundAlerts Settings in DB
+
+- `soundalerts_bridge` auf Version `0.1.4` gesetzt.
+- Neue Settings-Tabelle `soundalerts_bridge_settings`.
+- Technische/dashboardfaehige Settings aus JSON in DB-Settings-Schicht ueberfuehrt.
+- JSON bleibt Seed/Fallback.
+- Neue Routen:
+  - `GET /api/soundalerts/settings`
+  - `POST /api/soundalerts/settings`
+- Bestehende Config-Routen bleiben kompatibel.
+- `soundSystem.defaultCategory` wird sauber auf `channel_reward` normalisiert.
+
+### STEP192.1.1 - SoundAlerts Defaults/Save Cleanup
+
+- `soundalerts_bridge` auf Version `0.1.3` gesetzt.
+- Leere/falsche Kategorien werden normalisiert.
+- Standard fuer normale SoundAlerts: `channel_reward`.
+- Video bekommt `outputTarget = overlay`.
+- Audio bekommt `outputTarget = device`.
+- `priority` bleibt leer/null, wenn kein Override gesetzt ist.
+- Dashboard speichert Eintraege korrekt.
+
+### STEP192.1 - SoundAlerts Entries in DB
+
+- SoundAlert-Eintraege/Mappings werden primaer in `soundalerts_bridge_entries` gespeichert.
+- JSON-Regeln bleiben Seed/Fallback.
+- DB wird bevorzugt genutzt.
+- Wenn DB nicht verfuegbar ist, bleibt JSON als Fallback nutzbar.
+
 ## 2026-05-05
 
 ### STEP187.5 - Clip Backend Flow Doku-Sync
@@ -20,16 +76,10 @@
 ### STEP187 - Clip Local Replay File Handling
 
 - `clip_history` auf Schema-Version 3 erweitert.
-- Lokale Replay-Felder ergaenzt:
-  - `localReplaySaved`
-  - `localReplayPath`
-  - `localReplayFile`
-  - `localReplayError`
-  - `localReplayRenamedAt`
+- Lokale Replay-Felder ergaenzt.
 - Nach `SaveReplayBuffer` wartet das Backend `localReplayRenameDelayMs`.
 - Neueste Datei im `localReplayDir` wird gesucht.
-- `localReplayLookbackMinutes` wird beachtet.
-- Datei wird auf Freigabe geprueft und umbenannt.
+- Datei wird geprueft, umbenannt und in `clip_history` gespeichert.
 - Discord-Post laeuft im Backend-Job nach OBS-/Local-Replay-Verarbeitung.
 
 ### STEP186.2 - Clip Create Offline-Guard
@@ -40,7 +90,6 @@
   - Rueckgabe `stream_not_live`
   - History `status = skipped`
   - `sourceMethod = backend_create_offline`
-- Neuer Text-Key `systemStreamNotLive`.
 
 ### STEP186.1 - Clip History Schema-Migration-Fix
 
@@ -52,41 +101,28 @@
 
 - Neue Route `GET/POST /api/clip/create`.
 - Neue Route `GET /api/clip/job/:jobId`.
-- Twitch-Modul erweitert:
-  - `createClipForBroadcaster(...)`
-  - `getClipById(...)`
+- Twitch-Modul erweitert.
 - Clip-Create nutzt vorhandene Twitch-OAuth-/Helix-Struktur.
 - OBS-Save wird im Backend-Job nach 30 Sekunden ausgeloest.
 - Discord-Post laeuft ueber vorhandene `discordBridge`.
-- Texte kommen aus DB-Textvarianten.
-- Settings kommen aus `clip_settings`.
-- Bestehende `/api/clip/title`, `/api/clip/register`, `/api/clip/history` bleiben erhalten.
 
 ### STEP185.5 - Clip Discord Channel Setting und Textkategorien-Cleanup
 
 - `discordChannelMode` ergaenzt.
 - `discordChannelId` ergaenzt.
 - Discord-Zielkanal kann per Key oder direkter Channel-ID kommen.
-- `/api/clip/status` zeigt effektive Channel-ID und Quelle.
 - Alte Textkategorie `clip` wird sanft auf `chat`, `discord`, `errors`, `system` migriert.
-- Keine Texte werden geloescht.
 
 ### STEP185 - Clip DB-Settings und DB-Textvarianten
 
 - Clip-Settings ueber `helper_settings` vorbereitet.
 - Neue Settings-Tabelle: `clip_settings`.
-- JSON `config/clip_system.json` bleibt Seed/Fallback.
 - Clip-Texte ueber `helper_texts` vorbereitet.
 - Textvarianten laufen ueber `module_text_variants`.
-- Kategorien: Chat-Texte, Discord-Texte, Fehlertexte, Systemtexte.
-- Neue Admin/API-Routen fuer Settings und Texte.
 
 ### STEP184 - Clip API Readiness
 
-- Neue Twitch-Token-Validate-Routen:
-  - `GET /auth/validate`
-  - `GET /twitch/auth/validate`
-  - `GET /api/twitch/auth/validate`
+- Neue Twitch-Token-Validate-Routen ergaenzt.
 - Twitch-Validate prueft Token, User-ID, Broadcaster-ID, Scopes und `clips:edit`.
 - `/api/clip/status` um Twitch-/OBS-/Discord-/Backend-Readiness erweitert.
 
@@ -100,141 +136,23 @@
 ### STEP182.6 - Hug/Rehug Texteditor Doku-Sync
 
 - Zentrale Projekt-Dokus nach Abschluss des Hug-Texte-Editors aktualisiert.
-- Dokumentiert:
-  - Hug/Rehug-Paare editierbar
-  - Chatweite Hugs editierbar
-  - Systemantworten editierbar
-  - Toplisten editierbar
-- Keine Codeaenderung in diesem STEP.
 
-### STEP182.5 - Hug Toplisten-Titel Editor
+### STEP182.5 bis STEP181.1 - Hug/Rehug Texteditor und Textpaare
 
-- Kategorie `Toplisten` im Hug-Dashboard editierbar gemacht.
-- Neue Routen:
-  - `GET/POST /api/hug/admin/top-title-texts`
-  - `GET/POST /api/dashboard/community/hug/top-title-texts`
-- Nutzt `hug_texts` mit `kind = top_title`.
-
-### STEP182.4 - Hug Systemantworten Editor
-
-- Kategorie `Systemantworten` im Hug-Dashboard editierbar gemacht.
-- Neue Routen:
-  - `GET/POST /api/hug/admin/response-texts`
-  - `GET/POST /api/dashboard/community/hug/response-texts`
-- Nutzt `hug_texts` mit `kind = response`.
-
-### STEP182.3 - Hug Chatweite Hugs Editor
-
-- Kategorie `Chatweite Hugs` im Hug-Dashboard editierbar gemacht.
-- Neue Routen:
-  - `GET/POST /api/hug/admin/hug-all-texts`
-  - `GET/POST /api/dashboard/community/hug/hug-all-texts`
-- Nutzt `hug_texts` mit `kind = hug_all`.
-
-### STEP182.2 - Hug Dashboard UX Textarea Width
-
-- Text- und Antwort-Textfelder im Hug/Rehug-Editor verbreitert.
-- Kleine Felder wie Aktiv/Gewichtung/Sortierung bleiben kompakt.
-- Keine Backend-/DB-Aenderung.
-
-### STEP182.1 - Hug Dashboard UX Textpaar Labels
-
-- Kartenkopf von `Text X / Antwort X` auf `Textpaar X` geaendert.
-- Kleine Formularfelder kompakter gemacht.
-- Keine Backend-/DB-Aenderung.
-
-### STEP181.8 - Hug/Rehug Doku-Sync
-
-- Zentrale Projekt-Dokus nach Hug/Rehug-Umstellung aktualisiert.
-- `docs/current/CURRENT_SYSTEM_STATUS.md` und `project-state/*` verweisen jetzt auf den neuen STEP181-Stand.
-- `stepdone.cmd` als Standardabschluss nach manuellem ZIP-Entpacken dokumentiert.
-- Keine Codeaenderung in diesem STEP.
-
-### STEP181.7 - Stepdone CMD-only
-
-- `stepdone.cmd` als reines Batch-Script bereitgestellt.
-- Ziel: Nach manuellem ZIP-Entpacken reicht kuenftig ein Befehl:
-  - `.\stepdone.cmd "commit beschreibung"`
-
-### STEP181.4 - Hug/Rehug ohne Typen-Komplexitaet
-
-- Dashboard-Bedienung vereinfacht.
-- Typen-Tab und Typ-Filter aus der Bedienung entfernt.
-- Backend-Auswahl nutzt aktive Textpaare global.
-- `hug_types` und `type_id` bleiben nur als Kompatibilitaets-/Migrationsstruktur erhalten.
-- Keine Daten geloescht.
-
-### STEP181.2 - Hug/Rehug Textpaare Dashboard
-
-- Hug-Dashboard im Texte-Tab um Kategorien erweitert.
-- Kategorie `Hug/Rehug-Paare` als gekoppelte Bearbeitung ergaenzt.
-
-### STEP181.1 - Hug/Rehug Textpaare Backend
-
-- `backend/modules/hug.js` auf Schema-Version 3 erweitert.
+- Hug/Rehug-Paare, Chatweite Hugs, Systemantworten und Toplisten im Dashboard editierbar gemacht.
 - Neue Tabelle `hug_text_pairs`.
 - `hug_pending_rehugs` um `pair_id` erweitert.
-- Bestehende `hug_texts` wurden sanft in gekoppelte Textpaare migriert.
-- `!hug` speichert das gezogene Textpaar.
-- `!rehug` nutzt exakt den passenden Antworttext ueber `pair_id`.
+- Rehug nutzt exakt den passenden Antworttext zum gezogenen Hug-Text.
 
-### STEP180 - Textvarianten Status-/UX-Cleanup
+### STEP180 bis STEP176 - Tagebuch/Todo DB-/Dashboard-/Textvarianten
 
-- Status-Ausgaben fuer Tagebuch/Todo auf `module_text_variants` als aktive Varianten-Tabelle bereinigt.
-- `module_texts` bleibt als Legacy-Tabelle ausgewiesen.
-- Tagebuch-/Todo-Texteditor zeigt lesbarere Labels und kurze Hinweise je Text-Key.
+- Tagebuch/Todo auf DB-Settings, DB-Texte und Varianten-Editor umgestellt.
+- `module_text_variants` als zentrale Varianten-Tabelle ergaenzt.
 
-### STEP179 - Text-Varianten-Editor fuer Tagebuch/Todo
+### STEP175.5 bis STEP174.8 - VIP-/Sound-/Overlay-Block
 
-- Zentrale DB-Tabelle `module_text_variants` fuer mehrere Textvarianten pro Modul/Text-Key ergaenzt.
-- Tagebuch und Todo nutzen zufaellige aktive Varianten bei Textausgabe.
-- Dashboard-Texte-Tabs von Einzeltexten auf Kategorie-/Varianten-Editor umgestellt.
-
-### STEP178 - Tagebuch/Todo Dashboard Integration
-
-- Tagebuch und Todo im Community-Dashboard aktiviert.
-- Neue Dashboard-Module fuer Status, DB-Settings, DB-Texte und Statistiken ergaenzt.
-
-### STEP177 - Tagebuch/Todo DB-Settings und DB-Texte Backend-Grundlage
-
-- `backend/modules/helpers/helper_texts.js` erweitert.
-- `backend/modules/tagebuch.js` erweitert.
-- `backend/modules/todo.js` erweitert.
-- JSON-Dateien bleiben Seed/Fallback.
-- Bestehende Tagebuch-/Todo-Routen bleiben erhalten.
-
-### STEP176 - Tagebuch/Todo DB-/Dashboard-Audit
-
-- Audit-/Plan-Doku fuer Tagebuch/Todo erstellt.
-- Keine Codeaenderung.
-
-### STEP175.5 - Projekt-Dokus nach VIP-Block synchronisiert
-
-- Zentrale Doku-Einstiegspunkte nach STEP174.8 bis STEP175.4 aktualisiert.
-
-### STEP175.4 - VIP-Sound Upload-Auswahlfluss verbessert
-
-- `htdocs/dashboard/modules/vip.js` und `htdocs/dashboard/modules/vip.css` angepasst.
-
-### STEP175.3 - Grosser VIP-Upload-Umbau verworfen / vereinfacht
-
-- Grosser Upload-Block wurde bewusst verworfen.
-
-### STEP175.2 - VIP-Sound-Vorschau-Buttons ergaenzt
-
-- Vorschau-Buttons `Anhoeren` in Sounds und VIPs-&-Mods ergaenzt.
-
-### STEP175.1 - VIP-Sound-Verwaltung aufgeraeumt
-
-- Sounds-Seite mit Filter, Suche und Sortierung verbessert.
-
-### STEP174.9 - VIP-Statistikseite ergaenzt
-
-- Neuer Tab `Statistik` im VIP-Dashboard.
-
-### STEP174.8 - VIP-Uebersicht aufgeraeumt
-
-- Technische Standardbox und rohe Event-Tabelle aus der VIP-Uebersicht entfernt.
+- VIP-Dashboard erweitert und dokumentiert.
+- VIP-Sound-Verwaltung, Vorschau und Statistik vorbereitet.
 
 ### STEP172 - Sound / Alert / TTS Status Current
 

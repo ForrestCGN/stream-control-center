@@ -1,6 +1,6 @@
 # CURRENT SYSTEM STATUS
 
-Stand: 2026-05-05
+Stand: 2026-05-06
 
 ## Zweck
 
@@ -65,6 +65,89 @@ Das Script macht Syntaxcheck, Git-Add, Sicherheitscheck, Commit, Push nach `orig
 
 ## Zuletzt abgeschlossene Hauptbereiche
 
+### SoundAlerts / Sound-System - STEP192 bis STEP192.3
+
+Aktueller Stand:
+
+- `soundalerts_bridge` laeuft live auf Version `0.1.5`.
+- SoundAlerts Bridge ist erfolgreich mit Sound-System und Dashboard verbunden.
+- Echter SoundAlerts-Chattrigger wurde erfolgreich getestet:
+  - `ForrestCGN spielt Fahrstuhl Sound fuer 0 Bits!`
+- Sound-System bekam korrekt:
+  - `source = soundalerts_bridge`
+  - `requestedBy = ForrestCGN`
+  - `file = soundalerts/video/3cgn.mp4`
+  - `category = channel_reward`
+  - `outputTarget = overlay`
+  - `priority = 70`
+  - `volume = 100`
+
+Aktive SoundAlerts-DB-Strukturen:
+
+- `soundalerts_bridge_events`
+- `soundalerts_bridge_entries`
+- `soundalerts_bridge_meta`
+- `soundalerts_bridge_settings`
+
+Aktive SoundAlerts-Regeln:
+
+- DB ist Hauptspeicher fuer dashboardfaehige SoundAlert-Eintraege und technische Settings.
+- JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback/Notfall.
+- `.env` bleibt fuer Secrets/Tokens/private Keys.
+- Neue DB-Logik soll nach Moeglichkeit ueber `backend/core/database.js` oder vorhandene Helper laufen.
+- MariaDB ist vorbereitet, aber noch nicht komplett implementiert: `backend/core/database.js` braucht spaeter einen echten MariaDB-Adapter.
+
+Aktive SoundAlerts-Dateien:
+
+- `backend/modules/soundalerts_bridge.js`
+- `htdocs/dashboard/modules/soundalerts.js`
+- `config/soundalerts_bridge.json`
+
+Aktive SoundAlerts-Routen:
+
+- `GET /api/soundalerts/status`
+- `GET /api/soundalerts/settings`
+- `POST /api/soundalerts/settings`
+- `GET /api/soundalerts/entries`
+- `POST /api/soundalerts/entries`
+- `GET /api/soundalerts/config`
+- `POST /api/soundalerts/config`
+
+Aktueller getesteter Eintrag:
+
+```json
+{
+  "id": "fahrstuhl_sound",
+  "enabled": true,
+  "status": "active",
+  "soundAlertName": "Fahrstuhl Sound",
+  "label": "Fahrstuhl Sound",
+  "file": "soundalerts/video/3cgn.mp4",
+  "mediaType": "video",
+  "category": "channel_reward",
+  "outputTarget": "overlay",
+  "volume": 100
+}
+```
+
+Wichtige SoundAlerts-Dokus:
+
+- `project-state/STEP192_1_SOUNDALERTS_ENTRIES_DB_2026-05-06.md` falls lokal vorhanden
+- `project-state/STEP192_1_1_SOUNDALERTS_DEFAULTS_SAVE_CLEANUP_2026-05-06.md`
+- `project-state/STEP192_2_SOUNDALERTS_SETTINGS_DB_2026-05-06.md`
+- `project-state/STEP192_2_1_SOUNDALERTS_DB_CORE_PORTABILITY_2026-05-06.md`
+- `project-state/STEP192_3_SOUNDALERTS_DOC_SYNC_2026-05-06.md`
+
+Bewusst offen fuer SoundAlerts:
+
+- STEP193 SoundAlerts Inbox / Auto Entries.
+- Neue unbekannte SoundAlerts automatisch als DB-Eintrag sichtbar machen.
+- Datei fehlt/vorhanden sauber als Status abbilden.
+- Upload/Zuordnung direkt aus dem Eintrag heraus.
+- Admin-Config UI fuer SoundAlerts spaeter sauber vom Sound-System trennen.
+- Grosse Video-Uploads optional ueber DB-Setting erhoehen.
+- Echter MariaDB-Adapter spaeter in `backend/core/database.js`.
+
 ### Clip-System - STEP183 bis STEP187.5
 
 Aktueller Stand:
@@ -95,25 +178,12 @@ Aktueller Stand:
   - `discordChannelMode = key|custom`
   - `discordChannelKey`
   - `discordChannelId`
-  - effektive Channel-ID wird im Status mit Quelle angezeigt.
 - Clip-Settings liegen in `clip_settings`.
 - Clip-Texte liegen variantenfaehig in `module_text_variants` mit `module = clips`.
 - JSON-Dateien bleiben Seed/Fallback:
   - `config/clip_system.json`
   - `config/messages/clips.json`
-- Textkategorien sind bereinigt:
-  - `chat`
-  - `discord`
-  - `errors`
-  - `system`
-- Alte Legacy-Kategorie `clip` wurde sanft auf diese Kategorien migriert.
 - `clip_history` laeuft auf Schema-Version `3`.
-
-Aktuelle Clip-DB-Strukturen:
-
-- `clip_settings`
-- `clip_history`
-- `module_text_variants` mit `module = clips`
 
 Wichtige Clip-Fachregel:
 
@@ -123,88 +193,21 @@ OBS-Replay: 60 Sekunden lokal, 30 Sekunden vor !clip und 30 Sekunden nach !clip.
 Daher: SaveReplayBuffer erst 30 Sekunden nach !clip ausloesen.
 ```
 
-Aktueller Backend-Flow:
-
-1. `/api/clip/create` nimmt `input`, `triggerUser`, `triggerLogin` entgegen.
-2. Backend baut den Titel ueber bestehende Clip-Title-Logik.
-3. Backend prueft Readiness:
-   - Clip-System aktiv
-   - Backend-Create aktiv
-   - Twitch `clips:edit`
-   - OBS Replay Buffer aktiv
-   - Discord optional bereit
-4. Offline-Guard ist aktiv:
-   - Wenn `channelInfo.is_live = false`, wird kein Twitch-Create ausgefuehrt.
-   - History speichert `status = skipped`, `reason = stream_not_live`, `sourceMethod = backend_create_offline`.
-5. Wenn live, wird Twitch Create Clip ueber die vorhandene Twitch-/OAuth-/Helix-Struktur ausgefuehrt.
-6. Ein Backend-Job bereitet OBS-Replay vor.
-7. Nach `obsReplaySaveDelayMs = 30000` wird `SaveReplayBuffer` ausgefuehrt.
-8. Nach `localReplayRenameDelayMs = 3000` sucht das Backend die neueste frische Datei im Clip-Ordner.
-9. Die Datei wird geprueft, umbenannt und in `clip_history` gespeichert.
-10. Discord-Post wird ueber die vorhandene `discordBridge` ausgefuehrt.
-
-Aktueller Live-Test-Stand:
-
-- `/api/clip/status`:
-  - `schemaVersion = 3`
-  - `database.ok = true`
-  - `twitchApi.readyForCreateClip = true`
-  - `discord.readyForPost = true`
-- Offline-Test:
-  - `/api/clip/create?...OfflineGuard...`
-  - Ergebnis: `stream_not_live`
-  - History: `status = skipped`, `reason = stream_not_live`, `sourceMethod = backend_create_offline`
-- Echter End-to-End-Test mit Twitch Create Clip ist noch offen, weil der Stream waehrend der Tests offline war.
-
-Aktuelle Clip-Dateien:
-
-- `backend/modules/clips.js`
-- `backend/modules/twitch.js`
-- `config/clip_system.json`
-- `config/messages/clips.json`
-
-Wichtige Clip-Dokus:
-
-- `project-state/STEP183_CLIP_BACKEND_INTEGRATION_2026-05-05.md`
-- `project-state/STEP184_CLIP_API_READINESS_2026-05-05.md`
-- `project-state/STEP185_CLIP_DB_SETTINGS_TEXTS_2026-05-05.md`
-- `project-state/STEP185_5_CLIP_DISCORD_CHANNEL_AND_TEXT_CLEANUP_2026-05-05.md`
-- `project-state/STEP186_CLIP_BACKEND_CREATE_TWITCH_DISCORD_2026-05-05.md`
-- `project-state/STEP186_1_CLIP_SCHEMA_MIGRATION_FIX_2026-05-05.md`
-- `project-state/STEP186_2_CLIP_CREATE_OFFLINE_GUARD_2026-05-05.md`
-- `project-state/STEP187_CLIP_LOCAL_REPLAY_FILE_HANDLING_2026-05-05.md`
-- `project-state/STEP187_5_CLIP_BACKEND_FLOW_DOC_SYNC_2026-05-05.md`
-
 Bewusst offen fuer Clip:
 
 - Echter Live-Test von `/api/clip/create` waehrend aktivem Twitch-Stream.
 - Streamer.bot-Action danach auf einen Backend-Call reduzieren.
-- Clip-Dashboard bauen:
-  - Status
-  - History
-  - Settings
-  - Texte
-  - Discord-Ziel
-  - Repost/Verwalten
-- Optional alte Testeintraege in History spaeter per Admin-Funktion ausblenden/loeschen.
+- Clip-Dashboard bauen.
 
-### Hug / Rehug - STEP181 bis STEP182
+### Hug / Rehug - STEP181 bis STEP182.6
 
 Aktueller Stand:
 
 - Hug/Rehug Backend laeuft auf `schemaVersion = 3`.
 - Neue gekoppelte Textpaare liegen in `hug_text_pairs`.
-- `hug_pending_rehugs` speichert `pair_id`, damit ein Rehug exakt den passenden Antworttext zum urspruenglich gezogenen Hug-Text nutzt.
-- Bestehende alte `hug_texts` wurden sanft in 30 gekoppelte Textpaare migriert.
+- `hug_pending_rehugs` speichert `pair_id`.
 - Dashboard-Bedienung wurde vereinfacht: Textpaar / Text / Antwort-Text statt Typen-Komplexitaet.
-- STEP182 hat den Hug-Texte-Bereich komplett editierbar gemacht.
-
-Aktive Hug-Texte-Kategorien im Dashboard:
-
-- `Hug/Rehug-Paare` ueber `hug_text_pairs`
-- `Chatweite Hugs` ueber `hug_texts.kind = hug_all`
-- `Systemantworten` ueber `hug_texts.kind = response`
-- `Toplisten` ueber `hug_texts.kind = top_title`
+- Hug/Rehug-Paare, Chatweite Hugs, Systemantworten und Toplisten sind im Dashboard editierbar.
 
 Aktive Dateien:
 
@@ -214,9 +217,7 @@ Aktive Dateien:
 - `config/hug_system.json`
 - `config/messages/hug.json`
 
-### Tagebuch / Todo
-
-Aktueller Tagebuch-/Todo-Block ist bis STEP180 abgeschlossen.
+### Tagebuch / Todo - STEP176 bis STEP180
 
 Kernstatus:
 
@@ -245,11 +246,6 @@ Kernstatus:
 
 Aktueller VIP-Dashboard-Block ist bis STEP175.5 dokumentiert.
 
-Zentrale Referenz:
-
-- `project-state/STEP175_VIP_SOUND_BLOCK_HANDOFF_2026-05-05.md`
-- `project-state/STEP175_5_PROJECT_DOC_SYNC_AFTER_VIP_BLOCK_2026-05-05.md`
-
 Aktive VIP-Dateien:
 
 - `backend/modules/vip_sound_overlay.js`
@@ -270,6 +266,7 @@ Fachliche VIP-Regel:
 - Alerts V2
 - OBS Details
 - Sound-System
+- SoundAlerts
 - Hug-System
 - Tagebuch
 - Todo
@@ -290,6 +287,7 @@ Fuer alle kuenftigen Dashboard-Module gilt als Zielstandard:
 6. Vorhandene Helper werden genutzt, keine Parallelstrukturen.
 7. Harte Texte im Code sind nur Seed-Defaults, nicht dauerhafte Quelle.
 8. Keine Funktionalitaet entfernen.
+9. Neue DB-Logik nach Moeglichkeit ueber `backend/core/database.js` oder vorhandene Helper aufbauen.
 
 Aktuelle Helper-Lage:
 
@@ -299,6 +297,7 @@ Aktuelle Helper-Lage:
 - `obs_shared.js` ist die vorhandene OBS-WebSocket-Schicht.
 - `discordBridge` aus `discord.js` ist die vorhandene Discord-Schicht.
 - Twitch-/OAuth-/Helix-Logik bleibt in `twitch.js`.
+- `backend/core/database.js` ist die Zielschicht fuer spaetere DB-Portabilitaet; MariaDB-Adapter ist geplant, aber noch nicht implementiert.
 
 ## Wichtige Regeln
 
@@ -316,12 +315,19 @@ Aktuelle Helper-Lage:
 
 ## Offene Punkte
 
+### SoundAlerts
+
+- STEP193 SoundAlerts Inbox / Auto Entries.
+- Automatische Erkennung unbekannter SoundAlerts.
+- Statuslogik fuer `new_detected`, `missing_file`, `file_matched`, `ready`.
+- Dashboard-Anbindung fuer neue/inbox Eintraege.
+- Datei hochladen/zuweisen direkt aus einem erkannten Eintrag.
+
 ### Clip-System
 
 - Echter Live-Test von `/api/clip/create` waehrend aktivem Stream.
 - Danach Streamer.bot-Action reduzieren.
 - Danach Clip-Dashboard bauen.
-- Optional History-Testdaten spaeter per Admin-Funktion ausblendbar machen.
 
 ### Hug / Rehug
 
@@ -341,15 +347,12 @@ Aktuelle Helper-Lage:
 - Fireworks spaeter neu aufbauen.
 - Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
+- Echten MariaDB-Adapter spaeter in `backend/core/database.js` implementieren.
 
 ## Naechster empfohlener Schritt
 
-1. Clip-System bei naechstem Live-Stream testen:
-   ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8080/api/clip/create?input=!clip%20LiveTest&triggerUser=ForrestCGN&triggerLogin=forrestcgn" | ConvertTo-Json -Depth 30
-   ```
-2. Nach ca. 35 Sekunden History pruefen:
-   ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8080/api/clip/history?limit=5" | ConvertTo-Json -Depth 30
-   ```
-3. Wenn Live-Test sauber ist: Streamer.bot-Action auf Backend-Call reduzieren.
+1. SoundAlerts Inbox / Auto Entries planen und bauen:
+   - unbekannte SoundAlerts automatisch in DB sichtbar machen
+   - Datei fehlt/vorhanden als Status speichern
+   - Dashboard soll Eintraege direkt bearbeiten/zuweisen koennen
+2. Danach weiterhin Clip-Live-Test beim naechsten aktiven Stream offen halten.

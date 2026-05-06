@@ -1,6 +1,6 @@
 # FILES - stream-control-center
 
-Stand: 2026-05-05
+Stand: 2026-05-06
 
 ## Hauptpfade
 
@@ -60,6 +60,7 @@ Zweck:
 
 - `backend/modules/alert_system.js`
 - `backend/modules/tts_system.js`
+- `backend/modules/soundalerts_bridge.js`
 - `backend/modules/vip_sound_overlay.js`
 - `backend/modules/hug.js`
 - `backend/modules/tagebuch.js`
@@ -96,6 +97,7 @@ Zweck:
 - `htdocs/dashboard/modules/adminconfigs.css`
 - `htdocs/dashboard/modules/sound.js`
 - `htdocs/dashboard/modules/sound.css`
+- `htdocs/dashboard/modules/soundalerts.js`
 - `htdocs/dashboard/modules/hug.js`
 - `htdocs/dashboard/modules/hug.css`
 - `htdocs/dashboard/modules/tagebuch.js`
@@ -106,6 +108,89 @@ Zweck:
 - `htdocs/dashboard/modules/vip.css`
 
 Clip-Dashboard ist noch offen.
+
+## STEP192 SoundAlerts relevante Dateien
+
+Backend:
+
+- `backend/modules/soundalerts_bridge.js`
+- `backend/core/database.js`
+- `backend/modules/helpers/helper_settings.js`
+- `backend/modules/helpers/helper_config.js`
+- `backend/modules/helpers/helper_media.js`
+- `backend/modules/helpers/helper_core.js`
+
+Dashboard:
+
+- `htdocs/dashboard/modules/soundalerts.js`
+
+Config/Fallback:
+
+- `config/soundalerts_bridge.json`
+
+DB-Strukturen:
+
+- `soundalerts_bridge_events`
+- `soundalerts_bridge_entries`
+- `soundalerts_bridge_meta`
+- `soundalerts_bridge_settings`
+
+SoundAlerts-Version:
+
+- `0.1.5`
+
+SoundAlerts-Routen:
+
+- `GET /api/soundalerts/status`
+- `GET /api/soundalerts/settings`
+- `POST /api/soundalerts/settings`
+- `GET /api/soundalerts/entries`
+- `POST /api/soundalerts/entries`
+- `GET /api/soundalerts/config`
+- `POST /api/soundalerts/config`
+
+SoundAlerts-Settings:
+
+- `enabled`
+- `bot.login`
+- `bot.userId`
+- `bot.displayName`
+- `bot.validateUserinfo`
+- `parser.language`
+- `parser.allowQuotedSoundNames`
+- `parser.allowUnquotedSoundNames`
+- `soundSystem.playUrl`
+- `soundSystem.soundsBaseDir`
+- `soundSystem.allowedExtensions`
+- `soundSystem.defaultCategory`
+- `soundSystem.defaultPriority`
+- `soundSystem.audioOutputTarget`
+- `soundSystem.videoOutputTarget`
+- `soundSystem.defaultVolume`
+- `upload.enabled`
+- `upload.audioDir`
+- `upload.videoDir`
+- `upload.audioRelativePrefix`
+- `upload.videoRelativePrefix`
+- `upload.allowOverwrite`
+- `upload.maxAudioSizeBytes`
+- `upload.maxVideoSizeBytes`
+- `upload.allowedAudioExtensions`
+- `upload.allowedVideoExtensions`
+- `chatMessages.enabled`
+- `chatMessages.onMissingFile`
+- `chatMessages.onUnmatched`
+- `chatMessages.cooldownMs`
+- `chatMessages.missingFileTemplate`
+- `dedupe.enabled`
+- `dedupe.windowMs`
+
+SoundAlerts-Dokus:
+
+- `project-state/STEP192_1_1_SOUNDALERTS_DEFAULTS_SAVE_CLEANUP_2026-05-06.md`
+- `project-state/STEP192_2_SOUNDALERTS_SETTINGS_DB_2026-05-06.md`
+- `project-state/STEP192_2_1_SOUNDALERTS_DB_CORE_PORTABILITY_2026-05-06.md`
+- `project-state/STEP192_3_SOUNDALERTS_DOC_SYNC_2026-05-06.md`
 
 ## STEP183-187 Clip relevante Dateien
 
@@ -136,42 +221,6 @@ Clip-History Schema-Version:
 
 - `3`
 
-Clip-Settings:
-
-- `enabled`
-- `backendCreateEnabled`
-- `defaultClipTitle`
-- `includeGameInCustomTitle`
-- `twitchClipDurationSeconds`
-- `twitchClipPollMs`
-- `twitchClipPollMaxAttempts`
-- `obsReplaySaveEnabled`
-- `obsReplayWindowSeconds`
-- `obsReplayPreTriggerSeconds`
-- `obsReplayPostTriggerSeconds`
-- `obsReplaySaveDelayMs`
-- `localReplayRenameEnabled`
-- `localReplayRenameDelayMs`
-- `localReplayDir`
-- `localReplayLookbackMinutes`
-- `sendClipActivatedMessage`
-- `sendTwitchClipResultMessage`
-- `sendChatResponse`
-- `discordPostEnabled`
-- `discordChannelMode`
-- `discordChannelKey`
-- `discordChannelId`
-- `postOnlyWhenLive`
-- `saveHistory`
-- `duplicatePolicy`
-
-Clip-Textkategorien:
-
-- `chat`
-- `discord`
-- `errors`
-- `system`
-
 Clip-Routen:
 
 - `GET /api/clip/status`
@@ -184,31 +233,6 @@ Clip-Routen:
 - `GET/POST /api/dashboard/clips/settings`
 - `GET/POST /api/clip/admin/texts`
 - `GET/POST /api/dashboard/clips/texts`
-
-Twitch-Validate-Routen:
-
-- `GET /auth/validate`
-- `GET /twitch/auth/validate`
-- `GET /api/twitch/auth/validate`
-
-OBS-Replay-Routen:
-
-- `GET /api/obs/replay/status`
-- `POST /api/obs/replay/start`
-- `POST /api/obs/replay/stop`
-- `POST /api/obs/replay/save`
-
-Clip-Dokus:
-
-- `project-state/STEP183_CLIP_BACKEND_INTEGRATION_2026-05-05.md`
-- `project-state/STEP184_CLIP_API_READINESS_2026-05-05.md`
-- `project-state/STEP185_CLIP_DB_SETTINGS_TEXTS_2026-05-05.md`
-- `project-state/STEP185_5_CLIP_DISCORD_CHANNEL_AND_TEXT_CLEANUP_2026-05-05.md`
-- `project-state/STEP186_CLIP_BACKEND_CREATE_TWITCH_DISCORD_2026-05-05.md`
-- `project-state/STEP186_1_CLIP_SCHEMA_MIGRATION_FIX_2026-05-05.md`
-- `project-state/STEP186_2_CLIP_CREATE_OFFLINE_GUARD_2026-05-05.md`
-- `project-state/STEP187_CLIP_LOCAL_REPLAY_FILE_HANDLING_2026-05-05.md`
-- `project-state/STEP187_5_CLIP_BACKEND_FLOW_DOC_SYNC_2026-05-05.md`
 
 ## STEP181/182 Hug/Rehug relevante Dateien
 

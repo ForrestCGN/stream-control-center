@@ -1,6 +1,6 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: 2026-05-05
+Stand: 2026-05-06
 
 ## Single Source of Truth
 
@@ -49,30 +49,111 @@ Zuletzt abgeschlossene/aktuelle Bloecke:
 - STEP174.8 bis STEP175.5 VIP-/Sound-/Overlay-Block
 - STEP176 bis STEP180 Tagebuch/Todo DB-/Dashboard-/Textvarianten-Block
 - STEP181 bis STEP182.6 Hug/Rehug Texteditor-Block
-- STEP183 Clip Backend-History + Discord-Register
-- STEP184 Clip API Readiness mit Twitch Token Validate
-- STEP185 Clip DB-Settings und DB-Textvarianten
-- STEP185.5 Clip Discord-Channel-Setting und Textkategorien-Cleanup
-- STEP186 Clip Backend-Create-Grundlage fuer Twitch/Discord/OBS-Job
-- STEP186.1 Clip History Schema-Migration-Fix
-- STEP186.2 Clip Create Offline-Guard
-- STEP187 Clip Local Replay File Handling
-- STEP187.5 Clip Backend Flow Doku-Sync
+- STEP183 bis STEP187.5 Clip Backend Flow
+- STEP192.1 SoundAlerts Entries in DB
+- STEP192.1.1 SoundAlerts Defaults/Save Cleanup
+- STEP192.2 SoundAlerts Settings in DB
+- STEP192.2.1 SoundAlerts DB-Core-Portability
+- STEP192.3 SoundAlerts Doku-Sync
 
 Aktuelle wichtigste Referenzdokus:
 
 - `project-state/STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md`
 - `project-state/STEP175_VIP_SOUND_BLOCK_HANDOFF_2026-05-05.md`
 - `project-state/STEP175_5_PROJECT_DOC_SYNC_AFTER_VIP_BLOCK_2026-05-05.md`
-- `project-state/STEP176_TAGEBUCH_TODO_DB_DASHBOARD_AUDIT_2026-05-05.md`
-- `project-state/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md`
-- `project-state/STEP178_TAGEBUCH_TODO_DASHBOARD_INTEGRATION_2026-05-05.md`
-- `project-state/STEP179_TEXT_VARIANTS_EDITOR_2026-05-05.md`
-- `project-state/STEP180_TEXT_VARIANTS_STATUS_UX_CLEANUP_2026-05-05.md`
-- `project-state/STEP181_HUG_REHUG_TEXT_PAIRS_BACKEND_2026-05-05.md`
 - `project-state/STEP181_8_HUG_REHUG_DOC_SYNC_2026-05-05.md`
 - `project-state/STEP182_6_HUG_TEXT_EDITOR_DOC_SYNC_2026-05-05.md`
 - `project-state/STEP187_5_CLIP_BACKEND_FLOW_DOC_SYNC_2026-05-05.md`
+- `project-state/STEP192_1_1_SOUNDALERTS_DEFAULTS_SAVE_CLEANUP_2026-05-06.md`
+- `project-state/STEP192_2_SOUNDALERTS_SETTINGS_DB_2026-05-06.md`
+- `project-state/STEP192_2_1_SOUNDALERTS_DB_CORE_PORTABILITY_2026-05-06.md`
+- `project-state/STEP192_3_SOUNDALERTS_DOC_SYNC_2026-05-06.md`
+
+## Aktueller SoundAlerts-Stand
+
+SoundAlerts Bridge ist bis STEP192.2.1 im Backend vorbereitet und live getestet.
+
+Backend:
+
+- `backend/modules/soundalerts_bridge.js`
+- Version: `0.1.5`
+- DB-Zugriffe im Modul laufen ueber `backend/core/database.js`.
+- Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
+- JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback.
+
+Dashboard:
+
+- `htdocs/dashboard/modules/soundalerts.js`
+- SoundAlert-Eintraege koennen bearbeitet/gespeichert werden.
+
+DB-Strukturen:
+
+- `soundalerts_bridge_events`
+- `soundalerts_bridge_entries`
+- `soundalerts_bridge_meta`
+- `soundalerts_bridge_settings`
+
+Aktive SoundAlerts-Routen:
+
+- `GET /api/soundalerts/status`
+- `GET /api/soundalerts/settings`
+- `POST /api/soundalerts/settings`
+- `GET /api/soundalerts/entries`
+- `POST /api/soundalerts/entries`
+- `GET /api/soundalerts/config`
+- `POST /api/soundalerts/config`
+
+Live bestaetigt:
+
+```text
+GET /api/soundalerts/status
+version: 0.1.5
+database.ok: true
+entriesTable: soundalerts_bridge_entries
+settingsTable: soundalerts_bridge_settings
+settingsStats.count: 33
+settingsStats.source: database
+config.soundSystem.defaultCategory: channel_reward
+```
+
+```text
+GET /api/soundalerts/entries
+source: db
+fahrstuhl_sound aktiv
+category: channel_reward
+outputTarget: overlay
+volume: 100
+```
+
+Getesteter Eintrag:
+
+```json
+{
+  "id": "fahrstuhl_sound",
+  "enabled": true,
+  "status": "active",
+  "soundAlertName": "Fahrstuhl Sound",
+  "label": "Fahrstuhl Sound",
+  "file": "soundalerts/video/3cgn.mp4",
+  "mediaType": "video",
+  "category": "channel_reward",
+  "outputTarget": "overlay",
+  "volume": 100
+}
+```
+
+MariaDB-Vorbereitung:
+
+- SoundAlerts haengt nicht mehr direkt an `sqlite_core`.
+- Spaetere MariaDB-Unterstuetzung braucht weiterhin einen echten Adapter in `backend/core/database.js`.
+- SQL-Dialekt-Unterschiede muessen spaeter zentral gekapselt werden.
+
+Bewusst offen:
+
+- STEP193 SoundAlerts Inbox / Auto Entries.
+- Unbekannte SoundAlerts automatisch als DB-Eintrag sichtbar machen.
+- Datei fehlt/vorhanden sauber als Status abbilden.
+- Upload/Zuordnung direkt aus dem Eintrag heraus.
 
 ## Aktueller Clip-Stand
 
@@ -100,44 +181,6 @@ Aktive Clip-Routen:
 - `GET/POST /api/clip/admin/texts`
 - `GET/POST /api/dashboard/clips/texts`
 
-Twitch-Readiness:
-
-- `GET /api/twitch/auth/validate`
-- Token live bestaetigt fuer `forrestcgn` / `127709954`
-- Scope `clips:edit` vorhanden
-
-OBS-Readiness:
-
-- `GET /api/obs/replay/status`
-- `obs_shared.js` liefert `SaveReplayBuffer`
-- Fachregel: 60 Sekunden lokaler OBS-Clip, 30s vor `!clip` und 30s nach `!clip`
-- `obsReplaySaveDelayMs = 30000`
-
-Discord:
-
-- Discord-Post nutzt `app.locals.discordBridge`.
-- Kein eigener Discord-Client im Clip-Modul.
-- Zielkanal ist konfigurierbar:
-  - `discordChannelMode = key|custom`
-  - `discordChannelKey`
-  - `discordChannelId`
-
-Texte:
-
-- Clip-Texte sind in `module_text_variants`.
-- Kategorien:
-  - `chat`
-  - `discord`
-  - `errors`
-  - `system`
-- Texte werden zufaellig aus aktiven Varianten gezogen.
-- JSON bleibt Seed/Fallback: `config/messages/clips.json`.
-
-Settings:
-
-- Clip-Settings liegen in `clip_settings`.
-- JSON bleibt Seed/Fallback: `config/clip_system.json`.
-
 Live bestaetigt:
 
 ```text
@@ -148,18 +191,6 @@ twitchApi.readyForCreateClip: true
 obsReplay.readyForBackendSave: true
 discord.readyForPost: true
 backendCreate.ready: true
-```
-
-Offline-Guard live bestaetigt:
-
-```text
-/api/clip/create?...OfflineGuard...
-error: stream_not_live
-history.saved: true
-History:
-status = skipped
-reason = stream_not_live
-sourceMethod = backend_create_offline
 ```
 
 Bewusst offen:
@@ -187,7 +218,7 @@ Dashboard:
 
 - `htdocs/dashboard/modules/hug.js`
 - `htdocs/dashboard/modules/hug.css`
-- Alle Kategorien im Texte-Tab sind editierbar:
+- Kategorien im Texte-Tab:
   - Hug/Rehug-Paare
   - Chatweite Hugs
   - Systemantworten
@@ -250,6 +281,7 @@ Fuer neue und bestehende Systeme gilt:
 - Dashboard liest/schreibt nur ueber Backend-APIs.
 - Keine direkten Dashboard-Zugriffe auf SQLite oder Dateien.
 - Vorhandene Helper nutzen, keine Parallelstrukturen.
+- Neue DB-Logik nach Moeglichkeit ueber `backend/core/database.js` oder vorhandene Helper aufbauen.
 - Keine Funktionalitaet entfernen.
 
 ## Wichtige Regeln
@@ -267,6 +299,7 @@ Fuer neue und bestehende Systeme gilt:
 
 ## Bewusst offen
 
+- SoundAlerts: STEP193 Inbox / Auto Entries.
 - Clip: echter Live-Test von `/api/clip/create`.
 - Clip: Streamer.bot-Action nach Live-Test reduzieren.
 - Clip: Dashboard-Modul bauen.
@@ -277,3 +310,4 @@ Fuer neue und bestehende Systeme gilt:
 - Fireworks spaeter neu aufbauen.
 - Alerts-Modul spaeter behutsam splitten.
 - Overlays langfristig mit einheitlichem Overlay-Client standardisieren.
+- Echten MariaDB-Adapter spaeter in `backend/core/database.js` implementieren.
