@@ -9,42 +9,26 @@ Stand: 2026-05-06
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
-## SoundAlerts / Sound-System - aktueller Stand bis STEP193.11
+## SoundAlerts / Sound-System - aktueller Stand bis STEP193.15
 
-`STEP193.11` erweitert den SoundAlerts-Parser fuer ein weiteres deutsches SoundAlerts-Chatformat. Der Dashboard-/Review-Workflow aus STEP193.9 bleibt unveraendert.
+SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte technische Stand ist `STEP193.15`.
 
 Aktueller Modulstand:
 
 - `soundalerts_bridge` Version: `0.1.13`
+- Backend-Datei:
+  - `backend/modules/soundalerts_bridge.js`
 - Dashboard-Dateien:
   - `htdocs/dashboard/modules/soundalerts.js`
   - `htdocs/dashboard/modules/soundalerts.css`
-- Backend-Datei:
-  - `backend/modules/soundalerts_bridge.js`
+- Sound-System Overlay:
+  - `htdocs/overlays/sound_system_overlay.html`
 - Config/Fallback:
   - `config/soundalerts_bridge.json`
 - DB ist Hauptspeicher fuer Eintraege, Events, Meta und technische Settings.
 - JSON bleibt Seed/Fallback/Notfall.
 - SoundAlerts-DB-Zugriffe laufen ueber `backend/core/database.js` bzw. Helper-Schichten.
-- SQLite ist produktiv aktiv; MariaDB bleibt spaeteres Ziel, aber ist noch nicht aktiv.
-
-
-## STEP193.11 Parser-Fix
-
-Live erkanntes neues SoundAlerts-Format:
-
-```text
-ForrestCGN löst Airhorn mit 0 Bits aus
-```
-
-wurde vorher als `parse_failed` gespeichert. Der Parser erkennt jetzt beide Formate:
-
-```text
-<user> spielt <sound> für <amount> Bits!
-<user> löst <sound> mit <amount> Bits aus
-```
-
-Damit kann fuer neue/unbekannte Sounds wie `Airhorn` wieder die Auto-Entry-Logik greifen.
+- SQLite ist produktiv aktiv; MariaDB bleibt spaeteres Ziel, ist aber noch nicht aktiv.
 
 ## OBS Loader Standard
 
@@ -84,11 +68,34 @@ Fachregel:
 - `GET /api/soundalerts/events`
 - `GET /api/soundalerts/stats`
 
+## Parser / Chat-Erkennung
+
+SoundAlerts-Chattexte werden ueber `parser.messageFormats` erkannt. Diese Formate sind dashboardfaehig und liegen in `soundalerts_bridge_settings`.
+
+Aktuelle Standardformate:
+
+```text
+<user> spielt <sound> fuer <amount> <currency>
+<user> loest <sound> mit <amount> <currency> aus
+```
+
+Beispiele:
+
+```text
+ForrestCGN spielt Lily was here fuer 0 Bits!
+ForrestCGN loest Airhorn mit 0 Bits aus
+```
+
+Wichtiger Fix aus STEP193.11.1:
+
+- `parser.messageFormats` darf nicht als `[object Object]` gespeichert werden.
+- Live bestaetigt wurde `0.1.12`, bei dem `messageFormats` wieder als echtes Objekt-Array geladen wurde.
+
 ## Dashboard-Workflow SoundAlerts
 
 ### Uebersicht
 
-Die Uebersicht zeigt nur noch wirklich relevante Werte und Schnellzugriffe:
+Die Uebersicht zeigt nur relevante Werte und Schnellzugriffe:
 
 - Gesamt
 - Aktiv
@@ -97,7 +104,7 @@ Die Uebersicht zeigt nur noch wirklich relevante Werte und Schnellzugriffe:
 - Zur Pruefung
 - Letzte 5 abspielbare Events mit Datei als Replay-Schnellzugriff
 
-Nicht mehr als Handlungsbedarf zaehlen:
+Nicht als Handlungsbedarf zaehlen:
 
 - alte/unbekannte Events aus dem Log
 - geloeschte Alt-Events
@@ -137,7 +144,7 @@ Statuslogik:
 - `missing_file` = Name oder Datei fehlt
 - `ignored` = bewusst ignoriert, nicht prominent im Normalfluss
 
-Wichtige Korrektur aus STEP193.8.1:
+Wichtige Korrektur:
 
 - `Speichern / Freigeben` finalisiert nur den aktuell bearbeiteten Eintrag.
 - Globales `Config speichern` gibt keine anderen `Zur Pruefung`-Eintraege frei.
@@ -154,15 +161,6 @@ Klartextregeln:
 - Unbrauchbare Parse-Events bieten keinen sinnlosen `Eintrag erstellen`-Button an.
 - Replay wird nur angeboten, wenn eine Datei vorhanden ist.
 
-### Lokaler Test
-
-- Das lokale Sound-System-Overlay kann im Dashboard über `🖥️ Lokales Overlay` geöffnet werden.
-- URL: `/overlays/sound_system_overlay.html?debug=1`
-- Einträge zeigen ihr Ausgabeziel: `Device`, `Overlay` oder `Beides`.
-- Das Ausgabeziel ist im Eintrag-Editor bearbeitbar.
-- Device-Tests laufen über das lokale Audio-Gerät.
-- Overlay-/Beides-Tests brauchen ein geöffnetes lokales oder OBS-Sound-Overlay.
-
 ### Statistik
 
 Die Statistik ist fachlich auf nutzbare Werte ausgerichtet:
@@ -175,7 +173,23 @@ Die Statistik ist fachlich auf nutzbare Werte ausgerichtet:
 - Top-Sounds
 - Top-User
 
-`Nicht eingerichtet` und `In Warteschlange` sind keine Hauptwerte mehr.
+## Lokaler Overlay-Test / Test-Ausgabe
+
+Seit STEP193.14/STEP193.15 ist ein lokaler Overlay-Test-Workflow vorbereitet:
+
+- Button `Lokales Overlay` im Dashboard.
+- Oeffnet `/overlays/sound_system_overlay.html?debug=1`.
+- Eintraege zeigen ihr Ausgabeziel: `Device`, `Overlay`, `Beides`.
+- Ausgabeziel ist im Eintrag-Editor bearbeitbar.
+- Normaler Test nutzt das gespeicherte Ausgabeziel.
+- Overlay-Test kann temporaer `outputTarget: overlay` senden, ohne den Eintrag dauerhaft umzuschalten.
+
+Wichtige Regel:
+
+```text
+Produktiv-Ausgabe bleibt gespeichert.
+Nur der Overlay-Test darf temporaer auf overlay overriden.
+```
 
 ## Loeschen / Ignorieren
 
@@ -184,71 +198,22 @@ Loeschen = Eintrag wird entfernt. Kommt derselbe SoundAlert wieder rein, wird er
 Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAlert wieder rein, wird er nicht als neuer offener Eintrag angelegt.
 ```
 
-Ignorieren ist nicht mehr prominent im normalen Kartenfluss, bleibt aber technisch vorhanden.
+Ignorieren ist nicht prominent im normalen Kartenfluss, bleibt aber technisch vorhanden.
 
-## Live bestaetigter Referenzwert
+## Live bestaetigte Referenzwerte
 
 ```text
+soundalerts_bridge version = 0.1.13
 upload.maxVideoSizeBytes = 1073741824
+parser.messageFormats = echtes Objekt-Array, nicht [object Object]
 ```
-
-## Parser-Formate / STEP193.11
-
-Der SoundAlerts-Parser ist ab `0.1.11` ueber `parser.messageFormats` konfigurierbar.
-
-Aktive Standardformate:
-
-```text
-ForrestCGN spielt Lily was here fuer 0 Bits!
-ForrestCGN loest Airhorn mit 0 Bits aus
-```
-
-Die Formate werden als JSON-Setting `parser.messageFormats` in `soundalerts_bridge_settings` geseedet und koennen spaeter ueber Config/API angepasst werden.
-
-Formatfelder:
-
-```text
-id, enabled, pattern, flags, triggerGroup, soundGroup, amountGroup, currencyGroup
-```
-
-Damit muessen neue SoundAlerts-Chattexte nicht mehr hart im Parser-Code verdrahtet werden, solange sie mit Regex + Gruppen-Zuordnung abbildbar sind.
-
-## STEP193.11.1 Parser-Settings-Fix
-
-- `parser.messageFormats` darf nicht als `[object Object]` gespeichert/geladen werden.
-- Kaputte Formatwerte werden automatisch auf die Default-Formate zurueckgesetzt.
-- Dadurch werden beide bekannten SoundAlerts-Chattexte wieder erkannt:
-  - `spielt ... fuer ...`
-  - `loest ... mit ... aus`
 
 ## Bewusst offen
 
-- SoundAlerts weiter live beim echten Einrichten testen.
+- Sound-System Overlay hat noch Bugs und soll spaeter separat bereinigt werden.
+- Audio/Video-Verhalten im lokalen Overlay weiter pruefen.
+- Status-/Debuganzeige im Overlay verbessern.
 - Bei Bedarf Event-Tab spaeter filtern: Alle / Abgespielt / Fehler / Kein aktueller Eintrag.
-- Bei Bedarf Statistik spaeter backendseitig robuster machen, falls Live-Daten weitere Felder brauchen.
+- Bei Bedarf Statistik spaeter backendseitig robuster machen.
 - Clip-System spaeter live testen.
 - MariaDB-Adapter spaeter in `backend/core/database.js` implementieren.
-
-
-## STEP193.12 - Parser-Formate im Dashboard
-
-- SoundAlerts `Bot & Settings` enthaelt jetzt den Bereich `Chat-Erkennung`.
-- `parser.messageFormats` kann dort angezeigt, aktiviert/deaktiviert und erweitert werden.
-- Beispieltexte koennen lokal getestet werden, ohne Event-/DB-Eintrag anzulegen.
-- Speichern nutzt die bestehende Settings-API; keine Backend-/DB-Schemaaenderung.
-
-## STEP193.13 - Entry-Test im Dashboard
-
-- Einzelne SoundAlerts-Eintraege koennen im Dashboard direkt getestet werden.
-- Eintragskarten und Detail-Editor nutzen kompakte Icon-Aktionen fuer Testen, Bearbeiten/Speichern und Loeschen.
-- Der Test nutzt die bestehende `/api/soundalerts/test/chat`-Route.
-- Testen ist nur sichtbar, wenn ein Eintrag einen SoundAlerts-Namen und eine Datei hat.
-- Keine Backend-/API-/DB-Aenderung.
-
-## STEP193.15 - Test-Ausgabeziel Override
-
-- Eintraege koennen normal mit gespeichertem Ausgabeziel getestet werden.
-- Zusaetzlich gibt es einen Overlay-Test, der den Test einmalig mit `outputTarget=overlay` an das Sound-System sendet.
-- Das gespeicherte Ausgabeziel des Eintrags wird dadurch nicht veraendert.
-- Fuer Overlay-Tests muss das lokale Sound-System-Overlay oder die OBS-Overlayquelle aktiv geladen sein.
-

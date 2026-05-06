@@ -5,142 +5,52 @@
 ### STEP193.15 - SoundAlerts Test Output Override
 
 - `soundalerts_bridge` auf Version `0.1.13` gesetzt.
-- Test-Route kann ein temporaeres `outputTarget` annehmen.
-- Dashboard ergaenzt einen Overlay-Test pro Eintrag.
+- `/api/soundalerts/test/chat` akzeptiert optional `outputTarget`.
 - Normaler Test nutzt weiterhin das gespeicherte Ausgabeziel.
-- Overlay-Test veraendert den gespeicherten Eintrag nicht.
-
+- Overlay-Test sendet temporaer `outputTarget: overlay`.
+- Gespeicherter Eintrag bleibt unveraendert.
+- Keine DB-Schemaaenderung.
 
 ### STEP193.14 - SoundAlerts Local Overlay Test Workflow
 
-- Lokalen Overlay-Test im Dashboard ergänzt.
-- Hero-Button `🖥️ Lokales Overlay` öffnet `/overlays/sound_system_overlay.html?debug=1`.
-- Unter `Bot & Settings` wurde ein Bereich `Lokaler Overlay-Test` ergänzt.
-- Einträge zeigen das Ausgabeziel klarer als `Device`, `Overlay` oder `Beides`.
-- Ausgabeziel ist im Eintrag-Editor bearbeitbar.
-- Test-Hinweis ergänzt: Overlay-/Beides-Tests benötigen ein geöffnetes lokales/OBS-Sound-Overlay; Device-Tests laufen über das lokale Audio-Gerät.
-- Doppelte/widersprüchliche Status-Chips bei Einträgen mit fehlender Datei reduziert.
-- Keine Backend-/API-/DB-Änderung.
+- Button `Lokales Overlay` im Dashboard ergaenzt.
+- Lokaler Overlay-Test-Bereich unter `Bot & Settings` ergaenzt.
+- Eintraege zeigen ihr Ausgabeziel.
+- Ausgabeziel im Eintrag-Editor bearbeitbar gemacht.
+- Hinweise fuer Overlay-/Device-Test ergaenzt.
+- Doppelte Status-Chips bei fehlender Datei reduziert.
 
 ### STEP193.13 - SoundAlerts Entry Test Buttons
 
-- Eintragskarten und Detail-Editor um Test-Aktion erweitert.
-- Icon-Buttons fuer Eintragsaktionen ergaenzt.
-- Aktive Eintraege koennen im Editor direkt gespeichert werden.
-- Test-Aktion nutzt bestehende `/api/soundalerts/test/chat`-Route.
-- Keine Backend-/API-/DB-Aenderung.
+- Eintragskarten um Test-Button ergaenzt.
+- Detail-Editor auf Icon-Aktionen umgestellt.
+- Test-Button wird nur bei vorhandener Datei angezeigt.
+- Test nutzt bestehende Route `/api/soundalerts/test/chat`.
 
-### STEP193.12 - SoundAlerts Parser-Formate im Dashboard
+### STEP193.12 - SoundAlerts Parser Formats Dashboard Editor
 
-- `Bot & Settings` um Bereich `Chat-Erkennung` erweitert.
-- Parser-Formate koennen im Dashboard angezeigt, aktiviert/deaktiviert und bei Bedarf bearbeitet werden.
-- Lokaler Test fuer Chattexte ergaenzt, ohne Event-/DB-Eintrag anzulegen.
-- `parser.messageFormats` wird beim Speichern ueber die bestehende Settings-API gespeichert.
-- Keine Backend-/API-/DB-Schemaaenderung.
-
+- Bereich `Chat-Erkennung` unter `Bot & Settings` ergaenzt.
+- Parser-Formate im Dashboard sichtbar und bearbeitbar gemacht.
+- Formate aktiv/inaktiv schaltbar.
+- Lokaler Parser-Test ohne Event-/DB-Eintrag ergaenzt.
+- Speichern schreibt `parser.messageFormats` ueber Settings-API.
 
 ### STEP193.11.1 - SoundAlerts Parser Settings Serialization Fix
 
 - `soundalerts_bridge` auf Version `0.1.12` gesetzt.
-- Fehler behoben, bei dem `parser.messageFormats` als `[object Object]` gespeichert/geladen wurde.
-- Parser faellt bei kaputten Format-Werten automatisch auf die Default-Formate zurueck.
-- Keine DB-Schema-/Dashboard-Aenderung.
+- `parser.messageFormats` wird korrekt als Objekt-Array geladen/gespeichert.
+- Kaputte `[object Object]`-Werte fallen auf Default-Formate zurueck.
 
-### STEP193.11 - SoundAlerts konfigurierbare Parser-Formate
+### STEP193.11 - SoundAlerts Configurable Parser Formats
 
 - `soundalerts_bridge` auf Version `0.1.11` gesetzt.
 - Parser-Formate ueber `parser.messageFormats` konfigurierbar gemacht.
-- Standardformate geseedet:
-  - `<user> spielt <sound> fuer <amount> <currency>`
-  - `<user> loest <sound> mit <amount> <currency> aus`
-- `parser.messageFormats` als JSON-Setting in `soundalerts_bridge_settings` ergaenzt.
-- Keine DB-Schemaaenderung und keine Dashboard-Aenderung.
-
 
 ### STEP193.10 - SoundAlerts Parser Format Fix
 
 - `soundalerts_bridge` auf Version `0.1.10` gesetzt.
-- Parser erkennt jetzt zusätzlich das Format `<user> löst <sound> mit <amount> Bits aus`.
-- Live-Fehler `parse_failed` bei `ForrestCGN löst Airhorn mit 0 Bits aus` behoben.
-- Bestehendes Format `<user> spielt <sound> für <amount> Bits!` bleibt erhalten.
-- Keine Dashboard-/API-/DB-Schemaänderung.
+- Parser erkennt zusaetzlich Format `loest ... mit ... aus`.
 
 ### STEP193.9 - SoundAlerts Stable Handoff / Doku-Sync
 
 - Stabilen SoundAlerts-Zwischenstand nach STEP193.8.1 dokumentiert.
-- OBS-Loader-Standard festgehalten.
-- Review-Workflow zusammengefasst:
-  - `Zur Pruefung` bleibt bis zur einzelnen Freigabe sichtbar.
-  - Globales Speichern gibt keine anderen Review-Eintraege frei.
-  - Inaktive vollstaendige Eintraege sind kein offener Handlungsbedarf.
-- Event-Historie-Regeln dokumentiert:
-  - `Kein aktueller Eintrag` fuer geloeschte/unbekannte Alt-Events.
-  - `Parse-Fehler` fuer unbrauchbare Rohdaten.
-  - Replay nur bei Events mit Datei.
-- Keine Code-/API-/DB-Aenderung.
-
-### STEP193.8.1 - SoundAlerts Review Save Scope Fix
-
-- `Speichern / Freigeben` finalisiert nur noch den aktuell bearbeiteten Eintrag.
-- Globales `Config speichern` gibt keine anderen `Zur Pruefung`-Eintraege frei.
-- Upload bleibt bis zur expliziten Freigabe im Status `review_required`.
-- Keine Backend-/API-/DB-Aenderung.
-
-### STEP193.8 - SoundAlerts Review Workflow
-
-- `file_matched`/`review_required` werden als `Zur Pruefung` angezeigt.
-- Zur Pruefung zaehlt als Handlung, bis ein Eintrag gespeichert/freigegeben wurde.
-- Speichern/Freigeben setzt gueltige Eintraege auf `active` oder `inactive`.
-- Eintraege mit fehlendem Namen oder fehlender Datei bleiben `missing_file`.
-- Ignorieren aus den normalen Eintragskarten entfernt, im Editor weniger prominent behalten.
-- Keine Backend-/DB-Aenderung.
-
-### STEP193.7.4 - SoundAlerts Event-Log Klartext
-
-- Events-Tab unterscheidet klarer zwischen aktueller Aufgabe und historischem Log-Eintrag.
-- Alte geloeschte/unbekannte Events werden als `Kein aktueller Eintrag` angezeigt.
-- Parse-Fehler werden als `Parse-Fehler` angezeigt.
-- Unbrauchbare Roh-/Parse-Events bieten kein `Eintrag erstellen` mehr an.
-- Keine Backend-/API-/DB-Aenderung.
-
-### STEP193.7.3 - SoundAlerts Overview Action-State Cleanup
-
-- `Handlung noetig` erscheint nur noch bei echtem Einrichtungsbedarf.
-- Unbekannte historische Events loesen keine Handlung-noetig-Box mehr aus.
-- KPI `Auto-zugeordnet` wurde aus der Uebersicht entfernt.
-- Letzte-5-Events-Bereich zeigt nur noch abgespielte Events mit Datei.
-- Keine Backend-/API-/DB-Aenderung.
-
-### STEP193.7.2 - SoundAlerts Uebersicht / Statistik Cleanup
-
-- Test-Buttons aus der SoundAlerts-Hero-Leiste entfernt.
-- `Bot & Settings` in der Tab-Reihenfolge nach hinten verschoben.
-- Statistik auf Top-Sounds, Top-User und Abspiel-Kennzahlen fokussiert.
-- Keine Backend-/API-/DB-Aenderung.
-
-### STEP193.7.1 - SoundAlerts Inaktiv/Filter Fix
-
-- `enabled: false` ist nicht automatisch `Einrichtung noetig`.
-- Eintraege-Tab um Filter ergaenzt.
-- Uebersicht-KPI-Klicks oeffnen passende Filter.
-- Keine Backend-/API-/DB-Aenderung.
-
-### STEP193.7 - SoundAlerts Overview Dashboard
-
-- SoundAlerts-Uebersicht aufgeraeumt.
-- Kompakte Kennzahlen und letzte Events mit Schnellaktionen ergaenzt.
-- Vollstaendige Events und Statistik bleiben in eigenen Tabs.
-- Keine Backend-/API-/DB-Aenderung.
-
-### STEP193.6.1 - SoundAlerts OBS Loader Standard
-
-- Doku fuer dauerhaft aktive, stumme 1x1-OBS-Browserquelle `_SoundAlerts_Loader` ergaenzt.
-- Kein Node-/Headless-Browser-Loader, solange die OBS-Loader-Loesung stabil funktioniert.
-
-### STEP193.6 - SoundAlerts Dashboard Layout Cleanup
-
-- Eintragskarten links lesbarer gemacht.
-- Button-Zeilen sauberer ausgerichtet.
-- Status-Chips deutlicher dargestellt.
-- Upload-Zeile ruhiger und weniger gequetscht.
-- Keine Backend-/API-/DB-Aenderung.

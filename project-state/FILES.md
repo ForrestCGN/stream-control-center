@@ -18,6 +18,10 @@ Dashboard:
 - `htdocs/dashboard/modules/soundalerts.js`
 - `htdocs/dashboard/modules/soundalerts.css`
 
+Overlay:
+
+- `htdocs/overlays/sound_system_overlay.html`
+
 Config/Fallback:
 
 - `config/soundalerts_bridge.json`
@@ -31,7 +35,7 @@ DB-Strukturen:
 
 SoundAlerts-Version:
 
-- `0.1.11`
+- `0.1.13`
 
 Aktueller Upload-Wert live:
 
@@ -47,32 +51,23 @@ upload.maxVideoSizeBytes = 1073741824
 - `missing_file` = Name/Datei fehlt oder Platzhalter-Datei
 - `ignored` = bewusst ignoriert, nicht prominent im normalen Workflow
 
+## SoundAlerts Parser
+
+- Settings-Key: `parser.messageFormats`
+- Speicherort: `soundalerts_bridge_settings`
+- Werttyp: JSON / Objekt-Array
+- Darf nicht als `[object Object]` gespeichert werden.
+
 ## SoundAlerts Dokus
 
-- `project-state/STEP193_6_SOUNDALERTS_DASHBOARD_LAYOUT_CLEANUP_2026-05-06.md`
-- `project-state/STEP193_6_1_SOUNDALERTS_OBS_LOADER_STANDARD_2026-05-06.md`
-- `project-state/STEP193_7_SOUNDALERTS_OVERVIEW_DASHBOARD_2026-05-06.md`
-- `project-state/STEP193_7_1_SOUNDALERTS_INACTIVE_FILTER_FIX_2026-05-06.md`
-- `project-state/STEP193_7_2_SOUNDALERTS_OVERVIEW_STATS_CLEANUP_2026-05-06.md`
-- `project-state/STEP193_7_3_SOUNDALERTS_OVERVIEW_ACTION_STATE_CLEANUP_2026-05-06.md`
-- `project-state/STEP193_7_4_SOUNDALERTS_EVENT_LOG_CLARITY_2026-05-06.md`
-- `project-state/STEP193_8_SOUNDALERTS_REVIEW_WORKFLOW_2026-05-06.md`
-- `project-state/STEP193_8_1_SOUNDALERTS_REVIEW_SAVE_SCOPE_FIX_2026-05-06.md`
-- `project-state/STEP193_9_SOUNDALERTS_STABLE_HANDOFF_2026-05-06.md`
 - `project-state/STEP193_10_SOUNDALERTS_PARSER_FORMAT_FIX_2026-05-06.md`
 - `project-state/STEP193_11_SOUNDALERTS_CONFIGURABLE_PARSER_FORMATS_2026-05-06.md`
 - `project-state/STEP193_11_1_SOUNDALERTS_PARSER_SETTINGS_SERIALIZATION_FIX_2026-05-06.md`
 - `project-state/STEP193_12_SOUNDALERTS_PARSER_FORMATS_DASHBOARD_EDITOR_2026-05-06.md`
 - `project-state/STEP193_13_SOUNDALERTS_ENTRY_TEST_BUTTONS_2026-05-06.md`
 - `project-state/STEP193_14_SOUNDALERTS_LOCAL_OVERLAY_TEST_WORKFLOW_2026-05-06.md`
-
-
-## SoundAlerts Parser-Formate
-
-- `<user> spielt <sound> für <amount> Bits!`
-- `<user> löst <sound> mit <amount> Bits aus`
-
 - `project-state/STEP193_15_SOUNDALERTS_TEST_OUTPUT_OVERRIDE_2026-05-06.md`
+- `project-state/STEP193_15_1_SOUNDALERTS_DOC_SYNC_2026-05-06.md`
 
 ## OBS Loader Standard
 
@@ -90,14 +85,3 @@ upload.maxVideoSizeBytes = 1073741824
 - Backups
 - ZIP/7z-Dateien
 - temporaere Dateien
-
-## SoundAlerts Parser-Settings
-
-- `parser.messageFormats` = JSON-Liste fuer erkennbare SoundAlerts-Chattexte.
-- Pro Format: `id`, `enabled`, `pattern`, `flags`, `triggerGroup`, `soundGroup`, `amountGroup`, `currencyGroup`.
-
-## Parser-Formate Dashboard
-
-- Bedienung unter `SoundAlerts > Bot & Settings > Chat-Erkennung`.
-- Speichert `parser.messageFormats` ueber die bestehende Settings-API.
-- Lokaler Test legt keinen Event-/DB-Eintrag an.

@@ -4,34 +4,27 @@ Stand: 2026-05-06
 
 ## Naechster empfohlener Schritt
 
-### SoundAlerts Live-Test / Stabilisierung
+### Sound-System Overlay Bugs bereinigen
 
-Nach `STEP193.10` den Parser-Fix live prüfen und danach erstmal keine weiteren SoundAlerts-Umbauten, solange die Einrichtung live getestet wird.
+Nach `STEP193.15` ist der SoundAlerts-Dashboard-/Backend-Block vorerst gut nutzbar. Die naechsten offenen Punkte liegen vor allem im lokalen Sound-System Overlay.
 
-Pruefen:
+Pruefen/Beheben:
 
-0. Overlay-Test fuer Eintraege live mit lokalem Overlay pruefen.
-
-1. Neues Format `löst ... mit ... aus` testen.
-2. Neuer unbekannter SoundAlert kommt rein.
-3. Eintrag erscheint unter `Zur Pruefung`.
-4. Datei/Label/Kategorie pruefen.
-5. Einzelnen Eintrag speichern/freigeben.
-6. Nur dieser eine Eintrag verschwindet aus `Zur Pruefung`.
-7. Andere Review-Eintraege bleiben offen.
-8. Inaktiv speichern bleibt `Inaktiv` und zaehlt nicht als offene Einrichtung.
-9. Letzte 5 Events zeigen nur abspielbare Events.
-10. Replay funktioniert.
-11. `_SoundAlerts_Loader` bleibt aktiv, stumm und unsichtbar.
+1. Audio/Video-Verhalten in `htdocs/overlays/sound_system_overlay.html` testen.
+2. Overlay-Test mit temporaerem `outputTarget: overlay` pruefen.
+3. Device-Test und Overlay-Test klar voneinander trennen.
+4. Debug-/Statusanzeige im Overlay verbessern.
+5. Sicherstellen, dass Video mit Ton und reine Audio-Tests nachvollziehbar laufen.
+6. Nach Overlay-Fix erneuten Doku-Sync machen.
 
 ## Danach moeglich
 
 ### SoundAlerts
 
-- Parser-Format-Editor nach Live-Nutzung beobachten; Regex-Bearbeitung nur als Advanced-Weg nutzen.
 - Event-Tab-Filter: Alle / Abgespielt / Fehler / Kein aktueller Eintrag.
 - Statistik weiter verbessern, falls echte Live-Daten weitere Auswertungen brauchen.
 - Optional alte Test-/Log-Eintraege gezielter ausblendbar machen.
+- Parser-Format-Editor weiter absichern, falls spaeter weitere SoundAlerts-Texte auftauchen.
 
 ### Clip-System
 
@@ -52,8 +45,4 @@ Pruefen:
 - Dashboard greift nicht direkt auf SQLite/Dateien zu, sondern nutzt Backend-APIs.
 - SoundAlerts Bridge Version aktuell: `0.1.13`.
 - `_SoundAlerts_Loader` bleibt aktive, stumme 1x1-OBS-Browserquelle.
-
-## Parser-Regel
-
-
-- Parser-Formate bei neuen SoundAlerts-Chattexten zuerst ueber `parser.messageFormats` ergaenzen, statt hart neue Regex-Zweige einzubauen.
+- Parser-Formate muessen als echtes Objekt-Array erhalten bleiben.
