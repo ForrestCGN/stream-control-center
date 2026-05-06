@@ -2,6 +2,14 @@
 
 ## 2026-05-06
 
+### STEP193.17 - SoundAlerts Output Field Cleanup
+
+- Manuelles Ausgabe-Dropdown aus dem Eintrag-Editor entfernt.
+- Ausgabeziel wird automatisch aus Medientyp und globalen Audio-/Video-Zielen bestimmt.
+- Audio nutzt das globale Audio-Ziel, Video nutzt das globale Video-Ziel.
+- Beim Wechsel von Audio/Video bleibt die automatische Zielzuordnung erhalten.
+- Keine Backend-/API-/DB-Aenderung.
+
 ### STEP193.16 - SoundAlerts Entry Editor Output/Selection Fix
 
 - `soundalerts_bridge` auf Version `0.1.14` gesetzt.

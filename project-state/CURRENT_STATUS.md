@@ -2,9 +2,9 @@
 
 Stand: 2026-05-06
 
-## Aktueller SoundAlerts-Stand nach STEP193.16
+## Aktueller SoundAlerts-Stand nach STEP193.17
 
-SoundAlerts ist bis `STEP193.16` technisch umgesetzt und live getestet. Der aktuelle Backend-Stand ist `soundalerts_bridge` Version `0.1.14`.
+SoundAlerts ist bis `STEP193.17` technisch umgesetzt und live getestet. Der aktuelle Backend-Stand ist `soundalerts_bridge` Version `0.1.14`.
 
 Backend:
 
@@ -28,7 +28,7 @@ Dashboard:
 - Eintraege haben Test-Buttons.
 - Lokaler Overlay-Test ist vorbereitet.
 - Nach Upload/Speichern bleibt der aktuell bearbeitete Eintrag selektiert.
-- Ausgabeziel orientiert sich an Medientyp und globalem Audio-/Video-Ziel.
+- Ausgabeziel ist im Eintrag-Editor nicht mehr manuell auswählbar; es orientiert sich automatisch an Medientyp und globalem Audio-/Video-Ziel.
 
 DB-Strukturen:
 

@@ -1000,8 +1000,7 @@ window.SoundAlertsModule = (function(){
         <label class="sa-check"><input data-sa-rule-field="enabled" type="checkbox" ${rule.enabled === false ? '' : 'checked'}><span>Aktiv</span></label>
         <label class="sa-field"><span>SoundAlerts-Name</span><input data-sa-rule-field="soundAlertName" type="text" value="${esc(rule.soundAlertName || '')}"></label>
         <label class="sa-field"><span>Label</span><input data-sa-rule-field="label" type="text" value="${esc(rule.label || rule.soundAlertName || '')}"></label>
-        <label class="sa-field"><span>Typ</span><select data-sa-rule-field="mediaType"><option value="audio" ${rule.mediaType === 'audio' ? 'selected' : ''}>Audio</option><option value="video" ${rule.mediaType === 'video' ? 'selected' : ''}>Video</option></select></label>
-        <label class="sa-field"><span>Ausgabe</span><select data-sa-rule-field="outputTarget">${outputTargetSelectOptions(rule)}</select><small class="sa-field-help">Orientiert sich am Typ: Audio nutzt das Audio-Ziel, Video nutzt das Video-Ziel.</small></label>
+        <label class="sa-field"><span>Typ</span><select data-sa-rule-field="mediaType"><option value="audio" ${rule.mediaType === 'audio' ? 'selected' : ''}>Audio</option><option value="video" ${rule.mediaType === 'video' ? 'selected' : ''}>Video</option></select><small class="sa-field-help">Ausgabe wird automatisch gesetzt: Audio nutzt das Audio-Ziel, Video nutzt das Video-Ziel.</small></label>
         <label class="sa-field sa-wide sa-file-field"><span>Datei</span><input data-sa-rule-field="file" type="text" value="${esc(rule.file || '')}"></label>
         <div class="sa-upload-row sa-wide">
           <input data-sa-file-input="${idx}" type="file" hidden accept=".mp3,.wav,.ogg,.webm,.m4a,.mp4">
@@ -1140,7 +1139,7 @@ window.SoundAlertsModule = (function(){
       file: String(field('file')?.value || '').trim(),
       mediaType: String(field('mediaType')?.value || 'audio').trim(),
       category: normalizeCategory(field('category')?.value),
-      outputTarget: normalizeOutputTarget(field('outputTarget')?.value || current.outputTarget || current.output_target, String(field('mediaType')?.value || 'audio').trim()),
+      outputTarget: defaultOutputTargetForMedia(String(field('mediaType')?.value || 'audio').trim()),
       priority: normalizePriorityOverride(field('priority')?.value),
       volume: Math.max(0, Math.min(100, Number(field('volume')?.value || defaultVolume())))
     }, idx);
@@ -1539,9 +1538,8 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
       }
       const mediaTypeSelect = ev.target.closest('[data-sa-rule-field="mediaType"]');
       if (mediaTypeSelect) {
-        const box = mediaTypeSelect.closest('[data-sa-rule-index]');
-        const outputSelect = box?.querySelector('[data-sa-rule-field="outputTarget"]');
-        if (outputSelect) outputSelect.value = defaultOutputTargetForMedia(String(mediaTypeSelect.value || 'audio').trim());
+        saveActiveRuleFromDom();
+        render();
         return;
       }
       const category = ev.target.closest('[data-sa-rule-field="category"]');

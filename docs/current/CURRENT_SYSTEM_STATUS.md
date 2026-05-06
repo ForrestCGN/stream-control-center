@@ -9,9 +9,9 @@ Stand: 2026-05-06
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
-## SoundAlerts / Sound-System - aktueller Stand bis STEP193.16
+## SoundAlerts / Sound-System - aktueller Stand bis STEP193.17
 
-SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte technische Stand ist `STEP193.16`.
+SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte technische Stand ist `STEP193.17`.
 
 Aktueller Modulstand:
 
@@ -126,8 +126,9 @@ Eintraege koennen gefiltert werden:
 
 Editor-Regeln:
 
-- Ausgabe orientiert sich am Typ: Audio nutzt das Audio-Ziel, Video nutzt das Video-Ziel.
-- Beim Wechsel von Audio/Video wird das passende Ausgabeziel gesetzt.
+- Ausgabe wird im Eintrag-Editor nicht mehr manuell gesetzt.
+- Ausgabe orientiert sich automatisch am Typ: Audio nutzt das globale Audio-Ziel, Video nutzt das globale Video-Ziel.
+- Beim Wechsel von Audio/Video wird das passende Ausgabeziel automatisch gesetzt.
 - Nach Upload/Speichern bleibt der aktuell bearbeitete Eintrag selektiert; bei Filterwechsel springt die Ansicht auf `Alle`, statt auf den naechsten Eintrag.
 
 Fachregel:
@@ -186,7 +187,7 @@ Seit STEP193.14/STEP193.15 ist ein lokaler Overlay-Test-Workflow vorbereitet:
 - Button `Lokales Overlay` im Dashboard.
 - Oeffnet `/overlays/sound_system_overlay.html?debug=1`.
 - Eintraege zeigen ihr Ausgabeziel: `Device`, `Overlay`, `Beides`.
-- Ausgabeziel ist im Eintrag-Editor bearbeitbar.
+- Ausgabeziel ist im Eintrag-Editor nicht mehr einzeln bearbeitbar; es folgt automatisch Audio-/Video-Typ und globalen Ziel-Settings.
 - Normaler Test nutzt das gespeicherte Ausgabeziel.
 - Overlay-Test kann temporaer `outputTarget: overlay` senden, ohne den Eintrag dauerhaft umzuschalten.
 

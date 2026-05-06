@@ -6,7 +6,7 @@ Stand: 2026-05-06
 
 ### Sound-System Overlay Bugs bereinigen
 
-Nach `STEP193.16` ist der SoundAlerts-Dashboard-/Backend-Block vorerst gut nutzbar. Die naechsten offenen Punkte liegen vor allem im lokalen Sound-System Overlay.
+Nach `STEP193.17` ist der SoundAlerts-Dashboard-/Backend-Block vorerst gut nutzbar. Die naechsten offenen Punkte liegen vor allem im lokalen Sound-System Overlay.
 
 Pruefen/Beheben:
 
