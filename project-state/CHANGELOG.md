@@ -2,6 +2,25 @@
 
 ## 2026-05-06
 
+
+### STEP193.6 - SoundAlerts Dashboard Layout Cleanup
+
+- `htdocs/dashboard/modules/soundalerts.css` optisch aufgeraeumt.
+- Linke Eintragskarten lesbarer gemacht.
+- Button-Zeilen in der Eintragsliste sauberer ausgerichtet.
+- Status-Chips fuer `active`, `missing_file`, `ignored`, `file_matched` deutlicher dargestellt.
+- Upload-Zeile und Upload-Hinweise weniger gedrungen gestaltet.
+- Keine Backend-, API- oder DB-Aenderung.
+
+### STEP193.6.1 - SoundAlerts OBS Loader Standard
+
+- Vorlaeufigen SoundAlerts-OBS-Loader-Standard dokumentiert.
+- SoundAlerts-Browserquelle bleibt als aktive 1x1 px Quelle geladen, damit SoundAlerts die Quelle nicht als offline erkennt.
+- Bild/Ton-Ausgabe ueber SoundAlerts bleibt unerwuenscht; Audio wird im OBS-Mixer stummgeschaltet.
+- Die Quelle darf nicht per Auge deaktiviert oder aus der aktiven Szenenstruktur entfernt werden.
+- Node-/Headless-Browser-Loader wird aktuell bewusst nicht umgesetzt, solange der OBS-Loader stabil funktioniert.
+- Keine Codeaenderung, keine Backend-Aenderung, keine DB-Aenderung.
+
 ### STEP193.5 - SoundAlerts Upload UX / Ignore / Delete Doku-Sync
 
 - Zentrale Projekt-Dokus nach erfolgreichem STEP193.2 bis STEP193.4 aktualisiert.

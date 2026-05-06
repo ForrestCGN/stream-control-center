@@ -4,7 +4,7 @@ Stand: 2026-05-06
 
 ## Aktueller SoundAlerts-Stand
 
-SoundAlerts Bridge ist bis STEP193.5 im Backend/Dashboard vorbereitet und live getestet.
+SoundAlerts Bridge ist bis STEP193.5 im Backend/Dashboard vorbereitet und live getestet. STEP193.6.1 dokumentiert den stummen OBS-Loader-Standard. STEP193.6 raeumt das Dashboard-Layout der Eintragsliste auf. STEP193.6.1 dokumentiert zusaetzlich den vorlaeufigen OBS-Loader-Standard fuer die externe SoundAlerts-Browserquelle.
 
 Backend:
 
@@ -18,9 +18,20 @@ Dashboard:
 
 - `htdocs/dashboard/modules/soundalerts.js`
 - `htdocs/dashboard/modules/soundalerts.css`
+- STEP193.6: Eintragskarten links lesbarer, Button-Zeilen sauberer ausgerichtet, Status-Chips deutlicher, Upload-Zeile ruhiger.
 - SoundAlert-Eintraege koennen bearbeitet/gespeichert werden.
 - Upload zeigt Status/Fortschritt.
 - Loeschen/Ignorieren sind direkte Backend-Aktionen und brauchen kein Config-Speichern mehr.
+
+OBS-Loader-Standard:
+
+```text
+_SoundAlerts_Loader bleibt sichtbar/aktiv als 1x1 px Browserquelle geladen.
+Die Quelle ist im OBS-Mixer stummgeschaltet.
+Sie darf nicht per Auge deaktiviert werden.
+Sound/Bild-Ausgabe laeuft ueber das eigene Sound-System, nicht ueber SoundAlerts.
+Node-/Headless-Browser-Loader wird aktuell nicht umgesetzt.
+```
 
 DB-Strukturen:
 
@@ -83,7 +94,6 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 
 ## Bewusst offen
 
-- Dashboard-Layout der Eintragskarten optisch aufraeumen.
 - Filter/Ansichten fuer `active`, `missing_file`, `ignored`, `file_matched`.
 - Upload-Zuweisung weiter UX-seitig verbessern.
 - Clip: echter Live-Test von `/api/clip/create`.

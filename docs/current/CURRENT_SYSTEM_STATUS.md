@@ -9,7 +9,7 @@ Stand: 2026-05-06
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
-## SoundAlerts / Sound-System - aktueller Stand bis STEP193.5
+## SoundAlerts / Sound-System - aktueller Stand bis STEP193.6.1 + STEP193.6 Layout-Cleanup
 
 - `soundalerts_bridge` laeuft live auf Version `0.1.9`.
 - SoundAlerts Bridge ist erfolgreich mit Sound-System und Dashboard verbunden.
@@ -22,6 +22,31 @@ Stand: 2026-05-06
 - JSON `config/soundalerts_bridge.json` bleibt Seed/Fallback/Notfall.
 - SoundAlerts-DB-Zugriffe laufen ueber `backend/core/database.js` bzw. Helper-Schichten.
 - MariaDB ist vorbereitet, aber echter Adapter ist noch offen.
+
+## SoundAlerts OBS-Loader-Standard
+
+SoundAlerts benoetigt aktuell weiterhin eine geladene Browser Source, damit die SoundAlerts-Quelle als aktiv erkannt wird. Die Ausgabe von Bild und Ton soll aber nicht ueber SoundAlerts laufen, sondern ueber das eigene Sound-System.
+
+Aktueller Standard:
+
+```text
+OBS-Quelle: _SoundAlerts_Loader
+URL: https://source.soundalerts.com/alert/6f35ccb8-42c5-4fd8-8a4d-154d1d47627f
+Groesse: 1 x 1 px
+Sichtbar: Ja
+Audio: im OBS-Mixer stumm
+Quelle herunterfahren, wenn nicht sichtbar: Aus
+Browser aktualisieren, wenn Szene aktiv wird: Aus
+Audio ueber OBS steuern: An
+```
+
+Wichtige Regel:
+
+```text
+Die Quelle darf nicht per Auge deaktiviert oder aus der aktiven Szenenstruktur entfernt werden. Sie bleibt als Loader aktiv, ist 1x1 px klein und stummgeschaltet. Bild/Ton-Ausgabe laeuft nicht ueber SoundAlerts, sondern ueber das eigene Sound-System.
+```
+
+Node-/Headless-Browser-Loader wird aktuell bewusst nicht umgesetzt, solange der 1x1-OBS-Loader stabil funktioniert.
 
 ## Aktive SoundAlerts-Dateien
 
@@ -88,11 +113,18 @@ Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAle
 - MariaDB ist Ziel/Plan, aber erst aktiv, wenn der echte Adapter in `backend/core/database.js` implementiert und getestet ist.
 - Bis dahin darf keine Aenderung die bestehende SQLite-Funktionalitaet brechen.
 
+## STEP193.6 Dashboard Layout Cleanup
+
+- `htdocs/dashboard/modules/soundalerts.css` wurde optisch aufgeraeumt.
+- Linke Eintragskarten sind besser lesbar.
+- Button-Zeilen in der Eintragsliste sind sauberer ausgerichtet.
+- Status-Chips fuer `active`, `missing_file`, `ignored`, `file_matched` sind deutlicher.
+- Upload-Zeile und Upload-Hinweise sind weniger gedrungen.
+- Keine Backend-Funktionalitaet, API-Route oder DB-Struktur wurde geaendert.
+
 ## Naechster empfohlener Schritt
 
-`STEP193.6 - SoundAlerts Dashboard Layout Cleanup`
+`STEP193.7 - SoundAlerts Eintragsfilter / Listenansichten`
 
-- Eintragskarten links lesbar machen.
-- Button-Zeilen sauberer ausrichten.
-- Ignored/Missing/Active besser anzeigen.
-- Keine neue Backend-Funktionalitaet.
+- Optional Filter fuer Active / Offen / Ignored / Datei gefunden bauen.
+- Nur angehen, wenn die Eintragsliste nach dem Layout-Cleanup bei vielen Sounds noch zu unuebersichtlich ist.

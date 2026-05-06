@@ -16,11 +16,17 @@ Backend:
 Dashboard:
 
 - `htdocs/dashboard/modules/soundalerts.js`
-- `htdocs/dashboard/modules/soundalerts.css`
+- `htdocs/dashboard/modules/soundalerts.css` - STEP193.6 Layout-Cleanup fuer Eintragskarten, Buttons, Status-Chips und Upload-Zeile
 
 Config/Fallback:
 
 - `config/soundalerts_bridge.json`
+
+OBS-Setup:
+
+- OBS-Browserquelle `_SoundAlerts_Loader`
+- URL: `https://source.soundalerts.com/alert/6f35ccb8-42c5-4fd8-8a4d-154d1d47627f`
+- Standard: aktiv/sichtbar geladen, 1x1 px, Audio im OBS-Mixer stumm, nicht per Auge deaktivieren.
 
 DB-Strukturen:
 
@@ -66,6 +72,9 @@ SoundAlerts-Auto-Entry-Statuswerte:
 SoundAlerts-Dokus:
 
 - `project-state/STEP193_5_SOUNDALERTS_UPLOAD_UX_IGNORE_DELETE_DOC_SYNC_2026-05-06.md`
+- `project-state/STEP193_6_1_SOUNDALERTS_OBS_LOADER_STANDARD_2026-05-06.md`
+- `project-state/STEP193_6_SOUNDALERTS_DASHBOARD_LAYOUT_CLEANUP_2026-05-06.md`
+- `project-state/STEP193_6_1_SOUNDALERTS_OBS_LOADER_STANDARD_2026-05-06.md`
 
 ## Nie committen
 
