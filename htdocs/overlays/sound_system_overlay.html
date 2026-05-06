@@ -66,6 +66,17 @@
       let pollingBusy = false;
       let videoFallbackTimer = null;
 
+      const STOP_REASONS = new Set([
+        'manual_stop',
+        'manual_skip',
+        'stop_stream',
+        'skip_stream',
+        'reset',
+        'stopped',
+        'skipped',
+        'queue_cleared'
+      ]);
+
       function setStatus(text){ if (status) status.textContent = text || 'Sound-System Overlay'; }
 
       async function post(path, payload){
@@ -110,12 +121,18 @@
         currentRequestId = '';
       }
 
+      function stopIfBackendIsIdle(reason){
+        if (!currentRequestId) return false;
+        stopAudio();
+        setStatus(reason || 'Gestoppt');
+        return true;
+      }
+
       function normalizeVolume(value){
         const n = Number(value);
         if (!Number.isFinite(n)) return 0.85;
         return Math.max(0, Math.min(1, n > 1 ? n / 100 : n));
       }
-
 
       function shouldPlayInOverlay(item){
         const target = String(item && item.outputTarget || '').toLowerCase();
@@ -142,7 +159,7 @@
 
       async function unlockAudio(){
         const ctx = getAudioContext();
-        if (!ctx) { setStatus('AudioContext nicht verfÃ¼gbar'); return false; }
+        if (!ctx) { setStatus('AudioContext nicht verfügbar'); return false; }
         try {
           if (ctx.state === 'suspended') await ctx.resume();
           const buffer = ctx.createBuffer(1, 1, 22050);
@@ -155,7 +172,7 @@
           source.start(0);
           audioUnlocked = ctx.state === 'running';
           document.body.dataset.audioUnlocked = audioUnlocked ? '1' : '0';
-          setStatus(audioUnlocked ? 'Audio aktiv Â· Verbunden' : 'Audio noch blockiert');
+          setStatus(audioUnlocked ? 'Audio aktiv · Verbunden' : 'Audio noch blockiert');
           return audioUnlocked;
         } catch (err) {
           setStatus('Audio blockiert: ' + (err && err.message ? err.message : String(err)));
@@ -176,7 +193,7 @@
           if (ctx.state === 'suspended') {
             await ctx.resume();
             if (ctx.state === 'suspended') {
-              setStatus('Audio blockiert Â· Button klicken');
+              setStatus('Audio blockiert · Button klicken');
               await post('/client/error', { requestId: currentRequestId, error: 'audio_context_suspended' });
               return;
             }
@@ -229,7 +246,7 @@
           document.body.dataset.audioUnlocked = '1';
           await post('/client/audio-started', { requestId: currentRequestId });
         } catch (err) {
-          setStatus('Audio blockiert Â· Button klicken');
+          setStatus('Audio blockiert · Button klicken');
           await post('/client/error', { requestId: currentRequestId, error: err && err.message ? err.message : String(err) });
           stopAudio();
         }
@@ -319,9 +336,8 @@
           return;
         }
 
-        if (reason === 'manual_stop' || reason === 'manual_skip' || reason === 'stop_stream' || reason === 'skip_stream' || reason === 'reset') {
-          stopAudio();
-          setStatus('Gestoppt');
+        if (STOP_REASONS.has(reason) && !current) {
+          stopIfBackendIsIdle('Gestoppt');
         }
       }
 
@@ -331,6 +347,10 @@
         try {
           const state = await getJson('/status');
           const cur = state && state.current ? state.current : null;
+          if (!cur && currentRequestId) {
+            stopIfBackendIsIdle('Gestoppt (Backend idle)');
+            return;
+          }
           if (cur && cur.requestId && cur.requestId !== lastSeenRequestId) {
             setStatus('Polling: ' + (cur.label || cur.soundId || cur.requestId));
             await playSound(cur);
@@ -345,7 +365,7 @@
         clearTimeout(reconnectTimer);
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         ws = new WebSocket(protocol + '//' + location.host);
-        ws.addEventListener('open', () => { setStatus(audioUnlocked ? 'Audio aktiv Â· Verbunden' : 'Verbunden Â· Audio aktivieren'); post('/client/ready', { overlay: 'sound_system_overlay' }); });
+        ws.addEventListener('open', () => { setStatus(audioUnlocked ? 'Audio aktiv · Verbunden' : 'Verbunden · Audio aktivieren'); post('/client/ready', { overlay: 'sound_system_overlay' }); });
         ws.addEventListener('message', (event) => { try { handleMessage(JSON.parse(event.data)); } catch (_) {} });
         ws.addEventListener('close', () => { setStatus('Getrennt - reconnect'); reconnectTimer = setTimeout(connect, 1500); });
         ws.addEventListener('error', () => { try { ws.close(); } catch (_) {} });
@@ -361,4 +381,3 @@
   </script>
 </body>
 </html>
-
