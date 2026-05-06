@@ -2,6 +2,14 @@
 
 ## 2026-05-06
 
+### STEP193.12 - SoundAlerts Parser-Formate im Dashboard
+
+- `Bot & Settings` um Bereich `Chat-Erkennung` erweitert.
+- Parser-Formate koennen im Dashboard angezeigt, aktiviert/deaktiviert und bei Bedarf bearbeitet werden.
+- Lokaler Test fuer Chattexte ergaenzt, ohne Event-/DB-Eintrag anzulegen.
+- `parser.messageFormats` wird beim Speichern ueber die bestehende Settings-API gespeichert.
+- Keine Backend-/API-/DB-Schemaaenderung.
+
 
 ### STEP193.11.1 - SoundAlerts Parser Settings Serialization Fix
 

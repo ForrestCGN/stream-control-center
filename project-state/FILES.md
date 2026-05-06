@@ -62,6 +62,7 @@ upload.maxVideoSizeBytes = 1073741824
 - `project-state/STEP193_10_SOUNDALERTS_PARSER_FORMAT_FIX_2026-05-06.md`
 - `project-state/STEP193_11_SOUNDALERTS_CONFIGURABLE_PARSER_FORMATS_2026-05-06.md`
 - `project-state/STEP193_11_1_SOUNDALERTS_PARSER_SETTINGS_SERIALIZATION_FIX_2026-05-06.md`
+- `project-state/STEP193_12_SOUNDALERTS_PARSER_FORMATS_DASHBOARD_EDITOR_2026-05-06.md`
 
 
 ## SoundAlerts Parser-Formate
@@ -90,3 +91,9 @@ upload.maxVideoSizeBytes = 1073741824
 
 - `parser.messageFormats` = JSON-Liste fuer erkennbare SoundAlerts-Chattexte.
 - Pro Format: `id`, `enabled`, `pattern`, `flags`, `triggerGroup`, `soundGroup`, `amountGroup`, `currencyGroup`.
+
+## Parser-Formate Dashboard
+
+- Bedienung unter `SoundAlerts > Bot & Settings > Chat-Erkennung`.
+- Speichert `parser.messageFormats` ueber die bestehende Settings-API.
+- Lokaler Test legt keinen Event-/DB-Eintrag an.

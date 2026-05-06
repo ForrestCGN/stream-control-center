@@ -26,6 +26,7 @@ Pruefen:
 
 ### SoundAlerts
 
+- Parser-Format-Editor nach Live-Nutzung beobachten; Regex-Bearbeitung nur als Advanced-Weg nutzen.
 - Event-Tab-Filter: Alle / Abgespielt / Fehler / Kein aktueller Eintrag.
 - Statistik weiter verbessern, falls echte Live-Daten weitere Auswertungen brauchen.
 - Optional alte Test-/Log-Eintraege gezielter ausblendbar machen.

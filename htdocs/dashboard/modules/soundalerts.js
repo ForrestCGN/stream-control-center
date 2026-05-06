@@ -13,6 +13,7 @@ window.SoundAlertsModule = (function(){
   let selectedRuleIndex = 0;
   let ruleFilter = 'all';
   let uploadState = { active: false, index: -1, progress: 0, message: '', fileName: '', sizeMb: 0, error: '' };
+  let parserPreview = null;
 
   const CATEGORY_OPTIONS = [
     { value: '', label: 'Standard / global', priority: null },
@@ -539,6 +540,205 @@ window.SoundAlertsModule = (function(){
     `;
   }
 
+
+  function defaultParserFormats(){
+    return [
+      {
+        id: 'spielt_fuer',
+        enabled: true,
+        pattern: '^(.+?)\\s+spielt\\s+(.+?)\\s+(?:für|fuer|fur|fÃ¼r|f.r)\\s+(\\d+)\\s+(.+?)!?$',
+        triggerGroup: 1,
+        soundGroup: 2,
+        amountGroup: 3,
+        currencyGroup: 4
+      },
+      {
+        id: 'loest_mit_aus',
+        enabled: true,
+        pattern: '^(.+?)\\s+(?:löst|loest|lost|lÃ¶st|l.st)\\s+(.+?)\\s+mit\\s+(\\d+)\\s+(.+?)\\s+aus[!.]?$',
+        triggerGroup: 1,
+        soundGroup: 2,
+        amountGroup: 3,
+        currencyGroup: 4
+      }
+    ];
+  }
+
+  function normalizeParserFormat(format, idx){
+    let source = format;
+    if (typeof source === 'string') {
+      try { source = JSON.parse(source); } catch (_) { source = null; }
+    }
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
+      const fallback = defaultParserFormats()[idx] || defaultParserFormats()[0];
+      source = fallback;
+    }
+    return {
+      id: String(source.id || `format_${idx + 1}`).trim() || `format_${idx + 1}`,
+      enabled: source.enabled === false ? false : true,
+      pattern: String(source.pattern || '').trim(),
+      triggerGroup: Math.max(0, Number.parseInt(source.triggerGroup ?? 1, 10) || 1),
+      soundGroup: Math.max(0, Number.parseInt(source.soundGroup ?? 2, 10) || 2),
+      amountGroup: Math.max(0, Number.parseInt(source.amountGroup ?? 3, 10) || 3),
+      currencyGroup: Math.max(0, Number.parseInt(source.currencyGroup ?? 4, 10) || 4)
+    };
+  }
+
+  function parserFormats(){
+    const raw = config?.parser?.messageFormats;
+    const list = Array.isArray(raw) ? raw : [];
+    const normalized = list
+      .map((format, idx) => normalizeParserFormat(format, idx))
+      .filter(format => format.pattern && format.pattern !== '[object Object]');
+    return normalized.length ? normalized : defaultParserFormats();
+  }
+
+  function parserFormatLabel(format, idx){
+    if (format.id === 'spielt_fuer') return 'Format: spielt … für …';
+    if (format.id === 'loest_mit_aus') return 'Format: löst … mit … aus';
+    return format.id || `Format ${idx + 1}`;
+  }
+
+  function renderParserFormats(){
+    const formats = parserFormats();
+    const preview = parserPreview;
+    return `
+      <div class="sa-parser-panel">
+        <div class="sa-section-head sa-parser-head">
+          <div>
+            <h4>Chat-Erkennung</h4>
+            <div class="sa-note">Formate, mit denen SoundAlerts-Chattexte erkannt werden. Normale Nutzung: aktiv/inaktiv schalten und mit Beispieltext testen. Regex nur bearbeiten, wenn wirklich nötig.</div>
+          </div>
+          <div class="sa-actions sa-section-actions">
+            ${btn('Format hinzufügen', 'add-parser-format')}
+            ${btn('Standard wiederherstellen', 'reset-parser-formats')}
+          </div>
+        </div>
+        <div class="sa-parser-list">
+          ${formats.map((format, idx) => renderParserFormat(format, idx)).join('')}
+        </div>
+        <div class="sa-parser-test">
+          <label class="sa-field sa-wide"><span>Erkennung lokal testen</span><input id="saParserTestText" type="text" value="${esc(preview?.text || 'ForrestCGN löst Airhorn mit 0 Bits aus')}"></label>
+          <div class="sa-actions sa-parser-test-actions">${btn('Text testen', 'test-parser-format', 'success')}</div>
+          ${preview ? renderParserPreview(preview) : '<div class="sa-note">Der Test prüft nur die Erkennung im Dashboard und legt keinen Event-/SoundAlert-Eintrag an.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderParserFormat(format, idx){
+    return `
+      <article class="sa-parser-format" data-sa-parser-index="${idx}">
+        <div class="sa-parser-format-head">
+          <label class="sa-check"><input data-sa-parser-field="enabled" type="checkbox" ${format.enabled === false ? '' : 'checked'}><span>${esc(parserFormatLabel(format, idx))}</span></label>
+          <label class="sa-field"><span>ID</span><input data-sa-parser-field="id" type="text" value="${esc(format.id)}"></label>
+        </div>
+        <label class="sa-field sa-wide"><span>Regex</span><textarea data-sa-parser-field="pattern" rows="2" spellcheck="false">${esc(format.pattern)}</textarea></label>
+        <div class="sa-parser-groups">
+          <label class="sa-field"><span>User-Gruppe</span><input data-sa-parser-field="triggerGroup" type="number" min="0" max="20" value="${esc(format.triggerGroup)}"></label>
+          <label class="sa-field"><span>Sound-Gruppe</span><input data-sa-parser-field="soundGroup" type="number" min="0" max="20" value="${esc(format.soundGroup)}"></label>
+          <label class="sa-field"><span>Betrag-Gruppe</span><input data-sa-parser-field="amountGroup" type="number" min="0" max="20" value="${esc(format.amountGroup)}"></label>
+          <label class="sa-field"><span>Währung-Gruppe</span><input data-sa-parser-field="currencyGroup" type="number" min="0" max="20" value="${esc(format.currencyGroup)}"></label>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderParserPreview(preview){
+    if (!preview.ok) {
+      return `<div class="sa-parser-preview failed"><strong>Nicht erkannt</strong><span>${esc(preview.error || 'Kein aktives Format hat gepasst.')}</span></div>`;
+    }
+    return `
+      <div class="sa-parser-preview ok">
+        <strong>Erkannt mit ${esc(preview.formatId)}</strong>
+        <span>User: ${esc(preview.triggerUserDisplay || '-')} · Sound: ${esc(preview.soundAlertName || '-')} · Betrag: ${esc(preview.amount ?? 0)} ${esc(preview.currency || '')}</span>
+      </div>
+    `;
+  }
+
+  function readParserFormatsFromDom(){
+    const cards = Array.from(document.querySelectorAll('[data-sa-parser-index]'));
+    if (!cards.length) return parserFormats();
+    return cards.map((card, idx) => {
+      const field = name => card.querySelector(`[data-sa-parser-field="${name}"]`);
+      return normalizeParserFormat({
+        id: field('id')?.value || `format_${idx + 1}`,
+        enabled: !!field('enabled')?.checked,
+        pattern: field('pattern')?.value || '',
+        triggerGroup: field('triggerGroup')?.value,
+        soundGroup: field('soundGroup')?.value,
+        amountGroup: field('amountGroup')?.value,
+        currencyGroup: field('currencyGroup')?.value
+      }, idx);
+    }).filter(format => format.pattern);
+  }
+
+  function testParserText(text, formats){
+    const raw = String(text || '').trim();
+    if (!raw) return { ok: false, text: raw, error: 'Kein Testtext eingegeben.' };
+    const list = Array.isArray(formats) && formats.length ? formats : parserFormats();
+    for (const format of list) {
+      if (format.enabled === false || !format.pattern) continue;
+      try {
+        const regex = new RegExp(format.pattern, 'i');
+        const match = raw.match(regex);
+        if (!match) continue;
+        return {
+          ok: true,
+          text: raw,
+          formatId: format.id,
+          triggerUserDisplay: String(match[format.triggerGroup] || '').trim(),
+          soundAlertName: String(match[format.soundGroup] || '').trim(),
+          amount: Number.parseInt(match[format.amountGroup] || '0', 10) || 0,
+          currency: String(match[format.currencyGroup] || '').replace(/[!.]+$/g, '').trim()
+        };
+      } catch (err) {
+        return { ok: false, text: raw, error: `Regex-Fehler in ${format.id}: ${err.message || err}` };
+      }
+    }
+    return { ok: false, text: raw, error: 'Kein aktives Format hat gepasst.' };
+  }
+
+  function addParserFormat(){
+    const formats = readParserFormatsFromDom();
+    formats.push({
+      id: `custom_${formats.length + 1}`,
+      enabled: true,
+      pattern: '^(.+?)\\s+spielt\\s+(.+?)\\s+(?:für|fuer)\\s+(\\d+)\\s+(.+?)!?$',
+      triggerGroup: 1,
+      soundGroup: 2,
+      amountGroup: 3,
+      currencyGroup: 4
+    });
+    config = {
+      ...(config || {}),
+      parser: { ...((config || {}).parser || {}), messageFormats: formats }
+    };
+    parserPreview = null;
+    renderSettings();
+  }
+
+  function resetParserFormats(){
+    if (!confirm('Parser-Formate wirklich auf Standard zurücksetzen?')) return;
+    config = {
+      ...(config || {}),
+      parser: { ...((config || {}).parser || {}), messageFormats: defaultParserFormats() }
+    };
+    parserPreview = null;
+    renderSettings();
+  }
+
+  function testParserFormats(){
+    const text = readText('saParserTestText');
+    const formats = readParserFormatsFromDom();
+    parserPreview = testParserText(text, formats);
+    config = {
+      ...(config || {}),
+      parser: { ...((config || {}).parser || {}), messageFormats: formats }
+    };
+    renderSettings();
+  }
+
   function renderSettings(){
     const el = document.getElementById('saSettingsCard');
     if (!el) return;
@@ -568,7 +768,8 @@ window.SoundAlertsModule = (function(){
         <label class="sa-check"><input id="saChatUnmatched" type="checkbox" ${chat.onUnmatched === true ? 'checked' : ''}><span>Chatmeldung bei unbekanntem Sound</span></label>
         <label class="sa-field"><span>Chat-Cooldown ms</span><input id="saChatCooldown" type="number" min="0" max="600000" value="${esc(value(chat.cooldownMs, 15000))}"></label>
       </div>
-      <div class="sa-note">Upload-Limits werden in <code>soundalerts_bridge_settings</code> gespeichert. Unbekannte SoundAlerts werden als offene Einträge erkannt und können bei Bedarf ignoriert werden.</div>
+      ${renderParserFormats()}
+      <div class="sa-note">Upload-Limits und Parser-Formate werden in <code>soundalerts_bridge_settings</code> gespeichert. Unbekannte SoundAlerts werden als offene Einträge erkannt.</div>
     `;
   }
 
@@ -904,6 +1105,10 @@ window.SoundAlertsModule = (function(){
         userId: readText('saBotUserId'),
         displayName: readText('saBotDisplayName') || 'SoundAlerts'
       },
+      parser: {
+        ...(current.parser || {}),
+        messageFormats: readParserFormatsFromDom()
+      },
       soundSystem: {
         ...(current.soundSystem || {}),
         defaultCategory: readText('saDefaultCategory') || 'channel_reward',
@@ -935,6 +1140,7 @@ window.SoundAlertsModule = (function(){
 
   async function saveConfig(finalizeIndex){
     const next = buildConfigFromDom(finalizeIndex);
+    await api('/settings', { method: 'POST', body: JSON.stringify({ settings: { 'parser.messageFormats': next.parser?.messageFormats || [] } }) });
     const saved = await api('/config', { method: 'POST', body: JSON.stringify({ config: next }) });
     config = saved.config || next;
     await api('/reload', { method: 'POST', body: '{}' }).catch(() => null);
@@ -1249,6 +1455,9 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
         else if (action === 'show-rules') { ruleFilter = 'all'; activeTab = 'rules'; render(); }
         else if (action.startsWith('show-rules:')) { ruleFilter = action.split(':')[1] || 'all'; activeTab = 'rules'; render(); }
         else if (action === 'show-stats') { activeTab = 'stats'; applyTab(); }
+        else if (action === 'add-parser-format') addParserFormat();
+        else if (action === 'reset-parser-formats') resetParserFormats();
+        else if (action === 'test-parser-format') testParserFormats();
         else if (action === 'add-rule') addRule();
         else if (action.startsWith('remove-rule:')) await removeRule(Number(action.split(':')[1]));
         else if (action.startsWith('ignore-rule:')) await ignoreRule(Number(action.split(':')[1]));

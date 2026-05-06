@@ -77,3 +77,11 @@ Standardmaessig aktiv:
 ```
 
 Neue Formate koennen ueber Regex + Gruppen-Zuordnung ergaenzt werden, ohne die Parser-Funktion selbst umzubauen.
+
+
+## STEP193.12 - Parser-Formate im Dashboard
+
+- SoundAlerts `Bot & Settings` enthaelt jetzt den Bereich `Chat-Erkennung`.
+- `parser.messageFormats` kann dort angezeigt, aktiviert/deaktiviert und erweitert werden.
+- Beispieltexte koennen lokal getestet werden, ohne Event-/DB-Eintrag anzulegen.
+- Speichern nutzt die bestehende Settings-API; keine Backend-/DB-Schemaaenderung.

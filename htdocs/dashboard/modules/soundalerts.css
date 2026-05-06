@@ -1257,3 +1257,134 @@ html[data-theme=dark] .sa-event-log-only .sa-event-detail {
     grid-template-columns: repeat(3, minmax(130px, 1fr));
   }
 }
+
+
+/* STEP193.12: SoundAlerts Parser-Formate im Dashboard */
+.sa-parser-panel {
+  grid-column: 1 / -1;
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.025);
+}
+
+.sa-parser-head {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.sa-parser-list {
+  display: grid;
+  gap: 12px;
+}
+
+.sa-parser-format {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(15,23,42,.24);
+}
+
+.sa-parser-format-head {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(180px, 260px);
+  gap: 12px;
+  align-items: end;
+}
+
+.sa-parser-format textarea {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(2,6,23,.68);
+  color: #e5e7eb;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sa-parser-format textarea:focus {
+  outline: none;
+  border-color: rgba(56,189,248,.72);
+  box-shadow: 0 0 0 3px rgba(56,189,248,.12);
+}
+
+.sa-parser-groups {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.sa-parser-test {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.sa-parser-test-actions {
+  margin-top: 0;
+}
+
+.sa-parser-preview {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sa-parser-preview.ok {
+  border: 1px solid rgba(52,211,153,.36);
+  background: rgba(16,185,129,.10);
+  color: #d1fae5;
+}
+
+.sa-parser-preview.failed {
+  border: 1px solid rgba(248,113,113,.46);
+  background: rgba(244,63,94,.10);
+  color: #fee2e2;
+}
+
+.sa-parser-preview span {
+  color: var(--muted, #a8b3cf);
+  font-weight: 800;
+}
+
+html[data-theme=dark] .sa-parser-panel,
+html[data-theme=dark] .sa-parser-format {
+  background: #202020;
+  border-color: #343434;
+}
+
+html[data-theme=dark] .sa-parser-head,
+html[data-theme=dark] .sa-parser-test {
+  border-color: #343434;
+}
+
+html[data-theme=dark] .sa-parser-format textarea {
+  background: #181818;
+  color: #f2f2f2;
+  border-color: #3a3a3a;
+}
+
+@media (max-width: 900px) {
+  .sa-parser-format-head,
+  .sa-parser-groups,
+  .sa-parser-test {
+    grid-template-columns: 1fr;
+  }
+}
