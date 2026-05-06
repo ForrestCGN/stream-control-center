@@ -220,6 +220,40 @@ window.SoundAlertsModule = (function(){
     return rules().findIndex(rule => String(rule.soundAlertName || '').trim().toLowerCase() === name);
   }
 
+  function eventSoundName(ev){ return ev?.soundalert_name || ev?.soundAlertName || '-'; }
+  function eventUserName(ev){ return ev?.trigger_user_display || ev?.triggerUserDisplay || '-'; }
+  function eventCreatedAt(ev){ return ev?.created_at || ev?.createdAt || ''; }
+  function eventRawText(ev){ return ev?.raw_text || ev?.rawText || ''; }
+
+  function ruleStatusKey(rule){
+    const raw = String(rule?.status || '').toLowerCase();
+    if (raw === 'ignored') return 'ignored';
+    if (raw === 'file_matched') return 'file_matched';
+    if (raw === 'missing_file' || raw === 'file_missing' || ruleNeedsSetup(rule)) return 'missing_file';
+    if (rule?.enabled === false) return 'inactive';
+    return 'active';
+  }
+
+  function ruleStatusCounts(){
+    const out = { total: 0, active: 0, inactive: 0, missing_file: 0, ignored: 0, file_matched: 0, pending: 0 };
+    for (const rule of rules()) {
+      out.total += 1;
+      const key = ruleStatusKey(rule);
+      out[key] = (out[key] || 0) + 1;
+      if (ruleNeedsSetup(rule)) out.pending += 1;
+    }
+    return out;
+  }
+
+  function renderKpi(label, value, cls, action){
+    return `
+      <button type="button" class="sa-kpi ${esc(cls || '')}" ${action ? `data-sa-action="${esc(action)}"` : ''}>
+        <span>${esc(label)}</span>
+        <strong>${esc(value)}</strong>
+      </button>
+    `;
+  }
+
   function renderShell(){
     if (!root) return;
     root.innerHTML = `
@@ -245,12 +279,13 @@ window.SoundAlertsModule = (function(){
       </div>
 
       <div class="sa-grid">
-        <div class="sa-card" id="saOverviewCard" data-sa-section="overview"></div>
-        <div class="sa-card" id="saLastEventCard" data-sa-section="overview"></div>
+        <div class="sa-card sa-overview-main" id="saOverviewCard" data-sa-section="overview"></div>
+        <div class="sa-card sa-overview-side" id="saLastEventCard" data-sa-section="overview"></div>
+        <div class="sa-card sa-overview-wide" id="saOverviewLogCard" data-sa-section="overview"></div>
         <div class="sa-card" id="saSettingsCard" data-sa-section="settings"></div>
         <div class="sa-card" id="saRulesCard" data-sa-section="rules"></div>
-        <div class="sa-card" id="saEventsCard" data-sa-section="events overview"></div>
-        <div class="sa-card" id="saStatsCard" data-sa-section="stats overview"></div>
+        <div class="sa-card" id="saEventsCard" data-sa-section="events"></div>
+        <div class="sa-card" id="saStatsCard" data-sa-section="stats"></div>
       </div>
     `;
     applyTab();
@@ -265,6 +300,7 @@ window.SoundAlertsModule = (function(){
     clampSelectedRule();
     renderOverview();
     renderLastEvent();
+    renderOverviewLog();
     renderSettings();
     renderRules();
     renderEvents();
@@ -280,31 +316,92 @@ window.SoundAlertsModule = (function(){
     const db = st.database || {};
     const pending = pendingRuleIndexes();
     const unknown = unmatchedEvents();
+    const counts = ruleStatusCounts();
     const firstPending = pending[0];
     el.innerHTML = `
-      <h3>Status</h3>
+      <div class="sa-section-head sa-overview-head">
+        <div>
+          <h3>Übersicht</h3>
+          <div class="sa-note">Wichtigste Zustände, offene Einträge und Schnellzugriffe.</div>
+        </div>
+        <div class="sa-actions sa-section-actions">
+          ${btn('Neu laden', 'reload')}
+          ${btn('Einträge öffnen', 'show-rules', 'success')}
+          ${btn('Events öffnen', 'show-events')}
+        </div>
+      </div>
       ${(pending.length || unknown.length) ? `
         <div class="sa-attention">
           <div>
-            <strong>Neue / offene SoundAlerts</strong>
-            <span>${pending.length ? `${pending.length} Eintrag${pending.length === 1 ? '' : 'e'} zur Einrichtung` : 'Keine offenen Einträge'} · ${unknown.length ? `${unknown.length} unbekannte Event${unknown.length === 1 ? '' : 's'}` : 'keine unbekannten Events'}</span>
+            <strong>Handlung nötig</strong>
+            <span>${pending.length ? `${pending.length} Eintrag${pending.length === 1 ? '' : 'e'} brauchen Einrichtung` : 'Keine offenen Einträge'} · ${unknown.length ? `${unknown.length} unbekannte Event${unknown.length === 1 ? '' : 's'}` : 'keine unbekannten Events'}</span>
           </div>
           <div class="sa-actions sa-attention-actions">
-            ${firstPending !== undefined ? btn('Offenen Eintrag bearbeiten', `edit-rule:${firstPending}`, 'success') : ''}
+            ${firstPending !== undefined ? btn('Ersten offenen Eintrag', `edit-rule:${firstPending}`, 'success') : ''}
             ${unknown.length ? btn('Events prüfen', 'show-events') : ''}
           </div>
         </div>
       ` : ''}
-      <div class="sa-row"><span>Modul</span><strong>${statusText(cfg.enabled !== false)}</strong></div>
-      <div class="sa-row"><span>WebSocket</span><strong>${st.wsConnected ? 'Verbunden' : 'Nicht verbunden'}</strong></div>
-      <div class="sa-row"><span>Bot-Login</span><strong>${esc(cfg.bot?.login || '-')}</strong></div>
-      <div class="sa-row"><span>Einträge</span><strong>${esc(rules().length)}</strong></div>
-      <div class="sa-row"><span>Davon offen</span><strong>${esc(pending.length)}</strong></div>
-      <div class="sa-row"><span>Events DB</span><strong>${esc(db.stats?.total ?? 0)}</strong></div>
-      <div class="sa-row"><span>Queued</span><strong>${esc(db.stats?.queued ?? 0)}</strong></div>
-      <div class="sa-row"><span>Nicht eingerichtet</span><strong>${esc(db.stats?.unmatched ?? 0)}</strong></div>
-      <div class="sa-row"><span>Datei fehlt</span><strong>${esc(db.stats?.fileMissing ?? 0)}</strong></div>
+      <div class="sa-kpi-grid">
+        ${renderKpi('Gesamt', counts.total, '', 'show-rules')}
+        ${renderKpi('Aktiv', counts.active, 'ok', 'show-rules')}
+        ${renderKpi('Inaktiv', counts.inactive, 'muted', 'show-rules')}
+        ${renderKpi('Datei fehlt', counts.missing_file, counts.missing_file ? 'warn' : '', 'show-rules')}
+        ${renderKpi('Ignoriert', counts.ignored, 'muted', 'show-rules')}
+        ${renderKpi('Datei gefunden', counts.file_matched, 'ok', 'show-rules')}
+      </div>
+      <div class="sa-overview-mini-grid">
+        <div class="sa-mini-state"><span>Modul</span><strong>${statusText(cfg.enabled !== false)}</strong></div>
+        <div class="sa-mini-state"><span>WebSocket</span><strong>${st.wsConnected ? 'Verbunden' : 'Nicht verbunden'}</strong></div>
+        <div class="sa-mini-state"><span>Bot</span><strong>${esc(cfg.bot?.login || '-')}</strong></div>
+        <div class="sa-mini-state"><span>Events DB</span><strong>${esc(db.stats?.total ?? 0)}</strong></div>
+        <div class="sa-mini-state"><span>Nicht eingerichtet</span><strong>${esc(db.stats?.unmatched ?? 0)}</strong></div>
+        <div class="sa-mini-state"><span>Datei fehlt Events</span><strong>${esc(db.stats?.fileMissing ?? 0)}</strong></div>
+      </div>
       <div class="sa-note">Config: ${esc(st.configPath || '')}</div>
+    `;
+  }
+
+  function renderOverviewLog(){
+    const el = document.getElementById('saOverviewLogCard');
+    if (!el) return;
+    const recent = (events || []).slice(0, 5);
+    el.innerHTML = `
+      <div class="sa-section-head sa-overview-head">
+        <div>
+          <h3>Letzte 5 Events</h3>
+          <div class="sa-note">Schneller Log-Auszug mit direktem Replay oder Eintrag-Bearbeitung.</div>
+        </div>
+        <div class="sa-actions sa-section-actions">
+          ${btn('Alle Events', 'show-events')}
+        </div>
+      </div>
+      <div class="sa-event-list sa-overview-event-list">
+        ${recent.map((ev, idx) => renderOverviewEvent(ev, idx)).join('') || '<div class="sa-empty">Noch keine Events.</div>'}
+      </div>
+    `;
+  }
+
+  function renderOverviewEvent(ev, idx){
+    const ruleIdx = findRuleIndexForEvent(ev);
+    const hasFile = !!ev.file;
+    const unmatched = ['unmatched', 'no_mapping'].includes(String(ev.status || '').toLowerCase()) || ruleIdx < 0;
+    return `
+      <div class="sa-event sa-event-card sa-overview-event">
+        <div class="sa-event-main">
+          <strong>${esc(eventSoundName(ev))}</strong>
+          <small>${esc(eventUserName(ev))} · ${esc(ev.amount ?? 0)} ${esc(ev.currency || '')} · ${esc(eventCreatedAt(ev))}</small>
+          <small>${esc(ev.file || ev.error || eventRawText(ev) || '')}</small>
+        </div>
+        <div class="sa-event-side">
+          <span class="sa-pill ${esc(statusClass(ev.status))}">${esc(statusLabel(ev.status))}</span>
+          <div class="sa-actions sa-event-actions">
+            ${hasFile ? btn('Neu starten', `replay-event:${idx}`) : ''}
+            ${ruleIdx >= 0 ? btn('Bearbeiten', `edit-rule:${ruleIdx}`) : ''}
+            ${unmatched ? btn('Eintrag erstellen', `create-from-event:${idx}`, 'success') : ''}
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -531,9 +628,9 @@ window.SoundAlertsModule = (function(){
     return `
       <div class="sa-event sa-event-card">
         <div class="sa-event-main">
-          <strong>${esc(ev.soundalert_name || '-')}</strong>
-          <small>${esc(ev.trigger_user_display || '-')} · ${esc(ev.amount ?? 0)} ${esc(ev.currency || '')} · ${esc(ev.created_at || '')}</small>
-          <small>${esc(ev.file || ev.error || ev.raw_text || '')}</small>
+          <strong>${esc(eventSoundName(ev))}</strong>
+          <small>${esc(eventUserName(ev))} · ${esc(ev.amount ?? 0)} ${esc(ev.currency || '')} · ${esc(eventCreatedAt(ev))}</small>
+          <small>${esc(ev.file || ev.error || eventRawText(ev) || '')}</small>
         </div>
         <div class="sa-event-side">
           <span class="sa-pill ${esc(statusClass(ev.status))}">${esc(statusLabel(ev.status))}</span>
@@ -963,6 +1060,8 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
         }
         else if (action === 'save-config') await saveConfig();
         else if (action === 'show-events') { activeTab = 'events'; applyTab(); }
+        else if (action === 'show-rules') { activeTab = 'rules'; render(); }
+        else if (action === 'show-stats') { activeTab = 'stats'; applyTab(); }
         else if (action === 'add-rule') addRule();
         else if (action.startsWith('remove-rule:')) await removeRule(Number(action.split(':')[1]));
         else if (action.startsWith('ignore-rule:')) await ignoreRule(Number(action.split(':')[1]));

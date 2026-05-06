@@ -2,24 +2,28 @@
 
 ## 2026-05-06
 
+### STEP193.7 - SoundAlerts Overview Dashboard
 
-### STEP193.6 - SoundAlerts Dashboard Layout Cleanup
-
-- `htdocs/dashboard/modules/soundalerts.css` optisch aufgeraeumt.
-- Linke Eintragskarten lesbarer gemacht.
-- Button-Zeilen in der Eintragsliste sauberer ausgerichtet.
-- Status-Chips fuer `active`, `missing_file`, `ignored`, `file_matched` deutlicher dargestellt.
-- Upload-Zeile und Upload-Hinweise weniger gedrungen gestaltet.
-- Keine Backend-, API- oder DB-Aenderung.
+- SoundAlerts-Uebersichtsseite aufgeraeumt.
+- Kompakte Kennzahlen fuer Gesamt/Aktiv/Inaktiv/Datei fehlt/Ignoriert/Datei gefunden ergaenzt.
+- Wichtige Systemwerte kompakt auf der Uebersicht angezeigt.
+- Letzte 5 Events auf der Uebersicht ergaenzt.
+- Replay/Bearbeiten/Eintrag erstellen direkt aus der Uebersicht moeglich.
+- Vollstaendige Events und Statistik bleiben in eigenen Tabs.
+- Keine Backend-/API-/DB-Aenderung.
 
 ### STEP193.6.1 - SoundAlerts OBS Loader Standard
 
-- Vorlaeufigen SoundAlerts-OBS-Loader-Standard dokumentiert.
-- SoundAlerts-Browserquelle bleibt als aktive 1x1 px Quelle geladen, damit SoundAlerts die Quelle nicht als offline erkennt.
-- Bild/Ton-Ausgabe ueber SoundAlerts bleibt unerwuenscht; Audio wird im OBS-Mixer stummgeschaltet.
-- Die Quelle darf nicht per Auge deaktiviert oder aus der aktiven Szenenstruktur entfernt werden.
-- Node-/Headless-Browser-Loader wird aktuell bewusst nicht umgesetzt, solange der OBS-Loader stabil funktioniert.
-- Keine Codeaenderung, keine Backend-Aenderung, keine DB-Aenderung.
+- Doku fuer dauerhaft aktive, stumme 1x1-OBS-Browserquelle `_SoundAlerts_Loader` ergaenzt.
+- Kein Node-/Headless-Browser-Loader, solange die OBS-Loader-Loesung stabil funktioniert.
+
+### STEP193.6 - SoundAlerts Dashboard Layout Cleanup
+
+- Eintragskarten links lesbarer gemacht.
+- Button-Zeilen sauberer ausgerichtet.
+- Status-Chips deutlicher dargestellt.
+- Upload-Zeile ruhiger und weniger gequetscht.
+- Keine Backend-/API-/DB-Aenderung.
 
 ### STEP193.5 - SoundAlerts Upload UX / Ignore / Delete Doku-Sync
 

@@ -914,3 +914,160 @@ html[data-theme=dark] .sa-entry-sidebar .sa-entry-meta span {
     grid-template-columns: 1fr;
   }
 }
+
+/* STEP193.7: SoundAlerts overview dashboard */
+#saOverviewCard.sa-overview-main {
+  grid-column: span 8;
+}
+
+#saLastEventCard.sa-overview-side {
+  grid-column: span 4;
+}
+
+#saOverviewLogCard.sa-overview-wide {
+  grid-column: span 12;
+}
+
+.sa-overview-head {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.sa-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+
+.sa-kpi {
+  min-height: 78px;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.035);
+  text-align: left;
+}
+
+.sa-kpi span {
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sa-kpi strong {
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.sa-kpi.ok {
+  border-color: rgba(52,211,153,.32);
+  background: rgba(16,185,129,.09);
+}
+
+.sa-kpi.warn {
+  border-color: rgba(251,191,36,.38);
+  background: rgba(245,158,11,.10);
+}
+
+.sa-kpi.muted {
+  border-color: rgba(148,163,184,.24);
+  background: rgba(100,116,139,.08);
+}
+
+.sa-overview-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.sa-mini-state {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+  padding: 9px 11px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.025);
+}
+
+.sa-mini-state span {
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sa-mini-state strong {
+  font-size: 13px;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.sa-overview-event-list {
+  grid-template-columns: 1fr;
+}
+
+.sa-overview-event {
+  padding: 11px 0;
+}
+
+.sa-overview-event .sa-event-actions button {
+  min-height: 32px;
+  padding: 7px 9px;
+}
+
+html[data-theme=dark] .sa-kpi,
+html[data-theme=dark] .sa-mini-state {
+  background: #202020;
+  border-color: #343434;
+}
+
+html[data-theme=dark] .sa-kpi.ok {
+  background: #17251f;
+  border-color: #285846;
+}
+
+html[data-theme=dark] .sa-kpi.warn {
+  background: #242116;
+  border-color: #514522;
+}
+
+html[data-theme=dark] .sa-kpi.muted {
+  background: #202020;
+  border-color: #3a3a3a;
+}
+
+@media (max-width: 1500px) {
+  .sa-kpi-grid {
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+  }
+
+  #saOverviewCard.sa-overview-main,
+  #saLastEventCard.sa-overview-side {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 900px) {
+  .sa-kpi-grid,
+  .sa-overview-mini-grid {
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .sa-kpi-grid,
+  .sa-overview-mini-grid {
+    grid-template-columns: 1fr;
+  }
+}
