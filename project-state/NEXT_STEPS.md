@@ -1,6 +1,6 @@
 # NEXT STEPS - stream-control-center
 
-Stand: 2026-05-06
+Stand: 2026-05-07
 
 ## Naechster empfohlener Schritt
 
@@ -19,6 +19,37 @@ Pruefen/Beheben:
 7. Nach Overlay-Fix erneuten Doku-Sync machen.
 
 ## Danach moeglich
+
+### StreamElements Loyalty Migration / eigenes Loyalty-System
+
+`STEP194` dokumentiert den Architekturstandard fuer den spaeteren Ersatz von StreamElements Loyalty, Stream Store, Giveaways und Chat-Games.
+
+Vor Code-Start zuerst erfassen:
+
+1. StreamElements Loyalty-Settings vollstaendig sichern.
+2. User-Punkte exportieren oder Importweg klaeren.
+3. Stream Store / Redeem-Items mit Kosten, Cooldowns, Kategorien und Status erfassen.
+4. Giveaway-Settings und vorhandene Giveaway-Historie erfassen.
+5. Aktive Chat-Games und deren Settings erfassen.
+6. Gewuenschte Commands/Aliase festlegen.
+7. Overlay-Wuensche priorisieren.
+
+Harte Regel fuer alle spaeteren Loyalty-Module:
+
+```text
+Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraendert, laeuft ausschliesslich ueber das Loyalty-System.
+```
+
+Empfohlene spaetere Reihenfolge:
+
+```text
+STEP195 - Loyalty Core DB + Settings
+STEP196 - StreamElements Import Dry-Run
+STEP197 - Rewards / Stream Store
+STEP198 - Giveaways
+STEP199 - Loyalty Games Basis
+STEP200 - Loyalty-/Game-Overlays
+```
 
 ### SoundAlerts
 
@@ -47,3 +78,4 @@ Pruefen/Beheben:
 - SoundAlerts Bridge Version aktuell: `0.1.14`.
 - `_SoundAlerts_Loader` bleibt aktive, stumme 1x1-OBS-Browserquelle.
 - Parser-Formate muessen als echtes Objekt-Array erhalten bleiben.
+- Loyalty ist spaeter die einzige Quelle fuer Punkte, Kontostaende und Punktetransaktionen.

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-05-07
+
+### STEP194 - StreamElements Loyalty Migration Architecture
+
+- Architekturstandard fuer die spaetere Migration von StreamElements Loyalty, Stream Store, Giveaways und Chat-Games dokumentiert.
+- Harte Punktehoheit festgelegt:
+  - Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraendert, laeuft ausschliesslich ueber das Loyalty-System.
+- Dokumentiert:
+  - aktuelle sichtbare StreamElements-Loyalty-Settings
+  - zentrale Loyalty-Transaktionspflicht
+  - Reservierungslogik fuer laufende Sessions
+  - Import-Regel fuer StreamElements-Daten
+  - Zielmodule fuer Loyalty, Rewards, Giveaways und Loyalty Games
+  - Overlay-Regel: Overlays zeigen nur fertige Events und veraendern keine Punkte
+  - Dashboard-Zielbild
+  - DB-Portabilitaetsregeln fuer neue Loyalty-Features
+- Keine Code-/API-/DB-Aenderung.
+
 ## 2026-05-06
 
 ### STEP193.17.2 - SoundAlerts Final Documentation Sync

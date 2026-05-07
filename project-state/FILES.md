@@ -1,6 +1,6 @@
 # FILES - stream-control-center
 
-Stand: 2026-05-06
+Stand: 2026-05-07
 
 ## SoundAlerts relevante Dateien
 
@@ -80,6 +80,69 @@ upload.maxVideoSizeBytes = 1073741824
 - `project-state/STEP193_17_SOUNDALERTS_OUTPUT_FIELD_CLEANUP_2026-05-06.md`
 - `project-state/STEP193_17_1_SOUNDALERTS_FILTER_REGRESSION_FIX_2026-05-06.md`
 - `project-state/STEP193_17_2_SOUNDALERTS_FINAL_DOC_SYNC_2026-05-06.md`
+
+## Loyalty / StreamElements Migration Dokus
+
+- `project-state/STEP194_STREAMELEMENTS_LOYALTY_MIGRATION_ARCHITECTURE_2026-05-07.md`
+
+Geplante spaeter betroffene Bereiche:
+
+Backend:
+
+- `backend/modules/loyalty.js`
+- `backend/modules/loyalty_rewards.js`
+- `backend/modules/giveaways.js`
+- `backend/modules/loyalty_games.js`
+- `backend/core/database.js`
+- vorhandene Helper fuer Settings/Texte/Config/Media
+
+Dashboard:
+
+- `htdocs/dashboard/modules/loyalty.js`
+- `htdocs/dashboard/modules/loyalty.css`
+- `htdocs/dashboard/modules/giveaways.js`
+- `htdocs/dashboard/modules/giveaways.css`
+- `htdocs/dashboard/modules/loyalty_games.js`
+- `htdocs/dashboard/modules/loyalty_games.css`
+
+Overlays:
+
+- `htdocs/overlays/loyalty-games-overlay.html`
+
+Config/Fallback:
+
+- `config/loyalty.json`
+- `config/giveaways.json`
+- `config/loyalty_games.json`
+
+Geplante DB-Strukturen:
+
+- `loyalty_users`
+- `loyalty_transactions`
+- `loyalty_settings`
+- `loyalty_reservations`
+- `loyalty_imports`
+- `loyalty_ignored_users`
+- `loyalty_rewards`
+- `loyalty_reward_categories`
+- `loyalty_redemptions`
+- `loyalty_reward_cooldowns`
+- `giveaways`
+- `giveaway_entries`
+- `giveaway_winners`
+- `giveaway_settings`
+- `giveaway_assets`
+- `loyalty_games`
+- `loyalty_game_settings`
+- `loyalty_game_sessions`
+- `loyalty_game_entries`
+- `loyalty_game_results`
+
+Wichtige Loyalty-Regel:
+
+```text
+Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraendert, laeuft ausschliesslich ueber das Loyalty-System.
+```
 
 ## OBS Loader Standard
 

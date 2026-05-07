@@ -1,6 +1,6 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: 2026-05-06
+Stand: 2026-05-07
 
 ## Aktueller SoundAlerts-Stand nach STEP193.17.2
 
@@ -77,6 +77,45 @@ Normaler Eintrag-Test nutzt das gespeicherte Ausgabeziel.
 Overlay-Test darf temporaer outputTarget=overlay senden, ohne den Eintrag dauerhaft umzuschalten.
 ```
 
+## STEP194 - Loyalty / StreamElements Migration Architektur
+
+Mit `STEP194` wurde ein Architekturstandard fuer die spaetere Migration von StreamElements Loyalty, Stream Store, Giveaways und Chat-Games dokumentiert.
+
+Kernregel:
+
+```text
+Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraendert, laeuft ausschliesslich ueber das Loyalty-System.
+```
+
+Dokument:
+
+- `project-state/STEP194_STREAMELEMENTS_LOYALTY_MIGRATION_ARCHITECTURE_2026-05-07.md`
+
+Wichtig:
+
+- Keine Code-Aenderung.
+- Keine API-Aenderung.
+- Keine DB-Aenderung.
+- Keine StreamElements-Abschaltung.
+- Der STEP dokumentiert nur den spaeter verbindlichen Aufbau.
+
+Geplante spaetere Zielbereiche:
+
+- Loyalty Core
+- Rewards / Stream Store
+- Giveaways
+- Loyalty Games
+- Loyalty-/Game-Overlays
+
+Fachregeln:
+
+- Andere Module duerfen keine Punktestaende direkt schreiben.
+- Giveaways, Chat Games, Rewards, SoundAlerts, Challenges, VIP/TTS/Overlays und Streamer.bot-Scripte muessen Punkte ueber Loyalty anfragen.
+- Jede Punkteveraenderung muss als Transaktion nachvollziehbar gespeichert werden.
+- Overlays zeigen nur fertige Events an und duerfen keine Punkte berechnen oder veraendern.
+- StreamElements-Daten muessen importiert und markiert werden, nicht blind ueberschrieben.
+- Neue DB-Features sollen ueber `backend/core/database.js` oder vorhandene Helper gekapselt und spaeter MariaDB-tauglich vorbereitet werden.
+
 ## Bewusst offen
 
 - Overlay-Bugs in `htdocs/overlays/sound_system_overlay.html` spaeter separat beheben.
@@ -85,3 +124,4 @@ Overlay-Test darf temporaer outputTarget=overlay senden, ohne den Eintrag dauerh
 - Falls gewuenscht spaeter Statistik backendseitig erweitern.
 - Clip-System live testen.
 - MariaDB-Adapter spaeter zentral implementieren.
+- Fuer Loyalty/StreamElements-Migration echte Exportdaten, Store-Items, Giveaway-Settings und aktive Chat-Games erfassen.

@@ -1,6 +1,6 @@
 # CURRENT SYSTEM STATUS
 
-Stand: 2026-05-06
+Stand: 2026-05-07
 
 ## Single Source of Truth
 
@@ -220,6 +220,48 @@ upload.maxVideoSizeBytes = 1073741824
 parser.messageFormats = echtes Objekt-Array, nicht [object Object]
 ```
 
+## STEP194 - Loyalty / StreamElements Migration Architektur
+
+Mit `STEP194` wurde der verbindliche Planungsstandard fuer die spaetere StreamElements-Ablösung dokumentiert.
+
+Betroffener Zielumfang:
+
+- Loyalty Points / Kekskruemel
+- Stream Store / Rewards
+- Giveaways
+- Chat Games
+- Loyalty-/Game-Overlays
+
+Dokument:
+
+- `project-state/STEP194_STREAMELEMENTS_LOYALTY_MIGRATION_ARCHITECTURE_2026-05-07.md`
+
+Zentrale Regel:
+
+```text
+Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraendert, laeuft ausschliesslich ueber das Loyalty-System.
+```
+
+Weitere Fachregeln:
+
+- Loyalty ist die einzige Quelle fuer Kontostaende und Punkte-Transaktionen.
+- Andere Module duerfen keine Punktestaende direkt veraendern.
+- Giveaways, Chat Games, Rewards, SoundAlerts, Challenges, VIP/TTS/Overlays und Streamer.bot-Scripte muessen Punkte ueber Loyalty anfragen.
+- Jede Punkteveraenderung muss als Transaktion nachvollziehbar gespeichert werden.
+- Fuer laufende Sessions wie Duel/Giveaway wird eine Reservierungslogik empfohlen.
+- Overlays zeigen nur fertige Events an und duerfen niemals Punkte berechnen oder schreiben.
+- StreamElements-Daten sollen importiert und mit `source_provider=streamelements` markiert werden.
+- Neue DB-Features sollen ueber `backend/core/database.js` oder vorhandene Helper gekapselt werden.
+- SQLite bleibt produktiv aktiv; MariaDB wird nur vorbereitet, nicht erzwungen.
+
+Aktueller Stand:
+
+- Reine Doku-/Architektur-Aenderung.
+- Keine Code-Aenderung.
+- Keine API-Aenderung.
+- Keine DB-Aenderung.
+- Keine Live-Aenderung.
+
 ## Bewusst offen
 
 - Sound-System Overlay hat noch Bugs und soll spaeter separat bereinigt werden.
@@ -229,3 +271,4 @@ parser.messageFormats = echtes Objekt-Array, nicht [object Object]
 - Bei Bedarf Statistik spaeter backendseitig robuster machen.
 - Clip-System spaeter live testen.
 - MariaDB-Adapter spaeter in `backend/core/database.js` implementieren.
+- Fuer Loyalty/StreamElements-Migration echte Exportdaten, Store-Items, Giveaway-Settings und aktive Chat-Games erfassen.
