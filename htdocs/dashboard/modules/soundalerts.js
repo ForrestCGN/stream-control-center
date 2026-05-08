@@ -1494,7 +1494,7 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
     try {
       const [st, ev, stat] = await Promise.all([
         api('/status'),
-        api('/events?limit=25').catch(() => ({ events: [] })),
+        api('/events?limit=100').catch(() => ({ events: [] })),
         api('/stats').catch(() => ({ stats: null }))
       ]);
       status = st;
