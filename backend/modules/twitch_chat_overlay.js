@@ -695,6 +695,226 @@ module.exports.init = function init(ctx) {
     };
   }
 
+
+  function responseEnvelope(route, data) {
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      route,
+      timestamp: core.nowIso(),
+      data
+    };
+  }
+
+  function buildCheck(name, ok, details = {}, failLevel = 'error') {
+    const isOk = !!ok;
+    return {
+      name,
+      ok: isOk,
+      level: isOk ? 'ok' : (failLevel || 'error'),
+      error: isOk ? '' : (details.error || name),
+      ...details
+    };
+  }
+
+  function summarizeChecks(checks) {
+    const rows = Array.isArray(checks) ? checks : [];
+    return {
+      total: rows.length,
+      ok: rows.filter(check => check && check.ok).length,
+      warnings: rows.filter(check => check && !check.ok && check.level === 'warning').length,
+      errors: rows.filter(check => check && !check.ok && check.level === 'error').length
+    };
+  }
+
+  function diagnosticsConfig() {
+    return {
+      prefix: '/api/overlay/chat',
+      legacyPrefixes: [
+        '/api/overlay/start-chat/irc',
+        '/api/overlay/start-chat'
+      ],
+      version: VERSION,
+      enabled: ENABLED,
+      autoConnect: AUTO_CONNECT,
+      bot: {
+        usernameConfigured: !!BOT_USERNAME,
+        channelConfigured: !!BOT_CHANNEL,
+        clientIdConfigured: !!TWITCH_CLIENT_ID,
+        broadcasterIdConfigured: !!BROADCASTER_ID_ENV
+      },
+      limits: {
+        maxStored: MAX_STORED,
+        maxTextLength: MAX_TEXT_LENGTH,
+        ignoreUsers: IGNORE_USERS.slice()
+      },
+      emotes: {
+        cacheTtlMs: EMOTE_CACHE_TTL_MS,
+        status: publicEmoteStatus()
+      },
+      runtime: {
+        desiredActive: state.desiredActive,
+        connected: state.connected,
+        authenticated: state.authenticated,
+        joined: state.joined,
+        chatCount: state.chat.length,
+        lastError: state.lastError || ''
+      },
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function diagnosticsSettings() {
+    return {
+      prefix: '/api/overlay/chat',
+      version: VERSION,
+      enabled: ENABLED,
+      autoConnect: AUTO_CONNECT,
+      desiredActive: state.desiredActive,
+      connecting: state.connecting,
+      connected: state.connected,
+      authenticated: state.authenticated,
+      joined: state.joined,
+      botUsernameConfigured: !!BOT_USERNAME,
+      channelConfigured: !!BOT_CHANNEL,
+      clientIdConfigured: !!TWITCH_CLIENT_ID,
+      maxStored: MAX_STORED,
+      maxTextLength: MAX_TEXT_LENGTH,
+      chatCount: state.chat.length,
+      startedAt: state.startedAt,
+      lastJoinAt: state.lastJoinAt,
+      lastMessageAt: state.lastMessageAt,
+      lastClose: state.lastClose,
+      lastError: state.lastError || '',
+      emotes: publicEmoteStatus(),
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function diagnosticsRoutes() {
+    const prefix = '/api/overlay/chat';
+    return {
+      prefix,
+      routes: [
+        { method: 'GET', path: `${prefix}/status`, purpose: 'Twitch overlay chat runtime status' },
+        { method: 'GET', path: `${prefix}/config`, purpose: 'sanitized overlay chat config' },
+        { method: 'GET', path: `${prefix}/settings`, purpose: 'runtime settings and socket summary' },
+        { method: 'GET', path: `${prefix}/routes`, purpose: 'list overlay chat API routes' },
+        { method: 'GET', path: `${prefix}/integration-check`, purpose: 'run non-destructive overlay chat integration check' },
+        { method: 'POST', path: `${prefix}/reload`, purpose: 'refresh diagnostic snapshot without IRC, clear or emote reload actions' },
+        { method: 'GET/POST', path: `${prefix}/start`, purpose: 'start Twitch IRC overlay chat connection' },
+        { method: 'GET/POST', path: `${prefix}/stop`, purpose: 'stop Twitch IRC overlay chat connection' },
+        { method: 'GET/POST', path: `${prefix}/reconnect`, purpose: 'reconnect Twitch IRC overlay chat connection' },
+        { method: 'GET/POST', path: `${prefix}/clear`, purpose: 'clear overlay chat items' },
+        { method: 'GET', path: `${prefix}/debug`, purpose: 'debug snapshot with last chat items and emote state' },
+        { method: 'GET', path: `${prefix}/emotes/status`, purpose: 'emote cache status' },
+        { method: 'GET/POST', path: `${prefix}/emotes/reload`, purpose: 'force reload Twitch channel/global emotes' },
+        { method: 'GET', path: `${prefix}/emotes/lookup`, purpose: 'lookup one emote by name' }
+      ],
+      legacyMirrors: [
+        '/api/overlay/start-chat/irc/status',
+        '/api/overlay/start-chat/irc/start',
+        '/api/overlay/start-chat/irc/stop',
+        '/api/overlay/start-chat/irc/reconnect',
+        '/api/overlay/start-chat/clear-live',
+        '/api/overlay/start-chat/debug',
+        '/api/overlay/start-chat/emotes/status',
+        '/api/overlay/start-chat/emotes/reload',
+        '/api/overlay/start-chat/emotes/lookup'
+      ],
+      intentionallyNotRegistered: [
+        '/api/twitch-chat-overlay',
+        '/api/chat-overlay'
+      ],
+      count: 14,
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function diagnosticsIntegrationCheck() {
+    const emotes = publicEmoteStatus();
+    const routesData = diagnosticsRoutes();
+    const connectedExpected = state.desiredActive || AUTO_CONNECT;
+    const checks = [
+      buildCheck('module_enabled', ENABLED, { enabled: ENABLED }, 'warning'),
+      buildCheck('bot_username_configured', !!BOT_USERNAME, { configured: !!BOT_USERNAME }, 'error'),
+      buildCheck('bot_channel_configured', !!BOT_CHANNEL, { configured: !!BOT_CHANNEL }, 'error'),
+      buildCheck('bot_client_id_configured', !!TWITCH_CLIENT_ID, { configured: !!TWITCH_CLIENT_ID }, 'warning'),
+      buildCheck('emote_cache_readable', !!emotes, { emotes }, 'error'),
+      buildCheck('emote_cache_loaded', !!emotes.loadedAt && !emotes.lastError, {
+        loadedAt: emotes.loadedAt,
+        lastError: emotes.lastError || '',
+        channelCount: emotes.channelCount,
+        globalCount: emotes.globalCount,
+        totalLookupKeys: emotes.totalLookupKeys
+      }, 'warning'),
+      buildCheck('socket_state_readable', true, {
+        desiredActive: state.desiredActive,
+        connected: state.connected,
+        authenticated: state.authenticated,
+        joined: state.joined,
+        connecting: state.connecting
+      }),
+      buildCheck('connected_when_expected', !connectedExpected || state.connected, {
+        autoConnect: AUTO_CONNECT,
+        desiredActive: state.desiredActive,
+        connected: state.connected,
+        joined: state.joined
+      }, 'warning'),
+      buildCheck('chat_storage_readable', Array.isArray(state.chat), {
+        chatCount: state.chat.length,
+        maxStored: MAX_STORED
+      }, 'error'),
+      buildCheck('routes', routesData.count >= 6, {
+        prefix: routesData.prefix,
+        count: routesData.count
+      }, 'error')
+    ];
+
+    const summary = summarizeChecks(checks);
+    return {
+      prefix: '/api/overlay/chat',
+      checks,
+      summary,
+      status: publicStatus(),
+      notes: [
+        'This integration check is non-destructive.',
+        'It does not start, stop, reconnect, clear chat or send Twitch chat messages.',
+        'It does not force reload Twitch emotes; use /api/overlay/chat/emotes/reload for that.'
+      ],
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function diagnosticsReload() {
+    const chatCountBefore = state.chat.length;
+    const connectedBefore = state.connected;
+    const joinedBefore = state.joined;
+    const emoteStatusBefore = publicEmoteStatus();
+
+    return {
+      action: 'reload',
+      reloaded: true,
+      destructive: false,
+      startTriggered: false,
+      stopTriggered: false,
+      reconnectTriggered: false,
+      chatCleared: false,
+      chatMessageSent: false,
+      emotesReloadTriggered: false,
+      chatCountBefore,
+      chatCountAfter: state.chat.length,
+      chatPreserved: chatCountBefore === state.chat.length,
+      connectedBefore,
+      connectedAfter: state.connected,
+      connectionPreserved: connectedBefore === state.connected && joinedBefore === state.joined,
+      emoteStatusBefore,
+      emoteStatusAfter: publicEmoteStatus(),
+      status: publicStatus(),
+      updatedAt: core.nowIso()
+    };
+  }
+
   function sendSnapshot(ws) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     try {
@@ -717,6 +937,28 @@ module.exports.init = function init(ctx) {
       });
     });
   }
+
+  routes.registerGet(app, '/api/overlay/chat/config', (req, res) => {
+    return res.json(responseEnvelope('/api/overlay/chat/config', diagnosticsConfig()));
+  });
+
+  routes.registerGet(app, '/api/overlay/chat/settings', (req, res) => {
+    return res.json(responseEnvelope('/api/overlay/chat/settings', diagnosticsSettings()));
+  });
+
+  routes.registerGet(app, '/api/overlay/chat/routes', (req, res) => {
+    return res.json(responseEnvelope('/api/overlay/chat/routes', diagnosticsRoutes()));
+  });
+
+  routes.registerGet(app, '/api/overlay/chat/integration-check', (req, res) => {
+    const data = diagnosticsIntegrationCheck();
+    const statusCode = data.summary.errors > 0 ? 500 : 200;
+    return res.status(statusCode).json(responseEnvelope('/api/overlay/chat/integration-check', data));
+  });
+
+  routes.registerPost(app, '/api/overlay/chat/reload', (req, res) => {
+    return res.json(responseEnvelope('/api/overlay/chat/reload', diagnosticsReload()));
+  });
 
   routes.registerGet(app, ['/api/overlay/chat/status', '/api/overlay/start-chat/irc/status'], (req, res) => res.json(publicStatus()));
 
