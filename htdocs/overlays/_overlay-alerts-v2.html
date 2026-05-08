@@ -1732,6 +1732,32 @@
       if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
     }
 
+    function soundSystemPlaybackStarted(soundSystem) {
+      if (!soundSystem || typeof soundSystem !== 'object') return false;
+      if (soundSystem.localAudioDisabled === true || soundSystem.handledBySoundSystem === true) return true;
+      if (soundSystem.ok === true || soundSystem.started === true || soundSystem.queued === true) return true;
+      const result = soundSystem.result || soundSystem.soundResult || {};
+      if (result && typeof result === 'object' && (result.started === true || result.queued === true || result.parallel === true)) return true;
+      return false;
+    }
+
+    function shouldUseLocalAlertAudio(alert) {
+      if (PREVIEW_MODE) return true;
+      const direct = alert && (alert.soundSystem || alert.sound_system || {});
+      const meta = alert && alert.meta && (alert.meta.soundSystem || alert.meta.sound_system || alert.meta.soundResult || {});
+      if (soundSystemPlaybackStarted(direct) || soundSystemPlaybackStarted(meta)) return false;
+      if (alert && (alert.soundHandledBySoundSystem === true || alert.sound_system_handled === true || alert.localAudioDisabled === true)) return false;
+      return true;
+    }
+
+    function stopLocalAlertAudio() {
+      try {
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+      } catch (_) {}
+    }
+
     function playAlert(alert) {
       clearAlert('replace', false);
       currentAlertId = alert.id;
@@ -1817,10 +1843,12 @@
       stage.appendChild(card);
       requestAnimationFrame(() => card.classList.add('show'));
 
-      if (alert.soundUrl) {
+      if (shouldUseLocalAlertAudio(alert) && alert.soundUrl) {
         audio.src = alert.soundUrl;
         audio.currentTime = 0;
         audio.play().catch(() => {});
+      } else {
+        stopLocalAlertAudio();
       }
 
       const duration = Math.max(1000, Number(alert.durationMs || 7000));
@@ -2198,8 +2226,7 @@
         setTimeout(() => card.remove(), 720);
       });
 
-      audio.pause();
-      audio.removeAttribute('src');
+      stopLocalAlertAudio();
 
       if (ack && currentAlertId) send({ op: 'alert_system', client: 'overlay', event: 'finished', alertId: currentAlertId, reason });
       currentAlertId = null;
