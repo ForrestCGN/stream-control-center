@@ -195,6 +195,8 @@ module.exports.init = function init(ctx) {
     res.status(result.ok ? 200 : 400).json({ ...result, displayProfileId: profile.id });
   });
   routes.registerGet(app, '/api/alerts/integration-check', guard, (req, res) => res.json(checkAlertIntegration()));
+  routes.registerGet(app, '/api/alerts/routes', guard, (req, res) => res.json(buildAlertRoutes(req)));
+
 
   routes.registerPost(app, '/api/alerts/events/:eventUid/replay', guard, (req, res) => {
     const result = replayAlertEvent(req.params.eventUid, broadcastWS);
@@ -236,6 +238,98 @@ module.exports.init = function init(ctx) {
 
   console.log('[alert_system] STEP126 Preview-Overlay Unified aktiv');
 };
+
+function buildAlertRoutes(req = null) {
+  const routeList = [
+    { method: 'GET', path: '/api/alerts/status', auth: 'public/local', category: 'status', description: 'Alert-System Status und Laufzeitinformationen.' },
+    { method: 'GET', path: '/api/alerts/health', auth: 'public/local', category: 'status', description: 'Kurzprüfung des Alert-Systems.' },
+    { method: 'GET', path: '/api/alerts/queue', auth: 'public/local', category: 'queue', description: 'Aktueller Alert und Warteschlange.' },
+    { method: 'POST', path: '/api/alerts/clear', auth: 'local_or_auth', category: 'queue', description: 'Queue leeren und Overlay clear senden.' },
+    { method: 'POST', path: '/api/alerts/reload', auth: 'local_or_auth', category: 'admin', description: 'Config neu laden, Schema/Seeds prüfen und DB-Settings anwenden.' },
+    { method: 'POST', path: '/api/alerts/enqueue', auth: 'local_or_auth', category: 'playback', description: 'Alert per API einreihen.' },
+    { method: 'POST', path: '/api/alerts/test', auth: 'local_or_auth', category: 'test', description: 'Test-Alert einreihen.' },
+
+    { method: 'GET', path: '/api/alerts/text-variants', auth: 'local_or_auth', category: 'texts', description: 'Alert-Textvarianten lesen.' },
+    { method: 'POST', path: '/api/alerts/text-variants', auth: 'local_or_auth', category: 'texts', description: 'Alert-Textvariante anlegen.' },
+    { method: 'PUT', path: '/api/alerts/text-variants/:id', auth: 'local_or_auth', category: 'texts', description: 'Alert-Textvariante aktualisieren.' },
+    { method: 'DELETE', path: '/api/alerts/text-variants/:id', auth: 'local_or_auth', category: 'texts', description: 'Alert-Textvariante löschen.' },
+
+    { method: 'GET', path: '/api/alerts/chat-blocks', auth: 'local_or_auth', category: 'chat', description: 'Chat-Textblöcke lesen.' },
+    { method: 'POST', path: '/api/alerts/chat-blocks', auth: 'local_or_auth', category: 'chat', description: 'Chat-Textblock anlegen.' },
+    { method: 'PUT', path: '/api/alerts/chat-blocks/:id', auth: 'local_or_auth', category: 'chat', description: 'Chat-Textblock aktualisieren.' },
+    { method: 'DELETE', path: '/api/alerts/chat-blocks/:id', auth: 'local_or_auth', category: 'chat', description: 'Chat-Textblock löschen.' },
+
+    { method: 'GET', path: '/api/alerts/chat-outbox', auth: 'local_or_auth', category: 'chat', description: 'Chat-Outbox lesen.' },
+    { method: 'POST', path: '/api/alerts/chat-outbox/:id/sent', auth: 'local_or_auth', category: 'chat', description: 'Chat-Outbox-Eintrag als gesendet markieren.' },
+    { method: 'POST', path: '/api/alerts/chat-outbox/:id/consumed', auth: 'local_or_auth', category: 'chat', description: 'Chat-Outbox-Eintrag als konsumiert markieren.' },
+    { method: 'POST', path: '/api/alerts/chat-outbox/:id/error', auth: 'local_or_auth', category: 'chat', description: 'Chat-Outbox-Fehler speichern.' },
+
+    { method: 'GET', path: '/api/alerts/test-presets', auth: 'local_or_auth', category: 'test', description: 'Test-Presets lesen.' },
+    { method: 'POST', path: '/api/alerts/test-presets', auth: 'local_or_auth', category: 'test', description: 'Test-Preset anlegen.' },
+    { method: 'PUT', path: '/api/alerts/test-presets/:id', auth: 'local_or_auth', category: 'test', description: 'Test-Preset aktualisieren.' },
+    { method: 'DELETE', path: '/api/alerts/test-presets/:id', auth: 'local_or_auth', category: 'test', description: 'Test-Preset löschen.' },
+    { method: 'POST', path: '/api/alerts/test-presets/:id/play', auth: 'local_or_auth', category: 'test', description: 'Test-Preset abspielen.' },
+
+    { method: 'GET', path: '/api/alerts/display-profiles', auth: 'local_or_auth', category: 'display', description: 'Display-Profile lesen.' },
+    { method: 'POST', path: '/api/alerts/display-profiles', auth: 'local_or_auth', category: 'display', description: 'Display-Profil anlegen.' },
+    { method: 'PUT', path: '/api/alerts/display-profiles/:id', auth: 'local_or_auth', category: 'display', description: 'Display-Profil aktualisieren.' },
+    { method: 'DELETE', path: '/api/alerts/display-profiles/:id', auth: 'local_or_auth', category: 'display', description: 'Display-Profil löschen.' },
+    { method: 'POST', path: '/api/alerts/display-profiles/:id/play', auth: 'local_or_auth', category: 'display', description: 'Display-Profil als Vorschau abspielen.' },
+
+    { method: 'GET', path: '/api/alerts/integration-check', auth: 'local_or_auth', category: 'diagnostics', description: 'Integration-Check des Alert-Systems.' },
+    { method: 'GET', path: '/api/alerts/routes', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Routenübersicht des Alert-Systems.' },
+
+    { method: 'POST', path: '/api/alerts/events/:eventUid/replay', auth: 'local_or_auth', category: 'events', description: 'Alert-Event erneut abspielen.' },
+
+    { method: 'GET', path: '/api/alerts/twitch/follow', auth: 'local_or_auth', category: 'provider', description: 'Streamer.bot/Twitch GET-Route für Follow.' },
+    { method: 'GET', path: '/api/alerts/twitch/raid', auth: 'local_or_auth', category: 'provider', description: 'Streamer.bot/Twitch GET-Route für Raid.' },
+    { method: 'GET', path: '/api/alerts/twitch/bits', auth: 'local_or_auth', category: 'provider', description: 'Streamer.bot/Twitch GET-Route für Bits.' },
+    { method: 'POST', path: '/api/alerts/twitch', auth: 'local_or_auth', category: 'provider', description: 'Twitch Provider-Event per POST.' },
+
+    { method: 'GET', path: '/api/alerts/rules', auth: 'local_or_auth', category: 'rules', description: 'Regeln, Typen und Assets lesen.' },
+    { method: 'POST', path: '/api/alerts/rules', auth: 'local_or_auth', category: 'rules', description: 'Regel anlegen.' },
+    { method: 'PUT', path: '/api/alerts/rules/:id', auth: 'local_or_auth', category: 'rules', description: 'Regel aktualisieren.' },
+    { method: 'DELETE', path: '/api/alerts/rules/:id', auth: 'local_or_auth', category: 'rules', description: 'Regel löschen.' },
+    { method: 'POST', path: '/api/alerts/rules/validate', auth: 'local_or_auth', category: 'rules', description: 'Regelset validieren.' },
+
+    { method: 'GET', path: '/api/alerts/assets', auth: 'local_or_auth', category: 'assets', description: 'Assets lesen.' },
+    { method: 'POST', path: '/api/alerts/assets/upload', auth: 'local_or_auth', category: 'assets', description: 'Asset hochladen.' },
+    { method: 'DELETE', path: '/api/alerts/assets/:id', auth: 'local_or_auth', category: 'assets', description: 'Asset löschen.' },
+    { method: 'GET', path: '/api/alerts/assets/:id/usage', auth: 'local_or_auth', category: 'assets', description: 'Asset-Verwendung prüfen.' },
+    { method: 'POST', path: '/api/alerts/assets/scan-durations', auth: 'local_or_auth', category: 'assets', description: 'Sound-Dauern neu scannen.' },
+
+    { method: 'GET', path: '/api/alerts/settings', auth: 'local_or_auth', category: 'settings', description: 'Alert-Settings und Effective Config lesen.' },
+    { method: 'POST', path: '/api/alerts/settings', auth: 'local_or_auth', category: 'settings', description: 'Alert-Settings speichern.' },
+    { method: 'GET', path: '/api/alerts/config', auth: 'local_or_auth', category: 'config', description: 'Alert-Config lesen.' },
+    { method: 'POST', path: '/api/alerts/config', auth: 'local_or_auth', category: 'config', description: 'Alert-Config speichern.' }
+  ];
+
+  return {
+    ok: true,
+    module: MODULE,
+    version: 1,
+    standardPrefix: '/api/alerts',
+    legacyPrefixes: [],
+    standardEndpoints: {
+      status: '/api/alerts/status',
+      config: '/api/alerts/config',
+      settings: '/api/alerts/settings',
+      routes: '/api/alerts/routes',
+      integrationCheck: '/api/alerts/integration-check',
+      reload: '/api/alerts/reload'
+    },
+    routes: routeList,
+    count: routeList.length,
+    categories: Array.from(new Set(routeList.map(route => route.category))).sort(),
+    notes: [
+      'Read-only Routenübersicht für Dashboard-/Modul-Standardisierung.',
+      'Bestehende Routen wurden nicht geändert.',
+      'Schreibende Routen sind nur dokumentiert, nicht neu angelegt.',
+      'Security bleibt über bestehende local_or_auth Guards geregelt.'
+    ],
+    security: req ? security.securitySummary(req) : security.securitySummary()
+  };
+}
 
 function ensureRuntime(ctx) {
   if (!sqlite.isInitialized()) sqlite.init(ctx);
