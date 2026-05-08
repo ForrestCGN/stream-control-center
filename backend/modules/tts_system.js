@@ -13,6 +13,7 @@ const core = require("./helpers/helper_core");
 const cfg = require("./helpers/helper_config");
 const media = require("./helpers/helper_media");
 const settingsHelper = require("./helpers/helper_settings");
+const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 const crypto = require("crypto");
 const { spawn } = require("child_process");
@@ -42,6 +43,7 @@ function init(ctx) {
   const TTS_SCHEMA_MODULE = "tts_system";
   const TTS_SCHEMA_VERSION = 1;
   const TTS_SETTINGS_TABLE = "tts_settings";
+  const TTS_TEXTS_MODULE = "tts";
   const TTS_EVENTS_TABLE = "tts_events";
   const TTS_USAGE_TABLE = "tts_usage_daily";
 
@@ -139,7 +141,55 @@ function init(ctx) {
     cloudUnavailable: "❌ Cloud-TTS ist gerade nicht verfügbar und der Fallback ist nicht bereit.",
     mutedUser: "🔇 Du bist für diesen Stream von der Sprechanlage abgemeldet.",
     bannedUser: "🚫 Du hast dauerhaftes TTS-Hausverbot.",
-    help: "📋 Heimleitungszettel: !tts <Text> | Mods: on/off/status/stop/clear/list/mute/unmute | Chefetage: ban/unban"
+    help: "📋 Heimleitungszettel: !tts <Text> | Mods: on/off/status/stop/clear/list/mute/unmute | Chefetage: ban/unban | Chef: debug/debug full",
+    debug: "📋 TTS-Debug: aktiv={enabledText} | spielt={playingText} | Queue={queueCount}/{queueMax} | Google heute {googleDaily}/{googleDailyLimit}, Monat {googleMonthly}/{googleMonthlyLimit} | Piper heute {piperDaily}, Monat {piperMonthly} | Mutes={muteCount} | Bans={banCount}",
+    debugFull: "📋 TTS-Full: aktiv={enabledText} | spielt={playingText} | current={currentText} | Queue={queueCount}/{queueMax} | Google heute {googleDaily}/{googleDailyLimit}, Monat {googleMonthly}/{googleMonthlyLimit} | Piper heute {piperDaily}, Monat {piperMonthly} | Requests heute={requestsToday}, Monat={requestsMonth} | Mutes={muteCount} | Bans={banCount} | Rollen: {rolesText}",
+    systemQueued: "📢 Heimleitungs-Durchsage wurde an die Sprechanlage übergeben."
+  };
+
+  const TEXT_CATEGORY_LABELS = {
+    chat: "Chat-Antworten",
+    permissions: "Rechte & Freigaben",
+    moderation: "Mute/Ban Verwaltung",
+    status: "Status & Listen",
+    system: "Systemtexte",
+    errors: "Fehlertexte",
+    debug: "Debugtexte"
+  };
+
+  const TEXT_CATEGORIES = {
+    ttsQueued: "chat",
+    systemQueued: "chat",
+    ttsDisabled: "system",
+    notAllowed: "permissions",
+    cooldown: "chat",
+    tooLong: "chat",
+    queueFull: "chat",
+    systemOn: "system",
+    systemOff: "system",
+    status: "status",
+    stop: "system",
+    clear: "system",
+    muteSuccess: "moderation",
+    unmuteSuccess: "moderation",
+    banSuccess: "moderation",
+    unbanSuccess: "moderation",
+    alreadyMuted: "moderation",
+    alreadyBanned: "moderation",
+    notMuted: "moderation",
+    notBanned: "moderation",
+    listEmpty: "status",
+    list: "status",
+    missingText: "errors",
+    missingUser: "errors",
+    unknownCommand: "errors",
+    noPermission: "permissions",
+    cloudUnavailable: "errors",
+    mutedUser: "permissions",
+    bannedUser: "permissions",
+    help: "status",
+    debug: "debug",
+    debugFull: "debug"
   };
 
   const DEFAULT_STATE = {
@@ -166,7 +216,7 @@ function init(ctx) {
   try { database.ensureReady(ctx); } catch (err) { console.error(`[TTS] database init failed: ${err.message}`); }
 
   let config = loadJson(CONFIG_FILE, DEFAULT_CONFIG);
-  let messages = loadJson(MESSAGES_FILE, DEFAULT_MESSAGES);
+  let messages = loadDbMessages(loadJson(MESSAGES_FILE, DEFAULT_MESSAGES));
   let state = loadJson(STATE_FILE, DEFAULT_STATE);
   let bans = loadJson(BANS_FILE, DEFAULT_BANS);
 
@@ -324,9 +374,49 @@ function init(ctx) {
     return config;
   }
 
+  function textEditorOptions() {
+    return {
+      categories: TEXT_CATEGORIES,
+      categoryLabels: TEXT_CATEGORY_LABELS,
+      defaultCategory: "chat"
+    };
+  }
+
+  function loadDbMessages(baseMessages) {
+    const fallback = deepMerge(structuredCloneSafe(DEFAULT_MESSAGES), baseMessages && typeof baseMessages === "object" ? baseMessages : {});
+    try {
+      const result = textHelper.getModuleTexts(TTS_TEXTS_MODULE, fallback, { ...textEditorOptions(), seed: true });
+      return {
+        ...result.texts,
+        _textsTable: textHelper.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+        _legacyTextsTable: result.table,
+        _textsSource: "database_variants_with_json_fallback"
+      };
+    } catch (err) {
+      console.error(`[TTS] texts DB fallback: ${err.message}`);
+      return {
+        ...fallback,
+        _textsTable: textHelper.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+        _legacyTextsTable: textHelper.DEFAULT_MODULE_TEXTS_TABLE,
+        _textsSource: "json_fallback",
+        _textsError: err.message
+      };
+    }
+  }
+
+  function listAdminTexts() {
+    return textHelper.listModuleTextEditor(TTS_TEXTS_MODULE, messages || DEFAULT_MESSAGES, { ...textEditorOptions(), seed: true });
+  }
+
+  function setAdminTexts(payload) {
+    const result = textHelper.handleModuleTextEditorPayload(TTS_TEXTS_MODULE, payload, textEditorOptions());
+    reloadAllConfig();
+    return { ok: true, module: MODULE_NAME, ...result, status: publicStatus() };
+  }
+
   function reloadAllConfig() {
     config = loadJson(CONFIG_FILE, DEFAULT_CONFIG);
-    messages = loadJson(MESSAGES_FILE, DEFAULT_MESSAGES);
+    messages = loadDbMessages(loadJson(MESSAGES_FILE, DEFAULT_MESSAGES));
     bans = loadJson(BANS_FILE, DEFAULT_BANS);
     seedDbSettings();
     applyDbSettingsToConfig();
@@ -444,7 +534,9 @@ function init(ctx) {
         { method: "GET", path: "/api/tts/voices", description: "Sanitized voice list" },
         { method: "GET", path: "/api/tts/routes", description: "Route self-documentation" },
         { method: "GET", path: "/api/tts/admin/settings", description: "Alias for DB-backed settings list" },
-        { method: "POST", path: "/api/tts/admin/settings", description: "Alias for DB-backed setting upsert" }
+        { method: "POST", path: "/api/tts/admin/settings", description: "Alias for DB-backed setting upsert" },
+        { method: "GET", path: "/api/tts/admin/texts", description: "List DB-backed TTS text variants" },
+        { method: "POST", path: "/api/tts/admin/texts", description: "Create/update/delete DB-backed TTS text variants" }
       ],
       notes: [
         "TTS erzeugt Audiodateien; Ausgabe soll standardmaessig ueber das Sound-System laufen.",
@@ -480,6 +572,12 @@ function init(ctx) {
   }
 
   function msg(key, vars = {}) {
+    try {
+      const rendered = textHelper.renderModuleText(TTS_TEXTS_MODULE, key, messages || DEFAULT_MESSAGES, vars, { ...textEditorOptions(), seed: false });
+      if (rendered) return rendered;
+    } catch (err) {
+      // Keep TTS chat responses working even when the text variants layer is unavailable.
+    }
     const template = String(messages[key] || DEFAULT_MESSAGES[key] || key);
     return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, name) => {
       return Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : `{${name}}`;
@@ -1966,6 +2064,20 @@ function init(ctx) {
     res.json({ ok: settings.ok, table: TTS_SETTINGS_TABLE, settings: settings.settings, error: settings.error || "" });
   });
   app.post("/api/tts/admin/settings", upsertSettingFromRequest);
+  app.get("/api/tts/admin/texts", (req, res) => {
+    try {
+      return res.json({ ok: true, module: MODULE_NAME, texts: listAdminTexts() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: "texts_list_failed", message: err.message || String(err) });
+    }
+  });
+  app.post("/api/tts/admin/texts", (req, res) => {
+    try {
+      return res.json(setAdminTexts(getRequestData(req)));
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: "texts_update_failed", message: err.message || String(err) });
+    }
+  });
   app.get("/api/tts/events", (req, res) => res.json(listEvents(req.query || {})));
   app.get("/api/tts/stats", (req, res) => res.json(stats()));
   app.get("/api/tts/stats/users", (req, res) => res.json(statsUsers(req.query || {})));

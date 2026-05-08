@@ -7,6 +7,7 @@ window.TTSModule = (function(){
     voices: '/api/tts/voices',
     routes: '/api/tts/routes',
     settings: '/api/tts/admin/settings',
+    texts: '/api/tts/admin/texts',
     stats: '/api/tts/stats',
     statsUsers: '/api/tts/stats/users',
     events: '/api/tts/events',
@@ -25,6 +26,7 @@ window.TTSModule = (function(){
     voices: null,
     routes: null,
     settings: null,
+    texts: null,
     stats: null,
     statsUsers: null,
     events: null,
@@ -33,7 +35,62 @@ window.TTSModule = (function(){
     tab: 'overview',
     saveInfo: '',
     userStatsRange: 'all',
-    userStatsSort: 'requests'
+    userStatsSort: 'requests',
+    textCategory: ''
+  };
+
+  const TEXT_KEY_LABELS = {
+    ttsQueued: 'TTS eingereiht',
+    systemQueued: 'System-TTS eingereiht',
+    ttsDisabled: 'TTS deaktiviert',
+    notAllowed: 'Nicht freigegeben',
+    cooldown: 'Cooldown aktiv',
+    tooLong: 'Text zu lang',
+    queueFull: 'Queue voll',
+    systemOn: 'TTS eingeschaltet',
+    systemOff: 'TTS ausgeschaltet',
+    status: 'Statusmeldung',
+    stop: 'Aktuelle Durchsage stoppen',
+    clear: 'Queue geleert',
+    muteSuccess: 'Mute erfolgreich',
+    unmuteSuccess: 'Unmute erfolgreich',
+    banSuccess: 'Ban erfolgreich',
+    unbanSuccess: 'Unban erfolgreich',
+    alreadyMuted: 'Bereits gemutet',
+    alreadyBanned: 'Bereits gebannt',
+    notMuted: 'Nicht gemutet',
+    notBanned: 'Nicht gebannt',
+    listEmpty: 'Mute/Ban-Liste leer',
+    list: 'Mute/Ban-Liste',
+    missingText: 'Text fehlt',
+    missingUser: 'User fehlt',
+    unknownCommand: 'Unbekannter Befehl',
+    noPermission: 'Keine Berechtigung',
+    cloudUnavailable: 'Cloud/Fallback nicht bereit',
+    mutedUser: 'User ist gemutet',
+    bannedUser: 'User ist gebannt',
+    help: 'Hilfe',
+    debug: 'Debug',
+    debugFull: 'Debug vollständig'
+  };
+
+  const TEXT_KEY_HINTS = {
+    ttsQueued: 'Chat-Antwort, wenn ein normaler TTS-Text angenommen wurde.',
+    systemQueued: 'Antwort, wenn eine System-/Alert-Durchsage eingereiht wurde.',
+    cooldown: 'Platzhalter: {seconds}.',
+    tooLong: 'Platzhalter: {maxLength}.',
+    status: 'Platzhalter: {enabledText}, {queueCount}, {queueMax}, {dailyChars}, {dailyLimit}, {monthlyChars}, {monthlyLimit}.',
+    list: 'Platzhalter: {mutes}, {bans}.',
+    muteSuccess: 'Platzhalter: {user}.',
+    unmuteSuccess: 'Platzhalter: {user}.',
+    banSuccess: 'Platzhalter: {user}.',
+    unbanSuccess: 'Platzhalter: {user}.',
+    alreadyMuted: 'Platzhalter: {user}.',
+    alreadyBanned: 'Platzhalter: {user}.',
+    notMuted: 'Platzhalter: {user}.',
+    notBanned: 'Platzhalter: {user}.',
+    debug: 'Debug-Text fuer Mods/Broadcaster.',
+    debugFull: 'Ausfuehrlicher Debug-Text fuer Mods/Broadcaster.'
   };
 
   function registerModule(){
@@ -93,17 +150,18 @@ window.TTSModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, config, voices, routes, settings, stats, statsUsers, events] = await Promise.all([
+      const [status, config, voices, routes, settings, texts, stats, statsUsers, events] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.config),
         window.CGN.api(api.voices),
         window.CGN.api(api.routes),
         window.CGN.api(api.settings),
+        window.CGN.api(api.texts).catch(err => ({ ok:false, error:err.message, texts:{ categories:[], keys:[] } })),
         window.CGN.api(api.stats).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(userStatsUrl()).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.events).catch(err => ({ ok:false, error:err.message, rows:[] }))
       ]);
-      state = { ...state, status, config, voices, routes, settings, stats, statsUsers, events, loading:false, error:'' };
+      state = { ...state, status, config, voices, routes, settings, texts, stats, statsUsers, events, loading:false, error:'' };
     } catch (err) {
       state.loading = false;
       state.error = err.message || String(err);
@@ -158,6 +216,59 @@ window.TTSModule = (function(){
     if (!text) throw new Error('Bitte Test-Text eintragen.');
     await window.CGN.api(api.say, { method: 'POST', body: JSON.stringify({ text, role, user, login: user, displayName: 'Dashboard Test', source: 'dashboard', mode: 'test' }) });
     state.saveInfo = 'Test-TTS wurde an die Queue übergeben.';
+    await loadAll(true);
+  }
+
+  function textData(){ return state.texts?.texts || state.texts || {}; }
+  function textCategories(){ return Array.isArray(textData().categories) ? textData().categories : []; }
+  function textKeys(){ return Array.isArray(textData().keys) ? textData().keys : []; }
+  function textKeyLabel(key){ return TEXT_KEY_LABELS[key] || key; }
+  function textKeyHint(key){ return TEXT_KEY_HINTS[key] || 'Mehrere aktive Varianten sind moeglich. Das Backend waehlt zufaellig eine aktive Variante.'; }
+  function selectedTextCategory(){
+    const cats = textCategories();
+    if (!cats.length) return '';
+    if (!state.textCategory || !cats.some(c => c.id === state.textCategory)) state.textCategory = cats[0].id;
+    return state.textCategory;
+  }
+
+  async function saveVariant(id, key){
+    const safeId = String(id || 'new');
+    const textEl = root?.querySelector(`[data-tts-variant-text="${CSS.escape(safeId)}"][data-tts-variant-key="${CSS.escape(key)}"]`);
+    const enabledEl = root?.querySelector(`[data-tts-variant-enabled="${CSS.escape(safeId)}"][data-tts-variant-key="${CSS.escape(key)}"]`);
+    const weightEl = root?.querySelector(`[data-tts-variant-weight="${CSS.escape(safeId)}"][data-tts-variant-key="${CSS.escape(key)}"]`);
+    if (!textEl) return;
+    await window.CGN.api(api.texts, { method:'POST', body: JSON.stringify({
+      action: 'saveVariant',
+      variant: {
+        id: id && id !== 'new' ? Number(id) : undefined,
+        key,
+        category: selectedTextCategory() || 'chat',
+        value: textEl.value,
+        enabled: enabledEl ? enabledEl.checked : true,
+        weight: weightEl ? Number(weightEl.value || 1) : 1
+      }
+    }) });
+    state.saveInfo = `Textvariante gespeichert: ${textKeyLabel(key)}`;
+    await loadAll(true);
+  }
+
+  async function addVariant(key){
+    const el = root?.querySelector(`[data-tts-new-variant="${CSS.escape(key)}"]`);
+    const value = String(el?.value || '').trim();
+    if (!value) throw new Error('Bitte zuerst einen neuen Text eintragen.');
+    await window.CGN.api(api.texts, { method:'POST', body: JSON.stringify({
+      action: 'saveVariant',
+      variant: { key, category: selectedTextCategory() || 'chat', value, enabled: true, weight: 1 }
+    }) });
+    state.saveInfo = `Neue Textvariante hinzugefuegt: ${textKeyLabel(key)}`;
+    await loadAll(true);
+  }
+
+  async function deleteVariant(id){
+    if (!id) return;
+    if (!window.confirm('Diese TTS-Textvariante wirklich loeschen?')) return;
+    await window.CGN.api(api.texts, { method:'POST', body: JSON.stringify({ action:'deleteVariant', id:Number(id) }) });
+    state.saveInfo = 'Textvariante geloescht.';
     await loadAll(true);
   }
 
@@ -306,6 +417,32 @@ window.TTSModule = (function(){
       </article>`).join('')}</div>${!list.length ? '<div class="tts-empty">Keine Settings gefunden.</div>' : ''}</section>`;
   }
 
+  function renderTexts(){
+    const cats = textCategories();
+    const selected = selectedTextCategory();
+    const keys = textKeys().filter(item => !selected || item.category === selected);
+    return `<section class="tts-card"><h3>Texte / Varianten</h3><p class="tts-note">TTS-Texte werden DB-basiert verwaltet. <code>tts_messages.json</code> bleibt Seed/Fallback. Mehrere aktive Varianten werden zufaellig ausgewaehlt.</p>
+      <div class="tts-text-toolbar">
+        <label>Kategorie<select data-tts-text-category>${cats.map(cat => `<option value="${esc(cat.id)}" ${cat.id === selected ? 'selected' : ''}>${esc(cat.label || cat.id)} (${esc(cat.keyCount ?? cat.count ?? 0)} Keys / ${esc(cat.variantCount ?? 0)} Varianten)</option>`).join('')}</select></label>
+      </div>
+      <div class="tts-text-list">${keys.map(item => `
+        <article class="tts-text-row">
+          <div class="tts-text-head"><div><strong>${esc(textKeyLabel(item.key))}</strong><small>${esc(item.key)} · ${esc(textKeyHint(item.key))}</small></div><span>${esc(item.activeCount || 0)} aktiv / ${esc(item.totalCount || item.variants?.length || 0)} Varianten</span></div>
+          <div class="tts-new-variant"><textarea data-tts-new-variant="${esc(item.key)}" placeholder="Neue Variante fuer ${esc(textKeyLabel(item.key))} eintragen..." spellcheck="false"></textarea><button type="button" data-tts-add-variant="${esc(item.key)}">Neue Variante speichern</button></div>
+          <div class="tts-variant-list">${(item.variants || []).map(variant => `
+            <div class="tts-variant-row">
+              <textarea data-tts-variant-text="${esc(variant.id)}" data-tts-variant-key="${esc(item.key)}" spellcheck="false">${esc(variant.value ?? variant.text ?? '')}</textarea>
+              <div class="tts-variant-meta">
+                <label><input type="checkbox" data-tts-variant-enabled="${esc(variant.id)}" data-tts-variant-key="${esc(item.key)}" ${variant.enabled ? 'checked' : ''}> Aktiv</label>
+                <label>Gewicht <input type="number" min="1" max="99" data-tts-variant-weight="${esc(variant.id)}" data-tts-variant-key="${esc(item.key)}" value="${esc(variant.weight || 1)}"></label>
+                <span>${esc(variant.source || '')}</span><span>ID ${esc(variant.id || '')}</span>
+              </div>
+              <div class="tts-actions"><button type="button" data-tts-save-variant="${esc(variant.id)}" data-tts-variant-key="${esc(item.key)}">Speichern</button><button type="button" class="danger" data-tts-delete-variant="${esc(variant.id)}">Loeschen</button></div>
+            </div>`).join('')}</div>
+        </article>`).join('')}</div>
+      ${!keys.length ? '<div class="tts-empty">Keine Texte in dieser Kategorie.</div>' : ''}</section>`;
+  }
+
   function renderTest(){
     const roles = Object.keys(effectiveConfig().roles || state.status?.roles || { broadcaster: {} });
     return `<section class="tts-card"><h3>Test-TTS</h3><p class="tts-note">Sendet einen Test an <code>/api/tts/say</code>. Ausgabe läuft nach aktueller TTS-Konfiguration.</p>
@@ -333,7 +470,7 @@ window.TTSModule = (function(){
     root = document.getElementById('ttsModule');
     if (!root) return;
     const tabs = [
-      ['overview','Übersicht'], ['users','User-Statistik'], ['voices','Stimmen'], ['roles','Rollen'], ['sound','Sound-System'], ['settings','Settings'], ['test','Test'], ['events','Events'], ['routes','Routen']
+      ['overview','Übersicht'], ['users','User-Statistik'], ['voices','Stimmen'], ['roles','Rollen'], ['sound','Sound-System'], ['settings','Settings'], ['texts','Texte'], ['test','Test'], ['events','Events'], ['routes','Routen']
     ];
     root.innerHTML = `
       <div class="tts-admin-wrap">
@@ -352,7 +489,7 @@ window.TTSModule = (function(){
         ${state.saveInfo ? `<div class="tts-info">${esc(state.saveInfo)}</div>` : ''}
         ${state.loading ? '<div class="tts-card">Lade TTS-Daten...</div>' : `
           <div class="tts-tabs">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-tts-tab="${id}">${esc(label)}</button>`).join('')}</div>
-          ${state.tab === 'users' ? renderUserStats() : state.tab === 'voices' ? renderVoices() : state.tab === 'roles' ? renderRoles() : state.tab === 'sound' ? renderSoundSystem() : state.tab === 'settings' ? renderSettings() : state.tab === 'test' ? renderTest() : state.tab === 'events' ? renderEvents() : state.tab === 'routes' ? renderRoutes() : renderOverview()}
+          ${state.tab === 'users' ? renderUserStats() : state.tab === 'voices' ? renderVoices() : state.tab === 'roles' ? renderRoles() : state.tab === 'sound' ? renderSoundSystem() : state.tab === 'settings' ? renderSettings() : state.tab === 'texts' ? renderTexts() : state.tab === 'test' ? renderTest() : state.tab === 'events' ? renderEvents() : state.tab === 'routes' ? renderRoutes() : renderOverview()}
         `}
       </div>`;
     bind();
@@ -361,6 +498,10 @@ window.TTSModule = (function(){
   function bind(){
     root?.querySelectorAll('[data-tts-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.ttsTab || 'overview'; render(); }));
     root?.querySelectorAll('[data-tts-save-setting]').forEach(btn => btn.addEventListener('click', () => saveSetting(btn.dataset.ttsSaveSetting).catch(err => { state.error = err.message; render(); })));
+    root?.querySelector('[data-tts-text-category]')?.addEventListener('change', ev => { state.textCategory = ev.target.value; render(); });
+    root?.querySelectorAll('[data-tts-save-variant]').forEach(btn => btn.addEventListener('click', () => saveVariant(btn.dataset.ttsSaveVariant, btn.dataset.ttsVariantKey).catch(err => { state.error = err.message; render(); })));
+    root?.querySelectorAll('[data-tts-add-variant]').forEach(btn => btn.addEventListener('click', () => addVariant(btn.dataset.ttsAddVariant).catch(err => { state.error = err.message; render(); })));
+    root?.querySelectorAll('[data-tts-delete-variant]').forEach(btn => btn.addEventListener('click', () => deleteVariant(btn.dataset.ttsDeleteVariant).catch(err => { state.error = err.message; render(); })));
     root?.querySelector('[data-tts-userstats-range]')?.addEventListener('change', ev => { state.userStatsRange = ev.target.value; reloadUserStats(); });
     root?.querySelector('[data-tts-userstats-sort]')?.addEventListener('change', ev => { state.userStatsSort = ev.target.value; reloadUserStats(); });
     root?.querySelector('[data-tts-userstats-refresh]')?.addEventListener('click', () => reloadUserStats());
