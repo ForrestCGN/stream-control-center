@@ -865,12 +865,35 @@ function buildTodoRoutes() {
   };
 }
 
+
+function safeCall(label, fn, fallback = null) {
+  try {
+    return { ok: true, value: fn(), error: "" };
+  } catch (err) {
+    return { ok: false, value: fallback, error: `${label}:${err?.message || "failed"}` };
+  }
+}
+
 function buildTodoIntegrationCheck() {
   const errors = [];
   const warnings = [];
-  const schemaOk = ensureTodoSchema();
-  const status = buildStatus();
-  const channelStatus = getChannelStatus();
+
+  const schemaResult = safeCall("schema", () => ensureTodoSchema(), false);
+  const schemaOk = Boolean(schemaResult.value);
+  if (!schemaResult.ok) errors.push(schemaResult.error);
+
+  const statusResult = safeCall("status", () => buildStatus(), null);
+  const status = statusResult.value;
+  if (!statusResult.ok) warnings.push(statusResult.error);
+
+  const channelResult = safeCall("channels", () => getChannelStatus(), {});
+  const channelStatus = channelResult.value && typeof channelResult.value === "object" ? channelResult.value : {};
+  if (!channelResult.ok) warnings.push(channelResult.error);
+
+  const targetsResult = safeCall("targets", () => getTargets(), {});
+  const targets = targetsResult.value && typeof targetsResult.value === "object" ? targetsResult.value : {};
+  if (!targetsResult.ok) warnings.push(targetsResult.error);
+
   const missingChannels = Object.entries(channelStatus)
     .filter(([, item]) => !item.configured)
     .map(([key, item]) => ({ key, label: item.label, channelKey: item.channelKey }));
@@ -895,11 +918,20 @@ function buildTodoIntegrationCheck() {
   if (!channelsFile.ok) warnings.push(`discordChannels:${channelsFile.error}`);
   if (!messagesFile.ok) warnings.push(`messages:${messagesFile.error}`);
 
+  const schemaVersionResult = safeCall("schemaVersion", () => sqlite.isInitialized() ? sqlite.getSchemaVersion(MODULE_NAME) : 0, 0);
+  if (!schemaVersionResult.ok) warnings.push(schemaVersionResult.error);
+
+  const dbPathResult = safeCall("dbPath", () => sqlite.isInitialized() ? sqlite.getDbPath() : null, null);
+  if (!dbPathResult.ok) warnings.push(dbPathResult.error);
+
+  const aliasResult = safeCall("aliases", () => Object.fromEntries(Object.values(targets).map(target => [target.key, target.aliases])), {});
+  if (!aliasResult.ok) warnings.push(aliasResult.error);
+
   return {
     ok: errors.length === 0,
     module: MODULE_NAME,
     version: 1,
-    schemaVersion: sqlite.isInitialized() ? sqlite.getSchemaVersion(MODULE_NAME) : 0,
+    schemaVersion: schemaVersionResult.value,
     healthy: errors.length === 0,
     warnings,
     errors,
@@ -914,8 +946,8 @@ function buildTodoIntegrationCheck() {
       database: {
         ok: sqlite.isInitialized(),
         adapter: "sqlite",
-        path: sqlite.isInitialized() ? sqlite.getDbPath() : null,
-        schemaVersion: sqlite.isInitialized() ? sqlite.getSchemaVersion(MODULE_NAME) : 0,
+        path: dbPathResult.value,
+        schemaVersion: schemaVersionResult.value,
         expectedSchemaVersion: SCHEMA_VERSION,
         error: runtime.schemaError || ""
       },
@@ -953,9 +985,13 @@ function buildTodoIntegrationCheck() {
         missing: missingChannels
       },
       targets: {
-        ok: Object.keys(getTargets()).length > 0,
-        count: Object.keys(getTargets()).length,
-        aliases: Object.fromEntries(Object.values(getTargets()).map(target => [target.key, target.aliases]))
+        ok: Object.keys(targets).length > 0,
+        count: Object.keys(targets).length,
+        aliases: aliasResult.value
+      },
+      debug: {
+        statusBuilt: Boolean(status),
+        statusError: statusResult.error || ""
       }
     },
     routes: {
@@ -999,8 +1035,19 @@ function handleRoutes(req, res) {
 function handleIntegrationCheck(req, res) {
   const auth = checkAuth(req);
   if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
-  const check = buildTodoIntegrationCheck();
-  return res.status(check.ok ? 200 : 500).json(check);
+  try {
+    const check = buildTodoIntegrationCheck();
+    return res.json(check);
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      module: MODULE_NAME,
+      healthy: false,
+      warnings: [],
+      errors: [err?.message || "integration_check_failed"],
+      stack: process.env.NODE_ENV === "production" ? undefined : err?.stack
+    });
+  }
 }
 
 function init(ctx) {
