@@ -1091,13 +1091,16 @@ function init(ctx) {
   routes.registerGet(app, ['/message-rotator/status', '/api/message-rotator/status'], statusHandler);
 
   const configHandler = guarded((req, res) => res.json(buildMessageRotatorConfig()));
-  routes.registerGet(app, ['/message-rotator/config', '/api/message-rotator/config'], configHandler);
+  routes.registerGet(app, '/message-rotator/config', configHandler);
+  routes.registerGet(app, '/api/message-rotator/config', configHandler);
 
   const settingsHandler = guarded((req, res) => res.json(buildMessageRotatorSettings()));
-  routes.registerGet(app, ['/message-rotator/settings', '/api/message-rotator/settings'], settingsHandler);
+  routes.registerGet(app, '/message-rotator/settings', settingsHandler);
+  routes.registerGet(app, '/api/message-rotator/settings', settingsHandler);
 
   const routesHandler = guarded((req, res) => res.json(buildMessageRotatorRoutes(req)));
-  routes.registerGet(app, ['/message-rotator/routes', '/api/message-rotator/routes'], routesHandler);
+  routes.registerGet(app, '/message-rotator/routes', routesHandler);
+  routes.registerGet(app, '/api/message-rotator/routes', routesHandler);
 
   const integrationCheckHandler = guarded((req, res) => res.json(buildMessageRotatorIntegrationCheck(req)));
   routes.registerGet(app, ['/message-rotator/integration-check', '/api/message-rotator/integration-check'], integrationCheckHandler);
