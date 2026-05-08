@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 const axios = require('axios');
 const WebSocket = require('ws');
 const core = require('./helpers/helper_core');
@@ -494,9 +495,256 @@ module.exports.init = function init(ctx) {
     res.json(buildPresenceStatus());
   }
 
+
+  function fileCheck(name, filePath, required = false) {
+    try {
+      const exists = Boolean(filePath && fs.existsSync(filePath));
+      return {
+        name,
+        ok: required ? exists : true,
+        level: required && !exists ? 'error' : (exists ? 'ok' : 'warning'),
+        exists,
+        configured: Boolean(filePath),
+        required,
+        error: required && !exists ? 'missing_file' : ''
+      };
+    } catch (e) {
+      return {
+        name,
+        ok: !required,
+        level: required ? 'error' : 'warning',
+        exists: false,
+        configured: Boolean(filePath),
+        required,
+        error: e?.message || String(e)
+      };
+    }
+  }
+
+  function buildPresenceRoutes() {
+    return [
+      { method: 'GET', path: '/api/twitch/presence/status', purpose: 'Twitch chat presence runtime status' },
+      { method: 'GET', path: '/api/twitch/presence/config', purpose: 'sanitized Twitch presence config' },
+      { method: 'GET', path: '/api/twitch/presence/settings', purpose: 'runtime settings and socket summary' },
+      { method: 'GET', path: '/api/twitch/presence/routes', purpose: 'list Twitch presence API routes' },
+      { method: 'GET', path: '/api/twitch/presence/integration-check', purpose: 'run non-destructive Twitch presence integration check' },
+      { method: 'POST', path: '/api/twitch/presence/reload', purpose: 'refresh status snapshot without reconnect/send actions' },
+      { method: 'GET', path: '/api/twitch/presence/start', purpose: 'start Twitch IRC presence connection' },
+      { method: 'GET', path: '/api/twitch/presence/stop', purpose: 'stop Twitch IRC presence connection' },
+      { method: 'GET/POST', path: '/api/twitch/presence/send', purpose: 'send a Twitch chat message through the presence bot' }
+    ];
+  }
+
+  function buildPresenceConfig() {
+    const tokenData = getStoredBotToken();
+    return {
+      prefix: '/api/twitch/presence',
+      legacyPrefix: '/twitch/presence',
+      projectRoot: baseRoot,
+      bot: {
+        usernameConfigured: Boolean(BOT_USERNAME),
+        channelConfigured: Boolean(BOT_CHANNEL),
+        clientIdConfigured: Boolean(BOT_CLIENT_ID),
+        clientSecretConfigured: Boolean(BOT_CLIENT_SECRET),
+        sendJoinMessage: SEND_JOIN_MESSAGE,
+        joinMessageConfigured: Boolean(JOIN_MESSAGE)
+      },
+      tokenStore: {
+        configured: Boolean(BOT_TOKEN_STORE),
+        exists: Boolean(tokenData),
+        hasAccessToken: Boolean(tokenData?.access_token),
+        hasRefreshToken: Boolean(tokenData?.refresh_token),
+        expiresAt: tokenData?.expires_at || null
+      },
+      files: {
+        tokenStore: fileCheck('token_store', BOT_TOKEN_STORE, false)
+      },
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function buildPresenceSettings() {
+    const status = buildPresenceStatus();
+    return {
+      prefix: '/api/twitch/presence',
+      legacyPrefix: '/twitch/presence',
+      desiredActive: status.desiredActive,
+      connecting: status.connecting,
+      reconnecting: status.reconnecting,
+      connected: status.connected,
+      authenticated: status.authenticated,
+      joined: status.joined,
+      botUsernameConfigured: Boolean(BOT_USERNAME),
+      channelConfigured: Boolean(BOT_CHANNEL),
+      tokenPresent: Boolean(status.token_present),
+      tokenExpiresAt: status.token_expires_at,
+      tokenExpiresIn: status.token_expires_in,
+      hasRefresh: Boolean(status.has_refresh),
+      joinMessageEnabled: status.join_message_enabled,
+      joinMessageSentForSession: status.join_message_sent_for_session,
+      lastJoinAt: status.last_join_at,
+      lastChatMessageAt: status.last_chat_message_at,
+      chatMessageSendCount: status.chat_message_send_count,
+      lastPongAt: status.last_pong_at,
+      lastClose: status.last_close,
+      lastError: status.last_error || '',
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function buildCheck(name, ok, level = null, extra = {}) {
+    return {
+      name,
+      ok: Boolean(ok),
+      level: level || (ok ? 'ok' : 'error'),
+      error: ok ? '' : (extra.error || name),
+      ...extra
+    };
+  }
+
+  function summarizeChecks(checks) {
+    return {
+      total: checks.length,
+      ok: checks.filter((check) => check.ok).length,
+      warnings: checks.filter((check) => check.level === 'warning').length,
+      errors: checks.filter((check) => check.level === 'error').length
+    };
+  }
+
+  function buildPresenceIntegrationCheck() {
+    const tokenData = getStoredBotToken();
+    const status = buildPresenceStatus();
+    const tokenFresh = Boolean(tokenData?.expires_at && tokenData.expires_at > epoch() + 60);
+    const tokenUsable = Boolean(tokenData?.access_token && (tokenFresh || tokenData?.refresh_token));
+
+    const checks = [
+      buildCheck('bot_username_configured', Boolean(BOT_USERNAME), 'error', { configured: Boolean(BOT_USERNAME) }),
+      buildCheck('bot_channel_configured', Boolean(BOT_CHANNEL), 'error', { configured: Boolean(BOT_CHANNEL) }),
+      buildCheck('bot_client_id_configured', Boolean(BOT_CLIENT_ID), 'error', { configured: Boolean(BOT_CLIENT_ID) }),
+      buildCheck('bot_client_secret_configured', Boolean(BOT_CLIENT_SECRET), 'error', { configured: Boolean(BOT_CLIENT_SECRET) }),
+      buildCheck('token_store_configured', Boolean(BOT_TOKEN_STORE), 'warning', { configured: Boolean(BOT_TOKEN_STORE) }),
+      buildCheck('token_present', Boolean(tokenData?.access_token), tokenData?.access_token ? 'ok' : 'warning', { present: Boolean(tokenData?.access_token) }),
+      buildCheck('token_usable_or_refreshable', tokenUsable, tokenUsable ? 'ok' : 'warning', {
+        hasAccessToken: Boolean(tokenData?.access_token),
+        hasRefreshToken: Boolean(tokenData?.refresh_token),
+        expiresAt: tokenData?.expires_at || null,
+        tokenFresh
+      }),
+      buildCheck('socket_state_readable', true, 'ok', {
+        desiredActive: status.desiredActive,
+        connected: status.connected,
+        authenticated: status.authenticated,
+        joined: status.joined,
+        connecting: status.connecting,
+        reconnecting: status.reconnecting
+      }),
+      buildCheck('routes', true, 'ok', { prefix: '/api/twitch/presence', count: buildPresenceRoutes().length })
+    ];
+
+    return {
+      prefix: '/api/twitch/presence',
+      legacyPrefix: '/twitch/presence',
+      checks,
+      summary: summarizeChecks(checks),
+      status,
+      notes: [
+        'This integration check is non-destructive.',
+        'It does not start, stop, reconnect or send Twitch chat messages.',
+        'Warnings are expected if the bot token is missing while the presence connection is intentionally inactive.'
+      ],
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function handlePresenceConfig(req, res) {
+    res.json({
+      ok: true,
+      module: 'twitch_presence',
+      route: '/api/twitch/presence/config',
+      timestamp: core.nowIso(),
+      data: buildPresenceConfig()
+    });
+  }
+
+  function handlePresenceSettings(req, res) {
+    res.json({
+      ok: true,
+      module: 'twitch_presence',
+      route: '/api/twitch/presence/settings',
+      timestamp: core.nowIso(),
+      data: buildPresenceSettings()
+    });
+  }
+
+  function handlePresenceRoutes(req, res) {
+    res.json({
+      ok: true,
+      module: 'twitch_presence',
+      route: '/api/twitch/presence/routes',
+      timestamp: core.nowIso(),
+      data: {
+        prefix: '/api/twitch/presence',
+        legacyPrefix: '/twitch/presence',
+        routes: buildPresenceRoutes(),
+        legacyMirrors: [
+          '/twitch/presence/start',
+          '/twitch/presence/stop',
+          '/twitch/presence/status',
+          '/twitch/presence/send'
+        ],
+        count: buildPresenceRoutes().length,
+        updatedAt: core.nowIso()
+      }
+    });
+  }
+
+  function handlePresenceIntegrationCheck(req, res) {
+    const data = buildPresenceIntegrationCheck();
+    const hasErrors = data.summary.errors > 0;
+    res.status(hasErrors ? 500 : 200).json({
+      ok: !hasErrors,
+      module: 'twitch_presence',
+      route: '/api/twitch/presence/integration-check',
+      timestamp: core.nowIso(),
+      data
+    });
+  }
+
+  function handlePresenceReload(req, res) {
+    const statusBefore = buildPresenceStatus();
+    const data = {
+      action: 'reload',
+      reloaded: true,
+      destructive: false,
+      startTriggered: false,
+      stopTriggered: false,
+      reconnectTriggered: false,
+      chatMessageSent: false,
+      desiredActiveBefore: statusBefore.desiredActive,
+      connectedBefore: statusBefore.connected,
+      joinedBefore: statusBefore.joined,
+      status: buildPresenceStatus(),
+      updatedAt: core.nowIso()
+    };
+
+    res.json({
+      ok: true,
+      module: 'twitch_presence',
+      route: '/api/twitch/presence/reload',
+      timestamp: core.nowIso(),
+      data
+    });
+  }
+
+
   routes.registerGet(app, ['/twitch/presence/start', '/api/twitch/presence/start'], handlePresenceStart);
   routes.registerGet(app, ['/twitch/presence/stop', '/api/twitch/presence/stop'], handlePresenceStop);
   routes.registerGet(app, ['/twitch/presence/status', '/api/twitch/presence/status'], handlePresenceStatus);
+  routes.registerGet(app, '/api/twitch/presence/config', handlePresenceConfig);
+  routes.registerGet(app, '/api/twitch/presence/settings', handlePresenceSettings);
+  routes.registerGet(app, '/api/twitch/presence/routes', handlePresenceRoutes);
+  routes.registerGet(app, '/api/twitch/presence/integration-check', handlePresenceIntegrationCheck);
+  routes.registerPost(app, '/api/twitch/presence/reload', handlePresenceReload);
   routes.registerGet(app, ['/twitch/presence/send', '/api/twitch/presence/send'], handlePresenceSend);
   routes.registerPost(app, ['/twitch/presence/send', '/api/twitch/presence/send'], handlePresenceSend);
 
