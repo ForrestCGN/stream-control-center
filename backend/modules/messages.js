@@ -98,8 +98,22 @@ function extractPossiblePaths(status) {
     for (const [key, value] of Object.entries(status.paths)) add(`paths.${key}`, value);
   }
 
-  if (status.files && typeof status.files === 'object') {
-    for (const [key, value] of Object.entries(status.files)) add(`files.${key}`, value);
+  if (Array.isArray(status.files)) {
+    status.files.forEach((file, index) => {
+      if (file && typeof file === 'object') {
+        add(`files.${file.file || index}`, file.path || file.fullPath || file.filePath || '');
+      } else {
+        add(`files.${index}`, file);
+      }
+    });
+  } else if (status.files && typeof status.files === 'object') {
+    for (const [key, value] of Object.entries(status.files)) {
+      if (value && typeof value === 'object') {
+        add(`files.${value.file || key}`, value.path || value.fullPath || value.filePath || '');
+      } else {
+        add(`files.${key}`, value);
+      }
+    }
   }
 
   return paths;
