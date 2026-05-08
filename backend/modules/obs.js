@@ -1,5 +1,6 @@
 "use strict";
 
+const fs = require("fs");
 const { getSharedObs } = require("./obs_shared");
 const core = require("./helpers/helper_core");
 const configHelper = require("./helpers/helper_config");
@@ -661,6 +662,252 @@ module.exports.init = function init(ctx) {
   app.post(obsRoutes("/obs/filter/enable"), (req, res) => handleFilter(req, res, "enable"));
   app.post(obsRoutes("/obs/filter/disable"), (req, res) => handleFilter(req, res, "disable"));
   app.post(obsRoutes("/obs/filter/toggle"), (req, res) => handleFilter(req, res, "toggle"));
+
+
+  function getFileStatus(name, filePath, required = false) {
+    const exists = Boolean(filePath && fs.existsSync(filePath));
+    return {
+      name,
+      ok: required ? exists : true,
+      level: exists ? "ok" : (required ? "error" : "warning"),
+      path: filePath || "",
+      exists,
+      required,
+      error: exists || !required ? "" : "file_not_found"
+    };
+  }
+
+  function buildObsRouteList() {
+    return [
+      { method: "GET", path: "/api/obs/status", purpose: "OBS runtime status" },
+      { method: "GET", path: "/api/obs/config", purpose: "sanitized dashboard config and files" },
+      { method: "GET", path: "/api/obs/settings", purpose: "runtime settings and shared OBS summary" },
+      { method: "GET", path: "/api/obs/routes", purpose: "list OBS API routes" },
+      { method: "GET", path: "/api/obs/integration-check", purpose: "run non-destructive OBS integration check" },
+      { method: "POST", path: "/api/obs/reload", purpose: "reload config/status cache without OBS actions" },
+      { method: "GET/POST", path: "/api/obs/dashboard/config", purpose: "read/write OBS dashboard config" },
+      { method: "GET", path: "/api/obs/stats", purpose: "OBS stats/status details" },
+      { method: "GET", path: "/api/obs/scenes", purpose: "list scenes and aliases" },
+      { method: "POST", path: "/api/obs/scene/switch", purpose: "switch program scene" },
+      { method: "POST", path: "/api/obs/scene/preview", purpose: "set preview scene" },
+      { method: "GET", path: "/api/obs/sources", purpose: "list inputs/sources" },
+      { method: "GET", path: "/api/obs/browser-sources", purpose: "list browser sources" },
+      { method: "GET", path: "/api/obs/scene-items", purpose: "list scene items" },
+      { method: "POST", path: "/api/obs/source/show", purpose: "show source/scene item" },
+      { method: "POST", path: "/api/obs/source/hide", purpose: "hide source/scene item" },
+      { method: "POST", path: "/api/obs/source/toggle", purpose: "toggle source/scene item" },
+      { method: "GET", path: "/api/obs/audio/busy", purpose: "legacy audio busy json state" },
+      { method: "GET", path: "/api/obs/audio/state", purpose: "legacy audio busy text state" },
+      { method: "POST", path: "/api/obs/audio/mute", purpose: "mute OBS input" },
+      { method: "POST", path: "/api/obs/audio/unmute", purpose: "unmute OBS input" },
+      { method: "POST", path: "/api/obs/audio/toggle", purpose: "toggle OBS input mute" },
+      { method: "POST", path: "/api/obs/audio/volume", purpose: "set OBS input volume" },
+      { method: "POST", path: "/api/obs/media/action", purpose: "trigger OBS media input action" },
+      { method: "GET", path: "/api/obs/replay/status", purpose: "read replay buffer status" },
+      { method: "POST", path: "/api/obs/replay/start", purpose: "start replay buffer" },
+      { method: "POST", path: "/api/obs/replay/stop", purpose: "stop replay buffer" },
+      { method: "POST", path: "/api/obs/replay/save", purpose: "save replay buffer" },
+      { method: "GET", path: "/api/obs/filter/list", purpose: "list source filters" },
+      { method: "POST", path: "/api/obs/filter/enable", purpose: "enable source filter" },
+      { method: "POST", path: "/api/obs/filter/disable", purpose: "disable source filter" },
+      { method: "POST", path: "/api/obs/filter/toggle", purpose: "toggle source filter" }
+    ];
+  }
+
+  function buildObsConfigResponse() {
+    const loaded = loadDashboardConfig();
+    const configPath = configHelper.resolveConfigFile("obs_dashboard.json");
+    return {
+      prefix: "/api/obs",
+      legacyPrefix: "/obs",
+      dashboardConfigPath: configPath,
+      files: {
+        dashboardConfig: getFileStatus("obs_dashboard_config", configPath, false)
+      },
+      dashboardConfig: loaded.config,
+      defaults: DEFAULT_DASHBOARD_CONFIG,
+      aliases: {
+        sourceAliasCount: Object.keys(sourceAliases || {}).length,
+        sceneAliasCount: Object.keys(sceneAliases || {}).length
+      },
+      updatedAt: core.nowIso()
+    };
+  }
+
+  async function buildObsSettingsResponse() {
+    const loaded = loadDashboardConfig();
+    const status = shared.getPublicStatus();
+    return {
+      prefix: "/api/obs",
+      legacyPrefix: "/obs",
+      dashboard: loaded.config,
+      shared: {
+        obsUrl: status.obsUrl || "",
+        obsConnected: Boolean(status.obsConnected),
+        obsConnecting: Boolean(status.obsConnecting),
+        obsDetected: Boolean(status.obsDetected),
+        currentProgramSceneName: status.currentProgramSceneName || "",
+        currentPreviewSceneName: status.currentPreviewSceneName || "",
+        studioModeEnabled: Boolean(status.studioModeEnabled),
+        streamActive: Boolean(status.streamActive),
+        recordActive: Boolean(status.recordActive),
+        replayBufferActive: Boolean(status.replayBufferActive),
+        obsSceneCount: Array.isArray(status.obsSceneNames) ? status.obsSceneNames.length : 0,
+        lastError: status.lastError || ""
+      },
+      aliases: {
+        sourceAliasCount: Object.keys(sourceAliases || {}).length,
+        sceneAliasCount: Object.keys(sceneAliases || {}).length
+      },
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function buildObsCheck(name, okValue, level, extra = {}) {
+    return {
+      name,
+      ok: Boolean(okValue),
+      level: level || (okValue ? "ok" : "error"),
+      ...extra
+    };
+  }
+
+  async function buildObsIntegrationCheck() {
+    const checks = [];
+    const configResponse = buildObsConfigResponse();
+    checks.push(configResponse.files.dashboardConfig);
+
+    let status = shared.getPublicStatus();
+    try {
+      await shared.refreshSnapshot();
+      status = shared.getPublicStatus();
+      checks.push(buildObsCheck("shared_snapshot", true, "ok", { error: "" }));
+    } catch (err) {
+      status = shared.getPublicStatus();
+      checks.push(buildObsCheck("shared_snapshot", false, status.obsDetected ? "warning" : "warning", { error: err?.message || String(err || "refresh_failed") }));
+    }
+
+    checks.push(buildObsCheck("obs_detected", Boolean(status.obsDetected), status.obsDetected ? "ok" : "warning", {
+      detected: Boolean(status.obsDetected),
+      error: status.obsDetected ? "" : "obs_not_detected"
+    }));
+    checks.push(buildObsCheck("obs_connected", Boolean(status.obsConnected), status.obsConnected ? "ok" : "warning", {
+      connected: Boolean(status.obsConnected),
+      error: status.obsConnected ? "" : (status.lastError || "obs_not_connected")
+    }));
+
+    let sceneCount = Array.isArray(status.obsSceneNames) ? status.obsSceneNames.length : 0;
+    try {
+      const scenes = await shared.refreshScenes();
+      sceneCount = Array.isArray(scenes) ? scenes.length : sceneCount;
+      checks.push(buildObsCheck("obs_scenes", sceneCount > 0, sceneCount > 0 ? "ok" : "warning", { count: sceneCount, error: sceneCount > 0 ? "" : "no_scenes_loaded" }));
+    } catch (err) {
+      checks.push(buildObsCheck("obs_scenes", false, "warning", { count: sceneCount, error: err?.message || String(err || "scenes_unavailable") }));
+    }
+
+    checks.push(buildObsCheck("dashboard_config", true, "ok", {
+      autoRefreshEnabled: Boolean(configResponse.dashboardConfig.autoRefreshEnabled),
+      fastRefreshMs: configResponse.dashboardConfig.fastRefreshMs,
+      fullRefreshMs: configResponse.dashboardConfig.fullRefreshMs
+    }));
+    checks.push(buildObsCheck("routes", true, "ok", { prefix: "/api/obs", count: buildObsRouteList().length }));
+
+    const errors = checks.filter(x => x.level === "error" || (x.required && !x.ok)).length;
+    const warnings = checks.filter(x => x.level === "warning").length;
+    const okCount = checks.filter(x => x.ok).length;
+
+    return {
+      prefix: "/api/obs",
+      legacyPrefix: "/obs",
+      checks,
+      summary: {
+        total: checks.length,
+        ok: okCount,
+        warnings,
+        errors
+      },
+      notes: [
+        "This integration check is non-destructive.",
+        "OBS connection warnings are expected when OBS is closed or WebSocket is unavailable.",
+        "Productive prefix remains /api/obs; legacy /obs routes remain available."
+      ],
+      updatedAt: core.nowIso()
+    };
+  }
+
+  app.get("/api/obs/config", (req, res) => {
+    const route = "/api/obs/config";
+    try {
+      ok(res, route, buildObsConfigResponse());
+    } catch (err) {
+      fail(res, route, "OBS_CONFIG_FAILED", err.message || "OBS-Konfiguration konnte nicht gelesen werden.", null, 500);
+    }
+  });
+
+  app.get("/api/obs/settings", async (req, res) => {
+    const route = "/api/obs/settings";
+    try {
+      ok(res, route, await buildObsSettingsResponse());
+    } catch (err) {
+      fail(res, route, "OBS_SETTINGS_FAILED", err.message || "OBS-Settings konnten nicht gelesen werden.", null, 500);
+    }
+  });
+
+  app.get("/api/obs/routes", (req, res) => {
+    const route = "/api/obs/routes";
+    try {
+      ok(res, route, {
+        prefix: "/api/obs",
+        legacyPrefix: "/obs",
+        routes: buildObsRouteList(),
+        count: buildObsRouteList().length,
+        updatedAt: core.nowIso()
+      });
+    } catch (err) {
+      fail(res, route, "OBS_ROUTES_FAILED", err.message || "OBS-Routen konnten nicht gelesen werden.", null, 500);
+    }
+  });
+
+  app.get("/api/obs/integration-check", async (req, res) => {
+    const route = "/api/obs/integration-check";
+    try {
+      ok(res, route, await buildObsIntegrationCheck());
+    } catch (err) {
+      fail(res, route, "OBS_INTEGRATION_CHECK_FAILED", err.message || "OBS-Integration-Check konnte nicht ausgefuehrt werden.", null, 500);
+    }
+  });
+
+  app.post("/api/obs/reload", async (req, res) => {
+    const route = "/api/obs/reload";
+    try {
+      const dashboard = loadDashboardConfig();
+      let refreshed = false;
+      let refreshError = "";
+      try {
+        await shared.refreshSnapshot();
+        refreshed = true;
+      } catch (err) {
+        refreshError = err?.message || String(err || "refresh_failed");
+      }
+
+      ok(res, route, {
+        action: "reload",
+        reloaded: true,
+        destructive: false,
+        obsActionTriggered: false,
+        replayActionTriggered: false,
+        sceneSwitchTriggered: false,
+        configReloaded: true,
+        dashboardConfig: dashboard.config,
+        snapshotRefreshed: refreshed,
+        refreshWarning: refreshError,
+        status: shared.getPublicStatus(),
+        updatedAt: core.nowIso()
+      });
+    } catch (err) {
+      fail(res, route, "OBS_RELOAD_FAILED", err.message || "OBS-Reload konnte nicht ausgefuehrt werden.", null, 500);
+    }
+  });
 
   console.log("[obs] Legacy- und neue OBS-Routen aktiv.");
 };
