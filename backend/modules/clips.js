@@ -588,6 +588,295 @@ module.exports.init = function init(ctx) {
     });
   });
 
+
+  function buildClipRoutes(prefix = '/api/clip') {
+    return [
+      { method: 'GET', path: `${prefix}/status`, purpose: 'runtime, config, DB and readiness status' },
+      { method: 'GET', path: `${prefix}/title`, purpose: 'build a Twitch/Streamer.bot clip title preview' },
+      { method: 'GET/POST', path: `${prefix}/register`, purpose: 'register an externally created clip and optionally post/store it' },
+      { method: 'GET', path: `${prefix}/history`, purpose: 'list recent clip history rows' },
+      { method: 'GET/POST', path: `${prefix}/create`, purpose: 'backend controlled Twitch clip creation flow' },
+      { method: 'GET', path: `${prefix}/job/:jobId`, purpose: 'get one backend clip job/history row' },
+      { method: 'GET/POST', path: `${prefix}/admin/settings`, purpose: 'dashboard settings editor endpoint' },
+      { method: 'GET/POST', path: '/api/dashboard/clips/settings', purpose: 'dashboard settings compatibility endpoint' },
+      { method: 'GET/POST', path: `${prefix}/admin/texts`, purpose: 'dashboard text variant editor endpoint' },
+      { method: 'GET/POST', path: '/api/dashboard/clips/texts', purpose: 'dashboard text compatibility endpoint' },
+      { method: 'GET', path: `${prefix}/config`, purpose: 'sanitized clip config view' },
+      { method: 'GET', path: `${prefix}/settings`, purpose: 'clip settings view' },
+      { method: 'GET', path: `${prefix}/routes`, purpose: 'list clip API routes' },
+      { method: 'GET', path: `${prefix}/integration-check`, purpose: 'run non-destructive clip integration check' },
+      { method: 'POST', path: `${prefix}/reload`, purpose: 'safe clip config/messages/settings reload' }
+    ];
+  }
+
+  function sanitizedClipConfigPayload(cfg, messages) {
+    const clipMessagesPath = resolveMaybeAbsolute(configDir, cfg.messagesPath);
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: 2,
+      schemaVersion: CLIP_SCHEMA_VERSION,
+      source: 'json_with_db_settings',
+      configPath: clipConfigPath,
+      messagesPath: clipMessagesPath,
+      files: {
+        config: {
+          path: clipConfigPath,
+          exists: fs.existsSync(clipConfigPath),
+          ok: fs.existsSync(clipConfigPath),
+          error: fs.existsSync(clipConfigPath) ? '' : 'file_not_found'
+        },
+        messages: {
+          path: clipMessagesPath,
+          exists: fs.existsSync(clipMessagesPath),
+          ok: fs.existsSync(clipMessagesPath),
+          error: fs.existsSync(clipMessagesPath) ? '' : 'file_not_found'
+        },
+        discordChannels: {
+          path: discordChannelsPath,
+          exists: fs.existsSync(discordChannelsPath),
+          ok: fs.existsSync(discordChannelsPath),
+          error: fs.existsSync(discordChannelsPath) ? '' : 'file_not_found'
+        }
+      },
+      config: {
+        enabled: cfg.enabled,
+        backendCreateEnabled: cfg.backendCreateEnabled,
+        defaultClipTitle: cfg.defaultClipTitle,
+        includeGameInCustomTitle: cfg.includeGameInCustomTitle,
+        twitchClipDurationSeconds: cfg.twitchClipDurationSeconds,
+        twitchClipPollMs: cfg.twitchClipPollMs,
+        twitchClipPollMaxAttempts: cfg.twitchClipPollMaxAttempts,
+        obsReplaySaveEnabled: cfg.obsReplaySaveEnabled,
+        obsReplayWindowSeconds: cfg.obsReplayWindowSeconds,
+        obsReplayPreTriggerSeconds: cfg.obsReplayPreTriggerSeconds,
+        obsReplayPostTriggerSeconds: cfg.obsReplayPostTriggerSeconds,
+        obsReplaySaveDelayMs: cfg.obsReplaySaveDelayMs,
+        localReplayRenameEnabled: cfg.localReplayRenameEnabled,
+        localReplayRenameDelayMs: cfg.localReplayRenameDelayMs,
+        localReplayDir: cfg.localReplayDir,
+        localReplayLookbackMinutes: cfg.localReplayLookbackMinutes,
+        sendClipActivatedMessage: cfg.sendClipActivatedMessage,
+        sendTwitchClipResultMessage: cfg.sendTwitchClipResultMessage,
+        sendChatResponse: cfg.sendChatResponse,
+        discordPostEnabled: cfg.discordPostEnabled,
+        discordChannelMode: cfg.discordChannelMode,
+        discordChannelKey: cfg.discordChannelKey,
+        discordChannelIdConfigured: Boolean(cfg.discordChannelId),
+        postOnlyWhenLive: cfg.postOnlyWhenLive,
+        saveHistory: cfg.saveHistory,
+        duplicatePolicy: cfg.duplicatePolicy,
+        messagesPath: cfg.messagesPath,
+        settingsTable: CLIP_SETTINGS_TABLE,
+        historyTable: CLIP_HISTORY_TABLE
+      },
+      messages: publicMessages(messages),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function buildCheck(name, ok, level, extra = {}) {
+    return {
+      name,
+      ok: Boolean(ok),
+      level: level || (ok ? 'ok' : 'warning'),
+      ...extra
+    };
+  }
+
+  async function buildClipIntegrationCheck() {
+    const cfg = loadClipConfig();
+    const messages = loadClipMessages(cfg);
+    const clipMessagesPath = resolveMaybeAbsolute(configDir, cfg.messagesPath);
+    const channels = loadDiscordChannels();
+    const dbStatus = getClipDbStatus();
+    const settingsRows = listClipSettings(cfg);
+    const twitchApi = await loadTwitchAuthReadiness(cfg);
+    const obsReplay = await loadObsReplayReadiness(cfg);
+    const discord = buildDiscordReadiness(cfg, channels);
+    const localReplayDir = String(cfg.localReplayDir || '').trim();
+    const localReplayExists = Boolean(localReplayDir && fs.existsSync(localReplayDir));
+    const checks = [];
+
+    checks.push(buildCheck('config_file', fs.existsSync(clipConfigPath), fs.existsSync(clipConfigPath) ? 'ok' : 'error', {
+      path: clipConfigPath,
+      exists: fs.existsSync(clipConfigPath),
+      error: fs.existsSync(clipConfigPath) ? '' : 'file_not_found'
+    }));
+
+    checks.push(buildCheck('messages_file', fs.existsSync(clipMessagesPath), fs.existsSync(clipMessagesPath) ? 'ok' : 'warning', {
+      path: clipMessagesPath,
+      exists: fs.existsSync(clipMessagesPath),
+      error: fs.existsSync(clipMessagesPath) ? '' : 'file_not_found',
+      note: fs.existsSync(clipMessagesPath) ? '' : 'JSON messages are fallback only when DB text variants are available.'
+    }));
+
+    checks.push(buildCheck('runtime_config', cfg.enabled, cfg.enabled ? 'ok' : 'warning', {
+      enabled: cfg.enabled,
+      backendCreateEnabled: cfg.backendCreateEnabled
+    }));
+
+    checks.push(buildCheck('database', dbStatus.ok, dbStatus.ok ? 'ok' : 'error', dbStatus));
+
+    checks.push(buildCheck('schema', dbStatus.ok && Number(dbStatus.schemaVersion || 0) >= CLIP_SCHEMA_VERSION, dbStatus.ok && Number(dbStatus.schemaVersion || 0) >= CLIP_SCHEMA_VERSION ? 'ok' : 'warning', {
+      table: CLIP_HISTORY_TABLE,
+      schemaVersion: dbStatus.schemaVersion,
+      expectedSchemaVersion: CLIP_SCHEMA_VERSION,
+      historyCount: dbStatus.historyCount || 0,
+      error: dbStatus.error || ''
+    }));
+
+    checks.push(buildCheck('settings', Boolean(settingsHelper), settingsHelper ? 'ok' : 'warning', {
+      table: CLIP_SETTINGS_TABLE,
+      count: Array.isArray(settingsRows) ? settingsRows.length : 0,
+      source: settingsHelper ? 'helper_settings' : 'fallback'
+    }));
+
+    checks.push(buildCheck('text_variants', Boolean(textHelper), textHelper ? 'ok' : 'warning', {
+      moduleName: MODULE_NAME,
+      source: textHelper ? 'helper_texts' : 'json_fallback',
+      configuredKeys: Object.keys(publicMessages(messages)).filter(key => Boolean(publicMessages(messages)[key])).length
+    }));
+
+    checks.push(buildCheck('local_replay_dir', !cfg.obsReplaySaveEnabled || localReplayExists, (!cfg.obsReplaySaveEnabled || localReplayExists) ? 'ok' : 'warning', {
+      enabled: cfg.obsReplaySaveEnabled,
+      path: localReplayDir,
+      exists: localReplayExists,
+      error: (!cfg.obsReplaySaveEnabled || localReplayExists) ? '' : 'directory_not_found'
+    }));
+
+    checks.push(buildCheck('twitch_create_readiness', Boolean(twitchApi.readyForCreateClip), twitchApi.readyForCreateClip ? 'ok' : 'warning', {
+      readyForCreateClip: Boolean(twitchApi.readyForCreateClip),
+      blockers: twitchApi.blockers || [],
+      error: twitchApi.error || ''
+    }));
+
+    checks.push(buildCheck('obs_replay_readiness', !cfg.obsReplaySaveEnabled || Boolean(obsReplay.readyForBackendSave), (!cfg.obsReplaySaveEnabled || obsReplay.readyForBackendSave) ? 'ok' : 'warning', {
+      enabled: cfg.obsReplaySaveEnabled,
+      readyForBackendSave: Boolean(obsReplay.readyForBackendSave),
+      blockers: obsReplay.blockers || [],
+      error: obsReplay.error || ''
+    }));
+
+    checks.push(buildCheck('discord_target', Boolean(discord.readyForPost), discord.readyForPost ? 'ok' : 'warning', {
+      discordPostEnabled: cfg.discordPostEnabled,
+      readyForPost: Boolean(discord.readyForPost),
+      channelKey: discord.discordChannelKey,
+      channelConfigured: Boolean(discord.discordChannelConfigured),
+      bridgeAvailable: Boolean(discord.bridgeAvailable),
+      blockers: discord.blockers || []
+    }));
+
+    checks.push(buildCheck('routes', true, 'ok', {
+      prefix: '/api/clip',
+      intentionallyNotRegistered: ['/api/clips'],
+      count: buildClipRoutes('/api/clip').length
+    }));
+
+    const summary = {
+      total: checks.length,
+      ok: checks.filter(check => check.level === 'ok').length,
+      warnings: checks.filter(check => check.level === 'warning').length,
+      errors: checks.filter(check => check.level === 'error').length
+    };
+
+    return {
+      ok: summary.errors === 0,
+      module: MODULE_NAME,
+      version: 2,
+      prefix: '/api/clip',
+      schemaVersion: CLIP_SCHEMA_VERSION,
+      checks,
+      summary,
+      notes: [
+        'This integration check is non-destructive.',
+        '/api/clips is intentionally not registered; productive prefix remains /api/clip.',
+        'Reload reloads config/messages/settings only and does not create clips or touch OBS.'
+      ],
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  app.get('/api/clip/config', (req, res) => {
+    try {
+      const cfg = loadClipConfig();
+      const messages = loadClipMessages(cfg);
+      res.json(sanitizedClipConfigPayload(cfg, messages));
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err.message || String(err) });
+    }
+  });
+
+  app.get('/api/clip/settings', (req, res) => {
+    try {
+      const cfg = loadClipConfig();
+      const rows = listClipSettings(cfg);
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        version: 2,
+        source: settingsHelper ? 'helper_settings' : 'fallback',
+        table: CLIP_SETTINGS_TABLE,
+        count: rows.length,
+        rows,
+        config: publicClipRuntimeConfig(cfg),
+        updatedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err.message || String(err) });
+    }
+  });
+
+  app.get('/api/clip/routes', (req, res) => {
+    const routes = buildClipRoutes('/api/clip');
+    res.json({
+      ok: true,
+      module: MODULE_NAME,
+      version: 2,
+      prefix: '/api/clip',
+      intentionallyNotRegistered: ['/api/clips'],
+      routes,
+      count: routes.length,
+      updatedAt: new Date().toISOString()
+    });
+  });
+
+  app.get('/api/clip/integration-check', async (req, res) => {
+    try {
+      res.json(await buildClipIntegrationCheck());
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err.message || String(err) });
+    }
+  });
+
+  app.post('/api/clip/reload', (req, res) => {
+    try {
+      ensureClipSchema();
+      const cfg = loadClipConfig();
+      const messages = loadClipMessages(cfg);
+      const settingsRows = listClipSettings(cfg);
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        version: 2,
+        action: 'reload',
+        reloaded: true,
+        destructive: false,
+        createClipTriggered: false,
+        obsReplayTriggered: false,
+        historyPreserved: true,
+        config: publicClipRuntimeConfig(cfg),
+        settingsCount: settingsRows.length,
+        messageKeys: Object.keys(publicMessages(messages)),
+        db: getClipDbStatus(),
+        updatedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err.message || String(err) });
+    }
+  });
+
   app.get('/api/clip/title', async (req, res) => {
     const cfg = loadClipConfig();
     if (!cfg.enabled) {
@@ -1399,7 +1688,7 @@ module.exports.init = function init(ctx) {
     }
   }
 
-  console.log('[clips] /api/clip/status, /api/clip/title, /api/clip/register, /api/clip/history und /api/clip/create aktiv');
+  console.log('[clips] /api/clip/status, /api/clip/title, /api/clip/register, /api/clip/history, /api/clip/create, /api/clip/routes und /api/clip/integration-check aktiv');
 };
 
 function ensureClipSchema() {
