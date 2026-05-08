@@ -8,6 +8,8 @@ const textHelper = require('./helpers/helper_texts');
 const http = require('http');
 const https = require('https');
 const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -778,6 +780,266 @@ function manualMessage(req) {
   };
 }
 
+
+function fileCheck(label, filePath) {
+  const cleanPath = String(filePath || '').trim();
+  const result = {
+    ok: false,
+    label,
+    path: cleanPath,
+    exists: false,
+    isFile: false,
+    isDirectory: false,
+    error: ''
+  };
+
+  if (!cleanPath) {
+    result.error = 'missing_path';
+    return result;
+  }
+
+  try {
+    const stat = fs.statSync(cleanPath);
+    result.exists = true;
+    result.isFile = stat.isFile();
+    result.isDirectory = stat.isDirectory();
+    result.ok = true;
+  } catch (err) {
+    result.error = err.message || String(err);
+  }
+
+  return result;
+}
+
+function safeCall(label, fn, fallback = null) {
+  try {
+    return { ok: true, value: fn(), error: '' };
+  } catch (err) {
+    return { ok: false, value: fallback, error: err.message || String(err), label };
+  }
+}
+
+function getMessagesDir() {
+  return path.join(path.dirname(getConfigPath()), 'messages');
+}
+
+function resolveMessageFilePath(item) {
+  const fileName = cleanId(item && item.messageFile ? item.messageFile : '');
+  if (!fileName) return '';
+  if (path.isAbsolute(fileName)) return fileName;
+  return path.join(getMessagesDir(), fileName);
+}
+
+function buildMessageRotatorConfig() {
+  const c = getConfig();
+  return {
+    ok: true,
+    module: 'message_rotator',
+    config: clone(c),
+    configInfo: cfgInfo,
+    configPath: getConfigPath(),
+    source: 'json_with_defaults',
+    status: publicState()
+  };
+}
+
+function buildMessageRotatorSettings() {
+  const c = getConfig();
+  return {
+    ok: true,
+    module: 'message_rotator',
+    settings: {
+      source: 'runtime_and_json_config',
+      enabled: c.enabled,
+      runtime: clone(c.runtime || {}),
+      chat: clone(c.chat || {}),
+      messageOptions: clone(c.messageOptions || {}),
+      liveStatus: clone(c.liveStatus || {}),
+      items: clone(c.items || []),
+      state: publicState()
+    }
+  };
+}
+
+function buildMessageRotatorRoutes(req = null) {
+  const routeList = [
+    { method: 'GET', path: '/api/message-rotator/status', auth: 'local_or_auth', category: 'status', description: 'Message-Rotator Status und Runtime-State.' },
+    { method: 'GET', path: '/api/message-rotator/config', auth: 'local_or_auth', category: 'config', description: 'Read-only effektive Message-Rotator-Config.' },
+    { method: 'GET', path: '/api/message-rotator/settings', auth: 'local_or_auth', category: 'settings', description: 'Read-only Runtime-/Config-Settings des Message-Rotators.' },
+    { method: 'GET', path: '/api/message-rotator/routes', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Routenübersicht des Message-Rotators.' },
+    { method: 'GET', path: '/api/message-rotator/integration-check', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Integration-Check des Message-Rotators.' },
+    { method: 'GET', path: '/api/message-rotator/reload', auth: 'local_or_auth', category: 'admin', description: 'Message-Rotator Config und Texte neu laden.' },
+    { method: 'POST', path: '/api/message-rotator/reload', auth: 'local_or_auth', category: 'admin', description: 'Message-Rotator Config und Texte neu laden.' },
+    { method: 'GET', path: '/api/message-rotator/start', auth: 'local_or_auth', category: 'control', description: 'Message-Rotator starten.' },
+    { method: 'POST', path: '/api/message-rotator/start', auth: 'local_or_auth', category: 'control', description: 'Message-Rotator starten.' },
+    { method: 'GET', path: '/api/message-rotator/stop', auth: 'local_or_auth', category: 'control', description: 'Message-Rotator stoppen.' },
+    { method: 'POST', path: '/api/message-rotator/stop', auth: 'local_or_auth', category: 'control', description: 'Message-Rotator stoppen.' },
+    { method: 'GET', path: '/api/message-rotator/tick', auth: 'local_or_auth', category: 'runtime', description: 'Chat-Tick registrieren.' },
+    { method: 'POST', path: '/api/message-rotator/tick', auth: 'local_or_auth', category: 'runtime', description: 'Chat-Tick registrieren.' },
+    { method: 'GET', path: '/api/message-rotator/next', auth: 'local_or_auth', category: 'send', description: 'Nächste Rotator-Message prüfen/senden.' },
+    { method: 'POST', path: '/api/message-rotator/next', auth: 'local_or_auth', category: 'send', description: 'Nächste Rotator-Message prüfen/senden.' },
+    { method: 'GET', path: '/api/message-rotator/manual', auth: 'local_or_auth', category: 'send', description: 'Manuelle Rotator-Message per Command/Item senden.' },
+    { method: 'POST', path: '/api/message-rotator/manual', auth: 'local_or_auth', category: 'send', description: 'Manuelle Rotator-Message per Command/Item senden.' },
+    { method: 'GET', path: '/api/message-rotator/live-status', auth: 'local_or_auth', category: 'diagnostics', description: 'Live-Status prüfen/lesen.' },
+    { method: 'POST', path: '/api/message-rotator/live-status', auth: 'local_or_auth', category: 'diagnostics', description: 'Live-Status prüfen/lesen.' },
+
+    { method: 'GET', path: '/message-rotator/status', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Status.' },
+    { method: 'GET', path: '/message-rotator/config', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Config.' },
+    { method: 'GET', path: '/message-rotator/settings', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Settings.' },
+    { method: 'GET', path: '/message-rotator/routes', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Routenübersicht.' },
+    { method: 'GET', path: '/message-rotator/integration-check', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Integration-Check.' },
+    { method: 'GET', path: '/message-rotator/reload', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Reload.' },
+    { method: 'POST', path: '/message-rotator/reload', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Reload.' },
+    { method: 'GET', path: '/message-rotator/start', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Start.' },
+    { method: 'POST', path: '/message-rotator/start', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Start.' },
+    { method: 'GET', path: '/message-rotator/stop', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Stop.' },
+    { method: 'POST', path: '/message-rotator/stop', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Stop.' },
+    { method: 'GET', path: '/message-rotator/tick', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Tick.' },
+    { method: 'POST', path: '/message-rotator/tick', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Tick.' },
+    { method: 'GET', path: '/message-rotator/next', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Next.' },
+    { method: 'POST', path: '/message-rotator/next', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Next.' },
+    { method: 'GET', path: '/message-rotator/manual', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Manual.' },
+    { method: 'POST', path: '/message-rotator/manual', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Manual.' },
+    { method: 'GET', path: '/message-rotator/live-status', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Live-Status.' },
+    { method: 'POST', path: '/message-rotator/live-status', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Live-Status.' }
+  ];
+
+  return {
+    ok: true,
+    module: 'message_rotator',
+    version: 1,
+    standardPrefix: '/api/message-rotator',
+    legacyPrefixes: ['/message-rotator'],
+    standardEndpoints: {
+      status: '/api/message-rotator/status',
+      config: '/api/message-rotator/config',
+      settings: '/api/message-rotator/settings',
+      routes: '/api/message-rotator/routes',
+      integrationCheck: '/api/message-rotator/integration-check',
+      reload: '/api/message-rotator/reload'
+    },
+    routes: routeList,
+    count: routeList.length,
+    categories: Array.from(new Set(routeList.map(route => route.category))).sort(),
+    notes: [
+      'Read-only Routenübersicht für Dashboard-/Modul-Standardisierung.',
+      'Bestehende Legacy-Routen bleiben erhalten.',
+      'Schreibende Routen sind nur dokumentiert, nicht neu angelegt.',
+      '/api/message-rotator/config und /api/message-rotator/settings sind read-only Standard-Aliase.'
+    ],
+    security: req ? security.securitySummary(req) : security.securitySummary()
+  };
+}
+
+function buildMessageRotatorIntegrationCheck(req = null) {
+  const warnings = [];
+  const errors = [];
+  const checks = {};
+
+  const configCheck = safeCall('config', () => {
+    const c = getConfig();
+    return {
+      ok: !!c,
+      enabled: !!c.enabled,
+      configPath: getConfigPath(),
+      itemCount: Array.isArray(c.items) ? c.items.length : 0,
+      enabledItems: Array.isArray(c.items) ? c.items.filter(item => item.enabled).length : 0,
+      source: 'json_with_defaults',
+      error: ''
+    };
+  }, { ok: false, error: 'config_check_failed' });
+  checks.config = configCheck.ok ? configCheck.value : { ok: false, error: configCheck.error };
+
+  checks.files = {
+    config: fileCheck('config', getConfigPath()),
+    messagesDir: fileCheck('messagesDir', getMessagesDir())
+  };
+
+  const c = getConfig();
+  const itemFiles = {};
+  (c.items || []).forEach(item => {
+    const label = `messageFile.${item.id || item.messageKey || item.messageFile || 'unknown'}`;
+    itemFiles[label] = fileCheck(label, resolveMessageFilePath(item));
+  });
+  checks.messageFiles = itemFiles;
+
+  const textStatusCheck = safeCall('textHelperStatus', () => textHelper.getStatus ? textHelper.getStatus() : null, null);
+  checks.texts = {
+    ok: textStatusCheck.ok && !!textStatusCheck.value && textStatusCheck.value.ok !== false,
+    status: textStatusCheck.value,
+    error: textStatusCheck.error
+  };
+
+  const sampleChecks = {};
+  (c.items || []).filter(item => item.enabled).slice(0, 5).forEach(item => {
+    const result = safeCall(`sample.${item.messageKey}`, () => textHelper.buildChatResult(item.messageKey, {}, c.messageOptions || {}), null);
+    sampleChecks[item.messageKey] = {
+      ok: result.ok && !!result.value && result.value.ok !== false,
+      value: result.value,
+      error: result.error
+    };
+  });
+  checks.samples = sampleChecks;
+
+  checks.runtime = {
+    ok: true,
+    active: state.active,
+    totalTicks: state.totalTicks,
+    ignoredTicks: state.ignoredTicks,
+    sendCount: state.sendCount,
+    chatMessagesSinceLastSend: state.chatMessagesSinceLastSend,
+    lastSentAt: state.lastSentAt,
+    lastItemId: state.lastItemId,
+    liveStatus: clone(state.liveStatus || {})
+  };
+
+  checks.liveStatusConfig = {
+    ok: !!(c.liveStatus && c.liveStatus.url),
+    enabled: !!(c.liveStatus && c.liveStatus.enabled),
+    mode: c.liveStatus ? c.liveStatus.mode : '',
+    url: c.liveStatus ? c.liveStatus.url : '',
+    failClosed: c.liveStatus ? !!c.liveStatus.failClosed : null,
+    cacheSeconds: c.liveStatus ? c.liveStatus.cacheSeconds : null
+  };
+
+  Object.entries(checks.files).forEach(([key, check]) => {
+    if (!check.ok) errors.push(`${key}:${check.error || 'not_ok'}`);
+  });
+  Object.entries(checks.messageFiles).forEach(([key, check]) => {
+    if (!check.ok) errors.push(`${key}:${check.error || 'not_ok'}`);
+  });
+  if (!checks.config.ok) errors.push(`config:${checks.config.error || 'not_ok'}`);
+  if (!checks.texts.ok) errors.push(`texts:${checks.texts.error || 'not_ok'}`);
+  Object.entries(checks.samples).forEach(([key, check]) => {
+    if (!check.ok) warnings.push(`sample.${key}:${check.error || (check.value && check.value.error) || 'not_ok'}`);
+  });
+  if (!checks.liveStatusConfig.ok) warnings.push('liveStatusConfig:url_missing');
+
+  return {
+    ok: errors.length === 0,
+    module: 'message_rotator',
+    version: 1,
+    healthy: errors.length === 0,
+    warnings,
+    errors,
+    checks,
+    routes: {
+      status: '/api/message-rotator/status',
+      config: '/api/message-rotator/config',
+      settings: '/api/message-rotator/settings',
+      routes: '/api/message-rotator/routes',
+      integrationCheck: '/api/message-rotator/integration-check',
+      reload: '/api/message-rotator/reload'
+    },
+    notes: [
+      'Read-only Integration-Check für Dashboard-/Modul-Standardisierung.',
+      'Es werden keine DB-, JSON- oder Dateiänderungen vorgenommen.',
+      'Sample-Warnungen bedeuten nur, dass einzelne Message-Keys fehlen oder nicht rendern.'
+    ],
+    security: req ? security.securitySummary(req) : security.securitySummary()
+  };
+}
+
 function wantsPlain(req) {
   return String(core.getParam(req, 'plain', '') || '').trim() === '1';
 }
@@ -827,6 +1089,18 @@ function init(ctx) {
 
   const statusHandler = guarded((req, res) => res.json({ ok: true, ...publicState() }));
   routes.registerGet(app, ['/message-rotator/status', '/api/message-rotator/status'], statusHandler);
+
+  const configHandler = guarded((req, res) => res.json(buildMessageRotatorConfig()));
+  routes.registerGet(app, ['/message-rotator/config', '/api/message-rotator/config'], configHandler);
+
+  const settingsHandler = guarded((req, res) => res.json(buildMessageRotatorSettings()));
+  routes.registerGet(app, ['/message-rotator/settings', '/api/message-rotator/settings'], settingsHandler);
+
+  const routesHandler = guarded((req, res) => res.json(buildMessageRotatorRoutes(req)));
+  routes.registerGet(app, ['/message-rotator/routes', '/api/message-rotator/routes'], routesHandler);
+
+  const integrationCheckHandler = guarded((req, res) => res.json(buildMessageRotatorIntegrationCheck(req)));
+  routes.registerGet(app, ['/message-rotator/integration-check', '/api/message-rotator/integration-check'], integrationCheckHandler);
 
   const reloadHandler = guarded((req, res) => {
     const result = loadConfig();
