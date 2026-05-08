@@ -220,6 +220,140 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function publicSoundRoutes(prefix) {
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      addedByStep: "STEP200.1",
+      routes: [
+        { method: "GET", path: `${prefix}/status`, description: "Runtime status, current item, queue, client and device state" },
+        { method: "GET", path: `${prefix}/current`, description: "Current sound item" },
+        { method: "GET", path: `${prefix}/queue`, description: "Queued sound items" },
+        { method: "GET", path: `${prefix}/list`, description: "Configured JSON/seed sound presets" },
+        { method: "GET", path: `${prefix}/config`, description: "Effective runtime config after DB settings over JSON fallback" },
+        { method: "GET", path: `${prefix}/settings`, description: "DB-backed dashboard settings and effective config blocks" },
+        { method: "POST", path: `${prefix}/settings`, description: "Save DB-backed dashboard settings" },
+        { method: "POST", path: `${prefix}/reload`, description: "Reload JSON fallback and DB settings" },
+        { method: "GET", path: `${prefix}/routes`, description: "Route self-documentation" },
+        { method: "GET", path: `${prefix}/integration-check`, description: "Integration and DB/JSON/Sound overlay consistency check" },
+        { method: "GET", path: `${prefix}/generated/beep.wav`, description: "Generated test beep audio" },
+        { method: "GET", path: `${prefix}/play`, description: "Play/queue a sound via query parameters" },
+        { method: "POST", path: `${prefix}/play`, description: "Play/queue a sound via JSON body" },
+        { method: "POST", path: `${prefix}/stop`, description: "Stop current sound, optionally clear queue" },
+        { method: "POST", path: `${prefix}/skip`, description: "Skip current sound" },
+        { method: "POST", path: `${prefix}/clear`, description: "Clear queue" },
+        { method: "POST", path: `${prefix}/pause`, description: "Pause sound queue processing" },
+        { method: "POST", path: `${prefix}/resume`, description: "Resume sound queue processing" },
+        { method: "POST", path: `${prefix}/reset`, description: "Reset runtime sound state" },
+        { method: "POST", path: `${prefix}/client/ready`, description: "Overlay client ready heartbeat" },
+        { method: "POST", path: `${prefix}/client/audio-started`, description: "Overlay client started playback acknowledgement" },
+        { method: "POST", path: `${prefix}/client/audio-ended`, description: "Overlay client ended playback acknowledgement" },
+        { method: "POST", path: `${prefix}/client/error`, description: "Overlay client playback error acknowledgement" }
+      ],
+      notes: [
+        "DB settings override JSON fallback for allowed blocks.",
+        "output.targets is the active output-target model for overlay/device/both.",
+        "targets is kept for legacy stream/discord/both compatibility and must not be removed until all callers are migrated."
+      ]
+    };
+  }
+
+  function publicSoundIntegrationCheck() {
+    const warnings = [];
+    const errors = [];
+    let settings = {};
+    let settingsError = "";
+    try {
+      settings = getSoundSettings();
+    } catch (err) {
+      settingsError = err && err.message ? err.message : String(err);
+      errors.push("sound_settings_read_failed");
+    }
+
+    const outputTargets = config.output && isPlainObject(config.output.targets) ? Object.keys(config.output.targets) : [];
+    const legacyTargets = config.targets && isPlainObject(config.targets) ? Object.keys(config.targets) : [];
+    if (outputTargets.length && legacyTargets.length) {
+      warnings.push("legacy_targets_and_output_targets_both_present");
+    }
+    if (!outputTargets.includes("overlay")) errors.push("missing_output_target_overlay");
+    if (!outputTargets.includes("device")) warnings.push("missing_output_target_device");
+
+    const allowedExtensions = Array.isArray(config.allowedExtensions) ? config.allowedExtensions.map(v => String(v).toLowerCase()) : [];
+    if (!allowedExtensions.includes(".mp4")) warnings.push("allowed_extensions_missing_mp4");
+    if (!allowedExtensions.includes(".webm")) warnings.push("allowed_extensions_missing_webm");
+
+    const overlayUrl = String(config.output?.targets?.overlay?.overlayUrl || "");
+    if (!overlayUrl) warnings.push("overlay_url_missing");
+
+    const helperRel = String(config.output?.targets?.device?.helper?.path || "");
+    let helperExists = false;
+    let helperPath = "";
+    if (helperRel) {
+      helperPath = path.isAbsolute(helperRel) ? helperRel : cfg.resolveFromRoot(helperRel);
+      helperExists = fs.existsSync(helperPath);
+      if (config.output?.targets?.device?.enabled !== false && !helperExists) warnings.push("audio_device_helper_missing");
+    }
+
+    const soundsBaseDir = getSoundsBaseDir();
+    const soundsBaseDirExists = fs.existsSync(soundsBaseDir);
+    if (!soundsBaseDirExists) warnings.push("sounds_base_dir_missing");
+
+    const settingsKeys = Object.keys(settings || {});
+    const dbSettingsOk = sqlite.isInitialized() && !settingsError;
+    const healthy = errors.length === 0;
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      healthy,
+      warnings,
+      errors,
+      checks: {
+        enabled: state.enabled,
+        paused: state.paused,
+        current: state.current ? publicItem(state.current) : null,
+        queuedCount: state.queue.length,
+        parallelCount: state.parallel.length,
+        clientConnected: !!state.client.connected,
+        clientLastEvent: state.client.lastEvent || "",
+        deviceLastOk: !!state.device.lastOk,
+        failed: Number(state.stats.failed || 0),
+        deviceFailed: Number(state.stats.deviceFailed || 0),
+        dbSettingsOk,
+        dbSettingsCount: settingsKeys.length,
+        jsonConfigOk: !!state.configOk,
+        outputTargets,
+        legacyTargets,
+        defaultOutputTarget: config.output?.defaultTarget || "",
+        overlayUrl,
+        helperConfigured: !!helperRel,
+        helperExists,
+        soundsBaseDir,
+        soundsBaseDirExists,
+        allowedExtensions,
+        hasMp4: allowedExtensions.includes(".mp4"),
+        hasWebm: allowedExtensions.includes(".webm"),
+        jsonPresetCount: getSoundList().length
+      },
+      sources: {
+        json: {
+          path: state.configPath,
+          exists: !!state.configPath && fs.existsSync(state.configPath),
+          ok: !!state.configOk,
+          error: state.configError || ""
+        },
+        database: {
+          path: sqlite.isInitialized() ? sqlite.getDbPath() : "",
+          table: SOUND_SETTINGS_TABLE,
+          ok: dbSettingsOk,
+          count: settingsKeys.length,
+          error: settingsError
+        },
+        rule: "database_over_json_fallback_for_allowed_blocks"
+      }
+    };
+  }
+
   function sanitizeSoundSettingsPayload(body) {
     const input = isPlainObject(body && body.settings) ? body.settings : (isPlainObject(body) ? body : {});
     const clean = {};
@@ -1132,6 +1266,9 @@ module.exports.init = function init(ctx) {
     res.setHeader("Cache-Control", "no-store");
     return res.end(wav);
   });
+
+  app.get(`${prefix}/routes`, (req, res) => res.json(publicSoundRoutes(prefix)));
+  app.get(`${prefix}/integration-check`, (req, res) => res.json(publicSoundIntegrationCheck()));
 
   app.get(`${prefix}/status`, (req, res) => res.json(publicState()));
   app.get(`${prefix}/current`, (req, res) => res.json(core.ok({ current: state.current ? publicItem(state.current) : null })));
