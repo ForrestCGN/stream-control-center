@@ -1,6 +1,83 @@
 # FILES - stream-control-center
 
-Stand: 2026-05-07
+Stand: 2026-05-08
+
+## TTS relevante Dateien
+
+Backend:
+
+- `backend/modules/tts_system.js`
+- `backend/core/database.js`
+- `backend/modules/helpers/helper_settings.js`
+- `backend/modules/helpers/helper_config.js`
+- `backend/modules/helpers/helper_media.js`
+- `backend/modules/helpers/helper_core.js`
+
+Dashboard:
+
+- `htdocs/dashboard/modules/tts.js`
+- `htdocs/dashboard/modules/tts.css`
+- `htdocs/dashboard/index.html`
+
+Config/Fallback:
+
+- `config/tts_config.json`
+- `config/tts_messages.json`
+- `config/tts_bans.json`
+- `config/tts_state.json`
+
+Wichtig:
+
+- `config/tts_config.json` bleibt Seed/Fallback/technische Boot-Konfig.
+- `config/tts_messages.json` ist aktuell noch JSON-basiert und soll spaeter ins globale DB-Textvarianten-System migriert werden.
+- Google/Piper technische Pfade duerfen nicht in oeffentlichen/normalen Dashboard-Antworten sichtbar werden.
+- Keine separate TTS-Admin-Datei als Zielstand.
+
+TTS DB-Strukturen:
+
+- `tts_events`
+- `tts_usage_daily`
+- `tts_settings`
+
+TTS wichtige Routen:
+
+```text
+GET      /api/tts/status
+GET      /api/tts/config
+GET      /api/tts/voices
+GET      /api/tts/routes
+GET      /api/tts/admin/settings
+POST     /api/tts/admin/settings
+GET      /api/tts/stats
+GET      /api/tts/stats/users
+GET      /api/tts/events
+GET/POST /api/tts/say
+GET/POST /api/tts/reload
+GET/POST /api/tts/on
+GET/POST /api/tts/off
+GET/POST /api/tts/stop
+GET/POST /api/tts/clear
+```
+
+TTS Dashboard Tabs:
+
+- Uebersicht
+- User-Statistik
+- Stimmen
+- Rollen
+- Sound-System
+- Settings
+- Test
+- Events
+- Routen
+
+TTS Dokus:
+
+- `project-state/STEP199_1_TTS_STANDARD_ADMIN_API_2026-05-08.md`
+- `project-state/STEP199_2_TTS_DASHBOARD_MODULE_2026-05-08.md`
+- `project-state/STEP199_3_TTS_USER_STATS_2026-05-08.md`
+- `project-state/STEP199_4_TTS_DASHBOARD_STATS_POLISH_2026-05-08.md`
+- `project-state/STEP199_5_TTS_DOC_SYNC_2026-05-08.md`
 
 ## SoundAlerts relevante Dateien
 
