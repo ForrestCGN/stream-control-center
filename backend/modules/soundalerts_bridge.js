@@ -1588,6 +1588,54 @@ function statsRows() {
   };
 }
 
+
+function buildSoundAlertsRoutes() {
+  const routeList = [
+    { method: 'GET', path: '/api/soundalerts/status', auth: 'public/local', category: 'status', description: 'SoundAlerts-Bridge Status, Config-Status, WebSocket-Status, DB-Status und Statistiken.' },
+    { method: 'GET', path: '/api/soundalerts/events', auth: 'public/local', category: 'events', description: 'Erkannte SoundAlerts-Events lesen.' },
+    { method: 'GET', path: '/api/soundalerts/stats', auth: 'public/local', category: 'stats', description: 'SoundAlerts-Statistiken nach Alert, User und Status.' },
+    { method: 'GET', path: '/api/soundalerts/config', auth: 'public/local', category: 'config', description: 'Effektive SoundAlerts-Bridge Config inklusive Settings-Quelle lesen.' },
+    { method: 'GET', path: '/api/soundalerts/settings', auth: 'public/local', category: 'settings', description: 'DB-Settings aus soundalerts_bridge_settings lesen.' },
+    { method: 'GET', path: '/api/soundalerts/routes', auth: 'public/local', category: 'diagnostics', description: 'Read-only Routenübersicht der SoundAlerts-Bridge.' },
+
+    { method: 'GET', path: '/api/soundalerts/entries', auth: 'public/local', category: 'entries', description: 'Effektive SoundAlert-Einträge lesen.' },
+    { method: 'DELETE', path: '/api/soundalerts/entries/:entryKey', auth: 'public/local', category: 'entries', description: 'SoundAlert-Eintrag löschen.' },
+    { method: 'POST', path: '/api/soundalerts/entries/:entryKey/delete', auth: 'public/local', category: 'entries', description: 'SoundAlert-Eintrag löschen, POST-kompatibel für einfache Clients.' },
+    { method: 'POST', path: '/api/soundalerts/entries/:entryKey/ignore', auth: 'public/local', category: 'entries', description: 'SoundAlert-Eintrag ignorieren/deaktivieren.' },
+
+    { method: 'POST', path: '/api/soundalerts/config', auth: 'public/local', category: 'config', description: 'SoundAlerts-Bridge Config/Settings speichern.' },
+    { method: 'POST', path: '/api/soundalerts/settings', auth: 'public/local', category: 'settings', description: 'SoundAlerts-Bridge Settings speichern.' },
+    { method: 'POST', path: '/api/soundalerts/upload', auth: 'public/local', category: 'upload', description: 'Audio-/Video-Datei für SoundAlerts hochladen.' },
+    { method: 'POST', path: '/api/soundalerts/test/chat', auth: 'public/local', category: 'test', description: 'SoundAlerts-Chatnachricht manuell testen und an Sound-System übergeben.' },
+    { method: 'POST', path: '/api/soundalerts/reload', auth: 'public/local', category: 'admin', description: 'Config und Schema der SoundAlerts-Bridge neu laden.' }
+  ];
+
+  return core.ok({
+    module: MODULE_NAME,
+    version: VERSION,
+    routesVersion: 1,
+    standardPrefix: '/api/soundalerts',
+    legacyPrefixes: [],
+    standardEndpoints: {
+      status: '/api/soundalerts/status',
+      config: '/api/soundalerts/config',
+      settings: '/api/soundalerts/settings',
+      routes: '/api/soundalerts/routes',
+      integrationCheck: '',
+      reload: '/api/soundalerts/reload'
+    },
+    routes: routeList,
+    count: routeList.length,
+    categories: Array.from(new Set(routeList.map(route => route.category))).sort(),
+    notes: [
+      'Read-only Routenübersicht für Dashboard-/Modul-Standardisierung.',
+      'Bestehende Routen wurden nicht geändert.',
+      'Schreibende Routen sind nur dokumentiert, nicht neu angelegt.',
+      'Ein separater /api/soundalerts/integration-check ist als Folge-STEP vorgesehen.'
+    ]
+  });
+}
+
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
   envRef = env || process.env;
@@ -1603,6 +1651,7 @@ module.exports.init = function init(ctx) {
   app.get('/api/soundalerts/stats', (_req, res) => res.json(core.ok({ stats: statsRows() })));
   app.get('/api/soundalerts/config', (_req, res) => res.json(core.ok({ config: publicConfig(), path: state.configPath, settingsTable: SETTINGS_TABLE, settingsSource: state.settings.source })));
   app.get('/api/soundalerts/settings', (_req, res) => res.json(core.ok({ settings: listSoundAlertSettings(), table: SETTINGS_TABLE })));
+  app.get('/api/soundalerts/routes', (_req, res) => res.json(buildSoundAlertsRoutes()));
   app.get('/api/soundalerts/entries', (_req, res) => res.json(core.ok({ entries: getEffectiveRules(), source: Array.isArray(listEntryRules()) ? 'db' : 'json_fallback' })));
   app.delete('/api/soundalerts/entries/:entryKey', (req, res) => {
     const result = deleteEntryRule(req.params.entryKey);
