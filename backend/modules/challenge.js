@@ -984,7 +984,15 @@ module.exports.init = function init(ctx) {
       const root = typeof configHelper.getProjectRoot === "function"
         ? configHelper.getProjectRoot()
         : process.cwd();
-      const filePath = path.join(root, ...relParts);
+
+      const candidates = [path.join(root, ...relParts)];
+      if (path.basename(root).toLowerCase() === "backend") {
+        candidates.push(path.join(path.dirname(root), ...relParts));
+      }
+
+      const existing = candidates.find(candidate => fs.existsSync(candidate));
+      const filePath = existing || candidates[candidates.length - 1] || candidates[0];
+
       return {
         path: filePath,
         exists: fs.existsSync(filePath),
