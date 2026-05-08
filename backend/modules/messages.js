@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const security = require('./helpers/helper_security');
@@ -15,6 +16,302 @@ const schedulerState = {
   lastKey: null,
   lastMessage: null
 };
+
+function safeCall(label, fn, fallback = null) {
+  try {
+    return { ok: true, value: fn(), error: '' };
+  } catch (err) {
+    return {
+      ok: false,
+      value: fallback,
+      error: err?.message || String(err)
+    };
+  }
+}
+
+function fileCheck(label, filePath) {
+  const value = String(filePath || '').trim();
+  if (!value) {
+    return {
+      ok: false,
+      label,
+      path: '',
+      exists: false,
+      isFile: false,
+      isDirectory: false,
+      error: 'missing_path'
+    };
+  }
+
+  try {
+    const stat = fs.statSync(value);
+    return {
+      ok: true,
+      label,
+      path: value,
+      exists: true,
+      isFile: stat.isFile(),
+      isDirectory: stat.isDirectory(),
+      error: ''
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      label,
+      path: value,
+      exists: false,
+      isFile: false,
+      isDirectory: false,
+      error: err?.message || String(err)
+    };
+  }
+}
+
+function getMessagesStatusSafe() {
+  const statusResult = safeCall('status', () => textHelper.getStatus(), {});
+  const status = statusResult.value || {};
+  return {
+    ok: statusResult.ok,
+    status,
+    error: statusResult.error
+  };
+}
+
+function extractPossiblePaths(status) {
+  const paths = [];
+
+  function add(label, value) {
+    const pathValue = String(value || '').trim();
+    if (pathValue) paths.push({ label, path: pathValue });
+  }
+
+  add('configPath', status.configPath);
+  add('messagesPath', status.messagesPath);
+  add('messagePath', status.messagePath);
+  add('textsPath', status.textsPath);
+  add('basePath', status.basePath);
+  add('configDir', status.configDir);
+  add('messagesDir', status.messagesDir);
+  add('defaultMessagesDir', status.defaultMessagesDir);
+
+  if (status.paths && typeof status.paths === 'object') {
+    for (const [key, value] of Object.entries(status.paths)) add(`paths.${key}`, value);
+  }
+
+  if (status.files && typeof status.files === 'object') {
+    for (const [key, value] of Object.entries(status.files)) add(`files.${key}`, value);
+  }
+
+  return paths;
+}
+
+function countStatusCollection(value) {
+  if (Array.isArray(value)) return value.length;
+  if (value && typeof value === 'object') return Object.keys(value).length;
+  return 0;
+}
+
+function buildMessagesRoutes(req = null) {
+  const routeList = [
+    { method: 'GET', path: '/api/messages/status', auth: 'local_or_auth', category: 'status', description: 'Messages/Text-System Status inklusive Scheduler-Status.' },
+    { method: 'GET', path: '/api/messages/config', auth: 'local_or_auth', category: 'config', description: 'Read-only effektive Messages-Konfiguration/Status ohne Secrets.' },
+    { method: 'GET', path: '/api/messages/settings', auth: 'local_or_auth', category: 'settings', description: 'Read-only Messages-Settings/Status und Scheduler-Zustand.' },
+    { method: 'GET', path: '/api/messages/routes', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Routenübersicht des Messages-Moduls.' },
+    { method: 'GET', path: '/api/messages/integration-check', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Integration-Check des Messages-Moduls.' },
+    { method: 'POST', path: '/api/messages/reload', auth: 'local_or_auth', category: 'admin', description: 'Message-/Textdaten neu laden.' },
+    { method: 'GET', path: '/api/messages/reload', auth: 'local_or_auth', category: 'admin', description: 'Message-/Textdaten neu laden, GET-kompatibel für einfache Clients.' },
+    { method: 'GET', path: '/api/messages/random', auth: 'local_or_auth', category: 'render', description: 'Message-Key zufällig/rendern.' },
+    { method: 'POST', path: '/api/messages/random', auth: 'local_or_auth', category: 'render', description: 'Message-Key zufällig/rendern.' },
+    { method: 'GET', path: '/api/messages/render', auth: 'local_or_auth', category: 'render', description: 'Message-Key rendern.' },
+    { method: 'POST', path: '/api/messages/render', auth: 'local_or_auth', category: 'render', description: 'Message-Key rendern.' },
+    { method: 'GET', path: '/api/messages/send', auth: 'local_or_auth', category: 'send', description: 'Message bauen und optional an Ziel senden.' },
+    { method: 'POST', path: '/api/messages/send', auth: 'local_or_auth', category: 'send', description: 'Message bauen und optional an Ziel senden.' },
+    { method: 'POST', path: '/api/messages/scheduler/start', auth: 'local_or_auth', category: 'scheduler', description: 'Messages-Scheduler starten.' },
+    { method: 'POST', path: '/api/messages/scheduler/stop', auth: 'local_or_auth', category: 'scheduler', description: 'Messages-Scheduler stoppen.' },
+    { method: 'GET', path: '/api/messages/scheduler/status', auth: 'local_or_auth', category: 'scheduler', description: 'Messages-Scheduler-Status lesen.' },
+
+    { method: 'GET', path: '/messages/status', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Messages-Status.' },
+    { method: 'GET', path: '/messages/config', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Messages-Config.' },
+    { method: 'GET', path: '/messages/settings', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Messages-Settings.' },
+    { method: 'GET', path: '/messages/routes', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Messages-Routenübersicht.' },
+    { method: 'GET', path: '/messages/integration-check', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Messages-Integration-Check.' },
+    { method: 'GET', path: '/messages/reload', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Reload.' },
+    { method: 'POST', path: '/messages/reload', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Reload.' },
+    { method: 'GET', path: '/messages/random', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Random.' },
+    { method: 'POST', path: '/messages/random', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Random.' },
+    { method: 'GET', path: '/messages/render', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Render.' },
+    { method: 'POST', path: '/messages/render', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Render.' },
+    { method: 'GET', path: '/messages/send', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Send.' },
+    { method: 'POST', path: '/messages/send', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Send.' },
+    { method: 'POST', path: '/messages/scheduler/start', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Scheduler Start.' },
+    { method: 'POST', path: '/messages/scheduler/stop', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Scheduler Stop.' },
+    { method: 'GET', path: '/messages/scheduler/status', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Scheduler Status.' }
+  ];
+
+  return {
+    ok: true,
+    module: 'messages',
+    version: 1,
+    standardPrefix: '/api/messages',
+    legacyPrefixes: ['/messages'],
+    standardEndpoints: {
+      status: '/api/messages/status',
+      config: '/api/messages/config',
+      settings: '/api/messages/settings',
+      routes: '/api/messages/routes',
+      integrationCheck: '/api/messages/integration-check',
+      reload: '/api/messages/reload'
+    },
+    routes: routeList,
+    count: routeList.length,
+    categories: Array.from(new Set(routeList.map(route => route.category))).sort(),
+    notes: [
+      'Read-only Routenübersicht für Dashboard-/Modul-Standardisierung.',
+      'Bestehende Legacy-Routen bleiben erhalten.',
+      'Schreibende Routen sind nur dokumentiert, nicht neu angelegt.',
+      '/api/messages/config und /api/messages/settings sind read-only Standard-Aliase.'
+    ],
+    security: req ? security.securitySummary(req) : security.securitySummary()
+  };
+}
+
+function buildMessagesConfig() {
+  const statusInfo = getMessagesStatusSafe();
+  return {
+    ok: statusInfo.ok,
+    module: 'messages',
+    config: {
+      source: 'helper_texts_status',
+      scheduler: schedulerStatus(),
+      statusError: statusInfo.error
+    },
+    status: statusInfo.status,
+    error: statusInfo.error
+  };
+}
+
+function buildMessagesSettings() {
+  const statusInfo = getMessagesStatusSafe();
+  return {
+    ok: statusInfo.ok,
+    module: 'messages',
+    settings: {
+      source: 'runtime_and_helper_status',
+      scheduler: schedulerStatus(),
+      cooldownEntries: cooldownState.size,
+      statusError: statusInfo.error
+    },
+    status: statusInfo.status,
+    error: statusInfo.error
+  };
+}
+
+function buildMessagesIntegrationCheck() {
+  const warnings = [];
+  const errors = [];
+
+  const statusInfo = getMessagesStatusSafe();
+  const status = statusInfo.status || {};
+
+  if (!statusInfo.ok) errors.push(`textHelperStatus:${statusInfo.error}`);
+
+  const pathChecks = {};
+  for (const item of extractPossiblePaths(status)) {
+    pathChecks[item.label] = fileCheck(item.label, item.path);
+    if (!pathChecks[item.label].ok) warnings.push(`${item.label}:${pathChecks[item.label].error}`);
+  }
+
+  const sampleKeys = ['follow_reminder', 'discord_reminder', 'youtube_reminder'];
+  const sampleResults = {};
+  for (const key of sampleKeys) {
+    sampleResults[key] = safeCall(key, () => textHelper.buildChatResult(key, {}, { target: 'twitch_chat' }), null);
+    if (!sampleResults[key].ok) warnings.push(`sample:${key}:${sampleResults[key].error}`);
+  }
+
+  const messageCounts = {
+    keys: countStatusCollection(status.keys),
+    messages: countStatusCollection(status.messages),
+    categories: countStatusCollection(status.categories),
+    files: Object.keys(pathChecks).length
+  };
+
+  return {
+    ok: errors.length === 0,
+    module: 'messages',
+    version: 1,
+    healthy: errors.length === 0,
+    warnings,
+    errors,
+    checks: {
+      status: {
+        ok: statusInfo.ok,
+        error: statusInfo.error,
+        keys: Object.keys(status || {})
+      },
+      files: pathChecks,
+      scheduler: {
+        ok: true,
+        state: schedulerStatus()
+      },
+      cooldown: {
+        ok: true,
+        entries: cooldownState.size
+      },
+      samples: sampleResults,
+      counts: messageCounts
+    },
+    routes: {
+      status: '/api/messages/status',
+      config: '/api/messages/config',
+      settings: '/api/messages/settings',
+      routes: '/api/messages/routes',
+      integrationCheck: '/api/messages/integration-check',
+      reload: '/api/messages/reload'
+    },
+    notes: [
+      'Read-only Integration-Check für Dashboard-/Modul-Standardisierung.',
+      'Es werden keine DB-, JSON- oder Dateiänderungen vorgenommen.',
+      'Warnungen bei Sample-Keys bedeuten nur, dass einzelne Beispiel-Message-Keys fehlen oder anders heißen.'
+    ]
+  };
+}
+
+function handleConfig(req, res) {
+  const auth = checkAuth(req);
+  if (!auth.ok) return reply(req, res, { ok: false, error: 'unauthorized', message: 'Nicht autorisiert.' }, 403);
+  return res.json(buildMessagesConfig());
+}
+
+function handleSettings(req, res) {
+  const auth = checkAuth(req);
+  if (!auth.ok) return reply(req, res, { ok: false, error: 'unauthorized', message: 'Nicht autorisiert.' }, 403);
+  return res.json(buildMessagesSettings());
+}
+
+function handleRoutes(req, res) {
+  const auth = checkAuth(req);
+  if (!auth.ok) return reply(req, res, { ok: false, error: 'unauthorized', message: 'Nicht autorisiert.' }, 403);
+  return res.json(buildMessagesRoutes(req));
+}
+
+function handleIntegrationCheck(req, res) {
+  const auth = checkAuth(req);
+  if (!auth.ok) return reply(req, res, { ok: false, error: 'unauthorized', message: 'Nicht autorisiert.' }, 403);
+
+  try {
+    return res.json(buildMessagesIntegrationCheck());
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      module: 'messages',
+      healthy: false,
+      warnings: [],
+      errors: [err?.message || String(err)]
+    });
+  }
+}
+
+
 
 function getInput(req, key, fallback = '') {
   return core.getParam(req, key, fallback);
@@ -209,6 +506,11 @@ function init(ctx) {
       scheduler: schedulerStatus()
     });
   });
+
+  routes.registerGet(app, ['/messages/config', '/api/messages/config'], handleConfig);
+  routes.registerGet(app, ['/messages/settings', '/api/messages/settings'], handleSettings);
+  routes.registerGet(app, ['/messages/routes', '/api/messages/routes'], handleRoutes);
+  routes.registerGet(app, ['/messages/integration-check', '/api/messages/integration-check'], handleIntegrationCheck);
 
   const reloadHandler = (req, res) => {
     const auth = checkAuth(req);
