@@ -42,7 +42,7 @@ module.exports.init = function init(ctx) {
       module: 'deathcounter_v2',
       version: 2,
       prefix: API_PREFIX,
-      rootDir: config.getProjectRoot(),
+      rootDir: getProjectRootSafe(),
       dataDir,
       stateFile,
       stateFileExists: fs.existsSync(stateFile),
@@ -947,6 +947,19 @@ module.exports.init = function init(ctx) {
       ],
       updatedAt: core.nowIso()
     };
+  }
+
+  function getProjectRootSafe() {
+    try {
+      if (config && typeof config.getProjectRoot === 'function') {
+        return config.getProjectRoot();
+      }
+    } catch (_) {}
+    try {
+      return config.resolveFromRoot();
+    } catch (_) {
+      return path.resolve(__dirname, '..', '..');
+    }
   }
 
   function getOverlayFilePath() {
