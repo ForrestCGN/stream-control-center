@@ -935,6 +935,201 @@ function topRows(mode) { let col = "given_total"; if (mode === "received") col =
 function recentPairs() { return db.all(`SELECT p.given_count, p.rehug_count, p.last_hug_at, p.last_rehug_at, fu.display_name AS from_display, tu.display_name AS to_display FROM hug_pair_stats p LEFT JOIN hug_users fu ON fu.user_id=p.from_user_id LEFT JOIN hug_users tu ON tu.user_id=p.to_user_id ORDER BY COALESCE(p.last_rehug_at, p.last_hug_at) DESC LIMIT 10`).map(r => ({ fromDisplayName: r.from_display || "", toDisplayName: r.to_display || "", givenCount: Number(r.given_count || 0), rehugCount: Number(r.rehug_count || 0), lastHugAt: r.last_hug_at || null, lastRehugAt: r.last_rehug_at || null })); }
 function getTypes() { return db.all(`SELECT id, name, weight, enabled, sort_order FROM hug_types ORDER BY sort_order ASC, id ASC`).map(r => { const typeId = Number(r.id); return { id: typeId, name: r.name, weight: Number(r.weight || 1), enabled: Number(r.enabled) === 1, sortOrder: Number(r.sort_order || 0), hugTexts: getTexts("hug", typeId).length, rehugTexts: getTexts("rehug", typeId).length, textPairs: getTextPairs(typeId, { activeOnly: false }).length, activeTextPairs: getTextPairs(typeId, { activeOnly: true }).length }; }); }
 
+
+function safeFileCheck(name, filePath, required = false) {
+  const check = { name, ok: true, level: "ok", path: filePath || "", exists: false, required: !!required, error: "" };
+  try {
+    check.exists = !!filePath && fs.existsSync(filePath);
+    if (required && !check.exists) {
+      check.ok = false;
+      check.level = "error";
+      check.error = "missing_required_file";
+    }
+  } catch (err) {
+    check.ok = false;
+    check.level = required ? "error" : "warning";
+    check.error = err.message || String(err);
+  }
+  return check;
+}
+
+function safeTableCount(tableName, required = true) {
+  try {
+    return { name: tableName, ok: true, level: "ok", count: count(tableName), required: !!required, error: "" };
+  } catch (err) {
+    return { name: tableName, ok: !required, level: required ? "error" : "warning", count: 0, required: !!required, error: err.message || String(err) };
+  }
+}
+
+function getHugRouteList() {
+  return [
+    { method: "GET", path: "/api/hug/status", purpose: "dashboard/runtime status" },
+    { method: "GET", path: "/api/hug/config", purpose: "sanitized config and seed-file summary" },
+    { method: "GET", path: "/api/hug/settings", purpose: "runtime settings and cache summary" },
+    { method: "GET", path: "/api/hug/routes", purpose: "list hug API routes" },
+    { method: "GET", path: "/api/hug/integration-check", purpose: "run non-destructive integration check" },
+    { method: "POST", path: "/api/hug/reload", purpose: "safe cache reload without chat output" },
+    { method: "GET", path: "/api/hug/reload", purpose: "legacy command reload with existing chat output" },
+    { method: "POST", path: "/api/hug/action", purpose: "execute hug/rehug action" },
+    { method: "POST", path: "/api/hug/stats", purpose: "return stats for request body" },
+    { method: "GET", path: "/api/hug/cmd", purpose: "Streamer.bot compatible command endpoint" },
+    { method: "GET", path: "/api/hug/statscmd", purpose: "Streamer.bot compatible stats command" },
+    { method: "GET", path: "/api/hug/top", purpose: "return hug top list" },
+    { method: "GET/POST", path: "/api/hug/command", purpose: "unified command endpoint" },
+    { method: "GET", path: "/api/hug/db/status", purpose: "legacy db status alias" },
+    { method: "GET", path: "/api/dashboard/community/hug/status", purpose: "dashboard status alias" },
+    { method: "GET", path: "/api/hug/text-store/status", purpose: "text store status alias" },
+    { method: "POST", path: "/api/hug/text-store/reload", purpose: "legacy JSON seed import/reload" },
+    { method: "GET", path: "/api/hug/db/output-mode", purpose: "read output mode" },
+    { method: "POST", path: "/api/hug/db/output-mode", purpose: "write output mode" },
+    { method: "GET", path: "/api/hug/types", purpose: "list hug types" },
+    { method: "GET", path: "/api/hug/texts", purpose: "list hug texts by kind/type" },
+    { method: "GET/POST", path: "/api/hug/admin/text-pairs", purpose: "admin text-pair editor" },
+    { method: "GET/POST", path: "/api/dashboard/community/hug/text-pairs", purpose: "dashboard text-pair editor alias" },
+    { method: "GET/POST", path: "/api/hug/admin/hug-all-texts", purpose: "admin chatwide hug text editor" },
+    { method: "GET/POST", path: "/api/dashboard/community/hug/hug-all-texts", purpose: "dashboard chatwide hug text editor alias" },
+    { method: "GET/POST", path: "/api/hug/admin/response-texts", purpose: "admin response text editor" },
+    { method: "GET/POST", path: "/api/dashboard/community/hug/response-texts", purpose: "dashboard response text editor alias" },
+    { method: "GET/POST", path: "/api/hug/admin/top-title-texts", purpose: "admin top title text editor" },
+    { method: "GET/POST", path: "/api/dashboard/community/hug/top-title-texts", purpose: "dashboard top title text editor alias" }
+  ];
+}
+
+function getHugConfigPayload() {
+  const cfg = getCache();
+  const fileSettings = readJsonIfExists(systemConfigPath, {}) || {};
+  const fileMessages = readJsonIfExists(messagesPath, {}) || {};
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    schemaVersion: SCHEMA_VERSION,
+    prefix: "/api/hug",
+    source: cfg.source,
+    configPath: systemConfigPath,
+    messagesPath,
+    files: {
+      config: safeFileCheck("config_file", systemConfigPath, false),
+      messages: safeFileCheck("messages_file", messagesPath, false)
+    },
+    jsonConfig: {
+      version: fileSettings.version ?? null,
+      enabled: fileSettings.enabled ?? null,
+      rehugWindowSeconds: fileSettings.rehugWindowSeconds ?? null,
+      topLimit: fileSettings.topLimit ?? null
+    },
+    jsonMessages: {
+      version: fileMessages.version ?? null,
+      hugAllTexts: Array.isArray(fileMessages.hugAllTexts) ? fileMessages.hugAllTexts.length : 0,
+      hugTypes: Array.isArray(fileMessages.hugTypes) ? fileMessages.hugTypes.length : 0,
+      responseKeys: fileMessages.responses && typeof fileMessages.responses === "object" ? Object.keys(fileMessages.responses).length : 0,
+      topTitleKeys: fileMessages.topTitles && typeof fileMessages.topTitles === "object" ? Object.keys(fileMessages.topTitles).length : 0
+    },
+    database: { adapter: db.getAdapter(), dialect: db.getDialect(), path: db.getDbPath(), mariaDbReady: "core_database_layer_prepared" },
+    updatedAt: nowIso()
+  };
+}
+
+function getHugSettingsPayload() {
+  const status = getDashboardStatus();
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    schemaVersion: SCHEMA_VERSION,
+    prefix: "/api/hug",
+    source: "database_cache",
+    settings: {
+      enabled: status.enabled,
+      output: status.output,
+      topLimit: status.topLimit,
+      rehugWindowSeconds: status.rehugWindowSeconds,
+      cacheLoadedAt: status.cacheLoadedAt,
+      counts: status.counts,
+      textKinds: status.textKinds
+    },
+    updatedAt: nowIso()
+  };
+}
+
+function getHugRoutesPayload() {
+  const routeList = getHugRouteList();
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    schemaVersion: SCHEMA_VERSION,
+    prefix: "/api/hug",
+    intentionallyNotRegistered: ["/api/rehug", "/api/hug-system", "/api/hugs"],
+    routes: routeList,
+    count: routeList.length,
+    updatedAt: nowIso()
+  };
+}
+
+function getHugIntegrationCheckPayload() {
+  const checks = [];
+  checks.push(safeFileCheck("config_file", systemConfigPath, false));
+  checks.push(safeFileCheck("messages_file", messagesPath, false));
+  checks.push(safeTableCount("hug_users", true));
+  checks.push(safeTableCount("hug_pair_stats", true));
+  checks.push(safeTableCount("hug_pending_rehugs", true));
+  checks.push(safeTableCount("hug_settings", true));
+  checks.push(safeTableCount("hug_types", true));
+  checks.push(safeTableCount("hug_texts", true));
+  checks.push(safeTableCount("hug_text_pairs", true));
+  try {
+    const cfg = getCache();
+    checks.push({ name: "runtime_cache", ok: true, level: "ok", source: cfg.source, enabled: cfg.enabled, hugTypes: cfg.hugTypes.length, hugAllTexts: cfg.hugAllTexts.length, rehugWindowSeconds: cfg.rehugWindowSeconds });
+  } catch (err) {
+    checks.push({ name: "runtime_cache", ok: false, level: "error", error: err.message || String(err) });
+  }
+  try {
+    const pairs = getTextPairs(null, { activeOnly: true });
+    checks.push({ name: "active_text_pairs", ok: pairs.length > 0, level: pairs.length > 0 ? "ok" : "error", count: pairs.length, required: true, error: pairs.length > 0 ? "" : "no_active_text_pairs" });
+  } catch (err) {
+    checks.push({ name: "active_text_pairs", ok: false, level: "error", count: 0, required: true, error: err.message || String(err) });
+  }
+  checks.push({ name: "routes", ok: true, level: "ok", prefix: "/api/hug", count: getHugRouteList().length });
+  const errors = checks.filter(check => check.level === "error" || check.ok === false).length;
+  const warnings = checks.filter(check => check.level === "warning").length;
+  return {
+    ok: errors === 0,
+    module: MODULE_NAME,
+    schemaVersion: SCHEMA_VERSION,
+    prefix: "/api/hug",
+    checks,
+    summary: { total: checks.length, ok: checks.length - errors - warnings, warnings, errors },
+    notes: [
+      "This integration check is non-destructive.",
+      "Productive prefix remains /api/hug.",
+      "Hug/Rehug text pairs remain coupled: hug_text and rehug_text stay in the same pair row."
+    ],
+    updatedAt: nowIso()
+  };
+}
+
+function handleDiagnosticReload(req, res) {
+  try {
+    cache = null;
+    loadCache();
+    return res.json({
+      ok: true,
+      module: MODULE_NAME,
+      schemaVersion: SCHEMA_VERSION,
+      action: "reload",
+      reloaded: true,
+      destructive: false,
+      chatOutputTriggered: false,
+      cachePreserved: true,
+      textPairsPreserved: true,
+      statsPreserved: true,
+      status: getDashboardStatus(),
+      updatedAt: nowIso()
+    });
+  } catch (err) {
+    console.error("[hug] diagnostic reload failed:", err);
+    return res.status(500).json({ ok: false, module: MODULE_NAME, action: "reload", error: err.message || String(err) });
+  }
+}
+
 function init(ctx) {
   appRef = ctx.app;
   db.init(ctx);
@@ -956,6 +1151,11 @@ function init(ctx) {
   routes.registerPost(appRef, ["/api/hug/command"], handleCommand);
   routes.registerGet(appRef, ["/api/hug/command"], handleCommand);
   routes.registerGet(appRef, ["/api/hug/status", "/api/hug/db/status", "/api/dashboard/community/hug/status"], (req, res) => res.json(getDashboardStatus()));
+  routes.registerGet(appRef, ["/api/hug/config"], (req, res) => res.json(getHugConfigPayload()));
+  routes.registerGet(appRef, ["/api/hug/settings"], (req, res) => res.json(getHugSettingsPayload()));
+  routes.registerGet(appRef, ["/api/hug/routes"], (req, res) => res.json(getHugRoutesPayload()));
+  routes.registerGet(appRef, ["/api/hug/integration-check"], (req, res) => res.status(getHugIntegrationCheckPayload().ok ? 200 : 500).json(getHugIntegrationCheckPayload()));
+  routes.registerPost(appRef, ["/api/hug/reload"], handleDiagnosticReload);
   routes.registerGet(appRef, ["/api/hug/text-store/status", "/api/dashboard/community/hug/text-store/status"], (req, res) => res.json(getDashboardStatus()));
   routes.registerPost(appRef, ["/api/hug/text-store/reload"], (req, res) => { const result = importJsonIfEmpty({ force: false }); cache = null; loadCache(); res.json({ ok: true, result, status: getDashboardStatus() }); });
   routes.registerGet(appRef, ["/api/hug/db/output-mode"], (req, res) => res.json({ ok: true, mode: getCache().output.mode, output: getCache().output }));
