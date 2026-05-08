@@ -336,6 +336,149 @@ function init(ctx) {
     return true;
   }
 
+
+  function sanitizeForDashboard(value) {
+    const cloned = structuredCloneSafe(value || {});
+    if (cloned.voices && typeof cloned.voices === "object") cloned.voices = sanitizeVoicesForDashboard(cloned.voices);
+    if (cloned.system && typeof cloned.system === "object" && Object.prototype.hasOwnProperty.call(cloned.system, "key")) {
+      cloned.system.keyConfigured = String(cloned.system.key || "").length > 0;
+      delete cloned.system.key;
+    }
+    return cloned;
+  }
+
+  function sanitizeVoicesForDashboard(voices) {
+    const result = {};
+    for (const [voiceId, voice] of Object.entries(voices || {})) {
+      const clean = structuredCloneSafe(voice || {});
+      for (const secretKey of ["key", "apiKey", "token", "secret", "credentials", "password"]) {
+        if (Object.prototype.hasOwnProperty.call(clean, secretKey)) {
+          clean[`${secretKey}Configured`] = String(clean[secretKey] || "").length > 0;
+          delete clean[secretKey];
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(clean, "keyFile")) {
+        const keyFile = String(clean.keyFile || "");
+        clean.keyFileConfigured = keyFile.length > 0;
+        clean.keyFileExists = keyFile.length > 0 && core.fileExists(keyFile);
+        delete clean.keyFile;
+      }
+      result[voiceId] = clean;
+    }
+    return result;
+  }
+
+  function settingsListSafe() {
+    try {
+      const settings = settingsHelper.listSettings(TTS_SETTINGS_TABLE, { limit: 1000 });
+      return { ok: true, settings, error: "" };
+    } catch (err) {
+      return { ok: false, settings: { ok: false, table: TTS_SETTINGS_TABLE, count: 0, rows: [] }, error: err.message || String(err) };
+    }
+  }
+
+  function configSources() {
+    const settings = settingsListSafe();
+    return {
+      json: {
+        path: CONFIG_FILE,
+        exists: core.fileExists(CONFIG_FILE)
+      },
+      database: {
+        table: TTS_SETTINGS_TABLE,
+        ok: settings.ok,
+        count: settings.settings?.count || settings.settings?.rows?.length || 0,
+        error: settings.error || ""
+      },
+      rule: "database_over_json_fallback"
+    };
+  }
+
+  function publicConfig() {
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      schemaVersion: TTS_SCHEMA_VERSION,
+      config: sanitizeForDashboard(config),
+      sources: configSources()
+    };
+  }
+
+  function publicVoices() {
+    const voices = sanitizeVoicesForDashboard(config.voices || {});
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      count: Object.keys(voices).length,
+      defaultVoice: config.defaultVoice || "",
+      fallbackVoice: config.fallbackVoice || "",
+      voices,
+      sources: configSources()
+    };
+  }
+
+  function publicRoutes() {
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      addedByStep: "STEP199.1",
+      routes: [
+        { method: "ALL", path: "/api/tts/run", description: "Main TTS command parser endpoint" },
+        { method: "ALL", path: "/api/tts/say", description: "Queue chat/API TTS text" },
+        { method: "ALL", path: "/api/tts/done", description: "Mark current overlay playback done" },
+        { method: "GET", path: "/api/tts/status", description: "Runtime status" },
+        { method: "GET", path: "/api/tts/overlay-state", description: "Overlay state" },
+        { method: "ALL", path: "/api/tts/on", description: "Enable TTS" },
+        { method: "ALL", path: "/api/tts/off", description: "Disable TTS" },
+        { method: "ALL", path: "/api/tts/stop", description: "Stop current playback" },
+        { method: "ALL", path: "/api/tts/clear", description: "Clear queue" },
+        { method: "ALL", path: "/api/tts/reload", description: "Reload config/messages/bans/settings" },
+        { method: "ALL", path: "/api/tts/command", description: "Run admin command" },
+        { method: "GET", path: "/api/tts/settings", description: "Existing settings endpoint" },
+        { method: "POST", path: "/api/tts/settings/upsert", description: "Existing settings upsert endpoint" },
+        { method: "GET", path: "/api/tts/events", description: "TTS event history" },
+        { method: "GET", path: "/api/tts/stats", description: "TTS statistics" },
+        { method: "ALL", path: "/api/tts/prepare-alert", description: "Prepare alert TTS audio" },
+        { method: "ALL", path: "/api/tts/synthesize", description: "Synthesize TTS audio" },
+        { method: "GET", path: "/api/tts/config", description: "Sanitized effective dashboard config" },
+        { method: "GET", path: "/api/tts/voices", description: "Sanitized voice list" },
+        { method: "GET", path: "/api/tts/routes", description: "Route self-documentation" },
+        { method: "GET", path: "/api/tts/admin/settings", description: "Alias for DB-backed settings list" },
+        { method: "POST", path: "/api/tts/admin/settings", description: "Alias for DB-backed setting upsert" }
+      ],
+      notes: [
+        "TTS erzeugt Audiodateien; Ausgabe soll standardmaessig ueber das Sound-System laufen.",
+        "DB-Settings gewinnen gegen JSON-Fallback.",
+        "Dashboard nutzt Backend-APIs und liest keine Dateien/SQLite direkt."
+      ]
+    };
+  }
+
+  function upsertSettingFromRequest(req, res) {
+    try {
+      const data = getRequestData(req);
+      const key = String(data.key || data.settingKey || '').trim();
+      if (!key) return res.status(400).json({ ok: false, error: 'setting_key_required' });
+
+      let value = data.value !== undefined ? data.value : data.setting_value;
+      if (value === undefined && data.rawValue !== undefined) value = data.rawValue;
+
+      const valueType = String(data.valueType || data.type || '').trim();
+      if ((valueType === 'json' || (!valueType && typeof value === 'string')) && typeof value === 'string') {
+        const trimmed = value.trim();
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+          value = JSON.parse(trimmed);
+        }
+      }
+
+      const saved = settingsHelper.setSetting(TTS_SETTINGS_TABLE, key, value, { valueType, description: data.description || '' });
+      reloadAllConfig();
+      return res.json({ ok: true, table: TTS_SETTINGS_TABLE, setting: saved, effective: sanitizeForDashboard(config) });
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: 'settings_upsert_failed', message: err.message || String(err) });
+    }
+  }
+
   function msg(key, vars = {}) {
     const template = String(messages[key] || DEFAULT_MESSAGES[key] || key);
     return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, name) => {
@@ -1683,6 +1826,14 @@ function init(ctx) {
       return res.status(400).json({ ok: false, error: 'settings_upsert_failed', message: err.message || String(err) });
     }
   });
+  app.get("/api/tts/config", (req, res) => res.json(publicConfig()));
+  app.get("/api/tts/voices", (req, res) => res.json(publicVoices()));
+  app.get("/api/tts/routes", (req, res) => res.json(publicRoutes()));
+  app.get("/api/tts/admin/settings", (req, res) => {
+    const settings = settingsListSafe();
+    res.json({ ok: settings.ok, table: TTS_SETTINGS_TABLE, settings: settings.settings, error: settings.error || "" });
+  });
+  app.post("/api/tts/admin/settings", upsertSettingFromRequest);
   app.get("/api/tts/events", (req, res) => res.json(listEvents(req.query || {})));
   app.get("/api/tts/stats", (req, res) => res.json(stats()));
   app.all("/api/tts/prepare-alert", async (req, res) => res.json(await prepareAlertTts(getRequestData(req))));
@@ -1694,7 +1845,7 @@ function init(ctx) {
     cleanupGeneratedFiles();
   }, 15 * 60 * 1000).unref?.();
 
-  console.log("[TTS] module ready: /api/tts/run, /api/tts/status");
+  console.log("[TTS] module ready: /api/tts/run, /api/tts/status, /api/tts/config, /api/tts/voices, /api/tts/routes");
   console.log(`[TTS] config dir: ${CONFIG_DIR}`);
 }
 
