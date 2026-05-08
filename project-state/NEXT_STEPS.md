@@ -4,42 +4,18 @@ Stand: 2026-05-08
 
 ## Naechster empfohlener Schritt
 
-### STEP199.2 - TTS Standard-Routen live pruefen und Dashboard planen
+### TTS Folgepunkte nach STEP199.5
 
-Nach `STEP199.1` existiert ein separates TTS-Admin/API-Modul:
+Der TTS-Block ist nach STEP199.1 bis STEP199.5 technisch nutzbar und dokumentiert.
 
-- `backend/modules/tts_admin_api.js`
-- Doku: `project-state/STEP199_1_TTS_STANDARD_ADMIN_API_2026-05-08.md`
+Optional spaeter fuer TTS:
 
-Nach Pull/Deploy und Backend-Neustart pruefen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/tts/status" | ConvertTo-Json -Depth 20
-Invoke-RestMethod "http://127.0.0.1:8080/api/tts/config" | ConvertTo-Json -Depth 30
-Invoke-RestMethod "http://127.0.0.1:8080/api/tts/voices" | ConvertTo-Json -Depth 30
-Invoke-RestMethod "http://127.0.0.1:8080/api/tts/routes" | ConvertTo-Json -Depth 20
-Invoke-RestMethod "http://127.0.0.1:8080/api/tts/admin/settings" | ConvertTo-Json -Depth 30
-```
-
-Erwartung:
-
-- `/api/tts/config`, `/api/tts/voices` und `/api/tts/routes` liefern keine 404 mehr.
-- `/api/tts/config` gibt keine Secretwerte und keinen Google-Keyfile-Pfad aus.
-- `/api/tts/voices` zeigt Stimmen ohne Secretwerte.
-- `/api/tts/admin/settings` zeigt DB-Settings aus `tts_settings`.
-- Bestehende TTS-Routen aus `tts_system.js` funktionieren unveraendert.
-
-Danach planen/bauen:
-
-1. `htdocs/dashboard/modules/tts.js`
-2. `htdocs/dashboard/modules/tts.css`
-3. TTS-Statusbereich
-4. Rollen-/Rechtebereich
-5. Stimmen-/Voicebereich
-6. Limits-/Queuebereich
-7. Sound-System-Ausgabe sichtbar/konfigurierbar machen
-8. Test-TTS aus Dashboard
-9. spaeter TTS-Texte ins globale DB-basierte Textvarianten-System migrieren
+1. TTS-Texte in das globale DB-basierte Textvarianten-System migrieren.
+2. Settings-Tab von Raw-JSON auf fachliche Formulare aufteilen.
+3. CSV-Export fuer TTS User-Statistik ergaenzen.
+4. Klickbare Sortierung direkt ueber Tabellenkoepfe ergaenzen.
+5. Rollen-/Stimmen-Konfiguration komfortabler editierbar machen.
+6. TTS-Testbereich weiter kompakter/schoener gestalten.
 
 ## Danach moeglich
 
@@ -104,6 +80,8 @@ Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraender
 - DB gewinnt gegen JSON-Fallback, wenn dashboardfaehige Settings vorhanden sind.
 - JSON bleibt Seed/Fallback/technische Boot-Konfig.
 - Secrets bleiben ENV/Secret-Dateien.
+- TTS ist ueber `backend/modules/tts_system.js` umgesetzt; keine separate Admin-Datei als Zielstand.
+- TTS Dashboard: `htdocs/dashboard/modules/tts.js` und `htdocs/dashboard/modules/tts.css`.
 - SoundAlerts Bridge Version aktuell: `0.1.14`.
 - `_SoundAlerts_Loader` bleibt aktive, stumme 1x1-OBS-Browserquelle.
 - Parser-Formate muessen als echtes Objekt-Array erhalten bleiben.
