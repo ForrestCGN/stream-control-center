@@ -4,38 +4,9 @@ Stand: 2026-05-08
 
 ## Naechster empfohlener Schritt
 
-### TTS Folgepunkte nach STEP199.5
+### STEP201 - Loyalty / Kekskruemel-System vorbereiten
 
-Der TTS-Block ist nach STEP199.1 bis STEP199.5 technisch nutzbar und dokumentiert.
-
-Optional spaeter fuer TTS:
-
-1. TTS-Texte in das globale DB-basierte Textvarianten-System migrieren.
-2. Settings-Tab von Raw-JSON auf fachliche Formulare aufteilen.
-3. CSV-Export fuer TTS User-Statistik ergaenzen.
-4. Klickbare Sortierung direkt ueber Tabellenkoepfe ergaenzen.
-5. Rollen-/Stimmen-Konfiguration komfortabler editierbar machen.
-6. TTS-Testbereich weiter kompakter/schoener gestalten.
-
-## Danach moeglich
-
-### Sound-System Overlay Bugs bereinigen
-
-Nach `STEP193.17.2` ist der SoundAlerts-Dashboard-/Backend-Block vorerst gut nutzbar und dokumentiert. Die naechsten offenen Punkte liegen vor allem im lokalen Sound-System Overlay.
-
-Pruefen/Beheben:
-
-1. Audio/Video-Verhalten in `htdocs/overlays/sound_system_overlay.html` testen.
-2. Overlay-Test mit temporaerem `outputTarget: overlay` pruefen.
-3. Device-Test und Overlay-Test klar voneinander trennen.
-4. Debug-/Statusanzeige im Overlay verbessern.
-5. Sicherstellen, dass Video mit Ton und reine Audio-Tests nachvollziehbar laufen.
-6. Klaeren, ob und wann das Overlay automatisch neue Dateien/Queue-Status erkennt oder gezielt aktualisiert werden muss.
-7. Nach Overlay-Fix erneuten Doku-Sync machen.
-
-### StreamElements Loyalty Migration / eigenes Loyalty-System
-
-`STEP194` dokumentiert den Architekturstandard fuer den spaeteren Ersatz von StreamElements Loyalty, Stream Store, Giveaways und Chat-Games.
+Der TTS-Block ist nach STEP199.1 bis STEP200.1 technisch nutzbar und dokumentiert. Als naechster groesserer Bereich ist das Loyalty-/Kekskruemel-System vorgesehen.
 
 Vor Code-Start zuerst erfassen:
 
@@ -53,6 +24,29 @@ Harte Regel fuer alle spaeteren Loyalty-Module:
 Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraendert, laeuft ausschliesslich ueber das Loyalty-System.
 ```
 
+## TTS optionale Folgepunkte
+
+Der TTS-Block ist aktuell abgeschlossen. Optional spaeter:
+
+1. Settings-Tab von Raw-JSON auf fachliche Formulare aufteilen.
+2. CSV-Export fuer TTS User-Statistik ergaenzen.
+3. Klickbare Sortierung direkt ueber Tabellenkoepfe ergaenzen.
+4. Rollen-/Stimmen-Konfiguration komfortabler editierbar machen.
+5. TTS-Testbereich weiter kompakter/schoener gestalten.
+6. Textvarianten-Tab optisch weiter polieren.
+
+## Danach moeglich
+
+### Sound-System Overlay nur bei konkretem Fehler pruefen
+
+Nach SoundAlerts und TTS ist der Sound-System-/Overlay-Block nicht mehr als blinder Hauptpunkt einzuplanen. Nur bei konkretem Fehler erneut pruefen:
+
+1. Audio/Video-Verhalten in `htdocs/overlays/sound_system_overlay.html`.
+2. Overlay-Test mit temporaerem `outputTarget: overlay`.
+3. Device-Test vs. Overlay-Test.
+4. Debug-/Statusanzeige im Overlay.
+5. Video mit Ton / reine Audio-Tests.
+
 ### SoundAlerts
 
 - Event-Tab-Filter: Alle / Abgespielt / Fehler / Kein aktueller Eintrag.
@@ -62,9 +56,13 @@ Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraender
 
 ### Clip-System
 
-- Clip-System beim naechsten Live-Stream testen.
-- Danach Streamer.bot-Action auf Backend-Call reduzieren.
-- Danach Clip-Dashboard bauen.
+Clip-System laeuft und ist im Dashboard vorhanden. Kein Neubau einplanen.
+
+Optional spaeter:
+
+- Live-Erfahrungen auswerten.
+- Streamer.bot-Action weiter auf Backend-Call reduzieren, falls noch Altlogik aktiv ist.
+- Clip-History/Discord-Post-UX weiter polieren, falls gewuenscht.
 
 ### System / DB
 
@@ -82,6 +80,7 @@ Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraender
 - Secrets bleiben ENV/Secret-Dateien.
 - TTS ist ueber `backend/modules/tts_system.js` umgesetzt; keine separate Admin-Datei als Zielstand.
 - TTS Dashboard: `htdocs/dashboard/modules/tts.js` und `htdocs/dashboard/modules/tts.css`.
+- TTS Texte: `module_text_variants` mit `module_name = 'tts'`; `config/tts_messages.json` bleibt Seed/Fallback.
 - SoundAlerts Bridge Version aktuell: `0.1.14`.
 - `_SoundAlerts_Loader` bleibt aktive, stumme 1x1-OBS-Browserquelle.
 - Parser-Formate muessen als echtes Objekt-Array erhalten bleiben.
