@@ -592,12 +592,13 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  function buildCheck(name, ok, level = null, extra = {}) {
+  function buildCheck(name, ok, failLevel = null, extra = {}) {
+    const passed = Boolean(ok);
     return {
       name,
-      ok: Boolean(ok),
-      level: level || (ok ? 'ok' : 'error'),
-      error: ok ? '' : (extra.error || name),
+      ok: passed,
+      level: passed ? 'ok' : (failLevel || 'error'),
+      error: passed ? '' : (extra.error || name),
       ...extra
     };
   }
