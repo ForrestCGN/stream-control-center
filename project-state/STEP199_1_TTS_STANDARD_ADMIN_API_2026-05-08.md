@@ -1,14 +1,24 @@
-# STEP199.1 - TTS Standard Admin/API
+# STEP199.1 - TTS Standard API direkt in tts_system.js
 
 Stand: 2026-05-08
 
 ## Ziel
 
-TTS bekommt die fehlenden Standard-/Dashboard-Routen, ohne die bestehende TTS-Ausgabe, Queue, Commands oder Audio-Erzeugung in `tts_system.js` zu veraendern.
+TTS bekommt die fehlenden Standard-/Dashboard-Routen direkt im bestehenden Modul `backend/modules/tts_system.js`, ohne eine neue Admin-Datei als Zielstand zu behalten.
 
 ## Geaenderte Datei
 
-- `backend/modules/tts_admin_api.js`
+- `backend/modules/tts_system.js`
+
+## Entfernte Zwischenloesung
+
+- `backend/modules/tts_admin_api.js` wurde wieder geloescht.
+
+Grund:
+
+```text
+Keine neue separate Admin-Datei, wenn die Routen sauber im bestehenden TTS-Modul integriert werden koennen.
+```
 
 ## Neue Routen
 
@@ -22,15 +32,12 @@ POST /api/tts/admin/settings
 
 ## Bewusst nicht geaendert
 
-- `backend/modules/tts_system.js`
 - bestehende TTS-Queue
 - bestehende TTS-Playback-Logik
 - bestehende Chat-Commands
 - bestehende DB-Tabellen
 - bestehende JSON-Dateien
 - bestehende Sound-System-Anbindung
-
-Grund: `tts_system.js` ist gross und wird in GitHub-Ausgaben gekuerzt. Fuer STEP199.1 wurde deshalb ein separates kleines Modul angelegt, damit keine bestehende Funktionalitaet riskant ueberschrieben wird.
 
 ## Verhalten der neuen Routen
 
@@ -44,21 +51,21 @@ Regel:
 DB gewinnt gegen JSON-Fallback.
 ```
 
-Die Route liest:
+Die Route nutzt die bereits im Modul geladene effektive Config. Diese entsteht weiterhin aus:
 
-1. `config/tts_config.json` als Fallback/Seed
+1. `config/tts_config.json` als Seed/Fallback
 2. `tts_settings` aus SQLite
-3. merged DB-Werte ueber JSON-Werte
+3. DB-Werte werden ueber JSON-Werte gelegt
 
-Sensible Werte werden nicht ausgegeben:
+Nicht fuer das Dashboard geeignete technische Werte werden in der Antwort bereinigt:
 
 - `system.key` wird entfernt und nur als `keyConfigured` gemeldet.
-- Voice-Secrets wie `key`, `apiKey`, `token`, `secret`, `credentials`, `password` werden entfernt.
+- Voice-Felder wie `key`, `apiKey`, `token`, `secret`, `credentials`, `password` werden entfernt und nur als `...Configured` gemeldet.
 - `voices.*.keyFile` wird nicht als Pfad ausgegeben, sondern als `keyFileConfigured` und `keyFileExists`.
 
 ### `/api/tts/voices`
 
-Liefert die konfigurierten Stimmen aus der effektiven Konfiguration, ebenfalls sanitisiert.
+Liefert die konfigurierten Stimmen aus der effektiven Konfiguration, ebenfalls bereinigt.
 
 Enthaelt:
 
@@ -69,23 +76,17 @@ Enthaelt:
 
 ### `/api/tts/routes`
 
-Liefert eine Selbstdiagnose der bekannten TTS-Routen.
-
-Enthaelt:
-
-- neue STEP199.1-Routen
-- bekannte vorhandene TTS-Routen aus `tts_system.js`
-- Hinweis, dass `tts_admin_api.js` nur Admin-/Status-Routen ergaenzt
+Liefert eine Selbstdiagnose der TTS-Routen direkt aus `tts_system.js`.
 
 ### `/api/tts/admin/settings`
 
-Liest `tts_settings` ueber `helper_settings.js`.
+Alias-/Dashboardroute fuer DB-Settings aus `tts_settings` ueber `helper_settings.js`.
 
 ### `POST /api/tts/admin/settings`
 
-Schreibt ein einzelnes Setting in `tts_settings` ueber `helper_settings.js`.
+Schreibt ein einzelnes Setting in `tts_settings` ueber `helper_settings.js` und laedt danach die effektive Config neu.
 
-Akzeptiert u. a.:
+Beispiel:
 
 ```json
 {
@@ -109,7 +110,7 @@ Overlay bleibt Visualisierung/Fallback.
 Dashboard liest/schreibt nur ueber Backend-APIs.
 DB ist aktive Wahrheit fuer dashboardfaehige Settings.
 JSON bleibt Seed/Fallback/technische Boot-Konfig.
-Secrets bleiben ENV/Secret-Dateien.
+Sensible Zugangsdaten bleiben ausserhalb der Dashboard-Antworten.
 ```
 
 ## Tests nach Deploy
@@ -127,8 +128,8 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/tts/admin/settings" | ConvertTo-Jso
 Erwartung:
 
 - Keine 404 mehr fuer `/api/tts/config`, `/api/tts/voices`, `/api/tts/routes`.
-- `/api/tts/config` gibt keine Secretwerte und keinen Google-Keyfile-Pfad aus.
-- `/api/tts/voices` zeigt Stimmen ohne Secretwerte.
+- `/api/tts/config` gibt keine technischen Zugangswerte und keinen Google-Keyfile-Pfad aus.
+- `/api/tts/voices` zeigt Stimmen ohne technische Zugangswerte.
 - `/api/tts/admin/settings` zeigt DB-Settings aus `tts_settings`.
 - Bestehende TTS-Routen funktionieren unveraendert.
 
