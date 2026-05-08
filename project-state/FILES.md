@@ -12,6 +12,7 @@ Backend:
 - `backend/modules/helpers/helper_config.js`
 - `backend/modules/helpers/helper_media.js`
 - `backend/modules/helpers/helper_core.js`
+- `backend/modules/helpers/helper_texts.js`
 
 Dashboard:
 
@@ -29,7 +30,10 @@ Config/Fallback:
 Wichtig:
 
 - `config/tts_config.json` bleibt Seed/Fallback/technische Boot-Konfig.
-- `config/tts_messages.json` ist aktuell noch JSON-basiert und soll spaeter ins globale DB-Textvarianten-System migriert werden.
+- `config/tts_messages.json` bleibt Seed/Fallback fuer TTS-Texte.
+- Aktive TTS-Texte kommen aus `module_text_variants` mit `module_name = 'tts'`.
+- Mehrere aktive Varianten pro TTS-Text-Key sind moeglich.
+- Backend waehlt zufaellig eine aktive Variante.
 - Google/Piper technische Pfade duerfen nicht in oeffentlichen/normalen Dashboard-Antworten sichtbar werden.
 - Keine separate TTS-Admin-Datei als Zielstand.
 
@@ -38,6 +42,8 @@ TTS DB-Strukturen:
 - `tts_events`
 - `tts_usage_daily`
 - `tts_settings`
+- `module_text_variants` (`module_name = 'tts'`)
+- `module_texts` als Legacy-/Kompatibilitaetstabelle
 
 TTS wichtige Routen:
 
@@ -48,6 +54,8 @@ GET      /api/tts/voices
 GET      /api/tts/routes
 GET      /api/tts/admin/settings
 POST     /api/tts/admin/settings
+GET      /api/tts/admin/texts
+POST     /api/tts/admin/texts
 GET      /api/tts/stats
 GET      /api/tts/stats/users
 GET      /api/tts/events
@@ -67,9 +75,20 @@ TTS Dashboard Tabs:
 - Rollen
 - Sound-System
 - Settings
+- Texte
 - Test
 - Events
 - Routen
+
+TTS Textkategorien:
+
+- `chat` = Chat-Antworten
+- `debug` = Debugtexte
+- `errors` = Fehlertexte
+- `moderation` = Mute/Ban Verwaltung
+- `permissions` = Rechte & Freigaben
+- `status` = Status & Listen
+- `system` = Systemtexte
 
 TTS Dokus:
 
@@ -78,6 +97,8 @@ TTS Dokus:
 - `project-state/STEP199_3_TTS_USER_STATS_2026-05-08.md`
 - `project-state/STEP199_4_TTS_DASHBOARD_STATS_POLISH_2026-05-08.md`
 - `project-state/STEP199_5_TTS_DOC_SYNC_2026-05-08.md`
+- `project-state/STEP200_TTS_TEXT_VARIANTS_2026-05-08.md`
+- `project-state/STEP200_1_TTS_DOC_SYNC_2026-05-08.md`
 
 ## SoundAlerts relevante Dateien
 
