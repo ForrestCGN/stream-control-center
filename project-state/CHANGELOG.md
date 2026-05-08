@@ -2,6 +2,39 @@
 
 ## 2026-05-08
 
+### STEP200.1 - TTS Documentation Sync
+
+- Zentrale Projekt-Dokus nach STEP200 synchronisiert.
+- Dokumentiert:
+  - TTS-Texte liegen jetzt in `module_text_variants` mit `module_name = 'tts'`.
+  - `config/tts_messages.json` bleibt Seed/Fallback.
+  - Neue TTS-Textvarianten-Routen `/api/tts/admin/texts`.
+  - Dashboard-Tab `Texte` im TTS-Modul.
+  - Offene TTS-Folgepunkte nach STEP200.
+- Keine Code-/API-/DB-Aenderung.
+
+### STEP200 - TTS Text Variants
+
+- TTS-Chat-/Systemtexte an das globale DB-basierte Textvarianten-System angeschlossen.
+- `backend/modules/tts_system.js` nutzt `backend/modules/helpers/helper_texts.js`.
+- Neue Routen:
+  - `GET /api/tts/admin/texts`
+  - `POST /api/tts/admin/texts`
+- Dashboard-Tab `Texte` im TTS-Modul ergaenzt.
+- Textkategorien fuer TTS angelegt:
+  - Chat-Antworten
+  - Rechte & Freigaben
+  - Mute/Ban Verwaltung
+  - Status & Listen
+  - Systemtexte
+  - Fehlertexte
+  - Debugtexte
+- Mehrere aktive Varianten pro Text-Key moeglich.
+- Backend waehlt zufaellig eine aktive Variante.
+- `config/tts_messages.json` bleibt Seed/Fallback.
+- Kein Entfernen bestehender TTS-Texte.
+- TTS-CSS nach fehlerhaftem Teil-Overwrite wieder vollstaendig hergestellt.
+
 ### STEP199.5 - TTS Documentation Sync
 
 - Zentrale Projekt-Dokus nach STEP199.1 bis STEP199.4 synchronisiert.
