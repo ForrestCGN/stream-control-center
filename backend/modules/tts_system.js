@@ -1755,6 +1755,134 @@ function init(ctx) {
     return { ok: true, totals, usage, byStatus: recent };
   }
 
+
+  function statsUsers(filter = {}) {
+    if (!dbReady()) return { ok: false, error: 'database_unavailable', rows: [] };
+
+    const range = String(filter.range || filter.period || 'all').trim().toLowerCase();
+    const source = String(filter.source || '').trim();
+    const mode = String(filter.mode || '').trim();
+    const role = String(filter.role || filter.roleKey || '').trim();
+    const engine = String(filter.engine || '').trim();
+    const status = String(filter.status || '').trim();
+    const limit = Math.max(1, Math.min(500, Number(filter.limit || 100)));
+    const sort = String(filter.sort || 'requests').trim().toLowerCase();
+
+    const where = ["COALESCE(user_login, '') <> ''"];
+    const params = { limit };
+
+    function isoDaysAgo(days) {
+      const d = new Date();
+      d.setDate(d.getDate() - days);
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    }
+
+    function isoTodayStart() {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    }
+
+    function isoMonthStart() {
+      const d = new Date();
+      d.setDate(1);
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    }
+
+    if (range === 'today' || range === 'day') {
+      where.push('created_at >= :fromDate');
+      params.fromDate = isoTodayStart();
+    } else if (range === '7d' || range === 'week') {
+      where.push('created_at >= :fromDate');
+      params.fromDate = isoDaysAgo(7);
+    } else if (range === '30d' || range === 'month30') {
+      where.push('created_at >= :fromDate');
+      params.fromDate = isoDaysAgo(30);
+    } else if (range === 'month') {
+      where.push('created_at >= :fromDate');
+      params.fromDate = isoMonthStart();
+    }
+
+    if (source) { where.push('source = :source'); params.source = source; }
+    if (mode) { where.push('mode = :mode'); params.mode = mode; }
+    if (role) { where.push('role_key = :role'); params.role = role; }
+    if (engine) { where.push('engine = :engine'); params.engine = engine; }
+    if (status) { where.push('status = :status'); params.status = status; }
+
+    const orderBy = {
+      requests: 'requestsTotal DESC, lastUsedAt DESC',
+      chars: 'charsTotal DESC, requestsTotal DESC',
+      duration: 'durationMsTotal DESC, requestsTotal DESC',
+      failed: 'requestsFailed DESC, requestsTotal DESC',
+      google: 'googleRequests DESC, requestsTotal DESC',
+      piper: 'piperRequests DESC, requestsTotal DESC',
+      last: 'lastUsedAt DESC',
+      user: 'userDisplay COLLATE NOCASE ASC'
+    }[sort] || 'requestsTotal DESC, lastUsedAt DESC';
+
+    const rows = database.all(`
+      SELECT
+        user_login AS userLogin,
+        COALESCE(NULLIF(MAX(user_display), ''), user_login) AS userDisplay,
+        COALESCE(NULLIF(MAX(role_key), ''), '') AS roleKey,
+        COUNT(*) AS requestsTotal,
+        SUM(CASE WHEN status LIKE '%failed%' OR status LIKE '%timeout%' THEN 0 ELSE 1 END) AS requestsOk,
+        SUM(CASE WHEN status LIKE '%failed%' OR status LIKE '%timeout%' THEN 1 ELSE 0 END) AS requestsFailed,
+        COALESCE(SUM(chars), 0) AS charsTotal,
+        COALESCE(SUM(duration_ms), 0) AS durationMsTotal,
+        SUM(CASE WHEN engine = 'google' THEN 1 ELSE 0 END) AS googleRequests,
+        SUM(CASE WHEN engine = 'piper' THEN 1 ELSE 0 END) AS piperRequests,
+        SUM(CASE WHEN source = 'chat' THEN 1 ELSE 0 END) AS chatRequests,
+        SUM(CASE WHEN source = 'dashboard' THEN 1 ELSE 0 END) AS dashboardRequests,
+        SUM(CASE WHEN source = 'alert' THEN 1 ELSE 0 END) AS alertRequests,
+        MIN(created_at) AS firstUsedAt,
+        MAX(created_at) AS lastUsedAt
+      FROM tts_events
+      WHERE ${where.join(' AND ')}
+      GROUP BY user_login
+      ORDER BY ${orderBy}
+      LIMIT :limit
+    `, params);
+
+    const totals = database.get(`
+      SELECT
+        COUNT(*) AS requestsTotal,
+        SUM(CASE WHEN status LIKE '%failed%' OR status LIKE '%timeout%' THEN 0 ELSE 1 END) AS requestsOk,
+        SUM(CASE WHEN status LIKE '%failed%' OR status LIKE '%timeout%' THEN 1 ELSE 0 END) AS requestsFailed,
+        COALESCE(SUM(chars), 0) AS charsTotal,
+        COALESCE(SUM(duration_ms), 0) AS durationMsTotal,
+        COUNT(DISTINCT user_login) AS usersTotal,
+        SUM(CASE WHEN engine = 'google' THEN 1 ELSE 0 END) AS googleRequests,
+        SUM(CASE WHEN engine = 'piper' THEN 1 ELSE 0 END) AS piperRequests
+      FROM tts_events
+      WHERE ${where.join(' AND ')}
+    `, params);
+
+    const byRole = database.all(`
+      SELECT
+        COALESCE(NULLIF(role_key, ''), 'unknown') AS roleKey,
+        COUNT(*) AS requestsTotal,
+        COALESCE(SUM(chars), 0) AS charsTotal,
+        COUNT(DISTINCT user_login) AS usersTotal
+      FROM tts_events
+      WHERE ${where.join(' AND ')}
+      GROUP BY COALESCE(NULLIF(role_key, ''), 'unknown')
+      ORDER BY requestsTotal DESC
+    `, params);
+
+    return {
+      ok: true,
+      range,
+      filters: { source, mode, role, engine, status, sort, limit },
+      totals: totals || {},
+      byRole,
+      rows,
+      count: rows.length
+    };
+  }
+
   function run(req, res) {
     const data = getRequestData(req);
     const raw = parseRawInput(data);
@@ -1836,6 +1964,7 @@ function init(ctx) {
   app.post("/api/tts/admin/settings", upsertSettingFromRequest);
   app.get("/api/tts/events", (req, res) => res.json(listEvents(req.query || {})));
   app.get("/api/tts/stats", (req, res) => res.json(stats()));
+  app.get("/api/tts/stats/users", (req, res) => res.json(statsUsers(req.query || {})));
   app.all("/api/tts/prepare-alert", async (req, res) => res.json(await prepareAlertTts(getRequestData(req))));
   app.all("/api/tts/synthesize", async (req, res) => res.json(await prepareAlertTts({ ...getRequestData(req), source: getRequestData(req).source || 'api', mode: getRequestData(req).mode || 'prepare' })));
 

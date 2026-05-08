@@ -8,6 +8,7 @@ window.TTSModule = (function(){
     routes: '/api/tts/routes',
     settings: '/api/tts/admin/settings',
     stats: '/api/tts/stats',
+    statsUsers: '/api/tts/stats/users',
     events: '/api/tts/events',
     say: '/api/tts/say',
     reload: '/api/tts/reload',
@@ -25,11 +26,14 @@ window.TTSModule = (function(){
     routes: null,
     settings: null,
     stats: null,
+    statsUsers: null,
     events: null,
     loading: false,
     error: '',
     tab: 'overview',
-    saveInfo: ''
+    saveInfo: '',
+    userStatsRange: 'all',
+    userStatsSort: 'requests'
   };
 
   function registerModule(){
@@ -45,7 +49,7 @@ window.TTSModule = (function(){
       label: 'TTS',
       icon: '🗣️',
       enabled: true,
-      description: 'Text-to-Speech, Stimmen, Rollen, Limits und Sound-System-Ausgabe.'
+      description: 'Text-to-Speech, Stimmen, Rollen, Limits, Statistiken und Sound-System-Ausgabe.'
     };
     if (Array.isArray(window.CGN.favorites) && !window.CGN.favorites.includes('tts')) window.CGN.favorites.push('tts');
   }
@@ -64,6 +68,22 @@ window.TTSModule = (function(){
   function boolLabel(v){ return v ? 'Aktiv' : 'Inaktiv'; }
   function fmt(v){ return v === undefined || v === null || v === '' ? '<span class="tts-muted">-</span>' : esc(v); }
   function asJson(value){ return JSON.stringify(value ?? {}, null, 2); }
+  function num(v){ const n = Number(v || 0); return Number.isFinite(n) ? n : 0; }
+  function fmtMs(ms){
+    const n = num(ms);
+    if (n <= 0) return '0s';
+    const s = Math.round(n / 1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return r ? `${m}m ${r}s` : `${m}m`;
+  }
+
+  function userStatsUrl(){
+    const range = encodeURIComponent(state.userStatsRange || 'all');
+    const sort = encodeURIComponent(state.userStatsSort || 'requests');
+    return `${api.statsUsers}?range=${range}&sort=${sort}&limit=100`;
+  }
 
   async function loadAll(force){
     root = document.getElementById('ttsModule');
@@ -73,18 +93,29 @@ window.TTSModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, config, voices, routes, settings, stats, events] = await Promise.all([
+      const [status, config, voices, routes, settings, stats, statsUsers, events] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.config),
         window.CGN.api(api.voices),
         window.CGN.api(api.routes),
         window.CGN.api(api.settings),
         window.CGN.api(api.stats).catch(err => ({ ok:false, error:err.message })),
+        window.CGN.api(userStatsUrl()).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.events).catch(err => ({ ok:false, error:err.message, rows:[] }))
       ]);
-      state = { ...state, status, config, voices, routes, settings, stats, events, loading:false, error:'' };
+      state = { ...state, status, config, voices, routes, settings, stats, statsUsers, events, loading:false, error:'' };
     } catch (err) {
       state.loading = false;
+      state.error = err.message || String(err);
+    }
+    render();
+  }
+
+  async function reloadUserStats(){
+    try {
+      state.statsUsers = await window.CGN.api(userStatsUrl());
+      state.error = '';
+    } catch (err) {
       state.error = err.message || String(err);
     }
     render();
@@ -147,6 +178,7 @@ window.TTSModule = (function(){
     const sources = state.config?.sources || {};
     const usage = status.usage || {};
     const limits = status.limits || cfg.limits || {};
+    const userTotals = state.statsUsers?.totals || {};
     return `
       <div class="tts-grid">
         <section class="tts-card tts-card-main">
@@ -162,7 +194,7 @@ window.TTSModule = (function(){
             <div><span>Standard-Stimme</span><strong>${fmt(cfg.defaultVoice)}</strong></div>
             <div><span>Fallback-Stimme</span><strong>${fmt(cfg.fallbackVoice)}</strong></div>
             <div><span>DB-Settings</span><strong>${sources.database?.ok ? 'OK' : 'Fehler'} · ${esc(sources.database?.count ?? 0)} Einträge</strong></div>
-            <div><span>JSON-Fallback</span><strong>${sources.json?.exists ? 'vorhanden' : 'fehlt'}</strong></div>
+            <div><span>User in Statistik</span><strong>${esc(userTotals.usersTotal ?? 0)}</strong></div>
             <div><span>Regel</span><strong>${fmt(sources.rule)}</strong></div>
           </div>
         </section>
@@ -176,8 +208,40 @@ window.TTSModule = (function(){
             <div><span>Requests heute</span><strong>${esc(usage.totalRequestsToday ?? 0)}</strong></div>
           </div>
         </section>
-      </div>
-    `;
+      </div>`;
+  }
+
+  function renderUserStats(){
+    const data = state.statsUsers || {};
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const totals = data.totals || {};
+    const byRole = Array.isArray(data.byRole) ? data.byRole : [];
+    const rangeOptions = [['today','Heute'], ['7d','7 Tage'], ['30d','30 Tage'], ['month','Dieser Monat'], ['all','Gesamt']];
+    const sortOptions = [['requests','Anzahl'], ['chars','Zeichen'], ['duration','Dauer'], ['failed','Fehler'], ['google','Google'], ['piper','Piper'], ['last','Letzte Nutzung'], ['user','User']];
+    return `
+      <div class="tts-grid">
+        <section class="tts-card tts-card-main">
+          <div class="tts-stats-head">
+            <div><h3>User-Statistik</h3><p class="tts-note">Wer hat wie oft TTS genutzt, wie viele Zeichen verbraucht und welche Engine wurde genutzt?</p></div>
+            <div class="tts-stats-controls">
+              <label>Zeitraum<select data-tts-userstats-range>${rangeOptions.map(([id,label]) => `<option value="${esc(id)}" ${state.userStatsRange === id ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
+              <label>Sortierung<select data-tts-userstats-sort>${sortOptions.map(([id,label]) => `<option value="${esc(id)}" ${state.userStatsSort === id ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
+              <button type="button" data-tts-userstats-refresh>Aktualisieren</button>
+            </div>
+          </div>
+          <div class="tts-kpis">
+            <div><strong>${esc(totals.usersTotal ?? 0)}</strong><span>User</span></div>
+            <div><strong>${esc(totals.requestsTotal ?? 0)}</strong><span>Requests</span></div>
+            <div><strong>${esc(totals.charsTotal ?? 0)}</strong><span>Zeichen</span></div>
+            <div><strong>${fmtMs(totals.durationMsTotal)}</strong><span>Dauer</span></div>
+          </div>
+          ${rows.length ? `<div class="tts-table-wrap"><table><thead><tr><th>User</th><th>Rolle</th><th>Anzahl</th><th>OK</th><th>Fehler</th><th>Zeichen</th><th>Google</th><th>Piper</th><th>Dauer</th><th>Letzte Nutzung</th></tr></thead><tbody>${rows.map(r => `<tr><td><strong>${esc(r.userDisplay || r.userLogin || '-')}</strong><small>${esc(r.userLogin || '')}</small></td><td>${esc(r.roleKey || '-')}</td><td>${esc(r.requestsTotal ?? 0)}</td><td>${esc(r.requestsOk ?? 0)}</td><td>${esc(r.requestsFailed ?? 0)}</td><td>${esc(r.charsTotal ?? 0)}</td><td>${esc(r.googleRequests ?? 0)}</td><td>${esc(r.piperRequests ?? 0)}</td><td>${esc(fmtMs(r.durationMsTotal))}</td><td>${fmt(r.lastUsedAt)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="tts-empty">Keine User-Statistik für diesen Filter.</div>`}
+        </section>
+        <section class="tts-card">
+          <h3>Nach Rolle</h3>
+          ${byRole.length ? `<div class="tts-table-wrap tts-table-small"><table><thead><tr><th>Rolle</th><th>User</th><th>Anzahl</th><th>Zeichen</th></tr></thead><tbody>${byRole.map(r => `<tr><td>${esc(r.roleKey || '-')}</td><td>${esc(r.usersTotal ?? 0)}</td><td>${esc(r.requestsTotal ?? 0)}</td><td>${esc(r.charsTotal ?? 0)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="tts-empty">Keine Rollendaten.</div>`}
+        </section>
+      </div>`;
   }
 
   function renderVoices(){
@@ -257,7 +321,7 @@ window.TTSModule = (function(){
   function renderEvents(){
     const eventRows = Array.isArray(state.events?.rows) ? state.events.rows : Array.isArray(state.events?.events) ? state.events.events : [];
     const statRows = Array.isArray(state.stats?.rows) ? state.stats.rows : [];
-    return `<div class="tts-grid"><section class="tts-card"><h3>Letzte Events</h3>${eventRows.length ? `<div class="tts-table-wrap"><table><thead><tr><th>Zeit</th><th>Status</th><th>User</th><th>Voice</th><th>Text</th></tr></thead><tbody>${eventRows.slice(0, 20).map(e => `<tr><td>${fmt(e.created_at || e.createdAt)}</td><td>${fmt(e.status)}</td><td>${fmt(e.user_display || e.userDisplay || e.user_login)}</td><td>${fmt(e.voice_id || e.voiceId)}</td><td>${fmt(e.text)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="tts-empty">Keine Eventdaten oder Route liefert keine rows.</div>'}</section><section class="tts-card"><h3>Statistik</h3>${statRows.length ? `<pre class="tts-json">${esc(asJson(statRows))}</pre>` : `<pre class="tts-json">${esc(asJson(state.stats || {}))}</pre>`}</section></div>`;
+    return `<div class="tts-grid"><section class="tts-card"><h3>Letzte Events</h3>${eventRows.length ? `<div class="tts-table-wrap"><table><thead><tr><th>Zeit</th><th>Status</th><th>User</th><th>Voice</th><th>Text</th></tr></thead><tbody>${eventRows.slice(0, 20).map(e => `<tr><td>${fmt(e.created_at || e.createdAt)}</td><td>${fmt(e.status)}</td><td>${fmt(e.user_display || e.userDisplay || e.user_login)}</td><td>${fmt(e.voice_id || e.voiceId)}</td><td>${fmt(e.text)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="tts-empty">Keine Eventdaten oder Route liefert keine rows.</div>'}</section><section class="tts-card"><h3>Statistik Rohdaten</h3>${statRows.length ? `<pre class="tts-json">${esc(asJson(statRows))}</pre>` : `<pre class="tts-json">${esc(asJson(state.stats || {}))}</pre>`}</section></div>`;
   }
 
   function renderRoutes(){
@@ -269,12 +333,12 @@ window.TTSModule = (function(){
     root = document.getElementById('ttsModule');
     if (!root) return;
     const tabs = [
-      ['overview','Übersicht'], ['voices','Stimmen'], ['roles','Rollen'], ['sound','Sound-System'], ['settings','Settings'], ['test','Test'], ['events','Events'], ['routes','Routen']
+      ['overview','Übersicht'], ['users','User-Statistik'], ['voices','Stimmen'], ['roles','Rollen'], ['sound','Sound-System'], ['settings','Settings'], ['test','Test'], ['events','Events'], ['routes','Routen']
     ];
     root.innerHTML = `
       <div class="tts-admin-wrap">
         <section class="tts-card tts-hero">
-          <div><h2>🗣️ TTS-System</h2><p>Text-to-Speech verwalten: Status, Stimmen, Rollen, Limits, Sound-System-Ausgabe und Tests.</p></div>
+          <div><h2>🗣️ TTS-System</h2><p>Text-to-Speech verwalten: Status, Stimmen, Rollen, Limits, User-Statistiken, Sound-System-Ausgabe und Tests.</p></div>
           <div class="tts-actions">
             <button type="button" data-tts-action="refresh">Aktualisieren</button>
             <button type="button" data-tts-action="reload">Backend neu laden</button>
@@ -288,7 +352,7 @@ window.TTSModule = (function(){
         ${state.saveInfo ? `<div class="tts-info">${esc(state.saveInfo)}</div>` : ''}
         ${state.loading ? '<div class="tts-card">Lade TTS-Daten...</div>' : `
           <div class="tts-tabs">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-tts-tab="${id}">${esc(label)}</button>`).join('')}</div>
-          ${state.tab === 'voices' ? renderVoices() : state.tab === 'roles' ? renderRoles() : state.tab === 'sound' ? renderSoundSystem() : state.tab === 'settings' ? renderSettings() : state.tab === 'test' ? renderTest() : state.tab === 'events' ? renderEvents() : state.tab === 'routes' ? renderRoutes() : renderOverview()}
+          ${state.tab === 'users' ? renderUserStats() : state.tab === 'voices' ? renderVoices() : state.tab === 'roles' ? renderRoles() : state.tab === 'sound' ? renderSoundSystem() : state.tab === 'settings' ? renderSettings() : state.tab === 'test' ? renderTest() : state.tab === 'events' ? renderEvents() : state.tab === 'routes' ? renderRoutes() : renderOverview()}
         `}
       </div>`;
     bind();
@@ -297,6 +361,9 @@ window.TTSModule = (function(){
   function bind(){
     root?.querySelectorAll('[data-tts-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.ttsTab || 'overview'; render(); }));
     root?.querySelectorAll('[data-tts-save-setting]').forEach(btn => btn.addEventListener('click', () => saveSetting(btn.dataset.ttsSaveSetting).catch(err => { state.error = err.message; render(); })));
+    root?.querySelector('[data-tts-userstats-range]')?.addEventListener('change', ev => { state.userStatsRange = ev.target.value; reloadUserStats(); });
+    root?.querySelector('[data-tts-userstats-sort]')?.addEventListener('change', ev => { state.userStatsSort = ev.target.value; reloadUserStats(); });
+    root?.querySelector('[data-tts-userstats-refresh]')?.addEventListener('click', () => reloadUserStats());
     root?.querySelectorAll('[data-tts-action]').forEach(btn => btn.addEventListener('click', () => {
       const action = btn.dataset.ttsAction;
       if (action === 'refresh') return loadAll(true);
