@@ -1077,6 +1077,229 @@ function buildStatus() {
   };
 }
 
+
+function countTableRows(tableName) {
+  try {
+    const row = sqlite.get(`SELECT COUNT(*) AS count FROM ${tableName}`);
+    return { ok: true, table: tableName, count: Number(row?.count || 0), error: '' };
+  } catch (err) {
+    return { ok: false, table: tableName, count: 0, error: err.message };
+  }
+}
+
+function fileCheck(label, filePath) {
+  try {
+    const exists = Boolean(filePath && fs.existsSync(filePath));
+    let isFile = false;
+    if (exists) isFile = fs.statSync(filePath).isFile();
+    return { ok: exists && isFile, label, path: filePath || '', exists, isFile, error: '' };
+  } catch (err) {
+    return { ok: false, label, path: filePath || '', exists: false, isFile: false, error: err.message };
+  }
+}
+
+function buildTagebuchRoutes() {
+  const routeList = [
+    { method: 'GET', path: '/api/tagebuch/status', auth: 'local_or_auth', category: 'status', description: 'Tagebuch-Status, Config-Quellen und aktueller Stream-/Seitenzustand.' },
+    { method: 'GET', path: '/api/tagebuch/config', auth: 'local_or_auth', category: 'config', description: 'Read-only effektive Tagebuch-Config ohne Secrets.' },
+    { method: 'GET', path: '/api/tagebuch/settings', auth: 'local_or_auth', category: 'settings', description: 'Read-only DB-Settings aus tagebuch_settings.' },
+    { method: 'GET', path: '/api/tagebuch/routes', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Routenübersicht des Tagebuch-Moduls.' },
+    { method: 'GET', path: '/api/tagebuch/integration-check', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Integration-Check des Tagebuch-Moduls.' },
+    { method: 'POST', path: '/api/tagebuch/reload', auth: 'local_or_auth', category: 'admin', description: 'Runtime-Config und Texte neu laden.' },
+    { method: 'GET', path: '/api/tagebuch/reload', auth: 'local_or_auth', category: 'admin', description: 'Runtime-Config und Texte neu laden, GET-kompatibel für einfache Clients.' },
+
+    { method: 'POST', path: '/api/tagebuch/stream/start', auth: 'local_or_auth', category: 'lifecycle', description: 'Streamstart verarbeiten und ggf. neue Tagebuchseite anlegen.' },
+    { method: 'GET', path: '/api/tagebuch/stream/start', auth: 'local_or_auth', category: 'lifecycle', description: 'Streamstart verarbeiten, GET-kompatibel für Streamer.bot/ einfache Clients.' },
+    { method: 'POST', path: '/api/tagebuch/stream/end', auth: 'local_or_auth', category: 'lifecycle', description: 'Streamende verarbeiten und ggf. Leer-Hinweis posten.' },
+    { method: 'GET', path: '/api/tagebuch/stream/end', auth: 'local_or_auth', category: 'lifecycle', description: 'Streamende verarbeiten, GET-kompatibel für Streamer.bot/ einfache Clients.' },
+
+    { method: 'POST', path: '/api/tagebuch/entry', auth: 'local_or_auth', category: 'entry', description: 'Tagebuch-Eintrag speichern/posten.' },
+    { method: 'GET', path: '/api/tagebuch/entry', auth: 'local_or_auth', category: 'entry', description: 'Tagebuch-Eintrag speichern/posten, GET-kompatibel für Streamer.bot/ einfache Clients.' },
+    { method: 'POST', path: '/api/tagebuch/reset', auth: 'local_or_auth', category: 'reset', description: 'Tagebuch-State zurücksetzen.' },
+    { method: 'GET', path: '/api/tagebuch/reset', auth: 'local_or_auth', category: 'reset', description: 'Tagebuch-State zurücksetzen, GET-kompatibel für einfache Clients.' },
+
+    { method: 'GET', path: '/api/tagebuch/stats', auth: 'local_or_auth', category: 'stats', description: 'Top-User-Statistik lesen.' },
+    { method: 'GET', path: '/api/tagebuch/stats/top', auth: 'local_or_auth', category: 'stats', description: 'Top-User-Statistik lesen.' },
+    { method: 'GET', path: '/api/tagebuch/stats/today', auth: 'local_or_auth', category: 'stats', description: 'Tagesstatistik lesen.' },
+    { method: 'GET', path: '/api/tagebuch/stats/user', auth: 'local_or_auth', category: 'stats', description: 'Statistik für einen User lesen.' },
+
+    { method: 'GET', path: '/api/tagebuch/admin/settings', auth: 'local_or_auth', category: 'admin', description: 'Admin-Settings lesen.' },
+    { method: 'POST', path: '/api/tagebuch/admin/settings', auth: 'local_or_auth', category: 'admin', description: 'Admin-Settings speichern.' },
+    { method: 'GET', path: '/api/tagebuch/admin/texts', auth: 'local_or_auth', category: 'admin', description: 'Tagebuch-Texteditor-Daten lesen.' },
+    { method: 'POST', path: '/api/tagebuch/admin/texts', auth: 'local_or_auth', category: 'admin', description: 'Tagebuch-Texte/Varianten speichern.' },
+
+    { method: 'POST', path: '/discord/stream/start', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Streamstart.' },
+    { method: 'GET', path: '/discord/stream/start', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Streamstart.' },
+    { method: 'POST', path: '/discord/stream/end', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Streamende.' },
+    { method: 'GET', path: '/discord/stream/end', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Streamende.' },
+    { method: 'POST', path: '/discord/tagebuch', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Tagebuch-Eintrag.' },
+    { method: 'GET', path: '/discord/tagebuch', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Tagebuch-Eintrag.' },
+    { method: 'GET', path: '/discord/tagebuch/status', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Tagebuch-Status.' },
+    { method: 'POST', path: '/discord/tagebuch/reset', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Reset.' },
+    { method: 'GET', path: '/discord/tagebuch/reset', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Reset.' }
+  ];
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    version: 1,
+    standardPrefix: '/api/tagebuch',
+    legacyPrefixes: ['/discord/tagebuch', '/discord/stream'],
+    standardEndpoints: {
+      status: '/api/tagebuch/status',
+      config: '/api/tagebuch/config',
+      settings: '/api/tagebuch/settings',
+      routes: '/api/tagebuch/routes',
+      integrationCheck: '/api/tagebuch/integration-check',
+      reload: '/api/tagebuch/reload'
+    },
+    routes: routeList,
+    count: routeList.length,
+    categories: Array.from(new Set(routeList.map(route => route.category))).sort(),
+    notes: [
+      'Read-only Routenübersicht für Dashboard-/Modul-Standardisierung.',
+      'Bestehende Legacy-Routen bleiben erhalten.',
+      'Schreibende Routen sind nur dokumentiert, nicht neu angelegt.',
+      '/api/tagebuch/config und /api/tagebuch/settings sind read-only Standard-Aliase.'
+    ]
+  };
+}
+
+function buildTagebuchIntegrationCheck() {
+  const warnings = [];
+  const errors = [];
+  const checks = {};
+
+  let cfg = null;
+  let status = null;
+
+  try {
+    cfg = getConfig();
+    status = buildStatus();
+    checks.config = {
+      ok: true,
+      path: cfg.configPath,
+      messagesPath: cfg.messagesPath,
+      source: cfg.settingsSource || 'unknown',
+      hasWebhookUrl: Boolean(cfg.webhookUrl),
+      error: ''
+    };
+  } catch (err) {
+    checks.config = { ok: false, path: '', messagesPath: '', source: 'unknown', hasWebhookUrl: false, error: err.message };
+    errors.push(`config: ${err.message}`);
+  }
+
+  try {
+    checks.database = {
+      ok: true,
+      adapter: 'sqlite',
+      path: typeof sqlite.getDbPath === 'function' ? sqlite.getDbPath() : null,
+      schemaVersion: sqlite.getSchemaVersion(MODULE_NAME),
+      expectedSchemaVersion: SCHEMA_VERSION,
+      error: ''
+    };
+    if (Number(checks.database.schemaVersion || 0) < SCHEMA_VERSION) warnings.push('schema_version_below_expected');
+  } catch (err) {
+    checks.database = { ok: false, adapter: 'sqlite', path: null, schemaVersion: 0, expectedSchemaVersion: SCHEMA_VERSION, error: err.message };
+    errors.push(`database: ${err.message}`);
+  }
+
+  checks.tables = {
+    state: countTableRows('tagebuch_state'),
+    runtimeEvents: countTableRows('tagebuch_runtime_events'),
+    userStats: countTableRows('tagebuch_user_stats'),
+    dailyUserStats: countTableRows('tagebuch_daily_user_stats'),
+    settings: countTableRows(SETTINGS_TABLE),
+    textVariants: countTableRows(texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE)
+  };
+
+  for (const check of Object.values(checks.tables)) {
+    if (!check.ok) errors.push(`table_${check.table}: ${check.error}`);
+  }
+
+  try {
+    const listed = listAdminSettings();
+    checks.settings = {
+      ok: true,
+      table: SETTINGS_TABLE,
+      count: Number(listed.count ?? listed.rows?.length ?? 0),
+      source: cfg?.settingsSource || 'unknown',
+      error: ''
+    };
+  } catch (err) {
+    checks.settings = { ok: false, table: SETTINGS_TABLE, count: 0, source: 'unknown', error: err.message };
+    errors.push(`settings: ${err.message}`);
+  }
+
+  try {
+    const listedTexts = listAdminTexts();
+    checks.texts = {
+      ok: true,
+      module: TEXTS_MODULE,
+      table: runtimeMessages?._textsTable || texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+      legacyTable: runtimeMessages?._legacyTextsTable || texts.DEFAULT_MODULE_TEXTS_TABLE,
+      source: runtimeMessages?._textsSource || 'unknown',
+      categories: Array.isArray(listedTexts.categories) ? listedTexts.categories.length : Object.keys(TEXT_CATEGORIES).length,
+      count: Number(listedTexts.count ?? listedTexts.variantCount ?? 0),
+      error: ''
+    };
+  } catch (err) {
+    checks.texts = { ok: false, module: TEXTS_MODULE, table: texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE, legacyTable: texts.DEFAULT_MODULE_TEXTS_TABLE, source: 'unknown', categories: 0, count: 0, error: err.message };
+    errors.push(`texts: ${err.message}`);
+  }
+
+  if (cfg) {
+    checks.files = {
+      config: fileCheck('config', cfg.configPath),
+      messages: fileCheck('messages', cfg.messagesPath)
+    };
+    for (const check of Object.values(checks.files)) {
+      if (!check.ok) warnings.push(`${check.label}_file_missing_or_not_file`);
+    }
+
+    checks.webhook = {
+      ok: !cfg.useDiscordWebhook || Boolean(cfg.webhookUrl),
+      useDiscordWebhook: Boolean(cfg.useDiscordWebhook),
+      hasWebhookUrl: Boolean(cfg.webhookUrl),
+      webhookUrlEnv: cfg.webhookUrlEnv || '',
+      error: ''
+    };
+    if (!checks.webhook.ok) warnings.push('discord_webhook_enabled_but_missing_url');
+  }
+
+  if (status) {
+    checks.state = {
+      ok: true,
+      activeStream: Boolean(status.state?.activeStream),
+      currentPageNumber: Number(status.state?.currentPageNumber || 0),
+      currentPageDate: status.state?.currentPageDate || null,
+      localDateToday: status.state?.localDateToday || localDateString(),
+      error: ''
+    };
+  } else {
+    checks.state = { ok: false, activeStream: false, currentPageNumber: 0, currentPageDate: null, localDateToday: localDateString(), error: 'status_unavailable' };
+  }
+
+  const healthy = errors.length === 0;
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    version: 1,
+    schemaVersion: checks.database?.schemaVersion ?? null,
+    healthy,
+    warnings,
+    errors,
+    checks,
+    routes: buildTagebuchRoutes().standardEndpoints,
+    notes: [
+      'Read-only Integration-Check für Dashboard-/Modul-Standardisierung.',
+      'Es werden keine DB-, JSON- oder Dateiänderungen vorgenommen.',
+      'Warnungen zu fehlender Webhook-URL können je nach Setup normal sein, wenn Discord-Posting deaktiviert ist.'
+    ]
+  };
+}
+
 function sendPlainOrJson(req, res, result, okStatus = 200) {
   if (wantsPlain(req)) {
     return res.status(200).type('text/plain; charset=utf-8').send(result.message || (result.ok ? 'OK' : 'Fehler'));
@@ -1133,6 +1356,43 @@ function registerRoutes(ctx) {
       return res.json(buildStatus());
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message, message: getMessages().statusFailed });
+    }
+  }
+
+  function handleConfig(req, res) {
+    if (!authOk(req)) return jsonForbidden(res);
+    try {
+      const cfg = getConfig();
+      return res.json({ ok: true, module: MODULE_NAME, config: safePublicConfig(cfg), status: buildStatus() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: 'Tagebuch-Config konnte nicht gelesen werden.' });
+    }
+  }
+
+  function handleSettings(req, res) {
+    if (!authOk(req)) return jsonForbidden(res);
+    try {
+      return res.json({ ok: true, module: MODULE_NAME, settings: listAdminSettings(), status: buildStatus() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: 'Tagebuch-Settings konnten nicht gelesen werden.' });
+    }
+  }
+
+  function handleRoutes(req, res) {
+    if (!authOk(req)) return jsonForbidden(res);
+    try {
+      return res.json(buildTagebuchRoutes());
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: 'Tagebuch-Routen konnten nicht gelesen werden.' });
+    }
+  }
+
+  function handleIntegrationCheck(req, res) {
+    if (!authOk(req)) return jsonForbidden(res);
+    try {
+      return res.json(buildTagebuchIntegrationCheck());
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message, message: 'Tagebuch-Integration-Check fehlgeschlagen.' });
     }
   }
 
@@ -1233,6 +1493,10 @@ function registerRoutes(ctx) {
   const streamEndRoutes = ['/discord/stream/end', '/api/tagebuch/stream/end'];
   const entryRoutes = ['/discord/tagebuch', '/api/tagebuch/entry'];
   const statusRoutes = ['/discord/tagebuch/status', '/api/tagebuch/status'];
+  const configRoutes = ['/api/tagebuch/config'];
+  const settingsRoutes = ['/api/tagebuch/settings'];
+  const routesRoutes = ['/api/tagebuch/routes'];
+  const integrationCheckRoutes = ['/api/tagebuch/integration-check'];
   const statsTopRoutes = ['/api/tagebuch/stats', '/api/tagebuch/stats/top'];
   const statsTodayRoutes = ['/api/tagebuch/stats/today'];
   const statsUserRoutes = ['/api/tagebuch/stats/user'];
@@ -1248,6 +1512,10 @@ function registerRoutes(ctx) {
   routes.registerPost(app, entryRoutes, handleTagebuch);
   routes.registerGet(app, entryRoutes, handleTagebuch);
   routes.registerGet(app, statusRoutes, handleStatus);
+  routes.registerGet(app, configRoutes, handleConfig);
+  routes.registerGet(app, settingsRoutes, handleSettings);
+  routes.registerGet(app, routesRoutes, handleRoutes);
+  routes.registerGet(app, integrationCheckRoutes, handleIntegrationCheck);
   routes.registerGet(app, statsTopRoutes, handleStatsTop);
   routes.registerGet(app, statsTodayRoutes, handleStatsToday);
   routes.registerGet(app, statsUserRoutes, handleStatsUser);
