@@ -1,0 +1,19 @@
+key;name;base;backend;dashboard;config_file;status;config;settings;routes;integration_check;reload;priority;missing
+sound;Sound-System;/api/sound;True;True;True;True;True;True;True;True;True;Niedrig;
+alerts;Alert-System;/api/alerts;True;True;True;True;True;True;False;True;True;Mittel;routes
+soundalerts;SoundAlerts;/api/soundalerts;True;True;True;True;True;True;False;False;True;Mittel;routes,integrationCheck
+tts;TTS;/api/tts;True;True;False;True;True;True;True;True;True;Niedrig;
+vip;VIP;/api/vip;True;True;False;False;False;False;False;False;False;Hoch;status,config,settings,routes,integrationCheck,reload
+tagebuch;Tagebuch;/api/tagebuch;True;True;True;True;False;False;False;False;True;Mittel;config,settings,routes,integrationCheck
+todo;Todo;/api/todo;True;True;False;True;False;False;False;False;True;Mittel;config,settings,routes,integrationCheck
+messages;Messages;/api/messages;True;False;False;True;False;False;False;False;True;Mittel;config,settings,routes,integrationCheck
+message_rotator;Message Rotator;/api/message-rotator;True;False;True;True;False;False;False;False;True;Mittel;config,settings,routes,integrationCheck
+hug;Hug/Rehug;/api/hug;True;True;False;True;False;False;False;False;False;Mittel;config,settings,routes,integrationCheck,reload
+clips;Clips;/api/clip;True;True;True;True;False;False;False;False;False;Mittel;config,settings,routes,integrationCheck,reload
+obs;OBS;/api/obs;True;True;True;True;False;False;False;False;False;Mittel;config,settings,routes,integrationCheck,reload
+discord;Discord;/api/discord;True;False;False;True;False;False;False;False;False;Mittel;config,settings,routes,integrationCheck,reload
+twitch;Twitch;/api/twitch;True;False;False;False;False;False;False;False;False;Hoch;status,config,settings,routes,integrationCheck,reload
+chat_overlay;Chat Overlay;/api/overlay/chat;True;False;False;True;False;False;False;False;False;Mittel;config,settings,routes,integrationCheck,reload
+database;Core Database;/api/database;True;False;False;True;False;False;False;False;False;Mittel;config,settings,routes,integrationCheck,reload
+auth;Dashboard Auth;/api/auth;True;False;False;True;False;False;False;False;False;Mittel;config,settings,routes,integrationCheck,reload
+controlcenter;Dashboard Controlcenter;/api/dashboard/controlcenter;True;True;False;True;False;False;False;False;False;Mittel;config,settings,routes,integrationCheck,reload
