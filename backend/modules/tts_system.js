@@ -1822,6 +1822,10 @@ function init(ctx) {
       user: 'userDisplay COLLATE NOCASE ASC'
     }[sort] || 'requestsTotal DESC, lastUsedAt DESC';
 
+    const queryParams = { ...params };
+    const aggregateParams = { ...params };
+    delete aggregateParams.limit;
+
     const rows = database.all(`
       SELECT
         user_login AS userLogin,
@@ -1844,7 +1848,7 @@ function init(ctx) {
       GROUP BY user_login
       ORDER BY ${orderBy}
       LIMIT :limit
-    `, params);
+    `, queryParams);
 
     const totals = database.get(`
       SELECT
@@ -1858,7 +1862,7 @@ function init(ctx) {
         SUM(CASE WHEN engine = 'piper' THEN 1 ELSE 0 END) AS piperRequests
       FROM tts_events
       WHERE ${where.join(' AND ')}
-    `, params);
+    `, aggregateParams);
 
     const byRole = database.all(`
       SELECT
@@ -1870,7 +1874,7 @@ function init(ctx) {
       WHERE ${where.join(' AND ')}
       GROUP BY COALESCE(NULLIF(role_key, ''), 'unknown')
       ORDER BY requestsTotal DESC
-    `, params);
+    `, aggregateParams);
 
     return {
       ok: true,
