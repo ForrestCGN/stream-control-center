@@ -906,8 +906,8 @@ function buildTodoIntegrationCheck() {
   const settingsCount = countTableRows(SETTINGS_TABLE);
   const userStatsCount = countTableRows("todo_user_stats");
   const dailyStatsCount = countTableRows("todo_daily_stats");
-  const textVariantCount = countTableRows(texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE, "module = :module", { module: TEXTS_MODULE });
-  const legacyTextCount = countTableRows(texts.DEFAULT_MODULE_TEXTS_TABLE, "module = :module", { module: TEXTS_MODULE });
+  const textVariantCount = countTableRows(texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE, "module_name = :module", { module: TEXTS_MODULE });
+  const legacyTextCount = countTableRows(texts.DEFAULT_MODULE_TEXTS_TABLE, "module_name = :module", { module: TEXTS_MODULE });
 
   for (const check of [settingsCount, userStatsCount, dailyStatsCount, textVariantCount]) {
     if (!check.ok) errors.push(`${check.table}:${check.error}`);
