@@ -1,4 +1,4 @@
-window.SoundSystemModule = (function(){
+﻿window.SoundSystemModule = (function(){
   'use strict';
 
   const API = '/api/sound';
@@ -6,6 +6,8 @@ window.SoundSystemModule = (function(){
   let status = null;
   let output = null;
   let settings = null;
+  let integrationCheck = null;
+  let routesInfo = null;
   let devices = [];
   let loading = false;
   let lastSaveInfo = null;
@@ -39,6 +41,7 @@ window.SoundSystemModule = (function(){
         <button type="button" class="sound-tab" data-sound-tab="queue">Queue</button>
         <button type="button" class="sound-tab" data-sound-tab="settings">Einstellungen</button>
         <button type="button" class="sound-tab" data-sound-tab="sounds">Sounds</button>
+        <button type="button" class="sound-tab" data-sound-tab="diagnose">Diagnose</button>
       </div>
 
       <div class="sound-grid">
@@ -55,6 +58,7 @@ window.SoundSystemModule = (function(){
           <h3>Queue</h3>
           <div id="soundQueue" class="sound-queue"></div>
         </div>
+        <div class="sound-card" id="soundIntegrationCard" data-sound-section="diagnose"></div>
       </div>
     `;
     applySoundSection();
@@ -72,6 +76,7 @@ window.SoundSystemModule = (function(){
     renderSettings();
     renderSounds();
     renderQueue();
+    renderIntegration();
     applySoundSection();
   }
 
@@ -191,90 +196,6 @@ window.SoundSystemModule = (function(){
   function checked(value){ return value === false ? '' : 'checked'; }
   function numValue(value, fallback){ const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 
-
-  function pickSettingStore(){
-    if (!settings || typeof settings !== 'object') return {};
-    if (settings.settings && typeof settings.settings === 'object') return settings.settings;
-    if (settings.blocks && typeof settings.blocks === 'object') return settings.blocks;
-    if (settings.data && typeof settings.data === 'object') return settings.data;
-    if (settings.values && typeof settings.values === 'object') return settings.values;
-    return {};
-  }
-
-  function hasOwnPath(obj, path){
-    let cur = obj;
-    for (const part of String(path || '').split('.')) {
-      if (!part) continue;
-      if (!cur || typeof cur !== 'object' || !Object.prototype.hasOwnProperty.call(cur, part)) return false;
-      cur = cur[part];
-    }
-    return true;
-  }
-
-  function valueAtPath(obj, path){
-    let cur = obj;
-    for (const part of String(path || '').split('.')) {
-      if (!part) continue;
-      if (!cur || typeof cur !== 'object') return '';
-      cur = cur[part];
-    }
-    return cur;
-  }
-
-  function settingSourceFor(path){
-    const store = pickSettingStore();
-    if (hasOwnPath(store, path)) return 'database';
-    const sourceMap = settings?.sources || settings?.sourceMap || settings?.source || {};
-    const mapped = hasOwnPath(sourceMap, path) ? String(valueAtPath(sourceMap, path) || '') : '';
-    if (mapped) return mapped;
-    return 'json_fallback';
-  }
-
-  function sourceLabel(source){
-    const s = String(source || '').toLowerCase();
-    if (s.includes('database') || s === 'db') return 'DB';
-    if (s.includes('json')) return 'JSON-Fallback';
-    if (s.includes('default')) return 'Default';
-    return source || 'Fallback';
-  }
-
-  function sourceClass(source){
-    const s = String(source || '').toLowerCase();
-    if (s.includes('database') || s === 'db') return 'success';
-    if (s.includes('json')) return 'warn';
-    if (s.includes('default')) return 'muted';
-    return '';
-  }
-
-  function renderSettingsSourceOverview(){
-    const blocks = [
-      ['Ausgabe', 'output'],
-      ['Overlay', 'overlay'],
-      ['Queue', 'queue'],
-      ['Prioritäten', 'priorities'],
-      ['Kategorie-Defaults', 'categoryDefaults'],
-      ['Defaults', 'defaults']
-    ];
-    const table = settings?.table || settings?.settingsTable || 'sound_settings';
-    const count = Number(settings?.count ?? settings?.settingCount ?? settings?.blocksCount ?? integrationCheck?.checks?.dbSettingsCount);
-    const countText = Number.isFinite(count) ? ` · ${count} Blöcke` : '';
-    return `
-      <div class="sound-source-panel">
-        <div class="sound-source-head">
-          <strong>Settings-Quelle</strong>
-          <span>DB-Tabelle <code>${esc(table)}</code>${esc(countText)}</span>
-        </div>
-        <div class="sound-source-grid">
-          ${blocks.map(([label, path]) => {
-            const source = settingSourceFor(path);
-            return `<div class="sound-source-item"><span>${esc(label)}</span><span class="sound-pill ${esc(sourceClass(source))}">${esc(sourceLabel(source))}</span></div>`;
-          }).join('')}
-        </div>
-        <div class="sound-note">Anzeige bedeutet: DB-Werte gewinnen gegen JSON-Fallback. JSON bleibt nur Seed/Fallback und technische Boot-Konfiguration.</div>
-      </div>
-    `;
-  }
-
   function renderSettings(){
     const el = document.getElementById('soundSettingsCard');
     if (!el) return;
@@ -297,7 +218,7 @@ window.SoundSystemModule = (function(){
     el.innerHTML = `
       <h3>Einstellungen</h3>
       <div class="sound-note">Diese Werte werden über <code>/api/sound/settings</code> in SQLite gespeichert und beim Neustart wieder geladen.</div>
-      ${renderSettingsSourceOverview()}
+      <div class="sound-note">Quelle: <strong>${esc(settings?.table || 'sound_settings')}</strong> · Effektive Werte: DB vor JSON-Fallback.</div>
 
       <div class="sound-settings-grid">
         <div class="sound-settings-title">Ausgabe & Overlay</div>
@@ -661,6 +582,39 @@ window.SoundSystemModule = (function(){
     `).join('');
   }
 
+  function renderIntegration(){
+    const el = document.getElementById('soundIntegrationCard');
+    if (!el) return;
+    const check = integrationCheck || {};
+    const checks = check.checks || {};
+    const sources = check.sources || {};
+    const warnings = Array.isArray(check.warnings) ? check.warnings : [];
+    const errors = Array.isArray(check.errors) ? check.errors : [];
+    const routes = Array.isArray(routesInfo?.routes) ? routesInfo.routes : [];
+    const routeCount = routes.length;
+    const statusLabel = check.healthy === true ? 'Gesund' : (check.ok ? 'Auffällig' : 'Nicht geprüft');
+    const statusClass = check.healthy === true ? 'success' : (errors.length ? 'danger' : '');
+
+    el.innerHTML = `
+      <h3>Diagnose</h3>
+      <div class="sound-status-row"><span>Integration</span><span class="sound-pill ${statusClass}">${esc(statusLabel)}</span></div>
+      <div class="sound-status-row"><span>Overlay-Client</span><span>${checks.clientConnected ? 'Verbunden' : 'Nicht verbunden'}</span></div>
+      <div class="sound-status-row"><span>DB-Settings</span><span>${checks.dbSettingsOk ? 'OK' : 'Nicht OK'}${Number.isFinite(Number(checks.dbSettingsCount)) ? ' · ' + Number(checks.dbSettingsCount) + ' Blöcke' : ''}</span></div>
+      <div class="sound-status-row"><span>JSON-Fallback</span><span>${checks.jsonConfigOk ? 'OK' : 'Fehler'}</span></div>
+      <div class="sound-status-row"><span>AudioDeviceHelper</span><span>${checks.helperConfigured ? (checks.helperExists ? 'Vorhanden' : 'Fehlt') : 'Nicht konfiguriert'}</span></div>
+      <div class="sound-status-row"><span>Sound-Ordner</span><span>${checks.soundsBaseDirExists ? 'Vorhanden' : 'Fehlt'}</span></div>
+      <div class="sound-status-row"><span>Video-Formate</span><span>${checks.hasMp4 ? 'MP4' : '-'} / ${checks.hasWebm ? 'WebM' : '-'}</span></div>
+      <div class="sound-status-row"><span>Routen</span><span>${routeCount || '-'}</span></div>
+      <div class="sound-status-row"><span>Regel</span><span class="sound-muted">${esc(sources.rule || 'database_over_json_fallback_for_allowed_blocks')}</span></div>
+      ${warnings.length ? `<div class="sound-diagnostic-list"><strong>Hinweise</strong>${warnings.map(w => `<div>⚠ ${esc(w)}</div>`).join('')}</div>` : ''}
+      ${errors.length ? `<div class="sound-diagnostic-list danger"><strong>Fehler</strong>${errors.map(e => `<div>✖ ${esc(e)}</div>`).join('')}</div>` : ''}
+      <div class="sound-note">Hinweis: <code>output.targets</code> ist das aktive Ausgabezielmodell. <code>targets</code> bleibt Legacy/Kompatibilität und wird nicht entfernt.</div>
+      <div class="sound-actions">
+        ${button('Diagnose neu laden', 'reload-diagnose')}
+      </div>
+    `;
+  }
+
   async function saveOutput(){
     const select = document.getElementById('soundDeviceSelect');
     const option = select?.selectedOptions?.[0];
@@ -731,6 +685,7 @@ window.SoundSystemModule = (function(){
           if (action === 'save-output') await saveOutput();
           if (action === 'reload-devices') devices = await api('/devices');
           if (action === 'reload-settings') settings = await api('/settings');
+          if (action === 'reload-diagnose') { integrationCheck = await api('/integration-check'); routesInfo = await api('/routes'); }
           if (action === 'save-settings') await saveRuntimeSettings();
           if (action === 'test-output') await api('/play?file=opa01.mp3&outputTarget=device&volume=100', { method: 'GET' });
         }
@@ -747,10 +702,16 @@ window.SoundSystemModule = (function(){
       const list = await api('/list');
       const dev = await api('/devices');
       const set = await api('/settings');
+      let check = null;
+      let routes = null;
+      try { check = await api('/integration-check'); } catch (_) { check = { ok: false, healthy: false, warnings: ['integration_check_unavailable'], errors: [] }; }
+      try { routes = await api('/routes'); } catch (_) { routes = { ok: false, routes: [] }; }
       status = { ...state, sounds: list.sounds || [] };
       output = { output: state?.config?.output || {} };
       devices = dev;
       settings = set;
+      integrationCheck = check;
+      routesInfo = routes;
       render();
     } catch (err) {
       if (root) root.innerHTML = `<div class="sound-card"><h2>Sound-System</h2><div class="sound-empty">${esc(err.message || err)}</div></div>`;
