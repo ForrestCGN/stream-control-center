@@ -2,9 +2,9 @@
 
 Stand: 2026-05-08
 
-## Aktueller TTS-Stand nach STEP199.4
+## Aktueller TTS-Stand nach STEP200
 
-Der TTS-Block ist technisch umgesetzt, live getestet und im Dashboard eingebunden.
+Der TTS-Block ist technisch umgesetzt, live getestet, im Dashboard eingebunden und nutzt jetzt das globale DB-basierte Textvarianten-System.
 
 Backend:
 
@@ -13,8 +13,10 @@ Backend:
 - Die temporaere `backend/modules/tts_admin_api.js` wurde wieder entfernt.
 - DB-Zugriffe laufen ueber `backend/core/database.js`.
 - Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
+- Textvarianten laufen ueber `backend/modules/helpers/helper_texts.js`.
 - JSON `config/tts_config.json` bleibt Seed/Fallback/technische Boot-Konfig.
-- Texte liegen aktuell noch in `config/tts_messages.json` und sind noch nicht ins globale DB-Textvarianten-System migriert.
+- JSON `config/tts_messages.json` bleibt Seed/Fallback fuer TTS-Texte.
+- Aktive TTS-Texte kommen aus `module_text_variants`, wenn Varianten vorhanden/aktiv sind.
 
 Dashboard:
 
@@ -50,6 +52,8 @@ GET      /api/tts/voices
 GET      /api/tts/routes
 GET      /api/tts/admin/settings
 POST     /api/tts/admin/settings
+GET      /api/tts/admin/texts
+POST     /api/tts/admin/texts
 ```
 
 TTS Dashboard Tabs:
@@ -61,6 +65,7 @@ Stimmen
 Rollen
 Sound-System
 Settings
+Texte
 Test
 Events
 Routen
@@ -71,12 +76,32 @@ TTS DB-Strukturen:
 - `tts_events`
 - `tts_usage_daily`
 - `tts_settings`
+- `module_text_variants` mit `module_name = 'tts'`
+- Legacy-/Kompatibilitaetstabelle: `module_texts`
 
 TTS-Statistik:
 
 - `/api/tts/status` zeigt Laufzeit, Queue, Nutzung und Rollen.
 - `/api/tts/stats/users` zeigt User-Auswertung: wer wie oft, Zeichen, Fehler, Google/Piper, Dauer, letzte Nutzung, Rollen-Auswertung.
 - Dashboard zeigt die User-Statistik mit Zeitraum-/Sortierfilter.
+
+TTS-Texte:
+
+- `/api/tts/admin/texts` zeigt und bearbeitet DB-Textvarianten.
+- `config/tts_messages.json` bleibt Seed/Fallback und wird nicht entfernt.
+- Mehrere aktive Varianten pro Text-Key sind moeglich.
+- Backend waehlt zufaellig eine aktive Variante.
+- Emoji/UTF-8 bei manuell angelegten Varianten wurde getestet; bei PowerShell-Imports UTF-8 Bytes nutzen.
+
+TTS Textkategorien:
+
+- `chat` = Chat-Antworten
+- `debug` = Debugtexte
+- `errors` = Fehlertexte
+- `moderation` = Mute/Ban Verwaltung
+- `permissions` = Rechte & Freigaben
+- `status` = Status & Listen
+- `system` = Systemtexte
 
 TTS Architekturregel:
 
@@ -85,7 +110,7 @@ TTS erzeugt Audiodateien.
 Sound-Ausgabe soll standardmaessig ueber das Sound-System laufen.
 Overlay bleibt Visualisierung/Fallback.
 Dashboard liest/schreibt nur ueber Backend-APIs.
-DB ist aktive Wahrheit fuer dashboardfaehige Settings.
+DB ist aktive Wahrheit fuer dashboardfaehige Settings und Texte.
 JSON bleibt Seed/Fallback/technische Boot-Konfig.
 Sensible technische Zugangsdaten bleiben aus bereinigten Config-/Voice-Routen raus.
 ```
@@ -97,6 +122,8 @@ TTS Dokus:
 - `project-state/STEP199_3_TTS_USER_STATS_2026-05-08.md`
 - `project-state/STEP199_4_TTS_DASHBOARD_STATS_POLISH_2026-05-08.md`
 - `project-state/STEP199_5_TTS_DOC_SYNC_2026-05-08.md`
+- `project-state/STEP200_TTS_TEXT_VARIANTS_2026-05-08.md`
+- `project-state/STEP200_1_TTS_DOC_SYNC_2026-05-08.md`
 
 ## Aktueller SoundAlerts-Stand nach STEP193.17.2
 
@@ -165,11 +192,9 @@ Dokument:
 
 ## Bewusst offen
 
-- TTS-Texte spaeter in das globale DB-basierte Textvarianten-System migrieren.
 - TTS Settings-Tab spaeter von Raw-JSON auf fachliche Formulare aufteilen.
 - TTS optional: CSV-Export und klickbare Tabellensortierung fuer User-Statistik.
-- Overlay-Bugs in `htdocs/overlays/sound_system_overlay.html` spaeter separat beheben.
-- Audio/Video-Verhalten im lokalen Overlay weiter testen.
-- Clip-System live testen.
+- TTS optional: Textvarianten-Tab optisch weiter polieren.
+- Overlay-Bugs in `htdocs/overlays/sound_system_overlay.html` nur noch bei konkretem Fehler separat pruefen.
 - MariaDB-Adapter spaeter zentral implementieren.
 - Fuer Loyalty/StreamElements-Migration echte Exportdaten, Store-Items, Giveaway-Settings und aktive Chat-Games erfassen.
