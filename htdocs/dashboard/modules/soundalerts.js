@@ -15,6 +15,10 @@ window.SoundAlertsModule = (function(){
   let uploadState = { active: false, index: -1, progress: 0, message: '', fileName: '', sizeMb: 0, error: '' };
   let parserPreview = null;
 
+  const EVENT_LOG_LIMIT = 100;
+  const OVERVIEW_LOG_LIMIT = 10;
+  const STATS_TOP_LIMIT = 25;
+
   const CATEGORY_OPTIONS = [
     { value: '', label: 'Standard / global', priority: null },
     { value: 'channel_reward', label: 'SoundAlerts / Kanalpunkte', priority: 70 },
@@ -533,11 +537,11 @@ window.SoundAlertsModule = (function(){
     const recent = (events || [])
       .map((ev, idx) => ({ ev, idx }))
       .filter(item => isPlayedReplayEvent(item.ev))
-      .slice(0, 5);
+      .slice(0, OVERVIEW_LOG_LIMIT);
     el.innerHTML = `
       <div class="sa-section-head sa-overview-head">
         <div>
-          <h3>Letzte 5 abgespielte Events</h3>
+          <h3>Letzte ${OVERVIEW_LOG_LIMIT} abgespielte Events</h3>
           <div class="sa-note">Nur Events mit erfolgreicher Wiedergabe und Datei. Gedacht zum schnellen Neu starten.</div>
         </div>
         <div class="sa-actions sa-section-actions">
@@ -1021,7 +1025,15 @@ window.SoundAlertsModule = (function(){
     const el = document.getElementById('saEventsCard');
     if (!el) return;
     el.innerHTML = `
-      <h3>Letzte Events</h3>
+      <div class="sa-section-head">
+        <div>
+          <h3>Letzte Events</h3>
+          <div class="sa-note">Geladen: ${esc((events || []).length)} von maximal ${esc(EVENT_LOG_LIMIT)} Events.</div>
+        </div>
+        <div class="sa-actions sa-section-actions">
+          ${btn('Neu laden', 'reload')}
+        </div>
+      </div>
       <div class="sa-event-list">
         ${(events || []).map((ev, idx) => renderEvent(ev, idx)).join('') || '<div class="sa-empty">Noch keine Events.</div>'}
       </div>
@@ -1081,11 +1093,11 @@ window.SoundAlertsModule = (function(){
       <div class="sa-stat-columns sa-stat-columns-clean">
         <div class="sa-stat-box">
           <h4>Top Sounds</h4>
-          ${bySound.slice(0, 10).map(r => `<div class="sa-row"><span>${esc(r.soundAlertName || r.soundalert_name || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}
+          ${bySound.slice(0, STATS_TOP_LIMIT).map(r => `<div class="sa-row"><span>${esc(r.soundAlertName || r.soundalert_name || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}
         </div>
         <div class="sa-stat-box">
           <h4>Top User</h4>
-          ${byUser.slice(0, 10).map(r => `<div class="sa-row"><span>${esc(r.user || r.triggerUserDisplay || r.trigger_user_display || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}
+          ${byUser.slice(0, STATS_TOP_LIMIT).map(r => `<div class="sa-row"><span>${esc(r.user || r.triggerUserDisplay || r.trigger_user_display || '-')}</span><strong>${esc(r.count || 0)}</strong></div>`).join('') || '<div class="sa-empty">Keine Daten</div>'}
         </div>
         <div class="sa-stat-box">
           <h4>Abspiel-Status</h4>
@@ -1494,7 +1506,7 @@ Ignorierte Einträge bleiben gespeichert und werden nicht mehr automatisch neu a
     try {
       const [st, ev, stat] = await Promise.all([
         api('/status'),
-        api('/events?limit=100').catch(() => ({ events: [] })),
+        api(`/events?limit=${EVENT_LOG_LIMIT}`).catch(() => ({ events: [] })),
         api('/stats').catch(() => ({ stats: null }))
       ]);
       status = st;
