@@ -596,6 +596,218 @@ function buildStatus() {
   };
 }
 
+
+const DISCORD_DIAGNOSTIC_ROUTES = [
+  { method: 'GET', path: '/api/discord/status', purpose: 'Discord runtime status' },
+  { method: 'GET', path: '/api/discord/config', purpose: 'sanitized Discord config and file paths' },
+  { method: 'GET', path: '/api/discord/settings', purpose: 'runtime settings and bridge/audio summary' },
+  { method: 'GET', path: '/api/discord/routes', purpose: 'list Discord API routes' },
+  { method: 'GET', path: '/api/discord/integration-check', purpose: 'run non-destructive Discord integration check' },
+  { method: 'POST', path: '/api/discord/reload', purpose: 'reload ffmpeg/tools snapshot without voice, queue or posting actions' },
+  { method: 'GET', path: '/api/discord/sounds', purpose: 'list available Discord sounds' },
+  { method: 'GET', path: '/api/discord/queue/status', purpose: 'read Discord voice queue status' },
+  { method: 'GET/POST', path: '/api/discord/queue/clear', purpose: 'clear Discord voice queue' },
+  { method: 'GET/POST', path: '/api/discord/join', purpose: 'join configured voice channel' },
+  { method: 'GET/POST', path: '/api/discord/leave', purpose: 'leave voice channel' },
+  { method: 'GET/POST', path: '/api/discord/play', purpose: 'enqueue/play Discord sound' },
+  { method: 'POST', path: '/api/discord/post/channel', purpose: 'post message to Discord channel via bot' },
+  { method: 'POST', path: '/api/discord/post/webhook', purpose: 'post message to Discord webhook' },
+  { method: 'POST', path: '/api/discord/post/message', purpose: 'post message via selected mode' },
+];
+
+function fileCheck(name, filePath, required = false) {
+  try {
+    const exists = Boolean(filePath && fs.existsSync(filePath));
+    return {
+      name,
+      ok: required ? exists : true,
+      level: required && !exists ? 'error' : (exists ? 'ok' : 'warning'),
+      path: filePath || '',
+      exists,
+      required: Boolean(required),
+      error: required && !exists ? 'file_not_found' : '',
+    };
+  } catch (err) {
+    return {
+      name,
+      ok: false,
+      level: required ? 'error' : 'warning',
+      path: filePath || '',
+      exists: false,
+      required: Boolean(required),
+      error: err?.message || String(err),
+    };
+  }
+}
+
+function dirCheck(name, dirPath, required = false) {
+  try {
+    const exists = Boolean(dirPath && fs.existsSync(dirPath));
+    const isDirectory = exists ? fs.statSync(dirPath).isDirectory() : false;
+    const ok = required ? (exists && isDirectory) : true;
+    return {
+      name,
+      ok,
+      level: ok ? (exists ? 'ok' : 'warning') : 'error',
+      path: dirPath || '',
+      exists,
+      isDirectory,
+      required: Boolean(required),
+      error: ok ? '' : (exists ? 'not_a_directory' : 'directory_not_found'),
+    };
+  } catch (err) {
+    return {
+      name,
+      ok: false,
+      level: required ? 'error' : 'warning',
+      path: dirPath || '',
+      exists: false,
+      isDirectory: false,
+      required: Boolean(required),
+      error: err?.message || String(err),
+    };
+  }
+}
+
+function summarizeDiscordConfig() {
+  const configDir = configHelper.getConfigDir ? configHelper.getConfigDir() : path.join(PROJECT_ROOT, 'config');
+  const messagesPath = path.join(configDir, 'messages', 'discord.json');
+  const channelsPath = path.join(configDir, 'discord_channels.json');
+  return {
+    prefix: '/api/discord',
+    legacyPrefix: '/discord',
+    projectRoot: PROJECT_ROOT,
+    configDir,
+    mediaDir: MEDIA_DIR,
+    toolsConfigPath,
+    files: {
+      toolsConfig: fileCheck('tools_config', toolsConfigPath, false),
+      discordChannels: fileCheck('discord_channels', channelsPath, false),
+      discordMessages: fileCheck('discord_messages', messagesPath, false),
+      mediaDir: dirCheck('media_dir', MEDIA_DIR, false),
+    },
+    env: {
+      tokenConfigured: Boolean(TOKEN),
+      guildIdConfigured: Boolean(GUILD_ID),
+      defaultVoiceChannelConfigured: Boolean(DEFAULT_VOICE_CHANNEL_ID),
+      apiKeyConfigured: Boolean(API_KEY && API_KEY !== 'change-me'),
+      idleDisconnectMs: IDLE_DISCONNECT_MS,
+    },
+    ffmpeg: getFfmpegSummary(),
+    updatedAt: nowIso(),
+  };
+}
+
+function buildDiscordSettings() {
+  const audio = GUILD_ID ? getAudioStateSummary(GUILD_ID) : null;
+  return {
+    prefix: '/api/discord',
+    legacyPrefix: '/discord',
+    ready: discordReady,
+    lastReadyAt,
+    lastError,
+    guildIdConfigured: Boolean(GUILD_ID),
+    defaultVoiceChannelConfigured: Boolean(DEFAULT_VOICE_CHANNEL_ID),
+    mediaDir: MEDIA_DIR,
+    soundsCount: listAvailableSounds().length,
+    ffmpeg: getFfmpegSummary(),
+    audio,
+    bridgeAvailable: Boolean(serviceRef),
+    updatedAt: nowIso(),
+  };
+}
+
+function buildDiscordRoutes() {
+  return {
+    prefix: '/api/discord',
+    legacyPrefix: '/discord',
+    routes: DISCORD_DIAGNOSTIC_ROUTES,
+    legacyMirrors: [
+      '/discord/status',
+      '/discord/sounds',
+      '/discord/queue/status',
+      '/discord/queue/clear',
+      '/discord/join',
+      '/discord/leave',
+      '/discord/play',
+      '/discord/post/channel',
+      '/discord/post/webhook',
+      '/discord/post/message',
+    ],
+    count: DISCORD_DIAGNOSTIC_ROUTES.length,
+    updatedAt: nowIso(),
+  };
+}
+
+function checkResult(name, ok, level, extra = {}) {
+  return {
+    name,
+    ok: Boolean(ok),
+    level: level || (ok ? 'ok' : 'warning'),
+    error: ok ? '' : (extra.error || name),
+    ...extra,
+  };
+}
+
+function buildDiscordIntegrationCheck() {
+  const cfg = summarizeDiscordConfig();
+  const status = buildStatus();
+  const sounds = listAvailableSounds();
+  const audio = GUILD_ID ? getAudioStateSummary(GUILD_ID) : null;
+  const checks = [];
+
+  checks.push(checkResult('token_configured', Boolean(TOKEN), TOKEN ? 'ok' : 'warning', { configured: Boolean(TOKEN), error: TOKEN ? '' : 'DISCORD_TOKEN_missing' }));
+  checks.push(checkResult('guild_configured', Boolean(GUILD_ID), GUILD_ID ? 'ok' : 'warning', { configured: Boolean(GUILD_ID), error: GUILD_ID ? '' : 'DISCORD_GUILD_ID_missing' }));
+  checks.push(checkResult('default_voice_channel_configured', Boolean(DEFAULT_VOICE_CHANNEL_ID), DEFAULT_VOICE_CHANNEL_ID ? 'ok' : 'warning', { configured: Boolean(DEFAULT_VOICE_CHANNEL_ID), error: DEFAULT_VOICE_CHANNEL_ID ? '' : 'DISCORD_VOICE_CHANNEL_ID_missing' }));
+  checks.push(checkResult('client_ready', Boolean(discordReady), discordReady ? 'ok' : 'warning', { ready: Boolean(discordReady), lastError: lastError || '' }));
+  checks.push(checkResult('bridge_available', Boolean(serviceRef), serviceRef ? 'ok' : 'error', { available: Boolean(serviceRef) }));
+  checks.push(checkResult('media_dir', cfg.files.mediaDir.exists && cfg.files.mediaDir.isDirectory, cfg.files.mediaDir.exists ? 'ok' : 'warning', cfg.files.mediaDir));
+  checks.push(checkResult('sounds', sounds.length >= 0, 'ok', { count: sounds.length }));
+  checks.push(checkResult('ffmpeg', Boolean(cfg.ffmpeg.exists), cfg.ffmpeg.exists ? 'ok' : 'warning', cfg.ffmpeg));
+  checks.push(checkResult('audio_state', Boolean(audio || !GUILD_ID), 'ok', { audio }));
+  checks.push(checkResult('routes', true, 'ok', { prefix: '/api/discord', count: DISCORD_DIAGNOSTIC_ROUTES.length }));
+
+  const summary = checks.reduce((acc, item) => {
+    acc.total += 1;
+    if (item.level === 'error' || item.ok === false && item.level !== 'warning') acc.errors += 1;
+    else if (item.level === 'warning') acc.warnings += 1;
+    else acc.ok += 1;
+    return acc;
+  }, { total: 0, ok: 0, warnings: 0, errors: 0 });
+
+  return {
+    prefix: '/api/discord',
+    legacyPrefix: '/discord',
+    checks,
+    summary,
+    status,
+    notes: [
+      'This integration check is non-destructive.',
+      'Voice connection warnings are expected when the bot is not connected to a voice channel.',
+      'Productive prefix remains /api/discord; legacy /discord routes remain available.',
+    ],
+    updatedAt: nowIso(),
+  };
+}
+
+function reloadDiscordDiagnostics() {
+  configureFfmpegPath();
+  return {
+    action: 'reload',
+    reloaded: true,
+    destructive: false,
+    voiceJoinTriggered: false,
+    voiceLeaveTriggered: false,
+    soundQueued: false,
+    queueCleared: false,
+    messagePosted: false,
+    ffmpeg: getFfmpegSummary(),
+    soundsCount: listAvailableSounds().length,
+    status: buildStatus(),
+    updatedAt: nowIso(),
+  };
+}
+
 function getBridgeService() {
   return serviceRef;
 }
@@ -607,6 +819,26 @@ function registerRoutes(app) {
   // Status
   routes.registerGet(app, ['/discord/status', '/api/discord/status'], async (_req, res) => {
     return res.json(buildStatus());
+  });
+
+  routes.registerGet(app, '/api/discord/config', async (_req, res) => {
+    return res.json({ ok: true, module: 'discord', route: '/api/discord/config', timestamp: nowIso(), data: summarizeDiscordConfig() });
+  });
+
+  routes.registerGet(app, '/api/discord/settings', async (_req, res) => {
+    return res.json({ ok: true, module: 'discord', route: '/api/discord/settings', timestamp: nowIso(), data: buildDiscordSettings() });
+  });
+
+  routes.registerGet(app, '/api/discord/routes', async (_req, res) => {
+    return res.json({ ok: true, module: 'discord', route: '/api/discord/routes', timestamp: nowIso(), data: buildDiscordRoutes() });
+  });
+
+  routes.registerGet(app, '/api/discord/integration-check', async (_req, res) => {
+    return res.json({ ok: true, module: 'discord', route: '/api/discord/integration-check', timestamp: nowIso(), data: buildDiscordIntegrationCheck() });
+  });
+
+  routes.registerPost(app, '/api/discord/reload', async (_req, res) => {
+    return res.json({ ok: true, module: 'discord', route: '/api/discord/reload', timestamp: nowIso(), data: reloadDiscordDiagnostics() });
   });
 
   // Sounds
