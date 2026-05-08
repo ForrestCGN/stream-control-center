@@ -789,6 +789,220 @@ function buildStatus() {
   };
 }
 
+
+function countTableRows(table, where = "", params = {}) {
+  try {
+    if (!sqlite.isInitialized()) return { ok: false, table, count: 0, error: "sqlite_not_initialized" };
+    const safeTable = String(table || "").trim();
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(safeTable)) return { ok: false, table: safeTable, count: 0, error: "invalid_table" };
+    const clause = where ? ` WHERE ${where}` : "";
+    const row = sqlite.get(`SELECT COUNT(*) AS c FROM ${safeTable}${clause}`, params) || {};
+    return { ok: true, table: safeTable, count: Number(row.c || 0), error: "" };
+  } catch (err) {
+    return { ok: false, table, count: 0, error: err?.message || "count_failed" };
+  }
+}
+
+function fileCheck(label, filePath, expected = "file") {
+  try {
+    const exists = fs.existsSync(filePath);
+    const stat = exists ? fs.statSync(filePath) : null;
+    const isFile = Boolean(stat && stat.isFile());
+    const isDirectory = Boolean(stat && stat.isDirectory());
+    const ok = expected === "directory" ? isDirectory : isFile;
+    return { ok, label, path: filePath, exists, isFile, isDirectory, error: ok ? "" : (exists ? `not_${expected}` : "missing") };
+  } catch (err) {
+    return { ok: false, label, path: filePath, exists: false, isFile: false, isDirectory: false, error: err?.message || "file_check_failed" };
+  }
+}
+
+function buildTodoRoutes() {
+  const routeList = [
+    { method: "GET", path: "/api/todo/status", auth: "local_or_auth", category: "status", description: "Todo-Status, Config-Quellen, Targets, Channels und Schema-Status." },
+    { method: "GET", path: "/api/todo/config", auth: "local_or_auth", category: "config", description: "Read-only effektive Todo-Config ohne Secrets." },
+    { method: "GET", path: "/api/todo/settings", auth: "local_or_auth", category: "settings", description: "Read-only DB-Settings aus todo_settings." },
+    { method: "GET", path: "/api/todo/routes", auth: "local_or_auth", category: "diagnostics", description: "Read-only Routenübersicht des Todo-Moduls." },
+    { method: "GET", path: "/api/todo/integration-check", auth: "local_or_auth", category: "diagnostics", description: "Read-only Integration-Check des Todo-Moduls." },
+    { method: "POST", path: "/api/todo/reload", auth: "local_or_auth", category: "admin", description: "Runtime-Config und Texte neu laden." },
+    { method: "GET", path: "/api/todo/reload", auth: "local_or_auth", category: "admin", description: "Runtime-Config und Texte neu laden, GET-kompatibel für einfache Clients." },
+    { method: "GET", path: "/api/todo/add", auth: "local_or_auth", category: "entry", description: "Todo-Eintrag speichern/posten, GET-kompatibel für Streamer.bot/einfache Clients." },
+    { method: "POST", path: "/api/todo/add", auth: "local_or_auth", category: "entry", description: "Todo-Eintrag speichern/posten." },
+    { method: "GET", path: "/api/todo/stats", auth: "local_or_auth", category: "stats", description: "Todo-Top-Statistik lesen." },
+    { method: "GET", path: "/api/todo/stats/top", auth: "local_or_auth", category: "stats", description: "Todo-Top-Statistik lesen." },
+    { method: "GET", path: "/api/todo/stats/today", auth: "local_or_auth", category: "stats", description: "Todo-Tagesstatistik lesen." },
+    { method: "GET", path: "/api/todo/admin/settings", auth: "local_or_auth", category: "admin", description: "Admin-Settings lesen." },
+    { method: "POST", path: "/api/todo/admin/settings", auth: "local_or_auth", category: "admin", description: "Admin-Settings speichern." },
+    { method: "GET", path: "/api/todo/admin/texts", auth: "local_or_auth", category: "admin", description: "Todo-Texteditor-Daten lesen." },
+    { method: "POST", path: "/api/todo/admin/texts", auth: "local_or_auth", category: "admin", description: "Todo-Texte/Varianten speichern." },
+    { method: "GET", path: "/discord/todo/status", auth: "legacy/local_or_auth", category: "legacy", description: "Legacy-Route für Todo-Status." },
+    { method: "GET", path: "/discord/todo", auth: "legacy/local_or_auth", category: "legacy", description: "Legacy-Route für Todo-Eintrag." },
+    { method: "POST", path: "/discord/todo", auth: "legacy/local_or_auth", category: "legacy", description: "Legacy-Route für Todo-Eintrag." }
+  ];
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    version: 1,
+    standardPrefix: "/api/todo",
+    legacyPrefixes: ["/discord/todo"],
+    standardEndpoints: {
+      status: "/api/todo/status",
+      config: "/api/todo/config",
+      settings: "/api/todo/settings",
+      routes: "/api/todo/routes",
+      integrationCheck: "/api/todo/integration-check",
+      reload: "/api/todo/reload"
+    },
+    routes: routeList,
+    count: routeList.length,
+    categories: Array.from(new Set(routeList.map(route => route.category))).sort(),
+    notes: [
+      "Read-only Routenübersicht für Dashboard-/Modul-Standardisierung.",
+      "Bestehende Legacy-Routen bleiben erhalten.",
+      "Schreibende Routen sind nur dokumentiert, nicht neu angelegt.",
+      "/api/todo/config und /api/todo/settings sind read-only Standard-Aliase."
+    ]
+  };
+}
+
+function buildTodoIntegrationCheck() {
+  const errors = [];
+  const warnings = [];
+  const schemaOk = ensureTodoSchema();
+  const status = buildStatus();
+  const channelStatus = getChannelStatus();
+  const missingChannels = Object.entries(channelStatus)
+    .filter(([, item]) => !item.configured)
+    .map(([key, item]) => ({ key, label: item.label, channelKey: item.channelKey }));
+
+  if (!schemaOk) errors.push(runtime.schemaError || "schema_not_ready");
+  if (runtime.lastLoadError) warnings.push(runtime.lastLoadError);
+  if (runtime.lastUserinfoError) warnings.push(`userinfo: ${runtime.lastUserinfoError}`);
+  if (missingChannels.length) warnings.push(`missing_todo_channels:${missingChannels.map(item => item.key).join(",")}`);
+
+  const settingsCount = countTableRows(SETTINGS_TABLE);
+  const userStatsCount = countTableRows("todo_user_stats");
+  const dailyStatsCount = countTableRows("todo_daily_stats");
+  const textVariantCount = countTableRows(texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE, "module = :module", { module: TEXTS_MODULE });
+  const legacyTextCount = countTableRows(texts.DEFAULT_MODULE_TEXTS_TABLE, "module = :module", { module: TEXTS_MODULE });
+
+  for (const check of [settingsCount, userStatsCount, dailyStatsCount, textVariantCount]) {
+    if (!check.ok) errors.push(`${check.table}:${check.error}`);
+  }
+
+  const channelsFile = fileCheck("discordChannels", DISCORD_CHANNELS_PATH, "file");
+  const messagesFile = fileCheck("messages", MESSAGES_PATH, "file");
+  if (!channelsFile.ok) warnings.push(`discordChannels:${channelsFile.error}`);
+  if (!messagesFile.ok) warnings.push(`messages:${messagesFile.error}`);
+
+  return {
+    ok: errors.length === 0,
+    module: MODULE_NAME,
+    version: 1,
+    schemaVersion: sqlite.isInitialized() ? sqlite.getSchemaVersion(MODULE_NAME) : 0,
+    healthy: errors.length === 0,
+    warnings,
+    errors,
+    checks: {
+      config: {
+        ok: !runtime.lastLoadError,
+        discordChannelsPath: DISCORD_CHANNELS_PATH,
+        messagesPath: MESSAGES_PATH,
+        source: "database_with_json_fallback",
+        error: runtime.lastLoadError || ""
+      },
+      database: {
+        ok: sqlite.isInitialized(),
+        adapter: "sqlite",
+        path: sqlite.isInitialized() ? sqlite.getDbPath() : null,
+        schemaVersion: sqlite.isInitialized() ? sqlite.getSchemaVersion(MODULE_NAME) : 0,
+        expectedSchemaVersion: SCHEMA_VERSION,
+        error: runtime.schemaError || ""
+      },
+      tables: {
+        userStats: userStatsCount,
+        dailyStats: dailyStatsCount,
+        settings: settingsCount,
+        textVariants: textVariantCount,
+        legacyTexts: legacyTextCount
+      },
+      settings: {
+        ok: settingsCount.ok,
+        table: SETTINGS_TABLE,
+        count: settingsCount.count,
+        source: runtime.settings?.settingsSource || "unknown",
+        error: runtime.settings?.settingsError || settingsCount.error || ""
+      },
+      texts: {
+        ok: textVariantCount.ok,
+        module: TEXTS_MODULE,
+        table: texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE,
+        legacyTable: texts.DEFAULT_MODULE_TEXTS_TABLE,
+        source: runtime.messages?._textsSource || "unknown",
+        count: textVariantCount.count,
+        legacyCount: legacyTextCount.count,
+        error: runtime.messages?._textsError || textVariantCount.error || ""
+      },
+      files: {
+        discordChannels: channelsFile,
+        messages: messagesFile
+      },
+      channels: {
+        ok: missingChannels.length === 0,
+        targets: channelStatus,
+        missing: missingChannels
+      },
+      targets: {
+        ok: Object.keys(getTargets()).length > 0,
+        count: Object.keys(getTargets()).length,
+        aliases: Object.fromEntries(Object.values(getTargets()).map(target => [target.key, target.aliases]))
+      }
+    },
+    routes: {
+      status: "/api/todo/status",
+      config: "/api/todo/config",
+      settings: "/api/todo/settings",
+      routes: "/api/todo/routes",
+      integrationCheck: "/api/todo/integration-check",
+      reload: "/api/todo/reload"
+    },
+    notes: [
+      "Read-only Integration-Check für Dashboard-/Modul-Standardisierung.",
+      "Es werden keine DB-, JSON- oder Dateiänderungen vorgenommen.",
+      "Warnungen zu fehlenden Discord-Channels bedeuten nur, dass einzelne Todo-Ziele nicht posten können."
+    ]
+  };
+}
+
+function handleConfig(req, res) {
+  const auth = checkAuth(req);
+  if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
+  return res.json({ ok: true, module: MODULE_NAME, config: publicSettings(), status: buildStatus() });
+}
+
+function handleSettings(req, res) {
+  const auth = checkAuth(req);
+  if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
+  try {
+    return res.json({ ok: true, module: MODULE_NAME, settings: listAdminSettings(), status: buildStatus() });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message, message: "Todo-Settings konnten nicht gelesen werden." });
+  }
+}
+
+function handleRoutes(req, res) {
+  const auth = checkAuth(req);
+  if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
+  return res.json(buildTodoRoutes());
+}
+
+function handleIntegrationCheck(req, res) {
+  const auth = checkAuth(req);
+  if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const check = buildTodoIntegrationCheck();
+  return res.status(check.ok ? 200 : 500).json(check);
+}
+
 function init(ctx) {
   const app = ctx?.app;
   if (!app) throw new Error("Express app in ctx.app fehlt.");
@@ -801,6 +1015,11 @@ function init(ctx) {
     if (!auth.ok) return res.status(401).json({ ok: false, error: "unauthorized" });
     return res.json(buildStatus());
   });
+
+  routes.registerGet(app, ["/api/todo/config"], handleConfig);
+  routes.registerGet(app, ["/api/todo/settings"], handleSettings);
+  routes.registerGet(app, ["/api/todo/routes"], handleRoutes);
+  routes.registerGet(app, ["/api/todo/integration-check"], handleIntegrationCheck);
 
   const addHandler = async (req, res) => {
     const auth = checkAuth(req);
