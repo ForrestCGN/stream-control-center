@@ -33,6 +33,72 @@ module.exports.init = function init(ctx) {
     next();
   });
 
+  const API_PREFIX = '/api/deathcounter/v2';
+  const OVERLAY_FILE = '_overlay-deathcounter-v2.html';
+
+  app.get(`${API_PREFIX}/status`, (req, res) => {
+    const state = readState();
+    return res.json(ok({
+      module: 'deathcounter_v2',
+      version: 2,
+      prefix: API_PREFIX,
+      rootDir: config.getProjectRoot(),
+      dataDir,
+      stateFile,
+      stateFileExists: fs.existsSync(stateFile),
+      currentGame: state.currentGame,
+      playerCount: Array.isArray(state.players) ? state.players.length : 0,
+      overlay: publicOverlay(state).overlay,
+      updatedAt: state.updatedAt
+    }));
+  });
+
+  app.get(`${API_PREFIX}/config`, (req, res) => {
+    return res.json(ok(buildDeathcounterConfig()));
+  });
+
+  app.get(`${API_PREFIX}/settings`, (req, res) => {
+    return res.json(ok(buildDeathcounterSettings()));
+  });
+
+  app.get(`${API_PREFIX}/routes`, (req, res) => {
+    const routes = buildDeathcounterRoutes();
+    return res.json(ok({
+      module: 'deathcounter_v2',
+      version: 2,
+      prefix: API_PREFIX,
+      intentionallyNotRegistered: ['/api/deathcounter', '/api/deathcounter-v2', '/api/deathcounter_v2', '/api/death-counter'],
+      routes,
+      count: routes.length,
+      updatedAt: core.nowIso()
+    }));
+  });
+
+  app.get(`${API_PREFIX}/integration-check`, (req, res) => {
+    return res.json(ok(buildDeathcounterIntegrationCheck()));
+  });
+
+  app.post(`${API_PREFIX}/reload`, (req, res) => {
+    ensureStateFile();
+    const state = readState();
+    writeJSON(stateFile, state);
+    return res.json(ok({
+      module: 'deathcounter_v2',
+      version: 2,
+      action: 'reload',
+      reloaded: true,
+      destructive: false,
+      statePreserved: true,
+      countersPreserved: true,
+      overlayPreserved: true,
+      stateFile,
+      currentGame: state.currentGame,
+      playerCount: Array.isArray(state.players) ? state.players.length : 0,
+      overlay: publicOverlay(state).overlay,
+      updatedAt: core.nowIso()
+    }));
+  });
+
   app.get('/api/deathcounter/v2/state', (req, res) => res.json(ok(publicState(readState()))));
   app.get('/api/deathcounter/v2/players', (req, res) => {
     const state = readState();
@@ -738,6 +804,176 @@ module.exports.init = function init(ctx) {
       return res.status(400).json(fail(err.message));
     }
   });
+
+  function buildDeathcounterConfig() {
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      prefix: API_PREFIX,
+      source: 'state_file',
+      dataDir,
+      stateFile,
+      legacyFile,
+      oldStateFile,
+      files: {
+        dataDir: fileCheck('data_dir', dataDir, true),
+        stateFile: fileCheck('state_file', stateFile, true),
+        legacyFile: fileCheck('legacy_file', legacyFile, false),
+        overlay: fileCheck('overlay_file', getOverlayFilePath(), true)
+      },
+      defaults: {
+        selectedPlayerIds: [...DEFAULT_SELECTED_IDS],
+        defaultGameKey: DEFAULT_GAME_KEY,
+        maxExtraPlayers: MAX_EXTRA_PLAYERS
+      },
+      envOverrides: {
+        DEATHCOUNTER_DATA_DIR: Boolean(process.env.DEATHCOUNTER_DATA_DIR),
+        DEATHCOUNTER_V2_FILE: Boolean(process.env.DEATHCOUNTER_V2_FILE),
+        DEATHCOUNTER_LEGACY_FILE: Boolean(process.env.DEATHCOUNTER_LEGACY_FILE)
+      },
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function buildDeathcounterSettings() {
+    const state = readState();
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      source: 'runtime_state_and_environment',
+      prefix: API_PREFIX,
+      settings: {
+        dataDir,
+        stateFile,
+        legacyFile,
+        overlayFile: getOverlayFilePath(),
+        selectedPlayerIds: normalizePlayerListInput(state.overlay?.selectedPlayerIds).slice(0, 2),
+        extraPlayerIds: normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS),
+        maxExtraPlayers: MAX_EXTRA_PLAYERS,
+        defaultSelectedIds: [...DEFAULT_SELECTED_IDS],
+        currentGame: state.currentGame,
+        overlayVisible: Boolean(state.overlay?.visible)
+      },
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function buildDeathcounterRoutes() {
+    return [
+      { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'runtime and state-file status' },
+      { method: 'GET', path: `${API_PREFIX}/config`, purpose: 'sanitized deathcounter config/path view' },
+      { method: 'GET', path: `${API_PREFIX}/settings`, purpose: 'runtime settings/state view' },
+      { method: 'GET', path: `${API_PREFIX}/routes`, purpose: 'list deathcounter v2 API routes' },
+      { method: 'GET', path: `${API_PREFIX}/integration-check`, purpose: 'run non-destructive integration check' },
+      { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
+      { method: 'GET', path: `${API_PREFIX}/state`, purpose: 'public state for overlay/dashboard' },
+      { method: 'GET', path: `${API_PREFIX}/players`, purpose: 'list players and current game' },
+      { method: 'POST', path: `${API_PREFIX}/players`, purpose: 'replace configured players' },
+      { method: 'GET', path: `${API_PREFIX}/overlay`, purpose: 'overlay visibility and selected players' },
+      { method: 'GET/POST', path: `${API_PREFIX}/show`, purpose: 'show overlay' },
+      { method: 'GET/POST', path: `${API_PREFIX}/hide`, purpose: 'hide overlay' },
+      { method: 'GET/POST', path: `${API_PREFIX}/overlay/show`, purpose: 'show overlay alias' },
+      { method: 'GET/POST', path: `${API_PREFIX}/overlay/hide`, purpose: 'hide overlay alias' },
+      { method: 'GET/POST', path: `${API_PREFIX}/overlay/toggle`, purpose: 'toggle overlay visibility' },
+      { method: 'POST', path: `${API_PREFIX}/overlay/players`, purpose: 'set overlay selected/extra players' },
+      { method: 'GET', path: `${API_PREFIX}/overlay/resetplayers`, purpose: 'reset overlay players to defaults' },
+      { method: 'GET/POST', path: `${API_PREFIX}/overlay/replace`, purpose: 'replace one visible overlay player' },
+      { method: 'GET/POST', path: `${API_PREFIX}/game`, purpose: 'set current game' },
+      { method: 'GET', path: `${API_PREFIX}/game/set`, purpose: 'legacy game setter alias' },
+      { method: 'GET', path: `${API_PREFIX}/sync/channelinfo`, purpose: 'sync current game from channel info' },
+      { method: 'GET', path: `${API_PREFIX}/stream-online-sync`, purpose: 'stream-start game/session sync' },
+      { method: 'GET/POST', path: `${API_PREFIX}/rip`, purpose: 'increment death count' },
+      { method: 'GET/POST', path: `${API_PREFIX}/del`, purpose: 'decrement death count' },
+      { method: 'GET', path: `${API_PREFIX}/tode`, purpose: 'return death totals for player/game' },
+      { method: 'POST', path: `${API_PREFIX}/session-reset`, purpose: 'reset session deaths' },
+      { method: 'POST', path: `${API_PREFIX}/total-reset`, purpose: 'reset all-time deaths' }
+    ];
+  }
+
+  function buildDeathcounterIntegrationCheck() {
+    const checks = [];
+    const add = check => checks.push(check);
+
+    add(fileCheck('data_dir', dataDir, true));
+    add(fileCheck('state_file', stateFile, true));
+    add(fileCheck('overlay_file', getOverlayFilePath(), true));
+    add(fileCheck('legacy_file', legacyFile, false));
+
+    let state = null;
+    try {
+      state = readState();
+      add({ name: 'runtime_state', ok: true, level: 'ok', currentGame: state.currentGame, playerCount: Array.isArray(state.players) ? state.players.length : 0 });
+    } catch (err) {
+      add({ name: 'runtime_state', ok: false, level: 'error', error: err.message || String(err) });
+    }
+
+    if (state) {
+      add({
+        name: 'players',
+        ok: Array.isArray(state.players) && state.players.length > 0,
+        level: Array.isArray(state.players) && state.players.length > 0 ? 'ok' : 'warning',
+        count: Array.isArray(state.players) ? state.players.length : 0,
+        selectedPlayerIds: normalizePlayerListInput(state.overlay?.selectedPlayerIds).slice(0, 2),
+        extraPlayerIds: normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS)
+      });
+      add({
+        name: 'current_game',
+        ok: Boolean(state.currentGame),
+        level: state.currentGame ? 'ok' : 'warning',
+        currentGame: state.currentGame || ''
+      });
+      add({
+        name: 'overlay_state',
+        ok: true,
+        level: 'ok',
+        visible: Boolean(state.overlay?.visible),
+        title: state.overlay?.title || 'Death Counter'
+      });
+    }
+
+    add({ name: 'routes', ok: true, level: 'ok', prefix: API_PREFIX, count: buildDeathcounterRoutes().length });
+
+    const summary = summarizeChecks(checks);
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      prefix: API_PREFIX,
+      checks,
+      summary,
+      notes: [
+        'This integration check is non-destructive.',
+        'Productive prefix remains /api/deathcounter/v2.',
+        'Reload normalizes the existing state file only; counters and overlay state are preserved.'
+      ],
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function getOverlayFilePath() {
+    return config.resolveFromRoot('htdocs', 'overlays', OVERLAY_FILE);
+  }
+
+  function fileCheck(name, targetPath, required) {
+    const exists = fs.existsSync(targetPath);
+    const okValue = required ? exists : true;
+    return {
+      name,
+      ok: okValue,
+      level: okValue ? 'ok' : 'warning',
+      path: targetPath,
+      exists,
+      required: Boolean(required),
+      error: okValue ? '' : 'file_not_found'
+    };
+  }
+
+  function summarizeChecks(checks) {
+    const total = checks.length;
+    const errors = checks.filter(check => check.level === 'error').length;
+    const warnings = checks.filter(check => check.level === 'warning').length;
+    const okCount = checks.filter(check => check.ok).length;
+    return { total, ok: okCount, warnings, errors };
+  }
 
   console.log(`[deathcounter_v2] aktiv → ${stateFile}`);
 
