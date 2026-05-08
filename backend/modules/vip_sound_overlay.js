@@ -3392,6 +3392,244 @@ module.exports.init = function init(ctx) {
     state.updatedAt = nowIso();
   }
 
+  function vipRouteDefinitions(prefix) {
+    const routes = [
+      { method: "GET", path: `${prefix}/state`, purpose: "public overlay state" },
+      { method: "GET", path: `${prefix}/status`, purpose: "runtime and DB status" },
+      { method: "GET", path: `${prefix}/db/status`, purpose: "VIP schema and table status" },
+      { method: "GET", path: `${prefix}/config`, purpose: "DB-backed config view with JSON fallback info" },
+      { method: "GET", path: `${prefix}/settings`, purpose: "VIP settings from DB/fallback" },
+      { method: "POST", path: `${prefix}/settings/upsert`, purpose: "upsert one VIP setting" },
+      { method: "POST", path: `${prefix}/settings/delete`, purpose: "delete one VIP setting" },
+      { method: "POST", path: `${prefix}/settings/reset-defaults`, purpose: "reset VIP settings to defaults" },
+      { method: "GET", path: `${prefix}/texts`, purpose: "list VIP chat/overlay text templates" },
+      { method: "GET", path: `${prefix}/texts/event-keys`, purpose: "list VIP text event keys" },
+      { method: "POST", path: `${prefix}/texts/upsert`, purpose: "upsert VIP text template" },
+      { method: "POST", path: `${prefix}/texts/toggle`, purpose: "enable or disable VIP text template" },
+      { method: "POST", path: `${prefix}/texts/delete`, purpose: "delete VIP text template" },
+      { method: "GET", path: `${prefix}/roles`, purpose: "list legacy local role overrides" },
+      { method: "POST", path: `${prefix}/roles/upsert`, purpose: "upsert legacy local role override" },
+      { method: "POST", path: `${prefix}/roles/delete`, purpose: "delete legacy local role override" },
+      { method: "GET", path: `${prefix}/roles/import-config`, purpose: "preview/import roles from config" },
+      { method: "POST", path: `${prefix}/roles/import-config`, purpose: "import roles from config" },
+      { method: "GET", path: `${prefix}/events`, purpose: "list VIP events" },
+      { method: "GET", path: `${prefix}/events/recent`, purpose: "list recent VIP events" },
+      { method: "GET", path: `${prefix}/stats`, purpose: "VIP event statistics" },
+      { method: "GET", path: `${prefix}/daily-usage`, purpose: "list daily usage rows" },
+      { method: "GET", path: `${prefix}/daily-usage/today`, purpose: "list today's daily usage" },
+      { method: "POST", path: `${prefix}/daily-usage/reset`, purpose: "reset filtered daily usage" },
+      { method: "GET", path: `${prefix}/daily-usage/reset`, purpose: "legacy GET reset for Streamer.bot/testing" },
+      { method: "POST", path: `${prefix}/daily-usage/reset-today`, purpose: "reset today's daily usage" },
+      { method: "GET", path: `${prefix}/daily-usage/reset-today`, purpose: "legacy GET reset today's usage" },
+      { method: "GET", path: `${prefix}/sounds/users`, purpose: "list Twitch VIP/Mod users with sound info" },
+      { method: "GET", path: `${prefix}/sounds/status`, purpose: "resolve sound status for one user" },
+      { method: "GET", path: `${prefix}/sounds/resolve`, purpose: "resolve upload target and expected sound file" },
+      { method: "POST", path: `${prefix}/sounds/upload`, purpose: "upload or replace VIP/Mod sound" },
+      { method: "GET", path: `${prefix}/upload/status`, purpose: "upload runtime and setting status" },
+      { method: "GET", path: `${prefix}/twitch-sync/status`, purpose: "Twitch VIP/Mod sync status" },
+      { method: "POST", path: `${prefix}/twitch-sync/run`, purpose: "run Twitch VIP/Mod sync" },
+      { method: "GET", path: `${prefix}/admin/summary`, purpose: "admin summary for dashboard" },
+      { method: "GET", path: `${prefix}/admin/reset-daily`, purpose: "legacy admin reset daily usage" },
+      { method: "POST", path: `${prefix}/admin/reset-daily`, purpose: "admin reset daily usage" },
+      { method: "POST", path: `${prefix}/test`, purpose: "run VIP admin test" },
+      { method: "POST", path: `${prefix}/admin/test`, purpose: "run VIP admin test" },
+      { method: "GET", path: `${prefix}/command`, purpose: "legacy command trigger" },
+      { method: "POST", path: `${prefix}/command`, purpose: "command trigger" },
+      { method: "GET", path: `${prefix}/enqueue`, purpose: "legacy direct overlay enqueue" },
+      { method: "POST", path: `${prefix}/enqueue`, purpose: "direct overlay enqueue" },
+      { method: "POST", path: `${prefix}/client/audio-started`, purpose: "overlay client audio-start callback" },
+      { method: "POST", path: `${prefix}/client/audio-ended`, purpose: "overlay client audio-ended callback" },
+      { method: "POST", path: `${prefix}/client/finished`, purpose: "overlay client finished callback" },
+      { method: "POST", path: `${prefix}/reset`, purpose: "clear VIP overlay queue/state" },
+      { method: "GET", path: `${prefix}/routes`, purpose: "list VIP API routes" },
+      { method: "GET", path: `${prefix}/integration-check`, purpose: "run non-destructive VIP integration check" },
+      { method: "POST", path: `${prefix}/reload`, purpose: "safe VIP diagnostics reload" }
+    ];
+
+    return routes;
+  }
+
+  function vipCheckItem(name, ok, details = {}, level = "error") {
+    return {
+      name,
+      ok: !!ok,
+      level: ok ? "ok" : level,
+      ...details
+    };
+  }
+
+  function countTableSafe(tableName) {
+    try {
+      return {
+        ok: true,
+        count: database.count(tableName),
+        error: ""
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        count: 0,
+        error: err.message || String(err)
+      };
+    }
+  }
+
+  function buildVipIntegrationCheck(prefix) {
+    const checks = [];
+    let schemaReady = false;
+    let schemaError = "";
+
+    try {
+      ensureVipSchema();
+      refreshDbStats();
+      schemaReady = !!state.db.initialized;
+      schemaError = state.db.lastError || "";
+    } catch (err) {
+      schemaReady = false;
+      schemaError = err.message || String(err);
+    }
+
+    checks.push(vipCheckItem("schema", schemaReady, {
+      schemaModule: VIP_SCHEMA_MODULE,
+      schemaVersion: state.db.schemaVersion || 0,
+      expectedSchemaVersion: VIP_SCHEMA_VERSION,
+      error: schemaError
+    }));
+
+    const tables = [
+      VIP_DAILY_USAGE_TABLE,
+      VIP_MESSAGE_TABLE,
+      VIP_SETTINGS_TABLE,
+      VIP_EVENTS_TABLE,
+      VIP_ROLE_OVERRIDES_TABLE,
+      VIP_TWITCH_USERS_TABLE
+    ];
+
+    const tableChecks = tables.map(tableName => {
+      const result = countTableSafe(tableName);
+      return vipCheckItem(`table:${tableName}`, result.ok, {
+        table: tableName,
+        count: result.count,
+        error: result.error
+      });
+    });
+    checks.push(...tableChecks);
+
+    const settingsData = (() => {
+      try {
+        return listVipSettings();
+      } catch (err) {
+        return { settings: [], config: { ok: false, exists: false, path: "", error: err.message || String(err) } };
+      }
+    })();
+
+    const settingsCount = Array.isArray(settingsData.settings) ? settingsData.settings.length : 0;
+    checks.push(vipCheckItem("settings", settingsCount > 0, {
+      table: VIP_SETTINGS_TABLE,
+      count: settingsCount
+    }));
+
+    const configInfo = settingsData.config || readVipSettingsConfig();
+    checks.push(vipCheckItem("config_fallback", !!configInfo.exists, {
+      file: VIP_SETTINGS_CONFIG_FILE,
+      path: configInfo.path || "",
+      exists: !!configInfo.exists,
+      ok: !!configInfo.ok,
+      error: configInfo.error || "",
+      note: "JSON config is fallback only; database settings are primary."
+    }, "warning"));
+
+    const rolesConfigExists = fileExistsSafe(VIP_ROLES_CONFIG_PATH);
+    checks.push(vipCheckItem("roles_config", rolesConfigExists, {
+      path: VIP_ROLES_CONFIG_PATH,
+      exists: rolesConfigExists,
+      note: "Used as legacy/fallback import source for local role overrides."
+    }, "warning"));
+
+    const soundBaseDir = getVipSoundBaseDir();
+    checks.push(vipCheckItem("sound_base_dir", fileExistsSafe(soundBaseDir), {
+      path: soundBaseDir,
+      exists: fileExistsSafe(soundBaseDir)
+    }, "warning"));
+
+    const uploadReady = !!multer;
+    checks.push(vipCheckItem("upload_middleware", uploadReady, {
+      multerReady: uploadReady,
+      error: multerLoadError || ""
+    }));
+
+    const routeCount = vipRouteDefinitions(prefix).length;
+    checks.push(vipCheckItem("routes", routeCount > 0, {
+      prefix,
+      count: routeCount
+    }));
+
+    let soundSystemOk = false;
+    let soundSystemError = "";
+    try {
+      soundSystemOk = !!VIP_SOUND_SYSTEM_PLAY_URL;
+    } catch (err) {
+      soundSystemError = err.message || String(err);
+    }
+
+    checks.push(vipCheckItem("sound_system_target", soundSystemOk, {
+      url: VIP_SOUND_SYSTEM_PLAY_URL,
+      error: soundSystemError,
+      note: "This check validates configured target only; it does not enqueue sound."
+    }));
+
+    const hardErrors = checks.filter(item => item.level === "error" && !item.ok);
+    const warnings = checks.filter(item => item.level === "warning" && !item.ok);
+
+    return {
+      ok: hardErrors.length === 0,
+      module: MODULE_NAME,
+      version: state.version,
+      prefix,
+      schemaVersion: state.db.schemaVersion || 0,
+      db: { ...state.db },
+      checks,
+      summary: {
+        total: checks.length,
+        ok: checks.filter(item => item.ok).length,
+        warnings: warnings.length,
+        errors: hardErrors.length
+      },
+      notes: [
+        "/api/vip is intentionally not registered.",
+        "Existing productive prefixes remain /api/vip-sound and /api/vip-sound-overlay.",
+        "Reload is non-destructive and does not clear queue or overlay state."
+      ],
+      updatedAt: nowIso()
+    };
+  }
+
+  function reloadVipDiagnostics(prefix) {
+    ensureVipSchema();
+    refreshDbStats();
+    emitState("reload");
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: state.version,
+      prefix,
+      reloaded: true,
+      destructive: false,
+      queuePreserved: true,
+      overlayPreserved: true,
+      db: { ...state.db },
+      state: {
+        phase: state.overlay.phase,
+        visible: state.overlay.visible,
+        isActive: state.isActive,
+        queuedCount: state.queue.length,
+        requestId: state.overlay.requestId || ""
+      },
+      updatedAt: nowIso()
+    };
+  }
+
   const apiPrefixes = ["/api/vip-sound-overlay", "/api/vip-sound"];
 
   function registerApiPrefix(prefix) {
@@ -3401,6 +3639,40 @@ module.exports.init = function init(ctx) {
       res.header("Access-Control-Allow-Headers", "Content-Type");
       if (req.method === "OPTIONS") return res.sendStatus(204);
       next();
+    });
+
+    app.get(`${prefix}/routes`, (req, res) => {
+      markClientSeen();
+      return res.json({
+        ok: true,
+        module: MODULE_NAME,
+        version: state.version,
+        prefix,
+        canonicalPrefix: "/api/vip-sound",
+        aliases: apiPrefixes.slice(),
+        intentionallyNotRegistered: ["/api/vip"],
+        routes: vipRouteDefinitions(prefix),
+        count: vipRouteDefinitions(prefix).length,
+        updatedAt: nowIso()
+      });
+    });
+
+    app.get(`${prefix}/integration-check`, (req, res) => {
+      try {
+        markClientSeen();
+        return res.json(buildVipIntegrationCheck(prefix));
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/reload`, (req, res) => {
+      try {
+        markClientSeen();
+        return res.json(reloadVipDiagnostics(prefix));
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
     });
 
     app.get(`${prefix}/state`, (req, res) => {
