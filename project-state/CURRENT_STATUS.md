@@ -2,34 +2,83 @@
 
 Stand: 2026-05-08
 
-## STEP199.1 - TTS Standard Admin/API
+## Aktueller TTS-Stand nach STEP199.4
 
-TTS wurde um ein separates Standard-API-Modul erweitert:
+Der TTS-Block ist technisch umgesetzt, live getestet und im Dashboard eingebunden.
 
-- `backend/modules/tts_admin_api.js`
-- Version: `0.1.0`
-- Doku: `project-state/STEP199_1_TTS_STANDARD_ADMIN_API_2026-05-08.md`
+Backend:
 
-Neue Routen:
+- `backend/modules/tts_system.js`
+- Keine separate Admin-Datei als Zielstand.
+- Die temporaere `backend/modules/tts_admin_api.js` wurde wieder entfernt.
+- DB-Zugriffe laufen ueber `backend/core/database.js`.
+- Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
+- JSON `config/tts_config.json` bleibt Seed/Fallback/technische Boot-Konfig.
+- Texte liegen aktuell noch in `config/tts_messages.json` und sind noch nicht ins globale DB-Textvarianten-System migriert.
+
+Dashboard:
+
+- `htdocs/dashboard/modules/tts.js`
+- `htdocs/dashboard/modules/tts.css`
+- Einbindung in `htdocs/dashboard/index.html`
+- TTS registriert sich im Dashboard selbst in `window.CGN.modules.tts` und `window.CGN.moduleCatalog.tts`.
+- `htdocs/dashboard/app.js` wurde fuer TTS nicht geaendert.
+
+TTS-Routen:
 
 ```text
-GET  /api/tts/config
-GET  /api/tts/voices
-GET  /api/tts/routes
-GET  /api/tts/admin/settings
-POST /api/tts/admin/settings
+GET/POST /api/tts/run
+GET/POST /api/tts/say
+GET/POST /api/tts/done
+GET      /api/tts/status
+GET      /api/tts/overlay-state
+GET/POST /api/tts/on
+GET/POST /api/tts/off
+GET/POST /api/tts/stop
+GET/POST /api/tts/clear
+GET/POST /api/tts/reload
+GET/POST /api/tts/command
+GET      /api/tts/settings
+GET/POST /api/tts/settings/upsert
+GET      /api/tts/events
+GET      /api/tts/stats
+GET      /api/tts/stats/users
+GET/POST /api/tts/prepare-alert
+GET/POST /api/tts/synthesize
+GET      /api/tts/config
+GET      /api/tts/voices
+GET      /api/tts/routes
+GET      /api/tts/admin/settings
+POST     /api/tts/admin/settings
 ```
 
-Wichtig:
+TTS Dashboard Tabs:
 
-- `tts_system.js` wurde bewusst nicht veraendert.
-- Bestehende TTS-Queue, Playback-Logik, Chat-Commands und Sound-System-Anbindung bleiben unveraendert.
-- `tts_admin_api.js` liefert nur dashboard-/statusfaehige Standard-Routen.
-- `/api/tts/config` merged `config/tts_config.json` mit `tts_settings`, wobei DB-Werte gegenueber JSON gewinnen.
-- Secret-/Key-Werte werden in den neuen Config-/Voice-Routen nicht ausgegeben.
-- `voices.*.keyFile` wird nicht als Pfad ausgegeben, sondern nur als `keyFileConfigured` und `keyFileExists`.
+```text
+Uebersicht
+User-Statistik
+Stimmen
+Rollen
+Sound-System
+Settings
+Test
+Events
+Routen
+```
 
-Architekturregel fuer TTS:
+TTS DB-Strukturen:
+
+- `tts_events`
+- `tts_usage_daily`
+- `tts_settings`
+
+TTS-Statistik:
+
+- `/api/tts/status` zeigt Laufzeit, Queue, Nutzung und Rollen.
+- `/api/tts/stats/users` zeigt User-Auswertung: wer wie oft, Zeichen, Fehler, Google/Piper, Dauer, letzte Nutzung, Rollen-Auswertung.
+- Dashboard zeigt die User-Statistik mit Zeitraum-/Sortierfilter.
+
+TTS Architekturregel:
 
 ```text
 TTS erzeugt Audiodateien.
@@ -38,8 +87,16 @@ Overlay bleibt Visualisierung/Fallback.
 Dashboard liest/schreibt nur ueber Backend-APIs.
 DB ist aktive Wahrheit fuer dashboardfaehige Settings.
 JSON bleibt Seed/Fallback/technische Boot-Konfig.
-Secrets bleiben ENV/Secret-Dateien.
+Sensible technische Zugangsdaten bleiben aus bereinigten Config-/Voice-Routen raus.
 ```
+
+TTS Dokus:
+
+- `project-state/STEP199_1_TTS_STANDARD_ADMIN_API_2026-05-08.md`
+- `project-state/STEP199_2_TTS_DASHBOARD_MODULE_2026-05-08.md`
+- `project-state/STEP199_3_TTS_USER_STATS_2026-05-08.md`
+- `project-state/STEP199_4_TTS_DASHBOARD_STATS_POLISH_2026-05-08.md`
+- `project-state/STEP199_5_TTS_DOC_SYNC_2026-05-08.md`
 
 ## Aktueller SoundAlerts-Stand nach STEP193.17.2
 
@@ -92,30 +149,6 @@ parser.messageFormats liegt in soundalerts_bridge_settings.
 Die Werte muessen echte Objekt-Arrays sein, nicht [object Object].
 ```
 
-Aktuell erkannte Formate:
-
-```text
-ForrestCGN spielt Lily was here fuer 0 Bits!
-ForrestCGN loest Airhorn mit 0 Bits aus
-```
-
-Review-Fachregel:
-
-```text
-Zur Pruefung = automatisch erkannt, noch nicht einzeln freigegeben.
-Aktiv = gespeichert/freigegeben und aktiv.
-Inaktiv = gespeichert, aber bewusst deaktiviert.
-Datei fehlt = Name/Datei fehlt oder Platzhalter-Datei.
-Ignoriert = technisch vorhanden, aber nicht prominent im normalen Workflow.
-```
-
-Test-Fachregel:
-
-```text
-Normaler Eintrag-Test nutzt das gespeicherte Ausgabeziel.
-Overlay-Test darf temporaer outputTarget=overlay senden, ohne den Eintrag dauerhaft umzuschalten.
-```
-
 ## STEP194 - Loyalty / StreamElements Migration Architektur
 
 Mit `STEP194` wurde ein Architekturstandard fuer die spaetere Migration von StreamElements Loyalty, Stream Store, Giveaways und Chat-Games dokumentiert.
@@ -130,39 +163,13 @@ Dokument:
 
 - `project-state/STEP194_STREAMELEMENTS_LOYALTY_MIGRATION_ARCHITECTURE_2026-05-07.md`
 
-Wichtig:
-
-- Keine Code-Aenderung.
-- Keine API-Aenderung.
-- Keine DB-Aenderung.
-- Keine StreamElements-Abschaltung.
-- Der STEP dokumentiert nur den spaeter verbindlichen Aufbau.
-
-Geplante spaetere Zielbereiche:
-
-- Loyalty Core
-- Rewards / Stream Store
-- Giveaways
-- Loyalty Games
-- Loyalty-/Game-Overlays
-
-Fachregeln:
-
-- Andere Module duerfen keine Punktestaende direkt schreiben.
-- Giveaways, Chat Games, Rewards, SoundAlerts, Challenges, VIP/TTS/Overlays und Streamer.bot-Scripte muessen Punkte ueber Loyalty anfragen.
-- Jede Punkteveraenderung muss als Transaktion nachvollziehbar gespeichert werden.
-- Overlays zeigen nur fertige Events an und duerfen keine Punkte berechnen oder veraendern.
-- StreamElements-Daten muessen importiert und markiert werden, nicht blind ueberschrieben.
-- Neue DB-Features sollen ueber `backend/core/database.js` oder vorhandene Helper gekapselt und spaeter MariaDB-tauglich vorbereitet werden.
-
 ## Bewusst offen
 
-- STEP199.2: TTS-Routen live pruefen und danach Dashboard-Modul planen/bauen.
 - TTS-Texte spaeter in das globale DB-basierte Textvarianten-System migrieren.
+- TTS Settings-Tab spaeter von Raw-JSON auf fachliche Formulare aufteilen.
+- TTS optional: CSV-Export und klickbare Tabellensortierung fuer User-Statistik.
 - Overlay-Bugs in `htdocs/overlays/sound_system_overlay.html` spaeter separat beheben.
 - Audio/Video-Verhalten im lokalen Overlay weiter testen.
-- Falls gewuenscht spaeter Event-Tab-Filter ergaenzen.
-- Falls gewuenscht spaeter Statistik backendseitig erweitern.
 - Clip-System live testen.
 - MariaDB-Adapter spaeter zentral implementieren.
 - Fuer Loyalty/StreamElements-Migration echte Exportdaten, Store-Items, Giveaway-Settings und aktive Chat-Games erfassen.
