@@ -120,14 +120,6 @@ window.TTSModule = (function(){
     await loadAll(true);
   }
 
-  async function saveSimpleSetting(key, value, valueType){
-    const row = findSetting(key);
-    await window.CGN.api(api.settings, { method: 'POST', body: JSON.stringify({ key, value, valueType: valueType || row?.valueType || undefined, description: row?.description || '' }) });
-    await window.CGN.api(api.reload, { method: 'POST', body: '{}' }).catch(() => null);
-    state.saveInfo = `Setting gespeichert: ${key}`;
-    await loadAll(true);
-  }
-
   async function sendTest(){
     const text = String(root?.querySelector('[data-tts-test-text]')?.value || '').trim();
     const role = String(root?.querySelector('[data-tts-test-role]')?.value || 'broadcaster');
@@ -252,7 +244,7 @@ window.TTSModule = (function(){
 
   function renderTest(){
     const roles = Object.keys(effectiveConfig().roles || state.status?.roles || { broadcaster: {} });
-    return `<section class="tts-card"><h3>Test-TTS</h3><p class="tts-note">Sendet einen Test an `/api/tts/say`. Ausgabe läuft nach aktueller TTS-Konfiguration.</p>
+    return `<section class="tts-card"><h3>Test-TTS</h3><p class="tts-note">Sendet einen Test an <code>/api/tts/say</code>. Ausgabe läuft nach aktueller TTS-Konfiguration.</p>
       <div class="tts-test-grid">
         <label><span>Rolle</span><select data-tts-test-role>${roles.map(r => `<option value="${esc(r)}" ${r === 'broadcaster' ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></label>
         <label><span>User/Login</span><input data-tts-test-user type="text" value="dashboard"></label>
