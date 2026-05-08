@@ -166,13 +166,18 @@ module.exports.init = function init(ctx) {
   registerGet(app, "/api/challenge/reload", handleReload);
   registerPost(app, "/api/challenge/reload", handleReload);
 
+  registerGet(app, "/api/challenge/config", handleConfig);
+  registerGet(app, "/api/challenge/settings", handleSettings);
+  registerGet(app, "/api/challenge/routes", handleRoutes);
+  registerGet(app, "/api/challenge/integration-check", handleIntegrationCheck);
+
   registerGet(app, "/api/challenge/stats", handleStats);
   registerPost(app, "/api/challenge/stats", handleStats);
   registerGet(app, "/api/challenge/stats/top", handleStatsTop);
   registerGet(app, "/api/challenge/stats/user", handleStatsUser);
 
   broadcastStatus("ready");
-  console.log(`[${MODULE}] V2 FIX6-STATS-SQLITE-PARAMS aktiv: /api/challenge/start, /api/challenge/status, /api/challenge/stats, /api/challenge/remove-next, /api/challenge/reset, /api/challenge/reload`);
+  console.log(`[${MODULE}] V2 FIX7-DIAGNOSTICS aktiv: /api/challenge/start, /api/challenge/status, /api/challenge/stats, /api/challenge/remove-next, /api/challenge/reset, /api/challenge/reload, /api/challenge/routes, /api/challenge/integration-check`);
 
   function loadRuntime() {
     const config = loadJsonFromConfig("challenge_system.json", DEFAULT_CONFIG);
@@ -382,6 +387,164 @@ module.exports.init = function init(ctx) {
       action: "reload",
       loadedAt: runtime.loadedAt,
       state: snapshot("reload")
+    });
+  }
+
+  function handleConfig(req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    return respond(req, res, 200, {
+      ok: true,
+      module: MODULE,
+      version: 2,
+      source: "json_with_defaults",
+      configPath: "config\\challenge_system.json",
+      messagesPath: "config\\messages\\challenge.json",
+      files: {
+        config: fileStatus(["challenge_system.json"]),
+        messages: fileStatus(["messages", "challenge.json"])
+      },
+      config: sanitizeConfig(runtime.config),
+      loadedAt: runtime.loadedAt,
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  function handleSettings(req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    const cfg = runtime.config || {};
+    return respond(req, res, 200, {
+      ok: true,
+      module: MODULE,
+      version: 2,
+      source: "json",
+      settings: {
+        enabled: cfg.enabled !== false,
+        defaults: clone(cfg.defaults || {}),
+        chat: sanitizeConfig(cfg.chat || {}),
+        routes: clone(cfg.routes || {}),
+        websocket: clone(cfg.websocket || {}),
+        discordSound: sanitizeConfig(cfg.discordSound || {}),
+        stats: clone(cfg.stats || {}),
+        modes: Object.fromEntries(Object.entries(cfg.modes || {}).map(([key, mode]) => [key, sanitizeConfig(mode)]))
+      },
+      files: {
+        config: fileStatus(["challenge_system.json"]),
+        messages: fileStatus(["messages", "challenge.json"])
+      },
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  function handleRoutes(req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    return respond(req, res, 200, buildRoutesResponse());
+  }
+
+  function handleIntegrationCheck(req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    const checks = [];
+
+    const configFile = fileStatus(["challenge_system.json"]);
+    checks.push({
+      name: "config_file",
+      ok: !!configFile.exists,
+      level: configFile.exists ? "ok" : "error",
+      path: configFile.path,
+      exists: !!configFile.exists,
+      error: configFile.error || ""
+    });
+
+    const messagesFile = fileStatus(["messages", "challenge.json"]);
+    checks.push({
+      name: "messages_file",
+      ok: !!messagesFile.exists,
+      level: messagesFile.exists ? "ok" : "error",
+      path: messagesFile.path,
+      exists: !!messagesFile.exists,
+      error: messagesFile.error || ""
+    });
+
+    checks.push({
+      name: "runtime_config",
+      ok: !!runtime.config && typeof runtime.config === "object",
+      level: runtime.config && typeof runtime.config === "object" ? "ok" : "error",
+      enabled: runtime.config && runtime.config.enabled !== false,
+      version: runtime.config && runtime.config.version
+    });
+
+    const modes = runtime.config && runtime.config.modes && typeof runtime.config.modes === "object" ? runtime.config.modes : {};
+    checks.push({
+      name: "modes",
+      ok: Object.keys(modes).length > 0,
+      level: Object.keys(modes).length > 0 ? "ok" : "error",
+      count: Object.keys(modes).length,
+      enabled: Object.values(modes).filter(m => m && m.enabled !== false).length
+    });
+
+    checks.push({
+      name: "stats_enabled",
+      ok: true,
+      level: getStatsEnabled() ? "ok" : "warning",
+      enabled: getStatsEnabled(),
+      schemaReady: !!statsSchemaReady
+    });
+
+    const schemaOk = ensureStatsSchema();
+    checks.push({
+      name: "stats_schema",
+      ok: schemaOk || !getStatsEnabled(),
+      level: schemaOk || !getStatsEnabled() ? "ok" : "warning",
+      schemaReady: !!statsSchemaReady,
+      note: getStatsEnabled() ? "Challenge stats schema checked." : "Stats are disabled. Schema is not required."
+    });
+
+    for (const table of ["challenge_user_mode_stats", "challenge_runtime_events"]) {
+      checks.push(tableCheck(table));
+    }
+
+    checks.push({
+      name: "routes",
+      ok: true,
+      level: "ok",
+      prefix: "/api/challenge",
+      legacyPrefix: "/scripts/challenge",
+      count: buildChallengeRoutes("/api/challenge").length
+    });
+
+    const overlayStatus = fileStatusFromRelative(["htdocs", "overlays", "_overlay-challenge_status.html"]);
+    checks.push({
+      name: "overlay_status_file",
+      ok: !!overlayStatus.exists,
+      level: overlayStatus.exists ? "ok" : "warning",
+      path: overlayStatus.path,
+      exists: !!overlayStatus.exists,
+      error: overlayStatus.error || ""
+    });
+
+    const errors = checks.filter(c => c.level === "error").length;
+    const warnings = checks.filter(c => c.level === "warning").length;
+    const okCount = checks.filter(c => c.level === "ok").length;
+
+    return respond(req, res, 200, {
+      ok: errors === 0,
+      module: MODULE,
+      version: 2,
+      prefix: "/api/challenge",
+      schemaVersion: 1,
+      checks,
+      summary: {
+        total: checks.length,
+        ok: okCount,
+        warnings,
+        errors
+      },
+      notes: [
+        "This integration check is non-destructive.",
+        "Reload already exists and is kept unchanged.",
+        "Legacy /scripts/challenge trigger routes remain unchanged."
+      ],
+      state: snapshot("integration-check"),
+      updatedAt: new Date().toISOString()
     });
   }
 
@@ -739,6 +902,109 @@ module.exports.init = function init(ctx) {
     return false;
   }
 
+
+  function buildRoutesResponse() {
+    return {
+      ok: true,
+      module: MODULE,
+      version: 2,
+      prefix: "/api/challenge",
+      legacyPrefix: "/scripts/challenge",
+      routes: buildChallengeRoutes("/api/challenge"),
+      legacyRoutes: buildChallengeLegacyRoutes(),
+      count: buildChallengeRoutes("/api/challenge").length,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function buildChallengeRoutes(prefix) {
+    const p = String(prefix || "/api/challenge").replace(/\/$/, "");
+    return [
+      { method: "GET/POST", path: p, purpose: "legacy-compatible start trigger" },
+      { method: "GET/POST", path: `${p}/start`, purpose: "start or queue a challenge" },
+      { method: "GET/POST", path: `${p}/status`, purpose: "runtime status for overlays/dashboard" },
+      { method: "GET/POST", path: `${p}/remove-next`, purpose: "remove next queued challenge" },
+      { method: "GET/POST", path: `${p}/remove`, purpose: "legacy alias for remove-next" },
+      { method: "GET/POST", path: `${p}/reset`, purpose: "clear active challenge and queue" },
+      { method: "GET/POST", path: `${p}/reload`, purpose: "reload challenge config/messages" },
+      { method: "GET/POST", path: `${p}/stats`, purpose: "challenge stats summary" },
+      { method: "GET", path: `${p}/stats/top`, purpose: "top challenge users/modes" },
+      { method: "GET", path: `${p}/stats/user`, purpose: "challenge stats for one user" },
+      { method: "GET", path: `${p}/config`, purpose: "sanitized challenge config view" },
+      { method: "GET", path: `${p}/settings`, purpose: "challenge runtime settings view" },
+      { method: "GET", path: `${p}/routes`, purpose: "list challenge API routes" },
+      { method: "GET", path: `${p}/integration-check`, purpose: "run non-destructive challenge integration check" }
+    ];
+  }
+
+  function buildChallengeLegacyRoutes() {
+    return [
+      { method: "GET/POST", path: "/scripts/challenge", purpose: "legacy start trigger" }
+    ];
+  }
+
+  function sanitizeConfig(value) {
+    if (Array.isArray(value)) return value.map(sanitizeConfig);
+    if (!value || typeof value !== "object") return value;
+    const out = {};
+    for (const [key, val] of Object.entries(value)) {
+      if (/token|secret|auth|password|key/i.test(key) && key !== "discordSoundKey") {
+        out[key] = val === undefined || val === null || val === "" ? "" : "***";
+      } else {
+        out[key] = sanitizeConfig(val);
+      }
+    }
+    return out;
+  }
+
+  function fileStatus(parts) {
+    const fs = require("fs");
+    const path = require("path");
+    const relParts = Array.isArray(parts) ? parts : [parts];
+    try {
+      const filePath = typeof configHelper.resolveFromConfig === "function"
+        ? configHelper.resolveFromConfig(...relParts)
+        : path.join(configHelper.getConfigDir(), ...relParts);
+      return {
+        path: filePath,
+        exists: fs.existsSync(filePath),
+        ok: fs.existsSync(filePath),
+        error: fs.existsSync(filePath) ? "" : "file_not_found"
+      };
+    } catch (err) {
+      return { path: relParts.join("/"), exists: false, ok: false, error: err.message || String(err) };
+    }
+  }
+
+  function fileStatusFromRelative(parts) {
+    const fs = require("fs");
+    const path = require("path");
+    const relParts = Array.isArray(parts) ? parts : [parts];
+    try {
+      const root = typeof configHelper.getProjectRoot === "function"
+        ? configHelper.getProjectRoot()
+        : process.cwd();
+      const filePath = path.join(root, ...relParts);
+      return {
+        path: filePath,
+        exists: fs.existsSync(filePath),
+        ok: fs.existsSync(filePath),
+        error: fs.existsSync(filePath) ? "" : "file_not_found"
+      };
+    } catch (err) {
+      return { path: relParts.join("/"), exists: false, ok: false, error: err.message || String(err) };
+    }
+  }
+
+  function tableCheck(table) {
+    try {
+      if (!sqlite) return { name: `table:${table}`, ok: false, level: "warning", table, count: 0, error: "sqlite_unavailable" };
+      const row = dbGet(`SELECT COUNT(*) AS count FROM ${table}`);
+      return { name: `table:${table}`, ok: true, level: "ok", table, count: Number(row && row.count ? row.count : 0), error: "" };
+    } catch (err) {
+      return { name: `table:${table}`, ok: false, level: "warning", table, count: 0, error: err.message || String(err) };
+    }
+  }
 
   function getStatsEnabled() {
     const stats = runtime.config.stats || {};
