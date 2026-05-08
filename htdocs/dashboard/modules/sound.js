@@ -1,4 +1,4 @@
-﻿window.SoundSystemModule = (function(){
+window.SoundSystemModule = (function(){
   'use strict';
 
   const API = '/api/sound';
@@ -196,6 +196,61 @@
   function checked(value){ return value === false ? '' : 'checked'; }
   function numValue(value, fallback){ const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 
+
+  function getSettingsSourceMeta(){
+    const checks = integrationCheck?.checks || {};
+    const sources = integrationCheck?.sources || {};
+    const dbCount = Number(checks.dbSettingsCount);
+    const dbOk = checks.dbSettingsOk === true;
+    const jsonOk = checks.jsonConfigOk !== false;
+    return {
+      table: settings?.table || settings?.settingsTable || 'sound_settings',
+      dbOk,
+      jsonOk,
+      dbCount: Number.isFinite(dbCount) ? dbCount : null,
+      rule: sources.rule || 'database_over_json_fallback_for_allowed_blocks'
+    };
+  }
+
+  function sourceBadge(label, value, kind){
+    const cls = kind === 'db' ? 'success' : (kind === 'warn' ? '' : '');
+    return `
+      <div class="sound-source-item">
+        <span>${esc(label)}</span>
+        <strong class="sound-pill ${cls}">${esc(value)}</strong>
+      </div>
+    `;
+  }
+
+  function renderSettingsSourcePanel(){
+    const meta = getSettingsSourceMeta();
+    const blockSource = meta.dbOk ? 'DB/Fallback' : 'JSON-Fallback';
+    const blockKind = meta.dbOk ? 'db' : 'warn';
+    return `
+      <div class="sound-source-panel">
+        <div class="sound-source-head">
+          <div>
+            <strong>Settings-Quelle</strong>
+            <span>Dashboard schreibt nur über <code>/api/sound/settings</code>. Effektive Werte bleiben: DB vor JSON-Fallback.</span>
+          </div>
+          <span class="sound-pill ${meta.dbOk ? 'success' : ''}">${meta.dbOk ? 'DB aktiv' : 'Fallback'}</span>
+        </div>
+        <div class="sound-source-grid">
+          ${sourceBadge('Tabelle', meta.table, meta.dbOk ? 'db' : 'warn')}
+          ${sourceBadge('DB-Blöcke', meta.dbCount === null ? '-' : String(meta.dbCount), meta.dbOk ? 'db' : 'warn')}
+          ${sourceBadge('JSON-Fallback', meta.jsonOk ? 'OK' : 'Fehler', meta.jsonOk ? 'db' : 'warn')}
+          ${sourceBadge('Regel', meta.rule, meta.dbOk ? 'db' : 'warn')}
+          ${sourceBadge('Ausgabe', blockSource, blockKind)}
+          ${sourceBadge('Overlay', blockSource, blockKind)}
+          ${sourceBadge('Queue', blockSource, blockKind)}
+          ${sourceBadge('Prioritäten', blockSource, blockKind)}
+          ${sourceBadge('Kategorie-Defaults', blockSource, blockKind)}
+          ${sourceBadge('Defaults', blockSource, blockKind)}
+        </div>
+      </div>
+    `;
+  }
+
   function renderSettings(){
     const el = document.getElementById('soundSettingsCard');
     if (!el) return;
@@ -218,7 +273,7 @@
     el.innerHTML = `
       <h3>Einstellungen</h3>
       <div class="sound-note">Diese Werte werden über <code>/api/sound/settings</code> in SQLite gespeichert und beim Neustart wieder geladen.</div>
-      <div class="sound-note">Quelle: <strong>${esc(settings?.table || 'sound_settings')}</strong> · Effektive Werte: DB vor JSON-Fallback.</div>
+      ${renderSettingsSourcePanel()}
 
       <div class="sound-settings-grid">
         <div class="sound-settings-title">Ausgabe & Overlay</div>

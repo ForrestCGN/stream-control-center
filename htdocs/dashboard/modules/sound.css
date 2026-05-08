@@ -1,4 +1,4 @@
-﻿
+
 .sound-admin,
 #soundModule {
   display: block;
@@ -627,4 +627,86 @@ html[data-theme=dark] .sound-diagnostic-list.danger {
   background: #2c1d20;
   border-color: #5a3037;
   color: #ffd7dd;
+}
+
+
+/* Sound Settings Source Display - STEP200.4 fixed */
+.sound-source-panel {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(56,189,248,.18);
+  background: rgba(56,189,248,.055);
+}
+
+.sound-source-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.sound-source-head strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 950;
+  margin-bottom: 4px;
+}
+
+.sound-source-head span:not(.sound-pill) {
+  display: block;
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sound-source-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.sound-source-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.035);
+}
+
+.sound-source-item > span:first-child {
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+html[data-theme=dark] .sound-source-panel {
+  background: #202020;
+  border-color: #343434;
+}
+
+html[data-theme=dark] .sound-source-item {
+  background: #1b1b1b;
+  border-color: #343434;
+}
+
+@media(max-width: 1400px) {
+  .sound-source-grid {
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+  }
+}
+
+@media(max-width: 760px) {
+  .sound-source-head {
+    display: grid;
+  }
+
+  .sound-source-grid {
+    grid-template-columns: 1fr;
+  }
 }
