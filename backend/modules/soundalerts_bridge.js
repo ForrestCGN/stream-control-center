@@ -1589,6 +1589,194 @@ function statsRows() {
 }
 
 
+function directoryCheck(label, dirValue) {
+  const raw = String(dirValue || '').trim();
+  const fullPath = raw ? (path.isAbsolute(raw) ? raw : cfg.resolveFromRoot(raw)) : '';
+  let exists = false;
+  let isDirectory = false;
+  let error = '';
+  try {
+    if (fullPath) {
+      exists = fs.existsSync(fullPath);
+      isDirectory = exists ? fs.statSync(fullPath).isDirectory() : false;
+    }
+  } catch (err) {
+    error = err && err.message ? err.message : String(err);
+  }
+  return { label, path: raw, fullPath, exists, isDirectory, ok: !!(fullPath && exists && isDirectory), error };
+}
+
+function tableCount(tableName) {
+  try {
+    const row = database.get(`SELECT COUNT(*) AS c FROM ${tableName}`);
+    return { ok: true, table: tableName, count: Number(row && row.c || 0), error: '' };
+  } catch (err) {
+    return { ok: false, table: tableName, count: 0, error: err && err.message ? err.message : String(err) };
+  }
+}
+
+function buildSoundAlertsIntegrationCheck() {
+  const warnings = [];
+  const errors = [];
+
+  ensureDatabaseReady();
+  loadConfig();
+  ensureSchema();
+
+  const db = databaseStatus();
+  if (!db.ok) errors.push('database_unavailable');
+
+  const configInfo = {
+    ok: !!state.configOk,
+    path: state.configPath || '',
+    error: state.configError || '',
+    source: state.settings && state.settings.source ? state.settings.source : 'unknown'
+  };
+  if (!configInfo.ok) errors.push('config_not_ok');
+
+  const settings = (() => {
+    try {
+      ensureSettingsSeeded(config);
+      const listed = settingsHelper.listSettings(SETTINGS_TABLE, { limit: 1000 });
+      return {
+        ok: !!(listed && listed.ok !== false),
+        table: SETTINGS_TABLE,
+        count: Number(listed && listed.count || (Array.isArray(listed && listed.rows) ? listed.rows.length : 0) || 0),
+        source: state.settings && state.settings.source ? state.settings.source : 'unknown',
+        error: listed && listed.lastError ? listed.lastError : ''
+      };
+    } catch (err) {
+      return { ok: false, table: SETTINGS_TABLE, count: 0, source: 'unknown', error: err && err.message ? err.message : String(err) };
+    }
+  })();
+  if (!settings.ok) errors.push('settings_unavailable');
+  if (settings.ok && settings.count <= 0) warnings.push('settings_empty');
+
+  const tables = {
+    events: tableCount('soundalerts_bridge_events'),
+    entries: tableCount('soundalerts_bridge_entries'),
+    meta: tableCount('soundalerts_bridge_meta'),
+    settings: tableCount(SETTINGS_TABLE)
+  };
+  for (const [key, info] of Object.entries(tables)) {
+    if (!info.ok) errors.push(`${key}_table_unavailable`);
+  }
+
+  const uploadCfg = getUploadConfig();
+  const uploadDirs = {
+    audio: directoryCheck('audio', uploadCfg.audioDir),
+    video: directoryCheck('video', uploadCfg.videoDir)
+  };
+  if (uploadCfg.enabled !== false) {
+    if (!uploadDirs.audio.ok) warnings.push('audio_upload_dir_unavailable');
+    if (!uploadDirs.video.ok) warnings.push('video_upload_dir_unavailable');
+  }
+
+  const soundCfg = config.soundSystem || {};
+  const playUrl = String(soundCfg.playUrl || '').trim();
+  if (!playUrl) {
+    warnings.push('sound_system_play_url_missing');
+  } else {
+    try {
+      const parsed = new URL(playUrl);
+      if (!parsed.protocol || !parsed.host) warnings.push('sound_system_play_url_invalid');
+    } catch (_) {
+      warnings.push('sound_system_play_url_invalid');
+    }
+  }
+
+  const allowedExtensions = Array.isArray(soundCfg.allowedExtensions) ? soundCfg.allowedExtensions : [];
+  if (!allowedExtensions.includes('.mp4')) warnings.push('mp4_not_allowed_in_sound_system');
+  if (!allowedExtensions.includes('.webm')) warnings.push('webm_not_allowed_in_sound_system');
+
+  const uploadVideoExts = Array.isArray(uploadCfg.allowedVideoExtensions) ? uploadCfg.allowedVideoExtensions : [];
+  if (!uploadVideoExts.includes('.mp4')) warnings.push('mp4_not_allowed_for_upload');
+  if (!uploadVideoExts.includes('.webm')) warnings.push('webm_not_allowed_for_upload');
+
+  const rules = getEffectiveRules();
+  const ruleStats = {
+    total: Array.isArray(rules) ? rules.length : 0,
+    active: Array.isArray(rules) ? rules.filter(rule => rule && rule.enabled !== false && rule.status !== 'ignored').length : 0,
+    missingFile: Array.isArray(rules) ? rules.filter(rule => rule && (rule.status === 'missing_file' || !String(rule.file || '').trim())).length : 0,
+    audio: Array.isArray(rules) ? rules.filter(rule => rule && normalizeMediaType(rule.mediaType, rule.file) === 'audio').length : 0,
+    video: Array.isArray(rules) ? rules.filter(rule => rule && normalizeMediaType(rule.mediaType, rule.file) === 'video').length : 0
+  };
+  if (ruleStats.total <= 0) warnings.push('no_soundalert_entries');
+
+  const parserFormats = config.parser && Array.isArray(config.parser.messageFormats) ? config.parser.messageFormats : [];
+  const parser = {
+    ok: parserFormats.some(format => format && format.enabled !== false),
+    language: config.parser && config.parser.language || 'de',
+    formats: parserFormats.length,
+    enabledFormats: parserFormats.filter(format => format && format.enabled !== false).length
+  };
+  if (!parser.ok) errors.push('no_enabled_parser_formats');
+
+  const websocket = {
+    connected: !!state.wsConnected,
+    lastError: state.wsLastError || ''
+  };
+  if (!websocket.connected) warnings.push('internal_websocket_not_connected');
+
+  const upload = {
+    enabled: uploadCfg.enabled !== false,
+    multerReady: !!multer,
+    multerLoadError,
+    dirs: uploadDirs,
+    limits: {
+      maxAudioSizeBytes: uploadCfg.maxAudioSizeBytes,
+      maxVideoSizeBytes: uploadCfg.maxVideoSizeBytes
+    },
+    allowedAudioExtensions: uploadCfg.allowedAudioExtensions || [],
+    allowedVideoExtensions: uploadCfg.allowedVideoExtensions || []
+  };
+  if (upload.enabled && !upload.multerReady) errors.push('multer_unavailable');
+
+  const healthy = errors.length === 0;
+
+  return core.ok({
+    module: MODULE_NAME,
+    version: VERSION,
+    healthy,
+    warnings,
+    errors,
+    checks: {
+      config: configInfo,
+      database: db,
+      settings,
+      tables,
+      parser,
+      soundSystem: {
+        playUrl,
+        soundsBaseDir: soundCfg.soundsBaseDir || '',
+        allowedExtensions,
+        defaultCategory: soundCfg.defaultCategory || '',
+        defaultPriority: soundCfg.defaultPriority || 0,
+        audioOutputTarget: soundCfg.audioOutputTarget || '',
+        videoOutputTarget: soundCfg.videoOutputTarget || '',
+        defaultVolume: soundCfg.defaultVolume || 0
+      },
+      upload,
+      websocket,
+      rules: ruleStats
+    },
+    routes: {
+      status: '/api/soundalerts/status',
+      config: '/api/soundalerts/config',
+      settings: '/api/soundalerts/settings',
+      routes: '/api/soundalerts/routes',
+      integrationCheck: '/api/soundalerts/integration-check',
+      reload: '/api/soundalerts/reload'
+    },
+    notes: [
+      'Read-only Integration-Check für Dashboard-/Modul-Standardisierung.',
+      'Es werden keine DB-, JSON- oder Dateiänderungen vorgenommen.',
+      'Warnungen können im laufenden Betrieb normal sein, z.B. wenn der interne WebSocket gerade reconnectet.'
+    ]
+  });
+}
+
+
 function buildSoundAlertsRoutes() {
   const routeList = [
     { method: 'GET', path: '/api/soundalerts/status', auth: 'public/local', category: 'status', description: 'SoundAlerts-Bridge Status, Config-Status, WebSocket-Status, DB-Status und Statistiken.' },
@@ -1597,6 +1785,7 @@ function buildSoundAlertsRoutes() {
     { method: 'GET', path: '/api/soundalerts/config', auth: 'public/local', category: 'config', description: 'Effektive SoundAlerts-Bridge Config inklusive Settings-Quelle lesen.' },
     { method: 'GET', path: '/api/soundalerts/settings', auth: 'public/local', category: 'settings', description: 'DB-Settings aus soundalerts_bridge_settings lesen.' },
     { method: 'GET', path: '/api/soundalerts/routes', auth: 'public/local', category: 'diagnostics', description: 'Read-only Routenübersicht der SoundAlerts-Bridge.' },
+    { method: 'GET', path: '/api/soundalerts/integration-check', auth: 'public/local', category: 'diagnostics', description: 'Read-only Integration-Check der SoundAlerts-Bridge.' },
 
     { method: 'GET', path: '/api/soundalerts/entries', auth: 'public/local', category: 'entries', description: 'Effektive SoundAlert-Einträge lesen.' },
     { method: 'DELETE', path: '/api/soundalerts/entries/:entryKey', auth: 'public/local', category: 'entries', description: 'SoundAlert-Eintrag löschen.' },
@@ -1621,7 +1810,7 @@ function buildSoundAlertsRoutes() {
       config: '/api/soundalerts/config',
       settings: '/api/soundalerts/settings',
       routes: '/api/soundalerts/routes',
-      integrationCheck: '',
+      integrationCheck: '/api/soundalerts/integration-check',
       reload: '/api/soundalerts/reload'
     },
     routes: routeList,
@@ -1631,7 +1820,7 @@ function buildSoundAlertsRoutes() {
       'Read-only Routenübersicht für Dashboard-/Modul-Standardisierung.',
       'Bestehende Routen wurden nicht geändert.',
       'Schreibende Routen sind nur dokumentiert, nicht neu angelegt.',
-      'Ein separater /api/soundalerts/integration-check ist als Folge-STEP vorgesehen.'
+      '/api/soundalerts/integration-check ist als Read-only Diagnose-Endpunkt vorhanden.'
     ]
   });
 }
@@ -1652,6 +1841,7 @@ module.exports.init = function init(ctx) {
   app.get('/api/soundalerts/config', (_req, res) => res.json(core.ok({ config: publicConfig(), path: state.configPath, settingsTable: SETTINGS_TABLE, settingsSource: state.settings.source })));
   app.get('/api/soundalerts/settings', (_req, res) => res.json(core.ok({ settings: listSoundAlertSettings(), table: SETTINGS_TABLE })));
   app.get('/api/soundalerts/routes', (_req, res) => res.json(buildSoundAlertsRoutes()));
+  app.get('/api/soundalerts/integration-check', (_req, res) => res.json(buildSoundAlertsIntegrationCheck()));
   app.get('/api/soundalerts/entries', (_req, res) => res.json(core.ok({ entries: getEffectiveRules(), source: Array.isArray(listEntryRules()) ? 'db' : 'json_fallback' })));
   app.delete('/api/soundalerts/entries/:entryKey', (req, res) => {
     const result = deleteEntryRule(req.params.entryKey);
