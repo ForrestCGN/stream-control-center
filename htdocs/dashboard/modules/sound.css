@@ -579,3 +579,52 @@ html[data-theme=dark] .sound-category-row {
     grid-column: span 1;
   }
 }
+
+
+/* Sound Diagnosis UI - STEP200.3 */
+#soundIntegrationCard {
+  grid-column: span 12;
+}
+
+.sound-diagnostic-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(251,191,36,.25);
+  background: rgba(251,191,36,.08);
+  color: #fff7cc;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sound-diagnostic-list.danger {
+  border-color: rgba(248,113,113,.35);
+  background: rgba(244,63,94,.12);
+  color: #ffe4e6;
+}
+
+.sound-pill.success {
+  border-color: rgba(52,211,153,.45);
+  background: rgba(16,185,129,.16);
+  color: #d1fae5;
+}
+
+.sound-pill.danger {
+  border-color: rgba(248,113,113,.45);
+  background: rgba(244,63,94,.16);
+  color: #ffe4e6;
+}
+
+html[data-theme=dark] .sound-diagnostic-list {
+  background: #2a2618;
+  border-color: #51482a;
+  color: #f8e7b0;
+}
+
+html[data-theme=dark] .sound-diagnostic-list.danger {
+  background: #2c1d20;
+  border-color: #5a3037;
+  color: #ffd7dd;
+}
