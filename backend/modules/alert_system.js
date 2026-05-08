@@ -61,7 +61,27 @@ const DEFAULT_CONFIG = {
   chatMessageOutboxLimit: 100,
   // Sicherheitsnetz: Provider-/Live-Events ohne passende aktive Regel werden ignoriert.
   // Verhindert z.B. Tipeee-Follow-Alerts, wenn nur Twitch-Follow-Regeln existieren.
-  playUnmatchedAlerts: false
+  playUnmatchedAlerts: false,
+  preview: {
+    localBrowserAudio: true,
+    sendToLiveOverlay: false,
+    sendToSoundSystem: false
+  },
+  liveAlert: {
+    soundSystemEnabled: false,
+    soundSystemPlayUrl: 'http://127.0.0.1:8080/api/sound/play',
+    soundSystemOutputTarget: 'device',
+    soundSystemCategory: 'alert',
+    soundSystemSource: 'alert_system',
+    waitForSoundItemStarted: true,
+    fallbackShowOnSoundError: true,
+    fallbackShowAfterMs: 15000
+  },
+  dashboardSettings: {
+    preferSqliteSettings: true,
+    allowRuntimeEdit: true,
+    settingsTable: 'alert_settings'
+  }
 };
 
 const DEFAULT_MESSAGES = {
@@ -95,6 +115,8 @@ module.exports.init = function init(ctx) {
   ensureDirs();
   ensureSchema();
   seedDefaults();
+  applyRuntimeSettingsFromDb();
+  ensureDirs();
 
   if (wss) attachWs(wss);
 
@@ -114,6 +136,8 @@ module.exports.init = function init(ctx) {
     ensureDirs();
     ensureSchema();
     seedDefaults();
+    applyRuntimeSettingsFromDb();
+    ensureDirs();
     res.json({ ok: true, status: buildStatus(req) });
   });
   routes.registerPost(app, '/api/alerts/enqueue', guard, (req, res) => {
@@ -600,8 +624,128 @@ function buildFfprobeStatus() {
 }
 
 function publicConfig() {
-  const cfg = { ...state.config };
+  return deepCloneConfig(state.config);
+}
+
+function deepCloneConfig(value) {
+  return JSON.parse(JSON.stringify(value || {}));
+}
+
+function mergePlainConfig(base, extra) {
+  const out = Array.isArray(base) ? base.slice() : { ...(base || {}) };
+  if (!extra || typeof extra !== 'object' || Array.isArray(extra)) return out;
+  for (const [key, value] of Object.entries(extra)) {
+    if (value && typeof value === 'object' && !Array.isArray(value) && out[key] && typeof out[key] === 'object' && !Array.isArray(out[key])) {
+      out[key] = mergePlainConfig(out[key], value);
+    } else if (Array.isArray(value)) {
+      out[key] = value.slice();
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+function canonicalConfigSectionKey(key) {
+  const raw = String(key || '').trim();
+  const lower = raw.toLowerCase();
+  const map = {
+    preview: 'preview',
+    livealert: 'liveAlert',
+    dashboardsettings: 'dashboardSettings'
+  };
+  return map[lower] || raw;
+}
+
+function setConfigPath(target, dottedPath, value) {
+  const parts = String(dottedPath || '').split('.').map(part => part.trim()).filter(Boolean);
+  if (!parts.length) return;
+  parts[0] = canonicalConfigSectionKey(parts[0]);
+  let current = target;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const key = parts[i];
+    if (!current[key] || typeof current[key] !== 'object' || Array.isArray(current[key])) current[key] = {};
+    current = current[key];
+  }
+  current[parts[parts.length - 1]] = value;
+}
+
+function sanitizeRuntimeConfig(input) {
+  const cfg = mergePlainConfig(DEFAULT_CONFIG, input || {});
+  cfg.preview = mergePlainConfig(DEFAULT_CONFIG.preview, cfg.preview || {});
+  cfg.liveAlert = mergePlainConfig(DEFAULT_CONFIG.liveAlert, cfg.liveAlert || {});
+  cfg.dashboardSettings = mergePlainConfig(DEFAULT_CONFIG.dashboardSettings, cfg.dashboardSettings || {});
+
+  cfg.preview.localBrowserAudio = boolValue(cfg.preview.localBrowserAudio, DEFAULT_CONFIG.preview.localBrowserAudio);
+  cfg.preview.sendToLiveOverlay = boolValue(cfg.preview.sendToLiveOverlay, DEFAULT_CONFIG.preview.sendToLiveOverlay);
+  cfg.preview.sendToSoundSystem = boolValue(cfg.preview.sendToSoundSystem, DEFAULT_CONFIG.preview.sendToSoundSystem);
+
+  cfg.liveAlert.soundSystemEnabled = boolValue(cfg.liveAlert.soundSystemEnabled, DEFAULT_CONFIG.liveAlert.soundSystemEnabled);
+  cfg.liveAlert.soundSystemPlayUrl = cleanText(cfg.liveAlert.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl);
+  cfg.liveAlert.soundSystemOutputTarget = validateSoundOutputTarget(cfg.liveAlert.soundSystemOutputTarget, DEFAULT_CONFIG.liveAlert.soundSystemOutputTarget);
+  cfg.liveAlert.soundSystemCategory = cleanKey(cfg.liveAlert.soundSystemCategory || DEFAULT_CONFIG.liveAlert.soundSystemCategory) || DEFAULT_CONFIG.liveAlert.soundSystemCategory;
+  cfg.liveAlert.soundSystemSource = cleanKey(cfg.liveAlert.soundSystemSource || DEFAULT_CONFIG.liveAlert.soundSystemSource) || DEFAULT_CONFIG.liveAlert.soundSystemSource;
+  cfg.liveAlert.waitForSoundItemStarted = boolValue(cfg.liveAlert.waitForSoundItemStarted, DEFAULT_CONFIG.liveAlert.waitForSoundItemStarted);
+  cfg.liveAlert.fallbackShowOnSoundError = boolValue(cfg.liveAlert.fallbackShowOnSoundError, DEFAULT_CONFIG.liveAlert.fallbackShowOnSoundError);
+  cfg.liveAlert.fallbackShowAfterMs = clamp(toInt(cfg.liveAlert.fallbackShowAfterMs, DEFAULT_CONFIG.liveAlert.fallbackShowAfterMs), 1000, 120000);
+
+  cfg.dashboardSettings.preferSqliteSettings = boolValue(cfg.dashboardSettings.preferSqliteSettings, DEFAULT_CONFIG.dashboardSettings.preferSqliteSettings);
+  cfg.dashboardSettings.allowRuntimeEdit = boolValue(cfg.dashboardSettings.allowRuntimeEdit, DEFAULT_CONFIG.dashboardSettings.allowRuntimeEdit);
+  cfg.dashboardSettings.settingsTable = cleanKey(cfg.dashboardSettings.settingsTable || DEFAULT_CONFIG.dashboardSettings.settingsTable) || DEFAULT_CONFIG.dashboardSettings.settingsTable;
+
   return cfg;
+}
+
+function applyRuntimeSettingsFromDb() {
+  if (!state.config || !state.config.dashboardSettings || state.config.dashboardSettings.preferSqliteSettings === false) {
+    state.config = sanitizeRuntimeConfig(state.config);
+    return { ok: true, applied: false, reason: 'db_settings_disabled', config: publicConfig() };
+  }
+
+  let settings = {};
+  try {
+    settings = getSettings();
+  } catch (err) {
+    state.config = sanitizeRuntimeConfig(state.config);
+    return { ok: false, applied: false, error: err && err.message ? err.message : String(err), config: publicConfig() };
+  }
+
+  const next = sanitizeRuntimeConfig(state.config);
+  const applied = [];
+
+  for (const [rawKey, value] of Object.entries(settings || {})) {
+    const key = String(rawKey || '').trim();
+    if (!key || key.startsWith('provider_')) continue;
+
+    if (key.includes('.')) {
+      setConfigPath(next, key, value);
+      applied.push(key);
+      continue;
+    }
+
+    const section = canonicalConfigSectionKey(key);
+    if (['preview', 'liveAlert', 'dashboardSettings'].includes(section) && value && typeof value === 'object' && !Array.isArray(value)) {
+      next[section] = mergePlainConfig(next[section] || {}, value);
+      applied.push(key);
+    }
+  }
+
+  state.config = sanitizeRuntimeConfig(next);
+  return { ok: true, applied: true, appliedKeys: applied, config: publicConfig() };
+}
+
+function validateSoundOutputTarget(value, fallback = 'device') {
+  const raw = cleanKey(value || fallback);
+  return ['overlay', 'device', 'both'].includes(raw) ? raw : fallback;
+}
+
+function boolValue(value, fallback = false) {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (['1', 'true', 'yes', 'ja', 'on'].includes(raw)) return true;
+  if (['0', 'false', 'no', 'nein', 'off'].includes(raw)) return false;
+  return !!fallback;
 }
 
 
@@ -622,7 +766,7 @@ function saveAlertConfig(input = {}) {
   for (const key of stringKeys) {
     if (Object.prototype.hasOwnProperty.call(input, key)) next[key] = cleanText(input[key]);
   }
-  state.config = { ...DEFAULT_CONFIG, ...next };
+  state.config = sanitizeRuntimeConfig(next);
   const configPath = configHelper.resolveConfigFile('alert_system.json');
   configHelper.writeJsonFile(configPath, state.config, { spaces: 2 });
   ensureDirs();
@@ -635,6 +779,22 @@ function checkAlertIntegration() {
   const profiles = listDisplayProfiles();
   const defaultProfile = profiles.find(p => Number(p.is_default) === 1 && Number(p.enabled) === 1) || profiles.find(p => Number(p.enabled) === 1);
   if (!defaultProfile) warnings.push({ level:'error', area:'display_profiles', message:'Kein aktives Standard-Design-Profil vorhanden.' });
+
+  const runtimeSettings = getSettings();
+  const runtimeLiveAlert = runtimeSettings.livealert || runtimeSettings.liveAlert || {};
+  if (runtimeLiveAlert && Object.prototype.hasOwnProperty.call(runtimeLiveAlert, 'soundSystemEnabled')) {
+    const wanted = boolValue(runtimeLiveAlert.soundSystemEnabled, false);
+    const active = !!(state.config.liveAlert && state.config.liveAlert.soundSystemEnabled === true);
+    if (wanted !== active) {
+      warnings.push({ level:'warning', area:'settings', message:'Alert-DB-Setting livealert.soundSystemEnabled weicht von aktiver Runtime-Config liveAlert.soundSystemEnabled ab.' });
+    }
+  }
+
+  if (state.config.liveAlert && state.config.liveAlert.soundSystemEnabled === true) {
+    if (!cleanText(state.config.liveAlert.soundSystemPlayUrl || '')) warnings.push({ level:'error', area:'live_alert_sound', message:'Sound-System ist fuer Live-Alerts aktiv, aber soundSystemPlayUrl ist leer.' });
+    const rulesWithSound = listRules().filter(r => Number(r.enabled) === 1 && cleanText(r.sound_url || ''));
+    if (!rulesWithSound.length) warnings.push({ level:'warning', area:'live_alert_sound', message:'Sound-System ist aktiv, aber keine aktive Alert-Regel hat ein Sound-Asset.' });
+  }
 
   const rules = listRules();
   const variants = listTextVariants({});
@@ -979,7 +1139,8 @@ function saveSettings(input) {
       ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, updated_at=excluded.updated_at
     `, { key: clean, valueJson: JSON.stringify(value), now });
   }
-  return { ok: true, settings: getSettings() };
+  const runtime = applyRuntimeSettingsFromDb();
+  return { ok: true, settings: getSettings(), config: publicConfig(), runtime };
 }
 
 function enqueueFromRequest(req, broadcastWS, defaultSource) {
@@ -1459,6 +1620,25 @@ async function processQueue(broadcastWS) {
   event.status = 'playing';
   event.started_at = nowIso();
   sqlite.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, { startedAt: event.started_at, eventUid: event.eventUid });
+
+  const soundResult = await playLiveAlertSound(event);
+  if (soundResult && soundResult.attempted) {
+    event.soundSystem = soundResult;
+    try {
+      const raw = { ...(event.raw || {}), soundSystem: soundResult };
+      event.raw = raw;
+      sqlite.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
+        payloadJson: JSON.stringify(raw),
+        eventUid: event.eventUid
+      });
+    } catch (_) {}
+    if (!soundResult.ok && state.config.liveAlert && state.config.liveAlert.fallbackShowOnSoundError === false) {
+      finishCurrent('sound_system_failed', broadcastWS);
+      state.processing = false;
+      return;
+    }
+  }
+
   const overlayAlert = buildOverlayAlert(event);
   sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
   dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
@@ -1467,6 +1647,76 @@ async function processQueue(broadcastWS) {
   clearTimeout(state.finishTimer);
   state.finishTimer = setTimeout(() => finishCurrent('fallback_timeout', broadcastWS), fallback);
   state.processing = false;
+}
+
+async function playLiveAlertSound(event) {
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  if (!liveCfg || liveCfg.soundSystemEnabled !== true) return { attempted: false, reason: 'disabled' };
+  const rule = event && event.rule ? event.rule : {};
+  const publicUrl = cleanText(rule.sound_url || rule.soundUrl || '');
+  if (!publicUrl) return { attempted: false, reason: 'no_sound_url' };
+
+  const file = soundSystemFileFromPublicUrl(publicUrl);
+  if (!file) return { attempted: true, ok: false, reason: 'invalid_sound_url', publicUrl };
+
+  const params = new URLSearchParams();
+  params.set('file', file);
+  params.set('label', cleanText(rule.sound_label || rule.label || buildDefaultTitle(event) || 'Alert'));
+  params.set('category', cleanKey(rule.sound_category || liveCfg.soundSystemCategory || 'alert') || 'alert');
+  params.set('priority', String(toInt(rule.sound_priority, toInt(rule.priority, 80))));
+  params.set('outputTarget', validateSoundOutputTarget(rule.sound_output_target || liveCfg.soundSystemOutputTarget || 'device', 'device'));
+  params.set('source', cleanKey(liveCfg.soundSystemSource || 'alert_system') || 'alert_system');
+  params.set('requestedBy', cleanText(event.user_display || event.user_login || ''));
+  if (rule.sound_volume !== null && rule.sound_volume !== undefined && String(rule.sound_volume).trim() !== '') {
+    params.set('volume', String(clamp(toInt(rule.sound_volume, 85), 0, 100)));
+  }
+
+  const playUrl = cleanText(liveCfg.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl);
+  const url = `${playUrl}${playUrl.includes('?') ? '&' : '?'}${params.toString()}`;
+  let timeout = null;
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+
+  try {
+    if (controller) timeout = setTimeout(() => controller.abort(), Math.max(1000, toInt(liveCfg.fallbackShowAfterMs, 15000)));
+    const res = await fetch(url, { method: 'GET', signal: controller ? controller.signal : undefined });
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch (_) { data = { raw: text }; }
+    const ok = !!(res.ok && data && data.ok !== false);
+    return {
+      attempted: true,
+      ok,
+      status: res.status,
+      url: playUrl,
+      file,
+      result: data && data.result ? data.result : null,
+      item: data && data.item ? data.item : null,
+      error: ok ? '' : (data && (data.error || data.message) ? String(data.error || data.message) : `sound_system_http_${res.status}`)
+    };
+  } catch (err) {
+    return {
+      attempted: true,
+      ok: false,
+      file,
+      url: playUrl,
+      error: err && err.message ? err.message : String(err)
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+function soundSystemFileFromPublicUrl(publicUrl) {
+  let raw = cleanText(publicUrl || '').replace(/\\/g, '/');
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw, 'http://127.0.0.1');
+    raw = parsed.pathname || raw;
+  } catch (_) {}
+  raw = raw.replace(/^\/+/, '');
+  const prefix = 'assets/sounds/';
+  if (raw.toLowerCase().startsWith(prefix)) raw = raw.slice(prefix.length);
+  return raw.replace(/^\/+/, '');
 }
 
 function finishCurrent(reason, broadcastWS) {
@@ -1610,6 +1860,7 @@ function buildOverlayAlert(event) {
     outroMs: toInt(text.context.outroMs, toInt(rule.meta?.outroMs, Number(state.config.defaultOutroMs || 600))),
     durationMode: rule.duration_mode || 'fixed',
     soundDurationMs: Number(rule.sound_duration_ms || 0),
+    soundSystem: event.soundSystem || null,
     animation: rule.animation || 'neon_card',
     imageMode: rule.image_mode || 'none',
     celebration: resolveEventCelebration(event, rule, displayProfile.settings),
