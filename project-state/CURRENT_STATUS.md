@@ -1,6 +1,45 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: 2026-05-07
+Stand: 2026-05-08
+
+## STEP199.1 - TTS Standard Admin/API
+
+TTS wurde um ein separates Standard-API-Modul erweitert:
+
+- `backend/modules/tts_admin_api.js`
+- Version: `0.1.0`
+- Doku: `project-state/STEP199_1_TTS_STANDARD_ADMIN_API_2026-05-08.md`
+
+Neue Routen:
+
+```text
+GET  /api/tts/config
+GET  /api/tts/voices
+GET  /api/tts/routes
+GET  /api/tts/admin/settings
+POST /api/tts/admin/settings
+```
+
+Wichtig:
+
+- `tts_system.js` wurde bewusst nicht veraendert.
+- Bestehende TTS-Queue, Playback-Logik, Chat-Commands und Sound-System-Anbindung bleiben unveraendert.
+- `tts_admin_api.js` liefert nur dashboard-/statusfaehige Standard-Routen.
+- `/api/tts/config` merged `config/tts_config.json` mit `tts_settings`, wobei DB-Werte gegenueber JSON gewinnen.
+- Secret-/Key-Werte werden in den neuen Config-/Voice-Routen nicht ausgegeben.
+- `voices.*.keyFile` wird nicht als Pfad ausgegeben, sondern nur als `keyFileConfigured` und `keyFileExists`.
+
+Architekturregel fuer TTS:
+
+```text
+TTS erzeugt Audiodateien.
+Sound-Ausgabe soll standardmaessig ueber das Sound-System laufen.
+Overlay bleibt Visualisierung/Fallback.
+Dashboard liest/schreibt nur ueber Backend-APIs.
+DB ist aktive Wahrheit fuer dashboardfaehige Settings.
+JSON bleibt Seed/Fallback/technische Boot-Konfig.
+Secrets bleiben ENV/Secret-Dateien.
+```
 
 ## Aktueller SoundAlerts-Stand nach STEP193.17.2
 
@@ -118,6 +157,8 @@ Fachregeln:
 
 ## Bewusst offen
 
+- STEP199.2: TTS-Routen live pruefen und danach Dashboard-Modul planen/bauen.
+- TTS-Texte spaeter in das globale DB-basierte Textvarianten-System migrieren.
 - Overlay-Bugs in `htdocs/overlays/sound_system_overlay.html` spaeter separat beheben.
 - Audio/Video-Verhalten im lokalen Overlay weiter testen.
 - Falls gewuenscht spaeter Event-Tab-Filter ergaenzen.
