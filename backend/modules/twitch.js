@@ -1429,6 +1429,7 @@ module.exports.init = function init(ctx) {
         login: event.is_anonymous ? '' : (event.user_login || ''),
         user_login: event.is_anonymous ? '' : (event.user_login || ''),
         amount: total,
+        quantity: total,
         message: event.tier ? `Tier ${event.tier}` : '',
         title: `${userName} verschenkt ${total} Sub${total === 1 ? '' : 's'}!`,
         tier: event.tier || '',
@@ -1567,12 +1568,53 @@ function buildFakeTwitchAlertEvent(kind, query) {
     const user = (query.user || query.login || 'TestUser').toString();
     const display = (query.display || query.user || 'TestUser').toString();
     const amount = Number(query.amount || query.bits || query.viewers || 50);
+    const eventId = query.eventId || query.eventUid || '';
+    const boolParam = (value, fallback = false) => {
+      if (value === undefined || value === null || value === '') return fallback;
+      if (value === true || value === 1) return true;
+      const s = String(value).trim().toLowerCase();
+      if (['1', 'true', 'yes', 'ja', 'on'].includes(s)) return true;
+      if (['0', 'false', 'no', 'nein', 'off'].includes(s)) return false;
+      return fallback;
+    };
+    const positiveIntParam = (value, fallback) => {
+      const n = Number.parseInt(value, 10);
+      return Number.isFinite(n) && n > 0 ? n : fallback;
+    };
+
     if (kind === 'follow') return { subscriptionType: 'channel.follow', event: { user_login: user.toLowerCase(), user_name: display } };
     if (kind === 'raid') return { subscriptionType: 'channel.raid', event: { from_broadcaster_user_login: user.toLowerCase(), from_broadcaster_user_name: display, viewers: amount } };
-    if (kind === 'sub') return { subscriptionType: 'channel.subscribe', event: { user_login: user.toLowerCase(), user_name: display, tier: query.tier || '1000', is_gift: false } };
-    if (kind === 'giftedSubReceived' || kind === 'gifted_sub_received') return { subscriptionType: 'channel.subscribe', event: { user_login: user.toLowerCase(), user_name: display, tier: query.tier || '1000', is_gift: true } };
+
+    if (kind === 'sub') {
+      const isGift = boolParam(query.is_gift ?? query.isGift ?? query.gifted, false);
+      return { subscriptionType: 'channel.subscribe', event: { user_login: user.toLowerCase(), user_name: display, tier: query.tier || '1000', is_gift: isGift } };
+    }
+
+    if (kind === 'giftedSubReceived' || kind === 'gifted_sub_received') {
+      const receiverLogin = (query.recipientLogin || query.receiverLogin || query.targetLogin || query.login || user).toString();
+      const receiverDisplay = (query.recipientDisplayName || query.receiverDisplayName || query.targetDisplayName || query.display || display).toString();
+      return { subscriptionType: 'channel.subscribe', event: { user_login: receiverLogin.toLowerCase(), user_name: receiverDisplay, tier: query.tier || '1000', is_gift: true } };
+    }
+
     if (kind === 'resub') return { subscriptionType: 'channel.subscription.message', event: { user_login: user.toLowerCase(), user_name: display, tier: query.tier || '1000', cumulative_months: amount || 3, streak_months: Number(query.streak_months || 0), message: { text: query.message || 'Resub Test' } } };
-    if (kind === 'giftSub' || kind === 'gift_sub' || kind === 'giftBomb' || kind === 'gift_bomb') return { subscriptionType: 'channel.subscription.gift', event: { user_login: user.toLowerCase(), user_name: display, total: amount || 1, tier: query.tier || '1000', cumulative_total: Number(query.cumulative_total || 0), is_anonymous: false } };
+
+    if (kind === 'giftSub' || kind === 'gift_sub' || kind === 'giftBomb' || kind === 'gift_bomb') {
+      const fallbackTotal = kind === 'giftBomb' || kind === 'gift_bomb' ? 50 : 1;
+      const total = positiveIntParam(query.total ?? query.quantity ?? query.count ?? query.amount, fallbackTotal);
+      const anonymous = boolParam(query.is_anonymous ?? query.isAnonymous ?? query.anonymous, false);
+      return {
+        subscriptionType: 'channel.subscription.gift',
+        event: {
+          user_login: anonymous ? null : user.toLowerCase(),
+          user_name: anonymous ? null : display,
+          total,
+          tier: query.tier || '1000',
+          cumulative_total: Number(query.cumulative_total || query.cumulativeTotal || 0),
+          is_anonymous: anonymous
+        }
+      };
+    }
+
     if (kind === 'channelPoints' || kind === 'channel_points') return { subscriptionType: 'channel.channel_points_custom_reward_redemption.add', event: { user_login: user.toLowerCase(), user_name: display, user_input: query.message || '', reward: { title: query.reward || 'Test Reward', cost: amount || 1000 } } };
     return { subscriptionType: 'channel.cheer', event: { user_login: user.toLowerCase(), user_name: display, bits: amount, message: query.message || 'Bits Test' } };
   }
