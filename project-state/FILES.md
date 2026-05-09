@@ -2,46 +2,16 @@
 
 Stand: 2026-05-09
 
-## Loyalty relevante Dateien
-
-Backend:
+## Geänderte Datei in STEP203.3.1
 
 ```text
 backend/modules/loyalty.js
-backend/modules/twitch_presence.js
-backend/core/database.js
-backend/modules/helpers/helper_core.js
-backend/modules/helpers/helper_config.js
-backend/modules/helpers/helper_settings.js
-backend/modules/helpers/helper_texts.js
-backend/modules/helpers/helper_routes.js
 ```
 
-Config/Fallback:
+## Doku
 
 ```text
-config/loyalty.json
-```
-
-Doku:
-
-```text
-project-state/STEP203_3_LOYALTY_STREAM_STATE_GATE_PRESENCE_RUN_ONCE_2026-05-09.md
-```
-
-DB-Strukturen:
-
-```text
-loyalty_users
-loyalty_transactions
-loyalty_reservations
-loyalty_imports
-loyalty_ignored_users
-loyalty_settings
-loyalty_watch_state
-loyalty_stream_state
-twitch_presence_activity
-module_text_variants mit module_name = loyalty
+project-state/STEP203_3_1_LOYALTY_ROUTE_REGISTRATION_FIX_2026-05-09.md
 ```
 
 ## Nie committen

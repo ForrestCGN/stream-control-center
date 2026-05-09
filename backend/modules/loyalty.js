@@ -1730,6 +1730,106 @@ function registerRoutes(app) {
     core.sendOk(res, listWatchStates({ limit: req.query.limit }));
   }));
 
+  app.get("/api/loyalty/stream-state", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, {
+      streamState: getStreamState()
+    });
+  }));
+
+  app.get("/api/loyalty/stream-state/start", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, {
+      streamState: setManualStreamState(true, {
+        source: core.getParam(req, "source", "manual_get"),
+        reason: core.getParam(req, "reason", "")
+      })
+    });
+  }));
+
+  app.post("/api/loyalty/stream-state/start", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, {
+      streamState: setManualStreamState(true, {
+        source: core.getParam(req, "source", "manual_post"),
+        reason: core.getParam(req, "reason", "")
+      })
+    });
+  }));
+
+  app.get("/api/loyalty/stream-state/stop", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, {
+      streamState: setManualStreamState(false, {
+        source: core.getParam(req, "source", "manual_get"),
+        reason: core.getParam(req, "reason", "")
+      })
+    });
+  }));
+
+  app.post("/api/loyalty/stream-state/stop", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, {
+      streamState: setManualStreamState(false, {
+        source: core.getParam(req, "source", "manual_post"),
+        reason: core.getParam(req, "reason", "")
+      })
+    });
+  }));
+
+  app.get("/api/loyalty/stream-state/clear-override", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, {
+      streamState: clearManualStreamState({
+        source: core.getParam(req, "source", "manual_get"),
+        reason: core.getParam(req, "reason", "clear_override")
+      })
+    });
+  }));
+
+  app.post("/api/loyalty/stream-state/clear-override", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, {
+      streamState: clearManualStreamState({
+        source: core.getParam(req, "source", "manual_post"),
+        reason: core.getParam(req, "reason", "clear_override")
+      })
+    });
+  }));
+
+  app.get("/api/loyalty/stream-state/refresh-auto", core.asyncRoute(async (req, res) => {
+    const result = await refreshAutoStreamStateFromTwitch(req);
+    core.sendOk(res, result);
+  }));
+
+  app.post("/api/loyalty/stream-state/refresh-auto", core.asyncRoute(async (req, res) => {
+    const result = await refreshAutoStreamStateFromTwitch(req);
+    core.sendOk(res, result);
+  }));
+
+  app.get("/api/loyalty/presence/status", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, {
+      streamState: getStreamState(),
+      presenceConfig: { ...config.presence },
+      nextStep: "run /api/loyalty/presence/run-once to process currently active Twitch Presence users"
+    });
+  }));
+
+  app.get("/api/loyalty/presence/run-once", core.asyncRoute(async (req, res) => {
+    const result = await runPresenceOnce(req, {
+      minutes: core.getParam(req, "minutes", config?.presence?.activeMinutes || 30),
+      limit: core.getParam(req, "limit", config?.presence?.maxUsersPerRun || 250),
+      includeJoinedOnly: core.boolParam(core.getParam(req, "includeJoinedOnly", config?.presence?.includeJoinedOnly !== false), true),
+      checkAuto: core.boolParam(core.getParam(req, "checkAuto", true), true),
+      force: core.boolParam(core.getParam(req, "force", false), false)
+    });
+    core.sendOk(res, result);
+  }));
+
+  app.post("/api/loyalty/presence/run-once", core.asyncRoute(async (req, res) => {
+    const result = await runPresenceOnce(req, {
+      minutes: core.getParam(req, "minutes", config?.presence?.activeMinutes || 30),
+      limit: core.getParam(req, "limit", config?.presence?.maxUsersPerRun || 250),
+      includeJoinedOnly: core.boolParam(core.getParam(req, "includeJoinedOnly", config?.presence?.includeJoinedOnly !== false), true),
+      checkAuto: core.boolParam(core.getParam(req, "checkAuto", true), true),
+      force: core.boolParam(core.getParam(req, "force", false), false)
+    });
+    core.sendOk(res, result);
+  }));
+
   app.get("/api/loyalty/ignored-users", core.asyncRoute(async (req, res) => {
     core.sendOk(res, {
       count: getIgnoredUsers().length,
@@ -1773,6 +1873,18 @@ function registerRoutes(app) {
         "GET /api/loyalty/watch/heartbeat",
         "POST /api/loyalty/watch/heartbeat",
         "GET /api/loyalty/watch/states",
+        "GET /api/loyalty/stream-state",
+        "POST /api/loyalty/stream-state/start",
+        "GET /api/loyalty/stream-state/start",
+        "POST /api/loyalty/stream-state/stop",
+        "GET /api/loyalty/stream-state/stop",
+        "POST /api/loyalty/stream-state/clear-override",
+        "GET /api/loyalty/stream-state/clear-override",
+        "POST /api/loyalty/stream-state/refresh-auto",
+        "GET /api/loyalty/stream-state/refresh-auto",
+        "GET /api/loyalty/presence/status",
+        "POST /api/loyalty/presence/run-once",
+        "GET /api/loyalty/presence/run-once",
         "GET /api/loyalty/ignored-users",
         "POST /api/loyalty/ignored-users",
         "DELETE /api/loyalty/ignored-users/:login",
