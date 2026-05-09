@@ -18,7 +18,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.6";
+const VERSION = "0.1.7";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 3;
@@ -1504,6 +1504,8 @@ function recordEventBonus(input = {}) {
   const valueAmount = Number(input.amount || input.bits || input.viewers || input.amountEuro || 0) || 0;
   const tier = normalizeTier(input.tier || input.subTier || input.subscriptionTier);
   const raw = input.raw && typeof input.raw === "object" ? input.raw : input;
+  const rawQuery = raw && raw.query && typeof raw.query === "object" ? raw.query : {};
+  const rawEvent = raw && raw.event && typeof raw.event === "object" ? raw.event : {};
   const metadata = input.metadata && typeof input.metadata === "object" ? input.metadata : {};
 
   if (!login) {
@@ -1558,26 +1560,24 @@ function recordEventBonus(input = {}) {
   let receiverCalculated = null;
   let receiverSkippedReason = "";
 
-  const rawQuery = raw && typeof raw.query === "object" && raw.query ? raw.query : {};
-  const rawEvent = raw && typeof raw.event === "object" && raw.event ? raw.event : {};
   const recipientLogin = normalizeLogin(
     input.recipientLogin || input.recipient_login || input.recipient ||
     input.receiverLogin || input.receiver_login || input.targetLogin || input.target_login ||
-    input.recipient_user_login || input.recipientUserLogin || input.recipientUserName || input.recipient_user_name ||
     rawQuery.recipientLogin || rawQuery.recipient_login || rawQuery.recipient ||
     rawQuery.receiverLogin || rawQuery.receiver_login || rawQuery.targetLogin || rawQuery.target_login ||
-    rawQuery.recipient_user_login || rawQuery.recipientUserLogin || rawQuery.recipientUserName || rawQuery.recipient_user_name ||
-    rawEvent.recipient_user_login || rawEvent.recipientUserLogin || rawEvent.recipient_user_name || rawEvent.recipientUserName ||
-    rawEvent.recipient_login || rawEvent.recipientLogin || rawEvent.recipient || rawEvent.user_login || rawEvent.user_name
+    rawEvent.recipientLogin || rawEvent.recipient_login || rawEvent.recipient_user_login ||
+    rawEvent.receiverLogin || rawEvent.receiver_login || rawEvent.targetLogin || rawEvent.target_login ||
+    rawEvent.user_login
   );
   const recipientDisplayName = cleanDisplayName(
     recipientLogin,
-    input.recipientDisplayName || input.recipient_display_name || input.receiverDisplayName || input.receiver_display_name ||
-    input.targetDisplayName || input.target_display_name || input.recipient_user_name || input.recipientUserName ||
-    rawQuery.recipientDisplayName || rawQuery.recipient_display_name || rawQuery.receiverDisplayName || rawQuery.receiver_display_name ||
-    rawQuery.targetDisplayName || rawQuery.target_display_name || rawQuery.recipient_user_name || rawQuery.recipientUserName ||
-    rawEvent.recipient_user_name || rawEvent.recipientUserName || rawEvent.recipient_display_name || rawEvent.recipientDisplayName ||
-    rawEvent.recipient || rawEvent.user_name || recipientLogin
+    input.recipientDisplayName || input.recipient_display_name ||
+    input.receiverDisplayName || input.receiver_display_name || input.targetDisplayName || input.target_display_name ||
+    rawQuery.recipientDisplayName || rawQuery.recipient_display_name || rawQuery.recipientDisplay || rawQuery.recipient_display ||
+    rawQuery.receiverDisplayName || rawQuery.receiver_display_name || rawQuery.targetDisplayName || rawQuery.target_display_name ||
+    rawEvent.recipientDisplayName || rawEvent.recipient_display_name || rawEvent.recipient_user_name || rawEvent.recipient_user_display_name ||
+    rawEvent.receiverDisplayName || rawEvent.receiver_display_name || rawEvent.targetDisplayName || rawEvent.target_display_name ||
+    rawEvent.user_name || recipientLogin
   );
 
   if ((calculated.type === "gift_sub" || calculated.type === "gift_bomb") && recipientLogin) {
@@ -2579,6 +2579,8 @@ function registerRoutes(app) {
       eventType: type,
       login,
       displayName: req.query.displayName || req.query.display || login,
+      recipientLogin: req.query.recipientLogin || req.query.recipient_login || req.query.recipient || req.query.receiverLogin || req.query.receiver_login || req.query.targetLogin || req.query.target_login,
+      recipientDisplayName: req.query.recipientDisplayName || req.query.recipient_display_name || req.query.recipientDisplay || req.query.recipient_display || req.query.receiverDisplayName || req.query.receiver_display_name || req.query.targetDisplayName || req.query.target_display_name,
       amount: req.query.amount || req.query.bits || req.query.viewers || req.query.amountEuro || 1,
       bits: req.query.bits,
       viewers: req.query.viewers,
@@ -2586,8 +2588,6 @@ function registerRoutes(app) {
       tier: req.query.tier || "1000",
       quantity: req.query.quantity || req.query.total || 1,
       months: req.query.months || req.query.cumulativeMonths || 1,
-      recipientLogin: req.query.recipientLogin || req.query.recipient_login || req.query.recipient || req.query.receiverLogin || req.query.receiver_login || req.query.targetLogin || req.query.target_login,
-      recipientDisplayName: req.query.recipientDisplayName || req.query.recipient_display_name || req.query.receiverDisplayName || req.query.receiver_display_name || req.query.targetDisplayName || req.query.target_display_name,
       raw: { query: req.query, test: true },
       metadata: { source: "test_endpoint" }
     });
