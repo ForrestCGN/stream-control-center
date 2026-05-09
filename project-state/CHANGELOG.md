@@ -2,11 +2,12 @@
 
 ## 2026-05-09
 
-### STEP203.3.2 - Loyalty Stream-State Table Safety-Net
+### STEP203.3.3 - Loyalty Presence Runner Function Fix
 
-- Safety-Net für fehlende Tabelle `loyalty_stream_state` ergänzt.
-- `ensureStreamStateRow()` führt jetzt `CREATE TABLE IF NOT EXISTS loyalty_stream_state` aus.
+- Presence Runner korrigiert:
+  - vorher: `processWatchHeartbeat(...)`
+  - jetzt: `recordWatchHeartbeat(...)`
 - Behebt Fehler:
-  - `no such table: loyalty_stream_state`
-- Keine Datenänderung.
+  - `processWatchHeartbeat is not defined`
+- Keine DB-/Schema-/Settings-Änderung.
 - Keine Funktionalität entfernt.

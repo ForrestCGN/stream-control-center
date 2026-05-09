@@ -1566,7 +1566,7 @@ async function runPresenceOnce(req, options = {}) {
     const login = normalizeLogin(user.login || user.user_login || "");
     if (!login) continue;
     try {
-      const heartbeat = processWatchHeartbeat({
+      const heartbeat = recordWatchHeartbeat({
         login,
         displayName: user.displayName || user.display_name || login,
         subscriber: !!user.subscriber,
