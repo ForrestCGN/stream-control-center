@@ -2,38 +2,22 @@
 
 Stand: 2026-05-09
 
-## Loyalty / Twitch Presence
+## Loyalty Dashboard
 
-Aktueller Stand:
+STEP203.5.1 korrigiert den Konfig-Tab.
 
-- Loyalty-Core läuft im Shadow Mode.
-- Watch-Heartbeat mit Intervall-Schutz funktioniert.
-- Twitch Presence Activity Collector funktioniert.
-- Stream-State-Gate funktioniert.
-- Streamer.bot Start/Stop-Fallback funktioniert.
-- Presence Run-Once funktioniert.
-- STEP203.4 ergänzt Auto Shadow Runner.
-
-Aktuelle Loyalty-Version:
+Problem war rein im Frontend:
 
 ```text
-0.1.3
+/api/loyalty/settings liefert settings: [...]
 ```
 
-Neue DB-Struktur:
+Das Dashboard konnte direkte Arrays bisher nicht als Row-Liste lesen.
+
+Geändert:
 
 ```text
-loyalty_runner_events
+htdocs/dashboard/modules/loyalty.js
 ```
 
-Neue Routen:
-
-```text
-GET/POST /api/loyalty/runner/start
-GET/POST /api/loyalty/runner/stop
-GET/POST /api/loyalty/runner/run-once
-GET      /api/loyalty/runner/status
-GET      /api/loyalty/runner/events
-```
-
-Der Auto Runner ist standardmäßig deaktiviert und wird nicht automatisch beim Boot gestartet.
+Backend, DB und API bleiben unverändert.

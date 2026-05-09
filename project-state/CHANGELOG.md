@@ -2,25 +2,8 @@
 
 ## 2026-05-09
 
-### STEP203.4 - Loyalty Auto Shadow Runner
+### STEP203.5.1 - Loyalty Dashboard Config Tab Fix
 
-- `backend/modules/loyalty.js` auf Version `0.1.3` erhöht.
-- Neue Tabelle:
-  - `loyalty_runner_events`
-- Neue Settings:
-  - `autoRunner.enabledOnBoot`
-  - `autoRunner.intervalSeconds`
-  - `autoRunner.runOnlyWhenLive`
-  - `autoRunner.checkAutoLive`
-  - `autoRunner.includeJoinedOnly`
-  - `autoRunner.activeMinutes`
-  - `autoRunner.maxUsersPerRun`
-- Neue Routen:
-  - `/api/loyalty/runner/status`
-  - `/api/loyalty/runner/start`
-  - `/api/loyalty/runner/stop`
-  - `/api/loyalty/runner/run-once`
-  - `/api/loyalty/runner/events`
-- Auto Runner standardmäßig deaktiviert.
-- StreamElements bleibt aktiv.
-- Shadow Mode bleibt aktiv.
+- `htdocs/dashboard/modules/loyalty.js` korrigiert.
+- `rows()` verarbeitet jetzt direkte Arrays und `settings`/`data.settings`.
+- Der Loyalty-Konfig-Tab kann dadurch `/api/loyalty/settings` korrekt anzeigen.

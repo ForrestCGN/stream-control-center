@@ -76,10 +76,13 @@ window.LoyaltyModule = (function(){
   }
 
   function rows(value){
+    if (Array.isArray(value)) return value;
     if (Array.isArray(value?.rows)) return value.rows;
     if (Array.isArray(value?.users)) return value.users;
+    if (Array.isArray(value?.settings)) return value.settings;
     if (Array.isArray(value?.data?.rows)) return value.data.rows;
     if (Array.isArray(value?.data?.users)) return value.data.users;
+    if (Array.isArray(value?.data?.settings)) return value.data.settings;
     return [];
   }
 
