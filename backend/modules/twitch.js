@@ -975,10 +975,35 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, ['/api/twitch/alerts/test', '/twitch/alerts/test'], async (req, res) => {
     const kind = (req.query.type || 'bits').toString();
     const fake = buildFakeTwitchAlertEvent(kind, req.query || {});
-    const payload = normalizeTwitchEventSubToAlert(fake.subscriptionType, fake.event);
-    if (!payload) return res.status(400).json({ ok: false, error: 'unsupported_test_type', type: kind });
-    const result = await forwardAlertPayloadToAlertSystem(payload, fake.subscriptionType);
-    res.status(result.ok ? 200 : 500).json({ ok: result.ok, subscriptionType: fake.subscriptionType, alertPayload: payload, result });
+    const fakeMeta = {
+      message_id: (req.query.eventId || req.query.eventUid || `test_${kind}_${Date.now()}`).toString(),
+      message_timestamp: core.nowIso()
+    };
+    const fakeSubscription = { id: `test_${kind}`, type: fake.subscriptionType };
+
+    const alertPayload = normalizeTwitchEventSubToAlert(fake.subscriptionType, fake.event);
+    if (!alertPayload) return res.status(400).json({ ok: false, error: 'unsupported_test_type', type: kind });
+
+    const alertResult = await forwardAlertPayloadToAlertSystem(alertPayload, fake.subscriptionType);
+
+    let loyaltyPayload = null;
+    let loyaltyResult = { ok: true, skipped: true, reason: 'no_loyalty_payload' };
+    try {
+      loyaltyPayload = normalizeTwitchEventSubToLoyaltyEvent(fake.subscriptionType, fake.event, fakeMeta, fakeSubscription);
+      if (loyaltyPayload) loyaltyResult = await forwardLoyaltyPayloadToLoyaltySystem(loyaltyPayload, fake.subscriptionType);
+    } catch (e) {
+      loyaltyResult = { ok: false, error: e?.message || String(e) };
+    }
+
+    const ok = Boolean(alertResult?.ok) && Boolean(loyaltyResult?.ok);
+    res.status(ok ? 200 : 500).json({
+      ok,
+      subscriptionType: fake.subscriptionType,
+      alertPayload,
+      alertResult,
+      loyaltyPayload,
+      loyaltyResult
+    });
   });
 
   // --------------------- EventSub WebSocket (erweitert für wichtige Stream-/Community-Events) ---------------------
