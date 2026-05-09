@@ -1264,7 +1264,29 @@ function streamStateKey() {
   return "main";
 }
 
+function ensureStreamStateTable() {
+  database.run(`
+    CREATE TABLE IF NOT EXISTS loyalty_stream_state (
+      key TEXT PRIMARY KEY,
+      manual_live INTEGER NOT NULL DEFAULT 0,
+      manual_active INTEGER NOT NULL DEFAULT 0,
+      manual_source TEXT NOT NULL DEFAULT '',
+      manual_reason TEXT NOT NULL DEFAULT '',
+      manual_updated_at TEXT NOT NULL DEFAULT '',
+      auto_live INTEGER NOT NULL DEFAULT 0,
+      auto_source TEXT NOT NULL DEFAULT '',
+      auto_checked_at TEXT NOT NULL DEFAULT '',
+      effective_live INTEGER NOT NULL DEFAULT 0,
+      effective_source TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    )
+  `);
+}
+
 function ensureStreamStateRow() {
+  ensureStreamStateTable();
   const now = core.nowIso();
   const existing = database.get("SELECT key FROM loyalty_stream_state WHERE key = :key", { key: streamStateKey() });
   if (!existing) {
