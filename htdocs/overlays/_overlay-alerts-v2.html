@@ -1668,6 +1668,64 @@
   .alert-card .top-graphic-frame.frame-normal{--gfx-border:max(4px,calc(var(--card-h) * .022))!important;--gfx-bg:linear-gradient(135deg,#8ff4ff 0%,#c45cff 72%,#f1d5ff 100%)!important;}
   .alert-card .top-graphic-frame.frame-strong,.alert-card .top-graphic-frame.frame-off{--gfx-border:max(4px,calc(var(--card-h) * .022))!important;--gfx-bg:linear-gradient(135deg,#8ff4ff 0%,#c45cff 72%,#f1d5ff 100%)!important;}
 </style>
+
+<style id="step208-username-layout-fix">
+/* STEP208: Usernamen robust rendern: eigene Zeile, kein harter Umbruch, lange Namen verkleinern/abschneiden. */
+.alert-card .headline{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  overflow-wrap:normal!important;
+  word-break:normal!important;
+  text-wrap:nowrap!important;
+}
+.alert-card .headline.name-long{
+  font-size:calc(var(--card-h) * .136 * var(--font-scale) * var(--headline-scale))!important;
+  letter-spacing:0!important;
+}
+.alert-card .headline.name-very-long{
+  font-size:calc(var(--card-h) * .122 * var(--font-scale) * var(--headline-scale))!important;
+  letter-spacing:-.01em!important;
+}
+.alert-card.alert-type-bits .value{
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  max-width:100%!important;
+}
+.alert-card .text-stack{
+  min-width:0!important;
+  max-width:100%!important;
+}
+</style>
+
+<style id="step208-1-username-fit-runtime">
+/* STEP208.1: Runtime-Fit für Usernamen. Inline-JS setzt zusätzlich feste Ein-Zeilen-Styles. */
+.alert-card .headline{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  overflow-wrap:normal!important;
+  word-break:keep-all!important;
+  hyphens:none!important;
+}
+.alert-card .headline.fit-done{
+  white-space:nowrap!important;
+}
+.alert-card .headline.fit-ellipsis{
+  text-overflow:ellipsis!important;
+}
+.alert-card .value{
+  word-break:normal!important;
+}
+</style>
 </head>
 <body>
   <div class="stage" id="stage"></div>
@@ -1822,7 +1880,7 @@
             <div class="content ${settings.avatarPosition === 'hidden' ? 'no-avatar' : ''}">
               ${settings.avatarPosition === 'hidden' ? '' : buildAvatarSlot(avatar.src, display.headline || alert.userDisplayName || alert.user || alert.userLogin || '', avatar.isLogo)}
               <div class="text-stack">
-                ${display.headline ? `<h1 class="headline">${escapeHtml(display.headline)}</h1>` : ''}
+                ${display.headline ? `<h1 class="headline ${escapeCss(display.headlineClass || '')}" title="${escapeAttr(display.headline)}">${escapeHtml(display.headline)}</h1>` : ''}
                 ${display.value ? `<div class="value">${escapeHtml(display.value)}</div>` : ''}
                 ${display.subline ? `<div class="subline">${escapeHtml(display.subline)}</div>` : ''}
                 ${display.message ? `<div class="message">${escapeHtml(display.message)}</div>` : ''}
@@ -1841,7 +1899,11 @@
       const celebrationLayer = buildCelebrationLayer(alert);
       if (celebrationLayer) document.body.appendChild(celebrationLayer);
       stage.appendChild(card);
-      requestAnimationFrame(() => card.classList.add('show'));
+      requestAnimationFrame(() => {
+        fitSingleLineText(card.querySelector('.headline'));
+        fitSingleLineText(card.querySelector('.value'));
+        card.classList.add('show');
+      });
 
       if (shouldUseLocalAlertAudio(alert) && alert.soundUrl) {
         audio.src = alert.soundUrl;
@@ -2075,6 +2137,38 @@
       return parts.length ? parts.join(' · ') : 'ALERT';
     }
 
+    function fitSingleLineText(el) {
+      if (!el) return;
+      try {
+        el.style.whiteSpace = 'nowrap';
+        el.style.overflow = 'hidden';
+        el.style.textOverflow = 'ellipsis';
+        el.style.wordBreak = 'normal';
+        el.style.overflowWrap = 'normal';
+        el.style.hyphens = 'none';
+        el.classList.add('fit-done');
+
+        const computed = window.getComputedStyle(el);
+        const baseSize = Number.parseFloat(computed.fontSize) || 32;
+        const minSize = Math.max(18, Math.round(baseSize * 0.62));
+        let size = baseSize;
+
+        // Zwei Frames geben dem Browser Zeit, Grid-Breiten nach dem Einfügen zu berechnen.
+        const shrink = () => {
+          let guard = 0;
+          while (guard < 30 && el.scrollWidth > el.clientWidth + 1 && size > minSize) {
+            size = Math.max(minSize, size - 1);
+            el.style.fontSize = `${size}px`;
+            guard += 1;
+          }
+          if (el.scrollWidth > el.clientWidth + 1) el.classList.add('fit-ellipsis');
+        };
+
+        shrink();
+        requestAnimationFrame(shrink);
+      } catch (_) {}
+    }
+
     function buildDisplay(alert) {
       const title = alert.title || buildSource(alert);
       let headline = alert.headline || alert.user || alert.userDisplayName || defaultTitle(alert);
@@ -2082,23 +2176,34 @@
       const subline = alert.subline || '';
       const message = alert.message || '';
 
-      // STEP123: Bits/Cheer optisch als 3 klare Zeilen:
-      // 1) Name, 2) cheert X Bits, 3) Nachricht/Subline.
+      // STEP208: Bits/Cheer bleibt als klare 3-Zeilen-Struktur:
+      // 1) Username, 2) Aktion/Wert, 3) Nachricht/Subline.
+      // Usernamen dürfen nicht hart umbrechen; lange Namen werden per CSS verkleinert/gekürzt.
       const type = String(alert.type || alert.type_key || '').toLowerCase();
       const source = String(alert.source || alert.provider || '').toLowerCase();
       if (source === 'twitch' && type === 'bits') {
         const displayName = alert.userDisplayName || alert.user || alert.user_display || alert.userLogin || '';
-        const oldHeadline = String(headline || '');
-        const oldValue = String(value || '');
-        if (oldHeadline.toLowerCase().includes('cheer')) {
-          headline = displayName || oldHeadline.replace(/cheer.?t/i, '').trim();
-          if (!/^cheer|^cheert/i.test(oldValue)) value = `cheert ${oldValue}`.trim();
-        } else if (!/^cheer|^cheert/i.test(oldValue)) {
-          headline = displayName || headline;
-          value = `cheert ${oldValue}`.trim();
-        }
+        headline = displayName || String(headline || '').replace(/cheer.?t/i, '').trim() || defaultTitle(alert);
+        value = bitsValueText(value || alert.amountFormatted || amountText(alert) || alert.amount || '');
       }
-      return { title, headline, value, subline, message };
+
+      return { title, headline, headlineClass: nameLengthClass(headline), value, subline, message };
+    }
+
+    function bitsValueText(value) {
+      const clean = String(value || '')
+        .trim()
+        .replace(/^cheer(?:t|[’'`´]t)?\s*(?:mit\s*)?/i, '')
+        .replace(/^cheert\s*(?:mit\s*)?/i, '')
+        .trim();
+      return clean ? `cheert mit ${clean}` : 'cheert';
+    }
+
+    function nameLengthClass(name) {
+      const compact = String(name || '').replace(/\s+/g, '');
+      if (compact.length >= 23) return 'name-very-long';
+      if (compact.length >= 17) return 'name-long';
+      return '';
     }
 
     function amountText(alert) {
