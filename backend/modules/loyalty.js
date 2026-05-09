@@ -18,7 +18,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.2";
+const VERSION = "0.1.3";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 3;
@@ -84,6 +84,15 @@ const DEFAULT_CONFIG = {
   presence: {
     activeMinutes: 30,
     includeJoinedOnly: true,
+    maxUsersPerRun: 250
+  },
+  autoRunner: {
+    enabledOnBoot: false,
+    intervalSeconds: 60,
+    runOnlyWhenLive: true,
+    checkAutoLive: true,
+    includeJoinedOnly: true,
+    activeMinutes: 30,
     maxUsersPerRun: 250
   }
 };
@@ -159,7 +168,15 @@ const SETTINGS_DEFINITIONS = [
 
   { key: "presence.activeMinutes", path: "presence.activeMinutes", valueType: "number", description: "Zeitfenster fuer aktive/presente Twitch-Presence-User." },
   { key: "presence.includeJoinedOnly", path: "presence.includeJoinedOnly", valueType: "boolean", description: "JOIN-only User im Presence Runner beruecksichtigen." },
-  { key: "presence.maxUsersPerRun", path: "presence.maxUsersPerRun", valueType: "number", description: "Maximale Anzahl Presence-User pro Run." }
+  { key: "presence.maxUsersPerRun", path: "presence.maxUsersPerRun", valueType: "number", description: "Maximale Anzahl Presence-User pro Run." },
+
+  { key: "autoRunner.enabledOnBoot", path: "autoRunner.enabledOnBoot", valueType: "boolean", description: "Auto Runner beim Backend-Start automatisch aktivieren." },
+  { key: "autoRunner.intervalSeconds", path: "autoRunner.intervalSeconds", valueType: "number", description: "Auto Runner Intervall in Sekunden." },
+  { key: "autoRunner.runOnlyWhenLive", path: "autoRunner.runOnlyWhenLive", valueType: "boolean", description: "Auto Runner nur bei Live-Status laufen lassen." },
+  { key: "autoRunner.checkAutoLive", path: "autoRunner.checkAutoLive", valueType: "boolean", description: "Vor jedem Runner-Lauf Twitch Auto-Live-Status aktualisieren." },
+  { key: "autoRunner.includeJoinedOnly", path: "autoRunner.includeJoinedOnly", valueType: "boolean", description: "JOIN-only Twitch-Presence-User im Auto Runner beruecksichtigen." },
+  { key: "autoRunner.activeMinutes", path: "autoRunner.activeMinutes", valueType: "number", description: "Presence-Zeitfenster fuer Auto Runner." },
+  { key: "autoRunner.maxUsersPerRun", path: "autoRunner.maxUsersPerRun", valueType: "number", description: "Maximale Presence-User pro Auto Runner Lauf." }
 ];
 
 const TEXT_CATEGORIES = {
@@ -194,6 +211,21 @@ let state = {
     lastError: ""
   },
   lastError: ""
+};
+
+const autoRunnerState = {
+  enabled: false,
+  running: false,
+  timer: null,
+  startedAt: "",
+  stoppedAt: "",
+  lastRunAt: "",
+  lastRunResult: null,
+  lastError: "",
+  runCount: 0,
+  successCount: 0,
+  errorCount: 0,
+  trigger: ""
 };
 
 let config = DEFAULT_CONFIG;
@@ -597,7 +629,8 @@ function publicConfig() {
     expiration: { ...config.expiration },
     import: { ...config.import },
     streamState: { ...config.streamState },
-    presence: { ...config.presence }
+    presence: { ...config.presence },
+    autoRunner: { ...config.autoRunner }
   };
 }
 
@@ -1207,7 +1240,15 @@ function counts() {
     reservations: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_reservations")?.count || 0),
     imports: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_imports")?.count || 0),
     ignoredUsers: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_ignored_users WHERE enabled = 1")?.count || 0),
-    watchStates: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_watch_state")?.count || 0)
+    watchStates: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_watch_state")?.count || 0),
+    runnerEvents: (() => {
+      try {
+        ensureRunnerEventsTable();
+        return Number(database.get("SELECT COUNT(*) AS count FROM loyalty_runner_events")?.count || 0);
+      } catch (_) {
+        return 0;
+      }
+    })()
   };
 }
 
@@ -1232,6 +1273,211 @@ function databaseStatus() {
   }
 }
 
+
+function ensureRunnerEventsTable() {
+  database.run(`
+    CREATE TABLE IF NOT EXISTS loyalty_runner_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      runner_key TEXT NOT NULL DEFAULT 'auto_shadow',
+      event_type TEXT NOT NULL,
+      trigger TEXT NOT NULL DEFAULT '',
+      ok INTEGER NOT NULL DEFAULT 0,
+      skipped INTEGER NOT NULL DEFAULT 0,
+      reason TEXT NOT NULL DEFAULT '',
+      awarded INTEGER NOT NULL DEFAULT 0,
+      processed_count INTEGER NOT NULL DEFAULT 0,
+      error_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    )
+  `);
+}
+
+function logRunnerEvent(eventType, payload = {}) {
+  try {
+    ensureRunnerEventsTable();
+    database.run(`
+      INSERT INTO loyalty_runner_events (
+        runner_key, event_type, trigger, ok, skipped, reason,
+        awarded, processed_count, error_count, created_at, metadata_json
+      ) VALUES (
+        :runnerKey, :eventType, :trigger, :ok, :skipped, :reason,
+        :awarded, :processedCount, :errorCount, :createdAt, :metadataJson
+      )
+    `, {
+      runnerKey: "auto_shadow",
+      eventType: String(eventType || "event"),
+      trigger: String(payload.trigger || ""),
+      ok: payload.ok ? 1 : 0,
+      skipped: payload.skipped ? 1 : 0,
+      reason: String(payload.reason || ""),
+      awarded: Number(payload.awarded || 0),
+      processedCount: Number(payload.count || payload.processedCount || 0),
+      errorCount: Number(Array.isArray(payload.errors) ? payload.errors.length : (payload.errorCount || 0)),
+      createdAt: core.nowIso(),
+      metadataJson: JSON.stringify(payload || {})
+    });
+  } catch (err) {
+    autoRunnerState.lastError = err && err.message ? err.message : String(err);
+  }
+}
+
+function getAutoRunnerIntervalSeconds() {
+  refreshConfigFromSettings();
+  const raw = Number(config?.autoRunner?.intervalSeconds || 60);
+  return Math.max(15, Math.min(3600, Number.isFinite(raw) ? raw : 60));
+}
+
+function getAutoRunnerStatus() {
+  refreshConfigFromSettings();
+  return {
+    enabled: autoRunnerState.enabled,
+    running: autoRunnerState.running,
+    timerActive: !!autoRunnerState.timer,
+    startedAt: autoRunnerState.startedAt,
+    stoppedAt: autoRunnerState.stoppedAt,
+    lastRunAt: autoRunnerState.lastRunAt,
+    lastRunResult: autoRunnerState.lastRunResult,
+    lastError: autoRunnerState.lastError,
+    runCount: autoRunnerState.runCount,
+    successCount: autoRunnerState.successCount,
+    errorCount: autoRunnerState.errorCount,
+    trigger: autoRunnerState.trigger,
+    config: {
+      ...config.autoRunner,
+      effectiveIntervalSeconds: getAutoRunnerIntervalSeconds()
+    },
+    streamState: getStreamState()
+  };
+}
+
+async function executeAutoRunnerOnce(req = null, trigger = "auto_timer") {
+  if (autoRunnerState.running) {
+    const skipped = { ok: true, skipped: true, reason: "runner_already_running", trigger };
+    autoRunnerState.lastRunResult = skipped;
+    logRunnerEvent("run_skipped", skipped);
+    return skipped;
+  }
+
+  autoRunnerState.running = true;
+  autoRunnerState.lastError = "";
+  autoRunnerState.lastRunAt = core.nowIso();
+  autoRunnerState.runCount += 1;
+
+  try {
+    const result = await runPresenceOnce(req, {
+      minutes: config?.autoRunner?.activeMinutes || config?.presence?.activeMinutes || 30,
+      limit: config?.autoRunner?.maxUsersPerRun || config?.presence?.maxUsersPerRun || 250,
+      includeJoinedOnly: config?.autoRunner?.includeJoinedOnly !== false,
+      checkAuto: config?.autoRunner?.checkAutoLive !== false,
+      force: false
+    });
+
+    const finalResult = { ...result, trigger, runnerAt: autoRunnerState.lastRunAt };
+    autoRunnerState.lastRunResult = finalResult;
+
+    if (result.ok !== false) {
+      autoRunnerState.successCount += 1;
+      logRunnerEvent(result.skipped ? "run_skipped" : "run_ok", finalResult);
+    } else {
+      autoRunnerState.errorCount += 1;
+      autoRunnerState.lastError = result.reason || "runner_result_not_ok";
+      logRunnerEvent("run_error", finalResult);
+    }
+
+    return finalResult;
+  } catch (err) {
+    const finalError = {
+      ok: false,
+      skipped: false,
+      reason: "runner_exception",
+      trigger,
+      error: err && err.message ? err.message : String(err),
+      runnerAt: autoRunnerState.lastRunAt
+    };
+    autoRunnerState.errorCount += 1;
+    autoRunnerState.lastError = finalError.error;
+    autoRunnerState.lastRunResult = finalError;
+    logRunnerEvent("run_exception", finalError);
+    return finalError;
+  } finally {
+    autoRunnerState.running = false;
+  }
+}
+
+function scheduleAutoRunner(req = null) {
+  if (!autoRunnerState.enabled) return;
+  if (autoRunnerState.timer) clearTimeout(autoRunnerState.timer);
+
+  autoRunnerState.timer = setTimeout(async () => {
+    autoRunnerState.timer = null;
+    if (!autoRunnerState.enabled) return;
+    await executeAutoRunnerOnce(req, "auto_timer");
+    scheduleAutoRunner(req);
+  }, getAutoRunnerIntervalSeconds() * 1000);
+}
+
+function startAutoRunner(options = {}) {
+  refreshConfigFromSettings();
+  if (autoRunnerState.enabled && autoRunnerState.timer) {
+    return { ok: true, alreadyRunning: true, status: getAutoRunnerStatus() };
+  }
+
+  autoRunnerState.enabled = true;
+  autoRunnerState.trigger = String(options.trigger || "manual_start");
+  autoRunnerState.startedAt = core.nowIso();
+  autoRunnerState.stoppedAt = "";
+  autoRunnerState.lastError = "";
+  scheduleAutoRunner(options.req || null);
+
+  const payload = { ok: true, started: true, trigger: autoRunnerState.trigger, status: getAutoRunnerStatus() };
+  logRunnerEvent("runner_started", payload);
+  return payload;
+}
+
+function stopAutoRunner(options = {}) {
+  if (autoRunnerState.timer) {
+    clearTimeout(autoRunnerState.timer);
+    autoRunnerState.timer = null;
+  }
+
+  autoRunnerState.enabled = false;
+  autoRunnerState.running = false;
+  autoRunnerState.trigger = String(options.trigger || "manual_stop");
+  autoRunnerState.stoppedAt = core.nowIso();
+
+  const payload = { ok: true, stopped: true, trigger: autoRunnerState.trigger, status: getAutoRunnerStatus() };
+  logRunnerEvent("runner_stopped", payload);
+  return payload;
+}
+
+function listRunnerEvents(options = {}) {
+  ensureRunnerEventsTable();
+  const limit = Math.max(1, Math.min(500, Number(options.limit || 50) || 50));
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_runner_events
+    ORDER BY id DESC
+    LIMIT :limit
+  `, { limit }).map(row => ({
+    id: row.id,
+    runnerKey: row.runner_key,
+    eventType: row.event_type,
+    trigger: row.trigger,
+    ok: Number(row.ok || 0) === 1,
+    skipped: Number(row.skipped || 0) === 1,
+    reason: row.reason || "",
+    awarded: Number(row.awarded || 0),
+    processedCount: Number(row.processed_count || 0),
+    errorCount: Number(row.error_count || 0),
+    createdAt: row.created_at || "",
+    metadata: core.safeJsonParse(row.metadata_json, {})
+  }));
+
+  return { count: rows.length, rows };
+}
+
+
 function buildStatus() {
   refreshConfigFromSettings();
   return {
@@ -1255,7 +1501,8 @@ function buildStatus() {
     texts: { ...state.texts },
     counts: counts(),
     features: { ...config.features },
-    watch: { ...config.watch }
+    watch: { ...config.watch },
+    autoRunner: getAutoRunnerStatus()
   };
 }
 
@@ -1852,6 +2099,40 @@ function registerRoutes(app) {
     core.sendOk(res, result);
   }));
 
+  app.get("/api/loyalty/runner/status", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, getAutoRunnerStatus());
+  }));
+
+  app.get("/api/loyalty/runner/start", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, startAutoRunner({ trigger: core.getParam(req, "source", "manual_get"), req }));
+  }));
+
+  app.post("/api/loyalty/runner/start", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, startAutoRunner({ trigger: core.getParam(req, "source", "manual_post"), req }));
+  }));
+
+  app.get("/api/loyalty/runner/stop", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, stopAutoRunner({ trigger: core.getParam(req, "source", "manual_get") }));
+  }));
+
+  app.post("/api/loyalty/runner/stop", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, stopAutoRunner({ trigger: core.getParam(req, "source", "manual_post") }));
+  }));
+
+  app.get("/api/loyalty/runner/run-once", core.asyncRoute(async (req, res) => {
+    const result = await executeAutoRunnerOnce(req, core.getParam(req, "source", "manual_get"));
+    core.sendOk(res, result);
+  }));
+
+  app.post("/api/loyalty/runner/run-once", core.asyncRoute(async (req, res) => {
+    const result = await executeAutoRunnerOnce(req, core.getParam(req, "source", "manual_post"));
+    core.sendOk(res, result);
+  }));
+
+  app.get("/api/loyalty/runner/events", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, listRunnerEvents({ limit: req.query.limit }));
+  }));
+
   app.get("/api/loyalty/ignored-users", core.asyncRoute(async (req, res) => {
     core.sendOk(res, {
       count: getIgnoredUsers().length,
@@ -1907,6 +2188,14 @@ function registerRoutes(app) {
         "GET /api/loyalty/presence/status",
         "POST /api/loyalty/presence/run-once",
         "GET /api/loyalty/presence/run-once",
+        "GET /api/loyalty/runner/status",
+        "POST /api/loyalty/runner/start",
+        "GET /api/loyalty/runner/start",
+        "POST /api/loyalty/runner/stop",
+        "GET /api/loyalty/runner/stop",
+        "POST /api/loyalty/runner/run-once",
+        "GET /api/loyalty/runner/run-once",
+        "GET /api/loyalty/runner/events",
         "GET /api/loyalty/ignored-users",
         "POST /api/loyalty/ignored-users",
         "DELETE /api/loyalty/ignored-users/:login",
@@ -1927,6 +2216,11 @@ function init(ctx = {}) {
 
     if (ctx && ctx.app) registerRoutes(ctx.app);
 
+    refreshConfigFromSettings();
+    if (core.boolParam(config?.autoRunner?.enabledOnBoot, false)) {
+      startAutoRunner({ trigger: "boot", req: null });
+    }
+
     console.log(`[${MODULE_NAME}] loaded v${VERSION} mode=${normalizeMode(config.mode)}`);
   } catch (err) {
     state.lastError = err && err.message ? err.message : String(err);
@@ -1946,6 +2240,9 @@ module.exports = {
     recordTransaction,
     recordWatchInterval,
     recordWatchHeartbeat,
+    getAutoRunnerStatus,
+    startAutoRunner,
+    stopAutoRunner,
     buildStatus
   }
 };

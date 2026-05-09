@@ -2,24 +2,17 @@
 
 Stand: 2026-05-09
 
-## Single Source of Truth
-
-- Branch: `dev`
-- Repo: `D:\Git\stream-control-center`
-- Live: `D:\Streaming\stramAssets`
-- GitHub: `https://github.com/ForrestCGN/stream-control-center`
-
 ## Aktueller Hauptfokus - Loyalty / Twitch Presence
 
 Aktueller Stand:
 
 - Loyalty-Core läuft im Shadow Mode.
 - StreamElements bleibt aktiv.
-- Watch-Heartbeat mit Intervall-Schutz ist vorhanden.
+- Watch-Heartbeat mit Intervall-Schutz funktioniert.
 - Twitch Presence sammelt aktive/anwesende Chat-User.
-- Stream-State-Gate mit manuellem Streamer.bot-Fallback ist vorhanden.
-- Presence Run-Once kann aktive User kontrolliert durch Loyalty Heartbeat schicken.
-- Automatischer Timer ist noch nicht aktiv.
+- Stream-State-Gate mit Streamer.bot-Fallback funktioniert.
+- Presence Run-Once funktioniert.
+- Auto Shadow Runner ist vorbereitet und standardmäßig deaktiviert.
 
 ## Aktive relevante Module
 
@@ -31,19 +24,17 @@ backend/modules/twitch_presence.js
 ## Loyalty Version
 
 ```text
-0.1.2
-schema version 3
+0.1.3
 ```
 
-## Wichtige Loyalty-Routen
+## Wichtige Runner-Routen
 
 ```text
-GET/POST /api/loyalty/stream-state/start
-GET/POST /api/loyalty/stream-state/stop
-GET/POST /api/loyalty/stream-state/clear-override
-GET/POST /api/loyalty/stream-state/refresh-auto
-GET      /api/loyalty/presence/status
-GET/POST /api/loyalty/presence/run-once
+GET/POST /api/loyalty/runner/start
+GET/POST /api/loyalty/runner/stop
+GET/POST /api/loyalty/runner/run-once
+GET      /api/loyalty/runner/status
+GET      /api/loyalty/runner/events
 ```
 
 ## Verbindliche Regeln
@@ -54,12 +45,5 @@ JSON ist nur Seed/Fallback/technische Boot-Konfig.
 Shadow Mode zuerst.
 StreamElements bleibt aktiv.
 Offline keine Watch-Punkte.
+Auto Runner nicht automatisch beim Boot aktiv.
 ```
-
-## Bewusst offen
-
-- STEP203.4: automatischer Shadow Runner mit Timer.
-- echte Twitch-Tags im Livebetrieb beobachten.
-- Tier-Erkennung anhand realer Badges verbessern.
-- Get Chatters API später ergänzen.
-- Dashboard-Modul für Loyalty später.
