@@ -196,6 +196,7 @@ module.exports.init = function init(ctx) {
   });
   routes.registerGet(app, '/api/alerts/integration-check', guard, (req, res) => res.json(checkAlertIntegration()));
   routes.registerGet(app, '/api/alerts/routes', guard, (req, res) => res.json(buildAlertRoutes(req)));
+  routes.registerGet(app, '/api/alerts/events', guard, (req, res) => res.json({ ok: true, events: listAlertEvents(req.query || {}) }));
 
 
   routes.registerPost(app, '/api/alerts/events/:eventUid/replay', guard, (req, res) => {
@@ -279,6 +280,7 @@ function buildAlertRoutes(req = null) {
     { method: 'GET', path: '/api/alerts/integration-check', auth: 'local_or_auth', category: 'diagnostics', description: 'Integration-Check des Alert-Systems.' },
     { method: 'GET', path: '/api/alerts/routes', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Routenübersicht des Alert-Systems.' },
 
+    { method: 'GET', path: '/api/alerts/events', auth: 'local_or_auth', category: 'events', description: 'DB-basierte Alert-History lesen.' },
     { method: 'POST', path: '/api/alerts/events/:eventUid/replay', auth: 'local_or_auth', category: 'events', description: 'Alert-Event erneut abspielen.' },
 
     { method: 'GET', path: '/api/alerts/twitch/follow', auth: 'local_or_auth', category: 'provider', description: 'Streamer.bot/Twitch GET-Route für Follow.' },
@@ -663,7 +665,7 @@ function buildStatus(req = null) {
     queueLength: state.queue.length,
     current: state.current,
     currentEventId: state.current ? state.current.eventUid : null,
-    history: state.history.slice(0, 10),
+    history: state.history.slice(0, 50),
     overlayClients: state.overlayClients.size,
     multerReady: !!multer,
     multerLoadError,
@@ -806,6 +808,17 @@ function applyRuntimeSettingsFromDb() {
 
   const next = sanitizeRuntimeConfig(state.config);
   const applied = [];
+  const topLevelRuntimeKeys = new Set([
+    'enabled',
+    'overlayEnabled',
+    'dashboardEnabled',
+    'queueEnabled',
+    'uploadEnabled',
+    'allowLanUploads',
+    'autoDurationOnUpload',
+    'avatarResolveEnabled',
+    'chatMessageEnabled'
+  ]);
 
   for (const [rawKey, value] of Object.entries(settings || {})) {
     const key = String(rawKey || '').trim();
@@ -813,6 +826,12 @@ function applyRuntimeSettingsFromDb() {
 
     if (key.includes('.')) {
       setConfigPath(next, key, value);
+      applied.push(key);
+      continue;
+    }
+
+    if (topLevelRuntimeKeys.has(key)) {
+      next[key] = boolValue(value, next[key]);
       applied.push(key);
       continue;
     }
@@ -1263,11 +1282,23 @@ function normalizeAlertPayload(input, defaultSource) {
 }
 
 function enqueueAlert(payload, broadcastWS) {
+  const gate = alertQueueGate();
+  if (!gate.ok) return gate;
   const rule = findMatchingRule(payload);
   if (!rule && state.config.playUnmatchedAlerts !== true) {
     return ignoreUnmatchedAlert(payload, 'no_matching_rule');
   }
   return enqueueAlertWithRule(payload, rule, broadcastWS);
+}
+
+function alertQueueGate() {
+  if (state.config.enabled === false) {
+    return { ok: false, queued: false, ignored: true, error: 'alerts_disabled', reason: 'alert_system_disabled' };
+  }
+  if (state.config.queueEnabled === false) {
+    return { ok: false, queued: false, ignored: true, error: 'alert_queue_disabled', reason: 'queue_disabled' };
+  }
+  return { ok: true };
 }
 
 function ignoreUnmatchedAlert(payload, reason = 'no_matching_rule') {
@@ -1305,7 +1336,8 @@ function ignoreUnmatchedAlert(payload, reason = 'no_matching_rule') {
 }
 
 function enqueueAlertWithRule(payload, rule, broadcastWS, options = {}) {
-  if (state.config.enabled === false) return { ok: false, error: 'alert_system_disabled' };
+  const gate = alertQueueGate();
+  if (!gate.ok) return gate;
   const eventUid = makeEventUid();
   const now = nowIso();
   const rawPayload = { ...(payload.raw || payload) };
@@ -1350,6 +1382,8 @@ function enqueueAlertWithRule(payload, rule, broadcastWS, options = {}) {
 }
 
 function replayAlertEvent(eventUid, broadcastWS) {
+  const gate = alertQueueGate();
+  if (!gate.ok) return gate;
   const sourceUid = cleanText(eventUid || '');
   if (!sourceUid) return { ok: false, error: 'missing_event_uid' };
   const row = sqlite.get(`SELECT * FROM alert_events WHERE event_uid=:eventUid`, { eventUid: sourceUid });
@@ -1372,6 +1406,70 @@ function replayAlertEvent(eventUid, broadcastWS) {
   if (row.rule_id) rule = getRuleById(row.rule_id);
   if (!rule) rule = findMatchingRule(payload);
   return enqueueAlertWithRule(payload, rule, broadcastWS, { replayOf: sourceUid });
+}
+
+function listAlertEvents(filter = {}) {
+  const limit = clamp(toInt(filter.limit, 100), 1, 500);
+  const source = cleanKey(filter.source || '');
+  const typeKey = cleanKey(filter.type_key || filter.type || '');
+  const status = cleanKey(filter.status || '');
+  const params = { limit };
+  const where = [];
+
+  if (source && source !== 'all') {
+    where.push('e.source = :source');
+    params.source = source;
+  }
+  if (typeKey && typeKey !== 'all') {
+    where.push('e.type_key = :typeKey');
+    params.typeKey = typeKey;
+  }
+  if (status && status !== 'all') {
+    where.push('e.status = :status');
+    params.status = status;
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  return sqlite.all(`
+    SELECT
+      e.*,
+      r.label AS rule_label,
+      r.tier AS rule_tier,
+      r.priority AS rule_priority
+    FROM alert_events e
+    LEFT JOIN alert_rules r ON r.id = e.rule_id
+    ${whereSql}
+    ORDER BY e.created_at DESC, e.id DESC
+    LIMIT :limit
+  `, params).map(row => {
+    const payload = parseJson(row.payload_json, {});
+    return {
+      id: row.id,
+      eventUid: row.event_uid,
+      source: row.source,
+      type_key: row.type_key,
+      user_login: row.user_login || '',
+      user_display: row.user_display || '',
+      amount: Number(row.amount || 0),
+      currency: payload.currency || payload.currencyCode || '',
+      message: row.message || '',
+      rule_id: row.rule_id || null,
+      rule: row.rule_id ? {
+        id: row.rule_id,
+        label: row.rule_label || '',
+        tier: row.rule_tier || '',
+        priority: Number(row.rule_priority || 0)
+      } : null,
+      status: row.status || '',
+      created_at: row.created_at || '',
+      started_at: row.started_at || '',
+      finished_at: row.finished_at || '',
+      final_chat_message: row.final_chat_message || '',
+      chat_message_status: row.chat_message_status || '',
+      finishReason: payload.finishReason || payload.finish_reason || '',
+      raw: payload
+    };
+  });
 }
 
 function getRuleById(id) {
@@ -1704,6 +1802,7 @@ function findMatchingRule(payload) {
 
 async function processQueue(broadcastWS) {
   if (state.processing || state.current) return;
+  if (state.config.enabled === false || state.config.queueEnabled === false) return;
   if (!state.queue.length) return;
   state.processing = true;
   const event = state.queue.shift();
@@ -1818,7 +1917,7 @@ function finishCurrent(reason, broadcastWS) {
   const finished = { ...state.current, finished_at: nowIso(), finishReason: reason };
   sqlite.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt WHERE event_uid=:eventUid`, { finishedAt: finished.finished_at, eventUid: finished.eventUid });
   state.history.unshift(finished);
-  state.history = state.history.slice(0, 25);
+  state.history = state.history.slice(0, 100);
   state.current = null;
   clearTimeout(state.finishTimer);
   state.finishTimer = null;

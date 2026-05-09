@@ -11,6 +11,7 @@
     chatBlocks: [],
     testPresets: [],
     displayProfiles: [],
+    history: [],
     page: 'overview',
     source: 'all',
     type: 'all',
@@ -26,7 +27,7 @@
   };
 
   const SOURCE_LABELS = { all:'Alle', twitch:'Twitch', kofi:'Ko-fi', tipeee:'Tipeee' };
-  const TYPE_LABELS = { bits:'Bits', follow:'Follow', sub:'Sub', resub:'Resub', gift_sub:'Gift Sub', gift_bomb:'Gift Bomb', raid:'Raid', donation:'Donation', membership:'Membership', shop:'Shop', commission:'Commission', subscription:'Subscription', hosting:'Hosting' };
+  const TYPE_LABELS = { bits:'Bits', follow:'Follow', sub:'Sub', resub:'Resub', gift_sub:'Gift Sub', giftsub:'Gift Sub', gift_bomb:'Sub-Bombe', communitygift:'Sub-Bombe', community_gift:'Sub-Bombe', raid:'Raid', donation:'Donation', membership:'Membership', shop:'Shop', commission:'Commission', subscription:'Subscription', hosting:'Hosting' };
   const CELEBRATIONS = [
     ['none','Keine'],
     ['heart_rain','Herzregen'],
@@ -135,14 +136,15 @@
 
   async function loadAll(keepNote=false){
     try {
-      const [status, rules, assets, textVariants, chatBlocks, testPresets, displayProfiles] = await Promise.all([
+      const [status, rules, assets, textVariants, chatBlocks, testPresets, displayProfiles, history] = await Promise.all([
         CGN.api('/api/alerts/status'),
         CGN.api('/api/alerts/rules'),
         CGN.api('/api/alerts/assets'),
         CGN.api('/api/alerts/text-variants'),
         CGN.api('/api/alerts/chat-blocks'),
         CGN.api('/api/alerts/test-presets'),
-        CGN.api('/api/alerts/display-profiles')
+        CGN.api('/api/alerts/display-profiles'),
+        CGN.api('/api/alerts/events?limit=100')
       ]);
       state.status = status;
       state.rules = Array.isArray(rules.rules) ? rules.rules : [];
@@ -152,6 +154,8 @@
       state.chatBlocks = Array.isArray(chatBlocks.blocks) ? chatBlocks.blocks : [];
       state.testPresets = Array.isArray(testPresets.presets) ? testPresets.presets : [];
       state.displayProfiles = Array.isArray(displayProfiles.profiles) ? displayProfiles.profiles : [];
+      state.history = Array.isArray(history.events) ? history.events : (Array.isArray(status.history) ? status.history : []);
+      if (state.status && Array.isArray(state.history)) state.status.history = state.history;
       if (!state.displayProfileId && state.displayProfiles.length) {
         const def = state.displayProfiles.find(p => Number(p.is_default) === 1) || state.displayProfiles[0];
         state.displayProfileId = def?.id || null;
@@ -806,7 +810,7 @@
   }
 
   function historyList(limit, compact=false){
-    const items = (state.status?.history || []).slice(0, limit);
+    const items = (state.history || state.status?.history || []).slice(0, limit);
     const rows = items.map(h => `<div class="alert-log-item">
       <div><strong>${esc(SOURCE_LABELS[h.source] || h.source)} · ${esc(TYPE_LABELS[h.type_key] || h.type_key)}</strong> · ${esc(h.user_display || h.user_login || '')}</div>
       <span class="muted">${esc(amountText(h))} · Regel: ${esc(h.rule?.label || '—')} · ${esc(h.finishReason || '')} · ${esc(formatDate(h.finished_at || h.created_at || ''))}</span>
@@ -816,7 +820,7 @@
   }
 
   function historyTable(){
-    const rows = (state.status?.history || []).map(h => `<tr>
+    const rows = (state.history || state.status?.history || []).map(h => `<tr>
       <td><strong>${esc(SOURCE_LABELS[h.source] || h.source)}</strong><br><span class="muted">${esc(TYPE_LABELS[h.type_key] || h.type_key)}</span></td>
       <td>${esc(h.user_display || h.user_login || '—')}</td>
       <td>${esc(amountText(h))}</td>

@@ -714,8 +714,63 @@ function mapTipeeeType(input) {
   return cleanKey(map.donation || 'donation');
 }
 
+function isTwitchMirroredTipeeeEvent(raw) {
+  const event = raw && raw.event && typeof raw.event === 'object'
+    ? raw.event
+    : (raw && raw.normalizedEvent && typeof raw.normalizedEvent === 'object' ? raw.normalizedEvent : (raw || {}));
+  const params = event && event.parameters && typeof event.parameters === 'object' ? event.parameters : {};
+
+  const origin = String(event.origin || raw?.origin || params.origin || '').trim().toLowerCase();
+  const ref = String(event.ref || raw?.ref || params.ref || event.id || raw?.id || '').trim().toUpperCase();
+  const type = String(event.type || raw?.type || params.type || '').trim().toLowerCase();
+
+  if (origin === 'twitch') return { mirrored: true, reason: 'origin_twitch', origin, ref, type };
+  if (ref.startsWith('TWITCH_')) return { mirrored: true, reason: 'ref_twitch', origin, ref, type };
+
+  const twitchTypes = new Set([
+    'cheer',
+    'raid',
+    'follow',
+    'sub',
+    'resub',
+    'subscription',
+    'gift',
+    'gift_sub',
+    'gifted_subscription',
+    'channel.cheer',
+    'channel.raid',
+    'channel.follow',
+    'channel.subscribe',
+    'channel.subscription.gift',
+    'channel.subscription.message'
+  ]);
+
+  if (twitchTypes.has(type)) return { mirrored: true, reason: 'type_twitch', origin, ref, type };
+
+  return { mirrored: false, reason: '', origin, ref, type };
+}
+
 async function handleTipeeeEvent(event, options = {}) {
   loadSettings();
+
+  const mirror = isTwitchMirroredTipeeeEvent(event && event.raw ? event.raw : event);
+  if (mirror.mirrored) {
+    state.stats.ignoredTypes += 1;
+    state.stats.rejected += 1;
+    rememberRecentEvent(event);
+    rememberProviderEvent(event, 'ignored_twitch_mirror', '');
+    return {
+      ok: true,
+      ignored: true,
+      provider: 'tipeee',
+      providerEventId: event.providerEventId,
+      error: 'ignored_twitch_mirror',
+      reason: mirror.reason,
+      origin: mirror.origin,
+      ref: mirror.ref,
+      type: mirror.type
+    };
+  }
 
   const allowedTypes = normalizeStringArray(state.settings.allowedTypes, DEFAULT_SETTINGS.allowedTypes).map(cleanKey);
   if (allowedTypes.length && !allowedTypes.includes(event.type_key)) {
