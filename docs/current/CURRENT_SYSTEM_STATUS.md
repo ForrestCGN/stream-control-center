@@ -1,6 +1,6 @@
 # CURRENT SYSTEM STATUS
 
-Stand: 2026-05-07
+Stand: 2026-05-09
 
 ## Single Source of Truth
 
@@ -9,9 +9,91 @@ Stand: 2026-05-07
 - Live: `D:\Streaming\stramAssets`
 - GitHub: `https://github.com/ForrestCGN/stream-control-center`
 
+## Aktueller Hauptfokus - Loyalty / Kekskrümel
+
+Der Loyalty-/Kekskrümel-Block wurde nach STEP194 als nächster großer Themenbereich gestartet.
+
+Aktueller Loyalty-Stand:
+
+- `STEP194` dokumentiert die StreamElements-Loyalty-Migrationsarchitektur.
+- `STEP202` dokumentiert die konkrete Erfassung vor Code-Start.
+- `STEP202.1` legt den DB-First-Standard für Loyalty fest.
+- `STEP202.2` legt Shadow Mode und konfigurierbare Bonus-Regeln fest.
+- Es gibt noch keine Loyalty-Code-Dateien.
+- Es gibt noch keine Loyalty-DB-Tabellen.
+- Es gibt noch kein Loyalty-Dashboard-Modul.
+- StreamElements bleibt unverändert aktiv.
+- User-Punkte-Import ist kein Blocker mehr fuer die erste technische Umsetzung.
+
+Verbindliche Loyalty-Hauptregel:
+
+```text
+Alles, was Kekskrümel gibt, nimmt, prüft, reserviert, erstattet oder verändert, läuft ausschließlich über das Loyalty-System.
+```
+
+Verbindliche Loyalty-Datenregel:
+
+```text
+DB ist Hauptspeicher.
+JSON ist nur Seed/Fallback/technische Boot-Konfig.
+```
+
+Verbindliche Startstrategie:
+
+```text
+Shadow Mode zuerst, StreamElements bleibt aktiv, Import später.
+```
+
+## Bestätigte StreamElements-Loyalty-Werte
+
+Aus den Screenshots vom 2026-05-09 bestätigt:
+
+```text
+Loyalty enabled: Ja
+Currency name: Kekskrümel
+Watch amount: 2
+Interval: 10 Minuten
+Subscriber multiplier: 3x
+Viewer: 2 Kekskrümel alle 10 Minuten
+Subscriber: 6 Kekskrümel alle 10 Minuten
+Follower bonus: 10 Kekskrümel
+Tip bonus: 10 Kekskrümel pro 1,00 EUR
+Subscriber bonus: 50 Kekskrümel
+Cheer bonus: 10 Kekskrümel pro 100 Bits
+Raid bonus: 50 Kekskrümel
+Ignored users:
+- STREAMELEMENTS
+- FORRESTCGN
+Punkteverfall: nach mehr als 1 Jahr Inaktivität auf dem Channel
+```
+
+Auslegung:
+
+```text
+Subscriber erhalten Watch amount 2 x Subscriber multiplier 3 = 6 Kekskrümel.
+```
+
+## STEP203 Zielrichtung
+
+Naechster technischer Schritt:
+
+```text
+STEP203 - Loyalty Core DB + Basis-API Shadow Mode
+```
+
+Geplanter Umfang:
+
+- Core-Backend-Modul
+- Seed/Fallback-Config
+- DB-Core-Tabellen
+- Status-/Settings-/Balance-/Transactions-Routen
+- Shadow-Mode-Settings
+- keine StreamElements-Abschaltung
+- kein produktiver Import in STEP203
+
 ## SoundAlerts / Sound-System - aktueller Stand bis STEP193.17.2
 
-SoundAlerts ist aktuell der aktiv bearbeitete und live getestete Block. Der letzte dokumentierte Stand ist `STEP193.17.2` nach dem Filter-Fix und Doku-Sync.
+SoundAlerts ist bis `STEP193.17.2` technisch umgesetzt, live getestet und dokumentiert.
 
 Aktueller Modulstand:
 
@@ -27,248 +109,32 @@ Aktueller Modulstand:
   - `config/soundalerts_bridge.json`
 - DB ist Hauptspeicher fuer Eintraege, Events, Meta und technische Settings.
 - JSON bleibt Seed/Fallback/Notfall.
-- SoundAlerts-DB-Zugriffe laufen ueber `backend/core/database.js` bzw. Helper-Schichten.
-- SQLite ist produktiv aktiv; MariaDB bleibt spaeteres Ziel, ist aber noch nicht aktiv.
 
-## OBS Loader Standard
+## TTS - aktueller Stand bis STEP200.1
 
-SoundAlerts benoetigt weiterhin eine aktiv geladene Browserquelle. Diese Quelle wird nicht als sichtbare/hoerbare Ausgabe genutzt.
+Der TTS-Block ist technisch umgesetzt, live getestet, im Dashboard eingebunden und nutzt das globale DB-basierte Textvarianten-System.
 
-Aktueller Standard:
+Backend:
 
-```text
-OBS-Quelle: _SoundAlerts_Loader
-URL: SoundAlerts Browser Source URL
-Groesse: 1x1 px
-Audio: im OBS-Mixer stumm
-Sichtbar: Ja, nicht per Auge deaktivieren
-Quelle herunterfahren, wenn nicht sichtbar: AUS
-Browser aktualisieren, wenn Szene aktiv wird: AUS
-```
+- `backend/modules/tts_system.js`
+- DB-Zugriffe laufen ueber `backend/core/database.js`.
+- Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
+- Textvarianten laufen ueber `backend/modules/helpers/helper_texts.js`.
+- JSON `config/tts_config.json` bleibt Seed/Fallback/technische Boot-Konfig.
+- JSON `config/tts_messages.json` bleibt Seed/Fallback fuer TTS-Texte.
 
-Fachregel:
+Dashboard:
 
-- Bild/Ton-Ausgabe laeuft ueber das eigene Sound-System.
-- Die SoundAlerts-Quelle bleibt nur als aktiver Loader geladen.
-- Kein Node-/Headless-Browser-Loader, solange diese OBS-Loesung stabil funktioniert.
-
-## Aktive SoundAlerts-Routen
-
-- `GET /api/soundalerts/status`
-- `GET /api/soundalerts/settings`
-- `POST /api/soundalerts/settings`
-- `GET /api/soundalerts/entries`
-- `POST /api/soundalerts/entries`
-- `DELETE /api/soundalerts/entries/:entryKey`
-- `POST /api/soundalerts/entries/:entryKey/delete`
-- `POST /api/soundalerts/entries/:entryKey/ignore`
-- `GET /api/soundalerts/config`
-- `POST /api/soundalerts/config`
-- `POST /api/soundalerts/test/chat`
-- `GET /api/soundalerts/events`
-- `GET /api/soundalerts/stats`
-
-## Parser / Chat-Erkennung
-
-SoundAlerts-Chattexte werden ueber `parser.messageFormats` erkannt. Diese Formate sind dashboardfaehig und liegen in `soundalerts_bridge_settings`.
-
-Aktuelle Standardformate:
-
-```text
-<user> spielt <sound> fuer <amount> <currency>
-<user> loest <sound> mit <amount> <currency> aus
-```
-
-Beispiele:
-
-```text
-ForrestCGN spielt Lily was here fuer 0 Bits!
-ForrestCGN loest Airhorn mit 0 Bits aus
-```
-
-Wichtige Parser-Regeln:
-
-- `parser.messageFormats` darf nicht als `[object Object]` gespeichert werden.
-- Werte muessen als echtes Objekt-Array in `soundalerts_bridge_settings` erhalten bleiben.
-- Format-Editor liegt im Dashboard unter `SoundAlerts > Bot & Settings > Chat-Erkennung`.
-- Der lokale Parser-Test im Dashboard darf keinen Event-/DB-Eintrag erzeugen.
-
-## Dashboard-Workflow SoundAlerts
-
-### Uebersicht
-
-Die Uebersicht zeigt nur relevante Werte und Schnellzugriffe:
-
-- Gesamt
-- Aktiv
-- Inaktiv
-- Datei fehlt
-- Zur Pruefung
-- Letzte 5 abspielbare Events mit Datei als Replay-Schnellzugriff
-
-Nicht als Handlungsbedarf zaehlen:
-
-- alte/unbekannte Events aus dem Log
-- geloeschte Alt-Events
-- reine Historie ohne aktuellen Eintrag
-- bewusst inaktive vollstaendige Eintraege
-
-`Handlung noetig` erscheint nur, wenn ein aktueller Eintrag wirklich bearbeitet werden muss.
-
-### Eintraege
-
-Eintraege koennen gefiltert werden:
-
-- Alle
-- Aktiv
-- Inaktiv
-- Zur Pruefung
-- Datei fehlt
-- Ignoriert
-
-Der Filter-Regression-Bug aus `STEP193.17` ist in `STEP193.17.1` behoben.
-
-Editor-Regeln:
-
-- Ausgabe wird im Eintrag-Editor nicht mehr manuell gesetzt.
-- Ausgabe orientiert sich automatisch am Typ: Audio nutzt das globale Audio-Ziel, Video nutzt das globale Video-Ziel.
-- Beim Wechsel von Audio/Video wird das passende Ausgabeziel automatisch gesetzt.
-- Nach Upload/Speichern bleibt der aktuell bearbeitete Eintrag selektiert.
-- Falls der Eintrag durch Speichern aus dem aktuellen Filter faellt, springt die Ansicht auf `Alle`, statt auf den naechsten Eintrag.
-
-Fachregel:
-
-```text
-Inaktiv = bewusst deaktiviert und kein offener Arbeitsstand, sofern Name/Datei vorhanden sind.
-Zur Pruefung = automatisch erkannt, noch nicht einzeln gespeichert/freigegeben.
-Datei fehlt = Name/Datei fehlt oder Platzhalter-Datei.
-```
-
-### Review Workflow
-
-Automatisch erkannte Eintraege bleiben sichtbar, bis sie einzeln geprueft und gespeichert/freigegeben werden.
-
-Statuslogik:
-
-- `review_required` / `file_matched` = `Zur Pruefung`
-- `active` = gespeichert/freigegeben und aktiv
-- `inactive` = gespeichert, aber bewusst deaktiviert
-- `missing_file` = Name oder Datei fehlt
-- `ignored` = bewusst ignoriert, nicht prominent im Normalfluss
-
-Wichtige Korrekturen:
-
-- `Speichern / Freigeben` finalisiert nur den aktuell bearbeiteten Eintrag.
-- Globales `Config speichern` gibt keine anderen `Zur Pruefung`-Eintraege frei.
-- Uploads bleiben bis zur expliziten Freigabe im Status `review_required`.
-
-### Events
-
-Der Events-Tab ist Historie/Logbuch, nicht automatisch eine aktuelle Aufgabenliste.
-
-Klartextregeln:
-
-- Alte Events zu geloeschten/unbekannten Eintraegen werden als `Kein aktueller Eintrag` dargestellt.
-- Parse-/Rohdatenfehler werden als `Parse-Fehler` dargestellt.
-- Unbrauchbare Parse-Events bieten keinen sinnlosen `Eintrag erstellen`-Button an.
-- Replay wird nur angeboten, wenn eine Datei vorhanden ist.
-
-### Statistik
-
-Die Statistik ist fachlich auf nutzbare Werte ausgerichtet:
-
-- abgespielte Sounds
-- Sound-Ausloesungen
-- User-Ausloesungen
-- verschiedene Sounds
-- verschiedene User
-- Top-Sounds
-- Top-User
-
-## Lokaler Overlay-Test / Test-Ausgabe
-
-Seit STEP193.14/STEP193.15 ist ein lokaler Overlay-Test-Workflow vorbereitet:
-
-- Button `Lokales Overlay` im Dashboard.
-- Oeffnet `/overlays/sound_system_overlay.html?debug=1`.
-- Eintraege zeigen ihr Ausgabeziel: `Device`, `Overlay`, `Beides`.
-- Ausgabeziel ist im Eintrag-Editor nicht mehr einzeln bearbeitbar; es folgt automatisch Audio-/Video-Typ und globalen Ziel-Settings.
-- Normaler Test nutzt das gespeicherte Ausgabeziel.
-- Overlay-Test kann temporaer `outputTarget: overlay` senden, ohne den Eintrag dauerhaft umzuschalten.
-
-Wichtige Regel:
-
-```text
-Produktiv-Ausgabe bleibt gespeichert.
-Nur der Overlay-Test darf temporaer auf overlay overriden.
-```
-
-## Loeschen / Ignorieren
-
-```text
-Loeschen = Eintrag wird entfernt. Kommt derselbe SoundAlert wieder rein, wird er neu erkannt und neu angelegt.
-Ignorieren = Eintrag bleibt mit Status ignored bestehen. Kommt derselbe SoundAlert wieder rein, wird er nicht als neuer offener Eintrag angelegt.
-```
-
-Ignorieren ist nicht prominent im normalen Kartenfluss, bleibt aber technisch vorhanden.
-
-## Live bestaetigte Referenzwerte
-
-```text
-soundalerts_bridge version = 0.1.14
-upload.maxVideoSizeBytes = 1073741824
-parser.messageFormats = echtes Objekt-Array, nicht [object Object]
-```
-
-## STEP194 - Loyalty / StreamElements Migration Architektur
-
-Mit `STEP194` wurde der verbindliche Planungsstandard fuer die spaetere StreamElements-Ablösung dokumentiert.
-
-Betroffener Zielumfang:
-
-- Loyalty Points / Kekskruemel
-- Stream Store / Rewards
-- Giveaways
-- Chat Games
-- Loyalty-/Game-Overlays
-
-Dokument:
-
-- `project-state/STEP194_STREAMELEMENTS_LOYALTY_MIGRATION_ARCHITECTURE_2026-05-07.md`
-
-Zentrale Regel:
-
-```text
-Alles, was Kekskruemel gibt, nimmt, prueft, reserviert, erstattet oder veraendert, laeuft ausschliesslich ueber das Loyalty-System.
-```
-
-Weitere Fachregeln:
-
-- Loyalty ist die einzige Quelle fuer Kontostaende und Punkte-Transaktionen.
-- Andere Module duerfen keine Punktestaende direkt veraendern.
-- Giveaways, Chat Games, Rewards, SoundAlerts, Challenges, VIP/TTS/Overlays und Streamer.bot-Scripte muessen Punkte ueber Loyalty anfragen.
-- Jede Punkteveraenderung muss als Transaktion nachvollziehbar gespeichert werden.
-- Fuer laufende Sessions wie Duel/Giveaway wird eine Reservierungslogik empfohlen.
-- Overlays zeigen nur fertige Events an und duerfen niemals Punkte berechnen oder schreiben.
-- StreamElements-Daten sollen importiert und mit `source_provider=streamelements` markiert werden.
-- Neue DB-Features sollen ueber `backend/core/database.js` oder vorhandene Helper gekapselt werden.
-- SQLite bleibt produktiv aktiv; MariaDB wird nur vorbereitet, nicht erzwungen.
-
-Aktueller Stand:
-
-- Reine Doku-/Architektur-Aenderung.
-- Keine Code-Aenderung.
-- Keine API-Aenderung.
-- Keine DB-Aenderung.
-- Keine Live-Aenderung.
+- `htdocs/dashboard/modules/tts.js`
+- `htdocs/dashboard/modules/tts.css`
+- Einbindung in `htdocs/dashboard/index.html`
 
 ## Bewusst offen
 
-- Sound-System Overlay hat noch Bugs und soll spaeter separat bereinigt werden.
-- Audio/Video-Verhalten im lokalen Overlay weiter pruefen.
-- Status-/Debuganzeige im Overlay verbessern.
-- Bei Bedarf Event-Tab spaeter filtern: Alle / Abgespielt / Fehler / Kein aktueller Eintrag.
-- Bei Bedarf Statistik spaeter backendseitig robuster machen.
-- Clip-System spaeter live testen.
-- MariaDB-Adapter spaeter in `backend/core/database.js` implementieren.
-- Fuer Loyalty/StreamElements-Migration echte Exportdaten, Store-Items, Giveaway-Settings und aktive Chat-Games erfassen.
+- Stream Store / Reward-Items erfassen.
+- Giveaway-Settings erfassen.
+- Aktive Chat-Games priorisieren.
+- Commands/Aliase festlegen.
+- Danach STEP203 technisch bauen.
+- Sound-System Overlay nur bei konkretem Fehler weiter pruefen.
+- MariaDB-Adapter spaeter zentral in `backend/core/database.js` implementieren.
