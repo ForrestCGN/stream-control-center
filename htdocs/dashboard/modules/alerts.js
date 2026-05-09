@@ -2075,7 +2075,7 @@
     const widthPx = previewCardBasePx(st);
     const heightPx = previewCardEstimatedHeight(st);
     const mode = popout ? '1920×1080 Originalgröße' : 'OBS 16:9 skaliert';
-    const src = '/overlays/_overlay-alerts-v2.html?preview=1&v=173';
+    const src = '/overlays/_overlay-alerts-v2.html?preview=1&v=2091';
     return '<div class="preview-toolbar"><span>' + esc(mode) + '</span><strong>' + esc(widthPx + '×' + heightPx + ' px') + '</strong><em>' + esc('X ' + st.positionX + '% · Y ' + st.positionY + '% · Avatar ' + displaySimpleLabel(st.avatarPosition) + ' · ' + displaySimpleLabel(st.avatarSize)) + '</em></div>' +
       '<div class="preview-viewport" aria-label="OBS-Vorschaufläche"><div class="preview-safe-zone"></div><div class="preview-crosshair"></div><div class="preview-anchor-dot"></div>' +
       '<div class="preview-axis x"></div><div class="preview-axis y"></div>' +
@@ -2123,7 +2123,7 @@
       recipientDisplayName: 'EngelCGN',
       tier: 'normal',
       provider: (variant && variant.source) || 'twitch',
-      message: 'Live-Vorschau aus dem Dashboard'
+      message: 'Das ist ein längerer Vorschautext aus dem Dashboard. Hier sieht man Größe, Breite und maximale Zeilen direkt in der Live-Vorschau.'
     };
     const source = (variant && variant.source) || 'twitch';
     const type = (variant && variant.type_key) || 'bits';

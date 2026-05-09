@@ -587,3 +587,69 @@ html[data-theme=dark] .message-settings-head strong{color:#f2f2f2}
 html[data-theme=dark] .message-settings-head span{color:#a7a7a7}
 @media(max-width:1350px){.message-settings-grid{grid-template-columns:repeat(3,minmax(130px,1fr))}}
 @media(max-width:760px){.message-settings-grid{grid-template-columns:1fr}.message-settings-card{grid-column:span 1}}
+
+
+/* STEP209.1: Nachrichtentext-Einstellungen kompakter und wirklich bedienbar */
+.message-settings-card{
+  grid-column:1 / -1!important;
+  display:block!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  padding:14px!important;
+  border:1px solid rgba(143,244,255,.16)!important;
+  border-radius:18px!important;
+  background:linear-gradient(180deg,rgba(9,18,36,.72),rgba(8,10,26,.58))!important;
+}
+.message-settings-head{
+  display:block!important;
+  margin:0 0 12px!important;
+  max-width:none!important;
+}
+.message-settings-head strong{
+  display:block!important;
+  font-size:15px!important;
+  color:#f4f7ff!important;
+  margin:0 0 5px!important;
+}
+.message-settings-head span{
+  display:block!important;
+  max-width:760px!important;
+  color:#aab6d6!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+  font-weight:700!important;
+}
+.message-settings-grid{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr))!important;
+  gap:12px!important;
+  align-items:stretch!important;
+}
+.message-settings-grid label{
+  min-width:0!important;
+  min-height:0!important;
+  background:rgba(255,255,255,.035)!important;
+  border:1px solid rgba(255,255,255,.07)!important;
+  border-radius:15px!important;
+  padding:10px 11px!important;
+}
+.message-settings-grid input[type="range"]{
+  width:100%!important;
+  min-height:24px!important;
+  padding:0!important;
+}
+.message-settings-card .small-note{
+  margin:12px 0 0!important;
+  max-width:780px!important;
+  line-height:1.45!important;
+}
+html[data-theme=dark] .message-settings-card{
+  background:#202020!important;
+  border-color:#343434!important;
+}
+html[data-theme=dark] .message-settings-head strong{color:#f2f2f2!important;}
+html[data-theme=dark] .message-settings-head span{color:#a7a7a7!important;}
+html[data-theme=dark] .message-settings-grid label{
+  background:#242424!important;
+  border-color:#3a3a3a!important;
+}
