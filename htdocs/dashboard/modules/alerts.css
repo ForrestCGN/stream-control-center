@@ -691,3 +691,55 @@ html[data-theme=dark] .message-settings-grid label{
 @media(max-width:1350px){.message-settings-grid{grid-template-columns:repeat(3,minmax(150px,1fr))!important}}
 @media(max-width:850px){.message-settings-grid{grid-template-columns:repeat(2,minmax(150px,1fr))!important}}
 @media(max-width:560px){.message-settings-grid{grid-template-columns:1fr!important}}
+
+
+/* STEP209.3: Nachrichtentext-Controls wieder einheitlich im normalen Design-Grid */
+.design-section .text-subsection-title{
+  grid-column:1 / -1!important;
+  margin:14px 0 10px!important;
+  padding:0!important;
+  display:grid!important;
+  gap:4px!important;
+}
+.design-section .text-subsection-title strong{
+  font-size:14px!important;
+  color:#dbeafe!important;
+  font-weight:950!important;
+}
+.design-section .text-subsection-title span{
+  max-width:880px!important;
+  color:#aab6d6!important;
+  font-size:12px!important;
+  line-height:1.35!important;
+  font-weight:700!important;
+}
+.design-section .message-settings-grid{
+  grid-column:1 / -1!important;
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(140px,1fr))!important;
+  gap:12px!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+  border:0!important;
+}
+.design-section .message-settings-grid label{
+  min-height:76px!important;
+  min-width:0!important;
+  background:rgba(255,255,255,.025)!important;
+  border:1px solid rgba(255,255,255,.07)!important;
+  border-radius:16px!important;
+  padding:10px 12px!important;
+  overflow:hidden!important;
+}
+.design-section .message-settings-grid select,
+.design-section .message-settings-grid input{
+  max-width:100%!important;
+}
+html[data-theme=dark] .design-section .text-subsection-title strong{color:#f2f2f2!important;}
+html[data-theme=dark] .design-section .text-subsection-title span{color:#a7a7a7!important;}
+html[data-theme=dark] .design-section .message-settings-grid label{background:#242424!important;border-color:#3a3a3a!important;}
+@media(max-width:1350px){.design-section .message-settings-grid{grid-template-columns:repeat(3,minmax(140px,1fr))!important}}
+@media(max-width:850px){.design-section .message-settings-grid{grid-template-columns:repeat(2,minmax(140px,1fr))!important}}
+@media(max-width:560px){.design-section .message-settings-grid{grid-template-columns:1fr!important}}

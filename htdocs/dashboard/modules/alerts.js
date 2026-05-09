@@ -816,18 +816,16 @@
                 ${rangeHtml('headlineScale','Headline-Größe', st.headlineScale, .7, 1.4, .01)}
                 ${rangeHtml('valueScale','Betrag/Wert-Größe', st.valueScale, .7, 1.4, .01)}
               </div>
-              <div class="message-settings-card">
-                <div class="message-settings-head">
-                  <strong>Nachrichtentext</strong>
-                  <span>Steuert nur den kleinen User-Text unter dem Alert. Headline, Wert, Sound, TTS und Queue bleiben unverändert.</span>
-                </div>
-                <div class="message-settings-grid">
-                  ${selectHtml('messageEnabled','Anzeigen', st.messageEnabled === false ? 'false':'true', [['true','anzeigen'],['false','ausblenden']])}
-                  ${rangeHtml('messageScale','Größe', st.messageScale ?? 1, .65, 1.8, .01)}
-                  ${selectHtml('messageWidthMode','Breite', st.messageWidthMode || 'normal', [['compact','kompakt'],['normal','normal'],['wide','breit'],['full','volle Breite']])}
-                  ${selectHtml('messageMaxLines','Max. Zeilen', String(st.messageMaxLines ?? 0), [['0','alle'],['1','1 Zeile'],['2','2 Zeilen'],['3','3 Zeilen']])}
-                  ${selectHtml('messageWeight','Schrift', st.messageWeight || 'normal', [['normal','normal'],['bold','fett']])}
-                </div>
+              <div class="text-subsection-title">
+                <strong>Nachrichtentext</strong>
+                <span>Steuert nur den kleinen User-Text unter dem Alert. Headline, Wert, Sound, TTS und Queue bleiben unverändert.</span>
+              </div>
+              <div class="config-grid design-grid message-settings-grid">
+                ${selectHtml('messageEnabled','Nachricht anzeigen', st.messageEnabled === false ? 'false':'true', [['true','anzeigen'],['false','ausblenden']])}
+                ${rangeHtml('messageScale','Nachrichtengröße', st.messageScale ?? 1, .65, 1.8, .01)}
+                ${selectHtml('messageWidthMode','Nachrichtenbreite', st.messageWidthMode || 'normal', [['compact','kompakt'],['normal','normal'],['wide','breit'],['full','volle Breite']])}
+                ${selectHtml('messageMaxLines','Max. Zeilen', String(st.messageMaxLines ?? 0), [['0','alle'],['1','1 Zeile'],['2','2 Zeilen'],['3','3 Zeilen']])}
+                ${selectHtml('messageWeight','Nachricht fett', st.messageWeight || 'normal', [['normal','normal'],['bold','fett']])}
               </div>
             </div>
 
@@ -2076,7 +2074,7 @@
   }
 
   function designPreviewMarkup(st, popout){
-    const src = '/overlays/_overlay-alerts-v2.html?preview=1&v=2092';
+    const src = '/overlays/_overlay-alerts-v2.html?preview=1&v=2093';
     return '<div class="preview-toolbar"></div>' +
       '<div class="preview-viewport" aria-label="OBS-Vorschaufläche"><div class="preview-safe-zone"></div><div class="preview-crosshair"></div><div class="preview-anchor-dot"></div>' +
       '<div class="preview-axis x"></div><div class="preview-axis y"></div>' +

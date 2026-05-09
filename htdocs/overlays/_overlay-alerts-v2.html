@@ -1799,6 +1799,30 @@
 .alert-card.message-width-full .message{max-width:100%!important}
 .alert-card.message-weight-bold .message{font-weight:900!important;color:#eef4ff!important}
 </style>
+
+
+<style id="step209-3-message-settings-specificity-fix">
+/* STEP209.3: Typ-spezifische Regeln (z.B. Bits) dürfen messageScale nicht mehr überstimmen. */
+.alert-card .message,
+.alert-card.alert-type-bits .message,
+.alert-card.alert-type-cheer .message,
+.alert-card.alert-type-donation .message,
+.alert-card.alert-type-resub .message,
+.alert-card.alert-type-sub .message,
+.alert-card.alert-type-gift_sub .message,
+.alert-card.alert-type-gift_bomb .message,
+.alert-card.alert-type-raid .message,
+.alert-card.alert-type-follow .message{
+  font-size:calc(var(--card-h) * .065 * var(--font-scale,1) * var(--message-scale,1))!important;
+  line-height:1.20!important;
+}
+.alert-card.message-width-compact .message{max-width:min(42ch,68%)!important}
+.alert-card.message-width-normal .message{max-width:min(72ch,92%)!important}
+.alert-card.message-width-wide .message{max-width:min(96ch,100%)!important}
+.alert-card.message-width-full .message{max-width:100%!important}
+.alert-card.message-weight-bold .message{font-weight:900!important;color:#eef4ff!important}
+</style>
+
 </head>
 <body>
   <div class="stage" id="stage"></div>
