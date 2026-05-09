@@ -2,33 +2,32 @@
 
 Stand: 2026-05-09
 
-## Loyalty / Twitch EventSub
+## Loyalty / Kekskrümel
 
 Aktueller Stand:
 
-- Shadow Mode.
-- Watch/Lurk-Punkte.
-- Auto Runner.
-- Dashboard-Kontrolle.
-- Echte Twitch/EventSub-Events können Loyalty Event-Boni erzeugen.
+- Shadow Mode aktiv.
+- StreamElements bleibt aktiv.
+- Watch/Lurk-Punkte laufen über Twitch Presence + Auto Runner.
+- Event-Boni können echte Twitch/EventSub-Events im Shadow Mode verarbeiten.
+- Follow, Subscribe, Resub, Cheer/Bits, Raid und GiftSub werden unterstützt.
+- STEP203.6.1 ergänzt GiftSub-Receiver-Buchungen.
 
-## EventSub-Typen
+## GiftSub-Verhalten
+
+Bei GiftSub mit `recipientLogin`:
 
 ```text
-channel.follow
-channel.subscribe
-channel.subscription.message
-channel.subscription.gift
-channel.cheer
-channel.raid
+Gifter bekommt giftSubGiver-Punkte.
+Receiver bekommt giftSubReceiver-Punkte.
 ```
 
-## Aktivierung
-
-Punktebuchung für Events nur wenn:
+Voraussetzung:
 
 ```text
+bonuses.giftSubGiver.enabled = true
+bonuses.giftSubReceiver.enabled = true
 features.eventBonusesEnabled = true
 ```
 
-StreamElements bleibt aktiv.
+Duplicate-Schutz bleibt über `eventUid` aktiv.

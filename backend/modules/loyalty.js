@@ -18,7 +18,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.4";
+const VERSION = "0.1.5";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 3;
@@ -1552,15 +1552,106 @@ function recordEventBonus(input = {}) {
     metadata: { eventUid, eventType: calculated.type || eventType, sourceType, tier, quantity, valueAmount, calculated, raw }
   });
 
+  const relatedTransactions = [];
+  const relatedUsers = [];
+  let receiverResult = null;
+  let receiverCalculated = null;
+  let receiverSkippedReason = "";
+
+  const recipientLogin = normalizeLogin(
+    input.recipientLogin || input.recipient_login || input.recipient || input.receiverLogin || input.receiver_login || input.targetLogin || input.target_login
+  );
+  const recipientDisplayName = cleanDisplayName(
+    recipientLogin,
+    input.recipientDisplayName || input.recipient_display_name || input.receiverDisplayName || input.receiver_display_name || input.targetDisplayName || input.target_display_name || recipientLogin
+  );
+
+  if ((calculated.type === "gift_sub" || calculated.type === "gift_bomb") && recipientLogin) {
+    receiverCalculated = calculateEventBonus({
+      ...input,
+      eventType: "gifted_sub_received",
+      type: "gifted_sub_received",
+      tier,
+      quantity: 1,
+      amount: valueAmount
+    });
+
+    if (isIgnoredUser(recipientLogin)) {
+      receiverSkippedReason = "receiver_ignored_user";
+    } else if (receiverCalculated.ok && !receiverCalculated.skipped && Number(receiverCalculated.amount || 0) > 0) {
+      receiverResult = recordTransaction({
+        login: recipientLogin,
+        displayName: recipientDisplayName,
+        amount: receiverCalculated.amount,
+        type: "event_bonus",
+        reason: "event_gifted_sub_received",
+        mode,
+        sourceModule: "loyalty",
+        sourceProvider: provider,
+        referenceType: "event_bonus_receiver",
+        referenceId: `${eventUid}:receiver:${recipientLogin}`,
+        metadata: {
+          eventUid,
+          eventType: "gifted_sub_received",
+          parentEventType: calculated.type || eventType,
+          parentTransactionUid: result?.transaction?.uid || "",
+          sourceType,
+          tier,
+          quantity: 1,
+          valueAmount,
+          calculated: receiverCalculated,
+          raw
+        }
+      });
+      if (receiverResult?.transaction) relatedTransactions.push(receiverResult.transaction);
+      if (receiverResult?.user) relatedUsers.push(receiverResult.user);
+    } else {
+      receiverSkippedReason = receiverCalculated.reason || "receiver_no_points";
+    }
+  }
+
   const transactionUid = result?.transaction?.uid || "";
+  const eventMetadata = {
+    ...metadata,
+    calculated,
+    receiver: recipientLogin ? {
+      login: recipientLogin,
+      displayName: recipientDisplayName,
+      calculated: receiverCalculated,
+      skipped: !receiverResult,
+      reason: receiverResult ? "processed" : receiverSkippedReason,
+      transactionUid: receiverResult?.transaction?.uid || ""
+    } : null,
+    transactions: [result?.transaction, ...relatedTransactions].filter(Boolean).map(tx => ({
+      uid: tx.uid,
+      login: tx.login,
+      displayName: tx.displayName,
+      amount: tx.amount,
+      reason: tx.reason,
+      referenceId: tx.referenceId
+    }))
+  };
+
   const row = insertLoyaltyEventRow({
     eventUid, provider, eventType: calculated.type || eventType, sourceType, login, displayName,
-    amount: valueAmount, tier, quantity, points: calculated.amount, mode, processed: 1, duplicate: 0, skipped: 0,
+    amount: valueAmount, tier, quantity, points: calculated.amount + Number(receiverResult?.transaction?.amount || 0), mode, processed: 1, duplicate: 0, skipped: 0,
     reason: "processed", transactionUid, createdAt: now,
-    rawJson: JSON.stringify(raw || {}), metadataJson: JSON.stringify({ ...metadata, calculated })
+    rawJson: JSON.stringify(raw || {}), metadataJson: JSON.stringify(eventMetadata)
   });
 
-  return { ok: true, skipped: false, duplicate: false, reason: "processed", calculated, event: rowToLoyaltyEvent(row), transaction: result.transaction, user: result.user };
+  return {
+    ok: true,
+    skipped: false,
+    duplicate: false,
+    reason: "processed",
+    calculated,
+    receiver: eventMetadata.receiver,
+    event: rowToLoyaltyEvent(row),
+    transaction: result.transaction,
+    relatedTransactions,
+    user: result.user,
+    relatedUsers
+  };
 }
 
 function listLoyaltyEvents(options = {}) {

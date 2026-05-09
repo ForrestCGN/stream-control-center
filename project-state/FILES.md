@@ -2,17 +2,16 @@
 
 Stand: 2026-05-09
 
-## Geänderte Dateien in STEP203.6
+## STEP203.6.1
+
+Geändert:
 
 ```text
 backend/modules/loyalty.js
-backend/modules/twitch.js
-htdocs/dashboard/modules/loyalty.js
-htdocs/dashboard/modules/loyalty.css
 ```
 
-## Neue DB-Struktur
+Doku:
 
 ```text
-loyalty_events
+project-state/STEP203_6_1_LOYALTY_GIFTSUB_RECEIVER_BOOKING_FIX_2026-05-09.md
 ```

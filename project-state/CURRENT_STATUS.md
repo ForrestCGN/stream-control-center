@@ -4,30 +4,13 @@ Stand: 2026-05-09
 
 ## Loyalty
 
-- Shadow Mode aktiv.
-- Watch/Lurk-Punkte funktionieren.
-- Twitch Presence funktioniert.
-- Stream-State-Gate funktioniert.
-- Auto Runner funktioniert.
-- Dashboard-Modul funktioniert.
-- STEP203.6 ergänzt echte Twitch/EventSub-Event-Boni im Shadow-System.
+STEP203.6.1 ergänzt die GiftSub-Receiver-Buchung.
 
-Neue Tabelle:
+Aktueller Stand:
 
-```text
-loyalty_events
-```
-
-Neue Routen:
-
-```text
-GET  /api/loyalty/events
-POST /api/loyalty/events/ingest
-GET  /api/loyalty/events/test/:type
-```
-
-Punktebuchung für Events nur wenn:
-
-```text
-features.eventBonusesEnabled = true
-```
+- Watch/Lurk Shadow-Punkte funktionieren.
+- Event-Boni im Shadow Mode funktionieren.
+- Follow/Sub/Cheer/Raid/Resub funktionieren.
+- GiftSub-Gifter funktioniert.
+- GiftSub-Receiver wird ab STEP203.6.1 zusätzlich gebucht, wenn ein recipientLogin vorhanden und der Receiver-Bonus aktiviert ist.
+- Duplicate-Schutz bleibt eventbasiert.
