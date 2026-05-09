@@ -75,7 +75,16 @@ const DEFAULT_CONFIG = {
     soundSystemSource: 'alert_system',
     waitForSoundItemStarted: true,
     fallbackShowOnSoundError: true,
-    fallbackShowAfterMs: 15000
+    fallbackShowAfterMs: 15000,
+    ttsPrepareUrl: 'http://127.0.0.1:8080/api/tts/prepare-alert',
+    ttsSoundCategory: 'tts',
+    ttsSoundSource: 'alert_tts',
+    ttsSoundPriority: 50,
+    ttsSoundVolume: 85,
+    ttsOutputTarget: 'device',
+    ttsAfterSoundDelayMs: 250,
+    ttsPrepareTimeoutMs: 15000,
+    ttsPlaybackTimeoutMs: 15000
   },
   dashboardSettings: {
     preferSqliteSettings: true,
@@ -785,6 +794,15 @@ function sanitizeRuntimeConfig(input) {
   cfg.liveAlert.waitForSoundItemStarted = boolValue(cfg.liveAlert.waitForSoundItemStarted, DEFAULT_CONFIG.liveAlert.waitForSoundItemStarted);
   cfg.liveAlert.fallbackShowOnSoundError = boolValue(cfg.liveAlert.fallbackShowOnSoundError, DEFAULT_CONFIG.liveAlert.fallbackShowOnSoundError);
   cfg.liveAlert.fallbackShowAfterMs = clamp(toInt(cfg.liveAlert.fallbackShowAfterMs, DEFAULT_CONFIG.liveAlert.fallbackShowAfterMs), 1000, 120000);
+  cfg.liveAlert.ttsPrepareUrl = cleanText(cfg.liveAlert.ttsPrepareUrl || DEFAULT_CONFIG.liveAlert.ttsPrepareUrl);
+  cfg.liveAlert.ttsSoundCategory = cleanKey(cfg.liveAlert.ttsSoundCategory || DEFAULT_CONFIG.liveAlert.ttsSoundCategory) || DEFAULT_CONFIG.liveAlert.ttsSoundCategory;
+  cfg.liveAlert.ttsSoundSource = cleanKey(cfg.liveAlert.ttsSoundSource || DEFAULT_CONFIG.liveAlert.ttsSoundSource) || DEFAULT_CONFIG.liveAlert.ttsSoundSource;
+  cfg.liveAlert.ttsSoundPriority = clamp(toInt(cfg.liveAlert.ttsSoundPriority, DEFAULT_CONFIG.liveAlert.ttsSoundPriority), 0, 1000);
+  cfg.liveAlert.ttsSoundVolume = clamp(toInt(cfg.liveAlert.ttsSoundVolume, DEFAULT_CONFIG.liveAlert.ttsSoundVolume), 0, 100);
+  cfg.liveAlert.ttsOutputTarget = validateSoundOutputTarget(cfg.liveAlert.ttsOutputTarget || cfg.liveAlert.soundSystemOutputTarget || DEFAULT_CONFIG.liveAlert.ttsOutputTarget, DEFAULT_CONFIG.liveAlert.ttsOutputTarget);
+  cfg.liveAlert.ttsAfterSoundDelayMs = clamp(toInt(cfg.liveAlert.ttsAfterSoundDelayMs, DEFAULT_CONFIG.liveAlert.ttsAfterSoundDelayMs), 0, 120000);
+  cfg.liveAlert.ttsPrepareTimeoutMs = clamp(toInt(cfg.liveAlert.ttsPrepareTimeoutMs, DEFAULT_CONFIG.liveAlert.ttsPrepareTimeoutMs), 1000, 120000);
+  cfg.liveAlert.ttsPlaybackTimeoutMs = clamp(toInt(cfg.liveAlert.ttsPlaybackTimeoutMs, DEFAULT_CONFIG.liveAlert.ttsPlaybackTimeoutMs), 1000, 120000);
 
   cfg.dashboardSettings.preferSqliteSettings = boolValue(cfg.dashboardSettings.preferSqliteSettings, DEFAULT_CONFIG.dashboardSettings.preferSqliteSettings);
   cfg.dashboardSettings.allowRuntimeEdit = boolValue(cfg.dashboardSettings.allowRuntimeEdit, DEFAULT_CONFIG.dashboardSettings.allowRuntimeEdit);
@@ -1906,14 +1924,7 @@ async function processQueue(broadcastWS) {
   const soundResult = await playLiveAlertSound(event);
   if (soundResult && soundResult.attempted) {
     event.soundSystem = soundResult;
-    try {
-      const raw = { ...(event.raw || {}), soundSystem: soundResult };
-      event.raw = raw;
-      sqlite.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
-        payloadJson: JSON.stringify(raw),
-        eventUid: event.eventUid
-      });
-    } catch (_) {}
+    persistEventRuntimePayload(event);
     if (!soundResult.ok && state.config.liveAlert && state.config.liveAlert.fallbackShowOnSoundError === false) {
       finishCurrent('sound_system_failed', broadcastWS);
       state.processing = false;
@@ -1921,9 +1932,17 @@ async function processQueue(broadcastWS) {
     }
   }
 
+  const ttsResult = await prepareAlertTts(event);
+  if (ttsResult && ttsResult.attempted) {
+    event.alertTts = ttsResult;
+    extendAlertDurationForTts(event, soundResult, ttsResult);
+    persistEventRuntimePayload(event);
+  }
+
   const overlayAlert = buildOverlayAlert(event);
   sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
   dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
+  dispatchPreparedAlertTts(event, ttsResult, soundResult).catch(err => console.warn('[alert_system] alert tts dispatch failed:', err && err.message ? err.message : err));
   const duration = event.effectiveDurationMs;
   const fallback = Math.max(duration + Number(state.config.fallbackFinishMs || 12000), duration + 1000);
   clearTimeout(state.finishTimer);
@@ -1999,6 +2018,214 @@ function soundSystemFileFromPublicUrl(publicUrl) {
   const prefix = 'assets/sounds/';
   if (raw.toLowerCase().startsWith(prefix)) raw = raw.slice(prefix.length);
   return raw.replace(/^\/+/, '');
+}
+
+function persistEventRuntimePayload(event) {
+  if (!event || !event.eventUid) return;
+  try {
+    const raw = { ...(event.raw || {}) };
+    if (event.soundSystem) raw.soundSystem = event.soundSystem;
+    if (event.alertTts) raw.alertTts = event.alertTts;
+    event.raw = raw;
+    sqlite.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
+      payloadJson: JSON.stringify(raw),
+      eventUid: event.eventUid
+    });
+  } catch (_) {}
+}
+
+async function prepareAlertTts(event) {
+  const rule = event && event.rule ? event.rule : {};
+  const ttsPayload = buildTtsPayload(event, rule);
+  if (!ttsPayload) return { attempted: false, enabled: false, reason: 'rule_tts_disabled' };
+  if (ttsPayload.enabled === false) return { attempted: true, enabled: false, reason: ttsPayload.reason || 'not_applicable', payload: ttsPayload };
+
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  const prepareUrl = cleanText(liveCfg.ttsPrepareUrl || DEFAULT_CONFIG.liveAlert.ttsPrepareUrl);
+  if (!prepareUrl) return { attempted: true, enabled: true, ok: false, reason: 'tts_prepare_url_missing', payload: ttsPayload };
+  if (typeof fetch !== 'function') return { attempted: true, enabled: true, ok: false, reason: 'fetch_unavailable', payload: ttsPayload };
+
+  const body = {
+    text: ttsPayload.text,
+    user: event.user_display || event.user_login || 'Alert',
+    userLogin: event.user_login || '',
+    userDisplay: event.user_display || '',
+    source: 'alert',
+    meta: {
+      provider: event.source,
+      source: event.source,
+      type: event.type_key,
+      type_key: event.type_key,
+      eventUid: event.eventUid,
+      ruleId: rule.id || null,
+      timing: ttsPayload.timing || 'after_alert',
+      mode: ttsPayload.mode || 'audio_only'
+    }
+  };
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), Math.max(1000, toInt(liveCfg.ttsPrepareTimeoutMs, DEFAULT_CONFIG.liveAlert.ttsPrepareTimeoutMs))) : null;
+
+  try {
+    const res = await fetch(prepareUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller ? controller.signal : undefined
+    });
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch (_) { data = { raw: text }; }
+    const ok = !!(res.ok && data && data.ok !== false);
+    return {
+      attempted: true,
+      enabled: true,
+      ok,
+      status: res.status,
+      prepareUrl,
+      payload: ttsPayload,
+      text: ttsPayload.text,
+      audioUrl: data && data.audioUrl ? data.audioUrl : '',
+      audioFile: data && data.audioFile ? data.audioFile : '',
+      soundSystemFile: data && data.soundSystemFile ? data.soundSystemFile : '',
+      durationMs: toInt(data && data.durationMs, 0),
+      durationOk: !!(data && data.durationOk),
+      startAfterMs: toInt(data && data.startAfterMs, 0),
+      endsAfterMs: toInt(data && data.endsAfterMs, 0),
+      outroBufferMs: toInt(data && data.outroBufferMs, 0),
+      voice: data && data.voice ? data.voice : '',
+      voiceLabel: data && data.voiceLabel ? data.voiceLabel : '',
+      engine: data && data.engine ? data.engine : '',
+      error: ok ? '' : (data && (data.error || data.reason || data.message) ? String(data.error || data.reason || data.message) : `tts_prepare_http_${res.status}`)
+    };
+  } catch (err) {
+    return {
+      attempted: true,
+      enabled: true,
+      ok: false,
+      prepareUrl,
+      payload: ttsPayload,
+      text: ttsPayload.text,
+      error: err && err.message ? err.message : String(err)
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+function getMainAlertSoundDurationMs(event, soundResult) {
+  const fromSoundItem = Number(soundResult && soundResult.item && soundResult.item.durationMs || 0);
+  if (Number.isFinite(fromSoundItem) && fromSoundItem > 0) return fromSoundItem;
+  const fromRuleSound = Number(event && event.rule && event.rule.sound_duration_ms || 0);
+  if (Number.isFinite(fromRuleSound) && fromRuleSound > 0) return fromRuleSound;
+  const fromEvent = Number(event && event.effectiveDurationMs || 0);
+  if (Number.isFinite(fromEvent) && fromEvent > 0) return fromEvent;
+  return Number(state.config.defaultDurationMs || 7000);
+}
+
+function getAlertTtsDelayMs(event, soundResult, ttsResult) {
+  if (!ttsResult || !ttsResult.ok || !ttsResult.soundSystemFile) return 0;
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  const timing = ttsResult.payload && ttsResult.payload.timing ? ttsResult.payload.timing : 'after_alert';
+  if (timing === 'before_alert') return 0;
+  if (timing === 'with_alert') return Math.max(0, toInt(ttsResult.startAfterMs, 0));
+  const soundDuration = getMainAlertSoundDurationMs(event, soundResult);
+  const afterSoundDelay = toInt(liveCfg.ttsAfterSoundDelayMs, DEFAULT_CONFIG.liveAlert.ttsAfterSoundDelayMs);
+  return Math.max(0, soundDuration + afterSoundDelay + Math.max(0, toInt(ttsResult.startAfterMs, 0)));
+}
+
+function extendAlertDurationForTts(event, soundResult, ttsResult) {
+  if (!event || !ttsResult || !ttsResult.ok || !ttsResult.soundSystemFile) return;
+  const delayMs = getAlertTtsDelayMs(event, soundResult, ttsResult);
+  const ttsDuration = Math.max(0, toInt(ttsResult.durationMs, 0));
+  const outroBuffer = Math.max(0, toInt(ttsResult.outroBufferMs, 0));
+  const requiredDuration = delayMs + ttsDuration + outroBuffer;
+  if (requiredDuration > Number(event.effectiveDurationMs || 0)) {
+    event.effectiveDurationMs = requiredDuration;
+  }
+  ttsResult.playAfterMs = delayMs;
+  ttsResult.extendedAlertDurationMs = event.effectiveDurationMs;
+}
+
+async function dispatchPreparedAlertTts(event, ttsResult, soundResult) {
+  if (!event || !ttsResult || !ttsResult.attempted || !ttsResult.ok || !ttsResult.soundSystemFile) return;
+  const delayMs = Math.max(0, toInt(ttsResult.playAfterMs, getAlertTtsDelayMs(event, soundResult, ttsResult)));
+  if (delayMs > 0) await sleepMs(delayMs);
+  if (!state.current || state.current.eventUid !== event.eventUid) {
+    ttsResult.playback = { attempted: false, skipped: true, reason: 'alert_not_current' };
+    persistEventRuntimePayload(event);
+    return;
+  }
+
+  const playback = await playAlertTtsSound(event, ttsResult);
+  ttsResult.playback = playback;
+  persistEventRuntimePayload(event);
+}
+
+async function playAlertTtsSound(event, ttsResult) {
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  const playUrl = cleanText(liveCfg.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl);
+  if (!playUrl) return { attempted: true, ok: false, reason: 'sound_system_play_url_missing' };
+  if (typeof fetch !== 'function') return { attempted: true, ok: false, reason: 'fetch_unavailable' };
+
+  const body = {
+    file: ttsResult.soundSystemFile,
+    label: `Alert TTS: ${event.user_display || event.user_login || 'Alert'}`,
+    source: cleanKey(liveCfg.ttsSoundSource || DEFAULT_CONFIG.liveAlert.ttsSoundSource) || 'alert_tts',
+    category: cleanKey(liveCfg.ttsSoundCategory || DEFAULT_CONFIG.liveAlert.ttsSoundCategory) || 'tts',
+    outputTarget: validateSoundOutputTarget(liveCfg.ttsOutputTarget || liveCfg.soundSystemOutputTarget || DEFAULT_CONFIG.liveAlert.ttsOutputTarget, DEFAULT_CONFIG.liveAlert.ttsOutputTarget),
+    priority: clamp(toInt(liveCfg.ttsSoundPriority, DEFAULT_CONFIG.liveAlert.ttsSoundPriority), 0, 1000),
+    volume: clamp(toInt(liveCfg.ttsSoundVolume, DEFAULT_CONFIG.liveAlert.ttsSoundVolume), 0, 100),
+    requestedBy: cleanText(event.user_display || event.user_login || ''),
+    meta: {
+      alertEventUid: event.eventUid,
+      alertSource: event.source,
+      alertType: event.type_key,
+      ruleId: event.rule && event.rule.id ? event.rule.id : null
+    }
+  };
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), Math.max(1000, toInt(liveCfg.ttsPlaybackTimeoutMs, DEFAULT_CONFIG.liveAlert.ttsPlaybackTimeoutMs))) : null;
+
+  try {
+    const res = await fetch(playUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller ? controller.signal : undefined
+    });
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch (_) { data = { raw: text }; }
+    const ok = !!(res.ok && data && data.ok !== false);
+    return {
+      attempted: true,
+      ok,
+      status: res.status,
+      url: playUrl,
+      file: ttsResult.soundSystemFile,
+      result: data && data.result ? data.result : null,
+      item: data && data.item ? data.item : null,
+      error: ok ? '' : (data && (data.error || data.message || data.reason) ? String(data.error || data.message || data.reason) : `sound_system_http_${res.status}`)
+    };
+  } catch (err) {
+    return {
+      attempted: true,
+      ok: false,
+      url: playUrl,
+      file: ttsResult.soundSystemFile,
+      error: err && err.message ? err.message : String(err)
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+function sleepMs(ms) {
+  const delay = Math.max(0, toInt(ms, 0));
+  if (!delay) return Promise.resolve();
+  return new Promise(resolve => setTimeout(resolve, delay));
 }
 
 function finishCurrent(reason, broadcastWS) {
