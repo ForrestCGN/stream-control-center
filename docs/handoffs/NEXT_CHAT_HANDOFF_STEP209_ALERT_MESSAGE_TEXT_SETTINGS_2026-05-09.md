@@ -1,20 +1,26 @@
 # NEXT CHAT HANDOFF – STEP209 Alert Message Text Settings
 
-Projekt: `stream-control-center`
-Branch: `dev`
-Stand: STEP209 ergänzt einstellbare Nachrichtentext-Optionen im Alert-Design.
+Stand: 2026-05-09
 
-## Wichtig
+## Projekt
 
-Basis war der bereits getestete Alert-Overlay-Stand nach STEP208.3 mit vollständigen Usernamen ohne Ellipsis.
+Repository:
 
-## Geändert
+- `https://github.com/ForrestCGN/stream-control-center`
+- Branch: `dev`
 
-- `htdocs/dashboard/modules/alerts.js`
-- `htdocs/dashboard/modules/alerts.css`
-- `htdocs/overlays/_overlay-alerts-v2.html`
+Lokale Pfade:
 
-## Neue Settings im Display-Profil
+- Repo: `D:\Git\stream-control-center`
+- Live-System: `D:\Streaming\stramAssets`
+
+## Aktueller Stand
+
+STEP209 ist funktional abgeschlossen.
+
+Das Alert-Overlay unterstützt jetzt einstellbare Nachrichtentexte im Display-Profil.
+
+Neue Settings:
 
 - `messageEnabled`
 - `messageScale`
@@ -22,17 +28,45 @@ Basis war der bereits getestete Alert-Overlay-Stand nach STEP208.3 mit vollstän
 - `messageMaxLines`
 - `messageWeight`
 
-## Verhalten
+Betroffene Dateien:
 
-Der untere Alert-Message-Text kann jetzt pro Designprofil angezeigt/ausgeblendet, skaliert, verbreitert, auf Zeilen begrenzt und fett gemacht werden. TTS, Sound-System, Alert-Queue, Regeln und Backend wurden nicht verändert.
+- `htdocs/dashboard/modules/alerts.js`
+- `htdocs/dashboard/modules/alerts.css`
+- `htdocs/overlays/_overlay-alerts-v2.html`
 
-## Nach Entpacken/Deploy
+## Ergebnis
 
-Standardbefehl:
+Bestätigt:
 
-```powershell
-cd D:\Git\stream-control-center
-.\stepdone.cmd "feat: add alert message text design settings"
-```
+- Dashboard-Felder erreichbar
+- Nachrichtengröße reagiert
+- Live-Vorschau reagiert
+- Overlay übernimmt Einstellungen
+- keine Funktionalität entfernt
+- keine Backend-/DB-/TTS-/Sound-/Queue-Änderung
 
-Danach Dashboard hart neu laden und in `Design / Live-Vorschau` testen.
+## Wichtig
+
+Nicht weiter an STEP209 herumbasteln, außer es gibt neue konkrete Bugs.
+
+Das allgemeine Design des Dashboard-Bereichs ist noch uneinheitlich. Das soll später als separater UI-Cleanup gemacht werden.
+
+## Offene spätere Aufgabe
+
+Neuer Step-Vorschlag:
+
+`STEP210 – Alert Dashboard Design Cleanup`
+
+Ziel:
+
+- einheitliche Kacheln
+- einheitliche Farben
+- keine zufälligen Sonderstile
+- bessere Abstände
+- einheitliche Label- und Hilfetexte
+- Design-/Live-Vorschau-Bereich optisch aufräumen
+- keine Alert-Logik ändern
+
+## Arbeitsregel
+
+Keine Funktionalität entfernen. Bestehende Settings, Routen, Alerts, TTS, Sound-System und Queue nicht anfassen, wenn nur UI-Design geändert wird.

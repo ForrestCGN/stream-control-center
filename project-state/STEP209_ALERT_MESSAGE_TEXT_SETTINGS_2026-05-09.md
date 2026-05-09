@@ -1,30 +1,34 @@
-# STEP209 – Alert Message Text Settings (2026-05-09)
+# STEP209 – Alert Message Text Settings abgeschlossen
 
-## Ziel
+Stand: 2026-05-09
 
-Der untere Nachrichtentext im Alert-Overlay ist jetzt über das Design-/Display-Profil einstellbar. Vorher war dieser Text nur indirekt über Gesamt-Schriftgröße und Kartengröße beeinflussbar.
+## Kurzfassung
 
-## Geänderte Dateien
+STEP209 erweitert das Alert-System um echte Einstellungen für den kleinen Nachrichtentext im Alert-Overlay. Der Text unter Headline/Wert kann jetzt im Display-Profil gesteuert werden, ohne Alert-Regeln, Sound-System, TTS, Queue oder Backend-Logik zu verändern.
+
+Der Step wurde nach mehreren UI-/Preview-Fixes funktional geprüft und als Arbeitsstand akzeptiert. Das allgemeine Dashboard-Design ist noch nicht final und bleibt als späterer UI-Cleanup offen.
+
+## Betroffene Dateien
 
 - `htdocs/dashboard/modules/alerts.js`
 - `htdocs/dashboard/modules/alerts.css`
 - `htdocs/overlays/_overlay-alerts-v2.html`
 
-## Neue Display-Settings
+## Neue Display-Profil-Settings
 
-Die neuen Werte liegen im bestehenden Display-Profil-Settings-Objekt und bauen keine neue Parallelstruktur:
+Die Nachrichtentext-Einstellungen werden im bestehenden Display-Profil-Settings-Objekt gespeichert:
 
-- `messageEnabled` – Nachrichtentext anzeigen/ausblenden
-- `messageScale` – eigene Skalierung des Nachrichtentextes
-- `messageWidthMode` – kompakt, normal, breit oder volle Breite
-- `messageMaxLines` – alle, 1, 2 oder 3 Zeilen
-- `messageWeight` – normal oder fett
+- `messageEnabled`
+- `messageScale`
+- `messageWidthMode`
+- `messageMaxLines`
+- `messageWeight`
 
-## Dashboard
+Es wurde keine neue Parallelstruktur eingeführt.
 
-Im Bereich `Design / Live-Vorschau` wurde unter `Inhalt: Text` ein neuer Block `Nachrichtentext` ergänzt.
+## Neue Dashboard-Einstellungen
 
-Einstellbar sind:
+Im Bereich `Design / Live-Vorschau` gibt es für den Nachrichtentext neue Steuerungen:
 
 - Nachricht anzeigen
 - Nachrichtengröße
@@ -32,46 +36,91 @@ Einstellbar sind:
 - Max. Zeilen
 - Nachricht fett
 
-Die Vorschau nutzt weiterhin das echte Overlay-Iframe. Änderungen sollten deshalb in Vorschau und OBS-Overlay gleich wirken.
+Diese Einstellungen betreffen ausschließlich den kleinen User-Text unter dem Alert, z. B. Bits-, Resub- oder Donation-Nachrichten.
 
-## Overlay
+Nicht betroffen sind:
 
-Das Overlay liest die neuen Settings aus `alert.display.settings` und setzt Klassen/CSS-Variablen:
+- Headline
+- Betrag/Wert-Zeile
+- Sound
+- TTS
+- Alert-Queue
+- Regeln
+- Provider-Logik
 
-- `--message-scale`
-- `message-width-*`
-- `message-lines-*`
-- `message-weight-*`
-- `no-message`
+## Funktionaler Stand
 
-Der Nachrichtentext wird nur ausgeblendet, wenn `messageEnabled` explizit aus ist. Standard bleibt: Nachricht sichtbar, alle Zeilen erlaubt.
+Geprüft und bestätigt:
 
-## Nicht geändert
+- Alle Einstellungen sind im Dashboard erreichbar.
+- Das Formular läuft nicht mehr rechts aus dem sichtbaren Bereich.
+- Nachrichtentext-Felder funktionieren.
+- Nachrichtengröße reagiert sichtbar.
+- Live-Vorschau übernimmt die Einstellungen.
+- Overlay übernimmt die Einstellungen.
+- Keine Backend-Änderung.
+- Keine DB-Migration.
+- Keine Funktionalität entfernt.
 
-- Kein Backend-Umbau
-- Keine DB-Migration
-- Keine Sound-/TTS-/Queue-Änderung
-- Keine Regel-Änderung
-- Keine Entfernung bestehender Funktionalität
+## Wichtige Zwischenfixes
 
-## Teststatus
+### STEP209
 
-Syntax wurde geprüft:
+Grundfunktion für Nachrichtentext-Einstellungen eingebaut.
 
-- `node --check htdocs/dashboard/modules/alerts.js`
-- Embedded Overlay-Script aus `_overlay-alerts-v2.html` per `node --check` geprüft
+### STEP209.1
 
-## Manueller Test
+Preview-/UI-Fix:
+- längerer Vorschautext
+- bessere Preview-Aktualisierung
+- erster Versuch zur UI-Verbesserung
 
-1. Dashboard hart neu laden.
-2. `Alert-Center > Design / Live-Vorschau` öffnen.
-3. Ein Design-Profil auswählen.
-4. Im Bereich `Inhalt: Text > Nachrichtentext` die Werte ändern.
-5. Speichern.
-6. Overlay-Test oder echten Test-Alert auslösen.
-7. Prüfen, ob nur der untere Nachrichtentext anders gerendert wird.
+### STEP209.2
 
-## Offene Punkte
+Layout-/Preview-Reparatur:
+- Nachrichtentext-Block volle Breite
+- Preview-Iframe stabiler aktualisiert
+- messageScale-Bereich erweitert
 
-- Feintuning der Standardwerte nach Sichttest in OBS.
-- Falls gewünscht: später Presets für Nachrichtentext, z. B. `dezent`, `normal`, `groß`.
+### STEP209.3
+
+Scale-/CSS-Fix:
+- alte spezifische Overlay-CSS-Regeln überstimmten die neue Nachrichtengröße
+- messageScale greift nun auch bei Bits-Alerts
+- Nachrichtentext-Felder wieder stärker an normales Design-Grid angelehnt
+
+### STEP209.4
+
+Finaler Layout-Fix:
+- Designformular läuft nicht mehr aus dem sichtbaren Bereich
+- alle Regler erreichbar
+- einheitlicheres Kartenlayout
+- responsive Grid-Korrektur
+- keine Backend-/DB-/Sound-/TTS-/Queue-Änderung
+
+## Bewusst offen
+
+Das allgemeine Dashboard-Design ist noch nicht final. Es gibt noch uneinheitliche Kachel-/Farb-Stile im Designbereich. Das wurde bewusst nicht in STEP209 gelöst, um Funktionsänderungen und allgemeines UI-Redesign nicht zu vermischen.
+
+Offener späterer Step:
+
+- Alert Dashboard UI Cleanup
+- einheitliche Kachelfarben
+- einheitliche Abstände
+- einheitliche Feldhöhen
+- einheitliche Label-/Hilfetext-Optik
+- Designbereich insgesamt ruhiger und konsistenter machen
+
+## Commit-Empfehlung
+
+```powershell
+cd D:\Git\stream-control-center
+.\stepdone.cmd "docs: document alert message text settings"
+```
+
+Falls der letzte Code-Step noch nicht committed wurde:
+
+```powershell
+cd D:\Git\stream-control-center
+.\stepdone.cmd "fix: make alert design form layout uniform and reachable"
+```
