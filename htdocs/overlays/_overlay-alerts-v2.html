@@ -1702,8 +1702,8 @@
 }
 </style>
 
-<style id="step208-1-username-fit-runtime">
-/* STEP208.1: Runtime-Fit für Usernamen. Inline-JS setzt zusätzlich feste Ein-Zeilen-Styles. */
+<style id="step208-2-username-max-length-fit">
+/* STEP208.2: Maximal lange Twitch-Namen vollständig zeigen. Keine Ellipsis bei Support-Alerts. */
 .alert-card .headline{
   display:block!important;
   width:100%!important;
@@ -1711,19 +1711,24 @@
   min-width:0!important;
   white-space:nowrap!important;
   overflow:hidden!important;
-  text-overflow:ellipsis!important;
+  text-overflow:clip!important;
   overflow-wrap:normal!important;
   word-break:keep-all!important;
   hyphens:none!important;
 }
 .alert-card .headline.fit-done{
   white-space:nowrap!important;
+  text-overflow:clip!important;
 }
-.alert-card .headline.fit-ellipsis{
-  text-overflow:ellipsis!important;
+.alert-card .headline.fit-condensed{
+  letter-spacing:-0.035em!important;
 }
 .alert-card .value{
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
   word-break:normal!important;
+  overflow-wrap:normal!important;
 }
 </style>
 </head>
@@ -2142,26 +2147,41 @@
       try {
         el.style.whiteSpace = 'nowrap';
         el.style.overflow = 'hidden';
-        el.style.textOverflow = 'ellipsis';
+        el.style.textOverflow = 'clip';
         el.style.wordBreak = 'normal';
         el.style.overflowWrap = 'normal';
         el.style.hyphens = 'none';
+        el.style.maxWidth = '100%';
         el.classList.add('fit-done');
 
         const computed = window.getComputedStyle(el);
         const baseSize = Number.parseFloat(computed.fontSize) || 32;
-        const minSize = Math.max(18, Math.round(baseSize * 0.62));
+        const isHeadline = el.classList.contains('headline');
+        const minSize = isHeadline ? Math.max(12, Math.round(baseSize * 0.44)) : Math.max(14, Math.round(baseSize * 0.68));
         let size = baseSize;
 
         // Zwei Frames geben dem Browser Zeit, Grid-Breiten nach dem Einfügen zu berechnen.
         const shrink = () => {
           let guard = 0;
-          while (guard < 30 && el.scrollWidth > el.clientWidth + 1 && size > minSize) {
+          while (guard < 60 && el.scrollWidth > el.clientWidth + 1 && size > minSize) {
             size = Math.max(minSize, size - 1);
             el.style.fontSize = `${size}px`;
             guard += 1;
           }
-          if (el.scrollWidth > el.clientWidth + 1) el.classList.add('fit-ellipsis');
+
+          // Wenn ein 25-Zeichen-Name trotz kleinerer Schrift eng wird, zuerst leicht verdichten.
+          if (isHeadline && el.scrollWidth > el.clientWidth + 1) {
+            el.classList.add('fit-condensed');
+            el.style.letterSpacing = '-0.035em';
+          }
+
+          // Keine Ellipsis: Bei extremen Sonderfällen lieber minimal weiter verkleinern als Namen abschneiden.
+          guard = 0;
+          while (guard < 30 && el.scrollWidth > el.clientWidth + 1 && size > 10) {
+            size = Math.max(10, size - 1);
+            el.style.fontSize = `${size}px`;
+            guard += 1;
+          }
         };
 
         shrink();
