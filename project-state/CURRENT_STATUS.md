@@ -2,54 +2,57 @@
 
 Stand: 2026-05-09
 
-## Aktueller Hauptfokus - Loyalty / Kekskrümel
-
-Vorhandene Referenzen:
-
-- `project-state/STEP194_STREAMELEMENTS_LOYALTY_MIGRATION_ARCHITECTURE_2026-05-07.md`
-- `project-state/STEP202_LOYALTY_CAPTURE_AND_MIGRATION_PREP_2026-05-09.md`
-- `project-state/STEP202_1_LOYALTY_DB_FIRST_STANDARD_2026-05-09.md`
-- `project-state/STEP202_2_LOYALTY_SHADOW_MODE_AND_BONUS_RULES_2026-05-09.md`
-- `project-state/STEP203_LOYALTY_CORE_DB_API_SHADOW_MODE_2026-05-09.md`
-- `project-state/STEP203_1_LOYALTY_WATCH_SHADOW_HOOK_2026-05-09.md`
+## Aktueller Hauptfokus - Loyalty / Twitch Presence
 
 Aktueller Stand:
 
-- Loyalty-Core ist vorhanden.
-- Modulversion: `0.1.1`.
-- Schema-Version: `2`.
-- Shadow Mode ist aktiv.
-- StreamElements bleibt aktiv.
-- User-Punkte-Import kommt später.
-- Watch-Heartbeat mit 10-Minuten-Intervall-Schutz ist vorbereitet.
+- Loyalty-Core läuft im Shadow Mode.
+- Watch-Heartbeat mit Intervall-Schutz ist vorhanden.
+- Twitch Presence wurde um Activity Collector erweitert.
+- Automatische Loyalty-Punktevergabe aus Twitch Presence ist noch nicht aktiv.
 
-Neue Watch-Routen:
+Aktuelle relevante Dateien:
 
 ```text
-GET  /api/loyalty/watch/heartbeat
-POST /api/loyalty/watch/heartbeat
-GET  /api/loyalty/watch/states
+backend/modules/loyalty.js
+backend/modules/twitch_presence.js
+config/loyalty.json
+```
+
+Neue Twitch-Presence-Routen:
+
+```text
+GET  /api/twitch/presence/activity
+GET  /api/twitch/presence/activity/active
+POST /api/twitch/presence/activity/clear
+GET  /api/twitch/presence/activity/test
 ```
 
 Neue DB-Struktur:
 
 ```text
-loyalty_watch_state
+twitch_presence_activity
 ```
 
-Verhalten:
+Berechnung aktiver User:
 
 ```text
-erster Heartbeat im Intervall: Punkte werden vergeben
-weiterer Heartbeat im selben Intervall: keine neue Transaktion
-ignored users: keine User-/Transaktionsanlage
+JOIN => present für 30 Minuten
+PRIVMSG => active für 60 Minuten
+USERNOTICE => active für 60 Minuten
+PART => left
+Ablauf von present_until => stale
+```
+
+Subscriber-Tier wird vorbereitet als:
+
+```text
+none | prime | tier1 | tier2 | tier3 | unknown
 ```
 
 ## Bewusst offen
 
-- echten Twitch-/Presence-/Streamer.bot-Hook anbinden
-- Dashboard-Modul für Loyalty
-- Rewards / Store
-- Giveaways
-- Chat-Games
-- StreamElements-Import später
+- echte Twitch-Tags im Livebetrieb prüfen
+- Tier-Erkennung anhand realer Badges/Tags verbessern
+- Get Chatters API später ergänzen
+- STEP203.3: Activity Collector mit Loyalty Heartbeat verbinden
