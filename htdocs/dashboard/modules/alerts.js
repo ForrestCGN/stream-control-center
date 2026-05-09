@@ -768,7 +768,7 @@
   function designPage(){
     const profile = state.displayProfiles.find(p => Number(p.id) === Number(state.displayProfileId)) || state.displayProfiles.find(p => Number(p.is_default) === 1) || state.displayProfiles[0] || { name:'Neon Badge Standard', enabled:1, is_default:1, settings:{} };
     state.displayProfileId = profile.id || state.displayProfileId;
-    const st = normalizeCropDefaultsOnEditorStart({ widthMode:'custom', overlayPosition:'custom', positionX:50, positionY:50, cardWidthPx:1120, cardHeightPx:300, sizeScale:1, fontScale:1, headlineScale:1, valueScale:1, avatarPosition:'left', avatarSize:'normal', providerLogoStyle:'tile', topGraphicAssetId:'', topGraphicUrl:'', topGraphicScale:1, topGraphicOffsetY:-18, topGraphicShape:'original', topGraphicFrameStrength:'normal', topGraphicImageZoom:1, topGraphicImageX:50, topGraphicImageY:50, topGraphicFrameStyle:'none', cardBorderColorA:'#8ff4ff', cardBorderColorB:'#c45cff', innerBorderEnabled:true, badgeEnabled:false, badgeStyle:'none', badgeScale:1, textAlign:'left', showSideLines:true, showParticles:true, glowStrength:'normal', celebrationStrength:'medium', ...(profile.settings || {}) });
+    const st = normalizeCropDefaultsOnEditorStart({ widthMode:'custom', overlayPosition:'custom', positionX:50, positionY:50, cardWidthPx:1120, cardHeightPx:300, sizeScale:1, fontScale:1, headlineScale:1, valueScale:1, avatarPosition:'left', avatarSize:'normal', providerLogoStyle:'tile', topGraphicAssetId:'', topGraphicUrl:'', topGraphicScale:1, topGraphicOffsetY:-18, topGraphicShape:'original', topGraphicFrameStrength:'normal', topGraphicImageZoom:1, topGraphicImageX:50, topGraphicImageY:50, topGraphicFrameStyle:'none', cardBorderColorA:'#8ff4ff', cardBorderColorB:'#c45cff', innerBorderEnabled:true, badgeEnabled:false, badgeStyle:'none', badgeScale:1, textAlign:'left', messageEnabled:true, messageScale:1, messageWidthMode:'normal', messageMaxLines:0, messageWeight:'normal', showSideLines:true, showParticles:true, glowStrength:'normal', celebrationStrength:'medium', ...(profile.settings || {}) });
     const profileOptions = state.displayProfiles.map(p => opt(p.id, `${p.name}${Number(p.is_default)?' · Standard':''}`, profile.id)).join('');
     return `<section class="card glass span-12 page-card">
       <div class="card-head big-head">
@@ -815,6 +815,20 @@
                 ${rangeHtml('fontScale','Schriftgröße', st.fontScale, .75, 1.35, .01)}
                 ${rangeHtml('headlineScale','Headline-Größe', st.headlineScale, .7, 1.4, .01)}
                 ${rangeHtml('valueScale','Betrag/Wert-Größe', st.valueScale, .7, 1.4, .01)}
+                <div class="message-settings-card wide-field">
+                  <div class="message-settings-head">
+                    <strong>Nachrichtentext</strong>
+                    <span>User-Text unter dem Alert, z. B. Bits-, Resub- oder Donation-Nachricht.</span>
+                  </div>
+                  <div class="message-settings-grid">
+                    ${selectHtml('messageEnabled','Nachricht anzeigen', st.messageEnabled === false ? 'false':'true', [['true','anzeigen'],['false','ausblenden']])}
+                    ${rangeHtml('messageScale','Nachrichtengröße', st.messageScale ?? 1, .75, 1.45, .01)}
+                    ${selectHtml('messageWidthMode','Nachrichtenbreite', st.messageWidthMode || 'normal', [['compact','kompakt'],['normal','normal'],['wide','breit'],['full','volle Breite']])}
+                    ${selectHtml('messageMaxLines','Max. Zeilen', String(st.messageMaxLines ?? 0), [['0','alle'],['1','1 Zeile'],['2','2 Zeilen'],['3','3 Zeilen']])}
+                    ${selectHtml('messageWeight','Nachricht fett', st.messageWeight || 'normal', [['normal','normal'],['bold','fett']])}
+                  </div>
+                  <p class="small-note">Diese Werte ändern nur den unteren Nachrichtentext. Headline, Wert, Sound, TTS und Queue bleiben unverändert.</p>
+                </div>
               </div>
             </div>
 
@@ -1702,8 +1716,54 @@
   function readDisplaySettings(){
     const get = key => root.querySelector(`[data-display-key="${key}"]`)?.value;
     const num = (key, fallback) => Number(get(key) || fallback);
+    const boolVal = (key, fallback) => {
+      const raw = get(key);
+      if (raw === undefined || raw === null || raw === '') return fallback;
+      return raw !== 'false';
+    };
     const topGraphicAssetId = get('topGraphicAssetId') || '';
-    return { widthMode:get('widthMode')||'custom', overlayPosition:'custom', positionX:num('positionX',50), positionY:num('positionY',50), cardWidthPx:num('cardWidthPx',1120), cardHeightPx:num('cardHeightPx',300), sizeScale:num('sizeScale',1), fontScale:num('fontScale',1), headlineScale:num('headlineScale',1), valueScale:num('valueScale',1), avatarPosition:get('avatarPosition')||'left', avatarSize:get('avatarSize')||'normal', providerLogoStyle:get('providerLogoStyle')||'tile', topGraphicAssetId, topGraphicUrl:selectedImageAssetUrl(topGraphicAssetId), topGraphicScale:num('topGraphicScale',1), topGraphicOffsetY:num('topGraphicOffsetY',-18), topGraphicShape:get('topGraphicShape')||'original', topGraphicFrameStrength:normalizeGraphicOutline(get('topGraphicFrameStrength')), topGraphicImageZoom:num('topGraphicImageZoom',1), topGraphicImageX:num('topGraphicImageX',50), topGraphicImageY:num('topGraphicImageY',50), topGraphicFrameStyle:get('topGraphicShape')||get('topGraphicFrameStyle')||'original', cardBorderColorA:'#8ff4ff', cardBorderColorB:'#c45cff', innerBorderEnabled:get('innerBorderEnabled')!=='false', previewCelebration:get('previewCelebration')||'none', celebrationStrength:get('celebrationStrength')||'medium', badgeEnabled:false, badgeStyle:'none', badgeScale:1, textAlign:get('textAlign')||'left', showSideLines:get('showSideLines')!=='false', showParticles:get('showParticles')!=='false', glowStrength:get('glowStrength')||'normal' };
+    return {
+      widthMode:get('widthMode')||'custom',
+      overlayPosition:'custom',
+      positionX:num('positionX',50),
+      positionY:num('positionY',50),
+      cardWidthPx:num('cardWidthPx',1120),
+      cardHeightPx:num('cardHeightPx',300),
+      sizeScale:num('sizeScale',1),
+      fontScale:num('fontScale',1),
+      headlineScale:num('headlineScale',1),
+      valueScale:num('valueScale',1),
+      avatarPosition:get('avatarPosition')||'left',
+      avatarSize:get('avatarSize')||'normal',
+      providerLogoStyle:get('providerLogoStyle')||'tile',
+      topGraphicAssetId,
+      topGraphicUrl:selectedImageAssetUrl(topGraphicAssetId),
+      topGraphicScale:num('topGraphicScale',1),
+      topGraphicOffsetY:num('topGraphicOffsetY',-18),
+      topGraphicShape:get('topGraphicShape')||'original',
+      topGraphicFrameStrength:normalizeGraphicOutline(get('topGraphicFrameStrength')),
+      topGraphicImageZoom:num('topGraphicImageZoom',1),
+      topGraphicImageX:num('topGraphicImageX',50),
+      topGraphicImageY:num('topGraphicImageY',50),
+      topGraphicFrameStyle:get('topGraphicShape')||get('topGraphicFrameStyle')||'original',
+      cardBorderColorA:'#8ff4ff',
+      cardBorderColorB:'#c45cff',
+      innerBorderEnabled:get('innerBorderEnabled')!=='false',
+      previewCelebration:get('previewCelebration')||'none',
+      celebrationStrength:get('celebrationStrength')||'medium',
+      badgeEnabled:false,
+      badgeStyle:'none',
+      badgeScale:1,
+      textAlign:get('textAlign')||'left',
+      messageEnabled:boolVal('messageEnabled', true),
+      messageScale:num('messageScale',1),
+      messageWidthMode:get('messageWidthMode')||'normal',
+      messageMaxLines:num('messageMaxLines',0),
+      messageWeight:get('messageWeight')||'normal',
+      showSideLines:get('showSideLines')!=='false',
+      showParticles:get('showParticles')!=='false',
+      glowStrength:get('glowStrength')||'normal'
+    };
   }
 
   function setDisplayRangeValue(key, value){
@@ -1731,7 +1791,7 @@
       topGraphicAssetId:'', topGraphicUrl:'', topGraphicScale:1, topGraphicOffsetY:-18, topGraphicShape:'original', topGraphicFrameStrength:'normal',
       topGraphicImageZoom:1, topGraphicImageX:50, topGraphicImageY:50, topGraphicFrameStyle:'none',
       cardBorderColorA:'#8ff4ff', cardBorderColorB:'#c45cff', innerBorderEnabled:true, badgeEnabled:false, badgeStyle:'none', badgeScale:1,
-      textAlign:'left', showSideLines:true, showParticles:true, glowStrength:'normal', previewCelebration:'none', celebrationStrength:'medium'
+      textAlign:'left', messageEnabled:true, messageScale:1, messageWidthMode:'normal', messageMaxLines:0, messageWeight:'normal', showSideLines:true, showParticles:true, glowStrength:'normal', previewCelebration:'none', celebrationStrength:'medium'
     });
   }
 

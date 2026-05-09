@@ -1760,6 +1760,32 @@
 }
 </style>
 
+
+
+<style id="step209-message-settings">
+/* STEP209: Unterer Nachrichtentext ist pro Display-Profil steuerbar. */
+.alert-card.no-message .message{display:none!important}
+.alert-card .message{
+  font-size:calc(var(--card-h) * .065 * var(--font-scale) * var(--message-scale,1))!important;
+  line-height:1.22!important;
+}
+.alert-card.message-width-compact .message{max-width:min(48ch,72%)!important}
+.alert-card.message-width-normal .message{max-width:min(72ch,92%)!important}
+.alert-card.message-width-wide .message{max-width:min(92ch,100%)!important}
+.alert-card.message-width-full .message{max-width:100%!important}
+.alert-card.message-weight-bold .message{font-weight:850!important;color:#dfe8ff!important}
+.alert-card.message-lines-1 .message,
+.alert-card.message-lines-2 .message,
+.alert-card.message-lines-3 .message{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  overflow:hidden!important;
+}
+.alert-card.message-lines-1 .message{-webkit-line-clamp:1!important}
+.alert-card.message-lines-2 .message{-webkit-line-clamp:2!important}
+.alert-card.message-lines-3 .message{-webkit-line-clamp:3!important}
+</style>
+
 </head>
 <body>
   <div class="stage" id="stage"></div>
@@ -1874,6 +1900,7 @@
       card.style.setProperty('--font-scale', settings.fontScale);
       card.style.setProperty('--headline-scale', settings.headlineScale);
       card.style.setProperty('--value-scale', settings.valueScale);
+      card.style.setProperty('--message-scale', settings.messageScale || 1);
       card.style.setProperty('--top-graphic-scale', settings.topGraphicScale || 1);
       card.style.setProperty('--top-graphic-offset-y', `${settings.topGraphicOffsetY || -18}px`);
       card.style.setProperty('--alert-border-a', settings.cardBorderColorA || '#8ff4ff');
@@ -1918,7 +1945,7 @@
                 ${display.headline ? `<h1 class="headline ${escapeCss(display.headlineClass || '')}" title="${escapeAttr(display.headline)}">${escapeHtml(display.headline)}</h1>` : ''}
                 ${display.value ? `<div class="value">${escapeHtml(display.value)}</div>` : ''}
                 ${display.subline ? `<div class="subline">${escapeHtml(display.subline)}</div>` : ''}
-                ${display.message ? `<div class="message">${escapeHtml(display.message)}</div>` : ''}
+                ${display.message && settings.messageEnabled !== false && settings.messageEnabled !== 'false' ? `<div class="message">${escapeHtml(display.message)}</div>` : ''}
               </div>
             </div>
           </div>
@@ -1990,6 +2017,11 @@
         badgeStyle: 'none',
         badgeScale: 1,
         textAlign: pick(raw.textAlign || raw.text_align, ['left','center','right'], 'left'),
+        messageEnabled: raw.messageEnabled ?? raw.message_enabled ?? true,
+        messageScale: num(raw.messageScale ?? raw.message_scale, 1, .75, 1.45),
+        messageWidthMode: pick(raw.messageWidthMode || raw.message_width_mode, ['compact','normal','wide','full'], 'normal'),
+        messageMaxLines: num(raw.messageMaxLines ?? raw.message_max_lines, 0, 0, 3),
+        messageWeight: pick(raw.messageWeight || raw.message_weight, ['normal','bold'], 'normal'),
         showSideLines: raw.showSideLines ?? raw.show_side_lines ?? true,
         showParticles: raw.showParticles ?? raw.show_particles ?? true,
         glowStrength: pick(raw.glowStrength || raw.glow_strength, ['soft','normal','strong'], 'normal')
@@ -2007,6 +2039,11 @@
       ];
       if (settings.textAlign === 'center') classes.push('text-center');
       if (settings.textAlign === 'right') classes.push('text-right');
+      classes.push(`message-width-${escapeCss(settings.messageWidthMode || 'normal')}`);
+      classes.push(`message-weight-${escapeCss(settings.messageWeight || 'normal')}`);
+      const messageLines = Number(settings.messageMaxLines || 0);
+      if (messageLines > 0) classes.push(`message-lines-${messageLines}`);
+      if (settings.messageEnabled === false || settings.messageEnabled === 'false') classes.push('no-message');
       if (settings.badgeEnabled === false || settings.badgeEnabled === 'false' || settings.badgeStyle === 'none') classes.push('no-badge');
       if (settings.showSideLines === false || settings.showSideLines === 'false') classes.push('no-lines');
       if (settings.showParticles === false || settings.showParticles === 'false') classes.push('no-particles');
