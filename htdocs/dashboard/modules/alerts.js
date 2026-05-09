@@ -323,6 +323,68 @@
     if (minInput) minInput.placeholder = desc.minPlaceholder;
     if (maxInput) maxInput.placeholder = desc.maxPlaceholder;
     if (help) help.textContent = desc.help;
+    updateRuleTtsUi();
+  }
+
+  function ttsValueDescriptor(source, typeKey){
+    const src = String(source || '').toLowerCase();
+    const type = String(typeKey || '').toLowerCase();
+    if (type === 'bits' || type === 'cheer') return {
+      minLabel: 'Min-Bits für TTS',
+      minPlaceholder: 'z. B. 100 oder leer',
+      help: 'Leer = TTS bei jeder passenden Bits-Regel mit Text. Bei Wert wird erst ab dieser Bit-Anzahl gesprochen.',
+      sourceText: 'Verwendet wird der Cheer-/Bits-Text aus Twitch.'
+    };
+    if (type === 'resub') return {
+      minLabel: 'Min-Monate für TTS',
+      minPlaceholder: 'optional',
+      help: 'Leer = TTS bei jedem Resub mit Nachricht. Optional kannst du TTS erst ab einer Monatszahl aktivieren.',
+      sourceText: 'Verwendet wird message.text aus channel.subscription.message.'
+    };
+    if (type === 'donation' || src === 'kofi' || src === 'tipeee') return {
+      minLabel: 'Min-Betrag für TTS',
+      minPlaceholder: 'z. B. 5 oder leer',
+      help: 'Leer = TTS bei jeder passenden Donation mit Nachricht. Bei Wert wird erst ab diesem Betrag gesprochen.',
+      sourceText: 'Verwendet wird die Nachricht aus Ko-fi/Tipeee.'
+    };
+    if (type === 'channelpoints') return {
+      minLabel: 'Min-Punkte für TTS',
+      minPlaceholder: 'optional',
+      help: 'Leer = TTS bei jeder passenden Kanalpunkte-Regel mit Texteingabe.',
+      sourceText: 'Verwendet wird später user_input aus dem Reward.'
+    };
+    return {
+      minLabel: 'Min-Wert für TTS',
+      minPlaceholder: 'optional',
+      help: 'Leer = TTS bei jedem passenden Alert mit Text. Bei Wert wird erst ab diesem Wert gesprochen.',
+      sourceText: 'TTS wird nur abgespielt, wenn der Alert einen Text enthält.'
+    };
+  }
+
+  function updateRuleTtsUi(){
+    const enabledSelect = root.querySelector('#ruleTtsEnabled');
+    const enabled = Number(enabledSelect?.value || 0) === 1;
+    const source = root.querySelector('#ruleSource')?.value || 'twitch';
+    const typeKey = root.querySelector('#ruleTypeKey')?.value || '';
+    const desc = ttsValueDescriptor(source, typeKey);
+    const detail = root.querySelector('#ruleTtsDetail');
+    const status = root.querySelector('#ruleTtsStatus');
+    const minLabel = root.querySelector('#ruleTtsMinAmountLabelText');
+    const minInput = root.querySelector('#ruleTtsMinAmount');
+    const minHelp = root.querySelector('#ruleTtsMinHelp');
+    const sourceHelp = root.querySelector('#ruleTtsSourceHelp');
+    if (detail) detail.hidden = !enabled;
+    if (status) {
+      status.textContent = enabled
+        ? 'Aktiv: Erst läuft der Alert-Sound. Danach wird der Text per TTS abgespielt. Der Alert bleibt bis zum Ende sichtbar.'
+        : 'Aus: Für diese Regel wird kein TTS abgespielt.';
+      status.classList.toggle('ok', enabled);
+      status.classList.toggle('muted', !enabled);
+    }
+    if (minLabel) minLabel.textContent = desc.minLabel;
+    if (minInput) minInput.placeholder = desc.minPlaceholder;
+    if (minHelp) minHelp.textContent = desc.help;
+    if (sourceHelp) sourceHelp.textContent = desc.sourceText;
   }
 
   function visibleRules(){
@@ -1098,14 +1160,25 @@
           <div><span>Globaler Puffer</span><strong>${esc(fmtMs(state.status?.config?.soundDurationPaddingMs || 0))}</strong></div>
           <div><span>Berechnete Dauer</span><strong id="durationCalculatedMs">${esc(calcSoundDurationText(r.sound_asset_id, r.duration_ms))}</strong></div>
         </div><p class="small-note">Die Sounddatei selbst bleibt ${esc(soundDuration ? fmtMs(soundDuration) : 'unbekannt')} lang. Der Puffer verlängert nur die sichtbare Overlay-Zeit, nicht die Audiodatei.</p></div></div>
-        <details class="advanced-box"><summary>TTS vorbereitet</summary><div class="form-grid editor-grid">
-          <label>TTS aktiv<select id="ruleTtsEnabled">${opt(0,'nein',Number(r.tts_enabled||0))}${opt(1,'ja',Number(r.tts_enabled||0))}</select></label>
-          <label>Timing<select id="ruleTtsTiming">${opt('after_alert','nach Alert',r.tts_timing||'after_alert')}${opt('during_alert','während Alert',r.tts_timing||'after_alert')}</select></label>
-          <label>Modus<select id="ruleTtsMode">${opt('audio_only','audio_only',r.tts_mode||'audio_only')}</select></label>
-          <label>Min Betrag<input id="ruleTtsMinAmount" type="number" value="${esc(empty(r.tts_min_amount))}" placeholder="optional"></label>
-          <label>Max Zeichen<input id="ruleTtsMaxChars" type="number" value="${esc(r.tts_max_chars ?? 250)}"></label>
-          <label class="wide-field">Template<input id="ruleTtsTemplate" value="${esc(r.tts_template || '{user} schreibt: {message}')}"></label>
-        </div></details>
+        <div class="form-section tts-settings-section"><div class="section-head-inline"><div><h3>Text-to-Speech</h3><p class="small-note">Wenn aktiv, wird der übermittelte Text nach dem Alert-Sound gesprochen. Der Alert bleibt bis zum Ende der TTS-Ausgabe sichtbar.</p></div><span id="ruleTtsStatus" class="tts-status-pill"></span></div>
+          <div class="form-grid editor-grid">
+            <label>TTS-Ausgabe<select id="ruleTtsEnabled">${opt(0,'Aus',Number(r.tts_enabled||0))}${opt(1,'An',Number(r.tts_enabled||0))}</select></label>
+            <label>Timing<select id="ruleTtsTiming">${opt('after_alert','Nach Alert-Sound',r.tts_timing||'after_alert')}${opt('during_alert','Während Alert',r.tts_timing||'after_alert')}</select></label>
+            <label>Modus<select id="ruleTtsMode">${opt('audio_only','Nur Audio',r.tts_mode||'audio_only')}</select></label>
+          </div>
+          <div id="ruleTtsDetail" class="tts-detail-panel">
+            <div class="form-grid editor-grid">
+              <label><span id="ruleTtsMinAmountLabelText">Min-Wert für TTS</span><input id="ruleTtsMinAmount" type="number" value="${esc(empty(r.tts_min_amount))}" placeholder="optional"></label>
+              <label>Max. Zeichen<input id="ruleTtsMaxChars" type="number" min="1" value="${esc(r.tts_max_chars ?? 250)}"></label>
+              <label class="wide-field">Gesprochener Text / Template<input id="ruleTtsTemplate" value="${esc(r.tts_template || '{user} schreibt: {message}')}"></label>
+            </div>
+            <div class="tts-help-grid">
+              <p id="ruleTtsMinHelp" class="small-note"></p>
+              <p id="ruleTtsSourceHelp" class="small-note"></p>
+              <p class="small-note"><strong>Platzhalter:</strong> {user} = Name, {message} = übermittelter Text, {amount} = Betrag/Bits/Anzahl. Beispiel: {user} schreibt: {message}</p>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="modal-actions"><button data-close-modal="1">Abbrechen</button><button class="success" id="saveRule">${isEdit ? 'Speichern' : 'Regel anlegen'}</button></div>
     </div></div>`;
@@ -1488,6 +1561,8 @@
       if (chatSelect) chatSelect.innerHTML = chatBlockOptions(source, ev.currentTarget.value || '', '');
       updateRuleValueHelpUi();
     });
+    root.querySelector('#ruleTtsEnabled')?.addEventListener('change', updateRuleTtsUi);
+    updateRuleTtsUi();
     root.querySelector('#chatBlockSource')?.addEventListener('change', ev => { const t=root.querySelector('#chatBlockTypeKey'); if(t){ const old=t.value; t.innerHTML=typeOptionsForSource(ev.currentTarget.value||'twitch', old, false); if (![...t.options].some(o=>o.value===old)) t.selectedIndex=0; } });
     root.querySelector('#saveVariant')?.addEventListener('click', saveVariant);
     root.querySelector('#addChatTextRow')?.addEventListener('click', () => { const list=root.querySelector('#chatTextList'); if(list){ list.insertAdjacentHTML('afterbegin', chatTextRowHtml('', 0)); const ta=list.querySelector('.chat-text-row:first-child .chat-text-input'); if(ta){ state.placeholderTarget=ta; ta.focus(); ta.select?.(); } } });

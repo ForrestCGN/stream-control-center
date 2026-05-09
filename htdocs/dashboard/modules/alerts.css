@@ -548,3 +548,21 @@ html[data-theme=dark] .sort-th:hover,html[data-theme=dark] .sort-th.active{color
 /* STEP188.3: Alert-Regel Sound-Routing */
 .sound-routing-section .small-note strong { color: var(--text, #f8fafc); }
 html[data-theme=dark] .sound-routing-section .small-note strong { color:#f2f2f2; }
+
+
+/* STEP207: Alert-Regel TTS-Einstellungen klarer aufbauen */
+.tts-settings-section .section-head-inline{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+.tts-settings-section .section-head-inline h3{margin:0 0 6px}
+.tts-status-pill{display:inline-flex;align-items:center;max-width:360px;border:1px solid rgba(148,163,184,.28);border-radius:999px;padding:7px 11px;font-size:12px;font-weight:900;background:rgba(148,163,184,.10);line-height:1.25}
+.tts-status-pill.ok{border-color:rgba(52,211,153,.42);background:rgba(52,211,153,.12);color:#bfffe4}
+.tts-status-pill.muted{color:#a8b3cf}
+.tts-detail-panel{margin-top:12px;border:1px solid rgba(148,163,184,.20);border-radius:18px;padding:12px;background:rgba(255,255,255,.035)}
+.tts-detail-panel[hidden]{display:none!important}
+.tts-help-grid{display:grid;grid-template-columns:1fr;gap:4px;margin-top:10px}
+.tts-help-grid p{margin:0}
+.tts-help-grid strong{color:var(--text,#f8fafc)}
+html[data-theme=dark] .tts-detail-panel{background:#202020;border-color:#343434}
+html[data-theme=dark] .tts-status-pill{background:#242424;border-color:#3a3a3a;color:#c8c8c8}
+html[data-theme=dark] .tts-status-pill.ok{background:#173822;border-color:#2e7d32;color:#d7ffe8}
+html[data-theme=dark] .tts-help-grid strong{color:#f2f2f2}
+@media(max-width:760px){.tts-settings-section .section-head-inline{display:grid}.tts-status-pill{max-width:none;border-radius:14px}}
