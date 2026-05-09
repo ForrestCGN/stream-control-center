@@ -30,8 +30,9 @@ const DEFAULT_TWITCH_ALERT_CONFIG = {
     raid: 'raid',
     sub: 'sub',
     resub: 'resub',
+    giftedSubReceived: 'gifted_sub_received',
     giftSub: 'gift_sub',
-    communityGift: 'gift_bomb',
+    giftBomb: 'gift_bomb',
     channelPoints: 'channel_points'
   },
   forward: {
@@ -40,7 +41,9 @@ const DEFAULT_TWITCH_ALERT_CONFIG = {
     raid: true,
     sub: true,
     resub: true,
+    giftedSubReceived: false,
     giftSub: true,
+    giftBomb: true,
     channelPoints: false
   },
   ignoredRewardTitles: []
@@ -1344,40 +1347,65 @@ module.exports.init = function init(ctx) {
     }
 
     if (kind === 'sub') {
-      return { ...base, type: typeMap.sub || 'sub', user: event.user_name || event.user_login || 'Unbekannt', login: event.user_login || '', user_login: event.user_login || '', amount: 1, message: event.tier ? `Tier ${event.tier}` : '', title: `${event.user_name || event.user_login || 'Jemand'} ist jetzt Sub!`, raw: cfg.includeRawEvent === false ? undefined : event };
+      const isGift = event.is_gift === true || event.is_gift === 'true' || event.is_gift === 1 || event.is_gift === '1';
+      if (isGift && cfg.forward?.giftedSubReceived === false) {
+        return { _skip: true, reason: 'gifted_sub_received_disabled', kind: 'giftedSubReceived', subscriptionType };
+      }
+      const type = isGift ? (typeMap.giftedSubReceived || 'gifted_sub_received') : (typeMap.sub || 'sub');
+      const label = event.user_name || event.user_login || 'Unbekannt';
+      return {
+        ...base,
+        type,
+        user: label,
+        login: event.user_login || '',
+        user_login: event.user_login || '',
+        amount: 1,
+        message: event.tier ? `Tier ${event.tier}` : '',
+        title: isGift ? `${label} hat einen geschenkten Sub erhalten!` : `${label} ist jetzt Sub!`,
+        tier: event.tier || '',
+        is_gift: isGift,
+        raw: cfg.includeRawEvent === false ? undefined : event
+      };
     }
 
     if (kind === 'resub') {
       const months = Number(event.cumulative_months || event.streak_months || 1);
-      return { ...base, type: typeMap.resub || 'sub', user: event.user_name || event.user_login || 'Unbekannt', login: event.user_login || '', user_login: event.user_login || '', amount: months, message: cleanEventText(event.message), title: `${event.user_name || event.user_login || 'Jemand'} ist ${months} Monate Sub!`, raw: cfg.includeRawEvent === false ? undefined : event };
+      return {
+        ...base,
+        type: typeMap.resub || 'resub',
+        user: event.user_name || event.user_login || 'Unbekannt',
+        login: event.user_login || '',
+        user_login: event.user_login || '',
+        amount: months,
+        message: cleanEventText(event.message),
+        title: `${event.user_name || event.user_login || 'Jemand'} ist ${months} Monate Sub!`,
+        tier: event.tier || '',
+        cumulative_months: Number(event.cumulative_months || 0),
+        streak_months: Number(event.streak_months || 0),
+        raw: cfg.includeRawEvent === false ? undefined : event
+      };
     }
 
     if (kind === 'giftSub') {
-      const total = Math.max(1, Number(event.total || event.cumulative_total || event.amount || 1) || 1);
+      const total = Number(event.total || 1) || 1;
       const userName = event.is_anonymous ? 'Anonym' : (event.user_name || event.user_login || 'Unbekannt');
-      const alertType = total > 1 ? (typeMap.communityGift || typeMap.giftBomb || 'gift_bomb') : (typeMap.giftSub || 'gift_sub');
-      const meta = {
-        gifter_login: event.is_anonymous ? '' : (event.user_login || ''),
-        gifter_name: userName,
-        recipient_login: event.recipient_user_login || '',
-        recipient_name: event.recipient_user_name || '',
-        tier: event.tier || '',
-        total,
-        cumulative_total: Number(event.cumulative_total || 0),
-        is_anonymous: !!event.is_anonymous,
-        communityGift: total > 1
-      };
-      const raw = cfg.includeRawEvent === false ? meta : { ...event, alertMeta: meta };
+      const giftType = total >= 5 ? (typeMap.giftBomb || 'gift_bomb') : (typeMap.giftSub || 'gift_sub');
+      const forwardKey = total >= 5 ? 'giftBomb' : 'giftSub';
+      if (cfg.forward?.[forwardKey] === false) return { _skip: true, reason: `${forwardKey}_disabled`, kind: forwardKey, subscriptionType, total };
       return {
         ...base,
-        type: alertType,
+        type: giftType,
         user: userName,
         login: event.is_anonymous ? '' : (event.user_login || ''),
         user_login: event.is_anonymous ? '' : (event.user_login || ''),
         amount: total,
         message: event.tier ? `Tier ${event.tier}` : '',
-        title: total > 1 ? `${userName} verschenkt ${total} Subs!` : `${userName} verschenkt 1 Sub!`,
-        raw
+        title: `${userName} verschenkt ${total} Sub${total === 1 ? '' : 's'}!`,
+        tier: event.tier || '',
+        total,
+        cumulative_total: Number(event.cumulative_total || 0),
+        is_anonymous: event.is_anonymous === true || event.is_anonymous === 'true',
+        raw: cfg.includeRawEvent === false ? undefined : event
       };
     }
 
@@ -1432,10 +1460,10 @@ module.exports.init = function init(ctx) {
     const amount = Number(query.amount || query.bits || query.viewers || 50);
     if (kind === 'follow') return { subscriptionType: 'channel.follow', event: { user_login: user.toLowerCase(), user_name: display } };
     if (kind === 'raid') return { subscriptionType: 'channel.raid', event: { from_broadcaster_user_login: user.toLowerCase(), from_broadcaster_user_name: display, viewers: amount } };
-    if (kind === 'sub') return { subscriptionType: 'channel.subscribe', event: { user_login: user.toLowerCase(), user_name: display, tier: '1000' } };
-    if (kind === 'resub') return { subscriptionType: 'channel.subscription.message', event: { user_login: user.toLowerCase(), user_name: display, cumulative_months: amount || 3, message: { text: query.message || 'Resub Test' } } };
-    if (kind === 'giftSub' || kind === 'gift_sub') return { subscriptionType: 'channel.subscription.gift', event: { user_login: user.toLowerCase(), user_name: display, total: 1, tier: '1000', is_anonymous: false } };
-    if (kind === 'communityGift' || kind === 'community_gift' || kind === 'giftBomb' || kind === 'gift_bomb') return { subscriptionType: 'channel.subscription.gift', event: { user_login: user.toLowerCase(), user_name: display, total: amount || 5, cumulative_total: amount || 5, tier: '1000', is_anonymous: false } };
+    if (kind === 'sub') return { subscriptionType: 'channel.subscribe', event: { user_login: user.toLowerCase(), user_name: display, tier: query.tier || '1000', is_gift: false } };
+    if (kind === 'giftedSubReceived' || kind === 'gifted_sub_received') return { subscriptionType: 'channel.subscribe', event: { user_login: user.toLowerCase(), user_name: display, tier: query.tier || '1000', is_gift: true } };
+    if (kind === 'resub') return { subscriptionType: 'channel.subscription.message', event: { user_login: user.toLowerCase(), user_name: display, tier: query.tier || '1000', cumulative_months: amount || 3, streak_months: Number(query.streak_months || 0), message: { text: query.message || 'Resub Test' } } };
+    if (kind === 'giftSub' || kind === 'gift_sub' || kind === 'giftBomb' || kind === 'gift_bomb') return { subscriptionType: 'channel.subscription.gift', event: { user_login: user.toLowerCase(), user_name: display, total: amount || 1, tier: query.tier || '1000', cumulative_total: Number(query.cumulative_total || 0), is_anonymous: false } };
     if (kind === 'channelPoints' || kind === 'channel_points') return { subscriptionType: 'channel.channel_points_custom_reward_redemption.add', event: { user_login: user.toLowerCase(), user_name: display, user_input: query.message || '', reward: { title: query.reward || 'Test Reward', cost: amount || 1000 } } };
     return { subscriptionType: 'channel.cheer', event: { user_login: user.toLowerCase(), user_name: display, bits: amount, message: query.message || 'Bits Test' } };
   }

@@ -585,6 +585,7 @@ function seedDefaults() {
     ['twitch', 'follow', 'Follow', 'count', 10],
     ['twitch', 'bits', 'Bits / Cheers', 'amount', 20],
     ['twitch', 'sub', 'Sub', 'count', 30],
+    ['twitch', 'gifted_sub_received', 'Gifted Sub Received', 'count', 35],
     ['twitch', 'resub', 'Resub', 'count', 40],
     ['twitch', 'gift_sub', 'Gift Sub', 'amount', 50],
     ['twitch', 'gift_bomb', 'Gift Bomb', 'amount', 60],
@@ -1767,10 +1768,10 @@ function findMatchingRule(payload) {
   const explicitRuleId = nullableInt(payload.raw?.ruleId ?? payload.raw?.rule_id);
   if (explicitRuleId) {
     const explicitRule = getRuleById(explicitRuleId);
-    if (explicitRule && explicitRule.source === source && explicitRule.type_key === typeKey) return explicitRule;
+    if (explicitRule && explicitRule.source === source && explicitRule.type_key === typeKey && ruleMetaMatchesPayload(explicitRule, payload)) return explicitRule;
   }
 
-  const rule = sqlite.get(`
+  const rows = sqlite.all(`
     SELECT
       r.*,
       s.public_url AS sound_url,
@@ -1794,10 +1795,98 @@ function findMatchingRule(payload) {
       COALESCE(r.min_value, -999999) DESC,
       r.priority ASC,
       r.id ASC
-    LIMIT 1
-  `, { source, typeKey, amount });
+  `, { source, typeKey, amount }) || [];
 
-  return rule ? { ...rule, meta: parseJson(rule.meta_json, {}) } : null;
+  const rule = rows.map(row => ({ ...row, meta: parseJson(row.meta_json, {}) })).find(row => ruleMetaMatchesPayload(row, payload));
+  return rule || null;
+}
+
+function ruleMetaMatchesPayload(rule, payload) {
+  const meta = rule && rule.meta ? rule.meta : parseJson(rule && rule.meta_json, {});
+  const match = meta && typeof meta.match === 'object' && !Array.isArray(meta.match) ? meta.match : {};
+  if (!match || !Object.keys(match).length) return true;
+
+  const facts = extractAlertMatchFacts(payload);
+
+  if (!matchStringList(match.tier ?? match.tiers, facts.tier)) return false;
+  if (!matchStringList(match.tierLabel ?? match.tierLabels, facts.tierLabel)) return false;
+  if (!matchBoolean(match.isGift ?? match.is_gift, facts.isGift)) return false;
+  if (!matchBoolean(match.isAnonymous ?? match.is_anonymous, facts.isAnonymous)) return false;
+  if (!matchNumberRange(match.minTotal ?? match.min_total, match.maxTotal ?? match.max_total, facts.total)) return false;
+  if (!matchNumberRange(match.minMonths ?? match.min_months, match.maxMonths ?? match.max_months, facts.months)) return false;
+  if (!matchNumberRange(match.minStreakMonths ?? match.min_streak_months, match.maxStreakMonths ?? match.max_streak_months, facts.streakMonths)) return false;
+  if (!matchNumberList(match.hypeTrainLevel ?? match.hype_train_level ?? match.hypeTrainLevels ?? match.hype_train_levels, facts.hypeTrainLevel)) return false;
+
+  return true;
+}
+
+function extractAlertMatchFacts(payload) {
+  const rawEnvelope = payload && payload.raw && typeof payload.raw === 'object' ? payload.raw : {};
+  const event = rawEnvelope.raw && typeof rawEnvelope.raw === 'object' ? rawEnvelope.raw : rawEnvelope;
+  const nestedEvent = event.event && typeof event.event === 'object' ? event.event : event;
+
+  const tier = cleanText(payload?.tier || rawEnvelope.tier || event.tier || nestedEvent.tier || '');
+  const total = nullableNumber(payload?.total ?? rawEnvelope.total ?? event.total ?? nestedEvent.total ?? payload?.amount);
+  const months = nullableNumber(payload?.cumulative_months ?? rawEnvelope.cumulative_months ?? event.cumulative_months ?? nestedEvent.cumulative_months ?? payload?.amount);
+  const streakMonths = nullableNumber(payload?.streak_months ?? rawEnvelope.streak_months ?? event.streak_months ?? nestedEvent.streak_months);
+  const hypeTrainLevel = nullableNumber(payload?.hype_train_level ?? payload?.level ?? rawEnvelope.hype_train_level ?? rawEnvelope.level ?? event.level ?? nestedEvent.level);
+
+  return {
+    tier,
+    tierLabel: twitchTierLabel(tier),
+    total,
+    months,
+    streakMonths,
+    hypeTrainLevel,
+    isGift: toBoolOrNull(payload?.is_gift ?? rawEnvelope.is_gift ?? event.is_gift ?? nestedEvent.is_gift),
+    isAnonymous: toBoolOrNull(payload?.is_anonymous ?? rawEnvelope.is_anonymous ?? event.is_anonymous ?? nestedEvent.is_anonymous)
+  };
+}
+
+function twitchTierLabel(tier) {
+  const value = String(tier || '').trim();
+  if (value === '1000') return 'tier1';
+  if (value === '2000') return 'tier2';
+  if (value === '3000') return 'tier3';
+  if (/prime/i.test(value)) return 'prime';
+  return value.toLowerCase();
+}
+
+function matchStringList(expected, actual) {
+  if (expected === undefined || expected === null || expected === '') return true;
+  const values = Array.isArray(expected) ? expected : [expected];
+  const normalizedActual = String(actual || '').trim().toLowerCase();
+  return values.map(v => String(v || '').trim().toLowerCase()).includes(normalizedActual);
+}
+
+function matchNumberList(expected, actual) {
+  if (expected === undefined || expected === null || expected === '') return true;
+  const n = Number(actual);
+  if (!Number.isFinite(n)) return false;
+  const values = Array.isArray(expected) ? expected : [expected];
+  return values.some(v => Number(v) === n);
+}
+
+function matchNumberRange(min, max, actual) {
+  if ((min === undefined || min === null || min === '') && (max === undefined || max === null || max === '')) return true;
+  const n = Number(actual);
+  if (!Number.isFinite(n)) return false;
+  if (min !== undefined && min !== null && min !== '' && n < Number(min)) return false;
+  if (max !== undefined && max !== null && max !== '' && n > Number(max)) return false;
+  return true;
+}
+
+function matchBoolean(expected, actual) {
+  if (expected === undefined || expected === null || expected === '') return true;
+  const expectedBool = toBoolOrNull(expected);
+  if (expectedBool === null) return true;
+  return actual === expectedBool;
+}
+
+function toBoolOrNull(value) {
+  if (value === true || value === 'true' || value === 1 || value === '1') return true;
+  if (value === false || value === 'false' || value === 0 || value === '0') return false;
+  return null;
 }
 
 async function processQueue(broadcastWS) {
