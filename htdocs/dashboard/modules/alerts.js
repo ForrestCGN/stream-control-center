@@ -214,6 +214,117 @@
     return `${min} – ${max}`;
   }
 
+  function ruleValueDescriptor(source, typeKey){
+    const src = String(source || 'twitch');
+    const type = String(typeKey || '');
+    const fallback = {
+      minLabel: 'Min-Wert',
+      maxLabel: 'Max-Wert',
+      minPlaceholder: '0',
+      maxPlaceholder: 'leer = offen',
+      help: 'Wertebereich, der diese Regel auslöst. Leer bei Max bedeutet: nach oben offen.'
+    };
+
+    if (src === 'twitch') {
+      if (type === 'bits') return {
+        minLabel: 'Min-Bits',
+        maxLabel: 'Max-Bits',
+        minPlaceholder: 'z. B. 100',
+        maxPlaceholder: 'leer = ab Min-Bits offen',
+        help: 'Bits/Cheer: Min und Max beziehen sich auf die Anzahl der gesendeten Bits. Beispiel: 100–249 trifft bei 100 bis 249 Bits.'
+      };
+      if (type === 'raid') return {
+        minLabel: 'Min-Zuschauer',
+        maxLabel: 'Max-Zuschauer',
+        minPlaceholder: 'z. B. 5',
+        maxPlaceholder: 'leer = ab Min-Zuschauer offen',
+        help: 'Raid: Min und Max beziehen sich auf die Zuschauerzahl des Raids.'
+      };
+      if (type === 'gift_sub') return {
+        minLabel: 'Min verschenkte Subs',
+        maxLabel: 'Max verschenkte Subs',
+        minPlaceholder: '1',
+        maxPlaceholder: '4',
+        help: 'Gift Sub: Min und Max beziehen sich auf die Anzahl der verschenkenen Subs. Für 1–4 nutzt das System aktuell gift_sub.'
+      };
+      if (type === 'gift_bomb') return {
+        minLabel: 'Min Sub-Bombe',
+        maxLabel: 'Max Sub-Bombe',
+        minPlaceholder: 'z. B. 5',
+        maxPlaceholder: 'leer = ab Min offen',
+        help: 'Sub-Bombe: Min und Max beziehen sich auf die Anzahl der auf einmal verschenkten Subs. Beispiel: 5–9, 10–20, ab 21.'
+      };
+      if (type === 'sub') return {
+        minLabel: 'Min Sub-Anzahl',
+        maxLabel: 'Max Sub-Anzahl',
+        minPlaceholder: '0 oder 1',
+        maxPlaceholder: 'meist leer',
+        help: 'Normaler Sub: Wert ist aktuell meist 1. Tier-Regeln laufen später über Regelbedingungen, nicht über Min/Max.'
+      };
+      if (type === 'gifted_sub_received') return {
+        minLabel: 'Min empfangene Gifts',
+        maxLabel: 'Max empfangene Gifts',
+        minPlaceholder: '1',
+        maxPlaceholder: 'meist leer',
+        help: 'Empfangener GiftSub: channel.subscribe mit is_gift=true. Aktuell bewusst ohne aktive Regel, damit keine Doppel-Alerts entstehen.'
+      };
+      if (type === 'resub') return {
+        minLabel: 'Min Monate',
+        maxLabel: 'Max Monate',
+        minPlaceholder: 'z. B. 12',
+        maxPlaceholder: 'leer = ab Min-Monate offen',
+        help: 'Resub: Wert kann für Monatsstaffeln genutzt werden. Die echten Twitch-Felder cumulative_months und streak_months bleiben im Event erhalten.'
+      };
+      if (type === 'follow') return {
+        minLabel: 'Min-Wert',
+        maxLabel: 'Max-Wert',
+        minPlaceholder: '0',
+        maxPlaceholder: 'leer lassen',
+        help: 'Follow hat normalerweise keine Staffelung. Min/Max können leer bzw. 0/offen bleiben.'
+      };
+      if (type === 'channelpoints') return {
+        minLabel: 'Min Punkte/Kosten',
+        maxLabel: 'Max Punkte/Kosten',
+        minPlaceholder: 'Reward-Kosten',
+        maxPlaceholder: 'leer = offen',
+        help: 'Kanalpunkte: Wert kann für Reward-Kosten oder eine spätere Reward-Staffel genutzt werden.'
+      };
+      if (type === 'hypeTrainBegin' || type === 'hypeTrainProgress' || type === 'hypeTrainEnd') return {
+        minLabel: 'Min HypeTrain-Level',
+        maxLabel: 'Max HypeTrain-Level',
+        minPlaceholder: 'z. B. 1',
+        maxPlaceholder: 'z. B. 5 oder leer',
+        help: 'HypeTrain: Min/Max beziehen sich auf das HypeTrain-Level, sobald Level-Regeln aktiv genutzt werden.'
+      };
+    }
+
+    if (type === 'donation' || src === 'kofi' || src === 'tipeee') return {
+      minLabel: 'Min-Betrag',
+      maxLabel: 'Max-Betrag',
+      minPlaceholder: 'z. B. 5',
+      maxPlaceholder: 'leer = ab Min-Betrag offen',
+      help: 'Donation/Support: Min und Max beziehen sich auf den Betrag in der jeweiligen Währung.'
+    };
+
+    return fallback;
+  }
+
+  function updateRuleValueHelpUi(){
+    const source = root.querySelector('#ruleSource')?.value || 'twitch';
+    const typeKey = root.querySelector('#ruleTypeKey')?.value || '';
+    const desc = ruleValueDescriptor(source, typeKey);
+    const minLabel = root.querySelector('#ruleMinLabelText');
+    const maxLabel = root.querySelector('#ruleMaxLabelText');
+    const minInput = root.querySelector('#ruleMin');
+    const maxInput = root.querySelector('#ruleMax');
+    const help = root.querySelector('#ruleValueHelp');
+    if (minLabel) minLabel.textContent = desc.minLabel;
+    if (maxLabel) maxLabel.textContent = desc.maxLabel;
+    if (minInput) minInput.placeholder = desc.minPlaceholder;
+    if (maxInput) maxInput.placeholder = desc.maxPlaceholder;
+    if (help) help.textContent = desc.help;
+  }
+
   function visibleRules(){
     return state.rules
       .filter(r => state.source === 'all' || r.source === state.source)
@@ -951,6 +1062,7 @@
     const activeDurationText = (r.duration_mode || 'fixed') === 'sound' ? calcSoundDurationText(r.sound_asset_id, r.duration_ms) : fmtMs(r.duration_ms ?? 7000);
     const fixedHint = (r.duration_mode || 'fixed') === 'fixed' ? `Aktiv: ${fmtMs(r.duration_ms ?? 7000)}` : `Nur Fallback: ${fmtMs(r.duration_ms ?? 7000)}`;
     const soundHint = (r.duration_mode || 'fixed') === 'sound' ? `Aktiv: ${calcSoundDurationText(r.sound_asset_id, r.duration_ms)}` : 'Nicht aktiv';
+    const valueDesc = ruleValueDescriptor(r.source || 'twitch', r.type_key || '');
     return `<div class="modal-backdrop" data-close-modal="1"><div class="modal-card glass" data-modal-card="1">
       <div class="modal-head"><div><h2>${isEdit ? 'Regel bearbeiten' : 'Neue Regel'}</h2><p class="small-note">${isEdit ? `ID ${esc(r.id)}` : 'Neue Alert-Staffel anlegen'}</p></div><button data-close-modal="1">×</button></div>
       <div class="modal-body">
@@ -959,10 +1071,10 @@
           <label>Quelle<select id="ruleSource">${sources(false).map(s=>opt(s,SOURCE_LABELS[s]||s,r.source)).join('')}</select></label>
           <label>Typ<select id="ruleTypeKey">${typeOptionsForSource(r.source || 'twitch', r.type_key || '')}</select></label>
           <label class="wide-field">Name<input id="ruleLabel" value="${esc(r.label || '')}"></label>
-          <label>Min-Wert<input id="ruleMin" type="number" value="${esc(empty(r.min_value))}"></label>
-          <label>Max-Wert<input id="ruleMax" type="number" value="${esc(empty(r.max_value))}" placeholder="leer = offen"></label>
+          <label><span id="ruleMinLabelText">${esc(valueDesc.minLabel)}</span><input id="ruleMin" type="number" value="${esc(empty(r.min_value))}" placeholder="${esc(valueDesc.minPlaceholder)}"></label>
+          <label><span id="ruleMaxLabelText">${esc(valueDesc.maxLabel)}</span><input id="ruleMax" type="number" value="${esc(empty(r.max_value))}" placeholder="${esc(valueDesc.maxPlaceholder)}"></label>
           <label>Priorität<input id="rulePriority" type="number" value="${esc(r.priority ?? 100)}"></label>
-        </div></div>
+        </div><p id="ruleValueHelp" class="small-note rule-value-help">${esc(valueDesc.help)}</p></div>
         <div class="form-section"><h3>Medien & Design</h3><div class="form-grid editor-grid">
           <label class="wide-field">Sound<div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten Sound abspielen" aria-label="Ausgewählten Sound abspielen">▶</button></div></label>
           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
@@ -1368,11 +1480,13 @@
       if (![...typeSelect.options].some(o => o.value === oldValue)) typeSelect.selectedIndex = 0;
       const chatSelect = root.querySelector('#ruleChatBlock');
       if (chatSelect) chatSelect.innerHTML = chatBlockOptions(ev.currentTarget.value || 'twitch', typeSelect.value || '', '');
+      updateRuleValueHelpUi();
     });
     root.querySelector('#ruleTypeKey')?.addEventListener('change', ev => {
       const chatSelect = root.querySelector('#ruleChatBlock');
       const source = root.querySelector('#ruleSource')?.value || 'twitch';
       if (chatSelect) chatSelect.innerHTML = chatBlockOptions(source, ev.currentTarget.value || '', '');
+      updateRuleValueHelpUi();
     });
     root.querySelector('#chatBlockSource')?.addEventListener('change', ev => { const t=root.querySelector('#chatBlockTypeKey'); if(t){ const old=t.value; t.innerHTML=typeOptionsForSource(ev.currentTarget.value||'twitch', old, false); if (![...t.options].some(o=>o.value===old)) t.selectedIndex=0; } });
     root.querySelector('#saveVariant')?.addEventListener('click', saveVariant);
