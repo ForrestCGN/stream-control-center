@@ -2,33 +2,28 @@
 
 ## 2026-05-09
 
+### STEP203.3 - Loyalty Stream-State Gate + Presence Run-Once
+
+- `backend/modules/loyalty.js` auf Version `0.1.2` erhöht.
+- Loyalty-Schema auf Version `3` erhöht.
+- Neue Tabelle:
+  - `loyalty_stream_state`
+- Neue Settings:
+  - `streamState.*`
+  - `presence.*`
+- Neue Routen:
+  - `GET/POST /api/loyalty/stream-state/start`
+  - `GET/POST /api/loyalty/stream-state/stop`
+  - `GET/POST /api/loyalty/stream-state/clear-override`
+  - `GET/POST /api/loyalty/stream-state/refresh-auto`
+  - `GET /api/loyalty/presence/status`
+  - `GET/POST /api/loyalty/presence/run-once`
+- Live-Gate ergänzt:
+  - offline keine Watch-Punkte
+  - manueller Streamer.bot-Fallback möglich
+  - Twitch Auto-Live-Status vorbereitet
+- Noch kein automatischer Timer.
+
 ### STEP203.2 - Twitch Presence Activity Collector
 
-- `backend/modules/twitch_presence.js` um Activity Collector erweitert.
-- Neue DB-Tabelle:
-  - `twitch_presence_activity`
-- Neue Routen:
-  - `GET /api/twitch/presence/activity`
-  - `GET /api/twitch/presence/activity/active`
-  - `POST /api/twitch/presence/activity/clear`
-  - `GET /api/twitch/presence/activity/test`
-- IRC-Auswertung ergänzt für:
-  - JOIN
-  - PART
-  - PRIVMSG
-  - USERNOTICE
-- Statuslogik ergänzt:
-  - present
-  - active
-  - left
-  - stale
-  - unknown
-- Subscriber-/Tier-Felder vorbereitet:
-  - subscriber
-  - subscriberTier
-- Noch keine automatische Loyalty-Punktevergabe.
-- Bestehende Twitch-Presence-Routen bleiben erhalten.
-
-### STEP203.1 - Loyalty Watch Shadow Hook
-
-- Loyalty Watch Heartbeat mit Intervall-Schutz ergänzt.
+- Twitch Presence Activity Collector eingeführt.

@@ -18,10 +18,10 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.1";
+const VERSION = "0.1.2";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const SETTINGS_TABLE = "loyalty_settings";
 
 const DEFAULT_CONFIG = {
@@ -74,6 +74,17 @@ const DEFAULT_CONFIG = {
   import: {
     status: "not_imported",
     provider: "streamelements"
+  },
+  streamState: {
+    broadcasterLogin: "forrestcgn",
+    broadcasterId: "127709954",
+    autoProvider: "twitch",
+    manualOverrideMaxHours: 12
+  },
+  presence: {
+    activeMinutes: 30,
+    includeJoinedOnly: true,
+    maxUsersPerRun: 250
   }
 };
 
@@ -139,7 +150,16 @@ const SETTINGS_DEFINITIONS = [
   { key: "expiration.enabled", path: "expiration.enabled", valueType: "boolean", description: "Punkteverfall aktivieren." },
   { key: "expiration.inactiveAfterDays", path: "expiration.inactiveAfterDays", valueType: "number", description: "Inaktivitätstage bis Punkteverfall." },
   { key: "import.status", path: "import.status", valueType: "string", description: "Importstatus: not_imported, dry_run oder imported." },
-  { key: "import.provider", path: "import.provider", valueType: "string", description: "Geplanter Import-Provider." }
+  { key: "import.provider", path: "import.provider", valueType: "string", description: "Geplanter Import-Provider." },
+
+  { key: "streamState.broadcasterLogin", path: "streamState.broadcasterLogin", valueType: "string", description: "Twitch Broadcaster Login fuer Live-Status-Pruefung." },
+  { key: "streamState.broadcasterId", path: "streamState.broadcasterId", valueType: "string", description: "Twitch Broadcaster ID fuer Channel Summary." },
+  { key: "streamState.autoProvider", path: "streamState.autoProvider", valueType: "string", description: "Automatischer Live-Status-Provider, aktuell twitch." },
+  { key: "streamState.manualOverrideMaxHours", path: "streamState.manualOverrideMaxHours", valueType: "number", description: "Maximales Alter des manuellen Stream-State-Overrides in Stunden." },
+
+  { key: "presence.activeMinutes", path: "presence.activeMinutes", valueType: "number", description: "Zeitfenster fuer aktive/presente Twitch-Presence-User." },
+  { key: "presence.includeJoinedOnly", path: "presence.includeJoinedOnly", valueType: "boolean", description: "JOIN-only User im Presence Runner beruecksichtigen." },
+  { key: "presence.maxUsersPerRun", path: "presence.maxUsersPerRun", valueType: "number", description: "Maximale Anzahl Presence-User pro Run." }
 ];
 
 const TEXT_CATEGORIES = {
@@ -575,7 +595,9 @@ function publicConfig() {
     features: { ...config.features },
     bonuses: mergePlain({}, config.bonuses),
     expiration: { ...config.expiration },
-    import: { ...config.import }
+    import: { ...config.import },
+    streamState: { ...config.streamState },
+    presence: { ...config.presence }
   };
 }
 
@@ -1236,6 +1258,349 @@ function buildStatus() {
     watch: { ...config.watch }
   };
 }
+
+
+function streamStateKey() {
+  return "main";
+}
+
+function ensureStreamStateRow() {
+  const now = core.nowIso();
+  const existing = database.get("SELECT key FROM loyalty_stream_state WHERE key = :key", { key: streamStateKey() });
+  if (!existing) {
+    database.run(`
+      INSERT INTO loyalty_stream_state (
+        key, manual_live, manual_active, manual_source, manual_reason, manual_updated_at,
+        auto_live, auto_source, auto_checked_at,
+        effective_live, effective_source,
+        created_at, updated_at, metadata_json
+      ) VALUES (
+        :key, 0, 0, '', '', '',
+        0, '', '',
+        0, 'initial',
+        :createdAt, :updatedAt, '{}'
+      )
+    `, { key: streamStateKey(), createdAt: now, updatedAt: now });
+  }
+}
+
+function rowToStreamState(row) {
+  if (!row) return null;
+  const manualUpdatedAt = row.manual_updated_at || "";
+  const maxHours = Number(config?.streamState?.manualOverrideMaxHours || 12);
+  const manualAgeMs = manualUpdatedAt ? Date.now() - Date.parse(manualUpdatedAt) : null;
+  const manualExpired = Number.isFinite(manualAgeMs) && manualAgeMs > maxHours * 60 * 60 * 1000;
+  const manualActive = Number(row.manual_active || 0) === 1 && !manualExpired;
+  const autoLive = Number(row.auto_live || 0) === 1;
+  const effectiveLive = manualActive ? Number(row.manual_live || 0) === 1 : autoLive;
+
+  return {
+    key: row.key || streamStateKey(),
+    manual: {
+      active: manualActive,
+      configuredActive: Number(row.manual_active || 0) === 1,
+      live: Number(row.manual_live || 0) === 1,
+      source: row.manual_source || "",
+      reason: row.manual_reason || "",
+      updatedAt: manualUpdatedAt,
+      expired: manualExpired,
+      maxHours
+    },
+    auto: {
+      live: autoLive,
+      source: row.auto_source || "",
+      checkedAt: row.auto_checked_at || ""
+    },
+    effective: {
+      live: effectiveLive,
+      source: manualActive ? "manual" : (row.auto_source || "auto"),
+      storedLive: Number(row.effective_live || 0) === 1,
+      storedSource: row.effective_source || ""
+    },
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    metadata: core.safeJsonParse(row.metadata_json, {})
+  };
+}
+
+function getStreamState() {
+  ensureSchema();
+  ensureStreamStateRow();
+  const row = database.get("SELECT * FROM loyalty_stream_state WHERE key = :key", { key: streamStateKey() });
+  const stateRow = rowToStreamState(row);
+  if (!stateRow) return null;
+
+  const effectiveLive = stateRow.effective.live ? 1 : 0;
+  const effectiveSource = stateRow.effective.source || "unknown";
+  database.run(`
+    UPDATE loyalty_stream_state
+    SET effective_live = :effectiveLive,
+        effective_source = :effectiveSource,
+        updated_at = :updatedAt
+    WHERE key = :key
+  `, {
+    key: streamStateKey(),
+    effectiveLive,
+    effectiveSource,
+    updatedAt: core.nowIso()
+  });
+
+  const updated = database.get("SELECT * FROM loyalty_stream_state WHERE key = :key", { key: streamStateKey() });
+  return rowToStreamState(updated);
+}
+
+function setManualStreamState(live, options = {}) {
+  ensureSchema();
+  ensureStreamStateRow();
+  const now = core.nowIso();
+  database.run(`
+    UPDATE loyalty_stream_state
+    SET manual_live = :manualLive,
+        manual_active = 1,
+        manual_source = :manualSource,
+        manual_reason = :manualReason,
+        manual_updated_at = :manualUpdatedAt,
+        updated_at = :updatedAt
+    WHERE key = :key
+  `, {
+    key: streamStateKey(),
+    manualLive: live ? 1 : 0,
+    manualSource: String(options.source || "manual").trim() || "manual",
+    manualReason: String(options.reason || "").trim(),
+    manualUpdatedAt: now,
+    updatedAt: now
+  });
+  return getStreamState();
+}
+
+function clearManualStreamState(options = {}) {
+  ensureSchema();
+  ensureStreamStateRow();
+  const now = core.nowIso();
+  database.run(`
+    UPDATE loyalty_stream_state
+    SET manual_active = 0,
+        manual_source = :source,
+        manual_reason = :reason,
+        updated_at = :updatedAt
+    WHERE key = :key
+  `, {
+    key: streamStateKey(),
+    source: String(options.source || "clear").trim(),
+    reason: String(options.reason || "manual_clear").trim(),
+    updatedAt: now
+  });
+  return getStreamState();
+}
+
+function updateAutoStreamState(live, options = {}) {
+  ensureSchema();
+  ensureStreamStateRow();
+  const now = core.nowIso();
+  database.run(`
+    UPDATE loyalty_stream_state
+    SET auto_live = :autoLive,
+        auto_source = :autoSource,
+        auto_checked_at = :autoCheckedAt,
+        updated_at = :updatedAt
+    WHERE key = :key
+  `, {
+    key: streamStateKey(),
+    autoLive: live ? 1 : 0,
+    autoSource: String(options.source || "manual_check").trim() || "manual_check",
+    autoCheckedAt: now,
+    updatedAt: now
+  });
+  return getStreamState();
+}
+
+function parseExternalLivePayload(payload) {
+  if (!payload || typeof payload !== "object") return false;
+  if (payload.is_live === true || payload.isLive === true || payload.live === true) return true;
+  if (Array.isArray(payload.data)) return payload.data.length > 0;
+  if (payload.data && typeof payload.data === "object" && Array.isArray(payload.data.data)) return payload.data.data.length > 0;
+  return false;
+}
+
+async function fetchJson(url, timeoutMs = 5000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    const text = await response.text();
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      data = { raw: text };
+    }
+    return { ok: response.ok, status: response.status, data };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function refreshAutoStreamStateFromTwitch(req) {
+  const login = normalizeLogin(config?.streamState?.broadcasterLogin || "forrestcgn") || "forrestcgn";
+  const proto = req && req.protocol ? req.protocol : "http";
+  const host = req && typeof req.get === "function" ? req.get("host") : "127.0.0.1:8080";
+  const url = `${proto}://${host}/api/twitch/stream?login=${encodeURIComponent(login)}`;
+  try {
+    const result = await fetchJson(url);
+    const live = result.ok && parseExternalLivePayload(result.data);
+    const stateRow = updateAutoStreamState(live, { source: result.ok ? "twitch_stream_api" : "twitch_stream_api_error" });
+    return {
+      ok: result.ok,
+      live,
+      url,
+      status: result.status,
+      state: stateRow,
+      error: result.ok ? "" : "twitch_stream_api_not_ok"
+    };
+  } catch (err) {
+    const stateRow = updateAutoStreamState(false, { source: "twitch_stream_api_error" });
+    return {
+      ok: false,
+      live: false,
+      url,
+      status: 0,
+      state: stateRow,
+      error: err && err.message ? err.message : String(err)
+    };
+  }
+}
+
+async function fetchPresenceActiveUsers(req, options = {}) {
+  const proto = req && req.protocol ? req.protocol : "http";
+  const host = req && typeof req.get === "function" ? req.get("host") : "127.0.0.1:8080";
+  const minutes = Math.max(1, Math.min(240, Number(options.minutes || config?.presence?.activeMinutes || 30)));
+  const limit = Math.max(1, Math.min(1000, Number(options.limit || config?.presence?.maxUsersPerRun || 250)));
+  const includeJoinedOnly = options.includeJoinedOnly === false ? "false" : "true";
+  const url = `${proto}://${host}/api/twitch/presence/activity/active?minutes=${encodeURIComponent(minutes)}&limit=${encodeURIComponent(limit)}&includeJoinedOnly=${encodeURIComponent(includeJoinedOnly)}`;
+  const result = await fetchJson(url);
+  const data = result.data && result.data.data ? result.data.data : result.data;
+  const users = Array.isArray(data?.users) ? data.users : (Array.isArray(data?.rows) ? data.rows : []);
+  return {
+    ok: result.ok,
+    status: result.status,
+    url,
+    minutes,
+    limit,
+    includeJoinedOnly: includeJoinedOnly === "true",
+    users
+  };
+}
+
+async function runPresenceOnce(req, options = {}) {
+  refreshConfigFromSettings();
+  const checkAuto = options.checkAuto !== false;
+  const force = options.force === true;
+  const results = [];
+  const errors = [];
+
+  let auto = null;
+  if (checkAuto) {
+    auto = await refreshAutoStreamStateFromTwitch(req);
+  }
+
+  const streamState = getStreamState();
+  if (!force && (!streamState || !streamState.effective.live)) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: "stream_offline",
+      streamState,
+      auto,
+      presence: null,
+      count: 0,
+      awarded: 0,
+      skippedUsers: 0,
+      results: []
+    };
+  }
+
+  const presence = await fetchPresenceActiveUsers(req, {
+    minutes: options.minutes || config?.presence?.activeMinutes || 30,
+    limit: options.limit || config?.presence?.maxUsersPerRun || 250,
+    includeJoinedOnly: options.includeJoinedOnly !== false
+  });
+
+  if (!presence.ok) {
+    return {
+      ok: false,
+      skipped: true,
+      reason: "presence_fetch_failed",
+      streamState,
+      auto,
+      presence,
+      count: 0,
+      awarded: 0,
+      skippedUsers: 0,
+      results: []
+    };
+  }
+
+  for (const user of presence.users) {
+    const login = normalizeLogin(user.login || user.user_login || "");
+    if (!login) continue;
+    try {
+      const heartbeat = processWatchHeartbeat({
+        login,
+        displayName: user.displayName || user.display_name || login,
+        subscriber: !!user.subscriber,
+        source: "twitch_presence_runner",
+        userId: user.userId || user.user_id || "",
+        metadata: {
+          subscriberTier: user.subscriberTier || user.subscriber_tier || "unknown",
+          presenceStatus: user.status || "",
+          lastSeenAt: user.lastSeenAt || "",
+          presentUntil: user.presentUntil || ""
+        }
+      });
+      results.push({
+        login,
+        displayName: user.displayName || user.display_name || login,
+        status: user.status || "",
+        subscriber: !!user.subscriber,
+        subscriberTier: user.subscriberTier || user.subscriber_tier || "unknown",
+        awarded: !!heartbeat.awarded,
+        skipped: !!heartbeat.skipped,
+        ignored: !!heartbeat.ignored,
+        reason: heartbeat.reason || "",
+        amount: heartbeat.transaction ? heartbeat.transaction.amount : 0,
+        nextRewardAt: heartbeat.nextRewardAt || ""
+      });
+    } catch (err) {
+      errors.push({
+        login,
+        error: err && err.message ? err.message : String(err)
+      });
+    }
+  }
+
+  const awarded = results.filter(row => row.awarded).length;
+  const skippedUsers = results.filter(row => row.skipped || row.ignored).length;
+
+  return {
+    ok: errors.length === 0,
+    skipped: false,
+    reason: "",
+    streamState: getStreamState(),
+    auto,
+    presence: {
+      ok: presence.ok,
+      count: presence.users.length,
+      minutes: presence.minutes,
+      includeJoinedOnly: presence.includeJoinedOnly
+    },
+    count: results.length,
+    awarded,
+    skippedUsers,
+    errors,
+    results
+  };
+}
+
 
 function registerRoutes(app) {
   app.get("/api/loyalty/status", core.asyncRoute(async (req, res) => {

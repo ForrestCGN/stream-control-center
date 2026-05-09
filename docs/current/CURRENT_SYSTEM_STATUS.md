@@ -17,7 +17,9 @@ Aktueller Stand:
 - StreamElements bleibt aktiv.
 - Watch-Heartbeat mit Intervall-Schutz ist vorhanden.
 - Twitch Presence sammelt aktive/anwesende Chat-User.
-- Automatische Punktevergabe aus Twitch Presence ist noch nicht aktiv.
+- Stream-State-Gate mit manuellem Streamer.bot-Fallback ist vorhanden.
+- Presence Run-Once kann aktive User kontrolliert durch Loyalty Heartbeat schicken.
+- Automatischer Timer ist noch nicht aktiv.
 
 ## Aktive relevante Module
 
@@ -26,62 +28,37 @@ backend/modules/loyalty.js
 backend/modules/twitch_presence.js
 ```
 
-## Loyalty
-
-Aktuelle Loyalty-Routen:
+## Loyalty Version
 
 ```text
-GET    /api/loyalty/status
-GET    /api/loyalty/config
-GET    /api/loyalty/settings
-POST   /api/loyalty/settings
-GET    /api/loyalty/users
-GET    /api/loyalty/users/:login
-GET    /api/loyalty/balance/:login
-GET    /api/loyalty/transactions
-POST   /api/loyalty/transactions/adjust
-GET    /api/loyalty/test/watch
-GET    /api/loyalty/watch/heartbeat
-POST   /api/loyalty/watch/heartbeat
-GET    /api/loyalty/watch/states
-GET    /api/loyalty/ignored-users
-POST   /api/loyalty/ignored-users
-DELETE /api/loyalty/ignored-users/:login
-GET    /api/loyalty/routes
+0.1.2
+schema version 3
 ```
 
-## Twitch Presence Activity
-
-Neue Activity-Routen:
+## Wichtige Loyalty-Routen
 
 ```text
-GET  /api/twitch/presence/activity
-GET  /api/twitch/presence/activity/active
-POST /api/twitch/presence/activity/clear
-GET  /api/twitch/presence/activity/test
+GET/POST /api/loyalty/stream-state/start
+GET/POST /api/loyalty/stream-state/stop
+GET/POST /api/loyalty/stream-state/clear-override
+GET/POST /api/loyalty/stream-state/refresh-auto
+GET      /api/loyalty/presence/status
+GET/POST /api/loyalty/presence/run-once
 ```
 
-Statuslogik:
-
-```text
-JOIN => present
-PRIVMSG => active
-USERNOTICE => active
-PART => left
-Timeout => stale
-```
-
-## Verbindliche Loyalty-Regeln
+## Verbindliche Regeln
 
 ```text
 DB ist Hauptspeicher.
 JSON ist nur Seed/Fallback/technische Boot-Konfig.
-Shadow Mode zuerst, StreamElements bleibt aktiv, Import später.
+Shadow Mode zuerst.
+StreamElements bleibt aktiv.
+Offline keine Watch-Punkte.
 ```
 
 ## Bewusst offen
 
-- STEP203.3: Twitch Presence mit Loyalty Heartbeat verbinden.
+- STEP203.4: automatischer Shadow Runner mit Timer.
 - echte Twitch-Tags im Livebetrieb beobachten.
 - Tier-Erkennung anhand realer Badges verbessern.
 - Get Chatters API später ergänzen.

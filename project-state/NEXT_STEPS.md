@@ -4,30 +4,32 @@ Stand: 2026-05-09
 
 ## Nächster empfohlener Schritt
 
-### STEP203.3 - Loyalty Twitch Presence Heartbeat Runner
+### STEP203.3 testen
 
-Ziel:
-
-```text
-aktive/presente User aus Twitch Presence regelmäßig an Loyalty Heartbeat übergeben
-Shadow Mode bleibt aktiv
-StreamElements bleibt aktiv
-keine öffentlichen Punkte-Commands
-```
-
-Vorher STEP203.2 testen:
+Tests:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/presence/integration-check" | ConvertTo-Json -Depth 30
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/presence/activity/test?login=presenceviewer&displayName=PresenceViewer&event=join" | ConvertTo-Json -Depth 30
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/presence/activity/test?login=presenceviewer&displayName=PresenceViewer&event=privmsg" | ConvertTo-Json -Depth 30
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/presence/activity" | ConvertTo-Json -Depth 30
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/presence/activity/active?minutes=30" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/stream-state" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/presence/status" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/presence/run-once" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/stream-state/start?source=streamerbot_test" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/presence/run-once" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/presence/run-once" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/stream-state/stop?source=streamerbot_test" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/presence/run-once" | ConvertTo-Json -Depth 30
 ```
 
 ## Danach
 
-- automatischer Runner nur im Shadow Mode
-- Live-Status prüfen, bevor Punkte vergeben werden
-- später Get Chatters API ergänzen
-- später Dashboard-Modul für Loyalty
+### STEP203.4 - Loyalty Auto Shadow Runner
+
+Nur wenn STEP203.3 stabil ist.
+
+Ziel:
+
+- konfigurierbarer Timer
+- nur live
+- Shadow Mode
+- StreamElements bleibt aktiv
+- Status-/Stop-/Start-Routen

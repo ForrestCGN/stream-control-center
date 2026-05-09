@@ -2,7 +2,7 @@
 
 Stand: 2026-05-09
 
-## Loyalty / Twitch Presence relevante Dateien
+## Loyalty relevante Dateien
 
 Backend:
 
@@ -26,7 +26,7 @@ config/loyalty.json
 Doku:
 
 ```text
-project-state/STEP203_2_TWITCH_PRESENCE_ACTIVITY_COLLECTOR_2026-05-09.md
+project-state/STEP203_3_LOYALTY_STREAM_STATE_GATE_PRESENCE_RUN_ONCE_2026-05-09.md
 ```
 
 DB-Strukturen:
@@ -39,6 +39,7 @@ loyalty_imports
 loyalty_ignored_users
 loyalty_settings
 loyalty_watch_state
+loyalty_stream_state
 twitch_presence_activity
 module_text_variants mit module_name = loyalty
 ```
