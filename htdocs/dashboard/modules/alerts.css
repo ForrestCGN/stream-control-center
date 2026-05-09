@@ -653,3 +653,41 @@ html[data-theme=dark] .message-settings-grid label{
   background:#242424!important;
   border-color:#3a3a3a!important;
 }
+
+
+/* STEP209.2: Nachrichtentext-Block repariert - volle Breite, keine gequetschte Seitenleiste */
+.design-section .message-settings-card,
+.design-section .message-settings-card.wide-field{
+  grid-column:1 / -1!important;
+  width:100%!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+.design-section .text-settings-grid{
+  margin-bottom:14px!important;
+}
+.message-settings-card{
+  display:block!important;
+  margin-top:14px!important;
+  padding:14px 16px!important;
+  overflow:visible!important;
+}
+.message-settings-head{
+  margin-bottom:14px!important;
+}
+.message-settings-grid{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(150px,1fr))!important;
+  gap:12px!important;
+}
+.message-settings-grid label{
+  min-height:78px!important;
+  overflow:hidden!important;
+}
+.message-settings-grid select,
+.message-settings-grid input{
+  max-width:100%!important;
+}
+@media(max-width:1350px){.message-settings-grid{grid-template-columns:repeat(3,minmax(150px,1fr))!important}}
+@media(max-width:850px){.message-settings-grid{grid-template-columns:repeat(2,minmax(150px,1fr))!important}}
+@media(max-width:560px){.message-settings-grid{grid-template-columns:1fr!important}}

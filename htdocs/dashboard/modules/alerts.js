@@ -810,24 +810,23 @@
 
             <div class="design-section">
               <h3>3. Inhalt: Text</h3>
-              <div class="config-grid design-grid">
+              <div class="config-grid design-grid text-settings-grid">
                 ${selectHtml('textAlign','Textausrichtung', st.textAlign, [['left','links'],['center','zentriert'],['right','rechts']])}
                 ${rangeHtml('fontScale','Schriftgröße', st.fontScale, .75, 1.35, .01)}
                 ${rangeHtml('headlineScale','Headline-Größe', st.headlineScale, .7, 1.4, .01)}
                 ${rangeHtml('valueScale','Betrag/Wert-Größe', st.valueScale, .7, 1.4, .01)}
-                <div class="message-settings-card wide-field">
-                  <div class="message-settings-head">
-                    <strong>Nachrichtentext</strong>
-                    <span>User-Text unter dem Alert, z. B. Bits-, Resub- oder Donation-Nachricht.</span>
-                  </div>
-                  <div class="message-settings-grid">
-                    ${selectHtml('messageEnabled','Nachricht anzeigen', st.messageEnabled === false ? 'false':'true', [['true','anzeigen'],['false','ausblenden']])}
-                    ${rangeHtml('messageScale','Nachrichtengröße', st.messageScale ?? 1, .75, 1.45, .01)}
-                    ${selectHtml('messageWidthMode','Nachrichtenbreite', st.messageWidthMode || 'normal', [['compact','kompakt'],['normal','normal'],['wide','breit'],['full','volle Breite']])}
-                    ${selectHtml('messageMaxLines','Max. Zeilen', String(st.messageMaxLines ?? 0), [['0','alle'],['1','1 Zeile'],['2','2 Zeilen'],['3','3 Zeilen']])}
-                    ${selectHtml('messageWeight','Nachricht fett', st.messageWeight || 'normal', [['normal','normal'],['bold','fett']])}
-                  </div>
-                  <p class="small-note">Diese Werte ändern nur den unteren Nachrichtentext. Headline, Wert, Sound, TTS und Queue bleiben unverändert.</p>
+              </div>
+              <div class="message-settings-card">
+                <div class="message-settings-head">
+                  <strong>Nachrichtentext</strong>
+                  <span>Steuert nur den kleinen User-Text unter dem Alert. Headline, Wert, Sound, TTS und Queue bleiben unverändert.</span>
+                </div>
+                <div class="message-settings-grid">
+                  ${selectHtml('messageEnabled','Anzeigen', st.messageEnabled === false ? 'false':'true', [['true','anzeigen'],['false','ausblenden']])}
+                  ${rangeHtml('messageScale','Größe', st.messageScale ?? 1, .65, 1.8, .01)}
+                  ${selectHtml('messageWidthMode','Breite', st.messageWidthMode || 'normal', [['compact','kompakt'],['normal','normal'],['wide','breit'],['full','volle Breite']])}
+                  ${selectHtml('messageMaxLines','Max. Zeilen', String(st.messageMaxLines ?? 0), [['0','alle'],['1','1 Zeile'],['2','2 Zeilen'],['3','3 Zeilen']])}
+                  ${selectHtml('messageWeight','Schrift', st.messageWeight || 'normal', [['normal','normal'],['bold','fett']])}
                 </div>
               </div>
             </div>
@@ -2065,22 +2064,33 @@
     if (!box) return;
     const st = readDisplaySettings();
     box.className = 'alert-design-preview overlay-iframe-preview step136-preview avatar-' + escClass(st.avatarPosition) + ' avatar-' + escClass(st.avatarSize) + ' logo-' + escClass(st.providerLogoStyle) + ' glow-' + escClass(st.glowStrength) + (st.showParticles ? '' : ' particles-off') + (st.showSideLines ? '' : ' lines-off');
-    box.innerHTML = designPreviewMarkup(st, false);
+    if (!box.querySelector('iframe.cgn-alert-preview-frame')) {
+      box.innerHTML = designPreviewMarkup(st, false);
+    } else {
+      updateDesignPreviewToolbar(box, st, false);
+    }
+    updateDesignPreviewToolbar(box, st, false);
     applyPreviewVars(box, st);
     postPreviewAlertToFrame(box, st);
     updateDesignPopout();
   }
 
   function designPreviewMarkup(st, popout){
-    const widthPx = previewCardBasePx(st);
-    const heightPx = previewCardEstimatedHeight(st);
-    const mode = popout ? '1920×1080 Originalgröße' : 'OBS 16:9 skaliert';
-    const src = '/overlays/_overlay-alerts-v2.html?preview=1&v=2091';
-    return '<div class="preview-toolbar"><span>' + esc(mode) + '</span><strong>' + esc(widthPx + '×' + heightPx + ' px') + '</strong><em>' + esc('X ' + st.positionX + '% · Y ' + st.positionY + '% · Avatar ' + displaySimpleLabel(st.avatarPosition) + ' · ' + displaySimpleLabel(st.avatarSize)) + '</em></div>' +
+    const src = '/overlays/_overlay-alerts-v2.html?preview=1&v=2092';
+    return '<div class="preview-toolbar"></div>' +
       '<div class="preview-viewport" aria-label="OBS-Vorschaufläche"><div class="preview-safe-zone"></div><div class="preview-crosshair"></div><div class="preview-anchor-dot"></div>' +
       '<div class="preview-axis x"></div><div class="preview-axis y"></div>' +
       '<div class="preview-corner-label tl">oben links</div><div class="preview-corner-label tc">oben</div><div class="preview-corner-label tr">oben rechts</div><div class="preview-corner-label ml">links</div><div class="preview-corner-label mr">rechts</div><div class="preview-corner-label bl">unten links</div><div class="preview-corner-label bc">unten</div><div class="preview-corner-label br">unten rechts</div>' +
       '<div class="preview-iframe-wrap"><iframe class="cgn-alert-preview-frame" src="' + esc(src) + '" title="Echte Alert-Vorschau"></iframe></div></div>';
+  }
+
+  function updateDesignPreviewToolbar(container, st, popout){
+    const toolbar = container.querySelector('.preview-toolbar');
+    if (!toolbar) return;
+    const widthPx = previewCardBasePx(st);
+    const heightPx = previewCardEstimatedHeight(st);
+    const mode = popout ? '1920×1080 Originalgröße' : 'OBS 16:9 skaliert';
+    toolbar.innerHTML = '<span>' + esc(mode) + '</span><strong>' + esc(widthPx + '×' + heightPx + ' px') + '</strong><em>' + esc('X ' + st.positionX + '% · Y ' + st.positionY + '% · Avatar ' + displaySimpleLabel(st.avatarPosition) + ' · ' + displaySimpleLabel(st.avatarSize)) + '</em>';
   }
 
   function applyPreviewVars(el, st){
@@ -2165,8 +2175,9 @@
       try { frame.contentWindow.postMessage({ op:'cgn_alert_preview', event:'render', alert: buildDashboardPreviewAlert(st) }, '*'); } catch(_) {}
     };
     frame.onload = send;
-    setTimeout(send, 80);
-    setTimeout(send, 280);
+    setTimeout(send, 50);
+    setTimeout(send, 150);
+    setTimeout(send, 350);
   }
 
   function openDesignPopout(){
@@ -2186,6 +2197,7 @@
     const st=readDisplaySettings();
     target.className = 'alert-design-preview popout-preview overlay-iframe-preview step136-preview avatar-' + escClass(st.avatarPosition) + ' avatar-' + escClass(st.avatarSize) + ' logo-' + escClass(st.providerLogoStyle) + ' glow-' + escClass(st.glowStrength) + (st.showParticles ? '' : ' particles-off') + (st.showSideLines ? '' : ' lines-off');
     target.innerHTML = designPreviewMarkup(st, true);
+    updateDesignPreviewToolbar(target, st, true);
     applyPreviewVars(target, st);
     postPreviewAlertToFrame(target, st);
   }

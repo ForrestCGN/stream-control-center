@@ -1786,6 +1786,19 @@
 .alert-card.message-lines-3 .message{-webkit-line-clamp:3!important}
 </style>
 
+
+<style id="step209-2-message-settings-late-override">
+/* STEP209.2: Nachrichtentext-Einstellungen müssen sichtbar auf Größe/Breite/Zeilen reagieren. */
+.alert-card .message{
+  font-size:calc(var(--card-h) * .065 * var(--font-scale,1) * var(--message-scale,1))!important;
+  line-height:1.20!important;
+}
+.alert-card.message-width-compact .message{max-width:min(42ch,68%)!important}
+.alert-card.message-width-normal .message{max-width:min(72ch,92%)!important}
+.alert-card.message-width-wide .message{max-width:min(96ch,100%)!important}
+.alert-card.message-width-full .message{max-width:100%!important}
+.alert-card.message-weight-bold .message{font-weight:900!important;color:#eef4ff!important}
+</style>
 </head>
 <body>
   <div class="stage" id="stage"></div>
@@ -2018,7 +2031,7 @@
         badgeScale: 1,
         textAlign: pick(raw.textAlign || raw.text_align, ['left','center','right'], 'left'),
         messageEnabled: raw.messageEnabled ?? raw.message_enabled ?? true,
-        messageScale: num(raw.messageScale ?? raw.message_scale, 1, .75, 1.45),
+        messageScale: num(raw.messageScale ?? raw.message_scale, 1, .65, 1.8),
         messageWidthMode: pick(raw.messageWidthMode || raw.message_width_mode, ['compact','normal','wide','full'], 'normal'),
         messageMaxLines: num(raw.messageMaxLines ?? raw.message_max_lines, 0, 0, 3),
         messageWeight: pick(raw.messageWeight || raw.message_weight, ['normal','bold'], 'normal'),
