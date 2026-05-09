@@ -1,0 +1,86 @@
+{
+  "enabled": true,
+  "mode": "shadow",
+  "_comment": "Seed/Fallback/technische Boot-Konfig. Produktive Loyalty-Daten liegen in der Datenbank.",
+  "currency": {
+    "name": "Kekskrümel"
+  },
+  "watch": {
+    "enabled": true,
+    "amount": 2,
+    "intervalMinutes": 10,
+    "subscriberMultiplier": 3
+  },
+  "features": {
+    "publicCommandsEnabled": false,
+    "modCommandsEnabled": true,
+    "watchEarningEnabled": true,
+    "eventBonusesEnabled": false,
+    "rewardsEnabled": false,
+    "giveawaysEnabled": false,
+    "gamesEnabled": false
+  },
+  "bonuses": {
+    "follow": {
+      "enabled": true,
+      "amount": 10
+    },
+    "tip": {
+      "enabled": true,
+      "amountPerEuro": 10
+    },
+    "subscribe": {
+      "enabled": true,
+      "amount": 50
+    },
+    "resub": {
+      "enabled": false,
+      "amount": 50
+    },
+    "giftSubGiver": {
+      "enabled": false,
+      "amount": 50
+    },
+    "giftSubReceiver": {
+      "enabled": false,
+      "amount": 25
+    },
+    "subStreak": {
+      "enabled": false,
+      "rules": [
+        {
+          "months": 3,
+          "amount": 25
+        },
+        {
+          "months": 6,
+          "amount": 50
+        },
+        {
+          "months": 12,
+          "amount": 100
+        }
+      ]
+    },
+    "cheer": {
+      "enabled": true,
+      "amountPer100Bits": 10
+    },
+    "raid": {
+      "enabled": true,
+      "amount": 50
+    }
+  },
+  "ignoredUsers": [
+    "streamelements",
+    "forrestcgn"
+  ],
+  "expiration": {
+    "enabled": true,
+    "inactiveAfterDays": 365
+  },
+  "import": {
+    "status": "not_imported",
+    "provider": "streamelements"
+  }
+}

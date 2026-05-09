@@ -11,19 +11,16 @@ Stand: 2026-05-09
 
 ## Aktueller Hauptfokus - Loyalty / Kekskrümel
 
-Der Loyalty-/Kekskrümel-Block wurde nach STEP194 als nächster großer Themenbereich gestartet.
+Der Loyalty-Core wurde mit STEP203 technisch begonnen.
 
 Aktueller Loyalty-Stand:
 
-- `STEP194` dokumentiert die StreamElements-Loyalty-Migrationsarchitektur.
-- `STEP202` dokumentiert die konkrete Erfassung vor Code-Start.
-- `STEP202.1` legt den DB-First-Standard für Loyalty fest.
-- `STEP202.2` legt Shadow Mode und konfigurierbare Bonus-Regeln fest.
-- Es gibt noch keine Loyalty-Code-Dateien.
-- Es gibt noch keine Loyalty-DB-Tabellen.
+- `backend/modules/loyalty.js` existiert.
+- `config/loyalty.json` existiert als Seed/Fallback/technische Boot-Konfig.
+- Loyalty startet im Shadow Mode.
+- StreamElements bleibt aktiv.
+- User-Punkte-Import kommt später.
 - Es gibt noch kein Loyalty-Dashboard-Modul.
-- StreamElements bleibt unverändert aktiv.
-- User-Punkte-Import ist kein Blocker mehr fuer die erste technische Umsetzung.
 
 Verbindliche Loyalty-Hauptregel:
 
@@ -44,9 +41,26 @@ Verbindliche Startstrategie:
 Shadow Mode zuerst, StreamElements bleibt aktiv, Import später.
 ```
 
-## Bestätigte StreamElements-Loyalty-Werte
+## STEP203 Basis-Routen
 
-Aus den Screenshots vom 2026-05-09 bestätigt:
+```text
+GET    /api/loyalty/status
+GET    /api/loyalty/config
+GET    /api/loyalty/settings
+POST   /api/loyalty/settings
+GET    /api/loyalty/users
+GET    /api/loyalty/users/:login
+GET    /api/loyalty/balance/:login
+GET    /api/loyalty/transactions
+POST   /api/loyalty/transactions/adjust
+GET    /api/loyalty/test/watch
+GET    /api/loyalty/ignored-users
+POST   /api/loyalty/ignored-users
+DELETE /api/loyalty/ignored-users/:login
+GET    /api/loyalty/routes
+```
+
+## Bestätigte StreamElements-Loyalty-Werte
 
 ```text
 Loyalty enabled: Ja
@@ -73,68 +87,20 @@ Auslegung:
 Subscriber erhalten Watch amount 2 x Subscriber multiplier 3 = 6 Kekskrümel.
 ```
 
-## STEP203 Zielrichtung
-
-Naechster technischer Schritt:
-
-```text
-STEP203 - Loyalty Core DB + Basis-API Shadow Mode
-```
-
-Geplanter Umfang:
-
-- Core-Backend-Modul
-- Seed/Fallback-Config
-- DB-Core-Tabellen
-- Status-/Settings-/Balance-/Transactions-Routen
-- Shadow-Mode-Settings
-- keine StreamElements-Abschaltung
-- kein produktiver Import in STEP203
-
-## SoundAlerts / Sound-System - aktueller Stand bis STEP193.17.2
+## SoundAlerts / Sound-System
 
 SoundAlerts ist bis `STEP193.17.2` technisch umgesetzt, live getestet und dokumentiert.
 
-Aktueller Modulstand:
-
-- `soundalerts_bridge` Version: `0.1.14`
-- Backend-Datei:
-  - `backend/modules/soundalerts_bridge.js`
-- Dashboard-Dateien:
-  - `htdocs/dashboard/modules/soundalerts.js`
-  - `htdocs/dashboard/modules/soundalerts.css`
-- Sound-System Overlay:
-  - `htdocs/overlays/sound_system_overlay.html`
-- Config/Fallback:
-  - `config/soundalerts_bridge.json`
-- DB ist Hauptspeicher fuer Eintraege, Events, Meta und technische Settings.
-- JSON bleibt Seed/Fallback/Notfall.
-
-## TTS - aktueller Stand bis STEP200.1
+## TTS
 
 Der TTS-Block ist technisch umgesetzt, live getestet, im Dashboard eingebunden und nutzt das globale DB-basierte Textvarianten-System.
 
-Backend:
-
-- `backend/modules/tts_system.js`
-- DB-Zugriffe laufen ueber `backend/core/database.js`.
-- Settings laufen ueber `backend/modules/helpers/helper_settings.js`.
-- Textvarianten laufen ueber `backend/modules/helpers/helper_texts.js`.
-- JSON `config/tts_config.json` bleibt Seed/Fallback/technische Boot-Konfig.
-- JSON `config/tts_messages.json` bleibt Seed/Fallback fuer TTS-Texte.
-
-Dashboard:
-
-- `htdocs/dashboard/modules/tts.js`
-- `htdocs/dashboard/modules/tts.css`
-- Einbindung in `htdocs/dashboard/index.html`
-
 ## Bewusst offen
 
+- Loyalty-Dashboard-Modul bauen.
 - Stream Store / Reward-Items erfassen.
 - Giveaway-Settings erfassen.
 - Aktive Chat-Games priorisieren.
 - Commands/Aliase festlegen.
-- Danach STEP203 technisch bauen.
-- Sound-System Overlay nur bei konkretem Fehler weiter pruefen.
-- MariaDB-Adapter spaeter zentral in `backend/core/database.js` implementieren.
+- StreamElements-Import später als Dry-Run.
+- MariaDB-Adapter später zentral in `backend/core/database.js` implementieren.
