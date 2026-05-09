@@ -11,16 +11,25 @@ Stand: 2026-05-09
 
 ## Aktueller Hauptfokus - Loyalty / Kekskrümel
 
-Der Loyalty-Core wurde mit STEP203 technisch begonnen.
-
 Aktueller Loyalty-Stand:
 
-- `backend/modules/loyalty.js` existiert.
-- `config/loyalty.json` existiert als Seed/Fallback/technische Boot-Konfig.
-- Loyalty startet im Shadow Mode.
-- StreamElements bleibt aktiv.
-- User-Punkte-Import kommt später.
-- Es gibt noch kein Loyalty-Dashboard-Modul.
+- `STEP194` dokumentiert die StreamElements-Loyalty-Migrationsarchitektur.
+- `STEP202` dokumentiert die konkrete Erfassung vor Code-Start.
+- `STEP202.1` legt den DB-First-Standard für Loyalty fest.
+- `STEP202.2` legt Shadow Mode und konfigurierbare Bonus-Regeln fest.
+- `STEP203` hat den Loyalty-Core mit DB, Settings und Basis-API eingeführt.
+- `STEP203.1` ergänzt Watch-/Presence-Heartbeat mit Intervall-Schutz.
+- StreamElements bleibt unverändert aktiv.
+- User-Punkte-Import ist kein Blocker und kommt später.
+
+Aktuelles Modul:
+
+```text
+backend/modules/loyalty.js
+version 0.1.1
+schema version 2
+mode shadow
+```
 
 Verbindliche Loyalty-Hauptregel:
 
@@ -41,7 +50,7 @@ Verbindliche Startstrategie:
 Shadow Mode zuerst, StreamElements bleibt aktiv, Import später.
 ```
 
-## STEP203 Basis-Routen
+## Aktive Loyalty-Routen
 
 ```text
 GET    /api/loyalty/status
@@ -54,53 +63,66 @@ GET    /api/loyalty/balance/:login
 GET    /api/loyalty/transactions
 POST   /api/loyalty/transactions/adjust
 GET    /api/loyalty/test/watch
+GET    /api/loyalty/watch/heartbeat
+POST   /api/loyalty/watch/heartbeat
+GET    /api/loyalty/watch/states
 GET    /api/loyalty/ignored-users
 POST   /api/loyalty/ignored-users
 DELETE /api/loyalty/ignored-users/:login
 GET    /api/loyalty/routes
 ```
 
+## Loyalty DB-Strukturen
+
+Aktuell:
+
+```text
+loyalty_users
+loyalty_transactions
+loyalty_reservations
+loyalty_imports
+loyalty_ignored_users
+loyalty_settings
+loyalty_watch_state
+module_text_variants mit module_name = loyalty
+```
+
 ## Bestätigte StreamElements-Loyalty-Werte
 
 ```text
-Loyalty enabled: Ja
 Currency name: Kekskrümel
 Watch amount: 2
 Interval: 10 Minuten
 Subscriber multiplier: 3x
-Viewer: 2 Kekskrümel alle 10 Minuten
-Subscriber: 6 Kekskrümel alle 10 Minuten
-Follower bonus: 10 Kekskrümel
-Tip bonus: 10 Kekskrümel pro 1,00 EUR
-Subscriber bonus: 50 Kekskrümel
-Cheer bonus: 10 Kekskrümel pro 100 Bits
-Raid bonus: 50 Kekskrümel
-Ignored users:
-- STREAMELEMENTS
-- FORRESTCGN
-Punkteverfall: nach mehr als 1 Jahr Inaktivität auf dem Channel
+Follower bonus: 10
+Tip bonus: 10 pro 1,00 EUR
+Subscriber bonus: 50
+Cheer bonus: 10 pro 100 Bits
+Raid bonus: 50
+Ignored users: STREAMELEMENTS, FORRESTCGN
+Punkteverfall: nach mehr als 1 Jahr Inaktivität
 ```
 
-Auslegung:
+## STEP203.1 Verhalten
+
+Watch-Heartbeat vergibt nur Punkte, wenn das Intervall fällig ist.
 
 ```text
-Subscriber erhalten Watch amount 2 x Subscriber multiplier 3 = 6 Kekskrümel.
+Viewer: +2 pro fälligem Intervall
+Subscriber: +6 pro fälligem Intervall
+zweiter Heartbeat im Intervall: keine neue Transaktion
 ```
 
-## SoundAlerts / Sound-System
+## SoundAlerts / TTS
 
-SoundAlerts ist bis `STEP193.17.2` technisch umgesetzt, live getestet und dokumentiert.
-
-## TTS
-
-Der TTS-Block ist technisch umgesetzt, live getestet, im Dashboard eingebunden und nutzt das globale DB-basierte Textvarianten-System.
+SoundAlerts bleibt auf `soundalerts_bridge` Version `0.1.14`.
+TTS bleibt auf dem nach STEP200 dokumentierten Stand.
 
 ## Bewusst offen
 
-- Loyalty-Dashboard-Modul bauen.
 - Stream Store / Reward-Items erfassen.
 - Giveaway-Settings erfassen.
 - Aktive Chat-Games priorisieren.
 - Commands/Aliase festlegen.
-- StreamElements-Import später als Dry-Run.
+- Danach STEP203.2: echten Presence-/Streamer.bot-Hook anbinden.
 - MariaDB-Adapter später zentral in `backend/core/database.js` implementieren.

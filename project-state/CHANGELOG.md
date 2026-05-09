@@ -2,39 +2,32 @@
 
 ## 2026-05-09
 
+### STEP203.1 - Loyalty Watch Shadow Hook
+
+- `backend/modules/loyalty.js` auf Version `0.1.1` erhöht.
+- Loyalty-Schema auf Version `2` erhöht.
+- Neue Tabelle `loyalty_watch_state` ergänzt.
+- Neue Routen:
+  - `GET /api/loyalty/watch/heartbeat`
+  - `POST /api/loyalty/watch/heartbeat`
+  - `GET /api/loyalty/watch/states`
+- Watch-Heartbeat mit Intervall-Schutz ergänzt:
+  - kein mehrfaches Punkten innerhalb des Watch-Intervalls
+  - `next_reward_at` und `last_reward_at` werden gespeichert
+  - Subscriber-Multiplikator bleibt aktiv
+  - Ignored Users werden weiter beachtet
+- Ignored-User-Antwort semantisch bereinigt: ignored ist erwartetes Verhalten, kein technischer Fehler.
+- StreamElements bleibt aktiv.
+- Shadow Mode bleibt aktiv.
+
 ### STEP203 - Loyalty Core DB + Basis-API Shadow Mode
 
-- Erstes technisches Loyalty-Core-Modul ergänzt:
-  - `backend/modules/loyalty.js`
-- Seed/Fallback-Konfig ergänzt:
-  - `config/loyalty.json`
-- DB-first umgesetzt:
-  - Settings über `helper_settings.js`
-  - Config über `helper_config.js`
-  - Texte über `helper_texts.js`
-  - DB über `backend/core/database.js`
-  - Responses/Routes über `helper_core.js`
-- Neue DB-Strukturen per sanfter Migration:
-  - `loyalty_users`
-  - `loyalty_transactions`
-  - `loyalty_reservations`
-  - `loyalty_imports`
-  - `loyalty_ignored_users`
-  - `loyalty_settings`
-- Basis-Routen ergänzt:
-  - `/api/loyalty/status`
-  - `/api/loyalty/config`
-  - `/api/loyalty/settings`
-  - `/api/loyalty/users`
-  - `/api/loyalty/balance/:login`
-  - `/api/loyalty/transactions`
-  - `/api/loyalty/test/watch`
-  - `/api/loyalty/ignored-users`
-  - `/api/loyalty/routes`
-- Shadow Mode als Startmodus gesetzt.
-- StreamElements bleibt aktiv.
-- Kein StreamElements-Import.
-- Kein Dashboard-Modul in diesem STEP.
+- Loyalty-Core-Modul eingeführt.
+- DB-Tabellen und Basis-Routen angelegt.
+- Settings über `helper_settings`.
+- Texte über `helper_texts`.
+- DB-Zugriffe über `backend/core/database.js`.
+- Keine StreamElements-Abschaltung.
 
 ### STEP202.2 - Loyalty Shadow Mode & Configurable Bonus Rules
 
@@ -42,19 +35,4 @@
   - neues System läuft zuerst im Shadow Mode parallel zu StreamElements.
   - StreamElements bleibt aktiv.
   - User-Punkte-Import kommt später.
-
-### STEP202.1 - Loyalty DB-First Standard
-
-- Verbindliche Datenhaltungsregel für Loyalty dokumentiert:
-  - DB ist Hauptspeicher.
-  - JSON ist nur Seed/Fallback/technische Boot-Konfig.
-
-### STEP202 - Loyalty / Kekskrümel Capture & Migration Prep
-
-- Start des Loyalty-/Kekskrümel-Blocks als Doku-/Erfassungs-STEP vorbereitet.
-
-## 2026-05-08
-
-### STEP200.1 - TTS Documentation Sync
-
-- Zentrale Projekt-Dokus nach STEP200 synchronisiert.
+- Konfigurierbare Bonus-Regeln eingeplant.

@@ -18,10 +18,10 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const SETTINGS_TABLE = "loyalty_settings";
 
 const DEFAULT_CONFIG = {
@@ -487,7 +487,52 @@ function ensureSchema() {
       `);
       db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_ignored_users_enabled ON loyalty_ignored_users(enabled);`);
     }
+
+    if (toVersion === 2) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS loyalty_watch_state (
+          user_login TEXT PRIMARY KEY,
+          user_display_name TEXT NOT NULL DEFAULT '',
+          mode TEXT NOT NULL DEFAULT 'shadow',
+          subscriber INTEGER NOT NULL DEFAULT 0,
+          source TEXT NOT NULL DEFAULT 'manual',
+          last_heartbeat_at TEXT NOT NULL DEFAULT '',
+          last_reward_at TEXT NOT NULL DEFAULT '',
+          next_reward_at TEXT NOT NULL DEFAULT '',
+          heartbeat_count INTEGER NOT NULL DEFAULT 0,
+          reward_count INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          metadata_json TEXT NOT NULL DEFAULT '{}'
+        );
+      `);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_watch_state_last_heartbeat ON loyalty_watch_state(last_heartbeat_at);`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_watch_state_next_reward ON loyalty_watch_state(next_reward_at);`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_watch_state_mode ON loyalty_watch_state(mode);`);
+    }
   });
+
+  // Safety net: keep the watch-state table available even if an older schema marker already existed.
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS loyalty_watch_state (
+      user_login TEXT PRIMARY KEY,
+      user_display_name TEXT NOT NULL DEFAULT '',
+      mode TEXT NOT NULL DEFAULT 'shadow',
+      subscriber INTEGER NOT NULL DEFAULT 0,
+      source TEXT NOT NULL DEFAULT 'manual',
+      last_heartbeat_at TEXT NOT NULL DEFAULT '',
+      last_reward_at TEXT NOT NULL DEFAULT '',
+      next_reward_at TEXT NOT NULL DEFAULT '',
+      heartbeat_count INTEGER NOT NULL DEFAULT 0,
+      reward_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    );
+  `);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_watch_state_last_heartbeat ON loyalty_watch_state(last_heartbeat_at);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_watch_state_next_reward ON loyalty_watch_state(next_reward_at);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_watch_state_mode ON loyalty_watch_state(mode);`);
 
   state.schema.ok = true;
   state.schema.lastError = "";
@@ -795,7 +840,7 @@ function recordTransaction(input = {}) {
 
   if (isIgnoredUser(login) && input.allowIgnored !== true) {
     return {
-      ok: false,
+      ok: true,
       ignored: true,
       login,
       reason: "ignored_user",
@@ -902,6 +947,236 @@ function recordWatchInterval(input = {}) {
   });
 }
 
+function parseBool(value, fallback = false) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  const raw = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "ja", "on", "y"].includes(raw)) return true;
+  if (["0", "false", "no", "nein", "off", "n"].includes(raw)) return false;
+  return fallback;
+}
+
+function addMinutesIso(iso, minutes) {
+  const base = Date.parse(iso || "");
+  const start = Number.isFinite(base) ? base : Date.now();
+  return new Date(start + Math.max(1, Number(minutes || 10)) * 60 * 1000).toISOString();
+}
+
+function secondsUntilIso(iso) {
+  const target = Date.parse(iso || "");
+  if (!Number.isFinite(target)) return 0;
+  return Math.max(0, Math.ceil((target - Date.now()) / 1000));
+}
+
+function rowToWatchState(row) {
+  if (!row) return null;
+  return {
+    login: row.user_login,
+    displayName: row.user_display_name || row.user_login,
+    mode: row.mode || "shadow",
+    subscriber: Number(row.subscriber || 0) !== 0,
+    source: row.source || "manual",
+    lastHeartbeatAt: row.last_heartbeat_at || "",
+    lastRewardAt: row.last_reward_at || "",
+    nextRewardAt: row.next_reward_at || "",
+    secondsUntilNextReward: secondsUntilIso(row.next_reward_at),
+    heartbeatCount: Number(row.heartbeat_count || 0),
+    rewardCount: Number(row.reward_count || 0),
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    metadata: core.safeJsonParse(row.metadata_json, {})
+  };
+}
+
+function getWatchState(login) {
+  const normalized = normalizeLogin(login);
+  if (!normalized) return null;
+  ensureSchema();
+  return rowToWatchState(database.get("SELECT * FROM loyalty_watch_state WHERE user_login = :login", { login: normalized }));
+}
+
+function upsertWatchState(input = {}) {
+  ensureSchema();
+  const login = normalizeLogin(input.login || input.userLogin);
+  if (!login) throw new Error("user_login_required");
+
+  const now = input.now || core.nowIso();
+  const displayName = cleanDisplayName(login, input.displayName || input.userDisplayName);
+  const mode = normalizeMode(input.mode || config.mode);
+  const subscriber = parseBool(input.subscriber ?? input.isSubscriber, false) ? 1 : 0;
+  const source = String(input.source || "manual").trim() || "manual";
+  const existing = database.get("SELECT * FROM loyalty_watch_state WHERE user_login = :login", { login });
+  const metadataJson = JSON.stringify(input.metadata && typeof input.metadata === "object" ? input.metadata : {});
+
+  if (!existing) {
+    database.run(`
+      INSERT INTO loyalty_watch_state
+        (user_login, user_display_name, mode, subscriber, source, last_heartbeat_at, last_reward_at, next_reward_at,
+         heartbeat_count, reward_count, created_at, updated_at, metadata_json)
+      VALUES
+        (:login, :displayName, :mode, :subscriber, :source, :lastHeartbeatAt, '', '', 1, 0, :createdAt, :updatedAt, :metadataJson)
+    `, {
+      login,
+      displayName,
+      mode,
+      subscriber,
+      source,
+      lastHeartbeatAt: now,
+      createdAt: now,
+      updatedAt: now,
+      metadataJson
+    });
+  } else {
+    database.run(`
+      UPDATE loyalty_watch_state
+      SET user_display_name = :displayName,
+          mode = :mode,
+          subscriber = :subscriber,
+          source = :source,
+          last_heartbeat_at = :lastHeartbeatAt,
+          heartbeat_count = heartbeat_count + 1,
+          updated_at = :updatedAt,
+          metadata_json = :metadataJson
+      WHERE user_login = :login
+    `, {
+      login,
+      displayName,
+      mode,
+      subscriber,
+      source,
+      lastHeartbeatAt: now,
+      updatedAt: now,
+      metadataJson
+    });
+  }
+
+  return getWatchState(login);
+}
+
+function markWatchRewarded(login, rewardAt, nextRewardAt) {
+  const normalized = normalizeLogin(login);
+  if (!normalized) throw new Error("user_login_required");
+  const now = core.nowIso();
+  database.run(`
+    UPDATE loyalty_watch_state
+    SET last_reward_at = :lastRewardAt,
+        next_reward_at = :nextRewardAt,
+        reward_count = reward_count + 1,
+        updated_at = :updatedAt
+    WHERE user_login = :login
+  `, {
+    login: normalized,
+    lastRewardAt: rewardAt,
+    nextRewardAt,
+    updatedAt: now
+  });
+  return getWatchState(normalized);
+}
+
+function shouldRewardWatch(stateRow, nowIso, intervalMinutes) {
+  if (!stateRow || !stateRow.lastRewardAt) return true;
+  const last = Date.parse(stateRow.lastRewardAt);
+  const nowMs = Date.parse(nowIso);
+  if (!Number.isFinite(last) || !Number.isFinite(nowMs)) return true;
+  return nowMs - last >= Math.max(1, Number(intervalMinutes || 10)) * 60 * 1000;
+}
+
+function recordWatchHeartbeat(input = {}) {
+  refreshConfigFromSettings();
+  const mode = normalizeMode(input.mode || config.mode);
+  const login = normalizeLogin(input.login || input.userLogin || input.user);
+  if (!login) throw new Error("user_login_required");
+
+  if (!config.enabled || mode === "off" || !config.watch.enabled || !config.features.watchEarningEnabled) {
+    return { ok: true, skipped: true, awarded: false, ignored: false, login, reason: "watch_earning_disabled" };
+  }
+
+  if (isIgnoredUser(login)) {
+    return { ok: true, skipped: true, awarded: false, ignored: true, login, reason: "ignored_user", watchState: getWatchState(login) };
+  }
+
+  const now = core.nowIso();
+  const intervalMinutes = Math.max(1, Number(config.watch.intervalMinutes || 10));
+  const previous = getWatchState(login);
+  const watchStateBeforeReward = upsertWatchState({
+    login,
+    displayName: input.displayName || input.userDisplayName || input.display_name,
+    subscriber: input.subscriber ?? input.isSubscriber ?? input.sub,
+    source: input.source || input.sourceModule || "manual",
+    mode,
+    now,
+    metadata: {
+      userId: input.userId || input.user_id || "",
+      rawSource: input.source || ""
+    }
+  });
+
+  if (!shouldRewardWatch(previous, now, intervalMinutes)) {
+    return {
+      ok: true,
+      skipped: true,
+      awarded: false,
+      ignored: false,
+      login,
+      reason: "watch_interval_not_due",
+      secondsUntilNextReward: secondsUntilIso(previous.nextRewardAt || addMinutesIso(previous.lastRewardAt, intervalMinutes)),
+      nextRewardAt: previous.nextRewardAt || addMinutesIso(previous.lastRewardAt, intervalMinutes),
+      watchState: watchStateBeforeReward,
+      transaction: null,
+      user: getUser(login)
+    };
+  }
+
+  const nextRewardAt = addMinutesIso(now, intervalMinutes);
+  const result = recordWatchInterval({
+    login,
+    displayName: input.displayName || input.userDisplayName || input.display_name,
+    subscriber: input.subscriber ?? input.isSubscriber ?? input.sub,
+    mode,
+    referenceId: input.referenceId || input.reference_id || `watch_${login}_${now}`
+  });
+
+  if (result && result.ok && !result.ignored && result.transaction) {
+    return {
+      ok: true,
+      skipped: false,
+      awarded: true,
+      ignored: false,
+      login,
+      reason: "watch_interval_awarded",
+      secondsUntilNextReward: secondsUntilIso(nextRewardAt),
+      nextRewardAt,
+      watchState: markWatchRewarded(login, now, nextRewardAt),
+      transaction: result.transaction,
+      user: result.user
+    };
+  }
+
+  return {
+    ok: true,
+    skipped: true,
+    awarded: false,
+    ignored: !!(result && result.ignored),
+    login,
+    reason: result && result.reason ? result.reason : "watch_interval_not_recorded",
+    watchState: getWatchState(login),
+    transaction: result && result.transaction || null,
+    user: result && result.user || getUser(login)
+  };
+}
+
+function listWatchStates(options = {}) {
+  ensureSchema();
+  const limit = Math.max(1, Math.min(500, Number(options.limit || 100)));
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_watch_state
+    ORDER BY updated_at DESC, user_login ASC
+    LIMIT :limit
+  `, { limit }).map(rowToWatchState);
+  return { ok: true, count: rows.length, rows };
+}
+
 function counts() {
   ensureSchema();
   return {
@@ -909,7 +1184,8 @@ function counts() {
     transactions: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_transactions")?.count || 0),
     reservations: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_reservations")?.count || 0),
     imports: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_imports")?.count || 0),
-    ignoredUsers: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_ignored_users WHERE enabled = 1")?.count || 0)
+    ignoredUsers: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_ignored_users WHERE enabled = 1")?.count || 0),
+    watchStates: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_watch_state")?.count || 0)
   };
 }
 
@@ -1058,6 +1334,37 @@ function registerRoutes(app) {
     core.sendOk(res, result);
   }));
 
+  app.get("/api/loyalty/watch/heartbeat", core.asyncRoute(async (req, res) => {
+    const result = recordWatchHeartbeat({
+      login: req.query.login || req.query.user,
+      displayName: req.query.displayName || req.query.display_name,
+      subscriber: req.query.subscriber || req.query.sub || false,
+      mode: req.query.mode || config.mode,
+      source: req.query.source || "manual_get",
+      userId: req.query.userId || req.query.user_id || "",
+      referenceId: req.query.referenceId || req.query.reference_id || ""
+    });
+    core.sendOk(res, result);
+  }));
+
+  app.post("/api/loyalty/watch/heartbeat", core.asyncRoute(async (req, res) => {
+    const body = req.body || {};
+    const result = recordWatchHeartbeat({
+      login: body.login || body.userLogin || body.user,
+      displayName: body.displayName || body.userDisplayName || body.display_name,
+      subscriber: body.subscriber ?? body.sub ?? body.isSubscriber ?? false,
+      mode: body.mode || config.mode,
+      source: body.source || body.sourceModule || "manual_post",
+      userId: body.userId || body.user_id || "",
+      referenceId: body.referenceId || body.reference_id || ""
+    });
+    core.sendOk(res, result);
+  }));
+
+  app.get("/api/loyalty/watch/states", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, listWatchStates({ limit: req.query.limit }));
+  }));
+
   app.get("/api/loyalty/ignored-users", core.asyncRoute(async (req, res) => {
     core.sendOk(res, {
       count: getIgnoredUsers().length,
@@ -1098,6 +1405,9 @@ function registerRoutes(app) {
         "GET /api/loyalty/transactions",
         "POST /api/loyalty/transactions/adjust",
         "GET /api/loyalty/test/watch",
+        "GET /api/loyalty/watch/heartbeat",
+        "POST /api/loyalty/watch/heartbeat",
+        "GET /api/loyalty/watch/states",
         "GET /api/loyalty/ignored-users",
         "POST /api/loyalty/ignored-users",
         "DELETE /api/loyalty/ignored-users/:login",
@@ -1136,6 +1446,7 @@ module.exports = {
     calculateWatchAmount,
     recordTransaction,
     recordWatchInterval,
+    recordWatchHeartbeat,
     buildStatus
   }
 };
