@@ -12,29 +12,42 @@ Aktueller Stand:
 - Twitch Presence sammelt aktive/anwesende Chat-User.
 - Stream-State-Gate mit Streamer.bot-Fallback funktioniert.
 - Presence Run-Once funktioniert.
-- Auto Shadow Runner ist vorbereitet und standardmäßig deaktiviert.
+- Auto Shadow Runner funktioniert.
+- Dashboard-Modul für Loyalty ist vorbereitet.
 
-## Aktive relevante Module
+## Dashboard-Modul Loyalty
+
+Pfad:
 
 ```text
-backend/modules/loyalty.js
-backend/modules/twitch_presence.js
+Community -> Loyalty
 ```
 
-## Loyalty Version
+Dateien:
 
 ```text
-0.1.3
+htdocs/dashboard/modules/loyalty.js
+htdocs/dashboard/modules/loyalty.css
 ```
 
-## Wichtige Runner-Routen
+Index-Erweiterung:
 
 ```text
-GET/POST /api/loyalty/runner/start
-GET/POST /api/loyalty/runner/stop
-GET/POST /api/loyalty/runner/run-once
-GET      /api/loyalty/runner/status
-GET      /api/loyalty/runner/events
+htdocs/dashboard/index.html
+```
+
+Funktionen:
+
+```text
+Status
+Stream-State
+Runner Start/Stop/Run-Once
+User/Punkte
+Transaktionen
+Aktive Twitch Presence
+Ignore-Liste
+Konfiguration/Settings
+Runner Events
 ```
 
 ## Verbindliche Regeln
@@ -46,4 +59,5 @@ Shadow Mode zuerst.
 StreamElements bleibt aktiv.
 Offline keine Watch-Punkte.
 Auto Runner nicht automatisch beim Boot aktiv.
+Dashboard startet Runner nicht automatisch.
 ```
