@@ -46,7 +46,12 @@ const DEFAULT_TWITCH_ALERT_CONFIG = {
     giftBomb: true,
     channelPoints: false
   },
-  ignoredRewardTitles: []
+  ignoredRewardTitles: [],
+  loyaltyForward: {
+    enabled: true,
+    url: 'http://127.0.0.1:8080/api/loyalty/events/ingest',
+    includeRawEvent: true
+  }
 };
 
 const twitchAlertBridgeState = {
@@ -1454,7 +1459,86 @@ module.exports.init = function init(ctx) {
     }
   }
 
-  function buildFakeTwitchAlertEvent(kind, query) {
+  
+function normalizeTwitchEventSubToLoyaltyEvent(subscriptionType, event, meta = {}, subscription = {}) {
+    const messageId = meta.message_id || meta.messageId || '';
+    const base = {
+      eventUid: messageId || `${subscriptionType}:${subscription?.id || ''}:${Date.now()}`,
+      provider: 'twitch_eventsub',
+      sourceType: subscriptionType,
+      metadata: {
+        subscriptionId: subscription?.id || '',
+        messageId,
+        messageTimestamp: meta.message_timestamp || ''
+      }
+    };
+
+    if (subscriptionType === 'channel.follow') {
+      return { ...base, eventType: 'follow', login: event.user_login || '', displayName: event.user_name || event.user_login || '', amount: 1, raw: event };
+    }
+
+    if (subscriptionType === 'channel.cheer') {
+      return { ...base, eventType: 'cheer', login: event.user_login || '', displayName: event.user_name || event.user_login || '', amount: Number(event.bits || 0), bits: Number(event.bits || 0), raw: event };
+    }
+
+    if (subscriptionType === 'channel.raid') {
+      return { ...base, eventType: 'raid', login: event.from_broadcaster_user_login || '', displayName: event.from_broadcaster_user_name || event.from_broadcaster_user_login || '', amount: Number(event.viewers || 0), viewers: Number(event.viewers || 0), raw: event };
+    }
+
+    if (subscriptionType === 'channel.subscribe') {
+      const isGift = event.is_gift === true || event.is_gift === 'true' || event.is_gift === 1 || event.is_gift === '1';
+      return { ...base, eventType: isGift ? 'gifted_sub_received' : 'subscribe', login: event.user_login || '', displayName: event.user_name || event.user_login || '', amount: 1, tier: event.tier || '', raw: event, metadata: { ...base.metadata, isGift } };
+    }
+
+    if (subscriptionType === 'channel.subscription.message') {
+      return { ...base, eventType: 'resub', login: event.user_login || '', displayName: event.user_name || event.user_login || '', amount: Number(event.cumulative_months || event.streak_months || 1), months: Number(event.cumulative_months || event.streak_months || 1), cumulativeMonths: Number(event.cumulative_months || 0), streakMonths: Number(event.streak_months || 0), tier: event.tier || '', raw: event };
+    }
+
+    if (subscriptionType === 'channel.subscription.gift') {
+      const total = Number(event.total || 1) || 1;
+      return { ...base, eventType: total >= 5 ? 'gift_bomb' : 'gift_sub', login: event.is_anonymous ? '' : (event.user_login || ''), displayName: event.is_anonymous ? 'Anonym' : (event.user_name || event.user_login || ''), amount: total, quantity: total, total, tier: event.tier || '', raw: event, metadata: { ...base.metadata, isAnonymous: event.is_anonymous === true || event.is_anonymous === 'true' } };
+    }
+
+    return null;
+  }
+
+  async function forwardLoyaltyPayloadToLoyaltySystem(loyaltyPayload, subscriptionType) {
+    const cfg = twitchAlertBridgeState.config || DEFAULT_TWITCH_ALERT_CONFIG;
+    const loyaltyCfg = cfg.loyaltyForward || DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward;
+    if (!loyaltyPayload) return { ok: true, skipped: true, reason: 'unsupported_loyalty_event' };
+    if (loyaltyCfg?.enabled === false) return { ok: true, skipped: true, reason: 'loyalty_forward_disabled' };
+
+    const targetUrl = loyaltyCfg?.url || DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward.url;
+    const body = { ...loyaltyPayload };
+    if (loyaltyCfg?.includeRawEvent === false) delete body.raw;
+
+    try {
+      const response = await fetch(targetUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const text = await response.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+      if (!response.ok || !data?.ok) {
+        rememberTwitchAlertBridge({ action: 'loyalty_failed', subscriptionType, targetUrl, status: response.status, error: text.slice(0, 500) });
+        return { ok: false, status: response.status, data };
+      }
+      rememberTwitchAlertBridge({
+        action: data.skipped ? 'loyalty_skipped' : 'loyalty_forwarded',
+        subscriptionType,
+        targetUrl,
+        eventType: body.eventType,
+        user: body.displayName || body.login,
+        points: data?.event?.points || 0,
+        reason: data.reason || ''
+      });
+      return { ok: true, status: response.status, data };
+    } catch (e) {
+      rememberTwitchAlertBridge({ action: 'loyalty_failed', subscriptionType, targetUrl, error: e?.message || String(e) });
+      return { ok: false, error: e?.message || String(e) };
+    }
+  }
+
+
+function buildFakeTwitchAlertEvent(kind, query) {
     const user = (query.user || query.login || 'TestUser').toString();
     const display = (query.display || query.user || 'TestUser').toString();
     const amount = Number(query.amount || query.bits || query.viewers || 50);
@@ -1624,6 +1708,14 @@ module.exports.init = function init(ctx) {
         rememberEventSubState({ action: 'notification', type: sub.type || '', subscriptionId: sub.id || null });
 
         cacheGenericEvent(sub, event);
+
+        try {
+          const loyaltyPayload = normalizeTwitchEventSubToLoyaltyEvent(sub.type, event, meta, sub);
+          if (loyaltyPayload) await forwardLoyaltyPayloadToLoyaltySystem(loyaltyPayload, sub.type);
+        } catch (e) {
+          rememberTwitchAlertBridge({ action: 'loyalty_failed', subscriptionType: sub.type, error: e?.message || String(e) });
+          console.warn('[eventsub-loyalty] forward failed:', e?.message || e);
+        }
 
         try {
           const alertPayload = normalizeTwitchEventSubToAlert(sub.type, event);

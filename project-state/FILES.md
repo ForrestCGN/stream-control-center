@@ -2,14 +2,17 @@
 
 Stand: 2026-05-09
 
-## Geänderte Datei in STEP203.5.1
+## Geänderte Dateien in STEP203.6
 
 ```text
+backend/modules/loyalty.js
+backend/modules/twitch.js
 htdocs/dashboard/modules/loyalty.js
+htdocs/dashboard/modules/loyalty.css
 ```
 
-## Doku
+## Neue DB-Struktur
 
 ```text
-project-state/STEP203_5_1_LOYALTY_DASHBOARD_CONFIG_TAB_FIX_2026-05-09.md
+loyalty_events
 ```

@@ -2,24 +2,19 @@
 
 Stand: 2026-05-09
 
-## Test nach STEP203.5.1
+## STEP203.6 testen
 
-Dashboard öffnen:
-
-```text
-http://127.0.0.1:8080/dashboard/
-Community -> Loyalty -> Konfig
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/settings" -Method POST -ContentType "application/json" -Body '{"features.eventBonusesEnabled":true}' | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/events/test/follow?login=testfollow&displayName=TestFollow" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/events/test/subscribe?login=testsubevent&displayName=TestSubEvent&tier=2000" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/events/test/cheer?login=testbits&displayName=TestBits&bits=500" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/events" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/transactions?type=event_bonus" | ConvertTo-Json -Depth 30
 ```
-
-Prüfen:
-
-- Konfig zeigt Settings-Gruppen
-- Auto Runner Settings sind sichtbar
-- Watch Settings sind sichtbar
-- Speichern eines harmlosen Werts nur testen, wenn bewusst gewünscht
 
 ## Danach
 
 ```text
-STEP203.6 - Loyalty Dashboard UX-Fix / Live Shadow Prep
+STEP203.7 - Loyalty Event Dashboard Auswertung / Live Shadow Prep
 ```

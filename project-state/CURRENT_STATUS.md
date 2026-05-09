@@ -2,22 +2,32 @@
 
 Stand: 2026-05-09
 
-## Loyalty Dashboard
+## Loyalty
 
-STEP203.5.1 korrigiert den Konfig-Tab.
+- Shadow Mode aktiv.
+- Watch/Lurk-Punkte funktionieren.
+- Twitch Presence funktioniert.
+- Stream-State-Gate funktioniert.
+- Auto Runner funktioniert.
+- Dashboard-Modul funktioniert.
+- STEP203.6 ergänzt echte Twitch/EventSub-Event-Boni im Shadow-System.
 
-Problem war rein im Frontend:
-
-```text
-/api/loyalty/settings liefert settings: [...]
-```
-
-Das Dashboard konnte direkte Arrays bisher nicht als Row-Liste lesen.
-
-Geändert:
+Neue Tabelle:
 
 ```text
-htdocs/dashboard/modules/loyalty.js
+loyalty_events
 ```
 
-Backend, DB und API bleiben unverändert.
+Neue Routen:
+
+```text
+GET  /api/loyalty/events
+POST /api/loyalty/events/ingest
+GET  /api/loyalty/events/test/:type
+```
+
+Punktebuchung für Events nur wenn:
+
+```text
+features.eventBonusesEnabled = true
+```

@@ -18,7 +18,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.3";
+const VERSION = "0.1.4";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 3;
@@ -48,10 +48,10 @@ const DEFAULT_CONFIG = {
   bonuses: {
     follow: { enabled: true, amount: 10 },
     tip: { enabled: true, amountPerEuro: 10 },
-    subscribe: { enabled: true, amount: 50 },
-    resub: { enabled: false, amount: 50 },
-    giftSubGiver: { enabled: false, amount: 50 },
-    giftSubReceiver: { enabled: false, amount: 25 },
+    subscribe: { enabled: true, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
+    resub: { enabled: false, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
+    giftSubGiver: { enabled: false, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
+    giftSubReceiver: { enabled: false, amount: 25, tierAmounts: { "1000": 25, "2000": 50, "3000": 75 } },
     subStreak: {
       enabled: false,
       rules: [
@@ -143,12 +143,16 @@ const SETTINGS_DEFINITIONS = [
   { key: "bonuses.tip.amountPerEuro", path: "bonuses.tip.amountPerEuro", valueType: "number", description: "Tip-Bonus pro 1 EUR." },
   { key: "bonuses.subscribe.enabled", path: "bonuses.subscribe.enabled", valueType: "boolean", description: "Sub-Bonus aktivieren." },
   { key: "bonuses.subscribe.amount", path: "bonuses.subscribe.amount", valueType: "number", description: "Sub-Bonus in Punkten." },
+  { key: "bonuses.subscribe.tierAmounts", path: "bonuses.subscribe.tierAmounts", valueType: "json", description: "Sub-Bonus je Tier als JSON-Objekt, z. B. 1000/2000/3000." },
   { key: "bonuses.resub.enabled", path: "bonuses.resub.enabled", valueType: "boolean", description: "Resub-Bonus aktivieren." },
   { key: "bonuses.resub.amount", path: "bonuses.resub.amount", valueType: "number", description: "Resub-Bonus in Punkten." },
+  { key: "bonuses.resub.tierAmounts", path: "bonuses.resub.tierAmounts", valueType: "json", description: "Resub-Bonus je Tier als JSON-Objekt, z. B. 1000/2000/3000." },
   { key: "bonuses.giftSubGiver.enabled", path: "bonuses.giftSubGiver.enabled", valueType: "boolean", description: "Gift-Sub-Gifter-Bonus aktivieren." },
   { key: "bonuses.giftSubGiver.amount", path: "bonuses.giftSubGiver.amount", valueType: "number", description: "Gift-Sub-Gifter-Bonus in Punkten." },
+  { key: "bonuses.giftSubGiver.tierAmounts", path: "bonuses.giftSubGiver.tierAmounts", valueType: "json", description: "Gift-Sub-Gifter-Bonus je Tier als JSON-Objekt." },
   { key: "bonuses.giftSubReceiver.enabled", path: "bonuses.giftSubReceiver.enabled", valueType: "boolean", description: "Gift-Sub-Empfänger-Bonus aktivieren." },
   { key: "bonuses.giftSubReceiver.amount", path: "bonuses.giftSubReceiver.amount", valueType: "number", description: "Gift-Sub-Empfänger-Bonus in Punkten." },
+  { key: "bonuses.giftSubReceiver.tierAmounts", path: "bonuses.giftSubReceiver.tierAmounts", valueType: "json", description: "Gift-Sub-Empfänger-Bonus je Tier als JSON-Objekt." },
   { key: "bonuses.subStreak.enabled", path: "bonuses.subStreak.enabled", valueType: "boolean", description: "Sub-Streak-Bonus aktivieren." },
   { key: "bonuses.subStreak.rules", path: "bonuses.subStreak.rules", valueType: "json", description: "Sub-Streak-Regeln als JSON-Array." },
   { key: "bonuses.cheer.enabled", path: "bonuses.cheer.enabled", valueType: "boolean", description: "Cheer/Bits-Bonus aktivieren." },
@@ -1248,6 +1252,14 @@ function counts() {
       } catch (_) {
         return 0;
       }
+    })(),
+    loyaltyEvents: (() => {
+      try {
+        ensureLoyaltyEventsTable();
+        return Number(database.get("SELECT COUNT(*) AS count FROM loyalty_events")?.count || 0);
+      } catch (_) {
+        return 0;
+      }
     })()
   };
 }
@@ -1271,6 +1283,312 @@ function databaseStatus() {
       lastError: err && err.message ? err.message : String(err)
     };
   }
+}
+
+
+
+function ensureLoyaltyEventsTable() {
+  database.run(`
+    CREATE TABLE IF NOT EXISTS loyalty_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_uid TEXT NOT NULL UNIQUE,
+      provider TEXT NOT NULL DEFAULT '',
+      event_type TEXT NOT NULL DEFAULT '',
+      source_type TEXT NOT NULL DEFAULT '',
+      user_login TEXT NOT NULL DEFAULT '',
+      user_display_name TEXT NOT NULL DEFAULT '',
+      amount INTEGER NOT NULL DEFAULT 0,
+      tier TEXT NOT NULL DEFAULT '',
+      quantity INTEGER NOT NULL DEFAULT 1,
+      points INTEGER NOT NULL DEFAULT 0,
+      mode TEXT NOT NULL DEFAULT 'shadow',
+      processed INTEGER NOT NULL DEFAULT 0,
+      duplicate INTEGER NOT NULL DEFAULT 0,
+      skipped INTEGER NOT NULL DEFAULT 0,
+      reason TEXT NOT NULL DEFAULT '',
+      transaction_uid TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      raw_json TEXT NOT NULL DEFAULT '{}',
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    )
+  `);
+  database.run(`CREATE INDEX IF NOT EXISTS idx_loyalty_events_created ON loyalty_events(created_at)`);
+  database.run(`CREATE INDEX IF NOT EXISTS idx_loyalty_events_user ON loyalty_events(user_login)`);
+  database.run(`CREATE INDEX IF NOT EXISTS idx_loyalty_events_type ON loyalty_events(event_type)`);
+  database.run(`CREATE INDEX IF NOT EXISTS idx_loyalty_events_provider ON loyalty_events(provider)`);
+}
+
+function normalizeEventType(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  const map = {
+    bits: "cheer",
+    cheer: "cheer",
+    follow: "follow",
+    sub: "subscribe",
+    subscribe: "subscribe",
+    subscription: "subscribe",
+    resub: "resub",
+    gift_sub: "gift_sub",
+    giftsub: "gift_sub",
+    giftbomb: "gift_bomb",
+    gift_bomb: "gift_bomb",
+    gifted_sub_received: "gifted_sub_received",
+    giftedsubreceived: "gifted_sub_received",
+    raid: "raid",
+    tip: "tip",
+    donation: "tip"
+  };
+  return map[raw] || raw || "unknown";
+}
+
+function normalizeTier(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (["1000", "tier1", "tier_1", "1", "prime"].includes(raw)) return "1000";
+  if (["2000", "tier2", "tier_2", "2"].includes(raw)) return "2000";
+  if (["3000", "tier3", "tier_3", "3"].includes(raw)) return "3000";
+  return raw || "none";
+}
+
+function tierLabel(tier) {
+  const normalized = normalizeTier(tier);
+  if (normalized === "1000") return "tier1";
+  if (normalized === "2000") return "tier2";
+  if (normalized === "3000") return "tier3";
+  return normalized || "none";
+}
+
+function tierAmount(source, tier, fallback) {
+  const normalized = normalizeTier(tier);
+  const map = source && typeof source === "object" ? source : {};
+  const keys = [normalized, tierLabel(normalized), normalized.replace(/^tier/, ""), String(tier || "")];
+  for (const key of keys) {
+    if (!key) continue;
+    const value = Number(map[key]);
+    if (Number.isFinite(value)) return Math.floor(value);
+  }
+  const base = Number(fallback || 0);
+  return Number.isFinite(base) ? Math.floor(base) : 0;
+}
+
+function stableEventUid(input = {}) {
+  const explicit = String(input.eventUid || input.eventId || input.id || input.referenceId || "").trim();
+  if (explicit) return explicit;
+  return uid("loyalty_evt");
+}
+
+function rowToLoyaltyEvent(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    uid: row.event_uid,
+    provider: row.provider || "",
+    eventType: row.event_type || "",
+    sourceType: row.source_type || "",
+    login: row.user_login || "",
+    displayName: row.user_display_name || row.user_login || "",
+    amount: Number(row.amount || 0),
+    tier: row.tier || "",
+    quantity: Number(row.quantity || 0),
+    points: Number(row.points || 0),
+    mode: row.mode || "shadow",
+    processed: Number(row.processed || 0) === 1,
+    duplicate: Number(row.duplicate || 0) === 1,
+    skipped: Number(row.skipped || 0) === 1,
+    reason: row.reason || "",
+    transactionUid: row.transaction_uid || "",
+    createdAt: row.created_at || "",
+    raw: core.safeJsonParse(row.raw_json, {}),
+    metadata: core.safeJsonParse(row.metadata_json, {})
+  };
+}
+
+function calculateEventBonus(input = {}) {
+  refreshConfigFromSettings();
+  const type = normalizeEventType(input.eventType || input.type);
+  const tier = normalizeTier(input.tier || input.subTier || input.subscriptionTier);
+  const quantity = Math.max(1, Number.parseInt(input.quantity || input.total || input.count || 1, 10) || 1);
+  const valueAmount = Number(input.amount || input.bits || input.viewers || input.amountEuro || 0) || 0;
+  const bonuses = config.bonuses || {};
+
+  if (!config.enabled) return { ok: false, skipped: true, reason: "loyalty_disabled", type, amount: 0, tier, quantity };
+  if (!config.features || config.features.eventBonusesEnabled !== true) return { ok: false, skipped: true, reason: "event_bonuses_disabled", type, amount: 0, tier, quantity };
+
+  if (type === "follow") {
+    if (!bonuses.follow?.enabled) return { ok: false, skipped: true, reason: "follow_bonus_disabled", type, amount: 0, tier, quantity };
+    return { ok: true, type, amount: Math.floor(Number(bonuses.follow.amount || 0)), tier, quantity };
+  }
+
+  if (type === "cheer") {
+    if (!bonuses.cheer?.enabled) return { ok: false, skipped: true, reason: "cheer_bonus_disabled", type, amount: 0, tier, quantity };
+    const bits = Math.max(0, Number(input.bits || input.amount || 0) || 0);
+    const amount = Math.floor((bits / 100) * Number(bonuses.cheer.amountPer100Bits || 0));
+    return { ok: true, type, amount, tier, quantity, bits };
+  }
+
+  if (type === "raid") {
+    if (!bonuses.raid?.enabled) return { ok: false, skipped: true, reason: "raid_bonus_disabled", type, amount: 0, tier, quantity };
+    return { ok: true, type, amount: Math.floor(Number(bonuses.raid.amount || 0)), tier, quantity, viewers: valueAmount };
+  }
+
+  if (type === "tip") {
+    if (!bonuses.tip?.enabled) return { ok: false, skipped: true, reason: "tip_bonus_disabled", type, amount: 0, tier, quantity };
+    return { ok: true, type, amount: Math.floor(valueAmount * Number(bonuses.tip.amountPerEuro || 0)), tier, quantity, amountEuro: valueAmount };
+  }
+
+  if (type === "subscribe") {
+    if (!bonuses.subscribe?.enabled) return { ok: false, skipped: true, reason: "subscribe_bonus_disabled", type, amount: 0, tier, quantity };
+    return { ok: true, type, amount: tierAmount(bonuses.subscribe.tierAmounts, tier, bonuses.subscribe.amount), tier, quantity };
+  }
+
+  if (type === "resub") {
+    if (!bonuses.resub?.enabled) return { ok: false, skipped: true, reason: "resub_bonus_disabled", type, amount: 0, tier, quantity };
+    let amount = tierAmount(bonuses.resub.tierAmounts, tier, bonuses.resub.amount);
+    const months = Number(input.months || input.cumulativeMonths || input.cumulative_months || 0) || 0;
+    if (bonuses.subStreak?.enabled && Array.isArray(bonuses.subStreak.rules)) {
+      const matching = bonuses.subStreak.rules
+        .filter(rule => months >= Number(rule.months || 0))
+        .sort((a, b) => Number(b.months || 0) - Number(a.months || 0))[0];
+      if (matching) amount += Math.floor(Number(matching.amount || 0));
+    }
+    return { ok: true, type, amount, tier, quantity, months };
+  }
+
+  if (type === "gift_sub" || type === "gift_bomb") {
+    if (!bonuses.giftSubGiver?.enabled) return { ok: false, skipped: true, reason: "gift_sub_giver_bonus_disabled", type, amount: 0, tier, quantity };
+    const single = tierAmount(bonuses.giftSubGiver.tierAmounts, tier, bonuses.giftSubGiver.amount);
+    return { ok: true, type, amount: Math.floor(single * quantity), tier, quantity };
+  }
+
+  if (type === "gifted_sub_received") {
+    if (!bonuses.giftSubReceiver?.enabled) return { ok: false, skipped: true, reason: "gift_sub_receiver_bonus_disabled", type, amount: 0, tier, quantity };
+    return { ok: true, type, amount: tierAmount(bonuses.giftSubReceiver.tierAmounts, tier, bonuses.giftSubReceiver.amount), tier, quantity };
+  }
+
+  return { ok: false, skipped: true, reason: "unsupported_event_type", type, amount: 0, tier, quantity };
+}
+
+function insertLoyaltyEventRow(data) {
+  ensureLoyaltyEventsTable();
+  database.run(`
+    INSERT INTO loyalty_events (
+      event_uid, provider, event_type, source_type, user_login, user_display_name,
+      amount, tier, quantity, points, mode, processed, duplicate, skipped, reason,
+      transaction_uid, created_at, raw_json, metadata_json
+    ) VALUES (
+      :eventUid, :provider, :eventType, :sourceType, :login, :displayName,
+      :amount, :tier, :quantity, :points, :mode, :processed, :duplicate, :skipped, :reason,
+      :transactionUid, :createdAt, :rawJson, :metadataJson
+    )
+  `, data);
+  return database.get("SELECT * FROM loyalty_events WHERE event_uid = :eventUid", { eventUid: data.eventUid });
+}
+
+function recordEventBonus(input = {}) {
+  refreshConfigFromSettings();
+  ensureLoyaltyEventsTable();
+
+  const eventUid = stableEventUid(input);
+  const existing = database.get("SELECT * FROM loyalty_events WHERE event_uid = :eventUid", { eventUid });
+  if (existing) {
+    return { ok: true, duplicate: true, skipped: true, reason: "duplicate_event", event: rowToLoyaltyEvent(existing), transaction: null };
+  }
+
+  const eventType = normalizeEventType(input.eventType || input.type);
+  const login = normalizeLogin(input.login || input.userLogin || input.user_login || input.user);
+  const displayName = cleanDisplayName(login, input.displayName || input.userDisplayName || input.user_name || input.user);
+  const provider = String(input.provider || input.sourceProvider || "unknown").trim() || "unknown";
+  const sourceType = String(input.sourceType || input.eventsubType || input.rawType || "").trim();
+  const mode = normalizeMode(input.mode || config.mode);
+  const now = core.nowIso();
+  const quantity = Math.max(1, Number.parseInt(input.quantity || input.total || input.count || 1, 10) || 1);
+  const valueAmount = Number(input.amount || input.bits || input.viewers || input.amountEuro || 0) || 0;
+  const tier = normalizeTier(input.tier || input.subTier || input.subscriptionTier);
+  const raw = input.raw && typeof input.raw === "object" ? input.raw : input;
+  const metadata = input.metadata && typeof input.metadata === "object" ? input.metadata : {};
+
+  if (!login) {
+    const row = insertLoyaltyEventRow({
+      eventUid, provider, eventType, sourceType, login: "", displayName: "",
+      amount: valueAmount, tier, quantity, points: 0, mode, processed: 0, duplicate: 0, skipped: 1,
+      reason: "user_login_required", transactionUid: "", createdAt: now,
+      rawJson: JSON.stringify(raw || {}), metadataJson: JSON.stringify(metadata || {})
+    });
+    return { ok: true, skipped: true, reason: "user_login_required", event: rowToLoyaltyEvent(row), transaction: null };
+  }
+
+  if (isIgnoredUser(login)) {
+    const row = insertLoyaltyEventRow({
+      eventUid, provider, eventType, sourceType, login, displayName,
+      amount: valueAmount, tier, quantity, points: 0, mode, processed: 0, duplicate: 0, skipped: 1,
+      reason: "ignored_user", transactionUid: "", createdAt: now,
+      rawJson: JSON.stringify(raw || {}), metadataJson: JSON.stringify(metadata || {})
+    });
+    return { ok: true, skipped: true, ignored: true, reason: "ignored_user", event: rowToLoyaltyEvent(row), transaction: null };
+  }
+
+  const calculated = calculateEventBonus({ ...input, eventType, tier, quantity, amount: valueAmount });
+  if (!calculated.ok || calculated.skipped || Number(calculated.amount || 0) <= 0) {
+    const reason = calculated.reason || "no_points";
+    const row = insertLoyaltyEventRow({
+      eventUid, provider, eventType: calculated.type || eventType, sourceType, login, displayName,
+      amount: valueAmount, tier, quantity, points: 0, mode, processed: 0, duplicate: 0, skipped: 1,
+      reason, transactionUid: "", createdAt: now,
+      rawJson: JSON.stringify(raw || {}), metadataJson: JSON.stringify({ ...metadata, calculated })
+    });
+    return { ok: true, skipped: true, reason, calculated, event: rowToLoyaltyEvent(row), transaction: null };
+  }
+
+  const result = recordTransaction({
+    login,
+    displayName,
+    amount: calculated.amount,
+    type: "event_bonus",
+    reason: `event_${calculated.type || eventType}`,
+    mode,
+    sourceModule: "loyalty",
+    sourceProvider: provider,
+    referenceType: "event_bonus",
+    referenceId: eventUid,
+    metadata: { eventUid, eventType: calculated.type || eventType, sourceType, tier, quantity, valueAmount, calculated, raw }
+  });
+
+  const transactionUid = result?.transaction?.uid || "";
+  const row = insertLoyaltyEventRow({
+    eventUid, provider, eventType: calculated.type || eventType, sourceType, login, displayName,
+    amount: valueAmount, tier, quantity, points: calculated.amount, mode, processed: 1, duplicate: 0, skipped: 0,
+    reason: "processed", transactionUid, createdAt: now,
+    rawJson: JSON.stringify(raw || {}), metadataJson: JSON.stringify({ ...metadata, calculated })
+  });
+
+  return { ok: true, skipped: false, duplicate: false, reason: "processed", calculated, event: rowToLoyaltyEvent(row), transaction: result.transaction, user: result.user };
+}
+
+function listLoyaltyEvents(options = {}) {
+  ensureLoyaltyEventsTable();
+  const limit = Math.max(1, Math.min(500, Number(options.limit || 100)));
+  const login = normalizeLogin(options.login || "");
+  const type = normalizeEventType(options.type || "");
+  const where = [];
+  const params = { limit };
+
+  if (login) {
+    where.push("user_login = :login");
+    params.login = login;
+  }
+  if (type && type !== "unknown") {
+    where.push("event_type = :type");
+    params.type = type;
+  }
+
+  const eventRows = database.all(`
+    SELECT *
+    FROM loyalty_events
+    ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+    ORDER BY id DESC
+    LIMIT :limit
+  `, params).map(rowToLoyaltyEvent);
+
+  return { ok: true, count: eventRows.length, rows: eventRows };
 }
 
 
@@ -2133,6 +2451,42 @@ function registerRoutes(app) {
     core.sendOk(res, listRunnerEvents({ limit: req.query.limit }));
   }));
 
+  app.get("/api/loyalty/events", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, listLoyaltyEvents({
+      limit: req.query.limit,
+      login: req.query.login,
+      type: req.query.type
+    }));
+  }));
+
+  app.post("/api/loyalty/events/ingest", core.asyncRoute(async (req, res) => {
+    const result = recordEventBonus(req.body || {});
+    core.sendOk(res, result);
+  }));
+
+  app.get("/api/loyalty/events/test/:type", core.asyncRoute(async (req, res) => {
+    const type = normalizeEventType(req.params.type);
+    const login = req.query.login || req.query.user || "loyaltytest";
+    const result = recordEventBonus({
+      eventUid: req.query.eventUid || req.query.eventId || uid(`test_${type}`),
+      provider: "dashboard_test",
+      sourceType: `test.${type}`,
+      eventType: type,
+      login,
+      displayName: req.query.displayName || req.query.display || login,
+      amount: req.query.amount || req.query.bits || req.query.viewers || req.query.amountEuro || 1,
+      bits: req.query.bits,
+      viewers: req.query.viewers,
+      amountEuro: req.query.amountEuro,
+      tier: req.query.tier || "1000",
+      quantity: req.query.quantity || req.query.total || 1,
+      months: req.query.months || req.query.cumulativeMonths || 1,
+      raw: { query: req.query, test: true },
+      metadata: { source: "test_endpoint" }
+    });
+    core.sendOk(res, result);
+  }));
+
   app.get("/api/loyalty/ignored-users", core.asyncRoute(async (req, res) => {
     core.sendOk(res, {
       count: getIgnoredUsers().length,
@@ -2196,6 +2550,9 @@ function registerRoutes(app) {
         "POST /api/loyalty/runner/run-once",
         "GET /api/loyalty/runner/run-once",
         "GET /api/loyalty/runner/events",
+        "GET /api/loyalty/events",
+        "POST /api/loyalty/events/ingest",
+        "GET /api/loyalty/events/test/:type",
         "GET /api/loyalty/ignored-users",
         "POST /api/loyalty/ignored-users",
         "DELETE /api/loyalty/ignored-users/:login",
@@ -2212,6 +2569,7 @@ function init(ctx = {}) {
     ensureSettingsSeeded(config);
     refreshConfigFromSettings();
     ensureSchema();
+    ensureLoyaltyEventsTable();
     ensureTextsSeeded();
 
     if (ctx && ctx.app) registerRoutes(ctx.app);
@@ -2240,6 +2598,8 @@ module.exports = {
     recordTransaction,
     recordWatchInterval,
     recordWatchHeartbeat,
+    recordEventBonus,
+    listLoyaltyEvents,
     getAutoRunnerStatus,
     startAutoRunner,
     stopAutoRunner,

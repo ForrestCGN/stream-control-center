@@ -12,6 +12,7 @@ window.LoyaltyModule = (function(){
     runnerStop: '/api/loyalty/runner/stop?source=dashboard',
     runnerRunOnce: '/api/loyalty/runner/run-once?source=dashboard',
     runnerEvents: '/api/loyalty/runner/events?limit=40',
+    loyaltyEvents: '/api/loyalty/events?limit=80',
     users: '/api/loyalty/users?limit=100',
     transactions: '/api/loyalty/transactions?limit=120',
     watchStates: '/api/loyalty/watch/states?limit=120',
@@ -33,6 +34,7 @@ window.LoyaltyModule = (function(){
     watchStates: null,
     ignoredUsers: null,
     runnerEvents: null,
+    loyaltyEvents: null,
     settings: null,
     presenceActive: null,
     routes: null
@@ -134,6 +136,10 @@ window.LoyaltyModule = (function(){
     return rows(state.runnerEvents);
   }
 
+  function loyaltyEvents(){
+    return rows(state.loyaltyEvents);
+  }
+
   function aggregateTransactions(){
     const tx = transactions();
     const totalEarned = tx.filter(t => Number(t.amount) > 0).reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -168,6 +174,7 @@ window.LoyaltyModule = (function(){
         watchStatesRes,
         ignoredRes,
         eventsRes,
+        loyaltyEventsRes,
         settingsRes,
         presenceRes,
         routesRes
@@ -180,6 +187,7 @@ window.LoyaltyModule = (function(){
         window.CGN.api(api.watchStates).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.ignoredUsers).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.runnerEvents).catch(err => ({ ok:false, error:err.message, rows:[] })),
+        window.CGN.api(api.loyaltyEvents).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.settings).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.presenceActive).catch(err => ({ ok:false, error:err.message, data:{ users:[] } })),
         window.CGN.api(api.routes).catch(err => ({ ok:false, error:err.message, routes:[] }))
@@ -197,6 +205,7 @@ window.LoyaltyModule = (function(){
         watchStates: watchStatesRes,
         ignoredUsers: ignoredRes,
         runnerEvents: eventsRes,
+        loyaltyEvents: loyaltyEventsRes,
         settings: settingsRes,
         presenceActive: presenceRes,
         routes: routesRes
@@ -514,20 +523,41 @@ window.LoyaltyModule = (function(){
   }
 
   function renderEvents(){
-    const list = runnerEvents();
-    if (!list.length) return '<section class="loyalty-card"><h3>Runner Events</h3><div class="loyalty-empty">Keine Runner-Events.</div></section>';
-    return `<section class="loyalty-card"><h3>Runner Events</h3><div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>Event</th><th>Trigger</th><th>OK</th><th>Skipped</th><th>Awarded</th><th>Count</th><th>Reason</th></tr></thead><tbody>
-      ${list.map(row => `<tr>
-        <td>${fmtDate(row.createdAt)}</td>
-        <td>${esc(row.eventType)}</td>
-        <td>${esc(row.trigger)}</td>
-        <td>${boolText(row.ok)}</td>
-        <td>${boolText(row.skipped)}</td>
-        <td>${fmtNumber(row.awarded)}</td>
-        <td>${fmtNumber(row.processedCount)}</td>
-        <td>${esc(row.reason || '-')}</td>
-      </tr>`).join('')}
-    </tbody></table></div></section>`;
+    const eventList = loyaltyEvents();
+    const runnerList = runnerEvents();
+    return `
+      <section class="loyalty-card">
+        <h3>Loyalty Events</h3>
+        ${eventList.length ? `<div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>Event</th><th>User</th><th>Tier</th><th>Wert</th><th>Punkte</th><th>Status</th><th>Ref</th></tr></thead><tbody>
+          ${eventList.map(row => `<tr>
+            <td>${fmtDate(row.createdAt)}</td>
+            <td>${esc(row.eventType || '-')}</td>
+            <td><strong>${esc(row.displayName || row.login || '-')}</strong><small>${esc(row.login || '')}</small></td>
+            <td>${esc(row.tier || '-')}</td>
+            <td>${fmtNumber(row.amount)} / x${fmtNumber(row.quantity || 1)}</td>
+            <td>${fmtNumber(row.points)}</td>
+            <td>${row.duplicate ? 'Duplicate' : row.skipped ? `Skipped: ${esc(row.reason || '-')}` : 'Gebucht'}</td>
+            <td><small>${esc(row.uid || '')}</small></td>
+          </tr>`).join('')}
+        </tbody></table></div>` : '<div class="loyalty-empty">Keine Loyalty-Events.</div>'}
+      </section>
+
+      <section class="loyalty-card">
+        <h3>Runner Events</h3>
+        ${runnerList.length ? `<div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>Event</th><th>Trigger</th><th>OK</th><th>Skipped</th><th>Awarded</th><th>Count</th><th>Reason</th></tr></thead><tbody>
+          ${runnerList.map(row => `<tr>
+            <td>${fmtDate(row.createdAt)}</td>
+            <td>${esc(row.eventType)}</td>
+            <td>${esc(row.trigger)}</td>
+            <td>${boolText(row.ok)}</td>
+            <td>${boolText(row.skipped)}</td>
+            <td>${fmtNumber(row.awarded)}</td>
+            <td>${fmtNumber(row.processedCount)}</td>
+            <td>${esc(row.reason || '-')}</td>
+          </tr>`).join('')}
+        </tbody></table></div>` : '<div class="loyalty-empty">Keine Runner-Events.</div>'}
+      </section>
+    `;
   }
 
   function render(){
