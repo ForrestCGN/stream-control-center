@@ -1731,6 +1731,35 @@
   overflow-wrap:normal!important;
 }
 </style>
+
+
+<style id="step208-3-username-full-row-no-truncation">
+/* STEP208.3: Maximale Twitch-Namen vollständig anzeigen: bei sehr langen Namen bekommt der Name volle Kartenbreite. */
+.alert-card.username-max-fullname .content{
+  grid-template-columns:minmax(0,1fr)!important;
+  justify-content:center!important;
+  justify-items:center!important;
+  text-align:center!important;
+}
+.alert-card.username-max-fullname .avatar-slot{
+  display:none!important;
+}
+.alert-card.username-max-fullname .text-stack{
+  width:100%!important;
+  max-width:100%!important;
+  justify-items:center!important;
+  text-align:center!important;
+}
+.alert-card.username-max-fullname .headline{
+  max-width:100%!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.alert-card.username-max-fullname .value{
+  max-width:100%!important;
+}
+</style>
+
 </head>
 <body>
   <div class="stage" id="stage"></div>
@@ -1830,6 +1859,7 @@
       const avatar = chooseAvatar(alert);
       const source = buildSource(alert);
       const display = buildDisplay(alert);
+      const usernameFullNameClass = needsFullUsernameRow(alert, display) ? ' username-max-fullname' : '';
       const settings = displaySettings(alert);
       const image = chooseBadgeImage(alert, settings);
       stage.className = 'stage';
@@ -1837,7 +1867,7 @@
       const badgeStyleClass = 'badge-symbol-' + escapeCss(settings.badgeStyle || 'core');
       const visualClass = image ? 'is-image' : ('is-symbol ' + badgeStyleClass);
       const showBadge = false; // STEP143: badges removed completely
-      card.className = `alert-card tier-${escapeCss(alert.tier || 'normal')} alert-source-${escapeCss(alert.source || alert.provider || 'generic')} alert-type-${escapeCss(alert.type || alert.type_key || 'generic')} ${displayClasses(settings)}`;
+      card.className = `alert-card tier-${escapeCss(alert.tier || 'normal')} alert-source-${escapeCss(alert.source || alert.provider || 'generic')} alert-type-${escapeCss(alert.type || alert.type_key || 'generic')} ${displayClasses(settings)}${usernameFullNameClass}`;
       card.style.setProperty('--card-w', cardWidth(settings));
       card.style.setProperty('--card-h', cardHeight(settings));
       card.style.setProperty('--badge', `calc(clamp(68px, 6.5vw, 104px) * ${settings.badgeScale})`);
@@ -2142,6 +2172,15 @@
       return parts.length ? parts.join(' · ') : 'ALERT';
     }
 
+    function needsFullUsernameRow(alert, display) {
+      const type = String(alert?.type || alert?.type_key || '').toLowerCase();
+      const source = String(alert?.source || alert?.provider || '').toLowerCase();
+      if (source !== 'twitch') return false;
+      if (type !== 'bits' && type !== 'cheer') return false;
+      const name = String(display?.headline || alert?.userDisplayName || alert?.user_display || alert?.user || alert?.userLogin || '').trim();
+      return name.length >= 23;
+    }
+
     function fitSingleLineText(el) {
       if (!el) return;
       try {
@@ -2157,7 +2196,8 @@
         const computed = window.getComputedStyle(el);
         const baseSize = Number.parseFloat(computed.fontSize) || 32;
         const isHeadline = el.classList.contains('headline');
-        const minSize = isHeadline ? Math.max(12, Math.round(baseSize * 0.44)) : Math.max(14, Math.round(baseSize * 0.68));
+        const fullNameMode = isHeadline && el.closest('.username-max-fullname');
+        const minSize = isHeadline ? (fullNameMode ? Math.max(9, Math.round(baseSize * 0.30)) : Math.max(12, Math.round(baseSize * 0.44))) : Math.max(14, Math.round(baseSize * 0.68));
         let size = baseSize;
 
         // Zwei Frames geben dem Browser Zeit, Grid-Breiten nach dem Einfügen zu berechnen.
