@@ -7,7 +7,7 @@ const WebSocket = require('ws');
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const configHelper = require('./helpers/helper_config');
-const sqlite = require('./sqlite_core');
+const database = require('../core/database');
 
 const sharedApi = {
   resolveUserByLogin: null,
@@ -160,21 +160,26 @@ module.exports.init = function init(ctx) {
   }
 
   function ensureTwitchAlertSettingsTable() {
-    if (!sqlite.isInitialized()) return false;
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS alert_settings (
-        key TEXT PRIMARY KEY,
-        value_json TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-    `);
-    return true;
+    try {
+      database.ensureReady(ctx);
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS alert_settings (
+          key TEXT PRIMARY KEY,
+          value_json TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `);
+      return true;
+    } catch (e) {
+      twitchAlertBridgeState.lastError = `[db_ready] ${e?.message || String(e)}`;
+      return false;
+    }
   }
 
   function getTwitchAlertSettingsFromDb() {
     try {
       if (!ensureTwitchAlertSettingsTable()) return null;
-      const row = sqlite.get(`SELECT value_json FROM alert_settings WHERE key=:key`, { key: twitchAlertBridgeState.settingsKey });
+      const row = database.get(`SELECT value_json FROM alert_settings WHERE key=:key`, { key: twitchAlertBridgeState.settingsKey });
       if (!row || !row.value_json) return null;
       return JSON.parse(row.value_json);
     } catch (e) {
@@ -186,7 +191,7 @@ module.exports.init = function init(ctx) {
   function saveTwitchAlertSettingsToDb(value) {
     if (!ensureTwitchAlertSettingsTable()) return false;
     const now = core.nowIso();
-    sqlite.run(`
+    database.run(`
       INSERT INTO alert_settings (key, value_json, updated_at)
       VALUES (:key, :valueJson, :now)
       ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, updated_at=excluded.updated_at
@@ -214,13 +219,13 @@ module.exports.init = function init(ctx) {
       dbConfig = fileFallback?.config || DEFAULT_TWITCH_ALERT_CONFIG;
       try {
         saveTwitchAlertSettingsToDb(mergePlainObject(DEFAULT_TWITCH_ALERT_CONFIG, dbConfig));
-        twitchAlertBridgeState.settingsSource = fileFallback ? `${fileFallback.source}_migrated_to_sqlite` : 'default_created_in_sqlite';
+        twitchAlertBridgeState.settingsSource = fileFallback ? `${fileFallback.source}_migrated_to_core_database` : 'default_created_in_core_database';
       } catch (e) {
-        twitchAlertBridgeState.settingsSource = fileFallback ? fileFallback.source : 'default_no_sqlite';
+        twitchAlertBridgeState.settingsSource = fileFallback ? fileFallback.source : 'default_no_core_database';
         twitchAlertBridgeState.lastError = `[db_write] ${e?.message || String(e)}`;
       }
     } else {
-      twitchAlertBridgeState.settingsSource = 'sqlite';
+      twitchAlertBridgeState.settingsSource = 'core_database';
     }
 
     twitchAlertBridgeState.config = mergePlainObject(DEFAULT_TWITCH_ALERT_CONFIG, dbConfig);
@@ -231,7 +236,7 @@ module.exports.init = function init(ctx) {
     const clean = mergePlainObject(twitchAlertBridgeState.config || DEFAULT_TWITCH_ALERT_CONFIG, input || {});
     saveTwitchAlertSettingsToDb(clean);
     twitchAlertBridgeState.config = mergePlainObject(DEFAULT_TWITCH_ALERT_CONFIG, clean);
-    twitchAlertBridgeState.settingsSource = 'sqlite';
+    twitchAlertBridgeState.settingsSource = 'core_database';
     return twitchAlertBridgeState.config;
   }
 

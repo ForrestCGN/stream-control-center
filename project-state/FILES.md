@@ -2,6 +2,29 @@
 
 Stand: 2026-05-10
 
+## STEP210
+
+Geaendert:
+
+```text
+backend/modules/twitch.js
+project-state/STEP210_TWITCH_DB_CORE_PORTABILITY_2026-05-10.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/core/database.js
+backend/modules/sqlite_core.js
+package.json
+app.sqlite
+```
+
 ## STEP209
 
 Geaendert:

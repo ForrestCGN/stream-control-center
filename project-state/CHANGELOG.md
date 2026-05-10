@@ -2,13 +2,20 @@
 
 ## 2026-05-10
 
+### STEP210 - Twitch DB-Core-Portabilitaet
+
+- `backend/modules/twitch.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
+- Betroffen ist die Twitch-Alert-Bridge-Settings-Tabelle `alert_settings`.
+- Twitch OAuth, Helix, EventSub und Alert-Forwarding bleiben unveraendert.
+- SQLite bleibt aktiver produktiver Adapter.
+- Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
+
 ### STEP209 - Ko-fi/Tipeee DB-Core-Portabilitaet
 
 - `backend/modules/kofi.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
 - `backend/modules/tipeee.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
 - SQLite bleibt aktiver produktiver Adapter.
 - Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
-
 
 ### STEP208 - DB Core Dialect Helper Vorbereitung
 

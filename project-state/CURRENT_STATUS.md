@@ -4,7 +4,7 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP209:
+Aktueller Stand nach STEP210:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
 - Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
@@ -20,6 +20,22 @@ STEP208:
 - Die Helper kapseln kuenftig Unterschiede fuer Autoincrement, Typen, Upsert und Spaltenpruefung.
 - Kein Modul wurde auf MySQL/MariaDB umgestellt.
 - Keine Datenbank wurde migriert, ersetzt oder neu gebaut.
+
+STEP209:
+
+- `backend/modules/kofi.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- `backend/modules/tipeee.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- SQLite bleibt produktiver Standard.
+- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
+- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
+
+STEP210:
+
+- `backend/modules/twitch.js` nutzt jetzt fuer Twitch-Alert-Settings `backend/core/database.js` statt direktem `sqlite_core.js`.
+- Twitch OAuth, Helix, EventSub und Alert-Forwarding bleiben unveraendert.
+- SQLite bleibt produktiver Standard.
+- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
+- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
 
 ## Loyalty
 
@@ -59,11 +75,3 @@ Aktueller Stand:
 - DB-Portabilitaetsstand dokumentiert.
 - Direkte `sqlite_core`-Nutzungen und bereits zentrale `core/database`-Nutzungen wurden eingeordnet.
 - MySQL/MariaDB wurden als spaetere Zielsysteme festgelegt.
-
-## STEP209 - Ko-fi/Tipeee DB-Core-Portabilitaet
-
-- `backend/modules/kofi.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- `backend/modules/tipeee.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- SQLite bleibt produktiver Standard.
-- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
-- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.

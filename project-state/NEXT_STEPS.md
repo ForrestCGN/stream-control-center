@@ -6,15 +6,18 @@ Stand: 2026-05-10
 
 SQLite bleibt aktiv, bis ein echter MariaDB-/MySQL-Server vorhanden ist und alle relevanten Module sauber portiert und getestet wurden.
 
-Naechste sinnvolle Reihenfolge:
-
-1. Naechstes kleines direktes `sqlite_core`-Modul schrittweise auf `backend/core/database.js` umstellen:
-   - `twitch.js`
-
 Bereits portiert:
 
 - `kofi.js`
 - `tipeee.js`
+- `twitch.js`
+
+Naechste sinnvolle Reihenfolge:
+
+1. STEP210 live testen:
+   - Twitch Alert-Bridge Status pruefen.
+   - EventSub Status pruefen.
+   - Keine Fehler in `lastError`.
 2. Danach mittlere Module pruefen:
    - `sound_system.js`
    - `dashboard_auth.js`
@@ -31,6 +34,15 @@ Wichtig:
 - Keine neue `app.sqlite` erzeugen.
 - Keine bestehende SQLite-Funktionalitaet fuer theoretische MariaDB-Vorbereitung brechen.
 - Neue DB-Logik ueber `backend/core/database.js` oder vorhandene Helper bauen.
+
+## STEP210 Tests
+
+Nach Entpacken und Deploy pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/status" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/status" | ConvertTo-Json -Depth 100
+```
 
 ## Naechster echter Stream - Loyalty Livetest
 
@@ -58,14 +70,4 @@ Nach Streamende:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 80
-```
-
-
-## STEP209 Tests
-
-Nach Entpacken und Deploy pruefen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/kofi/status" | ConvertTo-Json -Depth 40
-Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/tipeee/status" | ConvertTo-Json -Depth 60
 ```

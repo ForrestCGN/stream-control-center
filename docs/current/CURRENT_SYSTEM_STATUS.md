@@ -4,7 +4,7 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP209:
+Aktueller Stand nach STEP210:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
 - Aktive DB bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
@@ -20,6 +20,11 @@ STEP208 hat nur zentrale Helper vorbereitet:
 - Dialekt-Erkennung fuer SQLite/MySQL/MariaDB.
 - SQL-Helfer fuer Autoincrement, Basis-Typen, Upsert und Spaltenpruefung.
 - Status-Ausgabe mit geplanter `mysqlFamily`.
+
+Schrittweise DB-Core-Portierung:
+
+- STEP209: `kofi.js` und `tipeee.js` nutzen jetzt `backend/core/database.js`.
+- STEP210: `twitch.js` nutzt fuer Twitch-Alert-Settings jetzt `backend/core/database.js`.
 
 MySQL/MariaDB werden erst genutzt, wenn die Module schrittweise von direkter `sqlite_core`-Kopplung weggefuehrt und getestet wurden.
 
@@ -78,11 +83,10 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP206:
 - Event-Boni weiterhin beobachten.
 - Nach Streamende Runner/Stream-State offline pruefen.
 
+## STEP210 - Twitch DB-Core-Portierung
 
-## STEP209 - Provider DB-Core-Portierung
-
-- `kofi.js` und `tipeee.js` nutzen jetzt die zentrale DB-Schicht `backend/core/database.js`.
-- Direkte Kopplung dieser beiden Module an `sqlite_core.js` wurde entfernt.
+- `twitch.js` nutzt fuer Twitch-Alert-Settings jetzt die zentrale DB-Schicht `backend/core/database.js`.
+- Direkte Kopplung dieses Bereichs an `sqlite_core.js` wurde entfernt.
 - SQLite bleibt weiterhin der aktive produktive Adapter.
 - MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
 - Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.
