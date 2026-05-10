@@ -257,7 +257,7 @@ function ensureSchema() {
       );
 
       CREATE TABLE IF NOT EXISTS alert_types (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         source TEXT NOT NULL DEFAULT 'twitch',
         type_key TEXT NOT NULL,
         label TEXT NOT NULL,
@@ -270,7 +270,7 @@ function ensureSchema() {
       );
 
       CREATE TABLE IF NOT EXISTS alert_rules (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         source TEXT NOT NULL DEFAULT 'twitch',
         type_key TEXT NOT NULL,
         label TEXT NOT NULL,
@@ -290,7 +290,7 @@ function ensureSchema() {
       );
 
       CREATE TABLE IF NOT EXISTS alert_provider_events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         provider TEXT NOT NULL,
         provider_event_id TEXT NOT NULL,
         source TEXT NOT NULL,
