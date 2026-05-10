@@ -1,8 +1,8 @@
-﻿{
+{
   "enabled": true,
   "description": "Konfiguration fuer wiederkehrende Chat-Hinweise. Texte kommen aus config/messages/*.json.",
   "runtime": {
-    "onlyWhenLive": true,
+    "onlyWhenLive": false,
     "startActiveOnServerStart": false,
     "firstMessageDelayMinutes": 15,
     "globalCooldownMinutes": 20,
