@@ -198,7 +198,7 @@ function ensureSchema() {
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS dashboard_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         display_name TEXT NOT NULL,
         avatar_url TEXT NOT NULL DEFAULT '',
         primary_role TEXT NOT NULL DEFAULT 'user',
@@ -209,7 +209,7 @@ function ensureSchema() {
       );
 
       CREATE TABLE IF NOT EXISTS dashboard_identities (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         user_id INTEGER NOT NULL,
         provider TEXT NOT NULL,
         provider_user_id TEXT NOT NULL,
@@ -253,7 +253,7 @@ function ensureSchema() {
       );
 
       CREATE TABLE IF NOT EXISTS dashboard_audit_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         actor_user_id INTEGER,
         actor_display_name TEXT NOT NULL DEFAULT '',
         action TEXT NOT NULL,
