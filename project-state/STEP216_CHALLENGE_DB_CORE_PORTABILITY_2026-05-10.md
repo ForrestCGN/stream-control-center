@@ -31,7 +31,7 @@ SQLite bleibt weiterhin der aktive produktive Adapter. MySQL/MariaDB werden nich
 
 ## Technische Einordnung
 
-Vorher:
+Vorher (direkte Modul-Kopplung vor STEP216):
 
 ```text
 challenge.js -> sqlite_core.js -> app.sqlite
@@ -68,5 +68,5 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/challenge/stats/top" | ConvertTo-Js
 - `ok = true`
 - `integration-check` ohne harte Fehler
 - Stats-Tabellen lesbar, wenn Stats aktiviert sind
-- SQLite-Pfad bleibt `D:\Streaming\stramAssets\data\sqlitepp.sqlite`
+- SQLite-Pfad bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
 - keine Aenderung am Challenge-Verhalten in OBS/Overlay/Streamer.bot

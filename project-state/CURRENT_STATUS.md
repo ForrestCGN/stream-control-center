@@ -4,15 +4,15 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP216:
+Aktueller Stand nach STEP217:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
-- Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlitepp.sqlite`.
+- Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
 - `backend/core/database.js` ist die zentrale DB-Schicht fuer neue Module und Refactors.
 - MySQL und MariaDB sind als spaetere Zielsysteme vorgesehen.
 - `DB_ADAPTER=mysql` und `DB_ADAPTER=mariadb` werden in der Core-Schicht vorbereitet erkannt.
 - Es gibt noch keinen aktiven MySQL-/MariaDB-Adapter und keinen DB-Treiber im Projekt.
-- MySQL/MariaDB duerfen erst produktiv genutzt werden, wenn alle relevanten Module portiert und getestet sind.
+- MySQL/MariaDB duerfen erst produktiv genutzt werden, wenn alle relevanten Module portiert, getestet und die SQL-Dialektstellen sauber gekapselt sind.
 
 Bereits portiert auf `backend/core/database.js`:
 
@@ -25,6 +25,14 @@ Bereits portiert auf `backend/core/database.js`:
 - STEP215: `todo.js`
 - STEP216: `challenge.js`
 
+STEP217 Rescan-Ergebnis:
+
+- Produktive Module mit direktem `require("./sqlite_core")` sind praktisch entfernt.
+- Erwartete zentrale Treffer bleiben `backend/core/database.js` und `backend/modules/sqlite_core.js`.
+- `backend/check_alert_db.js` bleibt als altes technisches Pruefscript mit direkter `node:sqlite`-Nutzung auffaellig, ist aber kein normales produktives Modul.
+- Viele Module enthalten weiterhin SQLite-nahe SQL-Konstrukte wie `INTEGER PRIMARY KEY AUTOINCREMENT`, `ON CONFLICT(...)`, `INSERT OR IGNORE` und `PRAGMA table_info(...)`.
+- Diese SQL-Dialektstellen bleiben zunaechst bestehen, weil SQLite produktiv aktiv bleibt, und werden erst in einer zweiten Portabilitaetsrunde zentral gekapselt.
+
 STEP208:
 
 - `backend/core/database.js` wurde um Dialekt-/SQL-Helper erweitert.
@@ -32,39 +40,11 @@ STEP208:
 - Kein Modul wurde auf MySQL/MariaDB umgestellt.
 - Keine Datenbank wurde migriert, ersetzt oder neu gebaut.
 
-STEP213:
+STEP213 bis STEP216:
 
-- `backend/modules/alert_system.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- Alert-Typen, Regeln, Assets, Settings, Events, Display-Profile, Textvarianten, Test-Presets und Chat-Outbox bleiben fachlich unveraendert.
-- SQLite bleibt produktiver Standard.
-- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
-- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
-
-STEP214:
-
-- `backend/modules/tagebuch.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- Betroffen sind Tagebuch-State, Entries, Discord-Posts, Settings, Textvarianten und Stats-Zugriffe.
-- Discord-/Webhook-, Text-, Streamstart-/Streamende-, Reset- und Stats-Logik wurden nicht fachlich veraendert.
-- SQLite bleibt produktiver Standard.
-- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
-- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
-
-
-STEP215:
-
-- `backend/modules/todo.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- Betroffen sind Todo-Stats, Daily-Stats, Settings-/Text-Helper-Zugriffe und Integration-Checks.
-- Todo-, Discord-, Alias-, Text-, Settings- und Stats-Logik wurden nicht fachlich veraendert.
-- SQLite bleibt produktiver Standard.
-- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
-- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
-
-
-STEP216:
-
-- `backend/modules/challenge.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- Betroffen sind Challenge-Stats und Runtime-Event-Stats.
-- Challenge-, Queue-, Timer-, Overlay-, WebSocket-, Chat- und Discord-Sound-Logik wurden nicht fachlich veraendert.
+- `alert_system.js`, `tagebuch.js`, `todo.js` und `challenge.js` nutzen jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- Die jeweiligen Fachlogiken wurden nicht fachlich veraendert.
+- Die API-Tests fuer Alert-System, Tagebuch, Todo und Challenge wurden erfolgreich ausgefuehrt.
 - SQLite bleibt produktiver Standard.
 - MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
 - Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.

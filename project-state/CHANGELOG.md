@@ -3,6 +3,16 @@
 ## 2026-05-10
 
 
+### STEP217 - DB-Core-Portability Rescan & Cleanup-Doku
+
+- Finalen DB-Core-Portability-Restscan dokumentiert.
+- Bestaetigt: produktive Module mit direktem `require("./sqlite_core")` sind praktisch entfernt.
+- `backend/check_alert_db.js` als altes technisches Pruefscript eingeordnet.
+- Noch vorhandene SQLite-nahe SQL-Konstrukte fuer die zweite Portabilitaetsrunde dokumentiert.
+- Missverstaendliche Vorher-Zeile in `STEP216_CHALLENGE_DB_CORE_PORTABILITY_2026-05-10.md` sprachlich bereinigt.
+- Keine Backend-Logik, keine DB, kein Treiber und kein `package.json` geaendert.
+
+
 ### STEP216 - Challenge DB-Core-Portabilitaet
 
 - `backend/modules/challenge.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
