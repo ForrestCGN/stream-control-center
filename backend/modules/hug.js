@@ -153,7 +153,7 @@ function ensureSchema(ctx) {
         );
 
         CREATE TABLE IF NOT EXISTS hug_pending_rehugs (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${db.primaryKeyAutoIncrementSql()},
           target_user_id TEXT NOT NULL,
           from_user_id TEXT NOT NULL,
           type_id INTEGER NOT NULL,
@@ -189,7 +189,7 @@ function ensureSchema(ctx) {
         CREATE INDEX IF NOT EXISTS idx_hug_types_enabled_sort ON hug_types(enabled, sort_order, id);
 
         CREATE TABLE IF NOT EXISTS hug_texts (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${db.primaryKeyAutoIncrementSql()},
           text_key TEXT NOT NULL DEFAULT '',
           type_id INTEGER NULL,
           kind TEXT NOT NULL,
@@ -210,7 +210,7 @@ function ensureSchema(ctx) {
     if (toVersion === 3) {
       database.exec(`
         CREATE TABLE IF NOT EXISTS hug_text_pairs (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${db.primaryKeyAutoIncrementSql()},
           type_id INTEGER NOT NULL,
           category TEXT NOT NULL DEFAULT 'hug_pairs',
           name TEXT NOT NULL DEFAULT '',
@@ -233,11 +233,8 @@ function ensureSchema(ctx) {
 
 
 function columnExists(tableName, columnName) {
-  const safeTable = String(tableName || "").trim();
-  const safeColumn = String(columnName || "").trim();
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(safeTable) || !safeColumn) return false;
   try {
-    return db.all(`PRAGMA table_info(${safeTable})`).some(row => row.name === safeColumn);
+    return db.columnExists(tableName, columnName);
   } catch (_) {
     return false;
   }
@@ -246,7 +243,7 @@ function columnExists(tableName, columnName) {
 function ensureHugTextPairSchema() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS hug_text_pairs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${db.primaryKeyAutoIncrementSql()},
       type_id INTEGER NOT NULL,
       category TEXT NOT NULL DEFAULT 'hug_pairs',
       name TEXT NOT NULL DEFAULT '',
