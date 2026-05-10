@@ -3,6 +3,9 @@
 /**
  * Loyalty / Kekskrümel Core
  *
+ * STEP205:
+ * - Doppelte Stream-State Start/Stop-Signale werden geloggt, ohne den bestehenden State-Source zu ueberschreiben
+ *
  * STEP204:
  * - Stream-State Start/Stop koppelt AutoRunner konfigurierbar und idempotent
  * - Runner-Start/-Stop-Quellen werden in loyalty_runner_events geloggt
@@ -22,7 +25,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.8";
+const VERSION = "0.1.9";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 3;
@@ -1898,6 +1901,8 @@ function logStreamStateEvent(eventType, payload = {}) {
     trigger: String(payload.source || payload.trigger || "stream_state"),
     reason: String(payload.reason || ""),
     streamState: payload.streamState || null,
+    previousStreamState: payload.previousStreamState || null,
+    signal: payload.signal || null,
     runner: payload.runner || null,
     automation: payload.automation || null
   });
@@ -1951,22 +1956,50 @@ function controlAutoRunnerForStreamState(live, options = {}) {
 function applyStreamStateChange(live, options = {}) {
   const source = String(options.source || "manual").trim() || "manual";
   const reason = String(options.reason || "").trim();
-  const streamState = setManualStreamState(live, { source, reason });
-  const automation = controlAutoRunnerForStreamState(live, {
+  const requestedLive = !!live;
+  const previousStreamState = getStreamState();
+  const previousManual = previousStreamState && previousStreamState.manual ? previousStreamState.manual : null;
+  const isDuplicateSignal = !!(
+    previousManual &&
+    previousManual.configuredActive === true &&
+    previousManual.expired !== true &&
+    previousManual.live === requestedLive
+  );
+
+  const streamState = isDuplicateSignal
+    ? previousStreamState
+    : setManualStreamState(requestedLive, { source, reason });
+
+  const automation = controlAutoRunnerForStreamState(requestedLive, {
     source,
     reason,
     sourceKind: "stream_state",
     req: options.req || null
   });
 
-  logStreamStateEvent(live ? "stream_state_started" : "stream_state_stopped", {
+  const signal = {
+    requestedLive,
+    duplicate: isDuplicateSignal,
+    preservedExistingState: isDuplicateSignal,
+    source,
+    reason,
+    previousManual
+  };
+
+  const eventType = requestedLive
+    ? (isDuplicateSignal ? "stream_state_start_signal" : "stream_state_started")
+    : (isDuplicateSignal ? "stream_state_stop_signal" : "stream_state_stopped");
+
+  logStreamStateEvent(eventType, {
     source,
     reason,
     streamState,
+    previousStreamState,
+    signal,
     automation
   });
 
-  return { streamState, runner: automation };
+  return { streamState, runner: automation, signal };
 }
 
 function listRunnerEvents(options = {}) {
