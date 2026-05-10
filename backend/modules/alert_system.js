@@ -367,7 +367,7 @@ function ensureSchema() {
     if (toVersion === 1) {
       db.exec(`
       CREATE TABLE IF NOT EXISTS alert_types (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         source TEXT NOT NULL DEFAULT 'twitch',
         type_key TEXT NOT NULL,
         label TEXT NOT NULL,
@@ -380,7 +380,7 @@ function ensureSchema() {
       );
 
       CREATE TABLE IF NOT EXISTS alert_assets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         asset_type TEXT NOT NULL,
         label TEXT NOT NULL,
         file_path TEXT NOT NULL,
@@ -395,7 +395,7 @@ function ensureSchema() {
       );
 
       CREATE TABLE IF NOT EXISTS alert_rules (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         source TEXT NOT NULL DEFAULT 'twitch',
         type_key TEXT NOT NULL,
         label TEXT NOT NULL,
@@ -419,7 +419,7 @@ function ensureSchema() {
       CREATE INDEX IF NOT EXISTS idx_alert_rules_lookup ON alert_rules(source, type_key, enabled, min_value, max_value, priority);
 
       CREATE TABLE IF NOT EXISTS alert_events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         event_uid TEXT NOT NULL UNIQUE,
         source TEXT NOT NULL,
         type_key TEXT NOT NULL,
@@ -464,7 +464,7 @@ function ensureSchema() {
     if (toVersion === 3) {
       db.exec(`
       CREATE TABLE IF NOT EXISTS alert_text_variants (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         source TEXT NOT NULL DEFAULT 'twitch',
         type_key TEXT NOT NULL,
         rule_id INTEGER,
@@ -488,7 +488,7 @@ function ensureSchema() {
       CREATE INDEX IF NOT EXISTS idx_alert_text_variants_lookup ON alert_text_variants(source, type_key, rule_id, enabled, sort_order);
 
       CREATE TABLE IF NOT EXISTS alert_test_presets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         source TEXT NOT NULL DEFAULT 'twitch',
         type_key TEXT NOT NULL,
         rule_id INTEGER,
@@ -516,7 +516,7 @@ function ensureSchema() {
     if (toVersion === 4) {
       db.exec(`
       CREATE TABLE IF NOT EXISTS alert_display_profiles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         name TEXT NOT NULL,
         description TEXT NOT NULL DEFAULT '',
         is_default INTEGER NOT NULL DEFAULT 0,
@@ -544,7 +544,7 @@ function ensureSchema() {
 function createChatBlocksSchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS alert_chat_blocks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${database.primaryKeyAutoIncrementSql()},
       source TEXT NOT NULL DEFAULT 'twitch',
       type_key TEXT NOT NULL,
       label TEXT NOT NULL DEFAULT '',
@@ -562,7 +562,7 @@ function createChatBlocksSchema(db) {
   addColumnIfMissing(db, 'alert_events', 'chat_message_error', "TEXT NOT NULL DEFAULT ''");
   db.exec(`
     CREATE TABLE IF NOT EXISTS alert_chat_outbox (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${database.primaryKeyAutoIncrementSql()},
       event_uid TEXT NOT NULL,
       source TEXT NOT NULL DEFAULT '',
       type_key TEXT NOT NULL DEFAULT '',
