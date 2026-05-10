@@ -2,6 +2,67 @@
 
 Stand: 2026-05-10
 
+## Naechster technischer Architektur-Schritt - DB-Portabilitaet
+
+Empfohlen:
+
+```text
+STEP208 - database.js Dialekt-/SQL-Helper vorbereiten
+```
+
+Ziel:
+
+- Keine aktive Umstellung auf MySQL/MariaDB.
+- SQLite-Verhalten unveraendert lassen.
+- `backend/core/database.js` um kleine, rueckwaertskompatible Helfer erweitern.
+- SQL-Dialekt-Unterschiede zentral kapseln.
+
+Sinnvolle Helfer:
+
+```text
+database.autoincrementPrimaryKey()
+database.insertIgnore(...)
+database.upsert(...)
+database.columnExists(...)
+database.tableColumns(...)
+database.getAdapter()
+database.getDialect()
+```
+
+Danach erster kleiner Modul-Portierungs-STEP:
+
+```text
+kofi.js oder tipeee.js von sqlite_core auf backend/core/database.js umstellen
+```
+
+Nicht als erstes portieren:
+
+```text
+tagebuch.js
+todo.js
+alert_system.js
+challenge.js
+```
+
+Diese Module sind groesser und produktiver relevant.
+
+## Zielarchitektur Datenbanken
+
+Aktuell aktiv:
+
+```text
+DB_ADAPTER=sqlite
+```
+
+Spaeter geplant:
+
+```text
+DB_ADAPTER=mysql
+DB_ADAPTER=mariadb
+```
+
+MySQL und MariaDB sollen ueber einen gemeinsamen MySQL-Family-Adapter laufen.
+
 ## Naechster echter Stream - Loyalty Livetest
 
 Vor Streamstart:

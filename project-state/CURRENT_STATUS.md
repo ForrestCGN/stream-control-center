@@ -34,3 +34,13 @@ Aktueller Stand:
 
 - Eine konkrete Livetest-Checkliste fuer den naechsten Stream wurde dokumentiert.
 - Ziel ist die Pruefung von AutoRunner, Watch-Punkten, Bot-Ignore-Liste, Twitch/EventSub-Signalen und Event-Boni im echten Stream.
+
+## STEP207 - DB-Portabilitaetsanalyse und MySQL/MariaDB-Zielarchitektur
+
+- DB-Portabilitaetsanalyse auf Basis eines lokalen Repo-Scans dokumentiert.
+- Aktive Produktiv-DB bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- `backend/core/database.js` bleibt die zentrale Zielschicht fuer neue DB-Zugriffe.
+- MySQL und MariaDB sollen spaeter beide unterstuetzt werden.
+- Technisch wird ein gemeinsamer MySQL-Family-Adapter geplant, statt zwei getrennte Codewelten zu bauen.
+- Direkte `sqlite_core`-Kopplungen wurden als Migrationskandidaten dokumentiert.
+- Kein Code, keine DB, kein Treiber und kein Live-System wurden geaendert.

@@ -2,6 +2,14 @@
 
 ## 2026-05-10
 
+### STEP207 - DB-Portabilitaetsanalyse und MySQL/MariaDB-Zielarchitektur
+
+- DB-Portabilitaetsanalyse dokumentiert.
+- Direkte `sqlite_core`-Kopplungen und bereits auf `backend/core/database.js` migrierte Module festgehalten.
+- Zielarchitektur fuer SQLite + MySQL + MariaDB definiert.
+- MySQL und MariaDB werden spaeter ueber einen gemeinsamen MySQL-Family-Adapter geplant.
+- Keine Code-Aenderung, keine DB-Aenderung, kein neuer Treiber.
+
 ### STEP206 - Loyalty Livetest Checkliste
 
 - Livetest-Checkliste fuer den naechsten echten Stream dokumentiert.

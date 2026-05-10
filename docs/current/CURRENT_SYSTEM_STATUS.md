@@ -2,7 +2,25 @@
 
 Stand: 2026-05-10
 
-## Loyalty / Kekskrümel
+## DB-Portabilitaet / SQLite / MySQL / MariaDB
+
+Seit STEP207:
+
+- Aktive Produktivdatenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- SQLite bleibt Standard und Fallback.
+- `backend/core/database.js` ist die zentrale Zielschicht fuer neue DB-Zugriffe.
+- MySQL und MariaDB sollen spaeter beide unterstuetzt werden.
+- MySQL und MariaDB werden als gemeinsame MySQL-Family-Zielarchitektur geplant.
+- Direkte `sqlite_core`-Kopplungen in bestehenden Modulen wurden dokumentiert.
+- Kein Code, keine DB und kein Treiber wurden in STEP207 geaendert.
+
+Aktuelle Regel:
+
+```text
+Neue DB-Zugriffe nicht direkt an backend/modules/sqlite_core.js koppeln, wenn backend/core/database.js oder ein vorhandener Helper genutzt werden kann.
+```
+
+## Loyalty / Kekskruemel
 
 Aktueller Stand:
 
