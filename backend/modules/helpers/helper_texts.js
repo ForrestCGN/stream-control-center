@@ -248,7 +248,7 @@ function ensureModuleTextsTable(tableName = DEFAULT_MODULE_TEXTS_TABLE) {
 
   database.exec(`
     CREATE TABLE IF NOT EXISTS ${qTable} (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${database.primaryKeyAutoIncrementSql()},
       module_name TEXT NOT NULL,
       text_key TEXT NOT NULL,
       text_value TEXT NOT NULL DEFAULT '',
@@ -308,20 +308,15 @@ function seedModuleTexts(moduleName, defaults = {}, options = {}) {
   let inserted = 0;
 
   for (const item of normalizeModuleTextDefaults(defaults)) {
-    const result = database.run(`
-      INSERT OR IGNORE INTO ${qTable}
-        (module_name, text_key, text_value, enabled, description, source, created_at, updated_at)
-      VALUES
-        (:moduleName, :textKey, :textValue, :enabled, :description, :source, :createdAt, :updatedAt)
-    `, {
-      moduleName: moduleKey,
-      textKey: item.key,
-      textValue: item.value,
+    const result = database.insertIgnore(table, {
+      module_name: moduleKey,
+      text_key: item.key,
+      text_value: item.value,
       enabled: item.enabled ? 1 : 0,
       description: item.description || '',
       source: options.source || 'seed',
-      createdAt: now,
-      updatedAt: now
+      created_at: now,
+      updated_at: now
     });
 
     inserted += Number(result?.changes || 0);
@@ -464,7 +459,7 @@ function ensureModuleTextVariantsTable(tableName = DEFAULT_MODULE_TEXT_VARIANTS_
 
   database.exec(`
     CREATE TABLE IF NOT EXISTS ${qTable} (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${database.primaryKeyAutoIncrementSql()},
       module_name TEXT NOT NULL,
       text_key TEXT NOT NULL,
       category TEXT NOT NULL DEFAULT 'general',
