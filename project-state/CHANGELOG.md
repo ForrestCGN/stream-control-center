@@ -2,13 +2,19 @@
 
 ## 2026-05-10
 
-### STEP207 - DB-Portabilitaetsanalyse und MySQL/MariaDB-Zielarchitektur
+### STEP208 - DB Core Dialect Helper Vorbereitung
 
-- DB-Portabilitaetsanalyse dokumentiert.
-- Direkte `sqlite_core`-Kopplungen und bereits auf `backend/core/database.js` migrierte Module festgehalten.
-- Zielarchitektur fuer SQLite + MySQL + MariaDB definiert.
-- MySQL und MariaDB werden spaeter ueber einen gemeinsamen MySQL-Family-Adapter geplant.
-- Keine Code-Aenderung, keine DB-Aenderung, kein neuer Treiber.
+- `backend/core/database.js` um vorbereitende Dialekt-/SQL-Helper erweitert.
+- `DB_ADAPTER=mysql` und `DB_ADAPTER=mariadb` werden als geplante Adapter erkannt.
+- SQLite bleibt einziger aktiver Adapter.
+- Kein Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
+
+### STEP207 - DB Portabilitaetsanalyse
+
+- DB-Portabilitaetsstand dokumentiert.
+- Module mit `core/database.js` und direkte `sqlite_core.js`-Nutzungen eingeordnet.
+- MySQL und MariaDB als gemeinsame spaetere MySQL-Family-Zielarchitektur festgelegt.
+- Keine Code-Aenderung.
 
 ### STEP206 - Loyalty Livetest Checkliste
 
@@ -27,12 +33,3 @@
 - `backend/modules/loyalty.js` auf Version 0.1.8 angehoben.
 - Stream-State Start/Stop koppelt AutoRunner konfigurierbar und idempotent.
 - Runner-Start/-Stop-Quellen werden in `loyalty_runner_events` geloggt.
-
-## 2026-05-09
-
-### STEP203.6.1 - Loyalty GiftSub Receiver Booking Fix
-
-- `backend/modules/loyalty.js` korrigiert.
-- GiftSub-Events buchen jetzt zusätzlich Receiver-Punkte.
-- Event-Metadata enthält `receiver` und `transactions`.
-- Duplicate-Schutz bleibt erhalten.

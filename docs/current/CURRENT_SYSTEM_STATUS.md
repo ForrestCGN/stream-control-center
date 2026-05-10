@@ -2,23 +2,26 @@
 
 Stand: 2026-05-10
 
-## DB-Portabilitaet / SQLite / MySQL / MariaDB
+## Datenbank / Portabilitaet
 
-Seit STEP207:
+Aktueller Stand nach STEP208:
 
-- Aktive Produktivdatenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
-- SQLite bleibt Standard und Fallback.
-- `backend/core/database.js` ist die zentrale Zielschicht fuer neue DB-Zugriffe.
-- MySQL und MariaDB sollen spaeter beide unterstuetzt werden.
-- MySQL und MariaDB werden als gemeinsame MySQL-Family-Zielarchitektur geplant.
-- Direkte `sqlite_core`-Kopplungen in bestehenden Modulen wurden dokumentiert.
-- Kein Code, keine DB und kein Treiber wurden in STEP207 geaendert.
+- SQLite bleibt produktiver Standard und aktiver Fallback.
+- Aktive DB bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- `backend/core/database.js` ist die zentrale DB-Schicht fuer neue Module und Refactors.
+- MySQL und MariaDB sind als spaetere Zielsysteme vorgesehen.
+- `DB_ADAPTER=mysql` und `DB_ADAPTER=mariadb` werden in der Core-Schicht vorbereitet erkannt.
+- Ein echter MySQL-/MariaDB-Adapter ist noch nicht implementiert.
+- Es wurde kein MySQL-/MariaDB-Treiber installiert.
+- Es wird keine MySQL-/MariaDB-Verbindung geoeffnet.
 
-Aktuelle Regel:
+STEP208 hat nur zentrale Helper vorbereitet:
 
-```text
-Neue DB-Zugriffe nicht direkt an backend/modules/sqlite_core.js koppeln, wenn backend/core/database.js oder ein vorhandener Helper genutzt werden kann.
-```
+- Dialekt-Erkennung fuer SQLite/MySQL/MariaDB.
+- SQL-Helfer fuer Autoincrement, Basis-Typen, Upsert und Spaltenpruefung.
+- Status-Ausgabe mit geplanter `mysqlFamily`.
+
+MySQL/MariaDB werden erst genutzt, wenn die Module schrittweise von direkter `sqlite_core`-Kopplung weggefuehrt und getestet wurden.
 
 ## Loyalty / Kekskruemel
 

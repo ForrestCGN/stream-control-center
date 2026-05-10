@@ -2,6 +2,25 @@
 
 Stand: 2026-05-10
 
+## Datenbank / Portabilitaet
+
+Aktueller Stand nach STEP208:
+
+- SQLite bleibt produktiver Standard und aktiver Fallback.
+- Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- `backend/core/database.js` ist die zentrale DB-Schicht fuer neue Module und Refactors.
+- MySQL und MariaDB sind als spaetere Zielsysteme vorgesehen.
+- `DB_ADAPTER=mysql` und `DB_ADAPTER=mariadb` werden in der Core-Schicht vorbereitet erkannt.
+- Es gibt noch keinen aktiven MySQL-/MariaDB-Adapter und keinen DB-Treiber im Projekt.
+- MySQL/MariaDB duerfen erst produktiv genutzt werden, wenn alle relevanten Module portiert und getestet sind.
+
+STEP208:
+
+- `backend/core/database.js` wurde um Dialekt-/SQL-Helper erweitert.
+- Die Helper kapseln kuenftig Unterschiede fuer Autoincrement, Typen, Upsert und Spaltenpruefung.
+- Kein Modul wurde auf MySQL/MariaDB umgestellt.
+- Keine Datenbank wurde migriert, ersetzt oder neu gebaut.
+
 ## Loyalty
 
 Aktueller Stand:
@@ -35,12 +54,8 @@ Aktueller Stand:
 - Eine konkrete Livetest-Checkliste fuer den naechsten Stream wurde dokumentiert.
 - Ziel ist die Pruefung von AutoRunner, Watch-Punkten, Bot-Ignore-Liste, Twitch/EventSub-Signalen und Event-Boni im echten Stream.
 
-## STEP207 - DB-Portabilitaetsanalyse und MySQL/MariaDB-Zielarchitektur
+## STEP207 - DB-Portabilitaetsanalyse
 
-- DB-Portabilitaetsanalyse auf Basis eines lokalen Repo-Scans dokumentiert.
-- Aktive Produktiv-DB bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
-- `backend/core/database.js` bleibt die zentrale Zielschicht fuer neue DB-Zugriffe.
-- MySQL und MariaDB sollen spaeter beide unterstuetzt werden.
-- Technisch wird ein gemeinsamer MySQL-Family-Adapter geplant, statt zwei getrennte Codewelten zu bauen.
-- Direkte `sqlite_core`-Kopplungen wurden als Migrationskandidaten dokumentiert.
-- Kein Code, keine DB, kein Treiber und kein Live-System wurden geaendert.
+- DB-Portabilitaetsstand dokumentiert.
+- Direkte `sqlite_core`-Nutzungen und bereits zentrale `core/database`-Nutzungen wurden eingeordnet.
+- MySQL/MariaDB wurden als spaetere Zielsysteme festgelegt.

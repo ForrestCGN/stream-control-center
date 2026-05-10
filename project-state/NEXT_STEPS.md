@@ -2,66 +2,32 @@
 
 Stand: 2026-05-10
 
-## Naechster technischer Architektur-Schritt - DB-Portabilitaet
+## DB-Portabilitaet
 
-Empfohlen:
+SQLite bleibt aktiv, bis ein echter MariaDB-/MySQL-Server vorhanden ist und alle relevanten Module sauber portiert und getestet wurden.
 
-```text
-STEP208 - database.js Dialekt-/SQL-Helper vorbereiten
-```
+Naechste sinnvolle Reihenfolge:
 
-Ziel:
+1. Kleine direkte `sqlite_core`-Module schrittweise auf `backend/core/database.js` umstellen:
+   - `kofi.js`
+   - `tipeee.js`
+   - `twitch.js`
+2. Danach mittlere Module pruefen:
+   - `sound_system.js`
+   - `dashboard_auth.js`
+3. Danach grosse Module planen:
+   - `alert_system.js`
+   - `tagebuch.js`
+   - `todo.js`
+   - `challenge.js`
+4. Erst danach echten MySQL-/MariaDB-Adapter und Treiber einbauen.
 
-- Keine aktive Umstellung auf MySQL/MariaDB.
-- SQLite-Verhalten unveraendert lassen.
-- `backend/core/database.js` um kleine, rueckwaertskompatible Helfer erweitern.
-- SQL-Dialekt-Unterschiede zentral kapseln.
+Wichtig:
 
-Sinnvolle Helfer:
-
-```text
-database.autoincrementPrimaryKey()
-database.insertIgnore(...)
-database.upsert(...)
-database.columnExists(...)
-database.tableColumns(...)
-database.getAdapter()
-database.getDialect()
-```
-
-Danach erster kleiner Modul-Portierungs-STEP:
-
-```text
-kofi.js oder tipeee.js von sqlite_core auf backend/core/database.js umstellen
-```
-
-Nicht als erstes portieren:
-
-```text
-tagebuch.js
-todo.js
-alert_system.js
-challenge.js
-```
-
-Diese Module sind groesser und produktiver relevant.
-
-## Zielarchitektur Datenbanken
-
-Aktuell aktiv:
-
-```text
-DB_ADAPTER=sqlite
-```
-
-Spaeter geplant:
-
-```text
-DB_ADAPTER=mysql
-DB_ADAPTER=mariadb
-```
-
-MySQL und MariaDB sollen ueber einen gemeinsamen MySQL-Family-Adapter laufen.
+- Keine produktive DB-Umschaltung vor vollstaendiger Modul-Portierung.
+- Keine neue `app.sqlite` erzeugen.
+- Keine bestehende SQLite-Funktionalitaet fuer theoretische MariaDB-Vorbereitung brechen.
+- Neue DB-Logik ueber `backend/core/database.js` oder vorhandene Helper bauen.
 
 ## Naechster echter Stream - Loyalty Livetest
 
@@ -90,21 +56,3 @@ Nach Streamende:
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 80
 ```
-
-## Worauf achten
-
-- `timerActive = true` nach Streamstart.
-- `stream_state_start_signal` wenn Twitch/EventSub zusaetzlich online meldet.
-- `manual.source = streamerbot` soll bei Doppelstart erhalten bleiben.
-- `run_ok` nach 10 bis 12 Minuten.
-- `awarded > 0` bei faelligen Watch-Punkten.
-- `ignored_user` bei Bots/Systemusern.
-- Event-Boni fuer Follow/Sub/Resub/Bits/Raid/GiftSub weiterhin pruefen.
-
-## Danach
-
-- Streamauswertung als ZIP erzeugen.
-- Echte Streamdaten auswerten.
-- Bot-Ignore-Liste ggf. erweitern.
-- Dashboard-Ansicht fuer Loyalty Runner/Events/Transactions planen.
-- Shadow-vs-Live-Umschaltung erst nach mehreren erfolgreichen Livetests entscheiden.

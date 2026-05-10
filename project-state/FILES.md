@@ -2,6 +2,29 @@
 
 Stand: 2026-05-10
 
+## STEP208
+
+Geaendert:
+
+```text
+backend/core/database.js
+project-state/STEP208_DB_CORE_DIALECT_HELPERS_2026-05-10.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/sqlite_core.js
+package.json
+config/*
+data/sqlite/app.sqlite
+```
+
 ## STEP207
 
 Geaendert:
@@ -16,21 +39,6 @@ docs/current/CURRENT_SYSTEM_STATUS.md
 ```
 
 Keine Code-Aenderung.
-
-Keine DB-Aenderung.
-
-Keine Aenderung an:
-
-```text
-backend/core/database.js
-backend/modules/sqlite_core.js
-backend/modules/*.js
-package.json
-package-lock.json
-config/*.json
-data/sqlite/app.sqlite
-.env
-```
 
 ## STEP206
 
@@ -63,18 +71,4 @@ Geaendert:
 ```text
 backend/modules/loyalty.js
 project-state/STEP204_LOYALTY_RUNNER_STREAM_STATE_AUTOSTART_2026-05-10.md
-```
-
-## STEP203.6.1
-
-Geaendert:
-
-```text
-backend/modules/loyalty.js
-```
-
-Doku:
-
-```text
-project-state/STEP203_6_1_LOYALTY_GIFTSUB_RECEIVER_BOOKING_FIX_2026-05-09.md
 ```

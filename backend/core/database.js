@@ -8,6 +8,11 @@
  * - aktuell Adapter: SQLite ueber backend/modules/sqlite_core.js
  * - MariaDB ist bewusst vorbereitet, aber noch nicht implementiert
  *
+ * STEP208:
+ * - SQL-/Dialekt-Helper fuer SQLite, MySQL und MariaDB vorbereitet
+ * - SQLite bleibt einziger aktiver Adapter
+ * - MySQL/MariaDB werden nicht verbunden und nicht produktiv genutzt
+ *
  * Ziel:
  * Dashboard-/API-/Service-Code soll langfristig nicht direkt an sqlite_core haengen.
  */
@@ -28,10 +33,34 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function getConfiguredAdapter() {
-  const raw = String(process.env.DB_ADAPTER || process.env.DATABASE_ADAPTER || "sqlite").trim().toLowerCase();
-  if (raw === "mariadb" || raw === "mysql") return "mariadb";
+function normalizeAdapterName(value) {
+  const raw = String(value || "sqlite").trim().toLowerCase();
+  if (raw === "mysql" || raw === "mysql2") return "mysql";
+  if (raw === "mariadb" || raw === "maria") return "mariadb";
   return "sqlite";
+}
+
+function getConfiguredAdapter() {
+  return normalizeAdapterName(process.env.DB_ADAPTER || process.env.DATABASE_ADAPTER || "sqlite");
+}
+
+function getDialectForAdapter(adapter) {
+  const clean = normalizeAdapterName(adapter);
+  if (clean === "mysql") return "mysql";
+  if (clean === "mariadb") return "mariadb";
+  return "sqlite";
+}
+
+function isMysqlFamilyDialect(dialect = state.dialect) {
+  return dialect === "mysql" || dialect === "mariadb";
+}
+
+function isSqliteDialect(dialect = state.dialect) {
+  return dialect === "sqlite";
+}
+
+function getDatabaseFamily() {
+  return isMysqlFamilyDialect() ? "mysql-family" : "sqlite";
 }
 
 function loadSqliteCore() {
@@ -43,13 +72,13 @@ function loadSqliteCore() {
 
 function init(ctx = {}) {
   state.adapter = getConfiguredAdapter();
-  state.dialect = state.adapter === "mariadb" ? "mariadb" : "sqlite";
+  state.dialect = getDialectForAdapter(state.adapter);
 
-  if (state.adapter === "mariadb") {
+  if (isMysqlFamilyDialect()) {
     state.initialized = false;
     state.readyAt = null;
-    state.lastError = "mariadb_adapter_not_implemented_yet";
-    console.warn("[database] MariaDB adapter is planned but not implemented yet.");
+    state.lastError = `${state.adapter}_adapter_not_implemented_yet`;
+    console.warn(`[database] ${state.adapter} adapter is planned but not implemented yet. SQLite remains the active production database.`);
     return state;
   }
 
@@ -104,6 +133,7 @@ function status() {
     module: "core_database",
     adapter: state.adapter,
     dialect: state.dialect,
+    databaseFamily: getDatabaseFamily(),
     initialized: state.initialized,
     readyAt: state.readyAt,
     lastError: state.lastError,
@@ -113,11 +143,14 @@ function status() {
       journalMode: sqliteStatus.journalMode,
       foreignKeys: sqliteStatus.foreignKeys
     } : null,
-    mariaDb: {
+    mysqlFamily: {
       planned: true,
       implemented: false,
+      active: false,
+      acceptedAdapters: ["mysql", "mariadb"],
+      note: "Prepared for later MySQL/MariaDB support. No driver is loaded and no connection is opened yet.",
       envKeys: [
-        "DB_ADAPTER=mariadb",
+        "DB_ADAPTER=mysql|mariadb",
         "DB_HOST",
         "DB_PORT",
         "DB_NAME",
@@ -179,7 +212,7 @@ function setSchemaVersion(moduleName, version) {
 function quoteIdentifier(identifier) {
   const clean = String(identifier || "").trim();
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(clean)) throw new Error(`invalid_identifier:${identifier}`);
-  return state.dialect === "mariadb" ? `\`${clean}\`` : `"${clean}"`;
+  return isMysqlFamilyDialect() ? `\`${clean}\`` : `"${clean}"`;
 }
 
 function normalizeBool(value) {
@@ -199,6 +232,40 @@ function jsonDecode(value, fallback = null) {
   try { return JSON.parse(String(value)); } catch (_) { return fallback; }
 }
 
+function primaryKeyAutoIncrementSql() {
+  if (isMysqlFamilyDialect()) return "INT AUTO_INCREMENT PRIMARY KEY";
+  return "INTEGER PRIMARY KEY AUTOINCREMENT";
+}
+
+function textTypeSql(options = {}) {
+  if (options.long === true && isMysqlFamilyDialect()) return "LONGTEXT";
+  return "TEXT";
+}
+
+function integerTypeSql() {
+  return "INTEGER";
+}
+
+function realTypeSql() {
+  return isMysqlFamilyDialect() ? "DOUBLE" : "REAL";
+}
+
+function boolTypeSql() {
+  return isMysqlFamilyDialect() ? "TINYINT(1)" : "INTEGER";
+}
+
+function dateTimeTypeSql() {
+  return isMysqlFamilyDialect() ? "DATETIME" : "TEXT";
+}
+
+function jsonTypeSql() {
+  return isMysqlFamilyDialect() ? "JSON" : "TEXT";
+}
+
+function nowSql() {
+  return isMysqlFamilyDialect() ? "CURRENT_TIMESTAMP" : "CURRENT_TIMESTAMP";
+}
+
 function buildInsertSql(table, data = {}, options = {}) {
   const keys = Object.keys(data || {});
   if (!keys.length) throw new Error("insert_requires_data");
@@ -208,11 +275,37 @@ function buildInsertSql(table, data = {}, options = {}) {
   const values = keys.map(key => `:${key}`).join(", ");
 
   if (options.ignore === true) {
-    if (state.dialect === "mariadb") return `INSERT IGNORE INTO ${tableName} (${columns}) VALUES (${values})`;
+    if (isMysqlFamilyDialect()) return `INSERT IGNORE INTO ${tableName} (${columns}) VALUES (${values})`;
     return `INSERT OR IGNORE INTO ${tableName} (${columns}) VALUES (${values})`;
   }
 
   return `INSERT INTO ${tableName} (${columns}) VALUES (${values})`;
+}
+
+function buildUpsertSql(table, data = {}, conflictColumns = [], updateColumns = null) {
+  const keys = Object.keys(data || {});
+  if (!keys.length) throw new Error("upsert_requires_data");
+
+  const conflicts = Array.isArray(conflictColumns) ? conflictColumns : [conflictColumns];
+  if (!conflicts.length || conflicts.some(column => !column)) throw new Error("upsert_requires_conflict_columns");
+
+  const updates = Array.isArray(updateColumns) ? updateColumns : keys.filter(key => !conflicts.includes(key));
+  if (!updates.length) return buildInsertSql(table, data, { ignore: true });
+
+  const insertSql = buildInsertSql(table, data);
+
+  if (isMysqlFamilyDialect()) {
+    const updateSql = updates
+      .map(key => `${quoteIdentifier(key)} = VALUES(${quoteIdentifier(key)})`)
+      .join(", ");
+    return `${insertSql} ON DUPLICATE KEY UPDATE ${updateSql}`;
+  }
+
+  const conflictSql = conflicts.map(quoteIdentifier).join(", ");
+  const updateSql = updates
+    .map(key => `${quoteIdentifier(key)} = excluded.${quoteIdentifier(key)}`)
+    .join(", ");
+  return `${insertSql} ON CONFLICT(${conflictSql}) DO UPDATE SET ${updateSql}`;
 }
 
 function insert(table, data = {}, options = {}) {
@@ -236,10 +329,39 @@ function upsertByKey(table, keyColumn, keyValue, data = {}) {
   return insert(table, { [keyColumn]: keyValue, ...data });
 }
 
+function upsert(table, data = {}, conflictColumns = [], updateColumns = null) {
+  return run(buildUpsertSql(table, data, conflictColumns, updateColumns), data);
+}
+
 function count(tableName) {
   const table = quoteIdentifier(tableName);
   const row = get(`SELECT COUNT(*) AS count FROM ${table}`);
   return Number(row?.count || 0);
+}
+
+function columnExists(tableName, columnName) {
+  ensureReady();
+  const cleanTable = String(tableName || "").trim();
+  const cleanColumn = String(columnName || "").trim();
+  if (!cleanTable || !cleanColumn) throw new Error("column_exists_requires_table_and_column");
+
+  if (isMysqlFamilyDialect()) {
+    const row = get(
+      `
+      SELECT COLUMN_NAME AS column_name
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = :tableName
+        AND COLUMN_NAME = :columnName
+      LIMIT 1
+      `,
+      { tableName: cleanTable, columnName: cleanColumn }
+    );
+    return !!row;
+  }
+
+  const rows = all(`PRAGMA table_info(${quoteIdentifier(cleanTable)})`) || [];
+  return rows.some(row => row.name === cleanColumn);
 }
 
 module.exports = {
@@ -248,6 +370,7 @@ module.exports = {
   status,
   getAdapter,
   getDialect,
+  getDatabaseFamily,
   getDbPath,
   exec,
   run,
@@ -257,15 +380,30 @@ module.exports = {
   ensureSchema,
   getSchemaVersion,
   setSchemaVersion,
+  normalizeAdapterName,
+  getDialectForAdapter,
+  isMysqlFamilyDialect,
+  isSqliteDialect,
   quoteIdentifier,
   normalizeBool,
   boolFromDb,
   jsonEncode,
   jsonDecode,
+  primaryKeyAutoIncrementSql,
+  textTypeSql,
+  integerTypeSql,
+  realTypeSql,
+  boolTypeSql,
+  dateTimeTypeSql,
+  jsonTypeSql,
+  nowSql,
   buildInsertSql,
+  buildUpsertSql,
   insert,
   updateByKey,
   upsertByKey,
+  upsert,
   count,
+  columnExists,
   nowIso
 };
