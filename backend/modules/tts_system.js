@@ -282,11 +282,12 @@ function init(ctx) {
 
   function ensureDbSchema() {
     if (!dbReady()) return false;
+    const ttsEventIdPrimaryKey = database.primaryKeyAutoIncrementSql();
     database.ensureSchema(TTS_SCHEMA_MODULE, TTS_SCHEMA_VERSION, (fromVersion, toVersion, db) => {
       if (toVersion !== 1) return;
       db.exec(`
         CREATE TABLE IF NOT EXISTS tts_events (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${ttsEventIdPrimaryKey},
           event_uid TEXT NOT NULL UNIQUE,
           source TEXT NOT NULL DEFAULT 'chat',
           mode TEXT NOT NULL DEFAULT 'chat',
