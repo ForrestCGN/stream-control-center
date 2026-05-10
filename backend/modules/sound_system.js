@@ -6,7 +6,7 @@ const childProcess = require("child_process");
 const core = require("./helpers/helper_core");
 const cfg = require("./helpers/helper_config");
 const media = require("./helpers/helper_media");
-const sqlite = require("./sqlite_core");
+const database = require("../core/database");
 
 const MODULE_NAME = "sound_system";
 const CONFIG_FILE = "sound_system.json";
@@ -109,7 +109,7 @@ const DEFAULT_MESSAGES = {
 
 module.exports.init = function init(ctx) {
   const { app, broadcastWS } = ctx;
-  if (!sqlite.isInitialized()) sqlite.init(ctx);
+  database.ensureReady(ctx);
   // sound_settings schema is ensured lazily after constants are initialized.
 
   const state = {
@@ -161,8 +161,8 @@ module.exports.init = function init(ctx) {
   }
 
   function ensureSoundSettingsSchema() {
-    if (!sqlite.isInitialized()) return false;
-    sqlite.ensureSchema(SOUND_SETTINGS_SCHEMA_MODULE, SOUND_SETTINGS_SCHEMA_VERSION, (fromVersion, toVersion, db) => {
+    database.ensureReady();
+    database.ensureSchema(SOUND_SETTINGS_SCHEMA_MODULE, SOUND_SETTINGS_SCHEMA_VERSION, (fromVersion, toVersion, db) => {
       if (toVersion === 1) {
         db.exec(`
           CREATE TABLE IF NOT EXISTS sound_settings (
@@ -187,9 +187,13 @@ module.exports.init = function init(ctx) {
   }
 
   function getSoundSettings() {
-    if (!sqlite.isInitialized()) return {};
+    try {
+      database.ensureReady();
+    } catch (_) {
+      return {};
+    }
     ensureSoundSettingsSchema();
-    const rows = sqlite.all(`SELECT key, value_json FROM ${SOUND_SETTINGS_TABLE}`) || [];
+    const rows = database.all(`SELECT key, value_json FROM ${SOUND_SETTINGS_TABLE}`) || [];
     const settings = {};
     for (const row of rows) {
       const key = String(row.key || "");
@@ -212,7 +216,7 @@ module.exports.init = function init(ctx) {
     return {
       ok: true,
       module: MODULE_NAME,
-      databasePath: sqlite.isInitialized() ? sqlite.getDbPath() : "",
+      databasePath: database.getDbPath() || "",
       table: SOUND_SETTINGS_TABLE,
       allowedBlocks: SOUND_SETTINGS_BLOCKS.slice(),
       settings: runtime,
@@ -299,7 +303,7 @@ module.exports.init = function init(ctx) {
     if (!soundsBaseDirExists) warnings.push("sounds_base_dir_missing");
 
     const settingsKeys = Object.keys(settings || {});
-    const dbSettingsOk = sqlite.isInitialized() && !settingsError;
+    const dbSettingsOk = !settingsError;
     const healthy = errors.length === 0;
 
     return {
@@ -343,7 +347,7 @@ module.exports.init = function init(ctx) {
           error: state.configError || ""
         },
         database: {
-          path: sqlite.isInitialized() ? sqlite.getDbPath() : "",
+          path: database.getDbPath() || "",
           table: SOUND_SETTINGS_TABLE,
           ok: dbSettingsOk,
           count: settingsKeys.length,
@@ -382,7 +386,7 @@ module.exports.init = function init(ctx) {
   }
 
   function saveSoundSettings(body, updatedBy) {
-    if (!sqlite.isInitialized()) sqlite.init({});
+    database.ensureReady({});
     ensureSoundSettingsSchema();
     const clean = sanitizeSoundSettingsPayload(body);
     const keys = Object.keys(clean);
@@ -390,7 +394,7 @@ module.exports.init = function init(ctx) {
 
     const now = core.nowIso();
     for (const key of keys) {
-      sqlite.run(`
+      database.run(`
         INSERT INTO sound_settings (key, value_json, updated_at, updated_by)
         VALUES (:key, :valueJson, :updatedAt, :updatedBy)
         ON CONFLICT(key) DO UPDATE SET

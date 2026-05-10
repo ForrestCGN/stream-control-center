@@ -2,6 +2,13 @@
 
 ## 2026-05-10
 
+### STEP211 - Sound-System DB-Core-Portabilitaet
+
+- `backend/modules/sound_system.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
+- Sound-System-Settings laufen weiter ueber SQLite/app.sqlite, aber zentral gekapselt.
+- Keine Sound-/Queue-/Overlay-/Device-Logik geaendert.
+- Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
+
 ### STEP210 - Twitch DB-Core-Portabilitaet
 
 - `backend/modules/twitch.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.

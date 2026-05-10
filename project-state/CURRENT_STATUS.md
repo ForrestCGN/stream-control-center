@@ -75,3 +75,12 @@ Aktueller Stand:
 - DB-Portabilitaetsstand dokumentiert.
 - Direkte `sqlite_core`-Nutzungen und bereits zentrale `core/database`-Nutzungen wurden eingeordnet.
 - MySQL/MariaDB wurden als spaetere Zielsysteme festgelegt.
+
+## STEP211 - Sound-System DB-Core-Portabilitaet
+
+- `backend/modules/sound_system.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- Betroffen sind die Sound-System-Settings in `sound_settings`.
+- Sound-, Queue-, Overlay- und Device-Logik wurden nicht veraendert.
+- SQLite bleibt produktiver Standard.
+- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
+- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.

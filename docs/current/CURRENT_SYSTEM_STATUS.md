@@ -90,3 +90,13 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP206:
 - SQLite bleibt weiterhin der aktive produktive Adapter.
 - MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
 - Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.
+
+
+## STEP211 - Sound-System DB-Core-Portierung
+
+- `sound_system.js` nutzt jetzt die zentrale DB-Schicht `backend/core/database.js`.
+- Direkte Kopplung des Sound-Systems an `sqlite_core.js` wurde entfernt.
+- Sound-System-Settings laufen weiter in der bestehenden SQLite-DB `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Sound-, Queue-, Overlay- und Device-Logik wurden nicht veraendert.
+- MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
+- Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.

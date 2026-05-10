@@ -11,6 +11,8 @@ Bereits portiert:
 - `kofi.js`
 - `tipeee.js`
 - `twitch.js`
+- `sound_system.js`
+- `twitch.js`
 
 Naechste sinnvolle Reihenfolge:
 
@@ -19,7 +21,6 @@ Naechste sinnvolle Reihenfolge:
    - EventSub Status pruefen.
    - Keine Fehler in `lastError`.
 2. Danach mittlere Module pruefen:
-   - `sound_system.js`
    - `dashboard_auth.js`
 3. Danach grosse Module planen:
    - `alert_system.js`
@@ -70,4 +71,15 @@ Nach Streamende:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 80
+```
+
+
+## STEP211 Tests
+
+Nach Entpacken und Deploy pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/diagnostics" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/settings" | ConvertTo-Json -Depth 100
 ```
