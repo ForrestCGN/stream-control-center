@@ -1436,7 +1436,7 @@ module.exports.init = function init(ctx) {
             );
 
             CREATE TABLE IF NOT EXISTS vip_sound_message_templates (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              id ${database.primaryKeyAutoIncrementSql()},
               event_key TEXT NOT NULL,
               style TEXT NOT NULL DEFAULT 'heimleitung',
               message_text TEXT NOT NULL,
@@ -1465,7 +1465,7 @@ module.exports.init = function init(ctx) {
         if (toVersion === 3) {
           db.exec(`
             CREATE TABLE IF NOT EXISTS vip_sound_events (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              id ${database.primaryKeyAutoIncrementSql()},
               created_at TEXT NOT NULL,
               usage_date TEXT NOT NULL DEFAULT '',
               event_key TEXT NOT NULL DEFAULT '',
