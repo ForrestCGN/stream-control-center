@@ -13,6 +13,11 @@
  * - SQLite bleibt einziger aktiver Adapter
  * - MySQL/MariaDB werden nicht verbunden und nicht produktiv genutzt
  *
+ * STEP219:
+ * - Helper-Stabilisierung fuer Phase 2 der DB-Portabilitaet
+ * - zusaetzliche Tabellen-/Spalten-/Insert-Helper ohne Modul-Umbau
+ * - SQLite bleibt einziger aktiver Adapter
+ *
  * Ziel:
  * Dashboard-/API-/Service-Code soll langfristig nicht direkt an sqlite_core haengen.
  */
@@ -282,6 +287,10 @@ function buildInsertSql(table, data = {}, options = {}) {
   return `INSERT INTO ${tableName} (${columns}) VALUES (${values})`;
 }
 
+function buildInsertIgnoreSql(table, data = {}) {
+  return buildInsertSql(table, data, { ignore: true });
+}
+
 function buildUpsertSql(table, data = {}, conflictColumns = [], updateColumns = null) {
   const keys = Object.keys(data || {});
   if (!keys.length) throw new Error("upsert_requires_data");
@@ -312,6 +321,10 @@ function insert(table, data = {}, options = {}) {
   return run(buildInsertSql(table, data, options), data);
 }
 
+function insertIgnore(table, data = {}) {
+  return run(buildInsertIgnoreSql(table, data), data);
+}
+
 function updateByKey(table, keyColumn, keyValue, data = {}) {
   const keys = Object.keys(data || {});
   if (!keys.length) throw new Error("update_requires_data");
@@ -339,29 +352,89 @@ function count(tableName) {
   return Number(row?.count || 0);
 }
 
-function columnExists(tableName, columnName) {
+function tableInfo(tableName) {
   ensureReady();
   const cleanTable = String(tableName || "").trim();
-  const cleanColumn = String(columnName || "").trim();
-  if (!cleanTable || !cleanColumn) throw new Error("column_exists_requires_table_and_column");
+  if (!cleanTable) throw new Error("table_info_requires_table");
+
+  if (isMysqlFamilyDialect()) {
+    return all(
+      `
+      SELECT
+        COLUMN_NAME AS name,
+        DATA_TYPE AS type,
+        IS_NULLABLE AS nullable,
+        COLUMN_DEFAULT AS default_value,
+        COLUMN_KEY AS column_key,
+        EXTRA AS extra
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = :tableName
+      ORDER BY ORDINAL_POSITION ASC
+      `,
+      { tableName: cleanTable }
+    ) || [];
+  }
+
+  return all(`PRAGMA table_info(${quoteIdentifier(cleanTable)})`) || [];
+}
+
+function tableColumns(tableName) {
+  return tableInfo(tableName).map(row => row.name).filter(Boolean);
+}
+
+function tableExists(tableName) {
+  ensureReady();
+  const cleanTable = String(tableName || "").trim();
+  if (!cleanTable) throw new Error("table_exists_requires_table");
 
   if (isMysqlFamilyDialect()) {
     const row = get(
       `
-      SELECT COLUMN_NAME AS column_name
-      FROM INFORMATION_SCHEMA.COLUMNS
+      SELECT TABLE_NAME AS table_name
+      FROM INFORMATION_SCHEMA.TABLES
       WHERE TABLE_SCHEMA = DATABASE()
         AND TABLE_NAME = :tableName
-        AND COLUMN_NAME = :columnName
       LIMIT 1
       `,
-      { tableName: cleanTable, columnName: cleanColumn }
+      { tableName: cleanTable }
     );
     return !!row;
   }
 
-  const rows = all(`PRAGMA table_info(${quoteIdentifier(cleanTable)})`) || [];
-  return rows.some(row => row.name === cleanColumn);
+  const row = get(
+    `
+    SELECT name
+    FROM sqlite_master
+    WHERE type = 'table'
+      AND name = :tableName
+    LIMIT 1
+    `,
+    { tableName: cleanTable }
+  );
+  return !!row;
+}
+
+function columnExists(tableName, columnName) {
+  const cleanColumn = String(columnName || "").trim();
+  if (!cleanColumn) throw new Error("column_exists_requires_column");
+  return tableInfo(tableName).some(row => row.name === cleanColumn || row.column_name === cleanColumn);
+}
+
+function buildAddColumnSql(tableName, columnName, definition) {
+  const cleanDefinition = String(definition || "").trim();
+  if (!cleanDefinition) throw new Error("add_column_requires_definition");
+  return `ALTER TABLE ${quoteIdentifier(tableName)} ADD COLUMN ${quoteIdentifier(columnName)} ${cleanDefinition}`;
+}
+
+function addColumn(tableName, columnName, definition) {
+  return exec(buildAddColumnSql(tableName, columnName, definition));
+}
+
+function ensureColumn(tableName, columnName, definition) {
+  if (columnExists(tableName, columnName)) return { changed: false, tableName, columnName };
+  addColumn(tableName, columnName, definition);
+  return { changed: true, tableName, columnName };
 }
 
 module.exports = {
@@ -398,12 +471,20 @@ module.exports = {
   jsonTypeSql,
   nowSql,
   buildInsertSql,
+  buildInsertIgnoreSql,
   buildUpsertSql,
   insert,
+  insertIgnore,
   updateByKey,
   upsertByKey,
   upsert,
   count,
+  tableInfo,
+  tableColumns,
+  tableExists,
   columnExists,
+  buildAddColumnSql,
+  addColumn,
+  ensureColumn,
   nowIso
 };
