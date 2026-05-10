@@ -367,13 +367,11 @@ function updateSettings(patch) {
   }
 
   state.settings = mergeSettings(DEFAULT_SETTINGS, next);
-  database.run(`
-    INSERT INTO alert_settings (key, value_json, updated_at)
-    VALUES (:key, :valueJson, :now)
-    ON CONFLICT(key) DO UPDATE SET
-      value_json=excluded.value_json,
-      updated_at=excluded.updated_at
-  `, { key: SETTINGS_KEY, valueJson: JSON.stringify(state.settings), now: nowIso() });
+  database.upsert('alert_settings', {
+    key: SETTINGS_KEY,
+    value_json: JSON.stringify(state.settings),
+    updated_at: nowIso()
+  }, ['key'], ['value_json', 'updated_at']);
   loadSettings();
   return state.settings;
 }
