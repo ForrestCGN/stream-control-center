@@ -2,6 +2,14 @@
 
 ## 2026-05-10
 
+
+### STEP215 - Todo DB-Core-Portabilitaet
+
+- `backend/modules/todo.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
+- Todo-Stats laufen weiter ueber SQLite/app.sqlite, aber zentral gekapselt.
+- Keine Todo-/Discord-/Alias-/Text-/Settings-/Stats-Logik geaendert.
+- Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
+
 ### STEP214 - Tagebuch DB-Core-Portabilitaet
 
 - `backend/modules/tagebuch.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.

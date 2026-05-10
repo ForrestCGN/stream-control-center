@@ -8,7 +8,7 @@ const routes = require("./helpers/helper_routes");
 const security = require("./helpers/helper_security");
 const settings = require("./helpers/helper_settings");
 const texts = require("./helpers/helper_texts");
-const sqlite = require("./sqlite_core");
+const database = require("../core/database");
 
 const MODULE_NAME = "todo";
 const SCHEMA_VERSION = 1;
@@ -371,7 +371,6 @@ function t(key, values = {}) {
 }
 
 function nowIso() {
-  if (sqlite && typeof sqlite.nowIso === "function") return sqlite.nowIso();
   return new Date().toISOString();
 }
 
@@ -555,12 +554,9 @@ function ensureTodoSchema() {
   if (runtime.schemaReady) return true;
 
   try {
-    if (!sqlite.isInitialized()) {
-      runtime.schemaError = "sqlite_core ist nicht initialisiert.";
-      return false;
-    }
+    database.ensureReady();
 
-    sqlite.ensureSchema(MODULE_NAME, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
+    database.ensureSchema(MODULE_NAME, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
       if (toVersion !== 1) return;
 
       db.exec(`
@@ -612,8 +608,8 @@ function incrementStats({ authorLogin, authorDisplay, target }) {
   const statDate = localDateString();
   const userKey = makeUserKey(authorLogin, authorDisplay);
 
-  const tx = sqlite.transaction(() => {
-    sqlite.run(`
+  const tx = database.transaction(() => {
+    database.run(`
       INSERT INTO todo_user_stats (
         user_key, target_key, author_login, author_display_name, target_label,
         entry_count, first_entry_at, last_entry_at, updated_at
@@ -637,7 +633,7 @@ function incrementStats({ authorLogin, authorDisplay, target }) {
       now
     });
 
-    sqlite.run(`
+    database.run(`
       INSERT INTO todo_daily_stats (
         stat_date, user_key, target_key, author_login, author_display_name, target_label,
         entry_count, first_entry_at, last_entry_at, updated_at
@@ -768,10 +764,10 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 2,
-    schemaVersion: sqlite.isInitialized() ? sqlite.getSchemaVersion(MODULE_NAME) : 0,
+    schemaVersion: database.getSchemaVersion(MODULE_NAME),
     schemaReady: runtime.schemaReady,
     schemaError: runtime.schemaError,
-    databasePath: sqlite.isInitialized() ? sqlite.getDbPath() : null,
+    databasePath: database.getDbPath(),
     discordChannelsPath: DISCORD_CHANNELS_PATH,
     messagesPath: MESSAGES_PATH,
     loadedAt: runtime.loadedAt,
@@ -792,11 +788,11 @@ function buildStatus() {
 
 function countTableRows(table, where = "", params = {}) {
   try {
-    if (!sqlite.isInitialized()) return { ok: false, table, count: 0, error: "sqlite_not_initialized" };
+    database.ensureReady();
     const safeTable = String(table || "").trim();
     if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(safeTable)) return { ok: false, table: safeTable, count: 0, error: "invalid_table" };
     const clause = where ? ` WHERE ${where}` : "";
-    const row = sqlite.get(`SELECT COUNT(*) AS c FROM ${safeTable}${clause}`, params) || {};
+    const row = database.get(`SELECT COUNT(*) AS c FROM ${safeTable}${clause}`, params) || {};
     return { ok: true, table: safeTable, count: Number(row.c || 0), error: "" };
   } catch (err) {
     return { ok: false, table, count: 0, error: err?.message || "count_failed" };
@@ -918,10 +914,10 @@ function buildTodoIntegrationCheck() {
   if (!channelsFile.ok) warnings.push(`discordChannels:${channelsFile.error}`);
   if (!messagesFile.ok) warnings.push(`messages:${messagesFile.error}`);
 
-  const schemaVersionResult = safeCall("schemaVersion", () => sqlite.isInitialized() ? sqlite.getSchemaVersion(MODULE_NAME) : 0, 0);
+  const schemaVersionResult = safeCall("schemaVersion", () => database.getSchemaVersion(MODULE_NAME), 0);
   if (!schemaVersionResult.ok) warnings.push(schemaVersionResult.error);
 
-  const dbPathResult = safeCall("dbPath", () => sqlite.isInitialized() ? sqlite.getDbPath() : null, null);
+  const dbPathResult = safeCall("dbPath", () => database.getDbPath(), null);
   if (!dbPathResult.ok) warnings.push(dbPathResult.error);
 
   const aliasResult = safeCall("aliases", () => Object.fromEntries(Object.values(targets).map(target => [target.key, target.aliases])), {});
@@ -944,8 +940,8 @@ function buildTodoIntegrationCheck() {
         error: runtime.lastLoadError || ""
       },
       database: {
-        ok: sqlite.isInitialized(),
-        adapter: "sqlite",
+        ok: true,
+        adapter: database.getAdapter(),
         path: dbPathResult.value,
         schemaVersion: schemaVersionResult.value,
         expectedSchemaVersion: SCHEMA_VERSION,
@@ -1054,6 +1050,7 @@ function init(ctx) {
   const app = ctx?.app;
   if (!app) throw new Error("Express app in ctx.app fehlt.");
 
+  database.ensureReady(ctx);
   loadRuntime();
   ensureTodoSchema();
 
@@ -1090,7 +1087,7 @@ function init(ctx) {
     if (!ensureTodoSchema()) return reply(req, res, { ok: false, error: runtime.schemaError, message: t("failed") }, 500);
 
     const limit = getLimit(req);
-    const rows = sqlite.all(`
+    const rows = database.all(`
       SELECT user_key, target_key, author_login, author_display_name, target_label, entry_count, first_entry_at, last_entry_at
       FROM todo_user_stats
       ORDER BY entry_count DESC, last_entry_at DESC
@@ -1113,7 +1110,7 @@ function init(ctx) {
 
     const statDate = String(getInput(req, "date") || localDateString()).trim();
     const limit = getLimit(req);
-    const rows = sqlite.all(`
+    const rows = database.all(`
       SELECT stat_date, user_key, target_key, author_login, author_display_name, target_label, entry_count, first_entry_at, last_entry_at
       FROM todo_daily_stats
       WHERE stat_date = :statDate

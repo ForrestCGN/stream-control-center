@@ -4,7 +4,7 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP214:
+Aktueller Stand nach STEP215:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
 - Aktive DB bleibt `D:\Streaming\stramAssets\data\sqlitepp.sqlite`.
@@ -29,6 +29,7 @@ Schrittweise DB-Core-Portierung:
 - STEP212: `dashboard_auth.js` nutzt jetzt `backend/core/database.js`.
 - STEP213: `alert_system.js` nutzt jetzt `backend/core/database.js`.
 - STEP214: `tagebuch.js` nutzt jetzt `backend/core/database.js`.
+- STEP215: `todo.js` nutzt jetzt `backend/core/database.js`.
 
 MySQL/MariaDB werden erst genutzt, wenn die Module schrittweise von direkter `sqlite_core`-Kopplung weggefuehrt und getestet wurden.
 
@@ -78,3 +79,12 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP206:
 - Bot-/Systemuser muessen `ignored_user` liefern.
 - Event-Boni weiterhin beobachten.
 - Nach Streamende Runner/Stream-State offline pruefen.
+
+## STEP215 - Todo DB-Core-Portierung
+
+- `todo.js` nutzt jetzt die zentrale DB-Schicht `backend/core/database.js`.
+- Direkte Kopplung des Todo-Moduls an `sqlite_core.js` wurde entfernt.
+- Todo-Stats und Daily-Stats laufen weiter in der bestehenden SQLite-DB `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Todo-, Discord-, Alias-, Text-, Settings- und Stats-Logik wurden nicht fachlich veraendert.
+- MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
+- Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.

@@ -15,6 +15,7 @@ Bereits portiert:
 - `dashboard_auth.js`
 - `alert_system.js`
 - `tagebuch.js`
+- `todo.js`
 
 Naechste sinnvolle Reihenfolge:
 
@@ -68,3 +69,20 @@ Nach Streamstart:
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 80
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/events?limit=20" | ConvertTo-Json -Depth 100
 ```
+
+
+## STEP215 Tests
+
+Nach Entpacken und Deploy pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/todo/status" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/todo/config" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/todo/settings" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/todo/routes" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/todo/integration-check" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/todo/stats" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/todo/stats/today" | ConvertTo-Json -Depth 100
+```
+
+Naechster DB-Portabilitaets-Kandidat nach erfolgreichem Test: `challenge.js`.
