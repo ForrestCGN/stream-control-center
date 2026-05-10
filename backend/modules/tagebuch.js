@@ -414,18 +414,22 @@ function ensureSchema() {
         );
       `);
 
-      db.prepare(`
-        INSERT OR IGNORE INTO tagebuch_state (
-          id, current_page_number, current_page_date, last_stream_started_at,
-          last_stream_ended_at, active_stream, has_entries_for_current_date,
-          end_notice_posted_for_current_date, updated_at
-        ) VALUES (1, 0, NULL, NULL, NULL, 0, 0, 0, :updatedAt)
-      `).run({ updatedAt: nowIso() });
+      const stateDefaults = {
+        id: 1,
+        current_page_number: 0,
+        current_page_date: null,
+        last_stream_started_at: null,
+        last_stream_ended_at: null,
+        active_stream: 0,
+        has_entries_for_current_date: 0,
+        end_notice_posted_for_current_date: 0,
+        updated_at: nowIso()
+      };
+      db.prepare(database.buildInsertIgnoreSql('tagebuch_state', stateDefaults)).run(stateDefaults);
     }
 
     if (toVersion === 2) {
-      const cols = db.prepare(`PRAGMA table_info(tagebuch_state)`).all();
-      const names = new Set(cols.map(c => c.name));
+      const names = new Set(database.tableColumns('tagebuch_state'));
       if (!names.has('current_page_date')) db.exec(`ALTER TABLE tagebuch_state ADD COLUMN current_page_date TEXT;`);
       if (!names.has('last_stream_started_at')) db.exec(`ALTER TABLE tagebuch_state ADD COLUMN last_stream_started_at TEXT;`);
       if (!names.has('last_stream_ended_at')) db.exec(`ALTER TABLE tagebuch_state ADD COLUMN last_stream_ended_at TEXT;`);
@@ -436,8 +440,7 @@ function ensureSchema() {
     }
 
     if (toVersion === 3) {
-      const cols = db.prepare(`PRAGMA table_info(tagebuch_state)`).all();
-      const names = new Set(cols.map(c => c.name));
+      const names = new Set(database.tableColumns('tagebuch_state'));
       if (names.has('active_block_id')) {
         db.exec(`
           CREATE TABLE IF NOT EXISTS tagebuch_state_new (
@@ -490,13 +493,18 @@ function ensureSchema() {
           created_at TEXT NOT NULL
         );
       `);
-      db.prepare(`
-        INSERT OR IGNORE INTO tagebuch_state (
-          id, current_page_number, current_page_date, last_stream_started_at,
-          last_stream_ended_at, active_stream, has_entries_for_current_date,
-          end_notice_posted_for_current_date, updated_at
-        ) VALUES (1, 0, NULL, NULL, NULL, 0, 0, 0, :updatedAt)
-      `).run({ updatedAt: nowIso() });
+      const stateDefaults = {
+        id: 1,
+        current_page_number: 0,
+        current_page_date: null,
+        last_stream_started_at: null,
+        last_stream_ended_at: null,
+        active_stream: 0,
+        has_entries_for_current_date: 0,
+        end_notice_posted_for_current_date: 0,
+        updated_at: nowIso()
+      };
+      db.prepare(database.buildInsertIgnoreSql('tagebuch_state', stateDefaults)).run(stateDefaults);
     }
 
 
