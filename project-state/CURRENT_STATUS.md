@@ -4,7 +4,7 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP210:
+Aktueller Stand nach STEP212:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
 - Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
@@ -33,6 +33,24 @@ STEP210:
 
 - `backend/modules/twitch.js` nutzt jetzt fuer Twitch-Alert-Settings `backend/core/database.js` statt direktem `sqlite_core.js`.
 - Twitch OAuth, Helix, EventSub und Alert-Forwarding bleiben unveraendert.
+- SQLite bleibt produktiver Standard.
+- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
+- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
+
+STEP211:
+
+- `backend/modules/sound_system.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- Betroffen sind die Sound-System-Settings in `sound_settings`.
+- Sound-, Queue-, Overlay- und Device-Logik wurden nicht veraendert.
+- SQLite bleibt produktiver Standard.
+- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
+- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
+
+STEP212:
+
+- `backend/modules/dashboard_auth.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- Betroffen sind Dashboard-User, Identities, Sessions, Rollen, Permissions und Audit-Log.
+- Login-, Session-, OAuth-, Rollen- und Rechte-Logik wurden nicht fachlich veraendert.
 - SQLite bleibt produktiver Standard.
 - MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
 - Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
@@ -75,12 +93,3 @@ Aktueller Stand:
 - DB-Portabilitaetsstand dokumentiert.
 - Direkte `sqlite_core`-Nutzungen und bereits zentrale `core/database`-Nutzungen wurden eingeordnet.
 - MySQL/MariaDB wurden als spaetere Zielsysteme festgelegt.
-
-## STEP211 - Sound-System DB-Core-Portabilitaet
-
-- `backend/modules/sound_system.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- Betroffen sind die Sound-System-Settings in `sound_settings`.
-- Sound-, Queue-, Overlay- und Device-Logik wurden nicht veraendert.
-- SQLite bleibt produktiver Standard.
-- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
-- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.

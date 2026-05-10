@@ -1,7 +1,7 @@
-﻿"use strict";
+"use strict";
 
 const crypto = require("crypto");
-const sqlite = require("./sqlite_core");
+const database = require("../core/database");
 
 const MODULE_NAME = "dashboard_auth";
 const SCHEMA_MODULE = "dashboard_auth";
@@ -23,7 +23,7 @@ const DEFAULT_ROLES = [
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
 
-  if (!sqlite.isInitialized()) sqlite.init(ctx);
+  database.ensureReady(ctx);
 
   ensureSchema();
   ensureCompatibilityColumns();
@@ -40,7 +40,7 @@ module.exports.init = function init(ctx) {
       authenticated: !!session,
       session: session ? { user: publicUser(session), role: session.role, provider: session.provider || "" } : null,
       roles: getRoles(),
-      databasePath: sqlite.getDbPath(),
+      databasePath: database.getDbPath(),
       routes: [
         "GET /api/auth/status",
         "GET /api/auth/session",
@@ -103,7 +103,7 @@ module.exports.init = function init(ctx) {
     const session = sessionId ? getSession(sessionId) : null;
 
     if (session) {
-      sqlite.run("UPDATE dashboard_sessions SET revoked_at = :revokedAt WHERE id = :id", {
+      database.run("UPDATE dashboard_sessions SET revoked_at = :revokedAt WHERE id = :id", {
         revokedAt: nowIso(),
         id: sessionId
       });
@@ -179,7 +179,7 @@ module.exports.init = function init(ctx) {
     }
 
     const limit = clampInt(req.query.limit, 50, 1, 250);
-    const rows = sqlite.all(`
+    const rows = database.all(`
       SELECT id, actor_user_id, actor_display_name, action, target_type, target_id, details_json, ip, user_agent, created_at
       FROM dashboard_audit_log
       ORDER BY id DESC
@@ -193,7 +193,7 @@ module.exports.init = function init(ctx) {
 };
 
 function ensureSchema() {
-  sqlite.ensureSchema(SCHEMA_MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
+  database.ensureSchema(SCHEMA_MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
     if (toVersion !== 1) return;
 
     db.exec(`
@@ -322,14 +322,14 @@ function ensureCompatibilityColumns() {
 }
 
 function ensureColumn(tableName, columnName, definition) {
-  const rows = sqlite.all(`PRAGMA table_info(${tableName})`) || [];
+  const rows = database.all(`PRAGMA table_info(${tableName})`) || [];
   if (!rows.length) return;
   if (rows.some(row => row.name === columnName)) return;
-  sqlite.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
 }
 
 function roleTableColumns() {
-  return (sqlite.all("PRAGMA table_info(dashboard_roles)") || []).map(row => row.name);
+  return (database.all("PRAGMA table_info(dashboard_roles)") || []).map(row => row.name);
 }
 
 function roleNameColumn() {
@@ -357,7 +357,7 @@ function seedRoles() {
   const now = nowIso();
 
   for (const role of DEFAULT_ROLES) {
-    const existing = sqlite.get(`SELECT ${nameCol} FROM dashboard_roles WHERE ${nameCol} = :role`, { role: role.role });
+    const existing = database.get(`SELECT ${nameCol} FROM dashboard_roles WHERE ${nameCol} = :role`, { role: role.role });
     if (existing) {
       const sets = [];
       const params = { role: role.role };
@@ -365,7 +365,7 @@ function seedRoles() {
       if (hasSortOrder) { sets.push("sort_order = :sortOrder"); params.sortOrder = role.sortOrder; }
       if (hasLevel) { sets.push("level = :level"); params.level = role.level; }
       if (hasSystem) sets.push("is_system = 1");
-      if (sets.length) sqlite.run(`UPDATE dashboard_roles SET ${sets.join(", ")} WHERE ${nameCol} = :role`, params);
+      if (sets.length) database.run(`UPDATE dashboard_roles SET ${sets.join(", ")} WHERE ${nameCol} = :role`, params);
       continue;
     }
 
@@ -379,7 +379,7 @@ function seedRoles() {
     if (hasSystem) { insertCols.push("is_system"); insertVals.push("1"); }
     if (hasCreatedAt) { insertCols.push("created_at"); insertVals.push(":createdAt"); params.createdAt = now; }
 
-    sqlite.run(`INSERT INTO dashboard_roles (${insertCols.join(", ")}) VALUES (${insertVals.join(", ")})`, params);
+    database.run(`INSERT INTO dashboard_roles (${insertCols.join(", ")}) VALUES (${insertVals.join(", ")})`, params);
   }
 }
 
@@ -392,7 +392,7 @@ function getRoles() {
   const levelExpr = cols.includes("level") ? "level" : "0 AS level";
   const systemExpr = cols.includes("is_system") ? "is_system" : "1 AS is_system";
 
-  return sqlite.all(`
+  return database.all(`
     SELECT ${nameCol} AS role, ${labelExpr}, ${sortExpr}, ${levelExpr}, ${systemExpr}
     FROM dashboard_roles
     ORDER BY ${sortCol} ASC
@@ -402,7 +402,7 @@ function getRoles() {
 function createOrGetLocalOwner(displayName, now) {
   const provider = "local";
   const providerUserId = "local-owner";
-  const existing = sqlite.get(`
+  const existing = database.get(`
     SELECT u.*, i.provider
     FROM dashboard_identities i
     JOIN dashboard_users u ON u.id = i.user_id
@@ -410,7 +410,7 @@ function createOrGetLocalOwner(displayName, now) {
   `, { provider, providerUserId });
 
   if (existing) {
-    sqlite.run(`
+    database.run(`
       UPDATE dashboard_users
       SET display_name = :displayName,
           primary_role = 'owner',
@@ -419,21 +419,21 @@ function createOrGetLocalOwner(displayName, now) {
           last_login_at = :lastLoginAt
       WHERE id = :id
     `, { displayName, updatedAt: now, lastLoginAt: now, id: existing.id });
-    return sqlite.get("SELECT *, 'local' AS provider FROM dashboard_users WHERE id = :id", { id: existing.id });
+    return database.get("SELECT *, 'local' AS provider FROM dashboard_users WHERE id = :id", { id: existing.id });
   }
 
-  const result = sqlite.run(`
+  const result = database.run(`
     INSERT INTO dashboard_users (display_name, avatar_url, primary_role, is_active, created_at, updated_at, last_login_at)
     VALUES (:displayName, '', 'owner', 1, :createdAt, :updatedAt, :lastLoginAt)
   `, { displayName, createdAt: now, updatedAt: now, lastLoginAt: now });
 
   const userId = Number(result.lastInsertRowid);
-  sqlite.run(`
+  database.run(`
     INSERT INTO dashboard_identities (user_id, provider, provider_user_id, provider_login, provider_display_name, raw_json, created_at, updated_at)
     VALUES (:userId, :provider, :providerUserId, 'local', :displayName, '{}', :createdAt, :updatedAt)
   `, { userId, provider, providerUserId, displayName, createdAt: now, updatedAt: now });
 
-  return sqlite.get("SELECT *, 'local' AS provider FROM dashboard_users WHERE id = :id", { id: userId });
+  return database.get("SELECT *, 'local' AS provider FROM dashboard_users WHERE id = :id", { id: userId });
 }
 
 function upsertTwitchUser(twitchUser, req) {
@@ -442,7 +442,7 @@ function upsertTwitchUser(twitchUser, req) {
   const providerUserId = String(twitchUser.id || "");
   if (!providerUserId) throw new Error("Twitch user id missing");
 
-  const existing = sqlite.get(`
+  const existing = database.get(`
     SELECT u.*, i.provider
     FROM dashboard_identities i
     JOIN dashboard_users u ON u.id = i.user_id
@@ -450,7 +450,7 @@ function upsertTwitchUser(twitchUser, req) {
   `, { provider, providerUserId });
 
   if (existing) {
-    sqlite.run(`
+    database.run(`
       UPDATE dashboard_users
       SET display_name = :displayName,
           avatar_url = :avatarUrl,
@@ -465,7 +465,7 @@ function upsertTwitchUser(twitchUser, req) {
       id: existing.id
     });
 
-    sqlite.run(`
+    database.run(`
       UPDATE dashboard_identities
       SET provider_login = :login,
           provider_display_name = :displayName,
@@ -483,10 +483,10 @@ function upsertTwitchUser(twitchUser, req) {
       providerUserId
     });
 
-    return sqlite.get("SELECT *, 'twitch' AS provider FROM dashboard_users WHERE id = :id", { id: existing.id });
+    return database.get("SELECT *, 'twitch' AS provider FROM dashboard_users WHERE id = :id", { id: existing.id });
   }
 
-  const result = sqlite.run(`
+  const result = database.run(`
     INSERT INTO dashboard_users (display_name, avatar_url, primary_role, is_active, created_at, updated_at, last_login_at)
     VALUES (:displayName, :avatarUrl, 'user', 1, :createdAt, :updatedAt, :lastLoginAt)
   `, {
@@ -498,7 +498,7 @@ function upsertTwitchUser(twitchUser, req) {
   });
 
   const userId = Number(result.lastInsertRowid);
-  sqlite.run(`
+  database.run(`
     INSERT INTO dashboard_identities (user_id, provider, provider_user_id, provider_login, provider_display_name, avatar_url, raw_json, created_at, updated_at)
     VALUES (:userId, :provider, :providerUserId, :login, :displayName, :avatarUrl, :rawJson, :createdAt, :updatedAt)
   `, {
@@ -514,7 +514,7 @@ function upsertTwitchUser(twitchUser, req) {
   });
 
   writeAudit(userId, twitchUser.display_name || twitchUser.login || "", "auth.twitch_user_created", "dashboard_user", String(userId), { login: twitchUser.login }, req);
-  return sqlite.get("SELECT *, 'twitch' AS provider FROM dashboard_users WHERE id = :id", { id: userId });
+  return database.get("SELECT *, 'twitch' AS provider FROM dashboard_users WHERE id = :id", { id: userId });
 }
 
 function createSession(userId, role, req, now) {
@@ -559,7 +559,7 @@ function createSession(userId, role, req, now) {
   add("ip", "ip", clientIp(req));
   add("user_agent", "userAgent", String(req.headers["user-agent"] || ""));
 
-  sqlite.run(
+  database.run(
     "INSERT INTO dashboard_sessions (" + insertCols.join(", ") + ") VALUES (" + insertVals.join(", ") + ")",
     params
   );
@@ -574,7 +574,7 @@ function getSession(sessionId) {
   const tokenCol = sessionTokenColumn(cols);
   if (!tokenCol) return null;
 
-  return sqlite.get(`
+  return database.get(`
     SELECT s.${tokenCol} AS session_id,
            s.*,
            u.display_name,
@@ -597,7 +597,7 @@ function getSession(sessionId) {
 }
 
 function sessionTableInfo() {
-  return sqlite.all("PRAGMA table_info(dashboard_sessions)") || [];
+  return database.all("PRAGMA table_info(dashboard_sessions)") || [];
 }
 
 function sessionTableColumns() {
@@ -625,7 +625,7 @@ function revokeSession(sessionId) {
   const cols = sessionTableColumns();
   const tokenCol = sessionTokenColumn(cols);
   if (!tokenCol || !cols.includes("revoked_at")) return;
-  sqlite.run(
+  database.run(
     "UPDATE dashboard_sessions SET revoked_at = :revokedAt WHERE " + tokenCol + " = :sessionToken",
     { revokedAt: nowIso(), sessionToken: sessionId }
   );
@@ -642,7 +642,7 @@ function touchSession(sessionId) {
     const cols = sessionTableColumns();
     const tokenCol = sessionTokenColumn(cols);
     if (!tokenCol || !cols.includes("last_seen_at")) return;
-    sqlite.run(
+    database.run(
       "UPDATE dashboard_sessions SET last_seen_at = :lastSeenAt WHERE " + tokenCol + " = :sessionToken",
       { lastSeenAt: nowIso(), sessionToken: sessionId }
     );
@@ -663,7 +663,7 @@ function publicUser(row) {
 
 function writeAudit(actorUserId, actorDisplayName, action, targetType, targetId, details, req) {
   try {
-    sqlite.run(`
+    database.run(`
       INSERT INTO dashboard_audit_log (actor_user_id, actor_display_name, action, target_type, target_id, details_json, ip, user_agent, created_at)
       VALUES (:actorUserId, :actorDisplayName, :action, :targetType, :targetId, :detailsJson, :ip, :userAgent, :createdAt)
     `, {

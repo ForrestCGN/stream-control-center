@@ -4,7 +4,7 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP210:
+Aktueller Stand nach STEP212:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
 - Aktive DB bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
@@ -25,6 +25,8 @@ Schrittweise DB-Core-Portierung:
 
 - STEP209: `kofi.js` und `tipeee.js` nutzen jetzt `backend/core/database.js`.
 - STEP210: `twitch.js` nutzt fuer Twitch-Alert-Settings jetzt `backend/core/database.js`.
+- STEP211: `sound_system.js` nutzt fuer Sound-System-Settings jetzt `backend/core/database.js`.
+- STEP212: `dashboard_auth.js` nutzt fuer Dashboard-Auth-Tabellen jetzt `backend/core/database.js`.
 
 MySQL/MariaDB werden erst genutzt, wenn die Module schrittweise von direkter `sqlite_core`-Kopplung weggefuehrt und getestet wurden.
 
@@ -83,20 +85,11 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP206:
 - Event-Boni weiterhin beobachten.
 - Nach Streamende Runner/Stream-State offline pruefen.
 
-## STEP210 - Twitch DB-Core-Portierung
+## STEP212 - Dashboard Auth DB-Core-Portierung
 
-- `twitch.js` nutzt fuer Twitch-Alert-Settings jetzt die zentrale DB-Schicht `backend/core/database.js`.
-- Direkte Kopplung dieses Bereichs an `sqlite_core.js` wurde entfernt.
-- SQLite bleibt weiterhin der aktive produktive Adapter.
-- MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
-- Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.
-
-
-## STEP211 - Sound-System DB-Core-Portierung
-
-- `sound_system.js` nutzt jetzt die zentrale DB-Schicht `backend/core/database.js`.
-- Direkte Kopplung des Sound-Systems an `sqlite_core.js` wurde entfernt.
-- Sound-System-Settings laufen weiter in der bestehenden SQLite-DB `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
-- Sound-, Queue-, Overlay- und Device-Logik wurden nicht veraendert.
+- `dashboard_auth.js` nutzt jetzt die zentrale DB-Schicht `backend/core/database.js`.
+- Direkte Kopplung des Dashboard-Auth-Moduls an `sqlite_core.js` wurde entfernt.
+- Dashboard-User, Identities, Sessions, Rollen, Permissions und Audit-Log laufen weiter in der bestehenden SQLite-DB `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Login-, Session-, OAuth-, Rollen- und Rechte-Logik wurden nicht fachlich veraendert.
 - MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
 - Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.

@@ -12,22 +12,21 @@ Bereits portiert:
 - `tipeee.js`
 - `twitch.js`
 - `sound_system.js`
-- `twitch.js`
+- `dashboard_auth.js`
 
 Naechste sinnvolle Reihenfolge:
 
-1. STEP210 live testen:
-   - Twitch Alert-Bridge Status pruefen.
-   - EventSub Status pruefen.
-   - Keine Fehler in `lastError`.
-2. Danach mittlere Module pruefen:
-   - `dashboard_auth.js`
-3. Danach grosse Module planen:
+1. STEP212 live testen:
+   - Auth-Status pruefen.
+   - Rollen pruefen.
+   - Session lesen, falls eingeloggt.
+   - Kein Fehler beim Login/Logout.
+2. Danach grosse Module nur mit separater Analyse planen:
    - `alert_system.js`
    - `tagebuch.js`
    - `todo.js`
    - `challenge.js`
-4. Erst danach echten MySQL-/MariaDB-Adapter und Treiber einbauen.
+3. Erst nach vollstaendiger Portierung und Tests echten MySQL-/MariaDB-Adapter und Treiber einbauen.
 
 Wichtig:
 
@@ -36,13 +35,20 @@ Wichtig:
 - Keine bestehende SQLite-Funktionalitaet fuer theoretische MariaDB-Vorbereitung brechen.
 - Neue DB-Logik ueber `backend/core/database.js` oder vorhandene Helper bauen.
 
-## STEP210 Tests
+## STEP212 Tests
 
 Nach Entpacken und Deploy pruefen:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/status" | ConvertTo-Json -Depth 80
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/status" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/auth/status" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/auth/roles" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/auth/session" | ConvertTo-Json -Depth 80
+```
+
+Wenn ein Dashboard-Login aktiv ist, zusaetzlich im Browser pruefen:
+
+```text
+http://127.0.0.1:8080/dashboard/
 ```
 
 ## Naechster echter Stream - Loyalty Livetest
@@ -71,15 +77,4 @@ Nach Streamende:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 80
-```
-
-
-## STEP211 Tests
-
-Nach Entpacken und Deploy pruefen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 80
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/diagnostics" | ConvertTo-Json -Depth 100
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/settings" | ConvertTo-Json -Depth 100
 ```

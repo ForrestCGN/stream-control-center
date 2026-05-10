@@ -2,6 +2,13 @@
 
 ## 2026-05-10
 
+### STEP212 - Dashboard Auth DB-Core-Portabilitaet
+
+- `backend/modules/dashboard_auth.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
+- Dashboard-Auth-Tabellen laufen weiter ueber SQLite/app.sqlite, aber zentral gekapselt.
+- Keine Login-/Session-/OAuth-/Rollen-/Rechte-Logik geaendert.
+- Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
+
 ### STEP211 - Sound-System DB-Core-Portabilitaet
 
 - `backend/modules/sound_system.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
