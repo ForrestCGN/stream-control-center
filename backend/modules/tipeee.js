@@ -8,7 +8,7 @@
 const http = require('http');
 const https = require('https');
 
-const sqlite = require('./sqlite_core');
+const database = require('../core/database');
 const routes = require('./helpers/helper_routes');
 
 let ioClient = null;
@@ -243,11 +243,11 @@ module.exports.init = function init(ctx) {
 };
 
 function ensureRuntime(ctx) {
-  if (!sqlite.isInitialized()) sqlite.init(ctx);
+  database.ensureReady(ctx);
 }
 
 function ensureSchema() {
-  sqlite.ensureSchema(MODULE, SCHEMA_VERSION, (_fromVersion, toVersion, db) => {
+  database.ensureSchema(MODULE, SCHEMA_VERSION, (_fromVersion, toVersion, db) => {
     if (toVersion !== 1) return;
     db.exec(`
       CREATE TABLE IF NOT EXISTS alert_settings (
@@ -312,7 +312,7 @@ function ensureSchema() {
 }
 
 function seedSettings() {
-  const existing = sqlite.get(`SELECT value_json FROM alert_settings WHERE key=:key`, { key: SETTINGS_KEY });
+  const existing = database.get(`SELECT value_json FROM alert_settings WHERE key=:key`, { key: SETTINGS_KEY });
   if (existing) return;
 
   const settings = {
@@ -322,14 +322,14 @@ function seedSettings() {
     secretHeaderValue: String(process.env.TIPEEE_SECRET_HEADER_VALUE || '').trim()
   };
 
-  sqlite.run(`
+  database.run(`
     INSERT INTO alert_settings (key, value_json, updated_at)
     VALUES (:key, :valueJson, :now)
   `, { key: SETTINGS_KEY, valueJson: JSON.stringify(settings), now: nowIso() });
 }
 
 function loadSettings() {
-  const row = sqlite.get(`SELECT value_json FROM alert_settings WHERE key=:key`, { key: SETTINGS_KEY });
+  const row = database.get(`SELECT value_json FROM alert_settings WHERE key=:key`, { key: SETTINGS_KEY });
   const dbSettings = parseJson(row && row.value_json, {});
   state.settings = mergeSettings(DEFAULT_SETTINGS, dbSettings);
 
@@ -398,7 +398,7 @@ function updateSettings(patch) {
   }
 
   state.settings = mergeSettings(DEFAULT_SETTINGS, next);
-  sqlite.run(`
+  database.run(`
     INSERT INTO alert_settings (key, value_json, updated_at)
     VALUES (:key, :valueJson, :now)
     ON CONFLICT(key) DO UPDATE SET
@@ -416,7 +416,7 @@ function seedAlertTypesAndRules() {
   ];
 
   for (const [source, typeKey, label, valueKind, sortOrder] of types) {
-    sqlite.run(`
+    database.run(`
       INSERT INTO alert_types (source, type_key, label, value_kind, enabled, sort_order, created_at, updated_at)
       VALUES (:source, :typeKey, :label, :valueKind, 1, :sortOrder, :now, :now)
       ON CONFLICT(source, type_key) DO UPDATE SET
@@ -432,9 +432,9 @@ function seedAlertTypesAndRules() {
   ];
 
   for (const rule of defaults) {
-    const exists = sqlite.get(`SELECT id FROM alert_rules WHERE source='tipeee' AND type_key=:typeKey LIMIT 1`, { typeKey: rule.type_key });
+    const exists = database.get(`SELECT id FROM alert_rules WHERE source='tipeee' AND type_key=:typeKey LIMIT 1`, { typeKey: rule.type_key });
     if (exists) continue;
-    sqlite.run(`
+    database.run(`
       INSERT INTO alert_rules (source, type_key, label, min_value, max_value, tier, priority, duration_ms, animation, image_mode, enabled, meta_json, created_at, updated_at)
       VALUES ('tipeee', :typeKey, :label, :minValue, :maxValue, :tier, :priority, :durationMs, 'neon_card', :imageMode, 1, '{}', :now, :now)
     `, {
@@ -456,13 +456,13 @@ function seedAlertTypesAndRules() {
 function disableNonDonationTipeeeDefaults(now) {
   const disabledTypes = ['subscription', 'follow', 'hosting', 'host'];
   for (const typeKey of disabledTypes) {
-    sqlite.run(`
+    database.run(`
       UPDATE alert_types
       SET enabled=0, updated_at=:now
       WHERE source='tipeee' AND type_key=:typeKey
     `, { typeKey, now });
 
-    sqlite.run(`
+    database.run(`
       UPDATE alert_rules
       SET enabled=0, updated_at=:now
       WHERE source='tipeee' AND type_key=:typeKey
@@ -490,8 +490,8 @@ function buildStatus(req) {
       lastError: state.lastError
     },
     settings: maskSettings(state.settings),
-    databasePath: sqlite.getDbPath(),
-    schemaVersion: sqlite.getSchemaVersion(MODULE),
+    databasePath: database.getDbPath(),
+    schemaVersion: database.getSchemaVersion(MODULE),
     stats: { ...state.stats },
     recentEventsCount: state.recentEvents.length,
     requestIp: req ? getIp(req) : '',
@@ -846,7 +846,7 @@ async function handleTipeeeEvent(event, options = {}) {
 function rememberProviderEvent(event, status, forwardedEventUid) {
   const now = nowIso();
   try {
-    sqlite.run(`
+    database.run(`
       INSERT INTO alert_provider_events (provider, provider_event_id, source, type_key, user_display, amount, currency, status, forwarded_event_uid, raw_json, created_at, forwarded_at)
       VALUES (:provider, :providerEventId, :source, :typeKey, :userDisplay, :amount, :currency, :status, :forwardedEventUid, :rawJson, :now, NULL)
     `, {
@@ -870,7 +870,7 @@ function rememberProviderEvent(event, status, forwardedEventUid) {
 }
 
 function updateProviderEvent(event, status, forwardedEventUid) {
-  sqlite.run(`
+  database.run(`
     UPDATE alert_provider_events
     SET status=:status, forwarded_event_uid=:forwardedEventUid, forwarded_at=:forwardedAt
     WHERE provider=:provider AND provider_event_id=:providerEventId

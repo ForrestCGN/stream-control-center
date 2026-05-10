@@ -2,6 +2,30 @@
 
 Stand: 2026-05-10
 
+## STEP209
+
+Geaendert:
+
+```text
+backend/modules/kofi.js
+backend/modules/tipeee.js
+project-state/STEP209_KOFI_TIPEEE_DB_CORE_PORTABILITY_2026-05-10.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/core/database.js
+backend/modules/sqlite_core.js
+package.json
+app.sqlite
+```
+
 ## STEP208
 
 Geaendert:

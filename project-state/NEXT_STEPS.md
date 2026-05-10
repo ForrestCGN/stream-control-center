@@ -8,10 +8,13 @@ SQLite bleibt aktiv, bis ein echter MariaDB-/MySQL-Server vorhanden ist und alle
 
 Naechste sinnvolle Reihenfolge:
 
-1. Kleine direkte `sqlite_core`-Module schrittweise auf `backend/core/database.js` umstellen:
-   - `kofi.js`
-   - `tipeee.js`
+1. Naechstes kleines direktes `sqlite_core`-Modul schrittweise auf `backend/core/database.js` umstellen:
    - `twitch.js`
+
+Bereits portiert:
+
+- `kofi.js`
+- `tipeee.js`
 2. Danach mittlere Module pruefen:
    - `sound_system.js`
    - `dashboard_auth.js`
@@ -55,4 +58,14 @@ Nach Streamende:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 80
+```
+
+
+## STEP209 Tests
+
+Nach Entpacken und Deploy pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/kofi/status" | ConvertTo-Json -Depth 40
+Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/tipeee/status" | ConvertTo-Json -Depth 60
 ```

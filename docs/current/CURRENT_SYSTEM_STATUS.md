@@ -4,7 +4,7 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP208:
+Aktueller Stand nach STEP209:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
 - Aktive DB bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
@@ -77,3 +77,12 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP206:
 - Bot-/Systemuser muessen `ignored_user` liefern.
 - Event-Boni weiterhin beobachten.
 - Nach Streamende Runner/Stream-State offline pruefen.
+
+
+## STEP209 - Provider DB-Core-Portierung
+
+- `kofi.js` und `tipeee.js` nutzen jetzt die zentrale DB-Schicht `backend/core/database.js`.
+- Direkte Kopplung dieser beiden Module an `sqlite_core.js` wurde entfernt.
+- SQLite bleibt weiterhin der aktive produktive Adapter.
+- MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
+- Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.

@@ -4,7 +4,7 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP208:
+Aktueller Stand nach STEP209:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
 - Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
@@ -59,3 +59,11 @@ Aktueller Stand:
 - DB-Portabilitaetsstand dokumentiert.
 - Direkte `sqlite_core`-Nutzungen und bereits zentrale `core/database`-Nutzungen wurden eingeordnet.
 - MySQL/MariaDB wurden als spaetere Zielsysteme festgelegt.
+
+## STEP209 - Ko-fi/Tipeee DB-Core-Portabilitaet
+
+- `backend/modules/kofi.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- `backend/modules/tipeee.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- SQLite bleibt produktiver Standard.
+- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
+- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.

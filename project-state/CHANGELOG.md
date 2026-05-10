@@ -2,6 +2,14 @@
 
 ## 2026-05-10
 
+### STEP209 - Ko-fi/Tipeee DB-Core-Portabilitaet
+
+- `backend/modules/kofi.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
+- `backend/modules/tipeee.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
+- SQLite bleibt aktiver produktiver Adapter.
+- Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
+
+
 ### STEP208 - DB Core Dialect Helper Vorbereitung
 
 - `backend/core/database.js` um vorbereitende Dialekt-/SQL-Helper erweitert.
