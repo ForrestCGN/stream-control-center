@@ -322,14 +322,11 @@ function ensureCompatibilityColumns() {
 }
 
 function ensureColumn(tableName, columnName, definition) {
-  const rows = database.all(`PRAGMA table_info(${tableName})`) || [];
-  if (!rows.length) return;
-  if (rows.some(row => row.name === columnName)) return;
-  database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  database.ensureColumn(tableName, columnName, definition);
 }
 
 function roleTableColumns() {
-  return (database.all("PRAGMA table_info(dashboard_roles)") || []).map(row => row.name);
+  return database.tableColumns("dashboard_roles");
 }
 
 function roleNameColumn() {
@@ -597,7 +594,7 @@ function getSession(sessionId) {
 }
 
 function sessionTableInfo() {
-  return database.all("PRAGMA table_info(dashboard_sessions)") || [];
+  return database.tableInfo("dashboard_sessions");
 }
 
 function sessionTableColumns() {
