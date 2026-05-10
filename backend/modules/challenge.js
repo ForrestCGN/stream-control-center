@@ -574,8 +574,8 @@ module.exports.init = function init(ctx) {
       FROM challenge_user_mode_stats
       ${whereSql}
       ORDER BY requested_count DESC, started_count DESC, total_duration_seconds DESC, user_display COLLATE NOCASE ASC
-      LIMIT ?
-    `, [...params, limit]);
+      LIMIT ${limit}
+    `, params);
 
     const totals = dbGet(`
       SELECT COALESCE(SUM(requested_count),0) AS requested_count,
@@ -633,8 +633,8 @@ module.exports.init = function init(ctx) {
       ${whereSql}
       GROUP BY user_key, user_display
       ORDER BY ${metricColumn} DESC, user_display COLLATE NOCASE ASC
-      LIMIT ?
-    `, [...params, limit]);
+      LIMIT ${limit}
+    `, params);
 
     return respond(req, res, 200, {
       ok: true,
