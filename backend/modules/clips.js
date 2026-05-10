@@ -1696,7 +1696,7 @@ function ensureClipSchema() {
 
   database.exec(`
     CREATE TABLE IF NOT EXISTS ${CLIP_HISTORY_TABLE} (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${database.primaryKeyAutoIncrementSql()},
       clip_id TEXT NOT NULL DEFAULT '',
       clip_url TEXT NOT NULL DEFAULT '',
       clip_title TEXT NOT NULL DEFAULT '',
