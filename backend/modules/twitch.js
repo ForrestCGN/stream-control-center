@@ -191,11 +191,16 @@ module.exports.init = function init(ctx) {
   function saveTwitchAlertSettingsToDb(value) {
     if (!ensureTwitchAlertSettingsTable()) return false;
     const now = core.nowIso();
-    database.run(`
-      INSERT INTO alert_settings (key, value_json, updated_at)
-      VALUES (:key, :valueJson, :now)
-      ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, updated_at=excluded.updated_at
-    `, { key: twitchAlertBridgeState.settingsKey, valueJson: JSON.stringify(value || {}), now });
+    database.upsert(
+      'alert_settings',
+      {
+        key: twitchAlertBridgeState.settingsKey,
+        value_json: JSON.stringify(value || {}),
+        updated_at: now
+      },
+      ['key'],
+      ['value_json', 'updated_at']
+    );
     return true;
   }
 
