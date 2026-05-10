@@ -394,19 +394,17 @@ module.exports.init = function init(ctx) {
 
     const now = core.nowIso();
     for (const key of keys) {
-      database.run(`
-        INSERT INTO sound_settings (key, value_json, updated_at, updated_by)
-        VALUES (:key, :valueJson, :updatedAt, :updatedBy)
-        ON CONFLICT(key) DO UPDATE SET
-          value_json = excluded.value_json,
-          updated_at = excluded.updated_at,
-          updated_by = excluded.updated_by
-      `, {
-        key,
-        valueJson: JSON.stringify(clean[key]),
-        updatedAt: now,
-        updatedBy: String(updatedBy || "")
-      });
+      database.upsert(
+        SOUND_SETTINGS_TABLE,
+        {
+          key,
+          value_json: JSON.stringify(clean[key]),
+          updated_at: now,
+          updated_by: String(updatedBy || "")
+        },
+        ["key"],
+        ["value_json", "updated_at", "updated_by"]
+      );
     }
 
     loadAll();
