@@ -483,7 +483,7 @@ function ensureSchema() {
     if (toVersion === 4) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS tagebuch_runtime_events (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${database.primaryKeyAutoIncrementSql()},
           event_type TEXT NOT NULL,
           page_number INTEGER,
           page_date TEXT,
@@ -560,28 +560,10 @@ function getState() {
 }
 
 function saveState(next) {
-  database.run(
-    `
-      INSERT INTO tagebuch_state (
-        id, current_page_number, current_page_date, last_stream_started_at,
-        last_stream_ended_at, active_stream, has_entries_for_current_date,
-        end_notice_posted_for_current_date, updated_at
-      ) VALUES (
-        1, :current_page_number, :current_page_date, :last_stream_started_at,
-        :last_stream_ended_at, :active_stream, :has_entries_for_current_date,
-        :end_notice_posted_for_current_date, :updated_at
-      )
-      ON CONFLICT(id) DO UPDATE SET
-        current_page_number = excluded.current_page_number,
-        current_page_date = excluded.current_page_date,
-        last_stream_started_at = excluded.last_stream_started_at,
-        last_stream_ended_at = excluded.last_stream_ended_at,
-        active_stream = excluded.active_stream,
-        has_entries_for_current_date = excluded.has_entries_for_current_date,
-        end_notice_posted_for_current_date = excluded.end_notice_posted_for_current_date,
-        updated_at = excluded.updated_at
-    `,
+  database.upsert(
+    'tagebuch_state',
     {
+      id: 1,
       current_page_number: Number(next.current_page_number || 0),
       current_page_date: next.current_page_date || null,
       last_stream_started_at: next.last_stream_started_at || null,
@@ -590,7 +572,18 @@ function saveState(next) {
       has_entries_for_current_date: next.has_entries_for_current_date ? 1 : 0,
       end_notice_posted_for_current_date: next.end_notice_posted_for_current_date ? 1 : 0,
       updated_at: nowIso(),
-    }
+    },
+    ['id'],
+    [
+      'current_page_number',
+      'current_page_date',
+      'last_stream_started_at',
+      'last_stream_ended_at',
+      'active_stream',
+      'has_entries_for_current_date',
+      'end_notice_posted_for_current_date',
+      'updated_at'
+    ]
   );
 }
 
