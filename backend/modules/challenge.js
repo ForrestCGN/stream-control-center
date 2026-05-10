@@ -17,12 +17,7 @@ try {
   twitchPresence = null;
 }
 
-let sqlite = null;
-try {
-  sqlite = require("./sqlite_core");
-} catch (_) {
-  sqlite = null;
-}
+const database = require("../core/database");
 
 const MODULE = "challenge";
 const DEFAULT_CONFIG = {
@@ -131,6 +126,12 @@ module.exports.init = function init(ctx) {
     startedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
+
+  try {
+    database.ensureReady(ctx);
+  } catch (err) {
+    console.warn(`[${MODULE}] database unavailable:`, err.message || String(err));
+  }
 
   let statsSchemaReady = false;
   ensureStatsSchema();
@@ -1006,7 +1007,7 @@ module.exports.init = function init(ctx) {
 
   function tableCheck(table) {
     try {
-      if (!sqlite) return { name: `table:${table}`, ok: false, level: "warning", table, count: 0, error: "sqlite_unavailable" };
+      if (!isDatabaseReady()) return { name: `table:${table}`, ok: false, level: "warning", table, count: 0, error: "database_unavailable" };
       const row = dbGet(`SELECT COUNT(*) AS count FROM ${table}`);
       return { name: `table:${table}`, ok: true, level: "ok", table, count: Number(row && row.count ? row.count : 0), error: "" };
     } catch (err) {
@@ -1025,11 +1026,10 @@ module.exports.init = function init(ctx) {
   function ensureStatsSchema() {
     if (!getStatsEnabled()) return false;
     if (statsSchemaReady) return true;
-    if (!sqlite || typeof sqlite.run !== "function") return false;
+    if (!isDatabaseReady()) return false;
     try {
-      if (typeof sqlite.isInitialized === "function" && !sqlite.isInitialized()) return false;
       const now = new Date().toISOString();
-      sqlite.run(`CREATE TABLE IF NOT EXISTS challenge_user_mode_stats (
+      database.exec(`CREATE TABLE IF NOT EXISTS challenge_user_mode_stats (
         user_key TEXT NOT NULL,
         user_display TEXT NOT NULL,
         mode TEXT NOT NULL,
@@ -1042,7 +1042,7 @@ module.exports.init = function init(ctx) {
         updated_at TEXT NOT NULL,
         PRIMARY KEY (user_key, mode)
       )`);
-      sqlite.run(`CREATE TABLE IF NOT EXISTS challenge_runtime_events (
+      database.exec(`CREATE TABLE IF NOT EXISTS challenge_runtime_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_type TEXT NOT NULL,
         challenge_id TEXT,
@@ -1125,38 +1125,44 @@ module.exports.init = function init(ctx) {
     }
   }
 
-  function dbRun(sql, params = []) {
-    if (!sqlite) return null;
-    if (Array.isArray(params)) {
-      if (params.length === 0 && typeof sqlite.run === "function") return sqlite.run(sql);
-      if (typeof sqlite.getDb === "function") return sqlite.getDb().prepare(sql).run(...params);
+  function isDatabaseReady() {
+    try {
+      database.ensureReady();
+      return true;
+    } catch (_) {
+      return false;
     }
-    if (typeof sqlite.run !== "function") return null;
-    return sqlite.run(sql, params || {});
+  }
+
+  function dbRun(sql, params = []) {
+    if (!isDatabaseReady()) return null;
+    try {
+      return database.run(sql, params || []);
+    } catch (err) {
+      console.warn(`[${MODULE}] dbRun failed:`, err.message || String(err));
+      return null;
+    }
   }
 
   function dbAll(sql, params = []) {
-    if (!sqlite) return [];
-    let rows = [];
-    if (Array.isArray(params)) {
-      if (params.length === 0 && typeof sqlite.all === "function") rows = sqlite.all(sql);
-      else if (typeof sqlite.getDb === "function") rows = sqlite.getDb().prepare(sql).all(...params);
-    } else if (typeof sqlite.all === "function") {
-      rows = sqlite.all(sql, params || {});
+    if (!isDatabaseReady()) return [];
+    try {
+      const rows = database.all(sql, params || []);
+      return Array.isArray(rows) ? rows : [];
+    } catch (err) {
+      console.warn(`[${MODULE}] dbAll failed:`, err.message || String(err));
+      return [];
     }
-    return Array.isArray(rows) ? rows : [];
   }
 
   function dbGet(sql, params = []) {
-    if (!sqlite) return null;
-    let row = null;
-    if (Array.isArray(params)) {
-      if (params.length === 0 && typeof sqlite.get === "function") row = sqlite.get(sql);
-      else if (typeof sqlite.getDb === "function") row = sqlite.getDb().prepare(sql).get(...params);
-    } else if (typeof sqlite.get === "function") {
-      row = sqlite.get(sql, params || {});
+    if (!isDatabaseReady()) return null;
+    try {
+      return database.get(sql, params || []) || null;
+    } catch (err) {
+      console.warn(`[${MODULE}] dbGet failed:`, err.message || String(err));
+      return null;
     }
-    return row || null;
   }
 
   function normalizeUserKey(value) {

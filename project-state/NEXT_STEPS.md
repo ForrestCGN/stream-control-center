@@ -16,18 +16,18 @@ Bereits portiert:
 - `alert_system.js`
 - `tagebuch.js`
 - `todo.js`
+- `challenge.js`
 
 Naechste sinnvolle Reihenfolge:
 
-1. STEP214 live testen:
-   - Tagebuch Status pruefen.
+1. STEP216 live testen:
+   - Challenge Status pruefen.
    - Config/Settings/Routes pruefen.
+   - Integration-Check pruefen.
    - Optional Stats pruefen.
    - Keine Fehler in Backend-Log.
-2. Danach verbleibende direkte `sqlite_core`-Module einzeln angehen:
-   - `todo.js`
-   - `challenge.js`
-3. Erst danach echten MySQL-/MariaDB-Adapter und Treiber einbauen.
+2. Danach direkten `sqlite_core`-Restscan erneut ausfuehren.
+3. Erst danach echten MySQL-/MariaDB-Adapter und Treiber planen/einbauen.
 
 Wichtig:
 
@@ -86,3 +86,24 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/todo/stats/today" | ConvertTo-Json 
 ```
 
 Naechster DB-Portabilitaets-Kandidat nach erfolgreichem Test: `challenge.js`.
+
+
+## STEP216 Tests
+
+Nach Entpacken und Deploy pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/challenge/status" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/challenge/config" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/challenge/settings" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/challenge/routes" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/challenge/integration-check" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/challenge/stats" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/challenge/stats/top" | ConvertTo-Json -Depth 100
+```
+
+Nach erfolgreichem Test:
+
+- direkten `sqlite_core`-Restscan laufen lassen
+- pruefen, ob nur noch absichtlich zentrale/alte Hilfsdateien betroffen sind
+- danach MySQL-/MariaDB-Adapter-Planung vorbereiten, aber noch nicht produktiv aktivieren

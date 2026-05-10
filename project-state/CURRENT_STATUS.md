@@ -4,7 +4,7 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP215:
+Aktueller Stand nach STEP216:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
 - Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlitepp.sqlite`.
@@ -23,6 +23,7 @@ Bereits portiert auf `backend/core/database.js`:
 - STEP213: `alert_system.js`
 - STEP214: `tagebuch.js`
 - STEP215: `todo.js`
+- STEP216: `challenge.js`
 
 STEP208:
 
@@ -54,6 +55,16 @@ STEP215:
 - `backend/modules/todo.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
 - Betroffen sind Todo-Stats, Daily-Stats, Settings-/Text-Helper-Zugriffe und Integration-Checks.
 - Todo-, Discord-, Alias-, Text-, Settings- und Stats-Logik wurden nicht fachlich veraendert.
+- SQLite bleibt produktiver Standard.
+- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
+- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
+
+
+STEP216:
+
+- `backend/modules/challenge.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- Betroffen sind Challenge-Stats und Runtime-Event-Stats.
+- Challenge-, Queue-, Timer-, Overlay-, WebSocket-, Chat- und Discord-Sound-Logik wurden nicht fachlich veraendert.
 - SQLite bleibt produktiver Standard.
 - MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
 - Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.

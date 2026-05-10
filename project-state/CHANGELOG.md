@@ -3,6 +3,14 @@
 ## 2026-05-10
 
 
+### STEP216 - Challenge DB-Core-Portabilitaet
+
+- `backend/modules/challenge.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
+- Challenge-Stats und Runtime-Event-Stats laufen weiter ueber SQLite/app.sqlite, aber zentral gekapselt.
+- Keine Challenge-/Queue-/Timer-/Overlay-/WebSocket-/Chat-/Discord-Sound-Logik geaendert.
+- Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
+
+
 ### STEP215 - Todo DB-Core-Portabilitaet
 
 - `backend/modules/todo.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.

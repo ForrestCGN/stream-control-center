@@ -30,6 +30,7 @@ Schrittweise DB-Core-Portierung:
 - STEP213: `alert_system.js` nutzt jetzt `backend/core/database.js`.
 - STEP214: `tagebuch.js` nutzt jetzt `backend/core/database.js`.
 - STEP215: `todo.js` nutzt jetzt `backend/core/database.js`.
+- STEP216: `challenge.js` nutzt jetzt `backend/core/database.js`.
 
 MySQL/MariaDB werden erst genutzt, wenn die Module schrittweise von direkter `sqlite_core`-Kopplung weggefuehrt und getestet wurden.
 
@@ -86,5 +87,14 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP206:
 - Direkte Kopplung des Todo-Moduls an `sqlite_core.js` wurde entfernt.
 - Todo-Stats und Daily-Stats laufen weiter in der bestehenden SQLite-DB `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
 - Todo-, Discord-, Alias-, Text-, Settings- und Stats-Logik wurden nicht fachlich veraendert.
+- MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
+- Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.
+
+## STEP216 - Challenge DB-Core-Portierung
+
+- `challenge.js` nutzt jetzt die zentrale DB-Schicht `backend/core/database.js`.
+- Direkte Kopplung des Challenge-Moduls an `sqlite_core.js` wurde entfernt.
+- Challenge-Stats und Runtime-Event-Stats laufen weiter in der bestehenden SQLite-DB `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Challenge-, Queue-, Timer-, Overlay-, WebSocket-, Chat- und Discord-Sound-Logik wurden nicht fachlich veraendert.
 - MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
 - Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.
