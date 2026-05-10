@@ -2,6 +2,20 @@
 
 ## 2026-05-10
 
+### STEP214 - Tagebuch DB-Core-Portabilitaet
+
+- `backend/modules/tagebuch.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
+- Tagebuch-State, Entries, Settings, Textvarianten und Stats laufen weiter ueber SQLite/app.sqlite, aber zentral gekapselt.
+- Keine Discord-/Webhook-/Text-/Streamstart-/Streamende-/Reset-/Stats-Logik fachlich geaendert.
+- Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
+
+### STEP213 - Alert-System DB-Core-Portabilitaet
+
+- `backend/modules/alert_system.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
+- Alert-System-Tabellen laufen weiter ueber SQLite/app.sqlite, aber zentral gekapselt.
+- Keine Alert-/Queue-/Overlay-/Upload-/Dashboard-/Provider-Logik geaendert.
+- Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
+
 ### STEP212 - Dashboard Auth DB-Core-Portabilitaet
 
 - `backend/modules/dashboard_auth.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
@@ -44,21 +58,3 @@
 - Module mit `core/database.js` und direkte `sqlite_core.js`-Nutzungen eingeordnet.
 - MySQL und MariaDB als gemeinsame spaetere MySQL-Family-Zielarchitektur festgelegt.
 - Keine Code-Aenderung.
-
-### STEP206 - Loyalty Livetest Checkliste
-
-- Livetest-Checkliste fuer den naechsten echten Stream dokumentiert.
-- Pruefbefehle fuer Vor-Stream, Streamstart, 10-Minuten-Check, Event-Boni und Streamende ergaenzt.
-- Keine Code-Aenderung.
-
-### STEP205 - Loyalty Stream-State Signal Logging
-
-- `backend/modules/loyalty.js` auf Version 0.1.9 angehoben.
-- Doppelte Stream-State-Signale ueberschreiben den bestehenden Stream-State nicht mehr.
-- `stream_state_start_signal` und `stream_state_stop_signal` dokumentieren zusaetzliche Signale.
-
-### STEP204 - Loyalty Runner Stream-State Autostart
-
-- `backend/modules/loyalty.js` auf Version 0.1.8 angehoben.
-- Stream-State Start/Stop koppelt AutoRunner konfigurierbar und idempotent.
-- Runner-Start/-Stop-Quellen werden in `loyalty_runner_events` geloggt.

@@ -4,15 +4,24 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP212:
+Aktueller Stand nach STEP214:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
-- Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlitepp.sqlite`.
 - `backend/core/database.js` ist die zentrale DB-Schicht fuer neue Module und Refactors.
 - MySQL und MariaDB sind als spaetere Zielsysteme vorgesehen.
 - `DB_ADAPTER=mysql` und `DB_ADAPTER=mariadb` werden in der Core-Schicht vorbereitet erkannt.
 - Es gibt noch keinen aktiven MySQL-/MariaDB-Adapter und keinen DB-Treiber im Projekt.
 - MySQL/MariaDB duerfen erst produktiv genutzt werden, wenn alle relevanten Module portiert und getestet sind.
+
+Bereits portiert auf `backend/core/database.js`:
+
+- STEP209: `kofi.js`, `tipeee.js`
+- STEP210: `twitch.js`
+- STEP211: `sound_system.js`
+- STEP212: `dashboard_auth.js`
+- STEP213: `alert_system.js`
+- STEP214: `tagebuch.js`
 
 STEP208:
 
@@ -21,36 +30,19 @@ STEP208:
 - Kein Modul wurde auf MySQL/MariaDB umgestellt.
 - Keine Datenbank wurde migriert, ersetzt oder neu gebaut.
 
-STEP209:
+STEP213:
 
-- `backend/modules/kofi.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- `backend/modules/tipeee.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- `backend/modules/alert_system.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- Alert-Typen, Regeln, Assets, Settings, Events, Display-Profile, Textvarianten, Test-Presets und Chat-Outbox bleiben fachlich unveraendert.
 - SQLite bleibt produktiver Standard.
 - MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
 - Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
 
-STEP210:
+STEP214:
 
-- `backend/modules/twitch.js` nutzt jetzt fuer Twitch-Alert-Settings `backend/core/database.js` statt direktem `sqlite_core.js`.
-- Twitch OAuth, Helix, EventSub und Alert-Forwarding bleiben unveraendert.
-- SQLite bleibt produktiver Standard.
-- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
-- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
-
-STEP211:
-
-- `backend/modules/sound_system.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- Betroffen sind die Sound-System-Settings in `sound_settings`.
-- Sound-, Queue-, Overlay- und Device-Logik wurden nicht veraendert.
-- SQLite bleibt produktiver Standard.
-- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
-- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
-
-STEP212:
-
-- `backend/modules/dashboard_auth.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- Betroffen sind Dashboard-User, Identities, Sessions, Rollen, Permissions und Audit-Log.
-- Login-, Session-, OAuth-, Rollen- und Rechte-Logik wurden nicht fachlich veraendert.
+- `backend/modules/tagebuch.js` nutzt jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
+- Betroffen sind Tagebuch-State, Entries, Discord-Posts, Settings, Textvarianten und Stats-Zugriffe.
+- Discord-/Webhook-, Text-, Streamstart-/Streamende-, Reset- und Stats-Logik wurden nicht fachlich veraendert.
 - SQLite bleibt produktiver Standard.
 - MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
 - Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.

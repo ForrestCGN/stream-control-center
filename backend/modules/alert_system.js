@@ -14,7 +14,7 @@ try {
   multerLoadError = err && err.message ? err.message : String(err);
 }
 
-const sqlite = require('./sqlite_core');
+const database = require('../core/database');
 const core = require('./helpers/helper_core');
 const configHelper = require('./helpers/helper_config');
 const routes = require('./helpers/helper_routes');
@@ -343,7 +343,7 @@ function buildAlertRoutes(req = null) {
 }
 
 function ensureRuntime(ctx) {
-  if (!sqlite.isInitialized()) sqlite.init(ctx);
+  database.ensureReady(ctx);
 }
 
 function reloadConfig() {
@@ -363,7 +363,7 @@ function ensureDirs() {
 }
 
 function ensureSchema() {
-  sqlite.ensureSchema(MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
+  database.ensureSchema(MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
     if (toVersion === 1) {
       db.exec(`
       CREATE TABLE IF NOT EXISTS alert_types (
@@ -603,7 +603,7 @@ function seedDefaults() {
     ['tipeee', 'donation', 'Tipeee Donation', 'amount', 110]
   ];
   for (const [source, typeKey, label, valueKind, sortOrder] of types) {
-    sqlite.run(`
+    database.run(`
       INSERT INTO alert_types (source, type_key, label, value_kind, enabled, sort_order, created_at, updated_at)
       VALUES (:source, :typeKey, :label, :valueKind, 1, :sortOrder, :now, :now)
       ON CONFLICT(source, type_key) DO UPDATE SET
@@ -614,7 +614,7 @@ function seedDefaults() {
     `, { source, typeKey, label, valueKind, sortOrder, now });
   }
 
-  const count = sqlite.get(`SELECT COUNT(*) AS c FROM alert_rules`)?.c || 0;
+  const count = database.get(`SELECT COUNT(*) AS c FROM alert_rules`)?.c || 0;
   if (Number(count) === 0) {
     const defaults = [
       { source: 'twitch', type_key: 'follow', label: 'Follow Standard', min_value: 0, max_value: null, tier: 'normal', priority: 100, duration_ms: 6500, image_mode: 'avatar_icon' },
@@ -633,7 +633,7 @@ function seedDefaults() {
 }
 
 function seedAlertChatBlocks() {
-  const count = sqlite.get(`SELECT COUNT(*) AS c FROM alert_chat_blocks`)?.c || 0;
+  const count = database.get(`SELECT COUNT(*) AS c FROM alert_chat_blocks`)?.c || 0;
   if (Number(count) > 0) return;
   const defaults = [
     { source:'twitch', type_key:'follow', label:'Follow Danke', sort_order:10, texts:[
@@ -681,8 +681,8 @@ function buildStatus(req = null) {
     multerLoadError,
     ffprobe,
     counts,
-    databasePath: sqlite.getDbPath(),
-    schemaVersion: sqlite.getSchemaVersion(MODULE),
+    databasePath: database.getDbPath(),
+    schemaVersion: database.getSchemaVersion(MODULE),
     security: req ? security.securitySummary(req) : security.securitySummary(),
     config: publicConfig()
   };
@@ -699,7 +699,7 @@ function buildHealth(req = null) {
 }
 
 function getAlertCounts() {
-  const row = sqlite.get(`
+  const row = database.get(`
     SELECT
       (SELECT COUNT(*) FROM alert_types) AS types,
       (SELECT COUNT(*) FROM alert_rules) AS rules,
@@ -967,11 +967,11 @@ function checkAlertIntegration() {
 }
 
 function listTypes() {
-  return sqlite.all(`SELECT * FROM alert_types ORDER BY sort_order ASC, label ASC`);
+  return database.all(`SELECT * FROM alert_types ORDER BY sort_order ASC, label ASC`);
 }
 
 function listAssets() {
-  return sqlite.all(`SELECT * FROM alert_assets ORDER BY created_at DESC, id DESC`).map(row => ({ ...row, meta: parseJson(row.meta_json, {}) }));
+  return database.all(`SELECT * FROM alert_assets ORDER BY created_at DESC, id DESC`).map(row => ({ ...row, meta: parseJson(row.meta_json, {}) }));
 }
 
 function listChatBlocks(filter = {}) {
@@ -982,13 +982,13 @@ function listChatBlocks(filter = {}) {
   if (source && source !== 'all') { where.push('source = :source'); params.source = source; }
   if (typeKey && typeKey !== 'all') { where.push('type_key = :typeKey'); params.typeKey = typeKey; }
   const sql = `SELECT * FROM alert_chat_blocks ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY source ASC, type_key ASC, sort_order ASC, id ASC`;
-  return sqlite.all(sql, params).map(row => ({ ...row, texts: parseChatTexts(row.texts_json), meta: parseJson(row.meta_json, {}) }));
+  return database.all(sql, params).map(row => ({ ...row, texts: parseChatTexts(row.texts_json), meta: parseJson(row.meta_json, {}) }));
 }
 
 function getChatBlockById(idRaw) {
   const id = toInt(idRaw, 0);
   if (!id) return null;
-  const row = sqlite.get(`SELECT * FROM alert_chat_blocks WHERE id=:id`, { id });
+  const row = database.get(`SELECT * FROM alert_chat_blocks WHERE id=:id`, { id });
   return row ? { ...row, texts: parseChatTexts(row.texts_json), meta: parseJson(row.meta_json, {}) } : null;
 }
 
@@ -1008,10 +1008,10 @@ function saveChatBlock(input = {}) {
   };
   if (!row.label) row.label = 'Chat-Textblock';
   if (id > 0) {
-    sqlite.run(`UPDATE alert_chat_blocks SET source=:source, type_key=:typeKey, label=:label, texts_json=:textsJson, enabled=:enabled, sort_order=:sortOrder, meta_json=:metaJson, updated_at=:now WHERE id=:id`, { ...row, id });
+    database.run(`UPDATE alert_chat_blocks SET source=:source, type_key=:typeKey, label=:label, texts_json=:textsJson, enabled=:enabled, sort_order=:sortOrder, meta_json=:metaJson, updated_at=:now WHERE id=:id`, { ...row, id });
     return { ok:true, id, block:getChatBlockById(id) };
   }
-  const result = sqlite.run(`INSERT INTO alert_chat_blocks (source, type_key, label, texts_json, enabled, sort_order, meta_json, created_at, updated_at) VALUES (:source, :typeKey, :label, :textsJson, :enabled, :sortOrder, :metaJson, :now, :now)`, row);
+  const result = database.run(`INSERT INTO alert_chat_blocks (source, type_key, label, texts_json, enabled, sort_order, meta_json, created_at, updated_at) VALUES (:source, :typeKey, :label, :textsJson, :enabled, :sortOrder, :metaJson, :now, :now)`, row);
   const newId = Number(result.lastInsertRowid || 0);
   return { ok:true, id:newId, block:getChatBlockById(newId) };
 }
@@ -1019,7 +1019,7 @@ function saveChatBlock(input = {}) {
 function deleteChatBlock(idRaw) {
   const id = toInt(idRaw, 0);
   if (id <= 0) return { ok:false, error:'invalid_id' };
-  sqlite.run(`DELETE FROM alert_chat_blocks WHERE id=:id`, { id });
+  database.run(`DELETE FROM alert_chat_blocks WHERE id=:id`, { id });
   return { ok:true, id };
 }
 
@@ -1034,7 +1034,7 @@ function parseChatTexts(value) {
 }
 
 function listRules() {
-  return sqlite.all(`
+  return database.all(`
     SELECT r.*, s.label AS sound_label, s.public_url AS sound_url, s.duration_ms AS sound_duration_ms, i.label AS image_label, i.public_url AS image_url, dp.name AS display_profile_name
     FROM alert_rules r
     LEFT JOIN alert_assets s ON s.id = r.sound_asset_id
@@ -1074,7 +1074,7 @@ function saveRule(input, silent = false) {
   if (rule.maxValue !== null && rule.minValue !== null && rule.maxValue < rule.minValue) throw new Error('max_value darf nicht kleiner als min_value sein.');
 
   if (id > 0) {
-    sqlite.run(`
+    database.run(`
       UPDATE alert_rules SET
         source=:source, type_key=:typeKey, label=:label, min_value=:minValue, max_value=:maxValue, tier=:tier,
         priority=:priority, duration_ms=:durationMs, duration_mode=:durationMode, animation=:animation, image_mode=:imageMode,
@@ -1083,22 +1083,22 @@ function saveRule(input, silent = false) {
         meta_json=:metaJson, updated_at=:now
       WHERE id=:id
     `, { ...rule, id, now });
-    return { ok: true, id, rule: sqlite.get(`SELECT * FROM alert_rules WHERE id=:id`, { id }) };
+    return { ok: true, id, rule: database.get(`SELECT * FROM alert_rules WHERE id=:id`, { id }) };
   }
 
-  const result = sqlite.run(`
+  const result = database.run(`
     INSERT INTO alert_rules (source, type_key, label, min_value, max_value, tier, priority, duration_ms, duration_mode, animation, image_mode, sound_asset_id, image_asset_id, display_profile_id, enabled, tts_enabled, tts_timing, tts_mode, tts_template, tts_max_chars, tts_min_amount, meta_json, created_at, updated_at)
     VALUES (:source, :typeKey, :label, :minValue, :maxValue, :tier, :priority, :durationMs, :durationMode, :animation, :imageMode, :soundAssetId, :imageAssetId, :displayProfileId, :enabled, :ttsEnabled, :ttsTiming, :ttsMode, :ttsTemplate, :ttsMaxChars, :ttsMinAmount, :metaJson, :now, :now)
   `, { ...rule, now });
   const newId = Number(result.lastInsertRowid || 0);
-  if (!silent) return { ok: true, id: newId, rule: sqlite.get(`SELECT * FROM alert_rules WHERE id=:id`, { id: newId }) };
+  if (!silent) return { ok: true, id: newId, rule: database.get(`SELECT * FROM alert_rules WHERE id=:id`, { id: newId }) };
   return { ok: true, id: newId };
 }
 
 function deleteRule(idRaw) {
   const id = toInt(idRaw, 0);
   if (id <= 0) return { ok: false, error: 'invalid_id' };
-  sqlite.run(`DELETE FROM alert_rules WHERE id=:id`, { id });
+  database.run(`DELETE FROM alert_rules WHERE id=:id`, { id });
   return { ok: true, id };
 }
 
@@ -1165,7 +1165,7 @@ function registerUploadedAsset(req) {
     durationOk: !!probe.ok,
     durationError: probe.error || ''
   };
-  const result = sqlite.run(`
+  const result = database.run(`
     INSERT INTO alert_assets (asset_type, label, file_path, public_url, mime_type, size_bytes, original_name, enabled, duration_ms, probe_json, meta_json, created_at, updated_at)
     VALUES (:assetType, :label, :filePath, :publicUrl, :mimeType, :sizeBytes, :originalName, 1, :durationMs, :probeJson, :metaJson, :now, :now)
   `, {
@@ -1182,7 +1182,7 @@ function registerUploadedAsset(req) {
     now
   });
   const id = Number(result.lastInsertRowid || 0);
-  return { ok: true, id, asset: sqlite.get(`SELECT * FROM alert_assets WHERE id=:id`, { id }) };
+  return { ok: true, id, asset: database.get(`SELECT * FROM alert_assets WHERE id=:id`, { id }) };
 }
 
 function deleteAsset(idRaw, deleteFile) {
@@ -1192,9 +1192,9 @@ function deleteAsset(idRaw, deleteFile) {
   if ((usage.soundRules.length || usage.imageRules.length) && !deleteFile) {
     return { ok: false, error: 'asset_in_use', usage };
   }
-  const asset = sqlite.get(`SELECT * FROM alert_assets WHERE id=:id`, { id });
+  const asset = database.get(`SELECT * FROM alert_assets WHERE id=:id`, { id });
   if (!asset) return { ok: false, error: 'not_found' };
-  sqlite.run(`DELETE FROM alert_assets WHERE id=:id`, { id });
+  database.run(`DELETE FROM alert_assets WHERE id=:id`, { id });
   if (deleteFile) {
     const filePath = absRoot(asset.file_path);
     if (filePath.startsWith(configHelper.getRootDir()) && fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -1207,14 +1207,14 @@ function assetUsage(idRaw) {
   return {
     ok: true,
     id,
-    soundRules: sqlite.all(`SELECT id, label FROM alert_rules WHERE sound_asset_id=:id`, { id }),
-    imageRules: sqlite.all(`SELECT id, label FROM alert_rules WHERE image_asset_id=:id`, { id })
+    soundRules: database.all(`SELECT id, label FROM alert_rules WHERE sound_asset_id=:id`, { id }),
+    imageRules: database.all(`SELECT id, label FROM alert_rules WHERE image_asset_id=:id`, { id })
   };
 }
 
 function scanSoundDurations(input = {}) {
   const force = input.force === true || input.force === 1 || input.force === '1' || input.force === 'true';
-  const rows = sqlite.all(`SELECT * FROM alert_assets WHERE asset_type = 'sound' ORDER BY id ASC`);
+  const rows = database.all(`SELECT * FROM alert_assets WHERE asset_type = 'sound' ORDER BY id ASC`);
   const result = { ok: true, scanned: 0, updated: 0, skipped: 0, failed: 0, rows: [] };
   for (const row of rows) {
     if (!force && Number(row.duration_ms || 0) > 0) {
@@ -1226,7 +1226,7 @@ function scanSoundDurations(input = {}) {
     const filePath = absRoot(row.file_path);
     const probe = probeSoundFile(filePath);
     const meta = { ...parseJson(row.meta_json, {}), durationMs: probe.durationMs || 0, durationOk: !!probe.ok, durationError: probe.error || '' };
-    sqlite.run(`UPDATE alert_assets SET duration_ms=:durationMs, probe_json=:probeJson, meta_json=:metaJson, updated_at=:now WHERE id=:id`, {
+    database.run(`UPDATE alert_assets SET duration_ms=:durationMs, probe_json=:probeJson, meta_json=:metaJson, updated_at=:now WHERE id=:id`, {
       id: row.id,
       durationMs: Number(probe.durationMs || 0),
       probeJson: JSON.stringify(probe),
@@ -1253,7 +1253,7 @@ function probeSoundFile(filePath) {
 }
 
 function getSettings() {
-  const rows = sqlite.all(`SELECT key, value_json, updated_at FROM alert_settings ORDER BY key ASC`);
+  const rows = database.all(`SELECT key, value_json, updated_at FROM alert_settings ORDER BY key ASC`);
   const out = {};
   for (const row of rows) out[row.key] = parseJson(row.value_json, null);
   return out;
@@ -1265,7 +1265,7 @@ function saveSettings(input) {
   for (const [key, value] of Object.entries(data || {})) {
     const clean = cleanKey(key);
     if (!clean) continue;
-    sqlite.run(`
+    database.run(`
       INSERT INTO alert_settings (key, value_json, updated_at)
       VALUES (:key, :valueJson, :now)
       ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, updated_at=excluded.updated_at
@@ -1325,7 +1325,7 @@ function ignoreUnmatchedAlert(payload, reason = 'no_matching_rule') {
   const now = nowIso();
   const rawPayload = { ...((payload && payload.raw) || payload || {}) };
   try {
-    sqlite.run(`
+    database.run(`
       INSERT INTO alert_events (event_uid, source, type_key, user_login, user_display, amount, message, rule_id, status, payload_json, display_profile_id, created_at, finished_at)
       VALUES (:eventUid, :source, :typeKey, :userLogin, :userDisplay, :amount, :message, NULL, 'ignored', :payloadJson, :displayProfileId, :now, :now)
     `, {
@@ -1379,7 +1379,7 @@ function enqueueAlertWithRule(payload, rule, broadcastWS, options = {}) {
     created_at: now,
     replayOf: options.replayOf || null
   };
-  sqlite.run(`
+  database.run(`
     INSERT INTO alert_events (event_uid, source, type_key, user_login, user_display, amount, message, rule_id, status, payload_json, display_profile_id, created_at)
     VALUES (:eventUid, :source, :typeKey, :userLogin, :userDisplay, :amount, :message, :ruleId, 'queued', :payloadJson, :displayProfileId, :now)
   `, {
@@ -1405,7 +1405,7 @@ function replayAlertEvent(eventUid, broadcastWS) {
   if (!gate.ok) return gate;
   const sourceUid = cleanText(eventUid || '');
   if (!sourceUid) return { ok: false, error: 'missing_event_uid' };
-  const row = sqlite.get(`SELECT * FROM alert_events WHERE event_uid=:eventUid`, { eventUid: sourceUid });
+  const row = database.get(`SELECT * FROM alert_events WHERE event_uid=:eventUid`, { eventUid: sourceUid });
   if (!row) return { ok: false, error: 'event_not_found' };
   const rawPayload = parseJson(row.payload_json, {});
   const payload = normalizeAlertPayload({
@@ -1449,7 +1449,7 @@ function listAlertEvents(filter = {}) {
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-  return sqlite.all(`
+  return database.all(`
     SELECT
       e.*,
       r.label AS rule_label,
@@ -1492,7 +1492,7 @@ function listAlertEvents(filter = {}) {
 }
 
 function getRuleById(id) {
-  const rule = sqlite.get(`
+  const rule = database.get(`
     SELECT
       r.*,
       s.public_url AS sound_url,
@@ -1510,7 +1510,7 @@ function getRuleById(id) {
 
 
 function listDisplayProfiles(filter = {}) {
-  return sqlite.all(`SELECT * FROM alert_display_profiles ORDER BY is_default DESC, sort_order ASC, id ASC`).map(row => {
+  return database.all(`SELECT * FROM alert_display_profiles ORDER BY is_default DESC, sort_order ASC, id ASC`).map(row => {
     const settings = sanitizeDisplaySettings(parseJson(row.settings_json, defaultDisplaySettings()));
     if (settings.topGraphicAssetId && !settings.topGraphicUrl) settings.topGraphicUrl = resolveTopGraphicUrlFromAsset(settings.topGraphicAssetId);
     return { ...row, settings };
@@ -1520,12 +1520,12 @@ function listDisplayProfiles(filter = {}) {
 function getDisplayProfileById(idRaw) {
   const id = toInt(idRaw, 0);
   if (!id) return null;
-  const row = sqlite.get(`SELECT * FROM alert_display_profiles WHERE id=:id`, { id });
+  const row = database.get(`SELECT * FROM alert_display_profiles WHERE id=:id`, { id });
   return row ? { ...row, settings: parseJson(row.settings_json, defaultDisplaySettings()) } : null;
 }
 
 function getDefaultDisplayProfile() {
-  const row = sqlite.get(`SELECT * FROM alert_display_profiles WHERE enabled=1 ORDER BY is_default DESC, sort_order ASC, id ASC LIMIT 1`);
+  const row = database.get(`SELECT * FROM alert_display_profiles WHERE enabled=1 ORDER BY is_default DESC, sort_order ASC, id ASC LIMIT 1`);
   return row ? { ...row, settings: parseJson(row.settings_json, defaultDisplaySettings()) } : { id:null, name:'Neon Badge Standard', settings: defaultDisplaySettings() };
 }
 
@@ -1536,15 +1536,15 @@ function saveDisplayProfile(input = {}) {
   const settings = sanitizeDisplaySettings(input.settings || parseJson(input.settings_json, defaultDisplaySettings()));
   const name = cleanText(input.name || 'Neuer Alert').slice(0, 120);
   if (!name) throw new Error('Alert-Name darf nicht leer sein.');
-  const duplicate = sqlite.get(`SELECT id, name FROM alert_display_profiles WHERE lower(trim(name)) = lower(trim(:name)) AND id != :id LIMIT 1`, { name, id });
+  const duplicate = database.get(`SELECT id, name FROM alert_display_profiles WHERE lower(trim(name)) = lower(trim(:name)) AND id != :id LIMIT 1`, { name, id });
   if (duplicate) throw new Error(`Alert-Name existiert bereits: ${duplicate.name}`);
   const row = { name, description: cleanText(input.description || '').slice(0, 500), isDefault, enabled: boolInt(input.enabled, true), settingsJson: JSON.stringify(settings), sortOrder: toInt(input.sort_order ?? input.sortOrder, 100), now };
-  if (isDefault) sqlite.run(`UPDATE alert_display_profiles SET is_default=0 WHERE is_default=1`);
+  if (isDefault) database.run(`UPDATE alert_display_profiles SET is_default=0 WHERE is_default=1`);
   if (id > 0) {
-    sqlite.run(`UPDATE alert_display_profiles SET name=:name, description=:description, is_default=:isDefault, enabled=:enabled, settings_json=:settingsJson, sort_order=:sortOrder, updated_at=:now WHERE id=:id`, { ...row, id });
+    database.run(`UPDATE alert_display_profiles SET name=:name, description=:description, is_default=:isDefault, enabled=:enabled, settings_json=:settingsJson, sort_order=:sortOrder, updated_at=:now WHERE id=:id`, { ...row, id });
     return { ok:true, id, profile:getDisplayProfileById(id) };
   }
-  const result = sqlite.run(`INSERT INTO alert_display_profiles (name, description, is_default, enabled, settings_json, sort_order, created_at, updated_at) VALUES (:name, :description, :isDefault, :enabled, :settingsJson, :sortOrder, :now, :now)`, row);
+  const result = database.run(`INSERT INTO alert_display_profiles (name, description, is_default, enabled, settings_json, sort_order, created_at, updated_at) VALUES (:name, :description, :isDefault, :enabled, :settingsJson, :sortOrder, :now, :now)`, row);
   const newId = Number(result.lastInsertRowid || 0);
   return { ok:true, id:newId, profile:getDisplayProfileById(newId) };
 }
@@ -1555,14 +1555,14 @@ function deleteDisplayProfile(idRaw) {
   const profile = getDisplayProfileById(id);
   if (!profile) return { ok:false, error:'not_found' };
   if (Number(profile.is_default)) return { ok:false, error:'cannot_delete_default' };
-  sqlite.run(`UPDATE alert_rules SET display_profile_id=NULL WHERE display_profile_id=:id`, { id });
-  sqlite.run(`DELETE FROM alert_display_profiles WHERE id=:id`, { id });
+  database.run(`UPDATE alert_rules SET display_profile_id=NULL WHERE display_profile_id=:id`, { id });
+  database.run(`DELETE FROM alert_display_profiles WHERE id=:id`, { id });
   return { ok:true, id };
 }
 
 function seedDisplayProfiles() {
   try {
-    const count = sqlite.get(`SELECT COUNT(*) AS c FROM alert_display_profiles`)?.c || 0;
+    const count = database.get(`SELECT COUNT(*) AS c FROM alert_display_profiles`)?.c || 0;
     if (Number(count) > 0) return;
     saveDisplayProfile({ name:'Neon Badge Standard', description:'ForrestCGN Neon-Galaxy Standardprofil', is_default:1, enabled:1, sort_order:10, settings: defaultDisplaySettings() });
     saveDisplayProfile({ name:'Kompakt', description:'Kompakter Alert für kleine Einblendungen', enabled:1, sort_order:20, settings:{ ...defaultDisplaySettings(), widthMode:'compact', sizeScale:0.88, fontScale:0.9, badgeScale:0.88, avatarSize:'normal' } });
@@ -1621,7 +1621,7 @@ function resolveTopGraphicUrlFromAsset(assetId) {
   const id = toInt(assetId, 0);
   if (!id) return '';
   try {
-    const row = sqlite.get(`SELECT public_url FROM alert_assets WHERE id=:id AND enabled=1 AND asset_type='image'`, { id });
+    const row = database.get(`SELECT public_url FROM alert_assets WHERE id=:id AND enabled=1 AND asset_type='image'`, { id });
     return cleanText(row?.public_url || '');
   } catch (_) { return ''; }
 }
@@ -1644,7 +1644,7 @@ function listTextVariants(filter = {}) {
   if (source) { where.push('source = :source'); params.source = source; }
   if (typeKey) { where.push('type_key = :typeKey'); params.typeKey = typeKey; }
   const sql = `SELECT * FROM alert_text_variants ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY source ASC, type_key ASC, COALESCE(rule_id, 0) ASC, sort_order ASC, id ASC`;
-  return sqlite.all(sql, params).map(row => ({ ...row, meta: parseJson(row.meta_json, {}) }));
+  return database.all(sql, params).map(row => ({ ...row, meta: parseJson(row.meta_json, {}) }));
 }
 
 function saveTextVariant(input = {}) {
@@ -1671,18 +1671,18 @@ function saveTextVariant(input = {}) {
   if (!row.typeKey) return { ok: false, error: 'missing_type_key' };
   if (!row.label) row.label = `${row.source}/${row.typeKey}`;
   if (id > 0) {
-    sqlite.run(`UPDATE alert_text_variants SET source=:source, type_key=:typeKey, rule_id=:ruleId, label=:label, title_template=:titleTemplate, headline_template=:headlineTemplate, value_template=:valueTemplate, subline_template=:sublineTemplate, message_template=:messageTemplate, message_mode=:messageMode, hide_subline_when_message_exists=:hideSublineWhenMessageExists, pick_weight=:pickWeight, enabled=:enabled, sort_order=:sortOrder, meta_json=:metaJson, updated_at=:now WHERE id=:id`, { ...row, id });
-    return { ok: true, id, variant: sqlite.get(`SELECT * FROM alert_text_variants WHERE id=:id`, { id }) };
+    database.run(`UPDATE alert_text_variants SET source=:source, type_key=:typeKey, rule_id=:ruleId, label=:label, title_template=:titleTemplate, headline_template=:headlineTemplate, value_template=:valueTemplate, subline_template=:sublineTemplate, message_template=:messageTemplate, message_mode=:messageMode, hide_subline_when_message_exists=:hideSublineWhenMessageExists, pick_weight=:pickWeight, enabled=:enabled, sort_order=:sortOrder, meta_json=:metaJson, updated_at=:now WHERE id=:id`, { ...row, id });
+    return { ok: true, id, variant: database.get(`SELECT * FROM alert_text_variants WHERE id=:id`, { id }) };
   }
-  const result = sqlite.run(`INSERT INTO alert_text_variants (source, type_key, rule_id, label, title_template, headline_template, value_template, subline_template, message_template, message_mode, hide_subline_when_message_exists, pick_weight, enabled, sort_order, meta_json, created_at, updated_at) VALUES (:source, :typeKey, :ruleId, :label, :titleTemplate, :headlineTemplate, :valueTemplate, :sublineTemplate, :messageTemplate, :messageMode, :hideSublineWhenMessageExists, :pickWeight, :enabled, :sortOrder, :metaJson, :now, :now)`, row);
+  const result = database.run(`INSERT INTO alert_text_variants (source, type_key, rule_id, label, title_template, headline_template, value_template, subline_template, message_template, message_mode, hide_subline_when_message_exists, pick_weight, enabled, sort_order, meta_json, created_at, updated_at) VALUES (:source, :typeKey, :ruleId, :label, :titleTemplate, :headlineTemplate, :valueTemplate, :sublineTemplate, :messageTemplate, :messageMode, :hideSublineWhenMessageExists, :pickWeight, :enabled, :sortOrder, :metaJson, :now, :now)`, row);
   const newId = Number(result.lastInsertRowid || 0);
-  return { ok: true, id: newId, variant: sqlite.get(`SELECT * FROM alert_text_variants WHERE id=:id`, { id: newId }) };
+  return { ok: true, id: newId, variant: database.get(`SELECT * FROM alert_text_variants WHERE id=:id`, { id: newId }) };
 }
 
 function deleteTextVariant(idRaw) {
   const id = toInt(idRaw, 0);
   if (id <= 0) return { ok: false, error: 'invalid_id' };
-  sqlite.run(`DELETE FROM alert_text_variants WHERE id=:id`, { id });
+  database.run(`DELETE FROM alert_text_variants WHERE id=:id`, { id });
   return { ok: true, id };
 }
 
@@ -1694,13 +1694,13 @@ function listTestPresets(filter = {}) {
   if (source) { where.push('source = :source'); params.source = source; }
   if (typeKey) { where.push('type_key = :typeKey'); params.typeKey = typeKey; }
   const sql = `SELECT * FROM alert_test_presets ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY source ASC, type_key ASC, sort_order ASC, id ASC`;
-  return sqlite.all(sql, params).map(row => ({ ...row, payload: parseJson(row.payload_json, {}) }));
+  return database.all(sql, params).map(row => ({ ...row, payload: parseJson(row.payload_json, {}) }));
 }
 
 function getTestPresetById(idRaw) {
   const id = toInt(idRaw, 0);
   if (id <= 0) return null;
-  const row = sqlite.get(`SELECT * FROM alert_test_presets WHERE id=:id`, { id });
+  const row = database.get(`SELECT * FROM alert_test_presets WHERE id=:id`, { id });
   return row ? { ...row, payload: parseJson(row.payload_json, {}) } : null;
 }
 
@@ -1719,10 +1719,10 @@ function saveTestPreset(input = {}) {
     now
   };
   if (id > 0) {
-    sqlite.run(`UPDATE alert_test_presets SET source=:source, type_key=:typeKey, rule_id=:ruleId, label=:label, payload_json=:payloadJson, enabled=:enabled, sort_order=:sortOrder, updated_at=:now WHERE id=:id`, { ...row, id });
+    database.run(`UPDATE alert_test_presets SET source=:source, type_key=:typeKey, rule_id=:ruleId, label=:label, payload_json=:payloadJson, enabled=:enabled, sort_order=:sortOrder, updated_at=:now WHERE id=:id`, { ...row, id });
     return { ok: true, id, preset: getTestPresetById(id) };
   }
-  const result = sqlite.run(`INSERT INTO alert_test_presets (source, type_key, rule_id, label, payload_json, enabled, sort_order, created_at, updated_at) VALUES (:source, :typeKey, :ruleId, :label, :payloadJson, :enabled, :sortOrder, :now, :now)`, row);
+  const result = database.run(`INSERT INTO alert_test_presets (source, type_key, rule_id, label, payload_json, enabled, sort_order, created_at, updated_at) VALUES (:source, :typeKey, :ruleId, :label, :payloadJson, :enabled, :sortOrder, :now, :now)`, row);
   const newId = Number(result.lastInsertRowid || 0);
   return { ok: true, id: newId, preset: getTestPresetById(newId) };
 }
@@ -1730,7 +1730,7 @@ function saveTestPreset(input = {}) {
 function deleteTestPreset(idRaw) {
   const id = toInt(idRaw, 0);
   if (id <= 0) return { ok: false, error: 'invalid_id' };
-  sqlite.run(`DELETE FROM alert_test_presets WHERE id=:id`, { id });
+  database.run(`DELETE FROM alert_test_presets WHERE id=:id`, { id });
   return { ok: true, id };
 }
 
@@ -1754,19 +1754,19 @@ function seedAlertTextVariants() {
     ['tipeee','hosting','Tipeee Hosting Standard','TIPEEE HOSTING','{userDisplayName}','hostet die Aktion','Danke für den Support!','auto',103]
   ];
   rows.forEach(r => {
-    const exists = sqlite.get(`SELECT id FROM alert_text_variants WHERE source=:source AND type_key=:typeKey AND label=:label LIMIT 1`, { source:r[0], typeKey:r[1], label:r[2] });
+    const exists = database.get(`SELECT id FROM alert_text_variants WHERE source=:source AND type_key=:typeKey AND label=:label LIMIT 1`, { source:r[0], typeKey:r[1], label:r[2] });
     if (!exists) saveTextVariant({ source:r[0], type_key:r[1], label:r[2], title_template:r[3], headline_template:r[4], value_template:r[5], subline_template:r[6], message_mode:r[7], sort_order:r[8], enabled:1 });
   });
 
   // STEP123: alten Bits-Standard nur dann sanft migrieren, wenn er noch unverändert aus STEP103 stammt.
-  const oldBits = sqlite.get(`SELECT id, headline_template, value_template FROM alert_text_variants WHERE source='twitch' AND type_key='bits' AND label='Bits Standard' LIMIT 1`);
+  const oldBits = database.get(`SELECT id, headline_template, value_template FROM alert_text_variants WHERE source='twitch' AND type_key='bits' AND label='Bits Standard' LIMIT 1`);
   if (oldBits && String(oldBits.headline_template || '').toLowerCase().includes('cheer') && String(oldBits.value_template || '') === '{amountFormatted}') {
-    sqlite.run(`UPDATE alert_text_variants SET headline_template='{userDisplayName}', value_template='cheert {amountFormatted}', updated_at=:now WHERE id=:id`, { id: oldBits.id, now: nowIso() });
+    database.run(`UPDATE alert_text_variants SET headline_template='{userDisplayName}', value_template='cheert {amountFormatted}', updated_at=:now WHERE id=:id`, { id: oldBits.id, now: nowIso() });
   }
 }
 
 function seedAlertTestPresets() {
-  const count = sqlite.get(`SELECT COUNT(*) AS c FROM alert_test_presets`)?.c || 0;
+  const count = database.get(`SELECT COUNT(*) AS c FROM alert_test_presets`)?.c || 0;
   if (Number(count) > 0) return;
   const presets = [
     { source:'twitch', type_key:'follow', label:'Follow Test', payload:{ user:'ForrestCGN', userLogin:'forrestcgn', avatarUrl:'', amount:1 } },
@@ -1789,7 +1789,7 @@ function findMatchingRule(payload) {
     if (explicitRule && explicitRule.source === source && explicitRule.type_key === typeKey && ruleMetaMatchesPayload(explicitRule, payload)) return explicitRule;
   }
 
-  const rows = sqlite.all(`
+  const rows = database.all(`
     SELECT
       r.*,
       s.public_url AS sound_url,
@@ -1919,7 +1919,7 @@ async function processQueue(broadcastWS) {
   event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
   event.status = 'playing';
   event.started_at = nowIso();
-  sqlite.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, { startedAt: event.started_at, eventUid: event.eventUid });
+  database.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, { startedAt: event.started_at, eventUid: event.eventUid });
 
   const soundResult = await playLiveAlertSound(event);
   if (soundResult && soundResult.attempted) {
@@ -2027,7 +2027,7 @@ function persistEventRuntimePayload(event) {
     if (event.soundSystem) raw.soundSystem = event.soundSystem;
     if (event.alertTts) raw.alertTts = event.alertTts;
     event.raw = raw;
-    sqlite.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
+    database.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
       payloadJson: JSON.stringify(raw),
       eventUid: event.eventUid
     });
@@ -2231,7 +2231,7 @@ function sleepMs(ms) {
 function finishCurrent(reason, broadcastWS) {
   if (!state.current) return;
   const finished = { ...state.current, finished_at: nowIso(), finishReason: reason };
-  sqlite.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt WHERE event_uid=:eventUid`, { finishedAt: finished.finished_at, eventUid: finished.eventUid });
+  database.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt WHERE event_uid=:eventUid`, { finishedAt: finished.finished_at, eventUid: finished.eventUid });
   state.history.unshift(finished);
   state.history = state.history.slice(0, 100);
   state.current = null;
@@ -2252,7 +2252,7 @@ async function enrichEventAvatar(event) {
   event.avatar_url = avatarUrl;
   event.raw = { ...(event.raw || {}), avatarUrl };
   try {
-    sqlite.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
+    database.run(`UPDATE alert_events SET payload_json=:payloadJson WHERE event_uid=:eventUid`, {
       eventUid: event.eventUid,
       payloadJson: JSON.stringify(event.raw || {})
     });
@@ -2450,7 +2450,7 @@ function buildTemplateContext(event, rule = {}) {
 }
 
 function selectTextVariant(event, rule = {}) {
-  const rows = sqlite.all(`
+  const rows = database.all(`
     SELECT * FROM alert_text_variants
     WHERE enabled = 1
       AND source = :source
@@ -2531,7 +2531,7 @@ function fallbackTemplates(event, rule = {}) {
 
 function persistRenderedAlert(eventUid, alert) {
   try {
-    sqlite.run(`UPDATE alert_events SET final_title=:title, final_headline=:headline, final_value=:value, final_subline=:subline, final_message=:message, text_variant_id=:variantId, provider_logo_url=:providerLogoUrl, display_profile_id=:displayProfileId, display_settings_json=:displaySettingsJson, final_chat_message=:chatMessage WHERE event_uid=:eventUid`, {
+    database.run(`UPDATE alert_events SET final_title=:title, final_headline=:headline, final_value=:value, final_subline=:subline, final_message=:message, text_variant_id=:variantId, provider_logo_url=:providerLogoUrl, display_profile_id=:displayProfileId, display_settings_json=:displaySettingsJson, final_chat_message=:chatMessage WHERE event_uid=:eventUid`, {
       eventUid,
       title: alert.title || '',
       headline: alert.headline || '',
@@ -2627,9 +2627,9 @@ async function dispatchAlertChatMessage(event, alert) {
 function saveChatOutbox(event, chat, status) {
   try {
     const now = nowIso();
-    const existing = sqlite.get(`SELECT id FROM alert_chat_outbox WHERE event_uid=:eventUid LIMIT 1`, { eventUid:event.eventUid });
+    const existing = database.get(`SELECT id FROM alert_chat_outbox WHERE event_uid=:eventUid LIMIT 1`, { eventUid:event.eventUid });
     if (existing && existing.id) return Number(existing.id);
-    const result = sqlite.run(`INSERT INTO alert_chat_outbox (event_uid, source, type_key, rule_id, chat_block_id, message, status, created_at) VALUES (:eventUid, :source, :typeKey, :ruleId, :chatBlockId, :message, :status, :now)`, {
+    const result = database.run(`INSERT INTO alert_chat_outbox (event_uid, source, type_key, rule_id, chat_block_id, message, status, created_at) VALUES (:eventUid, :source, :typeKey, :ruleId, :chatBlockId, :message, :status, :now)`, {
       eventUid:event.eventUid,
       source:event.source || '',
       typeKey:event.type_key || '',
@@ -2651,7 +2651,7 @@ function listChatOutbox(filter = {}) {
   const params = { limit };
   let where = '';
   if (status && status !== 'all') { where = 'WHERE status = :status'; params.status = status; }
-  return sqlite.all(`SELECT * FROM alert_chat_outbox ${where} ORDER BY id ASC LIMIT :limit`, params);
+  return database.all(`SELECT * FROM alert_chat_outbox ${where} ORDER BY id ASC LIMIT :limit`, params);
 }
 
 function updateChatOutboxStatus(idRaw, status, error) {
@@ -2659,7 +2659,7 @@ function updateChatOutboxStatus(idRaw, status, error) {
   if (!id) return;
   const now = nowIso();
   const sentAt = status === 'sent' ? now : null;
-  sqlite.run(`UPDATE alert_chat_outbox SET status=:status, error=:error, sent_at=COALESCE(:sentAt, sent_at) WHERE id=:id`, { id, status, error: cleanText(error || '').slice(0, 500), sentAt });
+  database.run(`UPDATE alert_chat_outbox SET status=:status, error=:error, sent_at=COALESCE(:sentAt, sent_at) WHERE id=:id`, { id, status, error: cleanText(error || '').slice(0, 500), sentAt });
 }
 
 function markChatOutboxSent(idRaw) {
@@ -2673,7 +2673,7 @@ function markChatOutboxConsumed(idRaw) {
   const id = toInt(idRaw, 0);
   if (!id) return { ok:false, error:'invalid_id' };
   const now = nowIso();
-  sqlite.run(`UPDATE alert_chat_outbox SET status='consumed', consumed_at=:now WHERE id=:id`, { id, now });
+  database.run(`UPDATE alert_chat_outbox SET status='consumed', consumed_at=:now WHERE id=:id`, { id, now });
   return { ok:true, id };
 }
 
@@ -2687,7 +2687,7 @@ function markChatOutboxError(idRaw, input = {}) {
 
 function updateChatDispatchStatus(eventUid, status, error) {
   try {
-    sqlite.run(`UPDATE alert_events SET chat_message_status=:status, chat_message_error=:error WHERE event_uid=:eventUid`, {
+    database.run(`UPDATE alert_events SET chat_message_status=:status, chat_message_error=:error WHERE event_uid=:eventUid`, {
       eventUid,
       status: cleanText(status || '').slice(0, 80),
       error: cleanText(error || '').slice(0, 500)
@@ -2735,7 +2735,7 @@ function sendOverlay(broadcastWS, payload) {
 
 function clearQueue(reason) {
   state.queue = [];
-  sqlite.run(`UPDATE alert_events SET status='cleared', finished_at=:now WHERE status='queued'`, { now: nowIso() });
+  database.run(`UPDATE alert_events SET status='cleared', finished_at=:now WHERE status='queued'`, { now: nowIso() });
   if (reason === 'api_clear' && state.current) {
     state.current = null;
     clearTimeout(state.finishTimer);

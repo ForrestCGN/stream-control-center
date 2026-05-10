@@ -4,10 +4,10 @@ Stand: 2026-05-10
 
 ## Datenbank / Portabilitaet
 
-Aktueller Stand nach STEP212:
+Aktueller Stand nach STEP214:
 
 - SQLite bleibt produktiver Standard und aktiver Fallback.
-- Aktive DB bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Aktive DB bleibt `D:\Streaming\stramAssets\data\sqlitepp.sqlite`.
 - `backend/core/database.js` ist die zentrale DB-Schicht fuer neue Module und Refactors.
 - MySQL und MariaDB sind als spaetere Zielsysteme vorgesehen.
 - `DB_ADAPTER=mysql` und `DB_ADAPTER=mariadb` werden in der Core-Schicht vorbereitet erkannt.
@@ -25,10 +25,21 @@ Schrittweise DB-Core-Portierung:
 
 - STEP209: `kofi.js` und `tipeee.js` nutzen jetzt `backend/core/database.js`.
 - STEP210: `twitch.js` nutzt fuer Twitch-Alert-Settings jetzt `backend/core/database.js`.
-- STEP211: `sound_system.js` nutzt fuer Sound-System-Settings jetzt `backend/core/database.js`.
-- STEP212: `dashboard_auth.js` nutzt fuer Dashboard-Auth-Tabellen jetzt `backend/core/database.js`.
+- STEP211: `sound_system.js` nutzt jetzt `backend/core/database.js`.
+- STEP212: `dashboard_auth.js` nutzt jetzt `backend/core/database.js`.
+- STEP213: `alert_system.js` nutzt jetzt `backend/core/database.js`.
+- STEP214: `tagebuch.js` nutzt jetzt `backend/core/database.js`.
 
 MySQL/MariaDB werden erst genutzt, wenn die Module schrittweise von direkter `sqlite_core`-Kopplung weggefuehrt und getestet wurden.
+
+## STEP214 - Tagebuch DB-Core-Portierung
+
+- `tagebuch.js` nutzt jetzt die zentrale DB-Schicht `backend/core/database.js`.
+- Direkte Kopplung des Tagebuch-Moduls an `sqlite_core.js` wurde entfernt.
+- Tagebuch-State, Entries, Settings, Textvarianten und Stats laufen weiter in der bestehenden SQLite-DB `D:\Streaming\stramAssets\data\sqlitepp.sqlite`.
+- Discord-/Webhook-, Text-, Streamstart-/Streamende-, Reset- und Stats-Logik wurden nicht fachlich veraendert.
+- MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
+- Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.
 
 ## Loyalty / Kekskruemel
 
@@ -57,23 +68,6 @@ Seit STEP205:
 - Wenn Streamer.bot zuerst live setzt und Twitch/EventSub danach ebenfalls online meldet, bleibt `manual.source = streamerbot` erhalten.
 - Das Twitch/EventSub-Signal wird als `stream_state_start_signal` geloggt.
 
-## GiftSub-Verhalten
-
-Bei GiftSub mit `recipientLogin`:
-
-```text
-Gifter bekommt giftSubGiver-Punkte.
-Receiver bekommt giftSubReceiver-Punkte.
-```
-
-Voraussetzung:
-
-```text
-bonuses.giftSubGiver.enabled = true
-bonuses.giftSubReceiver.enabled = true
-features.eventBonusesEnabled = true
-```
-
 ## Aktuelle Livetest-Prioritaet
 
 Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP206:
@@ -84,12 +78,3 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP206:
 - Bot-/Systemuser muessen `ignored_user` liefern.
 - Event-Boni weiterhin beobachten.
 - Nach Streamende Runner/Stream-State offline pruefen.
-
-## STEP212 - Dashboard Auth DB-Core-Portierung
-
-- `dashboard_auth.js` nutzt jetzt die zentrale DB-Schicht `backend/core/database.js`.
-- Direkte Kopplung des Dashboard-Auth-Moduls an `sqlite_core.js` wurde entfernt.
-- Dashboard-User, Identities, Sessions, Rollen, Permissions und Audit-Log laufen weiter in der bestehenden SQLite-DB `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
-- Login-, Session-, OAuth-, Rollen- und Rechte-Logik wurden nicht fachlich veraendert.
-- MySQL/MariaDB bleiben vorbereitet, aber nicht aktiv.
-- Es wurde kein DB-Treiber installiert und keine Datenbank-Migration ausgefuehrt.

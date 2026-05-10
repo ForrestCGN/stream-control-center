@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const sqlite = require(path.join(__dirname, 'sqlite_core.js'));
+const database = require('../core/database');
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const security = require('./helpers/helper_security');
@@ -398,7 +398,7 @@ function buildPageTitle(pageNumber) {
 }
 
 function ensureSchema() {
-  sqlite.ensureSchema(MODULE_NAME, SCHEMA_VERSION, (_from, toVersion, db) => {
+  database.ensureSchema(MODULE_NAME, SCHEMA_VERSION, (_from, toVersion, db) => {
     if (toVersion === 1) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS tagebuch_state (
@@ -538,7 +538,7 @@ function ensureSchema() {
 }
 
 function getState() {
-  return sqlite.get(`SELECT * FROM tagebuch_state WHERE id = 1`) || {
+  return database.get(`SELECT * FROM tagebuch_state WHERE id = 1`) || {
     id: 1,
     current_page_number: 0,
     current_page_date: null,
@@ -552,7 +552,7 @@ function getState() {
 }
 
 function saveState(next) {
-  sqlite.run(
+  database.run(
     `
       INSERT INTO tagebuch_state (
         id, current_page_number, current_page_date, last_stream_started_at,
@@ -588,7 +588,7 @@ function saveState(next) {
 
 function logRuntimeEvent(type, data = {}) {
   try {
-    sqlite.run(
+    database.run(
       `
         INSERT INTO tagebuch_runtime_events (
           event_type, page_number, page_date, actor_login, actor_display, system, created_at
@@ -667,7 +667,7 @@ function updateUserStats({ pageDate, pageNumber, userId, login, displayName, sys
 
   const at = nowIso();
 
-  sqlite.run(
+  database.run(
     `
       INSERT INTO tagebuch_user_stats (
         user_key, user_id, login, display_name, entry_count,
@@ -693,7 +693,7 @@ function updateUserStats({ pageDate, pageNumber, userId, login, displayName, sys
     }
   );
 
-  sqlite.run(
+  database.run(
     `
       INSERT INTO tagebuch_daily_user_stats (
         page_date, page_number, user_key, user_id, login, display_name,
@@ -760,7 +760,7 @@ function mapDailyStatsRow(row) {
 }
 
 function getStatsTop(limit = 10) {
-  return sqlite.all(
+  return database.all(
     `
       SELECT user_key, user_id, login, display_name, entry_count, first_entry_at, last_entry_at
       FROM tagebuch_user_stats
@@ -772,7 +772,7 @@ function getStatsTop(limit = 10) {
 }
 
 function getStatsForDate(pageDate, limit = 10) {
-  return sqlite.all(
+  return database.all(
     `
       SELECT page_date, page_number, user_key, user_id, login, display_name, entry_count, first_entry_at, last_entry_at
       FROM tagebuch_daily_user_stats
@@ -788,7 +788,7 @@ function getStatsForUser(user) {
   const needle = safeString(user).toLowerCase().replace(/^@/, '');
   if (!needle) return null;
 
-  const row = sqlite.get(
+  const row = database.get(
     `
       SELECT user_key, user_id, login, display_name, entry_count, first_entry_at, last_entry_at
       FROM tagebuch_user_stats
@@ -1068,8 +1068,8 @@ function buildStatus() {
     ok: true,
     module: 'tagebuch',
     version: 2,
-    schemaVersion: sqlite.getSchemaVersion(MODULE_NAME),
-    databasePath: typeof sqlite.getDbPath === 'function' ? sqlite.getDbPath() : null,
+    schemaVersion: database.getSchemaVersion(MODULE_NAME),
+    databasePath: typeof database.getDbPath === 'function' ? database.getDbPath() : null,
     configPath: cfg.configPath,
     messagesPath: cfg.messagesPath,
     config: safePublicConfig(cfg),
@@ -1080,7 +1080,7 @@ function buildStatus() {
 
 function countTableRows(tableName) {
   try {
-    const row = sqlite.get(`SELECT COUNT(*) AS count FROM ${tableName}`);
+    const row = database.get(`SELECT COUNT(*) AS count FROM ${tableName}`);
     return { ok: true, table: tableName, count: Number(row?.count || 0), error: '' };
   } catch (err) {
     return { ok: false, table: tableName, count: 0, error: err.message };
@@ -1193,8 +1193,8 @@ function buildTagebuchIntegrationCheck() {
     checks.database = {
       ok: true,
       adapter: 'sqlite',
-      path: typeof sqlite.getDbPath === 'function' ? sqlite.getDbPath() : null,
-      schemaVersion: sqlite.getSchemaVersion(MODULE_NAME),
+      path: typeof database.getDbPath === 'function' ? database.getDbPath() : null,
+      schemaVersion: database.getSchemaVersion(MODULE_NAME),
       expectedSchemaVersion: SCHEMA_VERSION,
       error: ''
     };
@@ -1530,6 +1530,7 @@ function registerRoutes(ctx) {
 }
 
 function init(ctx) {
+  database.ensureReady(ctx);
   loadRuntimeConfig();
   loadRuntimeMessages();
   ensureSchema();
