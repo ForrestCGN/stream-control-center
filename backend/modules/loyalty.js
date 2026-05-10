@@ -461,7 +461,7 @@ function ensureSchema() {
     if (toVersion === 1) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS loyalty_users (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${database.primaryKeyAutoIncrementSql()},
           user_login TEXT NOT NULL UNIQUE,
           user_display_name TEXT NOT NULL DEFAULT '',
           balance_shadow INTEGER NOT NULL DEFAULT 0,
@@ -482,7 +482,7 @@ function ensureSchema() {
 
       db.exec(`
         CREATE TABLE IF NOT EXISTS loyalty_transactions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${database.primaryKeyAutoIncrementSql()},
           transaction_uid TEXT NOT NULL UNIQUE,
           user_login TEXT NOT NULL,
           user_display_name TEXT NOT NULL DEFAULT '',
@@ -508,7 +508,7 @@ function ensureSchema() {
 
       db.exec(`
         CREATE TABLE IF NOT EXISTS loyalty_reservations (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${database.primaryKeyAutoIncrementSql()},
           reservation_uid TEXT NOT NULL UNIQUE,
           user_login TEXT NOT NULL,
           user_display_name TEXT NOT NULL DEFAULT '',
@@ -531,7 +531,7 @@ function ensureSchema() {
 
       db.exec(`
         CREATE TABLE IF NOT EXISTS loyalty_imports (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${database.primaryKeyAutoIncrementSql()},
           import_uid TEXT NOT NULL UNIQUE,
           source_provider TEXT NOT NULL DEFAULT 'streamelements',
           status TEXT NOT NULL DEFAULT 'created',
@@ -547,7 +547,7 @@ function ensureSchema() {
 
       db.exec(`
         CREATE TABLE IF NOT EXISTS loyalty_ignored_users (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${database.primaryKeyAutoIncrementSql()},
           user_login TEXT NOT NULL UNIQUE,
           reason TEXT NOT NULL DEFAULT '',
           enabled INTEGER NOT NULL DEFAULT 1,
@@ -1305,7 +1305,7 @@ function databaseStatus() {
 function ensureLoyaltyEventsTable() {
   database.run(`
     CREATE TABLE IF NOT EXISTS loyalty_events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${database.primaryKeyAutoIncrementSql()},
       event_uid TEXT NOT NULL UNIQUE,
       provider TEXT NOT NULL DEFAULT '',
       event_type TEXT NOT NULL DEFAULT '',
@@ -1715,7 +1715,7 @@ function listLoyaltyEvents(options = {}) {
 function ensureRunnerEventsTable() {
   database.run(`
     CREATE TABLE IF NOT EXISTS loyalty_runner_events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${database.primaryKeyAutoIncrementSql()},
       runner_key TEXT NOT NULL DEFAULT 'auto_shadow',
       event_type TEXT NOT NULL,
       trigger TEXT NOT NULL DEFAULT '',
