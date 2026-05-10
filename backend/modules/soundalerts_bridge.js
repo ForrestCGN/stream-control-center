@@ -566,7 +566,7 @@ function ensureSchema() {
     if (toVersion === 1) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS soundalerts_bridge_events (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${database.primaryKeyAutoIncrementSql()},
           event_uid TEXT NOT NULL DEFAULT '',
           created_at TEXT NOT NULL,
           bot_login TEXT NOT NULL DEFAULT '',
@@ -594,7 +594,7 @@ function ensureSchema() {
     if (toVersion === 2) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS soundalerts_bridge_entries (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id ${database.primaryKeyAutoIncrementSql()},
           entry_key TEXT NOT NULL DEFAULT '',
           enabled INTEGER NOT NULL DEFAULT 0,
           status TEXT NOT NULL DEFAULT 'inactive',
