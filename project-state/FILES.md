@@ -2,6 +2,33 @@
 
 Stand: 2026-05-10
 
+## STEP220
+
+Geaendert:
+
+```text
+backend/modules/twitch.js
+project-state/STEP220_TWITCH_ALERT_SUB_MESSAGE_BUFFER_2026-05-10.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/alert_system.js
+backend/modules/loyalty.js
+backend/core/database.js
+backend/modules/sqlite_core.js
+package.json
+app.sqlite
+htdocs/**
+config/**
+```
+
 ## STEP217
 
 Geaendert:
@@ -53,4 +80,4 @@ backend/modules/sqlite_core.js
 backend/check_alert_db.js
 ```
 
-Einordnung: altes technisches Pruefscript, kein normales produktives Modul. Keine Aenderung in STEP217.
+Einordnung: altes technisches Pruefscript, kein normales produktives Modul. Keine Aenderung in STEP217 oder STEP220.

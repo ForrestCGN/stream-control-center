@@ -2,6 +2,13 @@
 
 ## 2026-05-10
 
+### STEP220 - Twitch Alert Subscribe/Resub Message Buffer
+
+- `backend/modules/twitch.js` erweitert: `channel.subscribe` wird vor dem Alert-Forwarding 30 Sekunden gepuffert.
+- Wenn innerhalb des Puffers fuer denselben User `channel.subscription.message` kommt, wird der gepufferte Subscribe-Alert verworfen und die Subscription-Message / der Resub-Alert gewinnt.
+- Wenn zuerst `channel.subscription.message` kommt und kurz danach `channel.subscribe`, wird der spaetere Subscribe-Alert unterdrueckt.
+- `/api/twitch/alerts/status` zeigt jetzt `subMessageBuffer` mit `enabled`, `delayMs`, `pendingSubscribeAlerts` und `recentSubscriptionMessages`.
+- Keine Aenderung an Alert-Queue, Alert-Regeln, Sounds, Designs, Loyalty, Kofi, Tipeee oder DB-Schema.
 
 ### STEP217 - DB-Core-Portability Rescan & Cleanup-Doku
 
@@ -12,14 +19,12 @@
 - Missverstaendliche Vorher-Zeile in `STEP216_CHALLENGE_DB_CORE_PORTABILITY_2026-05-10.md` sprachlich bereinigt.
 - Keine Backend-Logik, keine DB, kein Treiber und kein `package.json` geaendert.
 
-
 ### STEP216 - Challenge DB-Core-Portabilitaet
 
 - `backend/modules/challenge.js` von direktem `sqlite_core.js` auf `backend/core/database.js` umgestellt.
 - Challenge-Stats und Runtime-Event-Stats laufen weiter ueber SQLite/app.sqlite, aber zentral gekapselt.
 - Keine Challenge-/Queue-/Timer-/Overlay-/WebSocket-/Chat-/Discord-Sound-Logik geaendert.
 - Kein MySQL-/MariaDB-Treiber, keine MySQL-/MariaDB-Verbindung, keine Datenmigration.
-
 
 ### STEP215 - Todo DB-Core-Portabilitaet
 

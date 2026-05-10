@@ -2,6 +2,28 @@
 
 Stand: 2026-05-10
 
+## Twitch Alert Bridge / Sub-Message-Buffer
+
+Nach STEP220 im naechsten echten Stream beobachten:
+
+- Kommt bei Usern wie Penny `channel.subscribe` und kurz danach `channel.subscription.message`, darf nur ein sichtbarer Alert laufen.
+- In `/api/twitch/alerts/status` soll `recent` in solchen Faellen `buffered`, `buffer_replaced` oder `buffer_flushed` zeigen.
+- Falls Twitch in der Praxis laenger als 30 Sekunden zwischen Subscribe und Subscription-Message braucht, `subMessageBuffer.delayMs` spaeter erhoehen.
+
+Pruefung nach Deploy/Backend-Neustart:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/status" | ConvertTo-Json -Depth 40
+```
+
+Erwartung:
+
+```text
+subMessageBuffer.enabled = true
+subMessageBuffer.delayMs = 30000
+lastError leer
+```
+
 ## DB-Portabilitaet
 
 SQLite bleibt aktiv, bis ein echter MariaDB-/MySQL-Server vorhanden ist und alle relevanten Module sauber portiert, getestet und SQL-Dialektstellen gekapselt wurden.

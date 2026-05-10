@@ -2,6 +2,18 @@
 
 Stand: 2026-05-10
 
+## Alert-System / Twitch Alert Bridge
+
+Aktueller Stand nach STEP220:
+
+- Twitch-Alert-Bridge puffert `channel.subscribe` fuer 30 Sekunden.
+- Kommt innerhalb dieses Puffers fuer denselben User `channel.subscription.message`, wird der gepufferte Subscribe-Alert verworfen und die Subscription-Message / der Resub-Alert sofort weitergeleitet.
+- Kommt keine Subscription-Message, wird der Subscribe-Alert nach 30 Sekunden normal weitergeleitet.
+- Kommt `channel.subscription.message` zuerst und danach `channel.subscribe`, wird der spaetere Subscribe-Alert im Pufferfenster unterdrueckt.
+- Der Puffer ist In-Memory, erzeugt keine neue Tabelle und keine DB-Migration.
+- `/api/twitch/alerts/status` zeigt `subMessageBuffer` mit `enabled`, `delayMs`, `pendingSubscribeAlerts` und `recentSubscriptionMessages`.
+- Alert-System-Core, Queue, Regeln, Sounds, Designs, Dashboard, Loyalty, Kofi, Tipeee und SQLite-Schema wurden nicht geaendert.
+
 ## Datenbank / Portabilitaet
 
 Aktueller Stand nach STEP217:
@@ -104,8 +116,9 @@ Seit STEP205:
 
 ## Aktuelle Livetest-Prioritaet
 
-Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP206:
+Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP220 und STEP206:
 
+- Twitch-Alert-Puffer bei Sub/Resub-Doppelevents beobachten.
 - Vor Streamstart Status/Ignore-Liste pruefen.
 - Nach Streamstart AutoRunner pruefen.
 - Nach 10 bis 12 Minuten Watch-Punkte pruefen.

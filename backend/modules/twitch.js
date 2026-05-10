@@ -47,6 +47,10 @@ const DEFAULT_TWITCH_ALERT_CONFIG = {
     channelPoints: false
   },
   ignoredRewardTitles: [],
+  subMessageBuffer: {
+    enabled: true,
+    delayMs: 30000
+  },
   loyaltyForward: {
     enabled: true,
     url: 'http://127.0.0.1:8080/api/loyalty/events/ingest',
@@ -248,6 +252,88 @@ module.exports.init = function init(ctx) {
   function rememberTwitchAlertBridge(entry) {
     twitchAlertBridgeState.recent.unshift({ at: core.nowIso(), ...entry });
     twitchAlertBridgeState.recent = twitchAlertBridgeState.recent.slice(0, 20);
+  }
+
+  const pendingTwitchSubscribeAlerts = new Map();
+  const recentTwitchSubscriptionMessages = new Map();
+
+  function getTwitchSubMessageBufferConfig() {
+    const cfg = twitchAlertBridgeState.config || DEFAULT_TWITCH_ALERT_CONFIG;
+    const buffer = cfg.subMessageBuffer || {};
+    const enabled = buffer.enabled !== false;
+    const parsedDelayMs = Number(buffer.delayMs ?? buffer.delayMilliseconds ?? 30000);
+    const delayMs = Number.isFinite(parsedDelayMs)
+      ? Math.max(1000, Math.min(120000, Math.floor(parsedDelayMs)))
+      : 30000;
+    return { enabled, delayMs };
+  }
+
+  function normalizeAlertBridgeLogin(alertPayload) {
+    return String(alertPayload?.user_login || alertPayload?.login || alertPayload?.user || '')
+      .trim()
+      .replace(/^@/, '')
+      .toLowerCase();
+  }
+
+  function alertPayloadEventId(alertPayload) {
+    return String(
+      alertPayload?.eventUid ||
+      alertPayload?.event_uid ||
+      alertPayload?.raw?.id ||
+      alertPayload?.raw?.event_id ||
+      alertPayload?.raw?.message_id ||
+      ''
+    ).trim();
+  }
+
+  function cleanupSubMessageBufferMaps(nowMs = Date.now()) {
+    for (const [login, record] of pendingTwitchSubscribeAlerts.entries()) {
+      if (!record || Number(record.expiresAt || 0) <= nowMs) {
+        pendingTwitchSubscribeAlerts.delete(login);
+      }
+    }
+    for (const [login, record] of recentTwitchSubscriptionMessages.entries()) {
+      if (!record || Number(record.expiresAt || 0) <= nowMs) {
+        recentTwitchSubscriptionMessages.delete(login);
+      }
+    }
+  }
+
+  function clearPendingSubscribeAlert(login, reason) {
+    const key = normalizeAlertBridgeLogin({ login });
+    const record = pendingTwitchSubscribeAlerts.get(key);
+    if (!record) return null;
+
+    if (record.timer) clearTimeout(record.timer);
+    pendingTwitchSubscribeAlerts.delete(key);
+    twitchAlertBridgeState.skipped++;
+    rememberTwitchAlertBridge({
+      action: 'skipped',
+      reason,
+      subscriptionType: record.subscriptionType,
+      bufferedSubscriptionType: record.subscriptionType,
+      alertType: record.alertPayload?.type || '',
+      user: record.alertPayload?.user || key,
+      login: key,
+      eventId: record.eventId || '',
+      bufferAgeMs: Math.max(0, Date.now() - Number(record.createdAt || Date.now()))
+    });
+    return record;
+  }
+
+  function isBufferableSubscribeAlert(alertPayload, subscriptionType) {
+    return subscriptionType === 'channel.subscribe'
+      && alertPayload
+      && !alertPayload._skip
+      && alertPayload.is_gift !== true
+      && alertPayload.is_gift !== 'true'
+      && alertPayload.type !== 'gifted_sub_received';
+  }
+
+  function isSubscriptionMessageAlert(alertPayload, subscriptionType) {
+    return subscriptionType === 'channel.subscription.message'
+      && alertPayload
+      && !alertPayload._skip;
   }
 
   function readJSON(file,fallback=null){return core.readJson(file, fallback);}
@@ -959,6 +1045,11 @@ module.exports.init = function init(ctx) {
       failed: twitchAlertBridgeState.failed,
       lastForwardedAt: twitchAlertBridgeState.lastForwardedAt,
       lastError: twitchAlertBridgeState.lastError,
+      subMessageBuffer: {
+        ...getTwitchSubMessageBufferConfig(),
+        pendingSubscribeAlerts: pendingTwitchSubscribeAlerts.size,
+        recentSubscriptionMessages: recentTwitchSubscriptionMessages.size
+      },
       recent: twitchAlertBridgeState.recent
     });
   });
@@ -1103,6 +1194,11 @@ module.exports.init = function init(ctx) {
         failed: twitchAlertBridgeState.failed,
         lastForwardedAt: twitchAlertBridgeState.lastForwardedAt,
         lastError: twitchAlertBridgeState.lastError,
+        subMessageBuffer: {
+          ...getTwitchSubMessageBufferConfig(),
+          pendingSubscribeAlerts: pendingTwitchSubscribeAlerts.size,
+          recentSubscriptionMessages: recentTwitchSubscriptionMessages.size
+        },
         recent: twitchAlertBridgeState.recent.slice(0, 20)
       }
     };
@@ -1461,6 +1557,126 @@ module.exports.init = function init(ctx) {
   }
 
   async function forwardAlertPayloadToAlertSystem(alertPayload, subscriptionType) {
+    if (!alertPayload || alertPayload._skip) {
+      return forwardAlertPayloadToAlertSystemNow(alertPayload, subscriptionType);
+    }
+
+    const bufferConfig = getTwitchSubMessageBufferConfig();
+    if (!bufferConfig.enabled) {
+      return forwardAlertPayloadToAlertSystemNow(alertPayload, subscriptionType);
+    }
+
+    cleanupSubMessageBufferMaps();
+
+    if (isSubscriptionMessageAlert(alertPayload, subscriptionType)) {
+      const login = normalizeAlertBridgeLogin(alertPayload);
+      if (login) {
+        const replaced = clearPendingSubscribeAlert(login, 'sub_message_replaced_buffered_subscribe');
+        recentTwitchSubscriptionMessages.set(login, {
+          createdAt: Date.now(),
+          expiresAt: Date.now() + bufferConfig.delayMs,
+          subscriptionType,
+          alertType: alertPayload.type || '',
+          eventId: alertPayloadEventId(alertPayload)
+        });
+        if (replaced) {
+          rememberTwitchAlertBridge({
+            action: 'buffer_replaced',
+            reason: 'subscription_message_wins',
+            subscriptionType,
+            replacedSubscriptionType: replaced.subscriptionType,
+            alertType: alertPayload.type || '',
+            user: alertPayload.user || login,
+            login,
+            delayMs: bufferConfig.delayMs
+          });
+        }
+      }
+      return forwardAlertPayloadToAlertSystemNow(alertPayload, subscriptionType);
+    }
+
+    if (isBufferableSubscribeAlert(alertPayload, subscriptionType)) {
+      const login = normalizeAlertBridgeLogin(alertPayload);
+      if (!login) {
+        return forwardAlertPayloadToAlertSystemNow(alertPayload, subscriptionType);
+      }
+
+      const recentMessage = recentTwitchSubscriptionMessages.get(login);
+      if (recentMessage && Number(recentMessage.expiresAt || 0) > Date.now()) {
+        twitchAlertBridgeState.skipped++;
+        rememberTwitchAlertBridge({
+          action: 'skipped',
+          reason: 'sub_message_already_forwarded',
+          subscriptionType,
+          alertType: alertPayload.type || '',
+          user: alertPayload.user || login,
+          login,
+          matchedSubscriptionType: recentMessage.subscriptionType,
+          matchedEventId: recentMessage.eventId || '',
+          delayMs: bufferConfig.delayMs
+        });
+        return { ok: true, skipped: true, reason: 'sub_message_already_forwarded', delayMs: bufferConfig.delayMs };
+      }
+
+      clearPendingSubscribeAlert(login, 'buffered_subscribe_replaced_by_new_subscribe');
+
+      const eventId = alertPayloadEventId(alertPayload);
+      const createdAt = Date.now();
+      const record = {
+        alertPayload: { ...alertPayload },
+        subscriptionType,
+        eventId,
+        createdAt,
+        expiresAt: createdAt + bufferConfig.delayMs,
+        timer: null
+      };
+
+      record.timer = setTimeout(async () => {
+        const current = pendingTwitchSubscribeAlerts.get(login);
+        if (current !== record) return;
+
+        pendingTwitchSubscribeAlerts.delete(login);
+        rememberTwitchAlertBridge({
+          action: 'buffer_flushed',
+          reason: 'no_subscription_message_within_delay',
+          subscriptionType,
+          alertType: alertPayload.type || '',
+          user: alertPayload.user || login,
+          login,
+          eventId,
+          delayMs: bufferConfig.delayMs
+        });
+
+        try {
+          await forwardAlertPayloadToAlertSystemNow(record.alertPayload, subscriptionType);
+        } catch (e) {
+          twitchAlertBridgeState.failed++;
+          twitchAlertBridgeState.lastError = e?.message || String(e);
+          rememberTwitchAlertBridge({ action: 'failed', subscriptionType, login, error: twitchAlertBridgeState.lastError });
+        }
+      }, bufferConfig.delayMs);
+
+      if (record.timer && typeof record.timer.unref === 'function') record.timer.unref();
+
+      pendingTwitchSubscribeAlerts.set(login, record);
+      rememberTwitchAlertBridge({
+        action: 'buffered',
+        reason: 'waiting_for_subscription_message',
+        subscriptionType,
+        alertType: alertPayload.type || '',
+        user: alertPayload.user || login,
+        login,
+        eventId,
+        delayMs: bufferConfig.delayMs
+      });
+
+      return { ok: true, buffered: true, reason: 'waiting_for_subscription_message', delayMs: bufferConfig.delayMs };
+    }
+
+    return forwardAlertPayloadToAlertSystemNow(alertPayload, subscriptionType);
+  }
+
+  async function forwardAlertPayloadToAlertSystemNow(alertPayload, subscriptionType) {
     const cfg = twitchAlertBridgeState.config || DEFAULT_TWITCH_ALERT_CONFIG;
     if (!alertPayload) return { ok: false, error: 'empty_alert_payload' };
     if (alertPayload._skip) {

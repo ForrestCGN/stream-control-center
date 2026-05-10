@@ -2,6 +2,18 @@
 
 Stand: 2026-05-10
 
+## Alert-System / Twitch Alert Bridge
+
+Aktueller Stand nach STEP220:
+
+- Twitch-Alert-Bridge puffert `channel.subscribe` 30 Sekunden, bevor daraus ein sichtbarer Alert wird.
+- Wenn innerhalb dieses Puffers fuer denselben User `channel.subscription.message` kommt, gewinnt die Subscription-Message / der Resub-Alert.
+- Der gepufferte Subscribe-Alert wird dann verworfen, damit nicht zwei Sub-Alerts hintereinander laufen.
+- Wenn zuerst `channel.subscription.message` kommt und kurz danach `channel.subscribe`, wird der spaetere Subscribe-Alert ebenfalls unterdrueckt.
+- Der Puffer ist In-Memory und erzeugt keine neue DB-Tabelle.
+- `/api/twitch/alerts/status` zeigt `subMessageBuffer` mit Pending-/Recent-Zaehlern.
+- Alert-Queue, Alert-Regeln, Sounds, Designs, Loyalty, Kofi, Tipeee und SQLite-Schema wurden nicht geaendert.
+
 ## Datenbank / Portabilitaet
 
 Aktueller Stand nach STEP217:
@@ -86,4 +98,3 @@ Aktueller Stand:
 
 - DB-Portabilitaetsstand dokumentiert.
 - Direkte `sqlite_core`-Nutzungen und bereits zentrale `core/database`-Nutzungen wurden eingeordnet.
-- MySQL/MariaDB wurden als spaetere Zielsysteme festgelegt.
