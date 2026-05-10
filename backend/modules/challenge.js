@@ -1043,7 +1043,7 @@ module.exports.init = function init(ctx) {
         PRIMARY KEY (user_key, mode)
       )`);
       database.exec(`CREATE TABLE IF NOT EXISTS challenge_runtime_events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id ${database.primaryKeyAutoIncrementSql()},
         event_type TEXT NOT NULL,
         challenge_id TEXT,
         mode TEXT,
@@ -1053,10 +1053,12 @@ module.exports.init = function init(ctx) {
         duration_seconds INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL
       )`);
-      dbRun(`INSERT INTO schema_versions (module_name, version, updated_at)
-        VALUES (?, ?, ?)
-        ON CONFLICT(module_name) DO UPDATE SET version = excluded.version, updated_at = excluded.updated_at`,
-        ["challenge", 1, now]);
+      database.upsert(
+        "schema_versions",
+        { module_name: "challenge", version: 1, updated_at: now },
+        ["module_name"],
+        ["version", "updated_at"]
+      );
       statsSchemaReady = true;
       return true;
     } catch (err) {
@@ -1080,15 +1082,23 @@ module.exports.init = function init(ctx) {
     const duration = positiveInt(entry.duration, 0);
 
     try {
-      dbRun(`INSERT INTO challenge_user_mode_stats (
-          user_key, user_display, mode, label,
-          requested_count, queued_count, started_count, finished_count, total_duration_seconds, updated_at
-        ) VALUES (?, ?, ?, ?, 0, 0, 0, 0, 0, ?)
-        ON CONFLICT(user_key, mode) DO UPDATE SET
-          user_display = excluded.user_display,
-          label = excluded.label,
-          updated_at = excluded.updated_at`,
-        [userKey, userDisplay, mode, label, now]);
+      database.upsert(
+        "challenge_user_mode_stats",
+        {
+          user_key: userKey,
+          user_display: userDisplay,
+          mode,
+          label,
+          requested_count: 0,
+          queued_count: 0,
+          started_count: 0,
+          finished_count: 0,
+          total_duration_seconds: 0,
+          updated_at: now
+        },
+        ["user_key", "mode"],
+        ["user_display", "label", "updated_at"]
+      );
 
       if (event === "requested") {
         dbRun(`UPDATE challenge_user_mode_stats
