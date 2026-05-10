@@ -3,6 +3,10 @@
 /**
  * Loyalty / Kekskrümel Core
  *
+ * STEP204:
+ * - Stream-State Start/Stop koppelt AutoRunner konfigurierbar und idempotent
+ * - Runner-Start/-Stop-Quellen werden in loyalty_runner_events geloggt
+ *
  * STEP203:
  * - Shadow Mode zuerst
  * - StreamElements bleibt aktiv
@@ -18,7 +22,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.7";
+const VERSION = "0.1.8";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 3;
@@ -93,7 +97,11 @@ const DEFAULT_CONFIG = {
     checkAutoLive: true,
     includeJoinedOnly: true,
     activeMinutes: 30,
-    maxUsersPerRun: 250
+    maxUsersPerRun: 250,
+    startOnStreamStateStart: true,
+    stopOnStreamStateStop: true,
+    startOnAutoLive: true,
+    stopOnAutoOffline: false
   }
 };
 
@@ -180,7 +188,11 @@ const SETTINGS_DEFINITIONS = [
   { key: "autoRunner.checkAutoLive", path: "autoRunner.checkAutoLive", valueType: "boolean", description: "Vor jedem Runner-Lauf Twitch Auto-Live-Status aktualisieren." },
   { key: "autoRunner.includeJoinedOnly", path: "autoRunner.includeJoinedOnly", valueType: "boolean", description: "JOIN-only Twitch-Presence-User im Auto Runner beruecksichtigen." },
   { key: "autoRunner.activeMinutes", path: "autoRunner.activeMinutes", valueType: "number", description: "Presence-Zeitfenster fuer Auto Runner." },
-  { key: "autoRunner.maxUsersPerRun", path: "autoRunner.maxUsersPerRun", valueType: "number", description: "Maximale Presence-User pro Auto Runner Lauf." }
+  { key: "autoRunner.maxUsersPerRun", path: "autoRunner.maxUsersPerRun", valueType: "number", description: "Maximale Presence-User pro Auto Runner Lauf." },
+  { key: "autoRunner.startOnStreamStateStart", path: "autoRunner.startOnStreamStateStart", valueType: "boolean", description: "Auto Runner automatisch starten, wenn Stream-State manuell/extern auf live gesetzt wird." },
+  { key: "autoRunner.stopOnStreamStateStop", path: "autoRunner.stopOnStreamStateStop", valueType: "boolean", description: "Auto Runner automatisch stoppen, wenn Stream-State manuell/extern auf offline gesetzt wird." },
+  { key: "autoRunner.startOnAutoLive", path: "autoRunner.startOnAutoLive", valueType: "boolean", description: "Auto Runner automatisch starten, wenn die Twitch-Auto-Pruefung live meldet." },
+  { key: "autoRunner.stopOnAutoOffline", path: "autoRunner.stopOnAutoOffline", valueType: "boolean", description: "Auto Runner automatisch stoppen, wenn die Twitch-Auto-Pruefung offline meldet." }
 ];
 
 const TEXT_CATEGORIES = {
@@ -1842,12 +1854,15 @@ function scheduleAutoRunner(req = null) {
 
 function startAutoRunner(options = {}) {
   refreshConfigFromSettings();
+  const trigger = String(options.trigger || "manual_start");
   if (autoRunnerState.enabled && autoRunnerState.timer) {
-    return { ok: true, alreadyRunning: true, status: getAutoRunnerStatus() };
+    const payload = { ok: true, alreadyRunning: true, trigger, status: getAutoRunnerStatus() };
+    logRunnerEvent("runner_start_already_running", payload);
+    return payload;
   }
 
   autoRunnerState.enabled = true;
-  autoRunnerState.trigger = String(options.trigger || "manual_start");
+  autoRunnerState.trigger = trigger;
   autoRunnerState.startedAt = core.nowIso();
   autoRunnerState.stoppedAt = "";
   autoRunnerState.lastError = "";
@@ -1859,6 +1874,8 @@ function startAutoRunner(options = {}) {
 }
 
 function stopAutoRunner(options = {}) {
+  const wasEnabled = !!autoRunnerState.enabled;
+  const hadTimer = !!autoRunnerState.timer;
   if (autoRunnerState.timer) {
     clearTimeout(autoRunnerState.timer);
     autoRunnerState.timer = null;
@@ -1869,9 +1886,87 @@ function stopAutoRunner(options = {}) {
   autoRunnerState.trigger = String(options.trigger || "manual_stop");
   autoRunnerState.stoppedAt = core.nowIso();
 
-  const payload = { ok: true, stopped: true, trigger: autoRunnerState.trigger, status: getAutoRunnerStatus() };
-  logRunnerEvent("runner_stopped", payload);
+  const payload = { ok: true, stopped: true, wasEnabled, hadTimer, trigger: autoRunnerState.trigger, status: getAutoRunnerStatus() };
+  logRunnerEvent(wasEnabled || hadTimer ? "runner_stopped" : "runner_stop_already_stopped", payload);
   return payload;
+}
+
+function logStreamStateEvent(eventType, payload = {}) {
+  logRunnerEvent(eventType, {
+    ok: true,
+    skipped: false,
+    trigger: String(payload.source || payload.trigger || "stream_state"),
+    reason: String(payload.reason || ""),
+    streamState: payload.streamState || null,
+    runner: payload.runner || null,
+    automation: payload.automation || null
+  });
+}
+
+function controlAutoRunnerForStreamState(live, options = {}) {
+  refreshConfigFromSettings();
+  const source = String(options.source || "stream_state").trim() || "stream_state";
+  const reason = String(options.reason || "").trim();
+  const sourceKind = String(options.sourceKind || "stream_state").trim() || "stream_state";
+  const startSetting = sourceKind === "auto" ? "startOnAutoLive" : "startOnStreamStateStart";
+  const stopSetting = sourceKind === "auto" ? "stopOnAutoOffline" : "stopOnStreamStateStop";
+  const shouldControl = live
+    ? core.boolParam(config?.autoRunner?.[startSetting], sourceKind !== "auto")
+    : core.boolParam(config?.autoRunner?.[stopSetting], sourceKind !== "auto");
+
+  const payload = {
+    ok: true,
+    live: !!live,
+    source,
+    sourceKind,
+    setting: live ? startSetting : stopSetting,
+    automationEnabled: shouldControl,
+    reason,
+    runner: null
+  };
+
+  if (!shouldControl) {
+    logRunnerEvent(live ? "runner_auto_start_skipped_by_setting" : "runner_auto_stop_skipped_by_setting", {
+      ...payload,
+      skipped: true,
+      trigger: source,
+      reason: reason || "automation_setting_disabled"
+    });
+    return payload;
+  }
+
+  payload.runner = live
+    ? startAutoRunner({ trigger: `${sourceKind}_start:${source}`, req: options.req || null })
+    : stopAutoRunner({ trigger: `${sourceKind}_stop:${source}` });
+
+  logRunnerEvent(live ? "runner_auto_started_by_stream_state" : "runner_auto_stopped_by_stream_state", {
+    ...payload,
+    trigger: source,
+    reason
+  });
+
+  return payload;
+}
+
+function applyStreamStateChange(live, options = {}) {
+  const source = String(options.source || "manual").trim() || "manual";
+  const reason = String(options.reason || "").trim();
+  const streamState = setManualStreamState(live, { source, reason });
+  const automation = controlAutoRunnerForStreamState(live, {
+    source,
+    reason,
+    sourceKind: "stream_state",
+    req: options.req || null
+  });
+
+  logStreamStateEvent(live ? "stream_state_started" : "stream_state_stopped", {
+    source,
+    reason,
+    streamState,
+    automation
+  });
+
+  return { streamState, runner: automation };
 }
 
 function listRunnerEvents(options = {}) {
@@ -2132,7 +2227,7 @@ async function fetchJson(url, timeoutMs = 5000) {
   }
 }
 
-async function refreshAutoStreamStateFromTwitch(req) {
+async function refreshAutoStreamStateFromTwitch(req, options = {}) {
   const login = normalizeLogin(config?.streamState?.broadcasterLogin || "forrestcgn") || "forrestcgn";
   const proto = req && req.protocol ? req.protocol : "http";
   const host = req && typeof req.get === "function" ? req.get("host") : "127.0.0.1:8080";
@@ -2140,23 +2235,43 @@ async function refreshAutoStreamStateFromTwitch(req) {
   try {
     const result = await fetchJson(url);
     const live = result.ok && parseExternalLivePayload(result.data);
-    const stateRow = updateAutoStreamState(live, { source: result.ok ? "twitch_stream_api" : "twitch_stream_api_error" });
+    const source = result.ok ? "twitch_stream_api" : "twitch_stream_api_error";
+    const stateRow = updateAutoStreamState(live, { source });
+    const runner = options.controlRunner === true
+      ? controlAutoRunnerForStreamState(live, {
+          source,
+          reason: result.ok ? "twitch_auto_live_refresh" : "twitch_stream_api_not_ok",
+          sourceKind: "auto",
+          req
+        })
+      : null;
     return {
       ok: result.ok,
       live,
       url,
       status: result.status,
       state: stateRow,
+      runner,
       error: result.ok ? "" : "twitch_stream_api_not_ok"
     };
   } catch (err) {
-    const stateRow = updateAutoStreamState(false, { source: "twitch_stream_api_error" });
+    const source = "twitch_stream_api_error";
+    const stateRow = updateAutoStreamState(false, { source });
+    const runner = options.controlRunner === true
+      ? controlAutoRunnerForStreamState(false, {
+          source,
+          reason: err && err.message ? err.message : String(err),
+          sourceKind: "auto",
+          req
+        })
+      : null;
     return {
       ok: false,
       live: false,
       url,
       status: 0,
       state: stateRow,
+      runner,
       error: err && err.message ? err.message : String(err)
     };
   }
@@ -2429,39 +2544,35 @@ function registerRoutes(app) {
   }));
 
   app.get("/api/loyalty/stream-state/start", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, {
-      streamState: setManualStreamState(true, {
-        source: core.getParam(req, "source", "manual_get"),
-        reason: core.getParam(req, "reason", "")
-      })
-    });
+    core.sendOk(res, applyStreamStateChange(true, {
+      source: core.getParam(req, "source", "manual_get"),
+      reason: core.getParam(req, "reason", ""),
+      req
+    }));
   }));
 
   app.post("/api/loyalty/stream-state/start", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, {
-      streamState: setManualStreamState(true, {
-        source: core.getParam(req, "source", "manual_post"),
-        reason: core.getParam(req, "reason", "")
-      })
-    });
+    core.sendOk(res, applyStreamStateChange(true, {
+      source: core.getParam(req, "source", "manual_post"),
+      reason: core.getParam(req, "reason", ""),
+      req
+    }));
   }));
 
   app.get("/api/loyalty/stream-state/stop", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, {
-      streamState: setManualStreamState(false, {
-        source: core.getParam(req, "source", "manual_get"),
-        reason: core.getParam(req, "reason", "")
-      })
-    });
+    core.sendOk(res, applyStreamStateChange(false, {
+      source: core.getParam(req, "source", "manual_get"),
+      reason: core.getParam(req, "reason", ""),
+      req
+    }));
   }));
 
   app.post("/api/loyalty/stream-state/stop", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, {
-      streamState: setManualStreamState(false, {
-        source: core.getParam(req, "source", "manual_post"),
-        reason: core.getParam(req, "reason", "")
-      })
-    });
+    core.sendOk(res, applyStreamStateChange(false, {
+      source: core.getParam(req, "source", "manual_post"),
+      reason: core.getParam(req, "reason", ""),
+      req
+    }));
   }));
 
   app.get("/api/loyalty/stream-state/clear-override", core.asyncRoute(async (req, res) => {
@@ -2483,12 +2594,12 @@ function registerRoutes(app) {
   }));
 
   app.get("/api/loyalty/stream-state/refresh-auto", core.asyncRoute(async (req, res) => {
-    const result = await refreshAutoStreamStateFromTwitch(req);
+    const result = await refreshAutoStreamStateFromTwitch(req, { controlRunner: true });
     core.sendOk(res, result);
   }));
 
   app.post("/api/loyalty/stream-state/refresh-auto", core.asyncRoute(async (req, res) => {
-    const result = await refreshAutoStreamStateFromTwitch(req);
+    const result = await refreshAutoStreamStateFromTwitch(req, { controlRunner: true });
     core.sendOk(res, result);
   }));
 
