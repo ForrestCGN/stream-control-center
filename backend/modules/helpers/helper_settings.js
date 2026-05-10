@@ -132,7 +132,6 @@ function normalizeDefaults(defaults = []) {
 
 function seedDefaults(tableName, defaults = []) {
   const table = ensureSettingsTable(tableName);
-  const qTable = database.quoteIdentifier(table);
   const now = nowIso();
   let inserted = 0;
 
@@ -142,18 +141,13 @@ function seedDefaults(tableName, defaults = []) {
     const rawValue = encodeValue(item.value, valueType);
     const description = String(item.description || "");
 
-    const result = database.run(`
-      INSERT OR IGNORE INTO ${qTable}
-        (setting_key, setting_value, value_type, description, created_at, updated_at)
-      VALUES
-        (:key, :value, :valueType, :description, :createdAt, :updatedAt)
-    `, {
-      key,
-      value: rawValue,
-      valueType,
+    const result = database.insertIgnore(table, {
+      setting_key: key,
+      setting_value: rawValue,
+      value_type: valueType,
       description,
-      createdAt: now,
-      updatedAt: now
+      created_at: now,
+      updated_at: now
     });
 
     inserted += Number(result?.changes || 0);
