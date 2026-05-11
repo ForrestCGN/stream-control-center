@@ -1,10 +1,11 @@
-# CURRENT_SYSTEM_STATUS - STEP242.2 Update
+# CURRENT_SYSTEM_STATUS - STEP243 Update
 
-DeathCounter V2 Dashboard-Basis wurde nach UX-Feedback korrigiert.
+DeathCounter V2 Dashboard wurde nach Browser-Feedback weiter aufgeräumt.
 
-- Uebersicht ist jetzt kurz gehalten: Status + sichtbare Spieler.
-- Spieler & Counts liegen im eigenen Tab `Spieler`.
-- Eine erste Statistik-Seite ist vorhanden.
-- Reiter-Panels werden korrekt versteckt/angezeigt.
+- Übersicht ist kompakter.
+- Spieler-Tab hat Suche und Sortierung.
+- Settings sind nach Bereichen gruppiert.
+- Textvarianten sind nach Kategorien gruppiert.
+- Riskante Steuerungsaktionen haben Warnhinweis und Bestätigung.
 
-Keine Backend-, DB-, Count- oder Overlay-Aenderung in diesem STEP.
+Keine Backend-, DB-, Count-, Streamer.bot- oder Overlay-Änderung in diesem STEP.

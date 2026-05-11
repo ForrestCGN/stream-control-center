@@ -12,6 +12,8 @@ window.DeathCounterModule = (function(){
   let overlay = null;
   let integration = null;
   let error = '';
+  let playerSearch = '';
+  let playerSort = 'allTime';
 
   const tabs = [
     ['overview', 'Übersicht'],
@@ -37,6 +39,19 @@ window.DeathCounterModule = (function(){
 
   const numberSettings = new Set(['maxExtraPlayers']);
   const jsonSettings = new Set(['defaultSelectedIds']);
+
+  const settingGroups = [
+    ['commands', 'Commands', ['requireMentionForPlayerCommands', 'autoCreatePlayers', 'allowTwitchLookup']],
+    ['chat', 'Chat-Ausgabe', ['chatOutputEnabled', 'chatOutputPrefer', 'directSendEnabled', 'fallbackToStreamer', 'fallbackToStreamerbot']],
+    ['overlay', 'Overlay', ['defaultSelectedIds', 'maxExtraPlayers', 'resetOverlayPlayersOnStreamStart']],
+    ['stream', 'Streamstart', ['resetSessionOnStreamStart']]
+  ];
+
+  const textCategoryLabels = {
+    error: 'Fehler / Hinweise',
+    stats: 'Tode / Statistiken',
+    general: 'Allgemein'
+  };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
   function api(path, options){ return window.CGN.api(path, options || {}); }
@@ -113,16 +128,38 @@ window.DeathCounterModule = (function(){
         if (name === 'overlay-show') await command('dcount', { input0: 'show', sendChat: 0 });
         if (name === 'overlay-hide') await command('dcount', { input0: 'hide', sendChat: 0 });
         if (name === 'overlay-toggle') await command('dcount', { sendChat: 0 });
-        if (name === 'overlay-reset') await command('dcount', { input0: 'reset', sendChat: 0 });
+        if (name === 'overlay-reset') {
+          if (!window.confirm('Overlay-Spieler wirklich auf Standard zurücksetzen?')) return;
+          await command('dcount', { input0: 'reset', sendChat: 0 });
+        }
         if (name === 'replace-player') await replacePlayer();
         if (name === 'rip-player') await ripSelected(false);
-        if (name === 'del-player') await ripSelected(true);
+        if (name === 'del-player') {
+          if (!window.confirm('Einen Tod wirklich abziehen?')) return;
+          await ripSelected(true);
+        }
         if (name === 'save-setting') await saveSetting(action.dataset.settingKey);
         if (name === 'save-text') await saveText(action.dataset.variantId);
         if (name === 'add-text') await addTextVariant(action.dataset.textKey, action.dataset.textCategory);
       } catch (err) {
         error = err.message || String(err);
         render();
+      }
+    });
+
+    root.addEventListener('input', event => {
+      const search = event.target.closest('[data-dc-player-search]');
+      if (search) {
+        playerSearch = search.value || '';
+        renderPlayers();
+      }
+    });
+
+    root.addEventListener('change', event => {
+      const sort = event.target.closest('[data-dc-player-sort]');
+      if (sort) {
+        playerSort = sort.value || 'allTime';
+        renderPlayers();
       }
     });
   }
@@ -193,6 +230,21 @@ window.DeathCounterModule = (function(){
     return rt.currentGame || players?.currentGame || status?.currentGame || '-';
   }
 
+  function getFilteredPlayers(){
+    const q = normId(playerSearch);
+    const list = getPlayerList().filter(player => {
+      if (!q) return true;
+      return normId(player.id).includes(q) || normId(player.login).includes(q) || normId(player.displayName).includes(q);
+    });
+    const sortValue = playerSort || 'allTime';
+    return list.sort((a, b) => {
+      if (sortValue === 'name') return String(a.displayName || a.login || a.id || '').localeCompare(String(b.displayName || b.login || b.id || ''), 'de');
+      if (sortValue === 'today') return Number(b?.gameStats?.session || 0) - Number(a?.gameStats?.session || 0);
+      if (sortValue === 'game') return Number(b?.gameStats?.allTime || 0) - Number(a?.gameStats?.allTime || 0);
+      return Number(b?.stats?.allTime || 0) - Number(a?.stats?.allTime || 0);
+    });
+  }
+
   async function command(commandName, params){
     const query = new URLSearchParams({ command: commandName, ...(params || {}) });
     await api(`/api/deathcounter/v2/command?${query.toString()}`);
@@ -236,15 +288,20 @@ window.DeathCounterModule = (function(){
           <button type="button" data-dc-action="reload">Neu laden</button>
         </div>
       </div>
+      <div class="dc-overview-kpis">
+        ${smallKpi('Spiel', getCurrentGame())}
+        ${smallKpi('Overlay', (ov.visible ?? rt.overlayVisible) ? 'sichtbar' : 'versteckt')}
+        ${smallKpi('Spieler', `${num(list.length)} gesamt`)}
+        ${smallKpi('@ Pflicht', yes(rt.requireMentionForPlayerCommands) ? 'aktiv' : 'inaktiv')}
+      </div>
       <div class="dc-grid">
         <div class="dc-card">
           <h3>Status</h3>
           ${row('Modul', st.ok ? 'OK' : '-')}
-          ${row('Spiel', getCurrentGame())}
-          ${row('Overlay', (ov.visible ?? rt.overlayVisible) ? 'sichtbar' : 'versteckt')}
-          ${row('Spieler', `${num(list.length)} gesamt`)}
-          ${row('@ Pflicht', yes(rt.requireMentionForPlayerCommands) ? 'aktiv' : 'inaktiv')}
           ${row('Chat-Ausgabe', yes(rt.chatOutputEnabled) ? 'Backend/Bot' : 'Fallback')}
+          ${row('Fallback Streamer.bot', yes(rt.fallbackToStreamerbot) ? 'aktiv' : 'inaktiv')}
+          ${row('AutoCreate', yes(rt.autoCreatePlayers) ? 'aktiv' : 'inaktiv')}
+          ${row('Twitch-Lookup', yes(rt.allowTwitchLookup) ? 'aktiv' : 'inaktiv')}
         </div>
         <div class="dc-card">
           <h3>Sichtbare Spieler</h3>
@@ -258,6 +315,7 @@ window.DeathCounterModule = (function(){
     const panel = root.querySelector('[data-dc-panel="players"]');
     if (!panel) return;
     const list = getPlayerList();
+    const filtered = getFilteredPlayers();
     panel.innerHTML = `
       ${errorBlock()}
       <div class="dc-card page-card">
@@ -265,7 +323,17 @@ window.DeathCounterModule = (function(){
           <div><h2>Spieler</h2><div class="small-note">Alle bekannten DeathCounter-Spieler aus dem aktuellen JSON-State.</div></div>
           <div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div>
         </div>
-        ${playersTable(list)}
+        <div class="dc-player-tools">
+          <label><span>Suche</span><input data-dc-player-search value="${esc(playerSearch)}" placeholder="Spieler suchen"></label>
+          <label><span>Sortieren</span><select data-dc-player-sort>
+            <option value="allTime"${playerSort === 'allTime' ? ' selected' : ''}>AllTime absteigend</option>
+            <option value="game"${playerSort === 'game' ? ' selected' : ''}>Spiel gesamt absteigend</option>
+            <option value="today"${playerSort === 'today' ? ' selected' : ''}>Heute absteigend</option>
+            <option value="name"${playerSort === 'name' ? ' selected' : ''}>Name A-Z</option>
+          </select></label>
+          <div class="dc-tool-count">${num(filtered.length)} / ${num(list.length)} angezeigt</div>
+        </div>
+        ${playersTable(filtered)}
       </div>
     `;
   }
@@ -274,6 +342,7 @@ window.DeathCounterModule = (function(){
     const panel = root.querySelector('[data-dc-panel="stats"]');
     if (!panel) return;
     const list = getPlayerList();
+    const visible = getVisiblePlayers();
     const topAll = [...list].sort((a, b) => Number(b?.stats?.allTime || 0) - Number(a?.stats?.allTime || 0)).slice(0, 10);
     const topGame = [...list].sort((a, b) => Number(b?.gameStats?.allTime || 0) - Number(a?.gameStats?.allTime || 0)).slice(0, 10);
     const topSession = [...list].sort((a, b) => Number(b?.gameStats?.session || 0) - Number(a?.gameStats?.session || 0)).slice(0, 10);
@@ -286,8 +355,8 @@ window.DeathCounterModule = (function(){
         </div>
         <div class="dc-kpis">
           ${kpi('Spieler', list.length)}
+          ${kpi('Sichtbar', visible.length)}
           ${kpi('AllTime gesamt', list.reduce((sum, p) => sum + Number(p?.stats?.allTime || 0), 0))}
-          ${kpi('Spiel gesamt', list.reduce((sum, p) => sum + Number(p?.gameStats?.allTime || 0), 0))}
           ${kpi('Heute', list.reduce((sum, p) => sum + Number(p?.gameStats?.session || 0), 0))}
         </div>
         <div class="dc-stat-grid">
@@ -343,6 +412,7 @@ window.DeathCounterModule = (function(){
           <div><h2>Steuerung</h2><div class="small-note">Einfache Live-Aktionen. Chat-Ausgabe wird hier standardmäßig unterdrückt.</div></div>
           <div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div>
         </div>
+        <div class="dc-warning">Änderungen hier wirken direkt auf den aktiven DeathCounter-State. +1/-1 bitte nur bewusst nutzen.</div>
         <div class="dc-control-grid">
           <div class="dc-sub-card">
             <h3>Overlay</h3>
@@ -350,7 +420,7 @@ window.DeathCounterModule = (function(){
               <button type="button" data-dc-action="overlay-show">Anzeigen</button>
               <button type="button" data-dc-action="overlay-hide">Ausblenden</button>
               <button type="button" data-dc-action="overlay-toggle">Toggle</button>
-              <button type="button" data-dc-action="overlay-reset">Spieler reset</button>
+              <button type="button" class="danger" data-dc-action="overlay-reset">Spieler reset</button>
             </div>
           </div>
           <div class="dc-sub-card">
@@ -401,15 +471,24 @@ window.DeathCounterModule = (function(){
     const panel = root.querySelector('[data-dc-panel="settings"]');
     if (!panel) return;
     const rows = Array.isArray(settings?.rows) ? settings.rows : [];
+    const byKey = new Map(rows.map(row => [row.key, row]));
+    const used = new Set(settingGroups.flatMap(group => group[2]));
+    const otherRows = rows.filter(row => !used.has(row.key));
     panel.innerHTML = `
       ${errorBlock()}
       <div class="dc-card page-card">
-        <div class="card-head big-head"><div><h2>Settings</h2><div class="small-note">DB-Settings aus deathcounter_settings.</div></div><div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div></div>
-        <div class="dc-settings-list">
-          ${rows.length ? rows.map(settingCard).join('') : '<div class="dc-empty">Keine Settings geladen.</div>'}
+        <div class="card-head big-head"><div><h2>Settings</h2><div class="small-note">DB-Settings aus deathcounter_settings, nach Bereichen gruppiert.</div></div><div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div></div>
+        <div class="dc-settings-groups">
+          ${settingGroups.map(([id, title, keys]) => settingGroup(title, keys.map(key => byKey.get(key)).filter(Boolean))).join('')}
+          ${otherRows.length ? settingGroup('Weitere Settings', otherRows) : ''}
         </div>
       </div>
     `;
+  }
+
+  function settingGroup(title, rows){
+    if (!rows.length) return '';
+    return `<section class="dc-setting-group"><h3>${esc(title)}</h3><div class="dc-settings-list">${rows.map(settingCard).join('')}</div></section>`;
   }
 
   function settingCard(rowData){
@@ -454,15 +533,29 @@ window.DeathCounterModule = (function(){
     if (!panel) return;
     const payload = texts?.texts || {};
     const keys = Array.isArray(payload.keys) ? payload.keys : [];
+    const grouped = groupByCategory(keys);
     panel.innerHTML = `
       ${errorBlock()}
       <div class="dc-card page-card">
-        <div class="card-head big-head"><div><h2>Texte</h2><div class="small-note">Varianten aus module_text_variants / module deathcounter.</div></div><div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div></div>
-        <div class="dc-text-grid">
-          ${keys.length ? keys.map(textKeyCard).join('') : '<div class="dc-empty">Keine Texte geladen.</div>'}
+        <div class="card-head big-head"><div><h2>Texte</h2><div class="small-note">Varianten aus module_text_variants / module deathcounter, nach Kategorien gruppiert.</div></div><div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div></div>
+        <div class="dc-text-sections">
+          ${keys.length ? Object.keys(grouped).map(category => textCategorySection(category, grouped[category])).join('') : '<div class="dc-empty">Keine Texte geladen.</div>'}
         </div>
       </div>
     `;
+  }
+
+  function groupByCategory(keys){
+    return keys.reduce((acc, item) => {
+      const category = item.category || 'general';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(item);
+      return acc;
+    }, {});
+  }
+
+  function textCategorySection(category, items){
+    return `<section class="dc-text-section"><h3>${esc(textCategoryLabels[category] || category)}</h3><div class="dc-text-grid">${items.map(textKeyCard).join('')}</div></section>`;
   }
 
   function textKeyCard(item){
@@ -547,6 +640,7 @@ window.DeathCounterModule = (function(){
 
   function row(label, value){ return `<div class="dc-row"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`; }
   function kpi(label, value){ return `<div class="dc-kpi"><strong>${num(value)}</strong><span>${esc(label)}</span></div>`; }
+  function smallKpi(label, value){ return `<div class="dc-small-kpi"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`; }
   function errorBlock(){ return error ? `<div class="dc-error">${esc(error)}</div>` : ''; }
 
   return { init, loadAll, registerModule };
