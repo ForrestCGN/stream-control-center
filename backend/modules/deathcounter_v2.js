@@ -99,6 +99,18 @@ module.exports.init = function init(ctx) {
     }));
   });
 
+
+
+  app.get('/api/deathcounter/v2/command', async (req, res) => {
+    const result = await handleDeathcounterCommand(req);
+    return res.status(result.httpStatus || 200).json(result.payload);
+  });
+
+  app.post('/api/deathcounter/v2/command', async (req, res) => {
+    const result = await handleDeathcounterCommand(req);
+    return res.status(result.httpStatus || 200).json(result.payload);
+  });
+
   app.get('/api/deathcounter/v2/state', (req, res) => res.json(ok(publicState(readState()))));
   app.get('/api/deathcounter/v2/players', (req, res) => {
     const state = readState();
@@ -805,6 +817,379 @@ module.exports.init = function init(ctx) {
     }
   });
 
+
+  async function handleDeathcounterCommand(req) {
+    const command = String(bodyOrQuery(req, 'command') || bodyOrQuery(req, 'cmd') || '').trim().toLowerCase();
+
+    try {
+      if (!command) return commandUserError('unknown', 'Unbekannter DeathCounter-Befehl.');
+
+      if (command === 'dcount' || command === 'deathcount' || command === 'deathcounter') {
+        return commandOk(command, await handleDcountCommand(req));
+      }
+
+      if (command === 'rip' || command === 'death' || command === 'tod') {
+        return commandOk(command, await handleRipCommand(req));
+      }
+
+      if (command === 'tode' || command === 'deaths') {
+        return commandOk(command, await handleTodeCommand(req));
+      }
+
+      return commandUserError(command, 'Unbekannter DeathCounter-Befehl. Erlaubt: dcount, rip, tode.');
+    } catch (err) {
+      return commandUserError(command || 'unknown', err.message || 'Interner Fehler im DeathCounter-Command.');
+    }
+  }
+
+  async function handleDcountCommand(req) {
+    const args = collectCommandArgs(req);
+    const modeRaw = String(args[0] || '').trim();
+    const mode = modeRaw ? modeRaw.toLowerCase() : 'toggle';
+
+    if (mode === 'show' || mode === 'on') {
+      const state = setOverlayVisibility(true);
+      return streamerbotSilent({ action: 'show', overlay: publicOverlay(state).overlay });
+    }
+
+    if (mode === 'hide' || mode === 'off') {
+      const state = setOverlayVisibility(false);
+      return streamerbotSilent({ action: 'hide', overlay: publicOverlay(state).overlay });
+    }
+
+    if (mode === 'reset') {
+      const state = resetOverlayPlayersToDefault();
+      return streamerbotSilent({ action: 'reset', overlay: publicOverlay(state).overlay });
+    }
+
+    if (mode === 'replace') {
+      const fromRaw = args[1] || '';
+      const toRaw = args[2] || '';
+      if (!fromRaw || !toRaw) {
+        return streamerbotMessage('Ungültiger Replace-Befehl. Nutze: !dcount replace @alt @neu', { action: 'replace', success: false });
+      }
+
+      const from = parseCommandPlayerToken(fromRaw, getCommandOptions(req), 'Bitte nutze: !dcount replace @alterName @neuerName');
+      const to = parseCommandPlayerToken(toRaw, getCommandOptions(req), 'Bitte nutze: !dcount replace @alterName @neuerName');
+      if (!from.login || !to.login) {
+        return streamerbotMessage('Ungültiger Replace-Befehl. Nutze: !dcount replace @alt @neu', { action: 'replace', success: false });
+      }
+      if (from.login === to.login) {
+        return streamerbotMessage('Austausch nicht möglich: alter und neuer Spieler sind identisch.', { action: 'replace', success: false });
+      }
+
+      const replaced = await replaceOverlayPlayer(from.login, to.login);
+      return streamerbotSilent({ action: 'replace', ...replaced });
+    }
+
+    if (mode === 'toggle') {
+      const stateBefore = readState();
+      const state = setOverlayVisibility(!stateBefore.overlay?.visible);
+      return streamerbotSilent({ action: 'toggle', overlay: publicOverlay(state).overlay });
+    }
+
+    return streamerbotMessage('Unbekannter DCOUNT-Befehl. Erlaubt: on/show, off/hide, reset, replace @alt @neu', {
+      action: 'unknown',
+      success: false
+    });
+  }
+
+  async function handleRipCommand(req) {
+    const args = collectCommandArgs(req);
+    let targetRaw = args[0] || '';
+    let mode = 'rip';
+
+    if (!targetRaw) {
+      return streamerbotMessage('Nutze: !rip @spieler', { action: 'rip', success: false });
+    }
+
+    if (String(args[1] || '').trim().toLowerCase() === 'del') {
+      mode = 'del';
+    }
+
+    const parsed = parseCommandPlayerToken(targetRaw, getCommandOptions(req), 'Bitte nutze eine Twitch-Erwähnung, z. B. !rip @ForrestCGN');
+    if (!parsed.login) {
+      return streamerbotMessage('Nutze: !rip @spieler', { action: 'rip', success: false });
+    }
+
+    const game = normalizeGameName(stringOrDefault(bodyOrQuery(req, 'game'), readState().currentGame || DEFAULT_GAME_KEY));
+    const delta = intOrDefault(bodyOrQuery(req, 'delta'), 1);
+    if (delta <= 0) throw new Error('Delta must be > 0');
+
+    const result = await applyDeathDelta({
+      target: parsed.login,
+      game,
+      delta,
+      direction: mode === 'del' ? -1 : 1
+    });
+
+    return streamerbotSilent({ action: mode, ...result });
+  }
+
+  async function handleTodeCommand(req) {
+    const args = collectCommandArgs(req);
+    const targetRaw = args[0] || '';
+    const state = readState();
+
+    if (targetRaw) {
+      const parsed = parseCommandPlayerToken(targetRaw, getCommandOptions(req), 'Bitte nutze eine Twitch-Erwähnung, z. B. !tode @ForrestCGN');
+      const player = findPlayerOrThrow(state.players, parsed.login);
+      const detail = buildTodePlayerDetail(state, player);
+      return streamerbotMessage(detail.message, { action: 'tode', detail });
+    }
+
+    const summary = buildTodeSummary(state);
+    return streamerbotMessage(summary.message, { action: 'tode', summary });
+  }
+
+  function collectCommandArgs(req) {
+    const rawInput = String(bodyOrQuery(req, 'rawInput') || bodyOrQuery(req, 'input') || '').trim();
+    if (rawInput) return splitCommandArgs(rawInput);
+
+    const args = [];
+    for (let i = 0; i <= 9; i += 1) {
+      const value = bodyOrQuery(req, `input${i}`);
+      if (value === undefined || value === null) continue;
+      const text = String(value).trim();
+      if (text) args.push(text);
+    }
+    return args;
+  }
+
+  function splitCommandArgs(input) {
+    return String(input || '').trim().split(/\s+/).filter(Boolean);
+  }
+
+  function getCommandOptions(req) {
+    return {
+      requireMentionForPlayerCommands: booleanOrDefault(
+        bodyOrQuery(req, 'requireMention'),
+        booleanOrDefault(process.env.DEATHCOUNTER_REQUIRE_MENTION_FOR_PLAYER_COMMANDS, false)
+      )
+    };
+  }
+
+  function parseCommandPlayerToken(rawToken, options, missingMentionMessage) {
+    const raw = String(rawToken || '').trim();
+    const mentioned = raw.startsWith('@');
+    if (options.requireMentionForPlayerCommands && !mentioned) {
+      throw new Error(missingMentionMessage || 'Bitte nutze eine Twitch-Erwähnung mit @.');
+    }
+    const cleaned = stripAtPrefix(raw);
+    return {
+      raw,
+      mentioned,
+      login: cleanLogin(cleaned),
+      displayName: cleaned
+    };
+  }
+
+  function streamerbotSilent(extra = {}) {
+    return {
+      success: true,
+      streamerbot_send: '0',
+      streamerbot_message: '',
+      ...extra
+    };
+  }
+
+  function streamerbotMessage(message, extra = {}) {
+    return {
+      success: extra.success !== false,
+      streamerbot_send: message ? '1' : '0',
+      streamerbot_message: message || '',
+      ...extra
+    };
+  }
+
+  function commandOk(command, payload) {
+    return {
+      httpStatus: 200,
+      payload: ok({
+        module: 'deathcounter_v2',
+        version: 2,
+        command,
+        updatedAt: core.nowIso(),
+        ...payload
+      })
+    };
+  }
+
+  function commandUserError(command, message) {
+    return {
+      httpStatus: 200,
+      payload: ok({
+        module: 'deathcounter_v2',
+        version: 2,
+        command,
+        success: false,
+        streamerbot_send: '1',
+        streamerbot_message: message || 'DeathCounter-Befehl konnte nicht verarbeitet werden.',
+        error: message || 'command_failed',
+        updatedAt: core.nowIso()
+      })
+    };
+  }
+
+  function resetOverlayPlayersToDefault() {
+    const state = updateState(s => {
+      s.overlay.selectedPlayerIds = getDefaultSelectedPlayers(s.players).map(p => p.id).slice(0, 2);
+      s.overlay.extraPlayerIds = [];
+      syncOverlayLists(s);
+      s.updatedAt = core.nowIso();
+    });
+
+    broadcastState(ctx, state, { type: 'deathcounter_v2_overlay_players_changed' });
+    return state;
+  }
+
+  async function replaceOverlayPlayer(fromRaw, toRaw) {
+    const stateBefore = readState();
+    const fromRef = await resolvePlayerReference(stateBefore.players, fromRaw);
+    const toRef = await resolvePlayerReference(stateBefore.players, toRaw);
+
+    if (fromRef.id === toRef.id) {
+      throw new Error(`Austausch nicht möglich: @${fromRef.login} und @${toRef.login} sind derselbe Spieler.`);
+    }
+
+    const visibleIds = [
+      ...normalizePlayerListInput(stateBefore.overlay?.selectedPlayerIds).slice(0, 2),
+      ...normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS)
+    ];
+
+    if (!visibleIds.includes(fromRef.id)) {
+      throw new Error(`Austausch nicht möglich: @${fromRef.login} ist aktuell nicht im Overlay sichtbar.`);
+    }
+
+    if (visibleIds.includes(toRef.id)) {
+      throw new Error(`Austausch nicht möglich: @${toRef.login} wird bereits im Overlay angezeigt.`);
+    }
+
+    let replacedIn = 'unknown';
+    const state = updateState(s => {
+      let targetPlayer = findPlayerStrict(s.players, toRef.login);
+
+      if (!targetPlayer) {
+        targetPlayer = createPlayer({
+          displayName: toRef.displayName,
+          login: toRef.login,
+          active: true,
+          sortOrder: s.players.length + 1,
+          currentGame: s.currentGame
+        });
+        s.players.push(targetPlayer);
+      } else {
+        targetPlayer.displayName = toRef.displayName;
+        targetPlayer.login = toRef.login;
+        targetPlayer.id = toRef.id;
+        targetPlayer.active = true;
+        sanitizePlayer(targetPlayer);
+      }
+
+      const selected = normalizePlayerListInput(s.overlay.selectedPlayerIds).slice(0, 2);
+      const extras = normalizePlayerListInput(s.overlay.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS);
+
+      const selectedIdx = selected.indexOf(fromRef.id);
+      if (selectedIdx >= 0) {
+        selected[selectedIdx] = targetPlayer.id;
+        replacedIn = 'selected';
+      } else {
+        const extraIdx = extras.indexOf(fromRef.id);
+        if (extraIdx < 0) {
+          throw new Error(`Austausch nicht möglich: @${fromRef.login} ist aktuell nicht im Overlay sichtbar.`);
+        }
+        extras[extraIdx] = targetPlayer.id;
+        replacedIn = 'extra';
+      }
+
+      s.overlay.selectedPlayerIds = selected;
+      s.overlay.extraPlayerIds = extras;
+      syncOverlayLists(s);
+      s.updatedAt = core.nowIso();
+    });
+
+    broadcastState(ctx, state, {
+      type: 'deathcounter_v2_overlay_players_changed',
+      action: 'replace',
+      fromPlayerId: fromRef.id,
+      toPlayerId: toRef.id,
+      replacedIn
+    });
+
+    return {
+      replacedIn,
+      from: { id: fromRef.id, login: fromRef.login, displayName: fromRef.displayName },
+      to: { id: toRef.id, login: toRef.login, displayName: toRef.displayName },
+      overlay: publicOverlay(state).overlay,
+      state: publicState(state)
+    };
+  }
+
+  async function applyDeathDelta({ target, game, delta, direction }) {
+    const isIncrement = direction > 0;
+    const stateBefore = readState();
+    const existingBefore = findPlayerStrict(stateBefore.players, target);
+    const lookedUpUser = isIncrement && !existingBefore ? await lookupTwitchUserByName(target) : null;
+
+    let changedPlayer = null;
+    let autoCreated = false;
+    const state = updateState(s => {
+      s.currentGame = game;
+      ensureGameBucketsForAllPlayers(s.players, game);
+
+      let player = findPlayerStrict(s.players, target);
+      if (!player) {
+        if (!isIncrement) {
+          throw new Error(`Player not found: ${target}. Erlaubt sind nur exakter Twitch-Loginname oder exakter Twitch-DisplayName.`);
+        }
+        if (!lookedUpUser) {
+          throw new Error(`Player not found: ${target}. Kein bestehender Spieler und kein Twitch-Lookup-Treffer.`);
+        }
+        player = createPlayer({
+          displayName: lookedUpUser.displayName,
+          login: lookedUpUser.login,
+          active: true,
+          sortOrder: s.players.length + 1,
+          currentGame: game
+        });
+        s.players.push(player);
+        autoCreated = true;
+      }
+
+      ensureGameStats(player, game);
+      if (isIncrement) {
+        player.games[game].session += delta;
+        player.games[game].allTime += delta;
+      } else {
+        player.games[game].session = Math.max(0, player.games[game].session - delta);
+        player.games[game].allTime = Math.max(0, player.games[game].allTime - delta);
+      }
+      recalcAggregates(player);
+      clampStats(player);
+
+      changedPlayer = player;
+      maybeTrackExtraPlayer(s, player);
+      syncOverlayLists(s);
+      s.updatedAt = core.nowIso();
+    });
+
+    broadcastState(ctx, state, {
+      type: isIncrement ? 'deathcounter_v2_rip' : 'deathcounter_v2_del',
+      playerId: changedPlayer ? changedPlayer.id : null,
+      game,
+      delta,
+      autoCreated
+    });
+
+    return {
+      currentGame: state.currentGame,
+      autoCreated,
+      changedPlayer: summarizePlayer(changedPlayer, game),
+      state: publicState(state),
+      overlay: publicOverlay(state).overlay
+    };
+  }
+
   function buildDeathcounterConfig() {
     return {
       module: 'deathcounter_v2',
@@ -866,6 +1251,7 @@ module.exports.init = function init(ctx) {
       { method: 'GET', path: `${API_PREFIX}/routes`, purpose: 'list deathcounter v2 API routes' },
       { method: 'GET', path: `${API_PREFIX}/integration-check`, purpose: 'run non-destructive integration check' },
       { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
+      { method: 'GET/POST', path: `${API_PREFIX}/command`, purpose: 'central Streamer.bot-friendly command bridge for dcount/rip/tode' },
       { method: 'GET', path: `${API_PREFIX}/state`, purpose: 'public state for overlay/dashboard' },
       { method: 'GET', path: `${API_PREFIX}/players`, purpose: 'list players and current game' },
       { method: 'POST', path: `${API_PREFIX}/players`, purpose: 'replace configured players' },
