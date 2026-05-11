@@ -77,3 +77,8 @@ html[data-theme=light] .dc-error{color:#7f1d1d;background:rgba(248,113,113,.15)}
 .dc-current-game-row{background:rgba(34,211,238,.09)}
 @media(max-width:1180px){.dc-player-layout{grid-template-columns:1fr}.dc-player-detail{position:static}.dc-detail-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){.dc-detail-kpis{grid-template-columns:1fr}}
+
+.dc-detail-actions{border:1px solid rgba(251,191,36,.28);background:rgba(251,191,36,.07);border-radius:16px;padding:12px;margin:12px 0;display:grid;gap:10px}
+.dc-detail-actions strong{display:block;font-size:13px;margin-bottom:3px}
+.dc-detail-actions span{display:block;color:var(--muted);font-size:12px;line-height:1.35}
+html[data-theme=light] .dc-detail-actions{background:rgba(251,191,36,.15);border-color:rgba(146,64,14,.22)}

@@ -1,40 +1,31 @@
-# NEXT STEP - Nach STEP247 DeathCounter Spieler-Detailansicht
+# NEXT STEP - Nach STEP248 DeathCounter Spieler-Detail Quick-Corrections
 
 ## Direkt testen
 
 ```text
-Community -> DeathCounter -> Spieler
+Community → DeathCounter → Spieler
 ```
 
 Prüfen:
 
 ```text
-- Suche
-- Sortierung
-- Details-Button
-- Detail-Dropdown
-- Spieleliste pro Spieler
-- Markierung des aktuellen Spiels
+- Spieler per Details-Button auswählen
+- Detailkarte zeigt Quick-Correction-Bereich
+- +1 Tod zählt beim ausgewählten Spieler im aktuellen Spiel hoch
+- -1 Tod fragt nach Bestätigung und zählt wieder runter
+- Steuerung öffnen springt in den Steuerungs-Tab
 ```
 
 ## Nächster sinnvoller Bau-Step
 
 ```text
-STEP248: DeathCounter Spieler-Korrektur UX vorbereiten
+STEP249: DeathCounter DB-/Event-Historie planen und Migrationsstrategie vorbereiten
 ```
 
-Mögliche Inhalte:
+Noch nicht direkt blind bauen:
 
 ```text
-- manuelle Korrekturen pro Spieler klarer führen
-- sichere +1/-1 Bedienung direkt aus der Detailansicht
-- noch keine große Count-/Event-DB-Migration
-```
-
-Noch zurückstellen:
-
-```text
-- Count-/Event-DB-Migration
-- Overlay-Design-Refresh
-- neue DeathCounter-DB-Tabellen für produktive Counts
+- bestehende JSON-State-Datei ersetzen
+- app.sqlite neu bauen oder überschreiben
+- alte Count-Logik entfernen
 ```

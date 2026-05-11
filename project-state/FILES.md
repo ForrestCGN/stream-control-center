@@ -1,11 +1,11 @@
-# FILES - STEP247 DeathCounter Spieler-Detailansicht Dashboard
+# FILES - STEP248 DeathCounter Spieler-Detail Quick-Corrections
 
 Geändert / neu:
 
 ```text
 htdocs/dashboard/modules/deathcounter.js
 htdocs/dashboard/modules/deathcounter.css
-project-state/STEP247_DEATHCOUNTER_PLAYER_DETAIL_DASHBOARD_2026-05-11.md
+project-state/STEP248_DEATHCOUNTER_PLAYER_DETAIL_QUICK_CORRECTIONS_2026-05-11.md
 project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md

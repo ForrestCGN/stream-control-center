@@ -1,18 +1,9 @@
 # CHANGELOG
 
-## 2026-05-11 - STEP247 DeathCounter Spieler-Detailansicht Dashboard
+## 2026-05-11 - STEP248 DeathCounter Spieler-Detail Quick-Corrections
 
-- Spieler-Tab im DeathCounter-Dashboard um Detailansicht erweitert.
-- Spieler können per Dropdown oder Details-Button ausgewählt werden.
-- Detailkarte zeigt pro Spieler aktuelle Spielwerte, Gesamtwerte und gespeicherte Spiele.
-- Aktuelles Spiel wird in der Detailtabelle markiert.
-- Keine Backend-, DB-, Count-, Overlay- oder Streamer.bot-Änderung.
-
-## 2026-05-11 - STEP246 DeathCounter EventSub Game-Sync
-
-- `channel.update` aus Twitch EventSub synchronisiert DeathCounter `currentGame` ohne Streamer.bot-GameChanged-Action.
-
-## 2026-05-11 - STEP245 DeathCounter Streamer.bot Minimal-Bridge Doku
-
-- DeathCounter Streamer.bot-Zielstruktur dokumentiert.
-- Minimal-URLs für `!rip`, `!tode` und `!dcount` dokumentiert.
+- Spieler-Detailansicht im DeathCounter-Dashboard um direkte Korrektur-Aktionen erweitert.
+- `+1 Tod` und `-1 Tod` können jetzt direkt aus der Detailkarte für den ausgewählten Spieler ausgelöst werden.
+- Korrektur wirkt bewusst auf das aktuelle Spiel und nutzt die bestehende Command-API mit `sendChat=0`.
+- `-1 Tod` bleibt mit Bestätigungsdialog abgesichert.
+- Keine Backend-, DB-, Count-Migrations-, Overlay- oder Streamer.bot-Änderung.

@@ -147,6 +147,17 @@ window.DeathCounterModule = (function(){
           selectedPlayerId = action.dataset.playerId || '';
           renderPlayers();
         }
+        if (name === 'detail-rip-player') await ripPlayerById(action.dataset.playerId, false);
+        if (name === 'detail-del-player') {
+          const playerName = action.dataset.playerName || action.dataset.playerId || 'diesen Spieler';
+          if (!window.confirm(`Einen Tod bei ${playerName} im aktuellen Spiel wirklich abziehen?`)) return;
+          await ripPlayerById(action.dataset.playerId, true);
+        }
+        if (name === 'open-control') {
+          activeTab = 'control';
+          applyTab();
+          render();
+        }
       } catch (err) {
         error = err.message || String(err);
         render();
@@ -568,6 +579,17 @@ window.DeathCounterModule = (function(){
           ${smallKpi('Session gesamt', num(stats.session || 0))}
           ${smallKpi('AllTime', num(stats.allTime || 0))}
         </div>
+        <div class="dc-detail-actions">
+          <div>
+            <strong>Aktuelles Spiel korrigieren</strong>
+            <span>Wirkt auf ${esc(getCurrentGame())}. Für andere Spiele später über die DB-/Event-Historie.</span>
+          </div>
+          <div class="dc-button-row">
+            <button type="button" data-dc-action="detail-rip-player" data-player-id="${esc(player.id || player.login || player.displayName || '')}" data-player-name="${esc(player.displayName || player.login || player.id)}">+1 Tod</button>
+            <button type="button" class="danger" data-dc-action="detail-del-player" data-player-id="${esc(player.id || player.login || player.displayName || '')}" data-player-name="${esc(player.displayName || player.login || player.id)}">-1 Tod</button>
+            <button type="button" data-dc-action="open-control">Steuerung öffnen</button>
+          </div>
+        </div>
         <h4>Spiele dieses Spielers</h4>
         ${playerGamesTable(rows)}
       </aside>
@@ -651,9 +673,16 @@ window.DeathCounterModule = (function(){
   async function ripSelected(del){
     const player = document.getElementById('dcRipPlayer')?.value || '';
     if (!player) throw new Error('Bitte Spieler wählen.');
+    await ripPlayerById(player, del);
+  }
+
+  async function ripPlayerById(playerId, del){
+    const player = String(playerId || '').trim();
+    if (!player) throw new Error('Bitte Spieler wählen.');
     const params = { input0: `@${player}`, sendChat: 0 };
     if (del) params.input1 = 'del';
     await command('rip', params);
+    selectedPlayerId = player;
   }
 
   function renderSettings(){
