@@ -1,5 +1,18 @@
 # Changelog
 
+## STEP229 - 2026-05-11 - Message-Rotator Backend Admin Basis
+
+- `backend/modules/message_rotator.js` um `helper_settings`-basierte Admin-Settings erweitert.
+- Neue DB-Settings-Tabelle: `message_rotator_settings`.
+- JSON `config/message_rotator.json` bleibt Fallback/Seed, bestehende Config-Struktur bleibt kompatibel.
+- Neue Admin-Routen fuer Dashboard-Vorbereitung:
+  - `GET /api/message-rotator/admin/settings`
+  - `POST /api/message-rotator/admin/settings`
+  - `GET /api/message-rotator/admin/texts`
+  - `POST /api/message-rotator/admin/texts`
+- Textvarianten fuer `message_rotator` ueber `helper_texts` vorbereitet.
+- Keine Dashboard-Dateien, keine Alert-/Twitch-/Loyalty-Logik und keine bestehende Runtime-Funktionalitaet geaendert.
+
 ## STEP227 - 2026-05-11 - Twitch EventSub Subscription Status
 
 - `backend/modules/twitch.js` um eine reine Diagnose-Route fuer Twitch EventSub-Subscriptions erweitert.

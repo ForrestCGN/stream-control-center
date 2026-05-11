@@ -5,11 +5,44 @@ const config = require('./helpers/helper_config');
 const routes = require('./helpers/helper_routes');
 const security = require('./helpers/helper_security');
 const textHelper = require('./helpers/helper_texts');
+const settings = require('./helpers/helper_settings');
 const http = require('http');
 const https = require('https');
 const { URL } = require('url');
 const fs = require('fs');
 const path = require('path');
+
+const MODULE_NAME = 'message_rotator';
+const SETTINGS_TABLE = 'message_rotator_settings';
+const TEXTS_MODULE = 'message_rotator';
+
+const TEXT_CATEGORY_LABELS = {
+  rotator: 'Automatische Rotator-Texte',
+  manual: 'Manuelle Chatbefehle',
+  system: 'System / Fallback'
+};
+
+const TEXT_CATEGORIES = {
+  follow_reminder: 'rotator',
+  discord_reminder: 'rotator',
+  youtube_reminder: 'rotator'
+};
+
+const DEFAULT_TEXTS = {
+  follow_reminder: [
+    '💜 Wenn euch der Stream gefällt, lasst gerne ein Follow da. Das hilft uns sehr.',
+    '💜 Schön, dass ihr da seid. Ein Follow unterstützt unseren Stream direkt.'
+  ],
+  discord_reminder: [
+    '💬 Unsere Community findet ihr auch im Discord: {discordUrl}',
+    '💜 Ihr wollt auch außerhalb des Streams quatschen? Kommt gerne in den Discord: {discordUrl}'
+  ],
+  youtube_reminder: [
+    '🎬 Unsere Clips und Highlights findet ihr auch auf YouTube: {youtubeUrl}',
+    '📺 Wenn ihr uns auch außerhalb von Twitch unterstützen wollt: {youtubeUrl}',
+    '🎮 Verpasst keine Highlights: Schaut gerne auch auf unserem YouTube-Kanal vorbei: {youtubeUrl}'
+  ]
+};
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -199,6 +232,152 @@ function mergeConfig(raw) {
   return merged;
 }
 
+
+function deepMerge(base, extra) {
+  if (!extra || typeof extra !== 'object' || Array.isArray(extra)) return clone(base || {});
+  const out = clone(base || {});
+  for (const [key, value] of Object.entries(extra)) {
+    if (value && typeof value === 'object' && !Array.isArray(value) && out[key] && typeof out[key] === 'object' && !Array.isArray(out[key])) {
+      out[key] = deepMerge(out[key], value);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+function flattenSettingsObject(input, prefix = '') {
+  const result = [];
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return result;
+
+  for (const [key, value] of Object.entries(input)) {
+    if (!key || ['configPath'].includes(key)) continue;
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      result.push(...flattenSettingsObject(value, fullKey));
+    } else {
+      result.push({
+        key: fullKey,
+        value,
+        valueType: settings.normalizeValueType('', value),
+        description: ''
+      });
+    }
+  }
+
+  return result;
+}
+
+function setNestedValue(target, dottedKey, value) {
+  const parts = String(dottedKey || '').split('.').map(part => part.trim()).filter(Boolean);
+  if (!parts.length) return target;
+
+  let current = target;
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    const part = parts[i];
+    if (!current[part] || typeof current[part] !== 'object' || Array.isArray(current[part])) current[part] = {};
+    current = current[part];
+  }
+
+  current[parts[parts.length - 1]] = value;
+  return target;
+}
+
+function applyDbSettings(baseConfig) {
+  const merged = deepMerge(DEFAULT_CONFIG, baseConfig || {});
+
+  try {
+    settings.seedDefaults(SETTINGS_TABLE, flattenSettingsObject(merged));
+    const listed = settings.listSettings(SETTINGS_TABLE, { limit: 1000 });
+    for (const row of listed.rows || []) {
+      setNestedValue(merged, row.key, row.value);
+    }
+    merged.settingsTable = SETTINGS_TABLE;
+    merged.settingsSource = 'database_with_json_fallback';
+    return mergeConfig(merged);
+  } catch (err) {
+    console.warn(`[message_rotator] db settings unavailable, using json fallback: ${err.message}`);
+    const fallback = mergeConfig(merged);
+    fallback.settingsTable = SETTINGS_TABLE;
+    fallback.settingsSource = 'json_fallback';
+    fallback.settingsError = err.message || String(err);
+    return fallback;
+  }
+}
+
+function getAdminPayload(req) {
+  if (req && req.body && typeof req.body === 'object' && !Array.isArray(req.body)) return req.body;
+  return req && req.query && typeof req.query === 'object' ? req.query : {};
+}
+
+function listAdminSettings() {
+  const current = getConfig();
+  settings.seedDefaults(SETTINGS_TABLE, flattenSettingsObject(current));
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    table: SETTINGS_TABLE,
+    settings: settings.listSettings(SETTINGS_TABLE, { limit: 1000 }),
+    status: publicState()
+  };
+}
+
+function setAdminSettings(payload) {
+  const body = payload && typeof payload === 'object' ? payload : {};
+  const updates = body.settings && typeof body.settings === 'object' && !Array.isArray(body.settings)
+    ? body.settings
+    : (body.key ? { [body.key]: body.value } : {});
+
+  if (!Object.keys(updates).length) throw new Error('settings_payload_empty');
+
+  const rows = [];
+  for (const [key, value] of Object.entries(updates)) {
+    if (['configPath', 'settingsTable', 'settingsSource', 'settingsError'].includes(String(key))) continue;
+    rows.push(settings.setSetting(SETTINGS_TABLE, key, value));
+  }
+
+  cfg = null;
+  const loaded = loadConfig();
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    table: SETTINGS_TABLE,
+    updated: rows.length,
+    rows,
+    configInfo: cfgInfo,
+    config: loaded.config,
+    state: publicState()
+  };
+}
+
+function textEditorOptions() {
+  return {
+    categories: TEXT_CATEGORIES,
+    categoryLabels: TEXT_CATEGORY_LABELS,
+    defaultCategory: 'rotator'
+  };
+}
+
+function listAdminTexts() {
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    texts: textHelper.listModuleTextEditor(TEXTS_MODULE, DEFAULT_TEXTS, { ...textEditorOptions(), seed: true })
+  };
+}
+
+function setAdminTexts(payload) {
+  const result = textHelper.handleModuleTextEditorPayload(TEXTS_MODULE, payload || {}, textEditorOptions());
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    ...result,
+    texts: result.texts || result,
+    state: publicState()
+  };
+}
+
 function ensureConfigFile() {
   const filePath = getConfigPath();
   if (!core.fileExists(filePath)) core.writeJson(filePath, DEFAULT_CONFIG, { spaces: 2 });
@@ -208,13 +387,16 @@ function ensureConfigFile() {
 function loadConfig() {
   const filePath = ensureConfigFile();
   const raw = core.readJson(filePath, null);
-  cfg = mergeConfig(raw);
+  cfg = applyDbSettings(mergeConfig(raw));
   cfgInfo = {
     ok: true,
     configPath: filePath,
     loadedAt: core.nowIso(),
     itemCount: cfg.items.length,
-    enabledItems: cfg.items.filter(item => item.enabled).length
+    enabledItems: cfg.items.filter(item => item.enabled).length,
+    settingsTable: cfg.settingsTable || SETTINGS_TABLE,
+    settingsSource: cfg.settingsSource || 'database_with_json_fallback',
+    settingsError: cfg.settingsError || ''
   };
   return { ...cfgInfo, config: cfg };
 }
@@ -838,7 +1020,8 @@ function buildMessageRotatorConfig() {
     config: clone(c),
     configInfo: cfgInfo,
     configPath: getConfigPath(),
-    source: 'json_with_defaults',
+    source: cfg.settingsSource || 'database_with_json_fallback',
+    settingsTable: cfg.settingsTable || SETTINGS_TABLE,
     status: publicState()
   };
 }
@@ -849,7 +1032,7 @@ function buildMessageRotatorSettings() {
     ok: true,
     module: 'message_rotator',
     settings: {
-      source: 'runtime_and_json_config',
+      source: 'runtime_db_settings_with_json_fallback',
       enabled: c.enabled,
       runtime: clone(c.runtime || {}),
       chat: clone(c.chat || {}),
@@ -866,6 +1049,10 @@ function buildMessageRotatorRoutes(req = null) {
     { method: 'GET', path: '/api/message-rotator/status', auth: 'local_or_auth', category: 'status', description: 'Message-Rotator Status und Runtime-State.' },
     { method: 'GET', path: '/api/message-rotator/config', auth: 'local_or_auth', category: 'config', description: 'Read-only effektive Message-Rotator-Config.' },
     { method: 'GET', path: '/api/message-rotator/settings', auth: 'local_or_auth', category: 'settings', description: 'Read-only Runtime-/Config-Settings des Message-Rotators.' },
+    { method: 'GET', path: '/api/message-rotator/admin/settings', auth: 'local_or_auth', category: 'admin', description: 'Dashboard-Settings aus DB mit JSON-Fallback lesen.' },
+    { method: 'POST', path: '/api/message-rotator/admin/settings', auth: 'local_or_auth', category: 'admin', description: 'Dashboard-Settings in DB speichern.' },
+    { method: 'GET', path: '/api/message-rotator/admin/texts', auth: 'local_or_auth', category: 'admin', description: 'DB-Textvarianten fuer Rotator-Texte lesen.' },
+    { method: 'POST', path: '/api/message-rotator/admin/texts', auth: 'local_or_auth', category: 'admin', description: 'DB-Textvarianten fuer Rotator-Texte speichern.' },
     { method: 'GET', path: '/api/message-rotator/routes', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Routenübersicht des Message-Rotators.' },
     { method: 'GET', path: '/api/message-rotator/integration-check', auth: 'local_or_auth', category: 'diagnostics', description: 'Read-only Integration-Check des Message-Rotators.' },
     { method: 'GET', path: '/api/message-rotator/reload', auth: 'local_or_auth', category: 'admin', description: 'Message-Rotator Config und Texte neu laden.' },
@@ -886,6 +1073,10 @@ function buildMessageRotatorRoutes(req = null) {
     { method: 'GET', path: '/message-rotator/status', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Status.' },
     { method: 'GET', path: '/message-rotator/config', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Config.' },
     { method: 'GET', path: '/message-rotator/settings', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Settings.' },
+    { method: 'GET', path: '/message-rotator/admin/settings', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route fuer Admin-Settings.' },
+    { method: 'POST', path: '/message-rotator/admin/settings', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route fuer Admin-Settings.' },
+    { method: 'GET', path: '/message-rotator/admin/texts', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route fuer Admin-Texte.' },
+    { method: 'POST', path: '/message-rotator/admin/texts', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route fuer Admin-Texte.' },
     { method: 'GET', path: '/message-rotator/routes', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Routenübersicht.' },
     { method: 'GET', path: '/message-rotator/integration-check', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Integration-Check.' },
     { method: 'GET', path: '/message-rotator/reload', auth: 'legacy/local_or_auth', category: 'legacy', description: 'Legacy-Route für Reload.' },
@@ -914,6 +1105,8 @@ function buildMessageRotatorRoutes(req = null) {
       status: '/api/message-rotator/status',
       config: '/api/message-rotator/config',
       settings: '/api/message-rotator/settings',
+      adminSettings: '/api/message-rotator/admin/settings',
+      adminTexts: '/api/message-rotator/admin/texts',
       routes: '/api/message-rotator/routes',
       integrationCheck: '/api/message-rotator/integration-check',
       reload: '/api/message-rotator/reload'
@@ -944,8 +1137,9 @@ function buildMessageRotatorIntegrationCheck(req = null) {
       configPath: getConfigPath(),
       itemCount: Array.isArray(c.items) ? c.items.length : 0,
       enabledItems: Array.isArray(c.items) ? c.items.filter(item => item.enabled).length : 0,
-      source: 'json_with_defaults',
-      error: ''
+      source: c.settingsSource || 'database_with_json_fallback',
+      settingsTable: c.settingsTable || SETTINGS_TABLE,
+      error: c.settingsError || ''
     };
   }, { ok: false, error: 'config_check_failed' });
   checks.config = configCheck.ok ? configCheck.value : { ok: false, error: configCheck.error };
@@ -1027,6 +1221,8 @@ function buildMessageRotatorIntegrationCheck(req = null) {
       status: '/api/message-rotator/status',
       config: '/api/message-rotator/config',
       settings: '/api/message-rotator/settings',
+      adminSettings: '/api/message-rotator/admin/settings',
+      adminTexts: '/api/message-rotator/admin/texts',
       routes: '/api/message-rotator/routes',
       integrationCheck: '/api/message-rotator/integration-check',
       reload: '/api/message-rotator/reload'
@@ -1097,6 +1293,16 @@ function init(ctx) {
   const settingsHandler = guarded((req, res) => res.json(buildMessageRotatorSettings()));
   routes.registerGet(app, '/message-rotator/settings', settingsHandler);
   routes.registerGet(app, '/api/message-rotator/settings', settingsHandler);
+
+  const adminSettingsGetHandler = guarded((req, res) => res.json(listAdminSettings()));
+  const adminSettingsPostHandler = guarded((req, res) => res.json(setAdminSettings(getAdminPayload(req))));
+  routes.registerGet(app, ['/message-rotator/admin/settings', '/api/message-rotator/admin/settings'], adminSettingsGetHandler);
+  routes.registerPost(app, ['/message-rotator/admin/settings', '/api/message-rotator/admin/settings'], adminSettingsPostHandler);
+
+  const adminTextsGetHandler = guarded((req, res) => res.json(listAdminTexts()));
+  const adminTextsPostHandler = guarded((req, res) => res.json(setAdminTexts(getAdminPayload(req))));
+  routes.registerGet(app, ['/message-rotator/admin/texts', '/api/message-rotator/admin/texts'], adminTextsGetHandler);
+  routes.registerPost(app, ['/message-rotator/admin/texts', '/api/message-rotator/admin/texts'], adminTextsPostHandler);
 
   const routesHandler = guarded((req, res) => res.json(buildMessageRotatorRoutes(req)));
   routes.registerGet(app, '/message-rotator/routes', routesHandler);

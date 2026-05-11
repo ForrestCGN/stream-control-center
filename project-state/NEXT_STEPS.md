@@ -2,6 +2,40 @@
 
 Stand: 2026-05-11
 
+## Nach STEP229 - Message-Rotator
+
+Nach Entpacken, `stepdone.cmd` und Backend-Neustart pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/status" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/settings" | ConvertTo-Json -Depth 50
+Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/texts" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/integration-check" | ConvertTo-Json -Depth 80
+```
+
+Naechster sinnvoller STEP:
+
+```text
+STEP230 - Message-Rotator Dashboard-Modul
+```
+
+Geplante Dateien:
+
+```text
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+htdocs/dashboard/modules/message_rotator.js
+htdocs/dashboard/modules/message_rotator.css
+```
+
+Ziel STEP230:
+
+- Rotator im System-Bereich aktivieren.
+- Status, Start/Stop, Settings, Items und Textvarianten im Dashboard verwaltbar machen.
+- Dashboard greift nur ueber Backend-APIs zu, nicht direkt auf DB/JSON.
+
+Stand: 2026-05-11
+
 ## Nach STEP227
 
 - `GET /api/twitch/eventsub/subscriptions` ausführen und aktive Twitch EventSub-Typen prüfen.
