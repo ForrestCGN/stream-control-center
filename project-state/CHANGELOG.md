@@ -1,3 +1,15 @@
+## 2026-05-11 - STEP240 DeathCounter DB-Settings
+
+- `deathcounter_settings` ueber vorhandenen `helper_settings` eingefuehrt.
+- `GET/POST /api/deathcounter/v2/admin/settings` ergaenzt.
+- `/api/deathcounter/v2/settings` zeigt jetzt DB-Settings und Runtime-State.
+- `requireMentionForPlayerCommands` ist standardmaessig aktiv und kommt aus DB-Settings.
+- Chat-Output-, Fallback-, AutoCreate-, TwitchLookup-, Default-Spieler-, Max-Extra-Spieler- und Streamstart-Reset-Optionen vorbereitet.
+- Integration-Check prueft die Settings-Tabelle nicht-destruktiv.
+- Keine Count-/State-Migration und keine Dashboard-/Overlay-Aenderung.
+
+---
+
 ## 2026-05-11 - STEP239 DeathCounter Chat-Output-Anbindung
 
 - `backend/modules/deathcounter_v2.js` an vorhandenen `helper_chat_output` angebunden.

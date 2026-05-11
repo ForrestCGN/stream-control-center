@@ -1,3 +1,43 @@
+# NEXT STEP - Nach STEP240
+
+## DeathCounter Status
+
+DeathCounter hat jetzt:
+
+```text
+- zentrale Command-API
+- Backend-Chatausgabe ueber helper_chat_output
+- DB-Settings ueber deathcounter_settings/helper_settings
+- @-Pflicht standardmaessig als Setting aktiv
+```
+
+## Direkt nach Deploy testen
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/admin/settings" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/settings" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/integration-check" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/command?command=rip&input0=ForrestCGN&sendChat=0" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/command?command=rip&input0=@ForrestCGN&sendChat=0" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/command?command=rip&input0=@ForrestCGN&input1=del&sendChat=0" | ConvertTo-Json -Depth 20
+```
+
+## Naechster Bau-STEP empfohlen
+
+STEP241: DeathCounter Textvarianten ueber `module_text_variants`.
+
+Ziele:
+
+```text
+- Fehlermeldungen aus DB-Textvarianten
+- !tode Summary/Detail aus DB-Textvarianten
+- dcount-Fehlertexte aus DB-Textvarianten
+- JSON/Fallback nur als Seed/Fallback
+- danach Dashboard-Modul mit Settings + Texteditor + Statistiken
+```
+
+---
+
 # NEXT STEP - Nach STEP239
 
 ## DeathCounter Status

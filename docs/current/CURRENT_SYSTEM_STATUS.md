@@ -1,3 +1,24 @@
+# STEP240 - DeathCounter DB-Settings
+
+Stand: 2026-05-11
+
+- DeathCounter nutzt jetzt `deathcounter_settings` ueber den vorhandenen `helper_settings`.
+- Neue Routen: `GET/POST /api/deathcounter/v2/admin/settings`.
+- `/api/deathcounter/v2/settings` zeigt DB-Settings plus Runtime-State.
+- `requireMentionForPlayerCommands` ist standardmaessig aktiv und kann spaeter im Dashboard gesteuert werden.
+- Chat-Output-, Fallback-, AutoCreate-, TwitchLookup-, Default-Spieler-, Max-Extra-Spieler- und Streamstart-Reset-Optionen sind als DB-Settings vorbereitet.
+- `stream-online-sync` nutzt die DB-Settings fuer Session-Reset und Overlay-Spieler-Reset.
+- JSON-State bleibt produktive Count-/State-Quelle; keine Migration der DeathCounter-Counts.
+- Keine Dashboard-, Overlay- oder Streamer.bot-Aenderung in STEP240.
+
+Referenz:
+
+```text
+project-state/STEP240_DEATHCOUNTER_DB_SETTINGS_2026-05-11.md
+```
+
+---
+
 # STEP239 - DeathCounter Chat-Output-Anbindung
 
 Stand: 2026-05-11

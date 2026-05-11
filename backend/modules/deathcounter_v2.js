@@ -7,10 +7,26 @@ const { URL } = require('url');
 const core = require('./helpers/helper_core');
 const config = require('./helpers/helper_config');
 const chatOutput = require('./helpers/helper_chat_output');
+const settingsHelper = require('./helpers/helper_settings');
 
 const DEFAULT_SELECTED_IDS = ['forrestcgn', 'engelcgn'];
 const DEFAULT_GAME_KEY = 'Unbekannt';
 const MAX_EXTRA_PLAYERS = 2;
+const SETTINGS_TABLE = 'deathcounter_settings';
+const DEFAULT_DEATHCOUNTER_SETTINGS = [
+  { key: 'requireMentionForPlayerCommands', value: true, valueType: 'boolean', description: 'Wenn aktiv, muessen Spieler in Chat-Commands als @Erwaehnung uebergeben werden.' },
+  { key: 'chatOutputEnabled', value: true, valueType: 'boolean', description: 'Wenn aktiv, sendet DeathCounter Chatantworten primaer ueber helper_chat_output.' },
+  { key: 'fallbackToStreamerbot', value: true, valueType: 'boolean', description: 'Wenn Backend-Chatversand fehlschlaegt, darf Streamer.bot streamerbot_message als Fallback senden.' },
+  { key: 'fallbackToStreamer', value: true, valueType: 'boolean', description: 'helper_chat_output darf nach Bot-Account auf Streamer-Account fallbacken.' },
+  { key: 'chatOutputPrefer', value: 'bot', valueType: 'string', description: 'Bevorzugter Chat-Ausgabeaccount fuer helper_chat_output.' },
+  { key: 'directSendEnabled', value: true, valueType: 'boolean', description: 'Direkter IRC-Chatversand ueber helper_chat_output ist erlaubt.' },
+  { key: 'autoCreatePlayers', value: true, valueType: 'boolean', description: 'Neue Spieler duerfen bei RIP automatisch angelegt werden.' },
+  { key: 'allowTwitchLookup', value: true, valueType: 'boolean', description: 'Twitch-Lookup darf genutzt werden, wenn ein Spieler noch nicht existiert.' },
+  { key: 'defaultSelectedIds', value: DEFAULT_SELECTED_IDS, valueType: 'json', description: 'Standardspieler fuer das Overlay.' },
+  { key: 'maxExtraPlayers', value: MAX_EXTRA_PLAYERS, valueType: 'number', description: 'Maximale Anzahl zusaetzlicher Overlay-Spieler.' },
+  { key: 'resetSessionOnStreamStart', value: true, valueType: 'boolean', description: 'Beim Streamstart werden Session-Tode zurueckgesetzt.' },
+  { key: 'resetOverlayPlayersOnStreamStart', value: true, valueType: 'boolean', description: 'Beim Streamstart werden Overlay-Spieler auf Standard zurueckgesetzt.' }
+];
 
 module.exports.init = function init(ctx) {
   const { app } = ctx;
@@ -25,6 +41,7 @@ module.exports.init = function init(ctx) {
 
   ensureDir(dataDir);
   ensureStateFile();
+  ensureDeathcounterSettings();
 
   app.use('/api/deathcounter/v2', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -60,6 +77,19 @@ module.exports.init = function init(ctx) {
 
   app.get(`${API_PREFIX}/settings`, (req, res) => {
     return res.json(ok(buildDeathcounterSettings()));
+  });
+
+  app.get(`${API_PREFIX}/admin/settings`, (req, res) => {
+    return res.json(ok(buildDeathcounterAdminSettings()));
+  });
+
+  app.post(`${API_PREFIX}/admin/settings`, (req, res) => {
+    try {
+      const result = updateDeathcounterAdminSettings(req.body || req.query || {});
+      return res.json(ok(result));
+    } catch (err) {
+      return res.status(400).json(fail(err.message || String(err)));
+    }
   });
 
   app.get(`${API_PREFIX}/routes`, (req, res) => {
@@ -199,20 +229,25 @@ module.exports.init = function init(ctx) {
       const payload = await fetchJson(sourceUrl);
       const game = normalizeGameName(payload?.data?.[0]?.game_name || DEFAULT_GAME_KEY);
 
+      const runtimeSettings = getDeathcounterRuntimeSettings();
       const state = updateState(s => {
         s.currentGame = game;
         ensureGameBucketsForAllPlayers(s.players, game);
-        for (const player of s.players) {
-          sanitizePlayer(player);
-          for (const key of Object.keys(player.games || {})) {
-            ensureGameStats(player, key);
-            player.games[key].session = 0;
+        if (runtimeSettings.resetSessionOnStreamStart) {
+          for (const player of s.players) {
+            sanitizePlayer(player);
+            for (const key of Object.keys(player.games || {})) {
+              ensureGameStats(player, key);
+              player.games[key].session = 0;
+            }
+            recalcAggregates(player);
+            clampStats(player);
           }
-          recalcAggregates(player);
-          clampStats(player);
         }
-        s.overlay.selectedPlayerIds = getDefaultSelectedPlayers(s.players).map(p => p.id).slice(0, 2);
-        s.overlay.extraPlayerIds = [];
+        if (runtimeSettings.resetOverlayPlayersOnStreamStart) {
+          s.overlay.selectedPlayerIds = getDefaultSelectedPlayers(s.players).map(p => p.id).slice(0, 2);
+          s.overlay.extraPlayerIds = [];
+        }
         syncOverlayLists(s);
         s.updatedAt = core.nowIso();
       });
@@ -225,6 +260,10 @@ module.exports.init = function init(ctx) {
       return res.json(ok({
         source: sourceUrl,
         currentGame: state.currentGame,
+        settings: {
+          resetSessionOnStreamStart: runtimeSettings.resetSessionOnStreamStart,
+          resetOverlayPlayersOnStreamStart: runtimeSettings.resetOverlayPlayersOnStreamStart
+        },
         overlay: publicOverlay(state).overlay,
         players: publicState(state).players
       }));
@@ -285,7 +324,7 @@ module.exports.init = function init(ctx) {
           s.overlay.extraPlayerIds = extraIds
             .map(id => findPlayerOrThrow(s.players, id).id)
             .filter(id => !s.overlay.selectedPlayerIds.includes(id))
-            .slice(0, MAX_EXTRA_PLAYERS);
+            .slice(0, getMaxExtraPlayersSafe());
         }
         syncOverlayLists(s);
         s.updatedAt = core.nowIso();
@@ -331,7 +370,7 @@ module.exports.init = function init(ctx) {
 
       const visibleIds = [
         ...normalizePlayerListInput(stateBefore.overlay?.selectedPlayerIds).slice(0, 2),
-        ...normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS)
+        ...normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, getMaxExtraPlayersSafe())
       ];
 
       if (!visibleIds.includes(fromRef.id)) {
@@ -364,7 +403,7 @@ module.exports.init = function init(ctx) {
         }
 
         const selected = normalizePlayerListInput(s.overlay.selectedPlayerIds).slice(0, 2);
-        const extras = normalizePlayerListInput(s.overlay.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS);
+        const extras = normalizePlayerListInput(s.overlay.extraPlayerIds).slice(0, getMaxExtraPlayersSafe());
 
         const selectedIdx = selected.indexOf(fromRef.id);
         if (selectedIdx >= 0) {
@@ -429,7 +468,7 @@ module.exports.init = function init(ctx) {
 
       const visibleIds = [
         ...normalizePlayerListInput(stateBefore.overlay?.selectedPlayerIds).slice(0, 2),
-        ...normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS)
+        ...normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, getMaxExtraPlayersSafe())
       ];
 
       if (!visibleIds.includes(fromRef.id)) {
@@ -462,7 +501,7 @@ module.exports.init = function init(ctx) {
         }
 
         const selected = normalizePlayerListInput(s.overlay.selectedPlayerIds).slice(0, 2);
-        const extras = normalizePlayerListInput(s.overlay.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS);
+        const extras = normalizePlayerListInput(s.overlay.extraPlayerIds).slice(0, getMaxExtraPlayersSafe());
 
         const selectedIdx = selected.indexOf(fromRef.id);
         if (selectedIdx >= 0) {
@@ -962,11 +1001,16 @@ module.exports.init = function init(ctx) {
   }
 
   function getCommandOptions(req) {
+    const runtimeSettings = getDeathcounterRuntimeSettings();
     return {
-      requireMentionForPlayerCommands: booleanOrDefault(
-        bodyOrQuery(req, 'requireMention'),
-        booleanOrDefault(process.env.DEATHCOUNTER_REQUIRE_MENTION_FOR_PLAYER_COMMANDS, false)
-      )
+      requireMentionForPlayerCommands: commandBooleanOption(req, 'requireMention', runtimeSettings.requireMentionForPlayerCommands),
+      autoCreatePlayers: commandBooleanOption(req, 'autoCreatePlayers', runtimeSettings.autoCreatePlayers),
+      allowTwitchLookup: commandBooleanOption(req, 'allowTwitchLookup', runtimeSettings.allowTwitchLookup),
+      chatOutputEnabled: commandBooleanOption(req, 'chatOutputEnabled', runtimeSettings.chatOutputEnabled),
+      fallbackToStreamerbot: commandBooleanOption(req, 'fallbackToStreamerbot', runtimeSettings.fallbackToStreamerbot),
+      fallbackToStreamer: commandBooleanOption(req, 'fallbackToStreamer', runtimeSettings.fallbackToStreamer),
+      chatOutputPrefer: String(bodyOrQuery(req, 'chatPrefer') || bodyOrQuery(req, 'prefer') || runtimeSettings.chatOutputPrefer || 'bot').trim() || 'bot',
+      directSendEnabled: commandBooleanOption(req, 'directSendEnabled', runtimeSettings.directSendEnabled)
     };
   }
 
@@ -1047,7 +1091,8 @@ module.exports.init = function init(ctx) {
       };
     }
 
-    if (isDisabledFlag(bodyOrQuery(req, 'chatOutput')) || isDisabledFlag(bodyOrQuery(req, 'sendChat'))) {
+    const commandOptions = getCommandOptions(req);
+    if (!commandOptions.chatOutputEnabled || isDisabledFlag(bodyOrQuery(req, 'chatOutput')) || isDisabledFlag(bodyOrQuery(req, 'sendChat'))) {
       return {
         ...payload,
         chat_output_attempted: false,
@@ -1060,10 +1105,10 @@ module.exports.init = function init(ctx) {
       const result = await chatOutput.sendChatMessage(message, {
         source: 'deathcounter_v2',
         reason: `command_${command || 'unknown'}`,
-        prefer: bodyOrQuery(req, 'chatPrefer') || bodyOrQuery(req, 'prefer'),
-        fallbackToStreamerbot: commandBooleanOption(req, 'fallbackToStreamerbot', true),
-        fallbackToStreamer: commandBooleanOption(req, 'fallbackToStreamer', undefined),
-        directSendEnabled: commandBooleanOption(req, 'directSendEnabled', undefined),
+        prefer: commandOptions.chatOutputPrefer,
+        fallbackToStreamerbot: commandOptions.fallbackToStreamerbot,
+        fallbackToStreamer: commandOptions.fallbackToStreamer,
+        directSendEnabled: commandOptions.directSendEnabled,
         maxLength: intOrDefault(bodyOrQuery(req, 'maxLength'), 450)
       });
 
@@ -1143,7 +1188,7 @@ module.exports.init = function init(ctx) {
 
     const visibleIds = [
       ...normalizePlayerListInput(stateBefore.overlay?.selectedPlayerIds).slice(0, 2),
-      ...normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS)
+      ...normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, getMaxExtraPlayersSafe())
     ];
 
     if (!visibleIds.includes(fromRef.id)) {
@@ -1176,7 +1221,7 @@ module.exports.init = function init(ctx) {
       }
 
       const selected = normalizePlayerListInput(s.overlay.selectedPlayerIds).slice(0, 2);
-      const extras = normalizePlayerListInput(s.overlay.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS);
+      const extras = normalizePlayerListInput(s.overlay.extraPlayerIds).slice(0, getMaxExtraPlayersSafe());
 
       const selectedIdx = selected.indexOf(fromRef.id);
       if (selectedIdx >= 0) {
@@ -1216,9 +1261,12 @@ module.exports.init = function init(ctx) {
 
   async function applyDeathDelta({ target, game, delta, direction }) {
     const isIncrement = direction > 0;
+    const runtimeSettings = getDeathcounterRuntimeSettings();
     const stateBefore = readState();
     const existingBefore = findPlayerStrict(stateBefore.players, target);
-    const lookedUpUser = isIncrement && !existingBefore ? await lookupTwitchUserByName(target) : null;
+    const canAutoCreate = runtimeSettings.autoCreatePlayers !== false;
+    const canLookup = runtimeSettings.allowTwitchLookup !== false;
+    const lookedUpUser = isIncrement && !existingBefore && canAutoCreate && canLookup ? await lookupTwitchUserByName(target) : null;
 
     let changedPlayer = null;
     let autoCreated = false;
@@ -1230,6 +1278,12 @@ module.exports.init = function init(ctx) {
       if (!player) {
         if (!isIncrement) {
           throw new Error(`Player not found: ${target}. Erlaubt sind nur exakter Twitch-Loginname oder exakter Twitch-DisplayName.`);
+        }
+        if (!canAutoCreate) {
+          throw new Error(`Player not found: ${target}. Automatisches Anlegen ist deaktiviert.`);
+        }
+        if (!canLookup) {
+          throw new Error(`Player not found: ${target}. Twitch-Lookup ist deaktiviert.`);
         }
         if (!lookedUpUser) {
           throw new Error(`Player not found: ${target}. Kein bestehender Spieler und kein Twitch-Lookup-Treffer.`);
@@ -1279,12 +1333,94 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function ensureDeathcounterSettings() {
+    try {
+      return settingsHelper.seedDefaults(SETTINGS_TABLE, DEFAULT_DEATHCOUNTER_SETTINGS);
+    } catch (err) {
+      console.warn('[deathcounter_v2] settings seed failed:', err.message || String(err));
+      return { ok: false, table: SETTINGS_TABLE, error: err.message || String(err) };
+    }
+  }
+
+  function getSettingDefault(key) {
+    const found = DEFAULT_DEATHCOUNTER_SETTINGS.find(item => item.key === key);
+    return found ? found.value : null;
+  }
+
+  function readDeathcounterSetting(key) {
+    const found = DEFAULT_DEATHCOUNTER_SETTINGS.find(item => item.key === key) || { value: null, valueType: 'string', description: '' };
+    return settingsHelper.getSetting(SETTINGS_TABLE, key, found.value, {
+      valueType: found.valueType,
+      description: found.description
+    });
+  }
+
+  function getDeathcounterRuntimeSettings() {
+    ensureDeathcounterSettings();
+    return {
+      requireMentionForPlayerCommands: !!readDeathcounterSetting('requireMentionForPlayerCommands').value,
+      chatOutputEnabled: !!readDeathcounterSetting('chatOutputEnabled').value,
+      fallbackToStreamerbot: !!readDeathcounterSetting('fallbackToStreamerbot').value,
+      fallbackToStreamer: !!readDeathcounterSetting('fallbackToStreamer').value,
+      chatOutputPrefer: String(readDeathcounterSetting('chatOutputPrefer').value || 'bot').trim() || 'bot',
+      directSendEnabled: !!readDeathcounterSetting('directSendEnabled').value,
+      autoCreatePlayers: !!readDeathcounterSetting('autoCreatePlayers').value,
+      allowTwitchLookup: !!readDeathcounterSetting('allowTwitchLookup').value,
+      defaultSelectedIds: normalizePlayerListInput(readDeathcounterSetting('defaultSelectedIds').value || DEFAULT_SELECTED_IDS),
+      maxExtraPlayers: Math.max(0, intOrDefault(readDeathcounterSetting('maxExtraPlayers').value, MAX_EXTRA_PLAYERS)),
+      resetSessionOnStreamStart: !!readDeathcounterSetting('resetSessionOnStreamStart').value,
+      resetOverlayPlayersOnStreamStart: !!readDeathcounterSetting('resetOverlayPlayersOnStreamStart').value
+    };
+  }
+
+  function buildDeathcounterAdminSettings() {
+    ensureDeathcounterSettings();
+    const listed = settingsHelper.listSettings(SETTINGS_TABLE, { limit: 500 });
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      table: SETTINGS_TABLE,
+      count: listed.count,
+      rows: listed.rows,
+      runtime: getDeathcounterRuntimeSettings(),
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function updateDeathcounterAdminSettings(input) {
+    ensureDeathcounterSettings();
+    const body = input && typeof input === 'object' ? input : {};
+    const values = body.settings && typeof body.settings === 'object' ? body.settings : body;
+    const allowed = new Map(DEFAULT_DEATHCOUNTER_SETTINGS.map(item => [item.key, item]));
+    const changed = [];
+
+    for (const [key, definition] of allowed.entries()) {
+      if (!Object.prototype.hasOwnProperty.call(values, key)) continue;
+      const saved = settingsHelper.setSetting(SETTINGS_TABLE, key, values[key], {
+        valueType: definition.valueType,
+        description: definition.description
+      });
+      changed.push(saved);
+    }
+
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      table: SETTINGS_TABLE,
+      changed: changed.length,
+      rows: changed,
+      runtime: getDeathcounterRuntimeSettings(),
+      updatedAt: core.nowIso()
+    };
+  }
+
   function buildDeathcounterConfig() {
     return {
       module: 'deathcounter_v2',
       version: 2,
       prefix: API_PREFIX,
-      source: 'state_file',
+      source: 'state_file_with_database_settings',
+      settingsTable: SETTINGS_TABLE,
       dataDir,
       stateFile,
       legacyFile,
@@ -1311,20 +1447,21 @@ module.exports.init = function init(ctx) {
 
   function buildDeathcounterSettings() {
     const state = readState();
+    const runtimeSettings = getDeathcounterRuntimeSettings();
     return {
       module: 'deathcounter_v2',
       version: 2,
-      source: 'runtime_state_and_environment',
+      source: 'database_settings_and_runtime_state',
       prefix: API_PREFIX,
+      settingsTable: SETTINGS_TABLE,
       settings: {
+        ...runtimeSettings,
         dataDir,
         stateFile,
         legacyFile,
         overlayFile: getOverlayFilePath(),
         selectedPlayerIds: normalizePlayerListInput(state.overlay?.selectedPlayerIds).slice(0, 2),
-        extraPlayerIds: normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS),
-        maxExtraPlayers: MAX_EXTRA_PLAYERS,
-        defaultSelectedIds: [...DEFAULT_SELECTED_IDS],
+        extraPlayerIds: normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, getMaxExtraPlayersSafe()),
         currentGame: state.currentGame,
         overlayVisible: Boolean(state.overlay?.visible)
       },
@@ -1337,6 +1474,7 @@ module.exports.init = function init(ctx) {
       { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'runtime and state-file status' },
       { method: 'GET', path: `${API_PREFIX}/config`, purpose: 'sanitized deathcounter config/path view' },
       { method: 'GET', path: `${API_PREFIX}/settings`, purpose: 'runtime settings/state view' },
+      { method: 'GET/POST', path: `${API_PREFIX}/admin/settings`, purpose: 'dashboard/admin DB settings via helper_settings' },
       { method: 'GET', path: `${API_PREFIX}/routes`, purpose: 'list deathcounter v2 API routes' },
       { method: 'GET', path: `${API_PREFIX}/integration-check`, purpose: 'run non-destructive integration check' },
       { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
@@ -1374,6 +1512,13 @@ module.exports.init = function init(ctx) {
     add(fileCheck('overlay_file', getOverlayFilePath(), true));
     add(fileCheck('legacy_file', legacyFile, false));
 
+    try {
+      const adminSettings = buildDeathcounterAdminSettings();
+      add({ name: 'database_settings', ok: true, level: 'ok', table: adminSettings.table, count: adminSettings.count });
+    } catch (err) {
+      add({ name: 'database_settings', ok: false, level: 'error', table: SETTINGS_TABLE, error: err.message || String(err) });
+    }
+
     let state = null;
     try {
       state = readState();
@@ -1389,7 +1534,7 @@ module.exports.init = function init(ctx) {
         level: Array.isArray(state.players) && state.players.length > 0 ? 'ok' : 'warning',
         count: Array.isArray(state.players) ? state.players.length : 0,
         selectedPlayerIds: normalizePlayerListInput(state.overlay?.selectedPlayerIds).slice(0, 2),
-        extraPlayerIds: normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS)
+        extraPlayerIds: normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, getMaxExtraPlayersSafe())
       });
       add({
         name: 'current_game',
@@ -1612,7 +1757,7 @@ function normalizeOverlay(overlay) {
     visible: !!o.visible,
     title: typeof o.title === 'string' && o.title.trim() ? o.title.trim() : 'Death Counter',
     selectedPlayerIds: normalizePlayerListInput(o.selectedPlayerIds).slice(0, 2),
-    extraPlayerIds: normalizePlayerListInput(o.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS)
+    extraPlayerIds: normalizePlayerListInput(o.extraPlayerIds).slice(0, getMaxExtraPlayersSafe())
   };
 }
 
@@ -1683,7 +1828,7 @@ function syncOverlayLists(state) {
   for (const id of extra) {
     if (!uniq.includes(id)) uniq.push(id);
   }
-  state.overlay.extraPlayerIds = uniq.slice(0, MAX_EXTRA_PLAYERS);
+  state.overlay.extraPlayerIds = uniq.slice(0, getMaxExtraPlayersSafe());
 }
 
 function maybeTrackExtraPlayer(state, player) {
@@ -1694,17 +1839,39 @@ function maybeTrackExtraPlayer(state, player) {
   if (state.overlay.selectedPlayerIds.includes(id)) return;
   if (state.overlay.extraPlayerIds.includes(id)) return;
   state.overlay.extraPlayerIds.push(id);
-  state.overlay.extraPlayerIds = state.overlay.extraPlayerIds.slice(0, MAX_EXTRA_PLAYERS);
+  state.overlay.extraPlayerIds = state.overlay.extraPlayerIds.slice(0, getMaxExtraPlayersSafe());
 }
 
 function getDefaultSelectedPlayers(players) {
   const sorted = sortPlayers(players).filter(p => p.active !== false);
   const wanted = [];
-  for (const wantedId of DEFAULT_SELECTED_IDS) {
-    const match = sorted.find(p => cleanLogin(p.id) === wantedId || cleanLogin(p.login) === wantedId);
+  for (const wantedId of getDefaultSelectedIdsSafe()) {
+    const cleanWanted = cleanLogin(wantedId);
+    const match = sorted.find(p => cleanLogin(p.id) === cleanWanted || cleanLogin(p.login) === cleanWanted);
     if (match && !wanted.find(x => x.id === match.id)) wanted.push(match);
   }
   return wanted;
+}
+
+function getDefaultSelectedIdsSafe() {
+  try {
+    settingsHelper.seedDefaults(SETTINGS_TABLE, DEFAULT_DEATHCOUNTER_SETTINGS);
+    const setting = settingsHelper.getSetting(SETTINGS_TABLE, 'defaultSelectedIds', DEFAULT_SELECTED_IDS, { valueType: 'json' });
+    const ids = normalizePlayerListInput(setting.value || DEFAULT_SELECTED_IDS);
+    return ids.length ? ids : [...DEFAULT_SELECTED_IDS];
+  } catch (_) {
+    return [...DEFAULT_SELECTED_IDS];
+  }
+}
+
+function getMaxExtraPlayersSafe() {
+  try {
+    settingsHelper.seedDefaults(SETTINGS_TABLE, DEFAULT_DEATHCOUNTER_SETTINGS);
+    const setting = settingsHelper.getSetting(SETTINGS_TABLE, 'maxExtraPlayers', MAX_EXTRA_PLAYERS, { valueType: 'number' });
+    return Math.max(0, intOrDefault(setting.value, MAX_EXTRA_PLAYERS));
+  } catch (_) {
+    return MAX_EXTRA_PLAYERS;
+  }
 }
 
 function publicState(state) {
@@ -1723,7 +1890,7 @@ function publicOverlay(state) {
       visible: !!state.overlay?.visible,
       title: state.overlay?.title || 'Death Counter',
       selectedPlayerIds: normalizePlayerListInput(state.overlay?.selectedPlayerIds).slice(0, 2),
-      extraPlayerIds: normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS)
+      extraPlayerIds: normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, getMaxExtraPlayersSafe())
     }
   };
 }
@@ -1824,7 +1991,7 @@ function buildTodeSummary(state) {
   const game = normalizeGameName(state.currentGame || DEFAULT_GAME_KEY);
   const ids = [
     ...normalizePlayerListInput(state.overlay?.selectedPlayerIds).slice(0, 2),
-    ...normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, MAX_EXTRA_PLAYERS)
+    ...normalizePlayerListInput(state.overlay?.extraPlayerIds).slice(0, getMaxExtraPlayersSafe())
   ];
 
   const players = ids

@@ -1,3 +1,36 @@
+## STEP240 - DeathCounter DB-Settings
+
+Geaendert / neu dokumentiert:
+
+```text
+backend/modules/deathcounter_v2.js
+project-state/STEP240_DEATHCOUNTER_DB_SETTINGS_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Runtime/DB nach Deploy:
+
+```text
+deathcounter_settings wird per helper_settings/CREATE TABLE IF NOT EXISTS angelegt bzw. geseedet
+```
+
+Nicht geaendert im ZIP:
+
+```text
+htdocs/**
+config/**
+data/**
+app.sqlite
+DeathCounter Overlay HTML
+Streamer.bot Actions
+```
+
+---
+
 ## STEP239 - DeathCounter Chat-Output-Anbindung
 
 Geaendert / neu dokumentiert:
