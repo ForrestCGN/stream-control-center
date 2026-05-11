@@ -1,3 +1,37 @@
+# FILES - STEP255 DeathCounter Guarded Storage Import
+
+Geaendert / neu:
+
+```text
+backend/modules/deathcounter_v2.js
+project-state/STEP255_DEATHCOUNTER_GUARDED_STORAGE_IMPORT_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md
+docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md
+README_STEP255_DEATHCOUNTER_GUARDED_STORAGE_IMPORT.md
+```
+
+Weiterhin nicht geaendert:
+
+```text
+data/deathcounter/deathcounter.v2.json
+htdocs/overlays/_overlay-deathcounter-v2.html
+Streamer.bot Actions/Exports
+produktive RIP/DEL/TODE-Storage-Logik
+```
+
+Hinweis:
+
+```text
+app.sqlite wird nicht ersetzt. Die neue Route kann nach Confirm Daten in vorbereitete Tabellen schreiben.
+```
+
+---
+
 # FILES - STEP254 DeathCounter Storage Validation
 
 Geaendert / neu:

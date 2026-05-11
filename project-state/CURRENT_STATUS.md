@@ -1,3 +1,37 @@
+## STEP255 - DeathCounter Guarded Storage Import
+
+Stand: 2026-05-11
+
+DeathCounter V2 hat jetzt einen geschuetzten Import-Endpunkt fuer die vorbereiteten DB-Tabellen.
+
+Neue Route:
+
+```text
+POST /api/deathcounter/v2/storage/import
+```
+
+Schutzregeln:
+
+```text
+- Import nur mit confirm=IMPORT_DEATHCOUNTER_V2
+- Import nur wenn Zieltabellen leer sind
+- Import nur wenn STEP254-Validation importbereit ist
+- JSON-Backup wird standardmaessig vor dem Import erstellt
+- aktiver Storage bleibt json_state_file
+- keine produktive Storage-Umschaltung
+```
+
+Importiert werden koennen:
+
+```text
+deathcounter_players
+deathcounter_games
+deathcounter_counts
+deathcounter_overlay_state
+```
+
+`deathcounter_events` bleibt leer, weil historische Einzelereignisse aus dem JSON-State nicht sicher rekonstruierbar sind.
+
 ## STEP251 - DeathCounter Dashboard Extra Players
 
 Stand: 2026-05-11

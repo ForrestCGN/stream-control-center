@@ -1,3 +1,31 @@
+# CURRENT_SYSTEM_STATUS - STEP255 Update
+
+DeathCounter V2 hat jetzt einen geschuetzten Import-Endpunkt fuer die vorbereiteten DB-Tabellen.
+
+Neu:
+
+```text
+POST /api/deathcounter/v2/storage/import
+```
+
+Schutzmechanik:
+
+```text
+confirm=IMPORT_DEATHCOUNTER_V2 erforderlich
+Zieltabellen muessen leer sein
+Validation muss readyForImport=true liefern
+JSON-Backup wird standardmaessig erstellt
+```
+
+Wichtig:
+
+```text
+Der Import schreibt in DB-Tabellen, aber der aktive DeathCounter-Storage bleibt json_state_file.
+Es gibt keinen Storage-Wechsel und keine Aenderung an RIP/DEL/TODE/Overlay/Streamer.bot.
+```
+
+---
+
 # CURRENT_SYSTEM_STATUS - STEP254 Update
 
 DeathCounter V2 hat jetzt eine Read-only-Validation fuer die spaetere DB-Migration.

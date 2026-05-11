@@ -217,7 +217,7 @@ Die Vorschau umfasst:
 
 ## DeathCounter V2 - vorbereitete Storage-/Validation-Struktur
 
-Seit STEP252/253/254 vorbereitet, aber nicht produktiv aktiv:
+Seit STEP252/253/254 vorbereitet; seit STEP255 mit geschuetztem Import-Endpunkt, aber weiterhin nicht als produktiver Storage aktiv:
 
 ```text
 Schema-Modul: deathcounter_v2_storage
@@ -225,6 +225,7 @@ Aktiver Storage: json_state_file
 Vorbereiteter Storage: database_schema
 Read-only Preview: GET /api/deathcounter/v2/storage/preview
 Read-only Validation: GET /api/deathcounter/v2/storage/validate
+Guarded Import: POST /api/deathcounter/v2/storage/import
 ```
 
 Vorbereitete Tabellen:
@@ -237,4 +238,4 @@ deathcounter_overlay_state
 deathcounter_events
 ```
 
-Wichtig: Bis einschliesslich STEP254 wird nichts importiert, nichts geschrieben und die produktive Logik bleibt auf `data/deathcounter/deathcounter.v2.json`.
+Wichtig: STEP255 kann nach explizitem Confirm Daten aus dem JSON-State in die vorbereiteten DB-Tabellen schreiben. Die produktive Logik bleibt trotzdem auf `data/deathcounter/deathcounter.v2.json`; ein Storage-Wechsel braucht einen eigenen STEP.

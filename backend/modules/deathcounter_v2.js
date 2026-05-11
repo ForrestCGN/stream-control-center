@@ -17,6 +17,7 @@ const MAX_EXTRA_PLAYERS = 2;
 const SETTINGS_TABLE = 'deathcounter_settings';
 const STORAGE_SCHEMA_MODULE = 'deathcounter_v2_storage';
 const STORAGE_SCHEMA_VERSION = 1;
+const STORAGE_IMPORT_CONFIRM_TOKEN = 'IMPORT_DEATHCOUNTER_V2';
 const STORAGE_TABLES = Object.freeze({
   players: 'deathcounter_players',
   games: 'deathcounter_games',
@@ -208,6 +209,18 @@ module.exports.init = function init(ctx) {
       return res.json(ok(validation));
     } catch (err) {
       return res.status(500).json(fail(err.message || String(err)));
+    }
+  });
+
+  app.post(`${API_PREFIX}/storage/import`, (req, res) => {
+    try {
+      const result = importDeathcounterStorage({
+        confirm: bodyOrQuery(req, 'confirm') || bodyOrQuery(req, 'token') || '',
+        createBackup: booleanOrDefault(bodyOrQuery(req, 'createBackup'), true)
+      });
+      return res.json(ok(result));
+    } catch (err) {
+      return res.status(400).json(fail(err.message || String(err)));
     }
   });
 
@@ -1971,7 +1984,7 @@ module.exports.init = function init(ctx) {
       if (!table.exists) {
         addIssue('error', 'target_table_missing', `Target table ${table.table} does not exist.`, { table: table.table, key: table.key });
       } else if (Number(table.rowCount || 0) > 0) {
-        addIssue('warning', 'target_table_not_empty', `Target table ${table.table} already contains rows.`, { table: table.table, key: table.key, rowCount: Number(table.rowCount || 0) });
+        addIssue('info', 'target_table_not_empty', `Target table ${table.table} already contains rows.`, { table: table.table, key: table.key, rowCount: Number(table.rowCount || 0) });
       }
     }
 
@@ -2050,7 +2063,9 @@ module.exports.init = function init(ctx) {
     const errors = issues.filter(issue => issue.level === 'error').length;
     const warnings = issues.filter(issue => issue.level === 'warning').length;
     const infos = issues.filter(issue => issue.level === 'info').length;
-    const readyForImport = errors === 0;
+    const targetTablesEmpty = (storage.tables || []).every(table => Number(table.rowCount || 0) === 0);
+    const validationOk = errors === 0;
+    const readyForImport = validationOk && targetTablesEmpty;
 
     return {
       module: 'deathcounter_v2',
@@ -2069,7 +2084,7 @@ module.exports.init = function init(ctx) {
       stateUpdatedAt: rows.stateUpdatedAt,
       summary: rows.summary,
       validation: {
-        ok: readyForImport,
+        ok: validationOk,
         errors,
         warnings,
         infos,
@@ -2079,7 +2094,7 @@ module.exports.init = function init(ctx) {
       },
       checks: {
         storageSchemaOk: Boolean(storage.ok),
-        targetTablesEmpty: (storage.tables || []).every(table => Number(table.rowCount || 0) === 0),
+        targetTablesEmpty,
         playersHaveIds: rows.playerRows.every(player => String(player.id || '').trim()),
         countsReferencePlayers: rows.countRows.every(row => playerIds.has(String(row.player_id || '').trim())),
         countsReferenceGames: rows.countRows.every(row => gameKeys.has(String(row.game_key || '').trim())),
@@ -2188,6 +2203,150 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function createDeathcounterImportBackup() {
+    const backupDir = path.join(dataDir, 'backups');
+    ensureDir(backupDir);
+    const stamp = core.nowIso().replace(/[:.]/g, '-');
+    const backupFile = path.join(backupDir, `deathcounter.v2.before-db-import.${stamp}.json`);
+    fs.copyFileSync(stateFile, backupFile);
+    return {
+      created: true,
+      path: backupFile,
+      source: stateFile
+    };
+  }
+
+  function insertDeathcounterStorageRows(rows) {
+    const now = core.nowIso();
+    const tx = database.transaction(() => {
+      for (const player of rows.playerRows) {
+        database.insert(STORAGE_TABLES.players, {
+          id: player.id,
+          login: player.login,
+          display_name: player.display_name,
+          active: Number(player.active || 0),
+          sort_order: Number(player.sort_order || 0),
+          source: 'json_import_step255',
+          created_at: now,
+          updated_at: now
+        });
+      }
+
+      for (const game of rows.gameRows) {
+        database.insert(STORAGE_TABLES.games, {
+          game_key: game.game_key,
+          display_name: game.display_name,
+          source: 'json_import_step255',
+          created_at: now,
+          updated_at: now
+        });
+      }
+
+      for (const count of rows.countRows) {
+        database.insert(STORAGE_TABLES.counts, {
+          player_id: count.player_id,
+          game_key: count.game_key,
+          session_deaths: Number(count.session_deaths || 0),
+          all_time_deaths: Number(count.all_time_deaths || 0),
+          source: 'json_import_step255',
+          created_at: now,
+          updated_at: now
+        });
+      }
+
+      for (const entry of rows.overlayRows) {
+        database.insert(STORAGE_TABLES.overlayState, {
+          state_key: entry.state_key,
+          state_value: entry.state_value,
+          value_type: entry.value_type,
+          source: 'json_import_step255',
+          created_at: now,
+          updated_at: now
+        });
+      }
+    });
+
+    tx();
+
+    return {
+      players: rows.playerRows.length,
+      games: rows.gameRows.length,
+      counts: rows.countRows.length,
+      overlayState: rows.overlayRows.length,
+      events: 0,
+      importedAt: now
+    };
+  }
+
+  function importDeathcounterStorage(options = {}) {
+    const confirm = String(options.confirm || '').trim();
+    if (confirm !== STORAGE_IMPORT_CONFIRM_TOKEN) {
+      throw new Error(`storage_import_requires_confirm:${STORAGE_IMPORT_CONFIRM_TOKEN}`);
+    }
+
+    const validation = buildDeathcounterStorageValidation({ includeIssues: true, limit: 100 });
+    if (!validation.readyForImport || !validation.validation.ok) {
+      const errors = validation.validation.errors || 0;
+      const warnings = validation.validation.warnings || 0;
+      throw new Error(`storage_import_validation_failed:errors=${errors};warnings=${warnings}`);
+    }
+
+    if (!validation.checks.targetTablesEmpty) {
+      throw new Error('storage_import_requires_empty_target_tables');
+    }
+
+    const rows = buildDeathcounterStorageRows();
+    let backup = { created: false, path: '', source: stateFile };
+    if (options.createBackup !== false) {
+      backup = createDeathcounterImportBackup();
+    }
+
+    const imported = insertDeathcounterStorageRows(rows);
+    const storageAfter = buildDeathcounterStorageStatus();
+
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      action: 'storage_import',
+      destructive: false,
+      readOnly: false,
+      writesDatabase: true,
+      importsCounts: true,
+      switchesStorage: false,
+      activeStorage: 'json_state_file',
+      preparedStorage: 'database_schema',
+      confirmAccepted: true,
+      confirmToken: STORAGE_IMPORT_CONFIRM_TOKEN,
+      stateFile,
+      backup,
+      validation: {
+        ok: validation.validation.ok,
+        readyForImport: validation.readyForImport,
+        errors: validation.validation.errors,
+        warnings: validation.validation.warnings,
+        infos: validation.validation.infos,
+        totalIssues: validation.validation.totalIssues
+      },
+      imported,
+      storageAfter: {
+        ok: storageAfter.ok,
+        schemaVersion: storageAfter.schemaVersion,
+        tables: (storageAfter.tables || []).map(table => ({
+          key: table.key,
+          table: table.table,
+          exists: table.exists,
+          rowCount: table.rowCount
+        }))
+      },
+      notes: [
+        'STEP255 imports JSON state rows into the prepared DB tables once target tables are empty and validation is clean.',
+        'JSON remains the active DeathCounter storage after this import.',
+        'No storage switch, overlay change or Streamer.bot change is performed by this endpoint.'
+      ],
+      updatedAt: core.nowIso()
+    };
+  }
+
   function buildDeathcounterConfig() {
     return {
       module: 'deathcounter_v2',
@@ -2256,6 +2415,7 @@ module.exports.init = function init(ctx) {
       { method: 'GET', path: `${API_PREFIX}/integration-check`, purpose: 'run non-destructive integration check' },
       { method: 'GET', path: `${API_PREFIX}/storage/preview`, purpose: 'preview JSON state rows for prepared DB storage without importing counts' },
       { method: 'GET', path: `${API_PREFIX}/storage/validate`, purpose: 'validate JSON state import readiness without writing DB rows' },
+      { method: 'POST', path: `${API_PREFIX}/storage/import`, purpose: 'confirmed one-time import from JSON state into prepared DB tables without switching active storage' },
       { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
       { method: 'GET/POST', path: `${API_PREFIX}/command`, purpose: 'central Streamer.bot-friendly command bridge for dcount/rip/tode' },
       { method: 'GET', path: `${API_PREFIX}/state`, purpose: 'public state for overlay/dashboard' },
@@ -2439,6 +2599,17 @@ module.exports.init = function init(ctx) {
       });
     }
 
+    add({
+      name: 'database_storage_import_guard',
+      ok: true,
+      level: 'ok',
+      requiresConfirm: true,
+      confirmToken: STORAGE_IMPORT_CONFIRM_TOKEN,
+      requiresEmptyTargetTables: true,
+      keepsJsonActive: true,
+      switchesStorage: false
+    });
+
     add({ name: 'routes', ok: true, level: 'ok', prefix: API_PREFIX, count: buildDeathcounterRoutes().length });
 
     const summary = summarizeChecks(checks);
@@ -2454,7 +2625,8 @@ module.exports.init = function init(ctx) {
         'Reload normalizes the existing state file only; counters and overlay state are preserved.',
         'STEP252 prepares database tables only. JSON remains the active DeathCounter storage; no counts are imported or switched.',
         'STEP253 adds a read-only storage preview. It does not write DB rows or switch active storage.',
-        'STEP254 adds read-only import readiness validation. It does not write DB rows or switch active storage.'
+        'STEP254 adds read-only import readiness validation. It does not write DB rows or switch active storage.',
+        'STEP255 adds a guarded import endpoint. It writes only after explicit confirm, requires empty target tables and keeps JSON active.'
       ],
       updatedAt: core.nowIso()
     };
