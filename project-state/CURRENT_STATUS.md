@@ -1,3 +1,28 @@
+## STEP257 - DeathCounter DB Read-Test / Public-State-Vorschau
+
+Stand: 2026-05-11
+
+DeathCounter V2 hat jetzt eine reine Read-only-Route, die aus den importierten DB-Tabellen testweise denselben Public-State baut, den das System produktiv weiterhin aus `deathcounter.v2.json` liest.
+
+Neue Route:
+
+```text
+GET /api/deathcounter/v2/storage/read-test
+```
+
+Garantien:
+
+```text
+readOnly: true
+writesDatabase: false
+importsCounts: false
+switchesStorage: false
+activatesDatabaseStorage: false
+activeStorage: json_state_file
+```
+
+Integration-Check enthaelt jetzt `database_storage_read_test`.
+
 ## STEP256 - DeathCounter Storage Consistency Check
 
 Stand: 2026-05-11

@@ -236,6 +236,19 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  app.get(`${API_PREFIX}/storage/read-test`, (req, res) => {
+    try {
+      const result = buildDeathcounterStorageReadTest({
+        includeState: booleanOrDefault(req.query.includeState, false),
+        includeIssues: booleanOrDefault(req.query.includeIssues, true),
+        limit: intOrDefault(req.query.limit, 100)
+      });
+      return res.json(ok(result));
+    } catch (err) {
+      return res.status(500).json(fail(err.message || String(err)));
+    }
+  });
+
   app.post(`${API_PREFIX}/reload`, (req, res) => {
     ensureStateFile();
     const state = readState();
@@ -2586,6 +2599,220 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function decodeStorageOverlayValue(row, fallback = null) {
+    if (!row) return fallback;
+    return normalizeConsistencyJsonValue(row.state_value, row.value_type);
+  }
+
+  function buildStateFromImportedStorageRows(importedRows = null) {
+    const imported = importedRows || readDeathcounterImportedStorageRows();
+    const overlayMap = new Map((imported.overlayState || []).map(row => [String(row.state_key || '').trim(), row]));
+    const currentGame = normalizeGameName(decodeStorageOverlayValue(overlayMap.get('current_game'), DEFAULT_GAME_KEY));
+    const updatedAt = core.nowIso();
+
+    const countsByPlayer = new Map();
+    for (const count of imported.counts || []) {
+      const playerId = cleanLogin(count.player_id || '');
+      const gameKey = normalizeGameName(count.game_key || DEFAULT_GAME_KEY);
+      if (!playerId) continue;
+      if (!countsByPlayer.has(playerId)) countsByPlayer.set(playerId, []);
+      countsByPlayer.get(playerId).push({
+        gameKey,
+        session: intOrDefault(count.session_deaths, 0),
+        allTime: intOrDefault(count.all_time_deaths, 0)
+      });
+    }
+
+    const players = (imported.players || []).map(row => {
+      const id = cleanLogin(row.id || row.login || row.display_name || 'player');
+      const login = cleanLogin(row.login || id);
+      const displayName = stripAtPrefix(row.display_name || login || id);
+      const player = {
+        id,
+        login,
+        displayName,
+        active: Number(row.active || 0) === 1,
+        sortOrder: intOrDefault(row.sort_order, 999),
+        stats: { session: 0, allTime: 0 },
+        games: {}
+      };
+
+      for (const count of countsByPlayer.get(id) || []) {
+        player.games[count.gameKey] = {
+          session: count.session,
+          allTime: count.allTime
+        };
+      }
+
+      if (!Object.keys(player.games).length) {
+        player.games[currentGame] = { session: 0, allTime: 0 };
+      }
+
+      recalcAggregates(player);
+      return player;
+    });
+
+    const selected = normalizePlayerListInput(decodeStorageOverlayValue(overlayMap.get('selected_player_ids'), DEFAULT_SELECTED_IDS)).slice(0, 2);
+    const extra = normalizePlayerListInput(decodeStorageOverlayValue(overlayMap.get('extra_player_ids'), [])).slice(0, getMaxExtraPlayersSafe());
+
+    const state = {
+      version: 2,
+      updatedAt,
+      currentGame,
+      overlay: {
+        visible: Boolean(decodeStorageOverlayValue(overlayMap.get('visible'), false)),
+        title: String(decodeStorageOverlayValue(overlayMap.get('title'), 'Death Counter') || 'Death Counter'),
+        selectedPlayerIds: selected,
+        extraPlayerIds: extra
+      },
+      players
+    };
+
+    syncOverlayLists(state);
+    return state;
+  }
+
+  function normalizeReadTestPublicState(state) {
+    const publicData = publicState(state);
+    const overlayData = publicOverlay(state).overlay;
+    return {
+      version: publicData.version,
+      currentGame: publicData.currentGame,
+      players: publicData.players.map(player => ({
+        id: player.id,
+        login: player.login,
+        displayName: player.displayName,
+        active: player.active,
+        sortOrder: player.sortOrder,
+        stats: player.stats,
+        games: player.games
+      })),
+      overlay: overlayData
+    };
+  }
+
+  function buildDeathcounterStorageReadTest(options = {}) {
+    const includeState = options.includeState === true;
+    const includeIssues = options.includeIssues !== false;
+    const limit = Math.max(0, Math.min(1000, intOrDefault(options.limit, 100)));
+    const storage = buildDeathcounterStorageStatus();
+    const imported = readDeathcounterImportedStorageRows();
+    const dbState = buildStateFromImportedStorageRows(imported);
+    const jsonState = readState();
+    const consistency = buildDeathcounterStorageConsistency({ includeIssues: false, limit: 0 });
+    const issues = [];
+
+    function addIssue(level, code, message, details = {}) {
+      issues.push({ level, code, message, details });
+    }
+
+    if (!storage.ok) {
+      addIssue('error', 'storage_schema_not_ready', 'Prepared DeathCounter storage schema is not ready.', { error: storage.error || '' });
+    }
+
+    if (!imported.players.length || !imported.games.length || !imported.counts.length) {
+      addIssue('warning', 'database_storage_not_fully_populated', 'Imported DB storage does not contain all expected row groups yet.', {
+        players: imported.players.length,
+        games: imported.games.length,
+        counts: imported.counts.length,
+        overlayState: imported.overlayState.length
+      });
+    }
+
+    const jsonPublic = normalizeReadTestPublicState(jsonState);
+    const databasePublic = normalizeReadTestPublicState(dbState);
+    const jsonFingerprint = consistencyFingerprint(jsonPublic);
+    const databaseFingerprint = consistencyFingerprint(databasePublic);
+    const publicStateMatchesJson = jsonFingerprint === databaseFingerprint;
+
+    if (!publicStateMatchesJson) {
+      addIssue('error', 'database_public_state_mismatch', 'DB-built public state differs from JSON-built public state.', {
+        hint: 'Run /storage/consistency?limit=50 for row-level differences.'
+      });
+    }
+
+    if (!consistency.consistent) {
+      addIssue('error', 'storage_consistency_failed', 'DB-vs-JSON storage consistency check is not clean.', {
+        errors: consistency.validation.errors,
+        warnings: consistency.validation.warnings,
+        infos: consistency.validation.infos
+      });
+    }
+
+    const errors = issues.filter(issue => issue.level === 'error').length;
+    const warnings = issues.filter(issue => issue.level === 'warning').length;
+    const infos = issues.filter(issue => issue.level === 'info').length;
+
+    const response = {
+      module: 'deathcounter_v2',
+      version: 2,
+      action: 'storage_read_test',
+      destructive: false,
+      readOnly: true,
+      writesDatabase: false,
+      importsCounts: false,
+      switchesStorage: false,
+      activatesDatabaseStorage: false,
+      activeStorage: 'json_state_file',
+      testedStorage: 'database_schema',
+      publicStateMatchesJson,
+      stateFile,
+      currentGame: jsonState.currentGame,
+      databaseCurrentGame: dbState.currentGame,
+      stateUpdatedAt: jsonState.updatedAt || '',
+      databaseRows: {
+        players: imported.players.length,
+        games: imported.games.length,
+        counts: imported.counts.length,
+        overlayState: imported.overlayState.length,
+        events: imported.events.length
+      },
+      publicSummary: {
+        jsonPlayers: jsonPublic.players.length,
+        databasePlayers: databasePublic.players.length,
+        jsonCurrentGame: jsonPublic.currentGame,
+        databaseCurrentGame: databasePublic.currentGame,
+        jsonSelectedPlayerIds: jsonPublic.overlay.selectedPlayerIds,
+        databaseSelectedPlayerIds: databasePublic.overlay.selectedPlayerIds,
+        jsonExtraPlayerIds: jsonPublic.overlay.extraPlayerIds,
+        databaseExtraPlayerIds: databasePublic.overlay.extraPlayerIds,
+        jsonOverlayVisible: jsonPublic.overlay.visible,
+        databaseOverlayVisible: databasePublic.overlay.visible
+      },
+      consistency: {
+        consistent: consistency.consistent,
+        errors: consistency.validation.errors,
+        warnings: consistency.validation.warnings,
+        infos: consistency.validation.infos,
+        comparison: consistency.comparison
+      },
+      validation: {
+        ok: errors === 0,
+        errors,
+        warnings,
+        infos,
+        totalIssues: issues.length,
+        issueLimit: limit,
+        issues: includeIssues ? issues.slice(0, limit) : []
+      },
+      notes: [
+        'STEP257 read-test only. This endpoint builds DeathCounter public state from imported DB rows and compares it with the active JSON state.',
+        'No INSERT, UPDATE, DELETE, import or storage switch is performed by this endpoint.',
+        'Commands, overlay and productive API state still use deathcounter.v2.json.'
+      ],
+      updatedAt: core.nowIso()
+    };
+
+    if (includeState) {
+      response.publicState = {
+        json: jsonPublic,
+        database: databasePublic
+      };
+    }
+
+    return response;
+  }
+
   function buildDeathcounterConfig() {
     return {
       module: 'deathcounter_v2',
@@ -2656,6 +2883,7 @@ module.exports.init = function init(ctx) {
       { method: 'GET', path: `${API_PREFIX}/storage/validate`, purpose: 'validate JSON state import readiness without writing DB rows' },
       { method: 'POST', path: `${API_PREFIX}/storage/import`, purpose: 'confirmed one-time import from JSON state into prepared DB tables without switching active storage' },
       { method: 'GET', path: `${API_PREFIX}/storage/consistency`, purpose: 'compare current JSON-derived storage rows with imported DB rows without writing or switching storage' },
+      { method: 'GET', path: `${API_PREFIX}/storage/read-test`, purpose: 'build public DeathCounter state from imported DB rows and compare it with active JSON without switching storage' },
       { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
       { method: 'GET/POST', path: `${API_PREFIX}/command`, purpose: 'central Streamer.bot-friendly command bridge for dcount/rip/tode' },
       { method: 'GET', path: `${API_PREFIX}/state`, purpose: 'public state for overlay/dashboard' },
@@ -2883,6 +3111,43 @@ module.exports.init = function init(ctx) {
       });
     }
 
+    try {
+      const readTest = buildDeathcounterStorageReadTest({ includeState: false, includeIssues: false, limit: 0 });
+      add({
+        name: 'database_storage_read_test',
+        ok: readTest.validation.ok,
+        level: readTest.validation.errors ? 'error' : (readTest.validation.warnings ? 'warning' : 'ok'),
+        readOnly: readTest.readOnly,
+        writesDatabase: readTest.writesDatabase,
+        importsCounts: readTest.importsCounts,
+        switchesStorage: readTest.switchesStorage,
+        activatesDatabaseStorage: readTest.activatesDatabaseStorage,
+        publicStateMatchesJson: readTest.publicStateMatchesJson,
+        testedStorage: readTest.testedStorage,
+        activeStorage: readTest.activeStorage,
+        databaseRows: readTest.databaseRows,
+        validation: {
+          errors: readTest.validation.errors,
+          warnings: readTest.validation.warnings,
+          infos: readTest.validation.infos,
+          totalIssues: readTest.validation.totalIssues
+        }
+      });
+    } catch (err) {
+      add({
+        name: 'database_storage_read_test',
+        ok: false,
+        level: 'error',
+        readOnly: true,
+        writesDatabase: false,
+        importsCounts: false,
+        switchesStorage: false,
+        activatesDatabaseStorage: false,
+        publicStateMatchesJson: false,
+        error: err.message || String(err)
+      });
+    }
+
     add({ name: 'routes', ok: true, level: 'ok', prefix: API_PREFIX, count: buildDeathcounterRoutes().length });
 
     const summary = summarizeChecks(checks);
@@ -2900,7 +3165,8 @@ module.exports.init = function init(ctx) {
         'STEP253 adds a read-only storage preview. It does not write DB rows or switch active storage.',
         'STEP254 adds read-only import readiness validation. It does not write DB rows or switch active storage.',
         'STEP255 adds a guarded import endpoint. It writes only after explicit confirm, requires empty target tables and keeps JSON active.',
-        'STEP256 adds a read-only DB-vs-JSON consistency check. It does not write rows or switch active storage.'
+        'STEP256 adds a read-only DB-vs-JSON consistency check. It does not write rows or switch active storage.',
+        'STEP257 adds a read-only DB read-test that builds public state from imported DB rows without activating DB storage.'
       ],
       updatedAt: core.nowIso()
     };

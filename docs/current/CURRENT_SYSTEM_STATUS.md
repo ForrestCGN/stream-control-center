@@ -1,3 +1,44 @@
+# CURRENT_SYSTEM_STATUS - STEP257 Update
+
+DeathCounter V2 hat jetzt einen Read-only-DB-Read-Test.
+
+Neu:
+
+```text
+GET /api/deathcounter/v2/storage/read-test
+```
+
+Die Route baut aus den importierten DB-Tabellen einen Public-State und vergleicht ihn mit dem weiterhin aktiven JSON-Public-State.
+
+Garantien:
+
+```text
+readOnly: true
+writesDatabase: false
+importsCounts: false
+switchesStorage: false
+activatesDatabaseStorage: false
+activeStorage: json_state_file
+```
+
+Integration-Check enthaelt jetzt zusaetzlich:
+
+```text
+database_storage_read_test
+```
+
+Nicht geaendert:
+
+```text
+produktive RIP/DEL/TODE-Storage-Logik
+produktive /state-/overlay-Routen
+Overlay-HTML
+Streamer.bot Actions
+aktiver Storage
+```
+
+---
+
 # CURRENT_SYSTEM_STATUS - STEP256 Update
 
 DeathCounter V2 hat jetzt einen Read-only-Konsistenzcheck zwischen produktivem JSON-State und importierten DB-Zeilen.

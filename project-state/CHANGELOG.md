@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-05-11 - STEP257 DeathCounter DB Read-Test
+
+- Neue Route `GET /api/deathcounter/v2/storage/read-test` ergaenzt.
+- Route baut aus importierten DB-Zeilen einen DeathCounter-Public-State.
+- Ergebnis wird mit dem weiterhin aktiven JSON-Public-State verglichen.
+- Integration-Check um `database_storage_read_test` erweitert.
+- Keine DB-Schreiboperationen, kein Import, kein Storage-Wechsel und keine produktive Aktivierung des DB-Storage.
+
 ## 2026-05-11 - STEP256 DeathCounter Storage Consistency Check
 
 - Neue Route `GET /api/deathcounter/v2/storage/consistency` ergaenzt.

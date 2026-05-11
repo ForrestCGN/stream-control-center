@@ -1,3 +1,15 @@
+# STEP257 Route-Ergaenzung
+
+DeathCounter V2 neue Route:
+
+```text
+GET /api/deathcounter/v2/storage/read-test
+```
+
+Zweck: Read-only-Test, der aus importierten DB-Tabellen einen DeathCounter-Public-State baut und mit dem weiterhin aktiven JSON-State vergleicht. Kein Schreiben, kein Import, kein Storage-Wechsel.
+
+---
+
 # STEP256 Route-Ergaenzung
 
 DeathCounter V2 neue Route:
@@ -31,7 +43,7 @@ Diese Route-Map wurde statisch aus den Backend-Dateien erzeugt. Sie ist eine Arb
 |dashboard_auth|8|9|/api/auth/audit, /api/auth/bootstrap-owner-local, /api/auth/logout, /api/auth/roles, /api/auth/session|
 |dashboard_controlcenter|11|10|/api/dashboard/controlcenter/access, /api/dashboard/controlcenter/admin-configs, /api/dashboard/controlcenter/config/:id, /api/dashboard/controlcenter/config/:id, /api/dashboard/controlcenter/logging|
 |database_core|0|2|/api/database/status, /api/system/database/status|
-|deathcounter_v2|32|27|/api/deathcounter/v2/del, /api/deathcounter/v2/game, /api/deathcounter/v2/storage/preview, /api/deathcounter/v2/storage/validate, /api/deathcounter/v2/storage/import|
+|deathcounter_v2|33|28|/api/deathcounter/v2/del, /api/deathcounter/v2/game, /api/deathcounter/v2/storage/preview, /api/deathcounter/v2/storage/validate, /api/deathcounter/v2/storage/read-test|
 |diagnostics|6|3|/api/diag/env, /api/diag/ping, /api/diag/ws, /diag/env, /diag/ping|
 |discord|33|27|/api/discord/config, /api/discord/integration-check, /api/discord/join, /api/discord/join, /api/discord/leave|
 |fireworks_api|3|3|/api/fireworks, /api/fireworks/clear, /api/fireworks/stop|
