@@ -1,31 +1,62 @@
-# NEXT STEP - Nach STEP244 DeathCounter Statistik Game-Filter
+# NEXT STEP - Nach STEP245 DeathCounter Streamer.bot Minimal-Bridge
 
-## Direkt testen
+## Direkt in Streamer.bot umsetzen
+
+Neue Minimal-Actions für:
 
 ```text
-Dashboard -> Community -> DeathCounter -> Statistik
+!rip
+!tode
+!dcount
 ```
 
-Prüfen:
+Dabei jeweils nur FetchURL auf:
 
 ```text
-- Spiele-Dropdown vorhanden
-- Aktuelles Spiel funktioniert
-- Alle Spiele / AllTime funktioniert
-- einzelne Spiele funktionieren
-- KPIs, Toplisten und Spielerwerte ändern sich korrekt
+/api/deathcounter/v2/command
 ```
 
-## Nächster sinnvoller Schritt
+Siehe:
 
 ```text
-STEP245: DeathCounter Streamer.bot Minimal-Actions dokumentieren/umbauen
+project-state/STEP245_DEATHCOUNTER_STREAMERBOT_MINIMAL_BRIDGE_2026-05-11.md
 ```
 
-Danach möglich:
+## Nach Streamer.bot-Umbau testen
 
 ```text
-- Dashboard Detailansicht pro Spieler
-- Overlay-Design-Refresh im neuen CGN-/Control-Center-Stil
-- spätere Count-/Event-DB-Migration mit Fallback auf JSON
+!tode
+!tode @ForrestCGN
+!rip ForrestCGN
+!rip @ForrestCGN
+!rip @ForrestCGN del
+!dcount
+!dcount show
+!dcount hide
+!dcount reset
+!dcount replace @EngelCGN @RoxxyFoxxyCGN
+!dcount replace @RoxxyFoxxyCGN @EngelCGN
+```
+
+## Nächster sinnvoller Bau-Step danach
+
+```text
+STEP246: DeathCounter Dashboard Spieler-Detailansicht
+```
+
+Mögliche Inhalte:
+
+```text
+- Spieler auswählen
+- alle Spiele des Spielers anzeigen
+- Session / Spiel gesamt / AllTime pro Spiel
+- schnelle manuelle Korrekturen sauberer bedienen
+```
+
+Noch nicht empfohlen, bis Streamer.bot-Minimal-Bridge live getestet ist:
+
+```text
+- Count-/Event-DB-Migration
+- Overlay-Design-Refresh
+- Node-Chat-Router
 ```
