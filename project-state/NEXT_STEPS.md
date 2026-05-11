@@ -212,3 +212,8 @@ STEP242: DeathCounter Statistiken im Dashboard
 STEP243: Counts/Events vorsichtig Richtung DB migrieren
 STEP244+: zentraler Node Chat-Command-Router statt Streamer.bot fuer Chatcommands
 ```
+
+## Nach STEP242.1
+
+- DeathCounter Dashboard im Browser erneut prüfen.
+- Danach kleine UX-Korrekturen sammeln oder Statistik-Dashboard als nächster STEP planen.

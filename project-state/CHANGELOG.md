@@ -70,3 +70,8 @@
 # CHANGELOG - stream-control-center
 
 Aeltere ausfuehrliche STEP-Historie bleibt in den einzelnen `project-state/STEP*.md` Dateien erhalten. Dieses Changelog ist ab STEP232 bewusst als kompakte aktuelle Arbeitschronik gehalten.
+
+## 2026-05-11 – STEP242.1 DeathCounter Dashboard Visible Players Fix
+
+- Fixed DeathCounter dashboard visible player card by reading nested overlay state from the API response.
+- No backend/database/count migration changes.

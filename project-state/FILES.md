@@ -173,3 +173,9 @@ docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md
 docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md
 docs/current/PROJECT_DASHBOARD_MAP_2026-05-11.md
 ```
+
+### STEP242.1 geänderte Dateien
+
+- `htdocs/dashboard/modules/deathcounter.js` – sichtbare Spieler lesen Overlay-State robust.
+- `project-state/STEP242_1_DEATHCOUNTER_DASHBOARD_VISIBLE_PLAYERS_FIX_2026-05-11.md` – Step-Doku.
+

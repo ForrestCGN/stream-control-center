@@ -132,3 +132,11 @@ docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md
 docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md
 docs/current/PROJECT_DASHBOARD_MAP_2026-05-11.md
 ```
+
+### STEP242.1 – DeathCounter Dashboard sichtbare Spieler Fix (2026-05-11)
+
+- Dashboard-Fix in `htdocs/dashboard/modules/deathcounter.js`.
+- Overlay-State wird nun korrekt aus der verschachtelten `/api/deathcounter/v2/overlay`-Antwort gelesen.
+- Karte „Sichtbare Spieler“ nutzt normalisierte IDs und zeigt die aktuell ausgewählten Spieler korrekt an.
+- Keine Backend-, DB-, Count- oder Overlay-Design-Änderung.
+

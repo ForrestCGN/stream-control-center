@@ -167,6 +167,25 @@ window.DeathCounterModule = (function(){
 
   function valueOrNull(result){ return result.status === 'fulfilled' ? result.value : null; }
 
+  function getRuntimeSettings(){
+    return settings?.runtime || status?.settings || {};
+  }
+
+  function getPlayerList(){
+    if (Array.isArray(players?.players)) return players.players;
+    if (Array.isArray(players?.state?.players)) return players.state.players;
+    if (Array.isArray(status?.players)) return status.players;
+    return [];
+  }
+
+  function getOverlayState(){
+    return overlay?.overlay || status?.overlay || players?.overlay || overlay || {};
+  }
+
+  function normId(value){
+    return String(value || '').trim().toLowerCase();
+  }
+
   async function command(commandName, params){
     const query = new URLSearchParams({ command: commandName, ...(params || {}) });
     await api(`/api/deathcounter/v2/command?${query.toString()}`);
@@ -196,10 +215,11 @@ window.DeathCounterModule = (function(){
     const panel = root.querySelector('[data-dc-panel="overview"]');
     if (!panel) return;
     const st = status || {};
-    const rt = settings?.runtime || st.settings || {};
-    const list = Array.isArray(players?.players) ? players.players : [];
-    const selected = overlay?.selectedPlayerIds || rt.selectedPlayerIds || [];
-    const activePlayers = list.filter(p => selected.includes(p.id));
+    const rt = getRuntimeSettings();
+    const ov = getOverlayState();
+    const list = getPlayerList();
+    const selected = (ov.selectedPlayerIds || rt.selectedPlayerIds || []).map(normId);
+    const activePlayers = list.filter(p => selected.includes(normId(p.id || p.login)));
     panel.innerHTML = `
       ${errorBlock()}
       <div class="dc-card dc-hero page-card">
@@ -215,8 +235,8 @@ window.DeathCounterModule = (function(){
         <div class="dc-card">
           <h3>Status</h3>
           ${row('Modul', st.ok ? 'OK' : '-')}
-          ${row('Spiel', rt.currentGame || players?.currentGame || '-')}
-          ${row('Overlay', (overlay?.visible ?? rt.overlayVisible) ? 'sichtbar' : 'versteckt')}
+          ${row('Spiel', rt.currentGame || players?.currentGame || st.currentGame || '-')}
+          ${row('Overlay', (ov.visible ?? rt.overlayVisible) ? 'sichtbar' : 'versteckt')}
           ${row('Spieler', `${num(list.length)} gesamt`)}
           ${row('@ Pflicht', yes(rt.requireMentionForPlayerCommands) ? 'aktiv' : 'inaktiv')}
           ${row('Chat-Ausgabe', yes(rt.chatOutputEnabled) ? 'Backend/Bot' : 'Fallback')}
@@ -260,8 +280,9 @@ window.DeathCounterModule = (function(){
   function renderControl(){
     const panel = root.querySelector('[data-dc-panel="control"]');
     if (!panel) return;
-    const list = Array.isArray(players?.players) ? players.players : [];
-    const selected = overlay?.selectedPlayerIds || [];
+    const list = getPlayerList();
+    const ov = getOverlayState();
+    const selected = ov.selectedPlayerIds || [];
     panel.innerHTML = `
       ${errorBlock()}
       <div class="dc-card page-card">
