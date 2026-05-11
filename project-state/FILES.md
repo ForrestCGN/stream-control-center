@@ -1,33 +1,17 @@
-# FILES - STEP262 DeathCounter Overlay Alert-Frame Design + Slide-In/Out
+# Files – stream-control-center
 
-Geaendert / neu:
+## DeathCounter V2 relevante Dateien
 
-```text
-htdocs/overlays/_overlay-deathcounter-v2.html
-project-state/STEP262_DEATHCOUNTER_OVERLAY_ALERT_FRAME_SLIDE_2026-05-11.md
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
-docs/current/CURRENT_SYSTEM_STATUS.md
-README_STEP262_DEATHCOUNTER_OVERLAY_ALERT_FRAME_SLIDE.md
-```
+- `backend/modules/deathcounter_v2.js`
+  - Produktiver DeathCounter V2 Backend-Code.
+  - DB-only Storage mit manuellem JSON Backup/Export.
 
-Nicht geaendert:
+- `htdocs/overlays/_overlay-deathcounter-v2.html`
+  - DeathCounter Overlay.
+  - STEP262: Alert-Frame-Optik und Slide-In/Out.
+  - STEP263: leicht langsamere Slide-/Fade-Transition.
 
-```text
-backend/modules/deathcounter_v2.js
-htdocs/dashboard/modules/deathcounter.js
-htdocs/dashboard/modules/deathcounter.css
-Streamer.bot Actions/Exports
-app.sqlite
-data/deathcounter/deathcounter.v2.json
-config/
-```
+## Doku
 
-Hinweis:
-
-```text
-Dieser STEP ist ein reiner Overlay-Optik-/Animations-Step.
-Keine DeathCounter-Funktionalitaet wurde entfernt.
-```
+- `project-state/STEP263_DEATHCOUNTER_OVERLAY_SLIDE_TIMING_2026-05-11.md`
+- `README_STEP263_DEATHCOUNTER_OVERLAY_SLIDE_TIMING.md`

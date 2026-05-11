@@ -1,47 +1,16 @@
-## STEP262 - DeathCounter Overlay Alert-Frame Design + Slide-In/Out
+# Current Status – stream-control-center
 
 Stand: 2026-05-11
 
-DeathCounter V2 laeuft weiterhin produktiv DB-only und das Overlay wurde optisch angepasst.
+## DeathCounter V2
 
-Aktueller DeathCounter-Produktivstand:
+- DeathCounter DB-Storage ist STABLE.
+- Produktiv liest und schreibt der DeathCounter aus/in die DB.
+- JSON wird nicht mehr automatisch dual geschrieben.
+- JSON-Backup/Export erfolgt manuell über `!dcount backup` / `!dcount export` bzw. API-Export.
+- Overlay ist optisch an den Alert-Außenrahmen angepasst.
+- STEP263 verlangsamt die Overlay-Slide-Transition minimal, ohne Funktionalität zu ändern.
 
-```text
-activeStorage: database
-dualWriteEnabled: false
-fallbackStorage: json_backup_export_file
-```
+## Aktive Projektregel
 
-Overlay-Stand:
-
-```text
-htdocs/overlays/_overlay-deathcounter-v2.html
-```
-
-Geaendert:
-
-```text
-- Alert-aehnlicher CGN-Aussenrahmen mit Cyan/Lila-Verlauf
-- dunkler Glass-/Neon-Hintergrund
-- kein zusaetzlicher Innenrahmen der Haupt-Bar
-- Slide-In von oben
-- Slide-Out nach oben
-```
-
-Unveraendert:
-
-```text
-- API-Routen
-- WebSocket-Handling
-- Polling-Fallback
-- Marquee fuer lange Namen
-- Zusatzspieler-Layout
-- Spieler-/Count-Logik
-- Backend/DB/Streamer.bot
-```
-
-Referenz:
-
-```text
-project-state/STEP262_DEATHCOUNTER_OVERLAY_ALERT_FRAME_SLIDE_2026-05-11.md
-```
+Keine Funktionalität entfernen. Bestehende APIs, Streamer.bot-Flows, Overlay-Logik und DB-Struktur bleiben erhalten, sofern nicht explizit anders entschieden.

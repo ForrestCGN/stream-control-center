@@ -1,21 +1,21 @@
-# CHANGELOG
+# Changelog – stream-control-center
 
-## 2026-05-11 - STEP262 DeathCounter Overlay Alert-Frame Design + Slide-In/Out
+## 2026-05-11 – STEP263 DeathCounter Overlay Slide Timing
 
-- DeathCounter-Overlay optisch an den Alert-Aussenrahmen angepasst.
-- Bar nutzt nun CGN-Gradient-Rahmen mit Cyan/Lila und dunklem Glass-Hintergrund.
-- Haupt-Bar hat keinen zusaetzlichen Innenrahmen.
-- Einblendung wurde auf Slide-In von oben umgestellt.
-- Ausblendung wurde auf Slide-Out nach oben umgestellt.
-- JavaScript-/Datenlogik des Overlays blieb unveraendert.
-- Keine Backend-, DB-, Streamer.bot- oder API-Aenderung.
+- DeathCounter-Overlay-Slide minimal langsamer gemacht.
+- `.bar` Transition angepasst:
+  - opacity/filter `0.50s`
+  - transform `0.72s`
+- Keine Funktionslogik geändert.
 
-## 2026-05-11 - STEP261 project-state Cleanup / Archivierung
+## 2026-05-11 – STEP262 DeathCounter Overlay Alert Frame Slide
 
-- Aufraeum-Script fuer `project-state` ergaenzt: `tools/step261_project_state_cleanup.js`.
-- Einmaliger Windows-Apply-Befehl ergaenzt: `STEP261_APPLY_PROJECT_STATE_CLEANUP.cmd`.
-- Alte project-state-Fragmente werden archiviert statt geloescht.
-- Archivziel: `project-state/archive/step261-project-state-cleanup/`.
-- Aktive Root-Dateien bleiben erhalten: `CURRENT_STATUS.md`, `CHANGELOG.md`, `FILES.md`, `NEXT_STEPS.md`.
-- Aktuelle STEP-Historie ab STEP229 bleibt im Root sichtbar.
-- Keine Code-, DB-, Runtime-, Overlay- oder Streamer.bot-Aenderung.
+- DeathCounter-Overlay optisch an Alert-Außenrahmen angepasst.
+- Slide-In/Out von oben umgesetzt.
+- API/WebSocket/Marquee/Zusatzspieler-Logik unverändert gelassen.
+
+## 2026-05-11 – STEP259 DeathCounter DB-only Manual JSON Export
+
+- DeathCounter produktiv DB-only.
+- Automatischer JSON-Dual-Write entfernt.
+- `!dcount backup` und `!dcount export` ergänzt.
