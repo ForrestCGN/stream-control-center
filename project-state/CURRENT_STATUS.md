@@ -77,6 +77,16 @@ Integration-Check erweitert:
 Zusätzlich zeigen auch Config/Settings den vorbereiteten Storage-Status.
 
 
+## STEP254 - DeathCounter Storage Validation / Import-Readiness
+
+Stand: 2026-05-11
+
+- Neue Read-only-Route `GET /api/deathcounter/v2/storage/validate`.
+- Prueft JSON-State gegen vorbereitete DB-Tabellen.
+- Meldet Fehler/Warnungen/Infos und `readyForImport`.
+- Integration-Check enthaelt jetzt `database_storage_validation`.
+- Keine DB-Schreiboperation, kein Count-Import, kein Storage-Wechsel.
+
 ## STEP253 - DeathCounter Storage Preview
 
 Stand: 2026-05-11

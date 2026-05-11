@@ -214,3 +214,27 @@ Die Vorschau umfasst:
 |events|deathcounter_events|nein|
 
 `deathcounter_events` bleibt leer, weil historische Events aus dem JSON-State nicht sicher rekonstruierbar sind.
+
+## DeathCounter V2 - vorbereitete Storage-/Validation-Struktur
+
+Seit STEP252/253/254 vorbereitet, aber nicht produktiv aktiv:
+
+```text
+Schema-Modul: deathcounter_v2_storage
+Aktiver Storage: json_state_file
+Vorbereiteter Storage: database_schema
+Read-only Preview: GET /api/deathcounter/v2/storage/preview
+Read-only Validation: GET /api/deathcounter/v2/storage/validate
+```
+
+Vorbereitete Tabellen:
+
+```text
+deathcounter_players
+deathcounter_games
+deathcounter_counts
+deathcounter_overlay_state
+deathcounter_events
+```
+
+Wichtig: Bis einschliesslich STEP254 wird nichts importiert, nichts geschrieben und die produktive Logik bleibt auf `data/deathcounter/deathcounter.v2.json`.

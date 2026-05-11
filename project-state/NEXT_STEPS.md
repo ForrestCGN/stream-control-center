@@ -1,40 +1,36 @@
-# NEXT STEP - Nach STEP253 DeathCounter Storage Preview
+# NEXT STEP - Nach STEP254 DeathCounter Storage Validation
 
 ## Direkt testen
 
-Backend neu starten und pruefen:
-
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/preview?includeRows=false" | ConvertTo-Json -Depth 20
-Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/preview?limit=5" | ConvertTo-Json -Depth 30
+cd D:\Streaming\stramAssets
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/validate?includeIssues=false" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/validate?limit=20" | ConvertTo-Json -Depth 30
 Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/integration-check" | ConvertTo-Json -Depth 20
 ```
 
 Erwartung:
 
 ```text
-- storage/preview liefert action = storage_preview
-- readOnly = true
-- writesDatabase = false
-- importsCounts = false
-- switchesStorage = false
-- activeStorage = json_state_file
-- integration-check enthaelt database_storage_preview = ok
+readyForImport: true
+readOnly: true
+writesDatabase: false
+importsCounts: false
+switchesStorage: false
 ```
 
-## Nächster sinnvoller Bau-Step
+## Naechster sinnvoller Bau-Step
 
 ```text
-STEP254: DeathCounter Storage-Preview im Dashboard anzeigen oder Export-/Diff-Validierung ohne Schreiben erweitern
+STEP255: DeathCounter Import-Plan / Backup- und Rollback-Konzept dokumentieren
 ```
 
 Noch nicht blind bauen:
 
 ```text
+- echten Import ausfuehren
 - JSON-State durch DB ersetzen
-- Count-Schreiblogik auf DB umstellen
-- produktiven Import-Button bauen
-- app.sqlite neu bauen oder überschreiben
-- alte Count-Logik entfernen
-- Overlay-Design auf neues CGN-Design migrieren
+- produktive RIP/DEL/TODE-Logik auf DB umstellen
+- app.sqlite neu bauen oder ueberschreiben
 ```

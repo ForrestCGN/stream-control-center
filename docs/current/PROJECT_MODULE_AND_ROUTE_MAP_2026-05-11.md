@@ -205,6 +205,7 @@ Diese Route-Map wurde statisch aus den Backend-Dateien erzeugt. Sie ist eine Arb
 - `GET /api/deathcounter/v2/show`
 - `GET /api/deathcounter/v2/state`
 - `GET /api/deathcounter/v2/storage/preview`
+- `GET /api/deathcounter/v2/storage/validate`
 - `GET /api/deathcounter/v2/stream-online-sync`
 - `GET /api/deathcounter/v2/sync/channelinfo`
 - `GET /api/deathcounter/v2/tode`

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-05-11 - STEP254 DeathCounter Storage Validation
+
+- Neue Route `GET /api/deathcounter/v2/storage/validate` ergaenzt.
+- Route validiert JSON-State gegen geplante DB-Zielzeilen und vorbereitete Tabellen.
+- Prueft u. a. doppelte Player/Games/Counts, fehlende Referenzen und Overlay-IDs.
+- Integration-Check um `database_storage_validation` erweitert.
+- Keine DB-Schreiboperationen, kein Import, kein Storage-Wechsel.
+
 ## 2026-05-11 - STEP253 DeathCounter Storage Preview
 
 - Neue Read-only-Route `GET /api/deathcounter/v2/storage/preview` ergänzt.

@@ -1,3 +1,31 @@
+# FILES - STEP254 DeathCounter Storage Validation
+
+Geaendert / neu:
+
+```text
+backend/modules/deathcounter_v2.js
+project-state/STEP254_DEATHCOUNTER_STORAGE_VALIDATION_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md
+docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md
+README_STEP254_DEATHCOUNTER_STORAGE_VALIDATION.md
+```
+
+Weiterhin nicht geaendert:
+
+```text
+app.sqlite
+data/deathcounter/deathcounter.v2.json
+htdocs/overlays/_overlay-deathcounter-v2.html
+Streamer.bot Actions/Exports
+```
+
+---
+
 # FILES - STEP251 DeathCounter Dashboard Extra Players
 
 Geändert / neu:

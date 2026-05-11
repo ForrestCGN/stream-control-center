@@ -1,3 +1,43 @@
+# CURRENT_SYSTEM_STATUS - STEP254 Update
+
+DeathCounter V2 hat jetzt eine Read-only-Validation fuer die spaetere DB-Migration.
+
+Neu:
+
+```text
+GET /api/deathcounter/v2/storage/validate
+```
+
+Die Route prueft Import-Readiness aus dem aktuellen JSON-State gegen die vorbereiteten DeathCounter-DB-Tabellen, schreibt aber nichts.
+
+Garantien:
+
+```text
+readOnly: true
+writesDatabase: false
+importsCounts: false
+switchesStorage: false
+activeStorage: json_state_file
+```
+
+Integration-Check enthaelt jetzt zusaetzlich:
+
+```text
+database_storage_validation
+```
+
+Nicht geaendert:
+
+```text
+app.sqlite-Dateninhalt
+data/deathcounter/deathcounter.v2.json
+Overlay
+Streamer.bot
+produktive Count-/Storage-Logik
+```
+
+---
+
 # CURRENT_SYSTEM_STATUS - STEP251 Update
 
 DeathCounter V2 unterstützt Zusatzspieler jetzt auch über das Dashboard.

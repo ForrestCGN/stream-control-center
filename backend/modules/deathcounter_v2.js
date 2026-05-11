@@ -199,6 +199,18 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  app.get(`${API_PREFIX}/storage/validate`, (req, res) => {
+    try {
+      const validation = buildDeathcounterStorageValidation({
+        includeIssues: booleanOrDefault(req.query.includeIssues, true),
+        limit: intOrDefault(req.query.limit, 100)
+      });
+      return res.json(ok(validation));
+    } catch (err) {
+      return res.status(500).json(fail(err.message || String(err)));
+    }
+  });
+
   app.post(`${API_PREFIX}/reload`, (req, res) => {
     ensureStateFile();
     const state = readState();
@@ -1804,10 +1816,8 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  function buildDeathcounterStoragePreview(options = {}) {
+  function buildDeathcounterStorageRows() {
     const state = readState();
-    const limit = Math.max(0, Math.min(500, intOrDefault(options.limit, 25)));
-    const includeRows = options.includeRows !== false;
     const now = core.nowIso();
     const updatedAt = state.updatedAt || now;
     const sortedPlayers = sortPlayers(Array.isArray(state.players) ? state.players : []);
@@ -1871,12 +1881,38 @@ module.exports.init = function init(ctx) {
 
     const gameRows = Array.from(gameMap.values()).sort((a, b) => a.game_key.localeCompare(b.game_key));
     const eventRows = [];
+
+    return {
+      state,
+      now,
+      updatedAt,
+      currentGame: state.currentGame,
+      stateUpdatedAt: state.updatedAt || '',
+      playerRows,
+      gameRows,
+      countRows,
+      overlayRows,
+      eventRows,
+      summary: {
+        players: playerRows.length,
+        games: gameRows.length,
+        counts: countRows.length,
+        overlayState: overlayRows.length,
+        events: eventRows.length
+      }
+    };
+  }
+
+  function buildDeathcounterStoragePreview(options = {}) {
+    const rows = buildDeathcounterStorageRows();
+    const limit = Math.max(0, Math.min(500, intOrDefault(options.limit, 25)));
+    const includeRows = options.includeRows !== false;
     const tables = {
-      players: { table: STORAGE_TABLES.players, rowCount: playerRows.length, rows: includeRows ? playerRows.slice(0, limit) : [] },
-      games: { table: STORAGE_TABLES.games, rowCount: gameRows.length, rows: includeRows ? gameRows.slice(0, limit) : [] },
-      counts: { table: STORAGE_TABLES.counts, rowCount: countRows.length, rows: includeRows ? countRows.slice(0, limit) : [] },
-      overlayState: { table: STORAGE_TABLES.overlayState, rowCount: overlayRows.length, rows: includeRows ? overlayRows.slice(0, limit) : [] },
-      events: { table: STORAGE_TABLES.events, rowCount: eventRows.length, rows: includeRows ? eventRows.slice(0, limit) : [] }
+      players: { table: STORAGE_TABLES.players, rowCount: rows.playerRows.length, rows: includeRows ? rows.playerRows.slice(0, limit) : [] },
+      games: { table: STORAGE_TABLES.games, rowCount: rows.gameRows.length, rows: includeRows ? rows.gameRows.slice(0, limit) : [] },
+      counts: { table: STORAGE_TABLES.counts, rowCount: rows.countRows.length, rows: includeRows ? rows.countRows.slice(0, limit) : [] },
+      overlayState: { table: STORAGE_TABLES.overlayState, rowCount: rows.overlayRows.length, rows: includeRows ? rows.overlayRows.slice(0, limit) : [] },
+      events: { table: STORAGE_TABLES.events, rowCount: rows.eventRows.length, rows: includeRows ? rows.eventRows.slice(0, limit) : [] }
     };
 
     return {
@@ -1891,26 +1927,172 @@ module.exports.init = function init(ctx) {
       activeStorage: 'json_state_file',
       preparedStorage: 'database_schema',
       stateFile,
-      currentGame: state.currentGame,
-      stateUpdatedAt: state.updatedAt || '',
+      currentGame: rows.currentGame,
+      stateUpdatedAt: rows.stateUpdatedAt,
       options: {
         includeRows,
         limit
       },
-      summary: {
-        players: playerRows.length,
-        games: gameRows.length,
-        counts: countRows.length,
-        overlayState: overlayRows.length,
-        events: eventRows.length
-      },
+      summary: rows.summary,
       tables,
       notes: [
         'STEP253 preview only. This endpoint reads deathcounter.v2.json and builds planned DB rows in memory.',
         'No INSERT, UPDATE, DELETE, import or storage switch is performed by this endpoint.',
         'Event history is not reconstructed from the JSON state; deathcounter_events remains empty in this preview.'
       ],
-      updatedAt: now
+      updatedAt: rows.now
+    };
+  }
+
+  function buildDeathcounterStorageValidation(options = {}) {
+    const includeIssues = options.includeIssues !== false;
+    const limit = Math.max(0, Math.min(500, intOrDefault(options.limit, 100)));
+    const rows = buildDeathcounterStorageRows();
+    const storage = buildDeathcounterStorageStatus();
+    const issues = [];
+
+    function addIssue(level, code, message, details = {}) {
+      issues.push({
+        level,
+        code,
+        message,
+        details
+      });
+    }
+
+    if (!storage.ok) {
+      addIssue('error', 'storage_schema_not_ready', 'Prepared DeathCounter storage schema is not ready.', {
+        schemaModule: storage.storageSchemaModule,
+        error: storage.error || ''
+      });
+    }
+
+    for (const table of storage.tables || []) {
+      if (!table.exists) {
+        addIssue('error', 'target_table_missing', `Target table ${table.table} does not exist.`, { table: table.table, key: table.key });
+      } else if (Number(table.rowCount || 0) > 0) {
+        addIssue('warning', 'target_table_not_empty', `Target table ${table.table} already contains rows.`, { table: table.table, key: table.key, rowCount: Number(table.rowCount || 0) });
+      }
+    }
+
+    const playerIds = new Set();
+    const playerLogins = new Set();
+    for (const player of rows.playerRows) {
+      const id = String(player.id || '').trim();
+      const login = String(player.login || '').trim();
+      const displayName = String(player.display_name || '').trim();
+
+      if (!id) addIssue('error', 'player_id_empty', 'A player row has an empty id.', { player });
+      if (!login) addIssue('error', 'player_login_empty', 'A player row has an empty login.', { playerId: id, player });
+      if (!displayName) addIssue('warning', 'player_display_name_empty', 'A player row has an empty display name.', { playerId: id, login });
+
+      if (id && playerIds.has(id)) addIssue('error', 'duplicate_player_id', `Duplicate player id: ${id}`, { playerId: id });
+      if (login && playerLogins.has(login)) addIssue('error', 'duplicate_player_login', `Duplicate player login: ${login}`, { login });
+      if (id) playerIds.add(id);
+      if (login) playerLogins.add(login);
+    }
+
+    const gameKeys = new Set();
+    for (const game of rows.gameRows) {
+      const gameKey = String(game.game_key || '').trim();
+      if (!gameKey) addIssue('error', 'game_key_empty', 'A game row has an empty game_key.', { game });
+      if (gameKey && gameKeys.has(gameKey)) addIssue('error', 'duplicate_game_key', `Duplicate game key: ${gameKey}`, { gameKey });
+      if (gameKey) gameKeys.add(gameKey);
+    }
+
+    const countKeys = new Set();
+    for (const count of rows.countRows) {
+      const playerId = String(count.player_id || '').trim();
+      const gameKey = String(count.game_key || '').trim();
+      const key = `${playerId}::${gameKey}`;
+      const sessionDeaths = Number(count.session_deaths || 0);
+      const allTimeDeaths = Number(count.all_time_deaths || 0);
+
+      if (!playerId || !playerIds.has(playerId)) addIssue('error', 'count_player_missing', `Count row references unknown player: ${playerId}`, { playerId, gameKey });
+      if (!gameKey || !gameKeys.has(gameKey)) addIssue('error', 'count_game_missing', `Count row references unknown game: ${gameKey}`, { playerId, gameKey });
+      if (countKeys.has(key)) addIssue('error', 'duplicate_count_key', `Duplicate count row for ${key}`, { playerId, gameKey });
+      countKeys.add(key);
+      if (!Number.isInteger(sessionDeaths) || sessionDeaths < 0) addIssue('error', 'invalid_session_deaths', 'Session deaths must be a non-negative integer.', { playerId, gameKey, value: count.session_deaths });
+      if (!Number.isInteger(allTimeDeaths) || allTimeDeaths < 0) addIssue('error', 'invalid_all_time_deaths', 'All-time deaths must be a non-negative integer.', { playerId, gameKey, value: count.all_time_deaths });
+    }
+
+    const overlayState = {};
+    for (const row of rows.overlayRows) {
+      overlayState[row.state_key] = database.jsonDecode(row.state_value, null);
+    }
+
+    const selectedIds = normalizePlayerListInput(overlayState.selected_player_ids).slice(0, 2);
+    const extraIds = normalizePlayerListInput(overlayState.extra_player_ids).slice(0, getMaxExtraPlayersSafe());
+    const selectedSet = new Set();
+
+    for (const id of selectedIds) {
+      if (!playerIds.has(id)) addIssue('error', 'overlay_selected_player_missing', `Overlay selected player does not exist: ${id}`, { playerId: id });
+      if (selectedSet.has(id)) addIssue('warning', 'overlay_selected_duplicate', `Overlay selected player is duplicated: ${id}`, { playerId: id });
+      selectedSet.add(id);
+    }
+
+    const extraSet = new Set();
+    for (const id of extraIds) {
+      if (!playerIds.has(id)) addIssue('error', 'overlay_extra_player_missing', `Overlay extra player does not exist: ${id}`, { playerId: id });
+      if (selectedSet.has(id)) addIssue('warning', 'overlay_extra_already_selected', `Overlay extra player is already selected: ${id}`, { playerId: id });
+      if (extraSet.has(id)) addIssue('warning', 'overlay_extra_duplicate', `Overlay extra player is duplicated: ${id}`, { playerId: id });
+      extraSet.add(id);
+    }
+
+    const currentGame = normalizeGameName(overlayState.current_game || rows.currentGame || DEFAULT_GAME_KEY);
+    if (!currentGame) addIssue('error', 'current_game_empty', 'Current game is empty.', {});
+    if (currentGame && !gameKeys.has(currentGame)) addIssue('warning', 'current_game_missing_from_games', `Current game is not present in planned game rows: ${currentGame}`, { currentGame });
+
+    if (rows.summary.events === 0) {
+      addIssue('info', 'events_not_reconstructed', 'Historical event rows are not reconstructed from deathcounter.v2.json.', { table: STORAGE_TABLES.events });
+    }
+
+    const errors = issues.filter(issue => issue.level === 'error').length;
+    const warnings = issues.filter(issue => issue.level === 'warning').length;
+    const infos = issues.filter(issue => issue.level === 'info').length;
+    const readyForImport = errors === 0;
+
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      action: 'storage_validate',
+      destructive: false,
+      readOnly: true,
+      writesDatabase: false,
+      importsCounts: false,
+      switchesStorage: false,
+      activeStorage: 'json_state_file',
+      preparedStorage: 'database_schema',
+      readyForImport,
+      stateFile,
+      currentGame: rows.currentGame,
+      stateUpdatedAt: rows.stateUpdatedAt,
+      summary: rows.summary,
+      validation: {
+        ok: readyForImport,
+        errors,
+        warnings,
+        infos,
+        totalIssues: issues.length,
+        issueLimit: limit,
+        issues: includeIssues ? issues.slice(0, limit) : []
+      },
+      checks: {
+        storageSchemaOk: Boolean(storage.ok),
+        targetTablesEmpty: (storage.tables || []).every(table => Number(table.rowCount || 0) === 0),
+        playersHaveIds: rows.playerRows.every(player => String(player.id || '').trim()),
+        countsReferencePlayers: rows.countRows.every(row => playerIds.has(String(row.player_id || '').trim())),
+        countsReferenceGames: rows.countRows.every(row => gameKeys.has(String(row.game_key || '').trim())),
+        overlayReferencesPlayers: selectedIds.concat(extraIds).every(id => playerIds.has(id)),
+        noStorageSwitch: true,
+        noDatabaseWrites: true
+      },
+      notes: [
+        'STEP254 validation only. This endpoint reads the JSON state and the prepared DB schema status.',
+        'No INSERT, UPDATE, DELETE, import or storage switch is performed by this endpoint.',
+        'Warnings do not block readiness; errors must be fixed before a later import step.'
+      ],
+      updatedAt: rows.now
     };
   }
 
@@ -2073,6 +2255,7 @@ module.exports.init = function init(ctx) {
       { method: 'GET', path: `${API_PREFIX}/routes`, purpose: 'list deathcounter v2 API routes' },
       { method: 'GET', path: `${API_PREFIX}/integration-check`, purpose: 'run non-destructive integration check' },
       { method: 'GET', path: `${API_PREFIX}/storage/preview`, purpose: 'preview JSON state rows for prepared DB storage without importing counts' },
+      { method: 'GET', path: `${API_PREFIX}/storage/validate`, purpose: 'validate JSON state import readiness without writing DB rows' },
       { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
       { method: 'GET/POST', path: `${API_PREFIX}/command`, purpose: 'central Streamer.bot-friendly command bridge for dcount/rip/tode' },
       { method: 'GET', path: `${API_PREFIX}/state`, purpose: 'public state for overlay/dashboard' },
@@ -2223,6 +2406,39 @@ module.exports.init = function init(ctx) {
       });
     }
 
+    try {
+      const validation = buildDeathcounterStorageValidation({ includeIssues: false, limit: 0 });
+      add({
+        name: 'database_storage_validation',
+        ok: validation.validation.ok,
+        level: validation.validation.errors ? 'error' : (validation.validation.warnings ? 'warning' : 'ok'),
+        readOnly: validation.readOnly,
+        writesDatabase: validation.writesDatabase,
+        importsCounts: validation.importsCounts,
+        switchesStorage: validation.switchesStorage,
+        readyForImport: validation.readyForImport,
+        validation: {
+          errors: validation.validation.errors,
+          warnings: validation.validation.warnings,
+          infos: validation.validation.infos,
+          totalIssues: validation.validation.totalIssues
+        },
+        summary: validation.summary
+      });
+    } catch (err) {
+      add({
+        name: 'database_storage_validation',
+        ok: false,
+        level: 'error',
+        readOnly: true,
+        writesDatabase: false,
+        importsCounts: false,
+        switchesStorage: false,
+        readyForImport: false,
+        error: err.message || String(err)
+      });
+    }
+
     add({ name: 'routes', ok: true, level: 'ok', prefix: API_PREFIX, count: buildDeathcounterRoutes().length });
 
     const summary = summarizeChecks(checks);
@@ -2237,7 +2453,8 @@ module.exports.init = function init(ctx) {
         'Productive prefix remains /api/deathcounter/v2.',
         'Reload normalizes the existing state file only; counters and overlay state are preserved.',
         'STEP252 prepares database tables only. JSON remains the active DeathCounter storage; no counts are imported or switched.',
-        'STEP253 adds a read-only storage preview. It does not write DB rows or switch active storage.'
+        'STEP253 adds a read-only storage preview. It does not write DB rows or switch active storage.',
+        'STEP254 adds read-only import readiness validation. It does not write DB rows or switch active storage.'
       ],
       updatedAt: core.nowIso()
     };
