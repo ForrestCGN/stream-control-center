@@ -423,12 +423,15 @@ function saveTextPair(pair = {}) {
       WHERE id=:id
     `, data);
   } else {
+    const insertData = { ...data };
+    delete insertData.id;
+
     db.run(`
       INSERT INTO hug_text_pairs
         (type_id, category, name, hug_text, rehug_text, enabled, weight, sort_order, source, created_at, updated_at)
       VALUES
         (:typeId, :category, :name, :hugText, :rehugText, :enabled, :weight, :sortOrder, 'database', :now, :now)
-    `, data);
+    `, insertData);
   }
   cache = null;
   return getTextPairEditorPayload();
@@ -627,12 +630,15 @@ function saveHugTextItem(item = {}, forcedKind = "hug_all") {
       WHERE id=:id AND kind=:kind
     `, data);
   } else {
+    const insertData = { ...data };
+    delete insertData.id;
+
     db.run(`
       INSERT INTO hug_texts
         (text_key, type_id, kind, text, enabled, weight, sort_order, created_at, updated_at)
       VALUES
         (:textKey, :typeId, :kind, :text, :enabled, :weight, :sortOrder, :now, :now)
-    `, data);
+    `, insertData);
   }
   cache = null;
   return getHugAllTextEditorPayload();

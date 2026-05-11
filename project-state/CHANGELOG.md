@@ -84,3 +84,10 @@ Die aeltere ausfuehrliche STEP-Historie bleibt in den einzelnen `project-state/S
 - Manifest mit 187 geprüften Kandidaten erzeugt.
 - Keine Inhalte gelöscht, nur geplante Verschiebung in Archivordner.
 - Keine Code-, Config-, DB- oder Dashboard-Logik geändert.
+
+## STEP236 - 2026-05-11 - Hug/Rehug Dashboard Insert-Fix
+
+- `backend/modules/hug.js` korrigiert: Neue Hug-Dashboard-Texte und neue Hug/Rehug-Textpaare können wieder angelegt werden.
+- Fehlerursache war ein überzähliger named parameter `id` bei INSERT-Statements.
+- INSERT-Pfade in `saveHugTextItem()` und `saveTextPair()` verwenden jetzt bereinigte Parameterobjekte ohne `id`.
+- Keine Änderung an Dashboard-Dateien, Core-DB-Schicht, Configs oder SQLite-Datei.

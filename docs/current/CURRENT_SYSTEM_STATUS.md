@@ -108,3 +108,13 @@ Hug/Rehug als nächstes fachliches Modul prüfen:
 3. keine Funktionalität entfernen
 4. Dashboard-Integration nur auf echter Basis erweitern
 ```
+
+
+## STEP236 - Hug/Rehug Dashboard Insert-Fix
+
+- Fehler beim Anlegen neuer Hug-Dashboard-Texte behoben.
+- Ursache: INSERT-Pfade in `backend/modules/hug.js` erhielten ein Parameterobjekt mit `id`, obwohl das SQL keinen `:id`-Platzhalter nutzt.
+- Betroffen: neue Einträge in `hug_texts` und `hug_text_pairs`.
+- Bestehende Updates waren nicht betroffen.
+- `saveTextPair()` und `saveHugTextItem()` nutzen beim INSERT nun ein bereinigtes `insertData` ohne `id`.
+- Keine Dashboard-, Config-, DB- oder Core-Änderung.

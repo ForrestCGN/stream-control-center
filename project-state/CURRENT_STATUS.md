@@ -66,3 +66,13 @@ docs/current/PROJECT_DASHBOARD_MAP_2026-05-11.md
 - Message-Rotator ist abgeschlossen.
 - Nächster sinnvoller Entwicklungsblock: Hug/Rehug prüfen und ggf. nach aktuellem Systemmuster integrieren.
 - Vor neuen Umbauten immer echte Dateien/Repo-Stand prüfen.
+
+
+## STEP236 - Hug/Rehug Dashboard Insert-Fix
+
+- Fehler beim Anlegen neuer Hug-Dashboard-Texte behoben.
+- Ursache: INSERT-Pfade in `backend/modules/hug.js` erhielten ein Parameterobjekt mit `id`, obwohl das SQL keinen `:id`-Platzhalter nutzt.
+- Betroffen: neue Einträge in `hug_texts` und `hug_text_pairs`.
+- Bestehende Updates waren nicht betroffen.
+- `saveTextPair()` und `saveHugTextItem()` nutzen beim INSERT nun ein bereinigtes `insertData` ohne `id`.
+- Keine Dashboard-, Config-, DB- oder Core-Änderung.

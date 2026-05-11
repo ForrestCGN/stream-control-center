@@ -112,3 +112,33 @@ Secrets / .env
 produktive Alert-/Loyalty-/Discord-/Twitch-Logik
 historische Analyse-Snapshots
 ```
+
+
+## Nach STEP236 - Hug/Rehug Dashboard-Schreibtest wiederholen
+
+Nach Deploy testen:
+
+```text
+Dashboard -> Community -> Hug-System -> Chatweite Hugs -> neuen Testtext anlegen
+```
+
+Erwartung:
+
+```text
+Kein Fehler "Unknown named parameter 'id'"
+Text erscheint in der API und kann danach gelöscht werden.
+```
+
+API-Prüfung:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/dashboard/community/hug/hug-all-texts" | ConvertTo-Json -Depth 100
+```
+
+Danach auch prüfen:
+
+```text
+- neues Hug/Rehug-Paar anlegen und löschen
+- Response-Text anlegen/löschen
+- Toplisten-Titel anlegen/löschen
+```

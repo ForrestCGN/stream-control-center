@@ -94,3 +94,29 @@ docs/current/PROJECT_DASHBOARD_MAP_2026-05-11.md
 project-state/archive/2026-05-11-step233/
 docs/archive/2026-05-11-step233/
 ```
+
+
+## STEP236
+
+Geändert:
+
+```text
+backend/modules/hug.js
+project-state/STEP236_HUG_DASHBOARD_INSERT_FIX_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geändert:
+
+```text
+htdocs/dashboard/modules/hug.js
+htdocs/dashboard/modules/hug.css
+backend/core/database.js
+config/**
+data/**
+app.sqlite
+```

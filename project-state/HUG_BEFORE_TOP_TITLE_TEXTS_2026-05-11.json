@@ -1,0 +1,48 @@
+﻿{
+    "ok":  true,
+    "module":  "hug",
+    "table":  "hug_texts",
+    "kind":  "top_title",
+    "category":  "top_titles",
+    "label":  "Toplisten",
+    "count":  3,
+    "activeCount":  3,
+    "texts":  [
+                  {
+                      "id":  105,
+                      "textKey":  "given",
+                      "typeId":  null,
+                      "kind":  "top_title",
+                      "text":  "Top Hugs",
+                      "enabled":  true,
+                      "weight":  1,
+                      "sortOrder":  0,
+                      "createdAt":  "2026-05-03T11:02:29.149Z",
+                      "updatedAt":  "2026-05-03T11:02:29.149Z"
+                  },
+                  {
+                      "id":  106,
+                      "textKey":  "received",
+                      "typeId":  null,
+                      "kind":  "top_title",
+                      "text":  "Top erhaltene Hugs",
+                      "enabled":  true,
+                      "weight":  1,
+                      "sortOrder":  1,
+                      "createdAt":  "2026-05-03T11:02:29.149Z",
+                      "updatedAt":  "2026-05-03T11:02:29.149Z"
+                  },
+                  {
+                      "id":  107,
+                      "textKey":  "rehug",
+                      "typeId":  null,
+                      "kind":  "top_title",
+                      "text":  "Top Rehugs",
+                      "enabled":  true,
+                      "weight":  1,
+                      "sortOrder":  2,
+                      "createdAt":  "2026-05-03T11:02:29.149Z",
+                      "updatedAt":  "2026-05-03T11:02:29.149Z"
+                  }
+              ]
+}
