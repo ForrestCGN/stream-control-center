@@ -1,34 +1,30 @@
-## STEP243 - DeathCounter Dashboard UX Cleanup
+## STEP244 - DeathCounter Statistik Game-Filter
 
 Stand: 2026-05-11
 
-- DeathCounter-Dashboard wurde nach Browser-Feedback aufgeräumt.
-- Übersicht zeigt nur noch kompakten Status/KPIs und sichtbare Spieler.
-- Spieler-Tab hat Suche und Sortierung.
-- Settings sind in Bereiche gruppiert.
-- Texte sind nach Kategorien gruppiert.
-- Steuerung markiert riskante Aktionen und fragt bei Reset/-1 nach Bestätigung.
+- DeathCounter Dashboard-Statistik kann jetzt nach Spiel gefiltert werden.
+- Filter nutzt vorhandene JSON-State-Daten aus `player.games`.
+- Optionen: Aktuelles Spiel, Alle Spiele / AllTime und einzelne Spiele.
 - Keine Backend-, DB-, Count-, Overlay- oder Streamer.bot-Änderung.
 
 Referenz:
 
 ```text
-project-state/STEP243_DEATHCOUNTER_DASHBOARD_UX_CLEANUP_2026-05-11.md
+project-state/STEP244_DEATHCOUNTER_STATISTIC_GAME_FILTER_2026-05-11.md
 ```
 
 ---
 
-## STEP242 - DeathCounter Dashboard-Basis
-
-Stand: 2026-05-11
-
-- DeathCounter V2 ist im Dashboard als Community-Modul vorbereitet.
-- `index.html` bindet das neue Modul ein.
-- `deathcounter.js/css` liefern Status, Settings, Textvarianten, Diagnose und einfache Steuerung.
-- Keine Backend- oder Datenhaltungsänderung.
-
-Referenz:
+Aktueller DeathCounter-Stand:
 
 ```text
-project-state/STEP242_DEATHCOUNTER_DASHBOARD_BASIS_2026-05-11.md
+STEP238    Command-API
+STEP239    Backend-Chatversand über Bot
+STEP240    DB-Settings
+STEP241    DB-Textvarianten
+STEP242    Dashboard-Basis
+STEP242.1  Sichtbare-Spieler-Fix
+STEP242.2  Dashboard-Tabs/Layout-Fix
+STEP243    Dashboard UX Cleanup
+STEP244    Statistik Game-Filter
 ```

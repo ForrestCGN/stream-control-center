@@ -1,45 +1,31 @@
-# NEXT STEP - Nach STEP243 DeathCounter Dashboard UX Cleanup
-
-## DeathCounter Status
-
-DeathCounter hat jetzt:
-
-```text
-- zentrale Command-API
-- Backend-Chatversand über Bot
-- DB-Settings
-- DB-Textvarianten
-- Dashboard-Basis mit UX-Cleanup
-```
+# NEXT STEP - Nach STEP244 DeathCounter Statistik Game-Filter
 
 ## Direkt testen
 
 ```text
-Dashboard -> Community -> DeathCounter
+Dashboard -> Community -> DeathCounter -> Statistik
 ```
 
-Zu prüfen:
+Prüfen:
 
 ```text
-- Übersicht kurz und sauber
-- Spieler-Suche funktioniert
-- Spieler-Sortierung funktioniert
-- Statistik-Tab bleibt übersichtlich
-- Settings-Gruppen sind lesbar
-- Textkategorien sind getrennt
-- Reset/-1 fragen nach Bestätigung
+- Spiele-Dropdown vorhanden
+- Aktuelles Spiel funktioniert
+- Alle Spiele / AllTime funktioniert
+- einzelne Spiele funktionieren
+- KPIs, Toplisten und Spielerwerte ändern sich korrekt
 ```
 
 ## Nächster sinnvoller Schritt
 
 ```text
-STEP244: DeathCounter Dashboard Detail-/Statistik-Ausbau oder kleine UX-Fixes aus Browser-Feedback
+STEP245: DeathCounter Streamer.bot Minimal-Actions dokumentieren/umbauen
 ```
 
-Noch nicht empfohlen, bis Dashboard stabil ist:
+Danach möglich:
 
 ```text
-- Count-/Event-DB-Migration
-- Overlay-Design-Refresh
-- Node-Chat-Router
+- Dashboard Detailansicht pro Spieler
+- Overlay-Design-Refresh im neuen CGN-/Control-Center-Stil
+- spätere Count-/Event-DB-Migration mit Fallback auf JSON
 ```

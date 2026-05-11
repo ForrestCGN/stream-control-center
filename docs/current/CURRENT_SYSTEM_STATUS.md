@@ -1,11 +1,10 @@
-# CURRENT_SYSTEM_STATUS - STEP243 Update
+# CURRENT_SYSTEM_STATUS - STEP244 Update
 
-DeathCounter V2 Dashboard wurde nach Browser-Feedback weiter aufgeräumt.
+DeathCounter V2 Dashboard-Statistik wurde erweitert.
 
-- Übersicht ist kompakter.
-- Spieler-Tab hat Suche und Sortierung.
-- Settings sind nach Bereichen gruppiert.
-- Textvarianten sind nach Kategorien gruppiert.
-- Riskante Steuerungsaktionen haben Warnhinweis und Bestätigung.
+- Statistik-Tab hat jetzt einen Spiele-Filter.
+- Auswählbar sind aktuelles Spiel, Alle Spiele / AllTime und alle im JSON-State vorhandenen Spiele.
+- KPIs, Toplisten und Spielerwerte reagieren auf die Auswahl.
+- Die Auswertung nutzt weiterhin den vorhandenen DeathCounter-JSON-State.
 
-Keine Backend-, DB-, Count-, Streamer.bot- oder Overlay-Änderung in diesem STEP.
+Keine Backend-, DB-, Count-, Overlay- oder Streamer.bot-Änderung in diesem STEP.

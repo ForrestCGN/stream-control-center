@@ -14,6 +14,7 @@ window.DeathCounterModule = (function(){
   let error = '';
   let playerSearch = '';
   let playerSort = 'allTime';
+  let statsGameFilter = 'current';
 
   const tabs = [
     ['overview', 'Übersicht'],
@@ -161,6 +162,11 @@ window.DeathCounterModule = (function(){
         playerSort = sort.value || 'allTime';
         renderPlayers();
       }
+      const game = event.target.closest('[data-dc-stats-game]');
+      if (game) {
+        statsGameFilter = game.value || 'current';
+        renderStats();
+      }
     });
   }
 
@@ -228,6 +234,53 @@ window.DeathCounterModule = (function(){
   function getCurrentGame(){
     const rt = getRuntimeSettings();
     return rt.currentGame || players?.currentGame || status?.currentGame || '-';
+  }
+
+  function getGameNames(){
+    const names = new Set();
+    getPlayerList().forEach(player => {
+      Object.keys(player?.games || {}).forEach(game => {
+        if (game && game.trim()) names.add(game.trim());
+      });
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+  }
+
+  function getStatsSelection(){
+    const currentGame = getCurrentGame();
+    const selected = statsGameFilter || 'current';
+    if (selected === 'all') {
+      return { mode: 'all', label: 'Alle Spiele / AllTime', game: null, usesAllTime: true };
+    }
+    if (selected === 'current') {
+      return { mode: 'game', label: currentGame || 'Aktuelles Spiel', game: currentGame, usesAllTime: false };
+    }
+    return { mode: 'game', label: selected, game: selected, usesAllTime: false };
+  }
+
+  function getGameStatsForPlayer(player, selection){
+    if (!player) return { session: 0, allTime: 0 };
+    if (selection?.usesAllTime) {
+      return {
+        session: Number(player?.stats?.session || 0),
+        allTime: Number(player?.stats?.allTime || 0)
+      };
+    }
+    const gameName = selection?.game || getCurrentGame();
+    const direct = player?.games?.[gameName];
+    if (direct) {
+      return {
+        session: Number(direct.session || 0),
+        allTime: Number(direct.allTime || 0)
+      };
+    }
+    if (gameName === getCurrentGame() && player?.gameStats) {
+      return {
+        session: Number(player.gameStats.session || 0),
+        allTime: Number(player.gameStats.allTime || 0)
+      };
+    }
+    return { session: 0, allTime: 0 };
   }
 
   function getFilteredPlayers(){
@@ -343,36 +396,71 @@ window.DeathCounterModule = (function(){
     if (!panel) return;
     const list = getPlayerList();
     const visible = getVisiblePlayers();
-    const topAll = [...list].sort((a, b) => Number(b?.stats?.allTime || 0) - Number(a?.stats?.allTime || 0)).slice(0, 10);
-    const topGame = [...list].sort((a, b) => Number(b?.gameStats?.allTime || 0) - Number(a?.gameStats?.allTime || 0)).slice(0, 10);
-    const topSession = [...list].sort((a, b) => Number(b?.gameStats?.session || 0) - Number(a?.gameStats?.session || 0)).slice(0, 10);
+    const gameNames = getGameNames();
+    const selection = getStatsSelection();
+    const rows = list.map(player => {
+      const gameStats = getGameStatsForPlayer(player, selection);
+      return { player, session: gameStats.session, allTime: gameStats.allTime, playerAllTime: Number(player?.stats?.allTime || 0) };
+    });
+    const sortedByAllTime = [...rows].sort((a, b) => b.allTime - a.allTime).slice(0, 10);
+    const sortedBySession = [...rows].sort((a, b) => b.session - a.session).slice(0, 10);
+    const tableRows = [...rows].sort((a, b) => b.allTime - a.allTime || b.session - a.session || String(a.player?.displayName || '').localeCompare(String(b.player?.displayName || ''), 'de'));
+    const totalAllTime = rows.reduce((sum, row) => sum + Number(row.allTime || 0), 0);
+    const totalSession = rows.reduce((sum, row) => sum + Number(row.session || 0), 0);
     panel.innerHTML = `
       ${errorBlock()}
       <div class="dc-card page-card">
         <div class="card-head big-head">
-          <div><h2>Statistik</h2><div class="small-note">Schnellstatistik aus dem aktuellen State. Tiefere Event-Statistiken kommen erst mit späterer DB-Migration.</div></div>
+          <div><h2>Statistik</h2><div class="small-note">Statistik aus dem aktuellen State. Der Spiele-Filter nutzt die vorhandenen JSON-Spielwerte.</div></div>
           <div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div>
+        </div>
+        <div class="dc-stat-toolbar">
+          <label><span>Spiel auswählen</span><select data-dc-stats-game>
+            <option value="current"${statsGameFilter === 'current' ? ' selected' : ''}>Aktuelles Spiel (${esc(getCurrentGame())})</option>
+            <option value="all"${statsGameFilter === 'all' ? ' selected' : ''}>Alle Spiele / AllTime</option>
+            ${gameNames.map(game => `<option value="${esc(game)}"${statsGameFilter === game ? ' selected' : ''}>${esc(game)}</option>`).join('')}
+          </select></label>
+          <div class="dc-tool-count">Auswertung: ${esc(selection.label)}</div>
         </div>
         <div class="dc-kpis">
           ${kpi('Spieler', list.length)}
           ${kpi('Sichtbar', visible.length)}
-          ${kpi('AllTime gesamt', list.reduce((sum, p) => sum + Number(p?.stats?.allTime || 0), 0))}
-          ${kpi('Heute', list.reduce((sum, p) => sum + Number(p?.gameStats?.session || 0), 0))}
+          ${kpi(selection.usesAllTime ? 'AllTime gesamt' : `${selection.label} gesamt`, totalAllTime)}
+          ${kpi(selection.usesAllTime ? 'Session gesamt' : `${selection.label} heute`, totalSession)}
         </div>
         <div class="dc-stat-grid">
-          ${topList('Top AllTime', topAll, p => p?.stats?.allTime)}
-          ${topList(`Top ${getCurrentGame()}`, topGame, p => p?.gameStats?.allTime)}
-          ${topList('Top Heute', topSession, p => p?.gameStats?.session)}
+          ${topList(selection.usesAllTime ? 'Top AllTime' : `Top ${selection.label}`, sortedByAllTime, row => row.allTime)}
+          ${topList(selection.usesAllTime ? 'Top Session' : `Heute in ${selection.label}`, sortedBySession, row => row.session)}
+        </div>
+        <div class="dc-stat-table-block">
+          <h3>Spielerwerte: ${esc(selection.label)}</h3>
+          ${statsTable(tableRows, selection)}
         </div>
       </div>
     `;
   }
 
   function topList(title, rows, valueFn){
-    const items = rows.length ? rows.map((player, index) => `
-      <li><span>${index + 1}. ${esc(player.displayName || player.login || player.id)}</span><strong>${num(valueFn(player))}</strong></li>
+    const usefulRows = rows.filter(row => Number(valueFn(row) || 0) > 0);
+    const sourceRows = usefulRows.length ? usefulRows : rows;
+    const items = sourceRows.length ? sourceRows.map((row, index) => `
+      <li><span>${index + 1}. ${esc(row.player?.displayName || row.player?.login || row.player?.id)}</span><strong>${num(valueFn(row))}</strong></li>
     `).join('') : '<li><span>Keine Daten</span><strong>-</strong></li>';
     return `<div class="dc-top-list"><h3>${esc(title)}</h3><ol>${items}</ol></div>`;
+  }
+
+  function statsTable(rows, selection){
+    if (!rows.length) return '<div class="dc-empty">Keine Statistikdaten gefunden.</div>';
+    return `
+      <div class="dc-table-wrap">
+        <table class="dc-table table">
+          <thead><tr><th>Spieler</th><th>${selection.usesAllTime ? 'Session' : 'Heute'}</th><th>${selection.usesAllTime ? 'AllTime' : 'Spiel gesamt'}</th><th>AllTime Gesamt</th></tr></thead>
+          <tbody>
+            ${rows.map(row => `<tr><td>${esc(row.player?.displayName || row.player?.login || row.player?.id)}</td><td>${num(row.session)}</td><td>${num(row.allTime)}</td><td>${num(row.playerAllTime)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
 
   function playerLine(player){
