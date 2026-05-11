@@ -2,25 +2,6 @@
 
 Stand: 2026-05-11
 
-## STEP229 - Message-Rotator Backend Admin Basis
-
-Aktueller Zusatzstand:
-
-- `backend/modules/message_rotator.js` nutzt jetzt `helper_settings` fuer dashboardfaehige Settings.
-- Neue Settings-Tabelle: `message_rotator_settings`.
-- JSON `config/message_rotator.json` bleibt Fallback und Seed-Grundlage.
-- Neue Admin-Routen:
-  - `GET /api/message-rotator/admin/settings`
-  - `POST /api/message-rotator/admin/settings`
-  - `GET /api/message-rotator/admin/texts`
-  - `POST /api/message-rotator/admin/texts`
-- Textvarianten fuer `module_name = message_rotator` werden ueber `helper_texts` vorbereitet.
-- Bestehende Runtime-, Legacy- und Streamer.bot-kompatible Routen bleiben erhalten.
-- Dashboard-Dateien wurden in diesem STEP bewusst noch nicht geaendert.
-- Keine Datenbank wurde ersetzt oder neu gebaut.
-
-Stand: 2026-05-11
-
 ## STEP227 - Twitch EventSub Subscription Diagnose
 
 Aktueller Zusatzstand:
@@ -221,10 +202,21 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP220 und STEP
 - Event-Boni weiterhin beobachten.
 - Nach Streamende Runner/Stream-State offline pruefen.
 
-## STEP230A - Message-Rotator DB-Text-Runtime
+## STEP230B - Message-Rotator Dashboard-Modul
 
-- `backend/modules/message_rotator.js` nutzt fuer Rotator-Runtime-Ausgaben jetzt zuerst DB-Textvarianten aus `module_text_variants` mit `module_name = message_rotator`.
-- Automatische und manuelle Rotator-Messages nutzen dieselbe interne Runtime-Funktion.
-- `config/messages/*.json` bleibt als Fallback erhalten.
-- Dashboard wurde noch nicht gebaut/geaendert.
-- Naechster Schritt bleibt das Dashboard-Modul fuer den Message-Rotator.
+- `message_rotator` ist im Dashboard unter System aktiv.
+- Neues Dashboard-Panel: `messageRotatorModule`.
+- Neue Dashboard-Dateien:
+  - `htdocs/dashboard/modules/message_rotator.js`
+  - `htdocs/dashboard/modules/message_rotator.css`
+- Dashboard nutzt nur Backend-APIs:
+  - `/api/message-rotator/status`
+  - `/api/message-rotator/admin/settings`
+  - `/api/message-rotator/admin/texts`
+  - `/api/message-rotator/integration-check`
+  - `/api/message-rotator/start|stop|reload|next|manual`
+- Settings werden ueber `message_rotator_settings` verwaltet.
+- Nachrichten werden ueber `module_text_variants` mit `module_name = message_rotator` verwaltet.
+- Mehrere aktive Nachrichtenvarianten bleiben moeglich; die Runtime waehlt zufaellig anhand Gewichtung.
+- Backend, DB-Core, Helper, Configs und bestehende Runtime-Logik wurden nicht veraendert.
+

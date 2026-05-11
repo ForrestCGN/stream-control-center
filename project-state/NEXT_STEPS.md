@@ -2,40 +2,6 @@
 
 Stand: 2026-05-11
 
-## Nach STEP229 - Message-Rotator
-
-Nach Entpacken, `stepdone.cmd` und Backend-Neustart pruefen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/status" | ConvertTo-Json -Depth 30
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/settings" | ConvertTo-Json -Depth 50
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/texts" | ConvertTo-Json -Depth 80
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/integration-check" | ConvertTo-Json -Depth 80
-```
-
-Naechster sinnvoller STEP:
-
-```text
-STEP230 - Message-Rotator Dashboard-Modul
-```
-
-Geplante Dateien:
-
-```text
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
-htdocs/dashboard/modules/message_rotator.js
-htdocs/dashboard/modules/message_rotator.css
-```
-
-Ziel STEP230:
-
-- Rotator im System-Bereich aktivieren.
-- Status, Start/Stop, Settings, Items und Textvarianten im Dashboard verwaltbar machen.
-- Dashboard greift nur ueber Backend-APIs zu, nicht direkt auf DB/JSON.
-
-Stand: 2026-05-11
-
 ## Nach STEP227
 
 - `GET /api/twitch/eventsub/subscriptions` ausführen und aktive Twitch EventSub-Typen prüfen.
@@ -363,33 +329,36 @@ Badword-/Blacklist-/Replacement-System für Alert-TTS.
 Dashboard-konfigurierbar.
 ```
 
-## Nach STEP230A - Message-Rotator
+## Nach STEP230B - Message-Rotator Dashboard testen
 
-Nach Backend-Neustart pruefen:
+Nach Deploy/Backend-Neustart:
 
 ```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/status" | ConvertTo-Json -Depth 30
+Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/settings" | ConvertTo-Json -Depth 50
 Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/texts" | ConvertTo-Json -Depth 80
 Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/integration-check" | ConvertTo-Json -Depth 80
 ```
 
-Erwartung:
+Dashboard-Test:
 
 ```text
-integration-check.healthy = true
-sample.value.source = database_variants_with_json_fallback
+http://127.0.0.1:8080/dashboard
+System -> Message-Rotator
 ```
 
-Naechster sinnvoller STEP:
+Pruefen:
 
-```text
-STEP230B - Dashboard-Modul Message-Rotator
-```
+- Kachel ist aktiv.
+- Status/Diagnose laden ohne Fehler.
+- Start/Stop/Reload funktionieren.
+- Settings koennen gespeichert werden.
+- Items koennen gespeichert werden.
+- Nachrichten-Varianten koennen bearbeitet, aktiviert/deaktiviert und hinzugefuegt werden.
+- `integration-check.samples.*.value.source` bleibt `database_variants_with_json_fallback`.
 
-Dabei einbauen:
+Naechster sinnvoller Schritt danach:
 
-```text
-htdocs/dashboard/modules/message_rotator.js
-htdocs/dashboard/modules/message_rotator.css
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
-```
+- UX-Feinschliff nach Screenshot/Live-Test.
+- Optional eigene Unterseite fuer Textvarianten, falls die Liste spaeter groesser wird.
+

@@ -63,6 +63,13 @@ window.CGN = {
       overlayLabel: 'Sound-Overlay öffnen',
       reload() { return window.SoundSystemModule?.loadAll?.(true); }
     },
+    message_rotator: {
+      title: 'Message-Rotator',
+      panelId: 'messageRotatorModule',
+      group: 'system',
+      overlayLink: '',
+      reload() { return window.MessageRotatorModule?.loadAll?.(true); }
+    },
     hug: {
       title: 'Hug-System',
       panelId: 'hugModule',
@@ -153,7 +160,7 @@ window.CGN = {
     sound_system: { label: 'Sound-System', icon: '🔊', enabled: true, description: 'Zentrale Soundausgabe, Queue und Prioritäten.' },
     tts: { label: 'TTS', icon: '🗣️', enabled: false, description: 'Text-to-Speech vorbereitet.' },
     bot_systems: { label: 'Bot-Systeme', icon: '🤖', enabled: false, description: 'Bot- und Automationssysteme vorbereitet.' },
-    message_rotator: { label: 'Message-Rotator', icon: '🔁', enabled: false, description: 'Automatische Chat-Meldungen vorbereitet.' },
+    message_rotator: { label: 'Message-Rotator', icon: '🔁', enabled: true, description: 'Automatische Chat-Meldungen, DB-Textvarianten und Rotator-Settings verwalten.' },
     automations: { label: 'Automationen', icon: '⏱️', enabled: false, description: 'Zeit- und Event-Automationen vorbereitet.' },
     integrations: { label: 'Integrationen', icon: '🔌', enabled: false, description: 'Externe Dienste und APIs vorbereitet.' },
     module_status: { label: 'Modulstatus', icon: '📊', enabled: false, description: 'Modulstatus vorbereitet.' },
@@ -167,7 +174,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'obs', 'sound_system'],
+  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'obs', 'sound_system', 'message_rotator'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });

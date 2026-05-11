@@ -2,43 +2,6 @@
 
 Stand: 2026-05-11
 
-## STEP229
-
-Geaendert:
-
-```text
-backend/modules/message_rotator.js
-project-state/STEP229_MESSAGE_ROTATOR_BACKEND_ADMIN_BASIS_2026-05-11.md
-project-state/CURRENT_STATUS_APPEND_STEP229.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
-docs/current/CURRENT_SYSTEM_STATUS.md
-```
-
-Nicht geaendert:
-
-```text
-htdocs/dashboard/**
-config/message_rotator.json
-backend/modules/messages.js
-backend/modules/twitch.js
-backend/modules/alert_system.js
-backend/modules/loyalty.js
-backend/core/database.js
-backend/modules/sqlite_core.js
-app.sqlite
-```
-
-Neue/benutzte DB-Tabelle zur Laufzeit:
-
-```text
-message_rotator_settings
-module_text_variants mit module_name = message_rotator
-```
-
-Stand: 2026-05-11
-
 ## STEP227
 
 Geaendert:
@@ -345,28 +308,30 @@ cd D:\Git\stream-control-center
 # project-state\FILES.md
 ```
 
-## STEP230A
+## STEP230B
 
 Geaendert:
 
 ```text
-backend/modules/message_rotator.js
-project-state/STEP230A_MESSAGE_ROTATOR_DB_TEXT_RUNTIME_2026-05-11.md
-project-state/CURRENT_STATUS_APPEND_STEP230A.md
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+htdocs/dashboard/modules/message_rotator.js
+htdocs/dashboard/modules/message_rotator.css
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/STEP230B_MESSAGE_ROTATOR_DASHBOARD_MODULE_2026-05-11.md
+project-state/CURRENT_STATUS_APPEND_STEP230B.md
+project-state/NEXT_STEPS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-project-state/NEXT_STEPS.md
-docs/current/CURRENT_SYSTEM_STATUS.md
 ```
 
 Nicht geaendert:
 
 ```text
-htdocs/**
-config/**
-backend/modules/helpers/**
+backend/modules/message_rotator.js
 backend/core/database.js
-backend/modules/sqlite_core.js
+backend/modules/helpers/**
+config/**
 app.sqlite
-.env
 ```
+
