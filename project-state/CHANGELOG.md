@@ -193,13 +193,13 @@
 - GiftSub-Empfänger `channel.subscribe is_gift:true` werden korrekt nicht als Alert abgespielt.
 - Cheermote-Tokens werden aus Alert-TTS entfernt.
 
-### STEP230B - Message-Rotator Dashboard-Modul
 
-- Dashboard-Modul `message_rotator` aktiviert.
-- `htdocs/dashboard/index.html` bindet CSS, JS und Panel-Section fuer den Message-Rotator ein.
-- `htdocs/dashboard/app.js` registriert das Modul unter System und aktiviert die Kachel.
-- Neues Modul `htdocs/dashboard/modules/message_rotator.js` fuer Status, Start/Stop, Reload, Settings, Items, Textvarianten und Diagnose.
-- Neues Stylesheet `htdocs/dashboard/modules/message_rotator.css`.
-- Nachrichten werden im Dashboard als DB-Textvarianten bearbeitet; mehrere aktive Varianten werden weiterhin zufaellig vom Backend ausgewaehlt.
-- Keine Backend-Logik, keine Datenbankdatei und keine bestehenden Dashboard-Module fachlich geaendert.
+## STEP231 - 2026-05-11 - Message-Rotator Livetest abgeschlossen
 
+- Message-Rotator nach Backend-, DB-, Dashboard- und Runtime-Integration als erfolgreich getestet dokumentiert.
+- Settings werden produktiv ueber `message_rotator_settings` verwaltet.
+- Rotator-Texte werden produktiv ueber `module_text_variants` mit `module = message_rotator` verwaltet.
+- Dashboard-Bearbeitung von Settings und Textvarianten wurde erfolgreich getestet.
+- API-Tests fuer Status, Admin-Settings, Admin-Texte, Integration-Check, Start, Stop, Tick und Next waren erfolgreich.
+- Livetest im Stream lief fehlerfrei.
+- Keine Code-, DB- oder Config-Aenderung in STEP231; reiner Doku-/Abschluss-STEP.

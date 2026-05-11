@@ -202,21 +202,22 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP220 und STEP
 - Event-Boni weiterhin beobachten.
 - Nach Streamende Runner/Stream-State offline pruefen.
 
-## STEP230B - Message-Rotator Dashboard-Modul
 
-- `message_rotator` ist im Dashboard unter System aktiv.
-- Neues Dashboard-Panel: `messageRotatorModule`.
-- Neue Dashboard-Dateien:
-  - `htdocs/dashboard/modules/message_rotator.js`
-  - `htdocs/dashboard/modules/message_rotator.css`
-- Dashboard nutzt nur Backend-APIs:
-  - `/api/message-rotator/status`
-  - `/api/message-rotator/admin/settings`
-  - `/api/message-rotator/admin/texts`
-  - `/api/message-rotator/integration-check`
-  - `/api/message-rotator/start|stop|reload|next|manual`
-- Settings werden ueber `message_rotator_settings` verwaltet.
-- Nachrichten werden ueber `module_text_variants` mit `module_name = message_rotator` verwaltet.
-- Mehrere aktive Nachrichtenvarianten bleiben moeglich; die Runtime waehlt zufaellig anhand Gewichtung.
-- Backend, DB-Core, Helper, Configs und bestehende Runtime-Logik wurden nicht veraendert.
+## STEP231 - Message-Rotator Livetest Abschluss
 
+Stand: 2026-05-11
+
+- Message-Rotator ist nach erfolgreichem Livetest als STABLE/abgenommen dokumentiert.
+- Backend, DB-Settings, DB-Textvarianten, Dashboard und Runtime wurden erfolgreich getestet.
+- `message_rotator_settings` ist die aktive Settings-Quelle mit JSON-Fallback.
+- `module_text_variants` mit `module = message_rotator` ist die aktive Textvarianten-Quelle mit JSON-Fallback.
+- Dashboard kann Settings und Textvarianten bearbeiten.
+- Start/Stop/Tick/Next wurden erfolgreich getestet.
+- Im Stream lief der Rotator fehlerfrei.
+- STEP231 enthaelt keine Code- oder DB-Aenderung, sondern dokumentiert den abgeschlossenen Stand.
+
+Referenzdokument:
+
+```text
+project-state/STEP231_MESSAGE_ROTATOR_LIVETEST_ABSCHLUSS_2026-05-11.md
+```

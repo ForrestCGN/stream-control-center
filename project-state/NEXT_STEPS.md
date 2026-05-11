@@ -329,36 +329,28 @@ Badword-/Blacklist-/Replacement-System für Alert-TTS.
 Dashboard-konfigurierbar.
 ```
 
-## Nach STEP230B - Message-Rotator Dashboard testen
 
-Nach Deploy/Backend-Neustart:
+## Nach STEP231 - Message-Rotator abgeschlossen
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/status" | ConvertTo-Json -Depth 30
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/settings" | ConvertTo-Json -Depth 50
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/texts" | ConvertTo-Json -Depth 80
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/integration-check" | ConvertTo-Json -Depth 80
-```
+Der Message-Rotator ist als produktiv nutzbar und STABLE dokumentiert.
 
-Dashboard-Test:
+Aktuell keine Pflicht-Fixes offen.
+
+Sinnvolle spaetere optionale Erweiterungen:
 
 ```text
-http://127.0.0.1:8080/dashboard
-System -> Message-Rotator
+- Rotator-History / Log gesendeter Nachrichten
+- Rotator-Statistiken pro Key/Item
+- Dashboard-Komfort: Sortierung, Filter, Varianten kopieren
+- Streamer.bot-Actions vereinheitlichen und dokumentieren
+- optional: Anzeige der letzten gesendeten Rotator-Nachrichten im Dashboard
 ```
 
-Pruefen:
+Naechster groesserer Entwicklungsblock kann frei gewaehlt werden, z. B.:
 
-- Kachel ist aktiv.
-- Status/Diagnose laden ohne Fehler.
-- Start/Stop/Reload funktionieren.
-- Settings koennen gespeichert werden.
-- Items koennen gespeichert werden.
-- Nachrichten-Varianten koennen bearbeitet, aktiviert/deaktiviert und hinzugefuegt werden.
-- `integration-check.samples.*.value.source` bleibt `database_variants_with_json_fallback`.
-
-Naechster sinnvoller Schritt danach:
-
-- UX-Feinschliff nach Screenshot/Live-Test.
-- Optional eigene Unterseite fuer Textvarianten, falls die Liste spaeter groesser wird.
-
+```text
+- Hug/Rehug weiter dashboardfaehig machen
+- SoundAlert-System weiter ausbauen
+- Streamer.bot-Action-Struktur dokumentieren/aufräumen
+- Dashboard-Modul fuer weitere bestehende Systeme integrieren
+```

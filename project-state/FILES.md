@@ -308,21 +308,18 @@ cd D:\Git\stream-control-center
 # project-state\FILES.md
 ```
 
-## STEP230B
+
+## STEP231
 
 Geaendert:
 
 ```text
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
-htdocs/dashboard/modules/message_rotator.js
-htdocs/dashboard/modules/message_rotator.css
-docs/current/CURRENT_SYSTEM_STATUS.md
-project-state/STEP230B_MESSAGE_ROTATOR_DASHBOARD_MODULE_2026-05-11.md
-project-state/CURRENT_STATUS_APPEND_STEP230B.md
+project-state/STEP231_MESSAGE_ROTATOR_LIVETEST_ABSCHLUSS_2026-05-11.md
+project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
 ```
 
 Nicht geaendert:
@@ -331,7 +328,15 @@ Nicht geaendert:
 backend/modules/message_rotator.js
 backend/core/database.js
 backend/modules/helpers/**
+backend/modules/sqlite_core.js
+htdocs/**
 config/**
 app.sqlite
 ```
 
+Einordnung:
+
+```text
+STEP231 ist ein Doku-/Abschluss-STEP nach erfolgreichem Livetest.
+Keine Funktionalitaet wurde geaendert.
+```
