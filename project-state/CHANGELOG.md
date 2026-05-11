@@ -1,3 +1,20 @@
+
+## 2026-05-11 - STEP235 Hug/Rehug Ist-Analyse
+
+- Hug/Rehug Live-API-Test dokumentiert.
+- Acht Routen erfolgreich geprüft:
+  - `/api/hug/status`
+  - `/api/hug/integration-check`
+  - `/api/hug/routes`
+  - `/api/dashboard/community/hug/status`
+  - `/api/dashboard/community/hug/text-pairs`
+  - `/api/dashboard/community/hug/hug-all-texts`
+  - `/api/dashboard/community/hug/response-texts`
+  - `/api/dashboard/community/hug/top-title-texts`
+- Integration-Check: 12 OK, 0 Warnungen, 0 Fehler.
+- DB-/Config-/Textbestand fuer Hug/Rehug dokumentiert.
+- Keine Code-, Config-, DB- oder Dashboard-Dateien geaendert.
+
 # CHANGELOG - stream-control-center
 
 ## 2026-05-11 - STEP234 System Route Module Overview

@@ -1,3 +1,27 @@
+
+# Ergänzung - STEP235 Hug/Rehug Ist-Analyse
+
+Stand: 2026-05-11
+
+- Hug/Rehug wurde per Live-API-Test geprüft.
+- Alle acht getesteten Routen antworteten ohne Fehler.
+- `/api/hug/integration-check` meldet `summary.ok = 12`, `warnings = 0`, `errors = 0`.
+- Hug/Rehug nutzt laut Status `source = database` und die produktive SQLite-DB `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Aktiver Datenbestand: 59 User, 195 Pair-Stats, 30 Hug-Types, 30 aktive Hug/Rehug-Textpaare, 20 chatweite Hug-Texte, 24 Systemantworten, 3 Toplisten-Titel.
+- Dashboard-Routen fuer Textpaare, chatweite Hug-Texte, Systemantworten und Toplisten-Titel sind erreichbar.
+- Keine Code-, Config- oder DB-Aenderung in STEP235.
+- Naechster Schritt: Dashboard-Schreibtests und Streamer.bot-/Chat-Flow-Test.
+
+Referenz:
+
+```text
+project-state/STEP235_HUG_REHUG_IST_ANALYSE_2026-05-11.md
+project-state/HUG_LIVE_API_TEST_LOG_2026-05-11.jsonl
+project-state/HUG_LIVE_API_TEST_SUMMARY_2026-05-11.txt
+```
+
+---
+
 # CURRENT SYSTEM STATUS - stream-control-center
 
 Stand: 2026-05-11

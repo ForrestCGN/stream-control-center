@@ -1,3 +1,29 @@
+
+## STEP235 - Hug/Rehug Ist-Analyse
+
+Geaendert / neu dokumentiert:
+
+```text
+project-state/STEP235_HUG_REHUG_IST_ANALYSE_2026-05-11.md
+project-state/HUG_LIVE_API_TEST_LOG_2026-05-11.jsonl
+project-state/HUG_LIVE_API_TEST_SUMMARY_2026-05-11.txt
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/**
+htdocs/**
+config/**
+data/**
+app.sqlite
+```
+
 # FILES - stream-control-center
 
 Stand: 2026-05-11

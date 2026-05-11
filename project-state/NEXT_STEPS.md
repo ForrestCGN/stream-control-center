@@ -1,3 +1,39 @@
+
+# NEXT STEP - Hug/Rehug nach STEP235
+
+## STEP236 empfohlen: Hug/Rehug Dashboard-Schreibtest und Chat-Flow-Test
+
+Da STEP235 alle Hug-API-Leserouten erfolgreich geprüft hat, folgt als naechstes kein Backend-Umbau, sondern gezielte Schreib-/Flow-Pruefung.
+
+### Dashboard-Schreibtests
+
+1. Hug/Rehug-Paar bearbeiten, speichern, neu laden, wieder zuruecksetzen.
+2. Chatweite Hug-Variante hinzufuegen, deaktivieren, loeschen.
+3. Systemantwort bearbeiten und zuruecksetzen.
+4. Toplisten-Titel bearbeiten und zuruecksetzen.
+
+### Streamer.bot-/Chat-Flow-Test
+
+Zu pruefen:
+
+```text
+!hug @user
+!rehug @user
+!hug stats
+!hug top
+!hug top received
+!hug top rehug
+!hug on/off
+!hug reload
+```
+
+### Entscheidung danach
+
+- Wenn alles funktioniert: Hug/Rehug als STABLE dokumentieren.
+- Wenn Dashboard-Schreiben oder Chat-Flow hakt: gezielter STEP236-Fix.
+
+---
+
 # NEXT STEPS - stream-control-center
 
 Stand: 2026-05-11

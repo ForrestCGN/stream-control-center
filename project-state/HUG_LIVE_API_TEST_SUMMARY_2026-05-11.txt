@@ -1,0 +1,8 @@
+﻿[api_hug_status] ok=True error=
+[api_hug_integration_check] ok=True error=
+[api_hug_routes] ok=True error=
+[dashboard_hug_status] ok=True error=
+[dashboard_hug_text_pairs] ok=True error=
+[dashboard_hug_all_texts] ok=True error=
+[dashboard_hug_response_texts] ok=True error=
+[dashboard_hug_top_title_texts] ok=True error=
