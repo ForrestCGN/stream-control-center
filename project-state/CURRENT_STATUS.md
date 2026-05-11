@@ -26,6 +26,17 @@ Aktueller Stand nach STEP221:
 - `dryRun: true` erlaubt Normalisierung ohne Alert-Ausloesung.
 - Dashboard-UI ist noch nicht gebaut und bleibt naechster Schritt.
 
+## Alert-TTS / Cheer-Wort Cleanup
+
+Aktueller Stand nach STEP223:
+
+- Twitch-Bits-Alerts behalten ihre originale Message unveraendert in der Alert-History.
+- Fuer Alert-TTS wird die Message separat bereinigt.
+- Standalone-Cheer-Worts wie `Cheer100`, `Cheer10 Cheer10 Cheer100` werden nur aus dem TTS-Text entfernt.
+- Wenn nach der Bereinigung kein Text mehr uebrig ist, wird kein TTS erzeugt.
+- Beispiele: `Cheer100` -> kein TTS, `Cheer100 test` -> `test`, `Cheer10 Cheer10 Cheer100 test` -> `test`.
+- Alert-Regeln, Queue, Sound-System, Twitch-Normalisierung, Dashboard und DB-Schema wurden nicht geaendert.
+
 ## Alert-System / Twitch Alert Bridge
 
 Aktueller Stand nach STEP220:

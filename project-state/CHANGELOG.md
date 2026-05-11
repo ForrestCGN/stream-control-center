@@ -2,6 +2,15 @@
 
 ## 2026-05-11
 
+### STEP223 - Alert-TTS Cheer-Wort Cleanup
+
+- `backend/modules/alert_system.js` bereinigt Twitch-Cheer-Worts nur fuer Alert-TTS.
+- Originale Alert-Message bleibt in Alert-History/Overlay unveraendert.
+- `Cheer100` erzeugt keinen TTS mehr, wenn kein echter Text uebrig bleibt.
+- `Cheer100 test` und `Cheer10 Cheer10 Cheer100 test` werden fuer TTS zu `test`.
+- Keine Aenderung an Twitch-Normalisierung, Alert-Regeln, Queue, Sound-System, Dashboard oder DB-Schema.
+
+
 ### STEP222 - Twitch Subscription Tier-Text Normalisierung
 
 - `backend/modules/twitch.js` korrigiert: technische Tier-Angaben aus `channel.subscribe` werden nicht mehr als `message: "Tier 1000"` gesetzt.

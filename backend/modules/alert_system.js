@@ -2697,9 +2697,16 @@ function updateChatDispatchStatus(eventUid, status, error) {
 
 function buildTtsPayload(event, rule = {}) {
   if (Number(rule.tts_enabled || 0) !== 1) return null;
-  const message = cleanText(event.message || '');
+  const rawMessage = cleanText(event.message || '');
+  const message = cleanAlertMessageForTts(event, rawMessage);
   const minAmount = nullableNumber(rule.tts_min_amount);
-  if (!message) return { enabled: false, reason: 'empty_message' };
+  if (!message) {
+    return {
+      enabled: false,
+      reason: rawMessage ? 'empty_message_after_tts_cleanup' : 'empty_message',
+      originalMessage: rawMessage
+    };
+  }
   if (minAmount !== null && Number(event.amount || 0) < minAmount) return { enabled: false, reason: 'amount_below_minimum' };
   const maxChars = clamp(toInt(rule.tts_max_chars, 250), 1, 1000);
   const safeMessage = message.slice(0, maxChars);
@@ -2715,7 +2722,46 @@ function buildTtsPayload(event, rule = {}) {
     mode: validateTtsMode(rule.tts_mode || 'audio_only'),
     timing: validateTtsTiming(rule.tts_timing || 'after_alert'),
     maxChars,
-    text
+    text,
+    message: safeMessage,
+    originalMessage: rawMessage,
+    cleanup: getAlertTtsCleanupInfo(event, rawMessage, safeMessage)
+  };
+}
+
+function cleanAlertMessageForTts(event, message) {
+  const raw = cleanText(message || '');
+  if (!raw) return '';
+  if (isTwitchBitsAlert(event)) return stripTwitchCheerTokens(raw);
+  return raw;
+}
+
+function stripTwitchCheerTokens(message) {
+  const raw = cleanText(message || '');
+  if (!raw) return '';
+  return raw
+    .replace(/(^|\s)cheer\d+(?=\s|$)/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isTwitchBitsAlert(event) {
+  const source = cleanKey(event && event.source || '').toLowerCase();
+  const typeKey = cleanKey(event && event.type_key || '').toLowerCase();
+  const raw = event && event.raw && typeof event.raw === 'object' ? event.raw : {};
+  const provider = cleanKey(raw.provider || '').toLowerCase();
+  const eventsubType = cleanText(raw.eventsubType || '').toLowerCase();
+
+  return typeKey === 'bits' && (source === 'twitch' || provider === 'twitch_eventsub' || eventsubType === 'channel.cheer');
+}
+
+function getAlertTtsCleanupInfo(event, originalMessage, cleanedMessage) {
+  if (!isTwitchBitsAlert(event)) return { applied: false };
+  return {
+    applied: true,
+    mode: 'strip_twitch_cheer_tokens',
+    originalMessage: cleanText(originalMessage || ''),
+    cleanedMessage: cleanText(cleanedMessage || '')
   };
 }
 

@@ -74,6 +74,16 @@ Nach STEP221:
    - `Cheer10`, `Cheer100` usw. aus TTS-Text entfernen.
    - Technische Werte wie `Tier 1000` nicht mehr als User-Message/TTS behandeln.
 
+## Twitch Event Simulator / Dashboard
+
+Nach STEP221 bis STEP223 ist der Backend-Simulator nutzbar und die ersten Normalisierungsfehler sind bereinigt.
+
+Naechster sinnvoller Schritt:
+
+1. Dashboard-UI fuer `/api/twitch/alerts/debug/presets` und `/api/twitch/alerts/debug/eventsub` bauen.
+2. Twitch-Event-Mapping-Tabelle dokumentieren und im Simulator sichtbar machen.
+3. Weitere Eventtypen einzeln testen: Follow, Bits, Subscribe, Resub, GiftSub, GiftBomb, Raid, Channel Points.
+
 ## DB-Portabilitaet
 
 SQLite bleibt aktiv, bis ein echter MariaDB-/MySQL-Server vorhanden ist und alle relevanten Module sauber portiert, getestet und SQL-Dialektstellen gekapselt wurden.

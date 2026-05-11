@@ -39,6 +39,17 @@ Aktueller Stand:
 - Dashboard-UI ist noch offen und soll in STEP222 folgen.
 - Keine Alert-Regeln, keine Queue, keine Sounds, keine Overlays, keine DB-Struktur und keine Dashboard-Dateien wurden geaendert.
 
+## Alert-System / Twitch EventSub Tests / TTS
+
+Aktueller Stand nach STEP223:
+
+- STEP221 stellt Backend-Debug-Routen fuer Twitch-EventSub-Alert-Simulation bereit.
+- STEP222 verhindert, dass technische Subscription-Tiers wie `Tier 1000` als Alert-Message bei `channel.subscribe` genutzt werden.
+- STEP223 bereinigt Twitch-Cheer-Worts nur fuer Alert-TTS.
+- Originale Alert-Messages bleiben unveraendert gespeichert und sichtbar.
+- Fuer TTS gilt: `Cheer100` -> kein TTS, `Cheer100 test` -> `test`, `Cheer10 Cheer10 Cheer100 test` -> `test`.
+- Alert-Regeln, Queue, Sound-System, Dashboard, Loyalty und DB-Schema wurden nicht geaendert.
+
 ## Datenbank / Portabilitaet
 
 Aktueller Stand nach STEP217:

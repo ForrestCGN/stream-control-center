@@ -2,6 +2,32 @@
 
 Stand: 2026-05-11
 
+## STEP223
+
+Geaendert:
+
+```text
+backend/modules/alert_system.js
+project-state/STEP223_ALERT_TTS_CHEER_WORD_CLEANUP_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/twitch.js
+backend/modules/loyalty.js
+backend/core/database.js
+backend/modules/sqlite_core.js
+htdocs/**
+config/**
+app.sqlite
+```
+
 ## STEP222
 
 Geaendert:
