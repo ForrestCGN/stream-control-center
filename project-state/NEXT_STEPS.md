@@ -1,25 +1,33 @@
-# NEXT STEP - Nach STEP248 DeathCounter Spieler-Detail Quick-Corrections
+# NEXT STEP - Nach STEP249 DeathCounter Command rawInput Parser-Fix
 
 ## Direkt testen
 
+Streamer.bot-FetchURLs auf `rawInput=%rawInput%` stellen und im Chat testen:
+
 ```text
-Community → DeathCounter → Spieler
+!dcount
+!dcount show
+!dcount hide
+!rip @ForrestCGN
+!rip @ForrestCGN del
+!tode
+!tode @ForrestCGN
 ```
 
-Prüfen:
+Erwartung:
 
 ```text
-- Spieler per Details-Button auswählen
-- Detailkarte zeigt Quick-Correction-Bereich
-- +1 Tod zählt beim ausgewählten Spieler im aktuellen Spiel hoch
-- -1 Tod fragt nach Bestätigung und zählt wieder runter
-- Steuerung öffnen springt in den Steuerungs-Tab
+- !dcount toggelt das Overlay
+- !rip zählt korrekt hoch
+- !rip del zählt korrekt zurück
+- !tode antwortet über Backend/Bot
+- Streamer.bot sendet keine zusätzliche Chatnachricht
 ```
 
-## Nächster sinnvoller Bau-Step
+## Danach sinnvoll
 
 ```text
-STEP249: DeathCounter DB-/Event-Historie planen und Migrationsstrategie vorbereiten
+STEP250: DeathCounter Streamer.bot Minimal-Actions live finalisieren und alte Actions deaktiviert dokumentieren
 ```
 
 Noch nicht direkt blind bauen:

@@ -1,11 +1,13 @@
-# CURRENT_SYSTEM_STATUS - STEP248 Update
+# CURRENT_SYSTEM_STATUS - STEP249 Update
 
-DeathCounter V2 Dashboard wurde um Spieler-Detail Quick-Corrections erweitert.
+DeathCounter V2 Command-Parser wurde für Streamer.bot-`rawInput` korrigiert.
 
-- Spieler-Detailkarte enthält jetzt `+1 Tod`, `-1 Tod` und `Steuerung öffnen`.
-- Korrekturen laufen über die bestehende `/api/deathcounter/v2/command`-API.
-- Chat-Ausgabe ist bei Dashboard-Korrekturen deaktiviert (`sendChat=0`).
-- `-1 Tod` ist weiterhin durch Bestätigung geschützt.
-- Die Korrektur wirkt bewusst nur auf das aktuelle Spiel.
+- `rawInput` und `input0` bis `input9` werden jetzt normalisiert.
+- Wenn der erste Token der aktuelle Command ist, wird er vor der Auswertung entfernt.
+- Erkannte Prefixe: `!`, `.`, `/`.
+- Dadurch toggelt `!dcount` wieder, auch wenn Streamer.bot den kompletten Chattext übergibt.
+- `!rip @Name`, `!rip @Name del`, `!tode` und `!tode @Name` bleiben kompatibel.
 
-Keine Backend-, DB-, Count-Migrations-, Overlay- oder Streamer.bot-Änderung in diesem STEP.
+Empfohlene Streamer.bot-FetchURLs nutzen künftig `rawInput=%rawInput%`.
+
+Keine Dashboard-, DB-, Count-Migrations-, Overlay- oder EventSub-Änderung in diesem STEP.

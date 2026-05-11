@@ -1,12 +1,12 @@
-## STEP248 - DeathCounter Spieler-Detail Quick-Corrections
+## STEP249 - DeathCounter Command rawInput Parser-Fix
 
 Stand: 2026-05-11
 
-- DeathCounter Dashboard Spieler-Detailansicht hat jetzt schnelle Korrektur-Aktionen für das aktuelle Spiel.
-- In der Detailkarte eines Spielers gibt es `+1 Tod`, `-1 Tod` und `Steuerung öffnen`.
-- Aktionen laufen weiterhin über `/api/deathcounter/v2/command` mit `sendChat=0`.
-- `-1 Tod` bleibt durch eine Bestätigungsabfrage geschützt.
-- Keine Backend-, DB-, Count-Migrations-, Overlay- oder Streamer.bot-Änderung.
+- DeathCounter Command-Parser ist jetzt kompatibler mit Streamer.bot-`rawInput` und `input0`/`input1`.
+- Wenn Streamer.bot den Command selbst als ersten Token übergibt (`!dcount`, `.dcount`, `!rip`, `!tode`), entfernt das Backend diesen Token vor der eigentlichen Auswertung.
+- `!dcount` kann dadurch wieder zuverlässig togglen.
+- `!rip @Name` und `!tode @Name` bleiben mit @-Pflicht nutzbar, auch wenn der komplette Chattext als `rawInput` kommt.
+- Keine Dashboard-, DB-, Count-Migrations-, Overlay- oder EventSub-Änderung.
 
 Aktueller DeathCounter-Stand:
 
@@ -24,10 +24,11 @@ STEP245    Streamer.bot Minimal-Bridge Doku
 STEP246    Twitch EventSub Game-Sync
 STEP247    Spieler-Detailansicht
 STEP248    Spieler-Detail Quick-Corrections
+STEP249    Command rawInput Parser-Fix
 ```
 
 Referenz:
 
 ```text
-project-state/STEP248_DEATHCOUNTER_PLAYER_DETAIL_QUICK_CORRECTIONS_2026-05-11.md
+project-state/STEP249_DEATHCOUNTER_COMMAND_RAWINPUT_PARSER_2026-05-11.md
 ```

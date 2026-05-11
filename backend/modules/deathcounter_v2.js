@@ -1041,7 +1041,7 @@ module.exports.init = function init(ctx) {
 
   function collectCommandArgs(req) {
     const rawInput = String(bodyOrQuery(req, 'rawInput') || bodyOrQuery(req, 'input') || '').trim();
-    if (rawInput) return splitCommandArgs(rawInput);
+    if (rawInput) return normalizeCommandArgs(req, splitCommandArgs(rawInput));
 
     const args = [];
     for (let i = 0; i <= 9; i += 1) {
@@ -1050,11 +1050,50 @@ module.exports.init = function init(ctx) {
       const text = String(value).trim();
       if (text) args.push(text);
     }
-    return args;
+    return normalizeCommandArgs(req, args);
   }
 
   function splitCommandArgs(input) {
     return String(input || '').trim().split(/\s+/).filter(Boolean);
+  }
+
+  function normalizeCommandArgs(req, args) {
+    const list = Array.isArray(args) ? args.filter(v => String(v || '').trim()) : [];
+    if (!list.length) return [];
+
+    const command = String(bodyOrQuery(req, 'command') || bodyOrQuery(req, 'cmd') || '').trim().toLowerCase();
+    const first = normalizeCommandToken(list[0]);
+
+    if (isCommandAliasForCurrentCommand(command, first)) {
+      return list.slice(1);
+    }
+
+    return list;
+  }
+
+  function normalizeCommandToken(value) {
+    return String(value || '')
+      .trim()
+      .replace(/^[!./]+/, '')
+      .toLowerCase();
+  }
+
+  function isCommandAliasForCurrentCommand(command, token) {
+    if (!command || !token) return false;
+
+    const aliases = {
+      dcount: ['dcount', 'deathcount', 'deathcounter'],
+      deathcount: ['dcount', 'deathcount', 'deathcounter'],
+      deathcounter: ['dcount', 'deathcount', 'deathcounter'],
+      rip: ['rip', 'death', 'tod'],
+      death: ['rip', 'death', 'tod'],
+      tod: ['rip', 'death', 'tod'],
+      tode: ['tode', 'deaths'],
+      deaths: ['tode', 'deaths']
+    };
+
+    const allowed = aliases[command] || [command];
+    return allowed.includes(token);
   }
 
   function getCommandOptions(req) {
