@@ -2,6 +2,20 @@
 
 Stand: 2026-05-11
 
+## STEP227 - Twitch EventSub Subscription Diagnose
+
+Aktueller Zusatzstand:
+
+- `backend/modules/twitch.js` stellt jetzt Diagnose-Routen fuer aktive Twitch EventSub-Subscriptions bereit:
+  - `GET /api/twitch/eventsub/subscriptions`
+  - `GET /api/twitch/eventsub/status`
+  - `GET /twitch/eventsub/subscriptions`
+- Die Diagnose nutzt Twitch Helix `/eventsub/subscriptions`.
+- Sie zeigt aktive Subscription-Typen, Status, Conditions, Transport-Methode und Summary-Checks.
+- Zweck: Event-fuer-Event-Audit der Twitch-Alert-Verarbeitung und Pruefung moeglicher Doppelereignisse.
+- Keine bestehende Alert-Verarbeitung wurde veraendert.
+
+
 ## Alert-TTS / Twitch Cheermote Cleanup
 
 Aktueller Stand nach STEP226:

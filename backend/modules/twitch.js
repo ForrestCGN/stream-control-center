@@ -731,6 +731,121 @@ module.exports.init = function init(ctx) {
     return r.data;
   }
 
+  function normalizeEventSubSubscriptionRow(row) {
+    const transport = row && row.transport && typeof row.transport === 'object' ? row.transport : {};
+    const condition = row && row.condition && typeof row.condition === 'object' ? row.condition : {};
+    return {
+      id: String(row?.id || ''),
+      status: String(row?.status || ''),
+      type: String(row?.type || ''),
+      version: String(row?.version || ''),
+      condition,
+      created_at: String(row?.created_at || ''),
+      cost: Number(row?.cost || 0),
+      transport: {
+        method: String(transport.method || ''),
+        session_id: String(transport.session_id || ''),
+        callback: transport.callback ? '[redacted]' : ''
+      }
+    };
+  }
+
+  function buildEventSubSubscriptionSummary(rows) {
+    const byType = {};
+    const byStatus = {};
+    const byTransport = {};
+    for (const row of rows || []) {
+      const type = row.type || 'unknown';
+      const status = row.status || 'unknown';
+      const method = row.transport?.method || 'unknown';
+      byType[type] = (byType[type] || 0) + 1;
+      byStatus[status] = (byStatus[status] || 0) + 1;
+      byTransport[method] = (byTransport[method] || 0) + 1;
+    }
+
+    const has = type => !!byType[type];
+    const hypeTrainTypes = Object.keys(byType).filter(type => type.startsWith('channel.hype_train.')).sort();
+
+    return {
+      total: rows.length,
+      byType,
+      byStatus,
+      byTransport,
+      checks: {
+        channelCheer: has('channel.cheer'),
+        channelBitsUse: has('channel.bits.use'),
+        cheerAndBitsUseBothActive: has('channel.cheer') && has('channel.bits.use'),
+        subscriptionGift: has('channel.subscription.gift'),
+        subscribe: has('channel.subscribe'),
+        subscriptionMessage: has('channel.subscription.message'),
+        giftedSubReceiverRisk: has('channel.subscription.gift') && has('channel.subscribe'),
+        follow: has('channel.follow'),
+        raid: has('channel.raid'),
+        channelPoints: has('channel.channel_points_custom_reward_redemption.add'),
+        hypeTrainActive: hypeTrainTypes.length > 0,
+        hypeTrainTypes
+      }
+    };
+  }
+
+  async function helixGetEventSubSubscriptions(params = {}) {
+    const token = await getAppAccessToken();
+    const url = new URL('https://api.twitch.tv/helix/eventsub/subscriptions');
+    Object.entries(params || {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+    });
+    const r = await axios.get(url.toString(), { headers: helixHeaders(token) });
+    return r.data || {};
+  }
+
+  async function listEventSubSubscriptions(query = {}) {
+    const maxPagesRaw = Number(query.maxPages || query.pages || 5);
+    const maxPages = Math.max(1, Math.min(20, Number.isFinite(maxPagesRaw) ? Math.floor(maxPagesRaw) : 5));
+    const baseParams = {};
+    const passThrough = ['status', 'type', 'user_id'];
+    passThrough.forEach(key => {
+      const value = query[key];
+      if (value !== undefined && value !== null && String(value).trim() !== '') baseParams[key] = String(value).trim();
+    });
+
+    let after = query.after ? String(query.after).trim() : '';
+    const rows = [];
+    const pages = [];
+    let lastMeta = {};
+    for (let page = 0; page < maxPages; page += 1) {
+      const payload = await helixGetEventSubSubscriptions({ ...baseParams, after });
+      const data = Array.isArray(payload.data) ? payload.data : [];
+      rows.push(...data.map(normalizeEventSubSubscriptionRow));
+      pages.push({
+        page: page + 1,
+        count: data.length,
+        cursor: payload.pagination?.cursor || ''
+      });
+      lastMeta = {
+        total: Number(payload.total || 0),
+        total_cost: Number(payload.total_cost || 0),
+        max_total_cost: Number(payload.max_total_cost || 0),
+        pagination: payload.pagination || {}
+      };
+      const next = payload.pagination?.cursor || '';
+      if (!next || query.after) break;
+      after = next;
+    }
+
+    return {
+      ok: true,
+      module: 'twitch_eventsub_subscriptions',
+      source: 'helix_eventsub_subscriptions',
+      fetchedAt: core.nowIso(),
+      query: baseParams,
+      pages,
+      count: rows.length,
+      meta: lastMeta,
+      summary: buildEventSubSubscriptionSummary(rows),
+      subscriptions: rows
+    };
+  }
+
   async function resolveUserByLoginInternal(loginInput) {
     const login = (loginInput || '').toString().trim().replace(/^@/, '').toLowerCase();
     if (!login) return null;
@@ -1299,6 +1414,29 @@ module.exports.init = function init(ctx) {
   };
 
   routes.registerGet(app, ['/eventsub/cache_all', '/api/twitch/eventsub/cache/all'], handleEventSubCacheAll);
+
+  const handleEventSubSubscriptions = async (req, res) => {
+    try {
+      const result = await listEventSubSubscriptions(req.query || {});
+      res.json(result);
+    } catch (e) {
+      const status = e.response?.status || 500;
+      const errorPayload = e.response?.data || null;
+      res.status(status).json({
+        ok: false,
+        module: 'twitch_eventsub_subscriptions',
+        error: 'eventsub_subscriptions_fetch_failed',
+        message: e.message || String(e),
+        twitchError: errorPayload
+      });
+    }
+  };
+
+  routes.registerGet(app, [
+    '/twitch/eventsub/subscriptions',
+    '/api/twitch/eventsub/subscriptions',
+    '/api/twitch/eventsub/status'
+  ], handleEventSubSubscriptions);
 
   // --------------------- Hype Train: Cache Endpoint (für Streamer.bot !zug) ---------------------
   const handleHypetrainCache = (req, res) => {

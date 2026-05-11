@@ -2,6 +2,22 @@
 
 Stand: 2026-05-11
 
+## Nach STEP227
+
+- `GET /api/twitch/eventsub/subscriptions` ausführen und aktive Twitch EventSub-Typen prüfen.
+- Danach die Twitch-Alert-Mapping-Prüfung Event für Event fortsetzen:
+  1. `channel.follow`
+  2. `channel.subscribe`
+  3. `channel.subscription.message`
+  4. `channel.subscription.gift`
+  5. `channel.subscribe` mit `is_gift:true`
+  6. `channel.raid`
+  7. `channel.channel_points_custom_reward_redemption.add`
+  8. `channel.bits.use`, falls aktiv
+  9. `channel.hype_train.*`, falls aktiv
+- Entscheiden, ob ein technischer `messageId`-Dedupe für EventSub zusätzlich nötig ist.
+
+
 
 ## Naechster Check - Twitch Cheermote TTS
 

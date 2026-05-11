@@ -1,5 +1,16 @@
 # Changelog
 
+## STEP227 - 2026-05-11 - Twitch EventSub Subscription Status
+
+- `backend/modules/twitch.js` um eine reine Diagnose-Route fuer Twitch EventSub-Subscriptions erweitert.
+- Neue Routen:
+  - `GET /api/twitch/eventsub/subscriptions`
+  - `GET /api/twitch/eventsub/status`
+  - `GET /twitch/eventsub/subscriptions`
+- Die Route fragt Twitch Helix `/eventsub/subscriptions` ab und liefert eine Summary inkl. moeglichen Doppel-/Sonderfall-Checks.
+- Keine Alert-Logik, keine DB, keine TTS-Logik und keine bestehenden EventSub-Subscriptions veraendert.
+
+
 
 ## STEP226 - Twitch Cheermote TTS Cleanup (2026-05-11)
 

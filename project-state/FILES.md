@@ -2,6 +2,33 @@
 
 Stand: 2026-05-11
 
+## STEP227
+
+Geaendert:
+
+```text
+backend/modules/twitch.js
+project-state/STEP227_TWITCH_EVENTSUB_SUBSCRIPTIONS_STATUS_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/alert_system.js
+backend/modules/loyalty.js
+backend/core/database.js
+backend/modules/sqlite_core.js
+htdocs/**
+config/**
+app.sqlite
+```
+
+
 
 ## STEP226
 
