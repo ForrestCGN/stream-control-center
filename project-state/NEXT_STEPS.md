@@ -1,6 +1,6 @@
 # NEXT STEPS - stream-control-center
 
-Stand: 2026-05-10
+Stand: 2026-05-11
 
 ## Twitch Alert Bridge / Sub-Message-Buffer
 
@@ -23,6 +23,23 @@ subMessageBuffer.enabled = true
 subMessageBuffer.delayMs = 30000
 lastError leer
 ```
+
+## Twitch Event Simulator / Alert-Mapping
+
+Nach STEP221:
+
+1. Backend neu starten.
+2. Debug-Routen testen:
+   - `GET /api/twitch/alerts/debug/presets`
+   - `POST /api/twitch/alerts/debug/eventsub`
+3. Danach STEP222 bauen:
+   - Dashboard-UI fuer Twitch Event Simulator.
+4. Danach Mapping-/Normalisierungs-Audit:
+   - Welche Twitch-EventSub-Typen kommen rein?
+   - Welche Alert-Typen erzeugen wir?
+   - Welche Felder duerfen TTS ausloesen?
+   - `Cheer10`, `Cheer100` usw. aus TTS-Text entfernen.
+   - Technische Werte wie `Tier 1000` nicht mehr als User-Message/TTS behandeln.
 
 ## DB-Portabilitaet
 

@@ -1,6 +1,19 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: 2026-05-10
+Stand: 2026-05-11
+
+## Alert-System / Twitch Event Simulator
+
+Aktueller Stand nach STEP221:
+
+- `backend/modules/twitch.js` enthaelt eine lokale Debug-API fuer Twitch-EventSub-Alert-Simulation.
+- Neue Routen:
+  - `GET /api/twitch/alerts/debug/presets`
+  - `POST /api/twitch/alerts/debug/eventsub`
+- Die Debug-Route nutzt die echte Twitch-Alert-Normalisierung und den 30s-Sub-/Resub-Puffer aus STEP220.
+- Debug-Tests forwarden standardmaessig nur ins Alert-System, nicht ins Loyalty-System.
+- `dryRun: true` erlaubt Normalisierung ohne Alert-Ausloesung.
+- Dashboard-UI ist noch nicht gebaut und bleibt naechster Schritt.
 
 ## Alert-System / Twitch Alert Bridge
 

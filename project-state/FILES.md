@@ -1,6 +1,33 @@
 # FILES - stream-control-center
 
-Stand: 2026-05-10
+Stand: 2026-05-11
+
+## STEP221
+
+Geaendert:
+
+```text
+backend/modules/twitch.js
+project-state/STEP221_TWITCH_EVENTSUB_DEBUG_SIMULATOR_BACKEND_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/alert_system.js
+backend/modules/loyalty.js
+backend/core/database.js
+backend/modules/sqlite_core.js
+htdocs/**
+config/**
+package.json
+app.sqlite
+```
 
 ## STEP220
 

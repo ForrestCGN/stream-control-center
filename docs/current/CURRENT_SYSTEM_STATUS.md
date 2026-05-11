@@ -1,6 +1,6 @@
 # CURRENT SYSTEM STATUS
 
-Stand: 2026-05-10
+Stand: 2026-05-11
 
 ## Alert-System / Twitch Alert Bridge
 
@@ -13,6 +13,20 @@ Aktueller Stand nach STEP220:
 - Der Puffer ist In-Memory, erzeugt keine neue Tabelle und keine DB-Migration.
 - `/api/twitch/alerts/status` zeigt `subMessageBuffer` mit `enabled`, `delayMs`, `pendingSubscribeAlerts` und `recentSubscriptionMessages`.
 - Alert-System-Core, Queue, Regeln, Sounds, Designs, Dashboard, Loyalty, Kofi, Tipeee und SQLite-Schema wurden nicht geaendert.
+
+## STEP221 - Twitch EventSub Debug-Simulator Backend
+
+Aktueller Stand:
+
+- `backend/modules/twitch.js` stellt lokale Debug-Routen fuer Twitch-EventSub-Alert-Simulation bereit.
+- Neue Routen:
+  - `GET /api/twitch/alerts/debug/presets`
+  - `POST /api/twitch/alerts/debug/eventsub`
+- Die Simulation nutzt die echte Twitch-Alert-Normalisierung und den Sub-/Resub-Puffer aus STEP220.
+- Debug-Events forwarden standardmaessig nicht ins Loyalty-System (`forwardLoyalty: false`).
+- `dryRun: true` erlaubt Normalisierung ohne Alert-Ausloesung.
+- Dashboard-UI ist noch offen und soll in STEP222 folgen.
+- Keine Alert-Regeln, keine Queue, keine Sounds, keine Overlays, keine DB-Struktur und keine Dashboard-Dateien wurden geaendert.
 
 ## Datenbank / Portabilitaet
 

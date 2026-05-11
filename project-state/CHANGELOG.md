@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-05-11
+
+### STEP221 - Twitch EventSub Debug-Simulator Backend
+
+- `backend/modules/twitch.js` um Debug-Routen fuer Twitch-EventSub-Alert-Simulation erweitert.
+- Neue Routen: `GET /api/twitch/alerts/debug/presets` und `POST /api/twitch/alerts/debug/eventsub`.
+- Debug-Events laufen durch die echte Twitch-Alert-Normalisierung und den 30s-Sub-/Resub-Puffer aus STEP220.
+- `forwardLoyalty` ist standardmaessig deaktiviert, damit Testevents keine Loyalty-Buchungen erzeugen.
+- `dryRun` erlaubt Normalisierung ohne Alert-Forwarding.
+- Keine Alert-Regeln, keine Queue, keine Sounds, keine Overlays, keine DB-Struktur und keine Dashboard-UI geaendert.
+
 ## 2026-05-10
 
 ### STEP220 - Twitch Alert Subscribe/Resub Message Buffer

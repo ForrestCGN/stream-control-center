@@ -1107,6 +1107,132 @@ module.exports.init = function init(ctx) {
     });
   });
 
+
+  routes.registerGet(app, ['/api/twitch/alerts/debug/presets', '/twitch/alerts/debug/presets'], (req, res) => {
+    res.json({
+      ok: true,
+      module: 'twitch_alert_bridge',
+      route: '/api/twitch/alerts/debug/eventsub',
+      note: 'Debug-Presets fuer lokale Twitch-EventSub-Alert-Simulation. Forwardet standardmaessig nur ins Alert-System, nicht ins Loyalty-System.',
+      presets: [
+        { kind: 'follow', label: 'Follow', defaults: { user: 'TestFollower', display: 'TestFollower' } },
+        { kind: 'bits', label: 'Cheer/Bits ohne Text', defaults: { user: 'TestCheerer', display: 'TestCheerer', bits: 100, message: 'Cheer100' } },
+        { kind: 'bits', label: 'Cheer/Bits mit Text', defaults: { user: 'TestCheerer', display: 'TestCheerer', bits: 100, message: 'Cheer100 test' } },
+        { kind: 'bits', label: 'Cheer/Bits mehrere Cheer-Tokens', defaults: { user: 'TestCheerer', display: 'TestCheerer', bits: 120, message: 'Cheer10 Cheer10 Cheer100 test' } },
+        { kind: 'sub', label: 'Subscribe Tier 1000', defaults: { user: 'TestSub', display: 'TestSub', tier: '1000' } },
+        { kind: 'resub', label: 'Resub Message', defaults: { user: 'TestResub', display: 'TestResub', tier: '1000', amount: 12, message: 'Resub-Testnachricht' } },
+        { kind: 'giftSub', label: 'GiftSub 1', defaults: { user: 'TestGifter', display: 'TestGifter', total: 1, tier: '1000' } },
+        { kind: 'giftBomb', label: 'GiftBomb 5', defaults: { user: 'TestGifter', display: 'TestGifter', total: 5, tier: '1000' } },
+        { kind: 'raid', label: 'Raid', defaults: { user: 'TestRaider', display: 'TestRaider', viewers: 10 } },
+        { kind: 'channelPoints', label: 'Channel Points', defaults: { user: 'TestViewer', display: 'TestViewer', title: 'Test Reward', cost: 100, message: 'Test Input' } }
+      ]
+    });
+  });
+
+  routes.registerPost(app, ['/api/twitch/alerts/debug/eventsub', '/twitch/alerts/debug/eventsub'], async (req, res) => {
+    const input = req.body || {};
+
+    const boolInput = (value, fallback = false) => {
+      if (value === undefined || value === null || value === '') return fallback;
+      if (value === true || value === 1) return true;
+      const clean = String(value).trim().toLowerCase();
+      if (['1', 'true', 'yes', 'ja', 'on'].includes(clean)) return true;
+      if (['0', 'false', 'no', 'nein', 'off'].includes(clean)) return false;
+      return fallback;
+    };
+
+    try {
+      const dryRun = boolInput(input.dryRun ?? input.previewOnly, false);
+      const forwardLoyalty = boolInput(input.forwardLoyalty, false);
+
+      let subscriptionType = String(input.subscriptionType || input.eventsubType || '').trim();
+      let event = input.event && typeof input.event === 'object' ? input.event : null;
+      let kind = String(input.kind || input.preset || input.type || '').trim();
+
+      if (!subscriptionType && kind.startsWith('channel.')) {
+        subscriptionType = kind;
+        kind = '';
+      }
+
+      if (!subscriptionType || !event) {
+        const fake = buildFakeTwitchAlertEvent(kind || 'follow', input);
+        subscriptionType = fake.subscriptionType;
+        event = fake.event;
+        kind = kind || twitchAlertKindForSubscription(subscriptionType) || 'follow';
+      } else {
+        kind = kind || twitchAlertKindForSubscription(subscriptionType) || subscriptionType;
+      }
+
+      const fakeMeta = {
+        message_id: String(input.eventId || input.eventUid || input.messageId || `debug_${kind}_${Date.now()}`),
+        message_timestamp: core.nowIso()
+      };
+      const fakeSubscription = {
+        id: String(input.subscriptionId || `debug_${kind}`),
+        type: subscriptionType
+      };
+
+      const alertPayload = normalizeTwitchEventSubToAlert(subscriptionType, event);
+      if (!alertPayload) {
+        return res.status(400).json({
+          ok: false,
+          debug: true,
+          error: 'unsupported_eventsub_type',
+          kind,
+          subscriptionType,
+          event
+        });
+      }
+
+      const alertResult = dryRun
+        ? { ok: true, dryRun: true, skipped: true, reason: 'dry_run_no_forward' }
+        : await forwardAlertPayloadToAlertSystem(alertPayload, subscriptionType);
+
+      let loyaltyPayload = null;
+      let loyaltyResult = { ok: true, skipped: true, reason: forwardLoyalty ? 'no_loyalty_payload' : 'loyalty_forward_disabled_for_debug' };
+
+      if (forwardLoyalty) {
+        try {
+          loyaltyPayload = normalizeTwitchEventSubToLoyaltyEvent(subscriptionType, event, fakeMeta, fakeSubscription);
+          if (!dryRun && loyaltyPayload) {
+            loyaltyResult = await forwardLoyaltyPayloadToLoyaltySystem(loyaltyPayload, subscriptionType);
+          } else if (dryRun && loyaltyPayload) {
+            loyaltyResult = { ok: true, dryRun: true, skipped: true, reason: 'dry_run_no_loyalty_forward' };
+          }
+        } catch (e) {
+          loyaltyResult = { ok: false, error: e?.message || String(e) };
+        }
+      }
+
+      const ok = Boolean(alertResult?.ok) && Boolean(loyaltyResult?.ok);
+
+      res.status(ok ? 200 : 500).json({
+        ok,
+        debug: true,
+        dryRun,
+        forwardLoyalty,
+        kind,
+        subscriptionType,
+        event,
+        normalizedAlertPayload: alertPayload,
+        alertResult,
+        normalizedLoyaltyPayload: loyaltyPayload,
+        loyaltyResult,
+        subMessageBuffer: {
+          ...getTwitchSubMessageBufferConfig(),
+          pendingSubscribeAlerts: pendingTwitchSubscribeAlerts.size,
+          recentSubscriptionMessages: recentTwitchSubscriptionMessages.size
+        }
+      });
+    } catch (e) {
+      twitchAlertBridgeState.failed++;
+      twitchAlertBridgeState.lastError = e?.message || String(e);
+      rememberTwitchAlertBridge({ action: 'failed', reason: 'debug_eventsub_route', error: twitchAlertBridgeState.lastError });
+      res.status(500).json({ ok: false, debug: true, error: twitchAlertBridgeState.lastError });
+    }
+  });
+
+
   // --------------------- EventSub WebSocket (erweitert für wichtige Stream-/Community-Events) ---------------------
   let ws = null;
   let reconnectCandidateWs = null;
