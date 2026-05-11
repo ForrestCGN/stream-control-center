@@ -1,3 +1,24 @@
+# STEP237 - Hug/Rehug Command-Flow verifiziert
+
+Stand: 2026-05-11
+
+- Hug/Rehug Command-Flow wurde per API getestet.
+- `/api/hug/command?command=hug...` liefert `ok = true` und erzeugt eine Hug-Ausgabe.
+- `/api/hug/command?command=rehug...` blockiert fachlich korrekt, wenn kein vorheriger Hug der Gegenseite existiert.
+- `/api/hug/statscmd` funktioniert.
+- `/api/hug/top`, `/api/hug/top?mode=received` und `/api/hug/top?mode=rehug` funktionieren.
+- Streamer.bot-Standard-URLs fuer Hug und Rehug wurden dokumentiert.
+- Wichtig fuer Streamer.bot: `result.streamerbot_send` beachten und nicht doppelt senden.
+- Keine Code-, Config-, Dashboard- oder DB-Aenderung in STEP237.
+
+Referenz:
+
+```text
+project-state/STEP237_HUG_REHUG_COMMAND_FLOW_VERIFIED_2026-05-11.md
+```
+
+---
+
 
 # Ergänzung - STEP235 Hug/Rehug Ist-Analyse
 

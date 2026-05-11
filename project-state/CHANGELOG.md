@@ -1,3 +1,15 @@
+## 2026-05-11 - STEP237 Hug/Rehug Command-Flow verifiziert
+
+- Hug/Rehug Command-Flow per API geprueft.
+- `/api/hug/command?command=hug...` funktioniert mit den Streamer.bot-relevanten Parametern.
+- `/api/hug/command?command=rehug...` blockiert korrekt, wenn kein vorheriger Gegen-Hug existiert.
+- `/api/hug/statscmd` und Toplisten funktionieren.
+- Streamer.bot-Standard-URLs fuer Hug und Rehug dokumentiert.
+- Wichtige Ausgaberegel dokumentiert: `result.streamerbot_send` beachten, damit Streamer.bot keine Doppelposts erzeugt.
+- Keine Code-, Config-, Dashboard- oder DB-Dateien geaendert.
+
+---
+
 
 ## 2026-05-11 - STEP235 Hug/Rehug Ist-Analyse
 

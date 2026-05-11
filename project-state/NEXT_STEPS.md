@@ -1,3 +1,32 @@
+# NEXT STEP - Nach STEP237
+
+## Hug/Rehug Status
+
+Hug/Rehug ist aktuell fuer API, Dashboard-Basis, Dashboard-Create/Update/Delete bei chatweiten Hug-Texten und Command-Flow geprueft.
+
+Status: **vorlaeufig STABLE**
+
+## Offen nur bei Bedarf
+
+```text
+- echten Streamer.bot-Livetest im Chat beobachten
+- ggf. weitere Dashboard-Editoren einzeln testen: Textpaare, Systemantworten, Toplisten-Titel
+- ggf. Hug/Rehug-History/Statistiken im Dashboard ausbauen
+```
+
+## Naechster sinnvoller Systemblock
+
+Jetzt kann das naechste System integriert werden. Sinnvolle Kandidaten:
+
+```text
+1. SoundAlerts / Sound-System weiter dashboardfaehig machen
+2. VIP-System pruefen und integrieren
+3. TTS / Alert-TTS-Wortfilter vorbereiten
+4. Loyalty Dashboard/Flow weiter pruefen
+```
+
+---
+
 
 # NEXT STEP - Hug/Rehug nach STEP235
 

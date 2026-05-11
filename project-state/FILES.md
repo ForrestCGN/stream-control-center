@@ -1,3 +1,28 @@
+## STEP237 - Hug/Rehug Command-Flow verifiziert
+
+Geaendert / neu dokumentiert:
+
+```text
+project-state/STEP237_HUG_REHUG_COMMAND_FLOW_VERIFIED_2026-05-11.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/**
+htdocs/**
+config/**
+data/**
+app.sqlite
+```
+
+---
+
 
 ## STEP235 - Hug/Rehug Ist-Analyse
 
