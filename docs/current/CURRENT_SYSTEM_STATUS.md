@@ -1,38 +1,76 @@
-# CURRENT_SYSTEM_STATUS - STEP261 Update
+# CURRENT_SYSTEM_STATUS - DeathCounter DB-Storage STABLE + Overlay STEP262
 
-DeathCounter V2 ist nach dem DB-Umbau stabil und produktiv DB-basiert.
+Stand: 2026-05-11
 
-Aktueller DeathCounter-Storage:
+## Wichtigster aktueller Projektstand
+
+DeathCounter V2 laeuft produktiv auf DB-Storage und ist nach Live-Test als stabil bestaetigt.
 
 ```text
 activeStorage: database
-dualWriteEnabled: false
+configuredStorage: database
 fallbackStorage: json_backup_export_file
+databaseReadable: true
+dualWriteEnabled: false
+jsonFallbackEnabled: true
 ```
 
-Bestätigt:
+## DeathCounter Overlay
+
+Das aktive DeathCounter-Overlay wurde in STEP262 optisch angepasst:
 
 ```text
-- Streamer.bot-Commands funktionieren.
-- !dcount backup funktioniert.
-- !dcount export funktioniert.
-- Integration-Check ist gruen.
-- JSON wird nicht mehr automatisch bei jeder Änderung geschrieben.
+htdocs/overlays/_overlay-deathcounter-v2.html
 ```
 
-Projekt-Doku / project-state:
+Neu im Overlay:
 
 ```text
-STEP261 archiviert alte project-state-Fragmente in project-state/archive/step261-project-state-cleanup/.
-Der Root von project-state bleibt fuer aktuelle Arbeitsdateien und aktuelle STEP-Historie reserviert.
+- Alert-aehnlicher CGN-Aussenrahmen
+- Cyan/Lila-Verlauf wie beim Alert-Design
+- dunkler Glass-/Neon-Hintergrund
+- kein zusaetzlicher Innenrahmen der Haupt-Bar
+- Einblendung von oben per Slide-In
+- Ausblendung nach oben per Slide-Out
 ```
 
-Nicht geändert:
+Unveraendert im Overlay:
 
 ```text
-Backend-Code
-Dashboard
-Overlay
-Streamer.bot Actions
-Datenbankinhalt
+- API: /api/deathcounter/v2/state
+- API: /api/deathcounter/v2/overlay
+- WebSocket-Events deathcounter_v2_*
+- 5s Polling-Fallback
+- Marquee fuer lange Namen
+- Zusatzspieler-Layout
+- Count-/Name-Animationen
+```
+
+## DeathCounter Storage Verhalten
+
+```text
+readState(): DB-first
+updateState(): DB-only
+```
+
+JSON wird nicht automatisch bei jeder Aenderung mitgeschrieben.
+
+Backup/Export:
+
+```text
+!dcount backup
+!dcount export
+/api/deathcounter/v2/storage/backup
+/api/deathcounter/v2/storage/export?mode=backup
+/api/deathcounter/v2/storage/export?mode=export
+```
+
+## Aktive Referenzdokus
+
+```text
+docs/current/DEATHCOUNTER_DB_STORAGE_STABLE_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/NEXT_STEPS.md
+project-state/STEP262_DEATHCOUNTER_OVERLAY_ALERT_FRAME_SLIDE_2026-05-11.md
 ```

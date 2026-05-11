@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-05-11 - STEP262 DeathCounter Overlay Alert-Frame Design + Slide-In/Out
+
+- DeathCounter-Overlay optisch an den Alert-Aussenrahmen angepasst.
+- Bar nutzt nun CGN-Gradient-Rahmen mit Cyan/Lila und dunklem Glass-Hintergrund.
+- Haupt-Bar hat keinen zusaetzlichen Innenrahmen.
+- Einblendung wurde auf Slide-In von oben umgestellt.
+- Ausblendung wurde auf Slide-Out nach oben umgestellt.
+- JavaScript-/Datenlogik des Overlays blieb unveraendert.
+- Keine Backend-, DB-, Streamer.bot- oder API-Aenderung.
+
 ## 2026-05-11 - STEP261 project-state Cleanup / Archivierung
 
 - Aufraeum-Script fuer `project-state` ergaenzt: `tools/step261_project_state_cleanup.js`.

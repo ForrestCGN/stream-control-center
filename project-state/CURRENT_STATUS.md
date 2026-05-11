@@ -1,8 +1,8 @@
-## STEP261 - project-state Cleanup / Archivierung alter Fragmente
+## STEP262 - DeathCounter Overlay Alert-Frame Design + Slide-In/Out
 
 Stand: 2026-05-11
 
-DeathCounter-DB-Umbau ist stabil abgeschlossen. Danach wurde `project-state` fuer bessere Uebersicht aufgeraeumt.
+DeathCounter V2 laeuft weiterhin produktiv DB-only und das Overlay wurde optisch angepasst.
 
 Aktueller DeathCounter-Produktivstand:
 
@@ -12,28 +12,36 @@ dualWriteEnabled: false
 fallbackStorage: json_backup_export_file
 ```
 
-DeathCounter Verhalten:
+Overlay-Stand:
 
 ```text
-readState(): DB-first
-updateState(): DB-only
-JSON: nur manuelles Backup/Exportformat
-!dcount backup: Timestamp-Backup
-!dcount export: Haupt-JSON aus DB neu schreiben
+htdocs/overlays/_overlay-deathcounter-v2.html
 ```
 
-Project-State Cleanup:
+Geaendert:
 
 ```text
-alte APPEND-/STATUS_NOTE-/SAVED-/README-/Testlog-/Report-/STEP-Fragmente werden nach project-state/archive/step261-project-state-cleanup/ verschoben.
-Nichts wird geloescht.
-Aktive Dateien bleiben im project-state-Root.
+- Alert-aehnlicher CGN-Aussenrahmen mit Cyan/Lila-Verlauf
+- dunkler Glass-/Neon-Hintergrund
+- kein zusaetzlicher Innenrahmen der Haupt-Bar
+- Slide-In von oben
+- Slide-Out nach oben
 ```
 
-Anwendung nach ZIP-Entpacken:
+Unveraendert:
 
-```powershell
-cd D:\Git\stream-control-center
-.\STEP261_APPLY_PROJECT_STATE_CLEANUP.cmd
-.\stepdone.cmd "STEP261 project-state cleanup archive old fragments"
+```text
+- API-Routen
+- WebSocket-Handling
+- Polling-Fallback
+- Marquee fuer lange Namen
+- Zusatzspieler-Layout
+- Spieler-/Count-Logik
+- Backend/DB/Streamer.bot
+```
+
+Referenz:
+
+```text
+project-state/STEP262_DEATHCOUNTER_OVERLAY_ALERT_FRAME_SLIDE_2026-05-11.md
 ```

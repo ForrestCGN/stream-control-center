@@ -1,33 +1,38 @@
-# NEXT STEP - Nach STEP261 project-state Cleanup
+# NEXT STEP - Nach STEP262 DeathCounter Overlay Alert-Frame Design
 
-## Direkt pruefen
+## Direkt testen
 
-Nach dem Entpacken:
-
-```powershell
-cd D:\Git\stream-control-center
-.\STEP261_APPLY_PROJECT_STATE_CLEANUP.cmd
-.\stepdone.cmd "STEP261 project-state cleanup archive old fragments"
-```
-
-Danach optional:
-
-```powershell
-cd D:\Git\stream-control-center
-Get-ChildItem .\project-state -File | Measure-Object
-Get-ChildItem .\project-staterchive\step261-project-state-cleanup -Recurse -File | Measure-Object
-```
-
-## Naechster sinnvoller Bau-Step
+In OBS bzw. Browserquelle pruefen:
 
 ```text
-Neues Modul / naechster fachlicher Block nach Bedarf.
+- Overlay wird von oben eingeblendet.
+- Overlay wird nach oben ausgeblendet.
+- Count-Aenderung animiert weiterhin.
+- Lange Namen laufen weiterhin per Ping-Pong-Marquee.
+- Zusatzspieler erscheinen weiter korrekt: zweiter Extra links, Kernspieler Mitte, erster Extra rechts.
 ```
 
-Aktuell nicht noetig:
+API-/Backend-Test:
+
+```powershell
+cd D:\Streaming\stramAssets
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/integration-check" | ConvertTo-Json -Depth 20
+```
+
+## Aktuell nicht noetig
 
 ```text
 - DeathCounter-Storage weiter anfassen
-- project-state-Dateien loeschen
-- historische Doku ueberschreiben
+- Overlay-JavaScript umbauen
+- API-Routen aendern
+- Streamer.bot Actions anpassen
+```
+
+## Naechster sinnvoller Schritt
+
+Erst nach Live-/OBS-Test entscheiden:
+
+```text
+- Feinschliff an Breite/Hoehe/Farben
+- oder neues Modul / anderer Projektblock
 ```
