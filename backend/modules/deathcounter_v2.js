@@ -4,6 +4,7 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 const { URL } = require('url');
+const database = require('../core/database');
 const core = require('./helpers/helper_core');
 const config = require('./helpers/helper_config');
 const chatOutput = require('./helpers/helper_chat_output');
@@ -14,6 +15,15 @@ const DEFAULT_SELECTED_IDS = ['forrestcgn', 'engelcgn'];
 const DEFAULT_GAME_KEY = 'Unbekannt';
 const MAX_EXTRA_PLAYERS = 2;
 const SETTINGS_TABLE = 'deathcounter_settings';
+const STORAGE_SCHEMA_MODULE = 'deathcounter_v2_storage';
+const STORAGE_SCHEMA_VERSION = 1;
+const STORAGE_TABLES = Object.freeze({
+  players: 'deathcounter_players',
+  games: 'deathcounter_games',
+  counts: 'deathcounter_counts',
+  overlayState: 'deathcounter_overlay_state',
+  events: 'deathcounter_events'
+});
 const DEFAULT_DEATHCOUNTER_SETTINGS = [
   { key: 'requireMentionForPlayerCommands', value: true, valueType: 'boolean', description: 'Wenn aktiv, muessen Spieler in Chat-Commands als @Erwaehnung uebergeben werden.' },
   { key: 'chatOutputEnabled', value: true, valueType: 'boolean', description: 'Wenn aktiv, sendet DeathCounter Chatantworten primaer ueber helper_chat_output.' },
@@ -92,6 +102,7 @@ module.exports.init = function init(ctx) {
   ensureDir(dataDir);
   ensureStateFile();
   ensureDeathcounterSettings();
+  ensureDeathcounterStorageSchema();
 
   app.use('/api/deathcounter/v2', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -1616,6 +1627,171 @@ module.exports.init = function init(ctx) {
     }
   }
 
+
+  function ensureDeathcounterStorageSchema() {
+    try {
+      database.ensureReady();
+      const ensuredVersion = database.ensureSchema(STORAGE_SCHEMA_MODULE, STORAGE_SCHEMA_VERSION, (fromVersion, toVersion) => {
+        if (toVersion !== 1) return;
+
+        database.exec(`
+          CREATE TABLE IF NOT EXISTS ${database.quoteIdentifier(STORAGE_TABLES.players)} (
+            id TEXT PRIMARY KEY,
+            login TEXT NOT NULL,
+            display_name TEXT NOT NULL,
+            active ${database.boolTypeSql()} NOT NULL DEFAULT 1,
+            sort_order ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+            source TEXT NOT NULL DEFAULT 'prepared',
+            created_at ${database.dateTimeTypeSql()} NOT NULL,
+            updated_at ${database.dateTimeTypeSql()} NOT NULL
+          );
+        `);
+
+        database.exec(`
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_deathcounter_players_login
+          ON ${database.quoteIdentifier(STORAGE_TABLES.players)} (login);
+        `);
+
+        database.exec(`
+          CREATE TABLE IF NOT EXISTS ${database.quoteIdentifier(STORAGE_TABLES.games)} (
+            game_key TEXT PRIMARY KEY,
+            display_name TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'prepared',
+            created_at ${database.dateTimeTypeSql()} NOT NULL,
+            updated_at ${database.dateTimeTypeSql()} NOT NULL
+          );
+        `);
+
+        database.exec(`
+          CREATE TABLE IF NOT EXISTS ${database.quoteIdentifier(STORAGE_TABLES.counts)} (
+            player_id TEXT NOT NULL,
+            game_key TEXT NOT NULL,
+            session_deaths ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+            all_time_deaths ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+            source TEXT NOT NULL DEFAULT 'prepared',
+            created_at ${database.dateTimeTypeSql()} NOT NULL,
+            updated_at ${database.dateTimeTypeSql()} NOT NULL,
+            PRIMARY KEY (player_id, game_key)
+          );
+        `);
+
+        database.exec(`
+          CREATE INDEX IF NOT EXISTS idx_deathcounter_counts_game
+          ON ${database.quoteIdentifier(STORAGE_TABLES.counts)} (game_key);
+        `);
+
+        database.exec(`
+          CREATE TABLE IF NOT EXISTS ${database.quoteIdentifier(STORAGE_TABLES.overlayState)} (
+            state_key TEXT PRIMARY KEY,
+            state_value ${database.textTypeSql({ long: true })} NOT NULL,
+            value_type TEXT NOT NULL DEFAULT 'json',
+            source TEXT NOT NULL DEFAULT 'prepared',
+            created_at ${database.dateTimeTypeSql()} NOT NULL,
+            updated_at ${database.dateTimeTypeSql()} NOT NULL
+          );
+        `);
+
+        database.exec(`
+          CREATE TABLE IF NOT EXISTS ${database.quoteIdentifier(STORAGE_TABLES.events)} (
+            id ${database.primaryKeyAutoIncrementSql()},
+            event_uid TEXT NOT NULL DEFAULT '',
+            event_type TEXT NOT NULL,
+            player_id TEXT NOT NULL DEFAULT '',
+            game_key TEXT NOT NULL DEFAULT '',
+            delta ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+            payload_json ${database.textTypeSql({ long: true })} NOT NULL DEFAULT '{}',
+            created_at ${database.dateTimeTypeSql()} NOT NULL
+          );
+        `);
+
+        database.exec(`
+          CREATE INDEX IF NOT EXISTS idx_deathcounter_events_created_at
+          ON ${database.quoteIdentifier(STORAGE_TABLES.events)} (created_at);
+        `);
+      });
+
+      return {
+        ok: true,
+        moduleName: STORAGE_SCHEMA_MODULE,
+        schemaVersion: ensuredVersion,
+        targetVersion: STORAGE_SCHEMA_VERSION,
+        tables: { ...STORAGE_TABLES },
+        activeStorage: 'json_state_file',
+        preparedStorage: 'database_schema',
+        migrationPerformed: false,
+        countsImported: false
+      };
+    } catch (err) {
+      console.warn('[deathcounter_v2] storage schema prepare failed:', err.message || String(err));
+      return {
+        ok: false,
+        moduleName: STORAGE_SCHEMA_MODULE,
+        schemaVersion: 0,
+        targetVersion: STORAGE_SCHEMA_VERSION,
+        tables: { ...STORAGE_TABLES },
+        activeStorage: 'json_state_file',
+        preparedStorage: 'database_schema',
+        migrationPerformed: false,
+        countsImported: false,
+        error: err.message || String(err)
+      };
+    }
+  }
+
+  function buildDeathcounterStorageStatus() {
+    const prepared = ensureDeathcounterStorageSchema();
+    const tableStatuses = Object.entries(STORAGE_TABLES).map(([key, table]) => {
+      try {
+        const exists = database.tableExists(table);
+        const columns = exists ? database.tableColumns(table) : [];
+        let rowCount = 0;
+        if (exists) {
+          try { rowCount = database.count(table); } catch (_) { rowCount = 0; }
+        }
+        return {
+          key,
+          table,
+          exists,
+          ok: exists,
+          level: exists ? 'ok' : 'error',
+          rowCount,
+          columns
+        };
+      } catch (err) {
+        return {
+          key,
+          table,
+          exists: false,
+          ok: false,
+          level: 'error',
+          rowCount: 0,
+          columns: [],
+          error: err.message || String(err)
+        };
+      }
+    });
+
+    const allTablesOk = tableStatuses.every(table => table.ok);
+    let schemaVersion = 0;
+    try { schemaVersion = database.getSchemaVersion(STORAGE_SCHEMA_MODULE); } catch (_) {}
+
+    return {
+      ok: Boolean(prepared.ok && allTablesOk),
+      module: 'deathcounter_v2',
+      storageSchemaModule: STORAGE_SCHEMA_MODULE,
+      schemaVersion,
+      targetVersion: STORAGE_SCHEMA_VERSION,
+      activeStorage: 'json_state_file',
+      preparedStorage: 'database_schema',
+      migrationPerformed: false,
+      countsImported: false,
+      destructive: false,
+      tables: tableStatuses,
+      error: prepared.error || '',
+      updatedAt: core.nowIso()
+    };
+  }
+
   function getSettingDefault(key) {
     const found = DEFAULT_DEATHCOUNTER_SETTINGS.find(item => item.key === key);
     return found ? found.value : null;
@@ -1713,8 +1889,9 @@ module.exports.init = function init(ctx) {
       module: 'deathcounter_v2',
       version: 2,
       prefix: API_PREFIX,
-      source: 'state_file_with_database_settings',
+      source: 'state_file_with_database_settings_and_prepared_database_storage',
       settingsTable: SETTINGS_TABLE,
+      storageSchema: buildDeathcounterStorageStatus(),
       dataDir,
       stateFile,
       legacyFile,
@@ -1748,6 +1925,7 @@ module.exports.init = function init(ctx) {
       source: 'database_settings_and_runtime_state',
       prefix: API_PREFIX,
       settingsTable: SETTINGS_TABLE,
+      storageSchema: buildDeathcounterStorageStatus(),
       settings: {
         ...runtimeSettings,
         dataDir,
@@ -1829,6 +2007,42 @@ module.exports.init = function init(ctx) {
       add({ name: 'database_text_variants', ok: false, level: 'error', table: 'module_text_variants', moduleName: TEXTS_MODULE, error: err.message || String(err) });
     }
 
+    try {
+      const storage = buildDeathcounterStorageStatus();
+      add({
+        name: 'database_storage_schema',
+        ok: storage.ok,
+        level: storage.ok ? 'ok' : 'error',
+        schemaModule: storage.storageSchemaModule,
+        schemaVersion: storage.schemaVersion,
+        targetVersion: storage.targetVersion,
+        activeStorage: storage.activeStorage,
+        preparedStorage: storage.preparedStorage,
+        migrationPerformed: storage.migrationPerformed,
+        countsImported: storage.countsImported,
+        tables: storage.tables.map(table => ({
+          key: table.key,
+          table: table.table,
+          exists: table.exists,
+          rowCount: table.rowCount,
+          columns: table.columns
+        })),
+        error: storage.error
+      });
+    } catch (err) {
+      add({
+        name: 'database_storage_schema',
+        ok: false,
+        level: 'error',
+        schemaModule: STORAGE_SCHEMA_MODULE,
+        activeStorage: 'json_state_file',
+        preparedStorage: 'database_schema',
+        migrationPerformed: false,
+        countsImported: false,
+        error: err.message || String(err)
+      });
+    }
+
     let state = null;
     try {
       state = readState();
@@ -1873,7 +2087,8 @@ module.exports.init = function init(ctx) {
       notes: [
         'This integration check is non-destructive.',
         'Productive prefix remains /api/deathcounter/v2.',
-        'Reload normalizes the existing state file only; counters and overlay state are preserved.'
+        'Reload normalizes the existing state file only; counters and overlay state are preserved.',
+        'STEP252 prepares database tables only. JSON remains the active DeathCounter storage; no counts are imported or switched.'
       ],
       updatedAt: core.nowIso()
     };

@@ -37,3 +37,42 @@ Referenz:
 ```text
 project-state/STEP251_DEATHCOUNTER_DASHBOARD_EXTRA_PLAYERS_2026-05-11.md
 ```
+
+## STEP252 - DeathCounter DB-Schema Storage-Grundlage
+
+Stand: 2026-05-11
+
+DeathCounter V2 hat jetzt eine vorbereitete Datenbank-Storage-Grundlage. Diese ist bewusst noch nicht produktiv aktiv. Die produktive Single Source of Truth bleibt weiterhin:
+
+```text
+data/deathcounter/deathcounter.v2.json
+```
+
+Neu vorbereitet:
+
+```text
+deathcounter_players
+deathcounter_games
+deathcounter_counts
+deathcounter_overlay_state
+deathcounter_events
+```
+
+Wichtig:
+
+```text
+- keine Count-Migration
+- kein JSON-Import in DB
+- keine Umstellung der RIP/DEL/TODE-Logik
+- keine Änderung am Overlay
+- keine Änderung an Streamer.bot
+```
+
+Integration-Check erweitert:
+
+```text
+/api/deathcounter/v2/integration-check
+```
+
+Zusätzlich zeigen auch Config/Settings den vorbereiteten Storage-Status.
+

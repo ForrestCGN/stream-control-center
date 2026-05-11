@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-05-11 - STEP252 DeathCounter DB-Schema Storage-Grundlage
+
+- DeathCounter V2 bereitet jetzt eine eigene DB-Storage-Grundlage vor.
+- Neue Tabellen werden sanft per `CREATE TABLE IF NOT EXISTS` angelegt.
+- Tabellen: `deathcounter_players`, `deathcounter_games`, `deathcounter_counts`, `deathcounter_overlay_state`, `deathcounter_events`.
+- Schema-Version wird unter `deathcounter_v2_storage` in `schema_versions` geführt.
+- `/api/deathcounter/v2/config`, `/settings` und `/integration-check` zeigen den vorbereiteten Storage-Status.
+- Produktiver Storage bleibt weiterhin `data/deathcounter/deathcounter.v2.json`.
+- Es werden keine Counts migriert, importiert, überschrieben oder auf DB-Lesen/Schreiben umgeschaltet.
+
 ## 2026-05-11 - STEP251 DeathCounter Dashboard Extra Players
 
 - Dashboard-Tab `Steuerung` um Zusatzspieler-Verwaltung erweitert.

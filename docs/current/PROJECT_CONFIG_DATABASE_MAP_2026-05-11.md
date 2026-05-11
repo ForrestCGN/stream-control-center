@@ -89,7 +89,7 @@ Diese Dateien bleiben Fallback/Seed/Legacy. Dashboard-faehige Texte sollen langf
 |backend\modules\dashboard_auth|ja|nein|nein|-|dashboard_audit_log, dashboard_identities, dashboard_permissions, dashboard_roles, dashboard_sessions, dashboard_users|
 |backend\modules\dashboard_controlcenter|nein|nein|nein|-|-|
 |backend\modules\database_core|ja|nein|nein|-|-|
-|backend\modules\deathcounter_v2|nein|nein|nein|-|-|
+|backend\modules\deathcounter_v2|ja|nein|ja|deathcounter_settings|deathcounter_players, deathcounter_games, deathcounter_counts, deathcounter_overlay_state, deathcounter_events|
 |backend\modules\diagnostics|nein|nein|nein|-|-|
 |backend\modules\discord|nein|nein|nein|-|-|
 |backend\modules\fireworks_api|nein|nein|nein|-|-|
@@ -146,3 +146,34 @@ Aktuelle bestätigte Module: message_rotator, tagebuch, todo, clips, tts/vip je 
 - Schema nur per sanfter Migration / `CREATE TABLE IF NOT EXISTS`.
 - JSON bleibt Fallback, nicht primäre Bearbeitungsoberfläche fuer dashboardfaehige Texte.
 - Vor Hug/SoundAlert-Umbauten zuerst echte Tabellen, Helper und Dashboard-Routen prüfen.
+
+## STEP252 DeathCounter DB-Storage-Vorbereitung
+
+DeathCounter V2 nutzt produktiv weiterhin `data/deathcounter/deathcounter.v2.json`. STEP252 legt nur die spätere DB-Storage-Grundlage an.
+
+Vorbereitete Tabellen:
+
+|Tabelle|Zweck|Produktiv aktiv|
+|---|---|---|
+|deathcounter_players|spätere Spieler-Stammdaten|nein|
+|deathcounter_games|spätere Game-Stammdaten|nein|
+|deathcounter_counts|spätere Count-Werte pro Spieler/Game|nein|
+|deathcounter_overlay_state|späterer Overlay-State|nein|
+|deathcounter_events|spätere Event-/Audit-Grundlage|nein|
+
+Schema-Version:
+
+```text
+schema_versions.module_name = deathcounter_v2_storage
+version = 1
+```
+
+Regeln bleiben:
+
+```text
+- app.sqlite niemals ersetzen
+- nur CREATE TABLE IF NOT EXISTS / sanfte Migration
+- keine Count-Migration ohne gesonderten Step
+- keine produktive Umstellung ohne gesonderten Step
+```
+

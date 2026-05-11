@@ -1,33 +1,36 @@
-# NEXT STEP - Nach STEP251 DeathCounter Dashboard Extra Players
+# NEXT STEP - Nach STEP252 DeathCounter DB-Schema Storage-Grundlage
 
 ## Direkt testen
 
-Im Dashboard:
+Backend neu starten und prüfen:
 
-```text
-Community → DeathCounter → Steuerung
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/integration-check" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/config" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/settings" | ConvertTo-Json -Depth 20
 ```
 
-Prüfen:
+Erwartung:
 
 ```text
-- Zusatzspieler hinzufügen funktioniert.
-- Zusatzspieler entfernen funktioniert.
-- Alle Extras leeren funktioniert.
-- Übersicht zeigt Standardspieler plus Zusatzspieler.
-- maxExtraPlayers-Grenze bleibt wirksam.
+- check `database_storage_schema` ist ok
+- Tabellen existieren
+- activeStorage bleibt `json_state_file`
+- migrationPerformed bleibt false
+- countsImported bleibt false
 ```
 
 ## Nächster sinnvoller Bau-Step
 
 ```text
-STEP252: DeathCounter Dashboard-Spielerwerte/Korrekturen weiter ausbauen oder UX nach Live-Test bereinigen
+STEP253: Read-only DB-Snapshot/Export aus JSON vorbereiten, aber weiterhin nicht produktiv verwenden
 ```
 
-Noch nicht direkt blind bauen:
+Noch nicht blind bauen:
 
 ```text
 - JSON-State durch DB ersetzen
+- Count-Schreiblogik auf DB umstellen
 - app.sqlite neu bauen oder überschreiben
 - alte Count-Logik entfernen
 - Overlay-Design auf neues CGN-Design migrieren

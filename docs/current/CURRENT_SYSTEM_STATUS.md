@@ -35,3 +35,35 @@ data/deathcounter/deathcounter.v2.json
 htdocs/overlays/_overlay-deathcounter-v2.html
 Streamer.bot Actions/Exports
 ```
+
+# STEP252 Update
+
+DeathCounter V2 bereitet jetzt eigene Datenbanktabellen vor, ohne die produktive JSON-State-Logik umzustellen.
+
+Neue vorbereitete Tabellen:
+
+```text
+deathcounter_players
+deathcounter_games
+deathcounter_counts
+deathcounter_overlay_state
+deathcounter_events
+```
+
+Technisch:
+
+- Schema-Migration läuft sanft über die zentrale DB-Schicht `backend/core/database.js`.
+- Schema-Version: `deathcounter_v2_storage`.
+- `/api/deathcounter/v2/integration-check` prüft jetzt auch den vorbereiteten DB-Storage.
+- `/api/deathcounter/v2/config` und `/api/deathcounter/v2/settings` enthalten Storage-Statusdaten.
+
+Nicht geändert:
+
+```text
+data/deathcounter/deathcounter.v2.json bleibt produktive Single Source of Truth
+keine Count-Migration
+keine produktive DB-Schreib-/Leselogik für Counts
+kein Overlay-Umbau
+keine Streamer.bot-Änderung
+```
+

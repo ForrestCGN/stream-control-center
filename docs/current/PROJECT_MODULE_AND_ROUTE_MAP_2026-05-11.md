@@ -801,3 +801,30 @@ Diese Route-Map wurde statisch aus den Backend-Dateien erzeugt. Sie ist eine Arb
 - `? /api/vip`
 - `? /api/vip-sound`
 - `? /api/vip-sound-overlay`
+
+## STEP252 DeathCounter Integration-Check-Erweiterung
+
+Route bleibt:
+
+```text
+GET /api/deathcounter/v2/integration-check
+```
+
+Neu im Check:
+
+```text
+database_storage_schema
+```
+
+Der Check meldet:
+
+```text
+- schemaModule: deathcounter_v2_storage
+- schemaVersion / targetVersion
+- activeStorage: json_state_file
+- preparedStorage: database_schema
+- migrationPerformed: false
+- countsImported: false
+- Tabellenstatus für deathcounter_players, deathcounter_games, deathcounter_counts, deathcounter_overlay_state, deathcounter_events
+```
+
