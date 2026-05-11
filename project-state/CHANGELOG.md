@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-05-11 - STEP246 DeathCounter Game-Change ueber Twitch EventSub
+
+- `backend/modules/twitch.js` erkennt `channel.update` EventSub-Notifications und synchronisiert das Spiel zum DeathCounter.
+- DeathCounter wird per lokaler API `/api/deathcounter/v2/game` aktualisiert.
+- `/api/twitch/eventsub/status` enthaelt den neuen Bereich `deathcounterSync`.
+- Keine Chat-Ausgabe, keine Count-/DB-/Dashboard-/Overlay-Migration.
+- Streamer.bot-Game-Changed-Action ist nach erfolgreichem Live-Test nicht mehr noetig.
+
 ## 2026-05-11 - STEP245 DeathCounter Streamer.bot Minimal-Bridge Doku
 
 - DeathCounter Streamer.bot-Zielstruktur dokumentiert.

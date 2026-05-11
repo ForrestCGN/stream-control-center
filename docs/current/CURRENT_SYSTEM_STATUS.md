@@ -1,11 +1,11 @@
-# CURRENT_SYSTEM_STATUS - STEP245 Update
+# CURRENT_SYSTEM_STATUS - STEP246 Update
 
-DeathCounter V2 Streamer.bot-Minimal-Bridge wurde dokumentiert.
+DeathCounter Game-Change ueber Twitch EventSub wurde eingebaut.
 
-- `!rip`, `!tode` und `!dcount` sollen künftig nur noch FetchURL auf `/api/deathcounter/v2/command` ausführen.
-- Backend übernimmt Parsing, Settings, Textvarianten, DeathCounter-Logik und Chat-Ausgabe über `helper_chat_output`.
-- Streamer.bot soll im Normalfall keine eigene Chat-Ausgabe mehr ausführen.
-- `streamerbot_send` / `streamerbot_message` bleibt als optionaler Fallback dokumentiert.
-- Alte C#-Parsing-/Prepare-Skripte können nach erfolgreichem Live-Test ersetzt werden.
+- Twitch EventSub `channel.update` wird in `backend/modules/twitch.js` verarbeitet.
+- Das neue Twitch-Spiel wird per lokaler API an `/api/deathcounter/v2/game` uebergeben.
+- Streamer.bot ist fuer Game-Changed-Sync nach erfolgreichem Live-Test nicht mehr noetig.
+- Stream-Start-Sync bleibt sinnvoll, weil dort Session-Reset und Overlay-Spieler-Reset haengen.
+- `/api/twitch/eventsub/status` zeigt den neuen Bereich `deathcounterSync`.
 
-Keine Code-, Backend-, Dashboard-, DB-, Count-, Overlay- oder Streamer.bot-Export-Änderung in diesem STEP.
+Keine Count-, DB-, Dashboard-, Overlay- oder DeathCounter-Modul-Migration in diesem STEP.

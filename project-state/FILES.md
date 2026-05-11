@@ -1,9 +1,10 @@
-# FILES - STEP245 DeathCounter Streamer.bot Minimal-Bridge Doku
+# FILES - STEP246 DeathCounter EventSub Game Sync
 
 Geändert / neu:
 
 ```text
-project-state/STEP245_DEATHCOUNTER_STREAMERBOT_MINIMAL_BRIDGE_2026-05-11.md
+backend/modules/twitch.js
+project-state/STEP246_DEATHCOUNTER_EVENTSUB_GAME_SYNC_2026-05-11.md
 project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
@@ -25,5 +26,5 @@ Streamer.bot Actions/Exports
 Hinweis:
 
 ```text
-STEP245 ist reine Doku-/Übergabevorbereitung.
+STEP246 nutzt die bestehende DeathCounter-Game-API. Es gibt keine neue Datenbanktabelle und keine Count-Migration.
 ```

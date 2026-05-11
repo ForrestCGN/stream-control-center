@@ -1,3 +1,22 @@
+## STEP246 - DeathCounter Game-Change ueber Twitch EventSub
+
+Stand: 2026-05-11
+
+- Twitch EventSub `channel.update` synchronisiert jetzt DeathCounter `currentGame`.
+- Spielwechsel laufen damit backendseitig ueber `backend/modules/twitch.js`.
+- Streamer.bot-Game-Changed-Action wird nach erfolgreichem Live-Test nicht mehr benoetigt.
+- Die allgemeine Stream-Start-Routine kann weiter `/api/deathcounter/v2/stream-online-sync?id=127709954` nutzen, weil dort Session-/Overlay-Reset liegt.
+- `/api/twitch/eventsub/status` zeigt `deathcounterSync` mit letzter Synchronisierung und Fehlerstatus.
+- Keine Count-, DB-, Dashboard-, Overlay- oder DeathCounter-Modul-Migration.
+
+Referenz:
+
+```text
+project-state/STEP246_DEATHCOUNTER_EVENTSUB_GAME_SYNC_2026-05-11.md
+```
+
+---
+
 ## STEP245 - DeathCounter Streamer.bot Minimal-Bridge Doku
 
 Stand: 2026-05-11
@@ -48,4 +67,5 @@ STEP242.2  Dashboard-Tabs/Layout-Fix
 STEP243    Dashboard UX Cleanup
 STEP244    Statistik Game-Filter
 STEP245    Streamer.bot Minimal-Bridge Doku
+STEP246    EventSub Game-Change Sync
 ```

@@ -67,6 +67,12 @@ const DEFAULT_TWITCH_ALERT_CONFIG = {
     enabled: true,
     url: 'http://127.0.0.1:8080/api/loyalty/events/ingest',
     includeRawEvent: true
+  },
+  deathcounterSync: {
+    enabled: true,
+    gameChangeEnabled: true,
+    url: 'http://127.0.0.1:8080/api/deathcounter/v2/game',
+    timeoutMs: 5000
   }
 };
 
@@ -1793,6 +1799,11 @@ module.exports.init = function init(ctx) {
     lastSubscribeAt: null,
     lastSubscribeType: null,
     lastSubscribeError: '',
+    deathcounterGameSyncCount: 0,
+    lastDeathcounterGameSyncAt: null,
+    lastDeathcounterGameSyncGame: '',
+    lastDeathcounterGameSyncPreviousGame: '',
+    lastDeathcounterGameSyncError: '',
     recent: []
   };
 
@@ -1829,6 +1840,7 @@ module.exports.init = function init(ctx) {
       knownSubscriptionsCount: eventsubKnownSubscriptions.size,
       knownSubscriptions: Array.from(eventsubKnownSubscriptions).sort(),
       state: { ...eventSubState, recent: eventSubState.recent.slice(0, 30) },
+      deathcounterSync: getDeathcounterSyncStatus(),
       alertBridge: {
         enabled: twitchAlertBridgeState.config?.enabled !== false,
         settingsSource: twitchAlertBridgeState.settingsSource,
@@ -2079,6 +2091,120 @@ module.exports.init = function init(ctx) {
       subscription: sub,
       event
     });
+  }
+
+  function getDeathcounterSyncConfig() {
+    const cfg = twitchAlertBridgeState.config || DEFAULT_TWITCH_ALERT_CONFIG;
+    const source = cfg.deathcounterSync || DEFAULT_TWITCH_ALERT_CONFIG.deathcounterSync || {};
+    const enabled = source.enabled !== false;
+    const gameChangeEnabled = source.gameChangeEnabled !== false;
+    const url = String(source.url || DEFAULT_TWITCH_ALERT_CONFIG.deathcounterSync.url || '').trim();
+    const parsedTimeoutMs = Number(source.timeoutMs ?? DEFAULT_TWITCH_ALERT_CONFIG.deathcounterSync.timeoutMs ?? 5000);
+    const timeoutMs = Number.isFinite(parsedTimeoutMs)
+      ? Math.max(1000, Math.min(30000, Math.floor(parsedTimeoutMs)))
+      : 5000;
+
+    return { enabled, gameChangeEnabled, url, timeoutMs };
+  }
+
+  function getDeathcounterSyncStatus() {
+    const cfg = getDeathcounterSyncConfig();
+    return {
+      enabled: cfg.enabled,
+      gameChangeEnabled: cfg.gameChangeEnabled,
+      url: cfg.url,
+      timeoutMs: cfg.timeoutMs,
+      synced: eventSubState.deathcounterGameSyncCount || 0,
+      lastSyncedAt: eventSubState.lastDeathcounterGameSyncAt || null,
+      lastGame: eventSubState.lastDeathcounterGameSyncGame || '',
+      previousGame: eventSubState.lastDeathcounterGameSyncPreviousGame || '',
+      lastError: eventSubState.lastDeathcounterGameSyncError || ''
+    };
+  }
+
+  function extractGameNameFromChannelUpdate(event = {}) {
+    const candidates = [
+      event.category_name,
+      event.categoryName,
+      event.game_name,
+      event.gameName,
+      event.category?.name,
+      event.game?.name
+    ];
+
+    for (const value of candidates) {
+      const game = String(value || '').trim();
+      if (game) return game;
+    }
+
+    return '';
+  }
+
+  async function syncDeathcounterGameFromChannelUpdate(subscriptionType, event = {}, meta = {}, subscription = {}) {
+    if (subscriptionType !== 'channel.update') {
+      return { ok: true, skipped: true, reason: 'not_channel_update' };
+    }
+
+    const cfg = getDeathcounterSyncConfig();
+    if (!cfg.enabled || !cfg.gameChangeEnabled) {
+      rememberEventSubState({ action: 'deathcounter_game_sync_skipped', reason: 'disabled_by_config' });
+      return { ok: true, skipped: true, reason: 'disabled_by_config' };
+    }
+
+    if (!cfg.url) {
+      eventSubState.lastDeathcounterGameSyncError = 'deathcounter_sync_url_missing';
+      rememberEventSubState({ action: 'deathcounter_game_sync_failed', reason: eventSubState.lastDeathcounterGameSyncError });
+      return { ok: false, skipped: true, reason: eventSubState.lastDeathcounterGameSyncError };
+    }
+
+    const game = extractGameNameFromChannelUpdate(event);
+    if (!game) {
+      eventSubState.lastDeathcounterGameSyncError = 'channel_update_without_game';
+      rememberEventSubState({ action: 'deathcounter_game_sync_skipped', reason: eventSubState.lastDeathcounterGameSyncError });
+      return { ok: true, skipped: true, reason: eventSubState.lastDeathcounterGameSyncError };
+    }
+
+    const previousGame = eventSubState.lastDeathcounterGameSyncGame || '';
+
+    try {
+      const response = await axios.post(cfg.url, {
+        game,
+        source: 'twitch_eventsub',
+        eventsubType: subscriptionType,
+        subscriptionId: subscription?.id || '',
+        messageId: meta?.message_id || '',
+        broadcasterId: event?.broadcaster_user_id || DEFAULT_BROADCASTER_ID || ''
+      }, {
+        timeout: cfg.timeoutMs,
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      eventSubState.deathcounterGameSyncCount = Number(eventSubState.deathcounterGameSyncCount || 0) + 1;
+      eventSubState.lastDeathcounterGameSyncAt = core.nowIso();
+      eventSubState.lastDeathcounterGameSyncPreviousGame = previousGame;
+      eventSubState.lastDeathcounterGameSyncGame = game;
+      eventSubState.lastDeathcounterGameSyncError = '';
+
+      rememberEventSubState({
+        action: 'deathcounter_game_synced',
+        game,
+        previousGame,
+        status: response.status || 0
+      });
+
+      return { ok: true, game, previousGame, status: response.status || 0, data: response.data || null };
+    } catch (e) {
+      const err = e?.response?.data
+        ? `${e.response.status || ''} ${JSON.stringify(e.response.data)}`.trim()
+        : (e?.message || String(e));
+
+      eventSubState.lastDeathcounterGameSyncError = err.slice(0, 500);
+      eventSubState.lastErrorAt = core.nowIso();
+      eventSubState.lastError = `[deathcounter_game_sync] ${eventSubState.lastDeathcounterGameSyncError}`.slice(0, 500);
+      rememberEventSubState({ action: 'deathcounter_game_sync_failed', game, error: eventSubState.lastDeathcounterGameSyncError });
+      console.warn('[eventsub-deathcounter] game sync failed:', eventSubState.lastDeathcounterGameSyncError);
+      return { ok: false, game, error: eventSubState.lastDeathcounterGameSyncError };
+    }
   }
 
   function twitchAlertKindForSubscription(subscriptionType) {
@@ -2658,6 +2784,13 @@ function buildFakeTwitchAlertEvent(kind, query) {
         rememberEventSubState({ action: 'notification', type: sub.type || '', subscriptionId: sub.id || null });
 
         cacheGenericEvent(sub, event);
+
+        try {
+          await syncDeathcounterGameFromChannelUpdate(sub.type, event, meta, sub);
+        } catch (e) {
+          rememberEventSubState({ action: 'deathcounter_game_sync_failed', type: sub.type || '', error: e?.message || String(e) });
+          console.warn('[eventsub-deathcounter] sync handler failed:', e?.message || e);
+        }
 
         try {
           const loyaltyPayload = normalizeTwitchEventSubToLoyaltyEvent(sub.type, event, meta, sub);
