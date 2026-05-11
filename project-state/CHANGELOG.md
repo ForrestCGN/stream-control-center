@@ -1,3 +1,15 @@
+## 2026-05-11 - STEP242 DeathCounter Dashboard-Basis
+
+- DeathCounter Dashboard-Modul hinzugefügt.
+- `htdocs/dashboard/index.html` bindet DeathCounter-Panel, CSS und JS ein.
+- Neues Modul: `htdocs/dashboard/modules/deathcounter.js`.
+- Neues Styling: `htdocs/dashboard/modules/deathcounter.css`.
+- Dashboard zeigt Status, Spieler/Counts, Settings, Textvarianten und Integration-Check.
+- Dashboard kann Overlay show/hide/toggle/reset, Spieler ersetzen und manuell +1/-1 auslösen.
+- Keine Backend-, DB-, Count-, Overlay-Design- oder Streamer.bot-Änderung.
+
+---
+
 ## 2026-05-11 - STEP241 DeathCounter DB-Textvarianten
 
 - DeathCounter an `helper_texts` / `module_text_variants` angebunden.

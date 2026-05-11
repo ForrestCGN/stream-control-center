@@ -1,3 +1,20 @@
+## STEP242 - DeathCounter Dashboard-Basis
+
+Stand: 2026-05-11
+
+- DeathCounter V2 ist im Dashboard als Community-Modul vorbereitet.
+- `index.html` bindet das neue Modul ein.
+- `deathcounter.js/css` liefern Status, Settings, Textvarianten, Diagnose und einfache Steuerung.
+- Keine Backend- oder Datenhaltungsänderung.
+
+Referenz:
+
+```text
+project-state/STEP242_DEATHCOUNTER_DASHBOARD_BASIS_2026-05-11.md
+```
+
+---
+
 ## STEP241 - DeathCounter DB-Textvarianten
 
 Stand: 2026-05-11

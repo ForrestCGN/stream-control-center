@@ -1,3 +1,23 @@
+# STEP242 - DeathCounter Dashboard-Basis
+
+Stand: 2026-05-11
+
+- DeathCounter V2 wurde als Dashboard-Modul vorbereitet.
+- Neue Dateien: `htdocs/dashboard/modules/deathcounter.js` und `htdocs/dashboard/modules/deathcounter.css`.
+- `htdocs/dashboard/index.html` bindet DeathCounter-CSS/-JS ein und enthält das Panel `deathcounterModule`.
+- Das Modul registriert sich selbst im Dashboard unter Community / DeathCounter.
+- Dashboard-Funktionen: Status, Spieler/Counts, Overlay-Steuerung, Replace, manuell +1/-1, DB-Settings, Textvarianten und Diagnose.
+- Dashboard nutzt nur Backend-APIs und greift nicht direkt auf SQLite oder Dateien zu.
+- Keine Backend-, Count-, JSON-State-, Overlay-Design- oder Streamer.bot-Änderung in STEP242.
+
+Referenz:
+
+```text
+project-state/STEP242_DEATHCOUNTER_DASHBOARD_BASIS_2026-05-11.md
+```
+
+---
+
 # STEP241 - DeathCounter DB-Textvarianten
 
 Stand: 2026-05-11

@@ -1,3 +1,54 @@
+# NEXT STEP - Nach STEP242 DeathCounter Dashboard-Basis
+
+## DeathCounter Status
+
+DeathCounter hat jetzt Command-API, Backend-Chatversand, DB-Settings, DB-Textvarianten und eine erste Dashboard-Basis.
+
+## Direkt testen
+
+```text
+Dashboard -> Community -> DeathCounter
+```
+
+Zu prüfen:
+
+```text
+- Modulkarte erscheint unter Community
+- Übersicht lädt ohne Fehler
+- Settings können einzeln gespeichert werden
+- Textvarianten können gespeichert werden
+- Overlay show/hide/toggle/reset funktioniert
+- Replace funktioniert und kann zurückgesetzt werden
+- manuell +1 / -1 funktioniert mit sendChat=0 ohne Chatspam
+```
+
+## Nächster sinnvoller Schritt
+
+```text
+STEP243: DeathCounter Statistik-Dashboard ausbauen
+```
+
+Mögliche Inhalte:
+
+```text
+- Top Tode gesamt
+- Top aktuelles Spiel
+- Top aktuelle Session
+- Spieler-Detailansicht
+- Game-Filter
+- saubere Anzeige der vorhandenen JSON-Daten
+```
+
+Noch nicht empfohlen:
+
+```text
+- Count-/Event-DB-Migration
+- Overlay-Design-Refresh
+- Node-Chat-Router
+```
+
+---
+
 # NEXT STEP - Nach STEP241
 
 ## DeathCounter Status
