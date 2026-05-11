@@ -76,3 +76,41 @@ Integration-Check erweitert:
 
 Zusätzlich zeigen auch Config/Settings den vorbereiteten Storage-Status.
 
+
+## STEP253 - DeathCounter Storage Preview
+
+Stand: 2026-05-11
+
+DeathCounter V2 hat jetzt eine reine Vorschau-Route fuer die spaetere DB-Migration:
+
+```text
+GET /api/deathcounter/v2/storage/preview
+```
+
+Die Route liest weiterhin nur den produktiven JSON-State und baut daraus im Speicher geplante Tabellenzeilen fuer:
+
+```text
+deathcounter_players
+deathcounter_games
+deathcounter_counts
+deathcounter_overlay_state
+deathcounter_events
+```
+
+Wichtig:
+
+```text
+- readOnly: true
+- writesDatabase: false
+- importsCounts: false
+- switchesStorage: false
+- activeStorage bleibt json_state_file
+```
+
+Der Integration-Check enthaelt jetzt zusaetzlich `database_storage_preview`.
+
+Referenz:
+
+```text
+project-state/STEP253_DEATHCOUNTER_STORAGE_PREVIEW_2026-05-11.md
+```

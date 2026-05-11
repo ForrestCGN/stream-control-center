@@ -67,3 +67,40 @@ kein Overlay-Umbau
 keine Streamer.bot-Änderung
 ```
 
+
+# STEP253 Update
+
+DeathCounter V2 hat jetzt eine Read-only-Vorschau fuer die spaetere DB-Storage-Migration.
+
+Neue Route:
+
+```text
+GET /api/deathcounter/v2/storage/preview
+```
+
+Die Route erzeugt aus dem produktiven JSON-State im Speicher eine Vorschau fuer die vorbereiteten Tabellen:
+
+```text
+deathcounter_players
+deathcounter_games
+deathcounter_counts
+deathcounter_overlay_state
+deathcounter_events
+```
+
+Technisch:
+
+- `/api/deathcounter/v2/integration-check` prueft jetzt zusaetzlich `database_storage_preview`.
+- Die Preview meldet explizit `readOnly`, `writesDatabase`, `importsCounts` und `switchesStorage`.
+- `deathcounter_events` wird nicht aus dem JSON rekonstruiert und bleibt in der Preview leer.
+
+Nicht geändert:
+
+```text
+data/deathcounter/deathcounter.v2.json bleibt produktive Single Source of Truth
+keine Count-Migration
+kein DB-Import
+keine produktive DB-Schreib-/Leselogik fuer Counts
+kein Overlay-Umbau
+keine Streamer.bot-Aenderung
+```

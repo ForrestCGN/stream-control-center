@@ -187,6 +187,18 @@ module.exports.init = function init(ctx) {
     return res.json(ok(buildDeathcounterIntegrationCheck()));
   });
 
+  app.get(`${API_PREFIX}/storage/preview`, (req, res) => {
+    try {
+      const preview = buildDeathcounterStoragePreview({
+        limit: intOrDefault(req.query.limit, 25),
+        includeRows: booleanOrDefault(req.query.includeRows, true)
+      });
+      return res.json(ok(preview));
+    } catch (err) {
+      return res.status(500).json(fail(err.message || String(err)));
+    }
+  });
+
   app.post(`${API_PREFIX}/reload`, (req, res) => {
     ensureStateFile();
     const state = readState();
@@ -1792,6 +1804,116 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function buildDeathcounterStoragePreview(options = {}) {
+    const state = readState();
+    const limit = Math.max(0, Math.min(500, intOrDefault(options.limit, 25)));
+    const includeRows = options.includeRows !== false;
+    const now = core.nowIso();
+    const updatedAt = state.updatedAt || now;
+    const sortedPlayers = sortPlayers(Array.isArray(state.players) ? state.players : []);
+    const gameMap = new Map();
+    const countRows = [];
+
+    function addGame(gameName) {
+      const displayName = normalizeGameName(gameName || DEFAULT_GAME_KEY);
+      const gameKey = displayName;
+      if (!gameMap.has(gameKey)) {
+        gameMap.set(gameKey, {
+          game_key: gameKey,
+          display_name: displayName,
+          source: 'json_preview',
+          created_at: '',
+          updated_at: updatedAt
+        });
+      }
+      return gameKey;
+    }
+
+    addGame(state.currentGame || DEFAULT_GAME_KEY);
+
+    const playerRows = sortedPlayers.map(player => {
+      sanitizePlayer(player);
+      const games = player.games && typeof player.games === 'object' ? player.games : {};
+      for (const gameName of Object.keys(games)) {
+        const gameKey = addGame(gameName);
+        ensureGameStats(player, gameKey);
+        countRows.push({
+          player_id: player.id,
+          game_key: gameKey,
+          session_deaths: intOrDefault(player.games[gameKey].session, 0),
+          all_time_deaths: intOrDefault(player.games[gameKey].allTime, 0),
+          source: 'json_preview',
+          created_at: '',
+          updated_at: updatedAt
+        });
+      }
+
+      return {
+        id: player.id,
+        login: player.login,
+        display_name: player.displayName,
+        active: player.active !== false ? 1 : 0,
+        sort_order: intOrDefault(player.sortOrder, 0),
+        source: 'json_preview',
+        created_at: '',
+        updated_at: updatedAt
+      };
+    });
+
+    const overlay = normalizeOverlay(state.overlay || {});
+    const overlayRows = [
+      { state_key: 'visible', state_value: JSON.stringify(Boolean(overlay.visible)), value_type: 'boolean', source: 'json_preview', created_at: '', updated_at: updatedAt },
+      { state_key: 'title', state_value: JSON.stringify(overlay.title || 'Death Counter'), value_type: 'string', source: 'json_preview', created_at: '', updated_at: updatedAt },
+      { state_key: 'selected_player_ids', state_value: JSON.stringify(normalizePlayerListInput(overlay.selectedPlayerIds).slice(0, 2)), value_type: 'json', source: 'json_preview', created_at: '', updated_at: updatedAt },
+      { state_key: 'extra_player_ids', state_value: JSON.stringify(normalizePlayerListInput(overlay.extraPlayerIds).slice(0, getMaxExtraPlayersSafe())), value_type: 'json', source: 'json_preview', created_at: '', updated_at: updatedAt },
+      { state_key: 'current_game', state_value: JSON.stringify(normalizeGameName(state.currentGame || DEFAULT_GAME_KEY)), value_type: 'string', source: 'json_preview', created_at: '', updated_at: updatedAt }
+    ];
+
+    const gameRows = Array.from(gameMap.values()).sort((a, b) => a.game_key.localeCompare(b.game_key));
+    const eventRows = [];
+    const tables = {
+      players: { table: STORAGE_TABLES.players, rowCount: playerRows.length, rows: includeRows ? playerRows.slice(0, limit) : [] },
+      games: { table: STORAGE_TABLES.games, rowCount: gameRows.length, rows: includeRows ? gameRows.slice(0, limit) : [] },
+      counts: { table: STORAGE_TABLES.counts, rowCount: countRows.length, rows: includeRows ? countRows.slice(0, limit) : [] },
+      overlayState: { table: STORAGE_TABLES.overlayState, rowCount: overlayRows.length, rows: includeRows ? overlayRows.slice(0, limit) : [] },
+      events: { table: STORAGE_TABLES.events, rowCount: eventRows.length, rows: includeRows ? eventRows.slice(0, limit) : [] }
+    };
+
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      action: 'storage_preview',
+      destructive: false,
+      readOnly: true,
+      writesDatabase: false,
+      importsCounts: false,
+      switchesStorage: false,
+      activeStorage: 'json_state_file',
+      preparedStorage: 'database_schema',
+      stateFile,
+      currentGame: state.currentGame,
+      stateUpdatedAt: state.updatedAt || '',
+      options: {
+        includeRows,
+        limit
+      },
+      summary: {
+        players: playerRows.length,
+        games: gameRows.length,
+        counts: countRows.length,
+        overlayState: overlayRows.length,
+        events: eventRows.length
+      },
+      tables,
+      notes: [
+        'STEP253 preview only. This endpoint reads deathcounter.v2.json and builds planned DB rows in memory.',
+        'No INSERT, UPDATE, DELETE, import or storage switch is performed by this endpoint.',
+        'Event history is not reconstructed from the JSON state; deathcounter_events remains empty in this preview.'
+      ],
+      updatedAt: now
+    };
+  }
+
   function getSettingDefault(key) {
     const found = DEFAULT_DEATHCOUNTER_SETTINGS.find(item => item.key === key);
     return found ? found.value : null;
@@ -1950,6 +2072,7 @@ module.exports.init = function init(ctx) {
       { method: 'GET/POST', path: `${API_PREFIX}/admin/texts`, purpose: 'dashboard/admin DB text variants via helper_texts' },
       { method: 'GET', path: `${API_PREFIX}/routes`, purpose: 'list deathcounter v2 API routes' },
       { method: 'GET', path: `${API_PREFIX}/integration-check`, purpose: 'run non-destructive integration check' },
+      { method: 'GET', path: `${API_PREFIX}/storage/preview`, purpose: 'preview JSON state rows for prepared DB storage without importing counts' },
       { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
       { method: 'GET/POST', path: `${API_PREFIX}/command`, purpose: 'central Streamer.bot-friendly command bridge for dcount/rip/tode' },
       { method: 'GET', path: `${API_PREFIX}/state`, purpose: 'public state for overlay/dashboard' },
@@ -2075,6 +2198,31 @@ module.exports.init = function init(ctx) {
       });
     }
 
+    try {
+      const preview = buildDeathcounterStoragePreview({ includeRows: false, limit: 0 });
+      add({
+        name: 'database_storage_preview',
+        ok: true,
+        level: 'ok',
+        readOnly: preview.readOnly,
+        writesDatabase: preview.writesDatabase,
+        importsCounts: preview.importsCounts,
+        switchesStorage: preview.switchesStorage,
+        summary: preview.summary
+      });
+    } catch (err) {
+      add({
+        name: 'database_storage_preview',
+        ok: false,
+        level: 'error',
+        readOnly: true,
+        writesDatabase: false,
+        importsCounts: false,
+        switchesStorage: false,
+        error: err.message || String(err)
+      });
+    }
+
     add({ name: 'routes', ok: true, level: 'ok', prefix: API_PREFIX, count: buildDeathcounterRoutes().length });
 
     const summary = summarizeChecks(checks);
@@ -2088,7 +2236,8 @@ module.exports.init = function init(ctx) {
         'This integration check is non-destructive.',
         'Productive prefix remains /api/deathcounter/v2.',
         'Reload normalizes the existing state file only; counters and overlay state are preserved.',
-        'STEP252 prepares database tables only. JSON remains the active DeathCounter storage; no counts are imported or switched.'
+        'STEP252 prepares database tables only. JSON remains the active DeathCounter storage; no counts are imported or switched.',
+        'STEP253 adds a read-only storage preview. It does not write DB rows or switch active storage.'
       ],
       updatedAt: core.nowIso()
     };

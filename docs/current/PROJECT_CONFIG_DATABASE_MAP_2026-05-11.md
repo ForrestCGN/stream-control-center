@@ -177,3 +177,40 @@ Regeln bleiben:
 - keine produktive Umstellung ohne gesonderten Step
 ```
 
+
+## STEP253 DeathCounter Storage-Preview
+
+Neue Read-only-Route:
+
+```text
+GET /api/deathcounter/v2/storage/preview
+```
+
+Zweck:
+
+```text
+JSON-State lesen -> geplante DB-Zeilen im Speicher anzeigen -> nichts schreiben
+```
+
+Sicherheitsstatus der Route:
+
+```text
+readOnly: true
+writesDatabase: false
+importsCounts: false
+switchesStorage: false
+activeStorage: json_state_file
+preparedStorage: database_schema
+```
+
+Die Vorschau umfasst:
+
+|Preview-Bereich|Zieltabelle|Schreibt produktiv?|
+|---|---|---|
+|players|deathcounter_players|nein|
+|games|deathcounter_games|nein|
+|counts|deathcounter_counts|nein|
+|overlayState|deathcounter_overlay_state|nein|
+|events|deathcounter_events|nein|
+
+`deathcounter_events` bleibt leer, weil historische Events aus dem JSON-State nicht sicher rekonstruierbar sind.

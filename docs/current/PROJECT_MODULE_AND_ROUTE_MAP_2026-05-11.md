@@ -19,7 +19,7 @@ Diese Route-Map wurde statisch aus den Backend-Dateien erzeugt. Sie ist eine Arb
 |dashboard_auth|8|9|/api/auth/audit, /api/auth/bootstrap-owner-local, /api/auth/logout, /api/auth/roles, /api/auth/session|
 |dashboard_controlcenter|11|10|/api/dashboard/controlcenter/access, /api/dashboard/controlcenter/admin-configs, /api/dashboard/controlcenter/config/:id, /api/dashboard/controlcenter/config/:id, /api/dashboard/controlcenter/logging|
 |database_core|0|2|/api/database/status, /api/system/database/status|
-|deathcounter_v2|30|25|/api/deathcounter/v2/del, /api/deathcounter/v2/del, /api/deathcounter/v2/game, /api/deathcounter/v2/game, /api/deathcounter/v2/game/set|
+|deathcounter_v2|31|26|/api/deathcounter/v2/del, /api/deathcounter/v2/game, /api/deathcounter/v2/game/set, /api/deathcounter/v2/storage/preview, /api/deathcounter/v2/integration-check|
 |diagnostics|6|3|/api/diag/env, /api/diag/ping, /api/diag/ws, /diag/env, /diag/ping|
 |discord|33|27|/api/discord/config, /api/discord/integration-check, /api/discord/join, /api/discord/join, /api/discord/leave|
 |fireworks_api|3|3|/api/fireworks, /api/fireworks/clear, /api/fireworks/stop|
@@ -204,6 +204,7 @@ Diese Route-Map wurde statisch aus den Backend-Dateien erzeugt. Sie ist eine Arb
 - `GET /api/deathcounter/v2/rip`
 - `GET /api/deathcounter/v2/show`
 - `GET /api/deathcounter/v2/state`
+- `GET /api/deathcounter/v2/storage/preview`
 - `GET /api/deathcounter/v2/stream-online-sync`
 - `GET /api/deathcounter/v2/sync/channelinfo`
 - `GET /api/deathcounter/v2/tode`
@@ -828,3 +829,26 @@ Der Check meldet:
 - Tabellenstatus für deathcounter_players, deathcounter_games, deathcounter_counts, deathcounter_overlay_state, deathcounter_events
 ```
 
+
+## STEP253 DeathCounter Storage-Preview
+
+Neue Route:
+
+```text
+GET /api/deathcounter/v2/storage/preview
+```
+
+Optionale Query-Parameter:
+
+```text
+limit
+includeRows
+```
+
+Integration-Check meldet jetzt zusaetzlich:
+
+```text
+database_storage_preview
+```
+
+Der Preview-Endpunkt ist read-only und fuehrt keinen Import, kein INSERT/UPDATE/DELETE und keine Storage-Umschaltung aus.

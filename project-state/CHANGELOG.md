@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-05-11 - STEP253 DeathCounter Storage Preview
+
+- Neue Read-only-Route `GET /api/deathcounter/v2/storage/preview` ergänzt.
+- Die Route baut aus dem produktiven JSON-State eine Vorschau für `deathcounter_players`, `deathcounter_games`, `deathcounter_counts`, `deathcounter_overlay_state` und `deathcounter_events`.
+- Optional: `limit` und `includeRows` für kompakte Vorschau-Ausgaben.
+- `/api/deathcounter/v2/integration-check` prüft jetzt zusätzlich `database_storage_preview`.
+- Keine Count-Migration, kein DB-Import, keine Storage-Umschaltung und keine Änderung an Overlay/Streamer.bot.
+
 ## 2026-05-11 - STEP252 DeathCounter DB-Schema Storage-Grundlage
 
 - DeathCounter V2 bereitet jetzt eine eigene DB-Storage-Grundlage vor.
