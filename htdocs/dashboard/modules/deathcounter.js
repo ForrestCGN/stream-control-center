@@ -14,6 +14,7 @@ window.DeathCounterModule = (function(){
   let error = '';
   let playerSearch = '';
   let playerSort = 'allTime';
+  let selectedPlayerId = '';
   let statsGameFilter = 'current';
 
   const tabs = [
@@ -142,6 +143,10 @@ window.DeathCounterModule = (function(){
         if (name === 'save-setting') await saveSetting(action.dataset.settingKey);
         if (name === 'save-text') await saveText(action.dataset.variantId);
         if (name === 'add-text') await addTextVariant(action.dataset.textKey, action.dataset.textCategory);
+        if (name === 'select-player-detail') {
+          selectedPlayerId = action.dataset.playerId || '';
+          renderPlayers();
+        }
       } catch (err) {
         error = err.message || String(err);
         render();
@@ -160,6 +165,11 @@ window.DeathCounterModule = (function(){
       const sort = event.target.closest('[data-dc-player-sort]');
       if (sort) {
         playerSort = sort.value || 'allTime';
+        renderPlayers();
+      }
+      const detailSelect = event.target.closest('[data-dc-player-detail-select]');
+      if (detailSelect) {
+        selectedPlayerId = detailSelect.value || '';
         renderPlayers();
       }
       const game = event.target.closest('[data-dc-stats-game]');
@@ -222,6 +232,50 @@ window.DeathCounterModule = (function(){
   }
   function getOverlayState(){ return overlay?.overlay || status?.overlay || players?.overlay || overlay || {}; }
   function normId(value){ return String(value || '').trim().toLowerCase(); }
+
+
+  function getPlayerKey(player){ return normId(player?.id || player?.login || player?.displayName); }
+
+  function findPlayerById(id){
+    const wanted = normId(id);
+    if (!wanted) return null;
+    return getPlayerList().find(player => getPlayerKey(player) === wanted || normId(player?.login) === wanted || normId(player?.displayName) === wanted) || null;
+  }
+
+  function getSelectedPlayer(){
+    const list = getPlayerList();
+    if (!list.length) return null;
+    const explicit = findPlayerById(selectedPlayerId);
+    if (explicit) return explicit;
+    const visible = getVisiblePlayers();
+    return visible[0] || list[0] || null;
+  }
+
+  function getPlayerSelectOptions(list, selectedId){
+    const selectedNorm = normId(selectedId);
+    return list.map(player => {
+      const id = player.id || player.login || player.displayName || '';
+      return `<option value="${esc(id)}"${normId(id) === selectedNorm ? ' selected' : ''}>${esc(player.displayName || player.login || id)}</option>`;
+    }).join('');
+  }
+
+  function getPlayerGameRows(player){
+    if (!player) return [];
+    const games = player.games || {};
+    const currentGame = getCurrentGame();
+    return Object.keys(games).map(game => {
+      const stats = games[game] || {};
+      return {
+        game,
+        session: Number(stats.session || 0),
+        allTime: Number(stats.allTime || 0),
+        current: normId(game) === normId(currentGame)
+      };
+    }).sort((a, b) => {
+      if (a.current !== b.current) return a.current ? -1 : 1;
+      return b.allTime - a.allTime || b.session - a.session || a.game.localeCompare(b.game, 'de', { sensitivity: 'base' });
+    });
+  }
 
   function getVisiblePlayers(){
     const rt = getRuntimeSettings();
@@ -369,11 +423,13 @@ window.DeathCounterModule = (function(){
     if (!panel) return;
     const list = getPlayerList();
     const filtered = getFilteredPlayers();
+    const selectedPlayer = getSelectedPlayer();
+    if (selectedPlayer && !selectedPlayerId) selectedPlayerId = selectedPlayer.id || selectedPlayer.login || selectedPlayer.displayName || '';
     panel.innerHTML = `
       ${errorBlock()}
       <div class="dc-card page-card">
         <div class="card-head big-head">
-          <div><h2>Spieler</h2><div class="small-note">Alle bekannten DeathCounter-Spieler aus dem aktuellen JSON-State.</div></div>
+          <div><h2>Spieler</h2><div class="small-note">Alle bekannten DeathCounter-Spieler aus dem aktuellen JSON-State, inklusive Detailansicht pro Spieler.</div></div>
           <div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div>
         </div>
         <div class="dc-player-tools">
@@ -384,9 +440,13 @@ window.DeathCounterModule = (function(){
             <option value="today"${playerSort === 'today' ? ' selected' : ''}>Heute absteigend</option>
             <option value="name"${playerSort === 'name' ? ' selected' : ''}>Name A-Z</option>
           </select></label>
+          <label><span>Detailansicht</span><select data-dc-player-detail-select>${getPlayerSelectOptions(list, selectedPlayerId)}</select></label>
           <div class="dc-tool-count">${num(filtered.length)} / ${num(list.length)} angezeigt</div>
         </div>
-        ${playersTable(filtered)}
+        <div class="dc-player-layout">
+          <div>${playersTable(filtered)}</div>
+          ${playerDetailCard(selectedPlayer)}
+        </div>
       </div>
     `;
   }
@@ -474,13 +534,54 @@ window.DeathCounterModule = (function(){
     return `
       <div class="dc-table-wrap">
         <table class="dc-table table">
-          <thead><tr><th>Spieler</th><th>Heute</th><th>Spiel gesamt</th><th>AllTime</th><th>Status</th></tr></thead>
+          <thead><tr><th>Spieler</th><th>Heute</th><th>Spiel gesamt</th><th>AllTime</th><th>Status</th><th>Aktion</th></tr></thead>
           <tbody>
             ${list.map(player => {
               const game = player.gameStats || {};
               const stats = player.stats || {};
-              return `<tr><td>${esc(player.displayName || player.login || player.id)}</td><td>${num(game.session)}</td><td>${num(game.allTime)}</td><td>${num(stats.allTime)}</td><td>${player.active === false ? 'inaktiv' : 'aktiv'}</td></tr>`;
+              const id = player.id || player.login || player.displayName || '';
+              const selected = normId(id) === normId(selectedPlayerId);
+              return `<tr class="${selected ? 'dc-selected-row' : ''}"><td>${esc(player.displayName || player.login || player.id)}</td><td>${num(game.session)}</td><td>${num(game.allTime)}</td><td>${num(stats.allTime)}</td><td>${player.active === false ? 'inaktiv' : 'aktiv'}</td><td><button type="button" class="dc-mini-btn" data-dc-action="select-player-detail" data-player-id="${esc(id)}">Details</button></td></tr>`;
             }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function playerDetailCard(player){
+    if (!player) return '<aside class="dc-player-detail dc-empty">Kein Spieler für Details ausgewählt.</aside>';
+    const rows = getPlayerGameRows(player);
+    const stats = player.stats || {};
+    const current = getGameStatsForPlayer(player, { mode: 'game', game: getCurrentGame(), usesAllTime: false });
+    return `
+      <aside class="dc-player-detail">
+        <div class="dc-detail-head">
+          <div>
+            <h3>${esc(player.displayName || player.login || player.id)}</h3>
+            <div class="small-note">${esc(player.login || player.id || '')}${player.active === false ? ' · inaktiv' : ' · aktiv'}</div>
+          </div>
+        </div>
+        <div class="dc-detail-kpis">
+          ${smallKpi('Heute aktuell', num(current.session))}
+          ${smallKpi('Spiel gesamt', num(current.allTime))}
+          ${smallKpi('Session gesamt', num(stats.session || 0))}
+          ${smallKpi('AllTime', num(stats.allTime || 0))}
+        </div>
+        <h4>Spiele dieses Spielers</h4>
+        ${playerGamesTable(rows)}
+      </aside>
+    `;
+  }
+
+  function playerGamesTable(rows){
+    if (!rows.length) return '<div class="dc-empty">Für diesen Spieler sind noch keine Spielwerte gespeichert.</div>';
+    return `
+      <div class="dc-table-wrap dc-detail-table">
+        <table class="dc-table table">
+          <thead><tr><th>Spiel</th><th>Heute</th><th>Gesamt</th><th></th></tr></thead>
+          <tbody>
+            ${rows.map(row => `<tr class="${row.current ? 'dc-current-game-row' : ''}"><td>${esc(row.game)}</td><td>${num(row.session)}</td><td>${num(row.allTime)}</td><td>${row.current ? 'aktuell' : ''}</td></tr>`).join('')}
           </tbody>
         </table>
       </div>

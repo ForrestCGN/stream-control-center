@@ -1,11 +1,10 @@
-# CURRENT_SYSTEM_STATUS - STEP246 Update
+# CURRENT_SYSTEM_STATUS - STEP247 Update
 
-DeathCounter Game-Change ueber Twitch EventSub wurde eingebaut.
+DeathCounter Dashboard wurde im Spieler-Tab um eine Spieler-Detailansicht erweitert.
 
-- Twitch EventSub `channel.update` wird in `backend/modules/twitch.js` verarbeitet.
-- Das neue Twitch-Spiel wird per lokaler API an `/api/deathcounter/v2/game` uebergeben.
-- Streamer.bot ist fuer Game-Changed-Sync nach erfolgreichem Live-Test nicht mehr noetig.
-- Stream-Start-Sync bleibt sinnvoll, weil dort Session-Reset und Overlay-Spieler-Reset haengen.
-- `/api/twitch/eventsub/status` zeigt den neuen Bereich `deathcounterSync`.
+- Spieler können über Dropdown oder Details-Button ausgewählt werden.
+- Detailkarte zeigt aktuelle Spielwerte, Session-/AllTime-Gesamtwerte und alle gespeicherten Spiele des Spielers.
+- Das aktuelle Spiel wird in der Detailtabelle markiert.
+- Spieler-Suche und Sortierung bleiben erhalten.
 
-Keine Count-, DB-, Dashboard-, Overlay- oder DeathCounter-Modul-Migration in diesem STEP.
+Keine Backend-, DB-, Count-, Overlay-, Twitch/EventSub- oder Streamer.bot-Änderung in diesem STEP.

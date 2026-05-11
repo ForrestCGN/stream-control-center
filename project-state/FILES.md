@@ -1,10 +1,11 @@
-# FILES - STEP246 DeathCounter EventSub Game Sync
+# FILES - STEP247 DeathCounter Spieler-Detailansicht Dashboard
 
 Geändert / neu:
 
 ```text
-backend/modules/twitch.js
-project-state/STEP246_DEATHCOUNTER_EVENTSUB_GAME_SYNC_2026-05-11.md
+htdocs/dashboard/modules/deathcounter.js
+htdocs/dashboard/modules/deathcounter.css
+project-state/STEP247_DEATHCOUNTER_PLAYER_DETAIL_DASHBOARD_2026-05-11.md
 project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
@@ -16,15 +17,9 @@ Nicht geändert:
 
 ```text
 backend/modules/deathcounter_v2.js
-htdocs/dashboard/**
+backend/modules/twitch.js
 app.sqlite
 data/deathcounter/deathcounter.v2.json
 htdocs/overlays/_overlay-deathcounter-v2.html
 Streamer.bot Actions/Exports
-```
-
-Hinweis:
-
-```text
-STEP246 nutzt die bestehende DeathCounter-Game-API. Es gibt keine neue Datenbanktabelle und keine Count-Migration.
 ```

@@ -1,55 +1,17 @@
-## STEP246 - DeathCounter Game-Change ueber Twitch EventSub
+## STEP247 - DeathCounter Spieler-Detailansicht im Dashboard
 
 Stand: 2026-05-11
 
-- Twitch EventSub `channel.update` synchronisiert jetzt DeathCounter `currentGame`.
-- Spielwechsel laufen damit backendseitig ueber `backend/modules/twitch.js`.
-- Streamer.bot-Game-Changed-Action wird nach erfolgreichem Live-Test nicht mehr benoetigt.
-- Die allgemeine Stream-Start-Routine kann weiter `/api/deathcounter/v2/stream-online-sync?id=127709954` nutzen, weil dort Session-/Overlay-Reset liegt.
-- `/api/twitch/eventsub/status` zeigt `deathcounterSync` mit letzter Synchronisierung und Fehlerstatus.
-- Keine Count-, DB-, Dashboard-, Overlay- oder DeathCounter-Modul-Migration.
+- DeathCounter Dashboard-Spieler-Tab hat jetzt eine Detailansicht pro Spieler.
+- Spieler können über Dropdown oder Details-Button ausgewählt werden.
+- Detailkarte zeigt aktuelles Spiel, Session/AllTime-Gesamtwerte und alle gespeicherten Spiele des Spielers.
+- Aktuelles Spiel wird in der Detail-Spieltabelle markiert.
+- Keine Backend-, DB-, Count-, Overlay-, Twitch/EventSub- oder Streamer.bot-Änderung.
 
 Referenz:
 
 ```text
-project-state/STEP246_DEATHCOUNTER_EVENTSUB_GAME_SYNC_2026-05-11.md
-```
-
----
-
-## STEP245 - DeathCounter Streamer.bot Minimal-Bridge Doku
-
-Stand: 2026-05-11
-
-- DeathCounter Streamer.bot-Zielstruktur ist dokumentiert.
-- `!rip`, `!tode` und `!dcount` sollen künftig nur noch per FetchURL an `/api/deathcounter/v2/command` übergeben.
-- Backend verarbeitet Parsing, Settings, Textvarianten, Counts/Overlay-State und Chat-Ausgabe über `helper_chat_output`.
-- Streamer.bot soll im Normalfall keine Chat-Ausgabe mehr ausführen.
-- `streamerbot_send` / `streamerbot_message` bleibt als optionaler Fallback dokumentiert.
-- Alte C#-Prepare-/Parsing-Skripte können nach erfolgreichem Live-Test ersetzt werden.
-- Keine Code-, Backend-, Dashboard-, DB-, Count-, Overlay- oder Streamer.bot-Export-Änderung.
-
-Referenz:
-
-```text
-project-state/STEP245_DEATHCOUNTER_STREAMERBOT_MINIMAL_BRIDGE_2026-05-11.md
-```
-
----
-
-## STEP244 - DeathCounter Statistik Game-Filter
-
-Stand: 2026-05-11
-
-- DeathCounter Dashboard-Statistik kann jetzt nach Spiel gefiltert werden.
-- Filter nutzt vorhandene JSON-State-Daten aus `player.games`.
-- Optionen: Aktuelles Spiel, Alle Spiele / AllTime und einzelne Spiele.
-- Keine Backend-, DB-, Count-, Overlay- oder Streamer.bot-Änderung.
-
-Referenz:
-
-```text
-project-state/STEP244_DEATHCOUNTER_STATISTIC_GAME_FILTER_2026-05-11.md
+project-state/STEP247_DEATHCOUNTER_PLAYER_DETAIL_DASHBOARD_2026-05-11.md
 ```
 
 ---
@@ -67,5 +29,6 @@ STEP242.2  Dashboard-Tabs/Layout-Fix
 STEP243    Dashboard UX Cleanup
 STEP244    Statistik Game-Filter
 STEP245    Streamer.bot Minimal-Bridge Doku
-STEP246    EventSub Game-Change Sync
+STEP246    EventSub Game-Sync
+STEP247    Spieler-Detailansicht Dashboard
 ```
