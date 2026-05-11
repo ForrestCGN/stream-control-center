@@ -1,25 +1,11 @@
 # CHANGELOG
 
-## 2026-05-11 - STEP260 DeathCounter DB-Storage STABLE dokumentiert
+## 2026-05-11 - STEP261 project-state Cleanup / Archivierung
 
-- DeathCounter-DB-Umbau als stabilen Stand dokumentiert.
-- Bestätigte Live-Tests für DB-only Betrieb, Backup, Export und Command-API eingetragen.
-- Neue stabile Current-Doku ergänzt: `docs/current/DEATHCOUNTER_DB_STORAGE_STABLE_2026-05-11.md`.
-- `PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md` wieder als vollständige Projektkarte geführt und DeathCounter-DB-Stand ergänzt.
-- `PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md` wieder als vollständige Route-Map geführt und DeathCounter-Storage-Routen ergänzt.
-- `PROJECT_DOCUMENTATION_MAP_2026-05-11.md` und `PROJECT_CLEANUP_PLAN_2026-05-11.md` nachgezogen.
-- Keine Code-, DB-, Overlay-, Dashboard- oder Streamer.bot-Änderung.
-
-## 2026-05-11 - STEP259 DeathCounter DB-only Storage + manueller JSON Backup/Export
-
-- Automatischen JSON-Dual-Write aus `updateState()` entfernt.
-- DeathCounter schreibt produktiv nur noch in die DB.
-- JSON bleibt als Backup-/Exportformat erhalten.
-- Neue API-Routen ergänzt:
-  - `/api/deathcounter/v2/storage/backup`
-  - `/api/deathcounter/v2/storage/export`
-- Neue `!dcount`-Commands ergänzt:
-  - `!dcount backup`
-  - `!dcount export`
-- Integration-Check zeigt `dualWriteEnabled: false`.
-- Keine Overlay-, Dashboard- oder Streamer.bot-Änderung.
+- Aufraeum-Script fuer `project-state` ergaenzt: `tools/step261_project_state_cleanup.js`.
+- Einmaliger Windows-Apply-Befehl ergaenzt: `STEP261_APPLY_PROJECT_STATE_CLEANUP.cmd`.
+- Alte project-state-Fragmente werden archiviert statt geloescht.
+- Archivziel: `project-state/archive/step261-project-state-cleanup/`.
+- Aktive Root-Dateien bleiben erhalten: `CURRENT_STATUS.md`, `CHANGELOG.md`, `FILES.md`, `NEXT_STEPS.md`.
+- Aktuelle STEP-Historie ab STEP229 bleibt im Root sichtbar.
+- Keine Code-, DB-, Runtime-, Overlay- oder Streamer.bot-Aenderung.

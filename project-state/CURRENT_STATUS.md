@@ -1,53 +1,39 @@
-## STEP260 - DeathCounter DB-Storage STABLE dokumentiert
+## STEP261 - project-state Cleanup / Archivierung alter Fragmente
 
 Stand: 2026-05-11
 
-DeathCounter V2 ist nach Live-Test stabil auf produktiven DB-Storage umgestellt.
+DeathCounter-DB-Umbau ist stabil abgeschlossen. Danach wurde `project-state` fuer bessere Uebersicht aufgeraeumt.
 
-Aktueller DeathCounter-Stand:
-
-```text
-STEP252 DB-Schema vorbereitet
-STEP253 Storage-Preview read-only
-STEP254 Import-Readiness-Validation read-only
-STEP255 Guarded Import erfolgreich
-STEP256 DB-vs-JSON Consistency Check
-STEP257 DB Read-Test
-STEP258 Active DB Storage mit Übergangs-Dual-Write
-STEP259 DB-only produktiv + manueller JSON Backup/Export
-STEP260 STABLE-Doku und Doku-Cleanup
-```
-
-Produktives Verhalten:
+Aktueller DeathCounter-Produktivstand:
 
 ```text
-readState(): DB-first
-updateState(): DB-only
 activeStorage: database
 dualWriteEnabled: false
 fallbackStorage: json_backup_export_file
 ```
 
-JSON-Verhalten:
+DeathCounter Verhalten:
 
 ```text
-!dcount backup -> Timestamp-Backup unter data/deathcounter/backups/
-!dcount export -> Haupt-JSON aus DB neu schreiben, vorher Backup anlegen
+readState(): DB-first
+updateState(): DB-only
+JSON: nur manuelles Backup/Exportformat
+!dcount backup: Timestamp-Backup
+!dcount export: Haupt-JSON aus DB neu schreiben
 ```
 
-Bestätigte Live-Tests:
+Project-State Cleanup:
 
 ```text
-status/settings/read-test/consistency/integration-check OK
-storage/backup OK
-storage/export?mode=export OK
-!dcount backup OK
-!dcount export OK
-!rip + !del Schreibtest OK
+alte APPEND-/STATUS_NOTE-/SAVED-/README-/Testlog-/Report-/STEP-Fragmente werden nach project-state/archive/step261-project-state-cleanup/ verschoben.
+Nichts wird geloescht.
+Aktive Dateien bleiben im project-state-Root.
 ```
 
-Stabile Referenzdoku:
+Anwendung nach ZIP-Entpacken:
 
-```text
-docs/current/DEATHCOUNTER_DB_STORAGE_STABLE_2026-05-11.md
+```powershell
+cd D:\Git\stream-control-center
+.\STEP261_APPLY_PROJECT_STATE_CLEANUP.cmd
+.\stepdone.cmd "STEP261 project-state cleanup archive old fragments"
 ```

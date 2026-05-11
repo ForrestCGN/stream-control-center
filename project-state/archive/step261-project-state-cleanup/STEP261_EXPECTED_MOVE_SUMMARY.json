@@ -1,0 +1,2325 @@
+{
+  "expectedMoves": [
+    {
+      "name": "CHANGELOG_STEP198_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP200_2_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP200_3_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP200_4_FIXED_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP200_5_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP200_6_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP200_7_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP200_8_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_10B_OBS_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_10C_SCENE_CONTROL_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_11B_DISCORD_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_12B_1_TWITCH_PRESENCE_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_12B_TWITCH_PRESENCE_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_12D_OVERLAY_CHAT_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_1_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_2A_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_2B_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_3A_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_3B_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_3C_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_3C_FIX2_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_3C_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_3D_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_3D_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_3E_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_3E_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_5_VIP_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_6_1_CHALLENGE_OVERLAY_PATH_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_6_CHALLENGE_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_7_CLIP_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_8_1_DEATHCOUNTER_STATUS_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_8_DEATHCOUNTER_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_9_HUG_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_INTERMEDIATE_MATRIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP201_SAVED_2026-05-08.md",
+      "category": "old-saved",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP202_2_LOYALTY_SHADOW_MODE_APPEND_2026-05-09.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP202_3_ALERTS_URGENT_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP202_LOYALTY_CAPTURE_PREP_APPEND_2026-05-09.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CHANGELOG_STEP209_ENTRY_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_APPEND_STEP229.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_APPEND_STEP230A.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_APPEND_STEP230B.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_APPEND_STEP231.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP198_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP200_2_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP200_5_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP200_6_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP200_7_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP200_8_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_10B_OBS_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_10C_SCENE_CONTROL_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_11B_DISCORD_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_12B_1_TWITCH_PRESENCE_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_12B_TWITCH_PRESENCE_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_12D_OVERLAY_CHAT_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_1_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_2A_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_2B_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_3A_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_3B_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_3C_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_3C_FIX2_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_3C_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_3D_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_3D_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_3E_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_3E_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_5_VIP_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_6_1_CHALLENGE_OVERLAY_PATH_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_6_CHALLENGE_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_7_CLIP_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_8_1_DEATHCOUNTER_STATUS_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_8_DEATHCOUNTER_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_9_HUG_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_INTERMEDIATE_MATRIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP201_SAVED_2026-05-08.md",
+      "category": "old-saved",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP202_2_LOYALTY_SHADOW_MODE_APPEND_2026-05-09.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP202_LOYALTY_CAPTURE_PREP_APPEND_2026-05-09.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "CURRENT_STATUS_STEP209_ADDITION_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "DB_PHASE2_CLEANUP_SUMMARY_2026-05-10.md",
+      "category": "old-reports",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_10B_OBS_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_10C_SCENE_CONTROL_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_11B_DISCORD_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_12B_1_TWITCH_PRESENCE_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_12B_TWITCH_PRESENCE_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_12D_OVERLAY_CHAT_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_5_VIP_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_6_1_CHALLENGE_OVERLAY_PATH_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_6_CHALLENGE_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_7_CLIP_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_8_1_DEATHCOUNTER_STATUS_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_8_DEATHCOUNTER_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_9_HUG_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP201_SAVED_2026-05-08.md",
+      "category": "old-saved",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP202_2_LOYALTY_SHADOW_MODE_APPEND_2026-05-09.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP202_3_ALERTS_2026-05-08.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP202_LOYALTY_CAPTURE_PREP_APPEND_2026-05-09.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP203_ALERTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP204_1_ALERTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP204_ALERTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP205_ALERT_RULE_VALUE_HINTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP206_ALERT_TTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP207_1_ALERT_TTS_VERIFIED_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP207_ALERT_RULE_TTS_DASHBOARD_SETTINGS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP208_ALERT_OVERLAY_USERNAME_LAYOUT_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "FILES_STEP209_ALERT_MESSAGE_TEXT_SETTINGS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "HUG_BEFORE_HUG_ALL_TEXTS_2026-05-11.json",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "HUG_BEFORE_RESPONSE_TEXTS_2026-05-11.json",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "HUG_BEFORE_TEXT_PAIRS_2026-05-11.json",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "HUG_BEFORE_TOP_TITLE_TEXTS_2026-05-11.json",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "HUG_LIVE_API_TEST_LOG_2026-05-11.jsonl",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "HUG_LIVE_API_TEST_SUMMARY_2026-05-11.txt",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP198_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP200_2_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP200_5_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP200_6_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP200_7_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP200_8_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_10B_OBS_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_10C_SCENE_CONTROL_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_11B_DISCORD_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_12B_1_TWITCH_PRESENCE_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_12B_TWITCH_PRESENCE_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_12D_OVERLAY_CHAT_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_1_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_2A_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_2B_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_3A_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_3B_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_3C_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_3C_FIX2_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_3C_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_3D_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_3D_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_3E_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_3E_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_5_VIP_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_6_1_CHALLENGE_OVERLAY_PATH_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_6_CHALLENGE_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_7_CLIP_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_8_1_DEATHCOUNTER_STATUS_FIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_8_DEATHCOUNTER_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_9_HUG_DIAGNOSTICS_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_INTERMEDIATE_MATRIX_APPEND_2026-05-08.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP201_SAVED_2026-05-08.md",
+      "category": "old-saved",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP202_2_LOYALTY_SHADOW_MODE_APPEND_2026-05-09.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP202_3_ALERTS_2026-05-08.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP202_LOYALTY_CAPTURE_PREP_APPEND_2026-05-09.md",
+      "category": "old-appends",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP203_ALERTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP204_1_ALERTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP204_ALERTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP206_ALERT_TTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP207_1_ALERT_TTS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP207_ALERT_RULE_TTS_DASHBOARD_SETTINGS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP208_ALERT_OVERLAY_USERNAME_LAYOUT_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "NEXT_STEPS_STEP209_ALERT_MESSAGE_TEXT_SETTINGS_2026-05-09.md",
+      "category": "old-fragments",
+      "isDirectory": false
+    },
+    {
+      "name": "PROJECT_STATUS_2026-05-03_SYSTEM_CLEANUP_OBS_DASHBOARD.md",
+      "category": "old-reports",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP173.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP175.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP176.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP177.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP179.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP180_TIPEEE_DONATION_ONLY_SEED_FIX.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP228.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP253_DEATHCOUNTER_STORAGE_PREVIEW.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP254_DEATHCOUNTER_STORAGE_VALIDATION.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP256_DEATHCOUNTER_STORAGE_CONSISTENCY.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP257_DEATHCOUNTER_DB_READ_TEST.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "README_STEP259_DEATHCOUNTER_DB_ONLY_MANUAL_JSON_EXPORT.md",
+      "category": "old-readmes",
+      "isDirectory": false
+    },
+    {
+      "name": "SOUNDALERTS_STEP192_CURRENT_STATE_2026-05-06.md",
+      "category": "old-reports",
+      "isDirectory": false
+    },
+    {
+      "name": "SOUNDALERTS_STEP192_CURRENT_STATE_2026-05-06.txt",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP002_REPO_LIVE_COMPARE_REVIEW_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP003_DEPLOY_REPO_TO_LIVE_HUG_CLEAN_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP004_FOCUSED_REPO_LIVE_COMPARE_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP005_OBS_API_ALIASES_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP006_OBS_DASHBOARD_API_READS_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP007_DASHBOARD_MOJIBAKE_FIX_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP007_mojibake_findings_before.txt",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP008_FIREWORKS_DUPLICATE_ROUTES_REVIEW_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP010_OBS_DASHBOARD_API_ACTIONS_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP011_DOCUMENTATION_STRUCTURE_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP012_PROJECT_STATE_SYNC_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP015_VIP_SOUND_OVERLAY_PLAN_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP017_VIP_SOUND_SYSTEM_QUEUE_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP018_VIP_OVERLAY_VISUAL_PENDING_2026-05-03.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP019_VIP_SOUND_OVERRIDE_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP020_VIP_OVERRIDE_LIVE_TEST_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP021_SOUND_SYSTEM_REQUEST_ID_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP022_STREAMERBOT_VIP_ARGS_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP023_VIP_STREAMERBOT_SOUNDSYSTEM_OVERLAY_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP026_VIP_TWITCH_ROLE_HELPER_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP027_VIP_HEIMAUFSICHT_TEXTS_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP028_VIP_DAILY_USAGE_API_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP029_VIP_DAILY_USAGE_API_FIX_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP030_VIP_REFERENCE_STATUS_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP031_VIP_DB_SETTINGS_BASE_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP032_VIP_SOUND_FILE_SETTINGS_ACTIVE_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP033_VIP_EVENTS_STATS_BASE_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP034_1_VIP_ROLE_CONFIG_PATH_FIX_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP034_VIP_ROLE_OVERRIDES_DB_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP035_VIP_TEXT_API_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP036_HELPER_SETTINGS_BASE_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP037_VIP_USE_HELPER_SETTINGS_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP038_VIP_SETTINGS_WRITE_API_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP039_VIP_ADMIN_TEST_ROUTES_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP040_VIP_BACKEND_REFERENCE_DASHBOARD_READY_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP041_TTS_ALERT_SOUND_ANALYSIS_PLAN_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP042_1_TTS_GENERATED_WEBROOT_PATH_FIX_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP042_2_ALERT_TTS_SOUND_SYSTEM_PLAYBACK_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP042_3_ALERT_TTS_OVERLAY_AUDIO_SUPPRESS_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP042_TTS_ALERT_TTS_CODE_READY_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP043_TTS_OVERLAY_NEON_GALAXY_DESIGN_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP044_1_CHAT_TTS_VISUAL_BEFORE_SOUND_SYSTEM_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP044_3_TTS_OVERLAY_STATE_ENDPOINT_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP044_4_TTS_OVERLAY_SOUND_SYSTEM_VISUAL_STATE_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP044_5_TTS_OVERLAY_CLEAN_LAYOUT_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP044_6_TTS_OVERLAY_AVATAR_DISPLAY_POSITION_FIX_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP044_7_TTS_OVERLAY_BORDER_AVATAR_TWEAK_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP044_8_TTS_OVERLAY_ADAPTIVE_WIDTH_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP044_CHAT_TTS_SOUND_SYSTEM_PLAYBACK_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP045_TTS_SOUND_SYSTEM_QUEUE_SYNC_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP046_ALERT_SOUND_EARLY_QUEUE_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP047_VIP_DASHBOARD_BASE_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP048_ALERT_TTS_REGRESSION_CONTEXT_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP171_172_ALERT_TTS_SOUND_OUTPUT_2026-05-04.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP172_SOUND_ALERT_TTS_STATUS_CURRENT_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP173_1_VIP_DASHBOARD_USERS_STATS_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP173_VIP_SOUND_UPLOAD_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_1_TWITCH_STATUS_UI_SPLIT_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_2_TWITCH_ONLY_VIP_RIGHTS_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_3_TWITCH_STATUS_MAPPING_FIX_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_4_VIP_DASHBOARD_HEADER_STATUS_CLEANUP_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_5_VIP_TWITCH_SYNC_DOCS_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_6_VIP_USERS_RESPONSE_CLEANUP_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_7_VIP_DASHBOARD_RESPONSE_CLEANUP_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_8_VIP_OVERVIEW_CLEANUP_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_9_VIP_STATS_PAGE_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_TWITCH_VIP_MOD_SYNC_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP174_VIP_SYSTEM_HANDOFF_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP175_1_VIP_SOUND_MANAGEMENT_CLEANUP_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP175_2_VIP_SOUND_PREVIEW_BUTTONS_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP175_3_VIP_UPLOAD_UX_HARDENING_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP175_3_VIP_UPLOAD_UX_REVERT_SIMPLE_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP175_4_VIP_SOUND_UPLOAD_SELECTION_FLOW_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP175_5_PROJECT_DOC_SYNC_AFTER_VIP_BLOCK_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP175_VIP_SOUND_BLOCK_HANDOFF_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP176_TAGEBUCH_TODO_DB_DASHBOARD_AUDIT_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP178_TAGEBUCH_TODO_DASHBOARD_INTEGRATION_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP179_TEXT_VARIANTS_EDITOR_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP180_TEXT_VARIANTS_STATUS_UX_CLEANUP_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP181_0_EASY_COMMAND_WRAPPERS_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP181_2_HUG_REHUG_TEXT_PAIR_DASHBOARD_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP181_3_COPY_REPO_CHANGES_TO_LIVE_SCRIPT_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP181_4_HUG_SIMPLIFY_NO_TYPES_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP181_6_STEPDONE_SCRIPT_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP181_6_STEPDONE_SCRIPT_FIX_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP181_7_STEPDONE_CMD_ONLY_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP181_8_HUG_REHUG_DOC_SYNC_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP181_HUG_REHUG_TEXT_PAIRS_BACKEND_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP182_1_HUG_DASHBOARD_UX_TEXTPAIR_LABELS_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP182_2_HUG_DASHBOARD_UX_TEXTAREA_WIDTH_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP182_3_HUG_ALL_TEXT_EDITOR_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP182_4_HUG_RESPONSE_TEXT_EDITOR_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP182_5_HUG_TOP_TITLE_EDITOR_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP182_6_HUG_TEXT_EDITOR_DOC_SYNC_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP183_CLIP_BACKEND_INTEGRATION_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP184_CLIP_API_READINESS_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP185_5_CLIP_DISCORD_CHANNEL_AND_TEXT_CLEANUP_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP185_CLIP_DB_SETTINGS_TEXTS_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP186_1_CLIP_SCHEMA_MIGRATION_FIX_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP186_2_CLIP_CREATE_OFFLINE_GUARD_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP186_CLIP_BACKEND_CREATE_TWITCH_DISCORD_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP187_1_SOUND_SYSTEM_OVERLAY_STOP_FIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP187_2_SOUND_SYSTEM_STOP_QUEUE_GAP_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP187_3_SOUND_ALERT_QUEUE_VALIDATION_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP187_5_CLIP_BACKEND_FLOW_DOC_SYNC_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP187_CLIP_LOCAL_REPLAY_FILE_HANDLING_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP188_1_ALERT_SOUND_ROUTING_BACKEND_AUDIT_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP188_2_ALERT_RULE_SOUND_ROUTING_BACKEND_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP188_3_ALERT_RULE_SOUND_ROUTING_DASHBOARD_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP188_ALERT_RULE_SOUND_ROUTING_SOUNDALERT_INBOX_PLAN_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP188_CLIP_DASHBOARD_INTEGRATION_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP188_SOUND_SYSTEM_VIDEO_QUEUE_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP189_1_SOUNDALERTS_PARSE_HOTFIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP189_CLIP_DASHBOARD_HISTORY_DETAILS_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP189_SOUNDALERTS_CHAT_BRIDGE_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP189_SOUNDALERT_INBOX_WORKFLOW_PLAN_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP190_1_SOUNDALERTS_EVENTS_ACTIONS_PRIORITY_UX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP190_2_SOUNDALERTS_LAYOUT_CLEANUP_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP190_3_SOUNDALERTS_PRIORITY_STANDARD_UX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP190_4_SOUNDALERTS_OPEN_ENTRIES_OVERVIEW_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP190_5_SOUNDALERTS_MEDIA_REPLAY_PLAN_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP190_CLIP_DASHBOARD_SETTINGS_CLEANUP_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP190_SOUNDALERTS_DASHBOARD_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP190_SOUNDALERTS_MAPPING_UX_CLEANUP_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP191_CLIP_TEXTVARIANTS_UX_CLEANUP_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP191_SOUNDALERTS_FILE_UPLOAD_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP192_1_1_SOUNDALERTS_DEFAULTS_SAVE_CLEANUP_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP192_1_SOUNDALERTS_ENTRIES_DB_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP192_2_1_SOUNDALERTS_DB_CORE_PORTABILITY_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP192_2_SOUNDALERTS_SETTINGS_DB_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP192_3_1_GLOBAL_DB_PORTABILITY_STANDARD_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP192_3_SOUNDALERTS_DOC_SYNC_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP192_CLIP_TEXTVARIANTS_HEIMAUFSICHT_FINAL_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP192_CLIP_TEXTVARIANTS_HEIMAUFSICHT_SEED_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_10_SOUNDALERTS_PARSER_FORMAT_FIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_11_1_SOUNDALERTS_PARSER_SETTINGS_SERIALIZATION_FIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_11_SOUNDALERTS_CONFIGURABLE_PARSER_FORMATS_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_12_SOUNDALERTS_PARSER_FORMATS_DASHBOARD_EDITOR_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_13_SOUNDALERTS_ENTRY_TEST_BUTTONS_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_14_SOUNDALERTS_LOCAL_OVERLAY_TEST_WORKFLOW_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_15_1_SOUNDALERTS_DOC_SYNC_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_15_SOUNDALERTS_TEST_OUTPUT_OVERRIDE_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_16_SOUNDALERTS_ENTRY_EDITOR_OUTPUT_AND_SELECTION_FIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_17_1_SOUNDALERTS_FILTER_REGRESSION_FIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_17_2_SOUNDALERTS_FINAL_DOC_SYNC_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_17_SOUNDALERTS_OUTPUT_FIELD_CLEANUP_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_1_CLIP_DISABLE_LIVE_GUARD_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_1_SOUNDALERTS_INBOX_DOC_SYNC_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_2_CLIP_REPLAY_FILE_SELECTION_FIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_2_SOUNDALERTS_UPLOAD_LIMIT_SETTINGS_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_3_CLIP_REPLAY_PREFIX_FIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_3_SOUNDALERTS_UPLOAD_UX_IGNORE_ENTRIES_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_4_SOUNDALERTS_DIRECT_ENTRY_ACTIONS_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_5_SOUNDALERTS_UPLOAD_UX_IGNORE_DELETE_DOC_SYNC_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_6_1_SOUNDALERTS_OBS_LOADER_STANDARD_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_6_SOUNDALERTS_DASHBOARD_LAYOUT_CLEANUP_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_7_1_SOUNDALERTS_INACTIVE_FILTER_FIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_7_2_SOUNDALERTS_OVERVIEW_STATS_CLEANUP_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_7_3_SOUNDALERTS_OVERVIEW_ACTION_STATE_CLEANUP_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_7_4_SOUNDALERTS_EVENT_LOG_CLARITY_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_7_SOUNDALERTS_OVERVIEW_DASHBOARD_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_8_1_SOUNDALERTS_REVIEW_SAVE_SCOPE_FIX_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_8_SOUNDALERTS_REVIEW_WORKFLOW_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_9_SOUNDALERTS_STABLE_HANDOFF_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_CLIP_BACKEND_LIVE_TEST_HANDOFF_2026-05-05.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP193_SOUNDALERTS_INBOX_AUTO_ENTRIES_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP194_CLIP_BACKEND_CHAT_HELPER_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP194_STREAMELEMENTS_LOYALTY_MIGRATION_ARCHITECTURE_2026-05-07.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP195_CLIP_TWITCH_TITLE_DURATION_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP196_ALERT_DB_SETTINGS_PRECEDENCE_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP196_CLIP_AND_ROTATOR_DOCUMENTATION_2026-05-06.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP197_1_ALERT_OVERLAY_CORRECT_PATH_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP197_ALERT_OVERLAY_SKIP_DUPLICATE_AUDIO_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP198_GLOBAL_MODULE_DB_DASHBOARD_STANDARD_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP199_1_TTS_STANDARD_ADMIN_API_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP199_2_TTS_DASHBOARD_MODULE_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP199_3_TTS_USER_STATS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP199_4_TTS_DASHBOARD_STATS_POLISH_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP199_4_TTS_INTEGRATION_CHECK_SETTINGS_SANITIZE_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP199_5_TTS_DOC_SYNC_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_1_SOUND_ROUTES_INTEGRATION_CHECK_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_1_TTS_DOC_SYNC_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_2_SOUND_SYSTEM_STANDARDIZATION_PLAN_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_3_SOUND_DASHBOARD_DIAGNOSIS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_4_SOUND_SETTINGS_SOURCE_DISPLAY_FIXED_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_5_SOUND_SYSTEM_JSON_SEED_PLAN_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_6_SOUND_TARGET_OUTPUTTARGET_ANALYSIS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_7_TEST_PING_SOUND_PRESET_DECISION_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_8_GLOBAL_INSTALLER_SEED_PLAN_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP200_TTS_TEXT_VARIANTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_10B_OBS_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_10C_SCENE_CONTROL_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_11B_DISCORD_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_12B_1_TWITCH_PRESENCE_INTEGRATION_FIX_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_12B_TWITCH_PRESENCE_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_12D_OVERLAY_CHAT_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_1_API_PREFIX_ALIAS_DECISION_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_2A_ALERTS_ROUTES_ENDPOINT_FULL_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_2B_SOUNDALERTS_ROUTES_ENDPOINT_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_3A_SOUNDALERTS_INTEGRATION_CHECK_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_3B_TAGEBUCH_ROUTES_INTEGRATION_CHECK_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_3C_FIX2_TODO_INTEGRATION_CHECK_TEXT_COLUMNS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_3C_FIX_TODO_INTEGRATION_CHECK_500_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_3C_TODO_ROUTES_INTEGRATION_CHECK_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_3D_FIX_MESSAGES_FILE_WARNINGS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_3D_MESSAGES_ROUTES_INTEGRATION_CHECK_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_3E_FIX_MESSAGE_ROTATOR_ARRAY_ROUTES_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_3E_MESSAGE_ROTATOR_ROUTES_INTEGRATION_CHECK_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_5_VIP_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_6_1_CHALLENGE_OVERLAY_PATH_FIX_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_6_CHALLENGE_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_7_CLIP_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_8_1_DEATHCOUNTER_STATUS_FIX_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_8_DEATHCOUNTER_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_9_HUG_DIAGNOSTICS_ENDPOINTS_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_DASHBOARD_MODULE_STANDARD_MATRIX_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP201_INTERMEDIATE_MATRIX_UPDATE_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP202_1B_SOUNDALERTS_LONGER_LOG_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP202_1_SOUNDALERTS_EVENTS_LIMIT_100_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP202_2_LOYALTY_SHADOW_MODE_AND_BONUS_RULES_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP202_3_ALERTS_URGENT_NEXT_WORK_2026-05-08.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP202_LOYALTY_CAPTURE_AND_MIGRATION_PREP_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_1_LOYALTY_WATCH_SHADOW_HOOK_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_2_TWITCH_PRESENCE_ACTIVITY_COLLECTOR_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_3_1_LOYALTY_ROUTE_REGISTRATION_FIX_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_3_2_LOYALTY_STREAM_STATE_TABLE_SAFETY_NET_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_3_3_LOYALTY_PRESENCE_RUNNER_FUNCTION_FIX_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_3_LOYALTY_STREAM_STATE_GATE_PRESENCE_RUN_ONCE_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_4_LOYALTY_AUTO_SHADOW_RUNNER_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_5_1_LOYALTY_DASHBOARD_CONFIG_TAB_FIX_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_6_1_LOYALTY_GIFTSUB_RECEIVER_BOOKING_FIX_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_6_2_LOYALTY_GIFTSUB_RECEIVER_QUERY_FIX_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_6_3_LOYALTY_GIFTSUB_RECEIVER_REAL_FIX_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_6_LOYALTY_REAL_EVENT_BONUSES_SHADOW_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_ALERT_PROVIDER_SAFETY_FIX_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP203_LOYALTY_CORE_DB_API_SHADOW_MODE_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP204_1_TWITCH_SUB_GIFT_RULE_CLEANUP_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP204_LOYALTY_RUNNER_STREAM_STATE_AUTOSTART_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP204_TWITCH_SUB_GIFT_RULE_MODEL_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP205_ALERT_RULE_VALUE_HINTS_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP205_LOYALTY_STREAM_STATE_SIGNAL_LOGGING_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP206_ALERT_TTS_DISPATCH_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP206_LOYALTY_LIVETEST_CHECKLIST_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP207_1_ALERT_TTS_VERIFIED_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP207_ALERT_RULE_TTS_DASHBOARD_SETTINGS_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP207_DB_PORTABILITY_ANALYSIS_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP208_ALERT_OVERLAY_USERNAME_LAYOUT_VERIFIED_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP208_DB_CORE_DIALECT_HELPERS_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP209_ALERT_MESSAGE_TEXT_SETTINGS_2026-05-09.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP209_KOFI_TIPEEE_DB_CORE_PORTABILITY_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP210_TWITCH_DB_CORE_PORTABILITY_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP211_SOUND_SYSTEM_DB_CORE_PORTABILITY_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP212_DASHBOARD_AUTH_DB_CORE_PORTABILITY_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP213_ALERT_SYSTEM_DB_CORE_PORTABILITY_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP214_TAGEBUCH_DB_CORE_PORTABILITY_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP215_TODO_DB_CORE_PORTABILITY_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP216_CHALLENGE_DB_CORE_PORTABILITY_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP217_DB_CORE_PORTABILITY_RESCAN_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP218_DB_DIALECT_HELPER_PHASE2_PLAN_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP219_DB_CORE_HELPER_STABILIZATION_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP220_DASHBOARD_AUTH_DB_HELPER_CLEANUP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP220_TWITCH_ALERT_SUB_MESSAGE_BUFFER_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP221_TAGEBUCH_DB_HELPER_CLEANUP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP221_TWITCH_EVENTSUB_DEBUG_SIMULATOR_BACKEND_2026-05-11.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP222_1_CHALLENGE_STATS_LIMIT_FIX_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP222_CHALLENGE_DB_HELPER_CLEANUP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP222_TWITCH_SUBSCRIPTION_TIER_MESSAGE_NORMALIZATION_2026-05-11.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP223_ALERT_TTS_CHEER_WORD_CLEANUP_2026-05-11.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP223_HELPER_SETTINGS_DB_HELPER_CLEANUP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP224_HELPER_TEXTS_DB_HELPER_CLEANUP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP224_TWITCH_EVENT_SIMULATOR_DASHBOARD_2026-05-11.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP225_HUG_DB_HELPER_CLEANUP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP225_TWITCH_EVENTSUB_INBOUND_AUDIT_2026-05-11.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP226_KOFI_TIPEEE_DB_HELPER_CLEANUP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP226_TWITCH_CHEERMOTE_TTS_CLEANUP_2026-05-11.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP227_TWITCH_DB_HELPER_CLEANUP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP227_TWITCH_EVENTSUB_SUBSCRIPTIONS_STATUS_2026-05-11.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP228_SOUND_SYSTEM_DB_HELPER_CLEANUP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP228_TWITCH_EVENTSUB_ALERT_MAPPING_AUDIT_2026-05-11.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "STEP_MESSAGE_ROTATOR_STREAMERBOT_START_STOP_2026-05-10.md",
+      "category": "old-step-docs",
+      "isDirectory": false
+    },
+    {
+      "name": "SYSTEM_INSPEKTION_MASTER_TODO_v1_1_FINAL_GITHUB_2026-05-03.txt",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "UPLOAD_REVIEW_2026-05-01_BACKEND_CONFIG.md",
+      "category": "old-reports",
+      "isDirectory": false
+    },
+    {
+      "name": "UPLOAD_REVIEW_2026-05-01_HTDOCS_DASHBOARD.md",
+      "category": "old-reports",
+      "isDirectory": false
+    },
+    {
+      "name": "_backup_alert_rules_before_sub_fix.json",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "_backup_alert_rules_before_twitch_tts.json",
+      "category": "old-test-logs",
+      "isDirectory": false
+    },
+    {
+      "name": "step002_repo_live_compare",
+      "category": "old-compare-reports",
+      "isDirectory": true
+    },
+    {
+      "name": "step004_focused_repo_live_compare",
+      "category": "old-compare-reports",
+      "isDirectory": true
+    }
+  ],
+  "counts": {
+    "old-appends": 127,
+    "old-saved": 4,
+    "old-fragments": 21,
+    "old-reports": 5,
+    "old-test-logs": 11,
+    "old-readmes": 12,
+    "old-step-docs": 280,
+    "old-compare-reports": 2
+  },
+  "total": 462
+}

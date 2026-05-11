@@ -1,73 +1,38 @@
-# CURRENT_SYSTEM_STATUS - DeathCounter DB-Storage STABLE
+# CURRENT_SYSTEM_STATUS - STEP261 Update
 
-Stand: 2026-05-11
+DeathCounter V2 ist nach dem DB-Umbau stabil und produktiv DB-basiert.
 
-## Wichtigster aktueller Projektstand
-
-DeathCounter V2 läuft produktiv auf DB-Storage und ist nach Live-Test als stabil bestätigt.
+Aktueller DeathCounter-Storage:
 
 ```text
 activeStorage: database
-configuredStorage: database
-fallbackStorage: json_backup_export_file
-databaseReadable: true
 dualWriteEnabled: false
-jsonFallbackEnabled: true
+fallbackStorage: json_backup_export_file
 ```
 
-## DeathCounter Verhalten
+Bestätigt:
 
 ```text
-readState(): DB-first
-updateState(): DB-only
+- Streamer.bot-Commands funktionieren.
+- !dcount backup funktioniert.
+- !dcount export funktioniert.
+- Integration-Check ist gruen.
+- JSON wird nicht mehr automatisch bei jeder Änderung geschrieben.
 ```
 
-JSON wird nicht mehr automatisch bei jeder Änderung mitgeschrieben.
-
-Backup/Export:
+Projekt-Doku / project-state:
 
 ```text
-!dcount backup
-!dcount export
-/api/deathcounter/v2/storage/backup
-/api/deathcounter/v2/storage/export?mode=backup
-/api/deathcounter/v2/storage/export?mode=export
+STEP261 archiviert alte project-state-Fragmente in project-state/archive/step261-project-state-cleanup/.
+Der Root von project-state bleibt fuer aktuelle Arbeitsdateien und aktuelle STEP-Historie reserviert.
 ```
 
-## Bestätigt getestet
+Nicht geändert:
 
 ```text
-/api/deathcounter/v2/status OK
-/api/deathcounter/v2/settings OK
-/api/deathcounter/v2/storage/read-test OK
-/api/deathcounter/v2/storage/consistency OK
-/api/deathcounter/v2/integration-check OK
-/api/deathcounter/v2/storage/backup OK
-/api/deathcounter/v2/storage/export?mode=export OK
-!dcount backup über Command-API OK
-!dcount export über Command-API OK
-!rip + !del Schreibtest OK
-```
-
-## Aktive Referenzdokus
-
-```text
-docs/current/DEATHCOUNTER_DB_STORAGE_STABLE_2026-05-11.md
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/NEXT_STEPS.md
-```
-
-## Nicht geändert
-
-```text
-Overlay
+Backend-Code
 Dashboard
+Overlay
 Streamer.bot Actions
-Command-API-Grundstruktur
-app.sqlite wurde nicht ersetzt oder neu gebaut
+Datenbankinhalt
 ```
-
-## Hinweis
-
-Die historische STEP-Kette 252-259 bleibt erhalten. Für den aktuellen Zustand zuerst diese Datei und `DEATHCOUNTER_DB_STORAGE_STABLE_2026-05-11.md` lesen.
