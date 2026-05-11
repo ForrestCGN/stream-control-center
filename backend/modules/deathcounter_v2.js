@@ -18,6 +18,8 @@ const SETTINGS_TABLE = 'deathcounter_settings';
 const STORAGE_SCHEMA_MODULE = 'deathcounter_v2_storage';
 const STORAGE_SCHEMA_VERSION = 1;
 const STORAGE_IMPORT_CONFIRM_TOKEN = 'IMPORT_DEATHCOUNTER_V2';
+const ACTIVE_STORAGE = 'database';
+const FALLBACK_STORAGE = 'json_state_file';
 const STORAGE_TABLES = Object.freeze({
   players: 'deathcounter_players',
   games: 'deathcounter_games',
@@ -126,6 +128,7 @@ module.exports.init = function init(ctx) {
       dataDir,
       stateFile,
       stateFileExists: fs.existsSync(stateFile),
+      storage: getActiveStorageInfo(),
       currentGame: state.currentGame,
       playerCount: Array.isArray(state.players) ? state.players.length : 0,
       overlay: publicOverlay(state).overlay,
@@ -1778,7 +1781,8 @@ module.exports.init = function init(ctx) {
         schemaVersion: ensuredVersion,
         targetVersion: STORAGE_SCHEMA_VERSION,
         tables: { ...STORAGE_TABLES },
-        activeStorage: 'json_state_file',
+        activeStorage: ACTIVE_STORAGE,
+        fallbackStorage: FALLBACK_STORAGE,
         preparedStorage: 'database_schema',
         migrationPerformed: false,
         countsImported: false
@@ -1791,7 +1795,8 @@ module.exports.init = function init(ctx) {
         schemaVersion: 0,
         targetVersion: STORAGE_SCHEMA_VERSION,
         tables: { ...STORAGE_TABLES },
-        activeStorage: 'json_state_file',
+        activeStorage: ACTIVE_STORAGE,
+        fallbackStorage: FALLBACK_STORAGE,
         preparedStorage: 'database_schema',
         migrationPerformed: false,
         countsImported: false,
@@ -1843,7 +1848,8 @@ module.exports.init = function init(ctx) {
       storageSchemaModule: STORAGE_SCHEMA_MODULE,
       schemaVersion,
       targetVersion: STORAGE_SCHEMA_VERSION,
-      activeStorage: 'json_state_file',
+      activeStorage: ACTIVE_STORAGE,
+      fallbackStorage: FALLBACK_STORAGE,
       preparedStorage: 'database_schema',
       migrationPerformed: false,
       countsImported: false,
@@ -1854,8 +1860,8 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  function buildDeathcounterStorageRows() {
-    const state = readState();
+  function buildDeathcounterStorageRows(sourceState = null) {
+    const state = sourceState || readJsonState();
     const now = core.nowIso();
     const updatedAt = state.updatedAt || now;
     const sortedPlayers = sortPlayers(Array.isArray(state.players) ? state.players : []);
@@ -1962,7 +1968,8 @@ module.exports.init = function init(ctx) {
       writesDatabase: false,
       importsCounts: false,
       switchesStorage: false,
-      activeStorage: 'json_state_file',
+      activeStorage: ACTIVE_STORAGE,
+      fallbackStorage: FALLBACK_STORAGE,
       preparedStorage: 'database_schema',
       stateFile,
       currentGame: rows.currentGame,
@@ -2101,7 +2108,8 @@ module.exports.init = function init(ctx) {
       writesDatabase: false,
       importsCounts: false,
       switchesStorage: false,
-      activeStorage: 'json_state_file',
+      activeStorage: ACTIVE_STORAGE,
+      fallbackStorage: FALLBACK_STORAGE,
       preparedStorage: 'database_schema',
       readyForImport,
       stateFile,
@@ -2241,9 +2249,19 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  function insertDeathcounterStorageRows(rows) {
+  function writeDeathcounterStorageRows(rows, options = {}) {
     const now = core.nowIso();
+    const source = String(options.source || 'database_active_step258').trim() || 'database_active_step258';
+    const replaceExisting = options.replaceExisting === true;
+
     const tx = database.transaction(() => {
+      if (replaceExisting) {
+        database.run(`DELETE FROM ${database.quoteIdentifier(STORAGE_TABLES.counts)}`);
+        database.run(`DELETE FROM ${database.quoteIdentifier(STORAGE_TABLES.overlayState)}`);
+        database.run(`DELETE FROM ${database.quoteIdentifier(STORAGE_TABLES.games)}`);
+        database.run(`DELETE FROM ${database.quoteIdentifier(STORAGE_TABLES.players)}`);
+      }
+
       for (const player of rows.playerRows) {
         database.insert(STORAGE_TABLES.players, {
           id: player.id,
@@ -2251,7 +2269,7 @@ module.exports.init = function init(ctx) {
           display_name: player.display_name,
           active: Number(player.active || 0),
           sort_order: Number(player.sort_order || 0),
-          source: 'json_import_step255',
+          source,
           created_at: now,
           updated_at: now
         });
@@ -2261,7 +2279,7 @@ module.exports.init = function init(ctx) {
         database.insert(STORAGE_TABLES.games, {
           game_key: game.game_key,
           display_name: game.display_name,
-          source: 'json_import_step255',
+          source,
           created_at: now,
           updated_at: now
         });
@@ -2273,7 +2291,7 @@ module.exports.init = function init(ctx) {
           game_key: count.game_key,
           session_deaths: Number(count.session_deaths || 0),
           all_time_deaths: Number(count.all_time_deaths || 0),
-          source: 'json_import_step255',
+          source,
           created_at: now,
           updated_at: now
         });
@@ -2284,7 +2302,7 @@ module.exports.init = function init(ctx) {
           state_key: entry.state_key,
           state_value: entry.state_value,
           value_type: entry.value_type,
-          source: 'json_import_step255',
+          source,
           created_at: now,
           updated_at: now
         });
@@ -2299,9 +2317,28 @@ module.exports.init = function init(ctx) {
       counts: rows.countRows.length,
       overlayState: rows.overlayRows.length,
       events: 0,
-      importedAt: now
+      importedAt: now,
+      source,
+      replacedExisting: replaceExisting
     };
   }
+
+  function insertDeathcounterStorageRows(rows) {
+    return writeDeathcounterStorageRows(rows, {
+      source: 'json_import_step255',
+      replaceExisting: false
+    });
+  }
+
+  function replaceDeathcounterStorageRowsFromState(state, source = 'database_active_step258') {
+    const normalized = normalizeStateForStorage(state);
+    const rows = buildDeathcounterStorageRows(normalized);
+    return writeDeathcounterStorageRows(rows, {
+      source,
+      replaceExisting: true
+    });
+  }
+
 
   function importDeathcounterStorage(options = {}) {
     const confirm = String(options.confirm || '').trim();
@@ -2338,7 +2375,8 @@ module.exports.init = function init(ctx) {
       writesDatabase: true,
       importsCounts: true,
       switchesStorage: false,
-      activeStorage: 'json_state_file',
+      activeStorage: ACTIVE_STORAGE,
+      fallbackStorage: FALLBACK_STORAGE,
       preparedStorage: 'database_schema',
       confirmAccepted: true,
       confirmToken: STORAGE_IMPORT_CONFIRM_TOKEN,
@@ -2556,7 +2594,8 @@ module.exports.init = function init(ctx) {
       writesDatabase: false,
       importsCounts: false,
       switchesStorage: false,
-      activeStorage: 'json_state_file',
+      activeStorage: ACTIVE_STORAGE,
+      fallbackStorage: FALLBACK_STORAGE,
       preparedStorage: 'database_schema',
       consistent,
       stateFile,
@@ -2698,7 +2737,7 @@ module.exports.init = function init(ctx) {
     const storage = buildDeathcounterStorageStatus();
     const imported = readDeathcounterImportedStorageRows();
     const dbState = buildStateFromImportedStorageRows(imported);
-    const jsonState = readState();
+    const jsonState = readJsonState();
     const consistency = buildDeathcounterStorageConsistency({ includeIssues: false, limit: 0 });
     const issues = [];
 
@@ -2753,7 +2792,7 @@ module.exports.init = function init(ctx) {
       importsCounts: false,
       switchesStorage: false,
       activatesDatabaseStorage: false,
-      activeStorage: 'json_state_file',
+      activeStorage: getActiveStorageInfo().activeStorage,
       testedStorage: 'database_schema',
       publicStateMatchesJson,
       stateFile,
@@ -2798,7 +2837,7 @@ module.exports.init = function init(ctx) {
       notes: [
         'STEP257 read-test only. This endpoint builds DeathCounter public state from imported DB rows and compares it with the active JSON state.',
         'No INSERT, UPDATE, DELETE, import or storage switch is performed by this endpoint.',
-        'Commands, overlay and productive API state still use deathcounter.v2.json.'
+        'Commands, overlay and productive API state now use database storage when readable; JSON remains synchronized as fallback.'
       ],
       updatedAt: core.nowIso()
     };
@@ -2818,8 +2857,9 @@ module.exports.init = function init(ctx) {
       module: 'deathcounter_v2',
       version: 2,
       prefix: API_PREFIX,
-      source: 'state_file_with_database_settings_and_prepared_database_storage',
+      source: 'database_storage_with_json_fallback_and_database_settings',
       settingsTable: SETTINGS_TABLE,
+      storage: getActiveStorageInfo(),
       storageSchema: buildDeathcounterStorageStatus(),
       dataDir,
       stateFile,
@@ -2851,9 +2891,10 @@ module.exports.init = function init(ctx) {
     return {
       module: 'deathcounter_v2',
       version: 2,
-      source: 'database_settings_and_runtime_state',
+      source: 'database_settings_and_active_database_runtime_state',
       prefix: API_PREFIX,
       settingsTable: SETTINGS_TABLE,
+      storage: getActiveStorageInfo(),
       storageSchema: buildDeathcounterStorageStatus(),
       settings: {
         ...runtimeSettings,
@@ -2969,7 +3010,8 @@ module.exports.init = function init(ctx) {
         ok: false,
         level: 'error',
         schemaModule: STORAGE_SCHEMA_MODULE,
-        activeStorage: 'json_state_file',
+        activeStorage: ACTIVE_STORAGE,
+        fallbackStorage: FALLBACK_STORAGE,
         preparedStorage: 'database_schema',
         migrationPerformed: false,
         countsImported: false,
@@ -3148,6 +3190,36 @@ module.exports.init = function init(ctx) {
       });
     }
 
+    try {
+      const storageInfo = getActiveStorageInfo();
+      const stateFromDb = readDatabaseStateOrNull();
+      add({
+        name: 'active_database_storage',
+        ok: storageInfo.activeStorage === ACTIVE_STORAGE && Boolean(stateFromDb),
+        level: storageInfo.activeStorage === ACTIVE_STORAGE && stateFromDb ? 'ok' : 'warning',
+        activeStorage: storageInfo.activeStorage,
+        configuredStorage: storageInfo.configuredStorage,
+        fallbackStorage: storageInfo.fallbackStorage,
+        databaseReadable: storageInfo.databaseReadable,
+        dualWriteEnabled: storageInfo.dualWriteEnabled,
+        jsonFallbackEnabled: storageInfo.jsonFallbackEnabled,
+        currentGame: stateFromDb ? stateFromDb.currentGame : ''
+      });
+    } catch (err) {
+      add({
+        name: 'active_database_storage',
+        ok: false,
+        level: 'error',
+        activeStorage: FALLBACK_STORAGE,
+        configuredStorage: ACTIVE_STORAGE,
+        fallbackStorage: FALLBACK_STORAGE,
+        databaseReadable: false,
+        dualWriteEnabled: true,
+        jsonFallbackEnabled: true,
+        error: err.message || String(err)
+      });
+    }
+
     add({ name: 'routes', ok: true, level: 'ok', prefix: API_PREFIX, count: buildDeathcounterRoutes().length });
 
     const summary = summarizeChecks(checks);
@@ -3166,7 +3238,8 @@ module.exports.init = function init(ctx) {
         'STEP254 adds read-only import readiness validation. It does not write DB rows or switch active storage.',
         'STEP255 adds a guarded import endpoint. It writes only after explicit confirm, requires empty target tables and keeps JSON active.',
         'STEP256 adds a read-only DB-vs-JSON consistency check. It does not write rows or switch active storage.',
-        'STEP257 adds a read-only DB read-test that builds public state from imported DB rows without activating DB storage.'
+        'STEP257 adds a read-only DB read-test that builds public state from imported DB rows without activating DB storage.',
+        'STEP258 activates database storage with JSON fallback and dual-write JSON synchronization.'
       ],
       updatedAt: core.nowIso()
     };
@@ -3211,11 +3284,67 @@ module.exports.init = function init(ctx) {
     return { total, ok: okCount, warnings, errors };
   }
 
-  console.log(`[deathcounter_v2] aktiv → ${stateFile}`);
+  console.log(`[deathcounter_v2] aktiv → database storage mit JSON-Fallback: ${stateFile}`);
+
+  function normalizeStateForStorage(inputState) {
+    const state = inputState && typeof inputState === 'object' ? inputState : createEmptyState();
+    state.version = 2;
+    state.updatedAt = typeof state.updatedAt === 'string' ? state.updatedAt : core.nowIso();
+    state.overlay = normalizeOverlay(state.overlay);
+    state.currentGame = normalizeGameName(state.currentGame || DEFAULT_GAME_KEY);
+    state.players = Array.isArray(state.players) ? state.players : [];
+    state.players.forEach(player => {
+      sanitizePlayer(player);
+      ensureGameStats(player, state.currentGame);
+      recalcAggregates(player);
+    });
+    syncOverlayLists(state);
+    return state;
+  }
+
+  function readJsonState() {
+    return normalizeStateForStorage(readJSON(stateFile, createEmptyState()));
+  }
+
+  function canReadActiveDatabaseStorage() {
+    try {
+      const storage = buildDeathcounterStorageStatus();
+      if (!storage.ok) return false;
+      const tableMap = new Map((storage.tables || []).map(entry => [entry.key, entry]));
+      return Number(tableMap.get('players')?.rowCount || 0) > 0
+        && Number(tableMap.get('games')?.rowCount || 0) > 0
+        && Number(tableMap.get('counts')?.rowCount || 0) >= 0
+        && Number(tableMap.get('overlayState')?.rowCount || 0) > 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function readDatabaseStateOrNull() {
+    if (!canReadActiveDatabaseStorage()) return null;
+    try {
+      return normalizeStateForStorage(buildStateFromImportedStorageRows());
+    } catch (err) {
+      console.warn(`[deathcounter_v2] DB-State konnte nicht gelesen werden, JSON-Fallback aktiv: ${err.message || String(err)}`);
+      return null;
+    }
+  }
+
+  function getActiveStorageInfo() {
+    const databaseReadable = canReadActiveDatabaseStorage();
+    return {
+      activeStorage: databaseReadable ? ACTIVE_STORAGE : FALLBACK_STORAGE,
+      configuredStorage: ACTIVE_STORAGE,
+      fallbackStorage: FALLBACK_STORAGE,
+      databaseReadable,
+      dualWriteEnabled: true,
+      jsonFallbackEnabled: true
+    };
+  }
 
   function ensureStateFile() {
     if (fs.existsSync(stateFile)) {
-      const normalized = readState();
+      const normalized = readJsonState();
       writeJSON(stateFile, normalized);
       return;
     }
@@ -3224,7 +3353,7 @@ module.exports.init = function init(ctx) {
       try {
         ensureDir(dataDir);
         fs.copyFileSync(oldStateFile, stateFile);
-        const normalized = readState();
+        const normalized = readJsonState();
         writeJSON(stateFile, normalized);
         console.log(`[deathcounter_v2] State nach ${stateFile} übernommen von ${oldStateFile}`);
         return;
@@ -3246,27 +3375,19 @@ module.exports.init = function init(ctx) {
   }
 
   function readState() {
-    const state = readJSON(stateFile, createEmptyState());
-    state.version = 2;
-    state.updatedAt = typeof state.updatedAt === 'string' ? state.updatedAt : core.nowIso();
-    state.overlay = normalizeOverlay(state.overlay);
-    state.currentGame = normalizeGameName(state.currentGame || DEFAULT_GAME_KEY);
-    state.players = Array.isArray(state.players) ? state.players : [];
-    state.players.forEach(player => {
-      sanitizePlayer(player);
-      ensureGameStats(player, state.currentGame);
-      recalcAggregates(player);
-    });
-    syncOverlayLists(state);
-    return state;
+    const databaseState = readDatabaseStateOrNull();
+    if (databaseState) return databaseState;
+    return readJsonState();
   }
 
   function updateState(mutator) {
     const state = readState();
     mutator(state);
-    syncOverlayLists(state);
-    writeJSON(stateFile, state);
-    return state;
+    state.updatedAt = typeof state.updatedAt === 'string' ? state.updatedAt : core.nowIso();
+    const normalized = normalizeStateForStorage(state);
+    replaceDeathcounterStorageRowsFromState(normalized, 'database_active_step258_dual_write');
+    writeJSON(stateFile, normalized);
+    return normalized;
   }
 
   function setOverlayVisibility(visible) {

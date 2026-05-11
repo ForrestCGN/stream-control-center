@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-05-11 - STEP258 DeathCounter Active Database Storage
+
+- DeathCounter V2 nutzt die importierten DB-Tabellen jetzt als aktive Storage-Quelle.
+- `readState()` liest DB-first und nutzt `deathcounter.v2.json` nur noch als Fallback, falls DB nicht lesbar ist.
+- `updateState()` schreibt Aenderungen in die DB und synchronisiert JSON weiter per Dual-Write.
+- Integration-Check um `active_database_storage` erweitert.
+- Kein optionaler Storage-Mode-Schalter eingebaut.
+- Keine Overlay-, Dashboard- oder Streamer.bot-Aenderung.
+
 ## 2026-05-11 - STEP257 DeathCounter DB Read-Test
 
 - Neue Route `GET /api/deathcounter/v2/storage/read-test` ergaenzt.

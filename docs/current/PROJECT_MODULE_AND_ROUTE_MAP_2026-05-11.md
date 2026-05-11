@@ -1,3 +1,15 @@
+# STEP258 Route-/Storage-Hinweis DeathCounter
+
+DeathCounter V2 hat keine neue Haupt-Route erhalten, aber der Integration-Check enthaelt jetzt zusaetzlich:
+
+```text
+active_database_storage
+```
+
+Der aktive Storage ist jetzt DB-first mit JSON-Fallback und Dual-Write-Synchronisierung.
+
+---
+
 # STEP257 Route-Ergaenzung
 
 DeathCounter V2 neue Route:

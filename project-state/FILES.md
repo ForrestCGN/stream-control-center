@@ -1,3 +1,41 @@
+# FILES - STEP258 DeathCounter Active Database Storage
+
+Geaendert / neu:
+
+```text
+backend/modules/deathcounter_v2.js
+project-state/STEP258_DEATHCOUNTER_ACTIVE_DB_STORAGE_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md
+docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md
+README_STEP258_DEATHCOUNTER_ACTIVE_DB_STORAGE.md
+```
+
+Weiterhin nicht geaendert:
+
+```text
+backend/core/database.js
+backend/modules/sqlite_core.js
+backend/modules/database_core.js
+backend/modules/helpers/helper_settings.js
+backend/modules/helpers/helper_texts.js
+htdocs/overlays/_overlay-deathcounter-v2.html
+Streamer.bot Actions/Exports
+Dashboard-Dateien
+```
+
+Hinweis:
+
+```text
+app.sqlite wird weiterhin genutzt, aber nicht ersetzt. JSON bleibt als synchronisierter Fallback erhalten.
+```
+
+---
+
 # FILES - STEP257 DeathCounter DB Read-Test
 
 Geändert / neu:

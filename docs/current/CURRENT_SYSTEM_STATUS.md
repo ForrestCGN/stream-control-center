@@ -1,3 +1,35 @@
+# CURRENT_SYSTEM_STATUS - STEP258 Update
+
+DeathCounter V2 nutzt nach STEP258 die importierten DB-Tabellen als aktive Storage-Quelle.
+
+Aktiv:
+
+```text
+configuredStorage: database
+activeStorage: database, wenn DB lesbar ist
+fallbackStorage: json_state_file
+dualWriteEnabled: true
+jsonFallbackEnabled: true
+```
+
+Technisch:
+
+- `readState()` liest DB-first.
+- `updateState()` schreibt DB und synchronisiert JSON weiter.
+- `deathcounter.v2.json` bleibt als Fallback-/Backup-Datei erhalten.
+- Es gibt keinen optionalen Storage-Schalter.
+- API-Prefix bleibt `/api/deathcounter/v2`.
+- Overlay und Streamer.bot muessen nicht angepasst werden.
+
+Testanker:
+
+```text
+GET /api/deathcounter/v2/integration-check
+Check: active_database_storage
+```
+
+---
+
 # CURRENT_SYSTEM_STATUS - STEP257 Update
 
 DeathCounter V2 hat jetzt einen Read-only-DB-Read-Test.

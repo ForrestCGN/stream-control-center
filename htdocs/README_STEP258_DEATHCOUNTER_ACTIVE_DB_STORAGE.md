@@ -1,10 +1,21 @@
-# NEXT STEP - Nach STEP258 DeathCounter Active Database Storage
+# STEP258 DeathCounter Active Database Storage
 
-## Direkt testen
+Dieses ZIP stellt DeathCounter V2 auf aktive DB-Nutzung um.
+
+## Wichtig
+
+- ZIP nach `D:\Git\stream-control-center` entpacken.
+- Danach Standardabschluss ausfuehren:
+
+```powershell
+cd D:\Git\stream-control-center
+.\stepdone.cmd "STEP258 deathcounter active database storage"
+```
+
+## Live-Tests
 
 ```powershell
 cd D:\Streaming\stramAssets
-
 Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/status" | ConvertTo-Json -Depth 20
 Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/settings" | ConvertTo-Json -Depth 20
 Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/read-test?includeIssues=false" | ConvertTo-Json -Depth 20
@@ -12,7 +23,7 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/consistency
 Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/integration-check" | ConvertTo-Json -Depth 20
 ```
 
-Erwartung:
+## Erwartung
 
 ```text
 activeStorage: database
@@ -21,28 +32,12 @@ fallbackStorage: json_state_file
 dualWriteEnabled: true
 jsonFallbackEnabled: true
 active_database_storage.ok: true
-summary.errors: 0
 ```
 
-## Danach sinnvoll testen
+## Bewusst nicht enthalten
 
-```text
-- !rip oder API-RIP einmal mit Testspieler testen
-- /storage/consistency danach erneut pruefen
-- pruefen, ob JSON weiterhin synchron aktualisiert wurde
-```
-
-## Naechster sinnvoller Bau-Step
-
-```text
-STEP259: DeathCounter DB-Write-Livetest und kleine Reparatur-/Rollback-Route planen, falls im Livebetrieb Abweichungen entstehen
-```
-
-Noch nicht blind bauen:
-
-```text
-- JSON-Datei entfernen
-- Events-Logging produktiv erzwingen
-- Dashboard gross umbauen
-- alte Preview-/Validation-Routen entfernen
-```
+- kein optionaler Storage-Schalter
+- keine Dashboard-Aenderung
+- keine Overlay-Aenderung
+- keine Streamer.bot-Aenderung
+- kein Entfernen der JSON-Datei

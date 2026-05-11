@@ -1,3 +1,22 @@
+## STEP258 - DeathCounter Active Database Storage mit JSON-Fallback
+
+Stand: 2026-05-11
+
+DeathCounter V2 nutzt jetzt die importierten DB-Tabellen als aktive Storage-Quelle. `readState()` liest DB-first, faellt bei nicht lesbarer DB auf `deathcounter.v2.json` zurueck. `updateState()` schreibt Aenderungen in die DB und synchronisiert `deathcounter.v2.json` weiterhin als Fallback-/Backup-Datei.
+
+Es wurde bewusst kein optionaler Storage-Schalter eingebaut.
+
+Garantien:
+
+```text
+configuredStorage: database
+fallbackStorage: json_state_file
+dualWriteEnabled: true
+jsonFallbackEnabled: true
+```
+
+Integration-Check enthaelt jetzt `active_database_storage`.
+
 ## STEP257 - DeathCounter DB Read-Test / Public-State-Vorschau
 
 Stand: 2026-05-11

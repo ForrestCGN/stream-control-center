@@ -1,3 +1,19 @@
+# STEP258 DeathCounter DB-Storage Update
+
+DeathCounter V2 nutzt jetzt die vorbereiteten Tabellen als aktive Storage-Quelle:
+
+```text
+deathcounter_players
+deathcounter_games
+deathcounter_counts
+deathcounter_overlay_state
+deathcounter_events
+```
+
+`deathcounter.v2.json` bleibt als synchronisierter Fallback erhalten. Neue DeathCounter-State-Aenderungen werden per Dual-Write in DB und JSON geschrieben. Es gibt keinen optionalen Storage-Schalter.
+
+---
+
 # STEP257 DeathCounter DB-/Storage-Ergaenzung
 
 DeathCounter V2 nutzt weiterhin `data/deathcounter/deathcounter.v2.json` als aktiven produktiven Storage. Die importierten DB-Tabellen koennen jetzt read-only zu einem Public-State zusammengesetzt und gegen JSON verglichen werden.
