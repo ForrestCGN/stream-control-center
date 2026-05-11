@@ -2,355 +2,141 @@
 
 Stand: 2026-05-11
 
-## Nach STEP227
+## Prioritaet A - Naechste Entwicklungsarbeit
 
-- `GET /api/twitch/eventsub/subscriptions` ausführen und aktive Twitch EventSub-Typen prüfen.
-- Danach die Twitch-Alert-Mapping-Prüfung Event für Event fortsetzen:
-  1. `channel.follow`
-  2. `channel.subscribe`
-  3. `channel.subscription.message`
-  4. `channel.subscription.gift`
-  5. `channel.subscribe` mit `is_gift:true`
-  6. `channel.raid`
-  7. `channel.channel_points_custom_reward_redemption.add`
-  8. `channel.bits.use`, falls aktiv
-  9. `channel.hype_train.*`, falls aktiv
-- Entscheiden, ob ein technischer `messageId`-Dedupe für EventSub zusätzlich nötig ist.
+### 1. Hug/Rehug ins aktuelle Systemmuster ueberfuehren
 
+Ziel:
 
-
-## Naechster Check - Twitch Cheermote TTS
-
-Nach STEP226 pruefen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/cheermotes/status?includePrefixes=1" | ConvertTo-Json -Depth 80
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/cheermotes/reload" -Method Post | ConvertTo-Json -Depth 80
+```text
+- bestehende Hug/Rehug-Funktion nicht brechen
+- vorhandene Helper nutzen
+- Dashboard-Modul pruefen/erweitern
+- Texte/Varianten DB-basiert und dashboardfaehig machen
+- Config/Settings zentral und editierbar halten
+- keine Parallelstruktur bauen
 ```
 
-Simulator-Test:
+Vor Start pruefen:
 
-```powershell
-$body = @{
-  kind = "bits"
-  user = "TestCheerer"
-  display = "TestCheerer"
-  bits = 20
-  message = "ShowLove10 ShowLove10 Guten morgen!"
-} | ConvertTo-Json
-
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/debug/eventsub" -Method Post -ContentType "application/json" -Body $body | ConvertTo-Json -Depth 80
-Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/events?limit=1" | ConvertTo-Json -Depth 100
+```text
+backend/modules/hug_system.js oder aktueller Hug-Modulname
+htdocs/dashboard/modules/hug.js
+htdocs/dashboard/modules/hug.css
+config/messages/hug.json
+DB-Tabellen fuer Hug/Rehug
+bestehende Routes und Statusausgaben
 ```
 
-Erwartung: TTS spricht nur `Guten morgen!`; Original-Alert-Message bleibt unveraendert.
+### 2. SoundAlerts / Sound-System weiter vereinheitlichen
 
-## Twitch/EventSub Audit - naechster Stream
+Ziel:
 
-Nach dem naechsten echten Twitch-Event pruefen:
+```text
+- aktuelle SoundAlerts/Sound-System-Struktur pruefen
+- Settings-/Text-/DB-Muster angleichen
+- Dashboard UX weiter vereinfachen
+- keine Sound-/Queue-Funktion entfernen
+```
+
+### 3. Alert-Sonderfaelle planen
+
+Noch nicht direkt bauen, erst planen:
+
+```text
+- Prime-Sub / Prime-Resub ueber channel.chat.notification
+- GiftBomb 101+ Special-/Jackpot-Alert
+- dynamische SubBomb-Zahl im Overlay
+- HypeTrain-System
+- Shoutout-/SO-Statistik
+- TTS-Wortfilter / Moderation
+```
+
+## Prioritaet B - Doku/Struktur weiter aufraeumen
+
+### 1. Historische Doku sortieren
+
+Noch nicht gemacht. Separater STEP noetig.
+
+Kandidaten:
+
+```text
+project-state/*APPEND*.md
+project-state/*STATUS_NOTE*.md
+docs/current/*STATUS_NOTE*.md
+docs/handoffs/NEXT_CHAT_HANDOFF_*.md
+```
+
+Moegliches Ziel:
+
+```text
+project-state/archive/appends/
+project-state/archive/status-notes/
+docs/archive/handoffs/
+docs/archive/old-current-notes/
+```
+
+Regel:
+
+```text
+Erst Liste erzeugen, dann verschieben. Nichts loeschen.
+```
+
+### 2. Modul-Doku aufbauen
+
+Optional spaeter:
+
+```text
+docs/modules/message_rotator.md
+docs/modules/alerts.md
+docs/modules/twitch.md
+docs/modules/loyalty.md
+docs/modules/tagebuch_todo.md
+docs/modules/sound_system.md
+docs/modules/hug.md
+```
+
+### 3. Generated Docs aktualisieren
+
+Nur wenn Generator/Quelle klar ist:
+
+```text
+docs/_generated/ROUTES.md
+docs/_generated/DASHBOARD_MODULES.md
+docs/_generated/CONFIGS_AND_DATA.md
+docs/_generated/FUNCTIONS.md
+docs/_generated/PROJECT_NAVIGATION.md
+```
+
+## Prioritaet C - Beobachtung im naechsten Stream
+
+### Message-Rotator
+
+Status: stable / abgenommen.
+
+Nur beobachten:
+
+```text
+- Start/Stop mit Streamstart/-ende
+- Chat-Ticks
+- Next-Ausgabe nach Delay/Cooldown
+- keine ungewollten Testvarianten
+```
+
+### Twitch/EventSub Audit
+
+Bei echten Twitch-Events pruefen:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/audit/recent?limit=50" | ConvertTo-Json -Depth 100
 Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/status" | ConvertTo-Json -Depth 60
 ```
 
-Ziel: Roh-EventSub-Eingang gegen Alert-History abgleichen und pruefen, ob Twitch unerwartete oder verspaetete Events liefert.
-
-## Twitch Subscription Tier-Text
-
-Nach STEP222 testen:
-
-```powershell
-$body = @{
-  kind = "sub"
-  user = "TestSub"
-  display = "TestSub"
-  tier = "1000"
-  dryRun = $true
-} | ConvertTo-Json
-
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/debug/eventsub" -Method Post -ContentType "application/json" -Body $body | ConvertTo-Json -Depth 40
-```
-
-Erwartung:
+## Nicht jetzt machen
 
 ```text
-eventsubType = channel.subscribe
-type = sub
-message = leer
-tier = 1000
-```
-
-Danach als naechsten fachlichen Fix bauen:
-
-- Cheer-/Bits-TTS-Bereinigung:
-  - `Cheer100` -> kein TTS
-  - `Cheer100 test` -> `test`
-  - `Cheer10 Cheer10 Cheer100 test` -> `test`
-- Danach Dashboard-UI fuer den Twitch Event Simulator.
-
-## Twitch Alert Bridge / Sub-Message-Buffer
-
-Nach STEP220 im naechsten echten Stream beobachten:
-
-- Kommt bei Usern wie Penny `channel.subscribe` und kurz danach `channel.subscription.message`, darf nur ein sichtbarer Alert laufen.
-- In `/api/twitch/alerts/status` soll `recent` in solchen Faellen `buffered`, `buffer_replaced` oder `buffer_flushed` zeigen.
-- Falls Twitch in der Praxis laenger als 30 Sekunden zwischen Subscribe und Subscription-Message braucht, `subMessageBuffer.delayMs` spaeter erhoehen.
-
-Pruefung nach Deploy/Backend-Neustart:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/status" | ConvertTo-Json -Depth 40
-```
-
-Erwartung:
-
-```text
-subMessageBuffer.enabled = true
-subMessageBuffer.delayMs = 30000
-lastError leer
-```
-
-## Twitch Event Simulator / Alert-Mapping
-
-Nach STEP221:
-
-1. Backend neu starten.
-2. Debug-Routen testen:
-   - `GET /api/twitch/alerts/debug/presets`
-   - `POST /api/twitch/alerts/debug/eventsub`
-3. Danach STEP222 bauen:
-   - Dashboard-UI fuer Twitch Event Simulator.
-4. Danach Mapping-/Normalisierungs-Audit:
-   - Welche Twitch-EventSub-Typen kommen rein?
-   - Welche Alert-Typen erzeugen wir?
-   - Welche Felder duerfen TTS ausloesen?
-   - `Cheer10`, `Cheer100` usw. aus TTS-Text entfernen.
-   - Technische Werte wie `Tier 1000` nicht mehr als User-Message/TTS behandeln.
-
-## Twitch Event Simulator / Dashboard
-
-Nach STEP221 bis STEP223 ist der Backend-Simulator nutzbar und die ersten Normalisierungsfehler sind bereinigt.
-
-Naechster sinnvoller Schritt:
-
-1. Dashboard-UI fuer `/api/twitch/alerts/debug/presets` und `/api/twitch/alerts/debug/eventsub` bauen.
-2. Twitch-Event-Mapping-Tabelle dokumentieren und im Simulator sichtbar machen.
-3. Weitere Eventtypen einzeln testen: Follow, Bits, Subscribe, Resub, GiftSub, GiftBomb, Raid, Channel Points.
-
-## DB-Portabilitaet
-
-SQLite bleibt aktiv, bis ein echter MariaDB-/MySQL-Server vorhanden ist und alle relevanten Module sauber portiert, getestet und SQL-Dialektstellen gekapselt wurden.
-
-Erste Portabilitaetsrunde abgeschlossen:
-
-```text
-kofi.js
-tipeee.js
-twitch.js
-sound_system.js
-dashboard_auth.js
-alert_system.js
-tagebuch.js
-todo.js
-challenge.js
-```
-
-STEP217 Restscan:
-
-- Produktive direkte `sqlite_core`-Kopplung ist weitgehend entfernt.
-- `backend/core/database.js` und `backend/modules/sqlite_core.js` bleiben absichtlich erhalten.
-- `backend/check_alert_db.js` ist ein alter Sonderfall und kann spaeter separat bereinigt werden.
-- SQLite-nahe SQL-Konstrukte bleiben vorhanden und sind Thema der zweiten Portabilitaetsrunde.
-
-Naechste sinnvolle Reihenfolge:
-
-1. Optionaler Cleanup-STEP fuer `backend/check_alert_db.js`:
-   - behalten und dokumentieren,
-   - entfernen/archivieren,
-   - oder auf `backend/core/database.js` umstellen.
-2. Zweite DB-Portabilitaetsrunde planen:
-   - `INTEGER PRIMARY KEY AUTOINCREMENT` zentral kapseln,
-   - `ON CONFLICT(...)`/Upsert zentral kapseln,
-   - `INSERT OR IGNORE` zentral kapseln,
-   - `PRAGMA table_info(...)` durch `database.columnExists(...)`/Helper ersetzen.
-3. Erst danach MySQL-/MariaDB-Adapter und Treiber planen.
-4. MySQL/MariaDB erst produktiv nutzen, wenn ein echter Server vorhanden ist und ein Testplan fuer Migration/Backup/Rollback steht.
-
-Wichtig:
-
-- Keine produktive DB-Umschaltung vor vollstaendiger Modul-Portierung und Dialekt-Kapselung.
-- Keine neue `app.sqlite` erzeugen.
-- Keine bestehende SQLite-Funktionalitaet fuer theoretische MariaDB-Vorbereitung brechen.
-- Neue DB-Logik ueber `backend/core/database.js` oder vorhandene Helper bauen.
-
-## Naechster echter Stream - Loyalty Livetest
-
-Vor Streamstart:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status" | ConvertTo-Json -Depth 60
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/ignored-users" | ConvertTo-Json -Depth 40
-```
-
-Nach Streamstart:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 80
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/events?limit=20" | ConvertTo-Json -Depth 100
-```
-
-
-## Twitch Event-/Alert-Audit
-
-Nach STEP224:
-
-- Twitch Event Simulator im Dashboard fuer Presets verwenden.
-- Mapping fuer Follow, Bits, Sub, Resub, GiftSub, GiftBomb, Raid und Channel Points dokumentieren.
-- Danach entscheiden, ob weitere Eventtypen eigene Alert-Typen oder Regeln brauchen.
-
-
-# NEXT_STEPS Ergänzung – nach STEP228
-
-## Twitch / Alert-System – spätere geplante Blöcke
-
-### 1. GiftBomb 101+ Special-/Jackpot-Alert
-
-Ziel:
-
-```text
-gift_bomb min_value 101 max_value null
-```
-
-Benötigt:
-
-```text
-- eigene Regel
-- eigener Sound
-- eigenes Display-Profil
-- eigener Chattextblock
-- Special-/Jackpot-Overlay
-```
-
-### 2. Dynamische SubBomb-Zahl im Overlay
-
-Ziel:
-
-```text
-SubBomb-Zahl dynamisch aus amount / quantity / total anzeigen.
-Keine Einzelgrafiken pro Zahl.
-```
-
-Beispiele:
-
-```text
-10 -> große 10
-12 -> große 12
-100 -> große 100 / Special-Design
-```
-
-### 3. GiftBomb-Empfänger-Highlights
-
-Idee:
-
-```text
-Bei großer Subbombe Empfänger sammeln.
-Nur Chat-aktive Empfänger optional hervorheben.
-Maximal begrenzte Anzahl kleiner Empfänger-Hinweise.
-Niemals alle Empfänger einzeln als Alerts abspielen.
-```
-
-### 4. Prime-Sub / Prime-Resub
-
-Ziel:
-
-```text
-Prime als eigener Alert/Eventtyp:
-prime_sub
-prime_resub
-```
-
-Benötigt:
-
-```text
-- channel.chat.notification abonnieren
-- is_prime auswerten
-- mit channel.subscribe / channel.subscription.message zusammenführen
-- eigene Regeln/Sounds/Bilder/Chattexte
-```
-
-### 5. HypeTrain-System
-
-Ziel:
-
-```text
-Eigenes System für:
-hype_train_begin
-hype_train_level_up
-hype_train_level_jump
-hype_train_end
-```
-
-Wichtig:
-
-```text
-Nur newLevel > lastLevel löst Alert aus.
-Gleicher Level mehrfach = nur Statusupdate.
-Levelsprung 1 -> 6 = ein passender Level-6-/Sprung-Alert.
-```
-
-### 6. Shoutout-/SO-Statistik
-
-Ziel:
-
-```text
-channel.shoutout.create/receive für Audit und Statistik nutzen.
-Nicht als normalen Alert.
-Nicht als automatischen Start für Clip-Shoutout.
-```
-
-Auswertungen:
-
-```text
-- wer hat /so ausgelöst
-- wohin wurde shoutoutet
-- wann
-- wie oft pro Zielkanal
-- wie oft pro Moderator
-- Cooldowns
-```
-
-### 7. TTS-Wortfilter / Moderation
-
-Ziel:
-
-```text
-Badword-/Blacklist-/Replacement-System für Alert-TTS.
-Dashboard-konfigurierbar.
-```
-
-
-## Nach STEP231 - Message-Rotator abgeschlossen
-
-Der Message-Rotator ist als produktiv nutzbar und STABLE dokumentiert.
-
-Aktuell keine Pflicht-Fixes offen.
-
-Sinnvolle spaetere optionale Erweiterungen:
-
-```text
-- Rotator-History / Log gesendeter Nachrichten
-- Rotator-Statistiken pro Key/Item
-- Dashboard-Komfort: Sortierung, Filter, Varianten kopieren
-- Streamer.bot-Actions vereinheitlichen und dokumentieren
-- optional: Anzeige der letzten gesendeten Rotator-Nachrichten im Dashboard
-```
-
-Naechster groesserer Entwicklungsblock kann frei gewaehlt werden, z. B.:
-
-```text
-- Hug/Rehug weiter dashboardfaehig machen
-- SoundAlert-System weiter ausbauen
-- Streamer.bot-Action-Struktur dokumentieren/aufräumen
-- Dashboard-Modul fuer weitere bestehende Systeme integrieren
+- keine MariaDB/MySQL-Umschaltung
+- keine historischen Dateien loeschen
+- keine grossen Dashboard-Komplettumbauten
+- keine Runtime-/Config-/DB-Dateien ohne konkrete Aufgabe anfassen
 ```

@@ -2,226 +2,105 @@
 
 Stand: 2026-05-11
 
-## STEP227 - Twitch EventSub Subscription Diagnose
+## Kurzstatus
 
-- Neue Diagnose-Routen zum Auslesen der aktiven Twitch EventSub-Subscriptions:
-  - `GET /api/twitch/eventsub/subscriptions`
-  - `GET /api/twitch/eventsub/status`
-  - `GET /twitch/eventsub/subscriptions`
-- Die Route nutzt Twitch Helix `GET /helix/eventsub/subscriptions`.
-- Ausgabe enthält Typen, Status, Bedingungen, Transport-Methode, Kosten und Summary-Checks.
-- Ziel ist die Prüfung möglicher Doppelereignisse, z. B. `channel.cheer` + `channel.bits.use`, Hype-Train-Events, GiftSub-Gifter/Receiver und Sub/Resub-Kombinationen.
-- Es wurden keine bestehenden Subscriptions geändert oder gelöscht.
-- Alert-Verarbeitung, Queue, TTS, Dashboard, Loyalty und Datenbank bleiben unverändert.
+Das Projekt ist aktiv auf GitHub/dev und Live-System `D:\Streaming\stramAssets` ausgerichtet. SQLite bleibt produktiver Standard/Fallback. Neue Module sollen weiterhin ueber vorhandene Helper, `backend/core/database.js`, DB-/Textvarianten und Dashboard-APIs gebaut werden.
 
+Aktuell wichtig: Der Message-Rotator wurde erfolgreich in Backend, DB-Settings, DB-Textvarianten und Dashboard integriert und im Stream live getestet.
 
-## Alert-TTS / Twitch Cheermote Cleanup
+## STEP232 - Project Docs Cleanup & Sorting
 
-Aktueller Stand nach STEP226:
+- Bereitgestelltes Projekt-Doku-ZIP analysiert.
+- Doku-Struktur als zu laut/breit erkannt:
+  - 578 Dateien gesamt
+  - 477 Dateien in `project-state`
+  - 101 Dateien in `docs`
+  - 127 `APPEND`-Dateien
+  - 26 `STATUS_NOTE`-Dateien
+  - 15 `HANDOFF`-Dateien
+- Aktuelle Einstiegspunkte neu sortiert:
+  - `docs/current/CURRENT_SYSTEM_STATUS.md`
+  - `project-state/CURRENT_STATUS.md`
+  - `project-state/CHANGELOG.md`
+  - `project-state/FILES.md`
+  - `project-state/NEXT_STEPS.md`
+- Neue Orientierungsdateien:
+  - `docs/current/PROJECT_DOCUMENTATION_MAP_2026-05-11.md`
+  - `docs/current/PROJECT_CLEANUP_PLAN_2026-05-11.md`
+- Keine Code-Dateien, Configs, Datenbanken oder Runtime-Dateien geaendert.
+- Historische Dateien wurden nicht geloescht oder verschoben.
 
-- Twitch-Cheermote-Prefixe werden ueber Helix `/bits/cheermotes` geladen und gecacht.
-- Neue Routen: `GET /api/twitch/cheermotes/status` und `POST /api/twitch/cheermotes/reload`.
-- Bits-Alert-Payloads enthalten `cheermotePrefixes`.
-- Alert-TTS entfernt bei Twitch-Bits nun echte Cheermote-Woerter wie `Cheer100`, `ShowLove10`, `Pride100` usw. anhand dieser Prefix-Liste.
-- Originale Alert-Messages bleiben unveraendert gespeichert und sichtbar.
-- Wenn nach dem Entfernen der Cheermote-Woerter kein Text uebrig bleibt, wird kein TTS erzeugt.
+## Message-Rotator - STABLE
 
-## Alert-System / Twitch Subscription Tier-Text
+Stand nach STEP229, STEP230A, STEP230B und STEP231:
 
-Aktueller Stand nach STEP222:
+- Backend-Admin-Basis vorhanden.
+- Settings laufen ueber `message_rotator_settings`.
+- Texte laufen ueber `module_text_variants` mit `module = message_rotator`.
+- JSON bleibt Seed/Fallback.
+- Dashboard-Modul ist unter `System -> Message-Rotator` aktiv.
+- Settings koennen im Dashboard bearbeitet werden.
+- Nachrichtenvarianten koennen im Dashboard bearbeitet, aktiviert/deaktiviert, gewichtet und geloescht werden.
+- Runtime nutzt DB-Textvarianten mit Zufallsauswahl.
+- Start/Stop/Tick/Next lokal getestet.
+- Livetest im Stream lief erfolgreich.
 
-- `channel.subscribe` setzt technische Tier-Angaben nicht mehr als `message: "Tier 1000"`.
-- `channel.subscription.gift` setzt technische Tier-Angaben ebenfalls nicht mehr als `message`.
-- `tier` und `raw.tier` bleiben erhalten.
-- `channel.subscription.message` bleibt unveraendert und enthaelt weiterhin echte User-/Resub-Nachrichten.
-- Damit sollen Sub-/GiftSub-Alerts nicht mehr wegen technischer Tier-Werte falsche TTS-Ausgaben wie `schreibt: Tier 1000` erzeugen.
-- Alert-Regeln, Queue, Sounds, Designs, Dashboard, Loyalty, Kofi/Tipeee und DB-Schema wurden nicht geaendert.
-
-## Alert-System / Twitch Event Simulator
-
-Aktueller Stand nach STEP221:
-
-- `backend/modules/twitch.js` enthaelt eine lokale Debug-API fuer Twitch-EventSub-Alert-Simulation.
-- Neue Routen:
-  - `GET /api/twitch/alerts/debug/presets`
-  - `POST /api/twitch/alerts/debug/eventsub`
-- Die Debug-Route nutzt die echte Twitch-Alert-Normalisierung und den 30s-Sub-/Resub-Puffer aus STEP220.
-- Debug-Tests forwarden standardmaessig nur ins Alert-System, nicht ins Loyalty-System.
-- `dryRun: true` erlaubt Normalisierung ohne Alert-Ausloesung.
-- Dashboard-UI ist noch nicht gebaut und bleibt naechster Schritt.
-
-## Alert-TTS / Cheer-Wort Cleanup
-
-Aktueller Stand nach STEP223:
-
-- Twitch-Bits-Alerts behalten ihre originale Message unveraendert in der Alert-History.
-- Fuer Alert-TTS wird die Message separat bereinigt.
-- Standalone-Cheer-Worts wie `Cheer100`, `Cheer10 Cheer10 Cheer100` werden nur aus dem TTS-Text entfernt.
-- Wenn nach der Bereinigung kein Text mehr uebrig ist, wird kein TTS erzeugt.
-- Beispiele: `Cheer100` -> kein TTS, `Cheer100 test` -> `test`, `Cheer10 Cheer10 Cheer100 test` -> `test`.
-- Alert-Regeln, Queue, Sound-System, Twitch-Normalisierung, Dashboard und DB-Schema wurden nicht geaendert.
-
-## Dashboard / Twitch Event Simulator
-
-Aktueller Stand nach STEP224:
-
-- Neues Dashboard-Modul `twitch_events` ist im Control-Bereich verfuegbar.
-- Es simuliert Twitch-EventSub-Events ueber die echten Debug-Routen der Twitch-Alert-Bridge.
-- Dry-Run ist standardmaessig aktiv.
-- Ergebnisanzeige zeigt Normalisierung, Alert-Result und Sub-Puffer.
-- Es wurden keine Backend-, Alert-, TTS-, Sound-, Loyalty- oder DB-Funktionen geaendert.
-
-## Alert-System / Twitch Alert Bridge
-
-## STEP225 - Twitch EventSub Inbound Audit
-
-- `backend/modules/twitch.js` protokolliert echte eingehende Twitch/EventSub-Notifications jetzt in `data/logs/twitch_eventsub_audit.jsonl`.
-- Neue Route: `GET /api/twitch/alerts/audit/recent?limit=50`.
-- Audit-Eintraege enthalten EventSub-Typ, Message-ID, User, relevante Rohwerte, normalisierten Alert und Forward-Entscheidung.
-- Ziel ist die saubere Analyse von Stream-Ungereimtheiten wie unerwarteten `channel.subscribe`-, `channel.subscription.message`- oder Cheer-Events.
-- Es wurde keine DB-Tabelle angelegt und keine bestehende Alert-/TTS-/Queue-/Dashboard-Logik fachlich veraendert.
-
-
-Aktueller Stand nach STEP220:
-
-- Twitch-Alert-Bridge puffert `channel.subscribe` 30 Sekunden, bevor daraus ein sichtbarer Alert wird.
-- Wenn innerhalb dieses Puffers fuer denselben User `channel.subscription.message` kommt, gewinnt die Subscription-Message / der Resub-Alert.
-- Der gepufferte Subscribe-Alert wird dann verworfen, damit nicht zwei Sub-Alerts hintereinander laufen.
-- Wenn zuerst `channel.subscription.message` kommt und kurz danach `channel.subscribe`, wird der spaetere Subscribe-Alert ebenfalls unterdrueckt.
-- Der Puffer ist In-Memory und erzeugt keine neue DB-Tabelle.
-- `/api/twitch/alerts/status` zeigt `subMessageBuffer` mit Pending-/Recent-Zaehlern.
-- Alert-Queue, Alert-Regeln, Sounds, Designs, Loyalty, Kofi, Tipeee und SQLite-Schema wurden nicht geaendert.
-
-## Datenbank / Portabilitaet
-
-Aktueller Stand nach STEP217:
-
-- SQLite bleibt produktiver Standard und aktiver Fallback.
-- Die aktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
-- `backend/core/database.js` ist die zentrale DB-Schicht fuer neue Module und Refactors.
-- MySQL und MariaDB sind als spaetere Zielsysteme vorgesehen.
-- `DB_ADAPTER=mysql` und `DB_ADAPTER=mariadb` werden in der Core-Schicht vorbereitet erkannt.
-- Es gibt noch keinen aktiven MySQL-/MariaDB-Adapter und keinen DB-Treiber im Projekt.
-- MySQL/MariaDB duerfen erst produktiv genutzt werden, wenn alle relevanten Module portiert, getestet und die SQL-Dialektstellen sauber gekapselt sind.
-
-Bereits portiert auf `backend/core/database.js`:
-
-- STEP209: `kofi.js`, `tipeee.js`
-- STEP210: `twitch.js`
-- STEP211: `sound_system.js`
-- STEP212: `dashboard_auth.js`
-- STEP213: `alert_system.js`
-- STEP214: `tagebuch.js`
-- STEP215: `todo.js`
-- STEP216: `challenge.js`
-
-STEP217 Rescan-Ergebnis:
-
-- Produktive Module mit direktem `require("./sqlite_core")` sind praktisch entfernt.
-- Erwartete zentrale Treffer bleiben `backend/core/database.js` und `backend/modules/sqlite_core.js`.
-- `backend/check_alert_db.js` bleibt als altes technisches Pruefscript mit direkter `node:sqlite`-Nutzung auffaellig, ist aber kein normales produktives Modul.
-- Viele Module enthalten weiterhin SQLite-nahe SQL-Konstrukte wie `INTEGER PRIMARY KEY AUTOINCREMENT`, `ON CONFLICT(...)`, `INSERT OR IGNORE` und `PRAGMA table_info(...)`.
-- Diese SQL-Dialektstellen bleiben zunaechst bestehen, weil SQLite produktiv aktiv bleibt, und werden erst in einer zweiten Portabilitaetsrunde zentral gekapselt.
-
-STEP208:
-
-- `backend/core/database.js` wurde um Dialekt-/SQL-Helper erweitert.
-- Die Helper kapseln kuenftig Unterschiede fuer Autoincrement, Typen, Upsert und Spaltenpruefung.
-- Kein Modul wurde auf MySQL/MariaDB umgestellt.
-- Keine Datenbank wurde migriert, ersetzt oder neu gebaut.
-
-STEP213 bis STEP216:
-
-- `alert_system.js`, `tagebuch.js`, `todo.js` und `challenge.js` nutzen jetzt `backend/core/database.js` statt direktem `sqlite_core.js`.
-- Die jeweiligen Fachlogiken wurden nicht fachlich veraendert.
-- Die API-Tests fuer Alert-System, Tagebuch, Todo und Challenge wurden erfolgreich ausgefuehrt.
-- SQLite bleibt produktiver Standard.
-- MySQL/MariaDB werden weiterhin nicht aktiv genutzt.
-- Keine Tabellenstruktur, keine Datenmigration, kein neuer Treiber.
-
-## Loyalty
+## Alert-System / Twitch / TTS
 
 Aktueller Stand:
 
-- Loyalty laeuft im Shadow Mode.
+- Twitch EventSub Subscription-Diagnose vorhanden.
+- Twitch Event Simulator im Dashboard vorhanden.
+- EventSub-Inbound-Audit vorhanden.
+- Sub/Resub-Puffer gegen Doppelalerts aktiv.
+- Twitch Cheermote-TTS-Cleanup aktiv.
+- Technische Subscription-Tier-Texte werden nicht mehr als Usernachricht/TTS behandelt.
+
+Offen:
+
+- Prime-Sub/Prime-Resub spaeter ueber `channel.chat.notification` planen.
+- GiftBomb 101+ Special-/Jackpot-Alert planen.
+- HypeTrain-System separat planen.
+- Shoutout-/SO-Statistik separat planen.
+
+## Loyalty / Kekskruemel
+
+- Shadow Mode aktiv.
 - StreamElements bleibt aktiv.
-- Watch/Lurk Shadow-Punkte funktionieren grundsaetzlich ueber Twitch Presence + Auto Runner.
-- Event-Boni im Shadow Mode funktionieren.
-- Follow/Sub/Cheer/Raid/Resub funktionieren.
-- GiftSub-Gifter funktioniert.
-- GiftSub-Receiver wird zusaetzlich gebucht, wenn ein `recipientLogin` vorhanden und der Receiver-Bonus aktiviert ist.
-- Duplicate-Schutz bleibt eventbasiert.
+- Twitch Presence + AutoRunner erfassen Watch/Lurk-Punkte.
+- Event-Boni fuer relevante Twitch-Events sind vorhanden.
+- GiftSub-Receiver wird gebucht, wenn Empfaengerdaten vorhanden und Funktion aktiv ist.
 
-## STEP204 - AutoRunner Stream-State Autostart
+## Datenbank / Portabilitaet
 
-- `backend/modules/loyalty.js` wurde auf Version 0.1.8 angehoben.
-- `/api/loyalty/stream-state/start` startet den AutoRunner automatisch, wenn `autoRunner.startOnStreamStateStart = true` ist.
-- `/api/loyalty/stream-state/stop` stoppt den AutoRunner automatisch, wenn `autoRunner.stopOnStreamStateStop = true` ist.
-- Runner-Start ist idempotent: doppelte Starts erzeugen keinen zweiten Timer.
-- Runner-Start/-Stop-Quellen werden in `loyalty_runner_events` geloggt.
+- Produktiv aktiv: SQLite `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Neue DB-Logik bevorzugt ueber `backend/core/database.js` oder bestehende Helper.
+- MariaDB/MySQL sind Ziel fuer spaeter, aber noch nicht aktiv.
+- Keine DB-Umschaltung ohne echten Adapter, Treiber, Testplan, Migration und Rollback.
 
-## STEP205 - Stream-State Signal Logging
+## Dashboard-Standard
 
-- `backend/modules/loyalty.js` wurde auf Version 0.1.9 angehoben.
-- Doppelte Online-Signale ueberschreiben den bestehenden Stream-State nicht mehr.
-- Wenn Streamer.bot zuerst live setzt und Twitch/EventSub danach ebenfalls online meldet, bleibt `manual.source = streamerbot` erhalten.
-- Zusaetzliche Signale werden als `stream_state_start_signal` bzw. `stream_state_stop_signal` geloggt.
-
-## STEP206 - Livetest Checkliste
-
-- Eine konkrete Livetest-Checkliste fuer den naechsten Stream wurde dokumentiert.
-- Ziel ist die Pruefung von AutoRunner, Watch-Punkten, Bot-Ignore-Liste, Twitch/EventSub-Signalen und Event-Boni im echten Stream.
-
-## STEP207 - DB-Portabilitaetsanalyse
-
-- DB-Portabilitaetsstand dokumentiert.
-- Direkte `sqlite_core`-Nutzungen und bereits zentrale `core/database`-Nutzungen wurden eingeordnet.
-
-
-# CURRENT_STATUS Ergänzung – STEP228
-
-Stand: 2026-05-11
-
-## Twitch EventSub / Alert Mapping Audit
-
-STEP228 dokumentiert den aktuellen geprüften Stand der Twitch EventSub → Alert-System-Verarbeitung.
-
-Geprüft und als OK bewertet:
+Neue Module:
 
 ```text
-channel.cheer / Bits
-channel.follow / Follow
-channel.subscribe / normaler Sub
-channel.subscription.message / Resub-Message
-channel.subscription.gift / GiftSub/GiftBomb
-channel.subscribe is_gift:true / GiftSub-Empfänger-Skip
-channel.raid / Raid
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+htdocs/dashboard/modules/<modul>.js
+htdocs/dashboard/modules/<modul>.css
+backend/modules/<modul>.js
 ```
 
-Bewusst aktuell keine normalen Alerts:
+Regel:
 
 ```text
-channel.channel_points_custom_reward_redemption.add
-channel.hype_train.begin/progress/end
-channel.shoutout.create/receive
-stream.online/offline
-channel.update
+Dashboard greift nicht direkt auf SQLite oder Dateien zu, sondern immer auf Backend-APIs.
 ```
 
-Wichtige Erkenntnisse:
+## Naechster sinnvoller Entwicklungsblock
 
-```text
-- GiftSub-Empfänger werden korrekt übersprungen.
-- channel.subscribe wird 30 Sekunden gepuffert.
-- channel.subscription.message gewinnt gegenüber gepuffertem channel.subscribe.
-- Cheermote-Wörter werden für Alert-TTS entfernt.
-- GiftBomb 101+ hat aktuell keine Regel und wird ignored.
-- Prime-Sub/Prime-Resub ist mit channel.subscribe allein nicht sicher erkennbar.
-- Prime-Erkennung braucht später channel.chat.notification.
-```
+Priorisiert:
 
-Referenzdokument:
-
-```text
-project-state/STEP228_TWITCH_EVENTSUB_ALERT_MAPPING_AUDIT_2026-05-11.md
-```
+1. Hug/Rehug ins aktuelle Dashboard-/DB-/Textvarianten-Muster ueberfuehren.
+2. SoundAlerts/Sound-System weiter vereinheitlichen.
+3. Alert-Sonderfaelle planen: Prime, GiftBomb 101+, HypeTrain, SO-Statistik.
+4. Doku-Archivierung als separaten STEP durchfuehren, ohne Historie zu loeschen.
