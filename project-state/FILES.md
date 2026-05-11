@@ -1,3 +1,28 @@
+## STEP239 - DeathCounter Chat-Output-Anbindung
+
+Geaendert / neu dokumentiert:
+
+```text
+backend/modules/deathcounter_v2.js
+project-state/STEP239_DEATHCOUNTER_CHAT_OUTPUT_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+htdocs/**
+config/**
+data/**
+app.sqlite
+```
+
+---
+
 ## STEP238 - DeathCounter Command-API Bridge
 
 Geaendert / neu:

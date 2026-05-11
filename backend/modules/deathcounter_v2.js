@@ -6,6 +6,7 @@ const https = require('https');
 const { URL } = require('url');
 const core = require('./helpers/helper_core');
 const config = require('./helpers/helper_config');
+const chatOutput = require('./helpers/helper_chat_output');
 
 const DEFAULT_SELECTED_IDS = ['forrestcgn', 'engelcgn'];
 const DEFAULT_GAME_KEY = 'Unbekannt';
@@ -822,23 +823,23 @@ module.exports.init = function init(ctx) {
     const command = String(bodyOrQuery(req, 'command') || bodyOrQuery(req, 'cmd') || '').trim().toLowerCase();
 
     try {
-      if (!command) return commandUserError('unknown', 'Unbekannter DeathCounter-Befehl.');
+      if (!command) return await commandUserError(req, 'unknown', 'Unbekannter DeathCounter-Befehl.');
 
       if (command === 'dcount' || command === 'deathcount' || command === 'deathcounter') {
-        return commandOk(command, await handleDcountCommand(req));
+        return await commandOk(req, command, await handleDcountCommand(req));
       }
 
       if (command === 'rip' || command === 'death' || command === 'tod') {
-        return commandOk(command, await handleRipCommand(req));
+        return await commandOk(req, command, await handleRipCommand(req));
       }
 
       if (command === 'tode' || command === 'deaths') {
-        return commandOk(command, await handleTodeCommand(req));
+        return await commandOk(req, command, await handleTodeCommand(req));
       }
 
-      return commandUserError(command, 'Unbekannter DeathCounter-Befehl. Erlaubt: dcount, rip, tode.');
+      return await commandUserError(req, command, 'Unbekannter DeathCounter-Befehl. Erlaubt: dcount, rip, tode.');
     } catch (err) {
-      return commandUserError(command || 'unknown', err.message || 'Interner Fehler im DeathCounter-Command.');
+      return await commandUserError(req, command || 'unknown', err.message || 'Interner Fehler im DeathCounter-Command.');
     }
   }
 
@@ -1002,33 +1003,121 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  function commandOk(command, payload) {
+  async function commandOk(req, command, payload) {
+    const responsePayload = await applyCommandChatOutput(req, command, {
+      module: 'deathcounter_v2',
+      version: 2,
+      command,
+      updatedAt: core.nowIso(),
+      ...payload
+    });
+
     return {
       httpStatus: 200,
-      payload: ok({
-        module: 'deathcounter_v2',
-        version: 2,
-        command,
-        updatedAt: core.nowIso(),
-        ...payload
-      })
+      payload: ok(responsePayload)
     };
   }
 
-  function commandUserError(command, message) {
+  async function commandUserError(req, command, message) {
+    const text = message || 'DeathCounter-Befehl konnte nicht verarbeitet werden.';
+    const responsePayload = await applyCommandChatOutput(req, command, {
+      module: 'deathcounter_v2',
+      version: 2,
+      command,
+      success: false,
+      streamerbot_send: '1',
+      streamerbot_message: text,
+      error: text,
+      updatedAt: core.nowIso()
+    });
+
     return {
       httpStatus: 200,
-      payload: ok({
-        module: 'deathcounter_v2',
-        version: 2,
-        command,
-        success: false,
-        streamerbot_send: '1',
-        streamerbot_message: message || 'DeathCounter-Befehl konnte nicht verarbeitet werden.',
-        error: message || 'command_failed',
-        updatedAt: core.nowIso()
-      })
+      payload: ok(responsePayload)
     };
+  }
+
+  async function applyCommandChatOutput(req, command, payload) {
+    const message = String(payload?.streamerbot_message || '').trim();
+    if (!message || payload.streamerbot_send !== '1') {
+      return {
+        ...payload,
+        chat_output_attempted: false,
+        chat_sent: false
+      };
+    }
+
+    if (isDisabledFlag(bodyOrQuery(req, 'chatOutput')) || isDisabledFlag(bodyOrQuery(req, 'sendChat'))) {
+      return {
+        ...payload,
+        chat_output_attempted: false,
+        chat_sent: false,
+        chat_output_skipped: true
+      };
+    }
+
+    try {
+      const result = await chatOutput.sendChatMessage(message, {
+        source: 'deathcounter_v2',
+        reason: `command_${command || 'unknown'}`,
+        prefer: bodyOrQuery(req, 'chatPrefer') || bodyOrQuery(req, 'prefer'),
+        fallbackToStreamerbot: commandBooleanOption(req, 'fallbackToStreamerbot', true),
+        fallbackToStreamer: commandBooleanOption(req, 'fallbackToStreamer', undefined),
+        directSendEnabled: commandBooleanOption(req, 'directSendEnabled', undefined),
+        maxLength: intOrDefault(bodyOrQuery(req, 'maxLength'), 450)
+      });
+
+      return {
+        ...payload,
+        chat_output_attempted: true,
+        chat_sent: !!result.sent,
+        chat_output: summarizeChatOutputResult(result),
+        streamerbot_send: result.streamerbot_send || (result.sent ? '0' : payload.streamerbot_send),
+        streamerbot_message: result.streamerbot_message !== undefined ? result.streamerbot_message : payload.streamerbot_message
+      };
+    } catch (err) {
+      return {
+        ...payload,
+        chat_output_attempted: true,
+        chat_sent: false,
+        chat_output: {
+          ok: false,
+          error: err.message || String(err),
+          via: 'exception'
+        },
+        streamerbot_send: '1',
+        streamerbot_message: message
+      };
+    }
+  }
+
+  function commandBooleanOption(req, key, fallback) {
+    const value = bodyOrQuery(req, key);
+    if (value === undefined || value === null || String(value).trim() === '') return fallback;
+    return booleanOrDefault(value, fallback);
+  }
+
+  function summarizeChatOutputResult(result) {
+    if (!result || typeof result !== 'object') {
+      return { ok: false, error: 'invalid_chat_output_result' };
+    }
+    return {
+      ok: result.ok !== false,
+      sent: !!result.sent,
+      send: !!result.send,
+      via: result.via || '',
+      account: result.account || '',
+      reason: result.reason || result.streamerbot_reason || '',
+      source: result.source || 'deathcounter_v2',
+      fallback: result.streamerbot_send === '1',
+      error: result.error || ''
+    };
+  }
+
+  function isDisabledFlag(value) {
+    if (value === undefined || value === null) return false;
+    const text = String(value).trim().toLowerCase();
+    return text === '0' || text === 'false' || text === 'off' || text === 'no';
   }
 
   function resetOverlayPlayersToDefault() {

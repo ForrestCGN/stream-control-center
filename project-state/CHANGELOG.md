@@ -1,3 +1,14 @@
+## 2026-05-11 - STEP239 DeathCounter Chat-Output-Anbindung
+
+- `backend/modules/deathcounter_v2.js` an vorhandenen `helper_chat_output` angebunden.
+- DeathCounter Command-Antworten mit Chattext werden primaer vom Backend/Bot gesendet.
+- Erfolgreicher Backend-Chatversand setzt `chat_sent = true` und verhindert Streamer.bot-Doppelposts durch `streamerbot_send = "0"`.
+- Fallback ueber `streamerbot_send = "1"` bleibt erhalten, wenn direkter Chatversand nicht moeglich ist.
+- Fuer manuelle Tests kann Backend-Chatversand mit `sendChat=0` oder `chatOutput=0` uebersprungen werden.
+- Keine DB-, Dashboard-, Overlay- oder Config-Aenderung.
+
+---
+
 ## 2026-05-11 - STEP238 DeathCounter Command-API Bridge
 
 - `backend/modules/deathcounter_v2.js` erweitert.

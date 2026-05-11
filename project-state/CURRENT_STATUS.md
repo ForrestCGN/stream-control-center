@@ -1,3 +1,16 @@
+## STEP239 - DeathCounter Chat-Output-Anbindung
+
+Stand: 2026-05-11
+
+- DeathCounter Command-API sendet Chat-Antworten jetzt primaer selbst ueber `helper_chat_output`.
+- `!tode`, `!tode @user` und Fehlermeldungen koennen damit ueber HeimaufsichtCGN/Bot direkt aus dem Backend in den Twitch-Chat gehen.
+- Bei erfolgreichem Direktversand bleibt `streamerbot_send = "0"`; Streamer.bot muss dann nichts posten.
+- Bei fehlgeschlagenem Direktversand bleibt der bestehende Fallback ueber `streamerbot_send = "1"` und `streamerbot_message` erhalten.
+- Stille Aktionen wie `rip`, `del`, `dcount show/hide/toggle/reset/replace` bleiben ohne Chat-Ausgabe.
+- Keine DB-, Dashboard-, Overlay- oder Streamer.bot-Aenderung.
+
+---
+
 ## STEP238 - DeathCounter Command-API Bridge
 
 Stand: 2026-05-11

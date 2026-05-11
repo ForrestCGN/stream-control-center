@@ -1,3 +1,22 @@
+# STEP239 - DeathCounter Chat-Output-Anbindung
+
+Stand: 2026-05-11
+
+- DeathCounter Command-API nutzt jetzt den vorhandenen `helper_chat_output`.
+- Chat-Antworten wie `!tode` und Fehlermeldungen werden primaer vom Backend/Bot gesendet.
+- Streamer.bot soll dadurch nur noch den API-Trigger ausloesen und nicht mehr selbst Chatlogik ausfuehren.
+- `streamerbot_send` bleibt als Fallback erhalten, falls Backend-Chatversand nicht moeglich ist.
+- Mit `sendChat=0` oder `chatOutput=0` kann Backend-Chatversand fuer manuelle Tests uebersprungen werden.
+- Keine DB-, Config-, Dashboard-, Overlay- oder Streamer.bot-Aenderung in STEP239.
+
+Referenz:
+
+```text
+project-state/STEP239_DEATHCOUNTER_CHAT_OUTPUT_2026-05-11.md
+```
+
+---
+
 # STEP238 - DeathCounter Command-API Bridge
 
 Stand: 2026-05-11

@@ -1,3 +1,38 @@
+# NEXT STEP - Nach STEP239
+
+## DeathCounter Status
+
+DeathCounter hat jetzt eine zentrale Command-API und sendet Chat-Antworten primaer ueber den vorhandenen Backend-Chat-Output/Bot. Streamer.bot bleibt nur noch Trigger-/Fallback-Schicht.
+
+## Direkt testen
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/chat-output/status" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/command?command=tode" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/command?command=rip&input0=ForrestCGN&requireMention=1" | ConvertTo-Json -Depth 20
+```
+
+## Naechster Bau-STEP empfohlen
+
+STEP240: DeathCounter Settings ueber `helper_settings` + DB.
+
+Ziele:
+
+```text
+- requireMention als DB-Setting
+- chatOutputMode / fallbackToStreamerbot als DB-Setting
+- allowAutoCreatePlayers
+- allowTwitchLookup
+- defaultPlayers
+- resetOverlayPlayersOnStreamStart
+- resetSessionOnStreamStart
+- showOverlayOnStreamStart
+```
+
+Danach: Textvarianten und Dashboard-Modul.
+
+---
+
 # NEXT STEP - Nach STEP238
 
 ## DeathCounter Status
