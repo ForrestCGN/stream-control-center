@@ -1,16 +1,15 @@
-## STEP250 - DeathCounter DCOUNT Extra Players
+## STEP251 - DeathCounter Dashboard Extra Players
 
 Stand: 2026-05-11
 
-- DeathCounter `!dcount` unterstützt jetzt Zusatzspieler im Overlay.
-- Neue Befehle:
-  - `!dcount add @User`
-  - `!dcount remove @User`
-  - `!dcount clear`
-- `!dcount reset` bleibt Standard-Reset auf ForrestCGN + EngelCGN ohne Extras.
-- Die maximale Anzahl Zusatzspieler kommt weiterhin aus `deathcounter_settings.maxExtraPlayers`.
-- Spielerauflösung nutzt vorhandene State-/Twitch-Lookup-Logik.
-- Keine Dashboard-, Overlay-, Streamer.bot-, DB- oder Count-Migration.
+- DeathCounter-Dashboard kann Zusatzspieler jetzt im Tab `Steuerung` verwalten.
+- Neue Dashboard-Aktionen:
+  - Zusatzspieler hinzufügen
+  - Zusatzspieler entfernen
+  - alle Zusatzspieler leeren
+- Das Dashboard nutzt weiter `/api/deathcounter/v2/command` und schreibt nicht direkt in State/DB.
+- Übersicht/Sichtbare Spieler berücksichtigt jetzt Standardspieler plus Zusatzspieler.
+- Backend, Overlay, Streamer.bot, DB und Count-Logik wurden nicht geändert.
 
 Aktueller DeathCounter-Stand:
 
@@ -30,10 +29,11 @@ STEP247    Spieler-Detailansicht
 STEP248    Spieler-Detail Quick-Corrections
 STEP249    Streamer.bot rawInput Parser-Fix
 STEP250    DCOUNT Zusatzspieler add/remove/clear
+STEP251    Dashboard-Zusatzspieler-Steuerung
 ```
 
 Referenz:
 
 ```text
-project-state/STEP250_DEATHCOUNTER_DCOUNT_EXTRA_PLAYERS_2026-05-11.md
+project-state/STEP251_DEATHCOUNTER_DASHBOARD_EXTRA_PLAYERS_2026-05-11.md
 ```

@@ -1,24 +1,37 @@
-# CURRENT_SYSTEM_STATUS - STEP250 Update
+# CURRENT_SYSTEM_STATUS - STEP251 Update
 
-DeathCounter V2 unterstützt jetzt Zusatzspieler über den zentralen `!dcount` Command.
+DeathCounter V2 unterstützt Zusatzspieler jetzt auch über das Dashboard.
 
-Neue Befehle:
+Neu im Dashboard:
 
 ```text
-!dcount add @User
-!dcount remove @User
-!dcount clear
+Community → DeathCounter → Steuerung → Zusatzspieler
 ```
 
-Details:
+Funktionen:
 
-- `add` schreibt in `overlay.extraPlayerIds`.
-- `remove` entfernt nur Zusatzspieler.
-- `clear` entfernt alle Zusatzspieler.
-- `reset` bleibt vollständiger Standard-Reset auf Default-Spieler und leere Extras.
-- Die Grenze kommt aus `deathcounter_settings.maxExtraPlayers`, aktuell 2.
-- Spielerauflösung nutzt die vorhandene State-/Twitch-Lookup-Logik.
-- Die zentrale Command-API bleibt `/api/deathcounter/v2/command`.
-- Streamer.bot muss weiterhin nur FetchURL mit `rawInput=%rawInput%` ausführen.
+```text
+- Zusatzspieler hinzufügen
+- Zusatzspieler entfernen
+- alle Zusatzspieler leeren
+- aktive Zusatzspieler als Pills anzeigen
+- Grenze aus maxExtraPlayers anzeigen
+```
 
-Keine Dashboard-, Overlay-, Streamer.bot-, DB- oder Count-Migration in diesem STEP.
+Technisch:
+
+- Dashboard nutzt weiterhin die zentrale Command-API `/api/deathcounter/v2/command`.
+- Dashboard schreibt nicht direkt in JSON, SQLite oder State-Dateien.
+- `sendChat=0` verhindert Chat-Ausgaben bei Dashboard-Aktionen.
+- Übersicht/Sichtbare-Spieler-Anzeige nutzt jetzt Standardspieler plus Zusatzspieler.
+
+Nicht geändert:
+
+```text
+backend/modules/deathcounter_v2.js
+backend/modules/twitch.js
+app.sqlite
+data/deathcounter/deathcounter.v2.json
+htdocs/overlays/_overlay-deathcounter-v2.html
+Streamer.bot Actions/Exports
+```

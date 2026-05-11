@@ -1,34 +1,27 @@
-# NEXT STEP - Nach STEP250 DeathCounter DCOUNT Extra Players
+# NEXT STEP - Nach STEP251 DeathCounter Dashboard Extra Players
 
 ## Direkt testen
 
-Im Twitch-Chat oder per API:
+Im Dashboard:
 
 ```text
-!dcount
-!dcount add @urlug
-!dcount add @RoxxyFoxxyCGN
-!dcount add @DritterUser
-!dcount remove @urlug
-!dcount clear
-!dcount reset
+Community → DeathCounter → Steuerung
 ```
 
-Erwartung:
+Prüfen:
 
 ```text
-- `!dcount` toggelt Overlay.
-- `add` fügt maximal 2 Zusatzspieler hinzu.
-- dritter Zusatzspieler wird mit Hinweis blockiert.
-- `remove` entfernt nur Zusatzspieler, nicht Standardspieler.
-- `clear` entfernt alle Extras.
-- `reset` setzt auf Standardspieler zurück.
+- Zusatzspieler hinzufügen funktioniert.
+- Zusatzspieler entfernen funktioniert.
+- Alle Extras leeren funktioniert.
+- Übersicht zeigt Standardspieler plus Zusatzspieler.
+- maxExtraPlayers-Grenze bleibt wirksam.
 ```
 
 ## Nächster sinnvoller Bau-Step
 
 ```text
-STEP251: DeathCounter Dashboard-Steuerung um Extra-Spieler add/remove/clear erweitern
+STEP252: DeathCounter Dashboard-Spielerwerte/Korrekturen weiter ausbauen oder UX nach Live-Test bereinigen
 ```
 
 Noch nicht direkt blind bauen:
@@ -37,4 +30,5 @@ Noch nicht direkt blind bauen:
 - JSON-State durch DB ersetzen
 - app.sqlite neu bauen oder überschreiben
 - alte Count-Logik entfernen
+- Overlay-Design auf neues CGN-Design migrieren
 ```

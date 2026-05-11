@@ -82,3 +82,12 @@ html[data-theme=light] .dc-error{color:#7f1d1d;background:rgba(248,113,113,.15)}
 .dc-detail-actions strong{display:block;font-size:13px;margin-bottom:3px}
 .dc-detail-actions span{display:block;color:var(--muted);font-size:12px;line-height:1.35}
 html[data-theme=light] .dc-detail-actions{background:rgba(251,191,36,.15);border-color:rgba(146,64,14,.22)}
+
+.dc-extra-summary{border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px;background:rgba(0,0,0,.06);display:grid;gap:10px;margin:8px 0 12px 0}
+.dc-extra-summary strong{display:block;font-size:13px;margin-bottom:3px}
+.dc-extra-summary span{display:block;color:var(--muted);font-size:12px;line-height:1.35}
+.dc-extra-list{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dc-pill{border:1px solid rgba(34,211,238,.28);background:rgba(34,211,238,.1);border-radius:999px;padding:6px 10px;color:inherit!important;font-weight:800;font-size:12px!important}
+.dc-extra-controls{align-items:end}
+html[data-theme=light] .dc-extra-summary{background:rgba(255,255,255,.42);border-color:rgba(15,23,42,.1)}
+html[data-theme=light] .dc-pill{background:rgba(34,211,238,.16);border-color:rgba(8,145,178,.24)}

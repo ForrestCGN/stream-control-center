@@ -134,6 +134,12 @@ window.DeathCounterModule = (function(){
           if (!window.confirm('Overlay-Spieler wirklich auf Standard zurücksetzen?')) return;
           await command('dcount', { input0: 'reset', sendChat: 0 });
         }
+        if (name === 'extra-add-player') await addExtraPlayer();
+        if (name === 'extra-remove-player') await removeExtraPlayer();
+        if (name === 'extra-clear-players') {
+          if (!window.confirm('Alle Zusatzspieler aus dem Overlay entfernen?')) return;
+          await command('dcount', { input0: 'clear', sendChat: 0 });
+        }
         if (name === 'replace-player') await replacePlayer();
         if (name === 'rip-player') await ripSelected(false);
         if (name === 'del-player') {
@@ -288,12 +294,24 @@ window.DeathCounterModule = (function(){
     });
   }
 
-  function getVisiblePlayers(){
+  function getSelectedPlayerIds(){
     const rt = getRuntimeSettings();
     const ov = getOverlayState();
-    const list = getPlayerList();
-    const selected = (ov.selectedPlayerIds || rt.selectedPlayerIds || []).map(normId);
-    return list.filter(p => selected.includes(normId(p.id || p.login)));
+    return (ov.selectedPlayerIds || rt.selectedPlayerIds || []).map(normId).filter(Boolean);
+  }
+
+  function getExtraPlayerIds(){
+    const ov = getOverlayState();
+    return (ov.extraPlayerIds || []).map(normId).filter(Boolean);
+  }
+
+  function getVisiblePlayerIds(){
+    return Array.from(new Set([...getSelectedPlayerIds(), ...getExtraPlayerIds()]));
+  }
+
+  function getVisiblePlayers(){
+    const visible = getVisiblePlayerIds();
+    return getPlayerList().filter(p => visible.includes(normId(p.id || p.login)));
   }
 
   function getCurrentGame(){
@@ -614,8 +632,14 @@ window.DeathCounterModule = (function(){
     const panel = root.querySelector('[data-dc-panel="control"]');
     if (!panel) return;
     const list = getPlayerList();
+    const rt = getRuntimeSettings();
     const ov = getOverlayState();
     const selected = ov.selectedPlayerIds || [];
+    const extraIds = getExtraPlayerIds();
+    const visibleIds = getVisiblePlayerIds();
+    const extraPlayers = extraIds.map(findPlayerById).filter(Boolean);
+    const maxExtra = Number(rt.maxExtraPlayers || 0);
+    const addablePlayers = list.filter(player => !visibleIds.includes(normId(player.id || player.login)));
     panel.innerHTML = `
       ${errorBlock()}
       <div class="dc-card page-card">
@@ -632,6 +656,20 @@ window.DeathCounterModule = (function(){
               <button type="button" data-dc-action="overlay-hide">Ausblenden</button>
               <button type="button" data-dc-action="overlay-toggle">Toggle</button>
               <button type="button" class="danger" data-dc-action="overlay-reset">Spieler reset</button>
+            </div>
+          </div>
+          <div class="dc-sub-card">
+            <h3>Zusatzspieler</h3>
+            <div class="dc-extra-summary">
+              <div><strong>${num(extraIds.length)} / ${num(maxExtra)} Zusatzspieler</strong><span>Standardspieler bleiben unverändert.</span></div>
+              <div class="dc-extra-list">${extraPlayers.length ? extraPlayers.map(player => `<span class="dc-pill">${esc(player.displayName || player.login || player.id)}</span>`).join('') : '<span class="dc-empty">Keine Zusatzspieler aktiv.</span>'}</div>
+            </div>
+            <div class="dc-form-row dc-extra-controls">
+              <label><span>Hinzufügen</span><select id="dcExtraAddPlayer">${playerOptions(addablePlayers, '')}</select></label>
+              <button type="button" data-dc-action="extra-add-player">Hinzufügen</button>
+              <label><span>Entfernen</span><select id="dcExtraRemovePlayer">${playerOptions(extraPlayers, extraIds[0] || '')}</select></label>
+              <button type="button" data-dc-action="extra-remove-player">Entfernen</button>
+              <button type="button" class="danger" data-dc-action="extra-clear-players">Alle Extras leeren</button>
             </div>
           </div>
           <div class="dc-sub-card">
@@ -668,6 +706,18 @@ window.DeathCounterModule = (function(){
     const to = document.getElementById('dcReplaceTo')?.value || '';
     if (!from || !to) throw new Error('Bitte Von- und Zu-Spieler wählen.');
     await command('dcount', { input0: 'replace', input1: `@${from}`, input2: `@${to}`, sendChat: 0 });
+  }
+
+  async function addExtraPlayer(){
+    const player = document.getElementById('dcExtraAddPlayer')?.value || '';
+    if (!player) throw new Error('Bitte Zusatzspieler zum Hinzufügen wählen.');
+    await command('dcount', { input0: 'add', input1: `@${player}`, sendChat: 0 });
+  }
+
+  async function removeExtraPlayer(){
+    const player = document.getElementById('dcExtraRemovePlayer')?.value || '';
+    if (!player) throw new Error('Bitte Zusatzspieler zum Entfernen wählen.');
+    await command('dcount', { input0: 'remove', input1: `@${player}`, sendChat: 0 });
   }
 
   async function ripSelected(del){

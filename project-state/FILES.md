@@ -1,10 +1,11 @@
-# FILES - STEP250 DeathCounter DCOUNT Extra Players
+# FILES - STEP251 DeathCounter Dashboard Extra Players
 
 Geändert / neu:
 
 ```text
-backend/modules/deathcounter_v2.js
-project-state/STEP250_DEATHCOUNTER_DCOUNT_EXTRA_PLAYERS_2026-05-11.md
+htdocs/dashboard/modules/deathcounter.js
+htdocs/dashboard/modules/deathcounter.css
+project-state/STEP251_DEATHCOUNTER_DASHBOARD_EXTRA_PLAYERS_2026-05-11.md
 project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
@@ -15,7 +16,7 @@ docs/current/CURRENT_SYSTEM_STATUS.md
 Nicht geändert:
 
 ```text
-htdocs/dashboard/**
+backend/modules/deathcounter_v2.js
 backend/modules/twitch.js
 app.sqlite
 data/deathcounter/deathcounter.v2.json
