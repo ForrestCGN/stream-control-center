@@ -49,6 +49,15 @@ Aktueller Stand nach STEP224:
 
 ## Alert-System / Twitch Alert Bridge
 
+## STEP225 - Twitch EventSub Inbound Audit
+
+- `backend/modules/twitch.js` protokolliert echte eingehende Twitch/EventSub-Notifications jetzt in `data/logs/twitch_eventsub_audit.jsonl`.
+- Neue Route: `GET /api/twitch/alerts/audit/recent?limit=50`.
+- Audit-Eintraege enthalten EventSub-Typ, Message-ID, User, relevante Rohwerte, normalisierten Alert und Forward-Entscheidung.
+- Ziel ist die saubere Analyse von Stream-Ungereimtheiten wie unerwarteten `channel.subscribe`-, `channel.subscription.message`- oder Cheer-Events.
+- Es wurde keine DB-Tabelle angelegt und keine bestehende Alert-/TTS-/Queue-/Dashboard-Logik fachlich veraendert.
+
+
 Aktueller Stand nach STEP220:
 
 - Twitch-Alert-Bridge puffert `channel.subscribe` 30 Sekunden, bevor daraus ein sichtbarer Alert wird.

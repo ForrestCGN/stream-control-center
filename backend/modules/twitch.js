@@ -51,6 +51,12 @@ const DEFAULT_TWITCH_ALERT_CONFIG = {
     enabled: true,
     delayMs: 30000
   },
+  eventSubAudit: {
+    enabled: true,
+    logPath: 'data/logs/twitch_eventsub_audit.jsonl',
+    recentLimit: 50,
+    maxFileBytes: 5242880
+  },
   loyaltyForward: {
     enabled: true,
     url: 'http://127.0.0.1:8080/api/loyalty/events/ingest',
@@ -69,7 +75,14 @@ const twitchAlertBridgeState = {
   failed: 0,
   lastForwardedAt: null,
   lastError: '',
-  recent: []
+  recent: [],
+  eventSubAudit: {
+    path: '',
+    recent: [],
+    failed: 0,
+    lastError: '',
+    lastWrittenAt: null
+  }
 };
 
 module.exports.init = function init(ctx) {
@@ -252,6 +265,185 @@ module.exports.init = function init(ctx) {
   function rememberTwitchAlertBridge(entry) {
     twitchAlertBridgeState.recent.unshift({ at: core.nowIso(), ...entry });
     twitchAlertBridgeState.recent = twitchAlertBridgeState.recent.slice(0, 20);
+  }
+
+  function getTwitchEventSubAuditConfig() {
+    const cfg = twitchAlertBridgeState.config || DEFAULT_TWITCH_ALERT_CONFIG;
+    const audit = cfg.eventSubAudit || DEFAULT_TWITCH_ALERT_CONFIG.eventSubAudit || {};
+    const enabled = audit.enabled !== false;
+    const logPath = String(audit.logPath || 'data/logs/twitch_eventsub_audit.jsonl').trim() || 'data/logs/twitch_eventsub_audit.jsonl';
+    const parsedRecentLimit = Number(audit.recentLimit ?? 50);
+    const recentLimit = Number.isFinite(parsedRecentLimit) ? Math.max(10, Math.min(500, Math.floor(parsedRecentLimit))) : 50;
+    const parsedMaxFileBytes = Number(audit.maxFileBytes ?? 5242880);
+    const maxFileBytes = Number.isFinite(parsedMaxFileBytes) ? Math.max(1048576, Math.min(52428800, Math.floor(parsedMaxFileBytes))) : 5242880;
+    const resolvedPath = path.isAbsolute(logPath) ? logPath : path.join(baseRoot, logPath);
+    twitchAlertBridgeState.eventSubAudit.path = resolvedPath;
+    return { enabled, logPath, resolvedPath, recentLimit, maxFileBytes };
+  }
+
+  function safeJsonClone(value) {
+    try { return JSON.parse(JSON.stringify(value ?? null)); }
+    catch { return null; }
+  }
+
+  function eventSubMessageText(event = {}) {
+    if (!event || typeof event !== 'object') return '';
+    if (event.message && typeof event.message === 'object') return String(event.message.text || '').trim();
+    if (event.message != null) return String(event.message).trim();
+    if (event.user_input != null) return String(event.user_input).trim();
+    return '';
+  }
+
+  function summarizeTwitchEventSubEvent(subscriptionType, event = {}) {
+    const userLogin = String(
+      event.user_login ||
+      event.from_broadcaster_user_login ||
+      event.recipient_user_login ||
+      event.chatter_user_login ||
+      ''
+    ).trim().toLowerCase();
+    const userName = String(
+      event.user_name ||
+      event.from_broadcaster_user_name ||
+      event.recipient_user_name ||
+      event.chatter_user_name ||
+      userLogin ||
+      ''
+    ).trim();
+    const rewardTitle = event.reward && typeof event.reward === 'object' ? String(event.reward.title || '').trim() : '';
+    const rewardCost = event.reward && typeof event.reward === 'object' ? Number(event.reward.cost || 0) : 0;
+    return {
+      subscriptionType: String(subscriptionType || ''),
+      userLogin,
+      userName,
+      bits: event.bits != null ? Number(event.bits || 0) : null,
+      tier: event.tier != null ? String(event.tier) : '',
+      isGift: event.is_gift === true || event.is_gift === 'true' || event.is_gift === 1 || event.is_gift === '1',
+      total: event.total != null ? Number(event.total || 0) : null,
+      cumulativeTotal: event.cumulative_total != null ? Number(event.cumulative_total || 0) : null,
+      cumulativeMonths: event.cumulative_months != null ? Number(event.cumulative_months || 0) : null,
+      streakMonths: event.streak_months != null ? Number(event.streak_months || 0) : null,
+      viewers: event.viewers != null ? Number(event.viewers || 0) : null,
+      rewardTitle,
+      rewardCost,
+      messageText: eventSubMessageText(event)
+    };
+  }
+
+  function summarizeTwitchAlertPayloadForAudit(alertPayload) {
+    if (!alertPayload) return null;
+    if (alertPayload._skip) {
+      return {
+        skippedBeforeForward: true,
+        reason: alertPayload.reason || '',
+        kind: alertPayload.kind || '',
+        subscriptionType: alertPayload.subscriptionType || ''
+      };
+    }
+    return {
+      type: alertPayload.type || alertPayload.type_key || '',
+      user: alertPayload.user || '',
+      login: alertPayload.login || alertPayload.user_login || '',
+      amount: alertPayload.amount ?? null,
+      message: alertPayload.message || '',
+      title: alertPayload.title || '',
+      tier: alertPayload.tier || '',
+      isGift: alertPayload.is_gift === true || alertPayload.is_gift === 'true',
+      total: alertPayload.total ?? null,
+      quantity: alertPayload.quantity ?? null,
+      cumulativeMonths: alertPayload.cumulative_months ?? null,
+      streakMonths: alertPayload.streak_months ?? null
+    };
+  }
+
+  function summarizeTwitchAlertDecisionForAudit(alertPayload, alertResult, error = null) {
+    if (error) return { alertForward: 'failed', reason: error?.message || String(error) };
+    if (!alertPayload) return { alertForward: 'skipped', reason: 'no_alert_payload' };
+    if (alertPayload._skip) return { alertForward: 'skipped', reason: alertPayload.reason || 'payload_skip' };
+    if (!alertResult) return { alertForward: 'unknown', reason: 'no_forward_result' };
+    if (alertResult.buffered) return { alertForward: 'buffered', reason: alertResult.reason || 'waiting_for_subscription_message', delayMs: alertResult.delayMs || 0 };
+    if (alertResult.skipped) return { alertForward: 'skipped', reason: alertResult.reason || 'skipped' };
+    if (alertResult.ok && alertResult.data?.queued) return { alertForward: 'forwarded', reason: 'queued', eventUid: alertResult.data.eventUid || '', matchedRule: alertResult.data.matchedRule ?? null };
+    if (alertResult.ok) return { alertForward: 'forwarded', reason: 'ok', status: alertResult.status || 0 };
+    return { alertForward: 'failed', reason: alertResult.error || alertResult.data?.error || 'forward_failed', status: alertResult.status || 0 };
+  }
+
+  function createTwitchEventSubAuditRecord(meta = {}, subscription = {}, event = {}) {
+    const subscriptionType = String(subscription.type || '').trim();
+    const summary = summarizeTwitchEventSubEvent(subscriptionType, event);
+    return {
+      receivedAt: core.nowIso(),
+      source: 'twitch_eventsub',
+      transport: 'websocket',
+      messageType: meta.message_type || '',
+      messageId: meta.message_id || '',
+      messageTimestamp: meta.message_timestamp || '',
+      subscriptionType,
+      subscriptionId: subscription.id || '',
+      subscriptionVersion: subscription.version || '',
+      condition: safeJsonClone(subscription.condition || {}),
+      userLogin: summary.userLogin,
+      userName: summary.userName,
+      summary,
+      normalizedAlert: null,
+      decision: { alertForward: 'pending', reason: 'not_processed_yet' },
+      rawEvent: safeJsonClone(event || {})
+    };
+  }
+
+  function appendTwitchEventSubAudit(record) {
+    const auditCfg = getTwitchEventSubAuditConfig();
+    const auditState = twitchAlertBridgeState.eventSubAudit;
+    if (!auditCfg.enabled) return { ok: true, skipped: true, reason: 'audit_disabled' };
+
+    const cleanRecord = { ...record, auditWrittenAt: core.nowIso() };
+    auditState.recent.unshift(cleanRecord);
+    auditState.recent = auditState.recent.slice(0, auditCfg.recentLimit);
+
+    try {
+      fs.mkdirSync(path.dirname(auditCfg.resolvedPath), { recursive: true });
+      try {
+        const stat = fs.existsSync(auditCfg.resolvedPath) ? fs.statSync(auditCfg.resolvedPath) : null;
+        if (stat && stat.size > auditCfg.maxFileBytes) {
+          const rotated = `${auditCfg.resolvedPath}.old`;
+          try { if (fs.existsSync(rotated)) fs.unlinkSync(rotated); } catch {}
+          try { fs.renameSync(auditCfg.resolvedPath, rotated); } catch {}
+        }
+      } catch {}
+      fs.appendFileSync(auditCfg.resolvedPath, `${JSON.stringify(cleanRecord)}\n`, 'utf8');
+      auditState.lastWrittenAt = cleanRecord.auditWrittenAt;
+      auditState.lastError = '';
+      return { ok: true, path: auditCfg.resolvedPath };
+    } catch (e) {
+      auditState.failed++;
+      auditState.lastError = e?.message || String(e);
+      return { ok: false, error: auditState.lastError };
+    }
+  }
+
+  function readRecentTwitchEventSubAudit(limit = 50) {
+    const auditCfg = getTwitchEventSubAuditConfig();
+    const parsedLimit = Number(limit || 50);
+    const safeLimit = Number.isFinite(parsedLimit) ? Math.max(1, Math.min(500, Math.floor(parsedLimit))) : 50;
+    const rows = [];
+
+    try {
+      if (fs.existsSync(auditCfg.resolvedPath)) {
+        const text = fs.readFileSync(auditCfg.resolvedPath, 'utf8');
+        const lines = text.split(/\r?\n/).filter(Boolean).slice(-safeLimit);
+        for (const line of lines) {
+          try { rows.push(JSON.parse(line)); } catch {}
+        }
+      }
+    } catch (e) {
+      twitchAlertBridgeState.eventSubAudit.lastError = e?.message || String(e);
+    }
+
+    if (!rows.length && twitchAlertBridgeState.eventSubAudit.recent.length) {
+      return twitchAlertBridgeState.eventSubAudit.recent.slice(0, safeLimit);
+    }
+
+    return rows.reverse();
   }
 
   const pendingTwitchSubscribeAlerts = new Map();
@@ -1050,6 +1242,13 @@ module.exports.init = function init(ctx) {
         pendingSubscribeAlerts: pendingTwitchSubscribeAlerts.size,
         recentSubscriptionMessages: recentTwitchSubscriptionMessages.size
       },
+      eventSubAudit: {
+        ...getTwitchEventSubAuditConfig(),
+        recentCount: twitchAlertBridgeState.eventSubAudit.recent.length,
+        failed: twitchAlertBridgeState.eventSubAudit.failed,
+        lastError: twitchAlertBridgeState.eventSubAudit.lastError,
+        lastWrittenAt: twitchAlertBridgeState.eventSubAudit.lastWrittenAt
+      },
       recent: twitchAlertBridgeState.recent
     });
   });
@@ -1057,6 +1256,26 @@ module.exports.init = function init(ctx) {
   routes.registerPost(app, ['/api/twitch/alerts/reload', '/twitch/alerts/reload'], (req, res) => {
     const cfg = loadTwitchAlertBridgeConfig();
     res.json({ ok: true, settingsSource: twitchAlertBridgeState.settingsSource, settingsKey: twitchAlertBridgeState.settingsKey, configPath: twitchAlertBridgeState.configPath, config: cfg });
+  });
+
+  routes.registerGet(app, ['/api/twitch/alerts/audit/recent', '/twitch/alerts/audit/recent'], (req, res) => {
+    const limit = core.getParam(req, 'limit', 50);
+    const auditCfg = getTwitchEventSubAuditConfig();
+    res.json({
+      ok: true,
+      module: 'twitch_alert_bridge',
+      audit: {
+        enabled: auditCfg.enabled,
+        logPath: auditCfg.logPath,
+        resolvedPath: auditCfg.resolvedPath,
+        recentLimit: auditCfg.recentLimit,
+        maxFileBytes: auditCfg.maxFileBytes,
+        failed: twitchAlertBridgeState.eventSubAudit.failed,
+        lastError: twitchAlertBridgeState.eventSubAudit.lastError,
+        lastWrittenAt: twitchAlertBridgeState.eventSubAudit.lastWrittenAt
+      },
+      rows: readRecentTwitchEventSubAudit(limit)
+    });
   });
 
   routes.registerGet(app, ['/api/twitch/alerts/settings', '/twitch/alerts/settings'], (req, res) => {
@@ -2136,12 +2355,21 @@ function buildFakeTwitchAlertEvent(kind, query) {
           console.warn('[eventsub-loyalty] forward failed:', e?.message || e);
         }
 
+        const auditRecord = createTwitchEventSubAuditRecord(meta, sub, event);
         try {
           const alertPayload = normalizeTwitchEventSubToAlert(sub.type, event);
-          if (alertPayload) await forwardAlertPayloadToAlertSystem(alertPayload, sub.type);
+          auditRecord.normalizedAlert = summarizeTwitchAlertPayloadForAudit(alertPayload);
+
+          let alertResult = { ok: true, skipped: true, reason: 'no_alert_payload' };
+          if (alertPayload) alertResult = await forwardAlertPayloadToAlertSystem(alertPayload, sub.type);
+
+          auditRecord.decision = summarizeTwitchAlertDecisionForAudit(alertPayload, alertResult);
+          appendTwitchEventSubAudit(auditRecord);
         } catch (e) {
           twitchAlertBridgeState.failed++;
           twitchAlertBridgeState.lastError = e?.message || String(e);
+          auditRecord.decision = summarizeTwitchAlertDecisionForAudit(auditRecord.normalizedAlert, null, e);
+          appendTwitchEventSubAudit(auditRecord);
           rememberTwitchAlertBridge({ action: 'failed', subscriptionType: sub.type, error: twitchAlertBridgeState.lastError });
           console.warn('[eventsub-alerts] forward failed:', twitchAlertBridgeState.lastError);
         }

@@ -2,6 +2,37 @@
 
 Stand: 2026-05-11
 
+## STEP225
+
+Geaendert:
+
+```text
+backend/modules/twitch.js
+project-state/STEP225_TWITCH_EVENTSUB_INBOUND_AUDIT_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/alert_system.js
+backend/modules/loyalty.js
+backend/core/database.js
+htdocs/**
+config/**
+app.sqlite
+```
+
+Neue Runtime-Datei nach echten Twitch-Events:
+
+```text
+data/logs/twitch_eventsub_audit.jsonl
+```
+
 ## STEP224
 
 Geaendert:

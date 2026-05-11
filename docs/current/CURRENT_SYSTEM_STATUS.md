@@ -2,6 +2,14 @@
 
 Stand: 2026-05-11
 
+## STEP225 - Twitch EventSub Inbound Audit
+
+- Echte Twitch/EventSub-Notifications werden vor/nach Alert-Normalisierung als JSONL protokolliert.
+- Standardpfad: `data/logs/twitch_eventsub_audit.jsonl`.
+- Neue Route: `GET /api/twitch/alerts/audit/recent?limit=50`.
+- Statusroute `/api/twitch/alerts/status` zeigt die Audit-Konfiguration und letzte Schreibinformationen.
+- Keine Datenbankmigration und keine fachliche Aenderung an Alert-Queue, TTS, Dashboard oder Loyalty.
+
 ## STEP224 - Twitch Event Simulator Dashboard
 
 - Neues Dashboard-Modul `twitch_events` im Control-Bereich verfuegbar.

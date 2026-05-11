@@ -2,6 +2,17 @@
 
 Stand: 2026-05-11
 
+## Twitch/EventSub Audit - naechster Stream
+
+Nach dem naechsten echten Twitch-Event pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/audit/recent?limit=50" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/status" | ConvertTo-Json -Depth 60
+```
+
+Ziel: Roh-EventSub-Eingang gegen Alert-History abgleichen und pruefen, ob Twitch unerwartete oder verspaetete Events liefert.
+
 ## Twitch Subscription Tier-Text
 
 Nach STEP222 testen:
