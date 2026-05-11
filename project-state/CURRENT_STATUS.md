@@ -1,3 +1,29 @@
+## STEP256 - DeathCounter Storage Consistency Check
+
+Stand: 2026-05-11
+
+DeathCounter V2 hat jetzt einen reinen DB-vs-JSON-Konsistenzcheck nach dem STEP255-Import.
+
+Neue Route:
+
+```text
+GET /api/deathcounter/v2/storage/consistency
+```
+
+Die Route vergleicht den aktuellen produktiven JSON-State mit den importierten DB-Zeilen fuer Spieler, Games, Counts und Overlay-State. Sie schreibt nichts und schaltet keinen Storage um.
+
+Garantien:
+
+```text
+readOnly: true
+writesDatabase: false
+importsCounts: false
+switchesStorage: false
+activeStorage: json_state_file
+```
+
+Nach erfolgreichem STEP255-Import sollte `consistent: true` mit `errors: 0` und `warnings: 0` erreicht werden.
+
 ## STEP255 - DeathCounter Guarded Storage Import
 
 Stand: 2026-05-11

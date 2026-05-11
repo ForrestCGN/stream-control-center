@@ -1,3 +1,50 @@
+# CURRENT_SYSTEM_STATUS - STEP256 Update
+
+DeathCounter V2 hat jetzt einen Read-only-Konsistenzcheck zwischen produktivem JSON-State und importierten DB-Zeilen.
+
+Neu:
+
+```text
+GET /api/deathcounter/v2/storage/consistency
+```
+
+Die Route vergleicht:
+
+```text
+- deathcounter.v2.json -> erwartete Storage-Zeilen
+- deathcounter_players
+- deathcounter_games
+- deathcounter_counts
+- deathcounter_overlay_state
+```
+
+Garantien:
+
+```text
+readOnly: true
+writesDatabase: false
+importsCounts: false
+switchesStorage: false
+activeStorage: json_state_file
+```
+
+Integration-Check enthaelt jetzt zusaetzlich:
+
+```text
+database_storage_consistency
+```
+
+Nicht geaendert:
+
+```text
+produktive RIP/DEL/TODE-Storage-Logik
+Overlay
+Streamer.bot
+aktiver Storage
+```
+
+---
+
 # CURRENT_SYSTEM_STATUS - STEP255 Update
 
 DeathCounter V2 hat jetzt einen geschuetzten Import-Endpunkt fuer die vorbereiteten DB-Tabellen.

@@ -1,3 +1,37 @@
+# FILES - STEP256 DeathCounter Storage Consistency Check
+
+Geaendert / neu:
+
+```text
+backend/modules/deathcounter_v2.js
+project-state/STEP256_DEATHCOUNTER_STORAGE_CONSISTENCY_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md
+docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md
+README_STEP256_DEATHCOUNTER_STORAGE_CONSISTENCY.md
+```
+
+Weiterhin nicht geaendert:
+
+```text
+data/deathcounter/deathcounter.v2.json
+htdocs/overlays/_overlay-deathcounter-v2.html
+Streamer.bot Actions/Exports
+produktive RIP/DEL/TODE-Storage-Logik
+```
+
+Hinweis:
+
+```text
+Der neue Check liest JSON und DB, schreibt aber nichts und schaltet keinen Storage um.
+```
+
+---
+
 # FILES - STEP255 DeathCounter Guarded Storage Import
 
 Geaendert / neu:

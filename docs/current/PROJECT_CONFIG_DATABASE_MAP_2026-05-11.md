@@ -1,3 +1,30 @@
+# STEP256 DeathCounter DB-/Storage-Ergaenzung
+
+DeathCounter V2 nutzt weiterhin `data/deathcounter/deathcounter.v2.json` als aktiven produktiven Storage, hat aber vorbereitete/importierte DB-Tabellen und nun einen Read-only-Konsistenzcheck.
+
+Neue/ relevante DeathCounter-Routen:
+
+```text
+GET  /api/deathcounter/v2/storage/preview
+GET  /api/deathcounter/v2/storage/validate
+POST /api/deathcounter/v2/storage/import
+GET  /api/deathcounter/v2/storage/consistency
+```
+
+DeathCounter-Tabellen:
+
+```text
+deathcounter_players
+deathcounter_games
+deathcounter_counts
+deathcounter_overlay_state
+deathcounter_events
+```
+
+`/storage/consistency` vergleicht JSON-State gegen importierte DB-Zeilen, schreibt nichts und schaltet keinen Storage um.
+
+---
+
 # PROJECT CONFIG AND DATABASE MAP
 
 Stand: 2026-05-11  

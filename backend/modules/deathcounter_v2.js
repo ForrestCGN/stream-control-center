@@ -224,6 +224,18 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  app.get(`${API_PREFIX}/storage/consistency`, (req, res) => {
+    try {
+      const result = buildDeathcounterStorageConsistency({
+        includeIssues: booleanOrDefault(req.query.includeIssues, true),
+        limit: intOrDefault(req.query.limit, 100)
+      });
+      return res.json(ok(result));
+    } catch (err) {
+      return res.status(500).json(fail(err.message || String(err)));
+    }
+  });
+
   app.post(`${API_PREFIX}/reload`, (req, res) => {
     ensureStateFile();
     const state = readState();
@@ -2347,6 +2359,233 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function readDeathcounterImportedStorageRows() {
+    const qPlayers = database.quoteIdentifier(STORAGE_TABLES.players);
+    const qGames = database.quoteIdentifier(STORAGE_TABLES.games);
+    const qCounts = database.quoteIdentifier(STORAGE_TABLES.counts);
+    const qOverlay = database.quoteIdentifier(STORAGE_TABLES.overlayState);
+    const qEvents = database.quoteIdentifier(STORAGE_TABLES.events);
+
+    return {
+      players: database.all(`
+        SELECT id, login, display_name, active, sort_order
+        FROM ${qPlayers}
+        ORDER BY sort_order ASC, id ASC
+      `) || [],
+      games: database.all(`
+        SELECT game_key, display_name
+        FROM ${qGames}
+        ORDER BY game_key ASC
+      `) || [],
+      counts: database.all(`
+        SELECT player_id, game_key, session_deaths, all_time_deaths
+        FROM ${qCounts}
+        ORDER BY player_id ASC, game_key ASC
+      `) || [],
+      overlayState: database.all(`
+        SELECT state_key, state_value, value_type
+        FROM ${qOverlay}
+        ORDER BY state_key ASC
+      `) || [],
+      events: database.all(`
+        SELECT id, event_uid, event_type, player_id, game_key, delta, payload_json, created_at
+        FROM ${qEvents}
+        ORDER BY id ASC
+      `) || []
+    };
+  }
+
+  function normalizeConsistencyJsonValue(value, type) {
+    const valueType = String(type || '').trim().toLowerCase();
+    if (valueType === 'boolean') {
+      if (value === true || value === false) return value;
+      const raw = String(value ?? '').trim().toLowerCase();
+      if (raw === 'true' || raw === '1') return true;
+      if (raw === 'false' || raw === '0') return false;
+    }
+    if (valueType === 'number') {
+      const numberValue = Number(value);
+      return Number.isFinite(numberValue) ? numberValue : 0;
+    }
+    if (valueType === 'json' || valueType === 'string' || String(value ?? '').trim().startsWith('[') || String(value ?? '').trim().startsWith('{') || String(value ?? '').trim().startsWith('"')) {
+      try { return JSON.parse(String(value ?? 'null')); } catch (_) {}
+    }
+    return String(value ?? '');
+  }
+
+  function normalizeConsistencyValue(value) {
+    if (Array.isArray(value)) return value.map(normalizeConsistencyValue);
+    if (value && typeof value === 'object') {
+      const normalized = {};
+      for (const key of Object.keys(value).sort()) normalized[key] = normalizeConsistencyValue(value[key]);
+      return normalized;
+    }
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'boolean') return value;
+    return String(value ?? '');
+  }
+
+  function consistencyFingerprint(value) {
+    return JSON.stringify(normalizeConsistencyValue(value));
+  }
+
+  function buildDeathcounterStorageConsistency(options = {}) {
+    const includeIssues = options.includeIssues !== false;
+    const limit = Math.max(0, Math.min(1000, intOrDefault(options.limit, 100)));
+    const expected = buildDeathcounterStorageRows();
+    const storage = buildDeathcounterStorageStatus();
+    const imported = readDeathcounterImportedStorageRows();
+    const issues = [];
+
+    function addIssue(level, code, message, details = {}) {
+      issues.push({ level, code, message, details });
+    }
+
+    function compareCollection(collectionKey, expectedRows, actualRows, getKey, normalizeExpected, normalizeActual) {
+      const expectedMap = new Map();
+      const actualMap = new Map();
+
+      for (const row of expectedRows) {
+        const key = getKey(row);
+        if (expectedMap.has(key)) addIssue('error', `${collectionKey}_expected_duplicate`, `Expected ${collectionKey} row is duplicated: ${key}`, { key });
+        expectedMap.set(key, normalizeExpected(row));
+      }
+
+      for (const row of actualRows) {
+        const key = getKey(row);
+        if (actualMap.has(key)) addIssue('error', `${collectionKey}_database_duplicate`, `Database ${collectionKey} row is duplicated: ${key}`, { key });
+        actualMap.set(key, normalizeActual(row));
+      }
+
+      for (const [key, expectedRow] of expectedMap.entries()) {
+        if (!actualMap.has(key)) {
+          addIssue('error', `${collectionKey}_missing_in_database`, `${collectionKey} row missing in database: ${key}`, { key, expected: expectedRow });
+          continue;
+        }
+        const actualRow = actualMap.get(key);
+        if (consistencyFingerprint(expectedRow) !== consistencyFingerprint(actualRow)) {
+          addIssue('error', `${collectionKey}_mismatch`, `${collectionKey} row differs between JSON and database: ${key}`, { key, expected: expectedRow, actual: actualRow });
+        }
+      }
+
+      for (const [key, actualRow] of actualMap.entries()) {
+        if (!expectedMap.has(key)) {
+          addIssue('warning', `${collectionKey}_extra_in_database`, `${collectionKey} row exists in database but not in JSON preview: ${key}`, { key, actual: actualRow });
+        }
+      }
+
+      return {
+        expected: expectedRows.length,
+        database: actualRows.length,
+        matches: expectedRows.length === actualRows.length && [...expectedMap.keys()].every(key => actualMap.has(key) && consistencyFingerprint(expectedMap.get(key)) === consistencyFingerprint(actualMap.get(key)))
+      };
+    }
+
+    if (!storage.ok) {
+      addIssue('error', 'storage_schema_not_ready', 'Prepared DeathCounter storage schema is not ready.', { error: storage.error || '' });
+    }
+
+    const players = compareCollection(
+      'players',
+      expected.playerRows,
+      imported.players,
+      row => String(row.id || '').trim(),
+      row => ({ id: row.id, login: row.login, display_name: row.display_name, active: Number(row.active || 0), sort_order: Number(row.sort_order || 0) }),
+      row => ({ id: row.id, login: row.login, display_name: row.display_name, active: Number(row.active || 0), sort_order: Number(row.sort_order || 0) })
+    );
+
+    const games = compareCollection(
+      'games',
+      expected.gameRows,
+      imported.games,
+      row => String(row.game_key || '').trim(),
+      row => ({ game_key: row.game_key, display_name: row.display_name }),
+      row => ({ game_key: row.game_key, display_name: row.display_name })
+    );
+
+    const counts = compareCollection(
+      'counts',
+      expected.countRows,
+      imported.counts,
+      row => `${String(row.player_id || '').trim()}::${String(row.game_key || '').trim()}`,
+      row => ({ player_id: row.player_id, game_key: row.game_key, session_deaths: Number(row.session_deaths || 0), all_time_deaths: Number(row.all_time_deaths || 0) }),
+      row => ({ player_id: row.player_id, game_key: row.game_key, session_deaths: Number(row.session_deaths || 0), all_time_deaths: Number(row.all_time_deaths || 0) })
+    );
+
+    const overlayState = compareCollection(
+      'overlay_state',
+      expected.overlayRows,
+      imported.overlayState,
+      row => String(row.state_key || '').trim(),
+      row => ({ state_key: row.state_key, value_type: row.value_type, value: normalizeConsistencyJsonValue(row.state_value, row.value_type) }),
+      row => ({ state_key: row.state_key, value_type: row.value_type, value: normalizeConsistencyJsonValue(row.state_value, row.value_type) })
+    );
+
+    const eventsExpected = expected.eventRows.length;
+    const eventsDatabase = imported.events.length;
+    if (eventsDatabase > 0 && eventsExpected === 0) {
+      addIssue('info', 'events_present_in_database', 'Database contains deathcounter_events rows, but historical events are not reconstructed from JSON preview.', { rowCount: eventsDatabase });
+    } else if (eventsExpected === 0 && eventsDatabase === 0) {
+      addIssue('info', 'events_not_reconstructed', 'Historical event rows are not reconstructed from deathcounter.v2.json.', { table: STORAGE_TABLES.events });
+    }
+
+    const errors = issues.filter(issue => issue.level === 'error').length;
+    const warnings = issues.filter(issue => issue.level === 'warning').length;
+    const infos = issues.filter(issue => issue.level === 'info').length;
+    const consistent = errors === 0 && warnings === 0 && players.matches && games.matches && counts.matches && overlayState.matches;
+
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      action: 'storage_consistency',
+      destructive: false,
+      readOnly: true,
+      writesDatabase: false,
+      importsCounts: false,
+      switchesStorage: false,
+      activeStorage: 'json_state_file',
+      preparedStorage: 'database_schema',
+      consistent,
+      stateFile,
+      currentGame: expected.currentGame,
+      stateUpdatedAt: expected.stateUpdatedAt,
+      summary: expected.summary,
+      database: {
+        players: imported.players.length,
+        games: imported.games.length,
+        counts: imported.counts.length,
+        overlayState: imported.overlayState.length,
+        events: imported.events.length
+      },
+      comparison: {
+        players,
+        games,
+        counts,
+        overlayState,
+        events: {
+          expected: eventsExpected,
+          database: eventsDatabase,
+          matches: eventsExpected === eventsDatabase
+        }
+      },
+      validation: {
+        ok: errors === 0,
+        errors,
+        warnings,
+        infos,
+        totalIssues: issues.length,
+        issueLimit: limit,
+        issues: includeIssues ? issues.slice(0, limit) : []
+      },
+      notes: [
+        'STEP256 consistency only. This endpoint compares the current JSON-derived rows with the imported DB rows.',
+        'No INSERT, UPDATE, DELETE, import or storage switch is performed by this endpoint.',
+        'Event history is not reconstructed from the JSON state; deathcounter_events may stay empty until future live DB event writes exist.'
+      ],
+      updatedAt: core.nowIso()
+    };
+  }
+
   function buildDeathcounterConfig() {
     return {
       module: 'deathcounter_v2',
@@ -2416,6 +2655,7 @@ module.exports.init = function init(ctx) {
       { method: 'GET', path: `${API_PREFIX}/storage/preview`, purpose: 'preview JSON state rows for prepared DB storage without importing counts' },
       { method: 'GET', path: `${API_PREFIX}/storage/validate`, purpose: 'validate JSON state import readiness without writing DB rows' },
       { method: 'POST', path: `${API_PREFIX}/storage/import`, purpose: 'confirmed one-time import from JSON state into prepared DB tables without switching active storage' },
+      { method: 'GET', path: `${API_PREFIX}/storage/consistency`, purpose: 'compare current JSON-derived storage rows with imported DB rows without writing or switching storage' },
       { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
       { method: 'GET/POST', path: `${API_PREFIX}/command`, purpose: 'central Streamer.bot-friendly command bridge for dcount/rip/tode' },
       { method: 'GET', path: `${API_PREFIX}/state`, purpose: 'public state for overlay/dashboard' },
@@ -2610,6 +2850,39 @@ module.exports.init = function init(ctx) {
       switchesStorage: false
     });
 
+    try {
+      const consistency = buildDeathcounterStorageConsistency({ includeIssues: false, limit: 0 });
+      add({
+        name: 'database_storage_consistency',
+        ok: consistency.validation.ok,
+        level: consistency.validation.errors ? 'error' : (consistency.validation.warnings ? 'warning' : 'ok'),
+        readOnly: consistency.readOnly,
+        writesDatabase: consistency.writesDatabase,
+        importsCounts: consistency.importsCounts,
+        switchesStorage: consistency.switchesStorage,
+        consistent: consistency.consistent,
+        comparison: consistency.comparison,
+        validation: {
+          errors: consistency.validation.errors,
+          warnings: consistency.validation.warnings,
+          infos: consistency.validation.infos,
+          totalIssues: consistency.validation.totalIssues
+        }
+      });
+    } catch (err) {
+      add({
+        name: 'database_storage_consistency',
+        ok: false,
+        level: 'error',
+        readOnly: true,
+        writesDatabase: false,
+        importsCounts: false,
+        switchesStorage: false,
+        consistent: false,
+        error: err.message || String(err)
+      });
+    }
+
     add({ name: 'routes', ok: true, level: 'ok', prefix: API_PREFIX, count: buildDeathcounterRoutes().length });
 
     const summary = summarizeChecks(checks);
@@ -2626,7 +2899,8 @@ module.exports.init = function init(ctx) {
         'STEP252 prepares database tables only. JSON remains the active DeathCounter storage; no counts are imported or switched.',
         'STEP253 adds a read-only storage preview. It does not write DB rows or switch active storage.',
         'STEP254 adds read-only import readiness validation. It does not write DB rows or switch active storage.',
-        'STEP255 adds a guarded import endpoint. It writes only after explicit confirm, requires empty target tables and keeps JSON active.'
+        'STEP255 adds a guarded import endpoint. It writes only after explicit confirm, requires empty target tables and keeps JSON active.',
+        'STEP256 adds a read-only DB-vs-JSON consistency check. It does not write rows or switch active storage.'
       ],
       updatedAt: core.nowIso()
     };

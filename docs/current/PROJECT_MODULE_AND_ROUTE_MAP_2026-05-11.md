@@ -1,3 +1,15 @@
+# STEP256 Route-Ergaenzung
+
+DeathCounter V2 neue Route:
+
+```text
+GET /api/deathcounter/v2/storage/consistency
+```
+
+Zweck: Read-only-Vergleich zwischen aktuellem JSON-State und importierten DeathCounter-DB-Zeilen. Kein Schreiben, kein Import, kein Storage-Wechsel.
+
+---
+
 # PROJECT MODULE AND ROUTE MAP
 
 Stand: 2026-05-11  

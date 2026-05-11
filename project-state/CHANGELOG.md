@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-05-11 - STEP256 DeathCounter Storage Consistency Check
+
+- Neue Route `GET /api/deathcounter/v2/storage/consistency` ergaenzt.
+- Route vergleicht aktuellen JSON-State mit den importierten DB-Zeilen.
+- Geprueft werden Spieler, Games, Counts und Overlay-State.
+- Integration-Check um `database_storage_consistency` erweitert.
+- Keine DB-Schreiboperationen, kein Import und kein Storage-Wechsel.
+
 ## 2026-05-11 - STEP255 DeathCounter Guarded Storage Import
 
 - Neue Route `POST /api/deathcounter/v2/storage/import` ergaenzt.

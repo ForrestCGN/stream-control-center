@@ -1,46 +1,33 @@
-# NEXT STEP - Nach STEP255 DeathCounter Guarded Storage Import
+# NEXT STEP - Nach STEP256 DeathCounter Storage Consistency Check
 
 ## Direkt testen
-
-Vor dem Import:
 
 ```powershell
 cd D:\Streaming\stramAssets
 
-Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/validate?limit=20" | ConvertTo-Json -Depth 30
-```
-
-Import ausfuehren:
-
-```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/deathcounter/v2/storage/import?confirm=IMPORT_DEATHCOUNTER_V2" | ConvertTo-Json -Depth 30
-```
-
-Nach dem Import pruefen:
-
-```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/consistency?includeIssues=false" | ConvertTo-Json -Depth 20
+Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/consistency?limit=20" | ConvertTo-Json -Depth 30
 Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/integration-check" | ConvertTo-Json -Depth 20
-Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/validate?limit=20" | ConvertTo-Json -Depth 30
 ```
 
-Erwartung nach erfolgreichem Import:
+Erwartung nach erfolgreichem STEP255-Import:
 
 ```text
+consistent: true
+errors: 0
+warnings: 0
 activeStorage: json_state_file
+writesDatabase: false
 switchesStorage: false
-writesDatabase: true nur beim Import-Endpunkt
-deathcounter_players rowCount > 0
-deathcounter_games rowCount > 0
-deathcounter_counts rowCount > 0
-deathcounter_overlay_state rowCount > 0
-deathcounter_events rowCount = 0
 ```
 
 ## Naechster sinnvoller Bau-Step
 
 ```text
-STEP256: DeathCounter DB-Import-Livecheck und optional DB-Read-Preview gegen importierte Tabellen
+STEP257: DeathCounter DB-Read-Preview / DB-State-Vorschau ohne produktive Umschaltung
 ```
+
+Ziel waere: Aus den importierten DB-Tabellen denselben Public-State bauen, den Overlay/Dashboard aktuell aus JSON bekommen wuerden, aber weiterhin nur als Vorschau-Route.
 
 Noch nicht blind bauen:
 
