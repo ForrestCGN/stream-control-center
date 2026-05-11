@@ -344,3 +344,29 @@ cd D:\Git\stream-control-center
 # project-state\NEXT_STEPS.md
 # project-state\FILES.md
 ```
+
+## STEP230A
+
+Geaendert:
+
+```text
+backend/modules/message_rotator.js
+project-state/STEP230A_MESSAGE_ROTATOR_DB_TEXT_RUNTIME_2026-05-11.md
+project-state/CURRENT_STATUS_APPEND_STEP230A.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+htdocs/**
+config/**
+backend/modules/helpers/**
+backend/core/database.js
+backend/modules/sqlite_core.js
+app.sqlite
+.env
+```

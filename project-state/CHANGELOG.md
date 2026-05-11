@@ -1,5 +1,13 @@
 # Changelog
 
+## STEP230A - 2026-05-11 - Message-Rotator DB-Text-Runtime
+
+- `backend/modules/message_rotator.js` erweitert: Runtime-Ausgaben nutzen jetzt zuerst DB-Textvarianten aus `module_text_variants` fuer `module_name = message_rotator`.
+- Neue interne Funktion `buildRotatorChatResult(...)` kapselt DB-Textausgabe plus JSON-Fallback.
+- Automatische und manuelle Rotator-Nachrichten nutzen dieselbe Textquelle wie `/api/message-rotator/admin/texts`.
+- `integration-check` rendert Sample-Messages ueber dieselbe Runtime-Funktion.
+- Keine Dashboard-Dateien, keine Rotator-Items, keine Commands, keine Cooldowns und keine DB-Dateien geaendert.
+
 ## STEP229 - 2026-05-11 - Message-Rotator Backend Admin Basis
 
 - `backend/modules/message_rotator.js` um `helper_settings`-basierte Admin-Settings erweitert.

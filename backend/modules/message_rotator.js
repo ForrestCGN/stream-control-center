@@ -629,6 +629,57 @@ function buildContext(req) {
   });
 }
 
+
+function applyMaxLength(text, options = {}) {
+  const maxLength = Math.max(1, Number.parseInt(options.maxLength, 10) || DEFAULT_CONFIG.messageOptions.maxLength);
+  const value = String(text || '').trim();
+  if (value.length <= maxLength) return value;
+  return value.slice(0, maxLength).trim();
+}
+
+function buildDbTextResult(messageKey, context = {}, options = {}) {
+  const key = cleanId(messageKey);
+  if (!key) return { ok: false, error: 'missing_message_key', message: '' };
+
+  if (typeof textHelper.renderModuleText !== 'function') {
+    return { ok: false, error: 'render_module_text_unavailable', message: '' };
+  }
+
+  const rendered = textHelper.renderModuleText(TEXTS_MODULE, key, DEFAULT_TEXTS, context, {
+    ...textEditorOptions(),
+    seed: true
+  });
+  const message = applyMaxLength(rendered, options);
+  if (!message) return { ok: false, error: 'empty_database_text', message: '' };
+
+  return {
+    ok: true,
+    key,
+    module: TEXTS_MODULE,
+    source: 'database_variants_with_json_fallback',
+    message,
+    text: message,
+    target: cleanId(options.target || DEFAULT_CONFIG.messageOptions.target),
+    ts: core.nowIso()
+  };
+}
+
+function buildRotatorChatResult(messageKey, context = {}, options = {}) {
+  const dbResult = safeCall(`dbText.${messageKey}`, () => buildDbTextResult(messageKey, context, options), null);
+  if (dbResult.ok && dbResult.value && dbResult.value.ok !== false) return dbResult.value;
+
+  const legacyResult = textHelper.buildChatResult(messageKey, context, options);
+  if (legacyResult && typeof legacyResult === 'object') {
+    return {
+      ...legacyResult,
+      source: legacyResult.source || 'config_messages_fallback',
+      fallbackReason: dbResult.error || dbResult.value?.error || ''
+    };
+  }
+
+  return legacyResult;
+}
+
 function updateLiveStatusCache(result) {
   const now = Date.now();
   state.liveStatus = {
@@ -800,7 +851,7 @@ async function nextMessage(req) {
   const item = chooseWeighted(due);
   if (!item) return block('no_item_selected', { blockedItems: blocked });
 
-  const result = textHelper.buildChatResult(item.messageKey, buildContext(req), c.messageOptions || {});
+  const result = buildRotatorChatResult(item.messageKey, buildContext(req), c.messageOptions || {});
   if (!result.ok) return block(result.error || 'message_build_failed', { result, item });
 
   if (commit) {
@@ -930,7 +981,7 @@ function manualMessage(req) {
     });
   }
 
-  const result = textHelper.buildChatResult(item.messageKey, buildContext(req), c.messageOptions || {});
+  const result = buildRotatorChatResult(item.messageKey, buildContext(req), c.messageOptions || {});
   if (!result.ok) return block(result.error || 'message_build_failed', { result, item });
 
   if (commit) {
@@ -1166,7 +1217,7 @@ function buildMessageRotatorIntegrationCheck(req = null) {
 
   const sampleChecks = {};
   (c.items || []).filter(item => item.enabled).slice(0, 5).forEach(item => {
-    const result = safeCall(`sample.${item.messageKey}`, () => textHelper.buildChatResult(item.messageKey, {}, c.messageOptions || {}), null);
+    const result = safeCall(`sample.${item.messageKey}`, () => buildRotatorChatResult(item.messageKey, {}, c.messageOptions || {}), null);
     sampleChecks[item.messageKey] = {
       ok: result.ok && !!result.value && result.value.ok !== false,
       value: result.value,

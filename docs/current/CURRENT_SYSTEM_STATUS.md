@@ -220,3 +220,11 @@ Naechster fachlicher Schritt ist der echte Stream-Livetest nach STEP220 und STEP
 - Bot-/Systemuser muessen `ignored_user` liefern.
 - Event-Boni weiterhin beobachten.
 - Nach Streamende Runner/Stream-State offline pruefen.
+
+## STEP230A - Message-Rotator DB-Text-Runtime
+
+- `backend/modules/message_rotator.js` nutzt fuer Rotator-Runtime-Ausgaben jetzt zuerst DB-Textvarianten aus `module_text_variants` mit `module_name = message_rotator`.
+- Automatische und manuelle Rotator-Messages nutzen dieselbe interne Runtime-Funktion.
+- `config/messages/*.json` bleibt als Fallback erhalten.
+- Dashboard wurde noch nicht gebaut/geaendert.
+- Naechster Schritt bleibt das Dashboard-Modul fuer den Message-Rotator.

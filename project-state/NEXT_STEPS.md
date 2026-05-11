@@ -362,3 +362,34 @@ Ziel:
 Badword-/Blacklist-/Replacement-System für Alert-TTS.
 Dashboard-konfigurierbar.
 ```
+
+## Nach STEP230A - Message-Rotator
+
+Nach Backend-Neustart pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/texts" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/integration-check" | ConvertTo-Json -Depth 80
+```
+
+Erwartung:
+
+```text
+integration-check.healthy = true
+sample.value.source = database_variants_with_json_fallback
+```
+
+Naechster sinnvoller STEP:
+
+```text
+STEP230B - Dashboard-Modul Message-Rotator
+```
+
+Dabei einbauen:
+
+```text
+htdocs/dashboard/modules/message_rotator.js
+htdocs/dashboard/modules/message_rotator.css
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+```
