@@ -109,3 +109,27 @@ Nur aktualisieren, wenn der Generator/Quelle bekannt ist oder der echte Repo-Sta
 - Keine neuen Parallel-Doku-Strukturen ohne Zweck.
 - Keine Doku-Dateien in `htdocs` ablegen.
 - Keine Runtime-Dateien, Datenbanken oder Secrets anfassen.
+
+
+## STEP260 Cleanup-Ergänzung DeathCounter
+
+Status: erledigt fuer DeathCounter-Doku.
+
+Umgesetzt:
+
+- DeathCounter-DB-Umbau in einer stabilen Current-Doku zusammengeführt.
+- Aktive Einstiegspunkte auf finalen DeathCounter-Stand aktualisiert.
+- Full Maps fuer Config/DB und Module/Routen wieder als vollständige Arbeitskarten geführt und DeathCounter ergänzt.
+- Keine historischen STEP-Dateien gelöscht.
+- Keine APPEND-/STATUS_NOTE-Dateien verschoben.
+
+Bewusst offen fuer einen separaten Cleanup-Step:
+
+```text
+project-state/*APPEND*.md
+project-state/*STATUS_NOTE*.md
+docs/current/*STATUS_NOTE*.md
+docs/handoffs/NEXT_CHAT_HANDOFF_*.md
+```
+
+Diese Dateien nur später in einem eigenen Archiv-STEP verschieben, nicht löschen.

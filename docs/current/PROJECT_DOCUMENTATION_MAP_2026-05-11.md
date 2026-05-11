@@ -15,6 +15,7 @@ Diese Datei ist die schnelle Orientierung, welche Doku-Datei wofuer genutzt werd
 | `project-state/CHANGELOG.md` | Chronologische Aenderungen | Commit-/STEP-Historie kurz nachhalten |
 | `project-state/FILES.md` | Betroffene Dateien je STEP | Nachvollziehen, was geaendert wurde |
 | `project-state/NEXT_STEPS.md` | Naechste Aufgaben | Priorisierte Weiterarbeit |
+| `docs/current/DEATHCOUNTER_DB_STORAGE_STABLE_2026-05-11.md` | Stabiler DeathCounter-DB-Storage-Stand | Referenz fuer DeathCounter nach STEP259/STEP260 |
 
 ## Historische Referenzdokumente
 
@@ -78,3 +79,14 @@ mehrere unklare Dateien zum selben STEP ohne klare Einordnung
 ## Grundregel
 
 Historie bleibt erhalten. Aktive Arbeit soll aber ueber wenige, klare Einstiegspunkte laufen.
+
+
+## Aktueller DeathCounter-Hinweis
+
+DeathCounter V2 ist nach STEP260 als DB-only produktiv dokumentiert. Fuer DeathCounter-Storage-Fragen zuerst lesen:
+
+```text
+docs/current/DEATHCOUNTER_DB_STORAGE_STABLE_2026-05-11.md
+```
+
+Die STEP-Dateien 252-259 bleiben technische Historie. Die stabile Zusammenfassung steht in der Current-Doku.

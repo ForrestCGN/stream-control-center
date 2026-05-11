@@ -130,6 +130,37 @@ zusätzlich erkannte Route-Strings: 558
 - `sqlite_core.js` existiert weiterhin bewusst als Legacy-/Kompatibilitätsmodul. Neue Module sollen nicht direkt daran gekoppelt werden.
 - Viele alte Test-/STEP-Skripte liegen noch unter `tools/`. Diese wurden nicht archiviert, weil STEP233 nur Doku-Fragmente betroffen hat.
 
+
+## Aktueller Stable-Block: DeathCounter V2 DB-Storage
+
+Status: STABLE nach STEP260-Dokumentation und Live-Test.
+
+```text
+Backend-Modul: backend/modules/deathcounter_v2.js
+Aktiver Storage: database
+Fallback/Export: json_backup_export_file
+Dual-Write: false
+Tabellen: deathcounter_players, deathcounter_games, deathcounter_counts, deathcounter_overlay_state, deathcounter_events
+Backup/Export: !dcount backup / !dcount export
+```
+
+Bestätigt:
+
+```text
+- DB-Schema vorbereitet und importiert.
+- Produktiver DeathCounter liest und schreibt DB-only.
+- JSON wird nicht mehr automatisch mitgeschrieben.
+- Backup/Export über API und !dcount funktionieren.
+- Live-Schreibtest mit !rip/!del erfolgreich.
+- Integration-Check grün.
+```
+
+Referenz:
+
+```text
+docs/current/DEATHCOUNTER_DB_STORAGE_STABLE_2026-05-11.md
+```
+
 ## Aktueller Stable-Block
 
 ### Message-Rotator
