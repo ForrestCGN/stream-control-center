@@ -274,3 +274,36 @@ backend/check_alert_db.js
 ```
 
 Einordnung: altes technisches Pruefscript, kein normales produktives Modul. Keine Aenderung in STEP217 oder STEP220.
+
+
+# FILES Ergänzung – STEP228
+
+Neue/zu ergänzende Projektdatei:
+
+```text
+project-state/STEP228_TWITCH_EVENTSUB_ALERT_MAPPING_AUDIT_2026-05-11.md
+```
+
+Optionale Doku-Ableitungen aus diesem ZIP:
+
+```text
+project-state/CURRENT_STATUS_APPEND_STEP228.md
+project-state/CHANGELOG_APPEND_STEP228.md
+project-state/NEXT_STEPS_APPEND_STEP228.md
+project-state/FILES_APPEND_STEP228.md
+```
+
+Empfohlene Integration im Repo:
+
+```powershell
+cd D:\Git\stream-control-center
+
+# Datei aus ZIP nach project-state kopieren:
+# project-state\STEP228_TWITCH_EVENTSUB_ALERT_MAPPING_AUDIT_2026-05-11.md
+
+# Inhalte aus *_APPEND_STEP228.md manuell in die bestehenden Dateien übertragen:
+# project-state\CURRENT_STATUS.md
+# project-state\CHANGELOG.md
+# project-state\NEXT_STEPS.md
+# project-state\FILES.md
+```

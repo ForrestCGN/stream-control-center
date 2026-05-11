@@ -176,3 +176,52 @@ Aktueller Stand:
 
 - DB-Portabilitaetsstand dokumentiert.
 - Direkte `sqlite_core`-Nutzungen und bereits zentrale `core/database`-Nutzungen wurden eingeordnet.
+
+
+# CURRENT_STATUS Ergänzung – STEP228
+
+Stand: 2026-05-11
+
+## Twitch EventSub / Alert Mapping Audit
+
+STEP228 dokumentiert den aktuellen geprüften Stand der Twitch EventSub → Alert-System-Verarbeitung.
+
+Geprüft und als OK bewertet:
+
+```text
+channel.cheer / Bits
+channel.follow / Follow
+channel.subscribe / normaler Sub
+channel.subscription.message / Resub-Message
+channel.subscription.gift / GiftSub/GiftBomb
+channel.subscribe is_gift:true / GiftSub-Empfänger-Skip
+channel.raid / Raid
+```
+
+Bewusst aktuell keine normalen Alerts:
+
+```text
+channel.channel_points_custom_reward_redemption.add
+channel.hype_train.begin/progress/end
+channel.shoutout.create/receive
+stream.online/offline
+channel.update
+```
+
+Wichtige Erkenntnisse:
+
+```text
+- GiftSub-Empfänger werden korrekt übersprungen.
+- channel.subscribe wird 30 Sekunden gepuffert.
+- channel.subscription.message gewinnt gegenüber gepuffertem channel.subscribe.
+- Cheermote-Wörter werden für Alert-TTS entfernt.
+- GiftBomb 101+ hat aktuell keine Regel und wird ignored.
+- Prime-Sub/Prime-Resub ist mit channel.subscribe allein nicht sicher erkennbar.
+- Prime-Erkennung braucht später channel.chat.notification.
+```
+
+Referenzdokument:
+
+```text
+project-state/STEP228_TWITCH_EVENTSUB_ALERT_MAPPING_AUDIT_2026-05-11.md
+```

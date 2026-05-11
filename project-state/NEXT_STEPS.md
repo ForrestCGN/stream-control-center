@@ -208,3 +208,123 @@ Nach STEP224:
 - Twitch Event Simulator im Dashboard fuer Presets verwenden.
 - Mapping fuer Follow, Bits, Sub, Resub, GiftSub, GiftBomb, Raid und Channel Points dokumentieren.
 - Danach entscheiden, ob weitere Eventtypen eigene Alert-Typen oder Regeln brauchen.
+
+
+# NEXT_STEPS Ergänzung – nach STEP228
+
+## Twitch / Alert-System – spätere geplante Blöcke
+
+### 1. GiftBomb 101+ Special-/Jackpot-Alert
+
+Ziel:
+
+```text
+gift_bomb min_value 101 max_value null
+```
+
+Benötigt:
+
+```text
+- eigene Regel
+- eigener Sound
+- eigenes Display-Profil
+- eigener Chattextblock
+- Special-/Jackpot-Overlay
+```
+
+### 2. Dynamische SubBomb-Zahl im Overlay
+
+Ziel:
+
+```text
+SubBomb-Zahl dynamisch aus amount / quantity / total anzeigen.
+Keine Einzelgrafiken pro Zahl.
+```
+
+Beispiele:
+
+```text
+10 -> große 10
+12 -> große 12
+100 -> große 100 / Special-Design
+```
+
+### 3. GiftBomb-Empfänger-Highlights
+
+Idee:
+
+```text
+Bei großer Subbombe Empfänger sammeln.
+Nur Chat-aktive Empfänger optional hervorheben.
+Maximal begrenzte Anzahl kleiner Empfänger-Hinweise.
+Niemals alle Empfänger einzeln als Alerts abspielen.
+```
+
+### 4. Prime-Sub / Prime-Resub
+
+Ziel:
+
+```text
+Prime als eigener Alert/Eventtyp:
+prime_sub
+prime_resub
+```
+
+Benötigt:
+
+```text
+- channel.chat.notification abonnieren
+- is_prime auswerten
+- mit channel.subscribe / channel.subscription.message zusammenführen
+- eigene Regeln/Sounds/Bilder/Chattexte
+```
+
+### 5. HypeTrain-System
+
+Ziel:
+
+```text
+Eigenes System für:
+hype_train_begin
+hype_train_level_up
+hype_train_level_jump
+hype_train_end
+```
+
+Wichtig:
+
+```text
+Nur newLevel > lastLevel löst Alert aus.
+Gleicher Level mehrfach = nur Statusupdate.
+Levelsprung 1 -> 6 = ein passender Level-6-/Sprung-Alert.
+```
+
+### 6. Shoutout-/SO-Statistik
+
+Ziel:
+
+```text
+channel.shoutout.create/receive für Audit und Statistik nutzen.
+Nicht als normalen Alert.
+Nicht als automatischen Start für Clip-Shoutout.
+```
+
+Auswertungen:
+
+```text
+- wer hat /so ausgelöst
+- wohin wurde shoutoutet
+- wann
+- wie oft pro Zielkanal
+- wie oft pro Moderator
+- Cooldowns
+```
+
+### 7. TTS-Wortfilter / Moderation
+
+Ziel:
+
+```text
+Badword-/Blacklist-/Replacement-System für Alert-TTS.
+Dashboard-konfigurierbar.
+```

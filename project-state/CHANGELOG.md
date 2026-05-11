@@ -152,3 +152,43 @@
 - Module mit `core/database.js` und direkte `sqlite_core.js`-Nutzungen eingeordnet.
 - MySQL und MariaDB als gemeinsame spaetere MySQL-Family-Zielarchitektur festgelegt.
 - Keine Code-Aenderung.
+
+
+# CHANGELOG Ergänzung – STEP228
+
+## 2026-05-11 – STEP228 Twitch EventSub Alert Mapping Audit
+
+### Dokumentiert
+
+- Vollständige Prüfung der aktuell relevanten Twitch EventSub Alert-Verarbeitung.
+- Mapping von Twitch EventSub-Types auf Alert type_key dokumentiert.
+- Geprüfte Alert-Flows:
+  - Bits / Cheer
+  - Follow
+  - normaler Sub
+  - Resub / Subscription Message
+  - GiftSub
+  - GiftBomb
+  - GiftSub-Empfänger-Skip
+  - Raid
+- Bewusst nicht als Alert genutzte Events dokumentiert:
+  - Channel Points
+  - Hype Train
+  - Shoutout create/receive
+  - Stream online/offline
+  - Channel update
+- Offene spätere Erweiterungen dokumentiert:
+  - Prime-Sub / Prime-Resub via channel.chat.notification
+  - GiftBomb 101+ Special-/Jackpot-Alert
+  - dynamische SubBomb-Zahl im Overlay
+  - GiftBomb-Empfänger sammeln / nur Chat-aktive hervorheben
+  - HypeTrain-System
+  - Shoutout-/SO-Statistik
+  - TTS-Wortfilter / Moderation
+
+### Bekannte Befunde
+
+- GiftBomb 101+ führt aktuell zu `no_matching_rule` und wird ignoriert.
+- GiftBomb 100 wird aktuell durch Regel 64 abgedeckt.
+- GiftSub-Empfänger `channel.subscribe is_gift:true` werden korrekt nicht als Alert abgespielt.
+- Cheermote-Tokens werden aus Alert-TTS entfernt.
