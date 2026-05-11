@@ -15,6 +15,8 @@ window.DeathCounterModule = (function(){
 
   const tabs = [
     ['overview', 'Übersicht'],
+    ['players', 'Spieler'],
+    ['stats', 'Statistik'],
     ['control', 'Steuerung'],
     ['settings', 'Settings'],
     ['texts', 'Texte'],
@@ -36,7 +38,7 @@ window.DeathCounterModule = (function(){
   const numberSettings = new Set(['maxExtraPlayers']);
   const jsonSettings = new Set(['defaultSelectedIds']);
 
-  function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
+  function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
   function api(path, options){ return window.CGN.api(path, options || {}); }
   function num(v){ return Number(v || 0).toLocaleString('de-DE'); }
   function yes(v){ return v === true || v === 'true' || v === 1 || v === '1'; }
@@ -54,7 +56,7 @@ window.DeathCounterModule = (function(){
     if (window.CGN.moduleCatalog?.deathcounter) {
       window.CGN.moduleCatalog.deathcounter.enabled = true;
       window.CGN.moduleCatalog.deathcounter.label = 'DeathCounter';
-      window.CGN.moduleCatalog.deathcounter.description = 'DeathCounter V2: Status, Settings, Texte und einfache Steuerung.';
+      window.CGN.moduleCatalog.deathcounter.description = 'DeathCounter V2: Status, Settings, Texte und Steuerung.';
     }
     if (Array.isArray(window.CGN.favorites) && !window.CGN.favorites.includes('deathcounter')) {
       window.CGN.favorites.push('deathcounter');
@@ -81,6 +83,8 @@ window.DeathCounterModule = (function(){
         ${tabs.map(([id, label]) => `<button type="button" class="tab-btn ${id === activeTab ? 'active' : ''}" data-dc-tab="${esc(id)}">${esc(label)}</button>`).join('')}
       </div>
       <div class="dc-panel" data-dc-panel="overview"></div>
+      <div class="dc-panel" data-dc-panel="players" hidden></div>
+      <div class="dc-panel" data-dc-panel="stats" hidden></div>
       <div class="dc-panel" data-dc-panel="control" hidden></div>
       <div class="dc-panel" data-dc-panel="settings" hidden></div>
       <div class="dc-panel" data-dc-panel="texts" hidden></div>
@@ -166,24 +170,27 @@ window.DeathCounterModule = (function(){
   }
 
   function valueOrNull(result){ return result.status === 'fulfilled' ? result.value : null; }
-
-  function getRuntimeSettings(){
-    return settings?.runtime || status?.settings || {};
-  }
-
+  function getRuntimeSettings(){ return settings?.runtime || status?.settings || {}; }
   function getPlayerList(){
     if (Array.isArray(players?.players)) return players.players;
     if (Array.isArray(players?.state?.players)) return players.state.players;
     if (Array.isArray(status?.players)) return status.players;
     return [];
   }
+  function getOverlayState(){ return overlay?.overlay || status?.overlay || players?.overlay || overlay || {}; }
+  function normId(value){ return String(value || '').trim().toLowerCase(); }
 
-  function getOverlayState(){
-    return overlay?.overlay || status?.overlay || players?.overlay || overlay || {};
+  function getVisiblePlayers(){
+    const rt = getRuntimeSettings();
+    const ov = getOverlayState();
+    const list = getPlayerList();
+    const selected = (ov.selectedPlayerIds || rt.selectedPlayerIds || []).map(normId);
+    return list.filter(p => selected.includes(normId(p.id || p.login)));
   }
 
-  function normId(value){
-    return String(value || '').trim().toLowerCase();
+  function getCurrentGame(){
+    const rt = getRuntimeSettings();
+    return rt.currentGame || players?.currentGame || status?.currentGame || '-';
   }
 
   async function command(commandName, params){
@@ -194,16 +201,15 @@ window.DeathCounterModule = (function(){
 
   function renderLoading(){
     if (!root) return;
-    root.querySelector('[data-dc-panel="overview"]').innerHTML = `<div class="dc-card page-card"><h2>DeathCounter</h2><div class="dc-note">Lade Daten...</div></div>`;
+    const panel = root.querySelector('[data-dc-panel="overview"]');
+    if (panel) panel.innerHTML = `<div class="dc-card page-card"><h2>DeathCounter</h2><div class="dc-note">Lade Daten...</div></div>`;
   }
 
   function render(){
     if (!root) return;
-    if (error) {
-      const panel = root.querySelector(`[data-dc-panel="${activeTab}"]`);
-      if (panel) panel.insertAdjacentHTML('afterbegin', `<div class="dc-error">${esc(error)}</div>`);
-    }
     renderOverview();
+    renderPlayers();
+    renderStats();
     renderControl();
     renderSettings();
     renderTexts();
@@ -218,14 +224,13 @@ window.DeathCounterModule = (function(){
     const rt = getRuntimeSettings();
     const ov = getOverlayState();
     const list = getPlayerList();
-    const selected = (ov.selectedPlayerIds || rt.selectedPlayerIds || []).map(normId);
-    const activePlayers = list.filter(p => selected.includes(normId(p.id || p.login)));
+    const activePlayers = getVisiblePlayers();
     panel.innerHTML = `
       ${errorBlock()}
       <div class="dc-card dc-hero page-card">
         <div>
           <h2>DeathCounter V2</h2>
-          <div class="dc-note">Status, Spieler, Settings, Textvarianten und einfache Steuerung.</div>
+          <div class="dc-note">Kurzübersicht für Status und sichtbare Overlay-Spieler.</div>
         </div>
         <div class="dc-actions head-actions">
           <button type="button" data-dc-action="reload">Neu laden</button>
@@ -235,7 +240,7 @@ window.DeathCounterModule = (function(){
         <div class="dc-card">
           <h3>Status</h3>
           ${row('Modul', st.ok ? 'OK' : '-')}
-          ${row('Spiel', rt.currentGame || players?.currentGame || st.currentGame || '-')}
+          ${row('Spiel', getCurrentGame())}
           ${row('Overlay', (ov.visible ?? rt.overlayVisible) ? 'sichtbar' : 'versteckt')}
           ${row('Spieler', `${num(list.length)} gesamt`)}
           ${row('@ Pflicht', yes(rt.requireMentionForPlayerCommands) ? 'aktiv' : 'inaktiv')}
@@ -245,12 +250,60 @@ window.DeathCounterModule = (function(){
           <h3>Sichtbare Spieler</h3>
           ${activePlayers.length ? activePlayers.map(player => playerLine(player)).join('') : '<div class="dc-empty">Keine sichtbaren Spieler.</div>'}
         </div>
-        <div class="dc-card dc-wide">
-          <h3>Spieler & Counts</h3>
-          ${playersTable(list)}
+      </div>
+    `;
+  }
+
+  function renderPlayers(){
+    const panel = root.querySelector('[data-dc-panel="players"]');
+    if (!panel) return;
+    const list = getPlayerList();
+    panel.innerHTML = `
+      ${errorBlock()}
+      <div class="dc-card page-card">
+        <div class="card-head big-head">
+          <div><h2>Spieler</h2><div class="small-note">Alle bekannten DeathCounter-Spieler aus dem aktuellen JSON-State.</div></div>
+          <div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div>
+        </div>
+        ${playersTable(list)}
+      </div>
+    `;
+  }
+
+  function renderStats(){
+    const panel = root.querySelector('[data-dc-panel="stats"]');
+    if (!panel) return;
+    const list = getPlayerList();
+    const topAll = [...list].sort((a, b) => Number(b?.stats?.allTime || 0) - Number(a?.stats?.allTime || 0)).slice(0, 10);
+    const topGame = [...list].sort((a, b) => Number(b?.gameStats?.allTime || 0) - Number(a?.gameStats?.allTime || 0)).slice(0, 10);
+    const topSession = [...list].sort((a, b) => Number(b?.gameStats?.session || 0) - Number(a?.gameStats?.session || 0)).slice(0, 10);
+    panel.innerHTML = `
+      ${errorBlock()}
+      <div class="dc-card page-card">
+        <div class="card-head big-head">
+          <div><h2>Statistik</h2><div class="small-note">Schnellstatistik aus dem aktuellen State. Tiefere Event-Statistiken kommen erst mit späterer DB-Migration.</div></div>
+          <div class="head-actions"><button type="button" data-dc-action="reload">Neu laden</button></div>
+        </div>
+        <div class="dc-kpis">
+          ${kpi('Spieler', list.length)}
+          ${kpi('AllTime gesamt', list.reduce((sum, p) => sum + Number(p?.stats?.allTime || 0), 0))}
+          ${kpi('Spiel gesamt', list.reduce((sum, p) => sum + Number(p?.gameStats?.allTime || 0), 0))}
+          ${kpi('Heute', list.reduce((sum, p) => sum + Number(p?.gameStats?.session || 0), 0))}
+        </div>
+        <div class="dc-stat-grid">
+          ${topList('Top AllTime', topAll, p => p?.stats?.allTime)}
+          ${topList(`Top ${getCurrentGame()}`, topGame, p => p?.gameStats?.allTime)}
+          ${topList('Top Heute', topSession, p => p?.gameStats?.session)}
         </div>
       </div>
     `;
+  }
+
+  function topList(title, rows, valueFn){
+    const items = rows.length ? rows.map((player, index) => `
+      <li><span>${index + 1}. ${esc(player.displayName || player.login || player.id)}</span><strong>${num(valueFn(player))}</strong></li>
+    `).join('') : '<li><span>Keine Daten</span><strong>-</strong></li>';
+    return `<div class="dc-top-list"><h3>${esc(title)}</h3><ol>${items}</ol></div>`;
   }
 
   function playerLine(player){
@@ -322,9 +375,10 @@ window.DeathCounterModule = (function(){
   }
 
   function playerOptions(list, selectedId){
+    const selectedNorm = normId(selectedId);
     return ['<option value="">Bitte wählen</option>'].concat(list.map(player => {
       const id = player.id || player.login || '';
-      return `<option value="${esc(id)}"${id === selectedId ? ' selected' : ''}>${esc(player.displayName || player.login || id)}</option>`;
+      return `<option value="${esc(id)}"${normId(id) === selectedNorm ? ' selected' : ''}>${esc(player.displayName || player.login || id)}</option>`;
     })).join('');
   }
 
