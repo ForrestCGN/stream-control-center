@@ -140,3 +140,26 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/status" | ConvertTo-J
 - keine grossen Dashboard-Komplettumbauten
 - keine Runtime-/Config-/DB-Dateien ohne konkrete Aufgabe anfassen
 ```
+
+
+## Nach STEP233
+
+1. ZIP entpacken.
+2. Archiv-Script ausführen:
+
+```powershell
+cd D:\Git\stream-control-center
+.\tools\archive_docs_step233.ps1
+```
+
+3. `git status --short` prüfen.
+4. Commit/Deploy:
+
+```powershell
+.\stepdone.cmd "archive old project documentation fragments"
+```
+
+Danach nächster sinnvoller Block:
+
+- Dashboard-/Backend-Modulmatrix aktualisieren
+- oder nächstes Fachmodul auswählen: Hug/Rehug, SoundAlerts, Streamer.bot-Action-Doku

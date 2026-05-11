@@ -103,3 +103,36 @@ project-state/archive/status-notes/
 docs/archive/handoffs/
 docs/archive/old-current-notes/
 ```
+
+
+## STEP233
+
+Neu/geändert:
+
+```text
+tools/archive_docs_step233.ps1
+docs/archive/2026-05-11/STEP233_ARCHIVE_MANIFEST_2026-05-11.txt
+project-state/STEP233_PROJECT_DOCS_ARCHIVE_2026-05-11.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
+
+Beim Ausführen des Scripts werden alte Fragmente verschoben nach:
+
+```text
+project-state/archive/2026-05-11-step233/
+docs/archive/2026-05-11-step233/
+```
+
+Nicht betroffen:
+
+```text
+backend/**
+htdocs/**
+config/**
+data/**
+app.sqlite
+```

@@ -46,3 +46,11 @@
 ## Historie
 
 Die aeltere ausfuehrliche STEP-Historie bleibt in den einzelnen `project-state/STEP*.md` Dateien erhalten. Dieses Changelog ist ab STEP232 bewusst als kompakte aktuelle Arbeitschronik gehalten.
+
+
+## STEP233 - 2026-05-11 - Projekt-Doku Archivierung vorbereitet
+
+- Archiv-Move-Script fuer alte Append-/Status-/Handoff-Doku-Fragmente erstellt.
+- Manifest mit 187 geprüften Kandidaten erzeugt.
+- Keine Inhalte gelöscht, nur geplante Verschiebung in Archivordner.
+- Keine Code-, Config-, DB- oder Dashboard-Logik geändert.

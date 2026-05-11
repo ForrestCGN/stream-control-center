@@ -188,3 +188,11 @@ Prioritaet C:
 - Texte immer variantenfaehig und dashboardfaehig planen.
 - Historische STEP-Dateien nicht blind loeschen.
 - Bei Aufraeumarbeiten erst dokumentieren, dann verschieben/archivieren.
+
+
+## STEP233 - Doku-Fragmente archivieren
+
+- Archivierung alter Append-/Status-/Handoff-Fragmente vorbereitet.
+- 187 geprüfte Dateien werden per `tools/archive_docs_step233.ps1` in Archivordner verschoben.
+- Es wird nichts gelöscht; Inhalte bleiben im Repo erhalten.
+- Aktive Einstiegsdokus bleiben direkt sichtbar.

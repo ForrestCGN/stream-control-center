@@ -104,3 +104,12 @@ Priorisiert:
 2. SoundAlerts/Sound-System weiter vereinheitlichen.
 3. Alert-Sonderfaelle planen: Prime, GiftBomb 101+, HypeTrain, SO-Statistik.
 4. Doku-Archivierung als separaten STEP durchfuehren, ohne Historie zu loeschen.
+
+
+## STEP233 - Projekt-Doku Archivierung
+
+- Altdoku-Aufräumung vorbereitet.
+- Move-Script: `tools/archive_docs_step233.ps1`.
+- Manifest: `docs/archive/2026-05-11/STEP233_ARCHIVE_MANIFEST_2026-05-11.txt`.
+- Umfang: 187 geprüfte Archivkandidaten.
+- Keine Code-/Config-/DB-Änderung.
