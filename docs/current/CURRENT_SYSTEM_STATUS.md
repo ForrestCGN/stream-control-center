@@ -14,6 +14,17 @@ Aktueller Stand nach STEP220:
 - `/api/twitch/alerts/status` zeigt `subMessageBuffer` mit `enabled`, `delayMs`, `pendingSubscribeAlerts` und `recentSubscriptionMessages`.
 - Alert-System-Core, Queue, Regeln, Sounds, Designs, Dashboard, Loyalty, Kofi, Tipeee und SQLite-Schema wurden nicht geaendert.
 
+## STEP222 - Twitch Subscription Tier-Text Normalisierung
+
+Aktueller Stand:
+
+- `channel.subscribe` setzt technische Tier-Angaben nicht mehr als `message: "Tier 1000"`.
+- `channel.subscription.gift` setzt technische Tier-Angaben ebenfalls nicht mehr als `message`.
+- `tier` und `raw.tier` bleiben erhalten.
+- `channel.subscription.message` bleibt unveraendert und enthaelt echte User-/Resub-Nachrichten.
+- Ziel ist, falsche TTS-Ausgaben aus technischen Tier-Werten zu verhindern.
+- Keine Alert-Regeln, keine Queue, keine Sounds, keine Overlays, keine Dashboard-Dateien, keine DB-Struktur und keine Loyalty-Logik wurden geaendert.
+
 ## STEP221 - Twitch EventSub Debug-Simulator Backend
 
 Aktueller Stand:

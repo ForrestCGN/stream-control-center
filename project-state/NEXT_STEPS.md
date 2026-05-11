@@ -2,6 +2,39 @@
 
 Stand: 2026-05-11
 
+## Twitch Subscription Tier-Text
+
+Nach STEP222 testen:
+
+```powershell
+$body = @{
+  kind = "sub"
+  user = "TestSub"
+  display = "TestSub"
+  tier = "1000"
+  dryRun = $true
+} | ConvertTo-Json
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/debug/eventsub" -Method Post -ContentType "application/json" -Body $body | ConvertTo-Json -Depth 40
+```
+
+Erwartung:
+
+```text
+eventsubType = channel.subscribe
+type = sub
+message = leer
+tier = 1000
+```
+
+Danach als naechsten fachlichen Fix bauen:
+
+- Cheer-/Bits-TTS-Bereinigung:
+  - `Cheer100` -> kein TTS
+  - `Cheer100 test` -> `test`
+  - `Cheer10 Cheer10 Cheer100 test` -> `test`
+- Danach Dashboard-UI fuer den Twitch Event Simulator.
+
 ## Twitch Alert Bridge / Sub-Message-Buffer
 
 Nach STEP220 im naechsten echten Stream beobachten:

@@ -2,6 +2,14 @@
 
 ## 2026-05-11
 
+### STEP222 - Twitch Subscription Tier-Text Normalisierung
+
+- `backend/modules/twitch.js` korrigiert: technische Tier-Angaben aus `channel.subscribe` werden nicht mehr als `message: "Tier 1000"` gesetzt.
+- `channel.subscription.gift` setzt technische Tier-Angaben ebenfalls nicht mehr als Message.
+- `tier` und `raw.tier` bleiben erhalten; Titel und Alert-Forwarding bleiben unveraendert.
+- `channel.subscription.message` bleibt unveraendert und enthaelt weiter echte User-/Resub-Nachrichten.
+- Keine Aenderung an Alert-Regeln, Queue, Sounds, Dashboard, Loyalty, Kofi/Tipeee oder DB-Schema.
+
 ### STEP221 - Twitch EventSub Debug-Simulator Backend
 
 - `backend/modules/twitch.js` um Debug-Routen fuer Twitch-EventSub-Alert-Simulation erweitert.

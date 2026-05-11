@@ -2,6 +2,17 @@
 
 Stand: 2026-05-11
 
+## Alert-System / Twitch Subscription Tier-Text
+
+Aktueller Stand nach STEP222:
+
+- `channel.subscribe` setzt technische Tier-Angaben nicht mehr als `message: "Tier 1000"`.
+- `channel.subscription.gift` setzt technische Tier-Angaben ebenfalls nicht mehr als `message`.
+- `tier` und `raw.tier` bleiben erhalten.
+- `channel.subscription.message` bleibt unveraendert und enthaelt weiterhin echte User-/Resub-Nachrichten.
+- Damit sollen Sub-/GiftSub-Alerts nicht mehr wegen technischer Tier-Werte falsche TTS-Ausgaben wie `schreibt: Tier 1000` erzeugen.
+- Alert-Regeln, Queue, Sounds, Designs, Dashboard, Loyalty, Kofi/Tipeee und DB-Schema wurden nicht geaendert.
+
 ## Alert-System / Twitch Event Simulator
 
 Aktueller Stand nach STEP221:
