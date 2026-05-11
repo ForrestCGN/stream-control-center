@@ -1,9 +1,10 @@
 # CHANGELOG
 
-## 2026-05-11 - STEP249 DeathCounter Command rawInput Parser-Fix
+## 2026-05-11 - STEP250 DeathCounter DCOUNT Extra Players
 
-- DeathCounter Command-Parser für Streamer.bot-`rawInput` robuster gemacht.
-- Der erste Token wird entfernt, wenn er dem aktuellen Command entspricht, z. B. `!dcount`, `.dcount`, `!rip`, `!tode`.
-- `!dcount` ohne weitere Parameter toggelt dadurch wieder zuverlässig.
-- `!rip @Name` und `!tode @Name` funktionieren auch bei Übergabe des kompletten Rohtexts.
-- Keine Dashboard-, DB-, Count-Migrations-, Overlay- oder EventSub-Änderung.
+- `!dcount add @User` ergänzt, um bis zu `maxExtraPlayers` Zusatzspieler ins Overlay einzublenden.
+- `!dcount remove @User` ergänzt, um Zusatzspieler wieder zu entfernen.
+- `!dcount clear` ergänzt, um alle Zusatzspieler zu entfernen.
+- `!dcount reset` bleibt unverändert für Standardspieler + leere Extras.
+- Fehler-/Hinweistexte für Extra-Spieler wurden als DeathCounter-Textvarianten vorbereitet.
+- Keine Dashboard-, Overlay-, Streamer.bot-, DB- oder Count-Migration.

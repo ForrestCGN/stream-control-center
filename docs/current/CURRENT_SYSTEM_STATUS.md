@@ -1,13 +1,24 @@
-# CURRENT_SYSTEM_STATUS - STEP249 Update
+# CURRENT_SYSTEM_STATUS - STEP250 Update
 
-DeathCounter V2 Command-Parser wurde für Streamer.bot-`rawInput` korrigiert.
+DeathCounter V2 unterstützt jetzt Zusatzspieler über den zentralen `!dcount` Command.
 
-- `rawInput` und `input0` bis `input9` werden jetzt normalisiert.
-- Wenn der erste Token der aktuelle Command ist, wird er vor der Auswertung entfernt.
-- Erkannte Prefixe: `!`, `.`, `/`.
-- Dadurch toggelt `!dcount` wieder, auch wenn Streamer.bot den kompletten Chattext übergibt.
-- `!rip @Name`, `!rip @Name del`, `!tode` und `!tode @Name` bleiben kompatibel.
+Neue Befehle:
 
-Empfohlene Streamer.bot-FetchURLs nutzen künftig `rawInput=%rawInput%`.
+```text
+!dcount add @User
+!dcount remove @User
+!dcount clear
+```
 
-Keine Dashboard-, DB-, Count-Migrations-, Overlay- oder EventSub-Änderung in diesem STEP.
+Details:
+
+- `add` schreibt in `overlay.extraPlayerIds`.
+- `remove` entfernt nur Zusatzspieler.
+- `clear` entfernt alle Zusatzspieler.
+- `reset` bleibt vollständiger Standard-Reset auf Default-Spieler und leere Extras.
+- Die Grenze kommt aus `deathcounter_settings.maxExtraPlayers`, aktuell 2.
+- Spielerauflösung nutzt die vorhandene State-/Twitch-Lookup-Logik.
+- Die zentrale Command-API bleibt `/api/deathcounter/v2/command`.
+- Streamer.bot muss weiterhin nur FetchURL mit `rawInput=%rawInput%` ausführen.
+
+Keine Dashboard-, Overlay-, Streamer.bot-, DB- oder Count-Migration in diesem STEP.

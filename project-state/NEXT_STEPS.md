@@ -1,39 +1,40 @@
-# NEXT STEP - Nach STEP249 DeathCounter Command rawInput Parser-Fix
+# NEXT STEP - Nach STEP250 DeathCounter DCOUNT Extra Players
 
 ## Direkt testen
 
-Streamer.bot-FetchURLs auf `rawInput=%rawInput%` stellen und im Chat testen:
+Im Twitch-Chat oder per API:
 
 ```text
 !dcount
-!dcount show
-!dcount hide
-!rip @ForrestCGN
-!rip @ForrestCGN del
-!tode
-!tode @ForrestCGN
+!dcount add @urlug
+!dcount add @RoxxyFoxxyCGN
+!dcount add @DritterUser
+!dcount remove @urlug
+!dcount clear
+!dcount reset
 ```
 
 Erwartung:
 
 ```text
-- !dcount toggelt das Overlay
-- !rip zählt korrekt hoch
-- !rip del zählt korrekt zurück
-- !tode antwortet über Backend/Bot
-- Streamer.bot sendet keine zusätzliche Chatnachricht
+- `!dcount` toggelt Overlay.
+- `add` fügt maximal 2 Zusatzspieler hinzu.
+- dritter Zusatzspieler wird mit Hinweis blockiert.
+- `remove` entfernt nur Zusatzspieler, nicht Standardspieler.
+- `clear` entfernt alle Extras.
+- `reset` setzt auf Standardspieler zurück.
 ```
 
-## Danach sinnvoll
+## Nächster sinnvoller Bau-Step
 
 ```text
-STEP250: DeathCounter Streamer.bot Minimal-Actions live finalisieren und alte Actions deaktiviert dokumentieren
+STEP251: DeathCounter Dashboard-Steuerung um Extra-Spieler add/remove/clear erweitern
 ```
 
 Noch nicht direkt blind bauen:
 
 ```text
-- bestehende JSON-State-Datei ersetzen
+- JSON-State durch DB ersetzen
 - app.sqlite neu bauen oder überschreiben
 - alte Count-Logik entfernen
 ```

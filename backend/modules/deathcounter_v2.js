@@ -42,6 +42,11 @@ const DEATHCOUNTER_TEXT_CATEGORIES = {
   dcount_replace_missing: 'error',
   dcount_replace_mention: 'error',
   dcount_replace_same_player: 'error',
+  dcount_add_missing: 'error',
+  dcount_remove_missing: 'error',
+  dcount_extra_duplicate: 'error',
+  dcount_extra_limit: 'error',
+  dcount_extra_not_visible: 'error',
   dcount_unknown_command: 'error',
   command_error_default: 'error',
   command_unknown_empty: 'error',
@@ -58,7 +63,12 @@ const DEFAULT_DEATHCOUNTER_TEXTS = {
   dcount_replace_missing: ['Ungültiger Replace-Befehl. Nutze: !dcount replace @alt @neu'],
   dcount_replace_mention: ['Bitte nutze: !dcount replace @alterName @neuerName'],
   dcount_replace_same_player: ['Austausch nicht möglich: alter und neuer Spieler sind identisch.'],
-  dcount_unknown_command: ['Unbekannter DCOUNT-Befehl. Erlaubt: on/show, off/hide, reset, replace @alt @neu'],
+  dcount_add_missing: ['Nutze: !dcount add @spieler'],
+  dcount_remove_missing: ['Nutze: !dcount remove @spieler'],
+  dcount_extra_duplicate: ['{displayName} ist bereits im Overlay sichtbar.'],
+  dcount_extra_limit: ['Es sind maximal {maxExtraPlayers} Zusatzspieler möglich.'],
+  dcount_extra_not_visible: ['{displayName} ist nicht als Zusatzspieler sichtbar.'],
+  dcount_unknown_command: ['Unbekannter DCOUNT-Befehl. Erlaubt: on/show, off/hide, reset, add @spieler, remove @spieler, clear, replace @alt @neu'],
   command_error_default: ['DeathCounter-Befehl konnte nicht verarbeitet werden.'],
   command_unknown_empty: ['Unbekannter DeathCounter-Befehl.'],
   command_unknown_allowed: ['Unbekannter DeathCounter-Befehl. Erlaubt: dcount, rip, tode.'],
@@ -942,7 +952,20 @@ module.exports.init = function init(ctx) {
   async function handleDcountCommand(req) {
     const args = collectCommandArgs(req);
     const modeRaw = String(args[0] || '').trim();
-    const mode = modeRaw ? modeRaw.toLowerCase() : 'toggle';
+    const modeToken = modeRaw ? modeRaw.toLowerCase() : 'toggle';
+    const modeAliases = {
+      plus: 'add',
+      '+': 'add',
+      rm: 'remove',
+      rem: 'remove',
+      delete: 'remove',
+      extras: 'clear',
+      clearall: 'clear',
+      clear_extra: 'clear',
+      clearextra: 'clear',
+      clearextras: 'clear'
+    };
+    const mode = modeAliases[modeToken] || modeToken;
 
     if (mode === 'show' || mode === 'on') {
       const state = setOverlayVisibility(true);
@@ -957,6 +980,41 @@ module.exports.init = function init(ctx) {
     if (mode === 'reset') {
       const state = resetOverlayPlayersToDefault();
       return streamerbotSilent({ action: 'reset', overlay: publicOverlay(state).overlay });
+    }
+
+    if (mode === 'add') {
+      const targetRaw = args[1] || '';
+      if (!targetRaw) {
+        return streamerbotMessage(deathcounterText('dcount_add_missing'), { action: 'add', success: false });
+      }
+
+      const parsed = parseCommandPlayerToken(targetRaw, getCommandOptions(req), deathcounterText('dcount_add_missing'));
+      if (!parsed.login) {
+        return streamerbotMessage(deathcounterText('dcount_add_missing'), { action: 'add', success: false });
+      }
+
+      const added = await addOverlayExtraPlayer(parsed.login);
+      return streamerbotSilent({ action: 'add', ...added });
+    }
+
+    if (mode === 'remove') {
+      const targetRaw = args[1] || '';
+      if (!targetRaw) {
+        return streamerbotMessage(deathcounterText('dcount_remove_missing'), { action: 'remove', success: false });
+      }
+
+      const parsed = parseCommandPlayerToken(targetRaw, getCommandOptions(req), deathcounterText('dcount_remove_missing'));
+      if (!parsed.login) {
+        return streamerbotMessage(deathcounterText('dcount_remove_missing'), { action: 'remove', success: false });
+      }
+
+      const removed = await removeOverlayExtraPlayer(parsed.login);
+      return streamerbotSilent({ action: 'remove', ...removed });
+    }
+
+    if (mode === 'clear') {
+      const cleared = clearOverlayExtraPlayers();
+      return streamerbotSilent({ action: 'clear', ...cleared });
     }
 
     if (mode === 'replace') {
@@ -1350,6 +1408,126 @@ module.exports.init = function init(ctx) {
       replacedIn,
       from: { id: fromRef.id, login: fromRef.login, displayName: fromRef.displayName },
       to: { id: toRef.id, login: toRef.login, displayName: toRef.displayName },
+      overlay: publicOverlay(state).overlay,
+      state: publicState(state)
+    };
+  }
+
+  async function addOverlayExtraPlayer(targetRaw) {
+    const stateBefore = readState();
+    const targetRef = await resolvePlayerReference(stateBefore.players, targetRaw);
+    const maxExtraPlayers = getMaxExtraPlayersSafe();
+    const visibleIds = [
+      ...normalizePlayerListInput(stateBefore.overlay?.selectedPlayerIds).slice(0, 2),
+      ...normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, maxExtraPlayers)
+    ];
+
+    if (visibleIds.includes(targetRef.id)) {
+      throw new Error(deathcounterText('dcount_extra_duplicate', { displayName: targetRef.displayName || `@${targetRef.login}` }));
+    }
+
+    const extrasBefore = normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, maxExtraPlayers);
+    if (extrasBefore.length >= maxExtraPlayers) {
+      throw new Error(deathcounterText('dcount_extra_limit', { maxExtraPlayers }));
+    }
+
+    const state = updateState(s => {
+      let targetPlayer = findPlayerStrict(s.players, targetRef.login);
+
+      if (!targetPlayer) {
+        targetPlayer = createPlayer({
+          displayName: targetRef.displayName,
+          login: targetRef.login,
+          active: true,
+          sortOrder: s.players.length + 1,
+          currentGame: s.currentGame
+        });
+        s.players.push(targetPlayer);
+      } else {
+        targetPlayer.displayName = targetRef.displayName;
+        targetPlayer.login = targetRef.login;
+        targetPlayer.id = targetRef.id;
+        targetPlayer.active = true;
+        sanitizePlayer(targetPlayer);
+      }
+
+      const selected = normalizePlayerListInput(s.overlay.selectedPlayerIds).slice(0, 2);
+      const extras = normalizePlayerListInput(s.overlay.extraPlayerIds)
+        .filter(id => id !== targetPlayer.id && !selected.includes(id))
+        .slice(0, maxExtraPlayers);
+
+      if (extras.length >= maxExtraPlayers) {
+        throw new Error(deathcounterText('dcount_extra_limit', { maxExtraPlayers }));
+      }
+
+      extras.push(targetPlayer.id);
+      s.overlay.selectedPlayerIds = selected;
+      s.overlay.extraPlayerIds = extras.slice(0, maxExtraPlayers);
+      syncOverlayLists(s);
+      s.updatedAt = core.nowIso();
+    });
+
+    broadcastState(ctx, state, {
+      type: 'deathcounter_v2_overlay_players_changed',
+      action: 'add_extra',
+      playerId: targetRef.id
+    });
+
+    return {
+      added: true,
+      player: { id: targetRef.id, login: targetRef.login, displayName: targetRef.displayName },
+      overlay: publicOverlay(state).overlay,
+      state: publicState(state)
+    };
+  }
+
+  async function removeOverlayExtraPlayer(targetRaw) {
+    const stateBefore = readState();
+    const targetRef = await resolvePlayerReference(stateBefore.players, targetRaw);
+    const maxExtraPlayers = getMaxExtraPlayersSafe();
+    const selected = normalizePlayerListInput(stateBefore.overlay?.selectedPlayerIds).slice(0, 2);
+    const extrasBefore = normalizePlayerListInput(stateBefore.overlay?.extraPlayerIds).slice(0, maxExtraPlayers);
+
+    if (selected.includes(targetRef.id) || !extrasBefore.includes(targetRef.id)) {
+      throw new Error(deathcounterText('dcount_extra_not_visible', { displayName: targetRef.displayName || `@${targetRef.login}` }));
+    }
+
+    const state = updateState(s => {
+      s.overlay.extraPlayerIds = normalizePlayerListInput(s.overlay.extraPlayerIds)
+        .filter(id => id !== targetRef.id)
+        .slice(0, maxExtraPlayers);
+      syncOverlayLists(s);
+      s.updatedAt = core.nowIso();
+    });
+
+    broadcastState(ctx, state, {
+      type: 'deathcounter_v2_overlay_players_changed',
+      action: 'remove_extra',
+      playerId: targetRef.id
+    });
+
+    return {
+      removed: true,
+      player: { id: targetRef.id, login: targetRef.login, displayName: targetRef.displayName },
+      overlay: publicOverlay(state).overlay,
+      state: publicState(state)
+    };
+  }
+
+  function clearOverlayExtraPlayers() {
+    const state = updateState(s => {
+      s.overlay.extraPlayerIds = [];
+      syncOverlayLists(s);
+      s.updatedAt = core.nowIso();
+    });
+
+    broadcastState(ctx, state, {
+      type: 'deathcounter_v2_overlay_players_changed',
+      action: 'clear_extra'
+    });
+
+    return {
+      cleared: true,
       overlay: publicOverlay(state).overlay,
       state: publicState(state)
     };

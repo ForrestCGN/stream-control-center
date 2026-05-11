@@ -1,12 +1,16 @@
-## STEP249 - DeathCounter Command rawInput Parser-Fix
+## STEP250 - DeathCounter DCOUNT Extra Players
 
 Stand: 2026-05-11
 
-- DeathCounter Command-Parser ist jetzt kompatibler mit Streamer.bot-`rawInput` und `input0`/`input1`.
-- Wenn Streamer.bot den Command selbst als ersten Token übergibt (`!dcount`, `.dcount`, `!rip`, `!tode`), entfernt das Backend diesen Token vor der eigentlichen Auswertung.
-- `!dcount` kann dadurch wieder zuverlässig togglen.
-- `!rip @Name` und `!tode @Name` bleiben mit @-Pflicht nutzbar, auch wenn der komplette Chattext als `rawInput` kommt.
-- Keine Dashboard-, DB-, Count-Migrations-, Overlay- oder EventSub-Änderung.
+- DeathCounter `!dcount` unterstützt jetzt Zusatzspieler im Overlay.
+- Neue Befehle:
+  - `!dcount add @User`
+  - `!dcount remove @User`
+  - `!dcount clear`
+- `!dcount reset` bleibt Standard-Reset auf ForrestCGN + EngelCGN ohne Extras.
+- Die maximale Anzahl Zusatzspieler kommt weiterhin aus `deathcounter_settings.maxExtraPlayers`.
+- Spielerauflösung nutzt vorhandene State-/Twitch-Lookup-Logik.
+- Keine Dashboard-, Overlay-, Streamer.bot-, DB- oder Count-Migration.
 
 Aktueller DeathCounter-Stand:
 
@@ -24,11 +28,12 @@ STEP245    Streamer.bot Minimal-Bridge Doku
 STEP246    Twitch EventSub Game-Sync
 STEP247    Spieler-Detailansicht
 STEP248    Spieler-Detail Quick-Corrections
-STEP249    Command rawInput Parser-Fix
+STEP249    Streamer.bot rawInput Parser-Fix
+STEP250    DCOUNT Zusatzspieler add/remove/clear
 ```
 
 Referenz:
 
 ```text
-project-state/STEP249_DEATHCOUNTER_COMMAND_RAWINPUT_PARSER_2026-05-11.md
+project-state/STEP250_DEATHCOUNTER_DCOUNT_EXTRA_PLAYERS_2026-05-11.md
 ```
