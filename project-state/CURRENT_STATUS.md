@@ -2,114 +2,43 @@
 
 Stand: 2026-05-11
 
-## Kurzstatus
+## Gesamtstand
 
-Das Projekt ist aktiv auf GitHub/dev und Live-System `D:\Streaming\stramAssets` ausgerichtet. SQLite bleibt produktiver Standard/Fallback. Neue Module sollen weiterhin ueber vorhandene Helper, `backend/core/database.js`, DB-/Textvarianten und Dashboard-APIs gebaut werden.
+Repo/dev und Live-System sind nach STEP233 sauber. `git status --short` war leer. STEP234 dokumentiert den aktuellen technischen Projektstand aus einem frischen Quell-ZIP.
 
-Aktuell wichtig: Der Message-Rotator wurde erfolgreich in Backend, DB-Settings, DB-Textvarianten und Dashboard integriert und im Stream live getestet.
+## Zuletzt abgeschlossen
 
-## STEP232 - Project Docs Cleanup & Sorting
+### STEP231 - Message-Rotator Livetest Abschluss
 
-- Bereitgestelltes Projekt-Doku-ZIP analysiert.
-- Doku-Struktur als zu laut/breit erkannt:
-  - 578 Dateien gesamt
-  - 477 Dateien in `project-state`
-  - 101 Dateien in `docs`
-  - 127 `APPEND`-Dateien
-  - 26 `STATUS_NOTE`-Dateien
-  - 15 `HANDOFF`-Dateien
-- Aktuelle Einstiegspunkte neu sortiert:
-  - `docs/current/CURRENT_SYSTEM_STATUS.md`
-  - `project-state/CURRENT_STATUS.md`
-  - `project-state/CHANGELOG.md`
-  - `project-state/FILES.md`
-  - `project-state/NEXT_STEPS.md`
-- Neue Orientierungsdateien:
-  - `docs/current/PROJECT_DOCUMENTATION_MAP_2026-05-11.md`
-  - `docs/current/PROJECT_CLEANUP_PLAN_2026-05-11.md`
-- Keine Code-Dateien, Configs, Datenbanken oder Runtime-Dateien geaendert.
-- Historische Dateien wurden nicht geloescht oder verschoben.
+- Message-Rotator lief im Stream erfolgreich.
+- Backend, DB-Settings, DB-Textvarianten, Dashboard und Runtime sind stabil.
 
-## Message-Rotator - STABLE
+### STEP232 - Project Docs Cleanup & Sorting
 
-Stand nach STEP229, STEP230A, STEP230B und STEP231:
+- Aktive Doku-Einstiege neu sortiert.
+- Historische Dateien nicht geloescht.
 
-- Backend-Admin-Basis vorhanden.
-- Settings laufen ueber `message_rotator_settings`.
-- Texte laufen ueber `module_text_variants` mit `module = message_rotator`.
-- JSON bleibt Seed/Fallback.
-- Dashboard-Modul ist unter `System -> Message-Rotator` aktiv.
-- Settings koennen im Dashboard bearbeitet werden.
-- Nachrichtenvarianten koennen im Dashboard bearbeitet, aktiviert/deaktiviert, gewichtet und geloescht werden.
-- Runtime nutzt DB-Textvarianten mit Zufallsauswahl.
-- Start/Stop/Tick/Next lokal getestet.
-- Livetest im Stream lief erfolgreich.
+### STEP233 - Project Docs Archive
 
-## Alert-System / Twitch / TTS
+- Alte Doku-Fragmente ins Archiv verschoben.
+- Arbeitsbaum danach sauber.
 
-Aktueller Stand:
+### STEP234 - System-/Routen-/Modulübersicht
 
-- Twitch EventSub Subscription-Diagnose vorhanden.
-- Twitch Event Simulator im Dashboard vorhanden.
-- EventSub-Inbound-Audit vorhanden.
-- Sub/Resub-Puffer gegen Doppelalerts aktiv.
-- Twitch Cheermote-TTS-Cleanup aktiv.
-- Technische Subscription-Tier-Texte werden nicht mehr als Usernachricht/TTS behandelt.
+- Aktive Backend-Module, Dashboard-Module, Configs, DB-/Settings-Nutzung und Routen statisch analysiert.
+- Neue Current-Dokus erstellt.
 
-Offen:
-
-- Prime-Sub/Prime-Resub spaeter ueber `channel.chat.notification` planen.
-- GiftBomb 101+ Special-/Jackpot-Alert planen.
-- HypeTrain-System separat planen.
-- Shoutout-/SO-Statistik separat planen.
-
-## Loyalty / Kekskruemel
-
-- Shadow Mode aktiv.
-- StreamElements bleibt aktiv.
-- Twitch Presence + AutoRunner erfassen Watch/Lurk-Punkte.
-- Event-Boni fuer relevante Twitch-Events sind vorhanden.
-- GiftSub-Receiver wird gebucht, wenn Empfaengerdaten vorhanden und Funktion aktiv ist.
-
-## Datenbank / Portabilitaet
-
-- Produktiv aktiv: SQLite `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
-- Neue DB-Logik bevorzugt ueber `backend/core/database.js` oder bestehende Helper.
-- MariaDB/MySQL sind Ziel fuer spaeter, aber noch nicht aktiv.
-- Keine DB-Umschaltung ohne echten Adapter, Treiber, Testplan, Migration und Rollback.
-
-## Dashboard-Standard
-
-Neue Module:
+## Aktuelle Referenzdateien
 
 ```text
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
-htdocs/dashboard/modules/<modul>.js
-htdocs/dashboard/modules/<modul>.css
-backend/modules/<modul>.js
+docs/current/PROJECT_ACTIVE_SYSTEM_OVERVIEW_2026-05-11.md
+docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md
+docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md
+docs/current/PROJECT_DASHBOARD_MAP_2026-05-11.md
 ```
 
-Regel:
+## Aktuell wichtig
 
-```text
-Dashboard greift nicht direkt auf SQLite oder Dateien zu, sondern immer auf Backend-APIs.
-```
-
-## Naechster sinnvoller Entwicklungsblock
-
-Priorisiert:
-
-1. Hug/Rehug ins aktuelle Dashboard-/DB-/Textvarianten-Muster ueberfuehren.
-2. SoundAlerts/Sound-System weiter vereinheitlichen.
-3. Alert-Sonderfaelle planen: Prime, GiftBomb 101+, HypeTrain, SO-Statistik.
-4. Doku-Archivierung als separaten STEP durchfuehren, ohne Historie zu loeschen.
-
-
-## STEP233 - Projekt-Doku Archivierung
-
-- Altdoku-Aufräumung vorbereitet.
-- Move-Script: `tools/archive_docs_step233.ps1`.
-- Manifest: `docs/archive/2026-05-11/STEP233_ARCHIVE_MANIFEST_2026-05-11.txt`.
-- Umfang: 187 geprüfte Archivkandidaten.
-- Keine Code-/Config-/DB-Änderung.
+- Message-Rotator ist abgeschlossen.
+- Nächster sinnvoller Entwicklungsblock: Hug/Rehug prüfen und ggf. nach aktuellem Systemmuster integrieren.
+- Vor neuen Umbauten immer echte Dateien/Repo-Stand prüfen.

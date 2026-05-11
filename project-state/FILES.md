@@ -2,22 +2,24 @@
 
 Stand: 2026-05-11
 
-## STEP232 - Project Docs Cleanup & Sorting
+## STEP234 - System Route Module Overview
 
-Geaendert / neu:
+Geändert / neu:
 
 ```text
 docs/current/CURRENT_SYSTEM_STATUS.md
-docs/current/PROJECT_DOCUMENTATION_MAP_2026-05-11.md
-docs/current/PROJECT_CLEANUP_PLAN_2026-05-11.md
+docs/current/PROJECT_ACTIVE_SYSTEM_OVERVIEW_2026-05-11.md
+docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md
+docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md
+docs/current/PROJECT_DASHBOARD_MAP_2026-05-11.md
 project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
-project-state/STEP232_PROJECT_DOCS_CLEANUP_AND_SORTING_2026-05-11.md
+project-state/STEP234_SYSTEM_ROUTE_MODULE_OVERVIEW_2026-05-11.md
 ```
 
-Nicht geaendert:
+Nicht geändert:
 
 ```text
 backend/**
@@ -25,114 +27,44 @@ htdocs/**
 config/**
 data/**
 app.sqlite
-.env
-secrets/**
-tokens/**
-historische STEP-Dateien
-historische APPEND-Dateien
-historische STATUS_NOTE-Dateien
-historische HANDOFF-Dateien
+package.json
+package-lock.json
 ```
 
-## Aktive Doku-Einstiegspunkte
+## Aktive Backend-Hauptbereiche
 
 ```text
-docs/current/CURRENT_SYSTEM_STATUS.md
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
+backend/server.js
+backend/core/*.js
+backend/modules/*.js
+backend/modules/helpers/*.js
 ```
 
-## Neue Doku-Hilfsdateien
+## Aktive Dashboard-Hauptbereiche
 
 ```text
-docs/current/PROJECT_DOCUMENTATION_MAP_2026-05-11.md
-docs/current/PROJECT_CLEANUP_PLAN_2026-05-11.md
-```
-
-## Aktuell wichtige Moduldateien - Message-Rotator
-
-```text
-backend/modules/message_rotator.js
 htdocs/dashboard/index.html
 htdocs/dashboard/app.js
-htdocs/dashboard/modules/message_rotator.js
-htdocs/dashboard/modules/message_rotator.css
-config/message_rotator.json
-config/messages/follow.json
-config/messages/discord.json
-config/messages/youtube.json
+htdocs/dashboard/app.css
+htdocs/dashboard/modules/*.js
+htdocs/dashboard/modules/*.css
 ```
 
-DB-bezogen:
+## Aktive Current-Doku
 
 ```text
-message_rotator_settings
-module_text_variants (module = message_rotator)
-```
-
-## Historische Analyse-Snapshots
-
-Nicht ueberschreiben, nur als alte Referenz nutzen:
-
-```text
-docs/backend/Backend_Systemuebersicht_2026-05-03.txt
-docs/dashboard/DASHBOARD_SYSTEMUEBERSICHT_IST_STAND_2026-05-03.txt
-docs/database/ForrestCGN_Datenbank_Uebersicht_app_sqlite_2026-05-03.txt
-docs/overlays/overlay_iststand_analyse.txt
-docs/system-inspection/2026-05-03/SYSTEM_INSPEKTION_MASTER_TODO_v1_1_FINAL_GITHUB_2026-05-03.txt
-```
-
-## Bekannte Doku-Aufraeumkandidaten fuer spaeter
-
-Nicht geloescht in STEP232:
-
-```text
-project-state/*APPEND*.md
-project-state/*STATUS_NOTE*.md
-docs/current/*STATUS_NOTE*.md
-docs/handoffs/NEXT_CHAT_HANDOFF_*.md
-```
-
-Empfohlenes spaeteres Archivziel:
-
-```text
-project-state/archive/appends/
-project-state/archive/status-notes/
-docs/archive/handoffs/
-docs/archive/old-current-notes/
-```
-
-
-## STEP233
-
-Neu/geändert:
-
-```text
-tools/archive_docs_step233.ps1
-docs/archive/2026-05-11/STEP233_ARCHIVE_MANIFEST_2026-05-11.txt
-project-state/STEP233_PROJECT_DOCS_ARCHIVE_2026-05-11.md
 docs/current/CURRENT_SYSTEM_STATUS.md
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
+docs/current/PROJECT_DOCUMENTATION_MAP_2026-05-11.md
+docs/current/PROJECT_CLEANUP_PLAN_2026-05-11.md
+docs/current/PROJECT_ACTIVE_SYSTEM_OVERVIEW_2026-05-11.md
+docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md
+docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md
+docs/current/PROJECT_DASHBOARD_MAP_2026-05-11.md
 ```
 
-Beim Ausführen des Scripts werden alte Fragmente verschoben nach:
+## Archivierte Doku-Fragmente
 
 ```text
 project-state/archive/2026-05-11-step233/
 docs/archive/2026-05-11-step233/
-```
-
-Nicht betroffen:
-
-```text
-backend/**
-htdocs/**
-config/**
-data/**
-app.sqlite
 ```

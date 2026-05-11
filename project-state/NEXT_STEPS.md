@@ -2,164 +2,77 @@
 
 Stand: 2026-05-11
 
-## Prioritaet A - Naechste Entwicklungsarbeit
+## Priorität A - Nächster Entwicklungsblock
 
-### 1. Hug/Rehug ins aktuelle Systemmuster ueberfuehren
+### 1. Hug/Rehug prüfen und ggf. ins aktuelle Systemmuster bringen
 
-Ziel:
-
-```text
-- bestehende Hug/Rehug-Funktion nicht brechen
-- vorhandene Helper nutzen
-- Dashboard-Modul pruefen/erweitern
-- Texte/Varianten DB-basiert und dashboardfaehig machen
-- Config/Settings zentral und editierbar halten
-- keine Parallelstruktur bauen
-```
-
-Vor Start pruefen:
+Vor Änderung prüfen:
 
 ```text
-backend/modules/hug_system.js oder aktueller Hug-Modulname
+backend/modules/hug.js
 htdocs/dashboard/modules/hug.js
-htdocs/dashboard/modules/hug.css
-config/messages/hug.json
-DB-Tabellen fuer Hug/Rehug
-bestehende Routes und Statusausgaben
+config/hug_system.json
+module_text_variants / module-bezogene Hug-Texte
+bestehende Routen /api/hug/*
+bestehende Dashboard-Routen /api/dashboard/community/hug/*
 ```
 
-### 2. SoundAlerts / Sound-System weiter vereinheitlichen
+Ziele:
+
+```text
+- keine bestehende Hug/Rehug-Funktion brechen
+- vorhandene DB-Struktur nicht ersetzen
+- Texte variantenfähig/dashboardfähig halten
+- Settings/Config sauber kapseln
+- Dashboard nur über Backend-APIs
+```
+
+## Priorität B - UI/Modul-Konsistenz
+
+Aus STEP234 prüfen:
+
+```text
+soundalerts: Section + JS/CSS vorhanden, aber nicht direkt in window.CGN.modules registriert
+tts: Section + JS/CSS vorhanden, aber nicht direkt in window.CGN.modules registriert
+loyalty: Section + JS/CSS vorhanden, aber nicht direkt in window.CGN.modules registriert
+sound_system: Modul-ID nutzt sound.js/sound.css
+```
+
+Entscheiden, ob das Absicht ist oder vereinheitlicht werden soll.
+
+## Priorität C - Tools/Testskripte sortieren
+
+Viele alte STEP-Testskripte liegen noch unter `tools/`.
+
+Späterer separater STEP:
+
+```text
+- aktive Deploy-/Easy-Skripte behalten
+- alte STEP201/STEP202-Testskripte archivieren
+- nichts löschen ohne vorheriges Manifest
+```
+
+## Priorität D - Optionale Automatisierung
+
+Später sinnvoll:
+
+```text
+tools/generate_project_maps.js
+```
 
 Ziel:
 
 ```text
-- aktuelle SoundAlerts/Sound-System-Struktur pruefen
-- Settings-/Text-/DB-Muster angleichen
-- Dashboard UX weiter vereinfachen
-- keine Sound-/Queue-Funktion entfernen
+- Route-Map automatisch aus Backend-Dateien erzeugen
+- Dashboard-Map automatisch aus index/app.js erzeugen
+- Config-/DB-Map teilweise automatisch erzeugen
 ```
 
-### 3. Alert-Sonderfaelle planen
-
-Noch nicht direkt bauen, erst planen:
+## Aktuell nicht anfassen
 
 ```text
-- Prime-Sub / Prime-Resub ueber channel.chat.notification
-- GiftBomb 101+ Special-/Jackpot-Alert
-- dynamische SubBomb-Zahl im Overlay
-- HypeTrain-System
-- Shoutout-/SO-Statistik
-- TTS-Wortfilter / Moderation
+app.sqlite
+Secrets / .env
+produktive Alert-/Loyalty-/Discord-/Twitch-Logik
+historische Analyse-Snapshots
 ```
-
-## Prioritaet B - Doku/Struktur weiter aufraeumen
-
-### 1. Historische Doku sortieren
-
-Noch nicht gemacht. Separater STEP noetig.
-
-Kandidaten:
-
-```text
-project-state/*APPEND*.md
-project-state/*STATUS_NOTE*.md
-docs/current/*STATUS_NOTE*.md
-docs/handoffs/NEXT_CHAT_HANDOFF_*.md
-```
-
-Moegliches Ziel:
-
-```text
-project-state/archive/appends/
-project-state/archive/status-notes/
-docs/archive/handoffs/
-docs/archive/old-current-notes/
-```
-
-Regel:
-
-```text
-Erst Liste erzeugen, dann verschieben. Nichts loeschen.
-```
-
-### 2. Modul-Doku aufbauen
-
-Optional spaeter:
-
-```text
-docs/modules/message_rotator.md
-docs/modules/alerts.md
-docs/modules/twitch.md
-docs/modules/loyalty.md
-docs/modules/tagebuch_todo.md
-docs/modules/sound_system.md
-docs/modules/hug.md
-```
-
-### 3. Generated Docs aktualisieren
-
-Nur wenn Generator/Quelle klar ist:
-
-```text
-docs/_generated/ROUTES.md
-docs/_generated/DASHBOARD_MODULES.md
-docs/_generated/CONFIGS_AND_DATA.md
-docs/_generated/FUNCTIONS.md
-docs/_generated/PROJECT_NAVIGATION.md
-```
-
-## Prioritaet C - Beobachtung im naechsten Stream
-
-### Message-Rotator
-
-Status: stable / abgenommen.
-
-Nur beobachten:
-
-```text
-- Start/Stop mit Streamstart/-ende
-- Chat-Ticks
-- Next-Ausgabe nach Delay/Cooldown
-- keine ungewollten Testvarianten
-```
-
-### Twitch/EventSub Audit
-
-Bei echten Twitch-Events pruefen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/audit/recent?limit=50" | ConvertTo-Json -Depth 100
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/status" | ConvertTo-Json -Depth 60
-```
-
-## Nicht jetzt machen
-
-```text
-- keine MariaDB/MySQL-Umschaltung
-- keine historischen Dateien loeschen
-- keine grossen Dashboard-Komplettumbauten
-- keine Runtime-/Config-/DB-Dateien ohne konkrete Aufgabe anfassen
-```
-
-
-## Nach STEP233
-
-1. ZIP entpacken.
-2. Archiv-Script ausführen:
-
-```powershell
-cd D:\Git\stream-control-center
-.\tools\archive_docs_step233.ps1
-```
-
-3. `git status --short` prüfen.
-4. Commit/Deploy:
-
-```powershell
-.\stepdone.cmd "archive old project documentation fragments"
-```
-
-Danach nächster sinnvoller Block:
-
-- Dashboard-/Backend-Modulmatrix aktualisieren
-- oder nächstes Fachmodul auswählen: Hug/Rehug, SoundAlerts, Streamer.bot-Action-Doku

@@ -1,5 +1,18 @@
 # CHANGELOG - stream-control-center
 
+## 2026-05-11 - STEP234 System Route Module Overview
+
+- Frisches Quell-ZIP nach STEP233 analysiert.
+- Aktive Backend-Module, Dashboard-Module, Config-Dateien und Routen erfasst.
+- Neue Current-Dokumente erstellt:
+  - `docs/current/PROJECT_ACTIVE_SYSTEM_OVERVIEW_2026-05-11.md`
+  - `docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-11.md`
+  - `docs/current/PROJECT_CONFIG_DATABASE_MAP_2026-05-11.md`
+  - `docs/current/PROJECT_DASHBOARD_MAP_2026-05-11.md`
+- `CURRENT_SYSTEM_STATUS`, `CURRENT_STATUS`, `FILES` und `NEXT_STEPS` aktualisiert.
+- Keine Code-, Config-, DB- oder Runtime-Dateien geändert.
+
+
 ## 2026-05-11 - STEP232 Project Docs Cleanup & Sorting
 
 - Bereitgestelltes Projekt-Doku-ZIP analysiert.
