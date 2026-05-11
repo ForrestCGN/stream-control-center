@@ -2,6 +2,17 @@
 
 Stand: 2026-05-11
 
+## Alert-TTS / Twitch Cheermote Cleanup
+
+Aktueller Stand nach STEP226:
+
+- Twitch-Cheermote-Prefixe werden ueber Helix `/bits/cheermotes` geladen und gecacht.
+- Neue Routen: `GET /api/twitch/cheermotes/status` und `POST /api/twitch/cheermotes/reload`.
+- Bits-Alert-Payloads enthalten `cheermotePrefixes`.
+- Alert-TTS entfernt bei Twitch-Bits nun echte Cheermote-Woerter wie `Cheer100`, `ShowLove10`, `Pride100` usw. anhand dieser Prefix-Liste.
+- Originale Alert-Messages bleiben unveraendert gespeichert und sichtbar.
+- Wenn nach dem Entfernen der Cheermote-Woerter kein Text uebrig bleibt, wird kein TTS erzeugt.
+
 ## Alert-System / Twitch Subscription Tier-Text
 
 Aktueller Stand nach STEP222:

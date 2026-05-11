@@ -1,5 +1,14 @@
 # Changelog
 
+
+## STEP226 - Twitch Cheermote TTS Cleanup (2026-05-11)
+
+- `backend/modules/twitch.js`: Cheermote-Prefix-Cache ueber Helix `/bits/cheermotes` ergaenzt.
+- Neue Routen `GET /api/twitch/cheermotes/status` und `POST /api/twitch/cheermotes/reload`.
+- Bits-Alert-Payloads enthalten `cheermotePrefixes`.
+- `backend/modules/alert_system.js`: TTS-Cleanup entfernt bei Bits echte Cheermote-Woerter anhand der Prefix-Liste, z. B. `ShowLove10 ShowLove10 Guten morgen!` -> `Guten morgen!`.
+- Keine Aenderung an Alert-Regeln, Queue, Dashboard, Sound-System, Loyalty oder DB-Schema.
+
 ## 2026-05-11
 
 ### STEP225 - Twitch EventSub Inbound Audit

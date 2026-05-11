@@ -2,6 +2,33 @@
 
 Stand: 2026-05-11
 
+
+## STEP226
+
+Geaendert:
+
+```text
+backend/modules/twitch.js
+backend/modules/alert_system.js
+project-state/STEP226_TWITCH_CHEERMOTE_TTS_CLEANUP_2026-05-11.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Nicht geaendert:
+
+```text
+htdocs/**
+config/**
+backend/modules/loyalty.js
+backend/core/database.js
+backend/modules/sqlite_core.js
+app.sqlite
+```
+
 ## STEP225
 
 Geaendert:

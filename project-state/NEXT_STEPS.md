@@ -2,6 +2,33 @@
 
 Stand: 2026-05-11
 
+
+## Naechster Check - Twitch Cheermote TTS
+
+Nach STEP226 pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/cheermotes/status?includePrefixes=1" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/cheermotes/reload" -Method Post | ConvertTo-Json -Depth 80
+```
+
+Simulator-Test:
+
+```powershell
+$body = @{
+  kind = "bits"
+  user = "TestCheerer"
+  display = "TestCheerer"
+  bits = 20
+  message = "ShowLove10 ShowLove10 Guten morgen!"
+} | ConvertTo-Json
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/alerts/debug/eventsub" -Method Post -ContentType "application/json" -Body $body | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/events?limit=1" | ConvertTo-Json -Depth 100
+```
+
+Erwartung: TTS spricht nur `Guten morgen!`; Original-Alert-Message bleibt unveraendert.
+
 ## Twitch/EventSub Audit - naechster Stream
 
 Nach dem naechsten echten Twitch-Event pruefen:

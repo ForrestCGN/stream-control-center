@@ -57,6 +57,12 @@ const DEFAULT_TWITCH_ALERT_CONFIG = {
     recentLimit: 50,
     maxFileBytes: 5242880
   },
+  cheermotes: {
+    enabled: true,
+    broadcasterId: '',
+    cacheMs: 86400000,
+    fallbackPrefixes: ['Cheer']
+  },
   loyaltyForward: {
     enabled: true,
     url: 'http://127.0.0.1:8080/api/loyalty/events/ingest',
@@ -82,6 +88,16 @@ const twitchAlertBridgeState = {
     failed: 0,
     lastError: '',
     lastWrittenAt: null
+  },
+  cheermotes: {
+    prefixes: ['Cheer'],
+    loadedAt: null,
+    expiresAt: null,
+    source: 'fallback',
+    broadcasterId: '',
+    failed: 0,
+    lastError: '',
+    lastReloadAt: null
   }
 };
 
@@ -279,6 +295,129 @@ module.exports.init = function init(ctx) {
     const resolvedPath = path.isAbsolute(logPath) ? logPath : path.join(baseRoot, logPath);
     twitchAlertBridgeState.eventSubAudit.path = resolvedPath;
     return { enabled, logPath, resolvedPath, recentLimit, maxFileBytes };
+  }
+
+
+  function getTwitchCheermoteConfig() {
+    const cfg = twitchAlertBridgeState.config || DEFAULT_TWITCH_ALERT_CONFIG;
+    const source = cfg.cheermotes || DEFAULT_TWITCH_ALERT_CONFIG.cheermotes || {};
+    const enabled = source.enabled !== false;
+    const broadcasterId = String(source.broadcasterId || DEFAULT_BROADCASTER_ID || '').trim();
+    const parsedCacheMs = Number(source.cacheMs ?? 86400000);
+    const cacheMs = Number.isFinite(parsedCacheMs) ? Math.max(60000, Math.min(604800000, Math.floor(parsedCacheMs))) : 86400000;
+    const fallbackPrefixes = normalizeCheermotePrefixes(source.fallbackPrefixes || DEFAULT_TWITCH_ALERT_CONFIG.cheermotes.fallbackPrefixes || ['Cheer']);
+    return { enabled, broadcasterId, cacheMs, fallbackPrefixes };
+  }
+
+  function normalizeCheermotePrefixes(input) {
+    const list = Array.isArray(input) ? input : String(input || '').split(/[\s,;]+/);
+    const result = [];
+    const seen = new Set();
+    for (const raw of list) {
+      const prefix = String(raw || '').trim();
+      if (!/^[A-Za-z][A-Za-z0-9_]{0,80}$/.test(prefix)) continue;
+      const key = prefix.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(prefix);
+    }
+    if (!seen.has('cheer')) result.unshift('Cheer');
+    return result;
+  }
+
+  function extractCheermotePrefixesFromHelix(data) {
+    const prefixes = [];
+    const rows = Array.isArray(data && data.data) ? data.data : [];
+    for (const row of rows) {
+      if (row && row.prefix) prefixes.push(row.prefix);
+    }
+    return normalizeCheermotePrefixes(prefixes);
+  }
+
+  function getCurrentTwitchCheermotePrefixes() {
+    const state = twitchAlertBridgeState.cheermotes || {};
+    const cfg = getTwitchCheermoteConfig();
+    return normalizeCheermotePrefixes(Array.isArray(state.prefixes) && state.prefixes.length ? state.prefixes : cfg.fallbackPrefixes);
+  }
+
+  function buildTwitchCheermoteStatus(includePrefixes = false) {
+    const cfg = getTwitchCheermoteConfig();
+    const current = twitchAlertBridgeState.cheermotes || {};
+    const prefixes = getCurrentTwitchCheermotePrefixes();
+    const now = Date.now();
+    const expiresAtMs = current.expiresAt ? Date.parse(current.expiresAt) : 0;
+    const status = {
+      enabled: cfg.enabled,
+      broadcasterId: cfg.broadcasterId,
+      cacheMs: cfg.cacheMs,
+      source: current.source || 'fallback',
+      prefixCount: prefixes.length,
+      loadedAt: current.loadedAt || null,
+      expiresAt: current.expiresAt || null,
+      stale: Boolean(!expiresAtMs || expiresAtMs <= now),
+      failed: current.failed || 0,
+      lastError: current.lastError || '',
+      lastReloadAt: current.lastReloadAt || null
+    };
+    if (includePrefixes) status.prefixes = prefixes;
+    return status;
+  }
+
+  async function reloadTwitchCheermotePrefixes(options = {}) {
+    const cfg = getTwitchCheermoteConfig();
+    const now = Date.now();
+    const current = twitchAlertBridgeState.cheermotes || {};
+    const expiresAtMs = current.expiresAt ? Date.parse(current.expiresAt) : 0;
+    if (!options.force && current.loadedAt && expiresAtMs && expiresAtMs > now && Array.isArray(current.prefixes) && current.prefixes.length) {
+      return { reloaded: false, reason: 'cache_valid', prefixCount: current.prefixes.length };
+    }
+
+    if (cfg.enabled === false) {
+      const prefixes = normalizeCheermotePrefixes(cfg.fallbackPrefixes);
+      twitchAlertBridgeState.cheermotes = {
+        ...current,
+        prefixes,
+        loadedAt: current.loadedAt || core.nowIso(),
+        expiresAt: new Date(now + cfg.cacheMs).toISOString(),
+        source: 'disabled_fallback',
+        broadcasterId: cfg.broadcasterId,
+        lastError: '',
+        lastReloadAt: core.nowIso()
+      };
+      return { reloaded: false, reason: 'disabled_fallback', prefixCount: prefixes.length };
+    }
+
+    try {
+      const params = cfg.broadcasterId ? { broadcaster_id: cfg.broadcasterId } : {};
+      const data = await helixGet('/bits/cheermotes', params);
+      const prefixes = extractCheermotePrefixesFromHelix(data);
+      twitchAlertBridgeState.cheermotes = {
+        ...current,
+        prefixes,
+        loadedAt: core.nowIso(),
+        expiresAt: new Date(now + cfg.cacheMs).toISOString(),
+        source: cfg.broadcasterId ? 'helix_broadcaster' : 'helix_global',
+        broadcasterId: cfg.broadcasterId,
+        lastError: '',
+        lastReloadAt: core.nowIso()
+      };
+      rememberTwitchAlertBridge({ action: 'cheermotes_reloaded', prefixCount: prefixes.length, broadcasterId: cfg.broadcasterId || '' });
+      return { reloaded: true, source: twitchAlertBridgeState.cheermotes.source, prefixCount: prefixes.length };
+    } catch (err) {
+      const prefixes = normalizeCheermotePrefixes(Array.isArray(current.prefixes) && current.prefixes.length ? current.prefixes : cfg.fallbackPrefixes);
+      twitchAlertBridgeState.cheermotes = {
+        ...current,
+        prefixes,
+        source: current.source || 'fallback',
+        broadcasterId: cfg.broadcasterId,
+        failed: Number(current.failed || 0) + 1,
+        lastError: err && err.message ? err.message : String(err),
+        lastReloadAt: core.nowIso()
+      };
+      rememberTwitchAlertBridge({ action: 'cheermotes_reload_failed', error: twitchAlertBridgeState.cheermotes.lastError });
+      if (options.throwOnError) throw err;
+      return { reloaded: false, reason: 'helix_failed_fallback', prefixCount: prefixes.length, error: twitchAlertBridgeState.cheermotes.lastError };
+    }
   }
 
   function safeJsonClone(value) {
@@ -1222,6 +1361,11 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, ['/hypetrain/cache_raw', '/twitch/hypetrain/raw', '/api/twitch/hypetrain/raw', '/api/twitch/hypetrain/cache/raw'], handleHypetrainCacheRaw);
 
   loadTwitchAlertBridgeConfig();
+  reloadTwitchCheermotePrefixes({ force: false }).catch(err => {
+    twitchAlertBridgeState.cheermotes.failed += 1;
+    twitchAlertBridgeState.cheermotes.lastError = err && err.message ? err.message : String(err);
+    console.warn('[twitch] cheermote prefix preload failed:', twitchAlertBridgeState.cheermotes.lastError);
+  });
 
   routes.registerGet(app, ['/api/twitch/alerts/status', '/twitch/alerts/status'], (req, res) => {
     res.json({
@@ -1249,6 +1393,7 @@ module.exports.init = function init(ctx) {
         lastError: twitchAlertBridgeState.eventSubAudit.lastError,
         lastWrittenAt: twitchAlertBridgeState.eventSubAudit.lastWrittenAt
       },
+      cheermotes: buildTwitchCheermoteStatus(false),
       recent: twitchAlertBridgeState.recent
     });
   });
@@ -1276,6 +1421,21 @@ module.exports.init = function init(ctx) {
       },
       rows: readRecentTwitchEventSubAudit(limit)
     });
+  });
+
+
+  routes.registerGet(app, ['/api/twitch/cheermotes/status', '/twitch/cheermotes/status'], (req, res) => {
+    const includePrefixes = String(core.getParam(req, 'includePrefixes', '1')).trim() !== '0';
+    res.json({ ok: true, module: 'twitch_cheermotes', ...buildTwitchCheermoteStatus(includePrefixes) });
+  });
+
+  routes.registerPost(app, ['/api/twitch/cheermotes/reload', '/twitch/cheermotes/reload'], async (req, res) => {
+    try {
+      const result = await reloadTwitchCheermotePrefixes({ force: true });
+      res.json({ ok: true, module: 'twitch_cheermotes', ...result, status: buildTwitchCheermoteStatus(true) });
+    } catch (err) {
+      res.status(500).json({ ok: false, module: 'twitch_cheermotes', error: err && err.message ? err.message : String(err), status: buildTwitchCheermoteStatus(true) });
+    }
   });
 
   routes.registerGet(app, ['/api/twitch/alerts/settings', '/twitch/alerts/settings'], (req, res) => {
@@ -1337,7 +1497,8 @@ module.exports.init = function init(ctx) {
         { kind: 'follow', label: 'Follow', defaults: { user: 'TestFollower', display: 'TestFollower' } },
         { kind: 'bits', label: 'Cheer/Bits ohne Text', defaults: { user: 'TestCheerer', display: 'TestCheerer', bits: 100, message: 'Cheer100' } },
         { kind: 'bits', label: 'Cheer/Bits mit Text', defaults: { user: 'TestCheerer', display: 'TestCheerer', bits: 100, message: 'Cheer100 test' } },
-        { kind: 'bits', label: 'Cheer/Bits mehrere Cheer-Tokens', defaults: { user: 'TestCheerer', display: 'TestCheerer', bits: 120, message: 'Cheer10 Cheer10 Cheer100 test' } },
+        { kind: 'bits', label: 'Cheer/Bits mehrere Cheermotes', defaults: { user: 'TestCheerer', display: 'TestCheerer', bits: 120, message: 'Cheer10 Cheer10 Cheer100 test' } },
+        { kind: 'bits', label: 'Cheer/Bits ShowLove mit Text', defaults: { user: 'TestCheerer', display: 'TestCheerer', bits: 20, message: 'ShowLove10 ShowLove10 Guten morgen!' } },
         { kind: 'sub', label: 'Subscribe Tier 1000', defaults: { user: 'TestSub', display: 'TestSub', tier: '1000' } },
         { kind: 'resub', label: 'Resub Message', defaults: { user: 'TestResub', display: 'TestResub', tier: '1000', amount: 12, message: 'Resub-Testnachricht' } },
         { kind: 'giftSub', label: 'GiftSub 1', defaults: { user: 'TestGifter', display: 'TestGifter', total: 1, tier: '1000' } },
@@ -1818,7 +1979,20 @@ module.exports.init = function init(ctx) {
     if (kind === 'bits') {
       const bits = Number(event.bits || 0);
       if (bits < Number(cfg.minBits || 1)) return { _skip: true, reason: 'below_min_bits', kind, subscriptionType, bits };
-      return { ...base, type: typeMap.bits || 'bits', user: event.user_name || event.user_login || 'Anonym', login: event.user_login || '', user_login: event.user_login || '', amount: bits, message: cleanEventText(event.message), title: `${event.user_name || event.user_login || 'Jemand'} cheer't ${bits} Bits!`, raw: cfg.includeRawEvent === false ? undefined : event };
+      const cheermotePrefixes = getCurrentTwitchCheermotePrefixes();
+      const rawEvent = cfg.includeRawEvent === false ? undefined : { ...event, cheermotePrefixes };
+      return {
+        ...base,
+        type: typeMap.bits || 'bits',
+        user: event.user_name || event.user_login || 'Anonym',
+        login: event.user_login || '',
+        user_login: event.user_login || '',
+        amount: bits,
+        message: cleanEventText(event.message),
+        title: `${event.user_name || event.user_login || 'Jemand'} cheer't ${bits} Bits!`,
+        cheermotePrefixes,
+        raw: rawEvent
+      };
     }
 
     if (kind === 'raid') {

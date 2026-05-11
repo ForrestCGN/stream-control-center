@@ -2732,17 +2732,54 @@ function buildTtsPayload(event, rule = {}) {
 function cleanAlertMessageForTts(event, message) {
   const raw = cleanText(message || '');
   if (!raw) return '';
-  if (isTwitchBitsAlert(event)) return stripTwitchCheerTokens(raw);
+  if (isTwitchBitsAlert(event)) return stripTwitchCheermoteWords(raw, getTwitchCheermotePrefixesFromEvent(event));
   return raw;
 }
 
-function stripTwitchCheerTokens(message) {
+function stripTwitchCheermoteWords(message, prefixes) {
   const raw = cleanText(message || '');
   if (!raw) return '';
+  const normalizedPrefixes = normalizeTwitchCheermotePrefixes(prefixes);
+  if (!normalizedPrefixes.length) return raw;
+  const escaped = normalizedPrefixes
+    .sort((a, b) => b.length - a.length)
+    .map(prefix => prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(`(^|\\s)(?:${escaped.join('|')})\\d+(?=\\s|$)`, 'gi');
   return raw
-    .replace(/(^|\s)cheer\d+(?=\s|$)/gi, ' ')
+    .replace(pattern, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function normalizeTwitchCheermotePrefixes(input) {
+  const list = Array.isArray(input) ? input : String(input || '').split(/[\s,;]+/);
+  const result = [];
+  const seen = new Set();
+  for (const raw of list) {
+    const prefix = cleanText(raw || '');
+    if (!/^[A-Za-z][A-Za-z0-9_]{0,80}$/.test(prefix)) continue;
+    const key = prefix.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(prefix);
+  }
+  if (!seen.has('cheer')) result.unshift('Cheer');
+  return result;
+}
+
+function getTwitchCheermotePrefixesFromEvent(event) {
+  const raw = event && event.raw && typeof event.raw === 'object' ? event.raw : {};
+  const candidates = [
+    raw.cheermotePrefixes,
+    raw.twitchCheermotePrefixes,
+    raw.raw && raw.raw.cheermotePrefixes,
+    raw.meta && raw.meta.cheermotePrefixes
+  ];
+  for (const candidate of candidates) {
+    const prefixes = normalizeTwitchCheermotePrefixes(candidate);
+    if (prefixes.length > 1 || (prefixes.length === 1 && prefixes[0].toLowerCase() !== 'cheer')) return prefixes;
+  }
+  return normalizeTwitchCheermotePrefixes(['Cheer']);
 }
 
 function isTwitchBitsAlert(event) {
@@ -2759,7 +2796,7 @@ function getAlertTtsCleanupInfo(event, originalMessage, cleanedMessage) {
   if (!isTwitchBitsAlert(event)) return { applied: false };
   return {
     applied: true,
-    mode: 'strip_twitch_cheer_tokens',
+    mode: 'strip_twitch_cheermote_words',
     originalMessage: cleanText(originalMessage || ''),
     cleanedMessage: cleanText(cleanedMessage || '')
   };
