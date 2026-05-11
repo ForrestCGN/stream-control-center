@@ -2,6 +2,14 @@
 
 ## 2026-05-11
 
+### STEP224 - Twitch Event Simulator Dashboard
+
+- Eigenes Dashboard-Modul `twitch_events` fuer lokale Twitch-EventSub-Tests eingebaut.
+- Modul nutzt die vorhandenen Debug-Routen der Twitch-Alert-Bridge.
+- Dry-Run ist standardmaessig aktiv, echte Alerts muessen bewusst gestartet werden.
+- Keine Backend-, Alert-, TTS-, Sound-, Loyalty- oder DB-Logik geaendert.
+
+
 ### STEP223 - Alert-TTS Cheer-Wort Cleanup
 
 - `backend/modules/alert_system.js` bereinigt Twitch-Cheer-Worts nur fuer Alert-TTS.

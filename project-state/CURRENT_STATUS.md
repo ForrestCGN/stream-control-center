@@ -37,6 +37,16 @@ Aktueller Stand nach STEP223:
 - Beispiele: `Cheer100` -> kein TTS, `Cheer100 test` -> `test`, `Cheer10 Cheer10 Cheer100 test` -> `test`.
 - Alert-Regeln, Queue, Sound-System, Twitch-Normalisierung, Dashboard und DB-Schema wurden nicht geaendert.
 
+## Dashboard / Twitch Event Simulator
+
+Aktueller Stand nach STEP224:
+
+- Neues Dashboard-Modul `twitch_events` ist im Control-Bereich verfuegbar.
+- Es simuliert Twitch-EventSub-Events ueber die echten Debug-Routen der Twitch-Alert-Bridge.
+- Dry-Run ist standardmaessig aktiv.
+- Ergebnisanzeige zeigt Normalisierung, Alert-Result und Sub-Puffer.
+- Es wurden keine Backend-, Alert-, TTS-, Sound-, Loyalty- oder DB-Funktionen geaendert.
+
 ## Alert-System / Twitch Alert Bridge
 
 Aktueller Stand nach STEP220:

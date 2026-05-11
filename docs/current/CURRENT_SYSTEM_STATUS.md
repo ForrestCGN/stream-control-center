@@ -2,6 +2,13 @@
 
 Stand: 2026-05-11
 
+## STEP224 - Twitch Event Simulator Dashboard
+
+- Neues Dashboard-Modul `twitch_events` im Control-Bereich verfuegbar.
+- Das Modul nutzt `GET /api/twitch/alerts/debug/presets` und `POST /api/twitch/alerts/debug/eventsub`.
+- Standard ist Dry-Run, echte Alert-Tests muessen bewusst ausgeloest werden.
+- Keine Backend-, Alert-, TTS-, Sound-, Loyalty- oder DB-Logik geaendert.
+
 ## Alert-System / Twitch Alert Bridge
 
 Aktueller Stand nach STEP220:

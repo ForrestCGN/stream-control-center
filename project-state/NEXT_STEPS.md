@@ -145,3 +145,12 @@ Nach Streamstart:
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 80
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/events?limit=20" | ConvertTo-Json -Depth 100
 ```
+
+
+## Twitch Event-/Alert-Audit
+
+Nach STEP224:
+
+- Twitch Event Simulator im Dashboard fuer Presets verwenden.
+- Mapping fuer Follow, Bits, Sub, Resub, GiftSub, GiftBomb, Raid und Channel Points dokumentieren.
+- Danach entscheiden, ob weitere Eventtypen eigene Alert-Typen oder Regeln brauchen.

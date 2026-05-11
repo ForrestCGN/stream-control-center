@@ -39,6 +39,14 @@ window.CGN = {
       overlayLabel: 'Alert-Overlay öffnen',
       reload() { return window.AlertsModule?.loadAll?.(true); }
     },
+    twitch_events: {
+      title: 'Twitch Event Simulator',
+      panelId: 'twitchEventsModule',
+      group: 'control',
+      overlayLink: '',
+      overlayLabel: '',
+      reload() { return window.TwitchEventsModule?.loadAll?.(true); }
+    },
     obs: {
       title: 'OBS Control Center',
       panelId: 'obsModule',
@@ -102,7 +110,7 @@ window.CGN = {
     control: {
       label: 'Control', icon: '🧭', role: 'streamer/local_admin/owner',
       description: 'Alerts, OBS, Overlays und Stream-Steuerung.',
-      items: ['controlhome', 'alerts', 'obs', 'overlays', 'stream_control']
+      items: ['controlhome', 'alerts', 'twitch_events', 'obs', 'overlays', 'stream_control']
     },
     community: {
       label: 'Community', icon: '👥', role: 'mod/supermod/streamer',
@@ -129,6 +137,7 @@ window.CGN = {
     daily_notes: { label: 'Tagesnotizen', icon: '📝', enabled: false, description: 'Kurze Notizen während des Streams.' },
     controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
     alerts: { label: 'Alerts V2', icon: '⚡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
+    twitch_events: { label: 'Twitch Events', icon: '🧪', enabled: true, description: 'Twitch-EventSub-Events lokal simulieren und Alert-Mapping prüfen.' },
     obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
     overlays: { label: 'Overlays', icon: '🖼', enabled: false, description: 'Overlay-Verwaltung vorbereitet.' },
     stream_control: { label: 'Stream-Steuerung', icon: '📺', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },
