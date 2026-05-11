@@ -1,6 +1,15 @@
-# NEXT STEP - Nach STEP259 DeathCounter DB-only Storage
+# STEP259 - DeathCounter DB-only Storage + manueller JSON Backup/Export
 
-## Direkt testen
+Dieses ZIP nach `D:\Git\stream-control-center` entpacken.
+
+Danach:
+
+```powershell
+cd D:\Git\stream-control-center
+.\stepdone.cmd "STEP259 deathcounter db only manual json export"
+```
+
+Live-Tests danach:
 
 ```powershell
 cd D:\Streaming\stramAssets
@@ -11,17 +20,11 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/storage/export?mode
 Invoke-RestMethod "http://127.0.0.1:8080/api/deathcounter/v2/integration-check" | ConvertTo-Json -Depth 20
 ```
 
-## Nächster sinnvoller Bau-Step
+Erwartung:
 
 ```text
-STEP260: DeathCounter Live-Schreibtest dokumentieren und ggf. Event-Logging in deathcounter_events ergänzen
-```
-
-Noch nicht blind bauen:
-
-```text
-- JSON-Datei löschen
-- Storage-Schalter einführen
-- Dashboard komplett umbauen
-- Overlay ändern
+activeStorage: database
+dualWriteEnabled: false
+jsonFallbackEnabled: true
+summary.errors: 0
 ```

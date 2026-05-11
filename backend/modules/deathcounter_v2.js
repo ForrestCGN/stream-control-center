@@ -19,7 +19,7 @@ const STORAGE_SCHEMA_MODULE = 'deathcounter_v2_storage';
 const STORAGE_SCHEMA_VERSION = 1;
 const STORAGE_IMPORT_CONFIRM_TOKEN = 'IMPORT_DEATHCOUNTER_V2';
 const ACTIVE_STORAGE = 'database';
-const FALLBACK_STORAGE = 'json_state_file';
+const FALLBACK_STORAGE = 'json_backup_export_file';
 const STORAGE_TABLES = Object.freeze({
   players: 'deathcounter_players',
   games: 'deathcounter_games',
@@ -81,7 +81,7 @@ const DEFAULT_DEATHCOUNTER_TEXTS = {
   dcount_extra_duplicate: ['{displayName} ist bereits im Overlay sichtbar.'],
   dcount_extra_limit: ['Es sind maximal {maxExtraPlayers} Zusatzspieler möglich.'],
   dcount_extra_not_visible: ['{displayName} ist nicht als Zusatzspieler sichtbar.'],
-  dcount_unknown_command: ['Unbekannter DCOUNT-Befehl. Erlaubt: on/show, off/hide, reset, add @spieler, remove @spieler, clear, replace @alt @neu'],
+  dcount_unknown_command: ['Unbekannter DCOUNT-Befehl. Erlaubt: on/show, off/hide, reset, add @spieler, remove @spieler, clear, replace @alt @neu, backup, export'],
   command_error_default: ['DeathCounter-Befehl konnte nicht verarbeitet werden.'],
   command_unknown_empty: ['Unbekannter DeathCounter-Befehl.'],
   command_unknown_allowed: ['Unbekannter DeathCounter-Befehl. Erlaubt: dcount, rip, tode.'],
@@ -249,6 +249,56 @@ module.exports.init = function init(ctx) {
       return res.json(ok(result));
     } catch (err) {
       return res.status(500).json(fail(err.message || String(err)));
+    }
+  });
+
+  app.get(`${API_PREFIX}/storage/export`, (req, res) => {
+    try {
+      const result = exportDeathcounterJsonFromDatabase({
+        mode: String(bodyOrQuery(req, 'mode') || 'backup').trim().toLowerCase(),
+        createBackupBeforeOverwrite: booleanOrDefault(bodyOrQuery(req, 'createBackupBeforeOverwrite'), true),
+        requestedBy: String(bodyOrQuery(req, 'requestedBy') || 'api').trim() || 'api'
+      });
+      return res.json(ok(result));
+    } catch (err) {
+      return res.status(400).json(fail(err.message || String(err)));
+    }
+  });
+
+  app.post(`${API_PREFIX}/storage/export`, (req, res) => {
+    try {
+      const result = exportDeathcounterJsonFromDatabase({
+        mode: String(bodyOrQuery(req, 'mode') || 'backup').trim().toLowerCase(),
+        createBackupBeforeOverwrite: booleanOrDefault(bodyOrQuery(req, 'createBackupBeforeOverwrite'), true),
+        requestedBy: String(bodyOrQuery(req, 'requestedBy') || 'api').trim() || 'api'
+      });
+      return res.json(ok(result));
+    } catch (err) {
+      return res.status(400).json(fail(err.message || String(err)));
+    }
+  });
+
+  app.get(`${API_PREFIX}/storage/backup`, (req, res) => {
+    try {
+      const result = exportDeathcounterJsonFromDatabase({
+        mode: 'backup',
+        requestedBy: String(bodyOrQuery(req, 'requestedBy') || 'api').trim() || 'api'
+      });
+      return res.json(ok(result));
+    } catch (err) {
+      return res.status(400).json(fail(err.message || String(err)));
+    }
+  });
+
+  app.post(`${API_PREFIX}/storage/backup`, (req, res) => {
+    try {
+      const result = exportDeathcounterJsonFromDatabase({
+        mode: 'backup',
+        requestedBy: String(bodyOrQuery(req, 'requestedBy') || 'api').trim() || 'api'
+      });
+      return res.json(ok(result));
+    } catch (err) {
+      return res.status(400).json(fail(err.message || String(err)));
     }
   });
 
@@ -1091,6 +1141,19 @@ module.exports.init = function init(ctx) {
     if (mode === 'clear') {
       const cleared = clearOverlayExtraPlayers();
       return streamerbotSilent({ action: 'clear', ...cleared });
+    }
+
+    if (mode === 'backup' || mode === 'export') {
+      const result = exportDeathcounterJsonFromDatabase({
+        mode,
+        requestedBy: 'dcount_command',
+        createBackupBeforeOverwrite: true
+      });
+      const fileName = path.basename(result.file?.path || result.targetPath || 'deathcounter.v2.json');
+      const message = mode === 'backup'
+        ? `DeathCounter-Backup erstellt: ${fileName}`
+        : `DeathCounter-JSON exportiert: ${fileName}`;
+      return streamerbotMessage(message, { action: mode, export: result });
     }
 
     if (mode === 'replace') {
@@ -2498,24 +2561,24 @@ module.exports.init = function init(ctx) {
 
       for (const row of expectedRows) {
         const key = getKey(row);
-        if (expectedMap.has(key)) addIssue('error', `${collectionKey}_expected_duplicate`, `Expected ${collectionKey} row is duplicated: ${key}`, { key });
+        if (expectedMap.has(key)) addIssue('warning', `${collectionKey}_expected_duplicate`, `Expected ${collectionKey} row is duplicated: ${key}`, { key });
         expectedMap.set(key, normalizeExpected(row));
       }
 
       for (const row of actualRows) {
         const key = getKey(row);
-        if (actualMap.has(key)) addIssue('error', `${collectionKey}_database_duplicate`, `Database ${collectionKey} row is duplicated: ${key}`, { key });
+        if (actualMap.has(key)) addIssue('warning', `${collectionKey}_database_duplicate`, `Database ${collectionKey} row is duplicated: ${key}`, { key });
         actualMap.set(key, normalizeActual(row));
       }
 
       for (const [key, expectedRow] of expectedMap.entries()) {
         if (!actualMap.has(key)) {
-          addIssue('error', `${collectionKey}_missing_in_database`, `${collectionKey} row missing in database: ${key}`, { key, expected: expectedRow });
+          addIssue('warning', `${collectionKey}_missing_in_database`, `${collectionKey} row missing in database: ${key}`, { key, expected: expectedRow });
           continue;
         }
         const actualRow = actualMap.get(key);
         if (consistencyFingerprint(expectedRow) !== consistencyFingerprint(actualRow)) {
-          addIssue('error', `${collectionKey}_mismatch`, `${collectionKey} row differs between JSON and database: ${key}`, { key, expected: expectedRow, actual: actualRow });
+          addIssue('warning', `${collectionKey}_mismatch`, `${collectionKey} row differs between JSON and database: ${key}`, { key, expected: expectedRow, actual: actualRow });
         }
       }
 
@@ -2630,7 +2693,7 @@ module.exports.init = function init(ctx) {
         issues: includeIssues ? issues.slice(0, limit) : []
       },
       notes: [
-        'STEP256 consistency only. This endpoint compares the current JSON-derived rows with the imported DB rows.',
+        'STEP259: consistency compares the manual JSON export snapshot with active DB rows. Differences can be expected after DB-only writes until the next manual backup/export.',
         'No INSERT, UPDATE, DELETE, import or storage switch is performed by this endpoint.',
         'Event history is not reconstructed from the JSON state; deathcounter_events may stay empty until future live DB event writes exist.'
       ],
@@ -2737,7 +2800,7 @@ module.exports.init = function init(ctx) {
     const storage = buildDeathcounterStorageStatus();
     const imported = readDeathcounterImportedStorageRows();
     const dbState = buildStateFromImportedStorageRows(imported);
-    const jsonState = readJsonState();
+    const jsonState = readState();
     const consistency = buildDeathcounterStorageConsistency({ includeIssues: false, limit: 0 });
     const issues = [];
 
@@ -2758,20 +2821,20 @@ module.exports.init = function init(ctx) {
       });
     }
 
-    const jsonPublic = normalizeReadTestPublicState(jsonState);
+    const activePublic = normalizeReadTestPublicState(jsonState);
     const databasePublic = normalizeReadTestPublicState(dbState);
-    const jsonFingerprint = consistencyFingerprint(jsonPublic);
+    const activeFingerprint = consistencyFingerprint(activePublic);
     const databaseFingerprint = consistencyFingerprint(databasePublic);
-    const publicStateMatchesJson = jsonFingerprint === databaseFingerprint;
+    const publicStateMatchesActive = activeFingerprint === databaseFingerprint;
 
-    if (!publicStateMatchesJson) {
-      addIssue('error', 'database_public_state_mismatch', 'DB-built public state differs from JSON-built public state.', {
+    if (!publicStateMatchesActive) {
+      addIssue('error', 'database_public_state_mismatch', 'DB-built public state differs from active public state.', {
         hint: 'Run /storage/consistency?limit=50 for row-level differences.'
       });
     }
 
-    if (!consistency.consistent) {
-      addIssue('error', 'storage_consistency_failed', 'DB-vs-JSON storage consistency check is not clean.', {
+    if (consistency.validation.errors > 0) {
+      addIssue('error', 'storage_consistency_failed', 'DB-vs-JSON export snapshot consistency check has errors.', {
         errors: consistency.validation.errors,
         warnings: consistency.validation.warnings,
         infos: consistency.validation.infos
@@ -2794,7 +2857,7 @@ module.exports.init = function init(ctx) {
       activatesDatabaseStorage: false,
       activeStorage: getActiveStorageInfo().activeStorage,
       testedStorage: 'database_schema',
-      publicStateMatchesJson,
+      publicStateMatchesActive,
       stateFile,
       currentGame: jsonState.currentGame,
       databaseCurrentGame: dbState.currentGame,
@@ -2807,15 +2870,15 @@ module.exports.init = function init(ctx) {
         events: imported.events.length
       },
       publicSummary: {
-        jsonPlayers: jsonPublic.players.length,
+        activePlayers: activePublic.players.length,
         databasePlayers: databasePublic.players.length,
-        jsonCurrentGame: jsonPublic.currentGame,
+        activeCurrentGame: activePublic.currentGame,
         databaseCurrentGame: databasePublic.currentGame,
-        jsonSelectedPlayerIds: jsonPublic.overlay.selectedPlayerIds,
+        activeSelectedPlayerIds: activePublic.overlay.selectedPlayerIds,
         databaseSelectedPlayerIds: databasePublic.overlay.selectedPlayerIds,
-        jsonExtraPlayerIds: jsonPublic.overlay.extraPlayerIds,
+        activeExtraPlayerIds: activePublic.overlay.extraPlayerIds,
         databaseExtraPlayerIds: databasePublic.overlay.extraPlayerIds,
-        jsonOverlayVisible: jsonPublic.overlay.visible,
+        activeOverlayVisible: activePublic.overlay.visible,
         databaseOverlayVisible: databasePublic.overlay.visible
       },
       consistency: {
@@ -2835,16 +2898,16 @@ module.exports.init = function init(ctx) {
         issues: includeIssues ? issues.slice(0, limit) : []
       },
       notes: [
-        'STEP257 read-test only. This endpoint builds DeathCounter public state from imported DB rows and compares it with the active JSON state.',
+        'STEP259 read-test: this endpoint builds DeathCounter public state from DB rows and compares it with the active DB state.',
         'No INSERT, UPDATE, DELETE, import or storage switch is performed by this endpoint.',
-        'Commands, overlay and productive API state now use database storage when readable; JSON remains synchronized as fallback.'
+        'Commands, overlay and productive API state use database storage. JSON is now backup/export only and is not synchronized automatically.'
       ],
       updatedAt: core.nowIso()
     };
 
     if (includeState) {
       response.publicState = {
-        json: jsonPublic,
+        active: activePublic,
         database: databasePublic
       };
     }
@@ -2852,12 +2915,93 @@ module.exports.init = function init(ctx) {
     return response;
   }
 
+
+  function buildJsonStateFromActiveDatabaseStorage() {
+    const state = readDatabaseStateOrNull();
+    if (!state) throw new Error('active_database_storage_not_readable');
+    return normalizeStateForStorage(state);
+  }
+
+  function toSafeTimestamp(value = core.nowIso()) {
+    return String(value || core.nowIso()).replace(/[:.]/g, '-');
+  }
+
+  function exportDeathcounterJsonFromDatabase(options = {}) {
+    const modeRaw = String(options.mode || 'backup').trim().toLowerCase();
+    const mode = modeRaw === 'export' ? 'export' : 'backup';
+    const requestedBy = String(options.requestedBy || 'api').trim() || 'api';
+    const now = core.nowIso();
+    const timestamp = toSafeTimestamp(now);
+    const state = buildJsonStateFromActiveDatabaseStorage();
+    state.updatedAt = now;
+
+    ensureDir(dataDir);
+    const backupDir = path.join(dataDir, 'backups');
+    ensureDir(backupDir);
+
+    let targetPath;
+    let preExportBackup = null;
+
+    if (mode === 'backup') {
+      targetPath = path.join(backupDir, `deathcounter.v2.export.${timestamp}.json`);
+    } else {
+      targetPath = stateFile;
+      const createBackupBeforeOverwrite = options.createBackupBeforeOverwrite !== false;
+      if (createBackupBeforeOverwrite && fs.existsSync(stateFile)) {
+        const backupPath = path.join(backupDir, `deathcounter.v2.before-manual-export.${timestamp}.json`);
+        fs.copyFileSync(stateFile, backupPath);
+        preExportBackup = {
+          created: true,
+          path: backupPath,
+          source: stateFile
+        };
+      }
+    }
+
+    writeJSON(targetPath, state);
+
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      action: 'storage_export',
+      mode,
+      destructive: false,
+      readOnly: false,
+      writesDatabase: false,
+      writesJson: true,
+      importsCounts: false,
+      switchesStorage: false,
+      activeStorage: ACTIVE_STORAGE,
+      fallbackStorage: FALLBACK_STORAGE,
+      requestedBy,
+      file: {
+        created: true,
+        path: targetPath,
+        type: mode === 'backup' ? 'timestamp_backup' : 'main_export_file'
+      },
+      preExportBackup,
+      summary: {
+        players: Array.isArray(state.players) ? state.players.length : 0,
+        games: buildDeathcounterStorageRows(state).gameRows.length,
+        counts: buildDeathcounterStorageRows(state).countRows.length,
+        overlayState: buildDeathcounterStorageRows(state).overlayRows.length,
+        events: 0
+      },
+      notes: [
+        'STEP259 manual export only. Productive DeathCounter storage remains database.',
+        'Backup mode writes a timestamped JSON file and does not touch the main JSON file.',
+        'Export mode overwrites the main deathcounter.v2.json from active database storage.'
+      ],
+      updatedAt: now
+    };
+  }
+
   function buildDeathcounterConfig() {
     return {
       module: 'deathcounter_v2',
       version: 2,
       prefix: API_PREFIX,
-      source: 'database_storage_with_json_fallback_and_database_settings',
+      source: 'database_storage_with_manual_json_backup_export_and_database_settings',
       settingsTable: SETTINGS_TABLE,
       storage: getActiveStorageInfo(),
       storageSchema: buildDeathcounterStorageStatus(),
@@ -2891,7 +3035,7 @@ module.exports.init = function init(ctx) {
     return {
       module: 'deathcounter_v2',
       version: 2,
-      source: 'database_settings_and_active_database_runtime_state',
+      source: 'database_settings_and_active_database_runtime_state_db_only',
       prefix: API_PREFIX,
       settingsTable: SETTINGS_TABLE,
       storage: getActiveStorageInfo(),
@@ -2924,7 +3068,9 @@ module.exports.init = function init(ctx) {
       { method: 'GET', path: `${API_PREFIX}/storage/validate`, purpose: 'validate JSON state import readiness without writing DB rows' },
       { method: 'POST', path: `${API_PREFIX}/storage/import`, purpose: 'confirmed one-time import from JSON state into prepared DB tables without switching active storage' },
       { method: 'GET', path: `${API_PREFIX}/storage/consistency`, purpose: 'compare current JSON-derived storage rows with imported DB rows without writing or switching storage' },
-      { method: 'GET', path: `${API_PREFIX}/storage/read-test`, purpose: 'build public DeathCounter state from imported DB rows and compare it with active JSON without switching storage' },
+      { method: 'GET', path: `${API_PREFIX}/storage/read-test`, purpose: 'build public DeathCounter state from imported DB rows without activating a storage switch' },
+      { method: 'GET/POST', path: `${API_PREFIX}/storage/export`, purpose: 'manual JSON backup/export from active database storage' },
+      { method: 'GET/POST', path: `${API_PREFIX}/storage/backup`, purpose: 'manual timestamped JSON backup from active database storage' },
       { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
       { method: 'GET/POST', path: `${API_PREFIX}/command`, purpose: 'central Streamer.bot-friendly command bridge for dcount/rip/tode' },
       { method: 'GET', path: `${API_PREFIX}/state`, purpose: 'public state for overlay/dashboard' },
@@ -3116,7 +3262,8 @@ module.exports.init = function init(ctx) {
       requiresConfirm: true,
       confirmToken: STORAGE_IMPORT_CONFIRM_TOKEN,
       requiresEmptyTargetTables: true,
-      keepsJsonActive: true,
+      keepsJsonActive: false,
+      jsonManualBackupExportOnly: true,
       switchesStorage: false
     });
 
@@ -3124,8 +3271,9 @@ module.exports.init = function init(ctx) {
       const consistency = buildDeathcounterStorageConsistency({ includeIssues: false, limit: 0 });
       add({
         name: 'database_storage_consistency',
-        ok: consistency.validation.ok,
-        level: consistency.validation.errors ? 'error' : (consistency.validation.warnings ? 'warning' : 'ok'),
+        ok: consistency.validation.errors === 0,
+        level: consistency.validation.errors ? 'error' : 'ok',
+        jsonSnapshotConsistent: consistency.consistent,
         readOnly: consistency.readOnly,
         writesDatabase: consistency.writesDatabase,
         importsCounts: consistency.importsCounts,
@@ -3164,7 +3312,7 @@ module.exports.init = function init(ctx) {
         importsCounts: readTest.importsCounts,
         switchesStorage: readTest.switchesStorage,
         activatesDatabaseStorage: readTest.activatesDatabaseStorage,
-        publicStateMatchesJson: readTest.publicStateMatchesJson,
+        publicStateMatchesActive: readTest.publicStateMatchesActive,
         testedStorage: readTest.testedStorage,
         activeStorage: readTest.activeStorage,
         databaseRows: readTest.databaseRows,
@@ -3185,7 +3333,7 @@ module.exports.init = function init(ctx) {
         importsCounts: false,
         switchesStorage: false,
         activatesDatabaseStorage: false,
-        publicStateMatchesJson: false,
+        publicStateMatchesActive: false,
         error: err.message || String(err)
       });
     }
@@ -3214,7 +3362,7 @@ module.exports.init = function init(ctx) {
         configuredStorage: ACTIVE_STORAGE,
         fallbackStorage: FALLBACK_STORAGE,
         databaseReadable: false,
-        dualWriteEnabled: true,
+        dualWriteEnabled: false,
         jsonFallbackEnabled: true,
         error: err.message || String(err)
       });
@@ -3239,7 +3387,8 @@ module.exports.init = function init(ctx) {
         'STEP255 adds a guarded import endpoint. It writes only after explicit confirm, requires empty target tables and keeps JSON active.',
         'STEP256 adds a read-only DB-vs-JSON consistency check. It does not write rows or switch active storage.',
         'STEP257 adds a read-only DB read-test that builds public state from imported DB rows without activating DB storage.',
-        'STEP258 activates database storage with JSON fallback and dual-write JSON synchronization.'
+        'STEP258 activated database storage with JSON fallback and dual-write JSON synchronization.',
+        'STEP259 removes automatic JSON dual-write. JSON is only written by manual backup/export.'
       ],
       updatedAt: core.nowIso()
     };
@@ -3284,7 +3433,7 @@ module.exports.init = function init(ctx) {
     return { total, ok: okCount, warnings, errors };
   }
 
-  console.log(`[deathcounter_v2] aktiv → database storage mit JSON-Fallback: ${stateFile}`);
+  console.log(`[deathcounter_v2] aktiv → database storage, JSON nur Backup/Export: ${stateFile}`);
 
   function normalizeStateForStorage(inputState) {
     const state = inputState && typeof inputState === 'object' ? inputState : createEmptyState();
@@ -3337,7 +3486,7 @@ module.exports.init = function init(ctx) {
       configuredStorage: ACTIVE_STORAGE,
       fallbackStorage: FALLBACK_STORAGE,
       databaseReadable,
-      dualWriteEnabled: true,
+      dualWriteEnabled: false,
       jsonFallbackEnabled: true
     };
   }
@@ -3385,8 +3534,7 @@ module.exports.init = function init(ctx) {
     mutator(state);
     state.updatedAt = typeof state.updatedAt === 'string' ? state.updatedAt : core.nowIso();
     const normalized = normalizeStateForStorage(state);
-    replaceDeathcounterStorageRowsFromState(normalized, 'database_active_step258_dual_write');
-    writeJSON(stateFile, normalized);
+    replaceDeathcounterStorageRowsFromState(normalized, 'database_active_step259_db_only');
     return normalized;
   }
 
