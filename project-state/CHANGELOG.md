@@ -1,3 +1,13 @@
+## 2026-05-11 - STEP241 DeathCounter DB-Textvarianten
+
+- DeathCounter an `helper_texts` / `module_text_variants` angebunden.
+- Neue Routen `/api/deathcounter/v2/admin/texts` GET/POST ergaenzt.
+- Textmoduleintrag `deathcounter` mit Defaults fuer Fehler-, DCOUNT- und Tode-Texte vorbereitet.
+- `!tode`-Zusammenfassung und Einzelspieler-Ausgabe werden aus Textvarianten gerendert.
+- Bestehende State-Datei/Counts, Overlay und Dashboard bleiben unveraendert.
+
+---
+
 ## 2026-05-11 - STEP240 DeathCounter DB-Settings
 
 - `deathcounter_settings` ueber vorhandenen `helper_settings` eingefuehrt.

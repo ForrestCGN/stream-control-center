@@ -1,3 +1,22 @@
+# STEP241 - DeathCounter DB-Textvarianten
+
+Stand: 2026-05-11
+
+- DeathCounter-Command-/Chatantworten wurden an `helper_texts` und `module_text_variants` angebunden.
+- Neue Admin-Routen: `/api/deathcounter/v2/admin/texts` GET/POST.
+- `module_name = deathcounter`.
+- `!tode`-Ausgaben und zentrale Fehler-/Hinweistexte werden jetzt ueber DB-Textvarianten gerendert.
+- Code-Defaults bleiben als Fallback erhalten.
+- Keine Count-/State-/Overlay-/Dashboard-Aenderung.
+
+Referenz:
+
+```text
+project-state/STEP241_DEATHCOUNTER_DB_TEXT_VARIANTS_2026-05-11.md
+```
+
+---
+
 # STEP240 - DeathCounter DB-Settings
 
 Stand: 2026-05-11

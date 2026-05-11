@@ -1,3 +1,30 @@
+## STEP241 - DeathCounter DB-Textvarianten
+
+Geaendert / neu dokumentiert:
+
+```text
+backend/modules/deathcounter_v2.js
+project-state/STEP241_DEATHCOUNTER_DB_TEXT_VARIANTS_2026-05-11.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
+
+Nicht geaendert:
+
+```text
+htdocs/**
+config/**
+data/**
+app.sqlite
+DeathCounter-Overlay
+Streamer.bot-Actions
+```
+
+---
+
 ## STEP240 - DeathCounter DB-Settings
 
 Geaendert / neu dokumentiert:

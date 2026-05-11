@@ -1,3 +1,39 @@
+# NEXT STEP - Nach STEP241
+
+## DeathCounter Status
+
+DeathCounter hat jetzt:
+
+```text
+- zentrale /command-API
+- Backend-Chatausgabe ueber helper_chat_output
+- DB-Settings ueber helper_settings / deathcounter_settings
+- DB-Textvarianten ueber helper_texts / module_text_variants / module_name=deathcounter
+```
+
+## STEP242 empfohlen: DeathCounter Dashboard-Basis
+
+Ziele:
+
+```text
+- Dashboard-Modul aktivieren
+- Status und Integration-Check anzeigen
+- Settings lesen/speichern
+- Textvarianten lesen und einfache Bearbeitung vorbereiten
+- Overlay-Show/Hide/Toggle/Reset bedienen
+- Spieler/Counts lesend anzeigen
+```
+
+Noch nicht in STEP242:
+
+```text
+- keine Count-/State-Migration in DB
+- kein Overlay-Design-Refresh
+- kein zentraler Node-Chat-Router
+```
+
+---
+
 # NEXT STEP - Nach STEP240
 
 ## DeathCounter Status

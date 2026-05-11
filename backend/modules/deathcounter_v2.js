@@ -8,6 +8,7 @@ const core = require('./helpers/helper_core');
 const config = require('./helpers/helper_config');
 const chatOutput = require('./helpers/helper_chat_output');
 const settingsHelper = require('./helpers/helper_settings');
+const textHelper = require('./helpers/helper_texts');
 
 const DEFAULT_SELECTED_IDS = ['forrestcgn', 'engelcgn'];
 const DEFAULT_GAME_KEY = 'Unbekannt';
@@ -27,6 +28,45 @@ const DEFAULT_DEATHCOUNTER_SETTINGS = [
   { key: 'resetSessionOnStreamStart', value: true, valueType: 'boolean', description: 'Beim Streamstart werden Session-Tode zurueckgesetzt.' },
   { key: 'resetOverlayPlayersOnStreamStart', value: true, valueType: 'boolean', description: 'Beim Streamstart werden Overlay-Spieler auf Standard zurueckgesetzt.' }
 ];
+
+const TEXTS_MODULE = 'deathcounter';
+const DEATHCOUNTER_TEXT_CATEGORY_LABELS = {
+  command: 'Chat-Commands',
+  error: 'Fehler / Hinweise',
+  stats: 'Tode / Statistiken'
+};
+const DEATHCOUNTER_TEXT_CATEGORIES = {
+  rip_missing_player: 'error',
+  rip_missing_mention: 'error',
+  tode_missing_mention: 'error',
+  dcount_replace_missing: 'error',
+  dcount_replace_mention: 'error',
+  dcount_replace_same_player: 'error',
+  dcount_unknown_command: 'error',
+  command_error_default: 'error',
+  command_unknown_empty: 'error',
+  command_unknown_allowed: 'error',
+  tode_summary: 'stats',
+  tode_summary_empty: 'stats',
+  tode_summary_player: 'stats',
+  tode_player_detail: 'stats'
+};
+const DEFAULT_DEATHCOUNTER_TEXTS = {
+  rip_missing_player: ['Nutze: !rip @spieler'],
+  rip_missing_mention: ['Bitte nutze eine Twitch-Erwähnung, z. B. !rip @ForrestCGN'],
+  tode_missing_mention: ['Bitte nutze eine Twitch-Erwähnung, z. B. !tode @ForrestCGN'],
+  dcount_replace_missing: ['Ungültiger Replace-Befehl. Nutze: !dcount replace @alt @neu'],
+  dcount_replace_mention: ['Bitte nutze: !dcount replace @alterName @neuerName'],
+  dcount_replace_same_player: ['Austausch nicht möglich: alter und neuer Spieler sind identisch.'],
+  dcount_unknown_command: ['Unbekannter DCOUNT-Befehl. Erlaubt: on/show, off/hide, reset, replace @alt @neu'],
+  command_error_default: ['DeathCounter-Befehl konnte nicht verarbeitet werden.'],
+  command_unknown_empty: ['Unbekannter DeathCounter-Befehl.'],
+  command_unknown_allowed: ['Unbekannter DeathCounter-Befehl. Erlaubt: dcount, rip, tode.'],
+  tode_summary: ['{game} | {players}'],
+  tode_summary_empty: ['{game} | Keine Spieler aktiv'],
+  tode_summary_player: ['{displayName}: {session}/{gameAllTime}'],
+  tode_player_detail: ['{displayName} | {game}: Heute {session}, Spiel gesamt {gameAllTime} | AllTime: {allTime}']
+};
 
 module.exports.init = function init(ctx) {
   const { app } = ctx;
@@ -86,6 +126,23 @@ module.exports.init = function init(ctx) {
   app.post(`${API_PREFIX}/admin/settings`, (req, res) => {
     try {
       const result = updateDeathcounterAdminSettings(req.body || req.query || {});
+      return res.json(ok(result));
+    } catch (err) {
+      return res.status(400).json(fail(err.message || String(err)));
+    }
+  });
+
+  app.get(`${API_PREFIX}/admin/texts`, (req, res) => {
+    try {
+      return res.json(ok(buildDeathcounterAdminTexts()));
+    } catch (err) {
+      return res.status(500).json(fail(err.message || String(err)));
+    }
+  });
+
+  app.post(`${API_PREFIX}/admin/texts`, (req, res) => {
+    try {
+      const result = updateDeathcounterAdminTexts(req.body || req.query || {});
       return res.json(ok(result));
     } catch (err) {
       return res.status(400).json(fail(err.message || String(err)));
@@ -862,7 +919,7 @@ module.exports.init = function init(ctx) {
     const command = String(bodyOrQuery(req, 'command') || bodyOrQuery(req, 'cmd') || '').trim().toLowerCase();
 
     try {
-      if (!command) return await commandUserError(req, 'unknown', 'Unbekannter DeathCounter-Befehl.');
+      if (!command) return await commandUserError(req, 'unknown', deathcounterText('command_unknown_empty'));
 
       if (command === 'dcount' || command === 'deathcount' || command === 'deathcounter') {
         return await commandOk(req, command, await handleDcountCommand(req));
@@ -876,7 +933,7 @@ module.exports.init = function init(ctx) {
         return await commandOk(req, command, await handleTodeCommand(req));
       }
 
-      return await commandUserError(req, command, 'Unbekannter DeathCounter-Befehl. Erlaubt: dcount, rip, tode.');
+      return await commandUserError(req, command, deathcounterText('command_unknown_allowed'));
     } catch (err) {
       return await commandUserError(req, command || 'unknown', err.message || 'Interner Fehler im DeathCounter-Command.');
     }
@@ -906,16 +963,16 @@ module.exports.init = function init(ctx) {
       const fromRaw = args[1] || '';
       const toRaw = args[2] || '';
       if (!fromRaw || !toRaw) {
-        return streamerbotMessage('Ungültiger Replace-Befehl. Nutze: !dcount replace @alt @neu', { action: 'replace', success: false });
+        return streamerbotMessage(deathcounterText('dcount_replace_missing'), { action: 'replace', success: false });
       }
 
-      const from = parseCommandPlayerToken(fromRaw, getCommandOptions(req), 'Bitte nutze: !dcount replace @alterName @neuerName');
-      const to = parseCommandPlayerToken(toRaw, getCommandOptions(req), 'Bitte nutze: !dcount replace @alterName @neuerName');
+      const from = parseCommandPlayerToken(fromRaw, getCommandOptions(req), deathcounterText('dcount_replace_mention'));
+      const to = parseCommandPlayerToken(toRaw, getCommandOptions(req), deathcounterText('dcount_replace_mention'));
       if (!from.login || !to.login) {
-        return streamerbotMessage('Ungültiger Replace-Befehl. Nutze: !dcount replace @alt @neu', { action: 'replace', success: false });
+        return streamerbotMessage(deathcounterText('dcount_replace_missing'), { action: 'replace', success: false });
       }
       if (from.login === to.login) {
-        return streamerbotMessage('Austausch nicht möglich: alter und neuer Spieler sind identisch.', { action: 'replace', success: false });
+        return streamerbotMessage(deathcounterText('dcount_replace_same_player'), { action: 'replace', success: false });
       }
 
       const replaced = await replaceOverlayPlayer(from.login, to.login);
@@ -928,7 +985,7 @@ module.exports.init = function init(ctx) {
       return streamerbotSilent({ action: 'toggle', overlay: publicOverlay(state).overlay });
     }
 
-    return streamerbotMessage('Unbekannter DCOUNT-Befehl. Erlaubt: on/show, off/hide, reset, replace @alt @neu', {
+    return streamerbotMessage(deathcounterText('dcount_unknown_command'), {
       action: 'unknown',
       success: false
     });
@@ -940,16 +997,16 @@ module.exports.init = function init(ctx) {
     let mode = 'rip';
 
     if (!targetRaw) {
-      return streamerbotMessage('Nutze: !rip @spieler', { action: 'rip', success: false });
+      return streamerbotMessage(deathcounterText('rip_missing_player'), { action: 'rip', success: false });
     }
 
     if (String(args[1] || '').trim().toLowerCase() === 'del') {
       mode = 'del';
     }
 
-    const parsed = parseCommandPlayerToken(targetRaw, getCommandOptions(req), 'Bitte nutze eine Twitch-Erwähnung, z. B. !rip @ForrestCGN');
+    const parsed = parseCommandPlayerToken(targetRaw, getCommandOptions(req), deathcounterText('rip_missing_mention'));
     if (!parsed.login) {
-      return streamerbotMessage('Nutze: !rip @spieler', { action: 'rip', success: false });
+      return streamerbotMessage(deathcounterText('rip_missing_player'), { action: 'rip', success: false });
     }
 
     const game = normalizeGameName(stringOrDefault(bodyOrQuery(req, 'game'), readState().currentGame || DEFAULT_GAME_KEY));
@@ -972,7 +1029,7 @@ module.exports.init = function init(ctx) {
     const state = readState();
 
     if (targetRaw) {
-      const parsed = parseCommandPlayerToken(targetRaw, getCommandOptions(req), 'Bitte nutze eine Twitch-Erwähnung, z. B. !tode @ForrestCGN');
+      const parsed = parseCommandPlayerToken(targetRaw, getCommandOptions(req), deathcounterText('tode_missing_mention'));
       const player = findPlayerOrThrow(state.players, parsed.login);
       const detail = buildTodePlayerDetail(state, player);
       return streamerbotMessage(detail.message, { action: 'tode', detail });
@@ -1063,7 +1120,7 @@ module.exports.init = function init(ctx) {
   }
 
   async function commandUserError(req, command, message) {
-    const text = message || 'DeathCounter-Befehl konnte nicht verarbeitet werden.';
+    const text = message || deathcounterText('command_error_default');
     const responsePayload = await applyCommandChatOutput(req, command, {
       module: 'deathcounter_v2',
       version: 2,
@@ -1414,6 +1471,26 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function buildDeathcounterAdminTexts() {
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      texts: listDeathcounterTexts(),
+      updatedAt: core.nowIso()
+    };
+  }
+
+  function updateDeathcounterAdminTexts(input) {
+    const result = handleDeathcounterTextPayload(input || {});
+    return {
+      module: 'deathcounter_v2',
+      version: 2,
+      ...result,
+      texts: result.texts || result,
+      updatedAt: core.nowIso()
+    };
+  }
+
   function buildDeathcounterConfig() {
     return {
       module: 'deathcounter_v2',
@@ -1475,6 +1552,7 @@ module.exports.init = function init(ctx) {
       { method: 'GET', path: `${API_PREFIX}/config`, purpose: 'sanitized deathcounter config/path view' },
       { method: 'GET', path: `${API_PREFIX}/settings`, purpose: 'runtime settings/state view' },
       { method: 'GET/POST', path: `${API_PREFIX}/admin/settings`, purpose: 'dashboard/admin DB settings via helper_settings' },
+      { method: 'GET/POST', path: `${API_PREFIX}/admin/texts`, purpose: 'dashboard/admin DB text variants via helper_texts' },
       { method: 'GET', path: `${API_PREFIX}/routes`, purpose: 'list deathcounter v2 API routes' },
       { method: 'GET', path: `${API_PREFIX}/integration-check`, purpose: 'run non-destructive integration check' },
       { method: 'POST', path: `${API_PREFIX}/reload`, purpose: 'safe state-file normalization reload' },
@@ -1517,6 +1595,21 @@ module.exports.init = function init(ctx) {
       add({ name: 'database_settings', ok: true, level: 'ok', table: adminSettings.table, count: adminSettings.count });
     } catch (err) {
       add({ name: 'database_settings', ok: false, level: 'error', table: SETTINGS_TABLE, error: err.message || String(err) });
+    }
+
+    try {
+      const adminTexts = buildDeathcounterAdminTexts();
+      add({
+        name: 'database_text_variants',
+        ok: true,
+        level: 'ok',
+        table: adminTexts.texts?.variantsTable || adminTexts.texts?.table || 'module_text_variants',
+        moduleName: TEXTS_MODULE,
+        keys: adminTexts.texts?.count || 0,
+        variants: adminTexts.texts?.variantCount || 0
+      });
+    } catch (err) {
+      add({ name: 'database_text_variants', ok: false, level: 'error', table: 'module_text_variants', moduleName: TEXTS_MODULE, error: err.message || String(err) });
     }
 
     let state = null;
@@ -2013,12 +2106,23 @@ function buildTodeSummary(state) {
     };
   });
 
-  const parts = summaryPlayers.map(player => `${player.displayName}: ${player.session}/${player.gameAllTime}`);
+  const parts = summaryPlayers.map(player => deathcounterText('tode_summary_player', {
+    displayName: player.displayName,
+    login: player.login,
+    game,
+    session: player.session,
+    gameAllTime: player.gameAllTime,
+    allTime: intOrDefault(player.stats?.allTime, 0)
+  }));
+
+  const message = parts.length
+    ? deathcounterText('tode_summary', { game, players: parts.join(' | ') })
+    : deathcounterText('tode_summary_empty', { game });
 
   return {
     currentGame: game,
     players: summaryPlayers,
-    message: parts.length ? `${game} | ${parts.join(' | ')}` : `${game} | Keine Spieler aktiv`
+    message
   };
 }
 
@@ -2034,8 +2138,78 @@ function buildTodePlayerDetail(state, player) {
   return {
     player: summarizePlayer(player, game),
     currentGame: game,
-    message: `${player.displayName} | ${game}: Heute ${session}, Spiel gesamt ${gameAllTime} | AllTime: ${allTime}`
+    message: deathcounterText('tode_player_detail', {
+      displayName: player.displayName,
+      login: player.login,
+      game,
+      session,
+      gameAllTime,
+      allTime
+    })
   };
+}
+
+function deathcounterTextOptions() {
+  return {
+    categories: DEATHCOUNTER_TEXT_CATEGORIES,
+    categoryLabels: DEATHCOUNTER_TEXT_CATEGORY_LABELS,
+    defaultCategory: 'command'
+  };
+}
+
+function listDeathcounterTexts() {
+  if (typeof textHelper.listModuleTextEditor === 'function') {
+    return textHelper.listModuleTextEditor(TEXTS_MODULE, DEFAULT_DEATHCOUNTER_TEXTS, {
+      ...deathcounterTextOptions(),
+      seed: true
+    });
+  }
+  return {
+    ok: false,
+    module: TEXTS_MODULE,
+    error: 'helper_texts.listModuleTextEditor_unavailable',
+    defaults: DEFAULT_DEATHCOUNTER_TEXTS
+  };
+}
+
+function handleDeathcounterTextPayload(payload) {
+  if (typeof textHelper.handleModuleTextEditorPayload !== 'function') {
+    throw new Error('helper_texts.handleModuleTextEditorPayload_unavailable');
+  }
+  return textHelper.handleModuleTextEditorPayload(TEXTS_MODULE, payload || {}, deathcounterTextOptions());
+}
+
+function deathcounterText(key, context = {}, fallback = '') {
+  const defaultText = fallback || firstDeathcounterDefaultText(key);
+  try {
+    if (typeof textHelper.renderModuleText === 'function') {
+      const rendered = textHelper.renderModuleText(TEXTS_MODULE, key, DEFAULT_DEATHCOUNTER_TEXTS, context, {
+        ...deathcounterTextOptions(),
+        seed: true
+      });
+      const text = String(rendered || '').trim();
+      if (text) return text;
+    }
+  } catch (err) {
+    // Fallback below keeps command output working if DB text variants are temporarily unavailable.
+  }
+  return renderDeathcounterTemplate(defaultText, context);
+}
+
+function firstDeathcounterDefaultText(key) {
+  const value = DEFAULT_DEATHCOUNTER_TEXTS[key];
+  if (Array.isArray(value)) return String(value[0] || '');
+  return String(value || '');
+}
+
+function renderDeathcounterTemplate(template, context = {}) {
+  let text = String(template || '');
+  const values = context && typeof context === 'object' ? context : {};
+  for (const [key, value] of Object.entries(values)) {
+    const safeKey = String(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    text = text.replace(new RegExp(`\\{${safeKey}\\}`, 'g'), String(value ?? ''));
+  }
+  return text.trim();
 }
 
 function findPlayerStrict(players, rawInput) {
