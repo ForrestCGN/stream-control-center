@@ -5,11 +5,15 @@ Stand: 2026-05-18
 ## Loyalty / Kekskrümel
 
 - Loyalty läuft weiterhin im Shadow-Modus.
-- Aktuelle Version: `0.1.10`.
+- Aktuelle Version: `0.1.11`.
 - STEP207 ergänzt AutoRunner Boot Recovery:
   - Wenn Node/Backend während eines aktiven Streams neu startet und der gespeicherte Stream-State weiterhin live ist, startet der AutoRunner beim Modul-Init automatisch wieder.
   - Dadurch soll verhindert werden, dass Watch-Punkte nach einem Backend-Neustart bis Streamende ausfallen.
-- Keine Watch-Punkte-, Event-Bonus-, GiftSub-/GiftBomb- oder Sub/Resub-Logik wurde in STEP207 geändert.
+- STEP208 ergänzt Subscribe/Resub-Dedupe:
+  - Wenn Twitch für denselben User kurz nacheinander `subscribe` und `resub` liefert, wird der vorherige Subscribe kompensiert.
+  - Der Resub bleibt die maßgebliche Buchung.
+  - Standard-Zeitfenster: 60 Sekunden.
+- Keine GiftSub-/GiftBomb-, Watch-Punkte- oder DB-Schema-Logik wurde in STEP208 geändert.
 
 ## DeathCounter V2
 

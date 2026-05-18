@@ -1,5 +1,17 @@
 # Changelog – stream-control-center
 
+## 2026-05-18 – STEP208 Loyalty Subscribe/Resub Dedupe
+
+- Loyalty-Version auf `0.1.11` erhöht.
+- Subscribe/Resub-Kollisionsfilter ergänzt:
+  - Wenn ein `resub` kurz nach einem `subscribe` für denselben User/Provider/Tier kommt, wird der vorherige Subscribe kompensiert.
+  - Der vorherige Subscribe wird als `replaced_by_resub` markiert.
+  - Eine negative `event_dedupe_adjustment`-Transaktion gleicht die ursprünglichen Subscribe-Punkte aus.
+- Neue Settings:
+  - `eventDedupe.subscribeResubCollision.enabled`
+  - `eventDedupe.subscribeResubCollision.windowSeconds`
+- Keine Änderung an GiftSub-/GiftBomb-, Watch-Punkte- oder Runner-Logik.
+
 ## 2026-05-18 – STEP207 Loyalty AutoRunner Boot Recovery
 
 - Loyalty-Version auf `0.1.10` erhöht.

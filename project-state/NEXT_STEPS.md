@@ -2,17 +2,26 @@
 
 ## Loyalty / Kekskrümel
 
-Nächster Pflichttest nach STEP207:
+Nächste Prüfung nach STEP208:
 
-- Backend/Node-Neustart während aktivem Stream-State simulieren.
-- Prüfen, ob AutoRunner automatisch wieder startet.
-- `runner_auto_started_on_boot_live_state` in `/api/loyalty/runner/events` prüfen.
+- Version `0.1.11` prüfen.
+- Subscribe/Resub-Test durchführen:
+  - erst Subscribe
+  - innerhalb von 60 Sekunden Resub für denselben User
+  - prüfen, ob der Subscribe kompensiert und der Resub normal gebucht wurde.
+- Beim nächsten echten Stream erneut auswerten:
+  - Runner-Recovery
+  - Watch-Punkte
+  - Event-Boni
+  - GiftSub/GiftBomb
+  - Subscribe/Resub-Dedupe
+  - Bot-Ignore-Liste
 
-Danach nächster fachlicher Fix-Kandidat:
+Nächste mögliche fachliche Arbeit nach erfolgreichem Test:
 
-- Sub/Resub-Dedupe:
-  - Wenn Twitch für denselben User innerhalb weniger Sekunden erst `subscribe` und dann `resub` sendet, soll nur der Resub zählen.
-  - Beispiel aus Mehrtage-Auswertung: `drudchen_cgn` bekam aktuell `+50 subscribe` und `+100 resub`; korrekt wäre nur der Resub.
+- `soundalerts` als Service-Bot in Ignore-Liste aufnehmen, falls noch nicht geschehen.
+- Loyalty Dashboard: Status, Runner-Events, User, Transaktionen und Auswertung sichtbar machen.
+- Testdaten-Cleanup erst vor echter Live-Schaltung entscheiden.
 
 ## DeathCounter V2
 

@@ -3,6 +3,9 @@
 /**
  * Loyalty / Kekskrümel Core
  *
+ * STEP208:
+ * - Subscribe/Resub-Kollisionen werden dedupliziert: ein kurz vor einem Resub gebuchter Subscribe wird kompensiert
+ *
  * STEP207:
  * - AutoRunner-Recovery startet den Runner nach Backend-Neustart erneut, wenn der gespeicherte Stream-State noch live ist
  *
@@ -28,7 +31,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.10";
+const VERSION = "0.1.11";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 3;
@@ -108,6 +111,12 @@ const DEFAULT_CONFIG = {
     stopOnStreamStateStop: true,
     startOnAutoLive: true,
     stopOnAutoOffline: false
+  },
+  eventDedupe: {
+    subscribeResubCollision: {
+      enabled: true,
+      windowSeconds: 60
+    }
   }
 };
 
@@ -198,7 +207,10 @@ const SETTINGS_DEFINITIONS = [
   { key: "autoRunner.startOnStreamStateStart", path: "autoRunner.startOnStreamStateStart", valueType: "boolean", description: "Auto Runner automatisch starten, wenn Stream-State manuell/extern auf live gesetzt wird." },
   { key: "autoRunner.stopOnStreamStateStop", path: "autoRunner.stopOnStreamStateStop", valueType: "boolean", description: "Auto Runner automatisch stoppen, wenn Stream-State manuell/extern auf offline gesetzt wird." },
   { key: "autoRunner.startOnAutoLive", path: "autoRunner.startOnAutoLive", valueType: "boolean", description: "Auto Runner automatisch starten, wenn die Twitch-Auto-Pruefung live meldet." },
-  { key: "autoRunner.stopOnAutoOffline", path: "autoRunner.stopOnAutoOffline", valueType: "boolean", description: "Auto Runner automatisch stoppen, wenn die Twitch-Auto-Pruefung offline meldet." }
+  { key: "autoRunner.stopOnAutoOffline", path: "autoRunner.stopOnAutoOffline", valueType: "boolean", description: "Auto Runner automatisch stoppen, wenn die Twitch-Auto-Pruefung offline meldet." },
+
+  { key: "eventDedupe.subscribeResubCollision.enabled", path: "eventDedupe.subscribeResubCollision.enabled", valueType: "boolean", description: "Subscribe/Resub-Kollisionen fuer denselben User deduplizieren." },
+  { key: "eventDedupe.subscribeResubCollision.windowSeconds", path: "eventDedupe.subscribeResubCollision.windowSeconds", valueType: "number", description: "Zeitfenster in Sekunden, in dem ein Subscribe durch einen folgenden Resub ersetzt wird." }
 ];
 
 const TEXT_CATEGORIES = {
@@ -1501,6 +1513,141 @@ function insertLoyaltyEventRow(data) {
   return database.get("SELECT * FROM loyalty_events WHERE event_uid = :eventUid", { eventUid: data.eventUid });
 }
 
+function getSubscribeResubCollisionDedupeConfig() {
+  refreshConfigFromSettings();
+  const source = config?.eventDedupe?.subscribeResubCollision || {};
+  const enabled = core.boolParam(source.enabled, true);
+  const rawWindow = Number(source.windowSeconds || 60);
+  const windowSeconds = Math.max(5, Math.min(600, Number.isFinite(rawWindow) ? rawWindow : 60));
+  return { enabled, windowSeconds };
+}
+
+function findRecentSubscribeForResubCollision({ login, provider, tier, nowIso, windowSeconds }) {
+  if (!login || !provider || !tier) return null;
+  const nowMs = Date.parse(nowIso || core.nowIso());
+  if (!Number.isFinite(nowMs)) return null;
+  const cutoffIso = new Date(nowMs - windowSeconds * 1000).toISOString();
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_events
+    WHERE user_login = :login
+      AND provider = :provider
+      AND event_type = 'subscribe'
+      AND tier = :tier
+      AND processed = 1
+      AND duplicate = 0
+      AND created_at >= :cutoffIso
+      AND created_at <= :nowIso
+    ORDER BY created_at DESC
+    LIMIT 5
+  `, {
+    login,
+    provider,
+    tier,
+    cutoffIso,
+    nowIso: nowIso || core.nowIso()
+  });
+
+  for (const row of rows) {
+    const metadata = core.safeJsonParse(row.metadata_json, {});
+    if (metadata?.dedupe?.replacedByResub === true) continue;
+    const points = Number(row.points || 0);
+    if (!Number.isFinite(points) || points <= 0) continue;
+    return row;
+  }
+  return null;
+}
+
+function markSubscribeReplacedByResub(subscribeRow, details = {}) {
+  if (!subscribeRow || !subscribeRow.event_uid) return null;
+  const metadata = core.safeJsonParse(subscribeRow.metadata_json, {});
+  const nextMetadata = {
+    ...metadata,
+    dedupe: {
+      ...(metadata.dedupe && typeof metadata.dedupe === "object" ? metadata.dedupe : {}),
+      replacedByResub: true,
+      replacedByEventUid: String(details.resubEventUid || ""),
+      adjustmentTransactionUid: String(details.adjustmentTransactionUid || ""),
+      originalPoints: Number(subscribeRow.points || 0),
+      originalReason: subscribeRow.reason || "",
+      rule: "subscribe_resub_collision",
+      windowSeconds: Number(details.windowSeconds || 0),
+      replacedAt: core.nowIso()
+    }
+  };
+
+  database.run(`
+    UPDATE loyalty_events
+    SET points = 0,
+        reason = 'replaced_by_resub',
+        metadata_json = :metadataJson
+    WHERE event_uid = :eventUid
+  `, {
+    eventUid: subscribeRow.event_uid,
+    metadataJson: JSON.stringify(nextMetadata)
+  });
+
+  return database.get("SELECT * FROM loyalty_events WHERE event_uid = :eventUid", { eventUid: subscribeRow.event_uid });
+}
+
+function compensateRecentSubscribeForResubCollision(input = {}) {
+  const dedupeConfig = getSubscribeResubCollisionDedupeConfig();
+  if (!dedupeConfig.enabled) return null;
+
+  const subscribeRow = findRecentSubscribeForResubCollision({
+    login: input.login,
+    provider: input.provider,
+    tier: input.tier,
+    nowIso: input.nowIso,
+    windowSeconds: dedupeConfig.windowSeconds
+  });
+
+  if (!subscribeRow) return null;
+
+  const originalPoints = Number(subscribeRow.points || 0);
+  if (!Number.isFinite(originalPoints) || originalPoints <= 0) return null;
+
+  const adjustment = recordTransaction({
+    login: input.login,
+    displayName: input.displayName || subscribeRow.user_display_name || input.login,
+    amount: -originalPoints,
+    type: "event_dedupe_adjustment",
+    reason: "event_subscribe_replaced_by_resub",
+    mode: input.mode || config.mode,
+    sourceModule: "loyalty",
+    sourceProvider: input.provider,
+    referenceType: "event_dedupe",
+    referenceId: `${input.eventUid || "resub"}:replaces:${subscribeRow.event_uid}`,
+    metadata: {
+      rule: "subscribe_resub_collision",
+      windowSeconds: dedupeConfig.windowSeconds,
+      subscribeEventUid: subscribeRow.event_uid,
+      subscribeTransactionUid: subscribeRow.transaction_uid || "",
+      resubEventUid: input.eventUid || "",
+      login: input.login,
+      tier: input.tier,
+      compensatedPoints: originalPoints,
+      subscribeCreatedAt: subscribeRow.created_at || "",
+      resubCreatedAt: input.nowIso || ""
+    }
+  });
+
+  const updatedSubscribeRow = markSubscribeReplacedByResub(subscribeRow, {
+    resubEventUid: input.eventUid,
+    adjustmentTransactionUid: adjustment?.transaction?.uid || "",
+    windowSeconds: dedupeConfig.windowSeconds
+  });
+
+  return {
+    ok: true,
+    rule: "subscribe_resub_collision",
+    windowSeconds: dedupeConfig.windowSeconds,
+    subscribeEvent: rowToLoyaltyEvent(updatedSubscribeRow || subscribeRow),
+    adjustmentTransaction: adjustment?.transaction || null,
+    compensatedPoints: originalPoints
+  };
+}
+
 function recordEventBonus(input = {}) {
   refreshConfigFromSettings();
   ensureLoyaltyEventsTable();
@@ -1557,6 +1704,18 @@ function recordEventBonus(input = {}) {
     });
     return { ok: true, skipped: true, reason, calculated, event: rowToLoyaltyEvent(row), transaction: null };
   }
+
+  const dedupe = (calculated.type || eventType) === "resub"
+    ? compensateRecentSubscribeForResubCollision({
+        eventUid,
+        login,
+        displayName,
+        provider,
+        tier,
+        mode,
+        nowIso: now
+      })
+    : null;
 
   const result = recordTransaction({
     login,
@@ -1646,6 +1805,7 @@ function recordEventBonus(input = {}) {
   const eventMetadata = {
     ...metadata,
     calculated,
+    dedupe,
     receiver: recipientLogin ? {
       login: recipientLogin,
       displayName: recipientDisplayName,
@@ -2912,6 +3072,7 @@ module.exports = {
     recordWatchHeartbeat,
     recordEventBonus,
     listLoyaltyEvents,
+    compensateRecentSubscribeForResubCollision,
     getAutoRunnerStatus,
     startAutoRunner,
     stopAutoRunner,

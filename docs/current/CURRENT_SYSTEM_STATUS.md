@@ -4,7 +4,9 @@ Stand: 2026-05-18
 
 ## Loyalty / Kekskrümel
 
-Loyalty läuft im Shadow-Modus. Aktuelle Version: `0.1.10`.
+Loyalty läuft im Shadow-Modus. Aktuelle Version: `0.1.11`.
+
+### AutoRunner / Stream-State
 
 STEP207 ergänzt AutoRunner Boot Recovery:
 
@@ -14,12 +16,22 @@ STEP207 ergänzt AutoRunner Boot Recovery:
 - Wenn `effective.live = true` und `autoRunner.startOnStreamStateStart = true`, wird der AutoRunner automatisch wieder gestartet.
 - Recovery wird über `runner_auto_started_on_boot_live_state` geloggt.
 
+### Subscribe/Resub-Dedupe
+
+STEP208 ergänzt Subscribe/Resub-Dedupe:
+
+- Twitch kann bei einem echten Resub kurz nacheinander `subscribe` und `resub` liefern.
+- Wenn ein `resub` innerhalb des konfigurierten Fensters nach einem `subscribe` für denselben User/Provider/Tier kommt, wird der Subscribe kompensiert.
+- Standard-Zeitfenster: 60 Sekunden.
+- Der vorherige Subscribe wird als `replaced_by_resub` markiert.
+- Eine negative `event_dedupe_adjustment`-Transaktion gleicht die Subscribe-Punkte aus.
+- Der Resub bleibt normal verarbeitet.
+
 Bewusst unverändert:
 
 - Watch-Punkte-Logik
-- Event-Boni
 - GiftSub/GiftBomb-Verhalten
-- Sub/Resub-Dedupe
+- Runner-/Stream-State-Start/Stop-Logik aus STEP207
 - DB-Schema
 - Twitch-API Auto-Offline-Stop
 
