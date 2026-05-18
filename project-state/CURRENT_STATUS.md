@@ -1,6 +1,15 @@
 # Current Status – stream-control-center
 
-Stand: 2026-05-11
+Stand: 2026-05-18
+
+## Loyalty / Kekskrümel
+
+- Loyalty läuft weiterhin im Shadow-Modus.
+- Aktuelle Version: `0.1.10`.
+- STEP207 ergänzt AutoRunner Boot Recovery:
+  - Wenn Node/Backend während eines aktiven Streams neu startet und der gespeicherte Stream-State weiterhin live ist, startet der AutoRunner beim Modul-Init automatisch wieder.
+  - Dadurch soll verhindert werden, dass Watch-Punkte nach einem Backend-Neustart bis Streamende ausfallen.
+- Keine Watch-Punkte-, Event-Bonus-, GiftSub-/GiftBomb- oder Sub/Resub-Logik wurde in STEP207 geändert.
 
 ## DeathCounter V2
 

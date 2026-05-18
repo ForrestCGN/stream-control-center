@@ -1,5 +1,17 @@
 # Changelog – stream-control-center
 
+## 2026-05-18 – STEP207 Loyalty AutoRunner Boot Recovery
+
+- Loyalty-Version auf `0.1.10` erhöht.
+- AutoRunner Boot Recovery ergänzt:
+  - Beim Backend-/Node-Neustart wird geprüft, ob der gespeicherte Stream-State weiterhin live ist.
+  - Wenn ja und `autoRunner.startOnStreamStateStart` aktiv ist, startet der Runner automatisch wieder.
+- Neue Runner-Events:
+  - `runner_auto_started_on_boot_live_state`
+  - `runner_boot_recovery_skipped_by_setting`
+  - `runner_boot_recovery_error`
+- Keine Änderung an Watch-Punkte-, Event-Bonus-, GiftSub-/GiftBomb- oder Sub/Resub-Logik.
+
 ## 2026-05-11 – STEP263 DeathCounter Overlay Slide Timing
 
 - DeathCounter-Overlay-Slide minimal langsamer gemacht.

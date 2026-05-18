@@ -3,6 +3,9 @@
 /**
  * Loyalty / Kekskrümel Core
  *
+ * STEP207:
+ * - AutoRunner-Recovery startet den Runner nach Backend-Neustart erneut, wenn der gespeicherte Stream-State noch live ist
+ *
  * STEP205:
  * - Doppelte Stream-State Start/Stop-Signale werden geloggt, ohne den bestehenden State-Source zu ueberschreiben
  *
@@ -25,7 +28,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.9";
+const VERSION = "0.1.10";
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 3;
@@ -2002,6 +2005,63 @@ function applyStreamStateChange(live, options = {}) {
   return { streamState, runner: automation, signal };
 }
 
+function recoverAutoRunnerFromStoredStreamStateOnBoot(options = {}) {
+  refreshConfigFromSettings();
+  const trigger = String(options.trigger || "boot_recovery:stream_state_live").trim() || "boot_recovery:stream_state_live";
+  let streamState = null;
+
+  try {
+    streamState = getStreamState();
+  } catch (err) {
+    const payload = {
+      ok: false,
+      skipped: true,
+      trigger,
+      reason: "stream_state_read_failed",
+      error: err && err.message ? err.message : String(err)
+    };
+    logRunnerEvent("runner_boot_recovery_error", payload);
+    return payload;
+  }
+
+  const live = !!(streamState && streamState.effective && streamState.effective.live);
+  const automationEnabled = core.boolParam(config?.autoRunner?.startOnStreamStateStart, true);
+
+  const payload = {
+    ok: true,
+    skipped: !live || !automationEnabled,
+    trigger,
+    live,
+    streamState,
+    automationEnabled,
+    runner: null,
+    reason: ""
+  };
+
+  if (!live) {
+    payload.reason = "stream_state_not_live";
+    return payload;
+  }
+
+  if (!automationEnabled) {
+    payload.reason = "start_on_stream_state_start_disabled";
+    logRunnerEvent("runner_boot_recovery_skipped_by_setting", payload);
+    return payload;
+  }
+
+  payload.skipped = false;
+  payload.reason = "stream_state_live_on_boot";
+  payload.runner = startAutoRunner({ trigger, req: null });
+
+  logRunnerEvent("runner_auto_started_on_boot_live_state", {
+    ...payload,
+    trigger,
+    reason: payload.runner && payload.runner.alreadyRunning ? "runner_already_running" : payload.reason
+  });
+
+  return payload;
+}
+
 function listRunnerEvents(options = {}) {
   ensureRunnerEventsTable();
   const limit = Math.max(1, Math.min(500, Number(options.limit || 50) || 50));
@@ -2829,6 +2889,7 @@ function init(ctx = {}) {
     if (core.boolParam(config?.autoRunner?.enabledOnBoot, false)) {
       startAutoRunner({ trigger: "boot", req: null });
     }
+    recoverAutoRunnerFromStoredStreamStateOnBoot({ trigger: "boot_recovery:stream_state_live" });
 
     console.log(`[${MODULE_NAME}] loaded v${VERSION} mode=${normalizeMode(config.mode)}`);
   } catch (err) {
@@ -2854,6 +2915,7 @@ module.exports = {
     getAutoRunnerStatus,
     startAutoRunner,
     stopAutoRunner,
+    recoverAutoRunnerFromStoredStreamStateOnBoot,
     buildStatus
   }
 };
