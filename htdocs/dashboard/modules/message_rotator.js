@@ -180,6 +180,10 @@ window.MessageRotatorModule = (function(){
   }
 
   function renderSettingInput(row){
+    if (row.key === 'messageOptions.deliveryMode') {
+      const value = String(row.value || 'backend');
+      return `<select data-setting-input="${esc(row.key)}"><option value="backend" ${value === 'backend' ? 'selected' : ''}>Backend sendet direkt</option><option value="streamerbot" ${value === 'streamerbot' ? 'selected' : ''}>Streamer.bot soll senden</option><option value="response_only" ${value === 'response_only' ? 'selected' : ''}>Nur API-Antwort / Test</option></select>`;
+    }
     if (row.key === 'messageOptions.outputMode') {
       const value = String(row.value || 'chat');
       return `<select data-setting-input="${esc(row.key)}"><option value="chat" ${value === 'chat' ? 'selected' : ''}>Normale Chatnachricht</option><option value="announcement" ${value === 'announcement' ? 'selected' : ''}>Twitch-Ankündigung</option></select>`;
@@ -216,6 +220,7 @@ window.MessageRotatorModule = (function(){
             <div><span>Letzte Nachricht</span><strong>${fmt(st.lastMessage)}</strong></div>
             <div><span>Settings</span><strong>${fmt(st.configInfo?.settingsSource)} / ${fmt(st.configInfo?.settingsTable)}</strong></div>
             <div><span>Ausgabe</span><strong>${fmt(cfg.messageOptions?.outputMode || 'chat')}${cfg.messageOptions?.outputMode === 'announcement' ? ` / ${fmt(cfg.messageOptions?.announcementColor || 'primary')}` : ''}</strong></div>
+            <div><span>Senden über</span><strong>${fmt(cfg.messageOptions?.deliveryMode || 'backend')}</strong></div>
             <div><span>Textquelle</span><strong>DB-Varianten mit JSON-Fallback</strong></div>
           </div>
           <div class="mr-actions"><button type="button" data-mr-start>Start</button><button type="button" data-mr-stop>Stop</button><button type="button" data-mr-reload>Backend neu laden</button><button type="button" data-mr-preview-next>Nächste Vorschau</button></div>

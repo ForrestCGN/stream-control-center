@@ -80,3 +80,31 @@ Overlay:
 - STEP262 hat den DeathCounter optisch an den Alert-Außenrahmen angepasst.
 - STEP263 hat die Slide-/Fade-Transition minimal verlangsamt.
 - Keine Overlay-Funktionalität wurde entfernt.
+
+## STEP239 - Message-Rotator Backend Direct Output
+
+Der Message-Rotator wurde so erweitert, dass er nicht mehr zwingend Streamer.bot zum Senden benötigt.
+
+Neue/erweiterte Einstellung:
+
+```text
+messageOptions.deliveryMode = backend | streamerbot | response_only
+messageOptions.outputMode = chat | announcement
+messageOptions.announcementColor = primary | blue | green | orange | purple
+```
+
+Standardziel für den neuen Betrieb:
+
+```text
+deliveryMode = backend
+outputMode = announcement
+```
+
+Bei `deliveryMode=backend` sendet das Backend direkt über Twitch Helix:
+
+```text
+chat         -> /helix/chat/messages
+announcement -> /helix/chat/announcements
+```
+
+`deliveryMode=streamerbot` bleibt als Fallback/Handoff erhalten. `commit=0` bleibt weiterhin reine Vorschau ohne Senden.

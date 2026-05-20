@@ -59,3 +59,13 @@
 - DeathCounter produktiv DB-only.
 - Automatischer JSON-Dual-Write entfernt.
 - `!dcount backup` und `!dcount export` ergänzt.
+
+## STEP239 - 2026-05-20 - Message-Rotator Backend Direct Output
+
+- `backend/modules/message_rotator.js` erweitert: Rotator kann bei `messageOptions.deliveryMode = backend` Ausgaben direkt über Twitch Helix senden.
+- `outputMode = announcement` nutzt Helix `/chat/announcements` mit `announcementColor`.
+- `outputMode = chat` nutzt Helix `/chat/messages`.
+- `deliveryMode = streamerbot` bleibt als Fallback/Handoff möglich.
+- `deliveryMode = response_only` erlaubt API-/Vorschau-Betrieb ohne tatsächliches Senden.
+- Dashboard zeigt `messageOptions.deliveryMode` als Dropdown.
+- Keine DB neu gebaut, keine Secrets geändert, keine vorhandene Rotator-Funktionalität entfernt.

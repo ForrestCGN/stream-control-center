@@ -48,7 +48,9 @@ const OUTPUT_MODES = ['chat', 'announcement'];
 const ITEM_OUTPUT_MODES = ['default', 'chat', 'announcement'];
 const ANNOUNCEMENT_COLORS = ['primary', 'blue', 'green', 'orange', 'purple'];
 const ITEM_ANNOUNCEMENT_COLORS = ['default', 'primary', 'blue', 'green', 'orange', 'purple'];
+const DELIVERY_MODES = ['backend', 'streamerbot', 'response_only'];
 
+let cachedBotIdentity = null;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -70,7 +72,12 @@ const DEFAULT_CONFIG = {
     target: 'twitch_chat',
     maxLength: 450,
     outputMode: 'chat',
-    announcementColor: 'primary'
+    announcementColor: 'primary',
+    deliveryMode: 'backend',
+    broadcasterId: '',
+    senderId: '',
+    moderatorId: '',
+    botLogin: ''
   },
   liveStatus: {
     enabled: true,
@@ -207,6 +214,23 @@ function normalizeItemAnnouncementColor(value, fallback = 'default') {
   return ITEM_ANNOUNCEMENT_COLORS.includes(clean) ? clean : fallback;
 }
 
+function normalizeDeliveryMode(value, fallback = 'backend') {
+  const clean = cleanLower(value || fallback);
+  return DELIVERY_MODES.includes(clean) ? clean : fallback;
+}
+
+function cleanTwitchId(value) {
+  return String(value || '').trim();
+}
+
+function getEnvValue(...names) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
+  }
+  return '';
+}
+
 function getEffectiveOutputOptions(item = {}, baseOptions = {}) {
   const globalMode = normalizeOutputMode(baseOptions.outputMode, DEFAULT_CONFIG.messageOptions.outputMode);
   const itemMode = normalizeItemOutputMode(item.outputMode, 'default');
@@ -216,10 +240,17 @@ function getEffectiveOutputOptions(item = {}, baseOptions = {}) {
   const itemColor = normalizeItemAnnouncementColor(item.announcementColor, 'default');
   const announcementColor = itemColor === 'default' ? globalColor : normalizeAnnouncementColor(itemColor, globalColor);
 
+  const deliveryMode = normalizeDeliveryMode(baseOptions.deliveryMode, DEFAULT_CONFIG.messageOptions.deliveryMode);
+
   return {
     ...baseOptions,
     outputMode,
     announcementColor,
+    deliveryMode,
+    broadcasterId: cleanTwitchId(baseOptions.broadcasterId || getEnvValue('TWITCH_BROADCASTER_ID')),
+    senderId: cleanTwitchId(baseOptions.senderId || getEnvValue('TWITCH_BOT_USER_ID', 'TWITCH_SENDER_ID')),
+    moderatorId: cleanTwitchId(baseOptions.moderatorId || getEnvValue('TWITCH_BOT_USER_ID', 'TWITCH_MODERATOR_ID')),
+    botLogin: cleanLower(baseOptions.botLogin || getEnvValue('TWITCH_BOT_USERNAME')),
     isAnnouncement: outputMode === 'announcement'
   };
 }
@@ -227,16 +258,227 @@ function getEffectiveOutputOptions(item = {}, baseOptions = {}) {
 function buildStreamerbotOutputFields(outputOptions = {}, commit = true) {
   const outputMode = normalizeOutputMode(outputOptions.outputMode, DEFAULT_CONFIG.messageOptions.outputMode);
   const announcementColor = normalizeAnnouncementColor(outputOptions.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor);
+  const deliveryMode = normalizeDeliveryMode(outputOptions.deliveryMode, DEFAULT_CONFIG.messageOptions.deliveryMode);
+  const handoffToStreamerbot = commit && deliveryMode === 'streamerbot';
 
   return {
     outputMode,
     announcementColor,
+    deliveryMode,
     isAnnouncement: outputMode === 'announcement',
-    streamerbot_send: commit ? '1' : '0',
+    streamerbot_send: handoffToStreamerbot ? '1' : '0',
     streamerbot_output_mode: outputMode,
     streamerbot_announcement_color: announcementColor,
     streamerbot_action: outputMode === 'announcement' ? 'send_announcement' : 'send_message'
   };
+}
+
+function httpsRequestJson(method, rawUrl, body = null, headers = {}, timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    let parsed;
+    try { parsed = new URL(rawUrl); } catch (err) { reject(err); return; }
+
+    const data = body === null || body === undefined ? '' : JSON.stringify(body);
+    const req = https.request({
+      method,
+      protocol: parsed.protocol,
+      hostname: parsed.hostname,
+      port: parsed.port || 443,
+      path: `${parsed.pathname}${parsed.search}`,
+      timeout: timeoutMs,
+      headers: {
+        accept: 'application/json',
+        ...(data ? { 'content-type': 'application/json', 'content-length': Buffer.byteLength(data) } : {}),
+        ...headers
+      }
+    }, res => {
+      let responseBody = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => { responseBody += chunk; });
+      res.on('end', () => {
+        let parsedBody = null;
+        if (responseBody) {
+          try { parsedBody = JSON.parse(responseBody); } catch (_) { parsedBody = { raw: responseBody }; }
+        }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          const message = parsedBody && (parsedBody.message || parsedBody.error) ? `${parsedBody.error || 'HTTP'}: ${parsedBody.message || ''}` : `HTTP ${res.statusCode}`;
+          const err = new Error(message);
+          err.statusCode = res.statusCode;
+          err.body = parsedBody;
+          reject(err);
+          return;
+        }
+        resolve({ statusCode: res.statusCode, body: parsedBody || {} });
+      });
+    });
+
+    req.on('timeout', () => req.destroy(new Error(`Twitch API Timeout nach ${timeoutMs}ms`)));
+    req.on('error', reject);
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+function getTwitchModuleSafe() {
+  try { return require('./twitch'); } catch (_) { return null; }
+}
+
+async function getBotAccessTokenForOutput() {
+  const twitch = getTwitchModuleSafe();
+  if (twitch && typeof twitch.getBotAccessTokenWithRefresh === 'function') {
+    const token = await twitch.getBotAccessTokenWithRefresh();
+    if (token) return token;
+  }
+  return getEnvValue('TWITCH_BOT_ACCESS_TOKEN', 'TWITCH_ACCESS_TOKEN');
+}
+
+function twitchClientIdForOutput() {
+  return getEnvValue('TWITCH_BOT_CLIENT_ID', 'TWITCH_CLIENT_ID');
+}
+
+async function resolveBotIdentity(token, clientId, options = {}) {
+  const senderId = cleanTwitchId(options.senderId || options.moderatorId || '');
+  const botLogin = cleanLower(options.botLogin || '');
+  const cacheKey = `${senderId}|${botLogin}`;
+  if (cachedBotIdentity && cachedBotIdentity.cacheKey === cacheKey && cachedBotIdentity.userId) return cachedBotIdentity;
+
+  if (senderId) {
+    cachedBotIdentity = { cacheKey, userId: senderId, login: botLogin || '', source: 'configured_id' };
+    return cachedBotIdentity;
+  }
+
+  try {
+    const validated = await httpsRequestJson('GET', 'https://id.twitch.tv/oauth2/validate', null, { Authorization: `OAuth ${token}` }, 5000);
+    const userId = cleanTwitchId(validated.body && validated.body.user_id);
+    const login = cleanLower(validated.body && validated.body.login);
+    if (userId) {
+      cachedBotIdentity = { cacheKey, userId, login, source: 'oauth_validate' };
+      return cachedBotIdentity;
+    }
+  } catch (err) {
+    console.warn('[message_rotator] Twitch validate failed:', err.message || String(err));
+  }
+
+  if (botLogin && clientId) {
+    const url = new URL('https://api.twitch.tv/helix/users');
+    url.searchParams.set('login', botLogin);
+    const users = await httpsRequestJson('GET', url.toString(), null, {
+      'Client-ID': clientId,
+      Authorization: `Bearer ${token}`
+    }, 8000);
+    const row = Array.isArray(users.body && users.body.data) ? users.body.data[0] : null;
+    const userId = cleanTwitchId(row && row.id);
+    if (userId) {
+      cachedBotIdentity = { cacheKey, userId, login: botLogin, source: 'helix_users' };
+      return cachedBotIdentity;
+    }
+  }
+
+  throw new Error('twitch_bot_identity_missing');
+}
+
+function twitchHeaders(token, clientId) {
+  return {
+    'Client-ID': clientId,
+    Authorization: `Bearer ${token}`
+  };
+}
+
+async function sendTwitchChatMessageDirect(message, outputOptions = {}) {
+  const token = await getBotAccessTokenForOutput();
+  const clientId = twitchClientIdForOutput();
+  const broadcasterId = cleanTwitchId(outputOptions.broadcasterId || getEnvValue('TWITCH_BROADCASTER_ID'));
+
+  if (!token) throw new Error('twitch_bot_token_missing');
+  if (!clientId) throw new Error('twitch_client_id_missing');
+  if (!broadcasterId) throw new Error('twitch_broadcaster_id_missing');
+
+  const bot = await resolveBotIdentity(token, clientId, outputOptions);
+  const body = {
+    broadcaster_id: broadcasterId,
+    sender_id: bot.userId,
+    message: String(message || '')
+  };
+
+  const response = await httpsRequestJson('POST', 'https://api.twitch.tv/helix/chat/messages', body, twitchHeaders(token, clientId), 8000);
+  return {
+    ok: true,
+    sent: true,
+    via: 'backend_twitch_chat_message',
+    outputMode: 'chat',
+    broadcasterId,
+    senderId: bot.userId,
+    botLogin: bot.login || outputOptions.botLogin || '',
+    statusCode: response.statusCode,
+    response: response.body || {}
+  };
+}
+
+async function sendTwitchAnnouncementDirect(message, outputOptions = {}) {
+  const token = await getBotAccessTokenForOutput();
+  const clientId = twitchClientIdForOutput();
+  const broadcasterId = cleanTwitchId(outputOptions.broadcasterId || getEnvValue('TWITCH_BROADCASTER_ID'));
+
+  if (!token) throw new Error('twitch_bot_token_missing');
+  if (!clientId) throw new Error('twitch_client_id_missing');
+  if (!broadcasterId) throw new Error('twitch_broadcaster_id_missing');
+
+  const bot = await resolveBotIdentity(token, clientId, outputOptions);
+  const moderatorId = cleanTwitchId(outputOptions.moderatorId || bot.userId);
+  const color = normalizeAnnouncementColor(outputOptions.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor);
+  const url = new URL('https://api.twitch.tv/helix/chat/announcements');
+  url.searchParams.set('broadcaster_id', broadcasterId);
+  url.searchParams.set('moderator_id', moderatorId);
+
+  const response = await httpsRequestJson('POST', url.toString(), { message: String(message || ''), color }, twitchHeaders(token, clientId), 8000);
+  return {
+    ok: true,
+    sent: true,
+    via: 'backend_twitch_announcement',
+    outputMode: 'announcement',
+    announcementColor: color,
+    broadcasterId,
+    moderatorId,
+    botLogin: bot.login || outputOptions.botLogin || '',
+    statusCode: response.statusCode,
+    response: response.body || {}
+  };
+}
+
+async function deliverRotatorMessage(message, outputOptions = {}, commit = true) {
+  const fields = buildStreamerbotOutputFields(outputOptions, commit);
+  const deliveryMode = normalizeDeliveryMode(outputOptions.deliveryMode, DEFAULT_CONFIG.messageOptions.deliveryMode);
+
+  if (!commit) {
+    return { ok: true, sent: false, skipped: true, reason: 'preview_commit_false', ...fields };
+  }
+
+  if (deliveryMode === 'streamerbot') {
+    return { ok: true, sent: false, handedOff: true, reason: 'streamerbot_handoff', ...fields };
+  }
+
+  if (deliveryMode === 'response_only') {
+    return { ok: true, sent: false, skipped: true, reason: 'response_only', ...fields };
+  }
+
+  try {
+    const direct = fields.isAnnouncement
+      ? await sendTwitchAnnouncementDirect(message, outputOptions)
+      : await sendTwitchChatMessageDirect(message, outputOptions);
+
+    return { ok: true, sent: true, reason: 'backend_sent', direct, ...fields, streamerbot_send: '0' };
+  } catch (err) {
+    return {
+      ok: false,
+      sent: false,
+      reason: 'backend_delivery_failed',
+      error: err.message || String(err),
+      statusCode: err.statusCode || null,
+      body: err.body || null,
+      ...fields,
+      streamerbot_send: '0'
+    };
+  }
 }
 
 
@@ -266,6 +508,11 @@ function mergeConfig(raw) {
   merged.messageOptions.maxLength = Math.max(1, Number.parseInt(merged.messageOptions.maxLength, 10) || DEFAULT_CONFIG.messageOptions.maxLength);
   merged.messageOptions.outputMode = normalizeOutputMode(merged.messageOptions.outputMode, DEFAULT_CONFIG.messageOptions.outputMode);
   merged.messageOptions.announcementColor = normalizeAnnouncementColor(merged.messageOptions.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor);
+  merged.messageOptions.deliveryMode = normalizeDeliveryMode(merged.messageOptions.deliveryMode, DEFAULT_CONFIG.messageOptions.deliveryMode);
+  merged.messageOptions.broadcasterId = cleanTwitchId(merged.messageOptions.broadcasterId || DEFAULT_CONFIG.messageOptions.broadcasterId);
+  merged.messageOptions.senderId = cleanTwitchId(merged.messageOptions.senderId || DEFAULT_CONFIG.messageOptions.senderId);
+  merged.messageOptions.moderatorId = cleanTwitchId(merged.messageOptions.moderatorId || DEFAULT_CONFIG.messageOptions.moderatorId);
+  merged.messageOptions.botLogin = cleanLower(merged.messageOptions.botLogin || DEFAULT_CONFIG.messageOptions.botLogin);
 
   merged.liveStatus.enabled = toBool(merged.liveStatus.enabled, DEFAULT_CONFIG.liveStatus.enabled);
   merged.liveStatus.mode = cleanLower(merged.liveStatus.mode || DEFAULT_CONFIG.liveStatus.mode);
@@ -727,6 +974,7 @@ function buildDbTextResult(messageKey, context = {}, options = {}) {
     target: cleanId(options.target || DEFAULT_CONFIG.messageOptions.target),
     outputMode: normalizeOutputMode(options.outputMode, DEFAULT_CONFIG.messageOptions.outputMode),
     announcementColor: normalizeAnnouncementColor(options.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor),
+    deliveryMode: normalizeDeliveryMode(options.deliveryMode, DEFAULT_CONFIG.messageOptions.deliveryMode),
     isAnnouncement: normalizeOutputMode(options.outputMode, DEFAULT_CONFIG.messageOptions.outputMode) === 'announcement',
     ts: core.nowIso()
   };
@@ -744,6 +992,7 @@ function buildRotatorChatResult(messageKey, context = {}, options = {}) {
       fallbackReason: dbResult.error || dbResult.value?.error || '',
       outputMode: normalizeOutputMode(options.outputMode, DEFAULT_CONFIG.messageOptions.outputMode),
       announcementColor: normalizeAnnouncementColor(options.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor),
+      deliveryMode: normalizeDeliveryMode(options.deliveryMode, DEFAULT_CONFIG.messageOptions.deliveryMode),
       isAnnouncement: normalizeOutputMode(options.outputMode, DEFAULT_CONFIG.messageOptions.outputMode) === 'announcement'
     };
   }
@@ -926,7 +1175,12 @@ async function nextMessage(req) {
   const result = buildRotatorChatResult(item.messageKey, buildContext(req), outputOptions);
   if (!result.ok) return block(result.error || 'message_build_failed', { result, item, ...buildStreamerbotOutputFields(outputOptions, false) });
 
-  if (commit) {
+  let delivery = await deliverRotatorMessage(result.message, outputOptions, commit);
+  if (!delivery.ok) {
+    return { ok: false, send: false, reason: 'output_delivery_failed', error: delivery.error || 'delivery_failed', delivery, itemId: item.id, message: result.message, state: publicState() };
+  }
+
+  if (commit && (delivery.sent || delivery.handedOff || delivery.reason === 'response_only')) {
     const runtime = itemRuntime(item.id);
     runtime.lastSentAtMs = now;
     runtime.lastSentAt = core.nowIso();
@@ -956,6 +1210,7 @@ async function nextMessage(req) {
     message: result.message,
     text: result.message,
     ...buildStreamerbotOutputFields(outputOptions, commit),
+    ...delivery,
     streamerbot_message: result.message,
     commit,
     state: publicState()
@@ -1017,7 +1272,7 @@ function findManualItem(req) {
   return { item: null, matchedBy: id ? 'id' : (category ? 'category' : (command ? 'command' : '')), value: id || category || command };
 }
 
-function manualMessage(req) {
+async function manualMessage(req) {
   const c = getConfig();
   const commit = !['0', 'false', 'no', 'nein', 'off'].includes(String(core.getParam(req, 'commit', '1')).trim().toLowerCase());
   const ignoreCooldown = ['1', 'true', 'yes', 'ja', 'on'].includes(String(core.getParam(req, 'ignoreCooldown', core.getParam(req, 'force', ''))).trim().toLowerCase());
@@ -1059,7 +1314,12 @@ function manualMessage(req) {
   const result = buildRotatorChatResult(item.messageKey, buildContext(req), outputOptions);
   if (!result.ok) return block(result.error || 'message_build_failed', { result, item, ...buildStreamerbotOutputFields(outputOptions, false) });
 
-  if (commit) {
+  let delivery = await deliverRotatorMessage(result.message, outputOptions, commit);
+  if (!delivery.ok) {
+    return { ok: false, send: false, reason: 'output_delivery_failed', error: delivery.error || 'delivery_failed', delivery, itemId: item.id, message: result.message, state: publicState() };
+  }
+
+  if (commit && (delivery.sent || delivery.handedOff || delivery.reason === 'response_only')) {
     runtime.lastUsedAtMs = now;
     runtime.lastUsedAt = core.nowIso();
     runtime.useCount += 1;
@@ -1084,6 +1344,7 @@ function manualMessage(req) {
     message: result.message,
     text: result.message,
     ...buildStreamerbotOutputFields(outputOptions, commit),
+    ...delivery,
     streamerbot_message: result.message,
     commit,
     state: publicState()
@@ -1463,7 +1724,7 @@ function init(ctx) {
   routes.registerGet(app, ['/message-rotator/next', '/api/message-rotator/next'], nextHandler);
   routes.registerPost(app, ['/message-rotator/next', '/api/message-rotator/next'], nextHandler);
 
-  const manualHandler = guarded((req, res) => sendResponse(req, res, manualMessage(req)));
+  const manualHandler = guarded(async (req, res) => sendResponse(req, res, await manualMessage(req)));
   routes.registerGet(app, ['/message-rotator/manual', '/api/message-rotator/manual'], manualHandler);
   routes.registerPost(app, ['/message-rotator/manual', '/api/message-rotator/manual'], manualHandler);
 

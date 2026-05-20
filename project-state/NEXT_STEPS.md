@@ -86,3 +86,16 @@ Empfohlene Prüfung:
 - Zusatzspieler links/rechts prüfen.
 
 Wenn visuell nötig: nur kleine CSS-Feinschliffe, keine Funktionsänderungen.
+
+## Nach STEP239 - Message-Rotator Direct Output testen
+
+1. Backend neu starten.
+2. Settings prüfen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/settings" | ConvertTo-Json -Depth 80
+```
+
+3. Für sicheren Test zuerst `commit=0` verwenden.
+4. Wenn `deliveryMode=backend`, `outputMode=announcement`, `announcementColor=purple` gesetzt sind, Live-Test nur bewusst mit `commit=1` durchführen.
+5. Falls Twitch `403` liefert, fehlen dem Bot-Token vermutlich Announcement-/Chat-Scope oder Moderatorrechte.

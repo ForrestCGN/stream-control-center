@@ -58,3 +58,28 @@ andere Dashboard-Module
 - `README_STEP208_LOYALTY_SUB_RESUB_DEDUPE.md`
 - `README_STEP207_LOYALTY_AUTORUNNER_BOOT_RECOVERY.md`
 - `README_STEP263_DEATHCOUNTER_OVERLAY_SLIDE_TIMING.md`
+
+## STEP239 - Message-Rotator Backend Direct Output
+
+Geändert:
+
+```text
+backend/modules/message_rotator.js
+htdocs/dashboard/modules/message_rotator.js
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP239_MESSAGE_ROTATOR_BACKEND_DIRECT_OUTPUT_2026-05-20.md
+```
+
+Nicht geändert:
+
+```text
+app.sqlite
+config/**
+backend/core/database.js
+backend/modules/twitch.js
+htdocs/dashboard/modules/message_rotator.css
+```

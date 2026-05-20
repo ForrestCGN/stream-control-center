@@ -43,3 +43,31 @@ Stand: 2026-05-18
 ## Aktive Projektregel
 
 Keine Funktionalität entfernen. Bestehende APIs, Streamer.bot-Flows, Overlay-Logik und DB-Struktur bleiben erhalten, sofern nicht explizit anders entschieden.
+
+## STEP239 - Message-Rotator Backend Direct Output
+
+Der Message-Rotator wurde so erweitert, dass er nicht mehr zwingend Streamer.bot zum Senden benötigt.
+
+Neue/erweiterte Einstellung:
+
+```text
+messageOptions.deliveryMode = backend | streamerbot | response_only
+messageOptions.outputMode = chat | announcement
+messageOptions.announcementColor = primary | blue | green | orange | purple
+```
+
+Standardziel für den neuen Betrieb:
+
+```text
+deliveryMode = backend
+outputMode = announcement
+```
+
+Bei `deliveryMode=backend` sendet das Backend direkt über Twitch Helix:
+
+```text
+chat         -> /helix/chat/messages
+announcement -> /helix/chat/announcements
+```
+
+`deliveryMode=streamerbot` bleibt als Fallback/Handoff erhalten. `commit=0` bleibt weiterhin reine Vorschau ohne Senden.
