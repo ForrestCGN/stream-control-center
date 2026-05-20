@@ -1,3 +1,19 @@
+# Changelog
+
+## 2026-05-20 - STEP238 Message-Rotator Output-Mode
+
+- `backend/modules/message_rotator.js` erweitert:
+  - globale `messageOptions.outputMode`
+  - globale `messageOptions.announcementColor`
+  - optionale Item-Overrides `outputMode` und `announcementColor`
+  - Response-Felder fuer Streamer.bot: `streamerbot_action`, `streamerbot_output_mode`, `streamerbot_announcement_color`, `streamerbot_message`
+- `htdocs/dashboard/modules/message_rotator.js` erweitert:
+  - Select-Felder fuer globale Ausgabeart/Farbe
+  - Select-Felder fuer Item-Ausgabeart/Farbe
+  - Preview zeigt effektive Ausgabeart.
+- Default bleibt `chat`.
+- Keine direkte Twitch-/Announcement-Sendelogik im Backend ergaenzt.
+
 # Changelog – stream-control-center
 
 ## 2026-05-18 – STEP208 Loyalty Subscribe/Resub Dedupe

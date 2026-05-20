@@ -65,14 +65,14 @@ window.MessageRotatorModule = (function(){
 
   async function previewNext(){
     const result = await window.CGN.api(`${api.next}?commit=0`);
-    state.notice = result.send ? `Vorschau: ${result.message || result.text || ''}` : `Blockiert: ${result.reason || 'unknown'}`;
+    state.notice = result.send ? `Vorschau (${result.outputMode || 'chat'}${result.isAnnouncement ? '/' + (result.announcementColor || 'primary') : ''}): ${result.message || result.text || ''}` : `Blockiert: ${result.reason || 'unknown'}`;
     render();
   }
 
   async function previewManual(id){
     if (!id) return;
     const result = await window.CGN.api(`${api.manual}?id=${encodeURIComponent(id)}&commit=0&ignoreCooldown=1`);
-    state.notice = result.send ? `Manuell ${id}: ${result.message || result.text || ''}` : `Blockiert: ${result.reason || 'unknown'}`;
+    state.notice = result.send ? `Manuell ${id} (${result.outputMode || 'chat'}${result.isAnnouncement ? '/' + (result.announcementColor || 'primary') : ''}): ${result.message || result.text || ''}` : `Blockiert: ${result.reason || 'unknown'}`;
     render();
   }
 
@@ -117,7 +117,9 @@ window.MessageRotatorModule = (function(){
       weight: itemValue(index, 'weight', item.weight),
       manualEnabled: itemValue(index, 'manualEnabled', item.manualEnabled),
       manualCooldownSeconds: itemValue(index, 'manualCooldownSeconds', item.manualCooldownSeconds),
-      commands: itemValue(index, 'commands', item.commands || [])
+      commands: itemValue(index, 'commands', item.commands || []),
+      outputMode: itemValue(index, 'outputMode', item.outputMode || 'default'),
+      announcementColor: itemValue(index, 'announcementColor', item.announcementColor || 'default')
     })).filter(item => item.id && item.messageKey);
     await window.CGN.api(api.settings, { method:'POST', body: JSON.stringify({ key:'items', value: items }) });
     state.notice = 'Rotator-Items gespeichert.';
@@ -127,7 +129,7 @@ window.MessageRotatorModule = (function(){
   async function addItem(){
     const items = Array.isArray(config().items) ? [...config().items] : [];
     const id = `item_${items.length + 1}`;
-    items.push({ id, category:id, messageFile:'community.json', enabled:true, messageKey:'rules_reminder', cooldownMinutes:45, weight:1, manualEnabled:true, manualCooldownSeconds:30, commands:[`!${id}`] });
+    items.push({ id, category:id, messageFile:'community.json', enabled:true, messageKey:'rules_reminder', cooldownMinutes:45, weight:1, manualEnabled:true, manualCooldownSeconds:30, commands:[`!${id}`], outputMode:'default', announcementColor:'default' });
     await window.CGN.api(api.settings, { method:'POST', body: JSON.stringify({ key:'items', value: items }) });
     state.notice = 'Neues Item angelegt. Bitte prüfen und speichern.';
     await loadAll(true);
@@ -178,6 +180,15 @@ window.MessageRotatorModule = (function(){
   }
 
   function renderSettingInput(row){
+    if (row.key === 'messageOptions.outputMode') {
+      const value = String(row.value || 'chat');
+      return `<select data-setting-input="${esc(row.key)}"><option value="chat" ${value === 'chat' ? 'selected' : ''}>Normale Chatnachricht</option><option value="announcement" ${value === 'announcement' ? 'selected' : ''}>Twitch-Ankündigung</option></select>`;
+    }
+    if (row.key === 'messageOptions.announcementColor') {
+      const value = String(row.value || 'primary');
+      const colors = ['primary','blue','green','orange','purple'];
+      return `<select data-setting-input="${esc(row.key)}">${colors.map(color => `<option value="${esc(color)}" ${value === color ? 'selected' : ''}>${esc(color)}</option>`).join('')}</select>`;
+    }
     if (row.valueType === 'boolean') return `<select data-setting-input="${esc(row.key)}"><option value="true" ${row.value === true ? 'selected' : ''}>true</option><option value="false" ${row.value === false ? 'selected' : ''}>false</option></select>`;
     if (row.valueType === 'json') return `<textarea data-setting-input="${esc(row.key)}" spellcheck="false">${esc(JSON.stringify(row.value, null, 2))}</textarea>`;
     const type = row.valueType === 'number' ? 'number' : 'text';
@@ -204,13 +215,14 @@ window.MessageRotatorModule = (function(){
             <div><span>Letztes Item</span><strong>${fmt(st.lastItemId)}</strong></div>
             <div><span>Letzte Nachricht</span><strong>${fmt(st.lastMessage)}</strong></div>
             <div><span>Settings</span><strong>${fmt(st.configInfo?.settingsSource)} / ${fmt(st.configInfo?.settingsTable)}</strong></div>
+            <div><span>Ausgabe</span><strong>${fmt(cfg.messageOptions?.outputMode || 'chat')}${cfg.messageOptions?.outputMode === 'announcement' ? ` / ${fmt(cfg.messageOptions?.announcementColor || 'primary')}` : ''}</strong></div>
             <div><span>Textquelle</span><strong>DB-Varianten mit JSON-Fallback</strong></div>
           </div>
           <div class="mr-actions"><button type="button" data-mr-start>Start</button><button type="button" data-mr-stop>Stop</button><button type="button" data-mr-reload>Backend neu laden</button><button type="button" data-mr-preview-next>Nächste Vorschau</button></div>
         </section>
         <section class="mr-card">
           <h3>Samples</h3>
-          ${sampleKeys.length ? `<div class="mr-sample-list">${sampleKeys.map(key => { const value = samples[key]?.value || {}; return `<article><strong>${esc(key)}</strong><small>${esc(value.source || '')}</small><p>${esc(value.message || value.text || '')}</p></article>`; }).join('')}</div>` : '<div class="mr-empty">Noch keine Samples geladen.</div>'}
+          ${sampleKeys.length ? `<div class="mr-sample-list">${sampleKeys.map(key => { const value = samples[key]?.value || {}; return `<article><strong>${esc(key)}</strong><small>${esc(value.source || '')} · ${esc(value.outputMode || 'chat')}${value.isAnnouncement ? `/${esc(value.announcementColor || 'primary')}` : ''}</small><p>${esc(value.message || value.text || '')}</p></article>`; }).join('')}</div>` : '<div class="mr-empty">Noch keine Samples geladen.</div>'}
         </section>
       </div>`;
   }
@@ -227,6 +239,16 @@ window.MessageRotatorModule = (function(){
 
   function itemInput(index, field, value, type='text'){
     if (type === 'checkbox') return `<input type="checkbox" data-item-index="${index}" data-item-field="${field}" ${value ? 'checked' : ''}>`;
+    if (field === 'outputMode') {
+      const current = String(value || 'default');
+      const modes = [['default','Standard'], ['chat','Chat'], ['announcement','Ankündigung']];
+      return `<select data-item-index="${index}" data-item-field="${field}">${modes.map(([id,label]) => `<option value="${esc(id)}" ${current === id ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>`;
+    }
+    if (field === 'announcementColor') {
+      const current = String(value || 'default');
+      const colors = [['default','Standard'], ['primary','primary'], ['blue','blue'], ['green','green'], ['orange','orange'], ['purple','purple']];
+      return `<select data-item-index="${index}" data-item-field="${field}">${colors.map(([id,label]) => `<option value="${esc(id)}" ${current === id ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>`;
+    }
     if (field === 'commands') value = Array.isArray(value) ? value.join(', ') : String(value || '');
     return `<input type="${type}" data-item-index="${index}" data-item-field="${field}" value="${esc(value ?? '')}">`;
   }
@@ -245,6 +267,8 @@ window.MessageRotatorModule = (function(){
             <label>Cooldown Minuten ${itemInput(index, 'cooldownMinutes', item.cooldownMinutes, 'number')}</label>
             <label>Gewicht ${itemInput(index, 'weight', item.weight, 'number')}</label>
             <label>Manual Cooldown Sek. ${itemInput(index, 'manualCooldownSeconds', item.manualCooldownSeconds, 'number')}</label>
+            <label>Ausgabe ${itemInput(index, 'outputMode', item.outputMode || 'default')}</label>
+            <label>Ankündigungsfarbe ${itemInput(index, 'announcementColor', item.announcementColor || 'default')}</label>
             <label>Commands ${itemInput(index, 'commands', item.commands || [])}</label>
           </div>
           <div class="mr-actions"><label class="mr-check-label">${itemInput(index, 'manualEnabled', item.manualEnabled, 'checkbox')} Manuell erlaubt</label><button type="button" data-preview-manual="${esc(item.id)}">Vorschau</button><button type="button" class="danger" data-delete-item="${index}">Löschen</button></div>

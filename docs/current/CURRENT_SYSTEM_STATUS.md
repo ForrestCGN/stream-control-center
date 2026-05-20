@@ -1,5 +1,32 @@
 # Current System Status – stream-control-center
 
+Stand: 2026-05-20
+
+## STEP238 - Message-Rotator Output-Mode
+
+Aktueller Zusatzstand:
+
+- Message-Rotator kann die Ausgabeart jetzt konfigurierbar liefern:
+  - `chat`
+  - `announcement`
+- Globale Settings:
+  - `messageOptions.outputMode`
+  - `messageOptions.announcementColor`
+- Item-Overrides:
+  - `items[].outputMode`
+  - `items[].announcementColor`
+- Dashboard kann Ausgabeart und Announcement-Farbe bearbeiten.
+- `/api/message-rotator/next` und `/api/message-rotator/manual` liefern Streamer.bot-Steuerfelder:
+  - `streamerbot_action`
+  - `streamerbot_output_mode`
+  - `streamerbot_announcement_color`
+  - `streamerbot_message`
+- Bestehender Default bleibt `chat`.
+- Das Backend sendet in diesem STEP keine Announcement selbst; Streamer.bot muss anhand der Response normal senden oder Announcement senden.
+- Keine DB-Datei, keine Config-Datei und keine anderen Module wurden geaendert.
+
+# Current System Status – stream-control-center
+
 Stand: 2026-05-18
 
 ## Loyalty / Kekskrümel

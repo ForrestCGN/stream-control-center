@@ -44,6 +44,12 @@ const DEFAULT_TEXTS = {
   ]
 };
 
+const OUTPUT_MODES = ['chat', 'announcement'];
+const ITEM_OUTPUT_MODES = ['default', 'chat', 'announcement'];
+const ANNOUNCEMENT_COLORS = ['primary', 'blue', 'green', 'orange', 'purple'];
+const ITEM_ANNOUNCEMENT_COLORS = ['default', 'primary', 'blue', 'green', 'orange', 'purple'];
+
+
 const DEFAULT_CONFIG = {
   enabled: true,
   description: 'Konfiguration fuer wiederkehrende Chat-Hinweise. Texte kommen aus dem zentralen Config-/Messages-Ordner.',
@@ -62,7 +68,9 @@ const DEFAULT_CONFIG = {
   },
   messageOptions: {
     target: 'twitch_chat',
-    maxLength: 450
+    maxLength: 450,
+    outputMode: 'chat',
+    announcementColor: 'primary'
   },
   liveStatus: {
     enabled: true,
@@ -179,6 +187,59 @@ function cleanStringList(value, fallback = []) {
   return value.map(v => String(v || '').trim()).filter(Boolean);
 }
 
+function normalizeOutputMode(value, fallback = 'chat') {
+  const clean = cleanLower(value || fallback);
+  return OUTPUT_MODES.includes(clean) ? clean : fallback;
+}
+
+function normalizeItemOutputMode(value, fallback = 'default') {
+  const clean = cleanLower(value || fallback);
+  return ITEM_OUTPUT_MODES.includes(clean) ? clean : fallback;
+}
+
+function normalizeAnnouncementColor(value, fallback = 'primary') {
+  const clean = cleanLower(value || fallback);
+  return ANNOUNCEMENT_COLORS.includes(clean) ? clean : fallback;
+}
+
+function normalizeItemAnnouncementColor(value, fallback = 'default') {
+  const clean = cleanLower(value || fallback);
+  return ITEM_ANNOUNCEMENT_COLORS.includes(clean) ? clean : fallback;
+}
+
+function getEffectiveOutputOptions(item = {}, baseOptions = {}) {
+  const globalMode = normalizeOutputMode(baseOptions.outputMode, DEFAULT_CONFIG.messageOptions.outputMode);
+  const itemMode = normalizeItemOutputMode(item.outputMode, 'default');
+  const outputMode = itemMode === 'default' ? globalMode : normalizeOutputMode(itemMode, globalMode);
+
+  const globalColor = normalizeAnnouncementColor(baseOptions.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor);
+  const itemColor = normalizeItemAnnouncementColor(item.announcementColor, 'default');
+  const announcementColor = itemColor === 'default' ? globalColor : normalizeAnnouncementColor(itemColor, globalColor);
+
+  return {
+    ...baseOptions,
+    outputMode,
+    announcementColor,
+    isAnnouncement: outputMode === 'announcement'
+  };
+}
+
+function buildStreamerbotOutputFields(outputOptions = {}, commit = true) {
+  const outputMode = normalizeOutputMode(outputOptions.outputMode, DEFAULT_CONFIG.messageOptions.outputMode);
+  const announcementColor = normalizeAnnouncementColor(outputOptions.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor);
+
+  return {
+    outputMode,
+    announcementColor,
+    isAnnouncement: outputMode === 'announcement',
+    streamerbot_send: commit ? '1' : '0',
+    streamerbot_output_mode: outputMode,
+    streamerbot_announcement_color: announcementColor,
+    streamerbot_action: outputMode === 'announcement' ? 'send_announcement' : 'send_message'
+  };
+}
+
+
 function mergeConfig(raw) {
   const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
   const merged = clone(DEFAULT_CONFIG);
@@ -203,6 +264,8 @@ function mergeConfig(raw) {
 
   merged.messageOptions.target = cleanId(merged.messageOptions.target || DEFAULT_CONFIG.messageOptions.target);
   merged.messageOptions.maxLength = Math.max(1, Number.parseInt(merged.messageOptions.maxLength, 10) || DEFAULT_CONFIG.messageOptions.maxLength);
+  merged.messageOptions.outputMode = normalizeOutputMode(merged.messageOptions.outputMode, DEFAULT_CONFIG.messageOptions.outputMode);
+  merged.messageOptions.announcementColor = normalizeAnnouncementColor(merged.messageOptions.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor);
 
   merged.liveStatus.enabled = toBool(merged.liveStatus.enabled, DEFAULT_CONFIG.liveStatus.enabled);
   merged.liveStatus.mode = cleanLower(merged.liveStatus.mode || DEFAULT_CONFIG.liveStatus.mode);
@@ -225,7 +288,9 @@ function mergeConfig(raw) {
       weight: Math.max(1, Number.parseInt(rawItem.weight, 10) || 1),
       manualEnabled: toBool(rawItem.manualEnabled, true),
       manualCooldownSeconds: toPositiveNumber(rawItem.manualCooldownSeconds, 30),
-      commands: cleanStringList(rawItem.commands || [], [])
+      commands: cleanStringList(rawItem.commands || [], []),
+      outputMode: normalizeItemOutputMode(rawItem.outputMode, 'default'),
+      announcementColor: normalizeItemAnnouncementColor(rawItem.announcementColor, 'default')
     };
   }).filter(item => item.id && item.messageKey);
 
@@ -660,6 +725,9 @@ function buildDbTextResult(messageKey, context = {}, options = {}) {
     message,
     text: message,
     target: cleanId(options.target || DEFAULT_CONFIG.messageOptions.target),
+    outputMode: normalizeOutputMode(options.outputMode, DEFAULT_CONFIG.messageOptions.outputMode),
+    announcementColor: normalizeAnnouncementColor(options.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor),
+    isAnnouncement: normalizeOutputMode(options.outputMode, DEFAULT_CONFIG.messageOptions.outputMode) === 'announcement',
     ts: core.nowIso()
   };
 }
@@ -673,7 +741,10 @@ function buildRotatorChatResult(messageKey, context = {}, options = {}) {
     return {
       ...legacyResult,
       source: legacyResult.source || 'config_messages_fallback',
-      fallbackReason: dbResult.error || dbResult.value?.error || ''
+      fallbackReason: dbResult.error || dbResult.value?.error || '',
+      outputMode: normalizeOutputMode(options.outputMode, DEFAULT_CONFIG.messageOptions.outputMode),
+      announcementColor: normalizeAnnouncementColor(options.announcementColor, DEFAULT_CONFIG.messageOptions.announcementColor),
+      isAnnouncement: normalizeOutputMode(options.outputMode, DEFAULT_CONFIG.messageOptions.outputMode) === 'announcement'
     };
   }
 
@@ -851,8 +922,9 @@ async function nextMessage(req) {
   const item = chooseWeighted(due);
   if (!item) return block('no_item_selected', { blockedItems: blocked });
 
-  const result = buildRotatorChatResult(item.messageKey, buildContext(req), c.messageOptions || {});
-  if (!result.ok) return block(result.error || 'message_build_failed', { result, item });
+  const outputOptions = getEffectiveOutputOptions(item, c.messageOptions || {});
+  const result = buildRotatorChatResult(item.messageKey, buildContext(req), outputOptions);
+  if (!result.ok) return block(result.error || 'message_build_failed', { result, item, ...buildStreamerbotOutputFields(outputOptions, false) });
 
   if (commit) {
     const runtime = itemRuntime(item.id);
@@ -883,6 +955,8 @@ async function nextMessage(req) {
     rotator_message: result.message,
     message: result.message,
     text: result.message,
+    ...buildStreamerbotOutputFields(outputOptions, commit),
+    streamerbot_message: result.message,
     commit,
     state: publicState()
   };
@@ -981,8 +1055,9 @@ function manualMessage(req) {
     });
   }
 
-  const result = buildRotatorChatResult(item.messageKey, buildContext(req), c.messageOptions || {});
-  if (!result.ok) return block(result.error || 'message_build_failed', { result, item });
+  const outputOptions = getEffectiveOutputOptions(item, c.messageOptions || {});
+  const result = buildRotatorChatResult(item.messageKey, buildContext(req), outputOptions);
+  if (!result.ok) return block(result.error || 'message_build_failed', { result, item, ...buildStreamerbotOutputFields(outputOptions, false) });
 
   if (commit) {
     runtime.lastUsedAtMs = now;
@@ -1008,6 +1083,8 @@ function manualMessage(req) {
     rotator_message: result.message,
     message: result.message,
     text: result.message,
+    ...buildStreamerbotOutputFields(outputOptions, commit),
+    streamerbot_message: result.message,
     commit,
     state: publicState()
   };
@@ -1217,7 +1294,7 @@ function buildMessageRotatorIntegrationCheck(req = null) {
 
   const sampleChecks = {};
   (c.items || []).filter(item => item.enabled).slice(0, 5).forEach(item => {
-    const result = safeCall(`sample.${item.messageKey}`, () => buildRotatorChatResult(item.messageKey, {}, c.messageOptions || {}), null);
+    const result = safeCall(`sample.${item.messageKey}`, () => buildRotatorChatResult(item.messageKey, {}, getEffectiveOutputOptions(item, c.messageOptions || {})), null);
     sampleChecks[item.messageKey] = {
       ok: result.ok && !!result.value && result.value.ok !== false,
       value: result.value,

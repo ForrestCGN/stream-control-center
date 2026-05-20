@@ -1,5 +1,21 @@
 # Current Status – stream-control-center
 
+Stand: 2026-05-20
+
+## STEP238 - Message-Rotator Output-Mode
+
+- Message-Rotator ist weiterhin STABLE.
+- Ausgabeart ist jetzt konfigurierbar:
+  - `chat`
+  - `announcement`
+- Globale Settings liegen weiter in `message_rotator_settings`.
+- Texte liegen weiter in `module_text_variants` mit `module_name = message_rotator`.
+- Dashboard kann globale Ausgabeart/Farbe und pro Item Overrides speichern.
+- Runtime liefert Streamer.bot-Steuerfelder, damit Streamer.bot normal posten oder Twitch-Announcement nutzen kann.
+- Default bleibt `chat`; vorhandene Abläufe brechen dadurch nicht.
+
+# Current Status – stream-control-center
+
 Stand: 2026-05-18
 
 ## Loyalty / Kekskrümel

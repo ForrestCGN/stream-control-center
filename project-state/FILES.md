@@ -1,3 +1,35 @@
+# FILES - stream-control-center
+
+Stand: 2026-05-20
+
+## STEP238
+
+Geaendert:
+
+```text
+backend/modules/message_rotator.js
+htdocs/dashboard/modules/message_rotator.js
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP238_MESSAGE_ROTATOR_OUTPUT_MODE_2026-05-20.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/chat_output.js
+backend/modules/twitch.js
+backend/core/database.js
+backend/modules/helpers/**
+config/**
+data/**
+app.sqlite
+andere Dashboard-Module
+```
+
 # Files – stream-control-center
 
 ## Loyalty relevante Dateien
