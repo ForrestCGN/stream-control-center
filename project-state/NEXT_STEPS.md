@@ -151,6 +151,27 @@ Zuerst Playback-Korrektur optional und abschaltbar planen.
 Korrektur muss zentral im Sound-System greifen, damit stream/device/discord/both konsistent bleiben.
 ```
 
+
+## Nach STEP270E - Pegel-Scan mit Fortschritt testen
+
+Nach Deploy:
+
+```powershell
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/loudness/scan" -Body (@{ limit = 500; async = $true } | ConvertTo-Json) -ContentType "application/json" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/status" | ConvertTo-Json -Depth 80
+```
+
+Dashboard-Test:
+
+```text
+System -> Sound-System -> Pegel-Scan
+Scan starten
+Fortschrittsbalken, aktuelle Datei und Zaehler beobachten
+Nach Abschluss Ergebnisse pruefen
+```
+
+Naechster optionaler Schritt erst nach Sichttest: Playback-Korrektur technisch planen, aber weiterhin nicht automatisch aktivieren.
+
 ## Nach STEP269A-C - Sound-/Discord-Integration beobachten und spaeter dashboardfaehig machen
 
 STEP269A bis STEP269C sind funktional bestaetigt:

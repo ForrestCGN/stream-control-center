@@ -2,6 +2,15 @@
 
 Stand: 2026-05-21
 
+
+## STEP270E - Sound Pegel-Scan Fortschrittsanzeige
+
+- Pegel-Scan unterstuetzt jetzt asynchronen Scan-Modus mit Fortschritt im Status-Endpoint.
+- `POST /api/sound/loudness/scan` kann mit `async=true` gestartet werden.
+- `GET /api/sound/loudness/status` liefert `progress` mit Scan-ID, Status, Prozent, aktueller Datei, Zaehlwerten fuer OK/Warnung/Fehler.
+- Dashboard zeigt Fortschrittsbalken, aktuelle Datei und Live-Zaehler.
+- Weiterhin read-only: keine Sound-Dateien, keine Playback-Korrektur, keine Queue-/Discord-/Alert-/TTS-Aenderung.
+
 ## STEP270D1 - Pegel-Scan ohne TTS-Dateien
 
 Der Pegel-Scan filtert TTS-/Speech-Dateien jetzt standardmaessig heraus.

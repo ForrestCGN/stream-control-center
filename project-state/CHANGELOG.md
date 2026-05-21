@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-05-21 - STEP270E Sound Pegel-Scan Fortschrittsanzeige
+
+- `backend/modules/sound_loudness_scanner.js` erweitert.
+- Asynchroner Scan-Modus via `async=true` ergaenzt.
+- Status-Endpoint liefert Live-Fortschritt (`progressPercent`, `currentFile`, Zaehler).
+- Dashboard zeigt Fortschrittsbalken und aktuelle Datei waehrend des Scans.
+- Keine Sound-Dateien, keine Sound-Queue, kein Discord-Routing, keine Alerts, kein TTS und kein `config/**` geaendert.
+
 ## 2026-05-21 - STEP270D1 Pegel-Scan TTS-Dateien ausgeschlossen
 
 - `backend/modules/sound_loudness_scanner.js` erweitert.
@@ -23,6 +31,14 @@
 - Keine automatische Playback-Korrektur, keine Normalisierung und keine Dateiänderung.
 
 # Changelog
+
+## 2026-05-21 - STEP270E Sound Pegel-Scan Fortschrittsanzeige
+
+- `backend/modules/sound_loudness_scanner.js` erweitert.
+- Asynchroner Scan-Modus via `async=true` ergaenzt.
+- Status-Endpoint liefert Live-Fortschritt (`progressPercent`, `currentFile`, Zaehler).
+- Dashboard zeigt Fortschrittsbalken und aktuelle Datei waehrend des Scans.
+- Keine Sound-Dateien, keine Sound-Queue, kein Discord-Routing, keine Alerts, kein TTS und kein `config/**` geaendert.
 
 ## 2026-05-21 - STEP270C Pegel-Scan Dashboard UI verbessert
 

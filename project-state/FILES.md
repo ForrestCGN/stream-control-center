@@ -170,3 +170,31 @@ htdocs/dashboard/modules/sound.js
 htdocs/dashboard/modules/sound_levelscan.js
 htdocs/dashboard/modules/sound_levelscan.css
 ```
+
+## STEP270E - Sound Pegel-Scan Fortschrittsanzeige
+
+Geaendert:
+
+```text
+backend/modules/sound_loudness_scanner.js
+htdocs/dashboard/modules/sound_levelscan.js
+htdocs/dashboard/modules/sound_levelscan.css
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP270E_SOUND_PEGEL_SCAN_PROGRESS.md
+```
+
+Nicht geaendert:
+
+```text
+app.sqlite
+config/**
+backend/modules/sound_system.js
+Alert-System
+TTS-System
+Discord-Routing
+Sound-Dateien
+```

@@ -26,14 +26,15 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.2-step270d1-exclude-tts",
+    version: "0.1.3-step270e-progress",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
     lastStartedAt: "",
     lastFinishedAt: "",
     lastError: "",
-    lastResult: null
+    lastResult: null,
+    progress: emptyProgress()
   };
 
   ensureSchema();
@@ -54,6 +55,7 @@ module.exports.init = function init(ctx) {
         lastFinishedAt: state.lastFinishedAt,
         lastError: state.lastError,
         lastResult: state.lastResult,
+        progress: publicProgress(state.progress),
         databasePath: database.getDbPath() || "",
         resultsCount: Number(countRow.count || 0),
         latestScan: latest ? publicScan(latest) : null,
@@ -129,17 +131,24 @@ module.exports.init = function init(ctx) {
 
   app.post(`${ROUTE_PREFIX}/scan`, (req, res) => {
     if (state.running) {
-      return res.status(409).json({ ok: false, error: "scan_already_running", scanId: state.lastScanId });
+      return res.status(409).json({ ok: false, error: "scan_already_running", scanId: state.lastScanId, progress: publicProgress(state.progress) });
     }
 
     try {
       ensureSchema();
-      const options = parseScanOptions(req.body || req.query || {});
+      const rawOptions = req.body || req.query || {};
+      const options = parseScanOptions(rawOptions);
+      const asyncMode = parseBool(rawOptions.async, false) || parseBool(rawOptions.background, false);
+      if (asyncMode) {
+        const started = startBackgroundScan(options);
+        return res.status(202).json({ ok: true, module: MODULE_NAME, scan: started, progress: publicProgress(state.progress) });
+      }
       const result = runScan(options);
       res.json({ ok: true, module: MODULE_NAME, ...result });
     } catch (err) {
       state.running = false;
       state.lastError = errorMessage(err);
+      state.progress = { ...state.progress, status: "failed", errorText: state.lastError, finishedAt: nowIso() };
       res.status(500).json({ ok: false, error: state.lastError });
     }
   });
@@ -150,8 +159,8 @@ module.exports.init = function init(ctx) {
       module: MODULE_NAME,
       addedByStep: "STEP270A",
       routes: [
-        { method: "GET", path: `${ROUTE_PREFIX}/status`, description: "Read scanner state, defaults and latest scan summary" },
-        { method: "POST", path: `${ROUTE_PREFIX}/scan`, description: "Run a read-only loudness scan for sound files; TTS files are excluded by default" },
+        { method: "GET", path: `${ROUTE_PREFIX}/status`, description: "Read scanner state, progress, defaults and latest scan summary" },
+        { method: "POST", path: `${ROUTE_PREFIX}/scan`, description: "Run a read-only loudness scan for sound files; pass async=true for dashboard progress polling" },
         { method: "GET", path: `${ROUTE_PREFIX}/results`, description: "List persisted loudness scan results" },
         { method: "GET", path: `${ROUTE_PREFIX}/file?file=relative/path.mp3`, description: "Read one persisted loudness result" },
         { method: "GET", path: `${ROUTE_PREFIX}/routes`, description: "Route self-documentation" }
@@ -165,13 +174,31 @@ module.exports.init = function init(ctx) {
     });
   });
 
-  function runScan(options) {
+  function prepareScan(options) {
     state.running = true;
     state.lastError = "";
     state.lastStartedAt = nowIso();
     state.lastFinishedAt = "";
     state.lastScanId = makeScanId();
     state.lastResult = null;
+    state.progress = {
+      scanId: state.lastScanId,
+      status: "running",
+      startedAt: state.lastStartedAt,
+      finishedAt: "",
+      baseDir: options.baseDir,
+      targetLufs: options.targetLufs,
+      truePeakLimitDbtp: options.truePeakLimitDbtp,
+      maxPlaybackVolume: options.maxPlaybackVolume,
+      discoveredFiles: 0,
+      scannedFiles: 0,
+      okFiles: 0,
+      warningFiles: 0,
+      errorFiles: 0,
+      currentFile: "",
+      progressPercent: 0,
+      errorText: ""
+    };
 
     const startedAt = state.lastStartedAt;
     options.scanId = state.lastScanId;
@@ -191,6 +218,11 @@ module.exports.init = function init(ctx) {
       error_text: ""
     };
     database.insert("sound_loudness_scans", scanRow);
+    return { startedAt, scanId: state.lastScanId };
+  }
+
+  function runScan(options) {
+    const prepared = prepareScan(options);
 
     let files = [];
     let summary = null;
@@ -212,7 +244,11 @@ module.exports.init = function init(ctx) {
         errorFiles: 0
       };
 
+      state.progress.discoveredFiles = files.length;
+      state.progress.progressPercent = files.length ? 0 : 100;
+
       for (const file of files) {
+        state.progress.currentFile = file.relativePath;
         const measured = analyzeFile(file, options);
         database.upsert(
           "sound_loudness_files",
@@ -245,6 +281,7 @@ module.exports.init = function init(ctx) {
         if (measured.status === "ok") summary.okFiles += 1;
         else if (measured.status === "warning") summary.warningFiles += 1;
         else summary.errorFiles += 1;
+        updateProgressFromSummary(state.progress, summary, files.length, file.relativePath);
       }
 
       summary.finishedAt = nowIso();
@@ -260,6 +297,7 @@ module.exports.init = function init(ctx) {
 
       state.lastFinishedAt = summary.finishedAt;
       state.lastResult = summary;
+      state.progress = { ...state.progress, ...summary, status: "finished", currentFile: "", progressPercent: 100 };
       return { scan: summary };
     } catch (err) {
       const finishedAt = nowIso();
@@ -275,6 +313,127 @@ module.exports.init = function init(ctx) {
       });
       state.lastFinishedAt = finishedAt;
       state.lastError = message;
+      state.progress = { ...state.progress, status: "failed", finishedAt, errorText: message };
+      throw err;
+    } finally {
+      state.running = false;
+    }
+  }
+
+  function startBackgroundScan(options) {
+    const prepared = prepareScan(options);
+    setImmediate(() => {
+      runScanAsync(options).catch(err => {
+        state.running = false;
+        state.lastError = errorMessage(err);
+        state.lastFinishedAt = nowIso();
+        state.progress = { ...state.progress, status: "failed", finishedAt: state.lastFinishedAt, errorText: state.lastError };
+        try {
+          database.updateByKey("sound_loudness_scans", "scan_id", options.scanId, {
+            finished_at: state.lastFinishedAt,
+            status: "failed",
+            scanned_files: Number(state.progress.scannedFiles || 0),
+            ok_files: Number(state.progress.okFiles || 0),
+            warning_files: Number(state.progress.warningFiles || 0),
+            error_files: Number(state.progress.errorFiles || 0),
+            error_text: state.lastError
+          });
+        } catch (_) {}
+      });
+    });
+    return { scanId: prepared.scanId, startedAt: prepared.startedAt, status: "running" };
+  }
+
+  async function runScanAsync(options) {
+    let files = [];
+    let summary = null;
+
+    try {
+      files = findSoundFiles(options.baseDir, options.allowedExtensions, options.limit, options);
+      summary = {
+        scanId: state.lastScanId,
+        startedAt: state.lastStartedAt,
+        finishedAt: "",
+        baseDir: options.baseDir,
+        targetLufs: options.targetLufs,
+        truePeakLimitDbtp: options.truePeakLimitDbtp,
+        maxPlaybackVolume: options.maxPlaybackVolume,
+        discoveredFiles: files.length,
+        scannedFiles: 0,
+        okFiles: 0,
+        warningFiles: 0,
+        errorFiles: 0
+      };
+      state.progress.discoveredFiles = files.length;
+      state.progress.progressPercent = files.length ? 0 : 100;
+
+      for (const file of files) {
+        state.progress.currentFile = file.relativePath;
+        const measured = await analyzeFileAsync(file, options);
+        database.upsert(
+          "sound_loudness_files",
+          measured,
+          ["relative_path"],
+          [
+            "scan_id",
+            "absolute_path",
+            "extension",
+            "size_bytes",
+            "mtime_ms",
+            "duration_ms",
+            "input_i",
+            "input_tp",
+            "input_lra",
+            "input_thresh",
+            "target_offset",
+            "target_lufs",
+            "true_peak_limit_dbtp",
+            "recommended_gain_db",
+            "recommended_volume",
+            "status",
+            "warnings_json",
+            "error_text",
+            "scanned_at"
+          ]
+        );
+
+        summary.scannedFiles += 1;
+        if (measured.status === "ok") summary.okFiles += 1;
+        else if (measured.status === "warning") summary.warningFiles += 1;
+        else summary.errorFiles += 1;
+        updateProgressFromSummary(state.progress, summary, files.length, file.relativePath);
+      }
+
+      summary.finishedAt = nowIso();
+      database.updateByKey("sound_loudness_scans", "scan_id", state.lastScanId, {
+        finished_at: summary.finishedAt,
+        status: "finished",
+        scanned_files: summary.scannedFiles,
+        ok_files: summary.okFiles,
+        warning_files: summary.warningFiles,
+        error_files: summary.errorFiles,
+        error_text: ""
+      });
+
+      state.lastFinishedAt = summary.finishedAt;
+      state.lastResult = summary;
+      state.progress = { ...state.progress, ...summary, status: "finished", currentFile: "", progressPercent: 100 };
+      return { scan: summary };
+    } catch (err) {
+      const finishedAt = nowIso();
+      const message = errorMessage(err);
+      database.updateByKey("sound_loudness_scans", "scan_id", state.lastScanId, {
+        finished_at: finishedAt,
+        status: "failed",
+        scanned_files: summary ? summary.scannedFiles : 0,
+        ok_files: summary ? summary.okFiles : 0,
+        warning_files: summary ? summary.warningFiles : 0,
+        error_files: summary ? summary.errorFiles : 0,
+        error_text: message
+      });
+      state.lastFinishedAt = finishedAt;
+      state.lastError = message;
+      state.progress = { ...state.progress, status: "failed", finishedAt, errorText: message };
       throw err;
     } finally {
       state.running = false;
@@ -534,6 +693,69 @@ function analyzeFile(file, options) {
   }
 }
 
+
+async function analyzeFileAsync(file, options) {
+  const now = nowIso();
+  const stat = fs.statSync(file.fullPath);
+  const base = {
+    relative_path: file.relativePath,
+    scan_id: options.scanId || "",
+    absolute_path: file.fullPath,
+    extension: file.extension,
+    size_bytes: Number(stat.size || 0),
+    mtime_ms: Number(stat.mtimeMs || 0),
+    duration_ms: 0,
+    input_i: null,
+    input_tp: null,
+    input_lra: null,
+    input_thresh: null,
+    target_offset: null,
+    target_lufs: options.targetLufs,
+    true_peak_limit_dbtp: options.truePeakLimitDbtp,
+    recommended_gain_db: null,
+    recommended_volume: null,
+    status: "error",
+    warnings_json: "[]",
+    error_text: "",
+    scanned_at: now
+  };
+
+  try {
+    base.scan_id = options.scanId || findCurrentScanIdFallback();
+    const mediaInfo = media.readMediaInfo(file.fullPath, { cache: false, timeoutMs: Math.min(options.timeoutMs, 30000) });
+    if (mediaInfo && mediaInfo.durationMs) base.duration_ms = Number(mediaInfo.durationMs || 0);
+    if (!mediaInfo || !mediaInfo.hasAudio) {
+      base.status = "error";
+      base.error_text = "audio_stream_missing";
+      return base;
+    }
+
+    const loudness = await runLoudnessMeasureAsync(file.fullPath, options);
+    base.input_i = loudness.input_i;
+    base.input_tp = loudness.input_tp;
+    base.input_lra = loudness.input_lra;
+    base.input_thresh = loudness.input_thresh;
+    base.target_offset = loudness.target_offset;
+
+    const gainDb = round1(options.targetLufs - loudness.input_i);
+    base.recommended_gain_db = gainDb;
+    base.recommended_volume = gainToVolume(gainDb, options.maxPlaybackVolume);
+
+    const warnings = [];
+    if (Number.isFinite(loudness.input_tp) && loudness.input_tp > options.truePeakLimitDbtp) warnings.push("true_peak_above_limit");
+    if (gainDb > 8) warnings.push("large_positive_gain");
+    if (gainDb < -12) warnings.push("large_negative_gain");
+    if (base.recommended_volume >= 100 && gainDb > 0) warnings.push("volume_cap_reached");
+    base.warnings_json = JSON.stringify(warnings);
+    base.status = warnings.length ? "warning" : "ok";
+    return base;
+  } catch (err) {
+    base.status = "error";
+    base.error_text = errorMessage(err);
+    return base;
+  }
+}
+
 function findCurrentScanIdFallback() {
   const row = database.get("SELECT scan_id FROM sound_loudness_scans ORDER BY started_at DESC LIMIT 1") || null;
   return row ? String(row.scan_id || "") : "";
@@ -571,6 +793,81 @@ function runLoudnessMeasure(filePath, options) {
   };
 }
 
+
+function runLoudnessMeasureAsync(filePath, options) {
+  return new Promise((resolve, reject) => {
+    const ffmpeg = findFfmpeg();
+    const args = [
+      "-hide_banner",
+      "-nostats",
+      "-i", filePath,
+      "-af", `loudnorm=I=${options.targetLufs}:TP=${options.truePeakLimitDbtp}:LRA=11:print_format=json`,
+      "-f", "null",
+      "-"
+    ];
+
+    const child = childProcess.spawn(ffmpeg, args, { windowsHide: true });
+    let stdout = "";
+    let stderr = "";
+    let finished = false;
+    const maxBuffer = 1024 * 1024 * 10;
+
+    const timer = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      try { child.kill("SIGKILL"); } catch (_) {}
+      reject(new Error("ffmpeg_timeout"));
+    }, options.timeoutMs);
+
+    child.stdout.on("data", chunk => {
+      stdout += chunk.toString("utf8");
+      if (stdout.length + stderr.length > maxBuffer && !finished) {
+        finished = true;
+        clearTimeout(timer);
+        try { child.kill("SIGKILL"); } catch (_) {}
+        reject(new Error("ffmpeg_output_too_large"));
+      }
+    });
+
+    child.stderr.on("data", chunk => {
+      stderr += chunk.toString("utf8");
+      if (stdout.length + stderr.length > maxBuffer && !finished) {
+        finished = true;
+        clearTimeout(timer);
+        try { child.kill("SIGKILL"); } catch (_) {}
+        reject(new Error("ffmpeg_output_too_large"));
+      }
+    });
+
+    child.on("error", err => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    child.on("close", () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      try {
+        const parsed = extractLoudnormJson(`${stdout}\n${stderr}`);
+        const inputI = parseFinite(parsed.input_i);
+        if (!Number.isFinite(inputI)) throw new Error("loudness_input_i_missing");
+        resolve({
+          input_i: inputI,
+          input_tp: parseFinite(parsed.input_tp),
+          input_lra: parseFinite(parsed.input_lra),
+          input_thresh: parseFinite(parsed.input_thresh),
+          target_offset: parseFinite(parsed.target_offset)
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+}
+
 function extractLoudnormJson(text) {
   const raw = String(text || "");
   const markerIndex = raw.lastIndexOf("input_i");
@@ -605,6 +902,60 @@ function gainToVolume(gainDb, maxVolume) {
   const linear = Math.pow(10, gainDb / 20);
   const volume = Math.round(Number(maxVolume || DEFAULT_MAX_PLAYBACK_VOLUME) * linear);
   return Math.max(1, Math.min(100, volume));
+}
+
+function emptyProgress() {
+  return {
+    scanId: "",
+    status: "idle",
+    startedAt: "",
+    finishedAt: "",
+    baseDir: "",
+    targetLufs: DEFAULT_TARGET_LUFS,
+    truePeakLimitDbtp: DEFAULT_TRUE_PEAK_LIMIT_DBTP,
+    maxPlaybackVolume: DEFAULT_MAX_PLAYBACK_VOLUME,
+    discoveredFiles: 0,
+    scannedFiles: 0,
+    okFiles: 0,
+    warningFiles: 0,
+    errorFiles: 0,
+    currentFile: "",
+    progressPercent: 0,
+    errorText: ""
+  };
+}
+
+function updateProgressFromSummary(progress, summary, total, currentFile) {
+  progress.discoveredFiles = Number(total || summary.discoveredFiles || 0);
+  progress.scannedFiles = Number(summary.scannedFiles || 0);
+  progress.okFiles = Number(summary.okFiles || 0);
+  progress.warningFiles = Number(summary.warningFiles || 0);
+  progress.errorFiles = Number(summary.errorFiles || 0);
+  progress.currentFile = String(currentFile || "");
+  progress.progressPercent = progress.discoveredFiles > 0 ? Math.min(100, Math.round((progress.scannedFiles / progress.discoveredFiles) * 1000) / 10) : 100;
+  progress.status = "running";
+}
+
+function publicProgress(progress) {
+  const p = progress || emptyProgress();
+  return {
+    scanId: String(p.scanId || ""),
+    status: String(p.status || "idle"),
+    startedAt: String(p.startedAt || ""),
+    finishedAt: String(p.finishedAt || ""),
+    baseDir: String(p.baseDir || ""),
+    targetLufs: nullableNumber(p.targetLufs),
+    truePeakLimitDbtp: nullableNumber(p.truePeakLimitDbtp),
+    maxPlaybackVolume: nullableNumber(p.maxPlaybackVolume),
+    discoveredFiles: Number(p.discoveredFiles || 0),
+    scannedFiles: Number(p.scannedFiles || 0),
+    okFiles: Number(p.okFiles || 0),
+    warningFiles: Number(p.warningFiles || 0),
+    errorFiles: Number(p.errorFiles || 0),
+    currentFile: String(p.currentFile || ""),
+    progressPercent: nullableNumber(p.progressPercent) || 0,
+    errorText: String(p.errorText || "")
+  };
 }
 
 function publicScan(row) {

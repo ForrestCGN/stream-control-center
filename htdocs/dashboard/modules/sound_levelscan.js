@@ -12,6 +12,8 @@ window.SoundLevelScanModule = (function(){
     statusFilter: 'all',
     search: '',
     showPreview: true,
+    polling: false,
+    pollTimer: null,
     status: null,
     results: null,
     lastMessage: ''
@@ -38,7 +40,8 @@ window.SoundLevelScanModule = (function(){
     preview: 'Korrektur-Vorschau: zeigt nur, welche Playback-Lautstärke oder Gain-Änderung später empfohlen wäre. Es wird nichts angewendet.',
     previewVolume: 'Empfohlene spätere Playback-Lautstärke. Niedrig = Datei ist aktuell sehr laut. 100% = Datei ist eher zu leise oder erreicht das Ziel nicht.',
     previewGain: 'Empfohlene Gain-Änderung. Negativ senkt den Sound ab, positiv hebt ihn an. Große Werte sollten manuell geprüft werden.',
-    previewRisk: 'Einschätzung für eine spätere automatische Korrektur. True-Peak-Warnungen und starke Absenkungen sind Kandidaten für manuelle Prüfung.'
+    previewRisk: 'Einschätzung für eine spätere automatische Korrektur. True-Peak-Warnungen und starke Absenkungen sind Kandidaten für manuelle Prüfung.',
+    progress: 'Fortschritt des aktuell laufenden Scans. Das Dashboard fragt den Status regelmäßig vom Backend ab, während FFmpeg die Dateien misst.'
   };
 
   function esc(value){ return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? ''); }
@@ -245,15 +248,14 @@ window.SoundLevelScanModule = (function(){
   async function runScan(){
     readControls();
     state.loading = true;
-    state.lastMessage = 'Scan läuft...';
+    state.lastMessage = 'Scan gestartet... Fortschritt wird automatisch aktualisiert.';
     render();
-    const result = await api('/scan', {
+    await api('/scan', {
       method: 'POST',
-      body: JSON.stringify({ limit: state.scanLimit })
+      body: JSON.stringify({ limit: state.scanLimit, async: true })
     });
     state.status = await api('/status');
-    state.lastMessage = result?.scan ? `Scan fertig: ${result.scan.scannedFiles} Dateien, ${result.scan.warningFiles} Warnungen, ${result.scan.errorFiles} Fehler.` : 'Scan fertig.';
-    await loadResultsOnly();
+    startPolling();
     state.loading = false;
     render();
   }
@@ -274,11 +276,59 @@ window.SoundLevelScanModule = (function(){
     try {
       state.status = await api('/status');
       await loadResultsOnly();
+      if (state.status?.running) startPolling();
       if (!state.lastMessage) state.lastMessage = 'Pegel-Scan geladen.';
     } finally {
       state.loading = false;
       render();
     }
+  }
+
+
+  function startPolling(){
+    if (state.pollTimer) clearInterval(state.pollTimer);
+    state.polling = true;
+    state.pollTimer = setInterval(() => {
+      pollStatus().catch(err => {
+        state.lastMessage = err.message || String(err);
+        stopPolling();
+        render();
+      });
+    }, 1000);
+  }
+
+  function stopPolling(){
+    if (state.pollTimer) clearInterval(state.pollTimer);
+    state.pollTimer = null;
+    state.polling = false;
+  }
+
+  async function pollStatus(){
+    state.status = await api('/status');
+    const progress = state.status?.progress || {};
+    if (state.status?.running) {
+      const scanned = Number(progress.scannedFiles || 0);
+      const total = Number(progress.discoveredFiles || 0);
+      const percent = Number(progress.progressPercent || 0);
+      state.lastMessage = total > 0 ? `Scan läuft: ${scanned}/${total} Dateien (${percent}%).` : 'Scan läuft: Dateien werden vorbereitet...';
+      render();
+      return;
+    }
+
+    stopPolling();
+    await loadResultsOnly();
+    const latest = state.status?.latestScan || state.status?.progress || null;
+    if (latest && latest.status === 'failed') {
+      state.lastMessage = `Scan fehlgeschlagen: ${latest.errorText || state.status?.lastError || 'unbekannter Fehler'}`;
+    } else if (latest && (latest.scannedFiles !== undefined || state.status?.progress)) {
+      const scanned = Number(latest.scannedFiles || 0);
+      const warnings = Number(latest.warningFiles || 0);
+      const errors = Number(latest.errorFiles || 0);
+      state.lastMessage = `Scan fertig: ${scanned} Dateien, ${warnings} Warnungen, ${errors} Fehler.`;
+    } else {
+      state.lastMessage = 'Scan fertig.';
+    }
+    render();
   }
 
   function allRows(){
@@ -340,6 +390,37 @@ window.SoundLevelScanModule = (function(){
           <span title="${esc('Dateien, bei denen die Messung fehlgeschlagen ist.')}">Fehler: <strong>${esc(scan.errorFiles ?? '-')}</strong></span>
         </div>
       ` : ''}
+    `;
+  }
+
+
+  function renderProgressPanel(){
+    const progress = state.status?.progress || {};
+    const running = !!state.status?.running || progress.status === 'running';
+    const percent = Math.max(0, Math.min(100, Number(progress.progressPercent || 0)));
+    const scanned = Number(progress.scannedFiles || 0);
+    const total = Number(progress.discoveredFiles || 0);
+    const current = String(progress.currentFile || '').trim();
+    if (!running && !state.polling && percent <= 0) return '';
+    return `
+      <div class="sound-levelscan-progress" title="${esc(HELP.progress)}">
+        <div class="sound-levelscan-progress-head">
+          <div>
+            <strong>${running ? 'Scan läuft' : 'Letzter Fortschritt'}</strong>
+            <span>${total > 0 ? `${scanned}/${total} Dateien gemessen` : 'Dateien werden vorbereitet...'}</span>
+          </div>
+          <span class="sound-pill ${running ? 'warn' : 'success'}">${esc(percent.toFixed(1))}%</span>
+        </div>
+        <div class="sound-levelscan-progress-bar" aria-label="Scan-Fortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${esc(percent)}">
+          <div style="width:${esc(percent)}%"></div>
+        </div>
+        ${current ? `<div class="sound-levelscan-current" title="${esc(current)}">Aktuell: <strong>${esc(current)}</strong></div>` : ''}
+        <div class="sound-levelscan-lastscan">
+          <span>OK: <strong>${esc(progress.okFiles || 0)}</strong></span>
+          <span>Warnungen: <strong>${esc(progress.warningFiles || 0)}</strong></span>
+          <span>Fehler: <strong>${esc(progress.errorFiles || 0)}</strong></span>
+        </div>
+      </div>
     `;
   }
 
@@ -504,6 +585,7 @@ window.SoundLevelScanModule = (function(){
       </div>
       ${renderSummary()}
       ${renderControls()}
+      ${renderProgressPanel()}
       ${state.showPreview ? renderPreviewPanel() : ''}
       ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
       ${renderRows()}
