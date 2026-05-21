@@ -2258,7 +2258,7 @@ async function postAlertSoundBundle(event, ttsResult, options = {}) {
 
 async function prepareAndSendAlertSoundBundle(event, options = {}) {
   if (!event) return { ok: false, reason: 'missing_event' };
-  if (event.alertBundlePrequeue && event.alertBundlePrequeue.pending) {
+  if (event.alertBundlePrequeue && event.alertBundlePrequeue.pending && options.allowPendingPrequeue !== true) {
     return { ok: false, reason: 'bundle_prequeue_still_pending' };
   }
 
@@ -2318,7 +2318,10 @@ function scheduleAlertBundlePrequeue(event, broadcastWS) {
 
   Promise.resolve()
     .then(async () => {
-      const result = await prepareAndSendAlertSoundBundle(event, { reason: 'enqueue_immediate_parallel' });
+      const result = await prepareAndSendAlertSoundBundle(event, {
+        reason: 'enqueue_immediate_parallel',
+        allowPendingPrequeue: true
+      });
       event.alertBundlePrequeue = {
         pending: false,
         finishedAt: nowIso(),
