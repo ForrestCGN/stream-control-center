@@ -83,7 +83,7 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.9-step272h-boost-promote-backup",
+    version: "0.1.10-step272i-dashboard-boost-workflow",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -251,6 +251,7 @@ module.exports.init = function init(ctx) {
         updatedBy,
         targetLufs: body.targetLufs,
         maxGainDb: body.maxGainDb,
+        gainDb: body.gainDb ?? body.boostGainDb,
         overwrite: parseBool(body.overwrite, true)
       }));
     } catch (err) {
@@ -1279,11 +1280,26 @@ function buildBoostCopyPreview(options = {}) {
       unsupported: rows.filter(row => !row.canCreate).length
     },
     config: cfg,
-    rows: rows.map(row => ({ ...row, boostTargetLufs: target.targetLufs, targetGainDb: calculateBoostGain(row.inputI, target) })),
+    rows: rows.map(row => {
+      const targetGainDb = calculateBoostGain(row.inputI, target);
+      const maxSafeGainDb = calculateMaxSafeBoostGain(row.inputTp, target.maxGainDb);
+      const safeTargetGainDb = targetGainDb === null ? null : round2(Math.min(Number(targetGainDb), Number(maxSafeGainDb)));
+      const estimatedPeakAfterBoostDbtp = safeTargetGainDb === null || !Number.isFinite(Number(row.inputTp)) ? null : round2(Number(row.inputTp) + Number(safeTargetGainDb));
+      return {
+        ...row,
+        boostTargetLufs: target.targetLufs,
+        targetGainDb: safeTargetGainDb,
+        rawTargetGainDb: targetGainDb,
+        maxSafeGainDb,
+        sliderMaxGainDb: maxSafeGainDb,
+        estimatedPeakAfterBoostDbtp,
+        truePeakLimitDbtp: DEFAULT_TRUE_PEAK_LIMIT_DBTP
+      };
+    }),
     notes: [
       "Nur Vorschau: Original-Sounddateien werden nicht verändert.",
       "Boost-Kopien werden in htdocs/assets/sounds/normalized/<originalpfad> geschrieben, damit /api/sound/play sie wie normale Sounds abspielen kann.",
-      "STEP272H: Boost-Kopien können bewusst neu erzeugt und danach mit Backup an die Originalstelle übernommen werden."
+      "STEP272I: Boost-Kopien können im Dashboard pro Datei mit individuellem Boost-Regler getestet werden."
     ]
   };
 }
@@ -1341,9 +1357,17 @@ function createBoostCopyForFile(relativePath, options = {}) {
   const cfg = getLevelConfig();
   const target = getBoostTargetSettings(cfg, options);
   const inputI = numberOrNull(row.input_i);
-  const gain = calculateBoostGain(inputI, target);
+  const inputTp = numberOrNull(row.input_tp);
+  const manualGain = numberOrNull(options.gainDb ?? options.boostGainDb);
+  const maxSafeGainDb = calculateMaxSafeBoostGain(inputTp, target.maxGainDb);
+  const gain = manualGain !== null
+    ? round2(Math.max(0, Math.min(Number(manualGain), Number(target.maxGainDb))))
+    : calculateBoostGain(inputI, target);
   const safeGain = gain === null ? 0 : gain;
   if (!Number.isFinite(safeGain) || safeGain <= 0) throw new Error("positive_gain_not_needed");
+  if (safeGain > Number(maxSafeGainDb) + 0.01) {
+    throw new Error(`boost_gain_exceeds_safe_peak_limit: requested=${round2(safeGain)} maxSafe=${round2(maxSafeGainDb)}`);
+  }
 
   fs.mkdirSync(path.dirname(info.outputAbsolutePath), { recursive: true });
   const ffmpeg = findFfmpeg();
@@ -1388,6 +1412,10 @@ function createBoostCopyForFile(relativePath, options = {}) {
     gainDb: round2(safeGain),
     boostTargetLufs: target.targetLufs,
     boostMaxGainDb: target.maxGainDb,
+    manualGainDb: manualGain === null ? null : round2(manualGain),
+    maxSafeGainDb,
+    estimatedPeakAfterBoostDbtp: inputTp === null ? null : round2(Number(inputTp) + Number(safeGain)),
+    truePeakLimitDbtp: DEFAULT_TRUE_PEAK_LIMIT_DBTP,
     requestedTargetLufs: target.requestedTargetLufs,
     inputI: numberOrNull(row.input_i),
     inputTp: numberOrNull(row.input_tp),
@@ -1403,7 +1431,7 @@ function createBoostCopyForFile(relativePath, options = {}) {
       "Originaldatei wurde nicht verändert.",
       "Die Boost-Kopie liegt im normalen Sound-Ordner unter normalized/ und kann per /api/sound/play getestet werden.",
       "Noch keine automatische Umleitung bestehender Alert-/SoundAlert-Regeln.",
-      "STEP272H: Vorhandene Boost-Kopien dürfen bewusst überschrieben werden; Originaldateien bleiben dabei unverändert."
+      "STEP272I: Der Boost kann pro Datei manuell gesetzt werden. Originaldateien bleiben dabei unverändert."
     ]
   };
 }
@@ -1557,6 +1585,15 @@ function calculateBoostGain(inputI, target) {
   const raw = t - i;
   if (!Number.isFinite(raw) || raw <= 0) return null;
   return round2(Math.max(0, Math.min(maxGain, raw)));
+}
+
+function calculateMaxSafeBoostGain(inputTp, configuredMaxGainDb) {
+  const configured = clampNumber(configuredMaxGainDb, 0.5, 18, DEFAULT_LEVEL_CONFIG.boostMaxGainDb);
+  const tp = Number(inputTp);
+  if (!Number.isFinite(tp)) return round2(configured);
+  const headroom = DEFAULT_TRUE_PEAK_LIMIT_DBTP - tp;
+  if (!Number.isFinite(headroom) || headroom <= 0) return 0;
+  return round2(Math.max(0, Math.min(configured, headroom)));
 }
 
 function buildAudioCodecArgs(ext) {

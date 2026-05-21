@@ -582,3 +582,11 @@ STEP272F: Boost-Kopien fuer zu leise Sounds vorbereiten.
 4. Danach echten Alert testen, der weiterhin auf `alerts/follow.mp3` zeigt.
 5. Bei Problem: über Promote-Historie Rollback ausführen.
 6. Danach weitere einzelne Audio-Dateien behandeln; Video-Dateien wie `.webm` separat planen.
+
+
+## Nach STEP272I
+
+- `alerts/follow.mp3` mit Slider/Presets erneut feinjustieren.
+- Wenn Pegel passt: Boost-Kopie übernehmen und Backup/Rollback prüfen.
+- Danach weitere zu leise Audio-Dateien einzeln bearbeiten.
+- Video-Dateien wie `soundalerts/video/putzen.webm` später separat unterstützen.

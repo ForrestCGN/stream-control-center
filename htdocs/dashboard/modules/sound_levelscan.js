@@ -77,7 +77,8 @@ window.SoundLevelScanModule = (function(){
     adoptReferenceTarget: 'Berechnet den Boost-Zielwert aus der aktuellen Auto-Referenz minus Sicherheitsabstand und speichert ihn in SQLite.',
     boostOverwrite: 'Erzeugt die Boost-Kopie neu und überschreibt nur die Datei unter normalized/. Das Original bleibt unverändert.',
     boostPromote: 'Übernimmt die Boost-Kopie an die Originalstelle. Vorher wird automatisch ein Backup unter _backup_loudness angelegt.',
-    boostRollback: 'Stellt die Originaldatei aus dem letzten Backup wieder her.'
+    boostRollback: 'Stellt die Originaldatei aus dem letzten Backup wieder her.',
+    boostGainSlider: 'Schieberegler pro Datei: 0 dB bis zur sicheren Maximalerhöhung. Erst Kopie erzeugen, dann testen, dann übernehmen.'
   };
 
   function registerDashboardModule(){
@@ -351,6 +352,10 @@ window.SoundLevelScanModule = (function(){
         render();
         return;
       }
+      if (target.dataset.soundLevelBoostPreset) {
+        applyBoostPreset(target);
+        return;
+      }
       if (!target.dataset.soundLevelControl) return;
       readControls();
       await loadReferenceOnly(false);
@@ -359,7 +364,12 @@ window.SoundLevelScanModule = (function(){
 
     root.addEventListener('input', (event) => {
       const target = event.target;
-      if (!target || !target.dataset.soundLevelControl) return;
+      if (!target) return;
+      if (target.dataset.soundLevelBoostGain) {
+        updateBoostGainDisplay(target);
+        return;
+      }
+      if (!target.dataset.soundLevelControl) return;
       readControls();
       render();
     });
@@ -436,11 +446,73 @@ window.SoundLevelScanModule = (function(){
     const clean = String(file || '').trim();
     if (!clean) throw new Error('Keine Datei für Boost-Kopie ausgewählt.');
     const overwrite = Boolean(document.getElementById('soundLevelBoostOverwrite')?.checked ?? true);
-    const result = await api('/boost/create-one', { method: 'POST', body: JSON.stringify({ file: clean, overwrite, updatedBy: 'dashboard' }) });
+    const rowSettings = getBoostRowSettings(clean);
+    const body = {
+      file: clean,
+      overwrite,
+      updatedBy: 'dashboard'
+    };
+    if (rowSettings.gainDb !== null) body.gainDb = rowSettings.gainDb;
+    if (rowSettings.targetLufs !== null) body.targetLufs = rowSettings.targetLufs;
+    if (rowSettings.maxGainDb !== null) body.maxGainDb = rowSettings.maxGainDb;
+    const result = await api('/boost/create-one', { method: 'POST', body: JSON.stringify(body) });
     state.boostApplyResult = result;
     state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true');
-    state.lastMessage = `Boost-Kopie erzeugt: ${result.outputFile || clean} mit ${db(result.gainDb, 1)}.`;
+    state.lastMessage = `Boost-Kopie erzeugt: ${result.outputFile || clean} mit ${db(result.gainDb, 1)}. Geschätzter Peak: ${db(result.estimatedPeakAfterBoostDbtp, 1)} dBTP.`;
     render();
+  }
+
+  function getBoostRowSettings(file){
+    const clean = String(file || '').trim();
+    const input = Array.from(document.querySelectorAll('[data-sound-level-boost-gain]')).find(el => el.dataset.soundLevelFile === clean);
+    if (!input) return { gainDb: null, targetLufs: null, maxGainDb: null };
+    const gain = Number(input.value);
+    const inputI = Number(input.dataset.inputI);
+    const maxGain = Number(input.dataset.maxGain);
+    const gainDb = Number.isFinite(gain) ? Math.max(0, Math.min(Number.isFinite(maxGain) ? maxGain : 18, gain)) : null;
+    const targetLufs = gainDb !== null && Number.isFinite(inputI) ? Number((inputI + gainDb).toFixed(2)) : null;
+    const maxGainDb = Number.isFinite(maxGain) ? maxGain : null;
+    return { gainDb, targetLufs, maxGainDb };
+  }
+
+  function updateBoostGainDisplay(input){
+    if (!input) return;
+    const gain = Number(input.value);
+    const inputI = Number(input.dataset.inputI);
+    const inputTp = Number(input.dataset.inputTp);
+    const id = input.dataset.soundLevelGainId || '';
+    const valueEl = document.querySelector(`[data-sound-level-gain-value="${id}"]`);
+    const targetEl = document.querySelector(`[data-sound-level-target-value="${id}"]`);
+    const peakEl = document.querySelector(`[data-sound-level-peak-value="${id}"]`);
+    if (valueEl) valueEl.textContent = `${db(gain, 1)}`;
+    if (targetEl) targetEl.textContent = Number.isFinite(inputI) && Number.isFinite(gain) ? `${num(inputI + gain, 2)} LUFS` : '-';
+    if (peakEl) peakEl.textContent = Number.isFinite(inputTp) && Number.isFinite(gain) ? `${db(inputTp + gain, 1)} dBTP` : '-';
+  }
+
+  function applyBoostPreset(select){
+    if (!select) return;
+    const id = select.dataset.soundLevelGainId || '';
+    const input = document.querySelector(`[data-sound-level-boost-gain][data-sound-level-gain-id="${id}"]`);
+    if (!input) return;
+    const inputI = Number(input.dataset.inputI);
+    const maxGain = Number(input.dataset.maxGain);
+    const ref = Number(select.dataset.referenceLufs);
+    const value = select.value;
+    let gain = Number(input.value);
+    if (value === 'current') {
+      updateBoostGainDisplay(input);
+      return;
+    }
+    if (value.startsWith('ref-') && Number.isFinite(inputI) && Number.isFinite(ref)) {
+      const offset = Number(value.slice(4));
+      gain = (ref - offset) - inputI;
+    } else if (value === 'target' && Number.isFinite(inputI)) {
+      gain = Number(input.dataset.defaultGain || input.value || 0);
+    }
+    if (!Number.isFinite(gain)) gain = 0;
+    gain = Math.max(0, Math.min(Number.isFinite(maxGain) ? maxGain : 18, gain));
+    input.value = String(Math.round(gain * 10) / 10);
+    updateBoostGainDisplay(input);
   }
 
   async function promoteBoostCopyOne(file){
@@ -920,6 +992,53 @@ window.SoundLevelScanModule = (function(){
     `;
   }
 
+  function boostGainId(file){
+    let hash = 0;
+    const text = String(file || '');
+    for (let i = 0; i < text.length; i += 1) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+    return `boost_${Math.abs(hash)}`;
+  }
+
+  function renderBoostControl(row, preview){
+    if (!row.canCreate) return `<span class="sound-muted small">${esc(row.unsupportedReason || 'nicht unterstützt')}</span>`;
+    const id = boostGainId(row.file || '');
+    const max = Math.max(0, Number(row.sliderMaxGainDb ?? row.maxSafeGainDb ?? row.targetGainDb ?? 0));
+    const value = Math.max(0, Math.min(max || 0, Number(row.targetGainDb ?? row.recommendedGainDb ?? 0)));
+    const reference = Number((state.reference && state.reference.referenceLufs) || preview?.boostTarget?.requestedTargetLufs || preview?.boostTarget?.targetLufs || -14);
+    const inputI = Number(row.inputI);
+    const inputTp = Number(row.inputTp);
+    const target = Number.isFinite(inputI) ? inputI + value : NaN;
+    const peak = Number.isFinite(inputTp) ? inputTp + value : NaN;
+    return `
+      <div class="sound-boost-control">
+        <div class="sound-boost-control-top">
+          <strong data-sound-level-gain-value="${esc(id)}">${db(value, 1)}</strong>
+          <span>max ${db(max, 1)}</span>
+        </div>
+        <input type="range" min="0" max="${esc(max || 0)}" step="0.1" value="${esc(value)}"
+          data-sound-level-boost-gain="1"
+          data-sound-level-file="${esc(row.file || '')}"
+          data-sound-level-gain-id="${esc(id)}"
+          data-input-i="${esc(row.inputI ?? '')}"
+          data-input-tp="${esc(row.inputTp ?? '')}"
+          data-max-gain="${esc(max || 0)}"
+          data-default-gain="${esc(value)}"
+          title="${esc(HELP.boostGainSlider)}">
+        <select data-sound-level-boost-preset="1" data-sound-level-gain-id="${esc(id)}" data-reference-lufs="${esc(reference)}" title="Schnellwahl relativ zur Referenz">
+          <option value="current">eigener Wert</option>
+          <option value="ref-0">Referenz</option>
+          <option value="ref-1">Referenz -1 dB</option>
+          <option value="ref-2">Referenz -2 dB</option>
+          <option value="ref-3">Referenz -3 dB</option>
+          <option value="target">Vorschlag</option>
+        </select>
+        <div class="sound-boost-control-meta">
+          <span>Ziel: <b data-sound-level-target-value="${esc(id)}">${Number.isFinite(target) ? `${num(target, 2)} LUFS` : '-'}</b></span>
+          <span>Peak: <b data-sound-level-peak-value="${esc(id)}">${Number.isFinite(peak) ? `${db(peak, 1)} dBTP` : '-'}</b></span>
+        </div>
+      </div>`;
+  }
+
   function renderBoostCopyPanel(){
     const preview = state.boostPreview || null;
     const result = state.boostApplyResult || null;
@@ -947,6 +1066,7 @@ window.SoundLevelScanModule = (function(){
           <div><strong>${esc(summary.existingCopies ?? 0)}</strong><span>vorhanden</span></div>
           <div><strong>${esc(summary.unsupported ?? 0)}</strong><span>nicht direkt</span></div>
           <div><strong>${num(preview.boostTarget?.targetLufs ?? (state.levelConfig?.boostTargetLufs ?? -14), 2)}</strong><span>Boost-Ziel LUFS</span></div>
+          <div><strong>${num(state.reference?.referenceLufs ?? preview.boostTarget?.requestedTargetLufs ?? -14, 2)}</strong><span>Referenz LUFS</span></div>
         </div>
         ${result ? `<div class="sound-note success">Boost-Kopie erzeugt: <strong>${esc(result.outputFile || '')}</strong>. Teste Original und Kopie bewusst über das Sound-System.</div>` : ''}
         <div class="sound-actions">
@@ -956,13 +1076,13 @@ window.SoundLevelScanModule = (function(){
         ${rows.length ? `
           <div class="sound-table-wrap compact">
             <table class="sound-levelscan-table compact">
-              <thead><tr><th>Datei</th><th>LUFS</th><th>Ziel-Gain</th><th>Kopie</th><th>Aktion</th></tr></thead>
+              <thead><tr><th>Datei</th><th>LUFS/Peak</th><th>Boost einstellen</th><th>Kopie</th><th>Aktion</th></tr></thead>
               <tbody>
                 ${rows.slice(0, 40).map(row => `
                   <tr class="${row.exists ? 'is-success' : 'is-danger'}">
                     <td>${esc(row.file || '-')}<br><small>${row.outputFile ? `Kopie: ${esc(row.outputFile)}` : ''}</small></td>
-                    <td>${num(row.inputI, 2)}</td>
-                    <td>${db(row.targetGainDb ?? row.recommendedGainDb, 1)}</td>
+                    <td>${num(row.inputI, 2)} LUFS<br><small>TP ${db(row.inputTp, 1)} dBTP</small></td>
+                    <td>${renderBoostControl(row, preview)}</td>
                     <td><span class="sound-pill ${row.exists ? 'success' : row.canCreate ? 'warn' : 'danger'}">${row.exists ? 'vorhanden' : row.canCreate ? 'fehlt' : 'nicht direkt'}</span></td>
                     <td>
                       ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>${row.exists ? ` <button type="button" data-sound-level-action="promote-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPromote)}">Kopie übernehmen</button>` : ''}` : `<span class="sound-muted small">${esc(row.unsupportedReason || 'nicht unterstützt')}</span>`}

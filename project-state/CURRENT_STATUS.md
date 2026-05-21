@@ -421,3 +421,8 @@ Sound-Pegel kann jetzt Boost-Kopien als Einzeldatei-Test vorbereiten. Kopien lan
 - Promote-/Rollback-Historie wird in SQLite `sound_loudness_promotions` gespeichert.
 - Bestehende Alert-/SoundAlert-/VIP-Konfigurationen müssen dadurch nicht auf `normalized/...` umgestellt werden.
 - Keine Originaldatei wird ohne Backup überschrieben.
+
+
+## STEP272I – Aktueller Sound-Pegel-Stand
+
+Der Boost-Kopien-Bereich unterstützt jetzt einen pro Datei einstellbaren Boost-Workflow mit Slider, Presets und serverseitiger Sicherheitsprüfung. Dateien werden weiterhin erst als Kopie unter `htdocs/assets/sounds/normalized/` erzeugt und nur per separatem Promote mit Backup an die Originalstelle übernommen.

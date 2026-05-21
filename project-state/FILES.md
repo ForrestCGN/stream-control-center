@@ -605,3 +605,11 @@ TTS-System
 - `htdocs/dashboard/modules/sound_levelscan.js` - Checkbox für Boost-Overwrite, Button `Kopie übernehmen`, Promote-Historie und Rollback.
 - `htdocs/dashboard/modules/sound_levelscan.css` - kleine Styles für Overwrite/Promote-Historie.
 - `project-state/STEP272H_SOUND_PEGEL_PROMOTE_BACKUP.md` - Step-Dokumentation.
+
+
+## STEP272I geänderte Dateien
+
+- `backend/modules/sound_loudness_scanner.js` – Boost-Preview erweitert, manuelle `gainDb`-Erzeugung, Sicherheitsprüfung.
+- `htdocs/dashboard/modules/sound_levelscan.js` – Boost-Workflow mit Slider/Dropdown pro Datei.
+- `htdocs/dashboard/modules/sound_levelscan.css` – Styling für Boost-Regler.
+- `project-state/STEP272I_SOUND_PEGEL_DASHBOARD_BOOST_WORKFLOW.md` – Step-Dokumentation.

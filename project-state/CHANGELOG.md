@@ -294,3 +294,11 @@
 - Promote-/Rollback-Historie wird in SQLite `sound_loudness_promotions` gespeichert.
 - Bestehende Alert-/SoundAlert-/VIP-Konfigurationen müssen dadurch nicht auf `normalized/...` umgestellt werden.
 - Keine Originaldatei wird ohne Backup überschrieben.
+
+
+## STEP272I – Sound-Pegel Dashboard Boost-Workflow
+
+- Boost-Kopien können im Dashboard pro Datei mit Schieberegler eingestellt werden.
+- Backend liefert sichere Maximalerhöhung und geschätzten Peak nach Boost.
+- `boost/create-one` akzeptiert nun `gainDb`/`boostGainDb` für manuelle Einzeltests.
+- Originaldateien bleiben unverändert; Promote/Backup bleibt separater Schritt.

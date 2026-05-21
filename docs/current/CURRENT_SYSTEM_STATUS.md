@@ -351,3 +351,8 @@ Das Sound-Pegel-System unterstützt jetzt eine sichere Preview für zu leise Dat
 - Promote-/Rollback-Historie wird in SQLite `sound_loudness_promotions` gespeichert.
 - Bestehende Alert-/SoundAlert-/VIP-Konfigurationen müssen dadurch nicht auf `normalized/...` umgestellt werden.
 - Keine Originaldatei wird ohne Backup überschrieben.
+
+
+## STEP272I – Sound-Pegel Dashboard Boost-Workflow
+
+Das Sound-Pegel-Dashboard kann Boost-Kopien jetzt pro Datei mit einem Slider und Presets vorbereiten. Die maximale Erhöhung wird aus Datei-Headroom und globalem Max-Boost berechnet. Originaldateien werden erst durch den separaten Promote-Schritt mit Backup ersetzt.
