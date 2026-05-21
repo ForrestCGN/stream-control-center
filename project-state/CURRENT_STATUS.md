@@ -2,6 +2,15 @@
 
 Stand: 2026-05-21
 
+## STEP270G - Sound Pegel-Playback-Korrektur optional
+
+- Pegel-Korrektur kann jetzt optional zentral im Sound-System angewendet werden.
+- Standard bleibt AUS. Aktiv wird sie nur ueber Dashboard/Settings mit `enabled=true` und `mode=ready`.
+- `sound_system.js` liest die letzte Messung aus `sound_loudness_files` und passt nur `item.volume` an.
+- Originaldateien, normalisierte Kopien, Queue, Prioritaeten, Alert-Bundle-Lock, Discord-Routing und TTS bleiben unveraendert.
+- Dashboard `Pegel-Scan` hat einen Schalter `Playback-Korrektur aktivieren`.
+- Status/Items zeigen `levelCorrection`, Sound-Stats enthalten `levelCorrected` und `levelCorrectionSkipped`.
+
 
 ## STEP270E - Sound Pegel-Scan Fortschrittsanzeige
 

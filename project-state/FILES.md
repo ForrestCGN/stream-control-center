@@ -2,6 +2,42 @@
 
 Stand: 2026-05-21
 
+## STEP270G - Pegel-Playback-Korrektur optional
+
+Geaendert:
+
+```text
+backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
+htdocs/dashboard/modules/sound_levelscan.js
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP270G_SOUND_PEGEL_PLAYBACK_CORRECTION_OPTIONAL.md
+```
+
+Nicht geaendert:
+
+```text
+Sound-Dateien
+Normalisierte Kopien
+config/**
+app.sqlite neu gebaut/ersetzt: nein
+Alert-System
+TTS-System
+Discord-Routing
+Streamer.bot-Flows
+Overlay-HTML
+```
+
+Hinweis:
+
+```text
+Die Pegel-Korrektur greift nur, wenn sie im Dashboard explizit aktiviert wird. Originaldateien bleiben unveraendert.
+```
+
 ## STEP270D1 - Pegel-Scan TTS-Dateien ausgeschlossen
 
 Geaendert:

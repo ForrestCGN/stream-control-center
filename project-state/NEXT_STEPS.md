@@ -2,6 +2,47 @@
 
 Stand: 2026-05-21
 
+## Nach STEP270G - optionale Pegel-Korrektur vorsichtig testen
+
+Zuerst ausgeschaltet pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 80
+```
+
+Dann im Dashboard:
+
+```text
+System -> Sound-System -> Pegel-Scan
+Playback-Korrektur aktivieren
+Pegel-Einstellungen speichern
+```
+
+Danach mit einzelnen Test-Sounds pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=airhorn.mp3&outputTarget=device&target=stream&volume=80" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 80
+```
+
+Erwartung:
+
+```text
+config.levelCorrection.active=true
+item.levelCorrection.applied=true bei gescannten Nicht-TTS-Audiodateien
+stats.levelCorrected steigt
+Originaldateien bleiben unveraendert
+```
+
+Wenn etwas komisch klingt:
+
+```text
+Playback-Korrektur im Dashboard wieder deaktivieren.
+Keine Dateien muessen zurueckgespielt werden, weil nichts normalisiert/ueberschrieben wurde.
+```
+
+Normalisierte Kopien bleiben ein separater spaeterer Schritt und duerfen Originaldateien nicht ueberschreiben.
+
 ## Nach STEP270D1 - Pegel-Scan ohne TTS testen
 
 Backend-/API-Test:

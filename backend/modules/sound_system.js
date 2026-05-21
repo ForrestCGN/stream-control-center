@@ -99,6 +99,22 @@ const DEFAULT_CONFIG = {
   sounds: []
 };
 
+const DEFAULT_LEVEL_CORRECTION_SETTINGS = {
+  enabled: false,
+  mode: "off",
+  targetLufs: -18,
+  truePeakLimitDbtp: -1.5,
+  maxPlaybackVolume: 80,
+  maxBoostDb: 6,
+  maxCutDb: 24,
+  protectTruePeak: true,
+  excludeTts: true,
+  applyToTargets: ["stream", "discord", "both", "device", "overlay"]
+};
+const LEVEL_CORRECTION_SETTINGS_TABLE = "sound_loudness_settings";
+const LEVEL_CORRECTION_FILES_TABLE = "sound_loudness_files";
+const LEVEL_CORRECTION_EXCLUDED_SEGMENTS = ["tts", "tts_system", "alert_tts", "generated_tts", "temp_tts", "tts_cache"];
+
 const DEFAULT_MESSAGES = {
   moduleReady: "Sound-System bereit.",
   systemDisabled: "Sound-System ist deaktiviert.",
@@ -139,7 +155,7 @@ module.exports.init = function init(ctx) {
     client: { connected: false, lastSeenAt: 0, lastEvent: "" },
     device: { lastOk: false, lastAt: 0, lastError: "", lastResult: null },
     discord: { lastOk: false, lastAt: 0, lastError: "", lastResult: null },
-    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0, discordStarted: 0, discordFailed: 0, parallelStarted: 0, bundlesQueued: 0, bundleItemsQueued: 0 },
+    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0, discordStarted: 0, discordFailed: 0, parallelStarted: 0, bundlesQueued: 0, bundleItemsQueued: 0, levelCorrected: 0, levelCorrectionSkipped: 0, levelCorrectionFailed: 0 },
     activeBundleLock: null
   };
 
@@ -661,6 +677,7 @@ module.exports.init = function init(ctx) {
         queue: config.queue || {},
         targets: config.targets || {},
         discordRouting: config.discordRouting || {},
+        levelCorrection: publicLevelCorrectionStatus(),
         priorities: config.priorities || {},
         categoryDefaults: config.categoryDefaults || {},
         defaults: config.defaults || {},
@@ -702,6 +719,7 @@ module.exports.init = function init(ctx) {
       meta: item.meta || {},
       visual: item.visual || {},
       lifecycle: item.lifecycle || {},
+      levelCorrection: item.levelCorrection || null,
       queuedAt: item.queuedAt,
       startedAt: item.startedAt || 0,
       endsAt: item.endsAt || 0,
@@ -800,6 +818,183 @@ module.exports.init = function init(ctx) {
     const n = Number(value);
     if (!Number.isFinite(n)) return fallback;
     return Math.max(0, Math.min(100, Math.round(n)));
+  }
+
+  function clampDb(value, fallback, min, max) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function roundOne(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Math.round(n * 10) / 10;
+  }
+
+  function gainDbToVolume(gainDb, maxVolume) {
+    const gain = Number(gainDb);
+    if (!Number.isFinite(gain)) return null;
+    const base = clampVolume(maxVolume, DEFAULT_LEVEL_CORRECTION_SETTINGS.maxPlaybackVolume);
+    const linear = Math.pow(10, gain / 20);
+    return Math.max(1, Math.min(100, Math.round(base * linear)));
+  }
+
+  function sanitizeLevelCorrectionSettings(raw) {
+    const input = isPlainObject(raw) ? raw : {};
+    const mode = String(input.mode || DEFAULT_LEVEL_CORRECTION_SETTINGS.mode).trim().toLowerCase();
+    const targets = Array.isArray(input.applyToTargets) ? input.applyToTargets : DEFAULT_LEVEL_CORRECTION_SETTINGS.applyToTargets;
+    return {
+      enabled: input.enabled === true,
+      mode: ["off", "preview", "ready", "active", "apply"].includes(mode) ? mode : "off",
+      targetLufs: clampDb(input.targetLufs, DEFAULT_LEVEL_CORRECTION_SETTINGS.targetLufs, -40, -6),
+      truePeakLimitDbtp: clampDb(input.truePeakLimitDbtp, DEFAULT_LEVEL_CORRECTION_SETTINGS.truePeakLimitDbtp, -12, 0),
+      maxPlaybackVolume: clampVolume(input.maxPlaybackVolume, DEFAULT_LEVEL_CORRECTION_SETTINGS.maxPlaybackVolume),
+      maxBoostDb: clampDb(input.maxBoostDb, DEFAULT_LEVEL_CORRECTION_SETTINGS.maxBoostDb, 0, 18),
+      maxCutDb: clampDb(input.maxCutDb, DEFAULT_LEVEL_CORRECTION_SETTINGS.maxCutDb, 0, 40),
+      protectTruePeak: input.protectTruePeak !== false,
+      excludeTts: input.excludeTts !== false,
+      applyToTargets: Array.from(new Set(targets.map(v => String(v || "").trim().toLowerCase()).filter(Boolean)))
+    };
+  }
+
+  function readLevelCorrectionSettings() {
+    const fallback = sanitizeLevelCorrectionSettings(DEFAULT_LEVEL_CORRECTION_SETTINGS);
+    try {
+      database.ensureReady();
+      if (typeof database.tableExists === "function" && !database.tableExists(LEVEL_CORRECTION_SETTINGS_TABLE)) return fallback;
+      const row = database.get(`SELECT value_json FROM ${LEVEL_CORRECTION_SETTINGS_TABLE} WHERE key = :key`, { key: "correction" }) || null;
+      if (!row || !row.value_json) return fallback;
+      const parsed = JSON.parse(String(row.value_json || "{}"));
+      return sanitizeLevelCorrectionSettings({ ...fallback, ...(isPlainObject(parsed) ? parsed : {}) });
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function publicLevelCorrectionStatus() {
+    const settings = readLevelCorrectionSettings();
+    return {
+      enabled: settings.enabled,
+      mode: settings.mode,
+      active: isLevelCorrectionActive(settings),
+      targetLufs: settings.targetLufs,
+      truePeakLimitDbtp: settings.truePeakLimitDbtp,
+      maxPlaybackVolume: settings.maxPlaybackVolume,
+      maxBoostDb: settings.maxBoostDb,
+      maxCutDb: settings.maxCutDb,
+      protectTruePeak: settings.protectTruePeak,
+      excludeTts: settings.excludeTts,
+      applyToTargets: settings.applyToTargets
+    };
+  }
+
+  function isLevelCorrectionActive(settings) {
+    return !!settings && settings.enabled === true && ["ready", "active", "apply"].includes(String(settings.mode || "").toLowerCase());
+  }
+
+  function normalizeRelativeSoundPath(value) {
+    return String(value || "").replace(/\\/g, "/").replace(/^\/+/, "").trim();
+  }
+
+  function looksLikeTtsSoundPath(relativePath, item) {
+    const clean = normalizeRelativeSoundPath(relativePath).toLowerCase();
+    const segments = clean.split("/").filter(Boolean);
+    if (segments.some(segment => LEVEL_CORRECTION_EXCLUDED_SEGMENTS.includes(segment))) return true;
+    const baseName = path.basename(clean);
+    if (/^tts[-_]/i.test(baseName)) return true;
+    const source = normalizeId(item && item.source || "");
+    const category = normalizeId(item && item.category || "");
+    const soundId = normalizeId(item && item.soundId || "");
+    return [source, category, soundId].some(value => value === "tts" || value === "tts_system" || value === "alert_tts" || value.startsWith("tts_"));
+  }
+
+  function levelCorrectionTargetMatches(item, settings) {
+    const targets = Array.isArray(settings.applyToTargets) ? settings.applyToTargets.map(v => String(v || "").toLowerCase()) : [];
+    if (!targets.length) return true;
+    const legacyTarget = String(item.target || "").toLowerCase();
+    const outputTarget = String(item.outputTarget || "").toLowerCase();
+    return targets.includes(legacyTarget) || targets.includes(outputTarget);
+  }
+
+  function readLevelCorrectionRow(relativePath) {
+    try {
+      database.ensureReady();
+      if (typeof database.tableExists === "function" && !database.tableExists(LEVEL_CORRECTION_FILES_TABLE)) return null;
+      return database.get(`SELECT * FROM ${LEVEL_CORRECTION_FILES_TABLE} WHERE relative_path = :relativePath`, { relativePath }) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function buildLevelCorrectionResult(item, settings) {
+    const result = {
+      active: isLevelCorrectionActive(settings),
+      applied: false,
+      reason: "inactive",
+      originalVolume: Number(item && item.volume || 0),
+      correctedVolume: Number(item && item.volume || 0),
+      gainDb: null,
+      rawGainDb: null,
+      file: normalizeRelativeSoundPath(item && item.file || ""),
+      targetLufs: settings.targetLufs,
+      inputI: null,
+      inputTp: null
+    };
+
+    if (!result.active) return result;
+    if (!item || !item.file || item.file === "generated/beep.wav") return { ...result, reason: "generated_or_missing_file" };
+    if (isVideoItem(item)) return { ...result, reason: "video_skipped" };
+    if (!levelCorrectionTargetMatches(item, settings)) return { ...result, reason: "target_not_enabled" };
+    if (settings.excludeTts && looksLikeTtsSoundPath(result.file, item)) return { ...result, reason: "tts_excluded" };
+
+    const row = readLevelCorrectionRow(result.file);
+    if (!row) return { ...result, reason: "not_scanned" };
+    if (String(row.status || "") === "error") return { ...result, reason: "scan_error" };
+
+    const inputI = Number(row.input_i);
+    const inputTp = Number(row.input_tp);
+    if (!Number.isFinite(inputI)) return { ...result, reason: "missing_lufs" };
+
+    let gainDb = Number(settings.targetLufs) - inputI;
+    const rawGainDb = gainDb;
+    if (gainDb > Number(settings.maxBoostDb)) gainDb = Number(settings.maxBoostDb);
+    if (gainDb < -Number(settings.maxCutDb)) gainDb = -Number(settings.maxCutDb);
+    if (settings.protectTruePeak && Number.isFinite(inputTp) && gainDb > 0 && inputTp + gainDb > Number(settings.truePeakLimitDbtp)) {
+      gainDb = Number(settings.truePeakLimitDbtp) - inputTp;
+    }
+
+    const correctedVolume = gainDbToVolume(gainDb, settings.maxPlaybackVolume);
+    if (!Number.isFinite(Number(correctedVolume))) return { ...result, reason: "volume_unavailable", inputI: roundOne(inputI), inputTp: roundOne(inputTp), rawGainDb: roundOne(rawGainDb), gainDb: roundOne(gainDb) };
+
+    return {
+      ...result,
+      applied: true,
+      reason: "applied",
+      correctedVolume,
+      inputI: roundOne(inputI),
+      inputTp: roundOne(inputTp),
+      rawGainDb: roundOne(rawGainDb),
+      gainDb: roundOne(gainDb),
+      scanId: String(row.scan_id || ""),
+      scannedAt: String(row.scanned_at || "")
+    };
+  }
+
+  function applyLevelCorrection(item) {
+    if (!item) return item;
+    const settings = readLevelCorrectionSettings();
+    const correction = buildLevelCorrectionResult(item, settings);
+    item.levelCorrection = correction;
+    item.lifecycle = { ...(item.lifecycle || {}), levelCorrection: correction };
+    if (!correction.active) return item;
+    if (!correction.applied) {
+      state.stats.levelCorrectionSkipped = Number(state.stats.levelCorrectionSkipped || 0) + 1;
+      return item;
+    }
+    item.volume = correction.correctedVolume;
+    state.stats.levelCorrected = Number(state.stats.levelCorrected || 0) + 1;
+    return item;
   }
 
   function normalizeTarget(rawTarget) {
@@ -1068,7 +1263,7 @@ module.exports.init = function init(ctx) {
     const resolvedDuration = resolveDurationMs(base, mediaInfo, fallbackDurationMs, generatedBeep);
     const effectiveOutputTarget = mediaType === "video" ? "overlay" : outputTarget;
 
-    return {
+    const normalizedItem = {
       requestId: makeRequestId(),
       soundId: soundId || normalizeId(file ? path.basename(file, path.extname(file)) : "generated_beep"),
       label: String(base.label || soundId || file || "Generated Beep").trim(),
@@ -1114,6 +1309,8 @@ module.exports.init = function init(ctx) {
       startedAt: 0,
       endsAt: 0
     };
+
+    return applyLevelCorrection(normalizedItem);
   }
 
   function sortQueue() {

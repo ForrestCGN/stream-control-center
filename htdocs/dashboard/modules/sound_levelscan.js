@@ -284,8 +284,8 @@ window.SoundLevelScanModule = (function(){
     const normalization = state.normalizationSettings || {};
     const payload = {
       correction: {
-        enabled: false,
-        mode: 'preview',
+        enabled: !!document.getElementById('soundLevelCorrectionEnabled')?.checked,
+        mode: document.getElementById('soundLevelCorrectionEnabled')?.checked ? 'ready' : 'preview',
         targetLufs: correctionFormNumber('soundLevelCorrectionTargetLufs', current.targetLufs ?? -18, -40, -6),
         truePeakLimitDbtp: correctionFormNumber('soundLevelCorrectionPeakLimit', current.truePeakLimitDbtp ?? -1.5, -12, 0),
         maxPlaybackVolume: Math.round(correctionFormNumber('soundLevelCorrectionMaxVolume', current.maxPlaybackVolume ?? 80, 1, 100)),
@@ -303,7 +303,7 @@ window.SoundLevelScanModule = (function(){
     const saved = await api('/correction/settings', { method: 'POST', body: JSON.stringify(payload) });
     state.correctionSettings = saved.correction || null;
     state.normalizationSettings = saved.normalization || null;
-    state.lastMessage = 'Korrektur-Vorschau-Einstellungen gespeichert. Playback bleibt weiterhin unverändert.';
+    state.lastMessage = payload.correction.enabled ? 'Pegel-Korrektur gespeichert. Sie greift beim Abspielen zentral im Sound-System.' : 'Korrektur-Vorschau-Einstellungen gespeichert. Playback bleibt ausgeschaltet.';
     await loadResultsOnly();
   }
 
@@ -499,16 +499,21 @@ window.SoundLevelScanModule = (function(){
     const corr = state.correctionSettings || {};
     const norm = state.normalizationSettings || {};
     const previewSummary = state.correctionPreview?.summary || {};
+    const correctionActive = corr.enabled === true && ['ready', 'active', 'apply'].includes(String(corr.mode || '').toLowerCase());
     return `
       <div class="sound-levelscan-correction-settings">
         <div class="sound-levelscan-preview-head">
           <div>
-            <strong>Spätere Pegel-Anpassung vorbereiten</strong>
+            <strong>Pegel-Anpassung beim Abspielen</strong>
             <span>${esc(HELP.correctionSettings)}</span>
           </div>
-          <span class="sound-pill danger" title="Noch nicht im Sound-System aktiv. Es wird nur gespeichert und vorgerechnet.">Anwendung AUS</span>
+          <span class="sound-pill ${correctionActive ? 'success' : 'danger'}" title="${correctionActive ? 'Aktiv: sound_system.js passt die Item-Lautstärke beim Abspielen anhand der letzten Pegel-Messung an.' : 'Aus: es wird nur vorgerechnet und nichts beim Abspielen verändert.'}">${correctionActive ? 'Anwendung AKTIV' : 'Anwendung AUS'}</span>
         </div>
         <div class="sound-levelscan-settings-grid">
+          <label class="sound-check" title="Wenn aktiv, passt das Sound-System beim Start eines Sounds die Item-Volume anhand des letzten Pegel-Scans an. Originaldateien bleiben unverändert.">
+            <input id="soundLevelCorrectionEnabled" type="checkbox" ${correctionActive ? 'checked' : ''}>
+            <span>Playback-Korrektur aktivieren</span>
+          </label>
           <label class="sound-field">
             ${withHelp('Ziel-LUFS', HELP.targetLufs)}
             <input id="soundLevelCorrectionTargetLufs" type="number" min="-40" max="-6" step="0.5" value="${esc(corr.targetLufs ?? -18)}">
@@ -545,9 +550,9 @@ window.SoundLevelScanModule = (function(){
           <div title="Dateien, die später lauter würden."><strong>${esc(previewSummary.raise ?? '-')}</strong><span>lauter</span></div>
         </div>
         <div class="sound-actions">
-          <button type="button" data-sound-level-action="save-correction" title="Speichert nur die Vorschau-Einstellungen. Playback bleibt aus.">Vorschau-Einstellungen speichern</button>
+          <button type="button" data-sound-level-action="save-correction" title="Speichert die Pegel-Einstellungen. Wenn Playback-Korrektur aktiv ist, greift sie zentral im Sound-System.">Pegel-Einstellungen speichern</button>
         </div>
-        <div class="sound-note">Diese Einstellungen werden gespeichert und für die Vorschau genutzt. Sie greifen noch nicht in <code>sound_system.js</code> ein.</div>
+        <div class="sound-note">Wenn aktiv, passt <code>sound_system.js</code> nur die Playback-Volume des Sound-Items an. Originaldateien, Queue, Discord-Routing und Alert-Bundles bleiben unverändert.</div>
       </div>
 
       <div class="sound-levelscan-normalization-planned">

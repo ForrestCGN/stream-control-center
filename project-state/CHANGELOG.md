@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-05-21 - STEP270G Pegel-Playback-Korrektur optional
+
+- `backend/modules/sound_system.js` erweitert.
+- Sound-System kann Pegel-Scan-Werte jetzt optional beim Abspielen nutzen.
+- Die Korrektur ist standardmaessig AUS und wird nur bei `enabled=true` + `mode=ready` angewendet.
+- Item-Volume wird zentral im Sound-System angepasst; Originaldateien bleiben unveraendert.
+- Dashboard-Schalter `Playback-Korrektur aktivieren` im Pegel-Scan ergaenzt.
+- `backend/modules/sound_loudness_scanner.js` Hinweise/Preview auf aktive Korrektur aktualisiert.
+- Keine Normalisierung, keine Datei-Kopien, keine Queue-/Discord-/Alert-/TTS-Umbauten.
+
 ## 2026-05-21 - STEP270E Sound Pegel-Scan Fortschrittsanzeige
 
 - `backend/modules/sound_loudness_scanner.js` erweitert.

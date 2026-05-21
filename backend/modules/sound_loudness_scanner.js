@@ -163,7 +163,7 @@ module.exports.init = function init(ctx) {
         correction: getCorrectionSettings(),
         normalization: getNormalizationSettings(),
         notes: [
-          "Settings only: playback correction is not active until sound_system uses it.",
+          "Playback correction can be applied centrally by sound_system when enabled and mode=ready.",
           "Normalized-copy export is planned but not implemented in this step.",
           "No sound files are modified."
         ]
@@ -272,8 +272,8 @@ module.exports.init = function init(ctx) {
         "Read-only: no sound file is modified.",
         "TTS/generated speech files are excluded by default.",
         "Results are stored in SQLite using CREATE TABLE IF NOT EXISTS migration only.",
-        "Playback, Sound-System queue, Discord routing and Alert bundle logic are not changed.",
-        "Correction settings and normalized-copy export settings are preview/planning only in this step."
+        "Sound-System queue, Discord routing and Alert bundle logic are not changed.",
+        "Correction settings may be used by sound_system for optional playback-volume correction when explicitly enabled."
       ]
     });
   });
@@ -745,7 +745,7 @@ function buildCorrectionPreview(row, settings) {
   return {
     ...base,
     correctionPreview: {
-      enabled: false,
+      enabled: settings.enabled === true,
       mode: settings.mode,
       targetLufs: settings.targetLufs,
       maxPlaybackVolume: settings.maxPlaybackVolume,
