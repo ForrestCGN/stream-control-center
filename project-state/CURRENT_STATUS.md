@@ -2,6 +2,46 @@
 
 Stand: 2026-05-21
 
+## STEP268B - Alert Bundle Dedupe Bypass Robust
+
+- Aktueller stabiler Zwischenstand fuer Alert-/Sound-System-Queue-Verhalten.
+- Repo und Live wurden wieder bewusst getrennt behandelt:
+  - Repo: `D:\Git\stream-control-center`
+  - Live: `D:\Streaming\stramAssets`
+- STEP268B wurde live verifiziert:
+  - `backend/modules/sound_system.js` enthaelt `STEP268B_ALERT_BUNDLE_DEDUPE_BYPASS_ROBUST`.
+  - `isAlertBundleItem(item)` ist im Live-System vorhanden.
+  - Alert-Bundle-Items umgehen Same-Sound-/Same-User-Dedupe.
+- Ursache des Fehlers:
+  - Mehrere gleiche Alert-Hauptsounds wurden im Sound-System als Duplikate behandelt.
+  - Der zweite Alert-Hauptsound wurde mit `cooldown_same_sound` gedroppt.
+  - Die zugehoerige TTS blieb trotzdem in der Queue und spielte allein.
+  - Dadurch konnten VIP/SoundAlerts scheinbar zwischen Alerts rutschen.
+- Fix:
+  - Alert-Bundle-Items werden im Sound-System robuster erkannt.
+  - `checkCooldown(item)` liefert fuer Alert-Bundle-Items direkt `null`.
+  - `rememberCooldown(item)` schreibt Alert-Bundle-Items nicht mehr in die globale Same-Sound-Historie.
+- Geaendert:
+  - `backend/modules/sound_system.js`
+  - `backend/modules/alert_system.js` nur fuer zusaetzliche Prequeue-Diagnose.
+- Nicht geaendert:
+  - `app.sqlite`
+  - `config/**`
+  - Streamer.bot-Flows
+  - Overlay-HTML
+  - VIP-Logik
+- Bestaetigte Tests:
+  - Alert 1 mit Sound + TTS.
+  - Alert 2 mit Sound + TTS.
+  - Kein `cooldown_same_sound` Drop fuer Alert-Bundle-Items.
+  - Alert 1, Alert 2, VIP in korrekter Reihenfolge.
+  - Alert 1, Alert 2, SoundAlert, VIP nach aktueller Prioritaetslogik korrekt.
+  - Mischtest mit spaeterem Alert vor wartenden SoundAlerts/VIP korrekt, da Alerts hoeher priorisiert sind.
+- Aktuelle Prioritaetslogik:
+  - Alert-Bundles vor SoundAlert/VIP.
+  - SoundAlert/Kanalpunkte aktuell vor VIP.
+  - VIP/Crew aktuell hinter SoundAlert/Kanalpunkte.
+
 ## STEP266B - Alert Immediate Bundle Prequeue Self-Block Fix
 
 - Alert-System läuft wieder mit Sound-System-Bundles.
