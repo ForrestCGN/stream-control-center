@@ -18,13 +18,15 @@ const DEFAULT_TRUE_PEAK_LIMIT_DBTP = -1.5;
 const DEFAULT_MAX_PLAYBACK_VOLUME = 80;
 const DEFAULT_SCAN_LIMIT = 500;
 const DEFAULT_FFMPEG_TIMEOUT_MS = 45000;
+const DEFAULT_EXCLUDE_TTS = true;
+const DEFAULT_EXCLUDED_PATH_SEGMENTS = ["tts", "tts_system", "alert_tts", "generated_tts", "temp_tts", "tts_cache"];
 
 module.exports.init = function init(ctx) {
   const { app } = ctx;
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.1-step270a-fix",
+    version: "0.1.2-step270d1-exclude-tts",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -60,7 +62,9 @@ module.exports.init = function init(ctx) {
           allowedExtensions: DEFAULT_ALLOWED_EXTENSIONS,
           targetLufs: DEFAULT_TARGET_LUFS,
           truePeakLimitDbtp: DEFAULT_TRUE_PEAK_LIMIT_DBTP,
-          maxPlaybackVolume: DEFAULT_MAX_PLAYBACK_VOLUME
+          maxPlaybackVolume: DEFAULT_MAX_PLAYBACK_VOLUME,
+          excludeTts: DEFAULT_EXCLUDE_TTS,
+          excludedPathSegments: DEFAULT_EXCLUDED_PATH_SEGMENTS.slice()
         }
       });
     } catch (err) {
@@ -74,15 +78,21 @@ module.exports.init = function init(ctx) {
       const limit = clampNumber(req.query.limit, 1, 1000, 250);
       const offset = clampNumber(req.query.offset, 0, 1000000, 0);
       const status = String(req.query.status || "").trim();
+      const includeExcluded = parseBool(req.query.includeExcluded, false);
       const order = normalizeOrder(req.query.order || "relative_path");
       const direction = String(req.query.dir || "asc").toLowerCase() === "desc" ? "DESC" : "ASC";
 
       const filterParams = {};
       let where = "";
+      const whereParts = [];
       if (status) {
-        where = "WHERE status = :status";
+        whereParts.push("status = :status");
         filterParams.status = status;
       }
+      if (!includeExcluded) {
+        appendExcludedPathFilter(whereParts, filterParams);
+      }
+      where = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
 
       const totalRow = database.get(`SELECT COUNT(*) AS count FROM sound_loudness_files ${where}`, filterParams) || { count: 0 };
       const rows = database.all(
@@ -141,13 +151,14 @@ module.exports.init = function init(ctx) {
       addedByStep: "STEP270A",
       routes: [
         { method: "GET", path: `${ROUTE_PREFIX}/status`, description: "Read scanner state, defaults and latest scan summary" },
-        { method: "POST", path: `${ROUTE_PREFIX}/scan`, description: "Run a read-only loudness scan for sound files" },
+        { method: "POST", path: `${ROUTE_PREFIX}/scan`, description: "Run a read-only loudness scan for sound files; TTS files are excluded by default" },
         { method: "GET", path: `${ROUTE_PREFIX}/results`, description: "List persisted loudness scan results" },
         { method: "GET", path: `${ROUTE_PREFIX}/file?file=relative/path.mp3`, description: "Read one persisted loudness result" },
         { method: "GET", path: `${ROUTE_PREFIX}/routes`, description: "Route self-documentation" }
       ],
       notes: [
         "Read-only: no sound file is modified.",
+        "TTS/generated speech files are excluded by default.",
         "Results are stored in SQLite using CREATE TABLE IF NOT EXISTS migration only.",
         "Playback, Sound-System queue, Discord routing and Alert bundle logic are not changed."
       ]
@@ -185,7 +196,7 @@ module.exports.init = function init(ctx) {
     let summary = null;
 
     try {
-      files = findSoundFiles(options.baseDir, options.allowedExtensions, options.limit);
+      files = findSoundFiles(options.baseDir, options.allowedExtensions, options.limit, options);
       summary = {
         scanId: state.lastScanId,
         startedAt,
@@ -330,6 +341,8 @@ function parseScanOptions(input) {
   return {
     baseDir,
     allowedExtensions,
+    excludeTts: parseBool(body.excludeTts, DEFAULT_EXCLUDE_TTS),
+    excludedPathSegments: normalizeExcludedPathSegments(body.excludedPathSegments || DEFAULT_EXCLUDED_PATH_SEGMENTS),
     targetLufs: clampNumber(body.targetLufs, -40, -6, DEFAULT_TARGET_LUFS),
     truePeakLimitDbtp: clampNumber(body.truePeakLimitDbtp, -12, 0, DEFAULT_TRUE_PEAK_LIMIT_DBTP),
     maxPlaybackVolume: clampNumber(body.maxPlaybackVolume, 1, 100, DEFAULT_MAX_PLAYBACK_VOLUME),
@@ -356,6 +369,73 @@ function getSoundsBaseDir() {
   return path.join(paths.WEBROOT_DIR, "assets", "sounds");
 }
 
+function normalizeExcludedPathSegments(value) {
+  const list = Array.isArray(value) ? value : DEFAULT_EXCLUDED_PATH_SEGMENTS;
+  const clean = list
+    .map(item => String(item || "").trim().toLowerCase().replace(/\\/g, "/"))
+    .filter(Boolean)
+    .map(item => item.replace(/^\/+|\/+$/g, ""));
+  return clean.length ? Array.from(new Set(clean)) : DEFAULT_EXCLUDED_PATH_SEGMENTS.slice();
+}
+
+function isExcludedTtsPath(relativePath, excludedSegments = DEFAULT_EXCLUDED_PATH_SEGMENTS) {
+  const clean = normalizeRelativePath(relativePath).toLowerCase();
+  if (!clean) return false;
+  const parts = clean.split("/").filter(Boolean);
+  const segments = normalizeExcludedPathSegments(excludedSegments);
+
+  for (const segment of segments) {
+    if (!segment) continue;
+    if (segment.includes("/")) {
+      if (clean === segment || clean.startsWith(`${segment}/`) || clean.includes(`/${segment}/`)) return true;
+      continue;
+    }
+    if (parts.includes(segment)) return true;
+  }
+
+  const fileName = parts[parts.length - 1] || "";
+  if (fileName.startsWith("tts_") || fileName.startsWith("tts-") || fileName.includes("_tts_") || fileName.includes("-tts-")) return true;
+  if (clean.includes("/tts_") || clean.includes("/tts-")) return true;
+  return false;
+}
+
+function appendExcludedPathFilter(whereParts, params) {
+  const segments = normalizeExcludedPathSegments(DEFAULT_EXCLUDED_PATH_SEGMENTS);
+  let index = 0;
+  for (const segment of segments) {
+    const key = `excludedPath${index}`;
+    const keyStart = `excludedPathStart${index}`;
+    if (segment.includes("/")) {
+      whereParts.push(`relative_path NOT LIKE :${key}`);
+      params[key] = `%${segment}/%`;
+    } else {
+      whereParts.push(`relative_path NOT LIKE :${key}`);
+      whereParts.push(`relative_path NOT LIKE :${keyStart}`);
+      params[key] = `%/${segment}/%`;
+      params[keyStart] = `${segment}/%`;
+    }
+    index += 1;
+  }
+  whereParts.push("relative_path NOT LIKE :excludedTtsPrefix1");
+  whereParts.push("relative_path NOT LIKE :excludedTtsPrefix2");
+  whereParts.push("relative_path NOT LIKE :excludedTtsMiddle1");
+  whereParts.push("relative_path NOT LIKE :excludedTtsMiddle2");
+  params.excludedTtsPrefix1 = "tts_%";
+  params.excludedTtsPrefix2 = "tts-%";
+  params.excludedTtsMiddle1 = "%/tts_%";
+  params.excludedTtsMiddle2 = "%/tts-%";
+}
+
+function parseBool(value, fallback) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  const clean = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(clean)) return true;
+  if (["0", "false", "no", "off"].includes(clean)) return false;
+  return fallback;
+}
+
 function normalizeAllowedExtensions(value) {
   const list = Array.isArray(value) ? value : DEFAULT_ALLOWED_EXTENSIONS;
   const clean = list
@@ -365,14 +445,14 @@ function normalizeAllowedExtensions(value) {
   return clean.length ? Array.from(new Set(clean)) : DEFAULT_ALLOWED_EXTENSIONS.slice();
 }
 
-function findSoundFiles(baseDir, allowedExtensions, limit) {
+function findSoundFiles(baseDir, allowedExtensions, limit, options = {}) {
   if (!fs.existsSync(baseDir)) throw new Error(`sounds_base_dir_missing:${baseDir}`);
   const files = [];
-  walkDir(baseDir, baseDir, allowedExtensions, files, limit);
+  walkDir(baseDir, baseDir, allowedExtensions, files, limit, options);
   return files.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 }
 
-function walkDir(baseDir, currentDir, allowedExtensions, files, limit) {
+function walkDir(baseDir, currentDir, allowedExtensions, files, limit, options = {}) {
   if (files.length >= limit) return;
   const entries = fs.readdirSync(currentDir, { withFileTypes: true });
   for (const entry of entries) {
@@ -380,13 +460,14 @@ function walkDir(baseDir, currentDir, allowedExtensions, files, limit) {
     if (!entry || entry.name.startsWith(".")) continue;
     const fullPath = path.join(currentDir, entry.name);
     if (entry.isDirectory()) {
-      walkDir(baseDir, fullPath, allowedExtensions, files, limit);
+      walkDir(baseDir, fullPath, allowedExtensions, files, limit, options);
       continue;
     }
     if (!entry.isFile()) continue;
     const extension = path.extname(entry.name).toLowerCase();
     if (!allowedExtensions.includes(extension)) continue;
     const relativePath = normalizeRelativePath(path.relative(baseDir, fullPath));
+    if (options.excludeTts !== false && isExcludedTtsPath(relativePath, options.excludedPathSegments)) continue;
     files.push({ baseDir, fullPath, relativePath, extension });
   }
 }

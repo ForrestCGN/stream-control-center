@@ -1,3 +1,12 @@
+# Changelog
+
+## 2026-05-21 - STEP270D1 Pegel-Scan TTS-Dateien ausgeschlossen
+
+- `backend/modules/sound_loudness_scanner.js` erweitert.
+- TTS-/Speech-Dateien werden beim Scan standardmaessig ausgelassen.
+- Results-Route blendet TTS-/Speech-Ergebnisse standardmaessig aus, damit alte Messwerte die Auswertung nicht verfaelschen.
+- Dashboard-Hinweis `TTS raus` im Pegel-Scan ergaenzt.
+- Keine automatische Playback-Korrektur, keine Normalisierung und keine Dateiänderung.
 
 ## 2026-05-21 - STEP270D Pegel-Scan Korrektur-Vorschau
 

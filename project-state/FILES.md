@@ -2,6 +2,33 @@
 
 Stand: 2026-05-21
 
+## STEP270D1 - Pegel-Scan TTS-Dateien ausgeschlossen
+
+Geaendert:
+
+```text
+backend/modules/sound_loudness_scanner.js
+htdocs/dashboard/modules/sound_levelscan.js
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP270D1_SOUND_PEGEL_SCAN_EXCLUDE_TTS.md
+```
+
+Nicht geaendert:
+
+```text
+app.sqlite
+config/**
+backend/modules/sound_system.js
+Alert-System
+Discord-Routing
+Sound-Dateien
+```
+
+
 ## STEP270D - Pegel-Scan Korrektur-Vorschau
 
 Geaendert:

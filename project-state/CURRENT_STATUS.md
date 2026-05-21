@@ -2,6 +2,30 @@
 
 Stand: 2026-05-21
 
+## STEP270D1 - Pegel-Scan ohne TTS-Dateien
+
+Der Pegel-Scan filtert TTS-/Speech-Dateien jetzt standardmaessig heraus.
+
+Aktueller funktionaler Stand:
+
+- `backend/modules/sound_loudness_scanner.js` erweitert.
+- Neue Scans lassen typische TTS-/Speech-Pfade aus.
+- `GET /api/sound/loudness/results` blendet TTS-/Speech-Ergebnisse standardmaessig aus.
+- `GET /api/sound/loudness/status` zeigt die Ausschlussregel in den Defaults.
+- `htdocs/dashboard/modules/sound_levelscan.js` zeigt im Pegel-Scan den Hinweis `TTS raus`.
+
+Nicht geaendert:
+
+```text
+app.sqlite
+config/**
+backend/modules/sound_system.js
+Alert-System
+Sound-System Queue/Discord/Bundle-Logik
+Sound-Dateien
+```
+
+
 ## STEP270D - Pegel-Scan Korrektur-Vorschau
 
 Der Pegel-Scan zeigt jetzt zusätzlich eine Vorschau, welche Korrektur später möglich wäre.

@@ -2,6 +2,33 @@
 
 Stand: 2026-05-21
 
+## Nach STEP270D1 - Pegel-Scan ohne TTS testen
+
+Backend-/API-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/status" | ConvertTo-Json -Depth 80
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/loudness/scan" -Body (@{ limit = 500 } | ConvertTo-Json) -ContentType "application/json" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/results?limit=250&order=relative_path&dir=asc" | ConvertTo-Json -Depth 80
+```
+
+Erwartung:
+
+```text
+Status zeigt excludeTts=true.
+Neue Scans erfassen keine TTS-/Speech-Dateien.
+Results zeigen standardmaessig keine TTS-/Speech-Dateien.
+Dashboard zeigt Pegel-Scan mit Hinweis TTS raus.
+```
+
+Danach erst entscheiden:
+
+```text
+STEP270E: Technisches Konzept fuer optionale Playback-Korrektur im Sound-System
+oder problematische Dateien manuell ersetzen/normalisieren
+```
+
+
 ## Nach STEP270D - Korrektur-Vorschau prüfen
 
 Dashboard-Test:

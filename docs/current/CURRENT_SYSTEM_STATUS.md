@@ -2,6 +2,29 @@
 
 Stand: 2026-05-21
 
+## STEP270D1 - Pegel-Scan TTS-Dateien ausgeschlossen
+
+Aktueller Zusatzstand:
+
+- Der Pegel-Scan schliesst TTS-/Speech-Dateien standardmaessig aus.
+- Neue Scans ignorieren typische TTS-Pfade wie `tts`, `tts_system`, `alert_tts`, `generated_tts`, `temp_tts` und `tts_cache`.
+- Die Results-Route blendet diese TTS-/Speech-Dateien standardmaessig ebenfalls aus, damit alte gespeicherte TTS-Messungen die Dashboard-Auswertung nicht weiter verfaelschen.
+- Das Dashboard zeigt im Pegel-Scan klar an, dass TTS ausgeschlossen ist.
+- Weiterhin read-only: keine Korrektur wird angewendet und keine Sound-Datei wird geaendert.
+
+Bewusst unveraendert:
+
+```text
+app.sqlite
+config/**
+backend/modules/sound_system.js
+Sound-System Queue-/Prioritaetslogik
+Discord-Routing
+Alert-Bundle-Lock-Logik
+Sound-Dateien
+```
+
+
 ## STEP270D - Pegel-Scan Korrektur-Vorschau
 
 Aktueller Zusatzstand:

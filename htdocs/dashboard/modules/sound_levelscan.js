@@ -34,6 +34,7 @@ window.SoundLevelScanModule = (function(){
     tooLoud: 'Große negative Gain-Empfehlung. Die Datei ist deutlich lauter als der Zielwert.',
     tooQuiet: 'Volume-Cap erreicht oder große positive Gain-Empfehlung. Die Datei ist eher zu leise.',
     readOnly: 'Nur Analyse. Es werden keine Dateien überschrieben, normalisiert oder im Sound-System verändert.',
+    ttsExcluded: 'TTS-/Speech-Dateien werden standardmäßig aus dem Pegel-Scan herausgefiltert, damit temporäre Sprachdateien die Sound-Auswertung nicht verfälschen.',
     preview: 'Korrektur-Vorschau: zeigt nur, welche Playback-Lautstärke oder Gain-Änderung später empfohlen wäre. Es wird nichts angewendet.',
     previewVolume: 'Empfohlene spätere Playback-Lautstärke. Niedrig = Datei ist aktuell sehr laut. 100% = Datei ist eher zu leise oder erreicht das Ziel nicht.',
     previewGain: 'Empfohlene Gain-Änderung. Negativ senkt den Sound ab, positiv hebt ihn an. Große Werte sollten manuell geprüft werden.',
@@ -496,16 +497,17 @@ window.SoundLevelScanModule = (function(){
       <div class="sound-levelscan-head">
         <div>
           <h3>Pegel-Scan</h3>
-          <div class="sound-note">Read-only Analyse der Sound-Dateien. Es wird nichts normalisiert, überschrieben oder an der Sound-Queue verändert.</div>
+          <div class="sound-note">Read-only Analyse der Sound-Dateien. TTS-/Speech-Dateien werden standardmäßig ausgelassen. Es wird nichts normalisiert, überschrieben oder an der Sound-Queue verändert.</div>
         </div>
         <span class="sound-pill ${state.loading ? '' : 'success'}" title="${esc(HELP.readOnly)}">${state.loading ? 'Lädt...' : 'Read-only'}</span>
+        <span class="sound-pill" title="${esc(HELP.ttsExcluded)}">TTS raus</span>
       </div>
       ${renderSummary()}
       ${renderControls()}
       ${state.showPreview ? renderPreviewPanel() : ''}
       ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
       ${renderRows()}
-      <div class="sound-note">Hinweis: <strong>True Peak über Limit</strong>, <strong>viel zu laut</strong> und <strong>Volume-Cap erreicht</strong> sind Kandidaten für spätere Playback-Korrektur oder normalisierte Kopien. Dieser Schritt zeigt nur Daten an.</div>
+      <div class="sound-note">Hinweis: <strong>True Peak über Limit</strong>, <strong>viel zu laut</strong> und <strong>Volume-Cap erreicht</strong> sind Kandidaten für spätere Playback-Korrektur oder normalisierte Kopien. TTS-/Speech-Dateien sind standardmäßig ausgeschlossen. Dieser Schritt zeigt nur Daten an.</div>
     `;
   }
 
