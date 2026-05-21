@@ -83,7 +83,7 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.8-step272g1-reference-boost-target",
+    version: "0.1.9-step272h-boost-promote-backup",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -247,7 +247,47 @@ module.exports.init = function init(ctx) {
       const body = req.body || {};
       const relativePath = normalizeRelativePath(body.file || body.relativePath || body.path || "");
       const updatedBy = String(body.updatedBy || body.user || "dashboard");
-      res.json(createBoostCopyForFile(relativePath, { updatedBy, targetLufs: body.targetLufs, maxGainDb: body.maxGainDb }));
+      res.json(createBoostCopyForFile(relativePath, {
+        updatedBy,
+        targetLufs: body.targetLufs,
+        maxGainDb: body.maxGainDb,
+        overwrite: parseBool(body.overwrite, true)
+      }));
+    } catch (err) {
+      res.status(400).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.get(`${ROUTE_PREFIX}/promote/history`, (req, res) => {
+    try {
+      ensureSchema();
+      const limit = Math.round(clampNumber(req.query.limit, 1, 200, 50));
+      res.json(buildPromotionHistory(limit));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.post(`${ROUTE_PREFIX}/promote/one`, (req, res) => {
+    try {
+      ensureSchema();
+      const body = req.body || {};
+      const relativePath = normalizeRelativePath(body.file || body.relativePath || body.path || "");
+      const updatedBy = String(body.updatedBy || body.user || "dashboard");
+      res.json(promoteBoostCopyForFile(relativePath, { updatedBy }));
+    } catch (err) {
+      res.status(400).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.post(`${ROUTE_PREFIX}/promote/rollback-one`, (req, res) => {
+    try {
+      ensureSchema();
+      const body = req.body || {};
+      const promotionId = String(body.promotionId || body.id || "").trim();
+      const relativePath = normalizeRelativePath(body.file || body.relativePath || body.path || "");
+      const updatedBy = String(body.updatedBy || body.user || "dashboard");
+      res.json(rollbackPromotion({ promotionId, relativePath, updatedBy }));
     } catch (err) {
       res.status(400).json({ ok: false, error: errorMessage(err) });
     }
@@ -477,7 +517,10 @@ module.exports.init = function init(ctx) {
         { method: "POST", path: `${ROUTE_PREFIX}/config/mass-volume-apply/alerts-missing`, description: "Set only missing/invalid Alert rule sound_volume values to the configured default" },
         { method: "POST", path: `${ROUTE_PREFIX}/config/adopt-reference-target`, description: "Store boost target LUFS based on auto reference minus safety dB" },
         { method: "GET", path: `${ROUTE_PREFIX}/boost/preview`, description: "Preview files whose scan suggests a boosted copy is needed" },
-        { method: "POST", path: `${ROUTE_PREFIX}/boost/create-one`, description: "Create one boosted copy inside htdocs/assets/sounds/normalized without touching the original" },
+        { method: "POST", path: `${ROUTE_PREFIX}/boost/create-one`, description: "Create or overwrite one boosted copy inside htdocs/assets/sounds/normalized without touching the original" },
+        { method: "GET", path: `${ROUTE_PREFIX}/promote/history`, description: "List boost-copy promotions/backups" },
+        { method: "POST", path: `${ROUTE_PREFIX}/promote/one`, description: "Replace original with existing boost copy after creating a timestamped backup" },
+        { method: "POST", path: `${ROUTE_PREFIX}/promote/rollback-one`, description: "Restore original file from the latest or selected loudness backup" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference`, description: "Calculate automatic reference loudness and recommend a real reference sound" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference/test.wav`, description: "Generated approximate reference test sound for direct browser checks" },
         { method: "GET/POST", path: `${ROUTE_PREFIX}/reference/test-file`, description: "Create/update generated/reference_test.wav in sounds folder so it can be played via Sound-System/OBS" },
@@ -823,6 +866,24 @@ function ensureSchema() {
       `);
     }
   });
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS sound_loudness_promotions (
+      promotion_id TEXT PRIMARY KEY,
+      relative_path TEXT NOT NULL,
+      normalized_path TEXT NOT NULL,
+      backup_path TEXT NOT NULL,
+      backup_absolute_path TEXT NOT NULL,
+      original_size_bytes INTEGER NOT NULL DEFAULT 0,
+      normalized_size_bytes INTEGER NOT NULL DEFAULT 0,
+      promoted_at TEXT NOT NULL,
+      promoted_by TEXT NOT NULL DEFAULT '',
+      rolled_back_at TEXT NOT NULL DEFAULT '',
+      rolled_back_by TEXT NOT NULL DEFAULT '',
+      notes_json TEXT NOT NULL DEFAULT '[]'
+    );
+    CREATE INDEX IF NOT EXISTS idx_sound_loudness_promotions_relative_path ON sound_loudness_promotions(relative_path);
+    CREATE INDEX IF NOT EXISTS idx_sound_loudness_promotions_promoted_at ON sound_loudness_promotions(promoted_at);
+  `);
   return true;
 }
 
@@ -1222,7 +1283,7 @@ function buildBoostCopyPreview(options = {}) {
     notes: [
       "Nur Vorschau: Original-Sounddateien werden nicht verändert.",
       "Boost-Kopien werden in htdocs/assets/sounds/normalized/<originalpfad> geschrieben, damit /api/sound/play sie wie normale Sounds abspielen kann.",
-      "STEP272G1 nutzt fuer neue Boost-Kopien den gespeicherten Boost-Zielwert statt fest -18 LUFS."
+      "STEP272H: Boost-Kopien können bewusst neu erzeugt und danach mit Backup an die Originalstelle übernommen werden."
     ]
   };
 }
@@ -1274,6 +1335,8 @@ function createBoostCopyForFile(relativePath, options = {}) {
   const info = buildBoostCopyInfo(clean, row);
   if (!info.canCreate) throw new Error(info.unsupportedReason || "unsupported_extension");
   if (!fs.existsSync(info.sourceAbsolutePath)) throw new Error("source_file_missing");
+  const overwrite = parseBool(options.overwrite, true);
+  if (info.exists && !overwrite) throw new Error("boost_copy_exists_set_overwrite_true");
 
   const cfg = getLevelConfig();
   const target = getBoostTargetSettings(cfg, options);
@@ -1333,14 +1396,144 @@ function createBoostCopyForFile(relativePath, options = {}) {
     recommendedVolume: numberOrNull(row.recommended_volume),
     sizeBytes: afterInfo.sizeBytes,
     exists: afterInfo.exists,
+    overwrite: parseBool(options.overwrite, true),
     playOriginalFile: clean,
     playBoostFile: afterInfo.outputFile,
     notes: [
       "Originaldatei wurde nicht verändert.",
       "Die Boost-Kopie liegt im normalen Sound-Ordner unter normalized/ und kann per /api/sound/play getestet werden.",
       "Noch keine automatische Umleitung bestehender Alert-/SoundAlert-Regeln.",
-      "STEP272G1: Die Kopie nutzt den gespeicherten Boost-Zielwert aus der Sound-Pegel-Config."
+      "STEP272H: Vorhandene Boost-Kopien dürfen bewusst überschrieben werden; Originaldateien bleiben dabei unverändert."
     ]
+  };
+}
+
+
+function promoteBoostCopyForFile(relativePath, options = {}) {
+  const clean = normalizeRelativePath(relativePath);
+  if (!clean) throw new Error("file_required");
+  if (clean.includes("..")) throw new Error("unsafe_file_path");
+  if (isExcludedTtsPath(clean)) throw new Error("tts_files_are_excluded");
+  if (clean.toLowerCase().startsWith("normalized/")) throw new Error("normalized_source_not_allowed");
+
+  const info = buildBoostCopyInfo(clean, database.get("SELECT * FROM sound_loudness_files WHERE relative_path = :relativePath", { relativePath: clean }) || null);
+  if (!fs.existsSync(info.sourceAbsolutePath)) throw new Error("source_file_missing");
+  if (!fs.existsSync(info.outputAbsolutePath)) throw new Error("boost_copy_missing_create_it_first");
+
+  const now = nowIso();
+  const stamp = now.replace(/[:.]/g, "-");
+  const promotionId = `promote_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const backupRelativePath = normalizeRelativePath(path.posix.join("_backup_loudness", stamp, clean));
+  const backupAbsolutePath = path.join(getSoundsBaseDir(), ...backupRelativePath.split("/"));
+  fs.mkdirSync(path.dirname(backupAbsolutePath), { recursive: true });
+  fs.copyFileSync(info.sourceAbsolutePath, backupAbsolutePath);
+  fs.copyFileSync(info.outputAbsolutePath, info.sourceAbsolutePath);
+
+  const originalStat = safeStat(backupAbsolutePath);
+  const normalizedStat = safeStat(info.outputAbsolutePath);
+  const row = {
+    promotion_id: promotionId,
+    relative_path: clean,
+    normalized_path: info.outputFile,
+    backup_path: backupRelativePath,
+    backup_absolute_path: backupAbsolutePath,
+    original_size_bytes: originalStat ? Number(originalStat.size || 0) : 0,
+    normalized_size_bytes: normalizedStat ? Number(normalizedStat.size || 0) : 0,
+    promoted_at: now,
+    promoted_by: String(options.updatedBy || "dashboard"),
+    rolled_back_at: "",
+    rolled_back_by: "",
+    notes_json: JSON.stringify([
+      "Original wurde vor dem Ersetzen gesichert.",
+      "Die Boost-Kopie wurde an die Originalstelle kopiert, damit bestehende Regeln unverändert bleiben."
+    ])
+  };
+  database.insert("sound_loudness_promotions", row);
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    action: "promote_boost_copy_one",
+    applied: true,
+    promotionId,
+    updatedAt: now,
+    updatedBy: row.promoted_by,
+    sourceFile: clean,
+    normalizedFile: info.outputFile,
+    backupFile: backupRelativePath,
+    backupAbsolutePath,
+    originalReplaced: true,
+    notes: [
+      "Bestehende Alert-/SoundAlert-/VIP-Konfigurationen müssen nicht geändert werden, weil der Originalpfad erhalten bleibt.",
+      "Rollback ist über promote/rollback-one möglich."
+    ]
+  };
+}
+
+function rollbackPromotion(options = {}) {
+  const promotionId = String(options.promotionId || "").trim();
+  const relativePath = normalizeRelativePath(options.relativePath || "");
+  let row = null;
+  if (promotionId) {
+    row = database.get("SELECT * FROM sound_loudness_promotions WHERE promotion_id = :promotionId", { promotionId }) || null;
+  } else if (relativePath) {
+    row = database.get(
+      "SELECT * FROM sound_loudness_promotions WHERE relative_path = :relativePath AND rolled_back_at = '' ORDER BY promoted_at DESC LIMIT 1",
+      { relativePath }
+    ) || null;
+  }
+  if (!row) throw new Error("promotion_not_found");
+  if (String(row.rolled_back_at || "")) throw new Error("promotion_already_rolled_back");
+  if (!fs.existsSync(row.backup_absolute_path)) throw new Error("backup_file_missing");
+
+  const clean = normalizeRelativePath(row.relative_path);
+  const originalAbsolutePath = path.join(getSoundsBaseDir(), ...clean.split("/"));
+  fs.mkdirSync(path.dirname(originalAbsolutePath), { recursive: true });
+  fs.copyFileSync(row.backup_absolute_path, originalAbsolutePath);
+  const now = nowIso();
+  database.run(
+    "UPDATE sound_loudness_promotions SET rolled_back_at = :rolledBackAt, rolled_back_by = :rolledBackBy WHERE promotion_id = :promotionId",
+    { rolledBackAt: now, rolledBackBy: String(options.updatedBy || "dashboard"), promotionId: row.promotion_id }
+  );
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    action: "rollback_promoted_boost_copy_one",
+    applied: true,
+    promotionId: row.promotion_id,
+    updatedAt: now,
+    updatedBy: String(options.updatedBy || "dashboard"),
+    restoredFile: clean,
+    backupFile: row.backup_path,
+    notes: ["Original wurde aus dem Backup wiederhergestellt."]
+  };
+}
+
+function buildPromotionHistory(limit = 50) {
+  const safeLimit = Math.round(clampNumber(limit, 1, 200, 50));
+  const rows = database.all(
+    `SELECT * FROM sound_loudness_promotions ORDER BY promoted_at DESC LIMIT ${safeLimit}`
+  ) || [];
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    count: rows.length,
+    rows: rows.map(row => ({
+      promotionId: row.promotion_id,
+      file: row.relative_path,
+      normalizedFile: row.normalized_path,
+      backupFile: row.backup_path,
+      promotedAt: row.promoted_at,
+      promotedBy: row.promoted_by,
+      rolledBackAt: row.rolled_back_at,
+      rolledBackBy: row.rolled_back_by,
+      canRollback: !String(row.rolled_back_at || "") && fs.existsSync(row.backup_absolute_path),
+      originalSizeBytes: Number(row.original_size_bytes || 0),
+      normalizedSizeBytes: Number(row.normalized_size_bytes || 0),
+      notes: parseJsonArray(row.notes_json)
+    })),
+    notes: ["Historie liegt in SQLite; Backup-Dateien liegen unter htdocs/assets/sounds/_backup_loudness/."]
   };
 }
 

@@ -23,6 +23,8 @@ window.SoundLevelScanModule = (function(){
     massVolumePreview: null,
     boostPreview: null,
     boostApplyResult: null,
+    promoteHistory: null,
+    promoteResult: null,
     correctionPreview: null,
     reference: null,
     referenceAudio: null,
@@ -72,7 +74,10 @@ window.SoundLevelScanModule = (function(){
     boostCreateOne: 'Erzeugt nur für diese eine Datei eine verstärkte Kopie unter assets/sounds/normalized. Keine automatische Umleitung.',
     boostTargetLufs: 'Zielwert für neu erzeugte Boost-Kopien. Nicht mehr fest -18 LUFS, sondern passend zu deiner Referenz einstellbar.',
     boostSafetyDb: 'Sicherheitsabstand zur Auto-Referenz. Beispiel: Referenz -11.3 LUFS minus 2 dB ergibt Ziel ca. -13.3 LUFS.',
-    adoptReferenceTarget: 'Berechnet den Boost-Zielwert aus der aktuellen Auto-Referenz minus Sicherheitsabstand und speichert ihn in SQLite.'
+    adoptReferenceTarget: 'Berechnet den Boost-Zielwert aus der aktuellen Auto-Referenz minus Sicherheitsabstand und speichert ihn in SQLite.',
+    boostOverwrite: 'Erzeugt die Boost-Kopie neu und überschreibt nur die Datei unter normalized/. Das Original bleibt unverändert.',
+    boostPromote: 'Übernimmt die Boost-Kopie an die Originalstelle. Vorher wird automatisch ein Backup unter _backup_loudness angelegt.',
+    boostRollback: 'Stellt die Originaldatei aus dem letzten Backup wieder her.'
   };
 
   function registerDashboardModule(){
@@ -325,6 +330,8 @@ window.SoundLevelScanModule = (function(){
         if (action === 'apply-alert-missing-volumes') await applyAlertMissingVolumes();
         if (action === 'preview-boost-copies') await previewBoostCopies();
         if (action === 'create-boost-copy-one') await createBoostCopyOne(button.dataset.soundLevelFile || '');
+        if (action === 'promote-boost-copy-one') await promoteBoostCopyOne(button.dataset.soundLevelFile || '');
+        if (action === 'rollback-boost-copy-one') await rollbackBoostCopyOne(button.dataset.soundLevelFile || '', button.dataset.soundLevelPromotionId || '');
         if (action === 'adopt-reference-boost-target') await adoptReferenceBoostTarget();
         if (action === 'reload-reference') await loadReferenceOnly(true);
         if (action === 'play-reference') await playReferenceSound();
@@ -428,10 +435,33 @@ window.SoundLevelScanModule = (function(){
   async function createBoostCopyOne(file){
     const clean = String(file || '').trim();
     if (!clean) throw new Error('Keine Datei für Boost-Kopie ausgewählt.');
-    const result = await api('/boost/create-one', { method: 'POST', body: JSON.stringify({ file: clean, updatedBy: 'dashboard' }) });
+    const overwrite = Boolean(document.getElementById('soundLevelBoostOverwrite')?.checked ?? true);
+    const result = await api('/boost/create-one', { method: 'POST', body: JSON.stringify({ file: clean, overwrite, updatedBy: 'dashboard' }) });
     state.boostApplyResult = result;
     state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true');
     state.lastMessage = `Boost-Kopie erzeugt: ${result.outputFile || clean} mit ${db(result.gainDb, 1)}.`;
+    render();
+  }
+
+  async function promoteBoostCopyOne(file){
+    const clean = String(file || '').trim();
+    if (!clean) throw new Error('Keine Datei zum Übernehmen ausgewählt.');
+    const result = await api('/promote/one', { method: 'POST', body: JSON.stringify({ file: clean, updatedBy: 'dashboard' }) });
+    state.promoteResult = result;
+    state.promoteHistory = await api('/promote/history?limit=50');
+    state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true');
+    state.lastMessage = `Boost-Kopie übernommen: ${result.sourceFile || clean}. Backup: ${result.backupFile || ''}`;
+    render();
+  }
+
+  async function rollbackBoostCopyOne(file, promotionId){
+    const body = { updatedBy: 'dashboard' };
+    if (promotionId) body.promotionId = promotionId;
+    else body.file = String(file || '').trim();
+    const result = await api('/promote/rollback-one', { method: 'POST', body: JSON.stringify(body) });
+    state.promoteResult = result;
+    state.promoteHistory = await api('/promote/history?limit=50');
+    state.lastMessage = `Original wiederhergestellt: ${result.restoredFile || file}.`;
     render();
   }
 
@@ -626,6 +656,7 @@ window.SoundLevelScanModule = (function(){
         try { state.levelConfigApplyPreview = await api('/config/apply-defaults/preview'); } catch (_) { state.levelConfigApplyPreview = null; }
         try { state.massVolumePreview = await api('/config/mass-volume-preview'); } catch (_) { state.massVolumePreview = null; }
         try { state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true'); } catch (_) { state.boostPreview = null; }
+        try { state.promoteHistory = await api('/promote/history?limit=50'); } catch (_) { state.promoteHistory = null; }
         if (state.levelConfig?.defaultScanLimit) state.scanLimit = Number(state.levelConfig.defaultScanLimit) || state.scanLimit;
         if (state.levelConfig?.defaultResultLimit) state.resultLimit = Number(state.levelConfig.defaultResultLimit) || state.resultLimit;
         if (state.levelConfig?.defaultReferenceOutputTarget) state.referenceOutputTarget = normalizeReferenceOutputTarget(state.levelConfig.defaultReferenceOutputTarget);
@@ -883,7 +914,7 @@ window.SoundLevelScanModule = (function(){
           <button type="button" data-sound-level-action="save-correction" title="Speichert nur die vorbereiteten Export-Einstellungen. Es werden keine Dateien erzeugt.">Export-Einstellungen speichern</button>
           <button type="button" data-sound-level-action="preview-boost-copies" title="Lädt Dateien, die laut Scan eine Boost-Kopie brauchen. Keine Änderung.">Boost-Preview laden</button>
         </div>
-        <div class="sound-note"><strong>STEP272G1:</strong> Boost-Kopien nutzen jetzt den gespeicherten Boost-Zielwert aus der Config. Originaldateien bleiben unverändert und es gibt noch keine automatische Umleitung.</div>
+        <div class="sound-note"><strong>STEP272H:</strong> Boost-Kopien können neu erzeugt und anschließend mit automatischem Backup an die Originalstelle übernommen werden. Bestehende Regeln müssen dadurch nicht umgestellt werden.</div>
         ${renderBoostCopyPanel()}
       </div>
     `;
@@ -919,6 +950,7 @@ window.SoundLevelScanModule = (function(){
         </div>
         ${result ? `<div class="sound-note success">Boost-Kopie erzeugt: <strong>${esc(result.outputFile || '')}</strong>. Teste Original und Kopie bewusst über das Sound-System.</div>` : ''}
         <div class="sound-actions">
+          <label class="sound-inline-check"><input id="soundLevelBoostOverwrite" type="checkbox" checked> vorhandene Boost-Kopie überschreiben</label>
           <button type="button" data-sound-level-action="preview-boost-copies">Boost-Preview neu laden</button>
         </div>
         ${rows.length ? `
@@ -933,12 +965,43 @@ window.SoundLevelScanModule = (function(){
                     <td>${db(row.targetGainDb ?? row.recommendedGainDb, 1)}</td>
                     <td><span class="sound-pill ${row.exists ? 'success' : row.canCreate ? 'warn' : 'danger'}">${row.exists ? 'vorhanden' : row.canCreate ? 'fehlt' : 'nicht direkt'}</span></td>
                     <td>
-                      ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>` : `<span class="sound-muted small">${esc(row.unsupportedReason || 'nicht unterstützt')}</span>`}
+                      ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>${row.exists ? ` <button type="button" data-sound-level-action="promote-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPromote)}">Kopie übernehmen</button>` : ''}` : `<span class="sound-muted small">${esc(row.unsupportedReason || 'nicht unterstützt')}</span>`}
                     </td>
                   </tr>`).join('')}
               </tbody>
             </table>
           </div>` : `<p class="sound-muted small">Keine Boost-Kandidaten gefunden.</p>`}
+        ${renderPromotionHistory()}
+      </div>`;
+  }
+
+  function renderPromotionHistory(){
+    const hist = state.promoteHistory;
+    const rows = Array.isArray(hist?.rows) ? hist.rows : [];
+    const result = state.promoteResult;
+    return `
+      <div class="sound-levelscan-subcard sound-levelscan-promote-history">
+        <div class="sound-card-head small">
+          <strong>Übernommene Kopien / Backups</strong>
+          <span>Originale werden vor dem Ersetzen unter _backup_loudness gesichert.</span>
+        </div>
+        ${result ? `<div class="sound-note success">Letzte Aktion: <strong>${esc(result.action || '')}</strong> ${esc(result.sourceFile || result.restoredFile || '')}</div>` : ''}
+        ${rows.length ? `
+          <div class="sound-table-wrap compact">
+            <table class="sound-levelscan-table compact">
+              <thead><tr><th>Datei</th><th>Backup</th><th>Übernommen</th><th>Status</th><th>Aktion</th></tr></thead>
+              <tbody>
+                ${rows.slice(0, 20).map(row => `
+                  <tr class="${row.rolledBackAt ? 'is-warning' : 'is-success'}">
+                    <td>${esc(row.file || '-')}</td>
+                    <td><small>${esc(row.backupFile || '')}</small></td>
+                    <td>${esc(row.promotedAt || '')}</td>
+                    <td>${row.rolledBackAt ? `Rollback ${esc(row.rolledBackAt)}` : 'aktiv'}</td>
+                    <td>${row.canRollback ? `<button type="button" data-sound-level-action="rollback-boost-copy-one" data-sound-level-promotion-id="${esc(row.promotionId || '')}" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostRollback)}">Rollback</button>` : '<span class="sound-muted small">-</span>'}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>` : `<p class="sound-muted small">Noch keine Boost-Kopie übernommen.</p>`}
       </div>`;
   }
 

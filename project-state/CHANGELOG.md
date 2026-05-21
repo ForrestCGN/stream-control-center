@@ -284,3 +284,13 @@
 - Boost-Kopie Einzeldatei nutzt nun den gespeicherten Boost-Zielwert statt festem -18-LUFS-Ziel.
 - Dashboard zeigt Ziel-Gain fuer Boost-Kopien und bietet Button „Referenz als Boost-Ziel übernehmen“.
 - Keine Originaldateien, SoundAlert-Einträge, Alert-Regeln, Queue, Discord-Routing oder `config/**` geändert.
+
+
+## STEP272H - Sound-Pegel Boost-Kopie übernehmen mit Backup
+
+- Boost-Kopien können jetzt bewusst neu erzeugt werden (`overwrite` für `normalized/...`).
+- Neue Promote-Logik: vorhandene Boost-Kopie kann an die Originalstelle kopiert werden.
+- Vor dem Ersetzen wird automatisch ein Backup unter `htdocs/assets/sounds/_backup_loudness/<timestamp>/...` erstellt.
+- Promote-/Rollback-Historie wird in SQLite `sound_loudness_promotions` gespeichert.
+- Bestehende Alert-/SoundAlert-/VIP-Konfigurationen müssen dadurch nicht auf `normalized/...` umgestellt werden.
+- Keine Originaldatei wird ohne Backup überschrieben.

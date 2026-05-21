@@ -572,3 +572,13 @@ STEP272F: Boost-Kopien fuer zu leise Sounds vorbereiten.
 3. Boost-Kopie fuer `alerts/follow.mp3` neu erzeugen und Original/Kopie vergleichen.
 4. Wenn Ziel passt: Mapping/Umleitung einzelner Regeln auf Boost-Kopien vorbereiten.
 5. Video-Dateien wie `soundalerts/video/putzen.webm` separat behandeln.
+
+
+## Nach STEP272H
+
+1. Für `alerts/follow.mp3` bei Bedarf Sicherheitsabstand auf 0 oder 1 dB stellen und Boost-Kopie mit Overwrite neu erzeugen.
+2. Original und Boost-Kopie erneut bei Volume 80 vergleichen.
+3. Wenn die Kopie passt: im Dashboard `Kopie übernehmen` nutzen.
+4. Danach echten Alert testen, der weiterhin auf `alerts/follow.mp3` zeigt.
+5. Bei Problem: über Promote-Historie Rollback ausführen.
+6. Danach weitere einzelne Audio-Dateien behandeln; Video-Dateien wie `.webm` separat planen.

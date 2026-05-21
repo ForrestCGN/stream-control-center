@@ -411,3 +411,13 @@ Sound-Pegel kann jetzt Boost-Kopien als Einzeldatei-Test vorbereiten. Kopien lan
 - Boost-Kopien werden weiterhin nur einzeln erzeugt.
 - Neu: Ziel-LUFS fuer Boost-Kopien ist konfigurierbar und kann aus der Auto-Referenz minus Sicherheitsabstand übernommen werden.
 - Ziel: zu leise Dateien wie `alerts/follow.mp3` näher an den eingepegelten Referenzpegel bringen, ohne Originale zu überschreiben.
+
+
+## STEP272H - Sound-Pegel Boost-Kopie übernehmen mit Backup
+
+- Boost-Kopien können jetzt bewusst neu erzeugt werden (`overwrite` für `normalized/...`).
+- Neue Promote-Logik: vorhandene Boost-Kopie kann an die Originalstelle kopiert werden.
+- Vor dem Ersetzen wird automatisch ein Backup unter `htdocs/assets/sounds/_backup_loudness/<timestamp>/...` erstellt.
+- Promote-/Rollback-Historie wird in SQLite `sound_loudness_promotions` gespeichert.
+- Bestehende Alert-/SoundAlert-/VIP-Konfigurationen müssen dadurch nicht auf `normalized/...` umgestellt werden.
+- Keine Originaldatei wird ohne Backup überschrieben.

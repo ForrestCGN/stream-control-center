@@ -341,3 +341,13 @@ Das Sound-Pegel-System unterstützt jetzt eine sichere Preview für zu leise Dat
 - Dashboard kann den Zielwert aus der Auto-Referenz minus Sicherheitsabstand übernehmen.
 - Neue Boost-Kopien nutzen diesen Zielwert; Originaldateien bleiben unverändert.
 - Keine automatische Umleitung bestehender Sounds.
+
+
+## STEP272H - Sound-Pegel Boost-Kopie übernehmen mit Backup
+
+- Boost-Kopien können jetzt bewusst neu erzeugt werden (`overwrite` für `normalized/...`).
+- Neue Promote-Logik: vorhandene Boost-Kopie kann an die Originalstelle kopiert werden.
+- Vor dem Ersetzen wird automatisch ein Backup unter `htdocs/assets/sounds/_backup_loudness/<timestamp>/...` erstellt.
+- Promote-/Rollback-Historie wird in SQLite `sound_loudness_promotions` gespeichert.
+- Bestehende Alert-/SoundAlert-/VIP-Konfigurationen müssen dadurch nicht auf `normalized/...` umgestellt werden.
+- Keine Originaldatei wird ohne Backup überschrieben.

@@ -597,3 +597,11 @@ TTS-System
 - `backend/modules/sound_loudness_scanner.js` - Config-Felder, Referenz-Ziel-API, Boost-Kopie nutzt Ziel-LUFS aus SQLite.
 - `htdocs/dashboard/modules/sound_levelscan.js` - Config-UI fuer Boost-Ziel, Sicherheitsabstand, Max-Boost und Referenz-Übernahme.
 - `htdocs/dashboard/modules/sound_levelscan.css` - unverändert aus STEP272G enthalten.
+
+
+## STEP272H geänderte Dateien
+
+- `backend/modules/sound_loudness_scanner.js` - Overwrite für Boost-Kopien, Promote/Backup/Rollback-API, SQLite-Tabelle `sound_loudness_promotions`.
+- `htdocs/dashboard/modules/sound_levelscan.js` - Checkbox für Boost-Overwrite, Button `Kopie übernehmen`, Promote-Historie und Rollback.
+- `htdocs/dashboard/modules/sound_levelscan.css` - kleine Styles für Overwrite/Promote-Historie.
+- `project-state/STEP272H_SOUND_PEGEL_PROMOTE_BACKUP.md` - Step-Dokumentation.
