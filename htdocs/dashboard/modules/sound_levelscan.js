@@ -21,6 +21,8 @@ window.SoundLevelScanModule = (function(){
     levelConfig: null,
     levelConfigApplyPreview: null,
     massVolumePreview: null,
+    boostPreview: null,
+    boostApplyResult: null,
     correctionPreview: null,
     reference: null,
     referenceAudio: null,
@@ -65,7 +67,9 @@ window.SoundLevelScanModule = (function(){
     defaultPlaybackVolume: 'Basislautstaerke fuer normale Wiedergabe. Neue oder ungesetzte Sounds sollen langfristig mit diesem Wert starten.',
     uploadDefaultVolume: 'Standardlautstaerke fuer neu hochgeladene Alert-/SoundAlert-/VIP-Sounds. Wird in spaeteren Steps von den Upload-Modulen genutzt.',
     massApply: 'Vorbereitete Massenaktion fuer vorhandene Sounds. In diesem Step nur Konfiguration/Preview, keine bestehenden Daten werden umgeschrieben.',
-    applyDefaults: 'Übernimmt die gespeicherten Sound-Pegel-Defaults in die relevanten DB-Settings der Module. Bestehende Sounds und Dateien werden nicht überschrieben.'
+    applyDefaults: 'Übernimmt die gespeicherten Sound-Pegel-Defaults in die relevanten DB-Settings der Module. Bestehende Sounds und Dateien werden nicht überschrieben.',
+    boostCopies: 'Boost-Kopien sind verstärkte Kopien für zu leise Dateien. Originale bleiben unverändert. Erst einzelne Datei erzeugen und testen, dann später automatisieren.',
+    boostCreateOne: 'Erzeugt nur für diese eine Datei eine verstärkte Kopie unter assets/sounds/normalized. Keine automatische Umleitung.'
   };
 
   function registerDashboardModule(){
@@ -316,6 +320,8 @@ window.SoundLevelScanModule = (function(){
         if (action === 'apply-defaults') await applyDefaultsToModules();
         if (action === 'preview-mass-volume') await previewMassVolume();
         if (action === 'apply-alert-missing-volumes') await applyAlertMissingVolumes();
+        if (action === 'preview-boost-copies') await previewBoostCopies();
+        if (action === 'create-boost-copy-one') await createBoostCopyOne(button.dataset.soundLevelFile || '');
         if (action === 'reload-reference') await loadReferenceOnly(true);
         if (action === 'play-reference') await playReferenceSound();
         if (action === 'play-reference-test') await playReferenceTestSound();
@@ -405,6 +411,23 @@ window.SoundLevelScanModule = (function(){
     state.massVolumeApplyResult = result;
     state.massVolumePreview = await api('/config/mass-volume-preview');
     state.lastMessage = `Alert-Regeln aktualisiert: ${result.changed || 0} fehlende/ungültige Volume-Werte auf ${result.targetVolume || 80}% gesetzt.`;
+    render();
+  }
+
+  async function previewBoostCopies(){
+    const preview = await api('/boost/preview?limit=100&includeExisting=true');
+    state.boostPreview = preview;
+    state.lastMessage = 'Boost-Kopien Preview geladen. Es wurde noch nichts erzeugt.';
+    render();
+  }
+
+  async function createBoostCopyOne(file){
+    const clean = String(file || '').trim();
+    if (!clean) throw new Error('Keine Datei für Boost-Kopie ausgewählt.');
+    const result = await api('/boost/create-one', { method: 'POST', body: JSON.stringify({ file: clean, updatedBy: 'dashboard' }) });
+    state.boostApplyResult = result;
+    state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true');
+    state.lastMessage = `Boost-Kopie erzeugt: ${result.outputFile || clean} mit ${db(result.gainDb, 1)}.`;
     render();
   }
 
@@ -578,6 +601,7 @@ window.SoundLevelScanModule = (function(){
         state.levelConfig = cfg.config || null;
         try { state.levelConfigApplyPreview = await api('/config/apply-defaults/preview'); } catch (_) { state.levelConfigApplyPreview = null; }
         try { state.massVolumePreview = await api('/config/mass-volume-preview'); } catch (_) { state.massVolumePreview = null; }
+        try { state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true'); } catch (_) { state.boostPreview = null; }
         if (state.levelConfig?.defaultScanLimit) state.scanLimit = Number(state.levelConfig.defaultScanLimit) || state.scanLimit;
         if (state.levelConfig?.defaultResultLimit) state.resultLimit = Number(state.levelConfig.defaultResultLimit) || state.resultLimit;
         if (state.levelConfig?.defaultReferenceOutputTarget) state.referenceOutputTarget = normalizeReferenceOutputTarget(state.levelConfig.defaultReferenceOutputTarget);
@@ -819,24 +843,78 @@ window.SoundLevelScanModule = (function(){
             <strong>Normalisierte Kopien</strong>
             <span>${esc(HELP.normalizedCopies)}</span>
           </div>
-          <span class="sound-pill warn">geplant</span>
+          <span class="sound-pill warn">Einzeltest</span>
         </div>
         <div class="sound-levelscan-settings-grid compact">
           <label class="sound-field sound-levelscan-wide">
-            <span>Zielordner für spätere Kopien</span>
-            <input id="soundLevelNormalizationOutputDir" type="text" value="${esc(norm.outputDir || 'htdocs/assets/sounds_normalized')}" title="Geplanter separater Ausgabeordner. Originale bleiben erhalten.">
+            <span>Zielordner für Kopien</span>
+            <input id="soundLevelNormalizationOutputDir" type="text" value="${esc(norm.outputDir || 'htdocs/assets/sounds/normalized')}" title="Boost-Kopien werden im normalen Sound-Ordner unter normalized/ abgelegt, damit /api/sound/play sie direkt testen kann.">
           </label>
-          <label class="sound-check" title="Später darf das Export-Modul Unterordner wie alerts/ automatisch anlegen.">
+          <label class="sound-check" title="Das Export-Modul legt Unterordner wie alerts/ automatisch an.">
             <input id="soundLevelNormalizationFolders" type="checkbox" ${norm.createMissingFolders === false ? '' : 'checked'}>
             <span>Unterordner anlegen</span>
           </label>
         </div>
         <div class="sound-actions">
           <button type="button" data-sound-level-action="save-correction" title="Speichert nur die vorbereiteten Export-Einstellungen. Es werden keine Dateien erzeugt.">Export-Einstellungen speichern</button>
+          <button type="button" data-sound-level-action="preview-boost-copies" title="Lädt Dateien, die laut Scan eine Boost-Kopie brauchen. Keine Änderung.">Boost-Preview laden</button>
         </div>
-        <div class="sound-note"><strong>Noch kein Export.</strong> Dieser Bereich bereitet nur die spätere Option vor. Es werden keine Kopien erzeugt und keine Originale überschrieben.</div>
+        <div class="sound-note"><strong>STEP272G:</strong> Es werden nur einzelne Boost-Kopien auf Knopfdruck erzeugt. Originaldateien bleiben unverändert und es gibt noch keine automatische Umleitung.</div>
+        ${renderBoostCopyPanel()}
       </div>
     `;
+  }
+
+  function renderBoostCopyPanel(){
+    const preview = state.boostPreview || null;
+    const result = state.boostApplyResult || null;
+    if (!preview) {
+      return `
+        <div class="sound-levelscan-subcard">
+          <div class="sound-card-head small">
+            <strong>Boost-Kopien Preview</strong>
+            <span>${esc(HELP.boostCopies)}</span>
+          </div>
+          <button type="button" data-sound-level-action="preview-boost-copies">Boost-Preview laden</button>
+        </div>`;
+    }
+    const summary = preview.summary || {};
+    const rows = Array.isArray(preview.rows) ? preview.rows : [];
+    return `
+      <div class="sound-levelscan-subcard sound-levelscan-boost-preview">
+        <div class="sound-card-head small">
+          <strong>Boost-Kopien Preview</strong>
+          <span>${esc((preview.notes || []).join(' '))}</span>
+        </div>
+        <div class="sound-levelscan-summary-grid mini">
+          <div><strong>${esc(summary.totalShown ?? 0)}</strong><span>angezeigt</span></div>
+          <div><strong>${esc(summary.missingCopies ?? 0)}</strong><span>fehlen</span></div>
+          <div><strong>${esc(summary.existingCopies ?? 0)}</strong><span>vorhanden</span></div>
+          <div><strong>${esc(summary.unsupported ?? 0)}</strong><span>nicht direkt</span></div>
+        </div>
+        ${result ? `<div class="sound-note success">Boost-Kopie erzeugt: <strong>${esc(result.outputFile || '')}</strong>. Teste Original und Kopie bewusst über das Sound-System.</div>` : ''}
+        <div class="sound-actions">
+          <button type="button" data-sound-level-action="preview-boost-copies">Boost-Preview neu laden</button>
+        </div>
+        ${rows.length ? `
+          <div class="sound-table-wrap compact">
+            <table class="sound-levelscan-table compact">
+              <thead><tr><th>Datei</th><th>LUFS</th><th>Gain</th><th>Kopie</th><th>Aktion</th></tr></thead>
+              <tbody>
+                ${rows.slice(0, 40).map(row => `
+                  <tr class="${row.exists ? 'is-success' : 'is-danger'}">
+                    <td>${esc(row.file || '-')}<br><small>${row.outputFile ? `Kopie: ${esc(row.outputFile)}` : ''}</small></td>
+                    <td>${num(row.inputI, 2)}</td>
+                    <td>${db(row.recommendedGainDb, 1)}</td>
+                    <td><span class="sound-pill ${row.exists ? 'success' : row.canCreate ? 'warn' : 'danger'}">${row.exists ? 'vorhanden' : row.canCreate ? 'fehlt' : 'nicht direkt'}</span></td>
+                    <td>
+                      ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>` : `<span class="sound-muted small">${esc(row.unsupportedReason || 'nicht unterstützt')}</span>`}
+                    </td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>` : `<p class="sound-muted small">Keine Boost-Kandidaten gefunden.</p>`}
+      </div>`;
   }
 
 
@@ -1271,7 +1349,7 @@ window.SoundLevelScanModule = (function(){
     { id: 'results', label: 'Ergebnisse', hint: 'Messwerte, Filter, Suche und Tabelle.' },
     { id: 'correction', label: 'Korrektur', hint: 'Playback-Korrektur und Korrektur-Vorschau konfigurieren.' },
     { id: 'config', label: 'Config', hint: 'Zentrale Defaults fuer Playback, Uploads und spaetere Massenaktionen.' },
-    { id: 'normalization', label: 'Kopien', hint: 'Späterer Export normalisierter Kopien, aktuell nur vorbereitet.' }
+    { id: 'normalization', label: 'Boost-Kopien', hint: 'Preview und Einzeltest fuer zu leise Dateien. Originale bleiben unverändert.' }
   ];
 
   function renderLevelTabs(){
@@ -1321,7 +1399,7 @@ window.SoundLevelScanModule = (function(){
     if (state.activeTab === 'normalization') {
       return `
         ${renderNormalizationPanel()}
-        <div class="sound-note">Normalisierte Kopien bleiben absichtlich ein separater späterer Schritt. Originaldateien werden nicht überschrieben.</div>
+        <div class="sound-note">Boost-Kopien sind jetzt als Einzeltest möglich. Keine Massenaktion und keine automatische Umleitung.</div>
       `;
     }
     return `

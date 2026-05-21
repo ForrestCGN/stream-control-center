@@ -330,3 +330,8 @@ Sound-Pegel besitzt jetzt eine eigene Config-Seite im Dashboard. Werte werden ue
 - Dashboard-Button im Sound-Pegel Config/Volume-Preview Bereich: `Alert-Missing auf 80 setzen`.
 - Setzt nur fehlende/ungültige `alert_rules.sound_volume` auf den aktuellen Default, aktuell 80.
 - Überschreibt keine expliziten Alert-Volumes und lässt SoundAlerts/Kanalpunkte mit 100 unverändert.
+
+
+## STEP272G - Sound-Pegel Boost-Kopien
+
+Das Sound-Pegel-System unterstützt jetzt eine sichere Preview für zu leise Dateien und kann einzelne Boost-Kopien unter `htdocs/assets/sounds/normalized/` erzeugen. Originale und bestehende Sound-Regeln bleiben unverändert.

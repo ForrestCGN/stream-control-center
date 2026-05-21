@@ -897,3 +897,17 @@ html[data-theme=dark] .sound-levelscan-apply-values strong {
 .sound-levelscan-table tr.is-danger td {
   background: rgba(239, 68, 68, .08);
 }
+
+.sound-levelscan-boost-preview {
+  border-color: rgba(34, 211, 238, .22);
+  background: linear-gradient(135deg, rgba(34, 211, 238, .06), rgba(168, 85, 247, .05));
+}
+
+.sound-levelscan-table tr.is-success td {
+  background: rgba(34, 197, 94, .07);
+}
+
+.sound-levelscan-boost-preview small {
+  color: var(--muted, #94a3b8);
+  word-break: break-all;
+}

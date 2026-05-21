@@ -584,3 +584,11 @@ TTS-System
 - Dashboard-Button im Sound-Pegel Config/Volume-Preview Bereich: `Alert-Missing auf 80 setzen`.
 - Setzt nur fehlende/ungültige `alert_rules.sound_volume` auf den aktuellen Default, aktuell 80.
 - Überschreibt keine expliziten Alert-Volumes und lässt SoundAlerts/Kanalpunkte mit 100 unverändert.
+
+
+## STEP272G Dateien
+
+- `backend/modules/sound_loudness_scanner.js` - Boost-Preview und Einzeldatei-Erzeugung.
+- `htdocs/dashboard/modules/sound_levelscan.js` - Dashboard-Bereich Boost-Kopien.
+- `htdocs/dashboard/modules/sound_levelscan.css` - Darstellung Boost-Kopien.
+- `project-state/STEP272G_SOUND_PEGEL_BOOST_COPY_PREVIEW.md` - Step-Dokumentation.

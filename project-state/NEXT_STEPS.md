@@ -558,3 +558,10 @@ STEP272F: Boost-Kopien fuer zu leise Sounds vorbereiten.
 - Dashboard `System -> Sound-Pegel -> Config` zeigt eine Volume-Preview fuer bestehende Alert-/SoundAlert-/VIP-Daten.
 - Pegel-Scan-Bewertung markiert Kandidaten fuer Boost-Kopie oder Runtime-Absenkung.
 - Keine Massenänderung, keine Sounddatei-Änderung, keine config/**-Änderung.
+
+
+## Nach STEP272G
+
+1. Einzeltest mit `alerts/follow.mp3`: Boost-Kopie erzeugen und Original vs. Kopie über OBS/Device vergleichen.
+2. Wenn die Kopie passt: gezielte Nutzung/Mapping vorbereiten, noch keine Massenumleitung.
+3. Video-SoundAlerts separat behandeln, da Video-Dateien andere FFmpeg-Strategie benötigen.

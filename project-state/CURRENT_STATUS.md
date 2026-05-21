@@ -400,3 +400,8 @@ Offen:
 - Dashboard-Button im Sound-Pegel Config/Volume-Preview Bereich: `Alert-Missing auf 80 setzen`.
 - Setzt nur fehlende/ungültige `alert_rules.sound_volume` auf den aktuellen Default, aktuell 80.
 - Überschreibt keine expliziten Alert-Volumes und lässt SoundAlerts/Kanalpunkte mit 100 unverändert.
+
+
+## STEP272G Status
+
+Sound-Pegel kann jetzt Boost-Kopien als Einzeldatei-Test vorbereiten. Kopien landen unter `htdocs/assets/sounds/normalized/` und können über das Sound-System getestet werden. Keine automatische Massenanwendung.

@@ -40,7 +40,7 @@ const DEFAULT_CORRECTION_SETTINGS = {
 const DEFAULT_NORMALIZATION_SETTINGS = {
   enabled: false,
   mode: "planned",
-  outputDir: "htdocs/assets/sounds_normalized",
+  outputDir: "htdocs/assets/sounds/normalized",
   overwriteOriginals: false,
   keepOriginals: true,
   createMissingFolders: true,
@@ -80,7 +80,7 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.6-step272b2-reference-test-file",
+    version: "0.1.7-step272g-boost-copy-preview",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -190,6 +190,29 @@ module.exports.init = function init(ctx) {
       const body = req.body || {};
       const updatedBy = String(body.updatedBy || body.user || "dashboard");
       res.json(applyMissingAlertRuleVolumes(updatedBy));
+    } catch (err) {
+      res.status(400).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.get(`${ROUTE_PREFIX}/boost/preview`, (req, res) => {
+    try {
+      ensureSchema();
+      const limit = Math.round(clampNumber(req.query.limit, 1, 500, 100));
+      const includeExisting = parseBool(req.query.includeExisting, true);
+      res.json(buildBoostCopyPreview({ limit, includeExisting }));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.post(`${ROUTE_PREFIX}/boost/create-one`, (req, res) => {
+    try {
+      ensureSchema();
+      const body = req.body || {};
+      const relativePath = normalizeRelativePath(body.file || body.relativePath || body.path || "");
+      const updatedBy = String(body.updatedBy || body.user || "dashboard");
+      res.json(createBoostCopyForFile(relativePath, { updatedBy }));
     } catch (err) {
       res.status(400).json({ ok: false, error: errorMessage(err) });
     }
@@ -415,6 +438,10 @@ module.exports.init = function init(ctx) {
         { method: "POST", path: `${ROUTE_PREFIX}/config`, description: "Save central Sound-Pegel defaults to SQLite; does not rewrite existing sounds" },
         { method: "GET", path: `${ROUTE_PREFIX}/config/apply-defaults/preview`, description: "Preview applying Sound-Pegel defaults to DB-backed module settings" },
         { method: "POST", path: `${ROUTE_PREFIX}/config/apply-defaults`, description: "Apply Sound-Pegel default volume to DB-backed module settings; no existing sound files are changed" },
+        { method: "GET", path: `${ROUTE_PREFIX}/config/mass-volume-preview`, description: "Preview existing Alert/SoundAlert/VIP volume values and loudness-derived needs without changing data" },
+        { method: "POST", path: `${ROUTE_PREFIX}/config/mass-volume-apply/alerts-missing`, description: "Set only missing/invalid Alert rule sound_volume values to the configured default" },
+        { method: "GET", path: `${ROUTE_PREFIX}/boost/preview`, description: "Preview files whose scan suggests a boosted copy is needed" },
+        { method: "POST", path: `${ROUTE_PREFIX}/boost/create-one`, description: "Create one boosted copy inside htdocs/assets/sounds/normalized without touching the original" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference`, description: "Calculate automatic reference loudness and recommend a real reference sound" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference/test.wav`, description: "Generated approximate reference test sound for direct browser checks" },
         { method: "GET/POST", path: `${ROUTE_PREFIX}/reference/test-file`, description: "Create/update generated/reference_test.wav in sounds folder so it can be played via Sound-System/OBS" },
@@ -1097,6 +1124,190 @@ function buildLoudnessVolumeNeeds(targetVolume) {
     rows: mapped.filter(row => row.boostCopyNeeded || row.runtimeCutCandidate).slice(0, 250),
     note: "Analyse aus dem letzten Pegel-Scan: zu leise Dateien mit Volume-Cap brauchen später eher Boost-Kopien; laute Dateien können per Runtime-Volume abgesenkt werden."
   };
+}
+
+
+function getBoostCopyCandidates(limit = 100, includeExisting = true) {
+  if (!tableExists("sound_loudness_files")) return [];
+  const safeLimit = Math.round(clampNumber(limit, 1, 500, 100));
+  const rows = database.all(`
+    SELECT relative_path, duration_ms, input_i, input_tp, recommended_gain_db, recommended_volume, status, warnings_json, error_text
+    FROM sound_loudness_files
+    WHERE status <> 'error'
+    ORDER BY recommended_gain_db DESC, relative_path ASC
+    LIMIT 1000
+  `) || [];
+
+  const candidates = [];
+  for (const row of rows) {
+    const relativePath = normalizeRelativePath(row.relative_path || "");
+    if (!relativePath) continue;
+    if (isExcludedTtsPath(relativePath)) continue;
+    if (relativePath.toLowerCase().startsWith("normalized/")) continue;
+
+    const warnings = parseWarningsJson(row.warnings_json);
+    const gain = numberOrNull(row.recommended_gain_db);
+    const recommendedVolume = numberOrNull(row.recommended_volume);
+    const needsBoost = warnings.includes("volume_cap_reached") || (gain !== null && gain > 0 && recommendedVolume !== null && recommendedVolume >= 100);
+    if (!needsBoost) continue;
+
+    const info = buildBoostCopyInfo(relativePath, row);
+    if (!includeExisting && info.exists) continue;
+    candidates.push(info);
+    if (candidates.length >= safeLimit) break;
+  }
+  return candidates;
+}
+
+function buildBoostCopyPreview(options = {}) {
+  const cfg = getLevelConfig();
+  const limit = Math.round(clampNumber(options.limit, 1, 500, 100));
+  const includeExisting = parseBool(options.includeExisting, true) !== false;
+  const rows = getBoostCopyCandidates(limit, includeExisting);
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    mode: "preview_only",
+    generatedAt: nowIso(),
+    outputDir: "htdocs/assets/sounds/normalized",
+    playableBase: "normalized/",
+    count: rows.length,
+    summary: {
+      totalShown: rows.length,
+      existingCopies: rows.filter(row => row.exists).length,
+      missingCopies: rows.filter(row => !row.exists).length,
+      creatable: rows.filter(row => row.canCreate).length,
+      unsupported: rows.filter(row => !row.canCreate).length
+    },
+    config: cfg,
+    rows,
+    notes: [
+      "Nur Vorschau: Original-Sounddateien werden nicht verändert.",
+      "Boost-Kopien werden in htdocs/assets/sounds/normalized/<originalpfad> geschrieben, damit /api/sound/play sie wie normale Sounds abspielen kann.",
+      "STEP272G erzeugt nur Einzeldateien auf Knopfdruck, keine automatische Massen-Normalisierung."
+    ]
+  };
+}
+
+function buildBoostCopyInfo(relativePath, row = null) {
+  const clean = normalizeRelativePath(relativePath);
+  const ext = path.extname(clean).toLowerCase();
+  const outputRelativePath = normalizeRelativePath(path.posix.join("normalized", clean));
+  const outputAbsolutePath = path.join(getSoundsBaseDir(), ...outputRelativePath.split("/"));
+  const sourceAbsolutePath = path.join(getSoundsBaseDir(), ...clean.split("/"));
+  const exists = fs.existsSync(outputAbsolutePath);
+  const stat = exists ? safeStat(outputAbsolutePath) : null;
+  const supportedAudio = [".mp3", ".wav", ".ogg", ".m4a"].includes(ext);
+  return {
+    file: clean,
+    sourceFile: clean,
+    sourceAbsolutePath,
+    outputFile: outputRelativePath,
+    outputAbsolutePath,
+    browserUrl: `/assets/sounds/${outputRelativePath}`,
+    exists,
+    sizeBytes: stat ? Number(stat.size || 0) : 0,
+    mtimeMs: stat ? Number(stat.mtimeMs || 0) : 0,
+    canCreate: supportedAudio,
+    unsupportedReason: supportedAudio ? "" : "video_or_unsupported_extension",
+    extension: ext,
+    inputI: row ? numberOrNull(row.input_i) : null,
+    inputTp: row ? numberOrNull(row.input_tp) : null,
+    durationMs: row ? numberOrNull(row.duration_ms) : null,
+    recommendedGainDb: row ? numberOrNull(row.recommended_gain_db) : null,
+    recommendedVolume: row ? numberOrNull(row.recommended_volume) : null,
+    warnings: row ? parseWarningsJson(row.warnings_json) : [],
+    status: row ? String(row.status || "") : "",
+    errorText: row ? String(row.error_text || "") : "",
+    note: exists ? "Boost-Kopie ist bereits vorhanden." : "Boost-Kopie fehlt noch."
+  };
+}
+
+function createBoostCopyForFile(relativePath, options = {}) {
+  const clean = normalizeRelativePath(relativePath);
+  if (!clean) throw new Error("file_required");
+  if (clean.includes("..")) throw new Error("unsafe_file_path");
+  if (isExcludedTtsPath(clean)) throw new Error("tts_files_are_excluded");
+  if (clean.toLowerCase().startsWith("normalized/")) throw new Error("normalized_source_not_allowed");
+
+  const row = database.get("SELECT * FROM sound_loudness_files WHERE relative_path = :relativePath", { relativePath: clean }) || null;
+  if (!row) throw new Error("file_not_scanned");
+
+  const info = buildBoostCopyInfo(clean, row);
+  if (!info.canCreate) throw new Error(info.unsupportedReason || "unsupported_extension");
+  if (!fs.existsSync(info.sourceAbsolutePath)) throw new Error("source_file_missing");
+
+  const gain = numberOrNull(row.recommended_gain_db);
+  const safeGain = Math.max(0, Math.min(12, Number(gain || 0)));
+  if (!Number.isFinite(safeGain) || safeGain <= 0) throw new Error("positive_gain_not_needed");
+
+  fs.mkdirSync(path.dirname(info.outputAbsolutePath), { recursive: true });
+  const ffmpeg = findFfmpeg();
+  const ext = path.extname(info.outputAbsolutePath).toLowerCase();
+  const audioCodecArgs = buildAudioCodecArgs(ext);
+  const filter = `volume=${round2(safeGain)}dB,alimiter=limit=0.891:level=false`;
+  const args = [
+    "-hide_banner",
+    "-y",
+    "-i", info.sourceAbsolutePath,
+    "-vn",
+    "-af", filter,
+    ...audioCodecArgs,
+    info.outputAbsolutePath
+  ];
+
+  const startedAt = nowIso();
+  const result = childProcess.spawnSync(ffmpeg, args, {
+    encoding: "utf8",
+    timeout: DEFAULT_FFMPEG_TIMEOUT_MS,
+    windowsHide: true,
+    maxBuffer: 1024 * 1024 * 10
+  });
+  if (result.error) throw result.error;
+  if (Number(result.status || 0) !== 0) {
+    const stderr = String(result.stderr || "").slice(-2000);
+    throw new Error(`ffmpeg_boost_failed: ${stderr}`);
+  }
+
+  const afterInfo = buildBoostCopyInfo(clean, row);
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    action: "create_boost_copy_one",
+    applied: true,
+    updatedAt: nowIso(),
+    updatedBy: String(options.updatedBy || ""),
+    startedAt,
+    sourceFile: clean,
+    outputFile: afterInfo.outputFile,
+    browserUrl: afterInfo.browserUrl,
+    gainDb: round2(safeGain),
+    inputI: numberOrNull(row.input_i),
+    inputTp: numberOrNull(row.input_tp),
+    recommendedGainDb: gain,
+    recommendedVolume: numberOrNull(row.recommended_volume),
+    sizeBytes: afterInfo.sizeBytes,
+    exists: afterInfo.exists,
+    playOriginalFile: clean,
+    playBoostFile: afterInfo.outputFile,
+    notes: [
+      "Originaldatei wurde nicht verändert.",
+      "Die Boost-Kopie liegt im normalen Sound-Ordner unter normalized/ und kann per /api/sound/play getestet werden.",
+      "Noch keine automatische Umleitung bestehender Alert-/SoundAlert-Regeln."
+    ]
+  };
+}
+
+function buildAudioCodecArgs(ext) {
+  if (ext === ".mp3") return ["-c:a", "libmp3lame", "-q:a", "2"];
+  if (ext === ".ogg") return ["-c:a", "libvorbis", "-q:a", "5"];
+  if (ext === ".m4a") return ["-c:a", "aac", "-b:a", "192k"];
+  if (ext === ".wav") return ["-c:a", "pcm_s16le"];
+  return ["-c:a", "libmp3lame", "-q:a", "2"];
+}
+
+function safeStat(filePath) {
+  try { return fs.statSync(filePath); } catch (_) { return null; }
 }
 
 function applyMissingAlertRuleVolumes(updatedBy) {

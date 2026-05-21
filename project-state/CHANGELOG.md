@@ -270,3 +270,10 @@
 - Dashboard-Button im Sound-Pegel Config/Volume-Preview Bereich: `Alert-Missing auf 80 setzen`.
 - Setzt nur fehlende/ungültige `alert_rules.sound_volume` auf den aktuellen Default, aktuell 80.
 - Überschreibt keine expliziten Alert-Volumes und lässt SoundAlerts/Kanalpunkte mit 100 unverändert.
+
+
+## STEP272G - Sound-Pegel Boost-Kopien Preview und Einzeldatei-Test
+
+- Neue API-Routen `/api/sound/loudness/boost/preview` und `/api/sound/loudness/boost/create-one`.
+- Dashboard-Bereich `Boost-Kopien` erzeugt nur einzelne verstärkte Kopien auf Knopfdruck.
+- Originaldateien, SoundAlerts, Alert-Regeln, Queue, Discord-Routing und TTS bleiben unverändert.
