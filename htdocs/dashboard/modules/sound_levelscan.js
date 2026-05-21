@@ -315,6 +315,7 @@ window.SoundLevelScanModule = (function(){
         if (action === 'preview-apply-defaults') await previewApplyDefaults();
         if (action === 'apply-defaults') await applyDefaultsToModules();
         if (action === 'preview-mass-volume') await previewMassVolume();
+        if (action === 'apply-alert-missing-volumes') await applyAlertMissingVolumes();
         if (action === 'reload-reference') await loadReferenceOnly(true);
         if (action === 'play-reference') await playReferenceSound();
         if (action === 'play-reference-test') await playReferenceTestSound();
@@ -396,6 +397,14 @@ window.SoundLevelScanModule = (function(){
     const preview = await api('/config/mass-volume-preview');
     state.massVolumePreview = preview;
     state.lastMessage = 'Bestehende Sound-Volumes Preview geladen. Es wurde nichts geändert.';
+    render();
+  }
+
+  async function applyAlertMissingVolumes(){
+    const result = await api('/config/mass-volume-apply/alerts-missing', { method: 'POST', body: JSON.stringify({ updatedBy: 'dashboard' }) });
+    state.massVolumeApplyResult = result;
+    state.massVolumePreview = await api('/config/mass-volume-preview');
+    state.lastMessage = `Alert-Regeln aktualisiert: ${result.changed || 0} fehlende/ungültige Volume-Werte auf ${result.targetVolume || 80}% gesetzt.`;
     render();
   }
 
@@ -1085,10 +1094,25 @@ window.SoundLevelScanModule = (function(){
         </div>
         <div class="sound-actions">
           <button type="button" data-sound-level-action="preview-mass-volume" title="Aktualisiert die Vorschau. Es wird nichts geändert.">Volume-Preview neu laden</button>
+          <button type="button" class="success" data-sound-level-action="apply-alert-missing-volumes" title="Setzt nur fehlende/ungültige Alert-Regel-Volumes auf den Default. SoundAlerts mit 100% bleiben unverändert.">Alert-Missing auf 80 setzen</button>
         </div>
+        ${renderMassVolumeApplyResult()}
         ${sections.map(renderMassVolumeSection).join('')}
         ${renderLoudnessNeeds(loudness)}
         <p class="sound-muted small">${esc((preview.notes || []).join(' '))}</p>
+      </div>`;
+  }
+
+  function renderMassVolumeApplyResult(){
+    const result = state.massVolumeApplyResult || null;
+    if (!result) return '';
+    if (result.ok === false) {
+      return `<div class="sound-note danger">Alert-Volume-Aktion fehlgeschlagen: ${esc(result.message || result.error || 'unbekannt')}</div>`;
+    }
+    return `
+      <div class="sound-note success">
+        Alert-Regeln aktualisiert: <strong>${esc(result.changed || 0)}</strong> fehlende/ungültige Volume-Werte auf <strong>${esc(result.targetVolume || 80)}%</strong> gesetzt.
+        Explizite bestehende Werte wurden nicht überschrieben.
       </div>`;
   }
 

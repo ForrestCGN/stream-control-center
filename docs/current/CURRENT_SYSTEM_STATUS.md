@@ -322,3 +322,11 @@ Sound-Pegel besitzt jetzt eine eigene Config-Seite im Dashboard. Werte werden ue
 - Dashboard `System -> Sound-Pegel -> Config` zeigt eine Volume-Preview fuer bestehende Alert-/SoundAlert-/VIP-Daten.
 - Pegel-Scan-Bewertung markiert Kandidaten fuer Boost-Kopie oder Runtime-Absenkung.
 - Keine Massenänderung, keine Sounddatei-Änderung, keine config/**-Änderung.
+
+
+## STEP272F - Sound-Pegel Alert-Missing-Volumes Apply
+
+- Neue Route `POST /api/sound/loudness/config/mass-volume-apply/alerts-missing`.
+- Dashboard-Button im Sound-Pegel Config/Volume-Preview Bereich: `Alert-Missing auf 80 setzen`.
+- Setzt nur fehlende/ungültige `alert_rules.sound_volume` auf den aktuellen Default, aktuell 80.
+- Überschreibt keine expliziten Alert-Volumes und lässt SoundAlerts/Kanalpunkte mit 100 unverändert.

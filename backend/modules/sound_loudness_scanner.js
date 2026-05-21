@@ -184,6 +184,17 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  app.post(`${ROUTE_PREFIX}/config/mass-volume-apply/alerts-missing`, (req, res) => {
+    try {
+      ensureSchema();
+      const body = req.body || {};
+      const updatedBy = String(body.updatedBy || body.user || "dashboard");
+      res.json(applyMissingAlertRuleVolumes(updatedBy));
+    } catch (err) {
+      res.status(400).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
   app.post(`${ROUTE_PREFIX}/config/apply-defaults`, (req, res) => {
     try {
       ensureSchema();
@@ -1085,6 +1096,67 @@ function buildLoudnessVolumeNeeds(targetVolume) {
     },
     rows: mapped.filter(row => row.boostCopyNeeded || row.runtimeCutCandidate).slice(0, 250),
     note: "Analyse aus dem letzten Pegel-Scan: zu leise Dateien mit Volume-Cap brauchen später eher Boost-Kopien; laute Dateien können per Runtime-Volume abgesenkt werden."
+  };
+}
+
+function applyMissingAlertRuleVolumes(updatedBy) {
+  const cfg = getLevelConfig();
+  const targetVolume = Math.round(clampNumber(cfg.defaultPlaybackVolume, 1, 100, 80));
+  const before = previewAlertRules(targetVolume, false);
+  if (!before.supported) {
+    return {
+      ok: false,
+      module: MODULE_NAME,
+      applied: false,
+      area: "alerts",
+      error: "alert_rules_not_supported",
+      message: before.note || "Alert-Regeln können nicht aktualisiert werden.",
+      before
+    };
+  }
+
+  const candidates = before.rows.filter(row => row && row.wouldChange && ["missing_volume", "invalid_volume"].includes(String(row.reason || "")));
+  const now = nowIso();
+  let changed = 0;
+  const changedIds = [];
+
+  for (const row of candidates) {
+    const id = Number(row.id || 0);
+    if (!id) continue;
+    const result = database.run(`
+      UPDATE alert_rules
+      SET sound_volume = :targetVolume
+      WHERE id = :id
+        AND (sound_volume IS NULL OR TRIM(CAST(sound_volume AS TEXT)) = '' OR sound_volume < 0 OR sound_volume > 100)
+    `, { id, targetVolume });
+    const changes = Number(result && result.changes || 0);
+    if (changes > 0) {
+      changed += changes;
+      changedIds.push(id);
+    }
+  }
+
+  const after = previewAlertRules(targetVolume, false);
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    applied: true,
+    area: "alerts",
+    action: "set_missing_alert_rule_volumes",
+    targetVolume,
+    updatedAt: now,
+    updatedBy: String(updatedBy || ""),
+    changed,
+    changedIds,
+    beforeSummary: before.summary,
+    afterSummary: after.summary,
+    beforeRows: candidates,
+    after,
+    notes: [
+      "Es wurden nur Alert-Regeln mit fehlendem oder ungültigem sound_volume gesetzt.",
+      "Explizite bestehende Alert-Volumes wurden nicht überschrieben.",
+      "SoundAlerts/Kanalpunkte, VIP-/Mod-Sounds und Sounddateien wurden nicht verändert."
+    ]
   };
 }
 
