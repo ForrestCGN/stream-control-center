@@ -290,7 +290,9 @@ window.SoundLevelScanModule = (function(){
         truePeakLimitDbtp: correctionFormNumber('soundLevelCorrectionPeakLimit', current.truePeakLimitDbtp ?? -1.5, -12, 0),
         maxPlaybackVolume: Math.round(correctionFormNumber('soundLevelCorrectionMaxVolume', current.maxPlaybackVolume ?? 80, 1, 100)),
         maxBoostDb: correctionFormNumber('soundLevelCorrectionMaxBoost', current.maxBoostDb ?? 6, 0, 18),
-        maxCutDb: correctionFormNumber('soundLevelCorrectionMaxCut', current.maxCutDb ?? 24, 0, 40),
+        maxCutDb: correctionFormNumber('soundLevelCorrectionMaxCut', current.maxCutDb ?? 12, 0, 12),
+        minPlaybackVolume: correctionFormNumber('soundLevelCorrectionMinVolume', current.minPlaybackVolume ?? 35, 0, 100),
+        strengthPercent: correctionFormNumber('soundLevelCorrectionStrength', current.strengthPercent ?? 50, 0, 100),
         protectTruePeak: !!document.getElementById('soundLevelCorrectionProtectPeak')?.checked,
         excludeTts: !!document.getElementById('soundLevelCorrectionExcludeTts')?.checked
       },

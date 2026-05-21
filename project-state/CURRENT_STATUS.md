@@ -2,6 +2,14 @@
 
 Stand: 2026-05-21
 
+## STEP270G1 - Pegel-Playback-Korrektur Safe-Tuning
+
+- Optionale Playback-Korrektur bleibt abschaltbar, wurde aber sicherer abgestimmt.
+- Korrektur wird nur anteilig angewendet (`strengthPercent`, Standard 50%).
+- Automatische Absenkung hat eine Mindestlautstärke (`minPlaybackVolume`, Standard 35%).
+- `maxCutDb` ist auf maximal 12 dB begrenzt, damit kurze SFX wie Airhorn nicht brutal zu leise werden.
+- Keine Sound-Dateien, keine Queue, kein Discord-Routing, keine Alert-/TTS-Logik und kein `config/**` geaendert.
+
 ## STEP270G - Sound Pegel-Playback-Korrektur optional
 
 - Pegel-Korrektur kann jetzt optional zentral im Sound-System angewendet werden.

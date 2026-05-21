@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-05-21 - STEP270G1 Pegel-Playback-Korrektur Safe-Tuning
+
+- `backend/modules/sound_system.js` angepasst.
+- Pegel-Korrektur wird im Safe-Modus weniger aggressiv angewendet.
+- Neue Sicherheitswerte: `strengthPercent` und `minPlaybackVolume`.
+- `maxCutDb` wird auf maximal 12 dB begrenzt.
+- Dashboard-Einstellungen um Korrektur-Staerke und Mindest-Volume erweitert.
+- Ziel: kurze SFX wie Airhorn werden nicht mehr zu stark heruntergezogen.
+- Keine Sound-Dateien, keine Queue, kein Discord-Routing, keine Alerts, kein TTS und kein `config/**` geaendert.
+
+
 ## 2026-05-21 - STEP270G Pegel-Playback-Korrektur optional
 
 - `backend/modules/sound_system.js` erweitert.

@@ -2,6 +2,27 @@
 
 Stand: 2026-05-21
 
+## Nach STEP270G1 - Safe-Tuning testen
+
+Testen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/correction/settings" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=airhorn.mp3&outputTarget=device&target=stream&volume=80" | ConvertTo-Json -Depth 100
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 100
+```
+
+Erwartung:
+
+```text
+Airhorn wird nicht mehr extrem heruntergezogen.
+current.levelCorrection zeigt originalVolume, correctedVolume, rawGainDb, gainDb, strengthPercent und notes.
+Bei Bedarf im Dashboard Korrektur-Staerke / Mindest-Volume anpassen.
+```
+
+Wenn einzelne Sounds weiterhin nicht passen, naechster Schritt: per-Datei Overrides statt globale Korrektur weiter verschaerfen.
+
+
 ## Nach STEP270G - optionale Pegel-Korrektur vorsichtig testen
 
 Zuerst ausgeschaltet pruefen:

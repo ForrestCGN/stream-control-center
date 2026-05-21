@@ -26,8 +26,10 @@ const DEFAULT_CORRECTION_SETTINGS = {
   targetLufs: DEFAULT_TARGET_LUFS,
   truePeakLimitDbtp: DEFAULT_TRUE_PEAK_LIMIT_DBTP,
   maxPlaybackVolume: DEFAULT_MAX_PLAYBACK_VOLUME,
-  maxBoostDb: 6,
-  maxCutDb: 24,
+  minPlaybackVolume: 35,
+  maxBoostDb: 3,
+  maxCutDb: 12,
+  strengthPercent: 50,
   protectTruePeak: true,
   excludeTts: true,
   applyToTargets: ["stream", "discord", "both", "device", "overlay"],
@@ -667,8 +669,10 @@ function sanitizeCorrectionSettings(input) {
     targetLufs: clampNumber(raw.targetLufs, -40, -6, DEFAULT_TARGET_LUFS),
     truePeakLimitDbtp: clampNumber(raw.truePeakLimitDbtp, -12, 0, DEFAULT_TRUE_PEAK_LIMIT_DBTP),
     maxPlaybackVolume: Math.round(clampNumber(raw.maxPlaybackVolume, 1, 100, DEFAULT_MAX_PLAYBACK_VOLUME)),
-    maxBoostDb: clampNumber(raw.maxBoostDb, 0, 18, 6),
-    maxCutDb: clampNumber(raw.maxCutDb, 0, 40, 24),
+    minPlaybackVolume: Math.round(clampNumber(raw.minPlaybackVolume, 0, 100, DEFAULT_CORRECTION_SETTINGS.minPlaybackVolume)),
+    maxBoostDb: clampNumber(raw.maxBoostDb, 0, 18, DEFAULT_CORRECTION_SETTINGS.maxBoostDb),
+    maxCutDb: clampNumber(raw.maxCutDb, 0, 12, DEFAULT_CORRECTION_SETTINGS.maxCutDb),
+    strengthPercent: Math.round(clampNumber(raw.strengthPercent, 0, 100, DEFAULT_CORRECTION_SETTINGS.strengthPercent)),
     protectTruePeak: parseBool(raw.protectTruePeak, true) !== false,
     excludeTts: parseBool(raw.excludeTts, true) !== false,
     applyToTargets: Array.from(new Set(targets.map(v => String(v || "").trim().toLowerCase()).filter(Boolean))).slice(0, 10),
@@ -716,7 +720,9 @@ function buildCorrectionPreview(row, settings) {
     reasons.push(status === "error" ? "scan_error" : "missing_lufs");
   } else {
     rawGainDb = round1(Number(settings.targetLufs) - inputI);
-    limitedGainDb = rawGainDb;
+    const strength = Math.max(0, Math.min(100, Number(settings.strengthPercent || 50))) / 100;
+    limitedGainDb = rawGainDb * strength;
+    if (strength < 1) reasons.push("strength_limited");
     if (Number.isFinite(limitedGainDb) && limitedGainDb > Number(settings.maxBoostDb)) {
       limitedGainDb = Number(settings.maxBoostDb);
       reasons.push("max_boost_limited");
@@ -734,6 +740,11 @@ function buildCorrectionPreview(row, settings) {
     }
     limitedGainDb = round1(limitedGainDb);
     recommendedVolume = gainToVolume(limitedGainDb, settings.maxPlaybackVolume);
+    const minPlaybackVolume = Math.round(clampNumber(settings.minPlaybackVolume, 0, 100, DEFAULT_CORRECTION_SETTINGS.minPlaybackVolume));
+    if (Number.isFinite(recommendedVolume) && limitedGainDb < 0 && recommendedVolume < minPlaybackVolume) {
+      recommendedVolume = minPlaybackVolume;
+      reasons.push("min_volume_floor");
+    }
     if (limitedGainDb < -0.25) action = "reduce";
     else if (limitedGainDb > 0.25) action = "raise";
     else action = "near_target";
@@ -749,6 +760,8 @@ function buildCorrectionPreview(row, settings) {
       mode: settings.mode,
       targetLufs: settings.targetLufs,
       maxPlaybackVolume: settings.maxPlaybackVolume,
+      minPlaybackVolume: settings.minPlaybackVolume,
+      strengthPercent: settings.strengthPercent,
       rawGainDb,
       limitedGainDb,
       recommendedVolume,

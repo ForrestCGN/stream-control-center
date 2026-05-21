@@ -105,8 +105,10 @@ const DEFAULT_LEVEL_CORRECTION_SETTINGS = {
   targetLufs: -18,
   truePeakLimitDbtp: -1.5,
   maxPlaybackVolume: 80,
-  maxBoostDb: 6,
-  maxCutDb: 24,
+  minPlaybackVolume: 35,
+  maxBoostDb: 3,
+  maxCutDb: 12,
+  strengthPercent: 50,
   protectTruePeak: true,
   excludeTts: true,
   applyToTargets: ["stream", "discord", "both", "device", "overlay"]
@@ -850,8 +852,10 @@ module.exports.init = function init(ctx) {
       targetLufs: clampDb(input.targetLufs, DEFAULT_LEVEL_CORRECTION_SETTINGS.targetLufs, -40, -6),
       truePeakLimitDbtp: clampDb(input.truePeakLimitDbtp, DEFAULT_LEVEL_CORRECTION_SETTINGS.truePeakLimitDbtp, -12, 0),
       maxPlaybackVolume: clampVolume(input.maxPlaybackVolume, DEFAULT_LEVEL_CORRECTION_SETTINGS.maxPlaybackVolume),
+      minPlaybackVolume: clampVolume(input.minPlaybackVolume, DEFAULT_LEVEL_CORRECTION_SETTINGS.minPlaybackVolume),
       maxBoostDb: clampDb(input.maxBoostDb, DEFAULT_LEVEL_CORRECTION_SETTINGS.maxBoostDb, 0, 18),
-      maxCutDb: clampDb(input.maxCutDb, DEFAULT_LEVEL_CORRECTION_SETTINGS.maxCutDb, 0, 40),
+      maxCutDb: clampDb(input.maxCutDb, DEFAULT_LEVEL_CORRECTION_SETTINGS.maxCutDb, 0, 12),
+      strengthPercent: Math.max(0, Math.min(100, Math.round(Number(input.strengthPercent ?? DEFAULT_LEVEL_CORRECTION_SETTINGS.strengthPercent)))),
       protectTruePeak: input.protectTruePeak !== false,
       excludeTts: input.excludeTts !== false,
       applyToTargets: Array.from(new Set(targets.map(v => String(v || "").trim().toLowerCase()).filter(Boolean)))
@@ -881,8 +885,10 @@ module.exports.init = function init(ctx) {
       targetLufs: settings.targetLufs,
       truePeakLimitDbtp: settings.truePeakLimitDbtp,
       maxPlaybackVolume: settings.maxPlaybackVolume,
+      minPlaybackVolume: settings.minPlaybackVolume,
       maxBoostDb: settings.maxBoostDb,
       maxCutDb: settings.maxCutDb,
+      strengthPercent: settings.strengthPercent,
       protectTruePeak: settings.protectTruePeak,
       excludeTts: settings.excludeTts,
       applyToTargets: settings.applyToTargets
@@ -939,7 +945,10 @@ module.exports.init = function init(ctx) {
       file: normalizeRelativeSoundPath(item && item.file || ""),
       targetLufs: settings.targetLufs,
       inputI: null,
-      inputTp: null
+      inputTp: null,
+      strengthPercent: Number(settings.strengthPercent ?? DEFAULT_LEVEL_CORRECTION_SETTINGS.strengthPercent),
+      minPlaybackVolume: Number(settings.minPlaybackVolume ?? DEFAULT_LEVEL_CORRECTION_SETTINGS.minPlaybackVolume),
+      notes: []
     };
 
     if (!result.active) return result;
@@ -956,26 +965,44 @@ module.exports.init = function init(ctx) {
     const inputTp = Number(row.input_tp);
     if (!Number.isFinite(inputI)) return { ...result, reason: "missing_lufs" };
 
-    let gainDb = Number(settings.targetLufs) - inputI;
-    const rawGainDb = gainDb;
-    if (gainDb > Number(settings.maxBoostDb)) gainDb = Number(settings.maxBoostDb);
-    if (gainDb < -Number(settings.maxCutDb)) gainDb = -Number(settings.maxCutDb);
+    const rawGainDb = Number(settings.targetLufs) - inputI;
+    const strength = Math.max(0, Math.min(100, Number(settings.strengthPercent ?? DEFAULT_LEVEL_CORRECTION_SETTINGS.strengthPercent))) / 100;
+    let gainDb = rawGainDb * strength;
+    const notes = [];
+    if (strength < 1) notes.push("strength_limited");
+    if (gainDb > Number(settings.maxBoostDb)) {
+      gainDb = Number(settings.maxBoostDb);
+      notes.push("max_boost_limited");
+    }
+    if (gainDb < -Number(settings.maxCutDb)) {
+      gainDb = -Number(settings.maxCutDb);
+      notes.push("max_cut_limited");
+    }
     if (settings.protectTruePeak && Number.isFinite(inputTp) && gainDb > 0 && inputTp + gainDb > Number(settings.truePeakLimitDbtp)) {
       gainDb = Number(settings.truePeakLimitDbtp) - inputTp;
+      notes.push("true_peak_protected");
     }
 
-    const correctedVolume = gainDbToVolume(gainDb, settings.maxPlaybackVolume);
-    if (!Number.isFinite(Number(correctedVolume))) return { ...result, reason: "volume_unavailable", inputI: roundOne(inputI), inputTp: roundOne(inputTp), rawGainDb: roundOne(rawGainDb), gainDb: roundOne(gainDb) };
+    let correctedVolume = gainDbToVolume(gainDb, settings.maxPlaybackVolume);
+    if (!Number.isFinite(Number(correctedVolume))) return { ...result, reason: "volume_unavailable", inputI: roundOne(inputI), inputTp: roundOne(inputTp), rawGainDb: roundOne(rawGainDb), gainDb: roundOne(gainDb), notes };
+    const minPlaybackVolume = clampVolume(settings.minPlaybackVolume, DEFAULT_LEVEL_CORRECTION_SETTINGS.minPlaybackVolume);
+    if (gainDb < 0 && correctedVolume < minPlaybackVolume) {
+      correctedVolume = minPlaybackVolume;
+      notes.push("min_volume_floor");
+    }
 
     return {
       ...result,
       applied: true,
-      reason: "applied",
+      reason: "applied_safe",
       correctedVolume,
       inputI: roundOne(inputI),
       inputTp: roundOne(inputTp),
       rawGainDb: roundOne(rawGainDb),
       gainDb: roundOne(gainDb),
+      strengthPercent: Math.round(strength * 100),
+      minPlaybackVolume,
+      notes,
       scanId: String(row.scan_id || ""),
       scannedAt: String(row.scanned_at || "")
     };
