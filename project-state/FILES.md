@@ -1,6 +1,30 @@
 # FILES - stream-control-center
 
-Stand: 2026-05-20
+Stand: 2026-05-21
+
+## STEP266B - Alert Immediate Bundle Prequeue Self-Block Fix
+
+Geaendert:
+
+```text
+backend/modules/alert_system.js
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP266B_ALERT_IMMEDIATE_BUNDLE_PREQUEUE_FIX_2026-05-21.md
+```
+
+Nicht geaendert:
+
+```text
+app.sqlite
+config
+backend/modules/sound_system.js
+backend/modules/helpers
+Streamer.bot-Flows
+Overlay-HTML
+```
 
 ## STEP238
 
@@ -23,9 +47,9 @@ Nicht geaendert:
 backend/modules/chat_output.js
 backend/modules/twitch.js
 backend/core/database.js
-backend/modules/helpers/**
-config/**
-data/**
+backend/modules/helpers
+config
+data
 app.sqlite
 andere Dashboard-Module
 ```
@@ -35,7 +59,7 @@ andere Dashboard-Module
 ## Loyalty relevante Dateien
 
 - `backend/modules/loyalty.js`
-  - Loyalty-/Kekskrümel-Core.
+  - Loyalty-/Kekskruemel-Core.
   - STEP207: AutoRunner Boot Recovery bei gespeichertem Live-Stream-State nach Backend-Neustart.
   - STEP208: Subscribe/Resub-Dedupe mit Ausgleichstransaktion.
 
@@ -52,6 +76,7 @@ andere Dashboard-Module
 
 ## Doku
 
+- `project-state/STEP266B_ALERT_IMMEDIATE_BUNDLE_PREQUEUE_FIX_2026-05-21.md`
 - `project-state/STEP208_LOYALTY_SUB_RESUB_DEDUPE_2026-05-18.md`
 - `project-state/STEP207_LOYALTY_AUTORUNNER_BOOT_RECOVERY_2026-05-18.md`
 - `project-state/STEP263_DEATHCOUNTER_OVERLAY_SLIDE_TIMING_2026-05-11.md`
@@ -61,7 +86,7 @@ andere Dashboard-Module
 
 ## STEP239 - Message-Rotator Backend Direct Output
 
-Geändert:
+Geaendert:
 
 ```text
 backend/modules/message_rotator.js
@@ -74,11 +99,11 @@ project-state/NEXT_STEPS.md
 project-state/STEP239_MESSAGE_ROTATOR_BACKEND_DIRECT_OUTPUT_2026-05-20.md
 ```
 
-Nicht geändert:
+Nicht geaendert:
 
 ```text
 app.sqlite
-config/**
+config
 backend/core/database.js
 backend/modules/twitch.js
 htdocs/dashboard/modules/message_rotator.css
