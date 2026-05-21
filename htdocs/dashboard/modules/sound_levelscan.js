@@ -16,11 +16,33 @@ window.SoundLevelScanModule = (function(){
     lastMessage: ''
   };
 
+  const HELP = {
+    scanLimit: 'Maximale Anzahl Dateien, die beim nächsten Scan gemessen werden. Höher = vollständiger, aber langsamer.',
+    resultLimit: 'Maximale Anzahl gespeicherter Ergebnisse, die aus der Datenbank geladen und in der Tabelle angezeigt werden.',
+    status: 'OK = unauffällig. Warnung = Datei sollte geprüft werden. Fehler = Messung fehlgeschlagen.',
+    lufs: 'LUFS beschreibt die wahrgenommene durchschnittliche Lautstärke. Je näher an 0, desto lauter. Ziel hier: ca. -18 LUFS.',
+    truePeak: 'True Peak ist die technische Spitzenlautstärke. Werte über dem Limit können clippen oder verzerren. Ziel: maximal -1.5 dBTP.',
+    gain: 'Empfohlene Änderung in dB. Negativ = leiser machen. Positiv = lauter machen.',
+    volume: 'Grobe empfohlene Playback-Lautstärke auf Basis des Zielpegels und Max-Volume. 100% bedeutet: Datei ist eher zu leise.',
+    duration: 'Länge der Datei. Sehr kurze Sounds können trotz LUFS-Wert subjektiv anders wirken.',
+    warnings: 'Automatisch erkannte Auffälligkeiten, z. B. zu laut, zu leise, True Peak über Limit oder Volume-Cap erreicht.',
+    targetLufs: 'Zielwert für die spätere Angleichung. -18 LUFS ist für Stream-Sounds ein brauchbarer, nicht zu aggressiver Startwert.',
+    peakLimit: 'Technisches Sicherheitslimit für Spitzenpegel. Dateien darüber sollten nicht einfach lauter gemacht werden.',
+    maxVolume: 'Obergrenze, die später für automatische Playback-Korrekturen genutzt werden könnte. Der Scanner ändert aktuell nichts.',
+    clipping: 'True Peak über Limit. Diese Datei ist technisch zu heiß und sollte eher leiser/normalisiert werden.',
+    tooLoud: 'Große negative Gain-Empfehlung. Die Datei ist deutlich lauter als der Zielwert.',
+    tooQuiet: 'Volume-Cap erreicht oder große positive Gain-Empfehlung. Die Datei ist eher zu leise.',
+    readOnly: 'Nur Analyse. Es werden keine Dateien überschrieben, normalisiert oder im Sound-System verändert.'
+  };
+
   function esc(value){ return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
   function num(value, digits = 1){ const n = Number(value); return Number.isFinite(n) ? n.toFixed(digits) : '-'; }
   function pct(value){ const n = Number(value); return Number.isFinite(n) ? `${Math.round(n)}%` : '-'; }
   function ms(value){ const n = Number(value); return Number.isFinite(n) && n > 0 ? `${(n / 1000).toFixed(1)}s` : '-'; }
+  function db(value, digits = 1){ const n = Number(value); return Number.isFinite(n) ? `${n > 0 ? '+' : ''}${n.toFixed(digits)} dB` : '-'; }
+  function help(text){ return `<span class="sound-help" title="${esc(text)}" aria-label="${esc(text)}">?</span>`; }
+  function withHelp(label, text){ return `<span class="sound-label-help">${esc(label)} ${help(text)}</span>`; }
 
   function warningLabel(key){
     const map = {
@@ -32,6 +54,18 @@ window.SoundLevelScanModule = (function(){
       ffmpeg_failed: 'FFmpeg-Fehler'
     };
     return map[key] || key;
+  }
+
+  function warningHelp(key){
+    const map = {
+      true_peak_above_limit: 'Die Datei überschreitet das True-Peak-Limit. Das kann zu Verzerrung/Clipping führen.',
+      large_negative_gain: 'Die Datei ist deutlich lauter als der Zielwert und müsste stark abgesenkt werden.',
+      large_positive_gain: 'Die Datei ist deutlich leiser als der Zielwert und müsste stark angehoben werden.',
+      volume_cap_reached: 'Die Datei ist so leise, dass selbst 100% Playback-Volume rechnerisch nicht sauber bis zum Ziel reichen.',
+      loudnorm_parse_failed: 'FFmpeg hat keine vollständigen loudnorm-Messwerte geliefert.',
+      ffmpeg_failed: 'FFmpeg konnte die Datei nicht sauber analysieren.'
+    };
+    return map[key] || 'Scanner-Warnung aus dem Backend.';
   }
 
   function statusLabel(value){
@@ -46,6 +80,24 @@ window.SoundLevelScanModule = (function(){
     if (value === 'error') return 'danger';
     if (value === 'warning') return 'warn';
     return '';
+  }
+
+  function gainClass(value){
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '';
+    if (n <= -10) return 'danger';
+    if (n <= -6) return 'warn';
+    if (n >= 6) return 'warn';
+    return 'success';
+  }
+
+  function peakClass(value, limit){
+    const n = Number(value);
+    const l = Number(limit);
+    if (!Number.isFinite(n) || !Number.isFinite(l)) return '';
+    if (n > l) return 'danger';
+    if (n > l - 1.5) return 'warn';
+    return 'success';
   }
 
   function qs(params){
@@ -105,6 +157,18 @@ window.SoundLevelScanModule = (function(){
           state.order = 'recommended_gain_db';
           state.dir = 'asc';
           state.statusFilter = 'warning';
+          await loadAll();
+        }
+        if (action === 'loudest') {
+          state.order = 'input_i';
+          state.dir = 'desc';
+          state.statusFilter = 'all';
+          await loadAll();
+        }
+        if (action === 'quietest') {
+          state.order = 'input_i';
+          state.dir = 'asc';
+          state.statusFilter = 'all';
           await loadAll();
         }
       } catch (err) {
@@ -178,8 +242,12 @@ window.SoundLevelScanModule = (function(){
     }
   }
 
+  function allRows(){
+    return Array.isArray(state.results?.results) ? state.results.results : [];
+  }
+
   function filteredResults(){
-    const rows = Array.isArray(state.results?.results) ? state.results.results : [];
+    const rows = allRows();
     const needle = String(state.search || '').trim().toLowerCase();
     return rows.filter(row => {
       if (state.statusFilter !== 'all' && row.status !== state.statusFilter) return false;
@@ -188,25 +256,45 @@ window.SoundLevelScanModule = (function(){
     });
   }
 
+  function calcStats(rows){
+    const data = Array.isArray(rows) ? rows : [];
+    const warnings = data.filter(row => row.status === 'warning').length;
+    const errors = data.filter(row => row.status === 'error').length;
+    const ok = data.filter(row => row.status === 'ok').length;
+    const clipping = data.filter(row => Array.isArray(row.warnings) && row.warnings.includes('true_peak_above_limit')).length;
+    const tooLoud = data.filter(row => Number(row.recommendedGainDb) <= -6).length;
+    const veryLoud = data.filter(row => Number(row.recommendedGainDb) <= -10).length;
+    const tooQuiet = data.filter(row => Number(row.recommendedGainDb) >= 6 || (Array.isArray(row.warnings) && row.warnings.includes('volume_cap_reached'))).length;
+    return { total: data.length, ok, warnings, errors, clipping, tooLoud, veryLoud, tooQuiet };
+  }
+
   function renderSummary(){
     const scan = state.status?.latestScan || state.status?.lastResult?.scan || null;
     const defaults = state.status?.defaults || {};
     const count = Number(state.status?.resultsCount || 0);
+    const stats = calcStats(allRows());
     return `
       <div class="sound-levelscan-summary">
-        <div class="sound-source-item"><span>Ergebnisse</span><strong class="sound-pill">${esc(count)}</strong></div>
-        <div class="sound-source-item"><span>Letzter Scan</span><strong class="sound-pill">${scan?.finishedAt ? esc(scan.finishedAt) : '-'}</strong></div>
-        <div class="sound-source-item"><span>Ziel-LUFS</span><strong class="sound-pill">${esc(defaults.targetLufs ?? '-')}</strong></div>
-        <div class="sound-source-item"><span>True Peak Limit</span><strong class="sound-pill">${esc(defaults.truePeakLimitDbtp ?? '-')} dBTP</strong></div>
-        <div class="sound-source-item"><span>Max Volume</span><strong class="sound-pill">${esc(defaults.maxPlaybackVolume ?? '-')}%</strong></div>
+        <div class="sound-source-item" title="${esc('Gespeicherte Pegel-Ergebnisse in der Datenbank.')}"><span>Ergebnisse</span><strong class="sound-pill">${esc(count)}</strong></div>
+        <div class="sound-source-item" title="${esc('Zeitpunkt des zuletzt abgeschlossenen Scans.')}"><span>Letzter Scan</span><strong class="sound-pill">${scan?.finishedAt ? esc(scan.finishedAt) : '-'}</strong></div>
+        <div class="sound-source-item" title="${esc(HELP.targetLufs)}"><span>Ziel-LUFS</span><strong class="sound-pill">${esc(defaults.targetLufs ?? '-')}</strong></div>
+        <div class="sound-source-item" title="${esc(HELP.peakLimit)}"><span>True Peak Limit</span><strong class="sound-pill">${esc(defaults.truePeakLimitDbtp ?? '-')} dBTP</strong></div>
+        <div class="sound-source-item" title="${esc(HELP.maxVolume)}"><span>Max Volume</span><strong class="sound-pill">${esc(defaults.maxPlaybackVolume ?? '-')}%</strong></div>
+      </div>
+      <div class="sound-levelscan-quickstats">
+        <div class="sound-levelscan-stat success" title="${esc('Dateien ohne erkannte Auffälligkeiten in der aktuell geladenen Ergebnismenge.')}"><strong>${esc(stats.ok)}</strong><span>OK</span></div>
+        <div class="sound-levelscan-stat warn" title="${esc('Dateien mit Warnungen in der aktuell geladenen Ergebnismenge.')}"><strong>${esc(stats.warnings)}</strong><span>Warnungen</span></div>
+        <div class="sound-levelscan-stat danger" title="${esc(HELP.clipping)}"><strong>${esc(stats.clipping)}</strong><span>Peak zu hoch</span></div>
+        <div class="sound-levelscan-stat danger" title="${esc(HELP.tooLoud)}"><strong>${esc(stats.tooLoud)}</strong><span>zu laut</span></div>
+        <div class="sound-levelscan-stat warn" title="${esc(HELP.tooQuiet)}"><strong>${esc(stats.tooQuiet)}</strong><span>zu leise</span></div>
       </div>
       ${scan ? `
         <div class="sound-levelscan-lastscan">
-          <span>Gefunden: <strong>${esc(scan.discoveredFiles ?? '-')}</strong></span>
-          <span>Gescannt: <strong>${esc(scan.scannedFiles ?? '-')}</strong></span>
-          <span>OK: <strong>${esc(scan.okFiles ?? '-')}</strong></span>
-          <span>Warnungen: <strong>${esc(scan.warningFiles ?? '-')}</strong></span>
-          <span>Fehler: <strong>${esc(scan.errorFiles ?? '-')}</strong></span>
+          <span title="${esc('Anzahl gefundener Dateien innerhalb des Scan-Limits.')}">Gefunden: <strong>${esc(scan.discoveredFiles ?? '-')}</strong></span>
+          <span title="${esc('Anzahl tatsächlich gemessener Dateien.')}">Gescannt: <strong>${esc(scan.scannedFiles ?? '-')}</strong></span>
+          <span title="${esc('Unauffällige Dateien im letzten Scan.')}">OK: <strong>${esc(scan.okFiles ?? '-')}</strong></span>
+          <span title="${esc('Dateien mit Warnungen im letzten Scan.')}">Warnungen: <strong>${esc(scan.warningFiles ?? '-')}</strong></span>
+          <span title="${esc('Dateien, bei denen die Messung fehlgeschlagen ist.')}">Fehler: <strong>${esc(scan.errorFiles ?? '-')}</strong></span>
         </div>
       ` : ''}
     `;
@@ -214,18 +302,29 @@ window.SoundLevelScanModule = (function(){
 
   function renderControls(){
     return `
+      <details class="sound-levelscan-guide" open>
+        <summary>Werte kurz erklärt</summary>
+        <div class="sound-levelscan-guide-grid">
+          <div title="${esc(HELP.lufs)}"><strong>LUFS</strong><span>Wahrgenommene Lautstärke. Näher an 0 = lauter.</span></div>
+          <div title="${esc(HELP.truePeak)}"><strong>True Peak</strong><span>Technische Spitze. Über Limit = Risiko für Clipping.</span></div>
+          <div title="${esc(HELP.gain)}"><strong>Gain</strong><span>Empfohlene Korrektur. Minus = leiser.</span></div>
+          <div title="${esc(HELP.volume)}"><strong>Volume</strong><span>Grobe spätere Playback-Empfehlung.</span></div>
+          <div title="${esc(HELP.readOnly)}"><strong>Read-only</strong><span>Aktuell wird nichts verändert.</span></div>
+        </div>
+      </details>
+
       <div class="sound-levelscan-controls">
         <label class="sound-field">
-          <span>Scan-Limit</span>
-          <input id="soundLevelScanLimit" data-sound-level-control="scanLimit" type="number" min="1" max="5000" value="${esc(state.scanLimit)}">
+          ${withHelp('Scan-Limit', HELP.scanLimit)}
+          <input id="soundLevelScanLimit" data-sound-level-control="scanLimit" type="number" min="1" max="5000" value="${esc(state.scanLimit)}" title="${esc(HELP.scanLimit)}">
         </label>
         <label class="sound-field">
-          <span>Ergebnis-Limit</span>
-          <input id="soundLevelResultLimit" data-sound-level-control="resultLimit" type="number" min="1" max="1000" value="${esc(state.resultLimit)}">
+          ${withHelp('Ergebnis-Limit', HELP.resultLimit)}
+          <input id="soundLevelResultLimit" data-sound-level-control="resultLimit" type="number" min="1" max="1000" value="${esc(state.resultLimit)}" title="${esc(HELP.resultLimit)}">
         </label>
         <label class="sound-field">
           <span>Sortieren nach</span>
-          <select id="soundLevelOrder" data-sound-level-control="order">
+          <select id="soundLevelOrder" data-sound-level-control="order" title="Sortierfeld für die Tabelle.">
             <option value="recommended_gain_db" ${state.order === 'recommended_gain_db' ? 'selected' : ''}>Empfohlener Gain</option>
             <option value="input_i" ${state.order === 'input_i' ? 'selected' : ''}>LUFS</option>
             <option value="input_tp" ${state.order === 'input_tp' ? 'selected' : ''}>True Peak</option>
@@ -236,14 +335,14 @@ window.SoundLevelScanModule = (function(){
         </label>
         <label class="sound-field">
           <span>Richtung</span>
-          <select id="soundLevelDir" data-sound-level-control="dir">
+          <select id="soundLevelDir" data-sound-level-control="dir" title="Aufsteigend oder absteigend sortieren.">
             <option value="desc" ${state.dir === 'desc' ? 'selected' : ''}>Absteigend</option>
             <option value="asc" ${state.dir === 'asc' ? 'selected' : ''}>Aufsteigend</option>
           </select>
         </label>
         <label class="sound-field">
-          <span>Status</span>
-          <select id="soundLevelStatusFilter" data-sound-level-control="statusFilter">
+          ${withHelp('Status', HELP.status)}
+          <select id="soundLevelStatusFilter" data-sound-level-control="statusFilter" title="${esc(HELP.status)}">
             <option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle</option>
             <option value="ok" ${state.statusFilter === 'ok' ? 'selected' : ''}>OK</option>
             <option value="warning" ${state.statusFilter === 'warning' ? 'selected' : ''}>Warnungen</option>
@@ -252,46 +351,59 @@ window.SoundLevelScanModule = (function(){
         </label>
         <label class="sound-field sound-levelscan-search">
           <span>Suche</span>
-          <input id="soundLevelSearch" data-sound-level-control="search" type="text" value="${esc(state.search)}" placeholder="Dateiname oder Ordner...">
+          <input id="soundLevelSearch" data-sound-level-control="search" type="text" value="${esc(state.search)}" placeholder="Dateiname oder Ordner..." title="Filtert lokal nach Dateiname oder Ordnerpfad.">
         </label>
       </div>
       <div class="sound-actions">
-        <button type="button" class="success" data-sound-level-action="scan" ${state.loading ? 'disabled' : ''}>Scan starten</button>
-        <button type="button" data-sound-level-action="reload" ${state.loading ? 'disabled' : ''}>Neu laden</button>
-        <button type="button" data-sound-level-action="problematic" ${state.loading ? 'disabled' : ''}>Problematische zuerst</button>
+        <button type="button" class="success" data-sound-level-action="scan" ${state.loading ? 'disabled' : ''} title="Startet einen neuen Read-only-Scan über das Backend.">Scan starten</button>
+        <button type="button" data-sound-level-action="reload" ${state.loading ? 'disabled' : ''} title="Lädt Status und Ergebnisse neu.">Neu laden</button>
+        <button type="button" data-sound-level-action="problematic" ${state.loading ? 'disabled' : ''} title="Zeigt Warnungen mit stärkster Absenkung zuerst.">Problematische zuerst</button>
+        <button type="button" data-sound-level-action="loudest" ${state.loading ? 'disabled' : ''} title="Sortiert nach den lautesten gemessenen Dateien.">Lauteste zuerst</button>
+        <button type="button" data-sound-level-action="quietest" ${state.loading ? 'disabled' : ''} title="Sortiert nach den leisesten gemessenen Dateien.">Leiseste zuerst</button>
       </div>
     `;
+  }
+
+  function renderWarnings(row){
+    const warnings = Array.isArray(row.warnings) ? row.warnings : [];
+    if (!warnings.length) return '<span class="sound-levelscan-muted">-</span>';
+    return warnings.map(w => `<span title="${esc(warningHelp(w))}">${esc(warningLabel(w))}</span>`).join('');
   }
 
   function renderRows(){
     const rows = filteredResults();
     if (!rows.length) return `<div class="sound-empty">Keine passenden Pegel-Ergebnisse vorhanden.</div>`;
+    const defaults = state.status?.defaults || {};
     return `
+      <div class="sound-levelscan-table-head">
+        <strong>${esc(rows.length)} angezeigte Dateien</strong>
+        <span>Mouseover auf Spalten, Werte oder Warnungen zeigt Erklärungen.</span>
+      </div>
       <div class="sound-levelscan-table-wrap">
         <table class="sound-levelscan-table">
           <thead>
             <tr>
-              <th>Datei</th>
-              <th>Status</th>
-              <th>LUFS</th>
-              <th>True Peak</th>
-              <th>Gain</th>
-              <th>Volume</th>
-              <th>Dauer</th>
-              <th>Warnungen</th>
+              <th title="Relativer Dateipfad unter htdocs/assets/sounds.">Datei</th>
+              <th title="${esc(HELP.status)}">Status</th>
+              <th title="${esc(HELP.lufs)}">LUFS</th>
+              <th title="${esc(HELP.truePeak)}">True Peak</th>
+              <th title="${esc(HELP.gain)}">Gain</th>
+              <th title="${esc(HELP.volume)}">Volume</th>
+              <th title="${esc(HELP.duration)}">Dauer</th>
+              <th title="${esc(HELP.warnings)}">Warnungen</th>
             </tr>
           </thead>
           <tbody>
             ${rows.map(row => `
               <tr>
-                <td class="sound-levelscan-path">${esc(row.relativePath)}</td>
-                <td><span class="sound-pill ${statusClass(row.status)}">${esc(statusLabel(row.status))}</span></td>
-                <td>${num(row.inputI, 2)}</td>
-                <td>${num(row.inputTp, 2)} dBTP</td>
-                <td>${num(row.recommendedGainDb, 1)} dB</td>
-                <td>${pct(row.recommendedVolume)}</td>
-                <td>${ms(row.durationMs)}</td>
-                <td class="sound-levelscan-warnings">${(Array.isArray(row.warnings) ? row.warnings : []).map(w => `<span>${esc(warningLabel(w))}</span>`).join('') || '-'}</td>
+                <td class="sound-levelscan-path" title="${esc(row.relativePath)}">${esc(row.relativePath)}</td>
+                <td><span class="sound-pill ${statusClass(row.status)}" title="${esc(HELP.status)}">${esc(statusLabel(row.status))}</span></td>
+                <td title="${esc(HELP.lufs)}"><span class="sound-levelscan-value">${num(row.inputI, 2)}</span></td>
+                <td title="${esc(HELP.truePeak)}"><span class="sound-levelscan-value ${peakClass(row.inputTp, defaults.truePeakLimitDbtp)}">${num(row.inputTp, 2)} dBTP</span></td>
+                <td title="${esc(HELP.gain)}"><span class="sound-levelscan-value ${gainClass(row.recommendedGainDb)}">${db(row.recommendedGainDb, 1)}</span></td>
+                <td title="${esc(HELP.volume)}"><span class="sound-levelscan-value">${pct(row.recommendedVolume)}</span></td>
+                <td title="${esc(HELP.duration)}">${ms(row.durationMs)}</td>
+                <td class="sound-levelscan-warnings">${renderWarnings(row)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -309,13 +421,13 @@ window.SoundLevelScanModule = (function(){
           <h3>Pegel-Scan</h3>
           <div class="sound-note">Read-only Analyse der Sound-Dateien. Es wird nichts normalisiert, überschrieben oder an der Sound-Queue verändert.</div>
         </div>
-        <span class="sound-pill ${state.loading ? '' : 'success'}">${state.loading ? 'Lädt...' : 'Read-only'}</span>
+        <span class="sound-pill ${state.loading ? '' : 'success'}" title="${esc(HELP.readOnly)}">${state.loading ? 'Lädt...' : 'Read-only'}</span>
       </div>
       ${renderSummary()}
       ${renderControls()}
       ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
       ${renderRows()}
-      <div class="sound-note">Hinweis: <strong>True Peak über Limit</strong> und <strong>viel zu laut</strong> sind Kandidaten für spätere Playback-Korrektur oder normalisierte Kopien. Dieser Schritt zeigt nur Daten an.</div>
+      <div class="sound-note">Hinweis: <strong>True Peak über Limit</strong>, <strong>viel zu laut</strong> und <strong>Volume-Cap erreicht</strong> sind Kandidaten für spätere Playback-Korrektur oder normalisierte Kopien. Dieser Schritt zeigt nur Daten an.</div>
     `;
   }
 

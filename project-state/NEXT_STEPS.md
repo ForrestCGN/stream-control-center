@@ -2,6 +2,37 @@
 
 Stand: 2026-05-21
 
+## Nach STEP270C - Pegel-Scan UI prüfen
+
+Dashboard-Test:
+
+```text
+Dashboard öffnen
+System -> Sound-System
+Tab: Pegel-Scan
+Mouseover über LUFS, True Peak, Gain, Volume, Warnungen prüfen
+Problematische zuerst prüfen
+Lauteste zuerst prüfen
+Leiseste zuerst prüfen
+Filter Warnungen + Suche nach alerts/ prüfen
+```
+
+Erwartung:
+
+```text
+Werte sind verständlicher erklärt.
+Tabelle bleibt read-only.
+Keine Sound-Datei wird verändert.
+Keine Playback-Korrektur ist aktiv.
+```
+
+Danach erst entscheiden:
+
+```text
+STEP270D: Playback-Korrektur nur als Vorschau/Plan anzeigen
+oder problematische Dateien manuell ersetzen/normalisieren
+```
+
 ## Nach STEP270B - Pegel-Scan Dashboard testen
 
 Nach Deploy:

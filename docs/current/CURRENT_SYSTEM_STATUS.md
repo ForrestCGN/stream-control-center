@@ -2,6 +2,29 @@
 
 Stand: 2026-05-21
 
+## STEP270C - Pegel-Scan UI-Erklärungen und Übersicht
+
+Aktueller Zusatzstand:
+
+- Der Dashboard-Tab `Pegel-Scan` wurde übersichtlicher aufgebaut.
+- Neue Kurzstatistik zeigt direkt OK, Warnungen, Peak zu hoch, zu laut und zu leise.
+- Werte wie LUFS, True Peak, Gain, Volume, Dauer und Warnungen haben Mouseover-Hinweise.
+- Eine kleine Erklärungskarte beschreibt die wichtigsten Messwerte direkt im Dashboard.
+- Neue Schnellfilter/Sortieraktionen: `Problematische zuerst`, `Lauteste zuerst`, `Leiseste zuerst`.
+- Weiterhin read-only: keine Sound-Datei wird geändert, keine Playback-Korrektur wird aktiviert.
+
+Bewusst unveraendert:
+
+```text
+app.sqlite
+config/**
+backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
+Sound-System Queue-/Prioritaetslogik
+Discord-Routing
+Alert-Bundle-Lock-Logik
+```
+
 ## STEP270B - Sound Pegel-Scan Dashboard View
 
 Aktueller Zusatzstand:

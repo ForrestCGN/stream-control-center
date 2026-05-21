@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-05-21 - STEP270C Pegel-Scan Dashboard UI verbessert
+
+- Pegel-Scan-Dashboard übersichtlicher gestaltet.
+- Übersichtskacheln für OK, Warnungen, Peak zu hoch, zu laut und zu leise ergänzt.
+- Mouseover-Hilfen für zentrale Messwerte ergänzt:
+  - LUFS
+  - True Peak
+  - Gain
+  - Volume
+  - Dauer
+  - Status
+  - Warnungen
+- Erklärungskarte `Werte kurz erklärt` ergänzt.
+- Schnellaktionen `Lauteste zuerst` und `Leiseste zuerst` ergänzt.
+- Keine Änderung an Scanner-Backend, Sound-Dateien, Queue, Discord-Routing, Alerts oder TTS.
+
 ## 2026-05-21 - STEP270B Sound Pegel-Scan Dashboard View
 
 - Bestehendes Sound-Dashboard um neuen Tab `Pegel-Scan` erweitert.
