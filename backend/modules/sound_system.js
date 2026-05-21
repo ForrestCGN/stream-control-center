@@ -1115,11 +1115,40 @@ module.exports.init = function init(ctx) {
     return item.priority <= threshold;
   }
 
+  // STEP268B_ALERT_BUNDLE_DEDUPE_BYPASS_ROBUST
+  // Alert-Bundle-Items sind echte Event-Sounds. Sie duerfen nicht durch globale
+  // Same-Sound-/Same-User-Dedupe verworfen werden, sonst bleibt bei schnellen
+  // gleichen Alerts nur die TTS uebrig.
+  function isAlertBundleItem(item) {
+    if (!item) return false;
+
+    const meta = item.meta && typeof item.meta === "object" ? item.meta : {};
+    const bundle = item.bundle && typeof item.bundle === "object" ? item.bundle : {};
+    const visual = item.visual && typeof item.visual === "object" ? item.visual : {};
+
+    const bundleType = String(item.bundleType || bundle.bundleType || meta.bundleType || visual.bundleType || "").trim().toLowerCase();
+    const bundleRole = String(item.bundleRole || bundle.bundleRole || meta.bundleRole || visual.bundleRole || "").trim().toLowerCase();
+    const managedBy = String(meta.bundleManagedBy || "").trim().toLowerCase();
+    const moduleName = String(visual.module || meta.module || "").trim().toLowerCase();
+    const source = String(item.source || "").trim().toLowerCase();
+    const category = String(item.category || "").trim().toLowerCase();
+
+    if (bundleType === "alert") return true;
+    if (managedBy === "alert_system") return true;
+    if (moduleName === "alert_system") return true;
+    if (meta.alertEventUid || visual.alertEventUid) return true;
+    if (source === "alert_system" && (category === "alert" || category === "alert_critical" || bundleRole === "main")) return true;
+    if (source === "alert_tts" && (category === "tts" || meta.alertTts || meta.tts || bundleRole === "tts")) return true;
+
+    return false;
+  }
+
   function cooldownKeyUser(item) {
     return item.requestedBy ? normalizeId(item.requestedBy) : "";
   }
 
   function checkCooldown(item) {
+    if (isAlertBundleItem(item)) return null;
     const cfgCooldown = config.queue?.cooldowns || {};
     const cfgDedupe = config.queue?.dedupe || {};
     if (cfgCooldown.enabled === false && cfgDedupe.enabled === false && !item.cooldownMs) return null;
@@ -1153,6 +1182,7 @@ module.exports.init = function init(ctx) {
 
   function rememberCooldown(item) {
     if (!item) return;
+    if (isAlertBundleItem(item)) return;
     const now = Date.now();
     const soundKey = normalizeId(item.soundId || item.file);
     const categoryKey = normalizeId(item.category);

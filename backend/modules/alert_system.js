@@ -2322,12 +2322,17 @@ function scheduleAlertBundlePrequeue(event, broadcastWS) {
         reason: 'enqueue_immediate_parallel',
         allowPendingPrequeue: true
       });
+      const soundResult = result && result.soundResult ? result.soundResult : null;
       event.alertBundlePrequeue = {
         pending: false,
         finishedAt: nowIso(),
         ok: !!(result && result.ok),
-        reason: result && result.soundResult ? result.soundResult.error || result.soundResult.reason || '' : '',
-        parallelPrequeue: true
+        reason: soundResult ? soundResult.error || soundResult.reason || '' : '',
+        parallelPrequeue: true,
+        bundleId: soundResult && soundResult.bundleId ? soundResult.bundleId : '',
+        bundleQueuedAt: soundResult && soundResult.bundle && soundResult.bundle.bundleQueuedAt ? soundResult.bundle.bundleQueuedAt : 0,
+        mainDropped: !!(soundResult && soundResult.result && soundResult.result.dropped),
+        mainDropReason: soundResult && soundResult.result ? soundResult.result.reason || '' : ''
       };
     })
     .catch(err => {
