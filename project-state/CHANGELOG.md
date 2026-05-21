@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-05-21 - STEP272B3 Sound-Pegel Referenz-Ausgabeweg waehlbar
+
+- `htdocs/dashboard/modules/sound_levelscan.js` erweitert.
+- `htdocs/dashboard/modules/sound_levelscan.css` erweitert.
+- Referenz-Tab hat jetzt einen Ausgabeweg-Select fuer Referenzsound und Test-Ton.
+- Ausgabeweg wird an `/api/sound/play` als `outputTarget` uebergeben.
+- Optionen: OBS/Overlay, Audiogeraet, OBS + Audiogeraet.
+- Keine Backend-Module, keine Queue-/Discord-/Alert-/TTS-Logik und kein `config/**` geaendert.
+
+# Changelog
+
 ## 2026-05-21 - STEP272B2 Sound-Pegel Testton als echte Sound-Datei
 
 - `backend/modules/sound_loudness_scanner.js` erweitert.

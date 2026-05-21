@@ -2,6 +2,35 @@
 
 Stand: 2026-05-21
 
+## Nach STEP272B3 - Referenz-Ausgabeweg testen
+
+Dashboard-Test:
+
+```text
+System -> Sound-Pegel -> Referenz
+Ausgabeweg: OBS/Overlay -> Referenzsound und Test-Ton pruefen
+Ausgabeweg: Audiogeraet -> Referenzsound und Test-Ton pruefen
+Ausgabeweg: OBS + Audiogeraet -> Referenzsound und Test-Ton pruefen
+```
+
+Erwartung:
+
+```text
+Referenzsound und Test-Ton nutzen denselben gewaehlten Ausgabeweg.
+Test-Ton kann jetzt auch ueber Device laufen.
+```
+
+Naechster sinnvoller Schritt:
+
+```text
+Sound-Pegel Config-Seite fuer wichtigste Einstellungen bauen.
+Danach Ergebnisse relativ zur Auto-Referenz bewerten.
+```
+
+# NEXT STEPS - stream-control-center
+
+Stand: 2026-05-21
+
 
 ## Nach STEP272B2 - Testton ueber OBS pruefen
 

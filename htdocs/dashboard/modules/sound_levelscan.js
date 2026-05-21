@@ -21,6 +21,7 @@ window.SoundLevelScanModule = (function(){
     correctionPreview: null,
     reference: null,
     referenceAudio: null,
+    referenceOutputTarget: localStorage.getItem('sound-level-reference-output-target') || 'overlay',
     lastMessage: '',
     activeTab: 'overview'
   };
@@ -55,7 +56,8 @@ window.SoundLevelScanModule = (function(){
     moduleTabs: 'Unterbereiche des Sound-Pegel-Systems. Trennt Scan, Ergebnisse, Korrektur und spätere Export-Funktionen.',
     reference: 'Automatische Referenz aus allen gültigen Nicht-TTS-Sounds. Nutzt Median-LUFS, damit einzelne Ausreißer den Zielwert nicht kaputtziehen.',
     referenceSound: 'Empfohlener echter Sound nahe am typischen Pegel. Diesen Sound kannst du zum Einpegeln von OBS/Voicemeeter nutzen.',
-    referenceTest: 'Technischer Test-Sound wird zuerst als echte Datei im Sound-Ordner erzeugt und dann über das Sound-System/OBS-Overlay abgespielt.'
+    referenceTest: 'Technischer Test-Sound wird zuerst als echte Datei im Sound-Ordner erzeugt und dann über das Sound-System abgespielt. Ausgabeweg ist wählbar: OBS/Overlay, Audiogerät oder beides.',
+    referenceOutput: 'Ausgabeweg für Referenzsound und Test-Ton. Overlay geht an OBS, Device an das konfigurierte Audiogerät, Beides nutzt beide Ausgaben.'
   };
 
   function registerDashboardModule(){
@@ -114,6 +116,25 @@ window.SoundLevelScanModule = (function(){
   function db(value, digits = 1){ const n = Number(value); return Number.isFinite(n) ? `${n > 0 ? '+' : ''}${n.toFixed(digits)} dB` : '-'; }
   function help(text){ return `<span class="sound-help" title="${esc(text)}" aria-label="${esc(text)}">?</span>`; }
   function withHelp(label, text){ return `<span class="sound-label-help">${esc(label)} ${help(text)}</span>`; }
+
+  function normalizeReferenceOutputTarget(value){
+    const clean = String(value || 'overlay').trim().toLowerCase();
+    return ['overlay', 'device', 'both'].includes(clean) ? clean : 'overlay';
+  }
+
+  function getReferenceOutputTarget(){
+    const selectValue = document.getElementById('soundLevelReferenceOutputTarget')?.value;
+    state.referenceOutputTarget = normalizeReferenceOutputTarget(selectValue || state.referenceOutputTarget);
+    try { localStorage.setItem('sound-level-reference-output-target', state.referenceOutputTarget); } catch (_) {}
+    return state.referenceOutputTarget;
+  }
+
+  function referenceOutputLabel(value){
+    const clean = normalizeReferenceOutputTarget(value);
+    if (clean === 'device') return 'Audiogerät';
+    if (clean === 'both') return 'OBS + Audiogerät';
+    return 'OBS/Overlay';
+  }
 
   function warningLabel(key){
     const map = {
@@ -293,7 +314,14 @@ window.SoundLevelScanModule = (function(){
 
     root.addEventListener('change', async (event) => {
       const target = event.target;
-      if (!target || !target.dataset.soundLevelControl) return;
+      if (!target) return;
+      if (target.id === 'soundLevelReferenceOutputTarget') {
+        getReferenceOutputTarget();
+        state.lastMessage = `Referenz-Ausgabeweg: ${referenceOutputLabel(state.referenceOutputTarget)}.`;
+        render();
+        return;
+      }
+      if (!target.dataset.soundLevelControl) return;
       readControls();
       await loadReferenceOnly(false);
       await loadResultsOnly();
@@ -404,9 +432,17 @@ window.SoundLevelScanModule = (function(){
       render();
       return;
     }
-    const url = `/api/sound/play?file=${encodeURIComponent(file)}&source=sound_level_reference&category=system&override=true`;
-    await window.CGN.api(url, { method: 'GET' });
-    state.lastMessage = `Referenzsound abgespielt: ${file}`;
+    const outputTarget = getReferenceOutputTarget();
+    const playQuery = qs({
+      file,
+      outputTarget,
+      target: 'stream',
+      source: 'sound_level_reference',
+      category: 'system',
+      override: true
+    });
+    await window.CGN.api(`/api/sound/play?${playQuery}`, { method: 'GET' });
+    state.lastMessage = `Referenzsound über ${referenceOutputLabel(outputTarget)} abgespielt: ${file}`;
     render();
   }
 
@@ -421,9 +457,10 @@ window.SoundLevelScanModule = (function(){
     });
     const generated = await api(`/reference/test-file?${createQuery}`);
     const file = generated?.testSound?.relativePath || ref.testSound?.relativePath || 'generated/reference_test.wav';
+    const outputTarget = getReferenceOutputTarget();
     const playQuery = qs({
       file,
-      outputTarget: 'overlay',
+      outputTarget,
       target: 'stream',
       category: 'system',
       source: 'sound_level_reference_test',
@@ -432,7 +469,7 @@ window.SoundLevelScanModule = (function(){
       override: true
     });
     await window.CGN.api(`/api/sound/play?${playQuery}`, { method: 'GET' });
-    state.lastMessage = `Technischer Test-Ton wurde als ${file} erzeugt und über Sound-System/OBS gestartet.`;
+    state.lastMessage = `Technischer Test-Ton wurde als ${file} erzeugt und über ${referenceOutputLabel(outputTarget)} gestartet.`;
     render();
   }
 
@@ -736,11 +773,21 @@ window.SoundLevelScanModule = (function(){
             <span>${recommended ? esc(recommended.relativePath) : 'Noch nicht verfügbar. Erst einen Pegel-Scan ausführen.'}</span>
             ${recommended ? `<small title="Abweichung zur Auto-Referenz"><span class="sound-levelscan-preview-pill ${referenceDeviationClass(deviation, toleranceDb)}">${db(deviation, 1)} zur Referenz</span> <span class="sound-levelscan-muted">${ms(recommended.durationMs)} · ${num(recommended.inputI, 2)} LUFS · ${num(recommended.inputTp, 2)} dBTP</span></small>` : ''}
           </div>
-          <div class="sound-actions">
-            <button type="button" class="success" data-sound-level-action="play-reference" ${recommended ? '' : 'disabled'} title="${esc(HELP.referenceSound)}">Referenzsound abspielen</button>
-            <button type="button" data-sound-level-action="play-reference-test" ${Number.isFinite(referenceLufs) ? '' : 'disabled'} title="${esc(HELP.referenceTest)}">Test-Ton über OBS</button>
-            <a class="ghost-link" href="${esc(ref.testSound?.url || '/api/sound/loudness/reference/test.wav')}" target="_blank" title="Test-Sound als WAV direkt im Browser öffnen, nur zum Gegenhören.">Test-WAV öffnen</a>
-            <button type="button" data-sound-level-action="reload-reference" title="Referenz aus aktuellen Scan-Ergebnissen neu berechnen.">Referenz neu berechnen</button>
+          <div class="sound-levelscan-reference-actions">
+            <label class="sound-field sound-levelscan-output-field" title="${esc(HELP.referenceOutput)}">
+              <span>${withHelp('Ausgabeweg', HELP.referenceOutput)}</span>
+              <select id="soundLevelReferenceOutputTarget">
+                <option value="overlay" ${state.referenceOutputTarget === 'overlay' ? 'selected' : ''}>OBS/Overlay</option>
+                <option value="device" ${state.referenceOutputTarget === 'device' ? 'selected' : ''}>Audiogerät</option>
+                <option value="both" ${state.referenceOutputTarget === 'both' ? 'selected' : ''}>OBS + Audiogerät</option>
+              </select>
+            </label>
+            <div class="sound-actions">
+              <button type="button" class="success" data-sound-level-action="play-reference" ${recommended ? '' : 'disabled'} title="${esc(HELP.referenceSound)}">Referenzsound abspielen</button>
+              <button type="button" data-sound-level-action="play-reference-test" ${Number.isFinite(referenceLufs) ? '' : 'disabled'} title="${esc(HELP.referenceTest)}">Test-Ton abspielen</button>
+              <a class="ghost-link" href="${esc(ref.testSound?.url || '/api/sound/loudness/reference/test.wav')}" target="_blank" title="Test-Sound als WAV direkt im Browser öffnen, nur zum Gegenhören.">Test-WAV öffnen</a>
+              <button type="button" data-sound-level-action="reload-reference" title="Referenz aus aktuellen Scan-Ergebnissen neu berechnen.">Referenz neu berechnen</button>
+            </div>
           </div>
         </div>
         <details class="sound-levelscan-guide" open>
@@ -753,7 +800,7 @@ window.SoundLevelScanModule = (function(){
             <div title="Lautester auswertbarer Sound."><strong>Max</strong><span>${num(distribution.max, 2)} LUFS</span></div>
           </div>
         </details>
-        <div class="sound-note">Ablauf: Referenzsound abspielen, OBS/Voicemeeter darauf einstellen, danach Ergebnisse relativ zur Referenz bewerten. Der technische Test-Ton wird als echte Datei im Sound-Ordner erzeugt und dann über das Sound-System/OBS-Overlay abgespielt; der WAV-Link ist nur zum Gegenhören.</div>
+        <div class="sound-note">Ablauf: Referenzsound abspielen, OBS/Voicemeeter darauf einstellen, danach Ergebnisse relativ zur Referenz bewerten. Der technische Test-Ton wird als echte Datei im Sound-Ordner erzeugt und dann über den gewählten Sound-System-Ausgabeweg abgespielt; der WAV-Link ist nur zum Gegenhören.</div>
       </div>
     `;
   }
@@ -867,7 +914,7 @@ window.SoundLevelScanModule = (function(){
   const LEVEL_TABS = [
     { id: 'overview', label: 'Übersicht', hint: 'Status, Kurzstatistik und letzte Scan-Daten.' },
     { id: 'scan', label: 'Scan', hint: 'Scan starten, Fortschritt verfolgen und Scan-Parameter setzen.' },
-    { id: 'reference', label: 'Referenz', hint: 'Auto-Referenz, Referenzsound und Test-Ton über OBS.' },
+    { id: 'reference', label: 'Referenz', hint: 'Auto-Referenz, Referenzsound und Test-Ton über wählbaren Ausgabeweg.' },
     { id: 'results', label: 'Ergebnisse', hint: 'Messwerte, Filter, Suche und Tabelle.' },
     { id: 'correction', label: 'Korrektur', hint: 'Playback-Korrektur und Korrektur-Vorschau konfigurieren.' },
     { id: 'normalization', label: 'Kopien', hint: 'Späterer Export normalisierter Kopien, aktuell nur vorbereitet.' }

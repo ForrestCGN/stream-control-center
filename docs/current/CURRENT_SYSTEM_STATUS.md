@@ -2,6 +2,18 @@
 
 Stand: 2026-05-21
 
+## STEP272B3 - Sound-Pegel Referenz-Ausgabeweg waehlbar
+
+- Sound-Pegel Referenz-Tab hat jetzt einen waehlbaren Ausgabeweg fuer Referenzsound und Test-Ton.
+- Optionen: `OBS/Overlay`, `Audiogeraet`, `OBS + Audiogeraet`.
+- Referenzsound und technischer Test-Ton geben den gewaehlten `outputTarget` an `/api/sound/play` weiter.
+- Der gewaehlte Ausgabeweg wird im Browser per LocalStorage gemerkt.
+- Keine Backend-Module, keine Sound-Queue, kein Discord-Routing, kein Alert-System, kein TTS-System und keine Sound-Dateien geaendert.
+
+# Current System Status – stream-control-center
+
+Stand: 2026-05-21
+
 
 ## STEP272B2 - Sound-Pegel Testton als echte Sound-Datei
 
