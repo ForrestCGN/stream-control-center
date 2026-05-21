@@ -2,6 +2,37 @@
 
 Stand: 2026-05-21
 
+## STEP268B - Alert Bundle Dedupe Bypass Robust
+
+Geaendert:
+
+```text
+backend/modules/sound_system.js
+backend/modules/alert_system.js
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP268B_ALERT_BUNDLE_DEDUPE_BYPASS_ROBUST_2026-05-21.md
+```
+
+Nicht geaendert:
+
+```text
+app.sqlite
+config
+Streamer.bot-Flows
+Overlay-HTML
+VIP-Logik
+```
+
+Hinweis:
+
+```text
+sound_system.js enthaelt den eigentlichen Fix.
+alert_system.js enthaelt nur zusaetzliche Diagnose im Prequeue-Payload.
+```
+
 ## STEP266B - Alert Immediate Bundle Prequeue Self-Block Fix
 
 Geaendert:
@@ -76,6 +107,7 @@ andere Dashboard-Module
 
 ## Doku
 
+- `project-state/STEP268B_ALERT_BUNDLE_DEDUPE_BYPASS_ROBUST_2026-05-21.md`
 - `project-state/STEP266B_ALERT_IMMEDIATE_BUNDLE_PREQUEUE_FIX_2026-05-21.md`
 - `project-state/STEP208_LOYALTY_SUB_RESUB_DEDUPE_2026-05-18.md`
 - `project-state/STEP207_LOYALTY_AUTORUNNER_BOOT_RECOVERY_2026-05-18.md`
