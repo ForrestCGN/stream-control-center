@@ -6,6 +6,7 @@ const childProcess = require("child_process");
 const database = require("../core/database");
 const paths = require("../core/paths");
 const media = require("./helpers/helper_media");
+const settingsHelper = require("./helpers/helper_settings");
 
 const MODULE_NAME = "sound_loudness_scanner";
 const SCHEMA_MODULE = "sound_loudness_scanner";
@@ -160,6 +161,26 @@ module.exports.init = function init(ctx) {
           "No existing sounds or module configs were modified."
         ]
       });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.get(`${ROUTE_PREFIX}/config/apply-defaults/preview`, (req, res) => {
+    try {
+      ensureSchema();
+      res.json(buildUploadDefaultApplyResult(false, "preview"));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.post(`${ROUTE_PREFIX}/config/apply-defaults`, (req, res) => {
+    try {
+      ensureSchema();
+      const body = req.body || {};
+      const updatedBy = String(body.updatedBy || body.user || "dashboard");
+      res.json(buildUploadDefaultApplyResult(true, updatedBy));
     } catch (err) {
       res.status(400).json({ ok: false, error: errorMessage(err) });
     }
@@ -372,6 +393,8 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${ROUTE_PREFIX}/file?file=relative/path.mp3`, description: "Read one persisted loudness result" },
         { method: "GET", path: `${ROUTE_PREFIX}/config`, description: "Read central Sound-Pegel defaults saved in SQLite" },
         { method: "POST", path: `${ROUTE_PREFIX}/config`, description: "Save central Sound-Pegel defaults to SQLite; does not rewrite existing sounds" },
+        { method: "GET", path: `${ROUTE_PREFIX}/config/apply-defaults/preview`, description: "Preview applying Sound-Pegel defaults to DB-backed module settings" },
+        { method: "POST", path: `${ROUTE_PREFIX}/config/apply-defaults`, description: "Apply Sound-Pegel default volume to DB-backed module settings; no existing sound files are changed" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference`, description: "Calculate automatic reference loudness and recommend a real reference sound" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference/test.wav`, description: "Generated approximate reference test sound for direct browser checks" },
         { method: "GET/POST", path: `${ROUTE_PREFIX}/reference/test-file`, description: "Create/update generated/reference_test.wav in sounds folder so it can be played via Sound-System/OBS" },
@@ -749,6 +772,165 @@ function saveJsonSetting(key, value, updatedBy) {
     ["value_json", "updated_at", "updated_by"]
   );
   return payload;
+}
+
+
+function readSoundSystemOutputSettings() {
+  ensureSoundSettingsTable();
+  const row = database.get("SELECT value_json FROM sound_settings WHERE key = :key", { key: "output" }) || null;
+  if (!row || !row.value_json) return {};
+  try {
+    const parsed = JSON.parse(String(row.value_json || "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function ensureSoundSettingsTable() {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS sound_settings (
+      key TEXT PRIMARY KEY,
+      value_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      updated_by TEXT NOT NULL DEFAULT ''
+    );
+  `);
+}
+
+function writeSoundSystemOutputSettings(output, updatedBy) {
+  ensureSoundSettingsTable();
+  const now = nowIso();
+  database.upsert(
+    "sound_settings",
+    {
+      key: "output",
+      value_json: JSON.stringify(output || {}),
+      updated_at: now,
+      updated_by: String(updatedBy || "sound_level")
+    },
+    ["key"],
+    ["value_json", "updated_at", "updated_by"]
+  );
+}
+
+function clonePlain(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return JSON.parse(JSON.stringify(value));
+}
+
+function buildOutputWithDefaultVolume(currentOutput, defaultPlaybackVolume) {
+  const output = clonePlain(currentOutput);
+  if (!output.targets || typeof output.targets !== "object" || Array.isArray(output.targets)) output.targets = {};
+  for (const key of ["overlay", "device", "both"]) {
+    if (!output.targets[key] || typeof output.targets[key] !== "object" || Array.isArray(output.targets[key])) output.targets[key] = {};
+    output.targets[key].defaultVolume = defaultPlaybackVolume;
+  }
+  return output;
+}
+
+function readModuleSetting(table, key, fallback, valueType = "number") {
+  try {
+    const row = settingsHelper.getSetting(table, key, fallback, { valueType });
+    return row ? row.value : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function applyModuleSetting(table, key, value, valueType, description) {
+  return settingsHelper.setSetting(table, key, value, { valueType, description });
+}
+
+function buildUploadDefaultApplyResult(commit, updatedBy) {
+  const cfg = getLevelConfig();
+  const defaultPlaybackVolume = Math.round(clampNumber(cfg.defaultPlaybackVolume, 1, 100, 80));
+  const uploadDefaultVolume = Math.round(clampNumber(cfg.uploadDefaultVolume, 1, 100, 80));
+  const upload = cfg.uploadDefaults || {};
+  const now = nowIso();
+  const actions = [];
+
+  const soundOutputBefore = readSoundSystemOutputSettings();
+  const soundOutputAfter = buildOutputWithDefaultVolume(soundOutputBefore, defaultPlaybackVolume);
+  if (commit) writeSoundSystemOutputSettings(soundOutputAfter, updatedBy);
+  actions.push({
+    id: "sound_system_output_defaults",
+    label: "Sound-System Output-Default-Volumes",
+    applied: !!commit,
+    table: "sound_settings",
+    key: "output",
+    before: {
+      overlay: soundOutputBefore?.targets?.overlay?.defaultVolume ?? null,
+      device: soundOutputBefore?.targets?.device?.defaultVolume ?? null,
+      both: soundOutputBefore?.targets?.both?.defaultVolume ?? null
+    },
+    after: {
+      overlay: soundOutputAfter?.targets?.overlay?.defaultVolume ?? null,
+      device: soundOutputAfter?.targets?.device?.defaultVolume ?? null,
+      both: soundOutputAfter?.targets?.both?.defaultVolume ?? null
+    },
+    note: "Wirkt auf Sound-System-Items ohne explizites volume. Bestehende Sounddateien bleiben unverändert."
+  });
+
+  if (upload.soundalerts !== false) {
+    const before = readModuleSetting("soundalerts_bridge_settings", "soundSystem.defaultVolume", 100, "number");
+    if (commit) applyModuleSetting("soundalerts_bridge_settings", "soundSystem.defaultVolume", uploadDefaultVolume, "number", "Standard-Lautstärke für neue/ungesetzte SoundAlerts aus Sound-Pegel Config.");
+    actions.push({
+      id: "soundalerts_default_volume",
+      label: "SoundAlerts/Kanalpunkte Default Volume",
+      applied: !!commit,
+      table: "soundalerts_bridge_settings",
+      key: "soundSystem.defaultVolume",
+      before,
+      after: uploadDefaultVolume,
+      note: "Greift für neue Auto-Entries und SoundAlerts ohne eigenen Volume-Wert. Bestehende Einträge werden nicht überschrieben."
+    });
+  }
+
+  if (upload.vipMod !== false) {
+    const before = readModuleSetting("vip_sound_settings", "soundSystemVolume", 85, "number");
+    if (commit) applyModuleSetting("vip_sound_settings", "soundSystemVolume", uploadDefaultVolume, "number", "Standard-Lautstärke für VIP-/Mod-Sounds aus Sound-Pegel Config.");
+    actions.push({
+      id: "vip_mod_default_volume",
+      label: "VIP-/Mod-Sound Default Volume",
+      applied: !!commit,
+      table: "vip_sound_settings",
+      key: "soundSystemVolume",
+      before,
+      after: uploadDefaultVolume,
+      note: "Benötigt STEP272D-VIP-Anpassung im VIP-Modul. Keine bestehenden Upload-Dateien werden geändert."
+    });
+  }
+
+  if (upload.alerts !== false) {
+    actions.push({
+      id: "alerts_default_volume",
+      label: "Alert-Sound Default Volume",
+      applied: !!commit,
+      table: "sound_settings",
+      key: "output",
+      before: soundOutputBefore?.targets || {},
+      after: soundOutputAfter?.targets || {},
+      note: "Alerts ohne explizites rule.sound_volume nutzen über das Sound-System die Output-Defaults. Bestehende Alert-Regeln werden nicht überschrieben."
+    });
+  }
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    applied: !!commit,
+    updatedAt: now,
+    updatedBy: String(updatedBy || ""),
+    config: cfg,
+    defaultPlaybackVolume,
+    uploadDefaultVolume,
+    actions,
+    notes: [
+      "Original-Sounddateien werden nicht verändert.",
+      "Bestehende Alert-/SoundAlert-/VIP-Regeln werden nicht massenhaft überschrieben.",
+      "Sound-System neu laden oder Backend neu starten, damit geänderte Settings sicher aktiv sind."
+    ]
+  };
 }
 
 function getCorrectionSettings() {

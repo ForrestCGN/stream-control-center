@@ -1,5 +1,29 @@
 # NEXT STEPS - stream-control-center
 
+## Nach STEP272D - Upload-/Playback-Defaults testen
+
+API-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/config/apply-defaults/preview" | ConvertTo-Json -Depth 80
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/loudness/config/apply-defaults" -Body "{}" -ContentType "application/json" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/soundalerts/settings" | ConvertTo-Json -Depth 80
+```
+
+Dashboard-Test:
+
+```text
+System -> Sound-Pegel -> Config
+Preview laden
+Defaults anwenden
+Backend neu starten oder Module neu laden
+Referenzsound/Testton und neue Upload-Fallbacks prüfen
+```
+
+Naechster Schritt: bestehende Sounds nicht blind überschreiben, sondern zuerst eine Massenaktion-Preview pro Bereich bauen.
+
+
 Stand: 2026-05-21
 
 ## Nach STEP272B3 - Referenz-Ausgabeweg testen

@@ -1,5 +1,15 @@
 # Current System Status – stream-control-center
 
+## STEP272D - Sound-Pegel Upload-/Playback-Defaults anwenden
+
+Sound-Pegel Config kann gespeicherte Standardwerte jetzt gezielt in DB-Modulsettings übernehmen.
+
+- Sound-System Output-Defaults über `sound_settings`.
+- SoundAlerts Default-Volume über `soundalerts_bridge_settings`.
+- VIP-/Mod Default-Volume über `vip_sound_settings.soundSystemVolume`.
+- Keine Sound-Dateien und keine bestehenden Einzelregeln werden überschrieben.
+
+
 Stand: 2026-05-21
 
 ## STEP272B3 - Sound-Pegel Referenz-Ausgabeweg waehlbar

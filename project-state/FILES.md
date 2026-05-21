@@ -1,5 +1,35 @@
 # FILES - stream-control-center
 
+## STEP272D - Sound-Pegel Upload-/Playback-Defaults anwenden
+
+Geaendert:
+
+```text
+backend/modules/sound_loudness_scanner.js
+backend/modules/vip_sound_overlay.js
+htdocs/dashboard/modules/sound_levelscan.js
+htdocs/dashboard/modules/sound_levelscan.css
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP272D_SOUND_PEGEL_UPLOAD_DEFAULTS_APPLY.md
+```
+
+Nicht geaendert:
+
+```text
+Sound-Dateien
+config/**
+Alert-Regeln massenhaft
+SoundAlert-Entries massenhaft
+Sound-Queue
+Discord-Routing
+TTS-System
+```
+
+
 Stand: 2026-05-21
 
 ## STEP272B3 - Sound-Pegel Referenz-Ausgabeweg waehlbar

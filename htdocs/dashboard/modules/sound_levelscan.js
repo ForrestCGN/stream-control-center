@@ -19,6 +19,7 @@ window.SoundLevelScanModule = (function(){
     correctionSettings: null,
     normalizationSettings: null,
     levelConfig: null,
+    levelConfigApplyPreview: null,
     correctionPreview: null,
     reference: null,
     referenceAudio: null,
@@ -62,7 +63,8 @@ window.SoundLevelScanModule = (function(){
     config: 'Zentrale Sound-Pegel-Konfiguration. Diese Werte werden in SQLite gespeichert und dienen als Grundlage fuer Upload-Defaults, Standardlautstaerke und spaetere Massenaktionen.',
     defaultPlaybackVolume: 'Basislautstaerke fuer normale Wiedergabe. Neue oder ungesetzte Sounds sollen langfristig mit diesem Wert starten.',
     uploadDefaultVolume: 'Standardlautstaerke fuer neu hochgeladene Alert-/SoundAlert-/VIP-Sounds. Wird in spaeteren Steps von den Upload-Modulen genutzt.',
-    massApply: 'Vorbereitete Massenaktion fuer vorhandene Sounds. In diesem Step nur Konfiguration/Preview, keine bestehenden Daten werden umgeschrieben.'
+    massApply: 'Vorbereitete Massenaktion fuer vorhandene Sounds. In diesem Step nur Konfiguration/Preview, keine bestehenden Daten werden umgeschrieben.',
+    applyDefaults: 'Übernimmt die gespeicherten Sound-Pegel-Defaults in die relevanten DB-Settings der Module. Bestehende Sounds und Dateien werden nicht überschrieben.'
   };
 
   function registerDashboardModule(){
@@ -309,6 +311,8 @@ window.SoundLevelScanModule = (function(){
         }
         if (action === 'save-correction') await saveCorrectionSettings();
         if (action === 'save-level-config') await saveLevelConfig();
+        if (action === 'preview-apply-defaults') await previewApplyDefaults();
+        if (action === 'apply-defaults') await applyDefaultsToModules();
         if (action === 'reload-reference') await loadReferenceOnly(true);
         if (action === 'play-reference') await playReferenceSound();
         if (action === 'play-reference-test') await playReferenceTestSound();
@@ -370,6 +374,20 @@ window.SoundLevelScanModule = (function(){
     const el = document.getElementById(id);
     if (!el) return !!fallback;
     return !!el.checked;
+  }
+
+  async function previewApplyDefaults(){
+    const preview = await api('/config/apply-defaults/preview');
+    state.levelConfigApplyPreview = preview;
+    state.lastMessage = 'Upload-/Playback-Defaults Vorschau geladen. Es wurde noch nichts geändert.';
+    render();
+  }
+
+  async function applyDefaultsToModules(){
+    const applied = await api('/config/apply-defaults', { method: 'POST', body: JSON.stringify({ updatedBy: 'dashboard' }) });
+    state.levelConfigApplyPreview = applied;
+    state.lastMessage = 'Sound-Pegel Defaults wurden in SQLite-Modul-Settings übernommen. Backend/Sound-System danach neu laden.';
+    await loadAll();
   }
 
   async function saveLevelConfig(){
@@ -540,6 +558,7 @@ window.SoundLevelScanModule = (function(){
       try {
         const cfg = await api('/config');
         state.levelConfig = cfg.config || null;
+        try { state.levelConfigApplyPreview = await api('/config/apply-defaults/preview'); } catch (_) { state.levelConfigApplyPreview = null; }
         if (state.levelConfig?.defaultScanLimit) state.scanLimit = Number(state.levelConfig.defaultScanLimit) || state.scanLimit;
         if (state.levelConfig?.defaultResultLimit) state.resultLimit = Number(state.levelConfig.defaultResultLimit) || state.resultLimit;
         if (state.levelConfig?.defaultReferenceOutputTarget) state.referenceOutputTarget = normalizeReferenceOutputTarget(state.levelConfig.defaultReferenceOutputTarget);
@@ -979,6 +998,52 @@ window.SoundLevelScanModule = (function(){
     `;
   }
 
+  function renderApplyDefaultsPanel(){
+    const preview = state.levelConfigApplyPreview || {};
+    const actions = Array.isArray(preview.actions) ? preview.actions : [];
+    const rows = actions.length ? actions.map(action => `
+      <div class="sound-levelscan-apply-row" title="${esc(action.note || '')}">
+        <div>
+          <strong>${esc(action.label || action.id)}</strong>
+          <span>${esc(action.table || '')}${action.key ? ' / ' + esc(action.key) : ''}</span>
+        </div>
+        <div class="sound-levelscan-apply-values">
+          <span>Vorher: <strong>${esc(formatApplyValue(action.before))}</strong></span>
+          <span>Nachher: <strong>${esc(formatApplyValue(action.after))}</strong></span>
+        </div>
+        <span class="sound-pill ${action.applied ? 'success' : 'warn'}">${action.applied ? 'angewendet' : 'Vorschau'}</span>
+      </div>
+    `).join('') : `<div class="sound-empty">Noch keine Vorschau geladen.</div>`;
+
+    return `
+      <div class="sound-levelscan-apply-panel">
+        <div class="sound-levelscan-preview-head">
+          <div>
+            <strong>Defaults in Module übernehmen</strong>
+            <span>${esc(HELP.applyDefaults)}</span>
+          </div>
+          <span class="sound-pill ${preview.applied ? 'success' : 'warn'}">${preview.applied ? 'angewendet' : 'Preview'}</span>
+        </div>
+        <div class="sound-levelscan-apply-list">${rows}</div>
+        <div class="sound-actions">
+          <button type="button" data-sound-level-action="preview-apply-defaults" title="Zeigt, welche Modul-Settings geändert würden. Noch keine Änderung.">Preview laden</button>
+          <button type="button" class="success" data-sound-level-action="apply-defaults" title="Schreibt die Defaults in die passenden SQLite-Settings. Keine Sounddateien werden verändert.">Defaults anwenden</button>
+        </div>
+        <div class="sound-note"><strong>Wichtig:</strong> Diese Aktion schreibt nur DB-Settings wie Sound-System-Output-Defaults, SoundAlerts-Default-Volume und VIP-/Mod-Default-Volume. Bestehende Sounddateien und einzelne alte Regeln werden nicht überschrieben.</div>
+      </div>
+    `;
+  }
+
+  function formatApplyValue(value){
+    if (value === null || value === undefined || value === '') return '-';
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      try { return JSON.stringify(value); } catch (_) { return '[object]'; }
+    }
+    return String(value);
+  }
+
   function renderConfigPanel(){
     const cfg = state.levelConfig || {};
     const upload = cfg.uploadDefaults || {};
@@ -1044,6 +1109,8 @@ window.SoundLevelScanModule = (function(){
           <label class="sound-check"><input id="soundLevelConfigMassPresets" type="checkbox" ${mass.includeSoundPresets === true ? 'checked' : ''}><span>Sound-System Presets einbeziehen</span></label>
           <label class="sound-check"><input id="soundLevelConfigMassOverwrite" type="checkbox" ${mass.overwriteExistingVolumes === true ? 'checked' : ''}><span>Vorhandene Volume-Werte überschreiben</span></label>
         </div>
+
+        ${renderApplyDefaultsPanel()}
 
         <div class="sound-actions">
           <button type="button" class="success" data-sound-level-action="save-level-config" title="Speichert diese Config in SQLite. Bestehende Sounds werden nicht geändert.">Config speichern</button>

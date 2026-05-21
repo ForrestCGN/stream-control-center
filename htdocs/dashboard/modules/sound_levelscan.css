@@ -766,3 +766,93 @@ html[data-theme=dark] .sound-levelscan-config-panel {
     grid-template-columns: 1fr;
   }
 }
+
+/* STEP272D - Sound-Pegel Defaults in Modul-Settings übernehmen */
+.sound-levelscan-apply-panel {
+  grid-column: 1 / -1;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(52,211,153,.20);
+  background: rgba(16,185,129,.055);
+}
+
+.sound-levelscan-apply-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sound-levelscan-apply-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) minmax(260px, 2fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.035);
+}
+
+.sound-levelscan-apply-row strong {
+  display: block;
+  color: #f8fafc;
+  font-weight: 950;
+  margin-bottom: 3px;
+}
+
+.sound-levelscan-apply-row span:not(.sound-pill) {
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.sound-levelscan-apply-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sound-levelscan-apply-values span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.035);
+  max-width: 100%;
+}
+
+.sound-levelscan-apply-values strong {
+  display: inline;
+  margin: 0;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-theme=dark] .sound-levelscan-apply-panel {
+  background: #1d2c24;
+  border-color: #315f47;
+}
+
+html[data-theme=dark] .sound-levelscan-apply-row,
+html[data-theme=dark] .sound-levelscan-apply-values span {
+  background: #202020;
+  border-color: #343434;
+}
+
+html[data-theme=dark] .sound-levelscan-apply-row strong,
+html[data-theme=dark] .sound-levelscan-apply-values strong {
+  color: #f2f2f2;
+}
+
+@media(max-width: 1000px) {
+  .sound-levelscan-apply-row {
+    grid-template-columns: 1fr;
+  }
+}

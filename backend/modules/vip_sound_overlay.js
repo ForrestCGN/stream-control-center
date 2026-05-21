@@ -75,6 +75,11 @@ module.exports.init = function init(ctx) {
       value_type: "string",
       description: "Sound-System-Ziel fuer VIP-/Mod-Sounds: stream, discord oder both."
     },
+    soundSystemVolume: {
+      value: 80,
+      value_type: "number",
+      description: "Standard-Lautstaerke fuer VIP-/Mod-Sounds im Sound-System. Wird von Sound-Pegel Defaults gesetzt."
+    },
     dailyUsageRetentionDays: {
       value: 14,
       value_type: "number",
@@ -2563,7 +2568,7 @@ module.exports.init = function init(ctx) {
       priority: soundType === "mod" ? 60 : 60,
       target: normalizeSoundSystemTarget(getVipSetting("soundSystemTarget", "both"), "both"),
       outputTarget: "device",
-      volume: 85,
+      volume: Math.max(0, Math.min(100, Math.round(Number(getVipSetting("soundSystemVolume", 80)) || 80))),
       queueIfBusy: true,
       dropIfBusy: false,
       parallelAllowed: false,

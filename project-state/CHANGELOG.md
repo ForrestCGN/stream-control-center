@@ -1,5 +1,17 @@
 
 
+## 2026-05-21 - STEP272D Sound-Pegel Upload-/Playback-Defaults anwenden
+
+- `backend/modules/sound_loudness_scanner.js` erweitert.
+- Neue API: `GET /api/sound/loudness/config/apply-defaults/preview`.
+- Neue API: `POST /api/sound/loudness/config/apply-defaults`.
+- Dashboard-Config um Preview/Apply-Bereich erweitert.
+- Sound-System Output-Default-Volumes werden in `sound_settings` gespeichert.
+- SoundAlerts Default-Volume wird in `soundalerts_bridge_settings` gespeichert.
+- VIP-/Mod-Sounds bekommen neues DB-Setting `soundSystemVolume`, Standard 80.
+- Keine Sound-Dateien und keine bestehenden Einzelregeln wurden überschrieben.
+
+
 ## 2026-05-21 - STEP272C Sound-Pegel Config-Seite
 
 - `backend/modules/sound_loudness_scanner.js` um `GET/POST /api/sound/loudness/config` erweitert.
