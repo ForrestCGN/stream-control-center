@@ -130,7 +130,8 @@ module.exports.init = function init(ctx) {
     updatedAt: core.nowIso(),
     client: { connected: false, lastSeenAt: 0, lastEvent: "" },
     device: { lastOk: false, lastAt: 0, lastError: "", lastResult: null },
-    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0, parallelStarted: 0, bundlesQueued: 0, bundleItemsQueued: 0 },
+    discord: { lastOk: false, lastAt: 0, lastError: "", lastResult: null },
+    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0, discordStarted: 0, discordFailed: 0, parallelStarted: 0, bundlesQueued: 0, bundleItemsQueued: 0 },
     activeBundleLock: null
   };
 
@@ -633,6 +634,7 @@ module.exports.init = function init(ctx) {
       bundles: publicBundleQueue(),
       client: { ...state.client },
       device: { ...state.device },
+      discord: { ...state.discord },
       stats: { ...state.stats },
       config: {
         path: state.configPath,
@@ -802,6 +804,7 @@ module.exports.init = function init(ctx) {
 
   function shouldUseOverlay(item) { return item.outputTarget === "overlay" || item.outputTarget === "both"; }
   function shouldUseDevice(item) { return item.outputTarget === "device" || item.outputTarget === "both"; }
+  function shouldUseDiscord(item) { return item.target === "discord" || item.target === "both"; }
   function isVideoItem(item) { return String(item && item.mediaType || item && item.type || "").toLowerCase() === "video" || !!(item && item.videoUrl); }
   function shouldWaitForOverlayEnd(item) { return isVideoItem(item) && shouldUseOverlay(item); }
   function videoFallbackFinishMs(item) {
@@ -1290,6 +1293,77 @@ module.exports.init = function init(ctx) {
     item._deviceKilledReason = "";
   }
 
+  function getDiscordBridge() {
+    return (app && app.locals && app.locals.discordBridge) || ctx.discordBridge || null;
+  }
+
+  // STEP269A_SOUND_SYSTEM_DISCORD_TARGET_PLAYBACK
+  // Discord bleibt ein Ausgabeziel des Sound-Systems. Die Sound-System-Queue bleibt Master.
+  function playDiscordOutput(item) {
+    if (!item || !shouldUseDiscord(item)) return;
+    if (item.hasAudio === false) return;
+    if (!item.file || item.file === "generated/beep.wav") {
+      state.discord = {
+        lastOk: false,
+        lastAt: Date.now(),
+        lastError: "discord_file_missing_or_generated",
+        lastResult: item ? { requestId: item.requestId, file: item.file || "" } : null
+      };
+      state.stats.discordFailed += 1;
+      emit("discord_play_skipped");
+      return;
+    }
+
+    const bridge = getDiscordBridge();
+    if (!bridge || typeof bridge.enqueueSound !== "function") {
+      state.discord = {
+        lastOk: false,
+        lastAt: Date.now(),
+        lastError: "discord_bridge_unavailable",
+        lastResult: { requestId: item.requestId, file: item.file }
+      };
+      state.stats.discordFailed += 1;
+      item.lifecycle = { ...(item.lifecycle || {}), discord: { attempted: true, ok: false, error: "discord_bridge_unavailable" } };
+      emit("discord_bridge_unavailable");
+      return;
+    }
+
+    state.stats.discordStarted += 1;
+    state.discord = {
+      lastOk: false,
+      lastAt: Date.now(),
+      lastError: "",
+      lastResult: { started: true, requestId: item.requestId, file: item.file, soundId: item.soundId }
+    };
+    item.lifecycle = { ...(item.lifecycle || {}), discord: { attempted: true, startedAt: Date.now(), ok: null } };
+    emit("discord_play_started");
+
+    Promise.resolve()
+      .then(() => bridge.enqueueSound(item.file))
+      .then(result => {
+        state.discord = {
+          lastOk: true,
+          lastAt: Date.now(),
+          lastError: "",
+          lastResult: { ...(result || {}), requestId: item.requestId, file: item.file, soundId: item.soundId }
+        };
+        item.lifecycle = { ...(item.lifecycle || {}), discord: { ...(item.lifecycle.discord || {}), ok: true, result } };
+        emit("discord_play_queued");
+      })
+      .catch(err => {
+        const error = err && err.message ? err.message : String(err);
+        state.stats.discordFailed += 1;
+        state.discord = {
+          lastOk: false,
+          lastAt: Date.now(),
+          lastError: error,
+          lastResult: { requestId: item.requestId, file: item.file, soundId: item.soundId }
+        };
+        item.lifecycle = { ...(item.lifecycle || {}), discord: { ...(item.lifecycle.discord || {}), ok: false, error } };
+        emit("discord_play_failed");
+      });
+  }
+
   function activateItemAudio(item, parallel) {
     if (!itemStillActive(item, parallel)) return;
 
@@ -1298,6 +1372,7 @@ module.exports.init = function init(ctx) {
     item.lifecycle = { ...(item.lifecycle || {}), audioStartedAt: item.startedAt };
 
     playDeviceOutput(item);
+    playDiscordOutput(item);
     emitItemEvent("item_started", item, { parallel: !!parallel });
 
     if (shouldUseOverlay(item)) emit("play_stream");

@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "intervalSeconds": 30,
+  "commit": true,
+  "onlyWhenActive": true,
+  "startOnBackendStart": true,
+  "requestUrl": "http://127.0.0.1:8080/api/message-rotator/next",
+  "statusUrl": "http://127.0.0.1:8080/api/message-rotator/status",
+  "timeoutMs": 10000,
+  "logBlocked": false
+}
