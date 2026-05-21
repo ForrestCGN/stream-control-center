@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-05-21 - STEP268B Alert Bundle Dedupe Bypass Robust
+
+- `backend/modules/sound_system.js` erweitert:
+  - Alert-Bundle-Items werden robuster erkannt.
+  - Alert-Bundle-Items umgehen Same-Sound-/Same-User-Dedupe.
+  - Alert-Bundle-Items schreiben sich nicht mehr in die globale Same-Sound-Historie.
+- `backend/modules/alert_system.js` nur fuer zusaetzliche Prequeue-Diagnose erweitert.
+- Ursache war im Trace nachgewiesen:
+  - Der zweite gleiche Alert-Hauptsound wurde mit `cooldown_same_sound` gedroppt.
+  - Die Alert-TTS blieb trotzdem in der Queue und spielte allein.
+- Live verifiziert:
+  - `STEP268B_ALERT_BUNDLE_DEDUPE_BYPASS_ROBUST` ist in Live `sound_system.js` vorhanden.
+  - `isAlertBundleItem(item)` ist in Live vorhanden.
+- Funktional getestet:
+  - Alert 1 Sound + TTS.
+  - Alert 2 Sound + TTS.
+  - Alert 1, Alert 2, VIP.
+  - Alert 1, Alert 2, SoundAlert, VIP nach aktueller Prioritaetslogik.
+  - Spaeter ausgeloester Alert darf vor SoundAlert/VIP laufen, weil Alerts hoeher priorisiert sind.
+- Nicht geaendert:
+  - `app.sqlite`
+  - `config/**`
+  - Streamer.bot-Flows
+  - Overlay-HTML
+  - VIP-Logik
+
 ## 2026-05-21 - STEP266B Alert Immediate Bundle Prequeue Self-Block Fix
 
 - `backend/modules/alert_system.js` minimal korrigiert.
