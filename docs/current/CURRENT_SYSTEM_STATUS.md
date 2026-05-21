@@ -1,110 +1,69 @@
 # Current System Status – stream-control-center
 
-Stand: 2026-05-20
+Stand: 2026-05-21
 
-## STEP238 - Message-Rotator Output-Mode
+## STEP269A-C - Sound-System Discord Output Integration
 
-Aktueller Zusatzstand:
+Aktueller stabiler Zusatzstand:
 
-- Message-Rotator kann die Ausgabeart jetzt konfigurierbar liefern:
-  - `chat`
-  - `announcement`
-- Globale Settings:
-  - `messageOptions.outputMode`
-  - `messageOptions.announcementColor`
-- Item-Overrides:
-  - `items[].outputMode`
-  - `items[].announcementColor`
-- Dashboard kann Ausgabeart und Announcement-Farbe bearbeiten.
-- `/api/message-rotator/next` und `/api/message-rotator/manual` liefern Streamer.bot-Steuerfelder:
-  - `streamerbot_action`
-  - `streamerbot_output_mode`
-  - `streamerbot_announcement_color`
-  - `streamerbot_message`
-- Bestehender Default bleibt `chat`.
-- Das Backend sendet in diesem STEP keine Announcement selbst; Streamer.bot muss anhand der Response normal senden oder Announcement senden.
-- Keine DB-Datei, keine Config-Datei und keine anderen Module wurden geaendert.
+- Sound-System kann Sounds ueber die vorhandene Discord-Bridge im Discord Voice Channel abspielen.
+- Discord ist kein zweites Queue-System; Sound-System bleibt Master fuer Reihenfolge, Prioritaeten und Bundle-Lock.
+- `target=discord` und `target=both` werden vom Sound-System unterstuetzt.
+- Automatisches Discord-Routing ist zentral im Sound-System konfigurierbar.
+- Kategorien/Quellen wie `alert`, `alert_critical`, `channel_reward`, `vip`, `crew`, `special`, `tts`, `alert_system`, `alert_tts`, `soundalerts`, `vip_mod`, `tts_system` koennen automatisch nach Discord geroutet werden.
+- VIP-/Mod-Sounds setzen nicht mehr hart `target=stream`, sondern nutzen `soundSystemTarget`, aktuell Standard `both`.
+- Bestaetigt:
+  - Test-Sound ueber Sound-System kam im Discord an.
+  - `category=vip` ohne explizites Target wurde auf `target=both` geroutet.
+  - Device-Test mit `nichtfluchen.mp3`, `target=both`, `outputTarget=device`, `source=vip_mod` kam im Discord an.
+  - Echte VIP-/Mod-Sounds kommen im Discord an.
+- Neue Runtime-Felder im Sound-System:
+  - `discord.lastOk`
+  - `discord.lastAt`
+  - `discord.lastError`
+  - `discord.lastResult`
+  - `stats.discordStarted`
+  - `stats.discordFailed`
 
-# Current System Status – stream-control-center
-
-Stand: 2026-05-18
-
-## Loyalty / Kekskrümel
-
-Loyalty läuft im Shadow-Modus. Aktuelle Version: `0.1.11`.
-
-### AutoRunner / Stream-State
-
-STEP207 ergänzt AutoRunner Boot Recovery:
-
-- Stream-State liegt persistent in der Datenbank.
-- AutoRunner-Timer liegt nur im Node-Prozessspeicher.
-- Wenn Node/Backend während eines aktiven Streams neu startet, prüft Loyalty beim Modul-Init den gespeicherten Stream-State.
-- Wenn `effective.live = true` und `autoRunner.startOnStreamStateStart = true`, wird der AutoRunner automatisch wieder gestartet.
-- Recovery wird über `runner_auto_started_on_boot_live_state` geloggt.
-
-### Subscribe/Resub-Dedupe
-
-STEP208 ergänzt Subscribe/Resub-Dedupe:
-
-- Twitch kann bei einem echten Resub kurz nacheinander `subscribe` und `resub` liefern.
-- Wenn ein `resub` innerhalb des konfigurierten Fensters nach einem `subscribe` für denselben User/Provider/Tier kommt, wird der Subscribe kompensiert.
-- Standard-Zeitfenster: 60 Sekunden.
-- Der vorherige Subscribe wird als `replaced_by_resub` markiert.
-- Eine negative `event_dedupe_adjustment`-Transaktion gleicht die Subscribe-Punkte aus.
-- Der Resub bleibt normal verarbeitet.
-
-Bewusst unverändert:
-
-- Watch-Punkte-Logik
-- GiftSub/GiftBomb-Verhalten
-- Runner-/Stream-State-Start/Stop-Logik aus STEP207
-- DB-Schema
-- Twitch-API Auto-Offline-Stop
-
-## DeathCounter V2
-
-Der DeathCounter V2 ist auf produktiven DB-Storage umgestellt und als stabil bestätigt.
-
-Aktiver Zustand:
-
-- `activeStorage: database`
-- `dualWriteEnabled: false`
-- JSON nur noch manuell per Backup/Export
-- `!dcount backup` erstellt Timestamp-Backup
-- `!dcount export` schreibt die Haupt-JSON aus dem aktuellen DB-Stand
-
-Overlay:
-
-- `_overlay-deathcounter-v2.html` nutzt weiterhin `/api/deathcounter/v2/state` und `/api/deathcounter/v2/overlay`.
-- STEP262 hat den DeathCounter optisch an den Alert-Außenrahmen angepasst.
-- STEP263 hat die Slide-/Fade-Transition minimal verlangsamt.
-- Keine Overlay-Funktionalität wurde entfernt.
-
-## STEP239 - Message-Rotator Backend Direct Output
-
-Der Message-Rotator wurde so erweitert, dass er nicht mehr zwingend Streamer.bot zum Senden benötigt.
-
-Neue/erweiterte Einstellung:
+Bewusst unveraendert:
 
 ```text
-messageOptions.deliveryMode = backend | streamerbot | response_only
-messageOptions.outputMode = chat | announcement
-messageOptions.announcementColor = primary | blue | green | orange | purple
+app.sqlite
+config/**
+Streamer.bot-Flows
+Overlay-HTML
+Alert-Bundle-Lock-Logik
+Sound-System Queue-/Prioritaetslogik
 ```
 
-Standardziel für den neuen Betrieb:
+Offen / beobachten:
 
 ```text
-deliveryMode = backend
-outputMode = announcement
+Echter SoundAlert/Kanalpunkte-Sound
+Echter Alert mit Hauptsound + Alert-TTS
+Normales Chat-TTS, falls Discord-Ausgabe gewuenscht ist
+MP3-Cover/Artwork-Erkennung als optionaler spaeterer Mini-Fix
 ```
 
-Bei `deliveryMode=backend` sendet das Backend direkt über Twitch Helix:
+## STEP268C - Active Bundle Lock Direct Start Guard
 
-```text
-chat         -> /helix/chat/messages
-announcement -> /helix/chat/announcements
-```
+- Sound-System Bundle-Lock ist stabilisiert.
+- Fremde Sounds duerfen bei aktivem Alert-Bundle-Lock nicht direkt zwischen Alert-Hauptsound und Alert-TTS starten.
+- V5-Real-Mod-Test bestaetigte: Alert-Sound und passende Alert-TTS blieben zusammen.
+- Aktuelle Prioritaet:
+  - Alert-Bundles
+  - SoundAlert/Kanalpunkte
+  - Mod/VIP
+  - normales Chat-TTS
 
-`deliveryMode=streamerbot` bleibt als Fallback/Handoff erhalten. `commit=0` bleibt weiterhin reine Vorschau ohne Senden.
+## STEP268B - Alert Bundle Dedupe Bypass Robust
+
+- Alert-Bundle-Items umgehen Same-Sound-/Same-User-Dedupe.
+- Gleiche Alert-Hauptsounds werden nicht mehr durch `cooldown_same_sound` gedroppt.
+- TTS bleibt beim passenden Alert-Bundle.
+
+## STEP266B - Alert Immediate Bundle Prequeue Self-Block Fix
+
+- Immediate-Prequeue blockiert sich nicht mehr selbst.
+- Alert-System laeuft wieder mit Sound-System-Bundles.
+- TTS bleibt beim passenden Alert.

@@ -2,141 +2,55 @@
 
 Stand: 2026-05-21
 
-## STEP268B - Alert Bundle Dedupe Bypass Robust
+## STEP269A-C - Sound/Discord Integration
 
 Geaendert:
 
 ```text
 backend/modules/sound_system.js
-backend/modules/alert_system.js
+backend/modules/vip_sound_overlay.js
+project-state/STEP269A_SOUND_SYSTEM_DISCORD_TARGET_PLAYBACK.md
+project-state/STEP269B_SOUND_SYSTEM_DISCORD_AUTO_ROUTING.md
+project-state/STEP269C_VIP_SOUND_SYSTEM_TARGET_BOTH.md
+```
+
+Doku aktualisiert in STEP269D:
+
+```text
+docs/current/CURRENT_SYSTEM_STATUS.md
 project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
-project-state/STEP268B_ALERT_BUNDLE_DEDUPE_BYPASS_ROBUST_2026-05-21.md
+project-state/STEP269D_SOUND_DISCORD_INTEGRATION_CONFIRMED_2026-05-21.md
 ```
 
 Nicht geaendert:
 
 ```text
 app.sqlite
-config
+config/**
 Streamer.bot-Flows
 Overlay-HTML
-VIP-Logik
+backend/modules/alert_system.js
+backend/modules/soundalerts_bridge.js
+backend/modules/tts_system.js
 ```
 
 Hinweis:
 
 ```text
-sound_system.js enthaelt den eigentlichen Fix.
-alert_system.js enthaelt nur zusaetzliche Diagnose im Prequeue-Payload.
+sound_system.js enthaelt die zentrale Discord-Ausgabe und Auto-Routing-Logik.
+vip_sound_overlay.js enthaelt die Korrektur fuer echte VIP-/Mod-Sounds, die vorher hart target=stream setzten.
 ```
 
-## STEP266B - Alert Immediate Bundle Prequeue Self-Block Fix
-
-Geaendert:
+## Relevante Module
 
 ```text
-backend/modules/alert_system.js
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
-project-state/STEP266B_ALERT_IMMEDIATE_BUNDLE_PREQUEUE_FIX_2026-05-21.md
-```
-
-Nicht geaendert:
-
-```text
-app.sqlite
-config
 backend/modules/sound_system.js
-backend/modules/helpers
-Streamer.bot-Flows
-Overlay-HTML
-```
-
-## STEP238
-
-Geaendert:
-
-```text
-backend/modules/message_rotator.js
-htdocs/dashboard/modules/message_rotator.js
-docs/current/CURRENT_SYSTEM_STATUS.md
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
-project-state/STEP238_MESSAGE_ROTATOR_OUTPUT_MODE_2026-05-20.md
-```
-
-Nicht geaendert:
-
-```text
-backend/modules/chat_output.js
-backend/modules/twitch.js
-backend/core/database.js
-backend/modules/helpers
-config
-data
-app.sqlite
-andere Dashboard-Module
-```
-
-# Files – stream-control-center
-
-## Loyalty relevante Dateien
-
-- `backend/modules/loyalty.js`
-  - Loyalty-/Kekskruemel-Core.
-  - STEP207: AutoRunner Boot Recovery bei gespeichertem Live-Stream-State nach Backend-Neustart.
-  - STEP208: Subscribe/Resub-Dedupe mit Ausgleichstransaktion.
-
-## DeathCounter V2 relevante Dateien
-
-- `backend/modules/deathcounter_v2.js`
-  - Produktiver DeathCounter V2 Backend-Code.
-  - DB-only Storage mit manuellem JSON Backup/Export.
-
-- `htdocs/overlays/_overlay-deathcounter-v2.html`
-  - DeathCounter Overlay.
-  - STEP262: Alert-Frame-Optik und Slide-In/Out.
-  - STEP263: leicht langsamere Slide-/Fade-Transition.
-
-## Doku
-
-- `project-state/STEP268B_ALERT_BUNDLE_DEDUPE_BYPASS_ROBUST_2026-05-21.md`
-- `project-state/STEP266B_ALERT_IMMEDIATE_BUNDLE_PREQUEUE_FIX_2026-05-21.md`
-- `project-state/STEP208_LOYALTY_SUB_RESUB_DEDUPE_2026-05-18.md`
-- `project-state/STEP207_LOYALTY_AUTORUNNER_BOOT_RECOVERY_2026-05-18.md`
-- `project-state/STEP263_DEATHCOUNTER_OVERLAY_SLIDE_TIMING_2026-05-11.md`
-- `README_STEP208_LOYALTY_SUB_RESUB_DEDUPE.md`
-- `README_STEP207_LOYALTY_AUTORUNNER_BOOT_RECOVERY.md`
-- `README_STEP263_DEATHCOUNTER_OVERLAY_SLIDE_TIMING.md`
-
-## STEP239 - Message-Rotator Backend Direct Output
-
-Geaendert:
-
-```text
-backend/modules/message_rotator.js
-htdocs/dashboard/modules/message_rotator.js
-docs/current/CURRENT_SYSTEM_STATUS.md
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
-project-state/STEP239_MESSAGE_ROTATOR_BACKEND_DIRECT_OUTPUT_2026-05-20.md
-```
-
-Nicht geaendert:
-
-```text
-app.sqlite
-config
-backend/core/database.js
-backend/modules/twitch.js
-htdocs/dashboard/modules/message_rotator.css
+backend/modules/discord.js
+backend/modules/vip_sound_overlay.js
+backend/modules/alert_system.js
+backend/modules/soundalerts_bridge.js
+backend/modules/tts_system.js
 ```
