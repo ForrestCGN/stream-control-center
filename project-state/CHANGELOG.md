@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-05-21 - STEP270A1 Sound Loudness Results Route Fix
+
+- `backend/modules/sound_loudness_scanner.js` minimal korrigiert.
+- Results-Route nutzt getrennte Parameter fuer Count- und Listenabfrage.
+- Fehler `Unknown named parameter 'limit'` bei `/api/sound/loudness/results?...` behoben.
+- Modulversion auf `0.1.1-step270a-fix` gesetzt.
+- Keine Aenderung an Sound-Dateien, Sound-System Queue, Discord-Routing, Alerts, TTS, Config oder Dashboard.
+
 ## 2026-05-21 - STEP270A Sound Loudness Scanner Read-only
 
 - Neues Backend-Modul `backend/modules/sound_loudness_scanner.js` ergaenzt.

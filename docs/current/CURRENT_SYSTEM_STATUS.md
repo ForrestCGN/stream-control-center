@@ -2,6 +2,14 @@
 
 Stand: 2026-05-21
 
+## STEP270A1 - Sound Loudness Results Route Fix
+
+- Live-Test zeigte, dass Status, Routes und Scan funktionieren.
+- Die Results-Route hatte einen Parameterfehler: `Unknown named parameter 'limit'`.
+- Fix: Count- und Listenabfrage nutzen getrennte SQL-Parameter.
+- Modulversion: `0.1.1-step270a-fix`.
+- Keine Aenderung an Sound-Dateien, Sound-System Queue, Discord-Routing, Alert-System, TTS, Config oder Dashboard.
+
 ## STEP270A - Sound Loudness Scanner Read-only
 
 Aktueller Zusatzstand:

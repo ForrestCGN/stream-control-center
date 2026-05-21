@@ -24,7 +24,7 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.0-step270a",
+    version: "0.1.1-step270a-fix",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -77,17 +77,17 @@ module.exports.init = function init(ctx) {
       const order = normalizeOrder(req.query.order || "relative_path");
       const direction = String(req.query.dir || "asc").toLowerCase() === "desc" ? "DESC" : "ASC";
 
-      const params = { limit, offset };
+      const filterParams = {};
       let where = "";
       if (status) {
         where = "WHERE status = :status";
-        params.status = status;
+        filterParams.status = status;
       }
 
-      const totalRow = database.get(`SELECT COUNT(*) AS count FROM sound_loudness_files ${where}`, params) || { count: 0 };
+      const totalRow = database.get(`SELECT COUNT(*) AS count FROM sound_loudness_files ${where}`, filterParams) || { count: 0 };
       const rows = database.all(
-        `SELECT * FROM sound_loudness_files ${where} ORDER BY ${order} ${direction} LIMIT :limit OFFSET :offset`,
-        params
+        `SELECT * FROM sound_loudness_files ${where} ORDER BY ${order} ${direction} LIMIT ${limit} OFFSET ${offset}`,
+        filterParams
       ) || [];
 
       res.json({

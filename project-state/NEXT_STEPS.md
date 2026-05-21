@@ -2,6 +2,18 @@
 
 Stand: 2026-05-21
 
+## Nach STEP270A1 - Results-Route erneut testen
+
+Nach Deploy des Fixes:
+
+```powershell
+node --check backend\modules\sound_loudness_scanner.js
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/status" | ConvertTo-Json -Depth 60
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/results?limit=50&order=recommended_gain_db&dir=desc" | ConvertTo-Json -Depth 80
+```
+
+Wenn die Results-Route sauber liefert, kann STEP270B Dashboard-Seite fuer Sound-Lautheit folgen.
+
 ## Nach STEP270A - Sound Loudness Scanner testen und Dashboard vorbereiten
 
 STEP270A ist ein read-only Backend-Scanner. Nach Deploy zuerst nur testen:

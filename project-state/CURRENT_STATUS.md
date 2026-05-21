@@ -2,6 +2,16 @@
 
 Stand: 2026-05-21
 
+## STEP270A1 - Sound Loudness Results Route Fix
+
+Nach Live-Test wurde ein Fehler in der Results-Route korrigiert:
+
+```text
+Unknown named parameter 'limit'
+```
+
+Status, Routes und Scan waren bereits funktionsfaehig. Geaendert wurde nur die Parameterbehandlung in `GET /api/sound/loudness/results`. Modulversion: `0.1.1-step270a-fix`.
+
 ## STEP270A - Sound Loudness Scanner Read-only
 
 Ein neuer read-only Backend-Scanner fuer Sound-Lautheit ist vorbereitet.

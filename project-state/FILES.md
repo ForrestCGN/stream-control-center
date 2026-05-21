@@ -2,6 +2,27 @@
 
 Stand: 2026-05-21
 
+## STEP270A1 - Sound Loudness Results Route Fix
+
+Geaendert:
+
+```text
+backend/modules/sound_loudness_scanner.js
+project-state/STEP270A1_SOUND_LOUDNESS_RESULTS_ROUTE_FIX.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+```
+
+Fix:
+
+```text
+GET /api/sound/loudness/results nutzt getrennte SQL-Parameter fuer COUNT und Listenabfrage.
+Fehler Unknown named parameter 'limit' ist behoben.
+```
+
 ## STEP270A - Sound Loudness Scanner Read-only
 
 Neu:
