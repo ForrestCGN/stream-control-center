@@ -2,6 +2,35 @@
 
 Stand: 2026-05-21
 
+## STEP272A - Sound-Pegel Unterbereiche/Tabs
+
+Geaendert:
+
+```text
+htdocs/dashboard/modules/sound_levelscan.js
+htdocs/dashboard/modules/sound_levelscan.css
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP272A_SOUND_PEGEL_UNTERBEREICHE_TABS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
+app.sqlite
+config/**
+Sound-Dateien
+Sound-Queue
+Discord-Routing
+Alert-Bundle-Lock
+TTS-System
+```
+
 ## STEP271 - Sound-Pegel eigenes Dashboard-Modul
 
 Geaendert:

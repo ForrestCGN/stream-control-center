@@ -2,6 +2,32 @@
 
 Stand: 2026-05-21
 
+## Nach STEP272A - Sound-Pegel Tabs testen
+
+Dashboard-Test:
+
+```text
+System -> Sound-Pegel
+Tabs pruefen: Übersicht, Scan, Ergebnisse, Korrektur, Kopien
+Scan-Tab: Scan starten und Fortschritt beobachten
+Ergebnisse-Tab: Suche, Filter und Sortierung pruefen
+Korrektur-Tab: Settings anzeigen/speichern pruefen
+Kopien-Tab: vorbereitete Export-Einstellungen pruefen
+```
+
+Erwartung:
+
+```text
+Sound-Pegel ist uebersichtlicher getrennt.
+Keine Backend-/Playback-/Queue-/Discord-Aenderung.
+```
+
+Naechster sinnvoller Schritt:
+
+```text
+STEP272B/STEP273: Auto-Referenz + empfohlener Referenzsound + optionaler Test-Sound.
+```
+
 ## Nach STEP271 - Sound-Pegel eigenes Dashboard-Modul testen
 
 Dashboard-Test:

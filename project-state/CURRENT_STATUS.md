@@ -2,6 +2,35 @@
 
 Stand: 2026-05-21
 
+## STEP272A - Sound-Pegel Unterbereiche/Tabs
+
+Sound-Pegel ist jetzt innerhalb des eigenen Dashboard-Moduls aufgeraeumt.
+
+Aktueller funktionaler Stand:
+
+- `sound_level` bleibt eigenes Dashboard-Modul unter `System -> Sound-Pegel`.
+- Die Seite ist in Unterbereiche/Tabs getrennt:
+  - Übersicht: Status, Kurzstatistik, letzte Scan-Daten
+  - Scan: Scan starten, Limits, Fortschritt
+  - Ergebnisse: Filter, Suche, Tabelle, Vorschau-Spalte
+  - Korrektur: Playback-Korrektur-Settings und Vorschau
+  - Kopien: vorbereitete Normalisierungs-/Export-Einstellungen
+- Backend-API bleibt unveraendert unter `/api/sound/loudness/*`.
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
+app.sqlite
+config/**
+Sound-Dateien
+Sound-Queue
+Discord-Routing
+Alert-Bundle-Lock
+TTS-System
+```
+
 ## STEP271 - Sound-Pegel eigenes Dashboard-Modul
 
 Der Pegel-Scan ist jetzt kein Unter-Tab des Sound-Systems mehr, sondern ein eigenes Dashboard-Modul unter `System -> Sound-Pegel`.

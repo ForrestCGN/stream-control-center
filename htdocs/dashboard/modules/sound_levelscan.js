@@ -19,7 +19,8 @@ window.SoundLevelScanModule = (function(){
     correctionSettings: null,
     normalizationSettings: null,
     correctionPreview: null,
-    lastMessage: ''
+    lastMessage: '',
+    activeTab: 'overview'
   };
 
   const HELP = {
@@ -48,7 +49,8 @@ window.SoundLevelScanModule = (function(){
     correctionSettings: 'Vorbereitete Einstellungen für eine spätere automatische Playback-Korrektur. In diesem Schritt wird noch nichts beim Abspielen verändert.',
     maxBoost: 'Maximale Anhebung. Schützt davor, sehr leise oder verrauschte Dateien zu stark hochzuziehen.',
     maxCut: 'Maximale Absenkung. Schützt vor extremen automatischen Änderungen bei sehr lauten Dateien.',
-    normalizedCopies: 'Geplante spätere Export-Option: normalisierte Kopien in einen separaten Ordner schreiben. Originale bleiben erhalten.'
+    normalizedCopies: 'Geplante spätere Export-Option: normalisierte Kopien in einen separaten Ordner schreiben. Originale bleiben erhalten.',
+    moduleTabs: 'Unterbereiche des Sound-Pegel-Systems. Trennt Scan, Ergebnisse, Korrektur und spätere Export-Funktionen.'
   };
 
   function registerDashboardModule(){
@@ -243,6 +245,13 @@ window.SoundLevelScanModule = (function(){
     if (root.dataset.soundLevelscanBound === '1') return;
     root.dataset.soundLevelscanBound = '1';
     root.addEventListener('click', async (event) => {
+      const tabButton = event.target.closest('[data-sound-level-tab]');
+      if (tabButton) {
+        state.activeTab = tabButton.dataset.soundLevelTab || 'overview';
+        render();
+        return;
+      }
+
       const button = event.target.closest('[data-sound-level-action]');
       if (!button) return;
       const action = button.dataset.soundLevelAction;
@@ -528,7 +537,6 @@ window.SoundLevelScanModule = (function(){
 
   function renderCorrectionSettingsPanel(){
     const corr = state.correctionSettings || {};
-    const norm = state.normalizationSettings || {};
     const previewSummary = state.correctionPreview?.summary || {};
     const correctionActive = corr.enabled === true && ['ready', 'active', 'apply'].includes(String(corr.mode || '').toLowerCase());
     return `
@@ -558,12 +566,20 @@ window.SoundLevelScanModule = (function(){
             <input id="soundLevelCorrectionMaxVolume" type="number" min="1" max="100" step="1" value="${esc(corr.maxPlaybackVolume ?? 80)}">
           </label>
           <label class="sound-field">
+            ${withHelp('Korrektur-Stärke %', 'Wie stark die berechnete Korrektur tatsächlich angewendet wird. 50% = sanfter Safe-Modus.')}
+            <input id="soundLevelCorrectionStrength" type="number" min="0" max="100" step="5" value="${esc(corr.strengthPercent ?? 50)}">
+          </label>
+          <label class="sound-field">
+            ${withHelp('Mindest-Volume %', 'Sicherheitsgrenze, damit kurze SFX nicht komplett weggedrückt werden. Für echte Referenz-Arbeit später vorsichtig nutzen.')}
+            <input id="soundLevelCorrectionMinVolume" type="number" min="0" max="100" step="1" value="${esc(corr.minPlaybackVolume ?? 35)}">
+          </label>
+          <label class="sound-field">
             ${withHelp('Max Boost', HELP.maxBoost)}
-            <input id="soundLevelCorrectionMaxBoost" type="number" min="0" max="18" step="0.5" value="${esc(corr.maxBoostDb ?? 6)}">
+            <input id="soundLevelCorrectionMaxBoost" type="number" min="0" max="18" step="0.5" value="${esc(corr.maxBoostDb ?? 3)}">
           </label>
           <label class="sound-field">
             ${withHelp('Max Cut', HELP.maxCut)}
-            <input id="soundLevelCorrectionMaxCut" type="number" min="0" max="40" step="0.5" value="${esc(corr.maxCutDb ?? 24)}">
+            <input id="soundLevelCorrectionMaxCut" type="number" min="0" max="12" step="0.5" value="${esc(corr.maxCutDb ?? 12)}">
           </label>
           <label class="sound-check" title="Verhindert, dass leise Dateien über das True-Peak-Limit angehoben werden.">
             <input id="soundLevelCorrectionProtectPeak" type="checkbox" ${corr.protectTruePeak === false ? '' : 'checked'}>
@@ -585,7 +601,12 @@ window.SoundLevelScanModule = (function(){
         </div>
         <div class="sound-note">Wenn aktiv, passt <code>sound_system.js</code> nur die Playback-Volume des Sound-Items an. Originaldateien, Queue, Discord-Routing und Alert-Bundles bleiben unverändert.</div>
       </div>
+    `;
+  }
 
+  function renderNormalizationPanel(){
+    const norm = state.normalizationSettings || {};
+    return `
       <div class="sound-levelscan-normalization-planned">
         <div class="sound-levelscan-preview-head">
           <div>
@@ -603,6 +624,9 @@ window.SoundLevelScanModule = (function(){
             <input id="soundLevelNormalizationFolders" type="checkbox" ${norm.createMissingFolders === false ? '' : 'checked'}>
             <span>Unterordner anlegen</span>
           </label>
+        </div>
+        <div class="sound-actions">
+          <button type="button" data-sound-level-action="save-correction" title="Speichert nur die vorbereiteten Export-Einstellungen. Es werden keine Dateien erzeugt.">Export-Einstellungen speichern</button>
         </div>
         <div class="sound-note"><strong>Noch kein Export.</strong> Dieser Bereich bereitet nur die spätere Option vor. Es werden keine Kopien erzeugt und keine Originale überschrieben.</div>
       </div>
@@ -636,67 +660,26 @@ window.SoundLevelScanModule = (function(){
   function renderControls(){
     return `
       <details class="sound-levelscan-guide" open>
-        <summary>Werte kurz erklärt</summary>
+        <summary>Scan-Hinweise</summary>
         <div class="sound-levelscan-guide-grid">
-          <div title="${esc(HELP.lufs)}"><strong>LUFS</strong><span>Wahrgenommene Lautstärke. Näher an 0 = lauter.</span></div>
-          <div title="${esc(HELP.truePeak)}"><strong>True Peak</strong><span>Technische Spitze. Über Limit = Risiko für Clipping.</span></div>
-          <div title="${esc(HELP.gain)}"><strong>Gain</strong><span>Empfohlene Korrektur. Minus = leiser.</span></div>
-          <div title="${esc(HELP.volume)}"><strong>Volume</strong><span>Grobe spätere Playback-Empfehlung.</span></div>
-          <div title="${esc(HELP.readOnly)}"><strong>Read-only</strong><span>Aktuell wird nichts verändert.</span></div>
+          <div title="${esc(HELP.scanLimit)}"><strong>Scan-Limit</strong><span>Maximale Anzahl Dateien, die beim nächsten Lauf gemessen werden.</span></div>
+          <div title="${esc(HELP.progress)}"><strong>Fortschritt</strong><span>Status, aktuelle Datei und Zähler werden live abgefragt.</span></div>
+          <div title="${esc(HELP.ttsExcluded)}"><strong>TTS raus</strong><span>TTS-/Speech-Dateien werden standardmäßig ausgeschlossen.</span></div>
+          <div title="${esc(HELP.readOnly)}"><strong>Read-only</strong><span>Der Scan verändert keine Sound-Dateien.</span></div>
+          <div title="${esc(HELP.truePeak)}"><strong>Messung</strong><span>FFmpeg misst LUFS, True Peak und weitere Werte.</span></div>
         </div>
       </details>
 
-      <div class="sound-levelscan-controls">
+      <div class="sound-levelscan-controls scan-only">
         <label class="sound-field">
           ${withHelp('Scan-Limit', HELP.scanLimit)}
           <input id="soundLevelScanLimit" data-sound-level-control="scanLimit" type="number" min="1" max="5000" value="${esc(state.scanLimit)}" title="${esc(HELP.scanLimit)}">
-        </label>
-        <label class="sound-field">
-          ${withHelp('Ergebnis-Limit', HELP.resultLimit)}
-          <input id="soundLevelResultLimit" data-sound-level-control="resultLimit" type="number" min="1" max="1000" value="${esc(state.resultLimit)}" title="${esc(HELP.resultLimit)}">
-        </label>
-        <label class="sound-field">
-          <span>Sortieren nach</span>
-          <select id="soundLevelOrder" data-sound-level-control="order" title="Sortierfeld für die Tabelle.">
-            <option value="recommended_gain_db" ${state.order === 'recommended_gain_db' ? 'selected' : ''}>Empfohlener Gain</option>
-            <option value="input_i" ${state.order === 'input_i' ? 'selected' : ''}>LUFS</option>
-            <option value="input_tp" ${state.order === 'input_tp' ? 'selected' : ''}>True Peak</option>
-            <option value="recommended_volume" ${state.order === 'recommended_volume' ? 'selected' : ''}>Empfohlenes Volume</option>
-            <option value="relative_path" ${state.order === 'relative_path' ? 'selected' : ''}>Dateiname</option>
-            <option value="scanned_at" ${state.order === 'scanned_at' ? 'selected' : ''}>Scan-Zeit</option>
-          </select>
-        </label>
-        <label class="sound-field">
-          <span>Richtung</span>
-          <select id="soundLevelDir" data-sound-level-control="dir" title="Aufsteigend oder absteigend sortieren.">
-            <option value="desc" ${state.dir === 'desc' ? 'selected' : ''}>Absteigend</option>
-            <option value="asc" ${state.dir === 'asc' ? 'selected' : ''}>Aufsteigend</option>
-          </select>
-        </label>
-        <label class="sound-field">
-          ${withHelp('Status', HELP.status)}
-          <select id="soundLevelStatusFilter" data-sound-level-control="statusFilter" title="${esc(HELP.status)}">
-            <option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle</option>
-            <option value="ok" ${state.statusFilter === 'ok' ? 'selected' : ''}>OK</option>
-            <option value="warning" ${state.statusFilter === 'warning' ? 'selected' : ''}>Warnungen</option>
-            <option value="error" ${state.statusFilter === 'error' ? 'selected' : ''}>Fehler</option>
-          </select>
-        </label>
-        <label class="sound-field sound-levelscan-search">
-          <span>Suche</span>
-          <input id="soundLevelSearch" data-sound-level-control="search" type="text" value="${esc(state.search)}" placeholder="Dateiname oder Ordner..." title="Filtert lokal nach Dateiname oder Ordnerpfad.">
-        </label>
-        <label class="sound-check" title="${esc(HELP.preview)}">
-          <input id="soundLevelShowPreview" data-sound-level-control="showPreview" type="checkbox" ${state.showPreview ? 'checked' : ''}>
-          <span>Korrektur-Vorschau anzeigen</span>
         </label>
       </div>
       <div class="sound-actions">
         <button type="button" class="success" data-sound-level-action="scan" ${state.loading ? 'disabled' : ''} title="Startet einen neuen Read-only-Scan über das Backend.">Scan starten</button>
         <button type="button" data-sound-level-action="reload" ${state.loading ? 'disabled' : ''} title="Lädt Status und Ergebnisse neu.">Neu laden</button>
-        <button type="button" data-sound-level-action="problematic" ${state.loading ? 'disabled' : ''} title="Zeigt Warnungen mit stärkster Absenkung zuerst.">Problematische zuerst</button>
-        <button type="button" data-sound-level-action="loudest" ${state.loading ? 'disabled' : ''} title="Sortiert nach den lautesten gemessenen Dateien.">Lauteste zuerst</button>
-        <button type="button" data-sound-level-action="quietest" ${state.loading ? 'disabled' : ''} title="Sortiert nach den leisesten gemessenen Dateien.">Leiseste zuerst</button>
+        <button type="button" data-sound-level-tab="results" title="Nach dem Scan zur Ergebnistabelle wechseln.">Ergebnisse öffnen</button>
       </div>
     `;
   }
@@ -756,6 +739,133 @@ window.SoundLevelScanModule = (function(){
     `;
   }
 
+  const LEVEL_TABS = [
+    { id: 'overview', label: 'Übersicht', hint: 'Status, Kurzstatistik und letzte Scan-Daten.' },
+    { id: 'scan', label: 'Scan', hint: 'Scan starten, Fortschritt verfolgen und Scan-Parameter setzen.' },
+    { id: 'results', label: 'Ergebnisse', hint: 'Messwerte, Filter, Suche und Tabelle.' },
+    { id: 'correction', label: 'Korrektur', hint: 'Playback-Korrektur und Korrektur-Vorschau konfigurieren.' },
+    { id: 'normalization', label: 'Kopien', hint: 'Späterer Export normalisierter Kopien, aktuell nur vorbereitet.' }
+  ];
+
+  function renderLevelTabs(){
+    return `
+      <div class="sound-level-tabs" role="tablist" aria-label="Sound-Pegel Bereiche">
+        ${LEVEL_TABS.map(tab => `
+          <button type="button" class="sound-level-tab ${state.activeTab === tab.id ? 'active' : ''}" data-sound-level-tab="${esc(tab.id)}" title="${esc(tab.hint)}" aria-selected="${state.activeTab === tab.id ? 'true' : 'false'}">${esc(tab.label)}</button>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderTabContent(){
+    if (state.activeTab === 'scan') {
+      return `
+        ${renderControls()}
+        ${renderProgressPanel()}
+        ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
+      `;
+    }
+    if (state.activeTab === 'results') {
+      return `
+        ${renderResultsControls()}
+        ${state.showPreview ? renderPreviewPanel() : ''}
+        ${renderRows()}
+      `;
+    }
+    if (state.activeTab === 'correction') {
+      return `
+        ${renderCorrectionSettingsPanel()}
+        ${state.showPreview ? renderPreviewPanel() : ''}
+        ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
+      `;
+    }
+    if (state.activeTab === 'normalization') {
+      return `
+        ${renderNormalizationPanel()}
+        <div class="sound-note">Normalisierte Kopien bleiben absichtlich ein separater späterer Schritt. Originaldateien werden nicht überschrieben.</div>
+      `;
+    }
+    return `
+      ${renderSummary()}
+      ${renderProgressPanel()}
+      ${renderOverviewActions()}
+      ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
+    `;
+  }
+
+  function renderOverviewActions(){
+    return `
+      <div class="sound-actions">
+        <button type="button" class="success" data-sound-level-tab="scan" title="Zum Scan-Bereich wechseln.">Scan öffnen</button>
+        <button type="button" data-sound-level-tab="results" title="Zur Ergebnistabelle wechseln.">Ergebnisse öffnen</button>
+        <button type="button" data-sound-level-tab="correction" title="Zu den Korrektur-Einstellungen wechseln.">Korrektur öffnen</button>
+        <button type="button" data-sound-level-action="reload" ${state.loading ? 'disabled' : ''} title="Lädt Status und Ergebnisse neu.">Neu laden</button>
+      </div>
+      <details class="sound-levelscan-guide">
+        <summary>Werte kurz erklärt</summary>
+        <div class="sound-levelscan-guide-grid">
+          <div title="${esc(HELP.lufs)}"><strong>LUFS</strong><span>Wahrgenommene Lautstärke. Näher an 0 = lauter.</span></div>
+          <div title="${esc(HELP.truePeak)}"><strong>True Peak</strong><span>Technische Spitze. Über Limit = Risiko für Clipping.</span></div>
+          <div title="${esc(HELP.gain)}"><strong>Gain</strong><span>Empfohlene Korrektur. Minus = leiser.</span></div>
+          <div title="${esc(HELP.volume)}"><strong>Volume</strong><span>Grobe spätere Playback-Empfehlung.</span></div>
+          <div title="${esc(HELP.readOnly)}"><strong>Read-only</strong><span>Scans ändern keine Dateien.</span></div>
+        </div>
+      </details>
+    `;
+  }
+
+  function renderResultsControls(){
+    return `
+      <div class="sound-levelscan-controls compact">
+        <label class="sound-field">
+          ${withHelp('Ergebnis-Limit', HELP.resultLimit)}
+          <input id="soundLevelResultLimit" data-sound-level-control="resultLimit" type="number" min="1" max="1000" value="${esc(state.resultLimit)}" title="${esc(HELP.resultLimit)}">
+        </label>
+        <label class="sound-field">
+          <span>Sortieren nach</span>
+          <select id="soundLevelOrder" data-sound-level-control="order" title="Sortierfeld für die Tabelle.">
+            <option value="recommended_gain_db" ${state.order === 'recommended_gain_db' ? 'selected' : ''}>Empfohlener Gain</option>
+            <option value="input_i" ${state.order === 'input_i' ? 'selected' : ''}>LUFS</option>
+            <option value="input_tp" ${state.order === 'input_tp' ? 'selected' : ''}>True Peak</option>
+            <option value="recommended_volume" ${state.order === 'recommended_volume' ? 'selected' : ''}>Empfohlenes Volume</option>
+            <option value="relative_path" ${state.order === 'relative_path' ? 'selected' : ''}>Dateiname</option>
+            <option value="scanned_at" ${state.order === 'scanned_at' ? 'selected' : ''}>Scan-Zeit</option>
+          </select>
+        </label>
+        <label class="sound-field">
+          <span>Richtung</span>
+          <select id="soundLevelDir" data-sound-level-control="dir" title="Aufsteigend oder absteigend sortieren.">
+            <option value="desc" ${state.dir === 'desc' ? 'selected' : ''}>Absteigend</option>
+            <option value="asc" ${state.dir === 'asc' ? 'selected' : ''}>Aufsteigend</option>
+          </select>
+        </label>
+        <label class="sound-field">
+          ${withHelp('Status', HELP.status)}
+          <select id="soundLevelStatusFilter" data-sound-level-control="statusFilter" title="${esc(HELP.status)}">
+            <option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle</option>
+            <option value="ok" ${state.statusFilter === 'ok' ? 'selected' : ''}>OK</option>
+            <option value="warning" ${state.statusFilter === 'warning' ? 'selected' : ''}>Warnungen</option>
+            <option value="error" ${state.statusFilter === 'error' ? 'selected' : ''}>Fehler</option>
+          </select>
+        </label>
+        <label class="sound-field sound-levelscan-search">
+          <span>Suche</span>
+          <input id="soundLevelSearch" data-sound-level-control="search" type="text" value="${esc(state.search)}" placeholder="Dateiname oder Ordner..." title="Filtert lokal nach Dateiname oder Ordnerpfad.">
+        </label>
+        <label class="sound-check" title="${esc(HELP.preview)}">
+          <input id="soundLevelShowPreview" data-sound-level-control="showPreview" type="checkbox" ${state.showPreview ? 'checked' : ''}>
+          <span>Korrektur-Vorschau anzeigen</span>
+        </label>
+      </div>
+      <div class="sound-actions">
+        <button type="button" data-sound-level-action="reload" ${state.loading ? 'disabled' : ''} title="Lädt Status und Ergebnisse neu.">Neu laden</button>
+        <button type="button" data-sound-level-action="problematic" ${state.loading ? 'disabled' : ''} title="Zeigt Warnungen mit stärkster Absenkung zuerst.">Problematische zuerst</button>
+        <button type="button" data-sound-level-action="loudest" ${state.loading ? 'disabled' : ''} title="Sortiert nach den lautesten gemessenen Dateien.">Lauteste zuerst</button>
+        <button type="button" data-sound-level-action="quietest" ${state.loading ? 'disabled' : ''} title="Sortiert nach den leisesten gemessenen Dateien.">Leiseste zuerst</button>
+      </div>
+    `;
+  }
+
   function render(){
     const card = document.getElementById('soundLevelScanCard');
     if (!card) return;
@@ -765,17 +875,14 @@ window.SoundLevelScanModule = (function(){
           <h2>Sound-Pegel</h2>
           <div class="sound-note">Eigenes System für Pegel-Scan, Referenzplanung, Korrektur-Vorschau und spätere normalisierte Kopien. TTS-/Speech-Dateien werden standardmäßig ausgelassen.</div>
         </div>
-        <span class="sound-pill ${state.loading ? '' : 'success'}" title="${esc(HELP.readOnly)}">${state.loading ? 'Lädt...' : 'Read-only'}</span>
-        <span class="sound-pill" title="${esc(HELP.ttsExcluded)}">TTS raus</span>
+        <div class="sound-levelscan-head-pills">
+          <span class="sound-pill ${state.loading ? '' : 'success'}" title="${esc(HELP.readOnly)}">${state.loading ? 'Lädt...' : 'Read-only'}</span>
+          <span class="sound-pill" title="${esc(HELP.ttsExcluded)}">TTS raus</span>
+        </div>
       </div>
-      ${renderSummary()}
-      ${renderControls()}
-      ${renderProgressPanel()}
-      ${renderCorrectionSettingsPanel()}
-      ${state.showPreview ? renderPreviewPanel() : ''}
-      ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
-      ${renderRows()}
-      <div class="sound-note">Hinweis: <strong>True Peak über Limit</strong>, <strong>viel zu laut</strong> und <strong>Volume-Cap erreicht</strong> sind Kandidaten für spätere Playback-Korrektur oder normalisierte Kopien. TTS-/Speech-Dateien sind standardmäßig ausgeschlossen. Dieser Schritt zeigt nur Daten an.</div>
+      ${renderLevelTabs()}
+      ${renderTabContent()}
+      <div class="sound-note">Hinweis: <strong>True Peak über Limit</strong>, <strong>viel zu laut</strong> und <strong>Volume-Cap erreicht</strong> sind Kandidaten für spätere Playback-Korrektur oder normalisierte Kopien. TTS-/Speech-Dateien sind standardmäßig ausgeschlossen.</div>
     `;
   }
 

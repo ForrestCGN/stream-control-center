@@ -2,6 +2,16 @@
 
 Stand: 2026-05-21
 
+## STEP272A - Sound-Pegel Dashboard intern aufgeteilt
+
+Aktueller Zusatzstand:
+
+- Das eigene Dashboard-Modul `sound_level` ist intern in Tabs aufgeteilt.
+- Bereiche: Übersicht, Scan, Ergebnisse, Korrektur, Kopien.
+- Die bisherige Ein-Seiten-Ansicht wurde dadurch uebersichtlicher.
+- Backend bleibt unveraendert unter `/api/sound/loudness/*`.
+- Sound-System Playback, Queue, Discord-Routing, Alert-Bundle-Lock, TTS und Sound-Dateien bleiben unveraendert.
+
 ## STEP271 - Sound-Pegel als eigenes Dashboard-Modul
 
 Aktueller Zusatzstand:

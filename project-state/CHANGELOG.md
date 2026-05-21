@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-05-21 - STEP272A Sound-Pegel Unterbereiche/Tabs
+
+- `htdocs/dashboard/modules/sound_levelscan.js` um interne Unterbereiche erweitert.
+- Sound-Pegel ist weiterhin eigenes Dashboard-Modul, aber jetzt in Tabs aufgeteilt:
+  - Übersicht
+  - Scan
+  - Ergebnisse
+  - Korrektur
+  - Kopien
+- `htdocs/dashboard/modules/sound_levelscan.css` um Tab-/Layout-Stile erweitert.
+- Backend, Sound-System-Playback, Queue, Discord-Routing, Alert-Bundle-Lock, TTS, `config/**` und Sound-Dateien bleiben unveraendert.
+
 ## 2026-05-21 - STEP271 Sound-Pegel als eigenes Dashboard-Modul
 
 - `htdocs/dashboard/index.html` um eigenes Panel `soundLevelModule` erweitert.
