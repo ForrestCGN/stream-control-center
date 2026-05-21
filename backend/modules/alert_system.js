@@ -1396,8 +1396,8 @@ function enqueueAlertWithRule(payload, rule, broadcastWS, options = {}) {
     now
   });
   state.queue.push(event);
-  processQueue(broadcastWS);
-  return { ok: true, queued: true, eventUid, replayOf: options.replayOf || null, queueLength: state.queue.length, current: state.current ? state.current.eventUid : null, matchedRule: rule ? rule.id : null, warning: rule ? '' : 'no_matching_rule' };
+  scheduleAlertBundlePrequeue(event, broadcastWS);
+  return { ok: true, queued: true, eventUid, replayOf: options.replayOf || null, queueLength: state.queue.length, current: state.current ? state.current.eventUid : null, matchedRule: rule ? rule.id : null, warning: rule ? '' : 'no_matching_rule', bundlePrequeue: true };
 }
 
 function replayAlertEvent(eventUid, broadcastWS) {
@@ -1911,43 +1911,437 @@ async function processQueue(broadcastWS) {
   if (state.processing || state.current) return;
   if (state.config.enabled === false || state.config.queueEnabled === false) return;
   if (!state.queue.length) return;
+
+  const nextQueued = state.queue[0];
+  if (nextQueued && nextQueued.alertBundlePrequeue && nextQueued.alertBundlePrequeue.pending) {
+    return;
+  }
+
   state.processing = true;
   const event = state.queue.shift();
-  state.current = event;
+
+  try {
+    if (event.rule && event.rule.id) event.rule = getRuleById(event.rule.id) || event.rule;
+    await enrichEventAvatar(event);
+    event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
+
+    // STEP265B_ALERT_SOUND_BUNDLE_USAGE
+    // Der Alert wird nicht mehr als Einzel-Sound + spätere Einzel-TTS abgespielt.
+    // Stattdessen nutzt das Alert-System das native Sound-System-Bundle.
+    event.status = 'waiting_for_sound';
+    event.waiting_started_at = nowIso();
+    try {
+      database.run(`UPDATE alert_events SET status='waiting_for_sound' WHERE event_uid=:eventUid`, {
+        eventUid: event.eventUid
+      });
+    } catch (_) {}
+
+    let ttsResult = (event.alertTts && event.alertTts.attempted) ? event.alertTts : null;
+    let soundResult = (event.soundSystem && event.soundSystem.attempted) ? event.soundSystem : null;
+
+    if (!soundResult) {
+      const bundleResult = await prepareAndSendAlertSoundBundle(event, { reason: 'fallback_process_queue_missing_prequeue' });
+      soundResult = bundleResult && bundleResult.soundResult ? bundleResult.soundResult : null;
+      ttsResult = (event.alertTts && event.alertTts.attempted) ? event.alertTts : ttsResult;
+    }
+
+    if (soundResult && soundResult.attempted) {
+      event.soundSystem = soundResult;
+      persistEventRuntimePayload(event);
+
+      if (!soundResult.ok && state.config.liveAlert && state.config.liveAlert.fallbackShowOnSoundError === false) {
+        const finishedAt = nowIso();
+        event.status = 'finished';
+        event.finished_at = finishedAt;
+        event.finishReason = 'sound_system_failed';
+        try {
+          database.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt WHERE event_uid=:eventUid`, {
+            finishedAt,
+            eventUid: event.eventUid
+          });
+        } catch (_) {}
+        state.history.unshift({ ...event });
+        state.history = state.history.slice(0, 100);
+        state.processing = false;
+        setTimeout(() => processQueue(broadcastWS), Math.max(0, Number(state.config.gapBetweenAlertsMs || 0)));
+        return;
+      }
+    }
+
+    if (ttsResult && ttsResult.attempted) {
+      event.alertTts = ttsResult;
+      extendAlertDurationForTts(event, soundResult, ttsResult);
+      persistEventRuntimePayload(event);
+    }
+
+    const syncResult = await waitForSoundSystemItemStarted(event, soundResult);
+    if (syncResult && syncResult.persist) {
+      persistEventRuntimePayload(event);
+    }
+
+    // Erst JETZT ist der Alert wirklich aktiv/spielend.
+    state.current = event;
+    event.status = 'playing';
+    event.started_at = nowIso();
+    try {
+      database.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, {
+        startedAt: event.started_at,
+        eventUid: event.eventUid
+      });
+    } catch (_) {}
+
+    persistEventRuntimePayload(event);
+
+    const overlayAlert = buildOverlayAlert(event);
+    sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
+    dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
+
+    const duration = event.effectiveDurationMs;
+    const fallback = Math.max(duration + Number(state.config.fallbackFinishMs || 12000), duration + 1000);
+    clearTimeout(state.finishTimer);
+    state.finishTimer = setTimeout(() => finishCurrent('fallback_timeout', broadcastWS), fallback);
+    state.processing = false;
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    console.warn('[alert_system] processQueue failed:', msg);
+
+    try {
+      event.status = 'failed';
+      event.finished_at = nowIso();
+      event.finishReason = 'process_queue_failed';
+      event.raw = { ...(event.raw || {}), processQueueError: msg };
+      database.run(`UPDATE alert_events SET status='failed', finished_at=:finishedAt, payload_json=:payloadJson WHERE event_uid=:eventUid`, {
+        finishedAt: event.finished_at,
+        payloadJson: JSON.stringify(event.raw || {}),
+        eventUid: event.eventUid
+      });
+    } catch (_) {}
+
+    state.history.unshift({ ...event });
+    state.history = state.history.slice(0, 100);
+    state.current = null;
+    clearTimeout(state.finishTimer);
+    state.finishTimer = null;
+    state.processing = false;
+    setTimeout(() => processQueue(broadcastWS), Math.max(0, Number(state.config.gapBetweenAlertsMs || 0)));
+  }
+}
+
+// STEP265B_ALERT_SOUND_BUNDLE_USAGE
+function soundSystemBundleUrlFromPlayUrl(playUrl) {
+  const raw = cleanText(playUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl);
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    url.pathname = url.pathname.replace(/\/play\/?$/i, '/bundle');
+    url.search = '';
+    return url.toString();
+  } catch (_) {
+    return raw.replace(/\/play(\?.*)?$/i, '/bundle');
+  }
+}
+
+function alertBaseSoundPriority(event) {
+  const rule = event && event.rule ? event.rule : {};
+  const override = event && event.soundSystemPriorityOverride !== undefined ? event.soundSystemPriorityOverride : null;
+  return clamp(toInt(override, toInt(rule.sound_priority, toInt(rule.priority, 80))), 0, 1000);
+}
+
+function buildAlertMainBundleItem(event, bundlePriority) {
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  const rule = event && event.rule ? event.rule : {};
+  const publicUrl = cleanText(rule.sound_url || rule.soundUrl || '');
+  if (!publicUrl) return null;
+
+  const file = soundSystemFileFromPublicUrl(publicUrl);
+  if (!file) return null;
+
+  return {
+    role: 'main',
+    file,
+    label: cleanText(rule.sound_label || rule.label || buildDefaultTitle(event) || 'Alert'),
+    category: cleanKey(rule.sound_category || liveCfg.soundSystemCategory || 'alert') || 'alert',
+    outputTarget: validateSoundOutputTarget(rule.sound_output_target || liveCfg.soundSystemOutputTarget || 'device', 'device'),
+    priority: bundlePriority,
+    priorityOffset: 0,
+    source: cleanKey(liveCfg.soundSystemSource || 'alert_system') || 'alert_system',
+    requestedBy: cleanText(event.user_display || event.user_login || ''),
+    volume: rule.sound_volume !== null && rule.sound_volume !== undefined && String(rule.sound_volume).trim() !== ''
+      ? clamp(toInt(rule.sound_volume, 85), 0, 100)
+      : undefined,
+    meta: {
+      alertEventUid: event.eventUid,
+      alertSource: event.source,
+      alertType: event.type_key,
+      ruleId: rule && rule.id ? rule.id : null,
+      bundleManagedBy: 'alert_system'
+    },
+    visual: {
+      module: 'alert_system',
+      type: 'alert',
+      alertEventUid: event.eventUid,
+      alertSource: event.source,
+      alertType: event.type_key,
+      user: event.user_display || event.user_login || '',
+      showOverlay: true
+    }
+  };
+}
+
+function buildAlertTtsBundleItem(event, ttsResult, bundlePriority) {
+  if (!event || !ttsResult || !ttsResult.attempted || !ttsResult.ok || !ttsResult.soundSystemFile) return null;
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  return {
+    role: 'tts',
+    file: ttsResult.soundSystemFile,
+    label: `Alert TTS: ${event.user_display || event.user_login || 'Alert'}`,
+    category: cleanKey(liveCfg.ttsSoundCategory || DEFAULT_CONFIG.liveAlert.ttsSoundCategory) || 'tts',
+    outputTarget: validateSoundOutputTarget(liveCfg.ttsOutputTarget || liveCfg.soundSystemOutputTarget || DEFAULT_CONFIG.liveAlert.ttsOutputTarget, DEFAULT_CONFIG.liveAlert.ttsOutputTarget),
+    priority: Math.max(0, bundlePriority - 1),
+    priorityOffset: -1,
+    source: cleanKey(liveCfg.ttsSoundSource || DEFAULT_CONFIG.liveAlert.ttsSoundSource) || 'alert_tts',
+    requestedBy: cleanText(event.user_display || event.user_login || ''),
+    volume: clamp(toInt(liveCfg.ttsSoundVolume, DEFAULT_CONFIG.liveAlert.ttsSoundVolume), 0, 100),
+    durationMs: Math.max(0, toInt(ttsResult.durationMs, 0)),
+    meta: {
+      alertEventUid: event.eventUid,
+      alertSource: event.source,
+      alertType: event.type_key,
+      ruleId: event.rule && event.rule.id ? event.rule.id : null,
+      tts: true,
+      alertTts: true,
+      timing: ttsResult.payload && ttsResult.payload.timing ? ttsResult.payload.timing : 'after_alert',
+      bundleManagedBy: 'alert_system'
+    },
+    visual: {
+      module: 'alert_system',
+      type: 'alert_tts',
+      alertEventUid: event.eventUid,
+      alertSource: event.source,
+      alertType: event.type_key,
+      user: event.user_display || event.user_login || '',
+      showOverlay: false
+    }
+  };
+}
+
+function findBundleResultByRole(data, role) {
+  const wanted = cleanKey(role || '');
+  const results = Array.isArray(data && data.results) ? data.results : [];
+  for (const result of results) {
+    const item = result && result.item ? result.item : null;
+    const itemRole = cleanKey((item && item.bundle && item.bundle.bundleRole) || (item && item.meta && item.meta.bundleRole) || '');
+    if (itemRole === wanted) return result;
+  }
+  return null;
+}
+
+function bundlePlayResultFromEntry(entry) {
+  if (!entry) return null;
+  return {
+    started: !!entry.started,
+    queued: !!entry.queued,
+    dropped: !!entry.dropped,
+    parallel: !!entry.parallel,
+    queuePosition: Number(entry.queuePosition || 0),
+    reason: entry.reason || '',
+    retryAfterMs: Number(entry.retryAfterMs || 0)
+  };
+}
+
+async function postAlertSoundBundle(event, ttsResult, options = {}) {
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  if (!liveCfg || liveCfg.soundSystemEnabled !== true) return { attempted: false, reason: 'disabled' };
+
+  const playUrl = cleanText(liveCfg.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl);
+  const bundleUrl = soundSystemBundleUrlFromPlayUrl(playUrl);
+  if (!bundleUrl) return { attempted: true, ok: false, reason: 'sound_system_bundle_url_missing' };
+  if (typeof fetch !== 'function') return { attempted: true, ok: false, reason: 'fetch_unavailable' };
+
+  const bundlePriority = alertBaseSoundPriority(event);
+  const items = [];
+  const mainItem = buildAlertMainBundleItem(event, bundlePriority);
+  if (mainItem) items.push(mainItem);
+
+  const ttsItem = buildAlertTtsBundleItem(event, ttsResult, bundlePriority);
+  if (ttsItem) items.push(ttsItem);
+
+  if (!items.length) {
+    return {
+      attempted: false,
+      reason: 'no_alert_sound_or_tts',
+      ttsPrepared: !!(ttsResult && ttsResult.ok)
+    };
+  }
+
+  const bundleId = `alert_${cleanText(event.eventUid || makeEventUid()).replace(/[^a-zA-Z0-9_.:-]/g, '_')}`;
+  const body = {
+    bundleId,
+    bundleType: 'alert',
+    locked: true,
+    priority: bundlePriority,
+    source: cleanKey(liveCfg.soundSystemSource || 'alert_system') || 'alert_system',
+    requestedBy: cleanText(event.user_display || event.user_login || ''),
+    meta: {
+      alertEventUid: event.eventUid,
+      alertSource: event.source,
+      alertType: event.type_key,
+      ruleId: event.rule && event.rule.id ? event.rule.id : null,
+      reason: options.reason || ''
+    },
+    items
+  };
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), Math.max(1000, toInt(liveCfg.fallbackShowAfterMs, 15000))) : null;
+
+  try {
+    const res = await fetch(bundleUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller ? controller.signal : undefined
+    });
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch (_) { data = { raw: text }; }
+
+    const ok = !!(res.ok && data && data.ok !== false);
+    const mainEntry = findBundleResultByRole(data, 'main');
+    const ttsEntry = findBundleResultByRole(data, 'tts');
+    const primaryEntry = mainEntry || ttsEntry || (Array.isArray(data && data.results) ? data.results[0] : null);
+    const primaryItem = primaryEntry && primaryEntry.item ? primaryEntry.item : null;
+
+    if (ttsResult && ttsResult.attempted && ttsItem) {
+      ttsResult.playback = {
+        attempted: true,
+        ok: !!(ok && ttsEntry && !ttsEntry.dropped),
+        status: res.status,
+        url: bundleUrl,
+        file: ttsResult.soundSystemFile,
+        bundled: true,
+        bundleId,
+        result: bundlePlayResultFromEntry(ttsEntry),
+        item: ttsEntry && ttsEntry.item ? ttsEntry.item : null,
+        error: ok ? '' : (data && (data.error || data.message || data.reason) ? String(data.error || data.message || data.reason) : `sound_system_bundle_http_${res.status}`)
+      };
+    }
+
+    return {
+      attempted: true,
+      ok,
+      status: res.status,
+      url: bundleUrl,
+      file: primaryItem && primaryItem.file ? primaryItem.file : (mainItem && mainItem.file) || (ttsItem && ttsItem.file) || '',
+      bundled: true,
+      bundleId,
+      bundle: data && data.bundle ? data.bundle : null,
+      results: Array.isArray(data && data.results) ? data.results : [],
+      result: bundlePlayResultFromEntry(primaryEntry),
+      item: primaryItem,
+      mainItem: mainEntry && mainEntry.item ? mainEntry.item : null,
+      ttsItem: ttsEntry && ttsEntry.item ? ttsEntry.item : null,
+      error: ok ? '' : (data && (data.error || data.message || data.reason) ? String(data.error || data.message || data.reason) : `sound_system_bundle_http_${res.status}`)
+    };
+  } catch (err) {
+    return {
+      attempted: true,
+      ok: false,
+      url: bundleUrl,
+      bundled: true,
+      error: err && err.message ? err.message : String(err)
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function prepareAndSendAlertSoundBundle(event, options = {}) {
+  if (!event) return { ok: false, reason: 'missing_event' };
+  if (event.alertBundlePrequeue && event.alertBundlePrequeue.pending) {
+    return { ok: false, reason: 'bundle_prequeue_still_pending' };
+  }
+
   if (event.rule && event.rule.id) event.rule = getRuleById(event.rule.id) || event.rule;
   await enrichEventAvatar(event);
-  event.effectiveDurationMs = resolveAlertDurationMs(event.rule);
-  event.status = 'playing';
-  event.started_at = nowIso();
-  database.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, { startedAt: event.started_at, eventUid: event.eventUid });
+  event.effectiveDurationMs = event.effectiveDurationMs || resolveAlertDurationMs(event.rule);
 
-  const soundResult = await playLiveAlertSound(event);
-  if (soundResult && soundResult.attempted) {
-    event.soundSystem = soundResult;
-    persistEventRuntimePayload(event);
-    if (!soundResult.ok && state.config.liveAlert && state.config.liveAlert.fallbackShowOnSoundError === false) {
-      finishCurrent('sound_system_failed', broadcastWS);
-      state.processing = false;
-      return;
+  let ttsResult = (event.alertTts && event.alertTts.attempted) ? event.alertTts : null;
+  if (!ttsResult) {
+    ttsResult = await prepareAlertTts(event);
+    if (ttsResult && ttsResult.attempted) {
+      event.alertTts = ttsResult;
+      persistEventRuntimePayload(event);
     }
   }
 
-  const ttsResult = await prepareAlertTts(event);
-  if (ttsResult && ttsResult.attempted) {
-    event.alertTts = ttsResult;
-    extendAlertDurationForTts(event, soundResult, ttsResult);
-    persistEventRuntimePayload(event);
+  const soundResult = await postAlertSoundBundle(event, ttsResult, options);
+  if (soundResult && soundResult.attempted) {
+    event.soundSystem = soundResult;
   }
 
-  const overlayAlert = buildOverlayAlert(event);
-  sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
-  dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
-  dispatchPreparedAlertTts(event, ttsResult, soundResult).catch(err => console.warn('[alert_system] alert tts dispatch failed:', err && err.message ? err.message : err));
-  const duration = event.effectiveDurationMs;
-  const fallback = Math.max(duration + Number(state.config.fallbackFinishMs || 12000), duration + 1000);
-  clearTimeout(state.finishTimer);
-  state.finishTimer = setTimeout(() => finishCurrent('fallback_timeout', broadcastWS), fallback);
-  state.processing = false;
+  if (event.alertTts && event.alertTts.attempted) {
+    extendAlertDurationForTts(event, soundResult, event.alertTts);
+  }
+
+  persistEventRuntimePayload(event);
+  return { ok: !!(soundResult && soundResult.ok), soundResult, ttsResult: event.alertTts || null };
+}
+
+function scheduleAlertBundlePrequeue(event, broadcastWS) {
+  if (!event) return;
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  if (liveCfg.soundSystemEnabled !== true) {
+    processQueue(broadcastWS);
+    return;
+  }
+
+  // STEP265D_PARALLEL_IMMEDIATE_ALERT_BUNDLE_PREQUEUE
+  // Wichtig: Keine globale Promise-Kette mehr.
+  // Jeder eingehende Alert startet seine TTS-/Bundle-Vorbereitung sofort und parallel.
+  // Das Sound-System bekommt das Bundle damit so früh wie möglich und kann zentral sortieren.
+  if (event.alertBundlePrequeue && event.alertBundlePrequeue.pending) {
+    processQueue(broadcastWS);
+    return;
+  }
+  if (event.soundSystem && event.soundSystem.attempted) {
+    processQueue(broadcastWS);
+    return;
+  }
+
+  event.alertBundlePrequeue = {
+    pending: true,
+    startedAt: nowIso(),
+    reason: 'enqueue_immediate_parallel'
+  };
+  persistEventRuntimePayload(event);
+
+  Promise.resolve()
+    .then(async () => {
+      const result = await prepareAndSendAlertSoundBundle(event, { reason: 'enqueue_immediate_parallel' });
+      event.alertBundlePrequeue = {
+        pending: false,
+        finishedAt: nowIso(),
+        ok: !!(result && result.ok),
+        reason: result && result.soundResult ? result.soundResult.error || result.soundResult.reason || '' : '',
+        parallelPrequeue: true
+      };
+    })
+    .catch(err => {
+      event.alertBundlePrequeue = {
+        pending: false,
+        finishedAt: nowIso(),
+        ok: false,
+        error: err && err.message ? err.message : String(err),
+        parallelPrequeue: true
+      };
+    })
+    .finally(() => {
+      persistEventRuntimePayload(event);
+      processQueue(broadcastWS);
+    });
+
+  processQueue(broadcastWS);
 }
 
 async function playLiveAlertSound(event) {
@@ -2032,6 +2426,200 @@ function persistEventRuntimePayload(event) {
       eventUid: event.eventUid
     });
   } catch (_) {}
+}
+
+// STEP264A_ALERT_SOUND_QUEUE_SYNC
+// HÃ¤lt Alert-Anzeige und Alert-Sound synchron, wenn der Sound im Sound-System erst in der Queue landet.
+function soundSystemPlayResult(soundResult) {
+  return soundResult && soundResult.result && typeof soundResult.result === 'object' ? soundResult.result : {};
+}
+
+function soundSystemItem(soundResult) {
+  return soundResult && soundResult.item && typeof soundResult.item === 'object' ? soundResult.item : null;
+}
+
+function soundSystemRequestId(soundResult) {
+  const item = soundSystemItem(soundResult);
+  return cleanText((item && item.requestId) || soundResult?.requestId || '');
+}
+
+function soundSystemStatusUrlFromPlayUrl(playUrl) {
+  const raw = cleanText(playUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl);
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    url.pathname = url.pathname.replace(/\/play\/?$/i, '/status');
+    url.search = '';
+    return url.toString();
+  } catch (_) {
+    return raw.replace(/\/play(\?.*)?$/i, '/status');
+  }
+}
+
+function applySoundSystemDurationToAlert(event, item, reason = 'sound_system_item') {
+  if (!event || !item) return { applied: false, reason: 'missing_event_or_item' };
+
+  const soundDurationMs = Number(item.durationMs || 0);
+  if (!Number.isFinite(soundDurationMs) || soundDurationMs <= 0) {
+    return { applied: false, reason: 'missing_sound_duration' };
+  }
+
+  const outroMs = Math.max(0, Number(item.outroMs || 0));
+  const paddingMs = Math.max(0, Number(state.config.soundDurationPaddingMs || 1200));
+  const minMs = Number(state.config.minAutoDurationMs || 4000);
+  const maxMs = Number(state.config.maxAutoDurationMs || 60000);
+  const requiredMs = clamp(soundDurationMs + outroMs + paddingMs, minMs, maxMs);
+  const beforeMs = Number(event.effectiveDurationMs || 0);
+
+  if (requiredMs > beforeMs) {
+    event.effectiveDurationMs = requiredMs;
+  }
+
+  return {
+    applied: requiredMs > beforeMs,
+    reason,
+    beforeMs,
+    afterMs: Number(event.effectiveDurationMs || beforeMs),
+    soundDurationMs,
+    outroMs,
+    paddingMs,
+    requiredMs,
+    requestId: cleanText(item.requestId || '')
+  };
+}
+
+async function fetchSoundSystemStatus(statusUrl) {
+  if (!statusUrl || typeof fetch !== 'function') return null;
+  const response = await fetch(statusUrl, { method: 'GET' });
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    return null;
+  }
+}
+
+function findSoundSystemActiveItem(status, requestId) {
+  if (!status || !requestId) return null;
+  if (status.current && status.current.requestId === requestId) return status.current;
+  const parallel = Array.isArray(status.parallel) ? status.parallel : [];
+  return parallel.find(item => item && item.requestId === requestId) || null;
+}
+
+async function waitForSoundSystemItemStarted(event, soundResult) {
+  if (!soundResult || soundResult.attempted !== true || soundResult.ok !== true) {
+    return { attempted: false, persist: false, reason: 'sound_not_attempted_or_failed' };
+  }
+
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  const result = soundSystemPlayResult(soundResult);
+  const initialItem = soundSystemItem(soundResult);
+  const requestId = soundSystemRequestId(soundResult);
+
+  const initialDuration = applySoundSystemDurationToAlert(event, initialItem, 'play_response');
+  soundResult.durationSync = initialDuration;
+
+  if (!requestId) {
+    soundResult.waitForStart = { attempted: false, reason: 'missing_request_id' };
+    return { attempted: false, persist: true, reason: 'missing_request_id' };
+  }
+
+  if (result.started === true || result.parallel === true) {
+    soundResult.waitForStart = {
+      attempted: true,
+      waited: false,
+      started: true,
+      reason: 'already_started',
+      requestId
+    };
+    return { attempted: true, persist: true, started: true, reason: 'already_started', requestId };
+  }
+
+  if (result.queued !== true) {
+    soundResult.waitForStart = {
+      attempted: false,
+      waited: false,
+      started: false,
+      reason: 'not_queued',
+      requestId
+    };
+    return { attempted: false, persist: true, reason: 'not_queued', requestId };
+  }
+
+  if (liveCfg.waitForSoundItemStarted === false) {
+    soundResult.waitForStart = {
+      attempted: false,
+      waited: false,
+      started: false,
+      reason: 'wait_disabled',
+      requestId
+    };
+    return { attempted: false, persist: true, reason: 'wait_disabled', requestId };
+  }
+
+  // STEP264B_ALERT_SOUND_QUEUE_LONG_WAIT
+  // Queue-Wartezeit ist bewusst getrennt vom Fehler-Fallback.
+  // fallbackShowAfterMs bleibt fÃ¼r echte Sound-System-Fehler; queued Sounds dÃ¼rfen deutlich lÃ¤nger warten.
+  const timeoutMs = Math.max(
+    1000,
+    toInt(
+      liveCfg.soundStartWaitTimeoutMs,
+      Math.max(300000, toInt(liveCfg.fallbackShowAfterMs, DEFAULT_CONFIG.liveAlert.fallbackShowAfterMs))
+    )
+  );
+  const pollMs = clamp(toInt(liveCfg.soundStartPollIntervalMs, 150), 100, 1000);
+  const statusUrl = soundSystemStatusUrlFromPlayUrl(liveCfg.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl);
+  const startedWaitingAt = Date.now();
+
+  while ((Date.now() - startedWaitingAt) < timeoutMs) {
+    await sleepMs(pollMs);
+
+    let status = null;
+    try {
+      status = await fetchSoundSystemStatus(statusUrl);
+    } catch (err) {
+      soundResult.waitForStart = {
+        attempted: true,
+        waited: true,
+        started: false,
+        reason: 'status_fetch_failed',
+        requestId,
+        statusUrl,
+        error: err && err.message ? err.message : String(err),
+        waitedMs: Date.now() - startedWaitingAt
+      };
+      return { attempted: true, persist: true, started: false, reason: 'status_fetch_failed', requestId };
+    }
+
+    const activeItem = findSoundSystemActiveItem(status, requestId);
+    if (activeItem) {
+      soundResult.item = activeItem;
+      soundResult.waitForStart = {
+        attempted: true,
+        waited: true,
+        started: true,
+        reason: 'matched_active_item',
+        requestId,
+        waitedMs: Date.now() - startedWaitingAt,
+        statusUrl
+      };
+      soundResult.durationSync = applySoundSystemDurationToAlert(event, activeItem, 'matched_active_item');
+      return { attempted: true, persist: true, started: true, reason: 'matched_active_item', requestId };
+    }
+  }
+
+  soundResult.waitForStart = {
+    attempted: true,
+    waited: true,
+    started: false,
+    timeout: true,
+    reason: 'timeout',
+    requestId,
+    waitedMs: Date.now() - startedWaitingAt,
+    timeoutMs,
+    statusUrl
+  };
+  return { attempted: true, persist: true, started: false, timeout: true, reason: 'timeout', requestId };
 }
 
 async function prepareAlertTts(event) {
@@ -2149,20 +2737,48 @@ function extendAlertDurationForTts(event, soundResult, ttsResult) {
 
 async function dispatchPreparedAlertTts(event, ttsResult, soundResult) {
   if (!event || !ttsResult || !ttsResult.attempted || !ttsResult.ok || !ttsResult.soundSystemFile) return;
+
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  const timing = ttsResult.payload && ttsResult.payload.timing ? ttsResult.payload.timing : 'after_alert';
   const delayMs = Math.max(0, toInt(ttsResult.playAfterMs, getAlertTtsDelayMs(event, soundResult, ttsResult)));
-  if (delayMs > 0) await sleepMs(delayMs);
+
+  // STEP264D_ALERT_TTS_QUEUE_SYNC_FIX
+  // Bei after_alert muss TTS frueh in die Sound-System-Queue.
+  // Sonst startet nach dem Alert-Sound bereits das naechste VIP-/SoundAlert-Item,
+  // bevor TTS ueberhaupt queued wurde.
+  const queueEarlyAfterAlert = timing === 'after_alert' && liveCfg.ttsQueueEarlyAfterAlert !== false;
+
+  if (!queueEarlyAfterAlert && delayMs > 0) {
+    await sleepMs(delayMs);
+  }
+
   if (!state.current || state.current.eventUid !== event.eventUid) {
-    ttsResult.playback = { attempted: false, skipped: true, reason: 'alert_not_current' };
+    ttsResult.playback = { attempted: false, skipped: true, reason: 'alert_not_current', queueEarlyAfterAlert, delayMs };
     persistEventRuntimePayload(event);
     return;
   }
 
-  const playback = await playAlertTtsSound(event, ttsResult);
+  const playback = await playAlertTtsSound(event, ttsResult, { queueEarlyAfterAlert, originalDelayMs: delayMs });
   ttsResult.playback = playback;
   persistEventRuntimePayload(event);
 }
 
-async function playAlertTtsSound(event, ttsResult) {
+function resolveAlertTtsSoundPriority(event, liveCfg) {
+  const cfg = liveCfg || (state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert);
+  const configured = clamp(toInt(cfg.ttsSoundPriority, DEFAULT_CONFIG.liveAlert.ttsSoundPriority), 0, 1000);
+
+  if (cfg.ttsUseAlertPriority === false) return configured;
+
+  const rule = event && event.rule ? event.rule : {};
+  const alertPriority = clamp(toInt(rule.sound_priority, toInt(rule.priority, 80)), 0, 1000);
+
+  // TTS gehoert logisch zum Alert, soll aber echte gleichhohe/neue Alerts nicht ueberholen.
+  // Beispiel: Alert 100 -> TTS 99, Alert 80 -> TTS 79.
+  const alertLinked = Math.max(0, alertPriority - 1);
+  return clamp(Math.max(configured, alertLinked), 0, 1000);
+}
+
+async function playAlertTtsSound(event, ttsResult, options = {}) {
   const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
   const playUrl = cleanText(liveCfg.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl);
   if (!playUrl) return { attempted: true, ok: false, reason: 'sound_system_play_url_missing' };
@@ -2174,14 +2790,16 @@ async function playAlertTtsSound(event, ttsResult) {
     source: cleanKey(liveCfg.ttsSoundSource || DEFAULT_CONFIG.liveAlert.ttsSoundSource) || 'alert_tts',
     category: cleanKey(liveCfg.ttsSoundCategory || DEFAULT_CONFIG.liveAlert.ttsSoundCategory) || 'tts',
     outputTarget: validateSoundOutputTarget(liveCfg.ttsOutputTarget || liveCfg.soundSystemOutputTarget || DEFAULT_CONFIG.liveAlert.ttsOutputTarget, DEFAULT_CONFIG.liveAlert.ttsOutputTarget),
-    priority: clamp(toInt(liveCfg.ttsSoundPriority, DEFAULT_CONFIG.liveAlert.ttsSoundPriority), 0, 1000),
+    priority: resolveAlertTtsSoundPriority(event, liveCfg),
     volume: clamp(toInt(liveCfg.ttsSoundVolume, DEFAULT_CONFIG.liveAlert.ttsSoundVolume), 0, 100),
     requestedBy: cleanText(event.user_display || event.user_login || ''),
     meta: {
       alertEventUid: event.eventUid,
       alertSource: event.source,
       alertType: event.type_key,
-      ruleId: event.rule && event.rule.id ? event.rule.id : null
+      ruleId: event.rule && event.rule.id ? event.rule.id : null,
+      queueEarlyAfterAlert: !!options.queueEarlyAfterAlert,
+      originalDelayMs: Math.max(0, toInt(options.originalDelayMs, 0))
     }
   };
 
@@ -2228,17 +2846,206 @@ function sleepMs(ms) {
   return new Promise(resolve => setTimeout(resolve, delay));
 }
 
+// STEP264E_ALERT_BUNDLE_FINISH_SYNC
+// Ein Alert darf erst beendet werden, wenn seine zugehoerigen Sound-System-Items fertig sind.
+function soundSystemStatusUrlForAlertBundle() {
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  const raw = cleanText(liveCfg.soundSystemStatusUrl || '');
+  if (raw) return raw;
+  return soundSystemStatusUrlFromPlayUrl(liveCfg.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl);
+}
+
+function collectAlertBundleRequestIds(alert) {
+  const ids = [];
+  const add = (value) => {
+    const id = cleanText(value || '');
+    if (id && !ids.includes(id)) ids.push(id);
+  };
+
+  if (!alert || typeof alert !== 'object') return ids;
+
+  const soundSystem = alert.soundSystem || {};
+  add(soundSystem.requestId);
+  add(soundSystem.item && soundSystem.item.requestId);
+  add(soundSystem.result && soundSystem.result.requestId);
+
+  const tts = alert.alertTts || {};
+  const playback = tts.playback || {};
+  add(playback.requestId);
+  add(playback.item && playback.item.requestId);
+  add(playback.result && playback.result.requestId);
+
+  // Fallbacks aus persistierten Rohdaten.
+  const raw = alert.raw || {};
+  const rawSoundSystem = raw.soundSystem || {};
+  add(rawSoundSystem.requestId);
+  add(rawSoundSystem.item && rawSoundSystem.item.requestId);
+
+  const rawTts = raw.alertTts || {};
+  const rawPlayback = rawTts.playback || {};
+  add(rawPlayback.requestId);
+  add(rawPlayback.item && rawPlayback.item.requestId);
+
+  return ids;
+}
+
+function alertExpectsTtsButPlaybackNotResolved(alert) {
+  if (!alert || !alert.alertTts) return false;
+  const tts = alert.alertTts;
+  if (!tts.attempted || !tts.ok || !tts.soundSystemFile) return false;
+  if (!tts.playback) return true;
+  if (tts.playback.skipped || tts.playback.ok === false) return false;
+  const item = tts.playback.item || {};
+  return !cleanText(item.requestId || tts.playback.requestId || '');
+}
+
+function soundSystemStatusHasRequestId(status, requestId) {
+  const id = cleanText(requestId || '');
+  if (!status || !id) return false;
+
+  const candidates = [];
+  if (status.current) candidates.push(status.current);
+  if (Array.isArray(status.parallel)) candidates.push(...status.parallel);
+  if (Array.isArray(status.queue)) candidates.push(...status.queue);
+
+  return candidates.some(item => item && cleanText(item.requestId || item.id || '') === id);
+}
+
+async function alertBundleIsStillActive(alert) {
+  const ids = collectAlertBundleRequestIds(alert);
+  if (alertExpectsTtsButPlaybackNotResolved(alert)) {
+    return {
+      active: true,
+      reason: 'tts_playback_not_resolved',
+      ids
+    };
+  }
+
+  if (!ids.length) {
+    return {
+      active: false,
+      reason: 'no_bundle_request_ids',
+      ids
+    };
+  }
+
+  const url = soundSystemStatusUrlForAlertBundle();
+  if (!url || typeof fetch !== 'function') {
+    return {
+      active: false,
+      reason: 'status_unavailable',
+      ids,
+      url
+    };
+  }
+
+  try {
+    const status = await fetchSoundSystemStatus(url);
+    const activeIds = ids.filter(id => soundSystemStatusHasRequestId(status, id));
+    return {
+      active: activeIds.length > 0,
+      reason: activeIds.length > 0 ? 'bundle_items_still_active' : 'bundle_items_finished',
+      ids,
+      activeIds,
+      url
+    };
+  } catch (err) {
+    return {
+      active: false,
+      reason: 'status_fetch_failed',
+      ids,
+      url,
+      error: err && err.message ? err.message : String(err)
+    };
+  }
+}
+
+function scheduleFinishCurrentRetry(reason, broadcastWS, bundleState) {
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  const pollMs = clamp(toInt(liveCfg.bundleFinishPollMs, 350), 150, 2000);
+  const maxWaitMs = Math.max(1000, toInt(liveCfg.bundleFinishMaxWaitMs, 300000));
+
+  if (!state.current) return false;
+
+  const now = Date.now();
+  if (!state.current.bundleFinishWait) {
+    state.current.bundleFinishWait = {
+      startedAt: now,
+      startedAtIso: nowIso(),
+      retryCount: 0,
+      originalReason: reason
+    };
+  }
+
+  state.current.bundleFinishWait.retryCount += 1;
+  state.current.bundleFinishWait.lastAt = now;
+  state.current.bundleFinishWait.lastAtIso = nowIso();
+  state.current.bundleFinishWait.lastBundleState = bundleState || {};
+
+  const waitedMs = now - Number(state.current.bundleFinishWait.startedAt || now);
+  if (waitedMs >= maxWaitMs) {
+    state.current.bundleFinishWait.timedOut = true;
+    state.current.bundleFinishWait.waitedMs = waitedMs;
+    return false;
+  }
+
+  clearTimeout(state.finishTimer);
+  state.finishTimer = setTimeout(() => finishCurrent('bundle_wait_retry', broadcastWS), pollMs);
+  return true;
+}
+
 function finishCurrent(reason, broadcastWS) {
   if (!state.current) return;
-  const finished = { ...state.current, finished_at: nowIso(), finishReason: reason };
-  database.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt WHERE event_uid=:eventUid`, { finishedAt: finished.finished_at, eventUid: finished.eventUid });
-  state.history.unshift(finished);
-  state.history = state.history.slice(0, 100);
-  state.current = null;
-  clearTimeout(state.finishTimer);
-  state.finishTimer = null;
-  sendOverlay(broadcastWS, { event: 'finished', alertId: finished.eventUid, reason });
-  setTimeout(() => processQueue(broadcastWS), Math.max(0, Number(state.config.gapBetweenAlertsMs || 0)));
+
+  const current = state.current;
+
+  alertBundleIsStillActive(current).then(bundleState => {
+    if (!state.current || state.current.eventUid !== current.eventUid) return;
+
+    if (bundleState && bundleState.active) {
+      const scheduled = scheduleFinishCurrentRetry(reason, broadcastWS, bundleState);
+      if (scheduled) {
+        current.bundleFinishState = bundleState;
+        persistEventRuntimePayload(current);
+        return;
+      }
+    }
+
+    const finishReason = bundleState && bundleState.active ? 'bundle_wait_timeout' : reason;
+    const finished = { ...state.current, finished_at: nowIso(), finishReason, bundleFinishState: bundleState || null };
+    try {
+      const raw = { ...(finished.raw || {}) };
+      raw.bundleFinishState = bundleState || null;
+      database.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt, payload_json=:payloadJson WHERE event_uid=:eventUid`, {
+        finishedAt: finished.finished_at,
+        payloadJson: JSON.stringify(raw),
+        eventUid: finished.eventUid
+      });
+    } catch (_) {
+      database.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt WHERE event_uid=:eventUid`, { finishedAt: finished.finished_at, eventUid: finished.eventUid });
+    }
+
+    state.history.unshift(finished);
+    state.history = state.history.slice(0, 100);
+    state.current = null;
+    clearTimeout(state.finishTimer);
+    state.finishTimer = null;
+    sendOverlay(broadcastWS, { event: 'finished', alertId: finished.eventUid, reason: finishReason });
+    setTimeout(() => processQueue(broadcastWS), Math.max(0, Number(state.config.gapBetweenAlertsMs || 0)));
+  }).catch(err => {
+    console.warn('[alert_system] bundle finish check failed:', err && err.message ? err.message : err);
+
+    if (!state.current || state.current.eventUid !== current.eventUid) return;
+    const finished = { ...state.current, finished_at: nowIso(), finishReason: reason, bundleFinishError: err && err.message ? err.message : String(err) };
+    database.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt WHERE event_uid=:eventUid`, { finishedAt: finished.finished_at, eventUid: finished.eventUid });
+    state.history.unshift(finished);
+    state.history = state.history.slice(0, 100);
+    state.current = null;
+    clearTimeout(state.finishTimer);
+    state.finishTimer = null;
+    sendOverlay(broadcastWS, { event: 'finished', alertId: finished.eventUid, reason });
+    setTimeout(() => processQueue(broadcastWS), Math.max(0, Number(state.config.gapBetweenAlertsMs || 0)));
+  });
 }
 
 async function enrichEventAvatar(event) {
@@ -2903,4 +3710,9 @@ function makeEventUid() { return `al_${Date.now()}_${Math.random().toString(16).
 function validateImageMode(v) { const mode = cleanKey(v || 'none'); return state.config.allowedImageModes.includes(mode) ? mode : 'none'; }
 function validateTtsTiming(v) { const mode = cleanKey(v || 'after_alert'); return ['after_alert', 'during_alert', 'before_alert'].includes(mode) ? mode : 'after_alert'; }
 function validateTtsMode(v) { const mode = cleanKey(v || 'audio_only'); return ['audio_only', 'overlay'].includes(mode) ? mode : 'audio_only'; }
+
+
+
+
+
 

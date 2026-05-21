@@ -130,7 +130,8 @@ module.exports.init = function init(ctx) {
     updatedAt: core.nowIso(),
     client: { connected: false, lastSeenAt: 0, lastEvent: "" },
     device: { lastOk: false, lastAt: 0, lastError: "", lastResult: null },
-    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0, parallelStarted: 0 }
+    stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0, parallelStarted: 0, bundlesQueued: 0, bundleItemsQueued: 0 },
+    activeBundleLock: null
   };
 
   let config = DEFAULT_CONFIG;
@@ -243,6 +244,7 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${prefix}/generated/beep.wav`, description: "Generated test beep audio" },
         { method: "GET", path: `${prefix}/play`, description: "Play/queue a sound via query parameters" },
         { method: "POST", path: `${prefix}/play`, description: "Play/queue a sound via JSON body" },
+        { method: "POST", path: `${prefix}/bundle`, description: "Play/queue a locked bundle of sound items, e.g. alert sound + alert TTS" },
         { method: "POST", path: `${prefix}/stop`, description: "Stop current sound, optionally clear queue" },
         { method: "POST", path: `${prefix}/skip`, description: "Skip current sound" },
         { method: "POST", path: `${prefix}/clear`, description: "Clear queue" },
@@ -446,6 +448,174 @@ module.exports.init = function init(ctx) {
     }
   }
 
+
+  // STEP265A_SOUND_BUNDLE_CORE
+  function publicBundleInfo(bundleId) {
+    const id = String(bundleId || "").trim();
+    if (!id) return null;
+    const allItems = [];
+    if (state.current) allItems.push(state.current);
+    if (Array.isArray(state.parallel)) allItems.push(...state.parallel);
+    if (Array.isArray(state.queue)) allItems.push(...state.queue);
+    const items = allItems.filter(item => item && item.bundleId === id);
+    if (!items.length) return null;
+    const first = items[0];
+    return {
+      bundleId: id,
+      bundleType: first.bundleType || "",
+      bundlePriority: Number(first.bundlePriority || first.priority || 0),
+      bundleQueuedAt: Number(first.bundleQueuedAt || first.queuedAt || 0),
+      bundleLocked: !!first.bundleLocked,
+      queuedItems: items.filter(item => state.queue.includes(item)).length,
+      active: !!(state.current && state.current.bundleId === id) || state.parallel.some(item => item.bundleId === id),
+      totalKnownItems: items.length
+    };
+  }
+
+  function publicBundleQueue() {
+    const map = new Map();
+    const allItems = [];
+    if (state.current) allItems.push(state.current);
+    if (Array.isArray(state.parallel)) allItems.push(...state.parallel);
+    if (Array.isArray(state.queue)) allItems.push(...state.queue);
+
+    for (const item of allItems) {
+      if (!item || !item.bundleId) continue;
+      const id = item.bundleId;
+      if (!map.has(id)) {
+        map.set(id, {
+          bundleId: id,
+          bundleType: item.bundleType || "",
+          bundlePriority: Number(item.bundlePriority || item.priority || 0),
+          bundleQueuedAt: Number(item.bundleQueuedAt || item.queuedAt || 0),
+          bundleLocked: !!item.bundleLocked,
+          queuedItems: 0,
+          activeItems: 0,
+          totalKnownItems: 0,
+          roles: []
+        });
+      }
+      const row = map.get(id);
+      row.totalKnownItems += 1;
+      if (state.queue.includes(item)) row.queuedItems += 1;
+      if ((state.current && state.current.requestId === item.requestId) || state.parallel.some(active => active.requestId === item.requestId)) row.activeItems += 1;
+      if (item.bundleRole && !row.roles.includes(item.bundleRole)) row.roles.push(item.bundleRole);
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (b.bundlePriority !== a.bundlePriority) return b.bundlePriority - a.bundlePriority;
+      return a.bundleQueuedAt - b.bundleQueuedAt;
+    });
+  }
+
+  function bundleSortKey(item) {
+    if (!item || !item.bundleId || !item.bundleLocked) {
+      return {
+        grouped: false,
+        priority: Number(item && item.priority || 0),
+        queuedAt: Number(item && item.queuedAt || 0),
+        order: 0
+      };
+    }
+    return {
+      grouped: true,
+      priority: Number(item.bundlePriority || item.priority || 0),
+      queuedAt: Number(item.bundleQueuedAt || item.queuedAt || 0),
+      order: Number(item.bundleOrder || 0)
+    };
+  }
+
+  function compareQueueItems(a, b) {
+    const ak = bundleSortKey(a);
+    const bk = bundleSortKey(b);
+    if (bk.priority !== ak.priority) return bk.priority - ak.priority;
+    if (ak.queuedAt !== bk.queuedAt) return ak.queuedAt - bk.queuedAt;
+    if (ak.order !== bk.order) return ak.order - bk.order;
+    return Number(a.queuedAt || 0) - Number(b.queuedAt || 0);
+  }
+
+  function pickNextLockedBundleItem() {
+    const lock = state.activeBundleLock;
+    if (!lock || !lock.bundleId) return null;
+    let bestIndex = -1;
+    let best = null;
+    for (let i = 0; i < state.queue.length; i++) {
+      const item = state.queue[i];
+      if (!item || item.bundleId !== lock.bundleId) continue;
+      if (!best || Number(item.bundleOrder || 0) < Number(best.bundleOrder || 0)) {
+        best = item;
+        bestIndex = i;
+      }
+    }
+    if (bestIndex < 0) return null;
+    return state.queue.splice(bestIndex, 1)[0];
+  }
+
+  function applyBundleFields(item, bundle, order, count) {
+    if (!item || !bundle || !bundle.bundleId) return item;
+    item.bundleId = String(bundle.bundleId || "").trim();
+    item.bundleType = String(bundle.bundleType || "bundle").trim().toLowerCase();
+    item.bundleLocked = bundle.bundleLocked !== false;
+    item.bundlePriority = Number.isFinite(Number(bundle.bundlePriority)) ? Number(bundle.bundlePriority) : Number(item.priority || 0);
+    item.bundleQueuedAt = Number(bundle.bundleQueuedAt || Date.now());
+    item.bundleOrder = Number(order || 0);
+    item.bundleRole = String(bundle.bundleRole || item.bundleRole || "item").trim().toLowerCase();
+    item.bundleSize = Number(count || 1);
+    item.meta = { ...(item.meta || {}), bundleId: item.bundleId, bundleType: item.bundleType, bundleRole: item.bundleRole, bundleOrder: item.bundleOrder, bundleSize: item.bundleSize };
+    item.lifecycle = { ...(item.lifecycle || {}), bundleLocked: item.bundleLocked };
+    return item;
+  }
+
+  function normalizeBundlePayload(raw = {}) {
+    const body = raw || {};
+    const inputItems = Array.isArray(body.items) ? body.items : [];
+    if (!inputItems.length) throw new Error("Bundle enthält keine items[].");
+
+    const bundleQueuedAt = Date.now();
+    const bundleId = String(body.bundleId || body.id || `bundle_${bundleQueuedAt}_${Math.random().toString(36).slice(2, 8)}`).trim();
+    const bundleType = String(body.bundleType || body.type || "bundle").trim().toLowerCase();
+    const bundlePriority = Number.isFinite(Number(body.priority ?? body.bundlePriority)) ? Number(body.priority ?? body.bundlePriority) : Number(config.queue?.defaultPriority || 50);
+    const bundleLocked = body.locked !== false && body.bundleLocked !== false;
+    const source = String(body.source || "bundle").trim();
+    const requestedBy = String(body.requestedBy || body.user || "").trim();
+    const bundleMeta = objectValue(body.meta);
+    const bundleVisual = objectValue(body.visual);
+
+    const items = inputItems.map((entry, index) => {
+      const role = String(entry.role || entry.bundleRole || (index === 0 ? "main" : `item_${index + 1}`)).trim().toLowerCase();
+      const priorityOffset = Number(entry.priorityOffset || 0);
+      const itemPriority = Number.isFinite(Number(entry.priority)) ? Number(entry.priority) : bundlePriority + priorityOffset;
+      const merged = {
+        ...body.defaults,
+        ...entry,
+        source: entry.source || source,
+        requestedBy: entry.requestedBy || requestedBy,
+        priority: itemPriority,
+        meta: { ...bundleMeta, ...objectValue(entry.meta), bundleId, bundleType, bundleRole: role },
+        visual: { ...bundleVisual, ...objectValue(entry.visual), bundleId, bundleType, bundleRole: role }
+      };
+      delete merged.items;
+      delete merged.defaults;
+      const item = normalizePlayRequest(merged);
+      return applyBundleFields(item, { bundleId, bundleType, bundlePriority, bundleQueuedAt, bundleLocked, bundleRole: role }, index + 1, inputItems.length);
+    });
+
+    return { bundleId, bundleType, bundlePriority, bundleQueuedAt, bundleLocked, itemCount: items.length, items };
+  }
+
+  function enqueueBundleItems(bundle) {
+    if (!bundle || !Array.isArray(bundle.items) || !bundle.items.length) throw new Error("Bundle hat keine normalisierten Items.");
+    const results = [];
+    for (const item of bundle.items) {
+      const result = enqueueOrStart(item);
+      results.push(result);
+    }
+    state.stats.bundlesQueued = Number(state.stats.bundlesQueued || 0) + 1;
+    state.stats.bundleItemsQueued = Number(state.stats.bundleItemsQueued || 0) + bundle.items.length;
+    emit("bundle_queued");
+    return results;
+  }
+
   function publicState() {
     return {
       ok: true,
@@ -458,6 +628,9 @@ module.exports.init = function init(ctx) {
       parallelCount: state.parallel.length,
       queue: state.queue.map(publicItem),
       queuedCount: state.queue.length,
+      currentBundle: state.current && state.current.bundleId ? publicBundleInfo(state.current.bundleId) : null,
+      activeBundleLock: state.activeBundleLock ? { ...state.activeBundleLock } : null,
+      bundles: publicBundleQueue(),
       client: { ...state.client },
       device: { ...state.device },
       stats: { ...state.stats },
@@ -515,6 +688,16 @@ module.exports.init = function init(ctx) {
       queuedAt: item.queuedAt,
       startedAt: item.startedAt || 0,
       endsAt: item.endsAt || 0,
+      bundle: item.bundleId ? {
+        bundleId: item.bundleId,
+        bundleType: item.bundleType || "",
+        bundleLocked: !!item.bundleLocked,
+        bundlePriority: Number(item.bundlePriority || item.priority || 0),
+        bundleQueuedAt: Number(item.bundleQueuedAt || item.queuedAt || 0),
+        bundleOrder: Number(item.bundleOrder || 0),
+        bundleRole: item.bundleRole || "",
+        bundleSize: Number(item.bundleSize || 0)
+      } : null,
       flags: {
         override: !!item.override,
         force: !!item.force,
@@ -883,7 +1066,7 @@ module.exports.init = function init(ctx) {
       state.queue.sort((a, b) => a.queuedAt - b.queuedAt);
       return;
     }
-    state.queue.sort((a, b) => b.priority !== a.priority ? b.priority - a.priority : a.queuedAt - b.queuedAt);
+    state.queue.sort(compareQueueItems);
   }
 
   function emitItemEvent(reason, item, extra = {}) {
@@ -1122,6 +1305,15 @@ module.exports.init = function init(ctx) {
     } else {
       clearFinishTimer();
       state.current = item;
+      if (item.bundleId && item.bundleLocked) {
+        state.activeBundleLock = {
+          bundleId: item.bundleId,
+          bundleType: item.bundleType || "",
+          bundlePriority: Number(item.bundlePriority || item.priority || 0),
+          bundleQueuedAt: Number(item.bundleQueuedAt || item.queuedAt || 0),
+          startedAt: Date.now()
+        };
+      }
       emit(reason || "started");
     }
 
@@ -1144,8 +1336,12 @@ module.exports.init = function init(ctx) {
 
   function startNextIfPossible(reason) {
     if (state.paused || state.current || !state.queue.length) return false;
-    const next = state.queue.shift();
-    startItem(next, reason || "next_started");
+    const lockedNext = pickNextLockedBundleItem();
+    const next = lockedNext || state.queue.shift();
+    if (state.activeBundleLock && (!next || next.bundleId !== state.activeBundleLock.bundleId)) {
+      state.activeBundleLock = null;
+    }
+    startItem(next, lockedNext ? "bundle_next_started" : (reason || "next_started"));
     return true;
   }
 
@@ -1155,6 +1351,10 @@ module.exports.init = function init(ctx) {
     state.current = null;
     emit(reason || "finished");
     const gap = Number((finished && finished.gapAfterMs) || config.overlay?.gapBetweenSoundsMs || 750);
+    if (finished && finished.bundleId && state.activeBundleLock && state.activeBundleLock.bundleId === finished.bundleId) {
+      const hasMoreBundleItems = state.queue.some(item => item && item.bundleId === finished.bundleId);
+      if (!hasMoreBundleItems) state.activeBundleLock = null;
+    }
     setTimeout(() => startNextIfPossible("gap_finished"), Math.max(0, gap));
     return finished;
   }
@@ -1179,7 +1379,7 @@ module.exports.init = function init(ctx) {
     if (!state.enabled) throw new Error(msg("systemDisabled"));
     const cooldown = checkCooldown(item);
     if (cooldown) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: cooldown.reason, retryAfterMs: cooldown.retryAfterMs };
-    if (item.clearQueue) state.queue = [];
+    if (item.clearQueue) { state.queue = []; state.activeBundleLock = null; }
 
     if (state.current && parallelAllowedByPolicy(item)) {
       startItem(item, "parallel_started", { parallel: true });
@@ -1293,9 +1493,37 @@ module.exports.init = function init(ctx) {
   app.post(`${prefix}/play`, core.asyncRoute(async (req, res) => playResponse(req, res, req.body || {})));
   app.get(`${prefix}/play`, core.asyncRoute(async (req, res) => playResponse(req, res, req.query || {})));
 
+  app.post(`${prefix}/bundle`, core.asyncRoute(async (req, res) => {
+    const bundle = normalizeBundlePayload(req.body || {});
+    const results = enqueueBundleItems(bundle);
+    return res.json(core.ok({
+      message: "Sound-Bundle wurde in die Warteschlange gelegt.",
+      bundle: {
+        bundleId: bundle.bundleId,
+        bundleType: bundle.bundleType,
+        bundlePriority: bundle.bundlePriority,
+        bundleQueuedAt: bundle.bundleQueuedAt,
+        bundleLocked: bundle.bundleLocked,
+        itemCount: bundle.itemCount,
+        items: bundle.items.map(publicItem)
+      },
+      results: results.map(result => ({
+        started: !!result.started,
+        queued: !!result.queued,
+        dropped: !!result.dropped,
+        parallel: !!result.parallel,
+        queuePosition: result.queuePosition,
+        reason: result.reason || "",
+        retryAfterMs: result.retryAfterMs || 0,
+        item: publicItem(result.item)
+      })),
+      status: publicState()
+    }));
+  }));
+
   app.post(`${prefix}/stop`, (req, res) => {
     const clearQueue = core.boolParam(core.getParam(req, "clearQueue", false), false);
-    if (clearQueue) state.queue = [];
+    if (clearQueue) { state.queue = []; state.activeBundleLock = null; }
     const stopped = stopCurrent("manual_stop");
     killParallelDeviceProcesses("manual_stop_parallel");
     state.parallel = [];
@@ -1312,6 +1540,7 @@ module.exports.init = function init(ctx) {
 
   app.post(`${prefix}/clear`, (req, res) => {
     state.queue = [];
+    state.activeBundleLock = null;
     state.stats.cleared += 1;
     emit("queue_cleared");
     return res.json(core.ok({ message: msg("queueCleared"), status: publicState() }));
@@ -1326,6 +1555,7 @@ module.exports.init = function init(ctx) {
     state.current = null;
     state.parallel = [];
     state.queue = [];
+    state.activeBundleLock = null;
     state.paused = false;
     emit("reset");
     return res.json(core.ok({ status: publicState() }));
