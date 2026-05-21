@@ -590,3 +590,14 @@ STEP272F: Boost-Kopien fuer zu leise Sounds vorbereiten.
 - Wenn Pegel passt: Boost-Kopie übernehmen und Backup/Rollback prüfen.
 - Danach weitere zu leise Audio-Dateien einzeln bearbeiten.
 - Video-Dateien wie `soundalerts/video/putzen.webm` später separat unterstützen.
+
+
+## Nach STEP272I1
+
+- `alerts/follow.mp3` im Dashboard mit gewünschtem Boost testen.
+- Original und Test-Kopie über denselben Ausgabeweg vergleichen.
+- Wenn passend: `Als Original übernehmen` nutzen.
+- Danach echten Alert testen, der weiterhin auf `alerts/follow.mp3` zeigt.
+- Bei Bedarf Rollback über die Promote-Historie ausführen.
+- Danach weitere zu leise Audio-Dateien einzeln bearbeiten.
+- Video-Dateien wie `soundalerts/video/putzen.webm` später separat unterstützen.

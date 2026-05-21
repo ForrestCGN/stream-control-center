@@ -426,3 +426,8 @@ Sound-Pegel kann jetzt Boost-Kopien als Einzeldatei-Test vorbereiten. Kopien lan
 ## STEP272I – Aktueller Sound-Pegel-Stand
 
 Der Boost-Kopien-Bereich unterstützt jetzt einen pro Datei einstellbaren Boost-Workflow mit Slider, Presets und serverseitiger Sicherheitsprüfung. Dateien werden weiterhin erst als Kopie unter `htdocs/assets/sounds/normalized/` erzeugt und nur per separatem Promote mit Backup an die Originalstelle übernommen.
+
+
+## STEP272I1 – Aktueller Sound-Pegel-Stand
+
+Der Dashboard-Workflow für Boost-Kopien unterstützt jetzt direktes Test-Abspielen von Original und Boost-Testkopie mit wählbarem Ausgabeweg. Wenn eine Boost-Kopie als neues Original übernommen wurde, wird die Datei im Dashboard markiert und backendseitig gegen normales Überschreiben geschützt. Änderungen am echten Originalpfad passieren weiterhin nur über Promote mit Backup.

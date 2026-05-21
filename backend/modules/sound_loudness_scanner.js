@@ -1257,12 +1257,57 @@ function getBoostCopyCandidates(limit = 100, includeExisting = true) {
   return candidates;
 }
 
+function getActivePromotionForFile(relativePath) {
+  const clean = normalizeRelativePath(relativePath);
+  if (!clean) return null;
+  return database.get(
+    "SELECT * FROM sound_loudness_promotions WHERE relative_path = :relativePath AND rolled_back_at = '' ORDER BY promoted_at DESC LIMIT 1",
+    { relativePath: clean }
+  ) || null;
+}
+
+function buildActivePromotionIndex() {
+  const rows = database.all("SELECT * FROM sound_loudness_promotions WHERE rolled_back_at = '' ORDER BY promoted_at DESC") || [];
+  const map = new Map();
+  for (const row of rows) {
+    const clean = normalizeRelativePath(row.relative_path || "");
+    if (clean && !map.has(clean)) map.set(clean, row);
+  }
+  return map;
+}
+
 function buildBoostCopyPreview(options = {}) {
   const cfg = getLevelConfig();
   const target = getBoostTargetSettings(cfg);
   const limit = Math.round(clampNumber(options.limit, 1, 500, 100));
   const includeExisting = parseBool(options.includeExisting, true) !== false;
   const rows = getBoostCopyCandidates(limit, includeExisting);
+  const processedRows = rows.map(row => {
+    const activePromotion = getActivePromotionForFile(row.file || row.sourceFile || "");
+    const targetGainDb = calculateBoostGain(row.inputI, target);
+    const maxSafeGainDb = calculateMaxSafeBoostGain(row.inputTp, target.maxGainDb);
+    const safeTargetGainDb = targetGainDb === null ? null : round2(Math.min(Number(targetGainDb), Number(maxSafeGainDb)));
+    const estimatedPeakAfterBoostDbtp = safeTargetGainDb === null || !Number.isFinite(Number(row.inputTp)) ? null : round2(Number(row.inputTp) + Number(safeTargetGainDb));
+    return {
+      ...row,
+      promotedOriginal: Boolean(activePromotion),
+      activePromotionId: activePromotion ? String(activePromotion.promotion_id || "") : "",
+      promotedAt: activePromotion ? String(activePromotion.promoted_at || "") : "",
+      promotedBy: activePromotion ? String(activePromotion.promoted_by || "") : "",
+      backupFile: activePromotion ? String(activePromotion.backup_path || "") : "",
+      canOverwriteTestCopy: !activePromotion,
+      canCreate: Boolean(row.canCreate) && !activePromotion,
+      protectedReason: activePromotion ? "promoted_original_protected" : "",
+      note: activePromotion ? "Diese Datei wurde bereits als neues Original übernommen und ist geschützt. Für Änderungen erst Rollback oder später bewussten Re-Boost verwenden." : row.note,
+      boostTargetLufs: target.targetLufs,
+      targetGainDb: safeTargetGainDb,
+      rawTargetGainDb: targetGainDb,
+      maxSafeGainDb,
+      sliderMaxGainDb: maxSafeGainDb,
+      estimatedPeakAfterBoostDbtp,
+      truePeakLimitDbtp: DEFAULT_TRUE_PEAK_LIMIT_DBTP
+    };
+  });
   return {
     ok: true,
     module: MODULE_NAME,
@@ -1271,35 +1316,21 @@ function buildBoostCopyPreview(options = {}) {
     outputDir: "htdocs/assets/sounds/normalized",
     playableBase: "normalized/",
     boostTarget: target,
-    count: rows.length,
+    count: processedRows.length,
     summary: {
-      totalShown: rows.length,
-      existingCopies: rows.filter(row => row.exists).length,
-      missingCopies: rows.filter(row => !row.exists).length,
-      creatable: rows.filter(row => row.canCreate).length,
-      unsupported: rows.filter(row => !row.canCreate).length
+      totalShown: processedRows.length,
+      existingCopies: processedRows.filter(row => row.exists).length,
+      missingCopies: processedRows.filter(row => !row.exists).length,
+      creatable: processedRows.filter(row => row.canCreate).length,
+      unsupported: processedRows.filter(row => !row.canCreate && !row.promotedOriginal).length,
+      protectedOriginals: processedRows.filter(row => row.promotedOriginal).length
     },
     config: cfg,
-    rows: rows.map(row => {
-      const targetGainDb = calculateBoostGain(row.inputI, target);
-      const maxSafeGainDb = calculateMaxSafeBoostGain(row.inputTp, target.maxGainDb);
-      const safeTargetGainDb = targetGainDb === null ? null : round2(Math.min(Number(targetGainDb), Number(maxSafeGainDb)));
-      const estimatedPeakAfterBoostDbtp = safeTargetGainDb === null || !Number.isFinite(Number(row.inputTp)) ? null : round2(Number(row.inputTp) + Number(safeTargetGainDb));
-      return {
-        ...row,
-        boostTargetLufs: target.targetLufs,
-        targetGainDb: safeTargetGainDb,
-        rawTargetGainDb: targetGainDb,
-        maxSafeGainDb,
-        sliderMaxGainDb: maxSafeGainDb,
-        estimatedPeakAfterBoostDbtp,
-        truePeakLimitDbtp: DEFAULT_TRUE_PEAK_LIMIT_DBTP
-      };
-    }),
+    rows: processedRows,
     notes: [
       "Nur Vorschau: Original-Sounddateien werden nicht verändert.",
-      "Boost-Kopien werden in htdocs/assets/sounds/normalized/<originalpfad> geschrieben, damit /api/sound/play sie wie normale Sounds abspielen kann.",
-      "STEP272I: Boost-Kopien können im Dashboard pro Datei mit individuellem Boost-Regler getestet werden."
+      "Boost-Kopien werden in htdocs/assets/sounds/normalized/<originalpfad> geschrieben, damit /api/sound/play sie direkt testen kann.",
+      "STEP272I1: Boost-Kopien können im Dashboard pro Datei erzeugt, über wählbare Ausgabewege getestet und nach Übernahme geschützt werden."
     ]
   };
 }
@@ -1344,6 +1375,10 @@ function createBoostCopyForFile(relativePath, options = {}) {
   if (clean.includes("..")) throw new Error("unsafe_file_path");
   if (isExcludedTtsPath(clean)) throw new Error("tts_files_are_excluded");
   if (clean.toLowerCase().startsWith("normalized/")) throw new Error("normalized_source_not_allowed");
+  const activePromotion = getActivePromotionForFile(clean);
+  if (activePromotion && !parseBool(options.allowPromotedOriginalReboost, false)) {
+    throw new Error("promoted_original_is_protected_rollback_first");
+  }
 
   const row = database.get("SELECT * FROM sound_loudness_files WHERE relative_path = :relativePath", { relativePath: clean }) || null;
   if (!row) throw new Error("file_not_scanned");
@@ -1431,7 +1466,7 @@ function createBoostCopyForFile(relativePath, options = {}) {
       "Originaldatei wurde nicht verändert.",
       "Die Boost-Kopie liegt im normalen Sound-Ordner unter normalized/ und kann per /api/sound/play getestet werden.",
       "Noch keine automatische Umleitung bestehender Alert-/SoundAlert-Regeln.",
-      "STEP272I: Der Boost kann pro Datei manuell gesetzt werden. Originaldateien bleiben dabei unverändert."
+      "STEP272I1: Der Boost kann pro Datei manuell gesetzt werden. Übernommene Originale sind gegen versehentliches Neu-Erzeugen geschützt."
     ]
   };
 }

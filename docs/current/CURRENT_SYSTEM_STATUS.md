@@ -356,3 +356,8 @@ Das Sound-Pegel-System unterstützt jetzt eine sichere Preview für zu leise Dat
 ## STEP272I – Sound-Pegel Dashboard Boost-Workflow
 
 Das Sound-Pegel-Dashboard kann Boost-Kopien jetzt pro Datei mit einem Slider und Presets vorbereiten. Die maximale Erhöhung wird aus Datei-Headroom und globalem Max-Boost berechnet. Originaldateien werden erst durch den separaten Promote-Schritt mit Backup ersetzt.
+
+
+## STEP272I1 – Sound-Pegel Dashboard Testplay + Original-Schutz
+
+Der Boost-Kopien-Bereich kann Original und Boost-Testkopie jetzt direkt testweise über das Sound-System abspielen. Der Ausgabeweg ist wählbar: OBS/Overlay, Audiogerät oder OBS + Audiogerät. Übernommene Boost-Kopien werden als neues Original markiert und gegen versehentliches erneutes Erzeugen/Überschreiben geschützt. Rollback bleibt über die Promote-Historie möglich.

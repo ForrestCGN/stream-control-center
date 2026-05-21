@@ -613,3 +613,11 @@ TTS-System
 - `htdocs/dashboard/modules/sound_levelscan.js` – Boost-Workflow mit Slider/Dropdown pro Datei.
 - `htdocs/dashboard/modules/sound_levelscan.css` – Styling für Boost-Regler.
 - `project-state/STEP272I_SOUND_PEGEL_DASHBOARD_BOOST_WORKFLOW.md` – Step-Dokumentation.
+
+
+## STEP272I1 geänderte Dateien
+
+- `backend/modules/sound_loudness_scanner.js` – Promote-Status in Boost-Preview, Schutz für bereits übernommene Originale.
+- `htdocs/dashboard/modules/sound_levelscan.js` – Test-Ausgabe-Auswahl, Original/Test-Kopie-Abspielen, Schutzstatus im Boost-Tab.
+- `htdocs/dashboard/modules/sound_levelscan.css` – Styles für Test-Aktionen und geschützte Originale.
+- `project-state/STEP272I1_SOUND_PEGEL_DASHBOARD_TESTPLAY_ORIGINAL_PROTECT.md` – Step-Dokumentation.

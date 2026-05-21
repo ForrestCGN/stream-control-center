@@ -29,6 +29,7 @@ window.SoundLevelScanModule = (function(){
     reference: null,
     referenceAudio: null,
     referenceOutputTarget: localStorage.getItem('sound-level-reference-output-target') || 'overlay',
+    boostOutputTarget: localStorage.getItem('sound-level-boost-output-target') || localStorage.getItem('sound-level-reference-output-target') || 'overlay',
     lastMessage: '',
     activeTab: 'overview'
   };
@@ -78,7 +79,11 @@ window.SoundLevelScanModule = (function(){
     boostOverwrite: 'Erzeugt die Boost-Kopie neu und überschreibt nur die Datei unter normalized/. Das Original bleibt unverändert.',
     boostPromote: 'Übernimmt die Boost-Kopie an die Originalstelle. Vorher wird automatisch ein Backup unter _backup_loudness angelegt.',
     boostRollback: 'Stellt die Originaldatei aus dem letzten Backup wieder her.',
-    boostGainSlider: 'Schieberegler pro Datei: 0 dB bis zur sicheren Maximalerhöhung. Erst Kopie erzeugen, dann testen, dann übernehmen.'
+    boostGainSlider: 'Schieberegler pro Datei: 0 dB bis zur sicheren Maximalerhöhung. Erst Kopie erzeugen, dann testen, dann übernehmen.',
+    boostOutput: 'Ausgabeweg für Original- und Boost-Test direkt aus dieser Ansicht. Overlay geht an OBS, Audiogerät an das konfigurierte Device, Beides nutzt beide Ausgaben.',
+    boostPlayOriginal: 'Spielt die aktuelle Originaldatei über das Sound-System mit Volume 80 ab. Nutze denselben Ausgabeweg wie für die Boost-Kopie.',
+    boostPlayCopy: 'Spielt die erzeugte Boost-Testkopie unter normalized/ über das Sound-System mit Volume 80 ab.',
+    promotedOriginal: 'Diese Datei wurde bereits als neues Original übernommen. Der Originalpfad bleibt gleich; ein Backup liegt in der Historie. Normales Überschreiben ist geschützt.'
   };
 
   function registerDashboardModule(){
@@ -148,6 +153,13 @@ window.SoundLevelScanModule = (function(){
     state.referenceOutputTarget = normalizeReferenceOutputTarget(selectValue || state.referenceOutputTarget);
     try { localStorage.setItem('sound-level-reference-output-target', state.referenceOutputTarget); } catch (_) {}
     return state.referenceOutputTarget;
+  }
+
+  function getBoostOutputTarget(){
+    const selectValue = document.getElementById('soundLevelBoostOutputTarget')?.value;
+    state.boostOutputTarget = normalizeReferenceOutputTarget(selectValue || state.boostOutputTarget || state.referenceOutputTarget);
+    try { localStorage.setItem('sound-level-boost-output-target', state.boostOutputTarget); } catch (_) {}
+    return state.boostOutputTarget;
   }
 
   function referenceOutputLabel(value){
@@ -331,6 +343,8 @@ window.SoundLevelScanModule = (function(){
         if (action === 'apply-alert-missing-volumes') await applyAlertMissingVolumes();
         if (action === 'preview-boost-copies') await previewBoostCopies();
         if (action === 'create-boost-copy-one') await createBoostCopyOne(button.dataset.soundLevelFile || '');
+        if (action === 'play-boost-original') await playBoostOriginal(button.dataset.soundLevelFile || '');
+        if (action === 'play-boost-copy') await playBoostCopy(button.dataset.soundLevelOutputFile || button.dataset.soundLevelFile || '');
         if (action === 'promote-boost-copy-one') await promoteBoostCopyOne(button.dataset.soundLevelFile || '');
         if (action === 'rollback-boost-copy-one') await rollbackBoostCopyOne(button.dataset.soundLevelFile || '', button.dataset.soundLevelPromotionId || '');
         if (action === 'adopt-reference-boost-target') await adoptReferenceBoostTarget();
@@ -349,6 +363,12 @@ window.SoundLevelScanModule = (function(){
       if (target.id === 'soundLevelReferenceOutputTarget') {
         getReferenceOutputTarget();
         state.lastMessage = `Referenz-Ausgabeweg: ${referenceOutputLabel(state.referenceOutputTarget)}.`;
+        render();
+        return;
+      }
+      if (target.id === 'soundLevelBoostOutputTarget') {
+        getBoostOutputTarget();
+        state.lastMessage = `Boost-Test-Ausgabeweg: ${referenceOutputLabel(state.boostOutputTarget)}.`;
         render();
         return;
       }
@@ -513,6 +533,44 @@ window.SoundLevelScanModule = (function(){
     gain = Math.max(0, Math.min(Number.isFinite(maxGain) ? maxGain : 18, gain));
     input.value = String(Math.round(gain * 10) / 10);
     updateBoostGainDisplay(input);
+  }
+
+  async function playBoostOriginal(file){
+    const clean = String(file || '').trim();
+    if (!clean) throw new Error('Keine Originaldatei ausgewählt.');
+    const outputTarget = getBoostOutputTarget();
+    const playQuery = qs({
+      file: clean,
+      outputTarget,
+      target: 'stream',
+      category: 'system',
+      source: 'sound_level_boost_original_test',
+      label: `Original ${clean}`,
+      volume: 80,
+      override: true
+    });
+    await window.CGN.api(`/api/sound/play?${playQuery}`, { method: 'GET' });
+    state.lastMessage = `Original über ${referenceOutputLabel(outputTarget)} abgespielt: ${clean}`;
+    render();
+  }
+
+  async function playBoostCopy(outputFile){
+    const clean = String(outputFile || '').trim();
+    if (!clean) throw new Error('Keine Boost-Kopie ausgewählt.');
+    const outputTarget = getBoostOutputTarget();
+    const playQuery = qs({
+      file: clean,
+      outputTarget,
+      target: 'stream',
+      category: 'system',
+      source: 'sound_level_boost_copy_test',
+      label: `Boost-Kopie ${clean}`,
+      volume: 80,
+      override: true
+    });
+    await window.CGN.api(`/api/sound/play?${playQuery}`, { method: 'GET' });
+    state.lastMessage = `Boost-Kopie über ${referenceOutputLabel(outputTarget)} abgespielt: ${clean}`;
+    render();
   }
 
   async function promoteBoostCopyOne(file){
@@ -1069,8 +1127,16 @@ window.SoundLevelScanModule = (function(){
           <div><strong>${num(state.reference?.referenceLufs ?? preview.boostTarget?.requestedTargetLufs ?? -14, 2)}</strong><span>Referenz LUFS</span></div>
         </div>
         ${result ? `<div class="sound-note success">Boost-Kopie erzeugt: <strong>${esc(result.outputFile || '')}</strong>. Teste Original und Kopie bewusst über das Sound-System.</div>` : ''}
-        <div class="sound-actions">
-          <label class="sound-inline-check"><input id="soundLevelBoostOverwrite" type="checkbox" checked> vorhandene Boost-Kopie überschreiben</label>
+        <div class="sound-actions sound-boost-toolbar">
+          <label class="sound-inline-check"><input id="soundLevelBoostOverwrite" type="checkbox" checked> vorhandene Test-Kopie überschreiben</label>
+          <label class="sound-field compact" title="${esc(HELP.boostOutput)}">
+            <span>${withHelp('Test-Ausgabe', HELP.boostOutput)}</span>
+            <select id="soundLevelBoostOutputTarget">
+              <option value="overlay" ${state.boostOutputTarget === 'overlay' ? 'selected' : ''}>OBS/Overlay</option>
+              <option value="device" ${state.boostOutputTarget === 'device' ? 'selected' : ''}>Audiogerät</option>
+              <option value="both" ${state.boostOutputTarget === 'both' ? 'selected' : ''}>OBS + Audiogerät</option>
+            </select>
+          </label>
           <button type="button" data-sound-level-action="preview-boost-copies">Boost-Preview neu laden</button>
         </div>
         ${rows.length ? `
@@ -1078,16 +1144,33 @@ window.SoundLevelScanModule = (function(){
             <table class="sound-levelscan-table compact">
               <thead><tr><th>Datei</th><th>LUFS/Peak</th><th>Boost einstellen</th><th>Kopie</th><th>Aktion</th></tr></thead>
               <tbody>
-                ${rows.slice(0, 40).map(row => `
-                  <tr class="${row.exists ? 'is-success' : 'is-danger'}">
-                    <td>${esc(row.file || '-')}<br><small>${row.outputFile ? `Kopie: ${esc(row.outputFile)}` : ''}</small></td>
+                ${rows.slice(0, 40).map(row => {
+                  const promoted = Boolean(row.promotedOriginal);
+                  const trClass = promoted ? 'is-protected' : row.exists ? 'is-success' : 'is-danger';
+                  const copyLabel = promoted ? 'neues Original' : row.exists ? 'Test-Kopie' : row.canCreate ? 'fehlt' : 'nicht direkt';
+                  const copyPill = promoted ? 'info' : row.exists ? 'success' : row.canCreate ? 'warn' : 'danger';
+                  const outputFile = row.outputFile || '';
+                  return `
+                  <tr class="${trClass}">
+                    <td>
+                      ${esc(row.file || '-')}
+                      ${promoted ? `<br><span class="sound-pill info" title="${esc(HELP.promotedOriginal)}">als neues Original aktiv</span>` : ''}
+                      <br><small>${outputFile ? `Kopie: ${esc(outputFile)}` : ''}</small>
+                      ${row.backupFile ? `<br><small>Backup: ${esc(row.backupFile)}</small>` : ''}
+                    </td>
                     <td>${num(row.inputI, 2)} LUFS<br><small>TP ${db(row.inputTp, 1)} dBTP</small></td>
                     <td>${renderBoostControl(row, preview)}</td>
-                    <td><span class="sound-pill ${row.exists ? 'success' : row.canCreate ? 'warn' : 'danger'}">${row.exists ? 'vorhanden' : row.canCreate ? 'fehlt' : 'nicht direkt'}</span></td>
+                    <td><span class="sound-pill ${copyPill}">${copyLabel}</span></td>
                     <td>
-                      ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>${row.exists ? ` <button type="button" data-sound-level-action="promote-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPromote)}">Kopie übernehmen</button>` : ''}` : `<span class="sound-muted small">${esc(row.unsupportedReason || 'nicht unterstützt')}</span>`}
+                      <div class="sound-boost-row-actions">
+                        <button type="button" data-sound-level-action="play-boost-original" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPlayOriginal)}">Original abspielen</button>
+                        ${row.exists ? `<button type="button" data-sound-level-action="play-boost-copy" data-sound-level-output-file="${esc(outputFile)}" title="${esc(HELP.boostPlayCopy)}">Test-Kopie abspielen</button>` : ''}
+                        ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>` : `<span class="sound-muted small">${esc(row.protectedReason ? 'geschützt' : (row.unsupportedReason || 'nicht unterstützt'))}</span>`}
+                        ${row.exists && !promoted ? `<button type="button" data-sound-level-action="promote-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPromote)}">Als Original übernehmen</button>` : ''}
+                      </div>
                     </td>
-                  </tr>`).join('')}
+                  </tr>`;
+                }).join('')}
               </tbody>
             </table>
           </div>` : `<p class="sound-muted small">Keine Boost-Kandidaten gefunden.</p>`}

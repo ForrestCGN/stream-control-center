@@ -302,3 +302,12 @@
 - Backend liefert sichere Maximalerhöhung und geschätzten Peak nach Boost.
 - `boost/create-one` akzeptiert nun `gainDb`/`boostGainDb` für manuelle Einzeltests.
 - Originaldateien bleiben unverändert; Promote/Backup bleibt separater Schritt.
+
+
+## STEP272I1 – Sound-Pegel Dashboard Testplay + Original-Schutz
+
+- Boost-Kopien-Tab um Ausgabeweg-Auswahl für Tests erweitert.
+- Pro Datei gibt es jetzt Buttons für `Original abspielen` und `Test-Kopie abspielen`.
+- Boost-Preview markiert übernommene Dateien als `promotedOriginal`.
+- Übernommene Originale werden backendseitig gegen versehentliches normales Re-Boost/Overwrite geschützt.
+- Dashboard zeigt übernommene Dateien als `als neues Original aktiv` und verweist auf Backup/Rollback.
