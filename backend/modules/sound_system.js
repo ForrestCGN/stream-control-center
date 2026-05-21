@@ -50,6 +50,14 @@ const DEFAULT_CONFIG = {
     discord: { enabled: false, defaultVolume: 80 },
     both: { enabled: false, defaultVolume: 85 }
   },
+  discordRouting: {
+    enabled: true,
+    mode: "category_or_source",
+    target: "both",
+    overrideExplicitTarget: false,
+    categories: ["alert", "alert_critical", "channel_reward", "vip", "crew", "special", "tts"],
+    sources: ["alert_system", "alert_tts", "soundalerts", "sound_alerts", "channel_reward", "vip_mod", "vip_sound_overlay", "tts_system", "tts"]
+  },
   defaults: {
     target: "stream",
     outputTarget: "overlay",
@@ -142,7 +150,7 @@ module.exports.init = function init(ctx) {
   const SOUND_SETTINGS_SCHEMA_MODULE = "sound_system_settings";
   const SOUND_SETTINGS_SCHEMA_VERSION = 1;
   const SOUND_SETTINGS_TABLE = "sound_settings";
-  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "soundsBaseDir", "allowedExtensions"];
+  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundsBaseDir", "allowedExtensions"];
 
   function deepMergeRuntimeSettings(base, override) {
     if (!isPlainObject(base)) base = {};
@@ -279,6 +287,7 @@ module.exports.init = function init(ctx) {
 
     const outputTargets = config.output && isPlainObject(config.output.targets) ? Object.keys(config.output.targets) : [];
     const legacyTargets = config.targets && isPlainObject(config.targets) ? Object.keys(config.targets) : [];
+    const discordRouting = config.discordRouting && isPlainObject(config.discordRouting) ? config.discordRouting : {};
     if (outputTargets.length && legacyTargets.length) {
       warnings.push("legacy_targets_and_output_targets_both_present");
     }
@@ -331,6 +340,10 @@ module.exports.init = function init(ctx) {
         jsonConfigOk: !!state.configOk,
         outputTargets,
         legacyTargets,
+        discordRoutingEnabled: discordRouting.enabled !== false,
+        discordRoutingTarget: discordRouting.target || "",
+        discordRoutingCategories: Array.isArray(discordRouting.categories) ? discordRouting.categories : [],
+        discordRoutingSources: Array.isArray(discordRouting.sources) ? discordRouting.sources : [],
         defaultOutputTarget: config.output?.defaultTarget || "",
         overlayUrl,
         helperConfigured: !!helperRel,
@@ -425,6 +438,7 @@ module.exports.init = function init(ctx) {
     if (!config.queue) config.queue = DEFAULT_CONFIG.queue;
     if (!config.priorities) config.priorities = DEFAULT_CONFIG.priorities;
     if (!config.categoryDefaults) config.categoryDefaults = DEFAULT_CONFIG.categoryDefaults;
+    if (!config.discordRouting) config.discordRouting = DEFAULT_CONFIG.discordRouting;
     messages = loadedMessages.config || DEFAULT_MESSAGES;
 
     state.version = config.version || DEFAULT_CONFIG.version;
@@ -646,6 +660,7 @@ module.exports.init = function init(ctx) {
         output: config.output || {},
         queue: config.queue || {},
         targets: config.targets || {},
+        discordRouting: config.discordRouting || {},
         priorities: config.priorities || {},
         categoryDefaults: config.categoryDefaults || {},
         defaults: config.defaults || {},
@@ -792,6 +807,42 @@ module.exports.init = function init(ctx) {
     const target = String(rawTarget || fallback).trim().toLowerCase();
     if (["stream", "discord", "both"].includes(target)) return target;
     return fallback;
+  }
+
+  function normalizeDiscordRoutingTarget(rawTarget, fallback = "both") {
+    const target = String(rawTarget || fallback).trim().toLowerCase();
+    if (["stream", "discord", "both"].includes(target)) return target;
+    return fallback;
+  }
+
+  function listMatchesNormalized(list, value) {
+    const needle = normalizeId(value);
+    if (!needle || !Array.isArray(list)) return false;
+    return list.map(v => normalizeId(v)).filter(Boolean).includes(needle);
+  }
+
+  // STEP269B_SOUND_SYSTEM_DISCORD_AUTO_ROUTING
+  // Automatische Discord-Zielwahl passiert zentral im Sound-System.
+  // Module wie Alert-System, SoundAlerts, VIP/Mod oder TTS muessen dafuer nicht einzeln umgebaut werden.
+  function resolveDiscordRoutedTarget(base, body, currentTarget) {
+    const routing = config.discordRouting && isPlainObject(config.discordRouting) ? config.discordRouting : DEFAULT_CONFIG.discordRouting;
+    if (!routing || routing.enabled === false) return currentTarget;
+
+    const explicitTarget = hasOwn(body, "target") || hasOwn(body, "legacyTarget") || hasOwn(body, "soundTarget");
+    if (explicitTarget && routing.overrideExplicitTarget !== true) return currentTarget;
+
+    if (currentTarget === "discord" || currentTarget === "both") return currentTarget;
+
+    const category = base.category || body.category || "";
+    const source = base.source || body.source || "";
+    const matchesCategory = listMatchesNormalized(routing.categories, category);
+    const matchesSource = listMatchesNormalized(routing.sources, source);
+    if (!matchesCategory && !matchesSource) return currentTarget;
+
+    const routedTarget = normalizeDiscordRoutingTarget(routing.target || "both", "both");
+    if (targetEnabled(routedTarget)) return routedTarget;
+    if (routedTarget === "both" && targetEnabled("discord")) return "discord";
+    return currentTarget;
   }
 
   function normalizeOutputTarget(rawOutputTarget, legacyTarget) {
@@ -958,7 +1009,8 @@ module.exports.init = function init(ctx) {
     const base = applyCategoryDefaults(config.defaults || {}, preset || {}, body);
     const rawType = String(base.type || "file").trim().toLowerCase();
     const generatedBeep = rawType === "generated_beep";
-    const target = normalizeTarget(base.target);
+    const initialTarget = normalizeTarget(base.target);
+    const target = resolveDiscordRoutedTarget(base, body, initialTarget);
     const outputTarget = normalizeOutputTarget(base.outputTarget || base.output || base.targetOutput, target);
     if (!targetEnabled(target)) throw new Error(msg("targetDisabled"));
     if (!outputTargetEnabled(outputTarget)) throw new Error(`Sound-Ausgabeziel ist deaktiviert: ${outputTarget}`);
@@ -1048,7 +1100,7 @@ module.exports.init = function init(ctx) {
       requestedBy: String(base.requestedBy || base.user || "").trim(),
       meta: objectValue(base.meta),
       visual: objectValue(base.visual),
-      lifecycle: { startSignalEmitted: false },
+      lifecycle: { startSignalEmitted: false, discordRouted: target !== initialTarget, originalTarget: initialTarget },
       override: boolFromBase(base, "override", false),
       force: boolFromBase(base, "force", false),
       clearQueue: boolFromBase(base, "clearQueue", false),
