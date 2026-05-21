@@ -315,3 +315,10 @@ MP3-Cover/Artwork-Erkennung als optionaler spaeterer Mini-Fix
 ### STEP272C - Sound-Pegel Config-Seite
 
 Sound-Pegel besitzt jetzt eine eigene Config-Seite im Dashboard. Werte werden ueber `/api/sound/loudness/config` in SQLite gespeichert. Ziel ist eine zentrale Grundlage fuer spaetere Upload-Defaults, Standardlautstaerke und Massenaktionen. In diesem Step werden keine bestehenden Sound-/Alert-/VIP-/SoundAlert-Daten veraendert und keine Dateien normalisiert.
+
+
+## STEP272E - Sound-Pegel bestehende Volume-Preview
+- Neue Read-only API `GET /api/sound/loudness/config/mass-volume-preview`.
+- Dashboard `System -> Sound-Pegel -> Config` zeigt eine Volume-Preview fuer bestehende Alert-/SoundAlert-/VIP-Daten.
+- Pegel-Scan-Bewertung markiert Kandidaten fuer Boost-Kopie oder Runtime-Absenkung.
+- Keine Massenänderung, keine Sounddatei-Änderung, keine config/**-Änderung.

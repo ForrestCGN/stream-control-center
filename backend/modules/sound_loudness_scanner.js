@@ -175,6 +175,15 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  app.get(`${ROUTE_PREFIX}/config/mass-volume-preview`, (req, res) => {
+    try {
+      ensureSchema();
+      res.json(buildExistingVolumePreview());
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
   app.post(`${ROUTE_PREFIX}/config/apply-defaults`, (req, res) => {
     try {
       ensureSchema();
@@ -865,6 +874,262 @@ function readModuleSetting(table, key, fallback, valueType = "number") {
 
 function applyModuleSetting(table, key, value, valueType, description) {
   return settingsHelper.setSetting(table, key, value, { valueType, description });
+}
+
+
+function tableExists(tableName) {
+  try {
+    const row = database.get("SELECT name FROM sqlite_master WHERE type='table' AND name=:name", { name: String(tableName || "") });
+    return !!row;
+  } catch (_) {
+    return false;
+  }
+}
+
+function tableColumns(tableName) {
+  if (!tableExists(tableName)) return [];
+  try {
+    return (database.all(`PRAGMA table_info(${tableName})`) || []).map(row => String(row.name || ""));
+  } catch (_) {
+    return [];
+  }
+}
+
+function hasColumn(tableName, columnName) {
+  return tableColumns(tableName).includes(String(columnName || ""));
+}
+
+function parseWarningsJson(raw) {
+  if (Array.isArray(raw)) return raw;
+  try {
+    const parsed = JSON.parse(String(raw || "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function numberOrNull(value) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function previewVolumeDecision(currentVolume, targetVolume, overwriteExisting) {
+  const current = numberOrNull(currentVolume);
+  if (current === null) return { action: "set_missing", wouldChange: true, before: null, after: targetVolume, reason: "missing_volume" };
+  if (current < 0 || current > 100) return { action: "set_invalid", wouldChange: true, before: current, after: targetVolume, reason: "invalid_volume" };
+  if (overwriteExisting && current !== targetVolume) return { action: "overwrite", wouldChange: true, before: current, after: targetVolume, reason: "overwrite_enabled" };
+  return { action: "keep", wouldChange: false, before: current, after: current, reason: current === targetVolume ? "already_target" : "explicit_volume_kept" };
+}
+
+function summarizePreviewRows(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return {
+    total: list.length,
+    wouldChange: list.filter(row => row.wouldChange).length,
+    alreadyTarget: list.filter(row => row.reason === "already_target").length,
+    explicitKept: list.filter(row => row.reason === "explicit_volume_kept").length,
+    missing: list.filter(row => row.reason === "missing_volume").length,
+    invalid: list.filter(row => row.reason === "invalid_volume").length,
+    volume100: list.filter(row => Number(row.before) === 100).length
+  };
+}
+
+function previewSoundAlertsEntries(targetVolume, overwriteExisting) {
+  const out = { area: "soundalerts", label: "SoundAlerts/Kanalpunkte", table: "soundalerts_bridge_entries", supported: false, summary: summarizePreviewRows([]), rows: [], note: "" };
+  if (!tableExists("soundalerts_bridge_entries")) {
+    out.note = "Tabelle soundalerts_bridge_entries nicht vorhanden.";
+    return out;
+  }
+  out.supported = true;
+  const rows = database.all(`
+    SELECT entry_key, enabled, status, soundalert_name, label, file, media_type, category, volume, output_target
+    FROM soundalerts_bridge_entries
+    ORDER BY enabled DESC, soundalert_name COLLATE NOCASE ASC, label COLLATE NOCASE ASC
+    LIMIT 1000
+  `) || [];
+  out.rows = rows.map(row => {
+    const decision = previewVolumeDecision(row.volume, targetVolume, overwriteExisting);
+    return {
+      id: String(row.entry_key || ""),
+      label: String(row.label || row.soundalert_name || row.entry_key || ""),
+      file: String(row.file || ""),
+      category: String(row.category || ""),
+      mediaType: String(row.media_type || ""),
+      enabled: Number(row.enabled || 0) ? true : false,
+      status: String(row.status || ""),
+      currentVolume: numberOrNull(row.volume),
+      targetVolume,
+      before: decision.before,
+      after: decision.after,
+      wouldChange: decision.wouldChange,
+      action: decision.action,
+      reason: decision.reason,
+      outputTarget: String(row.output_target || "")
+    };
+  });
+  out.summary = summarizePreviewRows(out.rows);
+  out.note = overwriteExisting ? "Overwrite ist aktiv: explizite Volume-Werte würden in einer späteren Apply-Aktion überschrieben." : "Overwrite ist aus: explizite Volume-Werte bleiben erhalten; nur fehlende/ungültige Werte wären Kandidaten.";
+  return out;
+}
+
+function previewAlertRules(targetVolume, overwriteExisting) {
+  const out = { area: "alerts", label: "Alert-Regeln", table: "alert_rules", supported: false, summary: summarizePreviewRows([]), rows: [], note: "" };
+  if (!tableExists("alert_rules")) {
+    out.note = "Tabelle alert_rules nicht vorhanden.";
+    return out;
+  }
+  const columns = tableColumns("alert_rules");
+  if (!columns.includes("sound_volume")) {
+    out.note = "alert_rules hat keine Spalte sound_volume. Alert-Sounds nutzen aktuell die Sound-System Defaults, sofern kein Sound-Item explizit volume setzt.";
+    return out;
+  }
+  out.supported = true;
+  const rows = database.all(`
+    SELECT id, source, type_key, label, enabled, sound_asset_id, sound_volume
+    FROM alert_rules
+    ORDER BY source ASC, type_key ASC, COALESCE(min_value, -999999) ASC, priority ASC, id ASC
+    LIMIT 1000
+  `) || [];
+  out.rows = rows.map(row => {
+    const decision = previewVolumeDecision(row.sound_volume, targetVolume, overwriteExisting);
+    return {
+      id: Number(row.id || 0),
+      label: String(row.label || `${row.source || ""}/${row.type_key || ""}`),
+      source: String(row.source || ""),
+      typeKey: String(row.type_key || ""),
+      enabled: Number(row.enabled || 0) ? true : false,
+      soundAssetId: numberOrNull(row.sound_asset_id),
+      currentVolume: numberOrNull(row.sound_volume),
+      targetVolume,
+      before: decision.before,
+      after: decision.after,
+      wouldChange: decision.wouldChange,
+      action: decision.action,
+      reason: decision.reason
+    };
+  });
+  out.summary = summarizePreviewRows(out.rows);
+  out.note = overwriteExisting ? "Overwrite ist aktiv: explizite Alert-Volumes würden in einer späteren Apply-Aktion überschrieben." : "Overwrite ist aus: explizite Alert-Volumes bleiben erhalten.";
+  return out;
+}
+
+function previewVipModSettings(targetVolume) {
+  const before = readModuleSetting("vip_sound_settings", "soundSystemVolume", 85, "number");
+  const current = numberOrNull(before);
+  return {
+    area: "vip_mod",
+    label: "VIP-/Mod-Sounds",
+    table: "vip_sound_settings",
+    supported: true,
+    summary: { total: 1, wouldChange: current !== targetVolume ? 1 : 0, alreadyTarget: current === targetVolume ? 1 : 0, explicitKept: 0, missing: current === null ? 1 : 0, invalid: 0, volume100: current === 100 ? 1 : 0 },
+    rows: [{
+      id: "soundSystemVolume",
+      label: "VIP-/Mod Default Volume",
+      currentVolume: current,
+      targetVolume,
+      before: current,
+      after: targetVolume,
+      wouldChange: current !== targetVolume,
+      action: current === targetVolume ? "keep" : "set_setting",
+      reason: current === targetVolume ? "already_target" : "setting_differs"
+    }],
+    note: "VIP-/Mod nutzt derzeit ein DB-Setting als Default, keine Massenänderung einzelner Dateien."
+  };
+}
+
+function buildLoudnessVolumeNeeds(targetVolume) {
+  if (!tableExists("sound_loudness_files")) {
+    return { supported: false, summary: { total: 0, boostCopyNeeded: 0, runtimeCutCandidate: 0, ok: 0 }, rows: [], note: "Noch keine Scan-Ergebnisse vorhanden." };
+  }
+  const rows = database.all(`
+    SELECT relative_path, duration_ms, input_i, input_tp, recommended_gain_db, recommended_volume, status, warnings_json, error_text
+    FROM sound_loudness_files
+    WHERE status <> 'error'
+    ORDER BY recommended_gain_db DESC, relative_path ASC
+    LIMIT 1000
+  `) || [];
+  const mapped = rows.map(row => {
+    const warnings = parseWarningsJson(row.warnings_json);
+    const gain = numberOrNull(row.recommended_gain_db);
+    const recommendedVolume = numberOrNull(row.recommended_volume);
+    const boostCopyNeeded = warnings.includes("volume_cap_reached") || (gain !== null && gain > 0 && recommendedVolume !== null && recommendedVolume >= 100);
+    const runtimeCutCandidate = gain !== null && gain < -1;
+    let classification = "ok";
+    if (boostCopyNeeded) classification = "boost_copy_needed";
+    else if (runtimeCutCandidate) classification = "runtime_cut_candidate";
+    return {
+      file: String(row.relative_path || ""),
+      inputI: numberOrNull(row.input_i),
+      inputTp: numberOrNull(row.input_tp),
+      durationMs: numberOrNull(row.duration_ms),
+      recommendedGainDb: gain,
+      recommendedVolume,
+      targetVolume,
+      warnings,
+      classification,
+      boostCopyNeeded,
+      runtimeCutCandidate,
+      status: String(row.status || ""),
+      errorText: String(row.error_text || "")
+    };
+  });
+  return {
+    supported: true,
+    summary: {
+      total: mapped.length,
+      boostCopyNeeded: mapped.filter(row => row.boostCopyNeeded).length,
+      runtimeCutCandidate: mapped.filter(row => row.runtimeCutCandidate).length,
+      ok: mapped.filter(row => row.classification === "ok").length
+    },
+    rows: mapped.filter(row => row.boostCopyNeeded || row.runtimeCutCandidate).slice(0, 250),
+    note: "Analyse aus dem letzten Pegel-Scan: zu leise Dateien mit Volume-Cap brauchen später eher Boost-Kopien; laute Dateien können per Runtime-Volume abgesenkt werden."
+  };
+}
+
+function buildExistingVolumePreview() {
+  const cfg = getLevelConfig();
+  const targetVolume = Math.round(clampNumber(cfg.defaultPlaybackVolume, 1, 100, 80));
+  const uploadTargetVolume = Math.round(clampNumber(cfg.uploadDefaultVolume, 1, 100, 80));
+  const mass = cfg.massApply || {};
+  const overwriteExisting = parseBool(mass.overwriteExistingVolumes, false) === true;
+  const sections = [];
+
+  if (mass.includeAlerts !== false) sections.push(previewAlertRules(targetVolume, overwriteExisting));
+  if (mass.includeSoundAlerts !== false) sections.push(previewSoundAlertsEntries(uploadTargetVolume, overwriteExisting));
+  if (mass.includeVipMod !== false) sections.push(previewVipModSettings(uploadTargetVolume));
+
+  const loudness = buildLoudnessVolumeNeeds(targetVolume);
+  const totalWouldChange = sections.reduce((sum, section) => sum + Number(section?.summary?.wouldChange || 0), 0);
+  const totalRows = sections.reduce((sum, section) => sum + Number(section?.summary?.total || 0), 0);
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    applied: false,
+    mode: "preview_only",
+    generatedAt: nowIso(),
+    config: cfg,
+    targetVolume,
+    uploadTargetVolume,
+    overwriteExistingVolumes: overwriteExisting,
+    summary: {
+      sections: sections.length,
+      totalRows,
+      totalWouldChange,
+      explicitVolume100: sections.reduce((sum, section) => sum + Number(section?.summary?.volume100 || 0), 0),
+      boostCopyNeeded: loudness.summary.boostCopyNeeded,
+      runtimeCutCandidate: loudness.summary.runtimeCutCandidate
+    },
+    sections,
+    loudness,
+    notes: [
+      "Nur Vorschau: Es werden keine bestehenden Alert-/SoundAlert-/VIP-Daten geändert.",
+      "OverwriteExistingVolumes entscheidet nur, was eine spätere Massenaktion ändern würde.",
+      "Boost-Kopie nötig bedeutet: normale Volume-Regelung bis 100% reicht laut Scan wahrscheinlich nicht."
+    ]
+  };
 }
 
 function buildUploadDefaultApplyResult(commit, updatedBy) {

@@ -20,6 +20,7 @@ window.SoundLevelScanModule = (function(){
     normalizationSettings: null,
     levelConfig: null,
     levelConfigApplyPreview: null,
+    massVolumePreview: null,
     correctionPreview: null,
     reference: null,
     referenceAudio: null,
@@ -313,6 +314,7 @@ window.SoundLevelScanModule = (function(){
         if (action === 'save-level-config') await saveLevelConfig();
         if (action === 'preview-apply-defaults') await previewApplyDefaults();
         if (action === 'apply-defaults') await applyDefaultsToModules();
+        if (action === 'preview-mass-volume') await previewMassVolume();
         if (action === 'reload-reference') await loadReferenceOnly(true);
         if (action === 'play-reference') await playReferenceSound();
         if (action === 'play-reference-test') await playReferenceTestSound();
@@ -388,6 +390,13 @@ window.SoundLevelScanModule = (function(){
     state.levelConfigApplyPreview = applied;
     state.lastMessage = 'Sound-Pegel Defaults wurden in SQLite-Modul-Settings übernommen. Backend/Sound-System danach neu laden.';
     await loadAll();
+  }
+
+  async function previewMassVolume(){
+    const preview = await api('/config/mass-volume-preview');
+    state.massVolumePreview = preview;
+    state.lastMessage = 'Bestehende Sound-Volumes Preview geladen. Es wurde nichts geändert.';
+    render();
   }
 
   async function saveLevelConfig(){
@@ -559,6 +568,7 @@ window.SoundLevelScanModule = (function(){
         const cfg = await api('/config');
         state.levelConfig = cfg.config || null;
         try { state.levelConfigApplyPreview = await api('/config/apply-defaults/preview'); } catch (_) { state.levelConfigApplyPreview = null; }
+        try { state.massVolumePreview = await api('/config/mass-volume-preview'); } catch (_) { state.massVolumePreview = null; }
         if (state.levelConfig?.defaultScanLimit) state.scanLimit = Number(state.levelConfig.defaultScanLimit) || state.scanLimit;
         if (state.levelConfig?.defaultResultLimit) state.resultLimit = Number(state.levelConfig.defaultResultLimit) || state.resultLimit;
         if (state.levelConfig?.defaultReferenceOutputTarget) state.referenceOutputTarget = normalizeReferenceOutputTarget(state.levelConfig.defaultReferenceOutputTarget);
@@ -1044,6 +1054,114 @@ window.SoundLevelScanModule = (function(){
     return String(value);
   }
 
+  function renderMassVolumePreview(){
+    const preview = state.massVolumePreview || null;
+    if (!preview || preview.ok === false) {
+      return `
+        <div class="sound-card muted">
+          <div class="sound-card-head">
+            <strong>Bestehende Sound-Volumes</strong>
+            <span>Noch keine Preview geladen.</span>
+          </div>
+          <button type="button" data-sound-level-action="preview-mass-volume" title="Lädt eine reine Vorschau. Es wird nichts geändert.">Volume-Preview laden</button>
+        </div>`;
+    }
+
+    const summary = preview.summary || {};
+    const sections = Array.isArray(preview.sections) ? preview.sections : [];
+    const loudness = preview.loudness || {};
+    return `
+      <div class="sound-card sound-levelscan-mass-preview">
+        <div class="sound-card-head">
+          <strong>Bestehende Sound-Volumes Preview</strong>
+          <span>Nur Analyse. Keine Massenänderung.</span>
+        </div>
+        <div class="sound-levelscan-summary-grid compact">
+          <div><strong>${esc(summary.totalRows ?? 0)}</strong><span>geprüfte Einträge</span></div>
+          <div><strong>${esc(summary.totalWouldChange ?? 0)}</strong><span>wären Kandidaten</span></div>
+          <div><strong>${esc(summary.explicitVolume100 ?? 0)}</strong><span>stehen auf 100%</span></div>
+          <div><strong>${esc(summary.boostCopyNeeded ?? 0)}</strong><span>Boost-Kopie nötig</span></div>
+          <div><strong>${esc(summary.runtimeCutCandidate ?? 0)}</strong><span>Runtime leiser</span></div>
+        </div>
+        <div class="sound-actions">
+          <button type="button" data-sound-level-action="preview-mass-volume" title="Aktualisiert die Vorschau. Es wird nichts geändert.">Volume-Preview neu laden</button>
+        </div>
+        ${sections.map(renderMassVolumeSection).join('')}
+        ${renderLoudnessNeeds(loudness)}
+        <p class="sound-muted small">${esc((preview.notes || []).join(' '))}</p>
+      </div>`;
+  }
+
+  function renderMassVolumeSection(section){
+    const rows = Array.isArray(section?.rows) ? section.rows : [];
+    const summary = section?.summary || {};
+    const shown = rows.filter(row => row.wouldChange || Number(row.before) === 100 || row.reason === 'explicit_volume_kept').slice(0, 25);
+    return `
+      <div class="sound-levelscan-subcard">
+        <div class="sound-card-head small">
+          <strong>${esc(section?.label || section?.area || 'Bereich')}</strong>
+          <span>${esc(section?.note || '')}</span>
+        </div>
+        <div class="sound-levelscan-summary-grid mini">
+          <div><strong>${esc(summary.total ?? 0)}</strong><span>gesamt</span></div>
+          <div><strong>${esc(summary.wouldChange ?? 0)}</strong><span>Kandidaten</span></div>
+          <div><strong>${esc(summary.volume100 ?? 0)}</strong><span>100%</span></div>
+          <div><strong>${esc(summary.explicitKept ?? 0)}</strong><span>bleiben</span></div>
+        </div>
+        ${shown.length ? `
+          <div class="sound-table-wrap compact">
+            <table class="sound-levelscan-table compact">
+              <thead><tr><th>Name</th><th>Datei/Bereich</th><th>Aktuell</th><th>Ziel</th><th>Aktion</th></tr></thead>
+              <tbody>
+                ${shown.map(row => `
+                  <tr class="${row.wouldChange ? 'is-warning' : ''}">
+                    <td>${esc(row.label || row.id || '-')}</td>
+                    <td>${esc(row.file || row.source || row.area || row.category || '-')}</td>
+                    <td>${row.before === null || row.before === undefined ? '-' : `${esc(row.before)}%`}</td>
+                    <td>${row.after === null || row.after === undefined ? '-' : `${esc(row.after)}%`}</td>
+                    <td><span class="sound-pill ${row.wouldChange ? 'warn' : 'success'}" title="${esc(row.reason || '')}">${esc(row.action || '-')}</span></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>` : `<p class="sound-muted small">Keine auffälligen Einträge in diesem Bereich.</p>`}
+      </div>`;
+  }
+
+  function renderLoudnessNeeds(loudness){
+    const rows = Array.isArray(loudness?.rows) ? loudness.rows : [];
+    const summary = loudness?.summary || {};
+    const shown = rows.slice(0, 30);
+    return `
+      <div class="sound-levelscan-subcard">
+        <div class="sound-card-head small">
+          <strong>Pegel-Scan Bewertung</strong>
+          <span>${esc(loudness?.note || '')}</span>
+        </div>
+        <div class="sound-levelscan-summary-grid mini">
+          <div><strong>${esc(summary.total ?? 0)}</strong><span>Scan-Ergebnisse</span></div>
+          <div><strong>${esc(summary.boostCopyNeeded ?? 0)}</strong><span>Boost-Kopie nötig</span></div>
+          <div><strong>${esc(summary.runtimeCutCandidate ?? 0)}</strong><span>Runtime leiser</span></div>
+          <div><strong>${esc(summary.ok ?? 0)}</strong><span>unauffällig</span></div>
+        </div>
+        ${shown.length ? `
+          <div class="sound-table-wrap compact">
+            <table class="sound-levelscan-table compact">
+              <thead><tr><th>Datei</th><th>LUFS</th><th>Gain</th><th>Volume</th><th>Bewertung</th></tr></thead>
+              <tbody>
+                ${shown.map(row => `
+                  <tr class="${row.boostCopyNeeded ? 'is-danger' : 'is-warning'}">
+                    <td>${esc(row.file || '-')}</td>
+                    <td>${num(row.inputI, 2)}</td>
+                    <td>${db(row.recommendedGainDb, 1)}</td>
+                    <td>${row.recommendedVolume === null || row.recommendedVolume === undefined ? '-' : `${esc(row.recommendedVolume)}%`}</td>
+                    <td><span class="sound-pill ${row.boostCopyNeeded ? 'danger' : 'warn'}">${row.boostCopyNeeded ? 'Boost-Kopie nötig' : 'Runtime leiser'}</span></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>` : `<p class="sound-muted small">Keine auffälligen Pegel-Kandidaten aus dem letzten Scan.</p>`}
+      </div>`;
+  }
+
   function renderConfigPanel(){
     const cfg = state.levelConfig || {};
     const upload = cfg.uploadDefaults || {};
@@ -1114,6 +1232,7 @@ window.SoundLevelScanModule = (function(){
 
         <div class="sound-actions">
           <button type="button" class="success" data-sound-level-action="save-level-config" title="Speichert diese Config in SQLite. Bestehende Sounds werden nicht geändert.">Config speichern</button>
+          <button type="button" data-sound-level-action="preview-mass-volume" title="Lädt eine Vorschau vorhandener Sound-Volumes. Keine Änderung.">Volume-Preview</button>
           <button type="button" data-sound-level-action="reload" title="Config, Status und Ergebnisse neu laden.">Neu laden</button>
         </div>
         <div class="sound-note"><strong>Wichtig:</strong> Diese Seite speichert zentrale Defaults in der Datenbank. Upload-Module und Massenaktionen werden in späteren Steps daran angeschlossen. In diesem Step werden keine vorhandenen Sounds überschrieben.</div>

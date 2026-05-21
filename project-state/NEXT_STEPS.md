@@ -551,3 +551,10 @@ STEP272D: Upload-Defaults in Alert-/SoundAlert-/VIP-Uploadstrecken anbinden.
 STEP272E: Massenaktion Preview fuer vorhandene Sound-Volumes bauen.
 STEP272F: Boost-Kopien fuer zu leise Sounds vorbereiten.
 ```
+
+
+## STEP272E - Sound-Pegel bestehende Volume-Preview
+- Neue Read-only API `GET /api/sound/loudness/config/mass-volume-preview`.
+- Dashboard `System -> Sound-Pegel -> Config` zeigt eine Volume-Preview fuer bestehende Alert-/SoundAlert-/VIP-Daten.
+- Pegel-Scan-Bewertung markiert Kandidaten fuer Boost-Kopie oder Runtime-Absenkung.
+- Keine Massenänderung, keine Sounddatei-Änderung, keine config/**-Änderung.

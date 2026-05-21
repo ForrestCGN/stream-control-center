@@ -255,3 +255,10 @@
 - `htdocs/dashboard/modules/sound_levelscan.js` und `.css` um Bereich fuer spaetere Pegel-Anpassung erweitert.
 - Normalisierte Kopien als eigene spaetere Option im Dashboard vorbereitet.
 - Keine Playback-Korrektur aktiviert, keine Sound-Dateien veraendert.
+
+
+## STEP272E - Sound-Pegel bestehende Volume-Preview
+- Neue Read-only API `GET /api/sound/loudness/config/mass-volume-preview`.
+- Dashboard `System -> Sound-Pegel -> Config` zeigt eine Volume-Preview fuer bestehende Alert-/SoundAlert-/VIP-Daten.
+- Pegel-Scan-Bewertung markiert Kandidaten fuer Boost-Kopie oder Runtime-Absenkung.
+- Keine Massenänderung, keine Sounddatei-Änderung, keine config/**-Änderung.

@@ -385,3 +385,10 @@ Offen:
   - Upload-Defaults fuer Alerts, SoundAlerts/Kanalpunkte, VIP-/Mod und Sound-Presets
   - Massenaktion fuer vorhandene Sounds als Preview-/Planungsbereich
 - Bestehende Sounds, Alert-Regeln, VIP-/Mod-Daten, SoundAlerts und Config-Dateien werden nicht umgeschrieben.
+
+
+## STEP272E - Sound-Pegel bestehende Volume-Preview
+- Neue Read-only API `GET /api/sound/loudness/config/mass-volume-preview`.
+- Dashboard `System -> Sound-Pegel -> Config` zeigt eine Volume-Preview fuer bestehende Alert-/SoundAlert-/VIP-Daten.
+- Pegel-Scan-Bewertung markiert Kandidaten fuer Boost-Kopie oder Runtime-Absenkung.
+- Keine Massenänderung, keine Sounddatei-Änderung, keine config/**-Änderung.

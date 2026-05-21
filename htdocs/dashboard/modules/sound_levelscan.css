@@ -856,3 +856,44 @@ html[data-theme=dark] .sound-levelscan-apply-values strong {
     grid-template-columns: 1fr;
   }
 }
+
+.sound-levelscan-mass-preview {
+  margin-top: 14px;
+}
+
+.sound-levelscan-subcard {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.035);
+}
+
+.sound-card-head.small strong {
+  font-size: 14px;
+}
+
+.sound-levelscan-summary-grid.mini {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  margin-top: 10px;
+}
+
+.sound-table-wrap.compact {
+  margin-top: 10px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.sound-levelscan-table.compact th,
+.sound-levelscan-table.compact td {
+  padding: 8px 9px;
+  font-size: 12px;
+}
+
+.sound-levelscan-table tr.is-warning td {
+  background: rgba(245, 158, 11, .07);
+}
+
+.sound-levelscan-table tr.is-danger td {
+  background: rgba(239, 68, 68, .08);
+}
