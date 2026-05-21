@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-05-21 - STEP266B Alert Immediate Bundle Prequeue Self-Block Fix
+
+- `backend/modules/alert_system.js` minimal korrigiert.
+- Immediate-Prequeue blockierte sich selbst, weil `alertBundlePrequeue.pending = true` gesetzt wurde und `prepareAndSendAlertSoundBundle(...)` danach wegen genau dieses Pending-Flags abbrach.
+- Die Schutzbedingung erlaubt jetzt interne Immediate-Prequeue-Aufrufe mit `allowPendingPrequeue: true`.
+- Funktional getestet:
+  - Zwei Alerts hintereinander.
+  - TTS blieb jeweils beim passenden Alert.
+  - Der naechste Alert startete erst nach Ende des vorherigen Alerts inklusive TTS.
+  - `raw.soundSystem.bundled = true`.
+- Nicht geaendert:
+  - `app.sqlite`
+  - `config/**`
+  - `backend/modules/sound_system.js`
+  - Sound-System Bundle-Core
+  - Streamer.bot-Flows
+  - Overlay-HTML
+
 ## 2026-05-20 - STEP238 Message-Rotator Output-Mode
 
 - `backend/modules/message_rotator.js` erweitert:
