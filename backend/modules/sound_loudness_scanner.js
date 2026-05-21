@@ -83,7 +83,7 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.10-step272i-dashboard-boost-workflow",
+    version: "0.1.11-step272i2-usage-check",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -236,6 +236,27 @@ module.exports.init = function init(ctx) {
       const limit = Math.round(clampNumber(req.query.limit, 1, 500, 100));
       const includeExisting = parseBool(req.query.includeExisting, true);
       res.json(buildBoostCopyPreview({ limit, includeExisting }));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.get(`${ROUTE_PREFIX}/usage/file`, (req, res) => {
+    try {
+      ensureSchema();
+      const relativePath = normalizeRelativePath(req.query.file || req.query.path || "");
+      if (!relativePath) return res.status(400).json({ ok: false, error: "file_required" });
+      const usageIndex = buildSoundUsageIndex();
+      const usage = usageIndex.get(relativePath) || [];
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        file: relativePath,
+        used: usage.length > 0,
+        usedByCount: usage.length,
+        usage,
+        note: usage.length ? "Datei ist in DB-Daten referenziert." : "Keine aktive/gespeicherte DB-Verwendung gefunden. Ein Ersetzen hätte ggf. keinen Live-Effekt."
+      });
     } catch (err) {
       res.status(500).json({ ok: false, error: errorMessage(err) });
     }
@@ -517,7 +538,8 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${ROUTE_PREFIX}/config/mass-volume-preview`, description: "Preview existing Alert/SoundAlert/VIP volume values and loudness-derived needs without changing data" },
         { method: "POST", path: `${ROUTE_PREFIX}/config/mass-volume-apply/alerts-missing`, description: "Set only missing/invalid Alert rule sound_volume values to the configured default" },
         { method: "POST", path: `${ROUTE_PREFIX}/config/adopt-reference-target`, description: "Store boost target LUFS based on auto reference minus safety dB" },
-        { method: "GET", path: `${ROUTE_PREFIX}/boost/preview`, description: "Preview files whose scan suggests a boosted copy is needed" },
+        { method: "GET", path: `${ROUTE_PREFIX}/boost/preview`, description: "Preview files whose scan suggests a boosted copy is needed, including DB usage mapping" },
+        { method: "GET", path: `${ROUTE_PREFIX}/usage/file?file=relative/path.mp3`, description: "Show where a sound file is referenced by Alert/SoundAlert data" },
         { method: "POST", path: `${ROUTE_PREFIX}/boost/create-one`, description: "Create or overwrite one boosted copy inside htdocs/assets/sounds/normalized without touching the original" },
         { method: "GET", path: `${ROUTE_PREFIX}/promote/history`, description: "List boost-copy promotions/backups" },
         { method: "POST", path: `${ROUTE_PREFIX}/promote/one`, description: "Replace original with existing boost copy after creating a timestamped backup" },
@@ -1257,6 +1279,127 @@ function getBoostCopyCandidates(limit = 100, includeExisting = true) {
   return candidates;
 }
 
+
+function buildSoundUsageIndex() {
+  const map = new Map();
+
+  if (tableExists("alert_rules") && tableExists("alert_assets")) {
+    const ruleCols = tableColumns("alert_rules");
+    const assetCols = tableColumns("alert_assets");
+    if (ruleCols.includes("sound_asset_id") && assetCols.includes("id")) {
+      const rows = database.all(`
+        SELECT
+          r.id AS rule_id,
+          r.label AS rule_label,
+          r.source AS source,
+          r.type_key AS type_key,
+          r.enabled AS rule_enabled,
+          r.sound_asset_id AS asset_id,
+          s.label AS asset_label,
+          s.file_path AS file_path,
+          s.public_url AS public_url,
+          s.original_name AS original_name,
+          s.enabled AS asset_enabled
+        FROM alert_rules r
+        LEFT JOIN alert_assets s ON s.id = r.sound_asset_id
+        WHERE r.sound_asset_id IS NOT NULL
+        ORDER BY r.enabled DESC, r.source ASC, r.type_key ASC, r.id ASC
+      `) || [];
+      for (const row of rows) {
+        const paths = soundRefCandidates(row.public_url, row.file_path, row.original_name);
+        for (const file of paths) {
+          addSoundUsage(map, file, {
+            area: "alerts",
+            type: "alert_rule",
+            label: String(row.rule_label || `${row.source || ""}/${row.type_key || ""}`),
+            ruleId: Number(row.rule_id || 0),
+            assetId: numberOrNull(row.asset_id),
+            assetLabel: String(row.asset_label || ""),
+            source: String(row.source || ""),
+            typeKey: String(row.type_key || ""),
+            enabled: Boolean(Number(row.rule_enabled || 0)) && Boolean(Number(row.asset_enabled ?? 1)),
+            fileRef: file
+          });
+        }
+      }
+    }
+  }
+
+  if (tableExists("soundalerts_bridge_entries")) {
+    const cols = tableColumns("soundalerts_bridge_entries");
+    if (cols.includes("file")) {
+      const rows = database.all(`
+        SELECT entry_key, enabled, status, soundalert_name, label, file, media_type, category, output_target
+        FROM soundalerts_bridge_entries
+        ORDER BY enabled DESC, soundalert_name COLLATE NOCASE ASC, label COLLATE NOCASE ASC
+      `) || [];
+      for (const row of rows) {
+        const paths = soundRefCandidates(row.file);
+        for (const file of paths) {
+          addSoundUsage(map, file, {
+            area: "soundalerts",
+            type: "soundalert_entry",
+            id: String(row.entry_key || ""),
+            label: String(row.label || row.soundalert_name || row.entry_key || ""),
+            category: String(row.category || ""),
+            mediaType: String(row.media_type || ""),
+            outputTarget: String(row.output_target || ""),
+            status: String(row.status || ""),
+            enabled: Boolean(Number(row.enabled || 0)),
+            fileRef: file
+          });
+        }
+      }
+    }
+  }
+
+  return map;
+}
+
+function addSoundUsage(map, relativePath, usage) {
+  const clean = normalizeSoundFileReference(relativePath);
+  if (!clean) return;
+  if (!map.has(clean)) map.set(clean, []);
+  const list = map.get(clean);
+  const key = `${usage.area || ""}:${usage.type || ""}:${usage.id || usage.ruleId || ""}:${usage.assetId || ""}`;
+  if (list.some(item => item._key === key)) return;
+  list.push({ ...usage, _key: key });
+}
+
+function soundRefCandidates(...values) {
+  const out = [];
+  for (const value of values) {
+    const clean = normalizeSoundFileReference(value);
+    if (clean && !out.includes(clean)) out.push(clean);
+  }
+  return out;
+}
+
+function normalizeSoundFileReference(value) {
+  let raw = String(value || "").trim();
+  if (!raw) return "";
+  raw = raw.replace(/\\/g, "/");
+  try { raw = decodeURIComponent(raw); } catch (_) {}
+  const lower = raw.toLowerCase();
+  const marker = "/assets/sounds/";
+  const markerIndex = lower.indexOf(marker);
+  if (markerIndex >= 0) raw = raw.slice(markerIndex + marker.length);
+  raw = raw.replace(/^https?:\/\/[^/]+\//i, "");
+  raw = raw.replace(/^htdocs\/assets\/sounds\//i, "");
+  raw = raw.replace(/^assets\/sounds\//i, "");
+  raw = raw.replace(/^\/assets\/sounds\//i, "");
+  raw = raw.replace(/^\/+/, "");
+  return normalizeRelativePath(raw);
+}
+
+function summarizeSoundUsage(usage) {
+  const rows = Array.isArray(usage) ? usage : [];
+  if (!rows.length) return "nicht in DB verwendet";
+  const active = rows.filter(row => row.enabled !== false);
+  const areas = Array.from(new Set(rows.map(row => row.area).filter(Boolean)));
+  return `${active.length}/${rows.length} aktiv · ${areas.join(", ")}`;
+}
+
 function getActivePromotionForFile(relativePath) {
   const clean = normalizeRelativePath(relativePath);
   if (!clean) return null;
@@ -1281,8 +1424,11 @@ function buildBoostCopyPreview(options = {}) {
   const target = getBoostTargetSettings(cfg);
   const limit = Math.round(clampNumber(options.limit, 1, 500, 100));
   const includeExisting = parseBool(options.includeExisting, true) !== false;
+  const usageIndex = buildSoundUsageIndex();
   const rows = getBoostCopyCandidates(limit, includeExisting);
   const processedRows = rows.map(row => {
+    const usage = usageIndex.get(row.file || row.sourceFile || "") || [];
+    const activeUsages = usage.filter(item => item.enabled !== false);
     const activePromotion = getActivePromotionForFile(row.file || row.sourceFile || "");
     const targetGainDb = calculateBoostGain(row.inputI, target);
     const maxSafeGainDb = calculateMaxSafeBoostGain(row.inputTp, target.maxGainDb);
@@ -1298,7 +1444,17 @@ function buildBoostCopyPreview(options = {}) {
       canOverwriteTestCopy: !activePromotion,
       canCreate: Boolean(row.canCreate) && !activePromotion,
       protectedReason: activePromotion ? "promoted_original_protected" : "",
-      note: activePromotion ? "Diese Datei wurde bereits als neues Original übernommen und ist geschützt. Für Änderungen erst Rollback oder später bewussten Re-Boost verwenden." : row.note,
+      usage,
+      usedByCount: usage.length,
+      activeUsedByCount: activeUsages.length,
+      isUsed: usage.length > 0,
+      isActivelyUsed: activeUsages.length > 0,
+      usageSummary: summarizeSoundUsage(usage),
+      note: activePromotion
+        ? "Diese Datei wurde bereits als neues Original übernommen und ist geschützt. Für Änderungen erst Rollback oder später bewussten Re-Boost verwenden."
+        : usage.length
+          ? row.note
+          : "Keine DB-Verwendung gefunden. Prüfe vor Übernahme, ob diese Datei wirklich live genutzt wird.",
       boostTargetLufs: target.targetLufs,
       targetGainDb: safeTargetGainDb,
       rawTargetGainDb: targetGainDb,
@@ -1323,14 +1479,17 @@ function buildBoostCopyPreview(options = {}) {
       missingCopies: processedRows.filter(row => !row.exists).length,
       creatable: processedRows.filter(row => row.canCreate).length,
       unsupported: processedRows.filter(row => !row.canCreate && !row.promotedOriginal).length,
-      protectedOriginals: processedRows.filter(row => row.promotedOriginal).length
+      protectedOriginals: processedRows.filter(row => row.promotedOriginal).length,
+      usedRows: processedRows.filter(row => row.isUsed).length,
+      activeUsedRows: processedRows.filter(row => row.isActivelyUsed).length,
+      unusedRows: processedRows.filter(row => !row.isUsed).length
     },
     config: cfg,
     rows: processedRows,
     notes: [
       "Nur Vorschau: Original-Sounddateien werden nicht verändert.",
       "Boost-Kopien werden in htdocs/assets/sounds/normalized/<originalpfad> geschrieben, damit /api/sound/play sie direkt testen kann.",
-      "STEP272I1: Boost-Kopien können im Dashboard pro Datei erzeugt, über wählbare Ausgabewege getestet und nach Übernahme geschützt werden."
+      "STEP272I2: Die Preview zeigt jetzt, ob eine Datei wirklich von Alert-/SoundAlert-Daten verwendet wird. Unbenutzte Dateien werden markiert, damit nicht die falsche Datei übernommen wird."
     ]
   };
 }

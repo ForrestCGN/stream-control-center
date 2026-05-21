@@ -311,3 +311,12 @@
 - Boost-Preview markiert übernommene Dateien als `promotedOriginal`.
 - Übernommene Originale werden backendseitig gegen versehentliches normales Re-Boost/Overwrite geschützt.
 - Dashboard zeigt übernommene Dateien als `als neues Original aktiv` und verweist auf Backup/Rollback.
+
+## STEP272I2 – Sound-Pegel Dashboard Verwendungsprüfung
+
+- Boost-Kopien-Preview zeigt jetzt DB-Verwendung pro Datei.
+- Backend ergänzt `/api/sound/loudness/usage/file?file=...`.
+- Nutzung wird aus Alert-Regeln/Alert-Assets und SoundAlerts/Kanalpunkte-Einträgen gelesen.
+- Dashboard markiert Dateien ohne aktive DB-Verwendung als mögliche Altdatei/Duplikat.
+- `Als Original übernehmen` wird bei nicht verwendeten Dateien blockiert, damit nicht versehentlich die falsche Datei ersetzt wird.
+- Keine Sounddateien, Regeln, `config/**`, Queue-, Discord- oder TTS-Logik geändert.

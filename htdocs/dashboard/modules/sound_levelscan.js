@@ -83,6 +83,7 @@ window.SoundLevelScanModule = (function(){
     boostOutput: 'Ausgabeweg für Original- und Boost-Test direkt aus dieser Ansicht. Overlay geht an OBS, Audiogerät an das konfigurierte Device, Beides nutzt beide Ausgaben.',
     boostPlayOriginal: 'Spielt die aktuelle Originaldatei über das Sound-System mit Volume 80 ab. Nutze denselben Ausgabeweg wie für die Boost-Kopie.',
     boostPlayCopy: 'Spielt die erzeugte Boost-Testkopie unter normalized/ über das Sound-System mit Volume 80 ab.',
+    boostUsage: 'Zeigt, ob diese Datei wirklich in Alert-Regeln oder SoundAlerts/Kanalpunkten verwendet wird. Unbenutzte Dateien sind oft Altdateien oder Duplikate.',
     promotedOriginal: 'Diese Datei wurde bereits als neues Original übernommen. Der Originalpfad bleibt gleich; ein Backup liegt in der Historie. Normales Überschreiben ist geschützt.'
   };
 
@@ -1044,7 +1045,7 @@ window.SoundLevelScanModule = (function(){
           <button type="button" data-sound-level-action="save-correction" title="Speichert nur die vorbereiteten Export-Einstellungen. Es werden keine Dateien erzeugt.">Export-Einstellungen speichern</button>
           <button type="button" data-sound-level-action="preview-boost-copies" title="Lädt Dateien, die laut Scan eine Boost-Kopie brauchen. Keine Änderung.">Boost-Preview laden</button>
         </div>
-        <div class="sound-note"><strong>STEP272H:</strong> Boost-Kopien können neu erzeugt und anschließend mit automatischem Backup an die Originalstelle übernommen werden. Bestehende Regeln müssen dadurch nicht umgestellt werden.</div>
+        <div class="sound-note"><strong>STEP272I2:</strong> Boost-Kopien zeigen jetzt auch die echte DB-Verwendung. Übernimm nur Dateien, die wirklich von Alerts/SoundAlerts genutzt werden.</div>
         ${renderBoostCopyPanel()}
       </div>
     `;
@@ -1097,6 +1098,28 @@ window.SoundLevelScanModule = (function(){
       </div>`;
   }
 
+  function renderBoostUsage(row){
+    const usage = Array.isArray(row.usage) ? row.usage : [];
+    if (!usage.length) {
+      return `<span class="sound-pill warn" title="${esc(HELP.boostUsage)}">nicht aktiv verwendet</span><br><small class="sound-muted">Altdatei / Duplikat möglich</small>`;
+    }
+    const active = usage.filter(item => item.enabled !== false);
+    const first = usage[0] || {};
+    const label = first.area === 'alerts'
+      ? `Alert: ${first.label || first.source || ''}`
+      : first.area === 'soundalerts'
+        ? `SoundAlert: ${first.label || first.id || ''}`
+        : (first.label || first.area || 'Verwendung');
+    const more = usage.length > 1 ? ` +${usage.length - 1}` : '';
+    const title = usage.map(item => {
+      if (item.area === 'alerts') return `Alert-Regel #${item.ruleId || '?'}: ${item.label || ''} (${item.source || ''}/${item.typeKey || ''})${item.enabled === false ? ' [deaktiviert]' : ''}`;
+      if (item.area === 'soundalerts') return `SoundAlert ${item.id || ''}: ${item.label || ''}${item.enabled === false ? ' [deaktiviert]' : ''}`;
+      return `${item.area || 'unknown'}: ${item.label || ''}`;
+    }).join('\n');
+    const pillClass = active.length ? 'success' : 'warn';
+    return `<span class="sound-pill ${pillClass}" title="${esc(title || HELP.boostUsage)}">${esc(active.length ? 'aktiv genutzt' : 'nur deaktiviert')}</span><br><small>${esc(label)}${esc(more)}</small>`;
+  }
+
   function renderBoostCopyPanel(){
     const preview = state.boostPreview || null;
     const result = state.boostApplyResult || null;
@@ -1122,6 +1145,8 @@ window.SoundLevelScanModule = (function(){
           <div><strong>${esc(summary.totalShown ?? 0)}</strong><span>angezeigt</span></div>
           <div><strong>${esc(summary.missingCopies ?? 0)}</strong><span>fehlen</span></div>
           <div><strong>${esc(summary.existingCopies ?? 0)}</strong><span>vorhanden</span></div>
+          <div><strong>${esc(summary.activeUsedRows ?? 0)}</strong><span>aktiv genutzt</span></div>
+          <div><strong>${esc(summary.unusedRows ?? 0)}</strong><span>ohne DB-Nutzung</span></div>
           <div><strong>${esc(summary.unsupported ?? 0)}</strong><span>nicht direkt</span></div>
           <div><strong>${num(preview.boostTarget?.targetLufs ?? (state.levelConfig?.boostTargetLufs ?? -14), 2)}</strong><span>Boost-Ziel LUFS</span></div>
           <div><strong>${num(state.reference?.referenceLufs ?? preview.boostTarget?.requestedTargetLufs ?? -14, 2)}</strong><span>Referenz LUFS</span></div>
@@ -1142,7 +1167,7 @@ window.SoundLevelScanModule = (function(){
         ${rows.length ? `
           <div class="sound-table-wrap compact">
             <table class="sound-levelscan-table compact">
-              <thead><tr><th>Datei</th><th>LUFS/Peak</th><th>Boost einstellen</th><th>Kopie</th><th>Aktion</th></tr></thead>
+              <thead><tr><th>Datei</th><th>Verwendung</th><th>LUFS/Peak</th><th>Boost einstellen</th><th>Kopie</th><th>Aktion</th></tr></thead>
               <tbody>
                 ${rows.slice(0, 40).map(row => {
                   const promoted = Boolean(row.promotedOriginal);
@@ -1150,6 +1175,7 @@ window.SoundLevelScanModule = (function(){
                   const copyLabel = promoted ? 'neues Original' : row.exists ? 'Test-Kopie' : row.canCreate ? 'fehlt' : 'nicht direkt';
                   const copyPill = promoted ? 'info' : row.exists ? 'success' : row.canCreate ? 'warn' : 'danger';
                   const outputFile = row.outputFile || '';
+                  const canPromote = row.exists && !promoted && Number(row.activeUsedByCount || row.usedByCount || 0) > 0;
                   return `
                   <tr class="${trClass}">
                     <td>
@@ -1158,6 +1184,7 @@ window.SoundLevelScanModule = (function(){
                       <br><small>${outputFile ? `Kopie: ${esc(outputFile)}` : ''}</small>
                       ${row.backupFile ? `<br><small>Backup: ${esc(row.backupFile)}</small>` : ''}
                     </td>
+                    <td>${renderBoostUsage(row)}</td>
                     <td>${num(row.inputI, 2)} LUFS<br><small>TP ${db(row.inputTp, 1)} dBTP</small></td>
                     <td>${renderBoostControl(row, preview)}</td>
                     <td><span class="sound-pill ${copyPill}">${copyLabel}</span></td>
@@ -1166,7 +1193,7 @@ window.SoundLevelScanModule = (function(){
                         <button type="button" data-sound-level-action="play-boost-original" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPlayOriginal)}">Original abspielen</button>
                         ${row.exists ? `<button type="button" data-sound-level-action="play-boost-copy" data-sound-level-output-file="${esc(outputFile)}" title="${esc(HELP.boostPlayCopy)}">Test-Kopie abspielen</button>` : ''}
                         ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>` : `<span class="sound-muted small">${esc(row.protectedReason ? 'geschützt' : (row.unsupportedReason || 'nicht unterstützt'))}</span>`}
-                        ${row.exists && !promoted ? `<button type="button" data-sound-level-action="promote-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPromote)}">Als Original übernehmen</button>` : ''}
+                        ${canPromote ? `<button type="button" data-sound-level-action="promote-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPromote)}">Als Original übernehmen</button>` : (row.exists && !promoted ? `<span class="sound-muted small" title="Keine DB-Verwendung gefunden. Übernehmen wäre vermutlich wirkungslos.">Übernahme gesperrt: nicht genutzt</span>` : '')}
                       </div>
                     </td>
                   </tr>`;
@@ -1657,7 +1684,7 @@ window.SoundLevelScanModule = (function(){
     { id: 'results', label: 'Ergebnisse', hint: 'Messwerte, Filter, Suche und Tabelle.' },
     { id: 'correction', label: 'Korrektur', hint: 'Playback-Korrektur und Korrektur-Vorschau konfigurieren.' },
     { id: 'config', label: 'Config', hint: 'Zentrale Defaults fuer Playback, Uploads und spaetere Massenaktionen.' },
-    { id: 'normalization', label: 'Boost-Kopien', hint: 'Preview und Einzeltest fuer zu leise Dateien. Originale bleiben unverändert.' }
+    { id: 'normalization', label: 'Boost-Kopien', hint: 'Preview, Nutzung prüfen und Einzeltest fuer zu leise Dateien.' }
   ];
 
   function renderLevelTabs(){

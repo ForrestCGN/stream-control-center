@@ -361,3 +361,12 @@ Das Sound-Pegel-Dashboard kann Boost-Kopien jetzt pro Datei mit einem Slider und
 ## STEP272I1 – Sound-Pegel Dashboard Testplay + Original-Schutz
 
 Der Boost-Kopien-Bereich kann Original und Boost-Testkopie jetzt direkt testweise über das Sound-System abspielen. Der Ausgabeweg ist wählbar: OBS/Overlay, Audiogerät oder OBS + Audiogerät. Übernommene Boost-Kopien werden als neues Original markiert und gegen versehentliches erneutes Erzeugen/Überschreiben geschützt. Rollback bleibt über die Promote-Historie möglich.
+
+## STEP272I2 – Sound-Pegel Dashboard Verwendungsprüfung
+
+- Boost-Kopien-Preview zeigt jetzt DB-Verwendung pro Datei.
+- Backend ergänzt `/api/sound/loudness/usage/file?file=...`.
+- Nutzung wird aus Alert-Regeln/Alert-Assets und SoundAlerts/Kanalpunkte-Einträgen gelesen.
+- Dashboard markiert Dateien ohne aktive DB-Verwendung als mögliche Altdatei/Duplikat.
+- `Als Original übernehmen` wird bei nicht verwendeten Dateien blockiert, damit nicht versehentlich die falsche Datei ersetzt wird.
+- Keine Sounddateien, Regeln, `config/**`, Queue-, Discord- oder TTS-Logik geändert.

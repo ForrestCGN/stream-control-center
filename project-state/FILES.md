@@ -621,3 +621,12 @@ TTS-System
 - `htdocs/dashboard/modules/sound_levelscan.js` – Test-Ausgabe-Auswahl, Original/Test-Kopie-Abspielen, Schutzstatus im Boost-Tab.
 - `htdocs/dashboard/modules/sound_levelscan.css` – Styles für Test-Aktionen und geschützte Originale.
 - `project-state/STEP272I1_SOUND_PEGEL_DASHBOARD_TESTPLAY_ORIGINAL_PROTECT.md` – Step-Dokumentation.
+
+## STEP272I2 – Sound-Pegel Dashboard Verwendungsprüfung
+
+- Boost-Kopien-Preview zeigt jetzt DB-Verwendung pro Datei.
+- Backend ergänzt `/api/sound/loudness/usage/file?file=...`.
+- Nutzung wird aus Alert-Regeln/Alert-Assets und SoundAlerts/Kanalpunkte-Einträgen gelesen.
+- Dashboard markiert Dateien ohne aktive DB-Verwendung als mögliche Altdatei/Duplikat.
+- `Als Original übernehmen` wird bei nicht verwendeten Dateien blockiert, damit nicht versehentlich die falsche Datei ersetzt wird.
+- Keine Sounddateien, Regeln, `config/**`, Queue-, Discord- oder TTS-Logik geändert.

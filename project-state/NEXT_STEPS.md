@@ -601,3 +601,12 @@ STEP272F: Boost-Kopien fuer zu leise Sounds vorbereiten.
 - Bei Bedarf Rollback über die Promote-Historie ausführen.
 - Danach weitere zu leise Audio-Dateien einzeln bearbeiten.
 - Video-Dateien wie `soundalerts/video/putzen.webm` später separat unterstützen.
+
+## STEP272I2 – Sound-Pegel Dashboard Verwendungsprüfung
+
+- Boost-Kopien-Preview zeigt jetzt DB-Verwendung pro Datei.
+- Backend ergänzt `/api/sound/loudness/usage/file?file=...`.
+- Nutzung wird aus Alert-Regeln/Alert-Assets und SoundAlerts/Kanalpunkte-Einträgen gelesen.
+- Dashboard markiert Dateien ohne aktive DB-Verwendung als mögliche Altdatei/Duplikat.
+- `Als Original übernehmen` wird bei nicht verwendeten Dateien blockiert, damit nicht versehentlich die falsche Datei ersetzt wird.
+- Keine Sounddateien, Regeln, `config/**`, Queue-, Discord- oder TTS-Logik geändert.
