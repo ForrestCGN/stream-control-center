@@ -637,3 +637,9 @@ TTS-System
 - Die Auswahl bleibt nach Erzeugen/Testen/Übernehmen/Neu-Laden erhalten, solange die Datei weiter in der Preview vorkommt.
 - Keine Backend-/Datei-/Config-Änderungen; nur Dashboard-Workflow/UX.
 
+## STEP272I4 - Sound-Pegel Scan-Excludes
+
+- Backup-/Test-/Generated-Ordner werden vom Sound-Pegel-Scan ausgeschlossen: `_backup_loudness`, `normalized`, `generated`.
+- Zweck: Übernommene Original-Backups, Boost-Testkopien und Referenz-Testdateien tauchen nicht mehr als produktive Sounds in Scan-/Boost-Listen auf.
+- Keine Sounddateien, Regeln, Queue, Discord-Routing, TTS oder `config/**` geändert.
+

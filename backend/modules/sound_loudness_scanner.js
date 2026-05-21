@@ -20,7 +20,17 @@ const DEFAULT_MAX_PLAYBACK_VOLUME = 80;
 const DEFAULT_SCAN_LIMIT = 500;
 const DEFAULT_FFMPEG_TIMEOUT_MS = 45000;
 const DEFAULT_EXCLUDE_TTS = true;
-const DEFAULT_EXCLUDED_PATH_SEGMENTS = ["tts", "tts_system", "alert_tts", "generated_tts", "temp_tts", "tts_cache"];
+const DEFAULT_EXCLUDED_PATH_SEGMENTS = [
+  "tts",
+  "tts_system",
+  "alert_tts",
+  "generated_tts",
+  "temp_tts",
+  "tts_cache",
+  "_backup_loudness",
+  "normalized",
+  "generated"
+];
 const DEFAULT_CORRECTION_SETTINGS = {
   enabled: false,
   mode: "off",
@@ -2565,6 +2575,8 @@ function walkDir(baseDir, currentDir, allowedExtensions, files, limit, options =
     if (!entry || entry.name.startsWith(".")) continue;
     const fullPath = path.join(currentDir, entry.name);
     if (entry.isDirectory()) {
+      const relativeDir = normalizeRelativePath(path.relative(baseDir, fullPath));
+      if (options.excludeTts !== false && isExcludedTtsPath(relativeDir, options.excludedPathSegments)) continue;
       walkDir(baseDir, fullPath, allowedExtensions, files, limit, options);
       continue;
     }
