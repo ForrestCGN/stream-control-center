@@ -1,6 +1,29 @@
 # Current Status – stream-control-center
 
-Stand: 2026-05-20
+Stand: 2026-05-21
+
+## STEP266B - Alert Immediate Bundle Prequeue Self-Block Fix
+
+- Alert-System läuft wieder mit Sound-System-Bundles.
+- STEP266B behebt den Selbstblocker im Immediate-Prequeue-Pfad.
+- Ursache war: `alertBundlePrequeue.pending = true` wurde gesetzt und `prepareAndSendAlertSoundBundle(...)` brach danach wegen genau dieses Pending-Flags ab.
+- Fix: `prepareAndSendAlertSoundBundle(...)` erlaubt den internen Immediate-Prequeue-Aufruf jetzt mit `allowPendingPrequeue: true`.
+- Geändert wurde nur `backend/modules/alert_system.js`.
+- Nicht geändert:
+  - `app.sqlite`
+  - `config/**`
+  - `backend/modules/sound_system.js`
+  - Sound-System Bundle-Core
+  - Streamer.bot-Flows
+  - Overlay-HTML
+- Manueller Test nach Deploy/Node-Neustart bestanden:
+  - Zwei Alerts hintereinander liefen sauber nacheinander.
+  - TTS blieb jeweils beim passenden Alert.
+  - Der Alert blieb bis nach TTS sichtbar.
+  - Der nächste Alert startete erst danach.
+  - `raw.soundSystem.bundled = true`.
+- Status: funktional stabiler Hotfix.
+- Weiter beobachten: Mehrere echte Live-Alerts mit TTS dürfen sich nicht wieder vermischen.
 
 ## STEP238 - Message-Rotator Output-Mode
 
