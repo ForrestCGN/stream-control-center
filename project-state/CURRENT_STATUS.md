@@ -440,3 +440,10 @@ Der Dashboard-Workflow für Boost-Kopien unterstützt jetzt direktes Test-Abspie
 - Dashboard markiert Dateien ohne aktive DB-Verwendung als mögliche Altdatei/Duplikat.
 - `Als Original übernehmen` wird bei nicht verwendeten Dateien blockiert, damit nicht versehentlich die falsche Datei ersetzt wird.
 - Keine Sounddateien, Regeln, `config/**`, Queue-, Discord- oder TTS-Logik geändert.
+
+## STEP272I3 - Sound-Pegel Dashboard Dropdown-Auswahl
+- Boost-Kandidaten werden nicht mehr als lange Liste untereinander angezeigt.
+- Im Tab `Boost-Kopien` wählt man jetzt genau eine Datei per Dropdown aus.
+- Die Auswahl bleibt nach Erzeugen/Testen/Übernehmen/Neu-Laden erhalten, solange die Datei weiter in der Preview vorkommt.
+- Keine Backend-/Datei-/Config-Änderungen; nur Dashboard-Workflow/UX.
+

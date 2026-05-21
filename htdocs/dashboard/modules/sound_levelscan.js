@@ -30,6 +30,7 @@ window.SoundLevelScanModule = (function(){
     referenceAudio: null,
     referenceOutputTarget: localStorage.getItem('sound-level-reference-output-target') || 'overlay',
     boostOutputTarget: localStorage.getItem('sound-level-boost-output-target') || localStorage.getItem('sound-level-reference-output-target') || 'overlay',
+    selectedBoostFile: localStorage.getItem('sound-level-selected-boost-file') || '',
     lastMessage: '',
     activeTab: 'overview'
   };
@@ -84,6 +85,7 @@ window.SoundLevelScanModule = (function(){
     boostPlayOriginal: 'Spielt die aktuelle Originaldatei über das Sound-System mit Volume 80 ab. Nutze denselben Ausgabeweg wie für die Boost-Kopie.',
     boostPlayCopy: 'Spielt die erzeugte Boost-Testkopie unter normalized/ über das Sound-System mit Volume 80 ab.',
     boostUsage: 'Zeigt, ob diese Datei wirklich in Alert-Regeln oder SoundAlerts/Kanalpunkten verwendet wird. Unbenutzte Dateien sind oft Altdateien oder Duplikate.',
+    boostFileSelect: 'Wählt genau eine Datei zur Bearbeitung aus. Die Auswahl bleibt nach Erzeugen, Testen, Übernehmen oder Neu-Laden erhalten, solange die Datei weiter in der Preview vorkommt.',
     promotedOriginal: 'Diese Datei wurde bereits als neues Original übernommen. Der Originalpfad bleibt gleich; ein Backup liegt in der Historie. Normales Überschreiben ist geschützt.'
   };
 
@@ -373,6 +375,13 @@ window.SoundLevelScanModule = (function(){
         render();
         return;
       }
+      if (target.id === 'soundLevelBoostFileSelect') {
+        state.selectedBoostFile = String(target.value || '').trim();
+        try { localStorage.setItem('sound-level-selected-boost-file', state.selectedBoostFile); } catch (_) {}
+        state.lastMessage = state.selectedBoostFile ? `Boost-Datei ausgewählt: ${state.selectedBoostFile}` : 'Keine Boost-Datei ausgewählt.';
+        render();
+        return;
+      }
       if (target.dataset.soundLevelBoostPreset) {
         applyBoostPreset(target);
         return;
@@ -459,6 +468,7 @@ window.SoundLevelScanModule = (function(){
   async function previewBoostCopies(){
     const preview = await api('/boost/preview?limit=100&includeExisting=true');
     state.boostPreview = preview;
+    ensureSelectedBoostFile(Array.isArray(preview.rows) ? preview.rows : []);
     state.lastMessage = 'Boost-Kopien Preview geladen. Es wurde noch nichts erzeugt.';
     render();
   }
@@ -478,7 +488,10 @@ window.SoundLevelScanModule = (function(){
     if (rowSettings.maxGainDb !== null) body.maxGainDb = rowSettings.maxGainDb;
     const result = await api('/boost/create-one', { method: 'POST', body: JSON.stringify(body) });
     state.boostApplyResult = result;
+    state.selectedBoostFile = clean;
+    try { localStorage.setItem('sound-level-selected-boost-file', state.selectedBoostFile); } catch (_) {}
     state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true');
+    ensureSelectedBoostFile(Array.isArray(state.boostPreview.rows) ? state.boostPreview.rows : []);
     state.lastMessage = `Boost-Kopie erzeugt: ${result.outputFile || clean} mit ${db(result.gainDb, 1)}. Geschätzter Peak: ${db(result.estimatedPeakAfterBoostDbtp, 1)} dBTP.`;
     render();
   }
@@ -579,8 +592,11 @@ window.SoundLevelScanModule = (function(){
     if (!clean) throw new Error('Keine Datei zum Übernehmen ausgewählt.');
     const result = await api('/promote/one', { method: 'POST', body: JSON.stringify({ file: clean, updatedBy: 'dashboard' }) });
     state.promoteResult = result;
+    state.selectedBoostFile = clean;
+    try { localStorage.setItem('sound-level-selected-boost-file', state.selectedBoostFile); } catch (_) {}
     state.promoteHistory = await api('/promote/history?limit=50');
     state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true');
+    ensureSelectedBoostFile(Array.isArray(state.boostPreview.rows) ? state.boostPreview.rows : []);
     state.lastMessage = `Boost-Kopie übernommen: ${result.sourceFile || clean}. Backup: ${result.backupFile || ''}`;
     render();
   }
@@ -592,6 +608,8 @@ window.SoundLevelScanModule = (function(){
     const result = await api('/promote/rollback-one', { method: 'POST', body: JSON.stringify(body) });
     state.promoteResult = result;
     state.promoteHistory = await api('/promote/history?limit=50');
+    state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true');
+    ensureSelectedBoostFile(Array.isArray(state.boostPreview.rows) ? state.boostPreview.rows : []);
     state.lastMessage = `Original wiederhergestellt: ${result.restoredFile || file}.`;
     render();
   }
@@ -607,6 +625,7 @@ window.SoundLevelScanModule = (function(){
     state.levelConfig = result.config || state.levelConfig;
     state.reference = result.reference || state.reference;
     state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true');
+    ensureSelectedBoostFile(Array.isArray(state.boostPreview.rows) ? state.boostPreview.rows : []);
     state.lastMessage = `Boost-Ziel aus Referenz übernommen: ${num(result.targetLufs, 2)} LUFS.`;
     setLoading(false);
     render();
@@ -1120,6 +1139,106 @@ window.SoundLevelScanModule = (function(){
     return `<span class="sound-pill ${pillClass}" title="${esc(title || HELP.boostUsage)}">${esc(active.length ? 'aktiv genutzt' : 'nur deaktiviert')}</span><br><small>${esc(label)}${esc(more)}</small>`;
   }
 
+
+  function ensureSelectedBoostFile(rows){
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) {
+      state.selectedBoostFile = '';
+      try { localStorage.removeItem('sound-level-selected-boost-file'); } catch (_) {}
+      return '';
+    }
+    const current = String(state.selectedBoostFile || '').trim();
+    if (current && list.some(row => String(row.file || '') === current)) return current;
+    const preferred = list.find(row => Number(row.activeUsedByCount || 0) > 0) || list.find(row => Number(row.usedByCount || 0) > 0) || list[0];
+    state.selectedBoostFile = String(preferred?.file || '');
+    try { localStorage.setItem('sound-level-selected-boost-file', state.selectedBoostFile); } catch (_) {}
+    return state.selectedBoostFile;
+  }
+
+  function boostUsageShort(row){
+    if (!row) return 'unbekannt';
+    if (Number(row.activeUsedByCount || 0) > 0) {
+      const first = Array.isArray(row.usage) ? row.usage.find(u => u && u.enabled !== false) || row.usage[0] : null;
+      const area = first?.area || 'aktiv';
+      const label = first?.label || first?.assetLabel || '';
+      return `${area}${label ? `: ${label}` : ''}`;
+    }
+    if (Number(row.usedByCount || 0) > 0) return 'nur deaktiviert';
+    return 'nicht verwendet';
+  }
+
+  function boostSelectLabel(row){
+    const file = String(row?.file || '-');
+    const status = boostUsageShort(row);
+    const lufs = Number.isFinite(Number(row?.inputI)) ? `${num(row.inputI, 1)} LUFS` : 'LUFS ?';
+    const copy = row?.promotedOriginal ? ' · neues Original' : row?.exists ? ' · Testkopie da' : '';
+    return `${status} · ${file} · ${lufs}${copy}`;
+  }
+
+  function renderBoostFileSelector(rows){
+    const list = Array.isArray(rows) ? rows : [];
+    const selected = ensureSelectedBoostFile(list);
+    const active = list.filter(row => Number(row.activeUsedByCount || 0) > 0);
+    const inactive = list.filter(row => Number(row.activeUsedByCount || 0) <= 0 && Number(row.usedByCount || 0) > 0);
+    const unused = list.filter(row => Number(row.usedByCount || 0) <= 0);
+    const option = (row) => `<option value="${esc(row.file || '')}" ${String(row.file || '') === selected ? 'selected' : ''}>${esc(boostSelectLabel(row))}</option>`;
+    const group = (label, items) => items.length ? `<optgroup label="${esc(label)}">${items.map(option).join('')}</optgroup>` : '';
+    const selectedRow = list.find(row => String(row.file || '') === selected) || null;
+    return `
+      <div class="sound-boost-selector" title="${esc(HELP.boostFileSelect)}">
+        <label class="sound-field wide">
+          <span>${withHelp('Sound auswählen', HELP.boostFileSelect)}</span>
+          <select id="soundLevelBoostFileSelect">
+            ${group('Aktiv genutzte Sounds', active)}
+            ${group('Gespeichert, aber deaktiviert', inactive)}
+            ${group('Nicht in DB verwendet / Altdateien', unused)}
+          </select>
+        </label>
+        ${selectedRow ? `<div class="sound-boost-selected-info">
+          <strong>${esc(selectedRow.file || '')}</strong>
+          <span>${esc(boostUsageShort(selectedRow))}</span>
+        </div>` : '<p class="sound-muted small">Keine Datei ausgewählt.</p>'}
+      </div>`;
+  }
+
+  function renderBoostSelectedRow(row, preview){
+    if (!row) return `<p class="sound-muted small">Keine Boost-Datei ausgewählt.</p>`;
+    const promoted = Boolean(row.promotedOriginal);
+    const trClass = promoted ? 'is-protected' : row.exists ? 'is-success' : 'is-danger';
+    const copyLabel = promoted ? 'neues Original' : row.exists ? 'Test-Kopie' : row.canCreate ? 'fehlt' : 'nicht direkt';
+    const copyPill = promoted ? 'info' : row.exists ? 'success' : row.canCreate ? 'warn' : 'danger';
+    const outputFile = row.outputFile || '';
+    const canPromote = row.exists && !promoted && Number(row.activeUsedByCount || row.usedByCount || 0) > 0;
+    return `
+      <div class="sound-table-wrap compact sound-boost-selected-wrap">
+        <table class="sound-levelscan-table compact">
+          <thead><tr><th>Datei</th><th>Verwendung</th><th>LUFS/Peak</th><th>Boost einstellen</th><th>Kopie</th><th>Aktion</th></tr></thead>
+          <tbody>
+            <tr class="${trClass}">
+              <td>
+                ${esc(row.file || '-')}
+                ${promoted ? `<br><span class="sound-pill info" title="${esc(HELP.promotedOriginal)}">als neues Original aktiv</span>` : ''}
+                <br><small>${outputFile ? `Kopie: ${esc(outputFile)}` : ''}</small>
+                ${row.backupFile ? `<br><small>Backup: ${esc(row.backupFile)}</small>` : ''}
+              </td>
+              <td>${renderBoostUsage(row)}</td>
+              <td>${num(row.inputI, 2)} LUFS<br><small>TP ${db(row.inputTp, 1)} dBTP</small></td>
+              <td>${renderBoostControl(row, preview)}</td>
+              <td><span class="sound-pill ${copyPill}">${copyLabel}</span></td>
+              <td>
+                <div class="sound-boost-row-actions">
+                  <button type="button" data-sound-level-action="play-boost-original" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPlayOriginal)}">Original abspielen</button>
+                  ${row.exists ? `<button type="button" data-sound-level-action="play-boost-copy" data-sound-level-output-file="${esc(outputFile)}" title="${esc(HELP.boostPlayCopy)}">Test-Kopie abspielen</button>` : ''}
+                  ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>` : `<span class="sound-muted small">${esc(row.protectedReason ? 'geschützt' : (row.unsupportedReason || 'nicht unterstützt'))}</span>`}
+                  ${canPromote ? `<button type="button" data-sound-level-action="promote-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPromote)}">Als Original übernehmen</button>` : (row.exists && !promoted ? `<span class="sound-muted small" title="Keine DB-Verwendung gefunden. Übernehmen wäre vermutlich wirkungslos.">Übernahme gesperrt: nicht genutzt</span>` : '')}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>`;
+  }
+
   function renderBoostCopyPanel(){
     const preview = state.boostPreview || null;
     const result = state.boostApplyResult || null;
@@ -1165,42 +1284,9 @@ window.SoundLevelScanModule = (function(){
           <button type="button" data-sound-level-action="preview-boost-copies">Boost-Preview neu laden</button>
         </div>
         ${rows.length ? `
-          <div class="sound-table-wrap compact">
-            <table class="sound-levelscan-table compact">
-              <thead><tr><th>Datei</th><th>Verwendung</th><th>LUFS/Peak</th><th>Boost einstellen</th><th>Kopie</th><th>Aktion</th></tr></thead>
-              <tbody>
-                ${rows.slice(0, 40).map(row => {
-                  const promoted = Boolean(row.promotedOriginal);
-                  const trClass = promoted ? 'is-protected' : row.exists ? 'is-success' : 'is-danger';
-                  const copyLabel = promoted ? 'neues Original' : row.exists ? 'Test-Kopie' : row.canCreate ? 'fehlt' : 'nicht direkt';
-                  const copyPill = promoted ? 'info' : row.exists ? 'success' : row.canCreate ? 'warn' : 'danger';
-                  const outputFile = row.outputFile || '';
-                  const canPromote = row.exists && !promoted && Number(row.activeUsedByCount || row.usedByCount || 0) > 0;
-                  return `
-                  <tr class="${trClass}">
-                    <td>
-                      ${esc(row.file || '-')}
-                      ${promoted ? `<br><span class="sound-pill info" title="${esc(HELP.promotedOriginal)}">als neues Original aktiv</span>` : ''}
-                      <br><small>${outputFile ? `Kopie: ${esc(outputFile)}` : ''}</small>
-                      ${row.backupFile ? `<br><small>Backup: ${esc(row.backupFile)}</small>` : ''}
-                    </td>
-                    <td>${renderBoostUsage(row)}</td>
-                    <td>${num(row.inputI, 2)} LUFS<br><small>TP ${db(row.inputTp, 1)} dBTP</small></td>
-                    <td>${renderBoostControl(row, preview)}</td>
-                    <td><span class="sound-pill ${copyPill}">${copyLabel}</span></td>
-                    <td>
-                      <div class="sound-boost-row-actions">
-                        <button type="button" data-sound-level-action="play-boost-original" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPlayOriginal)}">Original abspielen</button>
-                        ${row.exists ? `<button type="button" data-sound-level-action="play-boost-copy" data-sound-level-output-file="${esc(outputFile)}" title="${esc(HELP.boostPlayCopy)}">Test-Kopie abspielen</button>` : ''}
-                        ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>` : `<span class="sound-muted small">${esc(row.protectedReason ? 'geschützt' : (row.unsupportedReason || 'nicht unterstützt'))}</span>`}
-                        ${canPromote ? `<button type="button" data-sound-level-action="promote-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostPromote)}">Als Original übernehmen</button>` : (row.exists && !promoted ? `<span class="sound-muted small" title="Keine DB-Verwendung gefunden. Übernehmen wäre vermutlich wirkungslos.">Übernahme gesperrt: nicht genutzt</span>` : '')}
-                      </div>
-                    </td>
-                  </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>` : `<p class="sound-muted small">Keine Boost-Kandidaten gefunden.</p>`}
+          ${renderBoostFileSelector(rows)}
+          ${renderBoostSelectedRow(rows.find(row => String(row.file || '') === state.selectedBoostFile) || rows[0], preview)}
+        ` : `<p class="sound-muted small">Keine Boost-Kandidaten gefunden.</p>`}
         ${renderPromotionHistory()}
       </div>`;
   }

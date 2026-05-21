@@ -1008,3 +1008,59 @@ html[data-theme=dark] .sound-levelscan-apply-values strong {
   background: rgba(37, 99, 235, .20);
   color: #bfdbfe;
 }
+
+.sound-boost-selector {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin: 10px 0 12px;
+  padding: 12px;
+  border: 1px solid rgba(168, 85, 247, .22);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, .46);
+}
+
+.sound-field.wide {
+  min-width: min(100%, 520px);
+}
+
+.sound-field.wide select {
+  width: 100%;
+  min-height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(15,23,42,.86);
+  color: #f8fafc;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sound-boost-selected-info {
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  text-align: right;
+}
+
+.sound-boost-selected-info strong {
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.sound-boost-selected-wrap {
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .sound-boost-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .sound-boost-selected-info {
+    text-align: left;
+  }
+}
