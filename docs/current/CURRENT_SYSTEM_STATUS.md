@@ -383,3 +383,8 @@ Der Boost-Kopien-Bereich kann Original und Boost-Testkopie jetzt direkt testweis
 - Zweck: Übernommene Original-Backups, Boost-Testkopien und Referenz-Testdateien tauchen nicht mehr als produktive Sounds in Scan-/Boost-Listen auf.
 - Keine Sounddateien, Regeln, Queue, Discord-Routing, TTS oder `config/**` geändert.
 
+
+
+## STEP272I5 - Sound-Pegel Scan Hotfix
+
+Der synchrone Sound-Pegel-Scan wurde repariert. Der Fehler `startedAt is not defined` entstand durch eine falsche Variable in `runScan()` und ist auf `prepared.startedAt` korrigiert. Keine Sounddateien oder Konfigurationsdateien wurden verändert.

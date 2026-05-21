@@ -93,7 +93,7 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.11-step272i2-usage-check",
+    version: "0.1.12-step272i5-scan-startedat-fix",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -629,7 +629,7 @@ module.exports.init = function init(ctx) {
       files = findSoundFiles(options.baseDir, options.allowedExtensions, options.limit, options);
       summary = {
         scanId: state.lastScanId,
-        startedAt,
+        startedAt: prepared.startedAt,
         finishedAt: "",
         baseDir: options.baseDir,
         targetLufs: options.targetLufs,

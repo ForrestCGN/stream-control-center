@@ -623,3 +623,11 @@ STEP272F: Boost-Kopien fuer zu leise Sounds vorbereiten.
 - Zweck: Übernommene Original-Backups, Boost-Testkopien und Referenz-Testdateien tauchen nicht mehr als produktive Sounds in Scan-/Boost-Listen auf.
 - Keine Sounddateien, Regeln, Queue, Discord-Routing, TTS oder `config/**` geändert.
 
+
+
+## Nach STEP272I5
+
+1. Backend neu starten.
+2. `/api/sound/loudness/scan` erneut mit `limit=500` testen.
+3. Boost-Preview prüfen, ob Backup-/normalized-/generated-Pfade ausgeschlossen bleiben.
+4. Danach echte Alert-/SoundAlert-Tests mit den übernommenen Dateien fortsetzen.

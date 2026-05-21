@@ -643,3 +643,9 @@ TTS-System
 - Zweck: Übernommene Original-Backups, Boost-Testkopien und Referenz-Testdateien tauchen nicht mehr als produktive Sounds in Scan-/Boost-Listen auf.
 - Keine Sounddateien, Regeln, Queue, Discord-Routing, TTS oder `config/**` geändert.
 
+
+
+## STEP272I5
+
+- `backend/modules/sound_loudness_scanner.js` - Hotfix für `startedAt` im synchronen Scan.
+- `project-state/STEP272I5_SOUND_PEGEL_SCAN_STARTEDAT_FIX.md` - Step-Doku.

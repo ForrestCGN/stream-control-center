@@ -453,3 +453,8 @@ Der Dashboard-Workflow für Boost-Kopien unterstützt jetzt direktes Test-Abspie
 - Zweck: Übernommene Original-Backups, Boost-Testkopien und Referenz-Testdateien tauchen nicht mehr als produktive Sounds in Scan-/Boost-Listen auf.
 - Keine Sounddateien, Regeln, Queue, Discord-Routing, TTS oder `config/**` geändert.
 
+
+
+## STEP272I5 - Sound-Pegel Scan Hotfix
+
+Der Sound-Pegel-Scan wurde repariert. `runScan()` nutzt jetzt den von `prepareScan()` gelieferten Startzeitpunkt. Der Fehler `startedAt is not defined` sollte nach Backend-Neustart nicht mehr auftreten.

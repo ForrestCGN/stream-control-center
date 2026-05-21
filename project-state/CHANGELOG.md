@@ -333,3 +333,10 @@
 - Zweck: Übernommene Original-Backups, Boost-Testkopien und Referenz-Testdateien tauchen nicht mehr als produktive Sounds in Scan-/Boost-Listen auf.
 - Keine Sounddateien, Regeln, Queue, Discord-Routing, TTS oder `config/**` geändert.
 
+
+
+## STEP272I5 - Sound-Pegel Scan startedAt Hotfix
+
+- Fehler `startedAt is not defined` im synchronen `/api/sound/loudness/scan` behoben.
+- Ursache: `runScan()` referenzierte `startedAt`, obwohl der Wert in `prepared.startedAt` lag.
+- Keine Änderungen an Sounddateien, Promote/Backup, Queue, Discord, TTS oder `config/**`.
