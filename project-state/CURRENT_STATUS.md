@@ -2,6 +2,34 @@
 
 Stand: 2026-05-21
 
+## STEP272B - Sound-Pegel Auto-Referenz + Referenzsound
+
+Sound-Pegel hat jetzt einen eigenen Referenzbereich.
+
+Aktueller funktionaler Stand:
+
+- `GET /api/sound/loudness/reference` berechnet eine Auto-Referenz aus gespeicherten Pegel-Scan-Ergebnissen.
+- Berechnung nutzt Median-LUFS aus gueltigen Nicht-TTS-Sounds.
+- Das System schlaegt einen echten vorhandenen Referenzsound nahe am typischen Pegel vor.
+- `GET /api/sound/loudness/reference/test.wav` stellt einen technischen Test-Sound als WAV bereit.
+- Dashboard `System -> Sound-Pegel -> Referenz` zeigt Referenzwert, Toleranz, Verteilung und Abspielaktionen.
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+Sound-Queue
+Discord-Routing
+Alert-Bundle-Lock
+TTS-System
+Sound-Dateien
+config/**
+```
+
+# Current Status – stream-control-center
+
+Stand: 2026-05-21
+
 ## STEP272A - Sound-Pegel Unterbereiche/Tabs
 
 Sound-Pegel ist jetzt innerhalb des eigenen Dashboard-Moduls aufgeraeumt.

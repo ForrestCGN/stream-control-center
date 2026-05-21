@@ -53,7 +53,7 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.4-step270f-correction-settings",
+    version: "0.1.5-step272b-reference-mode",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -151,6 +151,34 @@ module.exports.init = function init(ctx) {
       const row = database.get("SELECT * FROM sound_loudness_files WHERE relative_path = :relativePath", { relativePath }) || null;
       if (!row) return res.status(404).json({ ok: false, error: "file_not_scanned", file: relativePath });
       res.json({ ok: true, module: MODULE_NAME, result: publicFileResult(row) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+
+  app.get(`${ROUTE_PREFIX}/reference`, (req, res) => {
+    try {
+      ensureSchema();
+      const toleranceDb = clampNumber(req.query.toleranceDb, 0.5, 12, 3);
+      const includeExcluded = parseBool(req.query.includeExcluded, false);
+      const reference = buildAutoReference({ toleranceDb, includeExcluded });
+      res.json({ ok: true, module: MODULE_NAME, reference });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.get(`${ROUTE_PREFIX}/reference/test.wav`, (req, res) => {
+    try {
+      ensureSchema();
+      const targetLufs = clampNumber(req.query.targetLufs, -40, -6, DEFAULT_TARGET_LUFS);
+      const durationMs = Math.round(clampNumber(req.query.durationMs, 1000, 30000, 10000));
+      const wav = createReferenceTestWavBuffer({ targetLufs, durationMs });
+      res.setHeader("Content-Type", "audio/wav");
+      res.setHeader("Content-Length", wav.length);
+      res.setHeader("Cache-Control", "no-store");
+      res.end(wav);
     } catch (err) {
       res.status(500).json({ ok: false, error: errorMessage(err) });
     }
@@ -265,6 +293,8 @@ module.exports.init = function init(ctx) {
         { method: "POST", path: `${ROUTE_PREFIX}/scan`, description: "Run a read-only loudness scan for sound files; pass async=true for dashboard progress polling" },
         { method: "GET", path: `${ROUTE_PREFIX}/results`, description: "List persisted loudness scan results" },
         { method: "GET", path: `${ROUTE_PREFIX}/file?file=relative/path.mp3`, description: "Read one persisted loudness result" },
+        { method: "GET", path: `${ROUTE_PREFIX}/reference`, description: "Calculate automatic reference loudness and recommend a real reference sound" },
+        { method: "GET", path: `${ROUTE_PREFIX}/reference/test.wav`, description: "Generated approximate reference test sound for basic audio-chain checks" },
         { method: "GET", path: `${ROUTE_PREFIX}/correction/settings`, description: "Read inactive playback-correction and planned normalization-export settings" },
         { method: "POST", path: `${ROUTE_PREFIX}/correction/settings`, description: "Save inactive correction-preview settings; does not change playback" },
         { method: "GET", path: `${ROUTE_PREFIX}/correction/preview`, description: "Return correction preview rows based on saved settings; does not apply playback changes" },
@@ -782,6 +812,193 @@ function summarizeCorrectionPreview(rows) {
   const manualReview = data.length - autoSafe;
   const normalizedCopiesPlanned = true;
   return { total: data.length, reduce, raise, nearTarget, notAvailable, autoSafe, manualReview, normalizedCopiesPlanned };
+}
+
+
+function buildAutoReference(options = {}) {
+  const whereParts = ["status != 'error'", "input_i IS NOT NULL"];
+  const params = {};
+  if (options.includeExcluded !== true) appendExcludedPathFilter(whereParts, params);
+  const where = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
+  const rows = database.all(`SELECT * FROM sound_loudness_files ${where}`, params) || [];
+  const results = rows.map(publicFileResult).filter(row => Number.isFinite(Number(row.inputI)));
+  const usable = results.filter(row => {
+    const duration = Number(row.durationMs || 0);
+    return duration >= 750 && duration <= 45000;
+  });
+  const medianPool = usable.length >= 3 ? usable : results;
+  const lufsValues = medianPool.map(row => Number(row.inputI)).filter(Number.isFinite).sort((a, b) => a - b);
+  const referenceLufs = round2(median(lufsValues));
+  const toleranceDb = round1(clampNumber(options.toleranceDb, 0.5, 12, 3));
+
+  const preferred = medianPool.filter(row => {
+    const warnings = Array.isArray(row.warnings) ? row.warnings : [];
+    return row.status === "ok" && !warnings.includes("true_peak_above_limit");
+  });
+  const candidates = preferred.length ? preferred : medianPool;
+  const recommended = pickReferenceSound(candidates, referenceLufs);
+  const distribution = buildDistribution(lufsValues);
+  const summary = summarizeReference(results, referenceLufs, toleranceDb);
+
+  return {
+    mode: "auto_median",
+    generatedAt: nowIso(),
+    referenceLufs,
+    toleranceDb,
+    sourceCount: results.length,
+    medianPoolCount: medianPool.length,
+    candidateCount: candidates.length,
+    recommendedSound: recommended,
+    distribution,
+    summary,
+    testSound: {
+      label: "Technischer Test-Sound",
+      type: "generated_wav",
+      approximate: true,
+      durationMs: 10000,
+      url: `${ROUTE_PREFIX}/reference/test.wav?targetLufs=${encodeURIComponent(referenceLufs || DEFAULT_TARGET_LUFS)}&durationMs=10000`,
+      note: "Technischer Test-Sound ist nur eine Orientierung. Fuer OBS/Voicemeeter ist der empfohlene echte Referenzsound wichtiger."
+    },
+    notes: [
+      "Referenz wird aus dem Median der vorhandenen Nicht-TTS-Sounds berechnet.",
+      "Der empfohlene Referenzsound ist eine echte vorhandene Datei nahe am typischen Pegel.",
+      "Einzelne Ausreisser werden durch Median weniger stark gewichtet als beim Durchschnitt."
+    ]
+  };
+}
+
+function pickReferenceSound(rows, referenceLufs) {
+  const data = Array.isArray(rows) ? rows : [];
+  if (!data.length || !Number.isFinite(Number(referenceLufs))) return null;
+  let best = null;
+  let bestScore = Infinity;
+  for (const row of data) {
+    const lufs = Number(row.inputI);
+    if (!Number.isFinite(lufs)) continue;
+    const duration = Number(row.durationMs || 0);
+    const warnings = Array.isArray(row.warnings) ? row.warnings : [];
+    let score = Math.abs(lufs - referenceLufs);
+    if (row.status !== "ok") score += 2;
+    if (warnings.includes("true_peak_above_limit")) score += 5;
+    if (duration < 1500) score += 1.5;
+    if (duration > 30000) score += 1.5;
+    if (score < bestScore) {
+      bestScore = score;
+      best = row;
+    }
+  }
+  if (!best) return null;
+  return {
+    relativePath: best.relativePath,
+    inputI: best.inputI,
+    inputTp: best.inputTp,
+    durationMs: best.durationMs,
+    status: best.status,
+    warnings: best.warnings,
+    deviationDb: round1(Number(best.inputI) - Number(referenceLufs)),
+    score: round2(bestScore),
+    reason: "Nahe am automatisch berechneten Median-Pegel und als echter Sound besser fuer OBS/Voicemeeter-Referenz geeignet."
+  };
+}
+
+function summarizeReference(rows, referenceLufs, toleranceDb) {
+  const summary = { total: 0, ok: 0, tooLoud: 0, tooQuiet: 0, farTooLoud: 0, farTooQuiet: 0, notAvailable: 0 };
+  if (!Number.isFinite(Number(referenceLufs))) return summary;
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const lufs = Number(row.inputI);
+    if (!Number.isFinite(lufs)) { summary.notAvailable += 1; continue; }
+    summary.total += 1;
+    const deviation = lufs - referenceLufs;
+    if (Math.abs(deviation) <= toleranceDb) summary.ok += 1;
+    else if (deviation > toleranceDb * 2) summary.farTooLoud += 1;
+    else if (deviation > toleranceDb) summary.tooLoud += 1;
+    else if (deviation < -toleranceDb * 2) summary.farTooQuiet += 1;
+    else if (deviation < -toleranceDb) summary.tooQuiet += 1;
+  }
+  return summary;
+}
+
+function buildDistribution(values) {
+  const data = Array.isArray(values) ? values.filter(Number.isFinite).sort((a, b) => a - b) : [];
+  return {
+    count: data.length,
+    min: round2(data[0]),
+    q1: round2(percentile(data, 0.25)),
+    median: round2(median(data)),
+    q3: round2(percentile(data, 0.75)),
+    max: round2(data[data.length - 1])
+  };
+}
+
+function median(values) {
+  const data = Array.isArray(values) ? values.filter(Number.isFinite).sort((a, b) => a - b) : [];
+  if (!data.length) return null;
+  const mid = Math.floor(data.length / 2);
+  return data.length % 2 ? data[mid] : (data[mid - 1] + data[mid]) / 2;
+}
+
+function percentile(values, p) {
+  const data = Array.isArray(values) ? values.filter(Number.isFinite).sort((a, b) => a - b) : [];
+  if (!data.length) return null;
+  const index = (data.length - 1) * p;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return data[lower];
+  return data[lower] + (data[upper] - data[lower]) * (index - lower);
+}
+
+function round2(value) {
+  return Number.isFinite(Number(value)) ? Math.round(Number(value) * 100) / 100 : null;
+}
+
+function createReferenceTestWavBuffer(options = {}) {
+  const sampleRate = 48000;
+  const durationMs = Math.max(1000, Math.min(30000, Number(options.durationMs || 10000)));
+  const targetLufs = Math.max(-40, Math.min(-6, Number(options.targetLufs || DEFAULT_TARGET_LUFS)));
+  const samples = Math.max(1, Math.floor(sampleRate * durationMs / 1000));
+  const dataSize = samples * 2;
+  const buffer = Buffer.alloc(44 + dataSize);
+  const targetRms = Math.max(0.01, Math.min(0.35, Math.pow(10, targetLufs / 20)));
+
+  buffer.write("RIFF", 0, "ascii");
+  buffer.writeUInt32LE(36 + dataSize, 4);
+  buffer.write("WAVE", 8, "ascii");
+  buffer.write("fmt ", 12, "ascii");
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write("data", 36, "ascii");
+  buffer.writeUInt32LE(dataSize, 40);
+
+  let seed = 123456789;
+  let pink = 0;
+  let sumSq = 0;
+  const raw = new Float64Array(samples);
+  for (let i = 0; i < samples; i++) {
+    seed = (1103515245 * seed + 12345) & 0x7fffffff;
+    const white = (seed / 0x7fffffff) * 2 - 1;
+    pink = pink * 0.985 + white * 0.015;
+    const sample = pink + white * 0.18;
+    raw[i] = sample;
+    sumSq += sample * sample;
+  }
+  const rms = Math.sqrt(sumSq / samples) || 1;
+  const scale = targetRms / rms;
+  const fadeSamples = Math.min(Math.floor(sampleRate * 0.1), Math.floor(samples / 4));
+  for (let i = 0; i < samples; i++) {
+    let fade = 1;
+    if (fadeSamples > 0) {
+      fade = Math.min(1, i / fadeSamples, (samples - i) / fadeSamples);
+      fade = Math.max(0, fade);
+    }
+    const value = Math.max(-0.95, Math.min(0.95, raw[i] * scale * fade));
+    buffer.writeInt16LE(Math.round(value * 32767), 44 + i * 2);
+  }
+  return buffer;
 }
 
 function cloneJson(value) {

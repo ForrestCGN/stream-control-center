@@ -2,6 +2,39 @@
 
 Stand: 2026-05-21
 
+## STEP272B - Sound-Pegel Auto-Referenz + Referenzsound
+
+Geaendert:
+
+```text
+backend/modules/sound_loudness_scanner.js
+htdocs/dashboard/modules/sound_levelscan.js
+htdocs/dashboard/modules/sound_levelscan.css
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP272B_SOUND_PEGEL_AUTO_REFERENZ.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+app.sqlite ersetzt/neu gebaut: nein
+config/**
+Sound-Dateien
+Sound-Queue
+Discord-Routing
+Alert-Bundle-Lock
+TTS-System
+```
+
+# FILES - stream-control-center
+
+Stand: 2026-05-21
+
 ## STEP272A - Sound-Pegel Unterbereiche/Tabs
 
 Geaendert:

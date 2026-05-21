@@ -19,6 +19,8 @@ window.SoundLevelScanModule = (function(){
     correctionSettings: null,
     normalizationSettings: null,
     correctionPreview: null,
+    reference: null,
+    referenceAudio: null,
     lastMessage: '',
     activeTab: 'overview'
   };
@@ -50,7 +52,10 @@ window.SoundLevelScanModule = (function(){
     maxBoost: 'Maximale Anhebung. Schützt davor, sehr leise oder verrauschte Dateien zu stark hochzuziehen.',
     maxCut: 'Maximale Absenkung. Schützt vor extremen automatischen Änderungen bei sehr lauten Dateien.',
     normalizedCopies: 'Geplante spätere Export-Option: normalisierte Kopien in einen separaten Ordner schreiben. Originale bleiben erhalten.',
-    moduleTabs: 'Unterbereiche des Sound-Pegel-Systems. Trennt Scan, Ergebnisse, Korrektur und spätere Export-Funktionen.'
+    moduleTabs: 'Unterbereiche des Sound-Pegel-Systems. Trennt Scan, Ergebnisse, Korrektur und spätere Export-Funktionen.',
+    reference: 'Automatische Referenz aus allen gültigen Nicht-TTS-Sounds. Nutzt Median-LUFS, damit einzelne Ausreißer den Zielwert nicht kaputtziehen.',
+    referenceSound: 'Empfohlener echter Sound nahe am typischen Pegel. Diesen Sound kannst du zum Einpegeln von OBS/Voicemeeter nutzen.',
+    referenceTest: 'Technischer Test-Sound aus dem Backend. Er ist nur eine Orientierung und ersetzt keinen echten Referenzsound.'
   };
 
   function registerDashboardModule(){
@@ -277,6 +282,9 @@ window.SoundLevelScanModule = (function(){
           await loadAll();
         }
         if (action === 'save-correction') await saveCorrectionSettings();
+        if (action === 'reload-reference') await loadReferenceOnly(true);
+        if (action === 'play-reference') await playReferenceSound();
+        if (action === 'play-reference-test') playReferenceTestSound();
       } catch (err) {
         state.lastMessage = err.message || String(err);
         render();
@@ -287,6 +295,7 @@ window.SoundLevelScanModule = (function(){
       const target = event.target;
       if (!target || !target.dataset.soundLevelControl) return;
       readControls();
+      await loadReferenceOnly(false);
       await loadResultsOnly();
     });
 
@@ -371,6 +380,55 @@ window.SoundLevelScanModule = (function(){
     state.results = await api(`/results?${query}`);
     try { state.correctionPreview = await api(`/correction/preview?${query}`); } catch (_) { state.correctionPreview = null; }
     render();
+  }
+
+
+  async function loadReferenceOnly(showMessage){
+    try {
+      const response = await api('/reference?toleranceDb=3');
+      state.reference = response.reference || null;
+      if (showMessage) state.lastMessage = state.reference?.referenceLufs !== null && state.reference?.referenceLufs !== undefined
+        ? `Auto-Referenz berechnet: ${num(state.reference.referenceLufs, 2)} LUFS.`
+        : 'Auto-Referenz konnte noch nicht berechnet werden. Erst einen Scan durchführen.';
+    } catch (err) {
+      state.reference = null;
+      if (showMessage) state.lastMessage = err.message || String(err);
+    }
+    render();
+  }
+
+  async function playReferenceSound(){
+    const file = state.reference?.recommendedSound?.relativePath || '';
+    if (!file) {
+      state.lastMessage = 'Kein Referenzsound verfügbar. Erst einen Pegel-Scan durchführen.';
+      render();
+      return;
+    }
+    const url = `/api/sound/play?file=${encodeURIComponent(file)}&source=sound_level_reference&category=system&override=true`;
+    await window.CGN.api(url, { method: 'GET' });
+    state.lastMessage = `Referenzsound abgespielt: ${file}`;
+    render();
+  }
+
+  function playReferenceTestSound(){
+    const url = state.reference?.testSound?.url || '/api/sound/loudness/reference/test.wav';
+    try {
+      if (state.referenceAudio) {
+        try { state.referenceAudio.pause(); } catch (_) {}
+        state.referenceAudio = null;
+      }
+      const audio = new Audio(url);
+      state.referenceAudio = audio;
+      audio.play().catch(err => {
+        state.lastMessage = err.message || String(err);
+        render();
+      });
+      state.lastMessage = 'Technischer Test-Sound wird im Browser abgespielt. Für OBS ist der echte Referenzsound wichtiger.';
+      render();
+    } catch (err) {
+      state.lastMessage = err.message || String(err);
+      render();
+    }
   }
 
   async function loadAll(){
@@ -633,6 +691,68 @@ window.SoundLevelScanModule = (function(){
     `;
   }
 
+
+  function referenceDeviationClass(value, tolerance){
+    const n = Number(value);
+    const t = Number(tolerance || 3);
+    if (!Number.isFinite(n)) return '';
+    if (Math.abs(n) <= t) return 'success';
+    if (Math.abs(n) <= t * 2) return 'warn';
+    return 'danger';
+  }
+
+  function renderReferencePanel(){
+    const ref = state.reference || {};
+    const recommended = ref.recommendedSound || null;
+    const summary = ref.summary || {};
+    const distribution = ref.distribution || {};
+    const referenceLufs = Number(ref.referenceLufs);
+    const toleranceDb = Number(ref.toleranceDb || 3);
+    const deviation = recommended ? Number(recommended.deviationDb) : null;
+    return `
+      <div class="sound-levelscan-reference">
+        <div class="sound-levelscan-preview-head">
+          <div>
+            <strong>Auto-Referenz</strong>
+            <span>${esc(HELP.reference)}</span>
+          </div>
+          <span class="sound-pill ${Number.isFinite(referenceLufs) ? 'success' : 'warn'}" title="${esc(HELP.reference)}">${Number.isFinite(referenceLufs) ? `${num(referenceLufs, 2)} LUFS` : 'kein Scan'}</span>
+        </div>
+        <div class="sound-levelscan-reference-grid">
+          <div title="Median-LUFS der brauchbaren Nicht-TTS-Sounds."><strong>${Number.isFinite(referenceLufs) ? num(referenceLufs, 2) : '-'}</strong><span>Referenz LUFS</span></div>
+          <div title="Toleranzbereich für OK-Bewertung."><strong>±${num(toleranceDb, 1)} dB</strong><span>Toleranz</span></div>
+          <div title="Anzahl auswertbarer Dateien für die Referenz."><strong>${esc(ref.sourceCount ?? 0)}</strong><span>Quellen</span></div>
+          <div title="Innerhalb der Toleranz zur Referenz."><strong>${esc(summary.ok ?? 0)}</strong><span>OK</span></div>
+          <div title="Deutlich außerhalb der Toleranz."><strong>${esc((summary.tooLoud || 0) + (summary.tooQuiet || 0) + (summary.farTooLoud || 0) + (summary.farTooQuiet || 0))}</strong><span>daneben</span></div>
+        </div>
+        <div class="sound-levelscan-reference-box">
+          <div>
+            <strong>Empfohlener Referenzsound</strong>
+            <span>${recommended ? esc(recommended.relativePath) : 'Noch nicht verfügbar. Erst einen Pegel-Scan ausführen.'}</span>
+            ${recommended ? `<small title="Abweichung zur Auto-Referenz"><span class="sound-levelscan-preview-pill ${referenceDeviationClass(deviation, toleranceDb)}">${db(deviation, 1)} zur Referenz</span> <span class="sound-levelscan-muted">${ms(recommended.durationMs)} · ${num(recommended.inputI, 2)} LUFS · ${num(recommended.inputTp, 2)} dBTP</span></small>` : ''}
+          </div>
+          <div class="sound-actions">
+            <button type="button" class="success" data-sound-level-action="play-reference" ${recommended ? '' : 'disabled'} title="${esc(HELP.referenceSound)}">Referenzsound abspielen</button>
+            <button type="button" data-sound-level-action="play-reference-test" ${Number.isFinite(referenceLufs) ? '' : 'disabled'} title="${esc(HELP.referenceTest)}">Test-Sound abspielen</button>
+            <a class="ghost-link" href="${esc(ref.testSound?.url || '/api/sound/loudness/reference/test.wav')}" target="_blank" title="Test-Sound als WAV öffnen">Test-WAV öffnen</a>
+            <button type="button" data-sound-level-action="reload-reference" title="Referenz aus aktuellen Scan-Ergebnissen neu berechnen.">Referenz neu berechnen</button>
+          </div>
+        </div>
+        <details class="sound-levelscan-guide" open>
+          <summary>Verteilung & Bewertung</summary>
+          <div class="sound-levelscan-guide-grid">
+            <div title="Leisester auswertbarer Sound."><strong>Min</strong><span>${num(distribution.min, 2)} LUFS</span></div>
+            <div title="Unteres Quartil."><strong>Q1</strong><span>${num(distribution.q1, 2)} LUFS</span></div>
+            <div title="Median / automatische Referenz."><strong>Median</strong><span>${num(distribution.median, 2)} LUFS</span></div>
+            <div title="Oberes Quartil."><strong>Q3</strong><span>${num(distribution.q3, 2)} LUFS</span></div>
+            <div title="Lautester auswertbarer Sound."><strong>Max</strong><span>${num(distribution.max, 2)} LUFS</span></div>
+          </div>
+        </details>
+        <div class="sound-note">Ablauf: Referenzsound abspielen, OBS/Voicemeeter darauf einstellen, danach Ergebnisse relativ zur Referenz bewerten. Der technische Test-Sound ist nur eine Orientierung.</div>
+      </div>
+    `;
+  }
+
   function renderPreviewPanel(){
     const rows = allRows();
     const stats = calcStats(rows);
@@ -742,6 +862,7 @@ window.SoundLevelScanModule = (function(){
   const LEVEL_TABS = [
     { id: 'overview', label: 'Übersicht', hint: 'Status, Kurzstatistik und letzte Scan-Daten.' },
     { id: 'scan', label: 'Scan', hint: 'Scan starten, Fortschritt verfolgen und Scan-Parameter setzen.' },
+    { id: 'reference', label: 'Referenz', hint: 'Auto-Referenz, Referenzsound und technischer Test-Sound.' },
     { id: 'results', label: 'Ergebnisse', hint: 'Messwerte, Filter, Suche und Tabelle.' },
     { id: 'correction', label: 'Korrektur', hint: 'Playback-Korrektur und Korrektur-Vorschau konfigurieren.' },
     { id: 'normalization', label: 'Kopien', hint: 'Späterer Export normalisierter Kopien, aktuell nur vorbereitet.' }
@@ -762,6 +883,12 @@ window.SoundLevelScanModule = (function(){
       return `
         ${renderControls()}
         ${renderProgressPanel()}
+        ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
+      `;
+    }
+    if (state.activeTab === 'reference') {
+      return `
+        ${renderReferencePanel()}
         ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
       `;
     }
@@ -797,6 +924,7 @@ window.SoundLevelScanModule = (function(){
     return `
       <div class="sound-actions">
         <button type="button" class="success" data-sound-level-tab="scan" title="Zum Scan-Bereich wechseln.">Scan öffnen</button>
+        <button type="button" data-sound-level-tab="reference" title="Zur Auto-Referenz wechseln.">Referenz öffnen</button>
         <button type="button" data-sound-level-tab="results" title="Zur Ergebnistabelle wechseln.">Ergebnisse öffnen</button>
         <button type="button" data-sound-level-tab="correction" title="Zu den Korrektur-Einstellungen wechseln.">Korrektur öffnen</button>
         <button type="button" data-sound-level-action="reload" ${state.loading ? 'disabled' : ''} title="Lädt Status und Ergebnisse neu.">Neu laden</button>
@@ -873,7 +1001,7 @@ window.SoundLevelScanModule = (function(){
       <div class="sound-levelscan-head">
         <div>
           <h2>Sound-Pegel</h2>
-          <div class="sound-note">Eigenes System für Pegel-Scan, Referenzplanung, Korrektur-Vorschau und spätere normalisierte Kopien. TTS-/Speech-Dateien werden standardmäßig ausgelassen.</div>
+          <div class="sound-note">Eigenes System für Pegel-Scan, Auto-Referenz, Korrektur-Vorschau und spätere normalisierte Kopien. TTS-/Speech-Dateien werden standardmäßig ausgelassen.</div>
         </div>
         <div class="sound-levelscan-head-pills">
           <span class="sound-pill ${state.loading ? '' : 'success'}" title="${esc(HELP.readOnly)}">${state.loading ? 'Lädt...' : 'Read-only'}</span>

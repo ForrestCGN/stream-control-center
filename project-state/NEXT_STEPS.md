@@ -2,6 +2,45 @@
 
 Stand: 2026-05-21
 
+## Nach STEP272B - Auto-Referenz testen
+
+Backend-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/reference" | ConvertTo-Json -Depth 80
+```
+
+Dashboard-Test:
+
+```text
+System -> Sound-Pegel -> Referenz
+Auto-Referenz prüfen
+Referenzsound abspielen
+OBS/Voicemeeter auf Referenzsound einstellen
+Technischen Test-Sound optional gegenprüfen
+```
+
+Erwartung:
+
+```text
+Referenzwert wird aus Nicht-TTS-Sounds berechnet.
+Ein echter Referenzsound wird vorgeschlagen.
+Test-WAV ist abrufbar.
+Keine Sound-Dateien werden verändert.
+```
+
+Danach möglich:
+
+```text
+STEP272C: Ergebnis-Tabelle um Abweichung zur Referenz und Bewertung erweitern.
+STEP272D: Playback-Korrektur optional auf Auto-Referenz statt globalem Zielwert umstellen.
+STEP273: per Datei/Kategorie Override vorbereiten.
+```
+
+# NEXT STEPS - stream-control-center
+
+Stand: 2026-05-21
+
 ## Nach STEP272A - Sound-Pegel Tabs testen
 
 Dashboard-Test:

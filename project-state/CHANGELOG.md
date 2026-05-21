@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-05-21 - STEP272B Sound-Pegel Auto-Referenz + Referenzsound
+
+- `backend/modules/sound_loudness_scanner.js` erweitert.
+- Neue API `GET /api/sound/loudness/reference` berechnet Auto-Referenz aus Nicht-TTS-Scan-Ergebnissen.
+- Neue API `GET /api/sound/loudness/reference/test.wav` liefert einen technischen Test-Sound als WAV.
+- Dashboard-Unterbereich `Referenz` ergaenzt.
+- Dashboard zeigt Auto-Referenz, Toleranz, Verteilung, empfohlenen echten Referenzsound und Test-Sound-Aktionen.
+- Keine Sound-Dateien, keine Sound-Queue, kein Discord-Routing, keine Alerts, kein TTS und kein `config/**` geaendert.
+
+# Changelog
+
 ## 2026-05-21 - STEP272A Sound-Pegel Unterbereiche/Tabs
 
 - `htdocs/dashboard/modules/sound_levelscan.js` um interne Unterbereiche erweitert.

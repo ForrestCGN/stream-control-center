@@ -795,3 +795,111 @@ html[data-theme=dark] .sound-level-tab.active {
     grid-template-columns: 1fr;
   }
 }
+
+/* STEP272B - Auto-Referenz, Referenzsound und Test-Sound */
+.sound-levelscan-reference {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(56,189,248,.20);
+  background: linear-gradient(135deg, rgba(56,189,248,.075), rgba(168,85,247,.045));
+}
+
+.sound-levelscan-reference-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.sound-levelscan-reference-grid div {
+  min-height: 72px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.035);
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  cursor: help;
+}
+
+.sound-levelscan-reference-grid strong {
+  color: #f8fafc;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.sound-levelscan-reference-grid span {
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sound-levelscan-reference-box {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.035);
+}
+
+.sound-levelscan-reference-box strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 15px;
+  font-weight: 950;
+  margin-bottom: 5px;
+}
+
+.sound-levelscan-reference-box span:not(.sound-levelscan-preview-pill) {
+  display: block;
+  color: var(--muted, #a8b3cf);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.sound-levelscan-reference-box small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+html[data-theme=dark] .sound-levelscan-reference,
+html[data-theme=dark] .sound-levelscan-reference-grid div,
+html[data-theme=dark] .sound-levelscan-reference-box {
+  background: #202020;
+  border-color: #343434;
+}
+
+html[data-theme=dark] .sound-levelscan-reference-grid strong,
+html[data-theme=dark] .sound-levelscan-reference-box strong {
+  color: #f2f2f2;
+}
+
+@media(max-width: 1400px) {
+  .sound-levelscan-reference-grid {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  }
+}
+
+@media(max-width: 900px) {
+  .sound-levelscan-reference-box {
+    display: grid;
+  }
+}
+
+@media(max-width: 760px) {
+  .sound-levelscan-reference-grid {
+    grid-template-columns: 1fr;
+  }
+}
