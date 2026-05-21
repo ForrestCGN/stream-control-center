@@ -1,6 +1,47 @@
 # NEXT STEPS - stream-control-center
 
-Stand: 2026-05-20
+Stand: 2026-05-21
+
+## Nach STEP266B - Alert Bundle/TTS Mischtest beobachten
+
+STEP266B ist funktional getestet und soll jetzt nicht weiter angefasst werden, solange kein neuer Fehler nachweisbar ist.
+
+Naechster Pflichtpunkt ist Beobachtung im echten bzw. realistischen Mehrfach-Alert-Betrieb:
+
+```text
+Alert 1 Sound + TTS bleiben zusammen
+Alert 2 Sound + TTS bleiben zusammen
+Overlay startet erst mit dem richtigen Bundle-Sound
+Naechster Alert startet erst nach Ende des vorherigen Bundles inklusive TTS
+```
+
+Wenn wieder etwas gemischt wird, zuerst nur Diagnose sammeln:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/events?limit=5" | ConvertTo-Json -Depth 40
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 40
+```
+
+Dabei besonders pruefen:
+
+```text
+raw.soundSystem.bundled
+raw.soundSystem.bundleId
+raw.soundSystem.results
+raw.alertTts.playback
+raw.bundleFinishState
+```
+
+Nicht sofort anfassen:
+
+```text
+app.sqlite
+config/**
+backend/modules/sound_system.js
+Sound-System Bundle-Core
+Streamer.bot-Flows
+Overlay-HTML
+```
 
 ## Nach STEP238 - Message-Rotator Output-Mode testen
 
