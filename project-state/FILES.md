@@ -592,3 +592,8 @@ TTS-System
 - `htdocs/dashboard/modules/sound_levelscan.js` - Dashboard-Bereich Boost-Kopien.
 - `htdocs/dashboard/modules/sound_levelscan.css` - Darstellung Boost-Kopien.
 - `project-state/STEP272G_SOUND_PEGEL_BOOST_COPY_PREVIEW.md` - Step-Dokumentation.
+
+## STEP272G1 geänderte Dateien
+- `backend/modules/sound_loudness_scanner.js` - Config-Felder, Referenz-Ziel-API, Boost-Kopie nutzt Ziel-LUFS aus SQLite.
+- `htdocs/dashboard/modules/sound_levelscan.js` - Config-UI fuer Boost-Ziel, Sicherheitsabstand, Max-Boost und Referenz-Übernahme.
+- `htdocs/dashboard/modules/sound_levelscan.css` - unverändert aus STEP272G enthalten.

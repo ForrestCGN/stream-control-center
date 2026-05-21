@@ -335,3 +335,9 @@ Sound-Pegel besitzt jetzt eine eigene Config-Seite im Dashboard. Werte werden ue
 ## STEP272G - Sound-Pegel Boost-Kopien
 
 Das Sound-Pegel-System unterstützt jetzt eine sichere Preview für zu leise Dateien und kann einzelne Boost-Kopien unter `htdocs/assets/sounds/normalized/` erzeugen. Originale und bestehende Sound-Regeln bleiben unverändert.
+
+## STEP272G1 - Sound-Pegel Boost-Ziel aus Referenz
+- Sound-Pegel/Boost-Kopien haben jetzt einen konfigurierbaren Ziel-LUFS-Wert in SQLite.
+- Dashboard kann den Zielwert aus der Auto-Referenz minus Sicherheitsabstand übernehmen.
+- Neue Boost-Kopien nutzen diesen Zielwert; Originaldateien bleiben unverändert.
+- Keine automatische Umleitung bestehender Sounds.

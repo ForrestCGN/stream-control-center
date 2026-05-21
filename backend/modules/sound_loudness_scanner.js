@@ -54,6 +54,9 @@ const DEFAULT_LEVEL_CONFIG = {
   maxPlaybackVolume: 100,
   uploadDefaultVolume: 80,
   referenceToleranceDb: 3,
+  boostTargetLufs: -14,
+  boostReferenceSafetyDb: 2,
+  boostMaxGainDb: 12,
   defaultScanLimit: DEFAULT_SCAN_LIMIT,
   defaultResultLimit: 250,
   defaultReferenceOutputTarget: "overlay",
@@ -80,7 +83,7 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.7-step272g-boost-copy-preview",
+    version: "0.1.8-step272g1-reference-boost-target",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -166,6 +169,38 @@ module.exports.init = function init(ctx) {
     }
   });
 
+
+  app.post(`${ROUTE_PREFIX}/config/adopt-reference-target`, (req, res) => {
+    try {
+      ensureSchema();
+      const body = req.body || {};
+      const cfg = getLevelConfig();
+      const toleranceDb = clampNumber(body.toleranceDb ?? cfg.referenceToleranceDb, 0.5, 12, cfg.referenceToleranceDb || 3);
+      const safetyDb = clampNumber(body.safetyDb ?? cfg.boostReferenceSafetyDb, 0, 8, cfg.boostReferenceSafetyDb || 2);
+      const reference = buildAutoReference({ toleranceDb, includeExcluded: false });
+      const referenceLufs = numberOrNull(reference.referenceLufs);
+      if (referenceLufs === null) throw new Error("reference_lufs_not_available");
+      const targetLufs = round2(clampNumber(referenceLufs - safetyDb, -40, -6, -14));
+      const saved = saveLevelConfig({ ...cfg, boostTargetLufs: targetLufs, boostReferenceSafetyDb: safetyDb }, String(body.updatedBy || body.user || "dashboard"));
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        action: "adopt_reference_target",
+        referenceLufs,
+        safetyDb,
+        targetLufs,
+        config: saved,
+        reference,
+        notes: [
+          "Boost-Ziel wurde aus der aktuellen Auto-Referenz minus Sicherheitsabstand berechnet.",
+          "Es wurden keine Sounddateien erzeugt oder verändert."
+        ]
+      });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
   app.get(`${ROUTE_PREFIX}/config/apply-defaults/preview`, (req, res) => {
     try {
       ensureSchema();
@@ -212,7 +247,7 @@ module.exports.init = function init(ctx) {
       const body = req.body || {};
       const relativePath = normalizeRelativePath(body.file || body.relativePath || body.path || "");
       const updatedBy = String(body.updatedBy || body.user || "dashboard");
-      res.json(createBoostCopyForFile(relativePath, { updatedBy }));
+      res.json(createBoostCopyForFile(relativePath, { updatedBy, targetLufs: body.targetLufs, maxGainDb: body.maxGainDb }));
     } catch (err) {
       res.status(400).json({ ok: false, error: errorMessage(err) });
     }
@@ -440,6 +475,7 @@ module.exports.init = function init(ctx) {
         { method: "POST", path: `${ROUTE_PREFIX}/config/apply-defaults`, description: "Apply Sound-Pegel default volume to DB-backed module settings; no existing sound files are changed" },
         { method: "GET", path: `${ROUTE_PREFIX}/config/mass-volume-preview`, description: "Preview existing Alert/SoundAlert/VIP volume values and loudness-derived needs without changing data" },
         { method: "POST", path: `${ROUTE_PREFIX}/config/mass-volume-apply/alerts-missing`, description: "Set only missing/invalid Alert rule sound_volume values to the configured default" },
+        { method: "POST", path: `${ROUTE_PREFIX}/config/adopt-reference-target`, description: "Store boost target LUFS based on auto reference minus safety dB" },
         { method: "GET", path: `${ROUTE_PREFIX}/boost/preview`, description: "Preview files whose scan suggests a boosted copy is needed" },
         { method: "POST", path: `${ROUTE_PREFIX}/boost/create-one`, description: "Create one boosted copy inside htdocs/assets/sounds/normalized without touching the original" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference`, description: "Calculate automatic reference loudness and recommend a real reference sound" },
@@ -1161,6 +1197,7 @@ function getBoostCopyCandidates(limit = 100, includeExisting = true) {
 
 function buildBoostCopyPreview(options = {}) {
   const cfg = getLevelConfig();
+  const target = getBoostTargetSettings(cfg);
   const limit = Math.round(clampNumber(options.limit, 1, 500, 100));
   const includeExisting = parseBool(options.includeExisting, true) !== false;
   const rows = getBoostCopyCandidates(limit, includeExisting);
@@ -1171,6 +1208,7 @@ function buildBoostCopyPreview(options = {}) {
     generatedAt: nowIso(),
     outputDir: "htdocs/assets/sounds/normalized",
     playableBase: "normalized/",
+    boostTarget: target,
     count: rows.length,
     summary: {
       totalShown: rows.length,
@@ -1180,11 +1218,11 @@ function buildBoostCopyPreview(options = {}) {
       unsupported: rows.filter(row => !row.canCreate).length
     },
     config: cfg,
-    rows,
+    rows: rows.map(row => ({ ...row, boostTargetLufs: target.targetLufs, targetGainDb: calculateBoostGain(row.inputI, target) })),
     notes: [
       "Nur Vorschau: Original-Sounddateien werden nicht verändert.",
       "Boost-Kopien werden in htdocs/assets/sounds/normalized/<originalpfad> geschrieben, damit /api/sound/play sie wie normale Sounds abspielen kann.",
-      "STEP272G erzeugt nur Einzeldateien auf Knopfdruck, keine automatische Massen-Normalisierung."
+      "STEP272G1 nutzt fuer neue Boost-Kopien den gespeicherten Boost-Zielwert statt fest -18 LUFS."
     ]
   };
 }
@@ -1237,8 +1275,11 @@ function createBoostCopyForFile(relativePath, options = {}) {
   if (!info.canCreate) throw new Error(info.unsupportedReason || "unsupported_extension");
   if (!fs.existsSync(info.sourceAbsolutePath)) throw new Error("source_file_missing");
 
-  const gain = numberOrNull(row.recommended_gain_db);
-  const safeGain = Math.max(0, Math.min(12, Number(gain || 0)));
+  const cfg = getLevelConfig();
+  const target = getBoostTargetSettings(cfg, options);
+  const inputI = numberOrNull(row.input_i);
+  const gain = calculateBoostGain(inputI, target);
+  const safeGain = gain === null ? 0 : gain;
   if (!Number.isFinite(safeGain) || safeGain <= 0) throw new Error("positive_gain_not_needed");
 
   fs.mkdirSync(path.dirname(info.outputAbsolutePath), { recursive: true });
@@ -1282,9 +1323,13 @@ function createBoostCopyForFile(relativePath, options = {}) {
     outputFile: afterInfo.outputFile,
     browserUrl: afterInfo.browserUrl,
     gainDb: round2(safeGain),
+    boostTargetLufs: target.targetLufs,
+    boostMaxGainDb: target.maxGainDb,
+    requestedTargetLufs: target.requestedTargetLufs,
     inputI: numberOrNull(row.input_i),
     inputTp: numberOrNull(row.input_tp),
-    recommendedGainDb: gain,
+    recommendedGainDb: numberOrNull(row.recommended_gain_db),
+    targetBasedGainDb: round2(safeGain),
     recommendedVolume: numberOrNull(row.recommended_volume),
     sizeBytes: afterInfo.sizeBytes,
     exists: afterInfo.exists,
@@ -1293,9 +1338,32 @@ function createBoostCopyForFile(relativePath, options = {}) {
     notes: [
       "Originaldatei wurde nicht verändert.",
       "Die Boost-Kopie liegt im normalen Sound-Ordner unter normalized/ und kann per /api/sound/play getestet werden.",
-      "Noch keine automatische Umleitung bestehender Alert-/SoundAlert-Regeln."
+      "Noch keine automatische Umleitung bestehender Alert-/SoundAlert-Regeln.",
+      "STEP272G1: Die Kopie nutzt den gespeicherten Boost-Zielwert aus der Sound-Pegel-Config."
     ]
   };
+}
+
+function getBoostTargetSettings(cfgInput, override = {}) {
+  const cfg = cfgInput && typeof cfgInput === "object" ? cfgInput : getLevelConfig();
+  const requestedTargetLufs = clampNumber(override.targetLufs ?? cfg.boostTargetLufs, -40, -6, DEFAULT_LEVEL_CONFIG.boostTargetLufs);
+  const maxGainDb = clampNumber(override.maxGainDb ?? cfg.boostMaxGainDb, 0.5, 18, DEFAULT_LEVEL_CONFIG.boostMaxGainDb);
+  return {
+    targetLufs: round2(requestedTargetLufs),
+    requestedTargetLufs: round2(requestedTargetLufs),
+    maxGainDb: round1(maxGainDb),
+    safetyDb: clampNumber(cfg.boostReferenceSafetyDb, 0, 8, DEFAULT_LEVEL_CONFIG.boostReferenceSafetyDb)
+  };
+}
+
+function calculateBoostGain(inputI, target) {
+  const i = Number(inputI);
+  if (!Number.isFinite(i)) return null;
+  const t = target && Number.isFinite(Number(target.targetLufs)) ? Number(target.targetLufs) : DEFAULT_LEVEL_CONFIG.boostTargetLufs;
+  const maxGain = target && Number.isFinite(Number(target.maxGainDb)) ? Number(target.maxGainDb) : DEFAULT_LEVEL_CONFIG.boostMaxGainDb;
+  const raw = t - i;
+  if (!Number.isFinite(raw) || raw <= 0) return null;
+  return round2(Math.max(0, Math.min(maxGain, raw)));
 }
 
 function buildAudioCodecArgs(ext) {
@@ -1619,6 +1687,9 @@ function sanitizeLevelConfig(input) {
     maxPlaybackVolume: Math.round(clampNumber(raw.maxPlaybackVolume, 1, 100, DEFAULT_LEVEL_CONFIG.maxPlaybackVolume)),
     uploadDefaultVolume: Math.round(clampNumber(raw.uploadDefaultVolume, 1, 100, DEFAULT_LEVEL_CONFIG.uploadDefaultVolume)),
     referenceToleranceDb: clampNumber(raw.referenceToleranceDb, 0.5, 12, DEFAULT_LEVEL_CONFIG.referenceToleranceDb),
+    boostTargetLufs: round2(clampNumber(raw.boostTargetLufs, -40, -6, DEFAULT_LEVEL_CONFIG.boostTargetLufs)),
+    boostReferenceSafetyDb: clampNumber(raw.boostReferenceSafetyDb, 0, 8, DEFAULT_LEVEL_CONFIG.boostReferenceSafetyDb),
+    boostMaxGainDb: clampNumber(raw.boostMaxGainDb, 0.5, 18, DEFAULT_LEVEL_CONFIG.boostMaxGainDb),
     defaultScanLimit: Math.round(clampNumber(raw.defaultScanLimit, 1, 5000, DEFAULT_LEVEL_CONFIG.defaultScanLimit)),
     defaultResultLimit: Math.round(clampNumber(raw.defaultResultLimit, 1, 1000, DEFAULT_LEVEL_CONFIG.defaultResultLimit)),
     defaultReferenceOutputTarget: safeOutputTarget,

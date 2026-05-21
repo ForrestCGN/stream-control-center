@@ -69,7 +69,10 @@ window.SoundLevelScanModule = (function(){
     massApply: 'Vorbereitete Massenaktion fuer vorhandene Sounds. In diesem Step nur Konfiguration/Preview, keine bestehenden Daten werden umgeschrieben.',
     applyDefaults: 'Übernimmt die gespeicherten Sound-Pegel-Defaults in die relevanten DB-Settings der Module. Bestehende Sounds und Dateien werden nicht überschrieben.',
     boostCopies: 'Boost-Kopien sind verstärkte Kopien für zu leise Dateien. Originale bleiben unverändert. Erst einzelne Datei erzeugen und testen, dann später automatisieren.',
-    boostCreateOne: 'Erzeugt nur für diese eine Datei eine verstärkte Kopie unter assets/sounds/normalized. Keine automatische Umleitung.'
+    boostCreateOne: 'Erzeugt nur für diese eine Datei eine verstärkte Kopie unter assets/sounds/normalized. Keine automatische Umleitung.',
+    boostTargetLufs: 'Zielwert für neu erzeugte Boost-Kopien. Nicht mehr fest -18 LUFS, sondern passend zu deiner Referenz einstellbar.',
+    boostSafetyDb: 'Sicherheitsabstand zur Auto-Referenz. Beispiel: Referenz -11.3 LUFS minus 2 dB ergibt Ziel ca. -13.3 LUFS.',
+    adoptReferenceTarget: 'Berechnet den Boost-Zielwert aus der aktuellen Auto-Referenz minus Sicherheitsabstand und speichert ihn in SQLite.'
   };
 
   function registerDashboardModule(){
@@ -322,6 +325,7 @@ window.SoundLevelScanModule = (function(){
         if (action === 'apply-alert-missing-volumes') await applyAlertMissingVolumes();
         if (action === 'preview-boost-copies') await previewBoostCopies();
         if (action === 'create-boost-copy-one') await createBoostCopyOne(button.dataset.soundLevelFile || '');
+        if (action === 'adopt-reference-boost-target') await adoptReferenceBoostTarget();
         if (action === 'reload-reference') await loadReferenceOnly(true);
         if (action === 'play-reference') await playReferenceSound();
         if (action === 'play-reference-test') await playReferenceTestSound();
@@ -431,6 +435,23 @@ window.SoundLevelScanModule = (function(){
     render();
   }
 
+  async function adoptReferenceBoostTarget(){
+    setLoading(true);
+    const current = state.levelConfig || {};
+    const safetyDb = formNumber('soundLevelConfigBoostSafetyDb', current.boostReferenceSafetyDb ?? 2, 0, 8);
+    const result = await api('/config/adopt-reference-target', {
+      method: 'POST',
+      body: JSON.stringify({ safetyDb, updatedBy: 'dashboard' })
+    });
+    state.levelConfig = result.config || state.levelConfig;
+    state.reference = result.reference || state.reference;
+    state.boostPreview = await api('/boost/preview?limit=100&includeExisting=true');
+    state.lastMessage = `Boost-Ziel aus Referenz übernommen: ${num(result.targetLufs, 2)} LUFS.`;
+    setLoading(false);
+    render();
+  }
+
+
   async function saveLevelConfig(){
     const current = state.levelConfig || {};
     const uploadDefaults = current.uploadDefaults || {};
@@ -441,6 +462,9 @@ window.SoundLevelScanModule = (function(){
         maxPlaybackVolume: Math.round(formNumber('soundLevelConfigMaxPlaybackVolume', current.maxPlaybackVolume ?? 100, 1, 100)),
         uploadDefaultVolume: Math.round(formNumber('soundLevelConfigUploadDefaultVolume', current.uploadDefaultVolume ?? 80, 1, 100)),
         referenceToleranceDb: formNumber('soundLevelConfigReferenceToleranceDb', current.referenceToleranceDb ?? 3, 0.5, 12),
+        boostTargetLufs: formNumber('soundLevelConfigBoostTargetLufs', current.boostTargetLufs ?? -14, -40, -6),
+        boostReferenceSafetyDb: formNumber('soundLevelConfigBoostSafetyDb', current.boostReferenceSafetyDb ?? 2, 0, 8),
+        boostMaxGainDb: formNumber('soundLevelConfigBoostMaxGainDb', current.boostMaxGainDb ?? 12, 0.5, 18),
         defaultScanLimit: Math.round(formNumber('soundLevelConfigDefaultScanLimit', current.defaultScanLimit ?? 500, 1, 5000)),
         defaultResultLimit: Math.round(formNumber('soundLevelConfigDefaultResultLimit', current.defaultResultLimit ?? 250, 1, 1000)),
         defaultReferenceOutputTarget: document.getElementById('soundLevelConfigReferenceOutputTarget')?.value || current.defaultReferenceOutputTarget || state.referenceOutputTarget || 'overlay',
@@ -859,7 +883,7 @@ window.SoundLevelScanModule = (function(){
           <button type="button" data-sound-level-action="save-correction" title="Speichert nur die vorbereiteten Export-Einstellungen. Es werden keine Dateien erzeugt.">Export-Einstellungen speichern</button>
           <button type="button" data-sound-level-action="preview-boost-copies" title="Lädt Dateien, die laut Scan eine Boost-Kopie brauchen. Keine Änderung.">Boost-Preview laden</button>
         </div>
-        <div class="sound-note"><strong>STEP272G:</strong> Es werden nur einzelne Boost-Kopien auf Knopfdruck erzeugt. Originaldateien bleiben unverändert und es gibt noch keine automatische Umleitung.</div>
+        <div class="sound-note"><strong>STEP272G1:</strong> Boost-Kopien nutzen jetzt den gespeicherten Boost-Zielwert aus der Config. Originaldateien bleiben unverändert und es gibt noch keine automatische Umleitung.</div>
         ${renderBoostCopyPanel()}
       </div>
     `;
@@ -891,6 +915,7 @@ window.SoundLevelScanModule = (function(){
           <div><strong>${esc(summary.missingCopies ?? 0)}</strong><span>fehlen</span></div>
           <div><strong>${esc(summary.existingCopies ?? 0)}</strong><span>vorhanden</span></div>
           <div><strong>${esc(summary.unsupported ?? 0)}</strong><span>nicht direkt</span></div>
+          <div><strong>${num(preview.boostTarget?.targetLufs ?? (state.levelConfig?.boostTargetLufs ?? -14), 2)}</strong><span>Boost-Ziel LUFS</span></div>
         </div>
         ${result ? `<div class="sound-note success">Boost-Kopie erzeugt: <strong>${esc(result.outputFile || '')}</strong>. Teste Original und Kopie bewusst über das Sound-System.</div>` : ''}
         <div class="sound-actions">
@@ -899,13 +924,13 @@ window.SoundLevelScanModule = (function(){
         ${rows.length ? `
           <div class="sound-table-wrap compact">
             <table class="sound-levelscan-table compact">
-              <thead><tr><th>Datei</th><th>LUFS</th><th>Gain</th><th>Kopie</th><th>Aktion</th></tr></thead>
+              <thead><tr><th>Datei</th><th>LUFS</th><th>Ziel-Gain</th><th>Kopie</th><th>Aktion</th></tr></thead>
               <tbody>
                 ${rows.slice(0, 40).map(row => `
                   <tr class="${row.exists ? 'is-success' : 'is-danger'}">
                     <td>${esc(row.file || '-')}<br><small>${row.outputFile ? `Kopie: ${esc(row.outputFile)}` : ''}</small></td>
                     <td>${num(row.inputI, 2)}</td>
-                    <td>${db(row.recommendedGainDb, 1)}</td>
+                    <td>${db(row.targetGainDb ?? row.recommendedGainDb, 1)}</td>
                     <td><span class="sound-pill ${row.exists ? 'success' : row.canCreate ? 'warn' : 'danger'}">${row.exists ? 'vorhanden' : row.canCreate ? 'fehlt' : 'nicht direkt'}</span></td>
                     <td>
                       ${row.canCreate ? `<button type="button" data-sound-level-action="create-boost-copy-one" data-sound-level-file="${esc(row.file || '')}" title="${esc(HELP.boostCreateOne)}">Boost-Kopie erzeugen</button>` : `<span class="sound-muted small">${esc(row.unsupportedReason || 'nicht unterstützt')}</span>`}
@@ -1254,7 +1279,7 @@ window.SoundLevelScanModule = (function(){
                   <tr class="${row.boostCopyNeeded ? 'is-danger' : 'is-warning'}">
                     <td>${esc(row.file || '-')}</td>
                     <td>${num(row.inputI, 2)}</td>
-                    <td>${db(row.recommendedGainDb, 1)}</td>
+                    <td>${db(row.targetGainDb ?? row.recommendedGainDb, 1)}</td>
                     <td>${row.recommendedVolume === null || row.recommendedVolume === undefined ? '-' : `${esc(row.recommendedVolume)}%`}</td>
                     <td><span class="sound-pill ${row.boostCopyNeeded ? 'danger' : 'warn'}">${row.boostCopyNeeded ? 'Boost-Kopie nötig' : 'Runtime leiser'}</span></td>
                   </tr>`).join('')}
@@ -1315,6 +1340,23 @@ window.SoundLevelScanModule = (function(){
               <option value="both" ${out === 'both' ? 'selected' : ''}>OBS + Audiogerät</option>
             </select>
           </label>
+
+          <div class="sound-settings-title">Boost-Kopien Zielwert</div>
+          <label class="sound-field">
+            <span>${withHelp('Boost Ziel-LUFS', HELP.boostTargetLufs)}</span>
+            <input id="soundLevelConfigBoostTargetLufs" type="number" min="-40" max="-6" step="0.1" value="${esc(cfg.boostTargetLufs ?? -14)}">
+          </label>
+          <label class="sound-field">
+            <span>${withHelp('Sicherheitsabstand dB', HELP.boostSafetyDb)}</span>
+            <input id="soundLevelConfigBoostSafetyDb" type="number" min="0" max="8" step="0.5" value="${esc(cfg.boostReferenceSafetyDb ?? 2)}">
+          </label>
+          <label class="sound-field">
+            <span>Max Boost dB</span>
+            <input id="soundLevelConfigBoostMaxGainDb" type="number" min="0.5" max="18" step="0.5" value="${esc(cfg.boostMaxGainDb ?? 12)}" title="Obergrenze fuer eine einzelne Boost-Kopie.">
+          </label>
+          <div class="sound-actions sound-levelscan-wide">
+            <button type="button" data-sound-level-action="adopt-reference-boost-target" title="${esc(HELP.adoptReferenceTarget)}">Referenz als Boost-Ziel übernehmen</button>
+          </div>
 
           <div class="sound-settings-title">Neue Uploads vorbereiten</div>
           <label class="sound-check"><input id="soundLevelConfigUploadAlerts" type="checkbox" ${upload.alerts !== false ? 'checked' : ''}><span>Neue Alert-Sounds mit Upload Default Volume</span></label>

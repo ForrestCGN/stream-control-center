@@ -405,3 +405,9 @@ Offen:
 ## STEP272G Status
 
 Sound-Pegel kann jetzt Boost-Kopien als Einzeldatei-Test vorbereiten. Kopien landen unter `htdocs/assets/sounds/normalized/` und können über das Sound-System getestet werden. Keine automatische Massenanwendung.
+
+## STEP272G1 - Sound-Pegel Boost-Ziel aus Referenz
+- Status: vorbereitet.
+- Boost-Kopien werden weiterhin nur einzeln erzeugt.
+- Neu: Ziel-LUFS fuer Boost-Kopien ist konfigurierbar und kann aus der Auto-Referenz minus Sicherheitsabstand übernommen werden.
+- Ziel: zu leise Dateien wie `alerts/follow.mp3` näher an den eingepegelten Referenzpegel bringen, ohne Originale zu überschreiben.

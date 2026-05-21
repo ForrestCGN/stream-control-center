@@ -277,3 +277,10 @@
 - Neue API-Routen `/api/sound/loudness/boost/preview` und `/api/sound/loudness/boost/create-one`.
 - Dashboard-Bereich `Boost-Kopien` erzeugt nur einzelne verstärkte Kopien auf Knopfdruck.
 - Originaldateien, SoundAlerts, Alert-Regeln, Queue, Discord-Routing und TTS bleiben unverändert.
+
+## STEP272G1 - Sound-Pegel Boost-Ziel aus Referenz
+- Sound-Pegel Config um Boost-Ziel-LUFS, Sicherheitsabstand und Max-Boost erweitert.
+- Neue API `POST /api/sound/loudness/config/adopt-reference-target` berechnet Boost-Ziel aus Auto-Referenz minus Sicherheitsabstand und speichert es in SQLite.
+- Boost-Kopie Einzeldatei nutzt nun den gespeicherten Boost-Zielwert statt festem -18-LUFS-Ziel.
+- Dashboard zeigt Ziel-Gain fuer Boost-Kopien und bietet Button „Referenz als Boost-Ziel übernehmen“.
+- Keine Originaldateien, SoundAlert-Einträge, Alert-Regeln, Queue, Discord-Routing oder `config/**` geändert.

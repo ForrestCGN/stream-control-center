@@ -565,3 +565,10 @@ STEP272F: Boost-Kopien fuer zu leise Sounds vorbereiten.
 1. Einzeltest mit `alerts/follow.mp3`: Boost-Kopie erzeugen und Original vs. Kopie über OBS/Device vergleichen.
 2. Wenn die Kopie passt: gezielte Nutzung/Mapping vorbereiten, noch keine Massenumleitung.
 3. Video-SoundAlerts separat behandeln, da Video-Dateien andere FFmpeg-Strategie benötigen.
+
+## Nach STEP272G1
+1. Backend neu starten.
+2. `POST /api/sound/loudness/config/adopt-reference-target` testen oder im Dashboard „Referenz als Boost-Ziel übernehmen“ klicken.
+3. Boost-Kopie fuer `alerts/follow.mp3` neu erzeugen und Original/Kopie vergleichen.
+4. Wenn Ziel passt: Mapping/Umleitung einzelner Regeln auf Boost-Kopien vorbereiten.
+5. Video-Dateien wie `soundalerts/video/putzen.webm` separat behandeln.
