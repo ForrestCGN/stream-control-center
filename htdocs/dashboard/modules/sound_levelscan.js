@@ -11,6 +11,7 @@ window.SoundLevelScanModule = (function(){
     dir: 'desc',
     statusFilter: 'all',
     search: '',
+    showPreview: true,
     status: null,
     results: null,
     lastMessage: ''
@@ -32,7 +33,11 @@ window.SoundLevelScanModule = (function(){
     clipping: 'True Peak über Limit. Diese Datei ist technisch zu heiß und sollte eher leiser/normalisiert werden.',
     tooLoud: 'Große negative Gain-Empfehlung. Die Datei ist deutlich lauter als der Zielwert.',
     tooQuiet: 'Volume-Cap erreicht oder große positive Gain-Empfehlung. Die Datei ist eher zu leise.',
-    readOnly: 'Nur Analyse. Es werden keine Dateien überschrieben, normalisiert oder im Sound-System verändert.'
+    readOnly: 'Nur Analyse. Es werden keine Dateien überschrieben, normalisiert oder im Sound-System verändert.',
+    preview: 'Korrektur-Vorschau: zeigt nur, welche Playback-Lautstärke oder Gain-Änderung später empfohlen wäre. Es wird nichts angewendet.',
+    previewVolume: 'Empfohlene spätere Playback-Lautstärke. Niedrig = Datei ist aktuell sehr laut. 100% = Datei ist eher zu leise oder erreicht das Ziel nicht.',
+    previewGain: 'Empfohlene Gain-Änderung. Negativ senkt den Sound ab, positiv hebt ihn an. Große Werte sollten manuell geprüft werden.',
+    previewRisk: 'Einschätzung für eine spätere automatische Korrektur. True-Peak-Warnungen und starke Absenkungen sind Kandidaten für manuelle Prüfung.'
   };
 
   function esc(value){ return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? ''); }
@@ -98,6 +103,37 @@ window.SoundLevelScanModule = (function(){
     if (n > l) return 'danger';
     if (n > l - 1.5) return 'warn';
     return 'success';
+  }
+
+  function previewClass(row){
+    const gain = Number(row?.recommendedGainDb);
+    const warnings = Array.isArray(row?.warnings) ? row.warnings : [];
+    if (row?.status === 'error') return 'danger';
+    if (warnings.includes('true_peak_above_limit')) return 'danger';
+    if (Number.isFinite(gain) && gain <= -10) return 'danger';
+    if (Number.isFinite(gain) && (gain <= -6 || gain >= 6)) return 'warn';
+    if (warnings.includes('volume_cap_reached')) return 'warn';
+    return 'success';
+  }
+
+  function previewText(row){
+    if (!row || row.status === 'error') return 'nicht bewertbar';
+    const gain = Number(row.recommendedGainDb);
+    const volume = Number(row.recommendedVolume);
+    if (!Number.isFinite(gain) || !Number.isFinite(volume)) return 'keine Empfehlung';
+    if (gain < -0.25) return `später auf ca. ${Math.round(volume)}% / ${db(gain, 1)}`;
+    if (gain > 0.25) return `später auf ca. ${Math.round(volume)}% / ${db(gain, 1)}`;
+    return `nahe Zielwert / ca. ${Math.round(volume)}%`;
+  }
+
+  function previewHint(row){
+    const warnings = Array.isArray(row?.warnings) ? row.warnings : [];
+    const gain = Number(row?.recommendedGainDb);
+    if (warnings.includes('true_peak_above_limit')) return 'Achtung: True Peak über Limit. Spätere Korrektur sollte diesen Sound eher absenken und nicht weiter anheben.';
+    if (warnings.includes('volume_cap_reached')) return 'Zu leise: selbst 100% Playback-Volume reicht rechnerisch nicht sauber bis zum Zielwert.';
+    if (Number.isFinite(gain) && gain <= -10) return 'Sehr laut: automatische Absenkung wäre stark. Vor Aktivierung einmal anhören.';
+    if (Number.isFinite(gain) && gain >= 6) return 'Eher leise: deutliche Anhebung wäre nötig. Rauschen/Qualität prüfen.';
+    return HELP.preview;
   }
 
   function qs(params){
@@ -201,6 +237,8 @@ window.SoundLevelScanModule = (function(){
     state.dir = document.getElementById('soundLevelDir')?.value || state.dir;
     state.statusFilter = document.getElementById('soundLevelStatusFilter')?.value || state.statusFilter;
     state.search = document.getElementById('soundLevelSearch')?.value || '';
+    const showPreviewEl = document.getElementById('soundLevelShowPreview');
+    if (showPreviewEl) state.showPreview = !!showPreviewEl.checked;
   }
 
   async function runScan(){
@@ -265,7 +303,11 @@ window.SoundLevelScanModule = (function(){
     const tooLoud = data.filter(row => Number(row.recommendedGainDb) <= -6).length;
     const veryLoud = data.filter(row => Number(row.recommendedGainDb) <= -10).length;
     const tooQuiet = data.filter(row => Number(row.recommendedGainDb) >= 6 || (Array.isArray(row.warnings) && row.warnings.includes('volume_cap_reached'))).length;
-    return { total: data.length, ok, warnings, errors, clipping, tooLoud, veryLoud, tooQuiet };
+    const wouldReduce = data.filter(row => Number(row.recommendedGainDb) < -0.25).length;
+    const wouldRaise = data.filter(row => Number(row.recommendedGainDb) > 0.25).length;
+    const nearTarget = data.filter(row => { const g = Number(row.recommendedGainDb); return Number.isFinite(g) && Math.abs(g) <= 0.25; }).length;
+    const capped = data.filter(row => Array.isArray(row.warnings) && row.warnings.includes('volume_cap_reached')).length;
+    return { total: data.length, ok, warnings, errors, clipping, tooLoud, veryLoud, tooQuiet, wouldReduce, wouldRaise, nearTarget, capped };
   }
 
   function renderSummary(){
@@ -297,6 +339,30 @@ window.SoundLevelScanModule = (function(){
           <span title="${esc('Dateien, bei denen die Messung fehlgeschlagen ist.')}">Fehler: <strong>${esc(scan.errorFiles ?? '-')}</strong></span>
         </div>
       ` : ''}
+    `;
+  }
+
+  function renderPreviewPanel(){
+    const rows = allRows();
+    const stats = calcStats(rows);
+    return `
+      <div class="sound-levelscan-preview">
+        <div class="sound-levelscan-preview-head">
+          <div>
+            <strong>Korrektur-Vorschau</strong>
+            <span>${esc(HELP.preview)}</span>
+          </div>
+          <span class="sound-pill" title="${esc(HELP.readOnly)}">nur Vorschau</span>
+        </div>
+        <div class="sound-levelscan-preview-grid">
+          <div title="Sounds, die später leiser abgespielt würden."><strong>${esc(stats.wouldReduce)}</strong><span>würden leiser</span></div>
+          <div title="Sounds, die später lauter abgespielt würden."><strong>${esc(stats.wouldRaise)}</strong><span>würden lauter</span></div>
+          <div title="Sounds, die bereits nah am Zielwert liegen."><strong>${esc(stats.nearTarget)}</strong><span>nahe Ziel</span></div>
+          <div title="Sounds, die wegen Max-Volume nicht sauber auf Ziel kommen."><strong>${esc(stats.capped)}</strong><span>Volume-Cap</span></div>
+          <div title="Sounds mit True-Peak-Warnung."><strong>${esc(stats.clipping)}</strong><span>Peak prüfen</span></div>
+        </div>
+        <div class="sound-note">Diese Vorschau nutzt die bereits gemessenen Werte. Sie aktiviert noch keine automatische Pegel-Korrektur im Sound-System.</div>
+      </div>
     `;
   }
 
@@ -353,6 +419,10 @@ window.SoundLevelScanModule = (function(){
           <span>Suche</span>
           <input id="soundLevelSearch" data-sound-level-control="search" type="text" value="${esc(state.search)}" placeholder="Dateiname oder Ordner..." title="Filtert lokal nach Dateiname oder Ordnerpfad.">
         </label>
+        <label class="sound-check" title="${esc(HELP.preview)}">
+          <input id="soundLevelShowPreview" data-sound-level-control="showPreview" type="checkbox" ${state.showPreview ? 'checked' : ''}>
+          <span>Korrektur-Vorschau anzeigen</span>
+        </label>
       </div>
       <div class="sound-actions">
         <button type="button" class="success" data-sound-level-action="scan" ${state.loading ? 'disabled' : ''} title="Startet einen neuen Read-only-Scan über das Backend.">Scan starten</button>
@@ -368,6 +438,11 @@ window.SoundLevelScanModule = (function(){
     const warnings = Array.isArray(row.warnings) ? row.warnings : [];
     if (!warnings.length) return '<span class="sound-levelscan-muted">-</span>';
     return warnings.map(w => `<span title="${esc(warningHelp(w))}">${esc(warningLabel(w))}</span>`).join('');
+  }
+
+  function renderPreviewCell(row){
+    if (!state.showPreview) return '';
+    return `<td class="sound-levelscan-preview-cell" title="${esc(previewHint(row))}"><span class="sound-levelscan-preview-pill ${previewClass(row)}">${esc(previewText(row))}</span></td>`;
   }
 
   function renderRows(){
@@ -391,6 +466,7 @@ window.SoundLevelScanModule = (function(){
               <th title="${esc(HELP.volume)}">Volume</th>
               <th title="${esc(HELP.duration)}">Dauer</th>
               <th title="${esc(HELP.warnings)}">Warnungen</th>
+              ${state.showPreview ? `<th title="${esc(HELP.preview)}">Vorschau</th>` : ''}
             </tr>
           </thead>
           <tbody>
@@ -404,6 +480,7 @@ window.SoundLevelScanModule = (function(){
                 <td title="${esc(HELP.volume)}"><span class="sound-levelscan-value">${pct(row.recommendedVolume)}</span></td>
                 <td title="${esc(HELP.duration)}">${ms(row.durationMs)}</td>
                 <td class="sound-levelscan-warnings">${renderWarnings(row)}</td>
+                ${renderPreviewCell(row)}
               </tr>
             `).join('')}
           </tbody>
@@ -425,6 +502,7 @@ window.SoundLevelScanModule = (function(){
       </div>
       ${renderSummary()}
       ${renderControls()}
+      ${state.showPreview ? renderPreviewPanel() : ''}
       ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
       ${renderRows()}
       <div class="sound-note">Hinweis: <strong>True Peak über Limit</strong>, <strong>viel zu laut</strong> und <strong>Volume-Cap erreicht</strong> sind Kandidaten für spätere Playback-Korrektur oder normalisierte Kopien. Dieser Schritt zeigt nur Daten an.</div>

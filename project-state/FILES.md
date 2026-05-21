@@ -2,6 +2,35 @@
 
 Stand: 2026-05-21
 
+## STEP270D - Pegel-Scan Korrektur-Vorschau
+
+Geaendert:
+
+```text
+htdocs/dashboard/modules/sound_levelscan.js
+htdocs/dashboard/modules/sound_levelscan.css
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP270D_SOUND_PEGEL_SCAN_CORRECTION_PREVIEW.md
+```
+
+Nicht geaendert:
+
+```text
+app.sqlite
+config/**
+backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
+Alert-System
+TTS
+Discord-Routing
+Sound-Dateien
+```
+
+
 ## STEP270C - Pegel-Scan Dashboard UI verbessert
 
 Geaendert:

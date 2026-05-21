@@ -2,6 +2,37 @@
 
 Stand: 2026-05-21
 
+## STEP270D - Pegel-Scan Korrektur-Vorschau
+
+Der Pegel-Scan zeigt jetzt zusätzlich eine Vorschau, welche Korrektur später möglich wäre.
+
+Aktueller funktionaler Stand:
+
+- `htdocs/dashboard/modules/sound_levelscan.js` erweitert.
+- `htdocs/dashboard/modules/sound_levelscan.css` erweitert.
+- Neue Korrektur-Vorschau im Pegel-Scan-Tab.
+- Neue Vorschau-Kennzahlen:
+  - würden leiser
+  - würden lauter
+  - nahe Ziel
+  - Volume-Cap
+  - Peak prüfen
+- Option `Korrektur-Vorschau anzeigen`.
+- Neue Tabellenspalte `Vorschau` mit empfohlenem Playback-Volume und Gain.
+
+Nicht geaendert:
+
+```text
+app.sqlite
+config/**
+backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
+Alert-System
+Sound-System Queue/Discord/Bundle-Logik
+Sound-Dateien
+```
+
+
 ## STEP270C - Pegel-Scan Dashboard UI verbessert
 
 Der Pegel-Scan ist weiterhin read-only, aber im Dashboard besser nutzbar.

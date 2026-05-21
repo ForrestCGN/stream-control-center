@@ -1,3 +1,18 @@
+
+## 2026-05-21 - STEP270D Pegel-Scan Korrektur-Vorschau
+
+- Pegel-Scan-Dashboard um eine reine Korrektur-Vorschau erweitert.
+- Neue Vorschau-Kennzahlen:
+  - würden leiser
+  - würden lauter
+  - nahe Ziel
+  - Volume-Cap
+  - Peak prüfen
+- Neue optionale Tabellenspalte `Vorschau`.
+- Pro Datei wird angezeigt, welches Playback-Volume bzw. welcher Gain später empfohlen wäre.
+- Mouseover-Hinweise für Korrektur-Risiko und empfohlene Behandlung ergänzt.
+- Keine automatische Playback-Korrektur, keine Normalisierung und keine Dateiänderung.
+
 # Changelog
 
 ## 2026-05-21 - STEP270C Pegel-Scan Dashboard UI verbessert

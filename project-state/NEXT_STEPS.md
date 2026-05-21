@@ -2,6 +2,46 @@
 
 Stand: 2026-05-21
 
+## Nach STEP270D - Korrektur-Vorschau prüfen
+
+Dashboard-Test:
+
+```text
+Dashboard öffnen
+System -> Sound-System
+Tab: Pegel-Scan
+Korrektur-Vorschau anzeigen aktiv lassen
+Problematische zuerst prüfen
+Mouseover über Vorschau-Spalte prüfen
+Lauteste zuerst prüfen
+Leiseste zuerst prüfen
+Filter Warnungen + Suche nach alerts/ prüfen
+```
+
+Erwartung:
+
+```text
+Vorschau zeigt, welche Sounds später leiser/lauter würden.
+Es wird weiterhin nichts angewendet.
+Keine Sound-Datei wird verändert.
+Keine Playback-Korrektur ist aktiv.
+```
+
+Danach erst entscheiden:
+
+```text
+STEP270E: Technisches Konzept für optionale Playback-Korrektur im Sound-System
+oder problematische Dateien manuell ersetzen/normalisieren
+```
+
+Wichtig:
+
+```text
+Playback-Korrektur darf später nur zentral im Sound-System greifen, damit stream/device/discord/both konsistent bleiben.
+Originaldateien nicht automatisch überschreiben.
+```
+
+
 ## Nach STEP270C - Pegel-Scan UI prüfen
 
 Dashboard-Test:
