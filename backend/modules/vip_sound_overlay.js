@@ -70,6 +70,11 @@ module.exports.init = function init(ctx) {
       value_type: "number",
       description: "Maximale Dateigroesse fuer VIP-Sound-Uploads ueber das Dashboard."
     },
+    soundSystemTarget: {
+      value: "both",
+      value_type: "string",
+      description: "Sound-System-Ziel fuer VIP-/Mod-Sounds: stream, discord oder both."
+    },
     dailyUsageRetentionDays: {
       value: 14,
       value_type: "number",
@@ -1187,6 +1192,7 @@ module.exports.init = function init(ctx) {
       fileNameMode: [["fileNameMode"], ["sound", "fileNameMode"]],
       fileExtension: [["fileExtension"], ["sound", "fileExtension"]],
       maxSoundUploadBytes: [["maxSoundUploadBytes"], ["sound", "maxUploadBytes"], ["sound", "maxSoundUploadBytes"]],
+      soundSystemTarget: [["soundSystemTarget"], ["sound", "target"], ["sound", "soundSystemTarget"], ["soundSystem", "target"]],
       dailyUsageRetentionDays: [["dailyUsageRetentionDays"], ["dailyUsage", "retentionDays"]],
       cleanupDailyUsageOnStartup: [["cleanupDailyUsageOnStartup"], ["dailyUsage", "cleanupOnStartup"]],
       autoDetectTargetRole: [["autoDetectTargetRole"], ["roles", "autoDetectTargetRole"]],
@@ -1314,6 +1320,12 @@ module.exports.init = function init(ctx) {
     }
 
     return defaultValue;
+  }
+
+  function normalizeSoundSystemTarget(value, fallback = "both") {
+    const target = String(value || fallback || "both").trim().toLowerCase();
+    if (["stream", "discord", "both"].includes(target)) return target;
+    return fallback;
   }
 
 
@@ -2549,7 +2561,7 @@ module.exports.init = function init(ctx) {
       label: `${overlayTitle} - ${user.displayName || user.login}`,
       category,
       priority: soundType === "mod" ? 60 : 60,
-      target: "stream",
+      target: normalizeSoundSystemTarget(getVipSetting("soundSystemTarget", "both"), "both"),
       outputTarget: "device",
       volume: 85,
       queueIfBusy: true,
