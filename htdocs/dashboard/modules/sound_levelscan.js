@@ -51,6 +51,54 @@ window.SoundLevelScanModule = (function(){
     normalizedCopies: 'Geplante spätere Export-Option: normalisierte Kopien in einen separaten Ordner schreiben. Originale bleiben erhalten.'
   };
 
+  function registerDashboardModule(){
+    if (!window.CGN) return false;
+
+    window.CGN.modules = window.CGN.modules || {};
+    window.CGN.moduleCatalog = window.CGN.moduleCatalog || {};
+    window.CGN.sections = window.CGN.sections || {};
+
+    if (!window.CGN.modules.sound_level) {
+      window.CGN.modules.sound_level = {
+        title: 'Sound-Pegel',
+        panelId: 'soundLevelModule',
+        group: 'system',
+        overlayLink: '',
+        overlayLabel: '',
+        reload() { return window.SoundLevelScanModule?.loadAll?.(true); }
+      };
+    }
+
+    window.CGN.moduleCatalog.sound_level = {
+      label: 'Sound-Pegel',
+      icon: '📊',
+      enabled: true,
+      description: 'Pegel-Scan, Referenz, Korrektur-Vorschau und spätere Normalisierung.'
+    };
+
+    const system = window.CGN.sections.system;
+    if (system && Array.isArray(system.items) && !system.items.includes('sound_level')) {
+      const soundIndex = system.items.indexOf('sound_system');
+      if (soundIndex >= 0) system.items.splice(soundIndex + 1, 0, 'sound_level');
+      else system.items.unshift('sound_level');
+    }
+
+    if (Array.isArray(window.CGN.favorites) && !window.CGN.favorites.includes('sound_level')) {
+      const soundIndex = window.CGN.favorites.indexOf('sound_system');
+      if (soundIndex >= 0) window.CGN.favorites.splice(soundIndex + 1, 0, 'sound_level');
+      else window.CGN.favorites.push('sound_level');
+    }
+
+    try { window.SectionHomeModule?.render?.(); } catch (_) {}
+
+    const wantedModule = localStorage.getItem('cgn-dashboard-active-module') || '';
+    if (wantedModule === 'sound_level' && window.CGN.activeModule !== 'sound_level') {
+      setTimeout(() => window.CGN.setActiveModule('sound_level', { initial: true }), 0);
+    }
+
+    return true;
+  }
+
   function esc(value){ return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
   function num(value, digits = 1){ const n = Number(value); return Number.isFinite(n) ? n.toFixed(digits) : '-'; }
@@ -174,34 +222,15 @@ window.SoundLevelScanModule = (function(){
       .join('&');
   }
 
-  function findRoot(){ return document.getElementById('soundModule'); }
-  function findTabs(root){ return root ? root.querySelector('.sound-tabs') : null; }
-  function findGrid(root){ return root ? root.querySelector('.sound-grid') : null; }
+  function findRoot(){ return document.getElementById('soundLevelModule'); }
 
   function ensureMounted(){
+    registerDashboardModule();
     const root = findRoot();
-    const tabs = findTabs(root);
-    const grid = findGrid(root);
-    if (!root || !tabs || !grid) return false;
-
-    if (!tabs.querySelector('[data-sound-tab="levelscan"]')) {
-      const tab = document.createElement('button');
-      tab.type = 'button';
-      tab.className = 'sound-tab';
-      tab.dataset.soundTab = 'levelscan';
-      tab.textContent = 'Pegel-Scan';
-      const diagnoseTab = tabs.querySelector('[data-sound-tab="diagnose"]');
-      if (diagnoseTab) tabs.insertBefore(tab, diagnoseTab);
-      else tabs.appendChild(tab);
-    }
+    if (!root) return false;
 
     if (!document.getElementById('soundLevelScanCard')) {
-      const card = document.createElement('div');
-      card.className = 'sound-card sound-levelscan-card';
-      card.id = 'soundLevelScanCard';
-      card.dataset.soundSection = 'levelscan';
-      card.hidden = true;
-      grid.appendChild(card);
+      root.innerHTML = '<div class="sound-card sound-levelscan-card" id="soundLevelScanCard"></div>';
     }
 
     bindOnce(root);
@@ -733,8 +762,8 @@ window.SoundLevelScanModule = (function(){
     card.innerHTML = `
       <div class="sound-levelscan-head">
         <div>
-          <h3>Pegel-Scan</h3>
-          <div class="sound-note">Read-only Analyse der Sound-Dateien. TTS-/Speech-Dateien werden standardmäßig ausgelassen. Es wird nichts normalisiert, überschrieben oder an der Sound-Queue verändert.</div>
+          <h2>Sound-Pegel</h2>
+          <div class="sound-note">Eigenes System für Pegel-Scan, Referenzplanung, Korrektur-Vorschau und spätere normalisierte Kopien. TTS-/Speech-Dateien werden standardmäßig ausgelassen.</div>
         </div>
         <span class="sound-pill ${state.loading ? '' : 'success'}" title="${esc(HELP.readOnly)}">${state.loading ? 'Lädt...' : 'Read-only'}</span>
         <span class="sound-pill" title="${esc(HELP.ttsExcluded)}">TTS raus</span>
@@ -751,6 +780,7 @@ window.SoundLevelScanModule = (function(){
   }
 
   function boot(){
+    registerDashboardModule();
     if (!ensureMounted()) return;
     loadAll().catch(err => {
       state.lastMessage = err.message || String(err);
@@ -759,7 +789,7 @@ window.SoundLevelScanModule = (function(){
   }
 
   window.addEventListener('cgn:module-show', (event) => {
-    if (event.detail?.module !== 'sound_system') return;
+    if (event.detail?.module !== 'sound_level') return;
     setTimeout(boot, 0);
   });
 

@@ -2,6 +2,40 @@
 
 Stand: 2026-05-21
 
+## STEP271 - Sound-Pegel eigenes Dashboard-Modul
+
+Geaendert:
+
+```text
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/sound_levelscan.js
+htdocs/dashboard/modules/sound_levelscan.css
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP271_SOUND_PEGEL_EIGENES_DASHBOARD_MODUL.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
+app.sqlite
+config/**
+Alert-/TTS-/Discord-Playback
+Sound-Dateien
+```
+
+Hinweis:
+
+```text
+Sound-Pegel ist jetzt eigenes Dashboard-Modul `sound_level`, nutzt aber weiterhin die vorhandenen Backend-Routen `/api/sound/loudness/*`.
+```
+
+
 ## STEP270G1 - Pegel-Playback-Korrektur Safe-Tuning
 
 Geaendert:

@@ -2,6 +2,36 @@
 
 Stand: 2026-05-21
 
+## Nach STEP271 - Sound-Pegel eigenes Dashboard-Modul testen
+
+Dashboard-Test:
+
+```text
+Dashboard oeffnen
+System -> Sound-Pegel
+Pegel-Status laden
+Scan starten
+Fortschritt beobachten
+Korrektur-Vorschau pruefen
+System -> Sound-System oeffnen und pruefen, dass der normale Sound-System-Bereich weiterhin uebersichtlich laedt
+```
+
+Erwartung:
+
+```text
+Sound-Pegel ist als eigenes Modul sichtbar.
+Sound-System enthaelt Pegel-Scan nicht mehr als Untertab.
+Backend-Routen bleiben /api/sound/loudness/*.
+Keine Sound-Dateien werden veraendert.
+```
+
+Danach moeglich:
+
+```text
+STEP272: Auto-Referenz + empfohlener Referenzsound + optionaler Test-Sound.
+```
+
+
 ## Nach STEP270G1 - Safe-Tuning testen
 
 Testen:
