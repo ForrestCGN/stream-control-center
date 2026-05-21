@@ -2,6 +2,42 @@
 
 Stand: 2026-05-21
 
+## STEP270A - Sound Loudness Scanner Read-only
+
+Ein neuer read-only Backend-Scanner fuer Sound-Lautheit ist vorbereitet.
+
+Aktueller funktionaler Stand:
+
+- Neues Modul `backend/modules/sound_loudness_scanner.js`.
+- Modul wird automatisch ueber den vorhandenen `backend/modules/*.js` Loader geladen.
+- Standard-Scanbasis ist `htdocs/assets/sounds`.
+- Messung erfolgt ueber `ffmpeg` + `loudnorm` im Analysemodus.
+- Ergebnisse werden DB-basiert in neuen Tabellen gespeichert:
+  - `sound_loudness_scans`
+  - `sound_loudness_files`
+- Tabellen werden nur per `CREATE TABLE IF NOT EXISTS` angelegt.
+- Es werden keine Sound-Dateien veraendert.
+- Es wird keine Sound-System-Queue, kein Discord-Routing und keine Alert-Bundle-Logik veraendert.
+
+Neue API-Routen:
+
+```text
+GET  /api/sound/loudness/status
+POST /api/sound/loudness/scan
+GET  /api/sound/loudness/results
+GET  /api/sound/loudness/file?file=relative/path.mp3
+GET  /api/sound/loudness/routes
+```
+
+Nach Deploy zu testen:
+
+```powershell
+node --check backend\modules\sound_loudness_scanner.js
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/status" | ConvertTo-Json -Depth 60
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/loudness/scan" -Body (@{ limit = 20 } | ConvertTo-Json) -ContentType "application/json" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/results?limit=50&order=recommended_gain_db&dir=desc" | ConvertTo-Json -Depth 80
+```
+
 ## STEP269A-C - Sound/Discord Integration STABLE
 
 Der Sound-/Discord-Stand ist nach manuellen Tests stabil.

@@ -2,6 +2,49 @@
 
 Stand: 2026-05-21
 
+## Nach STEP270A - Sound Loudness Scanner testen und Dashboard vorbereiten
+
+STEP270A ist ein read-only Backend-Scanner. Nach Deploy zuerst nur testen:
+
+```powershell
+cd D:\Git\stream-control-center
+node --check backend\modules\sound_loudness_scanner.js
+```
+
+Backend neu starten und API pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/status" | ConvertTo-Json -Depth 60
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/routes" | ConvertTo-Json -Depth 60
+```
+
+Kleinen Testscan ausfuehren:
+
+```powershell
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/loudness/scan" -Body (@{ limit = 20 } | ConvertTo-Json) -ContentType "application/json" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/results?limit=50&order=recommended_gain_db&dir=desc" | ConvertTo-Json -Depth 80
+```
+
+Danach moeglicher STEP270B:
+
+```text
+Dashboard-Seite fuer Sound-Lautheit bauen:
+- Scan starten
+- Ergebnisse anzeigen
+- nach ok/warning/error filtern
+- nach LUFS, True Peak, empfohlener Korrektur und Volume sortieren
+- klare Hinweise fuer zu laute/zu leise Dateien anzeigen
+```
+
+Noch nicht bauen ohne neue Freigabe:
+
+```text
+Automatische Playback-Korrektur
+Normalisierte Kopien
+Originaldateien ueberschreiben
+Sound-System Queue-/Playback-Umbau
+```
+
 ## Nach STEP269A-C - Sound-/Discord-Integration beobachten und spaeter dashboardfaehig machen
 
 STEP269A bis STEP269C sind funktional bestaetigt:
@@ -81,101 +124,3 @@ Sound-System Bundle-Core
 Streamer.bot-Flows
 Overlay-HTML
 ```
-
-## Nach STEP238 - Message-Rotator Output-Mode testen
-
-Nach Deploy:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/settings" | ConvertTo-Json -Depth 60
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/integration-check" | ConvertTo-Json -Depth 80
-```
-
-Dashboard-Test:
-
-```text
-System -> Message-Rotator -> Settings
-messageOptions.outputMode = announcement
-messageOptions.announcementColor = purple
-Backend neu laden
-```
-
-Dann:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/next?commit=0" | ConvertTo-Json -Depth 60
-```
-
-Erwartung:
-
-```text
-outputMode = announcement
-announcementColor = purple
-isAnnouncement = true
-streamerbot_action = send_announcement
-streamerbot_send = 0
-```
-
-Danach Produktivwerte setzen.
-
-## Streamer.bot Folgearbeit
-
-Rotator-Action so anpassen:
-
-```text
-streamerbot_action = send_message       -> normale Chatnachricht senden
-streamerbot_action = send_announcement -> Twitch Announcement senden
-```
-
-Dabei `streamerbot_message` als Text und `streamerbot_announcement_color` als Farbe verwenden.
-
-# Next Steps – stream-control-center
-
-## Loyalty / Kekskrümel
-
-Nächste Prüfung nach STEP208:
-
-- Version `0.1.11` prüfen.
-- Subscribe/Resub-Test durchführen:
-  - erst Subscribe
-  - innerhalb von 60 Sekunden Resub für denselben User
-  - prüfen, ob der Subscribe kompensiert und der Resub normal gebucht wurde.
-- Beim nächsten echten Stream erneut auswerten:
-  - Runner-Recovery
-  - Watch-Punkte
-  - Event-Boni
-  - GiftSub/GiftBomb
-  - Subscribe/Resub-Dedupe
-  - Bot-Ignore-Liste
-
-Nächste mögliche fachliche Arbeit nach erfolgreichem Test:
-
-- `soundalerts` als Service-Bot in Ignore-Liste aufnehmen, falls noch nicht geschehen.
-- Loyalty Dashboard: Status, Runner-Events, User, Transaktionen und Auswertung sichtbar machen.
-- Testdaten-Cleanup erst vor echter Live-Schaltung entscheiden.
-
-## DeathCounter V2
-
-Aktuell kein weiterer Pflicht-Umbau.
-
-Empfohlene Prüfung:
-
-- OBS Overlay show/hide prüfen.
-- `!rip` / `!del` prüfen.
-- Lange Namen prüfen.
-- Zusatzspieler links/rechts prüfen.
-
-Wenn visuell nötig: nur kleine CSS-Feinschliffe, keine Funktionsänderungen.
-
-## Nach STEP239 - Message-Rotator Direct Output testen
-
-1. Backend neu starten.
-2. Settings prüfen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/admin/settings" | ConvertTo-Json -Depth 80
-```
-
-3. Für sicheren Test zuerst `commit=0` verwenden.
-4. Wenn `deliveryMode=backend`, `outputMode=announcement`, `announcementColor=purple` gesetzt sind, Live-Test nur bewusst mit `commit=1` durchführen.
-5. Falls Twitch `403` liefert, fehlen dem Bot-Token vermutlich Announcement-/Chat-Scope oder Moderatorrechte.

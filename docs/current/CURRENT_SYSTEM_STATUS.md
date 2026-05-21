@@ -2,6 +2,53 @@
 
 Stand: 2026-05-21
 
+## STEP270A - Sound Loudness Scanner Read-only
+
+Aktueller Zusatzstand:
+
+- Ein read-only Backend-Scanner fuer Sound-Lautheit ist vorbereitet.
+- Neues Modul: `backend/modules/sound_loudness_scanner.js`.
+- Standard-Scanbasis: `htdocs/assets/sounds`.
+- Messung erfolgt ueber `ffmpeg` + `loudnorm`.
+- Ergebnisse werden in neuen DB-Tabellen gespeichert:
+  - `sound_loudness_scans`
+  - `sound_loudness_files`
+- Die bestehenden Sound-Dateien werden nicht veraendert.
+- Der Scanner greift nicht in Sound-System Queue, Prioritaeten, Bundle-Lock, Discord-Routing, Alert-System oder TTS ein.
+
+Neue API-Routen:
+
+```text
+GET  /api/sound/loudness/status
+POST /api/sound/loudness/scan
+GET  /api/sound/loudness/results
+GET  /api/sound/loudness/file?file=relative/path.mp3
+GET  /api/sound/loudness/routes
+```
+
+Bewusst unveraendert:
+
+```text
+app.sqlite bestehende Daten
+config/**
+backend/modules/sound_system.js
+backend/modules/discord.js
+backend/modules/alert_system.js
+backend/modules/soundalerts_bridge.js
+backend/modules/tts_system.js
+Streamer.bot-Flows
+Overlay-HTML
+Dashboard-UI
+```
+
+Offen / naechster Schritt:
+
+```text
+STEP270B Dashboard-Seite fuer Sound-Lautheit bauen.
+Danach erst entscheiden, ob Playback-Gain pro Datei/Kategorie aktivierbar wird.
+Originaldateien weiterhin nicht automatisch ueberschreiben.
+```
+
 ## STEP269A-C - Sound-System Discord Output Integration
 
 Aktueller stabiler Zusatzstand:

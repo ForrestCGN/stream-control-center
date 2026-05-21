@@ -2,6 +2,48 @@
 
 Stand: 2026-05-21
 
+## STEP270A - Sound Loudness Scanner Read-only
+
+Neu:
+
+```text
+backend/modules/sound_loudness_scanner.js
+project-state/STEP270A_SOUND_LOUDNESS_SCANNER_READONLY.md
+```
+
+Aktualisiert:
+
+```text
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
+
+Neue Runtime-/DB-Tabellen nach erstem Modulstart:
+
+```text
+sound_loudness_scans
+sound_loudness_files
+```
+
+Nicht geaendert:
+
+```text
+app.sqlite bestehende Daten
+config/**
+backend/modules/sound_system.js
+backend/modules/discord.js
+backend/modules/vip_sound_overlay.js
+backend/modules/alert_system.js
+backend/modules/soundalerts_bridge.js
+backend/modules/tts_system.js
+Streamer.bot-Flows
+Overlay-HTML
+Dashboard-UI
+```
+
 ## STEP269A-C - Sound/Discord Integration
 
 Geaendert:
@@ -48,9 +90,10 @@ vip_sound_overlay.js enthaelt die Korrektur fuer echte VIP-/Mod-Sounds, die vorh
 
 ```text
 backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
 backend/modules/discord.js
 backend/modules/vip_sound_overlay.js
 backend/modules/alert_system.js
 backend/modules/soundalerts_bridge.js
 backend/modules/tts_system.js
-```
+``` 
