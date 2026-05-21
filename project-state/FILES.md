@@ -198,3 +198,25 @@ TTS-System
 Discord-Routing
 Sound-Dateien
 ```
+
+
+## STEP270F - Pegel-Korrektur Vorschau-Einstellungen
+
+Geaendert:
+
+```text
+backend/modules/sound_loudness_scanner.js
+htdocs/dashboard/modules/sound_levelscan.js
+htdocs/dashboard/modules/sound_levelscan.css
+project-state/STEP270F_SOUND_PEGEL_CORRECTION_SETTINGS_PREVIEW.md
+```
+
+Nicht geaendert:
+
+```text
+app.sqlite ersetzt/neu gebaut: nein
+config/**
+backend/modules/sound_system.js
+Alert-/TTS-/Discord-Playback
+Sound-Dateien
+```

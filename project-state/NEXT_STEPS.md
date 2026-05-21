@@ -198,3 +198,21 @@ Sound-/Discord-Routing soll im Dashboard konfigurierbar werden.
 ```
 
 Wichtig: Discord bleibt Ausgabeziel des Sound-Systems. Keine zweite fachliche Discord-Queue bauen.
+
+
+## Nach STEP270F - Pegel-Korrektur erst weiter pruefen
+
+Naechster Schritt nur nach Dashboard-Test:
+
+```text
+STEP270G: optionale Playback-Korrektur im Sound-System vorbereiten, standardmaessig AUS.
+```
+
+Vorher pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/correction/settings" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/correction/preview?limit=50" | ConvertTo-Json -Depth 80
+```
+
+Normalisierte Kopien bleiben ein separater spaeterer Schritt und duerfen Originaldateien nicht ueberschreiben.

@@ -9,7 +9,7 @@ const media = require("./helpers/helper_media");
 
 const MODULE_NAME = "sound_loudness_scanner";
 const SCHEMA_MODULE = "sound_loudness_scanner";
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const ROUTE_PREFIX = "/api/sound/loudness";
 
 const DEFAULT_ALLOWED_EXTENSIONS = [".mp3", ".wav", ".ogg", ".webm", ".m4a", ".mp4"];
@@ -20,13 +20,38 @@ const DEFAULT_SCAN_LIMIT = 500;
 const DEFAULT_FFMPEG_TIMEOUT_MS = 45000;
 const DEFAULT_EXCLUDE_TTS = true;
 const DEFAULT_EXCLUDED_PATH_SEGMENTS = ["tts", "tts_system", "alert_tts", "generated_tts", "temp_tts", "tts_cache"];
+const DEFAULT_CORRECTION_SETTINGS = {
+  enabled: false,
+  mode: "off",
+  targetLufs: DEFAULT_TARGET_LUFS,
+  truePeakLimitDbtp: DEFAULT_TRUE_PEAK_LIMIT_DBTP,
+  maxPlaybackVolume: DEFAULT_MAX_PLAYBACK_VOLUME,
+  maxBoostDb: 6,
+  maxCutDb: 24,
+  protectTruePeak: true,
+  excludeTts: true,
+  applyToTargets: ["stream", "discord", "both", "device", "overlay"],
+  updatedAt: "",
+  updatedBy: ""
+};
+const DEFAULT_NORMALIZATION_SETTINGS = {
+  enabled: false,
+  mode: "planned",
+  outputDir: "htdocs/assets/sounds_normalized",
+  overwriteOriginals: false,
+  keepOriginals: true,
+  createMissingFolders: true,
+  status: "planned_not_implemented",
+  updatedAt: "",
+  updatedBy: ""
+};
 
 module.exports.init = function init(ctx) {
   const { app } = ctx;
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.3-step270e-progress",
+    version: "0.1.4-step270f-correction-settings",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -129,6 +154,81 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  app.get(`${ROUTE_PREFIX}/correction/settings`, (req, res) => {
+    try {
+      ensureSchema();
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        correction: getCorrectionSettings(),
+        normalization: getNormalizationSettings(),
+        notes: [
+          "Settings only: playback correction is not active until sound_system uses it.",
+          "Normalized-copy export is planned but not implemented in this step.",
+          "No sound files are modified."
+        ]
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.post(`${ROUTE_PREFIX}/correction/settings`, (req, res) => {
+    try {
+      ensureSchema();
+      const body = req.body || {};
+      const correction = saveCorrectionSettings(body.correction || body, String(body.updatedBy || body.user || "dashboard"));
+      let normalization = getNormalizationSettings();
+      if (body.normalization && typeof body.normalization === "object") {
+        normalization = saveNormalizationSettings(body.normalization, String(body.updatedBy || body.user || "dashboard"));
+      }
+      res.json({ ok: true, module: MODULE_NAME, correction, normalization });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.get(`${ROUTE_PREFIX}/correction/preview`, (req, res) => {
+    try {
+      ensureSchema();
+      const limit = clampNumber(req.query.limit, 1, 1000, 250);
+      const offset = clampNumber(req.query.offset, 0, 1000000, 0);
+      const status = String(req.query.status || "").trim();
+      const includeExcluded = parseBool(req.query.includeExcluded, false);
+      const order = normalizeOrder(req.query.order || "recommended_gain_db");
+      const direction = String(req.query.dir || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
+      const settings = getCorrectionSettings();
+      const filterParams = {};
+      const whereParts = [];
+      if (status) {
+        whereParts.push("status = :status");
+        filterParams.status = status;
+      }
+      if (!includeExcluded && settings.excludeTts !== false) appendExcludedPathFilter(whereParts, filterParams);
+      const where = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
+      const totalRow = database.get(`SELECT COUNT(*) AS count FROM sound_loudness_files ${where}`, filterParams) || { count: 0 };
+      const rows = database.all(
+        `SELECT * FROM sound_loudness_files ${where} ORDER BY ${order} ${direction} LIMIT ${limit} OFFSET ${offset}`,
+        filterParams
+      ) || [];
+      const previewRows = rows.map(row => buildCorrectionPreview(publicFileResult(row), settings));
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        correction: settings,
+        normalization: getNormalizationSettings(),
+        count: previewRows.length,
+        total: Number(totalRow.count || 0),
+        limit,
+        offset,
+        summary: summarizeCorrectionPreview(previewRows),
+        results: previewRows
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
   app.post(`${ROUTE_PREFIX}/scan`, (req, res) => {
     if (state.running) {
       return res.status(409).json({ ok: false, error: "scan_already_running", scanId: state.lastScanId, progress: publicProgress(state.progress) });
@@ -163,13 +263,17 @@ module.exports.init = function init(ctx) {
         { method: "POST", path: `${ROUTE_PREFIX}/scan`, description: "Run a read-only loudness scan for sound files; pass async=true for dashboard progress polling" },
         { method: "GET", path: `${ROUTE_PREFIX}/results`, description: "List persisted loudness scan results" },
         { method: "GET", path: `${ROUTE_PREFIX}/file?file=relative/path.mp3`, description: "Read one persisted loudness result" },
+        { method: "GET", path: `${ROUTE_PREFIX}/correction/settings`, description: "Read inactive playback-correction and planned normalization-export settings" },
+        { method: "POST", path: `${ROUTE_PREFIX}/correction/settings`, description: "Save inactive correction-preview settings; does not change playback" },
+        { method: "GET", path: `${ROUTE_PREFIX}/correction/preview`, description: "Return correction preview rows based on saved settings; does not apply playback changes" },
         { method: "GET", path: `${ROUTE_PREFIX}/routes`, description: "Route self-documentation" }
       ],
       notes: [
         "Read-only: no sound file is modified.",
         "TTS/generated speech files are excluded by default.",
         "Results are stored in SQLite using CREATE TABLE IF NOT EXISTS migration only.",
-        "Playback, Sound-System queue, Discord routing and Alert bundle logic are not changed."
+        "Playback, Sound-System queue, Discord routing and Alert bundle logic are not changed.",
+        "Correction settings and normalized-copy export settings are preview/planning only in this step."
       ]
     });
   });
@@ -489,8 +593,186 @@ function ensureSchema() {
         CREATE INDEX IF NOT EXISTS idx_sound_loudness_files_status ON sound_loudness_files(status);
       `);
     }
+
+    if (toVersion === 2) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS sound_loudness_settings (
+          key TEXT PRIMARY KEY,
+          value_json TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          updated_by TEXT NOT NULL DEFAULT ''
+        );
+      `);
+    }
   });
   return true;
+}
+
+
+function getJsonSetting(key, fallback) {
+  ensureSchema();
+  const row = database.get("SELECT value_json FROM sound_loudness_settings WHERE key = :key", { key }) || null;
+  if (!row) return cloneJson(fallback);
+  try {
+    const parsed = JSON.parse(String(row.value_json || "{}"));
+    return { ...cloneJson(fallback), ...(parsed && typeof parsed === "object" ? parsed : {}) };
+  } catch (_) {
+    return cloneJson(fallback);
+  }
+}
+
+function saveJsonSetting(key, value, updatedBy) {
+  ensureSchema();
+  const now = nowIso();
+  const payload = { ...(value || {}), updatedAt: now, updatedBy: String(updatedBy || "") };
+  database.upsert(
+    "sound_loudness_settings",
+    {
+      key,
+      value_json: JSON.stringify(payload),
+      updated_at: now,
+      updated_by: String(updatedBy || "")
+    },
+    ["key"],
+    ["value_json", "updated_at", "updated_by"]
+  );
+  return payload;
+}
+
+function getCorrectionSettings() {
+  return sanitizeCorrectionSettings(getJsonSetting("correction", DEFAULT_CORRECTION_SETTINGS));
+}
+
+function getNormalizationSettings() {
+  return sanitizeNormalizationSettings(getJsonSetting("normalization", DEFAULT_NORMALIZATION_SETTINGS));
+}
+
+function saveCorrectionSettings(input, updatedBy) {
+  const clean = sanitizeCorrectionSettings({ ...getCorrectionSettings(), ...(input || {}) });
+  return saveJsonSetting("correction", clean, updatedBy);
+}
+
+function saveNormalizationSettings(input, updatedBy) {
+  const clean = sanitizeNormalizationSettings({ ...getNormalizationSettings(), ...(input || {}) });
+  return saveJsonSetting("normalization", clean, updatedBy);
+}
+
+function sanitizeCorrectionSettings(input) {
+  const raw = input && typeof input === "object" ? input : {};
+  const mode = ["off", "preview", "ready"].includes(String(raw.mode || "").toLowerCase()) ? String(raw.mode).toLowerCase() : "off";
+  const targets = Array.isArray(raw.applyToTargets) ? raw.applyToTargets : DEFAULT_CORRECTION_SETTINGS.applyToTargets;
+  return {
+    enabled: parseBool(raw.enabled, false) === true,
+    mode,
+    targetLufs: clampNumber(raw.targetLufs, -40, -6, DEFAULT_TARGET_LUFS),
+    truePeakLimitDbtp: clampNumber(raw.truePeakLimitDbtp, -12, 0, DEFAULT_TRUE_PEAK_LIMIT_DBTP),
+    maxPlaybackVolume: Math.round(clampNumber(raw.maxPlaybackVolume, 1, 100, DEFAULT_MAX_PLAYBACK_VOLUME)),
+    maxBoostDb: clampNumber(raw.maxBoostDb, 0, 18, 6),
+    maxCutDb: clampNumber(raw.maxCutDb, 0, 40, 24),
+    protectTruePeak: parseBool(raw.protectTruePeak, true) !== false,
+    excludeTts: parseBool(raw.excludeTts, true) !== false,
+    applyToTargets: Array.from(new Set(targets.map(v => String(v || "").trim().toLowerCase()).filter(Boolean))).slice(0, 10),
+    updatedAt: String(raw.updatedAt || ""),
+    updatedBy: String(raw.updatedBy || "")
+  };
+}
+
+function sanitizeNormalizationSettings(input) {
+  const raw = input && typeof input === "object" ? input : {};
+  const outputDir = sanitizeOutputDir(raw.outputDir || DEFAULT_NORMALIZATION_SETTINGS.outputDir);
+  return {
+    enabled: false,
+    mode: "planned",
+    outputDir,
+    overwriteOriginals: false,
+    keepOriginals: true,
+    createMissingFolders: parseBool(raw.createMissingFolders, true) !== false,
+    status: "planned_not_implemented",
+    updatedAt: String(raw.updatedAt || ""),
+    updatedBy: String(raw.updatedBy || "")
+  };
+}
+
+function sanitizeOutputDir(value) {
+  const raw = String(value || DEFAULT_NORMALIZATION_SETTINGS.outputDir).replace(/\\/g, "/").trim();
+  if (!raw || raw.includes("..") || path.isAbsolute(raw)) return DEFAULT_NORMALIZATION_SETTINGS.outputDir;
+  return raw.replace(/^\/+/, "");
+}
+
+function buildCorrectionPreview(row, settings) {
+  const base = row || {};
+  const warnings = Array.isArray(base.warnings) ? base.warnings.slice() : [];
+  const inputI = Number(base.inputI);
+  const inputTp = Number(base.inputTp);
+  const status = String(base.status || "");
+  let rawGainDb = null;
+  let limitedGainDb = null;
+  let recommendedVolume = null;
+  let action = "not_available";
+  let canAutoApply = false;
+  const reasons = [];
+
+  if (status === "error" || !Number.isFinite(inputI)) {
+    reasons.push(status === "error" ? "scan_error" : "missing_lufs");
+  } else {
+    rawGainDb = round1(Number(settings.targetLufs) - inputI);
+    limitedGainDb = rawGainDb;
+    if (Number.isFinite(limitedGainDb) && limitedGainDb > Number(settings.maxBoostDb)) {
+      limitedGainDb = Number(settings.maxBoostDb);
+      reasons.push("max_boost_limited");
+    }
+    if (Number.isFinite(limitedGainDb) && limitedGainDb < -Number(settings.maxCutDb)) {
+      limitedGainDb = -Number(settings.maxCutDb);
+      reasons.push("max_cut_limited");
+    }
+    if (settings.protectTruePeak && Number.isFinite(inputTp) && Number.isFinite(limitedGainDb)) {
+      const peakAfter = inputTp + limitedGainDb;
+      if (limitedGainDb > 0 && peakAfter > Number(settings.truePeakLimitDbtp)) {
+        limitedGainDb = round1(Number(settings.truePeakLimitDbtp) - inputTp);
+        reasons.push("true_peak_protected");
+      }
+    }
+    limitedGainDb = round1(limitedGainDb);
+    recommendedVolume = gainToVolume(limitedGainDb, settings.maxPlaybackVolume);
+    if (limitedGainDb < -0.25) action = "reduce";
+    else if (limitedGainDb > 0.25) action = "raise";
+    else action = "near_target";
+    canAutoApply = action !== "not_available" && !warnings.includes("true_peak_above_limit") && !reasons.includes("true_peak_protected");
+    if (warnings.includes("volume_cap_reached")) reasons.push("volume_cap_reached");
+    if (warnings.includes("true_peak_above_limit")) reasons.push("true_peak_above_limit");
+  }
+
+  return {
+    ...base,
+    correctionPreview: {
+      enabled: false,
+      mode: settings.mode,
+      targetLufs: settings.targetLufs,
+      maxPlaybackVolume: settings.maxPlaybackVolume,
+      rawGainDb,
+      limitedGainDb,
+      recommendedVolume,
+      action,
+      canAutoApply,
+      reasons
+    }
+  };
+}
+
+function summarizeCorrectionPreview(rows) {
+  const data = Array.isArray(rows) ? rows : [];
+  const reduce = data.filter(row => row.correctionPreview?.action === "reduce").length;
+  const raise = data.filter(row => row.correctionPreview?.action === "raise").length;
+  const nearTarget = data.filter(row => row.correctionPreview?.action === "near_target").length;
+  const notAvailable = data.filter(row => row.correctionPreview?.action === "not_available").length;
+  const autoSafe = data.filter(row => row.correctionPreview?.canAutoApply === true).length;
+  const manualReview = data.length - autoSafe;
+  const normalizedCopiesPlanned = true;
+  return { total: data.length, reduce, raise, nearTarget, notAvailable, autoSafe, manualReview, normalizedCopiesPlanned };
+}
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 function parseScanOptions(input) {

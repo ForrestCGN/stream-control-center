@@ -653,3 +653,63 @@ html[data-theme=dark] .sound-levelscan-current strong {
     word-break: break-word;
   }
 }
+
+/* STEP270F - Pegel-Korrektur Vorschau-Einstellungen */
+.sound-levelscan-correction-settings,
+.sound-levelscan-normalization-planned {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(56,189,248,.18);
+  background: rgba(56,189,248,.055);
+}
+
+.sound-levelscan-normalization-planned {
+  border-color: rgba(251,191,36,.22);
+  background: rgba(251,191,36,.055);
+}
+
+.sound-levelscan-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  align-items: stretch;
+}
+
+.sound-levelscan-settings-grid.compact {
+  grid-template-columns: minmax(220px, 2fr) minmax(180px, 1fr);
+}
+
+.sound-levelscan-wide {
+  grid-column: span 1;
+}
+
+.sound-levelscan-preview-grid.compact {
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+}
+
+html[data-theme=dark] .sound-levelscan-correction-settings {
+  background: #202020;
+  border-color: #343434;
+}
+
+html[data-theme=dark] .sound-levelscan-normalization-planned {
+  background: #242116;
+  border-color: #4c4427;
+}
+
+@media(max-width: 1200px) {
+  .sound-levelscan-settings-grid,
+  .sound-levelscan-settings-grid.compact {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+}
+
+@media(max-width: 760px) {
+  .sound-levelscan-settings-grid,
+  .sound-levelscan-settings-grid.compact,
+  .sound-levelscan-preview-grid.compact {
+    grid-template-columns: 1fr;
+  }
+}

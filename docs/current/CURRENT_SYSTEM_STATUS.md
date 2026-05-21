@@ -177,3 +177,11 @@ MP3-Cover/Artwork-Erkennung als optionaler spaeterer Mini-Fix
 - Immediate-Prequeue blockiert sich nicht mehr selbst.
 - Alert-System laeuft wieder mit Sound-System-Bundles.
 - TTS bleibt beim passenden Alert.
+
+
+## STEP270F - Pegel-Korrektur Vorschau-Einstellungen
+
+- Sound Pegel-Scan besitzt jetzt vorbereitete, inaktive Korrektur-Einstellungen.
+- Dashboard kann Ziel-LUFS, True-Peak-Limit, Max Volume, Max Boost/Max Cut und True-Peak-Schutz anzeigen/speichern.
+- Korrektur-Vorschau bleibt read-only und greift nicht in `sound_system.js` ein.
+- Normalisierte Kopien sind als spaetere separate Option vorbereitet; es werden noch keine Dateien erzeugt.

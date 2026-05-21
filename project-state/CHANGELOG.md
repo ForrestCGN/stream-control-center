@@ -133,3 +133,10 @@
 - Discord nutzt vorhandene Bridge `app.locals.discordBridge.enqueueSound(...)`.
 - Discord-Fehler blockieren die Sound-System-Queue nicht.
 - Nicht geaendert: Alert-Bundle-Lock, Queue-Prioritaeten, TTS, Overlays, Streamer.bot-Flows.
+
+## 2026-05-21 - STEP270F Pegel-Korrektur Vorschau-Einstellungen
+
+- `backend/modules/sound_loudness_scanner.js` um inaktive Korrektur-Settings und Preview-API erweitert.
+- `htdocs/dashboard/modules/sound_levelscan.js` und `.css` um Bereich fuer spaetere Pegel-Anpassung erweitert.
+- Normalisierte Kopien als eigene spaetere Option im Dashboard vorbereitet.
+- Keine Playback-Korrektur aktiviert, keine Sound-Dateien veraendert.

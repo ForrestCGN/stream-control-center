@@ -16,6 +16,9 @@ window.SoundLevelScanModule = (function(){
     pollTimer: null,
     status: null,
     results: null,
+    correctionSettings: null,
+    normalizationSettings: null,
+    correctionPreview: null,
     lastMessage: ''
   };
 
@@ -41,7 +44,11 @@ window.SoundLevelScanModule = (function(){
     previewVolume: 'Empfohlene spätere Playback-Lautstärke. Niedrig = Datei ist aktuell sehr laut. 100% = Datei ist eher zu leise oder erreicht das Ziel nicht.',
     previewGain: 'Empfohlene Gain-Änderung. Negativ senkt den Sound ab, positiv hebt ihn an. Große Werte sollten manuell geprüft werden.',
     previewRisk: 'Einschätzung für eine spätere automatische Korrektur. True-Peak-Warnungen und starke Absenkungen sind Kandidaten für manuelle Prüfung.',
-    progress: 'Fortschritt des aktuell laufenden Scans. Das Dashboard fragt den Status regelmäßig vom Backend ab, während FFmpeg die Dateien misst.'
+    progress: 'Fortschritt des aktuell laufenden Scans. Das Dashboard fragt den Status regelmäßig vom Backend ab, während FFmpeg die Dateien misst.',
+    correctionSettings: 'Vorbereitete Einstellungen für eine spätere automatische Playback-Korrektur. In diesem Schritt wird noch nichts beim Abspielen verändert.',
+    maxBoost: 'Maximale Anhebung. Schützt davor, sehr leise oder verrauschte Dateien zu stark hochzuziehen.',
+    maxCut: 'Maximale Absenkung. Schützt vor extremen automatischen Änderungen bei sehr lauten Dateien.',
+    normalizedCopies: 'Geplante spätere Export-Option: normalisierte Kopien in einen separaten Ordner schreiben. Originale bleiben erhalten.'
   };
 
   function esc(value){ return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? ''); }
@@ -110,7 +117,7 @@ window.SoundLevelScanModule = (function(){
   }
 
   function previewClass(row){
-    const gain = Number(row?.recommendedGainDb);
+    const gain = previewGain(row);
     const warnings = Array.isArray(row?.warnings) ? row.warnings : [];
     if (row?.status === 'error') return 'danger';
     if (warnings.includes('true_peak_above_limit')) return 'danger';
@@ -122,8 +129,8 @@ window.SoundLevelScanModule = (function(){
 
   function previewText(row){
     if (!row || row.status === 'error') return 'nicht bewertbar';
-    const gain = Number(row.recommendedGainDb);
-    const volume = Number(row.recommendedVolume);
+    const gain = previewGain(row);
+    const volume = previewVolume(row);
     if (!Number.isFinite(gain) || !Number.isFinite(volume)) return 'keine Empfehlung';
     if (gain < -0.25) return `später auf ca. ${Math.round(volume)}% / ${db(gain, 1)}`;
     if (gain > 0.25) return `später auf ca. ${Math.round(volume)}% / ${db(gain, 1)}`;
@@ -131,13 +138,33 @@ window.SoundLevelScanModule = (function(){
   }
 
   function previewHint(row){
+    const preview = row?.correctionPreview || findPreview(row)?.correctionPreview || null;
     const warnings = Array.isArray(row?.warnings) ? row.warnings : [];
-    const gain = Number(row?.recommendedGainDb);
+    const gain = Number(preview?.limitedGainDb ?? row?.recommendedGainDb);
+    if (preview && Array.isArray(preview.reasons) && preview.reasons.includes('true_peak_protected')) return 'True-Peak-Schutz würde die Anhebung begrenzen.';
     if (warnings.includes('true_peak_above_limit')) return 'Achtung: True Peak über Limit. Spätere Korrektur sollte diesen Sound eher absenken und nicht weiter anheben.';
     if (warnings.includes('volume_cap_reached')) return 'Zu leise: selbst 100% Playback-Volume reicht rechnerisch nicht sauber bis zum Zielwert.';
     if (Number.isFinite(gain) && gain <= -10) return 'Sehr laut: automatische Absenkung wäre stark. Vor Aktivierung einmal anhören.';
     if (Number.isFinite(gain) && gain >= 6) return 'Eher leise: deutliche Anhebung wäre nötig. Rauschen/Qualität prüfen.';
     return HELP.preview;
+  }
+
+  function findPreview(row){
+    const path = String(row?.relativePath || '');
+    const list = Array.isArray(state.correctionPreview?.results) ? state.correctionPreview.results : [];
+    return list.find(item => String(item.relativePath || '') === path) || null;
+  }
+
+  function previewGain(row){
+    const preview = row?.correctionPreview || findPreview(row)?.correctionPreview || null;
+    const value = preview?.limitedGainDb ?? row?.recommendedGainDb;
+    return Number(value);
+  }
+
+  function previewVolume(row){
+    const preview = row?.correctionPreview || findPreview(row)?.correctionPreview || null;
+    const value = preview?.recommendedVolume ?? row?.recommendedVolume;
+    return Number(value);
   }
 
   function qs(params){
@@ -211,6 +238,7 @@ window.SoundLevelScanModule = (function(){
           state.statusFilter = 'all';
           await loadAll();
         }
+        if (action === 'save-correction') await saveCorrectionSettings();
       } catch (err) {
         state.lastMessage = err.message || String(err);
         render();
@@ -245,6 +273,40 @@ window.SoundLevelScanModule = (function(){
     if (showPreviewEl) state.showPreview = !!showPreviewEl.checked;
   }
 
+  function correctionFormNumber(id, fallback, min, max){
+    const value = Number(document.getElementById(id)?.value);
+    if (!Number.isFinite(value)) return fallback;
+    return Math.max(min, Math.min(max, value));
+  }
+
+  async function saveCorrectionSettings(){
+    const current = state.correctionSettings || {};
+    const normalization = state.normalizationSettings || {};
+    const payload = {
+      correction: {
+        enabled: false,
+        mode: 'preview',
+        targetLufs: correctionFormNumber('soundLevelCorrectionTargetLufs', current.targetLufs ?? -18, -40, -6),
+        truePeakLimitDbtp: correctionFormNumber('soundLevelCorrectionPeakLimit', current.truePeakLimitDbtp ?? -1.5, -12, 0),
+        maxPlaybackVolume: Math.round(correctionFormNumber('soundLevelCorrectionMaxVolume', current.maxPlaybackVolume ?? 80, 1, 100)),
+        maxBoostDb: correctionFormNumber('soundLevelCorrectionMaxBoost', current.maxBoostDb ?? 6, 0, 18),
+        maxCutDb: correctionFormNumber('soundLevelCorrectionMaxCut', current.maxCutDb ?? 24, 0, 40),
+        protectTruePeak: !!document.getElementById('soundLevelCorrectionProtectPeak')?.checked,
+        excludeTts: !!document.getElementById('soundLevelCorrectionExcludeTts')?.checked
+      },
+      normalization: {
+        outputDir: document.getElementById('soundLevelNormalizationOutputDir')?.value || normalization.outputDir || 'htdocs/assets/sounds_normalized',
+        createMissingFolders: !!document.getElementById('soundLevelNormalizationFolders')?.checked
+      },
+      updatedBy: 'dashboard'
+    };
+    const saved = await api('/correction/settings', { method: 'POST', body: JSON.stringify(payload) });
+    state.correctionSettings = saved.correction || null;
+    state.normalizationSettings = saved.normalization || null;
+    state.lastMessage = 'Korrektur-Vorschau-Einstellungen gespeichert. Playback bleibt weiterhin unverändert.';
+    await loadResultsOnly();
+  }
+
   async function runScan(){
     readControls();
     state.loading = true;
@@ -267,6 +329,7 @@ window.SoundLevelScanModule = (function(){
       dir: state.dir
     });
     state.results = await api(`/results?${query}`);
+    try { state.correctionPreview = await api(`/correction/preview?${query}`); } catch (_) { state.correctionPreview = null; }
     render();
   }
 
@@ -275,6 +338,14 @@ window.SoundLevelScanModule = (function(){
     render();
     try {
       state.status = await api('/status');
+      try {
+        const corr = await api('/correction/settings');
+        state.correctionSettings = corr.correction || null;
+        state.normalizationSettings = corr.normalization || null;
+      } catch (_) {
+        state.correctionSettings = null;
+        state.normalizationSettings = null;
+      }
       await loadResultsOnly();
       if (state.status?.running) startPolling();
       if (!state.lastMessage) state.lastMessage = 'Pegel-Scan geladen.';
@@ -420,6 +491,84 @@ window.SoundLevelScanModule = (function(){
           <span>Warnungen: <strong>${esc(progress.warningFiles || 0)}</strong></span>
           <span>Fehler: <strong>${esc(progress.errorFiles || 0)}</strong></span>
         </div>
+      </div>
+    `;
+  }
+
+  function renderCorrectionSettingsPanel(){
+    const corr = state.correctionSettings || {};
+    const norm = state.normalizationSettings || {};
+    const previewSummary = state.correctionPreview?.summary || {};
+    return `
+      <div class="sound-levelscan-correction-settings">
+        <div class="sound-levelscan-preview-head">
+          <div>
+            <strong>Spätere Pegel-Anpassung vorbereiten</strong>
+            <span>${esc(HELP.correctionSettings)}</span>
+          </div>
+          <span class="sound-pill danger" title="Noch nicht im Sound-System aktiv. Es wird nur gespeichert und vorgerechnet.">Anwendung AUS</span>
+        </div>
+        <div class="sound-levelscan-settings-grid">
+          <label class="sound-field">
+            ${withHelp('Ziel-LUFS', HELP.targetLufs)}
+            <input id="soundLevelCorrectionTargetLufs" type="number" min="-40" max="-6" step="0.5" value="${esc(corr.targetLufs ?? -18)}">
+          </label>
+          <label class="sound-field">
+            ${withHelp('True Peak Limit', HELP.peakLimit)}
+            <input id="soundLevelCorrectionPeakLimit" type="number" min="-12" max="0" step="0.1" value="${esc(corr.truePeakLimitDbtp ?? -1.5)}">
+          </label>
+          <label class="sound-field">
+            ${withHelp('Max Volume', HELP.maxVolume)}
+            <input id="soundLevelCorrectionMaxVolume" type="number" min="1" max="100" step="1" value="${esc(corr.maxPlaybackVolume ?? 80)}">
+          </label>
+          <label class="sound-field">
+            ${withHelp('Max Boost', HELP.maxBoost)}
+            <input id="soundLevelCorrectionMaxBoost" type="number" min="0" max="18" step="0.5" value="${esc(corr.maxBoostDb ?? 6)}">
+          </label>
+          <label class="sound-field">
+            ${withHelp('Max Cut', HELP.maxCut)}
+            <input id="soundLevelCorrectionMaxCut" type="number" min="0" max="40" step="0.5" value="${esc(corr.maxCutDb ?? 24)}">
+          </label>
+          <label class="sound-check" title="Verhindert, dass leise Dateien über das True-Peak-Limit angehoben werden.">
+            <input id="soundLevelCorrectionProtectPeak" type="checkbox" ${corr.protectTruePeak === false ? '' : 'checked'}>
+            <span>True-Peak-Schutz</span>
+          </label>
+          <label class="sound-check" title="TTS-/Speech-Dateien bleiben von Pegel-Scan und Vorschau ausgeschlossen.">
+            <input id="soundLevelCorrectionExcludeTts" type="checkbox" ${corr.excludeTts === false ? '' : 'checked'}>
+            <span>TTS ausschließen</span>
+          </label>
+        </div>
+        <div class="sound-levelscan-preview-grid compact">
+          <div title="Dateien, die nach gespeicherten Vorschau-Einstellungen automatisch relativ sicher wären."><strong>${esc(previewSummary.autoSafe ?? '-')}</strong><span>auto-safe</span></div>
+          <div title="Dateien, die vor Aktivierung manuell geprüft werden sollten."><strong>${esc(previewSummary.manualReview ?? '-')}</strong><span>prüfen</span></div>
+          <div title="Dateien, die später leiser würden."><strong>${esc(previewSummary.reduce ?? '-')}</strong><span>leiser</span></div>
+          <div title="Dateien, die später lauter würden."><strong>${esc(previewSummary.raise ?? '-')}</strong><span>lauter</span></div>
+        </div>
+        <div class="sound-actions">
+          <button type="button" data-sound-level-action="save-correction" title="Speichert nur die Vorschau-Einstellungen. Playback bleibt aus.">Vorschau-Einstellungen speichern</button>
+        </div>
+        <div class="sound-note">Diese Einstellungen werden gespeichert und für die Vorschau genutzt. Sie greifen noch nicht in <code>sound_system.js</code> ein.</div>
+      </div>
+
+      <div class="sound-levelscan-normalization-planned">
+        <div class="sound-levelscan-preview-head">
+          <div>
+            <strong>Normalisierte Kopien</strong>
+            <span>${esc(HELP.normalizedCopies)}</span>
+          </div>
+          <span class="sound-pill warn">geplant</span>
+        </div>
+        <div class="sound-levelscan-settings-grid compact">
+          <label class="sound-field sound-levelscan-wide">
+            <span>Zielordner für spätere Kopien</span>
+            <input id="soundLevelNormalizationOutputDir" type="text" value="${esc(norm.outputDir || 'htdocs/assets/sounds_normalized')}" title="Geplanter separater Ausgabeordner. Originale bleiben erhalten.">
+          </label>
+          <label class="sound-check" title="Später darf das Export-Modul Unterordner wie alerts/ automatisch anlegen.">
+            <input id="soundLevelNormalizationFolders" type="checkbox" ${norm.createMissingFolders === false ? '' : 'checked'}>
+            <span>Unterordner anlegen</span>
+          </label>
+        </div>
+        <div class="sound-note"><strong>Noch kein Export.</strong> Dieser Bereich bereitet nur die spätere Option vor. Es werden keine Kopien erzeugt und keine Originale überschrieben.</div>
       </div>
     `;
   }
@@ -586,6 +735,7 @@ window.SoundLevelScanModule = (function(){
       ${renderSummary()}
       ${renderControls()}
       ${renderProgressPanel()}
+      ${renderCorrectionSettingsPanel()}
       ${state.showPreview ? renderPreviewPanel() : ''}
       ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
       ${renderRows()}

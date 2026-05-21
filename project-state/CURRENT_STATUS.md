@@ -169,3 +169,12 @@ Offen:
 - Echter Alert + Alert-TTS Ablauf beobachten.
 - Normales Chat-TTS nur anfassen, wenn Discord-Ausgabe dort fehlt.
 - Optional: MP3s mit eingebettetem Cover/Artwork nicht als Video behandeln, wenn nur Audio gewuenscht ist.
+
+
+## STEP270F - Pegel-Korrektur Vorschau-Einstellungen
+
+- Pegel-Scan kann jetzt inaktive Korrektur-Einstellungen speichern.
+- Dashboard zeigt Ziel-LUFS, True-Peak-Limit, Max Volume, Max Boost/Max Cut und True-Peak-Schutz.
+- `/api/sound/loudness/correction/preview` liefert eine Vorschau nach gespeicherten Einstellungen.
+- Normalisierte Kopien sind als spaetere Option sichtbar vorbereitet, aber noch nicht implementiert.
+- Playback, Sound-Dateien, Queue, Discord-Routing, Alerts und TTS bleiben unveraendert.
