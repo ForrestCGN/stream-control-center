@@ -1405,11 +1405,60 @@ module.exports.init = function init(ctx) {
     return stopped;
   }
 
+  // STEP268C_ACTIVE_BUNDLE_LOCK_DIRECT_START_GUARD
+  // Wenn ein locked Bundle aktiv ist, darf kein fremdes Item direkt starten.
+  // Das ist besonders wichtig in der kurzen Luecke zwischen Alert-Hauptsound und Alert-TTS:
+  // state.current kann kurz null sein, aber state.activeBundleLock zeigt noch auf das Alert-Bundle.
+  function itemMatchesActiveBundleLock(item) {
+    const lock = state.activeBundleLock;
+    if (!lock || !lock.bundleId || !item) return true;
+    return String(item.bundleId || "") === String(lock.bundleId || "");
+  }
+
+  function queueBehindActiveBundleLock(item) {
+    const maxLength = Number(config.queue?.maxLength || 50);
+    if (state.queue.length >= maxLength) {
+      if (shouldDropQueueFull(item)) {
+        return {
+          started: false,
+          queued: false,
+          dropped: true,
+          queuePosition: -1,
+          item,
+          reason: "queue_full_active_bundle_lock"
+        };
+      }
+      throw new Error(msg("queueFull"));
+    }
+
+    item.lifecycle = {
+      ...(item.lifecycle || {}),
+      queuedBehindActiveBundleLock: true,
+      activeBundleLockId: state.activeBundleLock && state.activeBundleLock.bundleId ? state.activeBundleLock.bundleId : ""
+    };
+
+    state.queue.push(item);
+    sortQueue();
+    state.stats.queued += 1;
+    emit("queued");
+    return {
+      started: false,
+      queued: true,
+      queuePosition: state.queue.findIndex(q => q.requestId === item.requestId) + 1,
+      item,
+      reason: "active_bundle_lock"
+    };
+  }
+
   function enqueueOrStart(item) {
     if (!state.enabled) throw new Error(msg("systemDisabled"));
     const cooldown = checkCooldown(item);
     if (cooldown) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: cooldown.reason, retryAfterMs: cooldown.retryAfterMs };
     if (item.clearQueue) { state.queue = []; state.activeBundleLock = null; }
+
+    if (state.activeBundleLock && !itemMatchesActiveBundleLock(item)) {
+      return queueBehindActiveBundleLock(item);
+    }
 
     if (state.current && parallelAllowedByPolicy(item)) {
       startItem(item, "parallel_started", { parallel: true });
