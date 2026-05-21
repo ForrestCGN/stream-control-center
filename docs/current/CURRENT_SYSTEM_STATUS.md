@@ -2,6 +2,28 @@
 
 Stand: 2026-05-21
 
+
+## STEP272B2 - Sound-Pegel Testton als echte Sound-Datei
+
+- Sound-Pegel Referenz-Testton kann jetzt als echte Datei unter `htdocs/assets/sounds/generated/reference_test.wav` erzeugt werden.
+- Dashboard-Button `Test-Ton über OBS` nutzt danach `/api/sound/play` mit `file=generated/reference_test.wav`.
+- Dadurch laeuft der technische Testton ueber denselben Sound-System-/OBS-Overlay-Pfad wie normale Sound-Dateien.
+- Keine Original-Sounddateien, keine Sound-Queue, kein Discord-Routing, kein Alert-System und kein TTS-System geaendert.
+
+## STEP272B1 - Sound-Pegel Test-Ton ueber OBS/Sound-System
+
+Aktueller Zusatzstand:
+
+- Sound-Pegel ist eigenes Dashboard-Modul unter System.
+- Referenz-Tab enthaelt Auto-Referenz und empfohlenen echten Referenzsound.
+- Technischer Test-Ton wird jetzt ueber Sound-System/OBS-Overlay gestartet.
+- Direkter WAV-Link bleibt nur zum Gegenhoeren.
+- Backend, Sound-System-Queue, Discord-Routing, Alerts, TTS, Config und Sound-Dateien bleiben unveraendert.
+
+# Current System Status – stream-control-center
+
+Stand: 2026-05-21
+
 ## STEP272B - Sound-Pegel Auto-Referenz + Referenzsound
 
 - Sound-Pegel besitzt jetzt einen eigenen Unterbereich `Referenz`.

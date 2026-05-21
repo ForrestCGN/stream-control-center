@@ -53,7 +53,7 @@ module.exports.init = function init(ctx) {
 
   const state = {
     module: MODULE_NAME,
-    version: "0.1.5-step272b-reference-mode",
+    version: "0.1.6-step272b2-reference-test-file",
     loadedAt: nowIso(),
     running: false,
     lastScanId: "",
@@ -184,6 +184,19 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  app.all(`${ROUTE_PREFIX}/reference/test-file`, (req, res) => {
+    try {
+      ensureSchema();
+      const input = req.method === "POST" ? (req.body || {}) : (req.query || {});
+      const targetLufs = clampNumber(input.targetLufs, -40, -6, DEFAULT_TARGET_LUFS);
+      const durationMs = Math.round(clampNumber(input.durationMs, 1000, 30000, 10000));
+      const result = ensureReferenceTestSoundFile({ targetLufs, durationMs });
+      res.json({ ok: true, module: MODULE_NAME, testSound: result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
   app.get(`${ROUTE_PREFIX}/correction/settings`, (req, res) => {
     try {
       ensureSchema();
@@ -294,7 +307,8 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${ROUTE_PREFIX}/results`, description: "List persisted loudness scan results" },
         { method: "GET", path: `${ROUTE_PREFIX}/file?file=relative/path.mp3`, description: "Read one persisted loudness result" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference`, description: "Calculate automatic reference loudness and recommend a real reference sound" },
-        { method: "GET", path: `${ROUTE_PREFIX}/reference/test.wav`, description: "Generated approximate reference test sound for basic audio-chain checks" },
+        { method: "GET", path: `${ROUTE_PREFIX}/reference/test.wav`, description: "Generated approximate reference test sound for direct browser checks" },
+        { method: "GET/POST", path: `${ROUTE_PREFIX}/reference/test-file`, description: "Create/update generated/reference_test.wav in sounds folder so it can be played via Sound-System/OBS" },
         { method: "GET", path: `${ROUTE_PREFIX}/correction/settings`, description: "Read inactive playback-correction and planned normalization-export settings" },
         { method: "POST", path: `${ROUTE_PREFIX}/correction/settings`, description: "Save inactive correction-preview settings; does not change playback" },
         { method: "GET", path: `${ROUTE_PREFIX}/correction/preview`, description: "Return correction preview rows based on saved settings; does not apply playback changes" },
@@ -856,8 +870,10 @@ function buildAutoReference(options = {}) {
       type: "generated_wav",
       approximate: true,
       durationMs: 10000,
+      relativePath: "generated/reference_test.wav",
+      createUrl: `${ROUTE_PREFIX}/reference/test-file?targetLufs=${encodeURIComponent(referenceLufs || DEFAULT_TARGET_LUFS)}&durationMs=10000`,
       url: `${ROUTE_PREFIX}/reference/test.wav?targetLufs=${encodeURIComponent(referenceLufs || DEFAULT_TARGET_LUFS)}&durationMs=10000`,
-      note: "Technischer Test-Sound ist nur eine Orientierung. Fuer OBS/Voicemeeter ist der empfohlene echte Referenzsound wichtiger."
+      note: "Technischer Test-Sound wird fuer OBS als echte Datei unter htdocs/assets/sounds/generated/reference_test.wav erzeugt. Der WAV-Link ist nur zum Gegenhoeren."
     },
     notes: [
       "Referenz wird aus dem Median der vorhandenen Nicht-TTS-Sounds berechnet.",
@@ -949,6 +965,29 @@ function percentile(values, p) {
 
 function round2(value) {
   return Number.isFinite(Number(value)) ? Math.round(Number(value) * 100) / 100 : null;
+}
+
+function ensureReferenceTestSoundFile(options = {}) {
+  const targetLufs = clampNumber(options.targetLufs, -40, -6, DEFAULT_TARGET_LUFS);
+  const durationMs = Math.round(clampNumber(options.durationMs, 1000, 30000, 10000));
+  const relativePath = "generated/reference_test.wav";
+  const soundsBaseDir = getSoundsBaseDir();
+  const fullPath = path.join(soundsBaseDir, "generated", "reference_test.wav");
+  const dir = path.dirname(fullPath);
+  fs.mkdirSync(dir, { recursive: true });
+  const wav = createReferenceTestWavBuffer({ targetLufs, durationMs });
+  fs.writeFileSync(fullPath, wav);
+  const stat = fs.statSync(fullPath);
+  return {
+    relativePath,
+    absolutePath: fullPath,
+    browserUrl: "/assets/sounds/generated/reference_test.wav",
+    targetLufs: round2(targetLufs),
+    durationMs,
+    sizeBytes: Number(stat.size || 0),
+    updatedAt: nowIso(),
+    note: "Echte Datei im Sound-Ordner, damit /api/sound/play denselben OBS-/Overlay-Pfad nutzt wie normale Sounds."
+  };
 }
 
 function createReferenceTestWavBuffer(options = {}) {

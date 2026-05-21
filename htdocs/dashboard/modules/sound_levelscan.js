@@ -55,7 +55,7 @@ window.SoundLevelScanModule = (function(){
     moduleTabs: 'Unterbereiche des Sound-Pegel-Systems. Trennt Scan, Ergebnisse, Korrektur und spätere Export-Funktionen.',
     reference: 'Automatische Referenz aus allen gültigen Nicht-TTS-Sounds. Nutzt Median-LUFS, damit einzelne Ausreißer den Zielwert nicht kaputtziehen.',
     referenceSound: 'Empfohlener echter Sound nahe am typischen Pegel. Diesen Sound kannst du zum Einpegeln von OBS/Voicemeeter nutzen.',
-    referenceTest: 'Technischer Test-Sound aus dem Backend. Er ist nur eine Orientierung und ersetzt keinen echten Referenzsound.'
+    referenceTest: 'Technischer Test-Sound wird zuerst als echte Datei im Sound-Ordner erzeugt und dann über das Sound-System/OBS-Overlay abgespielt.'
   };
 
   function registerDashboardModule(){
@@ -284,7 +284,7 @@ window.SoundLevelScanModule = (function(){
         if (action === 'save-correction') await saveCorrectionSettings();
         if (action === 'reload-reference') await loadReferenceOnly(true);
         if (action === 'play-reference') await playReferenceSound();
-        if (action === 'play-reference-test') playReferenceTestSound();
+        if (action === 'play-reference-test') await playReferenceTestSound();
       } catch (err) {
         state.lastMessage = err.message || String(err);
         render();
@@ -410,25 +410,30 @@ window.SoundLevelScanModule = (function(){
     render();
   }
 
-  function playReferenceTestSound(){
-    const url = state.reference?.testSound?.url || '/api/sound/loudness/reference/test.wav';
-    try {
-      if (state.referenceAudio) {
-        try { state.referenceAudio.pause(); } catch (_) {}
-        state.referenceAudio = null;
-      }
-      const audio = new Audio(url);
-      state.referenceAudio = audio;
-      audio.play().catch(err => {
-        state.lastMessage = err.message || String(err);
-        render();
-      });
-      state.lastMessage = 'Technischer Test-Sound wird im Browser abgespielt. Für OBS ist der echte Referenzsound wichtiger.';
-      render();
-    } catch (err) {
-      state.lastMessage = err.message || String(err);
-      render();
-    }
+  async function playReferenceTestSound(){
+    const ref = state.reference || {};
+    const durationMs = Number(ref.testSound?.durationMs || 10000);
+    const referenceLufs = Number(ref.referenceLufs);
+    const label = Number.isFinite(referenceLufs) ? `Referenz-Testton ${num(referenceLufs, 2)} LUFS` : 'Referenz-Testton';
+    const createQuery = qs({
+      targetLufs: Number.isFinite(referenceLufs) ? referenceLufs : -18,
+      durationMs: Math.max(1000, Math.min(30000, Math.round(durationMs)))
+    });
+    const generated = await api(`/reference/test-file?${createQuery}`);
+    const file = generated?.testSound?.relativePath || ref.testSound?.relativePath || 'generated/reference_test.wav';
+    const playQuery = qs({
+      file,
+      outputTarget: 'overlay',
+      target: 'stream',
+      category: 'system',
+      source: 'sound_level_reference_test',
+      label,
+      volume: 80,
+      override: true
+    });
+    await window.CGN.api(`/api/sound/play?${playQuery}`, { method: 'GET' });
+    state.lastMessage = `Technischer Test-Ton wurde als ${file} erzeugt und über Sound-System/OBS gestartet.`;
+    render();
   }
 
   async function loadAll(){
@@ -733,8 +738,8 @@ window.SoundLevelScanModule = (function(){
           </div>
           <div class="sound-actions">
             <button type="button" class="success" data-sound-level-action="play-reference" ${recommended ? '' : 'disabled'} title="${esc(HELP.referenceSound)}">Referenzsound abspielen</button>
-            <button type="button" data-sound-level-action="play-reference-test" ${Number.isFinite(referenceLufs) ? '' : 'disabled'} title="${esc(HELP.referenceTest)}">Test-Sound abspielen</button>
-            <a class="ghost-link" href="${esc(ref.testSound?.url || '/api/sound/loudness/reference/test.wav')}" target="_blank" title="Test-Sound als WAV öffnen">Test-WAV öffnen</a>
+            <button type="button" data-sound-level-action="play-reference-test" ${Number.isFinite(referenceLufs) ? '' : 'disabled'} title="${esc(HELP.referenceTest)}">Test-Ton über OBS</button>
+            <a class="ghost-link" href="${esc(ref.testSound?.url || '/api/sound/loudness/reference/test.wav')}" target="_blank" title="Test-Sound als WAV direkt im Browser öffnen, nur zum Gegenhören.">Test-WAV öffnen</a>
             <button type="button" data-sound-level-action="reload-reference" title="Referenz aus aktuellen Scan-Ergebnissen neu berechnen.">Referenz neu berechnen</button>
           </div>
         </div>
@@ -748,7 +753,7 @@ window.SoundLevelScanModule = (function(){
             <div title="Lautester auswertbarer Sound."><strong>Max</strong><span>${num(distribution.max, 2)} LUFS</span></div>
           </div>
         </details>
-        <div class="sound-note">Ablauf: Referenzsound abspielen, OBS/Voicemeeter darauf einstellen, danach Ergebnisse relativ zur Referenz bewerten. Der technische Test-Sound ist nur eine Orientierung.</div>
+        <div class="sound-note">Ablauf: Referenzsound abspielen, OBS/Voicemeeter darauf einstellen, danach Ergebnisse relativ zur Referenz bewerten. Der technische Test-Ton wird als echte Datei im Sound-Ordner erzeugt und dann über das Sound-System/OBS-Overlay abgespielt; der WAV-Link ist nur zum Gegenhören.</div>
       </div>
     `;
   }
@@ -862,7 +867,7 @@ window.SoundLevelScanModule = (function(){
   const LEVEL_TABS = [
     { id: 'overview', label: 'Übersicht', hint: 'Status, Kurzstatistik und letzte Scan-Daten.' },
     { id: 'scan', label: 'Scan', hint: 'Scan starten, Fortschritt verfolgen und Scan-Parameter setzen.' },
-    { id: 'reference', label: 'Referenz', hint: 'Auto-Referenz, Referenzsound und technischer Test-Sound.' },
+    { id: 'reference', label: 'Referenz', hint: 'Auto-Referenz, Referenzsound und Test-Ton über OBS.' },
     { id: 'results', label: 'Ergebnisse', hint: 'Messwerte, Filter, Suche und Tabelle.' },
     { id: 'correction', label: 'Korrektur', hint: 'Playback-Korrektur und Korrektur-Vorschau konfigurieren.' },
     { id: 'normalization', label: 'Kopien', hint: 'Späterer Export normalisierter Kopien, aktuell nur vorbereitet.' }

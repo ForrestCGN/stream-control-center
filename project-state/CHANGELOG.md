@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-05-21 - STEP272B2 Sound-Pegel Testton als echte Sound-Datei
+
+- `backend/modules/sound_loudness_scanner.js` erweitert.
+- Neuer Endpoint `GET/POST /api/sound/loudness/reference/test-file` erzeugt `htdocs/assets/sounds/generated/reference_test.wav`.
+- `htdocs/dashboard/modules/sound_levelscan.js` spielt den Test-Ton jetzt als normale Sound-Datei ueber `/api/sound/play`.
+- Grund: OBS/Overlay spielt echte Sound-Dateien stabiler als die vorherige generierte API-WAV-URL.
+- Keine Original-Sounds, keine Queue, kein Discord-Routing, kein Alert-System und kein TTS geaendert.
+
+
+## 2026-05-21 - STEP272B1 Sound-Pegel Test-Ton ueber OBS/Sound-System
+
+- `htdocs/dashboard/modules/sound_levelscan.js` angepasst.
+- Der Referenz-Testton wird jetzt ueber `/api/sound/play` und damit ueber den Sound-System-/OBS-Overlay-Pfad gestartet.
+- Der direkte Test-WAV-Link bleibt nur zum Gegenhoeren erhalten.
+- Keine Backend-Module, keine Sound-Dateien, keine Queue-/Discord-/Alert-/TTS-Logik und kein `config/**` geaendert.
+
+# Changelog
+
 ## 2026-05-21 - STEP272B Sound-Pegel Auto-Referenz + Referenzsound
 
 - `backend/modules/sound_loudness_scanner.js` erweitert.

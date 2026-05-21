@@ -2,6 +2,68 @@
 
 Stand: 2026-05-21
 
+
+## Nach STEP272B2 - Testton ueber OBS pruefen
+
+Backend neu starten und pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/reference/test-file" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?file=generated/reference_test.wav&outputTarget=overlay&target=stream&volume=80&override=true" | ConvertTo-Json -Depth 80
+```
+
+Dashboard-Test:
+
+```text
+System -> Sound-Pegel -> Referenz
+Referenzsound abspielen
+Test-Ton ueber OBS abspielen
+OBS-/Voicemeeter-Pegel am Laptop pruefen
+```
+
+Naechster sinnvoller Schritt:
+
+```text
+Sound-Pegel Config-Seite fuer die wichtigsten Einstellungen bauen.
+```
+
+## Nach STEP272B1 - Test-Ton ueber OBS pruefen
+
+Dashboard-Test:
+
+```text
+System -> Sound-Pegel -> Referenz
+Referenzsound abspielen
+Test-Ton ueber OBS abspielen
+OBS/Voicemeeter-Pegel beobachten
+Test-WAV oeffnen nur zum Gegenhoeren verwenden
+```
+
+Erwartung:
+
+```text
+Test-Ton startet ueber Sound-System/OBS-Overlay.
+Referenzsound bleibt die wichtigere Praxis-Referenz.
+Keine Sound-Dateien werden veraendert.
+```
+
+Naechster sinnvoller Schritt:
+
+```text
+STEP272C/STEP273 - Sound-Pegel Config-Seite fuer wichtige Einstellungen:
+- Korrektur aktiv/aus
+- Ziel/Referenzmodus
+- Toleranz
+- Scan-Limit/Result-Limit
+- TTS ausschliessen
+- Max Boost/Max Cut/Korrektur-Staerke
+- Normalisierte Kopien vorbereiten
+```
+
+# NEXT STEPS - stream-control-center
+
+Stand: 2026-05-21
+
 ## Nach STEP272B - Auto-Referenz testen
 
 Backend-Test:

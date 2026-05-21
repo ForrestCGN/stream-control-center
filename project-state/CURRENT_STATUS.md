@@ -2,6 +2,44 @@
 
 Stand: 2026-05-21
 
+
+## STEP272B2 - Sound-Pegel Testton als echte Sound-Datei
+
+Der technische Referenz-Testton wird jetzt fuer OBS als echte Sound-Datei erzeugt und danach ueber das Sound-System abgespielt.
+
+Aktueller funktionaler Stand:
+
+- Neuer Endpoint `GET/POST /api/sound/loudness/reference/test-file`.
+- Erzeugt/aktualisiert `htdocs/assets/sounds/generated/reference_test.wav`.
+- Dashboard-Button `Test-Ton über OBS` erzeugt die Datei und startet danach `/api/sound/play?file=generated/reference_test.wav`.
+- Referenzsound bleibt unveraendert ein echter vorhandener Sound.
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+app.sqlite ersetzt/neu gebaut: nein
+config/**
+Sound-Dateien ausser generated/reference_test.wav
+Sound-Queue
+Discord-Routing
+Alert-Bundle-Lock
+TTS-System
+```
+
+## STEP272B1 - Sound-Pegel Test-Ton ueber OBS/Sound-System
+
+- Der technische Referenz-Testton im Sound-Pegel-Dashboard wird jetzt ueber das Sound-System abgespielt.
+- Button im Referenz-Tab: `Test-Ton ueber OBS`.
+- Technisch wird `/api/sound/play` mit `type=generated_beep`, `outputTarget=overlay`, `target=stream` genutzt.
+- Dadurch laeuft der Test-Ton ueber den OBS-Overlay-Pfad statt nur direkt als Browser-Audio.
+- Der Link `Test-WAV oeffnen` bleibt als reine Gegenhoer-Option erhalten.
+- Keine Aenderung an Backend, Queue, Discord-Routing, Alert-Bundle-Lock, TTS, Sound-Dateien, `config/**` oder `app.sqlite`.
+
+# Current Status – stream-control-center
+
+Stand: 2026-05-21
+
 ## STEP272B - Sound-Pegel Auto-Referenz + Referenzsound
 
 Sound-Pegel hat jetzt einen eigenen Referenzbereich.

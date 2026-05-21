@@ -2,6 +2,69 @@
 
 Stand: 2026-05-21
 
+
+## STEP272B2 - Sound-Pegel Testton als echte Sound-Datei
+
+Geaendert:
+
+```text
+backend/modules/sound_loudness_scanner.js
+htdocs/dashboard/modules/sound_levelscan.js
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP272B2_SOUND_PEGEL_TESTTON_ECHTE_DATEI.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+app.sqlite ersetzt/neu gebaut: nein
+config/**
+Sound-Queue
+Discord-Routing
+Alert-Bundle-Lock
+TTS-System
+Streamer.bot-Flows
+Overlay-HTML
+```
+
+Runtime-Hinweis:
+
+```text
+Bei Nutzung des Test-Ton-Buttons kann htdocs/assets/sounds/generated/reference_test.wav erzeugt/aktualisiert werden.
+```
+
+## STEP272B1 - Sound-Pegel Test-Ton ueber OBS/Sound-System
+
+Geaendert:
+
+```text
+htdocs/dashboard/modules/sound_levelscan.js
+project-state/STEP272B1_SOUND_PEGEL_TESTTON_OBS.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
+app.sqlite
+config/**
+Sound-Dateien
+Sound-Queue
+Discord-Routing
+Alert-Bundle-Lock
+TTS-System
+```
+
+# FILES - stream-control-center
+
+Stand: 2026-05-21
+
 ## STEP272B - Sound-Pegel Auto-Referenz + Referenzsound
 
 Geaendert:
