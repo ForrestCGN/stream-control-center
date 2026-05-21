@@ -2,60 +2,46 @@
 
 Stand: 2026-05-21
 
-## STEP270A1 - Sound Loudness Results Route Fix
-
-- Live-Test zeigte, dass Status, Routes und Scan funktionieren.
-- Die Results-Route hatte einen Parameterfehler: `Unknown named parameter 'limit'`.
-- Fix: Count- und Listenabfrage nutzen getrennte SQL-Parameter.
-- Modulversion: `0.1.1-step270a-fix`.
-- Keine Aenderung an Sound-Dateien, Sound-System Queue, Discord-Routing, Alert-System, TTS, Config oder Dashboard.
-
-## STEP270A - Sound Loudness Scanner Read-only
+## STEP270B - Sound Pegel-Scan Dashboard View
 
 Aktueller Zusatzstand:
 
-- Ein read-only Backend-Scanner fuer Sound-Lautheit ist vorbereitet.
-- Neues Modul: `backend/modules/sound_loudness_scanner.js`.
-- Standard-Scanbasis: `htdocs/assets/sounds`.
-- Messung erfolgt ueber `ffmpeg` + `loudnorm`.
-- Ergebnisse werden in neuen DB-Tabellen gespeichert:
-  - `sound_loudness_scans`
-  - `sound_loudness_files`
-- Die bestehenden Sound-Dateien werden nicht veraendert.
-- Der Scanner greift nicht in Sound-System Queue, Prioritaeten, Bundle-Lock, Discord-Routing, Alert-System oder TTS ein.
-
-Neue API-Routen:
-
-```text
-GET  /api/sound/loudness/status
-POST /api/sound/loudness/scan
-GET  /api/sound/loudness/results
-GET  /api/sound/loudness/file?file=relative/path.mp3
-GET  /api/sound/loudness/routes
-```
+- Das Sound-Dashboard hat einen neuen Tab `Pegel-Scan`.
+- Der Tab nutzt die bestehenden Read-only-Routen aus STEP270A/STEP270A1:
+  - `GET /api/sound/loudness/status`
+  - `POST /api/sound/loudness/scan`
+  - `GET /api/sound/loudness/results`
+- Der Dashboard-Tab kann Scans starten, Ergebnisse laden, sortieren, filtern und durchsuchen.
+- Angezeigt werden unter anderem LUFS, True Peak, empfohlener Gain, empfohlenes Volume, Dauer und Warnungen.
+- Die UI ist bewusst read-only: Es werden keine Sound-Dateien normalisiert, überschrieben oder automatisch im Sound-System verändert.
 
 Bewusst unveraendert:
 
 ```text
-app.sqlite bestehende Daten
+app.sqlite
 config/**
 backend/modules/sound_system.js
-backend/modules/discord.js
+backend/modules/sound_loudness_scanner.js
 backend/modules/alert_system.js
 backend/modules/soundalerts_bridge.js
 backend/modules/tts_system.js
 Streamer.bot-Flows
 Overlay-HTML
-Dashboard-UI
+Sound-System Queue-/Prioritaetslogik
+Discord-Routing
+Alert-Bundle-Lock-Logik
 ```
 
-Offen / naechster Schritt:
+## STEP270A/STEP270A1 - Sound Loudness Scanner Read-only
 
-```text
-STEP270B Dashboard-Seite fuer Sound-Lautheit bauen.
-Danach erst entscheiden, ob Playback-Gain pro Datei/Kategorie aktivierbar wird.
-Originaldateien weiterhin nicht automatisch ueberschreiben.
-```
+- Backend-Modul `sound_loudness_scanner.js` ist vorhanden.
+- Results-Route wurde in STEP270A1 repariert.
+- Bestaetigter Test:
+  - `/api/sound/loudness/status` funktioniert.
+  - `/api/sound/loudness/routes` funktioniert.
+  - Scan mit Limit 20 funktioniert.
+  - `/api/sound/loudness/results?limit=50&order=recommended_gain_db&dir=desc` funktioniert.
+- Erste Messung zeigte mehrere deutlich zu laute Alert-Sounds und mindestens eine sehr leise Datei.
 
 ## STEP269A-C - Sound-System Discord Output Integration
 
@@ -79,17 +65,6 @@ Aktueller stabiler Zusatzstand:
   - `discord.lastResult`
   - `stats.discordStarted`
   - `stats.discordFailed`
-
-Bewusst unveraendert:
-
-```text
-app.sqlite
-config/**
-Streamer.bot-Flows
-Overlay-HTML
-Alert-Bundle-Lock-Logik
-Sound-System Queue-/Prioritaetslogik
-```
 
 Offen / beobachten:
 

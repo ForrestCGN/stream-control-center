@@ -2,51 +2,54 @@
 
 Stand: 2026-05-21
 
-## STEP270A1 - Sound Loudness Results Route Fix
+## STEP270B - Sound Pegel-Scan Dashboard View
 
-Nach Live-Test wurde ein Fehler in der Results-Route korrigiert:
-
-```text
-Unknown named parameter 'limit'
-```
-
-Status, Routes und Scan waren bereits funktionsfaehig. Geaendert wurde nur die Parameterbehandlung in `GET /api/sound/loudness/results`. Modulversion: `0.1.1-step270a-fix`.
-
-## STEP270A - Sound Loudness Scanner Read-only
-
-Ein neuer read-only Backend-Scanner fuer Sound-Lautheit ist vorbereitet.
+Der Read-only Pegel-Scanner ist jetzt im Sound-Dashboard sichtbar.
 
 Aktueller funktionaler Stand:
 
-- Neues Modul `backend/modules/sound_loudness_scanner.js`.
-- Modul wird automatisch ueber den vorhandenen `backend/modules/*.js` Loader geladen.
-- Standard-Scanbasis ist `htdocs/assets/sounds`.
-- Messung erfolgt ueber `ffmpeg` + `loudnorm` im Analysemodus.
-- Ergebnisse werden DB-basiert in neuen Tabellen gespeichert:
-  - `sound_loudness_scans`
-  - `sound_loudness_files`
-- Tabellen werden nur per `CREATE TABLE IF NOT EXISTS` angelegt.
-- Es werden keine Sound-Dateien veraendert.
-- Es wird keine Sound-System-Queue, kein Discord-Routing und keine Alert-Bundle-Logik veraendert.
+- Neuer Dashboard-Tab `Pegel-Scan` im bestehenden Sound-System-Modul.
+- Keine neue Hauptnavigation und keine Parallel-UI.
+- Neue Dateien:
+  - `htdocs/dashboard/modules/sound_levelscan.js`
+  - `htdocs/dashboard/modules/sound_levelscan.css`
+- `htdocs/dashboard/index.html` bindet JS/CSS ein.
+- Die UI nutzt ausschließlich Backend-APIs:
+  - `GET /api/sound/loudness/status`
+  - `POST /api/sound/loudness/scan`
+  - `GET /api/sound/loudness/results`
+- Der Tab zeigt Zielwerte, letzten Scan, Ergebniszahlen, LUFS, True Peak, empfohlenen Gain, empfohlenes Volume und Warnungen.
+- Filter und Sortierung sind vorbereitet:
+  - Status: alle/ok/warning/error
+  - Suche nach Dateipfad
+  - Sortierung nach Gain, LUFS, True Peak, Volume, Dateiname, Scan-Zeit
 
-Neue API-Routen:
+Nicht geaendert:
 
 ```text
-GET  /api/sound/loudness/status
-POST /api/sound/loudness/scan
-GET  /api/sound/loudness/results
-GET  /api/sound/loudness/file?file=relative/path.mp3
-GET  /api/sound/loudness/routes
+app.sqlite
+config/**
+backend/modules/sound_system.js
+backend/modules/sound_loudness_scanner.js
+backend/modules/alert_system.js
+backend/modules/soundalerts_bridge.js
+backend/modules/tts_system.js
+Streamer.bot-Flows
+Overlay-HTML
+Sound-System Queue-/Prioritaetslogik
+Discord-Routing
+Alert-Bundle-Lock-Logik
 ```
 
-Nach Deploy zu testen:
+## STEP270A/STEP270A1 - Sound Loudness Scanner Read-only
 
-```powershell
-node --check backend\modules\sound_loudness_scanner.js
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/status" | ConvertTo-Json -Depth 60
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/loudness/scan" -Body (@{ limit = 20 } | ConvertTo-Json) -ContentType "application/json" | ConvertTo-Json -Depth 80
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/results?limit=50&order=recommended_gain_db&dir=desc" | ConvertTo-Json -Depth 80
-```
+- Backend-Scanner ist read-only vorhanden.
+- STEP270A1 hat die Results-Route repariert.
+- Bestaetigt:
+  - Statusroute funktioniert.
+  - Routesroute funktioniert.
+  - Scan mit Limit 20 funktioniert.
+  - Resultsroute funktioniert.
 
 ## STEP269A-C - Sound/Discord Integration STABLE
 
@@ -69,42 +72,9 @@ Aktueller funktionaler Stand:
 - `backend/modules/vip_sound_overlay.js` setzt fuer echte VIP-/Mod-Sounds nicht mehr hart `target=stream`.
 - VIP-/Mod-Sounds nutzen jetzt konfigurierbares `soundSystemTarget`, Standard `both`.
 
-Live bestaetigt:
-
-```text
-target=both + outputTarget=device + category=vip + source=vip_mod
-discord.lastOk=true
-discordStarted steigt
-discordFailed=0
-```
-
-Nicht geaendert:
-
-```text
-app.sqlite
-config/**
-Streamer.bot-Flows
-Overlay-HTML
-alert_system.js
-soundalerts_bridge.js
-tts_system.js
-```
-
 Offen:
 
 - Echter SoundAlert/Kanalpunkte-Ablauf beobachten.
 - Echter Alert + Alert-TTS Ablauf beobachten.
 - Normales Chat-TTS nur anfassen, wenn Discord-Ausgabe dort fehlt.
 - Optional: MP3s mit eingebettetem Cover/Artwork nicht als Video behandeln, wenn nur Audio gewuenscht ist.
-
-## STEP268C - Active Bundle Lock Direct Start Guard
-
-- Sound-System beachtet `activeBundleLock` auch beim Direktstart.
-- Kein fremder Sound darf zwischen Alert-Hauptsound und passende Alert-TTS starten.
-- V5-Real-Mod-Test bestaetigt.
-
-## STEP268B - Alert Bundle Dedupe Bypass Robust
-
-- Alert-Bundle-Items umgehen Same-Sound-/Same-User-Dedupe.
-- Gleiche Alert-Hauptsounds werden nicht mehr gedroppt.
-- TTS bleibt beim passenden Alert.

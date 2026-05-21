@@ -2,59 +2,55 @@
 
 Stand: 2026-05-21
 
-## Nach STEP270A1 - Results-Route erneut testen
+## Nach STEP270B - Pegel-Scan Dashboard testen
 
-Nach Deploy des Fixes:
+Nach Deploy:
 
 ```powershell
-node --check backend\modules\sound_loudness_scanner.js
 Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/status" | ConvertTo-Json -Depth 60
 Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/results?limit=50&order=recommended_gain_db&dir=desc" | ConvertTo-Json -Depth 80
 ```
 
-Wenn die Results-Route sauber liefert, kann STEP270B Dashboard-Seite fuer Sound-Lautheit folgen.
-
-## Nach STEP270A - Sound Loudness Scanner testen und Dashboard vorbereiten
-
-STEP270A ist ein read-only Backend-Scanner. Nach Deploy zuerst nur testen:
-
-```powershell
-cd D:\Git\stream-control-center
-node --check backend\modules\sound_loudness_scanner.js
-```
-
-Backend neu starten und API pruefen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/status" | ConvertTo-Json -Depth 60
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/routes" | ConvertTo-Json -Depth 60
-```
-
-Kleinen Testscan ausfuehren:
-
-```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/loudness/scan" -Body (@{ limit = 20 } | ConvertTo-Json) -ContentType "application/json" | ConvertTo-Json -Depth 80
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/results?limit=50&order=recommended_gain_db&dir=desc" | ConvertTo-Json -Depth 80
-```
-
-Danach moeglicher STEP270B:
+Dashboard-Test:
 
 ```text
-Dashboard-Seite fuer Sound-Lautheit bauen:
-- Scan starten
-- Ergebnisse anzeigen
-- nach ok/warning/error filtern
-- nach LUFS, True Peak, empfohlener Korrektur und Volume sortieren
-- klare Hinweise fuer zu laute/zu leise Dateien anzeigen
+Dashboard öffnen
+System -> Sound-System
+Tab: Pegel-Scan
+Neu laden klicken
+Scan-Limit 500 setzen
+Scan starten
+Filter Warnungen prüfen
+Button Problematische zuerst prüfen
+Suche nach alerts/ prüfen
 ```
 
-Noch nicht bauen ohne neue Freigabe:
+Erwartung:
 
 ```text
-Automatische Playback-Korrektur
-Normalisierte Kopien
-Originaldateien ueberschreiben
-Sound-System Queue-/Playback-Umbau
+Tab Pegel-Scan ist sichtbar.
+Scan startet über Backend-API.
+Tabelle zeigt LUFS, True Peak, Gain, Volume, Dauer und Warnungen.
+Keine Sound-Datei wird verändert.
+Sound-System Queue/Discord/Alerts/TTS bleiben unverändert.
+```
+
+## Danach moeglich - STEP270C Playback-Korrektur planen
+
+Erst nach Sichtpruefung der Messwerte entscheiden:
+
+```text
+Nur Playback-Gain pro Datei anwenden
+oder normalisierte Kopien erzeugen
+oder zunächst nur manuell problematische Dateien austauschen
+```
+
+Empfehlung:
+
+```text
+Keine Originaldateien automatisch überschreiben.
+Zuerst Playback-Korrektur optional und abschaltbar planen.
+Korrektur muss zentral im Sound-System greifen, damit stream/device/discord/both konsistent bleiben.
 ```
 
 ## Nach STEP269A-C - Sound-/Discord-Integration beobachten und spaeter dashboardfaehig machen
@@ -82,57 +78,4 @@ Spaeterer Dashboard-/Control-Center-Punkt:
 Sound-/Discord-Routing soll im Dashboard konfigurierbar werden.
 ```
 
-Dazu gehoeren spaeter:
-
-```text
-Discord-Ausgabe global aktiv/deaktivierbar
-Auto-Routing aktiv/deaktivierbar
-Kategorien/Quellen fuer Discord-Routing bearbeiten
-Standard-Ziel pro Bereich: stream, discord, both
-VIP-/Mod-/SoundAlert-/Alert-/TTS-Ziele im Dashboard steuerbar
-Discord-Voice-Status anzeigen
-Testbutton fuer Discord-Soundausgabe
-```
-
 Wichtig: Discord bleibt Ausgabeziel des Sound-Systems. Keine zweite fachliche Discord-Queue bauen.
-
-## Nach STEP266B - Alert Bundle/TTS Mischtest beobachten
-
-STEP266B ist funktional getestet und soll jetzt nicht weiter angefasst werden, solange kein neuer Fehler nachweisbar ist.
-
-Naechster Pflichtpunkt ist Beobachtung im echten bzw. realistischen Mehrfach-Alert-Betrieb:
-
-```text
-Alert 1 Sound + TTS bleiben zusammen
-Alert 2 Sound + TTS bleiben zusammen
-Overlay startet erst mit dem richtigen Bundle-Sound
-Naechster Alert startet erst nach Ende des vorherigen Bundles inklusive TTS
-```
-
-Wenn wieder etwas gemischt wird, zuerst nur Diagnose sammeln:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/events?limit=5" | ConvertTo-Json -Depth 40
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 40
-```
-
-Dabei besonders pruefen:
-
-```text
-raw.soundSystem.bundled
-raw.soundSystem.bundleId
-raw.soundSystem.results
-raw.alertTts.playback
-raw.bundleFinishState
-```
-
-Nicht sofort anfassen:
-
-```text
-app.sqlite
-config/**
-backend/modules/sound_system.js
-Sound-System Bundle-Core
-Streamer.bot-Flows
-Overlay-HTML
-```

@@ -1,28 +1,36 @@
 # Changelog
 
+## 2026-05-21 - STEP270B Sound Pegel-Scan Dashboard View
+
+- Bestehendes Sound-Dashboard um neuen Tab `Pegel-Scan` erweitert.
+- Neue Datei `htdocs/dashboard/modules/sound_levelscan.js` ergaenzt.
+- Neue Datei `htdocs/dashboard/modules/sound_levelscan.css` ergaenzt.
+- `htdocs/dashboard/index.html` bindet die neue Pegel-Scan-JS/CSS-Datei ein.
+- Der Tab nutzt die bestehenden Read-only-Routen des Sound Loudness Scanners.
+- Funktionen:
+  - Status und Zielwerte anzeigen
+  - Scan starten
+  - Ergebnisse laden
+  - Statusfilter
+  - Dateisuche
+  - Sortierung nach Gain, LUFS, True Peak, Volume, Dateiname, Scan-Zeit
+  - Warnungen lesbarer anzeigen
+- Keine automatische Normalisierung, keine Dateiänderung, keine Änderung an Sound-Queue, Discord-Routing, Alerts oder TTS.
+
 ## 2026-05-21 - STEP270A1 Sound Loudness Results Route Fix
 
-- `backend/modules/sound_loudness_scanner.js` minimal korrigiert.
-- Results-Route nutzt getrennte Parameter fuer Count- und Listenabfrage.
-- Fehler `Unknown named parameter 'limit'` bei `/api/sound/loudness/results?...` behoben.
-- Modulversion auf `0.1.1-step270a-fix` gesetzt.
-- Keine Aenderung an Sound-Dateien, Sound-System Queue, Discord-Routing, Alerts, TTS, Config oder Dashboard.
+- Results-Route des Sound Loudness Scanners repariert.
+- Ursache: `COUNT(*)`-Abfrage erhielt Parameter, die dort nicht verwendet wurden.
+- Bestaetigt: `/api/sound/loudness/results?limit=50&order=recommended_gain_db&dir=desc` funktioniert.
 
 ## 2026-05-21 - STEP270A Sound Loudness Scanner Read-only
 
 - Neues Backend-Modul `backend/modules/sound_loudness_scanner.js` ergaenzt.
-- Read-only Scan fuer Sound-Dateien unter `htdocs/assets/sounds` vorbereitet.
-- Messung ueber `ffmpeg` + `loudnorm` im Analysemodus.
-- Neue API-Routen:
-  - `GET /api/sound/loudness/status`
-  - `POST /api/sound/loudness/scan`
-  - `GET /api/sound/loudness/results`
-  - `GET /api/sound/loudness/file?file=relative/path.mp3`
-  - `GET /api/sound/loudness/routes`
-- Neue DB-Tabellen werden nur per `CREATE TABLE IF NOT EXISTS` angelegt:
-  - `sound_loudness_scans`
-  - `sound_loudness_files`
-- Keine Aenderung an Sound-Dateien, Sound-System Queue, Discord-Routing, Alert-Bundles, TTS, Config oder Dashboard.
+- Read-only Scan fuer Sound-Dateien unter `htdocs/assets/sounds`.
+- Messwerte: LUFS, True Peak, LRA, Threshold, empfohlener Gain, empfohlenes Volume.
+- Ergebnisse werden in SQLite gespeichert, nur per `CREATE TABLE IF NOT EXISTS`.
+- Keine Sound-Datei wird veraendert.
+- Keine Änderung an Sound-System Queue, Discord, Alerts, TTS, Config oder Overlay.
 
 ## 2026-05-21 - STEP269D Sound/Discord Integration dokumentiert
 
