@@ -1,5 +1,17 @@
 # Current System Status – stream-control-center
 
+## STEP272D1 - Sound-Pegel Defaults vollständig auf 80
+
+Sound-Pegel `Defaults anwenden` deckt jetzt zusätzlich die alten Sound-System-Fallback-Blöcke ab.
+
+- `sound_settings.output.targets.overlay/device/both.defaultVolume` bleibt auf `defaultPlaybackVolume`.
+- Neu: `sound_settings.targets.stream/discord/both.defaultVolume` wird ebenfalls auf `defaultPlaybackVolume` gesetzt.
+- Neu: `sound_settings.defaults.volume` wird ebenfalls auf `defaultPlaybackVolume` gesetzt.
+- Damit verschwinden die restlichen 85er Fallback-Werte nach `/api/sound/reload`.
+- Keine Sound-Dateien, keine Einzelregeln, keine Queue-Logik und kein Discord-Routing werden geändert.
+
+# Current System Status – stream-control-center
+
 ## STEP272D - Sound-Pegel Upload-/Playback-Defaults anwenden
 
 Sound-Pegel Config kann gespeicherte Standardwerte jetzt gezielt in DB-Modulsettings übernehmen.

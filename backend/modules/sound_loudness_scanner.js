@@ -775,9 +775,11 @@ function saveJsonSetting(key, value, updatedBy) {
 }
 
 
-function readSoundSystemOutputSettings() {
+function readSoundSystemBlock(key) {
   ensureSoundSettingsTable();
-  const row = database.get("SELECT value_json FROM sound_settings WHERE key = :key", { key: "output" }) || null;
+  const safeKey = String(key || "").trim();
+  if (!safeKey) return {};
+  const row = database.get("SELECT value_json FROM sound_settings WHERE key = :key", { key: safeKey }) || null;
   if (!row || !row.value_json) return {};
   try {
     const parsed = JSON.parse(String(row.value_json || "{}"));
@@ -785,6 +787,10 @@ function readSoundSystemOutputSettings() {
   } catch (_) {
     return {};
   }
+}
+
+function readSoundSystemOutputSettings() {
+  return readSoundSystemBlock("output");
 }
 
 function ensureSoundSettingsTable() {
@@ -798,20 +804,24 @@ function ensureSoundSettingsTable() {
   `);
 }
 
-function writeSoundSystemOutputSettings(output, updatedBy) {
+function writeSoundSystemBlock(key, value, updatedBy) {
   ensureSoundSettingsTable();
   const now = nowIso();
   database.upsert(
     "sound_settings",
     {
-      key: "output",
-      value_json: JSON.stringify(output || {}),
+      key: String(key || ""),
+      value_json: JSON.stringify(value || {}),
       updated_at: now,
       updated_by: String(updatedBy || "sound_level")
     },
     ["key"],
     ["value_json", "updated_at", "updated_by"]
   );
+}
+
+function writeSoundSystemOutputSettings(output, updatedBy) {
+  writeSoundSystemBlock("output", output, updatedBy);
 }
 
 function clonePlain(value) {
@@ -827,6 +837,21 @@ function buildOutputWithDefaultVolume(currentOutput, defaultPlaybackVolume) {
     output.targets[key].defaultVolume = defaultPlaybackVolume;
   }
   return output;
+}
+
+function buildLegacyTargetsWithDefaultVolume(currentTargets, defaultPlaybackVolume) {
+  const targets = clonePlain(currentTargets);
+  for (const key of ["stream", "discord", "both"]) {
+    if (!targets[key] || typeof targets[key] !== "object" || Array.isArray(targets[key])) targets[key] = {};
+    targets[key].defaultVolume = defaultPlaybackVolume;
+  }
+  return targets;
+}
+
+function buildFallbackDefaultsWithDefaultVolume(currentDefaults, defaultPlaybackVolume) {
+  const defaults = clonePlain(currentDefaults);
+  defaults.volume = defaultPlaybackVolume;
+  return defaults;
 }
 
 function readModuleSetting(table, key, fallback, valueType = "number") {
@@ -870,6 +895,42 @@ function buildUploadDefaultApplyResult(commit, updatedBy) {
       both: soundOutputAfter?.targets?.both?.defaultVolume ?? null
     },
     note: "Wirkt auf Sound-System-Items ohne explizites volume. Bestehende Sounddateien bleiben unverändert."
+  });
+
+  const soundTargetsBefore = readSoundSystemBlock("targets");
+  const soundTargetsAfter = buildLegacyTargetsWithDefaultVolume(soundTargetsBefore, defaultPlaybackVolume);
+  if (commit) writeSoundSystemBlock("targets", soundTargetsAfter, updatedBy);
+  actions.push({
+    id: "sound_system_legacy_target_defaults",
+    label: "Sound-System Target-Default-Volumes",
+    applied: !!commit,
+    table: "sound_settings",
+    key: "targets",
+    before: {
+      stream: soundTargetsBefore?.stream?.defaultVolume ?? null,
+      discord: soundTargetsBefore?.discord?.defaultVolume ?? null,
+      both: soundTargetsBefore?.both?.defaultVolume ?? null
+    },
+    after: {
+      stream: soundTargetsAfter?.stream?.defaultVolume ?? null,
+      discord: soundTargetsAfter?.discord?.defaultVolume ?? null,
+      both: soundTargetsAfter?.both?.defaultVolume ?? null
+    },
+    note: "Deckt die legacy target-Defaults stream/discord/both ab, die im Sound-System noch parallel zu output.targets existieren."
+  });
+
+  const soundDefaultsBefore = readSoundSystemBlock("defaults");
+  const soundDefaultsAfter = buildFallbackDefaultsWithDefaultVolume(soundDefaultsBefore, defaultPlaybackVolume);
+  if (commit) writeSoundSystemBlock("defaults", soundDefaultsAfter, updatedBy);
+  actions.push({
+    id: "sound_system_fallback_default_volume",
+    label: "Sound-System Fallback Default Volume",
+    applied: !!commit,
+    table: "sound_settings",
+    key: "defaults",
+    before: soundDefaultsBefore?.volume ?? null,
+    after: soundDefaultsAfter?.volume ?? null,
+    note: "Setzt config.defaults.volume für Sound-System-Items, die weder Item-Volume noch Output-/Target-Default nutzen."
   });
 
   if (upload.soundalerts !== false) {

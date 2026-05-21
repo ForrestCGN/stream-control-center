@@ -1,3 +1,13 @@
+# Changelog
+
+## 2026-05-21 - STEP272D1 Sound-Pegel Defaults vollständig auf 80
+
+- `backend/modules/sound_loudness_scanner.js` erweitert.
+- Apply-Defaults schreibt jetzt zusätzlich `sound_settings.targets`.
+- Apply-Defaults schreibt jetzt zusätzlich `sound_settings.defaults.volume`.
+- Damit werden neben Output-Defaults auch Legacy-Target-Defaults und Fallback-Default-Volume auf `defaultPlaybackVolume` gesetzt.
+- Keine Sound-Dateien, keine bestehenden Einzelregeln, keine Queue-/Discord-/Alert-/TTS-Logik geändert.
+
 
 
 ## 2026-05-21 - STEP272D Sound-Pegel Upload-/Playback-Defaults anwenden

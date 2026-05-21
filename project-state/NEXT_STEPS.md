@@ -1,5 +1,32 @@
 # NEXT STEPS - stream-control-center
 
+## Nach STEP272D1 - Vollständige Defaults prüfen
+
+Nach Deploy/Backend-Neustart:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/config/apply-defaults/preview" | ConvertTo-Json -Depth 80
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/loudness/config/apply-defaults" -Body "{}" -ContentType "application/json" | ConvertTo-Json -Depth 80
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/reload" -Body "{}" -ContentType "application/json" | ConvertTo-Json -Depth 80
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 100
+```
+
+Erwartung in `/api/sound/status`:
+
+```text
+config.output.targets.overlay.defaultVolume = 80
+config.output.targets.device.defaultVolume = 80
+config.output.targets.both.defaultVolume = 80
+config.targets.stream.defaultVolume = 80
+config.targets.discord.defaultVolume = 80
+config.targets.both.defaultVolume = 80
+config.defaults.volume = 80
+```
+
+Danach weiterhin: bestehende Sounds nicht blind überschreiben, sondern zuerst eine Massenaktion-Preview pro Bereich bauen.
+
+# NEXT STEPS - stream-control-center
+
 ## Nach STEP272D - Upload-/Playback-Defaults testen
 
 API-Test:

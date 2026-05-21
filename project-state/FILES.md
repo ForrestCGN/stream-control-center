@@ -1,5 +1,37 @@
 # FILES - stream-control-center
 
+## STEP272D1 - Sound-Pegel Defaults vollständig auf 80
+
+Geaendert:
+
+```text
+backend/modules/sound_loudness_scanner.js
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP272D1_SOUND_PEGEL_DEFAULTS_COMPLETE.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+backend/modules/vip_sound_overlay.js
+htdocs/dashboard/modules/sound_levelscan.js
+htdocs/dashboard/modules/sound_levelscan.css
+Sound-Dateien
+config/**
+Alert-Regeln massenhaft
+SoundAlert-Entries massenhaft
+Sound-Queue
+Discord-Routing
+TTS-System
+```
+
+# FILES - stream-control-center
+
 ## STEP272D - Sound-Pegel Upload-/Playback-Defaults anwenden
 
 Geaendert:
