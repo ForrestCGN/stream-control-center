@@ -346,3 +346,19 @@ Offen:
 - `/api/sound/loudness/correction/preview` liefert eine Vorschau nach gespeicherten Einstellungen.
 - Normalisierte Kopien sind als spaetere Option sichtbar vorbereitet, aber noch nicht implementiert.
 - Playback, Sound-Dateien, Queue, Discord-Routing, Alerts und TTS bleiben unveraendert.
+
+
+## STEP272C - Sound-Pegel Config-Seite
+
+- Sound-Pegel hat jetzt einen eigenen Tab `Config`.
+- Zentrale Defaults werden in SQLite gespeichert (`sound_loudness_settings`, Key `level_config`).
+- Einstellbar vorbereitet:
+  - Default Playback Volume
+  - Max Playback Volume
+  - Upload Default Volume
+  - Referenz-Toleranz
+  - Standard Scan-/Ergebnis-Limits
+  - Standard-Ausgabeweg fuer Referenz/Test-Ton
+  - Upload-Defaults fuer Alerts, SoundAlerts/Kanalpunkte, VIP-/Mod und Sound-Presets
+  - Massenaktion fuer vorhandene Sounds als Preview-/Planungsbereich
+- Bestehende Sounds, Alert-Regeln, VIP-/Mod-Daten, SoundAlerts und Config-Dateien werden nicht umgeschrieben.

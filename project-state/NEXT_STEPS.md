@@ -464,3 +464,39 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/correction/preview?l
 ```
 
 Normalisierte Kopien bleiben ein separater spaeterer Schritt und duerfen Originaldateien nicht ueberschreiben.
+
+
+## Nach STEP272C - Sound-Pegel Config testen
+
+Backend-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/loudness/config" | ConvertTo-Json -Depth 80
+```
+
+Dashboard-Test:
+
+```text
+System -> Sound-Pegel -> Config
+Default Playback Volume = 80 pruefen
+Upload Default Volume = 80 pruefen
+Config speichern
+Seite neu laden
+Werte muessen aus SQLite wieder geladen werden
+```
+
+Wichtig:
+
+```text
+Dieser Step speichert nur zentrale Defaults.
+Upload-Module lesen diese Werte noch nicht automatisch.
+Bestehende Sounds werden noch nicht massenhaft geaendert.
+```
+
+Naechste sinnvolle Schritte:
+
+```text
+STEP272D: Upload-Defaults in Alert-/SoundAlert-/VIP-Uploadstrecken anbinden.
+STEP272E: Massenaktion Preview fuer vorhandene Sound-Volumes bauen.
+STEP272F: Boost-Kopien fuer zu leise Sounds vorbereiten.
+```

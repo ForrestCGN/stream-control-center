@@ -1,3 +1,14 @@
+
+
+## 2026-05-21 - STEP272C Sound-Pegel Config-Seite
+
+- `backend/modules/sound_loudness_scanner.js` um `GET/POST /api/sound/loudness/config` erweitert.
+- Config wird in SQLite gespeichert, nicht in `config/**`.
+- `htdocs/dashboard/modules/sound_levelscan.js` um Tab `Config` erweitert.
+- `htdocs/dashboard/modules/sound_levelscan.css` um Config-Styles erweitert.
+- Vorbereitet: Default Playback Volume, Upload Default Volume, Max Playback Volume, Referenz-Toleranz, Scan-/Result-Limits, Referenz-Ausgabeweg, Upload-Defaults und spaetere Massenaktion.
+- Keine bestehenden Sound-/Alert-/VIP-/SoundAlert-Daten werden in diesem Step veraendert.
+
 # Changelog
 
 ## 2026-05-21 - STEP272B3 Sound-Pegel Referenz-Ausgabeweg waehlbar

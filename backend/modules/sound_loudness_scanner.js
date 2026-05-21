@@ -48,6 +48,32 @@ const DEFAULT_NORMALIZATION_SETTINGS = {
   updatedBy: ""
 };
 
+const DEFAULT_LEVEL_CONFIG = {
+  defaultPlaybackVolume: 80,
+  maxPlaybackVolume: 100,
+  uploadDefaultVolume: 80,
+  referenceToleranceDb: 3,
+  defaultScanLimit: DEFAULT_SCAN_LIMIT,
+  defaultResultLimit: 250,
+  defaultReferenceOutputTarget: "overlay",
+  uploadDefaults: {
+    alerts: true,
+    soundalerts: true,
+    vipMod: true,
+    soundPresets: true
+  },
+  massApply: {
+    mode: "preview_only",
+    includeAlerts: true,
+    includeSoundAlerts: true,
+    includeVipMod: true,
+    includeSoundPresets: false,
+    overwriteExistingVolumes: false
+  },
+  updatedAt: "",
+  updatedBy: ""
+};
+
 module.exports.init = function init(ctx) {
   const { app } = ctx;
 
@@ -98,6 +124,44 @@ module.exports.init = function init(ctx) {
       });
     } catch (err) {
       res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.get(`${ROUTE_PREFIX}/config`, (req, res) => {
+    try {
+      ensureSchema();
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        config: getLevelConfig(),
+        notes: [
+          "Stored in SQLite table sound_loudness_settings under key level_config.",
+          "This step stores central defaults only. It does not rewrite existing Alert/VIP/SoundAlert data.",
+          "Upload defaults must be consumed by upload modules in a later step."
+        ]
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: errorMessage(err) });
+    }
+  });
+
+  app.post(`${ROUTE_PREFIX}/config`, (req, res) => {
+    try {
+      ensureSchema();
+      const body = req.body || {};
+      const updatedBy = String(body.updatedBy || body.user || "dashboard");
+      const saved = saveLevelConfig(body.config || body, updatedBy);
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        config: saved,
+        notes: [
+          "Saved to SQLite.",
+          "No existing sounds or module configs were modified."
+        ]
+      });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: errorMessage(err) });
     }
   });
 
@@ -306,6 +370,8 @@ module.exports.init = function init(ctx) {
         { method: "POST", path: `${ROUTE_PREFIX}/scan`, description: "Run a read-only loudness scan for sound files; pass async=true for dashboard progress polling" },
         { method: "GET", path: `${ROUTE_PREFIX}/results`, description: "List persisted loudness scan results" },
         { method: "GET", path: `${ROUTE_PREFIX}/file?file=relative/path.mp3`, description: "Read one persisted loudness result" },
+        { method: "GET", path: `${ROUTE_PREFIX}/config`, description: "Read central Sound-Pegel defaults saved in SQLite" },
+        { method: "POST", path: `${ROUTE_PREFIX}/config`, description: "Save central Sound-Pegel defaults to SQLite; does not rewrite existing sounds" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference`, description: "Calculate automatic reference loudness and recommend a real reference sound" },
         { method: "GET", path: `${ROUTE_PREFIX}/reference/test.wav`, description: "Generated approximate reference test sound for direct browser checks" },
         { method: "GET/POST", path: `${ROUTE_PREFIX}/reference/test-file`, description: "Create/update generated/reference_test.wav in sounds folder so it can be played via Sound-System/OBS" },
@@ -693,6 +759,15 @@ function getNormalizationSettings() {
   return sanitizeNormalizationSettings(getJsonSetting("normalization", DEFAULT_NORMALIZATION_SETTINGS));
 }
 
+function getLevelConfig() {
+  return sanitizeLevelConfig(getJsonSetting("level_config", DEFAULT_LEVEL_CONFIG));
+}
+
+function saveLevelConfig(input, updatedBy) {
+  const clean = sanitizeLevelConfig({ ...getLevelConfig(), ...(input || {}) });
+  return saveJsonSetting("level_config", clean, updatedBy);
+}
+
 function saveCorrectionSettings(input, updatedBy) {
   const clean = sanitizeCorrectionSettings({ ...getCorrectionSettings(), ...(input || {}) });
   return saveJsonSetting("correction", clean, updatedBy);
@@ -736,6 +811,40 @@ function sanitizeNormalizationSettings(input) {
     keepOriginals: true,
     createMissingFolders: parseBool(raw.createMissingFolders, true) !== false,
     status: "planned_not_implemented",
+    updatedAt: String(raw.updatedAt || ""),
+    updatedBy: String(raw.updatedBy || "")
+  };
+}
+
+function sanitizeLevelConfig(input) {
+  const raw = input && typeof input === "object" ? input : {};
+  const uploadDefaultsRaw = raw.uploadDefaults && typeof raw.uploadDefaults === "object" ? raw.uploadDefaults : {};
+  const massApplyRaw = raw.massApply && typeof raw.massApply === "object" ? raw.massApply : {};
+  const outputTarget = String(raw.defaultReferenceOutputTarget || DEFAULT_LEVEL_CONFIG.defaultReferenceOutputTarget).trim().toLowerCase();
+  const safeOutputTarget = ["overlay", "device", "both"].includes(outputTarget) ? outputTarget : DEFAULT_LEVEL_CONFIG.defaultReferenceOutputTarget;
+
+  return {
+    defaultPlaybackVolume: Math.round(clampNumber(raw.defaultPlaybackVolume, 1, 100, DEFAULT_LEVEL_CONFIG.defaultPlaybackVolume)),
+    maxPlaybackVolume: Math.round(clampNumber(raw.maxPlaybackVolume, 1, 100, DEFAULT_LEVEL_CONFIG.maxPlaybackVolume)),
+    uploadDefaultVolume: Math.round(clampNumber(raw.uploadDefaultVolume, 1, 100, DEFAULT_LEVEL_CONFIG.uploadDefaultVolume)),
+    referenceToleranceDb: clampNumber(raw.referenceToleranceDb, 0.5, 12, DEFAULT_LEVEL_CONFIG.referenceToleranceDb),
+    defaultScanLimit: Math.round(clampNumber(raw.defaultScanLimit, 1, 5000, DEFAULT_LEVEL_CONFIG.defaultScanLimit)),
+    defaultResultLimit: Math.round(clampNumber(raw.defaultResultLimit, 1, 1000, DEFAULT_LEVEL_CONFIG.defaultResultLimit)),
+    defaultReferenceOutputTarget: safeOutputTarget,
+    uploadDefaults: {
+      alerts: parseBool(uploadDefaultsRaw.alerts, DEFAULT_LEVEL_CONFIG.uploadDefaults.alerts) !== false,
+      soundalerts: parseBool(uploadDefaultsRaw.soundalerts, DEFAULT_LEVEL_CONFIG.uploadDefaults.soundalerts) !== false,
+      vipMod: parseBool(uploadDefaultsRaw.vipMod, DEFAULT_LEVEL_CONFIG.uploadDefaults.vipMod) !== false,
+      soundPresets: parseBool(uploadDefaultsRaw.soundPresets, DEFAULT_LEVEL_CONFIG.uploadDefaults.soundPresets) !== false
+    },
+    massApply: {
+      mode: "preview_only",
+      includeAlerts: parseBool(massApplyRaw.includeAlerts, DEFAULT_LEVEL_CONFIG.massApply.includeAlerts) !== false,
+      includeSoundAlerts: parseBool(massApplyRaw.includeSoundAlerts, DEFAULT_LEVEL_CONFIG.massApply.includeSoundAlerts) !== false,
+      includeVipMod: parseBool(massApplyRaw.includeVipMod, DEFAULT_LEVEL_CONFIG.massApply.includeVipMod) !== false,
+      includeSoundPresets: parseBool(massApplyRaw.includeSoundPresets, DEFAULT_LEVEL_CONFIG.massApply.includeSoundPresets) === true,
+      overwriteExistingVolumes: parseBool(massApplyRaw.overwriteExistingVolumes, false) === true
+    },
     updatedAt: String(raw.updatedAt || ""),
     updatedBy: String(raw.updatedBy || "")
   };

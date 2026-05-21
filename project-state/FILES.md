@@ -477,3 +477,33 @@ backend/modules/sound_system.js
 Alert-/TTS-/Discord-Playback
 Sound-Dateien
 ```
+
+
+## STEP272C - Sound-Pegel Config-Seite
+
+Geaendert:
+
+```text
+backend/modules/sound_loudness_scanner.js
+htdocs/dashboard/modules/sound_levelscan.js
+htdocs/dashboard/modules/sound_levelscan.css
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/STEP272C_SOUND_PEGEL_CONFIG_SEITE.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/sound_system.js
+app.sqlite ersetzt/neu gebaut: nein
+config/**
+Sound-Dateien
+Alert-/VIP-/SoundAlert-Daten
+Sound-Queue
+Discord-Routing
+TTS-System
+```

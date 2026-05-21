@@ -18,6 +18,7 @@ window.SoundLevelScanModule = (function(){
     results: null,
     correctionSettings: null,
     normalizationSettings: null,
+    levelConfig: null,
     correctionPreview: null,
     reference: null,
     referenceAudio: null,
@@ -57,7 +58,11 @@ window.SoundLevelScanModule = (function(){
     reference: 'Automatische Referenz aus allen gültigen Nicht-TTS-Sounds. Nutzt Median-LUFS, damit einzelne Ausreißer den Zielwert nicht kaputtziehen.',
     referenceSound: 'Empfohlener echter Sound nahe am typischen Pegel. Diesen Sound kannst du zum Einpegeln von OBS/Voicemeeter nutzen.',
     referenceTest: 'Technischer Test-Sound wird zuerst als echte Datei im Sound-Ordner erzeugt und dann über das Sound-System abgespielt. Ausgabeweg ist wählbar: OBS/Overlay, Audiogerät oder beides.',
-    referenceOutput: 'Ausgabeweg für Referenzsound und Test-Ton. Overlay geht an OBS, Device an das konfigurierte Audiogerät, Beides nutzt beide Ausgaben.'
+    referenceOutput: 'Ausgabeweg für Referenzsound und Test-Ton. Overlay geht an OBS, Device an das konfigurierte Audiogerät, Beides nutzt beide Ausgaben.',
+    config: 'Zentrale Sound-Pegel-Konfiguration. Diese Werte werden in SQLite gespeichert und dienen als Grundlage fuer Upload-Defaults, Standardlautstaerke und spaetere Massenaktionen.',
+    defaultPlaybackVolume: 'Basislautstaerke fuer normale Wiedergabe. Neue oder ungesetzte Sounds sollen langfristig mit diesem Wert starten.',
+    uploadDefaultVolume: 'Standardlautstaerke fuer neu hochgeladene Alert-/SoundAlert-/VIP-Sounds. Wird in spaeteren Steps von den Upload-Modulen genutzt.',
+    massApply: 'Vorbereitete Massenaktion fuer vorhandene Sounds. In diesem Step nur Konfiguration/Preview, keine bestehenden Daten werden umgeschrieben.'
   };
 
   function registerDashboardModule(){
@@ -303,6 +308,7 @@ window.SoundLevelScanModule = (function(){
           await loadAll();
         }
         if (action === 'save-correction') await saveCorrectionSettings();
+        if (action === 'save-level-config') await saveLevelConfig();
         if (action === 'reload-reference') await loadReferenceOnly(true);
         if (action === 'play-reference') await playReferenceSound();
         if (action === 'play-reference-test') await playReferenceTestSound();
@@ -352,6 +358,59 @@ window.SoundLevelScanModule = (function(){
     const value = Number(document.getElementById(id)?.value);
     if (!Number.isFinite(value)) return fallback;
     return Math.max(min, Math.min(max, value));
+  }
+
+  function formNumber(id, fallback, min, max){
+    const value = Number(document.getElementById(id)?.value);
+    if (!Number.isFinite(value)) return fallback;
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function formBool(id, fallback){
+    const el = document.getElementById(id);
+    if (!el) return !!fallback;
+    return !!el.checked;
+  }
+
+  async function saveLevelConfig(){
+    const current = state.levelConfig || {};
+    const uploadDefaults = current.uploadDefaults || {};
+    const massApply = current.massApply || {};
+    const payload = {
+      config: {
+        defaultPlaybackVolume: Math.round(formNumber('soundLevelConfigDefaultPlaybackVolume', current.defaultPlaybackVolume ?? 80, 1, 100)),
+        maxPlaybackVolume: Math.round(formNumber('soundLevelConfigMaxPlaybackVolume', current.maxPlaybackVolume ?? 100, 1, 100)),
+        uploadDefaultVolume: Math.round(formNumber('soundLevelConfigUploadDefaultVolume', current.uploadDefaultVolume ?? 80, 1, 100)),
+        referenceToleranceDb: formNumber('soundLevelConfigReferenceToleranceDb', current.referenceToleranceDb ?? 3, 0.5, 12),
+        defaultScanLimit: Math.round(formNumber('soundLevelConfigDefaultScanLimit', current.defaultScanLimit ?? 500, 1, 5000)),
+        defaultResultLimit: Math.round(formNumber('soundLevelConfigDefaultResultLimit', current.defaultResultLimit ?? 250, 1, 1000)),
+        defaultReferenceOutputTarget: document.getElementById('soundLevelConfigReferenceOutputTarget')?.value || current.defaultReferenceOutputTarget || state.referenceOutputTarget || 'overlay',
+        uploadDefaults: {
+          alerts: formBool('soundLevelConfigUploadAlerts', uploadDefaults.alerts !== false),
+          soundalerts: formBool('soundLevelConfigUploadSoundAlerts', uploadDefaults.soundalerts !== false),
+          vipMod: formBool('soundLevelConfigUploadVipMod', uploadDefaults.vipMod !== false),
+          soundPresets: formBool('soundLevelConfigUploadPresets', uploadDefaults.soundPresets !== false)
+        },
+        massApply: {
+          includeAlerts: formBool('soundLevelConfigMassAlerts', massApply.includeAlerts !== false),
+          includeSoundAlerts: formBool('soundLevelConfigMassSoundAlerts', massApply.includeSoundAlerts !== false),
+          includeVipMod: formBool('soundLevelConfigMassVipMod', massApply.includeVipMod !== false),
+          includeSoundPresets: formBool('soundLevelConfigMassPresets', massApply.includeSoundPresets === true),
+          overwriteExistingVolumes: formBool('soundLevelConfigMassOverwrite', massApply.overwriteExistingVolumes === true)
+        }
+      },
+      updatedBy: 'dashboard'
+    };
+    const saved = await api('/config', { method: 'POST', body: JSON.stringify(payload) });
+    state.levelConfig = saved.config || null;
+    if (state.levelConfig?.defaultScanLimit) state.scanLimit = Number(state.levelConfig.defaultScanLimit) || state.scanLimit;
+    if (state.levelConfig?.defaultResultLimit) state.resultLimit = Number(state.levelConfig.defaultResultLimit) || state.resultLimit;
+    if (state.levelConfig?.defaultReferenceOutputTarget) {
+      state.referenceOutputTarget = normalizeReferenceOutputTarget(state.levelConfig.defaultReferenceOutputTarget);
+      try { localStorage.setItem('sound-level-reference-output-target', state.referenceOutputTarget); } catch (_) {}
+    }
+    state.lastMessage = 'Sound-Pegel Config wurde in SQLite gespeichert. Bestehende Sounds wurden nicht geändert.';
+    render();
   }
 
   async function saveCorrectionSettings(){
@@ -478,6 +537,15 @@ window.SoundLevelScanModule = (function(){
     render();
     try {
       state.status = await api('/status');
+      try {
+        const cfg = await api('/config');
+        state.levelConfig = cfg.config || null;
+        if (state.levelConfig?.defaultScanLimit) state.scanLimit = Number(state.levelConfig.defaultScanLimit) || state.scanLimit;
+        if (state.levelConfig?.defaultResultLimit) state.resultLimit = Number(state.levelConfig.defaultResultLimit) || state.resultLimit;
+        if (state.levelConfig?.defaultReferenceOutputTarget) state.referenceOutputTarget = normalizeReferenceOutputTarget(state.levelConfig.defaultReferenceOutputTarget);
+      } catch (_) {
+        state.levelConfig = null;
+      }
       try {
         const corr = await api('/correction/settings');
         state.correctionSettings = corr.correction || null;
@@ -911,12 +979,88 @@ window.SoundLevelScanModule = (function(){
     `;
   }
 
+  function renderConfigPanel(){
+    const cfg = state.levelConfig || {};
+    const upload = cfg.uploadDefaults || {};
+    const mass = cfg.massApply || {};
+    const out = normalizeReferenceOutputTarget(cfg.defaultReferenceOutputTarget || state.referenceOutputTarget || 'overlay');
+    return `
+      <div class="sound-levelscan-config-panel">
+        <div class="sound-levelscan-preview-head">
+          <div>
+            <strong>Sound-Pegel Config</strong>
+            <span>${esc(HELP.config)}</span>
+          </div>
+          <span class="sound-pill success" title="Wird in SQLite gespeichert, nicht in config/**.">SQLite</span>
+        </div>
+
+        <div class="sound-settings-grid sound-levelscan-config-grid">
+          <div class="sound-settings-title">Basis-Lautstärke</div>
+          <label class="sound-field">
+            <span>${withHelp('Default Playback Volume', HELP.defaultPlaybackVolume)}</span>
+            <input id="soundLevelConfigDefaultPlaybackVolume" type="number" min="1" max="100" value="${esc(cfg.defaultPlaybackVolume ?? 80)}">
+          </label>
+          <label class="sound-field">
+            <span>Max Playback Volume</span>
+            <input id="soundLevelConfigMaxPlaybackVolume" type="number" min="1" max="100" value="${esc(cfg.maxPlaybackVolume ?? 100)}" title="Obergrenze fuer automatische Runtime-Volume-Anpassungen.">
+          </label>
+          <label class="sound-field">
+            <span>${withHelp('Upload Default Volume', HELP.uploadDefaultVolume)}</span>
+            <input id="soundLevelConfigUploadDefaultVolume" type="number" min="1" max="100" value="${esc(cfg.uploadDefaultVolume ?? 80)}">
+          </label>
+
+          <div class="sound-settings-title">Scan & Referenz</div>
+          <label class="sound-field">
+            <span>Referenz-Toleranz dB</span>
+            <input id="soundLevelConfigReferenceToleranceDb" type="number" min="0.5" max="12" step="0.5" value="${esc(cfg.referenceToleranceDb ?? 3)}" title="Toleranzbereich fuer spaetere Bewertung relativ zur Auto-Referenz.">
+          </label>
+          <label class="sound-field">
+            <span>Standard Scan-Limit</span>
+            <input id="soundLevelConfigDefaultScanLimit" type="number" min="1" max="5000" value="${esc(cfg.defaultScanLimit ?? state.scanLimit ?? 500)}">
+          </label>
+          <label class="sound-field">
+            <span>Standard Ergebnis-Limit</span>
+            <input id="soundLevelConfigDefaultResultLimit" type="number" min="1" max="1000" value="${esc(cfg.defaultResultLimit ?? state.resultLimit ?? 250)}">
+          </label>
+          <label class="sound-field">
+            <span>Standard Referenz-Ausgabeweg</span>
+            <select id="soundLevelConfigReferenceOutputTarget" title="Standard-Ausgabeweg fuer Referenzsound und Test-Ton.">
+              <option value="overlay" ${out === 'overlay' ? 'selected' : ''}>OBS/Overlay</option>
+              <option value="device" ${out === 'device' ? 'selected' : ''}>Audiogerät</option>
+              <option value="both" ${out === 'both' ? 'selected' : ''}>OBS + Audiogerät</option>
+            </select>
+          </label>
+
+          <div class="sound-settings-title">Neue Uploads vorbereiten</div>
+          <label class="sound-check"><input id="soundLevelConfigUploadAlerts" type="checkbox" ${upload.alerts !== false ? 'checked' : ''}><span>Neue Alert-Sounds mit Upload Default Volume</span></label>
+          <label class="sound-check"><input id="soundLevelConfigUploadSoundAlerts" type="checkbox" ${upload.soundalerts !== false ? 'checked' : ''}><span>Neue SoundAlert/Kanalpunkte-Sounds</span></label>
+          <label class="sound-check"><input id="soundLevelConfigUploadVipMod" type="checkbox" ${upload.vipMod !== false ? 'checked' : ''}><span>Neue VIP-/Mod-Sounds</span></label>
+          <label class="sound-check"><input id="soundLevelConfigUploadPresets" type="checkbox" ${upload.soundPresets !== false ? 'checked' : ''}><span>Neue Sound-System Presets</span></label>
+
+          <div class="sound-settings-title">Bestehende Sounds - Massenaktion vorbereitet</div>
+          <label class="sound-check"><input id="soundLevelConfigMassAlerts" type="checkbox" ${mass.includeAlerts !== false ? 'checked' : ''}><span>Alerts einbeziehen</span></label>
+          <label class="sound-check"><input id="soundLevelConfigMassSoundAlerts" type="checkbox" ${mass.includeSoundAlerts !== false ? 'checked' : ''}><span>SoundAlerts/Kanalpunkte einbeziehen</span></label>
+          <label class="sound-check"><input id="soundLevelConfigMassVipMod" type="checkbox" ${mass.includeVipMod !== false ? 'checked' : ''}><span>VIP-/Mod-Sounds einbeziehen</span></label>
+          <label class="sound-check"><input id="soundLevelConfigMassPresets" type="checkbox" ${mass.includeSoundPresets === true ? 'checked' : ''}><span>Sound-System Presets einbeziehen</span></label>
+          <label class="sound-check"><input id="soundLevelConfigMassOverwrite" type="checkbox" ${mass.overwriteExistingVolumes === true ? 'checked' : ''}><span>Vorhandene Volume-Werte überschreiben</span></label>
+        </div>
+
+        <div class="sound-actions">
+          <button type="button" class="success" data-sound-level-action="save-level-config" title="Speichert diese Config in SQLite. Bestehende Sounds werden nicht geändert.">Config speichern</button>
+          <button type="button" data-sound-level-action="reload" title="Config, Status und Ergebnisse neu laden.">Neu laden</button>
+        </div>
+        <div class="sound-note"><strong>Wichtig:</strong> Diese Seite speichert zentrale Defaults in der Datenbank. Upload-Module und Massenaktionen werden in späteren Steps daran angeschlossen. In diesem Step werden keine vorhandenen Sounds überschrieben.</div>
+      </div>
+    `;
+  }
+
   const LEVEL_TABS = [
     { id: 'overview', label: 'Übersicht', hint: 'Status, Kurzstatistik und letzte Scan-Daten.' },
     { id: 'scan', label: 'Scan', hint: 'Scan starten, Fortschritt verfolgen und Scan-Parameter setzen.' },
     { id: 'reference', label: 'Referenz', hint: 'Auto-Referenz, Referenzsound und Test-Ton über wählbaren Ausgabeweg.' },
     { id: 'results', label: 'Ergebnisse', hint: 'Messwerte, Filter, Suche und Tabelle.' },
     { id: 'correction', label: 'Korrektur', hint: 'Playback-Korrektur und Korrektur-Vorschau konfigurieren.' },
+    { id: 'config', label: 'Config', hint: 'Zentrale Defaults fuer Playback, Uploads und spaetere Massenaktionen.' },
     { id: 'normalization', label: 'Kopien', hint: 'Späterer Export normalisierter Kopien, aktuell nur vorbereitet.' }
   ];
 
@@ -958,6 +1102,12 @@ window.SoundLevelScanModule = (function(){
         ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
       `;
     }
+    if (state.activeTab === 'config') {
+      return `
+        ${renderConfigPanel()}
+        ${state.lastMessage ? `<div class="sound-note">${esc(state.lastMessage)}</div>` : ''}
+      `;
+    }
     if (state.activeTab === 'normalization') {
       return `
         ${renderNormalizationPanel()}
@@ -979,6 +1129,7 @@ window.SoundLevelScanModule = (function(){
         <button type="button" data-sound-level-tab="reference" title="Zur Auto-Referenz wechseln.">Referenz öffnen</button>
         <button type="button" data-sound-level-tab="results" title="Zur Ergebnistabelle wechseln.">Ergebnisse öffnen</button>
         <button type="button" data-sound-level-tab="correction" title="Zu den Korrektur-Einstellungen wechseln.">Korrektur öffnen</button>
+        <button type="button" data-sound-level-tab="config" title="Zur zentralen Sound-Pegel Config wechseln.">Config öffnen</button>
         <button type="button" data-sound-level-action="reload" ${state.loading ? 'disabled' : ''} title="Lädt Status und Ergebnisse neu.">Neu laden</button>
       </div>
       <details class="sound-levelscan-guide">

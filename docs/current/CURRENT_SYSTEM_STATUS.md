@@ -288,3 +288,8 @@ MP3-Cover/Artwork-Erkennung als optionaler spaeterer Mini-Fix
 - Dashboard kann Ziel-LUFS, True-Peak-Limit, Max Volume, Max Boost/Max Cut und True-Peak-Schutz anzeigen/speichern.
 - Korrektur-Vorschau bleibt read-only und greift nicht in `sound_system.js` ein.
 - Normalisierte Kopien sind als spaetere separate Option vorbereitet; es werden noch keine Dateien erzeugt.
+
+
+### STEP272C - Sound-Pegel Config-Seite
+
+Sound-Pegel besitzt jetzt eine eigene Config-Seite im Dashboard. Werte werden ueber `/api/sound/loudness/config` in SQLite gespeichert. Ziel ist eine zentrale Grundlage fuer spaetere Upload-Defaults, Standardlautstaerke und Massenaktionen. In diesem Step werden keine bestehenden Sound-/Alert-/VIP-/SoundAlert-Daten veraendert und keine Dateien normalisiert.
