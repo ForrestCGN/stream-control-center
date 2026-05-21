@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-05-21 - STEP268C Active Bundle Lock Direct Start Guard
+
+- Sound-System Bundle-Lock wurde stabilisiert.
+- Fremde Sounds duerfen bei aktivem Alert-Bundle-Lock nicht mehr direkt zwischen Alert-Hauptsound und Alert-TTS starten.
+- Bestaetigter V5-Real-Mod-Test: Alert 1, SoundAlert, Mod-Sound Araglor, normales TTS, Alert 2, Mod-Sound Drudchen_CGN, normales TTS, SoundAlert, Alert 3.
+- Trace-Befund: Alert-Sound und passende Alert-TTS blieben fuer alle drei Alerts zusammen.
+- Echte Mod-Sounds Araglor und Drudchen_CGN wurden ueber das VIP-/Mod-System angenommen und abgespielt.
+- Zwei SoundAlerts waren geplante Testschritte und nutzten dieselbe Datei; kein Doppeltrigger.
+- Nicht geaendert: Alert-System, Datenbank, Config, Streamer.bot-Flows, Overlay-HTML, VIP-Logik.
+
 ## 2026-05-21 - STEP268B Alert Bundle Dedupe Bypass Robust
 
 - `backend/modules/sound_system.js` erweitert:
