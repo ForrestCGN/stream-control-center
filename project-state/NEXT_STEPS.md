@@ -1,41 +1,6 @@
-# NEXT_STEPS – Birthday-System
+# NEXT_STEPS
 
-## Als nächstes testen
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/show/queue"
-```
-
-Dann zwei unterschiedliche Shows starten und prüfen, ob die zweite in der Sound-System-Queue landet. Danach denselben User erneut starten und prüfen, ob blockiert wird.
-
-## Danach sinnvoll
-
-- Celebration-Styles optisch weiter polishen.
-- Dashboard-Queue mit Skip/Clear vorbereiten.
-- Später Party-Bilder pro Party ergänzen.
-
-
-## Nach STEP_BIRTHDAY_005D testen
-- `/api/birthday/show/queue` aufrufen.
-- Dedupe testen: gleicher User blockt, anderer User queued.
-
-## Nach STEP_BIRTHDAY_005E
-- Birthday-Show erneut testen: erster User startet, gleicher User wird blockiert, anderer User wird über Sound-System-Queue eingereiht.
-- Danach Celebration-Styles optisch weiter polieren.
-
-## Nach STEP_BIRTHDAY_005F
-- Dashboard testen: Birthday-System → Partys.
-- Prüfen, ob neu angelegte Partys auswählbar und editierbar sind.
-- Danach Party-Overlay/Styles weiter polieren.
-
-
-## STEP_BIRTHDAY_005G
-- Birthday Mention/User-Resolve ergänzt: `!birthday party @user`, DisplayName/Avatar im Show-State, Dashboard-Speicherung mit Login + Anzeigename + Avatar.
-
-
-## STEP_BIRTHDAY_006 – Celebration Overlay Visual Upgrade
-- Birthday-Overlay visuell stark überarbeitet.
-- Intro bleibt ruhig; Party eskaliert erst ab Songphase.
-- Mehrere Style-Varianten, Avatar-Inszenierung, Herz-/Konfetti-/Licht-/Szenenlayer ergänzt.
-- Keine Änderung an Queue/Sound-System/Command-Logik.
+1. `STEP_BIRTHDAY_006C` deployen.
+2. Im Twitch-Chat testen: `!birthday set 16.08.1974`.
+3. Overlay ohne `?debug=1` testen: Intro-Video sichtbar über Sound-System, Birthday-Overlay erst ab Song-/Partyphase.
+4. Danach ggf. weitere Overlay-Design-Polish-Runde.

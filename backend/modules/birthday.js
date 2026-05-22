@@ -29,7 +29,8 @@ const DEFAULT_CONFIG = {
     aliases: ['bday'],
     permissionLevel: 'everyone',
     cooldownGlobalMs: 1000,
-    cooldownUserMs: 5000
+    cooldownUserMs: 5000,
+    chatFallbackEnabled: true
   },
   registration: {
     enabled: true,
@@ -560,7 +561,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_006',
+    step: 'STEP_BIRTHDAY_006C',
     state: {
       ...showState,
       now: Date.now(),
@@ -2114,17 +2115,109 @@ async function maybeAutoGreetFromChat(parsed = {}) {
   }
 }
 
+
+function rawChatMessageFromParsed(parsed = {}) {
+  const params = Array.isArray(parsed.params) ? parsed.params : [];
+  return clean(parsed.rawMessage || parsed.message || parsed.text || params[1] || params[params.length - 1] || '');
+}
+
+function birthdayCommandWasHandled(result) {
+  if (!result || typeof result !== 'object') return false;
+  const candidates = [
+    result.command,
+    result.trigger,
+    result.data?.command,
+    result.data?.trigger,
+    result.result?.command,
+    result.result?.data?.command,
+    result.targetPayload?.command,
+    result.parsed?.trigger
+  ].map(value => clean(value).toLowerCase()).filter(Boolean);
+  if (candidates.includes('birthday') || candidates.includes('bday')) return true;
+  if (result.handled === true && candidates.length) return true;
+  return false;
+}
+
+function parseBirthdayRawCommand(rawMessage) {
+  const raw = clean(rawMessage);
+  if (!raw || !/^[!./]/.test(raw)) return null;
+  const withoutPrefix = raw.replace(/^[!./]+/, '').trim();
+  if (!withoutPrefix) return null;
+  const parts = withoutPrefix.split(/\s+/).filter(Boolean);
+  const trigger = clean(parts.shift() || '').toLowerCase();
+  if (!['birthday', 'bday'].includes(trigger)) return null;
+  return { trigger, args: parts, rawInput: withoutPrefix, argText: parts.join(' '), rawMessage: raw };
+}
+
+function chatUserFromParsed(parsed = {}) {
+  const tags = parsed.tags || {};
+  const login = cleanLogin(parsed.login || tags.login || tags['user-login'] || tags.username || tags['display-name'] || '');
+  const displayName = clean(parsed.displayName || tags['display-name'] || tags.displayName || login);
+  return { login, displayName: displayName || login };
+}
+
+async function maybeHandleBirthdayChatCommandFallback(parsed = {}, originalResult = null) {
+  const cfg = getConfig();
+  if (cfg.command?.chatFallbackEnabled === false) return { handled: false, reason: 'fallback_disabled' };
+  if (birthdayCommandWasHandled(originalResult)) return { handled: false, reason: 'already_handled' };
+
+  const rawMessage = rawChatMessageFromParsed(parsed);
+  const parsedCommand = parseBirthdayRawCommand(rawMessage);
+  if (!parsedCommand) return { handled: false, reason: 'not_birthday_command' };
+
+  const user = chatUserFromParsed(parsed);
+  if (!user.login) return { handled: false, reason: 'missing_chat_user' };
+
+  const payload = {
+    command: parsedCommand.trigger,
+    cmd: parsedCommand.trigger,
+    rawInput: parsedCommand.rawInput,
+    input: parsedCommand.rawInput,
+    rawMessage: parsedCommand.rawMessage,
+    message: parsedCommand.rawMessage,
+    args: parsedCommand.args,
+    argText: parsedCommand.argText,
+    user: user.displayName,
+    userName: user.displayName,
+    userLogin: user.login,
+    login: user.login,
+    displayName: user.displayName,
+    userDisplayName: user.displayName,
+    source: 'twitch_chat_fallback',
+    channel: clean(parsed.channel || parsed.room || ''),
+    chatOutput: true,
+    sendChat: true,
+    directSendEnabled: true,
+    fallbackToStreamerbot: true
+  };
+
+  parsedCommand.args.forEach((arg, index) => {
+    payload[`input${index}`] = arg;
+  });
+
+  const result = await handleBirthdayCommand(payload);
+  return { handled: true, reason: 'birthday_chat_fallback', result };
+}
+
 function installChatActivityHook() {
   if (state.chatHookInstalled) return true;
   if (!commands || typeof commands.handleChatMessage !== 'function') return false;
   originalCommandHook = commands.handleChatMessage;
   commands.handleChatMessage = async function birthdayWrappedHandleChatMessage(parsed, source = {}) {
     const result = await originalCommandHook(parsed, source);
+
+    const fallback = await maybeHandleBirthdayChatCommandFallback(parsed, result).catch(err => {
+      state.lastError = err.message || String(err);
+      console.warn('[birthday] chat command fallback failed:', state.lastError);
+      return { handled: false, error: state.lastError };
+    });
+
     maybeAutoGreetFromChat(parsed).catch(err => {
       state.lastError = err.message || String(err);
       console.warn('[birthday] auto greeting check failed:', state.lastError);
     });
-    return result;
+
+    return fallback && fallback.handled ? fallback.result : result;
   };
   state.chatHookInstalled = true;
   return true;
@@ -2734,7 +2827,7 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_006',
+    step: 'STEP_BIRTHDAY_006C',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
@@ -2759,7 +2852,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_006',
+    step: 'STEP_BIRTHDAY_006C',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -2841,7 +2934,7 @@ function registerRoutes(ctx) {
     return res.json({
       ok: true,
       module: MODULE_NAME,
-      step: 'STEP_BIRTHDAY_006',
+      step: 'STEP_BIRTHDAY_006C',
       cleanup,
       queue: listBirthdayShowQueue({ includeDone: String(req.query && req.query.includeDone || '').toLowerCase() === 'true' }),
       state: publicShowState().state
@@ -2850,7 +2943,7 @@ function registerRoutes(ctx) {
 
   routes.registerPost(app, [`${API_PREFIX}/show/queue/clear-stale`], core.asyncRoute(async (req, res) => {
     const cleanup = await cleanupStaleBirthdayShowQueue('manual_stale_queue_cleanup');
-    return res.json({ ok: true, module: MODULE_NAME, step: 'STEP_BIRTHDAY_006', cleanup, queue: listBirthdayShowQueue({ includeDone: false }), state: publicShowState().state });
+    return res.json({ ok: true, module: MODULE_NAME, step: 'STEP_BIRTHDAY_006C', cleanup, queue: listBirthdayShowQueue({ includeDone: false }), state: publicShowState().state });
   }));
 
   routes.registerPost(app, [`${API_PREFIX}/show/stop`], (req, res) => {
@@ -2989,7 +3082,7 @@ function init(ctx) {
   startSoundSystemMonitor();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_006' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_006C' };
 }
 
 module.exports = {

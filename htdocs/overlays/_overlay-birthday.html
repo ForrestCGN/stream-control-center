@@ -662,8 +662,8 @@
 
     function applyState(input) {
       const state = input && input.ok && input.state ? input.state : input || {};
-      const active = !!state.active || DEBUG;
       const phase = String(state.phase || (DEBUG ? 'party' : 'idle'));
+      const active = (!!state.active && phase === 'party') || DEBUG;
       const displayName = displayNameFromState(state);
       const styleKey = String(state.styleKey || state.partyStyle || 'cgn_neon');
       const requestId = String(state.requestId || (DEBUG ? 'debug' : ''));

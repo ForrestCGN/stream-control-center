@@ -1,24 +1,5 @@
-# CURRENT_SYSTEM_STATUS – Birthday Overlay 006B
+# CURRENT_SYSTEM_STATUS
 
-Aktueller Overlay-Polish: `STEP_BIRTHDAY_006B`.
+Birthday-System aktuell bei `STEP_BIRTHDAY_006C`.
 
-## Birthday-System
-
-Funktionale Backend-/Command-/Sound-System-Logik bleibt unverändert zum letzten stabilen Backend-Stand.
-
-## Overlay
-
-`htdocs/overlays/_overlay-birthday.html` wurde für OBS 1920x1080 nachgeschärft:
-
-- kompakteres CGN-Neon-Panel
-- Avatar kleiner und sauberer links platziert
-- Fallback-Initiale nur sichtbar, wenn kein Avatar vorhanden ist
-- Name und Message ohne `@`
-- bessere Textgrößen und Auto-Fit
-- keine Änderung an Party-Phasen: Intro ruhig, Celebration erst ab `phase=party`
-
-## Test-URL
-
-```text
-http://127.0.0.1:8080/overlays/_overlay-birthday.html
-```
+Das Birthday-Overlay wird während des Intro-Videos nicht angezeigt und erscheint erst zur Partyphase. Zusätzlich besitzt das Birthday-Modul einen Chat-Fallback für `!birthday`/`!bday`, falls der zentrale Command-Hook den Chatbefehl nicht bis zum Modul ausführt.
