@@ -107,7 +107,7 @@
 - Overlay erweitert: Herzen, Konfetti, Ballons, Glitzer, Lichtstrahlen und Szenenwechsel während der Songphase.
 - Dashboard Party-Show erweitert um Party-Presets und User→Party-Zuordnung.
 
-### STEP_BIRTHDAY_005B
+### STEP_BIRTHDAY_005C
 - Birthday-Show-Queue auf Sound-System-Bundles umgestellt.
 - Dedupe: gleicher User aktiv/queued wird blockiert.
 - Andere User werden als Birthday-Bundle ins Sound-System eingereiht.
@@ -116,6 +116,6 @@
 - Dashboard zeigt Birthday-/Sound-System-Warteschlange.
 
 
-### STEP_BIRTHDAY_005B
+### STEP_BIRTHDAY_005C
 - Fix: Route `/api/birthday/show/queue` wurde im Status gelistet, aber nicht registriert.
 - Queue-Endpoint gibt jetzt die Birthday-Show-Queue inklusive aktuellem State aus.

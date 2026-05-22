@@ -204,6 +204,14 @@ const DEFAULT_MESSAGES = {
     '🎉 Geburtstagsshow für @{targetDisplayName} wird gestartet!',
     '🎂 Heimleitung startet die Partyakte für @{targetDisplayName}. Intro läuft erst ruhig, Eskalation startet mit dem Song!'
   ],
+  party_queued: [
+    '🎂 @{targetDisplayName} wurde in die Geburtstags-Warteschlange gelegt. Position: {queuePosition}.',
+    '📋 Heimleitung hat @{targetDisplayName} in die Party-Warteschlange aufgenommen. Position: {queuePosition}.'
+  ],
+  party_duplicate: [
+    '🎂 Für @{targetDisplayName} läuft bereits eine Geburtstagsshow oder sie steht schon in der Warteschlange.',
+    '🚫 @{targetDisplayName} ist schon in der Geburtstags-Show eingeplant. Doppelbuchung abgelehnt.'
+  ],
   party_missing_target: [
     '🎂 Bitte gib einen User an: !birthday party username'
   ],
@@ -459,13 +467,15 @@ function reloadRuntime() {
 }
 
 function renderText(key, context = {}) {
+  const fallback = getMessages()[key];
+  const template = Array.isArray(fallback) ? fallback[0] : String(fallback || '');
   try {
-    return texts.renderModuleText(TEXTS_MODULE, key, getMessages(), context, { ...textEditorOptions(), seed: false });
+    const rendered = texts.renderModuleText(TEXTS_MODULE, key, getMessages(), context, { ...textEditorOptions(), seed: false });
+    if (clean(rendered)) return rendered;
   } catch (_) {
-    const fallback = getMessages()[key];
-    const template = Array.isArray(fallback) ? fallback[0] : String(fallback || '');
-    return texts.renderTemplate(template, context);
+    // Fallback below.
   }
+  return texts.renderTemplate(template, context);
 }
 
 function localParts(date = new Date()) {
@@ -539,7 +549,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005B',
+    step: 'STEP_BIRTHDAY_005C',
     state: {
       ...showState,
       now: Date.now(),
@@ -1997,7 +2007,7 @@ async function handleBirthdayCommand(payload = {}) {
     const showResult = await startBirthdayShow({ targetUser: saved, targetLogin, targetDisplayName, startedByUser: user });
     if (showResult.duplicate) {
       const message = renderText('party_duplicate', { ...baseContext, targetLogin, targetDisplayName });
-      return { ok: false, command: 'birthday', action: 'party', targetLogin, targetDisplayName, duplicate: true, show: showResult, message, chat: await sendChat(message, 'birthday_party_duplicate') };
+      return { ok: true, command: 'birthday', action: 'party', targetLogin, targetDisplayName, duplicate: true, blocked: true, show: showResult, message, chat: await sendChat(message, 'birthday_party_duplicate') };
     }
     try {
       database.run(`
@@ -2471,7 +2481,7 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005B',
+    step: 'STEP_BIRTHDAY_005C',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
@@ -2496,7 +2506,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_005B',
+    step: 'STEP_BIRTHDAY_005C',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -2576,7 +2586,7 @@ function registerRoutes(ctx) {
       return res.json({
         ok: true,
         module: MODULE_NAME,
-        step: 'STEP_BIRTHDAY_005B',
+        step: 'STEP_BIRTHDAY_005C',
         queue: listBirthdayShowQueue({ includeDone: String(req.query && req.query.includeDone || '').toLowerCase() === 'true' }),
         state: publicShowState().state
       });
@@ -2716,7 +2726,7 @@ function init(ctx) {
   startSoundSystemMonitor();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005B' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005C' };
 }
 
 module.exports = {

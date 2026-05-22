@@ -1,6 +1,6 @@
 # CURRENT_STATUS – Birthday-System
 
-Aktueller Stand: `STEP_BIRTHDAY_005B`
+Aktueller Stand: `STEP_BIRTHDAY_005C`
 
 - Birthday-Registrierung und kleine Auto-Gratulation aktiv.
 - Optionales Jahr/Alter aktiv.
@@ -13,6 +13,6 @@ Aktueller Stand: `STEP_BIRTHDAY_005B`
 - Overlay eskaliert erst bei Songphase (`phase=party`).
 
 
-## STEP_BIRTHDAY_005B
+## STEP_BIRTHDAY_005C
 - Birthday-System: Sound-System Bundle Queue aktiv.
 - Fix: `/api/birthday/show/queue` ist jetzt registriert.
