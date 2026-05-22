@@ -131,3 +131,9 @@ Stand: 2026-05-22
 - Neues Overlay: `htdocs/overlays/_overlay-birthday.html`.
 - Ablauf: Video zuerst, danach Party-Overlay und Song über `/api/sound/play`.
 - Automatische Geburtstags-Erkennung bleibt weiterhin kleine Chat-Gratulation ohne Video/Song/Overlay.
+
+
+## STEP_BIRTHDAY_004B
+
+- Fix für Birthday-Party-Show-Upload: Multer-Middleware-Reihenfolge korrigiert.
+- Behebt `upload_file_missing` beim Upload von Intro-Video, Standardsong und User-Song.

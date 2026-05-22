@@ -126,3 +126,9 @@ Wichtig:
 - Die große Show startet niemals automatisch durch normale Chataktivität.
 - Song läuft über `/api/sound/play` und benötigt eine gültige Datei relativ zu `htdocs/assets/sounds`.
 - Video-URL muss browserseitig erreichbar sein.
+
+
+## STEP_BIRTHDAY_004B
+
+- Fix für Birthday-Party-Show-Upload: Multer-Middleware-Reihenfolge korrigiert.
+- Behebt `upload_file_missing` beim Upload von Intro-Video, Standardsong und User-Song.

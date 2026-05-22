@@ -79,3 +79,9 @@
 - Neues Overlay `_overlay-birthday.html` ergänzt.
 - Show-Settings und User-spezifische Song-/Video-Felder ergänzt.
 - Automatische Geburtstagsgrüße bleiben bewusst klein und starten keine Show.
+
+
+## STEP_BIRTHDAY_004B
+
+- Fix für Birthday-Party-Show-Upload: Multer-Middleware-Reihenfolge korrigiert.
+- Behebt `upload_file_missing` beim Upload von Intro-Video, Standardsong und User-Song.

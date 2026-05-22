@@ -497,7 +497,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_004A',
+    step: 'STEP_BIRTHDAY_004B',
     state: {
       ...showState,
       now: Date.now(),
@@ -1518,7 +1518,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_004A',
+    step: 'STEP_BIRTHDAY_004B',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -1596,10 +1596,13 @@ function registerRoutes(ctx) {
     }
   });
 
-  routes.registerPost(app, [`${API_PREFIX}/admin/show/upload`], upload.single('file'), (req, res) => {
+  // STEP_BIRTHDAY_004B
+  // helper_routes.registerPost expects the final handler first and optional middlewares after it.
+  // Multer must run before this handler, otherwise req.file stays empty and upload_file_missing is thrown.
+  routes.registerPost(app, [`${API_PREFIX}/admin/show/upload`], (req, res) => {
     try { return res.json(handleBirthdayAssetUpload(req.body || {}, req.file || null)); }
     catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
-  });
+  }, upload.single('file'));
 
   routes.registerGet(app, [`${API_PREFIX}/admin/users`], (req, res) => {
     try {
@@ -1688,7 +1691,7 @@ function init(ctx) {
   installChatActivityHook();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004A' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004B' };
 }
 
 module.exports = {

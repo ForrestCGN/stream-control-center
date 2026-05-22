@@ -64,3 +64,8 @@ Birthday STEP-Doku:
 
 - `htdocs/overlays/_overlay-birthday.html`
 - `project-state/STEP_BIRTHDAY_004.md`
+
+## STEP_BIRTHDAY_004B
+
+- Fix für Birthday-Party-Show-Upload: Multer-Middleware-Reihenfolge korrigiert.
+- Behebt `upload_file_missing` beim Upload von Intro-Video, Standardsong und User-Song.
