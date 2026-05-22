@@ -32,3 +32,10 @@ Dann zwei unterschiedliche Shows starten und prüfen, ob die zweite in der Sound
 
 ## STEP_BIRTHDAY_005G
 - Birthday Mention/User-Resolve ergänzt: `!birthday party @user`, DisplayName/Avatar im Show-State, Dashboard-Speicherung mit Login + Anzeigename + Avatar.
+
+
+## STEP_BIRTHDAY_006 – Celebration Overlay Visual Upgrade
+- Birthday-Overlay visuell stark überarbeitet.
+- Intro bleibt ruhig; Party eskaliert erst ab Songphase.
+- Mehrere Style-Varianten, Avatar-Inszenierung, Herz-/Konfetti-/Licht-/Szenenlayer ergänzt.
+- Keine Änderung an Queue/Sound-System/Command-Logik.

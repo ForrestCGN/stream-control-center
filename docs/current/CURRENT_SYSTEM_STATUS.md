@@ -17,3 +17,7 @@ Aktueller Stand: `STEP_BIRTHDAY_005F`. Party-Presets/User-Zuordnung im Dashboard
 
 ## STEP_BIRTHDAY_005G
 - Birthday Mention/User-Resolve ergänzt: `!birthday party @user`, DisplayName/Avatar im Show-State, Dashboard-Speicherung mit Login + Anzeigename + Avatar.
+
+
+## STEP_BIRTHDAY_006
+Birthday-Overlay ist jetzt optisch deutlich aufgewertet. Die technische Show-Logik bleibt aus STEP_BIRTHDAY_005G/005E-Familie erhalten: Intro-Video über Sound-System, danach Partyphase passend zur Songphase. Das Overlay ist weiterhin nur visuelle Darstellung und nutzt State-Felder wie `styleKey`, `effects`, `scenes`, `targetAvatarUrl` und `targetDisplayName`.
