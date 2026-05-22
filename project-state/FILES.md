@@ -1,12 +1,11 @@
 # FILES
 
-## STEP273C2
+## STEP274A
 
 Geändert/ergänzt:
 
-- `backend/modules/commands.js` via `tools/easy/STEP273C2_APPLY_COMMAND_CATALOG_EXPANSION.cjs`
-- `tools/easy/STEP273C2_APPLY_COMMAND_CATALOG_EXPANSION.cjs`
-- `project-state/STEP273C2_COMMAND_CATALOG_EXPANSION.md`
+- `backend/modules/media.js`
+- `project-state/STEP274A_MEDIA_CORE.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
