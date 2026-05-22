@@ -1,13 +1,18 @@
 # CURRENT_STATUS
 
-## STEP273B2 – Commands Dashboard Tabs
+## STEP273C – Commands Dashboard Action Types
 
-Das Command-System bleibt auf Backend-Core STEP273A1. STEP273B2 ergänzt ausschließlich das Dashboard-Modul für Commands mit getrennter Tab-Struktur.
+Der Commands-Dashboardbereich ist jetzt auf Action-Typen vorbereitet.
 
 ### Status
 
-- Backend-Command-Core: STEP273A1 stabil
-- Dashboard Commands: Tabbed UI vorbereitet
-- Übersicht bleibt kompakt
-- Verwaltung, Rechte/Cooldowns, Logs und Diagnose sind getrennt
-- Twitch-Presence-Status sichtbar
+- Command-Core bleibt STEP273A1.
+- Commands-Dashboard nutzt weiter `/api/commands/*`.
+- Command-Editor zeigt nun `Action-Typ` als Dropdown.
+- Technische Router-Felder sind in `Erweitert` verschoben.
+- Icons werden für wichtige Aktionen genutzt.
+- Medienverwaltung wurde bewusst noch nicht eingebaut.
+
+### Wichtig
+
+MP3-/Video-Upload und Medien-Auswahl sollen zentral für alle Module erfolgen, nicht nur innerhalb von Commands.

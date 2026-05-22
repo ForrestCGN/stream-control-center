@@ -1,9 +1,17 @@
 # CHANGELOG
 
-## STEP273B2 – Commands Dashboard Tabs
+## STEP273C – Commands Dashboard Action Types
 
-- Commands-Dashboard als eigenes Dashboard-Modul ergänzt.
-- Keine Monster-Seite: Inhalte auf Tabs verteilt.
-- Übersicht, Command-Verwaltung, Rechte & Cooldowns, Logs und Diagnose getrennt.
-- Twitch-Presence-Status und Start/Stop-Aktionen sichtbar.
-- Hook-Script für `index.html` und `app.js` ergänzt.
+- Action-Typ-Dropdown im Command-Editor ergänzt.
+- Standard-Aktionstypen vorbereitet: Modul-Command, Chat-Text, Zufallstext, Sound, Video, HTTP/API, Multi-Action.
+- Technische Felder in einen Erweitert-Bereich verschoben.
+- Icon-Buttons für Speichern, Löschen, Kopieren, Aktualisieren und Tests ergänzt.
+- Hinweise zur späteren zentralen Medienverwaltung ergänzt.
+
+## Vorher
+
+### STEP273B2
+- Commands-Dashboard mit Tabs aufgebaut.
+
+### STEP273A1
+- Command-Core-Fix, Logs/History, Twitch-Chat-Hook bestätigt.
