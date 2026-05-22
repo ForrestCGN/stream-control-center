@@ -61,3 +61,11 @@
   - Syntaxfehler in `media.js`
   - Modul lädt jetzt sauber als `STEP274A1C`
 - Media Dashboard als `System → Medien` geliefert, noch final testen.
+
+
+### Birthday-System
+- STEP_BIRTHDAY_004 ergänzt die manuelle Birthday-Show.
+- `!birthday party username` startet Video → Party-Overlay → Song.
+- Neues Overlay `_overlay-birthday.html` ergänzt.
+- Show-Settings und User-spezifische Song-/Video-Felder ergänzt.
+- Automatische Geburtstagsgrüße bleiben bewusst klein und starten keine Show.

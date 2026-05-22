@@ -96,3 +96,22 @@ Neu in STEP_BIRTHDAY_003:
 
 Offen:
 - Manuelle Birthday-Show mit Video/Overlay/Song.
+
+
+## Birthday-System
+
+Aktueller Stand: `STEP_BIRTHDAY_004`.
+
+Bestätigt/geplant für Test:
+- Registrierung über `!birthday set`.
+- Kleine automatische Chat-Gratulation bei normaler Chataktivität am Geburtstag.
+- Optionaler Tagebuch-Eintrag.
+- Dashboard für User, Settings und Texte.
+- Manuelle Birthday-Show über `!birthday party username`.
+- Overlay: `/overlays/_overlay-birthday.html`.
+- Show-State: `/api/birthday/show/state`.
+
+Wichtig:
+- Die große Show startet niemals automatisch durch normale Chataktivität.
+- Song läuft über `/api/sound/play` und benötigt eine gültige Datei relativ zu `htdocs/assets/sounds`.
+- Video-URL muss browserseitig erreichbar sein.

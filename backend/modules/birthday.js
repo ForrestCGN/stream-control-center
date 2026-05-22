@@ -11,7 +11,7 @@ const chatOutput = require('./helpers/helper_chat_output');
 const commands = require('./commands');
 
 const MODULE_NAME = 'birthday';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const SETTINGS_TABLE = 'birthday_settings';
 const TEXTS_MODULE = 'birthday';
 const API_PREFIX = '/api/birthday';
@@ -48,6 +48,20 @@ const DEFAULT_CONFIG = {
     maxLength: 450,
     directSendEnabled: true,
     fallbackToStreamerbot: true
+  },
+  show: {
+    enabled: true,
+    allowedLogins: ['forrestcgn'],
+    defaultVideoUrl: '',
+    defaultVideoDurationMs: 0,
+    defaultSongFile: 'birthday/default.mp3',
+    defaultSongVolume: 85,
+    partyDurationMs: 22000,
+    overlayFadeMs: 700,
+    soundCategory: 'special',
+    soundPriority: 75,
+    soundOutputTarget: 'overlay',
+    soundTarget: 'stream'
   }
 };
 
@@ -130,6 +144,24 @@ const DEFAULT_MESSAGES = {
   ],
   command_disabled: [
     '🎂 Das Birthday-Modul ist aktuell deaktiviert.'
+  ],
+  party_usage: [
+    '🎉 Nutzung: !birthday party username',
+    '🎂 Heimleitungs-Showbefehl: !birthday party username'
+  ],
+  party_denied: [
+    '🎂 @{displayName}, dafür brauchst du eine Freigabe der Heimleitung.',
+    '🚫 @{displayName}, die Geburtstagsshow darf nicht jeder starten. Heimaufsicht sagt nein.'
+  ],
+  party_started: [
+    '🎉 Geburtstagsshow für @{targetDisplayName} wird gestartet!',
+    '🎂 Heimleitung startet die Partyakte für @{targetDisplayName}. Bitte Konfetti bereithalten!'
+  ],
+  party_missing_target: [
+    '🎂 Bitte gib einen User an: !birthday party username'
+  ],
+  party_disabled: [
+    '🎂 Die Geburtstagsshow ist aktuell deaktiviert.'
   ]
 };
 
@@ -160,7 +192,12 @@ const TEXT_CATEGORIES = {
   birthday_diary_entry_with_age: 'diary',
   invalid_date: 'errors',
   registration_disabled: 'errors',
-  command_disabled: 'system'
+  command_disabled: 'system',
+  party_usage: 'chat',
+  party_denied: 'errors',
+  party_started: 'chat',
+  party_missing_target: 'errors',
+  party_disabled: 'system'
 };
 
 const state = {
@@ -177,12 +214,34 @@ const state = {
   lastAutomaticCheckAt: '',
   lastGreetingAt: '',
   lastCommandAt: '',
+  lastShowStartedAt: '',
+  lastShowEndedAt: '',
   lastError: ''
 };
 
 let runtimeConfig = null;
 let runtimeMessages = null;
 let originalCommandHook = null;
+let showState = {
+  active: false,
+  phase: 'idle',
+  targetLogin: '',
+  targetDisplayName: '',
+  headline: '',
+  message: '',
+  videoUrl: '',
+  videoDurationMs: 0,
+  songFile: '',
+  songVolume: 0,
+  startedAt: 0,
+  phaseStartedAt: 0,
+  phaseEndsAt: 0,
+  endsAt: 0,
+  requestId: '',
+  startedBy: '',
+  error: ''
+};
+let showTimers = [];
 
 function nowIso() {
   return core.nowIso ? core.nowIso() : new Date().toISOString();
@@ -421,6 +480,153 @@ function textKeyWithAge(baseKey, context = {}) {
   return context.age ? `${baseKey}_with_age` : baseKey;
 }
 
+
+function publicShowState() {
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    step: 'STEP_BIRTHDAY_004',
+    state: {
+      ...showState,
+      now: Date.now(),
+      remainingMs: showState.phaseEndsAt ? Math.max(0, showState.phaseEndsAt - Date.now()) : 0,
+      totalRemainingMs: showState.endsAt ? Math.max(0, showState.endsAt - Date.now()) : 0
+    }
+  };
+}
+
+function clearShowTimers() {
+  for (const timer of showTimers) {
+    try { clearTimeout(timer); } catch (_) {}
+  }
+  showTimers = [];
+}
+
+function scheduleShowTimer(fn, ms) {
+  const timer = setTimeout(fn, Math.max(0, Number(ms || 0)));
+  showTimers.push(timer);
+  return timer;
+}
+
+function canStartParty(user = {}) {
+  const cfg = getConfig();
+  if (cfg.show?.enabled === false) return { ok: false, reason: 'show_disabled' };
+  const allowed = Array.isArray(cfg.show?.allowedLogins) ? cfg.show.allowedLogins.map(cleanLogin).filter(Boolean) : [];
+  if (!allowed.length) return { ok: true, reason: 'allowlist_empty' };
+  return allowed.includes(cleanLogin(user.login)) ? { ok: true, reason: 'allowlist' } : { ok: false, reason: 'not_allowed' };
+}
+
+function normalizeAssetUrl(value) {
+  const raw = clean(value);
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return raw.startsWith('/') ? raw : `/${raw.replace(/^\/+/, '')}`;
+}
+
+function pickShowAsset(targetUser = {}) {
+  const cfg = getConfig();
+  const videoUrl = normalizeAssetUrl(targetUser.showVideoUrl || cfg.show?.defaultVideoUrl || '');
+  const songFile = clean(targetUser.showSongFile || cfg.show?.defaultSongFile || '');
+  const songVolume = Math.max(0, Math.min(100, Number(targetUser.showSongVolume || cfg.show?.defaultSongVolume || 85) || 85));
+  const videoDurationMs = Math.max(0, Number(targetUser.showVideoDurationMs || cfg.show?.defaultVideoDurationMs || 0) || 0);
+  const partyDurationMs = Math.max(3000, Number(cfg.show?.partyDurationMs || 22000) || 22000);
+  return { videoUrl, songFile, songVolume, videoDurationMs, partyDurationMs };
+}
+
+async function playBirthdaySong(asset, targetContext = {}) {
+  if (!asset || !asset.songFile) return { ok: true, skipped: true, reason: 'missing_song_file' };
+  const cfg = getConfig();
+  return internalRequest('POST', '/api/sound/play', {
+    file: asset.songFile,
+    label: `Birthday Song ${targetContext.targetDisplayName || targetContext.displayName || ''}`.trim(),
+    category: cfg.show?.soundCategory || 'special',
+    priority: Number(cfg.show?.soundPriority || 75),
+    volume: Number(asset.songVolume || cfg.show?.defaultSongVolume || 85),
+    outputTarget: cfg.show?.soundOutputTarget || 'overlay',
+    target: cfg.show?.soundTarget || 'stream',
+    source: 'birthday_show',
+    requestedBy: targetContext.startedBy || '',
+    queueIfBusy: true,
+    parallelAllowed: false,
+    meta: { module: MODULE_NAME, showRequestId: showState.requestId, targetLogin: targetContext.targetLogin || '' }
+  });
+}
+
+function finishBirthdayShow(reason = 'finished') {
+  clearShowTimers();
+  showState = {
+    ...showState,
+    active: false,
+    phase: 'idle',
+    phaseStartedAt: Date.now(),
+    phaseEndsAt: 0,
+    endsAt: 0,
+    error: reason === 'finished' ? '' : reason
+  };
+  state.lastShowEndedAt = nowIso();
+}
+
+async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, startedByUser }) {
+  const cfg = getConfig();
+  clearShowTimers();
+  const now = Date.now();
+  const requestId = `birthday_${now}_${Math.random().toString(36).slice(2, 8)}`;
+  const context = {
+    targetLogin: cleanLogin(targetLogin || targetUser?.login || ''),
+    targetDisplayName: clean(targetDisplayName || targetUser?.displayName || targetLogin || ''),
+    startedBy: cleanLogin(startedByUser?.login || '')
+  };
+  const birthdayContext = targetUser ? buildBirthdayContext(targetUser, { login: context.targetLogin, displayName: context.targetDisplayName }) : { displayName: context.targetDisplayName, login: context.targetLogin };
+  const asset = pickShowAsset(targetUser || {});
+  const videoMs = asset.videoUrl ? asset.videoDurationMs : 0;
+  const partyMs = asset.partyDurationMs;
+  const headline = birthdayContext.age ? `Happy ${birthdayContext.age}. Birthday!` : 'Happy Birthday!';
+  const message = birthdayContext.age ? `Alles Gute zum ${birthdayContext.age}. Geburtstag, @${context.targetDisplayName}!` : `Alles Gute zum Geburtstag, @${context.targetDisplayName}!`;
+
+  showState = {
+    active: true,
+    phase: videoMs > 0 ? 'video' : 'party',
+    targetLogin: context.targetLogin,
+    targetDisplayName: context.targetDisplayName,
+    headline,
+    message,
+    videoUrl: asset.videoUrl,
+    videoDurationMs: videoMs,
+    songFile: asset.songFile,
+    songVolume: asset.songVolume,
+    startedAt: now,
+    phaseStartedAt: now,
+    phaseEndsAt: now + (videoMs > 0 ? videoMs : partyMs),
+    endsAt: now + videoMs + partyMs,
+    requestId,
+    startedBy: context.startedBy,
+    error: ''
+  };
+
+  async function startPartyPhase() {
+    const phaseNow = Date.now();
+    showState = {
+      ...showState,
+      active: true,
+      phase: 'party',
+      phaseStartedAt: phaseNow,
+      phaseEndsAt: phaseNow + partyMs,
+      endsAt: phaseNow + partyMs
+    };
+    playBirthdaySong(asset, context).catch(err => { state.lastError = err.message || String(err); });
+    scheduleShowTimer(() => finishBirthdayShow('finished'), partyMs);
+  }
+
+  if (videoMs > 0) {
+    scheduleShowTimer(() => { startPartyPhase().catch(err => { state.lastError = err.message || String(err); finishBirthdayShow('party_start_failed'); }); }, videoMs);
+  } else {
+    startPartyPhase().catch(err => { state.lastError = err.message || String(err); finishBirthdayShow('party_start_failed'); });
+  }
+
+  state.lastShowStartedAt = nowIso();
+  return { ok: true, requestId, state: publicShowState().state, asset, config: { partyDurationMs: partyMs, videoDurationMs: videoMs, overlayFadeMs: Number(cfg.show?.overlayFadeMs || 700) } };
+}
+
 function parseBirthdayDate(input) {
   const raw = clean(input).replace(/\//g, '.').replace(/-/g, '.');
   const match = raw.match(/^(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?$/);
@@ -474,6 +680,29 @@ function ensureSchema() {
             ON birthday_greetings_log(user_login, greeting_date, source);
         `);
       }
+
+      if (toVersion === 2) {
+        db.exec(`
+          ALTER TABLE birthday_users ADD COLUMN show_song_file TEXT NOT NULL DEFAULT '';
+          ALTER TABLE birthday_users ADD COLUMN show_video_url TEXT NOT NULL DEFAULT '';
+          ALTER TABLE birthday_users ADD COLUMN show_video_duration_ms INTEGER NOT NULL DEFAULT 0;
+          ALTER TABLE birthday_users ADD COLUMN show_song_volume INTEGER NOT NULL DEFAULT 0;
+
+          CREATE TABLE IF NOT EXISTS birthday_show_events (
+            id ${database.primaryKeyAutoIncrementSql()},
+            request_id TEXT NOT NULL DEFAULT '',
+            target_login TEXT NOT NULL DEFAULT '',
+            target_display_name TEXT NOT NULL DEFAULT '',
+            started_by_login TEXT NOT NULL DEFAULT '',
+            video_url TEXT NOT NULL DEFAULT '',
+            song_file TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'started',
+            error TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_birthday_show_events_created ON birthday_show_events(created_at);
+        `);
+      }
     });
     state.schemaOk = true;
     state.schemaError = '';
@@ -499,7 +728,11 @@ function mapBirthdayUser(row) {
     source: row.source || '',
     createdAt: row.created_at || '',
     updatedAt: row.updated_at || '',
-    birthdayDate: formatBirthday(row.birthday_day, row.birthday_month, row.year_visible ? row.birthday_year : null)
+    birthdayDate: formatBirthday(row.birthday_day, row.birthday_month, row.year_visible ? row.birthday_year : null),
+    showSongFile: row.show_song_file || '',
+    showVideoUrl: row.show_video_url || '',
+    showVideoDurationMs: Number(row.show_video_duration_ms || 0),
+    showSongVolume: Number(row.show_song_volume || 0)
   };
 }
 
@@ -833,6 +1066,49 @@ async function handleBirthdayCommand(payload = {}) {
     return { ok: true, command: 'birthday', action: 'delete', deleted: result.deleted, message, chat: await sendChat(message, 'birthday_delete') };
   }
 
+  if (['party', 'showtime', 'show'].includes(sub) && args[1]) {
+    const allowed = canStartParty(user);
+    if (!allowed.ok) {
+      const key = allowed.reason === 'show_disabled' ? 'party_disabled' : 'party_denied';
+      const message = renderText(key, baseContext);
+      return { ok: false, command: 'birthday', action: 'party', error: allowed.reason, message, chat: await sendChat(message, 'birthday_party_denied') };
+    }
+    const targetLogin = cleanLogin(args[1]);
+    if (!targetLogin) {
+      const message = renderText('party_missing_target', baseContext);
+      return { ok: false, command: 'birthday', action: 'party', error: 'missing_target', message, chat: await sendChat(message, 'birthday_party_missing_target') };
+    }
+    const saved = getBirthdayUser(targetLogin);
+    const targetDisplayName = saved?.displayName || args[1].replace(/^@/, '');
+    const showResult = await startBirthdayShow({ targetUser: saved, targetLogin, targetDisplayName, startedByUser: user });
+    try {
+      database.run(`
+        INSERT INTO birthday_show_events (
+          request_id, target_login, target_display_name, started_by_login, video_url, song_file, status, error, created_at
+        ) VALUES (
+          :requestId, :targetLogin, :targetDisplayName, :startedByLogin, :videoUrl, :songFile, 'started', '', :createdAt
+        )
+      `, {
+        requestId: showResult.requestId,
+        targetLogin,
+        targetDisplayName,
+        startedByLogin: user.login,
+        videoUrl: showResult.asset?.videoUrl || '',
+        songFile: showResult.asset?.songFile || '',
+        createdAt: nowIso()
+      });
+    } catch (err) {
+      state.lastError = err.message || String(err);
+    }
+    const message = renderText('party_started', { ...baseContext, targetLogin, targetDisplayName });
+    return { ok: true, command: 'birthday', action: 'party', targetLogin, targetDisplayName, show: showResult, message, chat: await sendChat(message, 'birthday_party_started') };
+  }
+
+  if (['party', 'showtime'].includes(sub)) {
+    const message = renderText('party_missing_target', baseContext);
+    return { ok: false, command: 'birthday', action: 'party', error: 'missing_target', message, chat: await sendChat(message, 'birthday_party_missing_target') };
+  }
+
   if (['today', 'heute'].includes(sub)) {
     const today = localParts();
     const rows = listBirthdaysFor(today.day, today.month);
@@ -877,6 +1153,20 @@ function safePublicConfig(cfg = getConfig()) {
     diary: {
       enabled: cfg.diary?.enabled !== false,
       systemUsername: cfg.diary?.systemUsername || 'Geburtstags-System'
+    },
+    show: {
+      enabled: cfg.show?.enabled !== false,
+      allowedLogins: Array.isArray(cfg.show?.allowedLogins) ? cfg.show.allowedLogins : [],
+      defaultVideoUrl: cfg.show?.defaultVideoUrl || '',
+      defaultVideoDurationMs: Number(cfg.show?.defaultVideoDurationMs || 0),
+      defaultSongFile: cfg.show?.defaultSongFile || '',
+      defaultSongVolume: Number(cfg.show?.defaultSongVolume || 0),
+      partyDurationMs: Number(cfg.show?.partyDurationMs || 0),
+      overlayFadeMs: Number(cfg.show?.overlayFadeMs || 0),
+      soundCategory: cfg.show?.soundCategory || 'special',
+      soundPriority: Number(cfg.show?.soundPriority || 75),
+      soundOutputTarget: cfg.show?.soundOutputTarget || 'overlay',
+      soundTarget: cfg.show?.soundTarget || 'stream'
     },
     settingsTable: cfg.settingsTable || SETTINGS_TABLE,
     settingsSource: cfg.settingsSource || 'unknown',
@@ -970,6 +1260,20 @@ function setBirthdayUserAdmin(payload = {}) {
     source: 'dashboard'
   });
 
+  const showSongFile = clean(payload.showSongFile || payload.songFile || '');
+  const showVideoUrl = clean(payload.showVideoUrl || payload.videoUrl || '');
+  const showVideoDurationMs = Math.max(0, Number(payload.showVideoDurationMs || payload.videoDurationMs || 0) || 0);
+  const showSongVolume = Math.max(0, Math.min(100, Number(payload.showSongVolume || payload.songVolume || 0) || 0));
+  database.run(`
+    UPDATE birthday_users
+    SET show_song_file = :showSongFile,
+        show_video_url = :showVideoUrl,
+        show_video_duration_ms = :showVideoDurationMs,
+        show_song_volume = :showSongVolume,
+        updated_at = :updatedAt
+    WHERE user_login = :login
+  `, { login, showSongFile, showVideoUrl, showVideoDurationMs, showSongVolume, updatedAt: nowIso() });
+
   if (payload.active === false || payload.active === 0 || payload.active === 'false') {
     database.run('UPDATE birthday_users SET active = 0, updated_at = :updatedAt WHERE user_login = :login', { login, updatedAt: nowIso() });
   }
@@ -998,7 +1302,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_003',
+    step: 'STEP_BIRTHDAY_004',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -1022,12 +1326,17 @@ function buildStatus() {
       lastAutomaticCheckAt: state.lastAutomaticCheckAt,
       lastGreetingAt: state.lastGreetingAt,
       lastCommandAt: state.lastCommandAt,
+      lastShowStartedAt: state.lastShowStartedAt,
+      lastShowEndedAt: state.lastShowEndedAt,
       lastError: state.lastError
     },
+    show: publicShowState().state,
     routes: [
       { method: 'GET', path: `${API_PREFIX}/status` },
       { method: 'POST', path: `${API_PREFIX}/command` },
       { method: 'GET', path: `${API_PREFIX}/today` },
+      { method: 'GET', path: `${API_PREFIX}/show/state` },
+      { method: 'POST', path: `${API_PREFIX}/show/stop` },
       { method: 'GET', path: `${API_PREFIX}/admin/users` },
       { method: 'POST', path: `${API_PREFIX}/admin/user` },
       { method: 'POST', path: `${API_PREFIX}/admin/user/delete` },
@@ -1050,6 +1359,21 @@ function registerRoutes(ctx) {
     try {
       const today = localParts();
       return res.json({ ok: true, module: MODULE_NAME, localDate: today.date, rows: listBirthdaysFor(today.day, today.month) });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+
+  routes.registerGet(app, [`${API_PREFIX}/show/state`], (req, res) => {
+    try { return res.json(publicShowState()); }
+    catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
+  routes.registerPost(app, [`${API_PREFIX}/show/stop`], (req, res) => {
+    try {
+      finishBirthdayShow('manual_stop');
+      return res.json(publicShowState());
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message || String(err) });
     }
@@ -1142,12 +1466,13 @@ function init(ctx) {
   installChatActivityHook();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_003' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004' };
 }
 
 module.exports = {
   init,
   getStatus: buildStatus,
   handleCommand: handleBirthdayCommand,
-  maybeAutoGreetFromChat
+  maybeAutoGreetFromChat,
+  getShowState: publicShowState
 };

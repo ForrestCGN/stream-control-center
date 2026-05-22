@@ -8,7 +8,9 @@ window.BirthdayModule = (function(){
     deleteUser: '/api/birthday/admin/user/delete',
     settings: '/api/birthday/admin/settings',
     texts: '/api/birthday/admin/texts',
-    reload: '/api/birthday/reload'
+    reload: '/api/birthday/reload',
+    showState: '/api/birthday/show/state',
+    showStop: '/api/birthday/show/stop'
   };
 
   const TEXT_KEY_LABELS = {
@@ -31,7 +33,12 @@ window.BirthdayModule = (function(){
     today_none: 'Heute keine Geburtstage',
     today_list: 'Heute-Liste',
     already_greeted: 'Bereits gratuliert',
-    command_disabled: 'Modul deaktiviert'
+    command_disabled: 'Modul deaktiviert',
+    party_usage: 'Party Nutzung',
+    party_denied: 'Party keine Berechtigung',
+    party_started: 'Party gestartet',
+    party_missing_target: 'Party Ziel fehlt',
+    party_disabled: 'Party deaktiviert'
   };
 
   const TEXT_KEY_HINTS = {
@@ -53,7 +60,8 @@ window.BirthdayModule = (function(){
     settings: null,
     texts: null,
     textCategory: '',
-    userSearch: ''
+    userSearch: '',
+    showState: null
   };
 
   let root = null;
@@ -92,14 +100,15 @@ window.BirthdayModule = (function(){
       title: 'Birthday-System',
       panelId: 'birthdayModule',
       group: 'community',
-      overlayLink: '',
+      overlayLink: '/overlays/_overlay-birthday.html?debug=1',
+      overlayLabel: 'Birthday-Overlay öffnen',
       reload() { return window.BirthdayModule?.loadAll?.(true); }
     };
     window.CGN.moduleCatalog.birthday = {
       label: 'Birthday-System',
       icon: '🎂',
       enabled: true,
-      description: 'Geburtstage, automatische kleine Gratulationen, Tagebuch-Einträge und Textvarianten.'
+      description: 'Geburtstage, automatische kleine Gratulationen, manuelle Birthday-Show und Textvarianten.'
     };
     const items = window.CGN.sections?.community?.items;
     if (Array.isArray(items) && !items.includes('birthday')) {
@@ -120,16 +129,18 @@ window.BirthdayModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, users, settings, texts] = await Promise.all([
+      const [status, users, settings, texts, showState] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(`${api.users}?includeInactive=true`).catch(err => ({ ok:false, error:err.message, users:[] })),
         window.CGN.api(api.settings),
-        window.CGN.api(api.texts)
+        window.CGN.api(api.texts),
+        window.CGN.api(api.showState).catch(err => ({ ok:false, error:err.message, state:null }))
       ]);
       state.status = status;
       state.users = users;
       state.settings = settings;
       state.texts = texts;
+      state.showState = showState;
       state.loading = false;
       state.error = '';
     } catch (err) {
@@ -216,9 +227,13 @@ window.BirthdayModule = (function(){
     const displayName = root?.querySelector('[data-birthday-user-display]')?.value || '';
     const birthdayDate = root?.querySelector('[data-birthday-user-date]')?.value || '';
     const active = root?.querySelector('[data-birthday-user-active]')?.value !== 'false';
+    const showSongFile = root?.querySelector('[data-birthday-user-song]')?.value || '';
+    const showVideoUrl = root?.querySelector('[data-birthday-user-video]')?.value || '';
+    const showVideoDurationMs = root?.querySelector('[data-birthday-user-video-ms]')?.value || '';
+    const showSongVolume = root?.querySelector('[data-birthday-user-volume]')?.value || '';
     if (!login.trim()) throw new Error('Username fehlt.');
     if (!birthdayDate.trim()) throw new Error('Geburtstag fehlt.');
-    await window.CGN.api(api.user, { method:'POST', body: JSON.stringify({ login, displayName, birthdayDate, active }) });
+    await window.CGN.api(api.user, { method:'POST', body: JSON.stringify({ login, displayName, birthdayDate, active, showSongFile, showVideoUrl, showVideoDurationMs, showSongVolume }) });
     state.notice = `Geburtstag gespeichert: ${login}`;
     await loadAll(true);
   }
@@ -230,10 +245,18 @@ window.BirthdayModule = (function(){
     const displayEl = root?.querySelector('[data-birthday-user-display]');
     const dateEl = root?.querySelector('[data-birthday-user-date]');
     const activeEl = root?.querySelector('[data-birthday-user-active]');
+    const songEl = root?.querySelector('[data-birthday-user-song]');
+    const videoEl = root?.querySelector('[data-birthday-user-video]');
+    const videoMsEl = root?.querySelector('[data-birthday-user-video-ms]');
+    const volumeEl = root?.querySelector('[data-birthday-user-volume]');
     if (loginEl) loginEl.value = user.login || '';
     if (displayEl) displayEl.value = user.displayName || '';
     if (dateEl) dateEl.value = user.birthdayDateWithYear || user.birthdayDate || '';
     if (activeEl) activeEl.value = user.active ? 'true' : 'false';
+    if (songEl) songEl.value = user.showSongFile || '';
+    if (videoEl) videoEl.value = user.showVideoUrl || '';
+    if (videoMsEl) videoMsEl.value = user.showVideoDurationMs || '';
+    if (volumeEl) volumeEl.value = user.showSongVolume || '';
   }
 
   async function deleteUser(login, hard = false) {
@@ -241,6 +264,13 @@ window.BirthdayModule = (function(){
     if (!window.confirm(hard ? `Geburtstag von ${login} endgültig löschen?` : `Geburtstag von ${login} deaktivieren?`)) return;
     await window.CGN.api(api.deleteUser, { method:'POST', body: JSON.stringify({ login, hard }) });
     state.notice = hard ? `Gelöscht: ${login}` : `Deaktiviert: ${login}`;
+    await loadAll(true);
+  }
+
+
+  async function stopShow() {
+    await window.CGN.api(api.showStop, { method:'POST', body:'{}' });
+    state.notice = 'Birthday-Show gestoppt.';
     await loadAll(true);
   }
 
@@ -258,6 +288,7 @@ window.BirthdayModule = (function(){
     const cfg = status.config || {};
     const today = status.today || {};
     const stats = status.stats || {};
+    const show = state.showState?.state || status.show || {};
     return `
       <div class="birthday-grid">
         <section class="birthday-card birthday-card-main">
@@ -275,7 +306,9 @@ window.BirthdayModule = (function(){
             <div><span>Chat-Hook</span><strong>${status.chatHookInstalled ? 'installiert' : 'nicht installiert'}</strong></div>
             <div><span>Auto-Checks</span><strong>${esc(stats.automaticChecks ?? 0)}</strong></div>
             <div><span>Auto-Gratulationen</span><strong>${esc(stats.automaticGreetings ?? 0)}</strong></div>
+            <div><span>Birthday-Show</span><strong>${show.active ? `${esc(show.phase)} für @${esc(show.targetDisplayName || show.targetLogin)}` : 'inaktiv'}</strong></div>
           </div>
+          <div class="birthday-row-actions"><a class="birthday-link-btn" href="/overlays/_overlay-birthday.html?debug=1" target="_blank">Overlay öffnen</a><button type="button" data-birthday-stop-show>Show stoppen</button></div>
         </section>
         <section class="birthday-card">
           <h3>Heute Geburtstag</h3>
@@ -296,16 +329,21 @@ window.BirthdayModule = (function(){
             <label>Anzeigename<input type="text" data-birthday-user-display placeholder="ForrestCGN"></label>
             <label>Geburtstag<input type="text" data-birthday-user-date placeholder="22.05 oder 22.05.1980"></label>
             <label>Status<select data-birthday-user-active><option value="true">aktiv</option><option value="false">inaktiv</option></select></label>
+            <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="birthday/user.mp3 oder leer für Standard"></label>
+            <label>User-Video-URL <input type="text" data-birthday-user-video placeholder="/assets/media/video/user.webm oder leer"></label>
+            <label>Video-Dauer ms <input type="number" data-birthday-user-video-ms placeholder="9000"></label>
+            <label>Song-Lautstärke <input type="number" min="0" max="100" data-birthday-user-volume placeholder="85"></label>
             <button type="button" data-birthday-save-user>Speichern</button>
           </div>
         </section>
         <section class="birthday-card birthday-card-main">
           <h3>Registrierte Geburtstage</h3>
-          <div class="birthday-table-wrap"><table><thead><tr><th>User</th><th>Datum</th><th>Alter</th><th>Status</th><th></th></tr></thead><tbody>
+          <div class="birthday-table-wrap"><table><thead><tr><th>User</th><th>Datum</th><th>Alter</th><th>Show-Song</th><th>Status</th><th></th></tr></thead><tbody>
             ${users.map(user => `<tr>
               <td><strong>${esc(user.displayName || user.login)}</strong><small>${esc(user.login)}</small></td>
               <td>${esc(user.birthdayDateWithYear || user.birthdayDate || '')}</td>
               <td>${user.age == null ? '-' : esc(user.age)}</td>
+              <td>${fmt(user.showSongFile || '')}</td>
               <td>${user.active ? '<span class="birthday-pill ok">aktiv</span>' : '<span class="birthday-pill warn">inaktiv</span>'}</td>
               <td class="birthday-row-actions"><button type="button" data-edit-birthday-user="${esc(user.login)}">Bearbeiten</button><button type="button" data-delete-birthday-user="${esc(user.login)}">Deaktivieren</button><button type="button" class="danger" data-hard-delete-birthday-user="${esc(user.login)}">Löschen</button></td>
             </tr>`).join('')}
@@ -368,6 +406,7 @@ window.BirthdayModule = (function(){
   function bind() {
     root?.querySelector('[data-birthday-refresh]')?.addEventListener('click', () => loadAll(true));
     root?.querySelector('[data-birthday-reload]')?.addEventListener('click', () => reloadBackend().catch(err => { state.error = err.message; render(); }));
+    root?.querySelector('[data-birthday-stop-show]')?.addEventListener('click', () => stopShow().catch(err => { state.error = err.message; render(); }));
     root?.querySelectorAll('[data-birthday-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.birthdayTab || 'overview'; state.notice = ''; render(); }));
     root?.querySelectorAll('[data-save-birthday-setting]').forEach(btn => btn.addEventListener('click', () => saveSetting(btn.dataset.saveBirthdaySetting).catch(err => { state.error = err.message; render(); })));
     root?.querySelector('[data-birthday-text-category]')?.addEventListener('change', ev => { state.textCategory = ev.target.value; render(); });

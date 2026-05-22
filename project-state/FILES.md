@@ -3,6 +3,7 @@
 ## Relevante gelieferte ZIPs
 
 - `STEP_BIRTHDAY_003_dashboard.zip`
+- `STEP_BIRTHDAY_004_dashboard_show.zip`
 
 - `STEP_BIRTHDAY_002A_birthday_age_texts.zip`
 
@@ -58,3 +59,6 @@ Projektstatus:
 
 Birthday STEP-Doku:
 - `project-state/STEP_BIRTHDAY_002A.md`
+
+- `htdocs/overlays/_overlay-birthday.html`
+- `project-state/STEP_BIRTHDAY_004.md`

@@ -112,3 +112,12 @@ Stand: 2026-05-22
 - Automatische Birthday-Gratulation ist Chat-Aktivitätslogik, kein Command.
 - Automatische Birthday-Gratulation darf keine Show, keinen Sound und kein Overlay starten.
 - Große Birthday-Show kommt erst in einem späteren STEP.
+
+
+### STEP_BIRTHDAY_004 – Manuelle Birthday-Show
+- Backend-Modul `backend/modules/birthday.js` läuft als `STEP_BIRTHDAY_004`.
+- Neuer manueller Show-Command über bestehendes Command-System: `!birthday party username`.
+- Neue Show-State-Routen: `/api/birthday/show/state` und `/api/birthday/show/stop`.
+- Neues Overlay: `htdocs/overlays/_overlay-birthday.html`.
+- Ablauf: Video zuerst, danach Party-Overlay und Song über `/api/sound/play`.
+- Automatische Geburtstags-Erkennung bleibt weiterhin kleine Chat-Gratulation ohne Video/Song/Overlay.

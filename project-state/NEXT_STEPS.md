@@ -1,65 +1,45 @@
-# NEXT_STEPS – Birthday / Command-System / Medienverwaltung
+# NEXT_STEPS – Birthday-System
 
-## Sofort nach STEP_BIRTHDAY_003
+## Sofort nach STEP_BIRTHDAY_004
 
-1. ZIP entpacken nach:
-
-```text
-D:\Git\stream-control-center
-```
-
-2. Syntax prüfen:
-
-```powershell
-cd D:\Git\stream-control-center
-node --check backend\modules\birthday.js
-node --check htdocs\dashboard\modules\birthday.js
-```
-
-3. Commit/Deploy über Standardbefehl:
-
-```powershell
-cd D:\Git\stream-control-center
-.\stepdone.cmd "STEP_BIRTHDAY_003 Birthday Dashboard"
-```
-
-4. Backend nach Deploy neu starten, dann prüfen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/admin/users"
-Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/admin/settings"
-Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/admin/texts"
-```
-
-5. Dashboard prüfen:
-
-```text
-http://127.0.0.1:8080/dashboard
-Community → Birthday-System
-```
+1. Backend neu starten/deployen.
+2. Status prüfen:
+   ```powershell
+   Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/status"
+   Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/show/state"
+   ```
+3. Dashboard prüfen:
+   ```text
+   http://127.0.0.1:8080/dashboard
+   Community → Birthday-System
+   ```
+4. Overlay in OBS oder Browser testen:
+   ```text
+   http://127.0.0.1:8080/overlays/_overlay-birthday.html?debug=1
+   ```
+5. Standardwerte setzen:
+   - `show.defaultVideoUrl`
+   - `show.defaultVideoDurationMs`
+   - `show.defaultSongFile`
+   - `show.defaultSongVolume`
+   - optional User-spezifische Song-/Video-Felder
+6. Test-Command:
+   ```powershell
+   Invoke-RestMethod "http://127.0.0.1:8080/api/commands/execute" -Method POST -ContentType "application/json" -Body '{"message":"!birthday party testuser","userLogin":"forrestcgn","displayName":"ForrestCGN"}'
+   ```
+7. Wenn bestätigt:
+   ```powershell
+   .\stepdone.cmd "STEP_BIRTHDAY_004 Birthday Show"
+   ```
 
 ## Danach sinnvoll
 
-### STEP_BIRTHDAY_004 – Manuelle Birthday Show
-- Command z. B. `!birthday party username`.
-- Video zuerst.
-- Danach Overlay mit Party-Animation.
-- Song abspielen.
-- Userbezogener Song, sonst Standardlied.
-- Medienauswahl über zentrale Medienverwaltung.
-- Keine automatische Show bei normaler Chataktivität.
+### STEP_BIRTHDAY_004A – Show Polish
+- Overlay Design weiter im CGN-Stil verfeinern.
+- Dashboard-Testbutton für Show hinzufügen.
+- Medienauswahl per Media-Dropdown statt Textfeld.
+- Subcommand-Rechte besser über Command-Core erweitern, falls benötigt.
 
-## Weiterhin offen aus Command/Media
-
-### STEP274B – Media Dashboard testen/anwenden
-Falls noch nicht passiert.
-
-### STEP274C – Commands an Medienverwaltung anbinden
-- Command Action-Typ `sound_play` bekommt Dropdown aus `/api/media/list?type=audio`.
-- Command Action-Typ `video_play` bekommt Dropdown aus `/api/media/list?type=video`.
-
-### STEP275 – Textgruppen/Zufallstexte
-- Zentrale Textgruppen für Commands.
-- Zufällige Varianten.
-- Dashboardfähige Bearbeitung.
+### STEP_BIRTHDAY_005 – Media-/Command-Core Integration
+- User-Song und Video über `media_assets` auswählen.
+- `!birthday party` Berechtigung sauber über Command-System/Subcommand-Rechte abbilden.
