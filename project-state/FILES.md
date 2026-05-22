@@ -90,3 +90,13 @@ Birthday STEP-Doku:
 - `htdocs/dashboard/modules/birthday.js`
 - `htdocs/overlays/_overlay-birthday.html`
 - `project-state/STEP_BIRTHDAY_005.md`
+
+## STEP_BIRTHDAY_005A
+
+Geändert:
+- `backend/modules/birthday.js`
+- `htdocs/dashboard/modules/birthday.js`
+- `htdocs/dashboard/modules/birthday.css`
+
+Neu:
+- `project-state/STEP_BIRTHDAY_005A.md`

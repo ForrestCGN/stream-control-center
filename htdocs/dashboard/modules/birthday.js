@@ -480,6 +480,7 @@ window.BirthdayModule = (function(){
     const parties = currentParties();
     const profiles = currentProfiles();
     const styles = currentStyles();
+    const queue = Array.isArray(show.queue) ? show.queue : [];
     return `
       <div class="birthday-grid birthday-grid-users">
         <section class="birthday-card birthday-card-main">
@@ -496,6 +497,7 @@ window.BirthdayModule = (function(){
           </div>
           ${(timing.warnings || []).length ? `<div class="birthday-error small">Warnungen: ${esc(timing.warnings.join(', '))}</div>` : ''}
           <div class="birthday-row-actions"><a class="birthday-link-btn" href="/overlays/_overlay-birthday.html?debug=1" target="_blank">Birthday-Overlay öffnen</a><button type="button" data-birthday-stop-show>Show stoppen</button><button type="button" data-birthday-recheck-assets>Dauer neu prüfen</button></div>
+          <div class="birthday-queue-box"><h4>Birthday-/Sound-System-Warteschlange</h4>${queue.length ? `<ol>${queue.map(item => `<li><strong>@${esc(item.targetDisplayName || item.targetLogin)}</strong> <span>${esc(item.status || '')}</span> <small>${esc(item.partyTitle || item.partyKey || 'Standard-Party')}</small></li>`).join('')}</ol>` : '<p class="birthday-note">Keine Birthday-Show in der Warteschlange.</p>'}</div>
         </section>
         <section class="birthday-card">
           <h3>Medien hochladen</h3>

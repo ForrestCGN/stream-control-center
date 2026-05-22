@@ -15,7 +15,7 @@ const mediaHelper = require('./helpers/helper_media');
 const commands = require('./commands');
 
 const MODULE_NAME = 'birthday';
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 const SETTINGS_TABLE = 'birthday_settings';
 const TEXTS_MODULE = 'birthday';
 const API_PREFIX = '/api/birthday';
@@ -67,7 +67,8 @@ const DEFAULT_CONFIG = {
     soundPriority: 75,
     soundOutputTarget: 'overlay',
     soundTarget: 'stream',
-    forceExclusive: true,
+    forceExclusive: false,
+    queueBirthdayShows: true,
     videoQuietPhaseLabel: 'Intro läuft',
     uploadDir: 'birthday'
   }
@@ -243,7 +244,9 @@ const TEXT_CATEGORIES = {
   party_denied: 'errors',
   party_started: 'chat',
   party_missing_target: 'errors',
-  party_disabled: 'system'
+  party_disabled: 'system',
+  party_queued: 'chat',
+  party_duplicate: 'errors'
 };
 
 const state = {
@@ -291,6 +294,7 @@ let showState = {
   error: ''
 };
 let showTimers = [];
+let soundMonitorTimer = null;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 250 * 1024 * 1024 } });
 
 function nowIso() {
@@ -535,12 +539,13 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005',
+    step: 'STEP_BIRTHDAY_005A',
     state: {
       ...showState,
       now: Date.now(),
       remainingMs: showState.phaseEndsAt ? Math.max(0, showState.phaseEndsAt - Date.now()) : 0,
-      totalRemainingMs: showState.endsAt ? Math.max(0, showState.endsAt - Date.now()) : 0
+      totalRemainingMs: showState.endsAt ? Math.max(0, showState.endsAt - Date.now()) : 0,
+      queue: listBirthdayShowQueue({ includeDone: false })
     }
   };
 }
@@ -662,6 +667,146 @@ function pickShowAsset(targetUser = {}, targetLogin = '') {
   };
 }
 
+
+function mapShowQueueRow(row) {
+  if (!row) return null;
+  return {
+    requestId: row.request_id || '',
+    targetLogin: row.target_login || '',
+    targetDisplayName: row.target_display_name || row.target_login || '',
+    partyKey: row.party_key || '',
+    partyTitle: row.party_title || '',
+    styleKey: row.style_key || '',
+    songFile: row.song_file || '',
+    videoFile: row.video_file || '',
+    status: row.status || '',
+    position: Number(row.position || 0),
+    startedBy: row.started_by_login || '',
+    createdAt: row.created_at || '',
+    updatedAt: row.updated_at || '',
+    startedAt: row.started_at || '',
+    finishedAt: row.finished_at || '',
+    error: row.error || ''
+  };
+}
+
+function listBirthdayShowQueue(options = {}) {
+  try {
+    const includeDone = options.includeDone === true;
+    const where = includeDone ? '' : "WHERE status IN ('queued','submitted','active','running')";
+    return database.all(`
+      SELECT * FROM birthday_show_queue
+      ${where}
+      ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'running' THEN 1 WHEN 'submitted' THEN 2 WHEN 'queued' THEN 3 ELSE 9 END,
+               position ASC,
+               created_at ASC
+      LIMIT 50
+    `).map(mapShowQueueRow).filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}
+
+function nextShowQueuePosition() {
+  try {
+    const row = database.get("SELECT COALESCE(MAX(position), 0) AS max_position FROM birthday_show_queue WHERE status IN ('queued','submitted')");
+    return Number(row?.max_position || 0) + 1;
+  } catch (_) {
+    return 1;
+  }
+}
+
+function findPendingBirthdayShowForLogin(login) {
+  const targetLogin = cleanLogin(login);
+  if (!targetLogin) return null;
+  try {
+    return mapShowQueueRow(database.get(`
+      SELECT * FROM birthday_show_queue
+      WHERE target_login = :login
+        AND status IN ('queued','submitted','active','running')
+      ORDER BY created_at ASC
+      LIMIT 1
+    `, { login: targetLogin }));
+  } catch (_) {
+    return null;
+  }
+}
+
+function upsertShowQueueEntry(entry = {}) {
+  const now = nowIso();
+  const requestId = clean(entry.requestId || entry.request_id || '');
+  if (!requestId) return null;
+  const data = {
+    requestId,
+    targetLogin: cleanLogin(entry.targetLogin || entry.target_login || ''),
+    targetDisplayName: clean(entry.targetDisplayName || entry.target_display_name || entry.targetLogin || ''),
+    partyKey: clean(entry.partyKey || entry.party_key || ''),
+    partyTitle: clean(entry.partyTitle || entry.party_title || ''),
+    styleKey: clean(entry.styleKey || entry.style_key || ''),
+    songFile: safeRelativeMediaFile(entry.songFile || entry.song_file || ''),
+    videoFile: safeRelativeMediaFile(entry.videoFile || entry.video_file || ''),
+    status: clean(entry.status || 'queued'),
+    position: Number(entry.position || 0),
+    startedBy: cleanLogin(entry.startedBy || entry.started_by_login || ''),
+    createdAt: clean(entry.createdAt || entry.created_at || now),
+    updatedAt: now,
+    startedAt: clean(entry.startedAt || entry.started_at || ''),
+    finishedAt: clean(entry.finishedAt || entry.finished_at || ''),
+    error: clean(entry.error || '')
+  };
+  database.run(`
+    INSERT INTO birthday_show_queue (
+      request_id, target_login, target_display_name, party_key, party_title, style_key,
+      song_file, video_file, status, position, started_by_login, created_at, updated_at,
+      started_at, finished_at, error
+    ) VALUES (
+      :requestId, :targetLogin, :targetDisplayName, :partyKey, :partyTitle, :styleKey,
+      :songFile, :videoFile, :status, :position, :startedBy, :createdAt, :updatedAt,
+      :startedAt, :finishedAt, :error
+    )
+    ON CONFLICT(request_id) DO UPDATE SET
+      target_login = excluded.target_login,
+      target_display_name = excluded.target_display_name,
+      party_key = excluded.party_key,
+      party_title = excluded.party_title,
+      style_key = excluded.style_key,
+      song_file = excluded.song_file,
+      video_file = excluded.video_file,
+      status = excluded.status,
+      position = excluded.position,
+      started_by_login = excluded.started_by_login,
+      updated_at = excluded.updated_at,
+      started_at = CASE WHEN excluded.started_at = '' THEN birthday_show_queue.started_at ELSE excluded.started_at END,
+      finished_at = CASE WHEN excluded.finished_at = '' THEN birthday_show_queue.finished_at ELSE excluded.finished_at END,
+      error = excluded.error
+  `, data);
+  return mapShowQueueRow(database.get('SELECT * FROM birthday_show_queue WHERE request_id = :requestId', { requestId }));
+}
+
+function updateShowQueueStatus(requestId, status, extra = {}) {
+  const id = clean(requestId);
+  if (!id) return null;
+  try {
+    const current = mapShowQueueRow(database.get('SELECT * FROM birthday_show_queue WHERE request_id = :id', { id }));
+    if (!current) return null;
+    return upsertShowQueueEntry({
+      ...current,
+      status,
+      startedAt: extra.startedAt || (['active','running'].includes(status) ? (current.startedAt || nowIso()) : current.startedAt),
+      finishedAt: extra.finishedAt || (['finished','done','failed','cancelled'].includes(status) ? nowIso() : current.finishedAt),
+      error: extra.error || current.error || ''
+    });
+  } catch (_) {
+    return null;
+  }
+}
+
+function cleanupOldShowQueueRows() {
+  try {
+    database.run(`DELETE FROM birthday_show_queue WHERE status NOT IN ('queued','submitted','active','running') AND created_at < datetime('now', '-2 days')`);
+  } catch (_) {}
+}
+
 function soundPlayBase(asset, targetContext = {}, extra = {}) {
   const cfg = getConfig();
   const forceExclusive = cfg.show?.forceExclusive !== false;
@@ -709,10 +854,110 @@ async function playBirthdaySong(asset, targetContext = {}) {
   }));
 }
 
+
+function soundBundleItemBase(asset, targetContext = {}, extra = {}) {
+  const cfg = getConfig();
+  return {
+    category: cfg.show?.soundCategory || 'special',
+    priority: Number(cfg.show?.soundPriority || 100),
+    outputTarget: cfg.show?.soundOutputTarget || 'overlay',
+    target: cfg.show?.soundTarget || 'stream',
+    source: 'birthday_show',
+    requestedBy: targetContext.startedBy || '',
+    queueIfBusy: true,
+    dropIfBusy: false,
+    clearQueue: false,
+    force: false,
+    override: false,
+    canInterrupt: false,
+    canBeInterrupted: false,
+    parallelAllowed: false,
+    cooldownMs: 0,
+    meta: {
+      module: MODULE_NAME,
+      showRequestId: targetContext.requestId || '',
+      targetLogin: targetContext.targetLogin || '',
+      targetDisplayName: targetContext.targetDisplayName || '',
+      partyKey: asset.partyKey || 'default_party',
+      partyTitle: asset.partyTitle || '',
+      styleKey: asset.styleKey || 'cgn_neon',
+      headline: targetContext.headline || '',
+      message: targetContext.message || '',
+      effects: asset.effects || {},
+      scenes: asset.scenes || []
+    },
+    ...extra
+  };
+}
+
+function buildBirthdaySoundBundle(asset, targetContext = {}) {
+  const cfg = getConfig();
+  const requestId = clean(targetContext.requestId || `birthday_${Date.now()}`);
+  const items = [];
+  if (asset.videoFile) {
+    items.push(soundBundleItemBase(asset, targetContext, {
+      role: 'intro',
+      bundleRole: 'intro',
+      file: asset.videoFile,
+      mediaType: 'video',
+      label: `Birthday Intro ${targetContext.targetDisplayName || ''}`.trim(),
+      volume: 100,
+      durationMs: asset.videoDurationMs || 0,
+      meta: { ...(soundBundleItemBase(asset, targetContext).meta || {}), birthdayPhase: 'intro' }
+    }));
+  }
+  if (asset.songFile) {
+    items.push(soundBundleItemBase(asset, targetContext, {
+      role: 'song',
+      bundleRole: 'song',
+      file: asset.songFile,
+      mediaType: 'audio',
+      label: `Birthday Song ${targetContext.targetDisplayName || ''}`.trim(),
+      volume: Number(asset.songVolume || cfg.show?.defaultSongVolume || 85),
+      durationMs: asset.songDurationMs || asset.partyDurationMs || 0,
+      meta: { ...(soundBundleItemBase(asset, targetContext).meta || {}), birthdayPhase: 'party' }
+    }));
+  }
+  return {
+    bundleId: requestId,
+    bundleType: 'birthday',
+    bundleLocked: true,
+    bundlePriority: Number(cfg.show?.soundPriority || 100),
+    source: 'birthday_show',
+    requestedBy: targetContext.startedBy || '',
+    meta: {
+      module: MODULE_NAME,
+      showRequestId: requestId,
+      targetLogin: targetContext.targetLogin || '',
+      targetDisplayName: targetContext.targetDisplayName || '',
+      partyKey: asset.partyKey || 'default_party',
+      styleKey: asset.styleKey || 'cgn_neon'
+    },
+    items
+  };
+}
+
+async function enqueueBirthdaySoundBundle(asset, targetContext = {}) {
+  const bundle = buildBirthdaySoundBundle(asset, targetContext);
+  if (!bundle.items.length) return { ok: false, error: 'birthday_bundle_empty', bundle };
+  const response = await internalRequest('POST', '/api/sound/bundle', bundle);
+  return { ...response, bundle };
+}
+
+function soundBundleResultStarted(result) {
+  const rows = Array.isArray(result?.data?.results) ? result.data.results : [];
+  return rows.some(row => row && row.started);
+}
+
+function soundBundleResultQueued(result) {
+  const rows = Array.isArray(result?.data?.results) ? result.data.results : [];
+  return rows.some(row => row && row.queued) || (!soundBundleResultStarted(result) && rows.length > 0);
+}
+
 function finishBirthdayShow(reason = 'finished') {
   clearShowTimers();
   if (showState.active && reason !== 'finished') {
-    internalRequest('POST', '/api/sound/stop', { clearQueue: true }).catch(() => {});
+    internalRequest('POST', '/api/sound/stop', { clearQueue: false }).catch(() => {});
   }
   showState = {
     ...showState,
@@ -723,17 +968,27 @@ function finishBirthdayShow(reason = 'finished') {
     endsAt: 0,
     error: reason === 'finished' ? '' : reason
   };
+  if (showState.requestId) updateShowQueueStatus(showState.requestId, reason === 'finished' ? 'finished' : 'failed', { error: reason === 'finished' ? '' : reason });
   state.lastShowEndedAt = nowIso();
 }
 
+
 async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, startedByUser }) {
   const cfg = getConfig();
-  clearShowTimers();
+  cleanupOldShowQueueRows();
   const now = Date.now();
+  const login = cleanLogin(targetLogin || targetUser?.login || '');
+  const display = clean(targetDisplayName || targetUser?.displayName || login || '');
+  const existing = findPendingBirthdayShowForLogin(login);
+  if (existing || (showState.active && showState.targetLogin === login)) {
+    return { ok: false, duplicate: true, queued: false, targetLogin: login, targetDisplayName: display, existing, state: publicShowState().state };
+  }
+
   const requestId = `birthday_${now}_${Math.random().toString(36).slice(2, 8)}`;
   const context = {
-    targetLogin: cleanLogin(targetLogin || targetUser?.login || ''),
-    targetDisplayName: clean(targetDisplayName || targetUser?.displayName || targetLogin || ''),
+    requestId,
+    targetLogin: login,
+    targetDisplayName: display,
     startedBy: cleanLogin(startedByUser?.login || '')
   };
   const birthdayContext = targetUser ? buildBirthdayContext(targetUser, { login: context.targetLogin, displayName: context.targetDisplayName }) : { displayName: context.targetDisplayName, login: context.targetLogin };
@@ -743,75 +998,153 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
   const baseHeadline = birthdayContext.age ? `Happy ${birthdayContext.age}. Birthday!` : 'Happy Birthday!';
   const baseMessage = birthdayContext.age ? `Alles Gute zum ${birthdayContext.age}. Geburtstag, @${context.targetDisplayName}!` : `Alles Gute zum Geburtstag, @${context.targetDisplayName}!`;
   const headline = renderTemplate(asset.headlineTemplate, { ...birthdayContext, headline: baseHeadline, message: baseMessage }) || baseHeadline;
-  const message = baseMessage;
+  const message = renderTemplate(asset.sublineTemplate, { ...birthdayContext, headline, message: baseMessage }) || baseMessage;
+  context.headline = headline;
+  context.message = message;
 
-  showState = {
-    active: true,
-    phase: videoMs > 0 ? 'video' : 'starting_song',
+  const wasActive = !!showState.active;
+  const position = wasActive ? nextShowQueuePosition() : 0;
+  upsertShowQueueEntry({
+    requestId,
     targetLogin: context.targetLogin,
     targetDisplayName: context.targetDisplayName,
-    headline,
-    message: renderTemplate(asset.sublineTemplate, { ...birthdayContext, headline, message }) || message,
-    rawMessage: message,
     partyKey: asset.partyKey || 'default_party',
     partyTitle: asset.partyTitle || 'Standard Geburtstagsparty',
     styleKey: asset.styleKey || 'cgn_neon',
-    effects: asset.effects || {},
-    scenes: Array.isArray(asset.scenes) ? asset.scenes : [],
-    sceneDurationMs: 18000,
-    videoUrl: asset.videoUrl,
-    videoFile: asset.videoFile,
-    videoDurationMs: videoMs,
     songFile: asset.songFile,
-    songVolume: asset.songVolume,
-    songDurationMs: partyMs,
-    videoQuietPhaseLabel: cfg.show?.videoQuietPhaseLabel || 'Intro läuft',
-    startedAt: now,
-    phaseStartedAt: now,
-    phaseEndsAt: now + (videoMs > 0 ? videoMs : 1500),
-    endsAt: now + videoMs + partyMs,
-    requestId,
-    startedBy: context.startedBy,
-    playback: { intro: null, song: null, mode: 'sound_system_master' },
-    error: ''
-  };
+    videoFile: asset.videoFile,
+    status: wasActive ? 'queued' : 'submitted',
+    position,
+    startedBy: context.startedBy
+  });
 
-  async function startSongAndEscalate() {
-    const songStartAt = Date.now();
+  const bundleResult = await enqueueBirthdaySoundBundle(asset, context);
+  startSoundSystemMonitor();
+  const started = soundBundleResultStarted(bundleResult);
+  const queued = soundBundleResultQueued(bundleResult) || wasActive || !started;
+
+  if (started && !wasActive) {
+    clearShowTimers();
     showState = {
-      ...showState,
       active: true,
-      phase: 'starting_song',
-      phaseStartedAt: songStartAt,
-      phaseEndsAt: songStartAt + 1500,
-      endsAt: songStartAt + partyMs
+      phase: videoMs > 0 ? 'video' : 'party',
+      targetLogin: context.targetLogin,
+      targetDisplayName: context.targetDisplayName,
+      headline,
+      message,
+      rawMessage: baseMessage,
+      partyKey: asset.partyKey || 'default_party',
+      partyTitle: asset.partyTitle || 'Standard Geburtstagsparty',
+      styleKey: asset.styleKey || 'cgn_neon',
+      effects: asset.effects || {},
+      scenes: Array.isArray(asset.scenes) ? asset.scenes : [],
+      sceneDurationMs: 18000,
+      videoUrl: asset.videoUrl,
+      videoFile: asset.videoFile,
+      videoDurationMs: videoMs,
+      songFile: asset.songFile,
+      songVolume: asset.songVolume,
+      songDurationMs: partyMs,
+      videoQuietPhaseLabel: cfg.show?.videoQuietPhaseLabel || 'Intro läuft',
+      startedAt: now,
+      phaseStartedAt: now,
+      phaseEndsAt: now + (videoMs > 0 ? videoMs : partyMs),
+      endsAt: now + videoMs + partyMs,
+      requestId,
+      startedBy: context.startedBy,
+      playback: { mode: 'sound_system_bundle', bundle: bundleResult },
+      error: ''
     };
-
-    const songResult = await playBirthdaySong(asset, context);
-    const phaseNow = Date.now();
-    showState = {
-      ...showState,
-      active: true,
-      phase: 'party',
-      phaseStartedAt: phaseNow,
-      phaseEndsAt: phaseNow + partyMs,
-      endsAt: phaseNow + partyMs,
-      playback: { ...(showState.playback || {}), song: songResult }
-    };
-    scheduleShowTimer(() => finishBirthdayShow('finished'), partyMs);
-  }
-
-  if (videoMs > 0) {
-    playBirthdayIntro(asset, context)
-      .then(result => { showState = { ...showState, playback: { ...(showState.playback || {}), intro: result } }; })
-      .catch(err => { state.lastError = err.message || String(err); showState = { ...showState, error: `intro_play_failed:${state.lastError}` }; });
-    scheduleShowTimer(() => { startSongAndEscalate().catch(err => { state.lastError = err.message || String(err); finishBirthdayShow('song_start_failed'); }); }, videoMs);
+    updateShowQueueStatus(requestId, 'active', { startedAt: nowIso() });
+    scheduleShowTimer(() => {
+      if (showState.requestId === requestId) {
+        showState = { ...showState, phase: 'party', phaseStartedAt: Date.now(), phaseEndsAt: Date.now() + partyMs, endsAt: Date.now() + partyMs };
+        scheduleShowTimer(() => finishBirthdayShow('finished'), partyMs);
+      }
+    }, videoMs > 0 ? videoMs : 10);
   } else {
-    startSongAndEscalate().catch(err => { state.lastError = err.message || String(err); finishBirthdayShow('song_start_failed'); });
+    updateShowQueueStatus(requestId, 'queued');
   }
 
   state.lastShowStartedAt = nowIso();
-  return { ok: true, requestId, state: publicShowState().state, asset, config: { partyDurationMs: partyMs, videoDurationMs: videoMs, overlayFadeMs: Number(cfg.show?.overlayFadeMs || 700), mediaMaster: 'sound_system' } };
+  return {
+    ok: true,
+    requestId,
+    queued,
+    started,
+    queuePosition: queued ? (position || nextShowQueuePosition()) : 0,
+    state: publicShowState().state,
+    asset,
+    soundBundle: bundleResult,
+    config: { partyDurationMs: partyMs, videoDurationMs: videoMs, overlayFadeMs: Number(cfg.show?.overlayFadeMs || 700), mediaMaster: 'sound_system_bundle' }
+  };
+}
+
+function applyCurrentBirthdayItemToShowState(current = {}) {
+  const meta = current.meta || {};
+  const targetLogin = cleanLogin(meta.targetLogin || '');
+  const requestId = clean(meta.showRequestId || meta.bundleId || current.bundle?.bundleId || current.bundleId || '');
+  const birthdayPhase = clean(meta.birthdayPhase || current.bundle?.bundleRole || current.bundleRole || '').toLowerCase();
+  if (!targetLogin || !requestId) return false;
+
+  const phase = birthdayPhase === 'party' || birthdayPhase === 'song' ? 'party' : 'video';
+  if (showState.requestId && showState.requestId !== requestId) clearShowTimers();
+  const now = Date.now();
+  const durationMs = Math.max(1000, Number(current.durationMs || (phase === 'party' ? showState.songDurationMs : showState.videoDurationMs) || 1000));
+  const startedAt = Number(current.startedAt || now) || now;
+  const endsAt = Number(current.endsAt || (startedAt + durationMs)) || (startedAt + durationMs);
+  const queueRow = mapShowQueueRow(database.get('SELECT * FROM birthday_show_queue WHERE request_id = :id', { id: requestId })) || {};
+  const party = getBirthdayParty(meta.partyKey || queueRow.partyKey) || getDefaultBirthdayParty();
+  const styleKey = meta.styleKey || queueRow.styleKey || party?.styleKey || 'cgn_neon';
+
+  showState = {
+    ...showState,
+    active: true,
+    phase,
+    targetLogin,
+    targetDisplayName: clean(meta.targetDisplayName || queueRow.targetDisplayName || targetLogin),
+    headline: clean(meta.headline || showState.headline || 'Happy Birthday!'),
+    message: clean(meta.message || showState.message || `Alles Gute zum Geburtstag, @${targetLogin}!`),
+    partyKey: meta.partyKey || queueRow.partyKey || party?.partyKey || 'default_party',
+    partyTitle: party?.title || queueRow.partyTitle || 'Standard Geburtstagsparty',
+    styleKey,
+    effects: party?.effects || defaultPartyEffects(styleKey),
+    scenes: party?.scenes || defaultPartyScenes(styleKey),
+    videoFile: queueRow.videoFile || showState.videoFile,
+    songFile: queueRow.songFile || showState.songFile,
+    videoDurationMs: phase === 'video' ? durationMs : showState.videoDurationMs,
+    songDurationMs: phase === 'party' ? durationMs : showState.songDurationMs,
+    startedAt: showState.requestId === requestId && showState.startedAt ? showState.startedAt : startedAt,
+    phaseStartedAt: startedAt,
+    phaseEndsAt: endsAt,
+    endsAt: phase === 'party' ? endsAt : (showState.endsAt || 0),
+    requestId,
+    playback: { ...(showState.playback || {}), mode: 'sound_system_bundle_monitor', currentSoundItem: current },
+    error: ''
+  };
+  updateShowQueueStatus(requestId, phase === 'party' ? 'running' : 'active', { startedAt: nowIso() });
+  return true;
+}
+
+async function syncBirthdayShowFromSoundSystem() {
+  const result = await internalRequest('GET', '/api/sound/status', {});
+  if (!result.ok) return;
+  const current = result.data?.current || result.data?.data?.current || null;
+  const isBirthday = current && (current.source === 'birthday_show' || current.meta?.module === MODULE_NAME || current.bundle?.bundleType === 'birthday');
+  if (isBirthday) {
+    applyCurrentBirthdayItemToShowState(current);
+    return;
+  }
+  if (showState.active && showState.endsAt && Date.now() > showState.endsAt + 1500) {
+    finishBirthdayShow('finished');
+  }
+}
+
+function startSoundSystemMonitor() {
+  if (soundMonitorTimer) return;
+  soundMonitorTimer = setInterval(() => {
+    syncBirthdayShowFromSoundSystem().catch(err => { state.lastError = err.message || String(err); });
+  }, 750);
 }
 
 function parseBirthdayDate(input) {
@@ -940,6 +1273,32 @@ function ensureSchema() {
           CREATE INDEX IF NOT EXISTS idx_birthday_parties_default ON birthday_parties(is_default);
         `);
       }
+
+      if (toVersion === 6) {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS birthday_show_queue (
+            request_id TEXT PRIMARY KEY,
+            target_login TEXT NOT NULL DEFAULT '',
+            target_display_name TEXT NOT NULL DEFAULT '',
+            party_key TEXT NOT NULL DEFAULT '',
+            party_title TEXT NOT NULL DEFAULT '',
+            style_key TEXT NOT NULL DEFAULT '',
+            song_file TEXT NOT NULL DEFAULT '',
+            video_file TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'queued',
+            position INTEGER NOT NULL DEFAULT 0,
+            started_by_login TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            started_at TEXT NOT NULL DEFAULT '',
+            finished_at TEXT NOT NULL DEFAULT '',
+            error TEXT NOT NULL DEFAULT ''
+          );
+          CREATE INDEX IF NOT EXISTS idx_birthday_show_queue_status ON birthday_show_queue(status, position, created_at);
+          CREATE INDEX IF NOT EXISTS idx_birthday_show_queue_login ON birthday_show_queue(target_login, status);
+        `);
+      }
+
     });
     state.schemaOk = true;
     state.schemaError = '';
@@ -1636,12 +1995,16 @@ async function handleBirthdayCommand(payload = {}) {
     const saved = getBirthdayUser(targetLogin);
     const targetDisplayName = saved?.displayName || args[1].replace(/^@/, '');
     const showResult = await startBirthdayShow({ targetUser: saved, targetLogin, targetDisplayName, startedByUser: user });
+    if (showResult.duplicate) {
+      const message = renderText('party_duplicate', { ...baseContext, targetLogin, targetDisplayName });
+      return { ok: false, command: 'birthday', action: 'party', targetLogin, targetDisplayName, duplicate: true, show: showResult, message, chat: await sendChat(message, 'birthday_party_duplicate') };
+    }
     try {
       database.run(`
         INSERT INTO birthday_show_events (
           request_id, target_login, target_display_name, started_by_login, video_url, song_file, status, error, created_at
         ) VALUES (
-          :requestId, :targetLogin, :targetDisplayName, :startedByLogin, :videoUrl, :songFile, 'started', '', :createdAt
+          :requestId, :targetLogin, :targetDisplayName, :startedByLogin, :videoUrl, :songFile, :status, '', :createdAt
         )
       `, {
         requestId: showResult.requestId,
@@ -1650,13 +2013,15 @@ async function handleBirthdayCommand(payload = {}) {
         startedByLogin: user.login,
         videoUrl: showResult.asset?.videoUrl || '',
         songFile: showResult.asset?.songFile || '',
+        status: showResult.queued ? 'queued' : 'started',
         createdAt: nowIso()
       });
     } catch (err) {
       state.lastError = err.message || String(err);
     }
-    const message = renderText('party_started', { ...baseContext, targetLogin, targetDisplayName });
-    return { ok: true, command: 'birthday', action: 'party', targetLogin, targetDisplayName, show: showResult, message, chat: await sendChat(message, 'birthday_party_started') };
+    const textKey = showResult.queued ? 'party_queued' : 'party_started';
+    const message = renderText(textKey, { ...baseContext, targetLogin, targetDisplayName, queuePosition: showResult.queuePosition || 1 });
+    return { ok: true, command: 'birthday', action: 'party', targetLogin, targetDisplayName, queued: !!showResult.queued, queuePosition: showResult.queuePosition || 0, show: showResult, message, chat: await sendChat(message, showResult.queued ? 'birthday_party_queued' : 'birthday_party_started') };
   }
 
   if (['party', 'showtime'].includes(sub)) {
@@ -2106,7 +2471,7 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005',
+    step: 'STEP_BIRTHDAY_005A',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
@@ -2131,7 +2496,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_005',
+    step: 'STEP_BIRTHDAY_005A',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -2166,6 +2531,7 @@ function buildStatus() {
       { method: 'POST', path: `${API_PREFIX}/command` },
       { method: 'GET', path: `${API_PREFIX}/today` },
       { method: 'GET', path: `${API_PREFIX}/show/state` },
+      { method: 'GET', path: `${API_PREFIX}/show/queue` },
       { method: 'POST', path: `${API_PREFIX}/show/stop` },
       { method: 'POST', path: `${API_PREFIX}/admin/show/upload` },
       { method: 'GET', path: `${API_PREFIX}/admin/show/assets` },
@@ -2333,9 +2699,10 @@ function init(ctx) {
   reloadRuntime();
   seedBirthdayCommand();
   installChatActivityHook();
+  startSoundSystemMonitor();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005A' };
 }
 
 module.exports = {

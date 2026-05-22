@@ -12,3 +12,10 @@
 .birthday-rows.compact div{padding:7px 0}
 .birthday-error.small{font-size:12px;padding:8px 10px;margin:10px 0;border-radius:12px}
 .birthday-note.warn{color:#ffd0d0}
+
+.birthday-queue-box{margin-top:14px;border:1px solid rgba(139,92,246,.28);border-radius:16px;padding:12px;background:rgba(10,15,28,.35)}
+.birthday-queue-box h4{margin:0 0 8px;font-size:14px}
+.birthday-queue-box ol{margin:0;padding-left:20px;display:grid;gap:6px}
+.birthday-queue-box li{color:var(--text,#e5e7eb)}
+.birthday-queue-box li span{display:inline-block;margin-left:8px;color:#a7f3d0;font-size:12px;text-transform:uppercase}
+.birthday-queue-box li small{display:block;color:var(--muted,#94a3b8)}
