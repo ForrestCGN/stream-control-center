@@ -1,4 +1,27 @@
-# CURRENT_SYSTEM_STATUS – Command-System / Medienverwaltung
+# CURRENT_SYSTEM_STATUS – Birthday / Command-System / Medienverwaltung
+
+## Birthday
+
+Aktueller gelieferter Stand: `STEP_BIRTHDAY_002`.
+
+Neu:
+- Backend-Modul `backend/modules/birthday.js`.
+- Config `config/birthday.json`.
+- Command über zentrales Command-System:
+  - `!birthday set TT.MM`
+  - `!birthday set TT.MM.JJJJ`
+  - `!birthday show`
+  - `!birthday delete`
+  - `!birthday today`
+  - Alias `!bday`
+- Automatische kleine Chat-Gratulation, wenn ein registrierter User an seinem Geburtstag normal im Chat schreibt.
+- Optionaler Tagebuch-Systemeintrag.
+
+Wichtig:
+- `!birthday` wird nicht über einen Sonderparser verarbeitet, sondern über `command_definitions` und `/api/commands/*`.
+- Die automatische Gratulation ist kein Command, sondern Chat-Aktivitätslogik.
+- Automatische Gratulation startet kein Video, kein Overlay und keinen Song.
+- Die große Show kommt in einem späteren STEP und soll manuell ausgelöst werden.
 
 ## Command-System
 
@@ -13,6 +36,7 @@ Bestätigt:
 Wichtig:
 - Echte Chat-Commands benötigen aktive Twitch-Presence.
 - Nach Backend-Neustart muss Twitch-Presence ggf. wieder gestartet werden, falls sie nicht automatisch aktiv ist.
+- Neue User-Commands sollen über das Command-System laufen.
 
 ## Command Catalog
 
@@ -22,7 +46,7 @@ Aktuell:
 - STEP273C2 erweitert Katalog um Hug/Rehug und trennt Tagebuch/Todo.
 
 Regel:
-- Neue Module müssen Command-Catalog-Daten liefern oder im zentralen Katalog ergänzt werden.
+- Neue Module müssen Command-Catalog-Daten liefern oder im zentralen Catalog ergänzt werden.
 
 ## Medienverwaltung
 
@@ -38,6 +62,7 @@ Bestätigt:
 Noch offen:
 - STEP274B Media Dashboard anwenden/testen.
 - Command-Anbindung an Medienverwaltung in STEP274C.
+- Birthday-Show später über Medienverwaltung anbinden.
 
 ## Bekannte Altlasten
 

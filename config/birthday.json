@@ -1,0 +1,36 @@
+{
+  "enabled": true,
+  "timezone": "Europe/Berlin",
+  "command": {
+    "enabled": true,
+    "trigger": "birthday",
+    "aliases": [
+      "bday"
+    ],
+    "permissionLevel": "everyone",
+    "cooldownGlobalMs": 1000,
+    "cooldownUserMs": 5000
+  },
+  "registration": {
+    "enabled": true,
+    "allowYear": true,
+    "storeYear": true
+  },
+  "automaticGreeting": {
+    "enabled": true,
+    "skipCommandMessages": true,
+    "oncePerLocalDate": true,
+    "onlyWhenLive": true,
+    "writeDiaryEntry": true
+  },
+  "diary": {
+    "enabled": true,
+    "systemUsername": "Geburtstags-System"
+  },
+  "chat": {
+    "prefer": "bot",
+    "maxLength": 450,
+    "directSendEnabled": true,
+    "fallbackToStreamerbot": true
+  }
+}

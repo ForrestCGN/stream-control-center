@@ -2,6 +2,22 @@
 
 ## 2026-05-22
 
+### Birthday
+- STEP_BIRTHDAY_002 geliefert.
+- Neues Backend-Modul `backend/modules/birthday.js` ergänzt.
+- Neue Config `config/birthday.json` ergänzt.
+- `!birthday` wird beim Modulstart als Command-Definition in `command_definitions` angelegt, wenn noch nicht vorhanden.
+- Unterstützte Commands:
+  - `!birthday set TT.MM`
+  - `!birthday set TT.MM.JJJJ`
+  - `!birthday show`
+  - `!birthday delete`
+  - `!birthday today`
+  - Alias `!bday`
+- Kleine automatische Chat-Gratulation für registrierte User am Geburtstag ergänzt.
+- Optionaler Tagebuch-Systemeintrag über `/api/tagebuch/entry` ergänzt.
+- Keine automatische große Show, kein Overlay, kein Video, kein Song.
+
 ### Command-System
 - Command-Core eingeführt und stabilisiert.
 - Twitch-Presence-Chat-Hook bestätigt.

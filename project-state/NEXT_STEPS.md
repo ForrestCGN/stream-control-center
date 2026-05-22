@@ -1,66 +1,79 @@
-# NEXT_STEPS – Command-System / Medienverwaltung
+# NEXT_STEPS – Birthday / Command-System / Medienverwaltung
 
-## Sofort, wenn weitergearbeitet wird
+## Sofort nach STEP_BIRTHDAY_002
 
-1. Prüfen, ob STEP273C2 angewendet wurde:
-   ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8080/api/commands/catalog"
-   ```
-   Erwartung: Kategorien `Hug-System`, `Tagebuch`, `Todo` getrennt sichtbar.
+1. ZIP entpacken nach:
 
-2. Prüfen, ob STEP274B angewendet wurde:
-   ```powershell
-   Select-String -Path "D:\Git\stream-control-center\htdocs\dashboard\index.html" -Pattern "media.css|media.js|mediaModule"
-   Select-String -Path "D:\Git\stream-control-center\htdocs\dashboard\app.js" -Pattern "media:|mediaModule|Medien"
-   ```
+```text
+D:\Git\stream-control-center
+```
 
-3. Falls STEP274B noch nicht angewendet:
-   ```powershell
-   cd D:\Git\stream-control-center
-   node tools\easy\STEP274B_APPLY_MEDIA_DASHBOARD.cjs
-   node --check htdocs\dashboard\modules\media.js
-   node --check tools\easy\STEP274B_APPLY_MEDIA_DASHBOARD.cjs
-   .\stepdone.cmd "STEP274B Media Dashboard"
-   ```
+2. Syntax prüfen:
 
-4. Nach Deploy/Restart testen:
-   ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8080/api/media/status"
-   Invoke-RestMethod "http://127.0.0.1:8080/api/media/list?type=audio"
-   Invoke-RestMethod "http://127.0.0.1:8080/api/media/list?type=video"
-   ```
+```powershell
+cd D:\Git\stream-control-center
+node --check backend\modules\birthday.js
+node --check backend\modules\commands.js
+```
 
-5. Dashboard prüfen:
-   ```text
-   http://127.0.0.1:8080/dashboard
-   System → Medien
-   ```
+3. Commit/Deploy über Standardbefehl:
+
+```powershell
+cd D:\Git\stream-control-center
+.\stepdone.cmd "STEP_BIRTHDAY_002 Birthday Registrierung und kleine Auto-Gratulation"
+```
+
+4. Backend nach Deploy neu starten, dann prüfen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/list"
+```
+
+5. API-Command-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/test" -Method POST -ContentType "application/json" -Body '{"message":"!birthday set 22.05","userLogin":"testuser","displayName":"TestUser"}'
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/execute" -Method POST -ContentType "application/json" -Body '{"message":"!birthday show","userLogin":"testuser","displayName":"TestUser"}'
+```
+
+6. Live im Twitch-Chat testen:
+
+```text
+!birthday set 22.05
+!birthday show
+!birthday delete
+```
 
 ## Danach sinnvoll
 
-### STEP274B1 – Media Dashboard Fixes/Polish
-Nur falls beim Test UI-Probleme auftauchen.
+### STEP_BIRTHDAY_003 – Dashboard
+- Dashboard-Modul `Community → Birthday` oder eigener Birthday-Bereich.
+- Registrierte Geburtstage anzeigen.
+- Einträge bearbeiten/deaktivieren/löschen.
+- Einstellungen bearbeiten.
+- Textvarianten anbinden.
+- Test-Button für kleine Gratulation.
 
-Mögliche Punkte:
-- Vorschau-Player verbessern.
-- Listen filtern/sortieren.
-- Kaputte Medien sichtbar markieren.
-- Soft-Delete/Hard-Delete UX absichern.
-- Scan-Ergebnis übersichtlicher darstellen.
+### STEP_BIRTHDAY_004 – Manuelle Birthday Show
+- Command z. B. `!birthday party username`.
+- Video zuerst.
+- Danach Overlay mit Party-Animation.
+- Song abspielen.
+- Userbezogener Song, sonst Standardlied.
+- Medienauswahl über zentrale Medienverwaltung.
+- Keine automatische Show bei normaler Chataktivität.
+
+## Weiterhin offen aus Command/Media
+
+### STEP274B – Media Dashboard testen/anwenden
+Falls noch nicht passiert.
 
 ### STEP274C – Commands an Medienverwaltung anbinden
 - Command Action-Typ `sound_play` bekommt Dropdown aus `/api/media/list?type=audio`.
 - Command Action-Typ `video_play` bekommt Dropdown aus `/api/media/list?type=video`.
-- Vorschau-Icons im Command-Formular.
-- Noch keine neue Medienverwaltung im Command selbst bauen.
-
-### STEP274D – Medien-Ausführung
-- Sound-Actions über bestehendes Sound-System abspielen.
-- Video-Actions über Overlay-/Player-System anzeigen.
-- Queue/Priorität/Lautstärke/Target sauber konfigurieren.
 
 ### STEP275 – Textgruppen/Zufallstexte
 - Zentrale Textgruppen für Commands.
 - Zufällige Varianten.
 - Dashboardfähige Bearbeitung.
-- Nicht im Command-Formular verstecken.
