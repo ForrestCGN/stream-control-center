@@ -1,59 +1,36 @@
 # NEXT_STEPS
 
-## Direkt nach STEP273A
+## Direkt nach STEP273A1
 
-1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Hook anwenden:
-
-```bat
-node tools\easy\STEP273A_APPLY_TWITCH_PRESENCE_COMMAND_HOOK.cjs
-```
-
-3. Syntax prüfen:
+1. Syntax pruefen:
 
 ```bat
 node --check backend\modules\commands.js
-node --check backend\modules\twitch_presence.js
-node --check tools\easy\STEP273A_APPLY_TWITCH_PRESENCE_COMMAND_HOOK.cjs
 ```
 
-4. Backend neu starten.
+2. Backend neu starten.
 
-5. API prüfen:
+3. API testen:
 
-```bat
-curl "http://127.0.0.1:8080/api/commands/status"
-curl "http://127.0.0.1:8080/api/commands/list"
-curl "http://127.0.0.1:8080/api/commands/test?message=!rip%20@ForrestCGN&user=forrestcgn"
-curl "http://127.0.0.1:8080/api/commands/test?message=!dcount%20show&user=forrestcgn&role=mod"
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/execute?message=!dcount%20show&user=forrestcgn&role=mod"
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/logs?limit=10"
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/history?limit=10"
 ```
 
-6. Danach im Twitch-Chat vorsichtig testen:
+4. Danach echter Twitch-Chat-Test:
 
 ```text
-!tode
-!rip @ForrestCGN
+!dcount show
 ```
 
-## STEP273B – Dashboard
+## Danach
+
+### STEP273B – Dashboard Commands
 
 - Dashboard-Modul `commands` aktivieren.
-- `htdocs/dashboard/modules/commands.js` ergänzen.
-- `htdocs/dashboard/modules/commands.css` ergänzen.
-- `htdocs/dashboard/index.html` um CSS/JS/Panel erweitern.
-- `htdocs/dashboard/app.js` um aktives Commands-Modul erweitern.
-- Commands editierbar machen:
-  - aktiv/inaktiv
-  - Trigger
-  - Aliase
-  - Modul/Ziel
-  - Permission-Level
-  - Cooldowns
-  - Testausführung
-
-## Spätere sinnvolle Steps
-
-- Hug/Clip/TTS/SoundAlerts ebenfalls über Command-Registry anbinden.
-- Streamer.bot-Commands schrittweise deaktivieren.
-- Rechte-/Rollen-System mit Dashboard-Userverwaltung koppeln.
-- Command-Antworttexte über DB-Textvarianten dashboardfähig machen.
+- Commands anzeigen, bearbeiten, aktivieren/deaktivieren.
+- Aliase, Rechte und Cooldowns verwalten.
+- Logs anzeigen.
+- Testausfuehrung aus dem Dashboard.

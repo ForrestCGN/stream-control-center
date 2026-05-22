@@ -6,7 +6,7 @@ const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands';
 const SCHEMA_MODULE = 'command_system';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
 const DEFAULT_PREFIX = '!';
 const DEFAULT_TARGET_HOST = '127.0.0.1';
@@ -16,6 +16,9 @@ const state = {
   initialized: false,
   schemaOk: false,
   schemaError: '',
+  schemaReady: false,
+  seeding: false,
+  seeded: false,
   loadedAt: '',
   prefix: DEFAULT_PREFIX,
   enabled: true,
@@ -46,12 +49,33 @@ function cleanTrigger(value) {
   return String(value || '').trim().replace(/^[!./]+/, '').toLowerCase();
 }
 
+function safeJsonEncode(value, fallback = '{}') {
+  const seen = new WeakSet();
+  try {
+    return JSON.stringify(value ?? null, (key, item) => {
+      if (typeof item === 'object' && item !== null) {
+        if (seen.has(item)) return '[circular]';
+        seen.add(item);
+      }
+      if (typeof item === 'function') return `[function:${item.name || 'anonymous'}]`;
+      if (typeof item === 'undefined') return null;
+      return item;
+    });
+  } catch (_) {
+    return fallback;
+  }
+}
+
 function jsonEncode(value) {
-  return JSON.stringify(value ?? null);
+  return safeJsonEncode(value ?? null, 'null');
 }
 
 function jsonDecode(value, fallback = null) {
-  return database.jsonDecode ? database.jsonDecode(value, fallback) : core.safeJsonParse(value, fallback);
+  if (value === undefined || value === null || value === '') return fallback;
+  try {
+    if (typeof database.jsonDecode === 'function') return database.jsonDecode(value, fallback);
+  } catch (_) {}
+  return core.safeJsonParse(value, fallback);
 }
 
 function bool(value, fallback = false) {
@@ -69,6 +93,8 @@ function int(value, fallback = 0) {
 }
 
 function ensureSchema() {
+  if (state.schemaReady && state.schemaOk) return true;
+
   try {
     database.ensureReady();
     database.exec(`
@@ -91,8 +117,8 @@ function ensureSchema() {
         updated_at TEXT NOT NULL
       );
     `);
-    database.exec(`CREATE INDEX IF NOT EXISTS idx_command_definitions_enabled ON command_definitions(enabled);`);
-    database.exec(`CREATE INDEX IF NOT EXISTS idx_command_definitions_module ON command_definitions(module_key);`);
+    database.exec('CREATE INDEX IF NOT EXISTS idx_command_definitions_enabled ON command_definitions(enabled);');
+    database.exec('CREATE INDEX IF NOT EXISTS idx_command_definitions_module ON command_definitions(module_key);');
     database.exec(`
       CREATE TABLE IF NOT EXISTS command_execution_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,16 +138,23 @@ function ensureSchema() {
         created_at TEXT NOT NULL
       );
     `);
-    database.exec(`CREATE INDEX IF NOT EXISTS idx_command_execution_log_created ON command_execution_log(created_at);`);
-    database.exec(`CREATE INDEX IF NOT EXISTS idx_command_execution_log_trigger ON command_execution_log(trigger);`);
-    database.exec(`CREATE INDEX IF NOT EXISTS idx_command_execution_log_user ON command_execution_log(user_login);`);
+    database.exec('CREATE INDEX IF NOT EXISTS idx_command_execution_log_created ON command_execution_log(created_at);');
+    database.exec('CREATE INDEX IF NOT EXISTS idx_command_execution_log_trigger ON command_execution_log(trigger);');
+    database.exec('CREATE INDEX IF NOT EXISTS idx_command_execution_log_user ON command_execution_log(user_login);');
     if (typeof database.setSchemaVersion === 'function') database.setSchemaVersion(SCHEMA_MODULE, SCHEMA_VERSION);
+
+    state.schemaReady = true;
     state.schemaOk = true;
     state.schemaError = '';
-    seedDefaultCommands();
+
+    if (!state.seeded && !state.seeding) {
+      seedDefaultCommands();
+    }
+
     return true;
   } catch (err) {
     state.schemaOk = false;
+    state.schemaReady = false;
     state.schemaError = err?.message || String(err);
     state.lastError = state.schemaError;
     return false;
@@ -129,55 +162,62 @@ function ensureSchema() {
 }
 
 function seedDefaultCommands() {
-  const defaults = [
-    {
-      trigger: 'rip',
-      aliases: ['death', 'tod'],
-      moduleKey: 'deathcounter_v2',
-      actionKey: 'command',
-      targetMethod: 'POST',
-      targetUrl: '/api/deathcounter/v2/command',
-      permissionLevel: 'everyone',
-      cooldownGlobalMs: 1000,
-      cooldownUserMs: 3000,
-      liveOnly: false,
-      responseMode: 'module',
-      config: { seededBy: 'STEP273A', rawInputMode: true }
-    },
-    {
-      trigger: 'tode',
-      aliases: ['deaths'],
-      moduleKey: 'deathcounter_v2',
-      actionKey: 'command',
-      targetMethod: 'POST',
-      targetUrl: '/api/deathcounter/v2/command',
-      permissionLevel: 'everyone',
-      cooldownGlobalMs: 1000,
-      cooldownUserMs: 3000,
-      liveOnly: false,
-      responseMode: 'module',
-      config: { seededBy: 'STEP273A', rawInputMode: true }
-    },
-    {
-      trigger: 'dcount',
-      aliases: ['deathcount', 'deathcounter'],
-      moduleKey: 'deathcounter_v2',
-      actionKey: 'command',
-      targetMethod: 'POST',
-      targetUrl: '/api/deathcounter/v2/command',
-      permissionLevel: 'mod',
-      cooldownGlobalMs: 1000,
-      cooldownUserMs: 2500,
-      liveOnly: false,
-      responseMode: 'module',
-      config: { seededBy: 'STEP273A', rawInputMode: true }
-    }
-  ];
+  if (state.seeding || state.seeded) return;
+  state.seeding = true;
+  try {
+    const defaults = [
+      {
+        trigger: 'rip',
+        aliases: ['death', 'tod'],
+        moduleKey: 'deathcounter_v2',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '/api/deathcounter/v2/command',
+        permissionLevel: 'everyone',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 3000,
+        liveOnly: false,
+        responseMode: 'module',
+        config: { seededBy: 'STEP273A', rawInputMode: true }
+      },
+      {
+        trigger: 'tode',
+        aliases: ['deaths'],
+        moduleKey: 'deathcounter_v2',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '/api/deathcounter/v2/command',
+        permissionLevel: 'everyone',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 3000,
+        liveOnly: false,
+        responseMode: 'module',
+        config: { seededBy: 'STEP273A', rawInputMode: true }
+      },
+      {
+        trigger: 'dcount',
+        aliases: ['deathcount', 'deathcounter'],
+        moduleKey: 'deathcounter_v2',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '/api/deathcounter/v2/command',
+        permissionLevel: 'mod',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 2500,
+        liveOnly: false,
+        responseMode: 'module',
+        config: { seededBy: 'STEP273A', rawInputMode: true }
+      }
+    ];
 
-  for (const item of defaults) {
-    const existing = database.get('SELECT id FROM command_definitions WHERE trigger = :trigger', { trigger: item.trigger });
-    if (existing?.id) continue;
-    upsertCommand(item, { seed: true });
+    for (const item of defaults) {
+      const existing = database.get('SELECT id FROM command_definitions WHERE trigger = :trigger', { trigger: item.trigger });
+      if (existing?.id) continue;
+      saveCommand(item, { seed: true });
+    }
+    state.seeded = true;
+  } finally {
+    state.seeding = false;
   }
 }
 
@@ -245,8 +285,7 @@ function normalizeConfig(value) {
   return core.safeJsonParse(value, {});
 }
 
-function upsertCommand(input = {}, options = {}) {
-  ensureSchema();
+function saveCommand(input = {}, options = {}) {
   const now = nowIso();
   const trigger = cleanTrigger(input.trigger || input.command || input.name || '');
   if (!trigger) throw new Error('command_trigger_missing');
@@ -299,6 +338,11 @@ function upsertCommand(input = {}, options = {}) {
 
   const saved = rowToCommand(database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger }));
   return { ok: true, seed: !!options.seed, command: saved };
+}
+
+function upsertCommand(input = {}, options = {}) {
+  ensureSchema();
+  return saveCommand(input, options);
 }
 
 function deleteCommand(triggerOrId) {
@@ -394,6 +438,19 @@ function markCooldown(command, user) {
   state.cooldowns.set(cooldownKey('user', command, user.login || 'unknown'), now);
 }
 
+function summarizeResultForLog(result) {
+  if (!result || typeof result !== 'object') return result || {};
+  return {
+    ok: !!result.ok,
+    statusCode: result.statusCode || null,
+    dataOk: result.data && typeof result.data === 'object' ? !!result.data.ok : null,
+    message: result.data && typeof result.data === 'object' ? (result.data.message || '') : '',
+    error: result.data && typeof result.data === 'object' ? (result.data.error || '') : '',
+    module: result.data && typeof result.data === 'object' ? (result.data.module || result.data.data?.module || '') : '',
+    command: result.data && typeof result.data === 'object' ? (result.data.command || result.data.data?.command || '') : ''
+  };
+}
+
 function logExecution(entry = {}) {
   try {
     ensureSchema();
@@ -457,8 +514,8 @@ function httpJsonRequest(method, targetUrl, payload = {}) {
   if (!cleanUrl) return Promise.reject(new Error('target_url_missing'));
   const body = JSON.stringify(payload);
   const options = {
-    hostname: DEFAULT_TARGET_HOST,
-    port: DEFAULT_TARGET_PORT,
+    hostname: process.env.COMMAND_TARGET_HOST || DEFAULT_TARGET_HOST,
+    port: Number(process.env.COMMAND_TARGET_PORT || DEFAULT_TARGET_PORT) || DEFAULT_TARGET_PORT,
     path: cleanUrl.startsWith('/') ? cleanUrl : `/${cleanUrl}`,
     method: String(method || 'POST').trim().toUpperCase() || 'POST',
     headers: {
@@ -640,6 +697,7 @@ async function processMessage(input = {}, options = {}) {
       rawMessage: parsedCommand.rawMessage,
       resultStatusCode: result.statusCode || null
     };
+    state.lastError = '';
     logExecution({
       trigger: command.trigger,
       aliasTrigger: match.aliasTrigger,
@@ -651,9 +709,9 @@ async function processMessage(input = {}, options = {}) {
       actionKey: command.actionKey,
       targetUrl: command.targetUrl,
       success: true,
-      result
+      result: summarizeResultForLog(result)
     });
-    return { ok: true, command: command.trigger, matchedBy: match.matchedBy, result };
+    return { ok: true, command: command.trigger, matchedBy: match.matchedBy, result: summarizeResultForLog(result) };
   } catch (err) {
     state.failed += 1;
     state.lastError = err?.message || String(err);
@@ -688,7 +746,7 @@ function statusPayload() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP273A',
+    step: 'STEP273A1',
     prefix: state.prefix,
     enabled: state.enabled,
     initialized: state.initialized,
@@ -720,7 +778,8 @@ function buildRoutes() {
     { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Command löschen' },
     { method: 'GET/POST', path: `${API_PREFIX}/test`, purpose: 'Chatnachricht trocken parsen und Zielpayload anzeigen' },
     { method: 'GET/POST', path: `${API_PREFIX}/execute`, purpose: 'Chatnachricht als Command ausführen' },
-    { method: 'GET', path: `${API_PREFIX}/logs`, purpose: 'Letzte Command-Ausführungen anzeigen' }
+    { method: 'GET', path: `${API_PREFIX}/logs`, purpose: 'Letzte Command-Ausführungen anzeigen' },
+    { method: 'GET', path: `${API_PREFIX}/history`, purpose: 'Alias fuer /api/commands/logs' }
   ];
 }
 
@@ -799,15 +858,17 @@ module.exports.init = function init(ctx) {
     }
   }
 
+  function handleLogs(req, res) {
+    try { return res.json(core.ok({ logs: recentLogs(core.getParam(req, 'limit', 25)) })); }
+    catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
+  }
+
   app.get(`${API_PREFIX}/test`, handleTest);
   app.post(`${API_PREFIX}/test`, handleTest);
   app.get(`${API_PREFIX}/execute`, handleExecute);
   app.post(`${API_PREFIX}/execute`, handleExecute);
-
-  app.get(`${API_PREFIX}/logs`, (req, res) => {
-    try { return res.json(core.ok({ logs: recentLogs(core.getParam(req, 'limit', 25)) })); }
-    catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
-  });
+  app.get(`${API_PREFIX}/logs`, handleLogs);
+  app.get(`${API_PREFIX}/history`, handleLogs);
 
   console.log('[commands] routes active: /api/commands/*');
 };
