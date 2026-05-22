@@ -1,23 +1,7 @@
-# CURRENT_SYSTEM_STATUS – Birthday-System
+# CURRENT_SYSTEM_STATUS – Birthday Overlay 006A
 
-Aktueller Birthday-Stand: `STEP_BIRTHDAY_005D`.
+Aktueller Birthday-Overlay-Stand: STEP_BIRTHDAY_006A.
 
-Das Birthday-System unterstützt Registrierung, kleine automatische Gratulation, Dashboard-Konfiguration, Party-Presets und manuelle Shows. Shows werden jetzt als locked Birthday-Bundles an das Sound-System übergeben. Das Sound-System übernimmt die Medien-Queue; Birthday verwaltet User-/Party-Logik, Dedupe und Overlay-State.
+Der Overlay-Fokus liegt auf CGN-/Deathcounter-ähnlichem Rahmen, sauberer Namensdarstellung ohne @, entfernten störenden Hintergrundrotationen und besserer Lesbarkeit.
 
-
-## STEP_BIRTHDAY_005D
-Birthday-Queue-Route `/api/birthday/show/queue` ist registriert.
-
-## Birthday-System STEP_BIRTHDAY_005E
-Aktueller Stand: Party-Presets + Sound-System-Bundle-Queue + Stale-Cleanup. `/api/birthday/show/queue` bereinigt hängende Queue-Einträge automatisch, sofern keine aktive Birthday-Show und keine Birthday-Arbeit im Sound-System vorhanden ist.
-
-## Birthday-System
-Aktueller Stand: `STEP_BIRTHDAY_005F`. Party-Presets/User-Zuordnung im Dashboard wurden in einen eigenen Partys-Tab aufgeräumt.
-
-
-## STEP_BIRTHDAY_005G
-- Birthday Mention/User-Resolve ergänzt: `!birthday party @user`, DisplayName/Avatar im Show-State, Dashboard-Speicherung mit Login + Anzeigename + Avatar.
-
-
-## STEP_BIRTHDAY_006
-Birthday-Overlay ist jetzt optisch deutlich aufgewertet. Die technische Show-Logik bleibt aus STEP_BIRTHDAY_005G/005E-Familie erhalten: Intro-Video über Sound-System, danach Partyphase passend zur Songphase. Das Overlay ist weiterhin nur visuelle Darstellung und nutzt State-Felder wie `styleKey`, `effects`, `scenes`, `targetAvatarUrl` und `targetDisplayName`.
+Backend-/Queue-/Sound-System-Logik bleibt unverändert gegenüber STEP_BIRTHDAY_006/005G/005E.
