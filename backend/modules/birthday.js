@@ -497,7 +497,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_004B',
+    step: 'STEP_BIRTHDAY_004C',
     state: {
       ...showState,
       now: Date.now(),
@@ -550,6 +550,8 @@ function mediaInfoForSoundFile(file, fallbackMs = 0) {
       webPath: `/assets/sounds/${relative}`,
       durationMs: Number(info.durationMs || fallbackMs || 0),
       durationOk: !!info.durationOk,
+      durationSource: info.durationOk ? 'ffprobe' : (fallbackMs ? 'fallback' : 'unknown'),
+      fallbackUsed: !info.durationOk && Number(fallbackMs || 0) > 0,
       hasAudio: info.hasAudio !== false,
       hasVideo: !!info.hasVideo,
       width: Number(info.width || 0),
@@ -557,7 +559,7 @@ function mediaInfoForSoundFile(file, fallbackMs = 0) {
       error: info.error || ''
     };
   } catch (err) {
-    return { ok: false, file: relative, webPath: `/assets/sounds/${relative}`, durationMs: Math.max(0, Number(fallbackMs || 0)), durationOk: false, error: err.message || String(err) };
+    return { ok: false, file: relative, webPath: `/assets/sounds/${relative}`, durationMs: Math.max(0, Number(fallbackMs || 0)), durationOk: false, durationSource: fallbackMs ? 'fallback' : 'unknown', fallbackUsed: Number(fallbackMs || 0) > 0, error: err.message || String(err) };
   }
 }
 
@@ -580,7 +582,20 @@ function pickShowAsset(targetUser = {}) {
     songDurationMs,
     partyDurationMs: songDurationMs,
     videoInfo,
-    songInfo
+    songInfo,
+    timing: {
+      videoDurationMs,
+      songDurationMs,
+      totalDurationMs: videoDurationMs + songDurationMs,
+      partyStartsAfterMs: videoDurationMs,
+      partyDurationMs: songDurationMs,
+      videoDurationOk: !!videoInfo?.durationOk,
+      songDurationOk: !!songInfo?.durationOk,
+      videoFallbackUsed: !!videoInfo?.fallbackUsed,
+      songFallbackUsed: !!songInfo?.fallbackUsed,
+      videoDurationSource: videoInfo?.durationSource || '',
+      songDurationSource: songInfo?.durationSource || ''
+    }
   };
 }
 
@@ -1511,6 +1526,128 @@ function handleBirthdayAssetUpload(payload = {}, file = null) {
   };
 }
 
+function formatMs(ms) {
+  const value = Math.max(0, Number(ms || 0));
+  const totalSeconds = Math.floor(value / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const tenth = Math.floor((value % 1000) / 100);
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenth}`;
+}
+
+function fileExistsForSound(relativeFile) {
+  const relative = safeRelativeMediaFile(relativeFile || '');
+  if (!relative) return { exists: false, absolutePath: '', relativePath: '', sizeBytes: 0 };
+  const absolutePath = config.resolveFromSounds(relative);
+  try {
+    const stat = fs.existsSync(absolutePath) ? fs.statSync(absolutePath) : null;
+    return { exists: !!stat && stat.isFile(), absolutePath, relativePath: relative, sizeBytes: stat && stat.isFile() ? Number(stat.size || 0) : 0 };
+  } catch (_) {
+    return { exists: false, absolutePath, relativePath: relative, sizeBytes: 0 };
+  }
+}
+
+function loudnessStatusForFile(relativeFile) {
+  const relative = safeRelativeMediaFile(relativeFile || '');
+  if (!relative) return { known: false, status: '', scannedAt: '', inputI: null, inputTp: null, reason: 'file_missing' };
+  try {
+    const row = database.get('SELECT status, scanned_at, input_i, input_tp FROM sound_loudness_files WHERE relative_path = :relativePath LIMIT 1', { relativePath: relative });
+    if (!row) return { known: false, status: '', scannedAt: '', inputI: null, inputTp: null, reason: 'not_scanned' };
+    return {
+      known: true,
+      status: row.status || '',
+      scannedAt: row.scanned_at || '',
+      inputI: row.input_i == null ? null : Number(row.input_i),
+      inputTp: row.input_tp == null ? null : Number(row.input_tp),
+      reason: ''
+    };
+  } catch (err) {
+    return { known: false, status: '', scannedAt: '', inputI: null, inputTp: null, reason: 'loudness_table_unavailable' };
+  }
+}
+
+function buildAssetInfo(label, role, relativeFile, fallbackMs = 0, expectedKind = 'audio') {
+  const relative = safeRelativeMediaFile(relativeFile || '');
+  const fileCheck = fileExistsForSound(relative);
+  const mediaInfo = relative ? mediaInfoForSoundFile(relative, fallbackMs) : { ok: false, file: '', webPath: '', durationMs: Number(fallbackMs || 0), durationOk: false, durationSource: fallbackMs ? 'fallback' : 'unknown', fallbackUsed: Number(fallbackMs || 0) > 0, hasAudio: false, hasVideo: false, error: 'file_missing' };
+  const ext = path.extname(relative || '').toLowerCase();
+  const soundSystemCanPlay = !!relative && fileCheck.exists && ['.mp3', '.wav', '.ogg', '.m4a', '.webm', '.mp4', '.mov'].includes(ext);
+  const kindOk = expectedKind === 'video' ? !!mediaInfo.hasVideo : !!mediaInfo.hasAudio;
+  return {
+    label,
+    role,
+    expectedKind,
+    relativePath: relative,
+    webPath: relative ? `/assets/sounds/${relative}` : '',
+    exists: fileCheck.exists,
+    sizeBytes: fileCheck.sizeBytes,
+    durationMs: Number(mediaInfo.durationMs || 0),
+    durationLabel: formatMs(mediaInfo.durationMs || 0),
+    durationOk: !!mediaInfo.durationOk,
+    durationSource: mediaInfo.durationSource || (mediaInfo.durationOk ? 'ffprobe' : 'unknown'),
+    fallbackUsed: !!mediaInfo.fallbackUsed,
+    hasAudio: !!mediaInfo.hasAudio,
+    hasVideo: !!mediaInfo.hasVideo,
+    width: Number(mediaInfo.width || 0),
+    height: Number(mediaInfo.height || 0),
+    error: mediaInfo.error || '',
+    soundSystem: {
+      canPlay: soundSystemCanPlay,
+      expectedKindOk: kindOk,
+      relativeFile: relative,
+      outputTarget: getConfig().show?.soundOutputTarget || 'overlay',
+      target: getConfig().show?.soundTarget || 'stream'
+    },
+    loudness: loudnessStatusForFile(relative)
+  };
+}
+
+function buildBirthdayShowAssets() {
+  const cfg = getConfig();
+  const users = listBirthdayUsers({ includeInactive: true, limit: 1000 });
+  const intro = buildAssetInfo('Globales Intro-Video', 'intro_video', cfg.show?.defaultVideoFile || '', cfg.show?.defaultVideoDurationMs || 0, 'video');
+  const defaultSong = buildAssetInfo('Standardsong', 'default_song', cfg.show?.defaultSongFile || '', cfg.show?.partyDurationMs || 0, 'audio');
+  const userSongs = users
+    .filter(user => !!user.showSongFile)
+    .map(user => ({
+      login: user.login,
+      displayName: user.displayName || user.login,
+      active: !!user.active,
+      asset: buildAssetInfo(`User-Song ${user.displayName || user.login}`, 'user_song', user.showSongFile, user.showSongDurationMs || cfg.show?.partyDurationMs || 0, 'audio')
+    }));
+  const activeSong = defaultSong;
+  const timingPreview = {
+    introDurationMs: intro.durationMs,
+    defaultSongDurationMs: activeSong.durationMs,
+    defaultTotalDurationMs: Number(intro.durationMs || 0) + Number(activeSong.durationMs || 0),
+    introDurationLabel: intro.durationLabel,
+    defaultSongDurationLabel: activeSong.durationLabel,
+    defaultTotalDurationLabel: formatMs(Number(intro.durationMs || 0) + Number(activeSong.durationMs || 0)),
+    partyStartsAfterMs: intro.durationMs,
+    partyStartsAfterLabel: intro.durationLabel,
+    warnings: []
+  };
+  if (!intro.durationOk) timingPreview.warnings.push('intro_duration_fallback_or_missing');
+  if (!defaultSong.durationOk) timingPreview.warnings.push('default_song_duration_fallback_or_missing');
+  if (!intro.exists) timingPreview.warnings.push('intro_file_missing');
+  if (!defaultSong.exists) timingPreview.warnings.push('default_song_file_missing');
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    step: 'STEP_BIRTHDAY_004C',
+    assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
+    intro,
+    defaultSong,
+    userSongs,
+    timingPreview,
+    notes: [
+      'Sound-System bekommt beim Start explizite durationMs-Werte.',
+      'Birthday-Overlay eskaliert erst bei phase=party, also nach Intro-Dauer und nach Song-Start.',
+      'SoundPegel/Loudness ist nur bekannt, wenn sound_loudness_files bereits einen Scan-Eintrag enthält.'
+    ]
+  };
+}
+
 function buildStatus() {
   const today = localParts();
   const todayRows = state.schemaOk ? listBirthdaysFor(today.day, today.month) : [];
@@ -1518,7 +1655,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_004B',
+    step: 'STEP_BIRTHDAY_004C',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -1547,6 +1684,7 @@ function buildStatus() {
       lastError: state.lastError
     },
     show: publicShowState().state,
+    showAssets: buildBirthdayShowAssets(),
     routes: [
       { method: 'GET', path: `${API_PREFIX}/status` },
       { method: 'POST', path: `${API_PREFIX}/command` },
@@ -1554,6 +1692,8 @@ function buildStatus() {
       { method: 'GET', path: `${API_PREFIX}/show/state` },
       { method: 'POST', path: `${API_PREFIX}/show/stop` },
       { method: 'POST', path: `${API_PREFIX}/admin/show/upload` },
+      { method: 'GET', path: `${API_PREFIX}/admin/show/assets` },
+      { method: 'POST', path: `${API_PREFIX}/admin/show/recheck` },
       { method: 'GET', path: `${API_PREFIX}/admin/users` },
       { method: 'POST', path: `${API_PREFIX}/admin/user` },
       { method: 'POST', path: `${API_PREFIX}/admin/user/delete` },
@@ -1596,13 +1736,24 @@ function registerRoutes(ctx) {
     }
   });
 
-  // STEP_BIRTHDAY_004B
+  // STEP_BIRTHDAY_004C
   // helper_routes.registerPost expects the final handler first and optional middlewares after it.
   // Multer must run before this handler, otherwise req.file stays empty and upload_file_missing is thrown.
   routes.registerPost(app, [`${API_PREFIX}/admin/show/upload`], (req, res) => {
     try { return res.json(handleBirthdayAssetUpload(req.body || {}, req.file || null)); }
     catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
   }, upload.single('file'));
+
+
+  routes.registerGet(app, [`${API_PREFIX}/admin/show/assets`], (req, res) => {
+    try { return res.json(buildBirthdayShowAssets()); }
+    catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
+  routes.registerPost(app, [`${API_PREFIX}/admin/show/recheck`], (req, res) => {
+    try { return res.json(buildBirthdayShowAssets()); }
+    catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
 
   routes.registerGet(app, [`${API_PREFIX}/admin/users`], (req, res) => {
     try {
@@ -1691,7 +1842,7 @@ function init(ctx) {
   installChatActivityHook();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004B' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004C' };
 }
 
 module.exports = {

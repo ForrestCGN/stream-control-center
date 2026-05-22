@@ -11,7 +11,9 @@ window.BirthdayModule = (function(){
     reload: '/api/birthday/reload',
     showState: '/api/birthday/show/state',
     showStop: '/api/birthday/show/stop',
-    upload: '/api/birthday/admin/show/upload'
+    upload: '/api/birthday/admin/show/upload',
+    showAssets: '/api/birthday/admin/show/assets',
+    showRecheck: '/api/birthday/admin/show/recheck'
   };
 
   const TEXT_KEY_LABELS = {
@@ -62,7 +64,8 @@ window.BirthdayModule = (function(){
     texts: null,
     textCategory: '',
     userSearch: '',
-    showState: null
+    showState: null,
+    showAssets: null
   };
 
   let root = null;
@@ -130,18 +133,20 @@ window.BirthdayModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, users, settings, texts, showState] = await Promise.all([
+      const [status, users, settings, texts, showState, showAssets] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(`${api.users}?includeInactive=true`).catch(err => ({ ok:false, error:err.message, users:[] })),
         window.CGN.api(api.settings),
         window.CGN.api(api.texts),
-        window.CGN.api(api.showState).catch(err => ({ ok:false, error:err.message, state:null }))
+        window.CGN.api(api.showState).catch(err => ({ ok:false, error:err.message, state:null })),
+        window.CGN.api(api.showAssets).catch(err => ({ ok:false, error:err.message }))
       ]);
       state.status = status;
       state.users = users;
       state.settings = settings;
       state.texts = texts;
       state.showState = showState;
+      state.showAssets = showAssets;
       state.loading = false;
       state.error = '';
     } catch (err) {
@@ -273,6 +278,13 @@ window.BirthdayModule = (function(){
   }
 
 
+
+  async function recheckShowAssets() {
+    state.showAssets = await window.CGN.api(api.showRecheck, { method:'POST', body:'{}' });
+    state.notice = 'Birthday-Mediendauer neu geprüft.';
+    await loadAll(true);
+  }
+
   async function uploadAsset(kind) {
     const fileInput = root?.querySelector(`[data-birthday-upload-file="${CSS.escape(kind)}"]`);
     const loginInput = root?.querySelector('[data-birthday-upload-login]');
@@ -372,23 +384,60 @@ window.BirthdayModule = (function(){
       </div>`;
   }
 
+  function byteLabel(bytes) {
+    const n = Number(bytes || 0);
+    if (!n) return '-';
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${Math.round(n / 102.4) / 10} KB`;
+    return `${Math.round(n / 1024 / 102.4) / 10} MB`;
+  }
+
+  function assetBadge(asset) {
+    if (!asset || !asset.relativePath) return '<span class="birthday-pill warn">nicht gesetzt</span>';
+    if (!asset.exists) return '<span class="birthday-pill warn">Datei fehlt</span>';
+    if (!asset.durationOk) return '<span class="birthday-pill warn">Dauer Fallback</span>';
+    return '<span class="birthday-pill ok">bereit</span>';
+  }
+
+  function renderAssetBox(title, asset) {
+    asset = asset || {};
+    return `<article class="birthday-asset-box">
+      <div class="birthday-asset-head"><strong>${esc(title)}</strong>${assetBadge(asset)}</div>
+      <div class="birthday-rows compact">
+        <div><span>Datei</span><strong>${fmt(asset.relativePath || '')}</strong></div>
+        <div><span>Dauer</span><strong>${fmt(asset.durationLabel || '')} <small>${asset.durationOk ? 'ffprobe' : (asset.durationSource || 'unbekannt')}</small></strong></div>
+        <div><span>Größe</span><strong>${esc(byteLabel(asset.sizeBytes))}</strong></div>
+        <div><span>Media</span><strong>${asset.hasVideo ? 'Video' : ''}${asset.hasVideo && asset.hasAudio ? ' + ' : ''}${asset.hasAudio ? 'Audio' : ''}${(!asset.hasVideo && !asset.hasAudio) ? '-' : ''}</strong></div>
+        <div><span>Sound-System</span><strong>${asset.soundSystem?.canPlay ? 'abspielbar' : 'nicht bereit'}${asset.soundSystem?.expectedKindOk === false ? ' · Typ prüfen' : ''}</strong></div>
+        <div><span>SoundPegel</span><strong>${asset.loudness?.known ? `bekannt (${esc(asset.loudness.status || 'ok')})` : `nicht gescannt`}</strong></div>
+      </div>
+      ${asset.error ? `<p class="birthday-note warn">${esc(asset.error)}</p>` : ''}
+      ${asset.fallbackUsed ? '<p class="birthday-note warn">Dauer konnte nicht sicher gelesen werden. Es wird ein Fallback genutzt.</p>' : ''}
+    </article>`;
+  }
+
   function renderShow() {
     const status = state.status || {};
     const cfg = status.config?.show || {};
     const show = state.showState?.state || status.show || {};
+    const assets = state.showAssets?.ok ? state.showAssets : (status.showAssets || {});
+    const timing = assets.timingPreview || {};
+    const userSongs = Array.isArray(assets.userSongs) ? assets.userSongs : [];
     return `
       <div class="birthday-grid birthday-grid-users">
         <section class="birthday-card birthday-card-main">
           <h3>Party-Show</h3>
-          <p class="birthday-note">Medien laufen über das Sound-System. Das Birthday-Overlay eskaliert erst, wenn die Song-Phase startet.</p>
+          <p class="birthday-note">Medien laufen über das Sound-System. Das Birthday-Overlay bleibt während des Intro-Videos ruhig und eskaliert erst, wenn die Song-Phase startet.</p>
           <div class="birthday-rows">
             <div><span>Status</span><strong>${show.active ? `${esc(show.phase)} für @${esc(show.targetDisplayName || show.targetLogin)}` : 'inaktiv'}</strong></div>
             <div><span>Intro-Video</span><strong>${fmt(cfg.defaultVideoFile || cfg.defaultVideoUrl || '')}</strong></div>
             <div><span>Standardsong</span><strong>${fmt(cfg.defaultSongFile || '')}</strong></div>
+            <div><span>Timing Standard</span><strong>${fmt(timing.defaultTotalDurationLabel || '')} gesamt · Party ab ${fmt(timing.partyStartsAfterLabel || '')}</strong></div>
             <div><span>Sound-System</span><strong>${fmt(cfg.soundOutputTarget || 'overlay')} / ${fmt(cfg.soundTarget || 'stream')}</strong></div>
             <div><span>Exklusiv</span><strong>${cfg.forceExclusive === false ? 'nein' : 'ja'}</strong></div>
           </div>
-          <div class="birthday-row-actions"><a class="birthday-link-btn" href="/overlays/_overlay-birthday.html?debug=1" target="_blank">Birthday-Overlay öffnen</a><button type="button" data-birthday-stop-show>Show stoppen</button></div>
+          ${(timing.warnings || []).length ? `<div class="birthday-error small">Warnungen: ${esc(timing.warnings.join(', '))}</div>` : ''}
+          <div class="birthday-row-actions"><a class="birthday-link-btn" href="/overlays/_overlay-birthday.html?debug=1" target="_blank">Birthday-Overlay öffnen</a><button type="button" data-birthday-stop-show>Show stoppen</button><button type="button" data-birthday-recheck-assets>Dauer neu prüfen</button></div>
         </section>
         <section class="birthday-card">
           <h3>Medien hochladen</h3>
@@ -403,7 +452,22 @@ window.BirthdayModule = (function(){
           </div>
           <p class="birthday-note">Dateinamen werden automatisch sauber gesetzt: <code>birthday_intro_video.webm</code>, <code>birthday_default_song.mp3</code>, <code>birthday_song_araglor.mp3</code>.</p>
         </section>
-      </div>`;
+      </div>
+      <section class="birthday-card birthday-card-main">
+        <h3>Medien-Status & Laufzeiten</h3>
+        <p class="birthday-note">Diese Werte steuern das Timing: Intro-Dauer → Songstart/Partyphase → Songdauer → Overlay aus.</p>
+        <div class="birthday-asset-grid">
+          ${renderAssetBox('Globales Intro-Video', assets.intro)}
+          ${renderAssetBox('Standardsong', assets.defaultSong)}
+        </div>
+      </section>
+      <section class="birthday-card birthday-card-main">
+        <h3>User-Songs</h3>
+        ${userSongs.length ? `<div class="birthday-table-wrap"><table><thead><tr><th>User</th><th>Datei</th><th>Dauer</th><th>Status</th><th>SoundPegel</th></tr></thead><tbody>${userSongs.map(item => {
+          const asset = item.asset || {};
+          return `<tr><td><strong>${esc(item.displayName || item.login)}</strong><small>${esc(item.login)}</small></td><td>${fmt(asset.relativePath || '')}</td><td>${fmt(asset.durationLabel || '')} <small>${esc(asset.durationSource || '')}</small></td><td>${asset.exists && asset.durationOk ? '<span class="birthday-pill ok">bereit</span>' : '<span class="birthday-pill warn">prüfen</span>'}</td><td>${asset.loudness?.known ? esc(asset.loudness.status || 'bekannt') : 'nicht gescannt'}</td></tr>`;
+        }).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine User-Songs hinterlegt.</div>'}
+      </section>`;
   }
 
   function renderSettings() {
@@ -471,6 +535,7 @@ window.BirthdayModule = (function(){
     root?.querySelectorAll('[data-delete-birthday-user]').forEach(btn => btn.addEventListener('click', () => deleteUser(btn.dataset.deleteBirthdayUser, false).catch(err => { state.error = err.message; render(); })));
     root?.querySelectorAll('[data-hard-delete-birthday-user]').forEach(btn => btn.addEventListener('click', () => deleteUser(btn.dataset.hardDeleteBirthdayUser, true).catch(err => { state.error = err.message; render(); })));
     root?.querySelectorAll('[data-birthday-upload]').forEach(btn => btn.addEventListener('click', () => uploadAsset(btn.dataset.birthdayUpload).catch(err => { state.error = err.message; render(); })));
+    root?.querySelector('[data-birthday-recheck-assets]')?.addEventListener('click', () => recheckShowAssets().catch(err => { state.error = err.message; render(); }));
   }
 
   function init() {

@@ -39,8 +39,15 @@
 
 ## Danach sinnvoll
 
-### STEP_BIRTHDAY_004B – Show Polish
+### STEP_BIRTHDAY_004C – Show Polish
 - Dashboard-Testbutton für einzelne User.
 - bessere Statusanzeige für Sound-System-Playback.
 - optional echte Sound-System-Bundle-Events auswerten statt Dauer-Timer.
 - Overlay-Design weiter im CGN-Stil verfeinern.
+
+
+## STEP_BIRTHDAY_004C
+
+- Birthday-Show Asset-/Dauerstatus ergänzt.
+- Dashboard zeigt erkannte Laufzeiten, Fallback-Warnungen, Sound-System-Status und SoundPegel-Status.
+- Neue Routen: `/api/birthday/admin/show/assets` und `/api/birthday/admin/show/recheck`.
