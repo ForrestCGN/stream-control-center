@@ -75,7 +75,7 @@ Diese Dateien blockieren den Media-Core nicht mehr. Später im Dashboard als kap
 
 ## Birthday
 
-Aktueller Stand: `STEP_BIRTHDAY_002A`.
+Aktueller Stand: `STEP_BIRTHDAY_003`.
 
 Bestätigt/geliefert:
 - Birthday-Backend-Modul existiert.
@@ -87,6 +87,12 @@ Bestätigt/geliefert:
 - Mehrere Default-Varianten im Heimaufsicht-/Rentner-Stil sind vorbereitet.
 - Texte sind über `module_text_variants` dashboardfähig.
 
+Neu in STEP_BIRTHDAY_003:
+- Birthday-Dashboard im Community-Bereich.
+- Userliste und User-Bearbeitung.
+- Settings-Editor.
+- Textvarianten-Editor für Heimaufsicht-/Rentner-Texte.
+- Backend-Admin-Routen für Dashboard.
+
 Offen:
-- Birthday-Dashboard.
 - Manuelle Birthday-Show mit Video/Overlay/Song.

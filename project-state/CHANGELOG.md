@@ -3,6 +3,14 @@
 ## 2026-05-22
 
 ### Birthday
+- STEP_BIRTHDAY_003 ergänzt das Birthday-Dashboard.
+- Neue Admin-Routen für User, Settings und Textvarianten ergänzt.
+- `htdocs/dashboard/modules/birthday.js` und `.css` ergänzt.
+- `htdocs/dashboard/index.html` bindet Birthday-CSS, Panel und Script ein.
+- `app.js` bleibt bewusst unverändert; das Modul registriert sich dynamisch bei `window.CGN`.
+- Keine Birthday-Show, kein Overlay, kein Sound und kein Video in diesem STEP.
+
+### Birthday
 - STEP_BIRTHDAY_002A ergänzt optionale Altersausgabe.
 - Bei gespeichertem Jahr stehen `{age}` und `{ageText}` für Chat-/Tagebuchtexte bereit.
 - Neue Textkeys mit Alter ergänzt:

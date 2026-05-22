@@ -2,6 +2,8 @@
 
 ## Relevante gelieferte ZIPs
 
+- `STEP_BIRTHDAY_003_dashboard.zip`
+
 - `STEP_BIRTHDAY_002A_birthday_age_texts.zip`
 
 - `STEP273A_command_system_core.zip`
@@ -38,6 +40,8 @@ Config:
 Dashboard:
 - `htdocs/dashboard/index.html`
 - `htdocs/dashboard/app.js`
+- `htdocs/dashboard/modules/birthday.js`
+- `htdocs/dashboard/modules/birthday.css`
 - `htdocs/dashboard/modules/commands.js`
 - `htdocs/dashboard/modules/commands.css`
 - `htdocs/dashboard/modules/media.js` – aus STEP274B
@@ -49,6 +53,7 @@ Projektstatus:
 - `project-state/FILES.md`
 - `project-state/CHANGELOG.md`
 - `project-state/STEP_BIRTHDAY_002.md`
+- `project-state/STEP_BIRTHDAY_003.md`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 
 Birthday STEP-Doku:

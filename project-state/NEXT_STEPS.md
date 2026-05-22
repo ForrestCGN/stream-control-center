@@ -1,6 +1,6 @@
 # NEXT_STEPS – Birthday / Command-System / Medienverwaltung
 
-## Sofort nach STEP_BIRTHDAY_002
+## Sofort nach STEP_BIRTHDAY_003
 
 1. ZIP entpacken nach:
 
@@ -13,47 +13,33 @@ D:\Git\stream-control-center
 ```powershell
 cd D:\Git\stream-control-center
 node --check backend\modules\birthday.js
-node --check backend\modules\commands.js
+node --check htdocs\dashboard\modules\birthday.js
 ```
 
 3. Commit/Deploy über Standardbefehl:
 
 ```powershell
 cd D:\Git\stream-control-center
-.\stepdone.cmd "STEP_BIRTHDAY_002 Birthday Registrierung und kleine Auto-Gratulation"
+.\stepdone.cmd "STEP_BIRTHDAY_003 Birthday Dashboard"
 ```
 
 4. Backend nach Deploy neu starten, dann prüfen:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/commands/list"
+Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/admin/users"
+Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/admin/settings"
+Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/admin/texts"
 ```
 
-5. API-Command-Test:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/commands/test" -Method POST -ContentType "application/json" -Body '{"message":"!birthday set 22.05","userLogin":"testuser","displayName":"TestUser"}'
-Invoke-RestMethod "http://127.0.0.1:8080/api/commands/execute" -Method POST -ContentType "application/json" -Body '{"message":"!birthday show","userLogin":"testuser","displayName":"TestUser"}'
-```
-
-6. Live im Twitch-Chat testen:
+5. Dashboard prüfen:
 
 ```text
-!birthday set 22.05
-!birthday show
-!birthday delete
+http://127.0.0.1:8080/dashboard
+Community → Birthday-System
 ```
 
 ## Danach sinnvoll
-
-### STEP_BIRTHDAY_003 – Dashboard
-- Dashboard-Modul `Community → Birthday` oder eigener Birthday-Bereich.
-- Registrierte Geburtstage anzeigen.
-- Einträge bearbeiten/deaktivieren/löschen.
-- Einstellungen bearbeiten.
-- Textvarianten anbinden.
-- Test-Button für kleine Gratulation.
 
 ### STEP_BIRTHDAY_004 – Manuelle Birthday Show
 - Command z. B. `!birthday party username`.

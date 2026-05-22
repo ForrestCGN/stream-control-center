@@ -760,7 +760,7 @@ function seedBirthdayCommand() {
         permissionLevel: clean(cfg.command?.permissionLevel || 'everyone').toLowerCase() || 'everyone',
         cooldownGlobalMs: Math.max(0, Number(cfg.command?.cooldownGlobalMs || 1000)),
         cooldownUserMs: Math.max(0, Number(cfg.command?.cooldownUserMs || 5000)),
-        configJson: JSON.stringify({ actionType: 'module_command', moduleCommand: 'birthday', seededBy: 'STEP_BIRTHDAY_002A' }),
+        configJson: JSON.stringify({ actionType: 'module_command', moduleCommand: 'birthday', seededBy: 'STEP_BIRTHDAY_003' }),
         createdAt: now,
         updatedAt: now
       });
@@ -886,6 +886,111 @@ function safePublicConfig(cfg = getConfig()) {
   };
 }
 
+function listAdminSettings() {
+  settings.seedDefaults(SETTINGS_TABLE, flattenSettingsObject(getConfig()));
+  return settings.listSettings(SETTINGS_TABLE, { limit: 1000 });
+}
+
+function setAdminSettings(payload = {}) {
+  const body = payload && typeof payload === 'object' ? payload : {};
+  const updates = body.settings && typeof body.settings === 'object' && !Array.isArray(body.settings)
+    ? body.settings
+    : (body.key ? { [body.key]: body.value } : {});
+  if (!Object.keys(updates).length) throw new Error('settings_payload_empty');
+
+  const rows = [];
+  for (const [key, value] of Object.entries(updates)) {
+    rows.push(settings.setSetting(SETTINGS_TABLE, key, value));
+  }
+  reloadRuntime();
+  return { ok: true, module: MODULE_NAME, table: SETTINGS_TABLE, updated: rows.length, rows, status: buildStatus() };
+}
+
+function listAdminTexts() {
+  return texts.listModuleTextEditor(TEXTS_MODULE, getMessages(), { ...textEditorOptions(), seed: true });
+}
+
+function setAdminTexts(payload = {}) {
+  const result = texts.handleModuleTextEditorPayload(TEXTS_MODULE, payload, textEditorOptions());
+  reloadRuntime();
+  return { ok: true, module: MODULE_NAME, ...result, status: buildStatus() };
+}
+
+function listBirthdayUsers(options = {}) {
+  const limit = Math.max(1, Math.min(1000, Number(options.limit || 250) || 250));
+  const search = clean(options.search || '').toLowerCase();
+  const includeInactive = boolValue(options.includeInactive, true);
+  const where = [];
+  const params = { limit };
+
+  if (!includeInactive) where.push('active = 1');
+  if (search) {
+    where.push('(lower(user_login) LIKE :search OR lower(user_display_name) LIKE :search)');
+    params.search = `%${search}%`;
+  }
+
+  return database.all(`
+    SELECT *
+    FROM birthday_users
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    ORDER BY birthday_month ASC, birthday_day ASC, user_display_name COLLATE NOCASE ASC, user_login ASC
+    LIMIT :limit
+  `, params).map(row => {
+    const user = mapBirthdayUser(row);
+    const context = buildBirthdayContext(user || {});
+    return {
+      ...user,
+      age: context.age ? Number(context.age) : null,
+      birthdayDateWithYear: formatBirthday(user.day, user.month, user.year || null),
+      birthdayDatePublic: formatBirthday(user.day, user.month, user.yearVisible ? user.year : null)
+    };
+  });
+}
+
+function setBirthdayUserAdmin(payload = {}) {
+  const login = cleanLogin(payload.login || payload.userLogin || payload.username || '');
+  const displayName = clean(payload.displayName || payload.userDisplayName || payload.name || login);
+  let parsed = null;
+  if (payload.birthdayDate || payload.date) parsed = parseBirthdayDate(payload.birthdayDate || payload.date);
+  else parsed = {
+    day: Number(payload.day || payload.birthdayDay || 0),
+    month: Number(payload.month || payload.birthdayMonth || 0),
+    year: payload.year || payload.birthdayYear ? Number(payload.year || payload.birthdayYear) : null
+  };
+
+  if (!login) throw new Error('user_login_required');
+  if (!parsed || !parseBirthdayDate(formatBirthday(parsed.day, parsed.month, parsed.year || null))) throw new Error('invalid_birthday_date');
+
+  const result = upsertBirthdayUser({
+    login,
+    displayName,
+    day: parsed.day,
+    month: parsed.month,
+    year: parsed.year,
+    source: 'dashboard'
+  });
+
+  if (payload.active === false || payload.active === 0 || payload.active === 'false') {
+    database.run('UPDATE birthday_users SET active = 0, updated_at = :updatedAt WHERE user_login = :login', { login, updatedAt: nowIso() });
+  }
+
+  return { ok: true, module: MODULE_NAME, user: getBirthdayUser(login), created: result.created, users: listBirthdayUsers({ limit: 250 }) };
+}
+
+function deleteBirthdayUserAdmin(payload = {}) {
+  const login = cleanLogin(payload.login || payload.userLogin || payload.username || '');
+  if (!login) throw new Error('user_login_required');
+  const soft = payload.soft !== false && payload.hard !== true;
+  const existing = getBirthdayUser(login);
+  if (!existing) return { ok: true, module: MODULE_NAME, deleted: false, user: null, users: listBirthdayUsers({ limit: 250 }) };
+  if (soft) {
+    database.run('UPDATE birthday_users SET active = 0, updated_at = :updatedAt WHERE user_login = :login', { login, updatedAt: nowIso() });
+    return { ok: true, module: MODULE_NAME, deleted: true, soft: true, user: getBirthdayUser(login), users: listBirthdayUsers({ limit: 250 }) };
+  }
+  const result = deleteBirthdayUser(login);
+  return { ok: true, module: MODULE_NAME, deleted: result.deleted, soft: false, user: result.user, users: listBirthdayUsers({ limit: 250 }) };
+}
+
 function buildStatus() {
   const today = localParts();
   const todayRows = state.schemaOk ? listBirthdaysFor(today.day, today.month) : [];
@@ -893,7 +998,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_002A',
+    step: 'STEP_BIRTHDAY_003',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -923,6 +1028,11 @@ function buildStatus() {
       { method: 'GET', path: `${API_PREFIX}/status` },
       { method: 'POST', path: `${API_PREFIX}/command` },
       { method: 'GET', path: `${API_PREFIX}/today` },
+      { method: 'GET', path: `${API_PREFIX}/admin/users` },
+      { method: 'POST', path: `${API_PREFIX}/admin/user` },
+      { method: 'POST', path: `${API_PREFIX}/admin/user/delete` },
+      { method: 'GET/POST', path: `${API_PREFIX}/admin/settings` },
+      { method: 'GET/POST', path: `${API_PREFIX}/admin/texts` },
       { method: 'POST', path: `${API_PREFIX}/reload` }
     ]
   };
@@ -942,6 +1052,62 @@ function registerRoutes(ctx) {
       return res.json({ ok: true, module: MODULE_NAME, localDate: today.date, rows: listBirthdaysFor(today.day, today.month) });
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  routes.registerGet(app, [`${API_PREFIX}/admin/users`], (req, res) => {
+    try {
+      return res.json({ ok: true, module: MODULE_NAME, users: listBirthdayUsers(req.query || {}), status: buildStatus() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  routes.registerPost(app, [`${API_PREFIX}/admin/user`], (req, res) => {
+    try {
+      return res.json(setBirthdayUserAdmin(req.body || req.query || {}));
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  routes.registerPost(app, [`${API_PREFIX}/admin/user/delete`], (req, res) => {
+    try {
+      return res.json(deleteBirthdayUserAdmin(req.body || req.query || {}));
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  routes.registerGet(app, [`${API_PREFIX}/admin/settings`], (req, res) => {
+    try {
+      return res.json({ ok: true, module: MODULE_NAME, settings: listAdminSettings(), status: buildStatus() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  routes.registerPost(app, [`${API_PREFIX}/admin/settings`], (req, res) => {
+    try {
+      return res.json(setAdminSettings(req.body || req.query || {}));
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  routes.registerGet(app, [`${API_PREFIX}/admin/texts`], (req, res) => {
+    try {
+      return res.json({ ok: true, module: MODULE_NAME, texts: listAdminTexts(), status: buildStatus() });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  routes.registerPost(app, [`${API_PREFIX}/admin/texts`], (req, res) => {
+    try {
+      return res.json(setAdminTexts(req.body || req.query || {}));
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: err.message || String(err) });
     }
   });
 
@@ -976,7 +1142,7 @@ function init(ctx) {
   installChatActivityHook();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_002A' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_003' };
 }
 
 module.exports = {

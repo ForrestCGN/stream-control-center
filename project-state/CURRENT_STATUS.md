@@ -24,6 +24,23 @@ Stand: 2026-05-22
   - `birthday_greetings_log`
   - `birthday_settings`
 
+
+### STEP_BIRTHDAY_003 – Birthday Dashboard
+- Birthday-Dashboard integriert.
+- Backend-Dashboard-Routen ergänzt:
+  - `/api/birthday/admin/users`
+  - `/api/birthday/admin/user`
+  - `/api/birthday/admin/user/delete`
+  - `/api/birthday/admin/settings`
+  - `/api/birthday/admin/texts`
+- Neue Dashboard-Dateien:
+  - `htdocs/dashboard/modules/birthday.js`
+  - `htdocs/dashboard/modules/birthday.css`
+- `htdocs/dashboard/index.html` bindet Birthday-CSS, Panel und Script ein.
+- Dashboard-Modul registriert sich dynamisch bei `window.CGN`, damit `app.js` nicht geändert werden muss.
+- Dashboard-Funktionen: Übersicht, Geburtstagsliste, User-Bearbeitung, Settings, Textvarianten.
+- Keine Show-/Overlay-/Sound-/Video-Änderung.
+
 ## Bestätigt live vor Birthday
 
 ### STEP273A1 – Command-System Core Fix
