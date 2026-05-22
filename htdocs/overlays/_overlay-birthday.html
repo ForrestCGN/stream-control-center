@@ -18,7 +18,7 @@
       --gold: #ffe66d;
       --bg-a: rgba(7, 9, 24, 0.96);
       --bg-b: rgba(5, 7, 22, 0.96);
-      --panel-radius: 34px;
+      --panel-radius: 28px;
       --panel-border: 3px;
       --runner-speed: 5.2s;
     }
@@ -76,16 +76,16 @@
 
     .shell {
       position: absolute;
-      left: 92px;
-      right: 92px;
-      top: 112px;
-      bottom: 112px;
+      left: 160px;
+      right: 160px;
+      top: 160px;
+      min-height: 720px;
       z-index: 4;
       display: grid;
-      grid-template-columns: 430px 1fr;
-      gap: 46px;
+      grid-template-columns: 330px 1fr;
+      gap: 58px;
       align-items: center;
-      padding: 58px 68px;
+      padding: 48px 62px;
       border-radius: var(--panel-radius);
       border: var(--panel-border) solid transparent;
       background:
@@ -130,12 +130,29 @@
     .avatar-wrap {
       display: grid;
       place-items: center;
+      align-content: center;
+      gap: 22px;
+    }
+
+    .guest-label {
+      min-width: 230px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(143,244,255,.24);
+      background: rgba(8,10,31,.48);
+      color: rgba(244,247,255,.82);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: 14px;
+      font-weight: 900;
+      box-shadow: inset 0 0 14px rgba(196,92,255,.08);
     }
 
     .avatar-card {
       position: relative;
-      width: 340px;
-      height: 340px;
+      width: 260px;
+      height: 260px;
       border-radius: 50%;
       display: grid;
       place-items: center;
@@ -164,15 +181,15 @@
     .avatar-card::after {
       content: "";
       position: absolute;
-      inset: -34px;
+      inset: -22px;
       border-radius: 50%;
       border: 1px dashed rgba(143,244,255,.30);
       opacity: .7;
     }
 
     .avatar {
-      width: 292px;
-      height: 292px;
+      width: 224px;
+      height: 224px;
       border-radius: 50%;
       object-fit: cover;
       display: block;
@@ -182,24 +199,29 @@
     }
 
     .avatar-fallback {
-      width: 292px;
-      height: 292px;
+      width: 224px;
+      height: 224px;
       border-radius: 50%;
       display: grid;
       place-items: center;
-      font-size: 118px;
+      font-size: 82px;
       font-weight: 900;
       color: var(--fg-main);
       background: radial-gradient(circle at 40% 20%, rgba(57,230,255,.22), rgba(196,92,255,.22) 42%, rgba(5,7,22,.96));
       text-shadow: 0 0 22px rgba(196,92,255,.75);
     }
 
+    .avatar-fallback[hidden],
+    .avatar[hidden] {
+      display: none !important;
+    }
+
     .crown {
       position: absolute;
-      top: -38px;
+      top: -30px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 42px;
+      font-size: 32px;
       filter: drop-shadow(0 0 12px rgba(255,230,109,.65));
     }
 
@@ -207,8 +229,8 @@
       display: inline-flex;
       align-items: center;
       gap: 14px;
-      min-height: 56px;
-      padding: 0 28px;
+      min-height: 46px;
+      padding: 0 24px;
       border-radius: 999px;
       border: 1px solid rgba(143,244,255,.52);
       background:
@@ -216,19 +238,19 @@
         rgba(8,10,31,.55);
       color: var(--fg-main);
       text-transform: uppercase;
-      letter-spacing: 10px;
+      letter-spacing: 8px;
       font-weight: 900;
-      font-size: 24px;
+      font-size: 19px;
       text-shadow: 0 0 16px rgba(57,230,255,.20);
       box-shadow: 0 0 18px rgba(57,230,255,.16), inset 0 0 16px rgba(196,92,255,.08);
     }
 
     .headline {
-      margin: 30px 0 8px;
+      margin: 28px 0 4px;
       color: var(--fg-main);
-      font-size: 116px;
-      line-height: .88;
-      letter-spacing: 4px;
+      font-size: 86px;
+      line-height: .92;
+      letter-spacing: 3px;
       text-transform: uppercase;
       font-weight: 950;
       text-shadow:
@@ -239,10 +261,10 @@
 
     .name-line {
       max-width: 100%;
-      margin: 26px 0 24px;
+      margin: 20px 0 20px;
       color: var(--gold);
-      font-size: clamp(58px, 7vw, 126px);
-      line-height: .96;
+      font-size: clamp(50px, 5.2vw, 96px);
+      line-height: .98;
       font-weight: 950;
       letter-spacing: 1px;
       white-space: nowrap;
@@ -256,10 +278,10 @@
     }
 
     .message {
-      max-width: 960px;
+      max-width: 900px;
       color: var(--fg-main);
-      font-weight: 850;
-      font-size: 40px;
+      font-weight: 800;
+      font-size: 32px;
       line-height: 1.18;
       letter-spacing: .8px;
       text-shadow: 0 0 15px rgba(196,92,255,.38), 0 2px 10px rgba(0,0,0,.50);
@@ -268,16 +290,16 @@
     .message .muted { color: var(--fg-muted); }
 
     .phase-pill {
-      margin-top: 28px;
+      margin-top: 22px;
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 18px;
+      padding: 8px 16px;
       border-radius: 999px;
       color: rgba(244,247,255,.86);
       background: rgba(8,10,31,.54);
       border: 1px solid rgba(143,244,255,.18);
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 800;
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -289,7 +311,7 @@
     .intro-note {
       position: absolute;
       left: 50%;
-      bottom: 72px;
+      bottom: 82px;
       transform: translateX(-50%);
       z-index: 5;
       padding: 14px 26px;
@@ -419,13 +441,13 @@
 
     .scene-label {
       position: absolute;
-      right: 136px;
-      bottom: 144px;
+      right: 190px;
+      bottom: 184px;
       z-index: 5;
       max-width: 440px;
       text-align: right;
       color: rgba(244,247,255,.70);
-      font-size: 24px;
+      font-size: 18px;
       font-weight: 900;
       letter-spacing: 2px;
       text-transform: uppercase;
@@ -451,7 +473,7 @@
 
     .stage[data-style="heimaufsicht_fun"] .badge::before { content: "🏥"; margin-right: 4px; }
     .stage[data-style="cute_soft"] .badge::before { content: "💜"; margin-right: 4px; }
-    .stage[data-style="epic_party"] .headline { font-size: 124px; }
+    .stage[data-style="epic_party"] .headline { font-size: 92px; }
     .stage[data-style="classic_party"] .name-line { color: #ffe66d; }
 
     @media (max-width: 1200px) {
@@ -471,6 +493,7 @@
           <img id="avatar" class="avatar" alt="Avatar" />
           <div id="avatarFallback" class="avatar-fallback" hidden>?</div>
         </div>
+        <div class="guest-label">Ehrengast</div>
       </div>
 
       <div class="content">
@@ -517,11 +540,11 @@
 
     function applyNameFit() {
       const len = (nameLine.textContent || '').length;
-      let size = 126;
-      if (len > 10) size = 104;
-      if (len > 14) size = 86;
-      if (len > 18) size = 72;
-      if (len > 24) size = 60;
+      let size = 96;
+      if (len > 10) size = 82;
+      if (len > 14) size = 70;
+      if (len > 18) size = 60;
+      if (len > 24) size = 50;
       nameLine.style.fontSize = `${size}px`;
     }
 
@@ -543,6 +566,7 @@
         avatarFallback.hidden = true;
         if (avatar.src !== url) avatar.src = url;
       } else {
+        avatar.removeAttribute('src');
         avatar.hidden = true;
         avatarFallback.hidden = false;
       }
