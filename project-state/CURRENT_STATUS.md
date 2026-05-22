@@ -1,14 +1,7 @@
 # CURRENT_STATUS
 
-## STEP273C1 – Modul-Command-Catalog
+## STEP273C2
 
-Command-System ist um einen Modul-Command-Katalog erweitert.
+Command-Catalog erweitert: Hug/Rehug ergänzt, Tagebuch und Todo getrennt, weitere Deathcounter- und Hug-Aktionen im Modul-Command-Dropdown verfügbar.
 
-Aktueller Stand:
-- `/api/commands/catalog` liefert Kategorien und Modul-Actions.
-- Deathcounter ist als erste echte Kataloggruppe gepflegt.
-- Dashboard zeigt bei Modul-Command Kategorie/Aktion und kann Defaults übernehmen.
-- Künftige Module sollen ihren Command-Katalog pflegen oder zentral ergänzen.
-
-Nächster sinnvoller Schritt:
-- STEP274A zentrale Medienverwaltung Core.
+Nächster sinnvoller Schritt: STEP274A zentrale Medienverwaltung Core.

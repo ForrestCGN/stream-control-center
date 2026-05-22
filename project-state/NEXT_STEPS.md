@@ -1,34 +1,20 @@
 # NEXT_STEPS
 
-## Direkt nach STEP273C1 testen
+## Nach STEP273C2 testen
 
-1. Patch anwenden:
-   ```bat
-   node tools\easy\STEP273C1_APPLY_COMMAND_CATALOG.cjs
-   ```
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/catalog"
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status"
+```
 
-2. Syntax:
-   ```bat
-   node --check backend\modules\commands.js
-   node --check htdocs\dashboard\modules\commands.js
-   node --check tools\easy\STEP273C1_APPLY_COMMAND_CATALOG.cjs
-   ```
+Im Dashboard prüfen:
 
-3. API:
-   ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8080/api/commands/catalog"
-   Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status"
-   ```
-
-4. Dashboard:
-   - Community → Commands → Commands
-   - Action-Typ `Modul-Command`
-   - Kategorie wählen
-   - Modul-Aktion wählen
-   - `↩️ Defaults übernehmen`
+- Community → Commands → Commands
+- Action-Typ: Modul-Command
+- Kategorien: Deathcounter, Hug-System, Clips, Tagebuch, Todo, System/Medien
+- Aktion `Rehug ausführen` sichtbar
 
 ## Danach
 
 - STEP274A zentrale Medienverwaltung Core.
-- STEP274B Medienverwaltung Dashboard.
-- STEP274C Commands an Medienverwaltung anbinden.
+- Später Todo-Command-Route final prüfen und Todo-Katalog von prepared auf echte Aktion umstellen.
