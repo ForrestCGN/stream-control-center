@@ -549,7 +549,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005C',
+    step: 'STEP_BIRTHDAY_005D',
     state: {
       ...showState,
       now: Date.now(),
@@ -1031,7 +1031,8 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
   const bundleResult = await enqueueBirthdaySoundBundle(asset, context);
   startSoundSystemMonitor();
   const started = soundBundleResultStarted(bundleResult);
-  const queued = soundBundleResultQueued(bundleResult) || wasActive || !started;
+  const queued = wasActive || !started;
+  const hasQueuedBundleItems = soundBundleResultQueued(bundleResult);
 
   if (started && !wasActive) {
     clearShowTimers();
@@ -1083,6 +1084,8 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
     queued,
     started,
     queuePosition: queued ? (position || nextShowQueuePosition()) : 0,
+    hasQueuedBundleItems,
+    startMode: queued ? 'queued' : 'started',
     state: publicShowState().state,
     asset,
     soundBundle: bundleResult,
@@ -2481,7 +2484,7 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005C',
+    step: 'STEP_BIRTHDAY_005D',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
@@ -2506,7 +2509,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_005C',
+    step: 'STEP_BIRTHDAY_005D',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -2586,7 +2589,7 @@ function registerRoutes(ctx) {
       return res.json({
         ok: true,
         module: MODULE_NAME,
-        step: 'STEP_BIRTHDAY_005C',
+        step: 'STEP_BIRTHDAY_005D',
         queue: listBirthdayShowQueue({ includeDone: String(req.query && req.query.includeDone || '').toLowerCase() === 'true' }),
         state: publicShowState().state
       });
@@ -2726,7 +2729,7 @@ function init(ctx) {
   startSoundSystemMonitor();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005C' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005D' };
 }
 
 module.exports = {

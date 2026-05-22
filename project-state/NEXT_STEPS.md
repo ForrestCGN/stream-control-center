@@ -16,6 +16,6 @@ Dann zwei unterschiedliche Shows starten und prüfen, ob die zweite in der Sound
 - Später Party-Bilder pro Party ergänzen.
 
 
-## Nach STEP_BIRTHDAY_005C testen
+## Nach STEP_BIRTHDAY_005D testen
 - `/api/birthday/show/queue` aufrufen.
 - Dedupe testen: gleicher User blockt, anderer User queued.
