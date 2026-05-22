@@ -1,1 +1,1 @@
-Birthday-System: STEP_BIRTHDAY_008. Commands laufen weiterhin über das zentrale Command-System; Auto-Gratulation bleibt über passiven Chat-Hook aktiv. Birthday-Textausgaben wählen nur noch eine Variante, Party-Start ist auf Mods/Broadcaster/Allowlist begrenzt und Overlay-Szenenlabels sind nur noch im Debug-Modus sichtbar.
+Birthday-System: STEP_BIRTHDAY_010. Commands laufen ausschließlich über das zentrale Command-System; Auto-Gratulation bleibt über passiven Chat-Hook aktiv. Overlay-FX wurden beruhigt und dezente Vordergrund-Herzen über der Kachel ergänzt.

@@ -261,10 +261,11 @@
 
     .name-line {
       max-width: 100%;
-      margin: 20px 0 20px;
+      margin: 18px 0 12px;
+      padding: 0 0 .18em;
       color: var(--gold);
       font-size: clamp(50px, 5.2vw, 96px);
-      line-height: .98;
+      line-height: 1.12;
       font-weight: 950;
       letter-spacing: 1px;
       white-space: nowrap;
@@ -332,6 +333,14 @@
       position: absolute;
       inset: 0;
       z-index: 2;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .foreground-fx {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
       overflow: hidden;
       pointer-events: none;
     }
@@ -439,7 +448,69 @@
       22%, 62% { opacity: .78; transform: translateY(0) scale(1); }
     }
 
+    .ambient-word {
+      position: absolute;
+      color: rgba(244,247,255,.16);
+      font-size: var(--size, 48px);
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      white-space: nowrap;
+      text-shadow: 0 0 22px rgba(196,92,255,.28), 0 0 34px rgba(57,230,255,.12);
+      transform: translate(-50%, -50%) rotate(var(--rot, -5deg));
+      animation: ambientWordFade var(--dur, 14s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+      pointer-events: none;
+    }
+
+    @keyframes ambientWordFade {
+      0%, 100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--rot, -5deg)) scale(.96); }
+      30%, 64% { opacity: var(--peak, .30); transform: translate(-50%, -50%) rotate(var(--rot, -5deg)) scale(1); }
+    }
+
+    .ambient-heart {
+      position: absolute;
+      color: var(--pink);
+      font-size: var(--size, 34px);
+      text-shadow: 0 0 16px rgba(255,79,216,.46), 0 0 26px rgba(196,92,255,.18);
+      transform: translate(-50%, -50%) scale(.95);
+      animation: ambientHeartPulse var(--dur, 10s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+      pointer-events: none;
+    }
+    .ambient-heart::before { content: "♥"; }
+
+    .foreground-heart {
+      position: absolute;
+      color: var(--pink);
+      font-size: var(--size, 38px);
+      opacity: 0;
+      filter: drop-shadow(0 0 12px rgba(255,79,216,.58)) drop-shadow(0 0 24px rgba(196,92,255,.22));
+      transform: translate(-50%, -50%) scale(.82) rotate(var(--rot, 0deg));
+      animation: foregroundHeartFade var(--dur, 15s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+    .foreground-heart::before { content: "♥"; }
+
+    @keyframes ambientHeartPulse {
+      0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(.82); }
+      38%, 66% { opacity: var(--peak, .42); transform: translate(-50%, -50%) scale(1.05); }
+    }
+
+    @keyframes foregroundHeartFade {
+      0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(.78) rotate(var(--rot, 0deg)); }
+      30% { opacity: 0; transform: translate(-50%, -50%) scale(.86) rotate(var(--rot, 0deg)); }
+      44%, 58% { opacity: var(--peak, .52); transform: translate(-50%, -50%) scale(1.08) rotate(calc(var(--rot, 0deg) + 2deg)); }
+      72% { opacity: 0; transform: translate(-50%, -50%) scale(.92) rotate(calc(var(--rot, 0deg) - 2deg)); }
+    }
+
     .scene-label {
+      display: none;
+    }
+
+    body.debug-mode .scene-label {
       position: absolute;
       right: 190px;
       bottom: 184px;
@@ -452,10 +523,7 @@
       letter-spacing: 2px;
       text-transform: uppercase;
       text-shadow: 0 0 16px rgba(57,230,255,.22);
-    }
-
-    .scene-label[hidden] {
-      display: none !important;
+      display: block;
     }
 
     .debug {
@@ -489,6 +557,7 @@
   <div id="stage" class="stage" data-style="cgn_neon">
     <div class="bg-glow"></div>
     <div id="fx" class="fx-layer party-only"></div>
+    <div id="fgFx" class="foreground-fx party-only"></div>
 
     <section class="shell">
       <div class="avatar-wrap">
@@ -510,13 +579,14 @@
     </section>
 
     <div id="introNote" class="intro-note">Intro-Video läuft · Party startet mit dem Song</div>
-    <div id="sceneLabel" class="scene-label party-only" hidden>Heart Rain</div>
+    <div id="sceneLabel" class="scene-label party-only">Heart Rain</div>
     <pre id="debug" class="debug"></pre>
   </div>
 
   <script>
     const stage = document.getElementById('stage');
     const fx = document.getElementById('fx');
+    const fgFx = document.getElementById('fgFx');
     const avatar = document.getElementById('avatar');
     const avatarFallback = document.getElementById('avatarFallback');
     const headline = document.getElementById('headline');
@@ -527,10 +597,10 @@
     const debug = document.getElementById('debug');
 
     const DEBUG = new URLSearchParams(location.search).has('debug');
-    sceneLabel.hidden = !DEBUG;
+    document.body.classList.toggle('debug-mode', DEBUG);
     const SCENES = ['Heart Rain', 'Confetti Storm', 'Name Spotlight', 'Cake Alarm', 'Heimaufsicht', 'Final Burst'];
     let lastRequestId = '';
-    let lastSceneIndex = -1;
+    let lastStyleKey = '';
 
     function cleanText(value) {
       return String(value || '')
@@ -586,18 +656,95 @@
 
     function buildFx(styleKey) {
       fx.innerHTML = '';
+      fgFx.innerHTML = '';
       const style = String(styleKey || 'cgn_neon');
       const counts = {
-        hearts: style === 'cute_soft' ? 42 : style === 'epic_party' ? 48 : 34,
-        confetti: style === 'epic_party' ? 74 : style === 'classic_party' ? 68 : 48,
-        balloons: style === 'classic_party' ? 11 : style === 'cute_soft' ? 8 : 5,
-        sparkles: style === 'epic_party' ? 70 : 48,
-        ribbons: style === 'cgn_neon' || style === 'epic_party' ? 12 : 7,
-        words: 7
+        hearts: style === 'cute_soft' ? 30 : style === 'epic_party' ? 36 : 26,
+        confetti: style === 'epic_party' ? 62 : style === 'classic_party' ? 56 : 40,
+        balloons: style === 'classic_party' ? 9 : style === 'cute_soft' ? 7 : 4,
+        sparkles: style === 'epic_party' ? 60 : 42,
+        ribbons: style === 'cgn_neon' || style === 'epic_party' ? 10 : 6,
+        words: 6,
+        ambientWords: 5,
+        ambientHearts: 8,
+        foregroundHearts: 12
       };
 
       const rand = (min, max) => Math.random() * (max - min) + min;
       const colors = ['var(--cyan)', 'var(--purple)', 'var(--pink)', 'var(--gold)', '#ffffff'];
+      const ambientWordSlots = [
+        { left: 22, top: 20, rot: -7, size: 42, delay: -3.0 },
+        { left: 76, top: 24, rot: 6, size: 38, delay: -8.0 },
+        { left: 20, top: 78, rot: 5, size: 36, delay: -12.0 },
+        { left: 78, top: 78, rot: -6, size: 40, delay: -5.5 },
+        { left: 50, top: 12, rot: 0, size: 34, delay: -15.0 }
+      ];
+      const ambientHeartSlots = [
+        { left: 12, top: 18, size: 24, delay: -1.5 },
+        { left: 88, top: 20, size: 27, delay: -5.0 },
+        { left: 16, top: 55, size: 21, delay: -8.5 },
+        { left: 84, top: 56, size: 22, delay: -11.0 },
+        { left: 34, top: 86, size: 24, delay: -13.0 },
+        { left: 66, top: 86, size: 22, delay: -3.8 },
+        { left: 46, top: 24, size: 17, delay: -9.2 },
+        { left: 54, top: 76, size: 19, delay: -6.5 }
+      ];
+      const foregroundHeartSlots = [
+        { left: 17, top: 33, size: 34, rot: -8, delay: -2.0, dur: 16.5, peak: .38 },
+        { left: 83, top: 32, size: 38, rot: 7, delay: -9.5, dur: 17.8, peak: .42 },
+        { left: 23, top: 69, size: 28, rot: 10, delay: -14.0, dur: 18.6, peak: .34 },
+        { left: 77, top: 68, size: 30, rot: -9, delay: -5.5, dur: 16.9, peak: .36 },
+        { left: 42, top: 28, size: 22, rot: 5, delay: -12.0, dur: 19.2, peak: .30 },
+        { left: 60, top: 73, size: 24, rot: -4, delay: -7.0, dur: 17.4, peak: .32 },
+        { left: 10, top: 78, size: 31, rot: 6, delay: -16.0, dur: 20.0, peak: .35 },
+        { left: 90, top: 78, size: 29, rot: -6, delay: -3.5, dur: 18.2, peak: .34 },
+        { left: 31, top: 47, size: 19, rot: -3, delay: -18.0, dur: 21.0, peak: .26 },
+        { left: 70, top: 47, size: 20, rot: 4, delay: -11.0, dur: 20.5, peak: .27 },
+        { left: 49, top: 18, size: 21, rot: -5, delay: -6.5, dur: 18.8, peak: .25 },
+        { left: 51, top: 88, size: 23, rot: 5, delay: -15.5, dur: 19.6, peak: .28 }
+      ];
+
+      for (let i = 0; i < counts.ambientWords; i++) {
+        const slot = ambientWordSlots[i % ambientWordSlots.length];
+        const el = document.createElement('i');
+        el.className = 'ambient-word';
+        el.textContent = 'Happy Birthday';
+        el.style.left = `${slot.left}%`;
+        el.style.top = `${slot.top}%`;
+        el.style.setProperty('--rot', `${slot.rot}deg`);
+        el.style.setProperty('--size', `${slot.size}px`);
+        el.style.setProperty('--dur', `${rand(13, 18)}s`);
+        el.style.setProperty('--delay', `${slot.delay}s`);
+        el.style.setProperty('--peak', `${rand(.16, .28)}`);
+        fx.appendChild(el);
+      }
+
+      for (let i = 0; i < counts.ambientHearts; i++) {
+        const slot = ambientHeartSlots[i % ambientHeartSlots.length];
+        const el = document.createElement('i');
+        el.className = 'ambient-heart';
+        el.style.left = `${slot.left}%`;
+        el.style.top = `${slot.top}%`;
+        el.style.setProperty('--size', `${slot.size}px`);
+        el.style.setProperty('--dur', `${rand(10, 15)}s`);
+        el.style.setProperty('--delay', `${slot.delay}s`);
+        el.style.setProperty('--peak', `${rand(.18, .32)}`);
+        fx.appendChild(el);
+      }
+
+      for (let i = 0; i < counts.foregroundHearts; i++) {
+        const slot = foregroundHeartSlots[i % foregroundHeartSlots.length];
+        const el = document.createElement('i');
+        el.className = 'foreground-heart';
+        el.style.left = `${slot.left}%`;
+        el.style.top = `${slot.top}%`;
+        el.style.setProperty('--size', `${slot.size}px`);
+        el.style.setProperty('--rot', `${slot.rot}deg`);
+        el.style.setProperty('--dur', `${slot.dur}s`);
+        el.style.setProperty('--delay', `${slot.delay}s`);
+        el.style.setProperty('--peak', `${slot.peak}`);
+        fgFx.appendChild(el);
+      }
 
       for (let i = 0; i < counts.hearts; i++) {
         const el = document.createElement('i');
@@ -691,13 +838,12 @@
       applyNameFit();
 
       const sIndex = sceneIndexFor(state);
-      sceneLabel.hidden = !DEBUG;
       sceneLabel.textContent = SCENES[sIndex % SCENES.length];
 
-      if (requestId !== lastRequestId || sIndex !== lastSceneIndex) {
+      if (requestId !== lastRequestId || styleKey !== lastStyleKey) {
         buildFx(styleKey);
         lastRequestId = requestId;
-        lastSceneIndex = sIndex;
+        lastStyleKey = styleKey;
       }
 
       if (DEBUG) {
