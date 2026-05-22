@@ -1,3 +1,12 @@
-# CURRENT STATUS
+# CURRENT_STATUS
 
-STEP274A1C: Media Core syntax fix prepared. `backend/modules/media.js` should load again and register `/api/media/*` routes after deploy/restart.
+## STEP274B
+Zentrale Medienverwaltung wurde als Dashboard-Modul vorbereitet.
+
+Aktueller Stand:
+- Media-Core: `STEP274A1C`
+- Dashboard: `STEP274B`
+- Seite: System → Medien
+
+Nächster sinnvoller Schritt:
+- STEP274C: Commands an Medienverwaltung anbinden.

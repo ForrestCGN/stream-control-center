@@ -1,5 +1,15 @@
-# NEXT STEPS
+# NEXT_STEPS
 
-1. Deploy STEP274A1C and verify `/api/media/status`.
-2. Verify `/api/media/list?type=audio` and `/api/media/list?type=video`.
-3. Continue with STEP274B Media Dashboard after core is stable.
+## Nächster Step
+STEP274C – Commands an Medienverwaltung anbinden.
+
+Geplant:
+- Sound-/Video-Action in Commands nutzt `media_assets`.
+- Dropdowns aus `/api/media/list`.
+- Vorschau direkt im Command-Formular.
+- Ausführung über Sound-System bzw. Overlay-Player.
+
+## Später
+- Medien-Nutzungstabelle `media_usage`.
+- Schutz gegen Löschen genutzter Medien.
+- Dashboard-Upload mit Drag & Drop.

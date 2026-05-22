@@ -63,13 +63,6 @@ window.CGN = {
       overlayLabel: 'Sound-Overlay öffnen',
       reload() { return window.SoundSystemModule?.loadAll?.(true); }
     },
-    media: {
-      title: 'Medienverwaltung',
-      panelId: 'mediaModule',
-      group: 'system',
-      overlayLink: '',
-      reload() { return window.MediaModule?.loadAll?.(true); }
-    },
     message_rotator: {
       title: 'Message-Rotator',
       panelId: 'messageRotatorModule',
@@ -141,7 +134,7 @@ window.CGN = {
     system: {
       label: 'System', icon: '🧩', role: 'streamer/local_admin/owner',
       description: 'Technische Stream-Systeme, Sounds, TTS und Integrationen.',
-      items: ['sound_system', 'media', 'tts', 'bot_systems', 'message_rotator', 'automations', 'integrations', 'module_status']
+      items: ['sound_system', 'tts', 'bot_systems', 'message_rotator', 'automations', 'integrations', 'module_status']
     },
     admin: {
       label: 'Admin', icon: '🔐', role: 'local_admin/owner',
@@ -171,7 +164,6 @@ window.CGN = {
     todo: { label: 'Todo', icon: '✅', enabled: true, description: 'Todo-Ziele, DB-Texte, Settings und Statistiken.' },
     commands: { label: 'Commands', icon: '⌨️', enabled: true, description: 'Chat-Befehle zentral verwalten und testen.' },
     community_stats: { label: 'Community-Stats', icon: '📈', enabled: false, description: 'Community-Statistiken vorbereitet.' },
-    media: { label: 'Medien', icon: '🗂️', enabled: true, description: 'Zentrale Medienverwaltung für Audio, Video, Bilder und Animationen.' },
     sound_system: { label: 'Sound-System', icon: '🔊', enabled: true, description: 'Zentrale Soundausgabe, Queue und Prioritäten.' },
     tts: { label: 'TTS', icon: '🗣️', enabled: false, description: 'Text-to-Speech vorbereitet.' },
     bot_systems: { label: 'Bot-Systeme', icon: '🤖', enabled: false, description: 'Bot- und Automationssysteme vorbereitet.' },
@@ -189,7 +181,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'sound_system', 'media', 'message_rotator'],
+  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'sound_system', 'message_rotator'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });

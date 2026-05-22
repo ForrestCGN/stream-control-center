@@ -1,3 +1,14 @@
-# CURRENT SYSTEM STATUS
+# CURRENT_SYSTEM_STATUS
 
-Media Core is in STEP274A1C repair state. The module should load as `media.js` and expose `/api/media/*` routes after backend restart.
+## Medienverwaltung
+
+STEP274B ergänzt eine zentrale Dashboard-Medienverwaltung unter System → Medien.
+
+Die Medienverwaltung ist bewusst modulübergreifend gedacht:
+- Commands
+- Alerts
+- Sound-System
+- Overlays
+- spätere Module
+
+Der Core läuft über `/api/media/*` und basiert auf `media_assets`.

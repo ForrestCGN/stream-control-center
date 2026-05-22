@@ -16,7 +16,6 @@
   <link rel="stylesheet" href="/dashboard/modules/sound.css" />
   <link rel="stylesheet" href="/dashboard/modules/sound_levelscan.css" />
   <link rel="stylesheet" href="/dashboard/modules/soundalerts.css" />
-  <link rel="stylesheet" href="/dashboard/modules/media.css" />
   <link rel="stylesheet" href="/dashboard/modules/message_rotator.css" />
   <link rel="stylesheet" href="/dashboard/modules/tts.css" />
   <link rel="stylesheet" href="/dashboard/modules/hug.css" />
@@ -77,7 +76,6 @@
       <section id="soundModule" class="dashboard-module sound-admin" data-module-panel="sound_system" hidden></section>
       <section id="soundLevelModule" class="dashboard-module sound-level-admin" data-module-panel="sound_level" hidden></section>
       <section id="soundalertsModule" class="dashboard-module soundalerts-admin" data-module-panel="soundalerts" hidden></section>
-      <section id="mediaModule" class="dashboard-module media-admin" data-module-panel="media" hidden></section>
       <section id="messageRotatorModule" class="dashboard-module message-rotator-admin" data-module-panel="message_rotator" hidden></section>
       <section id="ttsModule" class="dashboard-module tts-admin" data-module-panel="tts" hidden></section>
       <section id="hugModule" class="dashboard-module hug-admin" data-module-panel="hug" hidden></section>
@@ -102,7 +100,6 @@
   <script src="/dashboard/modules/adminconfigs.js"></script>
   <script src="/dashboard/modules/sound.js"></script>
   <script src="/dashboard/modules/sound_levelscan.js"></script>
-  <script src="/dashboard/modules/media.js"></script>
   <script src="/dashboard/modules/message_rotator.js"></script>
   <script src="/dashboard/modules/hug.js"></script>
   <script src="/dashboard/modules/deathcounter.js"></script>

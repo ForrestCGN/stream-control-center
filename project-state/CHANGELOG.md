@@ -1,5 +1,7 @@
 # CHANGELOG
 
-## STEP274A1C
-- Replaced broken `backend/modules/media.js` with syntax-valid Media Core file.
-- Fixed media list optional SQL params.
+## STEP274B – Media Dashboard
+- Neues Dashboard-Modul `media.js` ergänzt.
+- Neues Stylesheet `media.css` ergänzt.
+- Hook-Script für `index.html` und `app.js` ergänzt.
+- Medienverwaltung als System-Modul geplant und eingebunden.
