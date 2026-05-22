@@ -561,7 +561,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_006C',
+    step: 'STEP_BIRTHDAY_006D',
     state: {
       ...showState,
       now: Date.now(),
@@ -1080,7 +1080,7 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, t
   const asset = pickShowAsset(targetUser || {}, context.targetLogin);
   const videoMs = asset.videoFile ? Math.max(1000, Number(asset.videoDurationMs || cfg.show?.defaultVideoDurationMs || 10000)) : 0;
   const partyMs = Math.max(3000, Number(asset.songDurationMs || asset.partyDurationMs || cfg.show?.partyDurationMs || 22000));
-  const baseHeadline = birthdayContext.age ? `Happy ${birthdayContext.age}. Birthday!` : 'Happy Birthday!';
+  const baseHeadline = 'Happy Birthday!';
   const baseMessage = birthdayContext.age ? `Alles Gute zum ${birthdayContext.age}. Geburtstag, @${context.targetDisplayName}!` : `Alles Gute zum Geburtstag, @${context.targetDisplayName}!`;
   const headline = renderTemplate(asset.headlineTemplate, { ...birthdayContext, headline: baseHeadline, message: baseMessage }) || baseHeadline;
   const message = renderTemplate(asset.sublineTemplate, { ...birthdayContext, headline, message: baseMessage }) || baseMessage;
@@ -2827,7 +2827,7 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_006C',
+    step: 'STEP_BIRTHDAY_006D',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
@@ -2852,7 +2852,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_006C',
+    step: 'STEP_BIRTHDAY_006D',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -2934,7 +2934,7 @@ function registerRoutes(ctx) {
     return res.json({
       ok: true,
       module: MODULE_NAME,
-      step: 'STEP_BIRTHDAY_006C',
+      step: 'STEP_BIRTHDAY_006D',
       cleanup,
       queue: listBirthdayShowQueue({ includeDone: String(req.query && req.query.includeDone || '').toLowerCase() === 'true' }),
       state: publicShowState().state
@@ -2943,7 +2943,7 @@ function registerRoutes(ctx) {
 
   routes.registerPost(app, [`${API_PREFIX}/show/queue/clear-stale`], core.asyncRoute(async (req, res) => {
     const cleanup = await cleanupStaleBirthdayShowQueue('manual_stale_queue_cleanup');
-    return res.json({ ok: true, module: MODULE_NAME, step: 'STEP_BIRTHDAY_006C', cleanup, queue: listBirthdayShowQueue({ includeDone: false }), state: publicShowState().state });
+    return res.json({ ok: true, module: MODULE_NAME, step: 'STEP_BIRTHDAY_006D', cleanup, queue: listBirthdayShowQueue({ includeDone: false }), state: publicShowState().state });
   }));
 
   routes.registerPost(app, [`${API_PREFIX}/show/stop`], (req, res) => {
@@ -3082,7 +3082,7 @@ function init(ctx) {
   startSoundSystemMonitor();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_006C' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_006D' };
 }
 
 module.exports = {

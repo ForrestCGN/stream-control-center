@@ -291,7 +291,7 @@
 
     .phase-pill {
       margin-top: 22px;
-      display: inline-flex;
+      display: none;
       align-items: center;
       gap: 10px;
       padding: 8px 16px;
@@ -660,6 +660,11 @@
       }
     }
 
+    function safeHeadline(raw) {
+      const clean = cleanText(raw || 'Happy Birthday!');
+      return clean.replace(/^Happy\s+\d+\.\s+Birthday!?$/i, 'Happy Birthday!').replace(/^Happy\s+\d+\s+Birthday!?$/i, 'Happy Birthday!');
+    }
+
     function applyState(input) {
       const state = input && input.ok && input.state ? input.state : input || {};
       const phase = String(state.phase || (DEBUG ? 'party' : 'idle'));
@@ -673,7 +678,7 @@
       stage.classList.toggle('phase-party', phase === 'party' || (DEBUG && !state.active));
       stage.classList.toggle('phase-video', phase === 'video');
 
-      headline.textContent = cleanText(state.headline || 'Happy Birthday!');
+      headline.textContent = safeHeadline(state.headline || 'Happy Birthday!');
       nameLine.textContent = displayName;
       message.textContent = safeMessage(state.rawMessage || state.message, displayName);
       phasePill.textContent = phase === 'party' ? 'Party läuft' : phase === 'video' ? 'Intro läuft' : 'Bereit';
