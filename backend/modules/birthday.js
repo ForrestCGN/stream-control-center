@@ -15,7 +15,7 @@ const mediaHelper = require('./helpers/helper_media');
 const commands = require('./commands');
 
 const MODULE_NAME = 'birthday';
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const SETTINGS_TABLE = 'birthday_settings';
 const TEXTS_MODULE = 'birthday';
 const API_PREFIX = '/api/birthday';
@@ -497,7 +497,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_004C',
+    step: 'STEP_BIRTHDAY_004D',
     state: {
       ...showState,
       now: Date.now(),
@@ -563,14 +563,16 @@ function mediaInfoForSoundFile(file, fallbackMs = 0) {
   }
 }
 
-function pickShowAsset(targetUser = {}) {
+function pickShowAsset(targetUser = {}, targetLogin = '') {
   const cfg = getConfig();
   const videoFile = safeRelativeMediaFile(cfg.show?.defaultVideoFile || '');
   const legacyVideoUrl = normalizeAssetUrl(cfg.show?.defaultVideoUrl || '');
-  const songFile = safeRelativeMediaFile(targetUser.showSongFile || cfg.show?.defaultSongFile || '');
-  const songVolume = Math.max(0, Math.min(100, Number(targetUser.showSongVolume || cfg.show?.defaultSongVolume || 85) || 85));
+  const profile = getBirthdayShowProfile(targetLogin || targetUser.login || '');
+  const profileSongFile = profile && profile.active ? profile.songFile : '';
+  const songFile = safeRelativeMediaFile(targetUser.showSongFile || profileSongFile || cfg.show?.defaultSongFile || '');
+  const songVolume = Math.max(0, Math.min(100, Number(targetUser.showSongVolume || profile?.songVolume || cfg.show?.defaultSongVolume || 85) || 85));
   const videoInfo = videoFile ? mediaInfoForSoundFile(videoFile, cfg.show?.defaultVideoDurationMs || 0) : null;
-  const songInfo = songFile ? mediaInfoForSoundFile(songFile, cfg.show?.partyDurationMs || 22000) : null;
+  const songInfo = songFile ? mediaInfoForSoundFile(songFile, targetUser.showSongDurationMs || profile?.songDurationMs || cfg.show?.partyDurationMs || 22000) : null;
   const videoDurationMs = Math.max(0, Number(videoInfo?.durationMs || cfg.show?.defaultVideoDurationMs || 0) || 0);
   const songDurationMs = Math.max(3000, Number(songInfo?.durationMs || cfg.show?.partyDurationMs || 22000) || 22000);
   return {
@@ -674,7 +676,7 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
     startedBy: cleanLogin(startedByUser?.login || '')
   };
   const birthdayContext = targetUser ? buildBirthdayContext(targetUser, { login: context.targetLogin, displayName: context.targetDisplayName }) : { displayName: context.targetDisplayName, login: context.targetLogin };
-  const asset = pickShowAsset(targetUser || {});
+  const asset = pickShowAsset(targetUser || {}, context.targetLogin);
   const videoMs = asset.videoFile ? Math.max(1000, Number(asset.videoDurationMs || cfg.show?.defaultVideoDurationMs || 10000)) : 0;
   const partyMs = Math.max(3000, Number(asset.songDurationMs || asset.partyDurationMs || cfg.show?.partyDurationMs || 22000));
   const headline = birthdayContext.age ? `Happy ${birthdayContext.age}. Birthday!` : 'Happy Birthday!';
@@ -823,6 +825,24 @@ function ensureSchema() {
         const columns = new Set(database.tableColumns('birthday_users'));
         if (!columns.has('show_song_duration_ms')) db.exec(`ALTER TABLE birthday_users ADD COLUMN show_song_duration_ms INTEGER NOT NULL DEFAULT 0;`);
       }
+
+
+      if (toVersion === 4) {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS birthday_show_profiles (
+            user_login TEXT PRIMARY KEY,
+            display_name_override TEXT NOT NULL DEFAULT '',
+            song_file TEXT NOT NULL DEFAULT '',
+            song_duration_ms INTEGER NOT NULL DEFAULT 0,
+            song_volume INTEGER NOT NULL DEFAULT 0,
+            active INTEGER NOT NULL DEFAULT 1,
+            source TEXT NOT NULL DEFAULT 'dashboard_upload',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_birthday_show_profiles_active ON birthday_show_profiles(active);
+        `);
+      }
     });
     state.schemaOk = true;
     state.schemaError = '';
@@ -861,6 +881,114 @@ function getBirthdayUser(login) {
   const userLogin = cleanLogin(login);
   if (!userLogin) return null;
   return mapBirthdayUser(database.get('SELECT * FROM birthday_users WHERE user_login = :login', { login: userLogin }));
+}
+
+
+function mapBirthdayShowProfile(row) {
+  if (!row) return null;
+  return {
+    login: row.user_login || '',
+    displayNameOverride: row.display_name_override || '',
+    songFile: row.song_file || '',
+    songDurationMs: Number(row.song_duration_ms || 0),
+    songVolume: Number(row.song_volume || 0),
+    active: Number(row.active || 0) === 1,
+    source: row.source || '',
+    createdAt: row.created_at || '',
+    updatedAt: row.updated_at || ''
+  };
+}
+
+function getBirthdayShowProfile(login) {
+  const userLogin = cleanLogin(login);
+  if (!userLogin) return null;
+  ensureSchema();
+  return mapBirthdayShowProfile(database.get('SELECT * FROM birthday_show_profiles WHERE user_login = :login', { login: userLogin }));
+}
+
+function listBirthdayShowProfiles() {
+  ensureSchema();
+  return database.all(`
+    SELECT *
+    FROM birthday_show_profiles
+    ORDER BY active DESC, user_login ASC
+  `).map(mapBirthdayShowProfile).filter(Boolean);
+}
+
+function upsertBirthdayShowProfileSong({ login, displayName = '', songFile = '', durationMs = 0, volume = 0, source = 'dashboard_upload' } = {}) {
+  const userLogin = cleanLogin(login);
+  if (!userLogin) throw new Error('user_login_required_for_user_song');
+  const existing = getBirthdayShowProfile(userLogin);
+  const now = nowIso();
+  const data = {
+    login: userLogin,
+    displayNameOverride: clean(displayName || existing?.displayNameOverride || ''),
+    songFile: safeRelativeMediaFile(songFile || existing?.songFile || ''),
+    durationMs: Math.max(0, Number(durationMs || 0) || 0),
+    volume: Math.max(0, Math.min(100, Number(volume || existing?.songVolume || 0) || 0)),
+    active: 1,
+    source: clean(source || existing?.source || 'dashboard_upload'),
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  };
+  database.run(`
+    INSERT INTO birthday_show_profiles (
+      user_login, display_name_override, song_file, song_duration_ms, song_volume, active, source, created_at, updated_at
+    ) VALUES (
+      :login, :displayNameOverride, :songFile, :durationMs, :volume, :active, :source, :createdAt, :updatedAt
+    )
+    ON CONFLICT(user_login) DO UPDATE SET
+      display_name_override = CASE WHEN excluded.display_name_override = '' THEN birthday_show_profiles.display_name_override ELSE excluded.display_name_override END,
+      song_file = excluded.song_file,
+      song_duration_ms = excluded.song_duration_ms,
+      song_volume = excluded.song_volume,
+      active = excluded.active,
+      source = excluded.source,
+      updated_at = excluded.updated_at
+  `, data);
+  return getBirthdayShowProfile(userLogin);
+}
+
+function loginFromBirthdaySongFile(fileName) {
+  const base = path.basename(clean(fileName)).toLowerCase();
+  const match = base.match(/^birthday_song_(.+?)(?:_\d+)?\.(mp3|wav|ogg|m4a)$/i);
+  if (!match) return '';
+  return cleanLogin(match[1]);
+}
+
+function backfillBirthdayShowProfilesFromFiles() {
+  try {
+    ensureSchema();
+    const cfg = getConfig();
+    const uploadDirName = sanitizeUploadBase(cfg.show?.uploadDir || 'birthday');
+    const dir = config.resolveFromSounds(uploadDirName);
+    if (!fs.existsSync(dir)) return { ok: true, scanned: 0, inserted: 0 };
+    const files = fs.readdirSync(dir)
+      .filter(file => /^birthday_song_.+\.(mp3|wav|ogg|m4a)$/i.test(file))
+      .map(file => {
+        const abs = path.join(dir, file);
+        let mtimeMs = 0;
+        try { mtimeMs = fs.statSync(abs).mtimeMs || 0; } catch (_) {}
+        return { file, mtimeMs };
+      })
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+    let inserted = 0;
+    const seen = new Set();
+    for (const item of files) {
+      const login = loginFromBirthdaySongFile(item.file);
+      if (!login || seen.has(login)) continue;
+      seen.add(login);
+      const existing = getBirthdayShowProfile(login);
+      if (existing?.songFile) continue;
+      const relativePath = `${uploadDirName}/${item.file}`.replace(/\\/g, '/');
+      const info = mediaInfoForSoundFile(relativePath, 0);
+      upsertBirthdayShowProfileSong({ login, songFile: relativePath, durationMs: Number(info.durationMs || 0), source: 'file_backfill' });
+      inserted += 1;
+    }
+    return { ok: true, scanned: files.length, inserted };
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
 }
 
 function upsertBirthdayUser({ login, displayName, day, month, year = null, source = 'chat_command' }) {
@@ -1484,14 +1612,25 @@ function updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payloa
   if (cleanKind === 'user_song') {
     const login = cleanLogin(payload.login || payload.userLogin || payload.username || '');
     if (!login) throw new Error('user_login_required_for_user_song');
-    database.run(`
-      UPDATE birthday_users
-      SET show_song_file = :file,
-          show_song_duration_ms = :durationMs,
-          updated_at = :updatedAt
-      WHERE user_login = :login
-    `, { login, file: relativePath, durationMs, updatedAt: nowIso() });
-    return { target: 'user_song', login };
+    const profile = upsertBirthdayShowProfileSong({
+      login,
+      displayName: payload.displayName || payload.userDisplayName || '',
+      songFile: relativePath,
+      durationMs,
+      volume: Number(payload.volume || 0) || 0,
+      source: 'dashboard_upload'
+    });
+    const existingUser = getBirthdayUser(login);
+    if (existingUser) {
+      database.run(`
+        UPDATE birthday_users
+        SET show_song_file = :file,
+            show_song_duration_ms = :durationMs,
+            updated_at = :updatedAt
+        WHERE user_login = :login
+      `, { login, file: relativePath, durationMs, updatedAt: nowIso() });
+    }
+    return { target: 'user_song', login, profile };
   }
   throw new Error('invalid_upload_kind');
 }
@@ -1522,6 +1661,8 @@ function handleBirthdayAssetUpload(payload = {}, file = null) {
     mediaInfo,
     reference,
     user: reference.login ? getBirthdayUser(reference.login) : null,
+    profile: reference.login ? getBirthdayShowProfile(reference.login) : null,
+    assets: buildBirthdayShowAssets(),
     status: buildStatus()
   };
 }
@@ -1604,17 +1745,36 @@ function buildAssetInfo(label, role, relativeFile, fallbackMs = 0, expectedKind 
 
 function buildBirthdayShowAssets() {
   const cfg = getConfig();
+  const backfill = backfillBirthdayShowProfilesFromFiles();
   const users = listBirthdayUsers({ includeInactive: true, limit: 1000 });
+  const profiles = listBirthdayShowProfiles();
   const intro = buildAssetInfo('Globales Intro-Video', 'intro_video', cfg.show?.defaultVideoFile || '', cfg.show?.defaultVideoDurationMs || 0, 'video');
   const defaultSong = buildAssetInfo('Standardsong', 'default_song', cfg.show?.defaultSongFile || '', cfg.show?.partyDurationMs || 0, 'audio');
-  const userSongs = users
-    .filter(user => !!user.showSongFile)
-    .map(user => ({
+  const byLogin = new Map();
+  for (const profile of profiles) {
+    if (!profile.songFile) continue;
+    const linkedUser = users.find(user => user.login === profile.login) || null;
+    byLogin.set(profile.login, {
+      login: profile.login,
+      displayName: linkedUser?.displayName || profile.displayNameOverride || profile.login,
+      active: profile.active,
+      source: profile.source || 'profile',
+      registeredBirthday: !!linkedUser,
+      asset: buildAssetInfo(`User-Song ${linkedUser?.displayName || profile.displayNameOverride || profile.login}`, 'user_song', profile.songFile, profile.songDurationMs || cfg.show?.partyDurationMs || 0, 'audio')
+    });
+  }
+  for (const user of users) {
+    if (!user.showSongFile) continue;
+    byLogin.set(user.login, {
       login: user.login,
       displayName: user.displayName || user.login,
       active: !!user.active,
+      source: 'birthday_user',
+      registeredBirthday: true,
       asset: buildAssetInfo(`User-Song ${user.displayName || user.login}`, 'user_song', user.showSongFile, user.showSongDurationMs || cfg.show?.partyDurationMs || 0, 'audio')
-    }));
+    });
+  }
+  const userSongs = Array.from(byLogin.values()).sort((a, b) => String(a.displayName || a.login).localeCompare(String(b.displayName || b.login), 'de'));
   const activeSong = defaultSong;
   const timingPreview = {
     introDurationMs: intro.durationMs,
@@ -1634,11 +1794,12 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_004C',
+    step: 'STEP_BIRTHDAY_004D',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
     userSongs,
+    backfill,
     timingPreview,
     notes: [
       'Sound-System bekommt beim Start explizite durationMs-Werte.',
@@ -1655,7 +1816,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_004C',
+    step: 'STEP_BIRTHDAY_004D',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -1736,7 +1897,7 @@ function registerRoutes(ctx) {
     }
   });
 
-  // STEP_BIRTHDAY_004C
+  // STEP_BIRTHDAY_004D
   // helper_routes.registerPost expects the final handler first and optional middlewares after it.
   // Multer must run before this handler, otherwise req.file stays empty and upload_file_missing is thrown.
   routes.registerPost(app, [`${API_PREFIX}/admin/show/upload`], (req, res) => {
@@ -1842,7 +2003,7 @@ function init(ctx) {
   installChatActivityHook();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004C' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004D' };
 }
 
 module.exports = {

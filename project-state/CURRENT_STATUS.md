@@ -144,3 +144,9 @@ Stand: 2026-05-22
 - Birthday-Show Asset-/Dauerstatus ergänzt.
 - Dashboard zeigt erkannte Laufzeiten, Fallback-Warnungen, Sound-System-Status und SoundPegel-Status.
 - Neue Routen: `/api/birthday/admin/show/assets` und `/api/birthday/admin/show/recheck`.
+
+
+## STEP_BIRTHDAY_004D
+- Fix: User-Song-Uploads werden jetzt unabhängig von registrierten Geburtstagen als Birthday-Show-Profile gespeichert.
+- Vorhandene `birthday_song_<login>*.mp3` Dateien werden automatisch in Show-Profile zurückgeführt.
+- `!birthday party <login>` nutzt diese Show-Profile auch ohne Geburtstagseintrag.

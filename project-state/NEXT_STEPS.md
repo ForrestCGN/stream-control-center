@@ -51,3 +51,8 @@
 - Birthday-Show Asset-/Dauerstatus ergänzt.
 - Dashboard zeigt erkannte Laufzeiten, Fallback-Warnungen, Sound-System-Status und SoundPegel-Status.
 - Neue Routen: `/api/birthday/admin/show/assets` und `/api/birthday/admin/show/recheck`.
+
+
+## Nach STEP_BIRTHDAY_004D
+- Dashboard prüfen: Party-Show → User-Songs muss hochgeladene User-Songs auch ohne Geburtstagsregistrierung anzeigen.
+- Danach Show-Livetest mit `!birthday party araglor`.
