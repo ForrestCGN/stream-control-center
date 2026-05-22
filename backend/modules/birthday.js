@@ -1,6 +1,9 @@
 'use strict';
 
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const database = require('../core/database');
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
@@ -8,10 +11,11 @@ const config = require('./helpers/helper_config');
 const settings = require('./helpers/helper_settings');
 const texts = require('./helpers/helper_texts');
 const chatOutput = require('./helpers/helper_chat_output');
+const mediaHelper = require('./helpers/helper_media');
 const commands = require('./commands');
 
 const MODULE_NAME = 'birthday';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const SETTINGS_TABLE = 'birthday_settings';
 const TEXTS_MODULE = 'birthday';
 const API_PREFIX = '/api/birthday';
@@ -53,15 +57,19 @@ const DEFAULT_CONFIG = {
     enabled: true,
     allowedLogins: ['forrestcgn'],
     defaultVideoUrl: '',
+    defaultVideoFile: 'birthday/birthday_intro_video.webm',
     defaultVideoDurationMs: 0,
-    defaultSongFile: 'birthday/default.mp3',
+    defaultSongFile: 'birthday/birthday_default_song.mp3',
     defaultSongVolume: 85,
     partyDurationMs: 22000,
     overlayFadeMs: 700,
     soundCategory: 'special',
     soundPriority: 75,
     soundOutputTarget: 'overlay',
-    soundTarget: 'stream'
+    soundTarget: 'stream',
+    forceExclusive: true,
+    videoQuietPhaseLabel: 'Intro läuft',
+    uploadDir: 'birthday'
   }
 };
 
@@ -155,7 +163,7 @@ const DEFAULT_MESSAGES = {
   ],
   party_started: [
     '🎉 Geburtstagsshow für @{targetDisplayName} wird gestartet!',
-    '🎂 Heimleitung startet die Partyakte für @{targetDisplayName}. Bitte Konfetti bereithalten!'
+    '🎂 Heimleitung startet die Partyakte für @{targetDisplayName}. Intro läuft erst ruhig, Eskalation startet mit dem Song!'
   ],
   party_missing_target: [
     '🎂 Bitte gib einen User an: !birthday party username'
@@ -230,8 +238,10 @@ let showState = {
   headline: '',
   message: '',
   videoUrl: '',
+  videoFile: '',
   videoDurationMs: 0,
   songFile: '',
+  songDurationMs: 0,
   songVolume: 0,
   startedAt: 0,
   phaseStartedAt: 0,
@@ -239,9 +249,11 @@ let showState = {
   endsAt: 0,
   requestId: '',
   startedBy: '',
+  playback: {},
   error: ''
 };
 let showTimers = [];
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 250 * 1024 * 1024 } });
 
 function nowIso() {
   return core.nowIso ? core.nowIso() : new Date().toISOString();
@@ -485,7 +497,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_004',
+    step: 'STEP_BIRTHDAY_004A',
     state: {
       ...showState,
       now: Date.now(),
@@ -523,37 +535,107 @@ function normalizeAssetUrl(value) {
   return raw.startsWith('/') ? raw : `/${raw.replace(/^\/+/, '')}`;
 }
 
+function safeRelativeMediaFile(value) {
+  return clean(value).replace(/\\/g, '/').replace(/^\/+/, '').replace(/\.\./g, '');
+}
+
+function mediaInfoForSoundFile(file, fallbackMs = 0) {
+  const relative = safeRelativeMediaFile(file);
+  if (!relative) return { ok: false, file: '', durationMs: Math.max(0, Number(fallbackMs || 0)), durationOk: false, error: 'file_missing' };
+  try {
+    const info = mediaHelper.getMediaInfo(relative, { baseDir: config.getSoundsDir(), allowedExtensions: mediaHelper.DEFAULT_ALLOWED_EXTENSIONS });
+    return {
+      ok: !!info.ok,
+      file: relative,
+      webPath: `/assets/sounds/${relative}`,
+      durationMs: Number(info.durationMs || fallbackMs || 0),
+      durationOk: !!info.durationOk,
+      hasAudio: info.hasAudio !== false,
+      hasVideo: !!info.hasVideo,
+      width: Number(info.width || 0),
+      height: Number(info.height || 0),
+      error: info.error || ''
+    };
+  } catch (err) {
+    return { ok: false, file: relative, webPath: `/assets/sounds/${relative}`, durationMs: Math.max(0, Number(fallbackMs || 0)), durationOk: false, error: err.message || String(err) };
+  }
+}
+
 function pickShowAsset(targetUser = {}) {
   const cfg = getConfig();
-  const videoUrl = normalizeAssetUrl(targetUser.showVideoUrl || cfg.show?.defaultVideoUrl || '');
-  const songFile = clean(targetUser.showSongFile || cfg.show?.defaultSongFile || '');
+  const videoFile = safeRelativeMediaFile(cfg.show?.defaultVideoFile || '');
+  const legacyVideoUrl = normalizeAssetUrl(cfg.show?.defaultVideoUrl || '');
+  const songFile = safeRelativeMediaFile(targetUser.showSongFile || cfg.show?.defaultSongFile || '');
   const songVolume = Math.max(0, Math.min(100, Number(targetUser.showSongVolume || cfg.show?.defaultSongVolume || 85) || 85));
-  const videoDurationMs = Math.max(0, Number(targetUser.showVideoDurationMs || cfg.show?.defaultVideoDurationMs || 0) || 0);
-  const partyDurationMs = Math.max(3000, Number(cfg.show?.partyDurationMs || 22000) || 22000);
-  return { videoUrl, songFile, songVolume, videoDurationMs, partyDurationMs };
+  const videoInfo = videoFile ? mediaInfoForSoundFile(videoFile, cfg.show?.defaultVideoDurationMs || 0) : null;
+  const songInfo = songFile ? mediaInfoForSoundFile(songFile, cfg.show?.partyDurationMs || 22000) : null;
+  const videoDurationMs = Math.max(0, Number(videoInfo?.durationMs || cfg.show?.defaultVideoDurationMs || 0) || 0);
+  const songDurationMs = Math.max(3000, Number(songInfo?.durationMs || cfg.show?.partyDurationMs || 22000) || 22000);
+  return {
+    videoFile,
+    videoUrl: videoInfo?.webPath || legacyVideoUrl,
+    songFile,
+    songVolume,
+    videoDurationMs,
+    songDurationMs,
+    partyDurationMs: songDurationMs,
+    videoInfo,
+    songInfo
+  };
+}
+
+function soundPlayBase(asset, targetContext = {}, extra = {}) {
+  const cfg = getConfig();
+  const forceExclusive = cfg.show?.forceExclusive !== false;
+  return {
+    category: cfg.show?.soundCategory || 'special',
+    priority: Number(cfg.show?.soundPriority || 100),
+    outputTarget: cfg.show?.soundOutputTarget || 'overlay',
+    target: cfg.show?.soundTarget || 'stream',
+    source: 'birthday_show',
+    requestedBy: targetContext.startedBy || '',
+    queueIfBusy: forceExclusive ? false : true,
+    dropIfBusy: false,
+    clearQueue: forceExclusive,
+    force: forceExclusive,
+    override: forceExclusive,
+    canInterrupt: forceExclusive,
+    canBeInterrupted: false,
+    parallelAllowed: false,
+    cooldownMs: 0,
+    meta: { module: MODULE_NAME, showRequestId: showState.requestId, targetLogin: targetContext.targetLogin || '' },
+    ...extra
+  };
+}
+
+async function playBirthdayIntro(asset, targetContext = {}) {
+  if (!asset || !asset.videoFile) return { ok: true, skipped: true, reason: 'missing_intro_video_file' };
+  return internalRequest('POST', '/api/sound/play', soundPlayBase(asset, targetContext, {
+    file: asset.videoFile,
+    mediaType: 'video',
+    label: `Birthday Intro ${targetContext.targetDisplayName || ''}`.trim(),
+    volume: 100,
+    durationMs: asset.videoDurationMs || 0
+  }));
 }
 
 async function playBirthdaySong(asset, targetContext = {}) {
   if (!asset || !asset.songFile) return { ok: true, skipped: true, reason: 'missing_song_file' };
   const cfg = getConfig();
-  return internalRequest('POST', '/api/sound/play', {
+  return internalRequest('POST', '/api/sound/play', soundPlayBase(asset, targetContext, {
     file: asset.songFile,
+    mediaType: 'audio',
     label: `Birthday Song ${targetContext.targetDisplayName || targetContext.displayName || ''}`.trim(),
-    category: cfg.show?.soundCategory || 'special',
-    priority: Number(cfg.show?.soundPriority || 75),
     volume: Number(asset.songVolume || cfg.show?.defaultSongVolume || 85),
-    outputTarget: cfg.show?.soundOutputTarget || 'overlay',
-    target: cfg.show?.soundTarget || 'stream',
-    source: 'birthday_show',
-    requestedBy: targetContext.startedBy || '',
-    queueIfBusy: true,
-    parallelAllowed: false,
-    meta: { module: MODULE_NAME, showRequestId: showState.requestId, targetLogin: targetContext.targetLogin || '' }
-  });
+    durationMs: asset.songDurationMs || asset.partyDurationMs || 0
+  }));
 }
 
 function finishBirthdayShow(reason = 'finished') {
   clearShowTimers();
+  if (showState.active && reason !== 'finished') {
+    internalRequest('POST', '/api/sound/stop', { clearQueue: true }).catch(() => {});
+  }
   showState = {
     ...showState,
     active: false,
@@ -578,32 +660,47 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
   };
   const birthdayContext = targetUser ? buildBirthdayContext(targetUser, { login: context.targetLogin, displayName: context.targetDisplayName }) : { displayName: context.targetDisplayName, login: context.targetLogin };
   const asset = pickShowAsset(targetUser || {});
-  const videoMs = asset.videoUrl ? asset.videoDurationMs : 0;
-  const partyMs = asset.partyDurationMs;
+  const videoMs = asset.videoFile ? Math.max(1000, Number(asset.videoDurationMs || cfg.show?.defaultVideoDurationMs || 10000)) : 0;
+  const partyMs = Math.max(3000, Number(asset.songDurationMs || asset.partyDurationMs || cfg.show?.partyDurationMs || 22000));
   const headline = birthdayContext.age ? `Happy ${birthdayContext.age}. Birthday!` : 'Happy Birthday!';
   const message = birthdayContext.age ? `Alles Gute zum ${birthdayContext.age}. Geburtstag, @${context.targetDisplayName}!` : `Alles Gute zum Geburtstag, @${context.targetDisplayName}!`;
 
   showState = {
     active: true,
-    phase: videoMs > 0 ? 'video' : 'party',
+    phase: videoMs > 0 ? 'video' : 'starting_song',
     targetLogin: context.targetLogin,
     targetDisplayName: context.targetDisplayName,
     headline,
     message,
     videoUrl: asset.videoUrl,
+    videoFile: asset.videoFile,
     videoDurationMs: videoMs,
     songFile: asset.songFile,
     songVolume: asset.songVolume,
+    songDurationMs: partyMs,
+    videoQuietPhaseLabel: cfg.show?.videoQuietPhaseLabel || 'Intro läuft',
     startedAt: now,
     phaseStartedAt: now,
-    phaseEndsAt: now + (videoMs > 0 ? videoMs : partyMs),
+    phaseEndsAt: now + (videoMs > 0 ? videoMs : 1500),
     endsAt: now + videoMs + partyMs,
     requestId,
     startedBy: context.startedBy,
+    playback: { intro: null, song: null, mode: 'sound_system_master' },
     error: ''
   };
 
-  async function startPartyPhase() {
+  async function startSongAndEscalate() {
+    const songStartAt = Date.now();
+    showState = {
+      ...showState,
+      active: true,
+      phase: 'starting_song',
+      phaseStartedAt: songStartAt,
+      phaseEndsAt: songStartAt + 1500,
+      endsAt: songStartAt + partyMs
+    };
+
+    const songResult = await playBirthdaySong(asset, context);
     const phaseNow = Date.now();
     showState = {
       ...showState,
@@ -611,20 +708,23 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
       phase: 'party',
       phaseStartedAt: phaseNow,
       phaseEndsAt: phaseNow + partyMs,
-      endsAt: phaseNow + partyMs
+      endsAt: phaseNow + partyMs,
+      playback: { ...(showState.playback || {}), song: songResult }
     };
-    playBirthdaySong(asset, context).catch(err => { state.lastError = err.message || String(err); });
     scheduleShowTimer(() => finishBirthdayShow('finished'), partyMs);
   }
 
   if (videoMs > 0) {
-    scheduleShowTimer(() => { startPartyPhase().catch(err => { state.lastError = err.message || String(err); finishBirthdayShow('party_start_failed'); }); }, videoMs);
+    playBirthdayIntro(asset, context)
+      .then(result => { showState = { ...showState, playback: { ...(showState.playback || {}), intro: result } }; })
+      .catch(err => { state.lastError = err.message || String(err); showState = { ...showState, error: `intro_play_failed:${state.lastError}` }; });
+    scheduleShowTimer(() => { startSongAndEscalate().catch(err => { state.lastError = err.message || String(err); finishBirthdayShow('song_start_failed'); }); }, videoMs);
   } else {
-    startPartyPhase().catch(err => { state.lastError = err.message || String(err); finishBirthdayShow('party_start_failed'); });
+    startSongAndEscalate().catch(err => { state.lastError = err.message || String(err); finishBirthdayShow('song_start_failed'); });
   }
 
   state.lastShowStartedAt = nowIso();
-  return { ok: true, requestId, state: publicShowState().state, asset, config: { partyDurationMs: partyMs, videoDurationMs: videoMs, overlayFadeMs: Number(cfg.show?.overlayFadeMs || 700) } };
+  return { ok: true, requestId, state: publicShowState().state, asset, config: { partyDurationMs: partyMs, videoDurationMs: videoMs, overlayFadeMs: Number(cfg.show?.overlayFadeMs || 700), mediaMaster: 'sound_system' } };
 }
 
 function parseBirthdayDate(input) {
@@ -703,6 +803,11 @@ function ensureSchema() {
           CREATE INDEX IF NOT EXISTS idx_birthday_show_events_created ON birthday_show_events(created_at);
         `);
       }
+
+      if (toVersion === 3) {
+        const columns = new Set(database.tableColumns('birthday_users'));
+        if (!columns.has('show_song_duration_ms')) db.exec(`ALTER TABLE birthday_users ADD COLUMN show_song_duration_ms INTEGER NOT NULL DEFAULT 0;`);
+      }
     });
     state.schemaOk = true;
     state.schemaError = '';
@@ -732,7 +837,8 @@ function mapBirthdayUser(row) {
     showSongFile: row.show_song_file || '',
     showVideoUrl: row.show_video_url || '',
     showVideoDurationMs: Number(row.show_video_duration_ms || 0),
-    showSongVolume: Number(row.show_song_volume || 0)
+    showSongVolume: Number(row.show_song_volume || 0),
+    showSongDurationMs: Number(row.show_song_duration_ms || 0)
   };
 }
 
@@ -1158,6 +1264,7 @@ function safePublicConfig(cfg = getConfig()) {
       enabled: cfg.show?.enabled !== false,
       allowedLogins: Array.isArray(cfg.show?.allowedLogins) ? cfg.show.allowedLogins : [],
       defaultVideoUrl: cfg.show?.defaultVideoUrl || '',
+      defaultVideoFile: cfg.show?.defaultVideoFile || '',
       defaultVideoDurationMs: Number(cfg.show?.defaultVideoDurationMs || 0),
       defaultSongFile: cfg.show?.defaultSongFile || '',
       defaultSongVolume: Number(cfg.show?.defaultSongVolume || 0),
@@ -1166,7 +1273,9 @@ function safePublicConfig(cfg = getConfig()) {
       soundCategory: cfg.show?.soundCategory || 'special',
       soundPriority: Number(cfg.show?.soundPriority || 75),
       soundOutputTarget: cfg.show?.soundOutputTarget || 'overlay',
-      soundTarget: cfg.show?.soundTarget || 'stream'
+      soundTarget: cfg.show?.soundTarget || 'stream',
+      forceExclusive: cfg.show?.forceExclusive !== false,
+      uploadDir: cfg.show?.uploadDir || 'birthday'
     },
     settingsTable: cfg.settingsTable || SETTINGS_TABLE,
     settingsSource: cfg.settingsSource || 'unknown',
@@ -1264,15 +1373,17 @@ function setBirthdayUserAdmin(payload = {}) {
   const showVideoUrl = clean(payload.showVideoUrl || payload.videoUrl || '');
   const showVideoDurationMs = Math.max(0, Number(payload.showVideoDurationMs || payload.videoDurationMs || 0) || 0);
   const showSongVolume = Math.max(0, Math.min(100, Number(payload.showSongVolume || payload.songVolume || 0) || 0));
+  const showSongDurationMs = Math.max(0, Number(payload.showSongDurationMs || payload.songDurationMs || 0) || 0);
   database.run(`
     UPDATE birthday_users
     SET show_song_file = :showSongFile,
         show_video_url = :showVideoUrl,
         show_video_duration_ms = :showVideoDurationMs,
         show_song_volume = :showSongVolume,
+        show_song_duration_ms = :showSongDurationMs,
         updated_at = :updatedAt
     WHERE user_login = :login
-  `, { login, showSongFile, showVideoUrl, showVideoDurationMs, showSongVolume, updatedAt: nowIso() });
+  `, { login, showSongFile, showVideoUrl, showVideoDurationMs, showSongVolume, showSongDurationMs, updatedAt: nowIso() });
 
   if (payload.active === false || payload.active === 0 || payload.active === 'false') {
     database.run('UPDATE birthday_users SET active = 0, updated_at = :updatedAt WHERE user_login = :login', { login, updatedAt: nowIso() });
@@ -1295,6 +1406,111 @@ function deleteBirthdayUserAdmin(payload = {}) {
   return { ok: true, module: MODULE_NAME, deleted: result.deleted, soft: false, user: result.user, users: listBirthdayUsers({ limit: 250 }) };
 }
 
+function sanitizeUploadBase(value) {
+  const cleanBase = clean(value)
+    .normalize('NFKD')
+    .replace(/[^a-zA-Z0-9_.-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase();
+  return cleanBase || 'birthday_asset';
+}
+
+function uniqueBirthdayAssetPath(dir, fileName) {
+  const parsed = path.parse(fileName);
+  let candidate = path.join(dir, fileName);
+  let index = 2;
+  while (fs.existsSync(candidate)) {
+    candidate = path.join(dir, `${parsed.name}_${index}${parsed.ext}`);
+    index += 1;
+  }
+  return candidate;
+}
+
+function assertUploadAllowed(kind, ext) {
+  const cleanKind = clean(kind).toLowerCase();
+  const cleanExt = clean(ext).toLowerCase();
+  const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
+  const video = ['.webm', '.mp4', '.mov'];
+  if (cleanKind === 'intro_video') return video.includes(cleanExt);
+  if (cleanKind === 'default_song' || cleanKind === 'user_song') return audio.includes(cleanExt);
+  return false;
+}
+
+function birthdayUploadFileName(kind, login, originalName) {
+  const ext = path.extname(clean(originalName)).toLowerCase();
+  const cleanKind = clean(kind).toLowerCase();
+  if (!assertUploadAllowed(cleanKind, ext)) throw new Error(`upload_extension_not_allowed:${ext || 'missing'}`);
+  if (cleanKind === 'intro_video') return `birthday_intro_video${ext}`;
+  if (cleanKind === 'default_song') return `birthday_default_song${ext}`;
+  if (cleanKind === 'user_song') {
+    const userLogin = cleanLogin(login);
+    if (!userLogin) throw new Error('user_login_required_for_user_song');
+    return `birthday_song_${sanitizeUploadBase(userLogin)}${ext}`;
+  }
+  throw new Error('invalid_upload_kind');
+}
+
+function updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payload = {}) {
+  const cleanKind = clean(kind).toLowerCase();
+  const durationMs = Number(mediaInfo?.durationMs || 0);
+  if (cleanKind === 'intro_video') {
+    settings.setSetting(SETTINGS_TABLE, 'show.defaultVideoFile', relativePath, { valueType: 'string', description: 'Birthday globales Intro-Video über Sound-System.' });
+    if (durationMs > 0) settings.setSetting(SETTINGS_TABLE, 'show.defaultVideoDurationMs', durationMs, { valueType: 'number', description: 'Automatisch erkannte Intro-Video-Dauer.' });
+    reloadRuntime();
+    return { target: 'default_intro_video', setting: 'show.defaultVideoFile' };
+  }
+  if (cleanKind === 'default_song') {
+    settings.setSetting(SETTINGS_TABLE, 'show.defaultSongFile', relativePath, { valueType: 'string', description: 'Birthday Standardsong über Sound-System.' });
+    if (durationMs > 0) settings.setSetting(SETTINGS_TABLE, 'show.partyDurationMs', durationMs, { valueType: 'number', description: 'Fallback-/Standardsong-Dauer für Birthday-Show.' });
+    reloadRuntime();
+    return { target: 'default_song', setting: 'show.defaultSongFile' };
+  }
+  if (cleanKind === 'user_song') {
+    const login = cleanLogin(payload.login || payload.userLogin || payload.username || '');
+    if (!login) throw new Error('user_login_required_for_user_song');
+    database.run(`
+      UPDATE birthday_users
+      SET show_song_file = :file,
+          show_song_duration_ms = :durationMs,
+          updated_at = :updatedAt
+      WHERE user_login = :login
+    `, { login, file: relativePath, durationMs, updatedAt: nowIso() });
+    return { target: 'user_song', login };
+  }
+  throw new Error('invalid_upload_kind');
+}
+
+function handleBirthdayAssetUpload(payload = {}, file = null) {
+  if (!file || !file.buffer || !file.originalname) throw new Error('upload_file_missing');
+  const cfg = getConfig();
+  const kind = clean(payload.kind || payload.type || '');
+  const uploadDirName = sanitizeUploadBase(cfg.show?.uploadDir || 'birthday');
+  const targetDir = config.resolveFromSounds(uploadDirName);
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const fileName = birthdayUploadFileName(kind, payload.login || payload.userLogin || payload.username || '', file.originalname);
+  const targetPath = uniqueBirthdayAssetPath(targetDir, fileName);
+  fs.writeFileSync(targetPath, file.buffer);
+
+  const relativePath = `${uploadDirName}/${path.basename(targetPath)}`.replace(/\\/g, '/');
+  const mediaInfo = mediaInfoForSoundFile(relativePath, 0);
+  const reference = updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payload);
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    kind,
+    fileName: path.basename(targetPath),
+    relativePath,
+    webPath: `/assets/sounds/${relativePath}`,
+    mediaInfo,
+    reference,
+    user: reference.login ? getBirthdayUser(reference.login) : null,
+    status: buildStatus()
+  };
+}
+
 function buildStatus() {
   const today = localParts();
   const todayRows = state.schemaOk ? listBirthdaysFor(today.day, today.month) : [];
@@ -1302,7 +1518,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_004',
+    step: 'STEP_BIRTHDAY_004A',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -1337,6 +1553,7 @@ function buildStatus() {
       { method: 'GET', path: `${API_PREFIX}/today` },
       { method: 'GET', path: `${API_PREFIX}/show/state` },
       { method: 'POST', path: `${API_PREFIX}/show/stop` },
+      { method: 'POST', path: `${API_PREFIX}/admin/show/upload` },
       { method: 'GET', path: `${API_PREFIX}/admin/users` },
       { method: 'POST', path: `${API_PREFIX}/admin/user` },
       { method: 'POST', path: `${API_PREFIX}/admin/user/delete` },
@@ -1377,6 +1594,11 @@ function registerRoutes(ctx) {
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message || String(err) });
     }
+  });
+
+  routes.registerPost(app, [`${API_PREFIX}/admin/show/upload`], upload.single('file'), (req, res) => {
+    try { return res.json(handleBirthdayAssetUpload(req.body || {}, req.file || null)); }
+    catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
   });
 
   routes.registerGet(app, [`${API_PREFIX}/admin/users`], (req, res) => {
@@ -1466,7 +1688,7 @@ function init(ctx) {
   installChatActivityHook();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004A' };
 }
 
 module.exports = {

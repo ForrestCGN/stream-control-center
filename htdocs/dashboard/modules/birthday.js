@@ -10,7 +10,8 @@ window.BirthdayModule = (function(){
     texts: '/api/birthday/admin/texts',
     reload: '/api/birthday/reload',
     showState: '/api/birthday/show/state',
-    showStop: '/api/birthday/show/stop'
+    showStop: '/api/birthday/show/stop',
+    upload: '/api/birthday/admin/show/upload'
   };
 
   const TEXT_KEY_LABELS = {
@@ -228,12 +229,11 @@ window.BirthdayModule = (function(){
     const birthdayDate = root?.querySelector('[data-birthday-user-date]')?.value || '';
     const active = root?.querySelector('[data-birthday-user-active]')?.value !== 'false';
     const showSongFile = root?.querySelector('[data-birthday-user-song]')?.value || '';
-    const showVideoUrl = root?.querySelector('[data-birthday-user-video]')?.value || '';
-    const showVideoDurationMs = root?.querySelector('[data-birthday-user-video-ms]')?.value || '';
     const showSongVolume = root?.querySelector('[data-birthday-user-volume]')?.value || '';
+    const showSongDurationMs = root?.querySelector('[data-birthday-user-song-ms]')?.value || '';
     if (!login.trim()) throw new Error('Username fehlt.');
     if (!birthdayDate.trim()) throw new Error('Geburtstag fehlt.');
-    await window.CGN.api(api.user, { method:'POST', body: JSON.stringify({ login, displayName, birthdayDate, active, showSongFile, showVideoUrl, showVideoDurationMs, showSongVolume }) });
+    await window.CGN.api(api.user, { method:'POST', body: JSON.stringify({ login, displayName, birthdayDate, active, showSongFile, showSongVolume, showSongDurationMs }) });
     state.notice = `Geburtstag gespeichert: ${login}`;
     await loadAll(true);
   }
@@ -246,17 +246,15 @@ window.BirthdayModule = (function(){
     const dateEl = root?.querySelector('[data-birthday-user-date]');
     const activeEl = root?.querySelector('[data-birthday-user-active]');
     const songEl = root?.querySelector('[data-birthday-user-song]');
-    const videoEl = root?.querySelector('[data-birthday-user-video]');
-    const videoMsEl = root?.querySelector('[data-birthday-user-video-ms]');
     const volumeEl = root?.querySelector('[data-birthday-user-volume]');
+    const songMsEl = root?.querySelector('[data-birthday-user-song-ms]');
     if (loginEl) loginEl.value = user.login || '';
     if (displayEl) displayEl.value = user.displayName || '';
     if (dateEl) dateEl.value = user.birthdayDateWithYear || user.birthdayDate || '';
     if (activeEl) activeEl.value = user.active ? 'true' : 'false';
     if (songEl) songEl.value = user.showSongFile || '';
-    if (videoEl) videoEl.value = user.showVideoUrl || '';
-    if (videoMsEl) videoMsEl.value = user.showVideoDurationMs || '';
     if (volumeEl) volumeEl.value = user.showSongVolume || '';
+    if (songMsEl) songMsEl.value = user.showSongDurationMs || '';
   }
 
   async function deleteUser(login, hard = false) {
@@ -271,6 +269,27 @@ window.BirthdayModule = (function(){
   async function stopShow() {
     await window.CGN.api(api.showStop, { method:'POST', body:'{}' });
     state.notice = 'Birthday-Show gestoppt.';
+    await loadAll(true);
+  }
+
+
+  async function uploadAsset(kind) {
+    const fileInput = root?.querySelector(`[data-birthday-upload-file="${CSS.escape(kind)}"]`);
+    const loginInput = root?.querySelector('[data-birthday-upload-login]');
+    const file = fileInput?.files?.[0] || null;
+    if (!file) throw new Error('Bitte zuerst eine Datei auswählen.');
+    const fd = new FormData();
+    fd.append('kind', kind);
+    fd.append('file', file);
+    if (kind === 'user_song') {
+      const login = String(loginInput?.value || root?.querySelector('[data-birthday-user-login]')?.value || '').trim();
+      if (!login) throw new Error('Für User-Song bitte zuerst einen Twitch-Login angeben.');
+      fd.append('login', login);
+    }
+    const res = await fetch(api.upload, { method: 'POST', body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+    state.notice = `Upload gespeichert: ${data.relativePath || data.fileName || kind}`;
     await loadAll(true);
   }
 
@@ -329,10 +348,10 @@ window.BirthdayModule = (function(){
             <label>Anzeigename<input type="text" data-birthday-user-display placeholder="ForrestCGN"></label>
             <label>Geburtstag<input type="text" data-birthday-user-date placeholder="22.05 oder 22.05.1980"></label>
             <label>Status<select data-birthday-user-active><option value="true">aktiv</option><option value="false">inaktiv</option></select></label>
-            <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="birthday/user.mp3 oder leer für Standard"></label>
-            <label>User-Video-URL <input type="text" data-birthday-user-video placeholder="/assets/media/video/user.webm oder leer"></label>
-            <label>Video-Dauer ms <input type="number" data-birthday-user-video-ms placeholder="9000"></label>
+            <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="birthday/birthday_song_user.mp3 oder leer für Standard"></label>
+            <label>Song-Dauer ms <input type="number" data-birthday-user-song-ms placeholder="auto / optional"></label>
             <label>Song-Lautstärke <input type="number" min="0" max="100" data-birthday-user-volume placeholder="85"></label>
+            <p class="birthday-note">Das Intro-Video ist global. Pro User wird nur ein optionaler Song gepflegt.</p>
             <button type="button" data-birthday-save-user>Speichern</button>
           </div>
         </section>
@@ -349,6 +368,40 @@ window.BirthdayModule = (function(){
             </tr>`).join('')}
           </tbody></table></div>
           ${!users.length ? '<div class="birthday-empty">Noch keine Geburtstage gespeichert.</div>' : ''}
+        </section>
+      </div>`;
+  }
+
+  function renderShow() {
+    const status = state.status || {};
+    const cfg = status.config?.show || {};
+    const show = state.showState?.state || status.show || {};
+    return `
+      <div class="birthday-grid birthday-grid-users">
+        <section class="birthday-card birthday-card-main">
+          <h3>Party-Show</h3>
+          <p class="birthday-note">Medien laufen über das Sound-System. Das Birthday-Overlay eskaliert erst, wenn die Song-Phase startet.</p>
+          <div class="birthday-rows">
+            <div><span>Status</span><strong>${show.active ? `${esc(show.phase)} für @${esc(show.targetDisplayName || show.targetLogin)}` : 'inaktiv'}</strong></div>
+            <div><span>Intro-Video</span><strong>${fmt(cfg.defaultVideoFile || cfg.defaultVideoUrl || '')}</strong></div>
+            <div><span>Standardsong</span><strong>${fmt(cfg.defaultSongFile || '')}</strong></div>
+            <div><span>Sound-System</span><strong>${fmt(cfg.soundOutputTarget || 'overlay')} / ${fmt(cfg.soundTarget || 'stream')}</strong></div>
+            <div><span>Exklusiv</span><strong>${cfg.forceExclusive === false ? 'nein' : 'ja'}</strong></div>
+          </div>
+          <div class="birthday-row-actions"><a class="birthday-link-btn" href="/overlays/_overlay-birthday.html?debug=1" target="_blank">Birthday-Overlay öffnen</a><button type="button" data-birthday-stop-show>Show stoppen</button></div>
+        </section>
+        <section class="birthday-card">
+          <h3>Medien hochladen</h3>
+          <div class="birthday-form">
+            <label>Globales Intro-Video<input type="file" data-birthday-upload-file="intro_video" accept="video/webm,video/mp4,video/quicktime"></label>
+            <button type="button" data-birthday-upload="intro_video">Intro-Video hochladen</button>
+            <label>Standardsong<input type="file" data-birthday-upload-file="default_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
+            <button type="button" data-birthday-upload="default_song">Standardsong hochladen</button>
+            <label>User für eigenen Song<input type="text" data-birthday-upload-login placeholder="araglor"></label>
+            <label>User-Song<input type="file" data-birthday-upload-file="user_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
+            <button type="button" data-birthday-upload="user_song">User-Song hochladen</button>
+          </div>
+          <p class="birthday-note">Dateinamen werden automatisch sauber gesetzt: <code>birthday_intro_video.webm</code>, <code>birthday_default_song.mp3</code>, <code>birthday_song_araglor.mp3</code>.</p>
         </section>
       </div>`;
   }
@@ -386,7 +439,7 @@ window.BirthdayModule = (function(){
   function render() {
     ensurePanel();
     if (!root) return;
-    const tabs = [['overview','Übersicht'], ['users','Geburtstage'], ['settings','Settings'], ['texts','Texte']];
+    const tabs = [['overview','Übersicht'], ['show','Party-Show'], ['users','Geburtstage'], ['settings','Settings'], ['texts','Texte']];
     root.innerHTML = `
       <div class="birthday-admin-wrap">
         <section class="birthday-card birthday-hero">
@@ -397,7 +450,7 @@ window.BirthdayModule = (function(){
         ${state.notice ? `<div class="birthday-notice">${esc(state.notice)}</div>` : ''}
         ${state.loading ? '<div class="birthday-card">Lade Birthday-Daten...</div>' : `
           <div class="birthday-tabs">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-birthday-tab="${id}">${label}</button>`).join('')}</div>
-          ${state.tab === 'users' ? renderUsers() : state.tab === 'settings' ? renderSettings() : state.tab === 'texts' ? renderTexts() : renderOverview()}
+          ${state.tab === 'show' ? renderShow() : state.tab === 'users' ? renderUsers() : state.tab === 'settings' ? renderSettings() : state.tab === 'texts' ? renderTexts() : renderOverview()}
         `}
       </div>`;
     bind();
@@ -417,6 +470,7 @@ window.BirthdayModule = (function(){
     root?.querySelectorAll('[data-edit-birthday-user]').forEach(btn => btn.addEventListener('click', () => { state.tab = 'users'; render(); setTimeout(() => fillUserForm(btn.dataset.editBirthdayUser), 0); }));
     root?.querySelectorAll('[data-delete-birthday-user]').forEach(btn => btn.addEventListener('click', () => deleteUser(btn.dataset.deleteBirthdayUser, false).catch(err => { state.error = err.message; render(); })));
     root?.querySelectorAll('[data-hard-delete-birthday-user]').forEach(btn => btn.addEventListener('click', () => deleteUser(btn.dataset.hardDeleteBirthdayUser, true).catch(err => { state.error = err.message; render(); })));
+    root?.querySelectorAll('[data-birthday-upload]').forEach(btn => btn.addEventListener('click', () => uploadAsset(btn.dataset.birthdayUpload).catch(err => { state.error = err.message; render(); })));
   }
 
   function init() {

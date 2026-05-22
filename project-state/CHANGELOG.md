@@ -3,6 +3,16 @@
 ## 2026-05-22
 
 ### Birthday
+- STEP_BIRTHDAY_004A überarbeitet die manuelle Birthday-Show.
+- Medienwiedergabe läuft über das bestehende Sound-System.
+- Das Birthday-Overlay zeigt während des Intro-Videos keine Party-Eskalation.
+- Celebration startet erst nach Start der Song-Phase.
+- Uploads für Intro-Video, Standardsong und User-Song ergänzt.
+- Dateinamen werden automatisch normalisiert: `birthday_intro_video`, `birthday_default_song`, `birthday_song_<login>`.
+- User-Videos wurden bewusst aus dem Dashboard entfernt; das Intro-Video ist global.
+
+
+### Birthday
 - STEP_BIRTHDAY_003 ergänzt das Birthday-Dashboard.
 - Neue Admin-Routen für User, Settings und Textvarianten ergänzt.
 - `htdocs/dashboard/modules/birthday.js` und `.css` ergänzt.

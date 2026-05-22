@@ -2,6 +2,8 @@
 
 ## Relevante gelieferte ZIPs
 
+- `STEP_BIRTHDAY_004A_dashboard_show_sound_system.zip`
+
 - `STEP_BIRTHDAY_003_dashboard.zip`
 - `STEP_BIRTHDAY_004_dashboard_show.zip`
 

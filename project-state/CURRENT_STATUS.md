@@ -4,6 +4,16 @@ Stand: 2026-05-22
 
 ## Neu geliefert
 
+### STEP_BIRTHDAY_004A – Birthday Party-Show über Sound-System
+- Birthday-Show nutzt das bestehende Sound-System als Medien-Master.
+- `!birthday party username` bleibt ein Command über das zentrale Command-System.
+- Globales Intro-Video statt User-Videos.
+- Globaler Standardsong plus optionaler User-Song.
+- Uploads landen sauber benannt unter `htdocs/assets/sounds/birthday/`.
+- Overlay eskaliert erst ab `phase=party`, also nach Song-Start, nicht während des Intro-Videos.
+- Neue Upload-Route: `POST /api/birthday/admin/show/upload`.
+
+
 ### STEP_BIRTHDAY_002 – Birthday Registrierung + kleine Auto-Gratulation
 - Neues Backend-Modul `backend/modules/birthday.js` geliefert.
 - Neue Config `config/birthday.json` geliefert.

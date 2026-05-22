@@ -2,7 +2,7 @@
 
 ## Birthday
 
-Aktueller gelieferter Stand: `STEP_BIRTHDAY_002`.
+Aktueller gelieferter Stand: `STEP_BIRTHDAY_004A`.
 
 Neu:
 - Backend-Modul `backend/modules/birthday.js`.
@@ -22,6 +22,17 @@ Wichtig:
 - Die automatische Gratulation ist kein Command, sondern Chat-Aktivitätslogik.
 - Automatische Gratulation startet kein Video, kein Overlay und keinen Song.
 - Die große Show kommt in einem späteren STEP und soll manuell ausgelöst werden.
+
+
+### Birthday-Show
+
+Aktuell:
+- Manuell über `!birthday party username`.
+- Intro-Video ist global.
+- Standardsong global, optional User-Song pro Login.
+- Medien laufen über das bestehende Sound-System.
+- Birthday-Overlay eskaliert erst in der Song-Phase, nicht während des Videos.
+- Uploads werden automatisch sauber benannt und unter `htdocs/assets/sounds/birthday/` gespeichert.
 
 ## Command-System
 

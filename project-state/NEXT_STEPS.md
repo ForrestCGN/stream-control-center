@@ -1,6 +1,6 @@
 # NEXT_STEPS – Birthday-System
 
-## Sofort nach STEP_BIRTHDAY_004
+## Sofort nach STEP_BIRTHDAY_004A
 
 1. Backend neu starten/deployen.
 2. Status prüfen:
@@ -11,35 +11,36 @@
 3. Dashboard prüfen:
    ```text
    http://127.0.0.1:8080/dashboard
-   Community → Birthday-System
+   Community → Birthday-System → Party-Show
    ```
-4. Overlay in OBS oder Browser testen:
+4. Uploads im Dashboard testen:
+   - globales Intro-Video
+   - Standardsong
+   - optional User-Song, z. B. `araglor`
+5. Sound-System-Overlay muss in OBS aktiv sein, weil Video/Song darüber laufen.
+6. Birthday-Overlay testen:
    ```text
    http://127.0.0.1:8080/overlays/_overlay-birthday.html?debug=1
    ```
-5. Standardwerte setzen:
-   - `show.defaultVideoUrl`
-   - `show.defaultVideoDurationMs`
-   - `show.defaultSongFile`
-   - `show.defaultSongVolume`
-   - optional User-spezifische Song-/Video-Felder
-6. Test-Command:
+7. Test-Command:
    ```powershell
    Invoke-RestMethod "http://127.0.0.1:8080/api/commands/execute" -Method POST -ContentType "application/json" -Body '{"message":"!birthday party testuser","userLogin":"forrestcgn","displayName":"ForrestCGN"}'
    ```
-7. Wenn bestätigt:
+8. Erwartung:
+   - Intro-Video läuft über Sound-System.
+   - Birthday-Overlay bleibt ruhig.
+   - Nach Intro startet Song.
+   - Erst dann eskaliert das Birthday-Overlay.
+   - Overlay bleibt bis Songende sichtbar.
+9. Wenn bestätigt:
    ```powershell
-   .\stepdone.cmd "STEP_BIRTHDAY_004 Birthday Show"
+   .\stepdone.cmd "STEP_BIRTHDAY_004A Birthday Show Sound-System"
    ```
 
 ## Danach sinnvoll
 
-### STEP_BIRTHDAY_004A – Show Polish
-- Overlay Design weiter im CGN-Stil verfeinern.
-- Dashboard-Testbutton für Show hinzufügen.
-- Medienauswahl per Media-Dropdown statt Textfeld.
-- Subcommand-Rechte besser über Command-Core erweitern, falls benötigt.
-
-### STEP_BIRTHDAY_005 – Media-/Command-Core Integration
-- User-Song und Video über `media_assets` auswählen.
-- `!birthday party` Berechtigung sauber über Command-System/Subcommand-Rechte abbilden.
+### STEP_BIRTHDAY_004B – Show Polish
+- Dashboard-Testbutton für einzelne User.
+- bessere Statusanzeige für Sound-System-Playback.
+- optional echte Sound-System-Bundle-Events auswerten statt Dauer-Timer.
+- Overlay-Design weiter im CGN-Stil verfeinern.
