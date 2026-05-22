@@ -12,6 +12,261 @@ const DEFAULT_PREFIX = '!';
 const DEFAULT_TARGET_HOST = '127.0.0.1';
 const DEFAULT_TARGET_PORT = 8080;
 
+const STEP273C1_COMMAND_CATALOG = [
+  {
+    id: 'deathcounter',
+    label: 'Deathcounter',
+    icon: '💀',
+    description: 'Deathcounter V2 Chat-Commands und Overlay-Steuerung.',
+    actions: [
+      {
+        id: 'deathcounter.rip',
+        categoryId: 'deathcounter',
+        icon: '💀',
+        label: 'RIP erhöhen',
+        description: 'Erhöht den Tod-Zähler für den genannten Spieler.',
+        moduleKey: 'deathcounter_v2',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '/api/deathcounter/v2/command',
+        defaultTrigger: 'rip',
+        defaultAliases: ['death', 'tod'],
+        permissionLevel: 'everyone',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 3000,
+        responseMode: 'module',
+        config: { actionType: 'module_command', moduleCommand: 'rip', defaultArgs: [] },
+        examples: ['!rip @ForrestCGN']
+      },
+      {
+        id: 'deathcounter.tode',
+        categoryId: 'deathcounter',
+        icon: '📊',
+        label: 'Tode anzeigen',
+        description: 'Gibt Deathcounter-Statistiken aus.',
+        moduleKey: 'deathcounter_v2',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '/api/deathcounter/v2/command',
+        defaultTrigger: 'tode',
+        defaultAliases: ['deaths'],
+        permissionLevel: 'everyone',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 3000,
+        responseMode: 'module',
+        config: { actionType: 'module_command', moduleCommand: 'tode', defaultArgs: [] },
+        examples: ['!tode', '!tode @ForrestCGN']
+      },
+      {
+        id: 'deathcounter.dcount',
+        categoryId: 'deathcounter',
+        icon: '🛠️',
+        label: 'Deathcounter Admin',
+        description: 'Admin-/Mod-Command fuer Show, Hide, Reset, Add, Remove und Replace.',
+        moduleKey: 'deathcounter_v2',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '/api/deathcounter/v2/command',
+        defaultTrigger: 'dcount',
+        defaultAliases: ['deathcount', 'deathcounter'],
+        permissionLevel: 'mod',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 2500,
+        responseMode: 'module',
+        config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: [] },
+        examples: ['!dcount show', '!dcount hide', '!dcount replace @alt @neu']
+      },
+      {
+        id: 'deathcounter.show',
+        categoryId: 'deathcounter',
+        icon: '👁️',
+        label: 'Overlay anzeigen',
+        description: 'Zeigt das Deathcounter-Overlay an. Nutzt intern dcount show.',
+        moduleKey: 'deathcounter_v2',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '/api/deathcounter/v2/command',
+        defaultTrigger: 'dcshow',
+        defaultAliases: ['showdc'],
+        permissionLevel: 'mod',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 2500,
+        responseMode: 'module',
+        config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['show'] },
+        examples: ['!dcshow']
+      },
+      {
+        id: 'deathcounter.hide',
+        categoryId: 'deathcounter',
+        icon: '🙈',
+        label: 'Overlay verstecken',
+        description: 'Versteckt das Deathcounter-Overlay. Nutzt intern dcount hide.',
+        moduleKey: 'deathcounter_v2',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '/api/deathcounter/v2/command',
+        defaultTrigger: 'dchide',
+        defaultAliases: ['hidedc'],
+        permissionLevel: 'mod',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 2500,
+        responseMode: 'module',
+        config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['hide'] },
+        examples: ['!dchide']
+      }
+    ]
+  },
+  {
+    id: 'community',
+    label: 'Community',
+    icon: '👥',
+    description: 'Vorbereitete Community-Module. Werden erweitert, wenn die Module in den Command-Catalog aufgenommen werden.',
+    actions: [
+      {
+        id: 'community.hug.prepared',
+        categoryId: 'community',
+        icon: '🤗',
+        label: 'Hug-System vorbereiten',
+        description: 'Platzhalter fuer Hug/Rehug. Der echte Modul-Command wird in einem spaeteren Step angebunden.',
+        moduleKey: 'hug',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '',
+        defaultTrigger: 'hug',
+        defaultAliases: [],
+        permissionLevel: 'everyone',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 5000,
+        responseMode: 'module',
+        config: { actionType: 'module_command', catalogStatus: 'prepared' },
+        examples: ['!hug @User']
+      }
+    ]
+  },
+  {
+    id: 'content',
+    label: 'Content / Clips',
+    icon: '✂️',
+    description: 'Clip- und Content-nahe Commands.',
+    actions: [
+      {
+        id: 'content.clip.prepared',
+        categoryId: 'content',
+        icon: '✂️',
+        label: 'Clip erstellen vorbereiten',
+        description: 'Platzhalter fuer Clip-Command. Die echte Modul-Route wird spaeter aus dem Clip-Modul uebernommen.',
+        moduleKey: 'clips',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '',
+        defaultTrigger: 'clip',
+        defaultAliases: [],
+        permissionLevel: 'everyone',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 10000,
+        responseMode: 'module',
+        config: { actionType: 'module_command', catalogStatus: 'prepared' },
+        examples: ['!clip', '!clip eigener Titel']
+      }
+    ]
+  },
+  {
+    id: 'notes',
+    label: 'Tagebuch / Todo',
+    icon: '📝',
+    description: 'Tagebuch- und Todo-Module.',
+    actions: [
+      {
+        id: 'notes.tagebuch.prepared',
+        categoryId: 'notes',
+        icon: '📖',
+        label: 'Tagebuch-Eintrag vorbereiten',
+        description: 'Platzhalter fuer Tagebuch-Command.',
+        moduleKey: 'tagebuch',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '',
+        defaultTrigger: 'tagebuch',
+        defaultAliases: ['tb'],
+        permissionLevel: 'mod',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 5000,
+        responseMode: 'module',
+        config: { actionType: 'module_command', catalogStatus: 'prepared' },
+        examples: ['!tagebuch Text']
+      },
+      {
+        id: 'notes.todo.prepared',
+        categoryId: 'notes',
+        icon: '✅',
+        label: 'Todo vorbereiten',
+        description: 'Platzhalter fuer Todo-Command.',
+        moduleKey: 'todo',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '',
+        defaultTrigger: 'todo',
+        defaultAliases: [],
+        permissionLevel: 'mod',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 5000,
+        responseMode: 'module',
+        config: { actionType: 'module_command', catalogStatus: 'prepared' },
+        examples: ['!todo Text']
+      }
+    ]
+  },
+  {
+    id: 'system',
+    label: 'System / Medien',
+    icon: '🧩',
+    description: 'Vorbereitete Systemaktionen. Medien werden ab STEP274 zentral verwaltet.',
+    actions: [
+      {
+        id: 'system.sound.prepared',
+        categoryId: 'system',
+        icon: '🔊',
+        label: 'Sound-System vorbereiten',
+        description: 'Platzhalter fuer Sound-System Commands.',
+        moduleKey: 'sound_system',
+        actionKey: 'play',
+        targetMethod: 'POST',
+        targetUrl: '',
+        defaultTrigger: 'sound',
+        defaultAliases: [],
+        permissionLevel: 'mod',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 5000,
+        responseMode: 'module',
+        config: { actionType: 'module_command', catalogStatus: 'prepared' },
+        examples: ['!sound key']
+      }
+    ]
+  }
+];
+
+function buildCommandCatalog() {
+  const categories = STEP273C1_COMMAND_CATALOG.map(category => ({
+    id: category.id,
+    label: category.label,
+    icon: category.icon || '🧩',
+    description: category.description || '',
+    actions: (category.actions || []).map(action => ({ ...action, categoryId: action.categoryId || category.id }))
+  }));
+  const actions = categories.flatMap(category => category.actions.map(action => ({ ...action, categoryId: category.id, categoryLabel: category.label })));
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    version: 1,
+    step: 'STEP273C1',
+    note: 'Neue Module sollen ihren Command-Catalog pflegen oder hier zentral ergänzt werden.',
+    categories,
+    actions,
+    updatedAt: nowIso()
+  };
+}
+
+
 const state = {
   initialized: false,
   schemaOk: false,
@@ -549,15 +804,19 @@ function httpJsonRequest(method, targetUrl, payload = {}) {
 }
 
 function buildTargetPayload(command, parsedCommand, user, source = {}) {
-  const rawInput = `${parsedCommand.trigger}${parsedCommand.args.length ? ` ${parsedCommand.args.join(' ')}` : ''}`.trim();
+  const config = command.config && typeof command.config === 'object' ? command.config : {};
+  const moduleCommand = cleanText(config.moduleCommand || config.internalCommand || command.trigger) || command.trigger;
+  const defaultArgs = Array.isArray(config.defaultArgs) ? config.defaultArgs.map(item => String(item || '').trim()).filter(Boolean) : [];
+  const effectiveArgs = parsedCommand.args.length ? parsedCommand.args : defaultArgs;
+  const rawInput = `${moduleCommand}${effectiveArgs.length ? ` ${effectiveArgs.join(' ')}` : ''}`.trim();
   const payload = {
-    command: command.trigger,
-    cmd: command.trigger,
+    command: moduleCommand,
+    cmd: moduleCommand,
     rawInput,
     input: rawInput,
     rawMessage: parsedCommand.rawMessage,
     message: parsedCommand.rawMessage,
-    args: parsedCommand.args,
+    args: effectiveArgs,
     user: user.displayName || user.login,
     userName: user.displayName || user.login,
     userLogin: user.login,
@@ -572,7 +831,7 @@ function buildTargetPayload(command, parsedCommand, user, source = {}) {
     fallbackToStreamerbot: true
   };
 
-  parsedCommand.args.slice(0, 10).forEach((arg, index) => {
+  effectiveArgs.slice(0, 10).forEach((arg, index) => {
     payload[`input${index}`] = arg;
   });
 
@@ -746,7 +1005,7 @@ function statusPayload() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP273A1',
+    step: 'STEP273C1',
     prefix: state.prefix,
     enabled: state.enabled,
     initialized: state.initialized,
@@ -765,6 +1024,7 @@ function statusPayload() {
     tables: ['command_definitions', 'command_execution_log'],
     routes: buildRoutes(),
     commands: listCommands({ includeDisabled: true }),
+    moduleCatalog: buildCommandCatalog(),
     recent: recentLogs(10),
     updatedAt: nowIso()
   };
@@ -774,6 +1034,7 @@ function buildRoutes() {
   return [
     { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Command-System Status, Registry und letzte Logs' },
     { method: 'GET', path: `${API_PREFIX}/list`, purpose: 'Alle konfigurierten Commands auflisten' },
+    { method: 'GET', path: `${API_PREFIX}/catalog`, purpose: 'Modul-Command-Catalog fuer Dashboard-Dropdowns' },
     { method: 'POST', path: `${API_PREFIX}/upsert`, purpose: 'Command anlegen oder aktualisieren' },
     { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Command löschen' },
     { method: 'GET/POST', path: `${API_PREFIX}/test`, purpose: 'Chatnachricht trocken parsen und Zielpayload anzeigen' },
@@ -823,6 +1084,11 @@ module.exports.init = function init(ctx) {
 
   app.get(`${API_PREFIX}/list`, (req, res) => {
     try { return res.json(core.ok({ commands: listCommands({ includeDisabled: bool(core.getParam(req, 'includeDisabled', true), true) }) })); }
+    catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
+  });
+
+  app.get(`${API_PREFIX}/catalog`, (req, res) => {
+    try { return res.json(buildCommandCatalog()); }
     catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
   });
 

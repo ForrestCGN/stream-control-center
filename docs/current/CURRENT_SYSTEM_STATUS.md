@@ -1,37 +1,16 @@
 # CURRENT_SYSTEM_STATUS
 
-## STEP273C – Commands Dashboard Action Types
+## Command-System
 
-Stand: 2026-05-22
+Aktueller Stand: STEP273C1.
 
-Das Commands-Dashboard wurde weiter aufgeräumt und für spätere Standard-Aktionen vorbereitet.
+Das Command-System besitzt nun:
+- Backend-Core mit DB-Registry und Logs.
+- Dashboard-Modul mit Tabs.
+- Action-Typen.
+- Modul-Command-Catalog über `/api/commands/catalog`.
 
-### Bestätigte Grundlage
+Wichtige Regel:
+Neue Module sollen künftig ihren Command-Katalog pflegen oder zentral im Command-System-Katalog ergänzt werden. Dadurch kann das Dashboard Modul-Actions per Kategorie/Dropdown anbieten, statt technische Routen manuell zu erraten.
 
-- Command-Core STEP273A1 funktioniert.
-- Twitch-Chat-Hook über `twitch_presence.js` wurde live bestätigt.
-- STEP273B2 brachte den Commands-Dashboardbereich als Tab-Struktur.
-
-### Neu in STEP273C
-
-- Action-Typ-Dropdown im Command-Editor.
-- Technische Router-Felder liegen im Bereich `Erweitert`.
-- Action-Typen sind vorbereitet für:
-  - Modul-Command
-  - Chat-Text posten
-  - Zufallstext posten
-  - MP3 / Sound abspielen
-  - Video abspielen
-  - HTTP / API aufrufen
-  - Multi-Action / Ablauf
-- Icon-Buttons werden bevorzugt genutzt.
-
-### Noch offen
-
-- zentrale Medienverwaltung
-- Medien-Upload
-- Medien-Vorschau
-- Sound-/Video-Ausführung
-- Textgruppen/Zufallstexte
-
-Diese offenen Punkte sollen als eigene Steps umgesetzt werden, damit die Commands-Seite schlank bleibt.
+Medienverwaltung ist noch nicht Teil dieses Steps und soll als zentraler Systembereich folgen.

@@ -9,6 +9,7 @@ window.CommandsModule = (function(){
     test: '/api/commands/test',
     execute: '/api/commands/execute',
     logs: '/api/commands/logs',
+    catalog: '/api/commands/catalog',
     presenceStatus: '/api/twitch/presence/status',
     presenceStart: '/api/twitch/presence/start',
     presenceStop: '/api/twitch/presence/stop'
@@ -42,6 +43,8 @@ window.CommandsModule = (function(){
     status: null,
     list: null,
     logs: null,
+    catalog: null,
+    selectedCatalogCategory: '',
     presence: null,
     selectedTrigger: '',
     testMessage: '!dcount show',
@@ -83,6 +86,90 @@ window.CommandsModule = (function(){
     return ACTION_TYPES.find(item => item.id === normalizeActionType(type)) || ACTION_TYPES[0];
   }
 
+  function catalogCategories() {
+    return Array.isArray(state.catalog?.categories) ? state.catalog.categories : [];
+  }
+
+  function catalogActions() {
+    return Array.isArray(state.catalog?.actions) ? state.catalog.actions : [];
+  }
+
+  function catalogActionById(id) {
+    const clean = String(id || '').trim();
+    if (!clean) return null;
+    return catalogActions().find(action => action.id === clean) || null;
+  }
+
+  function categoryForCatalogAction(actionId) {
+    const action = catalogActionById(actionId);
+    if (action?.categoryId) return action.categoryId;
+    for (const category of catalogCategories()) {
+      if ((category.actions || []).some(item => item.id === actionId)) return category.id;
+    }
+    return '';
+  }
+
+  function selectedCatalogCategory(cmd) {
+    const fromCommand = categoryForCatalogAction(cmd?.config?.catalogActionId || '');
+    if (fromCommand) {
+      state.selectedCatalogCategory = fromCommand;
+      return fromCommand;
+    }
+    const categories = catalogCategories();
+    if (state.selectedCatalogCategory && categories.some(category => category.id === state.selectedCatalogCategory)) {
+      return state.selectedCatalogCategory;
+    }
+    state.selectedCatalogCategory = categories[0]?.id || '';
+    return state.selectedCatalogCategory;
+  }
+
+  function catalogActionsForCategory(categoryId) {
+    const category = catalogCategories().find(item => item.id === categoryId);
+    if (category && Array.isArray(category.actions)) return category.actions;
+    return catalogActions().filter(action => action.categoryId === categoryId);
+  }
+
+  function selectedCatalogActionId(cmd) {
+    const configured = String(cmd?.config?.catalogActionId || '').trim();
+    if (configured && catalogActionById(configured)) return configured;
+    const actions = catalogActionsForCategory(selectedCatalogCategory(cmd));
+    return actions[0]?.id || '';
+  }
+
+  function applyCatalogActionDefaults(actionId) {
+    const action = catalogActionById(actionId);
+    if (!action) throw new Error('Keine Modul-Aktion ausgewählt.');
+    const current = selectedCommand() || {};
+    const nextConfig = {
+      ...(current.config || {}),
+      ...(action.config || {}),
+      actionType: 'module_command',
+      catalogActionId: action.id
+    };
+    const next = {
+      ...current,
+      trigger: action.defaultTrigger || current.trigger || '',
+      aliases: Array.isArray(action.defaultAliases) ? action.defaultAliases : (current.aliases || []),
+      moduleKey: action.moduleKey || current.moduleKey || '',
+      actionKey: action.actionKey || current.actionKey || 'command',
+      targetMethod: action.targetMethod || current.targetMethod || 'POST',
+      targetUrl: action.targetUrl || current.targetUrl || '',
+      permissionLevel: action.permissionLevel || current.permissionLevel || 'everyone',
+      cooldownGlobalMs: Number(action.cooldownGlobalMs ?? current.cooldownGlobalMs ?? 1000),
+      cooldownUserMs: Number(action.cooldownUserMs ?? current.cooldownUserMs ?? 3000),
+      responseMode: action.responseMode || current.responseMode || 'module',
+      config: nextConfig
+    };
+
+    const list = commands();
+    const replaced = list.some(cmd => cmd.trigger === current.trigger);
+    state.list = { commands: replaced ? list.map(cmd => cmd.trigger === current.trigger ? next : cmd) : [next, ...list] };
+    state.selectedTrigger = next.trigger || current.trigger || '';
+    state.selectedCatalogCategory = action.categoryId || state.selectedCatalogCategory;
+    state.notice = `Defaults übernommen: ${action.label || action.id}`;
+    render();
+  }
+
   function selectedCommand() {
     const list = commands();
     if (!list.length) return null;
@@ -118,22 +205,24 @@ window.CommandsModule = (function(){
   async function loadAll(force) {
     root = document.getElementById('commandsModule');
     if (!root || !window.CGN) return;
-    if (!force && state.status && state.list && state.logs && state.presence) { render(); return; }
+    if (!force && state.status && state.list && state.logs && state.catalog && state.presence) { render(); return; }
 
     state.loading = true;
     state.error = '';
     render();
 
     try {
-      const [status, list, logsRes, presence] = await Promise.all([
+      const [status, list, logsRes, catalog, presence] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.list),
         window.CGN.api(`${api.logs}?limit=10`),
+        window.CGN.api(api.catalog).catch(err => ({ ok:false, categories:[], actions:[], error: err.message })),
         window.CGN.api(api.presenceStatus).catch(err => ({ ok:false, error: err.message }))
       ]);
       state.status = status;
       state.list = list;
       state.logs = logsRes;
+      state.catalog = catalog;
       state.presence = presence;
       state.loading = false;
     } catch (err) {
@@ -329,7 +418,35 @@ window.CommandsModule = (function(){
     if (type === 'multi_action') {
       return `<div class="cmd-action-box"><h4>🧬 Multi-Action / Ablauf</h4><label>Steps JSON<textarea data-cmd-field="multiSteps" spellcheck="false">${esc(JSON.stringify(cfg.steps || [], null, 2))}</textarea></label><p class="cmd-help">Vorbereitung für spätere Abläufe wie: Text posten → Sound abspielen → Overlay zeigen.</p></div>`;
     }
-    return `<div class="cmd-action-box"><h4>${type === 'http_request' ? '🌐 HTTP / API aufrufen' : '🧩 Modul-Command'}</h4><p class="cmd-help">Diese Action nutzt die technische Ziel-URL im Bereich „Erweitert“. Für bestehende Module wie Deathcounter bleibt das aktuell der stabile Weg.</p></div>`;
+    if (type === 'module_command') {
+      const categoryId = selectedCatalogCategory(cmd);
+      const categories = catalogCategories();
+      const actions = catalogActionsForCategory(categoryId);
+      const actionId = selectedCatalogActionId(cmd);
+      const action = catalogActionById(actionId);
+      const examples = Array.isArray(action?.examples) ? action.examples : [];
+      return `<div class="cmd-action-box cmd-catalog-box">
+        <h4>🧩 Modul-Command</h4>
+        <div class="cmd-form-grid">
+          <label>Kategorie
+            <select data-catalog-category>${categories.map(category => `<option value="${esc(category.id)}" ${category.id === categoryId ? 'selected' : ''}>${esc(category.label || category.id)}</option>`).join('')}</select>
+          </label>
+          <label>Modul-Aktion
+            <select data-catalog-action>${actions.map(item => `<option value="${esc(item.id)}" ${item.id === actionId ? 'selected' : ''}>${esc(item.icon || '🧩')} ${esc(item.label || item.id)}</option>`).join('')}</select>
+          </label>
+        </div>
+        <div class="cmd-catalog-info">
+          <div><span>Modul</span><strong>${valueOrDash(action?.moduleKey || cmd.moduleKey)}</strong></div>
+          <div><span>URL</span><strong>${valueOrDash(action?.targetUrl || cmd.targetUrl)}</strong></div>
+          <div><span>Beispiel</span><strong>${examples.length ? esc(examples.join(' · ')) : valueOrDash('')}</strong></div>
+          <div><span>Hinweis</span><strong>${valueOrDash(action?.description || 'Katalog auswählen und Defaults übernehmen.')}</strong></div>
+        </div>
+        <div class="cmd-actions">${iconButton('↩️', 'Defaults übernehmen', 'data-apply-catalog-defaults')}</div>
+        <p class="cmd-help">Neue Module sollen künftig ihren Modul-Command-Katalog pflegen. Bis dahin wird der zentrale Catalog im Command-System erweitert.</p>
+      </div>`;
+    }
+
+    return `<div class="cmd-action-box"><h4>🌐 HTTP / API aufrufen</h4><p class="cmd-help">Technischer API-Aufruf. Ziel-URL, Methode und Zusatzdaten liegen unter „Erweitert“.</p></div>`;
   }
 
   function renderManage() {
@@ -460,6 +577,19 @@ window.CommandsModule = (function(){
     root?.querySelector('[data-new-command]')?.addEventListener('click', () => { state.selectedTrigger = '__new__'; renderNewCommand(); });
     root?.querySelectorAll('[data-run-test]').forEach(btn => btn.addEventListener('click', () => runCommandTest(false).catch(showError)));
     root?.querySelectorAll('[data-run-execute]').forEach(btn => btn.addEventListener('click', () => runCommandTest(true).catch(showError)));
+    root?.querySelector('[data-catalog-category]')?.addEventListener('change', ev => {
+      state.selectedCatalogCategory = ev.target.value || '';
+      render();
+    });
+    root?.querySelector('[data-catalog-action]')?.addEventListener('change', ev => {
+      const action = catalogActionById(ev.target.value);
+      if (action?.categoryId) state.selectedCatalogCategory = action.categoryId;
+      render();
+    });
+    root?.querySelector('[data-apply-catalog-defaults]')?.addEventListener('click', () => {
+      const actionId = root?.querySelector('[data-catalog-action]')?.value || '';
+      try { applyCatalogActionDefaults(actionId); } catch (err) { showError(err); }
+    });
     root?.querySelector('[data-action-type-select]')?.addEventListener('change', () => {
       try {
         const payload = readEditor();

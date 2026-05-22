@@ -1,33 +1,34 @@
 # NEXT_STEPS
 
-## Direkt nach STEP273C testen
+## Direkt nach STEP273C1 testen
 
-1. Dashboard öffnen: `http://127.0.0.1:8080/dashboard`
-2. Community → Commands öffnen.
-3. Command bearbeiten.
-4. Action-Typ-Dropdown prüfen.
-5. Erweitert-Bereich öffnen und bestehende Deathcounter-Routerdaten prüfen.
-6. Bestehenden `!dcount show` nicht kaputt machen.
+1. Patch anwenden:
+   ```bat
+   node tools\easy\STEP273C1_APPLY_COMMAND_CATALOG.cjs
+   ```
+
+2. Syntax:
+   ```bat
+   node --check backend\modules\commands.js
+   node --check htdocs\dashboard\modules\commands.js
+   node --check tools\easy\STEP273C1_APPLY_COMMAND_CATALOG.cjs
+   ```
+
+3. API:
+   ```powershell
+   Invoke-RestMethod "http://127.0.0.1:8080/api/commands/catalog"
+   Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status"
+   ```
+
+4. Dashboard:
+   - Community → Commands → Commands
+   - Action-Typ `Modul-Command`
+   - Kategorie wählen
+   - Modul-Aktion wählen
+   - `↩️ Defaults übernehmen`
 
 ## Danach
 
-### STEP274A – Zentrale Medienverwaltung Core
-
-- DB-Tabelle `media_assets`
-- Medien scanbar machen
-- Upload-Routen vorbereiten
-- Audio/Video/Bild/Animation unterscheiden
-- bestehende Assets registrieren, nicht verschieben
-
-### STEP274B – Medienverwaltung Dashboard
-
-- System → Medien
-- Audio, Video, Bilder, Animationen
-- Upload, Vorschau, Löschen, Umbenennen
-- Icons statt Textbuttons, wo sinnvoll
-
-### STEP274C – Commands an Medien anbinden
-
-- Sound-/Video-Action wählt Medium aus zentraler Medienverwaltung
-- Vorschau im Dashboard
-- echte Ausführung über Sound-System/Overlay
+- STEP274A zentrale Medienverwaltung Core.
+- STEP274B Medienverwaltung Dashboard.
+- STEP274C Commands an Medienverwaltung anbinden.
