@@ -91,6 +91,13 @@ window.CGN = {
       overlayLink: '',
       reload() { return window.TodoModule?.loadAll?.(true); }
     },
+    commands: {
+      title: 'Commands',
+      panelId: 'commandsModule',
+      group: 'community',
+      overlayLink: '',
+      reload() { return window.CommandsModule?.loadAll?.(true); }
+    },
     vip: {
       title: 'VIP-System',
       panelId: 'vipModule',
@@ -155,7 +162,7 @@ window.CGN = {
     challenges: { label: 'Challenges', icon: '🎯', enabled: false, description: 'Challenge-System Verwaltung vorbereitet.' },
     tagebuch: { label: 'Tagebuch', icon: '📖', enabled: true, description: 'Stream-Tagebuch, DB-Texte, Settings und Statistiken.' },
     todo: { label: 'Todo', icon: '✅', enabled: true, description: 'Todo-Ziele, DB-Texte, Settings und Statistiken.' },
-    commands: { label: 'Commands', icon: '⌨️', enabled: false, description: 'Chat-Befehle vorbereitet.' },
+    commands: { label: 'Commands', icon: '⌨️', enabled: true, description: 'Chat-Befehle zentral verwalten und testen.' },
     community_stats: { label: 'Community-Stats', icon: '📈', enabled: false, description: 'Community-Statistiken vorbereitet.' },
     sound_system: { label: 'Sound-System', icon: '🔊', enabled: true, description: 'Zentrale Soundausgabe, Queue und Prioritäten.' },
     tts: { label: 'TTS', icon: '🗣️', enabled: false, description: 'Text-to-Speech vorbereitet.' },
@@ -174,7 +181,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'obs', 'sound_system', 'message_rotator'],
+  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'sound_system', 'message_rotator'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
