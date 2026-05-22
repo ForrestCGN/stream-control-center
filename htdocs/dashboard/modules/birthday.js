@@ -15,7 +15,8 @@ window.BirthdayModule = (function(){
     showAssets: '/api/birthday/admin/show/assets',
     showRecheck: '/api/birthday/admin/show/recheck',
     showParties: '/api/birthday/admin/show/parties',
-    showProfile: '/api/birthday/admin/show/profile'
+    showProfile: '/api/birthday/admin/show/profile',
+    resolveUser: '/api/birthday/admin/resolve-user'
   };
 
   const TEXT_KEY_LABELS = {
@@ -43,6 +44,8 @@ window.BirthdayModule = (function(){
     party_denied: 'Party keine Berechtigung',
     party_started: 'Party gestartet',
     party_missing_target: 'Party Ziel fehlt',
+    party_user_not_found: 'Party User nicht gefunden',
+    party_user_not_present: 'Party User nicht anwesend',
     party_disabled: 'Party deaktiviert'
   };
 
@@ -78,6 +81,7 @@ window.BirthdayModule = (function(){
 
   function boolText(value) { return value ? 'Aktiv' : 'Inaktiv'; }
   function fmt(value) { return value === undefined || value === null || value === '' ? '<span class="birthday-muted">-</span>' : esc(value); }
+  function avatarHtml(url, name){ const initial = esc(String(name || '?').slice(0,1).toUpperCase()); return url ? `<img class="birthday-avatar" src="${esc(url)}" alt="">` : `<span class="birthday-avatar birthday-avatar-fallback">${initial}</span>`; }
   function rows(data) { return Array.isArray(data?.rows) ? data.rows : []; }
   function userRows() { return Array.isArray(state.users?.users) ? state.users.users : []; }
   function textData() { return state.texts?.texts || state.texts || {}; }
@@ -114,7 +118,7 @@ window.BirthdayModule = (function(){
       label: 'Birthday-System',
       icon: '🎂',
       enabled: true,
-      description: 'Geburtstage, automatische kleine Gratulationen, manuelle Birthday-Show und Textvarianten.'
+      description: 'Geburtstage, automatische kleine Gratulationen, manuelle Birthday-Shows mit @User, Avatar und Party-Presets.'
     };
     const items = window.CGN.sections?.community?.items;
     if (Array.isArray(items) && !items.includes('birthday')) {
@@ -297,13 +301,15 @@ window.BirthdayModule = (function(){
     fd.append('file', file);
     if (kind === 'user_song') {
       const login = String(loginInput?.value || root?.querySelector('[data-birthday-user-login]')?.value || '').trim();
-      if (!login) throw new Error('Für User-Song bitte zuerst einen Twitch-Login angeben.');
+      if (!login) throw new Error('Für User-Song bitte zuerst @User oder Twitch-Login angeben.');
       fd.append('login', login);
     }
     const res = await fetch(api.upload, { method: 'POST', body: fd });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.ok === false) throw new Error(data.error || data.message || `HTTP ${res.status}`);
-    state.notice = `Upload gespeichert: ${data.relativePath || data.fileName || kind}`;
+    const profile = data.profile || data.reference?.profile || {};
+    const niceName = profile.displayNameOverride || profile.displayName || profile.login || '';
+    state.notice = `Upload gespeichert: ${data.relativePath || data.fileName || kind}${niceName ? ` für ${niceName}` : ''}`;
     await loadAll(true);
   }
 
@@ -340,9 +346,10 @@ window.BirthdayModule = (function(){
   async function assignPartyFromForm() {
     const login = root?.querySelector('[data-birthday-profile-login]')?.value || '';
     const partyKey = root?.querySelector('[data-birthday-profile-party]')?.value || '';
-    if (!login) throw new Error('Bitte User-Login eintragen.');
-    await window.CGN.api(api.showProfile, { method:'POST', body: JSON.stringify({ login, partyKey, active:true }) });
-    state.notice = 'User-Party-Zuordnung gespeichert.';
+    if (!login) throw new Error('Bitte @User oder Twitch-Login eintragen.');
+    const result = await window.CGN.api(api.showProfile, { method:'POST', body: JSON.stringify({ login, partyKey, active:true }) });
+    const profile = result.profile || {};
+    state.notice = `User-Party-Zuordnung gespeichert${profile.displayNameOverride ? ` für ${profile.displayNameOverride}` : ''}.`;
     await loadAll(true);
   }
 
@@ -454,7 +461,7 @@ window.BirthdayModule = (function(){
             <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="birthday/birthday_song_user.mp3 oder leer für Standard"></label>
             <label>Song-Dauer ms <input type="number" data-birthday-user-song-ms placeholder="auto / optional"></label>
             <label>Song-Lautstärke <input type="number" min="0" max="100" data-birthday-user-volume placeholder="85"></label>
-            <p class="birthday-note">Das Intro-Video ist global. Pro User wird nur ein optionaler Song gepflegt.</p>
+            <p class="birthday-note">Das Intro-Video ist global. User-Songs werden technisch per Login gespeichert, im Dashboard/Overlay aber mit Anzeigename + Avatar genutzt.</p>
             <button type="button" data-birthday-save-user>Speichern</button>
           </div>
         </section>
@@ -539,7 +546,7 @@ window.BirthdayModule = (function(){
             <button type="button" data-birthday-upload="intro_video">Intro-Video hochladen</button>
             <label>Standardsong<input type="file" data-birthday-upload-file="default_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
             <button type="button" data-birthday-upload="default_song">Standardsong hochladen</button>
-            <label>User für eigenen Song<input type="text" data-birthday-upload-login placeholder="araglor"></label>
+            <label>User für eigenen Song<input type="text" data-birthday-upload-login placeholder="@Araglor"></label>
             <label>User-Song<input type="file" data-birthday-upload-file="user_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
             <button type="button" data-birthday-upload="user_song">User-Song hochladen</button>
           </div>
@@ -596,12 +603,12 @@ window.BirthdayModule = (function(){
           <section class="birthday-subcard">
             <h4>User einer Party zuordnen</h4>
             <div class="birthday-form">
-              <label>User-Login<input type="text" data-birthday-profile-login placeholder="araglor" list="birthday-profile-logins"></label>
+              <label>User / Mention<input type="text" data-birthday-profile-login placeholder="@Araglor" list="birthday-profile-logins"></label>
               <datalist id="birthday-profile-logins">${profileLogins.map(login => `<option value="${esc(login)}"></option>`).join('')}</datalist>
               <label>Party<select data-birthday-profile-party><option value="">Standard-Party nutzen</option>${partyOptions}</select></label>
               <button type="button" data-birthday-assign-party>User zuordnen</button>
             </div>
-            <p class="birthday-note">Nur wenn hier eine aktive Party zugeordnet ist, bekommt der User eine eigene Party. Der User-Song kann trotzdem unabhängig davon existieren.</p>
+            <p class="birthday-note">Du kannst @Anzeigename, Anzeigename oder Login eingeben. Gespeichert wird der Login; angezeigt werden Anzeigename und Avatar, wenn auflösbar.</p>
           </section>
         </div>
       </section>
@@ -615,8 +622,8 @@ window.BirthdayModule = (function(){
         <h3>User-Zuordnungen & Songs</h3>
         ${userSongs.length || profiles.length ? `<div class="birthday-table-wrap"><table><thead><tr><th>User</th><th>Zugeordnete Party</th><th>Song</th><th>Dauer</th><th>Status</th><th></th></tr></thead><tbody>${userSongs.map(item => {
           const asset = item.asset || {}; const profile = profiles.find(p => p.login === item.login) || {}; const party = profile.party || null;
-          return `<tr><td><strong>${esc(item.displayName || item.login)}</strong><small>${esc(item.login)}</small></td><td>${party ? `<strong>${esc(party.title || party.partyKey)}</strong><small>${esc(party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td>${fmt(asset.relativePath || '')}</td><td>${fmt(asset.durationLabel || '')} <small>${esc(asset.durationSource || '')}</small></td><td>${asset.exists && asset.durationOk ? '<span class="birthday-pill ok">bereit</span>' : '<span class="birthday-pill warn">prüfen</span>'}</td><td><button type="button" data-edit-birthday-profile="${esc(item.login)}">Zuordnung bearbeiten</button></td></tr>`;
-        }).join('')}${profiles.filter(p => !userSongs.some(u => u.login === p.login)).map(profile => `<tr><td><strong>${esc(profile.displayNameOverride || profile.login)}</strong><small>${esc(profile.login)}</small></td><td>${profile.party ? `<strong>${esc(profile.party.title || profile.party.partyKey)}</strong><small>${esc(profile.party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td colspan="3"><span class="birthday-muted">kein eigener User-Song; Party/Standard-Song wird genutzt</span></td><td><button type="button" data-edit-birthday-profile="${esc(profile.login)}">Zuordnung bearbeiten</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine User-Songs oder Party-Zuordnungen hinterlegt.</div>'}
+          return `<tr><td><div class="birthday-userline">${avatarHtml(item.avatarUrl || item.asset?.avatarUrl || profile.avatarUrl || '', item.displayName || item.login)}<span><strong>${esc(item.displayName || item.login)}</strong><small>${esc(item.login)}</small></span></div></td><td>${party ? `<strong>${esc(party.title || party.partyKey)}</strong><small>${esc(party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td>${fmt(asset.relativePath || '')}</td><td>${fmt(asset.durationLabel || '')} <small>${esc(asset.durationSource || '')}</small></td><td>${asset.exists && asset.durationOk ? '<span class="birthday-pill ok">bereit</span>' : '<span class="birthday-pill warn">prüfen</span>'}</td><td><button type="button" data-edit-birthday-profile="${esc(item.login)}">Zuordnung bearbeiten</button></td></tr>`;
+        }).join('')}${profiles.filter(p => !userSongs.some(u => u.login === p.login)).map(profile => `<tr><td><div class="birthday-userline">${avatarHtml(profile.avatarUrl || '', profile.displayNameOverride || profile.login)}<span><strong>${esc(profile.displayNameOverride || profile.login)}</strong><small>${esc(profile.login)}</small></span></div></td><td>${profile.party ? `<strong>${esc(profile.party.title || profile.party.partyKey)}</strong><small>${esc(profile.party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td colspan="3"><span class="birthday-muted">kein eigener User-Song; Party/Standard-Song wird genutzt</span></td><td><button type="button" data-edit-birthday-profile="${esc(profile.login)}">Zuordnung bearbeiten</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine User-Songs oder Party-Zuordnungen hinterlegt.</div>'}
       </section>`;
   }
 

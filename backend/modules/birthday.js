@@ -15,7 +15,7 @@ const mediaHelper = require('./helpers/helper_media');
 const commands = require('./commands');
 
 const MODULE_NAME = 'birthday';
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const SETTINGS_TABLE = 'birthday_settings';
 const TEXTS_MODULE = 'birthday';
 const API_PREFIX = '/api/birthday';
@@ -69,6 +69,8 @@ const DEFAULT_CONFIG = {
     soundTarget: 'stream',
     forceExclusive: false,
     queueBirthdayShows: true,
+    requireMentionForParty: false,
+    requireUserPresent: false,
     videoQuietPhaseLabel: 'Intro läuft',
     uploadDir: 'birthday'
   }
@@ -213,7 +215,13 @@ const DEFAULT_MESSAGES = {
     '🚫 @{targetDisplayName} ist schon in der Geburtstags-Show eingeplant. Doppelbuchung abgelehnt.'
   ],
   party_missing_target: [
-    '🎂 Bitte gib einen User an: !birthday party username'
+    '🎂 Bitte gib einen User an: !birthday party @username'
+  ],
+  party_user_not_found: [
+    '🎂 @{targetDisplayName} konnte nicht sauber aufgelöst werden. Bitte nutze !birthday party @username.'
+  ],
+  party_user_not_present: [
+    '🎂 @{targetDisplayName} wurde aktuell nicht im Chat gefunden.'
   ],
   party_disabled: [
     '🎂 Die Geburtstagsshow ist aktuell deaktiviert.'
@@ -254,7 +262,9 @@ const TEXT_CATEGORIES = {
   party_missing_target: 'errors',
   party_disabled: 'system',
   party_queued: 'chat',
-  party_duplicate: 'errors'
+  party_duplicate: 'errors',
+  party_user_not_found: 'errors',
+  party_user_not_present: 'errors'
 };
 
 const state = {
@@ -284,6 +294,7 @@ let showState = {
   phase: 'idle',
   targetLogin: '',
   targetDisplayName: '',
+  targetAvatarUrl: '',
   headline: '',
   message: '',
   videoUrl: '',
@@ -549,7 +560,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005F',
+    step: 'STEP_BIRTHDAY_005G',
     state: {
       ...showState,
       now: Date.now(),
@@ -684,6 +695,7 @@ function mapShowQueueRow(row) {
     requestId: row.request_id || '',
     targetLogin: row.target_login || '',
     targetDisplayName: row.target_display_name || row.target_login || '',
+    targetAvatarUrl: row.target_avatar_url || '',
     partyKey: row.party_key || '',
     partyTitle: row.party_title || '',
     styleKey: row.style_key || '',
@@ -750,6 +762,7 @@ function upsertShowQueueEntry(entry = {}) {
     requestId,
     targetLogin: cleanLogin(entry.targetLogin || entry.target_login || ''),
     targetDisplayName: clean(entry.targetDisplayName || entry.target_display_name || entry.targetLogin || ''),
+    targetAvatarUrl: clean(entry.targetAvatarUrl || entry.target_avatar_url || ''),
     partyKey: clean(entry.partyKey || entry.party_key || ''),
     partyTitle: clean(entry.partyTitle || entry.party_title || ''),
     styleKey: clean(entry.styleKey || entry.style_key || ''),
@@ -766,17 +779,18 @@ function upsertShowQueueEntry(entry = {}) {
   };
   database.run(`
     INSERT INTO birthday_show_queue (
-      request_id, target_login, target_display_name, party_key, party_title, style_key,
+      request_id, target_login, target_display_name, target_avatar_url, party_key, party_title, style_key,
       song_file, video_file, status, position, started_by_login, created_at, updated_at,
       started_at, finished_at, error
     ) VALUES (
-      :requestId, :targetLogin, :targetDisplayName, :partyKey, :partyTitle, :styleKey,
+      :requestId, :targetLogin, :targetDisplayName, :targetAvatarUrl, :partyKey, :partyTitle, :styleKey,
       :songFile, :videoFile, :status, :position, :startedBy, :createdAt, :updatedAt,
       :startedAt, :finishedAt, :error
     )
     ON CONFLICT(request_id) DO UPDATE SET
       target_login = excluded.target_login,
       target_display_name = excluded.target_display_name,
+      target_avatar_url = CASE WHEN excluded.target_avatar_url = '' THEN birthday_show_queue.target_avatar_url ELSE excluded.target_avatar_url END,
       party_key = excluded.party_key,
       party_title = excluded.party_title,
       style_key = excluded.style_key,
@@ -943,6 +957,7 @@ function soundBundleItemBase(asset, targetContext = {}, extra = {}) {
       showRequestId: targetContext.requestId || '',
       targetLogin: targetContext.targetLogin || '',
       targetDisplayName: targetContext.targetDisplayName || '',
+      targetAvatarUrl: targetContext.targetAvatarUrl || '',
       partyKey: asset.partyKey || 'default_party',
       partyTitle: asset.partyTitle || '',
       styleKey: asset.styleKey || 'cgn_neon',
@@ -995,6 +1010,7 @@ function buildBirthdaySoundBundle(asset, targetContext = {}) {
       showRequestId: requestId,
       targetLogin: targetContext.targetLogin || '',
       targetDisplayName: targetContext.targetDisplayName || '',
+      targetAvatarUrl: targetContext.targetAvatarUrl || '',
       partyKey: asset.partyKey || 'default_party',
       styleKey: asset.styleKey || 'cgn_neon'
     },
@@ -1038,12 +1054,13 @@ function finishBirthdayShow(reason = 'finished') {
 }
 
 
-async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, startedByUser }) {
+async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, targetAvatarUrl = '', startedByUser }) {
   const cfg = getConfig();
   cleanupOldShowQueueRows();
   const now = Date.now();
   const login = cleanLogin(targetLogin || targetUser?.login || '');
   const display = clean(targetDisplayName || targetUser?.displayName || login || '');
+  const avatarUrl = clean(targetAvatarUrl || targetUser?.avatarUrl || '');
   await cleanupStaleBirthdayShowQueue('stale_before_start');
   const existing = findPendingBirthdayShowForLogin(login);
   if (existing || (showState.active && showState.targetLogin === login)) {
@@ -1055,6 +1072,7 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
     requestId,
     targetLogin: login,
     targetDisplayName: display,
+    targetAvatarUrl: avatarUrl,
     startedBy: cleanLogin(startedByUser?.login || '')
   };
   const birthdayContext = targetUser ? buildBirthdayContext(targetUser, { login: context.targetLogin, displayName: context.targetDisplayName }) : { displayName: context.targetDisplayName, login: context.targetLogin };
@@ -1074,6 +1092,7 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
     requestId,
     targetLogin: context.targetLogin,
     targetDisplayName: context.targetDisplayName,
+    targetAvatarUrl: context.targetAvatarUrl,
     partyKey: asset.partyKey || 'default_party',
     partyTitle: asset.partyTitle || 'Standard Geburtstagsparty',
     styleKey: asset.styleKey || 'cgn_neon',
@@ -1097,6 +1116,7 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
       phase: videoMs > 0 ? 'video' : 'party',
       targetLogin: context.targetLogin,
       targetDisplayName: context.targetDisplayName,
+      targetAvatarUrl: context.targetAvatarUrl,
       headline,
       message,
       rawMessage: baseMessage,
@@ -1172,6 +1192,7 @@ function applyCurrentBirthdayItemToShowState(current = {}) {
     phase,
     targetLogin,
     targetDisplayName: clean(meta.targetDisplayName || queueRow.targetDisplayName || targetLogin),
+    targetAvatarUrl: clean(meta.targetAvatarUrl || queueRow.targetAvatarUrl || showState.targetAvatarUrl || ''),
     headline: clean(meta.headline || showState.headline || 'Happy Birthday!'),
     message: clean(meta.message || showState.message || `Alles Gute zum Geburtstag, @${targetLogin}!`),
     partyKey: meta.partyKey || queueRow.partyKey || party?.partyKey || 'default_party',
@@ -1368,6 +1389,16 @@ function ensureSchema() {
         `);
       }
 
+      if (toVersion === 7) {
+        const profileColumns = new Set(database.tableColumns('birthday_show_profiles'));
+        if (!profileColumns.has('avatar_url')) db.exec(`ALTER TABLE birthday_show_profiles ADD COLUMN avatar_url TEXT NOT NULL DEFAULT '';`);
+        if (!profileColumns.has('last_resolved_at')) db.exec(`ALTER TABLE birthday_show_profiles ADD COLUMN last_resolved_at TEXT NOT NULL DEFAULT '';`);
+        const userColumns = new Set(database.tableColumns('birthday_users'));
+        if (!userColumns.has('avatar_url')) db.exec(`ALTER TABLE birthday_users ADD COLUMN avatar_url TEXT NOT NULL DEFAULT '';`);
+        const queueColumns = new Set(database.tableColumns('birthday_show_queue'));
+        if (!queueColumns.has('target_avatar_url')) db.exec(`ALTER TABLE birthday_show_queue ADD COLUMN target_avatar_url TEXT NOT NULL DEFAULT '';`);
+      }
+
     });
     state.schemaOk = true;
     state.schemaError = '';
@@ -1386,6 +1417,7 @@ function mapBirthdayUser(row) {
   return {
     login: row.user_login || '',
     displayName: row.user_display_name || row.user_login || '',
+    avatarUrl: row.avatar_url || '',
     day: Number(row.birthday_day || 0),
     month: Number(row.birthday_month || 0),
     year: row.birthday_year == null ? null : Number(row.birthday_year || 0),
@@ -1415,6 +1447,8 @@ function mapBirthdayShowProfile(row) {
   return {
     login: row.user_login || '',
     displayNameOverride: row.display_name_override || '',
+    avatarUrl: row.avatar_url || '',
+    lastResolvedAt: row.last_resolved_at || '',
     songFile: row.song_file || '',
     songDurationMs: Number(row.song_duration_ms || 0),
     songVolume: Number(row.song_volume || 0),
@@ -1442,7 +1476,7 @@ function listBirthdayShowProfiles() {
   `).map(mapBirthdayShowProfile).filter(Boolean);
 }
 
-function upsertBirthdayShowProfileSong({ login, displayName = '', songFile = '', durationMs = 0, volume = 0, source = 'dashboard_upload' } = {}) {
+function upsertBirthdayShowProfileSong({ login, displayName = '', avatarUrl = '', songFile = '', durationMs = 0, volume = 0, source = 'dashboard_upload' } = {}) {
   const userLogin = cleanLogin(login);
   if (!userLogin) throw new Error('user_login_required_for_user_song');
   const existing = getBirthdayShowProfile(userLogin);
@@ -1450,6 +1484,8 @@ function upsertBirthdayShowProfileSong({ login, displayName = '', songFile = '',
   const data = {
     login: userLogin,
     displayNameOverride: clean(displayName || existing?.displayNameOverride || ''),
+    avatarUrl: clean(avatarUrl || existing?.avatarUrl || ''),
+    lastResolvedAt: avatarUrl || displayName ? now : (existing?.lastResolvedAt || ''),
     songFile: safeRelativeMediaFile(songFile || existing?.songFile || ''),
     durationMs: Math.max(0, Number(durationMs || 0) || 0),
     volume: Math.max(0, Math.min(100, Number(volume || existing?.songVolume || 0) || 0)),
@@ -1460,12 +1496,14 @@ function upsertBirthdayShowProfileSong({ login, displayName = '', songFile = '',
   };
   database.run(`
     INSERT INTO birthday_show_profiles (
-      user_login, display_name_override, song_file, song_duration_ms, song_volume, active, source, created_at, updated_at
+      user_login, display_name_override, avatar_url, last_resolved_at, song_file, song_duration_ms, song_volume, active, source, created_at, updated_at
     ) VALUES (
-      :login, :displayNameOverride, :songFile, :durationMs, :volume, :active, :source, :createdAt, :updatedAt
+      :login, :displayNameOverride, :avatarUrl, :lastResolvedAt, :songFile, :durationMs, :volume, :active, :source, :createdAt, :updatedAt
     )
     ON CONFLICT(user_login) DO UPDATE SET
       display_name_override = CASE WHEN excluded.display_name_override = '' THEN birthday_show_profiles.display_name_override ELSE excluded.display_name_override END,
+      avatar_url = CASE WHEN excluded.avatar_url = '' THEN birthday_show_profiles.avatar_url ELSE excluded.avatar_url END,
+      last_resolved_at = CASE WHEN excluded.last_resolved_at = '' THEN birthday_show_profiles.last_resolved_at ELSE excluded.last_resolved_at END,
       song_file = excluded.song_file,
       song_duration_ms = excluded.song_duration_ms,
       song_volume = excluded.song_volume,
@@ -1683,8 +1721,9 @@ function saveBirthdayParty(payload = {}) {
   return { ok: true, module: MODULE_NAME, party: getBirthdayParty(partyKey), parties: listBirthdayParties() };
 }
 
-function assignBirthdayParty(payload = {}) {
-  const login = cleanLogin(payload.login || payload.userLogin || payload.username || '');
+async function assignBirthdayParty(payload = {}) {
+  const resolved = await resolveBirthdayTarget(payload.login || payload.userLogin || payload.username || '', { requireMention: false, requirePresent: false });
+  const login = cleanLogin(resolved.login || payload.login || payload.userLogin || payload.username || '');
   if (!login) throw new Error('user_login_required');
   const partyKey = cleanPartyKey(payload.partyKey || payload.party_key || '');
   const party = getBirthdayParty(partyKey);
@@ -1693,18 +1732,22 @@ function assignBirthdayParty(payload = {}) {
   const now = nowIso();
   database.run(`
     INSERT INTO birthday_show_profiles (
-      user_login, display_name_override, song_file, song_duration_ms, song_volume, active, source, party_key, created_at, updated_at
+      user_login, display_name_override, avatar_url, last_resolved_at, song_file, song_duration_ms, song_volume, active, source, party_key, created_at, updated_at
     ) VALUES (
-      :login, :displayNameOverride, :songFile, :songDurationMs, :songVolume, :active, :source, :partyKey, :createdAt, :updatedAt
+      :login, :displayNameOverride, :avatarUrl, :lastResolvedAt, :songFile, :songDurationMs, :songVolume, :active, :source, :partyKey, :createdAt, :updatedAt
     )
     ON CONFLICT(user_login) DO UPDATE SET
       display_name_override = CASE WHEN excluded.display_name_override = '' THEN birthday_show_profiles.display_name_override ELSE excluded.display_name_override END,
+      avatar_url = CASE WHEN excluded.avatar_url = '' THEN birthday_show_profiles.avatar_url ELSE excluded.avatar_url END,
+      last_resolved_at = CASE WHEN excluded.last_resolved_at = '' THEN birthday_show_profiles.last_resolved_at ELSE excluded.last_resolved_at END,
       party_key = excluded.party_key,
       active = excluded.active,
       updated_at = excluded.updated_at
   `, {
     login,
-    displayNameOverride: clean(payload.displayName || payload.displayNameOverride || existing?.displayNameOverride || ''),
+    displayNameOverride: clean(resolved.displayName || payload.displayName || payload.displayNameOverride || existing?.displayNameOverride || ''),
+    avatarUrl: clean(resolved.avatarUrl || existing?.avatarUrl || ''),
+    lastResolvedAt: (resolved.displayName || resolved.avatarUrl) ? now : (existing?.lastResolvedAt || ''),
     songFile: existing?.songFile || '',
     songDurationMs: existing?.songDurationMs || 0,
     songVolume: existing?.songVolume || 0,
@@ -1841,6 +1884,143 @@ function internalRequest(method, pathName, payload = {}) {
     req.write(body);
     req.end();
   });
+}
+
+
+function firstObjectLike(value) {
+  if (!value) return null;
+  if (Array.isArray(value)) return value.map(firstObjectLike).find(Boolean) || null;
+  if (typeof value === 'object') {
+    if (value.login || value.display_name || value.displayName || value.profile_image_url || value.profileImageUrl) return value;
+    for (const key of ['data', 'user', 'userInfo', 'userinfo', 'result']) {
+      const found = firstObjectLike(value[key]);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function normalizeUserInfoObject(input, fallbackLogin = '') {
+  const obj = firstObjectLike(input) || {};
+  const login = cleanLogin(obj.login || obj.user_login || obj.userLogin || obj.name || fallbackLogin);
+  const displayName = clean(obj.display_name || obj.displayName || obj.user_display_name || obj.userDisplayName || obj.name || login);
+  const avatarUrl = clean(obj.profile_image_url || obj.profileImageUrl || obj.avatar_url || obj.avatarUrl || obj.profileImage || '');
+  return { login, displayName, avatarUrl, raw: obj };
+}
+
+async function resolveTwitchUserInfo(login) {
+  const userLogin = cleanLogin(login);
+  if (!userLogin) return { ok: false, login: '', displayName: '', avatarUrl: '', error: 'user_login_required' };
+  const endpoints = [
+    `/userinfo?login=${encodeURIComponent(userLogin)}`,
+    `/api/twitch/userinfo?login=${encodeURIComponent(userLogin)}`,
+    `/api/twitch/user?login=${encodeURIComponent(userLogin)}`
+  ];
+  for (const endpoint of endpoints) {
+    const result = await internalRequest('GET', endpoint, {});
+    if (!result.ok) continue;
+    const normalized = normalizeUserInfoObject(result.data, userLogin);
+    if (normalized.login) return { ok: true, source: endpoint, ...normalized };
+  }
+  return { ok: false, login: userLogin, displayName: userLogin, avatarUrl: '', error: 'userinfo_unavailable' };
+}
+
+function collectLoginsFromPresencePayload(value, out = new Set()) {
+  if (!value) return out;
+  if (Array.isArray(value)) {
+    for (const item of value) collectLoginsFromPresencePayload(item, out);
+    return out;
+  }
+  if (typeof value !== 'object') return out;
+  for (const key of ['login', 'user_login', 'userLogin', 'name', 'username']) {
+    if (value[key]) out.add(cleanLogin(value[key]));
+  }
+  for (const key of ['users', 'chatters', 'presentUsers', 'knownUsers', 'activeUsers', 'recentUsers', 'viewers', 'rows', 'data']) {
+    if (value[key]) collectLoginsFromPresencePayload(value[key], out);
+  }
+  return out;
+}
+
+async function checkBirthdayUserPresence(login) {
+  const userLogin = cleanLogin(login);
+  if (!userLogin) return { known: false, present: false, source: '', reason: 'login_missing' };
+  const endpoints = ['/api/twitch/presence/status', '/api/twitch/presence/debug', '/api/overlay/chat/status/debug'];
+  for (const endpoint of endpoints) {
+    const result = await internalRequest('GET', endpoint, {});
+    if (!result.ok) continue;
+    const logins = collectLoginsFromPresencePayload(result.data);
+    if (!logins.size) continue;
+    return { known: true, present: logins.has(userLogin), source: endpoint, count: logins.size };
+  }
+  return { known: false, present: false, source: '', reason: 'presence_list_unavailable' };
+}
+
+async function resolveBirthdayTarget(input, options = {}) {
+  const raw = clean(input);
+  const mentioned = raw.startsWith('@');
+  const login = cleanLogin(raw);
+  if (!login) return { ok: false, error: 'missing_target', login: '', displayName: '', avatarUrl: '' };
+  if (options.requireMention && !mentioned) return { ok: false, error: 'mention_required', login, displayName: raw || login, avatarUrl: '' };
+
+  const saved = getBirthdayUser(login);
+  const profile = getBirthdayShowProfile(login);
+  const info = await resolveTwitchUserInfo(login);
+  const displayName = clean(info.displayName || saved?.displayName || profile?.displayNameOverride || raw.replace(/^@/, '') || login);
+  const avatarUrl = clean(info.avatarUrl || saved?.avatarUrl || profile?.avatarUrl || '');
+  const presence = await checkBirthdayUserPresence(login);
+  if (options.requirePresent && presence.known && !presence.present) {
+    return { ok: false, error: 'user_not_present', login, displayName, avatarUrl, presence, info, saved, profile };
+  }
+
+  if (info.ok || displayName || avatarUrl) {
+    upsertBirthdayResolvedUser({ login, displayName, avatarUrl, source: info.ok ? 'userinfo' : 'local' });
+  }
+
+  return { ok: true, login, displayName, avatarUrl, mentioned, presence, info, saved: saved ? { ...saved, avatarUrl: saved.avatarUrl || avatarUrl } : null, profile };
+}
+
+function upsertBirthdayResolvedUser({ login, displayName = '', avatarUrl = '', source = 'resolve' } = {}) {
+  const userLogin = cleanLogin(login);
+  if (!userLogin) return null;
+  const existing = getBirthdayShowProfile(userLogin);
+  const now = nowIso();
+  database.run(`
+    INSERT INTO birthday_show_profiles (
+      user_login, display_name_override, avatar_url, last_resolved_at, song_file, song_duration_ms, song_volume, active, source, party_key, created_at, updated_at
+    ) VALUES (
+      :login, :displayName, :avatarUrl, :lastResolvedAt, :songFile, :songDurationMs, :songVolume, 1, :source, :partyKey, :createdAt, :updatedAt
+    )
+    ON CONFLICT(user_login) DO UPDATE SET
+      display_name_override = CASE WHEN :displayName = '' THEN display_name_override ELSE :displayName END,
+      avatar_url = CASE WHEN :avatarUrl = '' THEN avatar_url ELSE :avatarUrl END,
+      last_resolved_at = CASE WHEN :lastResolvedAt = '' THEN last_resolved_at ELSE :lastResolvedAt END,
+      updated_at = :updatedAt
+  `, {
+    login: userLogin,
+    displayName: clean(displayName || existing?.displayNameOverride || ''),
+    avatarUrl: clean(avatarUrl || existing?.avatarUrl || ''),
+    lastResolvedAt: (displayName || avatarUrl) ? now : '',
+    songFile: existing?.songFile || '',
+    songDurationMs: existing?.songDurationMs || 0,
+    songVolume: existing?.songVolume || 0,
+    source: existing?.source || source,
+    partyKey: existing?.partyKey || '',
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  });
+  try {
+    const userColumns = new Set(database.tableColumns('birthday_users'));
+    if (userColumns.has('avatar_url')) {
+      database.run(`
+        UPDATE birthday_users
+        SET user_display_name = CASE WHEN :displayName = '' THEN user_display_name ELSE :displayName END,
+            avatar_url = CASE WHEN :avatarUrl = '' THEN avatar_url ELSE :avatarUrl END,
+            updated_at = :updatedAt
+        WHERE user_login = :login
+      `, { login: userLogin, displayName: clean(displayName), avatarUrl: clean(avatarUrl), updatedAt: now });
+    }
+  } catch (_) {}
+  return getBirthdayShowProfile(userLogin);
 }
 
 async function isLiveByTagebuchState() {
@@ -2056,14 +2236,21 @@ async function handleBirthdayCommand(payload = {}) {
       const message = renderText(key, baseContext);
       return { ok: false, command: 'birthday', action: 'party', error: allowed.reason, message, chat: await sendChat(message, 'birthday_party_denied') };
     }
-    const targetLogin = cleanLogin(args[1]);
-    if (!targetLogin) {
-      const message = renderText('party_missing_target', baseContext);
-      return { ok: false, command: 'birthday', action: 'party', error: 'missing_target', message, chat: await sendChat(message, 'birthday_party_missing_target') };
+    const resolve = await resolveBirthdayTarget(args[1], {
+      requireMention: getConfig().show?.requireMentionForParty === true,
+      requirePresent: getConfig().show?.requireUserPresent === true
+    });
+    if (!resolve.ok) {
+      const key = resolve.error === 'user_not_present' ? 'party_user_not_present' : (resolve.error === 'mention_required' || resolve.error === 'missing_target' ? 'party_missing_target' : 'party_user_not_found');
+      const message = renderText(key, { ...baseContext, targetLogin: resolve.login || cleanLogin(args[1]), targetDisplayName: resolve.displayName || args[1] });
+      return { ok: false, command: 'birthday', action: 'party', error: resolve.error, target: resolve, message, chat: await sendChat(message, 'birthday_party_target_error') };
     }
-    const saved = getBirthdayUser(targetLogin);
-    const targetDisplayName = saved?.displayName || args[1].replace(/^@/, '');
-    const showResult = await startBirthdayShow({ targetUser: saved, targetLogin, targetDisplayName, startedByUser: user });
+    const targetLogin = resolve.login;
+    const saved = resolve.saved || getBirthdayUser(targetLogin);
+    const targetDisplayName = resolve.displayName || saved?.displayName || args[1].replace(/^@/, '');
+    const targetAvatarUrl = resolve.avatarUrl || saved?.avatarUrl || '';
+    const targetUser = saved ? { ...saved, displayName: targetDisplayName, avatarUrl: targetAvatarUrl } : { login: targetLogin, displayName: targetDisplayName, avatarUrl: targetAvatarUrl };
+    const showResult = await startBirthdayShow({ targetUser, targetLogin, targetDisplayName, targetAvatarUrl, startedByUser: user });
     if (showResult.duplicate) {
       const message = renderText('party_duplicate', { ...baseContext, targetLogin, targetDisplayName });
       return { ok: true, command: 'birthday', action: 'party', targetLogin, targetDisplayName, duplicate: true, blocked: true, show: showResult, message, chat: await sendChat(message, 'birthday_party_duplicate') };
@@ -2158,6 +2345,9 @@ function safePublicConfig(cfg = getConfig()) {
       soundOutputTarget: cfg.show?.soundOutputTarget || 'overlay',
       soundTarget: cfg.show?.soundTarget || 'stream',
       forceExclusive: cfg.show?.forceExclusive !== false,
+      queueBirthdayShows: cfg.show?.queueBirthdayShows !== false,
+      requireMentionForParty: cfg.show?.requireMentionForParty === true,
+      requireUserPresent: cfg.show?.requireUserPresent === true,
       uploadDir: cfg.show?.uploadDir || 'birthday'
     },
     partyStyles: Object.values(PARTY_STYLE_PRESETS),
@@ -2335,7 +2525,7 @@ function birthdayUploadFileName(kind, login, originalName) {
   throw new Error('invalid_upload_kind');
 }
 
-function updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payload = {}) {
+async function updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payload = {}) {
   const cleanKind = clean(kind).toLowerCase();
   const durationMs = Number(mediaInfo?.durationMs || 0);
   if (cleanKind === 'intro_video') {
@@ -2351,11 +2541,13 @@ function updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payloa
     return { target: 'default_song', setting: 'show.defaultSongFile' };
   }
   if (cleanKind === 'user_song') {
-    const login = cleanLogin(payload.login || payload.userLogin || payload.username || '');
+    const resolved = await resolveBirthdayTarget(payload.login || payload.userLogin || payload.username || '', { requireMention: false, requirePresent: false });
+    const login = cleanLogin(resolved.login || payload.login || payload.userLogin || payload.username || '');
     if (!login) throw new Error('user_login_required_for_user_song');
     const profile = upsertBirthdayShowProfileSong({
       login,
-      displayName: payload.displayName || payload.userDisplayName || '',
+      displayName: resolved.displayName || payload.displayName || payload.userDisplayName || '',
+      avatarUrl: resolved.avatarUrl || payload.avatarUrl || '',
       songFile: relativePath,
       durationMs,
       volume: Number(payload.volume || 0) || 0,
@@ -2376,7 +2568,7 @@ function updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payloa
   throw new Error('invalid_upload_kind');
 }
 
-function handleBirthdayAssetUpload(payload = {}, file = null) {
+async function handleBirthdayAssetUpload(payload = {}, file = null) {
   if (!file || !file.buffer || !file.originalname) throw new Error('upload_file_missing');
   const cfg = getConfig();
   const kind = clean(payload.kind || payload.type || '');
@@ -2390,7 +2582,7 @@ function handleBirthdayAssetUpload(payload = {}, file = null) {
 
   const relativePath = `${uploadDirName}/${path.basename(targetPath)}`.replace(/\\/g, '/');
   const mediaInfo = mediaInfoForSoundFile(relativePath, 0);
-  const reference = updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payload);
+  const reference = await updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payload);
 
   return {
     ok: true,
@@ -2498,6 +2690,7 @@ function buildBirthdayShowAssets() {
     byLogin.set(profile.login, {
       login: profile.login,
       displayName: linkedUser?.displayName || profile.displayNameOverride || profile.login,
+      avatarUrl: linkedUser?.avatarUrl || profile.avatarUrl || '',
       active: profile.active,
       source: profile.source || 'profile',
       registeredBirthday: !!linkedUser,
@@ -2509,6 +2702,7 @@ function buildBirthdayShowAssets() {
     byLogin.set(user.login, {
       login: user.login,
       displayName: user.displayName || user.login,
+      avatarUrl: user.avatarUrl || '',
       active: !!user.active,
       source: 'birthday_user',
       registeredBirthday: true,
@@ -2540,7 +2734,7 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005F',
+    step: 'STEP_BIRTHDAY_005G',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
@@ -2565,7 +2759,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_005F',
+    step: 'STEP_BIRTHDAY_005G',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -2608,6 +2802,7 @@ function buildStatus() {
       { method: 'POST', path: `${API_PREFIX}/admin/show/recheck` },
       { method: 'GET/POST', path: `${API_PREFIX}/admin/show/parties` },
       { method: 'POST', path: `${API_PREFIX}/admin/show/profile` },
+      { method: 'GET', path: `${API_PREFIX}/admin/resolve-user` },
       { method: 'GET', path: `${API_PREFIX}/admin/users` },
       { method: 'POST', path: `${API_PREFIX}/admin/user` },
       { method: 'POST', path: `${API_PREFIX}/admin/user/delete` },
@@ -2646,7 +2841,7 @@ function registerRoutes(ctx) {
     return res.json({
       ok: true,
       module: MODULE_NAME,
-      step: 'STEP_BIRTHDAY_005F',
+      step: 'STEP_BIRTHDAY_005G',
       cleanup,
       queue: listBirthdayShowQueue({ includeDone: String(req.query && req.query.includeDone || '').toLowerCase() === 'true' }),
       state: publicShowState().state
@@ -2655,7 +2850,7 @@ function registerRoutes(ctx) {
 
   routes.registerPost(app, [`${API_PREFIX}/show/queue/clear-stale`], core.asyncRoute(async (req, res) => {
     const cleanup = await cleanupStaleBirthdayShowQueue('manual_stale_queue_cleanup');
-    return res.json({ ok: true, module: MODULE_NAME, step: 'STEP_BIRTHDAY_005F', cleanup, queue: listBirthdayShowQueue({ includeDone: false }), state: publicShowState().state });
+    return res.json({ ok: true, module: MODULE_NAME, step: 'STEP_BIRTHDAY_005G', cleanup, queue: listBirthdayShowQueue({ includeDone: false }), state: publicShowState().state });
   }));
 
   routes.registerPost(app, [`${API_PREFIX}/show/stop`], (req, res) => {
@@ -2670,10 +2865,10 @@ function registerRoutes(ctx) {
   // STEP_BIRTHDAY_004D
   // helper_routes.registerPost expects the final handler first and optional middlewares after it.
   // Multer must run before this handler, otherwise req.file stays empty and upload_file_missing is thrown.
-  routes.registerPost(app, [`${API_PREFIX}/admin/show/upload`], (req, res) => {
-    try { return res.json(handleBirthdayAssetUpload(req.body || {}, req.file || null)); }
+  routes.registerPost(app, [`${API_PREFIX}/admin/show/upload`], core.asyncRoute(async (req, res) => {
+    try { return res.json(await handleBirthdayAssetUpload(req.body || {}, req.file || null)); }
     catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
-  }, upload.single('file'));
+  }), upload.single('file'));
 
 
   routes.registerGet(app, [`${API_PREFIX}/admin/show/assets`], (req, res) => {
@@ -2696,10 +2891,15 @@ function registerRoutes(ctx) {
     catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
   });
 
-  routes.registerPost(app, [`${API_PREFIX}/admin/show/profile`], (req, res) => {
-    try { return res.json(assignBirthdayParty(req.body || req.query || {})); }
+  routes.registerPost(app, [`${API_PREFIX}/admin/show/profile`], core.asyncRoute(async (req, res) => {
+    try { return res.json(await assignBirthdayParty(req.body || req.query || {})); }
     catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
-  });
+  }));
+
+  routes.registerGet(app, [`${API_PREFIX}/admin/resolve-user`], core.asyncRoute(async (req, res) => {
+    try { return res.json({ ok: true, module: MODULE_NAME, user: await resolveBirthdayTarget(req.query.login || req.query.user || req.query.username || '', { requireMention: false, requirePresent: false }) }); }
+    catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
+  }));
 
   routes.registerGet(app, [`${API_PREFIX}/admin/users`], (req, res) => {
     try {
@@ -2789,7 +2989,7 @@ function init(ctx) {
   startSoundSystemMonitor();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005F' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005G' };
 }
 
 module.exports = {

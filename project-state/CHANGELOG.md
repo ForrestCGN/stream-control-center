@@ -130,3 +130,7 @@
 - Birthday-Dashboard Party-Show aufgeräumt.
 - Neuer Partys-Tab für Party-Presets und User-Zuordnungen.
 - Party-Auswahl/Bearbeitung und Profil-Zuordnung übersichtlicher gemacht.
+
+
+## STEP_BIRTHDAY_005G
+- Birthday Mention/User-Resolve ergänzt: `!birthday party @user`, DisplayName/Avatar im Show-State, Dashboard-Speicherung mit Login + Anzeigename + Avatar.

@@ -110,3 +110,7 @@ Neu:
 - `project-state/STEP_BIRTHDAY_005E.md`
 
 - `STEP_BIRTHDAY_005F_dashboard_party_ux.zip` – Dashboard-UX-Cleanup für Birthday-Partys.
+
+
+## STEP_BIRTHDAY_005G
+- Birthday Mention/User-Resolve ergänzt: `!birthday party @user`, DisplayName/Avatar im Show-State, Dashboard-Speicherung mit Login + Anzeigename + Avatar.

@@ -28,3 +28,7 @@ Dann zwei unterschiedliche Shows starten und prüfen, ob die zweite in der Sound
 - Dashboard testen: Birthday-System → Partys.
 - Prüfen, ob neu angelegte Partys auswählbar und editierbar sind.
 - Danach Party-Overlay/Styles weiter polieren.
+
+
+## STEP_BIRTHDAY_005G
+- Birthday Mention/User-Resolve ergänzt: `!birthday party @user`, DisplayName/Avatar im Show-State, Dashboard-Speicherung mit Login + Anzeigename + Avatar.

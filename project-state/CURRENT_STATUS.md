@@ -21,3 +21,7 @@ Aktueller Stand: `STEP_BIRTHDAY_005F`
 
 - Party-Optik/Overlay weiter verbessern.
 - Party-Presets ggf. um Bilder/Assets erweitern.
+
+
+## STEP_BIRTHDAY_005G
+- Birthday Mention/User-Resolve ergänzt: `!birthday party @user`, DisplayName/Avatar im Show-State, Dashboard-Speicherung mit Login + Anzeigename + Avatar.

@@ -13,3 +13,7 @@ Aktueller Stand: Party-Presets + Sound-System-Bundle-Queue + Stale-Cleanup. `/ap
 
 ## Birthday-System
 Aktueller Stand: `STEP_BIRTHDAY_005F`. Party-Presets/User-Zuordnung im Dashboard wurden in einen eigenen Partys-Tab aufgeräumt.
+
+
+## STEP_BIRTHDAY_005G
+- Birthday Mention/User-Resolve ergänzt: `!birthday party @user`, DisplayName/Avatar im Show-State, Dashboard-Speicherung mit Login + Anzeigename + Avatar.
