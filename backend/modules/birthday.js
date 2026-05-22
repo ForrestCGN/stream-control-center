@@ -539,7 +539,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005A',
+    step: 'STEP_BIRTHDAY_005B',
     state: {
       ...showState,
       now: Date.now(),
@@ -2471,7 +2471,7 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005A',
+    step: 'STEP_BIRTHDAY_005B',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
@@ -2496,7 +2496,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_005A',
+    step: 'STEP_BIRTHDAY_005B',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -2569,6 +2569,20 @@ function registerRoutes(ctx) {
   routes.registerGet(app, [`${API_PREFIX}/show/state`], (req, res) => {
     try { return res.json(publicShowState()); }
     catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
+  routes.registerGet(app, [`${API_PREFIX}/show/queue`], (req, res) => {
+    try {
+      return res.json({
+        ok: true,
+        module: MODULE_NAME,
+        step: 'STEP_BIRTHDAY_005B',
+        queue: listBirthdayShowQueue({ includeDone: String(req.query && req.query.includeDone || '').toLowerCase() === 'true' }),
+        state: publicShowState().state
+      });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
   });
 
   routes.registerPost(app, [`${API_PREFIX}/show/stop`], (req, res) => {
@@ -2702,7 +2716,7 @@ function init(ctx) {
   startSoundSystemMonitor();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005A' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005B' };
 }
 
 module.exports = {

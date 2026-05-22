@@ -14,3 +14,8 @@ Dann zwei unterschiedliche Shows starten und prüfen, ob die zweite in der Sound
 - Celebration-Styles optisch weiter polishen.
 - Dashboard-Queue mit Skip/Clear vorbereiten.
 - Später Party-Bilder pro Party ergänzen.
+
+
+## Nach STEP_BIRTHDAY_005B testen
+- `/api/birthday/show/queue` aufrufen.
+- Dedupe testen: gleicher User blockt, anderer User queued.
