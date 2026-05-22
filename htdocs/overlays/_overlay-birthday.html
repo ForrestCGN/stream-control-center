@@ -454,6 +454,10 @@
       text-shadow: 0 0 16px rgba(57,230,255,.22);
     }
 
+    .scene-label[hidden] {
+      display: none !important;
+    }
+
     .debug {
       position: absolute;
       left: 20px;
@@ -506,7 +510,7 @@
     </section>
 
     <div id="introNote" class="intro-note">Intro-Video läuft · Party startet mit dem Song</div>
-    <div id="sceneLabel" class="scene-label party-only">Heart Rain</div>
+    <div id="sceneLabel" class="scene-label party-only" hidden>Heart Rain</div>
     <pre id="debug" class="debug"></pre>
   </div>
 
@@ -523,6 +527,7 @@
     const debug = document.getElementById('debug');
 
     const DEBUG = new URLSearchParams(location.search).has('debug');
+    sceneLabel.hidden = !DEBUG;
     const SCENES = ['Heart Rain', 'Confetti Storm', 'Name Spotlight', 'Cake Alarm', 'Heimaufsicht', 'Final Burst'];
     let lastRequestId = '';
     let lastSceneIndex = -1;
@@ -686,6 +691,7 @@
       applyNameFit();
 
       const sIndex = sceneIndexFor(state);
+      sceneLabel.hidden = !DEBUG;
       sceneLabel.textContent = SCENES[sIndex % SCENES.length];
 
       if (requestId !== lastRequestId || sIndex !== lastSceneIndex) {

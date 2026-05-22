@@ -478,16 +478,26 @@ function reloadRuntime() {
   return { config: getConfig(), messages: getMessages() };
 }
 
+function pickSingleChatText(value) {
+  const lines = String(value || '')
+    .split(/\r?\n+/)
+    .map(line => clean(line))
+    .filter(Boolean);
+  if (!lines.length) return '';
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
 function renderText(key, context = {}) {
   const fallback = getMessages()[key];
   const template = Array.isArray(fallback) ? fallback[0] : String(fallback || '');
   try {
     const rendered = texts.renderModuleText(TEXTS_MODULE, key, getMessages(), context, { ...textEditorOptions(), seed: false });
-    if (clean(rendered)) return rendered;
+    const picked = pickSingleChatText(rendered);
+    if (picked) return picked;
   } catch (_) {
     // Fallback below.
   }
-  return texts.renderTemplate(template, context);
+  return pickSingleChatText(texts.renderTemplate(template, context));
 }
 
 function localParts(date = new Date()) {
@@ -588,9 +598,13 @@ function scheduleShowTimer(fn, ms) {
 function canStartParty(user = {}) {
   const cfg = getConfig();
   if (cfg.show?.enabled === false) return { ok: false, reason: 'show_disabled' };
+  const login = cleanLogin(user.login || user.userLogin || '');
   const allowed = Array.isArray(cfg.show?.allowedLogins) ? cfg.show.allowedLogins.map(cleanLogin).filter(Boolean) : [];
-  if (!allowed.length) return { ok: true, reason: 'allowlist_empty' };
-  return allowed.includes(cleanLogin(user.login)) ? { ok: true, reason: 'allowlist' } : { ok: false, reason: 'not_allowed' };
+  const roleAllowed = Boolean(user.isBroadcaster || user.isMod || user.isModerator || user.isOwner);
+  const allowlistAllowed = allowed.includes(login);
+  if (roleAllowed) return { ok: true, reason: user.isBroadcaster || user.isOwner ? 'broadcaster' : 'mod' };
+  if (allowlistAllowed) return { ok: true, reason: 'allowlist' };
+  return { ok: false, reason: 'not_allowed' };
 }
 
 function normalizeAssetUrl(value) {
@@ -2261,7 +2275,22 @@ function seedBirthdayCommand() {
 function commandContext(payload = {}) {
   const login = cleanLogin(payload.userLogin || payload.login || payload.user || '');
   const displayName = clean(payload.userDisplayName || payload.displayName || payload.userName || payload.user || login);
-  return { login, displayName: displayName || login };
+  const badges = payload.badges && typeof payload.badges === 'object' ? payload.badges : {};
+  const isBroadcaster = boolValue(payload.isBroadcaster ?? payload.broadcaster ?? badges.broadcaster, false);
+  const isMod = boolValue(payload.isMod ?? payload.isModerator ?? payload.mod ?? badges.moderator, false);
+  const isVip = boolValue(payload.isVip ?? payload.vip ?? badges.vip, false);
+  const isSubscriber = boolValue(payload.isSubscriber ?? payload.subscriber ?? badges.subscriber ?? badges.founder, false);
+  return {
+    login,
+    displayName: displayName || login,
+    badges,
+    isBroadcaster,
+    isOwner: isBroadcaster,
+    isMod,
+    isModerator: isMod,
+    isVip,
+    isSubscriber
+  };
 }
 
 async function handleBirthdayCommand(payload = {}) {

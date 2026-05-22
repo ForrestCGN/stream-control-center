@@ -1,1 +1,1 @@
-Aktueller Stand: STEP_BIRTHDAY_006E – Birthday Command Fallback Cleanup. Birthday-Commands laufen ausschließlich über das zentrale Command-System; Birthday-Chat-Hook bleibt nur für passive Auto-Gratulation.
+Aktueller Stand: STEP_BIRTHDAY_008 – Birthday Command/Overlay Cleanup. Birthday-Commands laufen weiterhin über das zentrale Command-System; Textausgaben wählen nur noch eine Variante, Birthday-Party ist auf Mods/Broadcaster/Allowlist begrenzt und das Overlay zeigt interne Szenenlabels nur noch im Debug-Modus.
