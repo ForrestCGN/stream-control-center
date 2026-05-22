@@ -23,3 +23,8 @@ Dann zwei unterschiedliche Shows starten und prüfen, ob die zweite in der Sound
 ## Nach STEP_BIRTHDAY_005E
 - Birthday-Show erneut testen: erster User startet, gleicher User wird blockiert, anderer User wird über Sound-System-Queue eingereiht.
 - Danach Celebration-Styles optisch weiter polieren.
+
+## Nach STEP_BIRTHDAY_005F
+- Dashboard testen: Birthday-System → Partys.
+- Prüfen, ob neu angelegte Partys auswählbar und editierbar sind.
+- Danach Party-Overlay/Styles weiter polieren.

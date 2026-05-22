@@ -125,3 +125,8 @@
 - `/api/birthday/show/queue` führt automatische Stale-Prüfung aus.
 - Neue Route: `POST /api/birthday/show/queue/clear-stale`.
 - Neue Starts werden vor Dedupe-Prüfung gegen stale Queue-Einträge bereinigt.
+
+### STEP_BIRTHDAY_005F
+- Birthday-Dashboard Party-Show aufgeräumt.
+- Neuer Partys-Tab für Party-Presets und User-Zuordnungen.
+- Party-Auswahl/Bearbeitung und Profil-Zuordnung übersichtlicher gemacht.

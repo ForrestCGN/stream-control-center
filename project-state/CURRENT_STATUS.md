@@ -1,21 +1,23 @@
 # CURRENT_STATUS – Birthday-System
 
-Aktueller Stand: `STEP_BIRTHDAY_005D`
+Aktueller Stand: `STEP_BIRTHDAY_005F`
 
-- Birthday-Registrierung und kleine Auto-Gratulation aktiv.
-- Optionales Jahr/Alter aktiv.
-- Dashboard mit Settings, Textvarianten, Usern und Party-Show aktiv.
-- Manuelle Show läuft über `!birthday party username`.
-- Intro-Video und Song laufen als locked Birthday-Bundle über das Sound-System.
-- Sound-System übernimmt die Medien-Queue.
-- Gleicher User wird während aktiver/queued Show blockiert.
-- Andere User werden als Birthday-Bundle in die Sound-System-Queue gelegt.
-- Overlay eskaliert erst bei Songphase (`phase=party`).
+## Bestätigt
 
+- Registrierung per `!birthday set`.
+- Kleine automatische Chat-Gratulation.
+- Optionaler Tagebuch-Eintrag.
+- Dashboard-Modul Birthday-System.
+- Uploads für Intro, Standardsong und User-Songs.
+- Dauererkennung per ffprobe.
+- Sound-System-Bundle für Birthday-Shows.
+- Party-Presets und User→Party-Zuordnung.
+- Duplicate-Block für gleichen User.
+- Andere User werden in die Birthday-/Sound-System-Queue gelegt.
+- Stale Queue Cleanup.
+- Dashboard-UX für Partys wurde aufgeräumt.
 
-## STEP_BIRTHDAY_005D
-- Birthday-System: Sound-System Bundle Queue aktiv.
-- Fix: `/api/birthday/show/queue` ist jetzt registriert.
+## Aktueller Fokus
 
-## STEP_BIRTHDAY_005E
-Birthday-System: Queue-Stale-Cleanup ergänzt. Hängende Queue-Einträge werden nicht mehr als aktive/queued Birthday-Show behandelt, wenn Sound-System und Birthday-State leer sind.
+- Party-Optik/Overlay weiter verbessern.
+- Party-Presets ggf. um Bilder/Assets erweitern.

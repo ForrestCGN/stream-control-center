@@ -108,3 +108,5 @@ Neu:
 ## STEP_BIRTHDAY_005E
 - `backend/modules/birthday.js`
 - `project-state/STEP_BIRTHDAY_005E.md`
+
+- `STEP_BIRTHDAY_005F_dashboard_party_ux.zip` – Dashboard-UX-Cleanup für Birthday-Partys.

@@ -10,3 +10,6 @@ Birthday-Queue-Route `/api/birthday/show/queue` ist registriert.
 
 ## Birthday-System STEP_BIRTHDAY_005E
 Aktueller Stand: Party-Presets + Sound-System-Bundle-Queue + Stale-Cleanup. `/api/birthday/show/queue` bereinigt hängende Queue-Einträge automatisch, sofern keine aktive Birthday-Show und keine Birthday-Arbeit im Sound-System vorhanden ist.
+
+## Birthday-System
+Aktueller Stand: `STEP_BIRTHDAY_005F`. Party-Presets/User-Zuordnung im Dashboard wurden in einen eigenen Partys-Tab aufgeräumt.

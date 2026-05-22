@@ -19,3 +19,14 @@
 .birthday-queue-box li{color:var(--text,#e5e7eb)}
 .birthday-queue-box li span{display:inline-block;margin-left:8px;color:#a7f3d0;font-size:12px;text-transform:uppercase}
 .birthday-queue-box li small{display:block;color:var(--muted,#94a3b8)}
+
+
+/* STEP_BIRTHDAY_005F dashboard clarity */
+.birthday-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+.birthday-section-head h3{margin:0 0 4px}
+.birthday-subcard{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);border-radius:16px;padding:14px;min-width:0}
+.birthday-subcard h4{margin:0 0 10px;font-size:15px}
+.birthday-grid-tight{gap:12px}
+.birthday-form-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.birthday-manager-card{background:linear-gradient(135deg,rgba(12,17,35,.82),rgba(28,15,48,.72))}
+@media(max-width:1000px){.birthday-section-head{display:grid}.birthday-form-two{grid-template-columns:1fr}}

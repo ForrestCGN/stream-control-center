@@ -350,6 +350,7 @@ window.BirthdayModule = (function(){
     const party = currentParties().find(item => item.partyKey === partyKey);
     if (!party) return;
     const set = (sel, val) => { const el = root?.querySelector(sel); if (el) el.value = val ?? ''; };
+    set('[data-birthday-party-picker]', party.partyKey);
     set('[data-birthday-party-key]', party.partyKey);
     set('[data-birthday-party-title]', party.title);
     set('[data-birthday-party-style]', party.styleKey || 'cgn_neon');
@@ -357,6 +358,42 @@ window.BirthdayModule = (function(){
     set('[data-birthday-party-headline]', party.headlineTemplate || '{headline}');
     set('[data-birthday-party-subline]', party.sublineTemplate || '{message}');
     const def = root?.querySelector('[data-birthday-party-default]'); if (def) def.checked = !!party.isDefault;
+  }
+
+  function clearPartyForm() {
+    const set = (sel, val) => { const el = root?.querySelector(sel); if (el) el.value = val ?? ''; };
+    set('[data-birthday-party-picker]', '');
+    set('[data-birthday-party-key]', '');
+    set('[data-birthday-party-title]', '');
+    set('[data-birthday-party-style]', 'cgn_neon');
+    set('[data-birthday-party-song]', '');
+    set('[data-birthday-party-headline]', '{headline}');
+    set('[data-birthday-party-subline]', '{message}');
+    const def = root?.querySelector('[data-birthday-party-default]'); if (def) def.checked = false;
+  }
+
+  function fillProfileForm(login) {
+    const clean = String(login || '').trim().toLowerCase();
+    const profile = currentProfiles().find(item => item.login === clean) || {};
+    const userSong = (state.showAssets?.userSongs || []).find(item => item.login === clean) || {};
+    const loginEl = root?.querySelector('[data-birthday-profile-login]');
+    const partyEl = root?.querySelector('[data-birthday-profile-party]');
+    if (loginEl) loginEl.value = clean || profile.login || userSong.login || '';
+    if (partyEl) partyEl.value = profile.partyKey || '';
+  }
+
+  function sortedParties() {
+    return currentParties().slice().sort((a, b) => {
+      if (a.isDefault && !b.isDefault) return -1;
+      if (!a.isDefault && b.isDefault) return 1;
+      return String(a.title || a.partyKey || '').localeCompare(String(b.title || b.partyKey || ''), 'de');
+    });
+  }
+
+  function partyOptionLabel(party) {
+    const title = party.title || party.partyKey || 'Party';
+    const style = party.style?.label || party.styleKey || '';
+    return `${title}${style ? ` · ${style}` : ''}${party.isDefault ? ' · Standard' : ''}`;
   }
 
   function renderSettingInput(row) {
@@ -476,16 +513,12 @@ window.BirthdayModule = (function(){
     const show = state.showState?.state || status.show || {};
     const assets = state.showAssets?.ok ? state.showAssets : (status.showAssets || {});
     const timing = assets.timingPreview || {};
-    const userSongs = Array.isArray(assets.userSongs) ? assets.userSongs : [];
-    const parties = currentParties();
-    const profiles = currentProfiles();
-    const styles = currentStyles();
     const queue = Array.isArray(show.queue) ? show.queue : [];
     return `
       <div class="birthday-grid birthday-grid-users">
         <section class="birthday-card birthday-card-main">
-          <h3>Party-Show</h3>
-          <p class="birthday-note">Medien laufen über das Sound-System. Das Birthday-Overlay bleibt während des Intro-Videos ruhig und eskaliert erst, wenn die Song-Phase startet. Wenn keine User-Party zugeordnet ist, wird die Standard-Party genutzt.</p>
+          <h3>Party-Show Status</h3>
+          <p class="birthday-note">Medien laufen über das Sound-System. Das Birthday-Overlay bleibt während des Intro-Videos ruhig und eskaliert erst, wenn die Song-Phase startet.</p>
           <div class="birthday-rows">
             <div><span>Status</span><strong>${show.active ? `${esc(show.phase)} für @${esc(show.targetDisplayName || show.targetLogin)}` : 'inaktiv'}</strong></div>
             <div><span>Aktive Party</span><strong>${fmt(show.partyTitle || show.partyKey || '')} ${show.styleKey ? `· ${esc(show.styleKey)}` : ''}</strong></div>
@@ -520,41 +553,70 @@ window.BirthdayModule = (function(){
           ${renderAssetBox('Globales Intro-Video', assets.intro)}
           ${renderAssetBox('Standardsong', assets.defaultSong)}
         </div>
+      </section>`;
+  }
+
+  function renderParties() {
+    const assets = state.showAssets?.ok ? state.showAssets : (state.status?.showAssets || {});
+    const userSongs = Array.isArray(assets.userSongs) ? assets.userSongs : [];
+    const parties = sortedParties();
+    const profiles = currentProfiles();
+    const styles = currentStyles();
+    const partyOptions = parties.map(party => `<option value="${esc(party.partyKey)}">${esc(partyOptionLabel(party))}</option>`).join('');
+    const profileLogins = Array.from(new Set([
+      ...profiles.map(p => p.login),
+      ...userSongs.map(u => u.login)
+    ].filter(Boolean))).sort((a,b) => String(a).localeCompare(String(b), 'de'));
+
+    return `
+      <section class="birthday-card birthday-card-main birthday-manager-card">
+        <div class="birthday-section-head">
+          <div><h3>Partys verwalten</h3><p class="birthday-note">Hier legst du Party-Presets an. Danach weist du rechts einen User einer Party zu. Ohne Zuordnung läuft immer Standard-Party + Standardsong.</p></div>
+          <button type="button" data-birthday-new-party>Neue Party</button>
+        </div>
+        <div class="birthday-grid birthday-grid-users birthday-grid-tight">
+          <section class="birthday-subcard">
+            <h4>Party auswählen / bearbeiten</h4>
+            <div class="birthday-form">
+              <label>Vorhandene Party<select data-birthday-party-picker><option value="">Neue Party anlegen...</option>${partyOptions}</select></label>
+              <div class="birthday-form-two">
+                <label>Party-Key<input type="text" data-birthday-party-key placeholder="araglor_party"></label>
+                <label>Titel<input type="text" data-birthday-party-title placeholder="Araglor Party"></label>
+              </div>
+              <div class="birthday-form-two">
+                <label>Style<select data-birthday-party-style>${styles.map(style => `<option value="${esc(style.key)}">${esc(style.label || style.key)}</option>`).join('')}</select></label>
+                <label>Song-Datei optional<input type="text" data-birthday-party-song placeholder="birthday/birthday_song_araglor_2.mp3 oder leer = User/Standard-Song"></label>
+              </div>
+              <label>Headline Template<input type="text" data-birthday-party-headline value="{headline}"></label>
+              <label>Subline Template<input type="text" data-birthday-party-subline value="{message}"></label>
+              <label class="birthday-check"><input type="checkbox" data-birthday-party-default> als Standard-Party setzen</label>
+              <button type="button" data-birthday-save-party>Party speichern</button>
+            </div>
+          </section>
+          <section class="birthday-subcard">
+            <h4>User einer Party zuordnen</h4>
+            <div class="birthday-form">
+              <label>User-Login<input type="text" data-birthday-profile-login placeholder="araglor" list="birthday-profile-logins"></label>
+              <datalist id="birthday-profile-logins">${profileLogins.map(login => `<option value="${esc(login)}"></option>`).join('')}</datalist>
+              <label>Party<select data-birthday-profile-party><option value="">Standard-Party nutzen</option>${partyOptions}</select></label>
+              <button type="button" data-birthday-assign-party>User zuordnen</button>
+            </div>
+            <p class="birthday-note">Nur wenn hier eine aktive Party zugeordnet ist, bekommt der User eine eigene Party. Der User-Song kann trotzdem unabhängig davon existieren.</p>
+          </section>
+        </div>
       </section>
-      <div class="birthday-grid birthday-grid-users">
-        <section class="birthday-card">
-          <h3>Party anlegen / bearbeiten</h3>
-          <div class="birthday-form">
-            <label>Party-Key<input type="text" data-birthday-party-key placeholder="araglor_party"></label>
-            <label>Titel<input type="text" data-birthday-party-title placeholder="Araglor Party"></label>
-            <label>Style<select data-birthday-party-style>${styles.map(style => `<option value="${esc(style.key)}">${esc(style.label || style.key)}</option>`).join('')}</select></label>
-            <label>Song-Datei optional<input type="text" data-birthday-party-song placeholder="birthday/birthday_song_araglor_2.mp3 oder leer = Standard/User-Song"></label>
-            <label>Headline Template<input type="text" data-birthday-party-headline value="{headline}"></label>
-            <label>Subline Template<input type="text" data-birthday-party-subline value="{message}"></label>
-            <label class="birthday-check"><input type="checkbox" data-birthday-party-default> als Standard-Party setzen</label>
-            <button type="button" data-birthday-save-party>Party speichern</button>
-          </div>
-        </section>
-        <section class="birthday-card">
-          <h3>User → Party</h3>
-          <div class="birthday-form">
-            <label>User-Login<input type="text" data-birthday-profile-login placeholder="araglor"></label>
-            <label>Party<select data-birthday-profile-party><option value="">Standard-Party nutzen</option>${parties.map(party => `<option value="${esc(party.partyKey)}">${esc(party.title || party.partyKey)} (${esc(party.styleKey || '')})</option>`).join('')}</select></label>
-            <button type="button" data-birthday-assign-party>User zuordnen</button>
-          </div>
-          <p class="birthday-note">Nur wenn hier eine aktive Party zugeordnet ist, bekommt der User eine eigene Party. Sonst läuft Standard-Song/Standard-Party.</p>
-        </section>
-      </div>
+
       <section class="birthday-card birthday-card-main">
         <h3>Party-Presets</h3>
         ${parties.length ? `<div class="birthday-table-wrap"><table><thead><tr><th>Party</th><th>Style</th><th>Song</th><th>Status</th><th></th></tr></thead><tbody>${parties.map(party => `<tr><td><strong>${esc(party.title || party.partyKey)}</strong><small>${esc(party.partyKey)}${party.isDefault ? ' · Standard' : ''}</small></td><td>${esc(party.style?.label || party.styleKey || '')}</td><td>${fmt(party.songFile || 'Fallback/User/Standard')}</td><td>${party.enabled ? '<span class="birthday-pill ok">aktiv</span>' : '<span class="birthday-pill warn">inaktiv</span>'}</td><td><button type="button" data-edit-birthday-party="${esc(party.partyKey)}">Bearbeiten</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine Party-Presets.</div>'}
       </section>
+
       <section class="birthday-card birthday-card-main">
-        <h3>User-Songs & Party-Zuordnung</h3>
-        ${userSongs.length || profiles.length ? `<div class="birthday-table-wrap"><table><thead><tr><th>User</th><th>Party</th><th>Datei</th><th>Dauer</th><th>Status</th><th>SoundPegel</th></tr></thead><tbody>${userSongs.map(item => {
+        <h3>User-Zuordnungen & Songs</h3>
+        ${userSongs.length || profiles.length ? `<div class="birthday-table-wrap"><table><thead><tr><th>User</th><th>Zugeordnete Party</th><th>Song</th><th>Dauer</th><th>Status</th><th></th></tr></thead><tbody>${userSongs.map(item => {
           const asset = item.asset || {}; const profile = profiles.find(p => p.login === item.login) || {}; const party = profile.party || null;
-          return `<tr><td><strong>${esc(item.displayName || item.login)}</strong><small>${esc(item.login)}</small></td><td>${party ? esc(party.title || party.partyKey) : '<span class="birthday-muted">Standard</span>'}</td><td>${fmt(asset.relativePath || '')}</td><td>${fmt(asset.durationLabel || '')} <small>${esc(asset.durationSource || '')}</small></td><td>${asset.exists && asset.durationOk ? '<span class="birthday-pill ok">bereit</span>' : '<span class="birthday-pill warn">prüfen</span>'}</td><td>${asset.loudness?.known ? esc(asset.loudness.status || 'bekannt') : 'nicht gescannt'}</td></tr>`;
-        }).join('')}${profiles.filter(p => !userSongs.some(u => u.login === p.login)).map(profile => `<tr><td><strong>${esc(profile.displayNameOverride || profile.login)}</strong><small>${esc(profile.login)}</small></td><td>${profile.party ? esc(profile.party.title || profile.party.partyKey) : '<span class="birthday-muted">Standard</span>'}</td><td colspan="4"><span class="birthday-muted">kein eigener User-Song; Party/Standard-Song wird genutzt</span></td></tr>`).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine User-Songs oder Party-Zuordnungen hinterlegt.</div>'}
+          return `<tr><td><strong>${esc(item.displayName || item.login)}</strong><small>${esc(item.login)}</small></td><td>${party ? `<strong>${esc(party.title || party.partyKey)}</strong><small>${esc(party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td>${fmt(asset.relativePath || '')}</td><td>${fmt(asset.durationLabel || '')} <small>${esc(asset.durationSource || '')}</small></td><td>${asset.exists && asset.durationOk ? '<span class="birthday-pill ok">bereit</span>' : '<span class="birthday-pill warn">prüfen</span>'}</td><td><button type="button" data-edit-birthday-profile="${esc(item.login)}">Zuordnung bearbeiten</button></td></tr>`;
+        }).join('')}${profiles.filter(p => !userSongs.some(u => u.login === p.login)).map(profile => `<tr><td><strong>${esc(profile.displayNameOverride || profile.login)}</strong><small>${esc(profile.login)}</small></td><td>${profile.party ? `<strong>${esc(profile.party.title || profile.party.partyKey)}</strong><small>${esc(profile.party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td colspan="3"><span class="birthday-muted">kein eigener User-Song; Party/Standard-Song wird genutzt</span></td><td><button type="button" data-edit-birthday-profile="${esc(profile.login)}">Zuordnung bearbeiten</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine User-Songs oder Party-Zuordnungen hinterlegt.</div>'}
       </section>`;
   }
 
@@ -591,7 +653,7 @@ window.BirthdayModule = (function(){
   function render() {
     ensurePanel();
     if (!root) return;
-    const tabs = [['overview','Übersicht'], ['show','Party-Show'], ['users','Geburtstage'], ['settings','Settings'], ['texts','Texte']];
+    const tabs = [['overview','Übersicht'], ['show','Show/Medien'], ['parties','Partys'], ['users','Geburtstage'], ['settings','Settings'], ['texts','Texte']];
     root.innerHTML = `
       <div class="birthday-admin-wrap">
         <section class="birthday-card birthday-hero">
@@ -602,7 +664,7 @@ window.BirthdayModule = (function(){
         ${state.notice ? `<div class="birthday-notice">${esc(state.notice)}</div>` : ''}
         ${state.loading ? '<div class="birthday-card">Lade Birthday-Daten...</div>' : `
           <div class="birthday-tabs">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-birthday-tab="${id}">${label}</button>`).join('')}</div>
-          ${state.tab === 'show' ? renderShow() : state.tab === 'users' ? renderUsers() : state.tab === 'settings' ? renderSettings() : state.tab === 'texts' ? renderTexts() : renderOverview()}
+          ${state.tab === 'show' ? renderShow() : state.tab === 'parties' ? renderParties() : state.tab === 'users' ? renderUsers() : state.tab === 'settings' ? renderSettings() : state.tab === 'texts' ? renderTexts() : renderOverview()}
         `}
       </div>`;
     bind();
@@ -626,7 +688,11 @@ window.BirthdayModule = (function(){
     root?.querySelector('[data-birthday-recheck-assets]')?.addEventListener('click', () => recheckShowAssets().catch(err => { state.error = err.message; render(); }));
     root?.querySelector('[data-birthday-save-party]')?.addEventListener('click', () => savePartyFromForm().catch(err => { state.error = err.message; render(); }));
     root?.querySelector('[data-birthday-assign-party]')?.addEventListener('click', () => assignPartyFromForm().catch(err => { state.error = err.message; render(); }));
-    root?.querySelectorAll('[data-edit-birthday-party]').forEach(btn => btn.addEventListener('click', () => fillPartyForm(btn.dataset.editBirthdayParty)));
+    root?.querySelector('[data-birthday-party-picker]')?.addEventListener('change', ev => { if (ev.target.value) fillPartyForm(ev.target.value); else clearPartyForm(); });
+    root?.querySelector('[data-birthday-new-party]')?.addEventListener('click', () => clearPartyForm());
+    root?.querySelector('[data-birthday-profile-login]')?.addEventListener('change', ev => fillProfileForm(ev.target.value));
+    root?.querySelectorAll('[data-edit-birthday-party]').forEach(btn => btn.addEventListener('click', () => { state.tab = 'parties'; render(); setTimeout(() => fillPartyForm(btn.dataset.editBirthdayParty), 0); }));
+    root?.querySelectorAll('[data-edit-birthday-profile]').forEach(btn => btn.addEventListener('click', () => { state.tab = 'parties'; render(); setTimeout(() => fillProfileForm(btn.dataset.editBirthdayProfile), 0); }));
   }
 
   function init() {
