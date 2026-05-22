@@ -16,3 +16,6 @@ Aktueller Stand: `STEP_BIRTHDAY_005D`
 ## STEP_BIRTHDAY_005D
 - Birthday-System: Sound-System Bundle Queue aktiv.
 - Fix: `/api/birthday/show/queue` ist jetzt registriert.
+
+## STEP_BIRTHDAY_005E
+Birthday-System: Queue-Stale-Cleanup ergänzt. Hängende Queue-Einträge werden nicht mehr als aktive/queued Birthday-Show behandelt, wenn Sound-System und Birthday-State leer sind.

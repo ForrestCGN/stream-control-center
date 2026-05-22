@@ -549,7 +549,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005D',
+    step: 'STEP_BIRTHDAY_005E',
     state: {
       ...showState,
       now: Date.now(),
@@ -817,6 +817,61 @@ function cleanupOldShowQueueRows() {
   } catch (_) {}
 }
 
+function markPendingBirthdayShowsStale(reason = 'stale_queue_cleanup') {
+  try {
+    const now = nowIso();
+    const result = database.run(`
+      UPDATE birthday_show_queue
+      SET status = 'stale',
+          updated_at = :updatedAt,
+          finished_at = CASE WHEN finished_at = '' THEN :finishedAt ELSE finished_at END,
+          error = CASE WHEN error = '' THEN :reason ELSE error END
+      WHERE status IN ('queued','submitted','active','running')
+    `, { updatedAt: now, finishedAt: now, reason: clean(reason) });
+    return Number(result?.changes || 0);
+  } catch (err) {
+    state.lastError = err.message || String(err);
+    return 0;
+  }
+}
+
+function itemLooksLikeBirthdaySoundWork(item) {
+  if (!item || typeof item !== 'object') return false;
+  const meta = item.meta && typeof item.meta === 'object' ? item.meta : {};
+  const bundle = item.bundle && typeof item.bundle === 'object' ? item.bundle : {};
+  return String(item.source || '').toLowerCase() === 'birthday_show'
+    || String(meta.module || '').toLowerCase() === MODULE_NAME
+    || String(meta.bundleType || '').toLowerCase() === 'birthday'
+    || String(bundle.bundleType || item.bundleType || '').toLowerCase() === 'birthday'
+    || !!meta.showRequestId;
+}
+
+function soundStateHasBirthdayWork(soundData = {}) {
+  const data = soundData && soundData.data && soundData.data.ok ? soundData.data : soundData;
+  if (!data || typeof data !== 'object') return false;
+  if (itemLooksLikeBirthdaySoundWork(data.current)) return true;
+  if (Array.isArray(data.parallel) && data.parallel.some(itemLooksLikeBirthdaySoundWork)) return true;
+  if (Array.isArray(data.queue) && data.queue.some(itemLooksLikeBirthdaySoundWork)) return true;
+  if (Array.isArray(data.bundles) && data.bundles.some(bundle => String(bundle.bundleType || '').toLowerCase() === 'birthday')) return true;
+  if (data.currentBundle && String(data.currentBundle.bundleType || '').toLowerCase() === 'birthday') return true;
+  if (data.activeBundleLock && String(data.activeBundleLock.bundleType || '').toLowerCase() === 'birthday') return true;
+  return false;
+}
+
+async function cleanupStaleBirthdayShowQueue(reason = 'sound_system_empty') {
+  const pending = listBirthdayShowQueue({ includeDone: false });
+  if (!pending.length) return { ok: true, cleaned: 0, reason: 'no_pending_queue' };
+  if (showState.active) return { ok: true, cleaned: 0, reason: 'show_active' };
+
+  const sound = await internalRequest('GET', '/api/sound/status', {});
+  if (sound.ok && soundStateHasBirthdayWork(sound.data)) {
+    return { ok: true, cleaned: 0, reason: 'sound_system_has_birthday_work' };
+  }
+
+  const cleaned = markPendingBirthdayShowsStale(reason);
+  return { ok: true, cleaned, reason, soundOk: !!sound.ok };
+}
+
 function soundPlayBase(asset, targetContext = {}, extra = {}) {
   const cfg = getConfig();
   const forceExclusive = cfg.show?.forceExclusive !== false;
@@ -989,6 +1044,7 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
   const now = Date.now();
   const login = cleanLogin(targetLogin || targetUser?.login || '');
   const display = clean(targetDisplayName || targetUser?.displayName || login || '');
+  await cleanupStaleBirthdayShowQueue('stale_before_start');
   const existing = findPendingBirthdayShowForLogin(login);
   if (existing || (showState.active && showState.targetLogin === login)) {
     return { ok: false, duplicate: true, queued: false, targetLogin: login, targetDisplayName: display, existing, state: publicShowState().state };
@@ -2484,7 +2540,7 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_005D',
+    step: 'STEP_BIRTHDAY_005E',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
@@ -2509,7 +2565,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_005D',
+    step: 'STEP_BIRTHDAY_005E',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -2545,6 +2601,7 @@ function buildStatus() {
       { method: 'GET', path: `${API_PREFIX}/today` },
       { method: 'GET', path: `${API_PREFIX}/show/state` },
       { method: 'GET', path: `${API_PREFIX}/show/queue` },
+      { method: 'POST', path: `${API_PREFIX}/show/queue/clear-stale` },
       { method: 'POST', path: `${API_PREFIX}/show/stop` },
       { method: 'POST', path: `${API_PREFIX}/admin/show/upload` },
       { method: 'GET', path: `${API_PREFIX}/admin/show/assets` },
@@ -2584,19 +2641,22 @@ function registerRoutes(ctx) {
     catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
   });
 
-  routes.registerGet(app, [`${API_PREFIX}/show/queue`], (req, res) => {
-    try {
-      return res.json({
-        ok: true,
-        module: MODULE_NAME,
-        step: 'STEP_BIRTHDAY_005D',
-        queue: listBirthdayShowQueue({ includeDone: String(req.query && req.query.includeDone || '').toLowerCase() === 'true' }),
-        state: publicShowState().state
-      });
-    } catch (err) {
-      return res.status(500).json({ ok: false, error: err.message || String(err) });
-    }
-  });
+  routes.registerGet(app, [`${API_PREFIX}/show/queue`], core.asyncRoute(async (req, res) => {
+    const cleanup = await cleanupStaleBirthdayShowQueue('stale_queue_endpoint_cleanup');
+    return res.json({
+      ok: true,
+      module: MODULE_NAME,
+      step: 'STEP_BIRTHDAY_005E',
+      cleanup,
+      queue: listBirthdayShowQueue({ includeDone: String(req.query && req.query.includeDone || '').toLowerCase() === 'true' }),
+      state: publicShowState().state
+    });
+  }));
+
+  routes.registerPost(app, [`${API_PREFIX}/show/queue/clear-stale`], core.asyncRoute(async (req, res) => {
+    const cleanup = await cleanupStaleBirthdayShowQueue('manual_stale_queue_cleanup');
+    return res.json({ ok: true, module: MODULE_NAME, step: 'STEP_BIRTHDAY_005E', cleanup, queue: listBirthdayShowQueue({ includeDone: false }), state: publicShowState().state });
+  }));
 
   routes.registerPost(app, [`${API_PREFIX}/show/stop`], (req, res) => {
     try {
@@ -2729,7 +2789,7 @@ function init(ctx) {
   startSoundSystemMonitor();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005D' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005E' };
 }
 
 module.exports = {

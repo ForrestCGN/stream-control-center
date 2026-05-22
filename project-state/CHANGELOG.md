@@ -119,3 +119,9 @@
 ### STEP_BIRTHDAY_005D
 - Fix: Route `/api/birthday/show/queue` wurde im Status gelistet, aber nicht registriert.
 - Queue-Endpoint gibt jetzt die Birthday-Show-Queue inklusive aktuellem State aus.
+
+### STEP_BIRTHDAY_005E
+- Fix: Hängende `birthday_show_queue`-Einträge werden bereinigt, wenn keine Birthday-Show aktiv ist und das Sound-System keine Birthday-Bundles mehr enthält.
+- `/api/birthday/show/queue` führt automatische Stale-Prüfung aus.
+- Neue Route: `POST /api/birthday/show/queue/clear-stale`.
+- Neue Starts werden vor Dedupe-Prüfung gegen stale Queue-Einträge bereinigt.

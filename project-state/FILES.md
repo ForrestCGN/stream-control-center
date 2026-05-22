@@ -104,3 +104,7 @@ Neu:
 
 ## STEP_BIRTHDAY_005D
 - `backend/modules/birthday.js` – Queue-Route-Fix.
+
+## STEP_BIRTHDAY_005E
+- `backend/modules/birthday.js`
+- `project-state/STEP_BIRTHDAY_005E.md`
