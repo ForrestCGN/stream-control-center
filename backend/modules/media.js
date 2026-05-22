@@ -1,14 +1,14 @@
 'use strict';
 
 /**
- * STEP274A - Central Media Management Core
+ * STEP274A1C - Central Media Management Core
  *
- * Zentrale Medien-Registry für Audio/Video/Bilder/Animationen.
+ * Zentrale Medien-Registry fuer Audio/Video/Bilder/Animationen.
  * Wichtig:
- * - Keine bestehenden Assets werden verschoben oder gelöscht.
+ * - Keine bestehenden Assets werden verschoben oder geloescht.
  * - Neue Uploads landen unter htdocs/assets/media/<type>/.
  * - Bestehende Asset-Ordner werden nur gescannt und in media_assets registriert.
- * - Commands/Alerts/Sounds sollen Medien später über media_assets verwenden.
+ * - Commands/Alerts/Sounds sollen Medien spaeter ueber media_assets verwenden.
  */
 
 const fs = require('fs');
@@ -30,45 +30,28 @@ const MEDIA_TYPES = {
     icon: '🔊',
     uploadDir: ['media', 'audio'],
     extensions: ['.mp3', '.wav', '.ogg', '.m4a'],
-    legacyDirs: [
-      ['sounds'],
-      ['sounds', 'alerts'],
-      ['sounds', 'commands'],
-      ['soundalerts']
-    ]
+    legacyDirs: [['sounds'], ['sounds', 'alerts'], ['sounds', 'commands'], ['soundalerts']]
   },
   video: {
     label: 'Video',
     icon: '🎬',
     uploadDir: ['media', 'video'],
     extensions: ['.mp4', '.webm', '.mov', '.mkv'],
-    legacyDirs: [
-      ['videos'],
-      ['video'],
-      ['soundalerts', 'video'],
-      ['media', 'video']
-    ]
+    legacyDirs: [['videos'], ['video'], ['soundalerts', 'video'], ['media', 'video']]
   },
   image: {
     label: 'Bilder',
     icon: '🖼️',
     uploadDir: ['media', 'image'],
     extensions: ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'],
-    legacyDirs: [
-      ['images'],
-      ['images', 'alerts'],
-      ['media', 'image']
-    ]
+    legacyDirs: [['images'], ['images', 'alerts'], ['media', 'image']]
   },
   animation: {
     label: 'Animationen',
     icon: '✨',
     uploadDir: ['media', 'animation'],
     extensions: ['.webm', '.gif', '.json'],
-    legacyDirs: [
-      ['animations'],
-      ['media', 'animation']
-    ]
+    legacyDirs: [['animations'], ['media', 'animation']]
   }
 };
 
@@ -111,14 +94,6 @@ function normalizeSlashes(value) {
 
 function getAssetsDir() {
   return config.getAssetsDir();
-}
-
-function getWebPathForAbs(absPath) {
-  const assetsDir = path.resolve(getAssetsDir());
-  const target = path.resolve(absPath);
-  const rel = normalizeSlashes(path.relative(assetsDir, target));
-  if (!rel || rel.startsWith('..')) return '';
-  return `/assets/${rel}`;
 }
 
 function typeForExt(ext) {
@@ -224,28 +199,22 @@ function makeUniqueTarget(dir, fileName) {
 function inferMimeType(fileName, type) {
   const ext = path.extname(String(fileName || '')).toLowerCase();
   const map = {
-    '.mp3': 'audio/mpeg',
-    '.wav': 'audio/wav',
-    '.ogg': 'audio/ogg',
-    '.m4a': 'audio/mp4',
-    '.mp4': 'video/mp4',
-    '.webm': 'video/webm',
-    '.mov': 'video/quicktime',
-    '.mkv': 'video/x-matroska',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.svg': 'image/svg+xml',
-    '.json': 'application/json'
+    '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
+    '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.mkv': 'video/x-matroska',
+    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
+    '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json'
   };
   return map[ext] || (type === 'audio' ? 'audio/*' : type === 'video' ? 'video/*' : type === 'image' ? 'image/*' : 'application/octet-stream');
 }
 
 function mediaInfoForFile(absPath, type) {
-  const info = mediaHelper.readMediaInfo(absPath, { cache: false });
   const stat = fs.statSync(absPath);
+  let info = { ok: false, durationMs: 0, width: 0, height: 0, hasAudio: false, hasVideo: false, error: '' };
+  try {
+    info = mediaHelper.readMediaInfo(absPath, { cache: false });
+  } catch (err) {
+    info.error = err.message || String(err);
+  }
   return {
     sizeBytes: Number(stat.size || 0),
     durationMs: Number(info.durationMs || 0),
@@ -353,62 +322,19 @@ function upsertAsset(input = {}) {
 
 function listAssets(options = {}) {
   ensureSchema();
-
   const requestedType = clean(options.type || '');
   const requestedCategory = clean(options.category || '');
   const requestedStatus = clean(options.status || 'active');
   const requestedQuery = clean(options.q || '');
-  const limit = Math.max(1, Math.min(500, Number(options.limit || 200)));
-
+  const params = { limit: Math.max(1, Math.min(500, Number(options.limit || 200))) };
   const where = [];
-  const params = { limit };
 
-  if (requestedType) {
-    where.push('type = :type');
-    params.type = requestedType;
-  }
-
-  if (requestedCategory) {
-    where.push('category = :category');
-    params.category = requestedCategory;
-  }
-
-  if (requestedStatus && requestedStatus !== 'all') {
-    where.push('status = :status');
-    params.status = requestedStatus;
-  }
-
+  if (requestedType) { where.push('type = :type'); params.type = requestedType; }
+  if (requestedCategory) { where.push('category = :category'); params.category = requestedCategory; }
+  if (requestedStatus && requestedStatus !== 'all') { where.push('status = :status'); params.status = requestedStatus; }
   if (requestedQuery) {
     where.push('(lower(display_name) LIKE :q OR lower(file_name) LIKE :q OR lower(relative_path) LIKE :q OR lower(category) LIKE :q)');
     params.q = '%' + requestedQuery.toLowerCase() + '%';
-  }
-
-  const sql = [
-    'SELECT *',
-    'FROM media_assets',
-    where.length ? 'WHERE ' + where.join(' AND ') : '',
-    'ORDER BY type ASC, category ASC, display_name COLLATE NOCASE ASC',
-    'LIMIT :limit'
-  ].filter(Boolean).join('\n');
-
-  const rows = db.all(sql, params);
-  return rows.map(rowToAsset).filter(Boolean);
-}) {
-  ensureSchema();
-  const params = {
-    type: clean(options.type || ''),
-    category: clean(options.category || ''),
-    status: clean(options.status || 'active'),
-    q: `%${clean(options.q || '').toLowerCase()}%`,
-    limit: Math.max(1, Math.min(500, Number(options.limit || 200)))
-  };
-
-  const where = [];
-  if (params.type) where.push('type = :type');
-  if (params.category) where.push('category = :category');
-  if (params.status && params.status !== 'all') where.push('status = :status');
-  if (clean(options.q || '')) {
-    where.push('(lower(display_name) LIKE :q OR lower(file_name) LIKE :q OR lower(relative_path) LIKE :q OR lower(category) LIKE :q)');
   }
 
   const rows = db.all(`
@@ -470,17 +396,14 @@ function walkDir(dir, allowedExtensions, files = []) {
   return files;
 }
 
-function scanAssets(options = {}) {
+function scanAssets() {
   ensureSchema();
   const assetsDir = getAssetsDir();
   const touched = [];
   const errors = [];
 
-  for (const [type, meta] of Object.entries(MEDIA_TYPES)) {
-    const dirs = [
-      path.join(assetsDir, ...meta.uploadDir),
-      ...meta.legacyDirs.map(parts => path.join(assetsDir, ...parts))
-    ];
+  for (const [_type, meta] of Object.entries(MEDIA_TYPES)) {
+    const dirs = [path.join(assetsDir, ...meta.uploadDir), ...meta.legacyDirs.map(parts => path.join(assetsDir, ...parts))];
     const uniqueDirs = Array.from(new Set(dirs.map(dir => path.resolve(dir))));
     for (const dir of uniqueDirs) {
       if (!fs.existsSync(dir)) continue;
@@ -500,14 +423,7 @@ function scanAssets(options = {}) {
 
   state.lastScanAt = nowIso();
   state.lastChangeAt = state.lastScanAt;
-
-  return {
-    ok: errors.length === 0,
-    scanned: touched.length,
-    errors,
-    assets: touched,
-    updatedAt: state.lastScanAt
-  };
+  return { ok: errors.length === 0, scanned: touched.length, errors, assets: touched, updatedAt: state.lastScanAt };
 }
 
 function readBody(req) {
@@ -531,9 +447,7 @@ const uploadStorage = multer.diskStorage({
       const type = MEDIA_TYPES[requestedType] ? requestedType : typeForExt(path.extname(file.originalname));
       if (!MEDIA_TYPES[type]) return cb(new Error('media_type_not_supported'));
       cb(null, getUploadDir(type));
-    } catch (err) {
-      cb(err);
-    }
+    } catch (err) { cb(err); }
   },
   filename(req, file, cb) {
     try {
@@ -541,17 +455,13 @@ const uploadStorage = multer.diskStorage({
       const type = MEDIA_TYPES[requestedType] ? requestedType : typeForExt(path.extname(file.originalname));
       const target = makeUniqueTarget(getUploadDir(type), file.originalname);
       cb(null, path.basename(target));
-    } catch (err) {
-      cb(err);
-    }
+    } catch (err) { cb(err); }
   }
 });
 
 const upload = multer({
   storage: uploadStorage,
-  limits: {
-    fileSize: Number(process.env.MEDIA_UPLOAD_MAX_BYTES || 250 * 1024 * 1024)
-  },
+  limits: { fileSize: Number(process.env.MEDIA_UPLOAD_MAX_BYTES || 250 * 1024 * 1024) },
   fileFilter(req, file, cb) {
     const type = clean(param(req, 'type', '')) || typeForExt(path.extname(file.originalname));
     const finalType = MEDIA_TYPES[type] ? type : typeForExt(path.extname(file.originalname));
@@ -566,7 +476,6 @@ function uploadOne(req, res) {
     if (err) return res.status(400).json({ ok: false, error: err.message || String(err) });
     try {
       if (!req.file?.path) return res.status(400).json({ ok: false, error: 'file_missing' });
-      const type = typeForExt(path.extname(req.file.originalname));
       const category = clean(param(req, 'category', 'general')) || 'general';
       const displayName = clean(param(req, 'displayName', '')) || path.parse(req.file.originalname).name;
       const asset = scanFile(req.file.path, 'upload', category);
@@ -588,7 +497,6 @@ function updateAsset(req, res) {
     if (!id) return res.status(400).json({ ok: false, error: 'id_missing' });
     const current = rowToAsset(db.get('SELECT * FROM media_assets WHERE id = :id', { id }));
     if (!current) return res.status(404).json({ ok: false, error: 'asset_not_found' });
-
     const saved = upsertAsset({
       ...current,
       displayName: body.displayName ?? body.display_name ?? current.displayName,
@@ -622,7 +530,6 @@ function deleteAsset(req, res) {
     } else {
       db.run('UPDATE media_assets SET status = :status, updated_at = :updatedAt WHERE id = :id', { id, status: 'deleted', updatedAt: nowIso() });
     }
-
     state.lastChangeAt = nowIso();
     return res.json({ ok: true, deleted: true, fileDeleted: deleteFile, asset });
   } catch (err) {
@@ -642,7 +549,7 @@ function statusPayload() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP274A1B',
+    step: 'STEP274A1C',
     initialized: state.initialized,
     schemaOk: state.schemaOk,
     schemaError: state.schemaError,
@@ -656,14 +563,14 @@ function statusPayload() {
     counts: { total: Number(total?.count || 0), ...counts },
     types: Object.entries(MEDIA_TYPES).map(([id, meta]) => ({ id, label: meta.label, icon: meta.icon, extensions: meta.extensions, uploadDir: normalizeSlashes(path.join('assets', ...meta.uploadDir)) })),
     routes: [
-      { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Media-Core Status und Zählwerte' },
+      { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Media-Core Status und Zaehlwerte' },
       { method: 'GET', path: `${API_PREFIX}/list`, purpose: 'Registrierte Medien auflisten' },
-      { method: 'POST', path: `${API_PREFIX}/scan`, purpose: 'Bestehende Medienordner scannen' },
+      { method: 'GET/POST', path: `${API_PREFIX}/scan`, purpose: 'Bestehende Medienordner scannen' },
       { method: 'POST', path: `${API_PREFIX}/upload`, purpose: 'Medium hochladen und registrieren' },
-      { method: 'POST', path: `${API_PREFIX}/update`, purpose: 'Metadaten ändern' },
-      { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei löschen' }
+      { method: 'POST', path: `${API_PREFIX}/update`, purpose: 'Metadaten aendern' },
+      { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei loeschen' }
     ],
-    note: 'STEP274A1B: Media-Core Fix fuer optionale Listenfilter und ruhigere Scans. Dashboard und Command-Anbindung folgen in STEP274B/C.',
+    note: 'STEP274A1C ist der reparierte Media-Core. Dashboard und Command-Anbindung folgen in STEP274B/C.',
     updatedAt: nowIso()
   };
 }
@@ -690,18 +597,16 @@ function init(ctx) {
         limit: param(req, 'limit', 200)
       });
       return res.json({ ok: true, assets, count: assets.length, updatedAt: nowIso() });
-    } catch (err) {
-      return res.status(500).json({ ok: false, error: err.message || String(err) });
-    }
+    } catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
   });
 
   app.post(`${API_PREFIX}/scan`, (req, res) => {
-    try { return res.json(scanAssets({ force: true })); }
+    try { return res.json(scanAssets()); }
     catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
   });
 
   app.get(`${API_PREFIX}/scan`, (req, res) => {
-    try { return res.json(scanAssets({ force: true })); }
+    try { return res.json(scanAssets()); }
     catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
   });
 
@@ -710,13 +615,7 @@ function init(ctx) {
   app.post(`${API_PREFIX}/delete`, deleteAsset);
 
   console.log('[media] routes active: /api/media/*');
-  return { name: MODULE_NAME, step: 'STEP274A1B' };
+  return { name: MODULE_NAME, step: 'STEP274A1C' };
 }
 
-module.exports = {
-  init,
-  statusPayload,
-  listAssets,
-  scanAssets,
-  upsertAsset
-};
+module.exports = { init, statusPayload, listAssets, scanAssets, upsertAsset };

@@ -1,3 +1,3 @@
-# CURRENT_STATUS
+# CURRENT STATUS
 
-STEP274A1B vorbereitet: Media-Core-Fix gegen Listenfilter-Bug und defektes STEP274A1-Apply-Script.
+STEP274A1C: Media Core syntax fix prepared. `backend/modules/media.js` should load again and register `/api/media/*` routes after deploy/restart.

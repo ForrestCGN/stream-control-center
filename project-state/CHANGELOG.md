@@ -1,7 +1,5 @@
 # CHANGELOG
 
-## STEP274A1B
-
-- Apply-Script aus STEP274A1 repariert.
-- `listAssets()` verwendet nur tatsächlich genutzte SQL-Parameter.
-- Media-Core-Step auf `STEP274A1B` gesetzt.
+## STEP274A1C
+- Replaced broken `backend/modules/media.js` with syntax-valid Media Core file.
+- Fixed media list optional SQL params.

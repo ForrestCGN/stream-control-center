@@ -1,3 +1,3 @@
-# CURRENT_SYSTEM_STATUS
+# CURRENT SYSTEM STATUS
 
-Media-Core STEP274A ist aktiv. STEP274A1B behebt den Listenfilter-Bug und das fehlerhafte Apply-Script aus STEP274A1.
+Media Core is in STEP274A1C repair state. The module should load as `media.js` and expose `/api/media/*` routes after backend restart.
