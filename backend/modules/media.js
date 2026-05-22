@@ -353,6 +353,48 @@ function upsertAsset(input = {}) {
 
 function listAssets(options = {}) {
   ensureSchema();
+
+  const requestedType = clean(options.type || '');
+  const requestedCategory = clean(options.category || '');
+  const requestedStatus = clean(options.status || 'active');
+  const requestedQuery = clean(options.q || '');
+  const limit = Math.max(1, Math.min(500, Number(options.limit || 200)));
+
+  const where = [];
+  const params = { limit };
+
+  if (requestedType) {
+    where.push('type = :type');
+    params.type = requestedType;
+  }
+
+  if (requestedCategory) {
+    where.push('category = :category');
+    params.category = requestedCategory;
+  }
+
+  if (requestedStatus && requestedStatus !== 'all') {
+    where.push('status = :status');
+    params.status = requestedStatus;
+  }
+
+  if (requestedQuery) {
+    where.push('(lower(display_name) LIKE :q OR lower(file_name) LIKE :q OR lower(relative_path) LIKE :q OR lower(category) LIKE :q)');
+    params.q = '%' + requestedQuery.toLowerCase() + '%';
+  }
+
+  const sql = [
+    'SELECT *',
+    'FROM media_assets',
+    where.length ? 'WHERE ' + where.join(' AND ') : '',
+    'ORDER BY type ASC, category ASC, display_name COLLATE NOCASE ASC',
+    'LIMIT :limit'
+  ].filter(Boolean).join('\n');
+
+  const rows = db.all(sql, params);
+  return rows.map(rowToAsset).filter(Boolean);
+}) {
+  ensureSchema();
   const params = {
     type: clean(options.type || ''),
     category: clean(options.category || ''),
@@ -600,7 +642,7 @@ function statusPayload() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP274A',
+    step: 'STEP274A1B',
     initialized: state.initialized,
     schemaOk: state.schemaOk,
     schemaError: state.schemaError,
@@ -621,7 +663,7 @@ function statusPayload() {
       { method: 'POST', path: `${API_PREFIX}/update`, purpose: 'Metadaten ändern' },
       { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei löschen' }
     ],
-    note: 'STEP274A ist nur der Core. Dashboard und Command-Anbindung folgen in STEP274B/C.',
+    note: 'STEP274A1B: Media-Core Fix fuer optionale Listenfilter und ruhigere Scans. Dashboard und Command-Anbindung folgen in STEP274B/C.',
     updatedAt: nowIso()
   };
 }
@@ -668,7 +710,7 @@ function init(ctx) {
   app.post(`${API_PREFIX}/delete`, deleteAsset);
 
   console.log('[media] routes active: /api/media/*');
-  return { name: MODULE_NAME, step: 'STEP274A' };
+  return { name: MODULE_NAME, step: 'STEP274A1B' };
 }
 
 module.exports = {

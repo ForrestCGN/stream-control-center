@@ -1,11 +1,9 @@
 # FILES
 
-## STEP274A
+## STEP274A1B
 
-Geändert/ergänzt:
-
-- `backend/modules/media.js`
-- `project-state/STEP274A_MEDIA_CORE.md`
+- `tools/easy/STEP274A1B_APPLY_MEDIA_CORE_FIX.cjs`
+- `project-state/STEP274A1B_MEDIA_CORE_FIX.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`

@@ -87,14 +87,14 @@ function readAudioDurationMs(filePath, options = {}) {
       '-show_entries', 'format=duration',
       '-of', 'default=noprint_wrappers=1:nokey=1',
       target
-    ], { encoding: 'utf8', timeout: Number(options.timeoutMs) || 5000 });
+    ], { encoding: 'utf8', timeout: Number(options.timeoutMs) || 5000, stdio: ['ignore', 'pipe', 'pipe'] });
 
     const seconds = Number.parseFloat(String(output || '').trim());
     const durationMs = Number.isFinite(seconds) && seconds > 0 ? Math.round(seconds * 1000) : 0;
     if (durationMs > 0) durationCache.set(cacheKey, durationMs);
     return { ok: durationMs > 0, durationMs, cached: false, error: durationMs > 0 ? '' : 'duration_unavailable' };
   } catch (err) {
-    return { ok: false, durationMs: 0, cached: false, error: err.message || String(err) };
+    return { ok: false, durationMs: 0, cached: false, error: 'ffprobe_failed' };
   }
 }
 
@@ -115,7 +115,7 @@ function readMediaInfo(filePath, options = {}) {
       '-show_streams',
       '-of', 'json',
       target
-    ], { encoding: 'utf8', timeout: Number(options.timeoutMs) || 5000 });
+    ], { encoding: 'utf8', timeout: Number(options.timeoutMs) || 5000, stdio: ['ignore', 'pipe', 'pipe'] });
 
     const parsed = JSON.parse(String(output || '{}'));
     const streams = Array.isArray(parsed.streams) ? parsed.streams : [];
@@ -147,7 +147,7 @@ function readMediaInfo(filePath, options = {}) {
     if (durationMs > 0) durationCache.set(cacheKey, durationMs);
     return info;
   } catch (err) {
-    return { ok: false, durationMs: 0, durationOk: false, hasVideo: false, hasAudio: false, width: 0, height: 0, formatName: '', formatLongName: '', videoCodec: '', audioCodec: '', cached: false, error: err.message || String(err) };
+    return { ok: false, durationMs: 0, durationOk: false, hasVideo: false, hasAudio: false, width: 0, height: 0, formatName: '', formatLongName: '', videoCodec: '', audioCodec: '', cached: false, error: 'ffprobe_failed' };
   }
 }
 
