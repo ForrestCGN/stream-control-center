@@ -53,44 +53,77 @@ const DEFAULT_CONFIG = {
 
 const DEFAULT_MESSAGES = {
   usage: [
-    'Nutzung: !birthday set TT.MM, !birthday show oder !birthday delete.'
+    'Nutzung: !birthday set TT.MM, !birthday show oder !birthday delete.',
+    '🎂 Heimleitungs-Hinweis: !birthday set TT.MM speichert deinen Geburtstag. Mit Jahr geht auch: !birthday set TT.MM.JJJJ'
   ],
   register_success: [
-    '🎂 @{displayName}, dein Geburtstag wurde auf den {birthdayDate} gespeichert.'
+    '🎂 @{displayName}, dein Geburtstag wurde auf den {birthdayDate} gespeichert.',
+    '💜 @{displayName}, notiert: {birthdayDate}. Die Heimleitung legt schon mal Kuchenakten an.'
+  ],
+  register_success_with_year: [
+    '🎂 @{displayName}, dein Geburtstag wurde auf den {birthdayDate} gespeichert.',
+    '💜 @{displayName}, notiert: {birthdayDate}. Wenn der Tag kommt, zählen wir offiziell mit. Heimleitungs-Ehrenwort.'
   ],
   register_updated: [
-    '🎂 @{displayName}, dein Geburtstag wurde auf den {birthdayDate} aktualisiert.'
+    '🎂 @{displayName}, dein Geburtstag wurde auf den {birthdayDate} aktualisiert.',
+    '📝 @{displayName}, Geburtstag aktualisiert: {birthdayDate}. Die Heimleitung hat den Zettel neu laminiert.'
+  ],
+  register_updated_with_year: [
+    '🎂 @{displayName}, dein Geburtstag wurde auf den {birthdayDate} aktualisiert.',
+    '📝 @{displayName}, Geburtstag inklusive Baujahr aktualisiert: {birthdayDate}. Die Heimleitung hat es ordnungsgemäß eingetragen.'
   ],
   show_own_birthday: [
-    '🎂 @{displayName}, gespeichert ist: {birthdayDate}.'
+    '🎂 @{displayName}, gespeichert ist: {birthdayDate}.',
+    '📋 @{displayName}, laut Heimleitungsakte steht bei dir: {birthdayDate}.'
+  ],
+  show_own_birthday_with_year: [
+    '🎂 @{displayName}, gespeichert ist: {birthdayDate}. Aktuell wären das {age} Jahre.',
+    '📋 @{displayName}, laut Heimleitungsakte steht bei dir: {birthdayDate}. Aktueller Rentner-Level: {age}.'
   ],
   show_missing: [
     '🎂 @{displayName}, für dich ist noch kein Geburtstag gespeichert. Nutze: !birthday set TT.MM'
   ],
   delete_success: [
-    '🎂 @{displayName}, dein Geburtstag wurde gelöscht.'
+    '🎂 @{displayName}, dein Geburtstag wurde gelöscht.',
+    '🗑️ @{displayName}, dein Geburtstag wurde aus der Heimleitungsakte entfernt.'
   ],
   delete_missing: [
     '🎂 @{displayName}, für dich war kein Geburtstag gespeichert.'
   ],
   invalid_date: [
-    '🎂 @{displayName}, das Datum passt nicht. Nutze z. B. !birthday set 22.05 oder !birthday set 22.05.1980'
+    '🎂 @{displayName}, das Datum passt nicht. Nutze z. B. !birthday set 22.05 oder !birthday set 22.05.1980',
+    '📋 @{displayName}, die Heimleitung versteht nur TT.MM oder TT.MM.JJJJ. Beispiel: !birthday set 22.05'
   ],
   registration_disabled: [
     '🎂 Geburtstags-Registrierung ist aktuell deaktiviert.'
   ],
   birthday_greeting_chat: [
     '🎉 Alles Gute zum Geburtstag, @{displayName}! Schön, dass du heute mit uns feierst! 🎂',
-    '🎂 Happy Birthday, @{displayName}! Lass dich feiern! 🎉'
+    '🎂 Happy Birthday, @{displayName}! Lass dich feiern! 🎉',
+    '💜 Alles Gute, @{displayName}! Die Heimleitung wünscht Kuchen, Konfetti und stabile Hüften. 🎂',
+    '🎉 @{displayName} hat Geburtstag! Heute wird gefeiert, bis die Heimaufsicht das Licht ausmacht. 💜'
+  ],
+  birthday_greeting_chat_with_age: [
+    '🎉 Happy Birthday, @{displayName}! Alles Gute zum {age}. Geburtstag! 🎂',
+    '🎂 @{displayName}, alles Gute zum {age}. Geburtstag! Die Heimleitung hat den Kuchen freigegeben. 💜',
+    '🎉 Alles Gute zum {age}. Geburtstag, @{displayName}! Rollator geölt, Kuchen bereit, Party genehmigt. 🎂',
+    '💜 @{displayName} wird heute {age}! Die Heimaufsicht gratuliert offiziell und stellt eine Extraportion Kuchen aus. 🎉',
+    '🎂 Happy Birthday @{displayName}! {age} Jahre jung – im Altersheim zählt das noch als Early Access. 💜'
   ],
   birthday_diary_entry: [
-    '🎂 @{displayName} hatte heute Geburtstag und wurde im Chat beglückwünscht.'
+    '🎂 @{displayName} hatte heute Geburtstag und wurde im Chat beglückwünscht.',
+    '🎂 Geburtstagsnotiz: @{displayName} wurde heute im Chat gefeiert.'
+  ],
+  birthday_diary_entry_with_age: [
+    '🎂 @{displayName} hatte heute den {age}. Geburtstag und wurde im Chat beglückwünscht.',
+    '🎂 Geburtstagsnotiz: @{displayName} wurde heute {age} und bekam eine offizielle Heimleitungs-Gratulation.'
   ],
   today_none: [
     '🎂 Heute sind keine registrierten Geburtstage gespeichert.'
   ],
   today_list: [
-    '🎂 Heute Geburtstag: {names}'
+    '🎂 Heute Geburtstag: {names}',
+    '📋 Heimleitungs-Geburtstagsliste für heute: {names}'
   ],
   already_greeted: [
     '🎂 @{displayName} wurde heute bereits beglückwünscht.'
@@ -110,16 +143,21 @@ const TEXT_CATEGORY_LABELS = {
 const TEXT_CATEGORIES = {
   usage: 'chat',
   register_success: 'chat',
+  register_success_with_year: 'chat',
   register_updated: 'chat',
+  register_updated_with_year: 'chat',
   show_own_birthday: 'chat',
+  show_own_birthday_with_year: 'chat',
   show_missing: 'chat',
   delete_success: 'chat',
   delete_missing: 'chat',
   birthday_greeting_chat: 'chat',
+  birthday_greeting_chat_with_age: 'chat',
   today_none: 'chat',
   today_list: 'chat',
   already_greeted: 'chat',
   birthday_diary_entry: 'diary',
+  birthday_diary_entry_with_age: 'diary',
   invalid_date: 'errors',
   registration_disabled: 'errors',
   command_disabled: 'system'
@@ -344,6 +382,45 @@ function formatBirthday(day, month, year = null) {
   return `${d}.${m}${y}`;
 }
 
+function calculateAgeForDate(day, month, year, parts = localParts()) {
+  const birthYear = Number(year || 0);
+  if (!birthYear) return null;
+  let age = Number(parts.year || 0) - birthYear;
+  if (Number(parts.month || 0) < Number(month || 0) || (Number(parts.month || 0) === Number(month || 0) && Number(parts.day || 0) < Number(day || 0))) {
+    age -= 1;
+  }
+  return Number.isFinite(age) && age >= 0 ? age : null;
+}
+
+function buildBirthdayContext(user = {}, extra = {}, parts = localParts()) {
+  const day = Number(user.day ?? user.birthday_day ?? 0);
+  const month = Number(user.month ?? user.birthday_month ?? 0);
+  const storedYear = Number(user.year ?? user.birthday_year ?? 0);
+  const hasYear = Boolean(storedYear);
+  const age = hasYear ? calculateAgeForDate(day, month, storedYear, parts) : null;
+  const hasAge = Number.isFinite(age);
+  const birthdayDate = user.birthdayDate || formatBirthday(day, month, storedYear || null);
+
+  return {
+    ...extra,
+    login: cleanLogin(extra.login || user.login || user.user_login || ''),
+    username: cleanLogin(extra.username || extra.login || user.login || user.user_login || ''),
+    displayName: clean(extra.displayName || user.displayName || user.user_display_name || user.login || user.user_login || ''),
+    birthdayDate,
+    day: String(day || ''),
+    month: String(month || ''),
+    year: hasYear ? String(storedYear) : '',
+    hasYear: hasYear ? '1' : '0',
+    age: hasAge ? String(age) : '',
+    ageText: hasAge ? `Alles Gute zum ${age}. Geburtstag!` : '',
+    localDate: parts.date || ''
+  };
+}
+
+function textKeyWithAge(baseKey, context = {}) {
+  return context.age ? `${baseKey}_with_age` : baseKey;
+}
+
 function parseBirthdayDate(input) {
   const raw = clean(input).replace(/\//g, '.').replace(/-/g, '.');
   const match = raw.match(/^(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?$/);
@@ -561,7 +638,7 @@ async function writeDiaryEntry(user, context = {}) {
   if (cfg.diary?.enabled === false || cfg.automaticGreeting?.writeDiaryEntry === false) {
     return { ok: true, skipped: true, reason: 'diary_disabled' };
   }
-  const message = renderText('birthday_diary_entry', context);
+  const message = renderText(textKeyWithAge('birthday_diary_entry', context), context);
   if (!message) return { ok: true, skipped: true, reason: 'empty_diary_message' };
   return internalRequest('POST', '/api/tagebuch/entry', {
     authorDisplay: cfg.diary?.systemUsername || 'Geburtstags-System',
@@ -615,14 +692,8 @@ async function maybeAutoGreetFromChat(parsed = {}) {
     }
 
     const displayName = clean(parsed.displayName || parsed.tags?.['display-name'] || user.displayName || login);
-    const context = {
-      login,
-      username: login,
-      displayName,
-      birthdayDate: user.birthdayDate,
-      localDate: today.date
-    };
-    const message = renderText('birthday_greeting_chat', context);
+    const context = buildBirthdayContext(user, { login, username: login, displayName }, today);
+    const message = renderText(textKeyWithAge('birthday_greeting_chat', context), context);
     const chatResult = await sendChat(message, 'birthday_auto_greeting');
     const diaryResult = await writeDiaryEntry(user, context);
     const diarySent = !!(diaryResult?.ok && !diaryResult?.data?.skipped && !diaryResult?.skipped);
@@ -689,7 +760,7 @@ function seedBirthdayCommand() {
         permissionLevel: clean(cfg.command?.permissionLevel || 'everyone').toLowerCase() || 'everyone',
         cooldownGlobalMs: Math.max(0, Number(cfg.command?.cooldownGlobalMs || 1000)),
         cooldownUserMs: Math.max(0, Number(cfg.command?.cooldownUserMs || 5000)),
-        configJson: JSON.stringify({ actionType: 'module_command', moduleCommand: 'birthday', seededBy: 'STEP_BIRTHDAY_002' }),
+        configJson: JSON.stringify({ actionType: 'module_command', moduleCommand: 'birthday', seededBy: 'STEP_BIRTHDAY_002A' }),
         createdAt: now,
         updatedAt: now
       });
@@ -740,16 +811,17 @@ async function handleBirthdayCommand(payload = {}) {
       return { ok: false, command: 'birthday', action: 'set', error: 'invalid_date', message, chat: await sendChat(message, 'birthday_invalid_date') };
     }
     const result = upsertBirthdayUser({ login: user.login, displayName: user.displayName, ...parsedDate });
-    const context = { ...baseContext, birthdayDate: result.user.birthdayDate };
-    const key = result.created ? 'register_success' : 'register_updated';
+    const context = buildBirthdayContext(result.user, baseContext);
+    const baseKey = result.created ? 'register_success' : 'register_updated';
+    const key = result.user.year ? `${baseKey}_with_year` : baseKey;
     const message = renderText(key, context);
     return { ok: true, command: 'birthday', action: 'set', created: result.created, user: result.user, message, chat: await sendChat(message, 'birthday_set') };
   }
 
   if (['show', 'anzeigen'].includes(sub)) {
     const saved = getBirthdayUser(user.login);
-    const key = saved ? 'show_own_birthday' : 'show_missing';
-    const context = { ...baseContext, birthdayDate: saved?.birthdayDate || '' };
+    const context = saved ? buildBirthdayContext(saved, baseContext) : baseContext;
+    const key = saved ? (saved.year ? 'show_own_birthday_with_year' : 'show_own_birthday') : 'show_missing';
     const message = renderText(key, context);
     return { ok: true, command: 'birthday', action: 'show', user: saved, message, chat: await sendChat(message, 'birthday_show') };
   }
@@ -764,7 +836,10 @@ async function handleBirthdayCommand(payload = {}) {
   if (['today', 'heute'].includes(sub)) {
     const today = localParts();
     const rows = listBirthdaysFor(today.day, today.month);
-    const names = rows.map(row => `@${row.displayName || row.login}`).join(', ');
+    const names = rows.map(row => {
+      const context = buildBirthdayContext(row, {}, today);
+      return context.age ? `@${row.displayName || row.login} (${context.age})` : `@${row.displayName || row.login}`;
+    }).join(', ');
     const message = rows.length
       ? renderText('today_list', { ...baseContext, names, count: rows.length })
       : renderText('today_none', baseContext);
@@ -818,7 +893,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_002',
+    step: 'STEP_BIRTHDAY_002A',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -901,7 +976,7 @@ function init(ctx) {
   installChatActivityHook();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_002' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_002A' };
 }
 
 module.exports = {

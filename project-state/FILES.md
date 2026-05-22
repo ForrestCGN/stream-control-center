@@ -2,6 +2,8 @@
 
 ## Relevante gelieferte ZIPs
 
+- `STEP_BIRTHDAY_002A_birthday_age_texts.zip`
+
 - `STEP273A_command_system_core.zip`
 - `STEP273A1_command_system_core_fix.zip`
 - `STEP273B_commands_dashboard.zip`
@@ -48,3 +50,6 @@ Projektstatus:
 - `project-state/CHANGELOG.md`
 - `project-state/STEP_BIRTHDAY_002.md`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
+
+Birthday STEP-Doku:
+- `project-state/STEP_BIRTHDAY_002A.md`

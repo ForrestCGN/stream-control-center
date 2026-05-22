@@ -3,6 +3,18 @@
 ## 2026-05-22
 
 ### Birthday
+- STEP_BIRTHDAY_002A ergänzt optionale Altersausgabe.
+- Bei gespeichertem Jahr stehen `{age}` und `{ageText}` für Chat-/Tagebuchtexte bereit.
+- Neue Textkeys mit Alter ergänzt:
+  - `birthday_greeting_chat_with_age`
+  - `birthday_diary_entry_with_age`
+  - `register_success_with_year`
+  - `register_updated_with_year`
+  - `show_own_birthday_with_year`
+- Mehrere Default-Varianten im Heimaufsicht-/Rentner-Stil ergänzt.
+
+
+### Birthday
 - STEP_BIRTHDAY_002 geliefert.
 - Neues Backend-Modul `backend/modules/birthday.js` ergänzt.
 - Neue Config `config/birthday.json` ergänzt.

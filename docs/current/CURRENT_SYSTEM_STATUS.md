@@ -71,3 +71,22 @@ Beim Scan wurden ungültige/kaputte Legacy-Audiodateien gesehen:
 - `test_ping.wav`
 
 Diese Dateien blockieren den Media-Core nicht mehr. Später im Dashboard als kaputt markieren/löschen.
+
+
+## Birthday
+
+Aktueller Stand: `STEP_BIRTHDAY_002A`.
+
+Bestätigt/geliefert:
+- Birthday-Backend-Modul existiert.
+- `!birthday` läuft über das zentrale Command-System.
+- Registrierung per `!birthday set TT.MM` und optional `!birthday set TT.MM.JJJJ`.
+- Optional gespeichertes Jahr wird für `{age}` und `{ageText}` genutzt.
+- Automatische kleine Chat-Gratulation bleibt ohne Overlay/Sound/Video.
+- Wenn Alter vorhanden ist, werden eigene Textkeys mit Alter genutzt.
+- Mehrere Default-Varianten im Heimaufsicht-/Rentner-Stil sind vorbereitet.
+- Texte sind über `module_text_variants` dashboardfähig.
+
+Offen:
+- Birthday-Dashboard.
+- Manuelle Birthday-Show mit Video/Overlay/Song.

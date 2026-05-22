@@ -66,6 +66,15 @@ Stand: 2026-05-22
 - `/api/media/list?type=audio` funktioniert.
 - `/api/media/list?type=video` funktioniert.
 
+
+### STEP_BIRTHDAY_002A – Birthday Alter und Textvarianten
+- Birthday-Backend wurde erweitert.
+- Optional gespeichertes Jahr wird für `{age}` und `{ageText}` genutzt.
+- Automatische Gratulation verwendet bei vorhandenem Jahr `birthday_greeting_chat_with_age`.
+- Tagebuch verwendet bei vorhandenem Jahr `birthday_diary_entry_with_age`.
+- Default-Textvarianten im Heimaufsicht-/Rentner-Stil ergänzt.
+- Keine Dashboard-/Overlay-/Sound-Änderung.
+
 ## Geliefert, aber noch nicht final bestätigt
 
 ### STEP274B – Media Dashboard
