@@ -98,3 +98,11 @@
 - Fix: User-Song-Uploads werden jetzt unabhängig von registrierten Geburtstagen als Birthday-Show-Profile gespeichert.
 - Vorhandene `birthday_song_<login>*.mp3` Dateien werden automatisch in Show-Profile zurückgeführt.
 - `!birthday party <login>` nutzt diese Show-Profile auch ohne Geburtstagseintrag.
+
+### Birthday-System STEP_BIRTHDAY_005
+- Party-Preset-System eingeführt.
+- Standard-Party als Fallback vorbereitet.
+- User können optional einer eigenen Party zugeordnet werden.
+- Erste Styles ergänzt: Classic Party, CGN Neon, Epic Celebration, Heimaufsicht Fun, Cute Soft.
+- Overlay erweitert: Herzen, Konfetti, Ballons, Glitzer, Lichtstrahlen und Szenenwechsel während der Songphase.
+- Dashboard Party-Show erweitert um Party-Presets und User→Party-Zuordnung.

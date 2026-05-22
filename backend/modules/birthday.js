@@ -15,7 +15,7 @@ const mediaHelper = require('./helpers/helper_media');
 const commands = require('./commands');
 
 const MODULE_NAME = 'birthday';
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 const SETTINGS_TABLE = 'birthday_settings';
 const TEXTS_MODULE = 'birthday';
 const API_PREFIX = '/api/birthday';
@@ -70,6 +70,44 @@ const DEFAULT_CONFIG = {
     forceExclusive: true,
     videoQuietPhaseLabel: 'Intro läuft',
     uploadDir: 'birthday'
+  }
+};
+
+const PARTY_STYLE_PRESETS = {
+  classic_party: {
+    key: 'classic_party',
+    label: 'Classic Party',
+    description: 'Klassische Geburtstagsfeier mit Konfetti, Ballons und Herzen.',
+    effects: { hearts: 'medium', confetti: 'medium', balloons: 'medium', glitter: 'medium', beams: 'soft' },
+    scenes: ['headline', 'hearts', 'confetti', 'spotlight']
+  },
+  cgn_neon: {
+    key: 'cgn_neon',
+    label: 'CGN Neon Party',
+    description: 'ForrestCGN-Neonlook mit Lila/Cyan-Glow, Herzen, Runnern und Lichtstrahlen.',
+    effects: { hearts: 'medium', confetti: 'medium', balloons: 'low', glitter: 'high', beams: 'high' },
+    scenes: ['neon_title', 'heart_rain', 'glow_burst', 'spotlight']
+  },
+  epic_party: {
+    key: 'epic_party',
+    label: 'Epic Celebration',
+    description: 'Große Eskalation mit starken Lichtstrahlen, Herzregen, Konfetti und Glitzer.',
+    effects: { hearts: 'high', confetti: 'high', balloons: 'medium', glitter: 'high', beams: 'high' },
+    scenes: ['epic_burst', 'heart_rain', 'confetti_storm', 'name_spotlight']
+  },
+  heimaufsicht_fun: {
+    key: 'heimaufsicht_fun',
+    label: 'Heimaufsicht Fun',
+    description: 'Humorvoller Heimaufsicht-/Rentner-Style mit Herzchen, Kuchenakten und Partyfreigabe.',
+    effects: { hearts: 'high', confetti: 'medium', balloons: 'low', glitter: 'medium', beams: 'medium' },
+    scenes: ['heimleitung', 'heart_rain', 'cake_alarm', 'name_spotlight']
+  },
+  cute_soft: {
+    key: 'cute_soft',
+    label: 'Cute Soft Party',
+    description: 'Sanfter Style mit vielen Herzen, weichem Glow und ruhigerer Bewegung.',
+    effects: { hearts: 'high', confetti: 'low', balloons: 'medium', glitter: 'medium', beams: 'soft' },
+    scenes: ['soft_hearts', 'cute_title', 'gentle_confetti', 'warm_glow']
   }
 };
 
@@ -497,7 +535,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_004D',
+    step: 'STEP_BIRTHDAY_005',
     state: {
       ...showState,
       now: Date.now(),
@@ -563,18 +601,31 @@ function mediaInfoForSoundFile(file, fallbackMs = 0) {
   }
 }
 
+function renderTemplate(template, context = {}) {
+  let out = clean(template || '');
+  if (!out) return '';
+  for (const [key, value] of Object.entries(context || {})) {
+    out = out.replace(new RegExp(`\\{${key}\\}`, 'g'), clean(value));
+  }
+  return out;
+}
+
 function pickShowAsset(targetUser = {}, targetLogin = '') {
   const cfg = getConfig();
   const videoFile = safeRelativeMediaFile(cfg.show?.defaultVideoFile || '');
   const legacyVideoUrl = normalizeAssetUrl(cfg.show?.defaultVideoUrl || '');
-  const profile = getBirthdayShowProfile(targetLogin || targetUser.login || '');
+  const login = cleanLogin(targetLogin || targetUser.login || '');
+  const { profile, party } = birthdayShowPartyBundleForLogin(login);
   const profileSongFile = profile && profile.active ? profile.songFile : '';
-  const songFile = safeRelativeMediaFile(targetUser.showSongFile || profileSongFile || cfg.show?.defaultSongFile || '');
-  const songVolume = Math.max(0, Math.min(100, Number(targetUser.showSongVolume || profile?.songVolume || cfg.show?.defaultSongVolume || 85) || 85));
+  const partySongFile = party && party.enabled ? party.songFile : '';
+  const songFile = safeRelativeMediaFile(profileSongFile || partySongFile || targetUser.showSongFile || cfg.show?.defaultSongFile || '');
+  const songVolume = Math.max(0, Math.min(100, Number(profile?.songVolume || party?.songVolume || targetUser.showSongVolume || cfg.show?.defaultSongVolume || 85) || 85));
   const videoInfo = videoFile ? mediaInfoForSoundFile(videoFile, cfg.show?.defaultVideoDurationMs || 0) : null;
-  const songInfo = songFile ? mediaInfoForSoundFile(songFile, targetUser.showSongDurationMs || profile?.songDurationMs || cfg.show?.partyDurationMs || 22000) : null;
+  const songFallbackMs = profile?.songDurationMs || party?.songDurationMs || targetUser.showSongDurationMs || cfg.show?.partyDurationMs || 22000;
+  const songInfo = songFile ? mediaInfoForSoundFile(songFile, songFallbackMs) : null;
   const videoDurationMs = Math.max(0, Number(videoInfo?.durationMs || cfg.show?.defaultVideoDurationMs || 0) || 0);
   const songDurationMs = Math.max(3000, Number(songInfo?.durationMs || cfg.show?.partyDurationMs || 22000) || 22000);
+  const styleKey = party?.styleKey || 'cgn_neon';
   return {
     videoFile,
     videoUrl: videoInfo?.webPath || legacyVideoUrl,
@@ -585,6 +636,16 @@ function pickShowAsset(targetUser = {}, targetLogin = '') {
     partyDurationMs: songDurationMs,
     videoInfo,
     songInfo,
+    party: party || getDefaultBirthdayParty(),
+    partyKey: party?.partyKey || 'default_party',
+    partyTitle: party?.title || 'Standard Geburtstagsparty',
+    styleKey,
+    style: PARTY_STYLE_PRESETS[styleKey] || PARTY_STYLE_PRESETS.cgn_neon,
+    effects: party?.effects || defaultPartyEffects(styleKey),
+    scenes: party?.scenes || defaultPartyScenes(styleKey),
+    headlineTemplate: party?.headlineTemplate || '{headline}',
+    sublineTemplate: party?.sublineTemplate || '{message}',
+    profile,
     timing: {
       videoDurationMs,
       songDurationMs,
@@ -679,8 +740,10 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
   const asset = pickShowAsset(targetUser || {}, context.targetLogin);
   const videoMs = asset.videoFile ? Math.max(1000, Number(asset.videoDurationMs || cfg.show?.defaultVideoDurationMs || 10000)) : 0;
   const partyMs = Math.max(3000, Number(asset.songDurationMs || asset.partyDurationMs || cfg.show?.partyDurationMs || 22000));
-  const headline = birthdayContext.age ? `Happy ${birthdayContext.age}. Birthday!` : 'Happy Birthday!';
-  const message = birthdayContext.age ? `Alles Gute zum ${birthdayContext.age}. Geburtstag, @${context.targetDisplayName}!` : `Alles Gute zum Geburtstag, @${context.targetDisplayName}!`;
+  const baseHeadline = birthdayContext.age ? `Happy ${birthdayContext.age}. Birthday!` : 'Happy Birthday!';
+  const baseMessage = birthdayContext.age ? `Alles Gute zum ${birthdayContext.age}. Geburtstag, @${context.targetDisplayName}!` : `Alles Gute zum Geburtstag, @${context.targetDisplayName}!`;
+  const headline = renderTemplate(asset.headlineTemplate, { ...birthdayContext, headline: baseHeadline, message: baseMessage }) || baseHeadline;
+  const message = baseMessage;
 
   showState = {
     active: true,
@@ -688,7 +751,14 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, s
     targetLogin: context.targetLogin,
     targetDisplayName: context.targetDisplayName,
     headline,
-    message,
+    message: renderTemplate(asset.sublineTemplate, { ...birthdayContext, headline, message }) || message,
+    rawMessage: message,
+    partyKey: asset.partyKey || 'default_party',
+    partyTitle: asset.partyTitle || 'Standard Geburtstagsparty',
+    styleKey: asset.styleKey || 'cgn_neon',
+    effects: asset.effects || {},
+    scenes: Array.isArray(asset.scenes) ? asset.scenes : [],
+    sceneDurationMs: 18000,
     videoUrl: asset.videoUrl,
     videoFile: asset.videoFile,
     videoDurationMs: videoMs,
@@ -843,9 +913,37 @@ function ensureSchema() {
           CREATE INDEX IF NOT EXISTS idx_birthday_show_profiles_active ON birthday_show_profiles(active);
         `);
       }
+
+
+      if (toVersion === 5) {
+        const profileColumns = new Set(database.tableColumns('birthday_show_profiles'));
+        if (!profileColumns.has('party_key')) db.exec(`ALTER TABLE birthday_show_profiles ADD COLUMN party_key TEXT NOT NULL DEFAULT '';`);
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS birthday_parties (
+            party_key TEXT PRIMARY KEY,
+            title TEXT NOT NULL DEFAULT '',
+            enabled INTEGER NOT NULL DEFAULT 1,
+            is_default INTEGER NOT NULL DEFAULT 0,
+            song_file TEXT NOT NULL DEFAULT '',
+            song_duration_ms INTEGER NOT NULL DEFAULT 0,
+            song_volume INTEGER NOT NULL DEFAULT 0,
+            style_key TEXT NOT NULL DEFAULT 'cgn_neon',
+            headline_template TEXT NOT NULL DEFAULT '',
+            subline_template TEXT NOT NULL DEFAULT '',
+            effects_json TEXT NOT NULL DEFAULT '{}',
+            scenes_json TEXT NOT NULL DEFAULT '[]',
+            notes TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_birthday_parties_enabled ON birthday_parties(enabled);
+          CREATE INDEX IF NOT EXISTS idx_birthday_parties_default ON birthday_parties(is_default);
+        `);
+      }
     });
     state.schemaOk = true;
     state.schemaError = '';
+    ensureDefaultBirthdayParties();
     return true;
   } catch (err) {
     state.schemaOk = false;
@@ -892,6 +990,7 @@ function mapBirthdayShowProfile(row) {
     songFile: row.song_file || '',
     songDurationMs: Number(row.song_duration_ms || 0),
     songVolume: Number(row.song_volume || 0),
+    partyKey: row.party_key || '',
     active: Number(row.active || 0) === 1,
     source: row.source || '',
     createdAt: row.created_at || '',
@@ -989,6 +1088,213 @@ function backfillBirthdayShowProfilesFromFiles() {
   } catch (err) {
     return { ok: false, error: err.message || String(err) };
   }
+}
+
+
+function safeJsonDecode(value, fallback) {
+  if (value === undefined || value === null || value === '') return fallback;
+  try { return JSON.parse(String(value)); } catch (_) { return fallback; }
+}
+
+function safeJsonEncode(value, fallback = '{}') {
+  try { return JSON.stringify(value ?? null); } catch (_) { return fallback; }
+}
+
+function cleanPartyKey(value) {
+  return sanitizeUploadBase(value || '').replace(/\.+/g, '_') || 'default_party';
+}
+
+function defaultPartyEffects(styleKey = 'cgn_neon') {
+  const preset = PARTY_STYLE_PRESETS[styleKey] || PARTY_STYLE_PRESETS.cgn_neon;
+  return preset.effects || PARTY_STYLE_PRESETS.cgn_neon.effects;
+}
+
+function defaultPartyScenes(styleKey = 'cgn_neon') {
+  const preset = PARTY_STYLE_PRESETS[styleKey] || PARTY_STYLE_PRESETS.cgn_neon;
+  return preset.scenes || PARTY_STYLE_PRESETS.cgn_neon.scenes;
+}
+
+function mapBirthdayParty(row) {
+  if (!row) return null;
+  const styleKey = row.style_key || 'cgn_neon';
+  return {
+    partyKey: row.party_key || '',
+    title: row.title || row.party_key || '',
+    enabled: Number(row.enabled || 0) === 1,
+    isDefault: Number(row.is_default || 0) === 1,
+    songFile: row.song_file || '',
+    songDurationMs: Number(row.song_duration_ms || 0),
+    songVolume: Number(row.song_volume || 0),
+    styleKey,
+    style: PARTY_STYLE_PRESETS[styleKey] || PARTY_STYLE_PRESETS.cgn_neon,
+    headlineTemplate: row.headline_template || '',
+    sublineTemplate: row.subline_template || '',
+    effects: safeJsonDecode(row.effects_json, defaultPartyEffects(styleKey)),
+    scenes: safeJsonDecode(row.scenes_json, defaultPartyScenes(styleKey)),
+    notes: row.notes || '',
+    createdAt: row.created_at || '',
+    updatedAt: row.updated_at || ''
+  };
+}
+
+function ensureDefaultBirthdayParties() {
+  try {
+    const now = nowIso();
+    const defaults = [
+      { partyKey: 'default_party', title: 'Standard Geburtstagsparty', isDefault: 1, styleKey: 'cgn_neon', headlineTemplate: '{headline}', sublineTemplate: '{message}', notes: 'Fallback-Party, wenn kein User-Party-Profil existiert.' },
+      { partyKey: 'classic_party', title: 'Classic Party', isDefault: 0, styleKey: 'classic_party', headlineTemplate: '{headline}', sublineTemplate: '{message}', notes: 'Klassische Birthday-Party.' },
+      { partyKey: 'epic_party', title: 'Epic Celebration', isDefault: 0, styleKey: 'epic_party', headlineTemplate: '{headline}', sublineTemplate: '{message}', notes: 'Große Eskalation.' },
+      { partyKey: 'heimaufsicht_fun', title: 'Heimaufsicht Fun', isDefault: 0, styleKey: 'heimaufsicht_fun', headlineTemplate: '{headline}', sublineTemplate: '{message}', notes: 'Heimaufsicht-/Rentner-Style.' },
+      { partyKey: 'cute_soft', title: 'Cute Soft Party', isDefault: 0, styleKey: 'cute_soft', headlineTemplate: '{headline}', sublineTemplate: '{message}', notes: 'Weiche Herzchen-Party.' }
+    ];
+    for (const item of defaults) {
+      const style = PARTY_STYLE_PRESETS[item.styleKey] || PARTY_STYLE_PRESETS.cgn_neon;
+      database.run(`
+        INSERT INTO birthday_parties (
+          party_key, title, enabled, is_default, song_file, song_duration_ms, song_volume,
+          style_key, headline_template, subline_template, effects_json, scenes_json, notes, created_at, updated_at
+        ) VALUES (
+          :partyKey, :title, 1, :isDefault, '', 0, 0,
+          :styleKey, :headlineTemplate, :sublineTemplate, :effectsJson, :scenesJson, :notes, :createdAt, :updatedAt
+        )
+        ON CONFLICT(party_key) DO NOTHING
+      `, {
+        partyKey: item.partyKey,
+        title: item.title,
+        isDefault: item.isDefault,
+        styleKey: item.styleKey,
+        headlineTemplate: item.headlineTemplate,
+        sublineTemplate: item.sublineTemplate,
+        effectsJson: safeJsonEncode(style.effects || {}, '{}'),
+        scenesJson: safeJsonEncode(style.scenes || [], '[]'),
+        notes: item.notes,
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+  } catch (err) {
+    state.lastError = err.message || String(err);
+  }
+}
+
+function listBirthdayParties(options = {}) {
+  ensureSchema();
+  const includeDisabled = boolValue(options.includeDisabled, true);
+  const rows = database.all(`
+    SELECT *
+    FROM birthday_parties
+    ${includeDisabled ? '' : 'WHERE enabled = 1'}
+    ORDER BY is_default DESC, enabled DESC, title COLLATE NOCASE ASC, party_key ASC
+  `);
+  return rows.map(mapBirthdayParty).filter(Boolean);
+}
+
+function getBirthdayParty(partyKey) {
+  ensureSchema();
+  const key = cleanPartyKey(partyKey || '');
+  if (!key) return null;
+  return mapBirthdayParty(database.get('SELECT * FROM birthday_parties WHERE party_key = :key', { key }));
+}
+
+function getDefaultBirthdayParty() {
+  ensureSchema();
+  return mapBirthdayParty(database.get('SELECT * FROM birthday_parties WHERE is_default = 1 AND enabled = 1 ORDER BY party_key ASC LIMIT 1')) || getBirthdayParty('default_party');
+}
+
+function saveBirthdayParty(payload = {}) {
+  ensureSchema();
+  const now = nowIso();
+  const existingKey = cleanPartyKey(payload.partyKey || payload.party_key || payload.key || '');
+  const partyKey = existingKey || cleanPartyKey(payload.title || 'party');
+  const styleKey = clean(payload.styleKey || payload.style_key || 'cgn_neon');
+  const style = PARTY_STYLE_PRESETS[styleKey] || PARTY_STYLE_PRESETS.cgn_neon;
+  const effects = payload.effects && typeof payload.effects === 'object' ? payload.effects : defaultPartyEffects(styleKey);
+  const scenes = Array.isArray(payload.scenes) ? payload.scenes : defaultPartyScenes(styleKey);
+  const isDefault = boolValue(payload.isDefault ?? payload.is_default, false) ? 1 : 0;
+  if (isDefault) database.run('UPDATE birthday_parties SET is_default = 0 WHERE party_key <> :partyKey', { partyKey });
+  const existing = getBirthdayParty(partyKey);
+  database.run(`
+    INSERT INTO birthday_parties (
+      party_key, title, enabled, is_default, song_file, song_duration_ms, song_volume,
+      style_key, headline_template, subline_template, effects_json, scenes_json, notes, created_at, updated_at
+    ) VALUES (
+      :partyKey, :title, :enabled, :isDefault, :songFile, :songDurationMs, :songVolume,
+      :styleKey, :headlineTemplate, :sublineTemplate, :effectsJson, :scenesJson, :notes, :createdAt, :updatedAt
+    )
+    ON CONFLICT(party_key) DO UPDATE SET
+      title = excluded.title,
+      enabled = excluded.enabled,
+      is_default = excluded.is_default,
+      song_file = excluded.song_file,
+      song_duration_ms = excluded.song_duration_ms,
+      song_volume = excluded.song_volume,
+      style_key = excluded.style_key,
+      headline_template = excluded.headline_template,
+      subline_template = excluded.subline_template,
+      effects_json = excluded.effects_json,
+      scenes_json = excluded.scenes_json,
+      notes = excluded.notes,
+      updated_at = excluded.updated_at
+  `, {
+    partyKey,
+    title: clean(payload.title || existing?.title || partyKey),
+    enabled: boolValue(payload.enabled, existing ? existing.enabled : true) ? 1 : 0,
+    isDefault,
+    songFile: safeRelativeMediaFile(payload.songFile || payload.song_file || existing?.songFile || ''),
+    songDurationMs: Math.max(0, Number(payload.songDurationMs || payload.song_duration_ms || existing?.songDurationMs || 0) || 0),
+    songVolume: Math.max(0, Math.min(100, Number(payload.songVolume || payload.song_volume || existing?.songVolume || 0) || 0)),
+    styleKey: style.key || 'cgn_neon',
+    headlineTemplate: clean(payload.headlineTemplate || payload.headline_template || existing?.headlineTemplate || '{headline}'),
+    sublineTemplate: clean(payload.sublineTemplate || payload.subline_template || existing?.sublineTemplate || '{message}'),
+    effectsJson: safeJsonEncode(effects, '{}'),
+    scenesJson: safeJsonEncode(scenes, '[]'),
+    notes: clean(payload.notes || existing?.notes || ''),
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  });
+  return { ok: true, module: MODULE_NAME, party: getBirthdayParty(partyKey), parties: listBirthdayParties() };
+}
+
+function assignBirthdayParty(payload = {}) {
+  const login = cleanLogin(payload.login || payload.userLogin || payload.username || '');
+  if (!login) throw new Error('user_login_required');
+  const partyKey = cleanPartyKey(payload.partyKey || payload.party_key || '');
+  const party = getBirthdayParty(partyKey);
+  if (!party && partyKey) throw new Error('party_not_found');
+  const existing = getBirthdayShowProfile(login);
+  const now = nowIso();
+  database.run(`
+    INSERT INTO birthday_show_profiles (
+      user_login, display_name_override, song_file, song_duration_ms, song_volume, active, source, party_key, created_at, updated_at
+    ) VALUES (
+      :login, :displayNameOverride, :songFile, :songDurationMs, :songVolume, :active, :source, :partyKey, :createdAt, :updatedAt
+    )
+    ON CONFLICT(user_login) DO UPDATE SET
+      display_name_override = CASE WHEN excluded.display_name_override = '' THEN birthday_show_profiles.display_name_override ELSE excluded.display_name_override END,
+      party_key = excluded.party_key,
+      active = excluded.active,
+      updated_at = excluded.updated_at
+  `, {
+    login,
+    displayNameOverride: clean(payload.displayName || payload.displayNameOverride || existing?.displayNameOverride || ''),
+    songFile: existing?.songFile || '',
+    songDurationMs: existing?.songDurationMs || 0,
+    songVolume: existing?.songVolume || 0,
+    active: boolValue(payload.active, true) ? 1 : 0,
+    source: existing?.source || 'dashboard_party_assign',
+    partyKey,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  });
+  return { ok: true, module: MODULE_NAME, profile: getBirthdayShowProfile(login), parties: listBirthdayParties(), profiles: listBirthdayShowProfiles() };
+}
+
+function birthdayShowPartyBundleForLogin(login) {
+  const profile = getBirthdayShowProfile(login);
+  let party = null;
+  if (profile?.active && profile.partyKey) party = getBirthdayParty(profile.partyKey);
+  if (!party || party.enabled === false) party = getDefaultBirthdayParty();
+  return { profile, party };
 }
 
 function upsertBirthdayUser({ login, displayName, day, month, year = null, source = 'chat_command' }) {
@@ -1420,6 +1726,7 @@ function safePublicConfig(cfg = getConfig()) {
       forceExclusive: cfg.show?.forceExclusive !== false,
       uploadDir: cfg.show?.uploadDir || 'birthday'
     },
+    partyStyles: Object.values(PARTY_STYLE_PRESETS),
     settingsTable: cfg.settingsTable || SETTINGS_TABLE,
     settingsSource: cfg.settingsSource || 'unknown',
     settingsError: cfg.settingsError || '',
@@ -1791,14 +2098,22 @@ function buildBirthdayShowAssets() {
   if (!defaultSong.durationOk) timingPreview.warnings.push('default_song_duration_fallback_or_missing');
   if (!intro.exists) timingPreview.warnings.push('intro_file_missing');
   if (!defaultSong.exists) timingPreview.warnings.push('default_song_file_missing');
+  const parties = listBirthdayParties();
+  const profilesWithParties = profiles.map(profile => ({
+    ...profile,
+    party: profile.partyKey ? getBirthdayParty(profile.partyKey) : null
+  }));
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_004D',
+    step: 'STEP_BIRTHDAY_005',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
     userSongs,
+    parties,
+    profiles: profilesWithParties,
+    stylePresets: Object.values(PARTY_STYLE_PRESETS),
     backfill,
     timingPreview,
     notes: [
@@ -1816,7 +2131,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_004D',
+    step: 'STEP_BIRTHDAY_005',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -1855,6 +2170,8 @@ function buildStatus() {
       { method: 'POST', path: `${API_PREFIX}/admin/show/upload` },
       { method: 'GET', path: `${API_PREFIX}/admin/show/assets` },
       { method: 'POST', path: `${API_PREFIX}/admin/show/recheck` },
+      { method: 'GET/POST', path: `${API_PREFIX}/admin/show/parties` },
+      { method: 'POST', path: `${API_PREFIX}/admin/show/profile` },
       { method: 'GET', path: `${API_PREFIX}/admin/users` },
       { method: 'POST', path: `${API_PREFIX}/admin/user` },
       { method: 'POST', path: `${API_PREFIX}/admin/user/delete` },
@@ -1914,6 +2231,21 @@ function registerRoutes(ctx) {
   routes.registerPost(app, [`${API_PREFIX}/admin/show/recheck`], (req, res) => {
     try { return res.json(buildBirthdayShowAssets()); }
     catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
+  routes.registerGet(app, [`${API_PREFIX}/admin/show/parties`], (req, res) => {
+    try { return res.json({ ok: true, module: MODULE_NAME, parties: listBirthdayParties(req.query || {}), profiles: listBirthdayShowProfiles(), styles: Object.values(PARTY_STYLE_PRESETS), status: buildStatus() }); }
+    catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
+  routes.registerPost(app, [`${API_PREFIX}/admin/show/parties`], (req, res) => {
+    try { return res.json(saveBirthdayParty(req.body || req.query || {})); }
+    catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
+  });
+
+  routes.registerPost(app, [`${API_PREFIX}/admin/show/profile`], (req, res) => {
+    try { return res.json(assignBirthdayParty(req.body || req.query || {})); }
+    catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
   });
 
   routes.registerGet(app, [`${API_PREFIX}/admin/users`], (req, res) => {
@@ -2003,7 +2335,7 @@ function init(ctx) {
   installChatActivityHook();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_004D' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_005' };
 }
 
 module.exports = {

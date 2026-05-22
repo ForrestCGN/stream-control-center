@@ -1,58 +1,54 @@
 # NEXT_STEPS – Birthday-System
 
-## Sofort nach STEP_BIRTHDAY_004A
+## Aktueller Stand
 
-1. Backend neu starten/deployen.
-2. Status prüfen:
-   ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/status"
-   Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/show/state"
-   ```
-3. Dashboard prüfen:
-   ```text
-   http://127.0.0.1:8080/dashboard
-   Community → Birthday-System → Party-Show
-   ```
-4. Uploads im Dashboard testen:
-   - globales Intro-Video
-   - Standardsong
-   - optional User-Song, z. B. `araglor`
-5. Sound-System-Overlay muss in OBS aktiv sein, weil Video/Song darüber laufen.
-6. Birthday-Overlay testen:
-   ```text
-   http://127.0.0.1:8080/overlays/_overlay-birthday.html?debug=1
-   ```
-7. Test-Command:
-   ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8080/api/commands/execute" -Method POST -ContentType "application/json" -Body '{"message":"!birthday party testuser","userLogin":"forrestcgn","displayName":"ForrestCGN"}'
-   ```
-8. Erwartung:
-   - Intro-Video läuft über Sound-System.
-   - Birthday-Overlay bleibt ruhig.
-   - Nach Intro startet Song.
-   - Erst dann eskaliert das Birthday-Overlay.
-   - Overlay bleibt bis Songende sichtbar.
-9. Wenn bestätigt:
-   ```powershell
-   .\stepdone.cmd "STEP_BIRTHDAY_004A Birthday Show Sound-System"
-   ```
+Aktuell: `STEP_BIRTHDAY_005`.
+
+Das Birthday-System hat jetzt:
+
+- Registrierung per `!birthday set`
+- kleine automatische Chat-Gratulation
+- Tagebuch-Anbindung
+- manuelle Show per `!birthday party username`
+- globales Intro-Video
+- Standardsong
+- User-Songs
+- Party-Presets
+- User→Party-Zuordnung
+- mehrere Celebration-Styles
+
+## Sofort testen
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/admin/show/parties"
+Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/admin/show/assets"
+```
+
+Dashboard:
+
+```text
+http://127.0.0.1:8080/dashboard
+Community → Birthday-System → Party-Show
+```
+
+Show-Test:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/execute" -Method POST -ContentType "application/json" -Body '{"message":"!birthday party araglor","userLogin":"forrestcgn","displayName":"ForrestCGN"}'
+```
 
 ## Danach sinnvoll
 
-### STEP_BIRTHDAY_004C – Show Polish
-- Dashboard-Testbutton für einzelne User.
-- bessere Statusanzeige für Sound-System-Playback.
-- optional echte Sound-System-Bundle-Events auswerten statt Dauer-Timer.
-- Overlay-Design weiter im CGN-Stil verfeinern.
+### STEP_BIRTHDAY_006 – Party-Bilder
 
+- Bilder pro Party hochladen
+- Bilder während der Partyphase rotieren lassen
+- Polaroid-/Card-Look
+- optional Bild-Zeitpunkte/Szenen konfigurieren
 
-## STEP_BIRTHDAY_004C
+### STEP_BIRTHDAY_007 – Party-Editor Polish
 
-- Birthday-Show Asset-/Dauerstatus ergänzt.
-- Dashboard zeigt erkannte Laufzeiten, Fallback-Warnungen, Sound-System-Status und SoundPegel-Status.
-- Neue Routen: `/api/birthday/admin/show/assets` und `/api/birthday/admin/show/recheck`.
-
-
-## Nach STEP_BIRTHDAY_004D
-- Dashboard prüfen: Party-Show → User-Songs muss hochgeladene User-Songs auch ohne Geburtstagsregistrierung anzeigen.
-- Danach Show-Livetest mit `!birthday party araglor`.
+- bessere Vorschau pro Style
+- Intensität der Effekte im Dashboard editieren
+- Drag/Drop Reihenfolge für spätere Bilder/Szenen

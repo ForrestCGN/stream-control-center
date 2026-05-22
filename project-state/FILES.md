@@ -82,3 +82,11 @@ Birthday STEP-Doku:
 - Fix: User-Song-Uploads werden jetzt unabhängig von registrierten Geburtstagen als Birthday-Show-Profile gespeichert.
 - Vorhandene `birthday_song_<login>*.mp3` Dateien werden automatisch in Show-Profile zurückgeführt.
 - `!birthday party <login>` nutzt diese Show-Profile auch ohne Geburtstagseintrag.
+
+## Birthday STEP_BIRTHDAY_005
+
+- `STEP_BIRTHDAY_005_party_presets.zip`
+- `backend/modules/birthday.js`
+- `htdocs/dashboard/modules/birthday.js`
+- `htdocs/overlays/_overlay-birthday.html`
+- `project-state/STEP_BIRTHDAY_005.md`
