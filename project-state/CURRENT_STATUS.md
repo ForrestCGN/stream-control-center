@@ -1,4 +1,1 @@
-# CURRENT_STATUS
-
-Aktueller Birthday-Stand: STEP_BIRTHDAY_006D.
-Overlay-Text polish: Headline ohne Alter, Status-Badge ausgeblendet; Alter bleibt in der Subline.
+Aktueller Stand: STEP_BIRTHDAY_006E – Birthday Command Fallback Cleanup. Birthday-Commands laufen ausschließlich über das zentrale Command-System; Birthday-Chat-Hook bleibt nur für passive Auto-Gratulation.

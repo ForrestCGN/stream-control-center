@@ -1,3 +1,4 @@
-# NEXT_STEPS
+# NEXT STEPS
 
-- Overlay weiter visuell testen und Party-Stile gezielt nachschärfen.
+- Chat-Test mit Heimleitung im Chat: !birthday set/show und !birthday party @user.
+- Birthday-Overlay weiter optisch finalisieren.

@@ -30,7 +30,7 @@ const DEFAULT_CONFIG = {
     permissionLevel: 'everyone',
     cooldownGlobalMs: 1000,
     cooldownUserMs: 5000,
-    chatFallbackEnabled: true
+    chatFallbackEnabled: false
   },
   registration: {
     enabled: true,
@@ -561,7 +561,7 @@ function publicShowState() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_006D',
+    step: 'STEP_BIRTHDAY_006E',
     state: {
       ...showState,
       now: Date.now(),
@@ -2206,18 +2206,14 @@ function installChatActivityHook() {
   commands.handleChatMessage = async function birthdayWrappedHandleChatMessage(parsed, source = {}) {
     const result = await originalCommandHook(parsed, source);
 
-    const fallback = await maybeHandleBirthdayChatCommandFallback(parsed, result).catch(err => {
-      state.lastError = err.message || String(err);
-      console.warn('[birthday] chat command fallback failed:', state.lastError);
-      return { handled: false, error: state.lastError };
-    });
-
+    // Birthday chat commands must stay in the central commands module.
+    // This hook is only for passive chat activity, e.g. automatic birthday greetings.
     maybeAutoGreetFromChat(parsed).catch(err => {
       state.lastError = err.message || String(err);
       console.warn('[birthday] auto greeting check failed:', state.lastError);
     });
 
-    return fallback && fallback.handled ? fallback.result : result;
+    return result;
   };
   state.chatHookInstalled = true;
   return true;
@@ -2827,7 +2823,7 @@ function buildBirthdayShowAssets() {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP_BIRTHDAY_006D',
+    step: 'STEP_BIRTHDAY_006E',
     assetsDir: config.resolveFromSounds(cfg.show?.uploadDir || 'birthday'),
     intro,
     defaultSong,
@@ -2852,7 +2848,7 @@ function buildStatus() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP_BIRTHDAY_006D',
+    step: 'STEP_BIRTHDAY_006E',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
     schemaOk: state.schemaOk,
@@ -2934,7 +2930,7 @@ function registerRoutes(ctx) {
     return res.json({
       ok: true,
       module: MODULE_NAME,
-      step: 'STEP_BIRTHDAY_006D',
+      step: 'STEP_BIRTHDAY_006E',
       cleanup,
       queue: listBirthdayShowQueue({ includeDone: String(req.query && req.query.includeDone || '').toLowerCase() === 'true' }),
       state: publicShowState().state
@@ -2943,7 +2939,7 @@ function registerRoutes(ctx) {
 
   routes.registerPost(app, [`${API_PREFIX}/show/queue/clear-stale`], core.asyncRoute(async (req, res) => {
     const cleanup = await cleanupStaleBirthdayShowQueue('manual_stale_queue_cleanup');
-    return res.json({ ok: true, module: MODULE_NAME, step: 'STEP_BIRTHDAY_006D', cleanup, queue: listBirthdayShowQueue({ includeDone: false }), state: publicShowState().state });
+    return res.json({ ok: true, module: MODULE_NAME, step: 'STEP_BIRTHDAY_006E', cleanup, queue: listBirthdayShowQueue({ includeDone: false }), state: publicShowState().state });
   }));
 
   routes.registerPost(app, [`${API_PREFIX}/show/stop`], (req, res) => {
@@ -3082,7 +3078,7 @@ function init(ctx) {
   startSoundSystemMonitor();
   registerRoutes(ctx);
   console.log('[birthday] routes active: /api/birthday/*');
-  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_006D' };
+  return { name: MODULE_NAME, step: 'STEP_BIRTHDAY_006E' };
 }
 
 module.exports = {

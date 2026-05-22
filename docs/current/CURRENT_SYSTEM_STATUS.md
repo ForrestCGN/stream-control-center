@@ -1,4 +1,1 @@
-# CURRENT_SYSTEM_STATUS
-
-Birthday-System: STEP_BIRTHDAY_006D.
-Show/Queue/Sound-System-Logik unverändert; Overlay-Textdarstellung korrigiert.
+Birthday-System: STEP_BIRTHDAY_006E. Commands laufen ausschließlich über das zentrale Command-System; Auto-Gratulation bleibt über passiven Chat-Hook aktiv.
