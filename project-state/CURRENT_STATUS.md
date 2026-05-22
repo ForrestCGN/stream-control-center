@@ -1,17 +1,13 @@
 # CURRENT_STATUS
 
-## STEP273B1 – Commands Dashboard Hook Fix
+## STEP273B2 – Commands Dashboard Tabs
 
-Der Command-System-Core bleibt `STEP273A1`. STEP273B1 ergänzt/fixt nur die Dashboard-Verdrahtung für das Commands-Modul.
+Das Command-System bleibt auf Backend-Core STEP273A1. STEP273B2 ergänzt ausschließlich das Dashboard-Modul für Commands mit getrennter Tab-Struktur.
 
 ### Status
 
-- Commands-Dashboard-Moduldateien geliefert.
-- Robustes Hook-Script ergänzt.
-- Dashboard-Registry wird auf `commands` aktiviert.
-- Panel `commandsModule` wird in `index.html` eingefügt.
-- CSS/JS werden in `index.html` eingebunden.
-
-### Wichtig
-
-Nach Backend-Neustart muss Twitch-Presence erneut gestartet werden, solange kein Auto-Start-Step umgesetzt ist.
+- Backend-Command-Core: STEP273A1 stabil
+- Dashboard Commands: Tabbed UI vorbereitet
+- Übersicht bleibt kompakt
+- Verwaltung, Rechte/Cooldowns, Logs und Diagnose sind getrennt
+- Twitch-Presence-Status sichtbar

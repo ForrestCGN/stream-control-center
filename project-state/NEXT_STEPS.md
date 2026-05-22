@@ -1,14 +1,15 @@
 # NEXT_STEPS
 
-## Nach STEP273B1
+## Nach STEP273B2 testen
 
-1. Hook-Script ausführen.
-2. Syntaxchecks ausführen.
-3. `stepdone.cmd` ausführen.
-4. Dashboard öffnen und `Community → Commands` prüfen.
-5. Twitch-Presence starten und Command-Test aus dem Dashboard prüfen.
+1. Hook ausführen.
+2. Syntax prüfen.
+3. `Select-String` auf `commands.css`, `commands.js`, `commandsModule` prüfen.
+4. Deploy per `stepdone.cmd`.
+5. Dashboard mit STRG+F5 öffnen.
+6. Community → Commands testen.
 
-## Danach sinnvoll
+## Später
 
-- STEP273C: Twitch-Presence Auto-Start/Runtime-Steuerung.
-- Danach weitere Commands/Migration aus Streamer.bot.
+- STEP273C: Twitch-Presence Auto-Start/Streamstart-Integration.
+- Weitere Streamer.bot-Commands schrittweise migrieren.

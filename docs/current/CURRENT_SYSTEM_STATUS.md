@@ -1,20 +1,11 @@
 # CURRENT_SYSTEM_STATUS
 
-## STEP273B1 – Commands Dashboard Hook Fix
+## STEP273B2 – Commands Dashboard Tabs
 
 Stand: 2026-05-22
 
-Der Command-System-Core ist stabil als `STEP273A1` aktiv. STEP273B1 fixt die Dashboard-Verdrahtung, nachdem die STEP273B-Hook-Änderungen nicht in `index.html`/`app.js` sichtbar waren.
+Das Commands-Dashboard wurde als getrenntes Modul mit Tabs vorbereitet. Der Backend-Core bleibt STEP273A1.
 
-### Bestätigt vor STEP273B1
+### Wichtig
 
-- Command-Core läuft.
-- Twitch-Chat-Hook funktioniert, wenn Twitch-Presence aktiv ist.
-- `!dcount show` aus Twitch-Chat routet zu Deathcounter.
-- Logs werden geschrieben.
-
-### STEP273B1
-
-- Commands-Dashboard-Modul ergänzt.
-- Hook-Script für `index.html` und `app.js` ergänzt.
-- Dashboard soll danach `Community → Commands` anzeigen.
+Echte Twitch-Chatbefehle funktionieren nur, wenn Twitch-Presence verbunden ist. Der Status wird im Commands-Dashboard angezeigt.

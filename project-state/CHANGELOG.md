@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## STEP273B1 – Commands Dashboard Hook Fix
+## STEP273B2 – Commands Dashboard Tabs
 
-- Commands-Dashboard-Hook repariert.
-- Moduldateien erneut geliefert.
-- `index.html`-Patch für CSS, Panel und JS vorbereitet.
-- `app.js`-Patch für `window.CGN.modules.commands`, aktivierten Catalog-Eintrag und Favorites vorbereitet.
+- Commands-Dashboard als eigenes Dashboard-Modul ergänzt.
+- Keine Monster-Seite: Inhalte auf Tabs verteilt.
+- Übersicht, Command-Verwaltung, Rechte & Cooldowns, Logs und Diagnose getrennt.
+- Twitch-Presence-Status und Start/Stop-Aktionen sichtbar.
+- Hook-Script für `index.html` und `app.js` ergänzt.
