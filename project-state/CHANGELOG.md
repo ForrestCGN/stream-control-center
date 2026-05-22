@@ -1,17 +1,25 @@
 # CHANGELOG
 
-## STEP273A1 – Command-System Core Fix
+## STEP273B – Commands Dashboard
 
-- Rekursionsrisiko in `backend/modules/commands.js` behoben.
-- Schema-/Seed-Ablauf abgesichert.
-- `lastError` wird nach erfolgreicher Ausfuehrung geleert.
-- Log-Resultate werden kompakt gespeichert.
-- `/api/commands/history` als Alias fuer `/api/commands/logs` ergaenzt.
+- Dashboard-Modul `commands` ergänzt.
+- Dashboard-Integration per idempotentem Hook-Script vorbereitet.
+- Commands im Community-Bereich aktiviert.
+- Status-, Presence-, Command-, Test- und Log-Ansichten ergänzt.
+- Presence Start/Stop im Commands-Dashboard ergänzt.
+- Doku auf aktuellen Command-System-Stand aktualisiert.
 
-## STEP273A – Command-System Core
+## Vorherige relevante Steps
 
-- Command-System Core eingefuehrt.
-- DB-Tabellen `command_definitions` und `command_execution_log` erstellt.
-- Seed-Commands fuer Deathcounter angelegt.
-- API-Routen unter `/api/commands/*` bereitgestellt.
-- Hook fuer Twitch-PRIVMSG ueber `twitch_presence.js` vorbereitet.
+### STEP273A1
+- Command-System Core Fix.
+- Schema-/Seed-Rekursion gefixt.
+- `/api/commands/history` als Alias für `/api/commands/logs` ergänzt.
+- Kompakte Result-Logs ergänzt.
+- `lastError` nach erfolgreicher Ausführung geleert.
+
+### STEP273A
+- Command-System Core ergänzt.
+- `command_definitions` und `command_execution_log` ergänzt.
+- Seed-Commands `rip`, `tode`, `dcount` ergänzt.
+- Twitch-Presence-Hook vorbereitet.

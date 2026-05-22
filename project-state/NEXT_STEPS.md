@@ -1,36 +1,51 @@
 # NEXT_STEPS
 
-## Direkt nach STEP273A1
+## Direkt nach STEP273B
 
-1. Syntax pruefen:
+1. ZIP nach `D:\Git\stream-control-center` entpacken.
+2. Hook-Script ausführen:
 
 ```bat
-node --check backend\modules\commands.js
+cd D:\Git\stream-control-center
+node tools\easy\STEP273B_APPLY_DASHBOARD_COMMANDS_HOOK.cjs
 ```
 
-2. Backend neu starten.
+3. Syntax prüfen:
 
-3. API testen:
+```bat
+node --check htdocs\dashboard\modules\commands.js
+node --check tools\easy\STEP273B_APPLY_DASHBOARD_COMMANDS_HOOK.cjs
+```
+
+4. Commit/Deploy:
+
+```bat
+cd D:\Git\stream-control-center
+.\stepdone.cmd "STEP273B Commands Dashboard"
+```
+
+5. Nach Backend-Neustart prüfen:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/commands/execute?message=!dcount%20show&user=forrestcgn&role=mod"
-Invoke-RestMethod "http://127.0.0.1:8080/api/commands/logs?limit=10"
-Invoke-RestMethod "http://127.0.0.1:8080/api/commands/history?limit=10"
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/presence/status"
 ```
 
-4. Danach echter Twitch-Chat-Test:
+6. Dashboard öffnen:
 
-```text
-!dcount show
-```
+`http://127.0.0.1:8080/dashboard`
 
-## Danach
+Community → Commands testen.
 
-### STEP273B – Dashboard Commands
+## Danach sinnvoll
 
-- Dashboard-Modul `commands` aktivieren.
-- Commands anzeigen, bearbeiten, aktivieren/deaktivieren.
-- Aliase, Rechte und Cooldowns verwalten.
-- Logs anzeigen.
-- Testausfuehrung aus dem Dashboard.
+- STEP273C: Twitch-Presence Auto-Start/Autoreconnect sauber planen.
+- STEP273D: weitere Commands aus Streamer.bot migrieren.
+- STEP273E: Dashboard-UX nach Praxistest verfeinern.
+
+## Nicht ohne eigenen Step
+
+- Streamer.bot-Commands entfernen.
+- Weitere Module automatisch migrieren.
+- Rechte-/Rollensystem hart umbauen.
+- Datenbank neu bauen oder ersetzen.

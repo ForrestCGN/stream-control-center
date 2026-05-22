@@ -1,20 +1,30 @@
 # CURRENT_STATUS
 
-## STEP273A1 – Command-System Core Fix
+## STEP273B – Commands Dashboard
 
-Der Command-System-Core aus STEP273A wurde nach Live-Test repariert.
+Das Command-System ist im Dashboard sichtbar und verwaltbar vorbereitet.
 
 ### Status
 
-- Command-System bleibt aktiv unter `/api/commands/*`.
-- Deathcounter-Seed-Commands bleiben erhalten:
-  - `!rip`
-  - `!tode`
-  - `!dcount`
-- Rekursionsrisiko im Schema-/Seed-Ablauf wurde entfernt.
-- `/api/commands/history` ist jetzt Alias fuer `/api/commands/logs`.
-- Log-Ergebnisse werden kompakt gespeichert.
+- Backend-Core: `STEP273A1`
+- Dashboard-Step: `STEP273B`
+- Command-API aktiv: `/api/commands/*`
+- Twitch-Presence-Hook bestätigt, wenn Presence verbunden ist
+- Dashboard-Modul: `commands`
+- Bereich: Community
 
-### Naechster sinnvoller Schritt
+### Funktionen im Dashboard
 
-Nach erfolgreichem Test von STEP273A1: STEP273B Dashboard-Modul fuer Commands.
+- Status anzeigen
+- Twitch-Presence anzeigen/starten/stoppen
+- Commands anzeigen
+- Commands bearbeiten/speichern
+- Commands aktivieren/deaktivieren
+- Commands löschen
+- Command-Test per DryRun
+- Command-Test per Execute
+- Logs anzeigen
+
+### Wichtig
+
+Twitch-Presence muss aktiv sein, sonst empfängt Node keine echten Chatbefehle.

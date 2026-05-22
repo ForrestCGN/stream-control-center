@@ -1,21 +1,34 @@
 # FILES
 
-## STEP273A1
+## STEP273B
 
-Geaenderte Dateien:
+Geänderte/gelieferte Dateien:
 
-- `backend/modules/commands.js`
+- `htdocs/dashboard/modules/commands.js`
+- `htdocs/dashboard/modules/commands.css`
+- `tools/easy/STEP273B_APPLY_DASHBOARD_COMMANDS_HOOK.cjs`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP273A1_COMMAND_SYSTEM_FIX.md`
+- `project-state/STEP273B_COMMANDS_DASHBOARD.md`
 
-Nicht geaendert:
+Durch Hook-Script geänderte Dateien:
 
-- `backend/modules/twitch_presence.js`
-- `backend/modules/deathcounter_v2.js`
-- Dashboard-Dateien
-- Config-Dateien
-- SQLite-Datei direkt
+- `htdocs/dashboard/index.html`
+- `htdocs/dashboard/app.js`
+
+Relevante API-Routen:
+
+- `/api/commands/status`
+- `/api/commands/list`
+- `/api/commands/upsert`
+- `/api/commands/delete`
+- `/api/commands/test`
+- `/api/commands/execute`
+- `/api/commands/logs`
+- `/api/commands/history`
+- `/api/twitch/presence/status`
+- `/api/twitch/presence/start`
+- `/api/twitch/presence/stop`
