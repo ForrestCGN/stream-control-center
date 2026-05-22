@@ -5,6 +5,7 @@ const WebSocket = require('ws');
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const database = require('../core/database');
+const commands = require('./commands');
 
 let twitchPresenceService = null;
 
@@ -860,6 +861,14 @@ module.exports.init = function init(ctx) {
 
           const parsed = parseIrcLine(line);
           handleIrcActivity(parsed);
+
+          if (parsed && String(parsed.command || '').toUpperCase() === 'PRIVMSG') {
+            commands.handleChatMessage(parsed, { source: 'twitch_presence', channel: BOT_CHANNEL })
+              .catch((err) => {
+                lastError = err?.message || String(err);
+                console.warn('[twitch_presence] command hook error:', lastError);
+              });
+          }
 
           if (line.includes('Login authentication failed')) {
             fail(new Error('Twitch IRC authentication failed'));

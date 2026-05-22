@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## STEP273A – Command-System Core
+
+- Neues Backend-Modul `backend/modules/commands.js` ergänzt.
+- API-Routen `/api/commands/*` ergänzt.
+- Sanfte DB-Tabellen `command_definitions` und `command_execution_log` vorbereitet.
+- Seed-Commands für `!rip`, `!tode` und `!dcount` ergänzt.
+- Trockentest per `/api/commands/test` ergänzt.
+- Ausführung per `/api/commands/execute` ergänzt.
+- Idempotentes Hook-Tool für `twitch_presence.js` ergänzt.
+- Dokumentation für STEP273A ergänzt.
+
 ## STEP272J – Sound-Pegel Stable-Doku
 
 - Sound-Pegel-Zwischenstand dokumentiert.
