@@ -1,7 +1,28 @@
-# NEXT STEPS – nach STEP274Q
+# NEXT_STEPS – nach STEP274R
 
-1. Hotfix entpacken.
-2. Dry-Run mit `config/media_migration_plan.refined.json` erneut ausfuehren.
-3. Apply erneut ausfuehren.
-4. Kontroll-Dry-Run pruefen.
-5. `roxxy2` und mindestens ein weiteres Media-Asset testen.
+## Direkt testen
+
+```cmd
+cd D:\Git\stream-control-center
+```
+
+Backend/Dashboard neu laden und im Browser die Medienverwaltung öffnen.
+
+Prüfen:
+
+- Übersicht zeigt Module.
+- Recent zeigt migrierte Assets.
+- Filter `commands` zeigt Command-Medien.
+- Asset `#1311` zeigt `commands/roxxy`.
+- Vorschau funktioniert.
+
+## Danach
+
+```cmd
+.\stepdone.cmd "STEP274R Media-Dashboard nach Migration verbessern"
+```
+
+## Später
+
+- STEP274S: Medien im Dashboard einzeln verschieben und Kategorien direkt anlegen.
+- STEP275: Legacy-Cleanup Dry-Run, aber noch nichts löschen.

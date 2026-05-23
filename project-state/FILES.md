@@ -1,21 +1,17 @@
-# FILES – STEP274Q
+# FILES – STEP274R
 
-## Geaendert
+## Geändert
 
+- `htdocs/dashboard/modules/media.js`
+- `htdocs/dashboard/modules/media.css`
+
+## Neu
+
+- `project-state/STEP274R.md`
+
+## Unverändert relevant
+
+- `backend/modules/media.js`
+- `backend/modules/sound_media_bridge.js`
 - `tools/media_registry_migrate_categories.js`
-
-## Neu / Dokumentation
-
-- `project-state/STEP274Q.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-- `project-state/NEXT_STEPS.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-
-## Nicht geaendert
-
-- Backend Runtime-Module
-- Dashboard Runtime-Module
-- SQLite-Datenbank
-- Media-Dateien
+- `config/media_migration_plan.refined.json`

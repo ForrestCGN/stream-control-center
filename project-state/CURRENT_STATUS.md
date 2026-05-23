@@ -1,7 +1,24 @@
-# CURRENT STATUS – STEP274Q
+# CURRENT_STATUS – STEP274R
 
-Aktueller Stand: STEP274Q – Media Registry Migration Apply Hotfix.
+Aktueller Stand: STEP274R ergänzt die Dashboard-Medienverwaltung nach der erfolgreichen STEP274Q-Migration.
 
-Der vorherige Apply der Media-Migration konnte mit `UNIQUE constraint failed: media_assets.relative_path` abbrechen. STEP274Q behebt das Migrationstool, indem geplante Zielpfade eindeutig reserviert und DB-Updates zweiphasig ueber temporaere Unique-Pfade ausgefuehrt werden.
+## Media Registry
 
-Runtime-Funktionen von Commands, MediaPicker, Sound-System und Sound-Media-Bridge werden nicht geaendert.
+- Migration erfolgreich angewendet.
+- Kontroll-Dry-Run nach Apply: `dbUpdates: 0`, `copyNeeded: 0`, `missingSources: 0`.
+- Media-ID `1311` liegt jetzt unter `media/commands/roxxy/Roxxyfoxxy_CGN_2.mp3`.
+- Commands bleiben über `/api/sound/play-media?mediaId=<id>` stabil.
+
+## Dashboard
+
+Die Medienverwaltung zeigt nun Module und Kategorien deutlicher an:
+
+- Modulfilter
+- Kategorie-Filter
+- Recent-Ansicht
+- ID/Pfad/FullCategory in den Details
+- Command-Hinweis für Medien im Commands-Bereich
+
+## Nächster sinnvoller Schritt
+
+STEP274S: Media-Dashboard Einzelverschiebung/Category-Upsert verbessern oder STEP275 Legacy-Cleanup Dry-Run planen.

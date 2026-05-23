@@ -1,11 +1,10 @@
-# CURRENT SYSTEM STATUS – STEP274Q
+# CURRENT_SYSTEM_STATUS – STEP274R
 
-STEP274Q ist ein reiner Tool-Hotfix fuer die Media Registry Migration.
+Die Media-Registry ist erfolgreich migriert. Die Dashboard-Medienverwaltung wurde erweitert, damit die neue Struktur aus `assets/media/<module>/<category>` sichtbar und filterbar ist.
 
-Behoben wird der Apply-Abbruch `UNIQUE constraint failed: media_assets.relative_path` durch:
+## Wichtig
 
-- eindeutige Zielpfad-Reservierung im Plan,
-- Vorab-Validierung gegen doppelte Zielpfade,
-- zweiphasige DB-Updates ueber temporaere Unique-Pfade.
-
-Commands bleiben auf `mediaId` stabil. Dateien werden weiterhin kopiert und nicht geloescht.
+- Commands nutzen weiterhin stabile Media-IDs.
+- Der Sound-Hub bleibt `/api/sound/play-media?mediaId=<id>`.
+- Alte Legacy-Dateien werden nicht gelöscht.
+- Cleanup nur in einem separaten späteren Dry-Run-Step.
