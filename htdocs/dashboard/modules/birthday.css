@@ -37,3 +37,12 @@
 .birthday-mediafield-block .media-field-preview{border-color:rgba(255,255,255,.12);background:rgba(0,0,0,.18)}
 .birthday-mediafield-block [data-media-field-open]{border-color:rgba(64,232,255,.35);background:rgba(64,232,255,.10)}
 .birthday-mediafield-block [data-media-field-clear]{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.04)}
+
+
+/* STEP274V FIX2 - Birthday Upload Fallback Guard */
+.birthday-form button.is-disabled,
+.birthday-form button:disabled[data-birthday-upload]{
+  opacity:.48;
+  cursor:not-allowed;
+  filter:saturate(.55);
+}

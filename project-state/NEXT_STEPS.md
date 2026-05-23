@@ -1,4 +1,7 @@
 # Next Steps
 
-- Birthday MediaField testen.
-- Danach entscheiden, ob Birthday künftig direkt mediaId statt nur Pfad speichert.
+1. FIX2 anwenden.
+2. `stepdone` ausführen.
+3. Browser hart neu laden.
+4. Birthday `Show/Medien` testen.
+5. Danach MediaField-Integration weiter verfeinern.

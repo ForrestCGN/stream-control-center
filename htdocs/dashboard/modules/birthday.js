@@ -338,6 +338,29 @@ window.BirthdayModule = (function(){
     });
   }
 
+
+  function birthdayUploadSafeKind(kind) {
+    return String(kind || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  }
+
+  function birthdayUploadFileInput(kind) {
+    const safeKind = birthdayUploadSafeKind(kind);
+    if (!safeKind) return null;
+    return root?.querySelector('[data-birthday-upload-file="' + safeKind + '"]') || null;
+  }
+
+  function updateBirthdayUploadFallbackButtons() {
+    root?.querySelectorAll('[data-birthday-upload]').forEach(btn => {
+      const kind = btn.dataset.birthdayUpload || '';
+      const input = birthdayUploadFileInput(kind);
+      const hasFile = !!(input && input.files && input.files.length);
+      btn.disabled = !hasFile;
+      btn.classList.toggle('is-disabled', !hasFile);
+      btn.title = hasFile ? '' : 'Bitte zuerst eine Datei auswählen.';
+    });
+  }
+
+
   function currentParties() {
     const assets = state.showAssets?.ok ? state.showAssets : (state.status?.showAssets || {});
     return Array.isArray(assets.parties) ? assets.parties : [];
@@ -568,12 +591,12 @@ window.BirthdayModule = (function(){
           <h3>Medien hochladen</h3>
           <div class="birthday-form">
             <label>Globales Intro-Video<input type="file" data-birthday-upload-file="intro_video" accept="video/webm,video/mp4,video/quicktime"></label>
-            <button type="button" data-birthday-upload="intro_video">Intro-Video hochladen</button>
+            <button type="button" data-birthday-upload="intro_video" disabled title="Bitte zuerst eine Datei auswählen.">Intro-Video hochladen</button>
             <label>Standardsong<input type="file" data-birthday-upload-file="default_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
-            <button type="button" data-birthday-upload="default_song">Standardsong hochladen</button>
+            <button type="button" data-birthday-upload="default_song" disabled title="Bitte zuerst eine Datei auswählen.">Standardsong hochladen</button>
             <label>User für eigenen Song<input type="text" data-birthday-upload-login placeholder="@Araglor"></label>
             <label>User-Song<input type="file" data-birthday-upload-file="user_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
-            <button type="button" data-birthday-upload="user_song">User-Song hochladen</button>
+            <button type="button" data-birthday-upload="user_song" disabled title="Bitte zuerst eine Datei auswählen.">User-Song hochladen</button>
           </div>
           <p class="birthday-note">Dateinamen werden automatisch sauber gesetzt: <code>birthday_intro_video.webm</code>, <code>birthday_default_song.mp3</code>, <code>birthday_song_araglor.mp3</code>.</p>
         </section>
@@ -718,7 +741,12 @@ window.BirthdayModule = (function(){
     root?.querySelectorAll('[data-edit-birthday-user]').forEach(btn => btn.addEventListener('click', () => { state.tab = 'users'; render(); setTimeout(() => fillUserForm(btn.dataset.editBirthdayUser), 0); }));
     root?.querySelectorAll('[data-delete-birthday-user]').forEach(btn => btn.addEventListener('click', () => deleteUser(btn.dataset.deleteBirthdayUser, false).catch(err => { state.error = err.message; render(); })));
     root?.querySelectorAll('[data-hard-delete-birthday-user]').forEach(btn => btn.addEventListener('click', () => deleteUser(btn.dataset.hardDeleteBirthdayUser, true).catch(err => { state.error = err.message; render(); })));
-    root?.querySelectorAll('[data-birthday-upload]').forEach(btn => btn.addEventListener('click', () => uploadAsset(btn.dataset.birthdayUpload).catch(err => { state.error = err.message; render(); })));
+    root?.querySelectorAll('[data-birthday-upload-file]').forEach(input => input.addEventListener('change', updateBirthdayUploadFallbackButtons));
+    root?.querySelectorAll('[data-birthday-upload]').forEach(btn => btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      uploadAsset(btn.dataset.birthdayUpload).catch(err => { state.error = err.message; render(); });
+    }));
+    updateBirthdayUploadFallbackButtons();
     root?.querySelector('[data-birthday-recheck-assets]')?.addEventListener('click', () => recheckShowAssets().catch(err => { state.error = err.message; render(); }));
     root?.querySelector('[data-birthday-save-party]')?.addEventListener('click', () => savePartyFromForm().catch(err => { state.error = err.message; render(); }));
     root?.querySelector('[data-birthday-assign-party]')?.addEventListener('click', () => assignPartyFromForm().catch(err => { state.error = err.message; render(); }));
