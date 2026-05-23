@@ -1,0 +1,23 @@
+--- htdocs/dashboard/modules/alerts.js
++++ htdocs/dashboard/modules/alerts.js
+@@ -485,6 +485,11 @@
+       .sound-icon-btn:disabled{opacity:.35;cursor:not-allowed;}
+       .sound-icon-btn.is-playing{border-color:rgba(67,240,255,.85);background:rgba(67,240,255,.18);box-shadow:0 0 14px rgba(67,240,255,.25);}
+       .sound-select-row{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:10px;align-items:center;}
++      .sound-media-picker-row{grid-template-columns:minmax(0,1fr) auto 34px;}
++      .sound-media-picker-row input[readonly]{min-width:0;overflow:hidden;text-overflow:ellipsis;}
++      .sound-media-picker-row button{height:40px;white-space:nowrap;}
++      .sound-media-picker-row #pickRuleSoundMedia{min-width:118px;padding-left:14px;padding-right:14px;}
++      .sound-media-picker-row #clearRuleSoundMedia{width:34px;min-width:34px;padding:0;}
+       .sound-select-play{align-self:end;}
+       .sound-assets-table .row-actions{gap:8px;align-items:center;}
+       .path-small{font-size:11px;opacity:.78;word-break:break-all;}
+@@ -1175,7 +1180,7 @@
+           <label>Priorität<input id="rulePriority" type="number" value="${esc(r.priority ?? 100)}"></label>
+         </div><p id="ruleValueHelp" class="small-note rule-value-help">${esc(valueDesc.help)}</p></div>
+         <div class="form-section"><h3>Medien & Design</h3><div class="form-grid editor-grid">
+-          <label class="wide-field">Sound aus Media-Registry<input type="hidden" id="ruleSoundMediaId" value="${esc(soundMediaId)}"><div class="sound-select-row"><input id="ruleSoundMediaInfo" value="${esc(soundMediaLabel)}" readonly><button type="button" id="pickRuleSoundMedia">MediaPicker</button><button type="button" id="clearRuleSoundMedia" ${soundMediaId ? '' : 'disabled'}>×</button></div></label>
++          <label class="wide-field">Sound aus Media-Registry<input type="hidden" id="ruleSoundMediaId" value="${esc(soundMediaId)}"><div class="sound-select-row sound-media-picker-row"><input id="ruleSoundMediaInfo" value="${esc(soundMediaLabel)}" readonly><button type="button" id="pickRuleSoundMedia">Auswählen</button><button type="button" id="clearRuleSoundMedia" ${soundMediaId ? '' : 'disabled'} title="Media-Registry-Sound entfernen" aria-label="Media-Registry-Sound entfernen">×</button></div></label>
+           <label class="wide-field">Legacy-Sound / Fallback<div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten Legacy-Sound abspielen" aria-label="Ausgewählten Legacy-Sound abspielen">▶</button></div></label>
+           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
+         </div><p class="small-note">Media-Registry-Sound hat Vorrang. Legacy-Sound bleibt als Fallback erhalten. Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
