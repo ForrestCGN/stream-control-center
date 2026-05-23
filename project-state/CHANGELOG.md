@@ -35,3 +35,9 @@
 - Alert-System stellt die neuen `alert_rules.sound_media_id` und `alert_rules.image_media_id` Spalten beim Modulstart zusätzlich idempotent sicher.
 - Behebt Live-DB-Stände, bei denen `schemaVersion` bereits 6 war, die Spalten aber in `/api/alerts/rules` noch nicht sichtbar waren.
 - Keine bestehende Alert-Regel-, Asset-, Upload-, Dashboard- oder Playback-Logik entfernt.
+
+## STEP276C_ALERT_SOUND_MEDIAID_PLAYBACK
+
+- Alert-System nutzt bei Regeln mit `sound_media_id` bevorzugt Media-Registry-Playback über `mediaId`.
+- Bestehende Legacy-Sounds über `sound_asset_id` / `sound_url` bleiben unverändert als Fallback erhalten.
+- Alert-Bundles übergeben `mediaId` an das Sound-System, wenn vorhanden; sonst wie bisher `file`.

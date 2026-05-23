@@ -27,3 +27,8 @@
 - `backend/modules/alert_system.js` - idempotentes Sicherstellen der Alert-Regel-MediaId-Spalten beim Modulstart.
 - `docs/backend/ALERT_SYSTEM_MEDIA_RULE_COLUMNS_STEP276B_FIX1.md` - technische Kurznotiz.
 - `project-state/STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE.md` - STEP-Übergabe.
+
+## STEP276C_ALERT_SOUND_MEDIAID_PLAYBACK
+
+- `backend/modules/alert_system.js` - Alert-Sound-Playback bevorzugt `sound_media_id`/`mediaId`, Legacy-Fallback bleibt erhalten.
+- `docs/backend/ALERT_SYSTEM_MEDIAID_PLAYBACK_STEP276C.md` - technische Kurzdokumentation.

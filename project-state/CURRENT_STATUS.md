@@ -28,3 +28,7 @@ Sound-System unterstützt jetzt direkte Media-Registry-Wiedergabe per `mediaId`.
 ## STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE
 
 Status: Nachfix zu STEP276B. Das Alert-System prüft beim Start unabhängig von der gespeicherten Schema-Version, ob `sound_media_id` und `image_media_id` in `alert_rules` existieren, und legt sie bei Bedarf nach. Legacy-Assets bleiben unverändert.
+
+## STEP276C_ALERT_SOUND_MEDIAID_PLAYBACK
+
+Alert-Playback ist für Media-Registry vorbereitet: `sound_media_id` hat Vorrang beim Sound-System-Playback, Legacy-Alert-Assets bleiben vollständig kompatibel.

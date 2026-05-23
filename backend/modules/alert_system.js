@@ -2067,18 +2067,28 @@ function alertBaseSoundPriority(event) {
   return clamp(toInt(override, toInt(rule.sound_priority, toInt(rule.priority, 80))), 0, 1000);
 }
 
+function alertRuleSoundMediaId(rule) {
+  const raw = rule ? (rule.sound_media_id ?? rule.soundMediaId ?? 0) : 0;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 function buildAlertMainBundleItem(event, bundlePriority) {
   const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
   const rule = event && event.rule ? event.rule : {};
+  const mediaId = alertRuleSoundMediaId(rule);
   const publicUrl = cleanText(rule.sound_url || rule.soundUrl || '');
-  if (!publicUrl) return null;
+  let file = '';
 
-  const file = soundSystemFileFromPublicUrl(publicUrl);
-  if (!file) return null;
+  if (!mediaId) {
+    if (!publicUrl) return null;
+    file = soundSystemFileFromPublicUrl(publicUrl);
+    if (!file) return null;
+  }
 
-  return {
+  const item = {
     role: 'main',
-    file,
+    ...(mediaId ? { mediaId } : { file }),
     label: cleanText(rule.sound_label || rule.label || buildDefaultTitle(event) || 'Alert'),
     category: cleanKey(rule.sound_category || liveCfg.soundSystemCategory || 'alert') || 'alert',
     outputTarget: validateSoundOutputTarget(rule.sound_output_target || liveCfg.soundSystemOutputTarget || 'device', 'device'),
@@ -2094,6 +2104,9 @@ function buildAlertMainBundleItem(event, bundlePriority) {
       alertSource: event.source,
       alertType: event.type_key,
       ruleId: rule && rule.id ? rule.id : null,
+      soundMediaId: mediaId || null,
+      legacySoundFile: file || '',
+      legacySoundUrl: publicUrl || '',
       bundleManagedBy: 'alert_system'
     },
     visual: {
@@ -2376,14 +2389,19 @@ async function playLiveAlertSound(event) {
   const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
   if (!liveCfg || liveCfg.soundSystemEnabled !== true) return { attempted: false, reason: 'disabled' };
   const rule = event && event.rule ? event.rule : {};
+  const mediaId = alertRuleSoundMediaId(rule);
   const publicUrl = cleanText(rule.sound_url || rule.soundUrl || '');
-  if (!publicUrl) return { attempted: false, reason: 'no_sound_url' };
+  let file = '';
 
-  const file = soundSystemFileFromPublicUrl(publicUrl);
-  if (!file) return { attempted: true, ok: false, reason: 'invalid_sound_url', publicUrl };
+  if (!mediaId) {
+    if (!publicUrl) return { attempted: false, reason: 'no_sound_reference' };
+    file = soundSystemFileFromPublicUrl(publicUrl);
+    if (!file) return { attempted: true, ok: false, reason: 'invalid_sound_url', publicUrl };
+  }
 
   const params = new URLSearchParams();
-  params.set('file', file);
+  if (mediaId) params.set('mediaId', String(mediaId));
+  else params.set('file', file);
   params.set('label', cleanText(rule.sound_label || rule.label || buildDefaultTitle(event) || 'Alert'));
   params.set('category', cleanKey(rule.sound_category || liveCfg.soundSystemCategory || 'alert') || 'alert');
   params.set('priority', String(toInt(rule.sound_priority, toInt(rule.priority, 80))));
@@ -2412,6 +2430,7 @@ async function playLiveAlertSound(event) {
       status: res.status,
       url: playUrl,
       file,
+      mediaId: mediaId || null,
       result: data && data.result ? data.result : null,
       item: data && data.item ? data.item : null,
       error: ok ? '' : (data && (data.error || data.message) ? String(data.error || data.message) : `sound_system_http_${res.status}`)
@@ -2421,6 +2440,7 @@ async function playLiveAlertSound(event) {
       attempted: true,
       ok: false,
       file,
+      mediaId: mediaId || null,
       url: playUrl,
       error: err && err.message ? err.message : String(err)
     };

@@ -41,3 +41,7 @@ STEP274W FIX4 repariert die Birthday MediaPicker Import-Route. Nach dem Patch mu
 ## STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE
 
 Status: Nachfix zu STEP276B. Das Alert-System prüft beim Start unabhängig von der gespeicherten Schema-Version, ob `sound_media_id` und `image_media_id` in `alert_rules` existieren, und legt sie bei Bedarf nach. Legacy-Assets bleiben unverändert.
+
+## STEP276C_ALERT_SOUND_MEDIAID_PLAYBACK
+
+Alert-System: Sound-Playback kann jetzt Media-Registry-IDs nutzen. Wenn `sound_media_id` leer ist, bleibt das bisherige `sound_asset_id`/`sound_url`-Verhalten aktiv.
