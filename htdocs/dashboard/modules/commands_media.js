@@ -69,8 +69,8 @@ window.CommandsMediaBridge = (function(){
   function mediaHint(options, type) {
     const count = options.length;
     const extra = type === 'sound'
-      ? 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274G automatisch /api/sound/play-media?mediaId=<id>, damit der Sound-Command wirklich ausfuehrbar ist.'
-      : 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274G automatisch /api/video/play-media?mediaId=<id>; Video/Animation laeuft ueber den eigenen Media-Overlay-Player.';
+      ? 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274G1 automatisch /api/sound/play-media?mediaId=<id>, damit der Sound-Command wirklich ausfuehrbar ist.'
+      : 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274G1 auch Video/Animation auf /api/sound/play-media?mediaId=<id>. Die Ausgabe laeuft ueber das vorhandene sound_system_overlay.html.';
     return `<small class="cmd-media-hint">${esc(count)} Medien gefunden. ${esc(extra)}</small>`;
   }
 
@@ -128,7 +128,7 @@ window.CommandsMediaBridge = (function(){
       }
       const opt = selectedOption(select);
       const targetUrl = opt?.dataset.commandTargetUrl || `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`;
-      const bridge = opt && opt.dataset.mediaCompatible === '0' ? 'Bridge/Kopie in _media_registry' : 'direkt kompatibel';
+      const bridge = opt && opt.dataset.mediaCompatible === '0' ? 'Media-Bridge/Kopie in _media_registry' : 'direkt kompatibel';
       info.textContent = `Route gesetzt: ${targetUrl} (${bridge})`;
     }
   }
@@ -152,7 +152,7 @@ window.CommandsMediaBridge = (function(){
     const hero = root.querySelector('.cmd-hero p');
     if (hero && !hero.dataset.commandsMediaStep274d) {
       hero.dataset.commandsMediaStep274d = '1';
-      hero.textContent = 'Zentrales Chat-Command-System. STEP274G setzt Sound auf /api/sound/play-media und Video/Animation auf /api/video/play-media.';
+      hero.textContent = 'Zentrales Chat-Command-System. STEP274G1 setzt Sound und Video/Animation auf /api/sound/play-media und nutzt das vorhandene sound_system_overlay.html.';
     }
   }
 

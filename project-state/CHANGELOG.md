@@ -1,12 +1,8 @@
 # CHANGELOG
 
-## STEP274G – Video / Animation Media Overlay Bridge
+## STEP274G1 – Existing Sound-System Overlay Routing
 
-- Neuer `video_media_bridge` fuer Video/Animation aus der zentralen Medienverwaltung.
-- Neuer Overlay-Player `_overlay-media-player.html`.
-- `commands_media` routet Audio weiterhin zu `/api/sound/play-media`, Video/Animation zu `/api/video/play-media`.
-- Sound-System-Core und Command-Core bleiben unveraendert.
-
-## Vorheriger Stand
-
-- STEP274F – Command sound_play/video_play Media Execution Routing.
+- Korrigiert STEP274G: kein neues separates Video-Overlay als Standard.
+- `video_play` nutzt wieder `/api/sound/play-media?mediaId=<id>`.
+- Dashboard-Hinweise angepasst.
+- Vorhandenes `sound_system_overlay.html` bleibt der zentrale Audio-/Video-Player.

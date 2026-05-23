@@ -1,10 +1,7 @@
 # CURRENT SYSTEM STATUS
 
-Aktueller technischer Stand: STEP274G.
+Aktuell: STEP274G1.
 
-- Media-Core: zentrale Resolver-Schicht vorhanden.
-- Sound-Media-Bridge: Audio-Medien koennen ueber `/api/sound/play-media` abgespielt werden.
-- Command-Media-Bridge: Sound-Commands routen zu `/api/sound/play-media`, Video-/Animations-Commands zu `/api/video/play-media`.
-- Video-Media-Bridge: eigener Overlay-Player unter `/overlays/_overlay-media-player.html`.
+Die zentrale Medienverwaltung liefert Media-IDs. Commands fuer `sound_play` und `video_play` routen ueber `/api/sound/play-media?mediaId=<id>`.
 
-Wichtig: Sound-System-Core und `backend/modules/commands.js` wurden nicht umgebaut.
+Die Ausgabe erfolgt ueber das bestehende `sound_system_overlay.html`, das bereits Audio- und Video-Playback unterstuetzt. Ein separates neues Media-Player-Overlay ist fuer diesen Pfad nicht noetig.

@@ -1,5 +1,5 @@
 # CURRENT STATUS
 
-Aktueller Stand: STEP274G – Video / Animation Media Overlay Bridge.
+Aktueller Stand: STEP274G1 – Commands nutzen fuer Audio und Video die bestehende Sound-System-Media-Bridge und das vorhandene `sound_system_overlay.html`.
 
-Audio-Medien laufen ueber STEP274E2/F stabil mit `/api/sound/play-media?mediaId=<id>`. Video/Animation wurde in STEP274G getrennt und nutzt jetzt `/api/video/play-media?mediaId=<id>` plus OBS-Overlay `_overlay-media-player.html`.
+STEP274G wurde korrigiert, weil kein zweites Video-Overlay benoetigt wird.
