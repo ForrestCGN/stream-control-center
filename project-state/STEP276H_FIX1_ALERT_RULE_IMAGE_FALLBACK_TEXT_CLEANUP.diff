@@ -1,0 +1,22 @@
+--- before/htdocs/dashboard/modules/alerts.js
++++ after/htdocs/dashboard/modules/alerts.js
+@@ -873,8 +873,7 @@
+                 <details class="wide-field legacy-sound-foldout legacy-graphic-foldout" ${topGraphicMediaId ? '' : 'open'}>
+                   <summary><strong>Alte Grafik / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacyTopGraphicLabel)}</span></summary>
+                   <div class="legacy-sound-body">
+-                    ${selectHtml('topGraphicAssetId','Nur verwenden, wenn oben keine Media-Registry-Grafik gesetzt ist', st.topGraphicAssetId || '', imageAssetSelectItems(st.topGraphicAssetId))}
+-                    <p class="small-note legacy-sound-hint">Sicherheits-Fallback für bestehende Design-Profile. Wird nur genutzt, wenn keine Media-Registry-Grafik gesetzt ist.</p>
++                    ${selectHtml('topGraphicAssetId','Alte Grafik', st.topGraphicAssetId || '', imageAssetSelectItems(st.topGraphicAssetId))}
+                   </div>
+                 </details>
+                 ${selectHtml('topGraphicShape','Grafik-Form', st.topGraphicShape || st.topGraphicFrameStyle || 'original', [['original','Original'],['round','Kreis'],['tile','Kachel'],['heart','Herz'],['shield','Schild'],['hexagon','Hexagon'],['diamond','Diamant'],['star','Stern']])}
+@@ -1289,8 +1288,7 @@
+           <details class="wide-field legacy-sound-foldout" ${imageMediaId ? '' : 'open'}>
+             <summary><strong>Alte Grafik / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacyImageLabel)}</span></summary>
+             <div class="legacy-sound-body">
+-              <label class="wide-field legacy-sound-field"><span>Nur verwenden, wenn oben keine Media-Registry-Grafik gesetzt ist</span><select id="ruleImage">${assetOptions('image', r.image_asset_id)}</select></label>
+-              <p class="small-note legacy-sound-hint">Sicherheits-Fallback für bestehende Alert-Regelbilder. Wird nur genutzt, wenn keine Media-Registry-Grafik gesetzt ist.</p>
++              <label class="wide-field legacy-sound-field"><span>Alte Grafik</span><select id="ruleImage">${assetOptions('image', r.image_asset_id)}</select></label>
+             </div>
+           </details>
+           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
