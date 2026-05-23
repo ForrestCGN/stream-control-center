@@ -1,6 +1,6 @@
-# FILES – STEP274U
+# Files – STEP274V
 
-- `htdocs/dashboard/components/media_field.js` – Reusable MediaField Helper
-- `htdocs/dashboard/components/media_field.css` – Styling
-- `htdocs/dashboard/index.html` – lädt MediaField nach MediaPicker
-- `docs/dashboard/MEDIA_FIELD_INTEGRATION_STANDARD.md` – Nutzungsstandard
+- `tools/apply_step274v_birthday_mediafield.js`
+- `docs/dashboard/BIRTHDAY_MEDIA_FIELD_INTEGRATION.md`
+- Patch-Ziel: `htdocs/dashboard/modules/birthday.js`
+- Patch-Ziel: `htdocs/dashboard/modules/birthday.css`

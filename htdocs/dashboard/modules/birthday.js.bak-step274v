@@ -314,30 +314,6 @@ window.BirthdayModule = (function(){
   }
 
 
-  function bindBirthdayMediaFields() {
-    const fields = Array.from(root?.querySelectorAll('[data-birthday-media-target][data-media-field]') || []);
-    if (!fields.length) return;
-    if (!window.MediaField?.attach) {
-      console.warn('[Birthday] MediaField component not available yet.');
-      return;
-    }
-    fields.forEach(field => {
-      const targetSelector = field.dataset.birthdayMediaTarget || '';
-      if (!field.__birthdayMediaTargetBound) {
-        field.addEventListener('media-field:change', ev => {
-          const asset = ev.detail?.asset || null;
-          const target = targetSelector ? root?.querySelector(targetSelector) : null;
-          if (!target) return;
-          target.value = asset ? (asset.relativePath || asset.webPath || '') : '';
-          target.dispatchEvent(new Event('input', { bubbles: true }));
-          target.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-        field.__birthdayMediaTargetBound = true;
-      }
-      window.MediaField.attach(field);
-    });
-  }
-
   function currentParties() {
     const assets = state.showAssets?.ok ? state.showAssets : (state.status?.showAssets || {});
     return Array.isArray(assets.parties) ? assets.parties : [];
@@ -482,8 +458,7 @@ window.BirthdayModule = (function(){
             <label>Anzeigename<input type="text" data-birthday-user-display placeholder="ForrestCGN"></label>
             <label>Geburtstag<input type="text" data-birthday-user-date placeholder="22.05 oder 22.05.1980"></label>
             <label>Status<select data-birthday-user-active><option value="true">aktiv</option><option value="false">inaktiv</option></select></label>
-            <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="media/birthday/general/birthday_song_user.mp3 oder leer für Standard"></label>
-            <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="general" data-allowed-types="audio" data-title="User-Song auswählen oder hochladen" data-birthday-media-target="[data-birthday-user-song]"></div>
+            <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="birthday/birthday_song_user.mp3 oder leer für Standard"></label>
             <label>Song-Dauer ms <input type="number" data-birthday-user-song-ms placeholder="auto / optional"></label>
             <label>Song-Lautstärke <input type="number" min="0" max="100" data-birthday-user-volume placeholder="85"></label>
             <p class="birthday-note">Das Intro-Video ist global. User-Songs werden technisch per Login gespeichert, im Dashboard/Overlay aber mit Anzeigename + Avatar genutzt.</p>
@@ -617,8 +592,7 @@ window.BirthdayModule = (function(){
               </div>
               <div class="birthday-form-two">
                 <label>Style<select data-birthday-party-style>${styles.map(style => `<option value="${esc(style.key)}">${esc(style.label || style.key)}</option>`).join('')}</select></label>
-                <label>Song-Datei optional<input type="text" data-birthday-party-song placeholder="media/birthday/general/birthday_song_araglor_2.mp3 oder leer = User/Standard-Song"></label>
-                <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="general" data-allowed-types="audio" data-title="Party-Song auswählen oder hochladen" data-birthday-media-target="[data-birthday-party-song]"></div>
+                <label>Song-Datei optional<input type="text" data-birthday-party-song placeholder="birthday/birthday_song_araglor_2.mp3 oder leer = User/Standard-Song"></label>
               </div>
               <label>Headline Template<input type="text" data-birthday-party-headline value="{headline}"></label>
               <label>Subline Template<input type="text" data-birthday-party-subline value="{message}"></label>
@@ -701,7 +675,6 @@ window.BirthdayModule = (function(){
         `}
       </div>`;
     bind();
-    bindBirthdayMediaFields();
   }
 
   function bind() {

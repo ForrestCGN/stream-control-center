@@ -1,8 +1,7 @@
-# CHANGELOG
+# Changelog
 
-## STEP274U
+## STEP274V
 
-- `MediaField` Dashboard-Komponente ergänzt.
-- `MediaField` in `index.html` eingebunden.
-- CSS für MediaField ergänzt.
-- Dashboard-Integrationsstandard dokumentiert.
+- Birthday-Dashboard nutzt MediaField für User-Song und Party-Song.
+- MediaField schreibt `asset.relativePath` in bestehende Birthday-Pfadfelder.
+- Keine bestehende Funktionalität entfernt.

@@ -1,3 +1,3 @@
-# CURRENT_SYSTEM_STATUS – STEP274U
+# Current System Status
 
-Das Dashboard besitzt nun einen wiederverwendbaren MediaField-Adapter für Module mit Upload-/Medienauswahlbedarf. Die zentrale Media-Registry bleibt Single Source of Truth. Module speichern `mediaId` statt Dateipfade.
+STEP274V: Birthday-Dashboard verwendet die zentrale MediaField-Komponente für auswählbare/hochladbare Birthday-Sounds, ohne bestehende Legacy-Uploads zu entfernen.

@@ -30,10 +30,3 @@
 .birthday-form-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .birthday-manager-card{background:linear-gradient(135deg,rgba(12,17,35,.82),rgba(28,15,48,.72))}
 @media(max-width:1000px){.birthday-section-head{display:grid}.birthday-form-two{grid-template-columns:1fr}}
-
-
-/* STEP274V birthday media field */
-.birthday-mediafield-block{grid-column:1/-1;border:1px solid rgba(64,232,255,.18);background:rgba(64,232,255,.055);border-radius:14px;padding:10px;display:grid;gap:8px}
-.birthday-mediafield-block .media-field-preview{border-color:rgba(255,255,255,.12);background:rgba(0,0,0,.18)}
-.birthday-mediafield-block [data-media-field-open]{border-color:rgba(64,232,255,.35);background:rgba(64,232,255,.10)}
-.birthday-mediafield-block [data-media-field-clear]{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.04)}

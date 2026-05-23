@@ -1,5 +1,3 @@
-# CURRENT_STATUS – STEP274U
+# Current Status – STEP274V
 
-Aktueller Stand: Media Registry ist migriert. Dashboard-Media-Ansicht wurde verbessert. Reactive Controls Standard wurde dokumentiert. Mit STEP274U steht ein wiederverwendbares `MediaField` für künftige Module bereit.
-
-Nächster sinnvoller Schritt: Erste echte Integration in ein Modul mit Medienbedarf, bevorzugt Geburtstags-Plugin oder Alerts.
+STEP274V ergänzt die Nutzung der zentralen MediaField-Komponente im Birthday-Dashboard für User-Songs und Party-Songs.

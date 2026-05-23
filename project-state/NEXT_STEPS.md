@@ -1,6 +1,6 @@
-# NEXT_STEPS – nach STEP274U
+# Next Steps
 
-1. STEP274U installieren und Dashboard hart neu laden.
-2. Prüfen, ob keine Konsolenfehler entstehen.
-3. Als erste Modul-Integration Geburtstags-Plugin oder Alerts wählen.
-4. In dem Modul MediaField statt eigener Upload-Logik verwenden.
+1. Patch ausführen.
+2. Dashboard hart neu laden.
+3. Birthday User-Song und Party-Song testen.
+4. Danach entscheiden, ob Birthday-Backend künftig zusätzlich direkte `mediaId`-Referenzen speichern soll.
