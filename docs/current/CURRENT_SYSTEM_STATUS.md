@@ -1,3 +1,3 @@
-# Current System Status
+# CURRENT_SYSTEM_STATUS
 
-Media-Registry-Migration abgeschlossen. Media-Dashboard nutzt nach STEP274S FIX1 Live-Filter mit Fokus-Erhalt.
+STEP274T ergänzt einen verbindlichen Dashboard-UX-Standard: Suchfelder, Filter und Dropdowns sollen direkt reagieren, wo keine gefährliche Aktion ausgelöst wird. Der Helper `CGNReactiveControls` steht global zur Verfügung.

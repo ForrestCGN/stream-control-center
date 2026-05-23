@@ -1,3 +1,3 @@
-# Current Status
+# CURRENT_STATUS
 
-Aktueller Stand: STEP274S FIX1 ergänzt einen Hotfix für den Live-Filter der Medienverwaltung nach der Media-Registry-Migration.
+Aktueller Stand: STEP274T – Dashboard Reactive Controls Standard ergänzt. Live-Suche/Dropdown-Sofortreaktion gilt künftig als Dashboard-UX-Standard.
