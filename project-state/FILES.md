@@ -1,17 +1,14 @@
-# FILES – STEP274R
+# Files – STEP274S
 
 ## Geändert
 
 - `htdocs/dashboard/modules/media.js`
-- `htdocs/dashboard/modules/media.css`
 
-## Neu
+## Dokumentation
 
-- `project-state/STEP274R.md`
-
-## Unverändert relevant
-
-- `backend/modules/media.js`
-- `backend/modules/sound_media_bridge.js`
-- `tools/media_registry_migrate_categories.js`
-- `config/media_migration_plan.refined.json`
+- `project-state/STEP274S.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`

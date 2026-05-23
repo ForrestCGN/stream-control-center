@@ -1,4 +1,5 @@
 window.MediaModule = (function(){
+  // STEP274S - Live-Filter ohne Lupe: Suche reagiert beim Tippen mit Debounce.
   'use strict';
 
   const api = {
@@ -51,6 +52,8 @@ window.MediaModule = (function(){
   };
 
   let root = null;
+  let filterTimer = null;
+  let filterSeq = 0;
 
   function esc(value) {
     return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
@@ -493,6 +496,35 @@ window.MediaModule = (function(){
     state.filter = { q: '', moduleKey: '', categoryKey: '', status: 'active', view: '' };
   }
 
+
+  function scheduleFilterApply(type, delay = 220) {
+    if (!root) return;
+    readFilterValues();
+    const target = type || (state.tab === 'recent' ? 'recent' : currentType());
+    if (filterTimer) clearTimeout(filterTimer);
+    filterTimer = setTimeout(async () => {
+      const seq = ++filterSeq;
+      try {
+        await loadList(target);
+        if (seq === filterSeq) render();
+      } catch (err) {
+        if (seq === filterSeq) showError(err);
+      }
+    }, delay);
+  }
+
+  async function applyFilterNow(type) {
+    if (filterTimer) {
+      clearTimeout(filterTimer);
+      filterTimer = null;
+    }
+    readFilterValues();
+    const target = type || (state.tab === 'recent' ? 'recent' : currentType());
+    filterSeq += 1;
+    await loadList(target);
+    render();
+  }
+
   function bind() {
     root?.querySelectorAll('[data-media-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.mediaTab || 'overview'; state.error = ''; state.notice = ''; render(); }));
     root?.querySelectorAll('[data-media-tab-jump]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.mediaTabJump || 'overview'; render(); }));
@@ -505,10 +537,25 @@ window.MediaModule = (function(){
     root?.querySelector('[data-media-delete-file]')?.addEventListener('click', () => deleteSelected(true).catch(showError));
     root?.querySelector('[data-media-upload]')?.addEventListener('click', () => uploadMedia().catch(showError));
     root?.querySelectorAll('[data-media-filter-apply]').forEach(btn => btn.addEventListener('click', async () => {
-      readFilterValues();
-      const target = btn.dataset.mediaFilterApply || currentType();
-      await loadList(target);
+      await applyFilterNow(btn.dataset.mediaFilterApply || currentType());
+    }));
+    root?.querySelectorAll('[data-media-filter-q]').forEach(input => input.addEventListener('input', () => {
+      scheduleFilterApply(currentType(), 220);
+    }));
+    root?.querySelectorAll('[data-media-filter-module]').forEach(select => select.addEventListener('change', async () => {
+      state.filter.moduleKey = String(select.value || '').trim();
+      state.filter.categoryKey = '';
+      await loadList(state.tab === 'recent' ? 'recent' : currentType());
       render();
+    }));
+    root?.querySelectorAll('[data-media-filter-category], [data-media-filter-status]').forEach(select => select.addEventListener('change', async () => {
+      await applyFilterNow(state.tab === 'recent' ? 'recent' : currentType());
+    }));
+    root?.querySelectorAll('[data-media-filter-q]').forEach(input => input.addEventListener('keydown', async ev => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        await applyFilterNow(currentType());
+      }
     }));
     root?.querySelectorAll('[data-media-filter-clear]').forEach(btn => btn.addEventListener('click', async () => {
       clearFilters();

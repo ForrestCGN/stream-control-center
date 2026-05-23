@@ -1,28 +1,13 @@
-# NEXT_STEPS – nach STEP274R
+# Next Steps
 
 ## Direkt testen
 
-```cmd
-cd D:\Git\stream-control-center
-```
+- Medienverwaltung öffnen.
+- Im Suchfeld ohne Lupe tippen: `R`, `Ro`, `Rox`.
+- Prüfen, ob Ergebnisse automatisch wechseln.
 
-Backend/Dashboard neu laden und im Browser die Medienverwaltung öffnen.
+## Danach möglich
 
-Prüfen:
-
-- Übersicht zeigt Module.
-- Recent zeigt migrierte Assets.
-- Filter `commands` zeigt Command-Medien.
-- Asset `#1311` zeigt `commands/roxxy`.
-- Vorschau funktioniert.
-
-## Danach
-
-```cmd
-.\stepdone.cmd "STEP274R Media-Dashboard nach Migration verbessern"
-```
-
-## Später
-
-- STEP274S: Medien im Dashboard einzeln verschieben und Kategorien direkt anlegen.
-- STEP275: Legacy-Cleanup Dry-Run, aber noch nichts löschen.
+- Einzelnes Medium direkt im Dashboard in andere Kategorie verschieben.
+- Medien-Detailansicht um Command-Verwendung erweitern.
+- Legacy-Cleanup nur als separater Dry-Run-Step vorbereiten.

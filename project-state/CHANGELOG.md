@@ -1,10 +1,8 @@
-# CHANGELOG
+# Changelog
 
-## STEP274R
+## STEP274S
 
-- Medienverwaltung im Dashboard nach der Media-Registry-Migration verbessert.
-- Neuer Recent-Tab ergänzt.
-- Filter nach Modul und Kategorie ergänzt.
-- Tabellen um ID, Modul/Kategorie und Command-Hinweis erweitert.
-- Asset-Details um Pfade, Full Category und Datei-Existenz erweitert.
-- Upload und Metadatenbearbeitung nutzen `moduleKey`/`categoryKey`.
+- Media-Dashboard: Suchfeld filtert live beim Tippen.
+- Media-Dashboard: Modul-/Kategorie-/Statusfilter wenden sich direkt an.
+- Enter im Suchfeld triggert sofortige Filterung.
+- Lupe bleibt als optionaler Button erhalten.
