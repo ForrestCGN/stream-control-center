@@ -1,3 +1,4 @@
-.cmd-media-select{min-width:100%;}
-.cmd-media-hint{display:block;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.35}
-.cmd-media-route-info{margin:8px 0 0;color:var(--muted);font-size:12px;font-weight:800}
+/* STEP274J - Command Media Practice UX */
+.cmd-media-hint { display:block; margin-top:6px; color:rgba(210,225,255,.72); line-height:1.35; }
+.cmd-media-route-info { margin-top:8px; padding:8px 10px; border-radius:12px; border:1px solid rgba(125,220,255,.24); background:rgba(70,180,255,.08); color:rgba(235,248,255,.9); font-size:12px; line-height:1.4; }
+.cmd-media-select { min-width: 260px; }

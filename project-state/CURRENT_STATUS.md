@@ -1,5 +1,7 @@
 # CURRENT STATUS
 
-Aktueller Stand: STEP274I – Sound-System ist offizieller Media-Playback-Hub.
+Aktueller Stand: **STEP274J – Command-Praxischeck für Media-Playback-Hub**.
 
-Medienverwaltung ist Registry; Abspielung, Queue und Overlay laufen zentral ueber `/api/sound/play-media` und `/overlays/sound_system_overlay.html`. `/api/video/*` bleibt nur als deprecated Testpfad vorhanden.
+Medienverwaltung bleibt Registry. Das Sound-System ist der offizielle zentrale Abspielpunkt für Audio, Video und Animation über `/api/sound/play-media?mediaId=<id>`.
+
+Neu in STEP274J: gespeicherte Media-Commands können über `/api/commands/media-command-check?trigger=<trigger>` geprüft werden.

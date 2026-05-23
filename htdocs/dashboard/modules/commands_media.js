@@ -5,7 +5,8 @@ window.CommandsMediaBridge = (function(){
     audio: '/api/commands/media-options?type=audio&status=active&limit=500',
     video: '/api/commands/media-options?type=video,animation&status=active&limit=500',
     status: '/api/commands/media-bridge/status',
-    soundBridgeStatus: '/api/sound/media-bridge/status'
+    soundBridgeStatus: '/api/sound/media-bridge/status',
+    commandCheck: '/api/commands/media-command-check'
   };
 
   const state = {
@@ -69,8 +70,8 @@ window.CommandsMediaBridge = (function(){
   function mediaHint(options, type) {
     const count = options.length;
     const extra = type === 'sound'
-      ? 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274I automatisch /api/sound/play-media?mediaId=<id>. Medienverwaltung liefert die ID, Sound-System spielt ab.'
-      : 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274I auch Video/Animation auf /api/sound/play-media?mediaId=<id>. Audio und Video laufen zentral ueber das vorhandene sound_system_overlay.html.';
+      ? 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274J automatisch /api/sound/play-media?mediaId=<id>. Medienverwaltung liefert die ID, Sound-System spielt ab.'
+      : 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274J auch Video/Animation auf /api/sound/play-media?mediaId=<id>. Audio und Video laufen zentral ueber das vorhandene sound_system_overlay.html.';
     return `<small class="cmd-media-hint">${esc(count)} Medien gefunden. ${esc(extra)}</small>`;
   }
 
@@ -129,7 +130,9 @@ window.CommandsMediaBridge = (function(){
       const opt = selectedOption(select);
       const targetUrl = opt?.dataset.commandTargetUrl || `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`;
       const bridge = opt && opt.dataset.mediaCompatible === '0' ? 'Media-Bridge/Kopie in _media_registry' : 'direkt kompatibel';
-      info.textContent = `Route gesetzt: ${targetUrl} (${bridge})`;
+      const trigger = root.querySelector('[data-cmd-field="trigger"]')?.value || '';
+      const checkHint = trigger ? ` · Check: /api/commands/media-command-check?trigger=${encodeURIComponent(trigger)}` : ' · Nach dem Speichern: /api/commands/media-command-check?trigger=<trigger>';
+      info.textContent = `Route gesetzt: ${targetUrl} (${bridge})${checkHint}`;
     }
   }
 
@@ -152,7 +155,7 @@ window.CommandsMediaBridge = (function(){
     const hero = root.querySelector('.cmd-hero p');
     if (hero && !hero.dataset.commandsMediaStep274d) {
       hero.dataset.commandsMediaStep274d = '1';
-      hero.textContent = 'Zentrales Chat-Command-System. STEP274I: Medien kommen aus der Medienverwaltung, abgespielt wird zentral ueber das Sound-System.';
+      hero.textContent = 'Zentrales Chat-Command-System. STEP274J: Medien kommen aus der Medienverwaltung, abgespielt wird zentral ueber das Sound-System. Gespeicherte Commands koennen per /api/commands/media-command-check geprueft werden.';
     }
   }
 

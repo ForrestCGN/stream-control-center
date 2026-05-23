@@ -1,16 +1,14 @@
 # CHANGELOG
 
-## STEP274I – Sound-System Media-Playback-Hub / Altpfad markiert
+## STEP274J – Command-Praxischeck für Media-Playback-Hub
 
-- Sound-System als offiziellen Media-Playback-Hub fuer Audio/Video/Animation bestaetigt.
-- Commands-Media-Bridge und Sound-Media-Bridge auf STEP274I gesetzt.
-- `/api/video/*` und `_overlay-media-player.html` als deprecated Testpfad markiert, ohne Funktionalitaet zu entfernen.
-- Doku/Status auf die Architektur „Media verwaltet, Sound spielt ab“ korrigiert.
+- `commands_media` auf STEP274J gesetzt.
+- Neue Route `GET /api/commands/media-command-check?trigger=<trigger>` ergänzt.
+- Prüft gespeicherte Dashboard-Commands gegen offiziellen Media-Playback-Hub `/api/sound/play-media?mediaId=<id>`.
+- Dashboard-Hinweise für Route und Praxischeck ergänzt.
+- Sound-Media-Bridge Status auf STEP274J aktualisiert.
 
-## STEP274H
+## STEP274I
 
-- `/api/sound/play-media` als offizieller Media-Playback-Hub definiert.
-
-## STEP274G1
-
-- Video-Routing wieder auf bestehendes `sound_system_overlay.html` zurueckgefuehrt.
+- Sound-System als offizieller Media-Playback-Hub festgezogen.
+- `/api/video/*` als deprecated Testpfad markiert.
