@@ -16,3 +16,8 @@
 - MediaPicker-Filter `Zusatzkategorie` startet beim Öffnen auf `Alle Zusatzkategorien`.
 - Upload-Zielkategorie bleibt unverändert getrennt über `config.categoryKey`.
 - Hinweis im Picker ergänzt: Kategorieauswahl oben ist Filter, nicht Upload-Ziel.
+
+## STEP274Z_FIX1_REMOVE_FILTER_HINT
+
+- MediaPicker-Hinweis `Filter, nicht Upload-Ziel` aus dem sichtbaren Zusatzkategorie-Label entfernt.
+- Verhalten bleibt unverändert: sichtbarer Filter startet auf `Alle Zusatzkategorien`, Upload-Ziel bleibt separat pro Button gesetzt.

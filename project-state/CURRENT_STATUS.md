@@ -9,3 +9,7 @@ Status: vorbereitet/anzuwenden. Der Birthday-MediaPicker ist jetzt klarer katego
 
 Der zentrale MediaPicker startet beim Öffnen wieder mit dem sichtbaren Filter `Alle Zusatzkategorien`.
 Das Upload-Ziel bleibt weiterhin über `config.categoryKey` modul-/button-spezifisch gesetzt.
+
+## STEP274Z_FIX1_REMOVE_FILTER_HINT
+
+MediaPicker: Der sichtbare Zusatztext unter/bei `Zusatzkategorie` wurde entfernt. Funktional bleibt die Trennung von Filter und Upload-Ziel bestehen.

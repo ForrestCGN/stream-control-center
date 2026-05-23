@@ -19,3 +19,7 @@
 
 - `htdocs/dashboard/components/media_picker.js` - sichtbarer Zusatzkategorie-Filter startet auf Alle; Upload-Ziel bleibt separat.
 - `docs/dashboard/MEDIA_PICKER_FILTER_DEFAULT_ALL.md` - Kurzdokumentation.
+
+## STEP274Z_FIX1_REMOVE_FILTER_HINT
+
+- `htdocs/dashboard/components/media_picker.js` - sichtbarer Hinweis `Filter, nicht Upload-Ziel` entfernt.

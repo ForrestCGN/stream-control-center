@@ -203,7 +203,7 @@ window.MediaPicker = (function(){
 
         <div class="mp-filters">
           <label>Typ<select data-mp-type>${typeOptions(state.type, true)}</select></label>
-          <label>Zusatzkategorie<select data-mp-category>${categoryOptions(state.categoryKey)}</select></label>
+          <label>Zusatzkategorie <small class="mp-filter-hint">Filter, nicht Upload-Ziel</small><select data-mp-category>${categoryOptions(state.categoryKey)}</select></label>
           <label class="mp-grow">Suche<input data-mp-query value="${esc(state.query)}" placeholder="Name, Pfad oder Kategorie"></label>
           <button type="button" data-mp-refresh>Aktualisieren</button>
         </div>
