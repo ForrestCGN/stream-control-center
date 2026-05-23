@@ -1,0 +1,36 @@
+{
+  "_comment": "STEP274N Beispiel-Regeln fuer die Media-Registry-Migration. Erst kopieren/anpassen und als config/media_migration_plan.json verwenden.",
+  "defaults": {
+    "moduleKey": "general",
+    "categoryKey": "general",
+    "commandsCategory": "general"
+  },
+  "byId": {
+    "1311": { "moduleKey": "commands", "categoryKey": "fun" }
+  },
+  "rules": [
+    {
+      "commandReferenced": true,
+      "type": "audio",
+      "moduleKey": "commands",
+      "categoryKey": "general"
+    },
+    {
+      "type": "audio",
+      "pathIncludes": "media/audio/",
+      "moduleKey": "general",
+      "categoryKey": "audio"
+    },
+    {
+      "type": "video",
+      "pathIncludes": "media/video/",
+      "moduleKey": "general",
+      "categoryKey": "video"
+    },
+    {
+      "type": "animation",
+      "moduleKey": "general",
+      "categoryKey": "animation"
+    }
+  ]
+}

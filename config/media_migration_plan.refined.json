@@ -1,0 +1,1725 @@
+{
+  "version": 1,
+  "step": "STEP274P",
+  "generatedAt": "2026-05-23T11:09:10.502Z",
+  "sourceFile": "config/media_migration_plan.suggested.json",
+  "description": "Refined migration plan generated from STEP274O suggestions. Review manually before apply.",
+  "defaults": {
+    "moduleKey": "general",
+    "categoryKey": "unsorted"
+  },
+  "categories": [
+    {
+      "moduleKey": "alerts",
+      "categoryKey": "bits"
+    },
+    {
+      "moduleKey": "alerts",
+      "categoryKey": "donation"
+    },
+    {
+      "moduleKey": "alerts",
+      "categoryKey": "follow"
+    },
+    {
+      "moduleKey": "alerts",
+      "categoryKey": "kofi"
+    },
+    {
+      "moduleKey": "alerts",
+      "categoryKey": "raid"
+    },
+    {
+      "moduleKey": "alerts",
+      "categoryKey": "sub"
+    },
+    {
+      "moduleKey": "alerts",
+      "categoryKey": "tipeee"
+    },
+    {
+      "moduleKey": "birthday",
+      "categoryKey": "general"
+    },
+    {
+      "moduleKey": "commands",
+      "categoryKey": "general"
+    },
+    {
+      "moduleKey": "commands",
+      "categoryKey": "roxxy"
+    },
+    {
+      "moduleKey": "general",
+      "categoryKey": "audio"
+    },
+    {
+      "moduleKey": "general",
+      "categoryKey": "images"
+    },
+    {
+      "moduleKey": "general",
+      "categoryKey": "intro"
+    },
+    {
+      "moduleKey": "general",
+      "categoryKey": "outro"
+    },
+    {
+      "moduleKey": "general",
+      "categoryKey": "test"
+    },
+    {
+      "moduleKey": "general",
+      "categoryKey": "transitions"
+    },
+    {
+      "moduleKey": "general",
+      "categoryKey": "video"
+    },
+    {
+      "moduleKey": "vip",
+      "categoryKey": "general"
+    }
+  ],
+  "summary": {
+    "total": 264,
+    "byModule": {
+      "general": 134,
+      "alerts": 93,
+      "birthday": 4,
+      "vip": 31,
+      "commands": 2
+    },
+    "byCategory": {
+      "general/audio": 66,
+      "alerts/bits": 18,
+      "alerts/follow": 53,
+      "alerts/raid": 2,
+      "alerts/donation": 3,
+      "alerts/sub": 15,
+      "birthday/general": 4,
+      "general/intro": 43,
+      "general/outro": 1,
+      "general/test": 1,
+      "vip/general": 31,
+      "general/video": 7,
+      "general/transitions": 3,
+      "alerts/kofi": 1,
+      "alerts/tipeee": 1,
+      "general/images": 13,
+      "commands/roxxy": 1,
+      "commands/general": 1
+    },
+    "byReason": {
+      "general_unchanged": 86,
+      "alert_bits": 18,
+      "alert_follow": 53,
+      "alert_raid": 2,
+      "alert_donation": 3,
+      "alert_sub": 15,
+      "birthday_unchanged": 4,
+      "general_intro": 43,
+      "general_outro": 1,
+      "general_test": 1,
+      "vip_unchanged": 31,
+      "general_transitions": 3,
+      "alert_kofi": 1,
+      "alert_tipeee": 1,
+      "command_roxxy": 1,
+      "command_general": 1
+    }
+  },
+  "byId": {
+    "1": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: airhorn",
+      "refineReason": "general_unchanged"
+    },
+    "2": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777544065174_100-249",
+      "refineReason": "alert_bits"
+    },
+    "3": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777547775061_1.000_-9.999",
+      "refineReason": "alert_bits"
+    },
+    "4": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777547812512_1.000_-9.999",
+      "refineReason": "alert_bits"
+    },
+    "5": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777548464874_1_-49",
+      "refineReason": "alert_follow"
+    },
+    "6": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777548646468_1_-49",
+      "refineReason": "alert_follow"
+    },
+    "7": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777641693891_I_Will_Follow_Him-stream",
+      "refineReason": "alert_follow"
+    },
+    "8": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777645990739_1-49_Bits",
+      "refineReason": "alert_bits"
+    },
+    "9": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777653981853_50_-99",
+      "refineReason": "alert_follow"
+    },
+    "10": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777654020330_100-249",
+      "refineReason": "alert_bits"
+    },
+    "11": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777654052211_250_-499",
+      "refineReason": "alert_follow"
+    },
+    "12": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777654081898_500_-_999",
+      "refineReason": "alert_follow"
+    },
+    "13": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777654138082_1.000_-9.999",
+      "refineReason": "alert_bits"
+    },
+    "14": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777654207264_10.000_bits",
+      "refineReason": "alert_bits"
+    },
+    "15": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777715885597_1000_-_1999_Bits",
+      "refineReason": "alert_bits"
+    },
+    "16": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777723660445_1.000-1999",
+      "refineReason": "alert_bits"
+    },
+    "17": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777723705723_2.000-4999",
+      "refineReason": "alert_bits"
+    },
+    "18": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777724640284_5000-7999",
+      "refineReason": "alert_bits"
+    },
+    "19": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777724684447_1000_bits",
+      "refineReason": "alert_bits"
+    },
+    "20": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777724765930_hello2",
+      "refineReason": "alert_follow"
+    },
+    "21": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777725779916_10000",
+      "refineReason": "alert_bits"
+    },
+    "22": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777728893947_500_miles",
+      "refineReason": "alert_follow"
+    },
+    "23": {
+      "moduleKey": "alerts",
+      "categoryKey": "raid",
+      "note": "name_alert_follow: 1777737175275_Achtung_Raid",
+      "refineReason": "alert_raid"
+    },
+    "24": {
+      "moduleKey": "alerts",
+      "categoryKey": "donation",
+      "note": "name_alert_follow: 1777740153334_youtube-twitch-_-alert-sound-effect-_-donation-1",
+      "refineReason": "alert_donation"
+    },
+    "25": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777741077413_1-1",
+      "refineReason": "alert_follow"
+    },
+    "26": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777744318428_5000_bits",
+      "refineReason": "alert_bits"
+    },
+    "27": {
+      "moduleKey": "alerts",
+      "categoryKey": "raid",
+      "note": "name_alert_follow: 1777794276098_Achtung_Raid",
+      "refineReason": "alert_raid"
+    },
+    "28": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777795823929_Re-Sub",
+      "refineReason": "alert_sub"
+    },
+    "29": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777796003966_Re-Sub",
+      "refineReason": "alert_sub"
+    },
+    "30": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777796687672_Neu-5000_Bits",
+      "refineReason": "alert_bits"
+    },
+    "31": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777804751409_Destruction_ab_5_sup",
+      "refineReason": "alert_sub"
+    },
+    "32": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777804776316_Destruction_ab_10_sup",
+      "refineReason": "alert_sub"
+    },
+    "33": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777805378656_Voicy_Baby_Shark_Original",
+      "refineReason": "alert_follow"
+    },
+    "34": {
+      "moduleKey": "alerts",
+      "categoryKey": "donation",
+      "note": "name_alert_follow: 1777808820112_youtube-twitch-_-alert-sound-effect-_-donation-1",
+      "refineReason": "alert_donation"
+    },
+    "35": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777810285622_Money-stream",
+      "refineReason": "alert_follow"
+    },
+    "36": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777906735498_Superperforator-Neu-",
+      "refineReason": "alert_sub"
+    },
+    "37": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777907070747_Superperforator-Neu-",
+      "refineReason": "alert_sub"
+    },
+    "38": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1778327618370_Gif-Sub_5-9",
+      "refineReason": "alert_sub"
+    },
+    "39": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1778327674168_Gif-Sub_10_bis_24",
+      "refineReason": "alert_sub"
+    },
+    "40": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1778327707520_Gif-Subs_30_-60",
+      "refineReason": "alert_sub"
+    },
+    "41": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1778330139754_Miss_Wikiki",
+      "refineReason": "alert_follow"
+    },
+    "42": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1778331322836_Sub-50-99",
+      "refineReason": "alert_sub"
+    },
+    "43": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1778345065788_10.000_bits",
+      "refineReason": "alert_bits"
+    },
+    "44": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1778510182276_5-9",
+      "refineReason": "alert_follow"
+    },
+    "45": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1778510313422_24-34",
+      "refineReason": "alert_follow"
+    },
+    "46": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1778510702030_Rollator_Rock_n_Roll_34-49",
+      "refineReason": "alert_follow"
+    },
+    "47": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1778516358213_Einmal_Rentner_1",
+      "refineReason": "alert_follow"
+    },
+    "48": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1779360860732_Follow",
+      "refineReason": "alert_follow"
+    },
+    "49": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: follow",
+      "refineReason": "alert_follow"
+    },
+    "50": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: bauernweisheit",
+      "refineReason": "general_unchanged"
+    },
+    "51": {
+      "moduleKey": "birthday",
+      "categoryKey": "general",
+      "note": "name_birthday: Birthday",
+      "refineReason": "birthday_unchanged"
+    },
+    "52": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: CGN the real (1)",
+      "refineReason": "general_unchanged"
+    },
+    "53": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: CGN-Hymne-Muerte",
+      "refineReason": "general_unchanged"
+    },
+    "54": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Fahrstuhl-sound",
+      "refineReason": "general_unchanged"
+    },
+    "55": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Araglor Immer Dabei",
+      "refineReason": "general_unchanged"
+    },
+    "56": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Don Barschi beim CGN Team",
+      "refineReason": "general_unchanged"
+    },
+    "57": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Drudchen kommt",
+      "refineReason": "general_unchanged"
+    },
+    "58": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Engel taucht auf",
+      "refineReason": "general_unchanged"
+    },
+    "59": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Engel, Herzstück vom Chaos",
+      "refineReason": "general_unchanged"
+    },
+    "60": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Forrest am Start (3)",
+      "refineReason": "general_intro"
+    },
+    "61": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Forrest, Kopf der Crew",
+      "refineReason": "general_unchanged"
+    },
+    "62": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Gecko ist am Start",
+      "refineReason": "general_intro"
+    },
+    "63": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Gewidderhexx",
+      "refineReason": "general_unchanged"
+    },
+    "64": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Miss Death Roxxy Boss Mod",
+      "refineReason": "general_unchanged"
+    },
+    "65": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Noctyrax – Unser Küken",
+      "refineReason": "general_unchanged"
+    },
+    "66": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Penny Am Start",
+      "refineReason": "general_intro"
+    },
+    "67": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Roxxy Foxxy Boss Mod",
+      "refineReason": "general_unchanged"
+    },
+    "68": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Tiger mit Humor und Biss",
+      "refineReason": "general_unchanged"
+    },
+    "69": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Urlug Stiller Held",
+      "refineReason": "general_unchanged"
+    },
+    "70": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: die-tasse-kaffee",
+      "refineReason": "general_unchanged"
+    },
+    "71": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: dummen-vor-dir",
+      "refineReason": "general_unchanged"
+    },
+    "72": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: easter-egg",
+      "refineReason": "general_unchanged"
+    },
+    "73": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: engelcgn",
+      "refineReason": "general_unchanged"
+    },
+    "74": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: burst-sm-1",
+      "refineReason": "general_unchanged"
+    },
+    "75": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: burst-sm-2",
+      "refineReason": "general_unchanged"
+    },
+    "76": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: burst1",
+      "refineReason": "general_unchanged"
+    },
+    "77": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: burst2",
+      "refineReason": "general_unchanged"
+    },
+    "78": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: crackle-sm-1",
+      "refineReason": "general_unchanged"
+    },
+    "79": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: crackle1",
+      "refineReason": "general_unchanged"
+    },
+    "80": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: lift1",
+      "refineReason": "general_unchanged"
+    },
+    "81": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: lift2",
+      "refineReason": "general_unchanged"
+    },
+    "82": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: lift3",
+      "refineReason": "general_unchanged"
+    },
+    "83": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Freude Am Leben",
+      "refineReason": "general_unchanged"
+    },
+    "84": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Frohes neues Jahr, CNG",
+      "refineReason": "general_unchanged"
+    },
+    "85": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: gecko",
+      "refineReason": "general_unchanged"
+    },
+    "86": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: gehen",
+      "refineReason": "general_unchanged"
+    },
+    "87": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: ghostwisper",
+      "refineReason": "general_unchanged"
+    },
+    "88": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: gott-sei-mit-dir",
+      "refineReason": "general_unchanged"
+    },
+    "89": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: halloween-1",
+      "refineReason": "general_unchanged"
+    },
+    "90": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: halloween-2",
+      "refineReason": "general_unchanged"
+    },
+    "91": {
+      "moduleKey": "general",
+      "categoryKey": "outro",
+      "note": "audio_outro: Jahr geht zu Ende",
+      "refineReason": "general_outro"
+    },
+    "92": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: jumpscare-1",
+      "refineReason": "general_unchanged"
+    },
+    "93": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Kopf der Crew (1)",
+      "refineReason": "general_unchanged"
+    },
+    "94": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Kopf der Crew",
+      "refineReason": "general_unchanged"
+    },
+    "95": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: leer",
+      "refineReason": "general_unchanged"
+    },
+    "96": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: metaldj",
+      "refineReason": "general_unchanged"
+    },
+    "97": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: metallina",
+      "refineReason": "general_unchanged"
+    },
+    "98": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Neu hier zusammen",
+      "refineReason": "general_unchanged"
+    },
+    "99": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: nichtfluchen",
+      "refineReason": "general_unchanged"
+    },
+    "100": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: nichtreden",
+      "refineReason": "general_unchanged"
+    },
+    "101": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: nichtsgemacht",
+      "refineReason": "general_unchanged"
+    },
+    "102": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: nightangel_13",
+      "refineReason": "general_unchanged"
+    },
+    "103": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: nonne01",
+      "refineReason": "general_unchanged"
+    },
+    "104": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: opa01",
+      "refineReason": "general_unchanged"
+    },
+    "105": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: opa02",
+      "refineReason": "general_unchanged"
+    },
+    "106": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: opa03",
+      "refineReason": "general_unchanged"
+    },
+    "107": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Penny und Meerschweinchen 2",
+      "refineReason": "general_unchanged"
+    },
+    "108": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Penny und Meerschweinchen die 3",
+      "refineReason": "general_unchanged"
+    },
+    "109": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: penny",
+      "refineReason": "general_unchanged"
+    },
+    "110": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: richtiger-riecher",
+      "refineReason": "general_unchanged"
+    },
+    "111": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: roxxy",
+      "refineReason": "general_unchanged"
+    },
+    "112": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Samstag bei forrest",
+      "refineReason": "general_unchanged"
+    },
+    "113": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Samstagabend bei ForrestCGN",
+      "refineReason": "general_unchanged"
+    },
+    "114": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Silvester in CGN",
+      "refineReason": "general_unchanged"
+    },
+    "115": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: airhorn",
+      "refineReason": "alert_follow"
+    },
+    "116": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: die_sprache_der_musik",
+      "refineReason": "alert_follow"
+    },
+    "117": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: dumm",
+      "refineReason": "alert_follow"
+    },
+    "118": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: furzen",
+      "refineReason": "alert_follow"
+    },
+    "119": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: gewurzgurke",
+      "refineReason": "alert_follow"
+    },
+    "120": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: gianna",
+      "refineReason": "alert_follow"
+    },
+    "121": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: hearts_burn_in_silence",
+      "refineReason": "alert_follow"
+    },
+    "122": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: human",
+      "refineReason": "alert_follow"
+    },
+    "123": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: husten",
+      "refineReason": "alert_follow"
+    },
+    "124": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: ich_bin_hier",
+      "refineReason": "alert_follow"
+    },
+    "125": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: i_see_you",
+      "refineReason": "alert_follow"
+    },
+    "126": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: just_do_it",
+      "refineReason": "alert_follow"
+    },
+    "127": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: kniescheibe",
+      "refineReason": "alert_follow"
+    },
+    "128": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: legends_never_die",
+      "refineReason": "alert_follow"
+    },
+    "129": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: lily_was_here",
+      "refineReason": "alert_follow"
+    },
+    "130": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: lose_control",
+      "refineReason": "alert_follow"
+    },
+    "131": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: madchen",
+      "refineReason": "alert_follow"
+    },
+    "132": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: miez_miez_miez",
+      "refineReason": "alert_follow"
+    },
+    "133": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: petro_petro_petro_mix",
+      "refineReason": "alert_follow"
+    },
+    "134": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: stuck_on_you",
+      "refineReason": "alert_follow"
+    },
+    "135": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: thriller_evil",
+      "refineReason": "alert_follow"
+    },
+    "136": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: trinken",
+      "refineReason": "alert_follow"
+    },
+    "137": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: vorschlaghammer",
+      "refineReason": "alert_follow"
+    },
+    "138": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: waschetrockner",
+      "refineReason": "alert_follow"
+    },
+    "139": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: wir_sind_eins",
+      "refineReason": "alert_follow"
+    },
+    "140": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: Böse Onkelz - Auf gute Freunde",
+      "refineReason": "alert_follow"
+    },
+    "141": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: Thomas D - Kurz zu Mir",
+      "refineReason": "alert_follow"
+    },
+    "142": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Airhorn",
+      "refineReason": "general_intro"
+    },
+    "143": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Anstandslos Durchgeknallt - Emojis Cover Art Video",
+      "refineReason": "general_intro"
+    },
+    "144": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Avril Lavigne - Complicated (Jesse Bloch & Jesse James Booty) [FREE DOWNLOAD]",
+      "refineReason": "general_intro"
+    },
+    "145": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Dave Fenley - _Stuck On You_ by Lionel Richie Cover",
+      "refineReason": "general_intro"
+    },
+    "146": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: David Guetta, Teddy Swims, Tones and I - Gone Gone Gone [Official Studio Video] - David Guetta",
+      "refineReason": "general_intro"
+    },
+    "147": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Die Sprache der Musik",
+      "refineReason": "general_intro"
+    },
+    "148": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Forrest-Gump-Theme",
+      "refineReason": "general_intro"
+    },
+    "149": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Hearts Burn in Silence _ Imagine Dragons _ Sia _ Inspired Emotional Pop Anthem Music Video",
+      "refineReason": "general_intro"
+    },
+    "150": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Legends Never Die (ft. Against The Current) [OFFICIAL AUDIO] Worlds 2017 - League of Legends",
+      "refineReason": "general_intro"
+    },
+    "151": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Lily Was Here - SAX Guitar _ Special guest my DAD",
+      "refineReason": "general_intro"
+    },
+    "152": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Linkin Park The Emptiness Machine Lyrics",
+      "refineReason": "general_intro"
+    },
+    "153": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: My Soul By Ruston Gray Official Clip With Lyrics rustongray mysoul countrymusic soul blues",
+      "refineReason": "general_intro"
+    },
+    "154": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: OIMARA - WACKELKONTAKT (HBz x Luca-Dante Spadafora Remix) [OFFICIAL VIDEO]",
+      "refineReason": "general_intro"
+    },
+    "155": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: PIETRO BASILE - GIANNA (HARRIS & FORD x BIG TIM REMIX)",
+      "refineReason": "general_intro"
+    },
+    "156": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Rag'n'Bone Man - Human (Official Portuguese Lyric Video) - RagnBoneManVEVO",
+      "refineReason": "general_intro"
+    },
+    "157": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Rolf Zuckowski - Ich schaff das schon! [Hardstyle Remix] - Stouzenbard (youtube)",
+      "refineReason": "general_intro"
+    },
+    "158": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Sandberg - Leuchtturm",
+      "refineReason": "general_intro"
+    },
+    "159": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Teddy Swims - Lose Control (Lyric Video) - Teddy Swims",
+      "refineReason": "general_intro"
+    },
+    "160": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: The BossHoss - Little Help ft. Mimi & Josy",
+      "refineReason": "general_intro"
+    },
+    "161": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Tom Gregory - Footprints (Official Video 4K)",
+      "refineReason": "general_intro"
+    },
+    "162": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Wir sind Eins",
+      "refineReason": "general_intro"
+    },
+    "163": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Andy Williams _ Its the Most Wonderful Time of the Year _Official Audio_",
+      "refineReason": "general_intro"
+    },
+    "164": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: BAND AID - Do they know its Christmas_ Original 1984 Version",
+      "refineReason": "general_intro"
+    },
+    "165": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Brenda Lee - Rockin' Around The Christmas Tree (Official Lyric Video)",
+      "refineReason": "general_intro"
+    },
+    "166": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Chris Rea ~ Driving Home For Christmas (1986)",
+      "refineReason": "general_intro"
+    },
+    "167": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Ed Sheeran & Elton John - Merry Christmas [Official Video]",
+      "refineReason": "general_intro"
+    },
+    "168": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Forrest-Gump-Theme",
+      "refineReason": "general_intro"
+    },
+    "169": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Frank Sinatra - Let It Snow_ Let It Snow_ Let It Snow_ Official Music Video",
+      "refineReason": "general_intro"
+    },
+    "170": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Frank Sinatra and Bing Crosby _ White Christmas Live from Happy Holidays with Bing _ Frank _1957_",
+      "refineReason": "general_intro"
+    },
+    "171": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Frankie Goes To Hollywood - The Power Of Love",
+      "refineReason": "general_intro"
+    },
+    "172": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Gwen Stefani _ You Make It Feel Like Christmas _Official Music Video_ ft_ Blake Shelton",
+      "refineReason": "general_intro"
+    },
+    "173": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Human Nature _ White Christmas _Official Video_",
+      "refineReason": "general_intro"
+    },
+    "174": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Mariah Carey - All I Want for Christmas Is You (Make My Wish Come True Edition)",
+      "refineReason": "general_intro"
+    },
+    "175": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Melanie Thornton - Wonderful Dream Holidays Are Coming",
+      "refineReason": "general_intro"
+    },
+    "176": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Michael Bublé - It's Beginning to Look a Lot Like Christmas (Official Music Video)",
+      "refineReason": "general_intro"
+    },
+    "177": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: rian-verwandtschaftstreffen-weihnachtsversion-musikvideo-128-ytshorts.savetube.me",
+      "refineReason": "general_intro"
+    },
+    "178": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Sarah Connor - Christmas In My Heart",
+      "refineReason": "general_intro"
+    },
+    "179": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Shakin Stevens _ Merry Christmas Everyone _Official 4K Video_",
+      "refineReason": "general_intro"
+    },
+    "180": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Train - Shake Up Christmas (Lyrics)",
+      "refineReason": "general_intro"
+    },
+    "181": {
+      "moduleKey": "general",
+      "categoryKey": "intro",
+      "note": "audio_intro: Wham! - Last Christmas (Lyrics) (320 KBps)",
+      "refineReason": "general_intro"
+    },
+    "182": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: tadesso",
+      "refineReason": "general_unchanged"
+    },
+    "183": {
+      "moduleKey": "general",
+      "categoryKey": "test",
+      "note": "audio_test: test_ping",
+      "refineReason": "general_test"
+    },
+    "184": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: tiger",
+      "refineReason": "general_unchanged"
+    },
+    "185": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: tueffi",
+      "refineReason": "general_unchanged"
+    },
+    "186": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: adoredpenny",
+      "refineReason": "vip_unchanged"
+    },
+    "187": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: araglor",
+      "refineReason": "vip_unchanged"
+    },
+    "188": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: ausgebrochener_volcan",
+      "refineReason": "vip_unchanged"
+    },
+    "189": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: byNexL",
+      "refineReason": "vip_unchanged"
+    },
+    "190": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: cgn_vlp_muerte",
+      "refineReason": "vip_unchanged"
+    },
+    "191": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: CrazyMeerschweinchen",
+      "refineReason": "vip_unchanged"
+    },
+    "192": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: DonBraschi",
+      "refineReason": "vip_unchanged"
+    },
+    "193": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: drudchen_cgn",
+      "refineReason": "vip_unchanged"
+    },
+    "194": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: engelcgn",
+      "refineReason": "vip_unchanged"
+    },
+    "195": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: geckostief",
+      "refineReason": "vip_unchanged"
+    },
+    "196": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: GewidderHexxx",
+      "refineReason": "vip_unchanged"
+    },
+    "197": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: jinx_verjinxt",
+      "refineReason": "vip_unchanged"
+    },
+    "198": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: kurohana_tueffeli",
+      "refineReason": "vip_unchanged"
+    },
+    "199": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: lacklecker",
+      "refineReason": "vip_unchanged"
+    },
+    "200": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: lennoxsanco",
+      "refineReason": "vip_unchanged"
+    },
+    "201": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: metaldj666",
+      "refineReason": "vip_unchanged"
+    },
+    "202": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: metalina82",
+      "refineReason": "vip_unchanged"
+    },
+    "203": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: NoctyraxCGN",
+      "refineReason": "vip_unchanged"
+    },
+    "204": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: Pretos1",
+      "refineReason": "vip_unchanged"
+    },
+    "205": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: ronnyp26cgn",
+      "refineReason": "vip_unchanged"
+    },
+    "206": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: roxxyfoxxycgn",
+      "refineReason": "vip_unchanged"
+    },
+    "207": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: tadesso",
+      "refineReason": "vip_unchanged"
+    },
+    "208": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: tadessoalt",
+      "refineReason": "vip_unchanged"
+    },
+    "209": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: tigerpranke01",
+      "refineReason": "vip_unchanged"
+    },
+    "210": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: Tronic6",
+      "refineReason": "vip_unchanged"
+    },
+    "211": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: Udowb(1)",
+      "refineReason": "vip_unchanged"
+    },
+    "212": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: udowb",
+      "refineReason": "vip_unchanged"
+    },
+    "213": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: una_solala",
+      "refineReason": "vip_unchanged"
+    },
+    "214": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: urlug",
+      "refineReason": "vip_unchanged"
+    },
+    "215": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: zootydj",
+      "refineReason": "vip_unchanged"
+    },
+    "216": {
+      "moduleKey": "vip",
+      "categoryKey": "general",
+      "note": "name_vip: vip30",
+      "refineReason": "vip_unchanged"
+    },
+    "217": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: wellerman",
+      "refineReason": "general_unchanged"
+    },
+    "266": {
+      "moduleKey": "general",
+      "categoryKey": "video",
+      "note": "default_video: 1cgn",
+      "refineReason": "general_unchanged"
+    },
+    "267": {
+      "moduleKey": "general",
+      "categoryKey": "video",
+      "note": "default_video: 2cgn",
+      "refineReason": "general_unchanged"
+    },
+    "268": {
+      "moduleKey": "general",
+      "categoryKey": "video",
+      "note": "default_video: 3cgn",
+      "refineReason": "general_unchanged"
+    },
+    "269": {
+      "moduleKey": "general",
+      "categoryKey": "video",
+      "note": "default_video: Birthay1",
+      "refineReason": "general_unchanged"
+    },
+    "270": {
+      "moduleKey": "general",
+      "categoryKey": "transitions",
+      "note": "default_video: cgn_streifen_deluxe_transparent_obs",
+      "refineReason": "general_transitions"
+    },
+    "271": {
+      "moduleKey": "general",
+      "categoryKey": "transitions",
+      "note": "video_transition: cgn_strip_lines_transition_v3_nolines_1080p",
+      "refineReason": "general_transitions"
+    },
+    "272": {
+      "moduleKey": "general",
+      "categoryKey": "transitions",
+      "note": "video_transition: cgn_strip_transition_transparent_obs",
+      "refineReason": "general_transitions"
+    },
+    "273": {
+      "moduleKey": "general",
+      "categoryKey": "video",
+      "note": "default_video: CleaningScreen",
+      "refineReason": "general_unchanged"
+    },
+    "274": {
+      "moduleKey": "general",
+      "categoryKey": "video",
+      "note": "default_video: tronic1",
+      "refineReason": "general_unchanged"
+    },
+    "275": {
+      "moduleKey": "general",
+      "categoryKey": "video",
+      "note": "default_video: tt-muenze",
+      "refineReason": "general_unchanged"
+    },
+    "276": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777558409264_Forrest_und_engel-neu",
+      "refineReason": "alert_follow"
+    },
+    "277": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777635553948_stream1",
+      "refineReason": "alert_follow"
+    },
+    "278": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777641725775_Follower",
+      "refineReason": "alert_follow"
+    },
+    "279": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777641764868_Follower",
+      "refineReason": "alert_follow"
+    },
+    "280": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777654262700_prim_abo",
+      "refineReason": "alert_sub"
+    },
+    "281": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777654282714_Prime_verlA_ngerung",
+      "refineReason": "alert_sub"
+    },
+    "282": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777716027997_erster_Sup",
+      "refineReason": "alert_sub"
+    },
+    "283": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777724548651_sup",
+      "refineReason": "alert_sub"
+    },
+    "284": {
+      "moduleKey": "alerts",
+      "categoryKey": "sub",
+      "note": "name_alert_follow: 1777725224799_sub_bombe",
+      "refineReason": "alert_sub"
+    },
+    "285": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777735300764_10000_bits",
+      "refineReason": "alert_bits"
+    },
+    "286": {
+      "moduleKey": "alerts",
+      "categoryKey": "bits",
+      "note": "name_alert_follow: 1777740484191_bits_1",
+      "refineReason": "alert_bits"
+    },
+    "287": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777740499220_ChatGPT_Image_2._Mai_2026_18_35_13",
+      "refineReason": "alert_follow"
+    },
+    "288": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777808801191_ChatGPT_Image_2._Mai_2026_14_59_10",
+      "refineReason": "alert_follow"
+    },
+    "289": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: 1777810674032_ChatGPT_Image_3._Mai_2026_14_17_27",
+      "refineReason": "alert_follow"
+    },
+    "290": {
+      "moduleKey": "alerts",
+      "categoryKey": "follow",
+      "note": "name_alert_follow: fst-Follow2",
+      "refineReason": "alert_follow"
+    },
+    "291": {
+      "moduleKey": "alerts",
+      "categoryKey": "donation",
+      "note": "name_alert_follow: default-donation",
+      "refineReason": "alert_donation"
+    },
+    "292": {
+      "moduleKey": "alerts",
+      "categoryKey": "kofi",
+      "note": "name_alert_follow: kofi",
+      "refineReason": "alert_kofi"
+    },
+    "293": {
+      "moduleKey": "alerts",
+      "categoryKey": "tipeee",
+      "note": "name_alert_follow: tipeee",
+      "refineReason": "alert_tipeee"
+    },
+    "294": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: avatar_forrest",
+      "refineReason": "general_unchanged"
+    },
+    "295": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: background_ittakestwo",
+      "refineReason": "general_unchanged"
+    },
+    "296": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: background_minecraft-repo",
+      "refineReason": "general_unchanged"
+    },
+    "297": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: background_minecraft",
+      "refineReason": "general_unchanged"
+    },
+    "298": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: c7d261be-02e1-4c59-b649-76f07e58c7d5",
+      "refineReason": "general_unchanged"
+    },
+    "299": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: ChatGPT Image 24. Dez. 2025, 15_39_37-Photoroom",
+      "refineReason": "general_unchanged"
+    },
+    "300": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: cosmic_nebula_in_vibrant_colors",
+      "refineReason": "general_unchanged"
+    },
+    "301": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: cosmic_portal_with_glowing_rings",
+      "refineReason": "general_unchanged"
+    },
+    "302": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: engel-3d",
+      "refineReason": "general_unchanged"
+    },
+    "303": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: forrest-3d",
+      "refineReason": "general_unchanged"
+    },
+    "304": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: posty-diary",
+      "refineReason": "general_unchanged"
+    },
+    "305": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: respekt_ohne_ausnahme_banner_transparent",
+      "refineReason": "general_unchanged"
+    },
+    "306": {
+      "moduleKey": "general",
+      "categoryKey": "images",
+      "note": "default_image: sensenmann",
+      "refineReason": "general_unchanged"
+    },
+    "325": {
+      "moduleKey": "general",
+      "categoryKey": "audio",
+      "note": "default_audio: Udos_Skatebord",
+      "refineReason": "general_unchanged"
+    },
+    "378": {
+      "moduleKey": "birthday",
+      "categoryKey": "general",
+      "note": "name_birthday: birthday_default_song",
+      "refineReason": "birthday_unchanged"
+    },
+    "379": {
+      "moduleKey": "birthday",
+      "categoryKey": "general",
+      "note": "name_birthday: birthday_song_araglor",
+      "refineReason": "birthday_unchanged"
+    },
+    "380": {
+      "moduleKey": "birthday",
+      "categoryKey": "general",
+      "note": "name_birthday: birthday_song_araglor_2",
+      "refineReason": "birthday_unchanged"
+    },
+    "1311": {
+      "moduleKey": "commands",
+      "categoryKey": "roxxy",
+      "note": "command_reference_roxxy: Roxxyfoxxy CGN (2)",
+      "refineReason": "command_roxxy"
+    },
+    "1313": {
+      "moduleKey": "commands",
+      "categoryKey": "general",
+      "note": "referenced_by_command: Drudchen kommt",
+      "refineReason": "command_general"
+    }
+  },
+  "rules": [],
+  "notes": [
+    "This file is still a plan, not a migration result.",
+    "Run tools/media_registry_migrate_categories.js --dry-run --map-file config/media_migration_plan.refined.json before apply.",
+    "The migration tool copies files first and updates DB paths; it does not delete old files."
+  ]
+}
