@@ -492,6 +492,12 @@
       .sound-media-picker-row #clearRuleSoundMedia{width:34px;min-width:34px;padding:0;}
       .sound-select-play{align-self:end;}
       .sound-assets-table .row-actions{gap:8px;align-items:center;}
+      .legacy-sound-foldout{align-self:start;}
+      .legacy-sound-foldout summary{display:flex;align-items:center;gap:10px;min-height:34px;cursor:pointer;list-style-position:outside;}
+      .legacy-sound-foldout summary strong{white-space:nowrap;}
+      .legacy-sound-summary{display:inline-block;min-width:0;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700;color:rgba(210,220,235,.72);}
+      .legacy-sound-field{margin-top:8px;}
+      .legacy-sound-hint{margin:6px 0 0 0;}
       .path-small{font-size:11px;opacity:.78;word-break:break-all;}
       .chat-text-lines{white-space:pre-line;line-height:1.35;}
       .chat-block-select-row{display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px;align-items:end;}
@@ -1189,9 +1195,9 @@
         <div class="form-section"><h3>Medien & Design</h3><div class="form-grid editor-grid">
           <label class="wide-field">Sound aus Media-Registry<input type="hidden" id="ruleSoundMediaId" value="${esc(soundMediaId)}"><div class="sound-select-row sound-media-picker-row"><input id="ruleSoundMediaInfo" value="${esc(soundMediaLabel)}" readonly><button type="button" id="pickRuleSoundMedia">Auswählen</button><button type="button" id="clearRuleSoundMedia" ${soundMediaId ? '' : 'disabled'} title="Media-Registry-Sound entfernen" aria-label="Media-Registry-Sound entfernen">×</button></div></label>
           <details class="wide-field legacy-sound-foldout" ${soundMediaId ? '' : 'open'}>
-            <summary><strong>Alter Sound / Fallback</strong><span class="muted path-small"> ${esc(legacySoundLabel)}</span></summary>
-            <label class="wide-field legacy-sound-field">Nur verwenden, wenn oben kein Media-Registry-Sound gesetzt ist<div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten alten Sound abspielen" aria-label="Ausgewählten alten Sound abspielen">▶</button></div></label>
-            <p class="small-note">Dieser alte Sound bleibt nur als Sicherheits-Fallback erhalten, damit bestehende Alerts nicht kaputtgehen.</p>
+            <summary><strong>Alter Sound / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacySoundLabel)}</span></summary>
+            <label class="wide-field legacy-sound-field"><span>Nur verwenden, wenn oben kein Media-Registry-Sound gesetzt ist</span><div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten alten Sound abspielen" aria-label="Ausgewählten alten Sound abspielen">▶</button></div></label>
+            <p class="small-note legacy-sound-hint">Sicherheits-Fallback für bestehende Alerts. Wird nur genutzt, wenn kein Media-Registry-Sound gesetzt ist.</p>
           </details>
           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
         </div><p class="small-note">Media-Registry-Sound hat Vorrang. Alter Sound/Fallback wird nur genutzt, wenn oben kein Media-Registry-Sound ausgewählt ist. Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
