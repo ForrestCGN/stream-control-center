@@ -1,0 +1,170 @@
+--- htdocs/dashboard/modules/alerts.js.orig
++++ htdocs/dashboard/modules/alerts.js
+@@ -615,7 +615,7 @@
+     const duration = durationText(r);
+     const statusButton = `<button type="button" class="status-toggle ${Number(r.enabled)?'is-active':'is-inactive'}" data-toggle-rule="${esc(r.id)}" title="Alert direkt ${Number(r.enabled)?'deaktivieren':'aktivieren'}">${Number(r.enabled)?'Aktiv':'Inaktiv'}</button>`;
+     if (compact) {
+-      return `<tr><td>${pill(type)}</td><td><strong>${esc(r.label)}</strong></td><td>${statusButton}</td><td>${esc(range)}</td><td>${chatBlockInline(r)}</td><td>${assetInline(r.sound_label, r.sound_url)}</td><td>${esc(duration)}</td><td><button class="icon-action-btn edit" data-edit-rule="${esc(r.id)}" title="Regel bearbeiten" aria-label="Regel bearbeiten">✎</button></td></tr>`;
++      return `<tr><td>${pill(type)}</td><td><strong>${esc(r.label)}</strong></td><td>${statusButton}</td><td>${esc(range)}</td><td>${chatBlockInline(r)}</td><td>${ruleSoundInline(r)}</td><td>${esc(duration)}</td><td><button class="icon-action-btn edit" data-edit-rule="${esc(r.id)}" title="Regel bearbeiten" aria-label="Regel bearbeiten">✎</button></td></tr>`;
+     }
+     return `<tr class="${Number(r.enabled)?'':'disabled'}">
+       <td><strong>${esc(r.label)}</strong><br><span class="muted">ID ${esc(r.id)} · Prio ${esc(r.priority)}</span></td>
+@@ -623,7 +623,7 @@
+       <td>${esc(range)}</td>
+       <td>${profileInline(r)}</td>
+       <td>${chatBlockInline(r)}</td>
+-      <td>${assetInline(r.sound_label, r.sound_url)}</td>
++      <td>${ruleSoundInline(r)}</td>
+       <td><strong>${esc(duration)}</strong></td>
+       <td class="actions-cell"><div class="row-actions"><button class="icon-action-btn edit" data-edit-rule="${esc(r.id)}" title="Regel bearbeiten" aria-label="Regel bearbeiten">✎</button><button class="icon-action-btn test" data-test-rule="${esc(r.id)}" title="Alert testen" aria-label="Alert testen">▶</button><button class="icon-action-btn danger" data-del-rule="${esc(r.id)}" title="Regel löschen" aria-label="Regel löschen">×</button></div></td>
+     </tr>`;
+@@ -643,6 +643,13 @@
+     if (!label && !url) return '<span class="muted">—</span>';
+     const play = url ? `<button type="button" class="sound-icon-btn" data-play-sound="${esc(url)}" title="Sound abspielen" aria-label="Sound abspielen">▶</button>` : '';
+     return `<div class="sound-inline">${play}<div><strong>${esc(label || 'Sound')}</strong><br><span class="muted path-small">${esc(url || '')}</span></div></div>`;
++  }
++
++  function ruleSoundInline(rule){
++    const mediaId = rule?.sound_media_id ?? rule?.soundMediaId ?? null;
++    if (!mediaId) return assetInline(rule?.sound_label, rule?.sound_url);
++    const fallback = rule?.sound_label || rule?.sound_url ? `Fallback: ${rule.sound_label || rule.sound_url}` : 'kein Legacy-Fallback gesetzt';
++    return `<div class="sound-inline"><div><strong>MediaId ${esc(mediaId)}</strong><br><span class="muted path-small">Media-Registry · ${esc(fallback)}</span></div></div>`;
+   }
+ 
+   function soundAssetById(id){
+@@ -1090,7 +1097,7 @@
+     return normalizeRule({
+       source, type_key, label:'Neue Staffel', min_value:0, max_value:null, tier:'normal', priority:100,
+       duration_ms:7000, duration_mode:'fixed', animation:'neon_card', image_mode:'avatar_icon', enabled:1,
+-      sound_asset_id:null, image_asset_id:null, display_profile_id:null,
++      sound_asset_id:null, image_asset_id:null, sound_media_id:null, image_media_id:null, display_profile_id:null,
+       tts_enabled:0, tts_timing:'after_alert', tts_mode:'audio_only', tts_template:'{user} schreibt: {message}', tts_max_chars:250, tts_min_amount:null,
+       meta:{ chatMessage:{ enabled:false, blockId:null } }
+     });
+@@ -1108,7 +1115,7 @@
+     const base = {
+       source:'twitch', type_key:'bits', label:'Neue Staffel', min_value:0, max_value:null, tier:'normal', priority:100,
+       duration_ms:7000, duration_mode:'fixed', animation:'neon_card', image_mode:'avatar_icon', enabled:1,
+-      sound_asset_id:null, image_asset_id:null, display_profile_id:null,
++      sound_asset_id:null, image_asset_id:null, sound_media_id:null, image_media_id:null, display_profile_id:null,
+       tts_enabled:0, tts_timing:'after_alert', tts_mode:'audio_only', tts_template:'{user} schreibt: {message}', tts_max_chars:250, tts_min_amount:null,
+       meta_json:'{}', meta:{ chatMessage:{ enabled:false, blockId:null } }
+     };
+@@ -1128,10 +1135,29 @@
+     return '';
+   }
+ 
++  function alertSoundCategoryKey(typeKey){
++    const key = String(typeKey || '').trim().toLowerCase();
++    if (['follow', 'bits', 'sub', 'resub', 'gift_sub', 'gift_bomb', 'raid', 'donation', 'membership', 'shop', 'commission'].includes(key)) return key;
++    return key || 'general';
++  }
++
++  function ruleSoundMediaId(rule){
++    const raw = rule?.sound_media_id ?? rule?.soundMediaId ?? '';
++    const id = Number(raw || 0);
++    return Number.isFinite(id) && id > 0 ? id : '';
++  }
++
++  function ruleSoundMediaLabel(rule){
++    const id = ruleSoundMediaId(rule);
++    return id ? `MediaId ${id}` : '— kein Media-Registry-Sound —';
++  }
++
+   function ruleModal(){
+     const r = state.modalRule || defaultRule();
+     const isEdit = !!r.id;
+     const soundDuration = selectedSoundDuration(r.sound_asset_id);
++    const soundMediaId = ruleSoundMediaId(r);
++    const soundMediaLabel = ruleSoundMediaLabel(r);
+     const activeDurationText = (r.duration_mode || 'fixed') === 'sound' ? calcSoundDurationText(r.sound_asset_id, r.duration_ms) : fmtMs(r.duration_ms ?? 7000);
+     const fixedHint = (r.duration_mode || 'fixed') === 'fixed' ? `Aktiv: ${fmtMs(r.duration_ms ?? 7000)}` : `Nur Fallback: ${fmtMs(r.duration_ms ?? 7000)}`;
+     const soundHint = (r.duration_mode || 'fixed') === 'sound' ? `Aktiv: ${calcSoundDurationText(r.sound_asset_id, r.duration_ms)}` : 'Nicht aktiv';
+@@ -1149,9 +1175,10 @@
+           <label>Priorität<input id="rulePriority" type="number" value="${esc(r.priority ?? 100)}"></label>
+         </div><p id="ruleValueHelp" class="small-note rule-value-help">${esc(valueDesc.help)}</p></div>
+         <div class="form-section"><h3>Medien & Design</h3><div class="form-grid editor-grid">
+-          <label class="wide-field">Sound<div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten Sound abspielen" aria-label="Ausgewählten Sound abspielen">▶</button></div></label>
++          <label class="wide-field">Sound aus Media-Registry<input type="hidden" id="ruleSoundMediaId" value="${esc(soundMediaId)}"><div class="sound-select-row"><input id="ruleSoundMediaInfo" value="${esc(soundMediaLabel)}" readonly><button type="button" id="pickRuleSoundMedia">MediaPicker</button><button type="button" id="clearRuleSoundMedia" ${soundMediaId ? '' : 'disabled'}>×</button></div></label>
++          <label class="wide-field">Legacy-Sound / Fallback<div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten Legacy-Sound abspielen" aria-label="Ausgewählten Legacy-Sound abspielen">▶</button></div></label>
+           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
+-        </div><p class="small-note">Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil. Leer = aktuelles Standardprofil.</p></div>
++        </div><p class="small-note">Media-Registry-Sound hat Vorrang. Legacy-Sound bleibt als Fallback erhalten. Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
+         <div class="form-section"><h3>Chat-Nachricht</h3><div class="form-grid editor-grid">
+           <label class="wide-field">Chat-Textblock<select id="ruleChatBlock">${chatBlockOptions(r.source, r.type_key, r.meta?.chatMessage?.blockId || r.meta?.chatMessage?.block_id || '')}</select></label>
+         </div><p class="small-note">Nein = kein Chat-Post. Bei Auswahl eines Textblocks wird pro Alert genau ein zufälliger Text aus diesem Block gesendet. Es wird kein einzelner Text pro Regel ausgewählt.</p></div>
+@@ -1346,6 +1373,8 @@
+       enabled: Number(state.modalRule?.enabled ?? 1),
+       sound_asset_id: valOrNull('ruleSound'),
+       image_asset_id: null,
++      sound_media_id: valOrNull('ruleSoundMediaId'),
++      image_media_id: state.modalRule?.image_media_id ?? state.modalRule?.imageMediaId ?? null,
+       display_profile_id: valOrNull('ruleDisplayProfile'),
+       tts_enabled: Number(document.getElementById('ruleTtsEnabled').value || 0),
+       tts_timing: document.getElementById('ruleTtsTiming').value,
+@@ -1411,6 +1440,39 @@
+     }
+   }
+ 
++  function setRuleSoundMediaSelection(asset){
++    const id = asset && Number(asset.id || 0) > 0 ? Number(asset.id) : '';
++    const label = id ? `MediaId ${id} · ${asset.label || asset.displayName || asset.fileName || asset.relativePath || 'Media-Registry'}` : '— kein Media-Registry-Sound —';
++    const input = root.querySelector('#ruleSoundMediaId');
++    const info = root.querySelector('#ruleSoundMediaInfo');
++    const clearBtn = root.querySelector('#clearRuleSoundMedia');
++    if (input) input.value = id ? String(id) : '';
++    if (info) info.value = label;
++    if (clearBtn) clearBtn.disabled = !id;
++    if (state.modalRule) {
++      state.modalRule.sound_media_id = id || null;
++      state.modalRule.soundMediaId = id || null;
++    }
++  }
++
++  function openRuleSoundMediaPicker(){
++    if (!window.MediaPicker || typeof window.MediaPicker.open !== 'function') {
++      state.note = 'MediaPicker-Komponente ist nicht geladen.';
++      render();
++      return;
++    }
++    const source = root.querySelector('#ruleSource')?.value || state.modalRule?.source || 'twitch';
++    const typeKey = root.querySelector('#ruleTypeKey')?.value || state.modalRule?.type_key || 'general';
++    window.MediaPicker.open({
++      title: `Alert-Sound auswählen · ${source}/${typeKey}`,
++      moduleKey: 'alerts',
++      categoryKey: alertSoundCategoryKey(typeKey),
++      allowedTypes: ['audio'],
++      view: 'module',
++      onSelect: setRuleSoundMediaSelection
++    });
++  }
++
+   function bind(){
+     root.querySelectorAll('textarea, input').forEach(el => {
+       el.addEventListener('focus', () => rememberPlaceholderTarget(el));
+@@ -1524,6 +1586,16 @@
+       const soundId = root.querySelector('#ruleSound')?.value || '';
+       const url = selectedSoundUrl(soundId);
+       if (url) playSoundUrl(url, ev.currentTarget);
++    });
++    root.querySelector('#pickRuleSoundMedia')?.addEventListener('click', ev => {
++      ev.preventDefault();
++      ev.stopPropagation();
++      openRuleSoundMediaPicker();
++    });
++    root.querySelector('#clearRuleSoundMedia')?.addEventListener('click', ev => {
++      ev.preventDefault();
++      ev.stopPropagation();
++      setRuleSoundMediaSelection(null);
+     });
+     updateSoundButtonStates();
+     root.querySelectorAll('[data-del-asset]').forEach(btn => btn.addEventListener('click', async () => {
+@@ -2006,6 +2078,8 @@
+       enabled: enabledOverride === undefined ? Number(r.enabled ?? 1) : Number(enabledOverride),
+       sound_asset_id: r.sound_asset_id ?? null,
+       image_asset_id: null,
++      sound_media_id: r.sound_media_id ?? r.soundMediaId ?? null,
++      image_media_id: r.image_media_id ?? r.imageMediaId ?? null,
+       display_profile_id: r.display_profile_id ?? null,
+       tts_enabled: Number(r.tts_enabled ?? 0),
+       tts_timing: r.tts_timing || 'after_alert',
