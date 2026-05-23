@@ -24,6 +24,45 @@ window.CommandsMediaBridge = (function(){
     return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
 
+
+  // STEP274L-FIX2:
+  // Sicherheitsnetz direkt vor /api/commands/upsert.
+  // Grund: Die eigentliche Commands-Speicherlogik liegt in commands.js und ist gekapselt.
+  // Die Media-Picker-UI darf sich nicht darauf verlassen, dass nachtraeglich gesetzte
+  // Router-Felder im DOM immer rechtzeitig gespeichert werden.
+  // Deshalb normalisieren wir jeden gespeicherten sound_play/video_play Command hier
+  // unmittelbar vor dem API-Request.
+  function installCommandUpsertGuard() {
+    if (window.__cgnCommandsMediaUpsertGuardInstalled) return;
+    if (typeof window.fetch !== 'function') return;
+    window.__cgnCommandsMediaUpsertGuardInstalled = true;
+
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = function guardedFetch(input, init) {
+      try {
+        const url = typeof input === 'string' ? input : (input && input.url) || '';
+        const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+        if (method === 'POST' && String(url).includes('/api/commands/upsert') && init && typeof init.body === 'string') {
+          const payload = JSON.parse(init.body);
+          const cfg = payload && payload.config && typeof payload.config === 'object' ? payload.config : {};
+          const actionType = String(cfg.actionType || '').trim();
+          const mediaId = String(cfg.mediaId || '').trim();
+          if ((actionType === 'sound_play' || actionType === 'video_play') && mediaId) {
+            payload.moduleKey = 'sound_media_bridge';
+            payload.actionKey = actionType === 'video_play' ? 'play_video_media' : 'play_audio_media';
+            payload.targetMethod = 'POST';
+            payload.targetUrl = `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`;
+            payload.responseMode = 'module';
+            if (actionType === 'sound_play' && cfg.queue !== false) cfg.queue = true;
+            payload.config = cfg;
+            init = { ...init, body: JSON.stringify(payload) };
+          }
+        }
+      } catch (_) {}
+      return originalFetch(input, init);
+    };
+  }
+
   async function loadOptions(force) {
     if (state.loading) return;
     if (state.loaded && !force) return;
@@ -223,6 +262,8 @@ window.CommandsMediaBridge = (function(){
     await loadOptions(force);
     scheduleInject();
   }
+
+  installCommandUpsertGuard();
 
   window.addEventListener('cgn:module-show', ev => {
     if (ev.detail?.module === 'commands') activate(false).catch(() => scheduleInject());
