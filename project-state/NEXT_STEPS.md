@@ -18,3 +18,7 @@ Abgeschlossen: MediaPicker trennt sichtbaren Kategorie-Filter und Upload-Ziel de
 ## STEP275B_BIRTHDAY_STORE_MEDIAID_PLANNED
 
 Nächster Step: Birthday soll neue Medien bevorzugt als `mediaId` speichern und beim Playback direkt ans Sound-System übergeben, statt Kopien nach `assets/sounds/birthday` zu erzeugen.
+
+## STEP275C_DUPLICATE_CLEANUP_PLANNED
+
+Optionaler nächster Step: Diagnose/Aufräumplan für alte doppelte Birthday-Dateien unter `assets/sounds/birthday`, ohne automatisch zu löschen.

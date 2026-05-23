@@ -17,3 +17,7 @@ MediaPicker: Der sichtbare Zusatztext unter/bei `Zusatzkategorie` wurde entfernt
 ## STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
 
 Sound-System unterstützt jetzt direkte Media-Registry-Wiedergabe per `mediaId`. Ziel ist, künftige doppelte Birthday-/Sound-Dateien zu vermeiden. Bestehende Legacy-Pfade funktionieren weiterhin.
+
+## STEP275B_BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY
+
+Birthday nutzt nach MediaPicker-Import bevorzugt Media-Registry-Referenzen. Neue User-Songs/Standardsongs/Intro-Medien müssen dadurch nicht mehr doppelt nach `assets/sounds/birthday` kopiert werden.

@@ -29,3 +29,8 @@
 - `backend/modules/sound_system.js` - direkte Wiedergabe von Media-Registry-Assets per `mediaId`.
 - `backend/modules/media.js` - `resolve` meldet Media-Registry-Assets als Sound-System-kompatibel via direkter mediaId-Wiedergabe.
 - `docs/backend/SOUND_SYSTEM_MEDIAID_DIRECT_STEP275A.md` - Test-/Status-Dokumentation.
+
+## STEP275B_BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY
+
+- `backend/modules/birthday.js` - MediaPicker-Import speichert `mediaid:<id>`; Birthday-Bundles übergeben `mediaId` ans Sound-System.
+- `docs/backend/BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY_STEP275B.md` - technische Kurzdokumentation.

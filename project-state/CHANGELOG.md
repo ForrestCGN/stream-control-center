@@ -27,3 +27,9 @@
 - Sound-System kann Media-Registry-Assets direkt per `mediaId` / `media_id` abspielen.
 - `/api/media/resolve?useCase=sound_system` markiert `assets/media/...`-Assets als kompatibel, wenn direkte mediaId-Wiedergabe möglich ist.
 - Keine Entfernung bestehender `assets/sounds/...`-Kompatibilität.
+
+## STEP275B_BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY
+
+- Birthday MediaPicker-Import speichert neue Medien als `mediaid:<id>` statt Kopien unter `assets/sounds/birthday` zu erzeugen.
+- Birthday-Sound-Bundles übergeben bei `mediaid:<id>` direkt `mediaId` an das Sound-System.
+- Legacy-Dateien unter `assets/sounds/birthday` bleiben kompatibel.

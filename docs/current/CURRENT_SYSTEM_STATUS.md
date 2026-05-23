@@ -15,3 +15,7 @@ MediaPicker: sichtbarer Zusatzkategorie-Filter startet beim Öffnen auf `Alle Zu
 ## STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
 
 Sound-System kann Medien aus der Media-Registry direkt per `mediaId` abspielen. Legacy-Sounds unter `assets/sounds` bleiben unverändert kompatibel.
+
+## STEP275B_BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY
+
+Birthday MediaPicker-Import erzeugt keine zusätzliche Sound-Kopie mehr, sondern speichert Media-Registry-Referenzen. Legacy-Sounds bleiben weiterhin kompatibel.

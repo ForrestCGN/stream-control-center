@@ -927,9 +927,9 @@ function soundPlayBase(asset, targetContext = {}, extra = {}) {
 
 async function playBirthdayIntro(asset, targetContext = {}) {
   if (!asset || !asset.videoFile) return { ok: true, skipped: true, reason: 'missing_intro_video_file' };
-  const introPayload = birthdaySoundPayloadForRef(asset.videoFile, 'video'); // STEP275B_PLAY_INTRO_MEDIAID_PAYLOAD
   return internalRequest('POST', '/api/sound/play', soundPlayBase(asset, targetContext, {
-    ...introPayload,
+    file: asset.videoFile,
+    mediaType: 'video',
     label: `Birthday Intro ${targetContext.targetDisplayName || ''}`.trim(),
     volume: 100,
     durationMs: asset.videoDurationMs || 0
@@ -939,9 +939,9 @@ async function playBirthdayIntro(asset, targetContext = {}) {
 async function playBirthdaySong(asset, targetContext = {}) {
   if (!asset || !asset.songFile) return { ok: true, skipped: true, reason: 'missing_song_file' };
   const cfg = getConfig();
-  const songPayload = birthdaySoundPayloadForRef(asset.songFile, 'audio'); // STEP275B_PLAY_SONG_MEDIAID_PAYLOAD
   return internalRequest('POST', '/api/sound/play', soundPlayBase(asset, targetContext, {
-    ...songPayload,
+    file: asset.songFile,
+    mediaType: 'audio',
     label: `Birthday Song ${targetContext.targetDisplayName || targetContext.displayName || ''}`.trim(),
     volume: Number(asset.songVolume || cfg.show?.defaultSongVolume || 85),
     durationMs: asset.songDurationMs || asset.partyDurationMs || 0
@@ -990,27 +990,27 @@ function buildBirthdaySoundBundle(asset, targetContext = {}) {
   const requestId = clean(targetContext.requestId || `birthday_${Date.now()}`);
   const items = [];
   if (asset.videoFile) {
-    const introPayload = birthdaySoundPayloadForRef(asset.videoFile, 'video'); // STEP275B_BUNDLE_INTRO_MEDIAID_PAYLOAD
     items.push(soundBundleItemBase(asset, targetContext, {
       role: 'intro',
       bundleRole: 'intro',
-      ...introPayload,
+      file: asset.videoFile,
+      mediaType: 'video',
       label: `Birthday Intro ${targetContext.targetDisplayName || ''}`.trim(),
       volume: 100,
       durationMs: asset.videoDurationMs || 0,
-      meta: { ...(soundBundleItemBase(asset, targetContext).meta || {}), ...(introPayload.meta || {}), birthdayPhase: 'intro' }
+      meta: { ...(soundBundleItemBase(asset, targetContext).meta || {}), birthdayPhase: 'intro' }
     }));
   }
   if (asset.songFile) {
-    const songPayload = birthdaySoundPayloadForRef(asset.songFile, 'audio'); // STEP275B_BUNDLE_SONG_MEDIAID_PAYLOAD
     items.push(soundBundleItemBase(asset, targetContext, {
       role: 'song',
       bundleRole: 'song',
-      ...songPayload,
+      file: asset.songFile,
+      mediaType: 'audio',
       label: `Birthday Song ${targetContext.targetDisplayName || ''}`.trim(),
       volume: Number(asset.songVolume || cfg.show?.defaultSongVolume || 85),
       durationMs: asset.songDurationMs || asset.partyDurationMs || 0,
-      meta: { ...(soundBundleItemBase(asset, targetContext).meta || {}), ...(songPayload.meta || {}), birthdayPhase: 'party' }
+      meta: { ...(soundBundleItemBase(asset, targetContext).meta || {}), birthdayPhase: 'party' }
     }));
   }
   return {
@@ -2857,247 +2857,6 @@ async function importBirthdayMediaAsset(payload = {}) {
   };
 }
 
-// STEP275B_BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY
-// Neue MediaPicker-Übernahmen speichern bevorzugt mediaId-Referenzen statt Kopien unter assets/sounds/birthday.
-// Legacy-Dateien unter assets/sounds bleiben vollständig kompatibel.
-function birthdayMediaIdRef(mediaId) {
-  const id = Number(mediaId || 0);
-  return id > 0 ? `mediaid:${id}` : '';
-}
-
-function parseBirthdayMediaIdRef(value) {
-  const raw = clean(value || '');
-  const match = raw.match(/^mediaid:(\d+)$/i);
-  return match ? Number(match[1]) : 0;
-}
-
-function isBirthdayMediaIdRef(value) {
-  return parseBirthdayMediaIdRef(value) > 0;
-}
-
-function getBirthdayMediaAsset(mediaId) {
-  const id = Number(mediaId || 0);
-  if (!id) return null;
-  try {
-    return database.get('SELECT * FROM media_assets WHERE id = :id AND status = :status LIMIT 1', { id, status: 'active' }) || null;
-  } catch (_) {
-    return null;
-  }
-}
-
-function birthdayAssetsBaseDir() {
-  if (typeof config.getAssetsDir === 'function') return config.getAssetsDir();
-  return config.resolveFromRoot('htdocs', 'assets');
-}
-
-function birthdayPathInside(parent, child) {
-  const rootPath = path.resolve(parent);
-  const targetPath = path.resolve(child);
-  const rel = path.relative(rootPath, targetPath);
-  return rel === '' || (!!rel && !rel.startsWith('..') && !path.isAbsolute(rel));
-}
-
-function birthdayMediaInfoForRegistryId(mediaId, fallbackMs = 0) {
-  const asset = getBirthdayMediaAsset(mediaId);
-  if (!asset) {
-    return {
-      ok: false,
-      mediaId: Number(mediaId || 0),
-      file: birthdayMediaIdRef(mediaId),
-      webPath: '',
-      durationMs: Math.max(0, Number(fallbackMs || 0)),
-      durationOk: false,
-      durationSource: fallbackMs ? 'fallback' : 'unknown',
-      fallbackUsed: Number(fallbackMs || 0) > 0,
-      hasAudio: false,
-      hasVideo: false,
-      error: 'media_asset_not_found'
-    };
-  }
-
-  const assetsDir = birthdayAssetsBaseDir();
-  const relativePath = safeRelativeMediaFile(asset.relative_path || asset.relativePath || '');
-  const absolutePath = path.resolve(asset.absolute_path || asset.absolutePath || path.join(assetsDir, relativePath));
-  const insideAssets = birthdayPathInside(assetsDir, absolutePath);
-  const exists = insideAssets && fs.existsSync(absolutePath);
-  let info = { ok: false, durationMs: 0, durationOk: false, hasAudio: false, hasVideo: false, width: 0, height: 0, error: exists ? '' : 'file_missing' };
-
-  if (exists) {
-    try {
-      info = mediaHelper.readMediaInfo(absolutePath, {});
-    } catch (err) {
-      info = { ...info, error: err.message || String(err) };
-    }
-  }
-
-  const durationMs = Number(info.durationMs || asset.duration_ms || asset.durationMs || fallbackMs || 0);
-  return {
-    ok: exists && (info.ok !== false),
-    mediaId: Number(asset.id || mediaId || 0),
-    file: birthdayMediaIdRef(asset.id || mediaId),
-    relativePath,
-    absolutePath,
-    webPath: asset.web_path || asset.webPath || (relativePath ? `/assets/${relativePath}` : ''),
-    durationMs,
-    durationOk: !!info.durationOk || durationMs > 0,
-    durationSource: info.durationOk ? 'ffprobe' : (asset.duration_ms || asset.durationMs ? 'media_registry' : (fallbackMs ? 'fallback' : 'unknown')),
-    fallbackUsed: !info.durationOk && Number(fallbackMs || 0) > 0,
-    hasAudio: info.hasAudio !== false || Number(asset.has_audio || 0) === 1,
-    hasVideo: !!info.hasVideo || Number(asset.has_video || 0) === 1 || ['video','animation'].includes(String(asset.type || '').toLowerCase()),
-    width: Number(info.width || asset.width || 0),
-    height: Number(info.height || asset.height || 0),
-    fileName: asset.file_name || '',
-    displayName: asset.display_name || '',
-    error: exists ? (info.error || '') : 'file_missing'
-  };
-}
-
-function birthdaySoundPayloadForRef(relativeOrMediaIdRef, mediaType = 'audio') {
-  const ref = safeRelativeMediaFile(relativeOrMediaIdRef || '');
-  const mediaId = parseBirthdayMediaIdRef(ref);
-  if (mediaId) {
-    return {
-      mediaId,
-      mediaType,
-      file: '',
-      meta: {
-        mediaId,
-        mediaRef: birthdayMediaIdRef(mediaId),
-        playbackSource: 'media_registry'
-      }
-    };
-  }
-  return { file: ref, mediaType };
-}
-
-// Override ab STEP275B: unterstützt mediaid:<id> im bestehenden song_file/video_file-Feld.
-function mediaInfoForSoundFile(file, fallbackMs = 0) {
-  const relative = safeRelativeMediaFile(file);
-  const mediaId = parseBirthdayMediaIdRef(relative);
-  if (mediaId) return birthdayMediaInfoForRegistryId(mediaId, fallbackMs);
-  if (!relative) return { ok: false, file: '', durationMs: Math.max(0, Number(fallbackMs || 0)), durationOk: false, error: 'file_missing' };
-  try {
-    const info = mediaHelper.getMediaInfo(relative, { baseDir: config.getSoundsDir(), allowedExtensions: mediaHelper.DEFAULT_ALLOWED_EXTENSIONS });
-    return {
-      ok: !!info.ok,
-      file: relative,
-      webPath: `/assets/sounds/${relative}`,
-      durationMs: Number(info.durationMs || fallbackMs || 0),
-      durationOk: !!info.durationOk,
-      durationSource: info.durationOk ? 'ffprobe' : (fallbackMs ? 'fallback' : 'unknown'),
-      fallbackUsed: !info.durationOk && Number(fallbackMs || 0) > 0,
-      hasAudio: info.hasAudio !== false,
-      hasVideo: !!info.hasVideo,
-      width: Number(info.width || 0),
-      height: Number(info.height || 0),
-      error: info.error || ''
-    };
-  } catch (err) {
-    return { ok: false, file: relative, webPath: `/assets/sounds/${relative}`, durationMs: Math.max(0, Number(fallbackMs || 0)), durationOk: false, durationSource: fallbackMs ? 'fallback' : 'unknown', fallbackUsed: Number(fallbackMs || 0) > 0, error: err.message || String(err) };
-  }
-}
-
-// Override ab STEP275B: User-/Default-/Intro-Import kann mediaId speichern.
-async function updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payload = {}) {
-  const cleanKind = clean(kind).toLowerCase();
-  const durationMs = Number(mediaInfo?.durationMs || 0);
-  const mediaId = Number(payload.mediaId || payload.media_id || payload.id || mediaInfo?.mediaId || 0);
-  const ref = mediaId ? birthdayMediaIdRef(mediaId) : safeRelativeMediaFile(relativePath);
-
-  if (cleanKind === 'intro_video') {
-    settings.setSetting(SETTINGS_TABLE, 'show.defaultVideoFile', ref, { valueType: 'string', description: 'Birthday globales Intro-Video über Sound-System oder Media-Registry.' });
-    if (durationMs > 0) settings.setSetting(SETTINGS_TABLE, 'show.defaultVideoDurationMs', durationMs, { valueType: 'number', description: 'Automatisch erkannte Intro-Video-Dauer.' });
-    reloadRuntime();
-    return { target: 'default_intro_video', setting: 'show.defaultVideoFile', mediaId, referenceMode: mediaId ? 'media_registry' : 'legacy_sound_file' };
-  }
-
-  if (cleanKind === 'default_song') {
-    settings.setSetting(SETTINGS_TABLE, 'show.defaultSongFile', ref, { valueType: 'string', description: 'Birthday Standardsong über Sound-System oder Media-Registry.' });
-    if (durationMs > 0) settings.setSetting(SETTINGS_TABLE, 'show.partyDurationMs', durationMs, { valueType: 'number', description: 'Fallback-/Standardsong-Dauer für Birthday-Show.' });
-    reloadRuntime();
-    return { target: 'default_song', setting: 'show.defaultSongFile', mediaId, referenceMode: mediaId ? 'media_registry' : 'legacy_sound_file' };
-  }
-
-  if (cleanKind === 'user_song') {
-    const resolved = await resolveBirthdayTarget(payload.login || payload.userLogin || payload.username || '', { requireMention: false, requirePresent: false });
-    const login = cleanLogin(resolved.login || payload.login || payload.userLogin || payload.username || '');
-    if (!login) throw new Error('user_login_required_for_user_song');
-    const profile = upsertBirthdayShowProfileSong({
-      login,
-      displayName: resolved.displayName || payload.displayName || payload.userDisplayName || '',
-      avatarUrl: resolved.avatarUrl || payload.avatarUrl || '',
-      songFile: ref,
-      durationMs,
-      volume: Number(payload.volume || 0) || 0,
-      source: mediaId ? 'media_registry_mediaid' : 'dashboard_upload'
-    });
-    const existingUser = getBirthdayUser(login);
-    if (existingUser) {
-      database.run(`
-        UPDATE birthday_users
-        SET show_song_file = :file,
-            show_song_duration_ms = :durationMs,
-            updated_at = :updatedAt
-        WHERE user_login = :login
-      `, { login, file: ref, durationMs, updatedAt: nowIso() });
-    }
-    return { target: 'user_song', login, profile, mediaId, referenceMode: mediaId ? 'media_registry' : 'legacy_sound_file' };
-  }
-
-  throw new Error('invalid_upload_kind');
-}
-
-// Override ab STEP275B: MediaPicker-Import kopiert NICHT mehr nach assets/sounds/birthday.
-async function importBirthdayMediaAsset(payload = {}) {
-  const kind = clean(payload.kind || payload.type || '');
-  const mediaId = Number(payload.mediaId || payload.media_id || payload.id || 0);
-  if (!mediaId) throw new Error('media_id_required');
-
-  const asset = getBirthdayMediaAsset(mediaId);
-  if (!asset) throw new Error('media_asset_not_found');
-
-  const sourceAbs = path.resolve(asset.absolute_path || asset.absolutePath || path.join(birthdayAssetsBaseDir(), safeRelativeMediaFile(asset.relative_path || '')));
-  if (!sourceAbs || !fs.existsSync(sourceAbs)) throw new Error('media_asset_file_missing');
-
-  const ext = path.extname(asset.file_name || asset.fileName || sourceAbs).toLowerCase();
-  if (!assertUploadAllowed(kind, ext)) throw new Error(`upload_extension_not_allowed:${ext || 'missing'}`);
-
-  const mediaInfo = birthdayMediaInfoForRegistryId(mediaId, 0);
-  const reference = await updateBirthdayShowUploadReference(kind, birthdayMediaIdRef(mediaId), mediaInfo, { ...payload, mediaId });
-
-  return {
-    ok: true,
-    module: MODULE_NAME,
-    step: 'STEP275B',
-    message: 'Birthday-Medium wurde als Media-Registry-Referenz übernommen.',
-    copied: false,
-    duplicateFileCreated: false,
-    kind,
-    source: 'media_registry',
-    mediaId,
-    referenceMode: 'media_registry',
-    sourceAsset: {
-      id: Number(asset.id),
-      displayName: asset.display_name || '',
-      fileName: asset.file_name || '',
-      relativePath: asset.relative_path || '',
-      webPath: asset.web_path || ''
-    },
-    relativePath: birthdayMediaIdRef(mediaId),
-    webPath: mediaInfo.webPath || '',
-    mediaInfo,
-    reference,
-    user: reference.login ? getBirthdayUser(reference.login) : null,
-    profile: reference.login ? getBirthdayShowProfile(reference.login) : null,
-    assets: buildBirthdayShowAssets(),
-    status: buildStatus()
-  };
-}
-
-async function importBirthdayMediaAssetFromRegistry(payload = {}) {
-  return importBirthdayMediaAsset(payload);
-}
-
 async function handleBirthdayAssetUpload(payload = {}, file = null) {
 
 
@@ -3174,18 +2933,17 @@ function loudnessStatusForFile(relativeFile) {
 
 function buildAssetInfo(label, role, relativeFile, fallbackMs = 0, expectedKind = 'audio') {
   const relative = safeRelativeMediaFile(relativeFile || '');
-  const mediaId = parseBirthdayMediaIdRef(relative); // STEP275B_BUILD_ASSET_INFO_MEDIAID
-  const mediaInfo = mediaId ? birthdayMediaInfoForRegistryId(mediaId, fallbackMs) : (relative ? mediaInfoForSoundFile(relative, fallbackMs) : { ok: false, file: '', webPath: '', durationMs: Number(fallbackMs || 0), durationOk: false, durationSource: fallbackMs ? 'fallback' : 'unknown', fallbackUsed: Number(fallbackMs || 0) > 0, hasAudio: false, hasVideo: false, error: 'file_missing' });
-  const fileCheck = mediaId ? { exists: !!mediaInfo.ok, absolutePath: mediaInfo.absolutePath || '', relativePath: relative, sizeBytes: 0 } : fileExistsForSound(relative);
-  const ext = mediaId ? path.extname(mediaInfo.fileName || mediaInfo.relativePath || '').toLowerCase() : path.extname(relative || '').toLowerCase();
-  const soundSystemCanPlay = mediaId ? !!mediaInfo.ok : (!!relative && fileCheck.exists && ['.mp3', '.wav', '.ogg', '.m4a', '.webm', '.mp4', '.mov'].includes(ext));
+  const fileCheck = fileExistsForSound(relative);
+  const mediaInfo = relative ? mediaInfoForSoundFile(relative, fallbackMs) : { ok: false, file: '', webPath: '', durationMs: Number(fallbackMs || 0), durationOk: false, durationSource: fallbackMs ? 'fallback' : 'unknown', fallbackUsed: Number(fallbackMs || 0) > 0, hasAudio: false, hasVideo: false, error: 'file_missing' };
+  const ext = path.extname(relative || '').toLowerCase();
+  const soundSystemCanPlay = !!relative && fileCheck.exists && ['.mp3', '.wav', '.ogg', '.m4a', '.webm', '.mp4', '.mov'].includes(ext);
   const kindOk = expectedKind === 'video' ? !!mediaInfo.hasVideo : !!mediaInfo.hasAudio;
   return {
     label,
     role,
     expectedKind,
     relativePath: relative,
-    webPath: mediaInfo.webPath || (relative && !mediaId ? `/assets/sounds/${relative}` : ''),
+    webPath: relative ? `/assets/sounds/${relative}` : '',
     exists: fileCheck.exists,
     sizeBytes: fileCheck.sizeBytes,
     durationMs: Number(mediaInfo.durationMs || 0),
@@ -3202,8 +2960,6 @@ function buildAssetInfo(label, role, relativeFile, fallbackMs = 0, expectedKind 
       canPlay: soundSystemCanPlay,
       expectedKindOk: kindOk,
       relativeFile: relative,
-      mediaId,
-      referenceMode: mediaId ? 'media_registry' : 'legacy_sound_file',
       outputTarget: getConfig().show?.soundOutputTarget || 'overlay',
       target: getConfig().show?.soundTarget || 'stream'
     },
