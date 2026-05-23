@@ -1,0 +1,32 @@
+--- STEP276H_FIX2/htdocs/dashboard/modules/alerts.js
++++ STEP276H_FIX3/htdocs/dashboard/modules/alerts.js
+@@ -870,12 +870,9 @@
+                   <input type="hidden" data-display-key="topGraphicMediaLabel" value="${esc(st.topGraphicMediaLabel || '')}">
+                   <div class="sound-select-row sound-media-picker-row"><input id="topGraphicMediaInfo" value="${esc(topGraphicMediaLabel)}" readonly><button type="button" id="pickTopGraphicMedia">Auswählen</button><button type="button" id="clearTopGraphicMedia" ${topGraphicMediaId ? '' : 'disabled'} title="Media-Registry-Grafik entfernen" aria-label="Media-Registry-Grafik entfernen">×</button></div>
+                 </label>
+-                <details class="wide-field legacy-sound-foldout legacy-graphic-foldout" ${topGraphicMediaId ? '' : 'open'}>
+-                  <summary><strong>Alte Grafik / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacyTopGraphicLabel)}</span></summary>
+-                  <div class="legacy-sound-body">
+-                    <select data-display-key="topGraphicAssetId" aria-label="Alte Grafik / Fallback">${imageAssetSelectItems(st.topGraphicAssetId).map(([v,l])=>opt(v,l,st.topGraphicAssetId || '')).join('')}</select>
+-                  </div>
+-                </details>
++                <label class="wide-field">Alte Grafik / Fallback
++                  <select data-display-key="topGraphicAssetId" aria-label="Alte Grafik / Fallback">${imageAssetSelectItems(st.topGraphicAssetId).map(([v,l])=>opt(v,l,st.topGraphicAssetId || '')).join('')}</select>
++                </label>
+                 ${selectHtml('topGraphicShape','Grafik-Form', st.topGraphicShape || st.topGraphicFrameStyle || 'original', [['original','Original'],['round','Kreis'],['tile','Kachel'],['heart','Herz'],['shield','Schild'],['hexagon','Hexagon'],['diamond','Diamant'],['star','Stern']])}
+                 ${selectHtml('topGraphicFrameStrength','Grafik-Outline', normalizeGraphicOutline(st.topGraphicFrameStrength), [['soft','dezent'],['normal','normal']])}
+                 ${rangeHtml('topGraphicScale','Grafik-Größe', st.topGraphicScale ?? 1, .35, 2, .01)}
+@@ -1285,12 +1282,7 @@
+             </div>
+           </details>
+           <label class="wide-field">Regel-Grafik aus Media-Registry<input type="hidden" id="ruleImageMediaId" value="${esc(imageMediaId)}"><div class="sound-select-row sound-media-picker-row"><input id="ruleImageMediaInfo" value="${esc(imageMediaLabel)}" readonly><button type="button" id="pickRuleImageMedia">Auswählen</button><button type="button" id="clearRuleImageMedia" ${imageMediaId ? '' : 'disabled'} title="Media-Registry-Grafik entfernen" aria-label="Media-Registry-Grafik entfernen">×</button></div></label>
+-          <details class="wide-field legacy-sound-foldout" ${imageMediaId ? '' : 'open'}>
+-            <summary><strong>Alte Grafik / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacyImageLabel)}</span></summary>
+-            <div class="legacy-sound-body">
+-              <select id="ruleImage" aria-label="Alte Grafik / Fallback">${assetOptions('image', r.image_asset_id)}</select>
+-            </div>
+-          </details>
++          <label class="wide-field">Alte Grafik / Fallback<select id="ruleImage" aria-label="Alte Grafik / Fallback">${assetOptions('image', r.image_asset_id)}</select></label>
+           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
+         </div><p class="small-note">Media-Registry-Sound/-Grafik hat Vorrang. Alte Sound-/Grafik-Fallbacks werden nur genutzt, wenn oben nichts aus der Media-Registry ausgewählt ist. Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
+         <div class="form-section"><h3>Chat-Nachricht</h3><div class="form-grid editor-grid">
