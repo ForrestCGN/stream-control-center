@@ -1,46 +1,49 @@
 # NEXT_STEPS
 
-## Direkt nach STEP276I
+## Direkt nach STEP277A
 
 1. ZIP nach `D:\Git\stream-control-center` entpacken.
 2. Ausführen:
 
 ```cmd
 cd D:\Git\stream-control-center
-.\stepdone.cmd "STEP276I alert mediaId docs sync"
+.\stepdone.cmd "STEP277A Clip-Shoutout über Sound-System"
 ```
 
-3. Kein Backend-Neustart zwingend nötig, da nur Dokumentation geändert wird.
+3. Backend neu starten, weil ein neues Modul geladen wird.
+4. Sound-System-Overlay in OBS prüfen:
+   - Browserquelle sollte weiterhin `http://127.0.0.1:8080/overlays/sound_system_overlay.html` nutzen.
+   - Optional einmal mit `?debug=1` laden und Audio aktivieren.
+
+## Tests
+
+### Status
+
+```text
+http://127.0.0.1:8080/api/clip-shoutout/status
+```
+
+Erwartet:
+- `ok: true`
+- `enabled: true`
+- Command `vso`
+- Route `/api/clip/shoutout`
+
+### Manueller API-Test
+
+```text
+http://127.0.0.1:8080/api/clip-shoutout/run?target=KANALNAME
+```
+
+### Chat-Test
+
+```text
+!vso @KANALNAME
+```
 
 ## Danach sinnvoll
 
-### Option A: STEP276 abschließen
-
-Wenn die Tests passen:
-- STEP276 als abgeschlossen betrachten.
-- Keine weiteren Mini-Fixes am aktuellen Medien-Layout, außer echte Fehler.
-
-### Option B: STEP277 vorbereiten
-
-Empfohlener nächster Block:
-
-- Alert-Dashboard-Medienbereiche strukturell neu planen.
-- Keine schnelle Flickarbeit mehr an engen Kacheln.
-- Besserer Aufbau:
-  - Sound
-  - Regel-Grafik
-  - Design-Grafik
-  - Fallbacks / Legacy
-
-### Option C: Media-Registry Qualität
-
-Später sinnvoll:
-- Media-Analyse/Refresh-Button für einzelne Medien.
-- Medien-Metadaten prüfen/neu berechnen.
-- Upload- und Picker-UX verbessern.
-
-## Bekannte offene Punkte
-
-- Dashboard-Medienlayout ist funktional, aber nicht final schön.
-- Fallback-Bereiche bleiben erhalten, sollen später im Redesign klarer integriert werden.
-- Legacy-Alert-Assets dürfen noch nicht entfernt werden.
+- TTS nach Clip im Dashboard konfigurierbar machen.
+- Clip-Shoutout-History in SQLite ergänzen.
+- Optional: Auswahlregeln für Clips erweitern, z. B. Mindestdauer, Maximaldauer, keine doppelten Clips pro Stream.
+- Optional: offizieller Twitch-Shoutout zusätzlich als eigener Backend-Schritt.

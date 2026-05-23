@@ -1,43 +1,43 @@
 # FILES
 
-## In STEP276 relevante Code-Dateien
+## In STEP277A relevante Code-Dateien
 
-- `backend/modules/alert_system.js`
-  - DB-Spalten `sound_media_id` / `image_media_id`
-  - Media-Registry-Anreicherung für Rule-Ausgaben
-  - Sound-Playback mit `mediaId`
-  - Main-Sound + TTS Bundle-Fix
-  - Bild-/Grafik-Payload mit Media-Registry-Fallback-Logik
+- `backend/modules/clip_shoutout.js`
+  - Neues Backend-Modul für Video-/Clip-Shoutout.
+  - Routen `/api/clip-shoutout/run`, `/api/clip/shoutout`, `/api/clip-shoutout/status`.
+  - Command-Seed für `!vso`.
+  - Twitch Clip-Auswahl, MP4-Cache und Sound-System-Bundle.
 
-- `htdocs/dashboard/modules/alerts.js`
-  - MediaPicker für Alert-Sounds
-  - MediaPicker für Regel-Grafik/Bild
-  - MediaPicker für Design-Grafik über dem Alert
-  - Legacy-/Fallback-Anzeigen im Regel- und Design-Editor
-  - Daueranzeige mit Media-Registry-Werten
+- `htdocs/overlays/sound_system_overlay.html`
+  - Bestehendes Sound-System-Overlay erweitert.
+  - Normales Audio/Video bleibt erhalten.
+  - Neuer Render-Modus für `visual.module="clip_shoutout"` im bisherigen Clip-Shoutout-Design.
 
-## Bestehende Dateien, die bewusst erhalten bleiben
+- `config/clip_system.json`
+  - Neuer Block `clipShoutout`.
+  - Settings für Command, Cooldowns, Clipdauer, Sound-System-Bundle, Chattext und optionales TTS.
 
-- `htdocs/overlays/_overlay-alerts-v2.html`
-  - Keine grundlegende Overlay-Neustruktur im STEP276-Block.
-  - Bestehende Felder/URLs werden weiter genutzt.
+## Bestehende Dateien, die bewusst nicht geändert wurden
 
-- `htdocs/dashboard/components/media_picker.js`
-  - Zentraler MediaPicker wurde wiederverwendet.
-  - Kein neuer Parallel-Picker erstellt.
+- `backend/modules/clips.js`
+  - Bestehende Clip-Erstellung und Clip-History bleiben unverändert.
+  - Die neue VSO-Route wird über das neue Modul registriert.
+
+- `backend/modules/sound_system.js`
+  - Keine Änderung nötig, weil Clip-MP4 lokal in den Sound-Assets gecacht und als normales Video-Item übergeben wird.
+
+- `backend/modules/tts_system.js`
+  - Keine Änderung nötig, weil vorhandene `/api/tts/synthesize`-Route genutzt wird.
+
+- `backend/modules/commands.js`
+  - Keine Änderung nötig, weil `clip_shoutout.js` den Command über die bestehende DB-Tabelle vorbereitet.
 
 ## Neue/aktualisierte Dokumentation in diesem ZIP
 
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `docs/backend/ALERT_SYSTEM_MEDIAID_STEP276_SUMMARY.md`
-- `docs/dashboard/ALERT_DASHBOARD_MEDIAID_STEP276_SUMMARY.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP276I_ALERT_MEDIAID_DOCS_SYNC.md`
-- `NEXT_CHAT_START_STEP276_ALERT_MEDIAID_DONE.md`
-
-## Nicht enthalten
-
-Dieses ZIP enthält bewusst keine Code-Dateien, damit nur Doku/Status aktualisiert wird.
+- `project-state/STEP277A_CLIP_SHOUTOUT_SOUND_SYSTEM.md`
+- `NEXT_CHAT_START_STEP277A_CLIP_SHOUTOUT_SOUND_SYSTEM.md`

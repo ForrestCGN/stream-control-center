@@ -4,8 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ForrestCGN Sound-System Overlay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: Arial, sans-serif; }
+
     #videoPlayer {
       position: fixed;
       left: 50%;
@@ -20,6 +24,149 @@
       display: none;
       pointer-events: none;
     }
+
+    #clipCard {
+      position: fixed;
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      width: 980px;
+      opacity: 0;
+      pointer-events: none;
+      display: none;
+    }
+
+    #clipCard.show { display: block; animation: clipIntro .9s ease-out forwards; }
+    #clipCard.hide { display: block; animation: clipOutro .7s ease-in forwards; }
+
+    @keyframes clipIntro {
+      from { opacity: 0; transform: translate(-130%, -50%) scale(.8); }
+      to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @keyframes clipOutro {
+      from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      to   { opacity: 0; transform: translate(-50%, -60%) scale(.6); }
+    }
+
+    .clip-panel {
+      display: grid;
+      grid-template-columns: 190px 3px 1fr;
+      gap: 0;
+      padding: 22px 30px;
+      border-radius: 40px;
+      background: radial-gradient(circle at 15% 50%, #a580fc, #5a3fc0 55%, #28123f);
+      border: 3px solid rgba(18, 8, 38, .9);
+      box-shadow: 0 12px 22px rgba(0,0,0,.9);
+    }
+
+    .clip-divider {
+      width: 3px;
+      height: 360px;
+      background: linear-gradient(180deg, transparent, #55c4ff, #a580fc, transparent);
+      box-shadow: 0 0 14px rgba(165,128,252,.9);
+      border-radius: 99px;
+      margin: auto 0;
+    }
+
+    .clip-left {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-right: 18px;
+      height: 360px;
+    }
+
+    .clip-avatar-wrap {
+      width: 150px;
+      height: 150px;
+      padding: 7px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #a580fc, #28123f);
+      box-shadow: 0 0 24px rgba(165,128,252,.95);
+    }
+
+    .clip-avatar-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      overflow: hidden;
+      background: #140627;
+      border: 3px solid #120822;
+      position: relative;
+    }
+
+    .clip-avatar-inner::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: inherit;
+      border: 3px solid #1e90ff;
+      box-shadow: 0 0 14px rgba(30,144,255,.9);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    #clipAvatarImg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    #clipAvatarPh {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 52px;
+      font-weight: 800;
+      color: white;
+      text-shadow: 0 0 12px rgba(30,144,255,.9);
+    }
+
+    .clip-right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      padding-left: 22px;
+    }
+
+    .clip-video-frame {
+      width: 100%;
+      height: 360px;
+      border-radius: 26px;
+      overflow: hidden;
+      background: black;
+      box-shadow: inset 0 0 10px rgba(0,0,0,.7);
+    }
+
+    #clipVideoPlayer {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 250ms ease-in-out;
+      background: black;
+    }
+
+    #clipName {
+      margin-top: 10px;
+      font-family: "Pacifico", cursive;
+      font-size: 34px;
+      color: white;
+      text-shadow: 0 0 10px rgba(165,128,252,.9);
+      text-align: center;
+    }
+
+    #clipSubline {
+      font-size: 16px;
+      color: #d0c9ff;
+      text-align: center;
+    }
+
     #status {
       position: fixed; left: 16px; bottom: 16px; padding: 8px 12px;
       border: 1px solid rgba(180, 90, 255, .45); border-radius: 999px;
@@ -27,6 +174,7 @@
       box-shadow: 0 0 24px rgba(140, 80, 255, .18); font-size: 12px;
       opacity: 0; transform: translateY(8px); transition: opacity .25s ease, transform .25s ease; pointer-events: none;
     }
+
     #unlock {
       position: fixed; right: 16px; bottom: 16px; padding: 9px 13px;
       border: 1px solid rgba(130, 230, 255, .45); border-radius: 999px;
@@ -34,6 +182,7 @@
       box-shadow: 0 0 24px rgba(70, 200, 255, .18); font-size: 12px;
       cursor: pointer; opacity: 0; transform: translateY(8px); transition: opacity .25s ease, transform .25s ease;
     }
+
     body[data-debug="1"] #status, body[data-debug="1"] #unlock { opacity: 1; transform: translateY(0); }
     body[data-audio-unlocked="1"] #unlock { display: none; }
   </style>
@@ -41,6 +190,28 @@
 <body>
   <audio id="player" preload="auto"></audio>
   <video id="videoPlayer" preload="auto" playsinline></video>
+
+  <div id="clipCard">
+    <div class="clip-panel">
+      <div class="clip-left">
+        <div class="clip-avatar-wrap">
+          <div class="clip-avatar-inner">
+            <img id="clipAvatarImg" alt="avatar">
+            <div id="clipAvatarPh">?</div>
+          </div>
+        </div>
+      </div>
+      <div class="clip-divider"></div>
+      <div class="clip-right">
+        <div class="clip-video-frame">
+          <video id="clipVideoPlayer" preload="auto" playsinline></video>
+        </div>
+        <div id="clipName">@User</div>
+        <div id="clipSubline">🧓 Altersheim-TV</div>
+      </div>
+    </div>
+  </div>
+
   <div id="status">Sound-System Overlay</div>
   <button id="unlock" type="button">Audio aktivieren</button>
 
@@ -51,6 +222,12 @@
       const API = '/api/sound';
       const player = document.getElementById('player');
       const videoPlayer = document.getElementById('videoPlayer');
+      const clipVideoPlayer = document.getElementById('clipVideoPlayer');
+      const clipCard = document.getElementById('clipCard');
+      const clipAvatarImg = document.getElementById('clipAvatarImg');
+      const clipAvatarPh = document.getElementById('clipAvatarPh');
+      const clipName = document.getElementById('clipName');
+      const clipSubline = document.getElementById('clipSubline');
       const status = document.getElementById('status');
       const unlockBtn = document.getElementById('unlock');
       const qs = new URLSearchParams(location.search);
@@ -65,6 +242,7 @@
       let audioUnlocked = false;
       let pollingBusy = false;
       let videoFallbackTimer = null;
+      let activeVideoElement = null;
 
       const STOP_REASONS = new Set([
         'manual_stop',
@@ -91,6 +269,15 @@
         return res.json();
       }
 
+      function visualOf(item) {
+        return item && item.visual && typeof item.visual === 'object' ? item.visual : {};
+      }
+
+      function isClipShoutout(item) {
+        const visual = visualOf(item);
+        return String(visual.module || '').toLowerCase() === 'clip_shoutout' || String(visual.layout || '').toLowerCase() === 'vip30';
+      }
+
       function stopBeep(){
         for (const node of beepNodes) {
           try { node.stop(0); } catch (_) {}
@@ -104,14 +291,32 @@
         videoFallbackTimer = null;
       }
 
+      function hideClipCard(){
+        try {
+          clipCard.classList.remove('show');
+          clipCard.classList.add('hide');
+          setTimeout(() => {
+            if (clipCard.classList.contains('hide')) {
+              clipCard.classList.remove('hide');
+              clipCard.style.display = 'none';
+            }
+          }, 750);
+        } catch (_) {}
+      }
+
       function hideVideo(){
         clearVideoFallbackTimer();
-        try {
-          videoPlayer.pause();
-          videoPlayer.removeAttribute('src');
-          videoPlayer.load();
-          videoPlayer.style.display = 'none';
-        } catch (_) {}
+        for (const video of [videoPlayer, clipVideoPlayer]) {
+          try {
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+            video.style.opacity = '';
+            video.style.display = video === videoPlayer ? 'none' : '';
+          } catch (_) {}
+        }
+        hideClipCard();
+        activeVideoElement = null;
       }
 
       function stopAudio(){
@@ -252,32 +457,82 @@
         }
       }
 
+      function setupClipCard(item) {
+        const visual = visualOf(item);
+        const login = String(visual.login || visual.user || visual.displayName || 'User').replace(/^@+/, '').trim();
+        const displayName = String(visual.displayName || visual.user || login || 'User').replace(/^@+/, '').trim();
+        const avatarUrl = String(visual.avatarUrl || '').trim();
+
+        clipName.textContent = '@' + (displayName || login || 'User');
+        clipSubline.textContent = String(visual.subline || '🧓 Altersheim-TV');
+
+        clipAvatarPh.textContent = (displayName || login || '?').slice(0, 1).toUpperCase();
+        clipAvatarImg.style.display = 'none';
+        clipAvatarPh.style.display = 'flex';
+
+        if (avatarUrl) {
+          clipAvatarImg.onload = () => {
+            clipAvatarImg.style.display = 'block';
+            clipAvatarPh.style.display = 'none';
+          };
+          clipAvatarImg.onerror = () => {
+            clipAvatarImg.style.display = 'none';
+            clipAvatarPh.style.display = 'flex';
+          };
+          clipAvatarImg.src = avatarUrl;
+        }
+
+        clipCard.style.display = 'block';
+        clipCard.classList.remove('hide', 'show');
+        void clipCard.offsetWidth;
+        clipCard.classList.add('show');
+      }
+
+      async function finishVideoPlayback(reason, extra) {
+        const requestId = currentRequestId;
+        currentRequestId = '';
+        hideVideo();
+        setStatus(reason || 'Video beendet');
+        await post('/client/audio-ended', { requestId, mediaType: 'video', ...(extra || {}) });
+      }
+
       async function playVideoFile(item){
         const url = item && (item.videoUrl || item.mediaUrl || item.audioUrl);
         if (!item || !url || !item.requestId) return;
         stopAudio();
         currentRequestId = item.requestId;
         lastSeenRequestId = item.requestId;
-        videoPlayer.volume = normalizeVolume(item.volume);
-        videoPlayer.src = cacheBust(url, item.requestId);
-        videoPlayer.style.display = 'block';
-        setStatus('Video: ' + (item.label || item.soundId || url));
+
+        const clipMode = isClipShoutout(item);
+        const video = clipMode ? clipVideoPlayer : videoPlayer;
+        activeVideoElement = video;
+
+        if (clipMode) {
+          setupClipCard(item);
+          videoPlayer.style.display = 'none';
+        } else {
+          videoPlayer.style.display = 'block';
+        }
+
+        video.volume = normalizeVolume(item.volume);
+        video.src = cacheBust(url, item.requestId);
+        video.style.opacity = clipMode ? '0' : '';
+        setStatus((clipMode ? 'Clip-Shoutout: ' : 'Video: ') + (item.label || item.soundId || url));
 
         try {
-          await videoPlayer.play();
+          await video.play();
+          if (clipMode) video.style.opacity = '1';
           audioUnlocked = true;
           document.body.dataset.audioUnlocked = '1';
           await post('/client/audio-started', { requestId: currentRequestId, mediaType: 'video' });
 
           const durationMs = Number(item.durationMs || 0);
-          const fallbackMs = durationMs > 0 ? Math.max(5000, durationMs + 5000) : 300000;
+          const fallbackMs = durationMs > 0
+            ? (clipMode ? Math.max(1200, durationMs + 350) : Math.max(5000, durationMs + 5000))
+            : 300000;
           clearVideoFallbackTimer();
           videoFallbackTimer = setTimeout(async () => {
-            const requestId = currentRequestId;
-            currentRequestId = '';
-            hideVideo();
-            setStatus('Video beendet (Fallback)');
-            await post('/client/audio-ended', { requestId, mediaType: 'video', fallback: true });
+            await finishVideoPlayback(clipMode ? 'Clip-Shoutout beendet' : 'Video beendet (Fallback)', { fallback: true });
           }, fallbackMs);
         } catch (err) {
           setStatus('Video blockiert/fehlerhaft');
@@ -308,19 +563,22 @@
         stopAudio();
       });
 
-      videoPlayer.addEventListener('ended', async () => {
-        const requestId = currentRequestId;
-        currentRequestId = '';
-        hideVideo();
-        setStatus('Video beendet');
-        await post('/client/audio-ended', { requestId, mediaType: 'video' });
-      });
+      function wireVideoEvents(video) {
+        video.addEventListener('ended', async () => {
+          if (activeVideoElement !== video) return;
+          await finishVideoPlayback('Video beendet');
+        });
 
-      videoPlayer.addEventListener('error', async () => {
-        const requestId = currentRequestId;
-        await post('/client/error', { requestId, mediaType: 'video', error: 'video_error' });
-        stopAudio();
-      });
+        video.addEventListener('error', async () => {
+          if (activeVideoElement !== video) return;
+          const requestId = currentRequestId;
+          await post('/client/error', { requestId, mediaType: 'video', error: 'video_error' });
+          stopAudio();
+        });
+      }
+
+      wireVideoEvents(videoPlayer);
+      wireVideoEvents(clipVideoPlayer);
 
       function handleMessage(message){
         const payload = message && (message.data || message);
@@ -331,7 +589,7 @@
         if (op !== 'sound_system') return;
 
         const current = data.current || null;
-        if ((reason === 'started' || reason === 'play_stream' || reason === 'interrupted_started' || reason === 'next_started' || reason === 'resumed') && current) {
+        if ((reason === 'started' || reason === 'play_stream' || reason === 'interrupted_started' || reason === 'next_started' || reason === 'resumed' || reason === 'bundle_next_started') && current) {
           playSound(current);
           return;
         }

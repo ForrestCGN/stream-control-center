@@ -13,5 +13,42 @@
   "discordChannelKey": "clips",
   "postOnlyWhenLive": false,
   "saveHistory": true,
-  "messagesPath": "messages/clips.json"
+  "messagesPath": "messages/clips.json",
+  "clipShoutout": {
+    "enabled": true,
+    "command": "vso",
+    "aliases": [
+      "clipso",
+      "videoso"
+    ],
+    "permissionLevel": "mod",
+    "cooldownGlobalMs": 5000,
+    "cooldownUserMs": 15000,
+    "maxClipDurationSeconds": 30,
+    "clipLookbackDays": 365,
+    "clipFetchFirst": 20,
+    "randomPick": true,
+    "minViewCount": 0,
+    "allowBroadcasterSelfTarget": true,
+    "cacheDownloadedClips": true,
+    "downloadDir": "htdocs/assets/sounds/clip_shoutout",
+    "publicSoundFilePrefix": "clip_shoutout",
+    "soundBundleUrl": "http://127.0.0.1:8080/api/sound/bundle",
+    "soundCategory": "vip",
+    "soundSource": "clip_shoutout",
+    "soundPriority": 60,
+    "soundVolume": 100,
+    "sendChatMessage": true,
+    "chatMessage": "📺 Video-Shoutout für @{displayName}! Schaut gerne vorbei: https://twitch.tv/{login}",
+    "ttsAfterClipEnabled": false,
+    "ttsText": "Schaut gerne mal bei {displayName} vorbei.",
+    "ttsSynthesizeUrl": "http://127.0.0.1:8080/api/tts/synthesize",
+    "ttsVoice": "",
+    "ttsVolume": 100,
+    "ttsPriorityOffset": 0,
+    "ttsCategory": "tts",
+    "ttsSource": "clip_shoutout_tts",
+    "overlaySubline": "🧓 Altersheim-TV",
+    "gqlClientId": "kimne78kx3ncx6brgo4mv6wki5h1ko"
+  }
 }

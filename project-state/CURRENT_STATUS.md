@@ -1,19 +1,30 @@
 # CURRENT_STATUS
 
-Aktueller Stand: STEP276I Dokumentations-Sync vorbereitet.
+Aktueller Stand: STEP277A Clip-Shoutout über Sound-System vorbereitet.
 
-STEP276 ist technisch abgeschlossen: Alert-Sounds, Regel-Grafiken und Design-Grafiken können über die zentrale Media-Registry genutzt werden. Legacy-Fallbacks bleiben erhalten.
+STEP277A integriert einen Video-/Clip-Shoutout ohne Streamer.bot-Auslöser. Der Trigger läuft über das bestehende Twitch-Presence- und Command-System, das Playback läuft über das Sound-System als locked Bundle.
 
 Aktiv/erreicht:
-- `alert_rules.sound_media_id` und `alert_rules.image_media_id` vorhanden und über API sichtbar.
-- Alert-Sound-Playback bevorzugt `sound_media_id`.
-- Legacy-Sound über `sound_asset_id` / `sound_url` bleibt Fallback.
-- Alert-Hauptsound + TTS funktionieren wieder zusammen im Sound-System-Bundle.
-- Dashboard kann Media-Registry-Sounds auswählen.
-- Dashboard kann Regel-Grafiken und Design-Grafiken aus der Media-Registry auswählen.
-- Media-Registry-Dauerwerte werden im Alert-Regel-Editor korrekt angezeigt.
+- Neues Backend-Modul `backend/modules/clip_shoutout.js`.
+- Route `GET/POST /api/clip-shoutout/run`.
+- Kompatible Route `GET/POST /api/clip/shoutout`.
+- Command-Seed für `!vso` mit Alias `clipso`/`videoso`.
+- Twitch-Zieluser-Auflösung über vorhandenes Twitch-Modul.
+- Clip-Liste per Helix und Playback-URL per Twitch-GQL.
+- Clip-MP4 wird in `htdocs/assets/sounds/clip_shoutout` zwischengespeichert.
+- Sound-System bekommt ein locked Bundle mit Video-Item.
+- Optionales TTS nach dem Clip wird über `/api/tts/synthesize` vorbereitet und als zweites Bundle-Item angehängt.
+- `sound_system_overlay.html` kann `visual.module="clip_shoutout"` im bisherigen Clip-Shoutout-Design darstellen.
 
-Bekannter UI-Stand:
-- Medienbereiche im Dashboard sind funktional.
-- Optik/Layout bleibt für ein späteres Alert-Dashboard-Redesign vorgemerkt.
-- Keine bestehende Funktionalität wurde entfernt.
+Bewusst unverändert:
+- Kein Streamer.bot-Auslöser.
+- Keine eigene Clip-Queue.
+- Keine OBS-URL-Umschaltung.
+- Bestehende Clip-Erstellung über `/api/clip/create` bleibt unverändert.
+- Bestehende Alert-/TTS-/VIP-/Mod-Sound-Logik bleibt erhalten.
+
+Wichtiger Test nach Entpacken:
+- Backend neu starten.
+- OBS-Browserquelle für Sound-System-Overlay laden/prüfen.
+- `/api/clip-shoutout/status` prüfen.
+- Chat/Command-Test: `!vso @kanal`.
