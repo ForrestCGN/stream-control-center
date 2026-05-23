@@ -1,3 +1,3 @@
-# CURRENT_SYSTEM_STATUS
+# CURRENT_SYSTEM_STATUS – STEP274U
 
-STEP274T ergänzt einen verbindlichen Dashboard-UX-Standard: Suchfelder, Filter und Dropdowns sollen direkt reagieren, wo keine gefährliche Aktion ausgelöst wird. Der Helper `CGNReactiveControls` steht global zur Verfügung.
+Das Dashboard besitzt nun einen wiederverwendbaren MediaField-Adapter für Module mit Upload-/Medienauswahlbedarf. Die zentrale Media-Registry bleibt Single Source of Truth. Module speichern `mediaId` statt Dateipfade.

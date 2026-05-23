@@ -1,3 +1,5 @@
-# CURRENT_STATUS
+# CURRENT_STATUS – STEP274U
 
-Aktueller Stand: STEP274T – Dashboard Reactive Controls Standard ergänzt. Live-Suche/Dropdown-Sofortreaktion gilt künftig als Dashboard-UX-Standard.
+Aktueller Stand: Media Registry ist migriert. Dashboard-Media-Ansicht wurde verbessert. Reactive Controls Standard wurde dokumentiert. Mit STEP274U steht ein wiederverwendbares `MediaField` für künftige Module bereit.
+
+Nächster sinnvoller Schritt: Erste echte Integration in ein Modul mit Medienbedarf, bevorzugt Geburtstags-Plugin oder Alerts.

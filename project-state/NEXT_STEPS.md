@@ -1,14 +1,6 @@
-# NEXT_STEPS
+# NEXT_STEPS – nach STEP274U
 
-## Nach STEP274T
-
-1. STEP274T per `stepdone.cmd` übernehmen.
-2. Dashboard hart neu laden.
-3. Prüfen, ob `reactive_controls.js` ohne Fehler geladen wird.
-4. Künftige Module bei Bedarf auf den Reactive-Controls-Standard umstellen.
-
-Mögliche nächste Schritte:
-
-- STEP274U: Media-Dashboard Einzelmedium verschieben.
-- STEP274V: Commands-Dashboard Filter live/reagierend umbauen.
-- STEP275: Legacy-Media-Cleanup Dry-Run vorbereiten.
+1. STEP274U installieren und Dashboard hart neu laden.
+2. Prüfen, ob keine Konsolenfehler entstehen.
+3. Als erste Modul-Integration Geburtstags-Plugin oder Alerts wählen.
+4. In dem Modul MediaField statt eigener Upload-Logik verwenden.
