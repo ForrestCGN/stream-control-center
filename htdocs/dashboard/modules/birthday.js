@@ -371,15 +371,21 @@ window.BirthdayModule = (function(){
     const cfg = {
       intro_video: {
         title: 'Birthday Intro-Video auswählen oder hochladen',
-        allowedTypes: ['video', 'animation']
+        allowedTypes: ['video', 'animation'],
+        categoryKey: 'intro',
+        categoryLabel: 'Geburtstag / Intro-Videos'
       },
       default_song: {
         title: 'Birthday Standardsong auswählen oder hochladen',
-        allowedTypes: ['audio']
+        allowedTypes: ['audio'],
+        categoryKey: 'default-song',
+        categoryLabel: 'Geburtstag / Standardsongs'
       },
       user_song: {
         title: 'Birthday User-Song auswählen oder hochladen',
-        allowedTypes: ['audio']
+        allowedTypes: ['audio'],
+        categoryKey: 'user-songs',
+        categoryLabel: 'Geburtstag / User-Songs'
       }
     }[cleanKind];
 
@@ -393,7 +399,7 @@ window.BirthdayModule = (function(){
 
     window.MediaPicker.open({
       moduleKey: 'birthday',
-      categoryKey: 'general',
+      categoryKey: cfg.categoryKey || 'general',
       allowedTypes: cfg.allowedTypes,
       title: cfg.title,
       onSelect: async (asset) => {
@@ -408,11 +414,13 @@ window.BirthdayModule = (function(){
             body: JSON.stringify({
               kind: cleanKind,
               mediaId: asset.id,
-              login
+              login,
+              categoryKey: cfg.categoryKey || 'general',
+              categoryLabel: cfg.categoryLabel || ''
             })
           });
 
-          state.notice = result?.message || 'Birthday-Medium übernommen.';
+          state.notice = result?.message || ('Birthday-Medium übernommen' + (cfg.categoryLabel ? ' · ' + cfg.categoryLabel : '') + '.');
           await loadAll(true);
         } catch (err) {
           state.notice = '';
