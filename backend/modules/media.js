@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * STEP274B - Central Media Management Core Test/Fix
+ * STEP274D - Central Media Registry Resolver
  *
  * Zentrale Medien-Registry fuer Audio/Video/Bilder/Animationen.
  * Wichtig:
@@ -23,7 +23,7 @@ const mediaHelper = require('./helpers/helper_media');
 const MODULE_NAME = 'media';
 const SCHEMA_VERSION = 1;
 const API_PREFIX = '/api/media';
-const MEDIA_STEP = 'STEP274B';
+const MEDIA_STEP = 'STEP274D';
 
 const MEDIA_TYPES = {
   audio: {
@@ -387,6 +387,137 @@ function listAssets(options = {}) {
   return rows.map(rowToAsset).filter(Boolean);
 }
 
+
+function assetById(id) {
+  ensureSchema();
+  const cleanId = Number(id || 0);
+  if (!cleanId) return null;
+  return rowToAsset(db.get('SELECT * FROM media_assets WHERE id = :id', { id: cleanId }));
+}
+
+function assetByRelativePath(relativePath) {
+  ensureSchema();
+  const rel = normalizeSlashes(clean(relativePath));
+  if (!rel) return null;
+  return rowToAsset(db.get('SELECT * FROM media_assets WHERE relative_path = :relativePath', { relativePath: rel }));
+}
+
+function getAsset(ref) {
+  ensureSchema();
+  const raw = clean(ref && typeof ref === 'object' ? (ref.id || ref.assetId || ref.mediaId || ref.relativePath || ref.path) : ref);
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) return assetById(Number(raw));
+  return assetByRelativePath(raw);
+}
+
+function relativePathFromWebPath(webPath) {
+  const cleanPath = normalizeSlashes(clean(webPath));
+  if (!cleanPath) return '';
+  if (cleanPath.startsWith('/assets/')) return cleanPath.slice('/assets/'.length);
+  if (cleanPath.startsWith('assets/')) return cleanPath.slice('assets/'.length);
+  return cleanPath.replace(/^\/+/, '');
+}
+
+function soundSystemFileFor(asset) {
+  const rel = normalizeSlashes(asset && asset.relativePath || '');
+  if (!rel) return '';
+  if (rel.startsWith('sounds/')) return rel.slice('sounds/'.length);
+  return '';
+}
+
+function resolveAssetForUse(ref, options = {}) {
+  ensureSchema();
+  const asset = getAsset(ref);
+  if (!asset) return { ok: false, error: 'media_asset_not_found', ref: clean(ref) };
+
+  const assetsDir = path.resolve(getAssetsDir());
+  const rel = normalizeSlashes(asset.relativePath || relativePathFromWebPath(asset.webPath));
+  const abs = path.resolve(asset.absolutePath || path.join(assetsDir, rel));
+  const insideAssets = isPathInside(assetsDir, abs);
+  const exists = insideAssets && fs.existsSync(abs);
+  const webPath = asset.webPath || `/assets/${rel}`;
+  const soundSystemFile = soundSystemFileFor({ ...asset, relativePath: rel });
+  const useCase = clean(options.useCase || options.use || '').toLowerCase();
+
+  const resolved = {
+    ok: true,
+    module: MODULE_NAME,
+    step: MEDIA_STEP,
+    useCase,
+    asset: {
+      ...asset,
+      relativePath: rel,
+      absolutePath: abs,
+      webPath
+    },
+    paths: {
+      relativePath: rel,
+      absolutePath: abs,
+      webPath,
+      exists,
+      insideAssets
+    },
+    capabilities: {
+      canPreviewInBrowser: !!webPath,
+      hasAudio: !!asset.hasAudio,
+      hasVideo: !!asset.hasVideo,
+      isAudio: asset.type === 'audio',
+      isVideo: asset.type === 'video',
+      isImage: asset.type === 'image',
+      isAnimation: asset.type === 'animation'
+    },
+    soundSystem: {
+      compatible: !!soundSystemFile,
+      file: soundSystemFile,
+      reason: soundSystemFile ? 'legacy_sounds_relative_path' : 'sound_system_base_dir_not_yet_media_registry_aware'
+    },
+    overlay: {
+      compatible: !!webPath,
+      url: webPath,
+      durationMs: Number(asset.durationMs || 0),
+      width: Number(asset.width || 0),
+      height: Number(asset.height || 0),
+      hasAudio: !!asset.hasAudio,
+      hasVideo: !!asset.hasVideo
+    },
+    updatedAt: nowIso()
+  };
+
+  if (useCase === 'sound_system' || useCase === 'sound') {
+    resolved.ok = !!soundSystemFile;
+    if (!soundSystemFile) resolved.error = resolved.soundSystem.reason;
+  }
+
+  return resolved;
+}
+
+function mediaOptionFromAsset(asset, options = {}) {
+  const resolved = resolveAssetForUse(asset.id || asset.relativePath, options);
+  const soundSystem = resolved.soundSystem || {};
+  const paths = resolved.paths || {};
+  return {
+    id: Number(asset.id || 0),
+    type: asset.type || '',
+    category: asset.category || '',
+    label: asset.displayName || asset.fileName || asset.relativePath || String(asset.id || ''),
+    displayName: asset.displayName || '',
+    fileName: asset.fileName || '',
+    relativePath: paths.relativePath || asset.relativePath || '',
+    webPath: paths.webPath || asset.webPath || '',
+    durationMs: Number(asset.durationMs || 0),
+    width: Number(asset.width || 0),
+    height: Number(asset.height || 0),
+    hasAudio: !!asset.hasAudio,
+    hasVideo: !!asset.hasVideo,
+    source: asset.source || '',
+    status: asset.status || '',
+    exists: !!paths.exists,
+    soundSystemFile: soundSystem.file || '',
+    soundSystemCompatible: !!soundSystem.compatible,
+    soundSystemReason: soundSystem.reason || ''
+  };
+}
+
 function scanFile(absPath, source, category = 'general', preferredType = '') {
   const assetsDir = path.resolve(getAssetsDir());
   const target = path.resolve(absPath);
@@ -613,12 +744,13 @@ function statusPayload() {
     routes: [
       { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Media-Core Status und Zaehlwerte' },
       { method: 'GET', path: `${API_PREFIX}/list`, purpose: 'Registrierte Medien auflisten' },
+      { method: 'GET', path: `${API_PREFIX}/resolve`, purpose: 'Ein Medium zentral fuer Module/Use-Cases aufloesen' },
       { method: 'GET/POST', path: `${API_PREFIX}/scan`, purpose: 'Bestehende Medienordner scannen' },
       { method: 'POST', path: `${API_PREFIX}/upload`, purpose: 'Medium hochladen und registrieren' },
       { method: 'POST', path: `${API_PREFIX}/update`, purpose: 'Metadaten aendern' },
       { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei loeschen' }
     ],
-    note: 'STEP274B repariert Typ-Erkennung fuer ueberlappende Endungen wie .webm/.gif und haertet Pfadpruefungen ab. Command-Anbindung folgt in STEP274C.',
+    note: 'STEP274D stellt eine zentrale Media-Resolver-Schicht bereit, damit Module Medieninfos nicht mehr selbst aus Pfaden ableiten muessen.',
     updatedAt: nowIso()
   };
 }
@@ -648,6 +780,16 @@ function init(ctx) {
     } catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
   });
 
+
+  app.get(`${API_PREFIX}/resolve`, (req, res) => {
+    try {
+      const ref = param(req, 'id', '') || param(req, 'mediaId', '') || param(req, 'relativePath', '') || param(req, 'path', '');
+      const useCase = param(req, 'useCase', '') || param(req, 'use', '');
+      const resolved = resolveAssetForUse(ref, { useCase });
+      return res.status(resolved.ok ? 200 : 404).json(resolved);
+    } catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
   app.post(`${API_PREFIX}/scan`, (req, res) => {
     try { return res.json(scanAssets()); }
     catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
@@ -666,4 +808,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: MEDIA_STEP };
 }
 
-module.exports = { init, statusPayload, listAssets, scanAssets, upsertAsset };
+module.exports = { init, statusPayload, listAssets, scanAssets, upsertAsset, getAsset, resolveAssetForUse, mediaOptionFromAsset, soundSystemFileFor };

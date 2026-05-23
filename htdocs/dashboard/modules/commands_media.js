@@ -66,8 +66,8 @@ window.CommandsMediaBridge = (function(){
   function mediaHint(options, type) {
     const count = options.length;
     const extra = type === 'sound'
-      ? 'Gespeichert wird die Media-ID aus der zentralen Medienverwaltung. Direkte Sound-Ausführung kommt in einem eigenen Folge-Step.'
-      : 'Gespeichert wird die Media-ID aus der zentralen Medienverwaltung. Overlay-/Video-Ausführung kommt in einem eigenen Folge-Step.';
+      ? 'Gespeichert wird die Media-ID aus der zentralen Medienverwaltung. Resolver-Daten kommen zentral aus /api/media/resolve; echte Sound-Ausführung kommt in einem eigenen Folge-Step.'
+      : 'Gespeichert wird die Media-ID aus der zentralen Medienverwaltung. Resolver-Daten kommen zentral aus /api/media/resolve; Overlay-/Video-Ausführung kommt in einem eigenen Folge-Step.';
     return `<small class="cmd-media-hint">${esc(count)} Medien gefunden. ${esc(extra)}</small>`;
   }
 
@@ -92,8 +92,8 @@ window.CommandsMediaBridge = (function(){
     replaceMediaInput(root, 'soundMediaId', state.audio, 'Sound aus Medienverwaltung auswählen...', 'sound');
     replaceMediaInput(root, 'videoMediaId', state.video, 'Video/Animation aus Medienverwaltung auswählen...', 'video');
     const hero = root.querySelector('.cmd-hero p');
-    if (hero && !hero.dataset.commandsMediaStep274c) {
-      hero.dataset.commandsMediaStep274c = '1';
+    if (hero && !hero.dataset.commandsMediaStep274d) {
+      hero.dataset.commandsMediaStep274d = '1';
       hero.textContent = 'Zentrales Chat-Command-System. Sound-/Video-Aktionen sind mit der Medienverwaltung verbunden.';
     }
   }

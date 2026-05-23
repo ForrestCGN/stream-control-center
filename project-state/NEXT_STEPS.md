@@ -1,11 +1,11 @@
 # NEXT STEPS
 
-- STEP274C live testen:
-  - `/api/commands/media-bridge/status`
-  - `/api/commands/media-options?type=audio&status=active`
-  - `/api/commands/media-options?type=video,animation&status=active`
-- Dashboard öffnen: `http://127.0.0.1:8080/dashboard`
-- Commands → Commands → Action-Typ `MP3 / Sound abspielen` prüfen: Medien-Dropdown muss Audio-Medien anzeigen.
-- Commands → Commands → Action-Typ `Video abspielen` prüfen: Medien-Dropdown muss Video/Animation anzeigen.
-- Einen Test-Command speichern und prüfen, ob `config.mediaId` erhalten bleibt.
-- Danach STEP274D planen: tatsächliche Medienausführung über Sound-System/Overlay sauber anbinden.
+- STEP274D live deployen und prüfen:
+  - `/api/media/status` muss `STEP274D` melden.
+  - `/api/media/resolve?id=<id>` muss ein Asset mit Pfaden, Capabilities und Use-Case-Daten zurückgeben.
+  - `/api/commands/media-options?type=audio&status=active` muss weiterhin Optionen liefern.
+- Danach STEP274E/STEP274D2 planen:
+  - `sound_system` media-registry-aware machen.
+  - `media/audio/*` über zentrale Media-ID abspielbar machen.
+  - Legacy-Sounds weiter kompatibel halten.
+  - Erst danach Command-Ausführung für `sound_play` aktivieren.

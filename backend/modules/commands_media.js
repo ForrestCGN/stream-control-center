@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * STEP274C - Commands <-> Media Management Bridge
+ * STEP274D - Commands <-> Central Media Resolver Bridge
  *
  * Kleine Bruecke zwischen zentralem Command-System und zentraler Medienverwaltung.
  * Wichtig:
@@ -14,7 +14,7 @@ const media = require('./media');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands_media';
-const STEP = 'STEP274C';
+const STEP = 'STEP274D';
 const API_PREFIX = '/api/commands';
 
 function clean(value) {
@@ -27,38 +27,8 @@ function splitTypes(value) {
   return raw.split(/[\s,;]+/).map(item => item.trim()).filter(Boolean);
 }
 
-function normalizeSlashes(value) {
-  return String(value || '').replace(/\\/g, '/');
-}
-
-function soundSystemFileFor(asset) {
-  const rel = normalizeSlashes(asset && asset.relativePath || '');
-  if (!rel) return '';
-  if (rel.startsWith('sounds/')) return rel.slice('sounds/'.length);
-  return '';
-}
-
 function optionFromAsset(asset) {
-  const soundFile = soundSystemFileFor(asset);
-  return {
-    id: Number(asset.id || 0),
-    type: asset.type || '',
-    category: asset.category || '',
-    label: asset.displayName || asset.fileName || asset.relativePath || String(asset.id || ''),
-    displayName: asset.displayName || '',
-    fileName: asset.fileName || '',
-    relativePath: asset.relativePath || '',
-    webPath: asset.webPath || '',
-    durationMs: Number(asset.durationMs || 0),
-    width: Number(asset.width || 0),
-    height: Number(asset.height || 0),
-    hasAudio: !!asset.hasAudio,
-    hasVideo: !!asset.hasVideo,
-    source: asset.source || '',
-    status: asset.status || '',
-    soundSystemFile: soundFile,
-    soundSystemCompatible: !!soundFile
-  };
+  return media.mediaOptionFromAsset(asset, { useCase: 'command_dashboard' });
 }
 
 function listMediaOptions(req) {
@@ -105,7 +75,7 @@ function statusPayload() {
       { method: 'GET', path: `${API_PREFIX}/media-options`, purpose: 'Media-Auswahloptionen fuer Command-Dashboard sound_play/video_play' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Command-Media-Bruecke' }
     ],
-    note: 'STEP274C bindet Commands im Dashboard an media_assets. Ausfuehrung bleibt fuer Folge-Step getrennt.',
+    note: 'STEP274D nutzt den zentralen Media-Resolver aus /api/media/resolve und media.resolveAssetForUse. Ausfuehrung bleibt fuer Folge-Step getrennt.',
     updatedAt: core.nowIso()
   };
 }
