@@ -1,13 +1,15 @@
 'use strict';
 
 /**
- * STEP274E - Media Registry -> Sound-System Bridge
+ * STEP274E1 - Media Registry -> Sound-System Bridge Hotfix
  *
  * Bruecke fuer zentrale Medienverwaltung in Richtung Sound-System.
  * Wichtig:
  * - Sound-System selbst bleibt unveraendert.
  * - Bestehende Medien werden nicht verschoben oder geloescht.
  * - Neue media_assets koennen ueber /api/sound/play-media abgespielt werden.
+ * - Hotfix: Media-Requests senden kein soundId/id an /api/sound/play, damit
+ *   das Sound-System nicht faelschlich ein Preset in config.sounds erwartet.
  * - Fuer media/* Dateien wird eine technische Kompatibilitaetskopie unter
  *   htdocs/assets/sounds/_media_registry/ erzeugt, damit das bestehende
  *   Sound-System weiterhin seine eigene Queue/Prioritaeten/Overlay-Ausgabe nutzt.
@@ -22,7 +24,7 @@ const config = require('./helpers/helper_config');
 const media = require('./media');
 
 const MODULE_NAME = 'sound_media_bridge';
-const STEP = 'STEP274E';
+const STEP = 'STEP274E1';
 const API_PREFIX = '/api/sound';
 const CACHE_DIR_NAME = '_media_registry';
 
@@ -128,7 +130,6 @@ function buildSoundPayload(req, resolved, soundFile, cacheInfo) {
 
   const payload = {
     ...body,
-    soundId: clean(body.soundId || `media_${asset.id || path.parse(asset.fileName || soundFile).name}`),
     label,
     file: soundFile,
     mediaType,
@@ -148,6 +149,11 @@ function buildSoundPayload(req, resolved, soundFile, cacheInfo) {
       mediaCacheCopied: !!(cacheInfo && cacheInfo.copied)
     }
   };
+
+
+  delete payload.id;
+  delete payload.soundId;
+  delete payload.sound;
 
   if (outputTarget) payload.outputTarget = outputTarget;
   if (body.priority !== undefined || core.getParam(req, 'priority', '') !== '') payload.priority = numberParam(req, body, 'priority', 50);
@@ -224,7 +230,6 @@ async function playMedia(req, res) {
       soundSystemFile: soundFile,
       cache: cacheInfo || { copied: false, legacyCompatible: true },
       payload: {
-        soundId: soundPayload.soundId,
         label: soundPayload.label,
         file: soundPayload.file,
         mediaType: soundPayload.mediaType,
@@ -250,7 +255,7 @@ function statusPayload() {
       { method: 'GET/POST', path: `${API_PREFIX}/play-media`, purpose: 'Media-Asset per zentralem Resolver ueber Sound-System Queue abspielen' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Sound-Media-Bruecke' }
     ],
-    note: 'STEP274E macht media_assets fuer das bestehende Sound-System nutzbar, ohne Sound-System-Core umzubauen.',
+    note: 'STEP274E1 behebt den Sound-System-Preset-Konflikt: Media-Playback sendet nur file/label und keine soundId/id an /api/sound/play.',
     updatedAt: core.nowIso()
   };
 }

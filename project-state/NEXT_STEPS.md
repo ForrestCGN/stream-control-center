@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-- STEP274E live testen:
+- STEP274E1 live testen:
   - `/api/sound/media-bridge/status`
   - `/api/sound/play-media?mediaId=325&volume=60`
   - Dashboard Commands -> Sound-Aktion -> Medium auswaehlen -> speichern.

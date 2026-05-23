@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## STEP274E
+## STEP274E1
 - Sound-Media-Bridge `backend/modules/sound_media_bridge.js` ergaenzt.
 - Neue Route `/api/sound/play-media` spielt Media-Assets ueber den bestehenden Sound-System-Flow ab.
 - Neue Route `/api/sound/media-bridge/status` ergaenzt.

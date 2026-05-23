@@ -1,4 +1,4 @@
-# STEP274E – Media-Sound-Bridge
+# STEP274E1 – Media-Sound-Bridge Hotfix
 
 ## Ziel
 Media-Assets aus der zentralen Medienverwaltung koennen ueber das bestehende Sound-System abgespielt werden, ohne dass einzelne Module Pfade selbst erraten muessen.
