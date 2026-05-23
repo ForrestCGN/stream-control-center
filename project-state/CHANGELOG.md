@@ -1,14 +1,12 @@
-# CHANGELOG
+# Changelog
 
-## STEP274J – Command-Praxischeck für Media-Playback-Hub
+## STEP274K - Media Module Categories + Recent Uploads
 
-- `commands_media` auf STEP274J gesetzt.
-- Neue Route `GET /api/commands/media-command-check?trigger=<trigger>` ergänzt.
-- Prüft gespeicherte Dashboard-Commands gegen offiziellen Media-Playback-Hub `/api/sound/play-media?mediaId=<id>`.
-- Dashboard-Hinweise für Route und Praxischeck ergänzt.
-- Sound-Media-Bridge Status auf STEP274J aktualisiert.
-
-## STEP274I
-
-- Sound-System als offizieller Media-Playback-Hub festgezogen.
-- `/api/video/*` als deprecated Testpfad markiert.
+- `media_assets` sanft um `module_key` und `category_key` erweitert.
+- Neue Tabelle `media_categories` vorbereitet.
+- Standardkategorien für general, commands, alerts, soundalerts, birthday, vip, rewards, tts und system geseedet.
+- Upload-Zielpfade auf `htdocs/assets/media/<moduleKey>/<categoryKey>/` vorbereitet.
+- API `/api/media/categories` ergänzt.
+- API `/api/media/category/upsert` ergänzt.
+- API `/api/media/picker-options` mit `view=recent` ergänzt.
+- Bestehende Medien bleiben unverändert.

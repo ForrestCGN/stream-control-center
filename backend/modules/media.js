@@ -1,14 +1,14 @@
 'use strict';
 
 /**
- * STEP274D - Central Media Registry Resolver
+ * STEP274K - Media Module Categories + Recent Uploads
  *
  * Zentrale Medien-Registry fuer Audio/Video/Bilder/Animationen.
  * Wichtig:
  * - Keine bestehenden Assets werden verschoben oder geloescht.
- * - Neue Uploads landen unter htdocs/assets/media/<type>/.
+ * - Neue Uploads landen unter htdocs/assets/media/<module>/<category>/.
  * - Bestehende Asset-Ordner werden nur gescannt und in media_assets registriert.
- * - Commands/Alerts/Sounds sollen Medien spaeter ueber media_assets verwenden.
+ * - Module geben moduleKey fest vor; User waehlen/erstellen die Zusatzkategorie.
  */
 
 const fs = require('fs');
@@ -21,9 +21,9 @@ const config = require('./helpers/helper_config');
 const mediaHelper = require('./helpers/helper_media');
 
 const MODULE_NAME = 'media';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/media';
-const MEDIA_STEP = 'STEP274D';
+const MEDIA_STEP = 'STEP274K';
 
 const MEDIA_TYPES = {
   audio: {
@@ -55,6 +55,24 @@ const MEDIA_TYPES = {
     legacyDirs: [['animations'], ['media', 'animation']]
   }
 };
+
+const DEFAULT_MEDIA_CATEGORIES = [
+  { moduleKey: 'general', categoryKey: 'general', label: 'Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'commands', categoryKey: 'general', label: 'Commands / Allgemein', allowedTypes: ['audio', 'video', 'animation'], isSystem: true },
+  { moduleKey: 'commands', categoryKey: 'fun', label: 'Commands / Fun', allowedTypes: ['audio', 'video', 'animation'], isSystem: false },
+  { moduleKey: 'alerts', categoryKey: 'general', label: 'Alerts / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'alerts', categoryKey: 'follow', label: 'Alerts / Follow', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'alerts', categoryKey: 'sub', label: 'Alerts / Sub', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'alerts', categoryKey: 'bits', label: 'Alerts / Bits', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'alerts', categoryKey: 'raid', label: 'Alerts / Raid', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'soundalerts', categoryKey: 'general', label: 'SoundAlerts / Allgemein', allowedTypes: ['audio', 'video', 'animation'], isSystem: true },
+  { moduleKey: 'soundalerts', categoryKey: 'test', label: 'SoundAlerts / Test', allowedTypes: ['audio', 'video', 'animation'], isSystem: false },
+  { moduleKey: 'birthday', categoryKey: 'general', label: 'Geburtstag / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'vip', categoryKey: 'general', label: 'VIP / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'rewards', categoryKey: 'general', label: 'Rewards / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'tts', categoryKey: 'general', label: 'TTS / Allgemein', allowedTypes: ['audio'], isSystem: true },
+  { moduleKey: 'system', categoryKey: 'general', label: 'System / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true }
+];
 
 const state = {
   initialized: false,
@@ -95,6 +113,61 @@ function normalizeSlashes(value) {
 
 function getAssetsDir() {
   return config.getAssetsDir();
+}
+
+
+function slugKey(value, fallback = 'general') {
+  const raw = clean(value || '').toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return raw || fallback;
+}
+
+function normalizeModuleKey(value) {
+  return slugKey(value, 'general');
+}
+
+function normalizeCategoryKey(value) {
+  return slugKey(value, 'general');
+}
+
+function categoryRelativeDir(moduleKey, categoryKey) {
+  return normalizeSlashes(path.join(normalizeModuleKey(moduleKey), normalizeCategoryKey(categoryKey)));
+}
+
+function uploadDirRelForContext(moduleKey, categoryKey) {
+  return normalizeSlashes(path.join('media', normalizeModuleKey(moduleKey), normalizeCategoryKey(categoryKey)));
+}
+
+function resolveUploadContextFromValues(values = {}) {
+  const moduleKey = normalizeModuleKey(values.moduleKey || values.module || values.mediaModule || 'general');
+  const categoryKey = normalizeCategoryKey(values.categoryKey || values.subCategory || values.category || 'general');
+  return {
+    moduleKey,
+    categoryKey,
+    category: categoryKey,
+    fullCategoryKey: `${moduleKey}/${categoryKey}`,
+    relativeDir: categoryRelativeDir(moduleKey, categoryKey),
+    uploadDirRel: uploadDirRelForContext(moduleKey, categoryKey)
+  };
+}
+
+function resolveUploadContext(req) {
+  return resolveUploadContextFromValues({
+    moduleKey: param(req, 'moduleKey', '') || param(req, 'module', '') || param(req, 'mediaModule', ''),
+    categoryKey: param(req, 'categoryKey', '') || param(req, 'subCategory', '') || param(req, 'category', '')
+  });
+}
+
+function inferContextFromRelativePath(relativePath, fallbackCategory = 'general') {
+  const rel = normalizeSlashes(relativePath || '');
+  const parts = rel.split('/').filter(Boolean);
+  if (parts[0] === 'media' && parts.length >= 4) {
+    return resolveUploadContextFromValues({ moduleKey: parts[1], categoryKey: parts[2] });
+  }
+  return resolveUploadContextFromValues({ moduleKey: 'legacy', categoryKey: fallbackCategory || 'legacy' });
 }
 
 function isKnownMediaType(type) {
@@ -147,8 +220,9 @@ function ensureDir(dir) {
 
 function ensureMediaDirs() {
   const assetsDir = getAssetsDir();
-  for (const meta of Object.values(MEDIA_TYPES)) {
-    ensureDir(path.join(assetsDir, ...meta.uploadDir));
+  ensureDir(path.join(assetsDir, 'media'));
+  for (const category of DEFAULT_MEDIA_CATEGORIES) {
+    ensureDir(path.join(assetsDir, 'media', category.moduleKey, category.categoryKey));
   }
   return true;
 }
@@ -160,6 +234,113 @@ function isPathInside(baseDir, targetPath) {
   return rel === '' || (!!rel && !rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
+
+function columnExists(tableName, columnName) {
+  const rows = db.all(`PRAGMA table_info(${tableName})`);
+  return rows.some(row => row && row.name === columnName);
+}
+
+function ensureColumn(tableName, columnName, definition) {
+  if (!columnExists(tableName, columnName)) db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+}
+
+function seedMediaCategories() {
+  const now = nowIso();
+  for (const category of DEFAULT_MEDIA_CATEGORIES) {
+    const moduleKey = normalizeModuleKey(category.moduleKey);
+    const categoryKey = normalizeCategoryKey(category.categoryKey);
+    db.run(`
+      INSERT INTO media_categories (
+        module_key, category_key, label, relative_dir, allowed_types_json, is_system, is_active, created_at, updated_at
+      ) VALUES (
+        :moduleKey, :categoryKey, :label, :relativeDir, :allowedTypesJson, :isSystem, 1, :createdAt, :updatedAt
+      )
+      ON CONFLICT(module_key, category_key) DO UPDATE SET
+        label = CASE WHEN media_categories.is_system = 1 THEN excluded.label ELSE media_categories.label END,
+        relative_dir = excluded.relative_dir,
+        allowed_types_json = excluded.allowed_types_json,
+        is_system = excluded.is_system,
+        is_active = 1,
+        updated_at = excluded.updated_at
+    `, {
+      moduleKey,
+      categoryKey,
+      label: clean(category.label || `${moduleKey} / ${categoryKey}`),
+      relativeDir: categoryRelativeDir(moduleKey, categoryKey),
+      allowedTypesJson: safeJsonEncode(category.allowedTypes || ['audio', 'video', 'image', 'animation']),
+      isSystem: category.isSystem ? 1 : 0,
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+}
+
+function rowToCategory(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id || 0),
+    moduleKey: row.module_key || 'general',
+    categoryKey: row.category_key || 'general',
+    label: row.label || '',
+    relativeDir: row.relative_dir || '',
+    allowedTypes: safeJsonDecode(row.allowed_types_json, []),
+    isSystem: Number(row.is_system || 0) === 1,
+    isActive: Number(row.is_active || 0) === 1,
+    createdAt: row.created_at || '',
+    updatedAt: row.updated_at || ''
+  };
+}
+
+function ensureCategory(input = {}) {
+  ensureSchema();
+  const now = nowIso();
+  const moduleKey = normalizeModuleKey(input.moduleKey || input.module_key || 'general');
+  const categoryKey = normalizeCategoryKey(input.categoryKey || input.category_key || 'general');
+  const label = clean(input.label || `${moduleKey} / ${categoryKey}`);
+  const allowedTypes = Array.isArray(input.allowedTypes) && input.allowedTypes.length ? input.allowedTypes : ['audio', 'video', 'image', 'animation'];
+  db.run(`
+    INSERT INTO media_categories (
+      module_key, category_key, label, relative_dir, allowed_types_json, is_system, is_active, created_at, updated_at
+    ) VALUES (
+      :moduleKey, :categoryKey, :label, :relativeDir, :allowedTypesJson, :isSystem, :isActive, :createdAt, :updatedAt
+    )
+    ON CONFLICT(module_key, category_key) DO UPDATE SET
+      label = excluded.label,
+      relative_dir = excluded.relative_dir,
+      allowed_types_json = excluded.allowed_types_json,
+      is_active = excluded.is_active,
+      updated_at = excluded.updated_at
+  `, {
+    moduleKey,
+    categoryKey,
+    label,
+    relativeDir: categoryRelativeDir(moduleKey, categoryKey),
+    allowedTypesJson: safeJsonEncode(allowedTypes),
+    isSystem: input.isSystem ? 1 : 0,
+    isActive: input.isActive === false ? 0 : 1,
+    createdAt: now,
+    updatedAt: now
+  });
+  ensureDir(path.join(getAssetsDir(), 'media', moduleKey, categoryKey));
+  return rowToCategory(db.get('SELECT * FROM media_categories WHERE module_key = :moduleKey AND category_key = :categoryKey', { moduleKey, categoryKey }));
+}
+
+function listCategories(options = {}) {
+  ensureSchema();
+  const moduleKey = clean(options.moduleKey || options.module || '');
+  const includeInactive = ['1', 'true', 'yes'].includes(clean(options.includeInactive || '').toLowerCase());
+  const params = {};
+  const where = [];
+  if (moduleKey) { where.push('module_key = :moduleKey'); params.moduleKey = normalizeModuleKey(moduleKey); }
+  if (!includeInactive) where.push('is_active = 1');
+  const rows = db.all(`
+    SELECT * FROM media_categories
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    ORDER BY module_key COLLATE NOCASE ASC, category_key COLLATE NOCASE ASC
+  `, params);
+  return rows.map(rowToCategory).filter(Boolean);
+}
+
 function ensureSchema() {
   try {
     db.ensureReady();
@@ -168,6 +349,8 @@ function ensureSchema() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         type TEXT NOT NULL DEFAULT '',
         category TEXT NOT NULL DEFAULT 'general',
+        module_key TEXT NOT NULL DEFAULT '',
+        category_key TEXT NOT NULL DEFAULT '',
         display_name TEXT NOT NULL DEFAULT '',
         file_name TEXT NOT NULL DEFAULT '',
         relative_path TEXT NOT NULL UNIQUE,
@@ -188,14 +371,34 @@ function ensureSchema() {
         last_seen_at TEXT NOT NULL DEFAULT ''
       );
     `);
+    ensureColumn('media_assets', 'module_key', "TEXT NOT NULL DEFAULT ''");
+    ensureColumn('media_assets', 'category_key', "TEXT NOT NULL DEFAULT ''");
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS media_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        module_key TEXT NOT NULL DEFAULT 'general',
+        category_key TEXT NOT NULL DEFAULT 'general',
+        label TEXT NOT NULL DEFAULT '',
+        relative_dir TEXT NOT NULL DEFAULT '',
+        allowed_types_json TEXT NOT NULL DEFAULT '[]',
+        is_system INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(module_key, category_key)
+      );
+    `);
     db.exec('CREATE INDEX IF NOT EXISTS idx_media_assets_type ON media_assets(type);');
     db.exec('CREATE INDEX IF NOT EXISTS idx_media_assets_category ON media_assets(category);');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_media_assets_module_key ON media_assets(module_key);');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_media_assets_category_key ON media_assets(category_key);');
     db.exec('CREATE INDEX IF NOT EXISTS idx_media_assets_status ON media_assets(status);');
     db.exec('CREATE INDEX IF NOT EXISTS idx_media_assets_source ON media_assets(source);');
     if (typeof db.setSchemaVersion === 'function') db.setSchemaVersion(MODULE_NAME, SCHEMA_VERSION);
     state.schemaOk = true;
     state.schemaError = '';
     ensureMediaDirs();
+    seedMediaCategories();
     return true;
   } catch (err) {
     state.schemaOk = false;
@@ -270,7 +473,10 @@ function rowToAsset(row) {
   return {
     id: Number(row.id),
     type: row.type || '',
-    category: row.category || 'general',
+    category: row.category || row.category_key || 'general',
+    moduleKey: row.module_key || '',
+    categoryKey: row.category_key || row.category || 'general',
+    fullCategoryKey: row.module_key ? `${row.module_key}/${row.category_key || row.category || 'general'}` : (row.category || 'general'),
     displayName: row.display_name || '',
     fileName: row.file_name || '',
     relativePath: row.relative_path || '',
@@ -302,9 +508,15 @@ function upsertAsset(input = {}) {
   const current = rowToAsset(existing);
   const inputType = clean(input.type || current?.type || typeForExt(path.extname(relativePath)));
   const finalType = isKnownMediaType(inputType) ? inputType : typeForExt(path.extname(relativePath));
+  const context = resolveUploadContextFromValues({
+    moduleKey: input.moduleKey || input.module_key || current?.moduleKey || '',
+    categoryKey: input.categoryKey || input.category_key || input.category || current?.categoryKey || current?.category || 'general'
+  });
   const data = {
     type: finalType,
-    category: clean(input.category || current?.category || 'general') || 'general',
+    category: context.categoryKey,
+    moduleKey: context.moduleKey,
+    categoryKey: context.categoryKey,
     displayName: clean(input.displayName || input.display_name || current?.displayName || path.parse(relativePath).name),
     fileName: clean(input.fileName || input.file_name || current?.fileName || path.basename(relativePath)),
     relativePath,
@@ -327,17 +539,19 @@ function upsertAsset(input = {}) {
 
   db.run(`
     INSERT INTO media_assets (
-      type, category, display_name, file_name, relative_path, web_path, absolute_path,
+      type, category, module_key, category_key, display_name, file_name, relative_path, web_path, absolute_path,
       mime_type, size_bytes, duration_ms, width, height, has_audio, has_video,
       tags_json, source, status, created_at, updated_at, last_seen_at
     ) VALUES (
-      :type, :category, :displayName, :fileName, :relativePath, :webPath, :absolutePath,
+      :type, :category, :moduleKey, :categoryKey, :displayName, :fileName, :relativePath, :webPath, :absolutePath,
       :mimeType, :sizeBytes, :durationMs, :width, :height, :hasAudio, :hasVideo,
       :tagsJson, :source, :status, :createdAt, :updatedAt, :lastSeenAt
     )
     ON CONFLICT(relative_path) DO UPDATE SET
       type = excluded.type,
       category = excluded.category,
+      module_key = excluded.module_key,
+      category_key = excluded.category_key,
       display_name = excluded.display_name,
       file_name = excluded.file_name,
       web_path = excluded.web_path,
@@ -362,25 +576,39 @@ function upsertAsset(input = {}) {
 function listAssets(options = {}) {
   ensureSchema();
   const requestedType = clean(options.type || '');
+  const requestedTypes = requestedType.split(',').map(item => clean(item)).filter(Boolean);
   const requestedCategory = clean(options.category || '');
+  const requestedModuleKey = clean(options.moduleKey || options.module || '');
+  const requestedCategoryKey = clean(options.categoryKey || options.subCategory || '');
   const requestedStatus = clean(options.status || 'active');
   const requestedQuery = clean(options.q || '');
+  const view = clean(options.view || '').toLowerCase();
   const params = { limit: Math.max(1, Math.min(500, Number(options.limit || 200))) };
   const where = [];
 
-  if (requestedType) { where.push('type = :type'); params.type = requestedType; }
+  if (requestedTypes.length === 1) { where.push('type = :type'); params.type = requestedTypes[0]; }
+  else if (requestedTypes.length > 1) {
+    where.push(`type IN (${requestedTypes.map((_, i) => `:type${i}`).join(', ')})`);
+    requestedTypes.forEach((type, i) => { params[`type${i}`] = type; });
+  }
   if (requestedCategory) { where.push('category = :category'); params.category = requestedCategory; }
+  if (requestedModuleKey) { where.push('module_key = :moduleKey'); params.moduleKey = normalizeModuleKey(requestedModuleKey); }
+  if (requestedCategoryKey) { where.push('category_key = :categoryKey'); params.categoryKey = normalizeCategoryKey(requestedCategoryKey); }
   if (requestedStatus && requestedStatus !== 'all') { where.push('status = :status'); params.status = requestedStatus; }
   if (requestedQuery) {
-    where.push('(lower(display_name) LIKE :q OR lower(file_name) LIKE :q OR lower(relative_path) LIKE :q OR lower(category) LIKE :q)');
+    where.push('(lower(display_name) LIKE :q OR lower(file_name) LIKE :q OR lower(relative_path) LIKE :q OR lower(category) LIKE :q OR lower(module_key) LIKE :q OR lower(category_key) LIKE :q)');
     params.q = '%' + requestedQuery.toLowerCase() + '%';
   }
+
+  const orderBy = view === 'recent'
+    ? 'datetime(created_at) DESC, datetime(updated_at) DESC, id DESC'
+    : 'module_key ASC, category_key ASC, type ASC, display_name COLLATE NOCASE ASC';
 
   const rows = db.all(`
     SELECT *
     FROM media_assets
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-    ORDER BY type ASC, category ASC, display_name COLLATE NOCASE ASC
+    ORDER BY ${orderBy}
     LIMIT :limit
   `, params);
 
@@ -499,6 +727,9 @@ function mediaOptionFromAsset(asset, options = {}) {
     id: Number(asset.id || 0),
     type: asset.type || '',
     category: asset.category || '',
+    moduleKey: asset.moduleKey || '',
+    categoryKey: asset.categoryKey || asset.category || '',
+    fullCategoryKey: asset.fullCategoryKey || '',
     label: asset.displayName || asset.fileName || asset.relativePath || String(asset.id || ''),
     displayName: asset.displayName || '',
     fileName: asset.fileName || '',
@@ -518,7 +749,7 @@ function mediaOptionFromAsset(asset, options = {}) {
   };
 }
 
-function scanFile(absPath, source, category = 'general', preferredType = '') {
+function scanFile(absPath, source, category = 'general', preferredType = '', contextInput = {}) {
   const assetsDir = path.resolve(getAssetsDir());
   const target = path.resolve(absPath);
   if (!isPathInside(assetsDir, target)) return null;
@@ -527,11 +758,15 @@ function scanFile(absPath, source, category = 'general', preferredType = '') {
   if (type === 'unknown') return null;
 
   const rel = normalizeSlashes(path.relative(assetsDir, target));
+  const inferredContext = Object.keys(contextInput || {}).length ? resolveUploadContextFromValues(contextInput) : inferContextFromRelativePath(rel, category);
+  try { ensureCategory({ moduleKey: inferredContext.moduleKey, categoryKey: inferredContext.categoryKey }); } catch (_) {}
   const info = mediaInfoForFile(target, type);
 
   return upsertAsset({
     type,
-    category,
+    category: inferredContext.categoryKey,
+    moduleKey: inferredContext.moduleKey,
+    categoryKey: inferredContext.categoryKey,
     displayName: path.parse(target).name,
     fileName: path.basename(target),
     relativePath: rel,
@@ -607,9 +842,9 @@ function param(req, name, fallback = '') {
   return req.query?.[name] ?? req.body?.[name] ?? fallback;
 }
 
-function getUploadDir(type) {
-  const meta = typeMeta(type);
-  return ensureDir(path.join(getAssetsDir(), ...meta.uploadDir));
+function getUploadDir(type, context = null) {
+  const uploadContext = context || resolveUploadContextFromValues({ moduleKey: 'general', categoryKey: 'general' });
+  return ensureDir(path.join(getAssetsDir(), 'media', uploadContext.moduleKey, uploadContext.categoryKey));
 }
 
 function resolveUploadType(req, fileName) {
@@ -624,13 +859,17 @@ const uploadStorage = multer.diskStorage({
   destination(req, file, cb) {
     try {
       const type = resolveUploadType(req, file.originalname);
-      cb(null, getUploadDir(type));
+      const context = resolveUploadContext(req);
+      ensureCategory({ moduleKey: context.moduleKey, categoryKey: context.categoryKey });
+      cb(null, getUploadDir(type, context));
     } catch (err) { cb(err); }
   },
   filename(req, file, cb) {
     try {
       const type = resolveUploadType(req, file.originalname);
-      const target = makeUniqueTarget(getUploadDir(type), file.originalname);
+      const context = resolveUploadContext(req);
+      ensureCategory({ moduleKey: context.moduleKey, categoryKey: context.categoryKey });
+      const target = makeUniqueTarget(getUploadDir(type, context), file.originalname);
       cb(null, path.basename(target));
     } catch (err) { cb(err); }
   }
@@ -655,11 +894,13 @@ function uploadOne(req, res) {
     try {
       if (!req.file?.path) return res.status(400).json({ ok: false, error: 'file_missing' });
       const uploadType = resolveUploadType(req, req.file.originalname);
-      const category = clean(param(req, 'category', 'general')) || 'general';
+      const context = resolveUploadContext(req);
+      ensureCategory({ moduleKey: context.moduleKey, categoryKey: context.categoryKey });
+      const category = context.categoryKey;
       const displayName = clean(param(req, 'displayName', '')) || path.parse(req.file.originalname).name;
-      const asset = scanFile(req.file.path, 'upload', category, uploadType);
+      const asset = scanFile(req.file.path, 'upload', category, uploadType, context);
       if (!asset) return res.status(400).json({ ok: false, error: 'asset_registration_failed' });
-      const saved = upsertAsset({ ...asset, displayName, category, source: 'upload' });
+      const saved = upsertAsset({ ...asset, displayName, category, moduleKey: context.moduleKey, categoryKey: context.categoryKey, source: 'upload' });
       state.lastUploadAt = nowIso();
       state.lastChangeAt = state.lastUploadAt;
       return res.json({ ok: true, asset: saved });
@@ -679,7 +920,9 @@ function updateAsset(req, res) {
     const saved = upsertAsset({
       ...current,
       displayName: body.displayName ?? body.display_name ?? current.displayName,
-      category: body.category ?? current.category,
+      moduleKey: body.moduleKey ?? body.module_key ?? current.moduleKey,
+      categoryKey: body.categoryKey ?? body.category_key ?? body.category ?? current.categoryKey ?? current.category,
+      category: body.categoryKey ?? body.category ?? current.categoryKey ?? current.category,
       tags: Array.isArray(body.tags) ? body.tags : current.tags,
       status: body.status ?? current.status,
       source: current.source
@@ -724,6 +967,8 @@ function statusPayload() {
     counts[type] = Number(row?.count || 0);
   }
   const total = db.get('SELECT COUNT(*) AS count FROM media_assets WHERE status = :status', { status: 'active' });
+  const recent = listAssets({ view: 'recent', status: 'active', limit: 20 });
+  const categories = listCategories();
   return {
     ok: true,
     module: MODULE_NAME,
@@ -738,19 +983,26 @@ function statusPayload() {
     lastUploadAt: state.lastUploadAt,
     lastChangeAt: state.lastChangeAt,
     assetsDir: getAssetsDir(),
-    mediaDirs: Object.fromEntries(Object.entries(MEDIA_TYPES).map(([type, meta]) => [type, normalizeSlashes(path.join(getAssetsDir(), ...meta.uploadDir))])),
-    counts: { total: Number(total?.count || 0), ...counts },
-    types: Object.entries(MEDIA_TYPES).map(([id, meta]) => ({ id, label: meta.label, icon: meta.icon, extensions: meta.extensions, uploadDir: normalizeSlashes(path.join('assets', ...meta.uploadDir)) })),
+    mediaRootDir: normalizeSlashes(path.join(getAssetsDir(), 'media')),
+    mediaDirs: Object.fromEntries(categories.map(cat => [`${cat.moduleKey}/${cat.categoryKey}`, normalizeSlashes(path.join(getAssetsDir(), 'media', cat.moduleKey, cat.categoryKey))])),
+    counts: { total: Number(total?.count || 0), recent: recent.length, categories: categories.length, ...counts },
+    types: Object.entries(MEDIA_TYPES).map(([id, meta]) => ({ id, label: meta.label, icon: meta.icon, extensions: meta.extensions })),
+    categories,
+    recentUploads: recent.map(asset => mediaOptionFromAsset(asset)),
+    categoryRules: { moduleKey: 'vom aufrufenden Modul vorgegeben', categoryKey: 'vom User waehlbar/anlegbar', recentUploads: 'virtuelle Ansicht, keine echte Speicher-Kategorie' },
     routes: [
       { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Media-Core Status und Zaehlwerte' },
       { method: 'GET', path: `${API_PREFIX}/list`, purpose: 'Registrierte Medien auflisten' },
       { method: 'GET', path: `${API_PREFIX}/resolve`, purpose: 'Ein Medium zentral fuer Module/Use-Cases aufloesen' },
+      { method: 'GET', path: `${API_PREFIX}/categories`, purpose: 'Modul-/Zusatzkategorien fuer Upload und Picker auflisten' },
+      { method: 'POST', path: `${API_PREFIX}/category/upsert`, purpose: 'Zusatzkategorie fuer ein Modul anlegen/aktualisieren' },
+      { method: 'GET', path: `${API_PREFIX}/picker-options`, purpose: 'Picker-Ansicht inklusive view=recent&limit=20 vorbereiten' },
       { method: 'GET/POST', path: `${API_PREFIX}/scan`, purpose: 'Bestehende Medienordner scannen' },
       { method: 'POST', path: `${API_PREFIX}/upload`, purpose: 'Medium hochladen und registrieren' },
       { method: 'POST', path: `${API_PREFIX}/update`, purpose: 'Metadaten aendern' },
       { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei loeschen' }
     ],
-    note: 'STEP274D stellt eine zentrale Media-Resolver-Schicht bereit, damit Module Medieninfos nicht mehr selbst aus Pfaden ableiten muessen.',
+    note: 'STEP274K bereitet Modul-Kategorien, frei waehlbare Zusatzkategorien und die virtuelle Ansicht Neueste Uploads vor. Neue Uploads landen unter htdocs/assets/media/<module>/<category>/.',
     updatedAt: nowIso()
   };
 }
@@ -772,14 +1024,70 @@ function init(ctx) {
       const assets = listAssets({
         type: param(req, 'type', ''),
         category: param(req, 'category', ''),
+        moduleKey: param(req, 'moduleKey', ''),
+        categoryKey: param(req, 'categoryKey', ''),
         status: param(req, 'status', 'active'),
         q: param(req, 'q', ''),
+        view: param(req, 'view', ''),
         limit: param(req, 'limit', 200)
       });
       return res.json({ ok: true, assets, count: assets.length, updatedAt: nowIso() });
     } catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
   });
 
+
+
+  app.get(`${API_PREFIX}/categories`, (req, res) => {
+    try {
+      const categories = listCategories({ moduleKey: param(req, 'moduleKey', ''), includeInactive: param(req, 'includeInactive', '') });
+      return res.json({ ok: true, module: MODULE_NAME, step: MEDIA_STEP, categories, count: categories.length, updatedAt: nowIso() });
+    } catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
+  app.post(`${API_PREFIX}/category/upsert`, (req, res) => {
+    try {
+      const body = readBody(req);
+      const category = ensureCategory({
+        moduleKey: body.moduleKey || param(req, 'moduleKey', ''),
+        categoryKey: body.categoryKey || param(req, 'categoryKey', '') || body.category || param(req, 'category', ''),
+        label: body.label || param(req, 'label', ''),
+        allowedTypes: Array.isArray(body.allowedTypes) ? body.allowedTypes : undefined,
+        isSystem: false,
+        isActive: body.isActive !== false
+      });
+      state.lastChangeAt = nowIso();
+      return res.json({ ok: true, module: MODULE_NAME, step: MEDIA_STEP, category, updatedAt: nowIso() });
+    } catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
+  app.get(`${API_PREFIX}/picker-options`, (req, res) => {
+    try {
+      const view = param(req, 'view', '') || 'module';
+      const limit = param(req, 'limit', view === 'recent' ? 20 : 200);
+      const assets = listAssets({
+        type: param(req, 'type', ''),
+        moduleKey: param(req, 'moduleKey', ''),
+        categoryKey: param(req, 'categoryKey', ''),
+        status: param(req, 'status', 'active'),
+        q: param(req, 'q', ''),
+        view,
+        limit
+      });
+      const options = assets.map(asset => mediaOptionFromAsset(asset));
+      return res.json({
+        ok: true,
+        module: MODULE_NAME,
+        step: MEDIA_STEP,
+        view,
+        options,
+        count: options.length,
+        categories: listCategories({ moduleKey: param(req, 'moduleKey', '') }),
+        uploadTarget: resolveUploadContext(req),
+        note: view === 'recent' ? 'Neueste Uploads ist eine virtuelle Ansicht, keine echte Speicherkategorie.' : 'Picker-Optionen fuer den zentralen Media-Picker.',
+        updatedAt: nowIso()
+      });
+    } catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
 
   app.get(`${API_PREFIX}/resolve`, (req, res) => {
     try {
@@ -808,4 +1116,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: MEDIA_STEP };
 }
 
-module.exports = { init, statusPayload, listAssets, scanAssets, upsertAsset, getAsset, resolveAssetForUse, mediaOptionFromAsset, soundSystemFileFor };
+module.exports = { init, statusPayload, listAssets, scanAssets, upsertAsset, getAsset, resolveAssetForUse, mediaOptionFromAsset, soundSystemFileFor, listCategories, ensureCategory, resolveUploadContextFromValues };

@@ -1,27 +1,27 @@
-# CURRENT SYSTEM STATUS
+# Current System Status
 
-## Media / Sound / Commands
+Stand: STEP274K
 
-Aktueller Stand: **STEP274J**.
+## Media / Sound Architektur
 
-Die zentrale Medienverwaltung verwaltet Dateien, Media-IDs, Metadaten und Resolver-Informationen. Das Sound-System ist der offizielle zentrale Abspielpunkt für Audio, Video und Animation.
+- Medienverwaltung ist zentrale Registry für Dateien, Media-IDs und Metadaten.
+- Sound-System bleibt offizieller zentraler Abspielpunkt über `/api/sound/play-media`.
+- Audio, Video und Animationen werden über das bestehende `sound_system_overlay.html` abgespielt.
 
-Offizieller Playback-Endpunkt:
+## Media-Kategorien
 
-```text
-/api/sound/play-media?mediaId=<id>
-```
-
-Offizielles Playback-Overlay:
+Neue Uploads werden künftig strukturiert abgelegt:
 
 ```text
-/overlays/sound_system_overlay.html
+htdocs/assets/media/<moduleKey>/<categoryKey>/<datei>
 ```
 
-Commands mit `sound_play` oder `video_play` sollen auf den Sound-Media-Hub routen. Gespeicherte Commands können geprüft werden über:
+Regeln:
 
-```text
-/api/commands/media-command-check?trigger=<trigger>
-```
+- `moduleKey` wird vom aufrufenden Modul fest vorgegeben.
+- `categoryKey` ist die vom User wählbare/anlegbare Zusatzkategorie.
+- „Neueste Uploads“ ist nur eine virtuelle Ansicht über `created_at`, kein Dateiverzeichnis.
 
-`/api/video/*` und `_overlay-media-player.html` sind deprecated/test-only und nicht der offizielle Weg.
+## Nächster Schritt
+
+STEP274L: Zentralen Media-Picker / Upload-Dialog im Dashboard bauen.

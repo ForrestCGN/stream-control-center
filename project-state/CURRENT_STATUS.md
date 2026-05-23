@@ -1,7 +1,12 @@
-# CURRENT STATUS
+# Current Status
 
-Aktueller Stand: **STEP274J – Command-Praxischeck für Media-Playback-Hub**.
+Aktueller Stand: STEP274K
 
-Medienverwaltung bleibt Registry. Das Sound-System ist der offizielle zentrale Abspielpunkt für Audio, Video und Animation über `/api/sound/play-media?mediaId=<id>`.
+Die Medienverwaltung unterstützt jetzt das geplante Kategorienmodell:
 
-Neu in STEP274J: gespeicherte Media-Commands können über `/api/commands/media-command-check?trigger=<trigger>` geprüft werden.
+- Modul-Kategorie (`moduleKey`) wird vom aufrufenden Modul vorgegeben.
+- Zusatzkategorie (`categoryKey`) kann gewählt oder angelegt werden.
+- Neue Uploads gehen nach `htdocs/assets/media/<moduleKey>/<categoryKey>/`.
+- „Neueste Uploads“ ist als virtuelle Picker-Ansicht vorbereitet.
+
+Sound-System bleibt offizieller Media-Playback-Hub über `/api/sound/play-media`.
