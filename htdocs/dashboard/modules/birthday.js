@@ -415,6 +415,7 @@ window.BirthdayModule = (function(){
           state.notice = result?.message || 'Birthday-Medium übernommen.';
           await loadAll(true);
         } catch (err) {
+          state.notice = '';
           state.error = err.message || String(err);
           render();
         }

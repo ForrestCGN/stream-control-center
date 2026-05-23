@@ -1,8 +1,6 @@
 # CHANGELOG
 
-## STEP274W FIX1
+## STEP274W FIX2
 
-- Birthday Dashboard MediaPicker-Import repariert.
-- Show/Medien-Hauptweg auf MediaPicker umgestellt.
-- Legacy-Direktupload eingeklappt beibehalten.
-- Defektes STEP274W-Tool durch Stub ersetzt.
+- Birthday MediaPicker Import Route repariert.
+- Dashboard-Fehlerbehandlung beim Import korrigiert.

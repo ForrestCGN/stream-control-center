@@ -2686,10 +2686,8 @@ async function updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, 
   throw new Error('invalid_upload_kind');
 }
 
-async function handleBirthdayAssetUpload(payload = {}, file = null) {
-
-// STEP274W importBirthdayMediaAsset
-async function importBirthdayMediaAsset(payload = {}) {
+// STEP274W_FIX2 - top-level Media-Registry Import fuer Birthday-Show
+async function importBirthdayMediaAssetFromRegistry(payload = {}) {
   const kind = clean(payload.kind || payload.type || '');
   const mediaId = Number(payload.mediaId || payload.media_id || payload.id || 0);
   if (!mediaId) throw new Error('media_id_required');
@@ -2720,7 +2718,7 @@ async function importBirthdayMediaAsset(payload = {}) {
   return {
     ok: true,
     module: MODULE_NAME,
-    step: 'STEP274W',
+    step: 'STEP274W_FIX2',
     kind,
     source: 'media_registry',
     mediaId,
@@ -2739,9 +2737,13 @@ async function importBirthdayMediaAsset(payload = {}) {
     user: reference.login ? getBirthdayUser(reference.login) : null,
     profile: reference.login ? getBirthdayShowProfile(reference.login) : null,
     assets: buildBirthdayShowAssets(),
-    status: buildStatus()
+    status: buildStatus(),
+    message: 'Birthday-Medium wurde übernommen.'
   };
 }
+
+
+async function handleBirthdayAssetUpload(payload = {}, file = null) {
 
 
   if (!file || !file.buffer || !file.originalname) throw new Error('upload_file_missing');
@@ -3045,6 +3047,12 @@ function registerRoutes(ctx) {
     try { return res.json(await handleBirthdayAssetUpload(req.body || {}, req.file || null)); }
     catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
   }), upload.single('file'));
+
+  // STEP274W_FIX2 - Media-Registry Asset in Birthday-/Sound-System uebernehmen
+  routes.registerPost(app, [`${API_PREFIX}/admin/show/import-media`], core.asyncRoute(async (req, res) => {
+    try { return res.json(await importBirthdayMediaAssetFromRegistry(req.body || req.query || {})); }
+    catch (err) { return res.status(400).json({ ok: false, error: err.message || String(err) }); }
+  }));
 
 
   routes.registerGet(app, [`${API_PREFIX}/admin/show/assets`], (req, res) => {

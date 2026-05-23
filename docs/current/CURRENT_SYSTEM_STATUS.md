@@ -1,7 +1,14 @@
-# CURRENT_SYSTEM_STATUS
+# CURRENT STATUS
 
-## STEP274W FIX1
+STEP274W FIX2 ergänzt den fehlenden Backend-Route-Fix für Birthday MediaPicker Import.
 
-Birthday MediaPicker Import Dashboard-Fix.
+Aktuell:
+- MediaPicker öffnet im Birthday Show/Medien-Bereich.
+- Import-Endpunkt wird mit STEP274W_FIX2 korrekt registriert.
+- Dashboard zeigt Erfolg nur noch bei echtem erfolgreichen Import.
 
-Der zentrale MediaPicker soll künftig der Standard-Hauptweg für Modul-Uploads sein. Direkte Uploadfelder in Modulen sollen nur noch Legacy-Fallback sein, wenn nötig.
+Nächster Test:
+- Birthday-System → Show/Medien
+- User eintragen
+- User-Song per MediaPicker auswählen
+- prüfen, ob Song beim User sichtbar wird.
