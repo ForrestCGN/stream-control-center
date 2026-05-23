@@ -1094,9 +1094,9 @@ function saveRule(input, silent = false) {
     durationMs: clamp(toInt(input.duration_ms ?? input.durationMs, state.config.defaultDurationMs), 1000, 60000),
     durationMode: cleanKey(input.duration_mode || input.durationMode || 'fixed') === 'sound' ? 'sound' : 'fixed',
     animation: 'neon_card',
-    imageMode: 'none',
+    imageMode: cleanKey(input.image_mode || input.imageMode || 'none'),
     soundAssetId: nullableInt(input.sound_asset_id ?? input.soundAssetId),
-    imageAssetId: null,
+    imageAssetId: nullableInt(input.image_asset_id ?? input.imageAssetId),
     soundMediaId: nullableInt(input.sound_media_id ?? input.soundMediaId),
     imageMediaId: nullableInt(input.image_media_id ?? input.imageMediaId),
     displayProfileId: nullableInt(input.display_profile_id ?? input.displayProfileId),
@@ -1109,6 +1109,10 @@ function saveRule(input, silent = false) {
     ttsMinAmount: nullableNumber(input.tts_min_amount ?? input.ttsMinAmount),
     metaJson: JSON.stringify(input.meta || parseJson(input.meta_json, {}))
   };
+  if (!state.config.allowedImageModes.includes(rule.imageMode)) rule.imageMode = 'none';
+  if (!rule.imageAssetId && !rule.imageMediaId && rule.imageMode !== 'avatar' && rule.imageMode !== 'avatar_icon') rule.imageMode = 'none';
+  if (rule.imageMediaId && rule.imageMode === 'none') rule.imageMode = 'special';
+  if (rule.imageAssetId && rule.imageMode === 'none') rule.imageMode = 'special';
   if (rule.maxValue !== null && rule.minValue !== null && rule.maxValue < rule.minValue) throw new Error('max_value darf nicht kleiner als min_value sein.');
 
   if (id > 0) {
@@ -2112,6 +2116,35 @@ function alertRuleSoundMediaId(rule) {
   const raw = rule ? (rule.sound_media_id ?? rule.soundMediaId ?? 0) : 0;
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function alertRuleImageMediaId(rule) {
+  const raw = rule ? (rule.image_media_id ?? rule.imageMediaId ?? 0) : 0;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function mediaRegistryWebPath(relativePath, explicitWebPath = '') {
+  const direct = cleanText(explicitWebPath || '');
+  if (direct) return direct.replace(/\\/g, '/');
+  const rel = cleanText(relativePath || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!rel) return '';
+  if (rel.startsWith('assets/')) return `/${rel}`;
+  return `/assets/${rel}`;
+}
+
+function alertRuleImageUrl(rule) {
+  if (!rule) return '';
+  const mediaId = alertRuleImageMediaId(rule);
+  if (mediaId) return mediaRegistryWebPath(rule.image_media_path || rule.imageMediaPath || '', rule.image_media_url || rule.imageMediaUrl || '');
+  return cleanText(rule.image_url || rule.imageUrl || '');
+}
+
+function alertRuleImageLabel(rule) {
+  if (!rule) return '';
+  const mediaId = alertRuleImageMediaId(rule);
+  if (mediaId) return cleanText(rule.image_media_label || rule.imageMediaLabel || rule.image_media_path || rule.imageMediaPath || `MediaId ${mediaId}`);
+  return cleanText(rule.image_label || rule.imageLabel || '');
 }
 
 function alertRuleSoundDurationMs(rule) {
@@ -3282,7 +3315,9 @@ function buildOverlayAlert(event) {
     imageMode: rule.image_mode || 'none',
     celebration: resolveEventCelebration(event, rule, displayProfile.settings),
     soundUrl: rule.sound_url || '',
-    imageUrl: rule.image_url || '',
+    imageUrl: alertRuleImageUrl(rule),
+    imageLabel: alertRuleImageLabel(rule),
+    badgeImageUrl: alertRuleImageUrl(rule),
     ruleId: rule.id || null,
     textVariantId: text.variantId || null,
     tts: buildTtsPayload(event, rule),

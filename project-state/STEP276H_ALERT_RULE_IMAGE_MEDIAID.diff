@@ -1,0 +1,244 @@
+--- backend/modules/alert_system.js (before STEP276H)
++++ backend/modules/alert_system.js (STEP276H)
+@@ -1094,9 +1094,9 @@
+     durationMs: clamp(toInt(input.duration_ms ?? input.durationMs, state.config.defaultDurationMs), 1000, 60000),
+     durationMode: cleanKey(input.duration_mode || input.durationMode || 'fixed') === 'sound' ? 'sound' : 'fixed',
+     animation: 'neon_card',
+-    imageMode: 'none',
++    imageMode: cleanKey(input.image_mode || input.imageMode || 'none'),
+     soundAssetId: nullableInt(input.sound_asset_id ?? input.soundAssetId),
+-    imageAssetId: null,
++    imageAssetId: nullableInt(input.image_asset_id ?? input.imageAssetId),
+     soundMediaId: nullableInt(input.sound_media_id ?? input.soundMediaId),
+     imageMediaId: nullableInt(input.image_media_id ?? input.imageMediaId),
+     displayProfileId: nullableInt(input.display_profile_id ?? input.displayProfileId),
+@@ -1109,6 +1109,10 @@
+     ttsMinAmount: nullableNumber(input.tts_min_amount ?? input.ttsMinAmount),
+     metaJson: JSON.stringify(input.meta || parseJson(input.meta_json, {}))
+   };
++  if (!state.config.allowedImageModes.includes(rule.imageMode)) rule.imageMode = 'none';
++  if (!rule.imageAssetId && !rule.imageMediaId && rule.imageMode !== 'avatar' && rule.imageMode !== 'avatar_icon') rule.imageMode = 'none';
++  if (rule.imageMediaId && rule.imageMode === 'none') rule.imageMode = 'special';
++  if (rule.imageAssetId && rule.imageMode === 'none') rule.imageMode = 'special';
+   if (rule.maxValue !== null && rule.minValue !== null && rule.maxValue < rule.minValue) throw new Error('max_value darf nicht kleiner als min_value sein.');
+ 
+   if (id > 0) {
+@@ -2114,6 +2118,35 @@
+   return Number.isFinite(n) && n > 0 ? n : 0;
+ }
+ 
++function alertRuleImageMediaId(rule) {
++  const raw = rule ? (rule.image_media_id ?? rule.imageMediaId ?? 0) : 0;
++  const n = Number.parseInt(raw, 10);
++  return Number.isFinite(n) && n > 0 ? n : 0;
++}
++
++function mediaRegistryWebPath(relativePath, explicitWebPath = '') {
++  const direct = cleanText(explicitWebPath || '');
++  if (direct) return direct.replace(/\\/g, '/');
++  const rel = cleanText(relativePath || '').replace(/\\/g, '/').replace(/^\/+/, '');
++  if (!rel) return '';
++  if (rel.startsWith('assets/')) return `/${rel}`;
++  return `/assets/${rel}`;
++}
++
++function alertRuleImageUrl(rule) {
++  if (!rule) return '';
++  const mediaId = alertRuleImageMediaId(rule);
++  if (mediaId) return mediaRegistryWebPath(rule.image_media_path || rule.imageMediaPath || '', rule.image_media_url || rule.imageMediaUrl || '');
++  return cleanText(rule.image_url || rule.imageUrl || '');
++}
++
++function alertRuleImageLabel(rule) {
++  if (!rule) return '';
++  const mediaId = alertRuleImageMediaId(rule);
++  if (mediaId) return cleanText(rule.image_media_label || rule.imageMediaLabel || rule.image_media_path || rule.imageMediaPath || `MediaId ${mediaId}`);
++  return cleanText(rule.image_label || rule.imageLabel || '');
++}
++
+ function alertRuleSoundDurationMs(rule) {
+   const mediaId = alertRuleSoundMediaId(rule);
+   const mediaDuration = Number(rule && (rule.sound_media_duration_ms ?? rule.soundMediaDurationMs) || 0);
+@@ -3282,7 +3315,9 @@
+     imageMode: rule.image_mode || 'none',
+     celebration: resolveEventCelebration(event, rule, displayProfile.settings),
+     soundUrl: rule.sound_url || '',
+-    imageUrl: rule.image_url || '',
++    imageUrl: alertRuleImageUrl(rule),
++    imageLabel: alertRuleImageLabel(rule),
++    badgeImageUrl: alertRuleImageUrl(rule),
+     ruleId: rule.id || null,
+     textVariantId: text.variantId || null,
+     tts: buildTtsPayload(event, rule),
+
+
+--- htdocs/dashboard/modules/alerts.js (before STEP276H)
++++ htdocs/dashboard/modules/alerts.js (STEP276H)
+@@ -488,8 +488,8 @@
+       .sound-media-picker-row{grid-template-columns:minmax(0,1fr) auto 34px;}
+       .sound-media-picker-row input[readonly]{min-width:0;overflow:hidden;text-overflow:ellipsis;}
+       .sound-media-picker-row button{height:40px;white-space:nowrap;}
+-      .sound-media-picker-row #pickRuleSoundMedia, .sound-media-picker-row #pickTopGraphicMedia{min-width:118px;padding-left:14px;padding-right:14px;}
+-      .sound-media-picker-row #clearRuleSoundMedia, .sound-media-picker-row #clearTopGraphicMedia{width:34px;min-width:34px;padding:0;}
++      .sound-media-picker-row #pickRuleSoundMedia, .sound-media-picker-row #pickRuleImageMedia, .sound-media-picker-row #pickTopGraphicMedia{min-width:118px;padding-left:14px;padding-right:14px;}
++      .sound-media-picker-row #clearRuleSoundMedia, .sound-media-picker-row #clearRuleImageMedia, .sound-media-picker-row #clearTopGraphicMedia{width:34px;min-width:34px;padding:0;}
+       .sound-select-play{align-self:end;}
+       .sound-assets-table .row-actions{gap:8px;align-items:center;}
+       .legacy-sound-foldout{align-self:start;position:relative;min-height:40px;z-index:2;}
+@@ -672,6 +672,11 @@
+   function soundAssetById(id){
+     if (id === null || id === undefined || id === '') return null;
+     return state.assets.find(a => a.asset_type === 'sound' && Number(a.id) === Number(id)) || null;
++  }
++
++  function imageAssetById(id){
++    if (id === null || id === undefined || id === '') return null;
++    return state.assets.find(a => a.asset_type === 'image' && Number(a.id) === Number(id)) || null;
+   }
+ 
+   function selectedSoundUrl(id){
+@@ -1220,6 +1225,25 @@
+     return `MediaId ${id} · ${label}${duration ? ` · ${fmtMs(duration)}` : ''}`;
+   }
+ 
++  function ruleImageMediaId(rule){
++    const raw = rule?.image_media_id ?? rule?.imageMediaId ?? '';
++    const id = Number(raw || 0);
++    return Number.isFinite(id) && id > 0 ? id : '';
++  }
++
++  function ruleImageMediaLabel(rule){
++    const id = ruleImageMediaId(rule);
++    if (!id) return '— keine Media-Registry-Grafik —';
++    const label = rule?.image_media_label || rule?.imageMediaLabel || rule?.image_media_path || rule?.imageMediaPath || `MediaId ${id}`;
++    return `MediaId ${id} · ${label}`;
++  }
++
++  function ruleLegacyImageLabel(imageAssetId){
++    const asset = imageAssetById(imageAssetId);
++    if (!asset) return 'kein altes Bild gesetzt';
++    return asset.label || asset.original_name || asset.public_url || `Grafik ${asset.id || imageAssetId}`;
++  }
++
+   function ruleLegacySoundLabel(soundAssetId){
+     const asset = soundAssetById(soundAssetId);
+     if (!asset) return 'kein alter Sound gesetzt';
+@@ -1233,6 +1257,9 @@
+     const soundMediaId = ruleSoundMediaId(r);
+     const soundMediaLabel = ruleSoundMediaLabel(r);
+     const legacySoundLabel = ruleLegacySoundLabel(r.sound_asset_id);
++    const imageMediaId = ruleImageMediaId(r);
++    const imageMediaLabel = ruleImageMediaLabel(r);
++    const legacyImageLabel = ruleLegacyImageLabel(r.image_asset_id);
+     const activeDurationText = (r.duration_mode || 'fixed') === 'sound' ? calcDurationFromSoundMs(soundDuration, r.duration_ms) : fmtMs(r.duration_ms ?? 7000);
+     const fixedHint = (r.duration_mode || 'fixed') === 'fixed' ? `Aktiv: ${fmtMs(r.duration_ms ?? 7000)}` : `Nur Fallback: ${fmtMs(r.duration_ms ?? 7000)}`;
+     const soundHint = (r.duration_mode || 'fixed') === 'sound' ? `Aktiv: ${calcDurationFromSoundMs(soundDuration, r.duration_ms)}` : 'Nicht aktiv';
+@@ -1258,8 +1285,16 @@
+               <p class="small-note legacy-sound-hint">Sicherheits-Fallback für bestehende Alerts. Wird nur genutzt, wenn kein Media-Registry-Sound gesetzt ist.</p>
+             </div>
+           </details>
++          <label class="wide-field">Regel-Grafik aus Media-Registry<input type="hidden" id="ruleImageMediaId" value="${esc(imageMediaId)}"><div class="sound-select-row sound-media-picker-row"><input id="ruleImageMediaInfo" value="${esc(imageMediaLabel)}" readonly><button type="button" id="pickRuleImageMedia">Auswählen</button><button type="button" id="clearRuleImageMedia" ${imageMediaId ? '' : 'disabled'} title="Media-Registry-Grafik entfernen" aria-label="Media-Registry-Grafik entfernen">×</button></div></label>
++          <details class="wide-field legacy-sound-foldout" ${imageMediaId ? '' : 'open'}>
++            <summary><strong>Alte Grafik / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacyImageLabel)}</span></summary>
++            <div class="legacy-sound-body">
++              <label class="wide-field legacy-sound-field"><span>Nur verwenden, wenn oben keine Media-Registry-Grafik gesetzt ist</span><select id="ruleImage">${assetOptions('image', r.image_asset_id)}</select></label>
++              <p class="small-note legacy-sound-hint">Sicherheits-Fallback für bestehende Alert-Regelbilder. Wird nur genutzt, wenn keine Media-Registry-Grafik gesetzt ist.</p>
++            </div>
++          </details>
+           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
+-        </div><p class="small-note">Media-Registry-Sound hat Vorrang. Alter Sound/Fallback wird nur genutzt, wenn oben kein Media-Registry-Sound ausgewählt ist. Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
++        </div><p class="small-note">Media-Registry-Sound/-Grafik hat Vorrang. Alte Sound-/Grafik-Fallbacks werden nur genutzt, wenn oben nichts aus der Media-Registry ausgewählt ist. Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
+         <div class="form-section"><h3>Chat-Nachricht</h3><div class="form-grid editor-grid">
+           <label class="wide-field">Chat-Textblock<select id="ruleChatBlock">${chatBlockOptions(r.source, r.type_key, r.meta?.chatMessage?.blockId || r.meta?.chatMessage?.block_id || '')}</select></label>
+         </div><p class="small-note">Nein = kein Chat-Post. Bei Auswahl eines Textblocks wird pro Alert genau ein zufälliger Text aus diesem Block gesendet. Es wird kein einzelner Text pro Regel ausgewählt.</p></div>
+@@ -1454,12 +1489,12 @@
+       duration_ms: Number(document.getElementById('ruleDuration').value || 7000),
+       duration_mode: durationMode,
+       animation: 'neon_card',
+-      image_mode: 'none',
++      image_mode: (valOrNull('ruleImageMediaId') || valOrNull('ruleImage')) ? 'special' : 'none',
+       enabled: Number(state.modalRule?.enabled ?? 1),
+       sound_asset_id: valOrNull('ruleSound'),
+-      image_asset_id: null,
++      image_asset_id: valOrNull('ruleImage'),
+       sound_media_id: valOrNull('ruleSoundMediaId'),
+-      image_media_id: state.modalRule?.image_media_id ?? state.modalRule?.imageMediaId ?? null,
++      image_media_id: valOrNull('ruleImageMediaId'),
+       display_profile_id: valOrNull('ruleDisplayProfile'),
+       tts_enabled: Number(document.getElementById('ruleTtsEnabled').value || 0),
+       tts_timing: document.getElementById('ruleTtsTiming').value,
+@@ -1567,6 +1602,44 @@
+     });
+   }
+ 
++  function setRuleImageMediaSelection(asset){
++    const id = asset && Number(asset.id || 0) > 0 ? Number(asset.id) : '';
++    const labelText = id ? (asset.label || asset.displayName || asset.fileName || asset.relativePath || 'Media-Registry-Grafik') : '';
++    const label = id ? `MediaId ${id} · ${labelText}` : '— keine Media-Registry-Grafik —';
++    const input = root.querySelector('#ruleImageMediaId');
++    const info = root.querySelector('#ruleImageMediaInfo');
++    const clearBtn = root.querySelector('#clearRuleImageMedia');
++    if (input) input.value = id ? String(id) : '';
++    if (info) info.value = label;
++    if (clearBtn) clearBtn.disabled = !id;
++    if (state.modalRule) {
++      state.modalRule.image_media_id = id || null;
++      state.modalRule.imageMediaId = id || null;
++      state.modalRule.image_media_label = id ? labelText : '';
++      state.modalRule.imageMediaLabel = id ? labelText : '';
++      state.modalRule.image_media_path = id ? (asset.relativePath || '') : '';
++      state.modalRule.image_media_url = id ? (asset.webPath || '') : '';
++    }
++  }
++
++  function openRuleImageMediaPicker(){
++    if (!window.MediaPicker || typeof window.MediaPicker.open !== 'function') {
++      state.note = 'MediaPicker-Komponente ist nicht geladen.';
++      render();
++      return;
++    }
++    const source = root.querySelector('#ruleSource')?.value || state.modalRule?.source || 'twitch';
++    const typeKey = root.querySelector('#ruleTypeKey')?.value || state.modalRule?.type_key || 'general';
++    window.MediaPicker.open({
++      title: `Alert-Grafik auswählen · ${source}/${typeKey}`,
++      moduleKey: 'alerts',
++      categoryKey: alertSoundCategoryKey(typeKey),
++      allowedTypes: ['image'],
++      view: 'module',
++      onSelect: setRuleImageMediaSelection
++    });
++  }
++
+   function setTopGraphicMediaSelection(asset){
+     const id = asset && Number(asset.id || 0) > 0 ? Number(asset.id) : '';
+     const labelText = id ? (asset.label || asset.displayName || asset.fileName || asset.relativePath || 'Media-Registry-Grafik') : '';
+@@ -1738,6 +1811,16 @@
+       ev.preventDefault();
+       ev.stopPropagation();
+       setRuleSoundMediaSelection(null);
++    });
++    root.querySelector('#pickRuleImageMedia')?.addEventListener('click', ev => {
++      ev.preventDefault();
++      ev.stopPropagation();
++      openRuleImageMediaPicker();
++    });
++    root.querySelector('#clearRuleImageMedia')?.addEventListener('click', ev => {
++      ev.preventDefault();
++      ev.stopPropagation();
++      setRuleImageMediaSelection(null);
+     });
+     updateSoundButtonStates();
+     root.querySelectorAll('[data-del-asset]').forEach(btn => btn.addEventListener('click', async () => {
+@@ -2225,10 +2308,10 @@
+       duration_ms: Number(r.duration_ms ?? 7000),
+       duration_mode: r.duration_mode || 'fixed',
+       animation: 'neon_card',
+-      image_mode: 'none',
++      image_mode: r.image_mode || r.imageMode || ((r.image_media_id ?? r.imageMediaId ?? r.image_asset_id) ? 'special' : 'none'),
+       enabled: enabledOverride === undefined ? Number(r.enabled ?? 1) : Number(enabledOverride),
+       sound_asset_id: r.sound_asset_id ?? null,
+-      image_asset_id: null,
++      image_asset_id: r.image_asset_id ?? null,
+       sound_media_id: r.sound_media_id ?? r.soundMediaId ?? null,
+       image_media_id: r.image_media_id ?? r.imageMediaId ?? null,
+       display_profile_id: r.display_profile_id ?? null,

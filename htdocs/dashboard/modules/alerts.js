@@ -488,8 +488,8 @@
       .sound-media-picker-row{grid-template-columns:minmax(0,1fr) auto 34px;}
       .sound-media-picker-row input[readonly]{min-width:0;overflow:hidden;text-overflow:ellipsis;}
       .sound-media-picker-row button{height:40px;white-space:nowrap;}
-      .sound-media-picker-row #pickRuleSoundMedia, .sound-media-picker-row #pickTopGraphicMedia{min-width:118px;padding-left:14px;padding-right:14px;}
-      .sound-media-picker-row #clearRuleSoundMedia, .sound-media-picker-row #clearTopGraphicMedia{width:34px;min-width:34px;padding:0;}
+      .sound-media-picker-row #pickRuleSoundMedia, .sound-media-picker-row #pickRuleImageMedia, .sound-media-picker-row #pickTopGraphicMedia{min-width:118px;padding-left:14px;padding-right:14px;}
+      .sound-media-picker-row #clearRuleSoundMedia, .sound-media-picker-row #clearRuleImageMedia, .sound-media-picker-row #clearTopGraphicMedia{width:34px;min-width:34px;padding:0;}
       .sound-select-play{align-self:end;}
       .sound-assets-table .row-actions{gap:8px;align-items:center;}
       .legacy-sound-foldout{align-self:start;position:relative;min-height:40px;z-index:2;}
@@ -501,17 +501,6 @@
       .legacy-sound-foldout[open] .legacy-sound-body{display:block;position:absolute;left:0;right:0;top:44px;padding:10px 12px 12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(21,21,24,.98);box-shadow:0 18px 36px rgba(0,0,0,.38),0 0 22px rgba(118,82,255,.10);}
       .legacy-sound-field{margin-top:0;}
       .legacy-sound-hint{margin:6px 0 0 0;}
-      /* STEP276G_FIX1: Grafik-Fallback im Design-Grid darf keine darunterliegenden Felder ueberlagern. */
-      .design-section .design-grid>.graphic-media-picker-field{grid-column:span 2;min-width:0;}
-      .design-section .design-grid>.legacy-graphic-foldout{grid-column:span 2;align-self:stretch;min-height:104px;padding:12px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.025);}
-      .design-section .design-grid>.legacy-graphic-foldout summary{min-height:28px;display:flex;align-items:center;gap:8px;}
-      .design-section .design-grid>.legacy-graphic-foldout .legacy-sound-summary{max-width:220px;}
-      .design-section .design-grid>.legacy-graphic-foldout .legacy-sound-body,
-      .design-section .design-grid>.legacy-graphic-foldout[open] .legacy-sound-body{position:static;display:block;margin-top:10px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;}
-      .design-section .design-grid>.legacy-graphic-foldout:not([open]) .legacy-sound-body{display:none;}
-      .design-section .design-grid>.legacy-graphic-foldout label{min-height:0!important;padding:0!important;border:0!important;background:transparent!important;}
-      @media (max-width: 820px){.design-section .design-grid>.graphic-media-picker-field,.design-section .design-grid>.legacy-graphic-foldout{grid-column:1 / -1;}}
-
       .path-small{font-size:11px;opacity:.78;word-break:break-all;}
       .chat-text-lines{white-space:pre-line;line-height:1.35;}
       .chat-block-select-row{display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px;align-items:end;}
@@ -683,6 +672,11 @@
   function soundAssetById(id){
     if (id === null || id === undefined || id === '') return null;
     return state.assets.find(a => a.asset_type === 'sound' && Number(a.id) === Number(id)) || null;
+  }
+
+  function imageAssetById(id){
+    if (id === null || id === undefined || id === '') return null;
+    return state.assets.find(a => a.asset_type === 'image' && Number(a.id) === Number(id)) || null;
   }
 
   function selectedSoundUrl(id){
@@ -870,7 +864,7 @@
             <div class="design-section">
               <h3>4. Grafik über dem Alert</h3>
               <div class="config-grid design-grid">
-                <label class="wide-field graphic-media-picker-field">Grafik aus Media-Registry
+                <label class="wide-field">Grafik aus Media-Registry
                   <input type="hidden" data-display-key="topGraphicMediaId" value="${esc(topGraphicMediaId)}">
                   <input type="hidden" data-display-key="topGraphicMediaUrl" value="${esc(st.topGraphicMediaUrl || '')}">
                   <input type="hidden" data-display-key="topGraphicMediaLabel" value="${esc(st.topGraphicMediaLabel || '')}">
@@ -1231,6 +1225,25 @@
     return `MediaId ${id} · ${label}${duration ? ` · ${fmtMs(duration)}` : ''}`;
   }
 
+  function ruleImageMediaId(rule){
+    const raw = rule?.image_media_id ?? rule?.imageMediaId ?? '';
+    const id = Number(raw || 0);
+    return Number.isFinite(id) && id > 0 ? id : '';
+  }
+
+  function ruleImageMediaLabel(rule){
+    const id = ruleImageMediaId(rule);
+    if (!id) return '— keine Media-Registry-Grafik —';
+    const label = rule?.image_media_label || rule?.imageMediaLabel || rule?.image_media_path || rule?.imageMediaPath || `MediaId ${id}`;
+    return `MediaId ${id} · ${label}`;
+  }
+
+  function ruleLegacyImageLabel(imageAssetId){
+    const asset = imageAssetById(imageAssetId);
+    if (!asset) return 'kein altes Bild gesetzt';
+    return asset.label || asset.original_name || asset.public_url || `Grafik ${asset.id || imageAssetId}`;
+  }
+
   function ruleLegacySoundLabel(soundAssetId){
     const asset = soundAssetById(soundAssetId);
     if (!asset) return 'kein alter Sound gesetzt';
@@ -1244,6 +1257,9 @@
     const soundMediaId = ruleSoundMediaId(r);
     const soundMediaLabel = ruleSoundMediaLabel(r);
     const legacySoundLabel = ruleLegacySoundLabel(r.sound_asset_id);
+    const imageMediaId = ruleImageMediaId(r);
+    const imageMediaLabel = ruleImageMediaLabel(r);
+    const legacyImageLabel = ruleLegacyImageLabel(r.image_asset_id);
     const activeDurationText = (r.duration_mode || 'fixed') === 'sound' ? calcDurationFromSoundMs(soundDuration, r.duration_ms) : fmtMs(r.duration_ms ?? 7000);
     const fixedHint = (r.duration_mode || 'fixed') === 'fixed' ? `Aktiv: ${fmtMs(r.duration_ms ?? 7000)}` : `Nur Fallback: ${fmtMs(r.duration_ms ?? 7000)}`;
     const soundHint = (r.duration_mode || 'fixed') === 'sound' ? `Aktiv: ${calcDurationFromSoundMs(soundDuration, r.duration_ms)}` : 'Nicht aktiv';
@@ -1269,8 +1285,16 @@
               <p class="small-note legacy-sound-hint">Sicherheits-Fallback für bestehende Alerts. Wird nur genutzt, wenn kein Media-Registry-Sound gesetzt ist.</p>
             </div>
           </details>
+          <label class="wide-field">Regel-Grafik aus Media-Registry<input type="hidden" id="ruleImageMediaId" value="${esc(imageMediaId)}"><div class="sound-select-row sound-media-picker-row"><input id="ruleImageMediaInfo" value="${esc(imageMediaLabel)}" readonly><button type="button" id="pickRuleImageMedia">Auswählen</button><button type="button" id="clearRuleImageMedia" ${imageMediaId ? '' : 'disabled'} title="Media-Registry-Grafik entfernen" aria-label="Media-Registry-Grafik entfernen">×</button></div></label>
+          <details class="wide-field legacy-sound-foldout" ${imageMediaId ? '' : 'open'}>
+            <summary><strong>Alte Grafik / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacyImageLabel)}</span></summary>
+            <div class="legacy-sound-body">
+              <label class="wide-field legacy-sound-field"><span>Nur verwenden, wenn oben keine Media-Registry-Grafik gesetzt ist</span><select id="ruleImage">${assetOptions('image', r.image_asset_id)}</select></label>
+              <p class="small-note legacy-sound-hint">Sicherheits-Fallback für bestehende Alert-Regelbilder. Wird nur genutzt, wenn keine Media-Registry-Grafik gesetzt ist.</p>
+            </div>
+          </details>
           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
-        </div><p class="small-note">Media-Registry-Sound hat Vorrang. Alter Sound/Fallback wird nur genutzt, wenn oben kein Media-Registry-Sound ausgewählt ist. Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
+        </div><p class="small-note">Media-Registry-Sound/-Grafik hat Vorrang. Alte Sound-/Grafik-Fallbacks werden nur genutzt, wenn oben nichts aus der Media-Registry ausgewählt ist. Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
         <div class="form-section"><h3>Chat-Nachricht</h3><div class="form-grid editor-grid">
           <label class="wide-field">Chat-Textblock<select id="ruleChatBlock">${chatBlockOptions(r.source, r.type_key, r.meta?.chatMessage?.blockId || r.meta?.chatMessage?.block_id || '')}</select></label>
         </div><p class="small-note">Nein = kein Chat-Post. Bei Auswahl eines Textblocks wird pro Alert genau ein zufälliger Text aus diesem Block gesendet. Es wird kein einzelner Text pro Regel ausgewählt.</p></div>
@@ -1465,12 +1489,12 @@
       duration_ms: Number(document.getElementById('ruleDuration').value || 7000),
       duration_mode: durationMode,
       animation: 'neon_card',
-      image_mode: 'none',
+      image_mode: (valOrNull('ruleImageMediaId') || valOrNull('ruleImage')) ? 'special' : 'none',
       enabled: Number(state.modalRule?.enabled ?? 1),
       sound_asset_id: valOrNull('ruleSound'),
-      image_asset_id: null,
+      image_asset_id: valOrNull('ruleImage'),
       sound_media_id: valOrNull('ruleSoundMediaId'),
-      image_media_id: state.modalRule?.image_media_id ?? state.modalRule?.imageMediaId ?? null,
+      image_media_id: valOrNull('ruleImageMediaId'),
       display_profile_id: valOrNull('ruleDisplayProfile'),
       tts_enabled: Number(document.getElementById('ruleTtsEnabled').value || 0),
       tts_timing: document.getElementById('ruleTtsTiming').value,
@@ -1575,6 +1599,44 @@
       allowedTypes: ['audio'],
       view: 'module',
       onSelect: setRuleSoundMediaSelection
+    });
+  }
+
+  function setRuleImageMediaSelection(asset){
+    const id = asset && Number(asset.id || 0) > 0 ? Number(asset.id) : '';
+    const labelText = id ? (asset.label || asset.displayName || asset.fileName || asset.relativePath || 'Media-Registry-Grafik') : '';
+    const label = id ? `MediaId ${id} · ${labelText}` : '— keine Media-Registry-Grafik —';
+    const input = root.querySelector('#ruleImageMediaId');
+    const info = root.querySelector('#ruleImageMediaInfo');
+    const clearBtn = root.querySelector('#clearRuleImageMedia');
+    if (input) input.value = id ? String(id) : '';
+    if (info) info.value = label;
+    if (clearBtn) clearBtn.disabled = !id;
+    if (state.modalRule) {
+      state.modalRule.image_media_id = id || null;
+      state.modalRule.imageMediaId = id || null;
+      state.modalRule.image_media_label = id ? labelText : '';
+      state.modalRule.imageMediaLabel = id ? labelText : '';
+      state.modalRule.image_media_path = id ? (asset.relativePath || '') : '';
+      state.modalRule.image_media_url = id ? (asset.webPath || '') : '';
+    }
+  }
+
+  function openRuleImageMediaPicker(){
+    if (!window.MediaPicker || typeof window.MediaPicker.open !== 'function') {
+      state.note = 'MediaPicker-Komponente ist nicht geladen.';
+      render();
+      return;
+    }
+    const source = root.querySelector('#ruleSource')?.value || state.modalRule?.source || 'twitch';
+    const typeKey = root.querySelector('#ruleTypeKey')?.value || state.modalRule?.type_key || 'general';
+    window.MediaPicker.open({
+      title: `Alert-Grafik auswählen · ${source}/${typeKey}`,
+      moduleKey: 'alerts',
+      categoryKey: alertSoundCategoryKey(typeKey),
+      allowedTypes: ['image'],
+      view: 'module',
+      onSelect: setRuleImageMediaSelection
     });
   }
 
@@ -1749,6 +1811,16 @@
       ev.preventDefault();
       ev.stopPropagation();
       setRuleSoundMediaSelection(null);
+    });
+    root.querySelector('#pickRuleImageMedia')?.addEventListener('click', ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openRuleImageMediaPicker();
+    });
+    root.querySelector('#clearRuleImageMedia')?.addEventListener('click', ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setRuleImageMediaSelection(null);
     });
     updateSoundButtonStates();
     root.querySelectorAll('[data-del-asset]').forEach(btn => btn.addEventListener('click', async () => {
@@ -2236,10 +2308,10 @@
       duration_ms: Number(r.duration_ms ?? 7000),
       duration_mode: r.duration_mode || 'fixed',
       animation: 'neon_card',
-      image_mode: 'none',
+      image_mode: r.image_mode || r.imageMode || ((r.image_media_id ?? r.imageMediaId ?? r.image_asset_id) ? 'special' : 'none'),
       enabled: enabledOverride === undefined ? Number(r.enabled ?? 1) : Number(enabledOverride),
       sound_asset_id: r.sound_asset_id ?? null,
-      image_asset_id: null,
+      image_asset_id: r.image_asset_id ?? null,
       sound_media_id: r.sound_media_id ?? r.soundMediaId ?? null,
       image_media_id: r.image_media_id ?? r.imageMediaId ?? null,
       display_profile_id: r.display_profile_id ?? null,
