@@ -1,27 +1,26 @@
 # CURRENT_STATUS
 
-Aktueller Stand: STEP274W FIX4 vorbereitet. Birthday MediaPicker Import Route wird hart repariert, damit POST /api/birthday/admin/show/import-media im laufenden Backend registriert ist.
+Aktueller Stand: STEP276B vorbereitet. Alert-Regeln können optional Media-Registry-IDs speichern, ohne bestehende Alert-Assets oder Legacy-Pfade zu entfernen.
 
-## STEP274Y - Birthday MediaPicker UX-Cleanup
-Status: vorbereitet/anzuwenden. Der Birthday-MediaPicker ist jetzt klarer kategorisiert: intro, default-song, user-songs und party-songs.
+## STEP276B_ALERT_RULE_MEDIA_COLUMNS
 
-## STEP274Z_MEDIA_PICKER_FILTER_DEFAULT_ALL
+Alert-System Backend-Fundament für Media-Registry:
 
-Der zentrale MediaPicker startet beim Öffnen wieder mit dem sichtbaren Filter `Alle Zusatzkategorien`.
-Das Upload-Ziel bleibt weiterhin über `config.categoryKey` modul-/button-spezifisch gesetzt.
+- Schema-Version `alert_system` auf 6.
+- Neue optionale Spalten:
+  - `alert_rules.sound_media_id`
+  - `alert_rules.image_media_id`
+- `saveRule()` speichert `sound_media_id` / `soundMediaId` und `image_media_id` / `imageMediaId`.
+- Bestehende Felder `sound_asset_id` und `image_asset_id` bleiben unverändert.
 
-## STEP274Z_FIX1_REMOVE_FILTER_HINT
+## STEP275B_FIX1_MEDIA_UPLOAD_FIELD_ORDER
 
-MediaPicker: Der sichtbare Zusatztext unter/bei `Zusatzkategorie` wurde entfernt. Funktional bleibt die Trennung von Filter und Upload-Ziel bestehen.
-
-## STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
-
-Sound-System unterstützt jetzt direkte Media-Registry-Wiedergabe per `mediaId`. Ziel ist, künftige doppelte Birthday-/Sound-Dateien zu vermeiden. Bestehende Legacy-Pfade funktionieren weiterhin.
+MediaPicker-Uploads setzen den Zielordner zuverlässig vor dem Datei-Stream. Neue Birthday-User-Songs sollen physisch unter `assets/media/birthday/user-songs` landen.
 
 ## STEP275B_BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY
 
 Birthday nutzt nach MediaPicker-Import bevorzugt Media-Registry-Referenzen. Neue User-Songs/Standardsongs/Intro-Medien müssen dadurch nicht mehr doppelt nach `assets/sounds/birthday` kopiert werden.
 
-## STEP275B_FIX1_MEDIA_UPLOAD_FIELD_ORDER
+## STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
 
-MediaPicker-Uploads setzen den Zielordner jetzt zuverlässig vor dem Datei-Stream. Neue Birthday-User-Songs sollen physisch unter `assets/media/birthday/user-songs` landen.
+Sound-System unterstützt jetzt direkte Media-Registry-Wiedergabe per `mediaId`. Ziel ist, künftige doppelte Birthday-/Sound-Dateien zu vermeiden. Bestehende Legacy-Pfade funktionieren weiterhin.

@@ -22,8 +22,8 @@ const security = require('./helpers/helper_security');
 const media = require('./helpers/helper_media');
 
 const MODULE = 'alert_system';
-const SCHEMA_VERSION = 5;
-const MODULE_STEP = 167;
+const SCHEMA_VERSION = 6;
+const MODULE_STEP = 276;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -408,6 +408,8 @@ function ensureSchema() {
         image_mode TEXT NOT NULL DEFAULT 'none',
         sound_asset_id INTEGER,
         image_asset_id INTEGER,
+        sound_media_id INTEGER,
+        image_media_id INTEGER,
         enabled INTEGER NOT NULL DEFAULT 1,
         meta_json TEXT NOT NULL DEFAULT '{}',
         created_at TEXT NOT NULL,
@@ -536,6 +538,12 @@ function ensureSchema() {
 
     if (toVersion === 5) {
       createChatBlocksSchema(db);
+      return;
+    }
+
+    if (toVersion === 6) {
+      addColumnIfMissing(db, 'alert_rules', 'sound_media_id', 'INTEGER');
+      addColumnIfMissing(db, 'alert_rules', 'image_media_id', 'INTEGER');
       return;
     }
   });
@@ -1061,6 +1069,8 @@ function saveRule(input, silent = false) {
     imageMode: 'none',
     soundAssetId: nullableInt(input.sound_asset_id ?? input.soundAssetId),
     imageAssetId: null,
+    soundMediaId: nullableInt(input.sound_media_id ?? input.soundMediaId),
+    imageMediaId: nullableInt(input.image_media_id ?? input.imageMediaId),
     displayProfileId: nullableInt(input.display_profile_id ?? input.displayProfileId),
     enabled: boolInt(input.enabled, true),
     ttsEnabled: boolInt(input.tts_enabled ?? input.ttsEnabled, false),
@@ -1078,7 +1088,7 @@ function saveRule(input, silent = false) {
       UPDATE alert_rules SET
         source=:source, type_key=:typeKey, label=:label, min_value=:minValue, max_value=:maxValue, tier=:tier,
         priority=:priority, duration_ms=:durationMs, duration_mode=:durationMode, animation=:animation, image_mode=:imageMode,
-        sound_asset_id=:soundAssetId, image_asset_id=:imageAssetId, display_profile_id=:displayProfileId, enabled=:enabled,
+        sound_asset_id=:soundAssetId, image_asset_id=:imageAssetId, sound_media_id=:soundMediaId, image_media_id=:imageMediaId, display_profile_id=:displayProfileId, enabled=:enabled,
         tts_enabled=:ttsEnabled, tts_timing=:ttsTiming, tts_mode=:ttsMode, tts_template=:ttsTemplate, tts_max_chars=:ttsMaxChars, tts_min_amount=:ttsMinAmount,
         meta_json=:metaJson, updated_at=:now
       WHERE id=:id
@@ -1087,8 +1097,8 @@ function saveRule(input, silent = false) {
   }
 
   const result = database.run(`
-    INSERT INTO alert_rules (source, type_key, label, min_value, max_value, tier, priority, duration_ms, duration_mode, animation, image_mode, sound_asset_id, image_asset_id, display_profile_id, enabled, tts_enabled, tts_timing, tts_mode, tts_template, tts_max_chars, tts_min_amount, meta_json, created_at, updated_at)
-    VALUES (:source, :typeKey, :label, :minValue, :maxValue, :tier, :priority, :durationMs, :durationMode, :animation, :imageMode, :soundAssetId, :imageAssetId, :displayProfileId, :enabled, :ttsEnabled, :ttsTiming, :ttsMode, :ttsTemplate, :ttsMaxChars, :ttsMinAmount, :metaJson, :now, :now)
+    INSERT INTO alert_rules (source, type_key, label, min_value, max_value, tier, priority, duration_ms, duration_mode, animation, image_mode, sound_asset_id, image_asset_id, sound_media_id, image_media_id, display_profile_id, enabled, tts_enabled, tts_timing, tts_mode, tts_template, tts_max_chars, tts_min_amount, meta_json, created_at, updated_at)
+    VALUES (:source, :typeKey, :label, :minValue, :maxValue, :tier, :priority, :durationMs, :durationMode, :animation, :imageMode, :soundAssetId, :imageAssetId, :soundMediaId, :imageMediaId, :displayProfileId, :enabled, :ttsEnabled, :ttsTiming, :ttsMode, :ttsTemplate, :ttsMaxChars, :ttsMinAmount, :metaJson, :now, :now)
   `, { ...rule, now });
   const newId = Number(result.lastInsertRowid || 0);
   if (!silent) return { ok: true, id: newId, rule: database.get(`SELECT * FROM alert_rules WHERE id=:id`, { id: newId }) };

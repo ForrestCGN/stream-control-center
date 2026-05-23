@@ -1,24 +1,28 @@
 # NEXT_STEPS
 
-1. STEP274W FIX4 ausführen.
-2. `node -c backend\modules\birthday.js` prüfen.
-3. Stepdone ausführen.
-4. Backend neu starten.
-5. Birthday-System → Show/Medien testen.
+## Nächster sinnvoller Step: STEP276C_ALERT_PLAYBACK_MEDIAID
 
-## Nach STEP274Y
-- Birthday Show/Medien im Browser hart neu laden.
-- User-Song über Birthday-Button hochladen und prüfen: Registry-Pfad birthday/user-songs, Sound-Kopie assets/sounds/birthday/.
-- Party-Song MediaField prüfen: Upload-Ziel birthday/party-songs.
+- Alert-Sound-Bundle soll bevorzugt `rule.sound_media_id` als `mediaId` an das Sound-System übergeben.
+- Wenn keine `sound_media_id` gesetzt ist, bleibt der bestehende `file`-Fallback über `sound_url` aktiv.
+- Noch kein Löschen alter `alert_assets`.
+- Danach erst Dashboard-MediaPicker-Anbindung in STEP276D.
 
-## STEP274Z_MEDIA_PICKER_FILTER_DEFAULT_ALL_DONE
+## Tests nach STEP276B
 
-Abgeschlossen: MediaPicker trennt sichtbaren Kategorie-Filter und Upload-Ziel deutlicher.
+```powershell
+node --check backend\modules\alert_system.js
+Invoke-RestMethod -Uri "http://127.0.0.1:8080/api/alerts/status"
+Invoke-RestMethod -Uri "http://127.0.0.1:8080/api/alerts/rules"
+```
 
-## STEP275B_BIRTHDAY_STORE_MEDIAID_PLANNED
+## Spätere Steps
 
-Nächster Step: Birthday soll neue Medien bevorzugt als `mediaId` speichern und beim Playback direkt ans Sound-System übergeben, statt Kopien nach `assets/sounds/birthday` zu erzeugen.
+### STEP276D_ALERT_DASHBOARD_MEDIAPICKER
 
-## STEP275C_DUPLICATE_CLEANUP_PLANNED
+- Alert-Regel-Editor nutzt MediaPicker/MediaField.
+- Upload-Ziel: `assets/media/alerts/<category>/`.
 
-Optionaler nächster Step: Diagnose/Aufräumplan für alte doppelte Birthday-Dateien unter `assets/sounds/birthday`, ohne automatisch zu löschen.
+### STEP276E_ALERT_MEDIA_DIAGNOSIS
+
+- Nur Diagnose/Migrationsplan.
+- Keine automatische Löschung alter Dateien.
