@@ -1,17 +1,22 @@
 'use strict';
 
 /**
- * STEP274L-FIX3 - Media Playback Volume Guard
+ * STEP274L-FIX4 - Media Playback Defaults Device + Discord
  *
  * Bruecke fuer zentrale Medienverwaltung in Richtung Sound-System.
  * Wichtig:
  * - Sound-System selbst bleibt unveraendert.
  * - Bestehende Medien werden nicht verschoben oder geloescht.
  * - Neue media_assets koennen ueber /api/sound/play-media abgespielt werden.
- * - Media-Dateien ausserhalb htdocs/assets/sounds werden als technische
- *   Kompatibilitaetskopie unter htdocs/assets/sounds/_media_registry/ bereitgestellt.
- * - FIX3: Leere Query-Parameter wie volume= oder fehlende Parameter duerfen nicht
- *   zu Number('') === 0 werden. Sonst wird ein korrekt gestarteter Sound lautlos.
+ * - Media-Requests senden kein soundId/id an /api/sound/play, damit
+ *   das Sound-System nicht faelschlich ein Preset in config.sounds erwartet.
+ * - Assets mit type=audio bleiben audio, auch wenn ffprobe Cover-Art als Video-Stream erkennt.
+ * - Fuer media/* Dateien wird eine technische Kompatibilitaetskopie unter
+ *   htdocs/assets/sounds/_media_registry/ erzeugt, damit das bestehende
+ *   Sound-System weiterhin seine eigene Queue/Prioritaeten/Overlay-Ausgabe nutzt.
+ * - FIX3/FIX4: Leere Zahlenparameter fallen sauber auf Defaults zurueck.
+ * - FIX4: Standardausgabe fuer Media-Commands ist Device + Discord:
+ *   target=both und outputTarget=device, sofern nicht explizit anders uebergeben.
  */
 
 const fs = require('fs');
@@ -23,9 +28,12 @@ const config = require('./helpers/helper_config');
 const media = require('./media');
 
 const MODULE_NAME = 'sound_media_bridge';
-const STEP = 'STEP274L-FIX3';
+const STEP = 'STEP274L-FIX4';
 const API_PREFIX = '/api/sound';
 const CACHE_DIR_NAME = '_media_registry';
+const DEFAULT_MEDIA_TARGET = process.env.MEDIA_BRIDGE_DEFAULT_TARGET || 'both';
+const DEFAULT_MEDIA_OUTPUT_TARGET = process.env.MEDIA_BRIDGE_DEFAULT_OUTPUT_TARGET || 'device';
+const DEFAULT_MEDIA_VOLUME = Number(process.env.MEDIA_BRIDGE_DEFAULT_VOLUME || 85) || 85;
 
 function clean(value) {
   return String(value ?? '').trim();
@@ -108,45 +116,32 @@ function pickMediaRef(req) {
   );
 }
 
-function hasNonEmptyOwnValue(obj, name) {
-  if (!obj || !Object.prototype.hasOwnProperty.call(obj, name)) return false;
-  const value = obj[name];
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string' && value.trim() === '') return false;
-  return true;
-}
-
-function queryParamValue(req, name) {
-  if (req && req.query && Object.prototype.hasOwnProperty.call(req.query, name)) return req.query[name];
-  return core.getParam(req, name, '');
-}
-
 function numberParam(req, body, name, fallback) {
-  const value = hasNonEmptyOwnValue(body, name) ? body[name] : queryParamValue(req, name);
-  if (value === undefined || value === null) return fallback;
-  if (typeof value === 'string' && value.trim() === '') return fallback;
+  const fromBody = body && Object.prototype.hasOwnProperty.call(body, name) ? body[name] : undefined;
+  const fromReq = core.getParam(req, name, '');
+  const value = fromBody !== undefined ? fromBody : fromReq;
+  if (value === undefined || value === null || value === '') return fallback;
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
 
-function priorityParam(req, body, fallback = 50) {
-  const raw = hasNonEmptyOwnValue(body, 'priority') ? body.priority : queryParamValue(req, 'priority');
-  if (raw === undefined || raw === null || String(raw).trim() === '') return fallback;
-  const normalized = String(raw).trim().toLowerCase();
-  if (normalized === 'high') return 70;
-  if (normalized === 'normal') return fallback;
-  if (normalized === 'low') return 30;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : fallback;
+function stringParam(req, body, name, fallback = '') {
+  const fromBody = body && Object.prototype.hasOwnProperty.call(body, name) ? body[name] : undefined;
+  const fromReq = core.getParam(req, name, '');
+  const value = fromBody !== undefined ? fromBody : fromReq;
+  const out = clean(value);
+  return out || fallback;
 }
 
-function queueIfBusyParam(req, body, fallback = true) {
-  if (hasNonEmptyOwnValue(body, 'queueIfBusy')) return bool(body.queueIfBusy, fallback);
-  if (hasNonEmptyOwnValue(body, 'queue')) return bool(body.queue, fallback);
-  const queueIfBusy = queryParamValue(req, 'queueIfBusy');
-  if (String(queueIfBusy ?? '').trim() !== '') return bool(queueIfBusy, fallback);
-  const queue = queryParamValue(req, 'queue');
-  if (String(queue ?? '').trim() !== '') return bool(queue, fallback);
+function normalizeMediaTarget(value, fallback = DEFAULT_MEDIA_TARGET) {
+  const v = clean(value || fallback).toLowerCase();
+  if (['stream', 'discord', 'both'].includes(v)) return v;
+  return fallback;
+}
+
+function normalizeOutputTarget(value, fallback = DEFAULT_MEDIA_OUTPUT_TARGET) {
+  const v = clean(value || fallback).toLowerCase();
+  if (['overlay', 'device', 'both'].includes(v)) return v;
   return fallback;
 }
 
@@ -168,9 +163,12 @@ function buildSoundPayload(req, resolved, soundFile, cacheInfo) {
   const capabilities = resolved.capabilities || {};
   const mediaType = resolvePayloadMediaType(body, asset, capabilities);
   const label = clean(body.label || body.displayName || asset.displayName || asset.fileName || `media_${asset.id || ''}`);
-  const category = clean(body.category || queryParamValue(req, 'category') || 'command_media').toLowerCase() || 'command_media';
-  const target = clean(body.target || queryParamValue(req, 'target') || 'stream') || 'stream';
-  const outputTarget = clean(body.outputTarget || body.output || queryParamValue(req, 'outputTarget'));
+  const category = clean(body.category || core.getParam(req, 'category', '') || 'command_media').toLowerCase() || 'command_media';
+  const target = normalizeMediaTarget(stringParam(req, body, 'target', DEFAULT_MEDIA_TARGET), DEFAULT_MEDIA_TARGET);
+  const outputTarget = normalizeOutputTarget(
+    stringParam(req, body, 'outputTarget', '') || stringParam(req, body, 'output', '') || stringParam(req, body, 'targetOutput', ''),
+    DEFAULT_MEDIA_OUTPUT_TARGET
+  );
 
   const payload = {
     ...body,
@@ -179,13 +177,12 @@ function buildSoundPayload(req, resolved, soundFile, cacheInfo) {
     mediaType,
     type: mediaType === 'video' ? 'video' : 'file',
     category,
-    source: clean(body.source || 'media_registry'),
+    source: clean(body.source || core.getParam(req, 'source', '') || 'media_registry'),
     target,
-    volume: numberParam(req, body, 'volume', Number(body.volume || 85) || 85),
+    outputTarget,
+    volume: numberParam(req, body, 'volume', DEFAULT_MEDIA_VOLUME),
     durationMs: Number(asset.durationMs || body.durationMs || 0) || undefined,
-    requestedBy: clean(body.requestedBy || body.user || body.userLogin || queryParamValue(req, 'user')),
-    priority: priorityParam(req, body, 50),
-    queueIfBusy: queueIfBusyParam(req, body, true),
+    requestedBy: clean(body.requestedBy || body.user || body.userLogin || core.getParam(req, 'user', '')),
     meta: {
       ...(body.meta && typeof body.meta === 'object' ? body.meta : {}),
       mediaRegistry: true,
@@ -199,10 +196,10 @@ function buildSoundPayload(req, resolved, soundFile, cacheInfo) {
   delete payload.id;
   delete payload.soundId;
   delete payload.sound;
-  delete payload.queue;
 
-  if (outputTarget) payload.outputTarget = outputTarget;
-  if (body.force !== undefined || String(queryParamValue(req, 'force') ?? '').trim() !== '') payload.force = bool(body.force ?? queryParamValue(req, 'force'), false);
+  if (body.priority !== undefined || core.getParam(req, 'priority', '') !== '') payload.priority = numberParam(req, body, 'priority', 50);
+  if (body.queueIfBusy !== undefined || core.getParam(req, 'queueIfBusy', '') !== '') payload.queueIfBusy = bool(body.queueIfBusy ?? core.getParam(req, 'queueIfBusy', ''), true);
+  if (body.force !== undefined || core.getParam(req, 'force', '') !== '') payload.force = bool(body.force ?? core.getParam(req, 'force', ''), false);
   return payload;
 }
 
@@ -279,10 +276,8 @@ async function playMedia(req, res) {
         mediaType: soundPayload.mediaType,
         category: soundPayload.category,
         target: soundPayload.target,
-        outputTarget: soundPayload.outputTarget || '',
-        volume: soundPayload.volume,
-        priority: soundPayload.priority,
-        queueIfBusy: soundPayload.queueIfBusy
+        outputTarget: soundPayload.outputTarget,
+        volume: soundPayload.volume
       },
       soundResult: soundResult.data,
       updatedAt: core.nowIso()
@@ -301,18 +296,17 @@ function statusPayload() {
     officialPlaybackHub: true,
     mediaRegistryRole: 'media verwaltet Dateien/IDs/Metadaten; Sound-System spielt ab',
     playbackEndpoint: `${API_PREFIX}/play-media`,
+    defaults: {
+      target: DEFAULT_MEDIA_TARGET,
+      outputTarget: DEFAULT_MEDIA_OUTPUT_TARGET,
+      volume: DEFAULT_MEDIA_VOLUME
+    },
     existingOverlay: '/overlays/sound_system_overlay.html',
-    fixes: [
-      'Leere Query-Parameter fallen wieder auf Defaults zurueck.',
-      'volume wird nicht mehr unbeabsichtigt zu 0, wenn kein volume-Parameter uebergeben wurde.',
-      'priority normal/high/low wird fuer Media-Commands sauber normalisiert.',
-      'queue=false aus Command-Konfiguration kann als queueIfBusy=false weitergegeben werden, wenn es im Body ankommt.'
-    ],
     routes: [
       { method: 'GET/POST', path: `${API_PREFIX}/play-media`, purpose: 'Media-Asset per zentralem Resolver ueber Sound-System Queue abspielen' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Sound-Media-Bruecke' }
     ],
-    note: "STEP274L-FIX3 behebt lautlose Media-Commands durch Number(\'\') === 0 in der Bridge.",
+    note: 'STEP274L-FIX4 setzt Media-Playback standardmaessig auf Device + Discord. Override bleibt per target/outputTarget/volume moeglich.',
     updatedAt: core.nowIso()
   };
 }
@@ -322,7 +316,7 @@ function init(ctx) {
   app.get(`${API_PREFIX}/media-bridge/status`, (req, res) => res.json(statusPayload()));
   app.get(`${API_PREFIX}/play-media`, core.asyncRoute(playMedia));
   app.post(`${API_PREFIX}/play-media`, core.asyncRoute(playMedia));
-  console.log('[sound_media_bridge] routes active: /api/sound/play-media STEP274L-FIX3');
+  console.log('[sound_media_bridge] routes active: /api/sound/play-media');
   return { name: MODULE_NAME, step: STEP };
 }
 
