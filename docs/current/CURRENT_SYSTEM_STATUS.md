@@ -37,3 +37,7 @@ MediaPicker: sichtbarer Zusatzkategorie-Filter startet beim Öffnen auf `Alle Zu
 - Neue Kategorie birthday/party-songs wurde im Media-Core ergänzt.
 
 STEP274W FIX4 repariert die Birthday MediaPicker Import-Route. Nach dem Patch muss das Backend neu gestartet werden, damit `/api/birthday/admin/show/import-media` aktiv ist.
+
+## STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE
+
+Status: Nachfix zu STEP276B. Das Alert-System prüft beim Start unabhängig von der gespeicherten Schema-Version, ob `sound_media_id` und `image_media_id` in `alert_rules` existieren, und legt sie bei Bedarf nach. Legacy-Assets bleiben unverändert.

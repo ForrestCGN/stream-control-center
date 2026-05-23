@@ -26,3 +26,10 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8080/api/alerts/rules"
 
 - Nur Diagnose/Migrationsplan.
 - Keine automatische Löschung alter Dateien.
+
+## Nach STEP276B_FIX1
+
+- Backend neu starten.
+- `/api/alerts/status` prüfen: `schemaVersion` bleibt 6.
+- `/api/alerts/rules` prüfen: erste Regel muss die Properties `sound_media_id` und `image_media_id` enthalten.
+- Danach STEP276C planen: Alert-Playback bevorzugt per `mediaId`, Legacy-`sound_asset_id`/`sound_url` bleibt Fallback.

@@ -29,3 +29,9 @@
 
 - MediaPicker-Hinweis `Filter, nicht Upload-Ziel` aus dem sichtbaren Zusatzkategorie-Label entfernt.
 - Verhalten bleibt unverändert: sichtbarer Filter startet auf `Alle Zusatzkategorien`, Upload-Ziel bleibt separat pro Button gesetzt.
+
+## STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE
+
+- Alert-System stellt die neuen `alert_rules.sound_media_id` und `alert_rules.image_media_id` Spalten beim Modulstart zusätzlich idempotent sicher.
+- Behebt Live-DB-Stände, bei denen `schemaVersion` bereits 6 war, die Spalten aber in `/api/alerts/rules` noch nicht sichtbar waren.
+- Keine bestehende Alert-Regel-, Asset-, Upload-, Dashboard- oder Playback-Logik entfernt.

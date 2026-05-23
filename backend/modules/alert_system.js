@@ -547,6 +547,16 @@ function ensureSchema() {
       return;
     }
   });
+  ensureAlertRuleMediaColumns();
+}
+
+function ensureAlertRuleMediaColumns() {
+  try {
+    database.ensureColumn('alert_rules', 'sound_media_id', 'INTEGER');
+    database.ensureColumn('alert_rules', 'image_media_id', 'INTEGER');
+  } catch (err) {
+    console.warn('[alert_system] STEP276B_FIX1 alert_rules media columns could not be ensured:', err && err.message ? err.message : String(err));
+  }
 }
 
 function createChatBlocksSchema(db) {

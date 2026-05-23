@@ -24,3 +24,7 @@ Birthday nutzt nach MediaPicker-Import bevorzugt Media-Registry-Referenzen. Neue
 ## STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
 
 Sound-System unterstützt jetzt direkte Media-Registry-Wiedergabe per `mediaId`. Ziel ist, künftige doppelte Birthday-/Sound-Dateien zu vermeiden. Bestehende Legacy-Pfade funktionieren weiterhin.
+
+## STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE
+
+Status: Nachfix zu STEP276B. Das Alert-System prüft beim Start unabhängig von der gespeicherten Schema-Version, ob `sound_media_id` und `image_media_id` in `alert_rules` existieren, und legt sie bei Bedarf nach. Legacy-Assets bleiben unverändert.

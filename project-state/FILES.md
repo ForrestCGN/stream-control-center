@@ -21,3 +21,9 @@
 - `backend/modules/sound_system.js` - direkte Wiedergabe von Media-Registry-Assets per `mediaId`.
 - `backend/modules/media.js` - `resolve` meldet Media-Registry-Assets als Sound-System-kompatibel via direkter mediaId-Wiedergabe.
 - `docs/backend/SOUND_SYSTEM_MEDIAID_DIRECT_STEP275A.md` - Test-/Status-Dokumentation.
+
+## STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE
+
+- `backend/modules/alert_system.js` - idempotentes Sicherstellen der Alert-Regel-MediaId-Spalten beim Modulstart.
+- `docs/backend/ALERT_SYSTEM_MEDIA_RULE_COLUMNS_STEP276B_FIX1.md` - technische Kurznotiz.
+- `project-state/STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE.md` - STEP-Übergabe.
