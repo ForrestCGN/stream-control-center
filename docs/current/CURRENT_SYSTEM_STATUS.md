@@ -19,3 +19,7 @@ Sound-System kann Medien aus der Media-Registry direkt per `mediaId` abspielen. 
 ## STEP275B_BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY
 
 Birthday MediaPicker-Import erzeugt keine zusätzliche Sound-Kopie mehr, sondern speichert Media-Registry-Referenzen. Legacy-Sounds bleiben weiterhin kompatibel.
+
+## STEP275B_FIX1_MEDIA_UPLOAD_FIELD_ORDER
+
+MediaPicker-Upload-Reihenfolge repariert: `moduleKey`/`categoryKey` werden vor der Datei übertragen, damit Multer den physischen Zielordner korrekt wählt.

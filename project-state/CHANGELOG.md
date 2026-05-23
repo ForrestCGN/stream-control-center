@@ -33,3 +33,9 @@
 - Birthday MediaPicker-Import speichert neue Medien als `mediaid:<id>` statt Kopien unter `assets/sounds/birthday` zu erzeugen.
 - Birthday-Sound-Bundles übergeben bei `mediaid:<id>` direkt `mediaId` an das Sound-System.
 - Legacy-Dateien unter `assets/sounds/birthday` bleiben kompatibel.
+
+## STEP275B_FIX1_MEDIA_UPLOAD_FIELD_ORDER
+
+- MediaPicker sendet Upload-Metadaten (`type`, `moduleKey`, `categoryKey`) vor der Datei.
+- Zusätzlich Query-Fallback für `/api/media/upload` ergänzt.
+- Behebt Fälle, in denen Dateien physisch unter `assets/media/general/general` landeten, obwohl die Registry `birthday/user-songs` zeigte.

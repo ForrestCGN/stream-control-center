@@ -21,3 +21,7 @@ Sound-System unterstützt jetzt direkte Media-Registry-Wiedergabe per `mediaId`.
 ## STEP275B_BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY
 
 Birthday nutzt nach MediaPicker-Import bevorzugt Media-Registry-Referenzen. Neue User-Songs/Standardsongs/Intro-Medien müssen dadurch nicht mehr doppelt nach `assets/sounds/birthday` kopiert werden.
+
+## STEP275B_FIX1_MEDIA_UPLOAD_FIELD_ORDER
+
+MediaPicker-Uploads setzen den Zielordner jetzt zuverlässig vor dem Datei-Stream. Neue Birthday-User-Songs sollen physisch unter `assets/media/birthday/user-songs` landen.

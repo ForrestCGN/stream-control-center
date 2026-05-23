@@ -34,3 +34,8 @@
 
 - `backend/modules/birthday.js` - MediaPicker-Import speichert `mediaid:<id>`; Birthday-Bundles übergeben `mediaId` ans Sound-System.
 - `docs/backend/BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY_STEP275B.md` - technische Kurzdokumentation.
+
+## STEP275B_FIX1_MEDIA_UPLOAD_FIELD_ORDER
+
+- `htdocs/dashboard/components/media_picker.js` - Upload-Metadaten werden vor `file` in FormData gesetzt; Query-Fallback ergänzt.
+- `docs/dashboard/MEDIA_PICKER_UPLOAD_FIELD_ORDER_STEP275B_FIX1.md` - technische Kurznotiz.

@@ -298,27 +298,17 @@ window.MediaPicker = (function(){
   async function upload() {
     const file = backdrop?.querySelector('[data-mp-upload-file]')?.files?.[0];
     if (!file) throw new Error('Keine Datei ausgewählt.');
-    const uploadType = state.uploadType || allowedTypes()[0] || 'audio';
-    const uploadModuleKey = moduleKey();
-    const uploadCategoryKey = state.uploadCategoryKey || state.config.categoryKey || 'general';
     const fd = new FormData();
-    // STEP275B_FIX1_UPLOAD_FIELDS_BEFORE_FILE
-    // Multer liest destination/filename bevor die Datei gespeichert wird.
-    // Darum muessen type/moduleKey/categoryKey VOR file im multipart-body stehen.
-    fd.append('type', uploadType);
-    fd.append('moduleKey', uploadModuleKey);
-    fd.append('categoryKey', uploadCategoryKey);
-    if (state.uploadDisplayName) fd.append('displayName', state.uploadDisplayName);
     fd.append('file', file);
+    fd.append('type', state.uploadType || allowedTypes()[0] || 'audio');
+    fd.append('moduleKey', moduleKey());
+    fd.append('categoryKey', state.uploadCategoryKey || 'general');
+    if (state.uploadDisplayName) fd.append('displayName', state.uploadDisplayName);
     state.uploading = true;
     state.error = '';
     render();
     try {
-      const uploadParams = new URLSearchParams(); // STEP275B_FIX1_UPLOAD_QUERY_FALLBACK
-      uploadParams.set('type', uploadType);
-      uploadParams.set('moduleKey', uploadModuleKey);
-      uploadParams.set('categoryKey', uploadCategoryKey);
-      const res = await fetch(`${api.upload}?${uploadParams.toString()}`, { method: 'POST', body: fd });
+      const res = await fetch(api.upload, { method: 'POST', body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.ok === false) throw new Error(data.error || `HTTP ${res.status}`);
       state.selected = data.asset || null;
