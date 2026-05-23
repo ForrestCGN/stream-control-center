@@ -488,8 +488,8 @@
       .sound-media-picker-row{grid-template-columns:minmax(0,1fr) auto 34px;}
       .sound-media-picker-row input[readonly]{min-width:0;overflow:hidden;text-overflow:ellipsis;}
       .sound-media-picker-row button{height:40px;white-space:nowrap;}
-      .sound-media-picker-row #pickRuleSoundMedia{min-width:118px;padding-left:14px;padding-right:14px;}
-      .sound-media-picker-row #clearRuleSoundMedia{width:34px;min-width:34px;padding:0;}
+      .sound-media-picker-row #pickRuleSoundMedia, .sound-media-picker-row #pickTopGraphicMedia{min-width:118px;padding-left:14px;padding-right:14px;}
+      .sound-media-picker-row #clearRuleSoundMedia, .sound-media-picker-row #clearTopGraphicMedia{width:34px;min-width:34px;padding:0;}
       .sound-select-play{align-self:end;}
       .sound-assets-table .row-actions{gap:8px;align-items:center;}
       .legacy-sound-foldout{align-self:start;position:relative;min-height:40px;z-index:2;}
@@ -792,8 +792,11 @@
   function designPage(){
     const profile = state.displayProfiles.find(p => Number(p.id) === Number(state.displayProfileId)) || state.displayProfiles.find(p => Number(p.is_default) === 1) || state.displayProfiles[0] || { name:'Neon Badge Standard', enabled:1, is_default:1, settings:{} };
     state.displayProfileId = profile.id || state.displayProfileId;
-    const st = normalizeCropDefaultsOnEditorStart({ widthMode:'custom', overlayPosition:'custom', positionX:50, positionY:50, cardWidthPx:1120, cardHeightPx:300, sizeScale:1, fontScale:1, headlineScale:1, valueScale:1, avatarPosition:'left', avatarSize:'normal', providerLogoStyle:'tile', topGraphicAssetId:'', topGraphicUrl:'', topGraphicScale:1, topGraphicOffsetY:-18, topGraphicShape:'original', topGraphicFrameStrength:'normal', topGraphicImageZoom:1, topGraphicImageX:50, topGraphicImageY:50, topGraphicFrameStyle:'none', cardBorderColorA:'#8ff4ff', cardBorderColorB:'#c45cff', innerBorderEnabled:true, badgeEnabled:false, badgeStyle:'none', badgeScale:1, textAlign:'left', messageEnabled:true, messageScale:1, messageWidthMode:'normal', messageMaxLines:0, messageWeight:'normal', showSideLines:true, showParticles:true, glowStrength:'normal', celebrationStrength:'medium', ...(profile.settings || {}) });
+    const st = normalizeCropDefaultsOnEditorStart({ widthMode:'custom', overlayPosition:'custom', positionX:50, positionY:50, cardWidthPx:1120, cardHeightPx:300, sizeScale:1, fontScale:1, headlineScale:1, valueScale:1, avatarPosition:'left', avatarSize:'normal', providerLogoStyle:'tile', topGraphicAssetId:'', topGraphicMediaId:'', topGraphicMediaUrl:'', topGraphicMediaLabel:'', topGraphicUrl:'', topGraphicScale:1, topGraphicOffsetY:-18, topGraphicShape:'original', topGraphicFrameStrength:'normal', topGraphicImageZoom:1, topGraphicImageX:50, topGraphicImageY:50, topGraphicFrameStyle:'none', cardBorderColorA:'#8ff4ff', cardBorderColorB:'#c45cff', innerBorderEnabled:true, badgeEnabled:false, badgeStyle:'none', badgeScale:1, textAlign:'left', messageEnabled:true, messageScale:1, messageWidthMode:'normal', messageMaxLines:0, messageWeight:'normal', showSideLines:true, showParticles:true, glowStrength:'normal', celebrationStrength:'medium', ...(profile.settings || {}) });
     const profileOptions = state.displayProfiles.map(p => opt(p.id, `${p.name}${Number(p.is_default)?' · Standard':''}`, profile.id)).join('');
+    const topGraphicMediaId = displayTopGraphicMediaId(st);
+    const topGraphicMediaLabel = displayTopGraphicMediaLabel(st);
+    const legacyTopGraphicLabel = selectedImageAssetLabel(st.topGraphicAssetId);
     return `<section class="card glass span-12 page-card">
       <div class="card-head big-head">
         <div><h2>Design / Live-Vorschau</h2><p class="small-note">Ein Alert ist hier ein Design. Auswählen = bearbeiten. Neu = neues Design mit Standardwerten.</p></div>
@@ -856,7 +859,19 @@
             <div class="design-section">
               <h3>4. Grafik über dem Alert</h3>
               <div class="config-grid design-grid">
-                ${selectHtml('topGraphicAssetId','Grafik', st.topGraphicAssetId || '', imageAssetSelectItems(st.topGraphicAssetId))}
+                <label class="wide-field">Grafik aus Media-Registry
+                  <input type="hidden" data-display-key="topGraphicMediaId" value="${esc(topGraphicMediaId)}">
+                  <input type="hidden" data-display-key="topGraphicMediaUrl" value="${esc(st.topGraphicMediaUrl || '')}">
+                  <input type="hidden" data-display-key="topGraphicMediaLabel" value="${esc(st.topGraphicMediaLabel || '')}">
+                  <div class="sound-select-row sound-media-picker-row"><input id="topGraphicMediaInfo" value="${esc(topGraphicMediaLabel)}" readonly><button type="button" id="pickTopGraphicMedia">Auswählen</button><button type="button" id="clearTopGraphicMedia" ${topGraphicMediaId ? '' : 'disabled'} title="Media-Registry-Grafik entfernen" aria-label="Media-Registry-Grafik entfernen">×</button></div>
+                </label>
+                <details class="wide-field legacy-sound-foldout legacy-graphic-foldout" ${topGraphicMediaId ? '' : 'open'}>
+                  <summary><strong>Alte Grafik / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacyTopGraphicLabel)}</span></summary>
+                  <div class="legacy-sound-body">
+                    ${selectHtml('topGraphicAssetId','Nur verwenden, wenn oben keine Media-Registry-Grafik gesetzt ist', st.topGraphicAssetId || '', imageAssetSelectItems(st.topGraphicAssetId))}
+                    <p class="small-note legacy-sound-hint">Sicherheits-Fallback für bestehende Design-Profile. Wird nur genutzt, wenn keine Media-Registry-Grafik gesetzt ist.</p>
+                  </div>
+                </details>
                 ${selectHtml('topGraphicShape','Grafik-Form', st.topGraphicShape || st.topGraphicFrameStyle || 'original', [['original','Original'],['round','Kreis'],['tile','Kachel'],['heart','Herz'],['shield','Schild'],['hexagon','Hexagon'],['diamond','Diamant'],['star','Stern']])}
                 ${selectHtml('topGraphicFrameStrength','Grafik-Outline', normalizeGraphicOutline(st.topGraphicFrameStrength), [['soft','dezent'],['normal','normal']])}
                 ${rangeHtml('topGraphicScale','Grafik-Größe', st.topGraphicScale ?? 1, .35, 2, .01)}
@@ -913,6 +928,25 @@
     if (id === null || id === undefined || id === '') return '';
     const a = (state.assets || []).find(x => Number(x.id) === Number(id));
     return a ? (a.public_url || a.url || a.path || '') : '';
+  }
+
+  function selectedImageAssetLabel(id){
+    if (id === null || id === undefined || id === '') return 'keine alte Grafik gesetzt';
+    const a = (state.assets || []).find(x => Number(x.id) === Number(id));
+    if (!a) return 'alte Grafik nicht gefunden';
+    return a.label || a.original_name || a.public_url || `Grafik ${a.id || id}`;
+  }
+
+  function displayTopGraphicMediaId(settings){
+    const id = Number(settings?.topGraphicMediaId ?? settings?.top_graphic_media_id ?? 0);
+    return Number.isFinite(id) && id > 0 ? id : '';
+  }
+
+  function displayTopGraphicMediaLabel(settings){
+    const id = displayTopGraphicMediaId(settings);
+    if (!id) return '— keine Media-Registry-Grafik —';
+    const label = settings?.topGraphicMediaLabel || settings?.top_graphic_media_label || settings?.topGraphicMediaPath || settings?.top_graphic_media_path || settings?.topGraphicMediaUrl || settings?.top_graphic_media_url || `MediaId ${id}`;
+    return `MediaId ${id} · ${label}`;
   }
 
 
@@ -1533,6 +1567,44 @@
     });
   }
 
+  function setTopGraphicMediaSelection(asset){
+    const id = asset && Number(asset.id || 0) > 0 ? Number(asset.id) : '';
+    const labelText = id ? (asset.label || asset.displayName || asset.fileName || asset.relativePath || 'Media-Registry-Grafik') : '';
+    const url = id ? (asset.webPath || asset.web_path || '') : '';
+    const fields = {
+      topGraphicMediaId: id ? String(id) : '',
+      topGraphicMediaUrl: url,
+      topGraphicMediaLabel: labelText
+    };
+    for (const [key, value] of Object.entries(fields)) {
+      const el = root.querySelector(`[data-display-key="${key}"]`);
+      if (el) el.value = value;
+    }
+    const info = root.querySelector('#topGraphicMediaInfo');
+    if (info) info.value = id ? `MediaId ${id} · ${labelText || url || 'Grafik'}` : '— keine Media-Registry-Grafik —';
+    const clearBtn = root.querySelector('#clearTopGraphicMedia');
+    if (clearBtn) clearBtn.disabled = !id;
+    centerTopGraphicCrop();
+    renderDesignPreview();
+    updateDesignPopout();
+  }
+
+  function openTopGraphicMediaPicker(){
+    if (!window.MediaPicker || typeof window.MediaPicker.open !== 'function') {
+      state.note = 'MediaPicker-Komponente ist nicht geladen.';
+      render();
+      return;
+    }
+    window.MediaPicker.open({
+      title: 'Alert-Grafik auswählen',
+      moduleKey: 'alerts',
+      categoryKey: 'graphics',
+      allowedTypes: ['image'],
+      view: 'module',
+      onSelect: setTopGraphicMediaSelection
+    });
+  }
+
   function bind(){
     root.querySelectorAll('textarea, input').forEach(el => {
       el.addEventListener('focus', () => rememberPlaceholderTarget(el));
@@ -1582,11 +1654,21 @@
       };
       el.addEventListener("input", handler);
       el.addEventListener("change", () => {
-        if (el.dataset.displayKey === "topGraphicAssetId") centerTopGraphicCrop();
+        if (el.dataset.displayKey === "topGraphicAssetId" || el.dataset.displayKey === "topGraphicMediaId") centerTopGraphicCrop();
         handler();
       });
     });
     root.querySelector("#centerTopGraphicCrop")?.addEventListener("click", centerTopGraphicCrop);
+    root.querySelector('#pickTopGraphicMedia')?.addEventListener('click', ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openTopGraphicMediaPicker();
+    });
+    root.querySelector('#clearTopGraphicMedia')?.addEventListener('click', ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setTopGraphicMediaSelection(null);
+    });
     root.querySelector("#centerDisplayPosition")?.addEventListener("click", () => {
       const x = root.querySelector('[data-display-key="positionX"]');
       const y = root.querySelector('[data-display-key="positionY"]');
@@ -1854,6 +1936,9 @@
       return raw !== 'false';
     };
     const topGraphicAssetId = get('topGraphicAssetId') || '';
+    const topGraphicMediaId = get('topGraphicMediaId') || '';
+    const topGraphicMediaUrl = get('topGraphicMediaUrl') || '';
+    const topGraphicMediaLabel = get('topGraphicMediaLabel') || '';
     return {
       widthMode:get('widthMode')||'custom',
       overlayPosition:'custom',
@@ -1869,7 +1954,10 @@
       avatarSize:get('avatarSize')||'normal',
       providerLogoStyle:get('providerLogoStyle')||'tile',
       topGraphicAssetId,
-      topGraphicUrl:selectedImageAssetUrl(topGraphicAssetId),
+      topGraphicMediaId,
+      topGraphicMediaUrl,
+      topGraphicMediaLabel,
+      topGraphicUrl:topGraphicMediaId ? topGraphicMediaUrl : selectedImageAssetUrl(topGraphicAssetId),
       topGraphicScale:num('topGraphicScale',1),
       topGraphicOffsetY:num('topGraphicOffsetY',-18),
       topGraphicShape:get('topGraphicShape')||'original',
@@ -1920,7 +2008,7 @@
     return normalizeCropDefaultsOnEditorStart({
       widthMode:'custom', overlayPosition:'custom', positionX:50, positionY:50, cardWidthPx:1120, cardHeightPx:300,
       sizeScale:1, fontScale:1, headlineScale:1, valueScale:1, avatarPosition:'left', avatarSize:'normal', providerLogoStyle:'tile',
-      topGraphicAssetId:'', topGraphicUrl:'', topGraphicScale:1, topGraphicOffsetY:-18, topGraphicShape:'original', topGraphicFrameStrength:'normal',
+      topGraphicAssetId:'', topGraphicMediaId:'', topGraphicMediaUrl:'', topGraphicMediaLabel:'', topGraphicUrl:'', topGraphicScale:1, topGraphicOffsetY:-18, topGraphicShape:'original', topGraphicFrameStrength:'normal',
       topGraphicImageZoom:1, topGraphicImageX:50, topGraphicImageY:50, topGraphicFrameStyle:'none',
       cardBorderColorA:'#8ff4ff', cardBorderColorB:'#c45cff', innerBorderEnabled:true, badgeEnabled:false, badgeStyle:'none', badgeScale:1,
       textAlign:'left', messageEnabled:true, messageScale:1, messageWidthMode:'normal', messageMaxLines:0, messageWeight:'normal', showSideLines:true, showParticles:true, glowStrength:'normal', previewCelebration:'none', celebrationStrength:'medium'
