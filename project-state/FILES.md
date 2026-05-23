@@ -1,6 +1,4 @@
-# Files – STEP274V
+# Files
 
-- `tools/apply_step274v_birthday_mediafield.js`
-- `docs/dashboard/BIRTHDAY_MEDIA_FIELD_INTEGRATION.md`
-- Patch-Ziel: `htdocs/dashboard/modules/birthday.js`
-- Patch-Ziel: `htdocs/dashboard/modules/birthday.css`
+- tools/apply_step274v_fix1_birthday_upload_fallback_guard.js
+- docs/dashboard/BIRTHDAY_UPLOAD_FALLBACK_GUARD.md

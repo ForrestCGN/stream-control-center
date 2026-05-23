@@ -1,3 +1,3 @@
-# Current Status – STEP274V
+# Current Status
 
-STEP274V ergänzt die Nutzung der zentralen MediaField-Komponente im Birthday-Dashboard für User-Songs und Party-Songs.
+STEP274V FIX1 ergänzt Birthday Legacy Upload Guard und ein sichtbares MediaField im Show/Medien-Uploadbereich.
