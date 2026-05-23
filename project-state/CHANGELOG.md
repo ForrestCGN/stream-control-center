@@ -1,6 +1,3 @@
-# CHANGELOG
+# STEP274W FIX3
 
-## STEP274W FIX2
-
-- Birthday MediaPicker Import Route repariert.
-- Dashboard-Fehlerbehandlung beim Import korrigiert.
+Birthday import-media Route Runtime-Fix ergänzt.
