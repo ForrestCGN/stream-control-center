@@ -1,30 +1,14 @@
 # CURRENT_STATUS
 
-Aktueller Stand: STEP277A Clip-Shoutout über Sound-System vorbereitet.
+Aktueller Stand: STEP277A_FIX1 Clip-Shoutout Command Target Fix.
 
-STEP277A integriert einen Video-/Clip-Shoutout ohne Streamer.bot-Auslöser. Der Trigger läuft über das bestehende Twitch-Presence- und Command-System, das Playback läuft über das Sound-System als locked Bundle.
+STEP277A ist als neues Clip-Shoutout-Modul eingebunden. Der Video-Shoutout läuft über das Sound-System und nutzt dessen Queue/Bundles. Das bestehende Clip-Shoutout-Design bleibt im Sound-System-Overlay erhalten.
 
-Aktiv/erreicht:
-- Neues Backend-Modul `backend/modules/clip_shoutout.js`.
-- Route `GET/POST /api/clip-shoutout/run`.
-- Kompatible Route `GET/POST /api/clip/shoutout`.
-- Command-Seed für `!vso` mit Alias `clipso`/`videoso`.
-- Twitch-Zieluser-Auflösung über vorhandenes Twitch-Modul.
-- Clip-Liste per Helix und Playback-URL per Twitch-GQL.
-- Clip-MP4 wird in `htdocs/assets/sounds/clip_shoutout` zwischengespeichert.
-- Sound-System bekommt ein locked Bundle mit Video-Item.
-- Optionales TTS nach dem Clip wird über `/api/tts/synthesize` vorbereitet und als zweites Bundle-Item angehängt.
-- `sound_system_overlay.html` kann `visual.module="clip_shoutout"` im bisherigen Clip-Shoutout-Design darstellen.
+STEP277A_FIX1 behebt das Command-Target-Parsing:
 
-Bewusst unverändert:
-- Kein Streamer.bot-Auslöser.
-- Keine eigene Clip-Queue.
-- Keine OBS-URL-Umschaltung.
-- Bestehende Clip-Erstellung über `/api/clip/create` bleibt unverändert.
-- Bestehende Alert-/TTS-/VIP-/Mod-Sound-Logik bleibt erhalten.
+- `!vso @user` nutzt jetzt den genannten Zielkanal aus `target`, `input0` oder `args[0]`.
+- Actor-Felder wie `login`/`userLogin` werden nicht mehr fälschlich als Zielkanal genutzt.
+- Erwartbare Fehler wie `no_clips_found` liefern JSON mit HTTP 200 statt HTTP 404, damit das Command-System nicht irreführend `target_http_404` meldet.
+- `lastRunAt` und `lastRun` werden auch bei erwartbaren Fehlern gesetzt.
 
-Wichtiger Test nach Entpacken:
-- Backend neu starten.
-- OBS-Browserquelle für Sound-System-Overlay laden/prüfen.
-- `/api/clip-shoutout/status` prüfen.
-- Chat/Command-Test: `!vso @kanal`.
+Keine bestehende Funktionalität wurde entfernt.

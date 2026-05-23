@@ -170,13 +170,45 @@ function firstString(...values) {
 
 function parseTarget(input = {}) {
   const args = Array.isArray(input.args) ? input.args : [];
-  const rawInput = firstString(input.target, input.login, input.channel, input.input0, args[0], input.rawInput, input.input, input.text, input.message);
+
+  // STEP277A_FIX1:
+  // Command-System payload contains actor fields like login/userLogin for the caller.
+  // Those must never be used before the real command target, otherwise
+  // !vso @urlug is parsed as ForrestCGN when Forrest triggers the command.
+  const rawInput = firstString(
+    input.target,
+    input.targetLogin,
+    input.shoutUser,
+    input.channelTarget,
+    input.input0,
+    args[0],
+    input.rawInput,
+    input.input,
+    input.text,
+    input.message,
+    input.channel
+  );
+
   const parts = String(rawInput || "").trim().split(/\s+/).filter(Boolean);
   let candidate = parts[0] || "";
   if (candidate && ["vso", "!vso", "clipso", "!clipso", "videoso", "!videoso"].includes(candidate.toLowerCase())) {
     candidate = parts[1] || "";
   }
   return cleanLogin(candidate);
+}
+
+function summarizeInput(input = {}) {
+  return {
+    target: String(input.target || ""),
+    targetLogin: String(input.targetLogin || ""),
+    input0: String(input.input0 || ""),
+    args: Array.isArray(input.args) ? input.args.slice(0, 5).map(v => String(v || "")) : [],
+    rawInput: String(input.rawInput || ""),
+    input: String(input.input || ""),
+    message: String(input.message || ""),
+    userLogin: String(input.userLogin || input.login || ""),
+    displayName: String(input.displayName || input.userName || "")
+  };
 }
 
 async function getAppAccessToken(env) {
@@ -246,7 +278,7 @@ async function resolveClipPlaybackUrl(clipId, cfg) {
     variables: { slug: String(clipId || "") },
     extensions: {
       persistedQuery: {
-        version: 1,
+        version: 2,
         sha256Hash: "36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11"
       }
     }
@@ -496,7 +528,7 @@ function registerCommand(cfg) {
       permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
       cooldownGlobalMs: Number(cfg.cooldownGlobalMs || 5000),
       cooldownUserMs: Number(cfg.cooldownUserMs || 15000),
-      configJson: JSON.stringify({ seededBy: "STEP277A", rawInputMode: true }),
+      configJson: JSON.stringify({ seededBy: "STEP277A_FIX1", rawInputMode: true }),
       createdAt: now,
       updatedAt: now
     });
@@ -520,14 +552,20 @@ async function handleRun(req, res, env) {
   }
 
   const targetLogin = parseTarget(input);
+  state.lastRunAt = nowIso();
+
   if (!targetLogin) {
-    return res.status(400).json({ ok: false, error: "target_required", usage: `!${cfg.command || "vso"} @kanal` });
+    state.lastError = "target_required";
+    state.lastRun = { error: "target_required", input: summarizeInput(input), failedAt: state.lastRunAt };
+    return res.json({ ok: false, error: "target_required", usage: `!${cfg.command || "vso"} @kanal` });
   }
 
   try {
     const targetUserRaw = await twitch.resolveUserByLogin(targetLogin);
     if (!targetUserRaw || !targetUserRaw.userId) {
-      return res.status(404).json({ ok: false, error: "target_user_not_found", targetLogin });
+      state.lastError = "target_user_not_found";
+      state.lastRun = { targetLogin, error: "target_user_not_found", input: summarizeInput(input), failedAt: state.lastRunAt };
+      return res.json({ ok: false, error: "target_user_not_found", targetLogin });
     }
 
     const targetUser = {
@@ -540,7 +578,15 @@ async function handleRun(req, res, env) {
     const clips = await listClipsForBroadcaster(env, targetUser.userId, cfg);
     if (!clips.length) {
       state.stats.noClips += 1;
-      return res.status(404).json({ ok: false, error: "no_clips_found", target: targetUser });
+      state.lastError = "no_clips_found";
+      state.lastRun = {
+        target: targetUser,
+        targetLogin,
+        error: "no_clips_found",
+        input: summarizeInput(input),
+        failedAt: state.lastRunAt
+      };
+      return res.json({ ok: false, error: "no_clips_found", target: targetUser });
     }
 
     const clip = pickClip(clips, cfg);
@@ -577,7 +623,9 @@ async function handleRun(req, res, env) {
       clip: { id: clip.id, title: clip.title || "", url: clip.url || "", duration: clip.duration || 0 },
       bundleId: bundlePayload.bundleId,
       ttsEnabled: Boolean(ttsItem),
-      queuedAt: state.lastRunAt
+      queuedAt: state.lastRunAt,
+      parsedTargetLogin: targetLogin,
+      input: summarizeInput(input)
     };
     state.lastError = "";
 
@@ -625,8 +673,8 @@ module.exports.init = function init(ctx) {
     res.json({
       ok: true,
       module: MODULE_NAME,
-      version: 1,
-      step: "STEP277A",
+      version: 2,
+      step: "STEP277A_FIX1",
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       command,
