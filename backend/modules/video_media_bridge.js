@@ -1,22 +1,24 @@
 'use strict';
 
 /**
- * STEP274G - Video Media Bridge
+ * STEP274I - Deprecated Video Media Test Bridge
  *
- * Video/Animation-Medien aus der zentralen Medienverwaltung werden ueber einen
- * eigenen Overlay-Player abgespielt. Audio bleibt beim Sound-System.
+ * Dieser Pfad bleibt aus Kompatibilitaetsgruenden vorhanden, ist aber nicht mehr
+ * der offizielle Media-Playback-Weg. Offiziell spielt das Sound-System alle
+ * Medien ueber /api/sound/play-media ab; die Medienverwaltung liefert nur IDs
+ * und Metadaten.
  *
  * Wichtig:
- * - Kein Umbau am Sound-System-Core.
- * - Keine Medien werden verschoben oder geloescht.
- * - Das Overlay zieht die aktuelle Wiedergabe ueber /api/video/media-player/state.
+ * - Keine Funktionalitaet wird entfernt.
+ * - Bestehende /api/video/* Testpfade bleiben erreichbar.
+ * - Neue Module/Commands sollen /api/sound/play-media?mediaId=<id> nutzen.
  */
 
 const media = require('./media');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'video_media_bridge';
-const STEP = 'STEP274G';
+const STEP = 'STEP274I_DEPRECATED';
 const API_PREFIX = '/api/video';
 const OVERLAY_URL = '/overlays/_overlay-media-player.html';
 
@@ -101,6 +103,9 @@ function publicState() {
     ok: true,
     module: MODULE_NAME,
     step: STEP,
+    deprecated: true,
+    officialPlaybackHub: '/api/sound/play-media',
+    officialOverlay: '/overlays/sound_system_overlay.html',
     overlayUrl: OVERLAY_URL,
     current: publicCurrent(),
     stats: { ...state.stats },
@@ -242,13 +247,13 @@ function statusPayload() {
   return {
     ...publicState(),
     routes: [
-      { method: 'GET/POST', path: `${API_PREFIX}/play-media`, purpose: 'Video/Animation aus media_assets im Overlay-Player abspielen' },
+      { method: 'GET/POST', path: `${API_PREFIX}/play-media`, purpose: 'DEPRECATED/Testpfad: Video/Animation direkt im alten Test-Overlay abspielen. Offiziell: /api/sound/play-media' },
       { method: 'POST', path: `${API_PREFIX}/stop-media`, purpose: 'Aktuelle Video-/Animation-Wiedergabe stoppen' },
       { method: 'GET', path: `${API_PREFIX}/media-player/state`, purpose: 'Aktueller Overlay-Player-State' },
       { method: 'POST', path: `${API_PREFIX}/media-player/ended`, purpose: 'Overlay meldet Wiedergabe-Ende' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Video-Media-Bruecke' }
     ],
-    note: 'STEP274G trennt Video/Animation von Sound-Playback. Audio bleibt bei /api/sound/play-media, Video nutzt diesen Overlay-Player.'
+    note: 'DEPRECATED: /api/video/* war ein Testpfad aus STEP274G. Offizieller Media-Playback-Hub ist /api/sound/play-media mit /overlays/sound_system_overlay.html.'
   };
 }
 
@@ -278,7 +283,7 @@ function init(ctx) {
   app.get(`${API_PREFIX}/play-media`, handlePlay);
   app.post(`${API_PREFIX}/play-media`, handlePlay);
 
-  console.log('[video_media_bridge] routes active: /api/video/* STEP274G');
+  console.log('[video_media_bridge] deprecated routes active: /api/video/* STEP274I_DEPRECATED; official hub: /api/sound/play-media');
   return { name: MODULE_NAME, step: STEP };
 }
 

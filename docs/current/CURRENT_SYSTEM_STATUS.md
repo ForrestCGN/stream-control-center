@@ -1,15 +1,12 @@
 # CURRENT SYSTEM STATUS
 
-## Media / Sound / Commands
+Stand: STEP274I – Sound-System als offizieller Media-Playback-Hub.
 
-Aktueller Stand: STEP274H.
+## Architektur
 
-Die Medienverwaltung ist die zentrale Registry fuer Media-Assets. Das Sound-System ist der offizielle zentrale Abspielpunkt fuer Audio, Video und Animationen.
-
-Offizieller Playback-Weg:
-
-```text
-media_assets / Media-ID → /api/sound/play-media?mediaId=<id> → Sound-System → sound_system_overlay.html
-```
-
-Video/Animation nutzt kein separates neues Overlay als offiziellen Pfad. Das vorhandene `sound_system_overlay.html` bleibt zentraler Player.
+- Medienverwaltung (`media_assets`) verwaltet Dateien, IDs, Typen, Pfade, Dauer und Metadaten.
+- Sound-System spielt Medien zentral ab.
+- Offizieller Playback-Endpunkt: `/api/sound/play-media?mediaId=<id>`
+- Offizielles OBS-Overlay: `/overlays/sound_system_overlay.html`
+- Commands `sound_play` und `video_play` routen beide auf den Sound-Media-Hub.
+- `/api/video/*` und `_overlay-media-player.html` sind deprecated Testpfade und nicht mehr offizieller Weg.

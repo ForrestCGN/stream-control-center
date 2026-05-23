@@ -1,21 +1,21 @@
 'use strict';
 
 /**
- * STEP274H - Command Media Routing via Official Sound-System Playback Hub
+ * STEP274I - Command Media Routing via Official Sound-System Playback Hub
  *
  * Bruecke zwischen Command-Dashboard, zentraler Medienverwaltung und Media-Sound-Bridge.
  * Wichtig:
  * - Keine bestehende Command-Ausfuehrung wird veraendert.
  * - Keine Medien werden verschoben, geloescht oder automatisch ausgefuehrt.
  * - Dashboard bekommt pro Media-Option eine execute-ready Zielroute fuer sound_play/video_play.
- * - STEP274H: Commands routen Medien immer an /api/sound/play-media; das Sound-System bleibt zentraler Abspielpunkt.
+ * - STEP274I: Commands routen Medien immer an /api/sound/play-media; das Sound-System bleibt zentraler Abspielpunkt.
  */
 
 const media = require('./media');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands_media';
-const STEP = 'STEP274H';
+const STEP = 'STEP274I';
 const API_PREFIX = '/api/commands';
 const SOUND_PLAY_MEDIA_URL = '/api/sound/play-media';
 const VIDEO_PLAY_MEDIA_URL = SOUND_PLAY_MEDIA_URL;
@@ -120,7 +120,7 @@ function statusPayload() {
       { method: 'GET', path: `${API_PREFIX}/media-options`, purpose: 'Media-Auswahloptionen mit execute-ready Command-Routen fuer sound_play/video_play' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Command-Media-Bruecke' }
     ],
-    note: 'STEP274H definiert das Sound-System als offiziellen Media-Playback-Hub. Medienverwaltung ist Registry, nicht Abspieler.',
+    note: 'STEP274I definiert das Sound-System als offiziellen Media-Playback-Hub. Medienverwaltung ist Registry, nicht Abspieler.',
     updatedAt: core.nowIso()
   };
 }
@@ -155,7 +155,7 @@ function init(ctx) {
     catch (err) { return res.status(500).json({ ok: false, module: MODULE_NAME, step: STEP, error: err.message || String(err) }); }
   });
 
-  console.log('[commands_media] routes active: /api/commands/media-* STEP274H');
+  console.log('[commands_media] routes active: /api/commands/media-* STEP274I');
   return { name: MODULE_NAME, step: STEP };
 }
 

@@ -1,15 +1,16 @@
 # CHANGELOG
 
-## STEP274H – Sound-System als offizieller Media-Playback-Hub
+## STEP274I – Sound-System Media-Playback-Hub / Altpfad markiert
 
-- Sound-Media-Bridge auf STEP274H gesetzt.
-- Command-Media-Bridge auf STEP274H gesetzt.
-- Dashboard-Hinweise korrigiert: Medienverwaltung ist Registry, Sound-System spielt ab.
-- Offizieller Weg: Media-ID → `/api/sound/play-media` → Sound-System Queue/Overlay.
-- Keine bestehende Abspiel-Logik entfernt.
+- Sound-System als offiziellen Media-Playback-Hub fuer Audio/Video/Animation bestaetigt.
+- Commands-Media-Bridge und Sound-Media-Bridge auf STEP274I gesetzt.
+- `/api/video/*` und `_overlay-media-player.html` als deprecated Testpfad markiert, ohne Funktionalitaet zu entfernen.
+- Doku/Status auf die Architektur „Media verwaltet, Sound spielt ab“ korrigiert.
 
-## Vorherige relevante Steps
+## STEP274H
 
-- STEP274G1: Video/Animation wieder auf bestehendes `sound_system_overlay.html` geroutet.
-- STEP274E2: Audio-Typ-Fix fuer MP3s mit Cover-Art.
-- STEP274D: Zentraler Media-Resolver.
+- `/api/sound/play-media` als offizieller Media-Playback-Hub definiert.
+
+## STEP274G1
+
+- Video-Routing wieder auf bestehendes `sound_system_overlay.html` zurueckgefuehrt.

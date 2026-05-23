@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * STEP274H - Official Media Playback Hub Adapter
+ * STEP274I - Official Media Playback Hub Adapter
  *
  * Bruecke fuer zentrale Medienverwaltung in Richtung Sound-System.
  * Wichtig:
@@ -10,7 +10,7 @@
  * - Neue media_assets koennen ueber /api/sound/play-media abgespielt werden.
  * - Hotfix E1: Media-Requests senden kein soundId/id an /api/sound/play, damit
  *   das Sound-System nicht faelschlich ein Preset in config.sounds erwartet.
- * - STEP274H: /api/sound/play-media ist der offizielle zentrale Media-Playback-Weg.
+ * - STEP274I: /api/sound/play-media ist der offizielle zentrale Media-Playback-Weg.
  *   Die Medienverwaltung liefert IDs/Metadaten, das Sound-System bleibt Queue/Playback-Hub.
  * - Assets mit type=audio bleiben audio, auch wenn ffprobe Cover-Art als Video-Stream erkennt.
  * - Fuer media/* Dateien wird eine technische Kompatibilitaetskopie unter
@@ -27,7 +27,7 @@ const config = require('./helpers/helper_config');
 const media = require('./media');
 
 const MODULE_NAME = 'sound_media_bridge';
-const STEP = 'STEP274H';
+const STEP = 'STEP274I';
 const API_PREFIX = '/api/sound';
 const CACHE_DIR_NAME = '_media_registry';
 
@@ -273,7 +273,7 @@ function statusPayload() {
       { method: 'GET/POST', path: `${API_PREFIX}/play-media`, purpose: 'Media-Asset per zentralem Resolver ueber Sound-System Queue abspielen' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Sound-Media-Bruecke' }
     ],
-    note: 'STEP274H legt /api/sound/play-media als offiziellen Media-Playback-Hub fest. Medien kommen aus media_assets, Abspielung/Queue/Overlay laufen zentral ueber das Sound-System.',
+    note: 'STEP274I legt /api/sound/play-media als offiziellen Media-Playback-Hub fest. Medien kommen aus media_assets, Abspielung/Queue/Overlay laufen zentral ueber das Sound-System.',
     updatedAt: core.nowIso()
   };
 }
