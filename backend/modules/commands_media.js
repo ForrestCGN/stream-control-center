@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * STEP274F - Commands Media Execution Routing
+ * STEP274G - Command Media Execution Routing with Video Bridge
  *
  * Bruecke zwischen Command-Dashboard, zentraler Medienverwaltung und Media-Sound-Bridge.
  * Wichtig:
@@ -14,9 +14,10 @@ const media = require('./media');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands_media';
-const STEP = 'STEP274F';
+const STEP = 'STEP274G';
 const API_PREFIX = '/api/commands';
 const SOUND_PLAY_MEDIA_URL = '/api/sound/play-media';
+const VIDEO_PLAY_MEDIA_URL = '/api/video/play-media';
 
 function clean(value) {
   return String(value ?? '').trim();
@@ -40,7 +41,8 @@ function commandActionKey(asset) {
 
 function commandTargetUrl(asset) {
   const id = Number(asset && asset.id || 0);
-  return id > 0 ? `${SOUND_PLAY_MEDIA_URL}?mediaId=${encodeURIComponent(String(id))}` : SOUND_PLAY_MEDIA_URL;
+  const base = commandMediaType(asset) === 'video' ? VIDEO_PLAY_MEDIA_URL : SOUND_PLAY_MEDIA_URL;
+  return id > 0 ? `${base}?mediaId=${encodeURIComponent(String(id))}` : base;
 }
 
 function optionFromAsset(asset) {
@@ -51,7 +53,7 @@ function optionFromAsset(asset) {
     ...option,
     commandExecutionReady: true,
     commandRoute: {
-      moduleKey: 'sound_media_bridge',
+      moduleKey: mediaType === 'video' ? 'video_media_bridge' : 'sound_media_bridge',
       actionKey: commandActionKey(asset),
       targetMethod: 'POST',
       targetUrl,
@@ -59,7 +61,7 @@ function optionFromAsset(asset) {
       actionType: mediaType === 'video' ? 'video_play' : 'sound_play'
     },
     commandTargetUrl: targetUrl,
-    commandModuleKey: 'sound_media_bridge',
+    commandModuleKey: mediaType === 'video' ? 'video_media_bridge' : 'sound_media_bridge',
     commandActionKey: commandActionKey(asset)
   };
 }
@@ -107,14 +109,16 @@ function statusPayload() {
     execution: {
       ready: true,
       moduleKey: 'sound_media_bridge',
-      targetUrlPattern: `${SOUND_PLAY_MEDIA_URL}?mediaId=<id>`,
-      note: 'Command-Dashboard speichert sound_play/video_play jetzt direkt auf /api/sound/play-media?mediaId=<id>.'
+      targetUrlPattern: `${SOUND_PLAY_MEDIA_URL}?mediaId=<id> oder ${VIDEO_PLAY_MEDIA_URL}?mediaId=<id>`,
+      audioTargetUrlPattern: `${SOUND_PLAY_MEDIA_URL}?mediaId=<id>`,
+      videoTargetUrlPattern: `${VIDEO_PLAY_MEDIA_URL}?mediaId=<id>`,
+      note: 'Command-Dashboard speichert sound_play auf /api/sound/play-media und video_play auf /api/video/play-media.'
     },
     routes: [
       { method: 'GET', path: `${API_PREFIX}/media-options`, purpose: 'Media-Auswahloptionen mit execute-ready Command-Routen fuer sound_play/video_play' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Command-Media-Bruecke' }
     ],
-    note: 'STEP274F verbindet Command-sound_play/video_play mit Media-ID und /api/sound/play-media. Die eigentliche Queue/Ausgabe bleibt im Sound-System.',
+    note: 'STEP274G trennt Command-Ausfuehrung: sound_play nutzt /api/sound/play-media, video_play nutzt /api/video/play-media und den Overlay-Player.',
     updatedAt: core.nowIso()
   };
 }
@@ -149,7 +153,7 @@ function init(ctx) {
     catch (err) { return res.status(500).json({ ok: false, module: MODULE_NAME, step: STEP, error: err.message || String(err) }); }
   });
 
-  console.log('[commands_media] routes active: /api/commands/media-* STEP274F');
+  console.log('[commands_media] routes active: /api/commands/media-* STEP274G');
   return { name: MODULE_NAME, step: STEP };
 }
 

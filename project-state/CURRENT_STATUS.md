@@ -1,5 +1,5 @@
 # CURRENT STATUS
 
-Aktueller Stand: STEP274F – Command sound_play/video_play Media Execution Routing.
+Aktueller Stand: STEP274G – Video / Animation Media Overlay Bridge.
 
-Die zentrale Medienverwaltung ist ueber STEP274D aktiv. STEP274E/E1/E2 macht Media-Assets ueber das bestehende Sound-System abspielbar. STEP274F verbindet das Command-Dashboard so, dass gespeicherte sound_play/video_play-Commands direkt auf `/api/sound/play-media?mediaId=<id>` zeigen.
+Audio-Medien laufen ueber STEP274E2/F stabil mit `/api/sound/play-media?mediaId=<id>`. Video/Animation wurde in STEP274G getrennt und nutzt jetzt `/api/video/play-media?mediaId=<id>` plus OBS-Overlay `_overlay-media-player.html`.

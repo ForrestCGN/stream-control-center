@@ -1,12 +1,12 @@
 # CHANGELOG
 
-## STEP274F – Command sound_play/video_play Media Execution Routing
+## STEP274G – Video / Animation Media Overlay Bridge
 
-- `commands_media` auf STEP274F gehoben.
-- Media-Optionen liefern jetzt execute-ready Command-Routen.
-- Dashboard setzt beim Auswaehlen eines Mediums automatisch Modul, Action, Methode, Ziel-URL und ResponseMode.
-- Bestehende Command-/Sound-System-Core-Logik bleibt unveraendert.
+- Neuer `video_media_bridge` fuer Video/Animation aus der zentralen Medienverwaltung.
+- Neuer Overlay-Player `_overlay-media-player.html`.
+- `commands_media` routet Audio weiterhin zu `/api/sound/play-media`, Video/Animation zu `/api/video/play-media`.
+- Sound-System-Core und Command-Core bleiben unveraendert.
 
 ## Vorheriger Stand
 
-- STEP274E2 – Media-Sound-Bridge Audio Media-Type Fix.
+- STEP274F – Command sound_play/video_play Media Execution Routing.

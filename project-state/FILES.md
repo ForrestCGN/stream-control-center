@@ -1,15 +1,18 @@
 # FILES
 
-## STEP274F
+## STEP274G
 
+- `backend/modules/video_media_bridge.js`
+  - Neue Video-/Animation-Media-Bruecke.
+- `htdocs/overlays/_overlay-media-player.html`
+  - OBS-Browser-Overlay fuer Video-/Animation-Wiedergabe.
 - `backend/modules/commands_media.js`
-  - Command-Media-Optionen mit `commandRoute` und `commandTargetUrl`.
+  - Trennt Command-Routen fuer Audio und Video.
 - `htdocs/dashboard/modules/commands_media.js`
-  - setzt execute-ready Routing fuer sound_play/video_play.
+  - Aktualisierte Hinweise fuer getrennte Routen.
 - `htdocs/dashboard/modules/commands_media.css`
-  - Route-Hinweis-Styling.
-- `project-state/STEP274F.md`
-  - Step-Dokumentation.
+  - Weiterhin Route-Hinweis-Styling.
+- `project-state/STEP274G.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/CHANGELOG.md`
