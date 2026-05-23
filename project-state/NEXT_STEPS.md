@@ -10,3 +10,7 @@
 - Birthday Show/Medien im Browser hart neu laden.
 - User-Song über Birthday-Button hochladen und prüfen: Registry-Pfad birthday/user-songs, Sound-Kopie assets/sounds/birthday/.
 - Party-Song MediaField prüfen: Upload-Ziel birthday/party-songs.
+
+## STEP274Z_MEDIA_PICKER_FILTER_DEFAULT_ALL_DONE
+
+Abgeschlossen: MediaPicker trennt sichtbaren Kategorie-Filter und Upload-Ziel deutlicher.

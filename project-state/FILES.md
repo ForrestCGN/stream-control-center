@@ -14,3 +14,8 @@
 - docs/dashboard/BIRTHDAY_MEDIAPICKER_UX_CLEANUP.md
 - project-state/STEP274Y.md
 - tools/apply_step274y_birthday_mediapicker_ux_cleanup.js
+
+## STEP274Z_MEDIA_PICKER_FILTER_DEFAULT_ALL
+
+- `htdocs/dashboard/components/media_picker.js` - sichtbarer Zusatzkategorie-Filter startet auf Alle; Upload-Ziel bleibt separat.
+- `docs/dashboard/MEDIA_PICKER_FILTER_DEFAULT_ALL.md` - Kurzdokumentation.

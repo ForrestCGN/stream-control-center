@@ -7,3 +7,7 @@ STEP274W FIX4 repariert die Birthday MediaPicker Import-Route. Nach dem Patch mu
 - User-Song-/Party-Song-MediaFields nutzen jetzt birthday/user-songs bzw. birthday/party-songs statt general.
 - Erfolgsmeldung nach Übernahme zeigt Registry-Kategorie und Sound-System-Zielpfad.
 - Neue Kategorie birthday/party-songs wurde im Media-Core ergänzt.
+
+## STEP274Z_MEDIA_PICKER_FILTER_DEFAULT_ALL
+
+MediaPicker: sichtbarer Zusatzkategorie-Filter startet beim Öffnen auf `Alle Zusatzkategorien`; Upload-Ziel bleibt weiterhin über die aufrufende Modulkonfiguration gesetzt.
