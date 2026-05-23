@@ -45,48 +45,51 @@ window.CommandsMediaBridge = (function(){
     }
   }
 
+  function mediaById(id, type) {
+    const list = type === 'video' ? state.video : state.audio;
+    const cleanId = String(id || '').trim();
+    return list.find(item => String(item.id) === cleanId) || null;
+  }
+
   function optionLabel(item) {
+    if (!item) return '';
     const bits = [];
     bits.push(item.label || item.fileName || item.relativePath || `#${item.id}`);
-    if (item.category) bits.push(`[${item.category}]`);
+    if (item.moduleKey || item.categoryKey || item.category) bits.push(`[${item.moduleKey || 'general'}/${item.categoryKey || item.category || 'general'}]`);
     if (item.relativePath) bits.push(`– ${item.relativePath}`);
-    if (item.commandExecutionReady) bits.push('(Command-ready)');
-    else if (item.soundSystemCompatible === false) bits.push('(Bridge)');
     return bits.join(' ');
   }
 
-  function buildSelect(fieldName, currentValue, options, placeholder) {
-    const current = String(currentValue || '').trim();
-    const known = options.some(item => String(item.id) === current);
-    const rows = [`<option value="">${esc(placeholder)}</option>`];
-    if (current && !known) rows.push(`<option value="${esc(current)}" selected>Aktuell: #${esc(current)} (nicht in Medienliste)</option>`);
-    for (const item of options) {
-      const selected = String(item.id) === current ? 'selected' : '';
-      rows.push(`<option value="${esc(item.id)}" ${selected} data-media-path="${esc(item.relativePath || '')}" data-media-web="${esc(item.webPath || '')}" data-media-sound-file="${esc(item.soundSystemFile || '')}" data-media-compatible="${item.soundSystemCompatible ? '1' : '0'}" data-command-target-url="${esc(item.commandTargetUrl || item.commandRoute?.targetUrl || '')}" data-command-module-key="${esc(item.commandModuleKey || item.commandRoute?.moduleKey || 'sound_media_bridge')}" data-command-action-key="${esc(item.commandActionKey || item.commandRoute?.actionKey || '')}">${esc(optionLabel(item))}</option>`);
-    }
-    return `<select class="cmd-media-select" data-cmd-field="${esc(fieldName)}" data-commands-media-select="${esc(fieldName)}">${rows.join('')}</select>`;
+  function selectedLabel(currentValue, type) {
+    const item = mediaById(currentValue, type);
+    if (item) return optionLabel(item);
+    return currentValue ? `Aktuell: #${currentValue}` : 'Noch kein Medium ausgewählt.';
   }
 
-  function mediaHint(options, type) {
-    const count = options.length;
-    const extra = type === 'sound'
-      ? 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274J automatisch /api/sound/play-media?mediaId=<id>. Medienverwaltung liefert die ID, Sound-System spielt ab.'
-      : 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274J auch Video/Animation auf /api/sound/play-media?mediaId=<id>. Audio und Video laufen zentral ueber das vorhandene sound_system_overlay.html.';
-    return `<small class="cmd-media-hint">${esc(count)} Medien gefunden. ${esc(extra)}</small>`;
+  function buildPickerField(fieldName, currentValue, type) {
+    const isVideo = type === 'video';
+    const allowedTypes = isVideo ? ['video', 'animation'] : ['audio'];
+    const title = isVideo ? 'Video/Animation' : 'Sound';
+    return `
+      <input type="hidden" data-cmd-field="${esc(fieldName)}" data-commands-media-input="${esc(fieldName)}" value="${esc(currentValue || '')}">
+      <div class="cmd-media-picker-row" data-commands-media-picker="${esc(fieldName)}" data-commands-media-type="${esc(type)}">
+        <button type="button" class="cmd-media-picker-btn" data-commands-media-pick="${esc(fieldName)}" data-commands-media-type="${esc(type)}" data-commands-media-allowed="${esc(allowedTypes.join(','))}">Medium auswählen</button>
+        <span class="cmd-media-current" data-commands-media-current="${esc(fieldName)}">${esc(selectedLabel(currentValue, type))}</span>
+      </div>
+      <small class="cmd-media-hint">${esc(title)} wird über die zentrale Medienverwaltung gewählt. Gespeichert wird die Media-ID; beim Speichern setzt STEP274L automatisch /api/sound/play-media?mediaId=<id>.</small>`;
   }
 
-  function replaceMediaInput(root, fieldName, options, placeholder, type) {
+  function replaceMediaInput(root, fieldName, type) {
     const field = root.querySelector(`[data-cmd-field="${fieldName}"]`);
-    if (!field || field.dataset.commandsMediaSelect === fieldName) return false;
+    if (!field || field.dataset.commandsMediaInput === fieldName) return false;
     const label = field.closest('label');
     if (!label) return false;
     const currentValue = field.value || '';
-    const title = label.childNodes && label.childNodes[0] ? String(label.childNodes[0].textContent || '').trim() : 'Medium';
-    label.innerHTML = `${esc(title)}${buildSelect(fieldName, currentValue, options, placeholder)}${mediaHint(options, type)}`;
+    const title = label.childNodes && label.childNodes[0] ? String(label.childNodes[0].textContent || '').trim() : 'Medium-ID';
+    label.classList.add('cmd-media-picker-label');
+    label.innerHTML = `${esc(title)}${buildPickerField(fieldName, currentValue, type)}`;
     return true;
   }
-
-
 
   function setFieldValue(root, name, value) {
     const field = root?.querySelector(`[data-cmd-field="${name}"]`);
@@ -97,28 +100,29 @@ window.CommandsMediaBridge = (function(){
     return true;
   }
 
-  function selectedOption(select) {
-    return select?.selectedOptions && select.selectedOptions.length ? select.selectedOptions[0] : null;
+  function actionKeyForAsset(asset, type) {
+    const mediaType = String(asset?.type || '').toLowerCase();
+    if (type === 'video' || mediaType === 'video' || mediaType === 'animation') return 'play_video_media';
+    return 'play_audio_media';
   }
 
-  function applyRoutingForSelect(select) {
-    const root = document.getElementById('commandsModule');
-    if (!root || !select) return;
-    const fieldName = select.dataset.commandsMediaSelect || '';
-    const mediaId = String(select.value || '').trim();
+  function applyRouting(root, fieldName, asset, type) {
+    const mediaId = String(asset?.id || '').trim();
     if (!mediaId) return;
-    const type = fieldName === 'videoMediaId' ? 'video' : 'sound';
-    const opt = selectedOption(select);
-    const targetUrl = opt?.dataset.commandTargetUrl || `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`;
-    const moduleKey = opt?.dataset.commandModuleKey || 'sound_media_bridge';
-    const actionKey = opt?.dataset.commandActionKey || (type === 'video' ? 'play_video_media' : 'play_audio_media');
-    setFieldValue(root, 'moduleKey', moduleKey);
+    const targetUrl = `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`;
+    const actionKey = actionKeyForAsset(asset, type);
+    setFieldValue(root, fieldName, mediaId);
+    setFieldValue(root, 'moduleKey', 'sound_media_bridge');
     setFieldValue(root, 'actionKey', actionKey);
     setFieldValue(root, 'targetMethod', 'POST');
     setFieldValue(root, 'targetUrl', targetUrl);
     setFieldValue(root, 'responseMode', 'module');
 
-    const actionBox = select.closest('.cmd-action-box');
+    const current = root.querySelector(`[data-commands-media-current="${fieldName}"]`);
+    if (current) current.textContent = optionLabel(asset) || `#${mediaId}`;
+
+    const pickerRow = root.querySelector(`[data-commands-media-picker="${fieldName}"]`);
+    const actionBox = pickerRow?.closest('.cmd-action-box');
     if (actionBox) {
       let info = actionBox.querySelector('[data-commands-media-route-info]');
       if (!info) {
@@ -127,13 +131,39 @@ window.CommandsMediaBridge = (function(){
         info.dataset.commandsMediaRouteInfo = '1';
         actionBox.appendChild(info);
       }
-      const opt = selectedOption(select);
-      const targetUrl = opt?.dataset.commandTargetUrl || `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`;
-      const bridge = opt && opt.dataset.mediaCompatible === '0' ? 'Media-Bridge/Kopie in _media_registry' : 'direkt kompatibel';
       const trigger = root.querySelector('[data-cmd-field="trigger"]')?.value || '';
       const checkHint = trigger ? ` · Check: /api/commands/media-command-check?trigger=${encodeURIComponent(trigger)}` : ' · Nach dem Speichern: /api/commands/media-command-check?trigger=<trigger>';
-      info.textContent = `Route gesetzt: ${targetUrl} (${bridge})${checkHint}`;
+      info.textContent = `Route gesetzt: ${targetUrl} · ${actionKey}${checkHint}`;
     }
+  }
+
+  function openPicker(button) {
+    const root = document.getElementById('commandsModule');
+    if (!root || !button) return;
+    const fieldName = button.dataset.commandsMediaPick || '';
+    const type = button.dataset.commandsMediaType || 'sound';
+    const allowedTypes = String(button.dataset.commandsMediaAllowed || 'audio').split(',').map(item => item.trim()).filter(Boolean);
+    if (!window.MediaPicker?.open) {
+      const current = root.querySelector(`[data-commands-media-current="${fieldName}"]`);
+      if (current) current.textContent = 'MediaPicker ist nicht geladen.';
+      return;
+    }
+    window.MediaPicker.open({
+      moduleKey: 'commands',
+      allowedTypes,
+      title: type === 'video' ? 'Command-Medium auswählen: Video/Animation' : 'Command-Medium auswählen: Sound',
+      onSelect(asset) {
+        applyRouting(root, fieldName, asset, type);
+      }
+    });
+  }
+
+  function bindPickerButtons(root) {
+    root.querySelectorAll('[data-commands-media-pick]').forEach(button => {
+      if (button.dataset.commandsMediaBound) return;
+      button.dataset.commandsMediaBound = '1';
+      button.addEventListener('click', () => openPicker(button));
+    });
   }
 
   function inject() {
@@ -143,19 +173,21 @@ window.CommandsMediaBridge = (function(){
       loadOptions(false).then(scheduleInject).catch(() => scheduleInject());
       return;
     }
-    replaceMediaInput(root, 'soundMediaId', state.audio, 'Sound aus Medienverwaltung auswählen...', 'sound');
-    replaceMediaInput(root, 'videoMediaId', state.video, 'Video/Animation aus Medienverwaltung auswählen...', 'video');
-    root.querySelectorAll('[data-commands-media-select]').forEach(select => {
-      if (!select.dataset.commandsMediaBound) {
-        select.dataset.commandsMediaBound = '1';
-        select.addEventListener('change', () => applyRoutingForSelect(select));
-      }
-      if (select.value) applyRoutingForSelect(select);
-    });
+    replaceMediaInput(root, 'soundMediaId', 'sound');
+    replaceMediaInput(root, 'videoMediaId', 'video');
+    bindPickerButtons(root);
+
+    const soundValue = root.querySelector('[data-commands-media-input="soundMediaId"]')?.value || '';
+    const videoValue = root.querySelector('[data-commands-media-input="videoMediaId"]')?.value || '';
+    const soundCurrent = root.querySelector('[data-commands-media-current="soundMediaId"]');
+    const videoCurrent = root.querySelector('[data-commands-media-current="videoMediaId"]');
+    if (soundCurrent && soundValue) soundCurrent.textContent = selectedLabel(soundValue, 'sound');
+    if (videoCurrent && videoValue) videoCurrent.textContent = selectedLabel(videoValue, 'video');
+
     const hero = root.querySelector('.cmd-hero p');
-    if (hero && !hero.dataset.commandsMediaStep274d) {
-      hero.dataset.commandsMediaStep274d = '1';
-      hero.textContent = 'Zentrales Chat-Command-System. STEP274J: Medien kommen aus der Medienverwaltung, abgespielt wird zentral ueber das Sound-System. Gespeicherte Commands koennen per /api/commands/media-command-check geprueft werden.';
+    if (hero && !hero.dataset.commandsMediaStep274l) {
+      hero.dataset.commandsMediaStep274l = '1';
+      hero.textContent = 'Zentrales Chat-Command-System. STEP274L: Medien werden über den zentralen Media-Picker gewählt; abgespielt wird weiterhin zentral über das Sound-System.';
     }
   }
 

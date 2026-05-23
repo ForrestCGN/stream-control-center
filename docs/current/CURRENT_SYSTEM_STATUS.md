@@ -1,6 +1,6 @@
 # Current System Status
 
-Stand: STEP274K
+Stand: STEP274L
 
 ## Media / Sound Architektur
 
@@ -10,7 +10,7 @@ Stand: STEP274K
 
 ## Media-Kategorien
 
-Neue Uploads werden künftig strukturiert abgelegt:
+Neue Uploads werden strukturiert abgelegt:
 
 ```text
 htdocs/assets/media/<moduleKey>/<categoryKey>/<datei>
@@ -22,6 +22,44 @@ Regeln:
 - `categoryKey` ist die vom User wählbare/anlegbare Zusatzkategorie.
 - „Neueste Uploads“ ist nur eine virtuelle Ansicht über `created_at`, kein Dateiverzeichnis.
 
+## Zentraler Media-Picker
+
+STEP274L ergänzt einen wiederverwendbaren Dashboard-Picker:
+
+```js
+MediaPicker.open({
+  moduleKey: 'commands',
+  allowedTypes: ['audio', 'video', 'animation'],
+  onSelect(asset) {}
+});
+```
+
+Der Picker kann:
+
+- neueste Uploads anzeigen
+- Medien des aufrufenden Moduls anzeigen
+- allgemeine Medien anzeigen
+- alle Medien anzeigen
+- nach Typ filtern
+- nach Zusatzkategorie filtern
+- nach Name/Pfad/Kategorie suchen
+- Medium auswählen
+- neues Medium hochladen
+- neue Zusatzkategorie anlegen
+
+## Erste Integration: Commands
+
+Commands nutzt den zentralen Picker statt langer Dropdown-Liste.
+
+Nach Auswahl eines Mediums setzt Commands:
+
+- `mediaId`
+- `targetUrl = /api/sound/play-media?mediaId=<id>`
+- `moduleKey = sound_media_bridge`
+- `actionKey = play_audio_media` oder `play_video_media`
+- `targetMethod = POST`
+- `responseMode = module`
+
 ## Nächster Schritt
 
-STEP274L: Zentralen Media-Picker / Upload-Dialog im Dashboard bauen.
+STEP274M: Live-Test von Commands + Picker, danach Alerts oder SoundAlerts an denselben Picker anbinden.
