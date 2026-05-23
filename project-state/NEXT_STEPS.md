@@ -1,13 +1,6 @@
 # Next Steps
 
-## Direkt testen
-
-- Medienverwaltung öffnen.
-- Im Suchfeld ohne Lupe tippen: `R`, `Ro`, `Rox`.
-- Prüfen, ob Ergebnisse automatisch wechseln.
-
-## Danach möglich
-
-- Einzelnes Medium direkt im Dashboard in andere Kategorie verschieben.
-- Medien-Detailansicht um Command-Verwendung erweitern.
-- Legacy-Cleanup nur als separater Dry-Run-Step vorbereiten.
+1. STEP274S FIX1 installieren.
+2. Dashboard hart neu laden.
+3. Live-Suche ohne Lupe testen.
+4. Danach STEP274R/S final dokumentieren oder mit weiteren Media-Dashboard-Verbesserungen fortfahren.

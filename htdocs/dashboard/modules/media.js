@@ -496,17 +496,56 @@ window.MediaModule = (function(){
     state.filter = { q: '', moduleKey: '', categoryKey: '', status: 'active', view: '' };
   }
 
+  function activeListTarget() {
+    return state.tab === 'recent' ? 'recent' : currentType();
+  }
+
+  function captureFocus() {
+    const el = document.activeElement;
+    if (!root || !el || !root.contains(el)) return null;
+    let selector = '';
+    if (el.matches?.('[data-media-filter-q]')) selector = '[data-media-filter-q]';
+    else if (el.matches?.('[data-media-filter-module]')) selector = '[data-media-filter-module]';
+    else if (el.matches?.('[data-media-filter-category]')) selector = '[data-media-filter-category]';
+    else if (el.matches?.('[data-media-filter-status]')) selector = '[data-media-filter-status]';
+    if (!selector) return null;
+    return {
+      selector,
+      value: el.value,
+      start: typeof el.selectionStart === 'number' ? el.selectionStart : null,
+      end: typeof el.selectionEnd === 'number' ? el.selectionEnd : null
+    };
+  }
+
+  function restoreFocus(focus) {
+    if (!focus || !root) return;
+    const el = root.querySelector(focus.selector);
+    if (!el) return;
+    try {
+      el.focus({ preventScroll: true });
+      if (typeof el.setSelectionRange === 'function' && focus.start !== null && focus.end !== null) {
+        const len = String(el.value || '').length;
+        el.setSelectionRange(Math.min(focus.start, len), Math.min(focus.end, len));
+      }
+    } catch (_) {}
+  }
+
+  function renderKeepingFocus(focus) {
+    render();
+    restoreFocus(focus);
+  }
 
   function scheduleFilterApply(type, delay = 220) {
     if (!root) return;
+    const focus = captureFocus();
     readFilterValues();
-    const target = type || (state.tab === 'recent' ? 'recent' : currentType());
+    const target = type || activeListTarget();
     if (filterTimer) clearTimeout(filterTimer);
     filterTimer = setTimeout(async () => {
       const seq = ++filterSeq;
       try {
         await loadList(target);
-        if (seq === filterSeq) render();
+        if (seq === filterSeq) renderKeepingFocus(focus);
       } catch (err) {
         if (seq === filterSeq) showError(err);
       }
@@ -518,11 +557,12 @@ window.MediaModule = (function(){
       clearTimeout(filterTimer);
       filterTimer = null;
     }
+    const focus = captureFocus();
     readFilterValues();
-    const target = type || (state.tab === 'recent' ? 'recent' : currentType());
+    const target = type || activeListTarget();
     filterSeq += 1;
     await loadList(target);
-    render();
+    renderKeepingFocus(focus);
   }
 
   function bind() {
@@ -540,26 +580,27 @@ window.MediaModule = (function(){
       await applyFilterNow(btn.dataset.mediaFilterApply || currentType());
     }));
     root?.querySelectorAll('[data-media-filter-q]').forEach(input => input.addEventListener('input', () => {
-      scheduleFilterApply(currentType(), 220);
+      scheduleFilterApply(activeListTarget(), 180);
     }));
     root?.querySelectorAll('[data-media-filter-module]').forEach(select => select.addEventListener('change', async () => {
       state.filter.moduleKey = String(select.value || '').trim();
       state.filter.categoryKey = '';
-      await loadList(state.tab === 'recent' ? 'recent' : currentType());
-      render();
+      const focus = captureFocus();
+      await loadList(activeListTarget());
+      renderKeepingFocus(focus);
     }));
     root?.querySelectorAll('[data-media-filter-category], [data-media-filter-status]').forEach(select => select.addEventListener('change', async () => {
-      await applyFilterNow(state.tab === 'recent' ? 'recent' : currentType());
+      await applyFilterNow(activeListTarget());
     }));
     root?.querySelectorAll('[data-media-filter-q]').forEach(input => input.addEventListener('keydown', async ev => {
       if (ev.key === 'Enter') {
         ev.preventDefault();
-        await applyFilterNow(currentType());
+        await applyFilterNow(activeListTarget());
       }
     }));
     root?.querySelectorAll('[data-media-filter-clear]').forEach(btn => btn.addEventListener('click', async () => {
       clearFilters();
-      const target = btn.dataset.mediaFilterClear || currentType();
+      const target = btn.dataset.mediaFilterClear || activeListTarget();
       await loadList(target);
       render();
     }));
