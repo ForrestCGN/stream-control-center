@@ -62,3 +62,11 @@
 .birthday-legacy-upload-fallback summary{cursor:pointer;font-weight:800;color:var(--muted)}
 .birthday-legacy-upload-fallback[open] summary{margin-bottom:10px;color:inherit}
 @media(max-width:1000px){.birthday-media-import-grid{grid-template-columns:1fr}}
+
+/* STEP274Y - Birthday MediaPicker UX cleanup */
+.birthday-media-path-hints{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0;padding:10px;border:1px solid rgba(64,232,255,.16);border-radius:14px;background:rgba(64,232,255,.045)}
+.birthday-media-path-hints div{display:grid;gap:3px;min-width:0}
+.birthday-media-path-hints strong{font-size:12px;color:#dffaff}
+.birthday-media-path-hints code{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted);background:rgba(0,0,0,.18);border-radius:8px;padding:5px 7px}
+.birthday-media-import-card .birthday-note{line-height:1.45}
+@media(max-width:1000px){.birthday-media-path-hints{grid-template-columns:1fr}}

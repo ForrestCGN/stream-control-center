@@ -71,6 +71,7 @@ const DEFAULT_MEDIA_CATEGORIES = [
   { moduleKey: 'birthday', categoryKey: 'intro', label: 'Geburtstag / Intro-Videos', allowedTypes: ['video', 'animation'], isSystem: true },
   { moduleKey: 'birthday', categoryKey: 'default-song', label: 'Geburtstag / Standardsongs', allowedTypes: ['audio'], isSystem: true },
   { moduleKey: 'birthday', categoryKey: 'user-songs', label: 'Geburtstag / User-Songs', allowedTypes: ['audio'], isSystem: true },
+  { moduleKey: 'birthday', categoryKey: 'party-songs', label: 'Geburtstag / Party-Songs', allowedTypes: ['audio'], isSystem: true },
   { moduleKey: 'vip', categoryKey: 'general', label: 'VIP / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
   { moduleKey: 'rewards', categoryKey: 'general', label: 'Rewards / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
   { moduleKey: 'tts', categoryKey: 'general', label: 'TTS / Allgemein', allowedTypes: ['audio'], isSystem: true },

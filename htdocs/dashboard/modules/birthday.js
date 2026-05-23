@@ -420,7 +420,11 @@ window.BirthdayModule = (function(){
             })
           });
 
-          state.notice = result?.message || ('Birthday-Medium übernommen' + (cfg.categoryLabel ? ' · ' + cfg.categoryLabel : '') + '.');
+          const selectedName = asset.label || asset.displayName || asset.fileName || ('mediaId=' + asset.id);
+          const selectedCategory = (asset.moduleKey || 'birthday') + '/' + (asset.categoryKey || cfg.categoryKey || 'general');
+          const userPart = login ? (' für @' + login.replace(/^@+/, '')) : '';
+          const soundPart = result?.relativePath ? (' · Sound-System: ' + result.relativePath) : '';
+          state.notice = result?.message || ('Übernommen: ' + selectedName + userPart + ' · Registry: ' + selectedCategory + soundPart);
           await loadAll(true);
         } catch (err) {
           state.notice = '';
@@ -575,8 +579,8 @@ window.BirthdayModule = (function(){
             <label>Anzeigename<input type="text" data-birthday-user-display placeholder="ForrestCGN"></label>
             <label>Geburtstag<input type="text" data-birthday-user-date placeholder="22.05 oder 22.05.1980"></label>
             <label>Status<select data-birthday-user-active><option value="true">aktiv</option><option value="false">inaktiv</option></select></label>
-            <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="media/birthday/general/birthday_song_user.mp3 oder leer für Standard"></label>
-            <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="general" data-allowed-types="audio" data-title="User-Song auswählen oder hochladen" data-birthday-media-target="[data-birthday-user-song]"></div>
+            <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="media/birthday/user-songs/birthday_song_user.mp3 oder leer für Standard"></label>
+            <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="user-songs" data-allowed-types="audio" data-title="User-Song auswählen oder hochladen" data-birthday-media-target="[data-birthday-user-song]"></div>
             <label>Song-Dauer ms <input type="number" data-birthday-user-song-ms placeholder="auto / optional"></label>
             <label>Song-Lautstärke <input type="number" min="0" max="100" data-birthday-user-volume placeholder="85"></label>
             <p class="birthday-note">Das Intro-Video ist global. User-Songs werden technisch per Login gespeichert, im Dashboard/Overlay aber mit Anzeigename + Avatar genutzt.</p>
@@ -659,24 +663,30 @@ window.BirthdayModule = (function(){
         </section>
         <section class="birthday-card birthday-media-import-card">
           <h3>Medien auswählen / hochladen</h3>
-          <p class="birthday-note">STEP274W_FIX1_SHOW_MEDIAPICKER_UI: Hauptweg ist jetzt der zentrale MediaPicker. Uploads landen zuerst in der Media-Registry und werden danach kontrolliert ins Birthday-/Sound-System übernommen.</p>
+          <p class="birthday-note">Hauptweg ist der zentrale MediaPicker. Neue Uploads landen direkt in der passenden Media-Registry-Kategorie und werden danach kontrolliert ins Birthday-/Sound-System übernommen.</p>
 
           <div class="birthday-media-import-grid">
             <button type="button" class="birthday-media-import-btn" data-birthday-import-media="intro_video">
               <strong>🎬 Intro-Video auswählen</strong>
-              <span>MediaPicker · erlaubt Video/Animation</span>
+              <span>Upload-Ziel: birthday/intro · erlaubt Video/Animation</span>
             </button>
             <button type="button" class="birthday-media-import-btn" data-birthday-import-media="default_song">
               <strong>🔊 Standardsong auswählen</strong>
-              <span>MediaPicker · erlaubt Audio</span>
+              <span>Upload-Ziel: birthday/default-song · erlaubt Audio</span>
             </button>
+          </div>
+
+          <div class="birthday-media-path-hints" data-step="STEP274Y_BIRTHDAY_MEDIAPICKER_UX_HINTS">
+            <div><strong>Intro</strong><code>htdocs/assets/media/birthday/intro/</code></div>
+            <div><strong>Standard</strong><code>htdocs/assets/media/birthday/default-song/</code></div>
+            <div><strong>User-Songs</strong><code>htdocs/assets/media/birthday/user-songs/</code></div>
           </div>
 
           <div class="birthday-media-user-import">
             <label>User für eigenen Song<input type="text" data-birthday-import-login placeholder="@Araglor"></label>
             <button type="button" class="birthday-media-import-btn" data-birthday-import-media="user_song">
               <strong>🔊 User-Song auswählen</strong>
-              <span>Erst User eintragen, dann MediaPicker öffnen</span>
+              <span>Upload-Ziel: birthday/user-songs · erst User eintragen</span>
             </button>
           </div>
 
@@ -734,8 +744,8 @@ window.BirthdayModule = (function(){
               </div>
               <div class="birthday-form-two">
                 <label>Style<select data-birthday-party-style>${styles.map(style => `<option value="${esc(style.key)}">${esc(style.label || style.key)}</option>`).join('')}</select></label>
-                <label>Song-Datei optional<input type="text" data-birthday-party-song placeholder="media/birthday/general/birthday_song_araglor_2.mp3 oder leer = User/Standard-Song"></label>
-                <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="general" data-allowed-types="audio" data-title="Party-Song auswählen oder hochladen" data-birthday-media-target="[data-birthday-party-song]"></div>
+                <label>Song-Datei optional<input type="text" data-birthday-party-song placeholder="media/birthday/party-songs/party_song_araglor.mp3 oder leer = User/Standard-Song"></label>
+                <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="party-songs" data-allowed-types="audio" data-title="Party-Song auswählen oder hochladen" data-birthday-media-target="[data-birthday-party-song]"></div>
               </div>
               <label>Headline Template<input type="text" data-birthday-party-headline value="{headline}"></label>
               <label>Subline Template<input type="text" data-birthday-party-subline value="{message}"></label>
