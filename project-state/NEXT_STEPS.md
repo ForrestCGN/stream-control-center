@@ -1,6 +1,7 @@
 # NEXT STEPS
 
-- Birthday-Overlay im normalen OBS-Browser testen.
-- Prüfen, ob die Vordergrund-Herzen sichtbar über der Kachel liegen, aber nicht zu stark stören.
-- Prüfen, ob keine sichtbare FX-Sequenz mehr hart von vorne startet.
-- Danach optisch weiter am Overlay arbeiten: Position, Größen, Textwirkung, Avatar-Bereich, Celebration-Menge.
+- STEP274B im Live-System entpacken und `node --check backend\modules\media.js` ausführen.
+- Backend neu starten und `/api/media/status` prüfen.
+- `/api/media/scan` ausführen und danach Audio/Video/Image/Animation-Listen prüfen.
+- Im Dashboard System → Medien prüfen: Übersicht, Scan, Tabs, Vorschau, Metadaten, Soft-Delete.
+- Danach STEP274C: Commands ↔ Medienverwaltung anbinden.

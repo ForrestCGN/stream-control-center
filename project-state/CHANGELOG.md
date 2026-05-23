@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## STEP274B
+- Medienverwaltung gegen GitHub/dev geprüft.
+- Media-Core von STEP274A1C auf STEP274B aktualisiert.
+- Typ-Erkennung für überlappende Dateiendungen repariert: `.webm`/`.gif` können jetzt korrekt als Animation registriert werden, wenn sie im Animation-Kontext gescannt oder hochgeladen werden.
+- Upload-Typ-Ermittlung zentralisiert.
+- Pfadprüfung bei Scan/Delete gegen den Assets-Ordner gehärtet.
+- Projektstatus, Files und Next Steps auf Medienverwaltung aktualisiert.
+
 ## STEP_BIRTHDAY_010
 - Birthday-Overlay-FX-Reset bei internem Scene-Wechsel entfernt.
 - Vordergrund-FX-Layer für dezente Herzen über der Kachel ergänzt.

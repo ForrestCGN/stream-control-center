@@ -1,1 +1,3 @@
+Medienverwaltung: STEP274B. Der zentrale Media-Core ist unter `backend/modules/media.js` aktiv und über `/api/media/*` erreichbar. Das Dashboard-Modul ist unter System → Medien registriert. STEP274B repariert die Typ-Erkennung für überlappende Dateiendungen wie `.webm` und `.gif`, damit Animationen bei Scan/Upload nicht fälschlich als Video/Bild registriert werden. Außerdem wurden Upload-Typ-Ermittlung und Pfadprüfungen gehärtet. Command-Anbindung folgt erst in STEP274C.
+
 Birthday-System: STEP_BIRTHDAY_010. Commands laufen ausschließlich über das zentrale Command-System; Auto-Gratulation bleibt über passiven Chat-Hook aktiv. Overlay-FX wurden beruhigt und dezente Vordergrund-Herzen über der Kachel ergänzt.

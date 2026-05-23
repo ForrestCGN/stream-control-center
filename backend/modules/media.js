@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * STEP274A1C - Central Media Management Core
+ * STEP274B - Central Media Management Core Test/Fix
  *
  * Zentrale Medien-Registry fuer Audio/Video/Bilder/Animationen.
  * Wichtig:
@@ -23,6 +23,7 @@ const mediaHelper = require('./helpers/helper_media');
 const MODULE_NAME = 'media';
 const SCHEMA_VERSION = 1;
 const API_PREFIX = '/api/media';
+const MEDIA_STEP = 'STEP274B';
 
 const MEDIA_TYPES = {
   audio: {
@@ -96,12 +97,43 @@ function getAssetsDir() {
   return config.getAssetsDir();
 }
 
+function isKnownMediaType(type) {
+  return Object.prototype.hasOwnProperty.call(MEDIA_TYPES, type);
+}
+
+function extensionAllowedForMeta(fileNameOrExt, type) {
+  if (!isKnownMediaType(type)) return false;
+  const ext = String(fileNameOrExt || '').startsWith('.')
+    ? String(fileNameOrExt || '').toLowerCase()
+    : path.extname(String(fileNameOrExt || '')).toLowerCase();
+  return MEDIA_TYPES[type].extensions.includes(ext);
+}
+
 function typeForExt(ext) {
   const cleanExt = String(ext || '').toLowerCase();
   for (const [type, meta] of Object.entries(MEDIA_TYPES)) {
     if (meta.extensions.includes(cleanExt)) return type;
   }
   return 'unknown';
+}
+
+function uploadDirRel(type) {
+  const meta = MEDIA_TYPES[type];
+  return meta ? normalizeSlashes(path.join(...meta.uploadDir)) : '';
+}
+
+function typeForFile(absPath, preferredType = '') {
+  const ext = path.extname(String(absPath || '')).toLowerCase();
+  const cleanPreferred = clean(preferredType);
+  if (extensionAllowedForMeta(ext, cleanPreferred)) return cleanPreferred;
+
+  const rel = normalizeSlashes(path.relative(getAssetsDir(), absPath)).toLowerCase();
+  for (const [type, meta] of Object.entries(MEDIA_TYPES)) {
+    const uploadRel = normalizeSlashes(path.join(...meta.uploadDir)).toLowerCase();
+    if ((rel === uploadRel || rel.startsWith(`${uploadRel}/`)) && meta.extensions.includes(ext)) return type;
+  }
+
+  return typeForExt(ext);
 }
 
 function typeMeta(type) {
@@ -119,6 +151,13 @@ function ensureMediaDirs() {
     ensureDir(path.join(assetsDir, ...meta.uploadDir));
   }
   return true;
+}
+
+function isPathInside(baseDir, targetPath) {
+  const base = path.resolve(baseDir);
+  const target = path.resolve(targetPath);
+  const rel = path.relative(base, target);
+  return rel === '' || (!!rel && !rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
 function ensureSchema() {
@@ -167,9 +206,7 @@ function ensureSchema() {
 }
 
 function extensionAllowedForType(fileName, type) {
-  const ext = path.extname(String(fileName || '')).toLowerCase();
-  const meta = typeMeta(type);
-  return meta.extensions.includes(ext);
+  return extensionAllowedForMeta(fileName, type);
 }
 
 function sanitizeFileName(fileName) {
@@ -263,15 +300,17 @@ function upsertAsset(input = {}) {
 
   const existing = db.get('SELECT * FROM media_assets WHERE relative_path = :relativePath', { relativePath });
   const current = rowToAsset(existing);
+  const inputType = clean(input.type || current?.type || typeForExt(path.extname(relativePath)));
+  const finalType = isKnownMediaType(inputType) ? inputType : typeForExt(path.extname(relativePath));
   const data = {
-    type: clean(input.type || current?.type || typeForExt(path.extname(relativePath))),
+    type: finalType,
     category: clean(input.category || current?.category || 'general') || 'general',
     displayName: clean(input.displayName || input.display_name || current?.displayName || path.parse(relativePath).name),
     fileName: clean(input.fileName || input.file_name || current?.fileName || path.basename(relativePath)),
     relativePath,
     webPath: clean(input.webPath || input.web_path || current?.webPath || `/assets/${relativePath}`),
     absolutePath: clean(input.absolutePath || input.absolute_path || current?.absolutePath || path.join(getAssetsDir(), relativePath)),
-    mimeType: clean(input.mimeType || input.mime_type || current?.mimeType || inferMimeType(relativePath, input.type)),
+    mimeType: clean(input.mimeType || input.mime_type || current?.mimeType || inferMimeType(relativePath, finalType)),
     sizeBytes: Number(input.sizeBytes ?? input.size_bytes ?? current?.sizeBytes ?? 0) || 0,
     durationMs: Number(input.durationMs ?? input.duration_ms ?? current?.durationMs ?? 0) || 0,
     width: Number(input.width ?? current?.width ?? 0) || 0,
@@ -348,13 +387,13 @@ function listAssets(options = {}) {
   return rows.map(rowToAsset).filter(Boolean);
 }
 
-function scanFile(absPath, source, category = 'general') {
-  const ext = path.extname(absPath).toLowerCase();
-  const type = typeForExt(ext);
-  if (type === 'unknown') return null;
+function scanFile(absPath, source, category = 'general', preferredType = '') {
   const assetsDir = path.resolve(getAssetsDir());
   const target = path.resolve(absPath);
-  if (!target.startsWith(assetsDir)) return null;
+  if (!isPathInside(assetsDir, target)) return null;
+
+  const type = typeForFile(target, preferredType);
+  if (type === 'unknown') return null;
 
   const rel = normalizeSlashes(path.relative(assetsDir, target));
   const info = mediaInfoForFile(target, type);
@@ -402,17 +441,19 @@ function scanAssets() {
   const touched = [];
   const errors = [];
 
-  for (const [_type, meta] of Object.entries(MEDIA_TYPES)) {
+  for (const [scanType, meta] of Object.entries(MEDIA_TYPES)) {
     const dirs = [path.join(assetsDir, ...meta.uploadDir), ...meta.legacyDirs.map(parts => path.join(assetsDir, ...parts))];
     const uniqueDirs = Array.from(new Set(dirs.map(dir => path.resolve(dir))));
     for (const dir of uniqueDirs) {
       if (!fs.existsSync(dir)) continue;
-      const source = dir.includes(path.join('assets', 'media')) ? 'media_dir' : 'legacy_scan';
+      const relDir = normalizeSlashes(path.relative(assetsDir, dir)).toLowerCase();
+      const mediaRoot = normalizeSlashes(path.join('media')).toLowerCase();
+      const source = relDir === mediaRoot || relDir.startsWith(`${mediaRoot}/`) ? 'media_dir' : 'legacy_scan';
       const category = source === 'media_dir' ? 'general' : 'legacy';
       const files = walkDir(dir, meta.extensions, []);
       for (const file of files) {
         try {
-          const asset = scanFile(file, source, category);
+          const asset = scanFile(file, source, category, scanType);
           if (asset) touched.push(asset);
         } catch (err) {
           errors.push({ file, error: err.message || String(err) });
@@ -440,19 +481,24 @@ function getUploadDir(type) {
   return ensureDir(path.join(getAssetsDir(), ...meta.uploadDir));
 }
 
+function resolveUploadType(req, fileName) {
+  const requestedType = clean(param(req, 'type', '')) || typeForExt(path.extname(fileName));
+  const finalType = isKnownMediaType(requestedType) ? requestedType : typeForExt(path.extname(fileName));
+  if (!isKnownMediaType(finalType)) throw new Error('media_type_not_supported');
+  if (!extensionAllowedForType(fileName, finalType)) throw new Error('media_extension_not_allowed');
+  return finalType;
+}
+
 const uploadStorage = multer.diskStorage({
   destination(req, file, cb) {
     try {
-      const requestedType = clean(param(req, 'type', '')) || typeForExt(path.extname(file.originalname));
-      const type = MEDIA_TYPES[requestedType] ? requestedType : typeForExt(path.extname(file.originalname));
-      if (!MEDIA_TYPES[type]) return cb(new Error('media_type_not_supported'));
+      const type = resolveUploadType(req, file.originalname);
       cb(null, getUploadDir(type));
     } catch (err) { cb(err); }
   },
   filename(req, file, cb) {
     try {
-      const requestedType = clean(param(req, 'type', '')) || typeForExt(path.extname(file.originalname));
-      const type = MEDIA_TYPES[requestedType] ? requestedType : typeForExt(path.extname(file.originalname));
+      const type = resolveUploadType(req, file.originalname);
       const target = makeUniqueTarget(getUploadDir(type), file.originalname);
       cb(null, path.basename(target));
     } catch (err) { cb(err); }
@@ -463,11 +509,12 @@ const upload = multer({
   storage: uploadStorage,
   limits: { fileSize: Number(process.env.MEDIA_UPLOAD_MAX_BYTES || 250 * 1024 * 1024) },
   fileFilter(req, file, cb) {
-    const type = clean(param(req, 'type', '')) || typeForExt(path.extname(file.originalname));
-    const finalType = MEDIA_TYPES[type] ? type : typeForExt(path.extname(file.originalname));
-    if (!MEDIA_TYPES[finalType]) return cb(new Error('media_type_not_supported'));
-    if (!extensionAllowedForType(file.originalname, finalType)) return cb(new Error('media_extension_not_allowed'));
-    cb(null, true);
+    try {
+      resolveUploadType(req, file.originalname);
+      cb(null, true);
+    } catch (err) {
+      cb(err);
+    }
   }
 });
 
@@ -476,9 +523,10 @@ function uploadOne(req, res) {
     if (err) return res.status(400).json({ ok: false, error: err.message || String(err) });
     try {
       if (!req.file?.path) return res.status(400).json({ ok: false, error: 'file_missing' });
+      const uploadType = resolveUploadType(req, req.file.originalname);
       const category = clean(param(req, 'category', 'general')) || 'general';
       const displayName = clean(param(req, 'displayName', '')) || path.parse(req.file.originalname).name;
-      const asset = scanFile(req.file.path, 'upload', category);
+      const asset = scanFile(req.file.path, 'upload', category, uploadType);
       if (!asset) return res.status(400).json({ ok: false, error: 'asset_registration_failed' });
       const saved = upsertAsset({ ...asset, displayName, category, source: 'upload' });
       state.lastUploadAt = nowIso();
@@ -524,7 +572,7 @@ function deleteAsset(req, res) {
     if (deleteFile) {
       const assetsDir = path.resolve(getAssetsDir());
       const abs = path.resolve(asset.absolutePath);
-      if (!abs.startsWith(assetsDir)) return res.status(400).json({ ok: false, error: 'unsafe_asset_path' });
+      if (!isPathInside(assetsDir, abs)) return res.status(400).json({ ok: false, error: 'unsafe_asset_path' });
       if (fs.existsSync(abs)) fs.unlinkSync(abs);
       db.run('DELETE FROM media_assets WHERE id = :id', { id });
     } else {
@@ -549,7 +597,7 @@ function statusPayload() {
     ok: true,
     module: MODULE_NAME,
     version: 1,
-    step: 'STEP274A1C',
+    step: MEDIA_STEP,
     initialized: state.initialized,
     schemaOk: state.schemaOk,
     schemaError: state.schemaError,
@@ -570,7 +618,7 @@ function statusPayload() {
       { method: 'POST', path: `${API_PREFIX}/update`, purpose: 'Metadaten aendern' },
       { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei loeschen' }
     ],
-    note: 'STEP274A1C ist der reparierte Media-Core. Dashboard und Command-Anbindung folgen in STEP274B/C.',
+    note: 'STEP274B repariert Typ-Erkennung fuer ueberlappende Endungen wie .webm/.gif und haertet Pfadpruefungen ab. Command-Anbindung folgt in STEP274C.',
     updatedAt: nowIso()
   };
 }
@@ -615,7 +663,7 @@ function init(ctx) {
   app.post(`${API_PREFIX}/delete`, deleteAsset);
 
   console.log('[media] routes active: /api/media/*');
-  return { name: MODULE_NAME, step: 'STEP274A1C' };
+  return { name: MODULE_NAME, step: MEDIA_STEP };
 }
 
 module.exports = { init, statusPayload, listAssets, scanAssets, upsertAsset };
