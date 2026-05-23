@@ -107,10 +107,11 @@ window.CommandsMediaBridge = (function(){
   }
 
   function applyRouting(root, fieldName, asset, type) {
-    const mediaId = String(asset?.id || '').trim();
+    const mediaId = String(asset?.id || asset?.mediaId || '').trim();
     if (!mediaId) return;
+    const normalizedAsset = asset || { id: mediaId, type: type === 'video' ? 'video' : 'audio' };
     const targetUrl = `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`;
-    const actionKey = actionKeyForAsset(asset, type);
+    const actionKey = actionKeyForAsset(normalizedAsset, type);
     setFieldValue(root, fieldName, mediaId);
     setFieldValue(root, 'moduleKey', 'sound_media_bridge');
     setFieldValue(root, 'actionKey', actionKey);
@@ -119,7 +120,7 @@ window.CommandsMediaBridge = (function(){
     setFieldValue(root, 'responseMode', 'module');
 
     const current = root.querySelector(`[data-commands-media-current="${fieldName}"]`);
-    if (current) current.textContent = optionLabel(asset) || `#${mediaId}`;
+    if (current) current.textContent = optionLabel(normalizedAsset) || `#${mediaId}`;
 
     const pickerRow = root.querySelector(`[data-commands-media-picker="${fieldName}"]`);
     const actionBox = pickerRow?.closest('.cmd-action-box');
@@ -183,6 +184,20 @@ window.CommandsMediaBridge = (function(){
     const videoCurrent = root.querySelector('[data-commands-media-current="videoMediaId"]');
     if (soundCurrent && soundValue) soundCurrent.textContent = selectedLabel(soundValue, 'sound');
     if (videoCurrent && videoValue) videoCurrent.textContent = selectedLabel(videoValue, 'video');
+
+    // STEP274L-FIX1:
+    // Bestehende Commands mit gespeicherter mediaId muessen beim Oeffnen/Rendern
+    // wieder auf den offiziellen Sound-System-Hub geroutet werden.
+    // Sonst kann ein Speichern ohne erneute Picker-Auswahl moduleKey/actionKey/targetUrl leer
+    // oder veraltet lassen und der Command spielt nichts mehr ab.
+    if (soundValue) {
+      const asset = mediaById(soundValue, 'sound') || { id: soundValue, type: 'audio' };
+      applyRouting(root, 'soundMediaId', asset, 'sound');
+    }
+    if (videoValue) {
+      const asset = mediaById(videoValue, 'video') || { id: videoValue, type: 'video' };
+      applyRouting(root, 'videoMediaId', asset, 'video');
+    }
 
     const hero = root.querySelector('.cmd-hero p');
     if (hero && !hero.dataset.commandsMediaStep274l) {
