@@ -1,7 +1,3 @@
-# Next Steps
+# NEXT_STEPS
 
-1. FIX2 anwenden.
-2. `stepdone` ausführen.
-3. Browser hart neu laden.
-4. Birthday `Show/Medien` testen.
-5. Danach MediaField-Integration weiter verfeinern.
+Aktueller Stand enthält STEP274W: Birthday Show/Medien nutzt den zentralen MediaPicker und importiert ausgewählte Media-Registry-Assets in die bestehende Birthday-/Sound-System-Struktur.

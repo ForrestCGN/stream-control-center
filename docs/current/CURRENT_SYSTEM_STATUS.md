@@ -1,7 +1,5 @@
-# Current System Status
+# CURRENT SYSTEM STATUS
 
-## STEP274V FIX2
+STEP274W ergänzt die erste tiefere Nutzung des zentralen MediaPickers im Birthday-Modul.
 
-Prepared patch for Birthday Upload Fallback Guard.
-
-The previous FIX1 script failed with a JavaScript syntax error. FIX2 provides a valid patch script and guards the old Birthday upload buttons so accidental clicks without selected files no longer produce the red error.
+Wichtig: Das Birthday-Playback nutzt weiterhin das bestehende Sound-System mit Dateien unter `assets/sounds/birthday`. MediaPicker-Assets werden deshalb kontrolliert dorthin kopiert und die vorhandenen Birthday-Referenzen werden aktualisiert.

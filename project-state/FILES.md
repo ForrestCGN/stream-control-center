@@ -1,8 +1,3 @@
-# Files
+# FILES
 
-## STEP274V FIX2
-
-- `tools/apply_step274v_fix1_birthday_upload_fallback_guard.js`
-- `tools/apply_step274v_fix2_birthday_upload_guard_patch.js`
-- `docs/dashboard/BIRTHDAY_UPLOAD_FALLBACK_GUARD_FIX2.md`
-- `project-state/STEP274V_FIX2.md`
+Aktueller Stand enthält STEP274W: Birthday Show/Medien nutzt den zentralen MediaPicker und importiert ausgewählte Media-Registry-Assets in die bestehende Birthday-/Sound-System-Struktur.
