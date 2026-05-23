@@ -1,3 +1,12 @@
 # NEXT_STEPS
 
-Aktueller Stand enthält STEP274W: Birthday Show/Medien nutzt den zentralen MediaPicker und importiert ausgewählte Media-Registry-Assets in die bestehende Birthday-/Sound-System-Struktur.
+## Direkt
+
+1. STEP274W FIX1 anwenden.
+2. Birthday Dashboard hart neu laden.
+3. Show/Medien testen.
+4. Intro-Video, Standardsong und User-Song über MediaPicker importieren.
+
+## Danach
+
+Wenn Birthday sauber funktioniert, denselben MediaPicker-Hauptweg bei anderen Modulen mit Uploadbedarf einsetzen.

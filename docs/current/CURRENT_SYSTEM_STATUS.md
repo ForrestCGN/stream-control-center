@@ -1,5 +1,7 @@
-# CURRENT SYSTEM STATUS
+# CURRENT_SYSTEM_STATUS
 
-STEP274W ergänzt die erste tiefere Nutzung des zentralen MediaPickers im Birthday-Modul.
+## STEP274W FIX1
 
-Wichtig: Das Birthday-Playback nutzt weiterhin das bestehende Sound-System mit Dateien unter `assets/sounds/birthday`. MediaPicker-Assets werden deshalb kontrolliert dorthin kopiert und die vorhandenen Birthday-Referenzen werden aktualisiert.
+Birthday MediaPicker Import Dashboard-Fix.
+
+Der zentrale MediaPicker soll künftig der Standard-Hauptweg für Modul-Uploads sein. Direkte Uploadfelder in Modulen sollen nur noch Legacy-Fallback sein, wenn nötig.

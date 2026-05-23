@@ -16,7 +16,8 @@ window.BirthdayModule = (function(){
     showRecheck: '/api/birthday/admin/show/recheck',
     showParties: '/api/birthday/admin/show/parties',
     showProfile: '/api/birthday/admin/show/profile',
-    resolveUser: '/api/birthday/admin/resolve-user'
+    resolveUser: '/api/birthday/admin/resolve-user',
+    importMedia: '/api/birthday/admin/show/import-media'
   };
 
   const TEXT_KEY_LABELS = {
@@ -361,6 +362,66 @@ window.BirthdayModule = (function(){
   }
 
 
+  // STEP274W_FIX1_IMPORT_MEDIA_PICKER
+  async function importBirthdayShowMedia(kind) {
+    const cleanKind = String(kind || '').trim();
+    if (!cleanKind) throw new Error('Import-Typ fehlt.');
+    if (!window.MediaPicker?.open) throw new Error('MediaPicker ist nicht verfügbar. Bitte Dashboard hart neu laden.');
+
+    const cfg = {
+      intro_video: {
+        title: 'Birthday Intro-Video auswählen oder hochladen',
+        allowedTypes: ['video', 'animation']
+      },
+      default_song: {
+        title: 'Birthday Standardsong auswählen oder hochladen',
+        allowedTypes: ['audio']
+      },
+      user_song: {
+        title: 'Birthday User-Song auswählen oder hochladen',
+        allowedTypes: ['audio']
+      }
+    }[cleanKind];
+
+    if (!cfg) throw new Error('Unbekannter Birthday-Medientyp: ' + cleanKind);
+
+    let login = '';
+    if (cleanKind === 'user_song') {
+      login = String(root?.querySelector('[data-birthday-import-login]')?.value || root?.querySelector('[data-birthday-upload-login]')?.value || root?.querySelector('[data-birthday-user-login]')?.value || '').trim();
+      if (!login) throw new Error('Für User-Song bitte zuerst @User oder Twitch-Login eintragen.');
+    }
+
+    window.MediaPicker.open({
+      moduleKey: 'birthday',
+      categoryKey: 'general',
+      allowedTypes: cfg.allowedTypes,
+      title: cfg.title,
+      onSelect: async (asset) => {
+        if (!asset || !asset.id) return;
+        try {
+          state.error = '';
+          state.notice = 'Birthday-Medium wird übernommen...';
+          render();
+
+          const result = await window.CGN.api(api.importMedia, {
+            method: 'POST',
+            body: JSON.stringify({
+              kind: cleanKind,
+              mediaId: asset.id,
+              login
+            })
+          });
+
+          state.notice = result?.message || 'Birthday-Medium übernommen.';
+          await loadAll(true);
+        } catch (err) {
+          state.error = err.message || String(err);
+          render();
+        }
+      }
+    });
+  }
+
   function currentParties() {
     const assets = state.showAssets?.ok ? state.showAssets : (state.status?.showAssets || {});
     return Array.isArray(assets.parties) ? assets.parties : [];
@@ -587,18 +648,42 @@ window.BirthdayModule = (function(){
           <div class="birthday-row-actions"><a class="birthday-link-btn" href="/overlays/_overlay-birthday.html?debug=1" target="_blank">Birthday-Overlay öffnen</a><button type="button" data-birthday-stop-show>Show stoppen</button><button type="button" data-birthday-recheck-assets>Dauer neu prüfen</button></div>
           <div class="birthday-queue-box"><h4>Birthday-/Sound-System-Warteschlange</h4>${queue.length ? `<ol>${queue.map(item => `<li><strong>@${esc(item.targetDisplayName || item.targetLogin)}</strong> <span>${esc(item.status || '')}</span> <small>${esc(item.partyTitle || item.partyKey || 'Standard-Party')}</small></li>`).join('')}</ol>` : '<p class="birthday-note">Keine Birthday-Show in der Warteschlange.</p>'}</div>
         </section>
-        <section class="birthday-card">
-          <h3>Medien hochladen</h3>
-          <div class="birthday-form">
-            <label>Globales Intro-Video<input type="file" data-birthday-upload-file="intro_video" accept="video/webm,video/mp4,video/quicktime"></label>
-            <button type="button" data-birthday-upload="intro_video" disabled title="Bitte zuerst eine Datei auswählen.">Intro-Video hochladen</button>
-            <label>Standardsong<input type="file" data-birthday-upload-file="default_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
-            <button type="button" data-birthday-upload="default_song" disabled title="Bitte zuerst eine Datei auswählen.">Standardsong hochladen</button>
-            <label>User für eigenen Song<input type="text" data-birthday-upload-login placeholder="@Araglor"></label>
-            <label>User-Song<input type="file" data-birthday-upload-file="user_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
-            <button type="button" data-birthday-upload="user_song" disabled title="Bitte zuerst eine Datei auswählen.">User-Song hochladen</button>
+        <section class="birthday-card birthday-media-import-card">
+          <h3>Medien auswählen / hochladen</h3>
+          <p class="birthday-note">STEP274W_FIX1_SHOW_MEDIAPICKER_UI: Hauptweg ist jetzt der zentrale MediaPicker. Uploads landen zuerst in der Media-Registry und werden danach kontrolliert ins Birthday-/Sound-System übernommen.</p>
+
+          <div class="birthday-media-import-grid">
+            <button type="button" class="birthday-media-import-btn" data-birthday-import-media="intro_video">
+              <strong>🎬 Intro-Video auswählen</strong>
+              <span>MediaPicker · erlaubt Video/Animation</span>
+            </button>
+            <button type="button" class="birthday-media-import-btn" data-birthday-import-media="default_song">
+              <strong>🔊 Standardsong auswählen</strong>
+              <span>MediaPicker · erlaubt Audio</span>
+            </button>
           </div>
-          <p class="birthday-note">Dateinamen werden automatisch sauber gesetzt: <code>birthday_intro_video.webm</code>, <code>birthday_default_song.mp3</code>, <code>birthday_song_araglor.mp3</code>.</p>
+
+          <div class="birthday-media-user-import">
+            <label>User für eigenen Song<input type="text" data-birthday-import-login placeholder="@Araglor"></label>
+            <button type="button" class="birthday-media-import-btn" data-birthday-import-media="user_song">
+              <strong>🔊 User-Song auswählen</strong>
+              <span>Erst User eintragen, dann MediaPicker öffnen</span>
+            </button>
+          </div>
+
+          <details class="birthday-legacy-upload-fallback">
+            <summary>Legacy-Direktupload anzeigen</summary>
+            <div class="birthday-form">
+              <label>Globales Intro-Video<input type="file" data-birthday-upload-file="intro_video" accept="video/webm,video/mp4,video/quicktime"></label>
+              <button type="button" data-birthday-upload="intro_video" disabled title="Bitte zuerst eine Datei auswählen.">Intro-Video hochladen</button>
+              <label>Standardsong<input type="file" data-birthday-upload-file="default_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
+              <button type="button" data-birthday-upload="default_song" disabled title="Bitte zuerst eine Datei auswählen.">Standardsong hochladen</button>
+              <label>User für eigenen Song<input type="text" data-birthday-upload-login placeholder="@Araglor"></label>
+              <label>User-Song<input type="file" data-birthday-upload-file="user_song" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4"></label>
+              <button type="button" data-birthday-upload="user_song" disabled title="Bitte zuerst eine Datei auswählen.">User-Song hochladen</button>
+            </div>
+            <p class="birthday-note">Fallback nur nutzen, wenn der MediaPicker nicht verfügbar ist.</p>
+          </details>
         </section>
       </div>
       <section class="birthday-card birthday-card-main">
@@ -741,6 +826,9 @@ window.BirthdayModule = (function(){
     root?.querySelectorAll('[data-edit-birthday-user]').forEach(btn => btn.addEventListener('click', () => { state.tab = 'users'; render(); setTimeout(() => fillUserForm(btn.dataset.editBirthdayUser), 0); }));
     root?.querySelectorAll('[data-delete-birthday-user]').forEach(btn => btn.addEventListener('click', () => deleteUser(btn.dataset.deleteBirthdayUser, false).catch(err => { state.error = err.message; render(); })));
     root?.querySelectorAll('[data-hard-delete-birthday-user]').forEach(btn => btn.addEventListener('click', () => deleteUser(btn.dataset.hardDeleteBirthdayUser, true).catch(err => { state.error = err.message; render(); })));
+    root?.querySelectorAll('[data-birthday-import-media]').forEach(btn => btn.addEventListener('click', () => {
+      importBirthdayShowMedia(btn.dataset.birthdayImportMedia).catch(err => { state.error = err.message || String(err); render(); });
+    }));
     root?.querySelectorAll('[data-birthday-upload-file]').forEach(input => input.addEventListener('change', updateBirthdayUploadFallbackButtons));
     root?.querySelectorAll('[data-birthday-upload]').forEach(btn => btn.addEventListener('click', () => {
       if (btn.disabled) return;

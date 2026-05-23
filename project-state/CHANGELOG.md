@@ -1,3 +1,8 @@
 # CHANGELOG
 
-Aktueller Stand enthält STEP274W: Birthday Show/Medien nutzt den zentralen MediaPicker und importiert ausgewählte Media-Registry-Assets in die bestehende Birthday-/Sound-System-Struktur.
+## STEP274W FIX1
+
+- Birthday Dashboard MediaPicker-Import repariert.
+- Show/Medien-Hauptweg auf MediaPicker umgestellt.
+- Legacy-Direktupload eingeklappt beibehalten.
+- Defektes STEP274W-Tool durch Stub ersetzt.
