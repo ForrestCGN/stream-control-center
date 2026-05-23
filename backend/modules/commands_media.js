@@ -1,20 +1,21 @@
 'use strict';
 
 /**
- * STEP274G1 - Command Media Execution Routing via Existing Sound Overlay
+ * STEP274H - Command Media Routing via Official Sound-System Playback Hub
  *
  * Bruecke zwischen Command-Dashboard, zentraler Medienverwaltung und Media-Sound-Bridge.
  * Wichtig:
  * - Keine bestehende Command-Ausfuehrung wird veraendert.
  * - Keine Medien werden verschoben, geloescht oder automatisch ausgefuehrt.
  * - Dashboard bekommt pro Media-Option eine execute-ready Zielroute fuer sound_play/video_play.
+ * - STEP274H: Commands routen Medien immer an /api/sound/play-media; das Sound-System bleibt zentraler Abspielpunkt.
  */
 
 const media = require('./media');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands_media';
-const STEP = 'STEP274G1';
+const STEP = 'STEP274H';
 const API_PREFIX = '/api/commands';
 const SOUND_PLAY_MEDIA_URL = '/api/sound/play-media';
 const VIDEO_PLAY_MEDIA_URL = SOUND_PLAY_MEDIA_URL;
@@ -113,13 +114,13 @@ function statusPayload() {
       audioTargetUrlPattern: `${SOUND_PLAY_MEDIA_URL}?mediaId=<id>`,
       videoTargetUrlPattern: `${SOUND_PLAY_MEDIA_URL}?mediaId=<id>`,
       existingOverlay: '/overlays/sound_system_overlay.html',
-      note: 'Command-Dashboard speichert sound_play und video_play auf /api/sound/play-media. Video wird vom bestehenden sound_system_overlay.html abgespielt.'
+      note: 'Command-Dashboard speichert sound_play und video_play auf /api/sound/play-media. Medienverwaltung liefert die Media-ID; Sound-System uebernimmt Queue, Ausgabe und Overlay.'
     },
     routes: [
       { method: 'GET', path: `${API_PREFIX}/media-options`, purpose: 'Media-Auswahloptionen mit execute-ready Command-Routen fuer sound_play/video_play' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Command-Media-Bruecke' }
     ],
-    note: 'STEP274G1 nutzt das bereits vorhandene sound_system_overlay.html fuer Audio und Video. Kein neues Media-Overlay wird benoetigt.',
+    note: 'STEP274H definiert das Sound-System als offiziellen Media-Playback-Hub. Medienverwaltung ist Registry, nicht Abspieler.',
     updatedAt: core.nowIso()
   };
 }
@@ -154,7 +155,7 @@ function init(ctx) {
     catch (err) { return res.status(500).json({ ok: false, module: MODULE_NAME, step: STEP, error: err.message || String(err) }); }
   });
 
-  console.log('[commands_media] routes active: /api/commands/media-* STEP274G1');
+  console.log('[commands_media] routes active: /api/commands/media-* STEP274H');
   return { name: MODULE_NAME, step: STEP };
 }
 

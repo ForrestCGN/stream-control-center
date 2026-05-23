@@ -1,7 +1,15 @@
 # CURRENT SYSTEM STATUS
 
-Aktuell: STEP274G1.
+## Media / Sound / Commands
 
-Die zentrale Medienverwaltung liefert Media-IDs. Commands fuer `sound_play` und `video_play` routen ueber `/api/sound/play-media?mediaId=<id>`.
+Aktueller Stand: STEP274H.
 
-Die Ausgabe erfolgt ueber das bestehende `sound_system_overlay.html`, das bereits Audio- und Video-Playback unterstuetzt. Ein separates neues Media-Player-Overlay ist fuer diesen Pfad nicht noetig.
+Die Medienverwaltung ist die zentrale Registry fuer Media-Assets. Das Sound-System ist der offizielle zentrale Abspielpunkt fuer Audio, Video und Animationen.
+
+Offizieller Playback-Weg:
+
+```text
+media_assets / Media-ID → /api/sound/play-media?mediaId=<id> → Sound-System → sound_system_overlay.html
+```
+
+Video/Animation nutzt kein separates neues Overlay als offiziellen Pfad. Das vorhandene `sound_system_overlay.html` bleibt zentraler Player.

@@ -69,8 +69,8 @@ window.CommandsMediaBridge = (function(){
   function mediaHint(options, type) {
     const count = options.length;
     const extra = type === 'sound'
-      ? 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274G1 automatisch /api/sound/play-media?mediaId=<id>, damit der Sound-Command wirklich ausfuehrbar ist.'
-      : 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274G1 auch Video/Animation auf /api/sound/play-media?mediaId=<id>. Die Ausgabe laeuft ueber das vorhandene sound_system_overlay.html.';
+      ? 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274H automatisch /api/sound/play-media?mediaId=<id>. Medienverwaltung liefert die ID, Sound-System spielt ab.'
+      : 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274H auch Video/Animation auf /api/sound/play-media?mediaId=<id>. Audio und Video laufen zentral ueber das vorhandene sound_system_overlay.html.';
     return `<small class="cmd-media-hint">${esc(count)} Medien gefunden. ${esc(extra)}</small>`;
   }
 
@@ -152,7 +152,7 @@ window.CommandsMediaBridge = (function(){
     const hero = root.querySelector('.cmd-hero p');
     if (hero && !hero.dataset.commandsMediaStep274d) {
       hero.dataset.commandsMediaStep274d = '1';
-      hero.textContent = 'Zentrales Chat-Command-System. STEP274G1 setzt Sound und Video/Animation auf /api/sound/play-media und nutzt das vorhandene sound_system_overlay.html.';
+      hero.textContent = 'Zentrales Chat-Command-System. STEP274H: Medien kommen aus der Medienverwaltung, abgespielt wird zentral ueber das Sound-System.';
     }
   }
 

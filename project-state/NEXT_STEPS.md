@@ -1,7 +1,10 @@
 # NEXT STEPS
 
-1. STEP274G1 entpacken und deployen.
+1. STEP274H entpacken und `stepdone.cmd` ausfuehren.
 2. Backend neu starten.
-3. `/api/commands/media-bridge/status` pruefen.
-4. Video-Media-Optionen pruefen: Ziel muss `/api/sound/play-media?mediaId=<id>` sein.
-5. Video direkt ueber `/api/sound/play-media?mediaId=266&volume=80` mit vorhandenem `sound_system_overlay.html` testen.
+3. Status pruefen:
+   - `/api/sound/media-bridge/status`
+   - `/api/commands/media-bridge/status`
+4. Audio und Video ueber `/api/sound/play-media?mediaId=<id>` testen.
+5. Danach Dashboard-Command speichern und aus Diagnose/Chat ausloesen.
+6. Spaeter: nicht-offizielle Testpfade `video_media_bridge.js` / `_overlay-media-player.html` bewusst aufraeumen, falls nicht mehr benoetigt.

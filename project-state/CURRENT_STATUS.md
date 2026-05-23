@@ -1,5 +1,5 @@
 # CURRENT STATUS
 
-Aktueller Stand: STEP274G1 – Commands nutzen fuer Audio und Video die bestehende Sound-System-Media-Bridge und das vorhandene `sound_system_overlay.html`.
+Aktueller Stand: STEP274H – Sound-System ist offizieller Media-Playback-Hub.
 
-STEP274G wurde korrigiert, weil kein zweites Video-Overlay benoetigt wird.
+Medienverwaltung verwaltet Media-Assets/IDs/Metadaten. Abspielung laeuft zentral ueber `/api/sound/play-media` und das bestehende `sound_system_overlay.html`.
