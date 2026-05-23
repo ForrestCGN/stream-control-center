@@ -2800,6 +2800,63 @@ async function importBirthdayMediaAsset(payload = {}) {
   };
 }
 
+
+// STEP274W_FIX4 importBirthdayMediaAsset top-level
+async function importBirthdayMediaAsset(payload = {}) {
+  const kind = clean(payload.kind || payload.type || '');
+  const mediaId = Number(payload.mediaId || payload.media_id || payload.id || 0);
+  if (!mediaId) throw new Error('media_id_required');
+
+  const asset = database.get('SELECT * FROM media_assets WHERE id = :id AND status = :status LIMIT 1', { id: mediaId, status: 'active' });
+  if (!asset) throw new Error('media_asset_not_found');
+
+  const sourceAbs = path.resolve(asset.absolute_path || '');
+  if (!sourceAbs || !fs.existsSync(sourceAbs)) throw new Error('media_asset_file_missing');
+
+  const ext = path.extname(asset.file_name || sourceAbs).toLowerCase();
+  if (!assertUploadAllowed(kind, ext)) throw new Error(`upload_extension_not_allowed:${ext || 'missing'}`);
+
+  const cfg = getConfig();
+  const uploadDirName = sanitizeUploadBase(cfg.show?.uploadDir || 'birthday');
+  const targetDir = config.resolveFromSounds(uploadDirName);
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const login = payload.login || payload.userLogin || payload.username || '';
+  const targetFileName = birthdayUploadFileName(kind, login, asset.file_name || path.basename(sourceAbs));
+  const targetPath = uniqueBirthdayAssetPath(targetDir, targetFileName);
+  fs.copyFileSync(sourceAbs, targetPath);
+
+  const relativePath = `${uploadDirName}/${path.basename(targetPath)}`.replace(/\\/g, '/');
+  const mediaInfo = mediaInfoForSoundFile(relativePath, 0);
+  const reference = await updateBirthdayShowUploadReference(kind, relativePath, mediaInfo, payload);
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    step: 'STEP274W_FIX4',
+    message: 'Birthday-Medium wurde übernommen.',
+    kind,
+    source: 'media_registry',
+    mediaId,
+    sourceAsset: {
+      id: Number(asset.id),
+      displayName: asset.display_name || '',
+      fileName: asset.file_name || '',
+      relativePath: asset.relative_path || '',
+      webPath: asset.web_path || ''
+    },
+    fileName: path.basename(targetPath),
+    relativePath,
+    webPath: `/assets/sounds/${relativePath}`,
+    mediaInfo,
+    reference,
+    user: reference.login ? getBirthdayUser(reference.login) : null,
+    profile: reference.login ? getBirthdayShowProfile(reference.login) : null,
+    assets: buildBirthdayShowAssets(),
+    status: buildStatus()
+  };
+}
+
 async function handleBirthdayAssetUpload(payload = {}, file = null) {
 
 

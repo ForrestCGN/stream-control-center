@@ -1,3 +1,3 @@
-# STEP274W FIX3
+# CURRENT_STATUS
 
-Birthday import-media Route Runtime-Fix ergänzt.
+Aktueller Stand: STEP274W FIX4 vorbereitet. Birthday MediaPicker Import Route wird hart repariert, damit POST /api/birthday/admin/show/import-media im laufenden Backend registriert ist.
