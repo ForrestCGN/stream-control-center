@@ -1,18 +1,15 @@
 # FILES
 
-## STEP274E1
-- backend/modules/sound_media_bridge.js
-- htdocs/dashboard/modules/commands_media.js
-- htdocs/dashboard/modules/commands_media.css
-- project-state/STEP274E1.md
-- project-state/CURRENT_STATUS.md
-- project-state/CHANGELOG.md
-- project-state/FILES.md
-- project-state/NEXT_STEPS.md
-- docs/current/CURRENT_SYSTEM_STATUS.md
+## STEP274E2
 
-## STEP274D
-- backend/modules/media.js
-- backend/modules/commands_media.js
-- htdocs/dashboard/modules/commands_media.js
-- htdocs/dashboard/modules/commands_media.css
+- `backend/modules/sound_media_bridge.js`
+- `project-state/STEP274E2.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+
+## Hinweis
+
+Dashboard-Dateien bleiben im Vergleich zu STEP274E1 unveraendert.

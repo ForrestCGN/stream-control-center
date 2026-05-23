@@ -1,15 +1,17 @@
 'use strict';
 
 /**
- * STEP274E1 - Media Registry -> Sound-System Bridge Hotfix
+ * STEP274E2 - Media Registry -> Sound-System Bridge Media-Type Fix
  *
  * Bruecke fuer zentrale Medienverwaltung in Richtung Sound-System.
  * Wichtig:
  * - Sound-System selbst bleibt unveraendert.
  * - Bestehende Medien werden nicht verschoben oder geloescht.
  * - Neue media_assets koennen ueber /api/sound/play-media abgespielt werden.
- * - Hotfix: Media-Requests senden kein soundId/id an /api/sound/play, damit
+ * - Hotfix E1: Media-Requests senden kein soundId/id an /api/sound/play, damit
  *   das Sound-System nicht faelschlich ein Preset in config.sounds erwartet.
+ * - Fix E2: Assets mit type=audio bleiben audio, auch wenn ffprobe Cover-Art
+ *   als Video-Stream erkennt.
  * - Fuer media/* Dateien wird eine technische Kompatibilitaetskopie unter
  *   htdocs/assets/sounds/_media_registry/ erzeugt, damit das bestehende
  *   Sound-System weiterhin seine eigene Queue/Prioritaeten/Overlay-Ausgabe nutzt.
@@ -24,7 +26,7 @@ const config = require('./helpers/helper_config');
 const media = require('./media');
 
 const MODULE_NAME = 'sound_media_bridge';
-const STEP = 'STEP274E1';
+const STEP = 'STEP274E2';
 const API_PREFIX = '/api/sound';
 const CACHE_DIR_NAME = '_media_registry';
 
@@ -117,12 +119,23 @@ function numberParam(req, body, name, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function resolvePayloadMediaType(body, asset, capabilities) {
+  const rawMediaType = clean(body.mediaType || body.type || asset.type || '').toLowerCase();
+  const assetType = clean(asset.type || '').toLowerCase();
+
+  if (assetType === 'audio') return 'audio';
+  if (assetType === 'video' || assetType === 'animation') return 'video';
+  if (rawMediaType === 'audio') return 'audio';
+  if (rawMediaType === 'video') return 'video';
+
+  return capabilities.isVideo || asset.hasVideo ? 'video' : 'audio';
+}
+
 function buildSoundPayload(req, resolved, soundFile, cacheInfo) {
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const asset = resolved.asset || {};
   const capabilities = resolved.capabilities || {};
-  const rawMediaType = clean(body.mediaType || body.type || asset.type || '').toLowerCase();
-  const mediaType = capabilities.isVideo || asset.hasVideo || rawMediaType === 'video' ? 'video' : 'audio';
+  const mediaType = resolvePayloadMediaType(body, asset, capabilities);
   const label = clean(body.label || body.displayName || asset.displayName || asset.fileName || `media_${asset.id || ''}`);
   const category = clean(body.category || 'command_media').toLowerCase() || 'command_media';
   const target = clean(body.target || core.getParam(req, 'target', 'stream')) || 'stream';
@@ -255,7 +268,7 @@ function statusPayload() {
       { method: 'GET/POST', path: `${API_PREFIX}/play-media`, purpose: 'Media-Asset per zentralem Resolver ueber Sound-System Queue abspielen' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Sound-Media-Bruecke' }
     ],
-    note: 'STEP274E1 behebt den Sound-System-Preset-Konflikt: Media-Playback sendet nur file/label und keine soundId/id an /api/sound/play.',
+    note: 'STEP274E2 behandelt media_assets mit type=audio immer als Audio, auch wenn MP3-Cover-Art als Video-Stream erkannt wird.',
     updatedAt: core.nowIso()
   };
 }

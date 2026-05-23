@@ -1,1 +1,9 @@
-Media-System: STEP274E1. Die zentrale Medienverwaltung bietet den Media-Resolver aus STEP274D; STEP274E1 ergaenzt eine Sound-Media-Bridge unter `/api/sound/play-media`, damit Media-Assets ueber den bestehenden Sound-System-Queue-/Overlay-Flow abgespielt werden koennen. Bestehende Assets werden nicht verschoben oder geloescht; fuer `media/*` wird bei Bedarf eine Kompatibilitaetskopie unter `htdocs/assets/sounds/_media_registry/` erstellt.
+# CURRENT SYSTEM STATUS
+
+Aktiv vorbereitet: STEP274E2 – Media-Sound-Bridge Audio Media-Type Fix.
+
+- Media-Core/Resolver: STEP274D
+- Command-Media-Bridge: STEP274D
+- Sound-Media-Bridge: STEP274E2
+
+Zweck: zentrale Medienverwaltung bleibt die Quelle fuer Medieninfos. Neue Media-Assets koennen ueber das bestehende Sound-System abgespielt werden. Audio-Dateien mit Cover-Art werden korrekt als Audio behandelt.
