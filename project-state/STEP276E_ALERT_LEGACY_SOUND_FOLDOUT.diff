@@ -1,0 +1,38 @@
+--- STEP276D_FIX1/htdocs/dashboard/modules/alerts.js
++++ STEP276E/htdocs/dashboard/modules/alerts.js
+@@ -1157,12 +1157,19 @@
+     return id ? `MediaId ${id}` : '— kein Media-Registry-Sound —';
+   }
+ 
++  function ruleLegacySoundLabel(soundAssetId){
++    const asset = soundAssetById(soundAssetId);
++    if (!asset) return 'kein alter Sound gesetzt';
++    return asset.label || asset.original_name || asset.public_url || `Sound ${asset.id || soundAssetId}`;
++  }
++
+   function ruleModal(){
+     const r = state.modalRule || defaultRule();
+     const isEdit = !!r.id;
+     const soundDuration = selectedSoundDuration(r.sound_asset_id);
+     const soundMediaId = ruleSoundMediaId(r);
+     const soundMediaLabel = ruleSoundMediaLabel(r);
++    const legacySoundLabel = ruleLegacySoundLabel(r.sound_asset_id);
+     const activeDurationText = (r.duration_mode || 'fixed') === 'sound' ? calcSoundDurationText(r.sound_asset_id, r.duration_ms) : fmtMs(r.duration_ms ?? 7000);
+     const fixedHint = (r.duration_mode || 'fixed') === 'fixed' ? `Aktiv: ${fmtMs(r.duration_ms ?? 7000)}` : `Nur Fallback: ${fmtMs(r.duration_ms ?? 7000)}`;
+     const soundHint = (r.duration_mode || 'fixed') === 'sound' ? `Aktiv: ${calcSoundDurationText(r.sound_asset_id, r.duration_ms)}` : 'Nicht aktiv';
+@@ -1181,9 +1188,13 @@
+         </div><p id="ruleValueHelp" class="small-note rule-value-help">${esc(valueDesc.help)}</p></div>
+         <div class="form-section"><h3>Medien & Design</h3><div class="form-grid editor-grid">
+           <label class="wide-field">Sound aus Media-Registry<input type="hidden" id="ruleSoundMediaId" value="${esc(soundMediaId)}"><div class="sound-select-row sound-media-picker-row"><input id="ruleSoundMediaInfo" value="${esc(soundMediaLabel)}" readonly><button type="button" id="pickRuleSoundMedia">Auswählen</button><button type="button" id="clearRuleSoundMedia" ${soundMediaId ? '' : 'disabled'} title="Media-Registry-Sound entfernen" aria-label="Media-Registry-Sound entfernen">×</button></div></label>
+-          <label class="wide-field">Legacy-Sound / Fallback<div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten Legacy-Sound abspielen" aria-label="Ausgewählten Legacy-Sound abspielen">▶</button></div></label>
++          <details class="wide-field legacy-sound-foldout" ${soundMediaId ? '' : 'open'}>
++            <summary><strong>Alter Sound / Fallback</strong><span class="muted path-small"> ${esc(legacySoundLabel)}</span></summary>
++            <label class="wide-field legacy-sound-field">Nur verwenden, wenn oben kein Media-Registry-Sound gesetzt ist<div class="sound-select-row"><select id="ruleSound">${assetOptions('sound', r.sound_asset_id)}</select><button type="button" id="playRuleSound" class="sound-icon-btn sound-select-play" ${selectedSoundUrl(r.sound_asset_id) ? '' : 'disabled'} data-sound-id="${esc(r.sound_asset_id ?? '')}" title="Ausgewählten alten Sound abspielen" aria-label="Ausgewählten alten Sound abspielen">▶</button></div></label>
++            <p class="small-note">Dieser alte Sound bleibt nur als Sicherheits-Fallback erhalten, damit bestehende Alerts nicht kaputtgehen.</p>
++          </details>
+           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
+-        </div><p class="small-note">Media-Registry-Sound hat Vorrang. Legacy-Sound bleibt als Fallback erhalten. Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
++        </div><p class="small-note">Media-Registry-Sound hat Vorrang. Alter Sound/Fallback wird nur genutzt, wenn oben kein Media-Registry-Sound ausgewählt ist. Grafik, Rahmen, Innenlinie und Celebration kommen aus dem gewählten Design-Profil.</p></div>
+         <div class="form-section"><h3>Chat-Nachricht</h3><div class="form-grid editor-grid">
+           <label class="wide-field">Chat-Textblock<select id="ruleChatBlock">${chatBlockOptions(r.source, r.type_key, r.meta?.chatMessage?.blockId || r.meta?.chatMessage?.block_id || '')}</select></label>
+         </div><p class="small-note">Nein = kein Chat-Post. Bei Auswahl eines Textblocks wird pro Alert genau ein zufälliger Text aus diesem Block gesendet. Es wird kein einzelner Text pro Regel ausgewählt.</p></div>
