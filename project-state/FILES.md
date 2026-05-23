@@ -1,34 +1,13 @@
 # FILES
 
-## STEP276B_ALERT_RULE_MEDIA_COLUMNS
+## Geaendert
+- `backend/modules/alert_system.js`
 
-- `backend/modules/alert_system.js` - optionale Media-Registry-Spalten für Alert-Regeln ergänzt.
-- `docs/backend/ALERT_SYSTEM_MEDIA_RULE_COLUMNS_STEP276B.md` - technische Kurzdokumentation.
-- `project-state/STEP276B_ALERT_RULE_MEDIA_COLUMNS.md` - Step-Dokumentation.
-
-## STEP275B_FIX1_MEDIA_UPLOAD_FIELD_ORDER
-
-- `htdocs/dashboard/components/media_picker.js` - Upload-Metadaten werden vor `file` in FormData gesetzt; Query-Fallback ergänzt.
-- `docs/dashboard/MEDIA_PICKER_UPLOAD_FIELD_ORDER_STEP275B_FIX1.md` - technische Kurznotiz.
-
-## STEP275B_BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY
-
-- `backend/modules/birthday.js` - MediaPicker-Import speichert `mediaid:<id>`; Birthday-Bundles übergeben `mediaId` ans Sound-System.
-- `docs/backend/BIRTHDAY_MEDIAID_NO_DUPLICATE_COPY_STEP275B.md` - technische Kurzdokumentation.
-
-## STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
-
-- `backend/modules/sound_system.js` - direkte Wiedergabe von Media-Registry-Assets per `mediaId`.
-- `backend/modules/media.js` - `resolve` meldet Media-Registry-Assets als Sound-System-kompatibel via direkter mediaId-Wiedergabe.
-- `docs/backend/SOUND_SYSTEM_MEDIAID_DIRECT_STEP275A.md` - Test-/Status-Dokumentation.
-
-## STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE
-
-- `backend/modules/alert_system.js` - idempotentes Sicherstellen der Alert-Regel-MediaId-Spalten beim Modulstart.
-- `docs/backend/ALERT_SYSTEM_MEDIA_RULE_COLUMNS_STEP276B_FIX1.md` - technische Kurznotiz.
-- `project-state/STEP276B_FIX1_ALERT_RULE_MEDIA_COLUMNS_ENSURE.md` - STEP-Übergabe.
-
-## STEP276C_ALERT_SOUND_MEDIAID_PLAYBACK
-
-- `backend/modules/alert_system.js` - Alert-Sound-Playback bevorzugt `sound_media_id`/`mediaId`, Legacy-Fallback bleibt erhalten.
-- `docs/backend/ALERT_SYSTEM_MEDIAID_PLAYBACK_STEP276C.md` - technische Kurzdokumentation.
+## Dokumentation
+- `docs/backend/ALERT_SYSTEM_MEDIAID_PLAYBACK_STEP276C_FIX1.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/STEP276C_FIX1_ALERT_MAIN_SOUND_RETURN.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`

@@ -1,0 +1,11 @@
+--- backend/modules/alert_system.js (STEP276C)
++++ backend/modules/alert_system.js (STEP276C_FIX1)
+@@ -2119,6 +2119,8 @@
+       showOverlay: true
+     }
+   };
++
++  return item;
+ }
+ 
+ function buildAlertTtsBundleItem(event, ttsResult, bundlePriority) {

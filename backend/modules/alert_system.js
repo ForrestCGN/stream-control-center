@@ -2119,6 +2119,8 @@ function buildAlertMainBundleItem(event, bundlePriority) {
       showOverlay: true
     }
   };
+
+  return item;
 }
 
 function buildAlertTtsBundleItem(event, ttsResult, bundlePriority) {
