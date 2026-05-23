@@ -1,1 +1,3 @@
-.cmd-media-select{width:100%}.cmd-media-hint{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.35}.cmd-action-box select.cmd-media-select{min-width:0}
+.cmd-media-select{min-width:100%;}
+.cmd-media-hint{display:block;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.35}
+.cmd-media-route-info{margin:8px 0 0;color:var(--muted);font-size:12px;font-weight:800}

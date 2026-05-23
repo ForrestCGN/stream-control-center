@@ -1,14 +1,12 @@
 # CHANGELOG
 
-## STEP274D
-- Zentrale Media-Resolver-Schicht in `backend/modules/media.js` ergänzt.
-- Neue API `GET /api/media/resolve` hinzugefügt.
-- `commands_media.js` nutzt jetzt `media.mediaOptionFromAsset(...)` statt eigener Pfadlogik.
-- Dashboard-Hinweise für Command-Media-Auswahl aktualisiert.
-- Keine bestehende Command-Ausführung verändert.
-- Keine Medien verschoben oder gelöscht.
+## STEP274E
+- Sound-Media-Bridge `backend/modules/sound_media_bridge.js` ergaenzt.
+- Neue Route `/api/sound/play-media` spielt Media-Assets ueber den bestehenden Sound-System-Flow ab.
+- Neue Route `/api/sound/media-bridge/status` ergaenzt.
+- Command-Media-Dashboard-Bruecke setzt fuer Medienauswahl automatisch `/api/sound/play-media?mediaId=<id>`.
+- Bestehende Medien werden nicht verschoben oder geloescht.
 
-## STEP274C
-- Commands im Dashboard mit zentraler Medienverwaltung verbunden.
-- `sound_play` und `video_play` laden Medienoptionen aus `media_assets`.
-- Bestehende Command-Ausführung nicht verändert.
+## STEP274D
+- Zentralen Media-Resolver in `media.js` ergaenzt.
+- Commands-Media-Bridge nutzt Media-Resolver statt eigene Pfadlogik.
