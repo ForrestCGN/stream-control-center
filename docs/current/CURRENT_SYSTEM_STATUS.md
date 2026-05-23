@@ -1,9 +1,9 @@
 # CURRENT SYSTEM STATUS
 
-Aktiv vorbereitet: STEP274E2 – Media-Sound-Bridge Audio Media-Type Fix.
+Aktueller technischer Stand: STEP274F.
 
-- Media-Core/Resolver: STEP274D
-- Command-Media-Bridge: STEP274D
-- Sound-Media-Bridge: STEP274E2
+- Media-Core: zentraler Resolver vorhanden.
+- Sound-Media-Bridge: Media-Assets koennen ueber `/api/sound/play-media` abgespielt werden.
+- Command-Media-Bridge: Dashboard setzt sound_play/video_play-Commands direkt auf `/api/sound/play-media?mediaId=<id>`.
 
-Zweck: zentrale Medienverwaltung bleibt die Quelle fuer Medieninfos. Neue Media-Assets koennen ueber das bestehende Sound-System abgespielt werden. Audio-Dateien mit Cover-Art werden korrekt als Audio behandelt.
+Wichtig: `backend/modules/commands.js` wurde nicht umgebaut. Die bestehende Command-Pipeline bleibt erhalten und nutzt die gespeicherte Ziel-URL.

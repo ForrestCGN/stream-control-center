@@ -49,7 +49,8 @@ window.CommandsMediaBridge = (function(){
     bits.push(item.label || item.fileName || item.relativePath || `#${item.id}`);
     if (item.category) bits.push(`[${item.category}]`);
     if (item.relativePath) bits.push(`– ${item.relativePath}`);
-    if (item.soundSystemCompatible === false) bits.push('(Bridge)');
+    if (item.commandExecutionReady) bits.push('(Command-ready)');
+    else if (item.soundSystemCompatible === false) bits.push('(Bridge)');
     return bits.join(' ');
   }
 
@@ -60,7 +61,7 @@ window.CommandsMediaBridge = (function(){
     if (current && !known) rows.push(`<option value="${esc(current)}" selected>Aktuell: #${esc(current)} (nicht in Medienliste)</option>`);
     for (const item of options) {
       const selected = String(item.id) === current ? 'selected' : '';
-      rows.push(`<option value="${esc(item.id)}" ${selected} data-media-path="${esc(item.relativePath || '')}" data-media-web="${esc(item.webPath || '')}" data-media-sound-file="${esc(item.soundSystemFile || '')}" data-media-compatible="${item.soundSystemCompatible ? '1' : '0'}">${esc(optionLabel(item))}</option>`);
+      rows.push(`<option value="${esc(item.id)}" ${selected} data-media-path="${esc(item.relativePath || '')}" data-media-web="${esc(item.webPath || '')}" data-media-sound-file="${esc(item.soundSystemFile || '')}" data-media-compatible="${item.soundSystemCompatible ? '1' : '0'}" data-command-target-url="${esc(item.commandTargetUrl || item.commandRoute?.targetUrl || '')}" data-command-module-key="${esc(item.commandModuleKey || item.commandRoute?.moduleKey || 'sound_media_bridge')}" data-command-action-key="${esc(item.commandActionKey || item.commandRoute?.actionKey || '')}">${esc(optionLabel(item))}</option>`);
     }
     return `<select class="cmd-media-select" data-cmd-field="${esc(fieldName)}" data-commands-media-select="${esc(fieldName)}">${rows.join('')}</select>`;
   }
@@ -68,8 +69,8 @@ window.CommandsMediaBridge = (function(){
   function mediaHint(options, type) {
     const count = options.length;
     const extra = type === 'sound'
-      ? 'Gespeichert wird die Media-ID aus der zentralen Medienverwaltung. Resolver-Daten kommen zentral aus /api/media/resolve; echte Sound-Ausführung kommt in einem eigenen Folge-Step.'
-      : 'Gespeichert wird die Media-ID aus der zentralen Medienverwaltung. Resolver-Daten kommen zentral aus /api/media/resolve; Video/Animation wird ab STEP274E ebenfalls über /api/sound/play-media an den bestehenden Sound-/Overlay-Flow übergeben.';
+      ? 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274F automatisch /api/sound/play-media?mediaId=<id>, damit der Command wirklich ausfuehrbar ist.'
+      : 'Gespeichert wird die Media-ID. Beim Speichern setzt STEP274F automatisch /api/sound/play-media?mediaId=<id>; Video/Animation laeuft ueber den bestehenden Sound-/Overlay-Flow.';
     return `<small class="cmd-media-hint">${esc(count)} Medien gefunden. ${esc(extra)}</small>`;
   }
 
@@ -106,10 +107,14 @@ window.CommandsMediaBridge = (function(){
     const mediaId = String(select.value || '').trim();
     if (!mediaId) return;
     const type = fieldName === 'videoMediaId' ? 'video' : 'sound';
-    setFieldValue(root, 'moduleKey', 'sound_media_bridge');
-    setFieldValue(root, 'actionKey', type === 'video' ? 'play_video_media' : 'play_audio_media');
+    const opt = selectedOption(select);
+    const targetUrl = opt?.dataset.commandTargetUrl || `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`;
+    const moduleKey = opt?.dataset.commandModuleKey || 'sound_media_bridge';
+    const actionKey = opt?.dataset.commandActionKey || (type === 'video' ? 'play_video_media' : 'play_audio_media');
+    setFieldValue(root, 'moduleKey', moduleKey);
+    setFieldValue(root, 'actionKey', actionKey);
     setFieldValue(root, 'targetMethod', 'POST');
-    setFieldValue(root, 'targetUrl', `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`);
+    setFieldValue(root, 'targetUrl', targetUrl);
     setFieldValue(root, 'responseMode', 'module');
 
     const actionBox = select.closest('.cmd-action-box');
@@ -122,8 +127,9 @@ window.CommandsMediaBridge = (function(){
         actionBox.appendChild(info);
       }
       const opt = selectedOption(select);
+      const targetUrl = opt?.dataset.commandTargetUrl || `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}`;
       const bridge = opt && opt.dataset.mediaCompatible === '0' ? 'Bridge/Kopie in _media_registry' : 'direkt kompatibel';
-      info.textContent = `Route gesetzt: /api/sound/play-media?mediaId=${mediaId} (${bridge})`;
+      info.textContent = `Route gesetzt: ${targetUrl} (${bridge})`;
     }
   }
 
@@ -146,7 +152,7 @@ window.CommandsMediaBridge = (function(){
     const hero = root.querySelector('.cmd-hero p');
     if (hero && !hero.dataset.commandsMediaStep274d) {
       hero.dataset.commandsMediaStep274d = '1';
-      hero.textContent = 'Zentrales Chat-Command-System. Sound-/Video-Aktionen sind mit der Medienverwaltung und /api/sound/play-media verbunden.';
+      hero.textContent = 'Zentrales Chat-Command-System. STEP274F setzt Sound-/Video-Commands automatisch auf Media-ID -> /api/sound/play-media.';
     }
   }
 

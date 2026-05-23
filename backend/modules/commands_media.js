@@ -1,21 +1,22 @@
 'use strict';
 
 /**
- * STEP274D - Commands <-> Central Media Resolver Bridge
+ * STEP274F - Commands Media Execution Routing
  *
- * Kleine Bruecke zwischen zentralem Command-System und zentraler Medienverwaltung.
+ * Bruecke zwischen Command-Dashboard, zentraler Medienverwaltung und Media-Sound-Bridge.
  * Wichtig:
  * - Keine bestehende Command-Ausfuehrung wird veraendert.
  * - Keine Medien werden verschoben, geloescht oder automatisch ausgefuehrt.
- * - Dashboard kann Command-Action-Typen sound_play/video_play jetzt aus media_assets befuellen.
+ * - Dashboard bekommt pro Media-Option eine execute-ready Zielroute fuer sound_play/video_play.
  */
 
 const media = require('./media');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands_media';
-const STEP = 'STEP274D';
+const STEP = 'STEP274F';
 const API_PREFIX = '/api/commands';
+const SOUND_PLAY_MEDIA_URL = '/api/sound/play-media';
 
 function clean(value) {
   return String(value ?? '').trim();
@@ -27,8 +28,40 @@ function splitTypes(value) {
   return raw.split(/[\s,;]+/).map(item => item.trim()).filter(Boolean);
 }
 
+function commandMediaType(asset) {
+  const type = clean(asset && asset.type || '').toLowerCase();
+  if (type === 'video' || type === 'animation') return 'video';
+  return 'sound';
+}
+
+function commandActionKey(asset) {
+  return commandMediaType(asset) === 'video' ? 'play_video_media' : 'play_audio_media';
+}
+
+function commandTargetUrl(asset) {
+  const id = Number(asset && asset.id || 0);
+  return id > 0 ? `${SOUND_PLAY_MEDIA_URL}?mediaId=${encodeURIComponent(String(id))}` : SOUND_PLAY_MEDIA_URL;
+}
+
 function optionFromAsset(asset) {
-  return media.mediaOptionFromAsset(asset, { useCase: 'command_dashboard' });
+  const option = media.mediaOptionFromAsset(asset, { useCase: 'command_dashboard' });
+  const mediaType = commandMediaType(asset);
+  const targetUrl = commandTargetUrl(asset);
+  return {
+    ...option,
+    commandExecutionReady: true,
+    commandRoute: {
+      moduleKey: 'sound_media_bridge',
+      actionKey: commandActionKey(asset),
+      targetMethod: 'POST',
+      targetUrl,
+      responseMode: 'module',
+      actionType: mediaType === 'video' ? 'video_play' : 'sound_play'
+    },
+    commandTargetUrl: targetUrl,
+    commandModuleKey: 'sound_media_bridge',
+    commandActionKey: commandActionKey(asset)
+  };
 }
 
 function listMediaOptions(req) {
@@ -71,11 +104,17 @@ function statusPayload() {
     ok: true,
     module: MODULE_NAME,
     step: STEP,
+    execution: {
+      ready: true,
+      moduleKey: 'sound_media_bridge',
+      targetUrlPattern: `${SOUND_PLAY_MEDIA_URL}?mediaId=<id>`,
+      note: 'Command-Dashboard speichert sound_play/video_play jetzt direkt auf /api/sound/play-media?mediaId=<id>.'
+    },
     routes: [
-      { method: 'GET', path: `${API_PREFIX}/media-options`, purpose: 'Media-Auswahloptionen fuer Command-Dashboard sound_play/video_play' },
+      { method: 'GET', path: `${API_PREFIX}/media-options`, purpose: 'Media-Auswahloptionen mit execute-ready Command-Routen fuer sound_play/video_play' },
       { method: 'GET', path: `${API_PREFIX}/media-bridge/status`, purpose: 'Status der Command-Media-Bruecke' }
     ],
-    note: 'STEP274D nutzt den zentralen Media-Resolver aus /api/media/resolve und media.resolveAssetForUse. Ausfuehrung bleibt fuer Folge-Step getrennt.',
+    note: 'STEP274F verbindet Command-sound_play/video_play mit Media-ID und /api/sound/play-media. Die eigentliche Queue/Ausgabe bleibt im Sound-System.',
     updatedAt: core.nowIso()
   };
 }
@@ -97,19 +136,20 @@ function init(ctx) {
           status: clean(core.getParam(req, 'status', 'active')) || 'active',
           q: clean(core.getParam(req, 'q', ''))
         },
+        execution: statusPayload().execution,
         updatedAt: core.nowIso()
       });
     } catch (err) {
-      return res.status(500).json({ ok: false, module: MODULE_NAME, error: err.message || String(err) });
+      return res.status(500).json({ ok: false, module: MODULE_NAME, step: STEP, error: err.message || String(err) });
     }
   });
 
   app.get(`${API_PREFIX}/media-bridge/status`, (req, res) => {
     try { return res.json(statusPayload()); }
-    catch (err) { return res.status(500).json({ ok: false, module: MODULE_NAME, error: err.message || String(err) }); }
+    catch (err) { return res.status(500).json({ ok: false, module: MODULE_NAME, step: STEP, error: err.message || String(err) }); }
   });
 
-  console.log('[commands_media] routes active: /api/commands/media-*');
+  console.log('[commands_media] routes active: /api/commands/media-* STEP274F');
   return { name: MODULE_NAME, step: STEP };
 }
 

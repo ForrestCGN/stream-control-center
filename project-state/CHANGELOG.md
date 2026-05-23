@@ -1,15 +1,12 @@
 # CHANGELOG
 
-## STEP274E2 – Media-Sound-Bridge Audio Media-Type Fix
+## STEP274F – Command sound_play/video_play Media Execution Routing
 
-- `sound_media_bridge` auf STEP274E2 gesetzt.
-- Audio-Assets bleiben beim Sound-System-Payload Audio, auch wenn sie Cover-Art/Video-Stream-Metadaten haben.
-- Keine Aenderung an bestehender Queue-/Playback-Logik.
+- `commands_media` auf STEP274F gehoben.
+- Media-Optionen liefern jetzt execute-ready Command-Routen.
+- Dashboard setzt beim Auswaehlen eines Mediums automatisch Modul, Action, Methode, Ziel-URL und ResponseMode.
+- Bestehende Command-/Sound-System-Core-Logik bleibt unveraendert.
 
-## STEP274E1 – Media-Sound-Bridge Hotfix
+## Vorheriger Stand
 
-- Media-Playback sendet kein `soundId`/`id` mehr an `/api/sound/play`.
-
-## STEP274E – Media-Sound-Bridge
-
-- Media-Assets koennen ueber eine technische Kompatibilitaetskopie unter `htdocs/assets/sounds/_media_registry/` vom Sound-System abgespielt werden.
+- STEP274E2 – Media-Sound-Bridge Audio Media-Type Fix.
