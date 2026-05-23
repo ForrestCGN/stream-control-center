@@ -501,6 +501,17 @@
       .legacy-sound-foldout[open] .legacy-sound-body{display:block;position:absolute;left:0;right:0;top:44px;padding:10px 12px 12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(21,21,24,.98);box-shadow:0 18px 36px rgba(0,0,0,.38),0 0 22px rgba(118,82,255,.10);}
       .legacy-sound-field{margin-top:0;}
       .legacy-sound-hint{margin:6px 0 0 0;}
+      /* STEP276G_FIX1: Grafik-Fallback im Design-Grid darf keine darunterliegenden Felder ueberlagern. */
+      .design-section .design-grid>.graphic-media-picker-field{grid-column:span 2;min-width:0;}
+      .design-section .design-grid>.legacy-graphic-foldout{grid-column:span 2;align-self:stretch;min-height:104px;padding:12px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.025);}
+      .design-section .design-grid>.legacy-graphic-foldout summary{min-height:28px;display:flex;align-items:center;gap:8px;}
+      .design-section .design-grid>.legacy-graphic-foldout .legacy-sound-summary{max-width:220px;}
+      .design-section .design-grid>.legacy-graphic-foldout .legacy-sound-body,
+      .design-section .design-grid>.legacy-graphic-foldout[open] .legacy-sound-body{position:static;display:block;margin-top:10px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;}
+      .design-section .design-grid>.legacy-graphic-foldout:not([open]) .legacy-sound-body{display:none;}
+      .design-section .design-grid>.legacy-graphic-foldout label{min-height:0!important;padding:0!important;border:0!important;background:transparent!important;}
+      @media (max-width: 820px){.design-section .design-grid>.graphic-media-picker-field,.design-section .design-grid>.legacy-graphic-foldout{grid-column:1 / -1;}}
+
       .path-small{font-size:11px;opacity:.78;word-break:break-all;}
       .chat-text-lines{white-space:pre-line;line-height:1.35;}
       .chat-block-select-row{display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px;align-items:end;}
@@ -859,7 +870,7 @@
             <div class="design-section">
               <h3>4. Grafik über dem Alert</h3>
               <div class="config-grid design-grid">
-                <label class="wide-field">Grafik aus Media-Registry
+                <label class="wide-field graphic-media-picker-field">Grafik aus Media-Registry
                   <input type="hidden" data-display-key="topGraphicMediaId" value="${esc(topGraphicMediaId)}">
                   <input type="hidden" data-display-key="topGraphicMediaUrl" value="${esc(st.topGraphicMediaUrl || '')}">
                   <input type="hidden" data-display-key="topGraphicMediaLabel" value="${esc(st.topGraphicMediaLabel || '')}">
