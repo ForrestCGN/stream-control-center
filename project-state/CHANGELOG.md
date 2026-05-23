@@ -1,15 +1,43 @@
 # Changelog
 
+## STEP274M - Media-Picker Live-Test Abschluss / Doku
+
+- STEP274L mit FIX1 bis FIX4 als funktionierenden Stand dokumentiert.
+- Live-Test `!roxxy2` als Referenz für Media-Command-Playback festgehalten.
+- Festgelegt: Media-Commands laufen standardmäßig über Device + Discord.
+- Festgelegt: Overlay-Ausgabe nur per explizitem Override.
+- Prüfrouten dokumentiert:
+  - `/api/commands/media-command-check?trigger=<trigger>`
+  - `/api/sound/play-media?mediaId=<id>`
+  - `/api/sound/media-bridge/status`
+  - `/api/sound/status`
+- Nächster Schritt auf SoundAlerts-Anbindung gesetzt.
+
+## STEP274L-FIX4 - Sound Media Bridge Device/Discord Defaults
+
+- Standard für `/api/sound/play-media` bei Media-Commands auf `target=both`, `outputTarget=device`, `volume=85` gesetzt.
+- Overlay bleibt per explizitem Override möglich.
+
+## STEP274L-FIX3 - Sound Media Bridge Volume-Fallback
+
+- Fehler behoben, bei dem fehlender/leerer `volume`-Parameter als `0` interpretiert wurde.
+- Media-Commands spielen dadurch nicht mehr stumm.
+
+## STEP274L-FIX2 - Commands Media Upsert Guard
+
+- Speichern von `sound_play`/`video_play` robust gemacht.
+- Router-Felder werden aus `mediaId` abgeleitet, unabhängig von UI-Injection.
+
+## STEP274L-FIX1 - Commands Media Routing
+
+- Routing nach Auswahl/bei vorhandener Media-ID stabilisiert.
+
 ## STEP274L - Zentraler Media-Picker + Commands-Integration
 
-- Zentralen Dashboard-Media-Picker als `window.MediaPicker` ergänzt.
-- Picker unterstützt Neueste Uploads, Modul-Ansicht, Allgemein-Ansicht und Alle-Medien-Ansicht.
-- Picker unterstützt Typfilter, Zusatzkategorie-Filter und Suche.
-- Picker unterstützt Upload nach `htdocs/assets/media/<moduleKey>/<categoryKey>/` über bestehende Media-API.
-- Picker unterstützt das Anlegen neuer Zusatzkategorien über bestehende Media-API.
-- Commands-Medienauswahl von langer Dropdown-Liste auf Button `Medium auswählen` umgestellt.
-- Commands setzt nach Auswahl automatisch Media-ID und Sound-System-Route `/api/sound/play-media?mediaId=<id>`.
-- Backend unverändert gelassen.
+- Zentralen Dashboard-Media-Picker ergänzt.
+- Commands an Picker angebunden.
+- Lange Media-Select-Liste durch Button „Medium auswählen“ ersetzt.
+- Picker unterstützt Recent, Modul, Allgemein, Alle Medien, Suche, Typfilter, Kategorie und Upload.
 
 ## STEP274K - Media Module Categories + Recent Uploads
 

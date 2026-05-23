@@ -1,12 +1,36 @@
 # Current System Status
 
-Stand: STEP274L
+Stand: STEP274M
 
 ## Media / Sound Architektur
 
-- Medienverwaltung ist zentrale Registry für Dateien, Media-IDs und Metadaten.
-- Sound-System bleibt offizieller zentraler Abspielpunkt über `/api/sound/play-media`.
-- Audio, Video und Animationen werden über das bestehende `sound_system_overlay.html` abgespielt.
+Die aktuelle Architektur ist:
+
+```text
+Medienverwaltung = Registry / Upload / Kategorien / Metadaten
+Sound-System     = offizieller Abspielpunkt
+Commands         = Media-ID -> /api/sound/play-media
+```
+
+## Zentraler Media-Picker
+
+Dashboard besitzt einen wiederverwendbaren zentralen Media-Picker.
+
+Aktueller erster Nutzer:
+
+```text
+Commands
+```
+
+Geplante weitere Nutzer:
+
+```text
+SoundAlerts
+Alerts
+Birthday
+VIP
+Rewards
+```
 
 ## Media-Kategorien
 
@@ -22,44 +46,77 @@ Regeln:
 - `categoryKey` ist die vom User wählbare/anlegbare Zusatzkategorie.
 - „Neueste Uploads“ ist nur eine virtuelle Ansicht über `created_at`, kein Dateiverzeichnis.
 
-## Zentraler Media-Picker
+## Commands / Media Playback
 
-STEP274L ergänzt einen wiederverwendbaren Dashboard-Picker:
+Commands speichern für Media-Aktionen eine Media-ID.
 
-```js
-MediaPicker.open({
-  moduleKey: 'commands',
-  allowedTypes: ['audio', 'video', 'animation'],
-  onSelect(asset) {}
-});
+Offizieller Playback-Weg:
+
+```text
+/api/sound/play-media?mediaId=<id>
 ```
 
-Der Picker kann:
+`/api/sound/play-media`:
 
-- neueste Uploads anzeigen
-- Medien des aufrufenden Moduls anzeigen
-- allgemeine Medien anzeigen
-- alle Medien anzeigen
-- nach Typ filtern
-- nach Zusatzkategorie filtern
-- nach Name/Pfad/Kategorie suchen
-- Medium auswählen
-- neues Medium hochladen
-- neue Zusatzkategorie anlegen
+- löst `media_assets` auf
+- prüft Datei
+- erzeugt bei Bedarf eine Cache-/Kompatibilitätskopie unter:
 
-## Erste Integration: Commands
+```text
+htdocs/assets/sounds/_media_registry/
+```
 
-Commands nutzt den zentralen Picker statt langer Dropdown-Liste.
+- übergibt an das Sound-System
 
-Nach Auswahl eines Mediums setzt Commands:
+## Standard-Ausgabe für Media-Commands
 
-- `mediaId`
-- `targetUrl = /api/sound/play-media?mediaId=<id>`
-- `moduleKey = sound_media_bridge`
-- `actionKey = play_audio_media` oder `play_video_media`
-- `targetMethod = POST`
-- `responseMode = module`
+Nach STEP274L-FIX4 gilt:
+
+```text
+target       = both
+outputTarget = device
+volume       = 85
+```
+
+Damit gehen Media-Commands standardmäßig an:
+
+```text
+Device + Discord
+```
+
+Overlay ist nur per explizitem Override vorgesehen:
+
+```text
+/api/sound/play-media?mediaId=<id>&target=stream&outputTarget=overlay
+```
+
+## Prüfrouten
+
+```text
+/api/commands/media-command-check?trigger=<trigger>
+/api/sound/play-media?mediaId=<id>
+/api/sound/media-bridge/status
+/api/sound/status
+```
+
+## Live-Test Referenz
+
+Getesteter Command:
+
+```text
+!roxxy2
+```
+
+Ergebnis:
+
+- Command korrekt gespeichert
+- Media-ID korrekt
+- Datei vorhanden
+- Cache-Kopie vorhanden
+- Volume-Fallback repariert
+- Device/Discord-Default gesetzt
+- Playback erfolgreich
 
 ## Nächster Schritt
 
-STEP274M: Live-Test von Commands + Picker, danach Alerts oder SoundAlerts an denselben Picker anbinden.
+STEP274N: SoundAlerts an zentralen Media-Picker anbinden.

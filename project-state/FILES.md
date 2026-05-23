@@ -1,35 +1,39 @@
-# Files - STEP274L
+# Files - STEP274M
 
-## Geändert / Neu
+## STEP274M geändert
+
+- `project-state/STEP274M.md`
+  - Abschlussdoku für STEP274L + FIX1 bis FIX4
+- `project-state/CURRENT_STATUS.md`
+  - aktueller Stand auf STEP274M gesetzt
+- `project-state/CHANGELOG.md`
+  - STEP274M und zugehörige Fixes dokumentiert
+- `project-state/FILES.md`
+  - betroffene Dateien aktualisiert
+- `project-state/NEXT_STEPS.md`
+  - nächste Schritte nach STEP274M gesetzt
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+  - Systemstatus nach Live-Test aktualisiert
+
+## Zu STEP274L / FIXes gehörende Runtime-Dateien
+
+Diese Dateien bilden den funktionalen Stand, werden in STEP274M aber nicht erneut geändert:
 
 - `htdocs/dashboard/components/media_picker.js`
-  - zentraler wiederverwendbarer Media-Picker / Upload-Dialog
-
 - `htdocs/dashboard/components/media_picker.css`
-  - Styling für Picker-Modal
-
 - `htdocs/dashboard/index.html`
-  - Picker-CSS und Picker-JS eingebunden
-
 - `htdocs/dashboard/modules/commands_media.js`
-  - Commands-Medienauswahl nutzt den zentralen Picker statt langer Select-Liste
-
 - `htdocs/dashboard/modules/commands_media.css`
-  - Picker-Button und Auswahl-Anzeige im Commands-Modul
-
-## Dokumentation
-
-- `project-state/STEP274L.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `backend/modules/sound_media_bridge.js`
 
 ## Nicht geändert
 
-- `backend/modules/media.js`
-- `backend/modules/sound_media_bridge.js`
-- `backend/modules/commands_media.js`
-- bestehende Medien-Dateien
 - SQLite-Datenbankdatei
+- bestehende Medien-Dateien
+- bestehende Command-Daten außer durch normale Dashboard-Speicherung
+- Sound-System-Core-Queue/Prioritätslogik
+- Alert-System
+- SoundAlerts
+- VIP
+- Birthday
+- Rewards

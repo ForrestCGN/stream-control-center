@@ -1,28 +1,52 @@
 # Next Steps
 
-## STEP274M - Picker Live-Test + nächste Modul-Anbindung
+## STEP274N - SoundAlerts an zentralen Media-Picker anbinden
 
-Zuerst live prüfen:
+Ziel:
 
-- Commands-Modul öffnen.
-- Sound-Command mit `Medium auswählen` testen.
-- Video-/Animation-Command mit `Medium auswählen` testen.
-- Upload über Picker mit `moduleKey = commands` testen.
-- Neue Zusatzkategorie im Picker anlegen.
-- Gespeicherten Command über `/api/commands/media-command-check?trigger=<trigger>` prüfen.
+- SoundAlerts sollen denselben `window.MediaPicker` nutzen.
+- Kein eigener Upload-/Auswahl-Sonderweg, wenn der zentrale Picker reicht.
+- `moduleKey = soundalerts`
+- erlaubte Typen:
 
-Danach:
+```js
+['audio', 'video', 'animation']
+```
 
-- Alerts an Media-Picker anbinden.
-- SoundAlerts an Media-Picker anbinden.
-- Birthday an Media-Picker anbinden.
-- VIP/Rewards später anbinden.
+Geplantes Verhalten:
 
-## Wichtig
+```js
+MediaPicker.open({
+  moduleKey: 'soundalerts',
+  allowedTypes: ['audio', 'video', 'animation'],
+  onSelect(asset) {
+    // mediaId in SoundAlert-Regel speichern
+  }
+});
+```
 
-Backend für Media bleibt aktuell unverändert. STEP274L nutzt die vorhandenen STEP274K-Routen:
+Zu prüfen:
 
-- `/api/media/picker-options`
-- `/api/media/categories`
-- `/api/media/category/upsert`
-- `/api/media/upload`
+- vorhandene SoundAlerts-Dashboard-Dateien
+- vorhandene SoundAlerts-Backend-API
+- bestehende SoundAlert-Datenstruktur
+- ob SoundAlerts bereits Media-ID, Datei-Pfad oder Sound-Key speichern
+- wie Ausführung aktuell ans Sound-System geht
+
+## Danach
+
+- STEP274O: Alerts an Media-Picker anbinden
+- STEP274P: Birthday an Media-Picker anbinden
+- STEP274Q: VIP / Rewards prüfen und anbinden
+- Media-Kategorien im Dashboard komfortabler verwaltbar machen
+- Alte modul-eigene Uploads schrittweise ersetzen
+
+## Arbeitsregel für die nächsten Schritte
+
+Vor jeder neuen Anbindung:
+
+1. echten aktuellen Dateistand prüfen
+2. vorhandene Helper/APIs verwenden
+3. keine Parallelstruktur bauen
+4. keine Funktionalität entfernen
+5. kleine testbare Schritte

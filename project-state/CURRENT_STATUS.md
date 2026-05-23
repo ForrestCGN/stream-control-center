@@ -1,28 +1,43 @@
 # Current Status
 
-Aktueller Stand: STEP274L
+Aktueller Stand: STEP274M
 
-Der zentrale Media-Picker für das Dashboard ist als wiederverwendbare Komponente vorbereitet:
+## Media-Picker / Commands
 
-- `window.MediaPicker.open({ moduleKey, allowedTypes, onSelect })` ist verfügbar.
-- Picker kann neueste Uploads, Modul-Medien, allgemeine Medien und alle Medien anzeigen.
-- Picker unterstützt Typfilter, Zusatzkategorie-Filter und Suche.
-- Picker kann Medien hochladen.
-- Picker kann neue Zusatzkategorien für das vorgegebene Modul anlegen.
-- Auswahl gibt das gewählte Asset inklusive `id` als `mediaId` an das aufrufende Modul zurück.
+STEP274L ist nach FIX1 bis FIX4 im Live-Test stabilisiert.
 
-Commands nutzt den Picker als erste Integration:
+- Zentraler Dashboard-Media-Picker ist vorhanden.
+- Commands nutzen den Picker für `sound_play` und `video_play`.
+- Media-Commands speichern Media-IDs.
+- Offizieller Playback-Weg ist `/api/sound/play-media?mediaId=<id>`.
+- `sound_media_bridge` löst Media-Assets auf, erzeugt bei Bedarf eine Kompatibilitätskopie unter `htdocs/assets/sounds/_media_registry/` und gibt an das Sound-System weiter.
+- Standard-Ausgabe für Media-Commands ist Device + Discord:
 
-- Die bisherigen langen Media-Selects werden durch den Button `Medium auswählen` ersetzt.
-- `moduleKey = commands` wird beim Picker fest vorgegeben.
-- Sound-Commands erlauben `audio`.
-- Video-Commands erlauben `video` und `animation`.
-- Nach Auswahl setzt Commands automatisch:
-  - `mediaId`
-  - `targetUrl = /api/sound/play-media?mediaId=<id>`
-  - `moduleKey = sound_media_bridge`
-  - `actionKey = play_audio_media` oder `play_video_media`
-  - `targetMethod = POST`
-  - `responseMode = module`
+```text
+target       = both
+outputTarget = device
+volume       = 85
+```
 
-Backend bleibt unverändert. STEP274L nutzt die in STEP274K vorbereiteten Media-APIs.
+Overlay-Ausgabe ist nur noch explizit per Override vorgesehen.
+
+## Getestet
+
+- `!roxxy2`
+- Media-ID-Auflösung
+- Cache-Kopie
+- Sound-System-Queue
+- Volume-Fallback
+- Device/Discord-Default
+
+## Architektur
+
+```text
+Medienverwaltung = Registry / Upload / Kategorien / Metadaten
+Sound-System     = offizieller Abspielpunkt
+Commands         = Media-ID -> /api/sound/play-media
+```
+
+## Nächster Schritt
+
+STEP274N: SoundAlerts an den zentralen Media-Picker anbinden.
