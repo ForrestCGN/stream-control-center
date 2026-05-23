@@ -1,0 +1,304 @@
+--- a/backend/modules/alert_system.js
++++ b/backend/modules/alert_system.js
+@@ -1053,10 +1053,28 @@
+ 
+ function listRules() {
+   return database.all(`
+-    SELECT r.*, s.label AS sound_label, s.public_url AS sound_url, s.duration_ms AS sound_duration_ms, i.label AS image_label, i.public_url AS image_url, dp.name AS display_profile_name
++    SELECT
++      r.*,
++      s.label AS sound_label,
++      s.public_url AS sound_url,
++      s.duration_ms AS sound_duration_ms,
++      i.label AS image_label,
++      i.public_url AS image_url,
++      sm.display_name AS sound_media_label,
++      sm.duration_ms AS sound_media_duration_ms,
++      sm.relative_path AS sound_media_path,
++      sm.web_path AS sound_media_url,
++      sm.type AS sound_media_type,
++      im.display_name AS image_media_label,
++      im.relative_path AS image_media_path,
++      im.web_path AS image_media_url,
++      im.type AS image_media_type,
++      dp.name AS display_profile_name
+     FROM alert_rules r
+     LEFT JOIN alert_assets s ON s.id = r.sound_asset_id
+     LEFT JOIN alert_assets i ON i.id = r.image_asset_id
++    LEFT JOIN media_assets sm ON sm.id = r.sound_media_id AND sm.status = 'active'
++    LEFT JOIN media_assets im ON im.id = r.image_media_id AND im.status = 'active'
+     LEFT JOIN alert_display_profiles dp ON dp.id = r.display_profile_id
+     ORDER BY r.source ASC, r.type_key ASC, COALESCE(r.min_value, -999999) ASC, r.priority ASC, r.id ASC
+   `).map(row => ({ ...row, meta: parseJson(row.meta_json, {}) }));
+@@ -1519,10 +1537,21 @@
+       s.label AS sound_label,
+       s.duration_ms AS sound_duration_ms,
+       i.public_url AS image_url,
+-      i.label AS image_label
++      i.label AS image_label,
++      sm.display_name AS sound_media_label,
++      sm.duration_ms AS sound_media_duration_ms,
++      sm.relative_path AS sound_media_path,
++      sm.web_path AS sound_media_url,
++      sm.type AS sound_media_type,
++      im.display_name AS image_media_label,
++      im.relative_path AS image_media_path,
++      im.web_path AS image_media_url,
++      im.type AS image_media_type
+     FROM alert_rules r
+     LEFT JOIN alert_assets s ON s.id = r.sound_asset_id AND s.enabled = 1
+     LEFT JOIN alert_assets i ON i.id = r.image_asset_id AND i.enabled = 1
++    LEFT JOIN media_assets sm ON sm.id = r.sound_media_id AND sm.status = 'active'
++    LEFT JOIN media_assets im ON im.id = r.image_media_id AND im.status = 'active'
+     WHERE r.id=:id AND r.enabled = 1
+   `, { id: Number(id) });
+   return rule ? { ...rule, meta: parseJson(rule.meta_json, {}) } : null;
+@@ -1814,11 +1843,23 @@
+       r.*,
+       s.public_url AS sound_url,
+       s.label AS sound_label,
++      s.duration_ms AS sound_duration_ms,
+       i.public_url AS image_url,
+-      i.label AS image_label
++      i.label AS image_label,
++      sm.display_name AS sound_media_label,
++      sm.duration_ms AS sound_media_duration_ms,
++      sm.relative_path AS sound_media_path,
++      sm.web_path AS sound_media_url,
++      sm.type AS sound_media_type,
++      im.display_name AS image_media_label,
++      im.relative_path AS image_media_path,
++      im.web_path AS image_media_url,
++      im.type AS image_media_type
+     FROM alert_rules r
+     LEFT JOIN alert_assets s ON s.id = r.sound_asset_id AND s.enabled = 1
+     LEFT JOIN alert_assets i ON i.id = r.image_asset_id AND i.enabled = 1
++    LEFT JOIN media_assets sm ON sm.id = r.sound_media_id AND sm.status = 'active'
++    LEFT JOIN media_assets im ON im.id = r.image_media_id AND im.status = 'active'
+     WHERE r.enabled = 1
+       AND r.source = :source
+       AND r.type_key = :typeKey
+@@ -2073,6 +2114,15 @@
+   return Number.isFinite(n) && n > 0 ? n : 0;
+ }
+ 
++function alertRuleSoundDurationMs(rule) {
++  const mediaId = alertRuleSoundMediaId(rule);
++  const mediaDuration = Number(rule && (rule.sound_media_duration_ms ?? rule.soundMediaDurationMs) || 0);
++  if (mediaId && Number.isFinite(mediaDuration) && mediaDuration > 0) return mediaDuration;
++  const legacyDuration = Number(rule && (rule.sound_duration_ms ?? rule.soundDurationMs) || 0);
++  if (Number.isFinite(legacyDuration) && legacyDuration > 0) return legacyDuration;
++  return 0;
++}
++
+ function buildAlertMainBundleItem(event, bundlePriority) {
+   const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+   const rule = event && event.rule ? event.rule : {};
+@@ -2089,7 +2139,7 @@
+   const item = {
+     role: 'main',
+     ...(mediaId ? { mediaId } : { file }),
+-    label: cleanText(rule.sound_label || rule.label || buildDefaultTitle(event) || 'Alert'),
++    label: cleanText(rule.sound_media_label || rule.soundMediaLabel || rule.sound_label || rule.label || buildDefaultTitle(event) || 'Alert'),
+     category: cleanKey(rule.sound_category || liveCfg.soundSystemCategory || 'alert') || 'alert',
+     outputTarget: validateSoundOutputTarget(rule.sound_output_target || liveCfg.soundSystemOutputTarget || 'device', 'device'),
+     priority: bundlePriority,
+@@ -2105,6 +2155,7 @@
+       alertType: event.type_key,
+       ruleId: rule && rule.id ? rule.id : null,
+       soundMediaId: mediaId || null,
++      soundMediaDurationMs: alertRuleSoundDurationMs(rule) || null,
+       legacySoundFile: file || '',
+       legacySoundUrl: publicUrl || '',
+       bundleManagedBy: 'alert_system'
+@@ -2754,7 +2805,7 @@
+ function getMainAlertSoundDurationMs(event, soundResult) {
+   const fromSoundItem = Number(soundResult && soundResult.item && soundResult.item.durationMs || 0);
+   if (Number.isFinite(fromSoundItem) && fromSoundItem > 0) return fromSoundItem;
+-  const fromRuleSound = Number(event && event.rule && event.rule.sound_duration_ms || 0);
++  const fromRuleSound = alertRuleSoundDurationMs(event && event.rule ? event.rule : {});
+   if (Number.isFinite(fromRuleSound) && fromRuleSound > 0) return fromRuleSound;
+   const fromEvent = Number(event && event.effectiveDurationMs || 0);
+   if (Number.isFinite(fromEvent) && fromEvent > 0) return fromEvent;
+@@ -3225,7 +3276,7 @@
+     introMs: toInt(text.context.introMs, toInt(rule.meta?.introMs, Number(state.config.defaultIntroMs || 700))),
+     outroMs: toInt(text.context.outroMs, toInt(rule.meta?.outroMs, Number(state.config.defaultOutroMs || 600))),
+     durationMode: rule.duration_mode || 'fixed',
+-    soundDurationMs: Number(rule.sound_duration_ms || 0),
++    soundDurationMs: alertRuleSoundDurationMs(rule),
+     soundSystem: event.soundSystem || null,
+     animation: rule.animation || 'neon_card',
+     imageMode: rule.image_mode || 'none',
+@@ -3408,7 +3459,7 @@
+ function resolveAlertDurationMs(rule = {}) {
+   const fixed = Number(rule?.duration_ms || state.config.defaultDurationMs || 7000);
+   if ((rule?.duration_mode || 'fixed') !== 'sound') return clamp(fixed, 1000, 60000);
+-  const soundDuration = Number(rule?.sound_duration_ms || 0);
++  const soundDuration = alertRuleSoundDurationMs(rule);
+   if (soundDuration <= 0) return clamp(fixed, 1000, 60000);
+   const padded = soundDuration + Number(state.config.soundDurationPaddingMs || 1200);
+   return clamp(padded, Number(state.config.minAutoDurationMs || 4000), Number(state.config.maxAutoDurationMs || 60000));
+--- a/htdocs/dashboard/modules/alerts.js
++++ b/htdocs/dashboard/modules/alerts.js
+@@ -434,7 +434,7 @@
+ 
+   function effectiveDurationMs(r){
+     if ((r.duration_mode || 'fixed') === 'sound') {
+-      const sound = Number(r.sound_duration_ms || selectedSoundDuration(r.sound_asset_id) || 0);
++      const sound = ruleSoundDurationMs(r);
+       if (sound > 0) {
+         const cfg = state.status?.config || {};
+         const padded = sound + Number(cfg.soundDurationPaddingMs || 0);
+@@ -646,9 +646,9 @@
+   function durationText(r){
+     const mode = r.duration_mode || 'fixed';
+     if (mode === 'sound') {
+-      const dur = Number(r.sound_duration_ms || 0);
++      const dur = ruleSoundDurationMs(r);
+       if (!dur) return fmtMs(r.duration_ms || 0);
+-      return calcSoundDurationText(r.sound_asset_id, r.duration_ms);
++      return calcDurationFromSoundMs(dur, r.duration_ms);
+     }
+     return fmtMs(r.duration_ms || 0);
+   }
+@@ -660,10 +660,13 @@
+   }
+ 
+   function ruleSoundInline(rule){
+-    const mediaId = rule?.sound_media_id ?? rule?.soundMediaId ?? null;
++    const mediaId = ruleSoundMediaId(rule);
+     if (!mediaId) return assetInline(rule?.sound_label, rule?.sound_url);
++    const mediaLabel = rule.sound_media_label || rule.soundMediaLabel || `MediaId ${mediaId}`;
++    const mediaDuration = ruleSoundMediaDurationMs(rule);
++    const mediaInfo = `${mediaLabel}${mediaDuration ? ` · ${fmtMs(mediaDuration)}` : ''}`;
+     const fallback = rule?.sound_label || rule?.sound_url ? `Fallback: ${rule.sound_label || rule.sound_url}` : 'kein Legacy-Fallback gesetzt';
+-    return `<div class="sound-inline"><div><strong>MediaId ${esc(mediaId)}</strong><br><span class="muted path-small">Media-Registry · ${esc(fallback)}</span></div></div>`;
++    return `<div class="sound-inline"><div><strong>${esc(mediaInfo)}</strong><br><span class="muted path-small">Media-Registry #${esc(mediaId)} · ${esc(fallback)}</span></div></div>`;
+   }
+ 
+   function soundAssetById(id){
+@@ -1161,9 +1164,26 @@
+     return Number.isFinite(id) && id > 0 ? id : '';
+   }
+ 
++  function ruleSoundMediaDurationMs(rule){
++    const id = ruleSoundMediaId(rule);
++    if (!id) return 0;
++    const duration = Number(rule?.sound_media_duration_ms ?? rule?.soundMediaDurationMs ?? 0);
++    return Number.isFinite(duration) && duration > 0 ? duration : 0;
++  }
++
++  function ruleSoundDurationMs(rule){
++    const mediaDuration = ruleSoundMediaDurationMs(rule);
++    if (mediaDuration > 0) return mediaDuration;
++    const legacyDuration = Number(rule?.sound_duration_ms ?? rule?.soundDurationMs ?? selectedSoundDuration(rule?.sound_asset_id) ?? 0);
++    return Number.isFinite(legacyDuration) && legacyDuration > 0 ? legacyDuration : 0;
++  }
++
+   function ruleSoundMediaLabel(rule){
+     const id = ruleSoundMediaId(rule);
+-    return id ? `MediaId ${id}` : '— kein Media-Registry-Sound —';
++    if (!id) return '— kein Media-Registry-Sound —';
++    const label = rule?.sound_media_label || rule?.soundMediaLabel || rule?.sound_media_path || rule?.soundMediaPath || `MediaId ${id}`;
++    const duration = ruleSoundMediaDurationMs(rule);
++    return `MediaId ${id} · ${label}${duration ? ` · ${fmtMs(duration)}` : ''}`;
+   }
+ 
+   function ruleLegacySoundLabel(soundAssetId){
+@@ -1175,13 +1195,13 @@
+   function ruleModal(){
+     const r = state.modalRule || defaultRule();
+     const isEdit = !!r.id;
+-    const soundDuration = selectedSoundDuration(r.sound_asset_id);
++    const soundDuration = ruleSoundDurationMs(r);
+     const soundMediaId = ruleSoundMediaId(r);
+     const soundMediaLabel = ruleSoundMediaLabel(r);
+     const legacySoundLabel = ruleLegacySoundLabel(r.sound_asset_id);
+-    const activeDurationText = (r.duration_mode || 'fixed') === 'sound' ? calcSoundDurationText(r.sound_asset_id, r.duration_ms) : fmtMs(r.duration_ms ?? 7000);
++    const activeDurationText = (r.duration_mode || 'fixed') === 'sound' ? calcDurationFromSoundMs(soundDuration, r.duration_ms) : fmtMs(r.duration_ms ?? 7000);
+     const fixedHint = (r.duration_mode || 'fixed') === 'fixed' ? `Aktiv: ${fmtMs(r.duration_ms ?? 7000)}` : `Nur Fallback: ${fmtMs(r.duration_ms ?? 7000)}`;
+-    const soundHint = (r.duration_mode || 'fixed') === 'sound' ? `Aktiv: ${calcSoundDurationText(r.sound_asset_id, r.duration_ms)}` : 'Nicht aktiv';
++    const soundHint = (r.duration_mode || 'fixed') === 'sound' ? `Aktiv: ${calcDurationFromSoundMs(soundDuration, r.duration_ms)}` : 'Nicht aktiv';
+     const valueDesc = ruleValueDescriptor(r.source || 'twitch', r.type_key || '');
+     return `<div class="modal-backdrop" data-close-modal="1"><div class="modal-card glass" data-modal-card="1">
+       <div class="modal-head"><div><h2>${isEdit ? 'Regel bearbeiten' : 'Neue Regel'}</h2><p class="small-note">${isEdit ? `ID ${esc(r.id)}` : 'Neue Alert-Staffel anlegen'}</p></div><button data-close-modal="1">×</button></div>
+@@ -1223,8 +1243,8 @@
+         <div id="durationSoundBox" class="duration-mode-box"><div class="duration-calc">
+           <div><span>Erkannte Sounddauer</span><strong id="durationSoundMs">${esc(soundDuration ? fmtMs(soundDuration) : 'kein Sound / unbekannt')}</strong></div>
+           <div><span>Globaler Puffer</span><strong>${esc(fmtMs(state.status?.config?.soundDurationPaddingMs || 0))}</strong></div>
+-          <div><span>Berechnete Dauer</span><strong id="durationCalculatedMs">${esc(calcSoundDurationText(r.sound_asset_id, r.duration_ms))}</strong></div>
+-        </div><p class="small-note">Die Sounddatei selbst bleibt ${esc(soundDuration ? fmtMs(soundDuration) : 'unbekannt')} lang. Der Puffer verlängert nur die sichtbare Overlay-Zeit, nicht die Audiodatei.</p></div></div>
++          <div><span>Berechnete Dauer</span><strong id="durationCalculatedMs">${esc(calcDurationFromSoundMs(soundDuration, r.duration_ms))}</strong></div>
++        </div><p class="small-note">Die aktive Sounddatei selbst bleibt ${esc(soundDuration ? fmtMs(soundDuration) : 'unbekannt')} lang. Bei Media-Registry-Sound wird dessen Dauer verwendet; sonst der alte Fallback-Sound.</p></div></div>
+         <div class="form-section tts-settings-section"><div class="section-head-inline"><div><h3>Text-to-Speech</h3><p class="small-note">Wenn aktiv, wird der übermittelte Text nach dem Alert-Sound gesprochen. Der Alert bleibt bis zum Ende der TTS-Ausgabe sichtbar.</p></div><span id="ruleTtsStatus" class="tts-status-pill"></span></div>
+           <div class="form-grid editor-grid">
+             <label>TTS-Ausgabe<select id="ruleTtsEnabled">${opt(0,'Aus',Number(r.tts_enabled||0))}${opt(1,'An',Number(r.tts_enabled||0))}</select></label>
+@@ -1372,14 +1392,18 @@
+     return Number(a?.duration_ms || 0);
+   }
+ 
+-  function calcSoundDurationText(soundId, fallbackMs){
+-    const soundDuration = selectedSoundDuration(soundId);
+-    if (!soundDuration) return `Fallback ${Number(fallbackMs || 7000)} ms`;
++  function calcDurationFromSoundMs(soundDuration, fallbackMs){
++    const duration = Number(soundDuration || 0);
++    if (!duration) return `Fallback ${Number(fallbackMs || 7000)} ms`;
+     const cfg = state.status?.config || {};
+-    const padded = soundDuration + Number(cfg.soundDurationPaddingMs || 0);
++    const padded = duration + Number(cfg.soundDurationPaddingMs || 0);
+     const min = Number(cfg.minAutoDurationMs || 1000);
+     const max = Number(cfg.maxAutoDurationMs || 60000);
+     return fmtMs(Math.max(min, Math.min(max, padded)));
++  }
++
++  function calcSoundDurationText(soundId, fallbackMs){
++    return calcDurationFromSoundMs(selectedSoundDuration(soundId), fallbackMs);
+   }
+ 
+   function readRuleForm(){
+@@ -1469,7 +1493,9 @@
+ 
+   function setRuleSoundMediaSelection(asset){
+     const id = asset && Number(asset.id || 0) > 0 ? Number(asset.id) : '';
+-    const label = id ? `MediaId ${id} · ${asset.label || asset.displayName || asset.fileName || asset.relativePath || 'Media-Registry'}` : '— kein Media-Registry-Sound —';
++    const duration = id ? Number(asset.durationMs ?? asset.duration_ms ?? 0) : 0;
++    const labelText = id ? (asset.label || asset.displayName || asset.fileName || asset.relativePath || 'Media-Registry') : '';
++    const label = id ? `MediaId ${id} · ${labelText}${duration ? ` · ${fmtMs(duration)}` : ''}` : '— kein Media-Registry-Sound —';
+     const input = root.querySelector('#ruleSoundMediaId');
+     const info = root.querySelector('#ruleSoundMediaInfo');
+     const clearBtn = root.querySelector('#clearRuleSoundMedia');
+@@ -1479,7 +1505,14 @@
+     if (state.modalRule) {
+       state.modalRule.sound_media_id = id || null;
+       state.modalRule.soundMediaId = id || null;
++      state.modalRule.sound_media_label = id ? labelText : '';
++      state.modalRule.soundMediaLabel = id ? labelText : '';
++      state.modalRule.sound_media_duration_ms = id && duration > 0 ? duration : 0;
++      state.modalRule.soundMediaDurationMs = id && duration > 0 ? duration : 0;
++      state.modalRule.sound_media_path = id ? (asset.relativePath || '') : '';
++      state.modalRule.sound_media_url = id ? (asset.webPath || '') : '';
+     }
++    updateDurationSoundInfo();
+   }
+ 
+   function openRuleSoundMediaPicker(){
+@@ -1704,13 +1737,16 @@
+   }
+ 
+   function updateDurationSoundInfo(){
+-    const soundId = valOrNull('ruleSound');
+-    const soundDuration = selectedSoundDuration(soundId);
++    const mediaId = valOrNull('ruleSoundMediaId');
++    const legacySoundId = valOrNull('ruleSound');
++    let soundDuration = 0;
++    if (mediaId && state.modalRule) soundDuration = ruleSoundMediaDurationMs(state.modalRule);
++    if (!soundDuration) soundDuration = selectedSoundDuration(legacySoundId);
+     const durationInput = root.querySelector('#ruleDuration');
+     const soundEl = root.querySelector('#durationSoundMs');
+     const calcEl = root.querySelector('#durationCalculatedMs');
+     if (soundEl) soundEl.textContent = soundDuration ? fmtMs(soundDuration) : 'kein Sound / unbekannt';
+-    if (calcEl) calcEl.textContent = calcSoundDurationText(soundId, durationInput?.value || 7000);
++    if (calcEl) calcEl.textContent = calcDurationFromSoundMs(soundDuration, durationInput?.value || 7000);
+   }
+ 
+   function updateRuleSoundButton(){

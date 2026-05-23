@@ -434,7 +434,7 @@
 
   function effectiveDurationMs(r){
     if ((r.duration_mode || 'fixed') === 'sound') {
-      const sound = Number(r.sound_duration_ms || selectedSoundDuration(r.sound_asset_id) || 0);
+      const sound = ruleSoundDurationMs(r);
       if (sound > 0) {
         const cfg = state.status?.config || {};
         const padded = sound + Number(cfg.soundDurationPaddingMs || 0);
@@ -646,9 +646,9 @@
   function durationText(r){
     const mode = r.duration_mode || 'fixed';
     if (mode === 'sound') {
-      const dur = Number(r.sound_duration_ms || 0);
+      const dur = ruleSoundDurationMs(r);
       if (!dur) return fmtMs(r.duration_ms || 0);
-      return calcSoundDurationText(r.sound_asset_id, r.duration_ms);
+      return calcDurationFromSoundMs(dur, r.duration_ms);
     }
     return fmtMs(r.duration_ms || 0);
   }
@@ -660,10 +660,13 @@
   }
 
   function ruleSoundInline(rule){
-    const mediaId = rule?.sound_media_id ?? rule?.soundMediaId ?? null;
+    const mediaId = ruleSoundMediaId(rule);
     if (!mediaId) return assetInline(rule?.sound_label, rule?.sound_url);
+    const mediaLabel = rule.sound_media_label || rule.soundMediaLabel || `MediaId ${mediaId}`;
+    const mediaDuration = ruleSoundMediaDurationMs(rule);
+    const mediaInfo = `${mediaLabel}${mediaDuration ? ` · ${fmtMs(mediaDuration)}` : ''}`;
     const fallback = rule?.sound_label || rule?.sound_url ? `Fallback: ${rule.sound_label || rule.sound_url}` : 'kein Legacy-Fallback gesetzt';
-    return `<div class="sound-inline"><div><strong>MediaId ${esc(mediaId)}</strong><br><span class="muted path-small">Media-Registry · ${esc(fallback)}</span></div></div>`;
+    return `<div class="sound-inline"><div><strong>${esc(mediaInfo)}</strong><br><span class="muted path-small">Media-Registry #${esc(mediaId)} · ${esc(fallback)}</span></div></div>`;
   }
 
   function soundAssetById(id){
@@ -1161,9 +1164,26 @@
     return Number.isFinite(id) && id > 0 ? id : '';
   }
 
+  function ruleSoundMediaDurationMs(rule){
+    const id = ruleSoundMediaId(rule);
+    if (!id) return 0;
+    const duration = Number(rule?.sound_media_duration_ms ?? rule?.soundMediaDurationMs ?? 0);
+    return Number.isFinite(duration) && duration > 0 ? duration : 0;
+  }
+
+  function ruleSoundDurationMs(rule){
+    const mediaDuration = ruleSoundMediaDurationMs(rule);
+    if (mediaDuration > 0) return mediaDuration;
+    const legacyDuration = Number(rule?.sound_duration_ms ?? rule?.soundDurationMs ?? selectedSoundDuration(rule?.sound_asset_id) ?? 0);
+    return Number.isFinite(legacyDuration) && legacyDuration > 0 ? legacyDuration : 0;
+  }
+
   function ruleSoundMediaLabel(rule){
     const id = ruleSoundMediaId(rule);
-    return id ? `MediaId ${id}` : '— kein Media-Registry-Sound —';
+    if (!id) return '— kein Media-Registry-Sound —';
+    const label = rule?.sound_media_label || rule?.soundMediaLabel || rule?.sound_media_path || rule?.soundMediaPath || `MediaId ${id}`;
+    const duration = ruleSoundMediaDurationMs(rule);
+    return `MediaId ${id} · ${label}${duration ? ` · ${fmtMs(duration)}` : ''}`;
   }
 
   function ruleLegacySoundLabel(soundAssetId){
@@ -1175,13 +1195,13 @@
   function ruleModal(){
     const r = state.modalRule || defaultRule();
     const isEdit = !!r.id;
-    const soundDuration = selectedSoundDuration(r.sound_asset_id);
+    const soundDuration = ruleSoundDurationMs(r);
     const soundMediaId = ruleSoundMediaId(r);
     const soundMediaLabel = ruleSoundMediaLabel(r);
     const legacySoundLabel = ruleLegacySoundLabel(r.sound_asset_id);
-    const activeDurationText = (r.duration_mode || 'fixed') === 'sound' ? calcSoundDurationText(r.sound_asset_id, r.duration_ms) : fmtMs(r.duration_ms ?? 7000);
+    const activeDurationText = (r.duration_mode || 'fixed') === 'sound' ? calcDurationFromSoundMs(soundDuration, r.duration_ms) : fmtMs(r.duration_ms ?? 7000);
     const fixedHint = (r.duration_mode || 'fixed') === 'fixed' ? `Aktiv: ${fmtMs(r.duration_ms ?? 7000)}` : `Nur Fallback: ${fmtMs(r.duration_ms ?? 7000)}`;
-    const soundHint = (r.duration_mode || 'fixed') === 'sound' ? `Aktiv: ${calcSoundDurationText(r.sound_asset_id, r.duration_ms)}` : 'Nicht aktiv';
+    const soundHint = (r.duration_mode || 'fixed') === 'sound' ? `Aktiv: ${calcDurationFromSoundMs(soundDuration, r.duration_ms)}` : 'Nicht aktiv';
     const valueDesc = ruleValueDescriptor(r.source || 'twitch', r.type_key || '');
     return `<div class="modal-backdrop" data-close-modal="1"><div class="modal-card glass" data-modal-card="1">
       <div class="modal-head"><div><h2>${isEdit ? 'Regel bearbeiten' : 'Neue Regel'}</h2><p class="small-note">${isEdit ? `ID ${esc(r.id)}` : 'Neue Alert-Staffel anlegen'}</p></div><button data-close-modal="1">×</button></div>
@@ -1223,8 +1243,8 @@
         <div id="durationSoundBox" class="duration-mode-box"><div class="duration-calc">
           <div><span>Erkannte Sounddauer</span><strong id="durationSoundMs">${esc(soundDuration ? fmtMs(soundDuration) : 'kein Sound / unbekannt')}</strong></div>
           <div><span>Globaler Puffer</span><strong>${esc(fmtMs(state.status?.config?.soundDurationPaddingMs || 0))}</strong></div>
-          <div><span>Berechnete Dauer</span><strong id="durationCalculatedMs">${esc(calcSoundDurationText(r.sound_asset_id, r.duration_ms))}</strong></div>
-        </div><p class="small-note">Die Sounddatei selbst bleibt ${esc(soundDuration ? fmtMs(soundDuration) : 'unbekannt')} lang. Der Puffer verlängert nur die sichtbare Overlay-Zeit, nicht die Audiodatei.</p></div></div>
+          <div><span>Berechnete Dauer</span><strong id="durationCalculatedMs">${esc(calcDurationFromSoundMs(soundDuration, r.duration_ms))}</strong></div>
+        </div><p class="small-note">Die aktive Sounddatei selbst bleibt ${esc(soundDuration ? fmtMs(soundDuration) : 'unbekannt')} lang. Bei Media-Registry-Sound wird dessen Dauer verwendet; sonst der alte Fallback-Sound.</p></div></div>
         <div class="form-section tts-settings-section"><div class="section-head-inline"><div><h3>Text-to-Speech</h3><p class="small-note">Wenn aktiv, wird der übermittelte Text nach dem Alert-Sound gesprochen. Der Alert bleibt bis zum Ende der TTS-Ausgabe sichtbar.</p></div><span id="ruleTtsStatus" class="tts-status-pill"></span></div>
           <div class="form-grid editor-grid">
             <label>TTS-Ausgabe<select id="ruleTtsEnabled">${opt(0,'Aus',Number(r.tts_enabled||0))}${opt(1,'An',Number(r.tts_enabled||0))}</select></label>
@@ -1372,14 +1392,18 @@
     return Number(a?.duration_ms || 0);
   }
 
-  function calcSoundDurationText(soundId, fallbackMs){
-    const soundDuration = selectedSoundDuration(soundId);
-    if (!soundDuration) return `Fallback ${Number(fallbackMs || 7000)} ms`;
+  function calcDurationFromSoundMs(soundDuration, fallbackMs){
+    const duration = Number(soundDuration || 0);
+    if (!duration) return `Fallback ${Number(fallbackMs || 7000)} ms`;
     const cfg = state.status?.config || {};
-    const padded = soundDuration + Number(cfg.soundDurationPaddingMs || 0);
+    const padded = duration + Number(cfg.soundDurationPaddingMs || 0);
     const min = Number(cfg.minAutoDurationMs || 1000);
     const max = Number(cfg.maxAutoDurationMs || 60000);
     return fmtMs(Math.max(min, Math.min(max, padded)));
+  }
+
+  function calcSoundDurationText(soundId, fallbackMs){
+    return calcDurationFromSoundMs(selectedSoundDuration(soundId), fallbackMs);
   }
 
   function readRuleForm(){
@@ -1469,7 +1493,9 @@
 
   function setRuleSoundMediaSelection(asset){
     const id = asset && Number(asset.id || 0) > 0 ? Number(asset.id) : '';
-    const label = id ? `MediaId ${id} · ${asset.label || asset.displayName || asset.fileName || asset.relativePath || 'Media-Registry'}` : '— kein Media-Registry-Sound —';
+    const duration = id ? Number(asset.durationMs ?? asset.duration_ms ?? 0) : 0;
+    const labelText = id ? (asset.label || asset.displayName || asset.fileName || asset.relativePath || 'Media-Registry') : '';
+    const label = id ? `MediaId ${id} · ${labelText}${duration ? ` · ${fmtMs(duration)}` : ''}` : '— kein Media-Registry-Sound —';
     const input = root.querySelector('#ruleSoundMediaId');
     const info = root.querySelector('#ruleSoundMediaInfo');
     const clearBtn = root.querySelector('#clearRuleSoundMedia');
@@ -1479,7 +1505,14 @@
     if (state.modalRule) {
       state.modalRule.sound_media_id = id || null;
       state.modalRule.soundMediaId = id || null;
+      state.modalRule.sound_media_label = id ? labelText : '';
+      state.modalRule.soundMediaLabel = id ? labelText : '';
+      state.modalRule.sound_media_duration_ms = id && duration > 0 ? duration : 0;
+      state.modalRule.soundMediaDurationMs = id && duration > 0 ? duration : 0;
+      state.modalRule.sound_media_path = id ? (asset.relativePath || '') : '';
+      state.modalRule.sound_media_url = id ? (asset.webPath || '') : '';
     }
+    updateDurationSoundInfo();
   }
 
   function openRuleSoundMediaPicker(){
@@ -1704,13 +1737,16 @@
   }
 
   function updateDurationSoundInfo(){
-    const soundId = valOrNull('ruleSound');
-    const soundDuration = selectedSoundDuration(soundId);
+    const mediaId = valOrNull('ruleSoundMediaId');
+    const legacySoundId = valOrNull('ruleSound');
+    let soundDuration = 0;
+    if (mediaId && state.modalRule) soundDuration = ruleSoundMediaDurationMs(state.modalRule);
+    if (!soundDuration) soundDuration = selectedSoundDuration(legacySoundId);
     const durationInput = root.querySelector('#ruleDuration');
     const soundEl = root.querySelector('#durationSoundMs');
     const calcEl = root.querySelector('#durationCalculatedMs');
     if (soundEl) soundEl.textContent = soundDuration ? fmtMs(soundDuration) : 'kein Sound / unbekannt';
-    if (calcEl) calcEl.textContent = calcSoundDurationText(soundId, durationInput?.value || 7000);
+    if (calcEl) calcEl.textContent = calcDurationFromSoundMs(soundDuration, durationInput?.value || 7000);
   }
 
   function updateRuleSoundButton(){

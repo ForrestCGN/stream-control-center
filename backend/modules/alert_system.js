@@ -1053,10 +1053,28 @@ function parseChatTexts(value) {
 
 function listRules() {
   return database.all(`
-    SELECT r.*, s.label AS sound_label, s.public_url AS sound_url, s.duration_ms AS sound_duration_ms, i.label AS image_label, i.public_url AS image_url, dp.name AS display_profile_name
+    SELECT
+      r.*,
+      s.label AS sound_label,
+      s.public_url AS sound_url,
+      s.duration_ms AS sound_duration_ms,
+      i.label AS image_label,
+      i.public_url AS image_url,
+      sm.display_name AS sound_media_label,
+      sm.duration_ms AS sound_media_duration_ms,
+      sm.relative_path AS sound_media_path,
+      sm.web_path AS sound_media_url,
+      sm.type AS sound_media_type,
+      im.display_name AS image_media_label,
+      im.relative_path AS image_media_path,
+      im.web_path AS image_media_url,
+      im.type AS image_media_type,
+      dp.name AS display_profile_name
     FROM alert_rules r
     LEFT JOIN alert_assets s ON s.id = r.sound_asset_id
     LEFT JOIN alert_assets i ON i.id = r.image_asset_id
+    LEFT JOIN media_assets sm ON sm.id = r.sound_media_id AND sm.status = 'active'
+    LEFT JOIN media_assets im ON im.id = r.image_media_id AND im.status = 'active'
     LEFT JOIN alert_display_profiles dp ON dp.id = r.display_profile_id
     ORDER BY r.source ASC, r.type_key ASC, COALESCE(r.min_value, -999999) ASC, r.priority ASC, r.id ASC
   `).map(row => ({ ...row, meta: parseJson(row.meta_json, {}) }));
@@ -1519,10 +1537,21 @@ function getRuleById(id) {
       s.label AS sound_label,
       s.duration_ms AS sound_duration_ms,
       i.public_url AS image_url,
-      i.label AS image_label
+      i.label AS image_label,
+      sm.display_name AS sound_media_label,
+      sm.duration_ms AS sound_media_duration_ms,
+      sm.relative_path AS sound_media_path,
+      sm.web_path AS sound_media_url,
+      sm.type AS sound_media_type,
+      im.display_name AS image_media_label,
+      im.relative_path AS image_media_path,
+      im.web_path AS image_media_url,
+      im.type AS image_media_type
     FROM alert_rules r
     LEFT JOIN alert_assets s ON s.id = r.sound_asset_id AND s.enabled = 1
     LEFT JOIN alert_assets i ON i.id = r.image_asset_id AND i.enabled = 1
+    LEFT JOIN media_assets sm ON sm.id = r.sound_media_id AND sm.status = 'active'
+    LEFT JOIN media_assets im ON im.id = r.image_media_id AND im.status = 'active'
     WHERE r.id=:id AND r.enabled = 1
   `, { id: Number(id) });
   return rule ? { ...rule, meta: parseJson(rule.meta_json, {}) } : null;
@@ -1814,11 +1843,23 @@ function findMatchingRule(payload) {
       r.*,
       s.public_url AS sound_url,
       s.label AS sound_label,
+      s.duration_ms AS sound_duration_ms,
       i.public_url AS image_url,
-      i.label AS image_label
+      i.label AS image_label,
+      sm.display_name AS sound_media_label,
+      sm.duration_ms AS sound_media_duration_ms,
+      sm.relative_path AS sound_media_path,
+      sm.web_path AS sound_media_url,
+      sm.type AS sound_media_type,
+      im.display_name AS image_media_label,
+      im.relative_path AS image_media_path,
+      im.web_path AS image_media_url,
+      im.type AS image_media_type
     FROM alert_rules r
     LEFT JOIN alert_assets s ON s.id = r.sound_asset_id AND s.enabled = 1
     LEFT JOIN alert_assets i ON i.id = r.image_asset_id AND i.enabled = 1
+    LEFT JOIN media_assets sm ON sm.id = r.sound_media_id AND sm.status = 'active'
+    LEFT JOIN media_assets im ON im.id = r.image_media_id AND im.status = 'active'
     WHERE r.enabled = 1
       AND r.source = :source
       AND r.type_key = :typeKey
@@ -2073,6 +2114,15 @@ function alertRuleSoundMediaId(rule) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+function alertRuleSoundDurationMs(rule) {
+  const mediaId = alertRuleSoundMediaId(rule);
+  const mediaDuration = Number(rule && (rule.sound_media_duration_ms ?? rule.soundMediaDurationMs) || 0);
+  if (mediaId && Number.isFinite(mediaDuration) && mediaDuration > 0) return mediaDuration;
+  const legacyDuration = Number(rule && (rule.sound_duration_ms ?? rule.soundDurationMs) || 0);
+  if (Number.isFinite(legacyDuration) && legacyDuration > 0) return legacyDuration;
+  return 0;
+}
+
 function buildAlertMainBundleItem(event, bundlePriority) {
   const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
   const rule = event && event.rule ? event.rule : {};
@@ -2089,7 +2139,7 @@ function buildAlertMainBundleItem(event, bundlePriority) {
   const item = {
     role: 'main',
     ...(mediaId ? { mediaId } : { file }),
-    label: cleanText(rule.sound_label || rule.label || buildDefaultTitle(event) || 'Alert'),
+    label: cleanText(rule.sound_media_label || rule.soundMediaLabel || rule.sound_label || rule.label || buildDefaultTitle(event) || 'Alert'),
     category: cleanKey(rule.sound_category || liveCfg.soundSystemCategory || 'alert') || 'alert',
     outputTarget: validateSoundOutputTarget(rule.sound_output_target || liveCfg.soundSystemOutputTarget || 'device', 'device'),
     priority: bundlePriority,
@@ -2105,6 +2155,7 @@ function buildAlertMainBundleItem(event, bundlePriority) {
       alertType: event.type_key,
       ruleId: rule && rule.id ? rule.id : null,
       soundMediaId: mediaId || null,
+      soundMediaDurationMs: alertRuleSoundDurationMs(rule) || null,
       legacySoundFile: file || '',
       legacySoundUrl: publicUrl || '',
       bundleManagedBy: 'alert_system'
@@ -2754,7 +2805,7 @@ async function prepareAlertTts(event) {
 function getMainAlertSoundDurationMs(event, soundResult) {
   const fromSoundItem = Number(soundResult && soundResult.item && soundResult.item.durationMs || 0);
   if (Number.isFinite(fromSoundItem) && fromSoundItem > 0) return fromSoundItem;
-  const fromRuleSound = Number(event && event.rule && event.rule.sound_duration_ms || 0);
+  const fromRuleSound = alertRuleSoundDurationMs(event && event.rule ? event.rule : {});
   if (Number.isFinite(fromRuleSound) && fromRuleSound > 0) return fromRuleSound;
   const fromEvent = Number(event && event.effectiveDurationMs || 0);
   if (Number.isFinite(fromEvent) && fromEvent > 0) return fromEvent;
@@ -3225,7 +3276,7 @@ function buildOverlayAlert(event) {
     introMs: toInt(text.context.introMs, toInt(rule.meta?.introMs, Number(state.config.defaultIntroMs || 700))),
     outroMs: toInt(text.context.outroMs, toInt(rule.meta?.outroMs, Number(state.config.defaultOutroMs || 600))),
     durationMode: rule.duration_mode || 'fixed',
-    soundDurationMs: Number(rule.sound_duration_ms || 0),
+    soundDurationMs: alertRuleSoundDurationMs(rule),
     soundSystem: event.soundSystem || null,
     animation: rule.animation || 'neon_card',
     imageMode: rule.image_mode || 'none',
@@ -3408,7 +3459,7 @@ function persistRenderedAlert(eventUid, alert) {
 function resolveAlertDurationMs(rule = {}) {
   const fixed = Number(rule?.duration_ms || state.config.defaultDurationMs || 7000);
   if ((rule?.duration_mode || 'fixed') !== 'sound') return clamp(fixed, 1000, 60000);
-  const soundDuration = Number(rule?.sound_duration_ms || 0);
+  const soundDuration = alertRuleSoundDurationMs(rule);
   if (soundDuration <= 0) return clamp(fixed, 1000, 60000);
   const padded = soundDuration + Number(state.config.soundDurationPaddingMs || 1200);
   return clamp(padded, Number(state.config.minAutoDurationMs || 4000), Number(state.config.maxAutoDurationMs || 60000));
