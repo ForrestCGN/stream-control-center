@@ -1,0 +1,20 @@
+--- /mnt/data/work276h_fix1/htdocs/dashboard/modules/alerts.js	2026-05-23 15:47:58.202953019 +0000
++++ htdocs/dashboard/modules/alerts.js	2026-05-23 15:50:20.003192473 +0000
+@@ -873,7 +873,7 @@
+                 <details class="wide-field legacy-sound-foldout legacy-graphic-foldout" ${topGraphicMediaId ? '' : 'open'}>
+                   <summary><strong>Alte Grafik / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacyTopGraphicLabel)}</span></summary>
+                   <div class="legacy-sound-body">
+-                    ${selectHtml('topGraphicAssetId','Alte Grafik', st.topGraphicAssetId || '', imageAssetSelectItems(st.topGraphicAssetId))}
++                    <select data-display-key="topGraphicAssetId" aria-label="Alte Grafik / Fallback">${imageAssetSelectItems(st.topGraphicAssetId).map(([v,l])=>opt(v,l,st.topGraphicAssetId || '')).join('')}</select>
+                   </div>
+                 </details>
+                 ${selectHtml('topGraphicShape','Grafik-Form', st.topGraphicShape || st.topGraphicFrameStyle || 'original', [['original','Original'],['round','Kreis'],['tile','Kachel'],['heart','Herz'],['shield','Schild'],['hexagon','Hexagon'],['diamond','Diamant'],['star','Stern']])}
+@@ -1288,7 +1288,7 @@
+           <details class="wide-field legacy-sound-foldout" ${imageMediaId ? '' : 'open'}>
+             <summary><strong>Alte Grafik / Fallback</strong><span class="legacy-sound-summary">Aktuell: ${esc(legacyImageLabel)}</span></summary>
+             <div class="legacy-sound-body">
+-              <label class="wide-field legacy-sound-field"><span>Alte Grafik</span><select id="ruleImage">${assetOptions('image', r.image_asset_id)}</select></label>
++              <select id="ruleImage" aria-label="Alte Grafik / Fallback">${assetOptions('image', r.image_asset_id)}</select>
+             </div>
+           </details>
+           <label class="wide-field">Design-Profil<select id="ruleDisplayProfile">${displayProfileOptions(r.display_profile_id, true)}</select></label>
