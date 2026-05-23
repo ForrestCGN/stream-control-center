@@ -23,3 +23,9 @@
 ## STEP274Z_FIX1_REMOVE_FILTER_HINT
 
 - `htdocs/dashboard/components/media_picker.js` - sichtbarer Hinweis `Filter, nicht Upload-Ziel` entfernt.
+
+## STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
+
+- `backend/modules/sound_system.js` - direkte Wiedergabe von Media-Registry-Assets per `mediaId`.
+- `backend/modules/media.js` - `resolve` meldet Media-Registry-Assets als Sound-System-kompatibel via direkter mediaId-Wiedergabe.
+- `docs/backend/SOUND_SYSTEM_MEDIAID_DIRECT_STEP275A.md` - Test-/Status-Dokumentation.

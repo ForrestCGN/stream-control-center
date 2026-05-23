@@ -21,3 +21,9 @@
 
 - MediaPicker-Hinweis `Filter, nicht Upload-Ziel` aus dem sichtbaren Zusatzkategorie-Label entfernt.
 - Verhalten bleibt unverändert: sichtbarer Filter startet auf `Alle Zusatzkategorien`, Upload-Ziel bleibt separat pro Button gesetzt.
+
+## STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
+
+- Sound-System kann Media-Registry-Assets direkt per `mediaId` / `media_id` abspielen.
+- `/api/media/resolve?useCase=sound_system` markiert `assets/media/...`-Assets als kompatibel, wenn direkte mediaId-Wiedergabe möglich ist.
+- Keine Entfernung bestehender `assets/sounds/...`-Kompatibilität.

@@ -11,3 +11,7 @@ STEP274W FIX4 repariert die Birthday MediaPicker Import-Route. Nach dem Patch mu
 ## STEP274Z_MEDIA_PICKER_FILTER_DEFAULT_ALL
 
 MediaPicker: sichtbarer Zusatzkategorie-Filter startet beim Öffnen auf `Alle Zusatzkategorien`; Upload-Ziel bleibt weiterhin über die aufrufende Modulkonfiguration gesetzt.
+
+## STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
+
+Sound-System kann Medien aus der Media-Registry direkt per `mediaId` abspielen. Legacy-Sounds unter `assets/sounds` bleiben unverändert kompatibel.

@@ -669,7 +669,6 @@ function resolveAssetForUse(ref, options = {}) {
   const exists = insideAssets && fs.existsSync(abs);
   const webPath = asset.webPath || `/assets/${rel}`;
   const soundSystemFile = soundSystemFileFor({ ...asset, relativePath: rel });
-  const mediaRegistryDirect = !soundSystemFile && exists && rel.startsWith('media/') && ['audio', 'video', 'animation'].includes(String(asset.type || '').toLowerCase());
   const useCase = clean(options.useCase || options.use || '').toLowerCase();
 
   const resolved = {
@@ -700,10 +699,9 @@ function resolveAssetForUse(ref, options = {}) {
       isAnimation: asset.type === 'animation'
     },
     soundSystem: {
-      compatible: !!soundSystemFile || !!mediaRegistryDirect,
+      compatible: !!soundSystemFile,
       file: soundSystemFile,
-      mediaIdDirect: !!mediaRegistryDirect,
-      reason: soundSystemFile ? 'legacy_sounds_relative_path' : (mediaRegistryDirect ? 'media_registry_direct_mediaid' : 'sound_system_base_dir_not_yet_media_registry_aware')
+      reason: soundSystemFile ? 'legacy_sounds_relative_path' : 'sound_system_base_dir_not_yet_media_registry_aware'
     },
     overlay: {
       compatible: !!webPath,
@@ -718,8 +716,8 @@ function resolveAssetForUse(ref, options = {}) {
   };
 
   if (useCase === 'sound_system' || useCase === 'sound') {
-    resolved.ok = !!soundSystemFile || !!mediaRegistryDirect;
-    if (!resolved.ok) resolved.error = resolved.soundSystem.reason;
+    resolved.ok = !!soundSystemFile;
+    if (!soundSystemFile) resolved.error = resolved.soundSystem.reason;
   }
 
   return resolved;

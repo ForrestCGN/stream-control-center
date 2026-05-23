@@ -14,3 +14,7 @@
 ## STEP274Z_MEDIA_PICKER_FILTER_DEFAULT_ALL_DONE
 
 Abgeschlossen: MediaPicker trennt sichtbaren Kategorie-Filter und Upload-Ziel deutlicher.
+
+## STEP275B_BIRTHDAY_STORE_MEDIAID_PLANNED
+
+Nächster Step: Birthday soll neue Medien bevorzugt als `mediaId` speichern und beim Playback direkt ans Sound-System übergeben, statt Kopien nach `assets/sounds/birthday` zu erzeugen.

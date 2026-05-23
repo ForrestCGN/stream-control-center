@@ -816,86 +816,6 @@ module.exports.init = function init(ctx) {
     return `/assets/sounds/${clean}`;
   }
 
-  // STEP275A_SOUND_SYSTEM_MEDIAID_DIRECT
-  // Erlaubt /api/sound/play und /api/sound/bundle Items mit mediaId/media_id direkt aus der Media-Registry.
-  // Dadurch muessen neue Module nicht mehr zwingend nach htdocs/assets/sounds kopieren.
-  function assetsBaseDir() {
-    if (typeof cfg.getAssetsDir === "function") return cfg.getAssetsDir();
-    return cfg.resolveFromRoot("htdocs", "assets");
-  }
-
-  function normalizeAssetRelativePath(value) {
-    return String(value || "").replace(/\\/g, "/").replace(/^\/+/, "").trim();
-  }
-
-  function pathInside(parent, child) {
-    const rootPath = path.resolve(parent);
-    const targetPath = path.resolve(child);
-    const rel = path.relative(rootPath, targetPath);
-    return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel) || rel === "";
-  }
-
-  function mediaWebPathFromRelative(relativePath, fallbackWebPath) {
-    const direct = String(fallbackWebPath || "").trim();
-    if (direct) return direct.replace(/\\/g, "/");
-    const rel = normalizeAssetRelativePath(relativePath);
-    return rel ? `/assets/${rel}` : "";
-  }
-
-  function mediaTypeFromRegistry(row, info, rawType) {
-    const rowType = String(row && row.type || "").toLowerCase();
-    if (rowType === "video" || rowType === "animation") return "video";
-    if (rowType === "audio") return "audio";
-    if (info && info.hasVideo) return "video";
-    if (rawType === "video") return "video";
-    return "audio";
-  }
-
-  function resolveMediaRegistryPayload(body = {}) {
-    const mediaId = Number(body.mediaId || body.media_id || body.mediaAssetId || body.assetId || 0);
-    const mediaRef = normalizeAssetRelativePath(body.mediaPath || body.mediaRelativePath || body.registryPath || "");
-    if (!mediaId && !mediaRef) return null;
-
-    let row = null;
-    if (mediaId) {
-      row = database.get("SELECT * FROM media_assets WHERE id = :id AND status = :status LIMIT 1", { id: mediaId, status: "active" }) || null;
-    } else if (mediaRef) {
-      row = database.get("SELECT * FROM media_assets WHERE relative_path = :path AND status = :status LIMIT 1", { path: mediaRef, status: "active" }) || null;
-    }
-    if (!row) throw new Error(`Media-Registry Asset wurde nicht gefunden: ${mediaId || mediaRef}`);
-
-    const assetsDir = assetsBaseDir();
-    const relativePath = normalizeAssetRelativePath(row.relative_path || row.relativePath || mediaRef);
-    const absolutePath = path.resolve(row.absolute_path || row.absolutePath || path.join(assetsDir, relativePath));
-    if (!relativePath) throw new Error("Media-Registry Asset hat keinen relativen Pfad.");
-    if (!pathInside(assetsDir, absolutePath)) throw new Error("Media-Registry Asset liegt ausserhalb des Assets-Ordners.");
-    if (!fs.existsSync(absolutePath)) throw new Error(`Media-Registry Datei fehlt: ${relativePath}`);
-
-    const allowed = Array.isArray(config.allowedExtensions) ? config.allowedExtensions : media.DEFAULT_ALLOWED_EXTENSIONS;
-    if (!media.extensionAllowed(absolutePath, allowed)) throw new Error(`Media-Registry Dateityp ist fuer Sound-System nicht erlaubt: ${path.extname(absolutePath)}`);
-
-    const info = media.readMediaInfo(absolutePath, {});
-    const fallbackDuration = Number(row.duration_ms || row.durationMs || 0);
-    if ((!info || !info.durationMs) && fallbackDuration > 0) {
-      info.durationMs = fallbackDuration;
-      info.durationOk = true;
-    }
-    if (row.has_audio === 1 || row.hasAudio === true) info.hasAudio = true;
-    if (row.has_video === 1 || row.hasVideo === true) info.hasVideo = true;
-
-    const webPath = mediaWebPathFromRelative(relativePath, row.web_path || row.webPath || "");
-    return {
-      id: Number(row.id || mediaId || 0),
-      row,
-      relativePath,
-      absolutePath,
-      webPath,
-      info,
-      mediaType: mediaTypeFromRegistry(row, info, String(body.mediaType || body.type || "").toLowerCase()),
-      label: String(row.display_name || row.displayName || row.file_name || row.fileName || path.basename(relativePath) || "").trim()
-    };
-  }
-
   function clampVolume(value, fallback) {
     const n = Number(value);
     if (!Number.isFinite(n)) return fallback;
@@ -1335,7 +1255,6 @@ module.exports.init = function init(ctx) {
     let hasVideo = false;
     let videoWidth = 0;
     let videoHeight = 0;
-    const registryMedia = resolveMediaRegistryPayload(body);
 
     if (generatedBeep) {
       type = "file";
@@ -1346,25 +1265,6 @@ module.exports.init = function init(ctx) {
       mediaUrl = audioUrl;
       hasAudio = true;
       hasVideo = false;
-    } else if (registryMedia) {
-      type = "file";
-      file = registryMedia.relativePath;
-      fullPath = registryMedia.absolutePath;
-      mediaInfo = registryMedia.info || {};
-      mediaUrl = registryMedia.webPath;
-      hasAudio = mediaInfo.hasAudio !== false;
-      hasVideo = !!mediaInfo.hasVideo;
-      videoWidth = Number(mediaInfo.width || 0);
-      videoHeight = Number(mediaInfo.height || 0);
-      if (!mediaType || !["audio", "video"].includes(mediaType)) mediaType = registryMedia.mediaType || (hasVideo ? "video" : "audio");
-      type = mediaType === "video" ? "video" : rawType;
-      if (mediaType === "video") {
-        videoUrl = mediaUrl;
-      } else {
-        audioUrl = mediaUrl;
-      }
-      base.meta = { ...objectValue(base.meta), mediaRegistry: { id: registryMedia.id, relativePath: registryMedia.relativePath, webPath: registryMedia.webPath, direct: true } };
-      if (!base.label && registryMedia.label) base.label = registryMedia.label;
     } else {
       if (!file) throw new Error(msg("soundFileMissing"));
       mediaInfo = media.getMediaInfo(file, {
