@@ -14,7 +14,18 @@
 ## Config
 
 - `config/sound_system.json`  
-  Enthält den `soundBus`-Block. Sicherer Default bleibt `enabled = false`, Aktivierung für Tests über `/api/sound/settings` möglich.
+  Enthält den `soundBus`-Block. Sicherer Default bleibt konfigurierbar; Aktivierung für Tests über `/api/sound/settings` möglich.
+
+## Tests / Traces
+
+- `_trace/live_sound_trace_20260524_160117.summary.txt`  
+  STEP291 Live-Trace-Zusammenfassung des V5 Real Queue/Bundle Tests.
+
+- `_trace/live_sound_trace_20260524_160117.jsonl`  
+  STEP291 Live-Trace-Rohdaten.
+
+- `_trace/sound_queue_full_order_v5_real_mod_20260524_160117.events.json`  
+  STEP291 Event-/Response-Datei des V5 Real Queue/Bundle Tests.
 
 ## Overlays / Tools
 
@@ -27,16 +38,11 @@
 ## Dokumentation
 
 - `docs/backend/SOUND_SYSTEM_BUS_AUDIT_STEP288.md`
+- `docs/backend/SOUNDBUS_BASE_TESTS_STEP290.md`
+- `docs/backend/SOUNDBUS_V5_REGRESSION_STEP291.md`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/STEP288_SOUND_SYSTEM_BUS_AUDIT.md`
 - `project-state/STEP289_SOUND_SYSTEM_BUS_EVENT_OUTPUT.md`
 - `project-state/STEP289B_SOUNDBUS_STATUS_EXPOSURE_FIX.md`
 - `project-state/STEP290_SOUNDBUS_BASE_TESTS.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-- `project-state/NEXT_STEPS.md`
-
-## STEP290 – Test-/Doku-Stand
-
-Keine Code-Datei wurde geändert. STEP290 dokumentiert nur die live bestätigten SoundBus-Basistests.
+- `project-state/STEP291_SOUNDBUS_V5_REGRESSION_TEST.md`

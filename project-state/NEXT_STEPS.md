@@ -1,6 +1,6 @@
 # Next Steps
 
-## Sicherer Stand nach STEP290
+## Sicherer Stand nach STEP291
 
 - Alert-Visual-Migration ist vorbereitet und getestet.
 - Alert-Standard bleibt `alertOutput.mode = legacy`.
@@ -8,56 +8,33 @@
 - `bus_only` ist vorbereitet, aber nicht als Produktiv-/Normalmodus freigegeben.
 - Sound-System besitzt einen additiven Bus-Event-Ausgang.
 - `/api/sound/status` enthält sichtbaren Top-Level-Block `soundBus`.
-- SoundBus-Basistests sind bestanden:
-  - Status-Fix bestätigt.
-  - Aktivierung über `/api/sound/settings` bestätigt.
-  - `test_ping` bestätigt.
-  - Alert-Bundle mit Hauptsound + TTS bestätigt.
+- SoundBus-Basistests sind bestanden.
+- SoundBus V5 Queue-/Bundle-Regression ist bestanden mit Discord-Warnung.
 - Sound-System bleibt Master für Audio/Media, Queue, Bundles und Ausgabe.
 
-## Wichtiger Hinweis zu soundBus.enabled
+## Wichtigster offener Punkt
 
-Der sichere Config-Default bleibt `soundBus.enabled = false`.
+### STEP292 – Discord Media Path/Routing Audit
 
-Nach Tests muss bewusst entschieden werden, ob `soundBus.enabled` testweise aktiv bleiben soll oder wieder auf `false` gesetzt wird.
+Im STEP291-Test gab es:
 
-Zurück auf sicheren Standard:
-
-```json
-{
-  "settings": {
-    "soundBus": {
-      "enabled": false
-    }
-  }
-}
+```text
+discordFailed = 3
+sound nicht gefunden: media/alerts/bits/100-249.mp3
 ```
 
-## STEP291 – SoundBus V5 Real Queue/Bundle Regression Test
+Ziel von STEP292:
 
-Ziel:
-
-- SoundBus aktiviert lassen.
-- V5-Real-Mod-Test ausführen:
-  - `tools/easy/05_SOUND_QUEUE_FULL_ORDER_TRACE_TEST_V5_REAL_MOD.cmd`
-- Prüfen, ob die bekannte stabile Reihenfolge aus STEP268C weiterhin erhalten bleibt.
-
-Zu prüfen:
-
-- Alert-Hauptsound + passende Alert-TTS bleiben zusammen.
-- Kein SoundAlert, Mod-Sound oder normales TTS rutscht zwischen Alert-Hauptsound und passende Alert-TTS.
-- `activeBundleLock` wird gesetzt und wieder sauber gelöst.
-- Queue am Ende leer.
-- `soundBus.stats.errors = 0`.
-- Device-/Discord-Fehler bleiben `0`.
-- Alert Watchdog bleibt `acknowledged`.
+- Prüfen, wie Discord-Routing Dateien auflöst.
+- Media-Registry-Pfade `media/alerts/...` für Discord korrekt behandeln.
+- Kein Umbau der Queue-/Bundle-Logik.
+- Kein Umbau des SoundBus, solange nicht zwingend.
+- Keine Caller-Module ändern, bevor der Pfad-Resolver verstanden ist.
 
 ## Danach
 
-Wenn STEP291 bestanden ist:
+Nach STEP292:
 
-1. Communication Debug View/Dashboard um Sound-Bus-Events erweitern.
-2. Sound-Bus-Events gruppieren: Queue, Items, Bundles, Device, Discord, Client.
-3. Module dürfen Bus-Status lesen, aber noch nicht direkt Sounds per Bus auslösen.
-4. Optional später Bus-Input `sound.play`, der intern dieselbe Sound-System-Queue nutzt.
-5. Module erst danach stufenweise migrieren.
+1. entscheiden, ob `soundBus.enabled = true` im längeren Testbetrieb bleiben darf,
+2. Debug View/Dashboard um SoundBus-Status ergänzen,
+3. Module stufenweise busfähig machen, ohne direkte Audio-Kontrolle aus dem Sound-System herauszulösen.

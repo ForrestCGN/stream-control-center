@@ -1,5 +1,24 @@
 # Changelog
 
+## STEP291 – SoundBus V5 Regression bestanden mit Discord-Warnung
+
+Datum: 2026-05-24T14:10:00Z
+
+- V5 Real Queue/Bundle Regression Test mit aktivem `soundBus.enabled = true` durchgeführt.
+- Drei Alert-Bundles mit Hauptsound + Alert-TTS getestet.
+- SoundAlerts, Real-Mod-Sounds und normale TTS-Queue im selben Testlauf geprüft.
+- SoundBus erzeugte fortlaufend Events, `soundBus.stats.errors = 0`.
+- Alert-Hauptsound und passende Alert-TTS blieben zusammen.
+- SoundAlerts/Mod-Sounds/Normal-TTS rutschten nicht zwischen Alert-Hauptsound und passende Alert-TTS.
+- Queue war am Ende leer.
+- `activeBundleLock` und `currentBundle` waren am Ende leer.
+- `failed = 0`, `deviceFailed = 0`.
+- Nebenbefund dokumentiert: `discordFailed = 3` wegen `sound nicht gefunden: media/alerts/bits/100-249.mp3`.
+- Keine Codeänderung.
+- Keine Queue-/Bundle-/Caller-Logik geändert.
+- Keine DB-Migration.
+- Keine Funktionalität entfernt.
+
 ## STEP290 – SoundBus Basistests bestätigt
 
 Datum: 2026-05-24T14:05:00Z

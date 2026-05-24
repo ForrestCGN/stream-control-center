@@ -1,7 +1,7 @@
 # Current System Status
 
-Stand: STEP290 – SoundBus Basistests bestätigt
-Aktualisiert: 2026-05-24T14:05:00Z
+Stand: STEP291 – SoundBus V5 Regression bestanden mit Discord-Warnung
+Aktualisiert: 2026-05-24T14:10:00Z
 
 ## Alert-/Communication-Stand
 
@@ -24,101 +24,40 @@ Das bisherige Alert-System bleibt erhalten. Der native Output Mode ist vorbereit
 
 Der sichere Standardmodus bleibt bewusst `legacy`.
 
-Der Real Alert Mirror bleibt erhalten und ist weiter als Diagnose-/Bridge-Testwerkzeug nutzbar. Der reguläre Migrationspfad läuft über `alertOutput` im Alert-System.
+## Sound-System-Stand
 
-## Sound-System-Stand nach STEP290
+Das Sound-System besitzt seit STEP289 einen additiven SoundBus-Event-Ausgang. STEP289B hat den Top-Level-Status `soundBus` in `/api/sound/status` ergänzt. STEP290 hat Basistests bestätigt.
 
-Das Sound-System wurde in STEP288 analysiert, in STEP289 additiv mit einem SoundBus-Event-Ausgang vorbereitet und in STEP289B um den fehlenden Top-Level-Status `soundBus` in `/api/sound/status` korrigiert.
+STEP291 hat den großen V5-Real-Queue-/Bundle-Regressionstest mit aktivem `soundBus.enabled = true` bestätigt.
 
-STEP290 bestätigt die ersten Live-Basistests mit aktivem `soundBus`:
+## Bestätigter STEP291-Test
 
-- `/api/sound/status` meldet `step = 289` und sichtbaren Top-Level-Block `soundBus`.
-- `soundBus.enabled = true` konnte über `/api/sound/settings` aktiviert werden.
-- Communication Bus war verfügbar.
-- Test-Sound `test_ping` wurde erfolgreich abgespielt.
-- SoundBus sendete Events und meldete `errors = 0`.
-- Alert-Bundle-Test mit Hauptsound + Alert-TTS lief erfolgreich.
-- Alert-Bundle erzeugte `bundlesQueued = 1` und `bundleItemsQueued = 2`.
-- `activeBundleLock` war am Ende wieder leer.
+Bestanden:
+
+- SoundBus aktiv.
+- `soundBus.communicationBusAvailable = true`.
+- `soundBus.stats.errors = 0`.
+- V5-Test mit drei Alert-Bundles, SoundAlerts, Real-Mod-Sounds und normaler TTS-Queue durchgeführt.
+- Alert-Hauptsound und passende Alert-TTS blieben zusammen.
+- SoundAlerts/Mod-Sounds/Normal-TTS rutschten nicht zwischen Alert-Hauptsound und passende Alert-TTS.
 - `queuedCount = 0` am Ende.
-- Alert Overlay Watchdog meldete `acknowledged`.
-- Keine Sound-, Device-, Discord- oder Watchdog-Fehler im Test.
+- `activeBundleLock = null` am Ende.
+- `currentBundle = null` am Ende.
+- `failed = 0`.
+- `deviceFailed = 0`.
 
-## Sound-Bus Default
+## Nebenbefund
 
-Der sichere Config-Default bleibt:
+Im V5-Test gab es `discordFailed = 3` mit dem Fehler:
 
-- `soundBus.enabled = false`
+```text
+sound nicht gefunden: media/alerts/bits/100-249.mp3
+```
 
-Für gezielte Tests kann `soundBus.enabled` über `/api/sound/settings` aktiviert werden. Nach Tests soll der Wert wieder bewusst geprüft bzw. auf den gewünschten sicheren Zustand gesetzt werden.
-
-## Bestätigte SoundBus-Testwerte
-
-### Status-Fix
-
-- `step = 289`
-- Top-Level `soundBus` sichtbar.
-- `soundBus.feature = sound_bus_event_output`
-- `soundBus.communicationBusAvailable = true`
-
-### Aktivierung
-
-Nach Aktivierung:
-
-- `soundBus.enabled = true`
-- `soundBus.stats.emitted = 1`
-- `soundBus.stats.skipped = 2`
-- `soundBus.stats.errors = 0`
-- `lastAction = state.updated`
-
-### Test-Ping
-
-`GET /api/sound/play?id=test_ping`:
-
-- `ok = true`
-- `started = true`
-- `queued = false`
-- `dropped = false`
-- Danach: `soundBus.stats.emitted = 7`
-- Danach: `soundBus.stats.errors = 0`
-- Danach: `lastAction = finished`
-- Danach: `lastReason = item_finished`
-
-### Alert-Bundle-Test
-
-Nach Gift-Sub-Test-Alert mit TTS:
-
-- `started = 3`
-- `queued = 1`
-- `failed = 0`
-- `deviceStarted = 2`
-- `deviceFailed = 0`
-- `discordStarted = 2`
-- `discordFailed = 0`
-- `bundlesQueued = 1`
-- `bundleItemsQueued = 2`
-- `queuedCount = 0`
-- `currentBundle = null`
-- `activeBundleLock = null`
-- Alert Watchdog: `status = acknowledged`
-- Alert Watchdog: `timedOut = false`
-- Alert Watchdog: `issue` leer
-
-## Nicht geändert
-
-- Keine Caller-Module auf Bus-Input umgebaut.
-- Keine Sound-API entfernt.
-- Alter WebSocket `op: sound_system` bleibt erhalten.
-- Keine Queue-Sortierung geändert.
-- Keine Bundle-/`activeBundleLock`-Logik geändert.
-- Keine Dedupe-/Cooldown-/Interrupt-Regeln geändert.
-- Keine Alert-Bundle-Logik geändert.
-- Keine DB-Migration.
-- Keine Funktionalität entfernt.
+Das betrifft Discord-Dateipfad-/Media-Registry-Auflösung und wird als separater Folgepunkt behandelt.
 
 ## Nächste Entwicklungsrichtung
 
-1. SoundBus-Zustand nach Test bewusst sichern (`enabled` prüfen, ggf. auf `false` zurücksetzen).
-2. STEP291 – V5 Real Queue/Bundle Regression Test mit aktivem SoundBus durchführen.
-3. Danach Communication Debug View/Dashboard um Sound-Bus-Events erweitern.
-4. Erst danach über Bus-Input `sound.play` nachdenken, der intern dieselben Sound-System-APIs/Queue-Wege nutzt.
+1. Discord Media Path/Routing Audit für `media/alerts/...` bei Discord-Ausgabe.
+2. Danach entscheiden, ob `soundBus.enabled = true` länger im Testbetrieb bleiben soll.
+3. Danach stufenweise weitere Module über Bus-Status/Events anbinden.
