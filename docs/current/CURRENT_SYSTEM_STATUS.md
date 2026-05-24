@@ -39,3 +39,12 @@ Festlegung:
 ## Nächster Schritt
 
 STEP299 – Sound Dashboard Monitoring Modul Plan/Scaffold.
+
+
+## STEP299 – Sound Dashboard Monitoring Modul
+
+Das bestehende Dashboard-Modul `Sound-System` enthält nun einen neuen rein lesenden Tab `Bus-Monitor`.
+
+Der Tab zeigt SoundBus-/Communication-/Queue-/Bundle-/Fehlerstatus aus `/api/sound/status` und verlinkt die bestehende Debug View `/public/tools/soundbus_debug_view.html`.
+
+Es wurden keine Backend-, Sound-, Queue-, Bundle-, Alert-, Discord-, TTS- oder VIP-Logiken geändert.

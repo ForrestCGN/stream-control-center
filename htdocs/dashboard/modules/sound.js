@@ -42,6 +42,7 @@ window.SoundSystemModule = (function(){
         <button type="button" class="sound-tab" data-sound-tab="settings">Einstellungen</button>
         <button type="button" class="sound-tab" data-sound-tab="sounds">Sounds</button>
         <button type="button" class="sound-tab" data-sound-tab="diagnose">Diagnose</button>
+        <button type="button" class="sound-tab" data-sound-tab="busmonitor">Bus-Monitor</button>
       </div>
 
       <div class="sound-grid">
@@ -59,6 +60,7 @@ window.SoundSystemModule = (function(){
           <div id="soundQueue" class="sound-queue"></div>
         </div>
         <div class="sound-card" id="soundIntegrationCard" data-sound-section="diagnose"></div>
+        <div class="sound-card sound-bus-monitor-card" id="soundBusMonitorCard" data-sound-section="busmonitor diagnose"></div>
       </div>
     `;
     applySoundSection();
@@ -77,6 +79,7 @@ window.SoundSystemModule = (function(){
     renderSounds();
     renderQueue();
     renderIntegration();
+    renderSoundBusMonitor();
     applySoundSection();
   }
 
@@ -635,6 +638,61 @@ window.SoundSystemModule = (function(){
         </div>
       </div>
     `).join('');
+  }
+
+
+  function formatBusTarget(target){
+    if (!target || typeof target !== 'object') return '-';
+    const type = target.type || 'all';
+    const id = target.id || '*';
+    const mod = target.module ? ` · ${target.module}` : '';
+    const cap = target.capability ? ` · ${target.capability}` : '';
+    return `${type}:${id}${mod}${cap}`;
+  }
+
+  function renderSoundBusMonitor(){
+    const el = document.getElementById('soundBusMonitorCard');
+    if (!el) return;
+    const bus = status?.soundBus || status?.config?.soundBus || {};
+    const busStats = bus.stats || {};
+    const normalStats = status?.stats || {};
+    const lock = status?.activeBundleLock;
+    const bundle = status?.currentBundle;
+    const cur = status?.current;
+    const queueCount = Number(status?.queuedCount || 0);
+    const errCount = Number(busStats.errors || 0);
+    const emitted = Number(busStats.emitted || 0);
+    const skipped = Number(busStats.skipped || 0);
+    const debugUrl = '/public/tools/soundbus_debug_view.html';
+    const enabled = bus.enabled === true;
+    const comm = bus.communicationBusAvailable === true;
+    const statusClass = enabled && comm && errCount === 0 ? 'success' : (errCount > 0 || !comm ? 'danger' : '');
+    el.innerHTML = `
+      <h3>SoundBus Monitoring</h3>
+      <div class="sound-note">Rein lesende Übersicht für SoundBus/Communication-Bus. Steuerung bleibt über die normalen Backend-APIs.</div>
+      <div class="sound-bus-kpis">
+        <div class="sound-bus-kpi"><span>Status</span><strong class="sound-pill ${statusClass}">${enabled ? 'Aktiv' : 'Aus'}</strong></div>
+        <div class="sound-bus-kpi"><span>Communication</span><strong>${comm ? 'Verfügbar' : 'Nicht verfügbar'}</strong></div>
+        <div class="sound-bus-kpi"><span>Emitted</span><strong>${esc(emitted)}</strong></div>
+        <div class="sound-bus-kpi"><span>Errors</span><strong class="${errCount ? 'sound-danger-text' : ''}">${esc(errCount)}</strong></div>
+        <div class="sound-bus-kpi"><span>Skipped</span><strong>${esc(skipped)}</strong></div>
+        <div class="sound-bus-kpi"><span>Queue</span><strong>${esc(queueCount)}</strong></div>
+      </div>
+      <div class="sound-status-row"><span>Channel</span><span class="sound-pill">${esc(bus.channel || '-')}</span></div>
+      <div class="sound-status-row"><span>Target</span><span class="sound-muted">${esc(formatBusTarget(bus.target))}</span></div>
+      <div class="sound-status-row"><span>Letzte Aktion</span><span>${esc(busStats.lastAction || '-')}</span></div>
+      <div class="sound-status-row"><span>Letzter Grund</span><span>${esc(busStats.lastReason || '-')}</span></div>
+      <div class="sound-status-row"><span>Letzte Event-ID</span><span class="sound-muted">${esc(busStats.lastEventId || '-')}</span></div>
+      <div class="sound-status-row"><span>Letzter Fehler</span><span class="${busStats.lastError ? 'sound-danger-text' : ''}">${esc(busStats.lastError || '-')}</span></div>
+      <div class="sound-status-row"><span>Aktueller Sound</span><span>${cur ? esc(cur.label || cur.soundId || '-') : 'Keiner'}</span></div>
+      <div class="sound-status-row"><span>Current Bundle</span><span class="sound-muted">${bundle ? esc(bundle.bundleId || '-') : '-'}</span></div>
+      <div class="sound-status-row"><span>Active Bundle Lock</span><span class="sound-muted">${lock ? esc(lock.bundleId || '-') : '-'}</span></div>
+      <div class="sound-status-row"><span>Sound-Fehler</span><span>${esc(normalStats.failed || 0)} · Device ${esc(normalStats.deviceFailed || 0)} · Discord ${esc(normalStats.discordFailed || 0)}</span></div>
+      <div class="sound-actions">
+        <a class="ghost-link" href="${debugUrl}" target="_blank">SoundBus Debug View öffnen</a>
+        ${button('Status neu laden', 'reload')}
+      </div>
+    `;
   }
 
   function renderIntegration(){
