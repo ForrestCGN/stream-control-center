@@ -30,7 +30,7 @@ try {
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
-const MODULE_STEP = 350;
+const MODULE_STEP = 360;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -3557,7 +3557,12 @@ async function playLiveAlertSound(event) {
       error: ok ? '' : (data && (data.error || data.message) ? String(data.error || data.message) : `sound_system_http_${res.status}`)
     };
   } catch (err) {
-    recordAlertSoundCorrelation(event, 'failed', { bundleId, ok: false, itemsPrepared: items.length, error: err && err.message ? err.message : String(err) });
+    recordAlertSoundCorrelation(event, 'failed', {
+      bundleId: '',
+      ok: false,
+      itemsPrepared: mediaId || file ? 1 : 0,
+      error: err && err.message ? err.message : String(err)
+    });
     return {
       attempted: true,
       ok: false,
@@ -3998,7 +4003,12 @@ async function playAlertTtsSound(event, ttsResult, options = {}) {
       error: ok ? '' : (data && (data.error || data.message || data.reason) ? String(data.error || data.message || data.reason) : `sound_system_http_${res.status}`)
     };
   } catch (err) {
-    recordAlertSoundCorrelation(event, 'failed', { bundleId, ok: false, itemsPrepared: items.length, error: err && err.message ? err.message : String(err) });
+    recordAlertSoundCorrelation(event, 'failed', {
+      bundleId: '',
+      ok: false,
+      itemsPrepared: ttsResult && ttsResult.soundSystemFile ? 1 : 0,
+      error: err && err.message ? err.message : String(err)
+    });
     return {
       attempted: true,
       ok: false,
@@ -4806,6 +4816,89 @@ function clearQueue(reason) {
   }
 }
 
+
+function resendCurrentAlertToOverlayClient(ws, reason = 'overlay_reconnect_hello') {
+  if (!ws || !state.current || state.current.status !== 'playing') {
+    return { ok: false, sent: false, reason: 'no_current_playing_alert' };
+  }
+
+  const current = state.current;
+  const now = nowIso();
+  const overlayAlert = buildOverlayAlert(current);
+  const payload = {
+    op: state.config.wsOp || 'alert_system',
+    event: 'play',
+    alert: overlayAlert,
+    recovery: true,
+    replay: true,
+    reason: cleanText(reason || 'overlay_reconnect_hello'),
+    recoveredAt: now
+  };
+
+  try {
+    ws.send(JSON.stringify(payload));
+  } catch (err) {
+    const error = err && err.message ? err.message : String(err);
+    state.alertOverlayRecovery.attempts += 1;
+    state.alertOverlayRecovery.lastAt = now;
+    state.alertOverlayRecovery.lastMode = 'reconnect_resend';
+    state.alertOverlayRecovery.lastReason = payload.reason;
+    state.alertOverlayRecovery.lastOverlayClientCount = state.overlayClients.size;
+    state.alertOverlayRecovery.lastResult = { ok: false, sent: false, eventUid: current.eventUid, error };
+    return { ok: false, sent: false, eventUid: current.eventUid, error };
+  }
+
+  const record = state.overlayDeliveryByEvent.get(current.eventUid);
+  if (record) {
+    record.recoveryRequestedAt = now;
+    record.recoveryMode = 'reconnect_resend';
+    record.recoveryReason = payload.reason;
+  }
+
+  const recovery = current.alertOverlayReconnectRecovery && typeof current.alertOverlayReconnectRecovery === 'object'
+    ? current.alertOverlayReconnectRecovery
+    : { count: 0, recent: [] };
+
+  recovery.count = Number(recovery.count || 0) + 1;
+  recovery.lastAt = now;
+  recovery.lastReason = payload.reason;
+  recovery.lastOverlayClientCount = state.overlayClients.size;
+  recovery.recent = Array.isArray(recovery.recent) ? recovery.recent : [];
+  recovery.recent.unshift({
+    at: now,
+    reason: payload.reason,
+    overlayClientCount: state.overlayClients.size
+  });
+  recovery.recent = recovery.recent.slice(0, 10);
+
+  current.alertOverlayReconnectRecovery = recovery;
+  current.raw = {
+    ...(current.raw || {}),
+    alertOverlayReconnectRecovery: recovery
+  };
+
+  state.alertOverlayRecovery.attempts += 1;
+  state.alertOverlayRecovery.lastAt = now;
+  state.alertOverlayRecovery.lastMode = 'reconnect_resend';
+  state.alertOverlayRecovery.lastReason = payload.reason;
+  state.alertOverlayRecovery.lastOverlayClientCount = state.overlayClients.size;
+  state.alertOverlayRecovery.lastResult = {
+    ok: true,
+    sent: true,
+    eventUid: current.eventUid,
+    alertId: overlayAlert.id || current.eventUid,
+    recoveredAt: now,
+    soundChanged: false,
+    ttsChanged: false,
+    queueChanged: false
+  };
+
+  persistEventRuntimePayload(current);
+
+  return state.alertOverlayRecovery.lastResult;
+}
+
+
 function attachWs(wss) {
   if (state.started) return;
   state.started = true;
@@ -4823,6 +4916,7 @@ function attachWs(wss) {
         });
         if (msg.event === 'hello') {
           try { ws.send(JSON.stringify({ op: state.config.wsOp || 'alert_system', event: 'hello', status: buildStatus() })); } catch (_) {}
+          resendCurrentAlertToOverlayClient(ws, 'overlay_reconnect_hello');
         }
       }
       if (msg.event === 'ack' || msg.event === 'finished') {
