@@ -1,0 +1,344 @@
+Wir arbeiten am Projekt „stream-control-center“.
+
+Ziel dieses Chats:
+Ich möchte an einem neuen Teil / Modul / Fix / Dashboard-Bereich des Projekts weiterarbeiten.
+Arbeite immer auf Basis des echten aktuellen Projektstands und halte dich strikt an unsere Projektregeln.
+
+Projektbasis:
+- GitHub-Repo: https://github.com/ForrestCGN/stream-control-center
+- Branch: dev
+- Lokales Repo: D:\Git\stream-control-center
+- Live-System: D:\Streaming\stramAssets
+- Repo-Doku: D:\Git\stream-control-center\docs
+- Live-Doku: D:\Streaming\stramAssets\docs
+
+Wichtige Doku-Einstiegspunkte:
+- D:\Git\stream-control-center\docs\current\CURRENT_SYSTEM_STATUS.md
+- D:\Git\stream-control-center\project-state\CURRENT_STATUS.md
+- D:\Git\stream-control-center\project-state\CHANGELOG.md
+- D:\Git\stream-control-center\project-state\FILES.md
+- D:\Git\stream-control-center\project-state\NEXT_STEPS.md
+- D:\Git\stream-control-center\docs\backend\
+- D:\Git\stream-control-center\docs\dashboard\
+- D:\Git\stream-control-center\docs\database\
+- D:\Git\stream-control-center\docs\overlays\
+- D:\Git\stream-control-center\docs\system-inspection\2026-05-03\
+
+Historische Analyse-Snapshots:
+- docs/backend/Backend_Systemuebersicht_2026-05-03.txt
+- docs/dashboard/DASHBOARD_SYSTEMUEBERSICHT_IST_STAND_2026-05-03.txt
+- docs/database/ForrestCGN_Datenbank_Uebersicht_app_sqlite_2026-05-03.txt
+- docs/overlays/overlay_iststand_analyse.txt
+- docs/system-inspection/2026-05-03/SYSTEM_INSPEKTION_MASTER_TODO_v1_1_FINAL_GITHUB_2026-05-03.txt
+
+Diese Snapshots sind historische Stände. Nutze sie als Orientierung, aber überschreibe sie nicht blind. Aktuelle Änderungen gehören nach docs/current/CURRENT_SYSTEM_STATUS.md und project-state/*.
+
+Aktueller wichtiger Stand nach STEP284:
+- Der Kommunikations-Audit für Alert/Overlay wurde abgeschlossen und dokumentiert.
+- Der ursprüngliche Fehler „Sound/TTS läuft, aber visuelles Alert-Overlay erscheint nicht“ war im Test nicht reproduzierbar.
+- Dafür gibt es jetzt klare Diagnose-, Watchdog-, Recovery- und Snapshot-Werkzeuge.
+- Der nächste große Projektpfad ist: Alert-Overlay sauber busfähig abschließen, danach Sound-System als zentrale Audio-/Medien-Schicht auditieren und stufenweise busfähig machen.
+
+Aktueller Alert-/Communication-Stand:
+- Communication Bus Helper:
+  - Datei: backend/modules/communication_bus.js
+  - Version: 0.8.1
+  - Bus: cgn
+- Alert-System:
+  - Datei: backend/modules/alert_system.js
+  - alter produktiver Weg existiert weiterhin:
+    alert_system → altes Alert-System-WebSocket → _overlay-alerts-v2.html
+  - zusätzlicher Real Alert Bus Mirror existiert für Test/Diagnose:
+    alert_system → Communication Bus → Alert-Bus-Bridge / Debug / Snapshot
+- Alert Bus Bridge:
+  - Datei: htdocs/overlays/_overlay-alerts-v2-bus.html
+  - Version: 0.1.1
+  - Test-/Bridge-URL:
+    http://127.0.0.1:8080/overlays/_overlay-alerts-v2-bus.html?debug=1&mode=bridge
+  - Modi:
+    - mode=bridge
+    - mode=bus-first
+    - mode=bus-only
+    - mode=legacy-only
+  - Aktuell empfohlen: mode=bridge
+  - Bridge registriert sich am Communication Bus als:
+    overlay_alerts_v2_bus_bridge
+  - Bridge nutzt das bestehende Alert-Overlay intern als Renderer.
+  - Bridge deaktiviert lokales Audio im Renderer, damit Sound/TTS nicht doppelt läuft.
+  - Bridge sendet ACKs an den Communication Bus.
+  - Bridge sendet weiterhin finished an das Alert-System.
+  - Dedup gegen doppelte Anzeige ist eingebaut.
+- Communication Debug View:
+  - Datei: htdocs/public/tools/communication_debug_view.html
+  - Version: 0.1.9
+  - URL:
+    http://127.0.0.1:8080/public/tools/communication_debug_view.html
+  - Zeigt Bus, Watchdog, Real Alert Mirror, Timing, Overlay ACK, Queue, Recovery und Normalbetrieb-Check.
+  - Kann Diagnose-Snapshots erzeugen.
+
+Bestätigte STEP278/279/280/281/282/283/284-Ergebnisse:
+- STEP278V2:
+  - Real Alert Bus Mirror wurde direkt in alert_system.js integriert.
+  - Kein separates alert_bus_mirror.js Modul verwenden.
+- STEP278W:
+  - Alert Timing Diagnostics funktionieren.
+  - Wichtige Messwerte: queuedAt, queuePickedAt, waitingForSoundAt, soundBundleReadyAt, soundWaitDoneAt, playingAt, overlaySentAt, busMirrorSentAt.
+- STEP278X:
+  - Alert Overlay Delivery Watchdog funktioniert.
+  - Erkennt no_overlay_client und missing_finish_ack.
+- STEP278Y:
+  - Communication Debug View zeigt Mirror, Timing und Watchdog.
+- STEP278Z:
+  - Manuelle Recovery-Route funktioniert:
+    /api/alerts/overlay-watchdog/recover?confirm=1
+  - Recovery macht nur Overlay-Clear, keine Queue-/Sound-/TTS-Änderung.
+- STEP279:
+  - Kommunikations-Audit dokumentiert.
+- STEP280:
+  - Diagnose-Snapshot Export funktioniert.
+- STEP281:
+  - Normalbetrieb-/Live-Check in Debug View funktioniert.
+- STEP282:
+  - Neue Alert Bus Bridge erstellt:
+    htdocs/overlays/_overlay-alerts-v2-bus.html
+- STEP283:
+  - Bridge produktionsnäher gemacht.
+  - Debug View erkennt Alert Bus Bridge und warnt bei paralleler alter/neuer Quelle.
+- STEP284:
+  - Doku-/Handoff-Stand für neuen Chat erstellt.
+  - Neuer Chat-Prompt aktualisiert.
+
+Letzter bestätigter Bridge-Test:
+- Snapshot aus Communication Debug View Version 0.1.9 bestätigte:
+  - Client: overlay_alerts_v2_bus_bridge
+  - Bridge-Version: 0.1.1
+  - Status: online
+  - connectedClientCount: 1
+  - Bus stats: emitted 1, delivered 1, acks 3, dropped 0, issues 0
+  - Event visual.alert.play wurde an overlay_alerts_v2_bus_bridge geliefert.
+  - Bus ACK kam zurück.
+  - Alert-System bekam finished.
+  - Overlay Watchdog: acknowledged
+  - noClient: 0
+  - missingFinishAck: 0
+  - queueLength: 0
+  - current: null
+  - Timing sauber:
+    playingToOverlayMs ca. 4ms
+    overlayToBusMirrorMs ca. 3ms
+    playingToBusMirrorMs ca. 7ms
+- Wichtig: Beim letzten stabilen Test war nur die neue Bridge als Alert-Overlay-Client verbunden. Das ist der gewünschte Testzustand.
+
+Aktuelle Test-/Betriebs-URLs:
+- Bridge öffnen:
+  http://127.0.0.1:8080/overlays/_overlay-alerts-v2-bus.html?debug=1&mode=bridge
+- Debug View öffnen:
+  http://127.0.0.1:8080/public/tools/communication_debug_view.html
+- Real Alert Mirror aktivieren:
+  http://127.0.0.1:8080/api/alerts/bus-mirror/enable?confirm=1
+- Real Alert Mirror deaktivieren:
+  http://127.0.0.1:8080/api/alerts/bus-mirror/disable?confirm=1
+- Overlay Watchdog Status:
+  http://127.0.0.1:8080/api/alerts/overlay-watchdog/status
+- Overlay Watchdog Check:
+  http://127.0.0.1:8080/api/alerts/overlay-watchdog/check
+- Overlay Recovery Clear:
+  http://127.0.0.1:8080/api/alerts/overlay-watchdog/recover?confirm=1
+
+Aktuelle wichtige Dateien für Alert-/Communication-Arbeiten:
+- backend/modules/alert_system.js
+- backend/modules/communication_bus.js
+- htdocs/overlays/_overlay-alerts-v2.html
+- htdocs/overlays/_overlay-alerts-v2-bus.html
+- htdocs/public/tools/communication_debug_view.html
+- docs/backend/ALERT_BUS_BRIDGE_MIGRATION.md
+- docs/backend/COMMUNICATION_AUDIT_STEP279_RESULT.md
+- docs/backend/COMMUNICATION_BUS_HELPER.md
+- docs/backend/MODULE_VERSIONING_DISPLAY_STANDARD.md
+- docs/current/CURRENT_SYSTEM_STATUS.md
+- project-state/CURRENT_STATUS.md
+- project-state/CHANGELOG.md
+- project-state/FILES.md
+- project-state/NEXT_STEPS.md
+- project-state/STEP284_ALERT_BUS_BRIDGE_HANDOFF_DOCS.md
+
+Nächster sinnvoller Schritt nach STEP284:
+- STEP285 – Alert-System native Bus Output Mode
+
+Ziel STEP285:
+- Nicht wieder beim Audit anfangen.
+- Im Alert-System einen echten regulären Bus-Ausgabeweg vorbereiten.
+- Der Real Alert Mirror soll langfristig nicht der produktive Bus-Ausgabeweg sein.
+- Mögliche Modi vorbereiten:
+  - legacy
+  - legacy_and_bus
+  - bus_first
+  - später bus_only
+- Bridge mode=bridge bleibt als Fallback-fähiger Testmodus.
+- Doppelte Anzeige weiter verhindern.
+- Keine Sound-/TTS-/Queue-Änderungen in STEP285.
+- Keine DB-Migration, außer ausdrücklich nötig und dann nur additiv/sicher.
+
+Wichtiger Folgeblock nach Alert-Bus-Abschluss:
+- Danach Sound-System-Audit und Sound-System-Bus-Migration planen.
+- Grund: Sound-System ist zentrale Audio-/Medien-Schicht für Alerts, TTS, VIP/Mod, Kanalpunkte/SoundAlerts, Challenges, Discord und weitere Systeme.
+- Sound-System später nicht nebenbei umbauen, sondern als eigenen Block.
+- Ziel später:
+  - sound.play
+  - sound.started
+  - sound.finished
+  - sound.failed
+  - sound.queue.updated
+  - sound.stop / clear / pause
+- Danach Systeme stufenweise umziehen:
+  1. Alerts
+  2. VIP/Mod/SoundAlerts
+  3. TTS
+  4. Challenges/sonstige Sounds
+
+Bisheriger stabiler Sound-/Queue-Stand, der nicht beschädigt werden darf:
+- Sound-/Alert-/TTS-/VIP-/Mod-Queue ist nach STEP268C stabil.
+- STEP268B:
+  - Alert-Bundle-Items umgehen Same-Sound-/Same-User-Dedupe.
+  - Gleiche Alert-Hauptsounds werden nicht mehr durch cooldown_same_sound gedroppt.
+- STEP268C:
+  - Sound-System beachtet activeBundleLock auch beim Direktstart.
+  - Kein fremder Sound darf zwischen Alert-Hauptsound und passende Alert-TTS starten.
+  - Fremde Items werden bei aktivem Bundle-Lock in die Queue gelegt.
+- Bestätigter V5-Real-Mod-Test:
+  - Alert 1
+  - SoundAlert
+  - Mod-Sound Araglor
+  - normales TTS
+  - Alert 2
+  - Mod-Sound Drudchen_CGN
+  - normales TTS
+  - SoundAlert
+  - Alert 3
+- Trace-Befund:
+  - Alert 1/2/3 Sound + passende TTS blieben zusammen.
+  - Kein SoundAlert, Mod-Sound oder normales TTS kam zwischen Alert-Sound und passende Alert-TTS.
+  - Echte Mod-Sounds Araglor und Drudchen_CGN wurden über das VIP-/Mod-System angenommen und abgespielt.
+  - Zwei SoundAlerts waren geplant und nutzten dieselbe Datei, also kein Doppeltrigger.
+- Aktuelle Priorität:
+  - Alert-Bundles > SoundAlert/Kanalpunkte > Mod/VIP > normales Chat-TTS
+- Aktuelles Prüfverfahren:
+  - collect_live_sound_trace.ps1 ist im Repo.
+  - V5-Testtool ist im Repo:
+    - tools/easy/05_SOUND_QUEUE_FULL_ORDER_TRACE_TEST_V5_REAL_MOD.cmd
+    - tools/easy/SOUND_QUEUE_FULL_ORDER_TRACE_TEST_V5_REAL_MOD.ps1
+
+Arbeitsweise:
+- Erst analysieren, dann ändern.
+- GitHub/dev und echte Projektdateien sind Single Source of Truth.
+- Lies zuerst die relevanten Projektdateien und Dokus.
+- Triff keine Annahmen über Dateien, Struktur, Helper, Configs oder Routen, ohne sie zu prüfen.
+- Wenn eine Datei über GitHub/dev nicht vollständig und zuverlässig lesbar ist, fordere sie von mir an.
+- Bei Live-Zustand brauchst du PowerShell-Ausgaben von mir aus D:\Streaming\stramAssets.
+- Arbeite in kleinen, nachvollziehbaren STEPs.
+- Vor jeder Änderung nennen:
+  - Ziel des STEPs
+  - betroffene Dateien
+  - was geändert wird
+  - was bewusst nicht geändert wird
+- Keine wilden Komplettumbauten.
+- Keine Funktionalität entfernen.
+- Bestehende Funktionen nur ändern, wenn nötig und dokumentiert.
+- Keine unfertigen alten Chat-Reste übernehmen.
+- Keine neuen Parallelstrukturen bauen, wenn vorhandene Helper, Module oder Configs genutzt werden können.
+- Vorhandene Helper bevorzugen, z. B. helper_settings, helper_config, helper_media, helper_messages, helper_texts, backend/core/database.js.
+- Dashboard greift nicht direkt auf SQLite oder Dateien zu, sondern immer über Backend-APIs.
+- Dashboard-UX soll schlank, klar und praktisch sein. Keine unnötigen Boxen, Hinweise oder Techniktexte.
+- Wenn ich Screenshots oder UX-Feedback gebe, zuerst bewerten, ob die Änderung wirklich besser wird.
+
+Datei-/Patch-Regeln:
+- Keine PowerShell-Textpatches für JS/CSS/HTML/MD-Dateien.
+- Keine Set-Content-/Regex-/Inline-Patch-Scripte über PowerShell.
+- Änderungen nur an echten Dateien, die vollständig aus GitHub/dev gelesen wurden oder die ich hochgeladen habe.
+- Wenn eine Datei geändert wird, liefere die komplette geänderte Datei oder ein ZIP mit echten Zielpfaden.
+- ZIPs müssen direkt nach D:\Git\stream-control-center entpackbar sein.
+- ZIPs immer mit echten Zielpfaden ab Repo-Root bauen.
+- Keine Copy-Item-Platzhalter-Anleitungen, wenn das ZIP direkt in den Repo-Root entpackt werden soll.
+
+Standardabschluss nach ZIP:
+ZIPs werden von mir manuell nach D:\Git\stream-control-center entpackt.
+Danach gib mir immer genau diesen Befehl mit passender Commit-Beschreibung:
+
+cd D:\Git\stream-control-center
+.\stepdone.cmd "passende commit beschreibung"
+
+Keine langen manuellen Git-add/commit/push/deploy-Ketten, außer stepdone.cmd funktioniert nicht.
+Wenn stepdone.cmd fehlschlägt, zuerst die Fehlerausgabe prüfen und gezielt reparieren.
+stepdone.cmd macht Syntaxcheck, git add, Sicherheitscheck, Commit, Push nach dev und Live-Deploy.
+
+Nach jeder Code-/Strukturänderung:
+1. Syntax prüfen, z. B. node --check bei JS-Dateien.
+2. Relevante API-/Live-Tests geben, wenn Backend/API betroffen ist.
+3. ZIP mit echten Zielpfaden liefern.
+4. STEP-Doku unter project-state/ schreiben.
+5. docs/current/CURRENT_SYSTEM_STATUS.md aktualisieren, wenn der zentrale Projektstand betroffen ist.
+6. project-state/CURRENT_STATUS.md, CHANGELOG.md, FILES.md und NEXT_STEPS.md aktualisieren, wenn betroffen.
+7. Am Ende kurz zusammenfassen:
+   - was geändert wurde
+   - was getestet werden soll
+   - welche Dateien betroffen sind
+   - was offen bleibt
+   - nächster sinnvoller Schritt
+
+Doku-Regeln:
+- Wenn project-state/CURRENT_STATUS.md vorhanden ist, keine CURRENT_STATUS_APPEND_*.md erzeugen.
+- Append-Dateien nur nutzen, wenn die echte Zieldatei nicht verfügbar ist.
+- Historische Analyse-Snapshots nicht überschreiben.
+- Archivierte Doku-Fragmente nicht ohne Grund wieder aktiv machen.
+- Dokus nicht nach htdocs kopieren.
+
+Verbindliche Projektregeln:
+- Keine Funktionalität entfernen.
+- SQLite app.sqlite niemals neu bauen, überschreiben oder ersetzen.
+- Schemaänderungen nur sanft per Migration / CREATE TABLE IF NOT EXISTS.
+- Keine Secrets anzeigen oder committen.
+- Keine .env, Tokens, Datenbanken, Backups oder temporären Dateien committen.
+- GitHub/dev und Live dürfen nicht unbewusst auseinanderlaufen.
+- Aktuellen Stand immer über docs/current/CURRENT_SYSTEM_STATUS.md und project-state/* dokumentieren.
+
+Globale DB-Regel:
+- SQLite ist aktuell produktiv aktiv und bleibt Standard/Fallback.
+- Neue Module und neue DB-Features sollen später MariaDB-tauglich bleiben.
+- Neue DB-Zugriffe bevorzugt über backend/core/database.js oder vorhandene Helper kapseln.
+- Direkte neue Kopplung an sqlite_core.js vermeiden, wenn ein zentraler Weg möglich ist.
+- SQLite-spezifische SQL-Konstrukte nur nutzen, wenn sie bestehende Funktionalität erhalten oder zentral gekapselt sind.
+- MariaDB erst aktiv nutzen, wenn der echte Adapter in backend/core/database.js implementiert und getestet ist.
+- Keine bestehende SQLite-Funktionalität für theoretische MariaDB-Vorbereitung brechen.
+
+Bestehende stabile/aktive Systeme:
+- Message-Rotator ist integriert und STABLE.
+- Hug/Rehug ist geprüft und vorläufig STABLE.
+- Tagebuch/Todo arbeitet mit DB-/Textvarianten-Logik.
+- SoundAlerts Bridge ist dokumentiert und DB-/Helper-basiert.
+- VIP-/Mod-Sound-System ist aktiv und über echten Mod-Test geprüft.
+- Alerts, Sound-System, TTS, VIP/Mod, OBS, Discord, Twitch, Loyalty, Deathcounter, Challenge und Clips sind bestehende Systeme.
+- Bestehende Systeme dürfen durch neue Änderungen nicht beschädigt werden.
+
+Fachlich wichtig:
+- Neue Module sollen konfigurierbar, dashboardfähig und möglichst DB-/Helper-basiert geplant werden.
+- Texte, Chat-Ausgaben, Discord-Ausgaben, Overlay-Texte und Systemmeldungen sollen langfristig variantenfähig und dashboardfähig sein.
+- JSON darf Seed/Fallback bleiben, primäre Verwaltung soll bei geeigneten Modulen über DB/Helper laufen.
+- Vor neuen Arbeiten prüfen, ob passende Helper, Routen, Tabellen, Configs oder UI-Muster existieren.
+
+Vor Beginn eines neuen Moduls/Fixes prüfen:
+1. Gibt es schon ein ähnliches Modul?
+2. Taucht es bereits in PROJECT_MODULE_AND_ROUTE_MAP und PROJECT_DASHBOARD_MAP auf?
+3. Gibt es vorhandene Helper, die genutzt werden sollen?
+4. Gibt es bestehende Config-, Settings-, Text- oder DB-Muster?
+5. Gibt es vorhandene Dashboard-Modulstruktur, die kopiert/erweitert werden kann?
+6. Welche Dateien sind wirklich betroffen?
+7. Muss eine API erweitert werden?
+8. Muss die Doku aktualisiert werden?
+9. Welche Tests sind minimal nötig?
+10. Erst nach Ist-Stand, API-Routen, Dashboard-Modul, Configs, DB-/Settings-Tabellen und Textvarianten entscheiden, ob ein Fix nötig ist.
+
+Danach erst einen kleinen STEP vorschlagen.
+Nicht sofort bauen, wenn erst Analyse nötig ist.
+
+Mein aktuelles Ziel:
+[HIER EINTRAGEN, WAS ICH JETZT BAUEN ODER ANALYSIEREN MÖCHTE]

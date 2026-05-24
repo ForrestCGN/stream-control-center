@@ -1,8 +1,26 @@
-# Files
+# Files – aktueller relevanter Stand
 
-## STEP283
-- `htdocs/overlays/_overlay-alerts-v2-bus.html`
-- `htdocs/public/tools/communication_debug_view.html`
-- `backend/modules/alert_system.js`
-- `backend/modules/communication_bus.js`
-- `project-state/STEP283_ALERT_BUS_BRIDGE_PRODUCTION_CHECK.md`
+## Backend
+
+- `backend/modules/alert_system.js`  
+  Enthält Alert Bus Mirror, Timing Diagnostics, Overlay Watchdog, Recovery Controls und den stabilen Alert-Orchestrator-Stand.
+
+- `backend/modules/communication_bus.js`  
+  Communication Bus Helper, Version `0.8.1`.
+
+## Overlays / Tools
+
+- `htdocs/overlays/_overlay-alerts-v2-bus.html`  
+  Neue Alert Bus Bridge, Version `0.1.1`.
+
+- `htdocs/public/tools/communication_debug_view.html`  
+  Communication Debug View, Version `0.1.9`, inkl. Snapshot, Normalbetrieb-Check und Bridge-Erkennung.
+
+## Dokumentation
+
+- `docs/backend/COMMUNICATION_AUDIT_STEP279_RESULT.md`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/backend/ALERT_BUS_BRIDGE_MIGRATION.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/STEP284_ALERT_BUS_BRIDGE_HANDOFF_DOCS.md`
+- `project-state/NEW_CHAT_PROMPT_STEP284_ALERT_BUS_BRIDGE.txt`

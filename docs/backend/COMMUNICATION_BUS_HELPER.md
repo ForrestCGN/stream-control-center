@@ -55,3 +55,7 @@ Die Communication Debug View enthält nun einen Normalbetrieb-/Live-Check. Der C
 
 ## STEP283 Hinweis
 Die Alert-Bus-Bridge registriert sich als `overlay_alerts_v2_bus_bridge` mit Capability `visual.alert.play`. Der Debug-View-Normalbetrieb erkennt diesen Client und warnt, wenn zusätzlich alte Alert-Quellen parallel verbunden sind.
+
+## STEP284 Hinweis
+
+Nach STEP283 ist die neue Alert Bus Bridge `htdocs/overlays/_overlay-alerts-v2-bus.html` erfolgreich getestet. Sie registriert sich als `overlay_alerts_v2_bus_bridge` und empfängt `visual.alert.play` über den Communication Bus. Der Real Alert Mirror bleibt aktuell Test-/Diagnoseweg und soll später durch einen nativen Alert-Bus-Ausgabeweg ersetzt werden.

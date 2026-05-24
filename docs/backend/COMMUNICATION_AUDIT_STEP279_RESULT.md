@@ -198,3 +198,7 @@ Den Stand zunächst im Live-Betrieb beobachten. Eine automatische Recovery sollt
 ## STEP281
 
 Die Communication Debug View enthält nun einen Normalbetrieb-/Live-Check. Der Check ist nur lesend und ändert keine Alert-, Sound-, TTS- oder Queue-Logik.
+
+## Ergänzung nach STEP283/STEP284
+
+Der Audit wurde in eine erste praktische Migration überführt. Die neue Alert Bus Bridge wurde als einzelner aktiver Overlay-Client getestet. Der Bus lieferte das Alert-Event an `overlay_alerts_v2_bus_bridge`, die Bridge sendete ACK, und das Alert-System erhielt ein reguläres `finished`. Damit ist der nächste sinnvolle Schritt ein nativer Bus-Ausgabeweg im Alert-System.
