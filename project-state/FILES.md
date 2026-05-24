@@ -1,6 +1,12 @@
 # FILES
 
-## STEP277A_FIX9
-- `backend/modules/clip_shoutout.js` - Repeat Guard, Statusfelder und Auswahl-Debugdaten.
-- `backend/modules/sound_system.js` - Direct-Playback-Basis aus FIX8 weiterhin im ZIP enthalten.
-- `project-state/STEP277A_FIX9_CLIP_REPEAT_GUARD.md` - STEP-Doku.
+## STEP277A_FIX10
+
+Changed:
+
+- `backend/modules/clip_shoutout.js`
+
+Added:
+
+- `project-state/STEP277A_FIX10_CLIP_LIST_ENDPOINT.md`
+- `NEXT_CHAT_START_STEP277A_FIX10_CLIP_LIST_ENDPOINT.md`

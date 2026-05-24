@@ -1,7 +1,7 @@
 # CHANGELOG
 
-## STEP277A_FIX9
-- Clip-Shoutout Repeat Guard ergänzt.
-- Zufällige Auswahl bleibt aktiv.
-- Zuletzt gespielte Clips pro Kanal werden in-memory vermieden.
-- Fallback: Wenn zu wenig Clips vorhanden sind, wird trotzdem abgespielt.
+## STEP277A_FIX10
+
+- Added `GET /api/clip-shoutout/clips?target=<login>`.
+- Exposes matching clip list, clip search debug data and repeat-guard selection preview.
+- Does not queue playback, download MP4 files or mutate recent clip memory.

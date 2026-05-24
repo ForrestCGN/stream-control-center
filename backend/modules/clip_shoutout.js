@@ -899,7 +899,7 @@ function registerCommand(cfg) {
       permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
       cooldownGlobalMs: Number(cfg.cooldownGlobalMs || 5000),
       cooldownUserMs: Number(cfg.cooldownUserMs || 15000),
-      configJson: JSON.stringify({ seededBy: "STEP277A_FIX9", rawInputMode: true }),
+      configJson: JSON.stringify({ seededBy: "STEP277A_FIX10", rawInputMode: true }),
       createdAt: now,
       updatedAt: now
     });
@@ -910,6 +910,90 @@ function registerCommand(cfg) {
     state.registeredCommand = false;
     state.lastError = err.message || String(err);
     return { ok: false, error: state.lastError };
+  }
+}
+
+
+function publicClipInfo(clip) {
+  if (!clip || typeof clip !== "object") return null;
+  return {
+    id: String(clip.id || ""),
+    title: String(clip.title || ""),
+    url: String(clip.url || ""),
+    embedUrl: String(clip.embed_url || ""),
+    broadcasterId: String(clip.broadcaster_id || ""),
+    broadcasterName: String(clip.broadcaster_name || ""),
+    creatorId: String(clip.creator_id || ""),
+    creatorName: String(clip.creator_name || ""),
+    videoId: String(clip.video_id || ""),
+    gameId: String(clip.game_id || ""),
+    language: String(clip.language || ""),
+    duration: Number(clip.duration || 0),
+    viewCount: Number(clip.view_count || 0),
+    createdAt: String(clip.created_at || ""),
+    thumbnailUrl: String(clip.thumbnail_url || "")
+  };
+}
+
+function buildClipSelectionPreview(clips, cfg, targetLogin) {
+  const candidates = Array.isArray(clips) ? clips.filter(clip => clipIdOf(clip)) : [];
+  const avoidRecent = cfg.avoidRecentClips !== false && clipMemoryLimit(cfg) > 0;
+  const recentIds = avoidRecent ? getRecentClipIds(targetLogin, cfg) : [];
+  const recentSet = new Set(recentIds);
+  const recentBlockedCount = avoidRecent ? candidates.filter(clip => recentSet.has(clipIdOf(clip))).length : 0;
+  const poolCount = avoidRecent ? candidates.length - recentBlockedCount : candidates.length;
+  return {
+    mode: cfg.randomPick === false ? (avoidRecent ? "first_avoid_recent" : "first") : (avoidRecent ? "random_avoid_recent" : "random"),
+    candidateCount: candidates.length,
+    recentMemory: recentIds,
+    recentBlockedCount,
+    poolCount: Math.max(0, poolCount),
+    wouldFallbackBecauseAllBlocked: avoidRecent && candidates.length > 0 && recentBlockedCount >= candidates.length,
+    avoidRecentClips: avoidRecent,
+    memoryPerChannel: clipMemoryLimit(cfg)
+  };
+}
+
+async function handleListClips(req, res, env) {
+  const cfg = shoutoutConfig();
+  const input = readRequestData(req);
+
+  if (cfg.enabled === false) {
+    return res.status(503).json({ ok: false, error: "clip_shoutout_disabled" });
+  }
+
+  const targetLogin = parseTarget(input);
+  if (!targetLogin) {
+    return res.json({ ok: false, error: "target_required", usage: `${API_PREFIX}/clips?target=kanal` });
+  }
+
+  try {
+    const targetUser = await resolveTargetUser(env, targetLogin, cfg);
+    if (!targetUser || !targetUser.userId) {
+      return res.json({ ok: false, error: "target_user_not_found", targetLogin });
+    }
+
+    const clipSearch = await listClipsForBroadcaster(env, targetUser.userId, cfg);
+    const clips = Array.isArray(clipSearch.clips) ? clipSearch.clips : [];
+    const publicClips = clips.map(publicClipInfo).filter(Boolean);
+    const selectionPreview = buildClipSelectionPreview(clips, cfg, targetUser.login);
+
+    return res.json({
+      ok: true,
+      module: MODULE_NAME,
+      step: "STEP277A_FIX10",
+      target: targetUser,
+      count: publicClips.length,
+      clips: publicClips,
+      clipSearch: clipSearch.debug || null,
+      clipSelectionPreview: selectionPreview,
+      recentClipGuard: publicRecentClipGuard(cfg),
+      note: "Diese Route listet passende Clips nur zur Kontrolle. Sie startet keinen Shoutout und veraendert die Recent-Clip-Memory nicht."
+    });
+  } catch (err) {
+    const error = err && err.message ? err.message : String(err);
+    state.lastError = error;
+    return res.status(500).json({ ok: false, module: MODULE_NAME, error, targetLogin });
   }
 }
 
@@ -1058,8 +1142,8 @@ module.exports.init = function init(ctx) {
     res.json({
       ok: true,
       module: MODULE_NAME,
-      version: 8,
-      step: "STEP277A_FIX9",
+      version: 9,
+      step: "STEP277A_FIX10",
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       command,
@@ -1067,6 +1151,7 @@ module.exports.init = function init(ctx) {
       routes: [
         { method: "GET", path: `${API_PREFIX}/status` },
         { method: "GET/POST", path: `${API_PREFIX}/run` },
+        { method: "GET", path: `${API_PREFIX}/clips` },
         { method: "GET/POST", path: "/api/clip/shoutout" }
       ],
       config: {
@@ -1094,10 +1179,11 @@ module.exports.init = function init(ctx) {
     });
   });
 
+  app.get(`${API_PREFIX}/clips`, (req, res) => handleListClips(req, res, env));
   app.get(`${API_PREFIX}/run`, (req, res) => handleRun(req, res, env));
   app.post(`${API_PREFIX}/run`, (req, res) => handleRun(req, res, env));
   app.get("/api/clip/shoutout", (req, res) => handleRun(req, res, env));
   app.post("/api/clip/shoutout", (req, res) => handleRun(req, res, env));
 
-  console.log(`[${MODULE_NAME}] loaded: ${API_PREFIX}/run, /api/clip/shoutout`);
+  console.log(`[${MODULE_NAME}] loaded: ${API_PREFIX}/run, ${API_PREFIX}/clips, /api/clip/shoutout`);
 };

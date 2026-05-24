@@ -1,6 +1,7 @@
 # NEXT_STEPS
 
-## Nach STEP277A_FIX9
-1. Mehrfach denselben Zielkanal testen und `clipSelection` prüfen.
-2. Prüfen, ob bei Kanälen mit nur einem Clip weiterhin abgespielt wird.
-3. Optional später entscheiden, ob die Recent-Historie persistent in DB gespeichert werden soll.
+## Nach STEP277A_FIX10
+
+1. `/api/clip-shoutout/clips?target=urlug` prüfen.
+2. Clip-Anzahl, Dauer und Repeat-Guard-Preview bewerten.
+3. Danach `!vso @urlug` im Chat testen.
