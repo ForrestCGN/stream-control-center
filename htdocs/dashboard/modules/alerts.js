@@ -536,6 +536,7 @@
       ['design','Design / Live-Vorschau'],
       ['assets','Sounds & Grafiken'],
       ['history','Letzte Alerts'],
+      ['bus','Bus / Sync'],
       ['tests','Testcenter'],
       ['presets','Testwerte'],
       ['config','Config']
@@ -550,6 +551,7 @@
     if (state.page === 'design') return designPage();
     if (state.page === 'assets') return assetsPage();
     if (state.page === 'history') return historyPage();
+    if (state.page === 'bus') return busSyncPage();
     if (state.page === 'tests') return testsPage();
     if (state.page === 'presets') return presetsPage();
     if (state.page === 'config') return configPage();
@@ -572,6 +574,10 @@
       <section class="card glass span-12 latest-overview-card">
         <div class="card-head"><h2>Letzte 5 Alerts</h2><button data-page="history">Alle anzeigen</button></div>
         ${historyList(5, false)}
+      </section>
+      <section class="card glass span-12 alert-bus-mini-card">
+        <div class="card-head"><h2>Alert ↔ SoundBus</h2><button data-page="bus">Bus / Sync öffnen</button></div>
+        ${busSyncMiniHtml()}
       </section>
     </div>`;
   }
@@ -1085,6 +1091,160 @@
     const d = new Date(v);
     if (Number.isNaN(d.getTime())) return v;
     return d.toLocaleString('de-DE');
+  }
+
+
+  function safeObj(value){ return value && typeof value === 'object' ? value : {}; }
+  function safeStats(value){ return safeObj(value && value.stats ? value.stats : value); }
+  function busOutputMode(){ return String((state.status && state.status.alertOutput && state.status.alertOutput.mode) || (state.status && state.status.config && state.status.config.alertOutput && state.status.config.alertOutput.mode) || 'legacy'); }
+  function yesNo(value){ return value ? 'Ja' : 'Nein'; }
+  function shortId(value, len=13){ const raw=String(value||''); return raw.length>len ? raw.slice(0,len)+'…' : raw || '—'; }
+  function actionsText(actions){
+    const obj = safeObj(actions);
+    const keys = Object.keys(obj);
+    if (!keys.length) return '—';
+    return keys.map(k => `${k}:${obj[k]}`).join(' · ');
+  }
+  function rolesText(roles){
+    const obj = safeObj(roles);
+    const keys = Object.keys(obj);
+    if (!keys.length) return '—';
+    return keys.map(k => `${k}:${obj[k]}`).join(' · ');
+  }
+
+  function busSyncMiniHtml(){
+    const s = state.status || {};
+    const output = s.alertOutput || {};
+    const corr = s.alertSoundCorrelation || {};
+    const stats = safeStats(corr.stats);
+    return `<div class="alert-bus-mini-grid">
+      <div><span>Output</span><strong>${esc(output.mode || busOutputMode())}</strong></div>
+      <div><span>Legacy</span><strong>${esc(yesNo(output.legacyEnabled))}</strong></div>
+      <div><span>Bus</span><strong>${esc(yesNo(output.busEnabled))}</strong></div>
+      <div><span>Bundles OK</span><strong>${esc(stats.bundlesOk ?? 0)}</strong></div>
+      <div><span>Bundle-Fehler</span><strong class="${Number(stats.bundlesFailed||0) ? 'bad' : 'ok'}">${esc(stats.bundlesFailed ?? 0)}</strong></div>
+      <div><span>Letzte Bundle-ID</span><strong>${esc(shortId(stats.lastBundleId || ''))}</strong></div>
+    </div>`;
+  }
+
+  function busSyncPage(){
+    const s = state.status || {};
+    const output = s.alertOutput || {};
+    const outputStats = safeStats(output.stats);
+    const corr = s.alertSoundCorrelation || {};
+    const corrStats = safeStats(corr.stats);
+    const watchdog = s.overlayWatchdog || {};
+    const watchdogStats = safeStats(watchdog.stats);
+    const lastWatch = watchdog.last || {};
+    const recent = Array.isArray(corr.recent) ? corr.recent : [];
+    const cfg = s.config || {};
+    const alertOutputCfg = cfg.alertOutput || {};
+    const bus = output.bus || alertOutputCfg.bus || {};
+    return `<section class="card glass span-12 page-card alert-bus-page">
+      <div class="card-head big-head">
+        <div>
+          <h2>Alert / SoundBus Sync</h2>
+          <p class="small-note">Korrelation zwischen Alert-System, Alert-SoundBundle, SoundBus und Overlay-Watchdog. Steuerung bleibt bewusst vorsichtig: kein Bus-only-Produktivwechsel.</p>
+        </div>
+        <div class="head-actions">
+          <button id="refreshAlertsBusStatus">Status aktualisieren</button>
+          <button class="success" id="saveAlertOutputMode">Output-Modus speichern</button>
+        </div>
+      </div>
+
+      <div class="alert-bus-mode-panel">
+        <label>Alert Output Modus
+          <select id="alertOutputModeSelect">
+            ${['legacy','legacy_and_bus','bus_first','bus_only'].map(mode => opt(mode, modeLabel(mode), output.mode || busOutputMode())).join('')}
+          </select>
+        </label>
+        <div class="alert-bus-mode-hint ${output.mode === 'bus_only' ? 'bad' : output.mode === 'bus_first' ? 'warn' : 'ok'}">
+          <strong>${esc(modeLabel(output.mode || busOutputMode()))}</strong>
+          <span>${esc(modeHint(output.mode || busOutputMode()))}</span>
+        </div>
+      </div>
+
+      <div class="alert-bus-kpis">
+        ${busKpi('Output', output.mode || busOutputMode(), '', '')}
+        ${busKpi('Legacy aktiv', yesNo(output.legacyEnabled), '', output.legacyEnabled ? 'ok' : 'warn')}
+        ${busKpi('Bus aktiv', yesNo(output.busEnabled), '', output.busEnabled ? 'ok' : '')}
+        ${busKpi('Comm-Bus', yesNo(output.communicationBusAvailable), '', output.communicationBusAvailable ? 'ok' : 'bad')}
+        ${busKpi('Bundles vorbereitet', corrStats.bundlesPrepared ?? 0, `${corrStats.itemsPrepared ?? 0} Items`, '')}
+        ${busKpi('Bundles OK', corrStats.bundlesOk ?? 0, `${corrStats.bundlesFailed ?? 0} Fehler`, Number(corrStats.bundlesFailed || 0) ? 'bad' : 'ok')}
+        ${busKpi('Alert-Bus Events', outputStats.emittedBus ?? 0, `${outputStats.errors ?? 0} Fehler`, Number(outputStats.errors || 0) ? 'bad' : '')}
+        ${busKpi('Watchdog', lastWatch.status || '—', lastWatch.issue || '', lastWatch.status === 'acknowledged' ? 'ok' : (lastWatch.status ? 'warn' : ''))}
+      </div>
+
+      <div class="alert-bus-detail-grid">
+        <section class="alert-bus-subcard">
+          <h3>Output / Bus</h3>
+          ${detailRow('Channel', bus.channel || 'visual.alert')}
+          ${detailRow('Action', bus.action || 'play')}
+          ${detailRow('Clear', bus.clearAction || 'clear')}
+          ${detailRow('Require ACK', yesNo(bus.requireAck))}
+          ${detailRow('Replayable', yesNo(bus.replayable))}
+          ${detailRow('TTL', `${bus.ttlMs || 0}ms`)}
+          ${detailRow('Letzte Bus-ID', outputStats.lastBusEventId || outputStats.lastEventId || '—')}
+          ${detailRow('Letzter Fehler', outputStats.lastError || '—', Number(outputStats.errors||0) ? 'bad' : '')}
+        </section>
+        <section class="alert-bus-subcard">
+          <h3>SoundBundle-Korrelation</h3>
+          ${detailRow('Letzter Alert', corrStats.lastEventUid || '—')}
+          ${detailRow('Letzte Bundle-ID', corrStats.lastBundleId || '—')}
+          ${detailRow('Letzte Phase', corrStats.lastPhase || '—')}
+          ${detailRow('Letzter Fehler', corrStats.lastError || '—', Number(corrStats.bundlesFailed||0) ? 'bad' : '')}
+          ${detailRow('Zuletzt', formatDate(corrStats.lastAt || ''))}
+        </section>
+        <section class="alert-bus-subcard">
+          <h3>Overlay-Watchdog</h3>
+          ${detailRow('Aktiv', yesNo(watchdog.enabled))}
+          ${detailRow('Overlay-Clients', watchdog.overlayClients ?? s.overlayClients ?? 0)}
+          ${detailRow('Status', lastWatch.status || '—', lastWatch.status === 'acknowledged' ? 'ok' : '')}
+          ${detailRow('ACK', formatDate(lastWatch.ackAt || ''))}
+          ${detailRow('Issue', lastWatch.issue || '—', lastWatch.issue ? 'bad' : '')}
+          ${detailRow('Timeout', yesNo(lastWatch.timedOut), lastWatch.timedOut ? 'bad' : '')}
+        </section>
+      </div>
+
+      <section class="alert-bus-subcard span-full">
+        <div class="card-head"><h3>Letzte Alert/SoundBundle-Korrelation</h3><button data-page="history">Alert-Historie öffnen</button></div>
+        <div class="table-wrap"><table class="table alert-bus-table"><thead><tr><th>Zeit</th><th>Phase</th><th>Alert</th><th>Bundle</th><th>Quelle</th><th>User</th><th>Items</th><th>Status</th></tr></thead><tbody>
+          ${recent.map(busCorrelationRow).join('') || '<tr><td colspan="8">Noch keine Korrelationsdaten vorhanden.</td></tr>'}
+        </tbody></table></div>
+      </section>
+    </section>`;
+  }
+
+  function busKpi(title, value, sub, cls=''){
+    return `<div class="alert-bus-kpi"><span>${esc(title)}</span><strong class="${esc(cls)}">${esc(value ?? '—')}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+  }
+  function detailRow(label, value, cls=''){
+    return `<div class="alert-bus-detail-row"><span>${esc(label)}</span><strong class="${esc(cls)}">${esc(value ?? '—')}</strong></div>`;
+  }
+  function busCorrelationRow(row){
+    return `<tr>
+      <td>${esc(formatDate(row.at || ''))}</td>
+      <td>${pill(row.phase || '—', row.ok ? 'ok' : (row.error ? 'bad' : ''))}</td>
+      <td><code>${esc(shortId(row.eventUid || '', 18))}</code></td>
+      <td><code>${esc(shortId(row.bundleId || '', 22))}</code></td>
+      <td>${esc(row.source || '—')}<br><span class="muted">${esc(row.type || '')}</span></td>
+      <td>${esc(row.user || '—')}</td>
+      <td>${esc(row.itemsPrepared ?? 0)}</td>
+      <td class="${row.error ? 'bad' : 'ok'}">${esc(row.error || (row.ok ? 'OK' : '—'))}</td>
+    </tr>`;
+  }
+  function modeLabel(mode){
+    const map = { legacy:'Legacy', legacy_and_bus:'Legacy + Bus', bus_first:'Bus First', bus_only:'Bus Only' };
+    return map[String(mode||'')] || String(mode||'legacy');
+  }
+  function modeHint(mode){
+    const map = {
+      legacy:'Produktiv sicher: altes Overlay bleibt führend, Bus bleibt aus.',
+      legacy_and_bus:'Parallelbetrieb: Legacy bleibt sichtbar, Bus bekommt zusätzlich Events.',
+      bus_first:'Dev-Testpfad: Bus ist primär, Legacy bleibt Fallback.',
+      bus_only:'Nur Test/Diagnose: kein Legacy-Fallback. Nicht als Produktivstandard verwenden.'
+    };
+    return map[String(mode||'')] || map.legacy;
   }
 
   function configPage(){
@@ -1831,6 +1991,15 @@
       };
       const res = await CGN.api('/api/alerts/test', { method:'POST', body:JSON.stringify(payload) });
       state.note = `Test gesendet · matchedRule: ${res.matchedRule ?? '—'}`;
+      await loadAll(true);
+    });
+    root.querySelector('#refreshAlertsBusStatus')?.addEventListener('click', async () => { await loadAll(true); });
+    root.querySelector('#saveAlertOutputMode')?.addEventListener('click', async () => {
+      const mode = root.querySelector('#alertOutputModeSelect')?.value || 'legacy';
+      if (mode === 'bus_only' && !confirm('Bus Only hat keinen Legacy-Fallback. Nur für gezielte Tests verwenden. Trotzdem speichern?')) return;
+      const res = await CGN.api('/api/alerts/config', { method:'POST', body: JSON.stringify({ alertOutput: { mode } }) });
+      state.note = `Alert Output Modus gespeichert: ${modeLabel(mode)}`;
+      if (res.config && state.status) state.status.config = res.config;
       await loadAll(true);
     });
     root.querySelector('#reloadApi')?.addEventListener('click', async () => { await CGN.api('/api/alerts/reload', { method:'POST', body:'{}' }); state.note = 'API Reload ausgeführt.'; await loadAll(true); });

@@ -1,12 +1,16 @@
-# CURRENT_STATUS – STEP340
+# CURRENT_STATUS – STEP350
 
 Stand: 2026-05-24
 
 Aktueller Stand:
 
 - SoundBus ist aktiv und getestet.
-- Sound Dashboard Monitoring/Control Center ist vorhanden.
-- Alert-System, Alert-SoundBundles und SoundBus sind nun besser korrelierbar.
-- Dashboard zeigt im SoundBus-Monitor Alert/SoundBus-Korrelationen.
+- Alert/SoundBus-Korrelation aus STEP340 ist bestätigt.
+- Alert-Dashboard besitzt jetzt eine Bus-/Sync-Seite.
+- Alert-Output-Modus ist im Dashboard sichtbar und gezielt setzbar.
 
-Keine Änderungen an Sound-Queue, Bundle-Lock, Playback oder Bus-only-Produktivmodus.
+Wichtig:
+
+- Keine Bus-only-Produktivmigration.
+- `bus_only` nur mit Bestätigung und nur für Tests/Diagnose.
+- Queue-/Bundle-/SoundBus-Logik unverändert.

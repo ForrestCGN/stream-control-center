@@ -1,19 +1,25 @@
-# FILES – STEP340
+# FILES – STEP350
 
 Geänderte Dateien:
 
 ```text
 backend/modules/alert_system.js
-backend/modules/sound_system.js
-htdocs/dashboard/modules/sound.js
-htdocs/dashboard/modules/sound.css
+htdocs/dashboard/modules/alerts.js
+htdocs/dashboard/modules/alerts.css
 ```
 
-Neue/aktualisierte Dokumentation:
+Unverändert mitgeliefert für Kontext/Stabilität:
 
 ```text
-docs/backend/ALERT_SOUNDBUS_CORRELATION_STEP340.md
+backend/modules/sound_system.js
+```
+
+Dokumentation:
+
+```text
+docs/dashboard/ALERT_DASHBOARD_BUS_CORRELATION_STEP350.md
 docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/STEP350_ALERT_DASHBOARD_BUS_CORRELATION.md
 project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md

@@ -1,12 +1,18 @@
-# NEXT STEPS – nach STEP340
+# NEXT STEPS – nach STEP350
 
-## Nächster größerer Block
+## Kompakter Retest
 
-STEP350 – Alert Dashboard/SoundBus Control-Auswertung oder Alert bus_first Dev-Standard-Test.
+- Backend neu starten.
+- Dashboard: `Alerts → Bus / Sync` öffnen.
+- V5-Testscript ausführen.
+- Kompakten Status prüfen.
 
-## Wichtig
+## Danach
 
-- Keine Mini-Step-Kette.
-- Alert-Bus weiterhin nicht auf bus_only produktiv umstellen.
-- Legacy-/Fallback-Wege beibehalten.
-- Sound-Queue-/Bundle-/activeBundleLock-Logik nur bei echtem Fehler anfassen.
+Nächster größerer Block nach Testergebnis:
+
+- Alert-Bus `bus_first` als Dev-Testpfad stärker absichern, oder
+- Dashboard Control für Alert-Replay/Test/Recovery ausbauen, oder
+- nächstes System anbinden.
+
+Keine Mini-Step-Kette.

@@ -1,11 +1,10 @@
 # CHANGELOG
 
-## STEP340 – Alert-System Bus Dev-Migration + SoundBus-Korrelation – 2026-05-24
+## STEP350 – Alert Dashboard Control + Bus Correlation View – 2026-05-24
 
-- `alert_system.js` auf STEP340 gesetzt.
-- Alert/SoundBundle-Korrelation im Alert-Status ergänzt.
-- Alert-SoundBundle-Meta um `correlation` erweitert.
-- `sound_system.js` auf STEP340 gesetzt.
-- SoundBus-Status um aggregierte Alert-Korrelation erweitert.
-- Sound-Dashboard Bus-Monitor zeigt Alert/SoundBus-Korrelationen.
-- Keine Queue-/Bundle-/Playback-/Bus-only-Änderung.
+- Alert-Dashboard um Tab `Bus / Sync` erweitert.
+- Alert-Output-Modus, Legacy-/Bus-Status, Watchdog und SoundBundle-Korrelation sichtbar gemacht.
+- Dev-Testpfad `bus_first` kann über bestehende Config-API gesetzt werden.
+- `bus_only` mit Bestätigungsschutz im Dashboard versehen.
+- `alertDashboardCorrelation` im Alert-Status ergänzt.
+- Keine Queue-/Bundle-/SoundBus-Logik geändert.

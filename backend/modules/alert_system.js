@@ -30,7 +30,7 @@ try {
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
-const MODULE_STEP = 340;
+const MODULE_STEP = 350;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -1644,6 +1644,17 @@ function buildStatus(req = null) {
     alertOutput: buildAlertOutputStatus(),
     alertBusMirror: buildAlertBusMirrorStatus(),
     alertSoundCorrelation: buildAlertSoundCorrelationStatus(),
+    alertDashboardCorrelation: {
+      ok: true,
+      module: MODULE,
+      step: MODULE_STEP,
+      feature: 'alert_dashboard_correlation_view',
+      readOnlyDefault: true,
+      devModeControls: true,
+      allowedOutputModes: ['legacy','legacy_and_bus','bus_first','bus_only'],
+      recommendedDevMode: 'bus_first',
+      productionDefault: 'legacy'
+    },
     overlayWatchdog: buildAlertOverlayWatchdogStatus({ check: false }),
     multerReady: !!multer,
     multerLoadError,
