@@ -8,7 +8,15 @@ const cfg = require("./helpers/helper_config");
 const media = require("./helpers/helper_media");
 const database = require("../core/database");
 
+let communicationBus = null;
+try {
+  communicationBus = require("./communication_bus");
+} catch (_) {
+  communicationBus = null;
+}
+
 const MODULE_NAME = "sound_system";
+const MODULE_STEP = 289;
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
 
@@ -24,9 +32,49 @@ const DEFAULT_OUTPUT = {
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  version: "0.1.10",
+  version: "0.1.12",
   routes: { prefix: "/api/sound" },
   websocket: { enabled: true, op: "sound_system" },
+  soundBus: {
+    enabled: false,
+    channel: "sound",
+    requireAck: false,
+    replayable: false,
+    ttlMs: 30000,
+    targetType: "all",
+    targetId: "*",
+    targetModule: "",
+    targetCapability: "",
+    includeState: true,
+    includeItem: true,
+    actions: {
+      state: "state.updated",
+      queued: "queued",
+      queueUpdated: "queue.updated",
+      starting: "starting",
+      started: "started",
+      finished: "finished",
+      stopped: "stopped",
+      skipped: "skipped",
+      cleared: "cleared",
+      paused: "paused",
+      resumed: "resumed",
+      failed: "failed",
+      bundleQueued: "bundle.queued",
+      bundleLockStarted: "bundle.lock_started",
+      bundleLockFinished: "bundle.lock_finished",
+      deviceStarted: "device.started",
+      deviceFinished: "device.finished",
+      deviceFailed: "device.failed",
+      discordStarted: "discord.started",
+      discordQueued: "discord.queued",
+      discordFailed: "discord.failed",
+      clientReady: "client.ready",
+      clientAudioStarted: "client.audio_started",
+      clientAudioEnded: "client.audio_ended",
+      clientError: "client.error"
+    }
+  },
   overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
   output: DEFAULT_OUTPUT,
   queue: {
@@ -158,6 +206,17 @@ module.exports.init = function init(ctx) {
     device: { lastOk: false, lastAt: 0, lastError: "", lastResult: null },
     discord: { lastOk: false, lastAt: 0, lastError: "", lastResult: null },
     stats: { started: 0, queued: 0, stopped: 0, skipped: 0, cleared: 0, failed: 0, deviceStarted: 0, deviceFailed: 0, discordStarted: 0, discordFailed: 0, parallelStarted: 0, bundlesQueued: 0, bundleItemsQueued: 0, levelCorrected: 0, levelCorrectionSkipped: 0, levelCorrectionFailed: 0 },
+    soundBus: {
+      emitted: 0,
+      skipped: 0,
+      errors: 0,
+      lastReason: "",
+      lastAction: "",
+      lastEventId: "",
+      lastResult: null,
+      lastError: "",
+      lastAt: ""
+    },
     activeBundleLock: null
   };
 
@@ -168,7 +227,7 @@ module.exports.init = function init(ctx) {
   const SOUND_SETTINGS_SCHEMA_MODULE = "sound_system_settings";
   const SOUND_SETTINGS_SCHEMA_VERSION = 1;
   const SOUND_SETTINGS_TABLE = "sound_settings";
-  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundsBaseDir", "allowedExtensions"];
+  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundBus", "soundsBaseDir", "allowedExtensions"];
 
   function deepMergeRuntimeSettings(base, override) {
     if (!isPlainObject(base)) base = {};
@@ -457,6 +516,7 @@ module.exports.init = function init(ctx) {
     if (!config.priorities) config.priorities = DEFAULT_CONFIG.priorities;
     if (!config.categoryDefaults) config.categoryDefaults = DEFAULT_CONFIG.categoryDefaults;
     if (!config.discordRouting) config.discordRouting = DEFAULT_CONFIG.discordRouting;
+    if (!config.soundBus) config.soundBus = DEFAULT_CONFIG.soundBus;
     messages = loadedMessages.config || DEFAULT_MESSAGES;
 
     state.version = config.version || DEFAULT_CONFIG.version;
@@ -474,11 +534,155 @@ module.exports.init = function init(ctx) {
 
   function touch() { state.updatedAt = core.nowIso(); }
 
+  function soundBusConfig() {
+    const busConfig = config.soundBus && isPlainObject(config.soundBus) ? config.soundBus : DEFAULT_CONFIG.soundBus;
+    return { ...DEFAULT_CONFIG.soundBus, ...busConfig, actions: { ...(DEFAULT_CONFIG.soundBus.actions || {}), ...((busConfig && busConfig.actions) || {}) } };
+  }
+
+  function soundBusTarget(busConfig) {
+    return {
+      type: String(busConfig.targetType || "all"),
+      id: String(busConfig.targetId || "*"),
+      module: String(busConfig.targetModule || ""),
+      capability: String(busConfig.targetCapability || "")
+    };
+  }
+
+  function getCommunicationBus() {
+    if (!communicationBus || typeof communicationBus.getBus !== "function") return null;
+    try { return communicationBus.getBus(); } catch (_) { return null; }
+  }
+
+  function soundBusActionForReason(reason) {
+    const clean = String(reason || "state");
+    const actions = soundBusConfig().actions || {};
+    if (clean === "queued") return actions.queueUpdated || "queue.updated";
+    if (clean === "item_queued") return actions.queued || "queued";
+    if (clean === "item_starting") return actions.starting || "starting";
+    if (clean === "item_started" || clean === "started" || clean === "next_started" || clean === "bundle_next_started" || clean === "interrupted_started" || clean === "parallel_started") return actions.started || "started";
+    if (clean === "item_finished" || clean === "finished" || clean === "client_audio_ended" || clean === "auto_finished" || clean === "overlay_fallback_finished" || clean === "parallel_finished" || clean === "parallel_auto_finished" || clean === "parallel_overlay_fallback_finished") return actions.finished || "finished";
+    if (clean === "manual_stop" || clean === "stop_stream" || clean === "stopped" || clean === "device_play_stopped") return actions.stopped || "stopped";
+    if (clean === "manual_skip" || clean === "skip_stream") return actions.skipped || "skipped";
+    if (clean === "queue_cleared" || clean === "reset") return actions.cleared || "cleared";
+    if (clean === "paused") return actions.paused || "paused";
+    if (clean === "resumed") return actions.resumed || "resumed";
+    if (clean === "bundle_queued") return actions.bundleQueued || "bundle.queued";
+    if (clean === "bundle_lock_started") return actions.bundleLockStarted || "bundle.lock_started";
+    if (clean === "bundle_lock_finished") return actions.bundleLockFinished || "bundle.lock_finished";
+    if (clean === "device_play_started") return actions.deviceStarted || "device.started";
+    if (clean === "device_play_finished") return actions.deviceFinished || "device.finished";
+    if (clean.startsWith("device_") || clean === "device_file_missing" || clean === "device_helper_missing" || clean === "device_helper_disabled") return actions.deviceFailed || "device.failed";
+    if (clean === "discord_play_started") return actions.discordStarted || "discord.started";
+    if (clean === "discord_play_queued") return actions.discordQueued || "discord.queued";
+    if (clean.startsWith("discord_")) return actions.discordFailed || "discord.failed";
+    if (clean === "client_ready") return actions.clientReady || "client.ready";
+    if (clean === "client_audio_started") return actions.clientAudioStarted || "client.audio_started";
+    if (clean === "client_audio_ended") return actions.clientAudioEnded || "client.audio_ended";
+    if (clean === "client_error") return actions.clientError || "client.error";
+    if (clean.includes("failed") || clean.includes("error")) return actions.failed || "failed";
+    return actions.state || "state.updated";
+  }
+
+  function publicSoundSummary() {
+    return {
+      enabled: state.enabled,
+      paused: state.paused,
+      current: state.current ? publicItem(state.current) : null,
+      parallelCount: state.parallel.length,
+      queuedCount: state.queue.length,
+      activeBundleLock: state.activeBundleLock ? { ...state.activeBundleLock } : null,
+      client: { ...state.client },
+      device: { ...state.device },
+      discord: { ...state.discord },
+      soundBus: publicSoundBusStatus(),
+      stats: { ...state.stats },
+      updatedAt: state.updatedAt
+    };
+  }
+
+  function emitSoundBus(reason, options = {}) {
+    const busConfig = soundBusConfig();
+    const bus = getCommunicationBus();
+    const action = soundBusActionForReason(reason);
+    if (busConfig.enabled === false || !bus || typeof bus.emit !== "function") {
+      state.soundBus.skipped += 1;
+      state.soundBus.lastReason = String(reason || "state");
+      state.soundBus.lastAction = action;
+      state.soundBus.lastAt = core.nowIso();
+      state.soundBus.lastError = busConfig.enabled === false ? "sound_bus_disabled" : "communication_bus_unavailable";
+      return { ok: false, skipped: true, reason: state.soundBus.lastError };
+    }
+
+    try {
+      const item = options.item || null;
+      const payload = {
+        reason: String(reason || "state"),
+        kind: String(options.kind || (item ? "item" : "state")),
+        item: busConfig.includeItem !== false && item ? publicItem(item) : null,
+        state: busConfig.includeState !== false ? publicSoundSummary() : null,
+        extra: isPlainObject(options.extra) ? options.extra : {},
+        emittedAt: core.nowIso()
+      };
+
+      const result = bus.emit({
+        channel: String(busConfig.channel || "sound"),
+        action,
+        source: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+        target: soundBusTarget(busConfig),
+        payload,
+        meta: {
+          module: MODULE_NAME,
+          step: MODULE_STEP,
+          reason: String(reason || "state"),
+          replayable: busConfig.replayable === true,
+          requireAck: busConfig.requireAck === true,
+          ttlMs: Number(busConfig.ttlMs || 0)
+        }
+      });
+
+      state.soundBus.emitted += 1;
+      state.soundBus.lastReason = String(reason || "state");
+      state.soundBus.lastAction = action;
+      state.soundBus.lastEventId = result && result.eventId ? String(result.eventId) : "";
+      state.soundBus.lastResult = result || null;
+      state.soundBus.lastError = "";
+      state.soundBus.lastAt = core.nowIso();
+      return result;
+    } catch (err) {
+      state.soundBus.errors += 1;
+      state.soundBus.lastReason = String(reason || "state");
+      state.soundBus.lastAction = action;
+      state.soundBus.lastError = err && err.message ? err.message : String(err);
+      state.soundBus.lastAt = core.nowIso();
+      return { ok: false, error: state.soundBus.lastError };
+    }
+  }
+
+  function publicSoundBusStatus() {
+    const busConfig = soundBusConfig();
+    const bus = getCommunicationBus();
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      step: MODULE_STEP,
+      feature: "sound_bus_event_output",
+      enabled: busConfig.enabled !== false,
+      channel: String(busConfig.channel || "sound"),
+      requireAck: busConfig.requireAck === true,
+      replayable: busConfig.replayable === true,
+      ttlMs: Number(busConfig.ttlMs || 0),
+      target: soundBusTarget(busConfig),
+      communicationBusAvailable: !!bus,
+      stats: { ...state.soundBus }
+    };
+  }
+
   function emit(reason) {
     touch();
     if (config.websocket && config.websocket.enabled !== false && typeof broadcastWS === "function") {
       broadcastWS({ op: config.websocket.op || MODULE_NAME, reason: reason || "state", data: publicState() });
     }
+    emitSoundBus(reason || "state", { kind: "state" });
   }
 
 
@@ -646,6 +850,26 @@ module.exports.init = function init(ctx) {
     state.stats.bundlesQueued = Number(state.stats.bundlesQueued || 0) + 1;
     state.stats.bundleItemsQueued = Number(state.stats.bundleItemsQueued || 0) + bundle.items.length;
     emit("bundle_queued");
+    emitSoundBus("bundle_queued", {
+      kind: "bundle",
+      extra: {
+        bundleId: bundle.bundleId,
+        bundleType: bundle.bundleType,
+        bundlePriority: bundle.bundlePriority,
+        bundleQueuedAt: bundle.bundleQueuedAt,
+        bundleLocked: bundle.bundleLocked,
+        itemCount: bundle.itemCount,
+        results: results.map(result => ({
+          started: !!result.started,
+          queued: !!result.queued,
+          dropped: !!result.dropped,
+          parallel: !!result.parallel,
+          queuePosition: result.queuePosition,
+          reason: result.reason || "",
+          requestId: result.item && result.item.requestId ? result.item.requestId : ""
+        }))
+      }
+    });
     return results;
   }
 
@@ -654,6 +878,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
+      step: MODULE_STEP,
       enabled: state.enabled,
       paused: state.paused,
       current: state.current ? publicItem(state.current) : null,
@@ -674,6 +899,7 @@ module.exports.init = function init(ctx) {
         error: state.configError,
         routes: config.routes || {},
         websocket: config.websocket || {},
+        soundBus: config.soundBus || {},
         overlay: config.overlay || {},
         output: config.output || {},
         queue: config.queue || {},
@@ -1486,14 +1712,17 @@ module.exports.init = function init(ctx) {
   }
 
   function emitItemEvent(reason, item, extra = {}) {
-    if (!item || !config.websocket || config.websocket.enabled === false || typeof broadcastWS !== "function") return;
-    broadcastWS({
-      op: config.websocket.op || MODULE_NAME,
-      reason,
-      item: publicItem(item),
-      data: publicState(),
-      ...extra
-    });
+    if (!item) return;
+    if (config.websocket && config.websocket.enabled !== false && typeof broadcastWS === "function") {
+      broadcastWS({
+        op: config.websocket.op || MODULE_NAME,
+        reason,
+        item: publicItem(item),
+        data: publicState(),
+        ...extra
+      });
+    }
+    emitSoundBus(reason, { item, extra, kind: "item" });
   }
 
   function canInterruptCurrent(item, current) {
@@ -1831,6 +2060,7 @@ module.exports.init = function init(ctx) {
           bundleQueuedAt: Number(item.bundleQueuedAt || item.queuedAt || 0),
           startedAt: Date.now()
         };
+        emitSoundBus("bundle_lock_started", { item, kind: "bundle_lock", extra: { activeBundleLock: { ...state.activeBundleLock } } });
       }
       emit(reason || "started");
     }
@@ -1841,6 +2071,7 @@ module.exports.init = function init(ctx) {
       return;
     }
 
+    emitItemEvent("item_starting", item, { parallel, visualLeadMs: 0 });
     activateItemAudio(item, parallel);
   }
 
@@ -1849,6 +2080,7 @@ module.exports.init = function init(ctx) {
     if (index < 0) return null;
     const [finished] = state.parallel.splice(index, 1);
     emit(reason || "parallel_finished");
+    emitSoundBus("item_finished", { item: finished, kind: "item", extra: { reason: reason || "parallel_finished", parallel: true } });
     return finished;
   }
 
@@ -1868,10 +2100,15 @@ module.exports.init = function init(ctx) {
     const finished = state.current;
     state.current = null;
     emit(reason || "finished");
+    if (finished) emitSoundBus("item_finished", { item: finished, kind: "item", extra: { reason: reason || "finished", parallel: false } });
     const gap = Number((finished && finished.gapAfterMs) || config.overlay?.gapBetweenSoundsMs || 750);
     if (finished && finished.bundleId && state.activeBundleLock && state.activeBundleLock.bundleId === finished.bundleId) {
       const hasMoreBundleItems = state.queue.some(item => item && item.bundleId === finished.bundleId);
-      if (!hasMoreBundleItems) state.activeBundleLock = null;
+      if (!hasMoreBundleItems) {
+        const lock = { ...state.activeBundleLock };
+        state.activeBundleLock = null;
+        emitSoundBus("bundle_lock_finished", { item: finished, kind: "bundle_lock", extra: { activeBundleLock: lock, reason: reason || "finished" } });
+      }
     }
     setTimeout(() => startNextIfPossible("gap_finished"), Math.max(0, gap));
     return finished;
@@ -1884,6 +2121,7 @@ module.exports.init = function init(ctx) {
     state.current = null;
     state.stats.stopped += 1;
     emit(reason || "stopped");
+    if (stopped) emitSoundBus("manual_stop", { item: stopped, kind: "item", extra: { reason: reason || "stopped" } });
 
     const needsOverlayStopGap = !!stopped && shouldUseOverlay(stopped);
     const stopGapMs = needsOverlayStopGap
@@ -1929,6 +2167,7 @@ module.exports.init = function init(ctx) {
     sortQueue();
     state.stats.queued += 1;
     emit("queued");
+    emitSoundBus("item_queued", { item, kind: "item", extra: { reason: "active_bundle_lock" } });
     return {
       started: false,
       queued: true,
@@ -1978,6 +2217,7 @@ module.exports.init = function init(ctx) {
       sortQueue();
       state.stats.queued += 1;
       emit("queued");
+      emitSoundBus("item_queued", { item, kind: "item", extra: { reason: "busy_queue" } });
       return { started: false, queued: true, queuePosition: state.queue.findIndex(q => q.requestId === item.requestId) + 1, item };
     }
 
@@ -2090,7 +2330,12 @@ module.exports.init = function init(ctx) {
 
   app.post(`${prefix}/stop`, (req, res) => {
     const clearQueue = core.boolParam(core.getParam(req, "clearQueue", false), false);
-    if (clearQueue) { state.queue = []; state.activeBundleLock = null; }
+    if (clearQueue) {
+      const clearedCount = state.queue.length;
+      state.queue = [];
+      state.activeBundleLock = null;
+      emitSoundBus("queue_cleared", { kind: "queue", extra: { reason: "manual_stop_clear_queue", clearedCount } });
+    }
     const stopped = stopCurrent("manual_stop");
     killParallelDeviceProcesses("manual_stop_parallel");
     state.parallel = [];
@@ -2102,14 +2347,17 @@ module.exports.init = function init(ctx) {
     const skipped = stopCurrent("manual_skip");
     state.stats.skipped += 1;
     emit("skip_stream");
+    if (skipped) emitSoundBus("manual_skip", { item: skipped, kind: "item", extra: { reason: "manual_skip" } });
     return res.json(core.ok({ message: msg("soundSkipped"), skipped: publicItem(skipped), status: publicState() }));
   });
 
   app.post(`${prefix}/clear`, (req, res) => {
+    const clearedCount = state.queue.length;
     state.queue = [];
     state.activeBundleLock = null;
     state.stats.cleared += 1;
     emit("queue_cleared");
+    emitSoundBus("queue_cleared", { kind: "queue", extra: { reason: "api_clear", clearedCount } });
     return res.json(core.ok({ message: msg("queueCleared"), status: publicState() }));
   });
 
@@ -2132,12 +2380,14 @@ module.exports.init = function init(ctx) {
   app.post(`${prefix}/client/audio-started`, (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
   app.post(`${prefix}/client/audio-ended`, (req, res) => {
     markClient("audio_ended");
+    emitSoundBus("client_audio_ended", { item: state.current, kind: "client", extra: { requestId: String((req.body && req.body.requestId) || (req.query && req.query.requestId) || "") } });
     if (clientRequestMatchesCurrent(req)) finishCurrent("client_audio_ended");
     return res.json(core.ok({ status: publicState() }));
   });
   app.post(`${prefix}/client/error`, (req, res) => {
     markClient("error");
     state.stats.failed += 1;
+    emitSoundBus("client_error", { item: state.current, kind: "client", extra: { requestId: String((req.body && req.body.requestId) || (req.query && req.query.requestId) || "") } });
     if (clientRequestMatchesCurrent(req)) finishCurrent("client_error");
     return res.json(core.ok({ status: publicState() }));
   });

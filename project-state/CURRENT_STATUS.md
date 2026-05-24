@@ -1,13 +1,15 @@
 # Current Status – stream-control-center
 
-Stand: STEP287 – Alert Native Output bus_first Live-Test
-Aktualisiert: 2026-05-24T13:30:00Z
+Stand: STEP289 – Sound-System Bus Event Mirror / Native Status Output
+Aktualisiert: 2026-05-24T13:45:00Z
 
 ## Aktueller Fokus
 
-Der Alert-Bereich wurde von der reinen Mirror-/Bridge-Testphase in die native Bus-Ausgabevorbereitung überführt. Nach STEP286 Timing-/Status-Cleanup wurde in STEP287 der Modus `bus_first` live getestet und bestätigt.
+Der Alert-Bereich ist nach STEP287 busfähig vorbereitet. `legacy`, `legacy_and_bus` und `bus_first` wurden live bestätigt. Der sichere Standard bleibt `legacy`.
 
-## Stabil bestätigte Kette
+Der neue Fokus ist das Sound-System als zentrale Audio-/Medien-Schicht. STEP289 baut den ersten additiven Sound-Bus-Ausgang in `sound_system.js` ein.
+
+## Stabil bestätigte Alert-Kette
 
 - Communication Bus Helper läuft (`communication_bus.js`, Modul-Version `0.8.1`).
 - Communication Debug View läuft (`communication_debug_view.html`, Tool-Version `0.1.9`).
@@ -15,34 +17,9 @@ Der Alert-Bereich wurde von der reinen Mirror-/Bridge-Testphase in die native Bu
 - Alert Bus Bridge ist vorhanden: `htdocs/overlays/_overlay-alerts-v2-bus.html`.
 - Bridge-Version: `0.1.1`.
 - `alertOutput` ist im Alert-System vorhanden und statusfähig.
+- `bus_first` wurde live getestet und vom Watchdog bestätigt.
 
-## Bestätigte Tests bis STEP287
-
-- Standard `legacy` lief erfolgreich.
-- `legacy_and_bus` lief erfolgreich.
-- `bus_first` lief erfolgreich.
-- Native Bus-Ausgabe wurde erzeugt.
-- Bridge rendert den Alert über den Bus.
-- Watchdog meldete `status = acknowledged`.
-- `issue` blieb leer.
-- `timedOut = false`.
-- `playingToAlertOutputBusMs` lag im `bus_first` Test bei `2ms`.
-
-## STEP287 Live-Test `bus_first`
-
-Bestätigte Werte:
-
-- `mode = bus_first`
-- `legacyEnabled = false`
-- `legacyFallbackEnabled = true`
-- `busEnabled = true`
-- `lastMode = bus_first`
-- `emittedBus` erhöhte sich.
-- `emittedLegacy` blieb unverändert gegenüber dem vorherigen Teststand.
-- `errors = 0`
-- Watchdog-ACK kam mit `finished` zurück.
-
-## Normalbetrieb
+## Normalbetrieb Alerts
 
 Aktueller sicherer Standard bleibt:
 
@@ -53,17 +30,44 @@ Aktueller sicherer Standard bleibt:
 - `bus_first` ist bestanden, aber noch nicht Standard.
 - `bus_only` bleibt vorbereitet, aber nicht freigegeben.
 
-## Testpfade
+## STEP289 Sound-System-Bus
 
-- Bridge-URL: `/overlays/_overlay-alerts-v2-bus.html?debug=1&mode=bridge`
-- Debug View: `/public/tools/communication_debug_view.html`
-- Alert Status: `/api/alerts/status`
-- Watchdog Status: `/api/alerts/overlay-watchdog/status`
-- Mirror aktivieren: `/api/alerts/bus-mirror/enable?confirm=1`
-- Mirror deaktivieren: `/api/alerts/bus-mirror/disable?confirm=1`
+`backend/modules/sound_system.js` besitzt jetzt einen additiven Sound-Bus-Ausgang.
+
+Wichtig:
+
+- Sound-System bleibt Master für Queue, Prioritäten, Bundles und Ausgabe.
+- Communication Bus ist nur zusätzlicher Event-/Status-Ausgang.
+- Caller-Module werden in STEP289 nicht umgestellt.
+- Bestehende REST-APIs und alter WebSocket bleiben erhalten.
+- Default bleibt sicher: `soundBus.enabled = false`.
+
+## Neue Status-/Config-Struktur
+
+`/api/sound/status` enthält jetzt:
+
+- `step = 289`
+- `soundBus.enabled`
+- `soundBus.communicationBusAvailable`
+- `soundBus.stats.emitted`
+- `soundBus.stats.skipped`
+- `soundBus.stats.errors`
+- `soundBus.stats.lastReason`
+- `soundBus.stats.lastAction`
+- `soundBus.stats.lastEventId`
+
+`soundBus` ist außerdem als erlaubter DB-Settings-Block registriert.
 
 ## Nächster Schritt
 
-Empfohlen: Communication Debug View und/oder Dashboard um native `alertOutput`-Statusanzeige erweitern, damit Modus, letzter Output, Bus-Event-ID, Fallback und Watchdog-Ergebnis direkt sichtbar sind.
+STEP289 testen:
 
-Danach: Sound-System separat auditieren und stufenweise busfähig machen.
+1. Backend starten.
+2. `/api/sound/status` prüfen.
+3. `soundBus.enabled` über `/api/sound/settings` aktivieren.
+4. Test-Ping auslösen.
+5. Bus-Event-Zähler prüfen.
+6. Alert-Bundle-Test ausführen.
+7. V5-Real-Mod-Test wiederholen.
+
+Danach: Debug View/Dashboard für Sound-Bus-Events vorbereiten.

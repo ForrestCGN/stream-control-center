@@ -1,34 +1,65 @@
 # Next Steps
 
-## Sicherer Stand nach STEP287
+## Sicherer Stand nach STEP289
 
-- Standard bleibt `alertOutput.mode = legacy`.
+- Alert-Visual-Migration ist vorbereitet und getestet.
+- Alert-Standard bleibt `alertOutput.mode = legacy`.
 - `legacy`, `legacy_and_bus` und `bus_first` wurden live bestätigt.
-- `bus_only` ist vorbereitet, aber noch nicht als Produktiv-/Normalmodus freigegeben.
-- Der Real Alert Mirror bleibt Diagnose-/Testwerkzeug, nicht der reguläre Produktivpfad.
+- `bus_only` ist vorbereitet, aber nicht als Produktiv-/Normalmodus freigegeben.
+- Sound-System besitzt jetzt einen additiven Bus-Event-Ausgang.
+- Sound-System bleibt Master für Audio/Media, Queue, Bundles und Ausgabe.
+- `soundBus.enabled` ist standardmäßig `false`.
 
-## Empfohlener nächster Schritt – Alert Output Sichtbarkeit
+## STEP289 Minimaltests
 
-Ziel:
+1. Backend starten.
+2. `/api/sound/status` prüfen:
+   - `step = 289`
+   - `soundBus.enabled = false`
+   - `soundBus.communicationBusAvailable = true`
+3. Test-Ping im Default prüfen, Sound-Verhalten muss unverändert bleiben.
+4. `soundBus.enabled` über `/api/sound/settings` aktivieren.
+5. Test-Ping erneut auslösen.
+6. Prüfen:
+   - `soundBus.stats.emitted` steigt.
+   - `soundBus.stats.errors = 0`.
+   - `soundBus.stats.lastAction` passt zum letzten Event.
+7. Alert-Bundle-Test ausführen:
+   - Hauptsound + Alert-TTS bleiben zusammen.
+   - `activeBundleLock` bleibt stabil.
+   - keine fremden Sounds zwischen Hauptsound und TTS.
+8. V5-Real-Mod-Test erneut ausführen.
 
-- Communication Debug View und/oder Dashboard um native `alertOutput`-Statusanzeige erweitern.
-- Sichtbar machen:
-  - aktueller Output-Modus
-  - letzter Output-Modus
-  - Legacy gesendet ja/nein
-  - Bus gesendet ja/nein
-  - Fallback genutzt ja/nein
-  - letzte Bus-Event-ID
-  - letztes Watchdog-Ergebnis
-  - Timing `playingToAlertOutputBusMs`
-- Keine Sound-/TTS-/Queue-Änderung.
-- Keine DB-Migration, außer ausdrücklich nötig und dann nur additiv.
+## SoundBus testweise aktivieren
 
-## Danach – Sound-System-Audit
+POST auf `/api/sound/settings` mit:
 
-Nach stabiler Alert-Bridge:
+```json
+{
+  "settings": {
+    "soundBus": {
+      "enabled": true
+    }
+  }
+}
+```
 
-- Sound-System als zentrale Audio-/Media-Schicht prüfen.
-- Bestehende Nutzer erfassen: Alerts, TTS, VIP, Challenges, Discord, sonstige Sounds.
-- Eventmodell planen: `sound.play`, `sound.started`, `sound.finished`, `sound.failed`, `sound.queue.updated`, `sound.stop`.
-- Erst nach Audit stufenweise Module migrieren.
+Zurück auf sicheren Standard:
+
+```json
+{
+  "settings": {
+    "soundBus": {
+      "enabled": false
+    }
+  }
+}
+```
+
+## Danach
+
+- Communication Debug View/Dashboard um Sound-Bus-Events erweitern.
+- Sound-Bus-Events im Debug View gruppieren: Queue, Items, Bundles, Device, Discord, Client.
+- Module dürfen Bus-Status lesen, aber noch nicht direkt Sounds per Bus auslösen.
+- Optional später Bus-Input `sound.play`, der intern dieselbe Sound-System-Queue nutzt.
+- Module erst danach stufenweise migrieren.

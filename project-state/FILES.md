@@ -3,27 +3,29 @@
 ## Backend
 
 - `backend/modules/alert_system.js`  
-  Enthält Alert Bus Mirror, Timing Diagnostics, Overlay Watchdog, Recovery Controls, stabilen Alert-Orchestrator-Stand, den nativen `alertOutput`-Ausgabeweg und seit STEP286 bereinigtes Output-Timing. In STEP287 wurde kein Code geändert; der `bus_first` Live-Test wurde bestätigt.
+  Enthält nativen Alert Visual Output Mode, Timing Cleanup, Bus Mirror, Watchdog und Recovery Controls.
+
+- `backend/modules/sound_system.js`  
+  STEP289: enthält additiven Sound-Bus-Event-Ausgang, `soundBus`-Status und weiterhin den bestehenden alten WebSocket-/REST-Sound-System-Stand.
 
 - `backend/modules/communication_bus.js`  
-  Communication Bus Helper, Version `0.8.1`.
+  Communication Bus Helper/API, Version `0.8.1`.
 
 ## Overlays / Tools
 
 - `htdocs/overlays/_overlay-alerts-v2-bus.html`  
-  Alert Bus Bridge, Version `0.1.1`. In STEP287 erfolgreich für `bus_first` getestet.
+  Alert Bus Bridge, Version `0.1.1`.
 
 - `htdocs/public/tools/communication_debug_view.html`  
   Communication Debug View, Version `0.1.9`, inkl. Snapshot, Normalbetrieb-Check und Bridge-Erkennung.
 
 ## Dokumentation
 
-- `docs/backend/COMMUNICATION_AUDIT_STEP279_RESULT.md`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-- `docs/backend/ALERT_BUS_BRIDGE_MIGRATION.md`
+- `docs/backend/SOUND_SYSTEM_BUS_AUDIT_STEP288.md`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `project-state/STEP284_ALERT_BUS_BRIDGE_HANDOFF_DOCS.md`
-- `project-state/STEP285_ALERT_NATIVE_BUS_OUTPUT_MODE.md`
-- `project-state/STEP286_ALERT_OUTPUT_TIMING_STATUS_CLEANUP.md`
-- `project-state/STEP287_ALERT_NATIVE_OUTPUT_BUS_FIRST_TEST.md`
-- `project-state/NEW_CHAT_PROMPT_STEP284_ALERT_BUS_BRIDGE.txt`
+- `project-state/STEP288_SOUND_SYSTEM_BUS_AUDIT.md`
+- `project-state/STEP289_SOUND_SYSTEM_BUS_EVENT_OUTPUT.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
