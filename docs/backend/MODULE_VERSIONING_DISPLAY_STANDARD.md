@@ -1,71 +1,49 @@
 # Module Versioning Display Standard
 
-## Regel
+## Verbindlicher Standard
 
-Ab diesem Projektstand gilt verbindlich:
+Module, Tools, APIs und UI-Ausgaben zeigen sichtbar nur Versionsnummern.
 
-- Module, APIs, Tools, Debug-Views und UI-Ausgaben zeigen sichtbar nur Versionsnummern.
-- STEP-Angaben werden nicht mehr als sichtbarer Modul-Build angezeigt.
-- STEP-Angaben bleiben ausschließlich Projekt- und Dokumentationshistorie.
+STEP-Angaben werden ausschließlich für Doku, Projektstand, Changelog, ZIP-Namen und Übergaben genutzt.
 
-## Sichtbare Ausgaben
-
-Erlaubt:
-
-```text
-communication_bus v0.6.0
-communication_debug_view v0.1.1
-```
-
-Nicht mehr verwenden:
-
-```text
-communication_bus v0.6.0 / STEP278P
-communication_debug_view v0.1.0 / STEP278Q
-```
-
-## Code-Standard
-
-Module sollen eine klare Versionsnummer führen:
+## Richtig
 
 ```js
 const MODULE_META = {
-  name: 'communication_bus',
-  version: '0.7.0',
+  name: 'example_module',
+  version: '1.2.3',
   description: '...'
 };
 ```
 
-Tools sollen ebenfalls nur eine Version führen:
+Sichtbare Anzeige:
+
+```text
+example_module v1.2.3
+```
+
+## Nicht mehr verwenden
 
 ```js
-const META = {
-  name: 'communication_debug_view',
-  version: '0.1.1'
+const MODULE_META = {
+  name: 'example_module',
+  version: '1.2.3',
+  build: 'STEP123'
 };
 ```
 
-Nicht mehr als Modulstandard nutzen:
+Sichtbare Anzeigen im Muster `1.2.3 / STEP123` sind nicht mehr vorgesehen.
 
-```js
-build: 'STEP278R'
-```
+## Ausnahme
 
-## Dokumentation
+STEP-Angaben bleiben erlaubt in:
 
-STEPs bleiben erlaubt und erwünscht in:
-
-- `project-state/CURRENT_STATUS.md`
-- `project-state/CHANGELOG.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/FILES.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- STEP-spezifischen Übergabedateien
-- ZIP-Dateinamen
-- Commit-Beschreibungen
+- Markdown-Dokumentation
+- Projektstand-Dateien
+- Changelog
+- ZIP-/Übergabenamen
+- Test-/Übergabe-Notizen
 
 ## Bestehende Kompatibilität
 
-Bestehende API-Felder wie `moduleBuild` dürfen vorübergehend aus Kompatibilitätsgründen bestehen bleiben, sollen aber in neuen oder überarbeiteten UI-/Debug-Ausgaben nicht mehr sichtbar angezeigt werden.
-
-Ein späterer eigener Cleanup-Schritt kann alte API-Felder kontrolliert entfernen oder hinter explizite Debug-Optionen legen.
+Falls ältere APIs noch Build-/Step-Felder ausgeben, dürfen UI-/Debug-Seiten diese Felder nicht sichtbar anzeigen. Neue oder überarbeitete Module sollen solche Felder nicht mehr neu einführen.

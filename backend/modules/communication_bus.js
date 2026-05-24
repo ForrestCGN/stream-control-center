@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * STEP278P - Communication Bus Status/Test/Replay/Watchdog Recovery API + WS client registration.
+ * Communication Bus Status/Test/Replay/Watchdog API + WS client registration.
  *
  * This module exposes the prepared communication bus as test/status API and
  * handles optional WebSocket hello/heartbeat/ack messages.
@@ -16,16 +16,16 @@ const security = require('./helpers/helper_security_context');
 
 const MODULE_META = {
   name: 'communication_bus',
-  version: '0.6.0',
-  build: 'STEP278P',
+  version: '0.7.0',
   coreName: 'communication_core',
   coreVersion: '0.3.0',
-  description: 'Communication Bus API, WebSocket client registration, controlled replay and manual watchdog recovery diagnostics'
+  description: 'Communication Bus API, WebSocket client registration, controlled replay, watchdog diagnostics and alert mirror tests'
 };
 
 const DEFAULT_CONFIG = {
   enabled: true,
   testEndpointEnabled: true,
+  testAlertEndpointEnabled: true,
   ackEndpointEnabled: true,
   issueEndpointEnabled: true,
   replayEndpointEnabled: true,
@@ -365,6 +365,15 @@ function analyzeWatchdog(status = {}, options = {}) {
   };
 }
 
+function buildModuleResponse(extra = {}) {
+  return {
+    ok: true,
+    module: MODULE_META.name,
+    moduleVersion: MODULE_META.version,
+    ...extra
+  };
+}
+
 function init({ app }) {
   if (!app) throw new Error('communication_bus.init: app fehlt.');
 
@@ -373,16 +382,11 @@ function init({ app }) {
 
   app.get('/api/communication/status', (req, res) => {
     const currentBus = getBus();
-    res.json({
-      ok: true,
-      module: MODULE_META.name,
-      moduleVersion: MODULE_META.version,
-      moduleBuild: MODULE_META.build,
+    res.json(buildModuleResponse({
       coreName: MODULE_META.coreName,
       coreVersion: MODULE_META.coreVersion,
-      step: MODULE_META.build,
       status: currentBus.getStatus()
-    });
+    }));
   });
 
   app.get('/api/communication/test', (req, res) => {
@@ -433,14 +437,78 @@ function init({ app }) {
       }
     });
 
-    res.json({
-      ok: result.ok === true,
-      module: MODULE_META.name,
-      moduleVersion: MODULE_META.version,
-      moduleBuild: MODULE_META.build,
+    res.json(buildModuleResponse({
       test: true,
       result
+    }));
+  });
+
+  app.get('/api/communication/test-alert', (req, res) => {
+    if (loadedConfig.testAlertEndpointEnabled === false || loadedConfig.testEndpointEnabled === false) {
+      return res.status(403).json({ ok: false, error: 'communication_test_alert_endpoint_disabled' });
+    }
+
+    const currentBus = getBus();
+    const user = limitedMessage(req.query.user, 'ForrestCGN');
+    const type = cleanString(req.query.type, 'bits');
+    const amount = asInt(req.query.amount, 100);
+    const message = limitedMessage(req.query.message, 'Alert Mirror Test');
+    const durationMs = Math.max(1000, asInt(req.query.durationMs, loadedConfig.defaultAlertMirrorDurationMs || 7000));
+    const replayable = boolParam(req.query.replayable, true);
+    const requireAck = boolParam(req.query.requireAck, true);
+    const ttlMs = Math.max(durationMs + 5000, asInt(req.query.ttlMs, loadedConfig.defaultTtlMs || 30000));
+
+    const value = type === 'bits'
+      ? `${amount} Bits`
+      : amount > 0
+        ? `${amount} ${type}`
+        : type;
+
+    const result = currentBus.emit({
+      type: 'event',
+      channel: 'visual.alert',
+      action: 'play',
+      source: {
+        type: 'api',
+        id: 'communication_bus_alert_mirror_test',
+        module: 'communication_bus'
+      },
+      target: {
+        type: cleanString(req.query.targetType, 'all'),
+        id: cleanString(req.query.targetId, '*'),
+        module: cleanString(req.query.targetModule, ''),
+        capability: cleanString(req.query.targetCapability, '')
+      },
+      payload: {
+        test: true,
+        mirror: true,
+        alert: {
+          source: 'communication_test',
+          provider: 'test',
+          type,
+          user,
+          headline: user,
+          title: 'Alert Mirror Test',
+          value,
+          amount,
+          message,
+          durationMs
+        }
+      },
+      meta: {
+        requireAck,
+        replayable,
+        ttlMs,
+        preview: true,
+        mirror: true,
+        productionTarget: false
+      }
     });
+
+    res.json(buildModuleResponse({
+      testAlert: true,
+      result
+    }));
   });
 
   app.get('/api/communication/ack', (req, res) => {
@@ -466,14 +534,10 @@ function init({ app }) {
       message: limitedMessage(req.query.message, 'Ack test')
     });
 
-    res.json({
-      ok: result.ok === true,
-      module: MODULE_META.name,
-      moduleVersion: MODULE_META.version,
-      moduleBuild: MODULE_META.build,
+    res.json(buildModuleResponse({
       ack: true,
       result
-    });
+    }));
   });
 
   app.get('/api/communication/replay', (req, res) => {
@@ -495,16 +559,12 @@ function init({ app }) {
       includeAckRequired
     });
 
-    res.json({
-      ok: result.ok === true,
-      module: MODULE_META.name,
-      moduleVersion: MODULE_META.version,
-      moduleBuild: MODULE_META.build,
+    res.json(buildModuleResponse({
       replay: true,
       clientId,
       includeAckRequired,
       result
-    });
+    }));
   });
 
   app.get('/api/communication/watchdog', (req, res) => {
@@ -534,8 +594,7 @@ function init({ app }) {
             recovered: false,
             via: 'api',
             module: MODULE_META.name,
-            moduleVersion: MODULE_META.version,
-            moduleBuild: MODULE_META.build
+            moduleVersion: MODULE_META.version
           }
         });
         trackedIssues.push({
@@ -559,8 +618,7 @@ function init({ app }) {
             recovered: true,
             via: 'api',
             module: MODULE_META.name,
-            moduleVersion: MODULE_META.version,
-            moduleBuild: MODULE_META.build
+            moduleVersion: MODULE_META.version
           }
         });
         trackedRecovered.push({
@@ -573,11 +631,7 @@ function init({ app }) {
       }
     }
 
-    res.json({
-      ok: true,
-      module: MODULE_META.name,
-      moduleVersion: MODULE_META.version,
-      moduleBuild: MODULE_META.build,
+    res.json(buildModuleResponse({
       watchdog: true,
       tracked: track,
       trackRecovered,
@@ -588,7 +642,7 @@ function init({ app }) {
       trackedRecovered,
       diagnosis,
       status: (track || trackRecovered) ? currentBus.getStatus() : statusBefore
-    });
+    }));
   });
 
   app.get('/api/communication/issue', (req, res) => {
@@ -611,14 +665,10 @@ function init({ app }) {
       }
     });
 
-    res.json({
-      ok: result.ok === true,
-      module: MODULE_META.name,
-      moduleVersion: MODULE_META.version,
-      moduleBuild: MODULE_META.build,
+    res.json(buildModuleResponse({
       issue: true,
       result
-    });
+    }));
   });
 
   app.get('/api/communication/reset', (req, res) => {
@@ -641,17 +691,13 @@ function init({ app }) {
       issues: true
     });
 
-    res.json({
-      ok: true,
-      module: MODULE_META.name,
-      moduleVersion: MODULE_META.version,
-      moduleBuild: MODULE_META.build,
+    res.json(buildModuleResponse({
       reset: true,
       result
-    });
+    }));
   });
 
-  console.log(`[${MODULE_META.name}] v${MODULE_META.version} / ${MODULE_META.build} API routes and WS handler registered`);
+  console.log(`[${MODULE_META.name}] v${MODULE_META.version} API routes and WS handler registered`);
 }
 
 module.exports = {

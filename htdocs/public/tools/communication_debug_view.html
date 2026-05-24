@@ -59,7 +59,6 @@
     .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
     .card { grid-column: span 12; border: 1px solid var(--border); border-radius: 20px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
     .card.half { grid-column: span 6; }
-    .card.third { grid-column: span 4; }
     .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.08); background: linear-gradient(90deg, rgba(57,230,255,.08), rgba(195,92,255,.08)); }
     .card-title { font-size: 15px; font-weight: 950; letter-spacing: .02em; }
     .card-body { padding: 14px 16px 16px; }
@@ -84,13 +83,11 @@
     details { border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 8px 10px; background: rgba(255,255,255,.035); }
     summary { cursor: pointer; font-weight: 800; color: #dff7ff; }
     .small { font-size: 12px; color: var(--muted); }
-    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
     @media (max-width: 1100px) {
-      .card.half, .card.third { grid-column: span 12; }
+      .card.half { grid-column: span 12; }
       .metrics { grid-template-columns: repeat(2, minmax(110px, 1fr)); }
       .hero { grid-template-columns: 1fr; }
-      .split { grid-template-columns: 1fr; }
       body { padding: 14px; }
     }
   </style>
@@ -101,13 +98,14 @@
       <div>
         <div class="badge">Communication Bus · Test / Debug</div>
         <h1>Communication Bus Debug View</h1>
-        <div class="subtitle">Lesbare Diagnose für Status, Clients, Events, Issues, Watchdog und Recovery. Keine Produktivmigration.</div>
+        <div class="subtitle">Lesbare Diagnose für Status, Clients, Events, Issues, Watchdog, Recovery und Alert-Mirror-Tests. Keine Produktivmigration.</div>
       </div>
       <div class="small" id="lastUpdate">Noch nicht geladen</div>
     </section>
 
     <section class="toolbar">
       <button class="good" data-action="refresh">Status aktualisieren</button>
+      <button class="good" data-action="alertMirror">Alert Mirror Test</button>
       <button data-action="watchdog">Watchdog prüfen</button>
       <button class="warn" data-action="watchdogTrack">Watchdog tracken</button>
       <button data-action="watchdogRecovered">Watchdog + Recovery</button>
@@ -121,9 +119,7 @@
     <section class="grid">
       <article class="card">
         <div class="card-head"><div class="card-title">Bus Übersicht</div><span id="busHealth" class="pill">unbekannt</span></div>
-        <div class="card-body">
-          <div class="metrics" id="metrics"></div>
-        </div>
+        <div class="card-body"><div class="metrics" id="metrics"></div></div>
       </article>
 
       <article class="card half">
@@ -162,9 +158,8 @@
 (() => {
   'use strict';
 
-  const META = { name: 'communication_debug_view', version: '0.1.1' };
-  const HIDDEN_META_KEYS = new Set(['moduleBuild', 'build', 'step']);
-  const state = { status: null, watchdog: null, loading: false };
+  const META = { name: 'communication_debug_view', version: '0.1.2' };
+  const state = { status: null, watchdog: null };
 
   const $ = id => document.getElementById(id);
   const logEl = $('log');
@@ -180,21 +175,19 @@
     try { return new Date(value).toLocaleString('de-DE'); } catch (_) { return value; }
   }
 
-  function scrubVisibleMeta(value) {
-    if (Array.isArray(value)) return value.map(scrubVisibleMeta);
-    if (value && typeof value === 'object') {
-      const out = {};
-      for (const [key, item] of Object.entries(value)) {
-        if (HIDDEN_META_KEYS.has(key)) continue;
-        out[key] = scrubVisibleMeta(item);
-      }
-      return out;
+  function stripInternalMeta(value) {
+    if (Array.isArray(value)) return value.map(stripInternalMeta);
+    if (!value || typeof value !== 'object') return value;
+    const out = {};
+    for (const [key, item] of Object.entries(value)) {
+      if (['build', 'moduleBuild', 'step'].includes(key)) continue;
+      out[key] = stripInternalMeta(item);
     }
-    return value;
+    return out;
   }
 
   function compactJson(value) {
-    try { return JSON.stringify(scrubVisibleMeta(value ?? {}), null, 2); } catch (_) { return String(value); }
+    try { return JSON.stringify(stripInternalMeta(value ?? {}), null, 2); } catch (_) { return String(value); }
   }
 
   function log(message, data) {
@@ -349,6 +342,7 @@
   async function handleClick(action) {
     try {
       if (action === 'refresh') return await refreshStatus();
+      if (action === 'alertMirror') return await callAction('/api/communication/test-alert?user=ForrestCGN&type=bits&amount=100&message=Alert%20Mirror%20Test&requireAck=1&replayable=1', 'Alert Mirror Test');
       if (action === 'watchdog') return await runWatchdog('/api/communication/watchdog', 'Watchdog geprüft');
       if (action === 'watchdogTrack') return await runWatchdog('/api/communication/watchdog?track=1', 'Watchdog getrackt');
       if (action === 'watchdogRecovered') return await runWatchdog('/api/communication/watchdog?includeRecovered=1', 'Watchdog + Recovery geprüft');
@@ -368,7 +362,7 @@
     handleClick(btn.dataset.action);
   });
 
-  log(`Debug View gestartet · Tool v${META.version}`);
+  log(`Debug View gestartet · v${META.version}`);
   refreshStatus().catch(err => log('Initiales Laden fehlgeschlagen', { error: err.message }));
 })();
 </script>

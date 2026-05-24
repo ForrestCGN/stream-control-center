@@ -1,16 +1,19 @@
 # CURRENT_STATUS
 
-## STEP278R
+## STEP278S
 
-Version Display Cleanup und neuer verbindlicher Anzeige-Standard ergänzt.
+Controlled Alert Mirror Test ergänzt.
 
-Neu:
+Versionen:
 
-- `docs/backend/MODULE_VERSIONING_DISPLAY_STANDARD.md`
-- `project-state/STEP278R_VERSION_DISPLAY_CLEANUP.md`
+```text
+communication_bus v0.7.0
+communication_debug_view v0.1.2
+```
 
 Geändert:
 
+- `backend/modules/communication_bus.js`
 - `htdocs/public/tools/communication_debug_view.html`
 - `docs/backend/COMMUNICATION_BUS_HELPER.md`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
@@ -19,46 +22,48 @@ Geändert:
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
 
-Tool-Version:
+Neu:
+
+- `project-state/STEP278S_CONTROLLED_ALERT_MIRROR_TEST.md`
+
+Neue Test-Route:
 
 ```text
-communication_debug_view v0.1.1
+/api/communication/test-alert
 ```
 
-Neue verbindliche Regel:
+Test-URL:
 
-- Module, Code, APIs, Tools und UI-Ausgaben zeigen sichtbar nur Versionsnummern.
-- STEP-Angaben werden nur noch für Doku, Projektstand, Changelog, ZIP-Namen und Übergaben genutzt.
-- Keine neuen sichtbaren `Version / STEP...` Anzeigen.
-- Bestehende API-Felder wie `moduleBuild` dürfen aus Kompatibilitätsgründen vorerst bestehen bleiben, werden aber in UI-/Debug-Ausgaben nicht mehr angezeigt.
+```text
+http://127.0.0.1:8080/api/communication/test-alert?user=ForrestCGN&type=bits&amount=100&message=Alert%20Mirror%20Test
+```
+
+Funktionen:
+
+- sendet ein alert-ähnliches Bus-Event mit `visual.alert.play`
+- dient nur als Mirror-/Transporttest
+- schreibt nichts in Alert-DB, Alert-Queue, Sound- oder TTS-Systeme
+- Debug View enthält einen Button `Alert Mirror Test`
+- Communication Bus gibt neue/überarbeitete Modulantworten ohne sichtbare STEP-/Build-Felder aus
 
 Wichtig:
 
-- Keine Backend-Codeänderung.
-- Keine neue API.
-- Keine Produktivmigration.
-- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Keine Produktivmigration des Alert-Systems.
+- Keine Änderung an `/api/alerts/*`.
+- Keine Alert-DB-/Queue-Änderung.
+- Keine Sound-/TTS-/VIP-Integration.
 - Kein Ersatz von `broadcastWS`.
 - Keine Dashboard-Seite mit Auth/Rollen.
 - Keine Datenbankmigration.
 - Keine OBS-Änderung.
 - Keine Änderung am Master-Test-Overlay.
 
-## STEP278Q
+## STEP278R
 
-Communication Bus Debug View ergänzt.
+Version Display Cleanup und neuer verbindlicher Anzeige-Standard ergänzt.
 
-Neu:
+Version:
 
-- `htdocs/public/tools/communication_debug_view.html`
-- `project-state/STEP278Q_COMMUNICATION_DEBUG_VIEW.md`
-
-Funktionen:
-
-- lesbare Bus-Übersicht für Stats, Versionen und Zähler
-- Client-Ansicht mit Status, Modul, Version, Heartbeat, ACK und Capabilities
-- Event-Ansicht mit Replay-/ACK-Flags, Delivery, ACK-Count und Ablaufzeit
-- Watchdog-Diagnose mit aktuellen Problemen
-- Recovery-Anzeige für `includeRecovered=1`
-- historische Issues aus `issues[]`
-- Buttons für Status, Watchdog, Watchdog-Tracking, Recovery, Replay und Reset
+```text
+communication_debug_view v0.1.1
+```

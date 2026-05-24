@@ -5,15 +5,15 @@
 ```text
 Communication Core:      v0.3.0
 helper_communication.js: v0.3.0
-communication_bus.js:    v0.6.0
+communication_bus.js:    v0.7.0
 WS Test Client:          v0.1.0
 Master Test Overlay:     v0.1.2
-Debug View:              v0.1.1
+Debug View:              v0.1.2
 ```
 
 ## Anzeige-Standard
 
-Sichtbare Modul-/Tool-Ausgaben zeigen ab jetzt nur noch Versionsnummern. STEP-Angaben bleiben Projekt- und Dokumentationshistorie und werden nicht mehr in Statuskarten, Debug-Views oder Modul-Anzeigen sichtbar ausgegeben.
+Sichtbare Modul-/Tool-Ausgaben zeigen nur noch Versionsnummern. STEP-Angaben bleiben Projekt- und Dokumentationshistorie und werden nicht mehr in Statuskarten, Debug-Views oder Modul-Anzeigen sichtbar ausgegeben.
 
 Siehe:
 
@@ -27,6 +27,7 @@ Der Communication Bus besitzt aktuell:
 
 - Helper Core
 - Status/Test/Ack/Issue/Replay/Watchdog/Reset API
+- Alert-Mirror-Test-API unter `/api/communication/test-alert`
 - optionale Security-/Audit-Hooks
 - WebSocket Client Registration via `hello`
 - WebSocket Heartbeat
@@ -54,9 +55,29 @@ Die Debug View zeigt:
 - Watchdog-Diagnose
 - Recovered Events
 - historische Issues
+- Alert-Mirror-Test-Button
 - Aktionslog
 
-Die Debug View zeigt sichtbar keine STEP-/Build-Angaben mehr. API-Rohfelder mit Build-/Step-Bezug werden in der Oberfläche ausgeblendet.
+Die Debug View zeigt sichtbar keine STEP-/Build-Angaben. API-Rohfelder mit Build-/Step-Bezug werden in der Oberfläche ausgeblendet.
+
+## Alert-Mirror-Test
+
+Neue reine Communication-Bus-Testroute:
+
+```text
+http://127.0.0.1:8080/api/communication/test-alert?user=ForrestCGN&type=bits&amount=100&message=Alert%20Mirror%20Test
+```
+
+Die Route erzeugt kein echtes Alert-System-Event und schreibt nichts in Alert-DB, Alert-Queue oder Sound-/TTS-Systeme.
+
+Sie sendet ein Bus-Event:
+
+```text
+channel: visual.alert
+action: play
+```
+
+Die Payload ist alert-ähnlich und dient nur als Mirror-/Transporttest für das Master-Test-Overlay und die Communication Debug View.
 
 ## Testclient
 
@@ -88,6 +109,7 @@ Das Master-Test-Overlay kann im reinen Mirror-/Testmodus:
 - sich als Bus-Client per `type: "hello"` registrieren
 - regelmäßige `type: "heartbeat"` senden
 - Bus-Testevents aus `/api/communication/test` empfangen
+- Alert-Mirror-Testevents aus `/api/communication/test-alert` empfangen
 - empfangene Events mit `type: "ack"` bestätigen
 - Test-/Mirror-Karten anzeigen
 - Debug-Status für Client, Event und ACK anzeigen
@@ -139,6 +161,8 @@ Wichtig: Es gibt weiterhin keinen automatischen Watchdog-Timer. Die Diagnose ist
 - kein automatischer Watchdog-Timer
 - kein automatisches Löschen historischer Issues
 - kein automatisches Replay bei `hello`
+- keine Produktivmigration des Alert-Systems
+- keine Änderung an `/api/alerts/*`
 - keine Alert-/Sound-/TTS-/VIP-Migration
 - kein Ersatz von `broadcastWS`
 - keine Dashboard-Seite mit Auth/Rollen
