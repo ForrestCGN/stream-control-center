@@ -1,38 +1,72 @@
-# STEP278G — Communication Bus Status API
+# STEP278H — Communication Bus WebSocket Client Registration
 
-Status: API module prepared  
+Status: WS registration prepared  
 Production migration: none  
 Database migration: none
 
 ## Ziel
 
-`backend/modules/communication_bus.js` macht den vorbereiteten Communication Bus über kleine Test-/Status-Routen sichtbar.
+`backend/modules/communication_bus.js` kann jetzt WebSocket-Clients per `hello`, `heartbeat` und `ack` am Communication Bus registrieren.
 
-## Routen
+## WebSocket Messages
 
-```text
-GET /api/communication/status
-GET /api/communication/test?channel=test&action=ping&message=Hallo
-GET /api/communication/ack?eventId=...&clientId=test_client&status=received
-GET /api/communication/issue?key=test&message=Demo
-GET /api/communication/reset?confirm=1
+### hello
+
+```json
+{
+  "type": "hello",
+  "clientId": "overlay_master_test",
+  "clientType": "overlay",
+  "module": "master_overlay",
+  "mode": "standalone",
+  "capabilities": ["test.ping"]
+}
 ```
 
-## Wichtig
+Antwort:
 
-- Keine Migration von Alert/Sound/TTS/VIP.
-- Kein Ersatz von `broadcastWS`.
-- Keine OBS-Änderung.
-- Keine Dashboard-Seite.
-- Keine Datenbankmigration.
-- Bus-Testevents sind Preview/Test und kein produktives Routing.
-
-## Tests nach Deploy
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/communication/test?message=Hallo"
-Invoke-RestMethod "http://127.0.0.1:8080/api/communication/recent"
+```json
+{
+  "type": "hello_ack",
+  "ok": true,
+  "bus": "cgn",
+  "clientId": "overlay_master_test"
+}
 ```
 
-Hinweis: `/api/communication/recent` existiert nicht. Events werden über `/api/communication/status` im Feld `status.events` geprüft.
+### heartbeat
+
+```json
+{
+  "type": "heartbeat",
+  "clientId": "overlay_master_test"
+}
+```
+
+### ack
+
+```json
+{
+  "type": "ack",
+  "eventId": "evt_...",
+  "clientId": "overlay_master_test",
+  "status": "received"
+}
+```
+
+## Server-Hook
+
+`backend/server.js` wurde nur minimal erweitert:
+
+- Module mit `handleWsMessage()` können WS-Messages optional behandeln.
+- Bestehendes `broadcastWS()` bleibt unverändert.
+- Unbekannte Messages werden nicht blockiert.
+
+## Bewusst nicht geändert
+
+- keine Alert-/Sound-/TTS-/VIP-Migration
+- kein Ersatz von `broadcastWS`
+- keine Dashboard-Seite
+- keine Datenbankmigration
+- keine OBS-Änderung
+- keine bestehende Funktionalität entfernt

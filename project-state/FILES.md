@@ -1,5 +1,25 @@
 # FILES
 
+## STEP278H
+
+Changed:
+
+- `backend/server.js`
+- `backend/modules/communication_bus.js`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+
+Added:
+
+- `project-state/STEP278H_COMMUNICATION_WS_CLIENT_REGISTRATION.md`
+
+Updated:
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+
 ## STEP278G
 
 Added:

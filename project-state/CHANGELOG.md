@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## STEP278H
+
+- Added minimal WebSocket module dispatcher to `backend/server.js`.
+- Extended `backend/modules/communication_bus.js` with `handleWsMessage()`.
+- Added WS handling for `hello`, `heartbeat`, `ack` and `bus_ack`.
+- Unknown WS messages are ignored and existing broadcast flows remain unchanged.
+- No alert/sound/TTS/VIP migration, dashboard page, database migration or OBS change was added.
+
 ## STEP278G
 
 - Added `backend/modules/communication_bus.js`.

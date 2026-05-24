@@ -1,9 +1,11 @@
 'use strict';
 
 /**
- * STEP278G - Communication Bus Status API.
+ * STEP278H - Communication Bus Status API + WS client registration.
  *
- * This module exposes the prepared communication bus as test/status API.
+ * This module exposes the prepared communication bus as test/status API and
+ * handles optional WebSocket hello/heartbeat/ack messages.
+ *
  * It does not migrate alert/sound/TTS/VIP traffic and does not replace
  * server.js broadcastWS.
  */
@@ -18,6 +20,8 @@ const DEFAULT_CONFIG = {
   ackEndpointEnabled: true,
   issueEndpointEnabled: true,
   resetEndpointEnabled: true,
+  wsClientRegistrationEnabled: true,
+  wsAcksEnabled: true,
   maxMessageLength: 500
 };
 
@@ -41,6 +45,12 @@ function boolParam(value, fallback = false) {
   if (['1', 'true', 'yes', 'ja', 'on', 'y'].includes(v)) return true;
   if (['0', 'false', 'no', 'nein', 'off', 'n'].includes(v)) return false;
   return fallback;
+}
+
+function toArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).map(String);
+  if (value === undefined || value === null || value === '') return [];
+  return [String(value)];
 }
 
 function loadCommunicationConfig() {
@@ -68,6 +78,161 @@ function limitedMessage(value, fallback = 'Communication bus test event') {
   return cleanString(value, fallback).slice(0, max);
 }
 
+function parseWsMessage(rawMessage) {
+  if (rawMessage === undefined || rawMessage === null) return null;
+
+  let text = rawMessage;
+  if (Buffer.isBuffer(rawMessage)) text = rawMessage.toString('utf8');
+  if (typeof text !== 'string') text = String(text);
+
+  try {
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function sendWsJson(ws, payload) {
+  if (!ws || typeof ws.send !== 'function') return false;
+
+  try {
+    ws.send(JSON.stringify(payload));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function normalizeHelloPayload(data = {}) {
+  const clientId = cleanString(data.clientId || data.id || data.name || data.client?.id, 'ws_client');
+  const clientType = cleanString(data.clientType || data.typeName || data.client?.type, 'unknown');
+  return {
+    id: clientId,
+    clientId,
+    type: clientType,
+    mode: cleanString(data.mode || data.client?.mode, 'standalone'),
+    hostId: cleanString(data.hostId || data.host_id || data.client?.hostId, ''),
+    module: cleanString(data.module || data.moduleId || data.client?.module, ''),
+    name: cleanString(data.name || data.clientName || data.client?.name, clientId),
+    version: cleanString(data.version || data.client?.version, ''),
+    capabilities: toArray(data.capabilities || data.client?.capabilities),
+    meta: {
+      via: 'websocket',
+      helloType: cleanString(data.type, 'hello')
+    }
+  };
+}
+
+function handleHello(ws, data) {
+  const currentBus = getBus();
+  const clientInfo = normalizeHelloPayload(data);
+  const client = currentBus.registerClient(ws, clientInfo);
+
+  sendWsJson(ws, {
+    type: 'hello_ack',
+    ok: true,
+    bus: currentBus.getStatus().bus,
+    clientId: client.id,
+    client
+  });
+
+  return {
+    handled: true,
+    ok: true,
+    action: 'hello',
+    client
+  };
+}
+
+function handleHeartbeat(ws, data) {
+  const currentBus = getBus();
+  const clientId = cleanString(data.clientId || data.id || ws._cgnBusClientId);
+  const result = currentBus.heartbeat(clientId, {
+    id: clientId,
+    type: cleanString(data.clientType || data.typeName || ''),
+    module: cleanString(data.module || ''),
+    capabilities: Array.isArray(data.capabilities) ? data.capabilities : undefined,
+    version: cleanString(data.version || '')
+  });
+
+  sendWsJson(ws, {
+    type: 'heartbeat_ack',
+    ok: result.ok === true,
+    clientId,
+    client: result.client || null,
+    reason: result.reason || ''
+  });
+
+  return {
+    handled: true,
+    ok: result.ok === true,
+    action: 'heartbeat',
+    result
+  };
+}
+
+function handleAck(ws, data) {
+  if (loadedConfig.wsAcksEnabled === false) {
+    sendWsJson(ws, {
+      type: 'ack_ack',
+      ok: false,
+      error: 'ws_acks_disabled'
+    });
+    return { handled: true, ok: false, action: 'ack', reason: 'ws_acks_disabled' };
+  }
+
+  const currentBus = getBus();
+  const eventId = cleanString(data.eventId || data.id);
+  const clientId = cleanString(data.clientId || ws._cgnBusClientId, 'ws_client');
+  const status = cleanString(data.status, 'received');
+  const result = currentBus.ack(eventId, clientId, status, {
+    via: 'websocket',
+    details: data.details || {}
+  });
+
+  sendWsJson(ws, {
+    type: 'ack_ack',
+    ok: result.ok === true,
+    eventId,
+    clientId,
+    status,
+    reason: result.reason || ''
+  });
+
+  return {
+    handled: true,
+    ok: result.ok === true,
+    action: 'ack',
+    result
+  };
+}
+
+function handleWsMessage({ ws, rawMessage }) {
+  if (loadedConfig === null) loadCommunicationConfig();
+  if (loadedConfig.wsClientRegistrationEnabled === false) return { handled: false, reason: 'ws_client_registration_disabled' };
+
+  const data = parseWsMessage(rawMessage);
+  if (!data) return { handled: false, reason: 'not_json' };
+
+  const type = cleanString(data.type || data.op || data.kind).toLowerCase();
+  if (!type) return { handled: false, reason: 'type_missing' };
+
+  if (type === 'hello' || type === 'bus_hello' || type === 'communication_hello') {
+    return handleHello(ws, data);
+  }
+
+  if (type === 'heartbeat' || type === 'bus_heartbeat' || type === 'ping') {
+    return handleHeartbeat(ws, data);
+  }
+
+  if (type === 'ack' || type === 'bus_ack' || type === 'communication_ack') {
+    return handleAck(ws, data);
+  }
+
+  return { handled: false, reason: 'unknown_type', type };
+}
+
 function init({ app }) {
   if (!app) throw new Error('communication_bus.init: app fehlt.');
 
@@ -79,7 +244,7 @@ function init({ app }) {
     res.json({
       ok: true,
       module: 'communication_bus',
-      step: 'STEP278G',
+      step: 'STEP278H',
       status: currentBus.getStatus()
     });
   });
@@ -227,9 +392,10 @@ function init({ app }) {
     });
   });
 
-  console.log('[communication_bus] STEP278G API routes registered');
+  console.log('[communication_bus] STEP278H API routes and WS handler registered');
 }
 
 module.exports = {
-  init
+  init,
+  handleWsMessage
 };

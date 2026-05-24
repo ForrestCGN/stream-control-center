@@ -1,5 +1,30 @@
 # CURRENT_STATUS
 
+## STEP278H
+
+Communication Bus WebSocket Client Registration vorbereitet.
+
+Geändert:
+
+- `backend/server.js`
+- `backend/modules/communication_bus.js`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `project-state/STEP278H_COMMUNICATION_WS_CLIENT_REGISTRATION.md`
+
+Neu:
+
+- WebSocket `hello`
+- WebSocket `heartbeat`
+- WebSocket `ack` / `bus_ack`
+- minimaler Modul-Dispatcher in `server.js` für `handleWsMessage()`
+
+Wichtig:
+
+- Keine Produktivmodule wurden migriert.
+- `broadcastWS` bleibt unverändert.
+- Unbekannte WS-Messages werden nicht blockiert.
+- Keine Dashboard-/DB-/OBS-Änderung.
+
 ## STEP278G
 
 Communication Bus Status/Test API vorbereitet.

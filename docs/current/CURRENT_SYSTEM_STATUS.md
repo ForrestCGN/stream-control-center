@@ -1,5 +1,33 @@
 # Current System Status
 
+## STEP278H - Communication Bus WebSocket Client Registration
+
+Communication Bus kann jetzt WebSocket-Clients registrieren.
+
+Geändert:
+
+- `backend/server.js`
+- `backend/modules/communication_bus.js`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `project-state/STEP278H_COMMUNICATION_WS_CLIENT_REGISTRATION.md`
+
+Neu:
+
+- `hello`
+- `heartbeat`
+- `ack`
+- `bus_ack`
+- minimaler optionaler Modul-Dispatcher in `server.js`
+
+Wichtig:
+
+- Keine Produktivmodule wurden migriert.
+- `broadcastWS` bleibt unverändert.
+- Unbekannte WS-Messages werden nicht blockiert.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+- Keine OBS-Änderung.
+
 ## STEP278G - Communication Bus Status API
 
 Communication Bus ist jetzt über ein kleines Backend-Modul testbar.

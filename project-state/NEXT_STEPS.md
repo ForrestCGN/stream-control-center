@@ -1,5 +1,16 @@
 # NEXT_STEPS
 
+## Nach STEP278H
+
+1. Backend nach Deploy starten und prüfen:
+   - `GET /api/communication/status`
+   - WebSocket hello senden
+   - danach `GET /api/communication/status`
+2. Danach STEP278I planen: kleiner HTML-Testclient für Bus-Registration.
+3. Danach erst Master-Overlay-Testclient anbinden.
+4. Erst später Alert-/Sound-Migration planen.
+5. Keine produktive Modul-Integration aktivieren, bevor WS-Registration sauber geprüft ist.
+
 ## Nach STEP278G
 
 1. Backend nach Deploy starten und prüfen:

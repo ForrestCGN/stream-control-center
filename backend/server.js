@@ -1,5 +1,5 @@
-﻿/**
- * ForrestCGN â€“ Local Overlay & API Server
+/**
+ * ForrestCGN – Local Overlay & API Server
  * Stable baseline version (Node.js + Express)
  * Port: 8080
  */
@@ -110,6 +110,28 @@ function broadcastWS(payload) {
   });
 }
 
+function dispatchWsMessage(ws, rawMessage) {
+  for (const item of loadedModuleInstances) {
+    if (!item || !item.mod || typeof item.mod.handleWsMessage !== "function") continue;
+
+    try {
+      const result = item.mod.handleWsMessage({
+        ws,
+        rawMessage,
+        wss,
+        broadcastWS
+      });
+
+      if (result && result.handled === true) return result;
+    } catch (err) {
+      console.error(`[WS] module handler failed: ${item.file}`);
+      console.error(err && err.message ? err.message : err);
+    }
+  }
+
+  return { handled: false };
+}
+
 // --------------------------------------------------
 // Fireworks API (used by Streamer.bot Fetch URL)
 // --------------------------------------------------
@@ -149,6 +171,10 @@ app.get("/api/fireworks/clear", (req, res) => {
 wss.on("connection", ws => {
   console.log("[WS] client connected");
 
+  ws.on("message", rawMessage => {
+    dispatchWsMessage(ws, rawMessage);
+  });
+
   ws.on("close", () => {
     console.log("[WS] client disconnected");
   });
@@ -160,6 +186,7 @@ wss.on("connection", ws => {
 const modulesDir = paths.CURRENT_MODULES_DIR;
 const loadedModules = [];
 const skippedModules = [];
+const loadedModuleInstances = [];
 
 if (fs.existsSync(modulesDir)) {
   fs.readdirSync(modulesDir).forEach(file => {
@@ -177,6 +204,7 @@ if (fs.existsSync(modulesDir)) {
           getLoadedModules: () => [...loadedModules]
         });
         loadedModules.push(file);
+        loadedModuleInstances.push({ file, mod });
         console.log(`[module] loaded: ${file}`);
       }
     } catch (err) {
@@ -195,5 +223,3 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(` http://127.0.0.1:${PORT}`);
   console.log(`======================================`);
 });
-
-
