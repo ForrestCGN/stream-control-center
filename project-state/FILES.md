@@ -29,3 +29,15 @@
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
+
+
+## STEP289B – SoundBus Status Exposure Fix
+
+Geändert:
+
+- `backend/modules/sound_system.js`
+  - Top-Level-Feld `soundBus` in `/api/sound/status` ergänzt.
+
+Dokumentation:
+
+- `project-state/STEP289B_SOUNDBUS_STATUS_EXPOSURE_FIX.md`

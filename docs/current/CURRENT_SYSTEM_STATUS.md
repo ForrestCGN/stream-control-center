@@ -97,3 +97,22 @@ Damit ändert sich nach Deploy kein produktives Sound-Verhalten. Der Bus-Ausgang
 4. Alert-Bundle-Test mit Hauptsound + Alert-TTS prüfen.
 5. V5-Real-Mod-Test erneut ausführen.
 6. Danach Debug View/Dashboard um Sound-Bus-Events erweitern.
+
+
+## STEP289B – SoundBus Status Exposure Fix
+
+Nach dem ersten STEP289-Live-Check war `config.soundBus` korrekt vorhanden, aber der Runtime-Status wurde nicht direkt als Top-Level-Feld `soundBus` in `/api/sound/status` ausgegeben.
+
+Korrigiert:
+
+- `/api/sound/status` gibt jetzt zusätzlich `soundBus` direkt auf Top-Level aus.
+- `config.soundBus` bleibt weiterhin als Effective-Config sichtbar.
+- Keine Sound-/Queue-/Bundle-/Playback-Logik geändert.
+- `soundBus.enabled` bleibt standardmäßig `false`.
+
+Erwarteter Test:
+
+- `Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | Select-Object step, soundBus`
+- `step = 289`
+- `soundBus.enabled = false`
+- `soundBus.communicationBusAvailable = true`

@@ -71,3 +71,14 @@ STEP289 testen:
 7. V5-Real-Mod-Test wiederholen.
 
 Danach: Debug View/Dashboard für Sound-Bus-Events vorbereiten.
+
+
+## STEP289B Status-Fix
+
+Der STEP289-Live-Check hat gezeigt, dass `config.soundBus` korrekt geladen wurde, der Runtime-Status aber nicht als Top-Level-Feld `soundBus` unter `/api/sound/status` sichtbar war.
+
+Fix:
+
+- `publicState()` enthält jetzt `soundBus: publicSoundBusStatus()`.
+- `Select-Object step, soundBus` funktioniert nach Deploy direkt.
+- Keine Runtime-Logik des Sound-Systems geändert.

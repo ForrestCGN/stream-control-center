@@ -892,6 +892,7 @@ module.exports.init = function init(ctx) {
       client: { ...state.client },
       device: { ...state.device },
       discord: { ...state.discord },
+      soundBus: publicSoundBusStatus(),
       stats: { ...state.stats },
       config: {
         path: state.configPath,

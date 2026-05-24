@@ -63,3 +63,19 @@ Zurück auf sicheren Standard:
 - Module dürfen Bus-Status lesen, aber noch nicht direkt Sounds per Bus auslösen.
 - Optional später Bus-Input `sound.play`, der intern dieselbe Sound-System-Queue nutzt.
 - Module erst danach stufenweise migrieren.
+
+
+## Nach STEP289B
+
+1. `/api/sound/status` prüfen:
+   - `step = 289`
+   - Top-Level `soundBus` ist sichtbar.
+   - `soundBus.enabled = false`
+   - `soundBus.communicationBusAvailable = true`
+
+2. Danach SoundBus gezielt aktivieren und mit kleinem Test-Sound prüfen.
+
+3. Erst nach erfolgreichem Status-/Bus-Test:
+   - Alert-Bundle-Test
+   - V5-Real-Mod-Sound-Trace-Test
+   - danach Planung der Modul-Migration.

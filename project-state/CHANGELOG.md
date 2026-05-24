@@ -1,5 +1,17 @@
 # Changelog
 
+## STEP289B – SoundBus Status Exposure Fix
+
+Datum: 2026-05-24T14:00:00Z
+
+- SoundBus-Runtime-Status in `/api/sound/status` als Top-Level-Feld `soundBus` ergänzt.
+- `config.soundBus` bleibt unverändert als Effective-Config sichtbar.
+- Keine Sound-/Queue-/Bundle-/Playback-Logik geändert.
+- Keine Caller-Module geändert.
+- Keine DB-Migration.
+- Keine Funktionalität entfernt.
+
+
 ## STEP289 – Sound-System Bus Event Mirror / Native Status Output
 
 Datum: 2026-05-24T13:45:00Z
