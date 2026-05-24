@@ -16,7 +16,7 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_STEP = 340;
+const MODULE_STEP = 352;
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
 
@@ -787,11 +787,15 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  function emit(reason) {
+  function broadcastSoundState(reason, extra = {}) {
     touch();
     if (config.websocket && config.websocket.enabled !== false && typeof broadcastWS === "function") {
-      broadcastWS({ op: config.websocket.op || MODULE_NAME, reason: reason || "state", data: publicState() });
+      broadcastWS({ op: config.websocket.op || MODULE_NAME, reason: reason || "state", data: publicState(), ...extra });
     }
+  }
+
+  function emit(reason) {
+    broadcastSoundState(reason);
     emitSoundBus(reason || "state", { kind: "state" });
   }
 
@@ -2343,8 +2347,23 @@ module.exports.init = function init(ctx) {
     touch();
   }
 
+  function clientRequestId(req) {
+    return String((req.body && req.body.requestId) || (req.query && req.query.requestId) || "").trim();
+  }
+
+  function findActiveItemByRequestId(requestId) {
+    const clean = String(requestId || "").trim();
+    if (!clean) return state.current || null;
+    if (state.current && state.current.requestId === clean) return state.current;
+    if (Array.isArray(state.parallel)) {
+      const parallel = state.parallel.find(item => item && item.requestId === clean);
+      if (parallel) return parallel;
+    }
+    return null;
+  }
+
   function clientRequestMatchesCurrent(req) {
-    const requestId = String((req.body && req.body.requestId) || (req.query && req.query.requestId) || "").trim();
+    const requestId = clientRequestId(req);
     if (!requestId) return true;
     return !!state.current && state.current.requestId === requestId;
   }
@@ -2487,18 +2506,55 @@ module.exports.init = function init(ctx) {
     return res.json(core.ok({ status: publicState() }));
   });
 
-  app.post(`${prefix}/client/ready`, (req, res) => { markClient("ready"); emit("client_ready"); return res.json(publicState()); });
-  app.post(`${prefix}/client/audio-started`, (req, res) => { markClient("audio_started"); emit("client_audio_started"); return res.json(core.ok({ current: state.current ? publicItem(state.current) : null })); });
+  app.post(`${prefix}/client/ready`, (req, res) => {
+    markClient("ready");
+    emit("client_ready");
+    return res.json(publicState());
+  });
+
+  app.post(`${prefix}/client/audio-started`, (req, res) => {
+    markClient("audio_started");
+    const requestId = clientRequestId(req);
+    const item = findActiveItemByRequestId(requestId) || state.current || null;
+    const matchedCurrent = !!(requestId && state.current && state.current.requestId === requestId);
+    broadcastSoundState("client_audio_started", { clientEvent: { requestId, matchedCurrent, matchedActive: !!item } });
+    emitSoundBus("client_audio_started", {
+      item,
+      kind: "client",
+      extra: {
+        requestId,
+        matchedCurrent,
+        matchedActive: !!item,
+        mediaType: String((req.body && req.body.mediaType) || (req.query && req.query.mediaType) || ""),
+        mutedFallback: !!((req.body && req.body.mutedFallback) || (req.query && req.query.mutedFallback))
+      }
+    });
+    return res.json(core.ok({ current: state.current ? publicItem(state.current) : null, matchedActive: !!item }));
+  });
+
   app.post(`${prefix}/client/audio-ended`, (req, res) => {
     markClient("audio_ended");
-    emitSoundBus("client_audio_ended", { item: state.current, kind: "client", extra: { requestId: String((req.body && req.body.requestId) || (req.query && req.query.requestId) || "") } });
+    const requestId = clientRequestId(req);
+    const item = findActiveItemByRequestId(requestId) || state.current || null;
+    emitSoundBus("client_audio_ended", { item, kind: "client", extra: { requestId, matchedActive: !!item } });
     if (clientRequestMatchesCurrent(req)) finishCurrent("client_audio_ended");
     return res.json(core.ok({ status: publicState() }));
   });
+
   app.post(`${prefix}/client/error`, (req, res) => {
     markClient("error");
     state.stats.failed += 1;
-    emitSoundBus("client_error", { item: state.current, kind: "client", extra: { requestId: String((req.body && req.body.requestId) || (req.query && req.query.requestId) || "") } });
+    const requestId = clientRequestId(req);
+    const item = findActiveItemByRequestId(requestId) || state.current || null;
+    emitSoundBus("client_error", {
+      item,
+      kind: "client",
+      extra: {
+        requestId,
+        matchedActive: !!item,
+        error: String((req.body && req.body.error) || (req.query && req.query.error) || "client_error")
+      }
+    });
     if (clientRequestMatchesCurrent(req)) finishCurrent("client_error");
     return res.json(core.ok({ status: publicState() }));
   });
