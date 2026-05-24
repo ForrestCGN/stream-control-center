@@ -1,63 +1,54 @@
+# CURRENT_SYSTEM_STATUS
+
+Stand: STEP293 – Discord Media Path Resolver Fix
+Aktualisiert: 2026-05-24T14:20:00Z
+
+## Aktueller Fokus
+
+STEP293 behebt ausschließlich die Discord-Dateiauflösung für Media-Registry-Alert-Dateien (`media/alerts/...`). Der SoundBus-/Queue-/Bundle-Stand aus STEP291 bleibt unverändert stabil.
+
+## Nächster Test
+
+STEP294: V5 Regression Retest nach Discord Resolver Fix.
+
+---
+
 # Current System Status
 
-Stand: STEP291 – SoundBus V5 Regression bestanden mit Discord-Warnung
-Aktualisiert: 2026-05-24T14:10:00Z
+Stand: STEP292 – Discord Media Path/Routing Audit
+Aktualisiert: 2026-05-24T14:15:00Z
 
-## Alert-/Communication-Stand
+## Aktueller Stand
 
-Der Alert-Kommunikations-Audit ist abgeschlossen. Der bestätigte Alert-Stand bleibt:
+- STEP289/289B: SoundBus Event Output und Top-Level-Status sind aktivierbar und getestet.
+- STEP290: SoundBus-Basistests bestanden.
+- STEP291: V5 Real Queue/Bundle Regression mit aktiviertem SoundBus bestanden.
+- STEP292: Discord Media Path/Routing Audit abgeschlossen.
 
-- Communication Bus Helper `0.8.1`
-- Alert Bus Mirror als Diagnose-/Testwerkzeug
-- Alert Timing Diagnostics
-- Alert Overlay Delivery Watchdog
-- Alert Overlay Recovery Clear
-- Communication Debug View mit Snapshot und Normalbetrieb-Check
-- Alert Bus Bridge `_overlay-alerts-v2-bus.html` Version `0.1.1`
-- Nativer Alert Visual Output Mode im Alert-System
-- STEP286 Timing-/Status-Cleanup für native Alert-Outputs
-- STEP287 bestätigter `bus_first` Live-Test
+## Bestätigte Stabilität
 
-## Produktiver Alert-Status
+Der aktivierte SoundBus beschädigt die stabile Sound-/Queue-/Bundle-Reihenfolge nicht:
 
-Das bisherige Alert-System bleibt erhalten. Der native Output Mode ist vorbereitet und live mit `legacy`, `legacy_and_bus` und `bus_first` getestet.
+- Alert-Hauptsound und passende Alert-TTS bleiben zusammen.
+- Fremde SoundAlerts, Mod-/VIP-Sounds und normales TTS rutschen nicht zwischen Alert-Sound und Alert-TTS.
+- `activeBundleLock` ist am Ende leer.
+- Queue ist am Ende leer.
+- SoundBus meldete keine Fehler.
 
-Der sichere Standardmodus bleibt bewusst `legacy`.
+## Offener Nebenbefund
 
-## Sound-System-Stand
+Discord kann Media-Registry-Alert-Dateien aktuell nicht auflösen, wenn sie als `media/alerts/...` an die Discord-Bridge gehen.
 
-Das Sound-System besitzt seit STEP289 einen additiven SoundBus-Event-Ausgang. STEP289B hat den Top-Level-Status `soundBus` in `/api/sound/status` ergänzt. STEP290 hat Basistests bestätigt.
-
-STEP291 hat den großen V5-Real-Queue-/Bundle-Regressionstest mit aktivem `soundBus.enabled = true` bestätigt.
-
-## Bestätigter STEP291-Test
-
-Bestanden:
-
-- SoundBus aktiv.
-- `soundBus.communicationBusAvailable = true`.
-- `soundBus.stats.errors = 0`.
-- V5-Test mit drei Alert-Bundles, SoundAlerts, Real-Mod-Sounds und normaler TTS-Queue durchgeführt.
-- Alert-Hauptsound und passende Alert-TTS blieben zusammen.
-- SoundAlerts/Mod-Sounds/Normal-TTS rutschten nicht zwischen Alert-Hauptsound und passende Alert-TTS.
-- `queuedCount = 0` am Ende.
-- `activeBundleLock = null` am Ende.
-- `currentBundle = null` am Ende.
-- `failed = 0`.
-- `deviceFailed = 0`.
-
-## Nebenbefund
-
-Im V5-Test gab es `discordFailed = 3` mit dem Fehler:
+Beobachteter Fehler:
 
 ```text
 sound nicht gefunden: media/alerts/bits/100-249.mp3
 ```
 
-Das betrifft Discord-Dateipfad-/Media-Registry-Auflösung und wird als separater Folgepunkt behandelt.
+Root Cause laut STEP292: Discord löst derzeit primär gegen `MEDIA_DIR` auf, während Alert-Media-Registry-Dateien unter `htdocs/assets/media/...` liegen. Klassische Sounds/TTS/VIP liegen unter `htdocs/assets/sounds/...` und funktionieren daher eher.
 
-## Nächste Entwicklungsrichtung
+## Nächster Schritt
 
-1. Discord Media Path/Routing Audit für `media/alerts/...` bei Discord-Ausgabe.
-2. Danach entscheiden, ob `soundBus.enabled = true` länger im Testbetrieb bleiben soll.
-3. Danach stufenweise weitere Module über Bus-Status/Events anbinden.
+STEP293 – Discord Media Path Resolver Fix
+
+Ziel: Discord-Bridge soll klassische Sounds und Media-Registry-Assets sicher auflösen, ohne SoundBus, Queue, Bundle-Lock oder Alert-Output-Modi zu ändern.

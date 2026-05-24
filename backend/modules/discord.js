@@ -142,6 +142,8 @@ const GUILD_ID = process.env.DISCORD_GUILD_ID || process.env.GUILD_ID || '';
 const DEFAULT_VOICE_CHANNEL_ID = process.env.DISCORD_VOICE_CHANNEL_ID || process.env.VOICE_CHANNEL_ID || '';
 const API_KEY = process.env.DISCORD_API_KEY || process.env.API_KEY || 'change-me';
 const MEDIA_DIR = process.env.DISCORD_MEDIA_DIR || process.env.MEDIA_DIR || path.join(process.cwd(), 'media');
+const WEBROOT_DIR = process.env.DISCORD_WEBROOT_DIR || process.env.WEBROOT_DIR || path.join(PROJECT_ROOT, 'htdocs');
+const ASSETS_DIR = process.env.DISCORD_ASSETS_DIR || process.env.ASSETS_DIR || path.join(WEBROOT_DIR, 'assets');
 const IDLE_DISCONNECT_MS = Number(process.env.DISCORD_IDLE_DISCONNECT_MS ?? 15000);
 
 // --------------------------------------------------
@@ -247,15 +249,54 @@ function ensureGuildAudioState(guildId) {
   return guildState.get(guildId);
 }
 
+function addMediaFileCandidates(candidates, baseDir, relativeKey) {
+  const base = safeString(baseDir);
+  const raw = safeString(relativeKey).replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!base || !raw || raw.includes('..')) return;
+
+  const resolvedBase = path.resolve(base);
+  const direct = path.resolve(resolvedBase, raw);
+  const tries = [direct];
+  if (!path.extname(raw)) {
+    tries.push(
+      path.resolve(resolvedBase, `${raw}.mp3`),
+      path.resolve(resolvedBase, `${raw}.wav`),
+      path.resolve(resolvedBase, `${raw}.ogg`)
+    );
+  }
+
+  for (const candidate of tries) {
+    if (!candidate.toLowerCase().startsWith(resolvedBase.toLowerCase() + path.sep.toLowerCase()) && candidate.toLowerCase() !== resolvedBase.toLowerCase()) {
+      continue;
+    }
+    candidates.push(candidate);
+  }
+}
+
 function resolveMediaFile(key) {
-  const cleanKey = safeString(key);
-  const tries = [
-    path.join(MEDIA_DIR, cleanKey),
-    path.join(MEDIA_DIR, `${cleanKey}.mp3`),
-    path.join(MEDIA_DIR, `${cleanKey}.wav`),
-    path.join(MEDIA_DIR, `${cleanKey}.ogg`),
-  ];
-  return tries.find((p) => fs.existsSync(p));
+  const cleanKey = safeString(key).replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!cleanKey || cleanKey.includes('..')) return '';
+
+  const tries = [];
+  addMediaFileCandidates(tries, MEDIA_DIR, cleanKey);
+
+  // Media-Registry Alerts liefern Pfade wie "media/alerts/bits/100-249.mp3".
+  // MEDIA_DIR zeigt im Live-System auf htdocs/assets/sounds; diese Dateien liegen aber unter htdocs/assets/media.
+  if (cleanKey.startsWith('media/')) {
+    addMediaFileCandidates(tries, ASSETS_DIR, cleanKey);
+  }
+
+  // Webpfade aus Modulen/Configs dürfen ebenfalls sauber aufgelöst werden.
+  if (cleanKey.startsWith('assets/')) {
+    addMediaFileCandidates(tries, WEBROOT_DIR, cleanKey);
+  }
+
+  if (cleanKey.startsWith('sounds/')) {
+    addMediaFileCandidates(tries, ASSETS_DIR, cleanKey);
+  }
+
+  const unique = Array.from(new Set(tries));
+  return unique.find((p) => fs.existsSync(p)) || '';
 }
 
 async function connectToVoiceChannel(guild, channelId) {
@@ -590,6 +631,8 @@ function buildStatus() {
     guildId: GUILD_ID || null,
     defaultVoiceChannelId: DEFAULT_VOICE_CHANNEL_ID || null,
     mediaDir: MEDIA_DIR,
+    webrootDir: WEBROOT_DIR,
+    assetsDir: ASSETS_DIR,
     soundsCount: listAvailableSounds().length,
     ffmpeg: getFfmpegSummary(),
     audio: GUILD_ID ? getAudioStateSummary(GUILD_ID) : null,
@@ -679,12 +722,16 @@ function summarizeDiscordConfig() {
     projectRoot: PROJECT_ROOT,
     configDir,
     mediaDir: MEDIA_DIR,
+    webrootDir: WEBROOT_DIR,
+    assetsDir: ASSETS_DIR,
     toolsConfigPath,
     files: {
       toolsConfig: fileCheck('tools_config', toolsConfigPath, false),
       discordChannels: fileCheck('discord_channels', channelsPath, false),
       discordMessages: fileCheck('discord_messages', messagesPath, false),
       mediaDir: dirCheck('media_dir', MEDIA_DIR, false),
+      webrootDir: dirCheck('webroot_dir', WEBROOT_DIR, false),
+      assetsDir: dirCheck('assets_dir', ASSETS_DIR, false),
     },
     env: {
       tokenConfigured: Boolean(TOKEN),
@@ -709,6 +756,8 @@ function buildDiscordSettings() {
     guildIdConfigured: Boolean(GUILD_ID),
     defaultVoiceChannelConfigured: Boolean(DEFAULT_VOICE_CHANNEL_ID),
     mediaDir: MEDIA_DIR,
+    webrootDir: WEBROOT_DIR,
+    assetsDir: ASSETS_DIR,
     soundsCount: listAvailableSounds().length,
     ffmpeg: getFfmpegSummary(),
     audio,

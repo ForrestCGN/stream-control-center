@@ -1,40 +1,38 @@
 # Next Steps
 
-## Sicherer Stand nach STEP291
+Stand: 2026-05-24T14:20:00Z
 
-- Alert-Visual-Migration ist vorbereitet und getestet.
-- Alert-Standard bleibt `alertOutput.mode = legacy`.
-- `legacy`, `legacy_and_bus` und `bus_first` wurden live bestätigt.
-- `bus_only` ist vorbereitet, aber nicht als Produktiv-/Normalmodus freigegeben.
-- Sound-System besitzt einen additiven Bus-Event-Ausgang.
-- `/api/sound/status` enthält sichtbaren Top-Level-Block `soundBus`.
-- SoundBus-Basistests sind bestanden.
-- SoundBus V5 Queue-/Bundle-Regression ist bestanden mit Discord-Warnung.
-- Sound-System bleibt Master für Audio/Media, Queue, Bundles und Ausgabe.
+## STEP294 – V5 Regression Retest nach Discord Resolver Fix
 
-## Wichtigster offener Punkt
+Ziel:
 
-### STEP292 – Discord Media Path/Routing Audit
+- V5 Real Queue/Bundle Regression erneut ausführen.
+- Prüfen, dass der Discord-Fehler aus STEP291/STEP292 behoben ist.
+- Prüfen, dass SoundBus/Queue/Bundle-Reihenfolge unverändert stabil bleiben.
 
-Im STEP291-Test gab es:
+Test:
 
-```text
-discordFailed = 3
-sound nicht gefunden: media/alerts/bits/100-249.mp3
+```cmd
+tools\easy\05_SOUND_QUEUE_FULL_ORDER_TRACE_TEST_V5_REAL_MOD.cmd
 ```
 
-Ziel von STEP292:
+Erwartung:
 
-- Prüfen, wie Discord-Routing Dateien auflöst.
-- Media-Registry-Pfade `media/alerts/...` für Discord korrekt behandeln.
-- Kein Umbau der Queue-/Bundle-Logik.
-- Kein Umbau des SoundBus, solange nicht zwingend.
-- Keine Caller-Module ändern, bevor der Pfad-Resolver verstanden ist.
+```text
+discordFailed = 0
+soundBus.errors = 0
+queuedCount = 0
+activeBundleLock = leer
+currentBundle = leer
+failed = 0
+deviceFailed = 0
+Alert-Hauptsound + passende Alert-TTS bleiben zusammen
+```
 
-## Danach
+Nicht ändern:
 
-Nach STEP292:
-
-1. entscheiden, ob `soundBus.enabled = true` im längeren Testbetrieb bleiben darf,
-2. Debug View/Dashboard um SoundBus-Status ergänzen,
-3. Module stufenweise busfähig machen, ohne direkte Audio-Kontrolle aus dem Sound-System herauszulösen.
+- keine Sound-Queue-Logik
+- keine Bundle-/`activeBundleLock`-Logik
+- keine SoundBus-Logik
+- keine Alert-Output-Modi
+- keine DB-Migration

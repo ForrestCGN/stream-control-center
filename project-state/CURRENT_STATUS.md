@@ -1,44 +1,36 @@
 # Current Status – stream-control-center
 
-Stand: STEP291 – SoundBus V5 Regression bestanden mit Discord-Warnung
-Aktualisiert: 2026-05-24T14:10:00Z
+Stand: STEP293 – Discord Media Path Resolver Fix
+Aktualisiert: 2026-05-24T14:20:00Z
 
-## Aktueller Fokus
+## Zusammenfassung
 
-Alert-Visuals sind busfähig vorbereitet und getestet. Der sichere Alert-Standard bleibt `alertOutput.mode = legacy`.
+Der SoundBus-Ausbau ist bis einschließlich STEP291 stabil getestet. STEP292 hat den Discord-Pfadfehler analysiert. STEP293 behebt die Discord-Dateiauflösung für Media-Registry-Alert-Dateien.
 
-Das Sound-System ist als zentrale Audio-/Medien-Schicht in Arbeit. STEP288 analysierte den Ist-Stand, STEP289 baute den additiven SoundBus-Ausgang ein, STEP289B korrigierte die Statusanzeige, STEP290 bestätigte Basistests und STEP291 bestätigte den großen V5-Regressionstest.
+## Bestätigt
 
-## Bestätigter SoundBus-Stand
+- SoundBus Top-Level-Status sichtbar.
+- SoundBus aktivierbar.
+- Einzel-Sound-Test bestanden.
+- Alert-Bundle-Test bestanden.
+- V5 Real Queue/Bundle Regression mit SoundBus bestanden.
+- Keine SoundBus-Fehler im V5-Test.
+- Queue/Bundle/`activeBundleLock` am Ende sauber.
 
-- `backend/modules/sound_system.js` läuft auf `step = 289`.
-- `/api/sound/status` enthält Top-Level `soundBus`.
-- `soundBus.enabled = true` wurde erfolgreich getestet.
-- SoundBus erzeugt Events.
-- `soundBus.stats.errors = 0`.
+## Neu in STEP293
 
-## STEP291 V5-Regression
+`backend/modules/discord.js` löst jetzt zusätzlich auf:
 
-Bestätigt:
+```text
+media/...  -> htdocs/assets/media/...
+assets/... -> htdocs/assets/...
+sounds/... -> htdocs/assets/sounds/...
+```
 
-- drei Alert-Bundles mit Hauptsound + TTS
-- SoundAlerts hinter aktiven Alert-Bundles
-- Real-Mod-Sounds hinter aktiven Alert-Bundles
-- normale TTS-Queue drängt sich nicht in Alert-Bundles
-- Queue am Ende leer
-- `activeBundleLock` am Ende leer
-- `currentBundle` am Ende leer
-- `failed = 0`
-- `deviceFailed = 0`
+Der Fix betrifft nur Discord-Dateipfade. Sound-System-Queue, Bundles und SoundBus bleiben unverändert.
 
-## Offener Nebenbefund
+## Nächster Schritt
 
-- `discordFailed = 3`
-- Fehler: `sound nicht gefunden: media/alerts/bits/100-249.mp3`
-- wahrscheinlich Discord-Pfad-/Resolver-Thema bei Media-Registry-Sounds
+STEP294 – V5 Regression Retest nach Discord Resolver Fix.
 
-## Bewertung
-
-SoundBus ist als additiver Event-Ausgang stabil genug für weitere Tests.
-
-Die gesamte Sound-Schicht ist noch nicht vollständig produktiv freigegeben, solange der Discord-Pfad-Befund nicht geprüft wurde.
+Ziel: Bestätigen, dass `discordFailed = 0` ist und die SoundBus-/Bundle-Reihenfolge weiter stabil bleibt.

@@ -71,3 +71,19 @@ Datum: 2026-05-24T13:40:00Z
 - Schutzregeln für Queue, Bundles, activeBundleLock, Dedupe, Cooldowns und Interrupts dokumentiert.
 - Sicheren Migrationspfad festgelegt: Sound-System bleibt Master, Bus zuerst nur Event-/Status-Schicht.
 - Keine Code-Änderung.
+
+## STEP292 – Discord Media Path/Routing Audit (2026-05-24T14:15:00Z)
+
+- Discord-Nebenbefund aus STEP291 analysiert.
+- Root Cause dokumentiert: Discord sucht `media/alerts/...` in der falschen Pfadwelt.
+- Empfohlenen STEP293-Fix geplant: sichere Resolver-Erweiterung für `htdocs/assets/sounds` und `htdocs/assets`.
+- Keine Codeänderung.
+- Keine Queue-/Bundle-/SoundBus-Änderung.
+
+## STEP293 – Discord Media Path Resolver Fix (2026-05-24T14:20:00Z)
+
+- `backend/modules/discord.js` erweitert um robuste Pfadauflösung für Media-Registry-Assets.
+- `media/...` wird jetzt relativ zu `htdocs/assets/...` aufgelöst, z. B. `htdocs/assets/media/alerts/...`.
+- Status-/Config-Ausgaben zeigen `webrootDir` und `assetsDir`.
+- Keine Änderung an Sound-Queue, Alert-Bundles, SoundBus oder Alert-Output.
+- Syntaxcheck `node --check backend/modules/discord.js` erfolgreich.
