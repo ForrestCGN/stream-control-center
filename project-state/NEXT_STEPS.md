@@ -14,3 +14,10 @@
 1. Diagnose-Snapshot erzeugen.
 2. Snapshot sichern/kopieren.
 3. Erst danach Overlay Recovery Clear oder OBS-Reload ausführen.
+
+
+## Nach STEP282
+
+- Neue Bridge-Overlay-Quelle separat testen: `/overlays/_overlay-alerts-v2-bus.html?debug=1`.
+- Für Bus-Test den Alert Bus Mirror temporär aktivieren.
+- Danach entscheiden, ob STEP283 einen expliziten Bus-Produktivmodus im Alert-System bekommt.

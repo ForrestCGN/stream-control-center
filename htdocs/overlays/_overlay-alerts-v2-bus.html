@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ForrestCGN Alerts V2 Bus Bridge</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+    iframe {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      border: 0;
+      background: transparent;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .debug-panel {
+      position: fixed;
+      left: 14px;
+      bottom: 14px;
+      z-index: 999999;
+      width: min(720px, calc(100vw - 28px));
+      padding: 10px 12px;
+      border: 1px solid rgba(57,230,255,.34);
+      border-radius: 14px;
+      background: rgba(5,7,22,.82);
+      box-shadow: 0 0 24px rgba(195,92,255,.22);
+      color: #eaf2ff;
+      font: 12px/1.38 Inter, "Segoe UI", Arial, sans-serif;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+    body[data-debug="1"] .debug-panel { opacity: 1; }
+    .debug-panel b { color:#8ff4ff; }
+    .debug-grid { display:grid; grid-template-columns:128px 1fr; gap:4px 8px; margin-top:6px; }
+    .debug-grid span:nth-child(odd) { color:#aab4d4; }
+    .ok { color:#8df5c8; }
+    .warn { color:#ffd36a; }
+    .bad { color:#fb7185; }
+    code { color:#dff7ff; word-break:break-all; font-family:"Cascadia Mono", Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <iframe id="alertFrame" src="/overlays/_overlay-alerts-v2.html?preview=1&busBridge=1" allow="autoplay"></iframe>
+  <div class="debug-panel" id="debugPanel">
+    <b>Alert Overlay Bus Bridge</b>
+    <div class="debug-grid">
+      <span>Status</span><code id="dbgStatus">boot</code>
+      <span>WS</span><code id="dbgWs">-</code>
+      <span>Bus</span><code id="dbgBus">-</code>
+      <span>Legacy</span><code id="dbgLegacy">-</code>
+      <span>Aktueller Alert</span><code id="dbgAlert">-</code>
+      <span>Dedup</span><code id="dbgDedup">-</code>
+      <span>ACK</span><code id="dbgAck">-</code>
+      <span>Letzte Msg</span><code id="dbgMsg">-</code>
+    </div>
+  </div>
+<script>
+(() => {
+  'use strict';
+
+  const MODULE_META = {
+    name: 'overlay_alerts_v2_bus_bridge',
+    version: '0.1.0',
+    description: 'Alert overlay bus bridge with legacy fallback and deduplication'
+  };
+
+  const CLIENT_ID = 'overlay_alerts_v2_bus_bridge';
+  const CLIENT_TYPE = 'overlay';
+  const CLIENT_MODULE = 'alert_overlay';
+  const CLIENT_MODE = 'production_bridge';
+  const RECONNECT_MS = 1500;
+  const HEARTBEAT_MS = 5000;
+  const DEDUP_TTL_MS = 120000;
+
+  const qs = new URLSearchParams(location.search);
+  const DEBUG = qs.has('debug') || qs.get('debug') === '1';
+  const BUS_ENABLED = qs.get('bus') !== '0';
+  const LEGACY_ENABLED = qs.get('legacy') !== '0';
+  if (DEBUG) document.body.dataset.debug = '1';
+
+  const frame = document.getElementById('alertFrame');
+  const dbgStatus = document.getElementById('dbgStatus');
+  const dbgWs = document.getElementById('dbgWs');
+  const dbgBus = document.getElementById('dbgBus');
+  const dbgLegacy = document.getElementById('dbgLegacy');
+  const dbgAlert = document.getElementById('dbgAlert');
+  const dbgDedup = document.getElementById('dbgDedup');
+  const dbgAck = document.getElementById('dbgAck');
+  const dbgMsg = document.getElementById('dbgMsg');
+
+  let ws = null;
+  let reconnectTimer = null;
+  let heartbeatTimer = null;
+  let sessionId = '';
+  let connectCount = 0;
+  let disconnectCount = 0;
+  let currentAlertId = '';
+  let currentSource = '';
+  let currentTimer = null;
+  let legacyFinishedSent = false;
+  let busFinishedEventIds = new Set();
+  let dedup = new Map();
+  let stats = {
+    busPlay: 0,
+    legacyPlay: 0,
+    clear: 0,
+    duplicate: 0,
+    busAck: 0,
+    legacyAck: 0
+  };
+
+  function nowIso() { return new Date().toISOString(); }
+  function session() { return `aob_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`; }
+  function setText(el, value, cls) {
+    if (!el) return;
+    el.textContent = String(value ?? '');
+    el.className = cls || '';
+  }
+  function frameReady() { return frame && frame.contentWindow; }
+  function postToRenderer(event, alert) {
+    if (!frameReady()) return false;
+    frame.contentWindow.postMessage({ op: 'cgn_alert_preview', event, alert }, '*');
+    return true;
+  }
+  function cleanOldDedup() {
+    const now = Date.now();
+    for (const [key, item] of dedup.entries()) {
+      if (!item || now - Number(item.at || 0) > DEDUP_TTL_MS) dedup.delete(key);
+    }
+  }
+  function alertKey(alert, fallback) {
+    const id = alert && (alert.id || alert.eventUid || alert.event_uid || alert.alertId || alert.alert_id);
+    if (id) return String(id);
+    const source = alert && (alert.source || alert.provider || 'alert');
+    const type = alert && (alert.type || alert.type_key || 'generic');
+    const user = alert && (alert.userLogin || alert.userDisplayName || alert.user || '');
+    const created = alert && (alert.createdAt || alert.created_at || alert.startedAt || alert.started_at || '');
+    return String(fallback || `${source}:${type}:${user}:${created}`);
+  }
+  function normalizeAlert(alert) {
+    const out = Object.assign({}, alert || {});
+    out.id = out.id || out.eventUid || out.event_uid || out.alertId || out.alert_id || `bridge_${Date.now().toString(36)}`;
+    out.durationMs = Math.max(1000, Number(out.durationMs || out.duration_ms || 7000) || 7000);
+    // The inner renderer runs in preview mode. Remove local audio fields so the sound system remains the only sound path.
+    delete out.soundUrl;
+    delete out.sound_url;
+    out.localAudioDisabled = true;
+    out.soundHandledBySoundSystem = true;
+    out.sound_system_handled = true;
+    out.meta = Object.assign({}, out.meta || {}, {
+      bridge: MODULE_META.name,
+      bridgeVersion: MODULE_META.version,
+      localAudioDisabledByBridge: true
+    });
+    return out;
+  }
+  function extractBusAlert(msg) {
+    const payload = msg && msg.payload && typeof msg.payload === 'object' ? msg.payload : {};
+    const alert = payload.alert && typeof payload.alert === 'object' ? payload.alert : payload;
+    const out = normalizeAlert(alert);
+    out.id = out.id || payload.eventUid || msg.id;
+    return out;
+  }
+  function isBusEvent(msg) {
+    return !!(msg && msg.id && msg.channel && msg.action && msg.payload && typeof msg.payload === 'object');
+  }
+  function updateDebug() {
+    setText(dbgWs, `connects=${connectCount} disconnects=${disconnectCount} session=${sessionId || '-'}`);
+    setText(dbgBus, `enabled=${BUS_ENABLED} play=${stats.busPlay} ack=${stats.busAck}`);
+    setText(dbgLegacy, `enabled=${LEGACY_ENABLED} play=${stats.legacyPlay} ack=${stats.legacyAck}`);
+    setText(dbgAlert, currentAlertId ? `${currentAlertId} via ${currentSource}` : '-');
+    setText(dbgDedup, `keys=${dedup.size} duplicate=${stats.duplicate}`);
+  }
+  function wsSend(payload) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    try { ws.send(JSON.stringify(payload)); return true; }
+    catch (_) { return false; }
+  }
+  function sendHello() {
+    if (LEGACY_ENABLED) {
+      wsSend({ op: 'alert_system', client: 'overlay', event: 'hello', bridge: MODULE_META.name, version: MODULE_META.version });
+    }
+    if (BUS_ENABLED) {
+      wsSend({
+        type: 'hello',
+        clientId: CLIENT_ID,
+        clientType: CLIENT_TYPE,
+        module: CLIENT_MODULE,
+        name: 'Alert Overlay Bus Bridge',
+        mode: CLIENT_MODE,
+        version: MODULE_META.version,
+        capabilities: [
+          'visual.alert.play',
+          'visual.alert.clear',
+          'visual.alert.resync',
+          'alert.legacy.fallback',
+          'ack',
+          'heartbeat'
+        ],
+        meta: {
+          sessionId,
+          legacyFallback: LEGACY_ENABLED,
+          renderer: '_overlay-alerts-v2.html?preview=1',
+          localAudioDisabled: true,
+          userAgent: navigator.userAgent || ''
+        }
+      });
+    }
+  }
+  function heartbeat() {
+    if (!BUS_ENABLED) return;
+    wsSend({
+      type: 'heartbeat',
+      clientId: CLIENT_ID,
+      clientType: CLIENT_TYPE,
+      module: CLIENT_MODULE,
+      version: MODULE_META.version,
+      capabilities: ['visual.alert.play','visual.alert.clear','visual.alert.resync','ack','heartbeat'],
+      status: 'online',
+      sessionId,
+      ts: nowIso()
+    });
+  }
+  function startHeartbeat() {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = setInterval(heartbeat, HEARTBEAT_MS);
+    heartbeat();
+  }
+  function scheduleReconnect() {
+    if (reconnectTimer) return;
+    reconnectTimer = setTimeout(connect, RECONNECT_MS);
+  }
+  function connect() {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+    clearInterval(heartbeatTimer);
+    sessionId = session();
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}`);
+    setText(dbgStatus, 'verbinde', 'warn');
+    updateDebug();
+
+    ws.addEventListener('open', () => {
+      connectCount += 1;
+      setText(dbgStatus, 'verbunden', 'ok');
+      sendHello();
+      startHeartbeat();
+      updateDebug();
+    });
+    ws.addEventListener('message', (ev) => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch (_) { return; }
+      handleMessage(msg);
+    });
+    ws.addEventListener('close', () => {
+      disconnectCount += 1;
+      clearInterval(heartbeatTimer);
+      setText(dbgStatus, 'getrennt · reconnect', 'bad');
+      updateDebug();
+      scheduleReconnect();
+    });
+    ws.addEventListener('error', () => {
+      setText(dbgStatus, 'websocket fehler', 'bad');
+      try { ws.close(); } catch (_) { scheduleReconnect(); }
+    });
+  }
+  function sendBusAck(eventId, status, details) {
+    const id = String(eventId || '').trim();
+    if (!id || !BUS_ENABLED) return false;
+    const ok = wsSend({
+      type: 'ack',
+      eventId: id,
+      clientId: CLIENT_ID,
+      status: String(status || 'received'),
+      details: Object.assign({
+        sessionId,
+        bridge: MODULE_META.name,
+        bridgeVersion: MODULE_META.version,
+        currentAlertId,
+        legacyFallback: LEGACY_ENABLED
+      }, details || {})
+    });
+    if (ok) {
+      stats.busAck += 1;
+      setText(dbgAck, `bus ${status} ${id}`);
+      updateDebug();
+    }
+    return ok;
+  }
+  function sendLegacyFinished(reason) {
+    if (!LEGACY_ENABLED || !currentAlertId || legacyFinishedSent) return false;
+    legacyFinishedSent = true;
+    const ok = wsSend({ op: 'alert_system', client: 'overlay', event: 'finished', alertId: currentAlertId, reason: reason || 'finished', bridge: MODULE_META.name });
+    if (ok) {
+      stats.legacyAck += 1;
+      setText(dbgAck, `legacy finished ${currentAlertId}`);
+      updateDebug();
+    }
+    return ok;
+  }
+  function finishBusEvents(reason) {
+    if (!BUS_ENABLED) return;
+    for (const eventId of Array.from(busFinishedEventIds)) {
+      sendBusAck(eventId, 'finished', { phase: 'display_finished', reason: reason || 'finished' });
+      busFinishedEventIds.delete(eventId);
+    }
+  }
+  function clearCurrent(reason, sendAck) {
+    clearTimeout(currentTimer);
+    currentTimer = null;
+    postToRenderer('clear');
+    if (sendAck) {
+      sendLegacyFinished(reason || 'clear');
+      finishBusEvents(reason || 'clear');
+    }
+    currentAlertId = '';
+    currentSource = '';
+    legacyFinishedSent = false;
+    busFinishedEventIds.clear();
+    updateDebug();
+  }
+  function renderAlert(alert, source, busEventId) {
+    cleanOldDedup();
+    const normalized = normalizeAlert(alert);
+    const key = alertKey(normalized, busEventId);
+    const seen = dedup.get(key);
+    if (seen && Date.now() - seen.at < DEDUP_TTL_MS) {
+      stats.duplicate += 1;
+      setText(dbgMsg, `duplicate ${source} ${key}`);
+      if (busEventId) {
+        sendBusAck(busEventId, 'duplicate', { phase: 'dedup_duplicate', originalSource: seen.source || '' });
+        sendBusAck(busEventId, 'finished', { phase: 'dedup_duplicate_finished', originalSource: seen.source || '' });
+      }
+      updateDebug();
+      return;
+    }
+
+    clearCurrent('replace', false);
+    dedup.set(key, { at: Date.now(), source });
+    currentAlertId = String(normalized.id || key);
+    currentSource = source;
+    legacyFinishedSent = false;
+    busFinishedEventIds.clear();
+    if (busEventId) busFinishedEventIds.add(String(busEventId));
+
+    if (busEventId) sendBusAck(busEventId, 'rendering', { phase: 'before_renderer_post' });
+    postToRenderer('render', normalized);
+    if (busEventId) sendBusAck(busEventId, 'rendered', { phase: 'renderer_posted' });
+
+    const duration = Math.max(1000, Number(normalized.durationMs || 7000) || 7000);
+    currentTimer = setTimeout(() => {
+      sendLegacyFinished('finished');
+      finishBusEvents('finished');
+      currentAlertId = '';
+      currentSource = '';
+      legacyFinishedSent = false;
+      busFinishedEventIds.clear();
+      updateDebug();
+    }, duration + 60);
+
+    setText(dbgStatus, `zeige alert via ${source}`, 'ok');
+    setText(dbgMsg, `${source} play ${currentAlertId}`);
+    updateDebug();
+  }
+  function handleMessage(msg) {
+    if (!msg || typeof msg !== 'object') return;
+
+    if (msg.type === 'hello_ack') {
+      setText(dbgStatus, `bus registriert ${msg.bus || 'cgn'}`, 'ok');
+      return;
+    }
+    if (msg.type === 'heartbeat_ack') return;
+    if (msg.type === 'ack_ack') {
+      setText(dbgAck, `ack_ack ${msg.status || ''} ${msg.eventId || ''}`);
+      return;
+    }
+
+    if (isBusEvent(msg)) {
+      if (!BUS_ENABLED) return;
+      const channel = String(msg.channel || '');
+      const action = String(msg.action || '');
+      if (channel === 'visual.alert' && action === 'clear') {
+        stats.clear += 1;
+        sendBusAck(msg.id, 'received', { phase: 'clear_received' });
+        clearCurrent('bus_clear', false);
+        sendBusAck(msg.id, 'finished', { phase: 'clear_finished' });
+        return;
+      }
+      if (channel === 'visual.alert' && (action === 'play' || action === 'resync')) {
+        stats.busPlay += 1;
+        sendBusAck(msg.id, 'received', { phase: 'event_received', action });
+        renderAlert(extractBusAlert(msg), `bus:${action}`, msg.id);
+        return;
+      }
+      return;
+    }
+
+    if (msg.op === 'alert_system') {
+      if (!LEGACY_ENABLED) return;
+      if (msg.event === 'play' && msg.alert) {
+        stats.legacyPlay += 1;
+        renderAlert(msg.alert, 'legacy', '');
+        return;
+      }
+      if (msg.event === 'clear') {
+        stats.clear += 1;
+        clearCurrent('legacy_clear', false);
+        return;
+      }
+    }
+  }
+
+  window.addEventListener('beforeunload', () => {
+    clearInterval(heartbeatTimer);
+    clearTimeout(reconnectTimer);
+    clearTimeout(currentTimer);
+    try { if (ws && ws.readyState === WebSocket.OPEN) ws.close(); } catch (_) {}
+  });
+
+  frame.addEventListener('load', () => {
+    setText(dbgMsg, 'renderer geladen');
+    updateDebug();
+  });
+
+  connect();
+})();
+</script>
+</body>
+</html>

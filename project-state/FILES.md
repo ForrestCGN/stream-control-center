@@ -14,3 +14,9 @@
 
 - `backend/modules/alert_system.js`
 - `backend/modules/communication_bus.js`
+
+
+## STEP282
+
+- `htdocs/overlays/_overlay-alerts-v2-bus.html` — optionale Alert-Overlay-Bus-Bridge mit Legacy-Fallback.
+- `project-state/STEP282_ALERT_OVERLAY_BUS_BRIDGE.md` — Dokumentation und Testablauf.
