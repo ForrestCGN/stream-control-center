@@ -1,0 +1,59 @@
+{
+  "enabled": true,
+  "retentionDays": 30,
+  "maxMemoryEntries": 500,
+  "writeToFile": false,
+  "writeToDatabase": false,
+  "file": {
+    "enabled": false,
+    "dir": "",
+    "name": "audit.log.jsonl",
+    "rotateDaily": false
+  },
+  "maskPayloads": true,
+  "logPayloadByDefault": false,
+  "defaultLevel": "info",
+  "defaultCategory": "system",
+  "defaultResult": "ok",
+  "allowedLevels": [
+    "debug",
+    "info",
+    "warn",
+    "error",
+    "security"
+  ],
+  "allowedCategories": [
+    "system",
+    "security",
+    "api",
+    "dashboard",
+    "communication",
+    "overlay",
+    "alert",
+    "sound",
+    "tts",
+    "vip",
+    "streamerbot",
+    "obs",
+    "discord",
+    "twitch",
+    "database",
+    "config",
+    "error"
+  ],
+  "allowedResults": [
+    "ok",
+    "failed",
+    "denied",
+    "ignored",
+    "skipped",
+    "queued",
+    "started",
+    "finished",
+    "timeout",
+    "warning"
+  ],
+  "detailsMaxDepth": 6,
+  "detailsMaxArrayLength": 50,
+  "detailsMaxStringLength": 500
+}

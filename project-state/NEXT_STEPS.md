@@ -1,12 +1,19 @@
 # NEXT_STEPS
 
+## Nach STEP278D
+
+1. Backend nach Deploy starten und prüfen, dass bestehende Module unverändert laden.
+2. Danach STEP278E planen: Audit API Status/Recent ohne produktive Pflichtintegration.
+3. Danach STEP278F planen: Communication Bus nutzt Security Context + Audit optional.
+4. Erst später Dashboard-Systemlog und DB-Migration planen.
+5. Keine produktive DB-Schreibpflicht aktivieren, bevor Schema und Dashboard sauber geplant sind.
+
 ## Nach STEP278C
 
 1. Backend nach Deploy starten und prüfen, dass bestehende Module unverändert laden.
-2. `node --check backend/modules/helpers/helper_security_context.js` ist im ZIP-Bau geprüft.
-3. Danach STEP278D planen: Audit Log Helper mit Retention und secretsicherer Maskierung.
-4. Erst danach Bus-/API-/Dashboard-Integration planen.
-5. Keine produktive Zugriffssperre aktivieren, bevor Dashboard-/API-Rollen final geplant sind.
+2. Danach STEP278D planen: Audit Log Helper mit Retention und secretsicherer Maskierung.
+3. Erst danach Bus-/API-/Dashboard-Integration planen.
+4. Keine produktive Zugriffssperre aktivieren, bevor Dashboard-/API-Rollen final geplant sind.
 
 ## Nach STEP278B
 

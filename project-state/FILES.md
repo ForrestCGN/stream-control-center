@@ -1,5 +1,22 @@
 # FILES
 
+## STEP278D
+
+Added:
+
+- `backend/modules/helpers/helper_audit_log.js`
+- `config/audit_log.json`
+- `docs/backend/AUDIT_LOG_HELPER.md`
+- `project-state/STEP278D_AUDIT_LOG_HELPER.md`
+
+Updated:
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+
 ## STEP278C
 
 Added:

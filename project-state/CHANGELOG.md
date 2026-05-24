@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## STEP278D
+
+- Added `backend/modules/helpers/helper_audit_log.js`.
+- Added `config/audit_log.json`.
+- Added Audit Log helper documentation.
+- Prepared central audit entries, memory buffer, retention, optional file sink and recent-log filtering.
+- Uses `helper_security_context.js` for context snapshots and sensitive value masking.
+- No production module, API route, dashboard page or database schema was changed.
+
 ## STEP278C
 
 - Added `backend/modules/helpers/helper_security_context.js`.

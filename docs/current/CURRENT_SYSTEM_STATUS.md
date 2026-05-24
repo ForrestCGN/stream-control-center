@@ -1,5 +1,34 @@
 # Current System Status
 
+## STEP278D - Audit Log Helper Core
+
+Der Audit Log Helper Core ist vorbereitet.
+
+Neu:
+
+- `backend/modules/helpers/helper_audit_log.js`
+- `config/audit_log.json`
+- `docs/backend/AUDIT_LOG_HELPER.md`
+- `project-state/STEP278D_AUDIT_LOG_HELPER.md`
+
+Der Helper bietet:
+
+- zentrale Audit-Log-Einträge
+- Memory Buffer
+- Retention-Vorbereitung
+- optionale File-Sink-Vorbereitung
+- Recent-Log-Filter
+- Child Logger mit Defaults
+- Nutzung von `helper_security_context.js` für Kontext und Maskierung
+
+Wichtig:
+
+- Noch keine produktive Modul-Integration.
+- Keine API-Route.
+- Keine Dashboard-Seite.
+- Keine SQLite-/MariaDB-Migration.
+- Bestehende Systeme bleiben produktiv unverändert.
+
 ## STEP278C - Security Context Helper Core
 
 Der Security Context Helper Core ist vorbereitet.
