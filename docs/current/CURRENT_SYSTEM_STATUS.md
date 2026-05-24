@@ -1,17 +1,59 @@
 # Current System Status
 
-## STEP278P - Communication Bus Watchdog-Recovery-Test
+## STEP278Q - Communication Bus Debug View
 
-Der Communication Bus Watchdog kann jetzt zwischen aktuellen Problemen und erfolgreich recovered Events unterscheiden.
-
-Geändert:
-
-- `backend/modules/communication_bus.js`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+Der Communication Bus besitzt jetzt eine reine Browser-Diagnoseansicht, damit Status, Clients, Events, Issues, Watchdog und Recovery lesbar geprüft werden können.
 
 Neu:
 
-- `project-state/STEP278P_WATCHDOG_RECOVERY_TEST.md`
+- `htdocs/public/tools/communication_debug_view.html`
+- `project-state/STEP278Q_COMMUNICATION_DEBUG_VIEW.md`
+
+Geändert:
+
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+
+Tool-Version:
+
+```text
+communication_debug_view v0.1.0 / STEP278Q
+```
+
+URL:
+
+```text
+http://127.0.0.1:8080/public/tools/communication_debug_view.html
+```
+
+Die Seite nutzt bestehende APIs:
+
+- `/api/communication/status`
+- `/api/communication/watchdog`
+- `/api/communication/watchdog?track=1`
+- `/api/communication/watchdog?includeRecovered=1`
+- `/api/communication/watchdog?includeRecovered=1&trackRecovered=1`
+- `/api/communication/replay?clientId=overlay_master_test&includeAckRequired=1`
+- `/api/communication/reset?confirm=1`
+- `/api/communication/reset?confirm=1&clients=1`
+
+Wichtig:
+
+- Keine Backend-Codeänderung.
+- Keine neue API.
+- Keine Produktivmigration.
+- Kein automatischer Watchdog-Timer.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Kein Ersatz von `broadcastWS`.
+- Keine Dashboard-/Auth-/Rollenintegration.
+- Keine Datenbankmigration.
+
+## STEP278P - Communication Bus Watchdog-Recovery-Test
+
+Der Watchdog unterscheidet aktuelle Probleme von recovered Events.
 
 Version:
 
@@ -19,202 +61,8 @@ Version:
 communication_bus v0.6.0 / STEP278P
 ```
 
-Erweiterte Watchdog-Route:
+Route:
 
 ```text
 http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1
 ```
-
-Optionales Recovery-Tracking:
-
-```text
-http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1&trackRecovered=1
-```
-
-Funktionen:
-
-- `ack_missing` wird nicht mehr gemeldet, wenn ein Event inzwischen ACKs besitzt.
-- `event_not_delivered` wird nicht mehr als aktuelles Problem gemeldet, wenn ein späterer Replay/ACK das Event bestätigt hat.
-- mit `includeRecovered=1` erscheinen solche Fälle separat unter `recovered[]`.
-- mit `trackRecovered=1` kann Recovery bewusst als historischer Diagnosepunkt gespeichert werden.
-
-Wichtig:
-
-- Historische Issues werden nicht automatisch gelöscht.
-- Kein automatischer Watchdog-Timer.
-- Keine Produktivmigration.
-- Keine Alert-/Sound-/TTS-/VIP-Integration.
-- Kein Ersatz von `broadcastWS`.
-- Keine Dashboard-Seite.
-- Keine Datenbankmigration.
-
-## STEP278O - Communication Bus Issue-/Watchdog-Test
-
-Der Communication Bus besitzt jetzt eine manuelle Watchdog-Diagnose für Test- und Audit-Zwecke.
-
-Geändert:
-
-- `backend/modules/communication_bus.js`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-
-Neu:
-
-- `project-state/STEP278O_ISSUE_WATCHDOG_TEST.md`
-
-Version:
-
-```text
-communication_bus v0.5.0 / STEP278O
-```
-
-Neue Route:
-
-```text
-http://127.0.0.1:8080/api/communication/watchdog
-```
-
-Mit Tracking:
-
-```text
-http://127.0.0.1:8080/api/communication/watchdog?track=1
-```
-
-Die Route erkennt testweise:
-
-- keine registrierten Clients
-- registrierte Clients ohne aktive Verbindung
-- offline Clients
-- fehlenden Zielclient für Replay-/Watchdog-Checks
-- Events ohne Auslieferung
-- ACK-pflichtige Events ohne ACK
-- aktuell sichtbare abgelaufene ACK-pflichtige Events ohne ACK
-
-Wichtig:
-
-- Standardmäßig ist der Watchdog nur lesend.
-- Issues werden nur mit `track=1` in `issues[]` geschrieben.
-- Es gibt keinen automatischen Watchdog-Timer.
-- Keine Produktivmigration.
-- Keine Alert-/Sound-/TTS-/VIP-Integration.
-- Kein Ersatz von `broadcastWS`.
-- Keine Dashboard-Seite.
-- Keine Datenbankmigration.
-
-## STEP278N - Communication Bus Replay-/Resync-Test
-
-Der Communication Bus besitzt jetzt eine kontrollierte Replay-Test-API und das Master-Test-Overlay wurde für Replay-/Resync-Tests erweitert.
-
-Geändert:
-
-- `backend/modules/communication_bus.js`
-- `htdocs/overlays/_overlay-master-test.html`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-
-Neu:
-
-- `project-state/STEP278N_REPLAY_RESYNC_TEST.md`
-
-Versionen:
-
-```text
-communication_bus v0.4.0 / STEP278N
-overlay_master_test v0.1.2 / STEP278N
-```
-
-Neue Route:
-
-```text
-http://127.0.0.1:8080/api/communication/replay?clientId=overlay_master_test&includeAckRequired=1
-```
-
-Wichtig:
-
-- Replay wird nicht automatisch bei `hello` ausgelöst.
-- Die Route ist ein kontrollierter Test-/Diagnoseweg.
-- Keine Produktivmigration.
-- Keine Alert-/Sound-/TTS-/VIP-Integration.
-- Kein Ersatz von `broadcastWS`.
-- Keine Dashboard-Seite.
-- Keine Datenbankmigration.
-
-## STEP278M - Master Overlay Reconnect-/OBS-Reload-Test
-
-Master-Test-Overlay für Reconnect-/OBS-Reload-Tests gehärtet.
-
-Geändert:
-
-- `htdocs/overlays/_overlay-master-test.html`
-
-Version:
-
-```text
-overlay_master_test v0.1.1 / STEP278M
-```
-
-URL:
-
-```text
-http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1
-```
-
-Der Reconnect-Test prüft:
-
-- neue Session-ID pro WebSocket-Verbindung
-- `connectCount` und `disconnectCount`
-- letzte Verbindung und Trennung
-- letzte `hello_ack` und `heartbeat_ack`
-- sauberer Heartbeat-Neustart nach Reconnect
-
-## STEP278L - Master Overlay Bus Test Mode
-
-Master-Test-Overlay als Communication-Bus-Testclient erweitert.
-
-Version:
-
-```text
-overlay_master_test v0.1.0 / STEP278L
-```
-
-URL:
-
-```text
-http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1
-```
-
-Funktionen:
-
-- `hello` beim WebSocket-Connect senden
-- `heartbeat` regelmäßig senden
-- Bus-Testevents empfangen
-- ACKs senden
-- Test-/Mirror-Karten anzeigen
-
-## STEP278K - Communication WS Test Client
-
-Ein manueller Browser-Testclient für den Communication Bus ist ergänzt.
-
-Neu:
-
-- `htdocs/public/tools/communication_ws_test_client.html`
-
-URL:
-
-```text
-http://127.0.0.1:8080/public/tools/communication_ws_test_client.html
-```
-
-Version:
-
-```text
-communication_ws_test_client v0.1.0 / STEP278K
-```
-
-## STEP278J - Versioned Startup Logs
-
-Startup-Logs der neuen Module enthalten Version und Build.
-
-Geändert:
-
-- `backend/modules/communication_bus.js`
-- `backend/modules/audit_log.js`
-- `docs/backend/MODULE_VERSIONING_STANDARD.md`

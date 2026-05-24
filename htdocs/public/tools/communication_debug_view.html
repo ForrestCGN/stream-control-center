@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ForrestCGN Communication Bus Debug View</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050716;
+      --panel: rgba(12, 16, 36, .88);
+      --panel2: rgba(18, 24, 52, .82);
+      --border: rgba(95, 225, 255, .24);
+      --border2: rgba(196, 92, 255, .32);
+      --text: #f7f8ff;
+      --muted: #9fb0d0;
+      --cyan: #39e6ff;
+      --purple: #c35cff;
+      --green: #77f7bd;
+      --yellow: #ffd36a;
+      --red: #fb7185;
+      --shadow: 0 0 36px rgba(57, 230, 255, .09), 0 0 52px rgba(195, 92, 255, .10);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: Inter, "Segoe UI", Arial, sans-serif; }
+    body {
+      background:
+        radial-gradient(circle at 18% 12%, rgba(195, 92, 255, .16), transparent 32%),
+        radial-gradient(circle at 78% 3%, rgba(57, 230, 255, .13), transparent 28%),
+        linear-gradient(180deg, #050716 0%, #080b1c 100%);
+      padding: 22px;
+    }
+
+    .wrap { max-width: 1540px; margin: 0 auto; }
+    .hero { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: end; margin-bottom: 18px; }
+    h1 { margin: 0; font-size: clamp(26px, 3vw, 42px); line-height: 1.02; letter-spacing: -.03em; }
+    .subtitle { margin-top: 8px; color: var(--muted); font-size: 14px; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border2); border-radius: 999px; background: rgba(195, 92, 255, .10); color: #f4e8ff; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; margin: 16px 0 20px; }
+    button, a.btn {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(31, 42, 80, .95), rgba(12, 16, 36, .95));
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+    button:hover, a.btn:hover { transform: translateY(-1px); border-color: rgba(57, 230, 255, .64); }
+    button.warn { border-color: rgba(255, 211, 106, .45); }
+    button.danger { border-color: rgba(251, 113, 133, .45); }
+    button.good { border-color: rgba(119, 247, 189, .45); }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .card { grid-column: span 12; border: 1px solid var(--border); border-radius: 20px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+    .card.half { grid-column: span 6; }
+    .card.third { grid-column: span 4; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.08); background: linear-gradient(90deg, rgba(57,230,255,.08), rgba(195,92,255,.08)); }
+    .card-title { font-size: 15px; font-weight: 950; letter-spacing: .02em; }
+    .card-body { padding: 14px 16px 16px; }
+
+    .metrics { display: grid; grid-template-columns: repeat(6, minmax(110px, 1fr)); gap: 10px; }
+    .metric { padding: 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; background: var(--panel2); }
+    .metric .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    .metric .value { margin-top: 6px; font-size: 24px; font-weight: 950; }
+    .ok { color: var(--green); } .warnText { color: var(--yellow); } .bad { color: var(--red); } .cyan { color: var(--cyan); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: top; }
+    th { color: #dff7ff; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; }
+    td code, .mono { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; color: #dff7ff; word-break: break-all; }
+    .pill { display: inline-flex; padding: 4px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; background: rgba(255,255,255,.06); font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .pill.ok { border-color: rgba(119,247,189,.38); background: rgba(119,247,189,.08); }
+    .pill.warn { border-color: rgba(255,211,106,.38); background: rgba(255,211,106,.08); color: var(--yellow); }
+    .pill.bad { border-color: rgba(251,113,133,.42); background: rgba(251,113,133,.08); color: var(--red); }
+
+    .empty { color: var(--muted); padding: 10px 0; }
+    .log { min-height: 80px; max-height: 260px; overflow: auto; padding: 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; background: rgba(0,0,0,.22); font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; white-space: pre-wrap; color: #dff7ff; }
+    details { border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 8px 10px; background: rgba(255,255,255,.035); }
+    summary { cursor: pointer; font-weight: 800; color: #dff7ff; }
+    .small { font-size: 12px; color: var(--muted); }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    @media (max-width: 1100px) {
+      .card.half, .card.third { grid-column: span 12; }
+      .metrics { grid-template-columns: repeat(2, minmax(110px, 1fr)); }
+      .hero { grid-template-columns: 1fr; }
+      .split { grid-template-columns: 1fr; }
+      body { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <div class="badge">STEP278Q · Test / Debug</div>
+        <h1>Communication Bus Debug View</h1>
+        <div class="subtitle">Lesbare Diagnose für Status, Clients, Events, Issues, Watchdog und Recovery. Keine Produktivmigration.</div>
+      </div>
+      <div class="small" id="lastUpdate">Noch nicht geladen</div>
+    </section>
+
+    <section class="toolbar">
+      <button class="good" data-action="refresh">Status aktualisieren</button>
+      <button data-action="watchdog">Watchdog prüfen</button>
+      <button class="warn" data-action="watchdogTrack">Watchdog tracken</button>
+      <button data-action="watchdogRecovered">Watchdog + Recovery</button>
+      <button class="warn" data-action="trackRecovered">Recovery tracken</button>
+      <button class="good" data-action="replay">Replay overlay_master_test</button>
+      <button class="danger" data-action="resetEvents">Reset Events/Issues</button>
+      <button class="danger" data-action="resetClients">Reset inkl. Clients</button>
+      <a class="btn" href="/overlays/_overlay-master-test.html?debug=1" target="_blank" rel="noreferrer">Master-Test-Overlay öffnen</a>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <div class="card-head"><div class="card-title">Bus Übersicht</div><span id="busHealth" class="pill">unbekannt</span></div>
+        <div class="card-body">
+          <div class="metrics" id="metrics"></div>
+        </div>
+      </article>
+
+      <article class="card half">
+        <div class="card-head"><div class="card-title">Clients</div><span id="clientCount" class="pill">0</span></div>
+        <div class="card-body" id="clients"></div>
+      </article>
+
+      <article class="card half">
+        <div class="card-head"><div class="card-title">Events</div><span id="eventCount" class="pill">0</span></div>
+        <div class="card-body" id="events"></div>
+      </article>
+
+      <article class="card half">
+        <div class="card-head"><div class="card-title">Watchdog Diagnose</div><span id="watchdogCount" class="pill">-</span></div>
+        <div class="card-body" id="watchdog"></div>
+      </article>
+
+      <article class="card half">
+        <div class="card-head"><div class="card-title">Recovered</div><span id="recoveredCount" class="pill">-</span></div>
+        <div class="card-body" id="recovered"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="card-title">Historische Issues</div><span id="issueCount" class="pill">0</span></div>
+        <div class="card-body" id="issues"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="card-title">Aktionen / Log</div><span id="actionState" class="pill">bereit</span></div>
+        <div class="card-body"><div class="log" id="log"></div></div>
+      </article>
+    </section>
+  </main>
+
+<script>
+(() => {
+  'use strict';
+
+  const META = { name: 'communication_debug_view', version: '0.1.0', build: 'STEP278Q' };
+  const state = { status: null, watchdog: null, loading: false };
+
+  const $ = id => document.getElementById(id);
+  const logEl = $('log');
+
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  }
+
+  function clsBool(value) { return value ? 'ok' : 'bad'; }
+  function pill(text, cls = '') { return `<span class="pill ${cls}">${esc(text)}</span>`; }
+  function mono(value) { return `<code>${esc(value || '-')}</code>`; }
+  function time(value) {
+    if (!value) return '-';
+    try { return new Date(value).toLocaleString('de-DE'); } catch (_) { return value; }
+  }
+  function compactJson(value) {
+    try { return JSON.stringify(value ?? {}, null, 2); } catch (_) { return String(value); }
+  }
+
+  function log(message, data) {
+    const line = `[${new Date().toLocaleTimeString('de-DE')}] ${message}`;
+    logEl.textContent = `${line}${data ? '\n' + compactJson(data) : ''}\n\n${logEl.textContent}`.slice(0, 12000);
+  }
+
+  async function getJson(url) {
+    const res = await fetch(url, { cache: 'no-store' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json.ok === false) {
+      const err = new Error(json.error || `HTTP ${res.status}`);
+      err.payload = json;
+      throw err;
+    }
+    return json;
+  }
+
+  async function refreshStatus() {
+    setAction('lade', 'warn');
+    const status = await getJson('/api/communication/status');
+    state.status = status;
+    render();
+    $('lastUpdate').textContent = `Aktualisiert: ${new Date().toLocaleString('de-DE')} · ${META.version}/${META.build}`;
+    setAction('bereit', 'ok');
+    return status;
+  }
+
+  async function runWatchdog(url, label) {
+    setAction('watchdog', 'warn');
+    const data = await getJson(url);
+    state.watchdog = data;
+    if (data.status) state.status = { ok: true, module: data.module, moduleVersion: data.moduleVersion, moduleBuild: data.moduleBuild, status: data.status };
+    render();
+    log(label, { tracked: data.tracked, trackedCount: data.trackedCount, recoveredCount: data.diagnosis && data.diagnosis.recoveredCount });
+    setAction('bereit', 'ok');
+    return data;
+  }
+
+  async function callAction(url, label) {
+    setAction(label, 'warn');
+    const data = await getJson(url);
+    log(label, data);
+    await refreshStatus();
+    return data;
+  }
+
+  function setAction(text, cls = '') {
+    const el = $('actionState');
+    el.textContent = text;
+    el.className = `pill ${cls}`;
+  }
+
+  function getBusStatus() {
+    return state.status && state.status.status ? state.status.status : {};
+  }
+
+  function render() {
+    const root = state.status || {};
+    const status = getBusStatus();
+    const stats = status.stats || {};
+    const clients = Array.isArray(status.clients) ? status.clients : [];
+    const events = Array.isArray(status.events) ? status.events : [];
+    const issues = Array.isArray(status.issues) ? status.issues : [];
+    const wd = state.watchdog && state.watchdog.diagnosis ? state.watchdog.diagnosis : null;
+
+    $('busHealth').className = `pill ${status.enabled === false ? 'bad' : 'ok'}`;
+    $('busHealth').textContent = status.enabled === false ? 'disabled' : 'enabled';
+
+    const metricItems = [
+      ['Modul', `${root.moduleVersion || '-'} / ${root.moduleBuild || '-'}`],
+      ['Bus', status.bus || '-'],
+      ['Emitted', stats.emitted ?? 0],
+      ['Delivered', stats.delivered ?? 0],
+      ['ACKs', stats.acks ?? 0],
+      ['Replays', stats.replays ?? 0],
+      ['Issues', stats.issues ?? 0],
+      ['Dropped', stats.dropped ?? 0],
+      ['Clients', clients.length],
+      ['Events', events.length],
+      ['Audit skipped', stats.auditSkipped ?? 0],
+      ['Now', time(status.now)]
+    ];
+
+    $('metrics').innerHTML = metricItems.map(([label, value]) => `
+      <div class="metric"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div></div>
+    `).join('');
+
+    $('clientCount').textContent = String(clients.length);
+    $('eventCount').textContent = String(events.length);
+    $('issueCount').textContent = String(issues.length);
+    $('watchdogCount').textContent = wd ? String(wd.issueCount || 0) : '-';
+    $('watchdogCount').className = `pill ${wd && wd.issueCount > 0 ? 'warn' : 'ok'}`;
+    $('recoveredCount').textContent = wd ? String(wd.recoveredCount || 0) : '-';
+
+    renderClients(clients);
+    renderEvents(events);
+    renderIssues(issues);
+    renderWatchdog(wd);
+    renderRecovered(wd);
+  }
+
+  function renderClients(clients) {
+    if (!clients.length) return $('clients').innerHTML = '<div class="empty">Keine Clients registriert.</div>';
+    $('clients').innerHTML = `<table><thead><tr><th>ID</th><th>Status</th><th>Modul</th><th>Version</th><th>Heartbeat</th><th>ACK</th></tr></thead><tbody>` +
+      clients.map(c => `<tr>
+        <td>${mono(c.id)}<div class="small">${esc(c.type || '-')}, ${esc(c.mode || '-')}</div></td>
+        <td>${pill(c.connected ? 'connected' : 'offline', c.connected ? 'ok' : 'bad')}<div class="small">${esc(c.status || '-')}</div></td>
+        <td>${esc(c.module || '-')}<details><summary>Capabilities</summary><pre>${esc((c.capabilities || []).join('\n'))}</pre></details></td>
+        <td>${esc(c.version || '-')}</td>
+        <td>${esc(time(c.lastHeartbeatAt))}</td>
+        <td>${esc(time(c.lastAckAt))}</td>
+      </tr>`).join('') + '</tbody></table>';
+  }
+
+  function renderEvents(events) {
+    if (!events.length) return $('events').innerHTML = '<div class="empty">Keine Events im Replay-/ACK-Speicher.</div>';
+    $('events').innerHTML = `<table><thead><tr><th>Event</th><th>Flags</th><th>Delivery</th><th>ACK</th><th>Ablauf</th></tr></thead><tbody>` +
+      events.map(e => `<tr>
+        <td>${mono(e.id)}<div class="small">${esc(e.channel || '-')}.${esc(e.action || '-')}</div></td>
+        <td>${pill(e.replayable ? 'replayable' : 'no replay', e.replayable ? 'ok' : '')} ${pill(e.requireAck ? 'ACK' : 'no ACK', e.requireAck ? 'warn' : '')}</td>
+        <td>${esc((e.deliveredTo || []).join(', ') || '-')}</td>
+        <td>${esc(e.ackCount || 0)}<div class="small">${esc(time(e.lastAckAt))}</div></td>
+        <td>${pill(e.expired ? 'expired' : 'active', e.expired ? 'bad' : 'ok')}<div class="small">${esc(time(e.expiresAt))}</div></td>
+      </tr>`).join('') + '</tbody></table>';
+  }
+
+  function renderIssues(issues) {
+    if (!issues.length) return $('issues').innerHTML = '<div class="empty">Keine historischen Issues gespeichert.</div>';
+    $('issues').innerHTML = `<table><thead><tr><th>Key</th><th>Level</th><th>Message</th><th>Count</th><th>Details</th></tr></thead><tbody>` +
+      issues.map(i => `<tr>
+        <td>${mono(i.key)}</td>
+        <td>${pill(i.level || 'warn', i.level === 'error' ? 'bad' : i.level === 'info' ? 'ok' : 'warn')}</td>
+        <td>${esc(i.message || '-')}<div class="small">first ${esc(time(i.firstSeenAt))} · last ${esc(time(i.lastSeenAt))}</div></td>
+        <td>${esc(i.count || 0)}<div class="small">suppressed ${esc(i.suppressed || 0)} · visible ${esc(i.visible)}</div></td>
+        <td><details><summary>JSON</summary><pre>${esc(compactJson(i.details || {}))}</pre></details></td>
+      </tr>`).join('') + '</tbody></table>';
+  }
+
+  function renderWatchdog(wd) {
+    if (!wd) return $('watchdog').innerHTML = '<div class="empty">Noch keine Watchdog-Diagnose ausgeführt.</div>';
+    if (!wd.issues || !wd.issues.length) return $('watchdog').innerHTML = `<div class="empty ok">Keine aktuellen Watchdog-Probleme. Geprüft: ${esc(time(wd.checkedAt))}</div>`;
+    $('watchdog').innerHTML = wd.issues.map(i => `<details open><summary>${esc(i.key)} · ${esc(i.level)}</summary><p>${esc(i.message)}</p><pre>${esc(compactJson(i.details || {}))}</pre></details>`).join('<br>');
+  }
+
+  function renderRecovered(wd) {
+    if (!wd) return $('recovered').innerHTML = '<div class="empty">Noch keine Recovery-Diagnose ausgeführt.</div>';
+    if (!wd.recovered || !wd.recovered.length) return $('recovered').innerHTML = '<div class="empty">Keine recovered Events in der letzten Diagnose.</div>';
+    $('recovered').innerHTML = wd.recovered.map(i => `<details open><summary>${esc(i.key)} · ${esc(i.level)}</summary><p>${esc(i.message)}</p><pre>${esc(compactJson(i.details || {}))}</pre></details>`).join('<br>');
+  }
+
+  async function handleClick(action) {
+    try {
+      if (action === 'refresh') return await refreshStatus();
+      if (action === 'watchdog') return await runWatchdog('/api/communication/watchdog', 'Watchdog geprüft');
+      if (action === 'watchdogTrack') return await runWatchdog('/api/communication/watchdog?track=1', 'Watchdog getrackt');
+      if (action === 'watchdogRecovered') return await runWatchdog('/api/communication/watchdog?includeRecovered=1', 'Watchdog + Recovery geprüft');
+      if (action === 'trackRecovered') return await runWatchdog('/api/communication/watchdog?includeRecovered=1&trackRecovered=1', 'Recovery getrackt');
+      if (action === 'replay') return await callAction('/api/communication/replay?clientId=overlay_master_test&includeAckRequired=1', 'Replay overlay_master_test');
+      if (action === 'resetEvents') return await callAction('/api/communication/reset?confirm=1', 'Reset Events/Issues');
+      if (action === 'resetClients') return await callAction('/api/communication/reset?confirm=1&clients=1', 'Reset inkl. Clients');
+    } catch (err) {
+      setAction('Fehler', 'bad');
+      log(`Fehler bei ${action}: ${err.message}`, err.payload || {});
+    }
+  }
+
+  document.addEventListener('click', ev => {
+    const btn = ev.target.closest('[data-action]');
+    if (!btn) return;
+    handleClick(btn.dataset.action);
+  });
+
+  log(`Debug View gestartet · ${META.version}/${META.build}`);
+  refreshStatus().catch(err => log('Initiales Laden fehlgeschlagen', { error: err.message }));
+})();
+</script>
+</body>
+</html>
