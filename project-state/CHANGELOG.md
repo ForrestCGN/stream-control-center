@@ -1,17 +1,10 @@
-# CHANGELOG
+# Changelog
 
-## STEP281 – Normalbetrieb / Live-Check
+## STEP283
+- Alert-Bus-Bridge auf Version 0.1.1 erweitert.
+- Bridge-Modi ergänzt.
+- Debug View auf Version 0.1.9 erweitert.
+- Normalbetrieb-Check erkennt Bridge und parallele Legacy-Quelle.
 
-- Communication Debug View auf v0.1.7 erhöht.
-- Bereich `Normalbetrieb / Live-Check` ergänzt.
-- Auto-Refresh liest zusätzlich `/api/alerts/queue`.
-- Button `Normalbetrieb prüfen` ergänzt.
-- Keine Backend-Logik geändert.
-
-
-## STEP282_ALERT_OVERLAY_BUS_BRIDGE
-
-- Neue optionale Bus-Bridge für das echte Alert-Overlay hinzugefügt.
-- Bridge registriert sich am Communication Bus und am bestehenden Alert-System-WebSocket.
-- ACK-/Finished-Rückmeldungen und Dedup-Logik ergänzt.
-- Keine bestehende Funktionalität entfernt.
+## STEP282
+- Erste Alert-Bus-Bridge als neue Overlay-Datei erstellt.

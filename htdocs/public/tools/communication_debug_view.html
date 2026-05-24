@@ -126,6 +126,7 @@
       <button class="danger" data-action="resetEvents">Reset Events/Issues</button>
       <button class="danger" data-action="resetClients">Reset inkl. Clients</button>
       <a class="btn" href="/overlays/_overlay-master-test.html?debug=1" target="_blank" rel="noreferrer">Master-Test-Overlay öffnen</a>
+      <a class="btn" href="/overlays/_overlay-alerts-v2-bus.html?debug=1&mode=bridge" target="_blank" rel="noreferrer">Alert-Bus-Bridge öffnen</a>
     </section>
 
     <section class="grid">
@@ -190,7 +191,7 @@
 (() => {
   'use strict';
 
-  const META = { name: 'communication_debug_view', version: '0.1.8' };
+  const META = { name: 'communication_debug_view', version: '0.1.9' };
   const AUTO_REFRESH_MS = 2000;
   const state = { status: null, watchdog: null, alertMirror: null, overlayWatchdog: null, alertQueue: null, snapshot: null, busy: false, autoRefresh: true, autoTimer: null, refreshInFlight: false };
 
@@ -432,6 +433,8 @@
     const busStats = bus.stats || {};
     const clients = Array.isArray(bus.clients) ? bus.clients : [];
     const connectedClients = clients.filter(c => c && c.connected !== false && String(c.status || '').toLowerCase() !== 'offline');
+    const bridgeClients = connectedClients.filter(c => c && (String(c.id || '') === 'overlay_alerts_v2_bus_bridge' || (String(c.module || '') === 'alert_overlay' && String(c.mode || '') === 'production_bridge')));
+    const bridgeClient = bridgeClients[0] || null;
     const mirror = state.alertMirror || {};
     const overlay = state.overlayWatchdog || {};
     const overlayStats = overlay.stats || {};
@@ -439,6 +442,9 @@
     const queueLength = Number(queue.queueLength ?? (Array.isArray(queue.queue) ? queue.queue.length : 0) ?? 0);
     const currentAlert = queue.current || null;
     const overlayIssueCount = overlay.check && Number.isFinite(Number(overlay.check.issueCount)) ? Number(overlay.check.issueCount) : Number(overlayStats.issues || 0);
+    const bridgeCount = bridgeClients.length;
+    const legacyOverlayCount = Math.max(0, Number(overlay.overlayClients || 0) - bridgeCount);
+    const bridgeMode = bridgeClient && bridgeClient.meta ? (bridgeClient.meta.bridgeMode || bridgeClient.mode || '') : '';
 
     return [
       {
@@ -454,6 +460,21 @@
         ok: Number(overlay.overlayClients || 0) > 0,
         value: `${Number(overlay.overlayClients || 0)} Client(s)`,
         hint: 'Das ist der wichtigste Normalbetriebspunkt für echte Alerts.'
+      },
+      {
+        key: 'alert_bus_bridge_connected',
+        label: 'Alert Bus Bridge verbunden',
+        ok: bridgeCount > 0,
+        value: bridgeCount > 0 ? `${bridgeCount} Bridge-Client(s), Modus ${bridgeMode || '-'}` : 'nicht verbunden',
+        hint: 'Für die Bus-Migration sollte die neue _overlay-alerts-v2-bus.html als OBS-Quelle verbunden sein.'
+      },
+      {
+        key: 'legacy_overlay_parallel',
+        label: 'Alte Alert-Quelle parallel',
+        ok: legacyOverlayCount <= 0,
+        value: legacyOverlayCount > 0 ? `${legacyOverlayCount} zusätzliche Legacy-Quelle(n)` : 'keine zusätzliche Legacy-Quelle erkannt',
+        warnOnly: true,
+        hint: 'Während der Migration okay. Für den späteren Produktivbetrieb sollte nur die Bus-Bridge als sichtbare Quelle aktiv sein.'
       },
       {
         key: 'overlay_watchdog_clean',
@@ -508,7 +529,7 @@
     const summary = hardIssues.length
       ? 'Nicht sauber für Normalbetrieb. Erst Snapshot sichern und die markierten Punkte prüfen.'
       : warnings.length
-        ? 'Grundsystem sauber, aber mit Hinweis. Für Normalbetrieb Mirror nach Tests deaktivieren.'
+        ? 'Grundsystem sauber, aber mit Hinweis. Für Normalbetrieb Mirror nach Tests deaktivieren und parallele Alt-Quelle prüfen.'
         : 'Normalbetrieb sieht sauber aus.';
 
     box.innerHTML = `<div class="empty ${hardIssues.length ? 'badText' : warnings.length ? 'warnText' : 'okText'}">${esc(summary)}</div><table><tbody>${rows}</tbody></table>`;

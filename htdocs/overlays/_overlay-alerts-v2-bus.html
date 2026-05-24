@@ -52,11 +52,12 @@
 <body>
   <iframe id="alertFrame" src="/overlays/_overlay-alerts-v2.html?preview=1&busBridge=1" allow="autoplay"></iframe>
   <div class="debug-panel" id="debugPanel">
-    <b>Alert Overlay Bus Bridge</b>
+    <b>Alert Overlay Bus Bridge</b> · <span id="dbgModeLabel">bridge</span>
     <div class="debug-grid">
       <span>Status</span><code id="dbgStatus">boot</code>
       <span>WS</span><code id="dbgWs">-</code>
       <span>Bus</span><code id="dbgBus">-</code>
+      <span>Modus</span><code id="dbgMode">bridge</code>
       <span>Legacy</span><code id="dbgLegacy">-</code>
       <span>Aktueller Alert</span><code id="dbgAlert">-</code>
       <span>Dedup</span><code id="dbgDedup">-</code>
@@ -70,7 +71,7 @@
 
   const MODULE_META = {
     name: 'overlay_alerts_v2_bus_bridge',
-    version: '0.1.0',
+    version: '0.1.1',
     description: 'Alert overlay bus bridge with legacy fallback and deduplication'
   };
 
@@ -84,15 +85,21 @@
 
   const qs = new URLSearchParams(location.search);
   const DEBUG = qs.has('debug') || qs.get('debug') === '1';
-  const BUS_ENABLED = qs.get('bus') !== '0';
-  const LEGACY_ENABLED = qs.get('legacy') !== '0';
+  const MODE_RAW = String(qs.get('mode') || 'bridge').toLowerCase();
+  const MODE = ['bridge','bus-first','bus-only','legacy-only','legacy-fallback'].includes(MODE_RAW) ? MODE_RAW : 'bridge';
+  const BUS_ENABLED = MODE !== 'legacy-only' && qs.get('bus') !== '0';
+  const LEGACY_ENABLED = MODE !== 'bus-only' && qs.get('legacy') !== '0';
+  const BUS_PRIMARY = MODE === 'bus-first' || MODE === 'bus-only' || MODE === 'bridge';
   if (DEBUG) document.body.dataset.debug = '1';
+  document.body.dataset.bridgeMode = MODE;
 
   const frame = document.getElementById('alertFrame');
   const dbgStatus = document.getElementById('dbgStatus');
+  const dbgModeLabel = document.getElementById('dbgModeLabel');
   const dbgWs = document.getElementById('dbgWs');
   const dbgBus = document.getElementById('dbgBus');
   const dbgLegacy = document.getElementById('dbgLegacy');
+  const dbgMode = document.getElementById('dbgMode');
   const dbgAlert = document.getElementById('dbgAlert');
   const dbgDedup = document.getElementById('dbgDedup');
   const dbgAck = document.getElementById('dbgAck');
@@ -176,8 +183,10 @@
   }
   function updateDebug() {
     setText(dbgWs, `connects=${connectCount} disconnects=${disconnectCount} session=${sessionId || '-'}`);
-    setText(dbgBus, `enabled=${BUS_ENABLED} play=${stats.busPlay} ack=${stats.busAck}`);
-    setText(dbgLegacy, `enabled=${LEGACY_ENABLED} play=${stats.legacyPlay} ack=${stats.legacyAck}`);
+    setText(dbgMode, MODE);
+    setText(dbgModeLabel, MODE);
+    setText(dbgBus, `enabled=${BUS_ENABLED} primary=${BUS_PRIMARY} play=${stats.busPlay} ack=${stats.busAck}`);
+    setText(dbgLegacy, `enabled=${LEGACY_ENABLED} mode=${MODE} play=${stats.legacyPlay} ack=${stats.legacyAck}`);
     setText(dbgAlert, currentAlertId ? `${currentAlertId} via ${currentSource}` : '-');
     setText(dbgDedup, `keys=${dedup.size} duplicate=${stats.duplicate}`);
   }
@@ -210,6 +219,8 @@
         meta: {
           sessionId,
           legacyFallback: LEGACY_ENABLED,
+          bridgeMode: MODE,
+          busPrimary: BUS_PRIMARY,
           renderer: '_overlay-alerts-v2.html?preview=1',
           localAudioDisabled: true,
           userAgent: navigator.userAgent || ''
@@ -286,6 +297,7 @@
         sessionId,
         bridge: MODULE_META.name,
         bridgeVersion: MODULE_META.version,
+        bridgeMode: MODE,
         currentAlertId,
         legacyFallback: LEGACY_ENABLED
       }, details || {})

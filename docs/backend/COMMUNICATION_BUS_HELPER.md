@@ -51,3 +51,7 @@ Die Communication Debug View unterstützt einen manuellen Diagnose-Snapshot. Sic
 ## STEP281
 
 Die Communication Debug View enthält nun einen Normalbetrieb-/Live-Check. Der Check ist nur lesend und ändert keine Alert-, Sound-, TTS- oder Queue-Logik.
+
+
+## STEP283 Hinweis
+Die Alert-Bus-Bridge registriert sich als `overlay_alerts_v2_bus_bridge` mit Capability `visual.alert.play`. Der Debug-View-Normalbetrieb erkennt diesen Client und warnt, wenn zusätzlich alte Alert-Quellen parallel verbunden sind.
