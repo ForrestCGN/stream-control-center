@@ -1,11 +1,11 @@
 # Current Status – stream-control-center
 
-Stand: STEP286 – Alert Output Timing/Status Cleanup
-Aktualisiert: 2026-05-24T13:25:00Z
+Stand: STEP287 – Alert Native Output bus_first Live-Test
+Aktualisiert: 2026-05-24T13:30:00Z
 
 ## Aktueller Fokus
 
-Der Alert-Bereich wurde von der reinen Mirror-/Bridge-Testphase in die native Bus-Ausgabevorbereitung überführt. STEP286 hat den ersten Live-Test ausgewertet und die Timing-/Statusausgabe der nativen Alert-Outputs bereinigt.
+Der Alert-Bereich wurde von der reinen Mirror-/Bridge-Testphase in die native Bus-Ausgabevorbereitung überführt. Nach STEP286 Timing-/Status-Cleanup wurde in STEP287 der Modus `bus_first` live getestet und bestätigt.
 
 ## Stabil bestätigte Kette
 
@@ -16,23 +16,31 @@ Der Alert-Bereich wurde von der reinen Mirror-/Bridge-Testphase in die native Bu
 - Bridge-Version: `0.1.1`.
 - `alertOutput` ist im Alert-System vorhanden und statusfähig.
 
-## Bestätigte Tests aus STEP286
+## Bestätigte Tests bis STEP287
 
 - Standard `legacy` lief erfolgreich.
 - `legacy_and_bus` lief erfolgreich.
-- Status zeigte `emittedBus = 1`, `emittedLegacy > 0`, `lastMode = legacy_and_bus`.
+- `bus_first` lief erfolgreich.
+- Native Bus-Ausgabe wurde erzeugt.
+- Bridge rendert den Alert über den Bus.
 - Watchdog meldete `status = acknowledged`.
 - `issue` blieb leer.
 - `timedOut = false`.
-- `playingToAlertOutputBusMs` lag im Test bei wenigen Millisekunden.
+- `playingToAlertOutputBusMs` lag im `bus_first` Test bei `2ms`.
 
-## Neu in STEP286
+## STEP287 Live-Test `bus_first`
 
-- `backend/modules/alert_system.js` auf STEP286 aktualisiert.
-- `overlaySentAt` wird beim visuellen Output nun konsistenter gesetzt.
-- `alertOutput.lastTiming` wird nach dem visuellen Output erneut aktualisiert.
-- Native Bus-Payloads enthalten den aktualisierten Output-Timing-Stand.
-- Keine Sound-/TTS-/Queue-Logik geändert.
+Bestätigte Werte:
+
+- `mode = bus_first`
+- `legacyEnabled = false`
+- `legacyFallbackEnabled = true`
+- `busEnabled = true`
+- `lastMode = bus_first`
+- `emittedBus` erhöhte sich.
+- `emittedLegacy` blieb unverändert gegenüber dem vorherigen Teststand.
+- `errors = 0`
+- Watchdog-ACK kam mit `finished` zurück.
 
 ## Normalbetrieb
 
@@ -42,6 +50,8 @@ Aktueller sicherer Standard bleibt:
 - Alter Alert-Pfad bleibt aktiv.
 - Bridge kann weiter als OBS-Testquelle genutzt werden.
 - Mirror bleibt im Normalbetrieb aus.
+- `bus_first` ist bestanden, aber noch nicht Standard.
+- `bus_only` bleibt vorbereitet, aber nicht freigegeben.
 
 ## Testpfade
 
@@ -54,6 +64,6 @@ Aktueller sicherer Standard bleibt:
 
 ## Nächster Schritt
 
-STEP287: `bus_first` gezielt testen. Danach entscheiden, ob Debug View/Dashboard die native `alertOutput`-Sektion sichtbarer machen soll.
+Empfohlen: Communication Debug View und/oder Dashboard um native `alertOutput`-Statusanzeige erweitern, damit Modus, letzter Output, Bus-Event-ID, Fallback und Watchdog-Ergebnis direkt sichtbar sind.
 
 Danach: Sound-System separat auditieren und stufenweise busfähig machen.

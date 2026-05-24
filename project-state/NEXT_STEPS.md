@@ -1,24 +1,28 @@
 # Next Steps
 
-## STEP287 – Alert Native Output `bus_first` Test
+## Sicherer Stand nach STEP287
+
+- Standard bleibt `alertOutput.mode = legacy`.
+- `legacy`, `legacy_and_bus` und `bus_first` wurden live bestätigt.
+- `bus_only` ist vorbereitet, aber noch nicht als Produktiv-/Normalmodus freigegeben.
+- Der Real Alert Mirror bleibt Diagnose-/Testwerkzeug, nicht der reguläre Produktivpfad.
+
+## Empfohlener nächster Schritt – Alert Output Sichtbarkeit
 
 Ziel:
 
-- Backend mit STEP286 starten.
-- Sicherstellen, dass Standard weiterhin `legacy` ist.
-- Testweise `alertOutput.mode = bus_first` setzen.
-- Bridge im Modus `bridge` öffnen.
-- Einen echten Alert auslösen.
-- Prüfen, ob der Bus primär genutzt wird.
-- Prüfen, ob Legacy-Fallback nur greift, wenn kein Bus-Ziel erreicht wurde.
-- Watchdog auf `acknowledged` prüfen.
-- Danach wieder auf `legacy` zurückstellen.
-
-## Optional nach STEP287
-
-- Communication Debug View um native `alertOutput`-Statusanzeige erweitern.
-- Entscheidung treffen, ob `legacy_and_bus` oder `bus_first` als weiterer Testmodus genutzt wird.
-- Später erst `bus_only` prüfen, wenn Watchdog/ACK-Verhalten vollständig stabil ist.
+- Communication Debug View und/oder Dashboard um native `alertOutput`-Statusanzeige erweitern.
+- Sichtbar machen:
+  - aktueller Output-Modus
+  - letzter Output-Modus
+  - Legacy gesendet ja/nein
+  - Bus gesendet ja/nein
+  - Fallback genutzt ja/nein
+  - letzte Bus-Event-ID
+  - letztes Watchdog-Ergebnis
+  - Timing `playingToAlertOutputBusMs`
+- Keine Sound-/TTS-/Queue-Änderung.
+- Keine DB-Migration, außer ausdrücklich nötig und dann nur additiv.
 
 ## Danach – Sound-System-Audit
 
