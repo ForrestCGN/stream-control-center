@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## STEP278O
+
+- Updated `backend/modules/communication_bus.js` to `v0.5.0 / STEP278O`.
+- Added manual watchdog route `/api/communication/watchdog`.
+- Watchdog can analyze current clients/events for missing clients, offline clients, undelivered events and missing ACKs.
+- Watchdog is read-only by default.
+- With `track=1`, detected diagnostics are written into Bus `issues[]` via existing `trackIssue()` helper logic.
+- No automatic watchdog timer was added.
+- No helper, overlay, alert, sound, TTS, VIP, dashboard, database or `broadcastWS` migration changes.
+
 ## STEP278N
 
 - Updated `backend/modules/communication_bus.js` to `v0.4.0 / STEP278N`.

@@ -1,5 +1,21 @@
 # FILES
 
+## STEP278O
+
+Changed:
+
+- `backend/modules/communication_bus.js`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+
+Added:
+
+- `project-state/STEP278O_ISSUE_WATCHDOG_TEST.md`
+
 ## STEP278N
 
 Changed:

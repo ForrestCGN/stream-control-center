@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * STEP278N - Communication Bus Status/Test/Replay API + WS client registration.
+ * STEP278O - Communication Bus Status/Test/Replay/Watchdog API + WS client registration.
  *
  * This module exposes the prepared communication bus as test/status API and
  * handles optional WebSocket hello/heartbeat/ack messages.
@@ -16,11 +16,11 @@ const security = require('./helpers/helper_security_context');
 
 const MODULE_META = {
   name: 'communication_bus',
-  version: '0.4.0',
-  build: 'STEP278N',
+  version: '0.5.0',
+  build: 'STEP278O',
   coreName: 'communication_core',
   coreVersion: '0.3.0',
-  description: 'Communication Bus API, WebSocket client registration and controlled replay test route'
+  description: 'Communication Bus API, WebSocket client registration, controlled replay and manual watchdog diagnostics'
 };
 
 const DEFAULT_CONFIG = {
@@ -29,6 +29,7 @@ const DEFAULT_CONFIG = {
   ackEndpointEnabled: true,
   issueEndpointEnabled: true,
   replayEndpointEnabled: true,
+  watchdogEndpointEnabled: true,
   resetEndpointEnabled: true,
   wsClientRegistrationEnabled: true,
   wsAcksEnabled: true,
@@ -243,6 +244,102 @@ function handleWsMessage({ ws, rawMessage }) {
   return { handled: false, reason: 'unknown_type', type };
 }
 
+function addWatchdogIssue(list, key, message, level, details = {}) {
+  list.push({
+    key,
+    message,
+    level: cleanString(level, 'warn'),
+    details
+  });
+}
+
+function analyzeWatchdog(status = {}, options = {}) {
+  const clients = Array.isArray(status.clients) ? status.clients : [];
+  const events = Array.isArray(status.events) ? status.events : [];
+  const issues = [];
+  const targetClientId = cleanString(options.clientId || '');
+
+  if (clients.length === 0) {
+    addWatchdogIssue(issues, 'communication_no_clients', 'Communication Bus has no registered clients.', 'warn', {
+      clientCount: 0
+    });
+  }
+
+  const connectedClients = clients.filter(client => client && client.connected === true);
+  if (clients.length > 0 && connectedClients.length === 0) {
+    addWatchdogIssue(issues, 'communication_no_connected_clients', 'Communication Bus has registered clients but none are currently connected.', 'warn', {
+      clientCount: clients.length,
+      connectedCount: connectedClients.length
+    });
+  }
+
+  for (const client of clients) {
+    if (!client || client.connected === true) continue;
+    addWatchdogIssue(issues, `communication_client_offline_${client.id || 'unknown'}`, `Communication client is offline: ${client.id || 'unknown'}`, 'warn', {
+      clientId: client.id || '',
+      type: client.type || '',
+      module: client.module || '',
+      status: client.status || '',
+      disconnectedAt: client.disconnectedAt || '',
+      disconnectReason: client.disconnectReason || ''
+    });
+  }
+
+  if (targetClientId && !clients.some(client => client && client.id === targetClientId)) {
+    addWatchdogIssue(issues, `communication_replay_target_missing_${targetClientId}`, `Replay/watchdog target client is not registered: ${targetClientId}`, 'warn', {
+      clientId: targetClientId
+    });
+  }
+
+  for (const event of events) {
+    if (!event || !event.id) continue;
+
+    const deliveredTo = Array.isArray(event.deliveredTo) ? event.deliveredTo : [];
+    if (deliveredTo.length === 0) {
+      addWatchdogIssue(issues, `communication_event_not_delivered_${event.id}`, `Communication event was not delivered to any client: ${event.id}`, 'warn', {
+        eventId: event.id,
+        channel: event.channel || '',
+        action: event.action || '',
+        target: event.target || {},
+        replayable: event.replayable === true,
+        requireAck: event.requireAck === true,
+        expiresAt: event.expiresAt || ''
+      });
+    }
+
+    if (event.requireAck === true && Number(event.ackCount || 0) <= 0) {
+      addWatchdogIssue(issues, `communication_ack_missing_${event.id}`, `Communication event still has no ACK: ${event.id}`, 'warn', {
+        eventId: event.id,
+        channel: event.channel || '',
+        action: event.action || '',
+        deliveredTo,
+        replayable: event.replayable === true,
+        expiresAt: event.expiresAt || ''
+      });
+    }
+
+    if (event.expired === true && event.requireAck === true && Number(event.ackCount || 0) <= 0) {
+      addWatchdogIssue(issues, `communication_event_expired_without_ack_${event.id}`, `Communication event expired without ACK: ${event.id}`, 'error', {
+        eventId: event.id,
+        channel: event.channel || '',
+        action: event.action || '',
+        deliveredTo,
+        expiresAt: event.expiresAt || ''
+      });
+    }
+  }
+
+  return {
+    ok: true,
+    checkedAt: new Date().toISOString(),
+    clientCount: clients.length,
+    connectedClientCount: connectedClients.length,
+    eventCount: events.length,
+    issueCount: issues.length,
+    issues
+  };
+}
+
 function init({ app }) {
   if (!app) throw new Error('communication_bus.init: app fehlt.');
 
@@ -382,6 +479,57 @@ function init({ app }) {
       clientId,
       includeAckRequired,
       result
+    });
+  });
+
+  app.get('/api/communication/watchdog', (req, res) => {
+    if (loadedConfig.watchdogEndpointEnabled === false) {
+      return res.status(403).json({ ok: false, error: 'communication_watchdog_endpoint_disabled' });
+    }
+
+    const currentBus = getBus();
+    const track = boolParam(req.query.track, false);
+    const clientId = cleanString(req.query.clientId || req.query.id);
+    const throttleMs = Math.max(0, asInt(req.query.throttleMs, loadedConfig.issueThrottleMs || 60000));
+    const statusBefore = currentBus.getStatus();
+    const diagnosis = analyzeWatchdog(statusBefore, { clientId });
+    const trackedIssues = [];
+
+    if (track) {
+      for (const issue of diagnosis.issues) {
+        const result = currentBus.trackIssue(issue.key, issue.message, {
+          level: issue.level || 'warn',
+          throttleMs,
+          details: {
+            ...(issue.details || {}),
+            watchdog: true,
+            via: 'api',
+            module: MODULE_META.name,
+            moduleVersion: MODULE_META.version,
+            moduleBuild: MODULE_META.build
+          }
+        });
+        trackedIssues.push({
+          key: issue.key,
+          ok: result && result.ok === true,
+          visible: result && result.visible === true,
+          suppressed: result && result.issue ? result.issue.suppressed || 0 : 0,
+          count: result && result.issue ? result.issue.count || 0 : 0
+        });
+      }
+    }
+
+    res.json({
+      ok: true,
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
+      watchdog: true,
+      tracked: track,
+      trackedCount: trackedIssues.length,
+      trackedIssues,
+      diagnosis,
+      status: track ? currentBus.getStatus() : statusBefore
     });
   });
 

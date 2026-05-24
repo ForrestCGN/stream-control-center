@@ -1,5 +1,57 @@
 # Current System Status
 
+## STEP278O - Communication Bus Issue-/Watchdog-Test
+
+Der Communication Bus besitzt jetzt eine manuelle Watchdog-Diagnose für Test- und Audit-Zwecke.
+
+Geändert:
+
+- `backend/modules/communication_bus.js`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+
+Neu:
+
+- `project-state/STEP278O_ISSUE_WATCHDOG_TEST.md`
+
+Version:
+
+```text
+communication_bus v0.5.0 / STEP278O
+```
+
+Neue Route:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog
+```
+
+Mit Tracking:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog?track=1
+```
+
+Die Route erkennt testweise:
+
+- keine registrierten Clients
+- registrierte Clients ohne aktive Verbindung
+- offline Clients
+- fehlenden Zielclient für Replay-/Watchdog-Checks
+- Events ohne Auslieferung
+- ACK-pflichtige Events ohne ACK
+- aktuell sichtbare abgelaufene ACK-pflichtige Events ohne ACK
+
+Wichtig:
+
+- Standardmäßig ist der Watchdog nur lesend.
+- Issues werden nur mit `track=1` in `issues[]` geschrieben.
+- Es gibt keinen automatischen Watchdog-Timer.
+- Keine Produktivmigration.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Kein Ersatz von `broadcastWS`.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+
 ## STEP278N - Communication Bus Replay-/Resync-Test
 
 Der Communication Bus besitzt jetzt eine kontrollierte Replay-Test-API und das Master-Test-Overlay wurde für Replay-/Resync-Tests erweitert.

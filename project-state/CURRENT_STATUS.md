@@ -1,5 +1,55 @@
 # CURRENT_STATUS
 
+## STEP278O
+
+Communication Bus Issue-/Watchdog-Test ergänzt.
+
+Geändert:
+
+- `backend/modules/communication_bus.js`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+
+Neu:
+
+- `project-state/STEP278O_ISSUE_WATCHDOG_TEST.md`
+
+Version:
+
+```text
+communication_bus v0.5.0 / STEP278O
+```
+
+Neue Route:
+
+```text
+/api/communication/watchdog
+```
+
+Funktionen:
+
+- manuelle Watchdog-Diagnose für den aktuellen Bus-Zustand
+- erkennt keine Clients, keine verbundenen Clients, offline Clients, fehlende Zielclients, nicht ausgelieferte Events und fehlende ACKs
+- Standardaufruf ist lesend und verändert keinen Bus-State
+- mit `track=1` werden erkannte Diagnosepunkte über `trackIssue()` in `issues[]` gespeichert
+- optional kann `clientId` geprüft werden
+
+Wichtig:
+
+- Kein automatischer Watchdog-Timer.
+- Keine Produktivmigration.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Kein Ersatz von `broadcastWS`.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+- Kein OBS-Umbau.
+- Keine Änderung am Master-Test-Overlay.
+- Keine Änderung an `helper_communication.js`.
+
 ## STEP278N
 
 Communication Bus Replay-/Resync-Test ergänzt.

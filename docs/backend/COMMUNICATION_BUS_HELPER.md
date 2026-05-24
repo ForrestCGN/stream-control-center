@@ -5,7 +5,7 @@
 ```text
 Communication Core:      v0.3.0
 helper_communication.js: v0.3.0 / STEP278F
-communication_bus.js:    v0.4.0 / STEP278N
+communication_bus.js:    v0.5.0 / STEP278O
 WS Test Client:          v0.1.0 / STEP278K
 Master Test Overlay:     v0.1.2 / STEP278N
 ```
@@ -15,12 +15,13 @@ Master Test Overlay:     v0.1.2 / STEP278N
 Der Communication Bus besitzt aktuell:
 
 - Helper Core
-- Status/Test/Ack/Issue/Replay/Reset API
+- Status/Test/Ack/Issue/Replay/Watchdog/Reset API
 - optionale Security-/Audit-Hooks
 - WebSocket Client Registration via `hello`
 - WebSocket Heartbeat
 - WebSocket Ack / Bus Ack
 - kontrollierten Replay-Test per `/api/communication/replay`
+- manuellen Watchdog-/Issue-Test per `/api/communication/watchdog`
 - manuellen Browser-Testclient unter `/public/tools/communication_ws_test_client.html`
 - Master-Test-Overlay als echten Communication-Bus-Testclient unter `/overlays/_overlay-master-test.html?debug=1`
 
@@ -83,6 +84,44 @@ Typischer Testablauf:
 5. Replay-Route auslösen.
 6. Status prüfen.
 
+## Watchdog-/Issue-Test
+
+STEP278O ergänzt eine manuelle Watchdog-Diagnose:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog
+```
+
+Die Route analysiert den aktuellen Bus-Zustand und erkennt testweise:
+
+- keine registrierten Clients
+- registrierte Clients ohne aktive Verbindung
+- offline Clients
+- fehlenden Zielclient für Replay-/Watchdog-Checks
+- Events ohne Auslieferung
+- ACK-pflichtige Events ohne ACK
+- aktuell sichtbare abgelaufene ACK-pflichtige Events ohne ACK
+
+Standardmäßig verändert die Route keinen Bus-State:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog
+```
+
+Mit `track=1` werden erkannte Diagnosepunkte über `trackIssue()` in `issues[]` gespeichert:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog?track=1
+```
+
+Optional kann ein Zielclient geprüft werden:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog?clientId=overlay_master_test&track=1
+```
+
+Wichtig: Es gibt weiterhin keinen automatischen Watchdog-Timer. Die Diagnose ist bewusst manuell und testbasiert.
+
 ## Modul-Metadaten
 
 `communication_bus.js` gibt in Status-Ausgaben aus:
@@ -90,8 +129,8 @@ Typischer Testablauf:
 ```json
 {
   "module": "communication_bus",
-  "moduleVersion": "0.4.0",
-  "moduleBuild": "STEP278N",
+  "moduleVersion": "0.5.0",
+  "moduleBuild": "STEP278O",
   "coreName": "communication_core",
   "coreVersion": "0.3.0"
 }
@@ -99,6 +138,7 @@ Typischer Testablauf:
 
 ## Bewusst nicht umgesetzt
 
+- kein automatischer Watchdog-Timer
 - kein automatisches Replay bei `hello`
 - keine Alert-/Sound-/TTS-/VIP-Migration
 - kein Ersatz von `broadcastWS`
