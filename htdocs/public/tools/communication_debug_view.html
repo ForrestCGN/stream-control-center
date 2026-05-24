@@ -85,6 +85,8 @@
     details { border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 8px 10px; background: rgba(255,255,255,.035); }
     summary { cursor: pointer; font-weight: 800; color: #dff7ff; }
     .small { font-size: 12px; color: var(--muted); }
+    .snapshot-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .snapshot-pre { max-height:360px; overflow:auto; }
 
     @media (max-width: 1100px) {
       .card.half { grid-column: span 12; }
@@ -113,6 +115,8 @@
       <button data-action="overlayWatchdogStatus">Overlay Watchdog Status</button>
       <button class="warn" data-action="overlayWatchdogCheck">Overlay Watchdog Check</button>
       <button class="danger" data-action="overlayRecover">Overlay Recovery Clear</button>
+      <button class="good" data-action="snapshot">Diagnose-Snapshot</button>
+      <button data-action="snapshotCopy">Snapshot kopieren</button>
       <button data-action="watchdog">Watchdog prüfen</button>
       <button class="warn" data-action="watchdogTrack">Watchdog tracken</button>
       <button data-action="watchdogRecovered">Watchdog + Recovery</button>
@@ -137,6 +141,11 @@
       <article class="card half">
         <div class="card-head"><div class="card-title">Echtes Alert-Overlay ACK</div><span id="overlayWatchdogState" class="pill">-</span></div>
         <div class="card-body" id="overlayWatchdogStatus"></div>
+      </article>
+
+      <article class="card half">
+        <div class="card-head"><div class="card-title">Diagnose-Snapshot</div><span id="snapshotState" class="pill">bereit</span></div>
+        <div class="card-body" id="diagnosticSnapshot"><div class="empty">Noch kein Snapshot erstellt.</div></div>
       </article>
 
       <article class="card half">
@@ -175,9 +184,9 @@
 (() => {
   'use strict';
 
-  const META = { name: 'communication_debug_view', version: '0.1.5' };
+  const META = { name: 'communication_debug_view', version: '0.1.6' };
   const AUTO_REFRESH_MS = 2000;
-  const state = { status: null, watchdog: null, alertMirror: null, overlayWatchdog: null, busy: false, autoRefresh: true, autoTimer: null, refreshInFlight: false };
+  const state = { status: null, watchdog: null, alertMirror: null, overlayWatchdog: null, snapshot: null, busy: false, autoRefresh: true, autoTimer: null, refreshInFlight: false };
 
   const $ = id => document.getElementById(id);
   const logEl = $('log');
@@ -261,6 +270,7 @@
       state.alertMirror = alertMirror;
       state.overlayWatchdog = overlayWatchdog;
       render();
+      renderSnapshot();
       setLastUpdate();
       if (!options.silent) setAction('bereit', 'ok');
       return status;
@@ -569,6 +579,132 @@
     $('recovered').innerHTML = wd.recovered.map(i => `<details open><summary>${esc(i.key)} · ${esc(i.level)}</summary><p>${esc(i.message)}</p><pre>${esc(compactJson(i.details || {}))}</pre></details>`).join('<br>');
   }
 
+
+  function compactSnapshotSummary(snapshot) {
+    if (!snapshot) return '<div class="empty">Noch kein Snapshot erstellt.</div>';
+    const bus = snapshot.communicationStatus?.status || {};
+    const mirror = snapshot.alertBusMirror || {};
+    const overlay = snapshot.overlayWatchdogStatus || {};
+    const check = snapshot.overlayWatchdogCheck?.check || snapshot.overlayWatchdogCheck || {};
+    const summary = {
+      createdAt: snapshot.createdAt,
+      bus: {
+        emitted: bus.stats?.emitted ?? bus.emitted ?? '-',
+        delivered: bus.stats?.delivered ?? bus.delivered ?? '-',
+        acks: bus.stats?.acks ?? bus.acks ?? '-',
+        clients: Array.isArray(bus.clients) ? bus.clients.length : '-'
+      },
+      mirror: {
+        enabled: mirror.enabled,
+        emitted: mirror.stats?.emitted ?? '-',
+        errors: mirror.stats?.errors ?? '-',
+        lastEventUid: mirror.stats?.lastEventUid || ''
+      },
+      overlayWatchdog: {
+        overlayClients: overlay.overlayClients,
+        acknowledged: overlay.stats?.acknowledged ?? '-',
+        noClient: overlay.stats?.noClient ?? '-',
+        missingFinishAck: overlay.stats?.missingFinishAck ?? '-',
+        issueCount: check.issueCount ?? '-'
+      }
+    };
+    return `<div class="metrics">
+      <div class="metric"><b>${esc(summary.bus.emitted)}</b><span>Bus emitted</span></div>
+      <div class="metric"><b>${esc(summary.bus.delivered)}</b><span>Bus delivered</span></div>
+      <div class="metric"><b>${esc(summary.overlayWatchdog.overlayClients)}</b><span>Overlay Clients</span></div>
+      <div class="metric"><b>${esc(summary.overlayWatchdog.issueCount)}</b><span>Watchdog Issues</span></div>
+    </div>
+    <div class="snapshot-actions">
+      <button class="good" data-action="snapshotDownload">Snapshot herunterladen</button>
+      <button data-action="snapshotCopy">Snapshot kopieren</button>
+    </div>
+    <details open><summary>Snapshot Kurzfassung</summary><pre class="snapshot-pre">${esc(compactJson(summary))}</pre></details>
+    <details><summary>Snapshot komplett</summary><pre class="snapshot-pre">${esc(compactJson(snapshot))}</pre></details>`;
+  }
+
+  function renderSnapshot() {
+    const el = $('diagnosticSnapshot');
+    if (!el) return;
+    el.innerHTML = compactSnapshotSummary(state.snapshot);
+    const badge = $('snapshotState');
+    if (badge) {
+      badge.textContent = state.snapshot ? 'erstellt' : 'bereit';
+      badge.className = `pill ${state.snapshot ? 'ok' : ''}`;
+    }
+  }
+
+  async function createDiagnosticSnapshot() {
+    state.busy = true;
+    setAction('Snapshot', 'warn');
+    try {
+      const [communicationStatus, communicationWatchdog, alertBusMirror, overlayWatchdogStatus, overlayWatchdogCheck, alertQueue] = await Promise.all([
+        getJsonOptional('/api/communication/status'),
+        getJsonOptional('/api/communication/watchdog?includeRecovered=1'),
+        getJsonOptional('/api/alerts/bus-mirror/status'),
+        getJsonOptional('/api/alerts/overlay-watchdog/status'),
+        getJsonOptional('/api/alerts/overlay-watchdog/check'),
+        getJsonOptional('/api/alerts/queue')
+      ]);
+      state.snapshot = stripInternalMeta({
+        createdAt: new Date().toISOString(),
+        tool: META,
+        page: location.href,
+        note: 'Manual communication/alert diagnostic snapshot. Contains status only; no DB writes.',
+        communicationStatus,
+        communicationWatchdog,
+        alertBusMirror,
+        overlayWatchdogStatus,
+        overlayWatchdogCheck,
+        alertQueue
+      });
+      renderSnapshot();
+      log('Diagnose-Snapshot erstellt', {
+        createdAt: state.snapshot.createdAt,
+        busOk: communicationStatus.ok === true,
+        mirrorOk: alertBusMirror.ok === true,
+        overlayWatchdogOk: overlayWatchdogStatus.ok === true
+      });
+      setAction('bereit', 'ok');
+      return state.snapshot;
+    } finally {
+      state.busy = false;
+    }
+  }
+
+  function downloadSnapshot() {
+    if (!state.snapshot) return log('Kein Snapshot vorhanden');
+    const safeTime = new Date().toISOString().replace(/[:.]/g, '-');
+    const blob = new Blob([compactJson(state.snapshot)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `communication_alert_snapshot_${safeTime}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    log('Snapshot-Download gestartet', { file: a.download });
+  }
+
+  async function copySnapshot() {
+    if (!state.snapshot) await createDiagnosticSnapshot();
+    const text = compactJson(state.snapshot);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      log('Snapshot in Zwischenablage kopiert');
+      setAction('kopiert', 'ok');
+      return;
+    }
+    const area = document.createElement('textarea');
+    area.value = text;
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand('copy');
+    area.remove();
+    log('Snapshot per Fallback kopiert');
+    setAction('kopiert', 'ok');
+  }
+
   async function handleClick(action) {
     try {
       if (action === 'refresh') return await refreshStatus();
@@ -581,6 +717,9 @@
         if (!window.confirm('Alert-Overlay wirklich per Recovery-Clear leeren? Queue, Sound und TTS bleiben unverändert.')) return;
         return await callAction('/api/alerts/overlay-watchdog/recover?confirm=1', 'Overlay Recovery Clear');
       }
+      if (action === 'snapshot') return await createDiagnosticSnapshot();
+      if (action === 'snapshotDownload') return downloadSnapshot();
+      if (action === 'snapshotCopy') return await copySnapshot();
       if (action === 'watchdog') return await runWatchdog('/api/communication/watchdog', 'Watchdog geprüft');
       if (action === 'watchdogTrack') return await runWatchdog('/api/communication/watchdog?track=1', 'Watchdog getrackt');
       if (action === 'watchdogRecovered') return await runWatchdog('/api/communication/watchdog?includeRecovered=1', 'Watchdog + Recovery geprüft');

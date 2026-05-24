@@ -1,15 +1,9 @@
 # CHANGELOG
 
-## STEP279
+## STEP280 – Communication Debug Snapshot Export
 
-- Kommunikations-Audit für Alert-/Overlay-/Sound-Pfad dokumentiert.
-- Testergebnisse aus Real Alert Mirror, Timing Diagnostics, Overlay Watchdog und Recovery zusammengeführt.
-- Neue Ergebnisdoku: `docs/backend/COMMUNICATION_AUDIT_STEP279_RESULT.md`.
-- Aktuelle Routen und Debug-View als Referenz festgehalten.
-- Keine Code-Logik geändert.
-
-## STEP278Z
-
-- Alert Overlay Watchdog um sichere manuelle Recovery erweitert.
-- Neue Route: `/api/alerts/overlay-watchdog/recover?confirm=1`.
-- Communication Debug View um Recovery-Button und Recovery-Status erweitert.
+- Communication Debug View auf v0.1.6 erhöht.
+- Manuellen Diagnose-Snapshot ergänzt.
+- Snapshot enthält Communication Bus, Watchdog, Alert-Mirror, Overlay-Watchdog und Alert-Queue.
+- Download- und Copy-Button ergänzt.
+- Keine Backend-Logik geändert.

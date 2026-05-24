@@ -41,3 +41,8 @@ Siehe:
 docs/backend/COMMUNICATION_AUDIT_STEP279_RESULT.md
 project-state/STEP279_COMMUNICATION_AUDIT_RESULT.md
 ```
+
+
+## STEP280
+
+Die Communication Debug View unterstützt einen manuellen Diagnose-Snapshot. Sichtbare Versionen bleiben versionsbasiert; STEP-Nummern bleiben Dokumentation/ZIP vorbehalten.
