@@ -693,7 +693,6 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
 
   const items = [{
     role: "clip",
-    soundId: `${safeFilePart(targetUser.login)}_${safeFilePart(clip.id)}`,
     file: playback.soundSystemFile || "",
     mediaUrl: playback.mediaUrl || "",
     videoUrl: playback.videoUrl || "",
@@ -969,8 +968,8 @@ module.exports.init = function init(ctx) {
     res.json({
       ok: true,
       module: MODULE_NAME,
-      version: 6,
-      step: "STEP277A_FIX7",
+      version: 7,
+      step: "STEP277A_FIX8",
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       command,
@@ -990,6 +989,7 @@ module.exports.init = function init(ctx) {
         ttsAfterClipEnabled: currentCfg.ttsAfterClipEnabled,
         clipPlaybackMode: currentCfg.clipPlaybackMode || "direct",
         cacheDownloadedClips: currentCfg.cacheDownloadedClips,
+        directPlaybackSoundIdFix: true,
         soundBundleUrl: currentCfg.soundBundleUrl,
         soundCategory: currentCfg.soundCategory,
         soundPriority: currentCfg.soundPriority,

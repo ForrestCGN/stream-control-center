@@ -1,12 +1,7 @@
-# NEXT_STEPS – nach STEP277A_FIX7
+# NEXT STEPS
 
-1. Backend neu starten.
-2. `/api/clip-shoutout/status` prüfen.
-3. API-Test mit `target=bynexl` ausführen.
-4. `/api/sound/status` prüfen:
-   - `failed` bleibt `0`
-   - `lastEvent` endet auf `audio_ended`
-   - bei laufendem Item ist `mediaUrl`/`videoUrl` gesetzt
-   - `file` ist bei Direct Playback leer
-5. Danach Chat-Test mit `!vso @bynexl`, wenn Twitch Presence aktiv ist.
-6. Optional später: alte lokale Dateien unter `htdocs/assets/sounds/clip_shoutout` manuell bereinigen oder eine separate Admin-Cleanup-Funktion planen.
+1. STEP277A_FIX8 einspielen.
+2. Backend neu starten.
+3. `/api/clip-shoutout/status` prüfen.
+4. Direct Playback mit `bynexl` testen.
+5. Prüfen, dass keine neue MP4-Datei im Clip-Shoutout-Cache entsteht.
