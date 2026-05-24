@@ -1,37 +1,39 @@
-# NEXT STEPS – nach STEP298
+# NEXT STEPS – nach STEP300
 
-## STEP299 – Sound Dashboard Monitoring Modul Plan/Scaffold
+## STEP301 – Sound Dashboard Monitoring Backend/Auth Validation
 
 Ziel:
 
-- SoundBus/Sound-System Monitoring im Dashboard vorbereiten.
-- Zunächst lesend.
-- Keine Queue-/Bundle-/Playback-Logik ändern.
+- Sound Dashboard Monitoring gegen bestehende Auth-/Controlcenter-Konventionen prüfen.
+- Sicherstellen, dass der Bus-Monitor rein lesend bleibt.
+- Sicherstellen, dass keine neuen ungeschützten Admin-/Steuerrouten benötigt werden.
+- Prüfen, ob spätere Refresh-/Live-Update-Verbesserungen sauber über bestehende Dashboard-Strukturen umgesetzt werden können.
 
-Mögliche Dateien:
-
-```text
-htdocs/dashboard/modules/soundbus.js
-htdocs/dashboard/modules/soundbus.css
-```
-
-Optional später:
+Mögliche Dateien zur Prüfung:
 
 ```text
-backend/modules/dashboard_soundbus.js
-config/dashboard_soundbus.json
+backend/modules/dashboard_auth.js
+backend/modules/dashboard_controlcenter.js
+backend/modules/communication_bus.js
+backend/modules/sound_system.js
+htdocs/dashboard/modules/sound.js
+htdocs/dashboard/modules/sound.css
 ```
+
+## Danach möglich
+
+STEP302 – Sound Dashboard Monitoring Live-Refresh/UX Plan oder Umsetzung.
+
+Mögliche Ziele:
+
+- Auto-Refresh optional.
+- bessere Anzeige für `soundBus.stats`.
+- kompaktere Darstellung für Current Sound / Bundle Lock.
+- keine Steuerung, solange nicht separat freigegeben.
 
 ## Wichtig
 
 - Keine Funktionalität entfernen.
 - SoundBus bleibt Event-/Status-Schicht.
 - Steueraktionen weiter über Backend-APIs.
-- Rechte-/Rollenprüfung für spätere Admin-Aktionen berücksichtigen.
-
-
-## Nach STEP299
-
-1. Dashboard öffnen und Tab `Sound-System → Bus-Monitor` prüfen.
-2. `test_ping` auslösen und beobachten, ob `emitted` steigt und `errors` bei 0 bleibt.
-3. Danach entscheiden, ob als STEP300 ein Live-Event-Feed im Dashboard oder ein Consumer-/Overlay-Audit folgt.
+- Keine Sound-Queue-/Bundle-/Playback-Logik ändern.

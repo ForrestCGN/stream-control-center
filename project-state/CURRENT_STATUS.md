@@ -1,4 +1,4 @@
-# CURRENT_STATUS – STEP298
+# CURRENT_STATUS – STEP300
 
 Stand: 2026-05-24
 
@@ -8,6 +8,7 @@ Aktueller Stand:
 - Discord Media Path Resolver ist gefixt und bestätigt.
 - SoundBus Debug View ist verfügbar.
 - Consumer-/Dashboard-Planung ist dokumentiert.
+- Sound Dashboard Monitoring Modul ist eingebaut und live getestet.
 
 Aktuelle Betriebsentscheidung:
 
@@ -19,17 +20,21 @@ Wichtig:
 
 - Keine vollständige Bus-only-Migration.
 - Bestehende HTTP-/WebSocket-Wege bleiben erhalten.
+- Dashboard-Monitoring ist rein lesend.
 - Weitere Consumer/Migrationen nur schrittweise.
+
+STEP300 bestätigt:
+
+```text
+SoundBus aktiv
+Communication verfügbar
+Errors 0
+Skipped 0
+Queue 0
+Active Bundle Lock leer
+Sound-/Device-/Discord-Fehler 0
+```
 
 Nächster Schritt:
 
-STEP299 – Sound Dashboard Monitoring Modul Plan/Scaffold.
-
-
-## STEP299 – Sound Dashboard Monitoring Modul
-
-Das bestehende Dashboard-Modul `Sound-System` enthält nun einen neuen rein lesenden Tab `Bus-Monitor`.
-
-Der Tab zeigt SoundBus-/Communication-/Queue-/Bundle-/Fehlerstatus aus `/api/sound/status` und verlinkt die bestehende Debug View `/public/tools/soundbus_debug_view.html`.
-
-Es wurden keine Backend-, Sound-, Queue-, Bundle-, Alert-, Discord-, TTS- oder VIP-Logiken geändert.
+STEP301 – Sound Dashboard Monitoring Backend/Auth Validation.
