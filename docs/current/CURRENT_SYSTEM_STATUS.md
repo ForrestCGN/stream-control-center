@@ -1,5 +1,29 @@
 # CURRENT_SYSTEM_STATUS
 
+## STEP278W
+
+Alert Timing Diagnostics ergänzt.
+
+Betroffene Runtime:
+
+```text
+alert_system.js
+/api/alerts/bus-mirror/status
+```
+
+Funktion:
+
+- Keine neue Alert-Logik.
+- Kein neues Modul.
+- Keine Sound-/TTS-/Queue-/Overlay-Änderung.
+- Der bestehende Bus-Mirror bleibt runtime-only aktivierbar.
+- Der Mirror-Status zeigt zusätzlich Timing-Diagnose zum letzten gespiegelten Alert.
+- Messpunkte: queued, waiting for sound, sound bundle ready, sound wait done, playing, overlay sent, bus mirror sent.
+
+## Vorheriger Stand
+
+# CURRENT_SYSTEM_STATUS
+
 ## Aktueller Stand: STEP278V2
 
 Der echte Alert-Bus-Mirror ist direkt im bestehenden Alert-System integriert.

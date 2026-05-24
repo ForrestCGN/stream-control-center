@@ -142,7 +142,8 @@ const state = {
     lastEventUid: '',
     lastBusEventId: '',
     lastResult: null,
-    lastError: ''
+    lastError: '',
+    lastTiming: null
   }
 };
 
@@ -761,7 +762,8 @@ function buildAlertBusMirrorStatus() {
       lastError: state.alertBusMirror.lastError,
       changedAt: state.alertBusMirror.changedAt,
       changedReason: state.alertBusMirror.changedReason
-    }
+    },
+    timing: state.alertBusMirror.lastTiming || null
   };
 }
 
@@ -786,12 +788,84 @@ function setAlertBusMirrorRuntimeEnabled(enabled, reason = '') {
   };
 }
 
+
+function alertTimingNow() {
+  const ms = Date.now();
+  return { ms, iso: new Date(ms).toISOString() };
+}
+
+function ensureAlertTiming(event) {
+  if (!event || typeof event !== 'object') return null;
+  if (!event.alertTiming || typeof event.alertTiming !== 'object') {
+    event.alertTiming = {
+      eventUid: event.eventUid || '',
+      source: event.source || '',
+      type_key: event.type_key || '',
+      createdAt: event.created_at || '',
+      timestamps: {},
+      ms: {}
+    };
+  }
+  if (event.created_at && !event.alertTiming.timestamps.queuedAt) {
+    event.alertTiming.timestamps.queuedAt = event.created_at;
+    const queuedMs = Date.parse(event.created_at);
+    if (Number.isFinite(queuedMs)) event.alertTiming.ms.queuedAt = queuedMs;
+  }
+  return event.alertTiming;
+}
+
+function markAlertTiming(event, key) {
+  const timing = ensureAlertTiming(event);
+  if (!timing || !key) return null;
+  const stamp = alertTimingNow();
+  const field = `${key}At`;
+  timing.timestamps[field] = stamp.iso;
+  timing.ms[field] = stamp.ms;
+  state.alertBusMirror.lastTiming = buildPublicAlertTiming(event);
+  return timing;
+}
+
+function elapsedMs(start, end) {
+  const a = Number(start || 0);
+  const b = Number(end || 0);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) return null;
+  return Math.max(0, b - a);
+}
+
+function buildPublicAlertTiming(event) {
+  const timing = ensureAlertTiming(event);
+  if (!timing) return null;
+  const ts = timing.timestamps || {};
+  const ms = timing.ms || {};
+  return {
+    eventUid: event.eventUid || timing.eventUid || '',
+    source: event.source || timing.source || '',
+    type_key: event.type_key || timing.type_key || '',
+    queuedAt: ts.queuedAt || event.created_at || '',
+    queuePickedAt: ts.queuePickedAt || '',
+    waitingForSoundAt: ts.waitingForSoundAt || '',
+    soundBundleReadyAt: ts.soundBundleReadyAt || '',
+    soundWaitDoneAt: ts.soundWaitDoneAt || '',
+    playingAt: ts.playingAt || event.started_at || '',
+    overlaySentAt: ts.overlaySentAt || '',
+    busMirrorSentAt: ts.busMirrorSentAt || '',
+    queueToSoundWaitMs: elapsedMs(ms.queuedAt, ms.waitingForSoundAt),
+    soundPrepareDurationMs: elapsedMs(ms.waitingForSoundAt, ms.soundBundleReadyAt),
+    soundWaitDurationMs: elapsedMs(ms.waitingForSoundAt, ms.soundWaitDoneAt),
+    soundWaitDoneToPlayingMs: elapsedMs(ms.soundWaitDoneAt, ms.playingAt),
+    playingToOverlayMs: elapsedMs(ms.playingAt, ms.overlaySentAt),
+    overlayToBusMirrorMs: elapsedMs(ms.overlaySentAt, ms.busMirrorSentAt),
+    playingToBusMirrorMs: elapsedMs(ms.playingAt, ms.busMirrorSentAt)
+  };
+}
+
 function buildAlertBusMirrorPayload(event, overlayAlert) {
   const alert = overlayAlert || buildOverlayAlert(event);
   return {
     test: false,
     mirror: true,
     productionTarget: false,
+    timing: buildPublicAlertTiming(event),
     alert: {
       ...alert,
       source: 'alert_system',
@@ -846,6 +920,7 @@ function emitAlertBusMirror(event, overlayAlert) {
         alertType: event.type_key
       }
     });
+    markAlertTiming(event, 'busMirrorSent');
     state.alertBusMirror.emitted += result && result.ok ? 1 : 0;
     state.alertBusMirror.errors += result && result.ok ? 0 : 1;
     state.alertBusMirror.lastEventUid = event.eventUid || '';
@@ -1623,6 +1698,7 @@ function enqueueAlertWithRule(payload, rule, broadcastWS, options = {}) {
     created_at: now,
     replayOf: options.replayOf || null
   };
+  ensureAlertTiming(event);
   database.run(`
     INSERT INTO alert_events (event_uid, source, type_key, user_login, user_display, amount, message, rule_id, status, payload_json, display_profile_id, created_at)
     VALUES (:eventUid, :source, :typeKey, :userLogin, :userDisplay, :amount, :message, :ruleId, 'queued', :payloadJson, :displayProfileId, :now)
@@ -2186,6 +2262,7 @@ async function processQueue(broadcastWS) {
 
   state.processing = true;
   const event = state.queue.shift();
+  markAlertTiming(event, 'queuePicked');
 
   try {
     if (event.rule && event.rule.id) event.rule = getRuleById(event.rule.id) || event.rule;
@@ -2197,6 +2274,7 @@ async function processQueue(broadcastWS) {
     // Stattdessen nutzt das Alert-System das native Sound-System-Bundle.
     event.status = 'waiting_for_sound';
     event.waiting_started_at = nowIso();
+    markAlertTiming(event, 'waitingForSound');
     try {
       database.run(`UPDATE alert_events SET status='waiting_for_sound' WHERE event_uid=:eventUid`, {
         eventUid: event.eventUid
@@ -2211,6 +2289,7 @@ async function processQueue(broadcastWS) {
       soundResult = bundleResult && bundleResult.soundResult ? bundleResult.soundResult : null;
       ttsResult = (event.alertTts && event.alertTts.attempted) ? event.alertTts : ttsResult;
     }
+    markAlertTiming(event, 'soundBundleReady');
 
     if (soundResult && soundResult.attempted) {
       event.soundSystem = soundResult;
@@ -2242,6 +2321,7 @@ async function processQueue(broadcastWS) {
     }
 
     const syncResult = await waitForSoundSystemItemStarted(event, soundResult);
+    markAlertTiming(event, 'soundWaitDone');
     if (syncResult && syncResult.persist) {
       persistEventRuntimePayload(event);
     }
@@ -2250,6 +2330,7 @@ async function processQueue(broadcastWS) {
     state.current = event;
     event.status = 'playing';
     event.started_at = nowIso();
+    markAlertTiming(event, 'playing');
     try {
       database.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, {
         startedAt: event.started_at,
@@ -2261,6 +2342,7 @@ async function processQueue(broadcastWS) {
 
     const overlayAlert = buildOverlayAlert(event);
     sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
+    markAlertTiming(event, 'overlaySent');
     emitAlertBusMirror(event, overlayAlert);
     dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
 
