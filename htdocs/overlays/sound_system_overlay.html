@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - STEP277A_FIX5</title>
+  <title>ForrestCGN Sound-System Overlay - STEP353_WS_PLAY_SIGNAL_FIX</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -770,16 +770,23 @@
       wireVideoEvents(videoPlayer);
       wireVideoEvents(clipVideoPlayer);
 
+      function normalizeWsPayload(message) {
+        if (!message || typeof message !== 'object') return null;
+        if (message.op || message.type || message.reason) return message;
+        if (message.data && typeof message.data === 'object' && (message.data.op || message.data.type || message.data.reason)) return message.data;
+        return message;
+      }
+
       function handleMessage(message){
-        const payload = message && (message.data || message);
+        const payload = normalizeWsPayload(message);
         if (!payload) return;
         const op = payload.op || payload.type || '';
         const reason = payload.reason || '';
         const data = payload.data || payload.payload || {};
         if (op !== 'sound_system') return;
 
-        const current = data.current || null;
-        if ((reason === 'started' || reason === 'play_stream' || reason === 'interrupted_started' || reason === 'next_started' || reason === 'resumed' || reason === 'bundle_next_started') && current) {
+        const current = payload.item || data.current || null;
+        if ((reason === 'started' || reason === 'play_stream' || reason === 'interrupted_started' || reason === 'next_started' || reason === 'resumed' || reason === 'bundle_next_started' || reason === 'item_started') && current) {
           playSound(current);
           return;
         }
