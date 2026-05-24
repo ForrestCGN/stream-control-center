@@ -1,5 +1,20 @@
 # Changelog
 
+## STEP294 – Discord Resolver Retest bestätigt (2026-05-24T14:30:00Z)
+
+- STEP293 Discord Media Path Resolver Fix live erneut getestet.
+- V5 Real Queue/Bundle Regression ohne großes Trace-Upload erneut geprüft.
+- Kompakter `/api/sound/status`-Auszug bestätigt: `discordFailed = 0`.
+- `failed = 0`, `deviceFailed = 0`, `levelCorrectionFailed = 0`.
+- `queuedCount = 0`, `currentBundle` leer, `activeBundleLock` leer.
+- `bundlesQueued = 3`, `bundleItemsQueued = 6`.
+- SoundBus blieb aktiv und Communication Bus verfügbar.
+- Keine Codeänderung.
+- Keine Sound-Queue-/Bundle-/SoundBus-/Alert-Output-Logik geändert.
+- Keine DB-Migration.
+- Keine Funktionalität entfernt.
+
+
 ## STEP291 – SoundBus V5 Regression bestanden mit Discord-Warnung
 
 Datum: 2026-05-24T14:10:00Z

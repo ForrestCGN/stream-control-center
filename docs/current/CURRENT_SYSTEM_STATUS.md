@@ -1,54 +1,70 @@
-# CURRENT_SYSTEM_STATUS
+# Current System Status
 
-Stand: STEP293 – Discord Media Path Resolver Fix
-Aktualisiert: 2026-05-24T14:20:00Z
+Stand: STEP294 – Discord Resolver Retest bestätigt
+Aktualisiert: 2026-05-24T14:30:00Z
 
 ## Aktueller Fokus
 
-STEP293 behebt ausschließlich die Discord-Dateiauflösung für Media-Registry-Alert-Dateien (`media/alerts/...`). Der SoundBus-/Queue-/Bundle-Stand aus STEP291 bleibt unverändert stabil.
+Kommunikations-/Sound-/Alert-Stabilisierung über Communication Bus, ohne bestehende Produktionswege zu entfernen.
 
-## Nächster Test
+## Alert-System
 
-STEP294: V5 Regression Retest nach Discord Resolver Fix.
+- Alert native Output Mode vorhanden.
+- Getestete Modi:
+  - `legacy`
+  - `legacy_and_bus`
+  - `bus_first`
+- `bus_only` ist vorbereitet, aber nicht freigegeben.
+- Produktiv sicherer Standard bleibt weiterhin `legacy`, solange kein expliziter Testbetrieb gewünscht ist.
+- Overlay Watchdog läuft und meldete in den Tests `acknowledged`.
 
----
+## Sound-System / SoundBus
 
-# Current System Status
+- Sound-System bleibt Master für Audio, Queue, Bundles und Prioritäten.
+- SoundBus ist als Event-/Status-Schicht ergänzt.
+- `/api/sound/status` enthält Top-Level `soundBus`.
+- SoundBus wurde aktiviert und getestet.
+- Einzel-Sound-Test bestanden.
+- Alert-Bundle-Test bestanden.
+- V5 Real Queue/Bundle Regression bestanden.
+- SoundBus verursacht keine Queue-/Bundle-Störung.
 
-Stand: STEP292 – Discord Media Path/Routing Audit
-Aktualisiert: 2026-05-24T14:15:00Z
+## Discord Media Resolver
 
-## Aktueller Stand
-
-- STEP289/289B: SoundBus Event Output und Top-Level-Status sind aktivierbar und getestet.
-- STEP290: SoundBus-Basistests bestanden.
-- STEP291: V5 Real Queue/Bundle Regression mit aktiviertem SoundBus bestanden.
-- STEP292: Discord Media Path/Routing Audit abgeschlossen.
-
-## Bestätigte Stabilität
-
-Der aktivierte SoundBus beschädigt die stabile Sound-/Queue-/Bundle-Reihenfolge nicht:
-
-- Alert-Hauptsound und passende Alert-TTS bleiben zusammen.
-- Fremde SoundAlerts, Mod-/VIP-Sounds und normales TTS rutschen nicht zwischen Alert-Sound und Alert-TTS.
-- `activeBundleLock` ist am Ende leer.
-- Queue ist am Ende leer.
-- SoundBus meldete keine Fehler.
-
-## Offener Nebenbefund
-
-Discord kann Media-Registry-Alert-Dateien aktuell nicht auflösen, wenn sie als `media/alerts/...` an die Discord-Bridge gehen.
-
-Beobachteter Fehler:
+STEP291 zeigte einen Nebenbefund:
 
 ```text
+discordFailed = 3
 sound nicht gefunden: media/alerts/bits/100-249.mp3
 ```
 
-Root Cause laut STEP292: Discord löst derzeit primär gegen `MEDIA_DIR` auf, während Alert-Media-Registry-Dateien unter `htdocs/assets/media/...` liegen. Klassische Sounds/TTS/VIP liegen unter `htdocs/assets/sounds/...` und funktionieren daher eher.
+STEP292 grenzte dies als Discord-Pfadresolver-Problem ein. STEP293 erweiterte `backend/modules/discord.js` für Media-Registry-Pfade. STEP294 bestätigte den Retest:
 
-## Nächster Schritt
+```text
+discordFailed = 0
+failed = 0
+deviceFailed = 0
+queuedCount = 0
+activeBundleLock = leer
+bundlesQueued = 3
+bundleItemsQueued = 6
+```
 
-STEP293 – Discord Media Path Resolver Fix
+## Wichtige Schutzregeln
 
-Ziel: Discord-Bridge soll klassische Sounds und Media-Registry-Assets sicher auflösen, ohne SoundBus, Queue, Bundle-Lock oder Alert-Output-Modi zu ändern.
+- Keine Funktionalität entfernen.
+- Keine Sound-Queue-Logik ändern, wenn nur Bus/Status/Resolver betroffen ist.
+- `activeBundleLock` nicht ohne gezielte Regressionstests anfassen.
+- SQLite nicht überschreiben oder neu bauen.
+- Dashboard nur über APIs, nicht direkt auf Dateien/SQLite.
+- Nach Codeänderungen Syntaxcheck und Tests dokumentieren.
+
+## Nächster empfohlener Schritt
+
+STEP295 – SoundBus Betriebsentscheidung / nächster Migrationsblock.
+
+Optionen:
+
+- `soundBus.enabled = true` als stabilen Stand belassen und Monitoring/Dashboard nachziehen.
+- Oder SoundBus wieder deaktivieren, bevor weitere größere Umbauten starten.
+- Danach gezielt den nächsten Bus-Consumer oder Debug-/Dashboard-Block planen.

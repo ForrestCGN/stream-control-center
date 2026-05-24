@@ -1,30 +1,38 @@
-# Files – STEP292
+# Files – aktueller Stand
 
-Aktualisiert: 2026-05-24T14:15:00Z
+Stand: STEP294 – Discord Resolver Retest bestätigt
+Aktualisiert: 2026-05-24T14:30:00Z
 
-## Neu / aktualisiert
+## Relevante Dateien
 
-- `docs/backend/DISCORD_MEDIA_PATH_AUDIT_STEP292.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `project-state/STEP292_DISCORD_MEDIA_PATH_AUDIT.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-- `project-state/NEXT_STEPS.md`
+```text
+backend/modules/sound_system.js
+backend/modules/discord.js
+backend/modules/alert_system.js
+backend/modules/communication_bus.js
+htdocs/overlays/_overlay-alerts-v2-bus.html
+htdocs/public/tools/communication_debug_view.html
+config/sound_system.json
+config/alert_system.json
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
 
-## Relevante Code-Dateien für nächsten STEP293
+## Neue/aktualisierte Doku in STEP294
 
-- `backend/modules/discord.js`
-- optional: `backend/modules/sound_system.js`
+```text
+docs/backend/DISCORD_MEDIA_PATH_RESOLVER_RETEST_STEP294.md
+project-state/STEP294_DISCORD_RESOLVER_RETEST_CONFIRMED.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
 
-## Nicht geändert
+## Hinweis
 
-- Kein Produktivcode in STEP292.
-- Keine Config.
-- Keine Datenbank.
-
-## STEP293 Dateien
-
-- `backend/modules/discord.js` – Discord Media Path Resolver Fix für `media/...`, `assets/...`, `sounds/...`.
-- `docs/backend/DISCORD_MEDIA_PATH_RESOLVER_FIX_STEP293.md` – technische Doku.
-- `project-state/STEP293_DISCORD_MEDIA_PATH_RESOLVER_FIX.md` – Projektstatus.
+STEP294 enthält keine Codeänderung. Der Code-Fix liegt in STEP293 (`backend/modules/discord.js`).
