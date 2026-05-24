@@ -1,5 +1,22 @@
 # Changelog
 
+## STEP290 – SoundBus Basistests bestätigt
+
+Datum: 2026-05-24T14:05:00Z
+
+- STEP289B-Statusfix live bestätigt: `/api/sound/status` enthält Top-Level `soundBus`.
+- SoundBus testweise über `/api/sound/settings` aktiviert.
+- `test_ping` erfolgreich über `/api/sound/play?id=test_ping` abgespielt.
+- SoundBus-Events wurden erzeugt, `soundBus.stats.errors = 0`.
+- Alert-Bundle-Test mit Hauptsound + Alert-TTS erfolgreich durchgeführt.
+- `bundlesQueued = 1`, `bundleItemsQueued = 2`, keine Sound-/Device-/Discord-Fehler.
+- `activeBundleLock`, `currentBundle` und Queue waren am Ende sauber leer.
+- Alert Overlay Watchdog meldete `acknowledged`, kein Timeout, kein Issue.
+- Keine Codeänderung.
+- Keine Sound-/Queue-/Bundle-/Caller-Logik geändert.
+- Keine DB-Migration.
+- Keine Funktionalität entfernt.
+
 ## STEP289B – SoundBus Status Exposure Fix
 
 Datum: 2026-05-24T14:00:00Z
@@ -10,7 +27,6 @@ Datum: 2026-05-24T14:00:00Z
 - Keine Caller-Module geändert.
 - Keine DB-Migration.
 - Keine Funktionalität entfernt.
-
 
 ## STEP289 – Sound-System Bus Event Mirror / Native Status Output
 

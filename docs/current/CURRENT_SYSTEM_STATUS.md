@@ -1,7 +1,7 @@
 # Current System Status
 
-Stand: STEP289 – Sound-System Bus Event Mirror / Native Status Output
-Aktualisiert: 2026-05-24T13:45:00Z
+Stand: STEP290 – SoundBus Basistests bestätigt
+Aktualisiert: 2026-05-24T14:05:00Z
 
 ## Alert-/Communication-Stand
 
@@ -26,93 +26,99 @@ Der sichere Standardmodus bleibt bewusst `legacy`.
 
 Der Real Alert Mirror bleibt erhalten und ist weiter als Diagnose-/Bridge-Testwerkzeug nutzbar. Der reguläre Migrationspfad läuft über `alertOutput` im Alert-System.
 
-## STEP289 Sound-System Bus Event Mirror
+## Sound-System-Stand nach STEP290
 
-Das Sound-System wurde additiv busfähig vorbereitet.
+Das Sound-System wurde in STEP288 analysiert, in STEP289 additiv mit einem SoundBus-Event-Ausgang vorbereitet und in STEP289B um den fehlenden Top-Level-Status `soundBus` in `/api/sound/status` korrigiert.
 
-Geändert wurde nur `backend/modules/sound_system.js`:
+STEP290 bestätigt die ersten Live-Basistests mit aktivem `soundBus`:
 
-- neuer `MODULE_STEP = 289`
-- neuer Config-Block `soundBus`
-- neuer Statusblock `soundBus` in `/api/sound/status`
-- `soundBus` ist DB-/Settings-fähig über `/api/sound/settings`
-- strukturierte Communication-Bus-Events können zusätzlich zum bestehenden alten WebSocket-Weg gesendet werden
-- bestehender WebSocket-Status `op: sound_system` bleibt erhalten
-- bestehende Sound-APIs bleiben unverändert
+- `/api/sound/status` meldet `step = 289` und sichtbaren Top-Level-Block `soundBus`.
+- `soundBus.enabled = true` konnte über `/api/sound/settings` aktiviert werden.
+- Communication Bus war verfügbar.
+- Test-Sound `test_ping` wurde erfolgreich abgespielt.
+- SoundBus sendete Events und meldete `errors = 0`.
+- Alert-Bundle-Test mit Hauptsound + Alert-TTS lief erfolgreich.
+- Alert-Bundle erzeugte `bundlesQueued = 1` und `bundleItemsQueued = 2`.
+- `activeBundleLock` war am Ende wieder leer.
+- `queuedCount = 0` am Ende.
+- Alert Overlay Watchdog meldete `acknowledged`.
+- Keine Sound-, Device-, Discord- oder Watchdog-Fehler im Test.
 
 ## Sound-Bus Default
 
-Der sichere Default ist:
+Der sichere Config-Default bleibt:
 
 - `soundBus.enabled = false`
 
-Damit ändert sich nach Deploy kein produktives Sound-Verhalten. Der Bus-Ausgang kann gezielt für Tests über `/api/sound/settings` aktiviert werden.
+Für gezielte Tests kann `soundBus.enabled` über `/api/sound/settings` aktiviert werden. Nach Tests soll der Wert wieder bewusst geprüft bzw. auf den gewünschten sicheren Zustand gesetzt werden.
 
-## Vorbereitete Sound-Bus-Events
+## Bestätigte SoundBus-Testwerte
 
-- `sound.state.updated`
-- `sound.queue.updated`
-- `sound.queued`
-- `sound.starting`
-- `sound.started`
-- `sound.finished`
-- `sound.failed`
-- `sound.stopped`
-- `sound.skipped`
-- `sound.cleared`
-- `sound.paused`
-- `sound.resumed`
-- `sound.bundle.queued`
-- `sound.bundle.lock_started`
-- `sound.bundle.lock_finished`
-- `sound.device.started`
-- `sound.device.finished`
-- `sound.device.failed`
-- `sound.discord.started`
-- `sound.discord.queued`
-- `sound.discord.failed`
-- `sound.client.ready`
-- `sound.client.audio_started`
-- `sound.client.audio_ended`
-- `sound.client.error`
+### Status-Fix
+
+- `step = 289`
+- Top-Level `soundBus` sichtbar.
+- `soundBus.feature = sound_bus_event_output`
+- `soundBus.communicationBusAvailable = true`
+
+### Aktivierung
+
+Nach Aktivierung:
+
+- `soundBus.enabled = true`
+- `soundBus.stats.emitted = 1`
+- `soundBus.stats.skipped = 2`
+- `soundBus.stats.errors = 0`
+- `lastAction = state.updated`
+
+### Test-Ping
+
+`GET /api/sound/play?id=test_ping`:
+
+- `ok = true`
+- `started = true`
+- `queued = false`
+- `dropped = false`
+- Danach: `soundBus.stats.emitted = 7`
+- Danach: `soundBus.stats.errors = 0`
+- Danach: `lastAction = finished`
+- Danach: `lastReason = item_finished`
+
+### Alert-Bundle-Test
+
+Nach Gift-Sub-Test-Alert mit TTS:
+
+- `started = 3`
+- `queued = 1`
+- `failed = 0`
+- `deviceStarted = 2`
+- `deviceFailed = 0`
+- `discordStarted = 2`
+- `discordFailed = 0`
+- `bundlesQueued = 1`
+- `bundleItemsQueued = 2`
+- `queuedCount = 0`
+- `currentBundle = null`
+- `activeBundleLock = null`
+- Alert Watchdog: `status = acknowledged`
+- Alert Watchdog: `timedOut = false`
+- Alert Watchdog: `issue` leer
 
 ## Nicht geändert
 
-- keine Änderung an `/api/sound/play`
-- keine Änderung an `/api/sound/bundle`
-- keine Änderung an `/api/sound/play-media`
-- keine Änderung an Queue-Sortierung
-- keine Änderung an Dedupe/Cooldowns
-- keine Änderung an Interrupt-Regeln
-- keine Änderung an `activeBundleLock`
-- keine Caller-Module auf Bus-Input umgestellt
-- keine DB-Migration außerhalb bestehender `sound_settings`-Nutzung
-- keine Funktionalität entfernt
+- Keine Caller-Module auf Bus-Input umgebaut.
+- Keine Sound-API entfernt.
+- Alter WebSocket `op: sound_system` bleibt erhalten.
+- Keine Queue-Sortierung geändert.
+- Keine Bundle-/`activeBundleLock`-Logik geändert.
+- Keine Dedupe-/Cooldown-/Interrupt-Regeln geändert.
+- Keine Alert-Bundle-Logik geändert.
+- Keine DB-Migration.
+- Keine Funktionalität entfernt.
 
 ## Nächste Entwicklungsrichtung
 
-1. STEP289 deployen und Syntax/Status prüfen.
-2. `soundBus.enabled` testweise aktivieren.
-3. Test-Ping auslösen und Bus-Events prüfen.
-4. Alert-Bundle-Test mit Hauptsound + Alert-TTS prüfen.
-5. V5-Real-Mod-Test erneut ausführen.
-6. Danach Debug View/Dashboard um Sound-Bus-Events erweitern.
-
-
-## STEP289B – SoundBus Status Exposure Fix
-
-Nach dem ersten STEP289-Live-Check war `config.soundBus` korrekt vorhanden, aber der Runtime-Status wurde nicht direkt als Top-Level-Feld `soundBus` in `/api/sound/status` ausgegeben.
-
-Korrigiert:
-
-- `/api/sound/status` gibt jetzt zusätzlich `soundBus` direkt auf Top-Level aus.
-- `config.soundBus` bleibt weiterhin als Effective-Config sichtbar.
-- Keine Sound-/Queue-/Bundle-/Playback-Logik geändert.
-- `soundBus.enabled` bleibt standardmäßig `false`.
-
-Erwarteter Test:
-
-- `Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | Select-Object step, soundBus`
-- `step = 289`
-- `soundBus.enabled = false`
-- `soundBus.communicationBusAvailable = true`
+1. SoundBus-Zustand nach Test bewusst sichern (`enabled` prüfen, ggf. auf `false` zurücksetzen).
+2. STEP291 – V5 Real Queue/Bundle Regression Test mit aktivem SoundBus durchführen.
+3. Danach Communication Debug View/Dashboard um Sound-Bus-Events erweitern.
+4. Erst danach über Bus-Input `sound.play` nachdenken, der intern dieselben Sound-System-APIs/Queue-Wege nutzt.

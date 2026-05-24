@@ -6,10 +6,15 @@
   Enthält nativen Alert Visual Output Mode, Timing Cleanup, Bus Mirror, Watchdog und Recovery Controls.
 
 - `backend/modules/sound_system.js`  
-  STEP289: enthält additiven Sound-Bus-Event-Ausgang, `soundBus`-Status und weiterhin den bestehenden alten WebSocket-/REST-Sound-System-Stand.
+  STEP289/STEP289B: enthält additiven Sound-Bus-Event-Ausgang, sichtbaren Top-Level-Status `soundBus` in `/api/sound/status` und weiterhin den bestehenden alten WebSocket-/REST-Sound-System-Stand.
 
 - `backend/modules/communication_bus.js`  
   Communication Bus Helper/API, Version `0.8.1`.
+
+## Config
+
+- `config/sound_system.json`  
+  Enthält den `soundBus`-Block. Sicherer Default bleibt `enabled = false`, Aktivierung für Tests über `/api/sound/settings` möglich.
 
 ## Overlays / Tools
 
@@ -25,19 +30,13 @@
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/STEP288_SOUND_SYSTEM_BUS_AUDIT.md`
 - `project-state/STEP289_SOUND_SYSTEM_BUS_EVENT_OUTPUT.md`
+- `project-state/STEP289B_SOUNDBUS_STATUS_EXPOSURE_FIX.md`
+- `project-state/STEP290_SOUNDBUS_BASE_TESTS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
 
+## STEP290 – Test-/Doku-Stand
 
-## STEP289B – SoundBus Status Exposure Fix
-
-Geändert:
-
-- `backend/modules/sound_system.js`
-  - Top-Level-Feld `soundBus` in `/api/sound/status` ergänzt.
-
-Dokumentation:
-
-- `project-state/STEP289B_SOUNDBUS_STATUS_EXPOSURE_FIX.md`
+Keine Code-Datei wurde geändert. STEP290 dokumentiert nur die live bestätigten SoundBus-Basistests.

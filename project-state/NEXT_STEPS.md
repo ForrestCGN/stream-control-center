@@ -1,48 +1,25 @@
 # Next Steps
 
-## Sicherer Stand nach STEP289
+## Sicherer Stand nach STEP290
 
 - Alert-Visual-Migration ist vorbereitet und getestet.
 - Alert-Standard bleibt `alertOutput.mode = legacy`.
 - `legacy`, `legacy_and_bus` und `bus_first` wurden live bestätigt.
 - `bus_only` ist vorbereitet, aber nicht als Produktiv-/Normalmodus freigegeben.
-- Sound-System besitzt jetzt einen additiven Bus-Event-Ausgang.
+- Sound-System besitzt einen additiven Bus-Event-Ausgang.
+- `/api/sound/status` enthält sichtbaren Top-Level-Block `soundBus`.
+- SoundBus-Basistests sind bestanden:
+  - Status-Fix bestätigt.
+  - Aktivierung über `/api/sound/settings` bestätigt.
+  - `test_ping` bestätigt.
+  - Alert-Bundle mit Hauptsound + TTS bestätigt.
 - Sound-System bleibt Master für Audio/Media, Queue, Bundles und Ausgabe.
-- `soundBus.enabled` ist standardmäßig `false`.
 
-## STEP289 Minimaltests
+## Wichtiger Hinweis zu soundBus.enabled
 
-1. Backend starten.
-2. `/api/sound/status` prüfen:
-   - `step = 289`
-   - `soundBus.enabled = false`
-   - `soundBus.communicationBusAvailable = true`
-3. Test-Ping im Default prüfen, Sound-Verhalten muss unverändert bleiben.
-4. `soundBus.enabled` über `/api/sound/settings` aktivieren.
-5. Test-Ping erneut auslösen.
-6. Prüfen:
-   - `soundBus.stats.emitted` steigt.
-   - `soundBus.stats.errors = 0`.
-   - `soundBus.stats.lastAction` passt zum letzten Event.
-7. Alert-Bundle-Test ausführen:
-   - Hauptsound + Alert-TTS bleiben zusammen.
-   - `activeBundleLock` bleibt stabil.
-   - keine fremden Sounds zwischen Hauptsound und TTS.
-8. V5-Real-Mod-Test erneut ausführen.
+Der sichere Config-Default bleibt `soundBus.enabled = false`.
 
-## SoundBus testweise aktivieren
-
-POST auf `/api/sound/settings` mit:
-
-```json
-{
-  "settings": {
-    "soundBus": {
-      "enabled": true
-    }
-  }
-}
-```
+Nach Tests muss bewusst entschieden werden, ob `soundBus.enabled` testweise aktiv bleiben soll oder wieder auf `false` gesetzt wird.
 
 Zurück auf sicheren Standard:
 
@@ -56,26 +33,31 @@ Zurück auf sicheren Standard:
 }
 ```
 
+## STEP291 – SoundBus V5 Real Queue/Bundle Regression Test
+
+Ziel:
+
+- SoundBus aktiviert lassen.
+- V5-Real-Mod-Test ausführen:
+  - `tools/easy/05_SOUND_QUEUE_FULL_ORDER_TRACE_TEST_V5_REAL_MOD.cmd`
+- Prüfen, ob die bekannte stabile Reihenfolge aus STEP268C weiterhin erhalten bleibt.
+
+Zu prüfen:
+
+- Alert-Hauptsound + passende Alert-TTS bleiben zusammen.
+- Kein SoundAlert, Mod-Sound oder normales TTS rutscht zwischen Alert-Hauptsound und passende Alert-TTS.
+- `activeBundleLock` wird gesetzt und wieder sauber gelöst.
+- Queue am Ende leer.
+- `soundBus.stats.errors = 0`.
+- Device-/Discord-Fehler bleiben `0`.
+- Alert Watchdog bleibt `acknowledged`.
+
 ## Danach
 
-- Communication Debug View/Dashboard um Sound-Bus-Events erweitern.
-- Sound-Bus-Events im Debug View gruppieren: Queue, Items, Bundles, Device, Discord, Client.
-- Module dürfen Bus-Status lesen, aber noch nicht direkt Sounds per Bus auslösen.
-- Optional später Bus-Input `sound.play`, der intern dieselbe Sound-System-Queue nutzt.
-- Module erst danach stufenweise migrieren.
+Wenn STEP291 bestanden ist:
 
-
-## Nach STEP289B
-
-1. `/api/sound/status` prüfen:
-   - `step = 289`
-   - Top-Level `soundBus` ist sichtbar.
-   - `soundBus.enabled = false`
-   - `soundBus.communicationBusAvailable = true`
-
-2. Danach SoundBus gezielt aktivieren und mit kleinem Test-Sound prüfen.
-
-3. Erst nach erfolgreichem Status-/Bus-Test:
-   - Alert-Bundle-Test
-   - V5-Real-Mod-Sound-Trace-Test
-   - danach Planung der Modul-Migration.
+1. Communication Debug View/Dashboard um Sound-Bus-Events erweitern.
+2. Sound-Bus-Events gruppieren: Queue, Items, Bundles, Device, Discord, Client.
+3. Module dürfen Bus-Status lesen, aber noch nicht direkt Sounds per Bus auslösen.
+4. Optional später Bus-Input `sound.play`, der intern dieselbe Sound-System-Queue nutzt.
+5. Module erst danach stufenweise migrieren.
