@@ -1,4 +1,4 @@
-# CURRENT_STATUS – STEP301
+# CURRENT_STATUS – STEP302
 
 Stand: 2026-05-24
 
@@ -7,8 +7,9 @@ Aktueller Stand:
 - SoundBus ist aktiv und getestet.
 - Discord Media Path Resolver ist gefixt und bestätigt.
 - SoundBus Debug View ist verfügbar.
-- Sound Dashboard Monitoring Modul ist sichtbar getestet.
-- Dashboard-/Auth-/Backend-Einbindung wurde geprüft.
+- Dashboard SoundBus Monitoring ist verfügbar.
+- Backend/Auth Validation für den Monitor ist dokumentiert.
+- Bus-Monitor-Refresh ist jetzt rein lesend.
 
 Aktuelle Betriebsentscheidung:
 
@@ -22,12 +23,6 @@ Wichtig:
 - Bestehende HTTP-/WebSocket-Wege bleiben erhalten.
 - Weitere Consumer/Migrationen nur schrittweise.
 
-STEP301 Ergebnis:
-
-- Integration strukturell korrekt.
-- Keine neuen Backend-/Auth-Routen nötig.
-- Hinweis: Bus-Monitor-Button `Status neu laden` sollte in STEP302 auf reinen Status-Refresh umgestellt werden.
-
 Nächster Schritt:
 
-STEP302 – Sound Dashboard Bus-Monitor Readonly Refresh Fix.
+STEP303 – Sound Dashboard Readonly Refresh Test dokumentieren.

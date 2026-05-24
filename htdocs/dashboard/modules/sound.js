@@ -690,7 +690,7 @@ window.SoundSystemModule = (function(){
       <div class="sound-status-row"><span>Sound-Fehler</span><span>${esc(normalStats.failed || 0)} · Device ${esc(normalStats.deviceFailed || 0)} · Discord ${esc(normalStats.discordFailed || 0)}</span></div>
       <div class="sound-actions">
         <a class="ghost-link" href="${debugUrl}" target="_blank">SoundBus Debug View öffnen</a>
-        ${button('Status neu laden', 'reload')}
+        ${button('Status neu laden', 'refresh-status')}
       </div>
     `;
   }
@@ -773,6 +773,14 @@ window.SoundSystemModule = (function(){
       el.hidden = !sections.includes(activeSection);
     });
   }
+  async function refreshStatusOnly(){
+    const state = await api('/status');
+    const currentSounds = Array.isArray(status?.sounds) ? status.sounds : [];
+    status = { ...state, sounds: currentSounds };
+    output = { output: state?.config?.output || {} };
+    render();
+  }
+
   function bindActions(){
     if (!root || actionsBound) return;
     actionsBound = true;
@@ -792,6 +800,7 @@ window.SoundSystemModule = (function(){
         } else {
           const action = actionBtn.dataset.soundAction;
           if (action === 'reload') await api('/reload', { method: 'POST', body: '{}' });
+          if (action === 'refresh-status') await refreshStatusOnly();
           if (action === 'stop') await api('/stop', { method: 'POST', body: '{}' });
           if (action === 'skip') await api('/skip', { method: 'POST', body: '{}' });
           if (action === 'clear') await api('/clear', { method: 'POST', body: '{}' });

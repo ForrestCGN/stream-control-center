@@ -1,29 +1,24 @@
-# NEXT STEPS – nach STEP301
+# NEXT STEPS – nach STEP302
 
-## STEP302 – Sound Dashboard Bus-Monitor Readonly Refresh Fix
+## STEP303 – Sound Dashboard Readonly Refresh Test dokumentieren
 
 Ziel:
 
-- Den Button `Status neu laden` im Bus-Monitor strikt lesend machen.
-- Keine Backend-Reload-Aktion durch diesen Button auslösen.
-- Stattdessen nur Dashboard-/Statusdaten neu laden.
+- Dashboard öffnen.
+- Sound-System -> Bus-Monitor öffnen.
+- Button **Status neu laden** drücken.
+- Prüfen, dass der Status aktualisiert wird.
+- Prüfen, dass keine steuernde Sound-Reload-Aktion ausgelöst wird.
 
-Voraussichtliche Datei:
+## Danach möglich
 
-```text
-htdocs/dashboard/modules/sound.js
-```
-
-Optional nur falls Styling nötig:
-
-```text
-htdocs/dashboard/modules/sound.css
-```
+- SoundBus Event-Korrelation im Dashboard planen.
+- SoundBus Debug View optional verbessern.
+- Doppelte `sound.finished`-Darstellung später gezielt glätten, falls sie im Monitoring stört.
 
 ## Wichtig
 
-- Keine Sound-Queue ändern.
-- Keine Bundle-/`activeBundleLock`-Logik ändern.
-- Keine SoundBus-Event-Logik ändern.
-- Keine Alert-/Discord-/TTS-/VIP-Module ändern.
-- Bestehende globale Sound-System-Steuerbuttons bleiben unverändert.
+- Keine Funktionalität entfernen.
+- SoundBus bleibt Event-/Status-Schicht.
+- Steueraktionen weiter über Backend-APIs.
+- Monitoring bleibt lesend, solange keine Admin-Aktion explizit geplant ist.
