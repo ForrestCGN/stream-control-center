@@ -1302,6 +1302,25 @@ module.exports.init = function init(ctx) {
     return categories.includes(normalizeId(item.category)) || ids.includes(normalizeId(item.soundId));
   }
 
+  function sanitizeDirectMediaUrl(value) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    if (!/^https?:\/\//i.test(text)) return "";
+    return text;
+  }
+
+  function directSoundIdFromUrl(value) {
+    const url = sanitizeDirectMediaUrl(value);
+    if (!url) return "";
+    try {
+      const parsed = new URL(url);
+      const base = path.basename(parsed.pathname || "");
+      return normalizeId(base ? base.replace(path.extname(base), "") : parsed.hostname);
+    } catch (_) {
+      return normalizeId(url.split(/[?#]/)[0].split("/").filter(Boolean).pop() || "external_media");
+    }
+  }
+
   function normalizePlayRequest(raw) {
     const body = raw || {};
     const soundId = normalizeId(body.soundId || body.id || body.sound || "");
@@ -1324,6 +1343,8 @@ module.exports.init = function init(ctx) {
     const frequency = Math.max(80, Math.min(2000, Number(base.frequency || 880)));
 
     let file = String(base.file || body.file || "").trim().replace(/\\/g, "/");
+    const directMediaUrl = sanitizeDirectMediaUrl(base.videoUrl || body.videoUrl || base.mediaUrl || body.mediaUrl || base.audioUrl || body.audioUrl || file);
+    if (directMediaUrl && /^https?:\/\//i.test(file)) file = "";
     let fullPath = "";
     let audioUrl = "";
     let mediaUrl = "";
@@ -1365,6 +1386,22 @@ module.exports.init = function init(ctx) {
       }
       base.meta = { ...objectValue(base.meta), mediaRegistry: { id: registryMedia.id, relativePath: registryMedia.relativePath, webPath: registryMedia.webPath, direct: true } };
       if (!base.label && registryMedia.label) base.label = registryMedia.label;
+    } else if (directMediaUrl) {
+      mediaUrl = directMediaUrl;
+      if (!mediaType || !["audio", "video"].includes(mediaType)) {
+        mediaType = rawType === "video" || base.hasVideo === true || body.hasVideo === true ? "video" : "audio";
+      }
+      type = mediaType === "video" ? "video" : (rawType === "video" ? "file" : rawType);
+      hasAudio = base.hasAudio !== false && body.hasAudio !== false;
+      hasVideo = mediaType === "video" || base.hasVideo === true || body.hasVideo === true;
+      videoWidth = Number(base.videoWidth || body.videoWidth || 0);
+      videoHeight = Number(base.videoHeight || body.videoHeight || 0);
+      if (mediaType === "video") {
+        videoUrl = mediaUrl;
+      } else {
+        audioUrl = mediaUrl;
+      }
+      base.meta = { ...objectValue(base.meta), externalMedia: { direct: true, mediaType } };
     } else {
       if (!file) throw new Error(msg("soundFileMissing"));
       mediaInfo = media.getMediaInfo(file, {
@@ -1392,8 +1429,8 @@ module.exports.init = function init(ctx) {
 
     const normalizedItem = {
       requestId: makeRequestId(),
-      soundId: soundId || normalizeId(file ? path.basename(file, path.extname(file)) : "generated_beep"),
-      label: String(base.label || soundId || file || "Generated Beep").trim(),
+      soundId: soundId || normalizeId(file ? path.basename(file, path.extname(file)) : (directSoundIdFromUrl(mediaUrl) || "generated_beep")),
+      label: String(base.label || soundId || file || (mediaUrl ? "External Media" : "Generated Beep")).trim(),
       type,
       category: String(base.category || "fun").trim().toLowerCase(),
       target,

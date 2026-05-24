@@ -1,42 +1,12 @@
-# NEXT_STEPS
+# NEXT_STEPS – nach STEP277A_FIX7
 
-## Direkt nach STEP277A_FIX6
-
-1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Ausführen:
-
-```cmd
-cd D:\Git\stream-control-center
-.\stepdone.cmd "STEP277A_FIX6 Clip-Shoutout Avatar Sanitize"
-```
-
-3. Backend neu starten, falls Node nicht automatisch neu startet.
-4. OBS-Browserquelle `sound_system_overlay.html` aktualisieren.
-
-## Tests
-
-- Status prüfen:
-
-```text
-http://127.0.0.1:8080/api/clip-shoutout/status
-```
-
-Erwartet: `version: 5`, `step: STEP277A_FIX6`.
-
-- Testlauf:
-
-```text
-http://127.0.0.1:8080/api/clip-shoutout/run?target=bynexl&userLogin=forrestcgn&displayName=ForrestCGN
-```
-
-- Prüfen:
-  - `target.avatarUrl` ist eine echte `https://...` URL.
-  - `visual.avatarUrl` ist eine echte `https://...` URL.
-  - Overlay zeigt Avatar oder sauberen Buchstaben-Fallback.
-  - Video läuft weiter sauber durch.
-
-## Danach
-
-- Optional TTS nach Clip aktivieren/testen.
-- Chatmeldung nur testen, wenn Twitch-Presence aktiv ist.
-- Untracked alte NEXT_CHAT_START-Dateien gezielt aufräumen.
+1. Backend neu starten.
+2. `/api/clip-shoutout/status` prüfen.
+3. API-Test mit `target=bynexl` ausführen.
+4. `/api/sound/status` prüfen:
+   - `failed` bleibt `0`
+   - `lastEvent` endet auf `audio_ended`
+   - bei laufendem Item ist `mediaUrl`/`videoUrl` gesetzt
+   - `file` ist bei Direct Playback leer
+5. Danach Chat-Test mit `!vso @bynexl`, wenn Twitch Presence aktiv ist.
+6. Optional später: alte lokale Dateien unter `htdocs/assets/sounds/clip_shoutout` manuell bereinigen oder eine separate Admin-Cleanup-Funktion planen.

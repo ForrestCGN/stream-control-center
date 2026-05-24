@@ -31,7 +31,8 @@ const DEFAULT_CONFIG = {
     randomPick: true,
     minViewCount: 0,
     allowBroadcasterSelfTarget: true,
-    cacheDownloadedClips: true,
+    clipPlaybackMode: "direct",
+    cacheDownloadedClips: false,
     downloadDir: "htdocs/assets/sounds/clip_shoutout",
     publicSoundFilePrefix: "clip_shoutout",
     soundBundleUrl: "http://127.0.0.1:8080/api/sound/bundle",
@@ -380,7 +381,7 @@ async function listClipsForBroadcaster(env, broadcasterId, cfg) {
 
       if (durationOk.length) {
         debug.selectedRange = rangeInfo;
-        debug.selectedMode = "max_duration";
+        debug.selectedMode = "duration_ok";
         return { clips: durationOk, rawClips: rawRows, debug };
       }
 
@@ -582,6 +583,38 @@ async function downloadClipToSoundAssets(playbackUrl, clip, targetUser, cfg) {
   return { file: outFile, soundSystemFile: relativeSoundFile, cached: false };
 }
 
+function clipPlaybackMode(cfg) {
+  const mode = String(cfg.clipPlaybackMode || "direct").trim().toLowerCase();
+  if (["download", "cache", "cached", "local"].includes(mode)) return "download";
+  return "direct";
+}
+
+async function prepareClipPlayback(playbackUrl, clip, targetUser, cfg) {
+  const mode = clipPlaybackMode(cfg);
+  if (mode === "download") {
+    const downloaded = await downloadClipToSoundAssets(playbackUrl, clip, targetUser, cfg);
+    return {
+      mode: "download",
+      direct: false,
+      cached: !!downloaded.cached,
+      file: downloaded.file,
+      soundSystemFile: downloaded.soundSystemFile,
+      mediaUrl: "",
+      videoUrl: ""
+    };
+  }
+
+  return {
+    mode: "direct",
+    direct: true,
+    cached: false,
+    file: "",
+    soundSystemFile: "",
+    mediaUrl: playbackUrl,
+    videoUrl: playbackUrl
+  };
+}
+
 async function postJson(url, payload, timeoutMs = 15000) {
   const response = await axios.post(url, payload || {}, {
     timeout: timeoutMs,
@@ -653,14 +686,17 @@ async function prepareOptionalTts(input, cfg, vars) {
   };
 }
 
-function buildBundlePayload(cfg, vars, downloaded, clip, targetUser, ttsItem) {
+function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
   const maxDurationMs = Math.max(5000, Math.min(60000, Number(cfg.maxClipDurationSeconds || 30) * 1000));
   const clipDurationMs = Math.max(5000, Math.min(maxDurationMs, Math.round(Number(clip.duration || 0) * 1000) || maxDurationMs));
   const bundleId = `clipso_${Date.now()}_${safeFilePart(targetUser.login)}_${safeFilePart(clip.id)}`;
 
   const items = [{
     role: "clip",
-    file: downloaded.soundSystemFile,
+    soundId: `${safeFilePart(targetUser.login)}_${safeFilePart(clip.id)}`,
+    file: playback.soundSystemFile || "",
+    mediaUrl: playback.mediaUrl || "",
+    videoUrl: playback.videoUrl || "",
     label: `Video-Shoutout @${targetUser.displayName}`,
     category: cfg.soundCategory || "vip",
     source: cfg.soundSource || "clip_shoutout",
@@ -685,7 +721,9 @@ function buildBundlePayload(cfg, vars, downloaded, clip, targetUser, ttsItem) {
       clipId: clip.id,
       clipUrl: clip.url || "",
       twitchClipDurationMs: Math.round(Number(clip.duration || 0) * 1000) || 0,
-      cached: downloaded.cached
+      cached: !!playback.cached,
+      directPlayback: playback.direct === true,
+      playbackMode: playback.mode || "direct"
     },
     visual: {
       module: "clip_shoutout",
@@ -786,7 +824,7 @@ function registerCommand(cfg) {
       permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
       cooldownGlobalMs: Number(cfg.cooldownGlobalMs || 5000),
       cooldownUserMs: Number(cfg.cooldownUserMs || 15000),
-      configJson: JSON.stringify({ seededBy: "STEP277A_FIX6", rawInputMode: true }),
+      configJson: JSON.stringify({ seededBy: "STEP277A_FIX7", rawInputMode: true }),
       createdAt: now,
       updatedAt: now
     });
@@ -845,7 +883,7 @@ async function handleRun(req, res, env) {
 
     const clip = pickClip(clips, cfg);
     const playbackUrl = await resolveClipPlaybackUrl(clip.id, cfg);
-    const downloaded = await downloadClipToSoundAssets(playbackUrl, clip, targetUser, cfg);
+    const playback = await prepareClipPlayback(playbackUrl, clip, targetUser, cfg);
 
     const vars = {
       login: targetUser.login,
@@ -861,7 +899,7 @@ async function handleRun(req, res, env) {
     };
 
     const ttsItem = await prepareOptionalTts(input, cfg, vars);
-    const bundlePayload = buildBundlePayload(cfg, vars, downloaded, clip, targetUser, ttsItem);
+    const bundlePayload = buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem);
     const soundResult = await postJson(cfg.soundBundleUrl, bundlePayload, 15000);
 
     let chatResult = { ok: false, skipped: true, reason: "disabled" };
@@ -896,9 +934,11 @@ async function handleRun(req, res, env) {
         viewCount: clip.view_count || 0
       },
       clipSearch: clipSearch.debug || null,
-      downloaded: {
-        cached: downloaded.cached,
-        soundSystemFile: downloaded.soundSystemFile
+      playback: {
+        mode: playback.mode || "direct",
+        direct: playback.direct === true,
+        cached: !!playback.cached,
+        soundSystemFile: playback.soundSystemFile || ""
       },
       tts: ttsItem ? { enabled: true, file: ttsItem.file, durationMs: ttsItem.durationMs } : { enabled: false },
       bundle: {
@@ -929,8 +969,8 @@ module.exports.init = function init(ctx) {
     res.json({
       ok: true,
       module: MODULE_NAME,
-      version: 5,
-      step: "STEP277A_FIX6",
+      version: 6,
+      step: "STEP277A_FIX7",
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       command,
@@ -948,6 +988,8 @@ module.exports.init = function init(ctx) {
         clipFetchFirst: currentCfg.clipFetchFirst,
         clipFetchPages: currentCfg.clipFetchPages,
         ttsAfterClipEnabled: currentCfg.ttsAfterClipEnabled,
+        clipPlaybackMode: currentCfg.clipPlaybackMode || "direct",
+        cacheDownloadedClips: currentCfg.cacheDownloadedClips,
         soundBundleUrl: currentCfg.soundBundleUrl,
         soundCategory: currentCfg.soundCategory,
         soundPriority: currentCfg.soundPriority,
