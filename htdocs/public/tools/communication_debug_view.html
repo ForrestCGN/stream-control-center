@@ -99,7 +99,7 @@
   <main class="wrap">
     <section class="hero">
       <div>
-        <div class="badge">STEP278Q · Test / Debug</div>
+        <div class="badge">Communication Bus · Test / Debug</div>
         <h1>Communication Bus Debug View</h1>
         <div class="subtitle">Lesbare Diagnose für Status, Clients, Events, Issues, Watchdog und Recovery. Keine Produktivmigration.</div>
       </div>
@@ -162,7 +162,8 @@
 (() => {
   'use strict';
 
-  const META = { name: 'communication_debug_view', version: '0.1.0', build: 'STEP278Q' };
+  const META = { name: 'communication_debug_view', version: '0.1.1' };
+  const HIDDEN_META_KEYS = new Set(['moduleBuild', 'build', 'step']);
   const state = { status: null, watchdog: null, loading: false };
 
   const $ = id => document.getElementById(id);
@@ -172,15 +173,28 @@
     return String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
 
-  function clsBool(value) { return value ? 'ok' : 'bad'; }
   function pill(text, cls = '') { return `<span class="pill ${cls}">${esc(text)}</span>`; }
   function mono(value) { return `<code>${esc(value || '-')}</code>`; }
   function time(value) {
     if (!value) return '-';
     try { return new Date(value).toLocaleString('de-DE'); } catch (_) { return value; }
   }
+
+  function scrubVisibleMeta(value) {
+    if (Array.isArray(value)) return value.map(scrubVisibleMeta);
+    if (value && typeof value === 'object') {
+      const out = {};
+      for (const [key, item] of Object.entries(value)) {
+        if (HIDDEN_META_KEYS.has(key)) continue;
+        out[key] = scrubVisibleMeta(item);
+      }
+      return out;
+    }
+    return value;
+  }
+
   function compactJson(value) {
-    try { return JSON.stringify(value ?? {}, null, 2); } catch (_) { return String(value); }
+    try { return JSON.stringify(scrubVisibleMeta(value ?? {}), null, 2); } catch (_) { return String(value); }
   }
 
   function log(message, data) {
@@ -204,7 +218,7 @@
     const status = await getJson('/api/communication/status');
     state.status = status;
     render();
-    $('lastUpdate').textContent = `Aktualisiert: ${new Date().toLocaleString('de-DE')} · ${META.version}/${META.build}`;
+    $('lastUpdate').textContent = `Aktualisiert: ${new Date().toLocaleString('de-DE')} · Tool v${META.version}`;
     setAction('bereit', 'ok');
     return status;
   }
@@ -213,7 +227,7 @@
     setAction('watchdog', 'warn');
     const data = await getJson(url);
     state.watchdog = data;
-    if (data.status) state.status = { ok: true, module: data.module, moduleVersion: data.moduleVersion, moduleBuild: data.moduleBuild, status: data.status };
+    if (data.status) state.status = { ok: true, module: data.module, moduleVersion: data.moduleVersion, status: data.status };
     render();
     log(label, { tracked: data.tracked, trackedCount: data.trackedCount, recoveredCount: data.diagnosis && data.diagnosis.recoveredCount });
     setAction('bereit', 'ok');
@@ -251,7 +265,7 @@
     $('busHealth').textContent = status.enabled === false ? 'disabled' : 'enabled';
 
     const metricItems = [
-      ['Modul', `${root.moduleVersion || '-'} / ${root.moduleBuild || '-'}`],
+      ['Modul', root.moduleVersion || '-'],
       ['Bus', status.bus || '-'],
       ['Emitted', stats.emitted ?? 0],
       ['Delivered', stats.delivered ?? 0],
@@ -354,7 +368,7 @@
     handleClick(btn.dataset.action);
   });
 
-  log(`Debug View gestartet · ${META.version}/${META.build}`);
+  log(`Debug View gestartet · Tool v${META.version}`);
   refreshStatus().catch(err => log('Initiales Laden fehlgeschlagen', { error: err.message }));
 })();
 </script>

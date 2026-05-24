@@ -1,5 +1,22 @@
 # FILES
 
+## STEP278R
+
+Changed:
+
+- `htdocs/public/tools/communication_debug_view.html`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+
+Added:
+
+- `docs/backend/MODULE_VERSIONING_DISPLAY_STANDARD.md`
+- `project-state/STEP278R_VERSION_DISPLAY_CLEANUP.md`
+
 ## STEP278Q
 
 Added:
@@ -15,19 +32,3 @@ Changed:
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-
-## STEP278P
-
-Changed:
-
-- `backend/modules/communication_bus.js`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-- `project-state/NEXT_STEPS.md`
-
-Added:
-
-- `project-state/STEP278P_WATCHDOG_RECOVERY_TEST.md`
