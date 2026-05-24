@@ -1,32 +1,13 @@
-# Current System Status - STEP277A_FIX1
+# Current System Status - STEP277A_FIX5
 
-Aktueller Stand: Clip-Shoutout über Sound-System ist eingebunden, Command-Target-Fix erledigt.
+Der Clip-Shoutout läuft über Node/Command-System, nutzt die Clip-Suche mit Fallback-Ranges und spielt das Video über das Sound-System-Overlay.
 
-## Clip-Shoutout
+STEP277A_FIX5 ergänzt die Avatar-Auflösung:
 
-- Modul: `backend/modules/clip_shoutout.js`
-- Route: `/api/clip-shoutout/run`
-- Aliasroute: `/api/clip/shoutout`
-- Status: `/api/clip-shoutout/status`
-- Command: `!vso`
-- Aliase: `!clipso`, `!videoso`
+- Backend versucht Avatar aus vorhandenen Twitch-Daten.
+- Falls leer: lokale `/userinfo`-Route.
+- Falls weiterhin leer: Helix `/users`.
+- Overlay lädt bei leerer `visual.avatarUrl` den Avatar per Login nach.
+- Buchstaben-Fallback bleibt bestehen.
 
-## Sound-System-Integration
-
-Clip-Shoutouts werden als Sound-System-Bundle queued. Dadurch laufen Bild/Ton über das zentrale Sound-System und nicht über Streamer.bot.
-
-## STEP277A_FIX1
-
-Behoben:
-
-- `!vso @user` wurde über das Command-System fälschlich als auslösender User interpretiert.
-- `parseTarget()` nutzt jetzt echte Zielargumente vor Actor-Feldern.
-- Erwartbare Fehler werden als HTTP 200 JSON zurückgegeben, damit das Command-System keine irreführenden `target_http_404`-Fehler protokolliert.
-- `lastRun`/`lastRunAt` werden auch bei erwartbaren Fehlern gesetzt.
-
-## Nicht geändert
-
-- Sound-System-Queue bleibt unverändert.
-- Overlay-Design bleibt unverändert.
-- TTS bleibt optional und standardmäßig deaktiviert.
-- Keine bestehende Funktionalität entfernt.
+Die Video-Retry-Logik aus FIX4 bleibt unverändert erhalten. Keine bestehende Funktionalität wurde entfernt.

@@ -1,26 +1,21 @@
 # FILES
 
-## In STEP277A_FIX1 geändert
+## Geändert in STEP277A_FIX5
 
 - `backend/modules/clip_shoutout.js`
-  - Command-Target-Parsing repariert.
-  - Erwartbare Fehler liefern HTTP 200 JSON.
-  - Status-/Debugdaten für `lastRun` ergänzt.
-  - Version/Step auf `STEP277A_FIX1` gesetzt.
+  - Avatar-Auflösung über Twitch-Userdaten, `/userinfo` und Helix-Fallback.
+  - Status `version: 4`, `step: STEP277A_FIX5`.
 
-## Dokumentation aktualisiert
+- `htdocs/overlays/sound_system_overlay.html`
+  - Avatar-Nachladen im Overlay.
+  - bestehende Video-/Sound-System-Funktionen aus FIX4 bleiben erhalten.
 
+## Dokumentation
+
+- `project-state/STEP277A_FIX5_AVATAR_OVERLAY_CLEANUP.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP277A_FIX1_CLIP_SHOUTOUT_COMMAND_TARGET.md`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `NEXT_CHAT_START_STEP277A_FIX1_CLIP_SHOUTOUT.md`
-
-## Unverändert aus STEP277A
-
-- `htdocs/overlays/sound_system_overlay.html`
-- `config/clip_system.json`
-
-Diese Dateien sind in diesem Fix-ZIP nicht erneut enthalten, weil sie für den Target-Fix nicht geändert wurden.
+- `NEXT_CHAT_START_STEP277A_FIX5_AVATAR_OVERLAY_CLEANUP.md`

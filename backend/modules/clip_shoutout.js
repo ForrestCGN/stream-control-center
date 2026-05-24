@@ -22,8 +22,12 @@ const DEFAULT_CONFIG = {
     cooldownGlobalMs: 5000,
     cooldownUserMs: 15000,
     maxClipDurationSeconds: 30,
+    allowLongerClipFallback: true,
+    fallbackMaxClipDurationSeconds: 60,
     clipLookbackDays: 365,
-    clipFetchFirst: 20,
+    clipSearchRangesDays: [30, 90, 365, 0],
+    clipFetchFirst: 50,
+    clipFetchPages: 3,
     randomPick: true,
     minViewCount: 0,
     allowBroadcasterSelfTarget: true,
@@ -46,6 +50,8 @@ const DEFAULT_CONFIG = {
     ttsCategory: "tts",
     ttsSource: "clip_shoutout_tts",
     overlaySubline: "🧓 Altersheim-TV",
+    avatarLookupEnabled: true,
+    avatarLookupUrl: "http://127.0.0.1:8080/userinfo",
     gqlClientId: "kimne78kx3ncx6brgo4mv6wki5h1ko"
   }
 };
@@ -58,6 +64,7 @@ const state = {
   registeredCommand: false,
   lastRunAt: "",
   lastRun: null,
+  lastClipSearch: null,
   lastError: "",
   stats: {
     requested: 0,
@@ -171,7 +178,7 @@ function firstString(...values) {
 function parseTarget(input = {}) {
   const args = Array.isArray(input.args) ? input.args : [];
 
-  // STEP277A_FIX1:
+  // STEP277A_FIX2:
   // Command-System payload contains actor fields like login/userLogin for the caller.
   // Those must never be used before the real command target, otherwise
   // !vso @urlug is parsed as ForrestCGN when Forrest triggers the command.
@@ -251,18 +258,137 @@ async function helixGet(env, pathname, params = {}) {
   return response.data || {};
 }
 
-async function listClipsForBroadcaster(env, broadcasterId, cfg) {
-  const first = intParam(cfg.clipFetchFirst, 20, 1, 100);
-  const startedAt = new Date(Date.now() - Math.max(1, Number(cfg.clipLookbackDays || 365)) * 24 * 60 * 60 * 1000).toISOString();
-  const data = await helixGet(env, "/clips", {
-    broadcaster_id: broadcasterId,
-    first,
-    started_at: startedAt
+function normalizeClipSearchRanges(cfg) {
+  const source = Array.isArray(cfg.clipSearchRangesDays) && cfg.clipSearchRangesDays.length
+    ? cfg.clipSearchRangesDays
+    : [30, 90, Number(cfg.clipLookbackDays || 365), 0];
+  const result = [];
+  const seen = new Set();
+  for (const value of source) {
+    const days = Math.max(0, Number.parseInt(value, 10) || 0);
+    const key = String(days);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(days);
+  }
+  if (!seen.has("0")) result.push(0);
+  return result;
+}
+
+function clipDurationMs(clip) {
+  return Math.round(Number(clip && clip.duration || 0) * 1000) || 0;
+}
+
+function filterClipsForDuration(clips, cfg, maxSeconds) {
+  const maxMs = Math.max(1, Number(maxSeconds || 0)) * 1000;
+  return (Array.isArray(clips) ? clips : []).filter(clip => {
+    const durationMs = clipDurationMs(clip);
+    return durationMs > 0 && durationMs <= maxMs;
   });
-  let rows = Array.isArray(data.data) ? data.data : [];
+}
+
+function dedupeClips(clips) {
+  const out = [];
+  const seen = new Set();
+  for (const clip of Array.isArray(clips) ? clips : []) {
+    const id = String(clip && clip.id || "").trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(clip);
+  }
+  return out;
+}
+
+async function listClipsForBroadcaster(env, broadcasterId, cfg) {
+  const first = intParam(cfg.clipFetchFirst, 50, 1, 100);
+  const pages = intParam(cfg.clipFetchPages, 3, 1, 10);
   const minViewCount = Number(cfg.minViewCount || 0);
-  if (minViewCount > 0) rows = rows.filter(row => Number(row.view_count || 0) >= minViewCount);
-  return rows;
+  const maxClipDurationSeconds = Number(cfg.maxClipDurationSeconds || 30);
+  const fallbackMaxClipDurationSeconds = Number(cfg.fallbackMaxClipDurationSeconds || 60);
+  const allowLongerClipFallback = boolParam(cfg.allowLongerClipFallback, true);
+  const ranges = normalizeClipSearchRanges(cfg);
+  const debug = {
+    searchedAt: nowIso(),
+    broadcasterId: String(broadcasterId || ""),
+    first,
+    pages,
+    minViewCount,
+    maxClipDurationSeconds,
+    allowLongerClipFallback,
+    fallbackMaxClipDurationSeconds,
+    ranges: [],
+    selectedRange: null,
+    selectedMode: ""
+  };
+
+  for (const days of ranges) {
+    const rangeInfo = {
+      days,
+      label: days > 0 ? `last_${days}_days` : "all_time",
+      rawCount: 0,
+      afterMinViewCount: 0,
+      durationOkCount: 0,
+      fallbackDurationCount: 0,
+      fetchedPages: 0,
+      error: ""
+    };
+
+    try {
+      const collected = [];
+      let cursor = "";
+      for (let page = 0; page < pages; page += 1) {
+        const params = { broadcaster_id: broadcasterId, first };
+        if (days > 0) params.started_at = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+        if (cursor) params.after = cursor;
+
+        const data = await helixGet(env, "/clips", params);
+        const rows = Array.isArray(data.data) ? data.data : [];
+        collected.push(...rows);
+        rangeInfo.fetchedPages += 1;
+        cursor = String(data.pagination && data.pagination.cursor || "");
+        if (!cursor || !rows.length) break;
+      }
+
+      const rawRows = dedupeClips(collected);
+      rangeInfo.rawCount = rawRows.length;
+
+      let viewRows = rawRows;
+      if (minViewCount > 0) viewRows = viewRows.filter(row => Number(row.view_count || 0) >= minViewCount);
+      rangeInfo.afterMinViewCount = viewRows.length;
+
+      const durationOk = filterClipsForDuration(viewRows, cfg, maxClipDurationSeconds);
+      rangeInfo.durationOkCount = durationOk.length;
+
+      const fallbackOk = allowLongerClipFallback
+        ? filterClipsForDuration(viewRows, cfg, Math.max(maxClipDurationSeconds, fallbackMaxClipDurationSeconds))
+        : [];
+      rangeInfo.fallbackDurationCount = fallbackOk.length;
+      debug.ranges.push(rangeInfo);
+
+      if (durationOk.length) {
+        debug.selectedRange = rangeInfo;
+        debug.selectedMode = "max_duration";
+        return { clips: durationOk, rawClips: rawRows, debug };
+      }
+
+      if (fallbackOk.length) {
+        debug.selectedRange = rangeInfo;
+        debug.selectedMode = "fallback_duration";
+        return { clips: fallbackOk, rawClips: rawRows, debug };
+      }
+
+      if (viewRows.length && allowLongerClipFallback && fallbackMaxClipDurationSeconds <= 0) {
+        debug.selectedRange = rangeInfo;
+        debug.selectedMode = "unlimited_duration";
+        return { clips: viewRows, rawClips: rawRows, debug };
+      }
+    } catch (err) {
+      rangeInfo.error = err && err.message ? err.message : String(err);
+      debug.ranges.push(rangeInfo);
+    }
+  }
+
+  return { clips: [], rawClips: [], debug };
 }
 
 function pickClip(clips, cfg) {
@@ -270,6 +396,115 @@ function pickClip(clips, cfg) {
   if (cfg.randomPick === false) return clips[0];
   const index = Math.floor(Math.random() * clips.length);
   return clips[index] || clips[0];
+}
+
+
+function avatarUrlFromTwitchUser(value) {
+  if (!value || typeof value !== "object") return "";
+  return firstString(
+    value.avatarUrl,
+    value.profileImageUrl,
+    value.profile_image_url,
+    value.avatar_url,
+    value.imageUrl,
+    value.image_url,
+    value.user && value.user.profile_image_url,
+    value.user && value.user.profileImageUrl,
+    value.raw && value.raw.profile_image_url,
+    value.raw && value.raw.profileImageUrl,
+    value.raw && value.raw.avatarUrl,
+    Array.isArray(value.data) && value.data[0] && value.data[0].profile_image_url,
+    Array.isArray(value.data) && value.data[0] && value.data[0].profileImageUrl
+  );
+}
+
+function displayNameFromTwitchUser(value, fallback = "") {
+  if (!value || typeof value !== "object") return cleanDisplay(fallback, fallback);
+  return cleanDisplay(firstString(
+    value.displayName,
+    value.display_name,
+    value.userName,
+    value.user_name,
+    value.name,
+    value.user && value.user.display_name,
+    value.user && value.user.displayName,
+    value.raw && value.raw.display_name,
+    Array.isArray(value.data) && value.data[0] && value.data[0].display_name,
+    fallback
+  ), fallback);
+}
+
+async function lookupUserViaHelix(env, login) {
+  const clean = cleanLogin(login);
+  if (!clean) return null;
+  try {
+    const data = await helixGet(env, "/users", { login: clean });
+    const row = Array.isArray(data && data.data) ? data.data[0] : null;
+    if (!row) return null;
+    return {
+      userId: String(row.id || ""),
+      login: cleanLogin(row.login || clean),
+      displayName: cleanDisplay(row.display_name || row.login || clean, clean),
+      avatarUrl: String(row.profile_image_url || "")
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function lookupUserViaLocalUserinfo(login, cfg) {
+  if (cfg.avatarLookupEnabled === false) return null;
+  const baseUrl = String(cfg.avatarLookupUrl || "").trim();
+  const clean = cleanLogin(login);
+  if (!baseUrl || !clean) return null;
+  try {
+    const url = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}login=${encodeURIComponent(clean)}`;
+    const response = await axios.get(url, { timeout: 5000 });
+    const data = response.data || {};
+    const row = Array.isArray(data && data.data) ? data.data[0] : data;
+    return {
+      userId: String(row.id || row.userId || row.user_id || ""),
+      login: cleanLogin(row.login || row.user_login || row.name || clean),
+      displayName: displayNameFromTwitchUser(row, clean),
+      avatarUrl: avatarUrlFromTwitchUser(row)
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function resolveTargetUser(env, targetLogin, cfg) {
+  const targetUserRaw = await twitch.resolveUserByLogin(targetLogin);
+  if (!targetUserRaw || !targetUserRaw.userId) return null;
+
+  const targetUser = {
+    userId: String(targetUserRaw.userId),
+    login: cleanLogin(targetUserRaw.login || targetLogin),
+    displayName: displayNameFromTwitchUser(targetUserRaw, targetLogin),
+    avatarUrl: avatarUrlFromTwitchUser(targetUserRaw)
+  };
+
+  if (!targetUser.avatarUrl) {
+    const localUser = await lookupUserViaLocalUserinfo(targetUser.login, cfg);
+    if (localUser) {
+      if (localUser.userId) targetUser.userId = localUser.userId;
+      if (localUser.login) targetUser.login = localUser.login;
+      if (localUser.displayName) targetUser.displayName = localUser.displayName;
+      if (localUser.avatarUrl) targetUser.avatarUrl = localUser.avatarUrl;
+    }
+  }
+
+  if (!targetUser.avatarUrl) {
+    const helixUser = await lookupUserViaHelix(env, targetUser.login);
+    if (helixUser) {
+      if (helixUser.userId) targetUser.userId = helixUser.userId;
+      if (helixUser.login) targetUser.login = helixUser.login;
+      if (helixUser.displayName) targetUser.displayName = helixUser.displayName;
+      if (helixUser.avatarUrl) targetUser.avatarUrl = helixUser.avatarUrl;
+    }
+  }
+
+  return targetUser;
 }
 
 async function resolveClipPlaybackUrl(clipId, cfg) {
@@ -528,7 +763,7 @@ function registerCommand(cfg) {
       permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
       cooldownGlobalMs: Number(cfg.cooldownGlobalMs || 5000),
       cooldownUserMs: Number(cfg.cooldownUserMs || 15000),
-      configJson: JSON.stringify({ seededBy: "STEP277A_FIX1", rawInputMode: true }),
+      configJson: JSON.stringify({ seededBy: "STEP277A_FIX5", rawInputMode: true }),
       createdAt: now,
       updatedAt: now
     });
@@ -561,21 +796,16 @@ async function handleRun(req, res, env) {
   }
 
   try {
-    const targetUserRaw = await twitch.resolveUserByLogin(targetLogin);
-    if (!targetUserRaw || !targetUserRaw.userId) {
+    const targetUser = await resolveTargetUser(env, targetLogin, cfg);
+    if (!targetUser || !targetUser.userId) {
       state.lastError = "target_user_not_found";
       state.lastRun = { targetLogin, error: "target_user_not_found", input: summarizeInput(input), failedAt: state.lastRunAt };
       return res.json({ ok: false, error: "target_user_not_found", targetLogin });
     }
 
-    const targetUser = {
-      userId: String(targetUserRaw.userId),
-      login: cleanLogin(targetUserRaw.login || targetLogin),
-      displayName: cleanDisplay(targetUserRaw.displayName || targetLogin, targetLogin),
-      avatarUrl: String(targetUserRaw.profileImageUrl || targetUserRaw.profile_image_url || "")
-    };
-
-    const clips = await listClipsForBroadcaster(env, targetUser.userId, cfg);
+    const clipSearch = await listClipsForBroadcaster(env, targetUser.userId, cfg);
+    const clips = Array.isArray(clipSearch.clips) ? clipSearch.clips : [];
+    state.lastClipSearch = clipSearch.debug || null;
     if (!clips.length) {
       state.stats.noClips += 1;
       state.lastError = "no_clips_found";
@@ -584,9 +814,10 @@ async function handleRun(req, res, env) {
         targetLogin,
         error: "no_clips_found",
         input: summarizeInput(input),
+        clipSearch: clipSearch.debug || null,
         failedAt: state.lastRunAt
       };
-      return res.json({ ok: false, error: "no_clips_found", target: targetUser });
+      return res.json({ ok: false, error: "no_clips_found", target: targetUser, clipSearch: clipSearch.debug || null });
     }
 
     const clip = pickClip(clips, cfg);
@@ -621,6 +852,7 @@ async function handleRun(req, res, env) {
     state.lastRun = {
       target: targetUser,
       clip: { id: clip.id, title: clip.title || "", url: clip.url || "", duration: clip.duration || 0 },
+      clipSearch: clipSearch.debug || null,
       bundleId: bundlePayload.bundleId,
       ttsEnabled: Boolean(ttsItem),
       queuedAt: state.lastRunAt,
@@ -640,6 +872,7 @@ async function handleRun(req, res, env) {
         duration: clip.duration || 0,
         viewCount: clip.view_count || 0
       },
+      clipSearch: clipSearch.debug || null,
       downloaded: {
         cached: downloaded.cached,
         soundSystemFile: downloaded.soundSystemFile
@@ -673,8 +906,8 @@ module.exports.init = function init(ctx) {
     res.json({
       ok: true,
       module: MODULE_NAME,
-      version: 2,
-      step: "STEP277A_FIX1",
+      version: 4,
+      step: "STEP277A_FIX5",
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       command,
@@ -686,10 +919,17 @@ module.exports.init = function init(ctx) {
       ],
       config: {
         maxClipDurationSeconds: currentCfg.maxClipDurationSeconds,
+        allowLongerClipFallback: currentCfg.allowLongerClipFallback,
+        fallbackMaxClipDurationSeconds: currentCfg.fallbackMaxClipDurationSeconds,
+        clipSearchRangesDays: currentCfg.clipSearchRangesDays,
+        clipFetchFirst: currentCfg.clipFetchFirst,
+        clipFetchPages: currentCfg.clipFetchPages,
         ttsAfterClipEnabled: currentCfg.ttsAfterClipEnabled,
         soundBundleUrl: currentCfg.soundBundleUrl,
         soundCategory: currentCfg.soundCategory,
-        soundPriority: currentCfg.soundPriority
+        soundPriority: currentCfg.soundPriority,
+        avatarLookupEnabled: currentCfg.avatarLookupEnabled,
+        avatarLookupUrl: currentCfg.avatarLookupUrl
       },
       state
     });

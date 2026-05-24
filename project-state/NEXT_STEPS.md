@@ -1,48 +1,27 @@
 # NEXT_STEPS
 
-## Direkt nach STEP277A_FIX1
+## Nach STEP277A_FIX5
 
 1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Backend neu starten.
-3. Prüfen:
+2. Geänderte Dateien nach Live kopieren:
+
+```powershell
+Copy-Item -Force "D:\Git\stream-control-center\backend\modules\clip_shoutout.js" "D:\Streaming\stramAssets\backend\modules\clip_shoutout.js"
+Copy-Item -Force "D:\Git\stream-control-center\htdocs\overlays\sound_system_overlay.html" "D:\Streaming\stramAssets\htdocs\overlays\sound_system_overlay.html"
+```
+
+3. Backend neu starten.
+4. OBS-Browserquelle `sound_system_overlay.html` aktualisieren.
+5. Prüfen:
 
 ```text
 http://127.0.0.1:8080/api/clip-shoutout/status
 ```
 
-Erwartet:
+Erwartet: `version: 4`, `step: STEP277A_FIX5`.
+
+6. Test:
 
 ```text
-step: STEP277A_FIX1
-version: 2
+http://127.0.0.1:8080/api/clip-shoutout/run?target=bynexl&userLogin=forrestcgn&displayName=ForrestCGN
 ```
-
-4. Chat-Test:
-
-```text
-!vso @urlug
-```
-
-5. Danach erneut Status prüfen:
-
-```text
-lastRun.target.login oder lastRun.targetLogin muss urlug sein
-```
-
-## Wenn danach `no_clips_found` kommt
-
-Dann ist das Command-Routing repariert. Danach muss nur noch geprüft werden, ob Twitch für diesen Kanal wirklich Clips über Helix zurückliefert oder ob die Clip-Suche in einem weiteren Fix erweitert werden muss.
-
-## Wenn danach `queued` hochgeht
-
-Dann als Nächstes Sound-System prüfen:
-
-```text
-http://127.0.0.1:8080/api/sound/status
-```
-
-## Später
-
-- Optional TTS nach dem Clip aktivieren.
-- Dashboard-Settings für Clip-Shoutout ergänzen.
-- Clip-Auswahl/Debug ggf. verfeinern.

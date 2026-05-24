@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay</title>
+  <title>ForrestCGN Sound-System Overlay - STEP277A_FIX5</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -243,6 +243,11 @@
       let pollingBusy = false;
       let videoFallbackTimer = null;
       let activeVideoElement = null;
+      let activeVideoItem = null;
+      let videoResetSuppressUntil = 0;
+      let videoErrorGraceUntil = 0;
+      let videoRetryInProgress = false;
+      let videoPlaybackStartedAt = 0;
 
       const STOP_REASONS = new Set([
         'manual_stop',
@@ -306,6 +311,7 @@
 
       function hideVideo(){
         clearVideoFallbackTimer();
+        videoResetSuppressUntil = Date.now() + 300;
         for (const video of [videoPlayer, clipVideoPlayer]) {
           try {
             video.pause();
@@ -317,6 +323,9 @@
         }
         hideClipCard();
         activeVideoElement = null;
+        activeVideoItem = null;
+        videoRetryInProgress = false;
+        videoPlaybackStartedAt = 0;
       }
 
       function stopAudio(){
@@ -457,6 +466,65 @@
         }
       }
 
+      function pickAvatarUrlFromUserinfo(data) {
+        if (!data || typeof data !== 'object') return '';
+        const rows = Array.isArray(data.data) ? data.data : [];
+        const row = rows[0] || data.user || data;
+        return String(
+          row.avatarUrl ||
+          row.avatar_url ||
+          row.profileImageUrl ||
+          row.profile_image_url ||
+          row.imageUrl ||
+          row.image_url ||
+          ''
+        ).trim();
+      }
+
+      async function lookupAvatarUrl(login) {
+        const clean = String(login || '').replace(/^@+/, '').trim().toLowerCase();
+        if (!clean) return '';
+        const endpoints = [
+          '/userinfo?login=' + encodeURIComponent(clean),
+          '/api/twitch/user?login=' + encodeURIComponent(clean)
+        ];
+        for (const endpoint of endpoints) {
+          try {
+            const res = await fetch(endpoint, { cache: 'no-store' });
+            if (!res.ok) continue;
+            const data = await res.json();
+            const avatar = pickAvatarUrlFromUserinfo(data);
+            if (avatar) return avatar;
+          } catch (_) {}
+        }
+        return '';
+      }
+
+      function resetAvatar(displayName, login) {
+        const first = (displayName || login || '?').slice(0, 1).toUpperCase();
+        clipAvatarPh.textContent = first || '?';
+        clipAvatarImg.removeAttribute('src');
+        clipAvatarImg.onload = null;
+        clipAvatarImg.onerror = null;
+        clipAvatarImg.style.display = 'none';
+        clipAvatarPh.style.display = 'flex';
+      }
+
+      function applyAvatarUrl(url) {
+        const clean = String(url || '').trim();
+        if (!clean) return false;
+        clipAvatarImg.onload = () => {
+          clipAvatarImg.style.display = 'block';
+          clipAvatarPh.style.display = 'none';
+        };
+        clipAvatarImg.onerror = () => {
+          clipAvatarImg.style.display = 'none';
+          clipAvatarPh.style.display = 'flex';
+        };
+        clipAvatarImg.src = clean;
+        return true;
+      }
+
       function setupClipCard(item) {
         const visual = visualOf(item);
         const login = String(visual.login || visual.user || visual.displayName || 'User').replace(/^@+/, '').trim();
@@ -465,21 +533,13 @@
 
         clipName.textContent = '@' + (displayName || login || 'User');
         clipSubline.textContent = String(visual.subline || '🧓 Altersheim-TV');
+        resetAvatar(displayName, login);
 
-        clipAvatarPh.textContent = (displayName || login || '?').slice(0, 1).toUpperCase();
-        clipAvatarImg.style.display = 'none';
-        clipAvatarPh.style.display = 'flex';
-
-        if (avatarUrl) {
-          clipAvatarImg.onload = () => {
-            clipAvatarImg.style.display = 'block';
-            clipAvatarPh.style.display = 'none';
-          };
-          clipAvatarImg.onerror = () => {
-            clipAvatarImg.style.display = 'none';
-            clipAvatarPh.style.display = 'flex';
-          };
-          clipAvatarImg.src = avatarUrl;
+        if (!applyAvatarUrl(avatarUrl) && login) {
+          lookupAvatarUrl(login).then((foundAvatar) => {
+            if (currentRequestId !== (item && item.requestId)) return;
+            applyAvatarUrl(foundAvatar);
+          });
         }
 
         clipCard.style.display = 'block';
@@ -496,16 +556,64 @@
         await post('/client/audio-ended', { requestId, mediaType: 'video', ...(extra || {}) });
       }
 
+      function buildVideoAttemptUrl(url, requestId, useCacheBust) {
+        const clean = String(url || '');
+        if (!clean) return '';
+        return useCacheBust ? cacheBust(clean, requestId) : clean;
+      }
+
+      function videoErrorCode(video) {
+        const code = video && video.error && video.error.code ? Number(video.error.code) : 0;
+        if (code === 1) return 'MEDIA_ERR_ABORTED';
+        if (code === 2) return 'MEDIA_ERR_NETWORK';
+        if (code === 3) return 'MEDIA_ERR_DECODE';
+        if (code === 4) return 'MEDIA_ERR_SRC_NOT_SUPPORTED';
+        return code ? String(code) : 'UNKNOWN';
+      }
+
+      async function attemptVideoPlay(video, item, url, options) {
+        const opts = options || {};
+        const requestId = item.requestId;
+        const src = buildVideoAttemptUrl(url, requestId, opts.cacheBust !== false);
+        if (!src) throw new Error('video_url_missing');
+
+        videoRetryInProgress = true;
+        videoErrorGraceUntil = Date.now() + 1800;
+        try {
+          video.pause();
+          video.removeAttribute('src');
+          video.load();
+        } catch (_) {}
+
+        await new Promise(resolve => setTimeout(resolve, Number(opts.beforeMs || 160)));
+
+        video.muted = opts.muted === true;
+        video.defaultMuted = opts.muted === true;
+        video.volume = opts.muted === true ? 0 : normalizeVolume(item.volume);
+        video.src = src;
+        try { video.load(); } catch (_) {}
+
+        await new Promise(resolve => setTimeout(resolve, Number(opts.afterLoadMs || 220)));
+        setStatus((opts.label || 'Video-Start') + ': ' + (item.label || item.soundId || src));
+        await video.play();
+        videoRetryInProgress = false;
+        videoErrorGraceUntil = Date.now() + 500;
+        return { muted: video.muted, src };
+      }
+
       async function playVideoFile(item){
         const url = item && (item.videoUrl || item.mediaUrl || item.audioUrl);
         if (!item || !url || !item.requestId) return;
         stopAudio();
+        await new Promise(resolve => setTimeout(resolve, 180));
         currentRequestId = item.requestId;
         lastSeenRequestId = item.requestId;
 
         const clipMode = isClipShoutout(item);
         const video = clipMode ? clipVideoPlayer : videoPlayer;
         activeVideoElement = video;
+        activeVideoItem = item;
+        videoPlaybackStartedAt = 0;
 
         if (clipMode) {
           setupClipCard(item);
@@ -514,31 +622,81 @@
           videoPlayer.style.display = 'block';
         }
 
-        video.volume = normalizeVolume(item.volume);
-        video.src = cacheBust(url, item.requestId);
         video.style.opacity = clipMode ? '0' : '';
-        setStatus((clipMode ? 'Clip-Shoutout: ' : 'Video: ') + (item.label || item.soundId || url));
+        setStatus((clipMode ? 'Clip-Shoutout vorbereitet: ' : 'Video vorbereitet: ') + (item.label || item.soundId || url));
 
-        try {
-          await video.play();
-          if (clipMode) video.style.opacity = '1';
-          audioUnlocked = true;
-          document.body.dataset.audioUnlocked = '1';
-          await post('/client/audio-started', { requestId: currentRequestId, mediaType: 'video' });
+        const attempts = [
+          { label: 'Video-Start', cacheBust: true, muted: false, beforeMs: 160, afterLoadMs: 220 },
+          { label: 'Video-Retry ohne Cache', cacheBust: false, muted: false, beforeMs: 220, afterLoadMs: 260 },
+          { label: 'Video-Retry stumm', cacheBust: false, muted: true, beforeMs: 260, afterLoadMs: 300 }
+        ];
 
-          const durationMs = Number(item.durationMs || 0);
-          const fallbackMs = durationMs > 0
-            ? (clipMode ? Math.max(1200, durationMs + 350) : Math.max(5000, durationMs + 5000))
-            : 300000;
-          clearVideoFallbackTimer();
-          videoFallbackTimer = setTimeout(async () => {
-            await finishVideoPlayback(clipMode ? 'Clip-Shoutout beendet' : 'Video beendet (Fallback)', { fallback: true });
-          }, fallbackMs);
-        } catch (err) {
-          setStatus('Video blockiert/fehlerhaft');
-          await post('/client/error', { requestId: currentRequestId, mediaType: 'video', error: err && err.message ? err.message : String(err) });
-          stopAudio();
+        const errors = [];
+        let result = null;
+        for (const attempt of attempts) {
+          try {
+            result = await attemptVideoPlay(video, item, url, attempt);
+            break;
+          } catch (err) {
+            errors.push({
+              label: attempt.label,
+              muted: attempt.muted === true,
+              cacheBust: attempt.cacheBust !== false,
+              message: err && err.message ? err.message : String(err),
+              code: videoErrorCode(video),
+              src: video.currentSrc || video.src || ''
+            });
+            await new Promise(resolve => setTimeout(resolve, 220));
+          }
         }
+
+        videoRetryInProgress = false;
+
+        if (!result) {
+          const last = errors[errors.length - 1] || {};
+          setStatus('Video konnte nicht starten: ' + (last.message || last.code || 'unknown'));
+          if (clipMode) {
+            clipCard.style.display = 'block';
+            clipCard.classList.add('show');
+            video.style.opacity = '0';
+          }
+          setTimeout(async () => {
+            if (currentRequestId !== item.requestId) return;
+            await post('/client/error', {
+              requestId: currentRequestId,
+              mediaType: 'video',
+              error: 'video_play_failed_after_retries',
+              attempts: errors,
+              src: video.currentSrc || video.src || ''
+            });
+            stopAudio();
+          }, 4500);
+          return;
+        }
+
+        if (clipMode) video.style.opacity = '1';
+        audioUnlocked = true;
+        document.body.dataset.audioUnlocked = '1';
+        videoPlaybackStartedAt = Date.now();
+        await post('/client/audio-started', {
+          requestId: currentRequestId,
+          mediaType: 'video',
+          mutedFallback: result.muted === true,
+          src: result.src
+        });
+
+        if (result.muted === true) {
+          setStatus('Clip läuft stumm (Autoplay-Fallback): ' + (item.label || item.soundId || url));
+        }
+
+        const durationMs = Number(item.durationMs || 0);
+        const fallbackMs = durationMs > 0
+          ? (clipMode ? Math.max(1200, durationMs + 350) : Math.max(5000, durationMs + 5000))
+          : 300000;
+        clearVideoFallbackTimer();
+        videoFallbackTimer = setTimeout(async () => {
+          await finishVideoPlayback(clipMode ? 'Clip-Shoutout beendet' : 'Video beendet (Fallback)', { fallback: true, mutedFallback: result.muted === true });
+        }, fallbackMs);
       }
 
       async function playSound(item){
@@ -570,9 +728,28 @@
         });
 
         video.addEventListener('error', async () => {
+          if (Date.now() < videoResetSuppressUntil) return;
+          if (Date.now() < videoErrorGraceUntil) return;
+          if (videoRetryInProgress) return;
           if (activeVideoElement !== video) return;
+
           const requestId = currentRequestId;
-          await post('/client/error', { requestId, mediaType: 'video', error: 'video_error' });
+          const code = videoErrorCode(video);
+          const playedLongEnough = videoPlaybackStartedAt && (Date.now() - videoPlaybackStartedAt > 1200);
+
+          if (!playedLongEnough) {
+            setStatus('Video-Fehler kurz nach Start, warte auf Retry/Fallback: ' + code);
+            return;
+          }
+
+          await post('/client/error', {
+            requestId,
+            mediaType: 'video',
+            error: 'video_runtime_error',
+            code,
+            src: video.currentSrc || video.src || '',
+            currentTime: Number(video.currentTime || 0)
+          });
           stopAudio();
         });
       }
