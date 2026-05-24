@@ -466,19 +466,32 @@
         }
       }
 
+      function sanitizeHttpUrl(value) {
+        const clean = String(value ?? '').trim();
+        if (!clean) return '';
+        const lower = clean.toLowerCase();
+        if (['false', 'null', 'undefined', 'nan', '0', 'none'].includes(lower)) return '';
+        if (!/^https?:\/\//i.test(clean)) return '';
+        return clean;
+      }
+
       function pickAvatarUrlFromUserinfo(data) {
         if (!data || typeof data !== 'object') return '';
         const rows = Array.isArray(data.data) ? data.data : [];
         const row = rows[0] || data.user || data;
-        return String(
-          row.avatarUrl ||
-          row.avatar_url ||
-          row.profileImageUrl ||
-          row.profile_image_url ||
-          row.imageUrl ||
-          row.image_url ||
-          ''
-        ).trim();
+        const candidates = [
+          row.avatarUrl,
+          row.avatar_url,
+          row.profileImageUrl,
+          row.profile_image_url,
+          row.imageUrl,
+          row.image_url
+        ];
+        for (const candidate of candidates) {
+          const avatar = sanitizeHttpUrl(candidate);
+          if (avatar) return avatar;
+        }
+        return '';
       }
 
       async function lookupAvatarUrl(login) {
@@ -511,7 +524,7 @@
       }
 
       function applyAvatarUrl(url) {
-        const clean = String(url || '').trim();
+        const clean = sanitizeHttpUrl(url);
         if (!clean) return false;
         clipAvatarImg.onload = () => {
           clipAvatarImg.style.display = 'block';
@@ -529,7 +542,7 @@
         const visual = visualOf(item);
         const login = String(visual.login || visual.user || visual.displayName || 'User').replace(/^@+/, '').trim();
         const displayName = String(visual.displayName || visual.user || login || 'User').replace(/^@+/, '').trim();
-        const avatarUrl = String(visual.avatarUrl || '').trim();
+        const avatarUrl = sanitizeHttpUrl(visual.avatarUrl);
 
         clipName.textContent = '@' + (displayName || login || 'User');
         clipSubline.textContent = String(visual.subline || '🧓 Altersheim-TV');

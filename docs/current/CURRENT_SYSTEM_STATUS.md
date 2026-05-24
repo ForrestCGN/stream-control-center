@@ -1,13 +1,14 @@
-# Current System Status - STEP277A_FIX5
+# Current System Status - STEP277A_FIX6
 
-Der Clip-Shoutout läuft über Node/Command-System, nutzt die Clip-Suche mit Fallback-Ranges und spielt das Video über das Sound-System-Overlay.
+Der Clip-Shoutout ist über das Sound-System integriert.
 
-STEP277A_FIX5 ergänzt die Avatar-Auflösung:
+Aktueller Stand:
 
-- Backend versucht Avatar aus vorhandenen Twitch-Daten.
-- Falls leer: lokale `/userinfo`-Route.
-- Falls weiterhin leer: Helix `/users`.
-- Overlay lädt bei leerer `visual.avatarUrl` den Avatar per Login nach.
-- Buchstaben-Fallback bleibt bestehen.
+- Command `!vso` mit Aliasen `clipso` und `videoso` ist registriert.
+- Zieluser aus Command-Argumenten wird korrekt erkannt.
+- Clip-Suche nutzt Debug/Fallback-Ranges.
+- Gefundene Clips werden heruntergeladen/gecached und als Sound-System-Video-Bundle gestartet.
+- Sound-System-Overlay enthält Clip-Shoutout-Darstellung und Video-Retry.
+- STEP277A_FIX6 korrigiert Avatar-Werte: Nur echte HTTP/HTTPS-URLs werden als Avatar akzeptiert. Ungültige Werte wie `false` werden verworfen.
 
-Die Video-Retry-Logik aus FIX4 bleibt unverändert erhalten. Keine bestehende Funktionalität wurde entfernt.
+Keine Funktionalität wurde entfernt.

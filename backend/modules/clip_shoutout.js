@@ -175,6 +175,19 @@ function firstString(...values) {
   return "";
 }
 
+function sanitizeHttpUrl(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const lower = text.toLowerCase();
+  if (["false", "null", "undefined", "nan", "0", "none"].includes(lower)) return "";
+  if (!/^https?:\/\//i.test(text)) return "";
+  return text;
+}
+
+function sanitizeAvatarUrl(value) {
+  return sanitizeHttpUrl(value);
+}
+
 function parseTarget(input = {}) {
   const args = Array.isArray(input.args) ? input.args : [];
 
@@ -401,7 +414,7 @@ function pickClip(clips, cfg) {
 
 function avatarUrlFromTwitchUser(value) {
   if (!value || typeof value !== "object") return "";
-  return firstString(
+  const candidates = [
     value.avatarUrl,
     value.profileImageUrl,
     value.profile_image_url,
@@ -410,12 +423,21 @@ function avatarUrlFromTwitchUser(value) {
     value.image_url,
     value.user && value.user.profile_image_url,
     value.user && value.user.profileImageUrl,
+    value.user && value.user.avatarUrl,
     value.raw && value.raw.profile_image_url,
     value.raw && value.raw.profileImageUrl,
     value.raw && value.raw.avatarUrl,
     Array.isArray(value.data) && value.data[0] && value.data[0].profile_image_url,
-    Array.isArray(value.data) && value.data[0] && value.data[0].profileImageUrl
-  );
+    Array.isArray(value.data) && value.data[0] && value.data[0].profileImageUrl,
+    Array.isArray(value.data) && value.data[0] && value.data[0].avatarUrl
+  ];
+
+  for (const candidate of candidates) {
+    const clean = sanitizeAvatarUrl(candidate);
+    if (clean) return clean;
+  }
+
+  return "";
 }
 
 function displayNameFromTwitchUser(value, fallback = "") {
@@ -445,7 +467,7 @@ async function lookupUserViaHelix(env, login) {
       userId: String(row.id || ""),
       login: cleanLogin(row.login || clean),
       displayName: cleanDisplay(row.display_name || row.login || clean, clean),
-      avatarUrl: String(row.profile_image_url || "")
+      avatarUrl: sanitizeAvatarUrl(row.profile_image_url)
     };
   } catch (_) {
     return null;
@@ -504,6 +526,7 @@ async function resolveTargetUser(env, targetLogin, cfg) {
     }
   }
 
+  targetUser.avatarUrl = sanitizeAvatarUrl(targetUser.avatarUrl);
   return targetUser;
 }
 
@@ -670,7 +693,7 @@ function buildBundlePayload(cfg, vars, downloaded, clip, targetUser, ttsItem) {
       displayName: targetUser.displayName,
       login: targetUser.login,
       user: targetUser.displayName,
-      avatarUrl: targetUser.avatarUrl || "",
+      avatarUrl: sanitizeAvatarUrl(targetUser.avatarUrl),
       clipTitle: clip.title || "",
       clipUrl: clip.url || "",
       gameName: clip.game_id || "",
@@ -763,7 +786,7 @@ function registerCommand(cfg) {
       permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
       cooldownGlobalMs: Number(cfg.cooldownGlobalMs || 5000),
       cooldownUserMs: Number(cfg.cooldownUserMs || 15000),
-      configJson: JSON.stringify({ seededBy: "STEP277A_FIX5", rawInputMode: true }),
+      configJson: JSON.stringify({ seededBy: "STEP277A_FIX6", rawInputMode: true }),
       createdAt: now,
       updatedAt: now
     });
@@ -906,8 +929,8 @@ module.exports.init = function init(ctx) {
     res.json({
       ok: true,
       module: MODULE_NAME,
-      version: 4,
-      step: "STEP277A_FIX5",
+      version: 5,
+      step: "STEP277A_FIX6",
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       command,

@@ -1,21 +1,28 @@
 # FILES
 
-## Geändert in STEP277A_FIX5
+## In STEP277A_FIX6 geänderte Dateien
 
 - `backend/modules/clip_shoutout.js`
-  - Avatar-Auflösung über Twitch-Userdaten, `/userinfo` und Helix-Fallback.
-  - Status `version: 4`, `step: STEP277A_FIX5`.
+  - Avatar-Sanitize für Backend-Payload und Visual-Daten.
+  - Status-Version auf STEP277A_FIX6 aktualisiert.
 
 - `htdocs/overlays/sound_system_overlay.html`
-  - Avatar-Nachladen im Overlay.
-  - bestehende Video-/Sound-System-Funktionen aus FIX4 bleiben erhalten.
+  - Avatar-Sanitize im Overlay.
+  - Bestehender Fallback-Lookup und Buchstaben-Fallback bleiben erhalten.
 
 ## Dokumentation
 
-- `project-state/STEP277A_FIX5_AVATAR_OVERLAY_CLEANUP.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `NEXT_CHAT_START_STEP277A_FIX5_AVATAR_OVERLAY_CLEANUP.md`
+- `project-state/STEP277A_FIX6_AVATAR_SANITIZE.md`
+- `NEXT_CHAT_START_STEP277A_FIX6_AVATAR_SANITIZE.md`
+
+## Bewusst nicht geändert
+
+- Sound-System-Kernlogik.
+- Twitch-Presence.
+- Command-System.
+- SQLite-Datenbank.
