@@ -1,10 +1,10 @@
-# CURRENT SYSTEM STATUS – STEP300
+# CURRENT SYSTEM STATUS – STEP301
 
 Stand: 2026-05-24
 
 ## Aktueller Fokus
 
-SoundBus ist nach STEP289–STEP297 als stabile Event-/Status-Schicht im Dev-/Testbetrieb aktiv. STEP299 hat das rein lesende SoundBus/Sound-System Monitoring im Dashboard ergänzt. STEP300 dokumentiert den Live-Test dieses Dashboard-Monitors.
+SoundBus ist nach STEP289–STEP297 als stabile Event-/Status-Schicht im Dev-/Testbetrieb aktiv. STEP299 hat das rein lesende SoundBus/Sound-System Monitoring im Dashboard ergänzt. STEP300 hat den Live-Test dieses Dashboard-Monitors bestätigt. STEP301 validiert die Dashboard-/Auth-/Backend-Einbindung.
 
 Aktuelle Betriebsentscheidung:
 
@@ -24,45 +24,33 @@ Dies ist weiterhin keine vollständige Bus-only-Produktivmigration. Bestehende H
 - Discord Media Path Resolver Fix bestätigt.
 - SoundBus Debug View funktioniert.
 - Sound Dashboard Monitoring Modul wurde im Dashboard sichtbar getestet.
+- Dashboard-/Auth-/Backend-Einbindung wurde geprüft.
 
-## STEP300 Ergebnis
+## STEP301 Ergebnis
 
-Das Dashboard-Modul `SoundBus Monitoring` wurde live geöffnet und geprüft.
+Validiert:
 
-Bestätigt:
+- Das Sound-System Dashboard-Modul ist regulär eingebunden.
+- `sound_system` ist in der Dashboard-Modulstruktur vorhanden.
+- Der Monitor nutzt die bestehende Dashboard-API-Hilfe `window.CGN.api`.
+- Keine neuen Backend-Routen wurden benötigt.
+- `dashboard_auth.js` musste nicht geändert werden.
+- `dashboard_controlcenter.js` musste nicht geändert werden.
+- `sound_system.js` musste nicht geändert werden.
+- `communication_bus.js` musste nicht geändert werden.
 
-```text
-Status: Aktiv
-Communication: Verfügbar
-Emitted: 152
-Errors: 0
-Skipped: 0
-Queue: 0
-Channel: sound
-Target: all:*
-Letzte Aktion: finished
-Letzter Grund: item_finished
-Letzte Event-ID: evt_mpjvgbxr_rt2igqab
-Letzter Fehler: -
-Aktueller Sound: Keiner
-Current Bundle: -
-Active Bundle Lock: -
-Sound-Fehler: 0 · Device 0 · Discord 0
-```
+Auffälligkeit:
 
-Bewertung:
-
-- Der Dashboard-Tab zeigt den SoundBus-/Sound-System-Status korrekt an.
-- Die Anzeige ist rein lesend.
-- Es wurden keine Steueraktionen, Queue-Änderungen oder SoundBus-Änderungen ausgelöst.
-- Der Link zur SoundBus Debug View ist vorhanden.
+- Der Button `Status neu laden` im Bus-Monitor hängt aktuell an der bestehenden Action `reload`.
+- Diese Action ruft `POST /api/sound/reload` auf und lädt danach den Status.
+- Für eine strikt rein lesende Bus-Monitor-Ansicht sollte dieser Button künftig auf eine reine Frontend-/Status-Refresh-Action umgestellt werden.
 
 ## Nächster Schritt
 
-STEP301 – Sound Dashboard Monitoring Backend/Auth Validation.
+STEP302 – Sound Dashboard Bus-Monitor Readonly Refresh Fix.
 
 Ziel:
 
-- Prüfen, ob das Dashboard-Modul sauber zu Auth-/Controlcenter-Konventionen passt.
-- Prüfen, ob keine ungeschützten Admin-/Steuerrouten hinzugekommen sind.
-- Optional: kleine UX-/Refresh-Verbesserungen planen, ohne Sound-Logik zu ändern.
+- Im Bus-Monitor `Status neu laden` nicht mehr über `POST /api/sound/reload` ausführen.
+- Stattdessen nur den Status neu laden.
+- Keine Sound-/Queue-/Bundle-/SoundBus-Logik ändern.
