@@ -8,7 +8,7 @@ helper_communication.js: v0.3.0
 communication_bus.js:    v0.7.0
 WS Test Client:          v0.1.0
 Master Test Overlay:     v0.1.3
-Debug View:              v0.1.2
+Debug View:              v0.1.3
 ```
 
 ## Anzeige-Standard
@@ -39,6 +39,37 @@ Der Communication Bus besitzt aktuell:
 - Communication Debug View unter `/public/tools/communication_debug_view.html`
 - Master-Test-Overlay als echten Communication-Bus-Testclient unter `/overlays/_overlay-master-test.html?debug=1`
 
+## Communication Debug View
+
+URL:
+
+```text
+http://127.0.0.1:8080/public/tools/communication_debug_view.html
+```
+
+Die Debug View zeigt:
+
+- Bus-Übersicht
+- Clients
+- Events
+- Watchdog-Diagnose
+- Recovered Events
+- historische Issues
+- Aktionslog
+- Button für Alert Mirror Test
+- Auto-Refresh mit AN/AUS-Umschalter
+
+Auto-Refresh:
+
+```text
+Standard: an
+Intervall: 2000 ms
+```
+
+Der Auto-Refresh aktualisiert nur den Bus-Status und schreibt keinen Log-Spam. Während manuelle Aktionen laufen, pausiert der Auto-Refresh kurz, damit Requests nicht ineinanderlaufen.
+
+Die Debug View zeigt sichtbar keine STEP-/Build-Angaben mehr. API-Rohfelder mit Build-/Step-Bezug werden in der Oberfläche ausgeblendet.
+
 ## Master-Test-Overlay
 
 URL:
@@ -61,27 +92,6 @@ Das Master-Test-Overlay kann im reinen Mirror-/Testmodus:
 - bei stale `heartbeat_ack` automatisch reconnecten
 
 Das Overlay ist weiterhin nicht produktiv angebunden.
-
-## Debug View
-
-URL:
-
-```text
-http://127.0.0.1:8080/public/tools/communication_debug_view.html
-```
-
-Die Debug View zeigt:
-
-- Bus-Übersicht
-- Clients
-- Events
-- Watchdog-Diagnose
-- Recovered Events
-- historische Issues
-- Aktionslog
-- Button für Alert Mirror Test
-
-Die Debug View zeigt sichtbar keine STEP-/Build-Angaben mehr. API-Rohfelder mit Build-/Step-Bezug werden in der Oberfläche ausgeblendet.
 
 ## Alert-Mirror-Test
 

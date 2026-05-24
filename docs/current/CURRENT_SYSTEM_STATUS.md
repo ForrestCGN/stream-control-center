@@ -1,18 +1,12 @@
 # Current System Status
 
-## STEP278T - Overlay Reconnect Deploy Robustness
+## STEP278U - Communication Debug Auto Refresh
 
-Das Master-Test-Overlay wurde für Backend-Neustart-/Deploy-Situationen robuster gemacht.
+Communication Debug View wurde auf `v0.1.3` erweitert.
 
-Version:
+Neu/Geändert:
 
-```text
-overlay_master_test v0.1.3
-```
-
-Geändert:
-
-- `htdocs/overlays/_overlay-master-test.html`
+- `htdocs/public/tools/communication_debug_view.html`
 - `docs/backend/COMMUNICATION_BUS_HELPER.md`
 - `docs/backend/MODULE_VERSIONING_DISPLAY_STANDARD.md`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
@@ -21,42 +15,34 @@ Geändert:
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
 
-Neu:
+Version:
 
-- `project-state/STEP278T_OVERLAY_RECONNECT_DEPLOY_ROBUSTNESS.md`
+```text
+communication_debug_view v0.1.3
+```
 
 Funktionen:
 
-- Master-Test-Overlay nutzt nur noch Version `0.1.3`, keine sichtbare STEP-/Build-Anzeige.
-- `MODULE_META.build` wurde aus dem Overlay entfernt.
-- `hello`-Payload enthält kein Build-Feld mehr.
-- Wenn nach `hello` kein `hello_ack` kommt, wird automatisch reconnectet.
-- Wenn längere Zeit kein `heartbeat_ack` zurückkommt, wird automatisch reconnectet.
-- Debug-Modus zeigt Watchdog-/Reconnect-Grund, Forced-Reconnect-Zähler und letzte Heartbeat-Sendezeit.
+- Auto-Refresh ist standardmäßig aktiv.
+- Status wird alle 2 Sekunden über `/api/communication/status` aktualisiert.
+- Auto-Refresh kann über Button ein-/ausgeschaltet werden.
+- Last-Update zeigt Tool-Version und Auto-Refresh-Zustand.
+- Auto-Refresh schreibt keinen Log-Spam.
+- Während manueller Aktionen pausiert Auto-Refresh kurz über Busy-Schutz.
+- Keine sichtbaren STEP-/Build-Anzeigen.
 
 Wichtig:
 
 - Keine Backend-Codeänderung.
 - Keine neue API.
-- Keine Alert-Produktivmigration.
-- Keine Sound-/TTS-/VIP-Integration.
-- Kein Ersatz von `broadcastWS`.
-- Keine Datenbankmigration.
-- Keine OBS-Änderung.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Keine Produktivmigration.
+- Keine DB-/OBS-/Dashboard-Änderung.
+
+## STEP278T - Overlay Reconnect Deploy Robustness
+
+Master-Test-Overlay `v0.1.3` ergänzt mit Hello-/Heartbeat-Watchdog und Forced-Reconnect bei stale Verbindung.
 
 ## STEP278S - Controlled Alert Mirror Test
 
-Der kontrollierte Alert-Mirror-Test wurde ergänzt.
-
-Versionen:
-
-```text
-communication_bus v0.7.0
-communication_debug_view v0.1.2
-```
-
-Neue Test-Route:
-
-```text
-/api/communication/test-alert
-```
+Communication Bus `v0.7.0` mit reiner Test-Route `/api/communication/test-alert` für `visual.alert.play` ergänzt.

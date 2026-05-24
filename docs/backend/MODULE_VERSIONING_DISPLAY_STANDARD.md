@@ -53,3 +53,9 @@ Nicht mehr:
 0.7.0 / STEP278S
 v0.1.3 / STEP278T
 ```
+
+## Debug-Views
+
+Debug-Views dürfen interne Rohdaten aus APIs anzeigen, müssen aber sichtbare Build-/Step-Felder ausfiltern, sofern diese nur historisch/kompatibel vorhanden sind.
+
+Auto-Refresh- oder Live-Status-Anzeigen zeigen ebenfalls nur Tool- und Modulversionen.

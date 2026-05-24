@@ -55,6 +55,8 @@
     button.warn { border-color: rgba(255, 211, 106, .45); }
     button.danger { border-color: rgba(251, 113, 133, .45); }
     button.good { border-color: rgba(119, 247, 189, .45); }
+    button.active { border-color: rgba(119,247,189,.75); box-shadow: 0 0 18px rgba(119,247,189,.10); }
+    button.paused { border-color: rgba(255,211,106,.60); color: var(--yellow); }
 
     .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
     .card { grid-column: span 12; border: 1px solid var(--border); border-radius: 20px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
@@ -105,6 +107,7 @@
 
     <section class="toolbar">
       <button class="good" data-action="refresh">Status aktualisieren</button>
+      <button class="good active" id="autoRefreshBtn" data-action="toggleAutoRefresh">Auto-Refresh: AN</button>
       <button class="good" data-action="alertMirror">Alert Mirror Test</button>
       <button data-action="watchdog">Watchdog prüfen</button>
       <button class="warn" data-action="watchdogTrack">Watchdog tracken</button>
@@ -158,8 +161,9 @@
 (() => {
   'use strict';
 
-  const META = { name: 'communication_debug_view', version: '0.1.2' };
-  const state = { status: null, watchdog: null };
+  const META = { name: 'communication_debug_view', version: '0.1.3' };
+  const AUTO_REFRESH_MS = 2000;
+  const state = { status: null, watchdog: null, busy: false, autoRefresh: true, autoTimer: null, refreshInFlight: false };
 
   const $ = id => document.getElementById(id);
   const logEl = $('log');
@@ -206,33 +210,98 @@
     return json;
   }
 
-  async function refreshStatus() {
-    setAction('lade', 'warn');
-    const status = await getJson('/api/communication/status');
-    state.status = status;
-    render();
-    $('lastUpdate').textContent = `Aktualisiert: ${new Date().toLocaleString('de-DE')} · Tool v${META.version}`;
-    setAction('bereit', 'ok');
-    return status;
+  function updateAutoRefreshButton() {
+    const btn = $('autoRefreshBtn');
+    if (!btn) return;
+    btn.textContent = state.autoRefresh ? 'Auto-Refresh: AN' : 'Auto-Refresh: AUS';
+    btn.className = state.autoRefresh ? 'good active' : 'warn paused';
+  }
+
+  function setLastUpdate() {
+    const autoText = state.autoRefresh ? `Auto: an · alle ${AUTO_REFRESH_MS / 1000}s` : 'Auto: aus';
+    $('lastUpdate').textContent = `Aktualisiert: ${new Date().toLocaleString('de-DE')} · Tool v${META.version} · ${autoText}`;
+  }
+
+  async function refreshStatus(options = {}) {
+    if (state.refreshInFlight) return state.status;
+    if (state.busy && options.auto === true) return state.status;
+
+    state.refreshInFlight = true;
+    if (!options.silent) setAction('lade', 'warn');
+
+    try {
+      const status = await getJson('/api/communication/status');
+      state.status = status;
+      render();
+      setLastUpdate();
+      if (!options.silent) setAction('bereit', 'ok');
+      return status;
+    } finally {
+      state.refreshInFlight = false;
+    }
+  }
+
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    if (!state.autoRefresh) return;
+    state.autoTimer = setInterval(() => {
+      refreshStatus({ auto: true, silent: true }).catch(err => {
+        setAction('Auto-Refresh Fehler', 'bad');
+        log('Auto-Refresh fehlgeschlagen', { error: err.message });
+      });
+    }, AUTO_REFRESH_MS);
+    updateAutoRefreshButton();
+    setLastUpdate();
+  }
+
+  function stopAutoRefresh() {
+    clearInterval(state.autoTimer);
+    state.autoTimer = null;
+    updateAutoRefreshButton();
+  }
+
+  function toggleAutoRefresh() {
+    state.autoRefresh = !state.autoRefresh;
+    if (state.autoRefresh) {
+      startAutoRefresh();
+      log('Auto-Refresh aktiviert', { intervalMs: AUTO_REFRESH_MS });
+      refreshStatus({ silent: true }).catch(err => log('Auto-Refresh Start fehlgeschlagen', { error: err.message }));
+    } else {
+      stopAutoRefresh();
+      log('Auto-Refresh pausiert');
+      setLastUpdate();
+    }
   }
 
   async function runWatchdog(url, label) {
+    state.busy = true;
     setAction('watchdog', 'warn');
-    const data = await getJson(url);
-    state.watchdog = data;
-    if (data.status) state.status = { ok: true, module: data.module, moduleVersion: data.moduleVersion, status: data.status };
-    render();
-    log(label, { tracked: data.tracked, trackedCount: data.trackedCount, recoveredCount: data.diagnosis && data.diagnosis.recoveredCount });
-    setAction('bereit', 'ok');
-    return data;
+    try {
+      const data = await getJson(url);
+      state.watchdog = data;
+      if (data.status) state.status = { ok: true, module: data.module, moduleVersion: data.moduleVersion, status: data.status };
+      render();
+      setLastUpdate();
+      log(label, { tracked: data.tracked, trackedCount: data.trackedCount, recoveredCount: data.diagnosis && data.diagnosis.recoveredCount });
+      setAction('bereit', 'ok');
+      return data;
+    } finally {
+      state.busy = false;
+    }
   }
 
   async function callAction(url, label) {
+    state.busy = true;
     setAction(label, 'warn');
-    const data = await getJson(url);
-    log(label, data);
-    await refreshStatus();
-    return data;
+    try {
+      const data = await getJson(url);
+      log(label, data);
+      await refreshStatus({ silent: true });
+      setAction('bereit', 'ok');
+      return data;
+    } finally {
+      state.busy = false;
+    }
   }
 
   function setAction(text, cls = '') {
@@ -342,7 +411,8 @@
   async function handleClick(action) {
     try {
       if (action === 'refresh') return await refreshStatus();
-      if (action === 'alertMirror') return await callAction('/api/communication/test-alert?user=ForrestCGN&type=bits&amount=100&message=Alert%20Mirror%20Test&requireAck=1&replayable=1', 'Alert Mirror Test');
+      if (action === 'toggleAutoRefresh') return toggleAutoRefresh();
+      if (action === 'alertMirror') return await callAction('/api/communication/test-alert?user=ForrestCGN&type=bits&amount=100&message=Auto%20Refresh%20Test&requireAck=1&replayable=1&ttlMs=60000', 'Alert Mirror Test');
       if (action === 'watchdog') return await runWatchdog('/api/communication/watchdog', 'Watchdog geprüft');
       if (action === 'watchdogTrack') return await runWatchdog('/api/communication/watchdog?track=1', 'Watchdog getrackt');
       if (action === 'watchdogRecovered') return await runWatchdog('/api/communication/watchdog?includeRecovered=1', 'Watchdog + Recovery geprüft');
@@ -351,6 +421,7 @@
       if (action === 'resetEvents') return await callAction('/api/communication/reset?confirm=1', 'Reset Events/Issues');
       if (action === 'resetClients') return await callAction('/api/communication/reset?confirm=1&clients=1', 'Reset inkl. Clients');
     } catch (err) {
+      state.busy = false;
       setAction('Fehler', 'bad');
       log(`Fehler bei ${action}: ${err.message}`, err.payload || {});
     }
@@ -362,8 +433,11 @@
     handleClick(btn.dataset.action);
   });
 
+  window.addEventListener('beforeunload', () => stopAutoRefresh());
+
+  updateAutoRefreshButton();
   log(`Debug View gestartet · v${META.version}`);
-  refreshStatus().catch(err => log('Initiales Laden fehlgeschlagen', { error: err.message }));
+  refreshStatus().then(() => startAutoRefresh()).catch(err => log('Initiales Laden fehlgeschlagen', { error: err.message }));
 })();
 </script>
 </body>
