@@ -1,12 +1,12 @@
-# NEXT STEPS – nach STEP330
+# NEXT STEPS – nach STEP340
 
 ## Nächster größerer Block
 
-- Sound Dashboard Control Center weiter ausbauen, falls die UI-Stabilisierung passt.
-- Oder nächstes soundnahes System gezielt anbinden.
+STEP350 – Alert Dashboard/SoundBus Control-Auswertung oder Alert bus_first Dev-Standard-Test.
 
 ## Wichtig
 
 - Keine Mini-Step-Kette.
-- Größere zusammenhängende Blöcke bevorzugen.
-- Keine Sound-Queue-/Bundle-/SoundBus-Logik ohne ausdrücklichen Grund anfassen.
+- Alert-Bus weiterhin nicht auf bus_only produktiv umstellen.
+- Legacy-/Fallback-Wege beibehalten.
+- Sound-Queue-/Bundle-/activeBundleLock-Logik nur bei echtem Fehler anfassen.

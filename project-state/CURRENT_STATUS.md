@@ -1,12 +1,12 @@
-# CURRENT_STATUS – STEP330
+# CURRENT_STATUS – STEP340
 
 Stand: 2026-05-24
 
 Aktueller Stand:
 
 - SoundBus ist aktiv und getestet.
-- Sound Dashboard Monitoring ist verfügbar.
-- Sound Dashboard Control Center ist vorhanden.
-- STEP330 stabilisiert die UI und kapselt Medien-/Preview-Überläufe ein.
+- Sound Dashboard Monitoring/Control Center ist vorhanden.
+- Alert-System, Alert-SoundBundles und SoundBus sind nun besser korrelierbar.
+- Dashboard zeigt im SoundBus-Monitor Alert/SoundBus-Korrelationen.
 
-Keine Änderungen an Sound-Queue, Bundle-Lock, SoundBus-Logik oder Backend.
+Keine Änderungen an Sound-Queue, Bundle-Lock, Playback oder Bus-only-Produktivmodus.

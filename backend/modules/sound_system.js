@@ -16,7 +16,7 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_STEP = 310;
+const MODULE_STEP = 340;
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
 
@@ -643,7 +643,8 @@ module.exports.init = function init(ctx) {
       traceKind: compactMetaValue(meta.traceKind),
       error: compactMetaValue(extra.error || lifecycle.error || ""),
       queuedCount: state.queue.length,
-      activeBundleLockId: state.activeBundleLock ? compactMetaValue(state.activeBundleLock.bundleId) : ""
+      activeBundleLockId: state.activeBundleLock ? compactMetaValue(state.activeBundleLock.bundleId) : "",
+      correlationId: compactMetaValue(meta.alertEventUid || (bundle && bundle.bundleId) || visual.alertEventUid || "")
     };
     return context;
   }
@@ -725,6 +726,43 @@ module.exports.init = function init(ctx) {
     }
   }
 
+
+  function buildSoundBusAlertCorrelationSummary() {
+    const recentEvents = Array.isArray(state.soundBus.recentEvents) ? state.soundBus.recentEvents : [];
+    const byAlert = new Map();
+    for (const ev of recentEvents) {
+      const ctx = ev && ev.context && typeof ev.context === "object" ? ev.context : {};
+      const alertId = String(ctx.alertEventUid || (ctx.bundleType === "alert" ? ctx.bundleId : "") || "").trim();
+      if (!alertId) continue;
+      if (!byAlert.has(alertId)) {
+        byAlert.set(alertId, {
+          alertEventUid: alertId,
+          bundleId: String(ctx.bundleId || ""),
+          alertSource: String(ctx.alertSource || ""),
+          alertType: String(ctx.alertType || ""),
+          requestedBy: String(ctx.requestedBy || ""),
+          actions: {},
+          roles: {},
+          lastAt: ev.at || "",
+          lastAction: ev.action || "",
+          errorCount: 0
+        });
+      }
+      const row = byAlert.get(alertId);
+      const action = String(ev.action || "unknown");
+      const role = String(ctx.bundleRole || ctx.category || "unknown");
+      row.actions[action] = (row.actions[action] || 0) + 1;
+      row.roles[role] = (row.roles[role] || 0) + 1;
+      row.lastAt = ev.at || row.lastAt;
+      row.lastAction = action;
+      if (ctx.error) row.errorCount += 1;
+    }
+    return {
+      alertCount: byAlert.size,
+      recentAlerts: Array.from(byAlert.values()).slice(0, 10)
+    };
+  }
+
   function publicSoundBusStatus(options = {}) {
     const busConfig = soundBusConfig();
     const bus = getCommunicationBus();
@@ -744,6 +782,7 @@ module.exports.init = function init(ctx) {
       target: soundBusTarget(busConfig),
       communicationBusAvailable: !!bus,
       stats,
+      correlation: buildSoundBusAlertCorrelationSummary(),
       recentEvents: includeRecentEvents ? [...(state.soundBus.recentEvents || [])] : []
     };
   }

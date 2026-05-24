@@ -30,7 +30,7 @@ try {
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
-const MODULE_STEP = 286;
+const MODULE_STEP = 340;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -166,6 +166,20 @@ const state = {
     lastError: '',
     lastAt: '',
     lastTiming: null
+  },
+  alertSoundCorrelation: {
+    enabled: true,
+    bundlesPrepared: 0,
+    bundlesPosted: 0,
+    bundlesOk: 0,
+    bundlesFailed: 0,
+    itemsPrepared: 0,
+    lastEventUid: '',
+    lastBundleId: '',
+    lastPhase: '',
+    lastError: '',
+    lastAt: '',
+    recent: []
   },
   alertBusMirror: {
     runtimeEnabled: false,
@@ -1239,6 +1253,76 @@ function buildPublicAlertTiming(event) {
   };
 }
 
+
+function pushAlertSoundCorrelation(entry) {
+  const max = 40;
+  if (!state.alertSoundCorrelation || !Array.isArray(state.alertSoundCorrelation.recent)) return;
+  state.alertSoundCorrelation.recent.unshift(entry);
+  if (state.alertSoundCorrelation.recent.length > max) state.alertSoundCorrelation.recent.length = max;
+}
+
+function recordAlertSoundCorrelation(event, phase, data = {}) {
+  if (!state.alertSoundCorrelation) return null;
+  const eventUid = cleanText((event && event.eventUid) || data.alertEventUid || '');
+  const bundleId = cleanText(data.bundleId || (event && event.soundSystem && event.soundSystem.bundleId) || '');
+  const error = cleanText(data.error || '');
+  const items = Array.isArray(data.items) ? data.items.length : Number(data.itemsPrepared || 0);
+  const entry = {
+    at: nowIso(),
+    phase: cleanKey(phase || 'unknown') || 'unknown',
+    eventUid,
+    bundleId,
+    source: cleanKey((event && event.source) || data.alertSource || ''),
+    type: cleanKey((event && event.type_key) || data.alertType || ''),
+    user: cleanText((event && (event.user_display || event.user_login)) || data.user || ''),
+    itemsPrepared: items,
+    ok: data.ok === true,
+    error
+  };
+  if (phase === 'prepared') {
+    state.alertSoundCorrelation.bundlesPrepared += 1;
+    state.alertSoundCorrelation.itemsPrepared += items;
+  }
+  if (phase === 'posted') {
+    state.alertSoundCorrelation.bundlesPosted += 1;
+    if (data.ok === true) state.alertSoundCorrelation.bundlesOk += 1;
+    else state.alertSoundCorrelation.bundlesFailed += 1;
+  }
+  if (phase === 'failed') {
+    state.alertSoundCorrelation.bundlesFailed += 1;
+  }
+  state.alertSoundCorrelation.lastEventUid = eventUid;
+  state.alertSoundCorrelation.lastBundleId = bundleId;
+  state.alertSoundCorrelation.lastPhase = entry.phase;
+  state.alertSoundCorrelation.lastError = error;
+  state.alertSoundCorrelation.lastAt = entry.at;
+  pushAlertSoundCorrelation(entry);
+  return entry;
+}
+
+function buildAlertSoundCorrelationStatus() {
+  const c = state.alertSoundCorrelation || {};
+  return {
+    ok: true,
+    module: MODULE,
+    feature: 'alert_soundbus_correlation',
+    enabled: c.enabled !== false,
+    stats: {
+      bundlesPrepared: Number(c.bundlesPrepared || 0),
+      bundlesPosted: Number(c.bundlesPosted || 0),
+      bundlesOk: Number(c.bundlesOk || 0),
+      bundlesFailed: Number(c.bundlesFailed || 0),
+      itemsPrepared: Number(c.itemsPrepared || 0),
+      lastEventUid: c.lastEventUid || '',
+      lastBundleId: c.lastBundleId || '',
+      lastPhase: c.lastPhase || '',
+      lastError: c.lastError || '',
+      lastAt: c.lastAt || ''
+    },
+    recent: Array.isArray(c.recent) ? c.recent.slice(0, 20) : []
+  };
+}
+
 function buildAlertBusPayload(event, overlayAlert, options = {}) {
   const alert = overlayAlert || buildOverlayAlert(event);
   const mirror = options.mirror === true;
@@ -1559,6 +1643,7 @@ function buildStatus(req = null) {
     overlayClients: state.overlayClients.size,
     alertOutput: buildAlertOutputStatus(),
     alertBusMirror: buildAlertBusMirrorStatus(),
+    alertSoundCorrelation: buildAlertSoundCorrelationStatus(),
     overlayWatchdog: buildAlertOverlayWatchdogStatus({ check: false }),
     multerReady: !!multer,
     multerLoadError,
@@ -3227,10 +3312,20 @@ async function postAlertSoundBundle(event, ttsResult, options = {}) {
       alertSource: event.source,
       alertType: event.type_key,
       ruleId: event.rule && event.rule.id ? event.rule.id : null,
-      reason: options.reason || ''
+      reason: options.reason || '',
+      correlation: {
+        module: 'alert_system',
+        step: MODULE_STEP,
+        alertEventUid: event.eventUid,
+        bundleId,
+        bundleType: 'alert',
+        expectedRoles: items.map(item => cleanKey(item.role || 'item')).filter(Boolean)
+      }
     },
     items
   };
+
+  recordAlertSoundCorrelation(event, 'prepared', { bundleId, items, alertSource: event.source, alertType: event.type_key });
 
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timeout = controller ? setTimeout(() => controller.abort(), Math.max(1000, toInt(liveCfg.fallbackShowAfterMs, 15000))) : null;
@@ -3251,6 +3346,13 @@ async function postAlertSoundBundle(event, ttsResult, options = {}) {
     const ttsEntry = findBundleResultByRole(data, 'tts');
     const primaryEntry = mainEntry || ttsEntry || (Array.isArray(data && data.results) ? data.results[0] : null);
     const primaryItem = primaryEntry && primaryEntry.item ? primaryEntry.item : null;
+
+    recordAlertSoundCorrelation(event, 'posted', {
+      bundleId,
+      ok,
+      itemsPrepared: items.length,
+      error: ok ? '' : (data && (data.error || data.message || data.reason) ? String(data.error || data.message || data.reason) : `sound_system_bundle_http_${res.status}`)
+    });
 
     if (ttsResult && ttsResult.attempted && ttsItem) {
       ttsResult.playback = {
@@ -3284,6 +3386,7 @@ async function postAlertSoundBundle(event, ttsResult, options = {}) {
       error: ok ? '' : (data && (data.error || data.message || data.reason) ? String(data.error || data.message || data.reason) : `sound_system_bundle_http_${res.status}`)
     };
   } catch (err) {
+    recordAlertSoundCorrelation(event, 'failed', { bundleId, ok: false, itemsPrepared: items.length, error: err && err.message ? err.message : String(err) });
     return {
       attempted: true,
       ok: false,
@@ -3443,6 +3546,7 @@ async function playLiveAlertSound(event) {
       error: ok ? '' : (data && (data.error || data.message) ? String(data.error || data.message) : `sound_system_http_${res.status}`)
     };
   } catch (err) {
+    recordAlertSoundCorrelation(event, 'failed', { bundleId, ok: false, itemsPrepared: items.length, error: err && err.message ? err.message : String(err) });
     return {
       attempted: true,
       ok: false,
@@ -3883,6 +3987,7 @@ async function playAlertTtsSound(event, ttsResult, options = {}) {
       error: ok ? '' : (data && (data.error || data.message || data.reason) ? String(data.error || data.message || data.reason) : `sound_system_http_${res.status}`)
     };
   } catch (err) {
+    recordAlertSoundCorrelation(event, 'failed', { bundleId, ok: false, itemsPrepared: items.length, error: err && err.message ? err.message : String(err) });
     return {
       attempted: true,
       ok: false,

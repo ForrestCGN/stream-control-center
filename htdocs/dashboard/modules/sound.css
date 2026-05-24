@@ -1073,3 +1073,53 @@ html[data-theme=dark] .sound-source-item {
     justify-self: start;
   }
 }
+
+
+/* STEP340: Alert ↔ SoundBus correlation dashboard section */
+.sound-bus-alert-correlation {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.sound-bus-correlation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 220px);
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid rgba(56,189,248,.14);
+  border-radius: 15px;
+  background: rgba(14,165,233,.055);
+}
+
+.sound-bus-correlation-row strong,
+.sound-bus-correlation-row span,
+.sound-bus-correlation-row small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-bus-correlation-row strong {
+  color: #f8fafc;
+  font-weight: 950;
+}
+
+.sound-bus-correlation-row span,
+.sound-bus-correlation-row small {
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sound-bus-correlation-row > div:last-child {
+  text-align: right;
+}
+
+@media(max-width:760px){
+  .sound-bus-correlation-row { grid-template-columns: 1fr; }
+  .sound-bus-correlation-row > div:last-child { text-align: left; }
+}

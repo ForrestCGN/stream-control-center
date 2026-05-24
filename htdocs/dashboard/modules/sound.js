@@ -813,6 +813,34 @@ window.SoundSystemModule = (function(){
     `;
   }
 
+
+  function renderBusAlertCorrelation(correlation){
+    const rows = correlation && Array.isArray(correlation.recentAlerts) ? correlation.recentAlerts : [];
+    if (!rows.length) return `<div class="sound-empty">Noch keine Alert/SoundBus-Korrelation im Cache.</div>`;
+    return `
+      <div class="sound-bus-alert-correlation">
+        ${rows.slice(0, 6).map(row => {
+          const roles = row.roles && typeof row.roles === 'object'
+            ? Object.entries(row.roles).map(([k,v]) => `${k}:${v}`).join(' · ')
+            : '-';
+          const label = [row.alertType || 'alert', row.requestedBy ? '@' + row.requestedBy : '', row.bundleId || row.alertEventUid || ''].filter(Boolean).join(' · ');
+          return `
+            <div class="sound-bus-correlation-row">
+              <div>
+                <strong>${esc(label)}</strong>
+                <span>${esc(row.alertEventUid || '-')}</span>
+              </div>
+              <div>
+                <span>${esc(row.lastAction || '-')}</span>
+                <small>${esc(roles || '-')}</small>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
   function renderSoundBusMonitor(){
     const el = document.getElementById('soundBusMonitorCard');
     if (!el) return;
@@ -853,6 +881,8 @@ window.SoundSystemModule = (function(){
       <div class="sound-status-row"><span>Current Bundle</span><span class="sound-muted">${bundle ? esc(bundle.bundleId || '-') : '-'}</span></div>
       <div class="sound-status-row"><span>Active Bundle Lock</span><span class="sound-muted">${lock ? esc(lock.bundleId || '-') : '-'}</span></div>
       <div class="sound-status-row"><span>Sound-Fehler</span><span>${esc(normalStats.failed || 0)} · Device ${esc(normalStats.deviceFailed || 0)} · Discord ${esc(normalStats.discordFailed || 0)}</span></div>
+      <h4 class="sound-subtitle">Alert/SoundBus-Korrelation</h4>
+      ${renderBusAlertCorrelation(bus.correlation)}
       <h4 class="sound-subtitle">Quellen im Bus-Cache</h4>
       ${renderBusConsumerSummary(recentEvents)}
       <h4 class="sound-subtitle">Letzte SoundBus-Events</h4>
