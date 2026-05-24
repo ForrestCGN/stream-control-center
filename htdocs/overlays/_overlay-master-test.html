@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Master Overlay Test</title>
+  <title>ForrestCGN Master Overlay Bus Test</title>
   <style>
     :root{
       --purple:#c35cff; --cyan:#39e6ff; --bg:rgba(4,6,18,.0); --panel:#070918; --text:#f7f8ff; --muted:#c7d2fe;
@@ -12,9 +12,10 @@
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--text)}
     body{background:var(--bg)}
     .master-stage{position:fixed;inset:0;pointer-events:none;overflow:hidden}
-    .debug{position:fixed;left:14px;bottom:14px;z-index:1000;min-width:290px;max-width:520px;padding:10px 12px;border:1px solid rgba(57,230,255,.35);border-radius:14px;background:rgba(5,7,22,.78);box-shadow:0 0 24px rgba(195,92,255,.20);font-size:12px;line-height:1.35;opacity:.0;transition:.25s;pointer-events:none}
+    .debug{position:fixed;left:14px;bottom:14px;z-index:1000;min-width:340px;max-width:620px;padding:10px 12px;border:1px solid rgba(57,230,255,.35);border-radius:14px;background:rgba(5,7,22,.78);box-shadow:0 0 24px rgba(195,92,255,.20);font-size:12px;line-height:1.35;opacity:.0;transition:.25s;pointer-events:none}
     body[data-debug="1"] .debug{opacity:1}
-    .debug b{color:#8ff4ff}.debug .warn{color:#ffd36a}.debug .ok{color:#8df5c8}
+    .debug b{color:#8ff4ff}.debug .warn{color:#ffd36a}.debug .ok{color:#8df5c8}.debug .bad{color:#fb7185}.debug .muted{color:#aab4d4}
+    .debug-row{display:grid;grid-template-columns:94px 1fr;gap:8px;margin-top:3px}.debug-row span:first-child{color:#aab4d4}.debug code{font-family:"Cascadia Mono","Consolas",monospace;font-size:11px;color:#dff7ff;word-break:break-all}
     .mirror-badge{position:fixed;right:18px;bottom:18px;z-index:1000;padding:7px 11px;border-radius:999px;border:1px solid rgba(195,92,255,.45);background:rgba(7,9,26,.72);font-size:12px;color:#eee;opacity:.0}
     body[data-debug="1"] .mirror-badge{opacity:1}
     .alert-card{position:absolute;left:50%;top:50%;width:min(1120px,calc(100vw - 80px));min-height:210px;transform:translate(-50%,calc(-50% + 34px)) scale(.94);opacity:0;filter:blur(6px);transition:opacity .46s ease, transform .7s cubic-bezier(.16,1,.3,1), filter .46s ease;z-index:50}
@@ -37,89 +38,337 @@
 </head>
 <body>
   <div class="master-stage" id="stage"></div>
-  <div class="debug" id="debug"><b>Master Overlay Test</b><br><span id="status">boot</span></div>
-  <div class="mirror-badge">MIRROR / PREVIEW · nicht produktiv</div>
+  <div class="debug" id="debug">
+    <b>Master Overlay Bus Test</b>
+    <div class="debug-row"><span>Status</span><strong id="status">boot</strong></div>
+    <div class="debug-row"><span>Client</span><code id="debugClient">-</code></div>
+    <div class="debug-row"><span>Event</span><code id="debugEvent">-</code></div>
+    <div class="debug-row"><span>ACK</span><code id="debugAck">-</code></div>
+    <div class="debug-row"><span>Letzte Msg</span><code id="debugMsg">-</code></div>
+  </div>
+  <div class="mirror-badge">BUS MIRROR / TEST · nicht produktiv</div>
 <script>
 (() => {
   'use strict';
-  const OP = 'overlay_master_test';
+
+  const MODULE_META = {
+    name: 'overlay_master_test',
+    version: '0.1.0',
+    build: 'STEP278L',
+    description: 'Master overlay Communication Bus test client'
+  };
+
   const CLIENT_ID = 'overlay_master_test';
+  const CLIENT_TYPE = 'overlay';
+  const CLIENT_MODULE = 'master_overlay_test';
+  const CLIENT_MODE = 'mirror_preview';
+  const HEARTBEAT_MS = 5000;
+  const RECONNECT_MS = 1500;
+
+  const CAPABILITIES = [
+    'communication.test',
+    'test.ping',
+    'visual.alert.play',
+    'visual.alert.clear',
+    'visual.alert.resync',
+    'ack',
+    'heartbeat'
+  ];
+
   const qs = new URLSearchParams(location.search);
   if (qs.get('debug') === '1' || qs.has('debug')) document.body.dataset.debug = '1';
+
   const stage = document.getElementById('stage');
   const statusEl = document.getElementById('status');
+  const debugClientEl = document.getElementById('debugClient');
+  const debugEventEl = document.getElementById('debugEvent');
+  const debugAckEl = document.getElementById('debugAck');
+  const debugMsgEl = document.getElementById('debugMsg');
+
   let ws = null;
   let reconnectTimer = null;
   let heartbeatTimer = null;
   let currentTimer = null;
-  let currentAlertId = '';
-  let currentSourceEventId = '';
+  let currentEventId = '';
+  let currentChannel = '';
+  let currentAction = '';
+  let lastAck = '';
 
-  function setStatus(text){ if(statusEl) statusEl.textContent = text || ''; }
-  function send(payload){ try{ if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ op: OP, client: CLIENT_ID, clientId: CLIENT_ID, ...payload })); } catch(_){} }
-  function ack(status, extra){ send({ event:'ack', ackStatus:status, alertId:currentAlertId, sourceEventId:currentSourceEventId, mirror:true, preview:true, ...(extra||{}) }); }
-  function connect(){
+  setDebugClient();
+
+  function setStatus(text, cls) {
+    if (!statusEl) return;
+    statusEl.textContent = text || '';
+    statusEl.className = cls || '';
+  }
+
+  function setDebugClient(extra) {
+    if (!debugClientEl) return;
+    debugClientEl.textContent = `${CLIENT_ID} · ${CLIENT_TYPE} · ${MODULE_META.version}/${MODULE_META.build}${extra ? ' · ' + extra : ''}`;
+  }
+
+  function setDebugEvent(text) {
+    if (debugEventEl) debugEventEl.textContent = text || '-';
+  }
+
+  function setDebugAck(text) {
+    if (debugAckEl) debugAckEl.textContent = text || '-';
+  }
+
+  function setDebugMsg(text) {
+    if (debugMsgEl) debugMsgEl.textContent = text || '-';
+  }
+
+  function busSend(payload) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    try {
+      ws.send(JSON.stringify(payload));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function hello() {
+    const sent = busSend({
+      type: 'hello',
+      clientId: CLIENT_ID,
+      clientType: CLIENT_TYPE,
+      module: CLIENT_MODULE,
+      name: 'Master Overlay Bus Test',
+      mode: CLIENT_MODE,
+      version: MODULE_META.version,
+      capabilities: CAPABILITIES,
+      meta: {
+        build: MODULE_META.build,
+        mirror: true,
+        preview: true,
+        productionTarget: false,
+        userAgent: navigator.userAgent || ''
+      }
+    });
+    if (sent) setStatus('hello gesendet · warte auf Bus', 'warn');
+  }
+
+  function heartbeat() {
+    busSend({
+      type: 'heartbeat',
+      clientId: CLIENT_ID,
+      clientType: CLIENT_TYPE,
+      module: CLIENT_MODULE,
+      version: MODULE_META.version,
+      capabilities: CAPABILITIES,
+      status: 'online',
+      ts: new Date().toISOString()
+    });
+  }
+
+  function ack(eventId, status, details) {
+    const id = String(eventId || currentEventId || '').trim();
+    if (!id) return false;
+    const cleanStatus = String(status || 'received').trim() || 'received';
+    const ok = busSend({
+      type: 'ack',
+      eventId: id,
+      clientId: CLIENT_ID,
+      status: cleanStatus,
+      details: {
+        channel: currentChannel,
+        action: currentAction,
+        mirror: true,
+        preview: true,
+        productionTarget: false,
+        ...(details || {})
+      }
+    });
+    if (ok) {
+      lastAck = `${cleanStatus} · ${id}`;
+      setDebugAck(lastAck);
+    }
+    return ok;
+  }
+
+  function connect() {
     clearTimeout(reconnectTimer);
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(proto + '//' + location.host);
+
     ws.addEventListener('open', () => {
-      setStatus('verbunden · registriere Master-Testoverlay');
-      send({ event:'hello', mode:'mirror_preview', capabilities:['visual.alert.play','visual.alert.clear','visual.alert.resync','ack','heartbeat'] });
+      setStatus('verbunden · registriere Bus-Client', 'warn');
+      hello();
       clearInterval(heartbeatTimer);
-      heartbeatTimer = setInterval(() => send({ event:'heartbeat', status:'online', ts:new Date().toISOString() }), 5000);
+      heartbeatTimer = setInterval(heartbeat, HEARTBEAT_MS);
     });
-    ws.addEventListener('message', ev => { let msg; try{ msg = JSON.parse(ev.data); } catch(_){ return; } handleMessage(msg); });
-    ws.addEventListener('close', () => { setStatus('getrennt · reconnect'); clearInterval(heartbeatTimer); reconnectTimer = setTimeout(connect, 1500); });
-    ws.addEventListener('error', () => { try{ ws.close(); } catch(_){} });
+
+    ws.addEventListener('message', ev => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch (_) { return; }
+      handleMessage(msg);
+    });
+
+    ws.addEventListener('close', () => {
+      setStatus('getrennt · reconnect', 'bad');
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+      reconnectTimer = setTimeout(connect, RECONNECT_MS);
+    });
+
+    ws.addEventListener('error', () => {
+      try { ws.close(); } catch (_) {}
+    });
   }
-  function handleMessage(msg){
-    if(!msg || msg.op !== OP) return;
-    if(msg.event === 'hello'){ setStatus('bereit · Mirror wartet'); return; }
-    if(msg.event === 'visual.alert.clear' || msg.action === 'clear'){ clearAlert('clear', false); return; }
-    if(msg.event === 'visual.alert.play' || (msg.channel === 'visual.alert' && msg.action === 'play')){
-      playAlert(msg.alert || (msg.payload && msg.payload.alert) || msg.payload || {});
+
+  function handleMessage(msg) {
+    if (!msg || typeof msg !== 'object') return;
+
+    if (msg.type === 'hello_ack') {
+      setStatus('registriert · Bus bereit', 'ok');
+      setDebugClient(`bus=${msg.bus || 'cgn'}`);
+      return;
     }
+
+    if (msg.type === 'heartbeat_ack') {
+      setStatus(msg.ok ? 'online · heartbeat ok' : 'heartbeat problem', msg.ok ? 'ok' : 'warn');
+      return;
+    }
+
+    if (msg.type === 'ack_ack') {
+      setDebugAck(`${msg.ok ? 'ack ok' : 'ack fail'} · ${msg.status || '-'} · ${msg.eventId || '-'}`);
+      return;
+    }
+
+    if (!isBusEvent(msg)) {
+      setDebugMsg(`ignoriert: ${msg.type || msg.op || 'unknown'}`);
+      return;
+    }
+
+    handleBusEvent(msg);
   }
-  function playAlert(alert){
-    if(!alert || typeof alert !== 'object') return;
+
+  function isBusEvent(msg) {
+    return !!(msg && msg.id && msg.channel && msg.action && msg.payload && typeof msg.payload === 'object');
+  }
+
+  function handleBusEvent(msg) {
+    currentEventId = String(msg.id || '');
+    currentChannel = String(msg.channel || '');
+    currentAction = String(msg.action || '');
+
+    setDebugEvent(`${currentChannel}.${currentAction} · ${currentEventId}`);
+    setDebugMsg(JSON.stringify({ channel: currentChannel, action: currentAction, source: msg.source || {}, meta: msg.meta || {} }).slice(0, 420));
+    ack(currentEventId, 'received', { phase: 'message_received' });
+
+    if (currentChannel === 'visual.alert' && currentAction === 'clear') {
+      clearAlert('bus_clear', false);
+      ack(currentEventId, 'finished', { phase: 'clear_handled' });
+      return;
+    }
+
+    if (currentChannel === 'visual.alert' && (currentAction === 'play' || currentAction === 'resync')) {
+      const alert = normalizeAlertPayload(msg);
+      playCard(alert, msg);
+      return;
+    }
+
+    if (currentChannel === 'test' || currentChannel === 'communication' || msg.meta?.preview === true || msg.payload?.test === true) {
+      playCard(normalizeTestPayload(msg), msg);
+      return;
+    }
+
+    setStatus(`Bus-Event empfangen, nicht angezeigt: ${currentChannel}.${currentAction}`, 'warn');
+    ack(currentEventId, 'ignored', { phase: 'not_a_mirror_display_event' });
+  }
+
+  function normalizeAlertPayload(msg) {
+    const payload = msg.payload || {};
+    const alert = payload.alert && typeof payload.alert === 'object' ? payload.alert : payload;
+    return {
+      source: alert.source || alert.provider || msg.source?.module || msg.source?.id || msg.channel,
+      type: alert.type || msg.action,
+      headline: alert.headline || alert.userDisplayName || alert.user || alert.title || 'Alert Preview',
+      value: alert.value || alert.amountFormatted || '',
+      message: alert.message || alert.subline || payload.message || '',
+      avatarUrl: alert.avatarUrl || alert.avatar_url || '',
+      durationMs: alert.durationMs || payload.durationMs || 7000
+    };
+  }
+
+  function normalizeTestPayload(msg) {
+    const payload = msg.payload || {};
+    const message = payload.message || payload.text || 'Communication Bus Testevent empfangen';
+    return {
+      source: msg.source?.module || msg.source?.id || 'communication_bus',
+      type: `${msg.channel}.${msg.action}`,
+      headline: 'Communication Bus Test',
+      value: msg.id || '',
+      message,
+      avatarUrl: '',
+      durationMs: payload.durationMs || 5000
+    };
+  }
+
+  function playCard(alert, msg) {
+    if (!alert || typeof alert !== 'object') return;
     clearAlert('replace', false);
-    currentAlertId = String(alert.id || alert.alertId || '');
-    currentSourceEventId = String(alert.sourceEventId || alert.id || '');
-    ack('received');
+    ack(msg.id, 'rendering', { phase: 'before_dom_append' });
+
     const card = document.createElement('div');
     card.className = 'alert-card';
-    const headline = alert.headline || alert.userDisplayName || alert.user || alert.title || 'Alert Preview';
-    const value = alert.value || alert.amountFormatted || '';
-    const message = alert.message || alert.subline || '';
-    const avatar = alert.avatarUrl || alert.avatar_url || '';
+    const headline = alert.headline || 'Bus Preview';
+    const value = alert.value || '';
+    const message = alert.message || '';
+    const avatar = alert.avatarUrl || '';
     const initial = String(headline || '★').trim().slice(0,1).toUpperCase() || '★';
+    const tag = `${alert.source || 'bus'} · ${alert.type || 'test'}`;
+    const initialForOnError = escapeAttr(initial);
+
     card.innerHTML = `
       <div class="shell">
-        <div class="preview-watermark">Preview Mirror</div>
+        <div class="preview-watermark">Bus Mirror</div>
         <div class="content">
-          <div class="avatar"><div class="avatar-inner">${avatar ? `<img src="${escapeAttr(avatar)}" alt="" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initial)}'">` : escapeHtml(initial)}</div></div>
+          <div class="avatar"><div class="avatar-inner">${avatar ? `<img src="${escapeAttr(avatar)}" alt="" onerror="this.remove();this.parentElement.textContent='${initialForOnError}'">` : escapeHtml(initial)}</div></div>
           <div class="text">
-            <div class="tag">${escapeHtml((alert.source || alert.provider || 'alert') + ' · ' + (alert.type || 'preview'))}</div>
+            <div class="tag">${escapeHtml(tag)}</div>
             <h1 class="headline" title="${escapeAttr(headline)}">${escapeHtml(headline)}</h1>
             ${value ? `<div class="value">${escapeHtml(value)}</div>` : ''}
             ${message ? `<div class="message">${escapeHtml(message)}</div>` : ''}
           </div>
         </div>
       </div>`;
+
     stage.appendChild(card);
-    requestAnimationFrame(() => { card.classList.add('show'); ack('rendered'); });
-    const duration = Math.max(1000, Number(alert.durationMs || 7000));
+    requestAnimationFrame(() => {
+      card.classList.add('show');
+      ack(msg.id, 'rendered', { phase: 'card_visible' });
+    });
+
+    const duration = Math.max(1000, Number(alert.durationMs || 5000));
     currentTimer = setTimeout(() => clearAlert('finished', true), duration);
-    setStatus('Alert Mirror angezeigt: ' + (currentSourceEventId || currentAlertId || 'unknown'));
+    setStatus(`Bus Mirror angezeigt: ${currentChannel}.${currentAction}`, 'ok');
   }
-  function clearAlert(reason, sendFinished){
-    clearTimeout(currentTimer); currentTimer = null;
-    [...stage.querySelectorAll('.alert-card')].forEach(card => { card.classList.remove('show'); card.classList.add('hide'); setTimeout(()=>card.remove(), 760); });
-    if(sendFinished && currentAlertId) send({ event:'finished', ackStatus:'finished', alertId:currentAlertId, sourceEventId:currentSourceEventId, reason: reason || 'finished', mirror:true, preview:true });
-    currentAlertId = ''; currentSourceEventId = '';
+
+  function clearAlert(reason, sendFinished) {
+    clearTimeout(currentTimer);
+    currentTimer = null;
+    [...stage.querySelectorAll('.alert-card')].forEach(card => {
+      card.classList.remove('show');
+      card.classList.add('hide');
+      setTimeout(() => card.remove(), 760);
+    });
+
+    if (sendFinished && currentEventId) {
+      ack(currentEventId, 'finished', { phase: 'display_finished', reason: reason || 'finished' });
+    }
   }
-  function escapeHtml(v){ return String(v ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-  function escapeAttr(v){ return escapeHtml(v).replace(/'/g, '&#39;'); }
+
+  function escapeHtml(v) {
+    return String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  }
+
+  function escapeAttr(v) {
+    return escapeHtml(v).replace(/'/g, '&#39;');
+  }
+
   connect();
 })();
 </script>

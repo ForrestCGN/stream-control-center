@@ -1,5 +1,21 @@
 # FILES
 
+## STEP278L
+
+Added:
+
+- `project-state/STEP278L_MASTER_OVERLAY_BUS_TEST_MODE.md`
+
+Updated:
+
+- `htdocs/overlays/_overlay-master-test.html`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+
 ## STEP278K
 
 Added:

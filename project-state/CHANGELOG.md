@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## STEP278L
+
+- Updated `htdocs/overlays/_overlay-master-test.html` to act as a real Communication Bus test client.
+- Overlay now sends Bus `hello`, `heartbeat` and `ack` messages using the current Communication Bus protocol.
+- Overlay can receive and mirror Bus test events from `/api/communication/test`.
+- Overlay debug panel now shows client, event and ACK state.
+- Updated Communication Bus documentation and project-state files.
+- No server, dashboard, database or production module migration changes.
+
 ## STEP278K
 
 - Added `htdocs/public/tools/communication_ws_test_client.html`.

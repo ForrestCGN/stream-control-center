@@ -7,6 +7,7 @@ Communication Core:      v0.3.0
 helper_communication.js: v0.3.0 / STEP278F
 communication_bus.js:    v0.3.0 / STEP278H
 WS Test Client:          v0.1.0 / STEP278K
+Master Test Overlay:     v0.1.0 / STEP278L
 ```
 
 ## Status
@@ -20,6 +21,7 @@ Der Communication Bus besitzt aktuell:
 - WebSocket Heartbeat
 - WebSocket Ack / Bus Ack
 - manuellen Browser-Testclient unter `/public/tools/communication_ws_test_client.html`
+- Master-Test-Overlay als echten Communication-Bus-Testclient unter `/overlays/_overlay-master-test.html?debug=1`
 
 ## Testclient
 
@@ -37,6 +39,25 @@ Der Testclient kann:
 - Testevent per API erzeugen
 - `ack` für das letzte Testevent senden
 - Communication Status anzeigen
+
+## Master-Test-Overlay
+
+URL:
+
+```text
+http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1
+```
+
+Das Master-Test-Overlay kann im reinen Mirror-/Testmodus:
+
+- sich als Bus-Client per `type: "hello"` registrieren
+- regelmäßige `type: "heartbeat"` senden
+- Bus-Testevents aus `/api/communication/test` empfangen
+- empfangene Events mit `type: "ack"` bestätigen
+- Test-/Mirror-Karten anzeigen
+- Debug-Status für Client, Event und ACK anzeigen
+
+Das Overlay ist weiterhin nicht produktiv angebunden.
 
 ## Modul-Metadaten
 

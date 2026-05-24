@@ -1,5 +1,49 @@
 # Current System Status
 
+## STEP278L - Master Overlay Bus Test Mode
+
+Das vorhandene Master-Test-Overlay ist jetzt ein echter Communication-Bus-Testclient im reinen Mirror-/Debug-Modus.
+
+Geändert:
+
+- `htdocs/overlays/_overlay-master-test.html`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+
+Neu:
+
+- `project-state/STEP278L_MASTER_OVERLAY_BUS_TEST_MODE.md`
+
+URL:
+
+```text
+http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1
+```
+
+Version:
+
+```text
+overlay_master_test v0.1.0 / STEP278L
+```
+
+Das Overlay kann:
+
+- WebSocket verbinden
+- `type: "hello"` senden
+- `type: "heartbeat"` senden
+- Bus-Testevents empfangen
+- ACKs mit `type: "ack"`, `eventId`, `clientId` und `status` senden
+- Test-/Mirror-Karten anzeigen
+- Debug-Status anzeigen
+
+Wichtig:
+
+- Keine Produktivmigration.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Kein Ersatz von `broadcastWS`.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+- Kein `server.js`-Umbau.
+
 ## STEP278K - Communication WS Test Client
 
 Ein manueller Browser-Testclient für den Communication Bus ist ergänzt.
