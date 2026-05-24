@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## STEP278C
+
+- Added `backend/modules/helpers/helper_security_context.js`.
+- Added `config/security_context.json`.
+- Added Security Context helper documentation.
+- Prepared normalized actor/source/trust contexts.
+- Prepared role and permission helper functions.
+- Prepared sensitive value masking and audit snapshots.
+- No existing production route or module was changed.
+
 ## STEP278B
 
 - Added `backend/modules/helpers/helper_communication.js`.

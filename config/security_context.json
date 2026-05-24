@@ -1,0 +1,136 @@
+{
+  "enabled": true,
+  "defaultTrustLevel": "unknown",
+  "allowLocalhostWithoutAuth": true,
+  "trustedNetworks": [
+    "127.0.0.1/32",
+    "::1/128",
+    "192.168.0.0/16",
+    "10.0.0.0/8",
+    "172.16.0.0/12"
+  ],
+  "actorDefaults": {
+    "local": {
+      "id": "localhost",
+      "name": "Localhost",
+      "roles": [
+        "system_local"
+      ],
+      "permissions": []
+    },
+    "module": {
+      "id": "module",
+      "name": "Internal Module",
+      "roles": [
+        "module"
+      ],
+      "permissions": []
+    },
+    "streamerbot": {
+      "id": "streamerbot",
+      "name": "Streamer.bot",
+      "roles": [
+        "streamerbot"
+      ],
+      "permissions": []
+    },
+    "overlay": {
+      "id": "overlay",
+      "name": "Overlay",
+      "roles": [
+        "overlay"
+      ],
+      "permissions": []
+    },
+    "dashboard": {
+      "id": "dashboard",
+      "name": "Dashboard",
+      "roles": [
+        "dashboard_user"
+      ],
+      "permissions": []
+    },
+    "external": {
+      "id": "external",
+      "name": "External",
+      "roles": [
+        "external",
+        "anonymous"
+      ],
+      "permissions": []
+    },
+    "anonymous": {
+      "id": "anonymous",
+      "name": "Anonymous",
+      "roles": [
+        "anonymous"
+      ],
+      "permissions": []
+    }
+  },
+  "rolePermissions": {
+    "system": [
+      "*"
+    ],
+    "system_local": [
+      "system.local",
+      "api.local",
+      "bus.local"
+    ],
+    "module": [
+      "module.emit",
+      "bus.emit"
+    ],
+    "streamerbot": [
+      "streamerbot.trigger",
+      "api.local"
+    ],
+    "overlay": [
+      "overlay.ack",
+      "overlay.heartbeat"
+    ],
+    "dashboard_owner": [
+      "*"
+    ],
+    "dashboard_admin": [
+      "dashboard.read",
+      "dashboard.write",
+      "api.read",
+      "api.write"
+    ],
+    "dashboard_mod": [
+      "dashboard.read",
+      "api.read"
+    ],
+    "dashboard_user": [
+      "dashboard.read"
+    ],
+    "external": [],
+    "anonymous": []
+  },
+  "sensitiveKeys": [
+    "token",
+    "access_token",
+    "refresh_token",
+    "authorization",
+    "auth",
+    "password",
+    "passwd",
+    "secret",
+    "client_secret",
+    "api_key",
+    "apikey",
+    "webhook",
+    "cookie",
+    "set-cookie",
+    "session",
+    "bearer"
+  ],
+  "maskValue": "***masked***",
+  "audit": {
+    "mayLogPayloadByDefault": false,
+    "maxStringLength": 500,
+    "maxArrayLength": 50,
+    "maxDepth": 6
+  }
+}

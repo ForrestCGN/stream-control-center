@@ -1,5 +1,22 @@
 # FILES
 
+## STEP278C
+
+Added:
+
+- `backend/modules/helpers/helper_security_context.js`
+- `config/security_context.json`
+- `docs/backend/SECURITY_CONTEXT_HELPER.md`
+- `project-state/STEP278C_SECURITY_CONTEXT_HELPER.md`
+
+Updated:
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+
 ## STEP278B
 
 Added:

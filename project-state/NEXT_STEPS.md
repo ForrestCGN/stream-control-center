@@ -1,12 +1,19 @@
 # NEXT_STEPS
 
+## Nach STEP278C
+
+1. Backend nach Deploy starten und prüfen, dass bestehende Module unverändert laden.
+2. `node --check backend/modules/helpers/helper_security_context.js` ist im ZIP-Bau geprüft.
+3. Danach STEP278D planen: Audit Log Helper mit Retention und secretsicherer Maskierung.
+4. Erst danach Bus-/API-/Dashboard-Integration planen.
+5. Keine produktive Zugriffssperre aktivieren, bevor Dashboard-/API-Rollen final geplant sind.
+
 ## Nach STEP278B
 
 1. Backend nach Deploy starten und prüfen, dass bestehende Module unverändert laden.
-2. `node --check backend/modules/helpers/helper_communication.js` ist bereits im ZIP-Bau geprüft.
-3. Danach STEP278C planen: `helper_security_context.js`.
-4. Danach STEP278D planen: `helper_audit.js` mit dashboardfähigen Logs und Retention.
-5. Erst danach SoundSystem-/Alert-Migration planen.
+2. Danach STEP278C planen: `helper_security_context.js`.
+3. Danach STEP278D planen: `helper_audit.js` mit dashboardfähigen Logs und Retention.
+4. Erst danach SoundSystem-/Alert-Migration planen.
 
 ## Nach STEP277A_FIX10
 

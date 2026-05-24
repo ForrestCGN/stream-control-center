@@ -1,5 +1,24 @@
 # CURRENT_STATUS
 
+## STEP278C
+
+Security Context Helper Core vorbereitet.
+
+Neu:
+
+- `backend/modules/helpers/helper_security_context.js`
+- `config/security_context.json`
+- `docs/backend/SECURITY_CONTEXT_HELPER.md`
+- `project-state/STEP278C_SECURITY_CONTEXT_HELPER.md`
+
+Wichtig:
+
+- Noch keine produktive Zugriffssperre.
+- Keine bestehenden API-Routen geändert.
+- Keine Dashboard-Userverwaltung gebaut.
+- Kein Audit-Logging geschrieben.
+- STEP278C bereitet STEP278D Audit Logging vor.
+
 ## STEP278B
 
 Communication Bus Helper Core vorbereitet.
