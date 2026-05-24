@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## STEP278G
+
+- Added `backend/modules/communication_bus.js`.
+- Added Communication Bus status/test/ack/issue/reset API routes.
+- Test events are preview/test only and do not migrate production routing.
+- No dashboard page, database migration, OBS change or production module integration was added.
+
 ## STEP278F
 
 - Extended `helper_communication.js` with optional Security Context and Audit Logger hooks.

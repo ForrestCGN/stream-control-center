@@ -1,5 +1,21 @@
 # FILES
 
+## STEP278G
+
+Added:
+
+- `backend/modules/communication_bus.js`
+- `project-state/STEP278G_COMMUNICATION_BUS_STATUS_API.md`
+
+Updated:
+
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+
 ## STEP278F
 
 Changed:

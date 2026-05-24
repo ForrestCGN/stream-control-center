@@ -1,5 +1,31 @@
 # CURRENT_STATUS
 
+## STEP278G
+
+Communication Bus Status/Test API vorbereitet.
+
+Neu:
+
+- `backend/modules/communication_bus.js`
+- `project-state/STEP278G_COMMUNICATION_BUS_STATUS_API.md`
+
+Routen:
+
+```text
+GET /api/communication/status
+GET /api/communication/test?channel=test&action=ping&message=Hallo
+GET /api/communication/ack?eventId=...&clientId=test_client&status=received
+GET /api/communication/issue?key=test&message=Demo
+GET /api/communication/reset?confirm=1
+```
+
+Wichtig:
+
+- Keine Produktivmodule wurden migriert.
+- Kein Ersatz von `broadcastWS`.
+- Keine API-/Dashboard-/DB-Änderung außerhalb des neuen Communication-Moduls.
+- Bus-Testevents sind Preview/Test und kein produktives Routing.
+
 ## STEP278F
 
 Communication Bus kann optional Security Context und Audit Logger nutzen.

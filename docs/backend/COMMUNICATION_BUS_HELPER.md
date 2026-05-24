@@ -1,57 +1,38 @@
-# STEP278F — Communication Bus Security/Audit Hooks
+# STEP278G — Communication Bus Status API
 
-Status: Helper extension prepared  
+Status: API module prepared  
 Production migration: none  
-Default audit logging: disabled
+Database migration: none
 
 ## Ziel
 
-`backend/modules/helpers/helper_communication.js` kann jetzt optional mit Security Context und Audit Logger arbeiten.
+`backend/modules/communication_bus.js` macht den vorbereiteten Communication Bus über kleine Test-/Status-Routen sichtbar.
 
-Der Bus bleibt weiterhin ohne produktive Modul-Migration vorbereitet.
+## Routen
 
-## Neue optionale Hooks
-
-```js
-createCommunicationBus({
-  config,
-  security,
-  auditLogger
-})
+```text
+GET /api/communication/status
+GET /api/communication/test?channel=test&action=ping&message=Hallo
+GET /api/communication/ack?eventId=...&clientId=test_client&status=received
+GET /api/communication/issue?key=test&message=Demo
+GET /api/communication/reset?confirm=1
 ```
 
-## Verhalten
+## Wichtig
 
-Wenn `security` oder `auditLogger` nicht übergeben werden, läuft der Bus wie bisher weiter.
+- Keine Migration von Alert/Sound/TTS/VIP.
+- Kein Ersatz von `broadcastWS`.
+- Keine OBS-Änderung.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+- Bus-Testevents sind Preview/Test und kein produktives Routing.
 
-Wenn ein Audit Logger übergeben wird und `config.audit.enabled === true` ist, können optional geloggt werden:
+## Tests nach Deploy
 
-- `bus.emit`
-- `bus.ack`
-- `bus.issue`
-
-## Default-Config
-
-In `config/communication_bus.json` bleibt Audit bewusst deaktiviert:
-
-```json
-{
-  "security": { "enabled": true },
-  "audit": {
-    "enabled": false,
-    "logEmit": false,
-    "logAck": false,
-    "logIssues": true,
-    "logPayload": false
-  }
-}
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/communication/test?message=Hallo"
+Invoke-RestMethod "http://127.0.0.1:8080/api/communication/recent"
 ```
 
-## Bewusst nicht geändert
-
-- kein `server.js`-Umbau
-- keine Migration von Alert/Sound/TTS/VIP
-- keine Dashboard-Seite
-- keine Datenbankmigration
-- kein Ersatz von `broadcastWS`
-- keine produktive Audit-Pflicht
+Hinweis: `/api/communication/recent` existiert nicht. Events werden über `/api/communication/status` im Feld `status.events` geprüft.

@@ -1,5 +1,17 @@
 # NEXT_STEPS
 
+## Nach STEP278G
+
+1. Backend nach Deploy starten und prüfen:
+   - `GET /api/communication/status`
+   - `GET /api/communication/test?message=Hallo`
+   - `GET /api/communication/status`
+   - optional `GET /api/communication/ack?eventId=...&clientId=test_client&status=received`
+   - `GET /api/communication/issue?key=test&message=Demo`
+2. Danach STEP278H planen: Bus WebSocket Client Registration/Hello API oder Dashboard-Vorbereitung.
+3. Erst später Alert-/Sound-Migration planen.
+4. Keine produktive Modul-Integration aktivieren, bevor Bus-Status/API geprüft ist.
+
 ## Nach STEP278F
 
 1. Backend nach Deploy starten und prüfen, dass bestehende Module unverändert laden.
