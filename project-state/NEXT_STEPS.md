@@ -1,18 +1,22 @@
 # Next Steps
 
-## STEP285 – Alert-System native Bus Output Mode
+## STEP286 – Alert Native Output Live-Test
 
 Ziel:
 
-- Real Alert Mirror perspektivisch durch regulären Bus-Ausgabeweg ergänzen/ersetzen.
-- Konfigurierbare Modi vorbereiten:
-  - `legacy`
-  - `legacy_and_bus`
-  - `bus_first`
-  - später `bus_only`
-- Bridge `mode=bridge` bleibt als sicherer Fallback-Testmodus.
-- Keine Sound-/TTS-/Queue-Änderungen in diesem Schritt.
-- Keine Funktionalität entfernen.
+- Backend mit STEP285 starten.
+- `/api/alerts/status` prüfen.
+- Sicherstellen, dass `alertOutput.mode` standardmäßig `legacy` ist.
+- Einen normalen Legacy-Alert testen.
+- Danach gezielt `legacy_and_bus` testen.
+- Bridge im Modus `bridge` mit Debug View gegenprüfen.
+- Prüfen, ob doppelte Anzeige ausbleibt und Watchdog weiterhin `acknowledged` meldet.
+
+## Optional nach STEP286
+
+- Communication Debug View um native `alertOutput`-Statusanzeige erweitern.
+- Entscheidung treffen, ob `legacy_and_bus` temporär als Testmodus genutzt wird.
+- Danach `bus_first` gezielt testen.
 
 ## Danach – Sound-System-Audit
 

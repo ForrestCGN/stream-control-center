@@ -30,7 +30,7 @@ try {
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
-const MODULE_STEP = 276;
+const MODULE_STEP = 285;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -93,6 +93,22 @@ const DEFAULT_CONFIG = {
     ttsPrepareTimeoutMs: 15000,
     ttsPlaybackTimeoutMs: 15000
   },
+  alertOutput: {
+    mode: 'legacy',
+    bus: {
+      enabled: true,
+      channel: 'visual.alert',
+      action: 'play',
+      clearAction: 'clear',
+      requireAck: true,
+      replayable: true,
+      ttlMs: 60000,
+      targetType: 'all',
+      targetId: '*',
+      targetModule: '',
+      targetCapability: ''
+    }
+  },
   communicationBusMirror: {
     enabled: false,
     channel: 'visual.alert',
@@ -138,6 +154,19 @@ const state = {
   started: false,
   broadcastWS: null,
   avatarCache: new Map(),
+  alertOutput: {
+    emittedBus: 0,
+    emittedLegacy: 0,
+    skipped: 0,
+    errors: 0,
+    lastMode: '',
+    lastEventUid: '',
+    lastBusEventId: '',
+    lastResult: null,
+    lastError: '',
+    lastAt: '',
+    lastTiming: null
+  },
   alertBusMirror: {
     runtimeEnabled: false,
     changedAt: '',
@@ -209,7 +238,7 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, '/api/alerts/queue', (req, res) => res.json({ ok: true, current: state.current, queue: state.queue, queueLength: state.queue.length }));
   routes.registerPost(app, '/api/alerts/clear', guard, (req, res) => {
     clearQueue('api_clear');
-    sendOverlay(broadcastWS, { event: 'clear' });
+    sendAlertVisualClear(broadcastWS, { event: 'clear' });
     res.json({ ok: true, queueLength: 0, current: state.current });
   });
   routes.registerPost(app, '/api/alerts/reload', guard, (req, res) => {
@@ -829,6 +858,63 @@ function setAlertBusMirrorRuntimeEnabled(enabled, reason = '') {
   };
 }
 
+function validateAlertOutputMode(value, fallback = 'legacy') {
+  const mode = cleanKey(value || fallback);
+  return ['legacy', 'legacy_and_bus', 'bus_first', 'bus_only'].includes(mode) ? mode : fallback;
+}
+
+function alertOutputEffectiveConfig() {
+  const cfg = state.config && state.config.alertOutput ? state.config.alertOutput : DEFAULT_CONFIG.alertOutput;
+  const bus = cfg && cfg.bus ? cfg.bus : DEFAULT_CONFIG.alertOutput.bus;
+  return {
+    mode: validateAlertOutputMode(cfg.mode || DEFAULT_CONFIG.alertOutput.mode),
+    bus: {
+      enabled: bus.enabled !== false,
+      channel: cleanKey(bus.channel || DEFAULT_CONFIG.alertOutput.bus.channel) || DEFAULT_CONFIG.alertOutput.bus.channel,
+      action: cleanKey(bus.action || DEFAULT_CONFIG.alertOutput.bus.action) || DEFAULT_CONFIG.alertOutput.bus.action,
+      clearAction: cleanKey(bus.clearAction || DEFAULT_CONFIG.alertOutput.bus.clearAction) || DEFAULT_CONFIG.alertOutput.bus.clearAction,
+      requireAck: bus.requireAck !== false,
+      replayable: bus.replayable !== false,
+      ttlMs: clamp(toInt(bus.ttlMs, DEFAULT_CONFIG.alertOutput.bus.ttlMs), 1000, 300000),
+      target: {
+        type: cleanKey(bus.targetType || DEFAULT_CONFIG.alertOutput.bus.targetType) || DEFAULT_CONFIG.alertOutput.bus.targetType,
+        id: cleanText(bus.targetId || DEFAULT_CONFIG.alertOutput.bus.targetId) || DEFAULT_CONFIG.alertOutput.bus.targetId,
+        module: cleanKey(bus.targetModule || DEFAULT_CONFIG.alertOutput.bus.targetModule),
+        capability: cleanText(bus.targetCapability || DEFAULT_CONFIG.alertOutput.bus.targetCapability)
+      }
+    }
+  };
+}
+
+function buildAlertOutputStatus() {
+  const cfg = alertOutputEffectiveConfig();
+  return {
+    ok: true,
+    module: MODULE,
+    feature: 'alert_native_visual_output',
+    mode: cfg.mode,
+    legacyEnabled: cfg.mode === 'legacy' || cfg.mode === 'legacy_and_bus',
+    legacyFallbackEnabled: cfg.mode === 'bus_first',
+    busEnabled: cfg.mode !== 'legacy' && cfg.bus.enabled === true,
+    busOnly: cfg.mode === 'bus_only',
+    bus: cfg.bus,
+    communicationBusAvailable: !!(communicationBus && typeof communicationBus.getBus === 'function'),
+    stats: {
+      emittedBus: state.alertOutput.emittedBus,
+      emittedLegacy: state.alertOutput.emittedLegacy,
+      skipped: state.alertOutput.skipped,
+      errors: state.alertOutput.errors,
+      lastMode: state.alertOutput.lastMode,
+      lastEventUid: state.alertOutput.lastEventUid,
+      lastBusEventId: state.alertOutput.lastBusEventId,
+      lastResult: state.alertOutput.lastResult,
+      lastError: state.alertOutput.lastError,
+      lastAt: state.alertOutput.lastAt
+    },
+    timing: state.alertOutput.lastTiming || null
+  };
+}
+
 
 function alertOverlayWatchdogConfig() {
   const cfg = state.config && state.config.alertOverlayWatchdog ? state.config.alertOverlayWatchdog : DEFAULT_CONFIG.alertOverlayWatchdog;
@@ -1047,7 +1133,7 @@ function recoverAlertOverlayWatchdog(query = {}) {
     recoveredAt: now,
     affected
   };
-  sendOverlay(state.broadcastWS, payload);
+  sendAlertVisualClear(state.broadcastWS, payload);
 
   const result = {
     ok: true,
@@ -1141,22 +1227,26 @@ function buildPublicAlertTiming(event) {
     playingAt: ts.playingAt || event.started_at || '',
     overlaySentAt: ts.overlaySentAt || '',
     busMirrorSentAt: ts.busMirrorSentAt || '',
+    alertOutputBusSentAt: ts.alertOutputBusSentAt || '',
     queueToSoundWaitMs: elapsedMs(ms.queuedAt, ms.waitingForSoundAt),
     soundPrepareDurationMs: elapsedMs(ms.waitingForSoundAt, ms.soundBundleReadyAt),
     soundWaitDurationMs: elapsedMs(ms.waitingForSoundAt, ms.soundWaitDoneAt),
     soundWaitDoneToPlayingMs: elapsedMs(ms.soundWaitDoneAt, ms.playingAt),
     playingToOverlayMs: elapsedMs(ms.playingAt, ms.overlaySentAt),
     overlayToBusMirrorMs: elapsedMs(ms.overlaySentAt, ms.busMirrorSentAt),
-    playingToBusMirrorMs: elapsedMs(ms.playingAt, ms.busMirrorSentAt)
+    playingToBusMirrorMs: elapsedMs(ms.playingAt, ms.busMirrorSentAt),
+    playingToAlertOutputBusMs: elapsedMs(ms.playingAt, ms.alertOutputBusSentAt)
   };
 }
 
-function buildAlertBusMirrorPayload(event, overlayAlert) {
+function buildAlertBusPayload(event, overlayAlert, options = {}) {
   const alert = overlayAlert || buildOverlayAlert(event);
+  const mirror = options.mirror === true;
   return {
     test: false,
-    mirror: true,
-    productionTarget: false,
+    mirror,
+    productionTarget: mirror ? false : true,
+    outputMode: cleanKey(options.outputMode || ''),
     timing: buildPublicAlertTiming(event),
     alert: {
       ...alert,
@@ -1173,6 +1263,208 @@ function buildAlertBusMirrorPayload(event, overlayAlert) {
     }
   };
 }
+
+function buildAlertBusMirrorPayload(event, overlayAlert) {
+  return buildAlertBusPayload(event, overlayAlert, { mirror: true, outputMode: 'mirror' });
+}
+
+function emitAlertBusOutput(event, overlayAlert, options = {}) {
+  const cfg = alertOutputEffectiveConfig();
+  if (!cfg.bus.enabled) {
+    state.alertOutput.skipped += 1;
+    return { ok: false, skipped: true, reason: 'bus_disabled' };
+  }
+  if (!communicationBus || typeof communicationBus.getBus !== 'function') {
+    state.alertOutput.errors += 1;
+    state.alertOutput.lastError = 'communication_bus_getBus_unavailable';
+    return { ok: false, error: 'communication_bus_getBus_unavailable' };
+  }
+  try {
+    const alertDurationMs = Math.max(1000, toInt(overlayAlert && overlayAlert.durationMs, state.config.defaultDurationMs || 7000));
+    const ttlMs = Math.max(alertDurationMs + 5000, cfg.bus.ttlMs);
+    const currentBus = communicationBus.getBus();
+    const action = cleanKey(options.action || cfg.bus.action || 'play');
+    const result = currentBus.emit({
+      type: 'event',
+      channel: cfg.bus.channel,
+      action,
+      source: {
+        type: 'module',
+        id: 'alert_system',
+        module: 'alert_system'
+      },
+      target: cfg.bus.target,
+      payload: buildAlertBusPayload(event, overlayAlert, { mirror: false, outputMode: cfg.mode }),
+      meta: {
+        requireAck: cfg.bus.requireAck,
+        replayable: cfg.bus.replayable,
+        ttlMs,
+        mirror: false,
+        preview: false,
+        productionTarget: true,
+        outputMode: cfg.mode,
+        alertEventUid: event.eventUid,
+        alertSource: event.source,
+        alertType: event.type_key
+      }
+    });
+    markAlertTiming(event, 'alertOutputBusSent');
+    state.alertOutput.emittedBus += result && result.ok ? 1 : 0;
+    state.alertOutput.errors += result && result.ok ? 0 : 1;
+    state.alertOutput.lastMode = cfg.mode;
+    state.alertOutput.lastEventUid = event.eventUid || '';
+    state.alertOutput.lastBusEventId = result && result.eventId ? result.eventId : '';
+    state.alertOutput.lastResult = result ? {
+      ok: result.ok === true,
+      eventId: result.eventId || '',
+      deliveredCount: Number(result.deliveredCount || 0),
+      deliveredTo: Array.isArray(result.deliveredTo) ? result.deliveredTo : []
+    } : null;
+    state.alertOutput.lastError = result && result.ok ? '' : 'bus_emit_failed';
+    state.alertOutput.lastAt = nowIso();
+    state.alertOutput.lastTiming = buildPublicAlertTiming(event);
+    return result;
+  } catch (err) {
+    state.alertOutput.errors += 1;
+    state.alertOutput.lastError = err && err.message ? err.message : String(err);
+    state.alertOutput.lastAt = nowIso();
+    console.warn('[alert_system] native alert bus output failed:', state.alertOutput.lastError);
+    return { ok: false, error: state.alertOutput.lastError };
+  }
+}
+
+function sendAlertLegacyOutput(broadcastWS, payload, reason = '') {
+  sendOverlay(broadcastWS, payload);
+  state.alertOutput.emittedLegacy += 1;
+  state.alertOutput.lastAt = nowIso();
+  state.alertOutput.lastResult = { ...(state.alertOutput.lastResult || {}), legacySent: true, legacyReason: reason || '' };
+  return { ok: true, legacySent: true, reason };
+}
+
+function sendAlertVisualOutput(broadcastWS, event, overlayAlert) {
+  const cfg = alertOutputEffectiveConfig();
+  const mode = cfg.mode;
+  const payload = { event: 'play', alert: overlayAlert };
+  const result = { ok: true, mode, legacySent: false, busSent: false, busResult: null, fallbackLegacySent: false, error: '' };
+
+  state.alertOutput.lastMode = mode;
+  state.alertOutput.lastEventUid = event && event.eventUid ? event.eventUid : '';
+
+  if (mode === 'legacy') {
+    sendAlertLegacyOutput(broadcastWS, payload, 'legacy_mode');
+    result.legacySent = true;
+    state.alertOutput.lastResult = result;
+    return result;
+  }
+
+  if (mode === 'legacy_and_bus') {
+    sendAlertLegacyOutput(broadcastWS, payload, 'legacy_and_bus');
+    result.legacySent = true;
+    result.busResult = emitAlertBusOutput(event, overlayAlert, { action: cfg.bus.action });
+    result.busSent = !!(result.busResult && result.busResult.ok);
+    if (!result.busSent) result.error = result.busResult && result.busResult.error ? result.busResult.error : '';
+    state.alertOutput.lastResult = result;
+    return result;
+  }
+
+  if (mode === 'bus_first') {
+    result.busResult = emitAlertBusOutput(event, overlayAlert, { action: cfg.bus.action });
+    result.busSent = !!(result.busResult && result.busResult.ok);
+    const deliveredCount = Number(result.busResult && result.busResult.deliveredCount || 0);
+    if (!result.busSent || deliveredCount <= 0) {
+      sendAlertLegacyOutput(broadcastWS, payload, 'bus_first_fallback');
+      result.legacySent = true;
+      result.fallbackLegacySent = true;
+    }
+    if (!result.busSent) result.error = result.busResult && result.busResult.error ? result.busResult.error : 'bus_not_delivered';
+    state.alertOutput.lastResult = result;
+    return result;
+  }
+
+  if (mode === 'bus_only') {
+    result.busResult = emitAlertBusOutput(event, overlayAlert, { action: cfg.bus.action });
+    result.busSent = !!(result.busResult && result.busResult.ok);
+    if (!result.busSent) {
+      result.ok = false;
+      result.error = result.busResult && result.busResult.error ? result.busResult.error : 'bus_not_delivered';
+    }
+    state.alertOutput.lastResult = result;
+    return result;
+  }
+
+  sendAlertLegacyOutput(broadcastWS, payload, 'invalid_mode_fallback');
+  result.legacySent = true;
+  result.mode = 'legacy';
+  state.alertOutput.lastResult = result;
+  return result;
+}
+
+function emitAlertBusControl(action, payload = {}) {
+  const cfg = alertOutputEffectiveConfig();
+  if (cfg.mode === 'legacy' || cfg.bus.enabled === false) return { ok: false, skipped: true, reason: 'bus_not_active_for_mode' };
+  if (!communicationBus || typeof communicationBus.getBus !== 'function') return { ok: false, error: 'communication_bus_getBus_unavailable' };
+  try {
+    const currentBus = communicationBus.getBus();
+    const result = currentBus.emit({
+      type: 'event',
+      channel: cfg.bus.channel,
+      action: cleanKey(action || cfg.bus.clearAction || 'clear'),
+      source: { type: 'module', id: 'alert_system', module: 'alert_system' },
+      target: cfg.bus.target,
+      payload: {
+        ...payload,
+        source: 'alert_system',
+        outputMode: cfg.mode,
+        productionTarget: true,
+        mirror: false
+      },
+      meta: {
+        requireAck: cfg.bus.requireAck,
+        replayable: false,
+        ttlMs: Math.max(1000, Math.min(cfg.bus.ttlMs, 60000)),
+        mirror: false,
+        preview: false,
+        productionTarget: true,
+        outputMode: cfg.mode
+      }
+    });
+    state.alertOutput.emittedBus += result && result.ok ? 1 : 0;
+    state.alertOutput.errors += result && result.ok ? 0 : 1;
+    state.alertOutput.lastMode = cfg.mode;
+    state.alertOutput.lastBusEventId = result && result.eventId ? result.eventId : '';
+    state.alertOutput.lastResult = result ? { ok: result.ok === true, eventId: result.eventId || '', deliveredCount: Number(result.deliveredCount || 0), deliveredTo: Array.isArray(result.deliveredTo) ? result.deliveredTo : [] } : null;
+    state.alertOutput.lastError = result && result.ok ? '' : 'bus_control_emit_failed';
+    state.alertOutput.lastAt = nowIso();
+    return result;
+  } catch (err) {
+    state.alertOutput.errors += 1;
+    state.alertOutput.lastError = err && err.message ? err.message : String(err);
+    state.alertOutput.lastAt = nowIso();
+    return { ok: false, error: state.alertOutput.lastError };
+  }
+}
+
+function sendAlertVisualClear(broadcastWS, payload = {}) {
+  const cfg = alertOutputEffectiveConfig();
+  const result = { ok: true, mode: cfg.mode, legacySent: false, busSent: false, busResult: null };
+  if (cfg.mode === 'legacy' || cfg.mode === 'legacy_and_bus') {
+    sendAlertLegacyOutput(broadcastWS, payload, cfg.mode === 'legacy' ? 'legacy_clear' : 'legacy_and_bus_clear');
+    result.legacySent = true;
+  }
+  if (cfg.mode !== 'legacy') {
+    result.busResult = emitAlertBusControl(cfg.bus.clearAction || 'clear', payload);
+    result.busSent = !!(result.busResult && result.busResult.ok);
+    const deliveredCount = Number(result.busResult && result.busResult.deliveredCount || 0);
+    if (cfg.mode === 'bus_first' && (!result.busSent || deliveredCount <= 0)) {
+      sendAlertLegacyOutput(broadcastWS, payload, 'bus_first_clear_fallback');
+      result.legacySent = true;
+    }
+    if (cfg.mode === 'bus_only' && !result.busSent) result.ok = false;
+  }
+  state.alertOutput.lastResult = result;
+  return result;
+}
+
 
 function emitAlertBusMirror(event, overlayAlert) {
   const cfg = alertBusMirrorEffectiveConfig();
@@ -1252,6 +1544,8 @@ function buildStatus(req = null) {
     currentEventId: state.current ? state.current.eventUid : null,
     history: state.history.slice(0, 50),
     overlayClients: state.overlayClients.size,
+    alertOutput: buildAlertOutputStatus(),
+    alertBusMirror: buildAlertBusMirrorStatus(),
     overlayWatchdog: buildAlertOverlayWatchdogStatus({ check: false }),
     multerReady: !!multer,
     multerLoadError,
@@ -1334,6 +1628,7 @@ function canonicalConfigSectionKey(key) {
   const map = {
     preview: 'preview',
     livealert: 'liveAlert',
+    alertoutput: 'alertOutput',
     communicationbusmirror: 'communicationBusMirror',
     alertoverlaywatchdog: 'alertOverlayWatchdog',
     dashboardsettings: 'dashboardSettings'
@@ -1358,6 +1653,8 @@ function sanitizeRuntimeConfig(input) {
   const cfg = mergePlainConfig(DEFAULT_CONFIG, input || {});
   cfg.preview = mergePlainConfig(DEFAULT_CONFIG.preview, cfg.preview || {});
   cfg.liveAlert = mergePlainConfig(DEFAULT_CONFIG.liveAlert, cfg.liveAlert || {});
+  cfg.alertOutput = mergePlainConfig(DEFAULT_CONFIG.alertOutput, cfg.alertOutput || {});
+  cfg.alertOutput.bus = mergePlainConfig(DEFAULT_CONFIG.alertOutput.bus, cfg.alertOutput.bus || {});
   cfg.communicationBusMirror = mergePlainConfig(DEFAULT_CONFIG.communicationBusMirror, cfg.communicationBusMirror || {});
   cfg.alertOverlayWatchdog = mergePlainConfig(DEFAULT_CONFIG.alertOverlayWatchdog, cfg.alertOverlayWatchdog || {});
   cfg.dashboardSettings = mergePlainConfig(DEFAULT_CONFIG.dashboardSettings, cfg.dashboardSettings || {});
@@ -1383,6 +1680,19 @@ function sanitizeRuntimeConfig(input) {
   cfg.liveAlert.ttsAfterSoundDelayMs = clamp(toInt(cfg.liveAlert.ttsAfterSoundDelayMs, DEFAULT_CONFIG.liveAlert.ttsAfterSoundDelayMs), 0, 120000);
   cfg.liveAlert.ttsPrepareTimeoutMs = clamp(toInt(cfg.liveAlert.ttsPrepareTimeoutMs, DEFAULT_CONFIG.liveAlert.ttsPrepareTimeoutMs), 1000, 120000);
   cfg.liveAlert.ttsPlaybackTimeoutMs = clamp(toInt(cfg.liveAlert.ttsPlaybackTimeoutMs, DEFAULT_CONFIG.liveAlert.ttsPlaybackTimeoutMs), 1000, 120000);
+
+  cfg.alertOutput.mode = validateAlertOutputMode(cfg.alertOutput.mode || DEFAULT_CONFIG.alertOutput.mode);
+  cfg.alertOutput.bus.enabled = boolValue(cfg.alertOutput.bus.enabled, DEFAULT_CONFIG.alertOutput.bus.enabled);
+  cfg.alertOutput.bus.channel = cleanKey(cfg.alertOutput.bus.channel || DEFAULT_CONFIG.alertOutput.bus.channel) || DEFAULT_CONFIG.alertOutput.bus.channel;
+  cfg.alertOutput.bus.action = cleanKey(cfg.alertOutput.bus.action || DEFAULT_CONFIG.alertOutput.bus.action) || DEFAULT_CONFIG.alertOutput.bus.action;
+  cfg.alertOutput.bus.clearAction = cleanKey(cfg.alertOutput.bus.clearAction || DEFAULT_CONFIG.alertOutput.bus.clearAction) || DEFAULT_CONFIG.alertOutput.bus.clearAction;
+  cfg.alertOutput.bus.requireAck = boolValue(cfg.alertOutput.bus.requireAck, DEFAULT_CONFIG.alertOutput.bus.requireAck);
+  cfg.alertOutput.bus.replayable = boolValue(cfg.alertOutput.bus.replayable, DEFAULT_CONFIG.alertOutput.bus.replayable);
+  cfg.alertOutput.bus.ttlMs = clamp(toInt(cfg.alertOutput.bus.ttlMs, DEFAULT_CONFIG.alertOutput.bus.ttlMs), 1000, 300000);
+  cfg.alertOutput.bus.targetType = cleanKey(cfg.alertOutput.bus.targetType || DEFAULT_CONFIG.alertOutput.bus.targetType) || DEFAULT_CONFIG.alertOutput.bus.targetType;
+  cfg.alertOutput.bus.targetId = cleanText(cfg.alertOutput.bus.targetId || DEFAULT_CONFIG.alertOutput.bus.targetId) || DEFAULT_CONFIG.alertOutput.bus.targetId;
+  cfg.alertOutput.bus.targetModule = cleanKey(cfg.alertOutput.bus.targetModule || DEFAULT_CONFIG.alertOutput.bus.targetModule);
+  cfg.alertOutput.bus.targetCapability = cleanText(cfg.alertOutput.bus.targetCapability || DEFAULT_CONFIG.alertOutput.bus.targetCapability);
 
   cfg.communicationBusMirror.enabled = boolValue(cfg.communicationBusMirror.enabled, DEFAULT_CONFIG.communicationBusMirror.enabled);
   cfg.communicationBusMirror.channel = cleanKey(cfg.communicationBusMirror.channel || DEFAULT_CONFIG.communicationBusMirror.channel) || DEFAULT_CONFIG.communicationBusMirror.channel;
@@ -1452,7 +1762,7 @@ function applyRuntimeSettingsFromDb() {
     }
 
     const section = canonicalConfigSectionKey(key);
-    if (['preview', 'liveAlert', 'dashboardSettings'].includes(section) && value && typeof value === 'object' && !Array.isArray(value)) {
+    if (['preview', 'liveAlert', 'alertOutput', 'communicationBusMirror', 'alertOverlayWatchdog', 'dashboardSettings'].includes(section) && value && typeof value === 'object' && !Array.isArray(value)) {
       next[section] = mergePlainConfig(next[section] || {}, value);
       applied.push(key);
     }
@@ -1493,6 +1803,12 @@ function saveAlertConfig(input = {}) {
   }
   for (const key of stringKeys) {
     if (Object.prototype.hasOwnProperty.call(input, key)) next[key] = cleanText(input[key]);
+  }
+  const objectKeys = ['preview','liveAlert','alertOutput','communicationBusMirror','alertOverlayWatchdog','dashboardSettings'];
+  for (const key of objectKeys) {
+    if (Object.prototype.hasOwnProperty.call(input, key) && input[key] && typeof input[key] === 'object' && !Array.isArray(input[key])) {
+      next[key] = mergePlainConfig(next[key] || {}, input[key]);
+    }
   }
   state.config = sanitizeRuntimeConfig(next);
   const configPath = configHelper.resolveConfigFile('alert_system.json');
@@ -2642,10 +2958,12 @@ async function processQueue(broadcastWS) {
     persistEventRuntimePayload(event);
 
     const overlayAlert = buildOverlayAlert(event);
-    sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
+    const visualOutput = sendAlertVisualOutput(broadcastWS, event, overlayAlert);
     markAlertTiming(event, 'overlaySent');
     createOverlayDeliveryWatch(event, overlayAlert);
+    event.alertVisualOutput = visualOutput;
     emitAlertBusMirror(event, overlayAlert);
+    persistEventRuntimePayload(event);
     dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
 
     const duration = event.effectiveDurationMs;
