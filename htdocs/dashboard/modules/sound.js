@@ -13,10 +13,19 @@ window.SoundSystemModule = (function(){
   let lastSaveInfo = null;
   let actionsBound = false;
   let activeSection = 'overview';
+  const BUS_MONITOR_AUTO_REFRESH_MS = 5000;
+  let busMonitorPollTimer = null;
+  let busMonitorRefreshing = false;
+  let lastBusMonitorRefreshAt = '';
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
   function button(label, action, extraClass){ return `<button type="button" class="${extraClass || ''}" data-sound-action="${esc(action)}">${esc(label)}</button>`; }
+  function formatLocalTime(value){
+    if (!value) return '-';
+    try { return new Date(value).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+    catch (_) { return String(value); }
+  }
 
   function renderShell(){
     if (!root) return;
@@ -670,6 +679,7 @@ window.SoundSystemModule = (function(){
     el.innerHTML = `
       <h3>SoundBus Monitoring</h3>
       <div class="sound-note">Rein lesende Übersicht für SoundBus/Communication-Bus. Steuerung bleibt über die normalen Backend-APIs.</div>
+      <div class="sound-note">Auto-Refresh: alle ${Math.round(BUS_MONITOR_AUTO_REFRESH_MS / 1000)}s nur per <code>GET /api/sound/status</code>${lastBusMonitorRefreshAt ? ` · zuletzt ${esc(formatLocalTime(lastBusMonitorRefreshAt))}` : ''}</div>
       <div class="sound-bus-kpis">
         <div class="sound-bus-kpi"><span>Status</span><strong class="sound-pill ${statusClass}">${enabled ? 'Aktiv' : 'Aus'}</strong></div>
         <div class="sound-bus-kpi"><span>Communication</span><strong>${comm ? 'Verfügbar' : 'Nicht verfügbar'}</strong></div>
@@ -772,13 +782,39 @@ window.SoundSystemModule = (function(){
       const sections = String(el.dataset.soundSection || '').split(/\s+/).filter(Boolean);
       el.hidden = !sections.includes(activeSection);
     });
+
+    updateBusMonitorPolling();
   }
-  async function refreshStatusOnly(){
-    const state = await api('/status');
-    const currentSounds = Array.isArray(status?.sounds) ? status.sounds : [];
-    status = { ...state, sounds: currentSounds };
-    output = { output: state?.config?.output || {} };
-    render();
+
+  function updateBusMonitorPolling(){
+    const shouldPoll = activeSection === 'busmonitor';
+    if (!shouldPoll && busMonitorPollTimer) {
+      clearInterval(busMonitorPollTimer);
+      busMonitorPollTimer = null;
+      return;
+    }
+    if (shouldPoll && !busMonitorPollTimer) {
+      busMonitorPollTimer = setInterval(() => {
+        refreshStatusOnly({ silent: true }).catch(() => {});
+      }, BUS_MONITOR_AUTO_REFRESH_MS);
+    }
+  }
+
+  async function refreshStatusOnly(options){
+    if (busMonitorRefreshing) return;
+    busMonitorRefreshing = true;
+    try {
+      const state = await api('/status');
+      const currentSounds = Array.isArray(status?.sounds) ? status.sounds : [];
+      status = { ...state, sounds: currentSounds };
+      output = { output: state?.config?.output || {} };
+      lastBusMonitorRefreshAt = new Date().toISOString();
+      render();
+    } catch (err) {
+      if (!options?.silent) throw err;
+    } finally {
+      busMonitorRefreshing = false;
+    }
   }
 
   function bindActions(){
@@ -834,6 +870,7 @@ window.SoundSystemModule = (function(){
       settings = set;
       integrationCheck = check;
       routesInfo = routes;
+      lastBusMonitorRefreshAt = new Date().toISOString();
       render();
     } catch (err) {
       if (root) root.innerHTML = `<div class="sound-card"><h2>Sound-System</h2><div class="sound-empty">${esc(err.message || err)}</div></div>`;

@@ -1,11 +1,10 @@
 # CHANGELOG
 
-## STEP302 – Sound Dashboard Bus-Monitor Readonly Refresh Fix – 2026-05-24
+## STEP303 – Sound Dashboard Bus-Monitor Auto Refresh – 2026-05-24
 
-- Button **Status neu laden** im Dashboard-Tab **SoundBus Monitoring** von steuernder Reload-Action getrennt.
-- Neue Action `refresh-status` ergänzt.
-- Neue Funktion `refreshStatusOnly()` ergänzt.
-- Bus-Monitor ruft für Statusaktualisierung nur noch `GET /api/sound/status` auf.
-- Globaler Sound-System-Button **Neu laden** bleibt unverändert.
-- Keine Backend-Änderung.
+- Dashboard-Modul `htdocs/dashboard/modules/sound.js` angepasst.
+- Bus-Monitor aktualisiert sich automatisch alle 5 Sekunden, solange der Tab aktiv ist.
+- Auto-Refresh nutzt ausschließlich `GET /api/sound/status`.
+- Manuelles `Status neu laden` bleibt rein lesend.
+- Keine Backend-Logik geändert.
 - Keine Sound-/Queue-/Bundle-/SoundBus-Logik geändert.

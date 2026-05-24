@@ -1,10 +1,12 @@
-# CURRENT SYSTEM STATUS – STEP302
+# CURRENT SYSTEM STATUS – STEP303
 
 Stand: 2026-05-24
 
 ## Aktueller Fokus
 
-SoundBus ist als stabile Event-/Status-Schicht im Dev-/Testbetrieb aktiv.
+SoundBus ist im Dev-/Testbetrieb aktiv und wird im Dashboard lesend überwacht.
+
+Aktuelle Entscheidung:
 
 ```text
 soundBus.enabled = true
@@ -21,17 +23,22 @@ Dies ist keine vollständige Bus-only-Produktivmigration. Bestehende HTTP-/WebSo
 - V5 Queue-/Bundle-Regression bestanden.
 - Discord Media Path Resolver Fix bestätigt.
 - SoundBus Debug View funktioniert.
-- Dashboard Bus-Monitor funktioniert.
-- Dashboard Backend/Auth Validation bestanden mit Hinweis.
+- Dashboard Bus-Monitor ist vorhanden und lesend.
+- Bus-Monitor Refresh nutzt nur `GET /api/sound/status`.
 
-## STEP302 Ergebnis
+## STEP303 Ergebnis
 
-Der Button **Status neu laden** im Dashboard-Tab **SoundBus Monitoring** ist jetzt rein lesend.
+Der Dashboard Bus-Monitor aktualisiert sich automatisch alle 5 Sekunden, solange der Tab aktiv ist.
 
-Der Bus-Monitor nutzt dafür eine eigene Action `refresh-status`, die nur `GET /api/sound/status` ausführt.
+Nicht geändert:
 
-Der globale Sound-System-Button **Neu laden** bleibt unverändert und kann weiterhin die bestehende Reload-Backend-Aktion ausführen.
+```text
+keine Sound-/Queue-/Bundle-Logik
+kein SoundBus-Umbau
+keine Backend-Routen
+keine DB-Migration
+```
 
 ## Nächster Schritt
 
-STEP303 – Sound Dashboard Readonly Refresh Test dokumentieren.
+STEP304 – Sound Dashboard Bus-Monitor Auto Refresh Live-Test dokumentieren.

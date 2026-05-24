@@ -1,4 +1,4 @@
-# CURRENT_STATUS – STEP302
+# CURRENT_STATUS – STEP303
 
 Stand: 2026-05-24
 
@@ -7,9 +7,10 @@ Aktueller Stand:
 - SoundBus ist aktiv und getestet.
 - Discord Media Path Resolver ist gefixt und bestätigt.
 - SoundBus Debug View ist verfügbar.
-- Dashboard SoundBus Monitoring ist verfügbar.
-- Backend/Auth Validation für den Monitor ist dokumentiert.
-- Bus-Monitor-Refresh ist jetzt rein lesend.
+- Dashboard Bus-Monitor ist eingebunden.
+- Bus-Monitor ist rein lesend.
+- Bus-Monitor nutzt für Refresh nur `GET /api/sound/status`.
+- Bus-Monitor aktualisiert sich automatisch alle 5 Sekunden, solange der Tab aktiv ist.
 
 Aktuelle Betriebsentscheidung:
 
@@ -25,4 +26,4 @@ Wichtig:
 
 Nächster Schritt:
 
-STEP303 – Sound Dashboard Readonly Refresh Test dokumentieren.
+STEP304 – Sound Dashboard Bus-Monitor Auto Refresh Live-Test dokumentieren.
