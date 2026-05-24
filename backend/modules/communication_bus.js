@@ -16,16 +16,17 @@ const security = require('./helpers/helper_security_context');
 
 const MODULE_META = {
   name: 'communication_bus',
-  version: '0.7.0',
+  version: '0.8.1',
   coreName: 'communication_core',
   coreVersion: '0.3.0',
-  description: 'Communication Bus API, WebSocket client registration, controlled replay, watchdog diagnostics and alert mirror tests'
+  description: 'Communication Bus API, WebSocket client registration, controlled replay, watchdog diagnostics, alert mirror tests and real alert mirror transport and shared bus access'
 };
 
 const DEFAULT_CONFIG = {
   enabled: true,
   testEndpointEnabled: true,
   testAlertEndpointEnabled: true,
+  mirrorAlertEndpointEnabled: true,
   ackEndpointEnabled: true,
   issueEndpointEnabled: true,
   replayEndpointEnabled: true,
@@ -511,6 +512,81 @@ function init({ app }) {
     }));
   });
 
+
+
+  app.get('/api/communication/mirror-alert', (req, res) => {
+    if (loadedConfig.mirrorAlertEndpointEnabled === false) {
+      return res.status(403).json({ ok: false, error: 'communication_mirror_alert_endpoint_disabled' });
+    }
+
+    const currentBus = getBus();
+    const provider = cleanString(req.query.provider || req.query.source, 'alert_system');
+    const type = cleanString(req.query.type || req.query.type_key, 'alert');
+    const user = limitedMessage(req.query.user || req.query.userDisplay || req.query.user_display, 'Alert');
+    const amount = asInt(req.query.amount, 0);
+    const message = limitedMessage(req.query.message, '');
+    const eventUid = cleanString(req.query.eventUid || req.query.event_uid, '');
+    const avatarUrl = cleanString(req.query.avatarUrl || req.query.avatar_url, '');
+    const title = cleanString(req.query.title, 'Alert Mirror');
+    const durationMs = Math.max(1000, asInt(req.query.durationMs, loadedConfig.defaultAlertMirrorDurationMs || 7000));
+    const replayable = boolParam(req.query.replayable, true);
+    const requireAck = boolParam(req.query.requireAck, true);
+    const ttlMs = Math.max(durationMs + 5000, asInt(req.query.ttlMs, loadedConfig.defaultTtlMs || 60000));
+
+    const value = cleanString(req.query.value, amount > 0 ? String(amount) : type);
+
+    const result = currentBus.emit({
+      type: 'event',
+      channel: 'visual.alert',
+      action: 'play',
+      source: {
+        type: 'module',
+        id: cleanString(req.query.sourceId, 'alert_bus_mirror'),
+        module: cleanString(req.query.sourceModule, 'alert_bus_mirror')
+      },
+      target: {
+        type: cleanString(req.query.targetType, 'all'),
+        id: cleanString(req.query.targetId, '*'),
+        module: cleanString(req.query.targetModule, ''),
+        capability: cleanString(req.query.targetCapability, '')
+      },
+      payload: {
+        test: false,
+        mirror: true,
+        productionTarget: false,
+        alert: {
+          source: 'alert_system',
+          provider,
+          type,
+          eventUid,
+          user,
+          headline: user,
+          title,
+          value,
+          amount,
+          message,
+          avatarUrl,
+          durationMs
+        }
+      },
+      meta: {
+        requireAck,
+        replayable,
+        ttlMs,
+        preview: true,
+        mirror: true,
+        productionTarget: false,
+        originalModule: 'alert_system',
+        originalEventUid: eventUid
+      }
+    });
+
+    res.json(buildModuleResponse({
+      mirrorAlert: true,
+      result
+    }));
+  });
+
   app.get('/api/communication/ack', (req, res) => {
     if (loadedConfig.ackEndpointEnabled === false) {
       return res.status(403).json({ ok: false, error: 'communication_ack_endpoint_disabled' });
@@ -697,11 +773,12 @@ function init({ app }) {
     }));
   });
 
-  console.log(`[${MODULE_META.name}] v${MODULE_META.version} API routes and WS handler registered`);
+  console.log(`[${MODULE_META.name}] v${MODULE_META.version} API routes, mirror transport and WS handler registered`);
 }
 
 module.exports = {
   MODULE_META,
   init,
-  handleWsMessage
+  handleWsMessage,
+  getBus
 };

@@ -1,48 +1,16 @@
-# Current System Status
+# CURRENT_SYSTEM_STATUS
 
-## STEP278U - Communication Debug Auto Refresh
+## Aktueller Stand: STEP278V2
 
-Communication Debug View wurde auf `v0.1.3` erweitert.
+Der echte Alert-Bus-Mirror ist direkt im bestehenden Alert-System integriert.
 
-Neu/Geändert:
-
-- `htdocs/public/tools/communication_debug_view.html`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-- `docs/backend/MODULE_VERSIONING_DISPLAY_STANDARD.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-- `project-state/NEXT_STEPS.md`
-
-Version:
+Versionen:
 
 ```text
+communication_bus v0.8.1
 communication_debug_view v0.1.3
+overlay_master_test v0.1.3
+alert_system: bestehendes Modul, Mirror integriert
 ```
 
-Funktionen:
-
-- Auto-Refresh ist standardmäßig aktiv.
-- Status wird alle 2 Sekunden über `/api/communication/status` aktualisiert.
-- Auto-Refresh kann über Button ein-/ausgeschaltet werden.
-- Last-Update zeigt Tool-Version und Auto-Refresh-Zustand.
-- Auto-Refresh schreibt keinen Log-Spam.
-- Während manueller Aktionen pausiert Auto-Refresh kurz über Busy-Schutz.
-- Keine sichtbaren STEP-/Build-Anzeigen.
-
-Wichtig:
-
-- Keine Backend-Codeänderung.
-- Keine neue API.
-- Keine Alert-/Sound-/TTS-/VIP-Integration.
-- Keine Produktivmigration.
-- Keine DB-/OBS-/Dashboard-Änderung.
-
-## STEP278T - Overlay Reconnect Deploy Robustness
-
-Master-Test-Overlay `v0.1.3` ergänzt mit Hello-/Heartbeat-Watchdog und Forced-Reconnect bei stale Verbindung.
-
-## STEP278S - Controlled Alert Mirror Test
-
-Communication Bus `v0.7.0` mit reiner Test-Route `/api/communication/test-alert` für `visual.alert.play` ergänzt.
+Wichtig: `STEP278V_REAL_ALERT_BUS_MIRROR.zip` mit separatem `alert_bus_mirror.js` wurde verworfen und soll nicht eingespielt werden.

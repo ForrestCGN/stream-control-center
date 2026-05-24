@@ -21,6 +21,13 @@ const routes = require('./helpers/helper_routes');
 const security = require('./helpers/helper_security');
 const media = require('./helpers/helper_media');
 
+let communicationBus = null;
+try {
+  communicationBus = require('./communication_bus');
+} catch (err) {
+  communicationBus = null;
+}
+
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 276;
@@ -86,6 +93,18 @@ const DEFAULT_CONFIG = {
     ttsPrepareTimeoutMs: 15000,
     ttsPlaybackTimeoutMs: 15000
   },
+  communicationBusMirror: {
+    enabled: false,
+    channel: 'visual.alert',
+    action: 'play',
+    requireAck: true,
+    replayable: true,
+    ttlMs: 60000,
+    targetType: 'all',
+    targetId: '*',
+    targetModule: '',
+    targetCapability: ''
+  },
   dashboardSettings: {
     preferSqliteSettings: true,
     allowRuntimeEdit: true,
@@ -112,7 +131,19 @@ const state = {
   finishTimer: null,
   started: false,
   broadcastWS: null,
-  avatarCache: new Map()
+  avatarCache: new Map(),
+  alertBusMirror: {
+    runtimeEnabled: false,
+    changedAt: '',
+    changedReason: '',
+    emitted: 0,
+    skipped: 0,
+    errors: 0,
+    lastEventUid: '',
+    lastBusEventId: '',
+    lastResult: null,
+    lastError: ''
+  }
 };
 
 module.exports.init = function init(ctx) {
@@ -134,6 +165,9 @@ module.exports.init = function init(ctx) {
 
   routes.registerGet(app, '/api/alerts/status', (req, res) => res.json(buildStatus(req)));
   routes.registerGet(app, '/api/alerts/health', (req, res) => res.json(buildHealth(req)));
+  routes.registerGet(app, '/api/alerts/bus-mirror/status', guard, (req, res) => res.json(buildAlertBusMirrorStatus()));
+  routes.registerGet(app, '/api/alerts/bus-mirror/enable', guard, (req, res) => res.status(req.query.confirm === '1' ? 200 : 400).json(setAlertBusMirrorRuntimeEnabled(true, req.query.confirm === '1' ? 'api_enable' : 'confirm_required')));
+  routes.registerGet(app, '/api/alerts/bus-mirror/disable', guard, (req, res) => res.status(req.query.confirm === '1' ? 200 : 400).json(setAlertBusMirrorRuntimeEnabled(false, req.query.confirm === '1' ? 'api_disable' : 'confirm_required')));
   routes.registerGet(app, '/api/alerts/queue', (req, res) => res.json({ ok: true, current: state.current, queue: state.queue, queueLength: state.queue.length }));
   routes.registerPost(app, '/api/alerts/clear', guard, (req, res) => {
     clearQueue('api_clear');
@@ -253,6 +287,9 @@ function buildAlertRoutes(req = null) {
   const routeList = [
     { method: 'GET', path: '/api/alerts/status', auth: 'public/local', category: 'status', description: 'Alert-System Status und Laufzeitinformationen.' },
     { method: 'GET', path: '/api/alerts/health', auth: 'public/local', category: 'status', description: 'Kurzprüfung des Alert-Systems.' },
+    { method: 'GET', path: '/api/alerts/bus-mirror/status', auth: 'local_or_auth', category: 'communication', description: 'Alert Communication-Bus-Mirror Status lesen.' },
+    { method: 'GET', path: '/api/alerts/bus-mirror/enable', auth: 'local_or_auth', category: 'communication', description: 'Alert Communication-Bus-Mirror runtime-only aktivieren.' },
+    { method: 'GET', path: '/api/alerts/bus-mirror/disable', auth: 'local_or_auth', category: 'communication', description: 'Alert Communication-Bus-Mirror runtime-only deaktivieren.' },
     { method: 'GET', path: '/api/alerts/queue', auth: 'public/local', category: 'queue', description: 'Aktueller Alert und Warteschlange.' },
     { method: 'POST', path: '/api/alerts/clear', auth: 'local_or_auth', category: 'queue', description: 'Queue leeren und Overlay clear senden.' },
     { method: 'POST', path: '/api/alerts/reload', auth: 'local_or_auth', category: 'admin', description: 'Config neu laden, Schema/Seeds prüfen und DB-Settings anwenden.' },
@@ -678,6 +715,159 @@ function seedAlertChatBlocks() {
   defaults.forEach(block => saveChatBlock({ ...block, enabled:1 }));
 }
 
+function alertBusMirrorEffectiveConfig() {
+  const cfg = state.config && state.config.communicationBusMirror ? state.config.communicationBusMirror : DEFAULT_CONFIG.communicationBusMirror;
+  return {
+    enabled: cfg.enabled === true,
+    runtimeEnabled: state.alertBusMirror.runtimeEnabled === true,
+    effectiveEnabled: cfg.enabled === true || state.alertBusMirror.runtimeEnabled === true,
+    channel: cleanKey(cfg.channel || DEFAULT_CONFIG.communicationBusMirror.channel) || DEFAULT_CONFIG.communicationBusMirror.channel,
+    action: cleanKey(cfg.action || DEFAULT_CONFIG.communicationBusMirror.action) || DEFAULT_CONFIG.communicationBusMirror.action,
+    requireAck: cfg.requireAck !== false,
+    replayable: cfg.replayable !== false,
+    ttlMs: clamp(toInt(cfg.ttlMs, DEFAULT_CONFIG.communicationBusMirror.ttlMs), 1000, 300000),
+    target: {
+      type: cleanKey(cfg.targetType || DEFAULT_CONFIG.communicationBusMirror.targetType) || DEFAULT_CONFIG.communicationBusMirror.targetType,
+      id: cleanText(cfg.targetId || DEFAULT_CONFIG.communicationBusMirror.targetId) || DEFAULT_CONFIG.communicationBusMirror.targetId,
+      module: cleanKey(cfg.targetModule || DEFAULT_CONFIG.communicationBusMirror.targetModule),
+      capability: cleanText(cfg.targetCapability || DEFAULT_CONFIG.communicationBusMirror.targetCapability)
+    }
+  };
+}
+
+function buildAlertBusMirrorStatus() {
+  const cfg = alertBusMirrorEffectiveConfig();
+  return {
+    ok: true,
+    module: MODULE,
+    feature: 'alert_communication_bus_mirror',
+    enabled: cfg.effectiveEnabled,
+    configEnabled: cfg.enabled,
+    runtimeEnabled: cfg.runtimeEnabled,
+    channel: cfg.channel,
+    action: cfg.action,
+    requireAck: cfg.requireAck,
+    replayable: cfg.replayable,
+    ttlMs: cfg.ttlMs,
+    target: cfg.target,
+    communicationBusAvailable: !!(communicationBus && typeof communicationBus.getBus === 'function'),
+    stats: {
+      emitted: state.alertBusMirror.emitted,
+      skipped: state.alertBusMirror.skipped,
+      errors: state.alertBusMirror.errors,
+      lastEventUid: state.alertBusMirror.lastEventUid,
+      lastBusEventId: state.alertBusMirror.lastBusEventId,
+      lastResult: state.alertBusMirror.lastResult,
+      lastError: state.alertBusMirror.lastError,
+      changedAt: state.alertBusMirror.changedAt,
+      changedReason: state.alertBusMirror.changedReason
+    }
+  };
+}
+
+function setAlertBusMirrorRuntimeEnabled(enabled, reason = '') {
+  if (reason === 'confirm_required') {
+    return {
+      ok: false,
+      error: 'confirm_required',
+      hint: enabled ? '/api/alerts/bus-mirror/enable?confirm=1' : '/api/alerts/bus-mirror/disable?confirm=1',
+      status: buildAlertBusMirrorStatus()
+    };
+  }
+  state.alertBusMirror.runtimeEnabled = enabled === true;
+  state.alertBusMirror.changedAt = nowIso();
+  state.alertBusMirror.changedReason = reason || (enabled ? 'enabled' : 'disabled');
+  return {
+    ok: true,
+    changed: true,
+    enabled: alertBusMirrorEffectiveConfig().effectiveEnabled,
+    runtimeEnabled: state.alertBusMirror.runtimeEnabled,
+    status: buildAlertBusMirrorStatus()
+  };
+}
+
+function buildAlertBusMirrorPayload(event, overlayAlert) {
+  const alert = overlayAlert || buildOverlayAlert(event);
+  return {
+    test: false,
+    mirror: true,
+    productionTarget: false,
+    alert: {
+      ...alert,
+      source: 'alert_system',
+      provider: alert.provider || event.source || '',
+      type: alert.type || event.type_key || '',
+      eventUid: event.eventUid,
+      alertEventUid: event.eventUid,
+      user: alert.user || event.user_display || event.user_login || '',
+      userDisplayName: alert.userDisplayName || event.user_display || '',
+      userLogin: alert.userLogin || event.user_login || '',
+      avatarUrl: alert.avatarUrl || event.avatar_url || '',
+      durationMs: Math.max(1000, toInt(alert.durationMs, state.config.defaultDurationMs || 7000))
+    }
+  };
+}
+
+function emitAlertBusMirror(event, overlayAlert) {
+  const cfg = alertBusMirrorEffectiveConfig();
+  if (!cfg.effectiveEnabled) {
+    state.alertBusMirror.skipped += 1;
+    return { ok: false, skipped: true, reason: 'disabled' };
+  }
+  if (!communicationBus || typeof communicationBus.getBus !== 'function') {
+    state.alertBusMirror.errors += 1;
+    state.alertBusMirror.lastError = 'communication_bus_getBus_unavailable';
+    return { ok: false, error: 'communication_bus_getBus_unavailable' };
+  }
+  try {
+    const alertDurationMs = Math.max(1000, toInt(overlayAlert && overlayAlert.durationMs, state.config.defaultDurationMs || 7000));
+    const ttlMs = Math.max(alertDurationMs + 5000, cfg.ttlMs);
+    const currentBus = communicationBus.getBus();
+    const result = currentBus.emit({
+      type: 'event',
+      channel: cfg.channel,
+      action: cfg.action,
+      source: {
+        type: 'module',
+        id: 'alert_system',
+        module: 'alert_system'
+      },
+      target: cfg.target,
+      payload: buildAlertBusMirrorPayload(event, overlayAlert),
+      meta: {
+        requireAck: cfg.requireAck,
+        replayable: cfg.replayable,
+        ttlMs,
+        mirror: true,
+        preview: false,
+        productionTarget: false,
+        alertEventUid: event.eventUid,
+        alertSource: event.source,
+        alertType: event.type_key
+      }
+    });
+    state.alertBusMirror.emitted += result && result.ok ? 1 : 0;
+    state.alertBusMirror.errors += result && result.ok ? 0 : 1;
+    state.alertBusMirror.lastEventUid = event.eventUid || '';
+    state.alertBusMirror.lastBusEventId = result && result.eventId ? result.eventId : '';
+    state.alertBusMirror.lastResult = result ? {
+      ok: result.ok === true,
+      eventId: result.eventId || '',
+      deliveredCount: Number(result.deliveredCount || 0),
+      deliveredTo: Array.isArray(result.deliveredTo) ? result.deliveredTo : []
+    } : null;
+    state.alertBusMirror.lastError = result && result.ok ? '' : 'bus_emit_failed';
+    event.communicationBusMirror = state.alertBusMirror.lastResult;
+    persistEventRuntimePayload(event);
+    return result;
+  } catch (err) {
+    state.alertBusMirror.errors += 1;
+    state.alertBusMirror.lastError = err && err.message ? err.message : String(err);
+    console.warn('[alert_system] communication bus mirror failed:', state.alertBusMirror.lastError);
+    return { ok: false, error: state.alertBusMirror.lastError };
+  }
+}
+
 function buildStatus(req = null) {
   const counts = getAlertCounts();
   const ffprobe = buildFfprobeStatus();
@@ -798,6 +988,7 @@ function sanitizeRuntimeConfig(input) {
   const cfg = mergePlainConfig(DEFAULT_CONFIG, input || {});
   cfg.preview = mergePlainConfig(DEFAULT_CONFIG.preview, cfg.preview || {});
   cfg.liveAlert = mergePlainConfig(DEFAULT_CONFIG.liveAlert, cfg.liveAlert || {});
+  cfg.communicationBusMirror = mergePlainConfig(DEFAULT_CONFIG.communicationBusMirror, cfg.communicationBusMirror || {});
   cfg.dashboardSettings = mergePlainConfig(DEFAULT_CONFIG.dashboardSettings, cfg.dashboardSettings || {});
 
   cfg.preview.localBrowserAudio = boolValue(cfg.preview.localBrowserAudio, DEFAULT_CONFIG.preview.localBrowserAudio);
@@ -821,6 +1012,17 @@ function sanitizeRuntimeConfig(input) {
   cfg.liveAlert.ttsAfterSoundDelayMs = clamp(toInt(cfg.liveAlert.ttsAfterSoundDelayMs, DEFAULT_CONFIG.liveAlert.ttsAfterSoundDelayMs), 0, 120000);
   cfg.liveAlert.ttsPrepareTimeoutMs = clamp(toInt(cfg.liveAlert.ttsPrepareTimeoutMs, DEFAULT_CONFIG.liveAlert.ttsPrepareTimeoutMs), 1000, 120000);
   cfg.liveAlert.ttsPlaybackTimeoutMs = clamp(toInt(cfg.liveAlert.ttsPlaybackTimeoutMs, DEFAULT_CONFIG.liveAlert.ttsPlaybackTimeoutMs), 1000, 120000);
+
+  cfg.communicationBusMirror.enabled = boolValue(cfg.communicationBusMirror.enabled, DEFAULT_CONFIG.communicationBusMirror.enabled);
+  cfg.communicationBusMirror.channel = cleanKey(cfg.communicationBusMirror.channel || DEFAULT_CONFIG.communicationBusMirror.channel) || DEFAULT_CONFIG.communicationBusMirror.channel;
+  cfg.communicationBusMirror.action = cleanKey(cfg.communicationBusMirror.action || DEFAULT_CONFIG.communicationBusMirror.action) || DEFAULT_CONFIG.communicationBusMirror.action;
+  cfg.communicationBusMirror.requireAck = boolValue(cfg.communicationBusMirror.requireAck, DEFAULT_CONFIG.communicationBusMirror.requireAck);
+  cfg.communicationBusMirror.replayable = boolValue(cfg.communicationBusMirror.replayable, DEFAULT_CONFIG.communicationBusMirror.replayable);
+  cfg.communicationBusMirror.ttlMs = clamp(toInt(cfg.communicationBusMirror.ttlMs, DEFAULT_CONFIG.communicationBusMirror.ttlMs), 1000, 300000);
+  cfg.communicationBusMirror.targetType = cleanKey(cfg.communicationBusMirror.targetType || DEFAULT_CONFIG.communicationBusMirror.targetType) || DEFAULT_CONFIG.communicationBusMirror.targetType;
+  cfg.communicationBusMirror.targetId = cleanText(cfg.communicationBusMirror.targetId || DEFAULT_CONFIG.communicationBusMirror.targetId) || DEFAULT_CONFIG.communicationBusMirror.targetId;
+  cfg.communicationBusMirror.targetModule = cleanKey(cfg.communicationBusMirror.targetModule || DEFAULT_CONFIG.communicationBusMirror.targetModule);
+  cfg.communicationBusMirror.targetCapability = cleanText(cfg.communicationBusMirror.targetCapability || DEFAULT_CONFIG.communicationBusMirror.targetCapability);
 
   cfg.dashboardSettings.preferSqliteSettings = boolValue(cfg.dashboardSettings.preferSqliteSettings, DEFAULT_CONFIG.dashboardSettings.preferSqliteSettings);
   cfg.dashboardSettings.allowRuntimeEdit = boolValue(cfg.dashboardSettings.allowRuntimeEdit, DEFAULT_CONFIG.dashboardSettings.allowRuntimeEdit);
@@ -2059,6 +2261,7 @@ async function processQueue(broadcastWS) {
 
     const overlayAlert = buildOverlayAlert(event);
     sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
+    emitAlertBusMirror(event, overlayAlert);
     dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
 
     const duration = event.effectiveDurationMs;

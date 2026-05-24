@@ -5,151 +5,45 @@
 ```text
 Communication Core:      v0.3.0
 helper_communication.js: v0.3.0
-communication_bus.js:    v0.7.0
+communication_bus.js:    v0.8.1
 WS Test Client:          v0.1.0
 Master Test Overlay:     v0.1.3
 Debug View:              v0.1.3
+Alert-System Mirror:     integriert in alert_system.js
 ```
 
-## Anzeige-Standard
+## STEP278V2
 
-Sichtbare Modul-/Tool-Ausgaben zeigen nur Versionsnummern. STEP-Angaben bleiben Projekt- und Dokumentationshistorie und werden nicht mehr in Statuskarten, Debug-Views oder Modul-Anzeigen sichtbar ausgegeben.
+Der echte Alert-Bus-Mirror ist jetzt direkt im bestehenden `alert_system.js` integriert. Es gibt kein zusätzliches `alert_bus_mirror.js` und keine dauerhafte Parallelzuständigkeit.
 
-Siehe:
+Der Mirror ist standardmäßig deaktiviert und kann runtime-only per API geschaltet werden:
 
 ```text
-docs/backend/MODULE_VERSIONING_DISPLAY_STANDARD.md
+/api/alerts/bus-mirror/status
+/api/alerts/bus-mirror/enable?confirm=1
+/api/alerts/bus-mirror/disable?confirm=1
 ```
 
-## Status
-
-Der Communication Bus besitzt aktuell:
-
-- Helper Core
-- Status/Test/Ack/Issue/Replay/Watchdog/Reset API
-- kontrollierten Alert-Mirror-Test per `/api/communication/test-alert`
-- optionale Security-/Audit-Hooks
-- WebSocket Client Registration via `hello`
-- WebSocket Heartbeat
-- WebSocket Ack / Bus Ack
-- kontrollierten Replay-Test per `/api/communication/replay`
-- manuellen Watchdog-/Issue-Test per `/api/communication/watchdog`
-- Watchdog-Recovery-Auswertung per `includeRecovered=1`
-- manuellen Browser-Testclient unter `/public/tools/communication_ws_test_client.html`
-- Communication Debug View unter `/public/tools/communication_debug_view.html`
-- Master-Test-Overlay als echten Communication-Bus-Testclient unter `/overlays/_overlay-master-test.html?debug=1`
-
-## Communication Debug View
-
-URL:
+Beim echten Alert-Play bleibt der bisherige Weg unverändert:
 
 ```text
-http://127.0.0.1:8080/public/tools/communication_debug_view.html
+alert_system queue -> sound/tts sync -> buildOverlayAlert -> sendOverlay
 ```
 
-Die Debug View zeigt:
-
-- Bus-Übersicht
-- Clients
-- Events
-- Watchdog-Diagnose
-- Recovered Events
-- historische Issues
-- Aktionslog
-- Button für Alert Mirror Test
-- Auto-Refresh mit AN/AUS-Umschalter
-
-Auto-Refresh:
-
-```text
-Standard: an
-Intervall: 2000 ms
-```
-
-Der Auto-Refresh aktualisiert nur den Bus-Status und schreibt keinen Log-Spam. Während manuelle Aktionen laufen, pausiert der Auto-Refresh kurz, damit Requests nicht ineinanderlaufen.
-
-Die Debug View zeigt sichtbar keine STEP-/Build-Angaben mehr. API-Rohfelder mit Build-/Step-Bezug werden in der Oberfläche ausgeblendet.
-
-## Master-Test-Overlay
-
-URL:
-
-```text
-http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1
-```
-
-Das Master-Test-Overlay kann im reinen Mirror-/Testmodus:
-
-- sich als Bus-Client per `type: "hello"` registrieren
-- regelmäßige `type: "heartbeat"` senden
-- Bus-Testevents und Alert-Mirror-Testevents empfangen
-- empfangene Events mit `type: "ack"` bestätigen
-- Test-/Mirror-Karten anzeigen
-- Debug-Status für Client, Verbindung, Watchdog, Event und ACK anzeigen
-- Reconnect-/Session-Debug anzeigen
-- Replay-/Resync-Testevents anzeigen und bestätigen
-- bei fehlendem `hello_ack` automatisch reconnecten
-- bei stale `heartbeat_ack` automatisch reconnecten
-
-Das Overlay ist weiterhin nicht produktiv angebunden.
-
-## Alert-Mirror-Test
-
-Reiner Transport-/Mirror-Test ohne Produktivmigration:
-
-```text
-http://127.0.0.1:8080/api/communication/test-alert?user=ForrestCGN&type=bits&amount=100&message=Alert%20Mirror%20Test
-```
-
-Die Route erzeugt ein Bus-Event:
+Direkt danach wird optional zusätzlich ein Bus-Event gesendet:
 
 ```text
 visual.alert.play
+source: alert_system
+mirror: true
+productionTarget: false
 ```
 
-Sie schreibt nichts in Alert-DB, Alert-Queue, Sound- oder TTS-Systeme.
+## Bewusst nicht geändert
 
-## Replay-/Resync-Test
-
-Replay wird bewusst nicht automatisch bei jedem `hello` ausgeführt.
-
-```text
-http://127.0.0.1:8080/api/communication/replay?clientId=overlay_master_test&includeAckRequired=1
-```
-
-## Watchdog-/Issue-Test
-
-Manuelle Watchdog-Diagnose:
-
-```text
-http://127.0.0.1:8080/api/communication/watchdog
-```
-
-Mit `track=1` werden erkannte Diagnosepunkte über `trackIssue()` in `issues[]` gespeichert:
-
-```text
-http://127.0.0.1:8080/api/communication/watchdog?track=1
-```
-
-Recovery-Test nach Replay + ACK:
-
-```text
-http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1
-```
-
-Optional kann Recovery explizit historisch getrackt werden:
-
-```text
-http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1&trackRecovered=1
-```
-
-## Bewusst nicht umgesetzt
-
-- kein automatischer Backend-Watchdog-Timer
-- kein automatisches Löschen historischer Issues
-- kein automatisches Replay bei `hello`
-- keine Alert-/Sound-/TTS-/VIP-Migration
+- kein neues Modul
+- keine Alert-DB-Migration
 - kein Ersatz von `broadcastWS`
-- keine Dashboard-Seite mit Auth/Rollen
-- keine Datenbankmigration
+- keine Änderung am echten Alert-Overlay
+- keine Änderung an Sound/TTS/VIP
 - keine OBS-Änderung
