@@ -7,7 +7,7 @@ Communication Core:      v0.3.0
 helper_communication.js: v0.3.0 / STEP278F
 communication_bus.js:    v0.3.0 / STEP278H
 WS Test Client:          v0.1.0 / STEP278K
-Master Test Overlay:     v0.1.0 / STEP278L
+Master Test Overlay:     v0.1.1 / STEP278M
 ```
 
 ## Status
@@ -55,7 +55,9 @@ Das Master-Test-Overlay kann im reinen Mirror-/Testmodus:
 - Bus-Testevents aus `/api/communication/test` empfangen
 - empfangene Events mit `type: "ack"` bestätigen
 - Test-/Mirror-Karten anzeigen
-- Debug-Status für Client, Event und ACK anzeigen
+- Debug-Status für Client, Verbindung, Reconnect, Event und ACK anzeigen
+- Session-/Reconnect-Informationen bei Reloads sichtbar machen
+- Heartbeat-Intervall bei Reconnect sauber stoppen und neu starten
 
 Das Overlay ist weiterhin nicht produktiv angebunden.
 

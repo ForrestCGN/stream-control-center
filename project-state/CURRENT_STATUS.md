@@ -1,5 +1,56 @@
 # CURRENT_STATUS
 
+## STEP278M
+
+Master-Test-Overlay für Reconnect-/OBS-Reload-Tests gehärtet.
+
+Geändert:
+
+- `htdocs/overlays/_overlay-master-test.html`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+
+Neu:
+
+- `project-state/STEP278M_RECONNECT_OBS_RELOAD_TEST.md`
+
+Overlay-Version:
+
+```text
+overlay_master_test v0.1.1 / STEP278M
+```
+
+URL:
+
+```text
+http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1
+```
+
+Funktionen:
+
+- Reconnect-/Session-Debug anzeigen
+- neue Session-ID pro WebSocket-Verbindung setzen
+- `connectCount` und `disconnectCount` anzeigen
+- letzte Verbindung und letzte Trennung anzeigen
+- letzte `hello_ack` und `heartbeat_ack` anzeigen
+- Heartbeat beim Reconnect sauber stoppen und neu starten
+- alte Testkarten bei WebSocket-Close/Open ausblenden
+- ACK-Details mit Session-/Reconnect-Informationen senden
+
+Wichtig:
+
+- Keine Produktivmigration.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Kein Ersatz von `broadcastWS`.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+- Kein `server.js`-Umbau.
+
+
 ## STEP278L
 
 Master-Test-Overlay als Communication-Bus-Testclient erweitert.

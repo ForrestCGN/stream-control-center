@@ -1,13 +1,14 @@
 # CHANGELOG
 
-## STEP278L
+## STEP278M
 
-- Updated `htdocs/overlays/_overlay-master-test.html` to act as a real Communication Bus test client.
-- Overlay now sends Bus `hello`, `heartbeat` and `ack` messages using the current Communication Bus protocol.
-- Overlay can receive and mirror Bus test events from `/api/communication/test`.
-- Overlay debug panel now shows client, event and ACK state.
-- Updated Communication Bus documentation and project-state files.
-- No server, dashboard, database or production module migration changes.
+- Hardened `htdocs/overlays/_overlay-master-test.html` for browser/OBS reload and WebSocket reconnect tests.
+- Added reconnect/session debug output to the overlay.
+- Added per-connection session IDs, connect/disconnect counters and hello/heartbeat ACK timestamps.
+- Heartbeat timers are now explicitly stopped on disconnect and restarted after reconnect.
+- Existing test cards are hidden on WebSocket close/open to avoid stale visual state.
+- No backend, dashboard, database or production module migration changes.
+
 
 ## STEP278K
 
