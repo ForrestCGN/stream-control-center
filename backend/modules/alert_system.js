@@ -30,7 +30,7 @@ try {
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
-const MODULE_STEP = 360;
+const MODULE_STEP = 365;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -4817,6 +4817,66 @@ function clearQueue(reason) {
 }
 
 
+function buildReconnectOverlayAlert(event) {
+  const overlayAlert = buildOverlayAlert(event);
+  const totalDurationMs = Math.max(1000, toInt(event && event.effectiveDurationMs ? event.effectiveDurationMs : overlayAlert.durationMs, state.config.defaultDurationMs || 7000));
+  const startedAt = event && event.started_at ? event.started_at : (overlayAlert.startedAt || '');
+  const startedAtMs = startedAt ? Date.parse(startedAt) : 0;
+  const nowMs = Date.now();
+
+  if (!startedAtMs || Number.isNaN(startedAtMs)) {
+    overlayAlert.originalDurationMs = totalDurationMs;
+    overlayAlert.remainingMs = totalDurationMs;
+    overlayAlert.elapsedMs = 0;
+    overlayAlert.reconnectReplay = true;
+    overlayAlert.replayTimingSource = 'missing_started_at_full_duration_fallback';
+    return {
+      ok: true,
+      alert: overlayAlert,
+      totalDurationMs,
+      elapsedMs: 0,
+      remainingMs: totalDurationMs,
+      startedAt: '',
+      expectedEndsAt: ''
+    };
+  }
+
+  const elapsedMsValue = Math.max(0, nowMs - startedAtMs);
+  const remainingMsValue = Math.max(0, totalDurationMs - elapsedMsValue);
+  const expectedEndsAt = new Date(startedAtMs + totalDurationMs).toISOString();
+
+  if (remainingMsValue <= 0) {
+    return {
+      ok: false,
+      reason: 'alert_duration_already_elapsed',
+      totalDurationMs,
+      elapsedMs: elapsedMsValue,
+      remainingMs: 0,
+      startedAt,
+      expectedEndsAt
+    };
+  }
+
+  overlayAlert.originalDurationMs = totalDurationMs;
+  overlayAlert.elapsedMs = elapsedMsValue;
+  overlayAlert.remainingMs = remainingMsValue;
+  overlayAlert.durationMs = Math.max(250, remainingMsValue);
+  overlayAlert.startedAt = startedAt;
+  overlayAlert.expectedEndsAt = expectedEndsAt;
+  overlayAlert.reconnectReplay = true;
+  overlayAlert.replayTimingSource = 'remaining_duration_from_started_at';
+
+  return {
+    ok: true,
+    alert: overlayAlert,
+    totalDurationMs,
+    elapsedMs: elapsedMsValue,
+    remainingMs: remainingMsValue,
+    startedAt,
+    expectedEndsAt
+  };
+}
+
 function resendCurrentAlertToOverlayClient(ws, reason = 'overlay_reconnect_hello') {
   if (!ws || !state.current || state.current.status !== 'playing') {
     return { ok: false, sent: false, reason: 'no_current_playing_alert' };
@@ -4824,7 +4884,29 @@ function resendCurrentAlertToOverlayClient(ws, reason = 'overlay_reconnect_hello
 
   const current = state.current;
   const now = nowIso();
-  const overlayAlert = buildOverlayAlert(current);
+  const replayBuild = buildReconnectOverlayAlert(current);
+
+  if (!replayBuild.ok) {
+    state.alertOverlayRecovery.attempts += 1;
+    state.alertOverlayRecovery.lastAt = now;
+    state.alertOverlayRecovery.lastMode = 'reconnect_resend_skipped';
+    state.alertOverlayRecovery.lastReason = replayBuild.reason || 'reconnect_replay_not_sent';
+    state.alertOverlayRecovery.lastOverlayClientCount = state.overlayClients.size;
+    state.alertOverlayRecovery.lastResult = {
+      ok: false,
+      sent: false,
+      eventUid: current.eventUid,
+      reason: replayBuild.reason || 'reconnect_replay_not_sent',
+      totalDurationMs: replayBuild.totalDurationMs || 0,
+      elapsedMs: replayBuild.elapsedMs || 0,
+      remainingMs: replayBuild.remainingMs || 0,
+      startedAt: replayBuild.startedAt || '',
+      expectedEndsAt: replayBuild.expectedEndsAt || ''
+    };
+    return state.alertOverlayRecovery.lastResult;
+  }
+
+  const overlayAlert = replayBuild.alert;
   const payload = {
     op: state.config.wsOp || 'alert_system',
     event: 'play',
@@ -4832,7 +4914,14 @@ function resendCurrentAlertToOverlayClient(ws, reason = 'overlay_reconnect_hello
     recovery: true,
     replay: true,
     reason: cleanText(reason || 'overlay_reconnect_hello'),
-    recoveredAt: now
+    recoveredAt: now,
+    replayTiming: {
+      totalDurationMs: replayBuild.totalDurationMs || 0,
+      elapsedMs: replayBuild.elapsedMs || 0,
+      remainingMs: replayBuild.remainingMs || 0,
+      startedAt: replayBuild.startedAt || '',
+      expectedEndsAt: replayBuild.expectedEndsAt || ''
+    }
   };
 
   try {
@@ -4853,6 +4942,7 @@ function resendCurrentAlertToOverlayClient(ws, reason = 'overlay_reconnect_hello
     record.recoveryRequestedAt = now;
     record.recoveryMode = 'reconnect_resend';
     record.recoveryReason = payload.reason;
+    record.recoveryRemainingMs = replayBuild.remainingMs || 0;
   }
 
   const recovery = current.alertOverlayReconnectRecovery && typeof current.alertOverlayReconnectRecovery === 'object'
@@ -4863,11 +4953,21 @@ function resendCurrentAlertToOverlayClient(ws, reason = 'overlay_reconnect_hello
   recovery.lastAt = now;
   recovery.lastReason = payload.reason;
   recovery.lastOverlayClientCount = state.overlayClients.size;
+  recovery.lastTiming = {
+    totalDurationMs: replayBuild.totalDurationMs || 0,
+    elapsedMs: replayBuild.elapsedMs || 0,
+    remainingMs: replayBuild.remainingMs || 0,
+    startedAt: replayBuild.startedAt || '',
+    expectedEndsAt: replayBuild.expectedEndsAt || ''
+  };
   recovery.recent = Array.isArray(recovery.recent) ? recovery.recent : [];
   recovery.recent.unshift({
     at: now,
     reason: payload.reason,
-    overlayClientCount: state.overlayClients.size
+    overlayClientCount: state.overlayClients.size,
+    totalDurationMs: replayBuild.totalDurationMs || 0,
+    elapsedMs: replayBuild.elapsedMs || 0,
+    remainingMs: replayBuild.remainingMs || 0
   });
   recovery.recent = recovery.recent.slice(0, 10);
 
@@ -4879,7 +4979,7 @@ function resendCurrentAlertToOverlayClient(ws, reason = 'overlay_reconnect_hello
 
   state.alertOverlayRecovery.attempts += 1;
   state.alertOverlayRecovery.lastAt = now;
-  state.alertOverlayRecovery.lastMode = 'reconnect_resend';
+  state.alertOverlayRecovery.lastMode = 'reconnect_resend_remaining_duration';
   state.alertOverlayRecovery.lastReason = payload.reason;
   state.alertOverlayRecovery.lastOverlayClientCount = state.overlayClients.size;
   state.alertOverlayRecovery.lastResult = {
@@ -4888,6 +4988,11 @@ function resendCurrentAlertToOverlayClient(ws, reason = 'overlay_reconnect_hello
     eventUid: current.eventUid,
     alertId: overlayAlert.id || current.eventUid,
     recoveredAt: now,
+    totalDurationMs: replayBuild.totalDurationMs || 0,
+    elapsedMs: replayBuild.elapsedMs || 0,
+    remainingMs: replayBuild.remainingMs || 0,
+    startedAt: replayBuild.startedAt || '',
+    expectedEndsAt: replayBuild.expectedEndsAt || '',
     soundChanged: false,
     ttsChanged: false,
     queueChanged: false
