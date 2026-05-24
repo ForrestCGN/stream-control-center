@@ -1,5 +1,48 @@
 # CURRENT_STATUS
 
+## STEP278I
+
+Module Version Metadata und verbindliche Versionierungsregel ergänzt.
+
+Geändert:
+
+- `backend/modules/communication_bus.js`
+- `backend/modules/audit_log.js`
+- `backend/modules/helpers/helper_communication.js`
+- `backend/modules/helpers/helper_security_context.js`
+- `backend/modules/helpers/helper_audit_log.js`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/backend/AUDIT_LOG_HELPER.md`
+- `docs/backend/SECURITY_CONTEXT_HELPER.md`
+- `project-state/STEP278I_MODULE_VERSION_METADATA.md`
+
+Neu:
+
+- `docs/backend/MODULE_VERSIONING_STANDARD.md`
+
+Wichtig:
+
+- Alle zukünftigen Module sollen `MODULE_META` besitzen.
+- Status-Ausgaben sollen `moduleVersion` und `moduleBuild` enthalten.
+- STEP bleibt zusätzlich als Projekt-Historie erhalten.
+- Keine Funktionsänderung.
+- Keine Produktivmigration.
+
+Aktuelle Versionen:
+
+```text
+Communication Core:          v0.3.0
+helper_communication.js:     v0.3.0 / STEP278F
+communication_bus.js:        v0.3.0 / STEP278H
+
+Security Context Core:       v0.1.0
+helper_security_context.js:  v0.1.0 / STEP278C
+
+Audit Core:                  v0.2.0
+helper_audit_log.js:         v0.1.0 / STEP278D
+audit_log.js:                v0.2.0 / STEP278E
+```
+
 ## STEP278H
 
 Communication Bus WebSocket Client Registration vorbereitet.
@@ -95,69 +138,3 @@ Wichtig:
 - Keine SQLite-/MariaDB-Migration.
 - Logs bleiben standardmäßig im Memory Buffer.
 - Helper nutzt `helper_security_context.js` für Kontext und Maskierung.
-
-## STEP278D
-
-Audit Log Helper Core vorbereitet.
-
-Neu:
-
-- `backend/modules/helpers/helper_audit_log.js`
-- `config/audit_log.json`
-- `docs/backend/AUDIT_LOG_HELPER.md`
-- `project-state/STEP278D_AUDIT_LOG_HELPER.md`
-
-Wichtig:
-
-- Noch keine produktive Modul-Integration.
-- Keine API-Route.
-- Keine Dashboard-Seite.
-- Keine SQLite-/MariaDB-Migration.
-- Helper nutzt `helper_security_context.js` für Kontext und Maskierung.
-
-## STEP278C
-
-Security Context Helper Core vorbereitet.
-
-Neu:
-
-- `backend/modules/helpers/helper_security_context.js`
-- `config/security_context.json`
-- `docs/backend/SECURITY_CONTEXT_HELPER.md`
-- `project-state/STEP278C_SECURITY_CONTEXT_HELPER.md`
-
-Wichtig:
-
-- Noch keine produktive Zugriffssperre.
-- Keine bestehenden API-Routen geändert.
-- Keine Dashboard-Userverwaltung gebaut.
-- Kein Audit-Logging geschrieben.
-- STEP278C bereitet STEP278D Audit Logging vor.
-
-## STEP278B
-
-Communication Bus Helper Core vorbereitet.
-
-Neu:
-
-- `backend/modules/helpers/helper_communication.js`
-- `config/communication_bus.json`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-- `project-state/STEP278B_COMMUNICATION_HELPER_CORE.md`
-
-Wichtig:
-
-- Noch keine Migration bestehender Module.
-- `broadcastWS` bleibt unverändert.
-- Sound-/Alert-/TTS-/VIP-Systeme werden nicht verändert.
-- Master-Overlay bleibt Test-/Vorbereitungsstand.
-
-## STEP277A_FIX10
-
-Clip-Shoutout hat jetzt eine reine Clip-Listen-Route:
-
-```text
-GET /api/clip-shoutout/clips?target=<login>
-```
-
-Die Route dient zur Kontrolle der gefundenen Clips und startet keinen Shoutout.

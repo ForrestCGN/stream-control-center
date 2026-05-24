@@ -18,6 +18,15 @@
 
 const core = require('./helper_core');
 
+const MODULE_META = {
+  name: 'helper_communication',
+  version: '0.3.0',
+  build: 'STEP278F',
+  coreName: 'communication_core',
+  coreVersion: '0.3.0',
+  description: 'Communication Bus helper core'
+};
+
 const DEFAULT_CONFIG = {
   enabled: true,
   busName: 'cgn',
@@ -727,6 +736,7 @@ function createCommunicationBus(options = {}) {
     pruneIssues();
     return {
       ok: true,
+      moduleMeta: { ...MODULE_META },
       bus: config.busName,
       version: config.version,
       enabled: config.enabled !== false,
@@ -793,6 +803,7 @@ function createCommunicationBus(options = {}) {
 }
 
 module.exports = {
+  MODULE_META,
   DEFAULT_CONFIG,
   createCommunicationBus,
   createEventId,

@@ -13,6 +13,15 @@ const core = require('./helpers/helper_core');
 const { createAuditLogger } = require('./helpers/helper_audit_log');
 const security = require('./helpers/helper_security_context');
 
+const MODULE_META = {
+  name: 'audit_log',
+  version: '0.2.0',
+  build: 'STEP278E',
+  coreName: 'audit_core',
+  coreVersion: '0.2.0',
+  description: 'Audit Log API status, recent, test and memory endpoints'
+};
+
 const DEFAULT_CONFIG = {
   enabled: true,
   testEndpointEnabled: true,
@@ -94,8 +103,12 @@ function init({ app }) {
     const status = logger.getStatus();
     res.json({
       ok: true,
-      module: 'audit_log',
-      step: 'STEP278E',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
+      coreName: MODULE_META.coreName,
+      coreVersion: MODULE_META.coreVersion,
+      step: MODULE_META.build,
       status
     });
   });
@@ -108,7 +121,9 @@ function init({ app }) {
 
     res.json({
       ok: true,
-      module: 'audit_log',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
       limit,
       filters,
       entries: logger.getRecent(limit, filters)
@@ -146,7 +161,9 @@ function init({ app }) {
 
     res.json({
       ok: logged.ok === true,
-      module: 'audit_log',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
       test: true,
       entry: logged.entry,
       file: logged.file
@@ -178,7 +195,9 @@ function init({ app }) {
 
     res.json({
       ok: true,
-      module: 'audit_log',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
       cleared,
       afterClearLog: afterClearLog.entry
     });
@@ -217,7 +236,9 @@ function init({ app }) {
 
     res.json({
       ok: true,
-      module: 'audit_log',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
       cleared,
       afterClearLog: afterClearLog.entry
     });
@@ -226,4 +247,4 @@ function init({ app }) {
   console.log('[audit_log] STEP278E API routes registered');
 }
 
-module.exports = { init };
+module.exports = { MODULE_META, init };

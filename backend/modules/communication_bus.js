@@ -14,6 +14,15 @@ const helperConfig = require('./helpers/helper_config');
 const { createCommunicationBus } = require('./helpers/helper_communication');
 const security = require('./helpers/helper_security_context');
 
+const MODULE_META = {
+  name: 'communication_bus',
+  version: '0.3.0',
+  build: 'STEP278H',
+  coreName: 'communication_core',
+  coreVersion: '0.3.0',
+  description: 'Communication Bus API and WebSocket client registration'
+};
+
 const DEFAULT_CONFIG = {
   enabled: true,
   testEndpointEnabled: true,
@@ -243,8 +252,12 @@ function init({ app }) {
     const currentBus = getBus();
     res.json({
       ok: true,
-      module: 'communication_bus',
-      step: 'STEP278H',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
+      coreName: MODULE_META.coreName,
+      coreVersion: MODULE_META.coreVersion,
+      step: MODULE_META.build,
       status: currentBus.getStatus()
     });
   });
@@ -299,7 +312,9 @@ function init({ app }) {
 
     res.json({
       ok: result.ok === true,
-      module: 'communication_bus',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
       test: true,
       result
     });
@@ -330,7 +345,9 @@ function init({ app }) {
 
     res.json({
       ok: result.ok === true,
-      module: 'communication_bus',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
       ack: true,
       result
     });
@@ -358,7 +375,9 @@ function init({ app }) {
 
     res.json({
       ok: result.ok === true,
-      module: 'communication_bus',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
       issue: true,
       result
     });
@@ -386,7 +405,9 @@ function init({ app }) {
 
     res.json({
       ok: true,
-      module: 'communication_bus',
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
       reset: true,
       result
     });
@@ -396,6 +417,7 @@ function init({ app }) {
 }
 
 module.exports = {
+  MODULE_META,
   init,
   handleWsMessage
 };

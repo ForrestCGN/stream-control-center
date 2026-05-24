@@ -1,42 +1,44 @@
-# STEP278E — Audit API Status
+# Audit Log Helper
 
-Status: API module prepared  
-Production module integration: none  
-Database migration: none
-
-## Ziel
-
-`backend/modules/audit_log.js` macht den vorbereiteten Audit Logger über kleine lokale API-Routen testbar.
-
-## Routen
+## Version
 
 ```text
-GET  /api/audit/status
-GET  /api/audit/recent?limit=50
-GET  /api/audit/test?message=Hallo
-POST /api/audit/clear-memory
-GET  /api/audit/clear-memory?confirm=1
+Audit Core:          v0.2.0
+helper_audit_log.js: v0.1.0 / STEP278D
+audit_log.js:        v0.2.0 / STEP278E
 ```
 
-## Filter für Recent
+## Status
 
-```text
-level
-category
-result
-action
-actorType
-actorId
-sourceKind
-module
-search
-since
+Audit Log besitzt aktuell:
+
+- Helper Core
+- Memory Buffer
+- Recent Filter
+- Status/Test/Clear-Memory API
+- Security Context Snapshots
+- sensible Maskierung
+- optionale File-Sink-Vorbereitung
+
+## Modul-Metadaten
+
+`audit_log.js` gibt in Status-Ausgaben aus:
+
+```json
+{
+  "module": "audit_log",
+  "moduleVersion": "0.2.0",
+  "moduleBuild": "STEP278E",
+  "coreName": "audit_core",
+  "coreVersion": "0.2.0"
+}
 ```
 
-## Wichtig
+`helper_audit_log.js` exportiert `MODULE_META`.
 
-- Es werden noch keine bestehenden Module automatisch geloggt.
-- Es gibt keine Datenbankmigration.
-- Logs bleiben standardmäßig im Memory Buffer.
-- Secrets werden über `helper_security_context.js` maskiert.
-- File/DB-Sinks bleiben deaktiviert, solange `config/audit_log.json` das so vorgibt.
+## Bewusst nicht umgesetzt
+
+- keine produktive Pflichtintegration
+- keine Dashboard-Seite
+- keine SQLite-/MariaDB-Migration
+- File-Logging bleibt standardmäßig deaktiviert

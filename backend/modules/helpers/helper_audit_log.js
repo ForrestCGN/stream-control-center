@@ -16,6 +16,15 @@ const fs = require('fs');
 const core = require('./helper_core');
 const security = require('./helper_security_context');
 
+const MODULE_META = {
+  name: 'helper_audit_log',
+  version: '0.1.0',
+  build: 'STEP278D',
+  coreName: 'audit_core',
+  coreVersion: '0.1.0',
+  description: 'Audit Log helper core'
+};
+
 const DEFAULT_CONFIG = {
   enabled: true,
   retentionDays: 30,
@@ -319,6 +328,7 @@ function createAuditLogger(options = {}) {
     enforceRetention();
     return {
       ok: true,
+      moduleMeta: { ...MODULE_META },
       enabled: config.enabled !== false,
       createdAt: stats.createdAt,
       now: nowIso(),
@@ -370,6 +380,7 @@ function createAuditLogger(options = {}) {
 }
 
 module.exports = {
+  MODULE_META,
   DEFAULT_CONFIG,
   createAuditLogger,
   createAuditId

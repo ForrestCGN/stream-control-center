@@ -1,12 +1,39 @@
-# STEP278H — Communication Bus WebSocket Client Registration
+# Communication Bus Helper
 
-Status: WS registration prepared  
-Production migration: none  
-Database migration: none
+## Version
 
-## Ziel
+```text
+Communication Core:      v0.3.0
+helper_communication.js: v0.3.0 / STEP278F
+communication_bus.js:    v0.3.0 / STEP278H
+```
 
-`backend/modules/communication_bus.js` kann jetzt WebSocket-Clients per `hello`, `heartbeat` und `ack` am Communication Bus registrieren.
+## Status
+
+Der Communication Bus besitzt aktuell:
+
+- Helper Core
+- Status/Test/Ack/Issue/Reset API
+- optionale Security-/Audit-Hooks
+- WebSocket Client Registration via `hello`
+- WebSocket Heartbeat
+- WebSocket Ack / Bus Ack
+
+## Modul-Metadaten
+
+`communication_bus.js` gibt in Status-Ausgaben aus:
+
+```json
+{
+  "module": "communication_bus",
+  "moduleVersion": "0.3.0",
+  "moduleBuild": "STEP278H",
+  "coreName": "communication_core",
+  "coreVersion": "0.3.0"
+}
+```
+
+`helper_communication.js` exportiert `MODULE_META`.
 
 ## WebSocket Messages
 
@@ -20,17 +47,6 @@ Database migration: none
   "module": "master_overlay",
   "mode": "standalone",
   "capabilities": ["test.ping"]
-}
-```
-
-Antwort:
-
-```json
-{
-  "type": "hello_ack",
-  "ok": true,
-  "bus": "cgn",
-  "clientId": "overlay_master_test"
 }
 ```
 
@@ -54,19 +70,10 @@ Antwort:
 }
 ```
 
-## Server-Hook
-
-`backend/server.js` wurde nur minimal erweitert:
-
-- Module mit `handleWsMessage()` können WS-Messages optional behandeln.
-- Bestehendes `broadcastWS()` bleibt unverändert.
-- Unbekannte Messages werden nicht blockiert.
-
-## Bewusst nicht geändert
+## Bewusst nicht umgesetzt
 
 - keine Alert-/Sound-/TTS-/VIP-Migration
 - kein Ersatz von `broadcastWS`
 - keine Dashboard-Seite
 - keine Datenbankmigration
 - keine OBS-Änderung
-- keine bestehende Funktionalität entfernt

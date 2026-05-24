@@ -11,6 +11,15 @@
 const net = require('net');
 const core = require('./helper_core');
 
+const MODULE_META = {
+  name: 'helper_security_context',
+  version: '0.1.0',
+  build: 'STEP278C',
+  coreName: 'security_context_core',
+  coreVersion: '0.1.0',
+  description: 'Security context, actor/source/trust and masking helper'
+};
+
 const DEFAULT_CONFIG = {
   enabled: true,
   defaultTrustLevel: 'unknown',
@@ -502,6 +511,7 @@ function toAuditSnapshot(context, payload = undefined, options = {}) {
 }
 
 module.exports = {
+  MODULE_META,
   DEFAULT_CONFIG,
   createSecurityContext,
   contextFromExpressRequest,
