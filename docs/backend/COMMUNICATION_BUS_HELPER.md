@@ -1,81 +1,57 @@
-# STEP278B — Communication Bus Helper
+# STEP278F — Communication Bus Security/Audit Hooks
 
-Status: Core helper prepared  
-Live migration: none  
-Production modules changed: none
+Status: Helper extension prepared  
+Production migration: none  
+Default audit logging: disabled
 
 ## Ziel
 
-`backend/modules/helpers/helper_communication.js` stellt den ersten zentralen Communication-Bus-Core bereit.
+`backend/modules/helpers/helper_communication.js` kann jetzt optional mit Security Context und Audit Logger arbeiten.
 
-Der Helper ist bewusst noch nicht in Alert-, Sound-, TTS-, VIP- oder Dashboard-Module eingebunden.
+Der Bus bleibt weiterhin ohne produktive Modul-Migration vorbereitet.
 
-## Enthaltene Funktionen
+## Neue optionale Hooks
 
-- `createCommunicationBus(options)`
-- `registerClient(ws, clientInfo)`
-- `unregisterClient(clientId, reason)`
-- `heartbeat(clientId, payload)`
-- `updateClientStatuses(context)`
-- `emit(message)`
-- `ack(eventId, clientId, status, details)`
-- `replayForClient(clientId, options)`
-- `trackIssue(key, message, options)`
-- `getStatus()`
-- `reset(options)`
-
-## Client Registry
-
-Clients können sein:
-
-```text
-overlay
-overlay_host
-overlay_child
-dashboard
-module
-streamerbot
-system
+```js
+createCommunicationBus({
+  config,
+  security,
+  auditLogger
+})
 ```
 
-## Message-Struktur
+## Verhalten
+
+Wenn `security` oder `auditLogger` nicht übergeben werden, läuft der Bus wie bisher weiter.
+
+Wenn ein Audit Logger übergeben wird und `config.audit.enabled === true` ist, können optional geloggt werden:
+
+- `bus.emit`
+- `bus.ack`
+- `bus.issue`
+
+## Default-Config
+
+In `config/communication_bus.json` bleibt Audit bewusst deaktiviert:
 
 ```json
 {
-  "bus": "cgn",
-  "version": 1,
-  "id": "evt_...",
-  "type": "command",
-  "channel": "visual.alert",
-  "action": "play",
-  "source": { "type": "module", "id": "alert_system" },
-  "target": { "type": "overlay", "id": "alerts_v2" },
-  "payload": {},
-  "meta": {
-    "requireAck": true,
-    "replayable": true,
-    "ttlMs": 15000
+  "security": { "enabled": true },
+  "audit": {
+    "enabled": false,
+    "logEmit": false,
+    "logAck": false,
+    "logIssues": true,
+    "logPayload": false
   }
 }
 ```
 
-## Bewusst nicht enthalten
+## Bewusst nicht geändert
 
-- keine Änderung an `backend/server.js`
-- keine Migration von `alert_system.js`
-- keine Migration von `sound_system.js`
+- kein `server.js`-Umbau
+- keine Migration von Alert/Sound/TTS/VIP
 - keine Dashboard-Seite
-- keine SQLite-Migration
-- kein automatisches Live-Monitoring
+- keine Datenbankmigration
 - kein Ersatz von `broadcastWS`
-
-## Nächster Schritt
-
-STEP278C kann darauf aufbauen:
-
-```text
-helper_security_context.js
-helper_audit.js
-SoundSystem Bus Adapter
-Alert Overlay Migration
-```
+- keine produktive Audit-Pflicht

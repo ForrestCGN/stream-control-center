@@ -1,5 +1,13 @@
 # NEXT_STEPS
 
+## Nach STEP278F
+
+1. Backend nach Deploy starten und prüfen, dass bestehende Module unverändert laden.
+2. Optionalen Bus-Smoke-Test später über eigenes Testmodul/API planen.
+3. Danach STEP278G planen: Communication Bus Status/API oder Dashboard-Vorbereitung.
+4. Erst später Alert-/Sound-Migration planen.
+5. Audit für Bus bleibt deaktiviert, bis bewusst aktiviert/getestet.
+
 ## Nach STEP278E
 
 1. Backend nach Deploy starten und prüfen:

@@ -1,9 +1,9 @@
 'use strict';
 
 /**
- * STEP278B - Central Communication Bus helper core.
+ * STEP278F - Central Communication Bus helper core.
  *
- * This helper is intentionally not wired into the production modules yet.
+ * This helper is intentionally not wired into production modules yet.
  * It provides a reusable bus foundation for later steps:
  * - client registry
  * - heartbeat tracking
@@ -11,6 +11,7 @@
  * - ack tracking
  * - replayable event memory
  * - repeated issue throttling
+ * - optional security context / audit logger hooks
  *
  * Existing broadcastWS flows are not removed by this helper.
  */
@@ -36,6 +37,16 @@ const DEFAULT_CONFIG = {
     testMode: false,
     watchWindowMs: 30000,
     obsRequiredForOverlayErrors: true
+  },
+  security: {
+    enabled: true
+  },
+  audit: {
+    enabled: false,
+    logEmit: false,
+    logAck: false,
+    logIssues: true,
+    logPayload: false
   }
 };
 
@@ -208,6 +219,8 @@ function publicEvent(event) {
 
 function createCommunicationBus(options = {}) {
   const config = deepMerge(DEFAULT_CONFIG, options.config || {});
+  const security = options.security || null;
+  const auditLogger = options.auditLogger || options.audit || null;
   const clients = new Map();
   const events = new Map();
   const issues = new Map();
@@ -218,8 +231,65 @@ function createCommunicationBus(options = {}) {
     acks: 0,
     replays: 0,
     dropped: 0,
-    issues: 0
+    issues: 0,
+    auditWrites: 0,
+    auditSkipped: 0,
+    auditErrors: 0
   };
+
+  function isSecurityEnabled() {
+    return config.security && config.security.enabled !== false && !!security;
+  }
+
+  function isAuditEnabled(kind) {
+    if (!auditLogger || typeof auditLogger.log !== 'function') return false;
+    const audit = config.audit || {};
+    if (audit.enabled !== true) return false;
+    if (kind === 'emit') return audit.logEmit === true;
+    if (kind === 'ack') return audit.logAck === true;
+    if (kind === 'issue') return audit.logIssues !== false;
+    return true;
+  }
+
+  function buildContextFromMessage(message) {
+    if (!isSecurityEnabled()) return null;
+    if (typeof security.contextFromBusMessage === 'function') {
+      try {
+        return security.contextFromBusMessage(message, { mayLogPayload: config.audit && config.audit.logPayload === true });
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  function buildContextFromClient(clientInfo) {
+    if (!isSecurityEnabled()) return null;
+    if (typeof security.contextFromClientInfo === 'function') {
+      try {
+        return security.contextFromClientInfo(clientInfo, { mayLogPayload: false });
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  function audit(kind, entry = {}) {
+    if (!isAuditEnabled(kind)) {
+      stats.auditSkipped += 1;
+      return { ok: false, reason: 'audit_disabled' };
+    }
+
+    try {
+      const result = auditLogger.log(entry);
+      if (result && result.ok === true) stats.auditWrites += 1;
+      return result || { ok: false, reason: 'audit_no_result' };
+    } catch (err) {
+      stats.auditErrors += 1;
+      return { ok: false, reason: 'audit_error', error: err && err.message ? err.message : String(err) };
+    }
+  }
 
   function normalizeMessage(message = {}) {
     const raw = isPlainObject(message) ? message : {};
@@ -418,6 +488,15 @@ function createCommunicationBus(options = {}) {
   function emit(message = {}) {
     if (config.enabled === false) {
       stats.dropped += 1;
+      audit('emit', {
+        context: buildContextFromMessage(message),
+        level: 'warn',
+        category: 'communication',
+        action: 'bus.emit',
+        result: 'skipped',
+        message: 'Communication bus emit skipped because bus is disabled',
+        details: { reason: 'bus_disabled' }
+      });
       return { ok: false, reason: 'bus_disabled' };
     }
 
@@ -442,19 +521,53 @@ function createCommunicationBus(options = {}) {
       pruneEvents();
     }
 
-    return {
+    const result = {
       ok: true,
       eventId: event.id,
       deliveredTo: delivered,
       deliveredCount: delivered.length,
       event: publicEvent(event)
     };
+
+    audit('emit', {
+      context: buildContextFromMessage(event),
+      level: 'info',
+      category: 'communication',
+      action: 'bus.emit',
+      result: 'ok',
+      message: 'Communication event emitted',
+      details: {
+        eventId: event.id,
+        type: event.type,
+        channel: event.channel,
+        action: event.action,
+        target: event.target,
+        deliveredCount: delivered.length,
+        requireAck: event.meta.requireAck === true,
+        replayable: event.meta.replayable === true
+      },
+      payload: config.audit && config.audit.logPayload === true ? event.payload : undefined,
+      mayLogPayload: config.audit && config.audit.logPayload === true
+    });
+
+    return result;
   }
 
   function ack(eventId, clientId, status = 'received', details = {}) {
     const id = cleanString(eventId);
     const client = cleanString(clientId);
-    if (!id || !client) return { ok: false, reason: 'event_or_client_missing' };
+    if (!id || !client) {
+      const failed = { ok: false, reason: 'event_or_client_missing' };
+      audit('ack', {
+        level: 'warn',
+        category: 'communication',
+        action: 'bus.ack',
+        result: 'failed',
+        message: 'Communication event ack failed',
+        details: { eventId: id, clientId: client, reason: failed.reason }
+      });
+      return failed;
+    }
 
     let event = events.get(id);
     if (!event) {
@@ -493,7 +606,23 @@ function createCommunicationBus(options = {}) {
       registeredClient.lastSeenAt = ackPayload.at;
     }
 
-    return { ok: true, event: publicEvent(event), ack: ackPayload };
+    const result = { ok: true, event: publicEvent(event), ack: ackPayload };
+
+    audit('ack', {
+      context: buildContextFromClient(registeredClient || { id: client, type: 'unknown' }),
+      level: 'info',
+      category: 'communication',
+      action: 'bus.ack',
+      result: 'ok',
+      message: 'Communication event ack received',
+      details: {
+        eventId: id,
+        clientId: client,
+        status: ackPayload.status
+      }
+    });
+
+    return result;
   }
 
   function replayForClient(clientId, options = {}) {
@@ -539,6 +668,22 @@ function createCommunicationBus(options = {}) {
       issues.set(id, issue);
       pruneIssues();
       stats.issues += 1;
+
+      audit('issue', {
+        level: issue.level === 'error' ? 'error' : 'warn',
+        category: 'communication',
+        action: 'bus.issue',
+        result: issue.level === 'error' ? 'failed' : 'warning',
+        message: issue.message,
+        details: {
+          issueKey: issue.key,
+          count: issue.count,
+          suppressed: issue.suppressed,
+          visible: issue.visible,
+          details: issue.details
+        }
+      });
+
       return { ok: true, visible: true, issue: { ...issue } };
     }
 
@@ -555,6 +700,23 @@ function createCommunicationBus(options = {}) {
     } else {
       existing.suppressed += 1;
       existing.visible = false;
+    }
+
+    if (visible) {
+      audit('issue', {
+        level: existing.level === 'error' ? 'error' : 'warn',
+        category: 'communication',
+        action: 'bus.issue',
+        result: existing.level === 'error' ? 'failed' : 'warning',
+        message: existing.message,
+        details: {
+          issueKey: existing.key,
+          count: existing.count,
+          suppressed: existing.suppressed,
+          visible: existing.visible,
+          details: existing.details
+        }
+      });
     }
 
     return { ok: true, visible, issue: { ...existing } };
@@ -579,7 +741,15 @@ function createCommunicationBus(options = {}) {
         defaultTtlMs: config.defaultTtlMs,
         maxReplayEvents: config.maxReplayEvents,
         issueThrottleMs: config.issueThrottleMs,
-        monitoring: safeJson(config.monitoring) || {}
+        monitoring: safeJson(config.monitoring) || {},
+        security: safeJson(config.security) || {},
+        audit: safeJson(config.audit) || {}
+      },
+      hooks: {
+        securityAvailable: !!security,
+        securityEnabled: isSecurityEnabled(),
+        auditAvailable: !!auditLogger,
+        auditEnabled: !!(config.audit && config.audit.enabled === true)
       },
       clients: getClients(),
       events: [...events.values()].map(publicEvent),
@@ -597,6 +767,9 @@ function createCommunicationBus(options = {}) {
     stats.replays = 0;
     stats.dropped = 0;
     stats.issues = 0;
+    stats.auditWrites = 0;
+    stats.auditSkipped = 0;
+    stats.auditErrors = 0;
     return getStatus();
   }
 

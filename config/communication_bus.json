@@ -18,6 +18,16 @@
     "watchWindowMs": 30000,
     "obsRequiredForOverlayErrors": true
   },
+  "security": {
+    "enabled": true
+  },
+  "audit": {
+    "enabled": false,
+    "logEmit": false,
+    "logAck": false,
+    "logIssues": true,
+    "logPayload": false
+  },
   "overlayModel": {
     "standaloneEnabled": true,
     "hostedPrepared": true,

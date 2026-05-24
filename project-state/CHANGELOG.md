@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## STEP278F
+
+- Extended `helper_communication.js` with optional Security Context and Audit Logger hooks.
+- Added optional audit counters/status fields.
+- Added `security` and `audit` sections to `config/communication_bus.json`.
+- Audit is disabled by default.
+- No production module, API route, dashboard page or database schema was changed.
+
 ## STEP278E
 
 - Added `backend/modules/audit_log.js`.

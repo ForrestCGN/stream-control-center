@@ -1,5 +1,23 @@
 # CURRENT_STATUS
 
+## STEP278F
+
+Communication Bus kann optional Security Context und Audit Logger nutzen.
+
+Geändert:
+
+- `backend/modules/helpers/helper_communication.js`
+- `config/communication_bus.json`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `project-state/STEP278F_COMMUNICATION_BUS_SECURITY_AUDIT.md`
+
+Wichtig:
+
+- Audit ist standardmäßig deaktiviert.
+- Ohne übergebene Hooks bleibt das bisherige Bus-Verhalten erhalten.
+- Keine Produktivmodule wurden migriert.
+- Keine API-/Dashboard-/DB-Änderung.
+
 ## STEP278E
 
 Audit API Status/Recent/Test vorbereitet.

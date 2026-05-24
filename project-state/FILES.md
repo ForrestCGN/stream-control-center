@@ -1,5 +1,25 @@
 # FILES
 
+## STEP278F
+
+Changed:
+
+- `backend/modules/helpers/helper_communication.js`
+- `config/communication_bus.json`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+
+Added:
+
+- `project-state/STEP278F_COMMUNICATION_BUS_SECURITY_AUDIT.md`
+
+Updated:
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+
 ## STEP278E
 
 Added:
