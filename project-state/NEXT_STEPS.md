@@ -55,3 +55,11 @@ Umfang:
 - keine Alert-Output-Modi
 - keine Caller-Module direkt auf Bus umbauen
 - keine DB-Migration ohne vorherigen Plan
+
+
+## Nach STEP296
+
+1. `http://127.0.0.1:8080/public/tools/soundbus_debug_view.html` öffnen.
+2. `test_ping` oder kleinen Alert-Test auslösen.
+3. Prüfen, ob `sound.*` Events sichtbar sind und `soundBus.errors = 0` bleibt.
+4. Danach nächster Block: gezielte SoundBus-Consumer-/Dashboard-Integration planen, ohne alte HTTP/WebSocket-Wege zu entfernen.

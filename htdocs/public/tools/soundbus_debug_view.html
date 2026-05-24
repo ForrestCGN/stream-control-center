@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ForrestCGN SoundBus Debug View</title>
+  <style>
+    :root {
+      --bg: #050715;
+      --panel: rgba(12, 17, 38, .82);
+      --panel2: rgba(16, 24, 52, .72);
+      --line: rgba(93, 232, 255, .24);
+      --line2: rgba(196, 92, 255, .34);
+      --text: #eaf2ff;
+      --muted: #98a7c7;
+      --cyan: #7aefff;
+      --violet: #c45cff;
+      --green: #8df5c8;
+      --yellow: #ffd36a;
+      --red: #fb7185;
+      --blue: #93c5fd;
+      --shadow: 0 18px 80px rgba(0,0,0,.38), 0 0 32px rgba(196,92,255,.15);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 14% 6%, rgba(196,92,255,.20), transparent 35%),
+        radial-gradient(circle at 86% 18%, rgba(74,222,255,.16), transparent 34%),
+        radial-gradient(circle at 48% 100%, rgba(59,130,246,.12), transparent 38%),
+        var(--bg);
+      overflow-x: hidden;
+    }
+    .wrap { width: min(1420px, calc(100vw - 32px)); margin: 0 auto; padding: 22px 0 34px; }
+    header { display:flex; align-items:flex-start; justify-content:space-between; gap: 18px; margin-bottom: 16px; }
+    h1 { margin:0; font-size: 24px; letter-spacing: .02em; }
+    .subtitle { color: var(--muted); margin-top: 5px; font-size: 13px; line-height:1.35; }
+    .badgebar { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+    .badge {
+      border: 1px solid var(--line);
+      background: rgba(5, 10, 28, .58);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      box-shadow: 0 0 18px rgba(122,239,255,.06);
+      white-space: nowrap;
+    }
+    .badge b { color: var(--text); font-weight:700; }
+    .ok { color: var(--green) !important; }
+    .warn { color: var(--yellow) !important; }
+    .bad { color: var(--red) !important; }
+    .blue { color: var(--blue) !important; }
+    .cyan { color: var(--cyan) !important; }
+    .grid { display:grid; grid-template-columns: 360px 1fr; gap: 14px; align-items:start; }
+    .panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--panel), rgba(6, 10, 25, .78));
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .panel h2 { margin:0 0 12px; font-size: 14px; letter-spacing:.04em; text-transform:uppercase; color:#dff7ff; }
+    .cards { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .metric { border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 10px; background: var(--panel2); min-height: 74px; }
+    .metric .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+    .metric .value { margin-top:6px; font-size: 19px; font-weight: 800; word-break: break-word; }
+    .metric .hint { margin-top: 4px; font-size: 11px; color: var(--muted); word-break: break-word; }
+    .row { display:grid; grid-template-columns: 130px 1fr; gap: 8px; margin: 7px 0; align-items:start; }
+    .row .k { color: var(--muted); font-size: 12px; }
+    .row .v { color: var(--text); font: 12px/1.35 "Cascadia Mono", Consolas, monospace; word-break: break-all; }
+    .controls { display:flex; flex-wrap:wrap; gap: 8px; margin-bottom: 12px; }
+    input, select, button {
+      border: 1px solid var(--line);
+      background: rgba(5, 10, 28, .76);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 9px 10px;
+      outline: none;
+      font: 13px Inter, "Segoe UI", Arial, sans-serif;
+    }
+    input { min-width: 220px; flex: 1; }
+    button { cursor:pointer; transition: transform .12s ease, border-color .12s ease; }
+    button:hover { transform: translateY(-1px); border-color: var(--cyan); }
+    button.primary { border-color: rgba(196,92,255,.55); box-shadow: 0 0 18px rgba(196,92,255,.14); }
+    .eventlist { display:flex; flex-direction:column; gap:8px; max-height: 70vh; overflow:auto; padding-right: 4px; }
+    .event {
+      border: 1px solid rgba(255,255,255,.09);
+      background: rgba(8, 13, 32, .72);
+      border-radius: 14px;
+      padding: 10px;
+      display:grid;
+      grid-template-columns: 138px 1fr 110px;
+      gap:10px;
+      align-items:start;
+    }
+    .event.sound { border-color: rgba(122,239,255,.28); }
+    .event.err { border-color: rgba(251,113,133,.4); }
+    .time { color: var(--muted); font: 12px "Cascadia Mono", Consolas, monospace; }
+    .event-title { font-weight:800; color:#f4f8ff; }
+    .event-sub { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.34; word-break:break-word; }
+    .pill { justify-self:end; border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:5px 8px; font-size:11px; color:var(--muted); text-align:center; }
+    details { margin-top:8px; }
+    summary { cursor:pointer; color: var(--cyan); font-size:12px; }
+    pre { max-height: 300px; overflow:auto; padding:10px; border-radius:12px; background: rgba(0,0,0,.28); color:#e7f5ff; font-size:11px; line-height:1.35; white-space: pre-wrap; word-break: break-word; }
+    .footer-note { color: var(--muted); font-size:12px; margin-top:12px; line-height:1.35; }
+    @media (max-width: 980px) { .grid { grid-template-columns:1fr; } header { flex-direction:column; } .badgebar { justify-content:flex-start; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>ForrestCGN SoundBus Debug View</h1>
+        <div class="subtitle">Live-Monitor für <b>sound.*</b>-Bus-Events, Sound-System-Status und Communication-Bus-Registrierung. Diese View ist beobachtend und verändert die Queue nicht.</div>
+      </div>
+      <div class="badgebar">
+        <span class="badge">WS: <b id="wsBadge" class="warn">boot</b></span>
+        <span class="badge">SoundBus: <b id="soundBusBadge">-</b></span>
+        <span class="badge">Bus Events: <b id="eventCountBadge">0</b></span>
+        <span class="badge">Errors: <b id="errorBadge" class="ok">0</b></span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Status</h2>
+        <div class="cards">
+          <div class="metric"><div class="label">SoundBus</div><div class="value" id="mEnabled">-</div><div class="hint" id="mChannel">-</div></div>
+          <div class="metric"><div class="label">Communication</div><div class="value" id="mComm">-</div><div class="hint" id="mClient">-</div></div>
+          <div class="metric"><div class="label">Queue</div><div class="value" id="mQueue">-</div><div class="hint" id="mCurrent">-</div></div>
+          <div class="metric"><div class="label">Bundle Lock</div><div class="value" id="mLock">-</div><div class="hint" id="mBundle">-</div></div>
+          <div class="metric"><div class="label">Emitted</div><div class="value" id="mEmitted">0</div><div class="hint" id="mLastAction">-</div></div>
+          <div class="metric"><div class="label">Sound Fehler</div><div class="value" id="mErrors">0</div><div class="hint" id="mFailures">-</div></div>
+        </div>
+
+        <h2 style="margin-top:16px">Details</h2>
+        <div class="row"><div class="k">Client-ID</div><div class="v" id="dClientId">-</div></div>
+        <div class="row"><div class="k">Session</div><div class="v" id="dSession">-</div></div>
+        <div class="row"><div class="k">Letztes Event</div><div class="v" id="dLastEvent">-</div></div>
+        <div class="row"><div class="k">Letzter Fehler</div><div class="v" id="dLastError">-</div></div>
+        <div class="row"><div class="k">API</div><div class="v" id="dApi">/api/sound/status</div></div>
+        <div class="footer-note">Hinweis: ACKs werden standardmäßig nicht gesendet, damit die Debug-View keine Produktionslogik beeinflusst. Per URL <code>?ack=1</code> kann testweise ACK gesendet werden.</div>
+      </section>
+
+      <section class="panel">
+        <h2>SoundBus Events</h2>
+        <div class="controls">
+          <input id="search" placeholder="Suchen: action, requestId, soundId, label, source..." />
+          <select id="channelFilter"><option value="sound">nur sound</option><option value="all">alle Bus-Events</option></select>
+          <select id="actionFilter"><option value="">alle Actions</option></select>
+          <button class="primary" id="pauseBtn">Pause</button>
+          <button id="clearBtn">Leeren</button>
+          <button id="copyBtn">JSON kopieren</button>
+        </div>
+        <div id="eventList" class="eventlist"></div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  const META = { name: 'soundbus_debug_view', version: '0.1.0', step: 296 };
+  const CLIENT_ID = 'soundbus_debug_view';
+  const qs = new URLSearchParams(location.search);
+  const SEND_ACKS = qs.get('ack') === '1';
+  const MAX_EVENTS = Math.max(25, Math.min(500, Number(qs.get('max') || 200) || 200));
+  const STATUS_MS = Math.max(750, Number(qs.get('statusMs') || 2000) || 2000);
+  const HEARTBEAT_MS = 5000;
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    wsBadge: $('wsBadge'), soundBusBadge: $('soundBusBadge'), eventCountBadge: $('eventCountBadge'), errorBadge: $('errorBadge'),
+    mEnabled: $('mEnabled'), mChannel: $('mChannel'), mComm: $('mComm'), mClient: $('mClient'), mQueue: $('mQueue'), mCurrent: $('mCurrent'),
+    mLock: $('mLock'), mBundle: $('mBundle'), mEmitted: $('mEmitted'), mLastAction: $('mLastAction'), mErrors: $('mErrors'), mFailures: $('mFailures'),
+    dClientId: $('dClientId'), dSession: $('dSession'), dLastEvent: $('dLastEvent'), dLastError: $('dLastError'), dApi: $('dApi'),
+    search: $('search'), channelFilter: $('channelFilter'), actionFilter: $('actionFilter'), pauseBtn: $('pauseBtn'), clearBtn: $('clearBtn'), copyBtn: $('copyBtn'), eventList: $('eventList')
+  };
+
+  const state = {
+    ws: null,
+    sessionId: `sbd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    paused: false,
+    connected: false,
+    reconnectTimer: null,
+    heartbeatTimer: null,
+    statusTimer: null,
+    events: [],
+    soundEventCount: 0,
+    busEventCount: 0,
+    errors: 0,
+    lastEvent: null,
+    lastStatus: null
+  };
+
+  function cls(value, okText) {
+    if (value === true || value === okText) return 'ok';
+    if (value === false || value === null || value === undefined || value === '') return 'bad';
+    return 'warn';
+  }
+  function text(el, value, className) {
+    if (!el) return;
+    el.textContent = String(value ?? '-');
+    el.className = className || '';
+  }
+  function isoShort(value) {
+    const d = value ? new Date(value) : new Date();
+    if (!Number.isFinite(d.getTime())) return String(value || '');
+    return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  function safeJson(value) {
+    try { return JSON.stringify(value, null, 2); } catch (_) { return String(value); }
+  }
+  function compactItem(payload) {
+    const item = payload && (payload.item || payload.current || payload.sound || payload.data || payload);
+    if (!item || typeof item !== 'object') return {};
+    return item;
+  }
+  function eventText(ev) {
+    const payload = ev.payload || {};
+    const item = compactItem(payload);
+    return [
+      ev.channel, ev.action, ev.id,
+      item.requestId, item.soundId, item.label, item.category, item.source, item.file,
+      payload.reason, payload.source, payload.phase
+    ].filter(Boolean).join(' ').toLowerCase();
+  }
+  function send(payload) {
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return false;
+    try { state.ws.send(JSON.stringify(payload)); return true; } catch (_) { return false; }
+  }
+  function hello() {
+    send({
+      type: 'hello',
+      clientId: CLIENT_ID,
+      clientType: 'debug_view',
+      module: 'sound_system',
+      name: 'SoundBus Debug View',
+      mode: 'monitor',
+      version: META.version,
+      capabilities: ['sound.*', 'sound.state.updated', 'sound.queued', 'sound.started', 'sound.finished', 'sound.failed', 'debug.monitor'],
+      meta: { step: META.step, sessionId: state.sessionId, sendAcks: SEND_ACKS, location: location.pathname + location.search }
+    });
+  }
+  function heartbeat() {
+    send({
+      type: 'heartbeat',
+      clientId: CLIENT_ID,
+      clientType: 'debug_view',
+      module: 'sound_system',
+      status: 'online',
+      version: META.version,
+      capabilities: ['sound.*', 'debug.monitor'],
+      sessionId: state.sessionId,
+      ts: new Date().toISOString()
+    });
+  }
+  function ack(ev, status) {
+    if (!SEND_ACKS || !ev || !ev.id) return;
+    send({ type: 'ack', eventId: ev.id, clientId: CLIENT_ID, status: status || 'received', details: { via: META.name, sessionId: state.sessionId } });
+  }
+  function scheduleReconnect() {
+    clearTimeout(state.reconnectTimer);
+    state.reconnectTimer = setTimeout(connect, 1500);
+  }
+  function connect() {
+    clearTimeout(state.reconnectTimer);
+    clearInterval(state.heartbeatTimer);
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    state.ws = new WebSocket(`${proto}//${location.host}`);
+    text(els.wsBadge, 'verbinde', 'warn');
+    state.ws.addEventListener('open', () => {
+      state.connected = true;
+      text(els.wsBadge, 'online', 'ok');
+      hello();
+      heartbeat();
+      state.heartbeatTimer = setInterval(heartbeat, HEARTBEAT_MS);
+      renderStatus();
+    });
+    state.ws.addEventListener('message', (ev) => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch (_) { return; }
+      handleMessage(msg);
+    });
+    state.ws.addEventListener('close', () => {
+      state.connected = false;
+      text(els.wsBadge, 'offline', 'bad');
+      clearInterval(state.heartbeatTimer);
+      scheduleReconnect();
+      renderStatus();
+    });
+    state.ws.addEventListener('error', () => {
+      text(els.wsBadge, 'fehler', 'bad');
+      try { state.ws.close(); } catch (_) { scheduleReconnect(); }
+    });
+  }
+  function isBusEvent(msg) {
+    return !!(msg && msg.type === 'event' && msg.channel && msg.action && msg.id);
+  }
+  function handleMessage(msg) {
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'hello_ack') {
+      text(els.dClientId, msg.clientId || CLIENT_ID);
+      return;
+    }
+    if (msg.type === 'heartbeat_ack' || msg.type === 'ack_ack') return;
+    if (!isBusEvent(msg)) return;
+
+    state.busEventCount += 1;
+    if (msg.channel === 'sound') state.soundEventCount += 1;
+    state.lastEvent = msg;
+    ack(msg, 'received');
+
+    if (!state.paused) {
+      state.events.unshift({ receivedAt: new Date().toISOString(), message: msg });
+      if (state.events.length > MAX_EVENTS) state.events.length = MAX_EVENTS;
+      collectActions();
+      renderEvents();
+    }
+    renderStatus();
+  }
+  function collectActions() {
+    const current = els.actionFilter.value || '';
+    const actions = Array.from(new Set(state.events.map(e => e.message && e.message.action).filter(Boolean))).sort();
+    els.actionFilter.innerHTML = '<option value="">alle Actions</option>' + actions.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
+    els.actionFilter.value = actions.includes(current) ? current : '';
+  }
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+  }
+  async function fetchJson(url) {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`${url} ${res.status}`);
+    return res.json();
+  }
+  async function pollStatus() {
+    try {
+      const status = await fetchJson('/api/sound/status');
+      state.lastStatus = status;
+      state.errors = Number(status?.soundBus?.stats?.errors || 0);
+      renderStatus();
+    } catch (err) {
+      state.errors += 1;
+      text(els.dLastError, err && err.message ? err.message : String(err), 'bad');
+      renderStatus();
+    }
+  }
+  function renderStatus() {
+    const s = state.lastStatus || {};
+    const sb = s.soundBus || {};
+    const sbStats = sb.stats || {};
+    const st = s.stats || {};
+    text(els.soundBusBadge, sb.enabled === true ? 'aktiv' : 'aus', sb.enabled === true ? 'ok' : 'warn');
+    text(els.eventCountBadge, `${state.soundEventCount}/${state.busEventCount}`);
+    text(els.errorBadge, String(Number(sbStats.errors || state.errors || 0)), Number(sbStats.errors || state.errors || 0) === 0 ? 'ok' : 'bad');
+    text(els.mEnabled, sb.enabled === true ? 'aktiv' : 'aus', sb.enabled === true ? 'ok' : 'warn');
+    text(els.mChannel, `channel=${sb.channel || '-'} · requireAck=${sb.requireAck === true}`);
+    text(els.mComm, sb.communicationBusAvailable === true ? 'verfügbar' : 'fehlt', sb.communicationBusAvailable === true ? 'ok' : 'bad');
+    text(els.mClient, state.connected ? `WS online · ${CLIENT_ID}` : 'WS offline', state.connected ? 'ok' : 'bad');
+    text(els.mQueue, `${s.queuedCount ?? '-'} queued`);
+    text(els.mCurrent, s.current ? `${s.current.category || ''}:${s.current.label || s.current.soundId || s.current.requestId || ''}` : 'current leer');
+    text(els.mLock, s.activeBundleLock ? 'aktiv' : 'leer', s.activeBundleLock ? 'warn' : 'ok');
+    text(els.mBundle, s.currentBundle ? `${s.currentBundle.bundleId || ''}` : 'currentBundle leer');
+    text(els.mEmitted, sbStats.emitted ?? 0);
+    text(els.mLastAction, `${sbStats.lastAction || '-'} · ${sbStats.lastReason || '-'}`);
+    text(els.mErrors, sbStats.errors ?? 0, Number(sbStats.errors || 0) === 0 ? 'ok' : 'bad');
+    text(els.mFailures, `failed=${st.failed ?? '-'} · device=${st.deviceFailed ?? '-'} · discord=${st.discordFailed ?? '-'}`);
+    text(els.dSession, state.sessionId);
+    text(els.dLastEvent, state.lastEvent ? `${state.lastEvent.channel}.${state.lastEvent.action} · ${state.lastEvent.id}` : '-');
+    text(els.dLastError, sbStats.lastError || '-', sbStats.lastError ? 'bad' : 'ok');
+  }
+  function renderEvents() {
+    const q = String(els.search.value || '').trim().toLowerCase();
+    const channel = els.channelFilter.value || 'sound';
+    const action = els.actionFilter.value || '';
+    const filtered = state.events.filter(entry => {
+      const msg = entry.message || {};
+      if (channel !== 'all' && msg.channel !== channel) return false;
+      if (action && msg.action !== action) return false;
+      if (q && !eventText(msg).includes(q)) return false;
+      return true;
+    });
+    if (!filtered.length) {
+      els.eventList.innerHTML = '<div class="footer-note">Noch keine passenden Events.</div>';
+      return;
+    }
+    els.eventList.innerHTML = filtered.map(entry => renderEvent(entry)).join('');
+  }
+  function renderEvent(entry) {
+    const msg = entry.message || {};
+    const payload = msg.payload || {};
+    const item = compactItem(payload);
+    const title = `${msg.channel || '-'} · ${msg.action || '-'}`;
+    const label = item.label || item.soundId || payload.reason || payload.phase || '-';
+    const sub = [
+      item.category ? `cat=${item.category}` : '',
+      item.source ? `source=${item.source}` : '',
+      item.requestId ? `request=${item.requestId}` : '',
+      item.bundle?.bundleId ? `bundle=${item.bundle.bundleId}` : '',
+      item.file ? `file=${item.file}` : ''
+    ].filter(Boolean).join(' · ');
+    const isSound = msg.channel === 'sound';
+    const isErr = /fail|error/i.test(String(msg.action || ''));
+    return `<div class="event ${isSound ? 'sound' : ''} ${isErr ? 'err' : ''}">
+      <div class="time">${escapeHtml(isoShort(entry.receivedAt))}<br>${escapeHtml(msg.id || '')}</div>
+      <div>
+        <div class="event-title">${escapeHtml(title)} <span class="cyan">${escapeHtml(label)}</span></div>
+        <div class="event-sub">${escapeHtml(sub || 'kein Item-Payload erkannt')}</div>
+        <details><summary>Payload</summary><pre>${escapeHtml(safeJson(msg))}</pre></details>
+      </div>
+      <div class="pill">${escapeHtml(msg.target?.type || 'all')}<br>${escapeHtml(msg.source?.module || msg.source?.id || '')}</div>
+    </div>`;
+  }
+
+  els.search.addEventListener('input', renderEvents);
+  els.channelFilter.addEventListener('change', renderEvents);
+  els.actionFilter.addEventListener('change', renderEvents);
+  els.pauseBtn.addEventListener('click', () => {
+    state.paused = !state.paused;
+    els.pauseBtn.textContent = state.paused ? 'Weiter' : 'Pause';
+    els.pauseBtn.classList.toggle('primary', !state.paused);
+  });
+  els.clearBtn.addEventListener('click', () => {
+    state.events = [];
+    state.soundEventCount = 0;
+    state.busEventCount = 0;
+    state.lastEvent = null;
+    collectActions();
+    renderEvents();
+    renderStatus();
+  });
+  els.copyBtn.addEventListener('click', async () => {
+    const data = safeJson({ meta: META, copiedAt: new Date().toISOString(), events: state.events });
+    try { await navigator.clipboard.writeText(data); els.copyBtn.textContent = 'Kopiert'; setTimeout(() => els.copyBtn.textContent = 'JSON kopieren', 1200); }
+    catch (_) { alert(data); }
+  });
+
+  window.addEventListener('beforeunload', () => {
+    clearInterval(state.heartbeatTimer);
+    clearInterval(state.statusTimer);
+    clearTimeout(state.reconnectTimer);
+    try { if (state.ws) state.ws.close(); } catch (_) {}
+  });
+
+  renderEvents();
+  renderStatus();
+  connect();
+  pollStatus();
+  state.statusTimer = setInterval(pollStatus, STATUS_MS);
+})();
+</script>
+</body>
+</html>

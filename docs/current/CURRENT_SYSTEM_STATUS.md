@@ -1,6 +1,6 @@
 # Current System Status
 
-Stand: STEP295 – SoundBus Betriebsentscheidung
+Stand: STEP296 – SoundBus Betriebsentscheidung
 Aktualisiert: 2026-05-24T14:35:00Z
 
 ## Aktueller Fokus
@@ -77,3 +77,16 @@ Diese Entscheidung ist keine Freigabe für:
 STEP296 – SoundBus Debug/Monitoring View.
 
 Ziel: `sound.*` Events, `soundBus.stats`, LastAction, LastReason, LastEventId, Errors und Skipped sichtbar machen, ohne Playback-/Queue-/Bundle-Logik zu ändern.
+
+
+## STEP296 – SoundBus Debug/Monitoring View
+
+Status: umgesetzt / bereit zum Test.
+
+Neue Debug-View:
+
+```text
+http://127.0.0.1:8080/public/tools/soundbus_debug_view.html
+```
+
+Die View registriert sich per WebSocket als `soundbus_debug_view`, liest `/api/sound/status` und zeigt `sound.*` Events filterbar an. Sie ist beobachtend; ACKs sind standardmäßig deaktiviert und nur optional per `?ack=1` möglich. Bestehende Sound-/Queue-/Bundle-/Alert-/Discord-Logik wurde nicht geändert.

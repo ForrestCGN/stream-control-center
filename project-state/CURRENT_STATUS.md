@@ -47,3 +47,8 @@ Empfehlung:
 1. SoundBus aktiv lassen.
 2. Sichtbarkeit/Debugging ausbauen.
 3. Erst danach weitere Consumer/Migrationsblöcke planen.
+
+
+## STEP296 – SoundBus Debug/Monitoring View
+
+Aktueller Stand: SoundBus bleibt im Dev-/Testbetrieb aktiv. Ergänzt wurde `htdocs/public/tools/soundbus_debug_view.html` als beobachtende Debug-View für `/api/sound/status` und `sound.*` Bus-Events. Keine Backend-/Queue-/Bundle-Logik geändert.

@@ -113,3 +113,12 @@ Typ: Dokumentation / Entscheidung
 - Keine Codeänderung.
 - Keine Freigabe für Bus-only-Overlays, Entfernen alter Wege oder Caller-Modul-Migration.
 - Nächster Schritt: STEP296 SoundBus Debug/Monitoring View.
+
+
+## STEP296 – SoundBus Debug/Monitoring View (2026-05-24)
+
+- Neue Datei `htdocs/public/tools/soundbus_debug_view.html` ergänzt.
+- View registriert sich als `soundbus_debug_view` und zeigt `sound.*` Events live/filterbar an.
+- `/api/sound/status` wird regelmäßig abgefragt und zeigt SoundBus-/Queue-/Bundle-/Fehlerstatus.
+- ACKs sind standardmäßig deaktiviert; optional `?ack=1`.
+- Keine Backend-/Sound-/Queue-/Bundle-/Alert-/Discord-Logik geändert.
