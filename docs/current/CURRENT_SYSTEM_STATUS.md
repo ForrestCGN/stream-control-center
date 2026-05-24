@@ -1,95 +1,26 @@
-# CURRENT SYSTEM STATUS – STEP320
+# CURRENT SYSTEM STATUS – STEP330
 
 Stand: 2026-05-24
 
 ## Aktueller Fokus
 
-SoundBus ist im Dev-/Testbetrieb aktiv und das Sound-Dashboard wurde zum ersten Control-Center erweitert.
-
-## STEP320 Ergebnis
-
-- Sound Dashboard Control Center ergänzt.
-- Queue-/Current-/Bundle-Lock-Informationen sind direkt im Dashboard sichtbar.
-- Steueraktionen nutzen bestehende Backend-APIs.
-- Pause/Resume/Stop/Skip/Clear sind im Sound-System-Bereich verfügbar.
-- Clear hat eine zusätzliche Browser-Bestätigung.
-- Queue-Zeilen zeigen Quelle/Kategorie/User/Bundle-Kontext.
-
-## Unverändert
-
-- Keine Sound-Queue-Logik geändert.
-- Keine Bundle-/activeBundleLock-Logik geändert.
-- Keine SoundBus-Logik geändert.
-- Keine Backend-Routen hinzugefügt.
-- Keine DB-Migration.
-
-## Nächster Schritt
-
-STEP321 – Control-Center Praxistest mit laufender Queue und Bundle-Lock.
-
----
-
-# CURRENT SYSTEM STATUS – STEP310
-
-Stand: 2026-05-24
-
-## Aktueller Fokus
-
-SoundBus ist nach STEP289–STEP310 als stabile Event-/Status-Schicht im Dev-/Testbetrieb aktiv.
-
-Aktuelle Entscheidung:
-
-```text
-soundBus.enabled = true
-```
-
-Dies ist keine vollständige Bus-only-Produktivmigration. Bestehende HTTP-/WebSocket-Wege bleiben aktiv.
+SoundBus ist aktiv und getestet. Das Sound-Dashboard besitzt Monitoring und ein erstes Control Center. Mit STEP330 wurde die Sound-Dashboard-UI stabilisiert.
 
 ## Bestätigte Punkte
 
-- SoundBus-Basis-Events funktionieren.
-- `/api/sound/status` enthält Top-Level `soundBus`.
-- Einzel-Sound `test_ping` erfolgreich.
-- Alert-Bundle mit Sound + TTS erfolgreich.
-- V5 Queue-/Bundle-Regression bestanden.
-- Discord Media Path Resolver Fix bestätigt.
-- SoundBus Debug View funktioniert.
-- Dashboard Bus-Monitor funktioniert und ist rein lesend.
+- SoundBus läuft im Dev-/Testbetrieb aktiv.
+- SoundBus Dashboard-Kontext ist sichtbar.
+- Sound Dashboard Control Center ist vorhanden.
+- Queue/Bundle/activeBundleLock wurden durch die Dashboard-Arbeiten nicht verändert.
+- Discord Media Path Resolver ist bestätigt.
 
-## STEP310 Ergebnis
+## STEP330 Ergebnis
 
-SoundBus-Events enthalten jetzt einen normalisierten Consumer-Kontext für soundnahe Systeme.
-
-Dadurch können folgende Quellen im Dashboard/Debug sauber unterschieden werden:
-
-```text
-Alert-Hauptsound
-Alert-TTS
-SoundAlerts / Channel Rewards
-VIP-/Mod-Sounds
-normales TTS
-sonstige Sound-System-Caller
-```
-
-Zusätzlich hält das Sound-System einen kleinen Runtime-Cache:
-
-```text
-soundBus.recentEvents
-```
-
-Dieser Cache ist für Monitoring/Dashboard gedacht und verändert keine Playback-, Queue- oder Bundle-Logik.
+- UI-/Layout-Stabilisierung im Sound-Dashboard.
+- Medien-/Preview-Überläufe werden im Sound-Modul eingekapselt.
+- Control Center ist gruppiert in Status, Playback und Gefahrzone.
+- Gefährliche Aktionen sind deaktiviert, wenn sie keinen sinnvollen Zielzustand haben.
 
 ## Nächster Schritt
 
-Großer Folgeblock statt Mini-Steps:
-
-```text
-STEP320 – Sound Dashboard Control Center Block
-```
-
-Ziel:
-
-- Queue und laufende Sounds besser steuerbar machen.
-- Stop/Clear/Pause/Resume sauber mit Rechte-/Auth-Konzept vorbereiten.
-- SoundBus/Queue/Fehler im Dashboard zusammenführen.
-- Keine Bus-only-Migration ohne separaten Test.
+Nächster größerer Block: weitere Dashboard-Control-Funktionen oder gezielte Anbindung des nächsten Systems, ohne Mini-Step-Kette.

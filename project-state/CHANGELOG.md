@@ -1,9 +1,10 @@
 # CHANGELOG
 
-## STEP320 – Sound Dashboard Control Center – 2026-05-24
+## STEP330 – Sound Dashboard UI/Control Stabilisierung – 2026-05-24
 
-- Sound Control Center im Dashboard ergänzt.
-- Pause/Resume/Stop/Skip/Clear über bestehende Sound-APIs verfügbar gemacht.
-- Clear mit Browser-Bestätigung abgesichert.
-- Queue-Darstellung um Quelle/Kategorie/User/Bundle-Kontext erweitert.
+- Medien-/Preview-Bleed-Guard für Sound-Dashboard ergänzt.
+- Hidden-Section-Regeln verschärft.
+- Sound-Liste mit internem Scrollbereich abgesichert.
+- Sound Control Center in Status, Playback und Gefahrzone gruppiert.
+- Stop/Skip/Clear deaktivieren sich bei leerem Zielzustand.
 - Keine Backend-/Queue-/Bundle-/SoundBus-Logik geändert.

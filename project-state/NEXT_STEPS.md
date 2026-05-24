@@ -1,16 +1,12 @@
-# NEXT STEPS – nach STEP320
+# NEXT STEPS – nach STEP330
 
-## STEP321 – Control-Center Praxistest
+## Nächster größerer Block
 
-Ziel:
+- Sound Dashboard Control Center weiter ausbauen, falls die UI-Stabilisierung passt.
+- Oder nächstes soundnahes System gezielt anbinden.
 
-- Dashboard-Control mit echter Queue testen.
-- Pause/Resume mit wartender Queue testen.
-- Stop/Skip bei laufendem Sound testen.
-- Clear mit Bestätigung testen.
-- Bundle-Lock-Anzeige während Alert+TTS prüfen.
+## Wichtig
 
-Wichtig:
-
-- Keine Log-Dateien hochladen, nur kompakten Status posten.
-- Keine weiteren Mini-Doku-Steps ohne Bedarf.
+- Keine Mini-Step-Kette.
+- Größere zusammenhängende Blöcke bevorzugen.
+- Keine Sound-Queue-/Bundle-/SoundBus-Logik ohne ausdrücklichen Grund anfassen.

@@ -3,10 +3,30 @@
 #soundModule {
   display: block;
   width: 100%;
+  min-width: 0;
+  position: relative;
+  isolation: isolate;
+  overflow-x: clip;
+}
+
+#soundModule *,
+.sound-admin * {
+  box-sizing: border-box;
+}
+
+.sound-admin img,
+.sound-admin video,
+.sound-admin canvas,
+#soundModule img,
+#soundModule video,
+#soundModule canvas {
+  max-width: 100%;
+  height: auto;
 }
 
 .sound-card {
   padding: 18px;
+  overflow: hidden;
   border-radius: 24px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.035);
@@ -41,6 +61,9 @@
 
 .sound-grid {
   display: grid;
+  position: relative;
+  z-index: 1;
+  overflow: clip;
   grid-template-columns: repeat(12, 1fr);
   gap: 16px;
   align-items: start;
@@ -460,6 +483,14 @@ html[data-theme=dark] .sound-current-row {
 }
 
 [data-sound-section][hidden] {
+  display:none !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+  overflow:hidden !important;
+  max-height:0 !important;
+}
+
+[data-sound-section][hidden] * {
   display:none !important;
 }
 
@@ -915,5 +946,130 @@ html[data-theme=dark] .sound-source-item {
   .sound-queue-side {
     min-width: 0;
     justify-content: flex-start;
+  }
+}
+
+
+/* STEP330 Sound Dashboard UI/Control Stabilisierung */
+.sound-card[data-sound-section~="sounds"] {
+  overflow: hidden;
+}
+
+.sound-card[data-sound-section~="sounds"] .sound-list {
+  max-height: calc(100vh - 260px);
+  overflow: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+}
+
+.sound-card[data-sound-section~="sounds"] img,
+.sound-card[data-sound-section~="sounds"] video,
+.sound-card[data-sound-section~="sounds"] canvas,
+.sound-card[data-sound-section~="sounds"] iframe {
+  max-width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  display: block;
+  border-radius: 14px;
+}
+
+.sound-control-header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.sound-control-header h3 {
+  margin-bottom: 8px;
+}
+
+.sound-control-mode {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.sound-control-actions-layout {
+  display: grid;
+  grid-template-columns: minmax(160px, .75fr) minmax(160px, .75fr) minmax(280px, 1.5fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.sound-control-action-group {
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.085);
+  border-radius: 18px;
+  background: rgba(2,6,23,.24);
+  padding: 12px;
+}
+
+.sound-control-action-group > strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.sound-control-action-group.danger-zone {
+  border-color: rgba(248,113,113,.20);
+  background: rgba(127,29,29,.10);
+}
+
+.sound-control-actions {
+  margin-top: 0;
+}
+
+.sound-control-actions button:disabled,
+.sound-card button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  filter: grayscale(.35);
+}
+
+.sound-control-actions button:disabled:hover,
+.sound-card button:disabled:hover {
+  border-color: rgba(255,255,255,.13);
+  background: rgba(255,255,255,.06);
+}
+
+.sound-control-warning {
+  border-left: 3px solid rgba(56,189,248,.40);
+  padding-left: 10px;
+}
+
+.sound-control-mini {
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.sound-queue-row-detailed,
+.sound-sound-row {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.sound-queue-file,
+.sound-queue-bundle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .sound-control-actions-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .sound-control-header {
+    display: grid;
+  }
+  .sound-control-mode {
+    justify-self: start;
   }
 }

@@ -20,7 +20,7 @@ window.SoundSystemModule = (function(){
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? ''); }
   async function api(path, options){ return window.CGN.api(API + path, options || {}); }
-  function button(label, action, extraClass){ return `<button type="button" class="${extraClass || ''}" data-sound-action="${esc(action)}">${esc(label)}</button>`; }
+  function button(label, action, extraClass, disabled){ return `<button type="button" class="${extraClass || ''}" data-sound-action="${esc(action)}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${esc(label)}</button>`; }
   function formatLocalTime(value){
     if (!value) return '-';
     try { return new Date(value).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
@@ -689,9 +689,15 @@ window.SoundSystemModule = (function(){
     const paused = status?.paused === true;
     const hasCurrent = !!cur;
     const hasQueue = queue.length > 0;
+    const dangerDisabledNote = !hasCurrent && !hasQueue ? 'Keine aktive Ausgabe und keine Queue.' : 'Stop/Skip/Clear sind bewusste Steueraktionen. Clear fragt zusätzlich nach Bestätigung.';
     el.innerHTML = `
-      <h3>Sound Control Center</h3>
-      <div class="sound-note">Sichere Steuerung über bestehende Backend-APIs. Keine Änderung an Queue-, Bundle- oder SoundBus-Logik.</div>
+      <div class="sound-control-header">
+        <div>
+          <h3>Sound Control Center</h3>
+          <div class="sound-note">Sichere Steuerung über bestehende Backend-APIs. Keine Änderung an Queue-, Bundle- oder SoundBus-Logik.</div>
+        </div>
+        <span class="sound-pill sound-control-mode">${paused ? 'Pausiert' : 'Läuft'}</span>
+      </div>
       <div class="sound-control-grid">
         <div class="sound-control-tile">
           <span>Aktuell</span>
@@ -714,14 +720,25 @@ window.SoundSystemModule = (function(){
           <small>${bundle ? esc(bundle.bundleType || 'bundle') : 'kein Bundle aktiv'}</small>
         </div>
       </div>
-      <div class="sound-actions sound-control-actions">
-        ${button('Status aktualisieren', 'refresh-status')}
-        ${paused ? button('Resume', 'resume', 'success') : button('Pause', 'pause')}
-        ${button('Stop aktueller Sound', 'stop', hasCurrent ? 'danger' : '')}
-        ${button('Skip aktueller Sound', 'skip', hasCurrent ? 'danger' : '')}
-        ${button('Queue leeren', 'clear-confirm', hasQueue ? 'danger' : '')}
+      <div class="sound-control-actions-layout">
+        <div class="sound-control-action-group">
+          <strong>Status</strong>
+          <div class="sound-actions sound-control-actions">${button('Status aktualisieren', 'refresh-status')}</div>
+        </div>
+        <div class="sound-control-action-group">
+          <strong>Playback</strong>
+          <div class="sound-actions sound-control-actions">${paused ? button('Resume', 'resume', 'success') : button('Pause', 'pause')}</div>
+        </div>
+        <div class="sound-control-action-group danger-zone">
+          <strong>Gefahrzone</strong>
+          <div class="sound-actions sound-control-actions">
+            ${button('Stop aktueller Sound', 'stop', hasCurrent ? 'danger' : '', !hasCurrent)}
+            ${button('Skip aktueller Sound', 'skip', hasCurrent ? 'danger' : '', !hasCurrent)}
+            ${button('Queue leeren', 'clear-confirm', hasQueue ? 'danger' : '', !hasQueue)}
+          </div>
+        </div>
       </div>
-      <div class="sound-control-warning">Stop/Skip/Clear sind bewusste Steueraktionen. Clear fragt zusätzlich nach Bestätigung.</div>
+      <div class="sound-control-warning">${esc(dangerDisabledNote)}</div>
       <div class="sound-control-mini">
         <span>Gestartet ${esc(stats.started || 0)}</span>
         <span>Queued ${esc(stats.queued || 0)}</span>
