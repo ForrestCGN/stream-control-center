@@ -1,0 +1,34 @@
+{
+  "enabled": true,
+  "busName": "cgn",
+  "version": 1,
+  "heartbeatIntervalMs": 5000,
+  "staleAfterMs": 15000,
+  "offlineAfterMs": 30000,
+  "deadAfterMs": 60000,
+  "defaultTtlMs": 15000,
+  "maxReplayEvents": 200,
+  "maxIssueEntries": 200,
+  "issueThrottleMs": 60000,
+  "monitoring": {
+    "enabled": false,
+    "requireLiveOrManual": true,
+    "manualEnabled": false,
+    "testMode": false,
+    "watchWindowMs": 30000,
+    "obsRequiredForOverlayErrors": true
+  },
+  "overlayModel": {
+    "standaloneEnabled": true,
+    "hostedPrepared": true,
+    "masterOverlayProductionEnabled": false,
+    "masterOverlayTestOnly": true
+  },
+  "ackStatuses": [
+    "received",
+    "rendered",
+    "finished",
+    "failed",
+    "ignored"
+  ]
+}
