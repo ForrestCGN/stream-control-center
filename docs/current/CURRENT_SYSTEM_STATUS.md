@@ -1,5 +1,53 @@
 # Current System Status
 
+## STEP278P - Communication Bus Watchdog-Recovery-Test
+
+Der Communication Bus Watchdog kann jetzt zwischen aktuellen Problemen und erfolgreich recovered Events unterscheiden.
+
+Geändert:
+
+- `backend/modules/communication_bus.js`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+
+Neu:
+
+- `project-state/STEP278P_WATCHDOG_RECOVERY_TEST.md`
+
+Version:
+
+```text
+communication_bus v0.6.0 / STEP278P
+```
+
+Erweiterte Watchdog-Route:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1
+```
+
+Optionales Recovery-Tracking:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1&trackRecovered=1
+```
+
+Funktionen:
+
+- `ack_missing` wird nicht mehr gemeldet, wenn ein Event inzwischen ACKs besitzt.
+- `event_not_delivered` wird nicht mehr als aktuelles Problem gemeldet, wenn ein späterer Replay/ACK das Event bestätigt hat.
+- mit `includeRecovered=1` erscheinen solche Fälle separat unter `recovered[]`.
+- mit `trackRecovered=1` kann Recovery bewusst als historischer Diagnosepunkt gespeichert werden.
+
+Wichtig:
+
+- Historische Issues werden nicht automatisch gelöscht.
+- Kein automatischer Watchdog-Timer.
+- Keine Produktivmigration.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Kein Ersatz von `broadcastWS`.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+
 ## STEP278O - Communication Bus Issue-/Watchdog-Test
 
 Der Communication Bus besitzt jetzt eine manuelle Watchdog-Diagnose für Test- und Audit-Zwecke.

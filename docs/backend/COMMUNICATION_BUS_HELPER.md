@@ -5,7 +5,7 @@
 ```text
 Communication Core:      v0.3.0
 helper_communication.js: v0.3.0 / STEP278F
-communication_bus.js:    v0.5.0 / STEP278O
+communication_bus.js:    v0.6.0 / STEP278P
 WS Test Client:          v0.1.0 / STEP278K
 Master Test Overlay:     v0.1.2 / STEP278N
 ```
@@ -22,6 +22,7 @@ Der Communication Bus besitzt aktuell:
 - WebSocket Ack / Bus Ack
 - kontrollierten Replay-Test per `/api/communication/replay`
 - manuellen Watchdog-/Issue-Test per `/api/communication/watchdog`
+- Watchdog-Recovery-Auswertung per `includeRecovered=1`
 - manuellen Browser-Testclient unter `/public/tools/communication_ws_test_client.html`
 - Master-Test-Overlay als echten Communication-Bus-Testclient unter `/overlays/_overlay-master-test.html?debug=1`
 
@@ -86,7 +87,7 @@ Typischer Testablauf:
 
 ## Watchdog-/Issue-Test
 
-STEP278O ergänzt eine manuelle Watchdog-Diagnose:
+STEP278O ergänzt eine manuelle Watchdog-Diagnose. STEP278P erweitert sie um Recovery-Auswertung:
 
 ```text
 http://127.0.0.1:8080/api/communication/watchdog
@@ -120,6 +121,20 @@ Optional kann ein Zielclient geprüft werden:
 http://127.0.0.1:8080/api/communication/watchdog?clientId=overlay_master_test&track=1
 ```
 
+Recovery-Test nach Replay + ACK:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1
+```
+
+Mit `includeRecovered=1` meldet der Watchdog Events, die zunächst nicht direkt ausgeliefert wurden, später aber per Replay/ACK erfolgreich bestätigt wurden, separat unter `recovered[]`. Diese Einträge zählen nicht als aktuelle Probleme.
+
+Optional kann Recovery explizit historisch getrackt werden:
+
+```text
+http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1&trackRecovered=1
+```
+
 Wichtig: Es gibt weiterhin keinen automatischen Watchdog-Timer. Die Diagnose ist bewusst manuell und testbasiert.
 
 ## Modul-Metadaten
@@ -129,8 +144,8 @@ Wichtig: Es gibt weiterhin keinen automatischen Watchdog-Timer. Die Diagnose ist
 ```json
 {
   "module": "communication_bus",
-  "moduleVersion": "0.5.0",
-  "moduleBuild": "STEP278O",
+  "moduleVersion": "0.6.0",
+  "moduleBuild": "STEP278P",
   "coreName": "communication_core",
   "coreVersion": "0.3.0"
 }
@@ -139,6 +154,7 @@ Wichtig: Es gibt weiterhin keinen automatischen Watchdog-Timer. Die Diagnose ist
 ## Bewusst nicht umgesetzt
 
 - kein automatischer Watchdog-Timer
+- kein automatisches Löschen historischer Issues
 - kein automatisches Replay bei `hello`
 - keine Alert-/Sound-/TTS-/VIP-Migration
 - kein Ersatz von `broadcastWS`

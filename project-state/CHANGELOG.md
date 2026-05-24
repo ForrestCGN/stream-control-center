@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## STEP278P
+
+- Updated `backend/modules/communication_bus.js` to `v0.6.0 / STEP278P`.
+- Extended manual watchdog route with `includeRecovered` and `trackRecovered`.
+- Watchdog no longer reports `ack_missing` for events that already have ACKs.
+- Watchdog no longer reports `event_not_delivered` as current problem when a later Replay/ACK recovered the event.
+- Recovered events can be returned separately under `diagnosis.recovered[]`.
+- Recovery can be explicitly tracked with `trackRecovered=1`.
+- No historical issues are automatically deleted.
+- No helper, overlay, alert, sound, TTS, VIP, dashboard, database or `broadcastWS` migration changes.
+
 ## STEP278O
 
 - Updated `backend/modules/communication_bus.js` to `v0.5.0 / STEP278O`.

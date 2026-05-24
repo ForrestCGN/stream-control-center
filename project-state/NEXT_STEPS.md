@@ -1,5 +1,35 @@
 # NEXT_STEPS
 
+## Nach STEP278P
+
+1. Backend nach Deploy starten.
+2. Status prüfen:
+   - `http://127.0.0.1:8080/api/communication/status`
+3. Erwartung:
+   - `moduleVersion: "0.6.0"`
+   - `moduleBuild: "STEP278P"`
+4. Reset ohne Clients ausführen:
+   - `http://127.0.0.1:8080/api/communication/reset?confirm=1&clients=1`
+5. Overlay geschlossen lassen.
+6. ACK-pflichtiges replayable Event erzeugen:
+   - `http://127.0.0.1:8080/api/communication/test?channel=test&action=ping&message=Recovery%20Test&requireAck=1&replayable=1&ttlMs=180000`
+7. Problemzustand tracken:
+   - `http://127.0.0.1:8080/api/communication/watchdog?track=1`
+8. Overlay öffnen:
+   - `http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1`
+9. Replay auslösen:
+   - `http://127.0.0.1:8080/api/communication/replay?clientId=overlay_master_test&includeAckRequired=1`
+10. Watchdog mit Recovery-Auswertung prüfen:
+   - `http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1`
+11. Erwartung:
+   - keine aktuelle `communication_ack_missing_*` Diagnose für dieses Event
+   - keine aktuelle `communication_event_not_delivered_*` Diagnose für dieses Event
+   - `diagnosis.recovered[]` enthält `communication_event_recovered_*`
+12. Optional Recovery historisch tracken:
+   - `http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1&trackRecovered=1`
+
+Wenn stabil: STEP278Q planen. Sinnvoll wäre danach ein kontrollierter Alert-Mirror-Test über den Communication Bus ohne Produktivmigration.
+
 ## Nach STEP278O
 
 1. Backend nach Deploy starten.
