@@ -413,7 +413,7 @@ function init({ app }) {
     });
   });
 
-  console.log('[communication_bus] STEP278H API routes and WS handler registered');
+  console.log(`[${MODULE_META.name}] v${MODULE_META.version} / ${MODULE_META.build} API routes and WS handler registered`);
 }
 
 module.exports = {

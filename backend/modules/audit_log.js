@@ -244,7 +244,7 @@ function init({ app }) {
     });
   });
 
-  console.log('[audit_log] STEP278E API routes registered');
+  console.log(`[${MODULE_META.name}] v${MODULE_META.version} / ${MODULE_META.build} API routes registered`);
 }
 
 module.exports = { MODULE_META, init };

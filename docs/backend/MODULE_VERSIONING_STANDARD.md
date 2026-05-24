@@ -56,6 +56,24 @@ Wenn vorhanden zusätzlich:
 }
 ```
 
+
+## Startup-Logs
+
+Neue Module sollen beim Start ihren Modulnamen, ihre Version und ihren Build ausgeben.
+
+Standard:
+
+```text
+[modulname] v0.1.0 / STEPxxx ready
+```
+
+Beispiele:
+
+```text
+[communication_bus] v0.3.0 / STEP278H API routes and WS handler registered
+[audit_log] v0.2.0 / STEP278E API routes registered
+```
+
 ## Versionierung
 
 Empfohlene Semantik im Projekt:

@@ -1,5 +1,30 @@
 # CURRENT_STATUS
 
+## STEP278J
+
+Versioned Startup Logs ergänzt.
+
+Geändert:
+
+- `backend/modules/communication_bus.js`
+- `backend/modules/audit_log.js`
+- `docs/backend/MODULE_VERSIONING_STANDARD.md`
+- `project-state/STEP278J_VERSIONED_STARTUP_LOGS.md`
+
+Neue Log-Ausgaben:
+
+```text
+[communication_bus] v0.3.0 / STEP278H API routes and WS handler registered
+[audit_log] v0.2.0 / STEP278E API routes registered
+```
+
+Wichtig:
+
+- Keine Funktionsänderung.
+- Keine neue Route.
+- Keine Dashboard-/DB-/OBS-Änderung.
+- Keine Produktivmigration.
+
 ## STEP278I
 
 Module Version Metadata und verbindliche Versionierungsregel ergänzt.
@@ -67,74 +92,3 @@ Wichtig:
 - `broadcastWS` bleibt unverändert.
 - Unbekannte WS-Messages werden nicht blockiert.
 - Keine Dashboard-/DB-/OBS-Änderung.
-
-## STEP278G
-
-Communication Bus Status/Test API vorbereitet.
-
-Neu:
-
-- `backend/modules/communication_bus.js`
-- `project-state/STEP278G_COMMUNICATION_BUS_STATUS_API.md`
-
-Routen:
-
-```text
-GET /api/communication/status
-GET /api/communication/test?channel=test&action=ping&message=Hallo
-GET /api/communication/ack?eventId=...&clientId=test_client&status=received
-GET /api/communication/issue?key=test&message=Demo
-GET /api/communication/reset?confirm=1
-```
-
-Wichtig:
-
-- Keine Produktivmodule wurden migriert.
-- Kein Ersatz von `broadcastWS`.
-- Keine API-/Dashboard-/DB-Änderung außerhalb des neuen Communication-Moduls.
-- Bus-Testevents sind Preview/Test und kein produktives Routing.
-
-## STEP278F
-
-Communication Bus kann optional Security Context und Audit Logger nutzen.
-
-Geändert:
-
-- `backend/modules/helpers/helper_communication.js`
-- `config/communication_bus.json`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-- `project-state/STEP278F_COMMUNICATION_BUS_SECURITY_AUDIT.md`
-
-Wichtig:
-
-- Audit ist standardmäßig deaktiviert.
-- Ohne übergebene Hooks bleibt das bisherige Bus-Verhalten erhalten.
-- Keine Produktivmodule wurden migriert.
-- Keine API-/Dashboard-/DB-Änderung.
-
-## STEP278E
-
-Audit API Status/Recent/Test vorbereitet.
-
-Neu:
-
-- `backend/modules/audit_log.js`
-- `project-state/STEP278E_AUDIT_API_STATUS.md`
-
-Routen:
-
-```text
-GET  /api/audit/status
-GET  /api/audit/recent?limit=50
-GET  /api/audit/test?message=...
-POST /api/audit/clear-memory
-GET  /api/audit/clear-memory?confirm=1
-```
-
-Wichtig:
-
-- Noch keine produktive Modul-Integration.
-- Keine Dashboard-Seite.
-- Keine SQLite-/MariaDB-Migration.
-- Logs bleiben standardmäßig im Memory Buffer.
-- Helper nutzt `helper_security_context.js` für Kontext und Maskierung.
