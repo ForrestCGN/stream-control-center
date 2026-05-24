@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## STEP278E
+
+- Added `backend/modules/audit_log.js`.
+- Added Audit API status/recent/test/clear-memory routes.
+- Audit logs remain in memory by default.
+- Uses `helper_audit_log.js` and `helper_security_context.js`.
+- No dashboard page, database migration or production module integration was added.
+
 ## STEP278D
 
 - Added `backend/modules/helpers/helper_audit_log.js`.

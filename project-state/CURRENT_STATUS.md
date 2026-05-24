@@ -1,5 +1,32 @@
 # CURRENT_STATUS
 
+## STEP278E
+
+Audit API Status/Recent/Test vorbereitet.
+
+Neu:
+
+- `backend/modules/audit_log.js`
+- `project-state/STEP278E_AUDIT_API_STATUS.md`
+
+Routen:
+
+```text
+GET  /api/audit/status
+GET  /api/audit/recent?limit=50
+GET  /api/audit/test?message=...
+POST /api/audit/clear-memory
+GET  /api/audit/clear-memory?confirm=1
+```
+
+Wichtig:
+
+- Noch keine produktive Modul-Integration.
+- Keine Dashboard-Seite.
+- Keine SQLite-/MariaDB-Migration.
+- Logs bleiben standardmäßig im Memory Buffer.
+- Helper nutzt `helper_security_context.js` für Kontext und Maskierung.
+
 ## STEP278D
 
 Audit Log Helper Core vorbereitet.

@@ -1,5 +1,16 @@
 # NEXT_STEPS
 
+## Nach STEP278E
+
+1. Backend nach Deploy starten und prüfen:
+   - `GET /api/audit/status`
+   - `GET /api/audit/test?message=Hallo`
+   - `GET /api/audit/recent?limit=10`
+2. Danach STEP278F planen: Communication Bus nutzt Security Context + Audit optional.
+3. Danach Dashboard-Systemlog planen.
+4. DB-Migration für dauerhafte Logs erst separat planen.
+5. Keine produktive Modul-Integration aktivieren, bevor Status/API geprüft ist.
+
 ## Nach STEP278D
 
 1. Backend nach Deploy starten und prüfen, dass bestehende Module unverändert laden.

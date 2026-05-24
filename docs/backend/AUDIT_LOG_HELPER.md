@@ -1,48 +1,42 @@
-# STEP278D — Audit Log Helper
+# STEP278E — Audit API Status
 
-Status: Core helper prepared  
-Production integration: none  
+Status: API module prepared  
+Production module integration: none  
 Database migration: none
 
 ## Ziel
 
-`backend/modules/helpers/helper_audit_log.js` stellt eine zentrale Audit-/System-Log-Grundlage bereit.
+`backend/modules/audit_log.js` macht den vorbereiteten Audit Logger über kleine lokale API-Routen testbar.
 
-Der Helper protokolliert noch keine produktiven Module automatisch. Er ist die Grundlage für spätere API-, Dashboard-, Bus-, Alert-, Sound- und Security-Logs.
+## Routen
 
-## Enthaltene Funktionen
+```text
+GET  /api/audit/status
+GET  /api/audit/recent?limit=50
+GET  /api/audit/test?message=Hallo
+POST /api/audit/clear-memory
+GET  /api/audit/clear-memory?confirm=1
+```
 
-- `createAuditLogger(options)`
-- `log(entry)`
-- `createEntry(entry)`
-- `getRecent(limit, filters)`
-- `getStatus()`
-- `clearMemory()`
-- `child(defaults)`
+## Filter für Recent
 
-## Sicherheitsbasis
+```text
+level
+category
+result
+action
+actorType
+actorId
+sourceKind
+module
+search
+since
+```
 
-Der Helper nutzt `helper_security_context.js` für:
+## Wichtig
 
-- Security Context Normalisierung
-- Actor-/Source-/Trust-Snapshots
-- Maskierung sensibler Werte
-- Audit-Snapshots
-
-## Bewusst nicht enthalten
-
-- keine Änderung an `server.js`
-- keine API-Route
-- keine Dashboard-Seite
-- keine produktive Modul-Integration
-- keine SQLite-/MariaDB-Migration
-- kein automatisches Schreiben in `app.sqlite`
-- kein Anzeigen von Secrets
-
-## Später möglich
-
-- `/api/audit/status`
-- `/api/audit/recent`
-- Dashboard-Systemlog
-- DB-Tabelle `system_logs` per sanfter Migration
-- Integration in Communication Bus, API-Routen, Dashboard-Aktionen
+- Es werden noch keine bestehenden Module automatisch geloggt.
+- Es gibt keine Datenbankmigration.
+- Logs bleiben standardmäßig im Memory Buffer.
+- Secrets werden über `helper_security_context.js` maskiert.
+- File/DB-Sinks bleiben deaktiviert, solange `config/audit_log.json` das so vorgibt.
