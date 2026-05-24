@@ -1,24 +1,20 @@
-# NEXT STEPS – nach STEP303
+# NEXT STEPS – nach STEP310
 
-## STEP304 – Sound Dashboard Bus-Monitor Auto Refresh Live-Test dokumentieren
+## STEP320 – Sound Dashboard Control Center Block
 
 Ziel:
 
-- Prüfen, ob der Bus-Monitor automatisch aktualisiert.
-- Prüfen, ob der Button `Status neu laden` weiterhin rein lesend bleibt.
-- Sicherstellen, dass kein `POST /api/sound/reload` über den Bus-Monitor ausgelöst wird.
-
-## Testvorschlag
-
-1. Dashboard öffnen.
-2. `System -> Sound-System -> Bus-Monitor` öffnen.
-3. Zeitstempel der letzten Aktualisierung beobachten.
-4. `test_ping` auslösen.
-5. Prüfen, ob `emitted`/`lastAction` automatisch aktualisiert.
+- Sound Dashboard von reinem Monitoring zu sauberer, abgesicherter Steuerung erweitern.
+- Queue sichtbar und bedienbar machen.
+- Aktuellen Sound steuerbar machen.
+- Stop/Clear/Pause/Resume mit Rollen-/Auth-Konzept absichern.
+- SoundBus Events weiter nur als Status-/Monitoring-Schicht verwenden.
 
 ## Wichtig
 
 - Keine Funktionalität entfernen.
 - SoundBus bleibt Event-/Status-Schicht.
 - Steueraktionen weiter über Backend-APIs.
-- Bus-Monitor bleibt lesend.
+- Rechte-/Rollenprüfung vor Admin-Aktionen berücksichtigen.
+- Keine Bus-only-Migration ohne separaten Testblock.
+- Keine Mini-Doku-Steps nach jedem Screenshot; größere, zusammenhängende Blöcke verwenden.

@@ -746,3 +746,67 @@ html[data-theme=dark] .sound-source-item {
 .sound-danger-text {
   color: #fecaca !important;
 }
+
+/* STEP310: SoundBus consumer context / recent events */
+.sound-subtitle {
+  margin: 18px 0 10px;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 950;
+  color: #e5f6ff;
+  letter-spacing: .02em;
+}
+
+.sound-bus-consumers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.sound-bus-events {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.sound-bus-event-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 220px);
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid rgba(255,255,255,.085);
+  border-radius: 15px;
+  background: rgba(2,6,23,.34);
+}
+
+.sound-bus-event-title {
+  font-weight: 950;
+  color: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-bus-event-meta,
+.sound-bus-event-side {
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sound-bus-event-side {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+}
+
+@media(max-width: 760px) {
+  .sound-bus-event-row {
+    grid-template-columns: 1fr;
+  }
+  .sound-bus-event-side {
+    text-align: left;
+  }
+}

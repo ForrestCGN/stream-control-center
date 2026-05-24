@@ -659,6 +659,60 @@ window.SoundSystemModule = (function(){
     return `${type}:${id}${mod}${cap}`;
   }
 
+
+  function formatBusContext(ctx){
+    if (!ctx || typeof ctx !== 'object') return '-';
+    const parts = [];
+    if (ctx.source) parts.push(ctx.source);
+    if (ctx.category) parts.push(ctx.category);
+    if (ctx.requestedBy) parts.push('@' + ctx.requestedBy);
+    if (ctx.bundleRole) parts.push('bundle:' + ctx.bundleRole);
+    return parts.length ? parts.join(' · ') : '-';
+  }
+
+  function renderBusEventRows(events){
+    if (!Array.isArray(events) || !events.length) {
+      return `<div class="sound-empty">Noch keine SoundBus-Events im Status-Cache.</div>`;
+    }
+    return `
+      <div class="sound-bus-events">
+        ${events.slice(0, 12).map(ev => {
+          const ctx = ev.context || {};
+          const title = ctx.label || ctx.soundId || ev.reason || ev.action || '-';
+          const bundle = ctx.bundleId ? `${ctx.bundleType || 'bundle'} · ${ctx.bundleRole || '-'} ${ctx.bundleOrder ? '#' + ctx.bundleOrder : ''}` : '-';
+          return `
+            <div class="sound-bus-event-row">
+              <div class="sound-bus-event-main">
+                <div class="sound-bus-event-title">${esc(ev.action || '-')} · ${esc(title)}</div>
+                <div class="sound-bus-event-meta">${esc(formatBusContext(ctx))}</div>
+              </div>
+              <div class="sound-bus-event-side">
+                <span>${esc(formatLocalTime(ev.at))}</span>
+                <span>${esc(bundle)}</span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function renderBusConsumerSummary(events){
+    const counts = {};
+    (Array.isArray(events) ? events : []).forEach(ev => {
+      const ctx = ev.context || {};
+      const key = ctx.source || ctx.sourceModule || ctx.category || ev.kind || 'system';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    if (!entries.length) return '';
+    return `
+      <div class="sound-bus-consumers">
+        ${entries.map(([key, count]) => `<span class="sound-pill">${esc(key)} · ${esc(count)}</span>`).join('')}
+      </div>
+    `;
+  }
+
   function renderSoundBusMonitor(){
     const el = document.getElementById('soundBusMonitorCard');
     if (!el) return;
@@ -673,6 +727,7 @@ window.SoundSystemModule = (function(){
     const emitted = Number(busStats.emitted || 0);
     const skipped = Number(busStats.skipped || 0);
     const debugUrl = '/public/tools/soundbus_debug_view.html';
+    const recentEvents = Array.isArray(bus.recentEvents) ? bus.recentEvents : [];
     const enabled = bus.enabled === true;
     const comm = bus.communicationBusAvailable === true;
     const statusClass = enabled && comm && errCount === 0 ? 'success' : (errCount > 0 || !comm ? 'danger' : '');
@@ -698,6 +753,10 @@ window.SoundSystemModule = (function(){
       <div class="sound-status-row"><span>Current Bundle</span><span class="sound-muted">${bundle ? esc(bundle.bundleId || '-') : '-'}</span></div>
       <div class="sound-status-row"><span>Active Bundle Lock</span><span class="sound-muted">${lock ? esc(lock.bundleId || '-') : '-'}</span></div>
       <div class="sound-status-row"><span>Sound-Fehler</span><span>${esc(normalStats.failed || 0)} · Device ${esc(normalStats.deviceFailed || 0)} · Discord ${esc(normalStats.discordFailed || 0)}</span></div>
+      <h4 class="sound-subtitle">Quellen im Bus-Cache</h4>
+      ${renderBusConsumerSummary(recentEvents)}
+      <h4 class="sound-subtitle">Letzte SoundBus-Events</h4>
+      ${renderBusEventRows(recentEvents)}
       <div class="sound-actions">
         <a class="ghost-link" href="${debugUrl}" target="_blank">SoundBus Debug View öffnen</a>
         ${button('Status neu laden', 'refresh-status')}

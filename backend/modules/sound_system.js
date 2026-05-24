@@ -16,7 +16,7 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_STEP = 289;
+const MODULE_STEP = 310;
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
 
@@ -215,7 +215,8 @@ module.exports.init = function init(ctx) {
       lastEventId: "",
       lastResult: null,
       lastError: "",
-      lastAt: ""
+      lastAt: "",
+      recentEvents: []
     },
     activeBundleLock: null
   };
@@ -594,10 +595,64 @@ module.exports.init = function init(ctx) {
       client: { ...state.client },
       device: { ...state.device },
       discord: { ...state.discord },
-      soundBus: publicSoundBusStatus(),
+      soundBus: publicSoundBusStatus({ includeRecentEvents: false }),
       stats: { ...state.stats },
       updatedAt: state.updatedAt
     };
+  }
+
+  function compactMetaValue(value) {
+    if (value === null || value === undefined) return "";
+    const str = String(value).trim();
+    return str.length > 240 ? `${str.slice(0, 237)}...` : str;
+  }
+
+  function soundBusConsumerContext(item, reason, action, options = {}) {
+    const meta = item && isPlainObject(item.meta) ? item.meta : {};
+    const visual = item && isPlainObject(item.visual) ? item.visual : {};
+    const bundle = item && isPlainObject(item.bundle) ? item.bundle : {};
+    const lifecycle = item && isPlainObject(item.lifecycle) ? item.lifecycle : {};
+    const extra = isPlainObject(options.extra) ? options.extra : {};
+    const context = {
+      reason: String(reason || "state"),
+      action: String(action || ""),
+      kind: String(options.kind || (item ? "item" : "state")),
+      requestId: item ? compactMetaValue(item.requestId) : "",
+      soundId: item ? compactMetaValue(item.soundId) : "",
+      label: item ? compactMetaValue(item.label || item.soundId) : "",
+      category: item ? compactMetaValue(item.category) : "",
+      source: item ? compactMetaValue(item.source || meta.source || visual.module) : "",
+      sourceModule: compactMetaValue(meta.module || visual.module || (item ? item.source : "") || MODULE_NAME),
+      requestedBy: item ? compactMetaValue(item.requestedBy || meta.user || meta.login || visual.login || visual.user) : "",
+      target: item ? compactMetaValue(item.target) : "",
+      outputTarget: item ? compactMetaValue(item.outputTarget) : "",
+      mediaType: item ? compactMetaValue(item.mediaType) : "",
+      file: item ? compactMetaValue(item.file) : "",
+      durationMs: item ? Number(item.durationMs || 0) : 0,
+      priority: item ? Number(item.priority || 0) : 0,
+      bundleId: compactMetaValue(bundle.bundleId || meta.bundleId || extra.bundleId),
+      bundleType: compactMetaValue(bundle.bundleType || meta.bundleType || extra.bundleType),
+      bundleRole: compactMetaValue(bundle.bundleRole || meta.bundleRole || visual.bundleRole),
+      bundleOrder: Number(bundle.bundleOrder || meta.bundleOrder || 0),
+      bundleSize: Number(bundle.bundleSize || meta.bundleSize || 0),
+      alertEventUid: compactMetaValue(meta.alertEventUid || visual.alertEventUid),
+      alertSource: compactMetaValue(meta.alertSource || visual.alertSource),
+      alertType: compactMetaValue(meta.alertType || visual.alertType),
+      vipRequestId: compactMetaValue(meta.requestId || visual.requestId),
+      soundType: compactMetaValue(meta.soundType || visual.type),
+      traceKind: compactMetaValue(meta.traceKind),
+      error: compactMetaValue(extra.error || lifecycle.error || ""),
+      queuedCount: state.queue.length,
+      activeBundleLockId: state.activeBundleLock ? compactMetaValue(state.activeBundleLock.bundleId) : ""
+    };
+    return context;
+  }
+
+  function pushSoundBusRecentEvent(entry) {
+    const max = 80;
+    if (!state.soundBus || !Array.isArray(state.soundBus.recentEvents)) state.soundBus.recentEvents = [];
+    state.soundBus.recentEvents.unshift(entry);
+    if (state.soundBus.recentEvents.length > max) state.soundBus.recentEvents.length = max;
   }
 
   function emitSoundBus(reason, options = {}) {
@@ -615,12 +670,15 @@ module.exports.init = function init(ctx) {
 
     try {
       const item = options.item || null;
+      const extra = isPlainObject(options.extra) ? options.extra : {};
+      const context = soundBusConsumerContext(item, reason, action, { ...options, extra });
       const payload = {
         reason: String(reason || "state"),
         kind: String(options.kind || (item ? "item" : "state")),
+        context,
         item: busConfig.includeItem !== false && item ? publicItem(item) : null,
         state: busConfig.includeState !== false ? publicSoundSummary() : null,
-        extra: isPlainObject(options.extra) ? options.extra : {},
+        extra,
         emittedAt: core.nowIso()
       };
 
@@ -647,6 +705,15 @@ module.exports.init = function init(ctx) {
       state.soundBus.lastResult = result || null;
       state.soundBus.lastError = "";
       state.soundBus.lastAt = core.nowIso();
+      pushSoundBusRecentEvent({
+        at: state.soundBus.lastAt,
+        eventId: state.soundBus.lastEventId,
+        action,
+        reason: String(reason || "state"),
+        kind: payload.kind,
+        context,
+        deliveredCount: result && Number.isFinite(Number(result.deliveredCount)) ? Number(result.deliveredCount) : 0
+      });
       return result;
     } catch (err) {
       state.soundBus.errors += 1;
@@ -658,9 +725,12 @@ module.exports.init = function init(ctx) {
     }
   }
 
-  function publicSoundBusStatus() {
+  function publicSoundBusStatus(options = {}) {
     const busConfig = soundBusConfig();
     const bus = getCommunicationBus();
+    const includeRecentEvents = options.includeRecentEvents !== false;
+    const stats = { ...state.soundBus };
+    delete stats.recentEvents;
     return {
       ok: true,
       module: MODULE_NAME,
@@ -673,7 +743,8 @@ module.exports.init = function init(ctx) {
       ttlMs: Number(busConfig.ttlMs || 0),
       target: soundBusTarget(busConfig),
       communicationBusAvailable: !!bus,
-      stats: { ...state.soundBus }
+      stats,
+      recentEvents: includeRecentEvents ? [...(state.soundBus.recentEvents || [])] : []
     };
   }
 

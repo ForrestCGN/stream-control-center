@@ -1,10 +1,10 @@
-# CURRENT SYSTEM STATUS – STEP303
+# CURRENT SYSTEM STATUS – STEP310
 
 Stand: 2026-05-24
 
 ## Aktueller Fokus
 
-SoundBus ist im Dev-/Testbetrieb aktiv und wird im Dashboard lesend überwacht.
+SoundBus ist nach STEP289–STEP310 als stabile Event-/Status-Schicht im Dev-/Testbetrieb aktiv.
 
 Aktuelle Entscheidung:
 
@@ -23,22 +23,42 @@ Dies ist keine vollständige Bus-only-Produktivmigration. Bestehende HTTP-/WebSo
 - V5 Queue-/Bundle-Regression bestanden.
 - Discord Media Path Resolver Fix bestätigt.
 - SoundBus Debug View funktioniert.
-- Dashboard Bus-Monitor ist vorhanden und lesend.
-- Bus-Monitor Refresh nutzt nur `GET /api/sound/status`.
+- Dashboard Bus-Monitor funktioniert und ist rein lesend.
 
-## STEP303 Ergebnis
+## STEP310 Ergebnis
 
-Der Dashboard Bus-Monitor aktualisiert sich automatisch alle 5 Sekunden, solange der Tab aktiv ist.
+SoundBus-Events enthalten jetzt einen normalisierten Consumer-Kontext für soundnahe Systeme.
 
-Nicht geändert:
+Dadurch können folgende Quellen im Dashboard/Debug sauber unterschieden werden:
 
 ```text
-keine Sound-/Queue-/Bundle-Logik
-kein SoundBus-Umbau
-keine Backend-Routen
-keine DB-Migration
+Alert-Hauptsound
+Alert-TTS
+SoundAlerts / Channel Rewards
+VIP-/Mod-Sounds
+normales TTS
+sonstige Sound-System-Caller
 ```
+
+Zusätzlich hält das Sound-System einen kleinen Runtime-Cache:
+
+```text
+soundBus.recentEvents
+```
+
+Dieser Cache ist für Monitoring/Dashboard gedacht und verändert keine Playback-, Queue- oder Bundle-Logik.
 
 ## Nächster Schritt
 
-STEP304 – Sound Dashboard Bus-Monitor Auto Refresh Live-Test dokumentieren.
+Großer Folgeblock statt Mini-Steps:
+
+```text
+STEP320 – Sound Dashboard Control Center Block
+```
+
+Ziel:
+
+- Queue und laufende Sounds besser steuerbar machen.
+- Stop/Clear/Pause/Resume sauber mit Rechte-/Auth-Konzept vorbereiten.
+- SoundBus/Queue/Fehler im Dashboard zusammenführen.
+- Keine Bus-only-Migration ohne separaten Test.
