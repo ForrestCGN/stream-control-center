@@ -45,20 +45,21 @@
     <div class="debug-row"><span>Verbindung</span><code id="debugConnection">-</code></div>
     <div class="debug-row"><span>Reconnects</span><code id="debugReconnect">-</code></div>
     <div class="debug-row"><span>Hello/Heartbeat</span><code id="debugBusAcks">-</code></div>
+    <div class="debug-row"><span>Replay/Resync</span><code id="debugReplay">-</code></div>
     <div class="debug-row"><span>Event</span><code id="debugEvent">-</code></div>
     <div class="debug-row"><span>ACK</span><code id="debugAck">-</code></div>
     <div class="debug-row"><span>Letzte Msg</span><code id="debugMsg">-</code></div>
   </div>
-  <div class="mirror-badge">BUS MIRROR / RECONNECT TEST · nicht produktiv</div>
+  <div class="mirror-badge">BUS MIRROR / REPLAY TEST · nicht produktiv</div>
 <script>
 (() => {
   'use strict';
 
   const MODULE_META = {
     name: 'overlay_master_test',
-    version: '0.1.1',
-    build: 'STEP278M',
-    description: 'Master overlay Communication Bus reconnect and OBS reload test client'
+    version: '0.1.2',
+    build: 'STEP278N',
+    description: 'Master overlay Communication Bus replay and resync test client'
   };
 
   const CLIENT_ID = 'overlay_master_test';
@@ -76,7 +77,9 @@
     'visual.alert.resync',
     'ack',
     'heartbeat',
-    'reconnect.test'
+    'reconnect.test',
+    'replay.test',
+    'resync.test'
   ];
 
   const qs = new URLSearchParams(location.search);
@@ -88,6 +91,7 @@
   const debugConnectionEl = document.getElementById('debugConnection');
   const debugReconnectEl = document.getElementById('debugReconnect');
   const debugBusAcksEl = document.getElementById('debugBusAcks');
+  const debugReplayEl = document.getElementById('debugReplay');
   const debugEventEl = document.getElementById('debugEvent');
   const debugAckEl = document.getElementById('debugAck');
   const debugMsgEl = document.getElementById('debugMsg');
@@ -103,6 +107,9 @@
   let sessionId = '';
   let connectCount = 0;
   let disconnectCount = 0;
+  let replayCount = 0;
+  let lastReplayEventAt = '';
+  let lastReplayEventId = '';
   let lastConnectedAt = '';
   let lastDisconnectedAt = '';
   let lastHelloAckAt = '';
@@ -111,6 +118,7 @@
 
   setDebugClient();
   updateConnectionDebug();
+  updateReplayDebug();
 
   function nowIso() {
     return new Date().toISOString();
@@ -149,6 +157,12 @@
     }
     if (debugBusAcksEl) {
       debugBusAcksEl.textContent = `hello=${shortTime(lastHelloAckAt)} · heartbeat=${shortTime(lastHeartbeatAckAt)}`;
+    }
+  }
+
+  function updateReplayDebug() {
+    if (debugReplayEl) {
+      debugReplayEl.textContent = `events=${replayCount} · last=${shortTime(lastReplayEventAt)} · id=${lastReplayEventId || '-'}`;
     }
   }
 
@@ -199,6 +213,7 @@
         sessionId,
         connectCount,
         disconnectCount,
+        replayCount,
         mirror: true,
         preview: true,
         productionTarget: false,
@@ -220,6 +235,7 @@
       sessionId,
       connectCount,
       disconnectCount,
+      replayCount,
       ts: nowIso()
     });
   }
@@ -239,6 +255,7 @@
         sessionId,
         connectCount,
         disconnectCount,
+        replayCount,
         mirror: true,
         preview: true,
         productionTarget: false,
@@ -333,14 +350,25 @@
     return !!(msg && msg.id && msg.channel && msg.action && msg.payload && typeof msg.payload === 'object');
   }
 
+  function isLikelyReplayEvent(msg) {
+    return msg.meta?.replayable === true && msg.deliveredTo === undefined;
+  }
+
   function handleBusEvent(msg) {
     currentEventId = String(msg.id || '');
     currentChannel = String(msg.channel || '');
     currentAction = String(msg.action || '');
 
+    if (isLikelyReplayEvent(msg)) {
+      replayCount += 1;
+      lastReplayEventAt = nowIso();
+      lastReplayEventId = currentEventId;
+      updateReplayDebug();
+    }
+
     setDebugEvent(`${currentChannel}.${currentAction} · ${currentEventId}`);
     setDebugMsg(JSON.stringify({ channel: currentChannel, action: currentAction, source: msg.source || {}, meta: msg.meta || {}, sessionId }).slice(0, 420));
-    ack(currentEventId, 'received', { phase: 'message_received' });
+    ack(currentEventId, 'received', { phase: 'message_received', replayLike: isLikelyReplayEvent(msg) });
 
     if (currentChannel === 'visual.alert' && currentAction === 'clear') {
       clearAlert('bus_clear', false);
@@ -383,7 +411,7 @@
     return {
       source: msg.source?.module || msg.source?.id || 'communication_bus',
       type: `${msg.channel}.${msg.action}`,
-      headline: 'Communication Bus Test',
+      headline: msg.meta?.replayable === true ? 'Communication Bus Replay Test' : 'Communication Bus Test',
       value: msg.id || '',
       message,
       avatarUrl: '',
@@ -446,7 +474,7 @@
   }
 
   function escapeHtml(v) {
-    return String(v ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+    return String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
 
   function escapeAttr(v) {

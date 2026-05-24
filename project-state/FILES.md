@@ -1,5 +1,22 @@
 # FILES
 
+## STEP278N
+
+Changed:
+
+- `backend/modules/communication_bus.js`
+- `htdocs/overlays/_overlay-master-test.html`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+
+Added:
+
+- `project-state/STEP278N_REPLAY_RESYNC_TEST.md`
+
 ## STEP278M
 
 Changed:
@@ -16,6 +33,21 @@ Added:
 
 - `project-state/STEP278M_RECONNECT_OBS_RELOAD_TEST.md`
 
+## STEP278L
+
+Changed:
+
+- `htdocs/overlays/_overlay-master-test.html`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+
+Added:
+
+- `project-state/STEP278L_MASTER_OVERLAY_BUS_TEST_MODE.md`
 
 ## STEP278K
 

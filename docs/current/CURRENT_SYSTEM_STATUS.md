@@ -1,14 +1,49 @@
 # Current System Status
 
-## STEP278M - Master Overlay Reconnect / OBS Reload Test
+## STEP278N - Communication Bus Replay-/Resync-Test
 
-Das Master-Test-Overlay wurde für Browser-/OBS-Reloads und WebSocket-Reconnects gehärtet.
+Der Communication Bus besitzt jetzt eine kontrollierte Replay-Test-API und das Master-Test-Overlay wurde für Replay-/Resync-Tests erweitert.
+
+Geändert:
+
+- `backend/modules/communication_bus.js`
+- `htdocs/overlays/_overlay-master-test.html`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+
+Neu:
+
+- `project-state/STEP278N_REPLAY_RESYNC_TEST.md`
+
+Versionen:
+
+```text
+communication_bus v0.4.0 / STEP278N
+overlay_master_test v0.1.2 / STEP278N
+```
+
+Neue Route:
+
+```text
+http://127.0.0.1:8080/api/communication/replay?clientId=overlay_master_test&includeAckRequired=1
+```
+
+Wichtig:
+
+- Replay wird nicht automatisch bei `hello` ausgelöst.
+- Die Route ist ein kontrollierter Test-/Diagnoseweg.
+- Keine Produktivmigration.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Kein Ersatz von `broadcastWS`.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+
+## STEP278M - Master Overlay Reconnect-/OBS-Reload-Test
+
+Master-Test-Overlay für Reconnect-/OBS-Reload-Tests gehärtet.
 
 Geändert:
 
 - `htdocs/overlays/_overlay-master-test.html`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-- `project-state/STEP278M_RECONNECT_OBS_RELOAD_TEST.md`
 
 Version:
 
@@ -22,24 +57,37 @@ URL:
 http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1
 ```
 
-Neu:
+Der Reconnect-Test prüft:
 
-- Reconnect-/Session-Debug
 - neue Session-ID pro WebSocket-Verbindung
 - `connectCount` und `disconnectCount`
-- Zeitstempel für letzte Verbindung, Trennung, `hello_ack` und `heartbeat_ack`
-- Heartbeat-Intervall wird bei Disconnect gestoppt und nach Reconnect neu gestartet
-- alte Testkarten werden bei WebSocket-Close/Open ausgeblendet
+- letzte Verbindung und Trennung
+- letzte `hello_ack` und `heartbeat_ack`
+- sauberer Heartbeat-Neustart nach Reconnect
 
-Wichtig:
+## STEP278L - Master Overlay Bus Test Mode
 
-- Keine Produktivmigration.
-- Keine Alert-/Sound-/TTS-/VIP-Integration.
-- Kein Ersatz von `broadcastWS`.
-- Keine Dashboard-Seite.
-- Keine Datenbankmigration.
-- Kein `server.js`-Umbau.
+Master-Test-Overlay als Communication-Bus-Testclient erweitert.
 
+Version:
+
+```text
+overlay_master_test v0.1.0 / STEP278L
+```
+
+URL:
+
+```text
+http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1
+```
+
+Funktionen:
+
+- `hello` beim WebSocket-Connect senden
+- `heartbeat` regelmäßig senden
+- Bus-Testevents empfangen
+- ACKs senden
+- Test-/Mirror-Karten anzeigen
 
 ## STEP278K - Communication WS Test Client
 
@@ -61,23 +109,6 @@ Version:
 communication_ws_test_client v0.1.0 / STEP278K
 ```
 
-Der Testclient kann:
-
-- WebSocket verbinden
-- `hello` senden
-- `heartbeat` senden
-- Testevent per API erzeugen
-- `ack` für letztes Event senden
-- Communication Status anzeigen
-
-Wichtig:
-
-- Keine Produktivmigration.
-- Keine Alert-/Sound-/TTS-/VIP-Integration.
-- Keine Dashboard-Seite.
-- Keine Datenbankmigration.
-- Kein `server.js`-Umbau.
-
 ## STEP278J - Versioned Startup Logs
 
 Startup-Logs der neuen Module enthalten Version und Build.
@@ -87,10 +118,3 @@ Geändert:
 - `backend/modules/communication_bus.js`
 - `backend/modules/audit_log.js`
 - `docs/backend/MODULE_VERSIONING_STANDARD.md`
-
-Neue Log-Ausgaben:
-
-```text
-[communication_bus] v0.3.0 / STEP278H API routes and WS handler registered
-[audit_log] v0.2.0 / STEP278E API routes registered
-```

@@ -1,5 +1,55 @@
 # CURRENT_STATUS
 
+## STEP278N
+
+Communication Bus Replay-/Resync-Test ergänzt.
+
+Geändert:
+
+- `backend/modules/communication_bus.js`
+- `htdocs/overlays/_overlay-master-test.html`
+- `docs/backend/COMMUNICATION_BUS_HELPER.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+
+Neu:
+
+- `project-state/STEP278N_REPLAY_RESYNC_TEST.md`
+
+Versionen:
+
+```text
+communication_bus v0.4.0 / STEP278N
+overlay_master_test v0.1.2 / STEP278N
+```
+
+Neue Route:
+
+```text
+/api/communication/replay?clientId=overlay_master_test&includeAckRequired=1
+```
+
+Funktionen:
+
+- Replay-Endpunkt ruft kontrolliert `replayForClient()` auf.
+- Replay kann gezielt für einen registrierten Client ausgelöst werden.
+- `includeAckRequired` kann per Query gesetzt werden.
+- Master-Test-Overlay zeigt Replay-/Resync-Debug an.
+- Master-Test-Overlay bestätigt replayed Events wie normale Bus-Events per ACK.
+
+Wichtig:
+
+- Kein automatisches Replay bei `hello`.
+- Keine Produktivmigration.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Kein Ersatz von `broadcastWS`.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+- Kein OBS-Umbau.
+
 ## STEP278M
 
 Master-Test-Overlay für Reconnect-/OBS-Reload-Tests gehärtet.

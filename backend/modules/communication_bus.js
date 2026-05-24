@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * STEP278H - Communication Bus Status API + WS client registration.
+ * STEP278N - Communication Bus Status/Test/Replay API + WS client registration.
  *
  * This module exposes the prepared communication bus as test/status API and
  * handles optional WebSocket hello/heartbeat/ack messages.
@@ -16,11 +16,11 @@ const security = require('./helpers/helper_security_context');
 
 const MODULE_META = {
   name: 'communication_bus',
-  version: '0.3.0',
-  build: 'STEP278H',
+  version: '0.4.0',
+  build: 'STEP278N',
   coreName: 'communication_core',
   coreVersion: '0.3.0',
-  description: 'Communication Bus API and WebSocket client registration'
+  description: 'Communication Bus API, WebSocket client registration and controlled replay test route'
 };
 
 const DEFAULT_CONFIG = {
@@ -28,6 +28,7 @@ const DEFAULT_CONFIG = {
   testEndpointEnabled: true,
   ackEndpointEnabled: true,
   issueEndpointEnabled: true,
+  replayEndpointEnabled: true,
   resetEndpointEnabled: true,
   wsClientRegistrationEnabled: true,
   wsAcksEnabled: true,
@@ -349,6 +350,37 @@ function init({ app }) {
       moduleVersion: MODULE_META.version,
       moduleBuild: MODULE_META.build,
       ack: true,
+      result
+    });
+  });
+
+  app.get('/api/communication/replay', (req, res) => {
+    if (loadedConfig.replayEndpointEnabled === false) {
+      return res.status(403).json({ ok: false, error: 'communication_replay_endpoint_disabled' });
+    }
+
+    const clientId = cleanString(req.query.clientId || req.query.id);
+    if (!clientId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'clientId_required'
+      });
+    }
+
+    const includeAckRequired = boolParam(req.query.includeAckRequired, true);
+    const currentBus = getBus();
+    const result = currentBus.replayForClient(clientId, {
+      includeAckRequired
+    });
+
+    res.json({
+      ok: result.ok === true,
+      module: MODULE_META.name,
+      moduleVersion: MODULE_META.version,
+      moduleBuild: MODULE_META.build,
+      replay: true,
+      clientId,
+      includeAckRequired,
       result
     });
   });

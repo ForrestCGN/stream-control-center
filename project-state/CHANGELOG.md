@@ -1,14 +1,30 @@
 # CHANGELOG
 
+## STEP278N
+
+- Updated `backend/modules/communication_bus.js` to `v0.4.0 / STEP278N`.
+- Added controlled replay test route `/api/communication/replay`.
+- Replay route calls existing `replayForClient()` helper logic for a specific client.
+- Updated `htdocs/overlays/_overlay-master-test.html` to `v0.1.2 / STEP278N`.
+- Master overlay now exposes replay/resync capabilities and debug information.
+- No automatic replay on `hello` was added.
+- No alert, sound, TTS, VIP, dashboard, database or `broadcastWS` migration changes.
+
 ## STEP278M
 
-- Hardened `htdocs/overlays/_overlay-master-test.html` for browser/OBS reload and WebSocket reconnect tests.
-- Added reconnect/session debug output to the overlay.
-- Added per-connection session IDs, connect/disconnect counters and hello/heartbeat ACK timestamps.
-- Heartbeat timers are now explicitly stopped on disconnect and restarted after reconnect.
-- Existing test cards are hidden on WebSocket close/open to avoid stale visual state.
-- No backend, dashboard, database or production module migration changes.
+- Hardened `htdocs/overlays/_overlay-master-test.html` for reconnect and OBS browser reload tests.
+- Added session id, connect/disconnect counters and connection timestamps.
+- Added hello/heartbeat ACK debug timestamps.
+- Heartbeat is stopped and restarted cleanly across reconnects.
+- No server, dashboard, database or production module migration changes.
 
+## STEP278L
+
+- Extended `htdocs/overlays/_overlay-master-test.html` into a real Communication Bus test client.
+- Overlay sends `hello`, `heartbeat` and `ack` messages using the Bus protocol.
+- Overlay receives and displays Bus test events in mirror/test mode.
+- Overlay shows debug information for client, event and ack state.
+- No server, dashboard, database or production module migration changes.
 
 ## STEP278K
 
