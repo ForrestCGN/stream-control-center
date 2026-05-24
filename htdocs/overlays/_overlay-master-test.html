@@ -12,10 +12,10 @@
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--text)}
     body{background:var(--bg)}
     .master-stage{position:fixed;inset:0;pointer-events:none;overflow:hidden}
-    .debug{position:fixed;left:14px;bottom:14px;z-index:1000;min-width:380px;max-width:700px;padding:10px 12px;border:1px solid rgba(57,230,255,.35);border-radius:14px;background:rgba(5,7,22,.78);box-shadow:0 0 24px rgba(195,92,255,.20);font-size:12px;line-height:1.35;opacity:.0;transition:.25s;pointer-events:none}
+    .debug{position:fixed;left:14px;bottom:14px;z-index:1000;min-width:420px;max-width:760px;padding:10px 12px;border:1px solid rgba(57,230,255,.35);border-radius:14px;background:rgba(5,7,22,.78);box-shadow:0 0 24px rgba(195,92,255,.20);font-size:12px;line-height:1.35;opacity:.0;transition:.25s;pointer-events:none}
     body[data-debug="1"] .debug{opacity:1}
     .debug b{color:#8ff4ff}.debug .warn{color:#ffd36a}.debug .ok{color:#8df5c8}.debug .bad{color:#fb7185}.debug .muted{color:#aab4d4}
-    .debug-row{display:grid;grid-template-columns:112px 1fr;gap:8px;margin-top:3px}.debug-row span:first-child{color:#aab4d4}.debug code{font-family:"Cascadia Mono","Consolas",monospace;font-size:11px;color:#dff7ff;word-break:break-all}
+    .debug-row{display:grid;grid-template-columns:126px 1fr;gap:8px;margin-top:3px}.debug-row span:first-child{color:#aab4d4}.debug code{font-family:"Cascadia Mono","Consolas",monospace;font-size:11px;color:#dff7ff;word-break:break-all}
     .mirror-badge{position:fixed;right:18px;bottom:18px;z-index:1000;padding:7px 11px;border-radius:999px;border:1px solid rgba(195,92,255,.45);background:rgba(7,9,26,.72);font-size:12px;color:#eee;opacity:.0}
     body[data-debug="1"] .mirror-badge{opacity:1}
     .alert-card{position:absolute;left:50%;top:50%;width:min(1120px,calc(100vw - 80px));min-height:210px;transform:translate(-50%,calc(-50% + 34px)) scale(.94);opacity:0;filter:blur(6px);transition:opacity .46s ease, transform .7s cubic-bezier(.16,1,.3,1), filter .46s ease;z-index:50}
@@ -45,6 +45,7 @@
     <div class="debug-row"><span>Verbindung</span><code id="debugConnection">-</code></div>
     <div class="debug-row"><span>Reconnects</span><code id="debugReconnect">-</code></div>
     <div class="debug-row"><span>Hello/Heartbeat</span><code id="debugBusAcks">-</code></div>
+    <div class="debug-row"><span>Watchdog</span><code id="debugWatchdog">-</code></div>
     <div class="debug-row"><span>Replay/Resync</span><code id="debugReplay">-</code></div>
     <div class="debug-row"><span>Event</span><code id="debugEvent">-</code></div>
     <div class="debug-row"><span>ACK</span><code id="debugAck">-</code></div>
@@ -57,9 +58,8 @@
 
   const MODULE_META = {
     name: 'overlay_master_test',
-    version: '0.1.2',
-    build: 'STEP278N',
-    description: 'Master overlay Communication Bus replay and resync test client'
+    version: '0.1.3',
+    description: 'Master overlay Communication Bus mirror test client with reconnect watchdog'
   };
 
   const CLIENT_ID = 'overlay_master_test';
@@ -68,6 +68,9 @@
   const CLIENT_MODE = 'mirror_preview';
   const HEARTBEAT_MS = 5000;
   const RECONNECT_MS = 1500;
+  const HELLO_ACK_TIMEOUT_MS = 8000;
+  const HEARTBEAT_ACK_TIMEOUT_MS = 12000;
+  const STALE_CHECK_MS = 3000;
 
   const CAPABILITIES = [
     'communication.test',
@@ -79,7 +82,9 @@
     'heartbeat',
     'reconnect.test',
     'replay.test',
-    'resync.test'
+    'resync.test',
+    'hello.timeout.watchdog',
+    'heartbeat.ack.watchdog'
   ];
 
   const qs = new URLSearchParams(location.search);
@@ -91,6 +96,7 @@
   const debugConnectionEl = document.getElementById('debugConnection');
   const debugReconnectEl = document.getElementById('debugReconnect');
   const debugBusAcksEl = document.getElementById('debugBusAcks');
+  const debugWatchdogEl = document.getElementById('debugWatchdog');
   const debugReplayEl = document.getElementById('debugReplay');
   const debugEventEl = document.getElementById('debugEvent');
   const debugAckEl = document.getElementById('debugAck');
@@ -99,6 +105,7 @@
   let ws = null;
   let reconnectTimer = null;
   let heartbeatTimer = null;
+  let staleCheckTimer = null;
   let currentTimer = null;
   let currentEventId = '';
   let currentChannel = '';
@@ -107,35 +114,37 @@
   let sessionId = '';
   let connectCount = 0;
   let disconnectCount = 0;
+  let forcedReconnectCount = 0;
   let replayCount = 0;
   let lastReplayEventAt = '';
   let lastReplayEventId = '';
   let lastConnectedAt = '';
   let lastDisconnectedAt = '';
+  let lastHelloSentAt = '';
+  let lastHeartbeatSentAt = '';
   let lastHelloAckAt = '';
   let lastHeartbeatAckAt = '';
+  let lastForcedReconnectAt = '';
+  let lastForcedReconnectReason = '';
   let reconnectScheduledAt = '';
+  let connecting = false;
 
   setDebugClient();
   updateConnectionDebug();
   updateReplayDebug();
+  updateWatchdogDebug();
 
-  function nowIso() {
-    return new Date().toISOString();
+  function nowIso() { return new Date().toISOString(); }
+  function asMs(value) {
+    const n = value ? Date.parse(value) : 0;
+    return Number.isFinite(n) ? n : 0;
   }
-
   function shortTime(value) {
     if (!value) return '-';
-    try {
-      return new Date(value).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    } catch (_) {
-      return value;
-    }
+    try { return new Date(value).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+    catch (_) { return value; }
   }
-
-  function createSessionId() {
-    return `oms_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-  }
+  function createSessionId() { return `oms_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`; }
 
   function setStatus(text, cls) {
     if (!statusEl) return;
@@ -145,60 +154,55 @@
 
   function setDebugClient(extra) {
     if (!debugClientEl) return;
-    debugClientEl.textContent = `${CLIENT_ID} · ${CLIENT_TYPE} · ${MODULE_META.version}/${MODULE_META.build}${extra ? ' · ' + extra : ''}`;
+    debugClientEl.textContent = `${CLIENT_ID} · ${CLIENT_TYPE} · v${MODULE_META.version}${extra ? ' · ' + extra : ''}`;
   }
 
   function updateConnectionDebug() {
-    if (debugConnectionEl) {
-      debugConnectionEl.textContent = `session=${sessionId || '-'} · connected=${shortTime(lastConnectedAt)} · disconnected=${shortTime(lastDisconnectedAt)}`;
-    }
-    if (debugReconnectEl) {
-      debugReconnectEl.textContent = `connects=${connectCount} · disconnects=${disconnectCount} · next=${shortTime(reconnectScheduledAt)}`;
-    }
-    if (debugBusAcksEl) {
-      debugBusAcksEl.textContent = `hello=${shortTime(lastHelloAckAt)} · heartbeat=${shortTime(lastHeartbeatAckAt)}`;
-    }
+    if (debugConnectionEl) debugConnectionEl.textContent = `session=${sessionId || '-'} · connected=${shortTime(lastConnectedAt)} · disconnected=${shortTime(lastDisconnectedAt)}`;
+    if (debugReconnectEl) debugReconnectEl.textContent = `connects=${connectCount} · disconnects=${disconnectCount} · forced=${forcedReconnectCount} · next=${shortTime(reconnectScheduledAt)}`;
+    if (debugBusAcksEl) debugBusAcksEl.textContent = `hello=${shortTime(lastHelloAckAt)} · heartbeat=${shortTime(lastHeartbeatAckAt)}`;
+  }
+
+  function updateWatchdogDebug() {
+    if (!debugWatchdogEl) return;
+    debugWatchdogEl.textContent = `last=${shortTime(lastForcedReconnectAt)} · reason=${lastForcedReconnectReason || '-'} · heartbeatSent=${shortTime(lastHeartbeatSentAt)}`;
   }
 
   function updateReplayDebug() {
-    if (debugReplayEl) {
-      debugReplayEl.textContent = `events=${replayCount} · last=${shortTime(lastReplayEventAt)} · id=${lastReplayEventId || '-'}`;
-    }
+    if (debugReplayEl) debugReplayEl.textContent = `events=${replayCount} · last=${shortTime(lastReplayEventAt)} · id=${lastReplayEventId || '-'}`;
   }
 
-  function setDebugEvent(text) {
-    if (debugEventEl) debugEventEl.textContent = text || '-';
-  }
-
-  function setDebugAck(text) {
-    if (debugAckEl) debugAckEl.textContent = text || '-';
-  }
-
-  function setDebugMsg(text) {
-    if (debugMsgEl) debugMsgEl.textContent = text || '-';
-  }
+  function setDebugEvent(text) { if (debugEventEl) debugEventEl.textContent = text || '-'; }
+  function setDebugAck(text) { if (debugAckEl) debugAckEl.textContent = text || '-'; }
+  function setDebugMsg(text) { if (debugMsgEl) debugMsgEl.textContent = text || '-'; }
 
   function stopHeartbeat() {
     clearInterval(heartbeatTimer);
     heartbeatTimer = null;
   }
-
   function startHeartbeat() {
     stopHeartbeat();
     heartbeatTimer = setInterval(heartbeat, HEARTBEAT_MS);
+    heartbeat();
+  }
+  function stopStaleCheck() {
+    clearInterval(staleCheckTimer);
+    staleCheckTimer = null;
+  }
+  function startStaleCheck() {
+    stopStaleCheck();
+    staleCheckTimer = setInterval(checkConnectionFreshness, STALE_CHECK_MS);
   }
 
   function busSend(payload) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return false;
-    try {
-      ws.send(JSON.stringify(payload));
-      return true;
-    } catch (_) {
-      return false;
-    }
+    try { ws.send(JSON.stringify(payload)); return true; }
+    catch (_) { return false; }
   }
 
   function hello() {
+    lastHelloSentAt = nowIso();
+    lastHelloAckAt = '';
     const sent = busSend({
       type: 'hello',
       clientId: CLIENT_ID,
@@ -209,10 +213,10 @@
       version: MODULE_META.version,
       capabilities: CAPABILITIES,
       meta: {
-        build: MODULE_META.build,
         sessionId,
         connectCount,
         disconnectCount,
+        forcedReconnectCount,
         replayCount,
         mirror: true,
         preview: true,
@@ -221,9 +225,11 @@
       }
     });
     if (sent) setStatus('hello gesendet · warte auf Bus', 'warn');
+    updateWatchdogDebug();
   }
 
   function heartbeat() {
+    lastHeartbeatSentAt = nowIso();
     busSend({
       type: 'heartbeat',
       clientId: CLIENT_ID,
@@ -235,9 +241,11 @@
       sessionId,
       connectCount,
       disconnectCount,
+      forcedReconnectCount,
       replayCount,
-      ts: nowIso()
+      ts: lastHeartbeatSentAt
     });
+    updateWatchdogDebug();
   }
 
   function ack(eventId, status, details) {
@@ -255,6 +263,7 @@
         sessionId,
         connectCount,
         disconnectCount,
+        forcedReconnectCount,
         replayCount,
         mirror: true,
         preview: true,
@@ -269,18 +278,76 @@
     return ok;
   }
 
+  function forceReconnect(reason) {
+    const cleanReason = String(reason || 'forced_reconnect').trim() || 'forced_reconnect';
+    forcedReconnectCount += 1;
+    lastForcedReconnectAt = nowIso();
+    lastForcedReconnectReason = cleanReason;
+    setStatus(`reconnect: ${cleanReason}`, 'bad');
+    setDebugMsg(`forced reconnect: ${cleanReason}`);
+    updateConnectionDebug();
+    updateWatchdogDebug();
+
+    stopHeartbeat();
+    stopStaleCheck();
+
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      try { ws.close(); }
+      catch (_) { scheduleReconnect(cleanReason); }
+      return;
+    }
+    scheduleReconnect(cleanReason);
+  }
+
+  function scheduleReconnect(reason) {
+    if (reconnectTimer) return;
+    reconnectScheduledAt = new Date(Date.now() + RECONNECT_MS).toISOString();
+    lastForcedReconnectReason = reason || lastForcedReconnectReason || 'scheduled_reconnect';
+    updateConnectionDebug();
+    updateWatchdogDebug();
+    reconnectTimer = setTimeout(connect, RECONNECT_MS);
+  }
+
+  function checkConnectionFreshness() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const now = Date.now();
+    const connectedAt = asMs(lastConnectedAt);
+    const helloSentAt = asMs(lastHelloSentAt);
+    const heartbeatSentAt = asMs(lastHeartbeatSentAt);
+    const helloAckAt = asMs(lastHelloAckAt);
+    const heartbeatAckAt = asMs(lastHeartbeatAckAt);
+
+    if (helloSentAt && !helloAckAt && now - helloSentAt > HELLO_ACK_TIMEOUT_MS) {
+      forceReconnect('hello_ack_timeout');
+      return;
+    }
+
+    const freshestAck = Math.max(helloAckAt, heartbeatAckAt, connectedAt);
+    if (heartbeatSentAt && freshestAck && now - freshestAck > HEARTBEAT_ACK_TIMEOUT_MS) {
+      forceReconnect('heartbeat_ack_stale');
+    }
+  }
+
   function connect() {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
     reconnectScheduledAt = '';
     sessionId = createSessionId();
+    connecting = true;
+    lastHelloSentAt = '';
+    lastHeartbeatSentAt = '';
+    lastHelloAckAt = '';
+    lastHeartbeatAckAt = '';
     stopHeartbeat();
+    stopStaleCheck();
     updateConnectionDebug();
+    updateWatchdogDebug();
 
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(proto + '//' + location.host);
 
     ws.addEventListener('open', () => {
+      connecting = false;
       connectCount += 1;
       lastConnectedAt = nowIso();
       reconnectScheduledAt = '';
@@ -288,8 +355,10 @@
       clearAlert('ws_reconnect_open', false);
       setDebugClient(`session=${sessionId}`);
       updateConnectionDebug();
+      updateWatchdogDebug();
       hello();
       startHeartbeat();
+      startStaleCheck();
     });
 
     ws.addEventListener('message', ev => {
@@ -299,19 +368,21 @@
     });
 
     ws.addEventListener('close', () => {
+      connecting = false;
       disconnectCount += 1;
       lastDisconnectedAt = nowIso();
-      reconnectScheduledAt = new Date(Date.now() + RECONNECT_MS).toISOString();
       setStatus('getrennt · reconnect geplant', 'bad');
       stopHeartbeat();
+      stopStaleCheck();
       clearAlert('ws_close', false);
       updateConnectionDebug();
-      reconnectTimer = setTimeout(connect, RECONNECT_MS);
+      updateWatchdogDebug();
+      scheduleReconnect('ws_close');
     });
 
     ws.addEventListener('error', () => {
       setStatus('websocket fehler · reconnect', 'bad');
-      try { ws.close(); } catch (_) {}
+      try { ws.close(); } catch (_) { forceReconnect('websocket_error'); }
     });
   }
 
@@ -323,6 +394,7 @@
       setStatus('registriert · Bus bereit', 'ok');
       setDebugClient(`bus=${msg.bus || 'cgn'} · session=${sessionId}`);
       updateConnectionDebug();
+      updateWatchdogDebug();
       return;
     }
 
@@ -330,6 +402,7 @@
       lastHeartbeatAckAt = nowIso();
       setStatus(msg.ok ? 'online · heartbeat ok' : 'heartbeat problem', msg.ok ? 'ok' : 'warn');
       updateConnectionDebug();
+      updateWatchdogDebug();
       return;
     }
 
@@ -346,13 +419,8 @@
     handleBusEvent(msg);
   }
 
-  function isBusEvent(msg) {
-    return !!(msg && msg.id && msg.channel && msg.action && msg.payload && typeof msg.payload === 'object');
-  }
-
-  function isLikelyReplayEvent(msg) {
-    return msg.meta?.replayable === true && msg.deliveredTo === undefined;
-  }
+  function isBusEvent(msg) { return !!(msg && msg.id && msg.channel && msg.action && msg.payload && typeof msg.payload === 'object'); }
+  function isLikelyReplayEvent(msg) { return msg.meta?.replayable === true && msg.deliveredTo === undefined; }
 
   function handleBusEvent(msg) {
     currentEventId = String(msg.id || '');
@@ -468,18 +536,20 @@
       setTimeout(() => card.remove(), 760);
     });
 
-    if (sendFinished && currentEventId) {
-      ack(currentEventId, 'finished', { phase: 'display_finished', reason: reason || 'finished' });
+    if (sendFinished && currentEventId) ack(currentEventId, 'finished', { phase: 'display_finished', reason: reason || 'finished' });
+  }
+
+  function escapeHtml(v) { return String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
+  function escapeAttr(v) { return escapeHtml(v).replace(/'/g, '&#39;'); }
+
+  window.addEventListener('beforeunload', () => {
+    stopHeartbeat();
+    stopStaleCheck();
+    clearTimeout(reconnectTimer);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try { ws.close(); } catch (_) {}
     }
-  }
-
-  function escapeHtml(v) {
-    return String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
-  }
-
-  function escapeAttr(v) {
-    return escapeHtml(v).replace(/'/g, '&#39;');
-  }
+  });
 
   connect();
 })();

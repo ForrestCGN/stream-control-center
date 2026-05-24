@@ -1,29 +1,37 @@
 # NEXT_STEPS
 
-## Nach STEP278S
+## Nach STEP278T
 
-1. Backend nach Deploy neu starten.
-2. Communication Status prüfen:
-   - `http://127.0.0.1:8080/api/communication/status`
-   - Erwartung: `moduleVersion` ist `0.7.0`.
-3. Master-Test-Overlay öffnen:
+1. Backend nach Deploy starten.
+2. Master-Test-Overlay öffnen:
    - `http://127.0.0.1:8080/overlays/_overlay-master-test.html?debug=1`
+3. Sichtprüfung:
+   - Client-Zeile zeigt `overlay_master_test · overlay · v0.1.3`
+   - keine STEP-/Build-Anzeige sichtbar
+   - Debug-Zeile `Watchdog` ist vorhanden
 4. Communication Debug View öffnen:
    - `http://127.0.0.1:8080/public/tools/communication_debug_view.html`
-5. In der Debug View prüfen:
-   - Tool-Anzeige `Tool v0.1.2`
-   - keine sichtbaren STEP-/Build-Werte
-   - Client `overlay_master_test` connected
+5. Status aktualisieren und prüfen:
+   - Client `overlay_master_test`
+   - Version `0.1.3`
+   - Status `connected`
 6. Alert-Mirror-Test senden:
-   - über Button `Alert Mirror Test`
-   - oder direkt: `http://127.0.0.1:8080/api/communication/test-alert?user=ForrestCGN&type=bits&amount=100&message=Alert%20Mirror%20Test`
-7. Erwartung:
-   - Master-Test-Overlay zeigt eine Alert-Mirror-Karte
-   - Debug View zeigt Event `visual.alert.play`
-   - `delivered` steigt
-   - `acks` steigt
-   - `issues` bleibt 0
-8. Watchdog prüfen:
-   - `http://127.0.0.1:8080/api/communication/watchdog?includeRecovered=1`
+   - `http://127.0.0.1:8080/api/communication/test-alert?user=ForrestCGN&type=bits&amount=100&message=Reconnect%20Robustness%20Test&ttlMs=60000`
+7. Prüfen:
+   - Overlay zeigt Bus-Mirror-Karte
+   - Debug View zeigt `visual.alert.play`
+   - `delivered > 0`
+   - `acks > 0`
+   - `issues = 0`
+8. Backend-Neustart-/Deploy-Test:
+   - Overlay offen lassen
+   - Backend neu starten oder Deploy ausführen
+   - nicht manuell reloaden
+   - warten, bis Overlay automatisch reconnectet
+   - erneut `test-alert` senden
+9. Erwartung:
+   - Overlay ist automatisch wieder verbunden
+   - Alert-Mirror kommt ohne manuellen Reload an
+   - ACK kommt zurück
 
-Wenn stabil: nächsten Schritt planen. Sinnvoll wäre danach eine Analyse, wie ein echtes Alert-System-Event zusätzlich als Mirror-Signal in den Bus gespiegelt werden kann, weiterhin ohne Produktivumschaltung.
+Wenn stabil: Nächster Schritt kann ein kontrollierter echter Alert-Mirror aus dem Alert-System sein, weiterhin zusätzlich/mirrornd und ohne Produktivmigration.

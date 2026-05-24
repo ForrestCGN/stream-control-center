@@ -2,11 +2,21 @@
 
 ## Verbindlicher Standard
 
-Module, Tools, APIs und UI-Ausgaben zeigen sichtbar nur Versionsnummern.
+Für das gesamte `stream-control-center` gilt:
 
-STEP-Angaben werden ausschließlich für Doku, Projektstand, Changelog, ZIP-Namen und Übergaben genutzt.
+```text
+Module / Code / API / UI:
+- sichtbar nur Versionsnummern verwenden
+- keine sichtbaren STEP-Angaben
+- keine Anzeigen im Muster `vX / STEP...`
 
-## Richtig
+STEPs:
+- nur für Doku, Projektstand, Changelog, ZIP-Namen und Übergaben
+```
+
+## Module
+
+Module sollen ihre öffentliche Version so führen:
 
 ```js
 const MODULE_META = {
@@ -16,34 +26,30 @@ const MODULE_META = {
 };
 ```
 
-Sichtbare Anzeige:
-
-```text
-example_module v1.2.3
-```
-
-## Nicht mehr verwenden
+Nicht mehr neu verwenden:
 
 ```js
-const MODULE_META = {
-  name: 'example_module',
-  version: '1.2.3',
-  build: 'STEP123'
-};
+build: 'STEP...'
 ```
 
-Sichtbare Anzeigen im Muster `1.2.3 / STEP123` sind nicht mehr vorgesehen.
+## APIs
 
-## Ausnahme
+Neue oder überarbeitete API-Antworten geben sichtbar nur noch `moduleVersion` oder vergleichbare Versionsfelder aus.
 
-STEP-Angaben bleiben erlaubt in:
+Bestehende alte API-Felder mit Build-/Step-Bezug dürfen aus Kompatibilitätsgründen vorerst bestehen bleiben, sollen aber nicht in UI-/Debug-Ansichten angezeigt werden.
 
-- Markdown-Dokumentation
-- Projektstand-Dateien
-- Changelog
-- ZIP-/Übergabenamen
-- Test-/Übergabe-Notizen
+## UI / Debug-Views / Overlays
 
-## Bestehende Kompatibilität
+Statuskarten, Debug-Views und Overlays zeigen nur Versionsnummern, zum Beispiel:
 
-Falls ältere APIs noch Build-/Step-Felder ausgeben, dürfen UI-/Debug-Seiten diese Felder nicht sichtbar anzeigen. Neue oder überarbeitete Module sollen solche Felder nicht mehr neu einführen.
+```text
+0.7.0
+v0.1.3
+```
+
+Nicht mehr:
+
+```text
+0.7.0 / STEP278S
+v0.1.3 / STEP278T
+```
