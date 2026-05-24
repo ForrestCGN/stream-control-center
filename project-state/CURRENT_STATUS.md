@@ -1,5 +1,43 @@
 # CURRENT_STATUS
 
+## STEP278K
+
+Communication WS Test Client ergänzt.
+
+Neu:
+
+- `htdocs/public/tools/communication_ws_test_client.html`
+- `project-state/STEP278K_COMMUNICATION_WS_TEST_CLIENT.md`
+
+Tool-Version:
+
+```text
+communication_ws_test_client v0.1.0 / STEP278K
+```
+
+URL:
+
+```text
+http://127.0.0.1:8080/public/tools/communication_ws_test_client.html
+```
+
+Funktionen:
+
+- WebSocket verbinden
+- `hello` senden
+- `heartbeat` senden
+- Testevent per API erzeugen
+- `ack` für letztes Event senden
+- Communication Status anzeigen
+
+Wichtig:
+
+- Keine Produktivmigration.
+- Keine Alert-/Sound-/TTS-/VIP-Integration.
+- Keine Dashboard-Seite.
+- Keine Datenbankmigration.
+- Kein `server.js`-Umbau.
+
 ## STEP278J
 
 Versioned Startup Logs ergänzt.
@@ -29,18 +67,6 @@ Wichtig:
 
 Module Version Metadata und verbindliche Versionierungsregel ergänzt.
 
-Geändert:
-
-- `backend/modules/communication_bus.js`
-- `backend/modules/audit_log.js`
-- `backend/modules/helpers/helper_communication.js`
-- `backend/modules/helpers/helper_security_context.js`
-- `backend/modules/helpers/helper_audit_log.js`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-- `docs/backend/AUDIT_LOG_HELPER.md`
-- `docs/backend/SECURITY_CONTEXT_HELPER.md`
-- `project-state/STEP278I_MODULE_VERSION_METADATA.md`
-
 Neu:
 
 - `docs/backend/MODULE_VERSIONING_STANDARD.md`
@@ -49,46 +75,5 @@ Wichtig:
 
 - Alle zukünftigen Module sollen `MODULE_META` besitzen.
 - Status-Ausgaben sollen `moduleVersion` und `moduleBuild` enthalten.
+- Startup-Logs enthalten Version und Build.
 - STEP bleibt zusätzlich als Projekt-Historie erhalten.
-- Keine Funktionsänderung.
-- Keine Produktivmigration.
-
-Aktuelle Versionen:
-
-```text
-Communication Core:          v0.3.0
-helper_communication.js:     v0.3.0 / STEP278F
-communication_bus.js:        v0.3.0 / STEP278H
-
-Security Context Core:       v0.1.0
-helper_security_context.js:  v0.1.0 / STEP278C
-
-Audit Core:                  v0.2.0
-helper_audit_log.js:         v0.1.0 / STEP278D
-audit_log.js:                v0.2.0 / STEP278E
-```
-
-## STEP278H
-
-Communication Bus WebSocket Client Registration vorbereitet.
-
-Geändert:
-
-- `backend/server.js`
-- `backend/modules/communication_bus.js`
-- `docs/backend/COMMUNICATION_BUS_HELPER.md`
-- `project-state/STEP278H_COMMUNICATION_WS_CLIENT_REGISTRATION.md`
-
-Neu:
-
-- WebSocket `hello`
-- WebSocket `heartbeat`
-- WebSocket `ack` / `bus_ack`
-- minimaler Modul-Dispatcher in `server.js` für `handleWsMessage()`
-
-Wichtig:
-
-- Keine Produktivmodule wurden migriert.
-- `broadcastWS` bleibt unverändert.
-- Unbekannte WS-Messages werden nicht blockiert.
-- Keine Dashboard-/DB-/OBS-Änderung.

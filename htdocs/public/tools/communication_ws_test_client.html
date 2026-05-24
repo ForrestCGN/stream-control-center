@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Communication WS Test Client</title>
+  <style>
+    :root {
+      --bg: #080b12;
+      --panel: rgba(17, 24, 39, 0.92);
+      --panel2: rgba(15, 23, 42, 0.88);
+      --text: #eef2ff;
+      --muted: #9ca3af;
+      --line: rgba(168, 85, 247, 0.45);
+      --accent: #a855f7;
+      --accent2: #22d3ee;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 12%, rgba(168, 85, 247, 0.22), transparent 34%),
+        radial-gradient(circle at 85% 18%, rgba(34, 211, 238, 0.16), transparent 32%),
+        linear-gradient(135deg, #050711, #0f172a 55%, #050711);
+      color: var(--text);
+      font-family: Inter, Segoe UI, system-ui, sans-serif;
+      padding: 24px;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .header {
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(17, 24, 39, 0.96), rgba(30, 41, 59, 0.82));
+      border-radius: 18px;
+      padding: 18px 20px;
+      box-shadow: 0 0 30px rgba(168, 85, 247, 0.22);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      letter-spacing: 0.02em;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: var(--panel);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.22);
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    input {
+      width: 100%;
+      background: rgba(2, 6, 23, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 10px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.16);
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 1px solid rgba(168, 85, 247, 0.38);
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.28), rgba(34, 211, 238, 0.16));
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button:hover {
+      border-color: rgba(34, 211, 238, 0.75);
+      box-shadow: 0 0 16px rgba(34, 211, 238, 0.15);
+    }
+
+    button.secondary {
+      background: rgba(15, 23, 42, 0.75);
+    }
+
+    button.danger {
+      border-color: rgba(251, 113, 133, 0.55);
+      background: rgba(127, 29, 29, 0.32);
+    }
+
+    .statusline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--bad);
+      box-shadow: 0 0 12px var(--bad);
+    }
+
+    .dot.connected {
+      background: var(--ok);
+      box-shadow: 0 0 12px var(--ok);
+    }
+
+    .dot.connecting {
+      background: var(--warn);
+      box-shadow: 0 0 12px var(--warn);
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    pre {
+      margin: 0;
+      max-height: 360px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: rgba(2, 6, 23, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 14px;
+      padding: 12px;
+      color: #dbeafe;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .pillrow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 0;
+    }
+
+    .pill {
+      border: 1px solid rgba(34, 211, 238, 0.28);
+      background: rgba(14, 165, 233, 0.09);
+      color: #bae6fd;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 14px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="header">
+      <h1>Communication WS Test Client <span id="version"></span></h1>
+      <div class="sub">Manueller Test für Communication Bus hello / heartbeat / ack. Keine Produktivmigration.</div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Verbindung</h2>
+        <div class="statusline"><span id="dot" class="dot"></span><span id="connectionText">disconnected</span></div>
+
+        <label for="wsUrl">WebSocket URL</label>
+        <input id="wsUrl" value="ws://127.0.0.1:8080">
+
+        <label for="apiBase">API Base</label>
+        <input id="apiBase" value="http://127.0.0.1:8080">
+
+        <label for="clientId">Client ID</label>
+        <input id="clientId" value="communication_ws_test_client">
+
+        <label for="clientType">Client Type</label>
+        <input id="clientType" value="overlay">
+
+        <label for="moduleName">Module</label>
+        <input id="moduleName" value="communication_test">
+
+        <label for="capabilities">Capabilities, Komma-getrennt</label>
+        <input id="capabilities" value="test.ping,communication.test">
+
+        <div class="buttons">
+          <button id="connectBtn">Connect</button>
+          <button id="disconnectBtn" class="danger">Disconnect</button>
+          <button id="helloBtn">Send hello</button>
+          <button id="heartbeatBtn">Heartbeat</button>
+          <button id="testEventBtn">Test Event API</button>
+          <button id="ackBtn">Ack last event</button>
+          <button id="statusBtn" class="secondary">Refresh Status</button>
+          <button id="clearBtn" class="secondary">Clear Log</button>
+        </div>
+
+        <div class="pillrow">
+          <span class="pill" id="lastEventPill">lastEvent: -</span>
+          <span class="pill" id="lastAckPill">lastAck: -</span>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card">
+          <h2>Client Status</h2>
+          <pre id="clientStatus">Noch nicht verbunden.</pre>
+        </div>
+
+        <div class="card">
+          <h2>Communication Status</h2>
+          <pre id="busStatus">Noch nicht geladen.</pre>
+        </div>
+
+        <div class="card">
+          <h2>Log</h2>
+          <pre id="log"></pre>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const TOOL_META = {
+      name: 'communication_ws_test_client',
+      version: '0.1.0',
+      build: 'STEP278K',
+      description: 'Manual WebSocket test client for Communication Bus'
+    };
+
+    let ws = null;
+    let lastEventId = '';
+    let heartbeatTimer = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    $('version').textContent = `v${TOOL_META.version} / ${TOOL_META.build}`;
+
+    function setConnection(state, text) {
+      const dot = $('dot');
+      dot.className = 'dot';
+      if (state === 'connected') dot.classList.add('connected');
+      if (state === 'connecting') dot.classList.add('connecting');
+      $('connectionText').textContent = text || state;
+    }
+
+    function log(message, data) {
+      const at = new Date().toLocaleTimeString();
+      const line = data === undefined
+        ? `[${at}] ${message}`
+        : `[${at}] ${message}\n${JSON.stringify(data, null, 2)}`;
+      $('log').textContent = `${line}\n\n${$('log').textContent || ''}`;
+    }
+
+    function value(id) {
+      return String($(id).value || '').trim();
+    }
+
+    function capabilities() {
+      return value('capabilities').split(',').map(x => x.trim()).filter(Boolean);
+    }
+
+    function sendWs(payload) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        log('WS nicht verbunden.');
+        return false;
+      }
+      ws.send(JSON.stringify(payload));
+      log('WS send', payload);
+      return true;
+    }
+
+    async function fetchJson(url, options) {
+      const res = await fetch(url, options);
+      const data = await res.json();
+      return data;
+    }
+
+    async function refreshStatus() {
+      const base = value('apiBase').replace(/\/+$/, '');
+      try {
+        const data = await fetchJson(`${base}/api/communication/status`);
+        $('busStatus').textContent = JSON.stringify(data, null, 2);
+
+        const clientId = value('clientId');
+        const client = data?.status?.clients?.find(c => c.id === clientId) || null;
+        $('clientStatus').textContent = client
+          ? JSON.stringify(client, null, 2)
+          : `Client "${clientId}" nicht registriert.\n\nClients: ${data?.status?.clients?.length || 0}`;
+        return data;
+      } catch (err) {
+        log('Status Fehler', { error: err.message });
+        return null;
+      }
+    }
+
+    function connect() {
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        log('WS ist bereits verbunden oder verbindet gerade.');
+        return;
+      }
+
+      setConnection('connecting', 'connecting');
+      ws = new WebSocket(value('wsUrl'));
+
+      ws.addEventListener('open', () => {
+        setConnection('connected', 'connected');
+        log('WS connected');
+      });
+
+      ws.addEventListener('message', (event) => {
+        let data = event.data;
+        try { data = JSON.parse(event.data); } catch (_) {}
+        log('WS receive', data);
+      });
+
+      ws.addEventListener('close', () => {
+        setConnection('disconnected', 'disconnected');
+        log('WS disconnected');
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+      });
+
+      ws.addEventListener('error', () => {
+        setConnection('disconnected', 'error');
+        log('WS error');
+      });
+    }
+
+    function disconnect() {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+      if (ws) ws.close();
+      ws = null;
+      setConnection('disconnected', 'disconnected');
+    }
+
+    function hello() {
+      sendWs({
+        type: 'hello',
+        clientId: value('clientId'),
+        clientType: value('clientType'),
+        module: value('moduleName'),
+        mode: 'standalone',
+        version: TOOL_META.version,
+        capabilities: capabilities(),
+        meta: {
+          tool: TOOL_META.name,
+          build: TOOL_META.build
+        }
+      });
+      setTimeout(refreshStatus, 350);
+    }
+
+    function heartbeat() {
+      sendWs({
+        type: 'heartbeat',
+        clientId: value('clientId'),
+        module: value('moduleName'),
+        version: TOOL_META.version,
+        capabilities: capabilities()
+      });
+      setTimeout(refreshStatus, 350);
+    }
+
+    async function sendTestEvent() {
+      const base = value('apiBase').replace(/\/+$/, '');
+      const url = `${base}/api/communication/test?message=Hallo%20vom%20WS-Testclient&targetId=${encodeURIComponent(value('clientId'))}&targetType=id&requireAck=1&replayable=1&ttlMs=60000`;
+      try {
+        const data = await fetchJson(url);
+        lastEventId = data?.result?.eventId || '';
+        $('lastEventPill').textContent = `lastEvent: ${lastEventId || '-'}`;
+        log('API test event', data);
+        await refreshStatus();
+      } catch (err) {
+        log('API test event Fehler', { error: err.message });
+      }
+    }
+
+    function ackLastEvent() {
+      if (!lastEventId) {
+        log('Keine lastEventId vorhanden. Erst Test Event API klicken.');
+        return;
+      }
+
+      const ok = sendWs({
+        type: 'ack',
+        eventId: lastEventId,
+        clientId: value('clientId'),
+        status: 'rendered',
+        details: {
+          via: TOOL_META.name,
+          at: new Date().toISOString()
+        }
+      });
+
+      if (ok) {
+        $('lastAckPill').textContent = `lastAck: ${lastEventId}`;
+        setTimeout(refreshStatus, 350);
+      }
+    }
+
+    $('connectBtn').addEventListener('click', connect);
+    $('disconnectBtn').addEventListener('click', disconnect);
+    $('helloBtn').addEventListener('click', hello);
+    $('heartbeatBtn').addEventListener('click', heartbeat);
+    $('testEventBtn').addEventListener('click', sendTestEvent);
+    $('ackBtn').addEventListener('click', ackLastEvent);
+    $('statusBtn').addEventListener('click', refreshStatus);
+    $('clearBtn').addEventListener('click', () => { $('log').textContent = ''; });
+
+    setConnection('disconnected', 'disconnected');
+    log(`${TOOL_META.name} v${TOOL_META.version} / ${TOOL_META.build} ready`);
+    refreshStatus();
+  </script>
+</body>
+</html>

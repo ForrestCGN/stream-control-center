@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## STEP278K
+
+- Added `htdocs/public/tools/communication_ws_test_client.html`.
+- Test client can connect to WebSocket, send hello, heartbeat and ack.
+- Test client can create a Communication Bus test event via API.
+- Test client displays Communication Status and registered client details.
+- No server, dashboard, database or production module migration changes.
+
 ## STEP278J
 
 - Updated startup logs for `communication_bus.js` and `audit_log.js`.
@@ -14,11 +22,3 @@
 - Added `docs/backend/MODULE_VERSIONING_STANDARD.md`.
 - Documented mandatory versioning rule for all future modules.
 - No functional routing, dashboard, database or production migration changes.
-
-## STEP278H
-
-- Added minimal WebSocket module dispatcher to `backend/server.js`.
-- Extended `backend/modules/communication_bus.js` with `handleWsMessage()`.
-- Added WS handling for `hello`, `heartbeat`, `ack` and `bus_ack`.
-- Unknown WS messages are ignored and existing broadcast flows remain unchanged.
-- No alert/sound/TTS/VIP migration, dashboard page, database migration or OBS change was added.
