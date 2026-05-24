@@ -36,3 +36,6 @@ project-state/NEXT_STEPS.md
 ## Hinweis
 
 STEP294 enthält keine Codeänderung. Der Code-Fix liegt in STEP293 (`backend/modules/discord.js`).
+
+- `docs/backend/SOUNDBUS_OPERATION_DECISION_STEP295.md` – SoundBus Betriebsentscheidung: `soundBus.enabled = true` bleibt im Dev-/Testbetrieb aktiv.
+- `project-state/STEP295_SOUNDBUS_OPERATION_DECISION.md` – Projektstatus zur STEP295-Entscheidung.

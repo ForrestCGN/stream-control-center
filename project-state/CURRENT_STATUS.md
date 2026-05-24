@@ -1,11 +1,11 @@
 # Current Status – stream-control-center
 
-Stand: STEP294 – Discord Resolver Retest bestätigt
-Aktualisiert: 2026-05-24T14:30:00Z
+Stand: STEP295 – SoundBus Betriebsentscheidung
+Aktualisiert: 2026-05-24T14:35:00Z
 
 ## Zusammenfassung
 
-Der SoundBus-Ausbau ist bis einschließlich STEP291 stabil getestet. STEP292 hat den Discord-Pfadfehler analysiert. STEP293 hat die Discord-Dateiauflösung für Media-Registry-Alert-Dateien behoben. STEP294 bestätigt den Retest nach STEP293.
+Der SoundBus-Ausbau ist bis einschließlich STEP291 stabil getestet. STEP292 hat den Discord-Pfadfehler analysiert. STEP293 hat die Discord-Dateiauflösung für Media-Registry-Alert-Dateien behoben. STEP294 bestätigt den Retest nach STEP293. STEP295 legt fest, dass `soundBus.enabled = true` im Dev-/Testbetrieb aktiv bleibt.
 
 ## Bestätigt
 
@@ -32,12 +32,18 @@ sounds/... -> htdocs/assets/sounds/...
 
 Der Fix betrifft nur Discord-Dateipfade. Sound-System-Queue, Bundles, SoundBus und Alert-Output bleiben unverändert.
 
+## Betriebsentscheidung
+
+`soundBus.enabled = true` bleibt im aktuellen Dev-/Teststand aktiv.
+
+Diese Entscheidung erlaubt weitere Debug-/Monitoring-/Dashboard-Arbeiten mit aktivem SoundBus. Sie erlaubt noch nicht, alte WebSocket-/HTTP-Wege zu entfernen oder Module direkt auf Bus-only umzubauen.
+
 ## Nächster Schritt
 
-STEP295 – SoundBus Betriebsentscheidung / nächster Migrationsblock.
+STEP296 – SoundBus Debug/Monitoring View.
 
 Empfehlung:
 
-1. Entscheiden, ob `soundBus.enabled = true` aktiv bleiben soll.
-2. Danach gezielt den nächsten Bus-Block planen, ohne Queue/Bundle-Logik anzufassen.
-3. Mögliche nächste Kandidaten: SoundBus-Debug-View, Sound-System Overlay-Consumer, Modul-Event-Mapping oder Dashboard-Anzeige.
+1. SoundBus aktiv lassen.
+2. Sichtbarkeit/Debugging ausbauen.
+3. Erst danach weitere Consumer/Migrationsblöcke planen.

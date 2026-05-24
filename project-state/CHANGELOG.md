@@ -102,3 +102,14 @@ Datum: 2026-05-24T13:40:00Z
 - Status-/Config-Ausgaben zeigen `webrootDir` und `assetsDir`.
 - Keine Änderung an Sound-Queue, Alert-Bundles, SoundBus oder Alert-Output.
 - Syntaxcheck `node --check backend/modules/discord.js` erfolgreich.
+
+## STEP295 – SoundBus Betriebsentscheidung
+
+Datum: 2026-05-24
+Typ: Dokumentation / Entscheidung
+
+- Festgelegt: `soundBus.enabled = true` bleibt im Dev-/Testbetrieb aktiv.
+- Begründung: STEP290/291 Basistests und Regression bestanden; STEP294 Discord-Retest mit `discordFailed = 0` bestätigt.
+- Keine Codeänderung.
+- Keine Freigabe für Bus-only-Overlays, Entfernen alter Wege oder Caller-Modul-Migration.
+- Nächster Schritt: STEP296 SoundBus Debug/Monitoring View.

@@ -1,7 +1,7 @@
 # Current System Status
 
-Stand: STEP294 – Discord Resolver Retest bestätigt
-Aktualisiert: 2026-05-24T14:30:00Z
+Stand: STEP295 – SoundBus Betriebsentscheidung
+Aktualisiert: 2026-05-24T14:35:00Z
 
 ## Aktueller Fokus
 
@@ -28,6 +28,7 @@ Kommunikations-/Sound-/Alert-Stabilisierung über Communication Bus, ohne besteh
 - Alert-Bundle-Test bestanden.
 - V5 Real Queue/Bundle Regression bestanden.
 - SoundBus verursacht keine Queue-/Bundle-Störung.
+- STEP295-Entscheidung: `soundBus.enabled = true` bleibt im Dev-/Testbetrieb aktiv.
 
 ## Discord Media Resolver
 
@@ -50,6 +51,18 @@ bundlesQueued = 3
 bundleItemsQueued = 6
 ```
 
+## Betriebsentscheidung STEP295
+
+`soundBus.enabled = true` bleibt aktiv für weitere Debug-/Monitoring-/Dashboard-Arbeiten.
+
+Diese Entscheidung ist keine Freigabe für:
+
+- Bus-only Sound-Overlays,
+- Entfernen alter WebSocket-/HTTP-Wege,
+- direkte Caller-Modul-Migration auf Bus,
+- Änderungen an Queue/Bundle/`activeBundleLock`,
+- Alert `bus_only` als Produktivmodus.
+
 ## Wichtige Schutzregeln
 
 - Keine Funktionalität entfernen.
@@ -61,10 +74,6 @@ bundleItemsQueued = 6
 
 ## Nächster empfohlener Schritt
 
-STEP295 – SoundBus Betriebsentscheidung / nächster Migrationsblock.
+STEP296 – SoundBus Debug/Monitoring View.
 
-Optionen:
-
-- `soundBus.enabled = true` als stabilen Stand belassen und Monitoring/Dashboard nachziehen.
-- Oder SoundBus wieder deaktivieren, bevor weitere größere Umbauten starten.
-- Danach gezielt den nächsten Bus-Consumer oder Debug-/Dashboard-Block planen.
+Ziel: `sound.*` Events, `soundBus.stats`, LastAction, LastReason, LastEventId, Errors und Skipped sichtbar machen, ohne Playback-/Queue-/Bundle-Logik zu ändern.
