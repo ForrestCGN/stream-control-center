@@ -30,7 +30,7 @@ try {
 
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
-const MODULE_STEP = 285;
+const MODULE_STEP = 286;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -1284,6 +1284,7 @@ function emitAlertBusOutput(event, overlayAlert, options = {}) {
     const ttlMs = Math.max(alertDurationMs + 5000, cfg.bus.ttlMs);
     const currentBus = communicationBus.getBus();
     const action = cleanKey(options.action || cfg.bus.action || 'play');
+    markAlertTiming(event, 'alertOutputBusSent');
     const result = currentBus.emit({
       type: 'event',
       channel: cfg.bus.channel,
@@ -1308,7 +1309,6 @@ function emitAlertBusOutput(event, overlayAlert, options = {}) {
         alertType: event.type_key
       }
     });
-    markAlertTiming(event, 'alertOutputBusSent');
     state.alertOutput.emittedBus += result && result.ok ? 1 : 0;
     state.alertOutput.errors += result && result.ok ? 0 : 1;
     state.alertOutput.lastMode = cfg.mode;
@@ -1333,11 +1333,24 @@ function emitAlertBusOutput(event, overlayAlert, options = {}) {
   }
 }
 
-function sendAlertLegacyOutput(broadcastWS, payload, reason = '') {
+function markVisualOutputSentIfMissing(event) {
+  const timing = ensureAlertTiming(event);
+  if (!timing) return false;
+  const ts = timing.timestamps || {};
+  if (!ts.overlaySentAt) {
+    markAlertTiming(event, 'overlaySent');
+    return true;
+  }
+  return false;
+}
+
+function sendAlertLegacyOutput(broadcastWS, payload, reason = '', event = null) {
   sendOverlay(broadcastWS, payload);
+  markVisualOutputSentIfMissing(event);
   state.alertOutput.emittedLegacy += 1;
   state.alertOutput.lastAt = nowIso();
   state.alertOutput.lastResult = { ...(state.alertOutput.lastResult || {}), legacySent: true, legacyReason: reason || '' };
+  state.alertOutput.lastTiming = event ? buildPublicAlertTiming(event) : state.alertOutput.lastTiming;
   return { ok: true, legacySent: true, reason };
 }
 
@@ -1351,14 +1364,14 @@ function sendAlertVisualOutput(broadcastWS, event, overlayAlert) {
   state.alertOutput.lastEventUid = event && event.eventUid ? event.eventUid : '';
 
   if (mode === 'legacy') {
-    sendAlertLegacyOutput(broadcastWS, payload, 'legacy_mode');
+    sendAlertLegacyOutput(broadcastWS, payload, 'legacy_mode', event);
     result.legacySent = true;
     state.alertOutput.lastResult = result;
     return result;
   }
 
   if (mode === 'legacy_and_bus') {
-    sendAlertLegacyOutput(broadcastWS, payload, 'legacy_and_bus');
+    sendAlertLegacyOutput(broadcastWS, payload, 'legacy_and_bus', event);
     result.legacySent = true;
     result.busResult = emitAlertBusOutput(event, overlayAlert, { action: cfg.bus.action });
     result.busSent = !!(result.busResult && result.busResult.ok);
@@ -1372,7 +1385,7 @@ function sendAlertVisualOutput(broadcastWS, event, overlayAlert) {
     result.busSent = !!(result.busResult && result.busResult.ok);
     const deliveredCount = Number(result.busResult && result.busResult.deliveredCount || 0);
     if (!result.busSent || deliveredCount <= 0) {
-      sendAlertLegacyOutput(broadcastWS, payload, 'bus_first_fallback');
+      sendAlertLegacyOutput(broadcastWS, payload, 'bus_first_fallback', event);
       result.legacySent = true;
       result.fallbackLegacySent = true;
     }
@@ -1392,7 +1405,7 @@ function sendAlertVisualOutput(broadcastWS, event, overlayAlert) {
     return result;
   }
 
-  sendAlertLegacyOutput(broadcastWS, payload, 'invalid_mode_fallback');
+  sendAlertLegacyOutput(broadcastWS, payload, 'invalid_mode_fallback', event);
   result.legacySent = true;
   result.mode = 'legacy';
   state.alertOutput.lastResult = result;
@@ -2959,7 +2972,10 @@ async function processQueue(broadcastWS) {
 
     const overlayAlert = buildOverlayAlert(event);
     const visualOutput = sendAlertVisualOutput(broadcastWS, event, overlayAlert);
-    markAlertTiming(event, 'overlaySent');
+    if (visualOutput && (visualOutput.legacySent || visualOutput.fallbackLegacySent || visualOutput.busSent)) {
+      markVisualOutputSentIfMissing(event);
+    }
+    state.alertOutput.lastTiming = buildPublicAlertTiming(event);
     createOverlayDeliveryWatch(event, overlayAlert);
     event.alertVisualOutput = visualOutput;
     emitAlertBusMirror(event, overlayAlert);

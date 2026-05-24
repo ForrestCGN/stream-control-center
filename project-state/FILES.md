@@ -3,7 +3,7 @@
 ## Backend
 
 - `backend/modules/alert_system.js`  
-  Enthält Alert Bus Mirror, Timing Diagnostics, Overlay Watchdog, Recovery Controls, stabilen Alert-Orchestrator-Stand und seit STEP285 den nativen `alertOutput`-Ausgabeweg.
+  Enthält Alert Bus Mirror, Timing Diagnostics, Overlay Watchdog, Recovery Controls, stabilen Alert-Orchestrator-Stand, den nativen `alertOutput`-Ausgabeweg und seit STEP286 bereinigtes Output-Timing.
 
 - `backend/modules/communication_bus.js`  
   Communication Bus Helper, Version `0.8.1`.
@@ -24,4 +24,5 @@
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/STEP284_ALERT_BUS_BRIDGE_HANDOFF_DOCS.md`
 - `project-state/STEP285_ALERT_NATIVE_BUS_OUTPUT_MODE.md`
+- `project-state/STEP286_ALERT_OUTPUT_TIMING_STATUS_CLEANUP.md`
 - `project-state/NEW_CHAT_PROMPT_STEP284_ALERT_BUS_BRIDGE.txt`

@@ -1,22 +1,24 @@
 # Next Steps
 
-## STEP286 – Alert Native Output Live-Test
+## STEP287 – Alert Native Output `bus_first` Test
 
 Ziel:
 
-- Backend mit STEP285 starten.
-- `/api/alerts/status` prüfen.
-- Sicherstellen, dass `alertOutput.mode` standardmäßig `legacy` ist.
-- Einen normalen Legacy-Alert testen.
-- Danach gezielt `legacy_and_bus` testen.
-- Bridge im Modus `bridge` mit Debug View gegenprüfen.
-- Prüfen, ob doppelte Anzeige ausbleibt und Watchdog weiterhin `acknowledged` meldet.
+- Backend mit STEP286 starten.
+- Sicherstellen, dass Standard weiterhin `legacy` ist.
+- Testweise `alertOutput.mode = bus_first` setzen.
+- Bridge im Modus `bridge` öffnen.
+- Einen echten Alert auslösen.
+- Prüfen, ob der Bus primär genutzt wird.
+- Prüfen, ob Legacy-Fallback nur greift, wenn kein Bus-Ziel erreicht wurde.
+- Watchdog auf `acknowledged` prüfen.
+- Danach wieder auf `legacy` zurückstellen.
 
-## Optional nach STEP286
+## Optional nach STEP287
 
 - Communication Debug View um native `alertOutput`-Statusanzeige erweitern.
-- Entscheidung treffen, ob `legacy_and_bus` temporär als Testmodus genutzt wird.
-- Danach `bus_first` gezielt testen.
+- Entscheidung treffen, ob `legacy_and_bus` oder `bus_first` als weiterer Testmodus genutzt wird.
+- Später erst `bus_only` prüfen, wenn Watchdog/ACK-Verhalten vollständig stabil ist.
 
 ## Danach – Sound-System-Audit
 

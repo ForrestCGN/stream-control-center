@@ -1,35 +1,42 @@
 # Current Status – stream-control-center
 
-Stand: STEP285 – Alert Native Bus Output Mode
-Aktualisiert: 2026-05-24T13:12:30Z
+Stand: STEP286 – Alert Output Timing/Status Cleanup
+Aktualisiert: 2026-05-24T13:25:00Z
 
 ## Aktueller Fokus
 
-Der Alert-Bereich wurde von der reinen Mirror-/Bridge-Testphase in die native Bus-Ausgabevorbereitung überführt.
+Der Alert-Bereich wurde von der reinen Mirror-/Bridge-Testphase in die native Bus-Ausgabevorbereitung überführt. STEP286 hat den ersten Live-Test ausgewertet und die Timing-/Statusausgabe der nativen Alert-Outputs bereinigt.
 
-## Stabil bestätigte Kette aus STEP284
+## Stabil bestätigte Kette
 
 - Communication Bus Helper läuft (`communication_bus.js`, Modul-Version `0.8.1`).
 - Communication Debug View läuft (`communication_debug_view.html`, Tool-Version `0.1.9`).
 - Alert-System enthält Bus Mirror, Timing Diagnostics, Overlay Watchdog und Recovery Controls.
 - Alert Bus Bridge ist vorhanden: `htdocs/overlays/_overlay-alerts-v2-bus.html`.
 - Bridge-Version: `0.1.1`.
+- `alertOutput` ist im Alert-System vorhanden und statusfähig.
 
-## Neu in STEP285
+## Bestätigte Tests aus STEP286
 
-- `alert_system.js` enthält jetzt `alertOutput` als regulären visuellen Ausgabeweg.
-- Unterstützte Modi:
-  - `legacy`
-  - `legacy_and_bus`
-  - `bus_first`
-  - `bus_only`
-- Standard bleibt `legacy`, damit der bestehende produktive Betrieb unverändert startet.
-- `/api/alerts/status` zeigt zusätzlich `alertOutput` und `alertBusMirror`.
-- Der Real Alert Mirror bleibt separat erhalten und ist nicht entfernt.
+- Standard `legacy` lief erfolgreich.
+- `legacy_and_bus` lief erfolgreich.
+- Status zeigte `emittedBus = 1`, `emittedLegacy > 0`, `lastMode = legacy_and_bus`.
+- Watchdog meldete `status = acknowledged`.
+- `issue` blieb leer.
+- `timedOut = false`.
+- `playingToAlertOutputBusMs` lag im Test bei wenigen Millisekunden.
+
+## Neu in STEP286
+
+- `backend/modules/alert_system.js` auf STEP286 aktualisiert.
+- `overlaySentAt` wird beim visuellen Output nun konsistenter gesetzt.
+- `alertOutput.lastTiming` wird nach dem visuellen Output erneut aktualisiert.
+- Native Bus-Payloads enthalten den aktualisierten Output-Timing-Stand.
+- Keine Sound-/TTS-/Queue-Logik geändert.
 
 ## Normalbetrieb
 
-Aktueller Standard:
+Aktueller sicherer Standard bleibt:
 
 - `alertOutput.mode = legacy`
 - Alter Alert-Pfad bleibt aktiv.
@@ -41,11 +48,12 @@ Aktueller Standard:
 - Bridge-URL: `/overlays/_overlay-alerts-v2-bus.html?debug=1&mode=bridge`
 - Debug View: `/public/tools/communication_debug_view.html`
 - Alert Status: `/api/alerts/status`
+- Watchdog Status: `/api/alerts/overlay-watchdog/status`
 - Mirror aktivieren: `/api/alerts/bus-mirror/enable?confirm=1`
 - Mirror deaktivieren: `/api/alerts/bus-mirror/disable?confirm=1`
 
 ## Nächster Schritt
 
-STEP286: Live-Test der nativen Alert Output Modes, zuerst mit Standard `legacy`, danach gezielt mit `legacy_and_bus` oder `bus_first`.
+STEP287: `bus_first` gezielt testen. Danach entscheiden, ob Debug View/Dashboard die native `alertOutput`-Sektion sichtbarer machen soll.
 
 Danach: Sound-System separat auditieren und stufenweise busfähig machen.

@@ -1,5 +1,19 @@
 # Changelog
 
+## STEP286 – Alert Output Timing/Status Cleanup
+
+Datum: 2026-05-24T13:25:00Z
+
+- `backend/modules/alert_system.js` auf STEP286 aktualisiert.
+- Live-Test von `legacy` und `legacy_and_bus` dokumentiert.
+- `overlaySentAt` wird beim visuellen Alert-Output konsistenter gesetzt.
+- `alertOutput.lastTiming` wird nach visueller Ausgabe erneut aktualisiert.
+- Native Bus-Payloads erhalten den aktualisierten Timing-Stand.
+- `legacy_and_bus` zeigte im Test `emittedBus = 1`, `lastMode = legacy_and_bus` und Watchdog `acknowledged`.
+- Keine Sound-/TTS-/Queue-Änderung.
+- Keine DB-Migration.
+- Keine Funktionalität entfernt.
+
 ## STEP285 – Alert Native Bus Output Mode
 
 Datum: 2026-05-24T13:12:30Z
