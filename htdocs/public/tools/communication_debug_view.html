@@ -116,6 +116,7 @@
       <button class="warn" data-action="overlayWatchdogCheck">Overlay Watchdog Check</button>
       <button class="danger" data-action="overlayRecover">Overlay Recovery Clear</button>
       <button class="good" data-action="snapshot">Diagnose-Snapshot</button>
+      <button data-action="normalCheck">Normalbetrieb prüfen</button>
       <button data-action="snapshotCopy">Snapshot kopieren</button>
       <button data-action="watchdog">Watchdog prüfen</button>
       <button class="warn" data-action="watchdogTrack">Watchdog tracken</button>
@@ -131,6 +132,11 @@
       <article class="card">
         <div class="card-head"><div class="card-title">Bus Übersicht</div><span id="busHealth" class="pill">unbekannt</span></div>
         <div class="card-body"><div class="metrics" id="metrics"></div></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="card-title">Normalbetrieb / Live-Check</div><span id="normalOperationState" class="pill">unbekannt</span></div>
+        <div class="card-body" id="normalOperationStatus"><div class="empty">Noch nicht geprüft.</div></div>
       </article>
 
       <article class="card half">
@@ -184,9 +190,9 @@
 (() => {
   'use strict';
 
-  const META = { name: 'communication_debug_view', version: '0.1.6' };
+  const META = { name: 'communication_debug_view', version: '0.1.7' };
   const AUTO_REFRESH_MS = 2000;
-  const state = { status: null, watchdog: null, alertMirror: null, overlayWatchdog: null, snapshot: null, busy: false, autoRefresh: true, autoTimer: null, refreshInFlight: false };
+  const state = { status: null, watchdog: null, alertMirror: null, overlayWatchdog: null, alertQueue: null, snapshot: null, busy: false, autoRefresh: true, autoTimer: null, refreshInFlight: false };
 
   const $ = id => document.getElementById(id);
   const logEl = $('log');
@@ -261,14 +267,16 @@
     if (!options.silent) setAction('lade', 'warn');
 
     try {
-      const [status, alertMirror, overlayWatchdog] = await Promise.all([
+      const [status, alertMirror, overlayWatchdog, alertQueue] = await Promise.all([
         getJson('/api/communication/status'),
         getJsonOptional('/api/alerts/bus-mirror/status'),
-        getJsonOptional('/api/alerts/overlay-watchdog/status')
+        getJsonOptional('/api/alerts/overlay-watchdog/status'),
+        getJsonOptional('/api/alerts/queue')
       ]);
       state.status = status;
       state.alertMirror = alertMirror;
       state.overlayWatchdog = overlayWatchdog;
+      state.alertQueue = alertQueue;
       render();
       renderSnapshot();
       setLastUpdate();
@@ -414,8 +422,97 @@
     renderRecovered(wd);
     renderAlertMirror();
     renderOverlayWatchdog();
+    renderNormalOperation();
   }
 
+
+
+  function normalCheckItems() {
+    const bus = getBusStatus();
+    const busStats = bus.stats || {};
+    const clients = Array.isArray(bus.clients) ? bus.clients : [];
+    const connectedClients = clients.filter(c => c && c.connected !== false && String(c.status || '').toLowerCase() !== 'offline');
+    const mirror = state.alertMirror || {};
+    const overlay = state.overlayWatchdog || {};
+    const overlayStats = overlay.stats || {};
+    const queue = state.alertQueue || {};
+    const queueLength = Number(queue.queueLength ?? (Array.isArray(queue.queue) ? queue.queue.length : 0) ?? 0);
+    const currentAlert = queue.current || null;
+    const overlayIssueCount = overlay.check && Number.isFinite(Number(overlay.check.issueCount)) ? Number(overlay.check.issueCount) : Number(overlayStats.issues || 0);
+
+    return [
+      {
+        key: 'bus_enabled',
+        label: 'Communication Bus aktiv',
+        ok: bus.enabled !== false,
+        value: bus.enabled === false ? 'disabled' : 'enabled',
+        hint: 'Der Bus muss aktiv sein, damit Test-/Mirror-Kommunikation funktioniert.'
+      },
+      {
+        key: 'alert_overlay_connected',
+        label: 'Echtes Alert-Overlay verbunden',
+        ok: Number(overlay.overlayClients || 0) > 0,
+        value: `${Number(overlay.overlayClients || 0)} Client(s)`,
+        hint: 'Das ist der wichtigste Normalbetriebspunkt für echte Alerts.'
+      },
+      {
+        key: 'overlay_watchdog_clean',
+        label: 'Overlay-Watchdog ohne offene Issues',
+        ok: overlayIssueCount === 0 && Number(overlayStats.noClient || 0) === 0 && Number(overlayStats.missingFinishAck || 0) === 0,
+        value: `issues ${overlayIssueCount}, noClient ${overlayStats.noClient || 0}, missingAck ${overlayStats.missingFinishAck || 0}`,
+        hint: 'Bei Issues erst Snapshot sichern, dann Recovery/Clear nutzen.'
+      },
+      {
+        key: 'alert_queue_idle',
+        label: 'Alert-Queue frei',
+        ok: !currentAlert && queueLength === 0,
+        value: currentAlert ? 'current aktiv' : `queue ${queueLength}`,
+        hint: 'Im Idle-Zustand sollte kein Alert hängen.'
+      },
+      {
+        key: 'bus_no_errors',
+        label: 'Bus ohne Fehler/Drops',
+        ok: Number(busStats.issues || 0) === 0 && Number(busStats.dropped || 0) === 0,
+        value: `issues ${busStats.issues || 0}, dropped ${busStats.dropped || 0}`,
+        hint: 'Bus-Issues sind für echte Alerts nur relevant, wenn Mirror/Testmodus aktiv ist.'
+      },
+      {
+        key: 'mirror_normal_mode',
+        label: 'Real Alert Mirror Normalbetrieb',
+        ok: mirror.enabled !== true,
+        value: mirror.enabled === true ? 'aktiv' : 'aus',
+        warnOnly: true,
+        hint: 'Für Tests darf der Mirror aktiv sein. Im normalen Betrieb sollte er wieder aus sein.'
+      }
+    ];
+  }
+
+  function renderNormalOperation() {
+    const box = $('normalOperationStatus');
+    const badge = $('normalOperationState');
+    if (!box || !badge) return;
+
+    const items = normalCheckItems();
+    const hardIssues = items.filter(i => !i.ok && !i.warnOnly);
+    const warnings = items.filter(i => !i.ok && i.warnOnly);
+    const statusClass = hardIssues.length ? 'bad' : warnings.length ? 'warn' : 'ok';
+    badge.textContent = hardIssues.length ? `${hardIssues.length} Problem(e)` : warnings.length ? `${warnings.length} Hinweis(e)` : 'ok';
+    badge.className = `pill ${statusClass}`;
+
+    const rows = items.map(item => {
+      const cls = item.ok ? 'ok' : item.warnOnly ? 'warn' : 'bad';
+      const stateLabel = item.ok ? 'OK' : item.warnOnly ? 'Hinweis' : 'Problem';
+      return `<tr><th>${esc(item.label)}</th><td>${pill(stateLabel, cls)} ${esc(item.value)}<div class="small">${esc(item.hint)}</div></td></tr>`;
+    }).join('');
+
+    const summary = hardIssues.length
+      ? 'Nicht sauber für Normalbetrieb. Erst Snapshot sichern und die markierten Punkte prüfen.'
+      : warnings.length
+        ? 'Grundsystem sauber, aber mit Hinweis. Für Normalbetrieb Mirror nach Tests deaktivieren.'
+        : 'Normalbetrieb sieht sauber aus.';
+
+    box.innerHTML = `<div class="empty ${hardIssues.length ? 'badText' : warnings.length ? 'warnText' : 'okText'}">${esc(summary)}</div><table><tbody>${rows}</tbody></table>`;
+  }
 
   function renderAlertMirror() {
     const data = state.alertMirror;
@@ -718,6 +815,7 @@
         return await callAction('/api/alerts/overlay-watchdog/recover?confirm=1', 'Overlay Recovery Clear');
       }
       if (action === 'snapshot') return await createDiagnosticSnapshot();
+      if (action === 'normalCheck') { await refreshStatus({ silent: true }); log('Normalbetrieb geprüft', { checkedAt: new Date().toISOString() }); return; }
       if (action === 'snapshotDownload') return downloadSnapshot();
       if (action === 'snapshotCopy') return await copySnapshot();
       if (action === 'watchdog') return await runWatchdog('/api/communication/watchdog', 'Watchdog geprüft');

@@ -46,3 +46,8 @@ project-state/STEP279_COMMUNICATION_AUDIT_RESULT.md
 ## STEP280
 
 Die Communication Debug View unterstützt einen manuellen Diagnose-Snapshot. Sichtbare Versionen bleiben versionsbasiert; STEP-Nummern bleiben Dokumentation/ZIP vorbehalten.
+
+
+## STEP281
+
+Die Communication Debug View enthält nun einen Normalbetrieb-/Live-Check. Der Check ist nur lesend und ändert keine Alert-, Sound-, TTS- oder Queue-Logik.

@@ -1,7 +1,7 @@
 # Current System Status
 
-Aktueller Stand: STEP280 – Communication Debug Snapshot Export.
+Aktueller Stand: STEP281 – Normalbetrieb / Live-Check.
 
-Der Kommunikations-Audit ist dokumentiert. Die Communication Debug View wurde ergänzt, damit bei einem erneuten Alert-Problem ein vollständiger Diagnose-Snapshot aus Bus, Alert-Mirror, Timing, Overlay-Watchdog und Queue lokal im Browser erzeugt, heruntergeladen oder kopiert werden kann.
+Der Kommunikations-Audit ist abgeschlossen und dokumentiert. Die Communication Debug View zeigt Bus, Real Alert Mirror, Timing, echtes Alert-Overlay-ACK, Recovery und Diagnose-Snapshot. Zusätzlich bewertet sie jetzt in einem eigenen Bereich, ob der Normalbetrieb sauber aussieht.
 
 Keine Funktionalität wurde entfernt. Keine DB-Migration. Kein neues Modul.

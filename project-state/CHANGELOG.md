@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## STEP280 – Communication Debug Snapshot Export
+## STEP281 – Normalbetrieb / Live-Check
 
-- Communication Debug View auf v0.1.6 erhöht.
-- Manuellen Diagnose-Snapshot ergänzt.
-- Snapshot enthält Communication Bus, Watchdog, Alert-Mirror, Overlay-Watchdog und Alert-Queue.
-- Download- und Copy-Button ergänzt.
+- Communication Debug View auf v0.1.7 erhöht.
+- Bereich `Normalbetrieb / Live-Check` ergänzt.
+- Auto-Refresh liest zusätzlich `/api/alerts/queue`.
+- Button `Normalbetrieb prüfen` ergänzt.
 - Keine Backend-Logik geändert.

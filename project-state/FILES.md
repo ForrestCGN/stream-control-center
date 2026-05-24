@@ -8,7 +8,7 @@
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP280_COMMUNICATION_DEBUG_SNAPSHOT_EXPORT.md`
+- `project-state/STEP281_NORMAL_OPERATION_CHECK.md`
 
 ## Referenzdateien enthalten
 

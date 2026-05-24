@@ -1,5 +1,5 @@
 # CURRENT_STATUS
 
-Aktueller Stand: STEP280 – Communication Debug Snapshot Export.
+Aktueller Stand: STEP281 – Normalbetrieb / Live-Check.
 
-Die Debug View zeigt weiterhin Bus, Timing, echtes Alert-Overlay-ACK und Recovery. Zusätzlich kann ein manueller Snapshot als JSON erzeugt, kopiert oder heruntergeladen werden.
+Die Debug View hat jetzt einen schnellen Betriebscheck für Alert-/Overlay-Kommunikation. Der Check bewertet Bus, echtes Alert-Overlay, Overlay-Watchdog, Alert-Queue, Bus-Issues und Mirror-Normalmodus.

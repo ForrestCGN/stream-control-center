@@ -193,3 +193,8 @@ Wenn wieder `Sound/TTS läuft, aber Overlay erscheint nicht` passiert:
 ## Empfehlung
 
 Den Stand zunächst im Live-Betrieb beobachten. Eine automatische Recovery sollte erst umgesetzt werden, wenn mindestens ein realer Fehlerfall mit Watchdog-Daten vorliegt. Bis dahin ist die manuelle Recovery sicherer und vermeidet falsche Eingriffe während laufender Alerts.
+
+
+## STEP281
+
+Die Communication Debug View enthält nun einen Normalbetrieb-/Live-Check. Der Check ist nur lesend und ändert keine Alert-, Sound-, TTS- oder Queue-Logik.
