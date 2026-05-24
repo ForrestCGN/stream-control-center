@@ -1,0 +1,60 @@
+{
+  "enabled": false,
+  "testOnly": true,
+  "autoActivateWhenLive": false,
+  "replaceExistingOverlays": false,
+  "websocketOp": "overlay_master_test",
+  "heartbeat": {
+    "expectedIntervalMs": 5000,
+    "staleAfterMs": 15000,
+    "offlineAfterMs": 30000
+  },
+  "mirror": {
+    "alerts": {
+      "enabled": true,
+      "target": "overlay_master_test",
+      "onlyWhenMasterConnected": true,
+      "markAsPreview": true,
+      "allowLiveEvents": true,
+      "visibleInProduction": false,
+      "sendClearEvents": true
+    }
+  },
+  "modules": {
+    "alerts": {
+      "enabled": true,
+      "mode": "mirror_preview",
+      "layer": 80
+    },
+    "vip": {
+      "enabled": false,
+      "mode": "placeholder",
+      "layer": 60
+    },
+    "tts": {
+      "enabled": false,
+      "mode": "placeholder",
+      "layer": 50
+    },
+    "clipShoutout": {
+      "enabled": false,
+      "mode": "placeholder",
+      "layer": 70
+    },
+    "challenge": {
+      "enabled": false,
+      "mode": "placeholder",
+      "layer": 30
+    },
+    "birthday": {
+      "enabled": false,
+      "mode": "placeholder",
+      "layer": 75
+    }
+  },
+  "notes": [
+    "Master overlay is test/preview only.",
+    "Existing legacy overlays stay productive.",
+    "Mirror acks never finish production alerts."
+  ]
+}
