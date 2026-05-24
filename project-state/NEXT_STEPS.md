@@ -1,43 +1,32 @@
 # NEXT_STEPS
 
-## Nach STEP278W
+## Nach STEP278X testen
 
-1. Mirror aktivieren:
-
-```text
-http://127.0.0.1:8080/api/alerts/bus-mirror/enable?confirm=1
-```
-
-2. Echten Alert-Test auslösen.
-
-3. Timing prüfen:
+1. Backend starten.
+2. Echtes Alert-Overlay in OBS oder Browser öffnen.
+3. Optional Bus-Mirror aktivieren:
 
 ```text
-http://127.0.0.1:8080/api/alerts/bus-mirror/status
+/api/alerts/bus-mirror/enable?confirm=1
 ```
 
-4. Wenn Timing stabil ist, nächster Schritt:
+4. Einen echten Alert-Test auslösen.
+5. Prüfen:
 
 ```text
-STEP278X_ALERT_OVERLAY_DELIVERY_WATCHDOG
+/api/alerts/overlay-watchdog/status
+/api/alerts/bus-mirror/status
+/api/communication/status
 ```
 
-Ziel STEP278X: erkennen, ob Alert-Overlay-/Bus-Delivery nach Play fehlt oder ACK ausbleibt.
+Erwartung:
 
-## Vorherige NEXT_STEPS
+```text
+overlay-watchdog last.status = acknowledged
+stats.missingFinishAck = 0
+stats.noClient = 0
+```
 
-# NEXT_STEPS
+## Möglicher nächster Schritt
 
-## Nach STEP278V2 testen
-
-1. ZIP einspielen.
-2. Backend starten.
-3. Master-Test-Overlay öffnen.
-4. Communication Debug View öffnen.
-5. Mirror-Status prüfen.
-6. Mirror aktivieren.
-7. Echten Alert-Test über bestehendes Alert-System auslösen.
-8. Prüfen, ob `visual.alert.play` mit source `alert_system` im Bus erscheint.
-9. Mirror wieder deaktivieren.
-
-Erst nach stabilem Test über echte Alert-Payloads über produktivere Umschaltung sprechen.
+STEP278Y: echte Alert-Overlay-Receipt-ACKs ergänzen, damit Empfang sofort bestätigt wird und nicht erst am Ende des Alerts.

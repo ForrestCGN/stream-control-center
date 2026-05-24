@@ -105,6 +105,12 @@ const DEFAULT_CONFIG = {
     targetModule: '',
     targetCapability: ''
   },
+  alertOverlayWatchdog: {
+    enabled: true,
+    checkOnStatus: true,
+    finishGraceMs: 3500,
+    maxRecent: 25
+  },
   dashboardSettings: {
     preferSqliteSettings: true,
     allowRuntimeEdit: true,
@@ -144,7 +150,19 @@ const state = {
     lastResult: null,
     lastError: '',
     lastTiming: null
-  }
+  },
+  alertOverlayWatchdog: {
+    checked: 0,
+    issues: 0,
+    noClient: 0,
+    missingFinishAck: 0,
+    acknowledged: 0,
+    lastStatus: null,
+    lastIssue: '',
+    lastCheckedAt: '',
+    resetAt: ''
+  },
+  overlayDeliveryByEvent: new Map()
 };
 
 module.exports.init = function init(ctx) {
@@ -169,6 +187,12 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, '/api/alerts/bus-mirror/status', guard, (req, res) => res.json(buildAlertBusMirrorStatus()));
   routes.registerGet(app, '/api/alerts/bus-mirror/enable', guard, (req, res) => res.status(req.query.confirm === '1' ? 200 : 400).json(setAlertBusMirrorRuntimeEnabled(true, req.query.confirm === '1' ? 'api_enable' : 'confirm_required')));
   routes.registerGet(app, '/api/alerts/bus-mirror/disable', guard, (req, res) => res.status(req.query.confirm === '1' ? 200 : 400).json(setAlertBusMirrorRuntimeEnabled(false, req.query.confirm === '1' ? 'api_disable' : 'confirm_required')));
+  routes.registerGet(app, '/api/alerts/overlay-watchdog/status', guard, (req, res) => res.json(buildAlertOverlayWatchdogStatus({ check: req.query.check !== '0' })));
+  routes.registerGet(app, '/api/alerts/overlay-watchdog/check', guard, (req, res) => res.json(buildAlertOverlayWatchdogStatus({ check: true })));
+  routes.registerGet(app, '/api/alerts/overlay-watchdog/reset', guard, (req, res) => {
+    if (req.query.confirm !== '1') return res.status(400).json({ ok:false, error:'confirm_required', hint:'/api/alerts/overlay-watchdog/reset?confirm=1' });
+    return res.json(resetAlertOverlayWatchdog());
+  });
   routes.registerGet(app, '/api/alerts/queue', (req, res) => res.json({ ok: true, current: state.current, queue: state.queue, queueLength: state.queue.length }));
   routes.registerPost(app, '/api/alerts/clear', guard, (req, res) => {
     clearQueue('api_clear');
@@ -291,6 +315,9 @@ function buildAlertRoutes(req = null) {
     { method: 'GET', path: '/api/alerts/bus-mirror/status', auth: 'local_or_auth', category: 'communication', description: 'Alert Communication-Bus-Mirror Status lesen.' },
     { method: 'GET', path: '/api/alerts/bus-mirror/enable', auth: 'local_or_auth', category: 'communication', description: 'Alert Communication-Bus-Mirror runtime-only aktivieren.' },
     { method: 'GET', path: '/api/alerts/bus-mirror/disable', auth: 'local_or_auth', category: 'communication', description: 'Alert Communication-Bus-Mirror runtime-only deaktivieren.' },
+    { method: 'GET', path: '/api/alerts/overlay-watchdog/status', auth: 'local_or_auth', category: 'communication', description: 'Alert-Overlay-Delivery-Watchdog Status lesen.' },
+    { method: 'GET', path: '/api/alerts/overlay-watchdog/check', auth: 'local_or_auth', category: 'communication', description: 'Alert-Overlay-Delivery-Watchdog sofort prüfen.' },
+    { method: 'GET', path: '/api/alerts/overlay-watchdog/reset', auth: 'local_or_auth', category: 'communication', description: 'Alert-Overlay-Delivery-Watchdog Diagnosezähler zurücksetzen.' },
     { method: 'GET', path: '/api/alerts/queue', auth: 'public/local', category: 'queue', description: 'Aktueller Alert und Warteschlange.' },
     { method: 'POST', path: '/api/alerts/clear', auth: 'local_or_auth', category: 'queue', description: 'Queue leeren und Overlay clear senden.' },
     { method: 'POST', path: '/api/alerts/reload', auth: 'local_or_auth', category: 'admin', description: 'Config neu laden, Schema/Seeds prüfen und DB-Settings anwenden.' },
@@ -789,6 +816,185 @@ function setAlertBusMirrorRuntimeEnabled(enabled, reason = '') {
 }
 
 
+function alertOverlayWatchdogConfig() {
+  const cfg = state.config && state.config.alertOverlayWatchdog ? state.config.alertOverlayWatchdog : DEFAULT_CONFIG.alertOverlayWatchdog;
+  return {
+    enabled: cfg.enabled !== false,
+    checkOnStatus: cfg.checkOnStatus !== false,
+    finishGraceMs: clamp(toInt(cfg.finishGraceMs, DEFAULT_CONFIG.alertOverlayWatchdog.finishGraceMs), 1000, 120000),
+    maxRecent: clamp(toInt(cfg.maxRecent, DEFAULT_CONFIG.alertOverlayWatchdog.maxRecent), 1, 200)
+  };
+}
+
+function publicOverlayDelivery(record, nowMsValue = Date.now()) {
+  if (!record) return null;
+  const acknowledged = !!record.ackAtMs;
+  const timedOut = !acknowledged && record.expectedAckByMs > 0 && nowMsValue > record.expectedAckByMs;
+  const status = acknowledged
+    ? 'acknowledged'
+    : record.overlayClientCountAtSend <= 0
+      ? 'no_overlay_client'
+      : timedOut
+        ? 'missing_finish_ack'
+        : 'waiting_for_finish_ack';
+  return {
+    eventUid: record.eventUid || '',
+    alertId: record.alertId || '',
+    source: record.source || '',
+    type_key: record.type_key || '',
+    sentAt: record.sentAt || '',
+    overlaySentAt: record.overlaySentAt || '',
+    overlayClientCountAtSend: Number(record.overlayClientCountAtSend || 0),
+    durationMs: Number(record.durationMs || 0),
+    expectedAckBy: record.expectedAckBy || '',
+    ackAt: record.ackAt || '',
+    ackEvent: record.ackEvent || '',
+    ackReason: record.ackReason || '',
+    ackLatencyMs: acknowledged ? Math.max(0, Number(record.ackAtMs || 0) - Number(record.sentAtMs || 0)) : null,
+    status,
+    issue: status === 'no_overlay_client'
+      ? 'no_overlay_client_at_play'
+      : status === 'missing_finish_ack'
+        ? 'overlay_finish_ack_missing'
+        : '',
+    timedOut
+  };
+}
+
+function pruneOverlayDeliveries() {
+  const cfg = alertOverlayWatchdogConfig();
+  const max = cfg.maxRecent;
+  const entries = Array.from(state.overlayDeliveryByEvent.entries());
+  while (entries.length > max) {
+    const [key] = entries.shift();
+    state.overlayDeliveryByEvent.delete(key);
+  }
+}
+
+function createOverlayDeliveryWatch(event, overlayAlert) {
+  const cfg = alertOverlayWatchdogConfig();
+  if (!cfg.enabled || !event || !overlayAlert) return null;
+  const sentAtMs = Date.now();
+  const durationMs = Math.max(1000, toInt(overlayAlert.durationMs ?? event.effectiveDurationMs, state.config.defaultDurationMs || 7000));
+  const expectedAckByMs = sentAtMs + durationMs + cfg.finishGraceMs;
+  const record = {
+    eventUid: event.eventUid || '',
+    alertId: overlayAlert.id || event.eventUid || '',
+    source: event.source || '',
+    type_key: event.type_key || '',
+    sentAtMs,
+    sentAt: new Date(sentAtMs).toISOString(),
+    overlaySentAt: event.alertTiming && event.alertTiming.timestamps ? event.alertTiming.timestamps.overlaySentAt || '' : '',
+    overlayClientCountAtSend: state.overlayClients.size,
+    durationMs,
+    expectedAckByMs,
+    expectedAckBy: new Date(expectedAckByMs).toISOString(),
+    ackAtMs: 0,
+    ackAt: '',
+    ackEvent: '',
+    ackReason: ''
+  };
+  state.overlayDeliveryByEvent.set(record.eventUid, record);
+  pruneOverlayDeliveries();
+  const pub = publicOverlayDelivery(record, sentAtMs);
+  state.alertOverlayWatchdog.lastStatus = pub;
+  if (pub.issue) {
+    state.alertOverlayWatchdog.issues += 1;
+    if (pub.issue === 'no_overlay_client_at_play') state.alertOverlayWatchdog.noClient += 1;
+    state.alertOverlayWatchdog.lastIssue = pub.issue;
+  }
+  event.overlayDeliveryWatchdog = pub;
+  return record;
+}
+
+function markOverlayDeliveryAck(message = {}) {
+  const eventUid = cleanText(message.alertId || message.eventUid || message.id || '');
+  if (!eventUid) return { ok:false, reason:'missing_event_uid' };
+  const record = state.overlayDeliveryByEvent.get(eventUid);
+  if (!record) return { ok:false, reason:'delivery_record_not_found', eventUid };
+  if (record.ackAtMs) return { ok:true, duplicate:true, eventUid, record: publicOverlayDelivery(record) };
+  const ackAtMs = Date.now();
+  record.ackAtMs = ackAtMs;
+  record.ackAt = new Date(ackAtMs).toISOString();
+  record.ackEvent = cleanKey(message.event || 'finished');
+  record.ackReason = cleanText(message.reason || '');
+  state.alertOverlayWatchdog.acknowledged += 1;
+  const pub = publicOverlayDelivery(record, ackAtMs);
+  state.alertOverlayWatchdog.lastStatus = pub;
+  return { ok:true, eventUid, record: pub };
+}
+
+function runAlertOverlayWatchdogCheck() {
+  const now = Date.now();
+  const cfg = alertOverlayWatchdogConfig();
+  const recent = [];
+  const issues = [];
+  if (cfg.enabled) {
+    for (const record of state.overlayDeliveryByEvent.values()) {
+      const pub = publicOverlayDelivery(record, now);
+      recent.push(pub);
+      if (pub && pub.issue) {
+        issues.push(pub);
+        if (pub.issue === 'overlay_finish_ack_missing' && record.missingTracked !== true) {
+          record.missingTracked = true;
+          state.alertOverlayWatchdog.issues += 1;
+          state.alertOverlayWatchdog.missingFinishAck += 1;
+          state.alertOverlayWatchdog.lastIssue = pub.issue;
+        }
+      }
+    }
+  }
+  state.alertOverlayWatchdog.checked += 1;
+  state.alertOverlayWatchdog.lastCheckedAt = new Date(now).toISOString();
+  if (recent.length) state.alertOverlayWatchdog.lastStatus = recent[recent.length - 1];
+  return { ok:true, checkedAt: state.alertOverlayWatchdog.lastCheckedAt, issueCount: issues.length, issues, recent };
+}
+
+function buildAlertOverlayWatchdogStatus(options = {}) {
+  const cfg = alertOverlayWatchdogConfig();
+  const doCheck = options.check === true && cfg.checkOnStatus !== false;
+  const check = doCheck ? runAlertOverlayWatchdogCheck() : null;
+  const recent = Array.from(state.overlayDeliveryByEvent.values()).map(record => publicOverlayDelivery(record)).filter(Boolean);
+  return {
+    ok: true,
+    module: MODULE,
+    feature: 'alert_overlay_delivery_watchdog',
+    enabled: cfg.enabled,
+    checkOnStatus: cfg.checkOnStatus,
+    finishGraceMs: cfg.finishGraceMs,
+    maxRecent: cfg.maxRecent,
+    overlayClients: state.overlayClients.size,
+    stats: {
+      checked: state.alertOverlayWatchdog.checked,
+      acknowledged: state.alertOverlayWatchdog.acknowledged,
+      issues: state.alertOverlayWatchdog.issues,
+      noClient: state.alertOverlayWatchdog.noClient,
+      missingFinishAck: state.alertOverlayWatchdog.missingFinishAck,
+      lastIssue: state.alertOverlayWatchdog.lastIssue,
+      lastCheckedAt: state.alertOverlayWatchdog.lastCheckedAt,
+      resetAt: state.alertOverlayWatchdog.resetAt
+    },
+    last: state.alertOverlayWatchdog.lastStatus,
+    check,
+    recent
+  };
+}
+
+function resetAlertOverlayWatchdog() {
+  state.overlayDeliveryByEvent.clear();
+  state.alertOverlayWatchdog.checked = 0;
+  state.alertOverlayWatchdog.issues = 0;
+  state.alertOverlayWatchdog.noClient = 0;
+  state.alertOverlayWatchdog.missingFinishAck = 0;
+  state.alertOverlayWatchdog.acknowledged = 0;
+  state.alertOverlayWatchdog.lastStatus = null;
+  state.alertOverlayWatchdog.lastIssue = '';
+  state.alertOverlayWatchdog.lastCheckedAt = '';
+  state.alertOverlayWatchdog.resetAt = nowIso();
+  return buildAlertOverlayWatchdogStatus({ check:false });
+}
+
+
 function alertTimingNow() {
   const ms = Date.now();
   return { ms, iso: new Date(ms).toISOString() };
@@ -960,6 +1166,7 @@ function buildStatus(req = null) {
     currentEventId: state.current ? state.current.eventUid : null,
     history: state.history.slice(0, 50),
     overlayClients: state.overlayClients.size,
+    overlayWatchdog: buildAlertOverlayWatchdogStatus({ check: false }),
     multerReady: !!multer,
     multerLoadError,
     ffprobe,
@@ -1041,6 +1248,8 @@ function canonicalConfigSectionKey(key) {
   const map = {
     preview: 'preview',
     livealert: 'liveAlert',
+    communicationbusmirror: 'communicationBusMirror',
+    alertoverlaywatchdog: 'alertOverlayWatchdog',
     dashboardsettings: 'dashboardSettings'
   };
   return map[lower] || raw;
@@ -1064,6 +1273,7 @@ function sanitizeRuntimeConfig(input) {
   cfg.preview = mergePlainConfig(DEFAULT_CONFIG.preview, cfg.preview || {});
   cfg.liveAlert = mergePlainConfig(DEFAULT_CONFIG.liveAlert, cfg.liveAlert || {});
   cfg.communicationBusMirror = mergePlainConfig(DEFAULT_CONFIG.communicationBusMirror, cfg.communicationBusMirror || {});
+  cfg.alertOverlayWatchdog = mergePlainConfig(DEFAULT_CONFIG.alertOverlayWatchdog, cfg.alertOverlayWatchdog || {});
   cfg.dashboardSettings = mergePlainConfig(DEFAULT_CONFIG.dashboardSettings, cfg.dashboardSettings || {});
 
   cfg.preview.localBrowserAudio = boolValue(cfg.preview.localBrowserAudio, DEFAULT_CONFIG.preview.localBrowserAudio);
@@ -1098,6 +1308,11 @@ function sanitizeRuntimeConfig(input) {
   cfg.communicationBusMirror.targetId = cleanText(cfg.communicationBusMirror.targetId || DEFAULT_CONFIG.communicationBusMirror.targetId) || DEFAULT_CONFIG.communicationBusMirror.targetId;
   cfg.communicationBusMirror.targetModule = cleanKey(cfg.communicationBusMirror.targetModule || DEFAULT_CONFIG.communicationBusMirror.targetModule);
   cfg.communicationBusMirror.targetCapability = cleanText(cfg.communicationBusMirror.targetCapability || DEFAULT_CONFIG.communicationBusMirror.targetCapability);
+
+  cfg.alertOverlayWatchdog.enabled = boolValue(cfg.alertOverlayWatchdog.enabled, DEFAULT_CONFIG.alertOverlayWatchdog.enabled);
+  cfg.alertOverlayWatchdog.checkOnStatus = boolValue(cfg.alertOverlayWatchdog.checkOnStatus, DEFAULT_CONFIG.alertOverlayWatchdog.checkOnStatus);
+  cfg.alertOverlayWatchdog.finishGraceMs = clamp(toInt(cfg.alertOverlayWatchdog.finishGraceMs, DEFAULT_CONFIG.alertOverlayWatchdog.finishGraceMs), 1000, 120000);
+  cfg.alertOverlayWatchdog.maxRecent = clamp(toInt(cfg.alertOverlayWatchdog.maxRecent, DEFAULT_CONFIG.alertOverlayWatchdog.maxRecent), 1, 200);
 
   cfg.dashboardSettings.preferSqliteSettings = boolValue(cfg.dashboardSettings.preferSqliteSettings, DEFAULT_CONFIG.dashboardSettings.preferSqliteSettings);
   cfg.dashboardSettings.allowRuntimeEdit = boolValue(cfg.dashboardSettings.allowRuntimeEdit, DEFAULT_CONFIG.dashboardSettings.allowRuntimeEdit);
@@ -2343,6 +2558,7 @@ async function processQueue(broadcastWS) {
     const overlayAlert = buildOverlayAlert(event);
     sendOverlay(broadcastWS, { event: 'play', alert: overlayAlert });
     markAlertTiming(event, 'overlaySent');
+    createOverlayDeliveryWatch(event, overlayAlert);
     emitAlertBusMirror(event, overlayAlert);
     dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
 
@@ -4063,10 +4279,18 @@ function attachWs(wss) {
       try { msg = JSON.parse(String(raw || '')); } catch (_) { return; }
       if (!msg || msg.op !== (state.config.wsOp || 'alert_system')) return;
       if (msg.client === 'overlay') {
-        state.overlayClients.set(ws, { connectedAt: nowIso(), lastSeenAt: nowIso() });
-        try { ws.send(JSON.stringify({ op: state.config.wsOp || 'alert_system', event: 'hello', status: buildStatus() })); } catch (_) {}
+        const existing = state.overlayClients.get(ws) || {};
+        state.overlayClients.set(ws, {
+          connectedAt: existing.connectedAt || nowIso(),
+          lastSeenAt: nowIso(),
+          lastMessageEvent: cleanKey(msg.event || '')
+        });
+        if (msg.event === 'hello') {
+          try { ws.send(JSON.stringify({ op: state.config.wsOp || 'alert_system', event: 'hello', status: buildStatus() })); } catch (_) {}
+        }
       }
       if (msg.event === 'ack' || msg.event === 'finished') {
+        markOverlayDeliveryAck(msg);
         if (state.current && (!msg.alertId || msg.alertId === state.current.eventUid)) finishCurrent('client_ack', state.broadcastWS);
       }
     });

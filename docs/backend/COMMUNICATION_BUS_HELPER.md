@@ -47,3 +47,15 @@ productionTarget: false
 - keine Änderung am echten Alert-Overlay
 - keine Änderung an Sound/TTS/VIP
 - keine OBS-Änderung
+
+## STEP278X Overlay Delivery Watchdog
+
+Zusätzlich zum Bus-Mirror gibt es im `alert_system.js` eine Diagnose für die echte Alert-Overlay-Auslieferung:
+
+```text
+/api/alerts/overlay-watchdog/status
+/api/alerts/overlay-watchdog/check
+/api/alerts/overlay-watchdog/reset?confirm=1
+```
+
+Die Diagnose bleibt im bestehenden Alert-System und erzeugt kein neues Modul. Sie prüft, ob beim Alert-Play ein echtes Alert-Overlay verbunden war und ob nach der Alert-Laufzeit eine `finished`/`ack`-Bestätigung zurückkam.

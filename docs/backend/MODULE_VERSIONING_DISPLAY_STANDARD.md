@@ -20,3 +20,8 @@ Neue oder überarbeitete Modul-Meta-Daten sollen `version` verwenden. STEP-Bezü
 ## STEP278W Hinweis
 
 Diagnosefelder wie `timing`, `moduleVersion` oder Runtime-Stats dürfen in APIs angezeigt werden. STEP-Bezeichnungen bleiben weiterhin nur in Doku, Projektstand, Changelog und ZIP-Namen.
+
+
+## STEP278X Hinweis
+
+Neue Diagnose-Routen verwenden weiterhin nur Versions-/Feature-Namen in Runtime-Ausgaben. STEP-Bezeichnungen bleiben in Doku und ZIP-Namen.
