@@ -1,27 +1,5 @@
-# Module Versioning Display Standard
+# Modul-Versioning / Anzeige-Standard
 
-## Verbindlicher Standard
+STEP-Nummern gehören nur in Doku, Changelog, Projektstatus und ZIP-/Übergabenamen.
 
-Für das gesamte `stream-control-center` gilt:
-
-```text
-Module / Code / API / UI:
-- sichtbar nur Versionsnummern verwenden
-- keine sichtbaren STEP-Angaben
-- keine Anzeigen im Muster `vX / STEP...`
-
-STEPs:
-- nur für Doku, Projektstand, Changelog, ZIP-Namen und Übergaben
-```
-
-Neue oder überarbeitete Modul-Meta-Daten sollen `version` verwenden. STEP-Bezüge bleiben in Projektdateien, Changelogs und ZIP-Namen.
-
-
-## STEP278W Hinweis
-
-Diagnosefelder wie `timing`, `moduleVersion` oder Runtime-Stats dürfen in APIs angezeigt werden. STEP-Bezeichnungen bleiben weiterhin nur in Doku, Projektstand, Changelog und ZIP-Namen.
-
-
-## STEP278X Hinweis
-
-Neue Diagnose-Routen verwenden weiterhin nur Versions-/Feature-Namen in Runtime-Ausgaben. STEP-Bezeichnungen bleiben in Doku und ZIP-Namen.
+In Code, APIs, Logs und UI-Ausgaben werden neue/überarbeitete Anzeigen nur mit Modulname und Version beschrieben, nicht mit STEP-/Build-Label.

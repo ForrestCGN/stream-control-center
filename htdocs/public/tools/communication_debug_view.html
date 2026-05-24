@@ -98,9 +98,9 @@
   <main class="wrap">
     <section class="hero">
       <div>
-        <div class="badge">Communication Bus · Test / Debug</div>
+        <div class="badge">Communication Bus · Alert Diagnose</div>
         <h1>Communication Bus Debug View</h1>
-        <div class="subtitle">Lesbare Diagnose für Status, Clients, Events, Issues, Watchdog, Recovery und Alert-Mirror-Tests. Keine Produktivmigration.</div>
+        <div class="subtitle">Lesbare Diagnose für Bus, Clients, Events, Watchdog, Real-Alert-Mirror, Alert-Timing, echtes Alert-Overlay-ACK und manuelle Overlay-Recovery.</div>
       </div>
       <div class="small" id="lastUpdate">Noch nicht geladen</div>
     </section>
@@ -109,6 +109,10 @@
       <button class="good" data-action="refresh">Status aktualisieren</button>
       <button class="good active" id="autoRefreshBtn" data-action="toggleAutoRefresh">Auto-Refresh: AN</button>
       <button class="good" data-action="alertMirror">Alert Mirror Test</button>
+      <button data-action="alertMirrorStatus">Real Alert Mirror Status</button>
+      <button data-action="overlayWatchdogStatus">Overlay Watchdog Status</button>
+      <button class="warn" data-action="overlayWatchdogCheck">Overlay Watchdog Check</button>
+      <button class="danger" data-action="overlayRecover">Overlay Recovery Clear</button>
       <button data-action="watchdog">Watchdog prüfen</button>
       <button class="warn" data-action="watchdogTrack">Watchdog tracken</button>
       <button data-action="watchdogRecovered">Watchdog + Recovery</button>
@@ -123,6 +127,16 @@
       <article class="card">
         <div class="card-head"><div class="card-title">Bus Übersicht</div><span id="busHealth" class="pill">unbekannt</span></div>
         <div class="card-body"><div class="metrics" id="metrics"></div></div>
+      </article>
+
+      <article class="card half">
+        <div class="card-head"><div class="card-title">Real Alert Mirror + Timing</div><span id="alertMirrorState" class="pill">-</span></div>
+        <div class="card-body" id="alertMirrorStatus"></div>
+      </article>
+
+      <article class="card half">
+        <div class="card-head"><div class="card-title">Echtes Alert-Overlay ACK</div><span id="overlayWatchdogState" class="pill">-</span></div>
+        <div class="card-body" id="overlayWatchdogStatus"></div>
       </article>
 
       <article class="card half">
@@ -161,9 +175,9 @@
 (() => {
   'use strict';
 
-  const META = { name: 'communication_debug_view', version: '0.1.3' };
+  const META = { name: 'communication_debug_view', version: '0.1.5' };
   const AUTO_REFRESH_MS = 2000;
-  const state = { status: null, watchdog: null, busy: false, autoRefresh: true, autoTimer: null, refreshInFlight: false };
+  const state = { status: null, watchdog: null, alertMirror: null, overlayWatchdog: null, busy: false, autoRefresh: true, autoTimer: null, refreshInFlight: false };
 
   const $ = id => document.getElementById(id);
   const logEl = $('log');
@@ -210,6 +224,14 @@
     return json;
   }
 
+  async function getJsonOptional(url) {
+    try {
+      return await getJson(url);
+    } catch (err) {
+      return { ok: false, unavailable: true, error: err.message, url, payload: err.payload || null };
+    }
+  }
+
   function updateAutoRefreshButton() {
     const btn = $('autoRefreshBtn');
     if (!btn) return;
@@ -230,8 +252,14 @@
     if (!options.silent) setAction('lade', 'warn');
 
     try {
-      const status = await getJson('/api/communication/status');
+      const [status, alertMirror, overlayWatchdog] = await Promise.all([
+        getJson('/api/communication/status'),
+        getJsonOptional('/api/alerts/bus-mirror/status'),
+        getJsonOptional('/api/alerts/overlay-watchdog/status')
+      ]);
       state.status = status;
+      state.alertMirror = alertMirror;
+      state.overlayWatchdog = overlayWatchdog;
       render();
       setLastUpdate();
       if (!options.silent) setAction('bereit', 'ok');
@@ -314,6 +342,23 @@
     return state.status && state.status.status ? state.status.status : {};
   }
 
+  function durationMs(value) {
+    if (value === undefined || value === null || value === '') return '-';
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value);
+    return `${Math.round(n)} ms`;
+  }
+
+  function shortId(value) {
+    const v = String(value || '');
+    if (!v) return '-';
+    return v.length > 32 ? `${v.slice(0, 18)}…${v.slice(-8)}` : v;
+  }
+
+  function renderKeyValue(rows) {
+    return `<table><tbody>${rows.map(([label, value]) => `<tr><th>${esc(label)}</th><td>${value}</td></tr>`).join('')}</tbody></table>`;
+  }
+
   function render() {
     const root = state.status || {};
     const status = getBusStatus();
@@ -357,6 +402,122 @@
     renderIssues(issues);
     renderWatchdog(wd);
     renderRecovered(wd);
+    renderAlertMirror();
+    renderOverlayWatchdog();
+  }
+
+
+  function renderAlertMirror() {
+    const data = state.alertMirror;
+    const badge = $('alertMirrorState');
+    const box = $('alertMirrorStatus');
+    if (!badge || !box) return;
+
+    if (!data || data.unavailable) {
+      badge.textContent = 'nicht verfügbar';
+      badge.className = 'pill warn';
+      box.innerHTML = `<div class="empty warnText">Route nicht verfügbar: ${esc(data && data.error ? data.error : 'unbekannt')}</div>`;
+      return;
+    }
+
+    const stats = data.stats || {};
+    const timing = data.timing || null;
+    badge.textContent = data.enabled ? 'aktiv' : 'aus';
+    badge.className = `pill ${data.enabled ? 'ok' : 'warn'}`;
+
+    const rows = [
+      ['Status', `${pill(data.enabled ? 'enabled' : 'disabled', data.enabled ? 'ok' : 'warn')} ${pill(data.communicationBusAvailable ? 'bus verfügbar' : 'bus fehlt', data.communicationBusAvailable ? 'ok' : 'bad')}`],
+      ['Emitted / Errors', `${esc(stats.emitted ?? 0)} / ${esc(stats.errors ?? 0)}`],
+      ['Letzter Alert', `${mono(shortId(stats.lastEventUid))}<div class="small">${esc(data.source || '')} ${esc(data.type_key || '')}</div>`],
+      ['Letztes Bus-Event', mono(shortId(stats.lastBusEventId))],
+      ['Delivery', esc(stats.lastResult ? `${stats.lastResult.deliveredCount || 0} · ${(stats.lastResult.deliveredTo || []).join(', ') || '-'}` : '-')],
+      ['Changed', `${esc(time(stats.changedAt))}<div class="small">${esc(stats.changedReason || '-')}</div>`]
+    ];
+
+    let htmlOut = renderKeyValue(rows);
+    if (timing) {
+      const timingRows = [
+        ['queuedAt', esc(time(timing.queuedAt))],
+        ['waitingForSoundAt', esc(time(timing.waitingForSoundAt))],
+        ['soundWaitDoneAt', esc(time(timing.soundWaitDoneAt))],
+        ['playingAt', esc(time(timing.playingAt))],
+        ['overlaySentAt', esc(time(timing.overlaySentAt))],
+        ['busMirrorSentAt', esc(time(timing.busMirrorSentAt))],
+        ['queueToSoundWaitMs', esc(durationMs(timing.queueToSoundWaitMs))],
+        ['soundWaitDurationMs', esc(durationMs(timing.soundWaitDurationMs))],
+        ['playingToOverlayMs', esc(durationMs(timing.playingToOverlayMs))],
+        ['overlayToBusMirrorMs', esc(durationMs(timing.overlayToBusMirrorMs))],
+        ['playingToBusMirrorMs', esc(durationMs(timing.playingToBusMirrorMs))]
+      ];
+      htmlOut += `<br><details open><summary>Timing letzter echter Alert</summary>${renderKeyValue(timingRows)}</details>`;
+    } else {
+      htmlOut += '<div class="empty">Noch kein Timing für echten Alert vorhanden.</div>';
+    }
+
+    box.innerHTML = htmlOut;
+  }
+
+  function renderOverlayWatchdog() {
+    const data = state.overlayWatchdog;
+    const badge = $('overlayWatchdogState');
+    const box = $('overlayWatchdogStatus');
+    if (!badge || !box) return;
+
+    if (!data || data.unavailable) {
+      badge.textContent = 'nicht verfügbar';
+      badge.className = 'pill warn';
+      box.innerHTML = `<div class="empty warnText">Route nicht verfügbar: ${esc(data && data.error ? data.error : 'unbekannt')}</div>`;
+      return;
+    }
+
+    const stats = data.stats || {};
+    const last = data.last || null;
+    const issueCount = data.check && Number.isFinite(Number(data.check.issueCount)) ? Number(data.check.issueCount) : Number(stats.issues || 0);
+    badge.textContent = issueCount > 0 ? `${issueCount} Issue(s)` : 'ok';
+    badge.className = `pill ${issueCount > 0 ? 'bad' : 'ok'}`;
+
+    const rows = [
+      ['Overlay Clients', esc(data.overlayClients ?? 0)],
+      ['Checked / ACK', `${esc(stats.checked ?? 0)} / ${esc(stats.acknowledged ?? 0)}`],
+      ['Issues', `${pill(stats.issues || 0, stats.issues > 0 ? 'bad' : 'ok')} ${pill(`noClient ${stats.noClient || 0}`, stats.noClient > 0 ? 'bad' : '')} ${pill(`missingAck ${stats.missingFinishAck || 0}`, stats.missingFinishAck > 0 ? 'bad' : '')}`],
+      ['Letztes Issue', esc(stats.lastIssue || '-')],
+      ['Geprüft', esc(time(stats.lastCheckedAt))]
+    ];
+
+    const recovery = data.recovery || {};
+    let htmlOut = renderKeyValue(rows);
+    if (recovery && recovery.lastAt) {
+      const recoveryRows = [
+        ['Versuche', esc(recovery.attempts || 0)],
+        ['Letzte Recovery', esc(time(recovery.lastAt))],
+        ['Modus', esc(recovery.lastMode || '-')],
+        ['Grund', esc(recovery.lastReason || '-')],
+        ['Overlay Clients', esc(recovery.lastOverlayClientCount ?? '-')],
+        ['Issues vorher', esc(recovery.lastIssuesBefore ?? 0)]
+      ];
+      htmlOut += `<br><details open><summary>Manuelle Overlay-Recovery</summary>${renderKeyValue(recoveryRows)}</details>`;
+    }
+    if (last) {
+      const lastRows = [
+        ['Status', `${pill(last.status || '-', last.status === 'acknowledged' ? 'ok' : last.status === 'missing_finish_ack' || last.status === 'no_overlay_client' ? 'bad' : 'warn')} ${last.timedOut ? pill('timed out', 'bad') : ''}`],
+        ['Event', mono(shortId(last.eventUid))],
+        ['Typ', esc(`${last.source || '-'} · ${last.type_key || '-'}`)],
+        ['Sent', esc(time(last.sentAt || last.overlaySentAt))],
+        ['Expected ACK', esc(time(last.expectedAckBy))],
+        ['ACK', `${esc(time(last.ackAt))}<div class="small">${esc(last.ackEvent || '-')} · ${esc(last.ackReason || '-')}</div>`],
+        ['ACK Latenz', esc(durationMs(last.ackLatencyMs))],
+        ['Dauer', esc(durationMs(last.durationMs))]
+      ];
+      htmlOut += `<br><details open><summary>Letzter echter Overlay-ACK</summary>${renderKeyValue(lastRows)}</details>`;
+    } else {
+      htmlOut += '<div class="empty">Noch kein echter Overlay-ACK im Watchdog.</div>';
+    }
+
+    if (data.check && data.check.issues && data.check.issues.length) {
+      htmlOut += '<br>' + data.check.issues.map(i => `<details open><summary>${esc(i.issue || i.status || 'issue')}</summary><pre>${esc(compactJson(i))}</pre></details>`).join('<br>');
+    }
+
+    box.innerHTML = htmlOut;
   }
 
   function renderClients(clients) {
@@ -413,6 +574,13 @@
       if (action === 'refresh') return await refreshStatus();
       if (action === 'toggleAutoRefresh') return toggleAutoRefresh();
       if (action === 'alertMirror') return await callAction('/api/communication/test-alert?user=ForrestCGN&type=bits&amount=100&message=Auto%20Refresh%20Test&requireAck=1&replayable=1&ttlMs=60000', 'Alert Mirror Test');
+      if (action === 'alertMirrorStatus') return await callAction('/api/alerts/bus-mirror/status', 'Real Alert Mirror Status');
+      if (action === 'overlayWatchdogStatus') return await callAction('/api/alerts/overlay-watchdog/status', 'Overlay Watchdog Status');
+      if (action === 'overlayWatchdogCheck') return await callAction('/api/alerts/overlay-watchdog/check', 'Overlay Watchdog Check');
+      if (action === 'overlayRecover') {
+        if (!window.confirm('Alert-Overlay wirklich per Recovery-Clear leeren? Queue, Sound und TTS bleiben unverändert.')) return;
+        return await callAction('/api/alerts/overlay-watchdog/recover?confirm=1', 'Overlay Recovery Clear');
+      }
       if (action === 'watchdog') return await runWatchdog('/api/communication/watchdog', 'Watchdog geprüft');
       if (action === 'watchdogTrack') return await runWatchdog('/api/communication/watchdog?track=1', 'Watchdog getrackt');
       if (action === 'watchdogRecovered') return await runWatchdog('/api/communication/watchdog?includeRecovered=1', 'Watchdog + Recovery geprüft');

@@ -162,6 +162,15 @@ const state = {
     lastCheckedAt: '',
     resetAt: ''
   },
+  alertOverlayRecovery: {
+    attempts: 0,
+    lastAt: '',
+    lastMode: '',
+    lastReason: '',
+    lastOverlayClientCount: 0,
+    lastIssuesBefore: 0,
+    lastResult: null
+  },
   overlayDeliveryByEvent: new Map()
 };
 
@@ -192,6 +201,10 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, '/api/alerts/overlay-watchdog/reset', guard, (req, res) => {
     if (req.query.confirm !== '1') return res.status(400).json({ ok:false, error:'confirm_required', hint:'/api/alerts/overlay-watchdog/reset?confirm=1' });
     return res.json(resetAlertOverlayWatchdog());
+  });
+  routes.registerGet(app, '/api/alerts/overlay-watchdog/recover', guard, (req, res) => {
+    if (req.query.confirm !== '1') return res.status(400).json({ ok:false, error:'confirm_required', hint:'/api/alerts/overlay-watchdog/recover?confirm=1' });
+    return res.json(recoverAlertOverlayWatchdog(req.query || {}));
   });
   routes.registerGet(app, '/api/alerts/queue', (req, res) => res.json({ ok: true, current: state.current, queue: state.queue, queueLength: state.queue.length }));
   routes.registerPost(app, '/api/alerts/clear', guard, (req, res) => {
@@ -318,6 +331,7 @@ function buildAlertRoutes(req = null) {
     { method: 'GET', path: '/api/alerts/overlay-watchdog/status', auth: 'local_or_auth', category: 'communication', description: 'Alert-Overlay-Delivery-Watchdog Status lesen.' },
     { method: 'GET', path: '/api/alerts/overlay-watchdog/check', auth: 'local_or_auth', category: 'communication', description: 'Alert-Overlay-Delivery-Watchdog sofort prüfen.' },
     { method: 'GET', path: '/api/alerts/overlay-watchdog/reset', auth: 'local_or_auth', category: 'communication', description: 'Alert-Overlay-Delivery-Watchdog Diagnosezähler zurücksetzen.' },
+    { method: 'GET', path: '/api/alerts/overlay-watchdog/recover', auth: 'local_or_auth', category: 'communication', description: 'Sichere manuelle Alert-Overlay-Recovery: Overlay-Clear senden, ohne Queue/Sound/TTS zu verändern.' },
     { method: 'GET', path: '/api/alerts/queue', auth: 'public/local', category: 'queue', description: 'Aktueller Alert und Warteschlange.' },
     { method: 'POST', path: '/api/alerts/clear', auth: 'local_or_auth', category: 'queue', description: 'Queue leeren und Overlay clear senden.' },
     { method: 'POST', path: '/api/alerts/reload', auth: 'local_or_auth', category: 'admin', description: 'Config neu laden, Schema/Seeds prüfen und DB-Settings anwenden.' },
@@ -851,6 +865,9 @@ function publicOverlayDelivery(record, nowMsValue = Date.now()) {
     ackEvent: record.ackEvent || '',
     ackReason: record.ackReason || '',
     ackLatencyMs: acknowledged ? Math.max(0, Number(record.ackAtMs || 0) - Number(record.sentAtMs || 0)) : null,
+    recoveryRequestedAt: record.recoveryRequestedAt || '',
+    recoveryMode: record.recoveryMode || '',
+    recoveryReason: record.recoveryReason || '',
     status,
     issue: status === 'no_overlay_client'
       ? 'no_overlay_client_at_play'
@@ -975,6 +992,7 @@ function buildAlertOverlayWatchdogStatus(options = {}) {
       resetAt: state.alertOverlayWatchdog.resetAt
     },
     last: state.alertOverlayWatchdog.lastStatus,
+    recovery: { ...state.alertOverlayRecovery },
     check,
     recent
   };
@@ -992,6 +1010,74 @@ function resetAlertOverlayWatchdog() {
   state.alertOverlayWatchdog.lastCheckedAt = '';
   state.alertOverlayWatchdog.resetAt = nowIso();
   return buildAlertOverlayWatchdogStatus({ check:false });
+}
+
+function recoverAlertOverlayWatchdog(query = {}) {
+  const now = nowIso();
+  const mode = cleanKey(query.mode || 'clear_overlay');
+  const reason = cleanText(query.reason || 'manual_overlay_watchdog_recovery');
+  const before = runAlertOverlayWatchdogCheck();
+
+  if (!['clear_overlay', 'clear'].includes(mode)) {
+    return {
+      ok: false,
+      module: MODULE,
+      feature: 'alert_overlay_delivery_watchdog_recovery',
+      error: 'unsupported_recovery_mode',
+      supportedModes: ['clear_overlay'],
+      requestedMode: mode
+    };
+  }
+
+  const affected = [];
+  for (const record of state.overlayDeliveryByEvent.values()) {
+    const pub = publicOverlayDelivery(record);
+    if (!pub || !pub.issue) continue;
+    record.recoveryRequestedAt = now;
+    record.recoveryMode = mode;
+    record.recoveryReason = reason;
+    affected.push(pub.eventUid || pub.alertId || 'unknown');
+  }
+
+  const overlayClientCount = state.overlayClients.size;
+  const payload = {
+    event: 'clear',
+    reason: 'overlay_watchdog_recovery',
+    recoveryMode: mode,
+    recoveredAt: now,
+    affected
+  };
+  sendOverlay(state.broadcastWS, payload);
+
+  const result = {
+    ok: true,
+    module: MODULE,
+    feature: 'alert_overlay_delivery_watchdog_recovery',
+    mode,
+    reason,
+    recoveredAt: now,
+    overlayClientCount,
+    issuesBefore: before.issueCount || 0,
+    affectedCount: affected.length,
+    affected,
+    overlayClearSent: true,
+    queueChanged: false,
+    soundChanged: false,
+    ttsChanged: false
+  };
+
+  state.alertOverlayRecovery.attempts += 1;
+  state.alertOverlayRecovery.lastAt = now;
+  state.alertOverlayRecovery.lastMode = mode;
+  state.alertOverlayRecovery.lastReason = reason;
+  state.alertOverlayRecovery.lastOverlayClientCount = overlayClientCount;
+  state.alertOverlayRecovery.lastIssuesBefore = before.issueCount || 0;
+  state.alertOverlayRecovery.lastResult = result;
+
+  return {
+    ...result,
+    watchdog: buildAlertOverlayWatchdogStatus({ check:false })
+  };
 }
 
 
