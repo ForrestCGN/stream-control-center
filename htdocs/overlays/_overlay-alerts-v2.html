@@ -1834,6 +1834,7 @@
     let ws;
     let currentTimer = null;
     let currentAlertId = null;
+    let currentBusEventId = null; // STEP371_ALERT_BUS_SHADOW_ADAPTER: only set for communication-bus shadow events.
     const PREVIEW_MODE = new URLSearchParams(location.search).has('preview');
 
     function stageMetrics() {
@@ -1869,16 +1870,100 @@
     window.addEventListener('resize', updateStageScale);
     updateStageScale();
 
+
+    // STEP371_ALERT_BUS_SHADOW_ADAPTER: Accept legacy alert_system messages and communication-bus envelopes in parallel.
+    // Live output remains legacy until the backend mode is intentionally changed later.
+    function normalizeAlertTransportMessage(data) {
+      if (!data || typeof data !== 'object') return null;
+
+      if (data.op === 'alert_system') {
+        return {
+          transport: 'legacy',
+          event: data.event,
+          alert: data.alert || null,
+          busEventId: '',
+          raw: data
+        };
+      }
+
+      return normalizeAlertBusEnvelope(data);
+    }
+
+    function normalizeAlertBusEnvelope(data) {
+      const channel = String(data.channel || '').toLowerCase();
+      const action = String(data.action || data.event || '').toLowerCase();
+      if (channel !== 'visual.alert') return null;
+      if (action !== 'play' && action !== 'clear') return null;
+
+      const payload = data.payload && typeof data.payload === 'object' ? data.payload : {};
+      const alert = payload.alert || payload.visualAlert || payload.alertPayload ||
+        (payload.id || payload.eventUid || payload.event_uid ? payload : null);
+
+      if (action === 'clear') {
+        return {
+          transport: 'bus',
+          event: 'clear',
+          alert: null,
+          busEventId: String(data.id || data.eventId || ''),
+          raw: data
+        };
+      }
+
+      if (!alert || typeof alert !== 'object') return null;
+
+      return {
+        transport: 'bus',
+        event: 'play',
+        alert,
+        busEventId: String(data.id || data.eventId || ''),
+        raw: data
+      };
+    }
+
+    function sendBusAck(eventId, status, details = {}) {
+      const id = String(eventId || '').trim();
+      if (!id) return;
+      send({
+        type: 'bus_ack',
+        eventId: id,
+        clientId: 'alert_overlay_v2_shadow',
+        status: String(status || 'received'),
+        details: {
+          module: 'alert_system',
+          overlay: '_overlay-alerts-v2.html',
+          mode: 'shadow',
+          step: 371,
+          ...details
+        }
+      });
+    }
+
     function connect() {
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${proto}//${location.host}`);
-      ws.addEventListener('open', () => send({ op: 'alert_system', client: 'overlay', event: 'hello' }));
+      ws.addEventListener('open', () => {
+        send({ op: 'alert_system', client: 'overlay', event: 'hello' });
+        // STEP371_ALERT_BUS_SHADOW_ADAPTER: bus client registration for shadow-mode delivery tests.
+        send({
+          type: 'bus_hello',
+          clientId: 'alert_overlay_v2_shadow',
+          clientType: 'overlay',
+          module: 'alert_system',
+          mode: 'shadow',
+          capabilities: ['visual.alert.play', 'visual.alert.clear'],
+          version: 'STEP371'
+        });
+      });
       ws.addEventListener('message', ev => {
         let data;
         try { data = JSON.parse(ev.data); } catch (_) { return; }
-        if (!data || data.op !== 'alert_system') return;
-        if (data.event === 'play' && data.alert) playAlert(data.alert);
-        if (data.event === 'clear') clearAlert('clear');
+        const normalized = normalizeAlertTransportMessage(data);
+        if (!normalized) return;
+        if (normalized.event === 'play' && normalized.alert) playAlert(normalized.alert, normalized);
+        if (normalized.event === 'clear') {
+          if (normalized.busEventId) sendBusAck(normalized.busEventId, 'cleared', { reason: 'clear_event' });
+          clearAlert('clear');
+        }
       });
       ws.addEventListener('close', () => setTimeout(connect, 1500));
     }
@@ -1913,9 +1998,11 @@
       } catch (_) {}
     }
 
-    function playAlert(alert) {
+    function playAlert(alert, transportContext = {}) {
       clearAlert('replace', false);
       currentAlertId = alert.id;
+      currentBusEventId = transportContext && transportContext.transport === 'bus' ? (transportContext.busEventId || '') : '';
+      if (currentBusEventId) sendBusAck(currentBusEventId, 'received', { alertId: currentAlertId || '', action: 'play' });
 
       const card = document.createElement('div');
 
@@ -2468,6 +2555,8 @@
       stopLocalAlertAudio();
 
       if (ack && currentAlertId) send({ op: 'alert_system', client: 'overlay', event: 'finished', alertId: currentAlertId, reason });
+      if (ack && currentBusEventId) sendBusAck(currentBusEventId, reason === 'finished' ? 'finished' : 'cleared', { alertId: currentAlertId || '', reason });
+      currentBusEventId = null;
       currentAlertId = null;
     }
 
