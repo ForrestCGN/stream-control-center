@@ -58,6 +58,7 @@ window.SoundSystemModule = (function(){
         <div class="sound-card" id="soundStatusCard" data-sound-section="overview"></div>
         <div class="sound-card" id="soundCurrentCard" data-sound-section="overview"></div>
         <div class="sound-card" id="soundPolicyCard" data-sound-section="overview queue"></div>
+        <div class="sound-card sound-control-center-card" id="soundControlCenterCard" data-sound-section="queue overview"></div>
         <div class="sound-card" id="soundOutputCard" data-sound-section="output"></div>
         <div class="sound-card" id="soundSettingsCard" data-sound-section="settings"></div>
         <div class="sound-card" data-sound-section="sounds">
@@ -84,6 +85,7 @@ window.SoundSystemModule = (function(){
     renderOutput();
     renderCurrent();
     renderPolicy();
+    renderControlCenter();
     renderSettings();
     renderSounds();
     renderQueue();
@@ -630,23 +632,104 @@ window.SoundSystemModule = (function(){
     `).join('');
   }
 
+  function soundContextLine(item){
+    if (!item || typeof item !== 'object') return '-';
+    const meta = item.meta || {};
+    const visual = item.visual || {};
+    const bundle = item.bundle || {};
+    const parts = [];
+    parts.push(item.category || '-');
+    parts.push(item.source || meta.module || visual.module || 'manual');
+    if (item.requestedBy) parts.push('@' + item.requestedBy);
+    if (bundle.bundleRole || meta.bundleRole) parts.push('bundle:' + (bundle.bundleRole || meta.bundleRole));
+    if (bundle.bundleOrder || meta.bundleOrder) parts.push('#' + (bundle.bundleOrder || meta.bundleOrder));
+    return parts.filter(Boolean).join(' · ');
+  }
+
   function renderQueue(){
     const el = document.getElementById('soundQueue');
     if (!el) return;
     const queue = Array.isArray(status?.queue) ? status.queue : [];
     if (!queue.length) { el.innerHTML = `<div class="sound-empty">Queue ist leer.</div>`; return; }
-    el.innerHTML = queue.map((item, index) => `
-      <div class="sound-queue-row">
-        <div class="sound-queue-main">
-          <div class="sound-queue-title">#${index + 1} ${esc(item.label || item.soundId)}</div>
-          <div class="sound-queue-meta">${esc(item.category || '-')} · ${esc(item.source || 'manual')} · Priorität ${esc(item.priority)} · ${esc(item.file)}</div>
+    el.innerHTML = queue.map((item, index) => {
+      const bundle = item.bundle || {};
+      const lockInfo = item.lifecycle?.queuedBehindActiveBundleLock ? ` · wartet auf ${item.lifecycle.activeBundleLockId || 'Bundle-Lock'}` : '';
+      return `
+        <div class="sound-queue-row sound-queue-row-detailed">
+          <div class="sound-queue-main">
+            <div class="sound-queue-title">#${index + 1} ${esc(item.label || item.soundId)}</div>
+            <div class="sound-queue-meta">${esc(soundContextLine(item))}${lockInfo ? esc(lockInfo) : ''}</div>
+            <div class="sound-queue-file">${esc(item.file || item.audioUrl || '')}</div>
+            ${bundle.bundleId ? `<div class="sound-queue-bundle">${esc(bundle.bundleId)} · ${esc(bundle.bundleType || '-')} · Rolle ${esc(bundle.bundleRole || '-')}</div>` : ''}
+          </div>
+          <div class="sound-mini-actions sound-queue-side">
+            <span class="sound-pill">Prio ${esc(item.priority)}</span>
+            <span class="sound-pill">${esc(item.outputTarget || item.target)}</span>
+            <span class="sound-pill">${esc(item.volume)}%</span>
+          </div>
         </div>
-        <div class="sound-mini-actions">
-          <span class="sound-pill">${esc(item.outputTarget || item.target)}</span>
-          <span class="sound-pill">${esc(item.volume)}%</span>
+      `;
+    }).join('');
+  }
+
+
+  function currentSoundTitle(item){
+    if (!item) return 'Kein aktueller Sound';
+    return item.label || item.soundId || item.file || item.requestId || 'Unbekannter Sound';
+  }
+
+  function renderControlCenter(){
+    const el = document.getElementById('soundControlCenterCard');
+    if (!el) return;
+    const cur = status?.current;
+    const queue = Array.isArray(status?.queue) ? status.queue : [];
+    const lock = status?.activeBundleLock;
+    const bundle = status?.currentBundle;
+    const stats = status?.stats || {};
+    const paused = status?.paused === true;
+    const hasCurrent = !!cur;
+    const hasQueue = queue.length > 0;
+    el.innerHTML = `
+      <h3>Sound Control Center</h3>
+      <div class="sound-note">Sichere Steuerung über bestehende Backend-APIs. Keine Änderung an Queue-, Bundle- oder SoundBus-Logik.</div>
+      <div class="sound-control-grid">
+        <div class="sound-control-tile">
+          <span>Aktuell</span>
+          <strong>${esc(currentSoundTitle(cur))}</strong>
+          <small>${cur ? esc(soundContextLine(cur)) : 'bereit'}</small>
+        </div>
+        <div class="sound-control-tile">
+          <span>Queue</span>
+          <strong>${esc(queue.length)}</strong>
+          <small>${hasQueue ? 'wartende Sounds' : 'leer'}</small>
+        </div>
+        <div class="sound-control-tile">
+          <span>Status</span>
+          <strong class="${paused ? 'sound-danger-text' : ''}">${paused ? 'Pausiert' : 'Läuft'}</strong>
+          <small>${status?.enabled ? 'Modul aktiv' : 'Modul inaktiv'}</small>
+        </div>
+        <div class="sound-control-tile">
+          <span>Bundle-Lock</span>
+          <strong>${lock ? esc(lock.bundleId || 'aktiv') : 'frei'}</strong>
+          <small>${bundle ? esc(bundle.bundleType || 'bundle') : 'kein Bundle aktiv'}</small>
         </div>
       </div>
-    `).join('');
+      <div class="sound-actions sound-control-actions">
+        ${button('Status aktualisieren', 'refresh-status')}
+        ${paused ? button('Resume', 'resume', 'success') : button('Pause', 'pause')}
+        ${button('Stop aktueller Sound', 'stop', hasCurrent ? 'danger' : '')}
+        ${button('Skip aktueller Sound', 'skip', hasCurrent ? 'danger' : '')}
+        ${button('Queue leeren', 'clear-confirm', hasQueue ? 'danger' : '')}
+      </div>
+      <div class="sound-control-warning">Stop/Skip/Clear sind bewusste Steueraktionen. Clear fragt zusätzlich nach Bestätigung.</div>
+      <div class="sound-control-mini">
+        <span>Gestartet ${esc(stats.started || 0)}</span>
+        <span>Queued ${esc(stats.queued || 0)}</span>
+        <span>Failed ${esc(stats.failed || 0)}</span>
+        <span>Device ${esc(stats.deviceFailed || 0)}</span>
+        <span>Discord ${esc(stats.discordFailed || 0)}</span>
+      </div>
+    `;
   }
 
 
@@ -895,10 +978,17 @@ window.SoundSystemModule = (function(){
         } else {
           const action = actionBtn.dataset.soundAction;
           if (action === 'reload') await api('/reload', { method: 'POST', body: '{}' });
-          if (action === 'refresh-status') await refreshStatusOnly();
+          if (action === 'refresh-status') { await refreshStatusOnly(); return; }
+          if (action === 'pause') await api('/pause', { method: 'POST', body: '{}' });
+          if (action === 'resume') await api('/resume', { method: 'POST', body: '{}' });
           if (action === 'stop') await api('/stop', { method: 'POST', body: '{}' });
           if (action === 'skip') await api('/skip', { method: 'POST', body: '{}' });
           if (action === 'clear') await api('/clear', { method: 'POST', body: '{}' });
+          if (action === 'clear-confirm') {
+            const count = Number(status?.queuedCount || 0);
+            if (!window.confirm(`Sound-Queue wirklich leeren? Aktuell ${count} wartende Sounds.`)) return;
+            await api('/clear', { method: 'POST', body: '{}' });
+          }
           if (action === 'save-output') await saveOutput();
           if (action === 'reload-devices') devices = await api('/devices');
           if (action === 'reload-settings') settings = await api('/settings');

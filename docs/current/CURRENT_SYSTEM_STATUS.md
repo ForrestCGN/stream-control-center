@@ -1,3 +1,34 @@
+# CURRENT SYSTEM STATUS – STEP320
+
+Stand: 2026-05-24
+
+## Aktueller Fokus
+
+SoundBus ist im Dev-/Testbetrieb aktiv und das Sound-Dashboard wurde zum ersten Control-Center erweitert.
+
+## STEP320 Ergebnis
+
+- Sound Dashboard Control Center ergänzt.
+- Queue-/Current-/Bundle-Lock-Informationen sind direkt im Dashboard sichtbar.
+- Steueraktionen nutzen bestehende Backend-APIs.
+- Pause/Resume/Stop/Skip/Clear sind im Sound-System-Bereich verfügbar.
+- Clear hat eine zusätzliche Browser-Bestätigung.
+- Queue-Zeilen zeigen Quelle/Kategorie/User/Bundle-Kontext.
+
+## Unverändert
+
+- Keine Sound-Queue-Logik geändert.
+- Keine Bundle-/activeBundleLock-Logik geändert.
+- Keine SoundBus-Logik geändert.
+- Keine Backend-Routen hinzugefügt.
+- Keine DB-Migration.
+
+## Nächster Schritt
+
+STEP321 – Control-Center Praxistest mit laufender Queue und Bundle-Lock.
+
+---
+
 # CURRENT SYSTEM STATUS – STEP310
 
 Stand: 2026-05-24
