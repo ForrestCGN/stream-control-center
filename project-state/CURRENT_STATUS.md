@@ -1,31 +1,54 @@
-# CURRENT_STATUS – STEP351 HANDOFF
+# CURRENT_STATUS – STEP354 SOUND BUS FINAL CHECK
 
 Stand: 2026-05-24
 
 Aktueller stabiler Stand:
 
-- SoundBus ist aktiv und getestet.
-- Sound Dashboard Monitoring ist verfügbar.
-- Sound Dashboard Control Center ist vorhanden.
-- STEP330 stabilisierte die Sound-Dashboard-UI.
-- STEP340 bestätigte Alert → SoundBundle → SoundBus → Dashboard-Korrelation.
-- STEP350 ergänzte im Alert-Dashboard den Tab `Bus / Sync` und wurde erfolgreich getestet.
+- Sound-System und SoundBus sind als zentrale Audio-/Medien-Schicht für die nächsten System-Anbindungen bereit.
+- STEP352 ergänzte den SoundBus-Client-Event-Kontext im Backend.
+- STEP353 reparierte das WebSocket-Play-Signal im Sound-System-Overlay.
+- STEP354 dokumentiert den bestätigten Abschlussstand nach erfolgreichem Test.
 
-Bestätigter STEP350-Test:
+Bestätigte Ergebnisse:
 
 ```text
-soundStep            : 340
-alertStep            : 350
+soundStep            : 352
+Sound-Test           : generated_beep über outputTarget=overlay
+SoundBus item_starting: vorhanden
+SoundBus item_started : vorhanden
+SoundBus play_stream  : vorhanden
+SoundBus client.audio_started: vorhanden
+SoundBus client_audio_ended  : vorhanden
 queuedCount          : 0
-activeBundleLock     :
-soundBusErrors       : 0
-alertBundlesPrepared : 3
-alertBundlesPosted   : 3
-alertBundlesOk       : 3
-alertBundlesFailed   : 0
-failed               : 0
-deviceFailed         : 0
-discordFailed        : 0
+activeBundleLock     : leer
 ```
 
-Keine Änderungen an Sound-Queue, Bundle-Lock, SoundBus-Playback-Logik, Discord-Routing oder DB.
+Bestätigter Ablauf:
+
+```text
+/api/sound/play
+→ Sound-System startet Item
+→ SoundBus meldet item_starting
+→ SoundBus meldet item_started
+→ Sound-System sendet play_stream an Browserquelle
+→ Sound-Overlay spielt Sound ab
+→ Sound-Overlay meldet client.audio_started zurück
+→ Sound-Overlay meldet client_audio_ended zurück
+→ Sound-System beendet Item sauber
+```
+
+Bewertung:
+
+- Sound-System steuert weiterhin Sound, Queue, Bundle, Device/Discord/Overlay-Ausgabe.
+- SoundBus liefert jetzt die nötigen Events für spätere System-Anbindungen.
+- Sound-Overlay bestätigt tatsächlichen Playback-Start und Playback-Ende mit `requestId`.
+- Damit ist die SoundBus-Grundlage bereit, um danach das Alert-System als erstes System sauber anzubinden.
+
+Nicht geändert in STEP354:
+
+- Kein Dashboard.
+- Keine Alert-Anbindung.
+- Keine Queue-Änderung.
+- Keine `activeBundleLock`-Änderung.
+- Keine DB-Migration.
+- Keine Entfernung von Legacy-/HTTP-/WebSocket-Pfaden.

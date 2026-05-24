@@ -1,71 +1,72 @@
-# CURRENT SYSTEM STATUS – STEP351 HANDOFF
+# CURRENT SYSTEM STATUS – STEP354 SOUND BUS FINAL CHECK
 
 Stand: 2026-05-24
 
 ## Aktueller Fokus
 
-Das Projekt `stream-control-center` wurde im Kommunikations-/Sound-/Alert-Bereich auf den Stand nach STEP350 gebracht. SoundBus, Sound-Dashboard, Alert/SoundBundle-Korrelation und Alert-Dashboard-Bus/Sync-Sicht sind aktiv getestet.
+Sound-System und SoundBus wurden als zentrale Audio-/Medien-Schicht fertig geprüft. Dashboard-Arbeit ist zurückgestellt. Der nächste fachliche Block ist die Anbindung einzelner Systeme an den fertigen SoundBus, beginnend mit dem Alert-System.
 
 ## Bestätigter Gesamtstand
 
-- SoundBus läuft aktiv im Dev-/Testbetrieb.
-- Sound-System sendet SoundBus-Events mit normalisiertem Kontext.
-- Sound Dashboard besitzt Monitoring, Bus-Monitor und Control Center.
-- Alert-System, Alert-SoundBundle und SoundBus sind korreliert.
-- Alert-Dashboard besitzt den Tab `Bus / Sync`.
-- Der große V5-Testlauf ist nach STEP350 erfolgreich durchgelaufen.
+- Sound-System bleibt zuständig für Sound, Queue, Bundle, Device/Discord/Overlay-Ausgabe und Playback.
+- SoundBus ist aktiv und liefert normalisierte Events.
+- Sound-Overlay ist verbunden und verarbeitet WebSocket-Play-Signale wieder korrekt.
+- Sound-Overlay meldet tatsächlichen Playback-Start als `client.audio_started` zurück.
+- Sound-Overlay meldet Playback-Ende als `client_audio_ended` zurück.
+- Die Events enthalten eine durchgehende `requestId`.
 - Queue läuft leer.
 - `activeBundleLock` bleibt nicht hängen.
-- SoundBus meldet keine Fehler.
-- Alert-Bundles werden vorbereitet, gepostet und erfolgreich verarbeitet.
-- Device- und Discord-Ausgabe haben keine Fehler gemeldet.
+- Keine Dashboard-Erweiterung in STEP354.
 
-## Bestätigter STEP350-Test
+## Bestätigter STEP354-Test
 
-Kompakter Prüfstand nach Testlauf:
+Testbefehl:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/play?type=generated_beep&outputTarget=overlay&durationMs=1200&frequency=880&label=SoundBusClientTest"
+Start-Sleep -Seconds 2
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status"
+$s.soundBus.recentEvents | Select-Object -First 15
+```
+
+Bestätigter Ablauf:
 
 ```text
-soundStep            : 340
-alertStep            : 350
-queuedCount          : 0
-activeBundleLock     :
-soundBusErrors       : 0
-alertBundlesPrepared : 3
-alertBundlesPosted   : 3
-alertBundlesOk       : 3
-alertBundlesFailed   : 0
-failed               : 0
-deviceFailed         : 0
-discordFailed        : 0
+starting / item_starting
+started / item_started
+state.updated / play_stream
+client.audio_started / client_audio_started
+client_audio_ended
+finished / item_finished
 ```
 
 Bewertung:
 
-- STEP350 ist bestätigt.
-- `soundStep=340` ist korrekt, weil STEP350 hauptsächlich Alert-Dashboard/Alert-System betrifft.
-- `alertStep=350` bestätigt die aktive Alert-Dashboard-Bus/Sync-Version.
-- Keine Queue-, Bundle-, SoundBus-, Device- oder Discord-Fehler.
+- STEP352 Backend-Client-Event-Kontext ist nutzbar.
+- STEP353 Overlay-WebSocket-Fix ist bestätigt.
+- STEP354 markiert den SoundBus als bereit für die erste System-Anbindung.
 
 ## Wichtige Architekturentscheidungen
 
-- Sound-System bleibt Master für Audio/Queue/Bundle/Playback.
-- CommunicationBus/SoundBus ist aktuell Beobachtungs-, Status- und Korrelationsschicht.
-- Caller-Module sollen bestehende Sound-System-APIs weiter nutzen.
+- Sound-System steuert den Sound.
+- SoundBus meldet Sound-Zustände und Client-Bestätigungen.
+- Alert-System soll als erstes System angebunden werden.
+- Alert-System liefert dann Alert-Inhalt und Overlay-Anzeige passend zum Sound-System/SoundBus-Status.
+- Dashboard kommt später.
 - Keine Bus-only-Produktivmigration ohne gesonderte Entscheidung.
 - Alte HTTP-/WebSocket-/Legacy-Pfade bleiben erhalten.
-- Keine Sound-Queue-/Bundle-/activeBundleLock-Logik ohne ausdrücklichen Grund anfassen.
+- Keine Sound-Queue-/Bundle-/`activeBundleLock`-Logik ohne ausdrücklichen Grund anfassen.
 - Keine Funktionalität entfernen.
 - Zuerst echte Dateien prüfen, dann planen/ändern.
 
 ## Nächster sinnvoller Block
 
-Empfohlen: `STEP360 – Alert Bus/Sync Praxismodus + Dashboard Feinschliff`
+Empfohlen: `STEP360 – Alert-System an fertigen SoundBus anbinden`
 
 Möglicher Inhalt:
 
-- Alert-Bus/Sync-Seite optisch/inhaltlich abrunden.
-- Replay/Test-Alert sauber in der Korrelationssicht anzeigen.
-- Moduswechsel besser absichern und klarer markieren.
-- Dev-Testmodus `bus_first` sauberer führen.
-- Keine Bus-only-Produktivumstellung.
-- Keine Queue-/Bundle-/SoundBus-Logik ändern.
+- Alert-System liest/berücksichtigt Sound-System/SoundBus-Signale.
+- Alert-Bild/Text wird passend zum tatsächlichen Sound-Start angezeigt.
+- Overlay-Reconnect/Recovery für laufende Alerts wird geprüft und gezielt gelöst.
+- Sound/TTS darf nicht doppelt starten.
+- Keine Dashboard-Arbeit außer zwingend nötiger Testschalter.

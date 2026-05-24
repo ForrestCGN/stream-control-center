@@ -1,34 +1,49 @@
-# NEXT STEPS – nach STEP351 HANDOFF
+# NEXT STEPS – nach STEP354 SOUND BUS FINAL CHECK
 
-## Empfohlener nächster größerer Block
+## Nächster Block
 
-`STEP360 – Alert Bus/Sync Praxismodus + Dashboard Feinschliff`
+`STEP360 – Alert-System an fertigen SoundBus anbinden`
 
 ## Ziel
 
-Nicht neue Basislogik bauen, sondern den jetzt bestätigten Alert/SoundBus-Stand praxistauglicher machen.
+Das Alert-System wird als erstes System an den jetzt bestätigten SoundBus-/Sound-System-Stand angebunden.
 
-## Mögliche Inhalte
+Klarer Zusammenhang:
 
-- Alert-Dashboard `Bus / Sync` optisch/inhaltlich abrunden.
-- Replay/Test-Alert mit Korrelationsdaten sauber anzeigen.
-- Alert-Output-Moduswechsel besser erklären und absichern.
-- `bus_first` als Dev-Testmodus sauber führen.
-- Status-/Fehlertexte verständlicher darstellen.
-- Optional: kompakte Testbuttons/Diagnoseansicht, aber ohne Queue-/Bundle-Logik anzufassen.
+```text
+Sound-System steuert Sound, Queue, Bundle und Playback.
+SoundBus meldet Start/Ende/Client-Bestätigung.
+Alert-System liefert Alert-Inhalt und Overlay-Anzeige passend dazu.
+```
+
+## Vor STEP360 prüfen
+
+- Aktuelle `backend/modules/alert_system.js` aus GitHub/dev lesen.
+- Aktuelle `backend/modules/sound_system.js` aus GitHub/dev lesen.
+- Aktuelle Alert-Overlays lesen:
+  - `htdocs/overlays/_overlay-alerts-v2.html`
+  - `htdocs/overlays/_overlay-alerts-v2-bus.html`
+- Keine alten Annahmen aus früheren Chats verwenden.
+
+## STEP360-Kernziel
+
+- Alert-System nutzt Sound-System/SoundBus-Signale sauber.
+- Alert-Bild/Text wird passend zum tatsächlichen Sound-Start angezeigt.
+- Reconnect-/Recovery-Verhalten für laufende Alerts prüfen und gezielt lösen.
+- Sound/TTS darf dabei nicht doppelt starten.
+
+## Bewusst später
+
+- Dashboard-Ausbau.
+- Dashboard-Feinschliff.
+- Neue Dashboard-Tabs.
+- UI-Monitoring als Hauptarbeit.
 
 ## Nicht machen ohne ausdrücklichen Wunsch
 
 - Kein `bus_only` als Produktionsstandard.
 - Keine Entfernung alter Legacy-/HTTP-/WebSocket-Pfade.
 - Keine Sound-Queue-Logik ändern.
-- Keine Bundle-/activeBundleLock-Logik ändern.
+- Keine Bundle-/`activeBundleLock`-Logik ändern.
 - Keine DB-Migration.
-- Keine Doku-only-Mini-Step-Kette nach jedem Screenshot.
-
-## Arbeitsweise
-
-- So klein wie nötig, so groß wie möglich.
-- Größere zusammenhängende Blöcke bevorzugen.
-- Immer zuerst echte Dateien prüfen.
-- Keine Funktionalität entfernen.
+- Keine neue Parallelstruktur.

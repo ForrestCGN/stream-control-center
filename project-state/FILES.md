@@ -1,43 +1,38 @@
-# FILES – STEP351 HANDOFF
+# FILES – STEP354 SOUND BUS FINAL CHECK
 
-Dieses Handoff-ZIP enthält nur Dokumentation und Prompt-Dateien. Es ersetzt keine Code-Dateien.
+Dieses ZIP enthält nur Dokumentation zum bestätigten SoundBus-Abschlussstand.
 
 ## Enthaltene Dateien
 
 ```text
 docs/current/CURRENT_SYSTEM_STATUS.md
-docs/dashboard/ALERT_SOUNDBUS_HANDOFF_STEP351.md
 project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
-project-state/STEP351_HANDOFF_SUMMARY.md
-handoff/NEW_CHAT_PROMPT_STEP351_ALERT_SOUNDBUS_HANDOFF.txt
-handoff/README_STEP351_HANDOFF.md
+project-state/STEP354_SOUND_BUS_FINAL_CHECK.md
 ```
 
 ## Zuletzt bestätigte Code-Stände
 
-Letzter Code-Block:
-
 ```text
-STEP350_ALERT_DASHBOARD_BUS_CORRELATION_VIEW.zip
+STEP353_SOUND_OVERLAY_WS_PLAY_SIGNAL_FIX.zip
+STEP352_SOUND_BUS_CLIENT_EVENT_CONTRACT.zip
 ```
 
-Darin relevante Dateien:
+Relevante Code-Dateien aus den letzten Code-STEPS:
 
 ```text
-backend/modules/alert_system.js
 backend/modules/sound_system.js
-htdocs/dashboard/modules/alerts.js
-htdocs/dashboard/modules/alerts.css
+htdocs/overlays/sound_system_overlay.html
 ```
 
-Vorherige relevante Code-Stände:
+## Nicht enthalten
 
 ```text
-STEP340_ALERT_SOUNDBUS_CORRELATION_BLOCK.zip
-STEP330_SOUND_DASHBOARD_UI_CONTROL_STABILIZATION.zip
-STEP320_SOUND_DASHBOARD_CONTROL_CENTER.zip
-STEP310_SOUNDBUS_CONSUMER_INTEGRATION_BLOCK.zip
+keine Dashboard-Dateien
+keine Alert-Dateien
+keine DB-Dateien
+keine Config-Änderungen
+keine Secrets
 ```
