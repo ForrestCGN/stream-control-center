@@ -1,7 +1,6 @@
-# NEXT STEPS
+# NEXT_STEPS
 
-1. STEP277A_FIX8 einspielen.
-2. Backend neu starten.
-3. `/api/clip-shoutout/status` prüfen.
-4. Direct Playback mit `bynexl` testen.
-5. Prüfen, dass keine neue MP4-Datei im Clip-Shoutout-Cache entsteht.
+## Nach STEP277A_FIX9
+1. Mehrfach denselben Zielkanal testen und `clipSelection` prüfen.
+2. Prüfen, ob bei Kanälen mit nur einem Clip weiterhin abgespielt wird.
+3. Optional später entscheiden, ob die Recent-Historie persistent in DB gespeichert werden soll.

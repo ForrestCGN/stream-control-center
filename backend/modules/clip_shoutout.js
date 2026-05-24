@@ -30,6 +30,9 @@ const DEFAULT_CONFIG = {
     clipFetchPages: 3,
     randomPick: true,
     minViewCount: 0,
+    avoidRecentClips: true,
+    recentClipMemoryPerChannel: 5,
+    recentClipFallbackWhenAllBlocked: true,
     allowBroadcasterSelfTarget: true,
     clipPlaybackMode: "direct",
     cacheDownloadedClips: false,
@@ -67,6 +70,7 @@ const state = {
   lastRun: null,
   lastClipSearch: null,
   lastError: "",
+  recentClipGuard: { memory: {}, lastSelection: null },
   stats: {
     requested: 0,
     queued: 0,
@@ -79,6 +83,7 @@ const state = {
 
 let appToken = null;
 let appTokenExpiresAt = 0;
+const recentClipMemory = new Map();
 
 function nowIso() {
   return core.nowIso();
@@ -405,11 +410,82 @@ async function listClipsForBroadcaster(env, broadcasterId, cfg) {
   return { clips: [], rawClips: [], debug };
 }
 
-function pickClip(clips, cfg) {
-  if (!Array.isArray(clips) || !clips.length) return null;
-  if (cfg.randomPick === false) return clips[0];
-  const index = Math.floor(Math.random() * clips.length);
-  return clips[index] || clips[0];
+function clipMemoryLimit(cfg) {
+  return intParam(cfg.recentClipMemoryPerChannel, 5, 0, 50);
+}
+
+function clipIdOf(clip) {
+  return String(clip && clip.id || "").trim();
+}
+
+function recentKeyForLogin(login) {
+  return cleanLogin(login || "");
+}
+
+function getRecentClipIds(login, cfg) {
+  const key = recentKeyForLogin(login);
+  if (!key) return [];
+  const limit = clipMemoryLimit(cfg);
+  if (limit <= 0) return [];
+  const rows = Array.isArray(recentClipMemory.get(key)) ? recentClipMemory.get(key) : [];
+  return rows.slice(0, limit).map(v => String(v || "")).filter(Boolean);
+}
+
+function rememberRecentClip(login, clip, cfg) {
+  const key = recentKeyForLogin(login);
+  const id = clipIdOf(clip);
+  const limit = clipMemoryLimit(cfg);
+  if (!key || !id || limit <= 0) return;
+  const previous = Array.isArray(recentClipMemory.get(key)) ? recentClipMemory.get(key) : [];
+  const next = [id, ...previous.filter(value => String(value || "") !== id)].slice(0, limit);
+  recentClipMemory.set(key, next);
+}
+
+function publicRecentClipGuard(cfg) {
+  const memory = {};
+  const limit = clipMemoryLimit(cfg || {});
+  for (const [login, ids] of recentClipMemory.entries()) {
+    memory[login] = (Array.isArray(ids) ? ids : []).slice(0, limit);
+  }
+  return {
+    enabled: (cfg || {}).avoidRecentClips !== false,
+    memoryPerChannel: limit,
+    fallbackWhenAllBlocked: (cfg || {}).recentClipFallbackWhenAllBlocked !== false,
+    memory,
+    lastSelection: state.recentClipGuard && state.recentClipGuard.lastSelection ? state.recentClipGuard.lastSelection : null
+  };
+}
+
+function pickClip(clips, cfg, targetLogin = "") {
+  const candidates = Array.isArray(clips) ? clips.filter(clip => clipIdOf(clip)) : [];
+  if (!candidates.length) return { clip: null, selection: null };
+
+  const avoidRecent = cfg.avoidRecentClips !== false && clipMemoryLimit(cfg) > 0;
+  const recentIds = avoidRecent ? getRecentClipIds(targetLogin, cfg) : [];
+  const recentSet = new Set(recentIds);
+  const nonRecent = avoidRecent ? candidates.filter(clip => !recentSet.has(clipIdOf(clip))) : candidates.slice();
+
+  let pool = nonRecent.length ? nonRecent : candidates;
+  const usedFallbackBecauseAllBlocked = avoidRecent && !nonRecent.length && candidates.length > 0;
+  if (usedFallbackBecauseAllBlocked && cfg.recentClipFallbackWhenAllBlocked === false) pool = candidates;
+
+  let clip = null;
+  if (cfg.randomPick === false) clip = pool[0] || candidates[0];
+  else clip = pool[Math.floor(Math.random() * pool.length)] || pool[0] || candidates[0];
+
+  const selection = {
+    mode: cfg.randomPick === false ? (avoidRecent ? "first_avoid_recent" : "first") : (avoidRecent ? "random_avoid_recent" : "random"),
+    candidateCount: candidates.length,
+    recentMemory: recentIds,
+    recentBlockedCount: avoidRecent ? candidates.filter(clipItem => recentSet.has(clipIdOf(clipItem))).length : 0,
+    poolCount: pool.length,
+    usedFallbackBecauseAllBlocked,
+    selectedClipId: clipIdOf(clip),
+    avoidRecentClips: avoidRecent,
+    memoryPerChannel: clipMemoryLimit(cfg)
+  };
+
+  return { clip, selection };
 }
 
 
@@ -823,7 +899,7 @@ function registerCommand(cfg) {
       permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
       cooldownGlobalMs: Number(cfg.cooldownGlobalMs || 5000),
       cooldownUserMs: Number(cfg.cooldownUserMs || 15000),
-      configJson: JSON.stringify({ seededBy: "STEP277A_FIX7", rawInputMode: true }),
+      configJson: JSON.stringify({ seededBy: "STEP277A_FIX9", rawInputMode: true }),
       createdAt: now,
       updatedAt: now
     });
@@ -880,7 +956,15 @@ async function handleRun(req, res, env) {
       return res.json({ ok: false, error: "no_clips_found", target: targetUser, clipSearch: clipSearch.debug || null });
     }
 
-    const clip = pickClip(clips, cfg);
+    const pickedClip = pickClip(clips, cfg, targetUser.login);
+    const clip = pickedClip.clip;
+    const clipSelection = pickedClip.selection || null;
+    if (!clip) {
+      state.stats.noClips += 1;
+      state.lastError = "no_valid_clip_after_selection";
+      state.lastRun = { target: targetUser, targetLogin, error: "no_valid_clip_after_selection", input: summarizeInput(input), clipSearch: clipSearch.debug || null, failedAt: state.lastRunAt };
+      return res.json({ ok: false, error: "no_valid_clip_after_selection", target: targetUser, clipSearch: clipSearch.debug || null });
+    }
     const playbackUrl = await resolveClipPlaybackUrl(clip.id, cfg);
     const playback = await prepareClipPlayback(playbackUrl, clip, targetUser, cfg);
 
@@ -900,6 +984,9 @@ async function handleRun(req, res, env) {
     const ttsItem = await prepareOptionalTts(input, cfg, vars);
     const bundlePayload = buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem);
     const soundResult = await postJson(cfg.soundBundleUrl, bundlePayload, 15000);
+    rememberRecentClip(targetUser.login, clip, cfg);
+    state.recentClipGuard = publicRecentClipGuard(cfg);
+    state.recentClipGuard.lastSelection = clipSelection;
 
     let chatResult = { ok: false, skipped: true, reason: "disabled" };
     if (boolParam(input.sendChat, cfg.sendChatMessage)) {
@@ -912,6 +999,7 @@ async function handleRun(req, res, env) {
     state.lastRun = {
       target: targetUser,
       clip: { id: clip.id, title: clip.title || "", url: clip.url || "", duration: clip.duration || 0 },
+      clipSelection,
       clipSearch: clipSearch.debug || null,
       bundleId: bundlePayload.bundleId,
       ttsEnabled: Boolean(ttsItem),
@@ -932,6 +1020,7 @@ async function handleRun(req, res, env) {
         duration: clip.duration || 0,
         viewCount: clip.view_count || 0
       },
+      clipSelection,
       clipSearch: clipSearch.debug || null,
       playback: {
         mode: playback.mode || "direct",
@@ -964,12 +1053,13 @@ module.exports.init = function init(ctx) {
 
   app.get(`${API_PREFIX}/status`, (req, res) => {
     const currentCfg = shoutoutConfig();
+    state.recentClipGuard = publicRecentClipGuard(currentCfg);
     const command = cleanLogin(currentCfg.command || "vso") || "vso";
     res.json({
       ok: true,
       module: MODULE_NAME,
-      version: 7,
-      step: "STEP277A_FIX8",
+      version: 8,
+      step: "STEP277A_FIX9",
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       command,
@@ -986,6 +1076,10 @@ module.exports.init = function init(ctx) {
         clipSearchRangesDays: currentCfg.clipSearchRangesDays,
         clipFetchFirst: currentCfg.clipFetchFirst,
         clipFetchPages: currentCfg.clipFetchPages,
+        randomPick: currentCfg.randomPick !== false,
+        avoidRecentClips: currentCfg.avoidRecentClips !== false,
+        recentClipMemoryPerChannel: currentCfg.recentClipMemoryPerChannel,
+        recentClipFallbackWhenAllBlocked: currentCfg.recentClipFallbackWhenAllBlocked !== false,
         ttsAfterClipEnabled: currentCfg.ttsAfterClipEnabled,
         clipPlaybackMode: currentCfg.clipPlaybackMode || "direct",
         cacheDownloadedClips: currentCfg.cacheDownloadedClips,
