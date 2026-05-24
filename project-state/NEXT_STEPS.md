@@ -1,52 +1,44 @@
 # Next Steps
 
-Stand: 2026-05-24T14:35:00Z
+Stand: 2026-05-24T14:40:00Z
 
-## STEP296 – SoundBus Debug/Monitoring View
+## Aktueller Stand nach STEP297
 
-Ausgangslage:
+- `soundBus.enabled = true` bleibt im Dev-/Testbetrieb aktiv.
+- SoundBus Basistests bestanden.
+- V5 Queue/Bundle Regression bestanden.
+- Discord Media Resolver Fix bestätigt.
+- SoundBus Debug View vorhanden und getestet.
+- Doppelt sichtbares `sound.finished` ist dokumentiert und aktuell kein Playback-/Queue-Fehler.
 
-- STEP289/289B/290/291 SoundBus-Basistests und Regression bestanden.
-- STEP293 Discord Media Path Resolver Fix ist in STEP294 bestätigt.
-- STEP295 legt fest: `soundBus.enabled = true` bleibt im Dev-/Testbetrieb aktiv.
+## STEP298 – SoundBus Consumer-/Dashboard-Planung
 
-## Ziel
+Ziel: Gezielt entscheiden, welcher nächste Block umgesetzt wird, bevor weitere Codeänderungen erfolgen.
 
-Sichtbarkeit schaffen, bevor weitere Module oder Overlays migriert werden.
+Optionen:
 
-Umfang:
-
-- Communication Debug View oder eigenes Debug-Panel um `sound.*` Events erweitern.
-- Eventfilter für Channel `sound` ergänzen.
-- `soundBus.stats` übersichtlich anzeigen:
-  - emitted
-  - skipped
-  - errors
-  - lastAction
-  - lastReason
-  - lastEventId
-  - lastError
-- Queue-/Bundle-Status nur lesen, nicht ändern.
-- Keine Playback-/Queue-/Bundle-Logik ändern.
-
-## Danach mögliche Blöcke
-
-### Option A – Sound-System Overlay Consumer Audit
-
-- Prüfen, welche Overlays noch altes `op:sound_system` WebSocket brauchen.
-- Bus-kompatible Overlay-Strategie planen.
-- Noch keine Produktivumstellung.
-
-### Option B – Dashboard-Anzeige
+### Option A – Dashboard-Anzeige
 
 - SoundBus-Status im Dashboard anzeigen.
-- Queue-/Bundle-/Discord-Failures sichtbar machen.
-- Keine direkte DB-/Datei-Zugriffe, nur Backend-API.
+- `soundBus.stats`, Queue, Current, Bundle Lock, Device/Discord-Fails sichtbar machen.
+- Nur Backend-API nutzen, keine direkten Datei-/SQLite-Zugriffe.
 
-### Option C – Alert/Sound Event-Korrelation
+### Option B – Event-Korrelation
 
-- Alert-EventUid, BundleId und SoundBus EventId besser korrelieren.
-- Ziel: spätere Diagnose bei Sound ja / Overlay nein / Discord nein.
+- Alert-EventUid, BundleId, Sound requestId und Bus EventId besser zusammenführen.
+- Ziel: Diagnose bei „Sound ja / Overlay nein / Discord nein“.
+
+### Option C – Overlay-/Consumer-Audit
+
+- Prüfen, welche Overlays noch altes `op:sound_system` WebSocket brauchen.
+- Bus-kompatible Consumer-Strategie planen.
+- Keine alte Strecke entfernen.
+
+### Option D – Debug-View UI Cleanup
+
+- `auto_finished` in der View als System-/Lifecycle-Event markieren.
+- Optional gruppieren oder weniger prominent darstellen.
+- Nur UI-Darstellung, keine Sound-Logik.
 
 ## Nicht ändern ohne neuen Testplan
 
@@ -54,12 +46,5 @@ Umfang:
 - keine Bundle-/`activeBundleLock`-Logik
 - keine Alert-Output-Modi
 - keine Caller-Module direkt auf Bus umbauen
+- keine alten HTTP/WebSocket-Wege entfernen
 - keine DB-Migration ohne vorherigen Plan
-
-
-## Nach STEP296
-
-1. `http://127.0.0.1:8080/public/tools/soundbus_debug_view.html` öffnen.
-2. `test_ping` oder kleinen Alert-Test auslösen.
-3. Prüfen, ob `sound.*` Events sichtbar sind und `soundBus.errors = 0` bleibt.
-4. Danach nächster Block: gezielte SoundBus-Consumer-/Dashboard-Integration planen, ohne alte HTTP/WebSocket-Wege zu entfernen.

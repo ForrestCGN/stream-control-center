@@ -1,11 +1,11 @@
 # Current Status – stream-control-center
 
-Stand: STEP295 – SoundBus Betriebsentscheidung
-Aktualisiert: 2026-05-24T14:35:00Z
+Stand: STEP297 – SoundBus Debug View Test dokumentiert
+Aktualisiert: 2026-05-24T14:40:00Z
 
 ## Zusammenfassung
 
-Der SoundBus-Ausbau ist bis einschließlich STEP291 stabil getestet. STEP292 hat den Discord-Pfadfehler analysiert. STEP293 hat die Discord-Dateiauflösung für Media-Registry-Alert-Dateien behoben. STEP294 bestätigt den Retest nach STEP293. STEP295 legt fest, dass `soundBus.enabled = true` im Dev-/Testbetrieb aktiv bleibt.
+Der SoundBus-Ausbau ist bis einschließlich STEP291 stabil getestet. STEP292 hat den Discord-Pfadfehler analysiert. STEP293 hat die Discord-Dateiauflösung für Media-Registry-Alert-Dateien behoben. STEP294 bestätigt den Retest nach STEP293. STEP295 legt fest, dass `soundBus.enabled = true` im Dev-/Testbetrieb aktiv bleibt. STEP296 ergänzt eine beobachtende SoundBus Debug View. STEP297 dokumentiert den ersten Debug-View-Test.
 
 ## Bestätigt
 
@@ -19,6 +19,19 @@ Der SoundBus-Ausbau ist bis einschließlich STEP291 stabil getestet. STEP292 hat
 - `soundBus.enabled = true` im Retest.
 - `failed = 0`, `deviceFailed = 0`, `levelCorrectionFailed = 0`.
 - Queue/Bundle/`activeBundleLock` am Ende sauber.
+- Debug View zeigt `sound.*` Events live.
+- Debug View Test mit `test_ping` bestätigt.
+
+## STEP297 Diagnose
+
+Bei `test_ping` zeigte die View zwei `sound.finished`-artige Ereignisse:
+
+```text
+sound.finished Test Ping
+sound.finished auto_finished
+```
+
+Dies ist aktuell als Darstellungs-/Diagnosebefund dokumentiert, nicht als Playback-Fehler. Es gab keine Hinweise auf doppelte Wiedergabe, Queue-Reste oder Bundle-Lock-Probleme.
 
 ## Aktueller technischer Stand
 
@@ -40,15 +53,10 @@ Diese Entscheidung erlaubt weitere Debug-/Monitoring-/Dashboard-Arbeiten mit akt
 
 ## Nächster Schritt
 
-STEP296 – SoundBus Debug/Monitoring View.
+STEP298 – SoundBus Consumer-/Dashboard-Planung.
 
 Empfehlung:
 
 1. SoundBus aktiv lassen.
-2. Sichtbarkeit/Debugging ausbauen.
-3. Erst danach weitere Consumer/Migrationsblöcke planen.
-
-
-## STEP296 – SoundBus Debug/Monitoring View
-
-Aktueller Stand: SoundBus bleibt im Dev-/Testbetrieb aktiv. Ergänzt wurde `htdocs/public/tools/soundbus_debug_view.html` als beobachtende Debug-View für `/api/sound/status` und `sound.*` Bus-Events. Keine Backend-/Queue-/Bundle-Logik geändert.
+2. Debug-View weiter nutzen.
+3. Nächsten Migrationsblock planen, bevor Code geändert wird.

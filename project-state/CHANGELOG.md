@@ -1,5 +1,18 @@
 # Changelog
 
+## STEP297 – SoundBus Debug View Test dokumentiert (2026-05-24T14:40:00Z)
+
+- STEP296 Debug View live mit `test_ping` geprüft.
+- Bestätigt: SoundBus aktiv, Communication verfügbar, WebSocket online.
+- Bestätigt: Queue leer, Bundle Lock leer, Sound-/Device-/Discord-Fehler 0.
+- Sichtbare Events dokumentiert: `sound.starting`, `sound.started`, `sound.state.updated`, `sound.finished`.
+- Doppelt sichtbares `sound.finished` als Diagnose-/Darstellungsbefund dokumentiert: konkretes Item-Finish plus `auto_finished` Lifecycle-Event.
+- Keine Hinweise auf doppelte Wiedergabe oder Queue-/Bundle-Störung.
+- Keine Codeänderung.
+- Keine Sound-/Queue-/Bundle-/SoundBus-/Alert-/Discord-Logik geändert.
+- Keine DB-Migration.
+- Keine Funktionalität entfernt.
+
 ## STEP294 – Discord Resolver Retest bestätigt (2026-05-24T14:30:00Z)
 
 - STEP293 Discord Media Path Resolver Fix live erneut getestet.

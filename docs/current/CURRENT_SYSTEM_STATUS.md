@@ -1,7 +1,7 @@
 # Current System Status
 
-Stand: STEP296 – SoundBus Betriebsentscheidung
-Aktualisiert: 2026-05-24T14:35:00Z
+Stand: STEP297 – SoundBus Debug View Test dokumentiert
+Aktualisiert: 2026-05-24T14:40:00Z
 
 ## Aktueller Fokus
 
@@ -16,7 +16,7 @@ Kommunikations-/Sound-/Alert-Stabilisierung über Communication Bus, ohne besteh
   - `bus_first`
 - `bus_only` ist vorbereitet, aber nicht freigegeben.
 - Produktiv sicherer Standard bleibt weiterhin `legacy`, solange kein expliziter Testbetrieb gewünscht ist.
-- Overlay Watchdog läuft und meldete in den Tests `acknowledged`.
+- Overlay Watchdog lief in den Tests mit `acknowledged`.
 
 ## Sound-System / SoundBus
 
@@ -29,6 +29,34 @@ Kommunikations-/Sound-/Alert-Stabilisierung über Communication Bus, ohne besteh
 - V5 Real Queue/Bundle Regression bestanden.
 - SoundBus verursacht keine Queue-/Bundle-Störung.
 - STEP295-Entscheidung: `soundBus.enabled = true` bleibt im Dev-/Testbetrieb aktiv.
+- STEP296 ergänzt `htdocs/public/tools/soundbus_debug_view.html` als beobachtende Debug-View.
+- STEP297 bestätigt den Debug-View-Test mit `test_ping`.
+
+## STEP297 Debug-View-Befund
+
+Die Debug-View zeigte bei `test_ping` erwartete Live-Events:
+
+```text
+sound.starting Test Ping
+sound.started Test Ping
+sound.state.updated play_stream
+sound.finished Test Ping
+sound.finished auto_finished
+```
+
+Der doppelt sichtbare `sound.finished`-Eintrag wurde als Diagnose-/Darstellungsbefund dokumentiert. Das konkrete Item-Finish und das zusätzliche `auto_finished`-Lifecycle-Event bedeuten nach aktuellem Test keine doppelte Wiedergabe und keine Queue-Störung.
+
+Bestätigter Status:
+
+```text
+Queue 0
+Bundle Lock leer
+failed=0
+device=0
+discord=0
+SoundBus aktiv
+WS online
+```
 
 ## Discord Media Resolver
 
@@ -74,19 +102,6 @@ Diese Entscheidung ist keine Freigabe für:
 
 ## Nächster empfohlener Schritt
 
-STEP296 – SoundBus Debug/Monitoring View.
+STEP298 – SoundBus Consumer-/Dashboard-Planung.
 
-Ziel: `sound.*` Events, `soundBus.stats`, LastAction, LastReason, LastEventId, Errors und Skipped sichtbar machen, ohne Playback-/Queue-/Bundle-Logik zu ändern.
-
-
-## STEP296 – SoundBus Debug/Monitoring View
-
-Status: umgesetzt / bereit zum Test.
-
-Neue Debug-View:
-
-```text
-http://127.0.0.1:8080/public/tools/soundbus_debug_view.html
-```
-
-Die View registriert sich per WebSocket als `soundbus_debug_view`, liest `/api/sound/status` und zeigt `sound.*` Events filterbar an. Sie ist beobachtend; ACKs sind standardmäßig deaktiviert und nur optional per `?ack=1` möglich. Bestehende Sound-/Queue-/Bundle-/Alert-/Discord-Logik wurde nicht geändert.
+Ziel: Nach bestätigter Debug-View gezielt entscheiden, ob zuerst Dashboard-Anzeige, Event-Korrelation oder Overlay-Consumer-Audit umgesetzt wird. Keine alte HTTP/WebSocket-Strecke entfernen.
