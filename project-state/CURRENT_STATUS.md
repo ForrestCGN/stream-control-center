@@ -1,24 +1,26 @@
 # CURRENT STATUS
 
-Aktueller Stand: STEP453 – Alert Bus Safe Parallel Integration.
+Aktueller Stand: STEP454 – Alert Bus First Productive Switch.
 
 ## Basis
 
 STEP452 hat VIP produktiv über das Node-Command-System und den Sound-Bus integriert.
 
-STEP453 überträgt das Prinzip vorsichtig auf Alerts, aber noch nicht als Bus-First. Alerts laufen jetzt sicher parallel:
+STEP453 hat Alerts sicher parallel über Legacy + Communication-Bus laufen lassen.
+
+STEP454 schaltet Alerts produktiv auf Bus-First:
 
 ```text
-legacy overlay output + communication bus visual.alert output
+communication bus visual.alert output first + legacy fallback
 ```
 
 ## Alert-System
 
-- `backend/modules/alert_system.js`: Version `3.1.3`
-- `alertOutput.mode`: `legacy_and_bus`
+- `backend/modules/alert_system.js`: Version `3.1.4`
+- `alertOutput.mode`: `bus_first`
 - Bus-Channel: `visual.alert`
 - Bus-Actions: `play`, `clear`
-- Legacy bleibt aktiv.
+- Legacy bleibt als Fallback aktiv.
 
 ## Nicht geändert
 
