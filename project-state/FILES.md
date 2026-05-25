@@ -10,3 +10,9 @@
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/STEP450_VIP_PRODUCTIVE_BUS_GUARD_REFERENCE_HOTFIX.md`
+
+## STEP451 betroffene Dateien
+
+- `backend/modules/sound_system.js` – registriert produktive Sound-Bus-Route `/api/sound/eventbus/command/play`.
+- `backend/modules/vip_sound_overlay.js` – Versions-/Featurestand für STEP451.
+- `project-state/STEP451_SOUND_BUS_PRODUCTIVE_ROUTE_404_FIX.md` – STEP-Dokumentation.

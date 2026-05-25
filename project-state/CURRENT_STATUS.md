@@ -6,3 +6,7 @@ VIP-Sound-Overlay: `1.8.32` mit Feature `vip_productive_bus_guard_reference_hotf
 Sound-System: `0.1.20`, unverändert aus STEP448/449.
 
 STEP450 behebt gezielt den Runtime-Fehler `guard is not defined` im produktiven VIP-Command-Payload. Der normale VIP-Produktivpfad bleibt Bus-First aktiv; Legacy bleibt nur Fallback bei Bus-Fehler.
+
+## STEP451 – Sound Bus Productive Route 404 Fix
+
+Aktueller Stand: VIP-Produktivpfad ist Bus-First aktiv. STEP451 registriert die fehlende produktive Sound-Bus-Route `/api/sound/eventbus/command/play`, damit produktive VIP-Sounds nicht mehr wegen `HTTP 404` auf Legacy zurückfallen.

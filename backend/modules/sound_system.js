@@ -16,7 +16,7 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.20";
+const MODULE_VERSION = "0.1.21";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -959,7 +959,7 @@ module.exports.init = function init(ctx) {
       configVersion: state.version || "",
       capability: SOUND_BUS_COMMAND_CAPABILITY,
       statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
-      feature: "sound_bus_command_productive_play_layer",
+      feature: "sound_bus_command_productive_route_404_hotfix",
       mode: String(commandConfig.mode || "dry_run"),
       commandLayerReady: true,
       commandConsumerEnabled: true,
@@ -1384,7 +1384,7 @@ module.exports.init = function init(ctx) {
       version: MODULE_VERSION,
       capability: SOUND_BUS_COMMAND_CAPABILITY,
       statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
-      feature: "sound_bus_command_productive_play_layer",
+      feature: "sound_bus_command_productive_route_404_hotfix",
       mode: "play_test",
       dryRunOnly: false,
       playTestOnly: true,
@@ -1535,7 +1535,7 @@ module.exports.init = function init(ctx) {
       version: MODULE_VERSION,
       capability: SOUND_BUS_COMMAND_CAPABILITY,
       statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
-      feature: "sound_bus_command_productive_play_layer",
+      feature: "sound_bus_command_productive_route_404_hotfix",
       mode: "productive_play",
       dryRunOnly: false,
       playTestOnly: false,
@@ -3324,6 +3324,14 @@ module.exports.init = function init(ctx) {
   });
   app.post(`${prefix}/eventbus/command/play-test`, (req, res) => {
     const result = consumeSoundBusCommandPlayTest(req.body || {});
+    res.status(result.ok ? 200 : 400).json(result);
+  });
+  app.get(`${prefix}/eventbus/command/play`, (req, res) => {
+    const result = consumeSoundBusCommandPlay(req.query || {});
+    res.status(result.ok ? 200 : 400).json(result);
+  });
+  app.post(`${prefix}/eventbus/command/play`, (req, res) => {
+    const result = consumeSoundBusCommandPlay(req.body || {});
     res.status(result.ok ? 200 : 400).json(result);
   });
   app.get(`${prefix}/current`, (req, res) => res.json(core.ok({ current: state.current ? publicItem(state.current) : null })));
