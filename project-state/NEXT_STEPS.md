@@ -1,43 +1,39 @@
-# NEXT STEPS – nach STEP406 VIP PRODUCTIVE BUS EVENT AUDIT
+# NEXT STEPS – nach STEP407 VIP PRODUCTIVE BUS MIRROR DESIGN
 
 ## Nächster empfohlener Schritt
 
-`STEP407 – VIP Productive Bus Mirror Design`
+`STEP408 – VIP Productive Bus Mirror Feature Flag`
 
 ## Ziel
 
-Einen sauberen Eventvertrag für spätere echte VIP-/Mod-Bus-Mirror-Events entwerfen, ohne den produktiven Sound-System-Pfad umzubauen.
+Die Grundlage für einen späteren optionalen produktiven VIP-/Mod-Bus-Mirror vorbereiten, ohne ihn sofort produktiv zu aktivieren.
 
-## Leitentscheidung
+## Empfohlene Umsetzung für STEP408
 
-```text
-Sound-System bleibt führend für Audio, Queue, Timing und Playback.
-Communication Bus darf ergänzende Mirror-/Diagnose-Events bekommen.
-Overlay-Anzeige wird nicht automatisch auf Bus-Produktion umgestellt.
-```
+- Settings ergänzen oder vorbereiten:
+  - `productiveBusMirrorEnabled: false`
+  - `productiveBusMirrorChannel: vip.sound`
+  - `productiveBusMirrorRequireAck: false`
+  - `productiveBusMirrorReplayable: true`
+  - `productiveBusMirrorTtlMs: 60000`
+- Status-/Integration-Check um Mirror-Settings erweitern.
+- Default bleibt aus.
+- Keine echten Mirror-Events senden, wenn wir den Schritt bewusst klein halten.
 
-## Zu klären in STEP407
+## Alternative für direkten Code-STEP
 
-- Welche Eventnamen werden verwendet?
-- Empfehlung aktuell eher `vip.sound.*` als produktiver Mirror statt `vip.overlay.*` als Anzeige-Trigger.
-- Welche Payload-Felder sind Pflicht?
-- Welche Korrelation braucht Sound-System/SoundBus?
-- Wie wird doppelte Anzeige verhindert?
-- Welche Feature-Flag-/Setting-Strategie wird genutzt?
-- Welche Tests sind minimal nötig?
+`STEP408 – VIP Productive Bus Mirror Implementation`
 
-## Mögliche Eventnamen
+Dann nur mit:
 
-```text
-vip.sound.requested
-vip.sound.accepted
-vip.sound.queued
-vip.sound.rejected
-vip.sound.duplicate
-vip.sound.started
-vip.sound.finished
-vip.sound.failed
-```
+- Default `productiveBusMirrorEnabled=false`
+- Eventbereich `vip.sound.*`
+- `mirrorOnly: true`
+- `doNotDisplay: true`
+- Bus-Fehler dürfen VIP-Command nicht abbrechen
+- keine Änderung an `/api/sound/play`
+- keine Änderung an Sound-System-Queue
+- keine Änderung am Overlay-Rendering
 
 ## Nicht machen ohne eigenen STEP
 
@@ -46,6 +42,6 @@ vip.sound.failed
 - Keine Änderung an `/api/sound/play`.
 - Keine Queue-/Prioritätsänderung.
 - Keine Daily-Usage-Änderung.
-- Keine DB-Migration.
+- Keine DB-Migration ohne additiven Plan.
 - Kein Dashboard-Umbau.
 - Keine Registrierung von `/api/vip`.

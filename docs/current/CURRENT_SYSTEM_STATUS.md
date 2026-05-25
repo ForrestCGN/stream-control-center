@@ -1,10 +1,10 @@
-# CURRENT SYSTEM STATUS – STEP406 VIP PRODUCTIVE BUS EVENT AUDIT
+# CURRENT SYSTEM STATUS – STEP407 VIP PRODUCTIVE BUS MIRROR DESIGN
 
 Stand: 2026-05-25
 
 ## Aktueller Fokus
 
-VIP-/Mod-Sound-System wurde im Hinblick auf produktive Bus-Events auditiert. Ergebnis: Der produktive VIP-/Mod-Sound-Pfad bleibt weiterhin Sound-System-geführt. Der bestehende Communication-Bus-Pfad bleibt vorerst Preview-/Diagnosepfad.
+VIP-/Mod-Sound-System wurde nach STEP406 weiter eingeordnet. STEP407 legt den Designvertrag für einen späteren optionalen produktiven VIP-/Mod-Bus-Mirror fest. Es gab keine Codeänderung.
 
 ## Aktueller stabiler VIP-/Mod-Stand
 
@@ -14,8 +14,8 @@ VIP-/Mod-Sound-System wurde im Hinblick auf produktive Bus-Events auditiert. Erg
 - `/api/vip` ist absichtlich nicht registriert.
 - VIP-Overlay-Datei bleibt `htdocs/overlays/vip_sound_overlay_v2.html`.
 - VIP-Backend-Modul bleibt `backend/modules/vip_sound_overlay.js`.
-- VIP-Modul-Version laut letztem Handoff: `1.8.7`.
-- VIP-Schema-Version laut letztem Handoff: `5`.
+- VIP-Overlay ist zusätzlich als Communication-Bus-Client registriert.
+- Bus-Preview-Flow für `vip.overlay.show/hide/update` ist stabil, bleibt aber Preview-/Diagnosepfad.
 
 ## Produktiver Flow
 
@@ -39,68 +39,77 @@ Communication Bus
 → Sound-System bleibt unberührt
 ```
 
-## Bestätigter Stand aus STEP404C/STEP405
+## STEP407-Entscheidung
 
-- VIP-Overlay ist als Communication-Bus-Client registriert.
-- Client: `vip_sound_overlay_v2`.
-- Modul: `vip_sound_overlay`.
-- Typ: `overlay`.
-- Modus: `shadow`.
-- Capabilities:
-  - `vip.overlay.test`
-  - `vip.overlay.show`
-  - `vip.overlay.hide`
-  - `vip.overlay.update`
-  - `ack`
-- STEP404C bestätigte:
-  - Overlay erreichbar.
-  - VIP-Bus-Client online.
-  - `vip.overlay.show` zugestellt.
-  - Show-Ack erkannt.
-  - Preview sichtbar.
-  - `vip.overlay.hide` zugestellt.
-  - Hide-Ack erkannt.
-  - Sound-System blieb leer.
-  - Communication-Watchdog grün.
-
-## Ergebnis STEP406
-
-Es wird noch kein produktiver VIP-Bus-Overlay-Ausgabeweg gebaut.
+Für spätere produktive Mirror-Events wird `vip.sound.*` empfohlen, nicht `vip.overlay.*`.
 
 Begründung:
 
-- Sound-System ist bereits der richtige Produktivführer für Audio, Queue und Playback.
-- Das Overlay erhält über Sound-System-Events und `/api/sound/status` bereits die nötigen visuellen Daten.
-- Ein zusätzlicher produktiver `vip.overlay.show` ohne Dedup-/Timing-Konzept könnte doppelte Anzeigen erzeugen.
-- Der Bus-Preview-Pfad ist stabil, aber bewusst noch kein Produktivpfad.
+- `vip.overlay.*` beschreibt direkte Anzeige-Aktionen.
+- `vip.sound.*` beschreibt fachliche VIP-/Mod-Sound-Ereignisse.
+- Das verhindert, dass echte VIP-/Mod-Sounds doppelt angezeigt werden.
+- Sound-System bleibt die Timing-Wahrheit für Queue, Playback und Overlay-Anzeige.
 
-## Wichtige Architekturentscheidung
-
-Für VIP gilt ab STEP406:
+## Vorgeschlagener späterer Mirror-Bereich
 
 ```text
-Sound-System bleibt führend.
-Communication Bus darf später ergänzende Mirror-/Diagnose-Events bekommen.
-Overlay-Anzeige wird nicht stillschweigend auf Bus-Produktion umgestellt.
+vip.sound.requested
+vip.sound.rejected
+vip.sound.accepted
+vip.sound.queued
+vip.sound.duplicate
+vip.sound.override.denied
+vip.sound.override.accepted
+vip.sound.sound_missing
+vip.sound.system_disabled
+vip.sound.failed
 ```
+
+Später mit SoundBus-Korrelation zusätzlich möglich:
+
+```text
+vip.sound.started
+vip.sound.finished
+vip.sound.client_audio_started
+vip.sound.client_audio_ended
+```
+
+## Schutzregeln für spätere Mirror-Events
+
+Produktive Mirror-Events müssen mindestens diese Absicht tragen:
+
+```text
+mirrorOnly: true
+productionEvent: true
+productionTarget: false
+doNotDisplay: true
+```
+
+Das bedeutet: Observer, Debug-Views, Dashboard oder Logs dürfen diese Events nutzen. Ein Overlay darf daraus aber nicht automatisch eine Karte anzeigen.
 
 ## Nächster sinnvoller Schritt
 
-Empfohlen: `STEP407 – VIP Productive Bus Mirror Design`
+Empfohlen: `STEP408 – VIP Productive Bus Mirror Feature Flag`
 
 Ziel:
 
-- Event-Vertrag für produktive VIP-Bus-Mirror-Events entwerfen.
-- Eventtypen wie `vip.sound.requested`, `vip.sound.accepted`, `vip.sound.queued`, `vip.sound.rejected`, `vip.sound.started`, `vip.sound.finished`, `vip.sound.failed` prüfen.
-- Klären, ob `vip.overlay.*` langfristig nur Preview/Overlay-Control bleibt oder ob produktive Anzeige darüber laufen soll.
-- Keine Codeänderung ohne fertigen Vertrag.
+- Feature-Flag-/Status-Grundlage vorbereiten.
+- Mirror standardmäßig deaktiviert lassen.
+- Keine Sound-System-/Queue-/Overlay-Änderung.
 
-## Nicht ändern ohne eigenen STEP
+Alternative, wenn direkt umgesetzt werden soll:
 
-- Keine Sound-System-Queue-Logik.
-- Keine Bundle-/Prioritätslogik.
-- Keine Daily-Usage-Regeln.
-- Keine Eventlog-Struktur.
-- Keine Entfernung von `/api/vip-sound-overlay`.
-- Keine Registrierung von `/api/vip`.
-- Keine Bus-only-Migration.
+`STEP408 – VIP Productive Bus Mirror Implementation`
+
+Dann nur mit Default `productiveBusMirrorEnabled=false` und ohne Anzeige-Trigger.
+
+## Nicht geändert in STEP407
+
+- Kein Backend-Code.
+- Kein Overlay-Code.
+- Kein Dashboard.
+- Keine DB-Migration.
+- Keine Sound-System-Änderung.
+- Keine Queue-/Prioritätsänderung.
+- Kein produktives `vip.overlay.show` für echte VIP-/Mod-Sounds.
+- Keine Entfernung von Legacy-/HTTP-/WebSocket-Pfaden.

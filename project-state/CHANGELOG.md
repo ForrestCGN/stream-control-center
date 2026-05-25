@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## STEP407 – VIP Productive Bus Mirror Design – 2026-05-25
+
+- Eventvertrag für spätere produktive VIP-/Mod-Bus-Mirror-Events entworfen.
+- Entscheidung festgehalten: produktive Mirror-Events sollen `vip.sound.*` nutzen, nicht `vip.overlay.*`.
+- Schutzmarkierungen dokumentiert: `mirrorOnly: true`, `productionTarget: false`, `doNotDisplay: true`.
+- Empfohlene Payload-/Meta-Felder, Feature-Flags, Einbaupunkte und Tests dokumentiert.
+- Keine Codeänderungen.
+- Keine DB-/Queue-/Sound-/Dashboard-Änderungen.
+
 ## STEP406 – VIP Productive Bus Event Audit – 2026-05-25
 
 - VIP-/Mod-Sound-Produktivpfad gegen Communication-Bus-Preview-Pfad auditiert.

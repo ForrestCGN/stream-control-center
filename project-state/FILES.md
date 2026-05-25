@@ -1,6 +1,6 @@
-# FILES – STEP406 VIP PRODUCTIVE BUS EVENT AUDIT
+# FILES – STEP407 VIP PRODUCTIVE BUS MIRROR DESIGN
 
-Dieses ZIP enthält nur Dokumentation zum VIP Productive Bus Event Audit.
+Dieses ZIP enthält nur Dokumentation zum VIP Productive Bus Mirror Design.
 
 ## Enthaltene Dateien
 
@@ -10,12 +10,12 @@ project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
-project-state/STEP406_VIP_PRODUCTIVE_BUS_EVENT_AUDIT.md
+project-state/STEP407_VIP_PRODUCTIVE_BUS_MIRROR_DESIGN.md
 ```
 
 ## Relevante geprüfte Code-Dateien
 
-Nicht im ZIP enthalten, aber für den Audit gelesen/geprüft:
+Nicht im ZIP enthalten, aber für den Design-STEP gelesen/geprüft:
 
 ```text
 backend/modules/vip_sound_overlay.js
