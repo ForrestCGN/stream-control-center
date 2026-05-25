@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## STEP455 – Sound-System Overlay Bus Consumer Replacement
+
+- `htdocs/overlays/sound_system_overlay.html` als direkten Sound-Bus-Consumer erweitert.
+- Bus-Envelope-Normalisierung für `sound` / `sound.event_output` ergänzt.
+- `bus_hello` Registrierung und `bus_ack` Antworten ergänzt.
+- Bestehender Legacy-WebSocket `op:sound_system` bleibt erhalten.
+- Bestehendes `/api/sound/status` Polling bleibt erhalten.
+- Kein Backend-/Queue-/TTS-/Discord-/Dashboard-Umbau.
+- Keine bestehende Funktionalität entfernt.
+
+
 ## STEP454 – Alert Bus First Productive Switch
 
 - `backend/modules/alert_system.js` auf Version `3.1.4` erhöht.

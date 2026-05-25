@@ -1,36 +1,61 @@
 # CURRENT SYSTEM STATUS
 
-Aktueller Stand: STEP454 – Alert Bus First Productive Switch.
+Aktueller Stand: STEP455 – Sound-System Overlay Bus Consumer Replacement.
 
-## Runtime-Stand
+## Zusammenfassung
 
-- `alert_system.js`: Version `3.1.4`
-- Feature: `alert_bus_first_productive_switch`
-- Alert-Output-Modus: `bus_first`
-- Communication-Bus-Channel: `visual.alert`
-- Actions: `play`, `clear`
+- VIP ist produktiv über Node-Command-System + Sound-Bus angebunden.
+- Alerts laufen produktiv Bus-First über `visual.alert` mit Legacy-Fallback.
+- Das bestehende Sound-System-Overlay ist jetzt direkter Bus-Consumer für Sound-System-Events.
 
-## Was STEP454 ändert
+## Sound-System Overlay
 
-STEP454 schaltet Alerts vom sicheren Parallelbetrieb auf Bus-First um.
-
-Damit gilt:
+Datei:
 
 ```text
-Alert kommt rein
-→ Communication-Bus bekommt visual.alert/play zuerst
-→ Alert-Overlay empfängt Bus-Event und sendet ACK
-→ Legacy-Overlay bleibt als Fallback aktiv, falls Bus-Auslieferung nicht klappt
+htdocs/overlays/sound_system_overlay.html
 ```
 
-## Sicherheitsverhalten
+Der bisherige produktive Playback-Client wurde erweitert, nicht ersetzt.
 
-- Kein `bus_only`.
-- Legacy-Fallback bleibt aktiv.
-- Keine Entfernung bestehender Alert-Routen.
-- Kein Umbau von Sound-System, TTS, Bundle-Queue oder Dashboard.
-- Wenn gespeicherte JSON-/DB-Config einen anderen Modus setzt, muss `alertOutput.mode` einmal per Alert-Config-API auf `bus_first` gesetzt werden.
+Aktive Wege:
 
-## Nächster möglicher Schritt
+```text
+Communication-Bus sound.* Event
+Legacy WebSocket op:sound_system
+/api/sound/status Polling-Fallback
+```
 
-Erst nach stabiler Bus-First-Livephase kann später ein separater kleiner Schritt auf `bus_only` oder Legacy-Cleanup geplant werden. Das ist jetzt ausdrücklich nicht Teil von STEP454.
+Das Overlay verarbeitet weiterhin:
+
+- Audio
+- Video
+- Clip-Shoutout/VIP30
+- Autoplay-Unlock
+- Client-Started/Ended/Error Rückmeldungen
+
+## Sound-System Backend
+
+`backend/modules/sound_system.js` wurde in STEP455 nicht geändert.
+
+Grund:
+
+Die vorhandene Sound-Bus-Ausgabe reicht für den Overlay-Consumer aus. Dadurch bleibt die produktive Queue-/Priority-/Lock-/TTS-/Discord-Logik unberührt.
+
+## Alerts
+
+Aktueller Alert-Modus:
+
+```text
+bus_first mit Legacy-Fallback
+```
+
+Kein `bus_only`.
+
+## Sicherheitsstand
+
+- Keine bestehende Funktionalität entfernt.
+- Legacy-Fallbacks bleiben erhalten.
+- Polling-Fallback bleibt erhalten.
+- Keine DB-Migration.
+- Kein Dashboard-Umbau.

@@ -1,26 +1,34 @@
-# FILES – STEP454
+# FILES – STEP455
 
 Geänderte / enthaltene Dateien:
 
-- `backend/modules/alert_system.js`
-  - Version auf `3.1.4` erhöht.
-  - `alertOutput.mode` auf `bus_first` vorbereitet.
-  - Bestehender Legacy-Fallback bleibt unverändert erhalten.
+- `htdocs/overlays/sound_system_overlay.html`
+  - bestehendes produktives Sound-System-Overlay busfähig erweitert.
+  - Bus-Consumer für `sound` / `sound.event_output` ergänzt.
+  - `bus_hello` Registrierung ergänzt.
+  - `bus_ack` für empfangene und behandelte Bus-Events ergänzt.
+  - Legacy-WebSocket und `/api/sound/status` Polling bleiben erhalten.
 
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
-  - aktuellen STEP454-Systemstand dokumentiert.
+  - aktuellen STEP455-Systemstand dokumentiert.
 
 - `project-state/CURRENT_STATUS.md`
-  - aktuellen Projektstand auf STEP454 gesetzt.
+  - aktuellen Projektstand auf STEP455 gesetzt.
 
 - `project-state/CHANGELOG.md`
-  - STEP454 eingetragen.
+  - STEP455 eingetragen.
 
 - `project-state/FILES.md`
   - enthaltene Dateien dokumentiert.
 
 - `project-state/NEXT_STEPS.md`
-  - nächste sinnvolle Schritte nach STEP454 dokumentiert.
+  - nächste sinnvolle Schritte nach STEP455 dokumentiert.
 
-- `project-state/STEP454_ALERT_BUS_FIRST_PRODUCTIVE_SWITCH.md`
+- `project-state/STEP455_SOUND_SYSTEM_OVERLAY_BUS_CONSUMER_REPLACEMENT.md`
   - STEP-Dokumentation für diesen Schritt.
+
+Nicht geändert / nicht enthalten:
+
+- `backend/modules/sound_system.js`
+  - keine Backend-Änderung nötig.
+  - Modulversion bleibt unverändert.

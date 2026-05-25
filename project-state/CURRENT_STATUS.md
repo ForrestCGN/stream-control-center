@@ -1,32 +1,50 @@
 # CURRENT STATUS
 
-Aktueller Stand: STEP454 – Alert Bus First Productive Switch.
+Aktueller Stand: STEP455 – Sound-System Overlay Bus Consumer Replacement.
 
 ## Basis
 
 STEP452 hat VIP produktiv über das Node-Command-System und den Sound-Bus integriert.
 
-STEP453 hat Alerts sicher parallel über Legacy + Communication-Bus laufen lassen.
+STEP454 hat Alerts produktiv auf Bus-First mit Legacy-Fallback gestellt.
 
-STEP454 schaltet Alerts produktiv auf Bus-First:
+STEP455 macht das bestehende produktive Sound-System-Overlay busfähig, ohne den alten Wiedergabeweg zu entfernen.
+
+## VIP
 
 ```text
-communication bus visual.alert output first + legacy fallback
+!vip
+→ Node-Command-System
+→ VIP-Modul
+→ Sound-Bus
+→ Sound-System
+→ busfähiges Sound-System-Overlay
 ```
 
-## Alert-System
+## Alerts
 
-- `backend/modules/alert_system.js`: Version `3.1.4`
-- `alertOutput.mode`: `bus_first`
-- Bus-Channel: `visual.alert`
-- Bus-Actions: `play`, `clear`
-- Legacy bleibt als Fallback aktiv.
+```text
+Alert
+→ Communication-Bus visual.alert/play zuerst
+→ Alert-Overlay
+→ falls Bus nicht liefert: Legacy-Fallback
+```
+
+## Sound-System Overlay
+
+- `htdocs/overlays/sound_system_overlay.html` ist jetzt Bus-Consumer.
+- Es registriert sich per `bus_hello`.
+- Es verarbeitet Sound-Bus-Envelopes.
+- Legacy-WebSocket `op:sound_system` bleibt erhalten.
+- Polling auf `/api/sound/status` bleibt erhalten.
+- Audio-/Video-/Clip-Shoutout-Playback bleibt unverändert.
 
 ## Nicht geändert
 
-- Kein Dashboard-Umbau.
-- Kein Sound-System-Umbau.
+- Kein Sound-System-Backend-Umbau.
+- Kein Queue-/Priority-/Lock-Umbau.
 - Kein TTS-Umbau.
-- Kein Bundle-/Queue-Umbau.
-- Kein `bus_only`.
-- Kein Entfernen bestehender Alert-Routen oder Legacy-Ausgabe.
+- Kein Discord-Umbau.
+- Kein Dashboard-Umbau.
+- Kein `bus_only` bei Alerts.
+- Keine bestehende Funktionalität entfernt.

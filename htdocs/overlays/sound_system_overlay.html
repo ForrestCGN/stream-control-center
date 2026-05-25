@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - STEP353_WS_PLAY_SIGNAL_FIX</title>
+  <title>ForrestCGN Sound-System Overlay - STEP455_BUS_CONSUMER_REPLACEMENT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -232,6 +232,24 @@
       const unlockBtn = document.getElementById('unlock');
       const qs = new URLSearchParams(location.search);
       if (qs.get('debug') === '1') document.body.dataset.debug = '1';
+
+      // STEP455_SOUND_SYSTEM_OVERLAY_BUS_CONSUMER_REPLACEMENT
+      // Das Overlay versteht ab jetzt zusätzlich Communication-Bus-Envelopes
+      // für den Sound-System-Ausgang. Der alte op:sound_system-Weg und das
+      // /api/sound/status-Polling bleiben als Sicherheitsnetz erhalten.
+      const BUS_CLIENT_ID = 'sound_system_overlay_bus_consumer';
+      const BUS_CHANNEL = 'sound';
+      const BUS_CAPABILITIES = [
+        'sound.event_output',
+        'sound.started',
+        'sound.finished',
+        'sound.stopped',
+        'sound.skipped',
+        'sound.cleared',
+        'sound.failed',
+        'sound.queue.updated',
+        'sound.state.updated'
+      ];
 
       let currentRequestId = '';
       let lastSeenRequestId = '';
@@ -772,27 +790,114 @@
 
       function normalizeWsPayload(message) {
         if (!message || typeof message !== 'object') return null;
-        if (message.op || message.type || message.reason) return message;
-        if (message.data && typeof message.data === 'object' && (message.data.op || message.data.type || message.data.reason)) return message.data;
+        if (message.op || message.type || message.reason || message.channel || message.action) return message;
+        if (message.data && typeof message.data === 'object' && (message.data.op || message.data.type || message.data.reason || message.data.channel || message.data.action)) return message.data;
         return message;
       }
 
-      function handleMessage(message){
+      function normalizeSoundTransportMessage(message) {
         const payload = normalizeWsPayload(message);
-        if (!payload) return;
-        const op = payload.op || payload.type || '';
-        const reason = payload.reason || '';
-        const data = payload.data || payload.payload || {};
-        if (op !== 'sound_system') return;
+        if (!payload || typeof payload !== 'object') return null;
 
-        const current = payload.item || data.current || null;
-        if ((reason === 'started' || reason === 'play_stream' || reason === 'interrupted_started' || reason === 'next_started' || reason === 'resumed' || reason === 'bundle_next_started' || reason === 'item_started') && current) {
+        const op = payload.op || payload.type || '';
+        const data = payload.data || payload.payload || {};
+
+        if (op === 'sound_system') {
+          return {
+            transport: 'legacy',
+            reason: payload.reason || '',
+            current: payload.item || data.current || null,
+            busEventId: '',
+            raw: payload
+          };
+        }
+
+        return normalizeSoundBusEnvelope(payload);
+      }
+
+      function normalizeSoundBusEnvelope(message) {
+        if (!message || typeof message !== 'object') return null;
+
+        const channel = String(message.channel || '').toLowerCase();
+        const action = String(message.action || message.event || '').toLowerCase();
+        const meta = message.meta && typeof message.meta === 'object' ? message.meta : {};
+        const target = message.target && typeof message.target === 'object' ? message.target : {};
+        const payload = message.payload && typeof message.payload === 'object' ? message.payload : {};
+
+        const isSoundChannel = channel === BUS_CHANNEL || channel === 'sound.event_output';
+        const isSoundCapability = String(meta.capability || target.capability || '').toLowerCase() === 'sound.event_output';
+        const isSoundSource = String(meta.module || message.source?.module || message.source?.id || '').toLowerCase() === 'sound_system';
+        if (!isSoundChannel && !isSoundCapability && !isSoundSource) return null;
+
+        const state = payload.state && typeof payload.state === 'object' ? payload.state : null;
+        const current = payload.item || payload.current || (state && state.current) || null;
+        const reason = String(payload.reason || meta.reason || action || 'state').trim();
+
+        return {
+          transport: 'bus',
+          reason,
+          current,
+          busEventId: String(message.id || message.eventId || ''),
+          raw: message
+        };
+      }
+
+      function sendBusAck(eventId, status, details = {}) {
+        const id = String(eventId || '').trim();
+        if (!id) return;
+        send({
+          type: 'bus_ack',
+          eventId: id,
+          clientId: BUS_CLIENT_ID,
+          status: String(status || 'received'),
+          details: {
+            module: 'sound_system',
+            overlay: 'sound_system_overlay.html',
+            mode: 'bus_consumer_with_legacy_fallback',
+            ...details
+          }
+        });
+      }
+
+      function send(payload) {
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
+      }
+
+      function shouldStartFromReason(reason) {
+        const clean = String(reason || '').toLowerCase();
+        return clean === 'started' || clean === 'item_started' || clean === 'play_stream' ||
+          clean === 'interrupted_started' || clean === 'next_started' || clean === 'resumed' ||
+          clean === 'bundle_next_started' || clean === 'parallel_started';
+      }
+
+      function shouldStopFromReason(reason) {
+        const clean = String(reason || '').toLowerCase();
+        return STOP_REASONS.has(clean) || clean === 'finished' || clean === 'item_finished' ||
+          clean === 'client_audio_ended' || clean === 'auto_finished' || clean === 'overlay_fallback_finished';
+      }
+
+      function handleMessage(message){
+        const normalized = normalizeSoundTransportMessage(message);
+        if (!normalized) return;
+
+        if (normalized.transport === 'bus' && normalized.busEventId) {
+          sendBusAck(normalized.busEventId, 'received', { reason: normalized.reason || '', hasItem: !!normalized.current });
+        }
+
+        const current = normalized.current || null;
+        if (shouldStartFromReason(normalized.reason) && current) {
           playSound(current);
+          if (normalized.transport === 'bus' && normalized.busEventId) {
+            sendBusAck(normalized.busEventId, 'handled', { requestId: current.requestId || '', soundId: current.soundId || '' });
+          }
           return;
         }
 
-        if (STOP_REASONS.has(reason) && !current) {
+        if (shouldStopFromReason(normalized.reason) && !current) {
           stopIfBackendIsIdle('Gestoppt');
+          if (normalized.transport === 'bus' && normalized.busEventId) {
+            sendBusAck(normalized.busEventId, 'handled', { action: 'stop_or_finish' });
+          }
         }
       }
 
@@ -820,7 +925,19 @@
         clearTimeout(reconnectTimer);
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         ws = new WebSocket(protocol + '//' + location.host);
-        ws.addEventListener('open', () => { setStatus(audioUnlocked ? 'Audio aktiv · Verbunden' : 'Verbunden · Audio aktivieren'); post('/client/ready', { overlay: 'sound_system_overlay' }); });
+        ws.addEventListener('open', () => {
+          setStatus(audioUnlocked ? 'Audio aktiv · Verbunden' : 'Verbunden · Audio aktivieren');
+          send({
+            type: 'bus_hello',
+            clientId: BUS_CLIENT_ID,
+            clientType: 'overlay',
+            module: 'sound_system',
+            mode: 'bus_consumer_with_legacy_fallback',
+            capabilities: BUS_CAPABILITIES,
+            version: 'STEP455'
+          });
+          post('/client/ready', { overlay: 'sound_system_overlay', busConsumer: true });
+        });
         ws.addEventListener('message', (event) => { try { handleMessage(JSON.parse(event.data)); } catch (_) {} });
         ws.addEventListener('close', () => { setStatus('Getrennt - reconnect'); reconnectTimer = setTimeout(connect, 1500); });
         ws.addEventListener('error', () => { try { ws.close(); } catch (_) {} });
