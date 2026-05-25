@@ -1,43 +1,26 @@
-# CURRENT_STATUS – STEP416 Alert EventBus Baseline
+# CURRENT_STATUS – Alert EventBus Debug Consumer
 
-## Aktueller Stand
+Aktueller Stand: STEP417 vorbereitet.
 
-Nach STEP412–STEP415 ist das Sound-System parallel an den Communication Bus angebunden und hat einen Debug-Consumer mit `sound.event_output`.
+## Kurzfassung
 
-Mit STEP416 bekommt das Alert-System eine erste eigene EventBus-Baseline:
+Das Alert-System besitzt seit STEP416 eine EventBus-Baseline auf `alert.status` mit `alert.event_output`.
 
-```text
-channel: alert.status
-capability: alert.event_output
-busMode: legacy_parallel
-```
+STEP417 ergänzt einen echten Debug-Consumer:
 
-## Ziel
+- Datei: `htdocs/public/tools/alert_eventbus_debug.html`
+- Client-ID: `alert_eventbus_debug`
+- Modul: `alert_system`
+- Version: `1.0.0`
+- Capability: `alert.event_output`
 
-Alerts werden beobachtbar und später korrelierbar, ohne den bestehenden produktiven Flow zu ersetzen.
+## Wichtig
 
-## Bestehender produktiver Flow bleibt
+Der Debug-Client ist nur ein Beobachter/Consumer. Er verändert keine Alert-Queue, startet keine Sounds, steuert keine Overlays und verändert keine Bundle-/TTS-Logik.
 
-```text
-Alert-System
-→ Alert-Regeln/Queue
-→ Sound-System Bundle für Alert-Sound + TTS
-→ Legacy Alert-Overlay / bestehende Ausgabewege
-```
+## Bestehende produktive Flows bleiben unverändert
 
-## Neue Routen
-
-```text
-/api/alerts/eventbus/status
-/api/alerts/eventbus/test
-/api/alerts/eventbus/reset
-```
-
-## Nicht geändert
-
-- keine Queue-Änderung
-- keine Sound-System-Änderung
-- keine Alert-TTS-Änderung
-- keine Bundle-/Lock-Logik-Änderung
-- keine DB-Migration
-- kein Overlay-Design
+- Alert-Queue bleibt im Alert-System.
+- Alert-Sounds und Alert-TTS laufen weiter über das Sound-System.
+- Bestehende Alert-Overlay-/WebSocket-Flows bleiben aktiv.
+- Bestehende `/api/alerts/*` Routen bleiben aktiv.

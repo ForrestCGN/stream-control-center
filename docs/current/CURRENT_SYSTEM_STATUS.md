@@ -1,46 +1,39 @@
-# CURRENT_SYSTEM_STATUS – STEP416 Alert EventBus Baseline
+# CURRENT_SYSTEM_STATUS – Alert EventBus Debug Consumer
 
-Stand: STEP416 vorbereitet.
+Stand: STEP417 vorbereitet.
 
-## Kurzfassung
+## Aktueller Bus-Stand
 
-Das Alert-System hat eine kontrollierte EventBus-Baseline bekommen.
+Das Sound-System läuft parallel über den EventBus und hat mit `sound_eventbus_debug` bereits einen echten Consumer.
 
-- Alert-System bleibt zuständig für Regeln, Queue, Visual-Output und Sound-/TTS-Koordination.
-- Bestehender Legacy-Overlay-Flow bleibt unverändert.
-- Alert-Sounds und Alert-TTS laufen weiterhin über das bestehende Sound-System-/Bundle-System.
-- Der neue Alert-EventBus ist zunächst Status-/Diagnose-/Test-Schicht.
-
-## Neue Alert EventBus-Routen
+Das Alert-System hat seit STEP416 eine EventBus-Baseline:
 
 ```text
-/api/alerts/eventbus/status
-/api/alerts/eventbus/test
-/api/alerts/eventbus/reset
-```
-
-## Runtime-Status
-
-```text
-module: alert_system
-version: 3.1.0
+channel: alert.status
 capability: alert.event_output
 statusApiVersion: 1.0.0
 busMode: legacy_parallel
 deliveryClassification: capability_scoped_alert_event_stream
 ```
 
+STEP417 ergänzt einen echten Alert-Debug-Consumer:
+
+```text
+htdocs/public/tools/alert_eventbus_debug.html
+clientId: alert_eventbus_debug
+module: alert_system
+version: 1.0.0
+capability: alert.event_output
+```
+
 ## Wichtig
 
-Der Test-Endpoint verändert keine Queue, startet keine Sounds und steuert kein Overlay.
+Der Debug-Consumer ist read-only aus Sicht der produktiven Systeme. Er registriert sich am Communication Bus und zeigt empfangene Alert-Events an.
 
 ## Unverändert
 
-- Alert-Queue
-- Alert-Regeln
-- Sound-System-Bundle-Flow
-- Alert-TTS
-- Legacy Overlay WebSocket
-- DB-Schema
-- Asset-Handling
-- Dashboard-Routen
+- Alert-Queue bleibt unverändert.
+- Alert-Sounds und Alert-TTS laufen weiter über das Sound-System.
+- Bundle-/Lock-Logik bleibt unverändert.
+- Overlay-Designs und Legacy-Overlay-Flows bleiben unverändert.
+- Bestehende `/api/alerts/*` Routen bleiben unverändert.
