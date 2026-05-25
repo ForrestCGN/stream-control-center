@@ -747,6 +747,39 @@ function init({ app }) {
     }));
   });
 
+
+  app.get('/api/communication/client/forget', (req, res) => {
+    if (String(req.query.confirm || '') !== '1') {
+      return res.status(400).json({
+        ok: false,
+        error: 'confirm_required',
+        hint: 'Use /api/communication/client/forget?clientId=<id>&confirm=1'
+      });
+    }
+
+    const clientId = cleanString(req.query.clientId || req.query.id);
+    if (!clientId) {
+      return res.status(400).json({ ok: false, error: 'clientId_required' });
+    }
+
+    const currentBus = getBus();
+    if (!currentBus || typeof currentBus.forgetClient !== 'function') {
+      return res.status(500).json({ ok: false, error: 'communication_forget_client_unavailable' });
+    }
+
+    const force = boolParam(req.query.force, false);
+    const result = currentBus.forgetClient(clientId, { force });
+    const status = result && result.ok === true ? 200 : (result && result.reason === 'client_is_connected' ? 409 : 404);
+
+    res.status(status).json(buildModuleResponse({
+      forgetClient: true,
+      clientId,
+      force,
+      result,
+      status: currentBus.getStatus()
+    }));
+  });
+
   app.get('/api/communication/reset', (req, res) => {
     if (loadedConfig.resetEndpointEnabled === false) {
       return res.status(403).json({ ok: false, error: 'communication_reset_endpoint_disabled' });

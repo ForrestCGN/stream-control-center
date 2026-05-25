@@ -404,6 +404,18 @@ function createCommunicationBus(options = {}) {
     return { ok: true, client: publicClient(client) };
   }
 
+  function forgetClient(clientId, options = {}) {
+    const id = cleanString(clientId);
+    const client = clients.get(id);
+    if (!client) return { ok: false, reason: 'client_not_found', clientId: id };
+    if (client.connected === true && options.force !== true) {
+      return { ok: false, reason: 'client_is_connected', client: publicClient(client) };
+    }
+    const removed = publicClient(client);
+    clients.delete(id);
+    return { ok: true, clientId: id, removed };
+  }
+
   function markClientError(clientId, reason = 'error') {
     const id = cleanString(clientId);
     const client = clients.get(id);
@@ -787,6 +799,7 @@ function createCommunicationBus(options = {}) {
     config,
     registerClient,
     unregisterClient,
+    forgetClient,
     markClientError,
     heartbeat,
     updateClientStatuses,
