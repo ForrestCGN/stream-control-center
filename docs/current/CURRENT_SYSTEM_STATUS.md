@@ -1,55 +1,46 @@
-# CURRENT_SYSTEM_STATUS – STEP413 Sound-System EventBus Version/Target Cleanup
+# CURRENT_SYSTEM_STATUS – STEP416 Alert EventBus Baseline
 
-Stand: STEP413 vorbereitet.
+Stand: STEP416 vorbereitet.
 
 ## Kurzfassung
 
-Das Sound-System bleibt die zentrale Audio-/Medien-Schicht. Der alte produktive Flow bleibt erhalten:
+Das Alert-System hat eine kontrollierte EventBus-Baseline bekommen.
+
+- Alert-System bleibt zuständig für Regeln, Queue, Visual-Output und Sound-/TTS-Koordination.
+- Bestehender Legacy-Overlay-Flow bleibt unverändert.
+- Alert-Sounds und Alert-TTS laufen weiterhin über das bestehende Sound-System-/Bundle-System.
+- Der neue Alert-EventBus ist zunächst Status-/Diagnose-/Test-Schicht.
+
+## Neue Alert EventBus-Routen
 
 ```text
-/api/sound/*
-→ Sound-System
-→ Queue/Prioritäten/Playback
-→ alter sound_system WebSocket
+/api/alerts/eventbus/status
+/api/alerts/eventbus/test
+/api/alerts/eventbus/reset
 ```
 
-Zusätzlich sendet das Sound-System weiterhin parallele EventBus-Events auf dem Channel `sound`.
-
-## STEP413
-
-`backend/modules/sound_system.js` wurde auf Version `0.1.14` vorbereitet.
-
-Bereinigt wurden zwei Punkte aus dem STEP412-Test:
-
-- EventBus-Status zeigt jetzt die feste Modulversion `0.1.14`.
-- Die Runtime-/Config-Version wird separat als `configVersion` angezeigt.
-- Sound-Events werden standardmäßig über die Capability `sound.event_output` ausgeliefert.
-- Delivery-Klassifizierung: `capability_scoped_legacy_parallel_event_stream`.
-
-## Neue/weiterhin vorhandene Sound EventBus-Routen
+## Runtime-Status
 
 ```text
-/api/sound/eventbus/status
-/api/sound/eventbus/test
-/api/sound/eventbus/reset
+module: alert_system
+version: 3.1.0
+capability: alert.event_output
+statusApiVersion: 1.0.0
+busMode: legacy_parallel
+deliveryClassification: capability_scoped_alert_event_stream
 ```
 
-## Nicht geändert
+## Wichtig
 
-- Keine Queue-Logik.
-- Keine Prioritäten.
-- Keine Bundle-/Lock-Logik.
-- Keine Alert-Logik.
-- Keine VIP-Logik.
-- Keine DB-Migration.
-- Keine Overlay-Designs.
-- Keine Entfernung alter `/api/sound/*` Routen.
-- Keine Entfernung alter `sound_system` WebSocket-Ausgabe.
+Der Test-Endpoint verändert keine Queue, startet keine Sounds und steuert kein Overlay.
 
-## STEP415 - Sound EventBus Debug Consumer
+## Unverändert
 
-- Neuer Debug-Client: `htdocs/public/tools/sound_eventbus_debug.html`.
-- Der Client registriert sich am Communication Bus mit `clientId: sound_eventbus_debug`, `version: 1.0.0`, `mode: debug` und Capability `sound.event_output`.
-- Ziel: echte `sound.*` Events empfangen und sichtbar machen, ohne den alten Sound-System-Flow zu ändern.
-- Bestehende `/api/sound/*` Routen, `sound_system` WebSocket-Ausgaben, Queue, Prioritäten, Playback und Module bleiben unverändert.
-- Erwarteter Test: Bei offenem Debug-Client liefert `/api/sound/eventbus/test` oder ein echter `/api/sound/play` mindestens `deliveredCount: 1` an `sound_eventbus_debug`.
+- Alert-Queue
+- Alert-Regeln
+- Sound-System-Bundle-Flow
+- Alert-TTS
+- Legacy Overlay WebSocket
+- DB-Schema
+- Asset-Handling
+- Dashboard-Routen

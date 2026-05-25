@@ -1,52 +1,43 @@
-# CURRENT_STATUS – Sound-System EventBus Debug Consumer
+# CURRENT_STATUS – STEP416 Alert EventBus Baseline
 
-Aktueller Stand: STEP415 vorbereitet.
+## Aktueller Stand
 
-## Kurzfassung
+Nach STEP412–STEP415 ist das Sound-System parallel an den Communication Bus angebunden und hat einen Debug-Consumer mit `sound.event_output`.
 
-Das Sound-System sendet parallel zum alten Sound-System-Flow `sound.*` Events an den Communication Bus.
+Mit STEP416 bekommt das Alert-System eine erste eigene EventBus-Baseline:
 
-Mit STEP415 kommt ein echter Debug-/Consumer-Client hinzu:
-
-- Datei: `htdocs/public/tools/sound_eventbus_debug.html`
-- Client-ID: `sound_eventbus_debug`
-- Version: `1.0.0`
-- Mode: `debug`
-- Capability: `sound.event_output`
+```text
+channel: alert.status
+capability: alert.event_output
+busMode: legacy_parallel
+```
 
 ## Ziel
 
-Der Debug-Client macht `sound.*` Events sichtbar und sorgt dafür, dass Sound-EventBus-Tests nicht mehr nur `deliveredCount: 0` zeigen, sondern an einen echten Consumer ausgeliefert werden können.
+Alerts werden beobachtbar und später korrelierbar, ohne den bestehenden produktiven Flow zu ersetzen.
 
-## Bestehender Sound-Flow bleibt unverändert
-
-```text
-/api/sound/*
-→ Sound-System
-→ Queue/Prioritäten/Playback
-→ alter sound_system WebSocket
-→ bestehende Overlays/Module
-```
-
-Zusätzlich:
+## Bestehender produktiver Flow bleibt
 
 ```text
-Sound-System
-→ Communication Bus
-→ channel: sound
-→ target.capability: sound.event_output
-→ sound_eventbus_debug
+Alert-System
+→ Alert-Regeln/Queue
+→ Sound-System Bundle für Alert-Sound + TTS
+→ Legacy Alert-Overlay / bestehende Ausgabewege
 ```
 
-## Bewusst nicht geändert
+## Neue Routen
 
-- Sound-System-Backend
-- Queue-Logik
-- Prioritäten
-- Bundle-/Lock-Logik
-- Alert-Logik
-- VIP-Logik
-- DB-Schema
-- Overlay-Designs
-- alte `/api/sound/*` Routen
-- alte `sound_system` WebSocket-Ausgabe
+```text
+/api/alerts/eventbus/status
+/api/alerts/eventbus/test
+/api/alerts/eventbus/reset
+```
+
+## Nicht geändert
+
+- keine Queue-Änderung
+- keine Sound-System-Änderung
+- keine Alert-TTS-Änderung
+- keine Bundle-/Lock-Logik-Änderung
+- keine DB-Migration
+- kein Overlay-Design
