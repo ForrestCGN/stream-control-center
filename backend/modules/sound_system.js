@@ -16,13 +16,13 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.16";
+const MODULE_VERSION = "0.1.17";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
 const SOUND_BUS_COMMAND_API_VERSION = "1.0.0";
 const SOUND_BUS_DELIVERY_CLASSIFICATION = "capability_scoped_legacy_parallel_event_stream";
-const SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION = "module_scoped_command_dry_run_event_stream";
+const SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION = "module_scoped_command_dry_run_plus_play_test_stream";
 const SOUND_BUS_TARGET_CAPABILITY = "sound.event_output";
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
@@ -376,6 +376,8 @@ module.exports.init = function init(ctx) {
         { method: "POST", path: `${prefix}/eventbus/command/test`, description: "Emit a test-only sound.command play request without touching audio or queue" },
         { method: "GET", path: `${prefix}/eventbus/command/dry-run`, description: "Validate/consume a sound.command play request in dry-run mode without touching audio or queue" },
         { method: "POST", path: `${prefix}/eventbus/command/dry-run`, description: "Validate/consume a sound.command play request in dry-run mode without touching audio or queue" },
+        { method: "GET", path: `${prefix}/eventbus/command/play-test`, description: "Execute a sound.command play request through the real Sound-System flow for manual testing only" },
+        { method: "POST", path: `${prefix}/eventbus/command/play-test`, description: "Execute a sound.command play request through the real Sound-System flow for manual testing only" },
         { method: "GET", path: `${prefix}/eventbus/command/reset`, description: "Reset Sound EventBus command dry-run counters only" },
         { method: "GET", path: `${prefix}/generated/beep.wav`, description: "Generated test beep audio" },
         { method: "GET", path: `${prefix}/play`, description: "Play/queue a sound via query parameters" },
@@ -855,6 +857,7 @@ module.exports.init = function init(ctx) {
         commandStatus: `${config.routes?.prefix || "/api/sound"}/eventbus/command/status`,
         commandTest: `${config.routes?.prefix || "/api/sound"}/eventbus/command/test`,
         commandDryRun: `${config.routes?.prefix || "/api/sound"}/eventbus/command/dry-run`,
+        commandPlayTest: `${config.routes?.prefix || "/api/sound"}/eventbus/command/play-test`,
         commandReset: `${config.routes?.prefix || "/api/sound"}/eventbus/command/reset`
       },
       notes: [
@@ -952,11 +955,13 @@ module.exports.init = function init(ctx) {
       configVersion: state.version || "",
       capability: SOUND_BUS_COMMAND_CAPABILITY,
       statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
-      feature: "sound_bus_command_dry_run_layer",
+      feature: "sound_bus_command_play_test_layer",
       mode: String(commandConfig.mode || "dry_run"),
       commandLayerReady: true,
       commandConsumerEnabled: true,
       commandConsumerMode: String(commandConfig.consumerMode || "dry_run"),
+      playTestRouteAvailable: true,
+      playTestRequiresExplicitRoute: true,
       deliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
       soundSystemRole: "central_audio_media_layer",
       legacyWebSocketFlow: "unchanged",
@@ -973,11 +978,14 @@ module.exports.init = function init(ctx) {
         status: `${config.routes?.prefix || "/api/sound"}/eventbus/command/status`,
         test: `${config.routes?.prefix || "/api/sound"}/eventbus/command/test`,
         dryRun: `${config.routes?.prefix || "/api/sound"}/eventbus/command/dry-run`,
+        playTest: `${config.routes?.prefix || "/api/sound"}/eventbus/command/play-test`,
         reset: `${config.routes?.prefix || "/api/sound"}/eventbus/command/reset`
       },
       protection: {
         testOnly: true,
         dryRunOnly: true,
+        playTestAvailable: true,
+        playTestRequiresExplicitRoute: true,
         queueTouched: false,
         audioTouched: false,
         legacyFlowTouched: false,
@@ -985,9 +993,10 @@ module.exports.init = function init(ctx) {
         allowAudioTouch: commandConfig.allowAudioTouch === true
       },
       notes: [
-        "This is the Sound EventBus command dry-run layer.",
+        "This is the Sound EventBus command dry-run plus explicit play-test layer.",
         "It emits and validates sound.command play requests for diagnostics and future consumers.",
-        "It can dry-run consume a command payload, but it does not play audio and does not touch the queue.",
+        "Dry-run mode does not play audio and does not touch the queue.",
+        "The explicit play-test route can execute a command-shaped request through the normal Sound-System flow for manual testing only.",
         "Legacy /api/sound/play remains the productive entry point."
       ],
       stats,
@@ -1005,7 +1014,10 @@ module.exports.init = function init(ctx) {
     state.soundBusCommand.consumed = 0;
     state.soundBusCommand.dryRunOk = 0;
     state.soundBusCommand.dryRunFailed = 0;
+    state.soundBusCommand.playTestOk = 0;
+    state.soundBusCommand.playTestFailed = 0;
     state.soundBusCommand.lastDryRun = null;
+    state.soundBusCommand.lastPlayTest = null;
     state.soundBusCommand.lastResult = null;
     state.soundBusCommand.lastError = "";
     state.soundBusCommand.lastAt = core.nowIso();
@@ -1281,6 +1293,159 @@ module.exports.init = function init(ctx) {
         accepted: false,
         error: message,
         result: dryRunResult,
+        command: publicSoundBusCommandStatus({ includeRecentCommands: true })
+      };
+    }
+  }
+
+
+  function consumeSoundBusCommandPlayTest(input = {}) {
+    const commandConfig = soundBusCommandConfig();
+    const payload = normalizeSoundBusCommandDryRunInput(input);
+    const at = core.nowIso();
+    const resultBase = {
+      ok: false,
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      capability: SOUND_BUS_COMMAND_CAPABILITY,
+      statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+      feature: "sound_bus_command_play_test_layer",
+      mode: "play_test",
+      dryRunOnly: false,
+      playTestOnly: true,
+      commandLayerReady: true,
+      commandConsumerEnabled: true,
+      commandConsumerMode: "explicit_play_test",
+      legacyWebSocketFlow: "unchanged",
+      legacyApiFlow: "unchanged",
+      protection: {
+        playTestOnly: true,
+        explicitRouteRequired: true,
+        queueTouchAllowed: true,
+        audioTouchAllowed: true,
+        legacyFlowTouched: false,
+        productiveEntryPointChanged: false
+      },
+      request: payload,
+      updatedAt: at
+    };
+
+    state.soundBusCommand.consumed = Number(state.soundBusCommand.consumed || 0) + 1;
+    state.soundBusCommand.lastAction = "play.request.play_test";
+    state.soundBusCommand.lastAt = at;
+
+    try {
+      if (commandConfig.enabled === false) throw new Error("sound_bus_command_disabled");
+      if (payload.command !== "sound.play.request") throw new Error(`unsupported_command: ${payload.command}`);
+      if (!payload.soundId) throw new Error("missing_soundId");
+
+      const normalized = normalizePlayRequest({
+        ...payload,
+        soundId: payload.soundId,
+        sound: payload.soundId,
+        source: payload.source || "sound_bus_command_play_test",
+        requestedBy: payload.requestedBy || "sound_bus_play_test"
+      });
+
+      const playResult = enqueueOrStart(normalized);
+      const normalizedPublic = publicItem(normalized);
+      const touchedQueue = !!playResult.queued || state.queue.some(item => item && item.requestId === normalized.requestId);
+      const touchedAudio = !!playResult.started || !!playResult.parallel;
+      const playTestResult = {
+        ok: true,
+        accepted: true,
+        playedOrQueued: !!(playResult.started || playResult.queued || playResult.parallel),
+        started: !!playResult.started,
+        queued: !!playResult.queued,
+        parallel: !!playResult.parallel,
+        dropped: !!playResult.dropped,
+        queuePosition: playResult.queuePosition || 0,
+        reason: playResult.reason || "",
+        retryAfterMs: playResult.retryAfterMs || 0,
+        queueTouched: touchedQueue,
+        audioTouched: touchedAudio,
+        normalizedItem: normalizedPublic,
+        status: publicState(),
+        message: "Command payload executed through the explicit play-test route. Legacy /api/sound/play remains unchanged."
+      };
+
+      state.soundBusCommand.playTestOk = Number(state.soundBusCommand.playTestOk || 0) + 1;
+      state.soundBusCommand.lastError = "";
+      state.soundBusCommand.lastPlayTest = playTestResult;
+      state.soundBusCommand.lastResult = playTestResult;
+      pushSoundBusCommandRecent({
+        at,
+        action: "play.request.play_test",
+        command: payload.command,
+        requestId: payload.requestId,
+        soundId: payload.soundId,
+        requestedBy: payload.requestedBy,
+        source: payload.source,
+        playTestOnly: true,
+        accepted: true,
+        started: !!playResult.started,
+        queued: !!playResult.queued,
+        parallel: !!playResult.parallel,
+        dropped: !!playResult.dropped,
+        queueTouched: touchedQueue,
+        audioTouched: touchedAudio
+      });
+
+      return {
+        ...resultBase,
+        ok: true,
+        accepted: true,
+        soundSystemTouched: true,
+        queueTouched: touchedQueue,
+        audioTouched: touchedAudio,
+        result: playTestResult,
+        command: publicSoundBusCommandStatus({ includeRecentCommands: true })
+      };
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      const playTestResult = {
+        ok: false,
+        accepted: false,
+        playedOrQueued: false,
+        started: false,
+        queued: false,
+        parallel: false,
+        dropped: false,
+        queueTouched: false,
+        audioTouched: false,
+        error: message,
+        message: "Command payload rejected in explicit play-test mode."
+      };
+
+      state.soundBusCommand.playTestFailed = Number(state.soundBusCommand.playTestFailed || 0) + 1;
+      state.soundBusCommand.errors = Number(state.soundBusCommand.errors || 0) + 1;
+      state.soundBusCommand.lastError = message;
+      state.soundBusCommand.lastPlayTest = playTestResult;
+      state.soundBusCommand.lastResult = playTestResult;
+      pushSoundBusCommandRecent({
+        at,
+        action: "play.request.play_test",
+        command: payload.command,
+        requestId: payload.requestId,
+        soundId: payload.soundId,
+        requestedBy: payload.requestedBy,
+        source: payload.source,
+        playTestOnly: true,
+        accepted: false,
+        error: message,
+        queueTouched: false,
+        audioTouched: false
+      });
+
+      return {
+        ...resultBase,
+        ok: false,
+        accepted: false,
+        soundSystemTouched: false,
+        queueTouched: false,
+        audioTouched: false,
+        error: message,
+        result: playTestResult,
         command: publicSoundBusCommandStatus({ includeRecentCommands: true })
       };
     }
@@ -2924,6 +3089,14 @@ module.exports.init = function init(ctx) {
   });
   app.post(`${prefix}/eventbus/command/dry-run`, (req, res) => {
     const result = consumeSoundBusCommandDryRun(req.body || {});
+    res.status(result.ok ? 200 : 400).json(result);
+  });
+  app.get(`${prefix}/eventbus/command/play-test`, (req, res) => {
+    const result = consumeSoundBusCommandPlayTest(req.query || {});
+    res.status(result.ok ? 200 : 400).json(result);
+  });
+  app.post(`${prefix}/eventbus/command/play-test`, (req, res) => {
+    const result = consumeSoundBusCommandPlayTest(req.body || {});
     res.status(result.ok ? 200 : 400).json(result);
   });
   app.get(`${prefix}/current`, (req, res) => res.json(core.ok({ current: state.current ? publicItem(state.current) : null })));
