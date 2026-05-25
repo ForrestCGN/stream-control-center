@@ -1,21 +1,18 @@
-# FILES – STEP406
+# FILES – STEP407
 
 ## Geändert
 
 - `backend/modules/vip_sound_overlay.js`
-
-## Dokumentation
-
-- `project-state/STEP406_VIP_EVENTBUS_STATUS_DIAGNOSTICS.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/STEP407_VIP_EVENTBUS_SMOKE_TEST.md`
 
 ## Nicht geändert
 
-- `htdocs/overlays/vip_sound_overlay_v2.html`
-- Sound-System-Dateien
-- Datenbankdateien
-- Config-/Secret-Dateien
+- Sound-System-Modul
+- Overlay-HTML
+- Daily-Usage-Schema
+- Streamer.bot Actions

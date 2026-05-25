@@ -273,7 +273,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.8",
+    version: "1.8.9",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -2790,6 +2790,8 @@ module.exports.init = function init(ctx) {
       dailyUsageWritten: !!extra.dailyUsageWritten,
       soundSystemQueued: !!extra.soundSystemQueued,
       soundSystemStarted: !!extra.soundSystemStarted,
+      testOnly: !!extra.testOnly,
+      smokeTest: !!extra.smokeTest,
       soundType,
       usageDate: String(extra.usageDate || context.date || ""),
       actor: {
@@ -3644,6 +3646,8 @@ module.exports.init = function init(ctx) {
       { method: "GET", path: `${prefix}/routes`, purpose: "list VIP API routes" },
       { method: "GET", path: `${prefix}/integration-check`, purpose: "run non-destructive VIP integration check" },
       { method: "GET", path: `${prefix}/eventbus/status`, purpose: "read VIP EventBus status counters and last emitted event" },
+      { method: "GET", path: `${prefix}/eventbus/test`, purpose: "emit a test-only vip.sound smoke event without touching sound, queue, overlay or Daily-Usage" },
+      { method: "POST", path: `${prefix}/eventbus/test`, purpose: "emit a test-only vip.sound smoke event without touching sound, queue, overlay or Daily-Usage" },
       { method: "POST", path: `${prefix}/eventbus/reset`, purpose: "reset VIP EventBus diagnostic counters only" },
       { method: "GET", path: `${prefix}/eventbus/reset`, purpose: "legacy GET reset for VIP EventBus diagnostic counters only" },
       { method: "POST", path: `${prefix}/reload`, purpose: "safe VIP diagnostics reload" }
@@ -3685,7 +3689,7 @@ module.exports.init = function init(ctx) {
       module: MODULE_NAME,
       version: state.version,
       feature: "vip_eventbus_status_events",
-      step: 406,
+      step: 407,
       enabled: !!state.eventBus.enabled,
       channel: state.eventBus.channel,
       communicationBusAvailable: busAvailable,
@@ -3694,6 +3698,7 @@ module.exports.init = function init(ctx) {
       overlayControl: false,
       routes: {
         status: prefix ? `${prefix}/eventbus/status` : "",
+        test: prefix ? `${prefix}/eventbus/test` : "",
         reset: prefix ? `${prefix}/eventbus/reset` : ""
       },
       counters: {
@@ -3714,6 +3719,7 @@ module.exports.init = function init(ctx) {
       notes: [
         "VIP EventBus events are status-only events on vip.sound.",
         "They do not start sounds, do not control the overlay and do not replace /api/sound/play.",
+        "The smoke-test route emits a test-only vip.sound event without touching Sound-System, queue, overlay or Daily-Usage.",
         "If the Communication Bus is unavailable, VIP sounds continue through the existing Sound-System flow."
       ],
       updatedAt: nowIso()
@@ -3733,6 +3739,75 @@ module.exports.init = function init(ctx) {
     state.eventBus.lastError = "";
     state.eventBus.lastAt = nowIso();
     return buildVipEventBusStatus("");
+  }
+
+  function runVipEventBusSmokeTest(raw = {}, prefix = "") {
+    const data = raw && typeof raw === "object" ? raw : {};
+    const displayName = cleanDisplayName(data.displayName || data.userDisplayName || data.user || "VIP EventBus Test");
+    const login = normalizeLogin(data.login || data.userLogin || data.user || "vip_eventbus_test");
+    const actorDisplayName = cleanDisplayName(data.actorDisplayName || data.actor || "System");
+    const actorLogin = normalizeLogin(data.actorLogin || data.actor || "system");
+    const soundType = normalizeSoundType(data.soundType || data.type || "vip");
+    const requestId = String(data.requestId || makeRequestId()).trim();
+    const eventKeyValue = cleanVipBusAction(data.eventKey || data.event_key || "smoke_test", "smoke_test");
+
+    const context = {
+      displayName,
+      login,
+      actorDisplayName,
+      actorLogin,
+      targetDisplayName: displayName,
+      targetLogin: login,
+      soundType,
+      trigger: "eventbus_smoke_test",
+      date: getBerlinDate()
+    };
+
+    const extra = {
+      accepted: false,
+      duplicate: false,
+      dailyUsageWritten: false,
+      requestId,
+      usageDate: context.date,
+      actorLogin,
+      actorDisplayName,
+      targetLogin: login,
+      targetDisplayName: displayName,
+      userLogin: login,
+      userDisplayName: displayName,
+      soundType,
+      trigger: context.trigger,
+      source: "eventbus_smoke_test",
+      soundSystemQueued: false,
+      soundSystemStarted: false,
+      testOnly: true,
+      smokeTest: true
+    };
+
+    const response = {
+      message: "VIP EventBus smoke test only. No sound, no overlay, no queue and no Daily-Usage change."
+    };
+
+    const result = emitVipEventBusStatus(eventKeyValue, context, extra, response);
+
+    return {
+      ok: !!(result && result.ok),
+      module: MODULE_NAME,
+      version: state.version,
+      prefix,
+      testOnly: true,
+      smokeTest: true,
+      soundSystemTouched: false,
+      overlayTouched: false,
+      queueTouched: false,
+      dailyUsageTouched: false,
+      eventKey: eventKeyValue,
+      action: vipBusActionForResult(eventKeyValue, extra),
+      requestId,
+      result,
+      eventBus: buildVipEventBusStatus(prefix),
+      updatedAt: nowIso()
+    };
   }
 
   function buildVipIntegrationCheck(prefix) {
@@ -3942,6 +4017,24 @@ module.exports.init = function init(ctx) {
       try {
         markClientSeen();
         return res.json(buildVipEventBusStatus(prefix));
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/eventbus/test`, (req, res) => {
+      try {
+        markClientSeen();
+        return res.json(runVipEventBusSmokeTest(requestData(req), prefix));
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/eventbus/test`, (req, res) => {
+      try {
+        markClientSeen();
+        return res.json(runVipEventBusSmokeTest(requestData(req), prefix));
       } catch (err) {
         return fail(res, 500, err.message || String(err));
       }

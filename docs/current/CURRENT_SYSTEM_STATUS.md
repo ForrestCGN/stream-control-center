@@ -1,27 +1,14 @@
-# CURRENT_SYSTEM_STATUS – STEP406 VIP EventBus Status Diagnostics
+# CURRENT_SYSTEM_STATUS – STEP407 VIP EventBus Smoke-Test
 
-## Stand
+Stand: STEP407 vorbereitet.
 
-STEP406 ergänzt Diagnose-/Statusrouten für die VIP EventBus-Status-Events aus STEP405.
+Das VIP-/Mod-Sound-System bleibt produktiv Sound-System-geführt. Der EventBus wird zusätzlich als Status-/Diagnosekanal genutzt.
 
-## Geändert
-
-- `backend/modules/vip_sound_overlay.js`
-- Neue EventBus-Statussicht über `/eventbus/status`
-- Reset reiner Diagnosezähler über `/eventbus/reset`
-- Integration-Check zeigt jetzt EventBus-Verfügbarkeit und letzten Status
-
-## Unverändert
-
-- Sound-System bleibt zuständig für VIP-/Mod-Sound-Wiedergabe
-- VIP-Overlay bleibt Sound-System-gesteuert
-- Daily-Usage bleibt unverändert
-- Queue bleibt unverändert
-- Keine DB-Migration
-
-## Test-URLs
+Neue Smoke-Test-Routen:
 
 ```text
-http://127.0.0.1:8080/api/vip-sound/eventbus/status
-http://127.0.0.1:8080/api/vip-sound/integration-check
+/api/vip-sound/eventbus/test
+/api/vip-sound-overlay/eventbus/test
 ```
+
+Diese Routen senden ein `vip.sound` Test-Event, ohne Sound, Overlay, Queue oder Daily-Usage zu verändern.
