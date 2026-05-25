@@ -1,24 +1,39 @@
 # Current System Status
 
 ## Aktueller Stand
-STEP443 – VIP Bus-First optionaler Admin-Test ohne Legacy-Fallback ist vorbereitet.
+STEP444 – VIP Bus-First Admin-Test als stabiler Kandidat dokumentiert.
 
 ## Relevante Versionen
 - `backend/modules/vip_sound_overlay.js`: `1.8.26`
 - `backend/modules/sound_system.js`: `0.1.19`
 - Feature: `vip_bus_first_no_legacy_admin_test`
 
-## Stand VIP Bus-First
-Der normale VIP-Produktivfluss bleibt weiterhin auf `legacy_sound_system_api`.
+## Geprüfter Kandidatenstand
+STEP443 wurde nach Live-Test als stabiler Admin-Test-Kandidat bestätigt. Der explizite Admin-Testpfad kann mit:
 
-Der explizite Admin-Testpfad kann mit `busFirstTest=true`, `vipBusMode=bus_enabled`, `forceAccess=true`, `consumeDaily=false`, `useExistingSound=true` und optional `noLegacyFallback=true` den Bus-First-Play-Test ausführen, ohne anschließend oder ersatzweise auf den Legacy-Queue-Pfad zurückzufallen.
+- `forceAccess=true`
+- `consumeDaily=false`
+- `useExistingSound=true`
+- `vipBusMode=bus_enabled`
+- `busFirstTest=true`
+- `noLegacyFallback=true`
 
-STEP443 ergänzt dafür klare Diagnosefelder:
-- `noLegacyFallback`
-- `busFirstOnly`
-- `legacyFallbackAllowed`
-- `legacyFallbackUsed`
-- erweiterte `soundBusCommand`-Auswertung mit `accepted`, `playedOrQueued`, `started`, `queued`, `queueTouched`, `audioTouched`, `normalizedSoundId`, `normalizedFile`
+einen VIP-Sound über den Bus-First-Play-Test ausführen, ohne Legacy-Fallback zu verwenden.
+
+## Bestätigte Testsignale
+- `accepted: True`
+- `busFirstTestApplied: True`
+- `noLegacyFallback: True`
+- `busFirstOnly: True`
+- `legacyFallbackAllowed: False`
+- `legacyFallbackUsed: False`
+- `legacyQueueSkippedForBusFirstTest: True`
+- `soundBusCommand.ok: True`
+- `playedOrQueued: True`
+- `started: True`
+- `normalizedFile: vip/adoredpenny.mp3`
+- `dailyUsageWritten: False`
+- Sound-System-Status: `playTestOk > 0`, `playTestFailed: 0`, `lastError` leer, `lastSoundId: vip/adoredpenny.mp3`
 
 ## Schutzregeln
 - Kein produktiver Bus-Default.
@@ -27,3 +42,4 @@ STEP443 ergänzt dafür klare Diagnosefelder:
 - Kein Dashboard-Umbau.
 - Keine DB-Migration.
 - Kein automatischer produktiver Bus-Verbrauch.
+- STEP444 ist Dokumentation/Status, keine Funktionsänderung.

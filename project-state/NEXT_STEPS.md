@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-## Direkt nach STEP443
+## Direkt nach STEP444
 
 1. Syntax prüfen:
 
@@ -10,39 +10,30 @@ node --check backend\modules\vip_sound_overlay.js
 node --check backend\modules\sound_system.js
 ```
 
-2. STEP443-Kurztest ausführen:
+2. STEP444 abschließen:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/eventbus/sound-command/reset" | ConvertTo-Json -Depth 10
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/eventbus/command/reset" | ConvertTo-Json -Depth 10
-
-$r = Invoke-RestMethod `
-  -Method Post `
-  -Uri "http://127.0.0.1:8080/api/vip-sound/test" `
-  -ContentType "application/json" `
-  -Body '{"login":"forrestcgn","consumeDaily":false,"forceAccess":true,"useExistingSound":true,"vipBusMode":"bus_enabled","busFirstTest":true,"noLegacyFallback":true}'
-
-$r | Select-Object accepted,reason,busFirstTest,busFirstTestApplied,noLegacyFallback,busFirstOnly,legacyFallbackAllowed,legacyFallbackUsed,legacyQueueSkippedForBusFirstTest,soundSystemQueued,soundSystemStarted,vipBusMode,runtimeVipBusMode,effectiveSoundEntryPoint,dailyUsageWritten
-
-$r.soundBusCommand | Select-Object ok,error,busFirstTest,playTestOnly,testOnly,accepted,playedOrQueued,started,queued,queueTouched,audioTouched,normalizedSoundId,normalizedFile,noLegacyFallback,legacyFallbackAllowed,legacyFallbackUsed
-
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/sound/eventbus/command/status"
-$s.stats | Select-Object playTestOk,playTestFailed,lastAction,lastError,lastSoundId
+.\stepdone.cmd "STEP444 VIP Bus-First Candidate Documented"
 ```
-
-3. Erwartung:
-
-- `accepted: True`
-- `busFirstTestApplied: True`
-- `noLegacyFallback: True`
-- `legacyFallbackAllowed: False`
-- `legacyFallbackUsed: False`
-- `legacyQueueSkippedForBusFirstTest: True`
-- `soundBusCommand.ok: True`
-- `playTestFailed: 0`
-- `lastError` leer
-- `lastSoundId: vip/adoredpenny.mp3` oder getestete Datei
 
 ## Danach möglich
 
-STEP444 – Dashboard-/Admin-Test-Schalter vorbereiten, aber weiterhin keine produktive Chat-Command-Umschaltung.
+### Option A – sicherer nächster Technik-Step
+STEP445 – Konfigurierbaren, aber standardmäßig deaktivierten Produktiv-Schalter vorbereiten.
+
+Ziel: Eine Config-/Runtime-Option vorbereiten, die den normalen VIP-Command später auf Bus-First umschalten könnte, aber im Default weiterhin deaktiviert bleibt.
+
+Schutzregeln:
+- Default bleibt Legacy.
+- Keine automatische Aktivierung.
+- Guard bleibt aktiv.
+- Rollback auf Legacy muss jederzeit möglich sein.
+- DailyUsage-Verhalten bleibt unverändert, solange nicht separat getestet.
+
+### Option B – Dashboard-Vorbereitung
+STEP445 – Admin-/Dashboard-Testschalter vorbereiten.
+
+Ziel: Den bereits stabilen Admin-Testpfad über Dashboard/Control-Center steuerbar machen, ohne produktiven Chat-Command umzuschalten.
+
+### Option C – Produktiv-Umschaltung noch nicht vorbereiten
+Weitere Diagnose-/Audit-Felder ergänzen, bevor ein Produktiv-Schalter überhaupt angelegt wird.
