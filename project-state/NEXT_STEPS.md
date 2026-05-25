@@ -1,7 +1,5 @@
-# NEXT_STEPS
+# Next Steps
 
-## Nächster sinnvoller Schritt
-STEP428 – VIP Sound-Bus Command-Testflow gegen echten VIP-Command prüfen und danach optionalen Bus-Modus vorbereiten.
-
-## Wichtig
-Vor produktiver Umstellung muss der Fallback auf den alten VIP-/Sound-System-Flow erhalten bleiben.
+1. STEP428 testen und committen.
+2. Danach STEP429: VIP Sound-Bus Command gegen Sound Dry-Run Consumer validieren.
+3. Erst danach optionaler produktiver Bus-Flow mit Fallback planen.

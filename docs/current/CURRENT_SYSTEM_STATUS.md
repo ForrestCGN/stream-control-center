@@ -1,8 +1,5 @@
-# Current System Status – STEP427
+# Current System Status – STEP428
 
-STEP427 ergänzt das VIP-System um eine test-only Sound-Bus-Command-Schicht.
+STEP428 ergänzt im Sound-System einen Dry-Run-Command-Consumer für `sound.command` Play-Requests. Der Consumer validiert Requests und normalisiert sie zu einem Sound-Item, startet aber keine Audio-Ausgabe und verändert keine Queue.
 
-Der produktive VIP-Flow bleibt unverändert:
-`VIP Command -> vip_sound_overlay -> /api/sound/play -> Sound-System`.
-
-Zusätzlich wird ein Shadow-/Test-Command auf `sound.command` erzeugt, damit der kommende Bus-First-Pfad vorbereitet und beobachtet werden kann.
+Produktive Flows bleiben unverändert.
