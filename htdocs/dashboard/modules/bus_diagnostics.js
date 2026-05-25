@@ -22,8 +22,8 @@
     return 'neutral';
   }
   function badge(text, status){ return `<span class="busdiag-badge ${statusClass(status || text)}">${esc(text)}</span>`; }
-  function metric(label, val, note){
-    return `<div class="busdiag-metric"><span>${esc(label)}</span><strong>${esc(value(val))}</strong>${note ? `<small>${esc(note)}</small>` : ''}</div>`;
+  function metric(label, val, note, extraClass = ''){
+    return `<div class="busdiag-metric ${esc(extraClass)}"><span>${esc(label)}</span><strong title="${esc(value(val))}">${esc(value(val))}</strong>${note ? `<small>${esc(note)}</small>` : ''}</div>`;
   }
   function card(title, body, extraClass = ''){
     return `<article class="busdiag-card ${extraClass}"><h3>${esc(title)}</h3>${body}</article>`;
@@ -45,6 +45,8 @@
             <button type="button" class="secondary" data-busdiag-action="check">Check ausführen</button>
             <button type="button" class="secondary" data-busdiag-action="toggle-auto">Auto: aus</button>
             <a class="ghost-link" href="/public/tools/bus_diagnostics_dashboard.html" target="_blank">Standalone</a>
+            <a class="ghost-link" href="/public/tools/sound_eventbus_debug.html" target="_blank">Sound Debug</a>
+            <a class="ghost-link" href="/public/tools/alert_eventbus_debug.html" target="_blank">Alert Debug</a>
           </div>
         </div>
         <div class="busdiag-content" data-busdiag-content>
@@ -121,8 +123,8 @@
           <div class="busdiag-status-line">${badge(summary.status || (data.ok ? 'ok' : 'error'), summary.status || (data.ok ? 'ok' : 'error'))}<span>${esc(value(data.fetchedAt))}</span></div>
           <div class="busdiag-metrics">
             ${metric('Clients online', `${num(summary.connectedClients)} / ${num(summary.totalClients)}`)}
-            ${metric('Sound Debug', bool(summary.soundDebugConnected))}
-            ${metric('Alert Debug', bool(summary.alertDebugConnected))}
+            ${metric('Sound Debug', bool(summary.soundDebugConnected), summary.soundDebugConnected ? 'verbunden' : 'Debug-Seite öffnen')}
+            ${metric('Alert Debug', bool(summary.alertDebugConnected), summary.alertDebugConnected ? 'verbunden' : 'Debug-Seite öffnen')}
             ${metric('Read-only', bool(data.readOnly))}
           </div>
         `)}
@@ -149,7 +151,7 @@
         ${card('Sound EventBus', `
           <div class="busdiag-status-line">${badge(sound.ok ? 'ok' : 'error', sound.ok ? 'ok' : 'error')}<span>${esc(value(sound.module))} ${esc(value(sound.version))}</span></div>
           <div class="busdiag-metrics">
-            ${metric('Capability', sound.capability || '-')}
+            ${metric('Capability', sound.capability || '-', '', 'busdiag-metric-code busdiag-metric-wide')}
             ${metric('Emitted', summary.soundEmitted)}
             ${metric('Errors', summary.soundErrors)}
             ${metric('Last action', summary.soundLastAction || '-')}
@@ -158,7 +160,7 @@
         ${card('Alert EventBus', `
           <div class="busdiag-status-line">${badge(alert.ok ? 'ok' : 'error', alert.ok ? 'ok' : 'error')}<span>${esc(value(alert.module))} ${esc(value(alert.version))}</span></div>
           <div class="busdiag-metrics">
-            ${metric('Capability', alert.capability || '-')}
+            ${metric('Capability', alert.capability || '-', '', 'busdiag-metric-code busdiag-metric-wide')}
             ${metric('Emitted', summary.alertEmitted)}
             ${metric('Errors', summary.alertErrors)}
             ${metric('Last action', summary.alertLastAction || '-')}
@@ -176,6 +178,7 @@
       </div>
 
       ${renderWarnings(warnings, errors)}
+      ${renderQuickActions(summary)}
       ${renderClients(communication.statusBody?.clients || [])}
       ${renderRecent('Sound Events', sound.recentEvents || [])}
       ${renderRecent('Alert Events', alert.recentEvents || [])}
@@ -190,6 +193,19 @@
         <div class="busdiag-list">
           ${errors.map(e => `<div class="busdiag-row error"><strong>Error</strong><span>${esc(e)}</span></div>`).join('')}
           ${warnings.map(w => `<div class="busdiag-row warning"><strong>Warning</strong><span>${esc(w)}</span></div>`).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderQuickActions(summary){
+    return `
+      <section class="busdiag-card busdiag-wide busdiag-help">
+        <h3>Schnellzugriff</h3>
+        <div class="busdiag-quick-grid">
+          <a href="/public/tools/sound_eventbus_debug.html" target="_blank"><strong>Sound Debug öffnen</strong><span>${summary.soundDebugConnected ? 'aktuell verbunden' : 'nicht verbunden'}</span></a>
+          <a href="/public/tools/alert_eventbus_debug.html" target="_blank"><strong>Alert Debug öffnen</strong><span>${summary.alertDebugConnected ? 'aktuell verbunden' : 'nicht verbunden'}</span></a>
+          <a href="/public/tools/bus_diagnostics_dashboard.html" target="_blank"><strong>Standalone Bus-Diagnose</strong><span>separate Diagnoseansicht</span></a>
         </div>
       </section>
     `;

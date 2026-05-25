@@ -1,22 +1,12 @@
-# Current System Status – STEP421
+# Current System Status – STEP422
 
-## Stand
-STEP421 integriert die read-only Bus-Diagnose aus STEP420 als echtes Dashboard-Modul.
+STEP422 ergänzt die bestehende Bus-Diagnose im Dashboard um UX-Verbesserungen.
 
-## Modul
-- Dashboard-Modul: `bus_diagnostics`
-- Datei: `htdocs/dashboard/modules/bus_diagnostics.js`
-- Styles: `htdocs/dashboard/modules/bus_diagnostics.css`
-- Panel: `busDiagnosticsModule`
-- Menügruppe: Admin
+Aktueller Bus-Stand:
+- Sound EventBus: aktiv, read-only beobachtbar.
+- Alert EventBus: aktiv, read-only beobachtbar.
+- Alert/Sound-Korrelation: aktiv, read-only diagnostizierbar.
+- Dashboard-Modul: `Admin -> Bus-Diagnose`.
+- Debug-Schnellzugriffe: Sound Debug, Alert Debug, Standalone Bus-Diagnose.
 
-## Routen
-Das Modul nutzt read-only:
-- `/api/bus-diagnostics/status`
-- `/api/bus-diagnostics/check`
-
-## Unverändert
-- Sound-System bleibt zentrale Audio-/Medien-Schicht.
-- Alert-System bleibt Alert-/Queue-/Visual-/TTS-Koordinator.
-- EventBus bleibt Beobachtungs-/Diagnose-/Korrelationsschicht.
-- Keine produktiven Flows wurden ersetzt.
+Keine produktiven Flows wurden geändert.

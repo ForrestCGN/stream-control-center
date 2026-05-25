@@ -1,17 +1,10 @@
-# CURRENT_STATUS – STEP421
+# CURRENT_STATUS – STEP422
 
-Bus-Diagnose ist jetzt im Dashboard-Menü vorbereitet.
+Bus-Diagnose ist im Dashboard integriert und UX-bereinigt.
 
-Abgeschlossene EventBus-Strecke:
-- STEP412 Sound EventBus Baseline
-- STEP413 Sound Version/Target Cleanup
-- STEP414 Echter Sound-Flow Test
-- STEP415 Sound Debug-Consumer
-- STEP416 Alert EventBus Baseline
-- STEP417 Alert Debug-Consumer
-- STEP418 Echter Alert-Flow Mirror
-- STEP419 Alert/Sound-Korrelation
-- STEP420 Bus-Diagnose Backend/Standalone
-- STEP421 Bus-Diagnose Dashboard-Menü
+- Modul: `bus_diagnostics`
+- Dashboard: `Admin -> Bus-Diagnose`
+- API: `/api/bus-diagnostics/status`, `/api/bus-diagnostics/check`
+- Frontend: Schnellzugriffe zu Sound-/Alert-Debug und Standalone-Diagnose
 
-Nächster sinnvoller Schritt: STEP422 Dashboard-Bus-Diagnose Live-Test und UX-Cleanup.
+Read-only. Keine produktive Steuerung.
