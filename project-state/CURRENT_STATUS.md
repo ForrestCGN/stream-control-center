@@ -1,28 +1,30 @@
-# CURRENT STATUS – STEP452
+# CURRENT STATUS
 
-Aktueller Stand: **STEP452 – VIP Command Bus Productive Integration**.
+Aktueller Stand: STEP453 – Alert Bus Safe Parallel Integration.
 
-Der VIP-Sound-Command läuft nun produktiv über das vorhandene Node-Command-System und den Sound-Bus. Streamer.bot ist für `!vip` entfernt.
+## Basis
 
-Bestätigt:
+STEP452 hat VIP produktiv über das Node-Command-System und den Sound-Bus integriert.
 
-```text
-productiveVipFlow: sound_bus_command
-normalChatCommandUsesBusFirst: True
-productiveSwitchEffectiveEnabled: True
-productiveSwitchSafetyLocked: False
-productiveEntryPointChanged: True
-legacyVipFlow: fallback_only
-```
-
-Zusätzlich wurde bestätigt:
+STEP453 überträgt das Prinzip vorsichtig auf Alerts, aber noch nicht als Bus-First. Alerts laufen jetzt sicher parallel:
 
 ```text
-productivePlayChecks: 2
-productivePlayOk: 2
-productivePlayFailed: 0
-lastSoundId: vip/adoredpenny.mp3
-lastProductiveBusError: leer
+legacy overlay output + communication bus visual.alert output
 ```
 
-`commands.js` enthält ab STEP452 den VIP-Sound-Catalog-Eintrag und einen Default-Seed für `vip`.
+## Alert-System
+
+- `backend/modules/alert_system.js`: Version `3.1.3`
+- `alertOutput.mode`: `legacy_and_bus`
+- Bus-Channel: `visual.alert`
+- Bus-Actions: `play`, `clear`
+- Legacy bleibt aktiv.
+
+## Nicht geändert
+
+- Kein Dashboard-Umbau.
+- Kein Sound-System-Umbau.
+- Kein TTS-Umbau.
+- Kein Bundle-/Queue-Umbau.
+- Kein `bus_only`.
+- Kein Entfernen bestehender Alert-Routen oder Legacy-Ausgabe.

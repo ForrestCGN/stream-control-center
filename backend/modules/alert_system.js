@@ -31,7 +31,7 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.2';
+const MODULE_VERSION = '3.1.3';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 
@@ -97,7 +97,7 @@ const DEFAULT_CONFIG = {
     ttsPlaybackTimeoutMs: 15000
   },
   alertOutput: {
-    mode: 'legacy',
+    mode: process.env.ALERT_OUTPUT_MODE || 'legacy_and_bus',
     bus: {
       enabled: true,
       channel: 'visual.alert',
@@ -2282,6 +2282,12 @@ function sanitizeRuntimeConfig(input) {
   cfg.liveAlert.ttsPlaybackTimeoutMs = clamp(toInt(cfg.liveAlert.ttsPlaybackTimeoutMs, DEFAULT_CONFIG.liveAlert.ttsPlaybackTimeoutMs), 1000, 120000);
 
   cfg.alertOutput.mode = validateAlertOutputMode(cfg.alertOutput.mode || DEFAULT_CONFIG.alertOutput.mode);
+  const envAlertOutputMode = String(process.env.ALERT_OUTPUT_MODE || '').trim();
+  if (envAlertOutputMode) {
+    cfg.alertOutput.mode = validateAlertOutputMode(envAlertOutputMode, cfg.alertOutput.mode);
+  } else if (cfg.alertOutput.mode === 'legacy') {
+    cfg.alertOutput.mode = 'legacy_and_bus';
+  }
   cfg.alertOutput.bus.enabled = boolValue(cfg.alertOutput.bus.enabled, DEFAULT_CONFIG.alertOutput.bus.enabled);
   cfg.alertOutput.bus.channel = cleanKey(cfg.alertOutput.bus.channel || DEFAULT_CONFIG.alertOutput.bus.channel) || DEFAULT_CONFIG.alertOutput.bus.channel;
   cfg.alertOutput.bus.action = cleanKey(cfg.alertOutput.bus.action || DEFAULT_CONFIG.alertOutput.bus.action) || DEFAULT_CONFIG.alertOutput.bus.action;

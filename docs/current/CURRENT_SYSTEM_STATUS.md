@@ -1,50 +1,36 @@
-# Current System Status – STEP452
+# CURRENT SYSTEM STATUS
 
-## Thema
-VIP Command + Bus Productive Integration ist abgeschlossen und dokumentiert.
+Aktueller Stand: STEP453 – Alert Bus Safe Parallel Integration.
 
-## Ergebnis
-Der VIP-Sound-Flow läuft produktiv über das bestehende Node-Command-System und den Sound-Bus:
+## Runtime-Stand
+
+- `alert_system.js`: Version `3.1.3`
+- Feature: `alert_bus_safe_parallel_integration`
+- Alert-Output-Modus: `legacy_and_bus`
+- Communication-Bus-Channel: `visual.alert`
+- Actions: `play`, `clear`
+
+## Was STEP453 ändert
+
+STEP453 aktiviert Alerts sicher parallel über den Communication-Bus. Der bisherige Legacy-Overlay-Weg bleibt aktiv und wird nicht entfernt.
+
+Damit gilt:
 
 ```text
-Twitch Chat
-→ twitch_presence.js
-→ commands.js
-→ command_definitions: vip
-→ /api/vip-sound/command
-→ VIP-Modul
-→ /api/sound/eventbus/command/play
-→ sound_system.js
-→ Sound startet
+Alert kommt rein
+→ Legacy-Overlay bekommt den Alert wie bisher
+→ Communication-Bus bekommt denselben Alert zusätzlich über visual.alert/play
+→ Alert-Overlay kann Bus-Events bereits empfangen und ACKs senden
 ```
 
-## Bestätigter Live-Stand
-- `!vip` wurde aus Streamer.bot entfernt.
-- `vip` ist in `command_definitions` registriert.
-- Produktiver VIP-Flow: `sound_bus_command`.
-- Normaler Chat-Command nutzt Bus-First: `true`.
-- Productive Switch effektiv aktiv: `true`.
-- Safety-Lock gelöst: `false`.
-- Legacy-Flow: `fallback_only`.
+## Sicherheitsverhalten
 
-## Erfolgreich getesteter Bus-Status
-```text
-productivePlayChecks: 2
-productivePlayOk: 2
-productivePlayFailed: 0
-lastSoundId: vip/adoredpenny.mp3
-lastProductiveBusError: leer
-```
+- Kein `bus_only`.
+- Kein Entfernen des Legacy-Fallbacks.
+- Kein Umbau von Sound-System, TTS, Bundle-Queue oder Dashboard.
+- Wenn die bestehende JSON-/DB-Config noch `alertOutput.mode = legacy` enthält, hebt STEP453 den Runtime-Modus ohne gesetzte Env-Override sicher auf `legacy_and_bus` an.
+- Bei Bedarf kann der Modus per `ALERT_OUTPUT_MODE` explizit überschrieben werden.
 
-## STEP452-Code-Absicherung
-`backend/modules/commands.js` enthält jetzt zusätzlich:
+## Nächster möglicher Schritt
 
-- VIP-Sound im Command-Catalog.
-- Default-Seed für `vip` → `/api/vip-sound/command`.
-- Alias `vipsound`.
-- `permissionLevel: everyone`, damit das VIP-Modul den Zieluser prüft.
-
-## Sicherheit
-- Keine SQLite-Datenbank wird ersetzt.
-- Bestehende Live-Registrierung bleibt erhalten.
-- Legacy bleibt nur als Notausgang bei Bus-Fehlern vorhanden.
+Wenn ein echter Live-/Dashboard-Alert sichtbar bleibt und der Bus parallel Events liefert, kann später ein separater kleiner Schritt auf `bus_first` umstellen. Bis dahin bleibt STEP453 bewusst der sichere Parallelbetrieb.
