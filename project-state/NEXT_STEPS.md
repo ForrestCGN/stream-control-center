@@ -2,4 +2,4 @@
 
 Recommended next step:
 
-- STEP434: Verify VIP bus-mode behavior in live runtime and then decide whether the next safe step should be shadow-flow observation or guarded bus-enabled preparation.
+- STEP435: Observe VIP bus-mode Guard/Fallback behavior in live runtime and add a dedicated safety/status test for `bus_enabled` before any productive Bus switch is considered.

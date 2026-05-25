@@ -282,7 +282,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.16",
+    version: "1.8.17",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -2913,9 +2913,59 @@ module.exports.init = function init(ctx) {
       legacy: "Produktiver VIP-Flow nutzt weiter legacy /api/sound/play. Bus-Command-Routen bleiben nur Diagnose/Test.",
       shadow: "Produktiver VIP-Flow bleibt legacy; VIP-Sound-Wuensche werden als Bus-Command gespiegelt.",
       play_test: "Nur explizite Test-/Diagnose-Routen duerfen ueber Sound play-test Audio starten. Produktiver VIP-Flow bleibt legacy.",
-      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP432 noch nicht als automatischer Produktiv-Flow aktiv."
+      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP434 weiterhin durch Guard/Fallback blockiert und nicht als automatischer Produktiv-Flow aktiv."
     };
     return descriptions[normalized] || descriptions.legacy;
+  }
+
+  function buildVipBusModeGuard(mode = getRuntimeVipBusMode(), source = "status") {
+    const requestedMode = normalizeVipBusMode(mode);
+    const configuredMode = getConfiguredVipBusMode();
+    const runtimeMode = getRuntimeVipBusMode();
+    const productiveBusRequested = requestedMode === "bus_enabled";
+    const explicitPlayTestRequested = requestedMode === "play_test";
+    const shadowMirrorRequested = requestedMode === "shadow" || requestedMode === "play_test" || requestedMode === "bus_enabled";
+    const fallbackReason = productiveBusRequested
+      ? "productive_bus_guard_locked_step434"
+      : "productive_flow_locked_to_legacy_step434";
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: state.version,
+      feature: "vip_sound_bus_mode_guard_fallback_preparation",
+      source: String(source || "status"),
+      requestedVipBusMode: requestedMode,
+      runtimeVipBusMode: runtimeMode,
+      configuredVipBusMode: configuredMode,
+      effectiveVipFlow: "legacy_sound_system_api",
+      effectiveSoundEntryPoint: "legacy_sound_system_api",
+      fallbackVipBusMode: "legacy",
+      fallbackReason,
+      guardActive: true,
+      guardStep: "STEP434",
+      productiveBusRequested,
+      productiveBusAllowed: false,
+      productiveBusBlocked: productiveBusRequested,
+      productiveEntryPointChanged: false,
+      productiveEntryPointLocked: true,
+      busEnabledPreparedOnly: requestedMode === "bus_enabled",
+      busEnabledProductive: false,
+      shadowMirrorAllowed: shadowMirrorRequested,
+      dryRunAllowed: true,
+      playTestAllowed: explicitPlayTestRequested,
+      explicitPlayTestRouteOnly: true,
+      queueTouched: false,
+      audioTouched: false,
+      overlayTouched: false,
+      dailyUsageTouched: false,
+      notes: [
+        "STEP434 prepares the VIP bus-mode guard/fallback decision layer only.",
+        "bus_enabled is visible and selectable, but the guard keeps productive VIP sound delivery on legacy_sound_system_api.",
+        "No automatic productive Bus consumption is enabled in this step.",
+        "Explicit dry-run/play-test diagnostic routes remain available for testing only."
+      ]
+    };
   }
 
   function trimRecentVipSoundBusCommands() {
@@ -2927,19 +2977,32 @@ module.exports.init = function init(ctx) {
     const busAvailable = !!(communicationBus && typeof communicationBus.getBus === "function");
     const runtimeVipBusMode = getRuntimeVipBusMode();
     const configuredVipBusMode = getConfiguredVipBusMode();
+    const guard = buildVipBusModeGuard(runtimeVipBusMode, "status");
     return {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_sound_bus_mode_runtime_status",
+      feature: "vip_sound_bus_mode_guard_fallback_preparation",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
       vipBusMode: runtimeVipBusMode,
       configuredVipBusMode,
       runtimeVipBusMode,
-      effectiveVipFlow: "legacy_sound_system_api",
+      effectiveVipFlow: guard.effectiveVipFlow,
+      effectiveSoundEntryPoint: guard.effectiveSoundEntryPoint,
       allowedVipBusModes: [...VIP_BUS_ALLOWED_MODES],
+      busModeGuard: guard,
+      guardActive: guard.guardActive,
+      fallbackVipBusMode: guard.fallbackVipBusMode,
+      fallbackReason: guard.fallbackReason,
+      productiveBusAllowed: guard.productiveBusAllowed,
+      productiveBusBlocked: guard.productiveBusBlocked,
+      productiveEntryPointChanged: guard.productiveEntryPointChanged,
+      queueTouched: guard.queueTouched,
+      audioTouched: guard.audioTouched,
+      overlayTouched: guard.overlayTouched,
+      dailyUsageTouched: guard.dailyUsageTouched,
       modeDescription: describeVipBusMode(runtimeVipBusMode),
       modePreparedOnly: true,
       modeCanBeChangedAtRuntime: true,
@@ -2971,6 +3034,7 @@ module.exports.init = function init(ctx) {
         dryRun: prefix ? `${prefix}/eventbus/sound-command/dry-run` : "",
         playTest: prefix ? `${prefix}/eventbus/sound-command/play-test` : "",
         mode: prefix ? `${prefix}/eventbus/sound-command/mode` : "",
+        guard: prefix ? `${prefix}/eventbus/sound-command/guard` : "",
         reset: prefix ? `${prefix}/eventbus/sound-command/reset` : ""
       },
       protection: {
@@ -3016,8 +3080,8 @@ module.exports.init = function init(ctx) {
         "This layer mirrors VIP sound wishes as test-only sound.command events for diagnostics.",
         "The dry-run route sends the same payload to the Sound-System dry-run consumer for validation only.",
         "The play-test route sends the same payload to the Sound-System explicit play-test route for manual audio testing.",
-        "STEP433 keeps the runtime VIP bus mode stable in status: legacy, shadow, play_test, bus_enabled.",
-        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP433.",
+        "STEP434 adds a visible Guard/Fallback layer for legacy, shadow, play_test and bus_enabled.",
+        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP434.",
         "It does not change the productive VIP entry point and does not automatically consume Bus commands.",
         "If the Communication Bus is unavailable, VIP continues through the existing Sound-System flow."
       ],
@@ -3099,6 +3163,8 @@ module.exports.init = function init(ctx) {
         displayName: targetDisplayName,
         soundFile: String(data.soundFile || queuePayload.meta?.soundFile || sound.relativeFile || ""),
         productiveFlow: "legacy_sound_system_api",
+        vipBusMode: getRuntimeVipBusMode(),
+        busModeGuard: buildVipBusModeGuard(getRuntimeVipBusMode(), "payload"),
         shadowOnly: true
       },
       visual: {
@@ -3179,6 +3245,8 @@ module.exports.init = function init(ctx) {
           command: payload.command,
           commandLayer: "vip_to_sound_shadow_test",
           productiveFlow: "legacy_sound_system_api",
+          vipBusMode: getRuntimeVipBusMode(),
+          busModeGuard: buildVipBusModeGuard(getRuntimeVipBusMode(), "bus_emit"),
           vipRequestId: payload.vipRequestId,
           requestId: payload.requestId,
           soundId: payload.soundId,
@@ -3327,7 +3395,7 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_runtime_status",
+        feature: "vip_sound_bus_mode_guard_fallback_preparation",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3356,7 +3424,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_runtime_status",
+        feature: "vip_sound_bus_mode_guard_fallback_preparation",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3462,7 +3530,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playTestResult && playTestResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_runtime_status",
+        feature: "vip_sound_bus_mode_guard_fallback_preparation",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -3492,7 +3560,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_runtime_status",
+        feature: "vip_sound_bus_mode_guard_fallback_preparation",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4378,6 +4446,7 @@ module.exports.init = function init(ctx) {
       { method: "POST", path: `${prefix}/eventbus/sound-command/play-test`, purpose: "emit VIP shadow command and execute it through Sound-System explicit play-test route" },
       { method: "GET", path: `${prefix}/eventbus/sound-command/mode`, purpose: "read prepared VIP bus mode" },
       { method: "POST", path: `${prefix}/eventbus/sound-command/mode`, purpose: "set prepared VIP bus mode without changing productive flow" },
+      { method: "GET", path: `${prefix}/eventbus/sound-command/guard`, purpose: "read STEP434 VIP bus-mode guard/fallback decision" },
       { method: "POST", path: `${prefix}/eventbus/sound-command/reset`, purpose: "reset VIP to Sound-Bus command diagnostic counters only" },
       { method: "GET", path: `${prefix}/eventbus/sound-command/reset`, purpose: "legacy GET reset for VIP to Sound-Bus command diagnostic counters only" },
       { method: "POST", path: `${prefix}/reload`, purpose: "safe VIP diagnostics reload" }
@@ -4825,7 +4894,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_sound_bus_mode_runtime_status",
+          feature: "vip_sound_bus_mode_guard_fallback_preparation",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -4854,7 +4923,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_sound_bus_mode_runtime_status",
+          feature: "vip_sound_bus_mode_guard_fallback_preparation",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -4941,27 +5010,50 @@ module.exports.init = function init(ctx) {
       }
     });
 
+    app.get(`${prefix}/eventbus/sound-command/guard`, (req, res) => {
+      try {
+        markClientSeen();
+        const raw = requestData(req);
+        const requestedMode = raw.mode || raw.vipBusMode || raw.value || getRuntimeVipBusMode();
+        return res.json({
+          ...buildVipBusModeGuard(requestedMode, "api_get"),
+          status: publicVipSoundBusCommandStatus(prefix),
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
     app.get(`${prefix}/eventbus/sound-command/mode`, (req, res) => {
       const raw = requestData(req);
       const requestedMode = raw.mode || raw.vipBusMode || raw.value;
       const mode = requestedMode ? setVipBusMode(requestedMode, "api_get") : getRuntimeVipBusMode();
+      const guard = buildVipBusModeGuard(mode, "mode_get");
       res.json({
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_runtime_status",
+        feature: "vip_sound_bus_mode_guard_fallback_preparation",
         mode,
         vipBusMode: mode,
-        effectiveVipFlow: "legacy_sound_system_api",
+        effectiveVipFlow: guard.effectiveVipFlow,
+        effectiveSoundEntryPoint: guard.effectiveSoundEntryPoint,
         allowedVipBusModes: [...VIP_BUS_ALLOWED_MODES],
+        busModeGuard: guard,
+        guardActive: guard.guardActive,
+        fallbackVipBusMode: guard.fallbackVipBusMode,
+        fallbackReason: guard.fallbackReason,
+        productiveBusAllowed: guard.productiveBusAllowed,
+        productiveBusBlocked: guard.productiveBusBlocked,
         modeDescription: describeVipBusMode(mode),
         modePreparedOnly: true,
         modeRuntimeStateStable: true,
-        productiveEntryPointChanged: false,
-        queueTouched: false,
-        audioTouched: false,
-        overlayTouched: false,
-        dailyUsageTouched: false,
+        productiveEntryPointChanged: guard.productiveEntryPointChanged,
+        queueTouched: guard.queueTouched,
+        audioTouched: guard.audioTouched,
+        overlayTouched: guard.overlayTouched,
+        dailyUsageTouched: guard.dailyUsageTouched,
         status: publicVipSoundBusCommandStatus(prefix),
         updatedAt: nowIso()
       });
@@ -4971,25 +5063,33 @@ module.exports.init = function init(ctx) {
       const raw = requestData(req);
       const requestedMode = raw.mode || raw.vipBusMode || raw.value || "legacy";
       const mode = setVipBusMode(requestedMode, "api");
+      const guard = buildVipBusModeGuard(mode, "mode_post");
       res.json({
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_runtime_status",
+        feature: "vip_sound_bus_mode_guard_fallback_preparation",
         mode,
         vipBusMode: mode,
-        effectiveVipFlow: "legacy_sound_system_api",
+        effectiveVipFlow: guard.effectiveVipFlow,
+        effectiveSoundEntryPoint: guard.effectiveSoundEntryPoint,
         allowedVipBusModes: [...VIP_BUS_ALLOWED_MODES],
+        busModeGuard: guard,
+        guardActive: guard.guardActive,
+        fallbackVipBusMode: guard.fallbackVipBusMode,
+        fallbackReason: guard.fallbackReason,
+        productiveBusAllowed: guard.productiveBusAllowed,
+        productiveBusBlocked: guard.productiveBusBlocked,
         modeDescription: describeVipBusMode(mode),
         modePreparedOnly: true,
         persisted: false,
         modeRuntimeStateStable: true,
-        note: "Runtime mode is held in memory until reset or server restart. Productive VIP entry point remains legacy in STEP433.",
-        productiveEntryPointChanged: false,
-        queueTouched: false,
-        audioTouched: false,
-        overlayTouched: false,
-        dailyUsageTouched: false,
+        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP434.",
+        productiveEntryPointChanged: guard.productiveEntryPointChanged,
+        queueTouched: guard.queueTouched,
+        audioTouched: guard.audioTouched,
+        overlayTouched: guard.overlayTouched,
+        dailyUsageTouched: guard.dailyUsageTouched,
         status: publicVipSoundBusCommandStatus(prefix),
         updatedAt: state.soundBusCommand.lastAt || nowIso()
       });
