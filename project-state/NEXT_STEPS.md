@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-## Direkt nach STEP446
+## Direkt nach STEP447
 
 1. Syntax prüfen:
 
@@ -14,38 +14,34 @@ node --check backend\modules\sound_system.js
 
 ```powershell
 $s = Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/eventbus/sound-command/status"
-$s | Select-Object version,feature,productiveSwitchAvailable,productiveSwitchSettingKey,productiveSwitchConfiguredSource,productiveSwitchConfiguredValue,productiveSwitchConfiguredEnabled,productiveSwitchEffectiveEnabled,productiveSwitchEffectiveReason,productiveSwitchSafetyLocked,productiveSwitchConfigReadable,productiveSwitchStatusReadable,productiveEntryPointChanged,productiveVipFlow
+$s | Select-Object version,feature,cleanupConsolidated,cleanupProfile,productiveSwitchAvailable,productiveSwitchConfiguredEnabled,productiveSwitchEffectiveEnabled,productiveSwitchSafetyLocked,productiveSwitchConfigReadable,productiveSwitchConfigFileReadable,productiveSwitchSettingReadable,productiveEntryPointChanged,productiveVipFlow
+$s.consolidatedBusFirstStatus | Select-Object profile,step,productivePath,candidatePath,normalChatCommandUsesBusFirst,adminTestBusFirstCandidate,productiveSwitchEffective,productiveSwitchSafetyLocked,productiveEntryPointChanged,noLegacyFallbackOnlyInAdminTest
 ```
 
-Erwartung im Default:
+Erwartung:
 
-- `version: 1.8.28`
-- `feature: vip_bus_first_productive_switch_config_status`
-- `productiveSwitchAvailable: True`
-- `productiveSwitchSettingKey: vipBusFirstProductiveEnabled`
-- `productiveSwitchConfiguredSource: database | config | default`
-- `productiveSwitchConfiguredValue: False`
-- `productiveSwitchConfiguredEnabled: False`
+- `version: 1.8.29`
+- `feature: vip_bus_first_cleanup_consolidation`
+- `cleanupConsolidated: True`
+- `cleanupProfile: candidate_status_only`
 - `productiveSwitchEffectiveEnabled: False`
-- `productiveSwitchEffectiveReason: configured_false`
 - `productiveSwitchSafetyLocked: True`
 - `productiveSwitchConfigReadable: True`
-- `productiveSwitchStatusReadable: True`
 - `productiveEntryPointChanged: False`
 - `productiveVipFlow: legacy_sound_system_api`
+- `normalChatCommandUsesBusFirst: False`
 
-3. STEP446 abschließen:
+3. STEP447 abschließen:
 
 ```powershell
-.\stepdone.cmd "STEP446 VIP Productive Switch Config Status"
+.\stepdone.cmd "STEP447 VIP Bus-First Cleanup Consolidation"
 ```
 
 ## Danach möglich
 
-### STEP447 – Productive Switch True-Dry-Run validieren
+### STEP448 – Entscheidungspunkt
 
-Ziel: Testweise `vipBusFirstProductiveEnabled=true` setzen und bestätigen, dass der Status `configuredEnabled: true`, aber weiterhin `effectiveEnabled: false` und `safetyLocked: true` zeigt.
+Keine weiteren Testpfade bauen. Entscheiden:
 
-### Späterer Schritt – echte Produktiv-Umschaltung
-
-Erst nach separatem Live-Test und ausdrücklicher Freigabe darf der normale VIP-Chat-Command optional auf Bus-First umgestellt werden.
+1. Produktiv-Umschaltung als weiterhin standardmäßig deaktivierten echten Config-Schalter vorbereiten, oder
+2. temporäre Diagnosefelder gezielt entfernen, sobald der Produktivpfad freigegeben ist.

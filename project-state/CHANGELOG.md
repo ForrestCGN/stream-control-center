@@ -1,24 +1,24 @@
 # CHANGELOG
 
-## STEP446 – VIP Bus-First Productive Switch Config/Status
+## STEP447 – VIP Bus-First Cleanup & Konsolidierung
 
-- `backend/modules/vip_sound_overlay.js` auf Version `1.8.28` angehoben.
-- Feature auf `vip_bus_first_productive_switch_config_status` gesetzt.
-- `vipBusFirstProductiveEnabled` bleibt der vorbereitete Productive-Switch-Key.
-- Status-/Guard-Ausgaben um Config-/Statusdetails erweitert:
-  - `productiveSwitchSettingKey`
-  - `productiveSwitchConfiguredSource`
-  - `productiveSwitchConfiguredValue`
-  - `productiveSwitchDefaultEnabled`
-  - `productiveSwitchEffectiveReason`
-  - `productiveSwitchSafetyLockReason`
-  - `productiveSwitchConfigReadable`
-  - `productiveSwitchStatusReadable`
-  - `productiveSwitchConfigPath`
-  - `productiveSwitchSettingsTable`
-- Der Schalter ist in STEP446 weiterhin sicherheitsgesperrt und effektiv nicht aktiv.
-- Kein produktiver Bus-Default.
-- Kein normaler Twitch-Command-Umbau.
-- Keine Änderung am Sound-System-Code gegenüber STEP442/STEP443.
+- `backend/modules/vip_sound_overlay.js` auf Version `1.8.29` angehoben.
+- Feature auf `vip_bus_first_cleanup_consolidation` gesetzt.
+- Keine neue Test-Route hinzugefügt.
+- Bestehenden Bus-First-Admin-Testpfad nicht entfernt.
+- Status-/Guard-Ausgabe um konsolidierte Zusammenfassung ergänzt:
+  - `cleanupConsolidated`
+  - `cleanupProfile`
+  - `diagnosticProfile`
+  - `cleanupStep`
+  - `consolidatedBusFirstStatus`
+- `productiveSwitchConfigReadable` auf Setting-Lesbarkeit korrigiert.
+- `productiveSwitchConfigFileReadable` zusätzlich getrennt ausgewiesen, damit DB-/Setting-Lesbarkeit nicht mit optionaler Config-Datei verwechselt wird.
+- Productive-Switch bleibt sicherheitsgesperrt:
+  - `productiveSwitchEffectiveEnabled: false`
+  - `productiveSwitchSafetyLocked: true`
+  - `productiveEntryPointChanged: false`
+- `backend/modules/sound_system.js` bleibt bei Version `0.1.19` unverändert enthalten.
 - Keine DB-Migration.
 - Kein Dashboard-Umbau.
+- Kein normaler Twitch-Command-Umbau.
