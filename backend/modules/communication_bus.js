@@ -780,6 +780,115 @@ function init({ app }) {
     }));
   });
 
+
+
+  app.get('/api/communication/test-vip-overlay-preview', (req, res) => {
+    const currentBus = getBus();
+    if (!currentBus || typeof currentBus.emit !== 'function') {
+      return res.status(500).json({ ok: false, error: 'communication_bus_unavailable' });
+    }
+
+    const action = cleanString(req.query.action || 'show').toLowerCase();
+    if (!['show', 'hide', 'update'].includes(action)) {
+      return res.status(400).json({ ok: false, error: 'invalid_action', allowed: ['show', 'hide', 'update'] });
+    }
+
+    const displayName = cleanString(req.query.displayName || req.query.user || 'STEP403_VIP_Preview');
+    const durationRaw = Number.parseInt(String(req.query.durationMs || '5000'), 10);
+    const durationMs = Math.max(1000, Math.min(30000, Number.isFinite(durationRaw) ? durationRaw : 5000));
+    const requestId = cleanString(req.query.requestId || ('step403-vip-preview-' + Date.now()));
+    const requireAck = boolParam(req.query.requireAck, true);
+    const replayable = boolParam(req.query.replayable, true);
+
+    const result = currentBus.emit({
+      type: 'event',
+      channel: 'vip.overlay',
+      action,
+      source: { type: 'diagnostic', id: 'STEP403', module: 'vip_sound_overlay' },
+      target: { type: 'module', module: 'vip_sound_overlay', capability: 'vip.overlay.' + action },
+      payload: {
+        test: true,
+        previewOnly: true,
+        step: 403,
+        requestId,
+        displayName,
+        user: displayName,
+        title: cleanString(req.query.title || 'VIP EVENT-BUS PREVIEW'),
+        text: cleanString(req.query.text || 'Preview-Test ueber vip.overlay.show/hide.'),
+        avatarUrl: cleanString(req.query.avatarUrl || ''),
+        type: cleanString(req.query.type || 'bus-preview'),
+        durationMs,
+        emittedAt: new Date().toISOString()
+      },
+      meta: {
+        module: 'vip_sound_overlay',
+        step: 403,
+        previewOnly: true,
+        requireAck,
+        replayable,
+        ttlMs: durationMs + 8000
+      }
+    });
+
+    return res.json(buildModuleResponse({
+      testVipOverlayPreview: true,
+      previewOnly: true,
+      action,
+      result,
+      status: currentBus.getStatus()
+    }));
+  });
+
+  app.get('/api/communication/test-vip-overlay', (req, res) => {
+    const currentBus = getBus();
+    if (!currentBus || typeof currentBus.emit !== 'function') {
+      return res.status(500).json({ ok: false, error: 'communication_bus_unavailable' });
+    }
+
+    const displayName = cleanString(req.query.displayName || req.query.user || 'STEP401_VIP_Test');
+    const durationRaw = Number.parseInt(String(req.query.durationMs || '5000'), 10);
+    const durationMs = Math.max(1000, Math.min(30000, Number.isFinite(durationRaw) ? durationRaw : 5000));
+    const requestId = cleanString(req.query.requestId || ('step401-vip-' + Date.now()));
+    const requireAck = boolParam(req.query.requireAck, true);
+    const replayable = boolParam(req.query.replayable, true);
+
+    const result = currentBus.emit({
+      type: 'event',
+      channel: 'vip.overlay',
+      action: 'test',
+      source: { type: 'diagnostic', id: 'STEP401', module: 'vip_sound_overlay' },
+      target: { type: 'module', module: 'vip_sound_overlay', capability: 'vip.overlay.test' },
+      payload: {
+        test: true,
+        shadowOnly: true,
+        step: 401,
+        requestId,
+        displayName,
+        user: displayName,
+        title: cleanString(req.query.title || 'VIP Event-Bus Shadow Test'),
+        text: cleanString(req.query.text || 'Shadow-Test: Empfang/Ack ohne Anzeige-Umbau.'),
+        avatarUrl: cleanString(req.query.avatarUrl || ''),
+        durationMs,
+        emittedAt: new Date().toISOString()
+      },
+      meta: {
+        module: 'vip_sound_overlay',
+        step: 401,
+        shadowOnly: true,
+        requireAck,
+        replayable,
+        ttlMs: durationMs + 5000
+      }
+    });
+
+    return res.json(buildModuleResponse({
+      testVipOverlay: true,
+      shadowOnly: true,
+      result,
+      status: currentBus.getStatus()
+    }));
+  });
+
   app.get('/api/communication/reset', (req, res) => {
     if (loadedConfig.resetEndpointEnabled === false) {
       return res.status(403).json({ ok: false, error: 'communication_reset_endpoint_disabled' });

@@ -371,6 +371,8 @@
     let currentRequestId = "";
     let visible = false;
     let lastSoundRequestId = "";
+    let busPreviewActive = false;
+    let busPreviewTimer = null;
 
     function setDebug(lines) {
       if (!debugEnabled || !debugEl) return;
@@ -463,6 +465,8 @@
     }
 
     function hideOverlay(reason) {
+      busPreviewActive = false;
+      clearTimeout(busPreviewTimer);
       if (!visible) return;
       visible = false;
 
@@ -486,6 +490,8 @@
 
     function handleSoundItem(item, reason) {
       if (!item || !isVipItem(item)) return false;
+      busPreviewActive = false;
+      clearTimeout(busPreviewTimer);
       showOverlay(overlayFromItem(item), reason || "sound_item");
       return true;
     }
@@ -534,7 +540,161 @@
           return;
         }
 
-        if (!cur && visible) hideOverlay("status_poll_empty");
+        if (!cur && visible && !busPreviewActive) hideOverlay("status_poll_empty");
+      } catch (_) {}
+    }
+
+    function normalizeVipOverlayBusEnvelope(data) {
+      if (!data || typeof data !== "object") return null;
+      const channel = safeString(data.channel).toLowerCase();
+      const action = safeString(data.action || data.event).toLowerCase();
+      if (channel !== "vip.overlay") return null;
+      if (!["test", "show", "hide", "update"].includes(action)) return null;
+      return {
+        eventId: safeString(data.id || data.eventId),
+        action,
+        payload: data.payload && typeof data.payload === "object" ? data.payload : {},
+        raw: data
+      };
+    }
+
+    function sendVipOverlayBusAck(eventId, status, details = {}) {
+      const id = safeString(eventId);
+      if (!id || !ws || ws.readyState !== WebSocket.OPEN) return;
+      try {
+        ws.send(JSON.stringify({
+          type: "bus_ack",
+          eventId: id,
+          clientId: "vip_sound_overlay_v2",
+          status: safeString(status, "received"),
+          details: Object.assign({
+            module: "vip_sound_overlay",
+            overlay: "vip_sound_overlay_v2.html",
+            mode: "shadow",
+            step: 401
+          }, details || {})
+        }));
+      } catch (_) {}
+    }
+
+    function clampVipPreviewDuration(value, fallback = 5000) {
+      const parsed = Number.parseInt(String(value == null ? "" : value), 10);
+      const base = Number.isFinite(parsed) ? parsed : fallback;
+      return Math.max(1000, Math.min(30000, base));
+    }
+
+    function overlayFromVipBusPayload(normalized) {
+      const payload = normalized && normalized.payload ? normalized.payload : {};
+      const displayName = safeString(payload.displayName || payload.user || payload.login, "VIP Preview");
+      return {
+        requestId: safeString(payload.requestId || normalized.eventId || ("vip-bus-preview-" + Date.now())),
+        soundRequestId: "",
+        displayName,
+        login: safeString(payload.login || payload.user),
+        avatarUrl: safeString(payload.avatarUrl),
+        title: safeString(payload.title, "VIP EVENT-BUS PREVIEW"),
+        text: safeString(payload.text, "Preview-Test: Anzeige ueber vip.overlay Event-Bus."),
+        type: safeString(payload.type, "bus-preview")
+      };
+    }
+
+    function handleVipOverlayBusShadowEvent(data) {
+      const normalized = normalizeVipOverlayBusEnvelope(data);
+      if (!normalized) return false;
+
+      const payload = normalized.payload || {};
+
+      if (normalized.action === "show") {
+        const durationMs = clampVipPreviewDuration(payload.durationMs, 5000);
+        busPreviewActive = true;
+        clearTimeout(busPreviewTimer);
+
+        const overlay = overlayFromVipBusPayload(normalized);
+        showOverlay(overlay, "vip_overlay_bus_preview_show");
+
+        busPreviewTimer = setTimeout(() => {
+          if (busPreviewActive && currentRequestId === overlay.requestId) {
+            hideOverlay("vip_overlay_bus_preview_duration_elapsed");
+          }
+        }, durationMs);
+
+        sendVipOverlayBusAck(normalized.eventId, "displayed", {
+          action: normalized.action,
+          previewOnly: true,
+          requestId: overlay.requestId,
+          durationMs
+        });
+
+        setDebug([
+          "VIP BUS PREVIEW SHOW",
+          "eventId=" + normalized.eventId,
+          "requestId=" + overlay.requestId,
+          "displayName=" + overlay.displayName,
+          "durationMs=" + durationMs,
+          "previewOnly=true",
+          "soundSystemFlow=unchanged"
+        ]);
+
+        return true;
+      }
+
+      if (normalized.action === "hide") {
+        hideOverlay("vip_overlay_bus_preview_hide");
+        sendVipOverlayBusAck(normalized.eventId, "hidden", {
+          action: normalized.action,
+          previewOnly: true,
+          requestId: safeString(payload.requestId || currentRequestId)
+        });
+        return true;
+      }
+
+      if (normalized.action === "update") {
+        if (visible) {
+          if (payload.displayName || payload.user) nameEl.textContent = safeString(payload.displayName || payload.user, nameEl.textContent);
+          if (payload.text) msgEl.textContent = safeString(payload.text, msgEl.textContent);
+          if (payload.title) headlineEl.textContent = safeString(payload.title, headlineEl.textContent);
+          if (payload.avatarUrl || payload.displayName || payload.user) setAvatar(safeString(payload.avatarUrl), safeString(payload.displayName || payload.user || nameEl.textContent));
+        }
+        sendVipOverlayBusAck(normalized.eventId, "updated", {
+          action: normalized.action,
+          previewOnly: true,
+          visible
+        });
+        return true;
+      }
+
+      // test action stays shadow-only for compatibility with STEP401/402.
+      sendVipOverlayBusAck(normalized.eventId, "received", {
+        action: normalized.action,
+        shadowOnly: true,
+        requestId: safeString(payload.requestId)
+      });
+
+      setDebug([
+        "VIP BUS SHADOW EVENT",
+        "action=" + normalized.action,
+        "eventId=" + normalized.eventId,
+        "requestId=" + safeString(payload.requestId),
+        "displayName=" + safeString(payload.displayName || payload.user),
+        "shadowOnly=true",
+        "soundSystemFlow=unchanged"
+      ]);
+
+      return true;
+    }
+
+    function sendVipBusShadowHello() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      try {
+        ws.send(JSON.stringify({
+          type: "bus_hello",
+          clientId: "vip_sound_overlay_v2",
+          clientType: "overlay",
+          module: "vip_sound_overlay",
+          mode: "shadow",
+          capabilities: ["vip.overlay.test", "vip.overlay.show", "vip.overlay.hide", "vip.overlay.update", "ack"],
+          version: "STEP403"
+        }));
       } catch (_) {}
     }
 
@@ -546,11 +706,16 @@
       setDebug(["VIP V2 WS connecting", "host=" + location.host]);
 
       ws.addEventListener("open", () => {
-        setDebug(["VIP V2 WS open", "host=" + location.host]);
+        sendVipBusShadowHello();
+        setDebug(["VIP V2 WS open", "host=" + location.host, "busShadow=vip_sound_overlay_v2"]);
       });
 
       ws.addEventListener("message", (event) => {
-        try { handleSoundSystemEvent(JSON.parse(event.data)); } catch (_) {}
+        try {
+          const data = JSON.parse(event.data);
+          if (handleVipOverlayBusShadowEvent(data)) return;
+          handleSoundSystemEvent(data);
+        } catch (_) {}
       });
 
       ws.addEventListener("close", () => {
