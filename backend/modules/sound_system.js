@@ -16,7 +16,7 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.17";
+const MODULE_VERSION = "0.1.18";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -1172,6 +1172,61 @@ module.exports.init = function init(ctx) {
     };
   }
 
+
+  // STEP441_SOUND_BUS_COMMAND_DIRECT_FILE_RESOLVE
+  // Sound-Bus-Command-Requests dürfen entweder einen konfigurierten Preset-soundId
+  // oder eine direkte Datei unter soundsBaseDir nutzen. Bei direkter Datei darf
+  // normalizePlayRequest nicht zuerst an einem nicht vorhandenen Preset-soundId scheitern.
+  function soundBusCommandDirectFile(payload = {}) {
+    const candidates = [
+      payload.file,
+      payload.soundFile,
+      payload.sound_path,
+      payload.relativeFile,
+      payload.relativePath
+    ];
+    for (const value of candidates) {
+      const clean = String(value || "").replace(/\\/g, "/").replace(/^\/+/, "").trim();
+      if (clean) return clean;
+    }
+    return "";
+  }
+
+  function soundBusCommandHasPlayableReference(payload = {}) {
+    return !!(
+      String(payload.soundId || payload.sound || "").trim() ||
+      soundBusCommandDirectFile(payload) ||
+      sanitizeDirectMediaUrl(payload.mediaUrl || payload.audioUrl || payload.videoUrl || "")
+    );
+  }
+
+  function normalizeSoundBusCommandPlayRequest(payload = {}, fallbackSource = "sound_bus_command_play_test", fallbackRequestedBy = "sound_bus_play_test") {
+    const directFile = soundBusCommandDirectFile(payload);
+    const input = {
+      ...payload,
+      source: payload.source || fallbackSource,
+      requestedBy: payload.requestedBy || fallbackRequestedBy
+    };
+
+    if (directFile) {
+      input.file = directFile;
+      input.soundId = "";
+      input.sound = "";
+      input.id = "";
+      input.meta = {
+        ...objectValue(payload.meta),
+        soundBusCommandDirectFile: true,
+        soundBusCommandOriginalSoundId: String(payload.soundId || payload.sound || "").trim(),
+        soundBusCommandResolvedFile: directFile
+      };
+    } else {
+      input.soundId = payload.soundId;
+      input.sound = payload.soundId;
+    }
+
+    return normalizePlayRequest(input);
+  }
+
   function consumeSoundBusCommandDryRun(input = {}) {
     const commandConfig = soundBusCommandConfig();
     const payload = normalizeSoundBusCommandDryRunInput(input);
@@ -1212,15 +1267,9 @@ module.exports.init = function init(ctx) {
     try {
       if (commandConfig.enabled === false) throw new Error("sound_bus_command_disabled");
       if (payload.command !== "sound.play.request") throw new Error(`unsupported_command: ${payload.command}`);
-      if (!payload.soundId) throw new Error("missing_soundId");
+      if (!soundBusCommandHasPlayableReference(payload)) throw new Error("missing_soundId_or_file");
 
-      const normalized = normalizePlayRequest({
-        ...payload,
-        soundId: payload.soundId,
-        sound: payload.soundId,
-        source: payload.source || "sound_bus_command_dry_run",
-        requestedBy: payload.requestedBy || "sound_bus_dry_run"
-      });
+      const normalized = normalizeSoundBusCommandPlayRequest(payload, "sound_bus_command_dry_run", "sound_bus_dry_run");
 
       const dryRunResult = {
         ok: true,
@@ -1337,15 +1386,9 @@ module.exports.init = function init(ctx) {
     try {
       if (commandConfig.enabled === false) throw new Error("sound_bus_command_disabled");
       if (payload.command !== "sound.play.request") throw new Error(`unsupported_command: ${payload.command}`);
-      if (!payload.soundId) throw new Error("missing_soundId");
+      if (!soundBusCommandHasPlayableReference(payload)) throw new Error("missing_soundId_or_file");
 
-      const normalized = normalizePlayRequest({
-        ...payload,
-        soundId: payload.soundId,
-        sound: payload.soundId,
-        source: payload.source || "sound_bus_command_play_test",
-        requestedBy: payload.requestedBy || "sound_bus_play_test"
-      });
+      const normalized = normalizeSoundBusCommandPlayRequest(payload, "sound_bus_command_play_test", "sound_bus_play_test");
 
       const playResult = enqueueOrStart(normalized);
       const normalizedPublic = publicItem(normalized);
