@@ -1,3 +1,17 @@
-# Current Status
+# CURRENT_STATUS – STEP420
 
-STEP419 ergänzt eine read-only Korrelation zwischen Alert-EventBus und Sound-EventBus. Das Alert-System bleibt produktiv unverändert; Sound-System, Bundle/TTS, Queue und Overlay-Flow werden nicht gesteuert oder ersetzt.
+## Abgeschlossen
+
+- STEP412: Sound EventBus Baseline
+- STEP413: Sound EventBus Version/Target Cleanup
+- STEP414: echter Sound-Flow getestet
+- STEP415: Sound EventBus Debug-Consumer
+- STEP416: Alert EventBus Baseline
+- STEP417: Alert EventBus Debug-Consumer
+- STEP418: echter Alert-Flow EventBus-Spiegel
+- STEP419: Alert/Sound EventBus-Korrelation
+- STEP420: Bus-Diagnose Dashboard vorbereitet
+
+## STEP420 Ergebnis
+
+Eine read-only Diagnose-Seite zeigt Communication Bus, Sound-Bus, Alert-Bus und Alert/Sound-Korrelation zentral an.

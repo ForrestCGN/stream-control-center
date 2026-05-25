@@ -1,5 +1,12 @@
-# Next Steps
+# NEXT_STEPS – nach STEP420
 
-1. STEP419 testen.
-2. Danach entscheiden, ob Sound- und Alert-Debug-Views zusammengeführt werden sollen.
-3. Erst danach produktive Bus-Konsumenten planen.
+## Nächster sinnvoller Schritt
+
+STEP421 – Bus-Diagnose sauber in das bestehende Control-Center/Dashboard-Menü integrieren.
+
+## Optional danach
+
+- Debug-Clients konsolidieren.
+- Alert-/Sound-Korrelationsansicht erweitern.
+- Rollen-/Rechteprüfung für Dashboard-Unterseiten ergänzen.
+- Event-History/Audit später persistieren.

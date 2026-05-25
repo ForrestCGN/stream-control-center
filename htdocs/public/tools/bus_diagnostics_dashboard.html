@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bus-Diagnose Dashboard</title>
+  <style>
+    :root {
+      --bg: #060916;
+      --panel: rgba(13, 24, 39, 0.88);
+      --panel2: rgba(22, 20, 48, 0.82);
+      --border: rgba(78, 214, 255, 0.28);
+      --border2: rgba(184, 91, 255, 0.28);
+      --text: #f7fbff;
+      --muted: #a8bdd6;
+      --cyan: #4ee0ff;
+      --green: #52ffa8;
+      --yellow: #ffd86b;
+      --red: #ff6b8a;
+      --violet: #b85bff;
+      --shadow: 0 0 28px rgba(78, 224, 255, 0.12), 0 0 55px rgba(184, 91, 255, 0.09);
+      font-family: Montserrat, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 10%, rgba(184, 91, 255, 0.18), transparent 30%),
+        radial-gradient(circle at 80% 5%, rgba(78, 224, 255, 0.14), transparent 28%),
+        linear-gradient(135deg, #070a19, #090817 58%, #050712);
+      padding: 20px;
+    }
+    header, .card {
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, var(--panel), var(--panel2));
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+    }
+    header {
+      padding: 22px 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0; font-size: 25px; letter-spacing: 0.08em; }
+    .sub { color: var(--muted); margin-top: 8px; font-size: 13px; line-height: 1.45; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: rgba(4, 10, 20, 0.72);
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 12px currentColor; }
+    .ok .dot { background: var(--green); }
+    .warn .dot { background: var(--yellow); }
+    .bad .dot { background: var(--red); }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .wide { grid-column: span 2; }
+    .full { grid-column: 1 / -1; }
+    .card { padding: 18px; min-height: 118px; }
+    .card h2 { margin: 0 0 14px; font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; }
+    .metric { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; font-size: 13px; color: var(--muted); align-items: baseline; }
+    .metric strong { color: var(--text); font-size: 14px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .status-ok { color: var(--green); }
+    .status-warn { color: var(--yellow); }
+    .status-bad { color: var(--red); }
+    button {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(28, 93, 124, 0.65), rgba(34, 24, 70, 0.7));
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 0 18px rgba(78, 224, 255, 0.08);
+    }
+    button:hover { border-color: rgba(78, 224, 255, 0.75); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .event-list { display: grid; gap: 10px; max-height: 390px; overflow: auto; padding-right: 6px; }
+    .event {
+      border: 1px solid rgba(78, 224, 255, 0.18);
+      background: rgba(4, 10, 20, 0.5);
+      border-radius: 14px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 160px 1fr 120px;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .event b { color: var(--text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    pre {
+      max-height: 360px;
+      overflow: auto;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(78, 224, 255, 0.15);
+      border-radius: 14px;
+      padding: 14px;
+      color: #d9efff;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .notice { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    @media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 720px) { body { padding: 12px; } header { flex-direction: column; align-items: flex-start; } .grid { grid-template-columns: 1fr; } .wide { grid-column: auto; } .event { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Bus-Diagnose Dashboard</h1>
+      <div class="sub">Read-only Übersicht für Communication Bus, Sound-Bus, Alert-Bus und Alert/Sound-Korrelation. Produktive Flows werden nicht verändert.</div>
+    </div>
+    <div id="topStatus" class="badge warn"><span class="dot"></span><span>lädt...</span></div>
+  </header>
+
+  <main class="grid">
+    <section class="card">
+      <h2>Gesamt</h2>
+      <div class="metric" id="summaryBox"></div>
+      <div class="buttons">
+        <button id="refreshBtn">Status laden</button>
+        <button id="checkBtn">Check ausführen</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Communication</h2>
+      <div class="metric" id="communicationBox"></div>
+    </section>
+
+    <section class="card">
+      <h2>Sound Bus</h2>
+      <div class="metric" id="soundBox"></div>
+    </section>
+
+    <section class="card">
+      <h2>Alert Bus</h2>
+      <div class="metric" id="alertBox"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>Korrelation</h2>
+      <div class="metric" id="correlationBox"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>Hinweise</h2>
+      <div class="notice" id="noticeBox">Noch keine Daten geladen.</div>
+    </section>
+
+    <section class="card wide">
+      <h2>Alert Events</h2>
+      <div class="event-list" id="alertEvents"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>Sound Events</h2>
+      <div class="event-list" id="soundEvents"></div>
+    </section>
+
+    <section class="card full">
+      <h2>Raw Diagnose</h2>
+      <pre id="rawBox">Noch keine Daten.</pre>
+    </section>
+  </main>
+
+  <script>
+    const els = {
+      topStatus: document.getElementById('topStatus'),
+      summaryBox: document.getElementById('summaryBox'),
+      communicationBox: document.getElementById('communicationBox'),
+      soundBox: document.getElementById('soundBox'),
+      alertBox: document.getElementById('alertBox'),
+      correlationBox: document.getElementById('correlationBox'),
+      noticeBox: document.getElementById('noticeBox'),
+      alertEvents: document.getElementById('alertEvents'),
+      soundEvents: document.getElementById('soundEvents'),
+      rawBox: document.getElementById('rawBox'),
+      refreshBtn: document.getElementById('refreshBtn'),
+      checkBtn: document.getElementById('checkBtn')
+    };
+
+    els.refreshBtn.addEventListener('click', () => load('/api/bus-diagnostics/status'));
+    els.checkBtn.addEventListener('click', () => load('/api/bus-diagnostics/check'));
+
+    function pair(label, value, cls = '') {
+      return `<span>${escapeHtml(label)}</span><strong class="${cls}">${escapeHtml(value)}</strong>`;
+    }
+
+    function statusClass(value) {
+      if (value === 'ok' || value === true) return 'status-ok';
+      if (value === 'warning') return 'status-warn';
+      if (value === 'error' || value === false) return 'status-bad';
+      return '';
+    }
+
+    async function load(url) {
+      setTop('warn', 'lädt...');
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        const data = await res.json();
+        render(data);
+      } catch (err) {
+        setTop('bad', 'Fehler');
+        els.noticeBox.textContent = err && err.message ? err.message : String(err);
+      }
+    }
+
+    function render(data) {
+      const status = data.summary && data.summary.status ? data.summary.status : (data.ok ? 'ok' : 'error');
+      setTop(status === 'ok' ? 'ok' : (status === 'warning' ? 'warn' : 'bad'), status);
+
+      const s = data.summary || {};
+      els.summaryBox.innerHTML = [
+        pair('Status', s.status || '-', statusClass(s.status)),
+        pair('Fetched', data.fetchedAt || '-'),
+        pair('Dauer', `${data.durationMs || 0} ms`),
+        pair('Read-only', String(!!data.readOnly), statusClass(!!data.readOnly)),
+        pair('Flow touched', String(!!data.flowTouched), data.flowTouched ? 'status-bad' : 'status-ok')
+      ].join('');
+
+      const c = data.communication || {};
+      const cb = c.statusBody || {};
+      els.communicationBox.innerHTML = [
+        pair('OK', String(!!c.ok), statusClass(!!c.ok)),
+        pair('Modul', c.module || 'communication_bus'),
+        pair('Version', c.version || '-'),
+        pair('Clients', `${s.connectedClients || 0}/${s.totalClients || 0}`),
+        pair('Delivered', cb.stats ? cb.stats.delivered || 0 : '-')
+      ].join('');
+
+      const sound = data.soundEventBus || {};
+      const soundStats = sound.stats || {};
+      els.soundBox.innerHTML = [
+        pair('OK', String(!!sound.ok), statusClass(!!sound.ok)),
+        pair('Version', sound.version || '-'),
+        pair('Emitted', soundStats.emitted || 0),
+        pair('Errors', soundStats.errors || 0, Number(soundStats.errors || 0) ? 'status-bad' : 'status-ok'),
+        pair('Last', soundStats.lastAction || '-'),
+        pair('Debug', s.soundDebugConnected ? 'online' : 'offline', s.soundDebugConnected ? 'status-ok' : 'status-warn')
+      ].join('');
+
+      const alert = data.alertEventBus || {};
+      const alertStats = alert.stats || {};
+      els.alertBox.innerHTML = [
+        pair('OK', String(!!alert.ok), statusClass(!!alert.ok)),
+        pair('Version', alert.version || '-'),
+        pair('Emitted', alertStats.emitted || 0),
+        pair('Errors', alertStats.errors || 0, Number(alertStats.errors || 0) ? 'status-bad' : 'status-ok'),
+        pair('Last', alertStats.lastAction || '-'),
+        pair('Debug', s.alertDebugConnected ? 'online' : 'offline', s.alertDebugConnected ? 'status-ok' : 'status-warn')
+      ].join('');
+
+      const corr = data.alertSoundCorrelation || {};
+      const cmp = corr.comparison || {};
+      els.correlationBox.innerHTML = [
+        pair('OK', String(!!corr.ok), statusClass(!!corr.ok)),
+        pair('Matched', cmp.matched || 0, Number(cmp.matched || 0) ? 'status-ok' : ''),
+        pair('Unmatched', cmp.unmatched || 0, Number(cmp.unmatched || 0) ? 'status-warn' : 'status-ok'),
+        pair('Alert Rows', cmp.alertRows || 0),
+        pair('Sound Rows', cmp.soundRows || 0)
+      ].join('');
+
+      const warnings = data.warnings || [];
+      const errors = data.errors || [];
+      const notices = [];
+      if (!warnings.length && !errors.length) notices.push('Keine Warnungen oder Fehler.');
+      errors.forEach(item => notices.push('FEHLER: ' + item));
+      warnings.forEach(item => notices.push('WARNUNG: ' + item));
+      els.noticeBox.innerHTML = notices.map(escapeHtml).join('<br>');
+
+      renderEvents(els.alertEvents, alert.recentEvents || []);
+      renderEvents(els.soundEvents, sound.recentEvents || []);
+      els.rawBox.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function renderEvents(container, events) {
+      if (!events.length) {
+        container.innerHTML = '<div class="notice">Keine Events vorhanden.</div>';
+        return;
+      }
+      container.innerHTML = events.slice(0, 12).map(event => {
+        const action = event.action || '-';
+        const delivered = event.deliveredCount || 0;
+        const at = event.at || '-';
+        return `<div class="event"><b>${escapeHtml(action)}</b><span>${escapeHtml(at)}</span><span>delivered: ${escapeHtml(String(delivered))}</span></div>`;
+      }).join('');
+    }
+
+    function setTop(type, label) {
+      els.topStatus.className = 'badge ' + (type === 'ok' ? 'ok' : (type === 'bad' ? 'bad' : 'warn'));
+      els.topStatus.innerHTML = '<span class="dot"></span><span>' + escapeHtml(label) + '</span>';
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]));
+    }
+
+    load('/api/bus-diagnostics/status');
+    setInterval(() => load('/api/bus-diagnostics/status'), 10000);
+  </script>
+</body>
+</html>

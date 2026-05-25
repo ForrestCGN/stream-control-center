@@ -1,6 +1,8 @@
-# Changelog
+# CHANGELOG
 
-## STEP419
-- `alert_system` auf Version `3.1.2` erhöht.
-- Read-only Routen für Alert/Sound EventBus-Korrelation ergänzt.
-- Korrelationsvergleich über `alertEventUid` und `bundleId` ergänzt.
+## STEP420
+
+- Neues Modul `bus_diagnostics.js` ergänzt.
+- Neue read-only Diagnose-Routen ergänzt.
+- Neue Dashboard-/Tool-Seite `bus_diagnostics_dashboard.html` ergänzt.
+- Keine produktiven Flows verändert.
