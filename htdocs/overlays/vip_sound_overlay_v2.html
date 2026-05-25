@@ -346,6 +346,19 @@
   </div>
 
   <script>
+    const VIP_OVERLAY_CLIENT_ID = "vip_sound_overlay_v2";
+    const VIP_OVERLAY_CLIENT_MODULE = "vip_sound_overlay";
+    const VIP_OVERLAY_CLIENT_VERSION = "1.0.0";
+    const VIP_OVERLAY_CLIENT_MODE = "preview";
+    const VIP_OVERLAY_CLIENT_CAPABILITIES = [
+      "vip.overlay.test",
+      "vip.overlay.show",
+      "vip.overlay.hide",
+      "vip.overlay.update",
+      "vip.sound.status_events",
+      "ack"
+    ];
+
     const SOUND_STATUS_URL = "/api/sound/status";
     const SOUND_POLL_MS = 500;
     const INTRO_MS = 520;
@@ -565,13 +578,14 @@
         ws.send(JSON.stringify({
           type: "bus_ack",
           eventId: id,
-          clientId: "vip_sound_overlay_v2",
+          clientId: VIP_OVERLAY_CLIENT_ID,
           status: safeString(status, "received"),
           details: Object.assign({
-            module: "vip_sound_overlay",
+            module: VIP_OVERLAY_CLIENT_MODULE,
             overlay: "vip_sound_overlay_v2.html",
-            mode: "shadow",
-            step: 401
+            mode: VIP_OVERLAY_CLIENT_MODE,
+            clientVersion: VIP_OVERLAY_CLIENT_VERSION,
+            capability: "vip.overlay.ack"
           }, details || {})
         }));
       } catch (_) {}
@@ -598,7 +612,7 @@
       };
     }
 
-    function handleVipOverlayBusShadowEvent(data) {
+    function handleVipOverlayBusEvent(data) {
       const normalized = normalizeVipOverlayBusEnvelope(data);
       if (!normalized) return false;
 
@@ -663,37 +677,36 @@
         return true;
       }
 
-      // test action stays shadow-only for compatibility with STEP401/402.
       sendVipOverlayBusAck(normalized.eventId, "received", {
         action: normalized.action,
-        shadowOnly: true,
+        previewOnly: true,
         requestId: safeString(payload.requestId)
       });
 
       setDebug([
-        "VIP BUS SHADOW EVENT",
+        "VIP BUS PREVIEW EVENT",
         "action=" + normalized.action,
         "eventId=" + normalized.eventId,
         "requestId=" + safeString(payload.requestId),
         "displayName=" + safeString(payload.displayName || payload.user),
-        "shadowOnly=true",
+        "previewOnly=true",
         "soundSystemFlow=unchanged"
       ]);
 
       return true;
     }
 
-    function sendVipBusShadowHello() {
+    function sendVipBusHello() {
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       try {
         ws.send(JSON.stringify({
           type: "bus_hello",
-          clientId: "vip_sound_overlay_v2",
+          clientId: VIP_OVERLAY_CLIENT_ID,
           clientType: "overlay",
-          module: "vip_sound_overlay",
-          mode: "shadow",
-          capabilities: ["vip.overlay.test", "vip.overlay.show", "vip.overlay.hide", "vip.overlay.update", "ack"],
-          version: "STEP403"
+          module: VIP_OVERLAY_CLIENT_MODULE,
+          mode: VIP_OVERLAY_CLIENT_MODE,
+          capabilities: VIP_OVERLAY_CLIENT_CAPABILITIES,
+          version: VIP_OVERLAY_CLIENT_VERSION
         }));
       } catch (_) {}
     }
@@ -706,14 +719,21 @@
       setDebug(["VIP V2 WS connecting", "host=" + location.host]);
 
       ws.addEventListener("open", () => {
-        sendVipBusShadowHello();
-        setDebug(["VIP V2 WS open", "host=" + location.host, "busShadow=vip_sound_overlay_v2"]);
+        sendVipBusHello();
+        setDebug([
+          "VIP V2 WS open",
+          "host=" + location.host,
+          "clientId=" + VIP_OVERLAY_CLIENT_ID,
+          "module=" + VIP_OVERLAY_CLIENT_MODULE,
+          "version=" + VIP_OVERLAY_CLIENT_VERSION,
+          "mode=" + VIP_OVERLAY_CLIENT_MODE
+        ]);
       });
 
       ws.addEventListener("message", (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (handleVipOverlayBusShadowEvent(data)) return;
+          if (handleVipOverlayBusEvent(data)) return;
           handleSoundSystemEvent(data);
         } catch (_) {}
       });

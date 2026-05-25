@@ -41,3 +41,9 @@ Dadurch sollen fremde Clients wie Alert-Shadow-/Debug-Overlays keine `vip.sound`
 - Kein Overlay-Design wurde geändert.
 - Keine Daily-Usage-Logik wurde geändert.
 - Keine DB-Migration wurde durchgeführt.
+
+## STEP411 - VIP Overlay Client Versioned Bus Registration
+
+- `htdocs/overlays/vip_sound_overlay_v2.html` nutzt jetzt Version/Capabilities statt STEP-/Shadow-Kennungen.
+- VIP-Overlay-Client registriert sich am Communication Bus mit `version: 1.0.0`, `mode: preview` und Capability `vip.sound.status_events`.
+- Sound-System-Flow, Queue, Daily-Usage und Overlay-Design bleiben unverändert.

@@ -36,3 +36,7 @@ Der EventBus meldet Status. Er startet keine Sounds und steuert kein Overlay.
 - Overlay-Design
 - Datenbank-Schema
 - bestehende VIP-Routen
+
+## STEP411 - VIP Overlay Client Versioned Bus Registration
+
+VIP-Overlay-Client bereinigt: `vip_sound_overlay_v2.html` meldet sich am Bus mit Version `1.0.0`, Preview-Modus und zentralen Capabilities. Keine produktive Flow-Änderung.

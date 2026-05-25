@@ -31,3 +31,10 @@
 
 - VIP-/Mod-Sound-Command sendet zusätzliche Status-Events auf `vip.sound`.
 - Bestehender Sound-System-Flow bleibt unverändert.
+
+## STEP411 - VIP Overlay Client Versioned Bus Registration
+
+- Geändert: `htdocs/overlays/vip_sound_overlay_v2.html`
+- Bus-Client-Version von STEP-Kennung auf `1.0.0` umgestellt.
+- Shadow-Begriffe in ACK/Debug/Hello durch Preview-/Version-/Capability-Angaben ersetzt.
+- Keine Änderung an Sound-System, Queue, Daily-Usage oder Design.

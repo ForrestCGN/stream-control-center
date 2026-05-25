@@ -34,3 +34,8 @@ Nicht als nächstes nebenbei umbauen:
 - Overlay-Design
 - Daily-Usage
 - DB-Schema
+
+## Nach STEP411
+
+- VIP-Overlay-Client im Communication-Status prüfen: Version `1.0.0`, Mode `preview`, Capability `vip.sound.status_events`.
+- Danach echten VIP-/Mod-Command erneut testen und `deliveredTo` prüfen.
