@@ -1,4 +1,4 @@
-# FILES – STEP432
+# FILES – STEP433
 
 Changed files:
 
@@ -8,4 +8,4 @@ Changed files:
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP432_VIP_BUS_MODE_PREPARATION.md`
+- `project-state/STEP433_VIP_BUS_MODE_RUNTIME_STATUS.md`

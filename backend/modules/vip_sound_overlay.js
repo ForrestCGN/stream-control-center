@@ -282,7 +282,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.15",
+    version: "1.8.16",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -2880,8 +2880,12 @@ module.exports.init = function init(ctx) {
   }
 
   function getConfiguredVipBusMode() {
-    const settingValue = getVipSetting("vipBusMode", state.soundBusCommand.vipBusMode || VIP_BUS_DEFAULT_MODE);
-    return normalizeVipBusMode(settingValue || state.soundBusCommand.vipBusMode || VIP_BUS_DEFAULT_MODE);
+    const settingValue = getVipSetting("vipBusMode", VIP_BUS_DEFAULT_MODE);
+    return normalizeVipBusMode(settingValue || VIP_BUS_DEFAULT_MODE);
+  }
+
+  function getRuntimeVipBusMode() {
+    return normalizeVipBusMode(state.soundBusCommand.vipBusMode || getConfiguredVipBusMode() || VIP_BUS_DEFAULT_MODE);
   }
 
   function setVipBusMode(mode, source = "api") {
@@ -2921,18 +2925,22 @@ module.exports.init = function init(ctx) {
 
   function publicVipSoundBusCommandStatus(prefix = "") {
     const busAvailable = !!(communicationBus && typeof communicationBus.getBus === "function");
+    const runtimeVipBusMode = getRuntimeVipBusMode();
+    const configuredVipBusMode = getConfiguredVipBusMode();
     return {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_sound_bus_mode_preparation",
+      feature: "vip_sound_bus_mode_runtime_status",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
-      vipBusMode: getConfiguredVipBusMode(),
+      vipBusMode: runtimeVipBusMode,
+      configuredVipBusMode,
+      runtimeVipBusMode,
       effectiveVipFlow: "legacy_sound_system_api",
       allowedVipBusModes: [...VIP_BUS_ALLOWED_MODES],
-      modeDescription: describeVipBusMode(getConfiguredVipBusMode()),
+      modeDescription: describeVipBusMode(runtimeVipBusMode),
       modePreparedOnly: true,
       modeCanBeChangedAtRuntime: true,
       shadowOnly: true,
@@ -3008,8 +3016,8 @@ module.exports.init = function init(ctx) {
         "This layer mirrors VIP sound wishes as test-only sound.command events for diagnostics.",
         "The dry-run route sends the same payload to the Sound-System dry-run consumer for validation only.",
         "The play-test route sends the same payload to the Sound-System explicit play-test route for manual audio testing.",
-        "STEP432 prepares a runtime VIP bus mode switch: legacy, shadow, play_test, bus_enabled.",
-        "Default/effective productive VIP flow remains legacy /api/sound/play in this step.",
+        "STEP433 keeps the runtime VIP bus mode stable in status: legacy, shadow, play_test, bus_enabled.",
+        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP433.",
         "It does not change the productive VIP entry point and does not automatically consume Bus commands.",
         "If the Communication Bus is unavailable, VIP continues through the existing Sound-System flow."
       ],
@@ -3037,7 +3045,16 @@ module.exports.init = function init(ctx) {
     state.soundBusCommand.lastPlayTest = null;
     state.soundBusCommand.lastError = "";
     state.soundBusCommand.lastAt = nowIso();
-    state.soundBusCommand.recentCommands = [];
+    state.soundBusCommand.vipBusMode = "legacy";
+    state.soundBusCommand.recentCommands = [{
+      at: state.soundBusCommand.lastAt,
+      action: "vip.bus_mode.reset",
+      mode: "legacy",
+      source: "reset",
+      productiveVipFlowTouched: false,
+      queueTouched: false,
+      audioTouched: false
+    }];
     return publicVipSoundBusCommandStatus(prefix);
   }
 
@@ -3310,7 +3327,7 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_preparation",
+        feature: "vip_sound_bus_mode_runtime_status",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3339,7 +3356,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_preparation",
+        feature: "vip_sound_bus_mode_runtime_status",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3445,7 +3462,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playTestResult && playTestResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_preparation",
+        feature: "vip_sound_bus_mode_runtime_status",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -3475,7 +3492,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_preparation",
+        feature: "vip_sound_bus_mode_runtime_status",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4808,7 +4825,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_sound_bus_mode_preparation",
+          feature: "vip_sound_bus_mode_runtime_status",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -4837,7 +4854,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_sound_bus_mode_preparation",
+          feature: "vip_sound_bus_mode_runtime_status",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -4926,23 +4943,26 @@ module.exports.init = function init(ctx) {
 
     app.get(`${prefix}/eventbus/sound-command/mode`, (req, res) => {
       const raw = requestData(req);
-      const mode = raw.mode || raw.vipBusMode || raw.value ? setVipBusMode(raw.mode || raw.vipBusMode || raw.value, "api_get") : getConfiguredVipBusMode();
+      const requestedMode = raw.mode || raw.vipBusMode || raw.value;
+      const mode = requestedMode ? setVipBusMode(requestedMode, "api_get") : getRuntimeVipBusMode();
       res.json({
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_preparation",
+        feature: "vip_sound_bus_mode_runtime_status",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: "legacy_sound_system_api",
         allowedVipBusModes: [...VIP_BUS_ALLOWED_MODES],
         modeDescription: describeVipBusMode(mode),
         modePreparedOnly: true,
+        modeRuntimeStateStable: true,
         productiveEntryPointChanged: false,
         queueTouched: false,
         audioTouched: false,
         overlayTouched: false,
         dailyUsageTouched: false,
+        status: publicVipSoundBusCommandStatus(prefix),
         updatedAt: nowIso()
       });
     });
@@ -4955,7 +4975,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_bus_mode_preparation",
+        feature: "vip_sound_bus_mode_runtime_status",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: "legacy_sound_system_api",
@@ -4963,7 +4983,8 @@ module.exports.init = function init(ctx) {
         modeDescription: describeVipBusMode(mode),
         modePreparedOnly: true,
         persisted: false,
-        note: "Runtime mode set only. Productive VIP entry point remains legacy in STEP432.",
+        modeRuntimeStateStable: true,
+        note: "Runtime mode is held in memory until reset or server restart. Productive VIP entry point remains legacy in STEP433.",
         productiveEntryPointChanged: false,
         queueTouched: false,
         audioTouched: false,
@@ -5023,6 +5044,13 @@ module.exports.init = function init(ctx) {
         client: { ...state.client },
         db: { ...state.db },
         eventBus: { ...state.eventBus },
+        soundBusCommand: publicVipSoundBusCommandStatus(prefix),
+        vipBusMode: getRuntimeVipBusMode(),
+        effectiveVipFlow: "legacy_sound_system_api",
+        productiveEntryPointChanged: false,
+        queueTouched: false,
+        audioTouched: false,
+        dailyUsageTouched: false,
         updatedAt: state.updatedAt
       });
     });
