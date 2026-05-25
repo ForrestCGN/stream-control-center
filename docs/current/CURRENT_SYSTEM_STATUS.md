@@ -1,15 +1,11 @@
-# CURRENT_SYSTEM_STATUS
+# CURRENT SYSTEM STATUS
 
-## VIP Sound Overlay / Sound Bus
+Aktueller Stand: STEP450.
 
-Aktueller Stand: STEP449.
-
-- `vip_sound_overlay.js`: Version `1.8.31`
-- Feature: `vip_productive_bus_access_target_hook_fix`
+- `vip_sound_overlay.js`: Version `1.8.32`
+- Feature: `vip_productive_bus_guard_reference_hotfix`
 - `sound_system.js`: Version `0.1.20`
-- Produktiver VIP-Pfad: `sound_bus_command`
-- Legacy: nur Fallback bei Bus-Fehler
 
-STEP449 behebt den produktiven Command-Hook vor dem Bus: Der echte `/api/vip-sound/command`-Flow wurde in STEP448 noch vor dem Bus durch `not_twitch_vip_or_mod` abgelehnt. Jetzt werden Rollen aus Command-Payloads und lokale Rollen-Fallbacks berücksichtigt.
+STEP450 ist ein Hotfix für STEP449. Der direkte Backend-Test auf `/api/vip-sound/command` scheiterte mit `guard is not defined`. Ursache war eine Guard-Referenz im Payload-Building ohne lokale Guard-Variable.
 
-Wichtig: Es wurde kein neuer Testpfad aufgebaut. Ziel ist der echte produktive Bus-Test.
+Der produktive VIP-Bus-First-Pfad bleibt aktiv. Es wurde kein neuer Testpfad und keine neue Bus-Route ergänzt.

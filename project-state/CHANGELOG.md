@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## STEP449 – VIP Productive Bus Access/Target Hook Fix
+## STEP450 – VIP Productive Bus Guard Reference Hotfix
 
-- VIP-Modul auf `1.8.31` erhöht.
-- Feature auf `vip_productive_bus_access_target_hook_fix` gesetzt.
-- Rollenflags aus Command-Payloads werden für Actor/Target beim VIP-Zugriff berücksichtigt.
-- Lokale Rollen-Fallbacks aus `vip_sound_role_overrides` / `vip_sound_roles.json` werden bei `fallbackRolesEnabled=true` für den Zugriff verwendet.
-- Kein neuer Testpfad, keine neue Bus-Route, keine produktive Rücknahme.
+- VIP-Modul auf `1.8.32` erhöht.
+- Feature auf `vip_productive_bus_guard_reference_hotfix` gesetzt.
+- Fehler `guard is not defined` im VIP-Bus-Payload-Building behoben.
+- Keine neue Route, kein neuer Testpfad, keine Sound-System-Änderung.
+- Produktiver VIP-Bus-First-Pfad bleibt aktiv; Legacy bleibt Fallback.

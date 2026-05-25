@@ -1,8 +1,8 @@
-# CURRENT_STATUS
+# CURRENT STATUS
 
-Aktueller Stand: STEP449 – VIP Productive Bus Access/Target Hook Fix.
+Aktueller Stand: STEP450 – VIP Productive Bus Guard Reference Hotfix.
 
-VIP-Sound-Overlay: `1.8.31` mit Feature `vip_productive_bus_access_target_hook_fix`.
-Sound-System: `0.1.20` unverändert aus STEP448.
+VIP-Sound-Overlay: `1.8.32` mit Feature `vip_productive_bus_guard_reference_hotfix`.
+Sound-System: `0.1.20`, unverändert aus STEP448/449.
 
-Der produktive VIP-Bus-First-Pfad bleibt aktiv. STEP449 korrigiert gezielt den Zugriff vor dem Bus-Hook: Rollen aus Command-Payloads sowie lokale Rollen-Fallbacks werden jetzt für Actor/Target berücksichtigt, damit der echte `/api/vip-sound/command`-Flow den produktiven Bus erreichen kann.
+STEP450 behebt gezielt den Runtime-Fehler `guard is not defined` im produktiven VIP-Command-Payload. Der normale VIP-Produktivpfad bleibt Bus-First aktiv; Legacy bleibt nur Fallback bei Bus-Fehler.

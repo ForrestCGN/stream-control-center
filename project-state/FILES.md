@@ -1,12 +1,12 @@
 # FILES
 
-## STEP449
+## STEP450
 
-- `backend/modules/vip_sound_overlay.js` – VIP Productive Bus Access/Target Hook Fix, Version `1.8.31`.
-- `backend/modules/sound_system.js` – unverändert aus STEP448, Version `0.1.20`.
+- `backend/modules/vip_sound_overlay.js` – Hotfix für `guard is not defined`, Version `1.8.32`.
+- `backend/modules/sound_system.js` – unverändert, Version `0.1.20`, produktiver Sound-Bus-Consumer bleibt bestehen.
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP449_VIP_PRODUCTIVE_BUS_ACCESS_TARGET_HOOK_FIX.md`
+- `project-state/STEP450_VIP_PRODUCTIVE_BUS_GUARD_REFERENCE_HOTFIX.md`
