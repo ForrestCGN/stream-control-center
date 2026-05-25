@@ -119,6 +119,14 @@ window.CGN = {
       group: 'admin',
       overlayLink: '',
       reload() { return window.AdminConfigsModule?.loadAll?.(true); }
+    },
+    bus_diagnostics: {
+      title: 'Bus-Diagnose',
+      panelId: 'busDiagnosticsModule',
+      group: 'admin',
+      overlayLink: '/public/tools/bus_diagnostics_dashboard.html',
+      overlayLabel: 'Standalone öffnen',
+      reload() { return window.BusDiagnosticsModule?.loadAll?.(true); }
     }
   },
 
@@ -146,7 +154,7 @@ window.CGN = {
     admin: {
       label: 'Admin', icon: '🔐', role: 'local_admin/owner',
       description: 'Sensible Verwaltung, Configs, Logs, Datenbank und Diagnose.',
-      items: ['adminconfigs', 'users', 'roles', 'logs', 'database', 'backups', 'tokens', 'diagnostics']
+      items: ['adminconfigs', 'bus_diagnostics', 'users', 'roles', 'logs', 'database', 'backups', 'tokens', 'diagnostics']
     }
   },
 
@@ -180,6 +188,7 @@ window.CGN = {
     integrations: { label: 'Integrationen', icon: '🔌', enabled: false, description: 'Externe Dienste und APIs vorbereitet.' },
     module_status: { label: 'Modulstatus', icon: '📊', enabled: false, description: 'Modulstatus vorbereitet.' },
     adminconfigs: { label: 'Configs', icon: '⚙️', enabled: true, description: 'Admin-Konfigurationen einsehen.' },
+    bus_diagnostics: { label: 'Bus-Diagnose', icon: '🩺', enabled: true, description: 'Communication-, Sound- und Alert-Bus sowie Alert/Sound-Korrelation read-only prüfen.' },
     users: { label: 'Benutzer', icon: '👤', enabled: false, description: 'Benutzerverwaltung vorbereitet.' },
     roles: { label: 'Rollen & Rechte', icon: '🔑', enabled: false, description: 'Rechteverwaltung vorbereitet.' },
     logs: { label: 'Logs', icon: '📜', enabled: false, description: 'Audit-/Systemlogs vorbereitet.' },
@@ -189,7 +198,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'sound_system', 'media', 'message_rotator'],
+  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });

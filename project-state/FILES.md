@@ -1,15 +1,15 @@
-# FILES – STEP420
+# FILES – STEP421
 
-## Neu
+## Dashboard
+- `htdocs/dashboard/index.html`
+- `htdocs/dashboard/app.js`
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+- `htdocs/dashboard/modules/bus_diagnostics.css`
 
-- `backend/modules/bus_diagnostics.js`
-- `htdocs/public/tools/bus_diagnostics_dashboard.html`
-- `project-state/STEP420_BUS_DIAGNOSTICS_DASHBOARD.md`
-
-## Dokumentation aktualisiert
-
+## Dokumentation
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
+- `project-state/STEP421_BUS_DIAGNOSTICS_DASHBOARD_MENU.md`

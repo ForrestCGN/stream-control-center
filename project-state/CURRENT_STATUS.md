@@ -1,17 +1,17 @@
-# CURRENT_STATUS – STEP420
+# CURRENT_STATUS – STEP421
 
-## Abgeschlossen
+Bus-Diagnose ist jetzt im Dashboard-Menü vorbereitet.
 
-- STEP412: Sound EventBus Baseline
-- STEP413: Sound EventBus Version/Target Cleanup
-- STEP414: echter Sound-Flow getestet
-- STEP415: Sound EventBus Debug-Consumer
-- STEP416: Alert EventBus Baseline
-- STEP417: Alert EventBus Debug-Consumer
-- STEP418: echter Alert-Flow EventBus-Spiegel
-- STEP419: Alert/Sound EventBus-Korrelation
-- STEP420: Bus-Diagnose Dashboard vorbereitet
+Abgeschlossene EventBus-Strecke:
+- STEP412 Sound EventBus Baseline
+- STEP413 Sound Version/Target Cleanup
+- STEP414 Echter Sound-Flow Test
+- STEP415 Sound Debug-Consumer
+- STEP416 Alert EventBus Baseline
+- STEP417 Alert Debug-Consumer
+- STEP418 Echter Alert-Flow Mirror
+- STEP419 Alert/Sound-Korrelation
+- STEP420 Bus-Diagnose Backend/Standalone
+- STEP421 Bus-Diagnose Dashboard-Menü
 
-## STEP420 Ergebnis
-
-Eine read-only Diagnose-Seite zeigt Communication Bus, Sound-Bus, Alert-Bus und Alert/Sound-Korrelation zentral an.
+Nächster sinnvoller Schritt: STEP422 Dashboard-Bus-Diagnose Live-Test und UX-Cleanup.

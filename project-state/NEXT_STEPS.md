@@ -1,12 +1,14 @@
-# NEXT_STEPS – nach STEP420
+# NEXT_STEPS – nach STEP421
 
-## Nächster sinnvoller Schritt
+## STEP422 – Dashboard-Bus-Diagnose Live-Test und UX-Cleanup
+- Dashboard öffnen: `/dashboard/`
+- Admin / Bus-Diagnose öffnen
+- Status laden
+- Check ausführen
+- Prüfen, ob Karten, Clients, Warnungen und Recent Events korrekt dargestellt werden
+- Danach bei Bedarf kleine UX-Korrekturen am Modul vornehmen
 
-STEP421 – Bus-Diagnose sauber in das bestehende Control-Center/Dashboard-Menü integrieren.
-
-## Optional danach
-
-- Debug-Clients konsolidieren.
-- Alert-/Sound-Korrelationsansicht erweitern.
-- Rollen-/Rechteprüfung für Dashboard-Unterseiten ergänzen.
-- Event-History/Audit später persistieren.
+## Später
+- Bus-Diagnose in ein zentrales Admin-/System-Diagnosekonzept überführen
+- Berechtigungen/Rollen für Diagnosemodule schärfen
+- Alert-/Sound-Korrelation optional historisieren
