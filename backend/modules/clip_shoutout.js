@@ -12,7 +12,7 @@ let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.0";
+const MODULE_VERSION = "0.2.1";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -62,6 +62,16 @@ const DEFAULT_CONFIG = {
     avatarLookupUrl: "http://127.0.0.1:8080/userinfo",
     gqlClientId: "kimne78kx3ncx6brgo4mv6wki5h1ko",
     eventBusEnabled: true,
+    displayQueue: {
+      enabled: true,
+      displayCooldownMs: 120000,
+      workerIntervalMs: 2000,
+      sendChatMessages: true,
+      acceptedMessage: "✅ Shouti für @{displayName} aufgenommen.",
+      waitingMessage: "⏳ Shouti für @{displayName} aufgenommen und wartet in der Warteschlange.",
+      startedMessage: "",
+      failedMessage: "⚠️ Shouti für @{displayName} konnte nicht gestartet werden."
+    },
     officialShoutout: {
       enabled: true,
       enqueueAfterDisplay: true,
@@ -77,6 +87,7 @@ const DEFAULT_CONFIG = {
       workerIntervalMs: 5000,
       maxAttempts: 5,
       displayFinishPaddingMs: 1500,
+      streamWaitRetryMs: 60000,
       broadcasterId: "",
       moderatorId: ""
     }
@@ -101,11 +112,23 @@ const state = {
     noClips: 0,
     ttsPrepared: 0,
     chatSent: 0,
+    displayQueued: 0,
+    displayStarted: 0,
+    displayFinished: 0,
     officialQueued: 0,
     officialSent: 0,
     officialFailed: 0,
     busEmitted: 0,
     busErrors: 0
+  },
+  displayQueue: {
+    workerStarted: false,
+    lastQueueId: 0,
+    lastEnqueuedAt: "",
+    lastStartedAt: "",
+    lastFinishedAt: "",
+    lastError: "",
+    lastBusEvent: null
   },
   officialShoutout: {
     workerStarted: false,
@@ -228,6 +251,135 @@ function emitShoutoutBus(action, payload = {}, cfg = null) {
     state.officialShoutout.lastError = err && err.message ? err.message : String(err);
     return { ok: false, error: state.officialShoutout.lastError };
   }
+}
+
+
+function displayConfig(cfg) {
+  return mergePlain(DEFAULT_CONFIG.clipShoutout.displayQueue, (cfg && cfg.displayQueue) || {});
+}
+
+function ensureDisplayQueueSchema() {
+  database.ensureReady();
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS clip_shoutout_display_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      target_login TEXT NOT NULL,
+      target_display TEXT NOT NULL DEFAULT '',
+      requested_by_login TEXT NOT NULL DEFAULT '',
+      requested_by_display TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'queued',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      available_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      started_at TEXT NOT NULL DEFAULT '',
+      finished_at TEXT NOT NULL DEFAULT '',
+      last_error TEXT NOT NULL DEFAULT '',
+      input_json TEXT NOT NULL DEFAULT '{}',
+      meta_json TEXT NOT NULL DEFAULT '{}'
+    );
+    CREATE INDEX IF NOT EXISTS idx_clip_so_display_queue_status_available ON clip_shoutout_display_queue(status, available_at);
+  `);
+}
+
+function resetStaleDisplayQueueActiveRows() {
+  try {
+    ensureDisplayQueueSchema();
+    database.run(`UPDATE clip_shoutout_display_queue SET status='waiting', updated_at=:now, last_error='reset_stale_active_on_start' WHERE status='active'`, { now: nowIso() });
+  } catch (_) {}
+}
+
+function listDisplayQueue(limit = 50) {
+  ensureDisplayQueueSchema();
+  const safeLimit = Math.max(1, Math.min(200, Number.parseInt(limit, 10) || 50));
+  return database.all(`SELECT * FROM clip_shoutout_display_queue WHERE status IN ('queued','waiting','active','failed') ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, available_at ASC, id ASC LIMIT ${safeLimit}`);
+}
+
+function lastDisplayStartedMs() {
+  ensureDisplayQueueSchema();
+  const row = database.get(`SELECT started_at FROM clip_shoutout_display_queue WHERE status IN ('active','done') AND started_at<>'' ORDER BY started_at DESC LIMIT 1`);
+  return msFromIso(row && row.started_at);
+}
+
+function calculateDisplayAvailableAt(cfg, baseMs = Date.now()) {
+  const dcfg = displayConfig(cfg);
+  const cooldown = Math.max(0, Number(dcfg.displayCooldownMs || 120000));
+  const lastStarted = lastDisplayStartedMs();
+  return Math.max(Number(baseMs || Date.now()), lastStarted ? lastStarted + cooldown : 0);
+}
+
+function enqueueDisplayShoutout(job, cfg) {
+  ensureDisplayQueueSchema();
+  const login = cleanLogin(job.targetLogin);
+  if (!login) return { ok: false, error: 'target_login_missing' };
+  const now = nowIso();
+  const availableAt = isoFromMs(calculateDisplayAvailableAt(cfg, Date.parse(job.availableAt || '') || Date.now()));
+  const params = {
+    targetLogin: login,
+    targetDisplay: cleanDisplay(job.targetDisplay, login),
+    requestedByLogin: cleanLogin(job.requestedByLogin || ''),
+    requestedByDisplay: cleanDisplay(job.requestedByDisplay || ''),
+    availableAt,
+    createdAt: now,
+    updatedAt: now,
+    inputJson: JSON.stringify(job.input || {}),
+    metaJson: JSON.stringify(job.meta || {})
+  };
+  const result = database.run(`
+    INSERT INTO clip_shoutout_display_queue (
+      target_login,target_display,requested_by_login,requested_by_display,
+      status,attempts,available_at,created_at,updated_at,input_json,meta_json
+    ) VALUES (
+      :targetLogin,:targetDisplay,:requestedByLogin,:requestedByDisplay,
+      'queued',0,:availableAt,:createdAt,:updatedAt,:inputJson,:metaJson
+    )
+  `, params);
+  const rowId = result && (result.lastInsertRowid || result.lastInsertRowId) ? (result.lastInsertRowid || result.lastInsertRowId) : 0;
+  const row = database.get(`SELECT * FROM clip_shoutout_display_queue WHERE id=:id`, { id: rowId });
+  state.stats.displayQueued += 1;
+  state.displayQueue.lastQueueId = row ? row.id : 0;
+  state.displayQueue.lastEnqueuedAt = now;
+  emitShoutoutBus('shoutout.display.queued', { queueId: row ? row.id : 0, targetLogin: login, availableAt }, cfg);
+  return { ok: true, row, availableAt };
+}
+
+function markDisplayQueueDone(row, cfg) {
+  ensureDisplayQueueSchema();
+  const now = nowIso();
+  database.run(`UPDATE clip_shoutout_display_queue SET status='done', updated_at=:now, finished_at=:now, last_error='' WHERE id=:id`, { id: row.id, now });
+  state.stats.displayFinished += 1;
+  state.displayQueue.lastFinishedAt = now;
+  emitShoutoutBus('shoutout.display.queue_finished', { queueId: row.id, targetLogin: row.target_login }, cfg);
+}
+
+function markDisplayQueueFailed(row, error, cfg) {
+  ensureDisplayQueueSchema();
+  const now = nowIso();
+  database.run(`UPDATE clip_shoutout_display_queue SET status='failed', attempts=attempts+1, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, now, error: String(error || '') });
+  state.displayQueue.lastError = String(error || '');
+  emitShoutoutBus('shoutout.display.failed', { queueId: row.id, targetLogin: row.target_login, error: String(error || '') }, cfg);
+}
+
+function displayQueueStatus(cfg) {
+  const queue = listDisplayQueue(50);
+  const active = queue.find(row => row.status === 'active') || null;
+  return {
+    enabled: displayConfig(cfg).enabled !== false,
+    workerStarted: state.displayQueue.workerStarted,
+    pending: queue.filter(row => row.status === 'queued' || row.status === 'waiting' || row.status === 'active').length,
+    active,
+    queue,
+    displayCooldownMs: Math.max(0, Number(displayConfig(cfg).displayCooldownMs || 120000)),
+    nextDisplayAllowedAt: isoFromMs(calculateDisplayAvailableAt(cfg)),
+    lastStartedAt: state.displayQueue.lastStartedAt,
+    lastFinishedAt: state.displayQueue.lastFinishedAt,
+    lastError: state.displayQueue.lastError
+  };
+}
+
+function isTwitchLiveWaitError(errorText) {
+  const text = String(errorText || '').toLowerCase();
+  return text.includes('not streaming live') || text.includes('does not have one or more viewers') || text.includes('broadcaster is not streaming');
 }
 
 function officialConfig(cfg) {
@@ -502,6 +654,13 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
     return { ok: true, sent: true, queueId: row.id, result };
   } catch (err) {
     const error = err && err.response && err.response.data ? JSON.stringify(err.response.data).slice(0, 500) : (err && err.message ? err.message : String(err));
+    if (isTwitchLiveWaitError(error)) {
+      const next = isoFromMs(Date.now() + Math.max(15000, Number(ocfg.streamWaitRetryMs || 60000)));
+      database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, next, now: nowIso(), error });
+      state.officialShoutout.lastError = error;
+      emitShoutoutBus("shoutout.official.waiting_stream_live", { queueId: row.id, targetLogin: row.target_login, error, retryAt: next }, cfg);
+      return { ok: true, waiting: true, reason: "waiting_stream_live", queueId: row.id, error, retryAt: next };
+    }
     const next = isoFromMs(Date.now() + Math.max(30000, Number(ocfg.globalCooldownMs || 120000)));
     database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', attempts=attempts+1, available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, next, now: nowIso(), error });
     state.officialShoutout.lastError = error;
@@ -1397,166 +1556,243 @@ async function handleListClips(req, res, env) {
   }
 }
 
+
+async function runDisplayJob(row, env, cfg) {
+  let input = {};
+  try { input = JSON.parse(row.input_json || '{}'); } catch (_) { input = {}; }
+  input.target = input.target || row.target_login;
+  input.targetLogin = input.targetLogin || row.target_login;
+
+  const targetLogin = cleanLogin(row.target_login || parseTarget(input));
+  state.lastRunAt = nowIso();
+
+  const targetUser = await resolveTargetUser(env, targetLogin, cfg);
+  if (!targetUser || !targetUser.userId) {
+    state.lastError = 'target_user_not_found';
+    state.lastRun = { targetLogin, error: 'target_user_not_found', input: summarizeInput(input), failedAt: state.lastRunAt };
+    throw new Error('target_user_not_found');
+  }
+
+  const clipSearch = await listClipsForBroadcaster(env, targetUser.userId, cfg);
+  const clips = Array.isArray(clipSearch.clips) ? clipSearch.clips : [];
+  state.lastClipSearch = clipSearch.debug || null;
+  if (!clips.length) {
+    state.stats.noClips += 1;
+    state.lastError = 'no_clips_found';
+    state.lastRun = { target: targetUser, targetLogin, error: 'no_clips_found', input: summarizeInput(input), clipSearch: clipSearch.debug || null, failedAt: state.lastRunAt };
+    throw new Error('no_clips_found');
+  }
+
+  const pickedClip = pickClip(clips, cfg, targetUser.login);
+  const clip = pickedClip.clip;
+  const clipSelection = pickedClip.selection || null;
+  if (!clip) {
+    state.stats.noClips += 1;
+    state.lastError = 'no_valid_clip_after_selection';
+    state.lastRun = { target: targetUser, targetLogin, error: 'no_valid_clip_after_selection', input: summarizeInput(input), clipSearch: clipSearch.debug || null, failedAt: state.lastRunAt };
+    throw new Error('no_valid_clip_after_selection');
+  }
+
+  const playbackUrl = await resolveClipPlaybackUrl(clip.id, cfg);
+  const playback = await prepareClipPlayback(playbackUrl, clip, targetUser, cfg);
+
+  const vars = {
+    login: targetUser.login,
+    displayName: targetUser.displayName,
+    user: targetUser.displayName,
+    url: `https://twitch.tv/${targetUser.login}`,
+    twitchUrl: `https://twitch.tv/${targetUser.login}`,
+    clipUrl: clip.url || '',
+    clipTitle: clip.title || '',
+    clipId: clip.id || '',
+    requestedByLogin: cleanLogin(row.requested_by_login || input.userLogin || input.login || input.user || ''),
+    requestedByDisplay: cleanDisplay(row.requested_by_display || input.displayName || input.userName || input.user || '')
+  };
+
+  const ttsItem = await prepareOptionalTts(input, cfg, vars);
+  const bundlePayload = buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem);
+  emitShoutoutBus('shoutout.display.started', { queueId: row.id, target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId }, cfg);
+  const soundResult = await postJson(cfg.soundBundleUrl, bundlePayload, 15000);
+  rememberRecentClip(targetUser.login, clip, cfg);
+  state.recentClipGuard = publicRecentClipGuard(cfg);
+  state.recentClipGuard.lastSelection = clipSelection;
+
+  const displayDurationMs = bundlePayload.items.reduce((sum, item) => sum + Math.max(0, Number(item.durationMs || 0)), 0) + Math.max(0, Number(officialConfig(cfg).displayFinishPaddingMs || 1500));
+  const officialEnabled = officialConfig(cfg).enabled !== false && boolParam(input.officialShoutout ?? input.official ?? input.twitchShoutout, true);
+
+  if (officialEnabled) {
+    setTimeout(async () => {
+      try {
+        emitShoutoutBus('shoutout.display.finished', { queueId: row.id, target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId }, cfg);
+        const queueResult = enqueueOfficialShoutout({
+          targetLogin: targetUser.login,
+          targetDisplay: targetUser.displayName,
+          targetUserId: targetUser.userId,
+          requestedByLogin: vars.requestedByLogin,
+          requestedByDisplay: vars.requestedByDisplay,
+          clipId: clip.id,
+          clipUrl: clip.url || '',
+          bundleId: bundlePayload.bundleId,
+          availableAt: nowIso(),
+          meta: { source: MODULE_NAME, displayQueueId: row.id, clipTitle: clip.title || '' }
+        }, cfg);
+        const ocfg = officialConfig(cfg);
+        if (ocfg.sendChatMessages !== false && queueResult && queueResult.ok && queueResult.duplicate !== true) {
+          await sendChatMessage(renderTemplate(ocfg.queuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true, queueId: queueResult.row && queueResult.row.id });
+        } else if (ocfg.sendChatMessages !== false && queueResult && queueResult.duplicate === true) {
+          await sendChatMessage(renderTemplate(ocfg.duplicateQueuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true });
+        }
+        await processOfficialShoutoutQueue(env, shoutoutConfig());
+      } catch (err) {
+        state.officialShoutout.lastError = err && err.message ? err.message : String(err);
+        emitShoutoutBus('shoutout.official.failed', { targetLogin: targetUser.login, error: state.officialShoutout.lastError }, cfg);
+      }
+    }, displayDurationMs).unref?.();
+  } else {
+    setTimeout(() => {
+      emitShoutoutBus('shoutout.display.finished', { queueId: row.id, target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId }, cfg);
+    }, displayDurationMs).unref?.();
+  }
+
+  emitShoutoutBus('shoutout.accepted', { queueId: row.id, target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId, officialShoutout: officialEnabled }, cfg);
+  state.stats.queued += 1;
+  state.lastRunAt = nowIso();
+  state.lastRun = {
+    target: targetUser,
+    clip: { id: clip.id, title: clip.title || '', url: clip.url || '', duration: clip.duration || 0 },
+    clipSelection,
+    clipSearch: clipSearch.debug || null,
+    bundleId: bundlePayload.bundleId,
+    ttsEnabled: Boolean(ttsItem),
+    queuedAt: state.lastRunAt,
+    parsedTargetLogin: targetLogin,
+    input: summarizeInput(input),
+    displayQueueId: row.id
+  };
+  state.lastError = '';
+  return { ok: true, rowId: row.id, target: targetUser, clip, clipSelection, clipSearch, playback, ttsItem, bundlePayload, soundResult, officialEnabled, displayDurationMs };
+}
+
+async function processDisplayQueue(env, cfg, options = {}) {
+  const dcfg = displayConfig(cfg);
+  if (dcfg.enabled === false) return { ok: true, skipped: true, reason: 'display_queue_disabled' };
+  ensureDisplayQueueSchema();
+  const active = database.get(`SELECT * FROM clip_shoutout_display_queue WHERE status='active' ORDER BY id ASC LIMIT 1`);
+  if (active && !options.force) return { ok: true, active: true, queueId: active.id };
+
+  const row = database.get(`SELECT * FROM clip_shoutout_display_queue WHERE status IN ('queued','waiting') ORDER BY available_at ASC, id ASC LIMIT 1`);
+  if (!row) return { ok: true, empty: true };
+
+  const nowMs = Date.now();
+  const availableMs = calculateDisplayAvailableAt(cfg, msFromIso(row.available_at));
+  if (!options.force && availableMs > nowMs) {
+    const availableAt = isoFromMs(availableMs);
+    database.run(`UPDATE clip_shoutout_display_queue SET status='waiting', available_at=:availableAt, updated_at=:now WHERE id=:id`, { id: row.id, availableAt, now: nowIso() });
+    emitShoutoutBus('shoutout.display.waiting_cooldown', { queueId: row.id, targetLogin: row.target_login, availableAt }, cfg);
+    return { ok: true, waiting: true, queueId: row.id, availableAt };
+  }
+
+  const startedAt = nowIso();
+  database.run(`UPDATE clip_shoutout_display_queue SET status='active', started_at=:startedAt, updated_at=:startedAt, last_error='' WHERE id=:id`, { id: row.id, startedAt });
+  const activeRow = database.get(`SELECT * FROM clip_shoutout_display_queue WHERE id=:id`, { id: row.id }) || { ...row, started_at: startedAt, status: 'active' };
+  state.stats.displayStarted += 1;
+  state.displayQueue.lastStartedAt = startedAt;
+
+  try {
+    const result = await runDisplayJob(activeRow, env, cfg);
+    const finishDelayMs = Math.max(1000, Number(result.displayDurationMs || 1000));
+    setTimeout(() => {
+      try {
+        markDisplayQueueDone(activeRow, shoutoutConfig());
+        processDisplayQueue(env, shoutoutConfig()).catch(err => { state.displayQueue.lastError = err && err.message ? err.message : String(err); });
+      } catch (err) {
+        state.displayQueue.lastError = err && err.message ? err.message : String(err);
+      }
+    }, finishDelayMs).unref?.();
+    return { ok: true, started: true, queueId: activeRow.id, displayDurationMs: finishDelayMs };
+  } catch (err) {
+    const error = err && err.message ? err.message : String(err);
+    markDisplayQueueFailed(activeRow, error, cfg);
+    setTimeout(() => { processDisplayQueue(env, shoutoutConfig()).catch(() => {}); }, 1000).unref?.();
+    return { ok: false, failed: true, queueId: activeRow.id, error };
+  }
+}
+
+function startDisplayQueueWorker(env, cfg) {
+  const dcfg = displayConfig(cfg);
+  if (state.displayQueue.workerStarted || dcfg.enabled === false) return;
+  ensureDisplayQueueSchema();
+  resetStaleDisplayQueueActiveRows();
+  state.displayQueue.workerStarted = true;
+  const intervalMs = Math.max(1000, Math.min(60000, Number(dcfg.workerIntervalMs || 2000)));
+  const timer = setInterval(() => {
+    processDisplayQueue(env, shoutoutConfig()).catch(err => {
+      state.displayQueue.lastError = err && err.message ? err.message : String(err);
+    });
+  }, intervalMs);
+  if (timer && typeof timer.unref === 'function') timer.unref();
+}
+
 async function handleRun(req, res, env) {
   const cfg = shoutoutConfig();
   const input = readRequestData(req);
   state.stats.requested += 1;
 
   if (cfg.enabled === false) {
-    return res.status(503).json({ ok: false, error: "clip_shoutout_disabled" });
+    return res.status(503).json({ ok: false, error: 'clip_shoutout_disabled' });
   }
 
   const targetLogin = parseTarget(input);
   state.lastRunAt = nowIso();
 
   if (!targetLogin) {
-    state.lastError = "target_required";
-    state.lastRun = { error: "target_required", input: summarizeInput(input), failedAt: state.lastRunAt };
-    return res.json({ ok: false, error: "target_required", usage: `!${cfg.command || "so"} @kanal` });
+    state.lastError = 'target_required';
+    state.lastRun = { error: 'target_required', input: summarizeInput(input), failedAt: state.lastRunAt };
+    return res.json({ ok: false, error: 'target_required', usage: `!${cfg.command || 'so'} @kanal` });
   }
 
   try {
-    const targetUser = await resolveTargetUser(env, targetLogin, cfg);
-    if (!targetUser || !targetUser.userId) {
-      state.lastError = "target_user_not_found";
-      state.lastRun = { targetLogin, error: "target_user_not_found", input: summarizeInput(input), failedAt: state.lastRunAt };
-      return res.json({ ok: false, error: "target_user_not_found", targetLogin });
-    }
-
-    const clipSearch = await listClipsForBroadcaster(env, targetUser.userId, cfg);
-    const clips = Array.isArray(clipSearch.clips) ? clipSearch.clips : [];
-    state.lastClipSearch = clipSearch.debug || null;
-    if (!clips.length) {
-      state.stats.noClips += 1;
-      state.lastError = "no_clips_found";
-      state.lastRun = {
-        target: targetUser,
-        targetLogin,
-        error: "no_clips_found",
-        input: summarizeInput(input),
-        clipSearch: clipSearch.debug || null,
-        failedAt: state.lastRunAt
-      };
-      return res.json({ ok: false, error: "no_clips_found", target: targetUser, clipSearch: clipSearch.debug || null });
-    }
-
-    const pickedClip = pickClip(clips, cfg, targetUser.login);
-    const clip = pickedClip.clip;
-    const clipSelection = pickedClip.selection || null;
-    if (!clip) {
-      state.stats.noClips += 1;
-      state.lastError = "no_valid_clip_after_selection";
-      state.lastRun = { target: targetUser, targetLogin, error: "no_valid_clip_after_selection", input: summarizeInput(input), clipSearch: clipSearch.debug || null, failedAt: state.lastRunAt };
-      return res.json({ ok: false, error: "no_valid_clip_after_selection", target: targetUser, clipSearch: clipSearch.debug || null });
-    }
-    const playbackUrl = await resolveClipPlaybackUrl(clip.id, cfg);
-    const playback = await prepareClipPlayback(playbackUrl, clip, targetUser, cfg);
-
     const vars = {
-      login: targetUser.login,
-      displayName: targetUser.displayName,
-      user: targetUser.displayName,
-      url: `https://twitch.tv/${targetUser.login}`,
-      twitchUrl: `https://twitch.tv/${targetUser.login}`,
-      clipUrl: clip.url || "",
-      clipTitle: clip.title || "",
-      clipId: clip.id || "",
-      requestedByLogin: cleanLogin(input.userLogin || input.login || input.user || ""),
-      requestedByDisplay: cleanDisplay(input.displayName || input.userName || input.user || "")
+      login: targetLogin,
+      displayName: cleanDisplay(input.targetDisplay || input.displayName || targetLogin, targetLogin),
+      requestedByLogin: cleanLogin(input.userLogin || input.login || input.user || ''),
+      requestedByDisplay: cleanDisplay(input.displayName || input.userName || input.user || '')
     };
+    const dcfg = displayConfig(cfg);
+    const queueResult = enqueueDisplayShoutout({
+      targetLogin,
+      targetDisplay: vars.displayName,
+      requestedByLogin: vars.requestedByLogin,
+      requestedByDisplay: vars.requestedByDisplay,
+      input,
+      availableAt: nowIso(),
+      meta: { source: MODULE_NAME, command: cfg.command || 'so' }
+    }, cfg);
 
-    const ttsItem = await prepareOptionalTts(input, cfg, vars);
-    const bundlePayload = buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem);
-    emitShoutoutBus("shoutout.display.started", { target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId }, cfg);
-    const soundResult = await postJson(cfg.soundBundleUrl, bundlePayload, 15000);
-    rememberRecentClip(targetUser.login, clip, cfg);
-    state.recentClipGuard = publicRecentClipGuard(cfg);
-    state.recentClipGuard.lastSelection = clipSelection;
+    if (!queueResult.ok) return res.status(500).json({ ok: false, error: queueResult.error || 'display_queue_enqueue_failed' });
 
-    let chatResult = { ok: false, skipped: true, reason: "disabled" };
-    if (boolParam(input.sendChat, cfg.sendChatMessage)) {
-      const ocfg = officialConfig(cfg);
-      const chatTemplate = firstString(ocfg.acceptedMessage, cfg.chatMessage);
-      const chatText = renderTemplate(chatTemplate, vars).trim();
-      chatResult = await sendChatMessage(chatText, { targetLogin: targetUser.login, clipId: clip.id });
+    if (dcfg.sendChatMessages !== false) {
+      const queue = listDisplayQueue(200);
+      const pendingBeforeThis = queue.filter(row => Number(row.id || 0) < Number(queueResult.row?.id || 0) && ['queued','waiting','active'].includes(row.status)).length;
+      const template = pendingBeforeThis > 0 ? firstString(dcfg.waitingMessage, dcfg.acceptedMessage) : firstString(dcfg.acceptedMessage, DEFAULT_CONFIG.clipShoutout.chatMessage);
+      await sendChatMessage(renderTemplate(template, vars).trim(), { targetLogin, displayQueueId: queueResult.row && queueResult.row.id });
     }
 
-    const displayDurationMs = bundlePayload.items.reduce((sum, item) => sum + Math.max(0, Number(item.durationMs || 0)), 0) + Math.max(0, Number(officialConfig(cfg).displayFinishPaddingMs || 1500));
-    const officialEnabled = officialConfig(cfg).enabled !== false && boolParam(input.officialShoutout ?? input.official ?? input.twitchShoutout, true);
-    let officialQueueResult = { ok: true, skipped: true, reason: officialEnabled ? "scheduled_after_display" : "official_disabled" };
-    if (officialEnabled) {
-      setTimeout(async () => {
-        try {
-          emitShoutoutBus("shoutout.display.finished", { target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId }, cfg);
-          const queueResult = enqueueOfficialShoutout({
-            targetLogin: targetUser.login,
-            targetDisplay: targetUser.displayName,
-            targetUserId: targetUser.userId,
-            requestedByLogin: vars.requestedByLogin,
-            requestedByDisplay: vars.requestedByDisplay,
-            clipId: clip.id,
-            clipUrl: clip.url || "",
-            bundleId: bundlePayload.bundleId,
-            availableAt: nowIso(),
-            meta: { source: MODULE_NAME, clipTitle: clip.title || "" }
-          }, cfg);
-          const ocfg = officialConfig(cfg);
-          if (ocfg.sendChatMessages !== false && queueResult && queueResult.ok && queueResult.duplicate !== true) {
-            await sendChatMessage(renderTemplate(ocfg.queuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true, queueId: queueResult.row && queueResult.row.id });
-          } else if (ocfg.sendChatMessages !== false && queueResult && queueResult.duplicate === true) {
-            await sendChatMessage(renderTemplate(ocfg.duplicateQueuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true });
-          }
-          await processOfficialShoutoutQueue(env, shoutoutConfig());
-        } catch (err) {
-          state.officialShoutout.lastError = err && err.message ? err.message : String(err);
-          emitShoutoutBus("shoutout.official.failed", { targetLogin: targetUser.login, error: state.officialShoutout.lastError }, cfg);
-        }
-      }, displayDurationMs).unref?.();
-    }
-
-    emitShoutoutBus("shoutout.accepted", { target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId, officialShoutout: officialEnabled }, cfg);
-    state.stats.queued += 1;
-    state.lastRunAt = nowIso();
-    state.lastRun = {
-      target: targetUser,
-      clip: { id: clip.id, title: clip.title || "", url: clip.url || "", duration: clip.duration || 0 },
-      clipSelection,
-      clipSearch: clipSearch.debug || null,
-      bundleId: bundlePayload.bundleId,
-      ttsEnabled: Boolean(ttsItem),
-      queuedAt: state.lastRunAt,
-      parsedTargetLogin: targetLogin,
-      input: summarizeInput(input)
-    };
-    state.lastError = "";
+    processDisplayQueue(env, shoutoutConfig()).catch(err => { state.displayQueue.lastError = err && err.message ? err.message : String(err); });
 
     return res.json({
       ok: true,
       module: MODULE_NAME,
-      target: targetUser,
-      clip: {
-        id: clip.id,
-        title: clip.title || "",
-        url: clip.url || "",
-        duration: clip.duration || 0,
-        viewCount: clip.view_count || 0
+      moduleVersion: MODULE_VERSION,
+      queued: true,
+      targetLogin,
+      displayQueue: {
+        id: queueResult.row ? queueResult.row.id : 0,
+        status: queueResult.row ? queueResult.row.status : 'queued',
+        availableAt: queueResult.availableAt,
+        displayCooldownMs: Math.max(0, Number(displayConfig(cfg).displayCooldownMs || 120000))
       },
-      clipSelection,
-      clipSearch: clipSearch.debug || null,
-      playback: {
-        mode: playback.mode || "direct",
-        direct: playback.direct === true,
-        cached: !!playback.cached,
-        soundSystemFile: playback.soundSystemFile || ""
-      },
-      tts: ttsItem ? { enabled: true, file: ttsItem.file, durationMs: ttsItem.durationMs } : { enabled: false },
-      bundle: {
-        id: bundlePayload.bundleId,
-        itemCount: bundlePayload.items.length,
-        soundResult
-      },
-      chat: chatResult,
-      officialShoutout: officialQueueResult
+      officialShoutout: { queuedAfterDisplay: officialConfig(cfg).enabled !== false }
     });
   } catch (err) {
     const error = err && err.message ? err.message : String(err);
@@ -1568,11 +1804,15 @@ async function handleRun(req, res, env) {
   }
 }
 
+
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
   const cfg = shoutoutConfig();
+  ensureDisplayQueueSchema();
   ensureOfficialShoutoutSchema();
+  resetStaleDisplayQueueActiveRows();
   registerCommand(cfg);
+  startDisplayQueueWorker(env, cfg);
   startOfficialShoutoutWorker(env, cfg);
 
   app.get(`${API_PREFIX}/status`, (req, res) => {
@@ -1619,8 +1859,10 @@ module.exports.init = function init(ctx) {
         avatarLookupEnabled: currentCfg.avatarLookupEnabled,
         avatarLookupUrl: currentCfg.avatarLookupUrl,
         eventBusEnabled: currentCfg.eventBusEnabled !== false,
+        displayQueue: displayConfig(currentCfg),
         officialShoutout: officialConfig(currentCfg)
       },
+      displayQueue: displayQueueStatus(currentCfg),
       officialQueue: officialQueueStatus(currentCfg),
       state
     });
@@ -1646,6 +1888,7 @@ module.exports.init = function init(ctx) {
         "clipFetchFirst", "clipFetchPages", "randomPick", "sendChatMessage", "chatMessage", "eventBusEnabled"
       ];
       for (const key of directKeys) if (Object.prototype.hasOwnProperty.call(body, key)) allowed[key] = body[key];
+      if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
       if (body.officialShoutout && typeof body.officialShoutout === "object") allowed.officialShoutout = body.officialShoutout;
       const settings = saveShoutoutConfig(allowed);
       emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed) }, settings);
@@ -1658,7 +1901,33 @@ module.exports.init = function init(ctx) {
   app.get(`${API_PREFIX}/queue`, (req, res) => {
     try {
       const currentCfg = shoutoutConfig();
-      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, officialQueue: officialQueueStatus(currentCfg) });
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, displayQueue: displayQueueStatus(currentCfg), officialQueue: officialQueueStatus(currentCfg) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+
+  app.post(`${API_PREFIX}/display-queue/remove`, (req, res) => {
+    try {
+      ensureDisplayQueueSchema();
+      const id = Number(req.body?.id || req.query?.id || 0);
+      if (!id) return res.status(400).json({ ok: false, error: 'id_required' });
+      database.run(`UPDATE clip_shoutout_display_queue SET status='removed', updated_at=:now WHERE id=:id AND status IN ('queued','waiting','failed')`, { id, now: nowIso() });
+      emitShoutoutBus('shoutout.display.removed', { queueId: id }, shoutoutConfig());
+      res.json({ ok: true, id });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/display-queue/retry`, async (req, res) => {
+    try {
+      ensureDisplayQueueSchema();
+      const id = Number(req.body?.id || req.query?.id || 0);
+      if (id) database.run(`UPDATE clip_shoutout_display_queue SET status='queued', available_at=:now, updated_at=:now, last_error='' WHERE id=:id AND status IN ('waiting','failed')`, { id, now: nowIso() });
+      const result = await processDisplayQueue(env, shoutoutConfig(), { force: true });
+      res.json({ ok: result && result.ok !== false, result });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }

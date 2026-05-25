@@ -1,14 +1,13 @@
-# NEXT STEPS
+# NEXT_STEPS
 
-Nach STEP457:
+## Nach STEP458 testen
 
-1. `!so @testuser` lokal testen.
-2. Prüfen, ob Clip-Anzeige startet.
-3. Prüfen, ob nach Anzeige ein offizieller Shoutout in der Queue landet.
-4. Auth-Status prüfen:
-   ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/official/auth-status"
-   ```
-5. Falls `moderator:manage:shoutouts` fehlt, Twitch-OAuth-Scopes erweitern und neu autorisieren.
+1. `!so @urlug`
+2. direkt danach `!so @bynexl`
+3. prüfen: byNexL muss in der Display-Queue warten und darf nicht sofort starten.
+4. prüfen: offizielle Twitch-Shoutouts werden nach Anzeige-Ende in der Official-Queue verarbeitet.
 
-Spätere offene ToDo bleibt: Sound-System nach stabiler Bus-First-Phase ggf. auf `bus_only` prüfen.
+## Später
+
+- Falls die Display-Queue stabil läuft, Dashboard-UX weiter ausbauen.
+- Sound-System später nach stabiler Bus-First-Phase auf `bus_only` prüfen (GitHub Issue #2).

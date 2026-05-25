@@ -1,8 +1,13 @@
-# CURRENT STATUS
+# CURRENT_STATUS
 
-Aktueller Stand: STEP457_SHOUTOUT_SYSTEM_QUEUE_DASHBOARD_EVENTBUS
+STEP458: Shoutout Display Queue mit 2-Minuten-Abstand und Twitch-Wait-Fix aktiv.
 
-- VIP: Bus produktiv
-- Alerts: Bus-First mit Legacy-Fallback
-- Sound-System: Bus-First mit Legacy-Fallback
-- Clip-Shoutout/SO: `!so`, 90-Tage-Suche zuerst, offizieller Twitch-Shoutout nach Anzeige über Queue/Cooldown, Event-Bus `shoutout.system`
+Aktuelle wichtige Version:
+
+- `backend/modules/clip_shoutout.js`: `0.2.1`
+
+Verhalten:
+
+- `!so @user` nimmt den Shouti auf.
+- Shouti-Anzeigen starten nicht mehr direkt hintereinander, sondern warten 2 Minuten.
+- Der offizielle Twitch-Shoutout bleibt eine getrennte Queue nach Anzeige-Ende.

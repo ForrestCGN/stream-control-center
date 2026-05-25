@@ -1,10 +1,9 @@
 # CHANGELOG
 
-## STEP457_SHOUTOUT_SYSTEM_QUEUE_DASHBOARD_EVENTBUS
+## STEP458_SHOUTOUT_DISPLAY_QUEUE_2MIN_AND_TWITCH_WAIT_FIX
 
-- Clip-Shoutout-System auf Runtime-Version `0.2.0` gesetzt.
-- Command von `vso` auf `so` umgestellt; `vso`, `clipso`, `videoso` bleiben Aliases.
-- Clip-Suchreihenfolge auf `[90, 365, 0]` gesetzt.
-- Offizielle Twitch-Shoutout-Queue mit 2-Minuten-Global-Cooldown und 60-Minuten-Ziel-Cooldown ergänzt.
-- Event-Bus-Events für Shoutout-System ergänzt.
-- Dashboard-Moduldateien für Clip-Shoutout/SO ergänzt.
+- Clip-Shoutout Runtime-Version auf `0.2.1` erhöht.
+- Persistente Display-Queue für Shouti-Anzeigen ergänzt.
+- 2-Minuten-Cooldown zwischen Shouti-Anzeige-Starts ergänzt.
+- Dashboard zeigt jetzt Display-Queue und offizielle Twitch-Shoutout-Queue.
+- Twitch-Fehler `not streaming live / no viewers` wird als `waiting_stream_live` behandelt.

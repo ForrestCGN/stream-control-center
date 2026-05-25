@@ -1,13 +1,13 @@
-# FILES – STEP457
+# FILES
 
-Geändert/neu:
+## STEP458
 
 - `backend/modules/clip_shoutout.js`
 - `htdocs/dashboard/modules/clip_shoutout.js`
 - `htdocs/dashboard/modules/clip_shoutout.css`
-- `project-state/STEP457_SHOUTOUT_SYSTEM_QUEUE_DASHBOARD_EVENTBUS.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/STEP458_SHOUTOUT_DISPLAY_QUEUE_2MIN_AND_TWITCH_WAIT_FIX.md`

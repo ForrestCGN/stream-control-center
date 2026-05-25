@@ -1,13 +1,16 @@
-# CURRENT SYSTEM STATUS
+# CURRENT_SYSTEM_STATUS
 
-Stand: STEP457_SHOUTOUT_SYSTEM_QUEUE_DASHBOARD_EVENTBUS
+## STEP458 aktiv
 
-Das Clip-Shoutout-System ist zum SO-System erweitert:
+Clip-Shoutout / SO-System:
 
-- Command: `!so @user`
-- Aliases: `!vso`, `!clipso`, `!videoso`
-- Clip-Suche: zuerst 90 Tage, danach 365 Tage, danach all_time
-- offizieller Twitch-Shoutout wird nach Ende der Anzeige queued
-- Cooldowns: 120 Sekunden global, 3600 Sekunden pro Zielkanal
-- Event-Bus: `shoutout.system`
-- Dashboard-Moduldateien vorbereitet
+- Modul: `clip_shoutout`
+- Runtime-Version: `0.2.1`
+- Command: `!so`
+- Aliase: `!vso`, `!clipso`, `!videoso`
+- Clip-Suche: `90, 365, all_time`
+- Shouti-Anzeigen laufen über eine eigene Display-Queue
+- Display-Cooldown: 120 Sekunden
+- offizieller Twitch-Shoutout wird nach Anzeige-Ende queued
+- Twitch `not streaming live / no viewers` wird als Wartestatus behandelt
+- Event-Bus Channel: `shoutout.system`
