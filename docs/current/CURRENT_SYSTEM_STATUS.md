@@ -1,16 +1,16 @@
-# Current System Status – STEP436
+# Current System Status – STEP437
 
-STEP436 adds a controlled admin-test role bypass for VIP Guard diagnostics.
+STEP437 fixes the STEP436 admin-test Guard diagnostic crash.
 
 ## Changed
 - `backend/modules/vip_sound_overlay.js`
-- VIP module version: `1.8.19`
-- Feature: `vip_admin_test_guard_bypass`
-- The admin/dashboard test route `/api/vip-sound/test` can now accept `forceAccess=true` to diagnose the real VIP trigger path even when the simulated login is not currently known as Twitch VIP/Mod.
+- VIP module version: `1.8.20`
+- Feature: `vip_admin_test_guard_snapshot_fix`
+- Fixed the real-flow Guard snapshot creation for the admin-test `forceAccess=true` path.
+- `/api/vip-sound/test` can still use `forceAccess=true` for diagnostics.
 - The normal `/api/vip-sound/command` path remains protected by the Twitch VIP/Mod check.
-- `forceAccess=true` is only applied through the internal admin-test execution path, not by normal commands.
-- With `consumeDaily=false`, the admin test bypasses Daily-Usage writing while still reaching the real guard/legacy Sound-System path.
-- Real-flow diagnostics can now be validated through `stats.realFlowChecks`, `stats.realFlowLegacyFallbacks`, and `stats.lastRealFlowGuard`.
+- `stats.realFlowChecks` and `stats.realFlowLegacyFallbacks` remain visible.
+- `stats.lastRealFlowGuard` can now be written without the previous `snapshot before initialization` crash.
 
 ## Safety
 - Effective productive VIP flow remains `legacy_sound_system_api`.
@@ -22,4 +22,4 @@ STEP436 adds a controlled admin-test role bypass for VIP Guard diagnostics.
 - No DB schema migration.
 
 ## Current meaning
-The real VIP function can now be diagnosed through the admin test route without depending on a live Twitch VIP/Mod cache state. This is a diagnostic bypass only; it is not a public permission bypass and does not enable productive Bus delivery.
+The admin test can now verify the real VIP trigger path diagnostics with `forceAccess=true` without crashing while building `lastRealFlowGuard`. This is still only a diagnostic bypass and does not enable productive Bus delivery.

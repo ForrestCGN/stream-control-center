@@ -1,4 +1,4 @@
-# FILES – STEP436
+# FILES – STEP437
 
 Changed files:
 
@@ -8,4 +8,4 @@ Changed files:
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP436_VIP_ADMIN_TEST_GUARD_BYPASS.md`
+- `project-state/STEP437_VIP_ADMIN_TEST_GUARD_SNAPSHOT_FIX.md`

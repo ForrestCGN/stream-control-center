@@ -1,8 +1,8 @@
-# CURRENT STATUS – STEP436
+# CURRENT STATUS – STEP437
 
-VIP admin tests can now reach the real VIP trigger path with `forceAccess=true` for Guard/Fallback diagnostics.
+STEP437 fixes the STEP436 admin-test Guard diagnostic crash.
 
-The normal Twitch command path remains protected by the VIP/Mod role check. The bypass is limited to the admin/dashboard test execution path.
+The admin test route can continue to use `forceAccess=true` to reach the real VIP trigger path for diagnostics, while the normal Twitch command path remains protected by the VIP/Mod role check.
 
 Productive VIP delivery still remains legacy `/api/sound/play` / `legacy_sound_system_api`.
 
