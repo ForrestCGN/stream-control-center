@@ -2,4 +2,4 @@
 
 Recommended next step:
 
-- STEP438: After STEP437 test passes, evaluate the admin-test Guard result and plan the first controlled productive VIP Bus switch path with immediate legacy fallback/rollback.
+- STEP439: If STEP438 passes with a real existing MP3, plan the first controlled productive VIP Bus switch path with immediate legacy fallback/rollback.

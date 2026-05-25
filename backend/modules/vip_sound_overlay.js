@@ -282,7 +282,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.20",
+    version: "1.8.21",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -1978,6 +1978,141 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function listExistingVipSoundFiles(limit = 50) {
+    const baseDir = getVipSoundBaseDir();
+    const fileExtension = normalizeFileExtension(getVipSetting("fileExtension", ".mp3")).toLowerCase();
+    const max = Math.max(1, Math.min(250, Number(limit || 50) || 50));
+
+    let entries = [];
+    try {
+      if (!fs.existsSync(baseDir)) {
+        return {
+          ok: true,
+          module: MODULE_NAME,
+          version: state.version,
+          feature: "vip_admin_test_existing_sound_file",
+          baseDir,
+          fileExtension,
+          count: 0,
+          rows: [],
+          error: "base_dir_missing",
+          updatedAt: nowIso()
+        };
+      }
+
+      entries = fs.readdirSync(baseDir, { withFileTypes: true })
+        .filter(entry => entry && entry.isFile && entry.isFile())
+        .map(entry => entry.name)
+        .filter(fileName => path.extname(fileName).toLowerCase() === fileExtension)
+        .sort((a, b) => a.localeCompare(b, "de", { sensitivity: "base" }))
+        .slice(0, max)
+        .map(fileName => {
+          const fullPath = path.join(baseDir, fileName);
+          let stat = null;
+          try {
+            stat = fs.statSync(fullPath);
+          } catch (_) {
+            stat = null;
+          }
+          const baseName = path.basename(fileName, path.extname(fileName));
+          return {
+            fileName,
+            baseName,
+            suggestedLogin: normalizeLogin(baseName),
+            suggestedDisplayName: cleanDisplayName(baseName),
+            relativeFile: toSoundSystemFileReference(fullPath),
+            fullPath,
+            exists: fileExistsSafe(fullPath),
+            sizeBytes: stat ? Number(stat.size || 0) : 0,
+            modifiedAt: stat && stat.mtime ? stat.mtime.toISOString() : ""
+          };
+        });
+    } catch (err) {
+      return {
+        ok: false,
+        module: MODULE_NAME,
+        version: state.version,
+        feature: "vip_admin_test_existing_sound_file",
+        baseDir,
+        fileExtension,
+        count: 0,
+        rows: [],
+        error: err.message || String(err),
+        updatedAt: nowIso()
+      };
+    }
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: state.version,
+      feature: "vip_admin_test_existing_sound_file",
+      baseDir,
+      fileExtension,
+      count: entries.length,
+      rows: entries,
+      updatedAt: nowIso()
+    };
+  }
+
+  function resolveVipAdminTestSoundOverride(raw = {}) {
+    const data = raw && typeof raw === "object" ? raw : {};
+    const useExisting = boolish(data.useExistingSound || data.autoExistingSound || data.useFirstExistingSound || data.forceExistingSound);
+    const requested = String(data.testSoundFile || data.soundFile || data.vipTestSoundFile || data.existingSoundFile || "").trim();
+    if (!useExisting && !requested) return null;
+
+    const baseDir = getVipSoundBaseDir();
+    const fileExtension = normalizeFileExtension(getVipSetting("fileExtension", ".mp3"));
+    let fileName = requested;
+
+    if (!fileName && useExisting) {
+      const list = listExistingVipSoundFiles(100);
+      const first = list && Array.isArray(list.rows) ? list.rows.find(row => row && row.exists) : null;
+      if (!first) {
+        return {
+          ok: false,
+          reason: "no_existing_vip_sound_file",
+          baseDir,
+          fileExtension,
+          exists: false
+        };
+      }
+      fileName = first.fileName;
+    }
+
+    fileName = path.basename(fileName);
+    if (!path.extname(fileName)) fileName = `${fileName}${fileExtension}`;
+
+    const fullPath = path.resolve(baseDir, fileName);
+    const baseResolved = path.resolve(baseDir);
+    if (fullPath !== baseResolved && !fullPath.startsWith(baseResolved + path.sep)) {
+      return {
+        ok: false,
+        reason: "sound_file_outside_base_dir",
+        baseDir,
+        fileName,
+        fullPath,
+        exists: false
+      };
+    }
+
+    const exists = fileExistsSafe(fullPath);
+    const baseName = path.basename(fileName, path.extname(fileName));
+    return {
+      ok: exists,
+      reason: exists ? "admin_test_sound_override" : "admin_test_sound_override_missing",
+      displayName: cleanDisplayName(baseName),
+      fileName,
+      baseDir,
+      fullPath,
+      relativeFile: toSoundSystemFileReference(fullPath),
+      fileNameMode: "admin_test_override",
+      fileExtension: path.extname(fileName) || fileExtension,
+      exists,
+      adminTestSoundOverride: true
+    };
+  }
+
 
   function createVipSoundUploadMiddleware() {
     if (!multer) return null;
@@ -2615,7 +2750,10 @@ module.exports.init = function init(ctx) {
   }
 
   async function queueVipSoundInSoundSystem(user, soundType, context, requestId, source) {
-    const sound = resolveVipSoundFile(user);
+    const adminTestSoundOverride = context && context.adminTestSoundOverride && context.adminTestSoundOverride.exists
+      ? context.adminTestSoundOverride
+      : null;
+    const sound = adminTestSoundOverride || resolveVipSoundFile(user);
 
     if (!sound.exists) {
       return {
@@ -2659,6 +2797,8 @@ module.exports.init = function init(ctx) {
         login: user.login || "",
         displayName: user.displayName || user.login || "",
         soundFile: sound.relativeFile,
+        adminTestSoundOverride: !!adminTestSoundOverride,
+        adminTestSoundOverrideFile: adminTestSoundOverride ? adminTestSoundOverride.relativeFile : "",
         vipBusMode: context.vipBusMode || getRuntimeVipBusMode(),
         busModeGuard: context.busModeGuard || buildVipBusModeGuard(context.vipBusMode || getRuntimeVipBusMode(), "legacy_sound_payload"),
         effectiveVipFlow: "legacy_sound_system_api",
@@ -2927,7 +3067,7 @@ module.exports.init = function init(ctx) {
       legacy: "Produktiver VIP-Flow nutzt weiter legacy /api/sound/play. Bus-Command-Routen bleiben nur Diagnose/Test.",
       shadow: "Produktiver VIP-Flow bleibt legacy; VIP-Sound-Wuensche werden als Bus-Command gespiegelt.",
       play_test: "Nur explizite Test-/Diagnose-Routen duerfen ueber Sound play-test Audio starten. Produktiver VIP-Flow bleibt legacy.",
-      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP437 weiterhin durch Guard/Fallback blockiert und nicht als automatischer Produktiv-Flow aktiv."
+      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP438 weiterhin durch Guard/Fallback blockiert und nicht als automatischer Produktiv-Flow aktiv."
     };
     return descriptions[normalized] || descriptions.legacy;
   }
@@ -2947,7 +3087,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_admin_test_guard_snapshot_fix",
+      feature: "vip_admin_test_existing_sound_file",
       source: String(source || "status"),
       requestedVipBusMode: requestedMode,
       runtimeVipBusMode: runtimeMode,
@@ -2957,7 +3097,7 @@ module.exports.init = function init(ctx) {
       fallbackVipBusMode: "legacy",
       fallbackReason,
       guardActive: true,
-      guardStep: "STEP437",
+      guardStep: "STEP438",
       productiveBusRequested,
       productiveBusAllowed: false,
       productiveBusBlocked: productiveBusRequested,
@@ -2974,7 +3114,7 @@ module.exports.init = function init(ctx) {
       overlayTouched: false,
       dailyUsageTouched: false,
       notes: [
-        "STEP437 adds an explicit admin-test forceAccess bypass so the real VIP trigger path can be diagnosed without changing the normal Twitch role guard.",
+        "STEP438 lets the admin-test route use an existing VIP sound file for diagnostics without changing the normal Twitch role guard.",
         "bus_enabled is visible and selectable, but the guard keeps productive VIP sound delivery on legacy_sound_system_api.",
         "No automatic productive Bus consumption is enabled in this step.",
         "Explicit dry-run/play-test diagnostic routes remain available for testing only."
@@ -3008,6 +3148,8 @@ module.exports.init = function init(ctx) {
       forceAccess: !!extra.forceAccess,
       forceAccessApplied: !!extra.forceAccessApplied,
       adminTestDailyUsageBypassed: !!extra.adminTestDailyUsageBypassed,
+      adminTestSoundOverride: !!extra.adminTestSoundOverride,
+      adminTestSoundOverrideFile: String(extra.adminTestSoundOverrideFile || ""),
       vipBusMode: runtimeVipBusMode,
       runtimeVipBusMode,
       configuredVipBusMode: getConfiguredVipBusMode(),
@@ -3068,7 +3210,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_admin_test_guard_snapshot_fix",
+      feature: "vip_admin_test_existing_sound_file",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
@@ -3169,8 +3311,8 @@ module.exports.init = function init(ctx) {
         "This layer mirrors VIP sound wishes as test-only sound.command events for diagnostics.",
         "The dry-run route sends the same payload to the Sound-System dry-run consumer for validation only.",
         "The play-test route sends the same payload to the Sound-System explicit play-test route for manual audio testing.",
-        "STEP437 lets the admin-test route reach the real VIP trigger path with forceAccess=true while normal Twitch commands remain protected.",
-        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP437.",
+        "STEP438 lets the admin-test route reach the real VIP sound queue path with forceAccess=true and an existing sound file while normal Twitch commands remain protected.",
+        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP438.",
         "It does not change the productive VIP entry point and does not automatically consume Bus commands.",
         "If the Communication Bus is unavailable, VIP continues through the existing Sound-System flow."
       ],
@@ -3487,7 +3629,7 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_guard_snapshot_fix",
+        feature: "vip_admin_test_existing_sound_file",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3516,7 +3658,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_guard_snapshot_fix",
+        feature: "vip_admin_test_existing_sound_file",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3622,7 +3764,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playTestResult && playTestResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_guard_snapshot_fix",
+        feature: "vip_admin_test_existing_sound_file",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -3652,7 +3794,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_guard_snapshot_fix",
+        feature: "vip_admin_test_existing_sound_file",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4064,6 +4206,7 @@ module.exports.init = function init(ctx) {
     const targetDisplayName = cleanDisplayName(data.targetDisplayName || data.displayName || data.userDisplayName || data.target || data.user || targetLogin);
     const consumeDaily = boolish(data.consumeDaily || data.selfTrigger || data.writeDailyUsage);
     const forceAccess = boolish(data.forceAccess || data.adminForceAccess || data.vipAdminForceAccess);
+    const soundOverride = resolveVipAdminTestSoundOverride(data);
 
     const actorLogin = normalizeLogin(data.actorLogin || data.actorUserLogin || (consumeDaily ? targetLogin : "forrestcgn"));
     const actorDisplayName = cleanDisplayName(data.actorDisplayName || data.actor || (consumeDaily ? targetDisplayName : "ForrestCGN"));
@@ -4080,7 +4223,9 @@ module.exports.init = function init(ctx) {
       displayName: actorDisplayName,
       adminTest: "true",
       vipAdminTest: "true",
-      forceAccess: forceAccess ? "true" : "false"
+      forceAccess: forceAccess ? "true" : "false",
+      useExistingSound: boolish(data.useExistingSound || data.autoExistingSound || data.useFirstExistingSound || data.forceExistingSound) ? "true" : "false",
+      testSoundFile: soundOverride && soundOverride.exists ? soundOverride.fileName : ""
     };
 
     if (consumeDaily) {
@@ -4100,7 +4245,8 @@ module.exports.init = function init(ctx) {
     const result = await handleVipCommand(payload, {
       adminTest: true,
       forceAccess,
-      consumeDaily
+      consumeDaily,
+      soundOverride: soundOverride && soundOverride.exists ? soundOverride : null
     });
     return {
       ...result,
@@ -4108,6 +4254,9 @@ module.exports.init = function init(ctx) {
       forceAccess,
       forceAccessApplied: !!(result && result.forceAccessApplied),
       consumeDaily,
+      useExistingSound: boolish(data.useExistingSound || data.autoExistingSound || data.useFirstExistingSound || data.forceExistingSound),
+      adminTestSoundOverride: soundOverride && soundOverride.exists ? publicVipSoundInfo(soundOverride, vipSoundDurationInfo(soundOverride)) : null,
+      adminTestSoundOverrideError: soundOverride && !soundOverride.exists ? soundOverride.reason || "sound_override_missing" : "",
       simulatedActor: {
         login: actorLogin,
         displayName: actorDisplayName
@@ -4124,6 +4273,7 @@ module.exports.init = function init(ctx) {
     const adminTestRoute = !!opts.adminTest;
     const adminTestForceAccess = !!(adminTestRoute && opts.forceAccess);
     const adminTestSkipDailyUsage = !!(adminTestRoute && opts.consumeDaily === false);
+    const adminTestSoundOverride = adminTestRoute && opts.soundOverride && opts.soundOverride.exists ? opts.soundOverride : null;
     const dbReady = ensureVipSchema();
     const requestedSoundType = normalizeSoundType(raw.soundType || raw.type);
     const trigger = String(raw.trigger || raw.command || "").trim();
@@ -4171,7 +4321,8 @@ module.exports.init = function init(ctx) {
       date: usageDate,
       override: overrideDailyUsage ? "1" : "0",
       adminTest: adminTestRoute ? "1" : "0",
-      forceAccess: adminTestForceAccess ? "1" : "0"
+      forceAccess: adminTestForceAccess ? "1" : "0",
+      adminTestSoundOverride: adminTestSoundOverride || null
     };
 
     const twitchAccess = twitchSoundAccessForUser(user);
@@ -4298,7 +4449,9 @@ module.exports.init = function init(ctx) {
       adminTest: adminTestRoute,
       forceAccess: adminTestForceAccess,
       forceAccessApplied: adminTestForceAccess && !twitchAccess.allowed,
-      adminTestDailyUsageBypassed: adminTestSkipDailyUsage
+      adminTestDailyUsageBypassed: adminTestSkipDailyUsage,
+      adminTestSoundOverride: !!adminTestSoundOverride,
+      adminTestSoundOverrideFile: adminTestSoundOverride ? adminTestSoundOverride.relativeFile : ""
     });
     const guardedContext = {
       ...context,
@@ -4334,6 +4487,8 @@ module.exports.init = function init(ctx) {
         forceAccess: adminTestForceAccess,
         forceAccessApplied: adminTestForceAccess && !twitchAccess.allowed,
         adminTestDailyUsageBypassed: adminTestSkipDailyUsage,
+        adminTestSoundOverride: !!adminTestSoundOverride,
+        adminTestSoundOverrideFile: adminTestSoundOverride ? adminTestSoundOverride.relativeFile : "",
         soundSystemQueued: false,
         vipBusMode: realFlowGuard.runtimeVipBusMode,
         runtimeVipBusMode: realFlowGuard.runtimeVipBusMode,
@@ -4409,6 +4564,8 @@ module.exports.init = function init(ctx) {
       forceAccess: adminTestForceAccess,
       forceAccessApplied: adminTestForceAccess && !twitchAccess.allowed,
       adminTestDailyUsageBypassed: adminTestSkipDailyUsage,
+      adminTestSoundOverride: !!adminTestSoundOverride,
+      adminTestSoundOverrideFile: adminTestSoundOverride ? adminTestSoundOverride.relativeFile : "",
       soundSystemQueued: true,
       soundSystemStarted: !!soundQueue.result.started,
       soundSystemQueuePosition: Number(soundQueue.result.queuePosition || 0),
@@ -4571,6 +4728,7 @@ module.exports.init = function init(ctx) {
       { method: "POST", path: `${prefix}/daily-usage/reset-today`, purpose: "reset today's daily usage" },
       { method: "GET", path: `${prefix}/daily-usage/reset-today`, purpose: "legacy GET reset today's usage" },
       { method: "GET", path: `${prefix}/sounds/users`, purpose: "list Twitch VIP/Mod users with sound info" },
+      { method: "GET", path: `${prefix}/sounds/files`, purpose: "list existing VIP sound files for admin-test diagnostics" },
       { method: "GET", path: `${prefix}/sounds/status`, purpose: "resolve sound status for one user" },
       { method: "GET", path: `${prefix}/sounds/resolve`, purpose: "resolve upload target and expected sound file" },
       { method: "POST", path: `${prefix}/sounds/upload`, purpose: "upload or replace VIP/Mod sound" },
@@ -5054,7 +5212,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_admin_test_guard_snapshot_fix",
+          feature: "vip_admin_test_existing_sound_file",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5083,7 +5241,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_admin_test_guard_snapshot_fix",
+          feature: "vip_admin_test_existing_sound_file",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5194,7 +5352,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_guard_snapshot_fix",
+        feature: "vip_admin_test_existing_sound_file",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5228,7 +5386,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_guard_snapshot_fix",
+        feature: "vip_admin_test_existing_sound_file",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5244,7 +5402,7 @@ module.exports.init = function init(ctx) {
         modePreparedOnly: true,
         persisted: false,
         modeRuntimeStateStable: true,
-        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP437. Admin-test forceAccess is diagnostic only.",
+        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP438. Admin-test forceAccess is diagnostic only.",
         productiveEntryPointChanged: guard.productiveEntryPointChanged,
         queueTouched: guard.queueTouched,
         audioTouched: guard.audioTouched,
@@ -5769,6 +5927,17 @@ module.exports.init = function init(ctx) {
     });
 
 
+
+    app.get(`${prefix}/sounds/files`, (req, res) => {
+      try {
+        markClientSeen();
+        ensureVipSchema();
+        const limit = Number(bodyOrQuery(req, "limit") || 50) || 50;
+        return res.json(listExistingVipSoundFiles(limit));
+      } catch (err) {
+        return fail(res, 400, err.message || String(err));
+      }
+    });
 
     app.get(`${prefix}/sounds/users`, (req, res) => {
       try {
