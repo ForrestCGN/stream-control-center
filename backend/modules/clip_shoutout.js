@@ -13,7 +13,7 @@ let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.5";
+const MODULE_VERSION = "0.2.6";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -49,7 +49,7 @@ const DEFAULT_CONFIG = {
     soundPriority: 60,
     soundVolume: 100,
     sendChatMessage: true,
-    chatMessage: "✅ Shouti für @{displayName} aufgenommen.",
+    chatMessage: "✅ Shoutout für @{displayName} aufgenommen.",
     ttsAfterClipEnabled: false,
     ttsText: "Schaut gerne mal bei {displayName} vorbei.",
     ttsSynthesizeUrl: "http://127.0.0.1:8080/api/tts/synthesize",
@@ -69,21 +69,21 @@ const DEFAULT_CONFIG = {
       cooldownStartsAfterFinish: true,
       workerIntervalMs: 2000,
       sendChatMessages: true,
-      acceptedMessage: "✅ Shouti für @{displayName} aufgenommen.",
-      waitingMessage: "⏳ Shouti für @{displayName} aufgenommen und wartet in der Warteschlange.",
+      acceptedMessage: "✅ Shoutout für @{displayName} aufgenommen.",
+      waitingMessage: "⏳ Shoutout für @{displayName} aufgenommen und in die Warteschlange gesetzt.",
       startedMessage: "",
-      failedMessage: "⚠️ Shouti für @{displayName} konnte nicht gestartet werden."
+      failedMessage: "⚠️ Shoutout für @{displayName} konnte nicht gestartet werden."
     },
     officialShoutout: {
       enabled: true,
       enqueueAfterDisplay: true,
       sendChatMessages: true,
-      acceptedMessage: "✅ Shouti für @{displayName} aufgenommen.",
+      acceptedMessage: "✅ Shoutout für @{displayName} aufgenommen.",
       queuedMessage: "⏳ Offizieller Shoutout für @{displayName} ist vorgemerkt und wird nach dem Cooldown gesendet.",
-      sentMessage: "📣 Offizieller Twitch-Shoutout für @{displayName} wurde gesendet.",
-      duplicateQueuedMessage: "ℹ️ Für @{displayName} ist bereits ein offizieller Shoutout vorgemerkt.",
-      targetCooldownMessage: "ℹ️ Für @{displayName} läuft noch der Twitch-Ziel-Cooldown.",
-      failedMessage: "⚠️ Offizieller Shoutout für @{displayName} konnte nicht gesendet werden.",
+      sentMessage: "",
+      duplicateQueuedMessage: "",
+      targetCooldownMessage: "",
+      failedMessage: "",
       globalCooldownMs: 120000,
       targetCooldownMs: 3600000,
       workerIntervalMs: 5000,
@@ -398,6 +398,12 @@ function officialConfig(cfg) {
   return mergePlain(DEFAULT_CONFIG.clipShoutout.officialShoutout, (cfg && cfg.officialShoutout) || {});
 }
 
+function shouldSendOfficialChatMessages(_cfg) {
+  // STEP463: Fuer den Testbetrieb keine Chatmeldungen vom offiziellen Twitch-Shoutout-Folgeprozess.
+  // Chatmeldungen beim !vso selbst bleiben aktiv; Queue-/Cooldown-Hinweise fuer /shoutout bleiben stumm.
+  return false;
+}
+
 function ensureOfficialShoutoutSchema() {
   database.ensureReady();
   database.exec(`
@@ -660,7 +666,7 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
     emitShoutoutBus("shoutout.official.sending", { queueId: row.id, targetLogin: row.target_login }, cfg);
     const result = await sendOfficialTwitchShoutout(env, row, cfg);
     markOfficialQueueSent(row, result, cfg);
-    if (ocfg.sendChatMessages !== false) {
+    if (shouldSendOfficialChatMessages(cfg)) {
       await sendChatMessage(renderTemplate(ocfg.sentMessage, { login: row.target_login, displayName: row.target_display || row.target_login }).trim(), { targetLogin: row.target_login, queueId: row.id, officialShoutout: true });
     }
     return { ok: true, sent: true, queueId: row.id, result };
@@ -1671,9 +1677,9 @@ async function runDisplayJob(row, env, cfg) {
           meta: { source: MODULE_NAME, displayQueueId: row.id, clipTitle: clip.title || '' }
         }, cfg);
         const ocfg = officialConfig(cfg);
-        if (ocfg.sendChatMessages !== false && queueResult && queueResult.ok && queueResult.duplicate !== true) {
+        if (shouldSendOfficialChatMessages(cfg) && queueResult && queueResult.ok && queueResult.duplicate !== true) {
           await sendChatMessage(renderTemplate(ocfg.queuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true, queueId: queueResult.row && queueResult.row.id });
-        } else if (ocfg.sendChatMessages !== false && queueResult && queueResult.duplicate === true) {
+        } else if (shouldSendOfficialChatMessages(cfg) && queueResult && queueResult.duplicate === true) {
           await sendChatMessage(renderTemplate(ocfg.duplicateQueuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true });
         }
         await processOfficialShoutoutQueue(env, shoutoutConfig());
@@ -2044,6 +2050,7 @@ module.exports.init = function init(ctx) {
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       directChatCommandBypassInstalled,
+      officialChatMessagesMuted: true,
       command,
       aliases: currentCfg.aliases || [],
       routes: [

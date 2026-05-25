@@ -5,7 +5,7 @@
 Clip-Shoutout / VSO läuft im Reparaturstand:
 
 - Modul: `clip_shoutout`
-- Runtime-Version: `0.2.5`
+- Runtime-Version: `0.2.6`
 - Test-Command bleibt: `!vso`
 - Display-Queue aktiv
 - Display-Cooldown: 120 Sekunden nach Ende der Anzeige

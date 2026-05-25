@@ -55,7 +55,7 @@
     root.appendChild(el('div', { class: 'cso-header' }, [
       el('div', {}, [
         el('h2', { text: 'Clip-Shoutout / SO-System' }),
-        el('p', { text: 'Shouti-Queue mit 2-Minuten-Abstand nach Anzeige-Ende, 90-Tage-Clip-Suche und offizieller Twitch-Shoutout-Queue.' })
+        el('p', { text: 'Shoutout-Queue mit 2-Minuten-Abstand nach Anzeige-Ende, 90-Tage-Clip-Suche und stummen offiziellen Twitch-Shoutouts im Testmodus.' })
       ]),
       el('button', { class: 'cso-button', type: 'button', text: 'Aktualisieren' })
     ]));

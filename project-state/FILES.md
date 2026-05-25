@@ -11,5 +11,5 @@ project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
-project-state/STEP462_SHOUTOUT_DIRECT_CHAT_COMMAND_BYPASS_FIX.md
+project-state/STEP463_SHOUTOUT_CHAT_MESSAGE_CLEANUP_TEST_MODE.md
 ```
