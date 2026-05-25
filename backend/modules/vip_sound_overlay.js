@@ -273,7 +273,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.10",
+    version: "1.8.11",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -311,6 +311,10 @@ module.exports.init = function init(ctx) {
     eventBus: {
       enabled: true,
       channel: "vip.sound",
+      targetType: "all",
+      targetId: "*",
+      targetModule: MODULE_NAME,
+      targetCapability: "",
       emitted: 0,
       skipped: 0,
       errors: 0,
@@ -2849,10 +2853,10 @@ module.exports.init = function init(ctx) {
           module: MODULE_NAME
         },
         target: {
-          type: "all",
-          id: "*",
-          module: "",
-          capability: ""
+          type: state.eventBus.targetType || "all",
+          id: state.eventBus.targetId || "*",
+          module: state.eventBus.targetModule || MODULE_NAME,
+          capability: state.eventBus.targetCapability || ""
         },
         payload,
         meta: {
@@ -3692,6 +3696,13 @@ module.exports.init = function init(ctx) {
       statusApiVersion: "1.0.0",
       enabled: !!state.eventBus.enabled,
       channel: state.eventBus.channel,
+      target: {
+        type: state.eventBus.targetType || "all",
+        id: state.eventBus.targetId || "*",
+        module: state.eventBus.targetModule || MODULE_NAME,
+        capability: state.eventBus.targetCapability || ""
+      },
+      deliveryClassification: "module_scoped_status_event",
       communicationBusAvailable: busAvailable,
       soundSystemFlow: "unchanged",
       productionTarget: false,
@@ -3718,6 +3729,7 @@ module.exports.init = function init(ctx) {
       },
       notes: [
         "VIP EventBus events are status-only events on vip.sound.",
+        "They are targeted to the vip_sound_overlay module so unrelated overlay/debug clients do not receive them.",
         "They do not start sounds, do not control the overlay and do not replace /api/sound/play.",
         "The smoke-test route emits a test-only vip.sound event without touching Sound-System, queue, overlay or Daily-Usage.",
         "If the Communication Bus is unavailable, VIP sounds continue through the existing Sound-System flow."

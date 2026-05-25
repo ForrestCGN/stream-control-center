@@ -1,6 +1,6 @@
-# CURRENT_SYSTEM_STATUS – VIP EventBus Versioned Status Cleanup
+# CURRENT_SYSTEM_STATUS – VIP EventBus Delivery Classification
 
-Stand: STEP409 vorbereitet.
+Stand: STEP410 vorbereitet.
 
 ## Aktueller VIP-/EventBus-Stand
 
@@ -16,17 +16,22 @@ Der produktive Sound-Ablauf bleibt unverändert:
 → VIP-Overlay reagiert weiterhin auf Sound-System-Status
 ```
 
-## Neuer Stand in Version 1.8.10
+## Neuer Stand in Version 1.8.11
 
-Die Runtime-Statusausgabe der VIP-EventBus-Diagnose nutzt jetzt Versions-/Capability-Felder statt dauerhafter STEP-Kennungen:
+Die VIP-EventBus-Status-Events werden nicht mehr breit an alle Bus-Clients verteilt.
+
+Stattdessen ist die Delivery jetzt modulbezogen klassifiziert:
 
 ```text
-version: 1.8.10
-capability: vip.sound.status_events
-statusApiVersion: 1.0.0
+channel: vip.sound
+target.type: all
+target.id: *
+target.module: vip_sound_overlay
+target.capability: ""
+deliveryClassification: module_scoped_status_event
 ```
 
-Das alte `step`-Feld wurde aus der EventBus-Statusausgabe entfernt.
+Dadurch sollen fremde Clients wie Alert-Shadow-/Debug-Overlays keine `vip.sound`-Status-Events mehr in `deliveredTo` erhalten.
 
 ## Unverändert
 

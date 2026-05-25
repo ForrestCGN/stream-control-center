@@ -1,4 +1,4 @@
-# FILES – VIP EventBus Versioned Status Cleanup
+# FILES – VIP EventBus Delivery Classification
 
 ## Geändert
 
@@ -11,7 +11,7 @@
 
 ## Neu
 
-- `project-state/STEP409_VIP_EVENTBUS_VERSIONED_STATUS.md`
+- `project-state/STEP410_VIP_EVENTBUS_DELIVERY_CLASSIFICATION.md`
 
 ## Wichtig
 

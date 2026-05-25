@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## STEP410 – VIP EventBus Delivery Classification
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.8.11` erhöht.
+- `vip.sound` Status-Events werden jetzt modulbezogen an `vip_sound_overlay` adressiert.
+- `/api/vip-sound/eventbus/status` zeigt jetzt `target` und `deliveryClassification`.
+- Ziel: fremde Clients wie Alert-Shadow-/Debug-Overlays sollen keine VIP-Status-Events mehr in `deliveredTo` erhalten.
+- Keine Funktionsänderung an Sound-System, Queue, Daily-Usage, Overlay-Design oder DB-Schema.
+
 ## STEP409 – VIP EventBus Versioned Status Cleanup
 
 - `backend/modules/vip_sound_overlay.js` auf Version `1.8.10` erhöht.

@@ -1,17 +1,18 @@
-# CURRENT_STATUS – VIP EventBus Versioned Status Cleanup
+# CURRENT_STATUS – VIP EventBus Delivery Classification
 
-Aktueller Stand: STEP409 vorbereitet.
+Aktueller Stand: STEP410 vorbereitet.
 
 ## Kurzfassung
 
 Das VIP-/Mod-Sound-System hat eine funktionierende EventBus-Status-Anbindung auf `vip.sound`.
 
-Nach dem erfolgreichen Smoke-Test und dem echten Override-Test wurde die Runtime-Statusausgabe bereinigt:
+Nach dem erfolgreichen Smoke-Test, echten Override-Test und Versions-Cleanup wurde die Bus-Delivery bereinigt:
 
-- Modulversion: `1.8.10`
+- Modulversion: `1.8.11`
 - Capability: `vip.sound.status_events`
 - Status-API-Version: `1.0.0`
-- Kein dauerhaftes `step`-Feld mehr in `/api/vip-sound/eventbus/status`
+- Delivery-Klassifizierung: `module_scoped_status_event`
+- Zielmodul für `vip.sound`: `vip_sound_overlay`
 
 ## Bestehender produktiver Flow
 
@@ -32,6 +33,6 @@ Der EventBus meldet Status. Er startet keine Sounds und steuert kein Overlay.
 - Sound-System
 - Queue
 - Daily-Usage
-- Overlay
+- Overlay-Design
 - Datenbank-Schema
 - bestehende VIP-Routen
