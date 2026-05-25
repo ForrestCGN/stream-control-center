@@ -1,12 +1,3 @@
-# Current System Status – STEP422
+# Current System Status – STEP423
 
-STEP422 ergänzt die bestehende Bus-Diagnose im Dashboard um UX-Verbesserungen.
-
-Aktueller Bus-Stand:
-- Sound EventBus: aktiv, read-only beobachtbar.
-- Alert EventBus: aktiv, read-only beobachtbar.
-- Alert/Sound-Korrelation: aktiv, read-only diagnostizierbar.
-- Dashboard-Modul: `Admin -> Bus-Diagnose`.
-- Debug-Schnellzugriffe: Sound Debug, Alert Debug, Standalone Bus-Diagnose.
-
-Keine produktiven Flows wurden geändert.
+Die Bus-Diagnose ist im Dashboard integriert und besitzt jetzt optionalen Auto-Refresh mit Live-Status. Die Diagnose bleibt read-only und verändert keine produktiven Sound-, Alert-, Queue-, Bundle-/TTS- oder Overlay-Flows.

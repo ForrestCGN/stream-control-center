@@ -6,7 +6,11 @@
     lastData: null,
     lastError: '',
     autoTimer: null,
-    autoRefresh: false
+    countdownTimer: null,
+    autoRefresh: localStorage.getItem('cgn-busdiag-auto-refresh') === '1',
+    refreshEveryMs: Number(localStorage.getItem('cgn-busdiag-refresh-ms') || 10000),
+    nextRefreshAt: 0,
+    visible: !document.hidden
   };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
@@ -29,6 +33,34 @@
     return `<article class="busdiag-card ${extraClass}"><h3>${esc(title)}</h3>${body}</article>`;
   }
 
+  function refreshLabel(){
+    return state.autoRefresh ? `Auto: an (${Math.round(state.refreshEveryMs / 1000)}s)` : 'Auto: aus';
+  }
+
+  function updateLiveStatus(){
+    const root = panel();
+    if (!root) return;
+    const live = root.querySelector('[data-busdiag-live]');
+    const autoBtn = root.querySelector('[data-busdiag-action="toggle-auto"]');
+    if (autoBtn) autoBtn.textContent = refreshLabel();
+    if (!live) return;
+    const last = state.lastData?.fetchedAt ? new Date(state.lastData.fetchedAt).toLocaleTimeString('de-DE') : '-';
+    const status = state.lastError ? 'Fehler' : (state.loading ? 'Lädt…' : 'Bereit');
+    let next = '-';
+    if (state.autoRefresh && state.nextRefreshAt && state.visible) {
+      const left = Math.max(0, Math.ceil((state.nextRefreshAt - Date.now()) / 1000));
+      next = `${left}s`;
+    } else if (state.autoRefresh && !state.visible) {
+      next = 'pausiert';
+    }
+    live.innerHTML = `
+      <span>${esc(status)}</span>
+      <span>Letztes Laden: ${esc(last)}</span>
+      <span>Auto: ${state.autoRefresh ? 'an' : 'aus'}</span>
+      <span>Nächstes Laden: ${esc(next)}</span>
+    `;
+  }
+
   function renderSkeleton(){
     const root = panel();
     if (!root) return;
@@ -43,12 +75,19 @@
           <div class="busdiag-actions">
             <button type="button" data-busdiag-action="refresh">Status laden</button>
             <button type="button" class="secondary" data-busdiag-action="check">Check ausführen</button>
-            <button type="button" class="secondary" data-busdiag-action="toggle-auto">Auto: aus</button>
+            <button type="button" class="secondary" data-busdiag-action="toggle-auto">${esc(refreshLabel())}</button>
+            <select class="busdiag-select" data-busdiag-refresh-ms title="Auto-Refresh Intervall">
+              <option value="5000">5s</option>
+              <option value="10000">10s</option>
+              <option value="30000">30s</option>
+              <option value="60000">60s</option>
+            </select>
             <a class="ghost-link" href="/public/tools/bus_diagnostics_dashboard.html" target="_blank">Standalone</a>
             <a class="ghost-link" href="/public/tools/sound_eventbus_debug.html" target="_blank">Sound Debug</a>
             <a class="ghost-link" href="/public/tools/alert_eventbus_debug.html" target="_blank">Alert Debug</a>
           </div>
         </div>
+        <div class="busdiag-livebar" data-busdiag-live aria-live="polite"></div>
         <div class="busdiag-content" data-busdiag-content>
           <div class="busdiag-empty glass">Noch keine Daten geladen.</div>
         </div>
@@ -56,7 +95,19 @@
     `;
     root.querySelector('[data-busdiag-action="refresh"]')?.addEventListener('click', () => loadAll(false));
     root.querySelector('[data-busdiag-action="check"]')?.addEventListener('click', () => loadAll(true));
+    const refreshSelect = root.querySelector('[data-busdiag-refresh-ms]');
+    if (refreshSelect) {
+      refreshSelect.value = String(state.refreshEveryMs);
+      refreshSelect.addEventListener('change', () => {
+        state.refreshEveryMs = Number(refreshSelect.value || 10000);
+        localStorage.setItem('cgn-busdiag-refresh-ms', String(state.refreshEveryMs));
+        restartAutoTimer();
+        updateLiveStatus();
+      });
+    }
     root.querySelector('[data-busdiag-action="toggle-auto"]')?.addEventListener('click', toggleAutoRefresh);
+    restartAutoTimer();
+    updateLiveStatus();
   }
 
   async function loadAll(check){
@@ -68,12 +119,15 @@
       const data = await window.CGN.api(check ? '/api/bus-diagnostics/check' : '/api/bus-diagnostics/status');
       state.lastData = data;
       renderData(data);
+      scheduleNextRefresh();
     } catch (err) {
       state.lastError = err.message || String(err);
       renderError(state.lastError);
+      scheduleNextRefresh();
     } finally {
       state.loading = false;
       setBusy(false);
+      updateLiveStatus();
     }
   }
 
@@ -82,26 +136,49 @@
     if (!root) return;
     root.querySelectorAll('[data-busdiag-action="refresh"],[data-busdiag-action="check"]').forEach(btn => { btn.disabled = !!busy; });
     root.classList.toggle('is-loading', !!busy);
+    updateLiveStatus();
   }
 
   function toggleAutoRefresh(){
     state.autoRefresh = !state.autoRefresh;
-    const root = panel();
-    const btn = root?.querySelector('[data-busdiag-action="toggle-auto"]');
-    if (btn) btn.textContent = state.autoRefresh ? 'Auto: an' : 'Auto: aus';
-    if (state.autoTimer) {
-      clearInterval(state.autoTimer);
-      state.autoTimer = null;
+    localStorage.setItem('cgn-busdiag-auto-refresh', state.autoRefresh ? '1' : '0');
+    restartAutoTimer();
+    updateLiveStatus();
+    if (state.autoRefresh) loadAll(false);
+  }
+
+  function restartAutoTimer(){
+    if (state.autoTimer) clearTimeout(state.autoTimer);
+    state.autoTimer = null;
+    if (state.countdownTimer) clearInterval(state.countdownTimer);
+    state.countdownTimer = null;
+    if (!state.autoRefresh) {
+      state.nextRefreshAt = 0;
+      updateLiveStatus();
+      return;
     }
-    if (state.autoRefresh) {
-      state.autoTimer = setInterval(() => loadAll(false), 10000);
-      loadAll(false);
+    state.countdownTimer = setInterval(updateLiveStatus, 1000);
+    scheduleNextRefresh();
+  }
+
+  function scheduleNextRefresh(){
+    if (state.autoTimer) clearTimeout(state.autoTimer);
+    state.autoTimer = null;
+    if (!state.autoRefresh || !state.visible) {
+      state.nextRefreshAt = 0;
+      updateLiveStatus();
+      return;
     }
+    state.nextRefreshAt = Date.now() + state.refreshEveryMs;
+    state.autoTimer = setTimeout(() => loadAll(false), state.refreshEveryMs);
+    updateLiveStatus();
   }
 
   function renderError(message){
     const content = panel()?.querySelector('[data-busdiag-content]');
     if (!content) return;
+    updateLiveStatus();
+    updateLiveStatus();
     content.innerHTML = `<div class="busdiag-error glass"><strong>Fehler beim Laden</strong><p>${esc(message)}</p></div>`;
   }
 
@@ -253,26 +330,44 @@
 
   function loadWhenShown(event){
     if (event.detail?.module !== 'bus_diagnostics') return;
+    state.visible = !document.hidden;
     if (!panel()?.dataset.rendered) {
       renderSkeleton();
       panel().dataset.rendered = '1';
     }
     loadAll(false);
+    restartAutoTimer();
   }
 
   window[MODULE] = {
     loadAll,
     render: renderSkeleton,
     stop(){
-      if (state.autoTimer) clearInterval(state.autoTimer);
+      if (state.autoTimer) clearTimeout(state.autoTimer);
+      if (state.countdownTimer) clearInterval(state.countdownTimer);
       state.autoTimer = null;
-      state.autoRefresh = false;
+      state.countdownTimer = null;
+      state.nextRefreshAt = 0;
+      updateLiveStatus();
     }
   };
+
+  document.addEventListener('visibilitychange', () => {
+    state.visible = !document.hidden;
+    if (state.visible && window.CGN?.activeModule === 'bus_diagnostics') {
+      if (state.autoRefresh) loadAll(false);
+    } else {
+      if (state.autoTimer) clearTimeout(state.autoTimer);
+      state.autoTimer = null;
+      state.nextRefreshAt = 0;
+      updateLiveStatus();
+    }
+  });
 
   window.addEventListener('cgn:module-show', loadWhenShown);
   if (window.CGN?.activeModule === 'bus_diagnostics') {
     renderSkeleton();
     loadAll(false);
+    restartAutoTimer();
   }
 })();

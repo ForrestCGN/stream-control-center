@@ -1,12 +1,6 @@
-# CHANGELOG – STEP422
+# CHANGELOG
 
-## Added
-- Schnellzugriffe im Bus-Diagnose-Modul.
-- Hinweise für verbundene/nicht verbundene Debug-Clients.
-
-## Changed
-- Capability-Anzeige im Dashboard besser lesbar.
-- Kleine Responsive-/Hover-Verbesserungen.
-
-## Unchanged
-- Sound-System, Alert-System, Queue, Bundle/TTS, Overlay, DB.
+## STEP423
+- Optionalen Auto-Refresh für Bus-Diagnose Dashboard ergänzt.
+- Livebar für Ladezustand, letztes Laden und nächste Aktualisierung ergänzt.
+- Browser-Tab-Pause für Auto-Refresh ergänzt.
