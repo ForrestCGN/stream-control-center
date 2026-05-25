@@ -1,8 +1,8 @@
-# CURRENT STATUS – STEP435
+# CURRENT STATUS – STEP436
 
-VIP Bus Guard/Fallback diagnostics are now attached to the real VIP trigger path.
+VIP admin tests can now reach the real VIP trigger path with `forceAccess=true` for Guard/Fallback diagnostics.
 
-When a real VIP/Mod sound request is accepted, the module records the active runtime `vipBusMode`, the Guard decision, and the effective fallback result.
+The normal Twitch command path remains protected by the VIP/Mod role check. The bypass is limited to the admin/dashboard test execution path.
 
 Productive VIP delivery still remains legacy `/api/sound/play` / `legacy_sound_system_api`.
 

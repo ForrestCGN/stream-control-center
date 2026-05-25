@@ -282,7 +282,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.18",
+    version: "1.8.19",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -2927,7 +2927,7 @@ module.exports.init = function init(ctx) {
       legacy: "Produktiver VIP-Flow nutzt weiter legacy /api/sound/play. Bus-Command-Routen bleiben nur Diagnose/Test.",
       shadow: "Produktiver VIP-Flow bleibt legacy; VIP-Sound-Wuensche werden als Bus-Command gespiegelt.",
       play_test: "Nur explizite Test-/Diagnose-Routen duerfen ueber Sound play-test Audio starten. Produktiver VIP-Flow bleibt legacy.",
-      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP435 weiterhin durch Guard/Fallback blockiert und nicht als automatischer Produktiv-Flow aktiv."
+      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP436 weiterhin durch Guard/Fallback blockiert und nicht als automatischer Produktiv-Flow aktiv."
     };
     return descriptions[normalized] || descriptions.legacy;
   }
@@ -2940,14 +2940,14 @@ module.exports.init = function init(ctx) {
     const explicitPlayTestRequested = requestedMode === "play_test";
     const shadowMirrorRequested = requestedMode === "shadow" || requestedMode === "play_test" || requestedMode === "bus_enabled";
     const fallbackReason = productiveBusRequested
-      ? "productive_bus_guard_locked_step434"
-      : "productive_flow_locked_to_legacy_step434";
+      ? "productive_bus_guard_locked"
+      : "productive_flow_locked_to_legacy";
 
     return {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_sound_guard_real_flow_diagnostics",
+      feature: "vip_admin_test_guard_bypass",
       source: String(source || "status"),
       requestedVipBusMode: requestedMode,
       runtimeVipBusMode: runtimeMode,
@@ -2957,7 +2957,7 @@ module.exports.init = function init(ctx) {
       fallbackVipBusMode: "legacy",
       fallbackReason,
       guardActive: true,
-      guardStep: "STEP435",
+      guardStep: "STEP436",
       productiveBusRequested,
       productiveBusAllowed: false,
       productiveBusBlocked: productiveBusRequested,
@@ -2974,7 +2974,7 @@ module.exports.init = function init(ctx) {
       overlayTouched: false,
       dailyUsageTouched: false,
       notes: [
-        "STEP435 attaches the VIP bus-mode guard decision to the real VIP trigger path for diagnostics only.",
+        "STEP436 adds an explicit admin-test forceAccess bypass so the real VIP trigger path can be diagnosed without changing the normal Twitch role guard.",
         "bus_enabled is visible and selectable, but the guard keeps productive VIP sound delivery on legacy_sound_system_api.",
         "No automatic productive Bus consumption is enabled in this step.",
         "Explicit dry-run/play-test diagnostic routes remain available for testing only."
@@ -3004,6 +3004,10 @@ module.exports.init = function init(ctx) {
       actorDisplayName: cleanDisplayName(extra.actorDisplayName || context.actorDisplayName || ""),
       targetLogin: normalizeLogin(extra.targetLogin || context.targetLogin || context.login || ""),
       targetDisplayName: cleanDisplayName(extra.targetDisplayName || context.targetDisplayName || context.displayName || ""),
+      adminTest: !!extra.adminTest,
+      forceAccess: !!extra.forceAccess,
+      forceAccessApplied: !!extra.forceAccessApplied,
+      adminTestDailyUsageBypassed: !!extra.adminTestDailyUsageBypassed,
       vipBusMode: runtimeVipBusMode,
       runtimeVipBusMode,
       configuredVipBusMode: getConfiguredVipBusMode(),
@@ -3016,6 +3020,8 @@ module.exports.init = function init(ctx) {
       productiveBusAllowed: guard.productiveBusAllowed,
       productiveBusBlocked: guard.productiveBusBlocked,
       productiveEntryPointChanged: false,
+      forceAccessApplied: snapshot.forceAccessApplied,
+      adminTestDailyUsageBypassed: snapshot.adminTestDailyUsageBypassed,
       queueTouched: false,
       audioTouched: false,
       overlayTouched: false,
@@ -3064,7 +3070,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_sound_guard_real_flow_diagnostics",
+      feature: "vip_admin_test_guard_bypass",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
@@ -3165,8 +3171,8 @@ module.exports.init = function init(ctx) {
         "This layer mirrors VIP sound wishes as test-only sound.command events for diagnostics.",
         "The dry-run route sends the same payload to the Sound-System dry-run consumer for validation only.",
         "The play-test route sends the same payload to the Sound-System explicit play-test route for manual audio testing.",
-        "STEP435 records the Guard/Fallback decision inside the real VIP trigger path without changing productive delivery.",
-        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP435.",
+        "STEP436 lets the admin-test route reach the real VIP trigger path with forceAccess=true while normal Twitch commands remain protected.",
+        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP436.",
         "It does not change the productive VIP entry point and does not automatically consume Bus commands.",
         "If the Communication Bus is unavailable, VIP continues through the existing Sound-System flow."
       ],
@@ -3483,7 +3489,7 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_guard_real_flow_diagnostics",
+        feature: "vip_admin_test_guard_bypass",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3512,7 +3518,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_guard_real_flow_diagnostics",
+        feature: "vip_admin_test_guard_bypass",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3618,7 +3624,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playTestResult && playTestResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_guard_real_flow_diagnostics",
+        feature: "vip_admin_test_guard_bypass",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -3648,7 +3654,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_guard_real_flow_diagnostics",
+        feature: "vip_admin_test_guard_bypass",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4059,6 +4065,7 @@ module.exports.init = function init(ctx) {
 
     const targetDisplayName = cleanDisplayName(data.targetDisplayName || data.displayName || data.userDisplayName || data.target || data.user || targetLogin);
     const consumeDaily = boolish(data.consumeDaily || data.selfTrigger || data.writeDailyUsage);
+    const forceAccess = boolish(data.forceAccess || data.adminForceAccess || data.vipAdminForceAccess);
 
     const actorLogin = normalizeLogin(data.actorLogin || data.actorUserLogin || (consumeDaily ? targetLogin : "forrestcgn"));
     const actorDisplayName = cleanDisplayName(data.actorDisplayName || data.actor || (consumeDaily ? targetDisplayName : "ForrestCGN"));
@@ -4072,7 +4079,10 @@ module.exports.init = function init(ctx) {
       login: actorLogin,
       userName: actorLogin,
       user: actorDisplayName,
-      displayName: actorDisplayName
+      displayName: actorDisplayName,
+      adminTest: "true",
+      vipAdminTest: "true",
+      forceAccess: forceAccess ? "true" : "false"
     };
 
     if (consumeDaily) {
@@ -4089,10 +4099,16 @@ module.exports.init = function init(ctx) {
       payload.isBroadcaster = data.isBroadcaster === undefined ? "true" : data.isBroadcaster;
     }
 
-    const result = await handleVipCommand(payload);
+    const result = await handleVipCommand(payload, {
+      adminTest: true,
+      forceAccess,
+      consumeDaily
+    });
     return {
       ...result,
       adminTest: true,
+      forceAccess,
+      forceAccessApplied: !!(result && result.forceAccessApplied),
       consumeDaily,
       simulatedActor: {
         login: actorLogin,
@@ -4105,7 +4121,11 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  async function handleVipCommand(raw) {
+  async function handleVipCommand(raw, options = {}) {
+    const opts = options && typeof options === "object" ? options : {};
+    const adminTestRoute = !!opts.adminTest;
+    const adminTestForceAccess = !!(adminTestRoute && opts.forceAccess);
+    const adminTestSkipDailyUsage = !!(adminTestRoute && opts.consumeDaily === false);
     const dbReady = ensureVipSchema();
     const requestedSoundType = normalizeSoundType(raw.soundType || raw.type);
     const trigger = String(raw.trigger || raw.command || "").trim();
@@ -4118,7 +4138,8 @@ module.exports.init = function init(ctx) {
     const soundType = await detectSoundTypeForTarget(requestedSoundType, user);
     const isOverrideRequest = target.explicit && normalizeLogin(user.login) !== normalizeLogin(actor.login);
     const overrideAllowed = isOverrideRequest && actorCanOverride(raw);
-    const skipDailyUsage = isOverrideRequest && overrideAllowed;
+    const overrideDailyUsage = isOverrideRequest && overrideAllowed;
+    const skipDailyUsage = overrideDailyUsage || adminTestSkipDailyUsage;
 
     if (!actor.login || !user.login) {
       const context = {
@@ -4150,11 +4171,13 @@ module.exports.init = function init(ctx) {
       soundType,
       trigger,
       date: usageDate,
-      override: skipDailyUsage ? "1" : "0"
+      override: overrideDailyUsage ? "1" : "0",
+      adminTest: adminTestRoute ? "1" : "0",
+      forceAccess: adminTestForceAccess ? "1" : "0"
     };
 
     const twitchAccess = twitchSoundAccessForUser(user);
-    if (!twitchAccess.allowed) {
+    if (!twitchAccess.allowed && !adminTestForceAccess) {
       return await finishVipCommand("not_twitch_vip_or_mod", context, {
         accepted: false,
         duplicate: false,
@@ -4273,7 +4296,11 @@ module.exports.init = function init(ctx) {
       targetDisplayName: user.displayName || user.login,
       soundType,
       trigger,
-      source
+      source,
+      adminTest: adminTestRoute,
+      forceAccess: adminTestForceAccess,
+      forceAccessApplied: adminTestForceAccess && !twitchAccess.allowed,
+      adminTestDailyUsageBypassed: adminTestSkipDailyUsage
     });
     const guardedContext = {
       ...context,
@@ -4290,7 +4317,7 @@ module.exports.init = function init(ctx) {
       return await finishVipCommand(missing ? "sound_missing" : "error_generic", context, {
         accepted: false,
         duplicate: false,
-        override: skipDailyUsage,
+        override: overrideDailyUsage,
         overrideAllowed,
         dailyUsageWritten: false,
         requestId,
@@ -4305,6 +4332,10 @@ module.exports.init = function init(ctx) {
         soundType,
         trigger,
         source,
+        adminTest: adminTestRoute,
+        forceAccess: adminTestForceAccess,
+        forceAccessApplied: adminTestForceAccess && !twitchAccess.allowed,
+        adminTestDailyUsageBypassed: adminTestSkipDailyUsage,
         soundSystemQueued: false,
         vipBusMode: realFlowGuard.runtimeVipBusMode,
         runtimeVipBusMode: realFlowGuard.runtimeVipBusMode,
@@ -4358,10 +4389,10 @@ module.exports.init = function init(ctx) {
       refreshDbStats();
     }
 
-    return await finishVipCommand(skipDailyUsage ? eventKey("accepted_override", soundType) : eventKey("accepted", soundType), context, {
+    return await finishVipCommand(overrideDailyUsage ? eventKey("accepted_override", soundType) : eventKey("accepted", soundType), context, {
       accepted: true,
       duplicate: false,
-      override: skipDailyUsage,
+      override: overrideDailyUsage,
       overrideAllowed,
       dailyUsageWritten: !skipDailyUsage,
       requestId,
@@ -4376,6 +4407,10 @@ module.exports.init = function init(ctx) {
       soundType,
       trigger,
       source,
+      adminTest: adminTestRoute,
+      forceAccess: adminTestForceAccess,
+      forceAccessApplied: adminTestForceAccess && !twitchAccess.allowed,
+      adminTestDailyUsageBypassed: adminTestSkipDailyUsage,
       soundSystemQueued: true,
       soundSystemStarted: !!soundQueue.result.started,
       soundSystemQueuePosition: Number(soundQueue.result.queuePosition || 0),
@@ -4401,9 +4436,11 @@ module.exports.init = function init(ctx) {
       },
       soundFile: soundQueue.sound.relativeFile,
       soundPath: soundQueue.sound.fullPath,
-      note: skipDailyUsage
-        ? "Override queued VIP sound via sound_system without daily usage."
-        : "Queued VIP sound via sound_system before writing daily usage."
+      note: adminTestSkipDailyUsage
+        ? "Admin-test queued VIP sound via sound_system without daily usage."
+        : overrideDailyUsage
+          ? "Override queued VIP sound via sound_system without daily usage."
+          : "Queued VIP sound via sound_system before writing daily usage."
     });
   }
 
@@ -5019,7 +5056,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_sound_guard_real_flow_diagnostics",
+          feature: "vip_admin_test_guard_bypass",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5048,7 +5085,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_sound_guard_real_flow_diagnostics",
+          feature: "vip_admin_test_guard_bypass",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5159,7 +5196,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_guard_real_flow_diagnostics",
+        feature: "vip_admin_test_guard_bypass",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5193,7 +5230,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_guard_real_flow_diagnostics",
+        feature: "vip_admin_test_guard_bypass",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5209,7 +5246,7 @@ module.exports.init = function init(ctx) {
         modePreparedOnly: true,
         persisted: false,
         modeRuntimeStateStable: true,
-        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP435.",
+        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP436. Admin-test forceAccess is diagnostic only.",
         productiveEntryPointChanged: guard.productiveEntryPointChanged,
         queueTouched: guard.queueTouched,
         audioTouched: guard.audioTouched,

@@ -1,4 +1,4 @@
-# FILES – STEP435
+# FILES – STEP436
 
 Changed files:
 
@@ -8,4 +8,4 @@ Changed files:
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP435_VIP_GUARD_REAL_FLOW_DIAGNOSTICS.md`
+- `project-state/STEP436_VIP_ADMIN_TEST_GUARD_BYPASS.md`
