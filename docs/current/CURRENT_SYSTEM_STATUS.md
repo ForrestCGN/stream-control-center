@@ -45,3 +45,11 @@ Bereinigt wurden zwei Punkte aus dem STEP412-Test:
 - Keine Overlay-Designs.
 - Keine Entfernung alter `/api/sound/*` Routen.
 - Keine Entfernung alter `sound_system` WebSocket-Ausgabe.
+
+## STEP415 - Sound EventBus Debug Consumer
+
+- Neuer Debug-Client: `htdocs/public/tools/sound_eventbus_debug.html`.
+- Der Client registriert sich am Communication Bus mit `clientId: sound_eventbus_debug`, `version: 1.0.0`, `mode: debug` und Capability `sound.event_output`.
+- Ziel: echte `sound.*` Events empfangen und sichtbar machen, ohne den alten Sound-System-Flow zu ändern.
+- Bestehende `/api/sound/*` Routen, `sound_system` WebSocket-Ausgaben, Queue, Prioritäten, Playback und Module bleiben unverändert.
+- Erwarteter Test: Bei offenem Debug-Client liefert `/api/sound/eventbus/test` oder ein echter `/api/sound/play` mindestens `deliveredCount: 1` an `sound_eventbus_debug`.

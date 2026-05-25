@@ -15,3 +15,10 @@
 - Sound-System sendet parallele `sound.*` Events an den Communication Bus.
 - EventBus Status/Test/Reset-Routen ergänzt.
 - Legacy-Flow bleibt unverändert.
+
+## STEP415 – Sound EventBus Debug Consumer
+
+- Neue Datei: `htdocs/public/tools/sound_eventbus_debug.html`.
+- Debug-Client registriert sich am Communication Bus mit Capability `sound.event_output`.
+- Client zeigt empfangene `sound.*` Events inkl. Action, Reason, Sound-ID, Label, Kategorie, Request-ID und Raw JSON.
+- Keine Änderung an Sound-System-Backend, Queue, Playback, Alert, VIP oder Legacy-Routen.

@@ -1,18 +1,25 @@
-# FILES – STEP413 Sound-System EventBus Version/Target Cleanup
+# FILES – Sound EventBus Debug Consumer
+
+## Neu
+
+- `htdocs/public/tools/sound_eventbus_debug.html`
+- `project-state/STEP415_SOUND_EVENTBUS_DEBUG_CONSUMER.md`
 
 ## Geändert
 
-- `backend/modules/sound_system.js`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
 
-## Neu
-
-- `project-state/STEP413_SOUND_SYSTEM_EVENTBUS_VERSION_TARGET.md`
-
 ## Wichtig
 
-Das ZIP enthält vollständige Ersatzdateien mit echten Zielpfaden ab Repo-Root. Keine Patches.
+Das ZIP enthält vollständige Dateien mit echten Zielpfaden ab Repo-Root. Keine Patches.
+
+## Nicht enthalten
+
+- Keine Datenbankdateien
+- Keine Secrets/Tokens
+- Keine Config-Überschreibung
+- Kein Backend-Umbau

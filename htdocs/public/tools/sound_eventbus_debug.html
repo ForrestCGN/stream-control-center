@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sound EventBus Debug</title>
+  <style>
+    :root {
+      --bg: #070b16;
+      --panel: rgba(17, 24, 39, 0.92);
+      --panel-2: rgba(12, 18, 32, 0.96);
+      --border: rgba(85, 214, 255, 0.28);
+      --border-strong: rgba(168, 117, 255, 0.68);
+      --text: #f8fbff;
+      --muted: #9fb0c8;
+      --soft: #d8e7ff;
+      --cyan: #55d6ff;
+      --purple: #a875ff;
+      --pink: #ff5eea;
+      --ok: #45f2a3;
+      --warn: #ffd166;
+      --bad: #ff6b8a;
+      --shadow: 0 18px 52px rgba(0, 0, 0, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 18% 10%, rgba(168, 117, 255, 0.20), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(85, 214, 255, 0.16), transparent 24%),
+        linear-gradient(135deg, #050713 0%, var(--bg) 55%, #090315 100%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body { padding: 22px; }
+
+    .wrap { max-width: 1480px; margin: 0 auto; display: grid; gap: 16px; }
+
+    .hero,
+    .card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: linear-gradient(135deg, var(--panel), var(--panel-2));
+      box-shadow: var(--shadow);
+    }
+
+    .hero::before,
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(120deg, transparent, rgba(85, 214, 255, 0.08), transparent 42%, rgba(168, 117, 255, 0.10), transparent 72%);
+    }
+
+    .hero { padding: 18px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+
+    h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: 0.02em; }
+    .sub { color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(8, 12, 24, 0.72);
+      color: var(--soft);
+      font-size: 13px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 12px currentColor; }
+    .dot.ok { background: var(--ok); }
+    .dot.bad { background: var(--bad); }
+
+    .grid { display: grid; grid-template-columns: 390px 1fr; gap: 16px; align-items: start; }
+    .card { padding: 16px; }
+    .card h2 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--soft); }
+
+    .kv { display: grid; gap: 8px; }
+    .row { display: grid; grid-template-columns: 132px 1fr; gap: 8px; align-items: start; font-size: 13px; }
+    .key { color: var(--muted); }
+    .val { color: var(--text); overflow-wrap: anywhere; }
+    code, pre { font-family: Consolas, ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    button {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: rgba(85, 214, 255, 0.10);
+      border-radius: 12px;
+      padding: 9px 11px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--border-strong); background: rgba(168, 117, 255, 0.14); }
+    button.danger { background: rgba(255, 107, 138, 0.10); }
+
+    .events { display: grid; gap: 10px; max-height: calc(100vh - 230px); overflow: auto; padding-right: 4px; }
+    .event {
+      border: 1px solid rgba(85, 214, 255, 0.18);
+      border-radius: 16px;
+      background: rgba(3, 7, 18, 0.52);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .event-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .badge { display: inline-flex; padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(85, 214, 255, 0.26); background: rgba(85, 214, 255, 0.08); color: #c9f4ff; font-size: 12px; font-weight: 800; }
+    .badge.action { border-color: rgba(168, 117, 255, 0.42); background: rgba(168, 117, 255, 0.11); color: #eadfff; }
+    .badge.kind { border-color: rgba(255, 94, 234, 0.30); background: rgba(255, 94, 234, 0.08); color: #ffd7fa; }
+    .event-title { font-weight: 850; color: var(--text); }
+    .event-meta { color: var(--muted); font-size: 12px; }
+    .event-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .mini { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 8px; background: rgba(255,255,255,0.035); min-width: 0; }
+    .mini .mkey { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .mini .mval { margin-top: 3px; color: var(--soft); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    details { margin-top: 4px; }
+    summary { cursor: pointer; color: var(--cyan); font-weight: 800; font-size: 12px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; padding: 10px; border-radius: 12px; background: rgba(0,0,0,0.28); color: #dff7ff; font-size: 12px; max-height: 280px; overflow: auto; }
+
+    .empty { color: var(--muted); text-align: center; padding: 44px 8px; border: 1px dashed rgba(85, 214, 255, 0.20); border-radius: 18px; }
+
+    @media (max-width: 980px) {
+      body { padding: 12px; }
+      .hero { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+      .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <h1>Sound EventBus Debug</h1>
+        <div class="sub">Registriert diesen Browser als echten Communication-Bus-Client mit <code>sound.event_output</code>. Der alte Sound-System-Flow wird dadurch nicht verändert.</div>
+      </div>
+      <div class="status-pill"><span id="conn-dot" class="dot"></span><span id="conn-label">initialisiert</span></div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Client</h2>
+        <div class="kv">
+          <div class="row"><div class="key">Client-ID</div><div class="val"><code id="client-id">sound_eventbus_debug</code></div></div>
+          <div class="row"><div class="key">Version</div><div class="val"><code>1.0.0</code></div></div>
+          <div class="row"><div class="key">Modul</div><div class="val"><code>sound_system</code></div></div>
+          <div class="row"><div class="key">Capability</div><div class="val"><code>sound.event_output</code></div></div>
+          <div class="row"><div class="key">Empfangen</div><div class="val"><span id="count">0</span> Events</div></div>
+          <div class="row"><div class="key">Letztes Event</div><div class="val" id="last-event">-</div></div>
+          <div class="row"><div class="key">Letzter Fehler</div><div class="val" id="last-error">-</div></div>
+        </div>
+        <div class="btns">
+          <button id="btn-reconnect">Neu verbinden</button>
+          <button id="btn-status">Status laden</button>
+          <button id="btn-test">Sound-Bus Test</button>
+          <button id="btn-clear" class="danger">Liste leeren</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Sound Events</h2>
+        <div id="events" class="events"><div class="empty">Noch keine <code>sound.*</code> Events empfangen.</div></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const CLIENT_ID = "sound_eventbus_debug";
+    const CLIENT_VERSION = "1.0.0";
+    const CAPABILITY = "sound.event_output";
+    const MAX_EVENTS = 80;
+
+    const connDot = document.getElementById("conn-dot");
+    const connLabel = document.getElementById("conn-label");
+    const eventsEl = document.getElementById("events");
+    const countEl = document.getElementById("count");
+    const lastEventEl = document.getElementById("last-event");
+    const lastErrorEl = document.getElementById("last-error");
+
+    let ws = null;
+    let reconnectTimer = null;
+    let heartbeatTimer = null;
+    let events = [];
+
+    function setConn(state, text) {
+      connDot.classList.remove("ok", "bad");
+      if (state === "ok") connDot.classList.add("ok");
+      if (state === "bad") connDot.classList.add("bad");
+      connLabel.textContent = text;
+    }
+
+    function safeText(value, fallback = "") {
+      const text = String(value == null ? "" : value).trim();
+      return text || fallback;
+    }
+
+    function getWsUrl() {
+      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      return protocol + "//" + location.host;
+    }
+
+    function sendJson(payload) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+      try {
+        ws.send(JSON.stringify(payload));
+        return true;
+      } catch (err) {
+        lastErrorEl.textContent = err && err.message ? err.message : String(err);
+        return false;
+      }
+    }
+
+    function sendHello() {
+      sendJson({
+        type: "bus_hello",
+        clientId: CLIENT_ID,
+        clientType: "debug_tool",
+        module: "sound_system",
+        name: "Sound EventBus Debug",
+        mode: "debug",
+        version: CLIENT_VERSION,
+        capabilities: [CAPABILITY, "sound.status", "ack"],
+        meta: {
+          tool: "sound_eventbus_debug.html",
+          purpose: "debug_consumer",
+          legacyFlow: "unchanged"
+        }
+      });
+    }
+
+    function sendHeartbeat() {
+      sendJson({
+        type: "bus_heartbeat",
+        clientId: CLIENT_ID,
+        clientType: "debug_tool",
+        module: "sound_system",
+        version: CLIENT_VERSION,
+        capabilities: [CAPABILITY, "sound.status", "ack"]
+      });
+    }
+
+    function connect() {
+      clearTimeout(reconnectTimer);
+      clearInterval(heartbeatTimer);
+      try { if (ws) ws.close(); } catch (_) {}
+
+      setConn("warn", "verbinde...");
+      ws = new WebSocket(getWsUrl());
+
+      ws.addEventListener("open", () => {
+        setConn("ok", "verbunden");
+        lastErrorEl.textContent = "-";
+        sendHello();
+        heartbeatTimer = setInterval(sendHeartbeat, 5000);
+      });
+
+      ws.addEventListener("message", (event) => {
+        let data = null;
+        try { data = JSON.parse(event.data); } catch (_) { return; }
+        if (!data || typeof data !== "object") return;
+        if (data.type === "hello_ack" || data.type === "heartbeat_ack" || data.type === "ack_ack") return;
+        if (safeText(data.channel).toLowerCase() !== "sound") return;
+        addEvent(data);
+      });
+
+      ws.addEventListener("close", () => {
+        setConn("bad", "getrennt - reconnect...");
+        clearInterval(heartbeatTimer);
+        reconnectTimer = setTimeout(connect, 1500);
+      });
+
+      ws.addEventListener("error", () => {
+        setConn("bad", "fehler");
+        try { ws.close(); } catch (_) {}
+      });
+    }
+
+    function mini(label, value) {
+      return `<div class="mini"><div class="mkey">${escapeHtml(label)}</div><div class="mval" title="${escapeHtml(value)}">${escapeHtml(value || "-")}</div></div>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function addEvent(data) {
+      const payload = data.payload && typeof data.payload === "object" ? data.payload : {};
+      const ctx = payload.context && typeof payload.context === "object" ? payload.context : {};
+      const row = {
+        id: safeText(data.id || data.eventId),
+        at: safeText(data.timestamp || payload.emittedAt || new Date().toISOString()),
+        channel: safeText(data.channel),
+        action: safeText(data.action),
+        reason: safeText(payload.reason || ctx.reason),
+        kind: safeText(payload.kind || ctx.kind),
+        soundId: safeText(ctx.soundId),
+        label: safeText(ctx.label),
+        category: safeText(ctx.category),
+        requestedBy: safeText(ctx.requestedBy),
+        requestId: safeText(ctx.requestId),
+        file: safeText(ctx.file),
+        raw: data
+      };
+      events.unshift(row);
+      if (events.length > MAX_EVENTS) events.length = MAX_EVENTS;
+      renderEvents();
+    }
+
+    function renderEvents() {
+      countEl.textContent = String(events.length);
+      lastEventEl.textContent = events.length ? `${events[0].action} / ${events[0].reason || "-"}` : "-";
+
+      if (!events.length) {
+        eventsEl.innerHTML = '<div class="empty">Noch keine <code>sound.*</code> Events empfangen.</div>';
+        return;
+      }
+
+      eventsEl.innerHTML = events.map(ev => `
+        <article class="event">
+          <div class="event-head">
+            <span class="badge">${escapeHtml(ev.channel)}</span>
+            <span class="badge action">${escapeHtml(ev.action)}</span>
+            <span class="badge kind">${escapeHtml(ev.kind || "-")}</span>
+            <span class="event-title">${escapeHtml(ev.label || ev.soundId || ev.reason || ev.id)}</span>
+          </div>
+          <div class="event-meta">${escapeHtml(ev.at)} · ${escapeHtml(ev.id)}</div>
+          <div class="event-grid">
+            ${mini("Reason", ev.reason)}
+            ${mini("Sound", ev.soundId)}
+            ${mini("Kategorie", ev.category)}
+            ${mini("User", ev.requestedBy)}
+            ${mini("Request", ev.requestId)}
+            ${mini("Datei", ev.file)}
+            ${mini("Label", ev.label)}
+            ${mini("Action", ev.action)}
+          </div>
+          <details>
+            <summary>Raw JSON</summary>
+            <pre>${escapeHtml(JSON.stringify(ev.raw, null, 2))}</pre>
+          </details>
+        </article>
+      `).join("");
+    }
+
+    async function loadStatus() {
+      try {
+        const res = await fetch("/api/communication/status", { cache: "no-store" });
+        const json = await res.json();
+        lastErrorEl.textContent = json && json.ok ? "Communication status geladen" : "Status nicht ok";
+      } catch (err) {
+        lastErrorEl.textContent = err && err.message ? err.message : String(err);
+      }
+    }
+
+    async function sendTest() {
+      try {
+        const res = await fetch("/api/sound/eventbus/test?message=debug-client", { cache: "no-store" });
+        const json = await res.json();
+        lastErrorEl.textContent = json && json.ok ? "Sound-Bus Test gesendet" : "Sound-Bus Test nicht ok";
+      } catch (err) {
+        lastErrorEl.textContent = err && err.message ? err.message : String(err);
+      }
+    }
+
+    document.getElementById("btn-reconnect").addEventListener("click", connect);
+    document.getElementById("btn-status").addEventListener("click", loadStatus);
+    document.getElementById("btn-test").addEventListener("click", sendTest);
+    document.getElementById("btn-clear").addEventListener("click", () => { events = []; renderEvents(); });
+
+    window.addEventListener("beforeunload", () => {
+      clearTimeout(reconnectTimer);
+      clearInterval(heartbeatTimer);
+      try { if (ws) ws.close(); } catch (_) {}
+    });
+
+    connect();
+  </script>
+</body>
+</html>

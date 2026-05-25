@@ -1,36 +1,52 @@
-# CURRENT_STATUS – STEP413 Sound-System EventBus Version/Target Cleanup
+# CURRENT_STATUS – Sound-System EventBus Debug Consumer
 
-Aktueller Stand: STEP413 vorbereitet.
+Aktueller Stand: STEP415 vorbereitet.
 
 ## Kurzfassung
 
-Sound-System EventBus-Baseline ist aktiv und bleibt legacy-parallel.
+Das Sound-System sendet parallel zum alten Sound-System-Flow `sound.*` Events an den Communication Bus.
 
-STEP413 korrigiert die beim STEP412-Test sichtbaren Folgepunkte:
+Mit STEP415 kommt ein echter Debug-/Consumer-Client hinzu:
 
-- Modulversion für EventBus-Status/Test/Meta: `0.1.14`
-- `configVersion` wird separat ausgegeben, falls Runtime/DB/JSON noch eine ältere Config-Version liefert.
-- Default-Target für `sound` ist capability-basiert: `sound.event_output`
-- Delivery-Klassifizierung: `capability_scoped_legacy_parallel_event_stream`
+- Datei: `htdocs/public/tools/sound_eventbus_debug.html`
+- Client-ID: `sound_eventbus_debug`
+- Version: `1.0.0`
+- Mode: `debug`
+- Capability: `sound.event_output`
 
-## Alter Flow bleibt aktiv
+## Ziel
+
+Der Debug-Client macht `sound.*` Events sichtbar und sorgt dafür, dass Sound-EventBus-Tests nicht mehr nur `deliveredCount: 0` zeigen, sondern an einen echten Consumer ausgeliefert werden können.
+
+## Bestehender Sound-Flow bleibt unverändert
 
 ```text
-/api/sound/* → Sound-System → Queue/Playback → legacy sound_system WebSocket
+/api/sound/*
+→ Sound-System
+→ Queue/Prioritäten/Playback
+→ alter sound_system WebSocket
+→ bestehende Overlays/Module
 ```
 
-## Neuer paralleler Flow
+Zusätzlich:
 
 ```text
-Sound-System → Communication Bus → channel sound → capability sound.event_output
+Sound-System
+→ Communication Bus
+→ channel: sound
+→ target.capability: sound.event_output
+→ sound_eventbus_debug
 ```
 
 ## Bewusst nicht geändert
 
-- Queue
+- Sound-System-Backend
+- Queue-Logik
 - Prioritäten
-- Bundle-Locks
-- Alert-System
-- VIP-System
+- Bundle-/Lock-Logik
+- Alert-Logik
+- VIP-Logik
 - DB-Schema
 - Overlay-Designs
+- alte `/api/sound/*` Routen
+- alte `sound_system` WebSocket-Ausgabe
