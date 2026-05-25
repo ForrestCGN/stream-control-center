@@ -1,4 +1,4 @@
-# FILES – Sound-System EventBus Baseline
+# FILES – STEP413 Sound-System EventBus Version/Target Cleanup
 
 ## Geändert
 
@@ -11,14 +11,8 @@
 
 ## Neu
 
-- `project-state/STEP412_SOUND_SYSTEM_EVENTBUS_BASELINE.md`
+- `project-state/STEP413_SOUND_SYSTEM_EVENTBUS_VERSION_TARGET.md`
 
 ## Wichtig
 
-Das ZIP enthält vollständige Ersatzdateien mit echten Zielpfaden ab Repo-Root.
-
-Keine Patches.
-Keine PowerShell-Textpatches.
-Keine Datenbank.
-Keine Secrets.
-Keine Config-Datei.
+Das ZIP enthält vollständige Ersatzdateien mit echten Zielpfaden ab Repo-Root. Keine Patches.

@@ -1,60 +1,36 @@
-# CURRENT_STATUS – Sound-System EventBus Baseline
+# CURRENT_STATUS – STEP413 Sound-System EventBus Version/Target Cleanup
 
-Aktueller Stand: STEP412 vorbereitet.
+Aktueller Stand: STEP413 vorbereitet.
 
 ## Kurzfassung
 
-Das Sound-System ist jetzt für parallele EventBus-Ausgabe vorbereitet und versioniert.
+Sound-System EventBus-Baseline ist aktiv und bleibt legacy-parallel.
 
-- Modul: `sound_system`
-- Version: `0.1.13`
-- Capability: `sound.event_output`
-- Status-API-Version: `1.0.0`
-- Bus-Channel: `sound`
-- Bus-Modus: `legacy_parallel`
+STEP413 korrigiert die beim STEP412-Test sichtbaren Folgepunkte:
 
-## Ziel
+- Modulversion für EventBus-Status/Test/Meta: `0.1.14`
+- `configVersion` wird separat ausgegeben, falls Runtime/DB/JSON noch eine ältere Config-Version liefert.
+- Default-Target für `sound` ist capability-basiert: `sound.event_output`
+- Delivery-Klassifizierung: `capability_scoped_legacy_parallel_event_stream`
 
-Sound-System, Alert-System und VIP-System sollen langfristig über den Communication Bus laufen.
-
-Dieser STEP beginnt bewusst beim Sound-System, weil es die zentrale Audio-/Medien-Schicht ist.
-
-## Wichtig
-
-Der alte Sound-System-Flow bleibt bestehen.
-
-Das bedeutet:
+## Alter Flow bleibt aktiv
 
 ```text
-Bestehende Module → /api/sound/* → Sound-System → alter WebSocket/Playback
+/api/sound/* → Sound-System → Queue/Playback → legacy sound_system WebSocket
 ```
 
-läuft weiter.
-
-Parallel sendet das Sound-System Bus-Events:
+## Neuer paralleler Flow
 
 ```text
-Sound-System → Communication Bus → sound.*
-```
-
-## Neue Routen
-
-```text
-/api/sound/eventbus/status
-/api/sound/eventbus/test
-/api/sound/eventbus/reset
+Sound-System → Communication Bus → channel sound → capability sound.event_output
 ```
 
 ## Bewusst nicht geändert
 
-- Keine Queue-Änderung
-- Keine Prioritätsänderung
-- Keine Bundle-Lock-Änderung
-- Keine Alert-Änderung
-- Keine VIP-Änderung
-- Keine DB-Migration
-- Keine Overlay-Designänderung
-
-## Nächster sinnvoller Schritt
-
-STEP413 – Sound-System EventBus echten Playback-/Queue-Test durchführen und prüfen, ob `sound.started`, `sound.finished` und `sound.queue.updated` sauber im Bus sichtbar werden.
+- Queue
+- Prioritäten
+- Bundle-Locks
+- Alert-System
+- VIP-System
+- DB-Schema
+- Overlay-Designs

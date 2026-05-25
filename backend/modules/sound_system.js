@@ -16,10 +16,11 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.13";
+const MODULE_VERSION = "0.1.14";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
-const SOUND_BUS_DELIVERY_CLASSIFICATION = "legacy_parallel_event_stream";
+const SOUND_BUS_DELIVERY_CLASSIFICATION = "capability_scoped_legacy_parallel_event_stream";
+const SOUND_BUS_TARGET_CAPABILITY = "sound.event_output";
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
 
@@ -47,7 +48,7 @@ const DEFAULT_CONFIG = {
     targetType: "all",
     targetId: "*",
     targetModule: "",
-    targetCapability: "",
+    targetCapability: SOUND_BUS_TARGET_CAPABILITY,
     includeState: true,
     includeItem: true,
     actions: {
@@ -550,11 +551,12 @@ module.exports.init = function init(ctx) {
   }
 
   function soundBusTarget(busConfig) {
+    const configuredCapability = String(busConfig.targetCapability || "").trim();
     return {
       type: String(busConfig.targetType || "all"),
       id: String(busConfig.targetId || "*"),
       module: String(busConfig.targetModule || ""),
-      capability: String(busConfig.targetCapability || "")
+      capability: configuredCapability || SOUND_BUS_TARGET_CAPABILITY
     };
   }
 
@@ -701,7 +703,8 @@ module.exports.init = function init(ctx) {
         payload,
         meta: {
           module: MODULE_NAME,
-          moduleVersion: state.version || MODULE_VERSION,
+          moduleVersion: MODULE_VERSION,
+          configVersion: state.version || "",
           capability: SOUND_BUS_CAPABILITY,
           statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
           busMode: "legacy_parallel",
@@ -786,7 +789,8 @@ module.exports.init = function init(ctx) {
     return {
       ok: true,
       module: MODULE_NAME,
-      version: state.version || MODULE_VERSION,
+      version: MODULE_VERSION,
+      configVersion: state.version || "",
       capability: SOUND_BUS_CAPABILITY,
       statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
       busMode: "legacy_parallel",
@@ -812,6 +816,7 @@ module.exports.init = function init(ctx) {
         "Sound-System remains the central audio/media layer.",
         "Legacy /api/sound routes and legacy sound_system WebSocket broadcasts remain unchanged.",
         "sound.* EventBus events are emitted in parallel for status, diagnostics and future consumers.",
+        "Default delivery is scoped by capability sound.event_output so unrelated overlay clients do not receive sound events.",
         "Existing modules can continue using the old Sound-System API while bus migration continues."
       ],
       stats,
@@ -853,7 +858,8 @@ module.exports.init = function init(ctx) {
     return {
       ok: result && result.ok === true,
       module: MODULE_NAME,
-      version: state.version || MODULE_VERSION,
+      version: MODULE_VERSION,
+      configVersion: state.version || "",
       capability: SOUND_BUS_CAPABILITY,
       statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
       testOnly: true,
