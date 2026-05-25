@@ -12,7 +12,7 @@ let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.1";
+const MODULE_VERSION = "0.2.2";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -65,6 +65,7 @@ const DEFAULT_CONFIG = {
     displayQueue: {
       enabled: true,
       displayCooldownMs: 120000,
+      cooldownStartsAfterFinish: true,
       workerIntervalMs: 2000,
       sendChatMessages: true,
       acceptedMessage: "✅ Shouti für @{displayName} aufgenommen.",
@@ -295,17 +296,17 @@ function listDisplayQueue(limit = 50) {
   return database.all(`SELECT * FROM clip_shoutout_display_queue WHERE status IN ('queued','waiting','active','failed') ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, available_at ASC, id ASC LIMIT ${safeLimit}`);
 }
 
-function lastDisplayStartedMs() {
+function lastDisplayFinishedMs() {
   ensureDisplayQueueSchema();
-  const row = database.get(`SELECT started_at FROM clip_shoutout_display_queue WHERE status IN ('active','done') AND started_at<>'' ORDER BY started_at DESC LIMIT 1`);
-  return msFromIso(row && row.started_at);
+  const row = database.get(`SELECT finished_at FROM clip_shoutout_display_queue WHERE status='done' AND finished_at<>'' ORDER BY finished_at DESC LIMIT 1`);
+  return msFromIso(row && row.finished_at);
 }
 
 function calculateDisplayAvailableAt(cfg, baseMs = Date.now()) {
   const dcfg = displayConfig(cfg);
   const cooldown = Math.max(0, Number(dcfg.displayCooldownMs || 120000));
-  const lastStarted = lastDisplayStartedMs();
-  return Math.max(Number(baseMs || Date.now()), lastStarted ? lastStarted + cooldown : 0);
+  const lastFinished = lastDisplayFinishedMs();
+  return Math.max(Number(baseMs || Date.now()), lastFinished ? lastFinished + cooldown : 0);
 }
 
 function enqueueDisplayShoutout(job, cfg) {
@@ -370,6 +371,7 @@ function displayQueueStatus(cfg) {
     active,
     queue,
     displayCooldownMs: Math.max(0, Number(displayConfig(cfg).displayCooldownMs || 120000)),
+    cooldownStartsAfterFinish: true,
     nextDisplayAllowedAt: isoFromMs(calculateDisplayAvailableAt(cfg)),
     lastStartedAt: state.displayQueue.lastStartedAt,
     lastFinishedAt: state.displayQueue.lastFinishedAt,
@@ -1790,7 +1792,8 @@ async function handleRun(req, res, env) {
         id: queueResult.row ? queueResult.row.id : 0,
         status: queueResult.row ? queueResult.row.status : 'queued',
         availableAt: queueResult.availableAt,
-        displayCooldownMs: Math.max(0, Number(displayConfig(cfg).displayCooldownMs || 120000))
+        displayCooldownMs: Math.max(0, Number(displayConfig(cfg).displayCooldownMs || 120000)),
+        cooldownStartsAfterFinish: true
       },
       officialShoutout: { queuedAfterDisplay: officialConfig(cfg).enabled !== false }
     });

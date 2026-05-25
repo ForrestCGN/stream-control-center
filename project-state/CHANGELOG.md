@@ -1,9 +1,8 @@
 # CHANGELOG
 
-## STEP458_SHOUTOUT_DISPLAY_QUEUE_2MIN_AND_TWITCH_WAIT_FIX
+## STEP459_SHOUTOUT_DISPLAY_COOLDOWN_AFTER_FINISH
 
-- Clip-Shoutout Runtime-Version auf `0.2.1` erhöht.
-- Persistente Display-Queue für Shouti-Anzeigen ergänzt.
-- 2-Minuten-Cooldown zwischen Shouti-Anzeige-Starts ergänzt.
-- Dashboard zeigt jetzt Display-Queue und offizielle Twitch-Shoutout-Queue.
-- Twitch-Fehler `not streaming live / no viewers` wird als `waiting_stream_live` behandelt.
+- `clip_shoutout.js` auf Runtime-Version `0.2.2` erhöht.
+- Display-Cooldown startet ab sofort nach `finished_at`, nicht nach `started_at`.
+- Statusfeld `cooldownStartsAfterFinish: true` ergänzt.
+- Dashboard-Text/Status für Cooldown nach Anzeige-Ende ergänzt.

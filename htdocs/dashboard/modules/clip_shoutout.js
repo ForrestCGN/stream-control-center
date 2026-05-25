@@ -55,7 +55,7 @@
     root.appendChild(el('div', { class: 'cso-header' }, [
       el('div', {}, [
         el('h2', { text: 'Clip-Shoutout / SO-System' }),
-        el('p', { text: 'Shouti-Queue mit 2-Minuten-Abstand, 90-Tage-Clip-Suche und offizieller Twitch-Shoutout-Queue.' })
+        el('p', { text: 'Shouti-Queue mit 2-Minuten-Abstand nach Anzeige-Ende, 90-Tage-Clip-Suche und offizieller Twitch-Shoutout-Queue.' })
       ]),
       el('button', { class: 'cso-button', type: 'button', text: 'Aktualisieren' })
     ]));
@@ -110,7 +110,7 @@
         await postJson('/settings', {
           clipLookbackDays: Number.parseInt(lookback.value, 10) || 90,
           clipSearchRangesDays: rangeValues.length ? rangeValues : [90, 365, 0],
-          displayQueue: { displayCooldownMs: Number.parseInt(displayCooldown.value, 10) || 120000 },
+          displayQueue: { displayCooldownMs: Number.parseInt(displayCooldown.value, 10) || 120000, cooldownStartsAfterFinish: true },
           officialShoutout: {
             enabled: officialEnabled.checked,
             globalCooldownMs: Number.parseInt(officialGlobal.value, 10) || 120000
@@ -123,7 +123,7 @@
     function renderDisplayQueue(data) {
       displayQueueBox.innerHTML = '';
       displayQueueBox.appendChild(el('h3', { text: 'Shouti-Anzeige-Queue' }));
-      displayQueueBox.appendChild(el('p', { text: `Offen/Aktiv: ${data.pending || 0} · Nächster Start ab: ${fmt(data.nextDisplayAllowedAt)} · Fehler: ${data.lastError || '-'}` }));
+      displayQueueBox.appendChild(el('p', { text: `Offen/Aktiv: ${data.pending || 0} · Cooldown nach Ende: ${data.cooldownStartsAfterFinish ? 'ja' : 'nein'} · Nächster Start ab: ${fmt(data.nextDisplayAllowedAt)} · Fehler: ${data.lastError || '-'}` }));
       const table = el('table', { class: 'cso-table' });
       table.appendChild(el('thead', {}, el('tr', {}, ['ID', 'Ziel', 'Status', 'Verfügbar ab', 'Aktion'].map(t => el('th', { text: t })))));
       const tbody = el('tbody');
