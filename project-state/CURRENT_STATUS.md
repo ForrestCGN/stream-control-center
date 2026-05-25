@@ -1,14 +1,8 @@
-# CURRENT_STATUS
+# CURRENT STATUS
 
-Aktueller Stand: STEP456_SOUND_SYSTEM_BUS_FIRST_TEST_SWITCH
+Aktueller Stand: STEP457_SHOUTOUT_SYSTEM_QUEUE_DASHBOARD_EVENTBUS
 
-## Kurzstatus
-- VIP laeuft produktiv ueber Node-Command-System + Sound-Bus.
-- Alerts laufen Bus-First mit Legacy-Fallback.
-- Sound-System ist jetzt testweise Bus-First fuer Sound-/Overlay-Ereignisse.
-- Legacy-WebSocket bleibt als Fallback erhalten, wenn der Bus keinen Client erreicht.
-
-## Geaendert in STEP456
-- `backend/modules/sound_system.js` auf Version `0.1.18`.
-- `soundBus.mode` Default: `bus_first`.
-- `soundBus.legacyFallback` Default: `true`.
+- VIP: Bus produktiv
+- Alerts: Bus-First mit Legacy-Fallback
+- Sound-System: Bus-First mit Legacy-Fallback
+- Clip-Shoutout/SO: `!so`, 90-Tage-Suche zuerst, offizieller Twitch-Shoutout nach Anzeige über Queue/Cooldown, Event-Bus `shoutout.system`

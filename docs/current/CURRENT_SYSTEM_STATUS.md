@@ -1,14 +1,13 @@
-# CURRENT_SYSTEM_STATUS
+# CURRENT SYSTEM STATUS
 
-Aktueller Stand: STEP456_SOUND_SYSTEM_BUS_FIRST_TEST_SWITCH
+Stand: STEP457_SHOUTOUT_SYSTEM_QUEUE_DASHBOARD_EVENTBUS
 
-## Systeme
-- VIP: produktiv ueber Node-Command-System + Sound-Bus.
-- Alerts: Bus-First mit Legacy-Fallback.
-- Sound-System: testweise Bus-First fuer Sound-/Overlay-Ereignisse, Legacy-WebSocket als Fallback.
+Das Clip-Shoutout-System ist zum SO-System erweitert:
 
-## Sound-System
-- Modulversion: `0.1.18`
-- `soundBus.mode`: `bus_first`
-- `soundBus.legacyFallback`: `true`
-- Device, Discord, TTS, Queue, Priority, Bundle und Lock bleiben unveraendert.
+- Command: `!so @user`
+- Aliases: `!vso`, `!clipso`, `!videoso`
+- Clip-Suche: zuerst 90 Tage, danach 365 Tage, danach all_time
+- offizieller Twitch-Shoutout wird nach Ende der Anzeige queued
+- Cooldowns: 120 Sekunden global, 3600 Sekunden pro Zielkanal
+- Event-Bus: `shoutout.system`
+- Dashboard-Moduldateien vorbereitet

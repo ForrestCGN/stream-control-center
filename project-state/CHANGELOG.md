@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## 2026-05-25 – STEP456_SOUND_SYSTEM_BUS_FIRST_TEST_SWITCH
-- Sound-System testweise auf Bus-First umgestellt.
-- Alte `sound_system` WebSocket-Ausgabe bleibt als Fallback erhalten.
-- Keine Queue-/Priority-/Lock-/TTS-/Discord-Logik geaendert.
+## STEP457_SHOUTOUT_SYSTEM_QUEUE_DASHBOARD_EVENTBUS
+
+- Clip-Shoutout-System auf Runtime-Version `0.2.0` gesetzt.
+- Command von `vso` auf `so` umgestellt; `vso`, `clipso`, `videoso` bleiben Aliases.
+- Clip-Suchreihenfolge auf `[90, 365, 0]` gesetzt.
+- Offizielle Twitch-Shoutout-Queue mit 2-Minuten-Global-Cooldown und 60-Minuten-Ziel-Cooldown ergänzt.
+- Event-Bus-Events für Shoutout-System ergänzt.
+- Dashboard-Moduldateien für Clip-Shoutout/SO ergänzt.

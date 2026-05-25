@@ -1,10 +1,14 @@
-# NEXT_STEPS nach STEP456_SOUND_SYSTEM_BUS_FIRST_TEST_SWITCH
+# NEXT STEPS
 
-1. ZIP entpacken.
-2. `stepdone.cmd` ausfuehren.
-3. `node --check backend\modules\sound_system.js` ausfuehren.
-4. Node neu starten.
-5. Minimierten Status pruefen.
-6. Einen SO/Video-Test ausloesen und nur `emitted`, `errors`, `lastAction`, `lastError` pruefen.
+Nach STEP457:
 
-Kein weiterer Umbau noetig, wenn `errors = 0` bleibt und Video/SO wie bisher laeuft.
+1. `!so @testuser` lokal testen.
+2. Prüfen, ob Clip-Anzeige startet.
+3. Prüfen, ob nach Anzeige ein offizieller Shoutout in der Queue landet.
+4. Auth-Status prüfen:
+   ```powershell
+   Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/official/auth-status"
+   ```
+5. Falls `moderator:manage:shoutouts` fehlt, Twitch-OAuth-Scopes erweitern und neu autorisieren.
+
+Spätere offene ToDo bleibt: Sound-System nach stabiler Bus-First-Phase ggf. auf `bus_only` prüfen.

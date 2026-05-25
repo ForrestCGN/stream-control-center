@@ -8,24 +8,28 @@ const configHelper = require("./helpers/helper_config");
 const database = require("../core/database");
 const twitch = require("./twitch");
 const twitchPresence = require("./twitch_presence");
+let communicationBus = null;
+try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "clip_shoutout";
+const MODULE_VERSION = "0.2.0";
+const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
 
 const DEFAULT_CONFIG = {
   clipShoutout: {
     enabled: true,
-    command: "vso",
-    aliases: ["clipso", "videoso"],
+    command: "so",
+    aliases: ["vso", "clipso", "videoso"],
     permissionLevel: "mod",
     cooldownGlobalMs: 5000,
     cooldownUserMs: 15000,
     maxClipDurationSeconds: 30,
     allowLongerClipFallback: true,
     fallbackMaxClipDurationSeconds: 60,
-    clipLookbackDays: 365,
-    clipSearchRangesDays: [30, 90, 365, 0],
+    clipLookbackDays: 90,
+    clipSearchRangesDays: [90, 365, 0],
     clipFetchFirst: 50,
     clipFetchPages: 3,
     randomPick: true,
@@ -44,7 +48,7 @@ const DEFAULT_CONFIG = {
     soundPriority: 60,
     soundVolume: 100,
     sendChatMessage: true,
-    chatMessage: "📺 Video-Shoutout für @{displayName}! Schaut gerne vorbei: https://twitch.tv/{login}",
+    chatMessage: "✅ Shouti für @{displayName} aufgenommen.",
     ttsAfterClipEnabled: false,
     ttsText: "Schaut gerne mal bei {displayName} vorbei.",
     ttsSynthesizeUrl: "http://127.0.0.1:8080/api/tts/synthesize",
@@ -56,7 +60,26 @@ const DEFAULT_CONFIG = {
     overlaySubline: "🧓 Altersheim-TV",
     avatarLookupEnabled: true,
     avatarLookupUrl: "http://127.0.0.1:8080/userinfo",
-    gqlClientId: "kimne78kx3ncx6brgo4mv6wki5h1ko"
+    gqlClientId: "kimne78kx3ncx6brgo4mv6wki5h1ko",
+    eventBusEnabled: true,
+    officialShoutout: {
+      enabled: true,
+      enqueueAfterDisplay: true,
+      sendChatMessages: true,
+      acceptedMessage: "✅ Shouti für @{displayName} aufgenommen.",
+      queuedMessage: "⏳ Offizieller Shoutout für @{displayName} ist vorgemerkt und wird nach dem Cooldown gesendet.",
+      sentMessage: "📣 Offizieller Twitch-Shoutout für @{displayName} wurde gesendet.",
+      duplicateQueuedMessage: "ℹ️ Für @{displayName} ist bereits ein offizieller Shoutout vorgemerkt.",
+      targetCooldownMessage: "ℹ️ Für @{displayName} läuft noch der Twitch-Ziel-Cooldown.",
+      failedMessage: "⚠️ Offizieller Shoutout für @{displayName} konnte nicht gesendet werden.",
+      globalCooldownMs: 120000,
+      targetCooldownMs: 3600000,
+      workerIntervalMs: 5000,
+      maxAttempts: 5,
+      displayFinishPaddingMs: 1500,
+      broadcasterId: "",
+      moderatorId: ""
+    }
   }
 };
 
@@ -77,7 +100,20 @@ const state = {
     failed: 0,
     noClips: 0,
     ttsPrepared: 0,
-    chatSent: 0
+    chatSent: 0,
+    officialQueued: 0,
+    officialSent: 0,
+    officialFailed: 0,
+    busEmitted: 0,
+    busErrors: 0
+  },
+  officialShoutout: {
+    workerStarted: false,
+    lastWorkerAt: "",
+    lastQueueId: 0,
+    lastSentAt: "",
+    lastError: "",
+    lastBusEvent: null
   }
 };
 
@@ -138,6 +174,370 @@ function loadConfig() {
 
 function shoutoutConfig() {
   return mergePlain(DEFAULT_CONFIG.clipShoutout, (loadConfig().clipShoutout || {}));
+}
+
+function saveShoutoutConfig(partial = {}) {
+  const loaded = configHelper.loadConfig(CONFIG_FILE, DEFAULT_CONFIG, { createIfMissing: true, mergeDefaults: true, spaces: 2 });
+  const current = mergePlain(DEFAULT_CONFIG, loaded.config || {});
+  current.clipShoutout = mergePlain(current.clipShoutout || {}, partial || {});
+  configHelper.writeJsonFile(configHelper.resolveConfigFile(CONFIG_FILE), current, { spaces: 2 });
+  return current.clipShoutout;
+}
+
+function getCommunicationBus() {
+  if (!communicationBus || typeof communicationBus.getBus !== "function") return null;
+  try { return communicationBus.getBus(); } catch (_) { return null; }
+}
+
+function emitShoutoutBus(action, payload = {}, cfg = null) {
+  const currentCfg = cfg || shoutoutConfig();
+  if (currentCfg.eventBusEnabled === false) return { ok: true, skipped: true, reason: "eventbus_disabled" };
+  const bus = getCommunicationBus();
+  if (!bus || typeof bus.emit !== "function") {
+    state.stats.busErrors += 1;
+    state.officialShoutout.lastError = "communication_bus_unavailable";
+    return { ok: false, skipped: true, reason: "communication_bus_unavailable" };
+  }
+  try {
+    const result = bus.emit({
+      channel: SHOUTOUT_BUS_CHANNEL,
+      action: String(action || "state.updated"),
+      source: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+      target: { type: "all", id: "*", module: "", capability: "shoutout.system" },
+      payload: {
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        action: String(action || ""),
+        ...payload,
+        emittedAt: nowIso()
+      },
+      meta: {
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        capability: "shoutout.system",
+        replayable: false,
+        requireAck: false,
+        ttlMs: 30000
+      }
+    });
+    state.stats.busEmitted += 1;
+    state.officialShoutout.lastBusEvent = { action: String(action || ""), at: nowIso(), eventId: result && result.eventId ? String(result.eventId) : "" };
+    return result || { ok: true };
+  } catch (err) {
+    state.stats.busErrors += 1;
+    state.officialShoutout.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, error: state.officialShoutout.lastError };
+  }
+}
+
+function officialConfig(cfg) {
+  return mergePlain(DEFAULT_CONFIG.clipShoutout.officialShoutout, (cfg && cfg.officialShoutout) || {});
+}
+
+function ensureOfficialShoutoutSchema() {
+  database.ensureReady();
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS clip_shoutout_official_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      target_login TEXT NOT NULL,
+      target_display TEXT NOT NULL DEFAULT '',
+      target_user_id TEXT NOT NULL DEFAULT '',
+      requested_by_login TEXT NOT NULL DEFAULT '',
+      requested_by_display TEXT NOT NULL DEFAULT '',
+      clip_id TEXT NOT NULL DEFAULT '',
+      clip_url TEXT NOT NULL DEFAULT '',
+      bundle_id TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'queued',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      available_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      sent_at TEXT NOT NULL DEFAULT '',
+      last_error TEXT NOT NULL DEFAULT '',
+      meta_json TEXT NOT NULL DEFAULT '{}'
+    );
+    CREATE INDEX IF NOT EXISTS idx_clip_so_queue_status_available ON clip_shoutout_official_queue(status, available_at);
+    CREATE TABLE IF NOT EXISTS clip_shoutout_official_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      target_login TEXT NOT NULL,
+      target_display TEXT NOT NULL DEFAULT '',
+      target_user_id TEXT NOT NULL DEFAULT '',
+      queue_id INTEGER NOT NULL DEFAULT 0,
+      result TEXT NOT NULL DEFAULT '',
+      error TEXT NOT NULL DEFAULT '',
+      sent_at TEXT NOT NULL,
+      meta_json TEXT NOT NULL DEFAULT '{}'
+    );
+  `);
+}
+
+function isoFromMs(ms) { return new Date(Math.max(0, Number(ms || 0))).toISOString(); }
+function msFromIso(value) { const t = Date.parse(String(value || "")); return Number.isFinite(t) ? t : 0; }
+
+function listOfficialQueue(limit = 50) {
+  ensureOfficialShoutoutSchema();
+  const safeLimit = Math.max(1, Math.min(200, Number.parseInt(limit, 10) || 50));
+  return database.all(`SELECT * FROM clip_shoutout_official_queue WHERE status IN ('queued','waiting','failed') ORDER BY available_at ASC, id ASC LIMIT ${safeLimit}`);
+}
+
+function listOfficialHistory(limit = 20) {
+  ensureOfficialShoutoutSchema();
+  const safeLimit = Math.max(1, Math.min(100, Number.parseInt(limit, 10) || 20));
+  return database.all(`SELECT * FROM clip_shoutout_official_history ORDER BY id DESC LIMIT ${safeLimit}`);
+}
+
+function nextGlobalAllowedAt(cfg) {
+  ensureOfficialShoutoutSchema();
+  const cooldown = Math.max(0, Number(officialConfig(cfg).globalCooldownMs || 120000));
+  const row = database.get(`SELECT sent_at FROM clip_shoutout_official_history WHERE result='sent' ORDER BY sent_at DESC LIMIT 1`);
+  const last = msFromIso(row && row.sent_at);
+  return last ? last + cooldown : 0;
+}
+
+function nextTargetAllowedAt(targetLogin, cfg) {
+  ensureOfficialShoutoutSchema();
+  const cooldown = Math.max(0, Number(officialConfig(cfg).targetCooldownMs || 3600000));
+  const login = cleanLogin(targetLogin);
+  const row = database.get(`SELECT sent_at FROM clip_shoutout_official_history WHERE result='sent' AND target_login=:login ORDER BY sent_at DESC LIMIT 1`, { login });
+  const last = msFromIso(row && row.sent_at);
+  return last ? last + cooldown : 0;
+}
+
+function calculateOfficialAvailableAt(targetLogin, cfg, baseMs = Date.now()) {
+  return Math.max(Number(baseMs || Date.now()), nextGlobalAllowedAt(cfg), nextTargetAllowedAt(targetLogin, cfg));
+}
+
+function enqueueOfficialShoutout(job, cfg) {
+  ensureOfficialShoutoutSchema();
+  const login = cleanLogin(job.targetLogin);
+  if (!login) return { ok: false, error: "target_login_missing" };
+  const existing = database.get(`SELECT * FROM clip_shoutout_official_queue WHERE target_login=:login AND status IN ('queued','waiting') ORDER BY id ASC LIMIT 1`, { login });
+  if (existing) {
+    emitShoutoutBus("shoutout.official.duplicate", { targetLogin: login, queueId: existing.id }, cfg);
+    return { ok: true, duplicate: true, row: existing };
+  }
+  const now = nowIso();
+  const availableAt = isoFromMs(calculateOfficialAvailableAt(login, cfg, Date.parse(job.availableAt || '') || Date.now()));
+  const params = {
+    targetLogin: login,
+    targetDisplay: cleanDisplay(job.targetDisplay, login),
+    targetUserId: String(job.targetUserId || ""),
+    requestedByLogin: cleanLogin(job.requestedByLogin || ""),
+    requestedByDisplay: cleanDisplay(job.requestedByDisplay || ""),
+    clipId: String(job.clipId || ""),
+    clipUrl: String(job.clipUrl || ""),
+    bundleId: String(job.bundleId || ""),
+    availableAt,
+    createdAt: now,
+    updatedAt: now,
+    metaJson: JSON.stringify(job.meta || {})
+  };
+  const result = database.run(`
+    INSERT INTO clip_shoutout_official_queue (
+      target_login,target_display,target_user_id,requested_by_login,requested_by_display,
+      clip_id,clip_url,bundle_id,status,attempts,available_at,created_at,updated_at,meta_json
+    ) VALUES (
+      :targetLogin,:targetDisplay,:targetUserId,:requestedByLogin,:requestedByDisplay,
+      :clipId,:clipUrl,:bundleId,'queued',0,:availableAt,:createdAt,:updatedAt,:metaJson
+    )
+  `, params);
+  const row = database.get(`SELECT * FROM clip_shoutout_official_queue WHERE id=:id`, { id: result && result.lastInsertRowid ? result.lastInsertRowid : result.lastInsertRowId });
+  state.stats.officialQueued += 1;
+  state.officialShoutout.lastQueueId = row ? row.id : 0;
+  emitShoutoutBus("shoutout.official.queued", { queueId: row ? row.id : 0, targetLogin: login, availableAt }, cfg);
+  return { ok: true, row, availableAt };
+}
+
+function markOfficialQueueFailed(row, error, cfg) {
+  ensureOfficialShoutoutSchema();
+  const now = nowIso();
+  database.run(`UPDATE clip_shoutout_official_queue SET status='failed', attempts=attempts+1, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, now, error: String(error || "") });
+  database.run(`INSERT INTO clip_shoutout_official_history (target_login,target_display,target_user_id,queue_id,result,error,sent_at,meta_json) VALUES (:login,:display,:userId,:queueId,'failed',:error,:sentAt,:metaJson)`, {
+    login: row.target_login,
+    display: row.target_display || row.target_login,
+    userId: row.target_user_id || "",
+    queueId: row.id,
+    error: String(error || ""),
+    sentAt: now,
+    metaJson: row.meta_json || "{}"
+  });
+  state.stats.officialFailed += 1;
+  state.officialShoutout.lastError = String(error || "");
+  emitShoutoutBus("shoutout.official.failed", { queueId: row.id, targetLogin: row.target_login, error: String(error || "") }, cfg);
+}
+
+function markOfficialQueueSent(row, result, cfg) {
+  ensureOfficialShoutoutSchema();
+  const now = nowIso();
+  database.run(`UPDATE clip_shoutout_official_queue SET status='sent', updated_at=:now, sent_at=:now, last_error='' WHERE id=:id`, { id: row.id, now });
+  database.run(`INSERT INTO clip_shoutout_official_history (target_login,target_display,target_user_id,queue_id,result,error,sent_at,meta_json) VALUES (:login,:display,:userId,:queueId,'sent','',:sentAt,:metaJson)`, {
+    login: row.target_login,
+    display: row.target_display || row.target_login,
+    userId: row.target_user_id || "",
+    queueId: row.id,
+    sentAt: now,
+    metaJson: JSON.stringify({ result: result || {}, previousMeta: row.meta_json || "{}" })
+  });
+  state.stats.officialSent += 1;
+  state.officialShoutout.lastSentAt = now;
+  state.officialShoutout.lastError = "";
+  emitShoutoutBus("shoutout.official.sent", { queueId: row.id, targetLogin: row.target_login }, cfg);
+}
+
+function twitchTokenStorePath(env) {
+  const baseRoot = configHelper.getRootDir();
+  const raw = String(env.TWITCH_TOKEN_STORE || "").trim();
+  if (raw) return path.isAbsolute(raw) ? raw : path.join(baseRoot, raw);
+  return path.join(baseRoot, "tokens", "twitch_user.json");
+}
+
+function readTwitchUserToken(env) {
+  try {
+    const file = twitchTokenStorePath(env);
+    const data = JSON.parse(fs.readFileSync(file, "utf8"));
+    if (!data || !data.access_token) return null;
+    return { file, data };
+  } catch (_) { return null; }
+}
+
+function writeTwitchUserToken(env, data) {
+  const file = twitchTokenStorePath(env);
+  core.ensureParentDir(file);
+  fs.writeFileSync(file, JSON.stringify(data || {}, null, 2), "utf8");
+}
+
+async function getTwitchUserAccessToken(env) {
+  const stored = readTwitchUserToken(env);
+  if (!stored || !stored.data) return "";
+  const now = Math.floor(Date.now() / 1000);
+  if (stored.data.expires_at && now < Number(stored.data.expires_at) - 60) return String(stored.data.access_token || "");
+  const refreshToken = String(stored.data.refresh_token || "");
+  if (!refreshToken) return String(stored.data.access_token || "");
+  const clientId = String(env.TWITCH_CLIENT_ID || "").trim();
+  const clientSecret = String(env.TWITCH_CLIENT_SECRET || "").trim();
+  if (!clientId || !clientSecret) return String(stored.data.access_token || "");
+  const response = await axios.post("https://id.twitch.tv/oauth2/token", null, {
+    params: { client_id: clientId, client_secret: clientSecret, grant_type: "refresh_token", refresh_token: refreshToken },
+    timeout: 10000
+  });
+  const updated = {
+    access_token: response.data.access_token,
+    refresh_token: response.data.refresh_token || refreshToken,
+    expires_at: now + Number(response.data.expires_in || 0)
+  };
+  writeTwitchUserToken(env, updated);
+  return updated.access_token;
+}
+
+async function validateTwitchUserTokenScopes(env) {
+  const token = await getTwitchUserAccessToken(env);
+  if (!token) return { ok: false, error: "twitch_user_token_missing", scopes: [] };
+  const response = await axios.get("https://id.twitch.tv/oauth2/validate", {
+    timeout: 10000,
+    headers: { Authorization: `OAuth ${token}` }
+  });
+  const scopes = Array.isArray(response.data && response.data.scopes) ? response.data.scopes.map(String) : [];
+  return {
+    ok: true,
+    login: String(response.data && response.data.login || ""),
+    userId: String(response.data && response.data.user_id || ""),
+    broadcasterId: String(env.TWITCH_BROADCASTER_ID || ""),
+    scopes,
+    hasModeratorManageShoutouts: scopes.includes("moderator:manage:shoutouts")
+  };
+}
+
+async function sendOfficialTwitchShoutout(env, row, cfg) {
+  const token = await getTwitchUserAccessToken(env);
+  if (!token) throw new Error("twitch_user_token_missing");
+  const clientId = String(env.TWITCH_CLIENT_ID || "").trim();
+  const ocfg = officialConfig(cfg);
+  const broadcasterId = String(ocfg.broadcasterId || env.TWITCH_BROADCASTER_ID || "").trim();
+  const moderatorId = String(ocfg.moderatorId || broadcasterId || "").trim();
+  const targetUserId = String(row.target_user_id || "").trim();
+  if (!clientId) throw new Error("twitch_client_id_missing");
+  if (!broadcasterId) throw new Error("broadcaster_id_missing");
+  if (!moderatorId) throw new Error("moderator_id_missing");
+  if (!targetUserId) throw new Error("target_user_id_missing");
+  const url = new URL("https://api.twitch.tv/helix/chat/shoutouts");
+  url.searchParams.set("from_broadcaster_id", broadcasterId);
+  url.searchParams.set("to_broadcaster_id", targetUserId);
+  url.searchParams.set("moderator_id", moderatorId);
+  const response = await axios.post(url.toString(), null, {
+    timeout: 10000,
+    headers: {
+      "Client-ID": clientId,
+      "Authorization": `Bearer ${token}`
+    }
+  });
+  return { ok: true, status: response.status, data: response.data || {} };
+}
+
+async function processOfficialShoutoutQueue(env, cfg, options = {}) {
+  const ocfg = officialConfig(cfg);
+  if (ocfg.enabled === false) return { ok: true, skipped: true, reason: "official_shoutout_disabled" };
+  ensureOfficialShoutoutSchema();
+  state.officialShoutout.lastWorkerAt = nowIso();
+  const row = database.get(`SELECT * FROM clip_shoutout_official_queue WHERE status IN ('queued','waiting') ORDER BY available_at ASC, id ASC LIMIT 1`);
+  if (!row) return { ok: true, empty: true };
+  const nowMs = Date.now();
+  const availableMs = calculateOfficialAvailableAt(row.target_login, cfg, msFromIso(row.available_at));
+  if (!options.force && availableMs > nowMs) {
+    const availableAt = isoFromMs(availableMs);
+    database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', available_at=:availableAt, updated_at=:now WHERE id=:id`, { id: row.id, availableAt, now: nowIso() });
+    emitShoutoutBus("shoutout.official.waiting_cooldown", { queueId: row.id, targetLogin: row.target_login, availableAt }, cfg);
+    return { ok: true, waiting: true, queueId: row.id, availableAt };
+  }
+  if (Number(row.attempts || 0) >= Number(ocfg.maxAttempts || 5)) {
+    markOfficialQueueFailed(row, "max_attempts_reached", cfg);
+    return { ok: false, failed: true, error: "max_attempts_reached" };
+  }
+  try {
+    emitShoutoutBus("shoutout.official.sending", { queueId: row.id, targetLogin: row.target_login }, cfg);
+    const result = await sendOfficialTwitchShoutout(env, row, cfg);
+    markOfficialQueueSent(row, result, cfg);
+    if (ocfg.sendChatMessages !== false) {
+      await sendChatMessage(renderTemplate(ocfg.sentMessage, { login: row.target_login, displayName: row.target_display || row.target_login }).trim(), { targetLogin: row.target_login, queueId: row.id, officialShoutout: true });
+    }
+    return { ok: true, sent: true, queueId: row.id, result };
+  } catch (err) {
+    const error = err && err.response && err.response.data ? JSON.stringify(err.response.data).slice(0, 500) : (err && err.message ? err.message : String(err));
+    const next = isoFromMs(Date.now() + Math.max(30000, Number(ocfg.globalCooldownMs || 120000)));
+    database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', attempts=attempts+1, available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, next, now: nowIso(), error });
+    state.officialShoutout.lastError = error;
+    state.stats.officialFailed += 1;
+    emitShoutoutBus("shoutout.official.failed", { queueId: row.id, targetLogin: row.target_login, error, retryAt: next }, cfg);
+    return { ok: false, retry: true, queueId: row.id, error, retryAt: next };
+  }
+}
+
+function startOfficialShoutoutWorker(env, cfg) {
+  const ocfg = officialConfig(cfg);
+  if (state.officialShoutout.workerStarted || ocfg.enabled === false) return;
+  ensureOfficialShoutoutSchema();
+  state.officialShoutout.workerStarted = true;
+  const intervalMs = Math.max(2000, Math.min(60000, Number(ocfg.workerIntervalMs || 5000)));
+  const timer = setInterval(() => {
+    processOfficialShoutoutQueue(env, shoutoutConfig()).catch(err => {
+      state.officialShoutout.lastError = err && err.message ? err.message : String(err);
+    });
+  }, intervalMs);
+  if (timer && typeof timer.unref === "function") timer.unref();
+}
+
+function officialQueueStatus(cfg) {
+  const queue = listOfficialQueue(50);
+  const history = listOfficialHistory(20);
+  return {
+    enabled: officialConfig(cfg).enabled !== false,
+    workerStarted: state.officialShoutout.workerStarted,
+    pending: queue.length,
+    queue,
+    history,
+    nextGlobalAllowedAt: isoFromMs(nextGlobalAllowedAt(cfg)) || "",
+    lastSentAt: state.officialShoutout.lastSentAt,
+    lastError: state.officialShoutout.lastError
+  };
 }
 
 function resolveRootPath(inputPath) {
@@ -217,7 +617,7 @@ function parseTarget(input = {}) {
 
   const parts = String(rawInput || "").trim().split(/\s+/).filter(Boolean);
   let candidate = parts[0] || "";
-  if (candidate && ["vso", "!vso", "clipso", "!clipso", "videoso", "!videoso"].includes(candidate.toLowerCase())) {
+  if (candidate && ["so", "!so", "vso", "!vso", "clipso", "!clipso", "videoso", "!videoso"].includes(candidate.toLowerCase())) {
     candidate = parts[1] || "";
   }
   return cleanLogin(candidate);
@@ -871,7 +1271,7 @@ function ensureCommandSchema() {
 function registerCommand(cfg) {
   try {
     ensureCommandSchema();
-    const trigger = cleanLogin(cfg.command || "vso") || "vso";
+    const trigger = cleanLogin(cfg.command || "so") || "so";
     const now = nowIso();
     const existing = database.get("SELECT id FROM command_definitions WHERE trigger = :trigger", { trigger });
     if (existing && existing.id) {
@@ -899,7 +1299,7 @@ function registerCommand(cfg) {
       permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
       cooldownGlobalMs: Number(cfg.cooldownGlobalMs || 5000),
       cooldownUserMs: Number(cfg.cooldownUserMs || 15000),
-      configJson: JSON.stringify({ seededBy: "STEP277A_FIX10", rawInputMode: true }),
+      configJson: JSON.stringify({ seededBy: "clip_shoutout_0.2.0", rawInputMode: true }),
       createdAt: now,
       updatedAt: now
     });
@@ -1012,7 +1412,7 @@ async function handleRun(req, res, env) {
   if (!targetLogin) {
     state.lastError = "target_required";
     state.lastRun = { error: "target_required", input: summarizeInput(input), failedAt: state.lastRunAt };
-    return res.json({ ok: false, error: "target_required", usage: `!${cfg.command || "vso"} @kanal` });
+    return res.json({ ok: false, error: "target_required", usage: `!${cfg.command || "so"} @kanal` });
   }
 
   try {
@@ -1067,6 +1467,7 @@ async function handleRun(req, res, env) {
 
     const ttsItem = await prepareOptionalTts(input, cfg, vars);
     const bundlePayload = buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem);
+    emitShoutoutBus("shoutout.display.started", { target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId }, cfg);
     const soundResult = await postJson(cfg.soundBundleUrl, bundlePayload, 15000);
     rememberRecentClip(targetUser.login, clip, cfg);
     state.recentClipGuard = publicRecentClipGuard(cfg);
@@ -1074,10 +1475,46 @@ async function handleRun(req, res, env) {
 
     let chatResult = { ok: false, skipped: true, reason: "disabled" };
     if (boolParam(input.sendChat, cfg.sendChatMessage)) {
-      const chatText = renderTemplate(cfg.chatMessage, vars).trim();
+      const ocfg = officialConfig(cfg);
+      const chatTemplate = firstString(ocfg.acceptedMessage, cfg.chatMessage);
+      const chatText = renderTemplate(chatTemplate, vars).trim();
       chatResult = await sendChatMessage(chatText, { targetLogin: targetUser.login, clipId: clip.id });
     }
 
+    const displayDurationMs = bundlePayload.items.reduce((sum, item) => sum + Math.max(0, Number(item.durationMs || 0)), 0) + Math.max(0, Number(officialConfig(cfg).displayFinishPaddingMs || 1500));
+    const officialEnabled = officialConfig(cfg).enabled !== false && boolParam(input.officialShoutout ?? input.official ?? input.twitchShoutout, true);
+    let officialQueueResult = { ok: true, skipped: true, reason: officialEnabled ? "scheduled_after_display" : "official_disabled" };
+    if (officialEnabled) {
+      setTimeout(async () => {
+        try {
+          emitShoutoutBus("shoutout.display.finished", { target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId }, cfg);
+          const queueResult = enqueueOfficialShoutout({
+            targetLogin: targetUser.login,
+            targetDisplay: targetUser.displayName,
+            targetUserId: targetUser.userId,
+            requestedByLogin: vars.requestedByLogin,
+            requestedByDisplay: vars.requestedByDisplay,
+            clipId: clip.id,
+            clipUrl: clip.url || "",
+            bundleId: bundlePayload.bundleId,
+            availableAt: nowIso(),
+            meta: { source: MODULE_NAME, clipTitle: clip.title || "" }
+          }, cfg);
+          const ocfg = officialConfig(cfg);
+          if (ocfg.sendChatMessages !== false && queueResult && queueResult.ok && queueResult.duplicate !== true) {
+            await sendChatMessage(renderTemplate(ocfg.queuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true, queueId: queueResult.row && queueResult.row.id });
+          } else if (ocfg.sendChatMessages !== false && queueResult && queueResult.duplicate === true) {
+            await sendChatMessage(renderTemplate(ocfg.duplicateQueuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true });
+          }
+          await processOfficialShoutoutQueue(env, shoutoutConfig());
+        } catch (err) {
+          state.officialShoutout.lastError = err && err.message ? err.message : String(err);
+          emitShoutoutBus("shoutout.official.failed", { targetLogin: targetUser.login, error: state.officialShoutout.lastError }, cfg);
+        }
+      }, displayDurationMs).unref?.();
+    }
+
+    emitShoutoutBus("shoutout.accepted", { target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId, officialShoutout: officialEnabled }, cfg);
     state.stats.queued += 1;
     state.lastRunAt = nowIso();
     state.lastRun = {
@@ -1118,7 +1555,8 @@ async function handleRun(req, res, env) {
         itemCount: bundlePayload.items.length,
         soundResult
       },
-      chat: chatResult
+      chat: chatResult,
+      officialShoutout: officialQueueResult
     });
   } catch (err) {
     const error = err && err.message ? err.message : String(err);
@@ -1133,17 +1571,18 @@ async function handleRun(req, res, env) {
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
   const cfg = shoutoutConfig();
+  ensureOfficialShoutoutSchema();
   registerCommand(cfg);
+  startOfficialShoutoutWorker(env, cfg);
 
   app.get(`${API_PREFIX}/status`, (req, res) => {
     const currentCfg = shoutoutConfig();
     state.recentClipGuard = publicRecentClipGuard(currentCfg);
-    const command = cleanLogin(currentCfg.command || "vso") || "vso";
+    const command = cleanLogin(currentCfg.command || "so") || "so";
     res.json({
       ok: true,
       module: MODULE_NAME,
-      version: 9,
-      step: "STEP277A_FIX10",
+      moduleVersion: MODULE_VERSION,
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       command,
@@ -1152,12 +1591,17 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${API_PREFIX}/status` },
         { method: "GET/POST", path: `${API_PREFIX}/run` },
         { method: "GET", path: `${API_PREFIX}/clips` },
-        { method: "GET/POST", path: "/api/clip/shoutout" }
+        { method: "GET/POST", path: "/api/clip/shoutout" },
+        { method: "GET/POST", path: `${API_PREFIX}/settings` },
+        { method: "GET", path: `${API_PREFIX}/queue` },
+        { method: "POST", path: `${API_PREFIX}/queue/remove` },
+        { method: "POST", path: `${API_PREFIX}/queue/retry` }
       ],
       config: {
         maxClipDurationSeconds: currentCfg.maxClipDurationSeconds,
         allowLongerClipFallback: currentCfg.allowLongerClipFallback,
         fallbackMaxClipDurationSeconds: currentCfg.fallbackMaxClipDurationSeconds,
+        clipLookbackDays: currentCfg.clipLookbackDays,
         clipSearchRangesDays: currentCfg.clipSearchRangesDays,
         clipFetchFirst: currentCfg.clipFetchFirst,
         clipFetchPages: currentCfg.clipFetchPages,
@@ -1173,8 +1617,11 @@ module.exports.init = function init(ctx) {
         soundCategory: currentCfg.soundCategory,
         soundPriority: currentCfg.soundPriority,
         avatarLookupEnabled: currentCfg.avatarLookupEnabled,
-        avatarLookupUrl: currentCfg.avatarLookupUrl
+        avatarLookupUrl: currentCfg.avatarLookupUrl,
+        eventBusEnabled: currentCfg.eventBusEnabled !== false,
+        officialShoutout: officialConfig(currentCfg)
       },
+      officialQueue: officialQueueStatus(currentCfg),
       state
     });
   });
@@ -1185,5 +1632,71 @@ module.exports.init = function init(ctx) {
   app.get("/api/clip/shoutout", (req, res) => handleRun(req, res, env));
   app.post("/api/clip/shoutout", (req, res) => handleRun(req, res, env));
 
-  console.log(`[${MODULE_NAME}] loaded: ${API_PREFIX}/run, ${API_PREFIX}/clips, /api/clip/shoutout`);
+  app.get(`${API_PREFIX}/settings`, (req, res) => {
+    const currentCfg = shoutoutConfig();
+    res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings: currentCfg });
+  });
+
+  app.post(`${API_PREFIX}/settings`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const allowed = {};
+      const directKeys = [
+        "enabled", "command", "aliases", "permissionLevel", "clipLookbackDays", "clipSearchRangesDays",
+        "clipFetchFirst", "clipFetchPages", "randomPick", "sendChatMessage", "chatMessage", "eventBusEnabled"
+      ];
+      for (const key of directKeys) if (Object.prototype.hasOwnProperty.call(body, key)) allowed[key] = body[key];
+      if (body.officialShoutout && typeof body.officialShoutout === "object") allowed.officialShoutout = body.officialShoutout;
+      const settings = saveShoutoutConfig(allowed);
+      emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed) }, settings);
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/queue`, (req, res) => {
+    try {
+      const currentCfg = shoutoutConfig();
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, officialQueue: officialQueueStatus(currentCfg) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/queue/remove`, (req, res) => {
+    try {
+      ensureOfficialShoutoutSchema();
+      const id = Number(req.body?.id || req.query?.id || 0);
+      if (!id) return res.status(400).json({ ok: false, error: "id_required" });
+      database.run(`UPDATE clip_shoutout_official_queue SET status='removed', updated_at=:now WHERE id=:id AND status IN ('queued','waiting','failed')`, { id, now: nowIso() });
+      emitShoutoutBus("shoutout.official.removed", { queueId: id }, shoutoutConfig());
+      res.json({ ok: true, id });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/queue/retry`, async (req, res) => {
+    try {
+      ensureOfficialShoutoutSchema();
+      const id = Number(req.body?.id || req.query?.id || 0);
+      if (id) database.run(`UPDATE clip_shoutout_official_queue SET status='queued', available_at=:now, updated_at=:now, last_error='' WHERE id=:id`, { id, now: nowIso() });
+      const result = await processOfficialShoutoutQueue(env, shoutoutConfig(), { force: true });
+      res.json({ ok: result && result.ok !== false, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/official/auth-status`, async (req, res) => {
+    try {
+      const result = await validateTwitchUserTokenScopes(env);
+      res.status(result.ok ? 200 : 401).json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  console.log(`[${MODULE_NAME}] loaded: ${API_PREFIX}/run, ${API_PREFIX}/clips, ${API_PREFIX}/queue, /api/clip/shoutout`);
 };
