@@ -1,15 +1,36 @@
 # Current System Status
 
 ## Aktueller Stand
-STEP444 – VIP Bus-First Admin-Test als stabiler Kandidat dokumentiert.
+STEP445 – VIP Bus-First Produktiv-Schalter vorbereitet, aber sicherheitsgesperrt.
 
 ## Relevante Versionen
-- `backend/modules/vip_sound_overlay.js`: `1.8.26`
+- `backend/modules/vip_sound_overlay.js`: `1.8.27`
 - `backend/modules/sound_system.js`: `0.1.19`
-- Feature: `vip_bus_first_no_legacy_admin_test`
+- Feature: `vip_bus_first_productive_switch_prepared`
 
-## Geprüfter Kandidatenstand
-STEP443 wurde nach Live-Test als stabiler Admin-Test-Kandidat bestätigt. Der explizite Admin-Testpfad kann mit:
+## Ziel von STEP445
+Der in STEP443/STEP444 bestätigte Bus-First-Admin-Testpfad bleibt stabiler Kandidat. STEP445 ergänzt nur eine vorbereitete, dashboard-/configfähige Schalterstruktur für eine spätere Produktiv-Umschaltung.
+
+## Neuer vorbereiteter Schalter
+- Setting-Key: `vipBusFirstProductiveEnabled`
+- Default: `false`
+- Effektiv in STEP445: immer `false`
+- Sicherheitsstatus: `safetyLocked: true`
+- Normaler Chat-Command: weiterhin kein Bus-First-Produktivpfad
+- Produktiver Entry-Point: weiterhin `legacy_sound_system_api`
+
+## Erwartete Statusfelder
+`/api/vip-sound/eventbus/sound-command/status` zeigt u. a.:
+
+- `productiveSwitchAvailable: true`
+- `productiveSwitchConfiguredEnabled: false` im Default
+- `productiveSwitchEffectiveEnabled: false`
+- `productiveSwitchSafetyLocked: true`
+- `productiveEntryPointChanged: false`
+- `productiveVipFlow: legacy_sound_system_api`
+
+## Unverändert bestätigter Admin-Test-Kandidat
+Der explizite Admin-Testpfad bleibt möglich mit:
 
 - `forceAccess=true`
 - `consumeDaily=false`
@@ -18,28 +39,18 @@ STEP443 wurde nach Live-Test als stabiler Admin-Test-Kandidat bestätigt. Der ex
 - `busFirstTest=true`
 - `noLegacyFallback=true`
 
-einen VIP-Sound über den Bus-First-Play-Test ausführen, ohne Legacy-Fallback zu verwenden.
+Dabei gilt weiterhin:
 
-## Bestätigte Testsignale
-- `accepted: True`
-- `busFirstTestApplied: True`
-- `noLegacyFallback: True`
-- `busFirstOnly: True`
-- `legacyFallbackAllowed: False`
-- `legacyFallbackUsed: False`
-- `legacyQueueSkippedForBusFirstTest: True`
-- `soundBusCommand.ok: True`
-- `playedOrQueued: True`
-- `started: True`
-- `normalizedFile: vip/adoredpenny.mp3`
-- `dailyUsageWritten: False`
-- Sound-System-Status: `playTestOk > 0`, `playTestFailed: 0`, `lastError` leer, `lastSoundId: vip/adoredpenny.mp3`
+- direkte VIP-Datei, z. B. `vip/adoredpenny.mp3`
+- Sound-System Play-Test
+- kein Legacy-Fallback im Admin-Test
+- kein DailyUsage
+- normaler Chat-Command unverändert
 
 ## Schutzregeln
 - Kein produktiver Bus-Default.
-- Kein normaler Twitch-Command-Umbau.
-- Kein DailyUsage-Schreiben im Admin-Test mit `consumeDaily=false`.
+- Keine automatische Produktiv-Umschaltung.
+- Schalter ist vorbereitet, aber effektiv gesperrt.
 - Kein Dashboard-Umbau.
 - Keine DB-Migration.
-- Kein automatischer produktiver Bus-Verbrauch.
-- STEP444 ist Dokumentation/Status, keine Funktionsänderung.
+- Keine Änderung an `backend/modules/sound_system.js` gegenüber STEP442/STEP443.

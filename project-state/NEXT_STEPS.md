@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-## Direkt nach STEP444
+## Direkt nach STEP445
 
 1. Syntax prüfen:
 
@@ -10,30 +10,36 @@ node --check backend\modules\vip_sound_overlay.js
 node --check backend\modules\sound_system.js
 ```
 
-2. STEP444 abschließen:
+2. Status kurz prüfen:
 
 ```powershell
-.\stepdone.cmd "STEP444 VIP Bus-First Candidate Documented"
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/eventbus/sound-command/status"
+$s | Select-Object version,feature,productiveSwitchAvailable,productiveSwitchConfiguredEnabled,productiveSwitchEffectiveEnabled,productiveSwitchSafetyLocked,productiveEntryPointChanged,productiveVipFlow
+```
+
+Erwartung im Default:
+
+- `version: 1.8.27`
+- `feature: vip_bus_first_productive_switch_prepared`
+- `productiveSwitchAvailable: True`
+- `productiveSwitchConfiguredEnabled: False`
+- `productiveSwitchEffectiveEnabled: False`
+- `productiveSwitchSafetyLocked: True`
+- `productiveEntryPointChanged: False`
+- `productiveVipFlow: legacy_sound_system_api`
+
+3. STEP445 abschließen:
+
+```powershell
+.\stepdone.cmd "STEP445 VIP Bus-First Productive Switch Prepared"
 ```
 
 ## Danach möglich
 
-### Option A – sicherer nächster Technik-Step
-STEP445 – Konfigurierbaren, aber standardmäßig deaktivierten Produktiv-Schalter vorbereiten.
+### STEP446 – Produktiv-Schalter Testmodus/Dry-Run validieren
 
-Ziel: Eine Config-/Runtime-Option vorbereiten, die den normalen VIP-Command später auf Bus-First umschalten könnte, aber im Default weiterhin deaktiviert bleibt.
+Ziel: Prüfen, ob ein gesetzter `vipBusFirstProductiveEnabled=true` im Status sichtbar wird, aber weiterhin durch `safetyLocked=true` keine Produktiv-Umschaltung auslöst.
 
-Schutzregeln:
-- Default bleibt Legacy.
-- Keine automatische Aktivierung.
-- Guard bleibt aktiv.
-- Rollback auf Legacy muss jederzeit möglich sein.
-- DailyUsage-Verhalten bleibt unverändert, solange nicht separat getestet.
+### Späterer Schritt – echte Produktiv-Umschaltung
 
-### Option B – Dashboard-Vorbereitung
-STEP445 – Admin-/Dashboard-Testschalter vorbereiten.
-
-Ziel: Den bereits stabilen Admin-Testpfad über Dashboard/Control-Center steuerbar machen, ohne produktiven Chat-Command umzuschalten.
-
-### Option C – Produktiv-Umschaltung noch nicht vorbereiten
-Weitere Diagnose-/Audit-Felder ergänzen, bevor ein Produktiv-Schalter überhaupt angelegt wird.
+Erst nach separatem Live-Test und ausdrücklicher Freigabe darf der normale VIP-Chat-Command optional auf Bus-First umgestellt werden.

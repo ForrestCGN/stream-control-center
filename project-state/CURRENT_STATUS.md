@@ -1,18 +1,18 @@
 # CURRENT_STATUS
 
-Aktueller dokumentierter Stand: STEP444 – VIP Bus-First Admin-Test als stabiler Kandidat für spätere Produktiv-Umschaltung festgehalten.
+Aktueller Stand: STEP445 – VIP Bus-First Produktiv-Schalter vorbereitet, standardmäßig deaktiviert und sicherheitsgesperrt.
 
-- VIP-Modul: `1.8.26`
+- VIP-Modul: `1.8.27`
 - Sound-System: `0.1.19`
-- Feature: `vip_bus_first_no_legacy_admin_test`
+- Feature: `vip_bus_first_productive_switch_prepared`
 
-STEP443 wurde erfolgreich getestet:
+STEP445 ergänzt im VIP-Modul eine vorbereitete Status-/Config-Struktur für den späteren Produktiv-Schalter `vipBusFirstProductiveEnabled`.
 
-- `bus_enabled` wurde im Admin-Test gesetzt.
-- Der Bus-First-Testpfad wurde angewendet.
-- `noLegacyFallback=true` wurde akzeptiert.
-- Kein Legacy-Fallback wurde verwendet.
-- Die direkte VIP-Datei `vip/adoredpenny.mp3` wurde über den Sound-System-Play-Test akzeptiert und gestartet.
-- `dailyUsageWritten` blieb `False`.
+Wichtig:
 
-Der normale Twitch-Command und der produktive VIP-Flow bleiben unverändert auf `legacy_sound_system_api`. STEP444 führt keine Code-Funktionsänderung ein, sondern dokumentiert den bestandenen Kandidatenstand.
+- Der Schalter ist im Default `false`.
+- Der effektive Produktiv-Schalter bleibt in STEP445 immer `false`.
+- `productiveSwitchSafetyLocked` bleibt `true`.
+- Der normale Twitch-Command bleibt unverändert.
+- Der produktive VIP-Flow bleibt `legacy_sound_system_api`.
+- Der bestätigte Bus-First-No-Legacy-Admin-Testpfad aus STEP443 bleibt als Kandidat erhalten.
