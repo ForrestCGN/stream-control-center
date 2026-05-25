@@ -1,18 +1,8 @@
-# Current System Status - STEP426
+# Current System Status – STEP427
 
-## Sound EventBus Command Test Layer
+STEP427 ergänzt das VIP-System um eine test-only Sound-Bus-Command-Schicht.
 
-STEP426 adds a read-only/test-only Sound EventBus command layer.
+Der produktive VIP-Flow bleibt unverändert:
+`VIP Command -> vip_sound_overlay -> /api/sound/play -> Sound-System`.
 
-- Sound-System version: `0.1.15`
-- Status EventBus capability: `sound.event_output`
-- Command test capability: `sound.command_input`
-- New routes under `/api/sound/eventbus/command/*`
-- Productive sound flow remains `/api/sound/play`
-- No queue/audio/legacy flow is changed by the command test routes.
-
-## Safety
-
-- `commandConsumerEnabled: false`
-- `testOnly: true`
-- Queue, audio, overlay, VIP and Alert productive flows remain unchanged.
+Zusätzlich wird ein Shadow-/Test-Command auf `sound.command` erzeugt, damit der kommende Bus-First-Pfad vorbereitet und beobachtet werden kann.

@@ -1,11 +1,7 @@
 # CHANGELOG
 
-## STEP426
-
-- Updated `backend/modules/sound_system.js` to version `0.1.15`.
-- Added Sound EventBus command test layer:
-  - `/api/sound/eventbus/command/status`
-  - `/api/sound/eventbus/command/test`
-  - `/api/sound/eventbus/command/reset`
-- Added `sound.command_input` capability metadata.
-- Added safety flags showing queue/audio/legacy flows are untouched.
+## STEP427
+- `backend/modules/vip_sound_overlay.js` auf Version 1.8.12 aktualisiert.
+- VIP spiegelt angenommene Sound-Wünsche zusätzlich als test-only `sound.command` EventBus-Command.
+- Neue VIP Sound-Bus Command Diagnose-Routen ergänzt.
+- Produktiver VIP-/Sound-System-Flow bleibt unverändert.

@@ -273,7 +273,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.11",
+    version: "1.8.12",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -326,6 +326,30 @@ module.exports.init = function init(ctx) {
       lastResult: null,
       lastError: "",
       lastAt: ""
+    },
+    soundBusCommand: {
+      enabled: true,
+      mode: "shadow_test",
+      channel: "sound.command",
+      action: "play.request.test",
+      capability: "sound.command_input",
+      targetType: "module",
+      targetId: "sound_system",
+      targetModule: "sound_system",
+      targetCapability: "sound.command_input",
+      commandConsumerEnabled: false,
+      emitted: 0,
+      skipped: 0,
+      errors: 0,
+      lastAction: "",
+      lastEventId: "",
+      lastRequestId: "",
+      lastVipRequestId: "",
+      lastSoundId: "",
+      lastResult: null,
+      lastError: "",
+      lastAt: "",
+      recentCommands: []
     }
   };
 
@@ -387,6 +411,7 @@ module.exports.init = function init(ctx) {
       db: { ...state.db },
       chat: { ...state.chat },
       eventBus: { ...state.eventBus },
+      soundBusCommand: publicVipSoundBusCommandStatus(""),
       updatedAt: state.updatedAt
     };
   }
@@ -2824,6 +2849,281 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function trimRecentVipSoundBusCommands() {
+    if (!Array.isArray(state.soundBusCommand.recentCommands)) state.soundBusCommand.recentCommands = [];
+    state.soundBusCommand.recentCommands = state.soundBusCommand.recentCommands.slice(0, 20);
+  }
+
+  function publicVipSoundBusCommandStatus(prefix = "") {
+    const busAvailable = !!(communicationBus && typeof communicationBus.getBus === "function");
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: state.version,
+      feature: "vip_sound_to_sound_bus_command_testflow",
+      capability: state.soundBusCommand.capability,
+      statusApiVersion: "1.0.0",
+      mode: state.soundBusCommand.mode,
+      shadowOnly: true,
+      commandLayerReady: true,
+      commandConsumerEnabled: !!state.soundBusCommand.commandConsumerEnabled,
+      productiveVipFlow: "legacy_sound_system_api",
+      legacyVipFlow: "unchanged",
+      legacySoundSystemFlow: "unchanged",
+      deliveryClassification: "module_scoped_shadow_command_event_stream",
+      enabled: !!state.soundBusCommand.enabled,
+      channel: state.soundBusCommand.channel,
+      action: state.soundBusCommand.action,
+      target: {
+        type: state.soundBusCommand.targetType || "module",
+        id: state.soundBusCommand.targetId || "sound_system",
+        module: state.soundBusCommand.targetModule || "sound_system",
+        capability: state.soundBusCommand.targetCapability || "sound.command_input"
+      },
+      communicationBusAvailable: busAvailable,
+      routes: {
+        status: prefix ? `${prefix}/eventbus/sound-command/status` : "",
+        test: prefix ? `${prefix}/eventbus/sound-command/test` : "",
+        reset: prefix ? `${prefix}/eventbus/sound-command/reset` : ""
+      },
+      protection: {
+        testOnly: true,
+        shadowOnly: true,
+        vipProductiveFlowTouched: false,
+        soundSystemTouched: false,
+        queueTouched: false,
+        audioTouched: false,
+        overlayTouched: false,
+        dailyUsageTouched: false,
+        allowQueueTouch: false,
+        allowAudioTouch: false
+      },
+      stats: {
+        emitted: Number(state.soundBusCommand.emitted || 0),
+        skipped: Number(state.soundBusCommand.skipped || 0),
+        errors: Number(state.soundBusCommand.errors || 0),
+        lastAction: state.soundBusCommand.lastAction || "",
+        lastEventId: state.soundBusCommand.lastEventId || "",
+        lastRequestId: state.soundBusCommand.lastRequestId || "",
+        lastVipRequestId: state.soundBusCommand.lastVipRequestId || "",
+        lastSoundId: state.soundBusCommand.lastSoundId || "",
+        lastResult: state.soundBusCommand.lastResult || null,
+        lastError: state.soundBusCommand.lastError || "",
+        lastAt: state.soundBusCommand.lastAt || ""
+      },
+      recentCommands: Array.isArray(state.soundBusCommand.recentCommands) ? state.soundBusCommand.recentCommands : [],
+      notes: [
+        "VIP still uses the legacy /api/sound/play productive path.",
+        "This layer mirrors VIP sound wishes as test-only sound.command events for diagnostics.",
+        "It does not consume commands, does not start audio and does not touch the Sound-System queue.",
+        "If the Communication Bus is unavailable, VIP continues through the existing Sound-System flow."
+      ],
+      updatedAt: nowIso()
+    };
+  }
+
+  function resetVipSoundBusCommandStatus(prefix = "") {
+    state.soundBusCommand.emitted = 0;
+    state.soundBusCommand.skipped = 0;
+    state.soundBusCommand.errors = 0;
+    state.soundBusCommand.lastAction = "";
+    state.soundBusCommand.lastEventId = "";
+    state.soundBusCommand.lastRequestId = "";
+    state.soundBusCommand.lastVipRequestId = "";
+    state.soundBusCommand.lastSoundId = "";
+    state.soundBusCommand.lastResult = null;
+    state.soundBusCommand.lastError = "";
+    state.soundBusCommand.lastAt = nowIso();
+    state.soundBusCommand.recentCommands = [];
+    return publicVipSoundBusCommandStatus(prefix);
+  }
+
+  function buildVipSoundBusCommandPayload(raw = {}, soundQueue = null, context = {}) {
+    const data = raw && typeof raw === "object" ? raw : {};
+    const queuePayload = soundQueue && soundQueue.payload && typeof soundQueue.payload === "object" ? soundQueue.payload : {};
+    const sound = soundQueue && soundQueue.sound && typeof soundQueue.sound === "object" ? soundQueue.sound : {};
+    const vipRequestId = String(data.vipRequestId || data.requestId || queuePayload.meta?.requestId || context.requestId || makeRequestId()).trim();
+    const commandRequestId = String(data.commandRequestId || `vip_cmd_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`).trim();
+    const soundId = String(data.soundId || queuePayload.sound || queuePayload.file || sound.relativeFile || "vip_sound_request").trim();
+    const soundType = normalizeSoundType(data.soundType || queuePayload.meta?.soundType || context.soundType || "vip");
+    const targetLogin = normalizeLogin(data.targetLogin || queuePayload.meta?.login || context.targetLogin || context.login || "");
+    const targetDisplayName = cleanDisplayName(data.targetDisplayName || queuePayload.meta?.displayName || context.targetDisplayName || context.displayName || targetLogin || "");
+
+    return {
+      testOnly: true,
+      shadowOnly: true,
+      command: "sound.play.request",
+      requestId: commandRequestId,
+      vipRequestId,
+      soundId,
+      file: String(data.file || queuePayload.file || sound.relativeFile || ""),
+      label: String(data.label || queuePayload.label || `VIP Sound - ${targetDisplayName || targetLogin || soundId}`),
+      category: String(data.category || queuePayload.category || (soundType === "mod" ? "crew" : "vip")),
+      target: String(data.target || queuePayload.target || normalizeSoundSystemTarget(getVipSetting("soundSystemTarget", "both"), "both")),
+      outputTarget: String(data.outputTarget || queuePayload.outputTarget || "device"),
+      volume: Math.max(0, Math.min(100, Math.round(Number(data.volume ?? queuePayload.volume ?? getVipSetting("soundSystemVolume", 80)) || 80))),
+      priority: Number(data.priority ?? queuePayload.priority ?? 60) || 60,
+      queueIfBusy: true,
+      dropIfBusy: false,
+      parallelAllowed: false,
+      source: String(data.source || "vip_sound_overlay_shadow_command"),
+      requestedBy: String(data.requestedBy || queuePayload.requestedBy || targetLogin || ""),
+      reason: String(data.reason || "vip_shadow_command_test"),
+      message: String(data.message || "VIP shadow command test only"),
+      meta: {
+        module: MODULE_NAME,
+        vipRequestId,
+        usageDate: String(data.usageDate || context.date || queuePayload.meta?.usageDate || ""),
+        soundType,
+        login: targetLogin,
+        displayName: targetDisplayName,
+        soundFile: String(data.soundFile || queuePayload.meta?.soundFile || sound.relativeFile || ""),
+        productiveFlow: "legacy_sound_system_api",
+        shadowOnly: true
+      },
+      visual: {
+        module: MODULE_NAME,
+        type: soundType,
+        requestId: vipRequestId,
+        title: String(data.title || queuePayload.visual?.title || buildOverlayTitle(soundType, { displayName: targetDisplayName, login: targetLogin, soundType })),
+        text: String(data.text || queuePayload.visual?.text || buildOverlayText(soundType, { displayName: targetDisplayName, login: targetLogin, soundType })),
+        displayName: targetDisplayName,
+        login: targetLogin,
+        avatarUrl: String(data.avatarUrl || queuePayload.visual?.avatarUrl || context.avatarUrl || "")
+      },
+      protection: {
+        testOnly: true,
+        shadowOnly: true,
+        vipProductiveFlowTouched: false,
+        soundSystemTouched: false,
+        queueTouched: false,
+        audioTouched: false,
+        overlayTouched: false,
+        dailyUsageTouched: false
+      },
+      emittedAt: nowIso()
+    };
+  }
+
+  function emitVipSoundBusCommandTest(raw = {}, soundQueue = null, context = {}, options = {}) {
+    const payload = buildVipSoundBusCommandPayload(raw, soundQueue, context);
+
+    if (!state.soundBusCommand.enabled) {
+      state.soundBusCommand.skipped += 1;
+      state.soundBusCommand.lastAction = state.soundBusCommand.action;
+      state.soundBusCommand.lastRequestId = payload.requestId;
+      state.soundBusCommand.lastVipRequestId = payload.vipRequestId;
+      state.soundBusCommand.lastSoundId = payload.soundId;
+      state.soundBusCommand.lastError = "disabled";
+      state.soundBusCommand.lastAt = nowIso();
+      return { ok: false, skipped: true, reason: "disabled", payload };
+    }
+
+    if (!communicationBus || typeof communicationBus.getBus !== "function") {
+      state.soundBusCommand.skipped += 1;
+      state.soundBusCommand.lastAction = state.soundBusCommand.action;
+      state.soundBusCommand.lastRequestId = payload.requestId;
+      state.soundBusCommand.lastVipRequestId = payload.vipRequestId;
+      state.soundBusCommand.lastSoundId = payload.soundId;
+      state.soundBusCommand.lastError = "communication_bus_getBus_unavailable";
+      state.soundBusCommand.lastAt = nowIso();
+      return { ok: false, skipped: true, reason: "communication_bus_getBus_unavailable", payload };
+    }
+
+    try {
+      const currentBus = communicationBus.getBus();
+      const result = currentBus.emit({
+        type: "event",
+        channel: state.soundBusCommand.channel,
+        action: state.soundBusCommand.action,
+        source: {
+          type: "module",
+          id: MODULE_NAME,
+          module: MODULE_NAME
+        },
+        target: {
+          type: state.soundBusCommand.targetType || "module",
+          id: state.soundBusCommand.targetId || "sound_system",
+          module: state.soundBusCommand.targetModule || "sound_system",
+          capability: state.soundBusCommand.targetCapability || "sound.command_input"
+        },
+        payload,
+        meta: {
+          requireAck: false,
+          replayable: false,
+          ttlMs: 30000,
+          testOnly: true,
+          shadowOnly: true,
+          command: payload.command,
+          commandLayer: "vip_to_sound_shadow_test",
+          productiveFlow: "legacy_sound_system_api",
+          vipRequestId: payload.vipRequestId,
+          requestId: payload.requestId,
+          soundId: payload.soundId,
+          soundSystemTouched: false,
+          queueTouched: false,
+          audioTouched: false,
+          overlayTouched: false,
+          dailyUsageTouched: false
+        }
+      });
+
+      state.soundBusCommand.emitted += result && result.ok ? 1 : 0;
+      state.soundBusCommand.errors += result && result.ok ? 0 : 1;
+      state.soundBusCommand.lastAction = state.soundBusCommand.action;
+      state.soundBusCommand.lastEventId = result && result.eventId ? result.eventId : "";
+      state.soundBusCommand.lastRequestId = payload.requestId;
+      state.soundBusCommand.lastVipRequestId = payload.vipRequestId;
+      state.soundBusCommand.lastSoundId = payload.soundId;
+      state.soundBusCommand.lastResult = result ? {
+        ok: result.ok === true,
+        eventId: result.eventId || "",
+        deliveredCount: Number(result.deliveredCount || 0),
+        deliveredTo: Array.isArray(result.deliveredTo) ? result.deliveredTo : []
+      } : null;
+      state.soundBusCommand.lastError = result && result.ok ? "" : "bus_emit_failed";
+      state.soundBusCommand.lastAt = nowIso();
+      state.soundBusCommand.recentCommands.unshift({
+        at: state.soundBusCommand.lastAt,
+        eventId: state.soundBusCommand.lastEventId,
+        action: state.soundBusCommand.action,
+        command: payload.command,
+        requestId: payload.requestId,
+        vipRequestId: payload.vipRequestId,
+        soundId: payload.soundId,
+        file: payload.file,
+        requestedBy: payload.requestedBy,
+        source: payload.source,
+        shadowOnly: true,
+        testOnly: true,
+        deliveredCount: state.soundBusCommand.lastResult ? state.soundBusCommand.lastResult.deliveredCount : 0,
+        deliveredTo: state.soundBusCommand.lastResult ? state.soundBusCommand.lastResult.deliveredTo : []
+      });
+      trimRecentVipSoundBusCommands();
+
+      return {
+        ...(result || { ok: false, error: "empty_bus_result" }),
+        payload,
+        shadowOnly: true,
+        testOnly: true,
+        soundSystemTouched: false,
+        queueTouched: false,
+        audioTouched: false
+      };
+    } catch (err) {
+      state.soundBusCommand.errors += 1;
+      state.soundBusCommand.lastAction = state.soundBusCommand.action;
+      state.soundBusCommand.lastRequestId = payload.requestId;
+      state.soundBusCommand.lastVipRequestId = payload.vipRequestId;
+      state.soundBusCommand.lastSoundId = payload.soundId;
+      state.soundBusCommand.lastResult = null;
+      state.soundBusCommand.lastError = err && err.message ? err.message : String(err);
+      state.soundBusCommand.lastAt = nowIso();
+      console.warn(`[${MODULE_NAME}] VIP Sound-Bus command test emit failed: ${state.soundBusCommand.lastError}`);
+      return { ok: false, error: state.soundBusCommand.lastError, payload };
+    }
+  }
+
   function emitVipEventBusStatus(eventKeyValue, context = {}, extra = {}, response = {}) {
     if (!state.eventBus.enabled) {
       state.eventBus.skipped += 1;
@@ -3003,7 +3303,8 @@ module.exports.init = function init(ctx) {
         eventId: eventBusResult && eventBusResult.eventId ? eventBusResult.eventId : "",
         reason: eventBusResult && eventBusResult.reason ? eventBusResult.reason : "",
         error: eventBusResult && eventBusResult.error ? eventBusResult.error : ""
-      }
+      },
+      soundBusCommand: extra.soundBusCommand || null
     };
   }
 
@@ -3448,6 +3749,28 @@ module.exports.init = function init(ctx) {
       });
     }
 
+    const soundBusCommandResult = emitVipSoundBusCommandTest({
+      vipRequestId: requestId,
+      soundType,
+      usageDate,
+      targetLogin: user.login,
+      targetDisplayName: user.displayName || user.login,
+      avatarUrl: user.avatarUrl,
+      requestedBy: user.login,
+      source: "vip_sound_overlay_shadow_command",
+      reason: "vip_accepted_shadow_command"
+    }, soundQueue, {
+      ...context,
+      requestId,
+      date: usageDate,
+      targetLogin: user.login,
+      targetDisplayName: user.displayName || user.login,
+      login: user.login,
+      displayName: user.displayName || user.login,
+      avatarUrl: user.avatarUrl,
+      soundType
+    });
+
     if (!skipDailyUsage) {
       database.run(`
         INSERT INTO vip_sound_daily_usage
@@ -3491,6 +3814,15 @@ module.exports.init = function init(ctx) {
         (soundQueue.response && soundQueue.response.requestId) ||
         (soundQueue.response && soundQueue.response.item && soundQueue.response.item.requestId) ||
         "",
+      soundBusCommand: {
+        ok: !!(soundBusCommandResult && soundBusCommandResult.ok),
+        skipped: !!(soundBusCommandResult && soundBusCommandResult.skipped),
+        eventId: soundBusCommandResult && soundBusCommandResult.eventId ? soundBusCommandResult.eventId : "",
+        deliveredCount: Number(soundBusCommandResult && soundBusCommandResult.deliveredCount || 0),
+        error: soundBusCommandResult && soundBusCommandResult.error ? soundBusCommandResult.error : "",
+        shadowOnly: true,
+        testOnly: true
+      },
       soundFile: soundQueue.sound.relativeFile,
       soundPath: soundQueue.sound.fullPath,
       note: skipDailyUsage
@@ -3654,6 +3986,11 @@ module.exports.init = function init(ctx) {
       { method: "POST", path: `${prefix}/eventbus/test`, purpose: "emit a test-only vip.sound smoke event without touching sound, queue, overlay or Daily-Usage" },
       { method: "POST", path: `${prefix}/eventbus/reset`, purpose: "reset VIP EventBus diagnostic counters only" },
       { method: "GET", path: `${prefix}/eventbus/reset`, purpose: "legacy GET reset for VIP EventBus diagnostic counters only" },
+      { method: "GET", path: `${prefix}/eventbus/sound-command/status`, purpose: "read VIP to Sound-Bus command shadow diagnostics" },
+      { method: "GET", path: `${prefix}/eventbus/sound-command/test`, purpose: "emit test-only VIP sound-command shadow event" },
+      { method: "POST", path: `${prefix}/eventbus/sound-command/test`, purpose: "emit test-only VIP sound-command shadow event" },
+      { method: "POST", path: `${prefix}/eventbus/sound-command/reset`, purpose: "reset VIP to Sound-Bus command diagnostic counters only" },
+      { method: "GET", path: `${prefix}/eventbus/sound-command/reset`, purpose: "legacy GET reset for VIP to Sound-Bus command diagnostic counters only" },
       { method: "POST", path: `${prefix}/reload`, purpose: "safe VIP diagnostics reload" }
     ];
 
@@ -3710,8 +4047,12 @@ module.exports.init = function init(ctx) {
       routes: {
         status: prefix ? `${prefix}/eventbus/status` : "",
         test: prefix ? `${prefix}/eventbus/test` : "",
-        reset: prefix ? `${prefix}/eventbus/reset` : ""
+        reset: prefix ? `${prefix}/eventbus/reset` : "",
+        soundCommandStatus: prefix ? `${prefix}/eventbus/sound-command/status` : "",
+        soundCommandTest: prefix ? `${prefix}/eventbus/sound-command/test` : "",
+        soundCommandReset: prefix ? `${prefix}/eventbus/sound-command/reset` : ""
       },
+      soundCommand: publicVipSoundBusCommandStatus(prefix),
       counters: {
         emitted: Number(state.eventBus.emitted || 0),
         skipped: Number(state.eventBus.skipped || 0),
@@ -4067,6 +4408,93 @@ module.exports.init = function init(ctx) {
         markClientSeen();
         const result = resetVipEventBusStatus();
         return res.json({ ...result, prefix, reset: true, resetAt: state.eventBus.lastAt });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/eventbus/sound-command/status`, (req, res) => {
+      try {
+        markClientSeen();
+        return res.json(publicVipSoundBusCommandStatus(prefix));
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/eventbus/sound-command/test`, (req, res) => {
+      try {
+        markClientSeen();
+        const result = emitVipSoundBusCommandTest(requestData(req), null, {
+          date: getBerlinDate(),
+          trigger: "vip_sound_bus_command_test"
+        }, { manual: true });
+        return res.json({
+          ok: !!(result && result.ok),
+          module: MODULE_NAME,
+          version: state.version,
+          feature: "vip_sound_to_sound_bus_command_testflow",
+          testOnly: true,
+          shadowOnly: true,
+          vipProductiveFlowTouched: false,
+          soundSystemTouched: false,
+          queueTouched: false,
+          audioTouched: false,
+          overlayTouched: false,
+          dailyUsageTouched: false,
+          result,
+          command: publicVipSoundBusCommandStatus(prefix),
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/eventbus/sound-command/test`, (req, res) => {
+      try {
+        markClientSeen();
+        const result = emitVipSoundBusCommandTest(requestData(req), null, {
+          date: getBerlinDate(),
+          trigger: "vip_sound_bus_command_test"
+        }, { manual: true });
+        return res.json({
+          ok: !!(result && result.ok),
+          module: MODULE_NAME,
+          version: state.version,
+          feature: "vip_sound_to_sound_bus_command_testflow",
+          testOnly: true,
+          shadowOnly: true,
+          vipProductiveFlowTouched: false,
+          soundSystemTouched: false,
+          queueTouched: false,
+          audioTouched: false,
+          overlayTouched: false,
+          dailyUsageTouched: false,
+          result,
+          command: publicVipSoundBusCommandStatus(prefix),
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/eventbus/sound-command/reset`, (req, res) => {
+      try {
+        markClientSeen();
+        const result = resetVipSoundBusCommandStatus(prefix);
+        return res.json({ ...result, prefix, reset: true, resetAt: state.soundBusCommand.lastAt });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/eventbus/sound-command/reset`, (req, res) => {
+      try {
+        markClientSeen();
+        const result = resetVipSoundBusCommandStatus(prefix);
+        return res.json({ ...result, prefix, reset: true, resetAt: state.soundBusCommand.lastAt });
       } catch (err) {
         return fail(res, 500, err.message || String(err));
       }
