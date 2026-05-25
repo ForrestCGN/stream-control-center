@@ -1,104 +1,106 @@
-# CURRENT SYSTEM STATUS – STEP405 VIP BUS PREVIEW FLOW STABLE CLEANUP
+# CURRENT SYSTEM STATUS – STEP406 VIP PRODUCTIVE BUS EVENT AUDIT
 
 Stand: 2026-05-25
 
 ## Aktueller Fokus
 
-Der VIP-/Communication-Bus-Stand aus STEP404C wurde als aktueller stabiler Zusatzstand eingeordnet.
+VIP-/Mod-Sound-System wurde im Hinblick auf produktive Bus-Events auditiert. Ergebnis: Der produktive VIP-/Mod-Sound-Pfad bleibt weiterhin Sound-System-geführt. Der bestehende Communication-Bus-Pfad bleibt vorerst Preview-/Diagnosepfad.
 
-Die zentrale Entscheidung:
+## Aktueller stabiler VIP-/Mod-Stand
 
-```text
-VIP-/Mod-Sounds bleiben produktiv über das Sound-System.
-Communication Bus bleibt für VIP zusätzlich als Preview-/Diagnosepfad aktiv.
-```
+- VIP-/Mod-System läuft produktiv weiterhin über das Sound-System.
+- Canonical API-Prefix bleibt `/api/vip-sound`.
+- Alias `/api/vip-sound-overlay` bleibt vorhanden.
+- `/api/vip` ist absichtlich nicht registriert.
+- VIP-Overlay-Datei bleibt `htdocs/overlays/vip_sound_overlay_v2.html`.
+- VIP-Backend-Modul bleibt `backend/modules/vip_sound_overlay.js`.
+- VIP-Modul-Version laut letztem Handoff: `1.8.7`.
+- VIP-Schema-Version laut letztem Handoff: `5`.
 
-## Bestätigter Gesamtstand
-
-- GitHub/dev enthält den gültigen VIP-/Communication-Bus-Stand.
-- `vip_sound_overlay_v2` ist als Communication-Bus-Client registriert.
-- Der Client läuft als Overlay im Modus `shadow`.
-- Capabilities:
-  - `vip.overlay.test`
-  - `vip.overlay.show`
-  - `vip.overlay.hide`
-  - `vip.overlay.update`
-  - `ack`
-- `vip.overlay.test` bleibt Shadow-only.
-- `vip.overlay.show` zeigt eine Preview-Testkarte.
-- `vip.overlay.hide` blendet die Preview aus.
-- `vip.overlay.update` aktualisiert eine sichtbare Preview.
-- ACKs werden vom Overlay an den Communication Bus gesendet.
-- Sound-System bleibt im Preview-Test unberührt.
-
-## Produktiver VIP-/Mod-Sound-Pfad
+## Produktiver Flow
 
 ```text
 Streamer.bot / Dashboard / API
 → /api/vip-sound/command oder /api/vip-sound/enqueue
 → backend/modules/vip_sound_overlay.js
 → /api/sound/play
-→ Sound-System
-→ VIP-Overlay über sound_system WebSocket + /api/sound/status
+→ Sound-System steuert Queue, Ausgabe und Playback
+→ VIP-Overlay reagiert auf sound_system WebSocket + /api/sound/status
+→ Overlay zeigt passende Karte
 ```
 
-Dieser Pfad ist weiterhin der produktive Standard.
-
-## VIP-Bus-Preview-Pfad
+## Communication-Bus Preview Flow
 
 ```text
-/api/communication/test-vip-overlay-preview?action=show|hide|update
-→ Communication Bus
-→ vip.overlay.*
-→ vip_sound_overlay_v2.html
-→ ACK
+Communication Bus
+→ vip.overlay.show / vip.overlay.hide / vip.overlay.update
+→ vip_sound_overlay_v2 zeigt Preview-Testkarte
+→ Overlay sendet Ack
+→ Sound-System bleibt unberührt
 ```
 
-Dieser Pfad bleibt Diagnose/Preview und wird noch nicht für echte produktive VIP-/Mod-Sounds verwendet.
+## Bestätigter Stand aus STEP404C/STEP405
+
+- VIP-Overlay ist als Communication-Bus-Client registriert.
+- Client: `vip_sound_overlay_v2`.
+- Modul: `vip_sound_overlay`.
+- Typ: `overlay`.
+- Modus: `shadow`.
+- Capabilities:
+  - `vip.overlay.test`
+  - `vip.overlay.show`
+  - `vip.overlay.hide`
+  - `vip.overlay.update`
+  - `ack`
+- STEP404C bestätigte:
+  - Overlay erreichbar.
+  - VIP-Bus-Client online.
+  - `vip.overlay.show` zugestellt.
+  - Show-Ack erkannt.
+  - Preview sichtbar.
+  - `vip.overlay.hide` zugestellt.
+  - Hide-Ack erkannt.
+  - Sound-System blieb leer.
+  - Communication-Watchdog grün.
+
+## Ergebnis STEP406
+
+Es wird noch kein produktiver VIP-Bus-Overlay-Ausgabeweg gebaut.
+
+Begründung:
+
+- Sound-System ist bereits der richtige Produktivführer für Audio, Queue und Playback.
+- Das Overlay erhält über Sound-System-Events und `/api/sound/status` bereits die nötigen visuellen Daten.
+- Ein zusätzlicher produktiver `vip.overlay.show` ohne Dedup-/Timing-Konzept könnte doppelte Anzeigen erzeugen.
+- Der Bus-Preview-Pfad ist stabil, aber bewusst noch kein Produktivpfad.
 
 ## Wichtige Architekturentscheidung
 
-STEP405 entscheidet ausdrücklich gegen eine vorschnelle Produktivumschaltung.
-
-Aktueller Modus:
+Für VIP gilt ab STEP406:
 
 ```text
-Sound-System = produktiver Auslöser
-Communication Bus = stabiler Preview-/Diagnosepfad
+Sound-System bleibt führend.
+Communication Bus darf später ergänzende Mirror-/Diagnose-Events bekommen.
+Overlay-Anzeige wird nicht stillschweigend auf Bus-Produktion umgestellt.
 ```
 
-Ein echter produktiver `vip.overlay.*`-Pfad für VIP-/Mod-Sounds wird frühestens nach einem eigenen Audit gebaut.
+## Nächster sinnvoller Schritt
 
-## Relevante Dateien
-
-```text
-backend/modules/communication_bus.js
-backend/modules/vip_sound_overlay.js
-htdocs/overlays/vip_sound_overlay_v2.html
-project-state/STEP404C_VIP_PREVIEW_STABLE_CHECK_RESULT_WRAPPER_FIX.md
-project-state/STEP405_VIP_BUS_PREVIEW_FLOW_STABLE_CLEANUP.md
-```
-
-## Nicht geändert
-
-- Keine Sound-System-Logik.
-- Keine Queue-Logik.
-- Keine Bundle-/Lock-Logik.
-- Keine DB-Migration.
-- Keine Dashboard-Arbeit.
-- Keine Entfernung von Legacy-/Diagnose-/Preview-Pfaden.
-- Keine neue `/api/vip`-Route.
-
-## Nächster sinnvoller Block
-
-Empfohlen:
-
-```text
-STEP406 – VIP Productive Bus Event Audit
-```
+Empfohlen: `STEP407 – VIP Productive Bus Mirror Design`
 
 Ziel:
 
-- realen VIP-/Mod-Produktivpfad vollständig prüfen,
-- entscheiden, ob echte VIP-/Mod-Events zusätzlich einen `vip.overlay.*` Event bekommen sollen,
-- Dedupe, Hide-Verhalten, Reconnect, Sound-Dauer und Queue-Verhalten vor Codeänderungen klären.
+- Event-Vertrag für produktive VIP-Bus-Mirror-Events entwerfen.
+- Eventtypen wie `vip.sound.requested`, `vip.sound.accepted`, `vip.sound.queued`, `vip.sound.rejected`, `vip.sound.started`, `vip.sound.finished`, `vip.sound.failed` prüfen.
+- Klären, ob `vip.overlay.*` langfristig nur Preview/Overlay-Control bleibt oder ob produktive Anzeige darüber laufen soll.
+- Keine Codeänderung ohne fertigen Vertrag.
+
+## Nicht ändern ohne eigenen STEP
+
+- Keine Sound-System-Queue-Logik.
+- Keine Bundle-/Prioritätslogik.
+- Keine Daily-Usage-Regeln.
+- Keine Eventlog-Struktur.
+- Keine Entfernung von `/api/vip-sound-overlay`.
+- Keine Registrierung von `/api/vip`.
+- Keine Bus-only-Migration.

@@ -1,6 +1,6 @@
-# FILES – STEP405 VIP BUS PREVIEW FLOW STABLE CLEANUP
+# FILES – STEP406 VIP PRODUCTIVE BUS EVENT AUDIT
 
-Dieses ZIP enthält nur Dokumentation zum bestätigten VIP-/Communication-Bus-Stand und zur Produktivpfad-Entscheidung.
+Dieses ZIP enthält nur Dokumentation zum VIP Productive Bus Event Audit.
 
 ## Enthaltene Dateien
 
@@ -10,14 +10,16 @@ project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
-project-state/STEP405_VIP_BUS_PREVIEW_FLOW_STABLE_CLEANUP.md
+project-state/STEP406_VIP_PRODUCTIVE_BUS_EVENT_AUDIT.md
 ```
 
-## Geprüfte relevante Code-Dateien
+## Relevante geprüfte Code-Dateien
+
+Nicht im ZIP enthalten, aber für den Audit gelesen/geprüft:
 
 ```text
-backend/modules/communication_bus.js
 backend/modules/vip_sound_overlay.js
+backend/modules/communication_bus.js
 htdocs/overlays/vip_sound_overlay_v2.html
 ```
 
@@ -27,13 +29,8 @@ htdocs/overlays/vip_sound_overlay_v2.html
 keine Backend-Codeänderungen
 keine Overlay-Codeänderungen
 keine Dashboard-Dateien
+keine Config-Dateien
 keine DB-Dateien
-keine Config-Änderungen
 keine Secrets
-keine .env
 keine Backups
 ```
-
-## Grund
-
-STEP405 ist bewusst ein Cleanup-/Entscheidungs-STEP, weil der vorhandene produktive VIP-/Mod-Soundpfad stabil bleibt und der Bus-Pfad aktuell nur Preview/Diagnose ist.
