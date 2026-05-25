@@ -1,6 +1,3 @@
-# CHANGELOG
+# Changelog
 
-## STEP423
-- Optionalen Auto-Refresh für Bus-Diagnose Dashboard ergänzt.
-- Livebar für Ladezustand, letztes Laden und nächste Aktualisierung ergänzt.
-- Browser-Tab-Pause für Auto-Refresh ergänzt.
+- STEP424: Bus-Diagnose im Dashboard mit Eventdetails, Korrelationsdetails, Capability-Chips und Rohdatenansicht erweitert.

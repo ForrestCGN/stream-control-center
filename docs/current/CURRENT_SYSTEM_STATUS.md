@@ -1,3 +1,3 @@
-# Current System Status – STEP423
+# Current System Status
 
-Die Bus-Diagnose ist im Dashboard integriert und besitzt jetzt optionalen Auto-Refresh mit Live-Status. Die Diagnose bleibt read-only und verändert keine produktiven Sound-, Alert-, Queue-, Bundle-/TTS- oder Overlay-Flows.
+STEP424 ergänzt die Dashboard-Busdiagnose um Detailansichten, Capability-Chips, Korrelationsdetails und ausklappbare Rohdaten. Alle Diagnosefunktionen bleiben read-only.

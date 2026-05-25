@@ -1,4 +1,3 @@
-# NEXT_STEPS
+# Next Steps
 
-- STEP424: Bus-Diagnose optional um kompakte Event-Details/Raw-JSON-Auszug im Dashboard erweitern.
-- Später: echte Dashboard-Admin-/Owner-Rechte für Diagnosebereiche berücksichtigen.
+- STEP425: Bus-Diagnose optional um gezielte manuelle Test-Buttons erweitern, weiterhin read-only/diagnostisch ohne produktive Steuerung.

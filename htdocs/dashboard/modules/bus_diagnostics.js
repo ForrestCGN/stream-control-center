@@ -18,6 +18,10 @@
   function bool(v){ return v ? 'ja' : 'nein'; }
   function num(v){ return Number.isFinite(Number(v)) ? Number(v).toLocaleString('de-DE') : '0'; }
   function value(v, fallback = '-'){ return v === undefined || v === null || v === '' ? fallback : String(v); }
+  function compactJson(obj){
+    try { return JSON.stringify(obj || {}, null, 2); }
+    catch (_) { return '{}'; }
+  }
   function statusClass(status){
     const s = String(status || '').toLowerCase();
     if (s === 'ok') return 'ok';
@@ -256,9 +260,11 @@
 
       ${renderWarnings(warnings, errors)}
       ${renderQuickActions(summary)}
+      ${renderCorrelationDetails(comparison)}
       ${renderClients(communication.statusBody?.clients || [])}
       ${renderRecent('Sound Events', sound.recentEvents || [])}
       ${renderRecent('Alert Events', alert.recentEvents || [])}
+      ${renderRawDiagnostics(data)}
     `;
   }
 
@@ -288,6 +294,52 @@
     `;
   }
 
+
+  function renderCapabilityChips(capabilities){
+    const list = Array.isArray(capabilities) ? capabilities : [];
+    if (!list.length) return '-';
+    return list.map(cap => `<span class="busdiag-chip">${esc(cap)}</span>`).join('');
+  }
+
+  function renderCorrelationDetails(comparison){
+    const matches = Array.isArray(comparison.matches) ? comparison.matches : [];
+    const unmatched = Array.isArray(comparison.unmatchedAlerts) ? comparison.unmatchedAlerts : [];
+    if (!matches.length && !unmatched.length) return '';
+    return `
+      <section class="busdiag-card busdiag-wide">
+        <h3>Korrelation Details</h3>
+        <div class="busdiag-correlation-grid">
+          ${matches.map(match => `
+            <div class="busdiag-correlation-row ok">
+              <div><strong>${esc(match.eventUid || '-')}</strong><small>${esc(match.bundleId || '-')}</small></div>
+              <div><span>Matched by</span><strong>${esc(match.matchedBy || '-')}</strong></div>
+              <div><span>Sound Action</span><strong>${esc(match.soundLastAction || '-')}</strong></div>
+              <div><span>Errors</span><strong>${esc(match.soundErrorCount ?? 0)}</strong></div>
+            </div>
+          `).join('')}
+          ${unmatched.map(row => `
+            <div class="busdiag-correlation-row warning">
+              <div><strong>${esc(row.eventUid || '-')}</strong><small>${esc(row.bundleId || '-')}</small></div>
+              <div><span>Status</span><strong>unmatched</strong></div>
+              <div><span>Phase</span><strong>${esc(row.phase || '-')}</strong></div>
+              <div><span>Hinweis</span><strong>prüfen</strong></div>
+            </div>
+          `).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderRawDiagnostics(data){
+    return `
+      <section class="busdiag-card busdiag-wide busdiag-raw-card">
+        <h3>Rohdaten</h3>
+        <p class="busdiag-muted">Nur Anzeige. Hilft beim Weitergeben von Diagnoseausgaben, ohne zusätzliche PowerShell-Abfragen.</p>
+        <details class="busdiag-details"><summary>Komplette Diagnose anzeigen</summary><pre>${esc(compactJson(data))}</pre></details>
+      </section>
+    `;
+  }
+
   function renderClients(clients){
     if (!clients.length) return '';
     return `
@@ -300,7 +352,7 @@
               <span><strong>${esc(client.id)}</strong><small>${esc(client.type || '-')} / ${esc(client.mode || '-')}</small></span>
               <span>${esc(client.module || '-')}</span>
               <span>${badge(client.connected ? 'online' : 'offline', client.connected ? 'ok' : 'warning')}</span>
-              <span>${esc((client.capabilities || []).join(', ') || '-')}</span>
+              <span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span>
             </div>
           `).join('')}
         </div>
@@ -316,10 +368,10 @@
         <div class="busdiag-table busdiag-table-events">
           <div class="busdiag-table-head"><span>Zeit</span><span>Action</span><span>Event</span><span>Delivered</span></div>
           ${events.slice(0, 10).map(event => `
-            <div class="busdiag-table-row">
+            <div class="busdiag-table-row busdiag-event-row">
               <span>${esc(event.at || '-')}</span>
               <span><strong>${esc(event.action || '-')}</strong><small>${esc(event.reason || '')}</small></span>
-              <span>${esc(event.eventId || '-')}</span>
+              <span><strong>${esc(event.eventId || '-')}</strong><details class="busdiag-inline-details"><summary>Details</summary><pre>${esc(compactJson(event))}</pre></details></span>
               <span>${esc(event.deliveredCount ?? '-')}</span>
             </div>
           `).join('')}
