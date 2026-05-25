@@ -1,12 +1,28 @@
-# CURRENT STATUS
+# CURRENT STATUS – STEP452
 
-Aktueller Stand: STEP450 – VIP Productive Bus Guard Reference Hotfix.
+Aktueller Stand: **STEP452 – VIP Command Bus Productive Integration**.
 
-VIP-Sound-Overlay: `1.8.32` mit Feature `vip_productive_bus_guard_reference_hotfix`.
-Sound-System: `0.1.20`, unverändert aus STEP448/449.
+Der VIP-Sound-Command läuft nun produktiv über das vorhandene Node-Command-System und den Sound-Bus. Streamer.bot ist für `!vip` entfernt.
 
-STEP450 behebt gezielt den Runtime-Fehler `guard is not defined` im produktiven VIP-Command-Payload. Der normale VIP-Produktivpfad bleibt Bus-First aktiv; Legacy bleibt nur Fallback bei Bus-Fehler.
+Bestätigt:
 
-## STEP451 – Sound Bus Productive Route 404 Fix
+```text
+productiveVipFlow: sound_bus_command
+normalChatCommandUsesBusFirst: True
+productiveSwitchEffectiveEnabled: True
+productiveSwitchSafetyLocked: False
+productiveEntryPointChanged: True
+legacyVipFlow: fallback_only
+```
 
-Aktueller Stand: VIP-Produktivpfad ist Bus-First aktiv. STEP451 registriert die fehlende produktive Sound-Bus-Route `/api/sound/eventbus/command/play`, damit produktive VIP-Sounds nicht mehr wegen `HTTP 404` auf Legacy zurückfallen.
+Zusätzlich wurde bestätigt:
+
+```text
+productivePlayChecks: 2
+productivePlayOk: 2
+productivePlayFailed: 0
+lastSoundId: vip/adoredpenny.mp3
+lastProductiveBusError: leer
+```
+
+`commands.js` enthält ab STEP452 den VIP-Sound-Catalog-Eintrag und einen Default-Seed für `vip`.

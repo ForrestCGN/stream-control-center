@@ -1,15 +1,50 @@
-# CURRENT SYSTEM STATUS
+# Current System Status – STEP452
 
-Aktueller Stand: STEP450.
+## Thema
+VIP Command + Bus Productive Integration ist abgeschlossen und dokumentiert.
 
-- `vip_sound_overlay.js`: Version `1.8.32`
-- Feature: `vip_productive_bus_guard_reference_hotfix`
-- `sound_system.js`: Version `0.1.20`
+## Ergebnis
+Der VIP-Sound-Flow läuft produktiv über das bestehende Node-Command-System und den Sound-Bus:
 
-STEP450 ist ein Hotfix für STEP449. Der direkte Backend-Test auf `/api/vip-sound/command` scheiterte mit `guard is not defined`. Ursache war eine Guard-Referenz im Payload-Building ohne lokale Guard-Variable.
+```text
+Twitch Chat
+→ twitch_presence.js
+→ commands.js
+→ command_definitions: vip
+→ /api/vip-sound/command
+→ VIP-Modul
+→ /api/sound/eventbus/command/play
+→ sound_system.js
+→ Sound startet
+```
 
-Der produktive VIP-Bus-First-Pfad bleibt aktiv. Es wurde kein neuer Testpfad und keine neue Bus-Route ergänzt.
+## Bestätigter Live-Stand
+- `!vip` wurde aus Streamer.bot entfernt.
+- `vip` ist in `command_definitions` registriert.
+- Produktiver VIP-Flow: `sound_bus_command`.
+- Normaler Chat-Command nutzt Bus-First: `true`.
+- Productive Switch effektiv aktiv: `true`.
+- Safety-Lock gelöst: `false`.
+- Legacy-Flow: `fallback_only`.
 
-## STEP451 – Sound Bus Productive Route 404 Fix
+## Erfolgreich getesteter Bus-Status
+```text
+productivePlayChecks: 2
+productivePlayOk: 2
+productivePlayFailed: 0
+lastSoundId: vip/adoredpenny.mp3
+lastProductiveBusError: leer
+```
 
-STEP451 behebt den `HTTP 404` aus dem kontrollierten VIP-Bus-First-Produktivtest. Der VIP-Command erreichte bereits den produktiven Bus-Hook, aber die Sound-System-Route `/api/sound/eventbus/command/play` war nicht registriert. Die Route ist jetzt für GET/POST registriert und ruft `consumeSoundBusCommandPlay(...)` auf. Legacy bleibt nur als Fallback erhalten.
+## STEP452-Code-Absicherung
+`backend/modules/commands.js` enthält jetzt zusätzlich:
+
+- VIP-Sound im Command-Catalog.
+- Default-Seed für `vip` → `/api/vip-sound/command`.
+- Alias `vipsound`.
+- `permissionLevel: everyone`, damit das VIP-Modul den Zieluser prüft.
+
+## Sicherheit
+- Keine SQLite-Datenbank wird ersetzt.
+- Bestehende Live-Registrierung bleibt erhalten.
+- Legacy bleibt nur als Notausgang bei Bus-Fehlern vorhanden.

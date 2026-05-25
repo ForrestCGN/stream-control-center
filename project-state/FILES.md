@@ -1,18 +1,17 @@
-# FILES
+# FILES – STEP452
 
-## STEP450
+Geänderte / enthaltene Dateien:
 
-- `backend/modules/vip_sound_overlay.js` – Hotfix für `guard is not defined`, Version `1.8.32`.
-- `backend/modules/sound_system.js` – unverändert, Version `0.1.20`, produktiver Sound-Bus-Consumer bleibt bestehen.
+- `backend/modules/commands.js`
+  - VIP-Sound-Catalog-Eintrag ergänzt.
+  - Default-Seed für `vip` ergänzt.
+- `backend/modules/vip_sound_overlay.js`
+  - unverändert aus STEP451 enthalten; produktiver VIP-Bus-Flow bleibt aktiv.
+- `backend/modules/sound_system.js`
+  - unverändert aus STEP451 enthalten; produktive Bus-Route `/api/sound/eventbus/command/play` bleibt aktiv.
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP450_VIP_PRODUCTIVE_BUS_GUARD_REFERENCE_HOTFIX.md`
-
-## STEP451 betroffene Dateien
-
-- `backend/modules/sound_system.js` – registriert produktive Sound-Bus-Route `/api/sound/eventbus/command/play`.
-- `backend/modules/vip_sound_overlay.js` – Versions-/Featurestand für STEP451.
-- `project-state/STEP451_SOUND_BUS_PRODUCTIVE_ROUTE_404_FIX.md` – STEP-Dokumentation.
+- `project-state/STEP452_VIP_COMMAND_BUS_PRODUCTIVE_INTEGRATION.md`

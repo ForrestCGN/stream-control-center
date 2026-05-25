@@ -46,6 +46,15 @@ const STEP273C2_COMMAND_CATALOG = [
     ]
   },
   {
+    id: 'vip_sound',
+    label: 'VIP-Sound',
+    icon: '💎',
+    description: 'VIP-Sound-Command über das Node-Command-System. Zielroute ist der produktive VIP-Sound-Bus.',
+    actions: [
+      { id: 'vip_sound.vip', categoryId: 'vip_sound', icon: '💎', label: 'VIP-Sound abspielen', description: 'Spielt den VIP-Sound des genannten Users über /api/vip-sound/command und den Sound-Bus.', moduleKey: 'vip_sound_overlay', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip-sound/command', defaultTrigger: 'vip', defaultAliases: ['vipsound'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true, seededBy: 'STEP452' }, examples: ['!vip @adoredpenny', '!vip adoredpenny'] }
+    ]
+  },
+  {
     id: 'clips',
     label: 'Clips / Content',
     icon: '✂️',
@@ -303,6 +312,21 @@ function seedDefaultCommands() {
         liveOnly: false,
         responseMode: 'module',
         config: { seededBy: 'STEP273A', rawInputMode: true }
+      }
+,
+      {
+        trigger: 'vip',
+        aliases: ['vipsound'],
+        moduleKey: 'vip_sound_overlay',
+        actionKey: 'command',
+        targetMethod: 'POST',
+        targetUrl: '/api/vip-sound/command',
+        permissionLevel: 'everyone',
+        cooldownGlobalMs: 1000,
+        cooldownUserMs: 3000,
+        liveOnly: false,
+        responseMode: 'module',
+        config: { seededBy: 'STEP452', actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true }
       }
     ];
 
