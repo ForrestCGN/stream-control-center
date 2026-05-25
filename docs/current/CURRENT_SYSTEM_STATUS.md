@@ -1,5 +1,33 @@
-# Current System Status – STEP428
+# Current System Status – STEP429
 
-STEP428 ergänzt im Sound-System einen Dry-Run-Command-Consumer für `sound.command` Play-Requests. Der Consumer validiert Requests und normalisiert sie zu einem Sound-Item, startet aber keine Audio-Ausgabe und verändert keine Queue.
+STEP429 verbindet den VIP Sound-Bus Shadow-Command mit dem Sound-System Dry-Run-Consumer.
 
-Produktive Flows bleiben unverändert.
+Der produktive VIP-Flow bleibt unverändert:
+
+```text
+VIP Command -> vip_sound_overlay -> /api/sound/play -> Sound-System
+```
+
+Neu ist nur die Diagnose-/Dry-Run-Prüfung:
+
+```text
+VIP Shadow Command -> sound.command Event -> Sound-System Dry-Run Validation
+```
+
+## Geändert
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.8.13` aktualisiert.
+- Neue VIP-Diagnoseroute:
+  - `/api/vip-sound/eventbus/sound-command/dry-run`
+  - Alias über `/api/vip-sound-overlay/eventbus/sound-command/dry-run`
+- Die Route erzeugt weiterhin ein test-only/shadow-only Bus-Command-Event und sendet denselben Payload anschließend an den Sound-System Dry-Run-Consumer.
+- Der Sound-System Dry-Run validiert den Payload, startet aber keinen Sound und verändert keine Queue.
+
+## Schutz
+
+- Keine produktive VIP-Bus-Steuerung.
+- Keine Sound-Queue über Bus.
+- Kein Audio-Start über Bus.
+- Keine Overlay-Steuerung.
+- Keine DB-Migration.
+- Alter VIP-/Sound-Flow bleibt unverändert.
