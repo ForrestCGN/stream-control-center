@@ -16,12 +16,12 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.17";
+const MODULE_VERSION = "0.1.18";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
 const SOUND_BUS_COMMAND_API_VERSION = "1.0.0";
-const SOUND_BUS_DELIVERY_CLASSIFICATION = "capability_scoped_legacy_parallel_event_stream";
+const SOUND_BUS_DELIVERY_CLASSIFICATION = "capability_scoped_bus_first_with_legacy_websocket_fallback";
 const SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION = "module_scoped_command_dry_run_plus_play_test_stream";
 const SOUND_BUS_TARGET_CAPABILITY = "sound.event_output";
 const CONFIG_FILE = "sound_system.json";
@@ -44,6 +44,8 @@ const DEFAULT_CONFIG = {
   websocket: { enabled: true, op: "sound_system" },
   soundBus: {
     enabled: true,
+    mode: "bus_first",
+    legacyFallback: true,
     channel: "sound",
     requireAck: false,
     replayable: false,
@@ -593,6 +595,29 @@ module.exports.init = function init(ctx) {
     return { ...DEFAULT_CONFIG.soundBus, ...busConfig, actions: { ...(DEFAULT_CONFIG.soundBus.actions || {}), ...((busConfig && busConfig.actions) || {}) } };
   }
 
+  function soundBusMode(busConfig = soundBusConfig()) {
+    const raw = String(busConfig.mode || busConfig.busMode || "bus_first").trim().toLowerCase();
+    if (raw === "bus_first") return "bus_first";
+    if (raw === "legacy_parallel") return "legacy_parallel";
+    return "bus_first";
+  }
+
+  function soundBusLegacyFallbackEnabled(busConfig = soundBusConfig()) {
+    return busConfig.legacyFallback !== false && busConfig.legacyWebSocketFallback !== false;
+  }
+
+  function soundBusDelivered(result) {
+    return !!(result && Number.isFinite(Number(result.deliveredCount)) && Number(result.deliveredCount) > 0);
+  }
+
+  function functionSafeBroadcastWS(payload) {
+    if (config.websocket && config.websocket.enabled !== false && typeof broadcastWS === "function") {
+      broadcastWS(payload);
+      return true;
+    }
+    return false;
+  }
+
   function soundBusTarget(busConfig) {
     const configuredCapability = String(busConfig.targetCapability || "").trim();
     return {
@@ -750,7 +775,7 @@ module.exports.init = function init(ctx) {
           configVersion: state.version || "",
           capability: SOUND_BUS_CAPABILITY,
           statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
-          busMode: "legacy_parallel",
+          busMode: soundBusMode(busConfig),
           soundSystemRole: "central_audio_media_layer",
           reason: String(reason || "state"),
           replayable: busConfig.replayable === true,
@@ -836,11 +861,12 @@ module.exports.init = function init(ctx) {
       configVersion: state.version || "",
       capability: SOUND_BUS_CAPABILITY,
       statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
-      busMode: "legacy_parallel",
+      busMode: soundBusMode(busConfig),
       deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
       soundSystemRole: "central_audio_media_layer",
-      legacyWebSocketFlow: "unchanged",
+      legacyWebSocketFlow: soundBusMode(busConfig) === "bus_first" ? "fallback_only_when_bus_has_no_delivery" : "unchanged",
       legacyApiFlow: "unchanged",
+      legacyFallbackEnabled: soundBusLegacyFallbackEnabled(busConfig),
       enabled: busConfig.enabled !== false,
       configuredEnabled: config.soundBus && Object.prototype.hasOwnProperty.call(config.soundBus, "enabled") ? config.soundBus.enabled !== false : true,
       forceDisabled: busConfig.forceDisabled === true,
@@ -863,7 +889,8 @@ module.exports.init = function init(ctx) {
       notes: [
         "Sound-System remains the central audio/media layer.",
         "Legacy /api/sound routes and legacy sound_system WebSocket broadcasts remain unchanged.",
-        "sound.* EventBus events are emitted in parallel for status, diagnostics and future consumers.",
+        "sound.* EventBus events are emitted bus-first in test/productive mode.",
+        "Legacy sound_system WebSocket delivery is kept as fallback when the bus reaches no client.",
         "Default delivery is scoped by capability sound.event_output so unrelated overlay clients do not receive sound events.",
         "Existing modules can continue using the old Sound-System API while bus migration continues."
       ],
@@ -1451,16 +1478,27 @@ module.exports.init = function init(ctx) {
     }
   }
 
+  function broadcastSoundStateLegacy(reason, extra = {}) {
+    return functionSafeBroadcastWS({ op: config.websocket.op || MODULE_NAME, reason: reason || "state", data: publicState(), ...extra });
+  }
+
   function broadcastSoundState(reason, extra = {}) {
     touch();
-    if (config.websocket && config.websocket.enabled !== false && typeof broadcastWS === "function") {
-      broadcastWS({ op: config.websocket.op || MODULE_NAME, reason: reason || "state", data: publicState(), ...extra });
+    const busConfig = soundBusConfig();
+    if (soundBusMode(busConfig) === "bus_first") {
+      const result = emitSoundBus(reason || "state", { kind: "state", extra });
+      if (!soundBusDelivered(result) && soundBusLegacyFallbackEnabled(busConfig)) {
+        broadcastSoundStateLegacy(reason, extra);
+      }
+      return result;
     }
+
+    broadcastSoundStateLegacy(reason, extra);
+    return emitSoundBus(reason || "state", { kind: "state", extra });
   }
 
   function emit(reason) {
     broadcastSoundState(reason);
-    emitSoundBus(reason || "state", { kind: "state" });
   }
 
 
@@ -2491,18 +2529,30 @@ module.exports.init = function init(ctx) {
     state.queue.sort(compareQueueItems);
   }
 
+  function broadcastItemEventLegacy(reason, item, extra = {}) {
+    if (!item) return false;
+    return functionSafeBroadcastWS({
+      op: config.websocket.op || MODULE_NAME,
+      reason,
+      item: publicItem(item),
+      data: publicState(),
+      ...extra
+    });
+  }
+
   function emitItemEvent(reason, item, extra = {}) {
     if (!item) return;
-    if (config.websocket && config.websocket.enabled !== false && typeof broadcastWS === "function") {
-      broadcastWS({
-        op: config.websocket.op || MODULE_NAME,
-        reason,
-        item: publicItem(item),
-        data: publicState(),
-        ...extra
-      });
+    const busConfig = soundBusConfig();
+    if (soundBusMode(busConfig) === "bus_first") {
+      const result = emitSoundBus(reason, { item, extra, kind: "item" });
+      if (!soundBusDelivered(result) && soundBusLegacyFallbackEnabled(busConfig)) {
+        broadcastItemEventLegacy(reason, item, extra);
+      }
+      return result;
     }
-    emitSoundBus(reason, { item, extra, kind: "item" });
+
+    broadcastItemEventLegacy(reason, item, extra);
+    return emitSoundBus(reason, { item, extra, kind: "item" });
   }
 
   function canInterruptCurrent(item, current) {
