@@ -1,5 +1,5 @@
-# Next Steps
+# NEXT STEPS
 
-1. Test `/api/vip-sound/eventbus/sound-command/play-test?soundId=test_ping&requestedBy=ForrestCGN&message=STEP431`.
-2. Confirm accepted/playedOrQueued/started and playTestOk.
-3. If stable, prepare optional VIP Bus mode behind config switch.
+Recommended next step:
+
+- STEP433: Add VIP productive bus-mode guard/fallback logic, still defaulting to legacy.

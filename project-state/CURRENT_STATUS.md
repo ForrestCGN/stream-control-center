@@ -1,3 +1,3 @@
-# Current Status
+# CURRENT STATUS – STEP432
 
-STEP431 prepared: VIP can test the real Sound-System command play-test route with its own command payload. Productive VIP flow remains unchanged.
+VIP Bus mode switch is prepared. Runtime mode can be read/set, but productive VIP flow still remains legacy `/api/sound/play`.

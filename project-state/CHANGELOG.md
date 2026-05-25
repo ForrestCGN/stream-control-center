@@ -1,7 +1,5 @@
-# Changelog
+# CHANGELOG – STEP432
 
-## STEP431
-
-- Added VIP Sound-Bus command play-test route.
-- Added play-test counters/status to VIP Sound-Bus command diagnostics.
-- Kept productive VIP, Alert, DB and automatic Bus consumption unchanged.
+- Added prepared VIP bus modes: `legacy`, `shadow`, `play_test`, `bus_enabled`.
+- Added read/set API route for the prepared VIP bus mode.
+- Kept productive VIP flow unchanged.
