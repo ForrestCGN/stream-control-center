@@ -16,7 +16,10 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_STEP = 352;
+const MODULE_VERSION = "0.1.13";
+const SOUND_BUS_CAPABILITY = "sound.event_output";
+const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
+const SOUND_BUS_DELIVERY_CLASSIFICATION = "legacy_parallel_event_stream";
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
 
@@ -32,11 +35,11 @@ const DEFAULT_OUTPUT = {
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  version: "0.1.12",
+  version: MODULE_VERSION,
   routes: { prefix: "/api/sound" },
   websocket: { enabled: true, op: "sound_system" },
   soundBus: {
-    enabled: false,
+    enabled: true,
     channel: "sound",
     requireAck: false,
     replayable: false,
@@ -49,6 +52,7 @@ const DEFAULT_CONFIG = {
     includeItem: true,
     actions: {
       state: "state.updated",
+      test: "test",
       queued: "queued",
       queueUpdated: "queue.updated",
       starting: "starting",
@@ -316,7 +320,7 @@ module.exports.init = function init(ctx) {
     return {
       ok: true,
       module: MODULE_NAME,
-      addedByStep: "STEP200.1",
+      routesVersion: "1.1.0",
       routes: [
         { method: "GET", path: `${prefix}/status`, description: "Runtime status, current item, queue, client and device state" },
         { method: "GET", path: `${prefix}/current`, description: "Current sound item" },
@@ -328,6 +332,10 @@ module.exports.init = function init(ctx) {
         { method: "POST", path: `${prefix}/reload`, description: "Reload JSON fallback and DB settings" },
         { method: "GET", path: `${prefix}/routes`, description: "Route self-documentation" },
         { method: "GET", path: `${prefix}/integration-check`, description: "Integration and DB/JSON/Sound overlay consistency check" },
+        { method: "GET", path: `${prefix}/eventbus/status`, description: "Sound-System EventBus status and recent sound.* events" },
+        { method: "GET", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
+        { method: "POST", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
+        { method: "GET", path: `${prefix}/eventbus/reset`, description: "Reset Sound-System EventBus counters only" },
         { method: "GET", path: `${prefix}/generated/beep.wav`, description: "Generated test beep audio" },
         { method: "GET", path: `${prefix}/play`, description: "Play/queue a sound via query parameters" },
         { method: "POST", path: `${prefix}/play`, description: "Play/queue a sound via JSON body" },
@@ -518,6 +526,7 @@ module.exports.init = function init(ctx) {
     if (!config.categoryDefaults) config.categoryDefaults = DEFAULT_CONFIG.categoryDefaults;
     if (!config.discordRouting) config.discordRouting = DEFAULT_CONFIG.discordRouting;
     if (!config.soundBus) config.soundBus = DEFAULT_CONFIG.soundBus;
+    if (config.soundBus && config.soundBus.forceDisabled !== true) config.soundBus.enabled = true;
     messages = loadedMessages.config || DEFAULT_MESSAGES;
 
     state.version = config.version || DEFAULT_CONFIG.version;
@@ -557,6 +566,7 @@ module.exports.init = function init(ctx) {
   function soundBusActionForReason(reason) {
     const clean = String(reason || "state");
     const actions = soundBusConfig().actions || {};
+    if (clean === "manual_test" || clean === "test") return actions.test || "test";
     if (clean === "queued") return actions.queueUpdated || "queue.updated";
     if (clean === "item_queued") return actions.queued || "queued";
     if (clean === "item_starting") return actions.starting || "starting";
@@ -691,7 +701,11 @@ module.exports.init = function init(ctx) {
         payload,
         meta: {
           module: MODULE_NAME,
-          step: MODULE_STEP,
+          moduleVersion: state.version || MODULE_VERSION,
+          capability: SOUND_BUS_CAPABILITY,
+          statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
+          busMode: "legacy_parallel",
+          soundSystemRole: "central_audio_media_layer",
           reason: String(reason || "state"),
           replayable: busConfig.replayable === true,
           requireAck: busConfig.requireAck === true,
@@ -772,18 +786,85 @@ module.exports.init = function init(ctx) {
     return {
       ok: true,
       module: MODULE_NAME,
-      step: MODULE_STEP,
-      feature: "sound_bus_event_output",
+      version: state.version || MODULE_VERSION,
+      capability: SOUND_BUS_CAPABILITY,
+      statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
+      busMode: "legacy_parallel",
+      deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
+      soundSystemRole: "central_audio_media_layer",
+      legacyWebSocketFlow: "unchanged",
+      legacyApiFlow: "unchanged",
       enabled: busConfig.enabled !== false,
+      configuredEnabled: config.soundBus && Object.prototype.hasOwnProperty.call(config.soundBus, "enabled") ? config.soundBus.enabled !== false : true,
+      forceDisabled: busConfig.forceDisabled === true,
       channel: String(busConfig.channel || "sound"),
       requireAck: busConfig.requireAck === true,
       replayable: busConfig.replayable === true,
       ttlMs: Number(busConfig.ttlMs || 0),
       target: soundBusTarget(busConfig),
       communicationBusAvailable: !!bus,
+      routes: {
+        status: `${config.routes?.prefix || "/api/sound"}/eventbus/status`,
+        test: `${config.routes?.prefix || "/api/sound"}/eventbus/test`,
+        reset: `${config.routes?.prefix || "/api/sound"}/eventbus/reset`
+      },
+      notes: [
+        "Sound-System remains the central audio/media layer.",
+        "Legacy /api/sound routes and legacy sound_system WebSocket broadcasts remain unchanged.",
+        "sound.* EventBus events are emitted in parallel for status, diagnostics and future consumers.",
+        "Existing modules can continue using the old Sound-System API while bus migration continues."
+      ],
       stats,
       correlation: buildSoundBusAlertCorrelationSummary(),
       recentEvents: includeRecentEvents ? [...(state.soundBus.recentEvents || [])] : []
+    };
+  }
+
+  function resetSoundBusRuntime() {
+    if (!state.soundBus) state.soundBus = {};
+    state.soundBus.emitted = 0;
+    state.soundBus.skipped = 0;
+    state.soundBus.errors = 0;
+    state.soundBus.lastReason = "";
+    state.soundBus.lastAction = "";
+    state.soundBus.lastEventId = "";
+    state.soundBus.lastResult = null;
+    state.soundBus.lastError = "";
+    state.soundBus.lastAt = core.nowIso();
+    state.soundBus.recentEvents = [];
+    touch();
+    return publicSoundBusStatus({ includeRecentEvents: true });
+  }
+
+  function emitSoundBusTest(input = {}) {
+    const body = isPlainObject(input) ? input : {};
+    const result = emitSoundBus("manual_test", {
+      kind: "test",
+      extra: {
+        testOnly: true,
+        message: String(body.message || "Sound-System EventBus test"),
+        requestedBy: String(body.requestedBy || body.user || "step412-test"),
+        source: String(body.source || "sound_eventbus_test"),
+        audioTouched: false,
+        queueTouched: false,
+        legacyFlowTouched: false
+      }
+    });
+    return {
+      ok: result && result.ok === true,
+      module: MODULE_NAME,
+      version: state.version || MODULE_VERSION,
+      capability: SOUND_BUS_CAPABILITY,
+      statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
+      testOnly: true,
+      soundSystemTouched: false,
+      queueTouched: false,
+      audioTouched: false,
+      legacyWebSocketFlow: "unchanged",
+      legacyApiFlow: "unchanged",
+      result: result || null,
+      eventBus: publicSoundBusStatus({ includeRecentEvents: true }),
+      updatedAt: core.nowIso()
     };
   }
 
@@ -992,7 +1073,6 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      step: MODULE_STEP,
       enabled: state.enabled,
       paused: state.paused,
       current: state.current ? publicItem(state.current) : null,
@@ -2410,6 +2490,10 @@ module.exports.init = function init(ctx) {
   app.get(`${prefix}/integration-check`, (req, res) => res.json(publicSoundIntegrationCheck()));
 
   app.get(`${prefix}/status`, (req, res) => res.json(publicState()));
+  app.get(`${prefix}/eventbus/status`, (req, res) => res.json(publicSoundBusStatus({ includeRecentEvents: true })));
+  app.get(`${prefix}/eventbus/reset`, (req, res) => res.json({ ...resetSoundBusRuntime(), reset: true, resetAt: core.nowIso() }));
+  app.get(`${prefix}/eventbus/test`, (req, res) => res.json(emitSoundBusTest(req.query || {})));
+  app.post(`${prefix}/eventbus/test`, (req, res) => res.json(emitSoundBusTest(req.body || {})));
   app.get(`${prefix}/current`, (req, res) => res.json(core.ok({ current: state.current ? publicItem(state.current) : null })));
   app.get(`${prefix}/queue`, (req, res) => res.json(core.ok({ queue: state.queue.map(publicItem), queuedCount: state.queue.length })));
   app.get(`${prefix}/list`, (req, res) => res.json(core.ok({ sounds: getSoundList() })));

@@ -1,42 +1,60 @@
-# CURRENT_STATUS – VIP EventBus Delivery Classification
+# CURRENT_STATUS – Sound-System EventBus Baseline
 
-Aktueller Stand: STEP410 vorbereitet.
+Aktueller Stand: STEP412 vorbereitet.
 
 ## Kurzfassung
 
-Das VIP-/Mod-Sound-System hat eine funktionierende EventBus-Status-Anbindung auf `vip.sound`.
+Das Sound-System ist jetzt für parallele EventBus-Ausgabe vorbereitet und versioniert.
 
-Nach dem erfolgreichen Smoke-Test, echten Override-Test und Versions-Cleanup wurde die Bus-Delivery bereinigt:
-
-- Modulversion: `1.8.11`
-- Capability: `vip.sound.status_events`
+- Modul: `sound_system`
+- Version: `0.1.13`
+- Capability: `sound.event_output`
 - Status-API-Version: `1.0.0`
-- Delivery-Klassifizierung: `module_scoped_status_event`
-- Zielmodul für `vip.sound`: `vip_sound_overlay`
+- Bus-Channel: `sound`
+- Bus-Modus: `legacy_parallel`
 
-## Bestehender produktiver Flow
+## Ziel
 
-```text
-/api/vip-sound/command
-→ vip_sound_overlay.js
-→ /api/sound/play
-→ Sound-System
-→ Overlay reagiert auf Sound-System
-```
+Sound-System, Alert-System und VIP-System sollen langfristig über den Communication Bus laufen.
+
+Dieser STEP beginnt bewusst beim Sound-System, weil es die zentrale Audio-/Medien-Schicht ist.
 
 ## Wichtig
 
-Der EventBus meldet Status. Er startet keine Sounds und steuert kein Overlay.
+Der alte Sound-System-Flow bleibt bestehen.
+
+Das bedeutet:
+
+```text
+Bestehende Module → /api/sound/* → Sound-System → alter WebSocket/Playback
+```
+
+läuft weiter.
+
+Parallel sendet das Sound-System Bus-Events:
+
+```text
+Sound-System → Communication Bus → sound.*
+```
+
+## Neue Routen
+
+```text
+/api/sound/eventbus/status
+/api/sound/eventbus/test
+/api/sound/eventbus/reset
+```
 
 ## Bewusst nicht geändert
 
-- Sound-System
-- Queue
-- Daily-Usage
-- Overlay-Design
-- Datenbank-Schema
-- bestehende VIP-Routen
+- Keine Queue-Änderung
+- Keine Prioritätsänderung
+- Keine Bundle-Lock-Änderung
+- Keine Alert-Änderung
+- Keine VIP-Änderung
+- Keine DB-Migration
+- Keine Overlay-Designänderung
 
-## STEP411 - VIP Overlay Client Versioned Bus Registration
+## Nächster sinnvoller Schritt
 
-VIP-Overlay-Client bereinigt: `vip_sound_overlay_v2.html` meldet sich am Bus mit Version `1.0.0`, Preview-Modus und zentralen Capabilities. Keine produktive Flow-Änderung.
+STEP413 – Sound-System EventBus echten Playback-/Queue-Test durchführen und prüfen, ob `sound.started`, `sound.finished` und `sound.queue.updated` sauber im Bus sichtbar werden.

@@ -1,49 +1,72 @@
-# CURRENT_SYSTEM_STATUS – VIP EventBus Delivery Classification
+# CURRENT_SYSTEM_STATUS – Sound-System EventBus Baseline
 
-Stand: STEP410 vorbereitet.
+Stand: STEP412 vorbereitet.
 
-## Aktueller VIP-/EventBus-Stand
+## Aktueller Architektur-Stand
 
-Das VIP-/Mod-Sound-System sendet zusätzliche Status-Events an den Communication Bus auf dem Channel `vip.sound`.
+Das Projekt wird kontrolliert in Richtung Communication Bus migriert.
 
-Der produktive Sound-Ablauf bleibt unverändert:
+Wichtig: Das Sound-System bleibt die zentrale Audio-/Medien-Schicht. Bestehende Module dürfen weiterhin die alten Sound-System-APIs und WebSocket-Events nutzen.
 
-```text
-/api/vip-sound/command
-→ vip_sound_overlay.js
-→ /api/sound/play
-→ Sound-System spielt Sound
-→ VIP-Overlay reagiert weiterhin auf Sound-System-Status
-```
+## STEP412 – Sound-System Bus Baseline
 
-## Neuer Stand in Version 1.8.11
+`backend/modules/sound_system.js` wurde auf Version `0.1.13` vorbereitet.
 
-Die VIP-EventBus-Status-Events werden nicht mehr breit an alle Bus-Clients verteilt.
+Das Sound-System sendet jetzt parallel zum bestehenden Legacy-Flow `sound.*` Events an den Communication Bus.
 
-Stattdessen ist die Delivery jetzt modulbezogen klassifiziert:
+Der alte Flow bleibt unverändert:
 
 ```text
-channel: vip.sound
-target.type: all
-target.id: *
-target.module: vip_sound_overlay
-target.capability: ""
-deliveryClassification: module_scoped_status_event
+/api/sound/*
+→ Sound-System Queue/Prioritäten/Playback
+→ alter sound_system WebSocket
+→ bestehende Overlays/Module
 ```
 
-Dadurch sollen fremde Clients wie Alert-Shadow-/Debug-Overlays keine `vip.sound`-Status-Events mehr in `deliveredTo` erhalten.
+Zusätzlich:
+
+```text
+Sound-System Runtime-Ereignisse
+→ Communication Bus
+→ channel: sound
+→ actions z. B. test, state.updated, queued, started, finished, queue.updated
+```
+
+## Neue Sound EventBus Status-/Test-Routen
+
+```text
+/api/sound/eventbus/status
+/api/sound/eventbus/test
+/api/sound/eventbus/reset
+```
+
+Die Test-Route erzeugt ein test-only Bus-Event. Sie startet keinen Sound, verändert keine Queue und berührt keinen Playback-Flow.
+
+## Versionierte Runtime-Ausgabe
+
+Sound-Bus-Status nutzt jetzt Versions-/Capability-Felder statt STEP-Felder:
+
+```text
+version: 0.1.13
+capability: sound.event_output
+statusApiVersion: 1.0.0
+busMode: legacy_parallel
+deliveryClassification: legacy_parallel_event_stream
+soundSystemRole: central_audio_media_layer
+```
 
 ## Unverändert
 
-- Sound-System bleibt zuständig für Playback und Queue.
-- EventBus-Events sind Status-/Diagnose-Events.
-- EventBus ersetzt nicht `/api/sound/play`.
-- Kein Overlay-Design wurde geändert.
-- Keine Daily-Usage-Logik wurde geändert.
-- Keine DB-Migration wurde durchgeführt.
+- Alte `/api/sound/*` Routen bleiben aktiv.
+- Alter `sound_system` WebSocket bleibt aktiv.
+- Queue-Logik bleibt unverändert.
+- Prioritäten bleiben unverändert.
+- Bundle-/Lock-Logik bleibt unverändert.
+- Alert-TTS-Kopplung bleibt unverändert.
+- VIP-/Mod-Sound-Flow bleibt unverändert.
+- Keine DB-Migration.
+- Keine Overlay-Designänderung.
 
-## STEP411 - VIP Overlay Client Versioned Bus Registration
+## Bezug zu Alert/VIP
 
-- `htdocs/overlays/vip_sound_overlay_v2.html` nutzt jetzt Version/Capabilities statt STEP-/Shadow-Kennungen.
-- VIP-Overlay-Client registriert sich am Communication Bus mit `version: 1.0.0`, `mode: preview` und Capability `vip.sound.status_events`.
-- Sound-System-Flow, Queue, Daily-Usage und Overlay-Design bleiben unverändert.
+Alert-System und VIP-System sollen weiterhin das Sound-System als Audio-/Medien-Schicht nutzen. Die Bus-Migration soll zuerst beobachtbar und parallel laufen, bevor produktive Steuerung über Bus eingeführt wird.

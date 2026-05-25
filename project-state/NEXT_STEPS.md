@@ -1,41 +1,38 @@
-# NEXT_STEPS – nach STEP410
+# NEXT_STEPS – nach STEP412
 
 ## Direkt testen
 
 Nach Entpacken und Backend-Neustart:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/eventbus/reset" | ConvertTo-Json -Depth 10
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/command?login=forrestcgn&displayName=ForrestCGN&targetLogin=araglor&targetDisplayName=araglor&source=step410-test&trigger=!vip&actorIsBroadcaster=true" | ConvertTo-Json -Depth 10
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/eventbus/status" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/eventbus/reset" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/eventbus/test?message=STEP412" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/eventbus/status" | ConvertTo-Json -Depth 10
 ```
 
 Erwartung:
 
-- `version` ist `1.8.11`
-- `target.module` ist `vip_sound_overlay`
-- `deliveryClassification` ist `module_scoped_status_event`
-- `counters.errors` bleibt `0`
-- `last.action` ist z. B. `override_accepted`
-- `last.result.deliveredTo` enthält keine fremden Alert-Clients mehr
+- `version` ist `0.1.13`
+- `capability` ist `sound.event_output`
+- `statusApiVersion` ist `1.0.0`
+- `busMode` ist `legacy_parallel`
+- `soundSystemRole` ist `central_audio_media_layer`
+- `stats.emitted` steigt
+- `stats.errors` bleibt `0`
 
 ## Danach sinnvoll
 
-Wenn `deliveredTo` sauber ist:
+STEP413 – echten Sound-Playback-/Queue-Test über vorhandene `/api/sound/play` Route durchführen und prüfen:
 
-1. VIP EventBus Status als stabil dokumentieren.
-2. Weitere echte VIP-/Mod-Command-Fälle testen: accepted, duplicate, sound_missing, denied.
-3. Danach erst überlegen, ob `vip.sound` ins Dashboard/Debug-UI aufgenommen wird.
+- `sound.started`
+- `sound.finished`
+- `sound.queue.updated`
+- alter Sound-System-WebSocket läuft weiter
+- Playback läuft weiter
+- Queue/Prioritäten bleiben stabil
 
-Nicht als nächstes nebenbei umbauen:
+## Danach erst
 
-- Sound-System
-- Queue
-- Overlay-Design
-- Daily-Usage
-- DB-Schema
-
-## Nach STEP411
-
-- VIP-Overlay-Client im Communication-Status prüfen: Version `1.0.0`, Mode `preview`, Capability `vip.sound.status_events`.
-- Danach echten VIP-/Mod-Command erneut testen und `deliveredTo` prüfen.
+- Alert-System stärker mit Sound-Bus-Korrelation verbinden.
+- VIP-System stärker mit Sound-Bus-Korrelation verbinden.
+- Noch nicht direkt `sound.play` als produktive Bus-Steuerung erzwingen.

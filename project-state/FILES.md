@@ -1,8 +1,8 @@
-# FILES – VIP EventBus Delivery Classification
+# FILES – Sound-System EventBus Baseline
 
 ## Geändert
 
-- `backend/modules/vip_sound_overlay.js`
+- `backend/modules/sound_system.js`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
@@ -11,13 +11,14 @@
 
 ## Neu
 
-- `project-state/STEP410_VIP_EVENTBUS_DELIVERY_CLASSIFICATION.md`
+- `project-state/STEP412_SOUND_SYSTEM_EVENTBUS_BASELINE.md`
 
 ## Wichtig
 
-Das ZIP enthält vollständige Ersatzdateien mit echten Zielpfaden ab Repo-Root. Keine Patches.
+Das ZIP enthält vollständige Ersatzdateien mit echten Zielpfaden ab Repo-Root.
 
-## STEP411
-
-- `htdocs/overlays/vip_sound_overlay_v2.html` - VIP-Overlay-Client mit versionierter Bus-Registrierung und bereinigten Capabilities.
-- `project-state/STEP411_VIP_OVERLAY_CLIENT_VERSIONED_BUS.md` - STEP-Doku.
+Keine Patches.
+Keine PowerShell-Textpatches.
+Keine Datenbank.
+Keine Secrets.
+Keine Config-Datei.
