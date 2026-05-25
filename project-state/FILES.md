@@ -1,4 +1,4 @@
-# FILES – STEP434
+# FILES – STEP435
 
 Changed files:
 
@@ -8,4 +8,4 @@ Changed files:
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP434_VIP_BUS_MODE_GUARD_FALLBACK.md`
+- `project-state/STEP435_VIP_GUARD_REAL_FLOW_DIAGNOSTICS.md`
