@@ -282,7 +282,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.22",
+    version: "1.8.23",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -1990,7 +1990,7 @@ module.exports.init = function init(ctx) {
           ok: true,
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_admin_test_bus_enabled_existing_sound",
+          feature: "vip_bus_first_test_path_preparation",
           baseDir,
           fileExtension,
           count: 0,
@@ -2032,7 +2032,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_bus_enabled_existing_sound",
+        feature: "vip_bus_first_test_path_preparation",
         baseDir,
         fileExtension,
         count: 0,
@@ -2046,7 +2046,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_admin_test_bus_enabled_existing_sound",
+      feature: "vip_bus_first_test_path_preparation",
       baseDir,
       fileExtension,
       count: entries.length,
@@ -2749,7 +2749,7 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  async function queueVipSoundInSoundSystem(user, soundType, context, requestId, source) {
+  function prepareVipSoundSystemPayload(user, soundType, context, requestId, source) {
     const adminTestSoundOverride = context && context.adminTestSoundOverride && context.adminTestSoundOverride.exists
       ? context.adminTestSoundOverride
       : null;
@@ -2817,7 +2817,14 @@ module.exports.init = function init(ctx) {
       }
     };
 
-    const response = await httpPostJson(VIP_SOUND_SYSTEM_PLAY_URL, payload);
+    return { ok: true, sound, payload };
+  }
+
+  async function queueVipSoundInSoundSystem(user, soundType, context, requestId, source) {
+    const prepared = prepareVipSoundSystemPayload(user, soundType, context, requestId, source);
+    if (!prepared.ok) return prepared;
+
+    const response = await httpPostJson(VIP_SOUND_SYSTEM_PLAY_URL, prepared.payload);
     const result = response && response.result ? response.result : {};
     const accepted = !!response.ok && !result.dropped && (
       result.started === true ||
@@ -2829,8 +2836,8 @@ module.exports.init = function init(ctx) {
     return {
       ok: accepted,
       reason: accepted ? "sound_accepted" : "sound_rejected",
-      sound,
-      payload,
+      sound: prepared.sound,
+      payload: prepared.payload,
       response,
       result,
       error: accepted ? "" : (response && (response.error || response.message)) || "sound_system_rejected"
@@ -3067,7 +3074,7 @@ module.exports.init = function init(ctx) {
       legacy: "Produktiver VIP-Flow nutzt weiter legacy /api/sound/play. Bus-Command-Routen bleiben nur Diagnose/Test.",
       shadow: "Produktiver VIP-Flow bleibt legacy; VIP-Sound-Wuensche werden als Bus-Command gespiegelt.",
       play_test: "Nur explizite Test-/Diagnose-Routen duerfen ueber Sound play-test Audio starten. Produktiver VIP-Flow bleibt legacy.",
-      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP439 weiterhin durch Guard/Fallback blockiert und nicht als automatischer Produktiv-Flow aktiv."
+      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP440 weiterhin durch Guard/Fallback blockiert und nicht als automatischer Produktiv-Flow aktiv."
     };
     return descriptions[normalized] || descriptions.legacy;
   }
@@ -3087,7 +3094,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_admin_test_bus_enabled_existing_sound",
+      feature: "vip_bus_first_test_path_preparation",
       source: String(source || "status"),
       requestedVipBusMode: requestedMode,
       runtimeVipBusMode: runtimeMode,
@@ -3097,7 +3104,7 @@ module.exports.init = function init(ctx) {
       fallbackVipBusMode: "legacy",
       fallbackReason,
       guardActive: true,
-      guardStep: "STEP439",
+      guardStep: "STEP440",
       productiveBusRequested,
       productiveBusAllowed: false,
       productiveBusBlocked: productiveBusRequested,
@@ -3114,7 +3121,7 @@ module.exports.init = function init(ctx) {
       overlayTouched: false,
       dailyUsageTouched: false,
       notes: [
-        "STEP439 lets the admin-test route set a diagnostic VIP bus mode and use an existing VIP sound file without changing the normal Twitch role guard.",
+        "STEP440 lets the admin-test route set a diagnostic VIP bus mode and use an existing VIP sound file without changing the normal Twitch role guard.",
         "bus_enabled is visible and selectable, but the guard keeps productive VIP sound delivery on legacy_sound_system_api.",
         "No automatic productive Bus consumption is enabled in this step.",
         "Explicit dry-run/play-test diagnostic routes remain available for testing only."
@@ -3152,6 +3159,10 @@ module.exports.init = function init(ctx) {
       adminTestSoundOverrideFile: String(extra.adminTestSoundOverrideFile || ""),
       adminTestVipBusModeRequested: String(extra.adminTestVipBusModeRequested || ""),
       adminTestVipBusModeApplied: String(extra.adminTestVipBusModeApplied || runtimeVipBusMode),
+      busFirstTest: !!extra.busFirstTest,
+      busFirstTestApplied: !!extra.busFirstTestApplied,
+      busFirstTestPath: String(extra.busFirstTestPath || ""),
+      legacyQueueSkippedForBusFirstTest: !!extra.legacyQueueSkippedForBusFirstTest,
       vipBusMode: runtimeVipBusMode,
       runtimeVipBusMode,
       configuredVipBusMode: getConfiguredVipBusMode(),
@@ -3212,7 +3223,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_admin_test_bus_enabled_existing_sound",
+      feature: "vip_bus_first_test_path_preparation",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
@@ -3313,8 +3324,8 @@ module.exports.init = function init(ctx) {
         "This layer mirrors VIP sound wishes as test-only sound.command events for diagnostics.",
         "The dry-run route sends the same payload to the Sound-System dry-run consumer for validation only.",
         "The play-test route sends the same payload to the Sound-System explicit play-test route for manual audio testing.",
-        "STEP439 lets the admin-test route reach the real VIP sound queue path with forceAccess=true, an existing sound file and an explicit diagnostic vipBusMode while normal Twitch commands remain protected.",
-        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP439.",
+        "STEP440 lets the admin-test route reach the real VIP sound queue path with forceAccess=true, an existing sound file and an explicit diagnostic vipBusMode while normal Twitch commands remain protected.",
+        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP440.",
         "It does not change the productive VIP entry point and does not automatically consume Bus commands.",
         "If the Communication Bus is unavailable, VIP continues through the existing Sound-System flow."
       ],
@@ -3631,7 +3642,7 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_bus_enabled_existing_sound",
+        feature: "vip_bus_first_test_path_preparation",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3660,7 +3671,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_bus_enabled_existing_sound",
+        feature: "vip_bus_first_test_path_preparation",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3766,7 +3777,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playTestResult && playTestResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_bus_enabled_existing_sound",
+        feature: "vip_bus_first_test_path_preparation",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -3796,7 +3807,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_bus_enabled_existing_sound",
+        feature: "vip_bus_first_test_path_preparation",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4208,6 +4219,7 @@ module.exports.init = function init(ctx) {
     const targetDisplayName = cleanDisplayName(data.targetDisplayName || data.displayName || data.userDisplayName || data.target || data.user || targetLogin);
     const consumeDaily = boolish(data.consumeDaily || data.selfTrigger || data.writeDailyUsage);
     const forceAccess = boolish(data.forceAccess || data.adminForceAccess || data.vipAdminForceAccess);
+    const busFirstTest = boolish(data.busFirstTest || data.useBusFirst || data.busFirst || data.busFirstPlayTest || data.soundBusFirstTest);
     const soundOverride = resolveVipAdminTestSoundOverride(data);
     const requestedAdminTestVipBusMode = String(data.testVipBusMode || data.vipBusMode || data.busMode || data.mode || "").trim();
     const adminTestVipBusModeBefore = getRuntimeVipBusMode();
@@ -4233,6 +4245,7 @@ module.exports.init = function init(ctx) {
       forceAccess: forceAccess ? "true" : "false",
       vipBusMode: adminTestVipBusModeApplied || getRuntimeVipBusMode(),
       testVipBusMode: adminTestVipBusModeApplied || "",
+      busFirstTest: busFirstTest ? "true" : "false",
       useExistingSound: boolish(data.useExistingSound || data.autoExistingSound || data.useFirstExistingSound || data.forceExistingSound) ? "true" : "false",
       testSoundFile: soundOverride && soundOverride.exists ? soundOverride.fileName : ""
     };
@@ -4254,6 +4267,7 @@ module.exports.init = function init(ctx) {
     const result = await handleVipCommand(payload, {
       adminTest: true,
       forceAccess,
+      busFirstTest,
       consumeDaily,
       soundOverride: soundOverride && soundOverride.exists ? soundOverride : null
     });
@@ -4262,6 +4276,9 @@ module.exports.init = function init(ctx) {
       adminTest: true,
       forceAccess,
       forceAccessApplied: !!(result && result.forceAccessApplied),
+      busFirstTest,
+      busFirstTestApplied: !!(result && result.busFirstTestApplied),
+      busFirstTestPath: result && result.busFirstTestPath ? result.busFirstTestPath : "",
       adminTestVipBusModeRequested: requestedAdminTestVipBusMode || "",
       adminTestVipBusModeBefore,
       adminTestVipBusModeApplied: adminTestVipBusModeApplied || getRuntimeVipBusMode(),
@@ -4284,6 +4301,7 @@ module.exports.init = function init(ctx) {
     const opts = options && typeof options === "object" ? options : {};
     const adminTestRoute = !!opts.adminTest;
     const adminTestForceAccess = !!(adminTestRoute && opts.forceAccess);
+    const adminTestBusFirstTest = !!(adminTestRoute && opts.busFirstTest);
     const adminTestSkipDailyUsage = !!(adminTestRoute && opts.consumeDaily === false);
     const adminTestSoundOverride = adminTestRoute && opts.soundOverride && opts.soundOverride.exists ? opts.soundOverride : null;
     const dbReady = ensureVipSchema();
@@ -4465,7 +4483,11 @@ module.exports.init = function init(ctx) {
       adminTestSoundOverride: !!adminTestSoundOverride,
       adminTestSoundOverrideFile: adminTestSoundOverride ? adminTestSoundOverride.relativeFile : "",
       adminTestVipBusModeRequested: raw.testVipBusMode || raw.vipBusMode || raw.busMode || raw.mode || "",
-      adminTestVipBusModeApplied: getRuntimeVipBusMode()
+      adminTestVipBusModeApplied: getRuntimeVipBusMode(),
+      busFirstTest: adminTestBusFirstTest,
+      busFirstTestApplied: adminTestBusFirstTest && getRuntimeVipBusMode() === "bus_enabled",
+      busFirstTestPath: adminTestBusFirstTest && getRuntimeVipBusMode() === "bus_enabled" ? "sound_system_play_test" : "",
+      legacyQueueSkippedForBusFirstTest: adminTestBusFirstTest && getRuntimeVipBusMode() === "bus_enabled"
     });
     const guardedContext = {
       ...context,
@@ -4475,6 +4497,137 @@ module.exports.init = function init(ctx) {
       effectiveVipFlow: realFlowGuard.effectiveVipFlow,
       effectiveSoundEntryPoint: realFlowGuard.effectiveSoundEntryPoint
     };
+
+    if (adminTestBusFirstTest && realFlowGuard.runtimeVipBusMode === "bus_enabled") {
+      const preparedBusFirst = prepareVipSoundSystemPayload(user, soundType, guardedContext, requestId, source);
+      if (!preparedBusFirst.ok) {
+        return await finishVipCommand("sound_missing", context, {
+          accepted: false,
+          duplicate: false,
+          override: overrideDailyUsage,
+          overrideAllowed,
+          dailyUsageWritten: false,
+          requestId,
+          usageDate,
+          actorLogin: actor.login,
+          actorDisplayName: actor.displayName || actor.login,
+          targetLogin: user.login,
+          targetDisplayName: user.displayName || user.login,
+          userLogin: user.login,
+          userDisplayName: user.displayName || user.login,
+          avatarUrl: user.avatarUrl,
+          soundType,
+          trigger,
+          source,
+          adminTest: adminTestRoute,
+          forceAccess: adminTestForceAccess,
+          forceAccessApplied: adminTestForceAccess && !twitchAccess.allowed,
+          adminTestDailyUsageBypassed: adminTestSkipDailyUsage,
+          adminTestSoundOverride: !!adminTestSoundOverride,
+          adminTestSoundOverrideFile: adminTestSoundOverride ? adminTestSoundOverride.relativeFile : "",
+          adminTestVipBusModeRequested: raw.testVipBusMode || raw.vipBusMode || raw.busMode || raw.mode || "",
+          adminTestVipBusModeApplied: getRuntimeVipBusMode(),
+          busFirstTest: true,
+          busFirstTestApplied: false,
+          busFirstTestPath: "sound_system_play_test",
+          legacyQueueSkippedForBusFirstTest: true,
+          soundSystemQueued: false,
+          vipBusMode: realFlowGuard.runtimeVipBusMode,
+          runtimeVipBusMode: realFlowGuard.runtimeVipBusMode,
+          effectiveVipFlow: realFlowGuard.effectiveVipFlow,
+          effectiveSoundEntryPoint: realFlowGuard.effectiveSoundEntryPoint,
+          busModeGuard: realFlowGuard,
+          productiveEntryPointChanged: false,
+          soundError: preparedBusFirst.error || "",
+          soundFile: preparedBusFirst.sound ? preparedBusFirst.sound.relativeFile : "",
+          soundPath: preparedBusFirst.sound ? preparedBusFirst.sound.fullPath : "",
+          soundSystemResponse: null
+        });
+      }
+
+      const busFirstResult = await playTestVipSoundBusCommand({
+        vipRequestId: requestId,
+        soundType,
+        usageDate,
+        targetLogin: user.login,
+        targetDisplayName: user.displayName || user.login,
+        avatarUrl: user.avatarUrl,
+        requestedBy: user.login,
+        source: "vip_sound_overlay_bus_first_admin_test",
+        reason: "vip_admin_bus_first_play_test"
+      }, preparedBusFirst, {
+        ...guardedContext,
+        requestId,
+        date: usageDate,
+        targetLogin: user.login,
+        targetDisplayName: user.displayName || user.login,
+        login: user.login,
+        displayName: user.displayName || user.login,
+        avatarUrl: user.avatarUrl,
+        soundType
+      });
+
+      const playedOrQueued = !!(busFirstResult && busFirstResult.playedOrQueued);
+      return await finishVipCommand(playedOrQueued ? eventKey("accepted", soundType) : "error_generic", context, {
+        accepted: playedOrQueued,
+        duplicate: false,
+        override: overrideDailyUsage,
+        overrideAllowed,
+        dailyUsageWritten: false,
+        requestId,
+        usageDate,
+        actorLogin: actor.login,
+        actorDisplayName: actor.displayName || actor.login,
+        targetLogin: user.login,
+        targetDisplayName: user.displayName || user.login,
+        userLogin: user.login,
+        userDisplayName: user.displayName || user.login,
+        avatarUrl: user.avatarUrl,
+        soundType,
+        trigger,
+        source,
+        adminTest: adminTestRoute,
+        forceAccess: adminTestForceAccess,
+        forceAccessApplied: adminTestForceAccess && !twitchAccess.allowed,
+        adminTestDailyUsageBypassed: true,
+        adminTestSoundOverride: !!adminTestSoundOverride,
+        adminTestSoundOverrideFile: adminTestSoundOverride ? adminTestSoundOverride.relativeFile : "",
+        adminTestVipBusModeRequested: raw.testVipBusMode || raw.vipBusMode || raw.busMode || raw.mode || "",
+        adminTestVipBusModeApplied: getRuntimeVipBusMode(),
+        busFirstTest: true,
+        busFirstTestApplied: true,
+        busFirstTestPath: "sound_system_play_test",
+        legacyQueueSkippedForBusFirstTest: true,
+        soundSystemQueued: playedOrQueued,
+        soundSystemStarted: !!(busFirstResult && busFirstResult.started),
+        soundSystemQueuePosition: 0,
+        vipBusMode: realFlowGuard.runtimeVipBusMode,
+        runtimeVipBusMode: realFlowGuard.runtimeVipBusMode,
+        effectiveVipFlow: realFlowGuard.effectiveVipFlow,
+        effectiveSoundEntryPoint: "sound_system_play_test",
+        busModeGuard: realFlowGuard,
+        productiveEntryPointChanged: false,
+        soundSystemRequestId:
+          (busFirstResult && busFirstResult.soundPlayTest && busFirstResult.soundPlayTest.requestId) ||
+          (busFirstResult && busFirstResult.soundPlayTest && busFirstResult.soundPlayTest.result && busFirstResult.soundPlayTest.result.requestId) ||
+          "",
+        soundBusCommand: {
+          ok: !!(busFirstResult && busFirstResult.ok),
+          skipped: false,
+          eventId: busFirstResult && busFirstResult.busEvent && busFirstResult.busEvent.eventId ? busFirstResult.busEvent.eventId : "",
+          deliveredCount: Number(busFirstResult && busFirstResult.busEvent && busFirstResult.busEvent.deliveredCount || 0),
+          error: busFirstResult && busFirstResult.error ? busFirstResult.error : "",
+          busFirstTest: true,
+          playTestOnly: true,
+          testOnly: true
+        },
+        soundFile: preparedBusFirst.sound.relativeFile,
+        soundPath: preparedBusFirst.sound.fullPath,
+        soundSystemResponse: busFirstResult && busFirstResult.soundPlayTest ? busFirstResult.soundPlayTest : null,
+        note: "Admin-test used explicit Bus-First Sound-System play-test path without changing normal VIP commands."
+      });
+    }
+
     const soundQueue = await queueVipSoundInSoundSystem(user, soundType, guardedContext, requestId, source);
 
     if (!soundQueue.ok) {
@@ -4505,6 +4658,10 @@ module.exports.init = function init(ctx) {
         adminTestSoundOverrideFile: adminTestSoundOverride ? adminTestSoundOverride.relativeFile : "",
         adminTestVipBusModeRequested: raw.testVipBusMode || raw.vipBusMode || raw.busMode || raw.mode || "",
         adminTestVipBusModeApplied: getRuntimeVipBusMode(),
+        busFirstTest: adminTestBusFirstTest,
+        busFirstTestApplied: false,
+        busFirstTestPath: "",
+        legacyQueueSkippedForBusFirstTest: false,
         soundSystemQueued: false,
         vipBusMode: realFlowGuard.runtimeVipBusMode,
         runtimeVipBusMode: realFlowGuard.runtimeVipBusMode,
@@ -4584,6 +4741,10 @@ module.exports.init = function init(ctx) {
       adminTestSoundOverrideFile: adminTestSoundOverride ? adminTestSoundOverride.relativeFile : "",
       adminTestVipBusModeRequested: raw.testVipBusMode || raw.vipBusMode || raw.busMode || raw.mode || "",
       adminTestVipBusModeApplied: getRuntimeVipBusMode(),
+      busFirstTest: adminTestBusFirstTest,
+      busFirstTestApplied: false,
+      busFirstTestPath: "",
+      legacyQueueSkippedForBusFirstTest: false,
       soundSystemQueued: true,
       soundSystemStarted: !!soundQueue.result.started,
       soundSystemQueuePosition: Number(soundQueue.result.queuePosition || 0),
@@ -5230,7 +5391,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_admin_test_bus_enabled_existing_sound",
+          feature: "vip_bus_first_test_path_preparation",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5259,7 +5420,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_admin_test_bus_enabled_existing_sound",
+          feature: "vip_bus_first_test_path_preparation",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5370,7 +5531,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_bus_enabled_existing_sound",
+        feature: "vip_bus_first_test_path_preparation",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5404,7 +5565,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_admin_test_bus_enabled_existing_sound",
+        feature: "vip_bus_first_test_path_preparation",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5420,7 +5581,7 @@ module.exports.init = function init(ctx) {
         modePreparedOnly: true,
         persisted: false,
         modeRuntimeStateStable: true,
-        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP439. Admin-test forceAccess and diagnostic vipBusMode are test-only.",
+        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP440. Admin-test forceAccess and diagnostic vipBusMode are test-only.",
         productiveEntryPointChanged: guard.productiveEntryPointChanged,
         queueTouched: guard.queueTouched,
         audioTouched: guard.audioTouched,
