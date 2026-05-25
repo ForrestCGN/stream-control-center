@@ -1,23 +1,14 @@
-# FILES – STEP417 Alert EventBus Debug Consumer
+# Files
 
-## Neu
+## Geändert
 
-- `htdocs/public/tools/alert_eventbus_debug.html`
-- `project-state/STEP417_ALERT_EVENTBUS_DEBUG_CONSUMER.md`
+- `backend/modules/alert_system.js`
 
-## Aktualisiert
+## Dokumentation
 
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/STEP418_ALERT_REAL_FLOW_EVENTBUS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-
-## Nicht enthalten
-
-- Keine Datenbankdateien
-- Keine `.env`
-- Keine Tokens/Secrets
-- Keine Config-Überschreibungen
-
-Das ZIP enthält vollständige Dateien mit echten Zielpfaden ab Repo-Root. Keine Patches.
+- `docs/current/CURRENT_SYSTEM_STATUS.md`

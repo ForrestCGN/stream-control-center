@@ -31,7 +31,7 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.0';
+const MODULE_VERSION = '3.1.1';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 
@@ -949,7 +949,8 @@ function buildAlertEventBusStatus(options = {}) {
       'Alert EventBus events are emitted in parallel for status, diagnostics and future consumers.',
       'Legacy alert overlay flow remains unchanged.',
       'Alert sounds and alert TTS continue through the existing Sound-System bundle flow.',
-      'This status/test/reset layer does not enqueue alerts, does not start sounds and does not control overlays.'
+      'This status/test/reset layer does not enqueue alerts, does not start sounds and does not control overlays.',
+      'Real alert lifecycle phases are mirrored as alert.status events for observation and correlation.'
     ],
     stats,
     recentEvents: options.includeRecentEvents === false ? [] : [...(state.alertEventBus.recentEvents || [])]
@@ -1066,6 +1067,57 @@ function emitAlertEventBusTest(query = {}) {
     eventBus: buildAlertEventBusStatus({ includeRecentEvents: true }),
     updatedAt: nowIso()
   };
+}
+
+
+function publicAlertBusEventContext(event = {}, extra = {}) {
+  const rule = event && event.rule ? event.rule : {};
+  const soundSystem = event && event.soundSystem ? event.soundSystem : {};
+  const alertTts = event && event.alertTts ? event.alertTts : {};
+  const prequeue = event && event.alertBundlePrequeue ? event.alertBundlePrequeue : {};
+  return {
+    eventUid: cleanText(event.eventUid || extra.eventUid || ''),
+    phase: cleanKey(extra.phase || extra.action || ''),
+    status: cleanKey(event.status || extra.status || ''),
+    source: cleanKey(event.source || extra.source || ''),
+    type: cleanKey(event.type_key || extra.type || ''),
+    category: cleanKey(event.type_key || extra.category || ''),
+    user: cleanText(event.user_display || event.user_login || extra.user || ''),
+    userLogin: cleanKey(event.user_login || ''),
+    amount: Number(event.amount || 0),
+    currency: cleanText(event.currency || ''),
+    message: cleanText(event.message || '').slice(0, 500),
+    ruleId: rule && rule.id ? Number(rule.id) : 0,
+    ruleLabel: cleanText(rule && rule.label || ''),
+    queueLength: state.queue.length,
+    currentEventUid: state.current && state.current.eventUid ? state.current.eventUid : '',
+    priority: Number((rule && rule.priority) || 0),
+    effectiveDurationMs: Number(event.effectiveDurationMs || 0),
+    replayOf: cleanText(event.replayOf || ''),
+    bundleId: cleanText(extra.bundleId || soundSystem.bundleId || prequeue.bundleId || ''),
+    bundleOk: extra.bundleOk === true || soundSystem.ok === true || prequeue.ok === true,
+    bundleAttempted: extra.bundleAttempted === true || soundSystem.attempted === true || prequeue.pending === true || prequeue.ok === true,
+    bundlePending: prequeue.pending === true,
+    ttsAttempted: alertTts.attempted === true,
+    ttsOk: alertTts.ok === true,
+    soundAttempted: soundSystem.attempted === true,
+    soundOk: soundSystem.ok === true,
+    soundError: cleanText(soundSystem.error || soundSystem.reason || ''),
+    overlayClientCount: state.overlayClients.size,
+    finishReason: cleanText(event.finishReason || extra.finishReason || ''),
+    timing: buildPublicAlertTiming(event),
+    extra: extra && typeof extra === 'object' ? { ...extra, event: undefined } : {}
+  };
+}
+
+function emitAlertFlowEvent(action, event = {}, extra = {}) {
+  const cleanAction = cleanKey(action || 'flow');
+  return emitAlertEventBus(cleanAction, publicAlertBusEventContext(event || {}, { ...extra, action: cleanAction }), {
+    testOnly: false,
+    diagnosticsOnly: false,
+    preview: false,
+    productionTarget: true
+  });
 }
 
 function resetAlertEventBusDiagnostics() {
@@ -2585,8 +2637,20 @@ function normalizeAlertPayload(input, defaultSource) {
 }
 
 function enqueueAlert(payload, broadcastWS) {
+  emitAlertEventBus('received', {
+    source: payload && payload.source ? payload.source : 'unknown',
+    type: payload && payload.type_key ? payload.type_key : 'unknown',
+    user: payload && (payload.user_display || payload.user_login) ? (payload.user_display || payload.user_login) : '',
+    amount: Number(payload && payload.amount || 0),
+    queueTouched: false,
+    soundSystemTouched: false,
+    overlayTouched: false
+  }, { productionTarget: true });
   const gate = alertQueueGate();
-  if (!gate.ok) return gate;
+  if (!gate.ok) {
+    emitAlertEventBus('rejected', { reason: gate.reason || gate.error || 'gate_failed', queueTouched: false, soundSystemTouched: false, overlayTouched: false }, { productionTarget: true });
+    return gate;
+  }
   const rule = findMatchingRule(payload);
   if (!rule && state.config.playUnmatchedAlerts !== true) {
     return ignoreUnmatchedAlert(payload, 'no_matching_rule');
@@ -2627,6 +2691,17 @@ function ignoreUnmatchedAlert(payload, reason = 'no_matching_rule') {
   } catch (err) {
     console.warn('[alert_system] failed to store ignored alert:', err && err.message ? err.message : err);
   }
+  emitAlertFlowEvent('ignored', {
+    eventUid,
+    source: payload && payload.source ? payload.source : 'unknown',
+    type_key: payload && payload.type_key ? payload.type_key : 'unknown',
+    user_login: payload && payload.user_login ? payload.user_login : '',
+    user_display: payload && payload.user_display ? payload.user_display : '',
+    amount: Number(payload && payload.amount || 0),
+    message: payload && payload.message ? payload.message : reason,
+    status: 'ignored',
+    finishReason: reason
+  }, { phase: 'ignored', finishReason: reason });
   return {
     ok: true,
     queued: false,
@@ -2681,6 +2756,7 @@ function enqueueAlertWithRule(payload, rule, broadcastWS, options = {}) {
     now
   });
   state.queue.push(event);
+  emitAlertFlowEvent('queued', event, { phase: 'queued' });
   scheduleAlertBundlePrequeue(event, broadcastWS);
   return { ok: true, queued: true, eventUid, replayOf: options.replayOf || null, queueLength: state.queue.length, current: state.current ? state.current.eventUid : null, matchedRule: rule ? rule.id : null, warning: rule ? '' : 'no_matching_rule', bundlePrequeue: true };
 }
@@ -3228,6 +3304,7 @@ async function processQueue(broadcastWS) {
   state.processing = true;
   const event = state.queue.shift();
   markAlertTiming(event, 'queuePicked');
+  emitAlertFlowEvent('selected', event, { phase: 'selected' });
 
   try {
     if (event.rule && event.rule.id) event.rule = getRuleById(event.rule.id) || event.rule;
@@ -3240,6 +3317,7 @@ async function processQueue(broadcastWS) {
     event.status = 'waiting_for_sound';
     event.waiting_started_at = nowIso();
     markAlertTiming(event, 'waitingForSound');
+    emitAlertFlowEvent('waiting_for_sound', event, { phase: 'waiting_for_sound' });
     try {
       database.run(`UPDATE alert_events SET status='waiting_for_sound' WHERE event_uid=:eventUid`, {
         eventUid: event.eventUid
@@ -3255,6 +3333,13 @@ async function processQueue(broadcastWS) {
       ttsResult = (event.alertTts && event.alertTts.attempted) ? event.alertTts : ttsResult;
     }
     markAlertTiming(event, 'soundBundleReady');
+    emitAlertFlowEvent('sound_bundle_ready', event, {
+      phase: 'sound_bundle_ready',
+      bundleId: soundResult && soundResult.bundleId ? soundResult.bundleId : '',
+      bundleAttempted: !!(soundResult && soundResult.attempted),
+      bundleOk: !!(soundResult && soundResult.ok),
+      soundError: soundResult ? (soundResult.error || soundResult.reason || '') : ''
+    });
 
     if (soundResult && soundResult.attempted) {
       event.soundSystem = soundResult;
@@ -3271,6 +3356,7 @@ async function processQueue(broadcastWS) {
             eventUid: event.eventUid
           });
         } catch (_) {}
+        emitAlertFlowEvent('finished', event, { phase: 'finished', finishReason: event.finishReason || 'sound_system_failed' });
         state.history.unshift({ ...event });
         state.history = state.history.slice(0, 100);
         state.processing = false;
@@ -3287,6 +3373,11 @@ async function processQueue(broadcastWS) {
 
     const syncResult = await waitForSoundSystemItemStarted(event, soundResult);
     markAlertTiming(event, 'soundWaitDone');
+    emitAlertFlowEvent('sound_wait_done', event, {
+      phase: 'sound_wait_done',
+      syncOk: syncResult ? syncResult.ok !== false : true,
+      syncReason: syncResult ? (syncResult.reason || syncResult.error || '') : ''
+    });
     if (syncResult && syncResult.persist) {
       persistEventRuntimePayload(event);
     }
@@ -3296,6 +3387,7 @@ async function processQueue(broadcastWS) {
     event.status = 'playing';
     event.started_at = nowIso();
     markAlertTiming(event, 'playing');
+    emitAlertFlowEvent('playing', event, { phase: 'playing' });
     try {
       database.run(`UPDATE alert_events SET status='playing', started_at=:startedAt WHERE event_uid=:eventUid`, {
         startedAt: event.started_at,
@@ -3313,6 +3405,12 @@ async function processQueue(broadcastWS) {
     state.alertOutput.lastTiming = buildPublicAlertTiming(event);
     createOverlayDeliveryWatch(event, overlayAlert);
     event.alertVisualOutput = visualOutput;
+    emitAlertFlowEvent('visual_sent', event, {
+      phase: 'visual_sent',
+      legacySent: !!(visualOutput && visualOutput.legacySent),
+      busSent: !!(visualOutput && visualOutput.busSent),
+      fallbackLegacySent: !!(visualOutput && visualOutput.fallbackLegacySent)
+    });
     emitAlertBusMirror(event, overlayAlert);
     persistEventRuntimePayload(event);
     dispatchAlertChatMessage(event, overlayAlert).catch(err => console.warn('[alert_system] chat message failed:', err && err.message ? err.message : err));
@@ -3338,6 +3436,7 @@ async function processQueue(broadcastWS) {
       });
     } catch (_) {}
 
+    emitAlertFlowEvent('failed', event, { phase: 'failed', error: msg, finishReason: event.finishReason || 'process_queue_failed' });
     state.history.unshift({ ...event });
     state.history = state.history.slice(0, 100);
     state.current = null;
@@ -3708,6 +3807,7 @@ function scheduleAlertBundlePrequeue(event, broadcastWS) {
     reason: 'enqueue_immediate_parallel'
   };
   persistEventRuntimePayload(event);
+  emitAlertFlowEvent('sound_bundle_prequeue_started', event, { phase: 'sound_bundle_prequeue_started', bundlePending: true });
 
   Promise.resolve()
     .then(async () => {
@@ -3727,6 +3827,13 @@ function scheduleAlertBundlePrequeue(event, broadcastWS) {
         mainDropped: !!(soundResult && soundResult.result && soundResult.result.dropped),
         mainDropReason: soundResult && soundResult.result ? soundResult.result.reason || '' : ''
       };
+      emitAlertFlowEvent('sound_bundle_prequeue_finished', event, {
+        phase: 'sound_bundle_prequeue_finished',
+        bundleId: event.alertBundlePrequeue.bundleId || '',
+        bundleOk: event.alertBundlePrequeue.ok === true,
+        mainDropped: event.alertBundlePrequeue.mainDropped === true,
+        mainDropReason: event.alertBundlePrequeue.mainDropReason || ''
+      });
     })
     .catch(err => {
       event.alertBundlePrequeue = {
@@ -3736,6 +3843,7 @@ function scheduleAlertBundlePrequeue(event, broadcastWS) {
         error: err && err.message ? err.message : String(err),
         parallelPrequeue: true
       };
+      emitAlertFlowEvent('sound_bundle_prequeue_failed', event, { phase: 'sound_bundle_prequeue_failed', error: event.alertBundlePrequeue.error || '' });
     })
     .finally(() => {
       persistEventRuntimePayload(event);
@@ -4445,6 +4553,7 @@ function finishCurrent(reason, broadcastWS) {
       database.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt WHERE event_uid=:eventUid`, { finishedAt: finished.finished_at, eventUid: finished.eventUid });
     }
 
+    emitAlertFlowEvent('finished', finished, { phase: 'finished', finishReason });
     state.history.unshift(finished);
     state.history = state.history.slice(0, 100);
     state.current = null;
@@ -4458,6 +4567,7 @@ function finishCurrent(reason, broadcastWS) {
     if (!state.current || state.current.eventUid !== current.eventUid) return;
     const finished = { ...state.current, finished_at: nowIso(), finishReason: reason, bundleFinishError: err && err.message ? err.message : String(err) };
     database.run(`UPDATE alert_events SET status='finished', finished_at=:finishedAt WHERE event_uid=:eventUid`, { finishedAt: finished.finished_at, eventUid: finished.eventUid });
+    emitAlertFlowEvent('finished', finished, { phase: 'finished', finishReason: reason, error: finished.bundleFinishError || '' });
     state.history.unshift(finished);
     state.history = state.history.slice(0, 100);
     state.current = null;
