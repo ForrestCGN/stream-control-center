@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## STEP405 – VIP Bus Preview Flow Stable Cleanup – 2026-05-25
+
+- VIP-/Communication-Bus-Stand nach STEP404C als aktuellen Zusatzstand eingeordnet.
+- Bestätigt: Produktiver VIP-/Mod-Soundpfad bleibt weiterhin Sound-System-getrieben.
+- Bestätigt: `vip.overlay.show/hide/update` bleibt vorerst Preview-/Diagnosepfad.
+- Bestätigt: `vip.overlay.test` bleibt Shadow-only.
+- Dokumentiert: STEP399, STEP401, STEP403A und STEP404C sind gültig/PASS.
+- Dokumentiert: STEP404, STEP404A und STEP404B nicht als technische Wahrheit verwenden.
+- Ergebnis: Keine Codeänderung, keine Sound-/Queue-/DB-/Dashboard-Änderung.
+- Nächster sinnvoller Schritt: STEP406 – VIP Productive Bus Event Audit.
+
 ## STEP354 – SoundBus Final Check – 2026-05-24
 
 - Sound-System/SoundBus-Abschlussstand dokumentiert.

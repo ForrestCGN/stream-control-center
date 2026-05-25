@@ -1,6 +1,6 @@
-# FILES – STEP354 SOUND BUS FINAL CHECK
+# FILES – STEP405 VIP BUS PREVIEW FLOW STABLE CLEANUP
 
-Dieses ZIP enthält nur Dokumentation zum bestätigten SoundBus-Abschlussstand.
+Dieses ZIP enthält nur Dokumentation zum bestätigten VIP-/Communication-Bus-Stand und zur Produktivpfad-Entscheidung.
 
 ## Enthaltene Dateien
 
@@ -10,29 +10,30 @@ project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
-project-state/STEP354_SOUND_BUS_FINAL_CHECK.md
+project-state/STEP405_VIP_BUS_PREVIEW_FLOW_STABLE_CLEANUP.md
 ```
 
-## Zuletzt bestätigte Code-Stände
+## Geprüfte relevante Code-Dateien
 
 ```text
-STEP353_SOUND_OVERLAY_WS_PLAY_SIGNAL_FIX.zip
-STEP352_SOUND_BUS_CLIENT_EVENT_CONTRACT.zip
-```
-
-Relevante Code-Dateien aus den letzten Code-STEPS:
-
-```text
-backend/modules/sound_system.js
-htdocs/overlays/sound_system_overlay.html
+backend/modules/communication_bus.js
+backend/modules/vip_sound_overlay.js
+htdocs/overlays/vip_sound_overlay_v2.html
 ```
 
 ## Nicht enthalten
 
 ```text
+keine Backend-Codeänderungen
+keine Overlay-Codeänderungen
 keine Dashboard-Dateien
-keine Alert-Dateien
 keine DB-Dateien
 keine Config-Änderungen
 keine Secrets
+keine .env
+keine Backups
 ```
+
+## Grund
+
+STEP405 ist bewusst ein Cleanup-/Entscheidungs-STEP, weil der vorhandene produktive VIP-/Mod-Soundpfad stabil bleibt und der Bus-Pfad aktuell nur Preview/Diagnose ist.

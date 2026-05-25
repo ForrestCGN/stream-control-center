@@ -1,49 +1,47 @@
-# NEXT STEPS – nach STEP354 SOUND BUS FINAL CHECK
+# NEXT STEPS – nach STEP405 VIP BUS PREVIEW FLOW STABLE CLEANUP
 
-## Nächster Block
+## Nächster sinnvoller Block
 
-`STEP360 – Alert-System an fertigen SoundBus anbinden`
+`STEP406 – VIP Productive Bus Event Audit`
 
 ## Ziel
 
-Das Alert-System wird als erstes System an den jetzt bestätigten SoundBus-/Sound-System-Stand angebunden.
+Vor jeder echten VIP-Produktivbus-Änderung muss der reale VIP-/Mod-Soundpfad geprüft werden.
 
-Klarer Zusammenhang:
+## Vor STEP406 prüfen
 
-```text
-Sound-System steuert Sound, Queue, Bundle und Playback.
-SoundBus meldet Start/Ende/Client-Bestätigung.
-Alert-System liefert Alert-Inhalt und Overlay-Anzeige passend dazu.
-```
-
-## Vor STEP360 prüfen
-
-- Aktuelle `backend/modules/alert_system.js` aus GitHub/dev lesen.
+- Aktuelle `backend/modules/vip_sound_overlay.js` aus GitHub/dev lesen.
+- Aktuelle `htdocs/overlays/vip_sound_overlay_v2.html` aus GitHub/dev lesen.
 - Aktuelle `backend/modules/sound_system.js` aus GitHub/dev lesen.
-- Aktuelle Alert-Overlays lesen:
-  - `htdocs/overlays/_overlay-alerts-v2.html`
-  - `htdocs/overlays/_overlay-alerts-v2-bus.html`
-- Keine alten Annahmen aus früheren Chats verwenden.
+- Aktuelle `backend/modules/communication_bus.js` aus GitHub/dev lesen.
+- Live-Status prüfen:
+  - `/api/vip-sound/status`
+  - `/api/sound/status`
+  - `/api/communication/status`
 
-## STEP360-Kernziel
+## Kernfragen für STEP406
 
-- Alert-System nutzt Sound-System/SoundBus-Signale sauber.
-- Alert-Bild/Text wird passend zum tatsächlichen Sound-Start angezeigt.
-- Reconnect-/Recovery-Verhalten für laufende Alerts prüfen und gezielt lösen.
-- Sound/TTS darf dabei nicht doppelt starten.
+1. Soll das VIP-Overlay bei echten VIP-/Mod-Sounds weiterhin ausschließlich über Sound-System-Events sichtbar werden?
+2. Soll zusätzlich ein produktiver `vip.overlay.show/hide` Event gesendet werden?
+3. Falls dualer Pfad: Wer ist führend für Hide/Duration?
+4. Wie wird doppelte Anzeige verhindert?
+5. Wie verhält sich das System bei Reconnect?
+6. Wie bleibt die bestehende Sound-System-Queue unberührt?
+7. Muss Dashboard-Konfiguration vorbereitet werden oder reicht zunächst ein interner Modus?
 
-## Bewusst später
+## Nicht machen ohne eigenen STEP
 
-- Dashboard-Ausbau.
-- Dashboard-Feinschliff.
-- Neue Dashboard-Tabs.
-- UI-Monitoring als Hauptarbeit.
-
-## Nicht machen ohne ausdrücklichen Wunsch
-
-- Kein `bus_only` als Produktionsstandard.
-- Keine Entfernung alter Legacy-/HTTP-/WebSocket-Pfade.
-- Keine Sound-Queue-Logik ändern.
-- Keine Bundle-/`activeBundleLock`-Logik ändern.
+- Keine Umstellung auf Bus-only.
+- Keine Entfernung des Sound-System-Pfads.
+- Keine Änderung an Sound-Queue oder Bundle-Lock.
 - Keine DB-Migration.
-- Keine neue Parallelstruktur.
+- Keine neue Dashboard-Seite.
+- Keine Produktivroute ohne Audit.
+
+## Optional später
+
+Nach STEP406 kann ein kleiner Code-STEP folgen:
+
+`STEP407 – VIP Productive Bus Dual Event Prototype`
+
+Nur wenn STEP406 eindeutig ergibt, dass ein zusätzlicher produktiver `vip.overlay.*` Event sinnvoll ist.

@@ -1,54 +1,90 @@
-# CURRENT_STATUS – STEP354 SOUND BUS FINAL CHECK
+# CURRENT_STATUS – STEP405 VIP BUS PREVIEW FLOW STABLE CLEANUP
 
-Stand: 2026-05-24
+Stand: 2026-05-25
 
-Aktueller stabiler Stand:
+## Aktueller stabiler Stand
 
-- Sound-System und SoundBus sind als zentrale Audio-/Medien-Schicht für die nächsten System-Anbindungen bereit.
-- STEP352 ergänzte den SoundBus-Client-Event-Kontext im Backend.
-- STEP353 reparierte das WebSocket-Play-Signal im Sound-System-Overlay.
-- STEP354 dokumentiert den bestätigten Abschlussstand nach erfolgreichem Test.
+Der aktuelle Projektstand wurde nach dem VIP-/Communication-Bus-Block eingeordnet.
 
-Bestätigte Ergebnisse:
+Wichtigster Punkt:
 
 ```text
-soundStep            : 352
-Sound-Test           : generated_beep über outputTarget=overlay
-SoundBus item_starting: vorhanden
-SoundBus item_started : vorhanden
-SoundBus play_stream  : vorhanden
-SoundBus client.audio_started: vorhanden
-SoundBus client_audio_ended  : vorhanden
-queuedCount          : 0
-activeBundleLock     : leer
+VIP-/Mod-Sounds bleiben produktiv über das bestehende Sound-System aktiv.
+Der Communication-Bus-Pfad für VIP ist zusätzlich stabil als Preview-/Diagnosepfad vorhanden.
 ```
 
-Bestätigter Ablauf:
+## Bestätigte VIP-/Communication-STEPS
+
+Gültig/PASS:
 
 ```text
-/api/sound/play
-→ Sound-System startet Item
-→ SoundBus meldet item_starting
-→ SoundBus meldet item_started
-→ Sound-System sendet play_stream an Browserquelle
-→ Sound-Overlay spielt Sound ab
-→ Sound-Overlay meldet client.audio_started zurück
-→ Sound-Overlay meldet client_audio_ended zurück
-→ Sound-System beendet Item sauber
+STEP399  – VIP Overlay Bus Shadow Registration
+STEP401  – VIP Overlay Event Shadow Test
+STEP403A – VIP Overlay Preview Visible Wait Test
+STEP404C – VIP Preview Show/Hide Stable Check Result-Wrapper Fix
 ```
 
-Bewertung:
+Nicht als technische Wahrheit verwenden:
 
-- Sound-System steuert weiterhin Sound, Queue, Bundle, Device/Discord/Overlay-Ausgabe.
-- SoundBus liefert jetzt die nötigen Events für spätere System-Anbindungen.
-- Sound-Overlay bestätigt tatsächlichen Playback-Start und Playback-Ende mit `requestId`.
-- Damit ist die SoundBus-Grundlage bereit, um danach das Alert-System als erstes System sauber anzubinden.
+```text
+STEP404
+STEP404A
+STEP404B
+```
 
-Nicht geändert in STEP354:
+Diese Zwischenstände enthalten Diagnose-/Script-Fehler und sind nur Fehlerhistorie.
 
-- Kein Dashboard.
-- Keine Alert-Anbindung.
-- Keine Queue-Änderung.
-- Keine `activeBundleLock`-Änderung.
+## Aktueller VIP-Produktivpfad
+
+```text
+Streamer.bot / Dashboard / API
+→ /api/vip-sound/command oder /api/vip-sound/enqueue
+→ vip_sound_overlay.js
+→ Sound-System /api/sound/play
+→ Sound-System spielt VIP-/Mod-Sound
+→ VIP-Overlay reagiert auf sound_system WebSocket + /api/sound/status
+→ Overlay zeigt passende Karte
+```
+
+## Aktueller VIP-Bus-Preview-Pfad
+
+```text
+Communication Bus
+→ vip.overlay.show
+→ vip_sound_overlay_v2 zeigt Preview-Testkarte
+→ Overlay sendet Ack
+→ vip.overlay.hide
+→ Overlay blendet aus
+→ Overlay sendet Ack
+→ Sound-System bleibt unberührt
+```
+
+## Entscheidung STEP405
+
+Für den Moment gilt:
+
+```text
+Produktivpfad: Sound-System
+Zusatzpfad: Communication-Bus Preview/Diagnose
+Kein produktiver vip.overlay Event für echte VIP-/Mod-Sounds in STEP405
+```
+
+## Nicht geändert in STEP405
+
+- Keine Codeänderung.
+- Keine Sound-System-/Queue-/Bundle-Änderung.
 - Keine DB-Migration.
-- Keine Entfernung von Legacy-/HTTP-/WebSocket-Pfaden.
+- Keine Dashboard-Änderung.
+- Keine Änderung an `/api/vip-sound`.
+- Keine Registrierung von `/api/vip`.
+- Keine Entfernung von Preview-/Diagnose-Routen.
+
+## Nächster sinnvoller Schritt
+
+`STEP406 – VIP Productive Bus Event Audit`
+
+Erst prüfen, dann entscheiden:
+
+- Soll ein echter VIP-/Mod-Produktivevent zusätzlich über `vip.overlay.*` laufen?
+- Bleibt das Overlay produktiv ausschließlich Sound-System-getrieben?
+- Welche Dedupe-/Hide-/Reconnect-/Queue-Regeln wären bei einem dualen Pfad nötig?
