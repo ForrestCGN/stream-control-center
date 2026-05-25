@@ -1,15 +1,25 @@
 # CHANGELOG
 
+## STEP409 – VIP EventBus Versioned Status Cleanup
+
+- `backend/modules/vip_sound_overlay.js` auf Version `1.8.10` erhöht.
+- VIP EventBus Statusausgabe von STEP-Kennung auf Versions-/Capability-Felder umgestellt.
+- `step` aus `/api/vip-sound/eventbus/status` entfernt.
+- `feature` durch `capability: vip.sound.status_events` und `statusApiVersion: 1.0.0` ersetzt.
+- Alte STEP-Notizen im produktiven VIP-Command-Response neutralisiert.
+- Keine Funktionsänderung an Sound-System, Queue, Daily-Usage, Overlay oder EventBus-Emission.
+
 ## STEP407 – VIP EventBus Smoke-Test Routes
 
-- Added test-only VIP EventBus smoke routes.
-- Added `/eventbus/test` to VIP route definitions and status output.
-- Kept Sound-System, overlay, queue and Daily-Usage untouched.
+- VIP EventBus Smoke-Test-Routen ergänzt.
+- Test-Events auf `vip.sound` ohne Sound-System, Queue, Overlay oder Daily-Usage.
 
 ## STEP406 – VIP EventBus Status Diagnostics
 
-- Added VIP EventBus status/reset diagnostics.
+- VIP EventBus Status- und Reset-Routen ergänzt.
+- Integration-Check um EventBus-Status ergänzt.
 
 ## STEP405 – VIP EventBus Status Events
 
-- Added status-only `vip.sound` EventBus events for real VIP-/Mod-Sound command outcomes.
+- VIP-/Mod-Sound-Command sendet zusätzliche Status-Events auf `vip.sound`.
+- Bestehender Sound-System-Flow bleibt unverändert.

@@ -273,7 +273,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.9",
+    version: "1.8.10",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -3490,8 +3490,8 @@ module.exports.init = function init(ctx) {
       soundFile: soundQueue.sound.relativeFile,
       soundPath: soundQueue.sound.fullPath,
       note: skipDailyUsage
-        ? "STEP019 override queued VIP sound via sound_system without daily usage."
-        : "STEP017 queued VIP sound via sound_system before writing daily usage."
+        ? "Override queued VIP sound via sound_system without daily usage."
+        : "Queued VIP sound via sound_system before writing daily usage."
     });
   }
 
@@ -3688,8 +3688,8 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_eventbus_status_events",
-      step: 407,
+      capability: "vip.sound.status_events",
+      statusApiVersion: "1.0.0",
       enabled: !!state.eventBus.enabled,
       channel: state.eventBus.channel,
       communicationBusAvailable: busAvailable,

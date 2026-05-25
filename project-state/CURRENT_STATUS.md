@@ -1,32 +1,37 @@
-# CURRENT_STATUS – STEP407 VIP EventBus Smoke-Test
+# CURRENT_STATUS – VIP EventBus Versioned Status Cleanup
 
-Aktueller Stand: STEP407 vorbereitet.
+Aktueller Stand: STEP409 vorbereitet.
 
-## Fokus
+## Kurzfassung
 
-VIP-System sendet zusätzliche Status-Events an den Communication/EventBus und ist jetzt ohne echten Sound testbar.
+Das VIP-/Mod-Sound-System hat eine funktionierende EventBus-Status-Anbindung auf `vip.sound`.
 
-## Produktiver VIP-Pfad bleibt unverändert
+Nach dem erfolgreichen Smoke-Test und dem echten Override-Test wurde die Runtime-Statusausgabe bereinigt:
+
+- Modulversion: `1.8.10`
+- Capability: `vip.sound.status_events`
+- Status-API-Version: `1.0.0`
+- Kein dauerhaftes `step`-Feld mehr in `/api/vip-sound/eventbus/status`
+
+## Bestehender produktiver Flow
 
 ```text
 /api/vip-sound/command
 → vip_sound_overlay.js
 → /api/sound/play
-→ Sound-System spielt VIP-/Mod-Sound
-→ VIP-Overlay reagiert auf sound_system WS + /api/sound/status
+→ Sound-System
+→ Overlay reagiert auf Sound-System
 ```
 
-## EventBus-Zusatzpfad
+## Wichtig
 
-```text
-vip_sound_overlay.js
-→ vip.sound Status-Event
-→ Communication/EventBus
-```
+Der EventBus meldet Status. Er startet keine Sounds und steuert kein Overlay.
 
-## Neu in STEP407
+## Bewusst nicht geändert
 
-- `GET/POST /api/vip-sound/eventbus/test`
-- `GET/POST /api/vip-sound-overlay/eventbus/test`
-
-Die Test-Routen senden nur ein Diagnose-Event und berühren weder Sound-System noch Overlay, Queue oder Daily-Usage.
+- Sound-System
+- Queue
+- Daily-Usage
+- Overlay
+- Datenbank-Schema
+- bestehende VIP-Routen

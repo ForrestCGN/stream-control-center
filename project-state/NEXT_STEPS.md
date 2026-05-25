@@ -1,9 +1,32 @@
-# NEXT_STEPS – nach STEP407
+# NEXT_STEPS – nach STEP409
 
-1. Backend neu starten.
-2. `/api/vip-sound/eventbus/status` prüfen.
-3. `/api/vip-sound/eventbus/test?displayName=ForrestCGN` ausführen.
-4. Status erneut prüfen.
-5. Danach erst entscheiden, ob als nächstes ein Dashboard-/Watchdog-Bereich für VIP EventBus-Diagnose ergänzt wird.
+## Direkt testen
 
-Wichtig: Keine Umstellung auf Bus-only, solange der bestehende Sound-System-Flow nicht ausdrücklich ersetzt werden soll.
+Nach Entpacken und Backend-Neustart:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/eventbus/status" | ConvertTo-Json -Depth 10
+```
+
+Erwartung:
+
+- `version` ist `1.8.10`
+- `capability` ist `vip.sound.status_events`
+- `statusApiVersion` ist `1.0.0`
+- kein `step`-Feld mehr
+
+## Danach sinnvoll
+
+STEP410 kann einer dieser Wege sein:
+
+1. VIP EventBus Status als stabil dokumentieren.
+2. `vip.sound` in eine allgemeine Communication Debug-/Dashboard-Auswertung aufnehmen.
+3. Weitere echte VIP-/Mod-Command-Fälle testen: accepted, duplicate, sound_missing, denied.
+
+Nicht als nächstes nebenbei umbauen:
+
+- Sound-System
+- Queue
+- Overlay-Design
+- Daily-Usage
+- DB-Schema

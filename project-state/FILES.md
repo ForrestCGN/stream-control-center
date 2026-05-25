@@ -1,4 +1,4 @@
-# FILES – STEP407
+# FILES – VIP EventBus Versioned Status Cleanup
 
 ## Geändert
 
@@ -8,11 +8,11 @@
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP407_VIP_EVENTBUS_SMOKE_TEST.md`
 
-## Nicht geändert
+## Neu
 
-- Sound-System-Modul
-- Overlay-HTML
-- Daily-Usage-Schema
-- Streamer.bot Actions
+- `project-state/STEP409_VIP_EVENTBUS_VERSIONED_STATUS.md`
+
+## Wichtig
+
+Das ZIP enthält vollständige Ersatzdateien mit echten Zielpfaden ab Repo-Root. Keine Patches.
