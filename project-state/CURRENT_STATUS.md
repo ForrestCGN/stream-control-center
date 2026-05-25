@@ -1,22 +1,8 @@
 # CURRENT_STATUS
 
-Aktueller Stand: STEP448 – VIP Bus-First kontrollierter Produktiv-Test.
+Aktueller Stand: STEP449 – VIP Productive Bus Access/Target Hook Fix.
 
-- VIP-Modul: `1.8.30`
-- Sound-System: `0.1.20`
-- VIP-Feature: `vip_bus_first_productive_test`
-- Sound-Feature: `sound_bus_command_productive_play_layer`
+VIP-Sound-Overlay: `1.8.31` mit Feature `vip_productive_bus_access_target_hook_fix`.
+Sound-System: `0.1.20` unverändert aus STEP448.
 
-STEP448 aktiviert den produktiven VIP-Bus-Pfad kontrolliert. Der normale VIP-Sound-Flow kann jetzt über `sound_bus_command` laufen. Das Sound-System stellt dafür die produktive Route `/api/sound/eventbus/command/play` bereit.
-
-Wichtig:
-
-- Normaler VIP-Flow ist jetzt Bus-First.
-- `productiveVipFlow` soll `sound_bus_command` sein.
-- `normalChatCommandUsesBusFirst` soll `true` sein.
-- `productiveSwitchSafetyLocked` ist `false`.
-- `productiveEntryPointChanged` ist `true`.
-- Legacy `/api/sound/play` bleibt nur als Fallback bei Bus-Fehlern erhalten.
-- Keine DB-Migration.
-- Kein Dashboard-Umbau.
-- Bestehende Test-/Diagnosepfade bleiben vorerst erhalten und werden erst nach stabilem Produktivtest gezielt reduziert.
+Der produktive VIP-Bus-First-Pfad bleibt aktiv. STEP449 korrigiert gezielt den Zugriff vor dem Bus-Hook: Rollen aus Command-Payloads sowie lokale Rollen-Fallbacks werden jetzt für Actor/Target berücksichtigt, damit der echte `/api/vip-sound/command`-Flow den produktiven Bus erreichen kann.

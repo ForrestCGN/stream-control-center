@@ -70,7 +70,7 @@ module.exports.init = function init(ctx) {
     vipBusFirstProductiveEnabled: {
       value: false,
       value_type: "boolean",
-      description: "Produktiv-Schalter fuer VIP Bus-First. In STEP448 fuer kontrollierten Produktiv-Test aktivierbar; Standard bleibt false."
+      description: "Produktiv-Schalter fuer VIP Bus-First. In STEP449 fuer kontrollierten Produktiv-Test aktivierbar; Standard bleibt false."
     },
     soundBaseDir: {
       value: process.env.VIP_SOUND_BASE_DIR || "D:/Streaming/stramAssets/htdocs/assets/sounds/vip",
@@ -288,7 +288,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.30",
+    version: "1.8.31",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -577,6 +577,90 @@ module.exports.init = function init(ctx) {
     }
 
     return false;
+  }
+
+
+  function roleFlagsFromCommandRaw(raw = {}, prefix = "") {
+    const p = String(prefix || "").trim();
+    const key = name => p ? `${p}${name.charAt(0).toUpperCase()}${name.slice(1)}` : name;
+    const badgesRaw = raw[key("badges")] ?? raw.badges ?? "";
+    const roles = new Set();
+
+    if (Array.isArray(badgesRaw)) {
+      for (const item of badgesRaw) roles.add(String(item || "").trim().toLowerCase());
+    } else {
+      for (const item of csvList(badgesRaw)) roles.add(item);
+    }
+
+    const isBroadcaster =
+      boolish(raw[key("isBroadcaster")]) ||
+      boolish(raw[key("broadcaster")]) ||
+      roles.has("broadcaster");
+
+    const isMod =
+      boolish(raw[key("isMod")]) ||
+      boolish(raw[key("isModerator")]) ||
+      boolish(raw[key("moderator")]) ||
+      roles.has("mod") ||
+      roles.has("moderator");
+
+    const isVip =
+      boolish(raw[key("isVip")]) ||
+      boolish(raw[key("vip")]) ||
+      roles.has("vip");
+
+    return {
+      isVip,
+      isMod,
+      isBroadcaster,
+      source: isBroadcaster || isMod || isVip ? "command_payload" : "none"
+    };
+  }
+
+  function localRoleAccessForLogin(loginRaw) {
+    const login = normalizeLogin(loginRaw);
+    if (!login) return null;
+
+    const roles = buildRoleSetsFromDbOrFallback();
+    if (!roles.enabled || !roles.fallbackRolesEnabled) return null;
+
+    if (roles.mods.has(login) || roles.crew.has(login)) {
+      return {
+        login,
+        displayName: login,
+        twitchUserId: "",
+        isVip: false,
+        isMod: true,
+        isBroadcaster: roles.crew.has(login),
+        source: roles.source || "role_override",
+        lastSeenAt: "",
+        lastSyncAt: "",
+        createdAt: "",
+        updatedAt: "",
+        localRoleFallback: true,
+        roleType: "mod"
+      };
+    }
+
+    if (roles.vips.has(login)) {
+      return {
+        login,
+        displayName: login,
+        twitchUserId: "",
+        isVip: true,
+        isMod: false,
+        isBroadcaster: false,
+        source: roles.source || "role_override",
+        lastSeenAt: "",
+        lastSyncAt: "",
+        createdAt: "",
+        updatedAt: "",
+        localRoleFallback: true,
+        roleType: "vip"
+      };
+    }
+
+    return null;
   }
 
   function readVipRolesConfig() {
@@ -1087,15 +1171,59 @@ module.exports.init = function init(ctx) {
 
   function twitchSoundAccessForUser(user) {
     const login = normalizeLogin(user && (user.login || user.displayName));
+    const payloadFlags = user && user.twitch && typeof user.twitch === "object" ? user.twitch : {};
+
+    if (payloadFlags.isVip || payloadFlags.isMod || payloadFlags.isBroadcaster) {
+      const cached = {
+        login,
+        displayName: cleanDisplayName(user.displayName || login),
+        twitchUserId: String(user.twitchUserId || ""),
+        isVip: !!payloadFlags.isVip,
+        isMod: !!payloadFlags.isMod,
+        isBroadcaster: !!payloadFlags.isBroadcaster,
+        source: payloadFlags.source || "command_payload",
+        lastSeenAt: "",
+        lastSyncAt: "",
+        createdAt: "",
+        updatedAt: ""
+      };
+      return {
+        allowed: true,
+        soundType: cached.isMod || cached.isBroadcaster ? "mod" : "vip",
+        login,
+        cached,
+        reason: "command_payload_allowed"
+      };
+    }
+
     const cached = getCachedTwitchUser(login);
-    const allowed = !!(cached && (cached.isVip || cached.isMod || cached.isBroadcaster));
-    const soundType = cached && (cached.isMod || cached.isBroadcaster) ? "mod" : "vip";
+    if (cached && (cached.isVip || cached.isMod || cached.isBroadcaster)) {
+      return {
+        allowed: true,
+        soundType: cached.isMod || cached.isBroadcaster ? "mod" : "vip",
+        login,
+        cached,
+        reason: "twitch_cache_allowed"
+      };
+    }
+
+    const local = localRoleAccessForLogin(login);
+    if (local && (local.isVip || local.isMod || local.isBroadcaster)) {
+      return {
+        allowed: true,
+        soundType: local.isMod || local.isBroadcaster ? "mod" : "vip",
+        login,
+        cached: local,
+        reason: "local_role_fallback_allowed"
+      };
+    }
+
     return {
-      allowed,
-      soundType,
+      allowed: false,
+      soundType: "vip",
       login,
-      cached,
-      reason: allowed ? "twitch_cache_allowed" : "not_twitch_vip_or_mod"
+      cached: cached || local || null,
+      reason: "not_twitch_vip_or_mod"
     };
   }
 
@@ -1996,7 +2124,7 @@ module.exports.init = function init(ctx) {
           ok: true,
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_productive_test",
+          feature: "vip_productive_bus_access_target_hook_fix",
           baseDir,
           fileExtension,
           count: 0,
@@ -2038,7 +2166,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_test",
+        feature: "vip_productive_bus_access_target_hook_fix",
         baseDir,
         fileExtension,
         count: 0,
@@ -2052,7 +2180,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_productive_test",
+      feature: "vip_productive_bus_access_target_hook_fix",
       baseDir,
       fileExtension,
       count: entries.length,
@@ -2899,7 +3027,8 @@ module.exports.init = function init(ctx) {
     return {
       login,
       displayName: displayName || login,
-      avatarUrl
+      avatarUrl,
+      twitch: roleFlagsFromCommandRaw(raw, "actor")
     };
   }
 
@@ -2942,7 +3071,8 @@ module.exports.init = function init(ctx) {
       user: {
         login,
         displayName: displayName || login,
-        avatarUrl
+        avatarUrl,
+        twitch: roleFlagsFromCommandRaw(raw, "target")
       }
     };
   }
@@ -3080,7 +3210,7 @@ module.exports.init = function init(ctx) {
       legacy: "Produktiver VIP-Flow nutzt weiter legacy /api/sound/play. Bus-Command-Routen bleiben nur Diagnose/Test.",
       shadow: "Produktiver VIP-Flow bleibt legacy; VIP-Sound-Wuensche werden als Bus-Command gespiegelt.",
       play_test: "Nur explizite Test-/Diagnose-Routen duerfen ueber Sound play-test Audio starten. Produktiver VIP-Flow bleibt legacy.",
-      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP448 ist der Produktiv-Schalter als konsolidierter Config-/Statuswert sichtbar, standardmaessig aus und weiterhin sicherheitsgesperrt."
+      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP449 ist der Produktiv-Schalter als konsolidierter Config-/Statuswert sichtbar, standardmaessig aus und weiterhin sicherheitsgesperrt."
     };
     return descriptions[normalized] || descriptions.legacy;
   }
@@ -3154,14 +3284,14 @@ module.exports.init = function init(ctx) {
       configuredRawValue: setting.rawValue,
       dbConfiguredValue: setting.value,
       dbConfiguredEnabled,
-      configuredSource: "step448_controlled_productive_test",
+      configuredSource: "step449_controlled_productive_test",
       configuredReadable: setting.readable !== false,
       configuredEnabled,
       defaultEnabled: false,
       effectiveEnabled,
-      effectiveReason: "step448_controlled_productive_test_enabled",
+      effectiveReason: "step449_controlled_productive_test_enabled",
       safetyLocked: false,
-      safetyLockReason: "STEP448 unlocks the controlled productive Bus-First test. Legacy remains available only as fallback on Bus failure.",
+      safetyLockReason: "STEP449 unlocks the controlled productive Bus-First test. Legacy remains available only as fallback on Bus failure.",
       preparedOnly: false,
       configReadable: setting.readable !== false,
       configFileReadable: configInfo ? configInfo.ok !== false : true,
@@ -3176,7 +3306,7 @@ module.exports.init = function init(ctx) {
       normalChatCommandUsesBusFirst: effectiveEnabled,
       productiveEntryPointChanged: effectiveEnabled,
       unlockRequiresFutureStep: false,
-      note: "STEP448 enables the controlled productive VIP Bus-First test when vipBusFirstProductiveEnabled=true and vipBusMode=bus_enabled."
+      note: "STEP449 enables the controlled productive VIP Bus-First test when vipBusFirstProductiveEnabled=true and vipBusMode=bus_enabled."
     };
   }
 
@@ -3186,7 +3316,7 @@ module.exports.init = function init(ctx) {
     const effective = sw.effectiveEnabled === true;
     return {
       profile: "productive_test",
-      step: "STEP448",
+      step: "STEP449",
       productivePath: effective ? "sound_bus_command" : "legacy_sound_system_api",
       candidatePath: "sound_system_play_test",
       normalChatCommandUsesBusFirst: effective,
@@ -3204,7 +3334,7 @@ module.exports.init = function init(ctx) {
         "noLegacyFallback",
         "productiveSwitch"
       ],
-      cleanupDecision: "STEP448 starts the controlled productive Bus-First test. If stable, legacy/test ballast can be reduced in a later cleanup step."
+      cleanupDecision: "STEP449 starts the controlled productive Bus-First test. If stable, legacy/test ballast can be reduced in a later cleanup step."
     };
   }
 
@@ -3225,9 +3355,9 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_productive_test",
+      feature: "vip_productive_bus_access_target_hook_fix",
       diagnosticProfile: "cleanup_consolidated",
-      cleanupStep: "STEP448",
+      cleanupStep: "STEP449",
       source: String(source || "status"),
       requestedVipBusMode: requestedMode,
       runtimeVipBusMode: runtimeMode,
@@ -3256,7 +3386,7 @@ module.exports.init = function init(ctx) {
       cleanupConsolidated: true,
       cleanupProfile: "productive_test",
       guardActive: true,
-      guardStep: "STEP448",
+      guardStep: "STEP449",
       productiveBusRequested,
       productiveBusAllowed,
       productiveBusBlocked: productiveBusRequested && !productiveBusAllowed,
@@ -3273,7 +3403,7 @@ module.exports.init = function init(ctx) {
       overlayTouched: false,
       dailyUsageTouched: false,
       notes: [
-        "STEP448 enables a controlled productive Bus-First test when vipBusFirstProductiveEnabled=true and vipBusMode=bus_enabled.",
+        "STEP449 enables a controlled productive Bus-First test when vipBusFirstProductiveEnabled=true and vipBusMode=bus_enabled.",
         "The normal VIP sound delivery can use sound_bus_command in this step.",
         "Legacy /api/sound/play remains available only as fallback if productive Bus delivery fails.",
         "Explicit admin-test/dry-run/play-test diagnostic routes remain available but are no longer the main goal.",
@@ -3398,7 +3528,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_productive_test",
+      feature: "vip_productive_bus_access_target_hook_fix",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
@@ -3531,7 +3661,7 @@ module.exports.init = function init(ctx) {
       },
       recentCommands: Array.isArray(state.soundBusCommand.recentCommands) ? state.soundBusCommand.recentCommands : [],
       notes: [
-        "STEP448 uses the Sound-Bus command play route as controlled productive VIP path.",
+        "STEP449 uses the Sound-Bus command play route as controlled productive VIP path.",
         "Legacy /api/sound/play remains available only as fallback if productive Bus delivery fails.",
         "The dry-run and play-test routes remain available for diagnostics, but are no longer the target path.",
         "If the productive Bus path stays stable, temporary migration/test ballast can be reduced in a later cleanup step."
@@ -3887,7 +4017,7 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_test",
+        feature: "vip_productive_bus_access_target_hook_fix",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3916,7 +4046,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_test",
+        feature: "vip_productive_bus_access_target_hook_fix",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -4022,7 +4152,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playTestResult && playTestResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_test",
+        feature: "vip_productive_bus_access_target_hook_fix",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4056,7 +4186,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_test",
+        feature: "vip_productive_bus_access_target_hook_fix",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4174,7 +4304,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playResult && playResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_test",
+        feature: "vip_productive_bus_access_target_hook_fix",
         testOnly: false,
         shadowOnly: false,
         productivePlay: true,
@@ -4205,7 +4335,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_test",
+        feature: "vip_productive_bus_access_target_hook_fix",
         productivePlay: true,
         error: state.soundBusCommand.lastError,
         busEvent: emitResult,
@@ -4780,6 +4910,9 @@ module.exports.init = function init(ctx) {
         soundType,
         trigger,
         source,
+        accessReason: twitchAccess.reason || "not_twitch_vip_or_mod",
+        accessSource: twitchAccess.cached && twitchAccess.cached.source ? twitchAccess.cached.source : "none",
+        roleFallbackEnabled: !!getVipSetting("fallbackRolesEnabled", true),
         soundSystemQueued: false
       });
     }
@@ -5957,7 +6090,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_productive_test",
+          feature: "vip_productive_bus_access_target_hook_fix",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5986,7 +6119,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_productive_test",
+          feature: "vip_productive_bus_access_target_hook_fix",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -6131,7 +6264,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_test",
+        feature: "vip_productive_bus_access_target_hook_fix",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -6165,7 +6298,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_test",
+        feature: "vip_productive_bus_access_target_hook_fix",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -6181,7 +6314,7 @@ module.exports.init = function init(ctx) {
         modePreparedOnly: !guard.productiveBusAllowed,
         persisted: false,
         modeRuntimeStateStable: true,
-        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP448. Admin-test forceAccess and diagnostic vipBusMode are test-only.",
+        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP449. Admin-test forceAccess and diagnostic vipBusMode are test-only.",
         productiveEntryPointChanged: guard.productiveEntryPointChanged,
         queueTouched: guard.queueTouched,
         audioTouched: guard.audioTouched,

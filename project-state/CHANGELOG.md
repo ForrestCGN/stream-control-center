@@ -1,28 +1,9 @@
 # CHANGELOG
 
-## STEP448 – VIP Bus-First kontrollierter Produktiv-Test
+## STEP449 – VIP Productive Bus Access/Target Hook Fix
 
-- `backend/modules/vip_sound_overlay.js` auf Version `1.8.30` angehoben.
-- VIP-Feature auf `vip_bus_first_productive_test` gesetzt.
-- `backend/modules/sound_system.js` auf Version `0.1.20` angehoben.
-- Sound-Command-Layer auf `sound_bus_command_productive_play_layer` erweitert.
-- Neue produktive Sound-System-Route ergänzt:
-  - `GET /api/sound/eventbus/command/play`
-  - `POST /api/sound/eventbus/command/play`
-- VIP-Produktivpfad nutzt jetzt kontrolliert den Sound-Bus:
-  - `effectiveVipFlow: sound_bus_command`
-  - `effectiveSoundEntryPoint: sound_bus_command`
-  - `normalChatCommandUsesBusFirst: true`
-  - `productiveEntryPointChanged: true`
-- Legacy `/api/sound/play` bleibt als Fallback erhalten, falls der produktive Bus-Pfad nicht spielt oder queued.
-- Status-/Diagnosefelder für produktiven Bus ergänzt:
-  - `productiveBusFirstActive`
-  - `productiveBusUsed`
-  - `lastProductiveBusError`
-  - `productivePlayChecks`
-  - `productivePlayOk`
-  - `productivePlayFailed`
-  - `lastProductivePlay`
-- Keine DB-Migration.
-- Kein Dashboard-Umbau.
-- Bestehende Admin-/DryRun-/PlayTest-Pfade bleiben für Debugging erhalten, werden aber nicht weiter ausgebaut.
+- VIP-Modul auf `1.8.31` erhöht.
+- Feature auf `vip_productive_bus_access_target_hook_fix` gesetzt.
+- Rollenflags aus Command-Payloads werden für Actor/Target beim VIP-Zugriff berücksichtigt.
+- Lokale Rollen-Fallbacks aus `vip_sound_role_overrides` / `vip_sound_roles.json` werden bei `fallbackRolesEnabled=true` für den Zugriff verwendet.
+- Kein neuer Testpfad, keine neue Bus-Route, keine produktive Rücknahme.
