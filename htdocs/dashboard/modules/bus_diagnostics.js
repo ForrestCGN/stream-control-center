@@ -74,7 +74,7 @@
           <div>
             <p class="busdiag-kicker">Communication Bus</p>
             <h2>Bus-Diagnose</h2>
-            <p>Read-only Übersicht für Communication-, Sound- und Alert-Bus inklusive Alert/Sound-Korrelation.</p>
+            <p>Read-only Übersicht für Communication-, Sound-, Alert- und VIP-Bus inklusive Alert/Sound-Korrelation.</p>
           </div>
           <div class="busdiag-actions">
             <button type="button" data-busdiag-action="refresh">Status laden</button>
@@ -89,6 +89,7 @@
             <a class="ghost-link" href="/public/tools/bus_diagnostics_dashboard.html" target="_blank">Standalone</a>
             <a class="ghost-link" href="/public/tools/sound_eventbus_debug.html" target="_blank">Sound Debug</a>
             <a class="ghost-link" href="/public/tools/alert_eventbus_debug.html" target="_blank">Alert Debug</a>
+            <a class="ghost-link" href="/overlays/vip_sound_overlay_v2.html" target="_blank">VIP Overlay</a>
           </div>
         </div>
         <div class="busdiag-livebar" data-busdiag-live aria-live="polite"></div>
@@ -194,6 +195,8 @@
     const sound = data.soundEventBus || {};
     const alert = data.alertEventBus || {};
     const correlation = data.alertSoundCorrelation || {};
+    const vip = data.vipStatus || {};
+    const vipIntegration = data.vipIntegration || {};
     const comparison = correlation.comparison || {};
     const warnings = Array.isArray(data.warnings) ? data.warnings : [];
     const errors = Array.isArray(data.errors) ? data.errors : [];
@@ -206,6 +209,7 @@
             ${metric('Clients online', `${num(summary.connectedClients)} / ${num(summary.totalClients)}`)}
             ${metric('Sound Debug', bool(summary.soundDebugConnected), summary.soundDebugConnected ? 'verbunden' : 'Debug-Seite öffnen')}
             ${metric('Alert Debug', bool(summary.alertDebugConnected), summary.alertDebugConnected ? 'verbunden' : 'Debug-Seite öffnen')}
+            ${metric('VIP Overlay', bool(summary.vipOverlayConnected), summary.vipOverlayConnected ? 'verbunden' : 'Overlay öffnen')}
             ${metric('Read-only', bool(data.readOnly))}
           </div>
         `)}
@@ -214,6 +218,7 @@
             ${metric('Flow touched', bool(data.flowTouched))}
             ${metric('Queue touched', bool(data.queueTouched))}
             ${metric('Sound touched', bool(data.soundSystemTouched))}
+            ${metric('VIP touched', bool(data.vipSystemTouched))}
             ${metric('Overlay touched', bool(data.overlayTouched))}
           </div>
         `)}
@@ -245,6 +250,26 @@
             ${metric('Emitted', summary.alertEmitted)}
             ${metric('Errors', summary.alertErrors)}
             ${metric('Last action', summary.alertLastAction || '-')}
+          </div>
+        `)}
+        ${card('VIP-System', `
+          <div class="busdiag-status-line">${badge(vip.ok ? 'ok' : 'warning', vip.ok ? 'ok' : 'warning')}<span>${esc(value(vip.module || 'vip_sound_overlay'))} ${esc(value(summary.vipVersion || vip.version))}</span></div>
+          <div class="busdiag-metrics">
+            ${metric('Overlay Client', bool(summary.vipOverlayConnected), summary.vipOverlayConnected ? 'Bus verbunden' : 'nicht verbunden')}
+            ${metric('Status API', vip.fetchOk ? 'ok' : 'fehler')}
+            ${metric('Phase', summary.vipPhase || vip.phase || '-')}
+            ${metric('Queue', summary.vipQueuedCount ?? vip.queuedCount ?? 0)}
+            ${metric('Aktiv', bool(summary.vipActive))}
+            ${metric('Sichtbar', bool(summary.vipVisible))}
+          </div>
+        `)}
+        ${card('VIP Integration', `
+          <div class="busdiag-status-line">${badge(vipIntegration.ok ? 'ok' : 'warning', vipIntegration.ok ? 'ok' : 'warning')}<span>${esc(value(vipIntegration.module || 'vip_sound_overlay'))}</span></div>
+          <div class="busdiag-metrics">
+            ${metric('Fetch', vipIntegration.fetchOk ? 'ok' : 'fehler')}
+            ${metric('DB', bool(summary.vipDbInitialized))}
+            ${metric('Errors', summary.vipIntegrationErrors ?? 0)}
+            ${metric('Client Event', summary.vipClientLastEvent || '-')}
           </div>
         `)}
         ${card('Alert/Sound-Korrelation', `
@@ -289,6 +314,7 @@
           <a href="/public/tools/sound_eventbus_debug.html" target="_blank"><strong>Sound Debug öffnen</strong><span>${summary.soundDebugConnected ? 'aktuell verbunden' : 'nicht verbunden'}</span></a>
           <a href="/public/tools/alert_eventbus_debug.html" target="_blank"><strong>Alert Debug öffnen</strong><span>${summary.alertDebugConnected ? 'aktuell verbunden' : 'nicht verbunden'}</span></a>
           <a href="/public/tools/bus_diagnostics_dashboard.html" target="_blank"><strong>Standalone Bus-Diagnose</strong><span>separate Diagnoseansicht</span></a>
+          <a href="/overlays/vip_sound_overlay_v2.html" target="_blank"><strong>VIP Overlay öffnen</strong><span>${summary.vipOverlayConnected ? 'Bus-Client verbunden' : 'Overlay nicht verbunden'}</span></a>
         </div>
       </section>
     `;

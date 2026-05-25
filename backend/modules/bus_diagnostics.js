@@ -11,7 +11,7 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
@@ -19,7 +19,9 @@ const ENDPOINTS = {
   communication: '/api/communication/status',
   sound: '/api/sound/eventbus/status',
   alert: '/api/alerts/eventbus/status',
-  correlation: '/api/alerts/eventbus/correlation/status'
+  correlation: '/api/alerts/eventbus/correlation/status',
+  vip: '/api/vip-sound/status',
+  vipIntegration: '/api/vip-sound/integration-check'
 };
 
 const state = {
@@ -80,14 +82,16 @@ async function buildStatus(query, requestedCheck) {
   const baseUrl = normalizeBaseUrl(query.baseUrl || process.env.CGN_LOCAL_BASE_URL || DEFAULT_BASE_URL);
   const startedAt = Date.now();
 
-  const [communication, sound, alert, correlation] = await Promise.all([
+  const [communication, sound, alert, correlation, vip, vipIntegration] = await Promise.all([
     fetchJson(baseUrl + ENDPOINTS.communication),
     fetchJson(baseUrl + ENDPOINTS.sound),
     fetchJson(baseUrl + ENDPOINTS.alert),
-    fetchJson(baseUrl + ENDPOINTS.correlation)
+    fetchJson(baseUrl + ENDPOINTS.correlation),
+    fetchJson(baseUrl + ENDPOINTS.vip),
+    fetchJson(baseUrl + ENDPOINTS.vipIntegration)
   ]);
 
-  const diagnostics = analyze({ communication, sound, alert, correlation });
+  const diagnostics = analyze({ communication, sound, alert, correlation, vip, vipIntegration });
   const result = {
     ok: diagnostics.errors.length === 0,
     module: MODULE,
@@ -101,6 +105,7 @@ async function buildStatus(query, requestedCheck) {
     queueTouched: false,
     soundSystemTouched: false,
     alertSystemTouched: false,
+    vipSystemTouched: false,
     overlayTouched: false,
     fetchedAt: new Date().toISOString(),
     durationMs: Date.now() - startedAt,
@@ -113,11 +118,15 @@ async function buildStatus(query, requestedCheck) {
     soundEventBus: compactFetch(sound),
     alertEventBus: compactFetch(alert),
     alertSoundCorrelation: compactFetch(correlation),
+    vipStatus: compactFetch(vip),
+    vipIntegration: compactFetch(vipIntegration),
     raw: query.raw === '1' ? {
       communication,
       sound,
       alert,
-      correlation
+      correlation,
+      vip,
+      vipIntegration
     } : undefined
   };
 
@@ -140,22 +149,35 @@ function analyze(parts) {
   const soundBody = bodyOf(parts.sound);
   const alertBody = bodyOf(parts.alert);
   const correlationBody = bodyOf(parts.correlation);
+  const vipBody = bodyOf(parts.vip);
+  const vipIntegrationBody = bodyOf(parts.vipIntegration);
 
   if (!parts.communication.ok) errors.push('communication_status_fetch_failed');
   if (!parts.sound.ok) errors.push('sound_eventbus_status_fetch_failed');
   if (!parts.alert.ok) errors.push('alert_eventbus_status_fetch_failed');
   if (!parts.correlation.ok) warnings.push('alert_sound_correlation_status_unavailable');
+  if (!parts.vip.ok) warnings.push('vip_status_unavailable');
+  if (!parts.vipIntegration.ok) warnings.push('vip_integration_check_unavailable');
 
   const clients = (((communicationBody || {}).status || {}).clients || []);
   const soundDebug = clients.find(client => client && client.id === 'sound_eventbus_debug');
   const alertDebug = clients.find(client => client && client.id === 'alert_eventbus_debug');
+  const vipOverlay = clients.find(client => client && client.id === 'vip_sound_overlay_v2');
 
   if (!soundDebug || !soundDebug.connected) warnings.push('sound_eventbus_debug_not_connected');
   if (!alertDebug || !alertDebug.connected) warnings.push('alert_eventbus_debug_not_connected');
+  if (!vipOverlay || !vipOverlay.connected) warnings.push('vip_sound_overlay_v2_not_connected');
 
   const soundStats = (soundBody || {}).stats || {};
   const alertStats = (alertBody || {}).stats || {};
   const comparison = (correlationBody || {}).comparison || {};
+  const vipClient = (vipBody || {}).client || {};
+  const vipDb = (vipBody || {}).db || {};
+  const vipOverlayVisible = !!(vipBody || {}).visible;
+  const vipQueuedCount = Number((vipBody || {}).queuedCount || 0);
+  const vipIntegrationSummary = (vipIntegrationBody || {}).summary || {};
+  const vipIntegrationErrors = Number(vipIntegrationSummary.errors || 0);
+  if (vipIntegrationErrors > 0) warnings.push('vip_integration_reports_errors');
 
   if (Number(soundStats.errors || 0) > 0) errors.push('sound_eventbus_reports_errors');
   if (Number(alertStats.errors || 0) > 0) errors.push('alert_eventbus_reports_errors');
@@ -166,16 +188,29 @@ function analyze(parts) {
     soundBusOk: !!parts.sound.ok && !!((soundBody || {}).ok),
     alertBusOk: !!parts.alert.ok && !!((alertBody || {}).ok),
     correlationOk: !!parts.correlation.ok && !!((correlationBody || {}).ok),
+    vipOk: !!parts.vip.ok && !!((vipBody || {}).ok),
+    vipIntegrationOk: !!parts.vipIntegration.ok && !!((vipIntegrationBody || {}).ok),
     connectedClients: clients.filter(client => client && client.connected).length,
     totalClients: clients.length,
     soundDebugConnected: !!(soundDebug && soundDebug.connected),
     alertDebugConnected: !!(alertDebug && alertDebug.connected),
+    vipOverlayConnected: !!(vipOverlay && vipOverlay.connected),
     soundEmitted: Number(soundStats.emitted || 0),
     soundErrors: Number(soundStats.errors || 0),
     soundLastAction: soundStats.lastAction || '',
     alertEmitted: Number(alertStats.emitted || 0),
     alertErrors: Number(alertStats.errors || 0),
     alertLastAction: alertStats.lastAction || '',
+    vipVersion: (vipBody || {}).version || '',
+    vipPhase: (vipBody || {}).phase || '',
+    vipVisible: vipOverlayVisible,
+    vipActive: !!((vipBody || {}).isActive),
+    vipQueuedCount,
+    vipRequestId: (vipBody || {}).requestId || '',
+    vipClientConnected: !!vipClient.connected,
+    vipClientLastEvent: vipClient.lastEvent || '',
+    vipDbInitialized: !!vipDb.initialized,
+    vipIntegrationErrors,
     correlationMatched: Number(comparison.matched || 0),
     correlationUnmatched: Number(comparison.unmatched || 0),
     status: errors.length ? 'error' : (warnings.length ? 'warning' : 'ok')
@@ -200,6 +235,13 @@ function compactFetch(fetchResult) {
     summary: body && body.summary ? body.summary : undefined,
     comparison: body && body.comparison ? body.comparison : undefined,
     recentEvents: body && body.recentEvents ? body.recentEvents : undefined,
+    phase: body && body.phase ? body.phase : undefined,
+    visible: body && Object.prototype.hasOwnProperty.call(body, 'visible') ? body.visible : undefined,
+    isActive: body && Object.prototype.hasOwnProperty.call(body, 'isActive') ? body.isActive : undefined,
+    queuedCount: body && Object.prototype.hasOwnProperty.call(body, 'queuedCount') ? body.queuedCount : undefined,
+    requestId: body && body.requestId ? body.requestId : undefined,
+    client: body && body.client ? body.client : undefined,
+    db: body && body.db ? body.db : undefined,
     warnings: body && body.warnings ? body.warnings : undefined,
     errors: body && body.errors ? body.errors : undefined,
     statusBody: body && body.status ? body.status : undefined

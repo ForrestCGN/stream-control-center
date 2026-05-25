@@ -1,3 +1,6 @@
 # Changelog
 
-- STEP424: Bus-Diagnose im Dashboard mit Eventdetails, Korrelationsdetails, Capability-Chips und Rohdatenansicht erweitert.
+## STEP425
+- Bus-Diagnose liest VIP-Status und VIP-Integration-Check.
+- Dashboard zeigt VIP-System und VIP-Integration als eigene Diagnosekarten.
+- Keine produktiven Flows geändert.
