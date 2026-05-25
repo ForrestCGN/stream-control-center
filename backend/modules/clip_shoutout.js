@@ -12,7 +12,7 @@ let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.3";
+const MODULE_VERSION = "0.2.4";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -23,8 +23,8 @@ const DEFAULT_CONFIG = {
     command: "so",
     aliases: ["vso", "clipso", "videoso"],
     permissionLevel: "mod",
-    cooldownGlobalMs: 5000,
-    cooldownUserMs: 15000,
+    cooldownGlobalMs: 0,
+    cooldownUserMs: 0,
     maxClipDurationSeconds: 30,
     allowLongerClipFallback: true,
     fallbackMaxClipDurationSeconds: 60,
@@ -1443,10 +1443,46 @@ function registerCommand(cfg) {
     ensureCommandSchema();
     const trigger = cleanLogin(cfg.command || "so") || "so";
     const now = nowIso();
+    const aliasesJson = JSON.stringify(Array.isArray(cfg.aliases) ? cfg.aliases.map(cleanLogin).filter(Boolean) : []);
+    const queueMode = displayConfig(cfg).enabled !== false;
+    const commandCooldownGlobalMs = queueMode ? 0 : Number(cfg.cooldownGlobalMs || 0);
+    const commandCooldownUserMs = queueMode ? 0 : Number(cfg.cooldownUserMs || 0);
+    const params = {
+      trigger,
+      aliasesJson,
+      moduleKey: MODULE_NAME,
+      actionKey: "run",
+      targetMethod: "POST",
+      targetUrl: `${API_PREFIX}/run`,
+      permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
+      cooldownGlobalMs: commandCooldownGlobalMs,
+      cooldownUserMs: commandCooldownUserMs,
+      configJson: JSON.stringify({ seededBy: "clip_shoutout_0.2.4", rawInputMode: true, displayQueueOwnsCooldown: queueMode }),
+      createdAt: now,
+      updatedAt: now
+    };
+
     const existing = database.get("SELECT id FROM command_definitions WHERE trigger = :trigger", { trigger });
     if (existing && existing.id) {
+      database.run(`
+        UPDATE command_definitions
+        SET aliases_json=:aliasesJson,
+            module_key=:moduleKey,
+            action_key=:actionKey,
+            target_method=:targetMethod,
+            target_url=:targetUrl,
+            enabled=1,
+            permission_level=:permissionLevel,
+            cooldown_global_ms=:cooldownGlobalMs,
+            cooldown_user_ms=:cooldownUserMs,
+            live_only=0,
+            response_mode='module',
+            config_json=:configJson,
+            updated_at=:updatedAt
+        WHERE id=:id
+      `, { ...params, id: existing.id });
       state.registeredCommand = true;
-      return { ok: true, existing: true, trigger };
+      return { ok: true, updated: true, trigger, cooldownGlobalMs: commandCooldownGlobalMs, cooldownUserMs: commandCooldownUserMs };
     }
 
     database.run(`
@@ -1459,30 +1495,16 @@ function registerCommand(cfg) {
         1, :permissionLevel, :cooldownGlobalMs, :cooldownUserMs, 0,
         'module', :configJson, :createdAt, :updatedAt
       )
-    `, {
-      trigger,
-      aliasesJson: JSON.stringify(Array.isArray(cfg.aliases) ? cfg.aliases.map(cleanLogin).filter(Boolean) : []),
-      moduleKey: MODULE_NAME,
-      actionKey: "run",
-      targetMethod: "POST",
-      targetUrl: `${API_PREFIX}/run`,
-      permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
-      cooldownGlobalMs: Number(cfg.cooldownGlobalMs || 5000),
-      cooldownUserMs: Number(cfg.cooldownUserMs || 15000),
-      configJson: JSON.stringify({ seededBy: "clip_shoutout_0.2.3", rawInputMode: true }),
-      createdAt: now,
-      updatedAt: now
-    });
+    `, params);
 
     state.registeredCommand = true;
-    return { ok: true, created: true, trigger };
+    return { ok: true, created: true, trigger, cooldownGlobalMs: commandCooldownGlobalMs, cooldownUserMs: commandCooldownUserMs };
   } catch (err) {
     state.registeredCommand = false;
     state.lastError = err.message || String(err);
     return { ok: false, error: state.lastError };
   }
 }
-
 
 function publicClipInfo(clip) {
   if (!clip || typeof clip !== "object") return null;
@@ -1903,8 +1925,9 @@ module.exports.init = function init(ctx) {
       if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
       if (body.officialShoutout && typeof body.officialShoutout === "object") allowed.officialShoutout = body.officialShoutout;
       const settings = saveShoutoutConfig(allowed);
-      emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed) }, settings);
-      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings });
+      const commandRegistration = registerCommand(settings);
+      emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed), commandRegistration }, settings);
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings, commandRegistration });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }

@@ -1,10 +1,11 @@
-# Current System Status – STEP460
+# CURRENT_SYSTEM_STATUS
 
-Stand: STEP460_SHOUTOUT_DISPLAY_QUEUE_CHAT_TARGET_AND_RUNTIME_FIX
+Aktueller Stand: STEP461_SHOUTOUT_COMMAND_COOLDOWN_AND_WAITING_MESSAGE_FIX
 
-- `backend/modules/clip_shoutout.js` Runtime-Version: `0.2.3`
-- Test-Command bleibt bewusst über Config bei `!vso`.
-- Shouti-Chatannahme nutzt wieder das echte Ziel (`@urlug`) statt den Auslöser/Forrest.
-- Display-Queue-Status setzt `nextDisplayAllowedAt` während einer aktiven Anzeige nicht mehr als laufenden Start-Cooldown.
-- Status ergänzt: `activeTarget`, `activeTargetDisplay`, `cooldownRunning`, `cooldownRemainingMs`.
-- Display-Cooldown startet weiterhin erst nach Ende der Shouti-Anzeige.
+Clip-Shoutout Runtime-Version: 0.2.4
+
+- Testbetrieb weiterhin ueber `!vso`, sofern Config so gesetzt ist.
+- Display-Queue ist aktiv.
+- 2-Minuten-Display-Cooldown startet erst nach Ende der Shouti-Anzeige.
+- Command-Level-Cooldowns werden fuer den Queue-Betrieb deaktiviert, damit mehrere VSO-Aufnahmen direkt nacheinander angenommen und in die Queue gelegt werden.
+- Offizielle Twitch-Shoutout-Queue bleibt getrennt aktiv.

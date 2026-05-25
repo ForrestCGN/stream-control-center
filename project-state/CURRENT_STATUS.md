@@ -1,8 +1,7 @@
 # CURRENT_STATUS
 
-STEP460 aktiv geplant: Clip-Shoutout Runtime 0.2.3.
+STEP461 aktiv vorbereitet.
 
-Aktueller Zweck:
-- Tests bleiben auf `!vso`.
-- Falscher Annahme-Chattext mit `@ForrestCGN` wurde korrigiert.
-- Display-Queue-Status trennt aktive Anzeige und Cooldown nach Anzeige-Ende sauberer.
+Clip-Shoutout: 0.2.4
+
+Fix: Command-Cooldown blockiert zweite VSO-Aufnahme nicht mehr. Display-Queue bleibt fuer den 2-Minuten-Abstand verantwortlich.
