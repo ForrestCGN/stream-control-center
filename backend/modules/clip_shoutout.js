@@ -8,11 +8,12 @@ const configHelper = require("./helpers/helper_config");
 const database = require("../core/database");
 const twitch = require("./twitch");
 const twitchPresence = require("./twitch_presence");
+const commands = require("./commands");
 let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.4";
+const MODULE_VERSION = "0.2.5";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -1457,7 +1458,7 @@ function registerCommand(cfg) {
       permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
       cooldownGlobalMs: commandCooldownGlobalMs,
       cooldownUserMs: commandCooldownUserMs,
-      configJson: JSON.stringify({ seededBy: "clip_shoutout_0.2.4", rawInputMode: true, displayQueueOwnsCooldown: queueMode }),
+      configJson: JSON.stringify({ seededBy: "clip_shoutout_0.2.5", rawInputMode: true, displayQueueOwnsCooldown: queueMode }),
       createdAt: now,
       updatedAt: now
     };
@@ -1839,6 +1840,188 @@ async function handleRun(req, res, env) {
 }
 
 
+let directChatCommandBypassInstalled = false;
+let originalCommandsHandleChatMessage = null;
+
+function directCommandTriggers(cfg) {
+  const names = [cfg.command || "so", ...(Array.isArray(cfg.aliases) ? cfg.aliases : [])]
+    .map(cleanLogin)
+    .filter(Boolean);
+  return Array.from(new Set(names));
+}
+
+function hasDirectCommandPermission(cfg, parsed = {}) {
+  const level = String(cfg.permissionLevel || "mod").trim().toLowerCase();
+  if (!level || level === "everyone" || level === "all") return true;
+  const badges = parsed.badges || {};
+  const tags = parsed.tags || {};
+  const isBroadcaster = Boolean(badges.broadcaster || tags.badges?.includes?.("broadcaster/1"));
+  const isMod = Boolean(badges.moderator || tags.mod === "1");
+  const isVip = Boolean(badges.vip);
+  const isSubscriber = Boolean(badges.subscriber || badges.founder || tags.subscriber === "1");
+  if (level === "subscriber" || level === "sub") return isSubscriber || isVip || isMod || isBroadcaster;
+  if (level === "vip") return isVip || isMod || isBroadcaster;
+  if (level === "mod" || level === "moderator") return isMod || isBroadcaster;
+  if (level === "streamer" || level === "broadcaster" || level === "owner") return isBroadcaster;
+  return false;
+}
+
+function parseDirectChatCommand(rawMessage, cfg) {
+  const prefix = String(process.env.COMMAND_PREFIX || "!").trim() || "!";
+  const text = String(rawMessage || "").trim();
+  if (!text || !text.startsWith(prefix)) return null;
+  const withoutPrefix = text.slice(prefix.length).trim();
+  if (!withoutPrefix) return null;
+  const parts = withoutPrefix.split(/\s+/).filter(Boolean);
+  const trigger = cleanLogin(parts.shift() || "");
+  if (!trigger) return null;
+  const triggers = directCommandTriggers(cfg);
+  if (!triggers.includes(trigger)) return null;
+  return {
+    trigger,
+    args: parts,
+    argText: parts.join(" "),
+    rawInput: withoutPrefix,
+    rawMessage: text,
+    target: parts[0] || ""
+  };
+}
+
+async function invokeHandleRunDirect(input, env) {
+  return await new Promise((resolve) => {
+    const req = { body: input || {}, query: {} };
+    const res = {
+      statusCode: 200,
+      status(code) {
+        this.statusCode = Number(code || 200);
+        return this;
+      },
+      json(data) {
+        resolve({ statusCode: this.statusCode || 200, data });
+        return data;
+      }
+    };
+    Promise.resolve(handleRun(req, res, env)).catch(err => {
+      resolve({
+        statusCode: 500,
+        data: {
+          ok: false,
+          module: MODULE_NAME,
+          moduleVersion: MODULE_VERSION,
+          error: err && err.message ? err.message : String(err)
+        }
+      });
+    });
+  });
+}
+
+function installDirectChatCommandBypass(env) {
+  if (directChatCommandBypassInstalled) return { ok: true, installed: true, alreadyInstalled: true };
+  if (!commands || typeof commands.handleChatMessage !== "function") {
+    return { ok: false, installed: false, error: "commands_handleChatMessage_unavailable" };
+  }
+
+  originalCommandsHandleChatMessage = commands.handleChatMessage;
+  commands.handleChatMessage = async function clipShoutoutDirectCommandWrapper(parsed, source = {}) {
+    try {
+      if (parsed && String(parsed.command || "").toUpperCase() === "PRIVMSG") {
+        const cfg = shoutoutConfig();
+        const rawMessage = String(parsed.params?.[1] || parsed.params?.[parsed.params.length - 1] || "").trim();
+        const parsedCommand = parseDirectChatCommand(rawMessage, cfg);
+
+        if (parsedCommand) {
+          if (!hasDirectCommandPermission(cfg, parsed)) {
+            emitShoutoutBus("shoutout.command.permission_denied", {
+              trigger: parsedCommand.trigger,
+              userLogin: cleanLogin(parsed.login || ""),
+              targetRaw: parsedCommand.target
+            }, cfg);
+            return {
+              ok: false,
+              ignored: true,
+              reason: "permission_denied",
+              command: parsedCommand.trigger,
+              module: MODULE_NAME,
+              directClipShoutout: true
+            };
+          }
+
+          const input = {
+            target: parsedCommand.target,
+            targetLogin: parsedCommand.target,
+            input0: parsedCommand.target,
+            args: parsedCommand.args,
+            rawInput: parsedCommand.rawInput,
+            input: parsedCommand.rawInput,
+            text: parsedCommand.argText,
+            message: rawMessage,
+            rawMessage,
+            user: parsed.displayName || parsed.login || "",
+            userName: parsed.displayName || parsed.login || "",
+            userLogin: parsed.login || "",
+            login: parsed.login || "",
+            displayName: parsed.displayName || parsed.login || "",
+            userDisplayName: parsed.displayName || parsed.login || "",
+            badges: parsed.badges || {},
+            tags: parsed.tags || {},
+            isBroadcaster: Boolean(parsed.badges?.broadcaster),
+            isMod: Boolean(parsed.badges?.moderator || parsed.tags?.mod === "1"),
+            isVip: Boolean(parsed.badges?.vip),
+            isSubscriber: Boolean(parsed.badges?.subscriber || parsed.badges?.founder || parsed.tags?.subscriber === "1"),
+            source: source.source || "twitch_presence",
+            channel: source.channel || "",
+            directClipShoutoutBypass: true,
+            commandSystemBypassed: true
+          };
+
+          const result = await invokeHandleRunDirect(input, env);
+          state.lastRun = {
+            ...(state.lastRun || {}),
+            directChatCommandBypass: true,
+            commandTrigger: parsedCommand.trigger,
+            source: source.source || "twitch_presence",
+            commandStatusCode: result.statusCode || 0,
+            commandResultOk: Boolean(result.data && result.data.ok)
+          };
+          emitShoutoutBus("shoutout.command.direct_bypass", {
+            trigger: parsedCommand.trigger,
+            targetLogin: cleanLogin(parsedCommand.target),
+            ok: Boolean(result.data && result.data.ok),
+            statusCode: result.statusCode || 0
+          }, cfg);
+          return {
+            ok: Boolean(result.data && result.data.ok),
+            command: parsedCommand.trigger,
+            module: MODULE_NAME,
+            directClipShoutout: true,
+            statusCode: result.statusCode || 0,
+            result: result.data
+          };
+        }
+      }
+    } catch (err) {
+      state.lastError = err && err.message ? err.message : String(err);
+      try {
+        emitShoutoutBus("shoutout.command.direct_bypass_failed", { error: state.lastError }, shoutoutConfig());
+      } catch (_) {}
+      return {
+        ok: false,
+        command: "",
+        module: MODULE_NAME,
+        directClipShoutout: true,
+        error: state.lastError
+      };
+    }
+
+    return originalCommandsHandleChatMessage(parsed, source);
+  };
+
+  directChatCommandBypassInstalled = true;
+  return { ok: true, installed: true, directClipShoutoutBypass: true };
+}
+
+
+
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
   const cfg = shoutoutConfig();
@@ -1846,6 +2029,7 @@ module.exports.init = function init(ctx) {
   ensureOfficialShoutoutSchema();
   resetStaleDisplayQueueActiveRows();
   registerCommand(cfg);
+  installDirectChatCommandBypass(env);
   startDisplayQueueWorker(env, cfg);
   startOfficialShoutoutWorker(env, cfg);
 
@@ -1859,6 +2043,7 @@ module.exports.init = function init(ctx) {
       moduleVersion: MODULE_VERSION,
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
+      directChatCommandBypassInstalled,
       command,
       aliases: currentCfg.aliases || [],
       routes: [

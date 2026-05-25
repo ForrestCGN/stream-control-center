@@ -1,7 +1,26 @@
 # CURRENT_STATUS
 
-STEP461 aktiv vorbereitet.
+## STEP462 aktiv
 
-Clip-Shoutout: 0.2.4
+Clip-Shoutout / VSO läuft im Reparaturstand:
 
-Fix: Command-Cooldown blockiert zweite VSO-Aufnahme nicht mehr. Display-Queue bleibt fuer den 2-Minuten-Abstand verantwortlich.
+- Modul: `clip_shoutout`
+- Runtime-Version: `0.2.5`
+- Test-Command bleibt: `!vso`
+- Display-Queue aktiv
+- Display-Cooldown: 120 Sekunden nach Ende der Anzeige
+- Direkter Chat-Command-Bypass aktiv, damit `!vso` dieselbe Modulroute nutzt wie `/api/clip-shoutout/run`
+- Event-Bus bleibt aktiv: `shoutout.system`
+
+## Nächster Test
+
+```text
+!vso @urlug
+!vso @bynexl
+```
+
+Erwartung:
+
+- urlug startet
+- bynexl wird direkt angenommen und wartet
+- bynexl startet erst nach urlug-Ende + 120 Sekunden
