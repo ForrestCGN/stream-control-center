@@ -1,42 +1,23 @@
-# Current System Status – STEP441
+# Current System Status
 
-STEP441 prepares an explicit VIP Bus-First admin test path.
+## Aktueller Stand
+STEP442 – VIP Bus-First Testauswertung / Status Cleanup ist vorbereitet.
 
-## Changed
-- `backend/modules/vip_sound_overlay.js`
-- VIP module version: `1.8.24`
-- Feature: `vip_bus_first_sound_resolve_fix`
-- Admin test route can explicitly request `busFirstTest=true` together with `vipBusMode=bus_enabled` and an existing VIP sound file.
-- Normal Twitch VIP/Mod command remains unchanged and protected.
+## Relevante Versionen
+- `backend/modules/vip_sound_overlay.js`: `1.8.25`
+- `backend/modules/sound_system.js`: `0.1.19`
+- Feature: `vip_bus_first_status_cleanup`
 
-## Safety
-- Normal productive VIP flow remains `legacy_sound_system_api`.
-- Bus-First is only available through the explicit admin test route.
-- No normal chat command is switched to Bus-First.
-- No DB migration.
-- `consumeDaily=false` still avoids daily usage writes in admin tests.
+## Stand VIP Bus-First
+Der normale VIP-Produktivfluss bleibt weiterhin auf `legacy_sound_system_api`.
 
+Der explizite Admin-Testpfad kann mit `busFirstTest=true`, `vipBusMode=bus_enabled`, `forceAccess=true`, `consumeDaily=false` und `useExistingSound=true` eine vorhandene VIP-Datei über den Sound-System-Play-Test prüfen.
 
-## STEP441 – VIP Bus-First Sound Resolve Fix
+STEP441 hat die direkte Datei-Auflösung repariert. STEP442 räumt die Diagnose auf, damit direkte Datei-Payloads im Sound-System-Command-Status mit einem sinnvollen `lastSoundId` sichtbar bleiben, z. B. `vip/adoredpenny.mp3`.
 
-Stand: 2026-05-25
-
-### Ziel
-Der explizite VIP Admin-Test mit `busFirstTest=true` soll vorhandene VIP-Dateien wie `vip/adoredpenny.mp3` im Sound-System-Play-Test korrekt auflösen.
-
-### Befund aus STEP440
-Der VIP-Payload enthielt eine gültige Datei (`file: vip/adoredpenny.mp3`), aber der Sound-System-Play-Test scheiterte mit `Sound wurde nicht gefunden`, weil `normalizePlayRequest` zuerst einen gesetzten `soundId` als Preset sucht.
-
-### Umsetzung STEP441
-- `backend/modules/sound_system.js` auf Version `0.1.18` erhöht.
-- Sound-Bus-Command Play-Test/Dry-Run akzeptiert jetzt direkte Datei-Referenzen (`file`, `soundFile`, `relativeFile`, `relativePath`).
-- Bei direkter Datei wird für `normalizePlayRequest` der Preset-`soundId` geleert, damit die bestehende Datei-Auflösung unter `soundsBaseDir` greift.
-- Originaler Sound-Identifier bleibt diagnostisch in `meta.soundBusCommandOriginalSoundId`.
-- `backend/modules/vip_sound_overlay.js` auf `1.8.24` / `vip_bus_first_sound_resolve_fix` aktualisiert.
-
-### Bewusst nicht geändert
+## Schutzregeln
 - Kein produktiver Bus-Default.
-- Kein Umbau normaler Twitch-Commands.
-- Keine DailyUsage bei Admin-Test `consumeDaily=false`.
-- Keine DB-Migration.
+- Kein normaler Twitch-Command-Umbau.
+- Kein DailyUsage-Schreiben im Admin-Test mit `consumeDaily=false`.
 - Kein Dashboard-Umbau.
+- Keine DB-Migration.

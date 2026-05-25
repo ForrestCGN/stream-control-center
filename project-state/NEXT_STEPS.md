@@ -1,30 +1,39 @@
-# NEXT STEPS
+# NEXT_STEPS
 
-Recommended next step:
+## Direkt nach STEP442
 
-- STEP441: Validate Bus-First admin test output and decide whether the next controlled step should add a guarded Bus-First mode switch for broader testing.
+1. Syntax prüfen:
 
+```powershell
+cd D:\Git\stream-control-center
+node --check backend\modules\vip_sound_overlay.js
+node --check backend\modules\sound_system.js
+```
 
-## STEP441 – VIP Bus-First Sound Resolve Fix
+2. STEP442-Test ausführen:
 
-Stand: 2026-05-25
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/eventbus/sound-command/reset" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/eventbus/command/reset" | ConvertTo-Json -Depth 10
+$r = Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8080/api/vip-sound/test" `
+  -ContentType "application/json" `
+  -Body '{"login":"forrestcgn","consumeDaily":false,"forceAccess":true,"useExistingSound":true,"vipBusMode":"bus_enabled","busFirstTest":true}'
 
-### Ziel
-Der explizite VIP Admin-Test mit `busFirstTest=true` soll vorhandene VIP-Dateien wie `vip/adoredpenny.mp3` im Sound-System-Play-Test korrekt auflösen.
+$r.soundBusCommand | Select-Object ok,error,busFirstTest,playTestOnly,testOnly
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/sound/eventbus/command/status"
+$s.stats | Select-Object playTestOk,playTestFailed,lastAction,lastError,lastSoundId
+```
 
-### Befund aus STEP440
-Der VIP-Payload enthielt eine gültige Datei (`file: vip/adoredpenny.mp3`), aber der Sound-System-Play-Test scheiterte mit `Sound wurde nicht gefunden`, weil `normalizePlayRequest` zuerst einen gesetzten `soundId` als Preset sucht.
+3. Erwartung:
 
-### Umsetzung STEP441
-- `backend/modules/sound_system.js` auf Version `0.1.18` erhöht.
-- Sound-Bus-Command Play-Test/Dry-Run akzeptiert jetzt direkte Datei-Referenzen (`file`, `soundFile`, `relativeFile`, `relativePath`).
-- Bei direkter Datei wird für `normalizePlayRequest` der Preset-`soundId` geleert, damit die bestehende Datei-Auflösung unter `soundsBaseDir` greift.
-- Originaler Sound-Identifier bleibt diagnostisch in `meta.soundBusCommandOriginalSoundId`.
-- `backend/modules/vip_sound_overlay.js` auf `1.8.24` / `vip_bus_first_sound_resolve_fix` aktualisiert.
+- `ok: True`
+- `error` leer
+- `playTestFailed: 0`
+- `lastError` leer
+- `lastSoundId: vip/adoredpenny.mp3` oder getestete Datei
 
-### Bewusst nicht geändert
-- Kein produktiver Bus-Default.
-- Kein Umbau normaler Twitch-Commands.
-- Keine DailyUsage bei Admin-Test `consumeDaily=false`.
-- Keine DB-Migration.
-- Kein Dashboard-Umbau.
+## Danach möglich
+
+STEP443 – Entscheidung vorbereiten, ob und wie ein expliziter Bus-First-Testmodus ins Dashboard kommt. Noch keine produktive Chat-Command-Umschaltung.

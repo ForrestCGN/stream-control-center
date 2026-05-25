@@ -16,7 +16,7 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.18";
+const MODULE_VERSION = "0.1.19";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -248,6 +248,7 @@ module.exports.init = function init(ctx) {
       errors: 0,
       lastAction: "",
       lastEventId: "",
+      lastSoundId: "",
       consumed: 0,
       dryRunOk: 0,
       dryRunFailed: 0,
@@ -1011,6 +1012,7 @@ module.exports.init = function init(ctx) {
     state.soundBusCommand.errors = 0;
     state.soundBusCommand.lastAction = "";
     state.soundBusCommand.lastEventId = "";
+    state.soundBusCommand.lastSoundId = "";
     state.soundBusCommand.consumed = 0;
     state.soundBusCommand.dryRunOk = 0;
     state.soundBusCommand.dryRunFailed = 0;
@@ -1192,6 +1194,16 @@ module.exports.init = function init(ctx) {
     return "";
   }
 
+  // STEP442_SOUND_BUS_COMMAND_DISPLAY_SOUND_ID
+  // Für direkte Datei-Payloads soll der Status nicht leer bleiben. Der sichtbare
+  // Sound-Key ist dann die normalisierte Datei, nicht ein Preset-soundId.
+  function soundBusCommandDisplaySoundId(payload = {}, normalized = null) {
+    const directFile = soundBusCommandDirectFile(payload);
+    if (directFile) return directFile;
+    if (normalized && normalized.file) return String(normalized.file || "").replace(/\\/g, "/").replace(/^\/+/, "").trim();
+    return String(payload.soundId || payload.sound || (normalized && normalized.soundId) || "").trim();
+  }
+
   function soundBusCommandHasPlayableReference(payload = {}) {
     return !!(
       String(payload.soundId || payload.sound || "").trim() ||
@@ -1270,6 +1282,7 @@ module.exports.init = function init(ctx) {
       if (!soundBusCommandHasPlayableReference(payload)) throw new Error("missing_soundId_or_file");
 
       const normalized = normalizeSoundBusCommandPlayRequest(payload, "sound_bus_command_dry_run", "sound_bus_dry_run");
+      const displaySoundId = soundBusCommandDisplaySoundId(payload, normalized);
 
       const dryRunResult = {
         ok: true,
@@ -1282,6 +1295,7 @@ module.exports.init = function init(ctx) {
 
       state.soundBusCommand.dryRunOk = Number(state.soundBusCommand.dryRunOk || 0) + 1;
       state.soundBusCommand.lastError = "";
+      state.soundBusCommand.lastSoundId = displaySoundId;
       state.soundBusCommand.lastDryRun = dryRunResult;
       state.soundBusCommand.lastResult = dryRunResult;
       pushSoundBusCommandRecent({
@@ -1289,7 +1303,8 @@ module.exports.init = function init(ctx) {
         action: "play.request.dry_run",
         command: payload.command,
         requestId: payload.requestId,
-        soundId: payload.soundId,
+        soundId: displaySoundId,
+        file: displaySoundId,
         requestedBy: payload.requestedBy,
         source: payload.source,
         dryRunOnly: true,
@@ -1319,6 +1334,7 @@ module.exports.init = function init(ctx) {
       state.soundBusCommand.dryRunFailed = Number(state.soundBusCommand.dryRunFailed || 0) + 1;
       state.soundBusCommand.errors = Number(state.soundBusCommand.errors || 0) + 1;
       state.soundBusCommand.lastError = message;
+      state.soundBusCommand.lastSoundId = soundBusCommandDisplaySoundId(payload);
       state.soundBusCommand.lastDryRun = dryRunResult;
       state.soundBusCommand.lastResult = dryRunResult;
       pushSoundBusCommandRecent({
@@ -1326,7 +1342,8 @@ module.exports.init = function init(ctx) {
         action: "play.request.dry_run",
         command: payload.command,
         requestId: payload.requestId,
-        soundId: payload.soundId,
+        soundId: soundBusCommandDisplaySoundId(payload),
+        file: soundBusCommandDisplaySoundId(payload),
         requestedBy: payload.requestedBy,
         source: payload.source,
         dryRunOnly: true,
@@ -1389,6 +1406,7 @@ module.exports.init = function init(ctx) {
       if (!soundBusCommandHasPlayableReference(payload)) throw new Error("missing_soundId_or_file");
 
       const normalized = normalizeSoundBusCommandPlayRequest(payload, "sound_bus_command_play_test", "sound_bus_play_test");
+      const displaySoundId = soundBusCommandDisplaySoundId(payload, normalized);
 
       const playResult = enqueueOrStart(normalized);
       const normalizedPublic = publicItem(normalized);
@@ -1414,6 +1432,7 @@ module.exports.init = function init(ctx) {
 
       state.soundBusCommand.playTestOk = Number(state.soundBusCommand.playTestOk || 0) + 1;
       state.soundBusCommand.lastError = "";
+      state.soundBusCommand.lastSoundId = displaySoundId;
       state.soundBusCommand.lastPlayTest = playTestResult;
       state.soundBusCommand.lastResult = playTestResult;
       pushSoundBusCommandRecent({
@@ -1421,7 +1440,8 @@ module.exports.init = function init(ctx) {
         action: "play.request.play_test",
         command: payload.command,
         requestId: payload.requestId,
-        soundId: payload.soundId,
+        soundId: displaySoundId,
+        file: displaySoundId,
         requestedBy: payload.requestedBy,
         source: payload.source,
         playTestOnly: true,
@@ -1463,6 +1483,7 @@ module.exports.init = function init(ctx) {
       state.soundBusCommand.playTestFailed = Number(state.soundBusCommand.playTestFailed || 0) + 1;
       state.soundBusCommand.errors = Number(state.soundBusCommand.errors || 0) + 1;
       state.soundBusCommand.lastError = message;
+      state.soundBusCommand.lastSoundId = soundBusCommandDisplaySoundId(payload);
       state.soundBusCommand.lastPlayTest = playTestResult;
       state.soundBusCommand.lastResult = playTestResult;
       pushSoundBusCommandRecent({
@@ -1470,7 +1491,8 @@ module.exports.init = function init(ctx) {
         action: "play.request.play_test",
         command: payload.command,
         requestId: payload.requestId,
-        soundId: payload.soundId,
+        soundId: soundBusCommandDisplaySoundId(payload),
+        file: soundBusCommandDisplaySoundId(payload),
         requestedBy: payload.requestedBy,
         source: payload.source,
         playTestOnly: true,
