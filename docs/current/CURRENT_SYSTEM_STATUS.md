@@ -1,54 +1,69 @@
 # Current System Status
 
 ## Aktueller Stand
-STEP447 – VIP Bus-First Cleanup & Konsolidierung.
+STEP448 – VIP Bus-First kontrollierter Produktiv-Test.
 
 ## Relevante Versionen
-- `backend/modules/vip_sound_overlay.js`: `1.8.29`
-- `backend/modules/sound_system.js`: `0.1.19`
-- Feature: `vip_bus_first_cleanup_consolidation`
+- `backend/modules/vip_sound_overlay.js`: `1.8.30`
+- `backend/modules/sound_system.js`: `0.1.20`
+- VIP-Feature: `vip_bus_first_productive_test`
+- Sound-Feature: `sound_bus_command_productive_play_layer`
 
-## Ziel von STEP447
-STEP447 stoppt den Ausbau weiterer Testpfade und konsolidiert den bestehenden VIP Bus-First-Kandidatenstatus. Der bestätigte Admin-Testpfad aus STEP443 bleibt erhalten, aber die Statusausgabe bekommt eine klare Zusammenfassung, damit die nächsten Entscheidungen nicht in immer mehr Einzelparametern untergehen.
+## Ziel von STEP448
+STEP448 beendet die reine Diagnose-Schleife und aktiviert einen kontrollierten produktiven VIP-Bus-Test.
 
-## Konsolidierter Kandidat
-Bestätigter Kandidat bleibt:
+Der normale VIP-Sound-Flow kann jetzt über den Sound-Bus laufen:
 
 ```text
-VIP Admin-Test
-→ vipBusMode=bus_enabled
-→ busFirstTest=true
-→ noLegacyFallback=true
-→ direkte VIP-Datei
-→ Sound-System Play-Test
-→ kein Legacy-Fallback
-→ kein DailyUsage
+normaler VIP-Command / VIP-Auslösung
+→ VIP-Modul
+→ sound_bus_command
+→ Sound-System productive play route
+→ Sound startet oder wird gequeued
 ```
 
-## Sicherheitsstatus
-- Normaler Chat-Command bleibt unverändert.
-- Produktiver VIP-Flow bleibt `legacy_sound_system_api`.
-- `vipBusFirstProductiveEnabled` bleibt sichtbar, aber effektiv deaktiviert.
-- `productiveSwitchSafetyLocked` bleibt `true`.
-- `productiveEntryPointChanged` bleibt `false`.
-- Keine neue Test-Route wurde hinzugefügt.
+## Produktiver Bus-Pfad
+Neu im Sound-System:
 
-## Neue Konsolidierungsfelder
-`/api/vip-sound/eventbus/sound-command/status` zeigt zusätzlich:
+```text
+/api/sound/eventbus/command/play
+```
 
-- `feature: vip_bus_first_cleanup_consolidation`
-- `cleanupConsolidated: true`
-- `cleanupProfile: candidate_status_only`
-- `consolidatedBusFirstStatus.profile: cleanup_consolidated`
-- `consolidatedBusFirstStatus.productivePath: legacy_sound_system_api`
-- `consolidatedBusFirstStatus.candidatePath: sound_system_play_test`
-- `consolidatedBusFirstStatus.normalChatCommandUsesBusFirst: false`
-- `consolidatedBusFirstStatus.productiveSwitchSafetyLocked: true`
-- `productiveSwitchSettingReadable: true`
-- `productiveSwitchConfigFileReadable` getrennt von `productiveSwitchConfigReadable`
+Diese Route nimmt command-förmige Sound-Payloads entgegen und führt sie produktiv über den normalen Sound-System-Flow aus. Sie ist keine neue Admin-Test-Spielerei, sondern der produktive Bus-Consumer.
 
-## Aufräumentscheidung
-Ab STEP447 sollen keine weiteren parallelen Testpfade ergänzt werden. Der nächste sinnvolle Schritt ist entweder:
+## Sicherheitsnetz
+Legacy bleibt nicht mehr der Zielpfad, aber als Notausgang vorhanden:
 
-1. Produktiv-Umschaltung sauber und konfigurierbar vorbereiten, oder
-2. alte Diagnosefelder nach bewusster Freigabe entfernen.
+```text
+Wenn produktiver Bus fehlschlägt
+→ fallback auf /api/sound/play
+```
+
+Dadurch kann live getestet werden, ohne dass VIP-Sounds komplett ausfallen, falls der Bus beim ersten Produktivtest ein Problem hat.
+
+## Erwarteter Status
+`/api/vip-sound/eventbus/sound-command/status` soll zeigen:
+
+- `feature: vip_bus_first_productive_test`
+- `productiveVipFlow: sound_bus_command`
+- `normalChatCommandUsesBusFirst: true`
+- `productiveSwitchEffectiveEnabled: true`
+- `productiveSwitchSafetyLocked: false`
+- `productiveEntryPointChanged: true`
+- `legacyVipFlow: fallback_only`
+
+## Bewusst nicht gemacht
+- Kein Dashboard-Umbau.
+- Keine DB-Migration.
+- Keine Entfernung von Legacy-Code in diesem STEP.
+- Keine Entfernung der bestehenden Admin-/Diagnosepfade in diesem STEP.
+- Kein Umbau am DailyUsage-System außer normaler Nutzung nach erfolgreichem produktiven VIP-Flow.
+
+## Nächster sinnvoller Schritt
+Wenn STEP448 live stabil läuft, folgt ein Cleanup-STEP:
+
+```text
+Test-/Diagnoseballast reduzieren
+Legacy-Fallback erst später entfernen
+Bus als Standardpfad beibehalten
+```

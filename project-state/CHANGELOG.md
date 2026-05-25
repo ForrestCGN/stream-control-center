@@ -1,24 +1,28 @@
 # CHANGELOG
 
-## STEP447 – VIP Bus-First Cleanup & Konsolidierung
+## STEP448 – VIP Bus-First kontrollierter Produktiv-Test
 
-- `backend/modules/vip_sound_overlay.js` auf Version `1.8.29` angehoben.
-- Feature auf `vip_bus_first_cleanup_consolidation` gesetzt.
-- Keine neue Test-Route hinzugefügt.
-- Bestehenden Bus-First-Admin-Testpfad nicht entfernt.
-- Status-/Guard-Ausgabe um konsolidierte Zusammenfassung ergänzt:
-  - `cleanupConsolidated`
-  - `cleanupProfile`
-  - `diagnosticProfile`
-  - `cleanupStep`
-  - `consolidatedBusFirstStatus`
-- `productiveSwitchConfigReadable` auf Setting-Lesbarkeit korrigiert.
-- `productiveSwitchConfigFileReadable` zusätzlich getrennt ausgewiesen, damit DB-/Setting-Lesbarkeit nicht mit optionaler Config-Datei verwechselt wird.
-- Productive-Switch bleibt sicherheitsgesperrt:
-  - `productiveSwitchEffectiveEnabled: false`
-  - `productiveSwitchSafetyLocked: true`
-  - `productiveEntryPointChanged: false`
-- `backend/modules/sound_system.js` bleibt bei Version `0.1.19` unverändert enthalten.
+- `backend/modules/vip_sound_overlay.js` auf Version `1.8.30` angehoben.
+- VIP-Feature auf `vip_bus_first_productive_test` gesetzt.
+- `backend/modules/sound_system.js` auf Version `0.1.20` angehoben.
+- Sound-Command-Layer auf `sound_bus_command_productive_play_layer` erweitert.
+- Neue produktive Sound-System-Route ergänzt:
+  - `GET /api/sound/eventbus/command/play`
+  - `POST /api/sound/eventbus/command/play`
+- VIP-Produktivpfad nutzt jetzt kontrolliert den Sound-Bus:
+  - `effectiveVipFlow: sound_bus_command`
+  - `effectiveSoundEntryPoint: sound_bus_command`
+  - `normalChatCommandUsesBusFirst: true`
+  - `productiveEntryPointChanged: true`
+- Legacy `/api/sound/play` bleibt als Fallback erhalten, falls der produktive Bus-Pfad nicht spielt oder queued.
+- Status-/Diagnosefelder für produktiven Bus ergänzt:
+  - `productiveBusFirstActive`
+  - `productiveBusUsed`
+  - `lastProductiveBusError`
+  - `productivePlayChecks`
+  - `productivePlayOk`
+  - `productivePlayFailed`
+  - `lastProductivePlay`
 - Keine DB-Migration.
 - Kein Dashboard-Umbau.
-- Kein normaler Twitch-Command-Umbau.
+- Bestehende Admin-/DryRun-/PlayTest-Pfade bleiben für Debugging erhalten, werden aber nicht weiter ausgebaut.

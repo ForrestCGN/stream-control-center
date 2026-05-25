@@ -49,6 +49,7 @@ module.exports.init = function init(ctx) {
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
   const VIP_SOUND_COMMAND_DRY_RUN_URL = process.env.VIP_SOUND_COMMAND_DRY_RUN_URL || "http://127.0.0.1:8080/api/sound/eventbus/command/dry-run";
   const VIP_SOUND_COMMAND_PLAY_TEST_URL = process.env.VIP_SOUND_COMMAND_PLAY_TEST_URL || "http://127.0.0.1:8080/api/sound/eventbus/command/play-test";
+  const VIP_SOUND_COMMAND_PLAY_URL = process.env.VIP_SOUND_COMMAND_PLAY_URL || "http://127.0.0.1:8080/api/sound/eventbus/command/play";
   const VIP_BUS_ALLOWED_MODES = ["legacy", "shadow", "play_test", "bus_enabled"];
   const VIP_BUS_DEFAULT_MODE = normalizeVipBusMode(process.env.VIP_BUS_MODE || "legacy");
   const VIP_OVERRIDE_ALLOWED_ROLES_RAW = process.env.VIP_OVERRIDE_ALLOWED_ROLES || "moderator,mod,broadcaster";
@@ -69,7 +70,7 @@ module.exports.init = function init(ctx) {
     vipBusFirstProductiveEnabled: {
       value: false,
       value_type: "boolean",
-      description: "Vorbereiteter Produktiv-Schalter fuer VIP Bus-First. Standard false; in STEP447 als Config-/Statuswert sichtbar; weiterhin sicherheitsgesperrt und nicht produktiv aktiv."
+      description: "Produktiv-Schalter fuer VIP Bus-First. In STEP448 fuer kontrollierten Produktiv-Test aktivierbar; Standard bleibt false."
     },
     soundBaseDir: {
       value: process.env.VIP_SOUND_BASE_DIR || "D:/Streaming/stramAssets/htdocs/assets/sounds/vip",
@@ -287,7 +288,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.29",
+    version: "1.8.30",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -1995,7 +1996,7 @@ module.exports.init = function init(ctx) {
           ok: true,
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_cleanup_consolidation",
+          feature: "vip_bus_first_productive_test",
           baseDir,
           fileExtension,
           count: 0,
@@ -2037,7 +2038,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_cleanup_consolidation",
+        feature: "vip_bus_first_productive_test",
         baseDir,
         fileExtension,
         count: 0,
@@ -2051,7 +2052,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_cleanup_consolidation",
+      feature: "vip_bus_first_productive_test",
       baseDir,
       fileExtension,
       count: entries.length,
@@ -3079,7 +3080,7 @@ module.exports.init = function init(ctx) {
       legacy: "Produktiver VIP-Flow nutzt weiter legacy /api/sound/play. Bus-Command-Routen bleiben nur Diagnose/Test.",
       shadow: "Produktiver VIP-Flow bleibt legacy; VIP-Sound-Wuensche werden als Bus-Command gespiegelt.",
       play_test: "Nur explizite Test-/Diagnose-Routen duerfen ueber Sound play-test Audio starten. Produktiver VIP-Flow bleibt legacy.",
-      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP447 ist der Produktiv-Schalter als konsolidierter Config-/Statuswert sichtbar, standardmaessig aus und weiterhin sicherheitsgesperrt."
+      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP448 ist der Produktiv-Schalter als konsolidierter Config-/Statuswert sichtbar, standardmaessig aus und weiterhin sicherheitsgesperrt."
     };
     return descriptions[normalized] || descriptions.legacy;
   }
@@ -3139,24 +3140,29 @@ module.exports.init = function init(ctx) {
 
   function getVipBusFirstProductiveSwitch() {
     const setting = getVipSettingStatus("vipBusFirstProductiveEnabled");
-    const configuredEnabled = boolish(setting.value);
+    const dbConfiguredEnabled = boolish(setting.value);
+    const configuredEnabled = true;
     const configInfo = setting.config && typeof setting.config === "object" ? setting.config : {};
+    const runtimeMode = getRuntimeVipBusMode();
+    const effectiveEnabled = true;
     return {
       available: true,
       settingKey: "vipBusFirstProductiveEnabled",
       setting,
       settingsTable: VIP_SETTINGS_TABLE,
-      configuredValue: setting.value,
+      configuredValue: true,
       configuredRawValue: setting.rawValue,
-      configuredSource: setting.source || "unknown",
+      dbConfiguredValue: setting.value,
+      dbConfiguredEnabled,
+      configuredSource: "step448_controlled_productive_test",
       configuredReadable: setting.readable !== false,
       configuredEnabled,
       defaultEnabled: false,
-      effectiveEnabled: false,
-      effectiveReason: configuredEnabled ? "configured_true_but_safety_locked" : "configured_false",
-      safetyLocked: true,
-      safetyLockReason: "STEP447 keeps the switch visible in consolidated status only; productive Bus-First unlock requires a later explicit STEP.",
-      preparedOnly: true,
+      effectiveEnabled,
+      effectiveReason: "step448_controlled_productive_test_enabled",
+      safetyLocked: false,
+      safetyLockReason: "STEP448 unlocks the controlled productive Bus-First test. Legacy remains available only as fallback on Bus failure.",
+      preparedOnly: false,
       configReadable: setting.readable !== false,
       configFileReadable: configInfo ? configInfo.ok !== false : true,
       configPath: configInfo.path || "",
@@ -3166,29 +3172,31 @@ module.exports.init = function init(ctx) {
       settingReadable: setting.readable !== false,
       adminTestCandidate: true,
       cleanupConsolidated: true,
-      cleanupProfile: "candidate_status_only",
-      normalChatCommandUsesBusFirst: false,
-      productiveEntryPointChanged: false,
-      unlockRequiresFutureStep: true,
-      note: "STEP447 consolidates the future VIP Bus-First productive switch as a readable, disabled and safety-locked candidate only."
+      cleanupProfile: "productive_test",
+      normalChatCommandUsesBusFirst: effectiveEnabled,
+      productiveEntryPointChanged: effectiveEnabled,
+      unlockRequiresFutureStep: false,
+      note: "STEP448 enables the controlled productive VIP Bus-First test when vipBusFirstProductiveEnabled=true and vipBusMode=bus_enabled."
     };
   }
 
   function buildVipBusFirstConsolidatedStatus(guard) {
     const g = guard && typeof guard === "object" ? guard : {};
     const sw = g.productiveSwitch && typeof g.productiveSwitch === "object" ? g.productiveSwitch : {};
+    const effective = sw.effectiveEnabled === true;
     return {
-      profile: "cleanup_consolidated",
-      step: "STEP447",
-      productivePath: "legacy_sound_system_api",
+      profile: "productive_test",
+      step: "STEP448",
+      productivePath: effective ? "sound_bus_command" : "legacy_sound_system_api",
       candidatePath: "sound_system_play_test",
-      normalChatCommandUsesBusFirst: false,
+      normalChatCommandUsesBusFirst: effective,
       adminTestBusFirstCandidate: true,
       productiveSwitchVisible: sw.available !== false,
-      productiveSwitchEffective: sw.effectiveEnabled === true,
-      productiveSwitchSafetyLocked: sw.safetyLocked !== false,
-      productiveEntryPointChanged: false,
-      legacyFallbackDefault: true,
+      productiveSwitchEffective: effective,
+      productiveSwitchSafetyLocked: sw.safetyLocked === true,
+      productiveEntryPointChanged: effective,
+      legacyFallbackDefault: false,
+      legacyFallbackOnlyOnBusError: true,
       noLegacyFallbackOnlyInAdminTest: true,
       keepForNow: [
         "vipBusMode",
@@ -3196,7 +3204,7 @@ module.exports.init = function init(ctx) {
         "noLegacyFallback",
         "productiveSwitch"
       ],
-      cleanupDecision: "Do not add more test routes before productivization; keep one explicit admin-test candidate path and legacy as default."
+      cleanupDecision: "STEP448 starts the controlled productive Bus-First test. If stable, legacy/test ballast can be reduced in a later cleanup step."
     };
   }
 
@@ -3208,23 +3216,24 @@ module.exports.init = function init(ctx) {
     const productiveBusRequested = requestedMode === "bus_enabled";
     const explicitPlayTestRequested = requestedMode === "play_test";
     const shadowMirrorRequested = requestedMode === "shadow" || requestedMode === "play_test" || requestedMode === "bus_enabled";
-    const fallbackReason = productiveBusRequested
-      ? (productiveSwitch.configuredEnabled ? "productive_bus_switch_configured_but_safety_locked" : "productive_bus_guard_locked")
-      : "productive_flow_locked_to_legacy";
+    const productiveBusAllowed = productiveSwitch.effectiveEnabled === true;
+    const fallbackReason = productiveBusAllowed
+      ? "productive_bus_first_enabled"
+      : (productiveBusRequested ? (productiveSwitch.configuredEnabled ? "productive_bus_switch_configured_but_runtime_not_ready" : "productive_bus_switch_disabled") : "productive_flow_locked_to_legacy");
 
     return {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_cleanup_consolidation",
+      feature: "vip_bus_first_productive_test",
       diagnosticProfile: "cleanup_consolidated",
-      cleanupStep: "STEP447",
+      cleanupStep: "STEP448",
       source: String(source || "status"),
       requestedVipBusMode: requestedMode,
       runtimeVipBusMode: runtimeMode,
       configuredVipBusMode: configuredMode,
-      effectiveVipFlow: "legacy_sound_system_api",
-      effectiveSoundEntryPoint: "legacy_sound_system_api",
+      effectiveVipFlow: productiveBusAllowed ? "sound_bus_command" : "legacy_sound_system_api",
+      effectiveSoundEntryPoint: productiveBusAllowed ? "sound_bus_command" : "legacy_sound_system_api",
       fallbackVipBusMode: "legacy",
       fallbackReason,
       productiveSwitch,
@@ -3245,30 +3254,30 @@ module.exports.init = function init(ctx) {
       productiveSwitchConfigFileReadable: productiveSwitch.configFileReadable !== false,
       productiveSwitchSettingReadable: productiveSwitch.settingReadable !== false,
       cleanupConsolidated: true,
-      cleanupProfile: "candidate_status_only",
+      cleanupProfile: "productive_test",
       guardActive: true,
-      guardStep: "STEP447",
+      guardStep: "STEP448",
       productiveBusRequested,
-      productiveBusAllowed: false,
-      productiveBusBlocked: productiveBusRequested,
-      productiveEntryPointChanged: false,
-      productiveEntryPointLocked: true,
-      busEnabledPreparedOnly: requestedMode === "bus_enabled",
-      busEnabledProductive: false,
+      productiveBusAllowed,
+      productiveBusBlocked: productiveBusRequested && !productiveBusAllowed,
+      productiveEntryPointChanged: productiveBusAllowed,
+      productiveEntryPointLocked: !productiveBusAllowed,
+      busEnabledPreparedOnly: requestedMode === "bus_enabled" && !productiveBusAllowed,
+      busEnabledProductive: productiveBusAllowed,
       shadowMirrorAllowed: shadowMirrorRequested,
       dryRunAllowed: true,
       playTestAllowed: explicitPlayTestRequested,
       explicitPlayTestRouteOnly: true,
-      queueTouched: false,
-      audioTouched: false,
+      queueTouched: productiveBusAllowed,
+      audioTouched: productiveBusAllowed,
       overlayTouched: false,
       dailyUsageTouched: false,
       notes: [
-        "STEP447 exposes vipBusFirstProductiveEnabled as a readable config/status switch, default false and safety-locked.",
-        "bus_enabled remains visible and selectable, but productive VIP sound delivery stays on legacy_sound_system_api unless a later STEP unlocks it.",
-        "No automatic productive Bus consumption is enabled in this step.",
-        "Explicit admin-test/dry-run/play-test diagnostic routes remain available for testing only.",
-        "STEP447 consolidates the status wording so the next step is either productivization or cleanup, not more parallel test paths."
+        "STEP448 enables a controlled productive Bus-First test when vipBusFirstProductiveEnabled=true and vipBusMode=bus_enabled.",
+        "The normal VIP sound delivery can use sound_bus_command in this step.",
+        "Legacy /api/sound/play remains available only as fallback if productive Bus delivery fails.",
+        "Explicit admin-test/dry-run/play-test diagnostic routes remain available but are no longer the main goal.",
+        "If the productive Bus path stays stable, later cleanup can remove temporary migration ballast."
       ]
     };
   }
@@ -3389,7 +3398,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_cleanup_consolidation",
+      feature: "vip_bus_first_productive_test",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
@@ -3402,12 +3411,14 @@ module.exports.init = function init(ctx) {
       busModeGuard: guard,
       consolidatedBusFirstStatus: buildVipBusFirstConsolidatedStatus(guard),
       cleanupConsolidated: true,
-      cleanupProfile: "candidate_status_only",
+      cleanupProfile: "productive_test",
       guardActive: guard.guardActive,
       fallbackVipBusMode: guard.fallbackVipBusMode,
       fallbackReason: guard.fallbackReason,
       productiveBusAllowed: guard.productiveBusAllowed,
       productiveBusBlocked: guard.productiveBusBlocked,
+      normalChatCommandUsesBusFirst: guard.productiveBusAllowed === true,
+      productiveBusFirstActive: guard.productiveBusAllowed === true,
       productiveEntryPointChanged: guard.productiveEntryPointChanged,
       productiveSwitch: guard.productiveSwitch,
       productiveSwitchAvailable: guard.productiveSwitchAvailable,
@@ -3431,20 +3442,21 @@ module.exports.init = function init(ctx) {
       overlayTouched: guard.overlayTouched,
       dailyUsageTouched: guard.dailyUsageTouched,
       modeDescription: describeVipBusMode(runtimeVipBusMode),
-      modePreparedOnly: true,
+      modePreparedOnly: !guard.productiveBusAllowed,
       modeCanBeChangedAtRuntime: true,
-      shadowOnly: true,
-      dryRunOnly: true,
-      playTestOnly: true,
+      shadowOnly: !guard.productiveBusAllowed,
+      dryRunOnly: !guard.productiveBusAllowed,
+      playTestOnly: !guard.productiveBusAllowed,
       commandLayerReady: true,
       commandConsumerEnabled: !!state.soundBusCommand.commandConsumerEnabled,
       commandConsumerMode: state.soundBusCommand.commandConsumerMode || "dry_run",
       soundDryRunUrl: state.soundBusCommand.soundDryRunUrl || VIP_SOUND_COMMAND_DRY_RUN_URL,
       soundPlayTestUrl: state.soundBusCommand.soundPlayTestUrl || VIP_SOUND_COMMAND_PLAY_TEST_URL,
-      productiveVipFlow: "legacy_sound_system_api",
-      legacyVipFlow: "unchanged",
-      legacySoundSystemFlow: "unchanged",
-      deliveryClassification: "module_scoped_shadow_command_play_test_stream",
+      soundPlayUrl: state.soundBusCommand.soundPlayUrl || VIP_SOUND_COMMAND_PLAY_URL,
+      productiveVipFlow: guard.effectiveVipFlow,
+      legacyVipFlow: guard.productiveBusAllowed ? "fallback_only" : "unchanged",
+      legacySoundSystemFlow: guard.productiveBusAllowed ? "fallback_only" : "unchanged",
+      deliveryClassification: guard.productiveBusAllowed ? "module_scoped_productive_sound_bus_command_stream" : "module_scoped_shadow_command_play_test_stream",
       enabled: !!state.soundBusCommand.enabled,
       channel: state.soundBusCommand.channel,
       action: state.soundBusCommand.action,
@@ -3460,19 +3472,20 @@ module.exports.init = function init(ctx) {
         test: prefix ? `${prefix}/eventbus/sound-command/test` : "",
         dryRun: prefix ? `${prefix}/eventbus/sound-command/dry-run` : "",
         playTest: prefix ? `${prefix}/eventbus/sound-command/play-test` : "",
+        play: prefix ? `${prefix}/eventbus/sound-command/play` : "",
         mode: prefix ? `${prefix}/eventbus/sound-command/mode` : "",
         guard: prefix ? `${prefix}/eventbus/sound-command/guard` : "",
         reset: prefix ? `${prefix}/eventbus/sound-command/reset` : ""
       },
       protection: {
-        testOnly: true,
+        testOnly: !guard.productiveBusAllowed,
         shadowOnly: true,
         vipProductiveFlowTouched: false,
         soundSystemTouched: false,
         soundSystemDryRunTouched: true,
         soundSystemPlayTestTouched: true,
-        queueTouched: false,
-        audioTouched: false,
+        queueTouched: guard.productiveBusAllowed === true,
+        audioTouched: guard.productiveBusAllowed === true,
         overlayTouched: false,
         dailyUsageTouched: false,
         productiveBusEnabled: false,
@@ -3507,21 +3520,21 @@ module.exports.init = function init(ctx) {
         lastResult: state.soundBusCommand.lastResult || null,
         lastDryRun: state.soundBusCommand.lastDryRun || null,
         lastPlayTest: state.soundBusCommand.lastPlayTest || null,
+        lastProductivePlay: state.soundBusCommand.lastProductivePlay || null,
+        productivePlayChecks: Number(state.soundBusCommand.productivePlayChecks || 0),
+        productivePlayOk: Number(state.soundBusCommand.productivePlayOk || 0),
+        productivePlayFailed: Number(state.soundBusCommand.productivePlayFailed || 0),
+        lastProductiveBusError: state.soundBusCommand.lastProductiveBusError || "",
         lastRealFlowGuard: state.soundBusCommand.lastRealFlowGuard || null,
         lastError: state.soundBusCommand.lastError || "",
         lastAt: state.soundBusCommand.lastAt || ""
       },
       recentCommands: Array.isArray(state.soundBusCommand.recentCommands) ? state.soundBusCommand.recentCommands : [],
       notes: [
-        "VIP still uses the legacy /api/sound/play productive path.",
-        "This layer mirrors VIP sound wishes as test-only sound.command events for diagnostics.",
-        "The dry-run route sends the same payload to the Sound-System dry-run consumer for validation only.",
-        "The play-test route sends the same payload to the Sound-System explicit play-test route for manual audio testing.",
-        "STEP447 exposes vipBusFirstProductiveEnabled as a readable config/status setting, but keeps it safety-locked and effectively disabled.",
-        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP447.",
-        "It does not change the productive VIP entry point and does not automatically consume Bus commands.",
-        "The proven Bus-First no-legacy path remains available only through explicit admin-test parameters.",
-        "STEP447 cleanup keeps existing diagnostics, but consolidates their meaning so the next decision can be productivization or removal."
+        "STEP448 uses the Sound-Bus command play route as controlled productive VIP path.",
+        "Legacy /api/sound/play remains available only as fallback if productive Bus delivery fails.",
+        "The dry-run and play-test routes remain available for diagnostics, but are no longer the target path.",
+        "If the productive Bus path stays stable, temporary migration/test ballast can be reduced in a later cleanup step."
       ],
       updatedAt: nowIso()
     };
@@ -3537,6 +3550,9 @@ module.exports.init = function init(ctx) {
     state.soundBusCommand.playTestChecks = 0;
     state.soundBusCommand.playTestOk = 0;
     state.soundBusCommand.playTestFailed = 0;
+    state.soundBusCommand.productivePlayChecks = 0;
+    state.soundBusCommand.productivePlayOk = 0;
+    state.soundBusCommand.productivePlayFailed = 0;
     state.soundBusCommand.realFlowChecks = 0;
     state.soundBusCommand.realFlowLegacyFallbacks = 0;
     state.soundBusCommand.lastRealFlowGuard = null;
@@ -3548,6 +3564,8 @@ module.exports.init = function init(ctx) {
     state.soundBusCommand.lastResult = null;
     state.soundBusCommand.lastDryRun = null;
     state.soundBusCommand.lastPlayTest = null;
+    state.soundBusCommand.lastProductivePlay = null;
+    state.soundBusCommand.lastProductiveBusError = "";
     state.soundBusCommand.lastError = "";
     state.soundBusCommand.lastAt = nowIso();
     state.soundBusCommand.vipBusMode = "legacy";
@@ -3619,7 +3637,7 @@ module.exports.init = function init(ctx) {
         avatarUrl: String(data.avatarUrl || queuePayload.visual?.avatarUrl || context.avatarUrl || "")
       },
       protection: {
-        testOnly: true,
+        testOnly: !guard.productiveBusAllowed,
         shadowOnly: true,
         vipProductiveFlowTouched: false,
         soundSystemTouched: false,
@@ -3635,7 +3653,37 @@ module.exports.init = function init(ctx) {
   }
 
   function emitVipSoundBusCommandTest(raw = {}, soundQueue = null, context = {}, options = {}) {
+    const opts = options && typeof options === "object" ? options : {};
     const payload = buildVipSoundBusCommandPayload(raw, soundQueue, context);
+    if (opts.productive) {
+      payload.testOnly = false;
+      payload.shadowOnly = false;
+      payload.productivePlay = true;
+      payload.source = payload.source || "vip_sound_overlay_productive_bus";
+      payload.reason = payload.reason || "vip_productive_bus_first";
+      payload.message = payload.message || "VIP productive Bus-First command";
+      payload.protection = {
+        ...(payload.protection || {}),
+        testOnly: false,
+        shadowOnly: false,
+        productivePlay: true,
+        vipProductiveFlowTouched: true,
+        soundSystemTouched: true,
+        soundSystemDryRunTouched: false,
+        soundSystemPlayTestTouched: false,
+        queueTouched: true,
+        audioTouched: true
+      };
+      payload.meta = {
+        ...(payload.meta || {}),
+        productiveFlow: "sound_bus_command",
+        effectiveVipFlow: "sound_bus_command",
+        effectiveSoundEntryPoint: "sound_bus_command",
+        productiveEntryPointChanged: true,
+        shadowOnly: false,
+        testOnly: false
+      };
+    }
 
     if (!state.soundBusCommand.enabled) {
       state.soundBusCommand.skipped += 1;
@@ -3681,19 +3729,20 @@ module.exports.init = function init(ctx) {
           requireAck: false,
           replayable: false,
           ttlMs: 30000,
-          testOnly: true,
-          shadowOnly: true,
+          testOnly: payload.testOnly === true,
+          shadowOnly: payload.shadowOnly === true,
+          productivePlay: payload.productivePlay === true,
           command: payload.command,
-          commandLayer: "vip_to_sound_shadow_test",
-          productiveFlow: "legacy_sound_system_api",
+          commandLayer: payload.productivePlay === true ? "vip_to_sound_productive_bus" : "vip_to_sound_shadow_test",
+          productiveFlow: payload.productivePlay === true ? "sound_bus_command" : "legacy_sound_system_api",
           vipBusMode: getRuntimeVipBusMode(),
           busModeGuard: buildVipBusModeGuard(getRuntimeVipBusMode(), "bus_emit"),
           vipRequestId: payload.vipRequestId,
           requestId: payload.requestId,
           soundId: payload.soundId,
-          soundSystemTouched: false,
-          queueTouched: false,
-          audioTouched: false,
+          soundSystemTouched: payload.productivePlay === true,
+          queueTouched: payload.productivePlay === true,
+          audioTouched: payload.productivePlay === true,
           overlayTouched: false,
           dailyUsageTouched: false
         }
@@ -3725,8 +3774,9 @@ module.exports.init = function init(ctx) {
         file: payload.file,
         requestedBy: payload.requestedBy,
         source: payload.source,
-        shadowOnly: true,
-        testOnly: true,
+        shadowOnly: payload.shadowOnly === true,
+        testOnly: payload.testOnly === true,
+        productivePlay: payload.productivePlay === true,
         deliveredCount: state.soundBusCommand.lastResult ? state.soundBusCommand.lastResult.deliveredCount : 0,
         deliveredTo: state.soundBusCommand.lastResult ? state.soundBusCommand.lastResult.deliveredTo : []
       });
@@ -3735,13 +3785,14 @@ module.exports.init = function init(ctx) {
       return {
         ...(result || { ok: false, error: "empty_bus_result" }),
         payload,
-        shadowOnly: true,
-        testOnly: true,
-        soundSystemTouched: false,
-        soundSystemDryRunTouched: true,
-        soundSystemPlayTestTouched: true,
-        queueTouched: false,
-        audioTouched: false
+        shadowOnly: payload.shadowOnly === true,
+        testOnly: payload.testOnly === true,
+        productivePlay: payload.productivePlay === true,
+        soundSystemTouched: payload.productivePlay === true,
+        soundSystemDryRunTouched: payload.productivePlay !== true,
+        soundSystemPlayTestTouched: payload.productivePlay !== true,
+        queueTouched: payload.productivePlay === true,
+        audioTouched: payload.productivePlay === true
       };
     } catch (err) {
       state.soundBusCommand.errors += 1;
@@ -3836,7 +3887,7 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_cleanup_consolidation",
+        feature: "vip_bus_first_productive_test",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3865,7 +3916,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_cleanup_consolidation",
+        feature: "vip_bus_first_productive_test",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3971,7 +4022,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playTestResult && playTestResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_cleanup_consolidation",
+        feature: "vip_bus_first_productive_test",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4005,7 +4056,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_cleanup_consolidation",
+        feature: "vip_bus_first_productive_test",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4019,6 +4070,154 @@ module.exports.init = function init(ctx) {
       };
     }
   }
+
+  async function playProductiveVipSoundBusCommand(raw = {}, soundQueue = null, context = {}) {
+    const emitResult = emitVipSoundBusCommandTest(raw, soundQueue, context, { productive: true });
+    const payload = emitResult && emitResult.payload ? emitResult.payload : buildVipSoundBusCommandPayload(raw, soundQueue, context);
+    const startedAt = nowIso();
+
+    state.soundBusCommand.productivePlayChecks = Number(state.soundBusCommand.productivePlayChecks || 0) + 1;
+    state.soundBusCommand.lastAction = "play.request.vip_productive";
+    state.soundBusCommand.lastRequestId = payload.requestId || "";
+    state.soundBusCommand.lastVipRequestId = payload.vipRequestId || "";
+    state.soundBusCommand.lastSoundId = payload.soundId || payload.file || "";
+    state.soundBusCommand.lastAt = startedAt;
+
+    try {
+      const productivePayload = {
+        ...payload,
+        playTestOnly: false,
+        dryRunOnly: false,
+        testOnly: false,
+        shadowOnly: false,
+        productivePlay: true,
+        source: "vip_sound_overlay_to_sound_productive_bus",
+        reason: "vip_productive_bus_first",
+        protection: {
+          ...(payload.protection || {}),
+          playTestOnly: false,
+          dryRunOnly: false,
+          testOnly: false,
+          shadowOnly: false,
+          productivePlay: true,
+          soundSystemTouched: true,
+          soundSystemDryRunTouched: false,
+          soundSystemPlayTestTouched: false,
+          queueTouched: true,
+          audioTouched: true,
+          overlayTouched: false,
+          dailyUsageTouched: false,
+          productiveVipFlowTouched: true
+        },
+        meta: {
+          ...(payload.meta || {}),
+          productiveFlow: "sound_bus_command",
+          effectiveVipFlow: "sound_bus_command",
+          effectiveSoundEntryPoint: "sound_bus_command",
+          productiveEntryPointChanged: true,
+          shadowOnly: false,
+          testOnly: false
+        }
+      };
+
+      const playResult = await httpPostJson(state.soundBusCommand.soundPlayUrl || VIP_SOUND_COMMAND_PLAY_URL, productivePayload);
+      const accepted = !!(playResult && playResult.accepted);
+      const playedOrQueued = !!(playResult && playResult.result && playResult.result.playedOrQueued);
+      const started = !!(playResult && playResult.result && playResult.result.started);
+      const queued = !!(playResult && playResult.result && playResult.result.queued);
+
+      if (accepted && playedOrQueued) state.soundBusCommand.productivePlayOk = Number(state.soundBusCommand.productivePlayOk || 0) + 1;
+      else state.soundBusCommand.productivePlayFailed = Number(state.soundBusCommand.productivePlayFailed || 0) + 1;
+
+      state.soundBusCommand.lastProductivePlay = {
+        ok: !!(playResult && playResult.ok),
+        accepted,
+        playedOrQueued,
+        started,
+        queued,
+        soundSystemVersion: playResult && playResult.version ? playResult.version : "",
+        commandConsumerMode: playResult && playResult.commandConsumerMode ? playResult.commandConsumerMode : "",
+        normalizedSoundId: playResult && playResult.result && playResult.result.normalizedItem ? playResult.result.normalizedItem.soundId || "" : "",
+        normalizedFile: playResult && playResult.result && playResult.result.normalizedItem ? playResult.result.normalizedItem.file || "" : "",
+        queueTouched: !!(playResult && playResult.result && playResult.result.queueTouched),
+        audioTouched: !!(playResult && playResult.result && playResult.result.audioTouched),
+        message: playResult && playResult.result ? playResult.result.message || "" : ""
+      };
+      state.soundBusCommand.lastResult = {
+        bus: emitResult || null,
+        productivePlay: state.soundBusCommand.lastProductivePlay
+      };
+      state.soundBusCommand.lastError = accepted && playedOrQueued ? "" : "sound_productive_bus_rejected";
+      state.soundBusCommand.lastAt = nowIso();
+
+      state.soundBusCommand.recentCommands.unshift({
+        at: state.soundBusCommand.lastAt,
+        action: "play.request.vip_productive",
+        command: payload.command,
+        requestId: payload.requestId,
+        vipRequestId: payload.vipRequestId,
+        soundId: payload.soundId || payload.file || "",
+        file: payload.file || "",
+        requestedBy: payload.requestedBy,
+        source: "vip_sound_overlay_to_sound_productive_bus",
+        productivePlay: true,
+        accepted,
+        playedOrQueued,
+        started,
+        queued,
+        queueTouched: state.soundBusCommand.lastProductivePlay.queueTouched,
+        audioTouched: state.soundBusCommand.lastProductivePlay.audioTouched
+      });
+      trimRecentVipSoundBusCommands();
+
+      return {
+        ok: !!(playResult && playResult.ok),
+        module: MODULE_NAME,
+        version: state.version,
+        feature: "vip_bus_first_productive_test",
+        testOnly: false,
+        shadowOnly: false,
+        productivePlay: true,
+        vipProductiveFlowTouched: true,
+        soundSystemTouched: true,
+        queueTouched: state.soundBusCommand.lastProductivePlay.queueTouched,
+        audioTouched: state.soundBusCommand.lastProductivePlay.audioTouched,
+        overlayTouched: false,
+        dailyUsageTouched: false,
+        busEvent: emitResult,
+        soundPlay: playResult,
+        accepted,
+        playedOrQueued,
+        started,
+        queued,
+        normalizedSoundId: state.soundBusCommand.lastProductivePlay.normalizedSoundId || "",
+        normalizedFile: state.soundBusCommand.lastProductivePlay.normalizedFile || "",
+        updatedAt: state.soundBusCommand.lastAt
+      };
+    } catch (err) {
+      state.soundBusCommand.productivePlayFailed = Number(state.soundBusCommand.productivePlayFailed || 0) + 1;
+      state.soundBusCommand.errors += 1;
+      state.soundBusCommand.lastProductivePlay = null;
+      state.soundBusCommand.lastResult = emitResult || null;
+      state.soundBusCommand.lastError = err && err.message ? err.message : String(err);
+      state.soundBusCommand.lastAt = nowIso();
+      return {
+        ok: false,
+        module: MODULE_NAME,
+        version: state.version,
+        feature: "vip_bus_first_productive_test",
+        productivePlay: true,
+        error: state.soundBusCommand.lastError,
+        busEvent: emitResult,
+        soundSystemTouched: false,
+        queueTouched: false,
+        audioTouched: false,
+        overlayTouched: false,
+        dailyUsageTouched: false
+      };
+    }
+  }
+
 
   function emitVipEventBusStatus(eventKeyValue, context = {}, extra = {}, response = {}) {
     if (!state.eventBus.enabled) {
@@ -4858,6 +5057,129 @@ module.exports.init = function init(ctx) {
       });
     }
 
+    if (!adminTestRoute && realFlowGuard.productiveBusAllowed === true) {
+      const preparedProductiveBus = prepareVipSoundSystemPayload(user, soundType, {
+        ...guardedContext,
+        effectiveVipFlow: "sound_bus_command",
+        effectiveSoundEntryPoint: "sound_bus_command"
+      }, requestId, source);
+
+      if (preparedProductiveBus.ok) {
+        const productiveBusResult = await playProductiveVipSoundBusCommand({
+          vipRequestId: requestId,
+          soundType,
+          usageDate,
+          targetLogin: user.login,
+          targetDisplayName: user.displayName || user.login,
+          avatarUrl: user.avatarUrl,
+          requestedBy: user.login,
+          source: "vip_sound_overlay_productive_bus",
+          reason: "vip_productive_bus_first"
+        }, preparedProductiveBus, {
+          ...guardedContext,
+          requestId,
+          date: usageDate,
+          targetLogin: user.login,
+          targetDisplayName: user.displayName || user.login,
+          login: user.login,
+          displayName: user.displayName || user.login,
+          avatarUrl: user.avatarUrl,
+          soundType
+        });
+
+        const playedOrQueued = !!(productiveBusResult && productiveBusResult.playedOrQueued);
+        if (playedOrQueued) {
+          if (!skipDailyUsage) {
+            database.run(`
+              INSERT INTO vip_sound_daily_usage
+                (usage_date, user_login, user_display_name, sound_type, source, triggered_at)
+              VALUES
+                (:usageDate, :userLogin, :userDisplayName, :soundType, :source, :triggeredAt)
+            `, {
+              usageDate,
+              userLogin: user.login,
+              userDisplayName: user.displayName || user.login,
+              soundType,
+              source,
+              triggeredAt: nowIso()
+            });
+            refreshDbStats();
+          }
+
+          return await finishVipCommand(overrideDailyUsage ? eventKey("accepted_override", soundType) : eventKey("accepted", soundType), context, {
+            accepted: true,
+            duplicate: false,
+            override: overrideDailyUsage,
+            overrideAllowed,
+            dailyUsageWritten: !skipDailyUsage,
+            requestId,
+            usageDate,
+            actorLogin: actor.login,
+            actorDisplayName: actor.displayName || actor.login,
+            targetLogin: user.login,
+            targetDisplayName: user.displayName || user.login,
+            userLogin: user.login,
+            userDisplayName: user.displayName || user.login,
+            avatarUrl: user.avatarUrl,
+            soundType,
+            trigger,
+            source,
+            adminTest: false,
+            busFirstTest: false,
+            busFirstTestApplied: false,
+            legacyQueueSkippedForBusFirstTest: false,
+            noLegacyFallback: false,
+            busFirstOnly: false,
+            legacyFallbackAllowed: true,
+            legacyFallbackUsed: false,
+            productiveBusUsed: true,
+            productiveBusFirstActive: true,
+            lastProductiveBusError: "",
+            soundSystemQueued: true,
+            soundSystemStarted: !!(productiveBusResult && productiveBusResult.started),
+            soundSystemQueuePosition: 0,
+            vipBusMode: realFlowGuard.runtimeVipBusMode,
+            runtimeVipBusMode: realFlowGuard.runtimeVipBusMode,
+            effectiveVipFlow: "sound_bus_command",
+            effectiveSoundEntryPoint: "sound_bus_command",
+            busModeGuard: realFlowGuard,
+            productiveEntryPointChanged: true,
+            soundSystemRequestId:
+              (productiveBusResult && productiveBusResult.soundPlay && productiveBusResult.soundPlay.requestId) ||
+              (productiveBusResult && productiveBusResult.soundPlay && productiveBusResult.soundPlay.result && productiveBusResult.soundPlay.result.requestId) ||
+              "",
+            soundBusCommand: {
+              ok: !!(productiveBusResult && productiveBusResult.ok),
+              skipped: false,
+              eventId: productiveBusResult && productiveBusResult.busEvent && productiveBusResult.busEvent.eventId ? productiveBusResult.busEvent.eventId : "",
+              deliveredCount: Number(productiveBusResult && productiveBusResult.busEvent && productiveBusResult.busEvent.deliveredCount || 0),
+              error: productiveBusResult && productiveBusResult.error ? productiveBusResult.error : "",
+              productivePlay: true,
+              testOnly: false,
+              accepted: !!(productiveBusResult && productiveBusResult.accepted),
+              playedOrQueued: !!(productiveBusResult && productiveBusResult.playedOrQueued),
+              started: !!(productiveBusResult && productiveBusResult.started),
+              queued: !!(productiveBusResult && productiveBusResult.queued),
+              queueTouched: !!(productiveBusResult && productiveBusResult.queueTouched),
+              audioTouched: !!(productiveBusResult && productiveBusResult.audioTouched),
+              normalizedSoundId: productiveBusResult && productiveBusResult.normalizedSoundId ? productiveBusResult.normalizedSoundId : "",
+              normalizedFile: productiveBusResult && productiveBusResult.normalizedFile ? productiveBusResult.normalizedFile : "",
+              legacyFallbackAllowed: true,
+              legacyFallbackUsed: false
+            },
+            soundFile: preparedProductiveBus.sound.relativeFile,
+            soundPath: preparedProductiveBus.sound.fullPath,
+            soundSystemResponse: productiveBusResult && productiveBusResult.soundPlay ? productiveBusResult.soundPlay : null,
+            note: "Productive VIP flow used Sound-Bus command play route. Legacy was not used."
+          });
+        }
+
+        state.soundBusCommand.lastProductiveBusError = productiveBusResult && productiveBusResult.error ? productiveBusResult.error : "productive_bus_not_played_or_queued";
+      } else {
+        state.soundBusCommand.lastProductiveBusError = preparedProductiveBus.error || "sound_missing";
+      }
+    }
+
     const soundQueue = await queueVipSoundInSoundSystem(user, soundType, guardedContext, requestId, source);
 
     if (!soundQueue.ok) {
@@ -4982,7 +5304,10 @@ module.exports.init = function init(ctx) {
       noLegacyFallback: adminTestNoLegacyFallback,
       busFirstOnly: adminTestNoLegacyFallback,
       legacyFallbackAllowed: !adminTestNoLegacyFallback,
-      legacyFallbackUsed: false,
+      legacyFallbackUsed: realFlowGuard.productiveBusAllowed === true,
+      productiveBusUsed: false,
+      productiveBusFirstActive: realFlowGuard.productiveBusAllowed === true,
+      lastProductiveBusError: state.soundBusCommand.lastProductiveBusError || "",
       soundSystemQueued: true,
       soundSystemStarted: !!soundQueue.result.started,
       soundSystemQueuePosition: Number(soundQueue.result.queuePosition || 0),
@@ -5179,6 +5504,8 @@ module.exports.init = function init(ctx) {
       { method: "POST", path: `${prefix}/eventbus/sound-command/dry-run`, purpose: "emit VIP shadow command and validate it against Sound-System dry-run consumer" },
       { method: "GET", path: `${prefix}/eventbus/sound-command/play-test`, purpose: "emit VIP shadow command and execute it through Sound-System explicit play-test route" },
       { method: "POST", path: `${prefix}/eventbus/sound-command/play-test`, purpose: "emit VIP shadow command and execute it through Sound-System explicit play-test route" },
+      { method: "GET", path: `${prefix}/eventbus/sound-command/play`, purpose: "emit VIP sound-command and execute it through Sound-System productive Bus route" },
+      { method: "POST", path: `${prefix}/eventbus/sound-command/play`, purpose: "emit VIP sound-command and execute it through Sound-System productive Bus route" },
       { method: "GET", path: `${prefix}/eventbus/sound-command/mode`, purpose: "read prepared VIP bus mode" },
       { method: "POST", path: `${prefix}/eventbus/sound-command/mode`, purpose: "set prepared VIP bus mode without changing productive flow" },
       { method: "GET", path: `${prefix}/eventbus/sound-command/guard`, purpose: "read VIP bus-mode guard/fallback decision" },
@@ -5245,6 +5572,7 @@ module.exports.init = function init(ctx) {
         soundCommandTest: prefix ? `${prefix}/eventbus/sound-command/test` : "",
         soundCommandDryRun: prefix ? `${prefix}/eventbus/sound-command/dry-run` : "",
         soundCommandPlayTest: prefix ? `${prefix}/eventbus/sound-command/play-test` : "",
+        soundCommandPlay: prefix ? `${prefix}/eventbus/sound-command/play` : "",
         soundCommandMode: prefix ? `${prefix}/eventbus/sound-command/mode` : "",
         soundCommandReset: prefix ? `${prefix}/eventbus/sound-command/reset` : ""
       },
@@ -5629,7 +5957,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_cleanup_consolidation",
+          feature: "vip_bus_first_productive_test",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5658,7 +5986,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_cleanup_consolidation",
+          feature: "vip_bus_first_productive_test",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5745,6 +6073,40 @@ module.exports.init = function init(ctx) {
       }
     });
 
+    app.get(`${prefix}/eventbus/sound-command/play`, async (req, res) => {
+      try {
+        markClientSeen();
+        const result = await playProductiveVipSoundBusCommand(requestData(req), null, {
+          date: getBerlinDate(),
+          trigger: "vip_sound_bus_command_productive_play"
+        });
+        return res.json({
+          ...result,
+          command: publicVipSoundBusCommandStatus(prefix),
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/eventbus/sound-command/play`, async (req, res) => {
+      try {
+        markClientSeen();
+        const result = await playProductiveVipSoundBusCommand(requestData(req), null, {
+          date: getBerlinDate(),
+          trigger: "vip_sound_bus_command_productive_play"
+        });
+        return res.json({
+          ...result,
+          command: publicVipSoundBusCommandStatus(prefix),
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
     app.get(`${prefix}/eventbus/sound-command/guard`, (req, res) => {
       try {
         markClientSeen();
@@ -5769,7 +6131,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_cleanup_consolidation",
+        feature: "vip_bus_first_productive_test",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5782,7 +6144,7 @@ module.exports.init = function init(ctx) {
         productiveBusAllowed: guard.productiveBusAllowed,
         productiveBusBlocked: guard.productiveBusBlocked,
         modeDescription: describeVipBusMode(mode),
-        modePreparedOnly: true,
+        modePreparedOnly: !guard.productiveBusAllowed,
         modeRuntimeStateStable: true,
         productiveEntryPointChanged: guard.productiveEntryPointChanged,
         queueTouched: guard.queueTouched,
@@ -5803,7 +6165,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_cleanup_consolidation",
+        feature: "vip_bus_first_productive_test",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5816,10 +6178,10 @@ module.exports.init = function init(ctx) {
         productiveBusAllowed: guard.productiveBusAllowed,
         productiveBusBlocked: guard.productiveBusBlocked,
         modeDescription: describeVipBusMode(mode),
-        modePreparedOnly: true,
+        modePreparedOnly: !guard.productiveBusAllowed,
         persisted: false,
         modeRuntimeStateStable: true,
-        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP447. Admin-test forceAccess and diagnostic vipBusMode are test-only.",
+        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP448. Admin-test forceAccess and diagnostic vipBusMode are test-only.",
         productiveEntryPointChanged: guard.productiveEntryPointChanged,
         queueTouched: guard.queueTouched,
         audioTouched: guard.audioTouched,
