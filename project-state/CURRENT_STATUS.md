@@ -1,70 +1,44 @@
-# CURRENT_STATUS – STEP405 VIP EVENTBUS STATUS EVENTS
+# CURRENT_STATUS – STEP406 VIP EventBus Status Diagnostics
 
-Stand: 2026-05-25
+Aktueller Stand: STEP406 vorbereitet.
 
-## Aktueller Stand
+## Fokus
 
-Das VIP-/Mod-Sound-System wurde erweitert, sodass echte VIP-/Mod-Vorgänge zusätzlich Status-Events an den Communication/EventBus senden.
+VIP-System wird schrittweise an den Communication/EventBus angebunden.
 
-## Wichtig
+STEP405 hat Status-Events auf `vip.sound` ergänzt.
+STEP406 macht diese Status-Events über eigene Diagnose-Routen sichtbar und prüfbar.
 
-Der produktive Sound-Pfad bleibt unverändert:
+## Produktiver Flow bleibt unverändert
 
 ```text
-VIP-Command/API
+/api/vip-sound/command
 → vip_sound_overlay.js
 → /api/sound/play
 → Sound-System Queue/Playback
-→ Overlay über sound_system WebSocket + /api/sound/status
+→ VIP-Overlay reagiert auf sound_system WS + /api/sound/status
 ```
 
-Der EventBus ist in STEP405 nur zusätzlicher Status-/Kommunikationskanal.
-
-## Geändert
+## EventBus-Zusatz
 
 ```text
-backend/modules/vip_sound_overlay.js
+vip_sound_overlay.js
+→ Communication Bus
+→ channel: vip.sound
+→ Status-Events accepted / duplicate / denied / sound_missing / error usw.
 ```
 
-## Nicht geändert
+Diese Events starten keinen Sound und steuern kein Overlay.
+
+## Neue Routen
 
 ```text
-Sound-System
-Sound-Queue
-Daily-Usage
-sichtbares Overlay
-/api/vip-sound/command Verhalten
-/api/vip-sound/enqueue Verhalten
+/api/vip-sound/eventbus/status
+/api/vip-sound/eventbus/reset
+/api/vip-sound-overlay/eventbus/status
+/api/vip-sound-overlay/eventbus/reset
 ```
 
-## Neuer Kanal
+## Wichtig
 
-```text
-vip.sound
-```
-
-## Neuer Runtime-Status
-
-`/api/vip-sound/status` und `/api/vip-sound-overlay/status` enthalten nun zusätzlich:
-
-```text
-eventBus.enabled
-eventBus.channel
-eventBus.emitted
-eventBus.skipped
-eventBus.errors
-eventBus.lastAction
-eventBus.lastEventId
-eventBus.lastEventType
-eventBus.lastEventKey
-eventBus.lastRequestId
-eventBus.lastResult
-eventBus.lastError
-eventBus.lastAt
-```
-
-## Nächster sinnvoller Schritt
-
-STEP406 – VIP EventBus Status Check / Dashboard-Readiness
-
-Ziel: prüfen, ob die neuen `vip.sound` Status-Events sauber im Communication/EventBus auftauchen und ob das Dashboard diese später anzeigen soll.
+Keine Patches verwenden. ZIP enthält vollständige Zielpfade und eine vollständige Ersatzdatei.

@@ -1,35 +1,27 @@
-# NEXT_STEPS – nach STEP405
+# NEXT_STEPS – nach STEP406
 
-## STEP406 – VIP EventBus Status Check / Dashboard-Readiness
+## Direkt testen
 
-Ziel: prüfen, ob die neuen `vip.sound` Status-Events sauber im Communication/EventBus auftauchen und ob sie später im Dashboard angezeigt werden sollen.
+1. ZIP nach `D:\Git\stream-control-center` entpacken.
+2. Syntax prüfen:
 
-## Prüfen
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status"
+```cmd
+node --check backend\modules\vip_sound_overlay.js
 ```
 
-## Testfälle
+3. Backend neu starten.
+4. Status prüfen:
 
-1. Berechtigter VIP löst Sound aus.
-2. Berechtigter Mod löst Sound aus.
-3. User ohne VIP/Mod versucht Sound.
-4. Duplicate am selben Tag.
-5. Fehlende Sounddatei.
-6. EventBus temporär nicht verfügbar.
+```text
+http://127.0.0.1:8080/api/vip-sound/eventbus/status
+http://127.0.0.1:8080/api/vip-sound/integration-check
+```
 
-## Erwartung
+5. Einen echten VIP-/Mod-Sound auslösen.
+6. Danach erneut `/api/vip-sound/eventbus/status` prüfen.
 
-- Sound-System-Verhalten bleibt unverändert.
-- VIP-Sound wird weiterhin über `/api/sound/play` verarbeitet.
-- `eventBus.emitted`, `eventBus.skipped` oder `eventBus.errors` ändern sich passend.
-- Kein sichtbares Overlay-Verhalten ändert sich.
+## Möglicher nächster STEP
 
-## Noch nicht umsetzen ohne neuen STEP
+STEP407 kann danach die EventBus-Statusdaten im Dashboard sichtbar machen oder einen Watchdog/Recent-Events-Block ergänzen.
 
-- Keine Dashboard-Seite bauen.
-- Keine DB-Migration.
-- Keine Bus-only-Steuerung.
-- Keine Overlay-Produktivsteuerung per `vip.overlay.show`.
+Keine Bus-only-Umstellung ohne gesonderte Entscheidung.

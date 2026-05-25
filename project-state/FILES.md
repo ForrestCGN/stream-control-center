@@ -1,30 +1,21 @@
-# FILES – STEP405 VIP EVENTBUS STATUS EVENTS
+# FILES – STEP406
 
-## Enthaltene Produktivdatei
+## Geändert
 
-```text
-backend/modules/vip_sound_overlay.js
-```
+- `backend/modules/vip_sound_overlay.js`
 
-## Enthaltene Dokumentation
+## Dokumentation
 
-```text
-project-state/STEP405_VIP_EVENTBUS_STATUS_EVENTS.md
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
-docs/current/CURRENT_SYSTEM_STATUS.md
-```
+- `project-state/STEP406_VIP_EVENTBUS_STATUS_DIAGNOSTICS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
 
-## Nicht enthalten
+## Nicht geändert
 
-```text
-keine Patches
-keine PowerShell-Patches
-keine DB-Dateien
-keine Secrets
-keine .env
-keine node_modules
-keine Backup-Dateien
-```
+- `htdocs/overlays/vip_sound_overlay_v2.html`
+- Sound-System-Dateien
+- Datenbankdateien
+- Config-/Secret-Dateien

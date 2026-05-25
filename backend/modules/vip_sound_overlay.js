@@ -3643,6 +3643,9 @@ module.exports.init = function init(ctx) {
       { method: "POST", path: `${prefix}/reset`, purpose: "clear VIP overlay queue/state" },
       { method: "GET", path: `${prefix}/routes`, purpose: "list VIP API routes" },
       { method: "GET", path: `${prefix}/integration-check`, purpose: "run non-destructive VIP integration check" },
+      { method: "GET", path: `${prefix}/eventbus/status`, purpose: "read VIP EventBus status counters and last emitted event" },
+      { method: "POST", path: `${prefix}/eventbus/reset`, purpose: "reset VIP EventBus diagnostic counters only" },
+      { method: "GET", path: `${prefix}/eventbus/reset`, purpose: "legacy GET reset for VIP EventBus diagnostic counters only" },
       { method: "POST", path: `${prefix}/reload`, purpose: "safe VIP diagnostics reload" }
     ];
 
@@ -3672,6 +3675,64 @@ module.exports.init = function init(ctx) {
         error: err.message || String(err)
       };
     }
+  }
+
+
+  function buildVipEventBusStatus(prefix = "") {
+    const busAvailable = !!(communicationBus && typeof communicationBus.getBus === "function");
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: state.version,
+      feature: "vip_eventbus_status_events",
+      step: 406,
+      enabled: !!state.eventBus.enabled,
+      channel: state.eventBus.channel,
+      communicationBusAvailable: busAvailable,
+      soundSystemFlow: "unchanged",
+      productionTarget: false,
+      overlayControl: false,
+      routes: {
+        status: prefix ? `${prefix}/eventbus/status` : "",
+        reset: prefix ? `${prefix}/eventbus/reset` : ""
+      },
+      counters: {
+        emitted: Number(state.eventBus.emitted || 0),
+        skipped: Number(state.eventBus.skipped || 0),
+        errors: Number(state.eventBus.errors || 0)
+      },
+      last: {
+        action: state.eventBus.lastAction || "",
+        eventId: state.eventBus.lastEventId || "",
+        eventType: state.eventBus.lastEventType || "",
+        eventKey: state.eventBus.lastEventKey || "",
+        requestId: state.eventBus.lastRequestId || "",
+        result: state.eventBus.lastResult || null,
+        error: state.eventBus.lastError || "",
+        at: state.eventBus.lastAt || ""
+      },
+      notes: [
+        "VIP EventBus events are status-only events on vip.sound.",
+        "They do not start sounds, do not control the overlay and do not replace /api/sound/play.",
+        "If the Communication Bus is unavailable, VIP sounds continue through the existing Sound-System flow."
+      ],
+      updatedAt: nowIso()
+    };
+  }
+
+  function resetVipEventBusStatus() {
+    state.eventBus.emitted = 0;
+    state.eventBus.skipped = 0;
+    state.eventBus.errors = 0;
+    state.eventBus.lastAction = "";
+    state.eventBus.lastEventId = "";
+    state.eventBus.lastEventType = "";
+    state.eventBus.lastEventKey = "";
+    state.eventBus.lastRequestId = "";
+    state.eventBus.lastResult = null;
+    state.eventBus.lastError = "";
+    state.eventBus.lastAt = nowIso();
+    return buildVipEventBusStatus("");
   }
 
   function buildVipIntegrationCheck(prefix) {
@@ -3778,6 +3839,16 @@ module.exports.init = function init(ctx) {
       note: "This check validates configured target only; it does not enqueue sound."
     }));
 
+    const eventBusStatus = buildVipEventBusStatus(prefix);
+    checks.push(vipCheckItem("eventbus_status_events", eventBusStatus.communicationBusAvailable, {
+      channel: eventBusStatus.channel,
+      enabled: eventBusStatus.enabled,
+      communicationBusAvailable: eventBusStatus.communicationBusAvailable,
+      counters: eventBusStatus.counters,
+      last: eventBusStatus.last,
+      note: "Status-only EventBus events; warnings do not block the existing VIP sound flow."
+    }, "warning"));
+
     const hardErrors = checks.filter(item => item.level === "error" && !item.ok);
     const warnings = checks.filter(item => item.level === "warning" && !item.ok);
 
@@ -3788,6 +3859,7 @@ module.exports.init = function init(ctx) {
       prefix,
       schemaVersion: state.db.schemaVersion || 0,
       db: { ...state.db },
+      eventBus: buildVipEventBusStatus(prefix),
       checks,
       summary: {
         total: checks.length,
@@ -3861,6 +3933,35 @@ module.exports.init = function init(ctx) {
       try {
         markClientSeen();
         return res.json(buildVipIntegrationCheck(prefix));
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/eventbus/status`, (req, res) => {
+      try {
+        markClientSeen();
+        return res.json(buildVipEventBusStatus(prefix));
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/eventbus/reset`, (req, res) => {
+      try {
+        markClientSeen();
+        const result = resetVipEventBusStatus();
+        return res.json({ ...result, prefix, reset: true, resetAt: state.eventBus.lastAt });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/eventbus/reset`, (req, res) => {
+      try {
+        markClientSeen();
+        const result = resetVipEventBusStatus();
+        return res.json({ ...result, prefix, reset: true, resetAt: state.eventBus.lastAt });
       } catch (err) {
         return fail(res, 500, err.message || String(err));
       }
