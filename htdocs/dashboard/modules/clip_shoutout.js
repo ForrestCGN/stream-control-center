@@ -81,7 +81,7 @@
     function renderStatus(status) {
       const d = status.displayQueue || {};
       const o = status.officialQueue || {};
-      statusLine.textContent = `Status: ${status.enabled ? 'aktiv' : 'inaktiv'} · Command: !${status.command || 'so'} · Version: ${status.moduleVersion || '-'} · Shouti offen: ${d.pending || 0} · Offiziell offen: ${o.pending || 0}`;
+      statusLine.textContent = `Status: ${status.enabled ? 'aktiv' : 'inaktiv'} · Command: !${status.command || 'so'} · Version: ${status.moduleVersion || '-'} · Shouti offen: ${d.pending || 0} · Aktiv: ${d.activeTarget ? '@' + d.activeTarget : '-'} · Offiziell offen: ${o.pending || 0}`;
     }
 
     function renderSettings(cfg) {
@@ -123,7 +123,7 @@
     function renderDisplayQueue(data) {
       displayQueueBox.innerHTML = '';
       displayQueueBox.appendChild(el('h3', { text: 'Shouti-Anzeige-Queue' }));
-      displayQueueBox.appendChild(el('p', { text: `Offen/Aktiv: ${data.pending || 0} · Cooldown nach Ende: ${data.cooldownStartsAfterFinish ? 'ja' : 'nein'} · Nächster Start ab: ${fmt(data.nextDisplayAllowedAt)} · Fehler: ${data.lastError || '-'}` }));
+      displayQueueBox.appendChild(el('p', { text: `Offen/Aktiv: ${data.pending || 0} · Aktiv: ${data.activeTarget ? '@' + data.activeTarget : '-'} · Cooldown nach Ende: ${data.cooldownStartsAfterFinish ? 'ja' : 'nein'} · Cooldown läuft: ${data.cooldownRunning ? 'ja' : 'nein'} · Rest: ${Math.ceil((data.cooldownRemainingMs || 0) / 1000)}s · Nächster Start ab: ${fmt(data.nextDisplayAllowedAt)} · Fehler: ${data.lastError || '-'}` }));
       const table = el('table', { class: 'cso-table' });
       table.appendChild(el('thead', {}, el('tr', {}, ['ID', 'Ziel', 'Status', 'Verfügbar ab', 'Aktion'].map(t => el('th', { text: t })))));
       const tbody = el('tbody');

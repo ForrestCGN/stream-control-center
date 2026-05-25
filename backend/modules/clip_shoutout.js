@@ -12,7 +12,7 @@ let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.2";
+const MODULE_VERSION = "0.2.3";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -364,15 +364,24 @@ function markDisplayQueueFailed(row, error, cfg) {
 function displayQueueStatus(cfg) {
   const queue = listDisplayQueue(50);
   const active = queue.find(row => row.status === 'active') || null;
+  const dcfg = displayConfig(cfg);
+  const nowMs = Date.now();
+  const nextAllowedMs = active ? 0 : calculateDisplayAvailableAt(cfg);
+  const cooldownRunning = Boolean(!active && nextAllowedMs > nowMs);
+  const cooldownRemainingMs = cooldownRunning ? Math.max(0, nextAllowedMs - nowMs) : 0;
   return {
-    enabled: displayConfig(cfg).enabled !== false,
+    enabled: dcfg.enabled !== false,
     workerStarted: state.displayQueue.workerStarted,
     pending: queue.filter(row => row.status === 'queued' || row.status === 'waiting' || row.status === 'active').length,
     active,
+    activeTarget: active ? cleanLogin(active.target_login || "") : "",
+    activeTargetDisplay: active ? cleanDisplay(active.target_display || active.target_login || "") : "",
     queue,
-    displayCooldownMs: Math.max(0, Number(displayConfig(cfg).displayCooldownMs || 120000)),
+    displayCooldownMs: Math.max(0, Number(dcfg.displayCooldownMs || 120000)),
     cooldownStartsAfterFinish: true,
-    nextDisplayAllowedAt: isoFromMs(calculateDisplayAvailableAt(cfg)),
+    cooldownRunning,
+    cooldownRemainingMs,
+    nextDisplayAllowedAt: active ? "" : (nextAllowedMs > 0 ? isoFromMs(nextAllowedMs) : ""),
     lastStartedAt: state.displayQueue.lastStartedAt,
     lastFinishedAt: state.displayQueue.lastFinishedAt,
     lastError: state.displayQueue.lastError
@@ -1460,7 +1469,7 @@ function registerCommand(cfg) {
       permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
       cooldownGlobalMs: Number(cfg.cooldownGlobalMs || 5000),
       cooldownUserMs: Number(cfg.cooldownUserMs || 15000),
-      configJson: JSON.stringify({ seededBy: "clip_shoutout_0.2.0", rawInputMode: true }),
+      configJson: JSON.stringify({ seededBy: "clip_shoutout_0.2.3", rawInputMode: true }),
       createdAt: now,
       updatedAt: now
     });
@@ -1542,7 +1551,7 @@ async function handleListClips(req, res, env) {
     return res.json({
       ok: true,
       module: MODULE_NAME,
-      step: "STEP277A_FIX10",
+      moduleVersion: MODULE_VERSION,
       target: targetUser,
       count: publicClips.length,
       clips: publicClips,
@@ -1756,7 +1765,7 @@ async function handleRun(req, res, env) {
   try {
     const vars = {
       login: targetLogin,
-      displayName: cleanDisplay(input.targetDisplay || input.displayName || targetLogin, targetLogin),
+      displayName: cleanDisplay(input.targetDisplay || input.targetDisplayName || input.targetName || targetLogin, targetLogin),
       requestedByLogin: cleanLogin(input.userLogin || input.login || input.user || ''),
       requestedByDisplay: cleanDisplay(input.displayName || input.userName || input.user || '')
     };

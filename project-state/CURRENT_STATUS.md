@@ -1,5 +1,8 @@
 # CURRENT_STATUS
 
-Aktueller Stand: STEP459_SHOUTOUT_DISPLAY_COOLDOWN_AFTER_FINISH
+STEP460 aktiv geplant: Clip-Shoutout Runtime 0.2.3.
 
-Clip-Shoutout/SO-System läuft mit Runtime-Version `0.2.2`. Die Display-Queue wartet jetzt 120 Sekunden nach Ende der letzten Shouti-Anzeige, bevor der nächste Shouti starten darf.
+Aktueller Zweck:
+- Tests bleiben auf `!vso`.
+- Falscher Annahme-Chattext mit `@ForrestCGN` wurde korrigiert.
+- Display-Queue-Status trennt aktive Anzeige und Cooldown nach Anzeige-Ende sauberer.

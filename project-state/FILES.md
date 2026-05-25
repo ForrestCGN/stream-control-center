@@ -1,6 +1,6 @@
 # FILES
 
-## STEP459
+Geänderte Dateien in STEP460:
 
 - `backend/modules/clip_shoutout.js`
 - `htdocs/dashboard/modules/clip_shoutout.js`
@@ -10,4 +10,4 @@
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
-- `project-state/STEP459_SHOUTOUT_DISPLAY_COOLDOWN_AFTER_FINISH.md`
+- `project-state/STEP460_SHOUTOUT_DISPLAY_QUEUE_CHAT_TARGET_AND_RUNTIME_FIX.md`
