@@ -69,7 +69,7 @@ module.exports.init = function init(ctx) {
     vipBusFirstProductiveEnabled: {
       value: false,
       value_type: "boolean",
-      description: "Vorbereiteter Produktiv-Schalter fuer VIP Bus-First. Standard false; in STEP445 weiterhin sicherheitsgesperrt und nicht produktiv aktiv."
+      description: "Vorbereiteter Produktiv-Schalter fuer VIP Bus-First. Standard false; in STEP446 als Config-/Statuswert sichtbar; weiterhin sicherheitsgesperrt und nicht produktiv aktiv."
     },
     soundBaseDir: {
       value: process.env.VIP_SOUND_BASE_DIR || "D:/Streaming/stramAssets/htdocs/assets/sounds/vip",
@@ -287,7 +287,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.27",
+    version: "1.8.28",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -1995,7 +1995,7 @@ module.exports.init = function init(ctx) {
           ok: true,
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_productive_switch_prepared",
+          feature: "vip_bus_first_productive_switch_config_status",
           baseDir,
           fileExtension,
           count: 0,
@@ -2037,7 +2037,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_switch_prepared",
+        feature: "vip_bus_first_productive_switch_config_status",
         baseDir,
         fileExtension,
         count: 0,
@@ -2051,7 +2051,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_productive_switch_prepared",
+      feature: "vip_bus_first_productive_switch_config_status",
       baseDir,
       fileExtension,
       count: entries.length,
@@ -3079,26 +3079,94 @@ module.exports.init = function init(ctx) {
       legacy: "Produktiver VIP-Flow nutzt weiter legacy /api/sound/play. Bus-Command-Routen bleiben nur Diagnose/Test.",
       shadow: "Produktiver VIP-Flow bleibt legacy; VIP-Sound-Wuensche werden als Bus-Command gespiegelt.",
       play_test: "Nur explizite Test-/Diagnose-Routen duerfen ueber Sound play-test Audio starten. Produktiver VIP-Flow bleibt legacy.",
-      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP445 ist der Produktiv-Schalter sichtbar, standardmaessig aus und weiterhin sicherheitsgesperrt."
+      bus_enabled: "Vorbereitet fuer spaetere produktive Bus-Steuerung. In STEP446 ist der Produktiv-Schalter als Config-/Statuswert sichtbar, standardmaessig aus und weiterhin sicherheitsgesperrt."
     };
     return descriptions[normalized] || descriptions.legacy;
   }
 
+  function getVipSettingStatus(key) {
+    const fallbackDef = DEFAULT_VIP_SETTINGS[key] || { value: undefined, value_type: "string", description: "" };
+    try {
+      const listed = listVipSettings();
+      const row = Array.isArray(listed.settings) ? listed.settings.find(item => item && item.key === key) : null;
+      if (row) {
+        return {
+          key,
+          value: row.value,
+          rawValue: row.rawValue,
+          valueType: row.valueType || fallbackDef.value_type || "string",
+          description: row.description || fallbackDef.description || "",
+          source: row.source || "unknown",
+          createdAt: row.createdAt || "",
+          updatedAt: row.updatedAt || "",
+          table: VIP_SETTINGS_TABLE,
+          config: listed.config || {},
+          readable: true,
+          error: ""
+        };
+      }
+      return {
+        key,
+        value: fallbackDef.value,
+        rawValue: settingsHelper.encodeValue(fallbackDef.value, fallbackDef.value_type || "string"),
+        valueType: fallbackDef.value_type || "string",
+        description: fallbackDef.description || "",
+        source: "default",
+        createdAt: "",
+        updatedAt: "",
+        table: VIP_SETTINGS_TABLE,
+        config: {},
+        readable: true,
+        error: ""
+      };
+    } catch (err) {
+      return {
+        key,
+        value: fallbackDef.value,
+        rawValue: settingsHelper.encodeValue(fallbackDef.value, fallbackDef.value_type || "string"),
+        valueType: fallbackDef.value_type || "string",
+        description: fallbackDef.description || "",
+        source: "fallback_after_error",
+        createdAt: "",
+        updatedAt: "",
+        table: VIP_SETTINGS_TABLE,
+        config: {},
+        readable: false,
+        error: err && err.message ? err.message : String(err)
+      };
+    }
+  }
+
   function getVipBusFirstProductiveSwitch() {
-    const configuredEnabled = boolish(getVipSetting("vipBusFirstProductiveEnabled", false));
+    const setting = getVipSettingStatus("vipBusFirstProductiveEnabled");
+    const configuredEnabled = boolish(setting.value);
+    const configInfo = setting.config && typeof setting.config === "object" ? setting.config : {};
     return {
       available: true,
       settingKey: "vipBusFirstProductiveEnabled",
+      setting,
+      settingsTable: VIP_SETTINGS_TABLE,
+      configuredValue: setting.value,
+      configuredRawValue: setting.rawValue,
+      configuredSource: setting.source || "unknown",
+      configuredReadable: setting.readable !== false,
       configuredEnabled,
       defaultEnabled: false,
       effectiveEnabled: false,
+      effectiveReason: configuredEnabled ? "configured_true_but_safety_locked" : "configured_false",
       safetyLocked: true,
+      safetyLockReason: "STEP446 exposes the switch via config/status only; productive Bus-First unlock requires a later explicit STEP.",
       preparedOnly: true,
+      configReadable: configInfo ? configInfo.ok !== false : true,
+      configPath: configInfo.path || "",
+      configExists: !!configInfo.exists,
+      configError: configInfo.error || "",
+      statusReadable: true,
       adminTestCandidate: true,
       normalChatCommandUsesBusFirst: false,
       productiveEntryPointChanged: false,
       unlockRequiresFutureStep: true,
-      note: "STEP445 exposes the future VIP Bus-First productive switch as a disabled, safety-locked candidate only."
+      note: "STEP446 exposes the future VIP Bus-First productive switch as a readable, disabled and safety-locked config/status candidate only."
     };
   }
 
@@ -3118,7 +3186,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_productive_switch_prepared",
+      feature: "vip_bus_first_productive_switch_config_status",
       source: String(source || "status"),
       requestedVipBusMode: requestedMode,
       runtimeVipBusMode: runtimeMode,
@@ -3132,8 +3200,18 @@ module.exports.init = function init(ctx) {
       productiveSwitchConfiguredEnabled: productiveSwitch.configuredEnabled,
       productiveSwitchEffectiveEnabled: productiveSwitch.effectiveEnabled,
       productiveSwitchSafetyLocked: productiveSwitch.safetyLocked,
+      productiveSwitchSettingKey: productiveSwitch.settingKey,
+      productiveSwitchConfiguredSource: productiveSwitch.configuredSource,
+      productiveSwitchConfiguredValue: productiveSwitch.configuredValue,
+      productiveSwitchDefaultEnabled: productiveSwitch.defaultEnabled,
+      productiveSwitchEffectiveReason: productiveSwitch.effectiveReason,
+      productiveSwitchSafetyLockReason: productiveSwitch.safetyLockReason,
+      productiveSwitchConfigReadable: productiveSwitch.configReadable !== false,
+      productiveSwitchStatusReadable: productiveSwitch.statusReadable !== false,
+      productiveSwitchConfigPath: productiveSwitch.configPath || "",
+      productiveSwitchSettingsTable: productiveSwitch.settingsTable || VIP_SETTINGS_TABLE,
       guardActive: true,
-      guardStep: "STEP445",
+      guardStep: "STEP446",
       productiveBusRequested,
       productiveBusAllowed: false,
       productiveBusBlocked: productiveBusRequested,
@@ -3150,7 +3228,7 @@ module.exports.init = function init(ctx) {
       overlayTouched: false,
       dailyUsageTouched: false,
       notes: [
-        "STEP445 exposes vipBusFirstProductiveEnabled as a future productive switch, default false and safety-locked.",
+        "STEP446 exposes vipBusFirstProductiveEnabled as a readable config/status switch, default false and safety-locked.",
         "bus_enabled remains visible and selectable, but productive VIP sound delivery stays on legacy_sound_system_api unless a later STEP unlocks it.",
         "No automatic productive Bus consumption is enabled in this step.",
         "Explicit admin-test/dry-run/play-test diagnostic routes remain available for testing only."
@@ -3200,6 +3278,16 @@ module.exports.init = function init(ctx) {
       productiveSwitchConfiguredEnabled: guard.productiveSwitchConfiguredEnabled,
       productiveSwitchEffectiveEnabled: guard.productiveSwitchEffectiveEnabled,
       productiveSwitchSafetyLocked: guard.productiveSwitchSafetyLocked,
+      productiveSwitchSettingKey: guard.productiveSwitch && guard.productiveSwitch.settingKey || "vipBusFirstProductiveEnabled",
+      productiveSwitchConfiguredSource: guard.productiveSwitch && guard.productiveSwitch.configuredSource || "unknown",
+      productiveSwitchConfiguredValue: guard.productiveSwitch ? guard.productiveSwitch.configuredValue : false,
+      productiveSwitchDefaultEnabled: guard.productiveSwitch ? guard.productiveSwitch.defaultEnabled : false,
+      productiveSwitchEffectiveReason: guard.productiveSwitch && guard.productiveSwitch.effectiveReason || "configured_false",
+      productiveSwitchSafetyLockReason: guard.productiveSwitch && guard.productiveSwitch.safetyLockReason || "",
+      productiveSwitchConfigReadable: guard.productiveSwitch ? guard.productiveSwitch.configReadable !== false : true,
+      productiveSwitchStatusReadable: guard.productiveSwitch ? guard.productiveSwitch.statusReadable !== false : true,
+      productiveSwitchConfigPath: guard.productiveSwitch && guard.productiveSwitch.configPath || "",
+      productiveSwitchSettingsTable: guard.productiveSwitch && guard.productiveSwitch.settingsTable || VIP_SETTINGS_TABLE,
       vipBusMode: runtimeVipBusMode,
       runtimeVipBusMode,
       configuredVipBusMode: getConfiguredVipBusMode(),
@@ -3264,7 +3352,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_productive_switch_prepared",
+      feature: "vip_bus_first_productive_switch_config_status",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
@@ -3286,6 +3374,16 @@ module.exports.init = function init(ctx) {
       productiveSwitchConfiguredEnabled: guard.productiveSwitchConfiguredEnabled,
       productiveSwitchEffectiveEnabled: guard.productiveSwitchEffectiveEnabled,
       productiveSwitchSafetyLocked: guard.productiveSwitchSafetyLocked,
+      productiveSwitchSettingKey: guard.productiveSwitch && guard.productiveSwitch.settingKey || "vipBusFirstProductiveEnabled",
+      productiveSwitchConfiguredSource: guard.productiveSwitch && guard.productiveSwitch.configuredSource || "unknown",
+      productiveSwitchConfiguredValue: guard.productiveSwitch ? guard.productiveSwitch.configuredValue : false,
+      productiveSwitchDefaultEnabled: guard.productiveSwitch ? guard.productiveSwitch.defaultEnabled : false,
+      productiveSwitchEffectiveReason: guard.productiveSwitch && guard.productiveSwitch.effectiveReason || "configured_false",
+      productiveSwitchSafetyLockReason: guard.productiveSwitch && guard.productiveSwitch.safetyLockReason || "",
+      productiveSwitchConfigReadable: guard.productiveSwitch ? guard.productiveSwitch.configReadable !== false : true,
+      productiveSwitchStatusReadable: guard.productiveSwitch ? guard.productiveSwitch.statusReadable !== false : true,
+      productiveSwitchConfigPath: guard.productiveSwitch && guard.productiveSwitch.configPath || "",
+      productiveSwitchSettingsTable: guard.productiveSwitch && guard.productiveSwitch.settingsTable || VIP_SETTINGS_TABLE,
       queueTouched: guard.queueTouched,
       audioTouched: guard.audioTouched,
       overlayTouched: guard.overlayTouched,
@@ -3337,6 +3435,8 @@ module.exports.init = function init(ctx) {
         dailyUsageTouched: false,
         productiveBusEnabled: false,
         productiveBusFirstSwitchPrepared: true,
+        productiveBusFirstSwitchConfigReadable: guard.productiveSwitch ? guard.productiveSwitch.configReadable !== false : true,
+        productiveBusFirstSwitchStatusReadable: guard.productiveSwitch ? guard.productiveSwitch.statusReadable !== false : true,
         productiveBusFirstSwitchEffective: false,
         productiveBusFirstSwitchSafetyLocked: true,
         productiveEntryPointChanged: false,
@@ -3373,8 +3473,8 @@ module.exports.init = function init(ctx) {
         "This layer mirrors VIP sound wishes as test-only sound.command events for diagnostics.",
         "The dry-run route sends the same payload to the Sound-System dry-run consumer for validation only.",
         "The play-test route sends the same payload to the Sound-System explicit play-test route for manual audio testing.",
-        "STEP445 prepares vipBusFirstProductiveEnabled as a dashboard/config setting, but keeps it safety-locked and effectively disabled.",
-        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP445.",
+        "STEP446 exposes vipBusFirstProductiveEnabled as a readable config/status setting, but keeps it safety-locked and effectively disabled.",
+        "Default/effective productive VIP flow remains legacy /api/sound/play in STEP446.",
         "It does not change the productive VIP entry point and does not automatically consume Bus commands.",
         "The proven Bus-First no-legacy path remains available only through explicit admin-test parameters."
       ],
@@ -3691,7 +3791,7 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_switch_prepared",
+        feature: "vip_bus_first_productive_switch_config_status",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3720,7 +3820,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_switch_prepared",
+        feature: "vip_bus_first_productive_switch_config_status",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3826,7 +3926,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playTestResult && playTestResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_switch_prepared",
+        feature: "vip_bus_first_productive_switch_config_status",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -3860,7 +3960,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_switch_prepared",
+        feature: "vip_bus_first_productive_switch_config_status",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -5484,7 +5584,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_productive_switch_prepared",
+          feature: "vip_bus_first_productive_switch_config_status",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5513,7 +5613,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_productive_switch_prepared",
+          feature: "vip_bus_first_productive_switch_config_status",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5624,7 +5724,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_switch_prepared",
+        feature: "vip_bus_first_productive_switch_config_status",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5658,7 +5758,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_productive_switch_prepared",
+        feature: "vip_bus_first_productive_switch_config_status",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5674,7 +5774,7 @@ module.exports.init = function init(ctx) {
         modePreparedOnly: true,
         persisted: false,
         modeRuntimeStateStable: true,
-        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP445. Admin-test forceAccess and diagnostic vipBusMode are test-only.",
+        note: "Runtime mode is held in memory until reset or server restart. Guard/Fallback keeps the productive VIP entry point on legacy in STEP446. Admin-test forceAccess and diagnostic vipBusMode are test-only.",
         productiveEntryPointChanged: guard.productiveEntryPointChanged,
         queueTouched: guard.queueTouched,
         audioTouched: guard.audioTouched,

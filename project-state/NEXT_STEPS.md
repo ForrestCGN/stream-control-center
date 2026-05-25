@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-## Direkt nach STEP445
+## Direkt nach STEP446
 
 1. Syntax prüfen:
 
@@ -14,31 +14,37 @@ node --check backend\modules\sound_system.js
 
 ```powershell
 $s = Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/eventbus/sound-command/status"
-$s | Select-Object version,feature,productiveSwitchAvailable,productiveSwitchConfiguredEnabled,productiveSwitchEffectiveEnabled,productiveSwitchSafetyLocked,productiveEntryPointChanged,productiveVipFlow
+$s | Select-Object version,feature,productiveSwitchAvailable,productiveSwitchSettingKey,productiveSwitchConfiguredSource,productiveSwitchConfiguredValue,productiveSwitchConfiguredEnabled,productiveSwitchEffectiveEnabled,productiveSwitchEffectiveReason,productiveSwitchSafetyLocked,productiveSwitchConfigReadable,productiveSwitchStatusReadable,productiveEntryPointChanged,productiveVipFlow
 ```
 
 Erwartung im Default:
 
-- `version: 1.8.27`
-- `feature: vip_bus_first_productive_switch_prepared`
+- `version: 1.8.28`
+- `feature: vip_bus_first_productive_switch_config_status`
 - `productiveSwitchAvailable: True`
+- `productiveSwitchSettingKey: vipBusFirstProductiveEnabled`
+- `productiveSwitchConfiguredSource: database | config | default`
+- `productiveSwitchConfiguredValue: False`
 - `productiveSwitchConfiguredEnabled: False`
 - `productiveSwitchEffectiveEnabled: False`
+- `productiveSwitchEffectiveReason: configured_false`
 - `productiveSwitchSafetyLocked: True`
+- `productiveSwitchConfigReadable: True`
+- `productiveSwitchStatusReadable: True`
 - `productiveEntryPointChanged: False`
 - `productiveVipFlow: legacy_sound_system_api`
 
-3. STEP445 abschließen:
+3. STEP446 abschließen:
 
 ```powershell
-.\stepdone.cmd "STEP445 VIP Bus-First Productive Switch Prepared"
+.\stepdone.cmd "STEP446 VIP Productive Switch Config Status"
 ```
 
 ## Danach möglich
 
-### STEP446 – Produktiv-Schalter Testmodus/Dry-Run validieren
+### STEP447 – Productive Switch True-Dry-Run validieren
 
-Ziel: Prüfen, ob ein gesetzter `vipBusFirstProductiveEnabled=true` im Status sichtbar wird, aber weiterhin durch `safetyLocked=true` keine Produktiv-Umschaltung auslöst.
+Ziel: Testweise `vipBusFirstProductiveEnabled=true` setzen und bestätigen, dass der Status `configuredEnabled: true`, aber weiterhin `effectiveEnabled: false` und `safetyLocked: true` zeigt.
 
 ### Späterer Schritt – echte Produktiv-Umschaltung
 
