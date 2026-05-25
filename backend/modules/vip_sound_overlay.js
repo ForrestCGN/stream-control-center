@@ -13,6 +13,13 @@ const database = require("../core/database");
 const twitchRoles = require("./helpers/helper_twitch_roles");
 const media = require("./helpers/helper_media");
 
+let communicationBus = null;
+try {
+  communicationBus = require("./communication_bus");
+} catch (_) {
+  communicationBus = null;
+}
+
 let multer = null;
 let multerLoadError = "";
 try {
@@ -266,7 +273,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.7",
+    version: "1.8.8",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -300,6 +307,21 @@ module.exports.init = function init(ctx) {
       lastRunStartedAt: "",
       lastRunFinishedAt: "",
       lastError: ""
+    },
+    eventBus: {
+      enabled: true,
+      channel: "vip.sound",
+      emitted: 0,
+      skipped: 0,
+      errors: 0,
+      lastAction: "",
+      lastEventId: "",
+      lastEventType: "",
+      lastEventKey: "",
+      lastRequestId: "",
+      lastResult: null,
+      lastError: "",
+      lastAt: ""
     }
   };
 
@@ -360,6 +382,7 @@ module.exports.init = function init(ctx) {
       client: { ...state.client },
       db: { ...state.db },
       chat: { ...state.chat },
+      eventBus: { ...state.eventBus },
       updatedAt: state.updatedAt
     };
   }
@@ -2728,6 +2751,153 @@ module.exports.init = function init(ctx) {
     return eventKeyValue || "unknown";
   }
 
+  function cleanVipBusAction(value, fallback = "status") {
+    const text = String(value || "").trim().toLowerCase();
+    const clean = text.replace(/[^a-z0-9_.:-]+/g, "_").replace(/^_+|_+$/g, "");
+    return clean || fallback;
+  }
+
+  function vipBusActionForResult(eventKeyValue = "", extra = {}) {
+    const key = String(eventKeyValue || "").trim().toLowerCase();
+
+    if (extra.accepted && extra.override) return "override_accepted";
+    if (extra.accepted) return "accepted";
+    if (extra.duplicate) return "duplicate";
+    if (extra.override && extra.overrideAllowed === false) return "override_denied";
+    if (extra.twitchOnlyDenied || key === "not_twitch_vip_or_mod") return "denied";
+    if (extra.systemDisabled || key === "system_disabled") return "system_disabled";
+    if (key === "sound_missing") return "sound_missing";
+    if (extra.error || extra.soundError || key === "error_generic") return "error";
+
+    return cleanVipBusAction(eventTypeFromResult(extra, eventKeyValue), "status");
+  }
+
+  function buildVipBusStatusPayload(eventKeyValue, context = {}, extra = {}, response = {}) {
+    const eventType = eventTypeFromResult(extra, eventKeyValue);
+    const action = vipBusActionForResult(eventKeyValue, extra);
+    const soundType = normalizeSoundType(extra.soundType || context.soundType || "vip");
+
+    return {
+      module: MODULE_NAME,
+      channel: state.eventBus.channel,
+      action,
+      eventKey: String(eventKeyValue || ""),
+      eventType,
+      accepted: !!extra.accepted,
+      duplicate: !!extra.duplicate,
+      override: !!extra.override,
+      overrideAllowed: !!extra.overrideAllowed,
+      dailyUsageWritten: !!extra.dailyUsageWritten,
+      soundSystemQueued: !!extra.soundSystemQueued,
+      soundSystemStarted: !!extra.soundSystemStarted,
+      soundType,
+      usageDate: String(extra.usageDate || context.date || ""),
+      actor: {
+        login: normalizeLogin(extra.actorLogin || context.actorLogin || ""),
+        displayName: cleanDisplayName(extra.actorDisplayName || context.actorDisplayName || "")
+      },
+      target: {
+        login: normalizeLogin(extra.targetLogin || context.targetLogin || extra.userLogin || context.login || ""),
+        displayName: cleanDisplayName(extra.targetDisplayName || context.targetDisplayName || extra.userDisplayName || context.displayName || "")
+      },
+      user: {
+        login: normalizeLogin(extra.userLogin || extra.targetLogin || context.targetLogin || context.login || ""),
+        displayName: cleanDisplayName(extra.userDisplayName || extra.targetDisplayName || context.targetDisplayName || context.displayName || ""),
+        avatarUrl: String(extra.avatarUrl || context.avatarUrl || "").trim()
+      },
+      trigger: String(extra.trigger || context.trigger || ""),
+      source: String(extra.source || ""),
+      requestId: String(extra.requestId || ""),
+      soundSystemRequestId: String(extra.soundSystemRequestId || ""),
+      soundSystemQueuePosition: Number(extra.soundSystemQueuePosition || 0),
+      soundFile: String(extra.soundFile || ""),
+      soundPath: String(extra.soundPath || ""),
+      errorCode: String(extra.errorCode || extra.error || extra.soundError || ""),
+      messageText: messages.sanitizeChatMessage(String(response.message || response.text || ""), 500),
+      createdAt: nowIso()
+    };
+  }
+
+  function emitVipEventBusStatus(eventKeyValue, context = {}, extra = {}, response = {}) {
+    if (!state.eventBus.enabled) {
+      state.eventBus.skipped += 1;
+      state.eventBus.lastError = "disabled";
+      state.eventBus.lastAt = nowIso();
+      return { ok: false, skipped: true, reason: "disabled" };
+    }
+
+    if (!communicationBus || typeof communicationBus.getBus !== "function") {
+      state.eventBus.skipped += 1;
+      state.eventBus.lastError = "communication_bus_getBus_unavailable";
+      state.eventBus.lastAt = nowIso();
+      return { ok: false, skipped: true, reason: "communication_bus_getBus_unavailable" };
+    }
+
+    const payload = buildVipBusStatusPayload(eventKeyValue, context, extra, response);
+
+    try {
+      const currentBus = communicationBus.getBus();
+      const result = currentBus.emit({
+        type: "event",
+        channel: state.eventBus.channel,
+        action: payload.action,
+        source: {
+          type: "module",
+          id: MODULE_NAME,
+          module: MODULE_NAME
+        },
+        target: {
+          type: "all",
+          id: "*",
+          module: "",
+          capability: ""
+        },
+        payload,
+        meta: {
+          requireAck: false,
+          replayable: true,
+          ttlMs: 60000,
+          mirror: false,
+          preview: false,
+          productionTarget: false,
+          statusEvent: true,
+          soundSystemFlow: "unchanged",
+          vipEventKey: payload.eventKey,
+          vipEventType: payload.eventType,
+          requestId: payload.requestId
+        }
+      });
+
+      state.eventBus.emitted += result && result.ok ? 1 : 0;
+      state.eventBus.errors += result && result.ok ? 0 : 1;
+      state.eventBus.lastAction = payload.action;
+      state.eventBus.lastEventId = result && result.eventId ? result.eventId : "";
+      state.eventBus.lastEventType = payload.eventType;
+      state.eventBus.lastEventKey = payload.eventKey;
+      state.eventBus.lastRequestId = payload.requestId;
+      state.eventBus.lastResult = result ? {
+        ok: result.ok === true,
+        eventId: result.eventId || "",
+        deliveredCount: Number(result.deliveredCount || 0),
+        deliveredTo: Array.isArray(result.deliveredTo) ? result.deliveredTo : []
+      } : null;
+      state.eventBus.lastError = result && result.ok ? "" : "bus_emit_failed";
+      state.eventBus.lastAt = nowIso();
+      return result || { ok: false, error: "empty_bus_result" };
+    } catch (err) {
+      state.eventBus.errors += 1;
+      state.eventBus.lastAction = payload.action;
+      state.eventBus.lastEventType = payload.eventType;
+      state.eventBus.lastEventKey = payload.eventKey;
+      state.eventBus.lastRequestId = payload.requestId;
+      state.eventBus.lastResult = null;
+      state.eventBus.lastError = err && err.message ? err.message : String(err);
+      state.eventBus.lastAt = nowIso();
+      console.warn(`[${MODULE_NAME}] EventBus status emit failed: ${state.eventBus.lastError}`);
+      return { ok: false, error: state.eventBus.lastError };
+    }
+  }
+
   function recordVipSoundEvent(event = {}) {
     if (!state.db.initialized) return false;
 
@@ -2815,7 +2985,20 @@ module.exports.init = function init(ctx) {
       messageText: response.message || response.text || ""
     });
 
-    return response;
+    const eventBusResult = emitVipEventBusStatus(eventKeyValue, context, extra, response);
+
+    return {
+      ...response,
+      eventBus: {
+        channel: state.eventBus.channel,
+        action: vipBusActionForResult(eventKeyValue, extra),
+        ok: !!(eventBusResult && eventBusResult.ok),
+        skipped: !!(eventBusResult && eventBusResult.skipped),
+        eventId: eventBusResult && eventBusResult.eventId ? eventBusResult.eventId : "",
+        reason: eventBusResult && eventBusResult.reason ? eventBusResult.reason : "",
+        error: eventBusResult && eventBusResult.error ? eventBusResult.error : ""
+      }
+    };
   }
 
   function buildVipEventFilters(raw = {}) {
@@ -3711,6 +3894,7 @@ module.exports.init = function init(ctx) {
         lastFinishedAt: state.lastFinishedAt,
         client: { ...state.client },
         db: { ...state.db },
+        eventBus: { ...state.eventBus },
         updatedAt: state.updatedAt
       });
     });

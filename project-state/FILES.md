@@ -1,36 +1,30 @@
-# FILES – STEP407 VIP PRODUCTIVE BUS MIRROR DESIGN
+# FILES – STEP405 VIP EVENTBUS STATUS EVENTS
 
-Dieses ZIP enthält nur Dokumentation zum VIP Productive Bus Mirror Design.
-
-## Enthaltene Dateien
+## Enthaltene Produktivdatei
 
 ```text
-docs/current/CURRENT_SYSTEM_STATUS.md
+backend/modules/vip_sound_overlay.js
+```
+
+## Enthaltene Dokumentation
+
+```text
+project-state/STEP405_VIP_EVENTBUS_STATUS_EVENTS.md
 project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
-project-state/STEP407_VIP_PRODUCTIVE_BUS_MIRROR_DESIGN.md
-```
-
-## Relevante geprüfte Code-Dateien
-
-Nicht im ZIP enthalten, aber für den Design-STEP gelesen/geprüft:
-
-```text
-backend/modules/vip_sound_overlay.js
-backend/modules/communication_bus.js
-htdocs/overlays/vip_sound_overlay_v2.html
+docs/current/CURRENT_SYSTEM_STATUS.md
 ```
 
 ## Nicht enthalten
 
 ```text
-keine Backend-Codeänderungen
-keine Overlay-Codeänderungen
-keine Dashboard-Dateien
-keine Config-Dateien
+keine Patches
+keine PowerShell-Patches
 keine DB-Dateien
 keine Secrets
-keine Backups
+keine .env
+keine node_modules
+keine Backup-Dateien
 ```

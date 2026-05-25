@@ -1,47 +1,35 @@
-# NEXT STEPS – nach STEP407 VIP PRODUCTIVE BUS MIRROR DESIGN
+# NEXT_STEPS – nach STEP405
 
-## Nächster empfohlener Schritt
+## STEP406 – VIP EventBus Status Check / Dashboard-Readiness
 
-`STEP408 – VIP Productive Bus Mirror Feature Flag`
+Ziel: prüfen, ob die neuen `vip.sound` Status-Events sauber im Communication/EventBus auftauchen und ob sie später im Dashboard angezeigt werden sollen.
 
-## Ziel
+## Prüfen
 
-Die Grundlage für einen späteren optionalen produktiven VIP-/Mod-Bus-Mirror vorbereiten, ohne ihn sofort produktiv zu aktivieren.
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip-sound/status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status"
+```
 
-## Empfohlene Umsetzung für STEP408
+## Testfälle
 
-- Settings ergänzen oder vorbereiten:
-  - `productiveBusMirrorEnabled: false`
-  - `productiveBusMirrorChannel: vip.sound`
-  - `productiveBusMirrorRequireAck: false`
-  - `productiveBusMirrorReplayable: true`
-  - `productiveBusMirrorTtlMs: 60000`
-- Status-/Integration-Check um Mirror-Settings erweitern.
-- Default bleibt aus.
-- Keine echten Mirror-Events senden, wenn wir den Schritt bewusst klein halten.
+1. Berechtigter VIP löst Sound aus.
+2. Berechtigter Mod löst Sound aus.
+3. User ohne VIP/Mod versucht Sound.
+4. Duplicate am selben Tag.
+5. Fehlende Sounddatei.
+6. EventBus temporär nicht verfügbar.
 
-## Alternative für direkten Code-STEP
+## Erwartung
 
-`STEP408 – VIP Productive Bus Mirror Implementation`
+- Sound-System-Verhalten bleibt unverändert.
+- VIP-Sound wird weiterhin über `/api/sound/play` verarbeitet.
+- `eventBus.emitted`, `eventBus.skipped` oder `eventBus.errors` ändern sich passend.
+- Kein sichtbares Overlay-Verhalten ändert sich.
 
-Dann nur mit:
+## Noch nicht umsetzen ohne neuen STEP
 
-- Default `productiveBusMirrorEnabled=false`
-- Eventbereich `vip.sound.*`
-- `mirrorOnly: true`
-- `doNotDisplay: true`
-- Bus-Fehler dürfen VIP-Command nicht abbrechen
-- keine Änderung an `/api/sound/play`
-- keine Änderung an Sound-System-Queue
-- keine Änderung am Overlay-Rendering
-
-## Nicht machen ohne eigenen STEP
-
-- Kein produktives `vip.overlay.show` für echte VIP-/Mod-Sounds.
-- Keine Entfernung der Sound-System-Anzeige.
-- Keine Änderung an `/api/sound/play`.
-- Keine Queue-/Prioritätsänderung.
-- Keine Daily-Usage-Änderung.
-- Keine DB-Migration ohne additiven Plan.
-- Kein Dashboard-Umbau.
-- Keine Registrierung von `/api/vip`.
+- Keine Dashboard-Seite bauen.
+- Keine DB-Migration.
+- Keine Bus-only-Steuerung.
+- Keine Overlay-Produktivsteuerung per `vip.overlay.show`.

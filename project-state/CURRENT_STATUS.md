@@ -1,52 +1,70 @@
-# CURRENT_STATUS – STEP407 VIP PRODUCTIVE BUS MIRROR DESIGN
+# CURRENT_STATUS – STEP405 VIP EVENTBUS STATUS EVENTS
 
 Stand: 2026-05-25
 
-Aktueller stabiler Stand:
+## Aktueller Stand
 
-- VIP-/Mod-Sound-System bleibt produktiv Sound-System-geführt.
-- VIP-Overlay ist zusätzlich als Communication-Bus-Client registriert.
-- Bus-Preview-Flow für `vip.overlay.show/hide/update` ist stabil, bleibt aber Preview-/Diagnosepfad.
-- STEP406 hat bestätigt: kein produktives `vip.overlay.show` für echte VIP-/Mod-Sounds.
-- STEP407 legt den Designvertrag für einen späteren optionalen produktiven Bus-Mirror fest.
+Das VIP-/Mod-Sound-System wurde erweitert, sodass echte VIP-/Mod-Vorgänge zusätzlich Status-Events an den Communication/EventBus senden.
 
-Architekturentscheidung:
+## Wichtig
+
+Der produktive Sound-Pfad bleibt unverändert:
 
 ```text
-Produktiv:
-/api/vip-sound/command
-→ VIP-Modul
+VIP-Command/API
+→ vip_sound_overlay.js
 → /api/sound/play
-→ Sound-System
-→ VIP-Overlay über sound_system WS + /api/sound/status
-
-Preview/Diagnose:
-/api/communication/test-vip-overlay-preview
-→ Communication Bus
-→ vip.overlay.show/hide/update
-→ vip_sound_overlay_v2
-→ Ack
-
-Späterer Mirror:
-VIP-Modul
-→ Communication Bus
-→ vip.sound.* Mirror-Events
-→ Diagnose/Logging/Dashboard/Observer
-→ keine automatische Overlay-Anzeige
+→ Sound-System Queue/Playback
+→ Overlay über sound_system WebSocket + /api/sound/status
 ```
 
-Bewertung:
+Der EventBus ist in STEP405 nur zusätzlicher Status-/Kommunikationskanal.
 
-- Für spätere produktive Mirror-Events wird `vip.sound.*` empfohlen, nicht `vip.overlay.*`.
-- Mirror-Events sollen `mirrorOnly: true` und `doNotDisplay: true` tragen.
-- Sound-System bleibt führend für Queue, Playback und Timing.
-- Späterer Mirror darf bei Fehlern niemals VIP-Commands oder Sound-Playback brechen.
+## Geändert
 
-Nicht geändert in STEP407:
+```text
+backend/modules/vip_sound_overlay.js
+```
 
-- Kein Backend-Code.
-- Kein Overlay-Code.
-- Keine DB-Migration.
-- Keine Queue-/Sound-System-Änderung.
-- Kein Dashboard.
-- Keine Entfernung bestehender Routen.
+## Nicht geändert
+
+```text
+Sound-System
+Sound-Queue
+Daily-Usage
+sichtbares Overlay
+/api/vip-sound/command Verhalten
+/api/vip-sound/enqueue Verhalten
+```
+
+## Neuer Kanal
+
+```text
+vip.sound
+```
+
+## Neuer Runtime-Status
+
+`/api/vip-sound/status` und `/api/vip-sound-overlay/status` enthalten nun zusätzlich:
+
+```text
+eventBus.enabled
+eventBus.channel
+eventBus.emitted
+eventBus.skipped
+eventBus.errors
+eventBus.lastAction
+eventBus.lastEventId
+eventBus.lastEventType
+eventBus.lastEventKey
+eventBus.lastRequestId
+eventBus.lastResult
+eventBus.lastError
+eventBus.lastAt
+```
+
+## Nächster sinnvoller Schritt
+
+STEP406 – VIP EventBus Status Check / Dashboard-Readiness
+
+Ziel: prüfen, ob die neuen `vip.sound` Status-Events sauber im Communication/EventBus auftauchen und ob das Dashboard diese später anzeigen soll.
