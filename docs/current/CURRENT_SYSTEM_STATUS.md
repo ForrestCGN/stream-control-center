@@ -1,15 +1,14 @@
-# Current System Status – STEP438
+# Current System Status – STEP439
 
-STEP438 adds a safe admin-test path for testing the VIP Guard with an existing VIP sound file.
+STEP439 adds a complete admin-test path for validating VIP Guard + queue behavior with an explicit diagnostic `bus_enabled` mode and an existing VIP sound file.
 
 ## Changed
 - `backend/modules/vip_sound_overlay.js`
-- VIP module version: `1.8.21`
-- Feature: `vip_admin_test_existing_sound_file`
-- New diagnostic route: `GET /api/vip-sound/sounds/files`
-- `/api/vip-sound/test` can now use an existing VIP sound file for admin diagnostics via `useExistingSound=true` or a concrete `testSoundFile`.
-- The admin-test sound override is limited to the admin-test route.
-- `stats.lastRealFlowGuard` records whether an admin-test sound override was used.
+- VIP module version: `1.8.22`
+- Feature: `vip_admin_test_bus_enabled_existing_sound`
+- `/api/vip-sound/test` can now apply an explicit diagnostic VIP bus mode through `vipBusMode`, `testVipBusMode`, `busMode` or `mode`.
+- The admin test can combine `forceAccess=true`, `consumeDaily=false`, `useExistingSound=true` and `vipBusMode=bus_enabled` in one request.
+- Guard diagnostics now record the admin-test requested/applied VIP bus mode.
 
 ## Safety
 - Effective productive VIP flow remains `legacy_sound_system_api`.
@@ -21,4 +20,4 @@ STEP438 adds a safe admin-test path for testing the VIP Guard with an existing V
 - No DB schema migration.
 
 ## Current meaning
-The admin test can now validate the real VIP sound queue path with an actually existing MP3 without changing Twitch role rules or daily usage behavior. This is still only a diagnostic admin-test aid and does not enable productive Bus delivery.
+The admin test can now validate the real VIP sound queue path with an existing MP3 while the runtime bus mode is explicitly set to `bus_enabled`. The Guard must still force the effective delivery path to `legacy_sound_system_api`.
