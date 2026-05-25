@@ -16,10 +16,13 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.14";
+const MODULE_VERSION = "0.1.15";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
+const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
+const SOUND_BUS_COMMAND_API_VERSION = "1.0.0";
 const SOUND_BUS_DELIVERY_CLASSIFICATION = "capability_scoped_legacy_parallel_event_stream";
+const SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION = "module_scoped_command_test_event_stream";
 const SOUND_BUS_TARGET_CAPABILITY = "sound.event_output";
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
@@ -79,6 +82,21 @@ const DEFAULT_CONFIG = {
       clientAudioEnded: "client.audio_ended",
       clientError: "client.error"
     }
+  },
+  soundBusCommand: {
+    enabled: true,
+    channel: "sound.command",
+    action: "play.request.test",
+    requireAck: false,
+    replayable: false,
+    ttlMs: 30000,
+    targetType: "module",
+    targetId: "sound_system",
+    targetModule: "sound_system",
+    targetCapability: SOUND_BUS_COMMAND_CAPABILITY,
+    mode: "test_only",
+    allowQueueTouch: false,
+    allowAudioTouch: false
   },
   overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
   output: DEFAULT_OUTPUT,
@@ -223,6 +241,17 @@ module.exports.init = function init(ctx) {
       lastAt: "",
       recentEvents: []
     },
+    soundBusCommand: {
+      emitted: 0,
+      skipped: 0,
+      errors: 0,
+      lastAction: "",
+      lastEventId: "",
+      lastResult: null,
+      lastError: "",
+      lastAt: "",
+      recentCommands: []
+    },
     activeBundleLock: null
   };
 
@@ -233,7 +262,7 @@ module.exports.init = function init(ctx) {
   const SOUND_SETTINGS_SCHEMA_MODULE = "sound_system_settings";
   const SOUND_SETTINGS_SCHEMA_VERSION = 1;
   const SOUND_SETTINGS_TABLE = "sound_settings";
-  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundBus", "soundsBaseDir", "allowedExtensions"];
+  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundBus", "soundBusCommand", "soundsBaseDir", "allowedExtensions"];
 
   function deepMergeRuntimeSettings(base, override) {
     if (!isPlainObject(base)) base = {};
@@ -337,6 +366,10 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "POST", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "GET", path: `${prefix}/eventbus/reset`, description: "Reset Sound-System EventBus counters only" },
+        { method: "GET", path: `${prefix}/eventbus/command/status`, description: "Sound EventBus command test-layer status without consuming commands" },
+        { method: "GET", path: `${prefix}/eventbus/command/test`, description: "Emit a test-only sound.command play request without touching audio or queue" },
+        { method: "POST", path: `${prefix}/eventbus/command/test`, description: "Emit a test-only sound.command play request without touching audio or queue" },
+        { method: "GET", path: `${prefix}/eventbus/command/reset`, description: "Reset Sound EventBus command test-layer counters only" },
         { method: "GET", path: `${prefix}/generated/beep.wav`, description: "Generated test beep audio" },
         { method: "GET", path: `${prefix}/play`, description: "Play/queue a sound via query parameters" },
         { method: "POST", path: `${prefix}/play`, description: "Play/queue a sound via JSON body" },
@@ -527,6 +560,7 @@ module.exports.init = function init(ctx) {
     if (!config.categoryDefaults) config.categoryDefaults = DEFAULT_CONFIG.categoryDefaults;
     if (!config.discordRouting) config.discordRouting = DEFAULT_CONFIG.discordRouting;
     if (!config.soundBus) config.soundBus = DEFAULT_CONFIG.soundBus;
+    if (!config.soundBusCommand) config.soundBusCommand = DEFAULT_CONFIG.soundBusCommand;
     if (config.soundBus && config.soundBus.forceDisabled !== true) config.soundBus.enabled = true;
     messages = loadedMessages.config || DEFAULT_MESSAGES;
 
@@ -810,7 +844,10 @@ module.exports.init = function init(ctx) {
       routes: {
         status: `${config.routes?.prefix || "/api/sound"}/eventbus/status`,
         test: `${config.routes?.prefix || "/api/sound"}/eventbus/test`,
-        reset: `${config.routes?.prefix || "/api/sound"}/eventbus/reset`
+        reset: `${config.routes?.prefix || "/api/sound"}/eventbus/reset`,
+        commandStatus: `${config.routes?.prefix || "/api/sound"}/eventbus/command/status`,
+        commandTest: `${config.routes?.prefix || "/api/sound"}/eventbus/command/test`,
+        commandReset: `${config.routes?.prefix || "/api/sound"}/eventbus/command/reset`
       },
       notes: [
         "Sound-System remains the central audio/media layer.",
@@ -872,6 +909,213 @@ module.exports.init = function init(ctx) {
       eventBus: publicSoundBusStatus({ includeRecentEvents: true }),
       updatedAt: core.nowIso()
     };
+  }
+
+  function soundBusCommandConfig() {
+    const commandConfig = config.soundBusCommand && isPlainObject(config.soundBusCommand) ? config.soundBusCommand : DEFAULT_CONFIG.soundBusCommand;
+    return { ...DEFAULT_CONFIG.soundBusCommand, ...commandConfig };
+  }
+
+  function soundBusCommandTarget(commandConfig) {
+    return {
+      type: String(commandConfig.targetType || "module"),
+      id: String(commandConfig.targetId || MODULE_NAME),
+      module: String(commandConfig.targetModule || MODULE_NAME),
+      capability: String(commandConfig.targetCapability || SOUND_BUS_COMMAND_CAPABILITY)
+    };
+  }
+
+  function pushSoundBusCommandRecent(entry) {
+    if (!state.soundBusCommand || !Array.isArray(state.soundBusCommand.recentCommands)) state.soundBusCommand.recentCommands = [];
+    state.soundBusCommand.recentCommands.unshift(entry);
+    if (state.soundBusCommand.recentCommands.length > 25) state.soundBusCommand.recentCommands.length = 25;
+  }
+
+  function publicSoundBusCommandStatus(options = {}) {
+    const includeRecentCommands = options.includeRecentCommands !== false;
+    const commandConfig = soundBusCommandConfig();
+    const bus = getCommunicationBus();
+    const stats = { ...state.soundBusCommand };
+    delete stats.recentCommands;
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      configVersion: state.version || "",
+      capability: SOUND_BUS_COMMAND_CAPABILITY,
+      statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+      feature: "sound_bus_command_test_layer",
+      mode: String(commandConfig.mode || "test_only"),
+      commandLayerReady: true,
+      commandConsumerEnabled: false,
+      deliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
+      soundSystemRole: "central_audio_media_layer",
+      legacyWebSocketFlow: "unchanged",
+      legacyApiFlow: "unchanged",
+      enabled: commandConfig.enabled !== false,
+      channel: String(commandConfig.channel || "sound.command"),
+      action: String(commandConfig.action || "play.request.test"),
+      requireAck: commandConfig.requireAck === true,
+      replayable: commandConfig.replayable === true,
+      ttlMs: Number(commandConfig.ttlMs || 0),
+      target: soundBusCommandTarget(commandConfig),
+      communicationBusAvailable: !!bus,
+      routes: {
+        status: `${config.routes?.prefix || "/api/sound"}/eventbus/command/status`,
+        test: `${config.routes?.prefix || "/api/sound"}/eventbus/command/test`,
+        reset: `${config.routes?.prefix || "/api/sound"}/eventbus/command/reset`
+      },
+      protection: {
+        testOnly: true,
+        queueTouched: false,
+        audioTouched: false,
+        legacyFlowTouched: false,
+        allowQueueTouch: commandConfig.allowQueueTouch === true,
+        allowAudioTouch: commandConfig.allowAudioTouch === true
+      },
+      notes: [
+        "This is only the Sound EventBus command test layer.",
+        "It emits a sound.command play request event for diagnostics and future consumers.",
+        "It does not consume Bus commands, does not play audio and does not touch the queue.",
+        "Legacy /api/sound/play remains the productive entry point."
+      ],
+      stats,
+      recentCommands: includeRecentCommands ? [...(state.soundBusCommand.recentCommands || [])] : []
+    };
+  }
+
+  function resetSoundBusCommandRuntime() {
+    if (!state.soundBusCommand) state.soundBusCommand = {};
+    state.soundBusCommand.emitted = 0;
+    state.soundBusCommand.skipped = 0;
+    state.soundBusCommand.errors = 0;
+    state.soundBusCommand.lastAction = "";
+    state.soundBusCommand.lastEventId = "";
+    state.soundBusCommand.lastResult = null;
+    state.soundBusCommand.lastError = "";
+    state.soundBusCommand.lastAt = core.nowIso();
+    state.soundBusCommand.recentCommands = [];
+    touch();
+    return publicSoundBusCommandStatus({ includeRecentCommands: true });
+  }
+
+  function emitSoundBusCommandTest(input = {}) {
+    const body = isPlainObject(input) ? input : {};
+    const commandConfig = soundBusCommandConfig();
+    const bus = getCommunicationBus();
+    const action = String(commandConfig.action || "play.request.test");
+    const soundId = String(body.sound || body.soundId || "test_ping").trim() || "test_ping";
+    const requestedBy = String(body.requestedBy || body.user || "step426-test").trim() || "step426-test";
+    const source = String(body.source || "sound_eventbus_command_test").trim() || "sound_eventbus_command_test";
+    const requestId = String(body.requestId || `cmd_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+
+    if (commandConfig.enabled === false || !bus || typeof bus.emit !== "function") {
+      state.soundBusCommand.skipped += 1;
+      state.soundBusCommand.lastAction = action;
+      state.soundBusCommand.lastAt = core.nowIso();
+      state.soundBusCommand.lastError = commandConfig.enabled === false ? "sound_bus_command_disabled" : "communication_bus_unavailable";
+      return {
+        ok: false,
+        skipped: true,
+        reason: state.soundBusCommand.lastError,
+        command: publicSoundBusCommandStatus({ includeRecentCommands: true })
+      };
+    }
+
+    const payload = {
+      testOnly: true,
+      command: "sound.play.request",
+      requestId,
+      soundId,
+      label: String(body.label || "STEP426 Sound Bus Command Test"),
+      category: String(body.category || "system"),
+      target: String(body.target || "stream"),
+      outputTarget: String(body.outputTarget || "overlay"),
+      requestedBy,
+      source,
+      reason: "manual_command_test",
+      message: String(body.message || "Sound-System Bus command test"),
+      protection: {
+        soundSystemTouched: false,
+        queueTouched: false,
+        audioTouched: false,
+        legacyFlowTouched: false
+      },
+      emittedAt: core.nowIso()
+    };
+
+    try {
+      const result = bus.emit({
+        channel: String(commandConfig.channel || "sound.command"),
+        action,
+        source: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+        target: soundBusCommandTarget(commandConfig),
+        payload,
+        meta: {
+          module: MODULE_NAME,
+          moduleVersion: MODULE_VERSION,
+          configVersion: state.version || "",
+          capability: SOUND_BUS_COMMAND_CAPABILITY,
+          statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+          busMode: "command_test_layer",
+          soundSystemRole: "central_audio_media_layer",
+          command: payload.command,
+          testOnly: true,
+          replayable: commandConfig.replayable === true,
+          requireAck: commandConfig.requireAck === true,
+          ttlMs: Number(commandConfig.ttlMs || 0)
+        }
+      });
+
+      state.soundBusCommand.emitted += 1;
+      state.soundBusCommand.lastAction = action;
+      state.soundBusCommand.lastEventId = result && result.eventId ? String(result.eventId) : "";
+      state.soundBusCommand.lastResult = result || null;
+      state.soundBusCommand.lastError = "";
+      state.soundBusCommand.lastAt = core.nowIso();
+      pushSoundBusCommandRecent({
+        at: state.soundBusCommand.lastAt,
+        eventId: state.soundBusCommand.lastEventId,
+        action,
+        command: payload.command,
+        requestId,
+        soundId,
+        requestedBy,
+        source,
+        deliveredCount: result && Number.isFinite(Number(result.deliveredCount)) ? Number(result.deliveredCount) : 0,
+        deliveredTo: Array.isArray(result && result.deliveredTo) ? result.deliveredTo.slice() : []
+      });
+
+      return {
+        ok: result && result.ok === true,
+        module: MODULE_NAME,
+        version: MODULE_VERSION,
+        capability: SOUND_BUS_COMMAND_CAPABILITY,
+        statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+        testOnly: true,
+        commandLayerReady: true,
+        commandConsumerEnabled: false,
+        soundSystemTouched: false,
+        queueTouched: false,
+        audioTouched: false,
+        legacyWebSocketFlow: "unchanged",
+        legacyApiFlow: "unchanged",
+        request: payload,
+        result: result || null,
+        command: publicSoundBusCommandStatus({ includeRecentCommands: true }),
+        updatedAt: core.nowIso()
+      };
+    } catch (err) {
+      state.soundBusCommand.errors += 1;
+      state.soundBusCommand.lastAction = action;
+      state.soundBusCommand.lastError = err && err.message ? err.message : String(err);
+      state.soundBusCommand.lastAt = core.nowIso();
+      return {
+        ok: false,
+        error: state.soundBusCommand.lastError,
+        command: publicSoundBusCommandStatus({ includeRecentCommands: true })
+      };
+    }
   }
 
   function broadcastSoundState(reason, extra = {}) {
@@ -1093,6 +1337,7 @@ module.exports.init = function init(ctx) {
       device: { ...state.device },
       discord: { ...state.discord },
       soundBus: publicSoundBusStatus(),
+      soundBusCommand: publicSoundBusCommandStatus({ includeRecentCommands: false }),
       stats: { ...state.stats },
       config: {
         path: state.configPath,
@@ -1101,6 +1346,7 @@ module.exports.init = function init(ctx) {
         routes: config.routes || {},
         websocket: config.websocket || {},
         soundBus: config.soundBus || {},
+        soundBusCommand: config.soundBusCommand || {},
         overlay: config.overlay || {},
         output: config.output || {},
         queue: config.queue || {},
@@ -2500,6 +2746,10 @@ module.exports.init = function init(ctx) {
   app.get(`${prefix}/eventbus/reset`, (req, res) => res.json({ ...resetSoundBusRuntime(), reset: true, resetAt: core.nowIso() }));
   app.get(`${prefix}/eventbus/test`, (req, res) => res.json(emitSoundBusTest(req.query || {})));
   app.post(`${prefix}/eventbus/test`, (req, res) => res.json(emitSoundBusTest(req.body || {})));
+  app.get(`${prefix}/eventbus/command/status`, (req, res) => res.json(publicSoundBusCommandStatus({ includeRecentCommands: true })));
+  app.get(`${prefix}/eventbus/command/reset`, (req, res) => res.json({ ...resetSoundBusCommandRuntime(), reset: true, resetAt: core.nowIso() }));
+  app.get(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.query || {})));
+  app.post(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.body || {})));
   app.get(`${prefix}/current`, (req, res) => res.json(core.ok({ current: state.current ? publicItem(state.current) : null })));
   app.get(`${prefix}/queue`, (req, res) => res.json(core.ok({ queue: state.queue.map(publicItem), queuedCount: state.queue.length })));
   app.get(`${prefix}/list`, (req, res) => res.json(core.ok({ sounds: getSoundList() })));

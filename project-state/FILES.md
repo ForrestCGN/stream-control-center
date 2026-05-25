@@ -1,7 +1,14 @@
-# Files
+# FILES - STEP426
 
-- backend/modules/bus_diagnostics.js
-- htdocs/dashboard/modules/bus_diagnostics.js
-- htdocs/dashboard/modules/bus_diagnostics.css
-- docs/current/CURRENT_SYSTEM_STATUS.md
-- project-state/*
+## Changed
+
+- `backend/modules/sound_system.js`
+
+## Documentation
+
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/STEP426_SOUND_BUS_COMMAND_TEST_LAYER.md`
