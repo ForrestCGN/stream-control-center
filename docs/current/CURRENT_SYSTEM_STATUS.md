@@ -1,13 +1,14 @@
-# Current System Status – STEP430
+# Current System Status
 
-STEP430 ergänzt im Sound-System eine explizite Play-Test-Route für Bus-förmige Sound-Commands.
+## STEP431
 
-Produktiv bleibt unverändert:
-- VIP nutzt weiterhin den bestehenden Legacy-Sound-System-API-Flow.
-- Alert nutzt weiterhin den bestehenden Alert-/Sound-Bundle-/Overlay-Flow.
-- Der Communication Bus steuert weiterhin nicht automatisch produktiv.
+VIP Sound-Bus command play-test layer prepared.
 
-Neue Test-Route:
-- `/api/sound/eventbus/command/play-test`
+VIP now has a read/test route that can send the VIP command-shaped payload to the Sound-System explicit play-test route:
 
-Diese Route ist bewusst explizit und dient nur zum manuellen Funktionstest des Command-Consumers.
+- `/api/vip-sound/eventbus/sound-command/play-test`
+- `/api/vip-sound-overlay/eventbus/sound-command/play-test`
+
+This is still not the productive VIP migration. The productive VIP command path remains the existing legacy Sound-System API path.
+
+Sound-System command play-test must remain explicitly called. Automatic Bus command consumption is not enabled.

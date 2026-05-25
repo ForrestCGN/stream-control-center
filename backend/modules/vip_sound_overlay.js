@@ -48,6 +48,7 @@ module.exports.init = function init(ctx) {
   const VIP_OVERLAY_STYLE = "overlay";
   const VIP_SOUND_SYSTEM_PLAY_URL = process.env.VIP_SOUND_SYSTEM_PLAY_URL || "http://127.0.0.1:8080/api/sound/play";
   const VIP_SOUND_COMMAND_DRY_RUN_URL = process.env.VIP_SOUND_COMMAND_DRY_RUN_URL || "http://127.0.0.1:8080/api/sound/eventbus/command/dry-run";
+  const VIP_SOUND_COMMAND_PLAY_TEST_URL = process.env.VIP_SOUND_COMMAND_PLAY_TEST_URL || "http://127.0.0.1:8080/api/sound/eventbus/command/play-test";
   const VIP_OVERRIDE_ALLOWED_ROLES_RAW = process.env.VIP_OVERRIDE_ALLOWED_ROLES || "moderator,mod,broadcaster";
   const VIP_ROLES_CONFIG_PATH = process.env.VIP_ROLES_CONFIG_PATH || configHelper.resolveConfigFile("vip_sound_roles.json");
   const VIP_SETTINGS_CONFIG_FILE = process.env.VIP_SETTINGS_CONFIG_FILE || "vip_sound.json";
@@ -274,7 +275,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.13",
+    version: "1.8.14",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -341,12 +342,16 @@ module.exports.init = function init(ctx) {
       commandConsumerEnabled: true,
       commandConsumerMode: "dry_run",
       soundDryRunUrl: VIP_SOUND_COMMAND_DRY_RUN_URL,
+      soundPlayTestUrl: VIP_SOUND_COMMAND_PLAY_TEST_URL,
       emitted: 0,
       skipped: 0,
       errors: 0,
       dryRunChecks: 0,
       dryRunOk: 0,
       dryRunFailed: 0,
+      playTestChecks: 0,
+      playTestOk: 0,
+      playTestFailed: 0,
       lastAction: "",
       lastEventId: "",
       lastRequestId: "",
@@ -354,6 +359,7 @@ module.exports.init = function init(ctx) {
       lastSoundId: "",
       lastResult: null,
       lastDryRun: null,
+      lastPlayTest: null,
       lastError: "",
       lastAt: "",
       recentCommands: []
@@ -2867,20 +2873,22 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_sound_to_sound_bus_command_dry_run_check",
+      feature: "vip_sound_to_sound_bus_command_play_test_check",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
       shadowOnly: true,
       dryRunOnly: true,
+      playTestOnly: true,
       commandLayerReady: true,
       commandConsumerEnabled: !!state.soundBusCommand.commandConsumerEnabled,
       commandConsumerMode: state.soundBusCommand.commandConsumerMode || "dry_run",
       soundDryRunUrl: state.soundBusCommand.soundDryRunUrl || VIP_SOUND_COMMAND_DRY_RUN_URL,
+      soundPlayTestUrl: state.soundBusCommand.soundPlayTestUrl || VIP_SOUND_COMMAND_PLAY_TEST_URL,
       productiveVipFlow: "legacy_sound_system_api",
       legacyVipFlow: "unchanged",
       legacySoundSystemFlow: "unchanged",
-      deliveryClassification: "module_scoped_shadow_command_dry_run_stream",
+      deliveryClassification: "module_scoped_shadow_command_play_test_stream",
       enabled: !!state.soundBusCommand.enabled,
       channel: state.soundBusCommand.channel,
       action: state.soundBusCommand.action,
@@ -2895,6 +2903,7 @@ module.exports.init = function init(ctx) {
         status: prefix ? `${prefix}/eventbus/sound-command/status` : "",
         test: prefix ? `${prefix}/eventbus/sound-command/test` : "",
         dryRun: prefix ? `${prefix}/eventbus/sound-command/dry-run` : "",
+        playTest: prefix ? `${prefix}/eventbus/sound-command/play-test` : "",
         reset: prefix ? `${prefix}/eventbus/sound-command/reset` : ""
       },
       protection: {
@@ -2903,6 +2912,7 @@ module.exports.init = function init(ctx) {
         vipProductiveFlowTouched: false,
         soundSystemTouched: false,
         soundSystemDryRunTouched: true,
+        soundSystemPlayTestTouched: true,
         queueTouched: false,
         audioTouched: false,
         overlayTouched: false,
@@ -2917,6 +2927,9 @@ module.exports.init = function init(ctx) {
         dryRunChecks: Number(state.soundBusCommand.dryRunChecks || 0),
         dryRunOk: Number(state.soundBusCommand.dryRunOk || 0),
         dryRunFailed: Number(state.soundBusCommand.dryRunFailed || 0),
+        playTestChecks: Number(state.soundBusCommand.playTestChecks || 0),
+        playTestOk: Number(state.soundBusCommand.playTestOk || 0),
+        playTestFailed: Number(state.soundBusCommand.playTestFailed || 0),
         lastAction: state.soundBusCommand.lastAction || "",
         lastEventId: state.soundBusCommand.lastEventId || "",
         lastRequestId: state.soundBusCommand.lastRequestId || "",
@@ -2924,6 +2937,7 @@ module.exports.init = function init(ctx) {
         lastSoundId: state.soundBusCommand.lastSoundId || "",
         lastResult: state.soundBusCommand.lastResult || null,
         lastDryRun: state.soundBusCommand.lastDryRun || null,
+        lastPlayTest: state.soundBusCommand.lastPlayTest || null,
         lastError: state.soundBusCommand.lastError || "",
         lastAt: state.soundBusCommand.lastAt || ""
       },
@@ -2932,7 +2946,8 @@ module.exports.init = function init(ctx) {
         "VIP still uses the legacy /api/sound/play productive path.",
         "This layer mirrors VIP sound wishes as test-only sound.command events for diagnostics.",
         "The dry-run route sends the same payload to the Sound-System dry-run consumer for validation only.",
-        "It does not start audio and does not touch the Sound-System queue.",
+        "The play-test route sends the same payload to the Sound-System explicit play-test route for manual audio testing.",
+        "It does not change the productive VIP entry point and does not automatically consume Bus commands.",
         "If the Communication Bus is unavailable, VIP continues through the existing Sound-System flow."
       ],
       updatedAt: nowIso()
@@ -2946,6 +2961,9 @@ module.exports.init = function init(ctx) {
     state.soundBusCommand.dryRunChecks = 0;
     state.soundBusCommand.dryRunOk = 0;
     state.soundBusCommand.dryRunFailed = 0;
+    state.soundBusCommand.playTestChecks = 0;
+    state.soundBusCommand.playTestOk = 0;
+    state.soundBusCommand.playTestFailed = 0;
     state.soundBusCommand.lastAction = "";
     state.soundBusCommand.lastEventId = "";
     state.soundBusCommand.lastRequestId = "";
@@ -2953,6 +2971,7 @@ module.exports.init = function init(ctx) {
     state.soundBusCommand.lastSoundId = "";
     state.soundBusCommand.lastResult = null;
     state.soundBusCommand.lastDryRun = null;
+    state.soundBusCommand.lastPlayTest = null;
     state.soundBusCommand.lastError = "";
     state.soundBusCommand.lastAt = nowIso();
     state.soundBusCommand.recentCommands = [];
@@ -3018,6 +3037,7 @@ module.exports.init = function init(ctx) {
         vipProductiveFlowTouched: false,
         soundSystemTouched: false,
         soundSystemDryRunTouched: true,
+        soundSystemPlayTestTouched: true,
         queueTouched: false,
         audioTouched: false,
         overlayTouched: false,
@@ -3130,6 +3150,7 @@ module.exports.init = function init(ctx) {
         testOnly: true,
         soundSystemTouched: false,
         soundSystemDryRunTouched: true,
+        soundSystemPlayTestTouched: true,
         queueTouched: false,
         audioTouched: false
       };
@@ -3226,13 +3247,14 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_to_sound_bus_command_dry_run_check",
+        feature: "vip_sound_to_sound_bus_command_play_test_check",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
         vipProductiveFlowTouched: false,
         soundSystemTouched: false,
         soundSystemDryRunTouched: true,
+        soundSystemPlayTestTouched: true,
         queueTouched: false,
         audioTouched: false,
         overlayTouched: false,
@@ -3254,10 +3276,146 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_sound_to_sound_bus_command_dry_run_check",
+        feature: "vip_sound_to_sound_bus_command_play_test_check",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
+        error: state.soundBusCommand.lastError,
+        busEvent: emitResult,
+        soundSystemTouched: false,
+        queueTouched: false,
+        audioTouched: false,
+        overlayTouched: false,
+        dailyUsageTouched: false
+      };
+    }
+  }
+
+
+  async function playTestVipSoundBusCommand(raw = {}, soundQueue = null, context = {}) {
+    const emitResult = emitVipSoundBusCommandTest(raw, soundQueue, context, { playTest: true });
+    const payload = emitResult && emitResult.payload ? emitResult.payload : buildVipSoundBusCommandPayload(raw, soundQueue, context);
+    const startedAt = nowIso();
+
+    state.soundBusCommand.playTestChecks += 1;
+    state.soundBusCommand.lastAction = "play.request.vip_play_test";
+    state.soundBusCommand.lastRequestId = payload.requestId || "";
+    state.soundBusCommand.lastVipRequestId = payload.vipRequestId || "";
+    state.soundBusCommand.lastSoundId = payload.soundId || "";
+    state.soundBusCommand.lastAt = startedAt;
+
+    try {
+      const playTestPayload = {
+        ...payload,
+        playTestOnly: true,
+        dryRunOnly: false,
+        testOnly: true,
+        shadowOnly: true,
+        source: "vip_sound_overlay_to_sound_play_test",
+        reason: "vip_shadow_command_sound_play_test",
+        protection: {
+          ...(payload.protection || {}),
+          playTestOnly: true,
+          dryRunOnly: false,
+          soundSystemPlayTestTouched: true,
+          soundSystemDryRunTouched: false,
+          soundSystemTouched: true,
+          queueTouched: false,
+          audioTouched: true,
+          overlayTouched: false,
+          dailyUsageTouched: false,
+          productiveVipFlowTouched: false
+        }
+      };
+
+      const playTestResult = await httpPostJson(state.soundBusCommand.soundPlayTestUrl || VIP_SOUND_COMMAND_PLAY_TEST_URL, playTestPayload);
+      const accepted = !!(playTestResult && playTestResult.accepted);
+      const playedOrQueued = !!(playTestResult && playTestResult.result && playTestResult.result.playedOrQueued);
+      const started = !!(playTestResult && playTestResult.result && playTestResult.result.started);
+      const queued = !!(playTestResult && playTestResult.result && playTestResult.result.queued);
+
+      if (accepted && playedOrQueued) state.soundBusCommand.playTestOk += 1;
+      else state.soundBusCommand.playTestFailed += 1;
+
+      state.soundBusCommand.lastPlayTest = {
+        ok: !!(playTestResult && playTestResult.ok),
+        accepted,
+        playedOrQueued,
+        started,
+        queued,
+        soundSystemVersion: playTestResult && playTestResult.version ? playTestResult.version : "",
+        commandConsumerMode: playTestResult && playTestResult.commandConsumerMode ? playTestResult.commandConsumerMode : "",
+        normalizedSoundId: playTestResult && playTestResult.result && playTestResult.result.normalizedItem ? playTestResult.result.normalizedItem.soundId || "" : "",
+        normalizedFile: playTestResult && playTestResult.result && playTestResult.result.normalizedItem ? playTestResult.result.normalizedItem.file || "" : "",
+        queueTouched: !!(playTestResult && playTestResult.result && playTestResult.result.queueTouched),
+        audioTouched: !!(playTestResult && playTestResult.result && playTestResult.result.audioTouched),
+        message: playTestResult && playTestResult.result ? playTestResult.result.message || "" : ""
+      };
+      state.soundBusCommand.lastResult = {
+        bus: state.soundBusCommand.lastResult,
+        playTest: state.soundBusCommand.lastPlayTest
+      };
+      state.soundBusCommand.lastError = accepted && playedOrQueued ? "" : "sound_play_test_rejected";
+      state.soundBusCommand.lastAt = nowIso();
+
+      state.soundBusCommand.recentCommands.unshift({
+        at: state.soundBusCommand.lastAt,
+        action: "play.request.vip_play_test",
+        command: payload.command,
+        requestId: payload.requestId,
+        vipRequestId: payload.vipRequestId,
+        soundId: payload.soundId,
+        requestedBy: payload.requestedBy,
+        source: "vip_sound_overlay_to_sound_play_test",
+        shadowOnly: true,
+        playTestOnly: true,
+        accepted,
+        playedOrQueued,
+        started,
+        queued,
+        queueTouched: state.soundBusCommand.lastPlayTest.queueTouched,
+        audioTouched: state.soundBusCommand.lastPlayTest.audioTouched
+      });
+      trimRecentVipSoundBusCommands();
+
+      return {
+        ok: !!(playTestResult && playTestResult.ok),
+        module: MODULE_NAME,
+        version: state.version,
+        feature: "vip_sound_to_sound_bus_command_play_test_check",
+        testOnly: true,
+        shadowOnly: true,
+        playTestOnly: true,
+        vipProductiveFlowTouched: false,
+        soundSystemTouched: true,
+        soundSystemPlayTestTouched: true,
+        queueTouched: state.soundBusCommand.lastPlayTest.queueTouched,
+        audioTouched: state.soundBusCommand.lastPlayTest.audioTouched,
+        overlayTouched: false,
+        dailyUsageTouched: false,
+        busEvent: emitResult,
+        soundPlayTest: playTestResult,
+        accepted,
+        playedOrQueued,
+        started,
+        queued,
+        updatedAt: state.soundBusCommand.lastAt
+      };
+    } catch (err) {
+      state.soundBusCommand.playTestFailed += 1;
+      state.soundBusCommand.errors += 1;
+      state.soundBusCommand.lastPlayTest = null;
+      state.soundBusCommand.lastResult = emitResult || null;
+      state.soundBusCommand.lastError = err && err.message ? err.message : String(err);
+      state.soundBusCommand.lastAt = nowIso();
+      return {
+        ok: false,
+        module: MODULE_NAME,
+        version: state.version,
+        feature: "vip_sound_to_sound_bus_command_play_test_check",
+        testOnly: true,
+        shadowOnly: true,
+        playTestOnly: true,
         error: state.soundBusCommand.lastError,
         busEvent: emitResult,
         soundSystemTouched: false,
@@ -4136,6 +4294,8 @@ module.exports.init = function init(ctx) {
       { method: "POST", path: `${prefix}/eventbus/sound-command/test`, purpose: "emit test-only VIP sound-command shadow event" },
       { method: "GET", path: `${prefix}/eventbus/sound-command/dry-run`, purpose: "emit VIP shadow command and validate it against Sound-System dry-run consumer" },
       { method: "POST", path: `${prefix}/eventbus/sound-command/dry-run`, purpose: "emit VIP shadow command and validate it against Sound-System dry-run consumer" },
+      { method: "GET", path: `${prefix}/eventbus/sound-command/play-test`, purpose: "emit VIP shadow command and execute it through Sound-System explicit play-test route" },
+      { method: "POST", path: `${prefix}/eventbus/sound-command/play-test`, purpose: "emit VIP shadow command and execute it through Sound-System explicit play-test route" },
       { method: "POST", path: `${prefix}/eventbus/sound-command/reset`, purpose: "reset VIP to Sound-Bus command diagnostic counters only" },
       { method: "GET", path: `${prefix}/eventbus/sound-command/reset`, purpose: "legacy GET reset for VIP to Sound-Bus command diagnostic counters only" },
       { method: "POST", path: `${prefix}/reload`, purpose: "safe VIP diagnostics reload" }
@@ -4198,6 +4358,7 @@ module.exports.init = function init(ctx) {
         soundCommandStatus: prefix ? `${prefix}/eventbus/sound-command/status` : "",
         soundCommandTest: prefix ? `${prefix}/eventbus/sound-command/test` : "",
         soundCommandDryRun: prefix ? `${prefix}/eventbus/sound-command/dry-run` : "",
+        soundCommandPlayTest: prefix ? `${prefix}/eventbus/sound-command/play-test` : "",
         soundCommandReset: prefix ? `${prefix}/eventbus/sound-command/reset` : ""
       },
       soundCommand: publicVipSoundBusCommandStatus(prefix),
@@ -4581,7 +4742,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_sound_to_sound_bus_command_dry_run_check",
+          feature: "vip_sound_to_sound_bus_command_play_test_check",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -4610,7 +4771,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_sound_to_sound_bus_command_dry_run_check",
+          feature: "vip_sound_to_sound_bus_command_play_test_check",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -4651,6 +4812,41 @@ module.exports.init = function init(ctx) {
         const result = await dryRunVipSoundBusCommand(requestData(req), null, {
           date: getBerlinDate(),
           trigger: "vip_sound_bus_command_dry_run"
+        });
+        return res.json({
+          ...result,
+          command: publicVipSoundBusCommandStatus(prefix),
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+
+    app.get(`${prefix}/eventbus/sound-command/play-test`, async (req, res) => {
+      try {
+        markClientSeen();
+        const result = await playTestVipSoundBusCommand(requestData(req), null, {
+          date: getBerlinDate(),
+          trigger: "vip_sound_bus_command_play_test"
+        });
+        return res.json({
+          ...result,
+          command: publicVipSoundBusCommandStatus(prefix),
+          updatedAt: nowIso()
+        });
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.post(`${prefix}/eventbus/sound-command/play-test`, async (req, res) => {
+      try {
+        markClientSeen();
+        const result = await playTestVipSoundBusCommand(requestData(req), null, {
+          date: getBerlinDate(),
+          trigger: "vip_sound_bus_command_play_test"
         });
         return res.json({
           ...result,

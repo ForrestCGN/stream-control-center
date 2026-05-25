@@ -1,13 +1,5 @@
-# NEXT_STEPS
+# Next Steps
 
-## Nächster sinnvoller Schritt
-
-STEP430 – optionalen echten Sound-Bus-Start vorbereiten, weiterhin hinter einem klaren Modus-Schalter.
-
-Vorschlag:
-
-```text
-soundCommandMode: dry_run | enabled
-```
-
-Standard bleibt `dry_run`, bis der produktive Bus-Start bewusst aktiviert wird.
+1. Test `/api/vip-sound/eventbus/sound-command/play-test?soundId=test_ping&requestedBy=ForrestCGN&message=STEP431`.
+2. Confirm accepted/playedOrQueued/started and playTestOk.
+3. If stable, prepare optional VIP Bus mode behind config switch.
