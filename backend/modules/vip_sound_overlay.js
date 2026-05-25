@@ -282,7 +282,7 @@ module.exports.init = function init(ctx) {
   const userInfoCache = new Map();
 
   const state = {
-    version: "1.8.25",
+    version: "1.8.26",
     module: MODULE_NAME,
     overlay: emptyOverlay(),
     queue: [],
@@ -1990,7 +1990,7 @@ module.exports.init = function init(ctx) {
           ok: true,
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_status_cleanup",
+          feature: "vip_bus_first_no_legacy_admin_test",
           baseDir,
           fileExtension,
           count: 0,
@@ -2032,7 +2032,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_status_cleanup",
+        feature: "vip_bus_first_no_legacy_admin_test",
         baseDir,
         fileExtension,
         count: 0,
@@ -2046,7 +2046,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_status_cleanup",
+      feature: "vip_bus_first_no_legacy_admin_test",
       baseDir,
       fileExtension,
       count: entries.length,
@@ -3094,7 +3094,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_status_cleanup",
+      feature: "vip_bus_first_no_legacy_admin_test",
       source: String(source || "status"),
       requestedVipBusMode: requestedMode,
       runtimeVipBusMode: runtimeMode,
@@ -3163,6 +3163,10 @@ module.exports.init = function init(ctx) {
       busFirstTestApplied: !!extra.busFirstTestApplied,
       busFirstTestPath: String(extra.busFirstTestPath || ""),
       legacyQueueSkippedForBusFirstTest: !!extra.legacyQueueSkippedForBusFirstTest,
+      noLegacyFallback: !!extra.noLegacyFallback,
+      busFirstOnly: !!extra.busFirstOnly,
+      legacyFallbackAllowed: extra.legacyFallbackAllowed === undefined ? true : !!extra.legacyFallbackAllowed,
+      legacyFallbackUsed: !!extra.legacyFallbackUsed,
       vipBusMode: runtimeVipBusMode,
       runtimeVipBusMode,
       configuredVipBusMode: getConfiguredVipBusMode(),
@@ -3200,6 +3204,10 @@ module.exports.init = function init(ctx) {
       productiveBusAllowed: guard.productiveBusAllowed,
       productiveBusBlocked: guard.productiveBusBlocked,
       productiveEntryPointChanged: false,
+      noLegacyFallback: snapshot.noLegacyFallback,
+      busFirstOnly: snapshot.busFirstOnly,
+      legacyFallbackAllowed: snapshot.legacyFallbackAllowed,
+      legacyFallbackUsed: snapshot.legacyFallbackUsed,
       queueTouched: false,
       audioTouched: false,
       dailyUsageTouched: false
@@ -3223,7 +3231,7 @@ module.exports.init = function init(ctx) {
       ok: true,
       module: MODULE_NAME,
       version: state.version,
-      feature: "vip_bus_first_status_cleanup",
+      feature: "vip_bus_first_no_legacy_admin_test",
       capability: state.soundBusCommand.capability,
       statusApiVersion: "1.0.0",
       mode: state.soundBusCommand.mode,
@@ -3642,7 +3650,7 @@ module.exports.init = function init(ctx) {
         ok: !!(dryRunResult && dryRunResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_status_cleanup",
+        feature: "vip_bus_first_no_legacy_admin_test",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3671,7 +3679,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_status_cleanup",
+        feature: "vip_bus_first_no_legacy_admin_test",
         testOnly: true,
         shadowOnly: true,
         dryRunOnly: true,
@@ -3777,7 +3785,7 @@ module.exports.init = function init(ctx) {
         ok: !!(playTestResult && playTestResult.ok),
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_status_cleanup",
+        feature: "vip_bus_first_no_legacy_admin_test",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -3794,6 +3802,10 @@ module.exports.init = function init(ctx) {
         playedOrQueued,
         started,
         queued,
+        queueTouched: state.soundBusCommand.lastPlayTest.queueTouched,
+        audioTouched: state.soundBusCommand.lastPlayTest.audioTouched,
+        normalizedSoundId: state.soundBusCommand.lastPlayTest.normalizedSoundId || "",
+        normalizedFile: state.soundBusCommand.lastPlayTest.normalizedFile || "",
         updatedAt: state.soundBusCommand.lastAt
       };
     } catch (err) {
@@ -3807,7 +3819,7 @@ module.exports.init = function init(ctx) {
         ok: false,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_status_cleanup",
+        feature: "vip_bus_first_no_legacy_admin_test",
         testOnly: true,
         shadowOnly: true,
         playTestOnly: true,
@@ -4220,6 +4232,7 @@ module.exports.init = function init(ctx) {
     const consumeDaily = boolish(data.consumeDaily || data.selfTrigger || data.writeDailyUsage);
     const forceAccess = boolish(data.forceAccess || data.adminForceAccess || data.vipAdminForceAccess);
     const busFirstTest = boolish(data.busFirstTest || data.useBusFirst || data.busFirst || data.busFirstPlayTest || data.soundBusFirstTest);
+    const noLegacyFallback = boolish(data.noLegacyFallback || data.noLegacy || data.busFirstOnly || data.requireBusFirst || data.disableLegacyFallback);
     const soundOverride = resolveVipAdminTestSoundOverride(data);
     const requestedAdminTestVipBusMode = String(data.testVipBusMode || data.vipBusMode || data.busMode || data.mode || "").trim();
     const adminTestVipBusModeBefore = getRuntimeVipBusMode();
@@ -4246,6 +4259,8 @@ module.exports.init = function init(ctx) {
       vipBusMode: adminTestVipBusModeApplied || getRuntimeVipBusMode(),
       testVipBusMode: adminTestVipBusModeApplied || "",
       busFirstTest: busFirstTest ? "true" : "false",
+      noLegacyFallback: noLegacyFallback ? "true" : "false",
+      busFirstOnly: noLegacyFallback ? "true" : "false",
       useExistingSound: boolish(data.useExistingSound || data.autoExistingSound || data.useFirstExistingSound || data.forceExistingSound) ? "true" : "false",
       testSoundFile: soundOverride && soundOverride.exists ? soundOverride.fileName : ""
     };
@@ -4268,6 +4283,7 @@ module.exports.init = function init(ctx) {
       adminTest: true,
       forceAccess,
       busFirstTest,
+      noLegacyFallback,
       consumeDaily,
       soundOverride: soundOverride && soundOverride.exists ? soundOverride : null
     });
@@ -4279,6 +4295,10 @@ module.exports.init = function init(ctx) {
       busFirstTest,
       busFirstTestApplied: !!(result && result.busFirstTestApplied),
       busFirstTestPath: result && result.busFirstTestPath ? result.busFirstTestPath : "",
+      noLegacyFallback,
+      busFirstOnly: noLegacyFallback,
+      legacyFallbackAllowed: result && Object.prototype.hasOwnProperty.call(result, "legacyFallbackAllowed") ? !!result.legacyFallbackAllowed : !noLegacyFallback,
+      legacyFallbackUsed: !!(result && result.legacyFallbackUsed),
       adminTestVipBusModeRequested: requestedAdminTestVipBusMode || "",
       adminTestVipBusModeBefore,
       adminTestVipBusModeApplied: adminTestVipBusModeApplied || getRuntimeVipBusMode(),
@@ -4302,6 +4322,7 @@ module.exports.init = function init(ctx) {
     const adminTestRoute = !!opts.adminTest;
     const adminTestForceAccess = !!(adminTestRoute && opts.forceAccess);
     const adminTestBusFirstTest = !!(adminTestRoute && opts.busFirstTest);
+    const adminTestNoLegacyFallback = !!(adminTestRoute && adminTestBusFirstTest && opts.noLegacyFallback);
     const adminTestSkipDailyUsage = !!(adminTestRoute && opts.consumeDaily === false);
     const adminTestSoundOverride = adminTestRoute && opts.soundOverride && opts.soundOverride.exists ? opts.soundOverride : null;
     const dbReady = ensureVipSchema();
@@ -4487,7 +4508,11 @@ module.exports.init = function init(ctx) {
       busFirstTest: adminTestBusFirstTest,
       busFirstTestApplied: adminTestBusFirstTest && getRuntimeVipBusMode() === "bus_enabled",
       busFirstTestPath: adminTestBusFirstTest && getRuntimeVipBusMode() === "bus_enabled" ? "sound_system_play_test" : "",
-      legacyQueueSkippedForBusFirstTest: adminTestBusFirstTest && getRuntimeVipBusMode() === "bus_enabled"
+      legacyQueueSkippedForBusFirstTest: adminTestBusFirstTest && getRuntimeVipBusMode() === "bus_enabled",
+      noLegacyFallback: adminTestNoLegacyFallback,
+      busFirstOnly: adminTestNoLegacyFallback,
+      legacyFallbackAllowed: !adminTestNoLegacyFallback,
+      legacyFallbackUsed: false
     });
     const guardedContext = {
       ...context,
@@ -4531,6 +4556,10 @@ module.exports.init = function init(ctx) {
           busFirstTestApplied: false,
           busFirstTestPath: "sound_system_play_test",
           legacyQueueSkippedForBusFirstTest: true,
+          noLegacyFallback: adminTestNoLegacyFallback,
+          busFirstOnly: adminTestNoLegacyFallback,
+          legacyFallbackAllowed: !adminTestNoLegacyFallback,
+          legacyFallbackUsed: false,
           soundSystemQueued: false,
           vipBusMode: realFlowGuard.runtimeVipBusMode,
           runtimeVipBusMode: realFlowGuard.runtimeVipBusMode,
@@ -4598,6 +4627,10 @@ module.exports.init = function init(ctx) {
         busFirstTestApplied: true,
         busFirstTestPath: "sound_system_play_test",
         legacyQueueSkippedForBusFirstTest: true,
+        noLegacyFallback: adminTestNoLegacyFallback,
+        busFirstOnly: adminTestNoLegacyFallback,
+        legacyFallbackAllowed: !adminTestNoLegacyFallback,
+        legacyFallbackUsed: false,
         soundSystemQueued: playedOrQueued,
         soundSystemStarted: !!(busFirstResult && busFirstResult.started),
         soundSystemQueuePosition: 0,
@@ -4619,7 +4652,18 @@ module.exports.init = function init(ctx) {
           error: busFirstResult && busFirstResult.error ? busFirstResult.error : "",
           busFirstTest: true,
           playTestOnly: true,
-          testOnly: true
+          testOnly: true,
+          accepted: !!(busFirstResult && busFirstResult.accepted),
+          playedOrQueued: !!(busFirstResult && busFirstResult.playedOrQueued),
+          started: !!(busFirstResult && busFirstResult.started),
+          queued: !!(busFirstResult && busFirstResult.queued),
+          queueTouched: !!(busFirstResult && busFirstResult.queueTouched),
+          audioTouched: !!(busFirstResult && busFirstResult.audioTouched),
+          normalizedSoundId: busFirstResult && busFirstResult.normalizedSoundId ? busFirstResult.normalizedSoundId : "",
+          normalizedFile: busFirstResult && busFirstResult.normalizedFile ? busFirstResult.normalizedFile : "",
+          noLegacyFallback: adminTestNoLegacyFallback,
+          legacyFallbackAllowed: !adminTestNoLegacyFallback,
+          legacyFallbackUsed: false
         },
         soundFile: preparedBusFirst.sound.relativeFile,
         soundPath: preparedBusFirst.sound.fullPath,
@@ -4662,6 +4706,10 @@ module.exports.init = function init(ctx) {
         busFirstTestApplied: false,
         busFirstTestPath: "",
         legacyQueueSkippedForBusFirstTest: false,
+        noLegacyFallback: adminTestNoLegacyFallback,
+        busFirstOnly: adminTestNoLegacyFallback,
+        legacyFallbackAllowed: !adminTestNoLegacyFallback,
+        legacyFallbackUsed: false,
         soundSystemQueued: false,
         vipBusMode: realFlowGuard.runtimeVipBusMode,
         runtimeVipBusMode: realFlowGuard.runtimeVipBusMode,
@@ -4745,6 +4793,10 @@ module.exports.init = function init(ctx) {
       busFirstTestApplied: false,
       busFirstTestPath: "",
       legacyQueueSkippedForBusFirstTest: false,
+      noLegacyFallback: adminTestNoLegacyFallback,
+      busFirstOnly: adminTestNoLegacyFallback,
+      legacyFallbackAllowed: !adminTestNoLegacyFallback,
+      legacyFallbackUsed: false,
       soundSystemQueued: true,
       soundSystemStarted: !!soundQueue.result.started,
       soundSystemQueuePosition: Number(soundQueue.result.queuePosition || 0),
@@ -5391,7 +5443,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_status_cleanup",
+          feature: "vip_bus_first_no_legacy_admin_test",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5420,7 +5472,7 @@ module.exports.init = function init(ctx) {
           ok: !!(result && result.ok),
           module: MODULE_NAME,
           version: state.version,
-          feature: "vip_bus_first_status_cleanup",
+          feature: "vip_bus_first_no_legacy_admin_test",
           testOnly: true,
           shadowOnly: true,
           vipProductiveFlowTouched: false,
@@ -5531,7 +5583,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_status_cleanup",
+        feature: "vip_bus_first_no_legacy_admin_test",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,
@@ -5565,7 +5617,7 @@ module.exports.init = function init(ctx) {
         ok: true,
         module: MODULE_NAME,
         version: state.version,
-        feature: "vip_bus_first_status_cleanup",
+        feature: "vip_bus_first_no_legacy_admin_test",
         mode,
         vipBusMode: mode,
         effectiveVipFlow: guard.effectiveVipFlow,

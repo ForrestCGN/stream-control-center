@@ -1,11 +1,13 @@
 # CURRENT_STATUS
 
-Aktueller vorbereiteter Stand: STEP442 – VIP Bus-First Testauswertung / Status Cleanup.
+Aktueller vorbereiteter Stand: STEP443 – VIP Bus-First optionaler Admin-Test ohne Legacy-Fallback.
 
-- VIP-Modul: `1.8.25`
+- VIP-Modul: `1.8.26`
 - Sound-System: `0.1.19`
-- Feature: `vip_bus_first_status_cleanup`
+- Feature: `vip_bus_first_no_legacy_admin_test`
 
-STEP441 hat den Play-Test-Resolve für direkte VIP-Dateien repariert. STEP442 ergänzt die Diagnose, damit `stats.lastSoundId` im Sound-System-Command-Status bei direkten Datei-Payloads nicht leer bleibt, sondern die getestete Datei zeigt.
+STEP442 war erfolgreich: direkte Datei-Payloads erscheinen im Sound-System-Command-Status mit `lastSoundId`, z. B. `vip/adoredpenny.mp3`.
 
-Der produktive VIP-Flow bleibt `legacy_sound_system_api`.
+STEP443 ergänzt den expliziten Admin-Test um `noLegacyFallback=true`/`busFirstOnly=true`, damit der Bus-First-Testpfad separat bewertet werden kann und die Antwort eindeutig zeigt, dass kein Legacy-Fallback verwendet wurde.
+
+Der normale Twitch-Command und der produktive VIP-Flow bleiben unverändert auf `legacy_sound_system_api`.
