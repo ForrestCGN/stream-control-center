@@ -31,7 +31,7 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.1';
+const MODULE_VERSION = '3.1.2';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 
@@ -265,6 +265,20 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, '/api/alerts/eventbus/status', guard, (req, res) => res.json(buildAlertEventBusStatus({ includeRecentEvents: req.query.recent !== '0' })));
   routes.registerGet(app, '/api/alerts/eventbus/test', guard, (req, res) => res.json(emitAlertEventBusTest(req.query || {})));
   routes.registerGet(app, '/api/alerts/eventbus/reset', guard, (req, res) => res.json(resetAlertEventBusDiagnostics()));
+  routes.registerGet(app, '/api/alerts/eventbus/correlation/status', guard, async (req, res) => {
+    try {
+      return res.json(await buildAlertSoundEventBusCorrelationStatus(req.query || {}));
+    } catch (err) {
+      return res.status(500).json({ ok: false, module: MODULE, feature: 'alert_sound_eventbus_correlation', error: err && err.message ? err.message : String(err) });
+    }
+  });
+  routes.registerGet(app, '/api/alerts/eventbus/correlation/check', guard, async (req, res) => {
+    try {
+      return res.json(await buildAlertSoundEventBusCorrelationStatus({ ...(req.query || {}), check: true }));
+    } catch (err) {
+      return res.status(500).json({ ok: false, module: MODULE, feature: 'alert_sound_eventbus_correlation', error: err && err.message ? err.message : String(err) });
+    }
+  });
   routes.registerGet(app, '/api/alerts/bus-mirror/status', guard, (req, res) => res.json(buildAlertBusMirrorStatus()));
   routes.registerGet(app, '/api/alerts/bus-mirror/enable', guard, (req, res) => res.status(req.query.confirm === '1' ? 200 : 400).json(setAlertBusMirrorRuntimeEnabled(true, req.query.confirm === '1' ? 'api_enable' : 'confirm_required')));
   routes.registerGet(app, '/api/alerts/bus-mirror/disable', guard, (req, res) => res.status(req.query.confirm === '1' ? 200 : 400).json(setAlertBusMirrorRuntimeEnabled(false, req.query.confirm === '1' ? 'api_disable' : 'confirm_required')));
@@ -400,6 +414,8 @@ function buildAlertRoutes(req = null) {
     { method: 'GET', path: '/api/alerts/eventbus/status', auth: 'local_or_auth', category: 'communication', description: 'Alert EventBus Status lesen.' },
     { method: 'GET', path: '/api/alerts/eventbus/test', auth: 'local_or_auth', category: 'communication', description: 'Test-only Alert EventBus Event senden, ohne Queue/Sound/Overlay zu verändern.' },
     { method: 'GET', path: '/api/alerts/eventbus/reset', auth: 'local_or_auth', category: 'communication', description: 'Alert EventBus Diagnosezähler zurücksetzen.' },
+    { method: 'GET', path: '/api/alerts/eventbus/correlation/status', auth: 'local_or_auth', category: 'communication', description: 'Read-only Korrelation zwischen Alert-EventBus und Sound-EventBus prüfen.' },
+    { method: 'GET', path: '/api/alerts/eventbus/correlation/check', auth: 'local_or_auth', category: 'communication', description: 'Read-only Korrelation zwischen Alert- und Sound-Bus aktiv prüfen.' },
     { method: 'GET', path: '/api/alerts/bus-mirror/status', auth: 'local_or_auth', category: 'communication', description: 'Alert Communication-Bus-Mirror Status lesen.' },
     { method: 'GET', path: '/api/alerts/bus-mirror/enable', auth: 'local_or_auth', category: 'communication', description: 'Alert Communication-Bus-Mirror runtime-only aktivieren.' },
     { method: 'GET', path: '/api/alerts/bus-mirror/disable', auth: 'local_or_auth', category: 'communication', description: 'Alert Communication-Bus-Mirror runtime-only deaktivieren.' },
@@ -1608,6 +1624,190 @@ function buildAlertSoundCorrelationStatus() {
       lastAt: c.lastAt || ''
     },
     recent: Array.isArray(c.recent) ? c.recent.slice(0, 20) : []
+  };
+}
+
+
+function alertSoundEventBusStatusUrl() {
+  const liveCfg = state.config && state.config.liveAlert ? state.config.liveAlert : DEFAULT_CONFIG.liveAlert;
+  const playUrl = cleanText(liveCfg.soundSystemPlayUrl || DEFAULT_CONFIG.liveAlert.soundSystemPlayUrl || 'http://127.0.0.1:8080/api/sound/play');
+  if (playUrl.endsWith('/play')) return `${playUrl.slice(0, -5)}/eventbus/status`;
+  if (playUrl.includes('/api/sound/play')) return playUrl.replace('/api/sound/play', '/api/sound/eventbus/status');
+  return 'http://127.0.0.1:8080/api/sound/eventbus/status';
+}
+
+function collectAlertCorrelationKeys() {
+  const rows = Array.isArray(state.alertSoundCorrelation && state.alertSoundCorrelation.recent) ? state.alertSoundCorrelation.recent : [];
+  return rows.slice(0, 40).map(row => ({
+    at: row.at || '',
+    phase: cleanKey(row.phase || ''),
+    eventUid: cleanText(row.eventUid || ''),
+    bundleId: cleanText(row.bundleId || ''),
+    source: cleanKey(row.source || ''),
+    type: cleanKey(row.type || ''),
+    user: cleanText(row.user || ''),
+    ok: row.ok === true,
+    error: cleanText(row.error || '')
+  }));
+}
+
+function collectSoundCorrelationKeys(soundStatus = {}) {
+  const soundCorrelationRows = soundStatus && soundStatus.correlation && Array.isArray(soundStatus.correlation.recentAlerts) ? soundStatus.correlation.recentAlerts : [];
+  const recentEvents = Array.isArray(soundStatus && soundStatus.recentEvents) ? soundStatus.recentEvents : [];
+  const byKey = new Map();
+
+  for (const row of soundCorrelationRows) {
+    const eventUid = cleanText(row.alertEventUid || '');
+    const bundleId = cleanText(row.bundleId || '');
+    const key = eventUid || bundleId;
+    if (!key) continue;
+    byKey.set(key, {
+      alertEventUid: eventUid,
+      bundleId,
+      alertSource: cleanKey(row.alertSource || ''),
+      alertType: cleanKey(row.alertType || ''),
+      requestedBy: cleanText(row.requestedBy || ''),
+      actions: row.actions && typeof row.actions === 'object' ? row.actions : {},
+      roles: row.roles && typeof row.roles === 'object' ? row.roles : {},
+      lastAt: row.lastAt || '',
+      lastAction: row.lastAction || '',
+      errorCount: Number(row.errorCount || 0),
+      from: 'sound_correlation_summary'
+    });
+  }
+
+  for (const ev of recentEvents) {
+    const ctx = ev && ev.context && typeof ev.context === 'object' ? ev.context : {};
+    const eventUid = cleanText(ctx.alertEventUid || '');
+    const bundleId = cleanText(ctx.bundleId || '');
+    const key = eventUid || bundleId;
+    if (!key) continue;
+    const existing = byKey.get(key) || {
+      alertEventUid: eventUid,
+      bundleId,
+      alertSource: cleanKey(ctx.alertSource || ''),
+      alertType: cleanKey(ctx.alertType || ''),
+      requestedBy: cleanText(ctx.requestedBy || ''),
+      actions: {},
+      roles: {},
+      lastAt: '',
+      lastAction: '',
+      errorCount: 0,
+      from: 'sound_recent_events'
+    };
+    const action = cleanKey(ev.action || 'unknown') || 'unknown';
+    const role = cleanKey(ctx.bundleRole || ctx.category || 'unknown') || 'unknown';
+    existing.actions[action] = Number(existing.actions[action] || 0) + 1;
+    existing.roles[role] = Number(existing.roles[role] || 0) + 1;
+    existing.lastAt = ev.at || existing.lastAt;
+    existing.lastAction = action;
+    if (ctx.error) existing.errorCount += 1;
+    byKey.set(key, existing);
+  }
+
+  return Array.from(byKey.values()).slice(0, 40);
+}
+
+function compareAlertSoundCorrelation(alertRows, soundRows) {
+  const soundByEvent = new Map();
+  const soundByBundle = new Map();
+  for (const row of soundRows) {
+    if (row.alertEventUid) soundByEvent.set(row.alertEventUid, row);
+    if (row.bundleId) soundByBundle.set(row.bundleId, row);
+  }
+
+  const matches = [];
+  const unmatchedAlerts = [];
+  for (const row of alertRows) {
+    const byEvent = row.eventUid ? soundByEvent.get(row.eventUid) : null;
+    const byBundle = row.bundleId ? soundByBundle.get(row.bundleId) : null;
+    const match = byEvent || byBundle || null;
+    if (match) {
+      matches.push({
+        eventUid: row.eventUid,
+        bundleId: row.bundleId,
+        phase: row.phase,
+        matchedBy: byEvent ? 'eventUid' : 'bundleId',
+        soundLastAction: match.lastAction || '',
+        soundRoles: match.roles || {},
+        soundActions: match.actions || {},
+        soundErrorCount: Number(match.errorCount || 0)
+      });
+    } else if (row.eventUid || row.bundleId) {
+      unmatchedAlerts.push(row);
+    }
+  }
+
+  return {
+    alertRows: alertRows.length,
+    soundRows: soundRows.length,
+    matched: matches.length,
+    unmatched: unmatchedAlerts.length,
+    matches: matches.slice(0, 20),
+    unmatchedAlerts: unmatchedAlerts.slice(0, 20)
+  };
+}
+
+async function fetchSoundEventBusStatusForCorrelation() {
+  const url = alertSoundEventBusStatusUrl();
+  if (typeof fetch !== 'function') return { ok: false, url, error: 'fetch_unavailable' };
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), 2500) : null;
+  try {
+    const res = await fetch(url, { method: 'GET', signal: controller ? controller.signal : undefined });
+    const text = await res.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch (err) { json = null; }
+    return { ok: res.ok && json && json.ok === true, url, status: res.status, data: json, error: res.ok ? '' : `http_${res.status}` };
+  } catch (err) {
+    return { ok: false, url, error: err && err.message ? err.message : String(err) };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function buildAlertSoundEventBusCorrelationStatus(query = {}) {
+  const alertRows = collectAlertCorrelationKeys();
+  const soundFetch = await fetchSoundEventBusStatusForCorrelation();
+  const soundStatus = soundFetch && soundFetch.data ? soundFetch.data : null;
+  const soundRows = soundStatus ? collectSoundCorrelationKeys(soundStatus) : [];
+  const comparison = compareAlertSoundCorrelation(alertRows, soundRows);
+  const warnings = [];
+  if (!soundFetch.ok) warnings.push('sound_eventbus_status_unavailable');
+  if (alertRows.length > 0 && soundRows.length === 0 && soundFetch.ok) warnings.push('no_sound_alert_correlation_rows_seen_yet');
+  if (comparison.unmatched > 0 && comparison.matched === 0 && alertRows.length > 0 && soundRows.length > 0) warnings.push('alert_rows_not_matched_to_sound_rows');
+  return {
+    ok: true,
+    module: MODULE,
+    version: MODULE_VERSION,
+    feature: 'alert_sound_eventbus_correlation',
+    statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
+    readOnly: true,
+    flowTouched: false,
+    queueTouched: false,
+    soundSystemTouched: false,
+    overlayTouched: false,
+    bundleFlow: 'unchanged',
+    requestedCheck: query && (query.check === true || query.check === '1' || query.check === 'true'),
+    alertEventBus: buildAlertEventBusStatus({ includeRecentEvents: true }),
+    alertSoundCorrelation: buildAlertSoundCorrelationStatus(),
+    soundEventBusFetch: {
+      ok: soundFetch.ok === true,
+      url: soundFetch.url || '',
+      status: soundFetch.status || 0,
+      error: soundFetch.error || ''
+    },
+    soundEventBus: soundStatus ? {
+      ok: soundStatus.ok === true,
+      module: soundStatus.module || '',
+      version: soundStatus.version || soundStatus.step || '',
+      capability: soundStatus.capability || '',
+      stats: soundStatus.stats || {},
+      correlation: soundStatus.correlation || null
+    } : null,
+    comparison,
+    warnings,
+    checkedAt: nowIso()
   };
 }
 
