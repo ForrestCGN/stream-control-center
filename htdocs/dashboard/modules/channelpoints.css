@@ -1,4 +1,4 @@
-/* STEP506 redemption-history-user-tracking · UI v0.9.7 */
+/* STEP507 redemption-history-filters · UI v0.9.8 */
 .channelpoints-admin { color: var(--text); }
 .cp-admin { display: grid; gap: 16px; }
 .cp-header,.cp-panel,.cp-card,.cp-note,.cp-alert,.cp-toolbar,.cp-tabs{border:1px solid rgba(170,92,255,.25);background:rgba(18,18,34,.62);border-radius:22px;box-shadow:0 18px 42px rgba(0,0,0,.22),0 0 22px rgba(144,70,255,.10)}
@@ -161,3 +161,12 @@ html[data-theme="light"] .cp-toolbar input,html[data-theme="light"] .cp-toolbar 
 .cp-muted{color:var(--muted)}
 .cp-stat-columns-three{grid-template-columns:1fr 1fr 1fr}
 @media(max-width:1200px){.cp-stat-columns-three{grid-template-columns:1fr}.cp-history-table{min-width:760px}}
+/* STEP507 redemption history filters */
+.cp-history-filters{display:grid;grid-template-columns:minmax(220px,1.5fr) repeat(3,minmax(150px,1fr)) auto auto;gap:10px;align-items:end;margin:12px 0}
+.cp-history-filters label{display:grid;gap:5px;color:var(--muted);font-size:12px;font-weight:900}
+.cp-history-filters input,.cp-history-filters select{border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:9px 10px;color:var(--text);background:rgba(0,0,0,.18);min-width:0}
+html[data-theme="light"] .cp-history-filters input,html[data-theme="light"] .cp-history-filters select{background:rgba(255,255,255,.86)}
+.cp-history-filters button{border-radius:12px;padding:9px 12px;white-space:nowrap}
+.cp-history-count{color:var(--muted);font-size:12px;font-weight:800;margin:0 0 8px}
+@media(max-width:1200px){.cp-history-filters{grid-template-columns:1fr 1fr}.cp-history-filters button{width:100%}}
+@media(max-width:720px){.cp-history-filters{grid-template-columns:1fr}}

@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.9.7';
-  const UI_BUILD = 'redemption-history-user-tracking';
+  const UI_VERSION = '0.9.8';
+  const UI_BUILD = 'redemption-history-filters';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -48,6 +48,10 @@ window.ChannelpointsModule = (function(){
     eventsubRedemptionPreview:null,
     eventsubRedemptionReceive:null,
     redemptionTestRewardKey:'',
+    historyQuery:'',
+    historyStatusFilter:'all',
+    historyRewardFilter:'all',
+    historyUserFilter:'all',
     twitchStatus:null,
     twitchAuthCheck:null,
     twitchReadonlyStatus:null,
@@ -760,14 +764,29 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
   }
 
   function renderRedemptionsPanel() {
-    const list = asArray(state.redemptions).slice(0, 100);
+    const fullList = asArray(state.redemptions).slice(0, 100);
     const counts = state.redemptionCounts || {};
-    const total = counts.total ?? list.length;
+    const total = counts.total ?? fullList.length;
     const executed = counts.executed ?? 0;
     const failed = counts.failed ?? 0;
     const pending = counts.pending ?? 0;
     const skipped = counts.skipped ?? 0;
-    const uniqueUsers = new Set(list.map(redemptionUserKey).filter(key => key && key !== '-')).size;
+    const uniqueUsers = new Set(fullList.map(redemptionUserKey).filter(key => key && key !== '-')).size;
+    const statusOptions = ['all', ...Array.from(new Set(fullList.map(item => String(item.status || 'pending')).filter(Boolean))).sort()];
+    const rewardOptions = ['all', ...Array.from(new Set(fullList.map(item => String(item.reward_key || '')).filter(Boolean))).sort()];
+    const userOptions = ['all', ...Array.from(new Set(fullList.map(redemptionUserKey).filter(key => key && key !== '-'))).sort()];
+    const q = String(state.historyQuery || '').trim().toLowerCase();
+    const list = fullList.filter(item => {
+      const statusOk = state.historyStatusFilter === 'all' || String(item.status || 'pending') === state.historyStatusFilter;
+      const rewardOk = state.historyRewardFilter === 'all' || String(item.reward_key || '') === state.historyRewardFilter;
+      const userOk = state.historyUserFilter === 'all' || redemptionUserKey(item) === state.historyUserFilter;
+      const haystack = [redemptionTimeLabel(item), redemptionUserLabel(item), item.user_id, item.reward_key, rewardTitleForKey(item.reward_key), item.user_input, redemptionActionLabel(item), redemptionResultPreview(item), item.status].join(' ').toLowerCase();
+      const queryOk = !q || haystack.includes(q);
+      return statusOk && rewardOk && userOk && queryOk;
+    });
+    const statusSelect = statusOptions.map(value => `<option value="${esc(value)}" ${state.historyStatusFilter === value ? 'selected' : ''}>${esc(value === 'all' ? 'Alle Status' : value)}</option>`).join('');
+    const rewardSelect = rewardOptions.map(value => `<option value="${esc(value)}" ${state.historyRewardFilter === value ? 'selected' : ''}>${esc(value === 'all' ? 'Alle Rewards' : rewardTitleForKey(value))}</option>`).join('');
+    const userSelect = userOptions.map(value => `<option value="${esc(value)}" ${state.historyUserFilter === value ? 'selected' : ''}>${esc(value === 'all' ? 'Alle User' : value)}</option>`).join('');
     return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Einlösungsverlauf</h3><span>wer · wann · was · Status</span></div>
       <div class="cp-redemption-summary-grid">
         <div><strong>${esc(total)}</strong><span>Gesamt</span></div>
@@ -778,12 +797,20 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
         <div><strong>${esc(uniqueUsers)}</strong><span>User im Verlauf</span></div>
       </div>
       <div class="cp-note"><strong>Verlauf:</strong> Das System speichert User, Zeitpunkt, Reward, Eingabetext, Status und Ergebnis in der bestehenden Tabelle <code>channelpoints_redemptions</code>. Keine neue DB, keine eigene SQLite-Anbindung.</div>
-      <div class="cp-actions"><button type="button" data-cp-action="reload">Aktualisieren</button></div>
+      <div class="cp-history-filters">
+        <label>Suche<input type="search" data-cp-control="historyQuery" value="${esc(state.historyQuery)}" placeholder="User, Reward, Eingabe, Ergebnis ..."></label>
+        <label>Status<select data-cp-control="historyStatusFilter">${statusSelect}</select></label>
+        <label>Reward<select data-cp-control="historyRewardFilter">${rewardSelect}</select></label>
+        <label>User<select data-cp-control="historyUserFilter">${userSelect}</select></label>
+        <button type="button" data-cp-action="history-reset">Filter zurücksetzen</button>
+        <button type="button" data-cp-action="reload">Aktualisieren</button>
+      </div>
+      <div class="cp-history-count">${esc(list.length)} von ${esc(fullList.length)} geladenen Einlösungen sichtbar</div>
       <div class="cp-history-table-wrap"><table class="cp-history-table"><thead><tr><th>Zeit</th><th>User</th><th>Reward</th><th>Eingabe</th><th>Aktion/Ergebnis</th><th>Status</th></tr></thead><tbody>${list.map(item => {
         const preview = redemptionResultPreview(item);
         const input = redemptionInputLabel(item);
         return `<tr><td>${esc(redemptionTimeLabel(item))}</td><td><strong>${esc(redemptionUserLabel(item))}</strong><small>${esc(item.user_id || '')}</small></td><td><strong>${esc(rewardTitleForKey(item.reward_key))}</strong><small>${esc(item.reward_key || '-')}</small></td><td>${input ? esc(input) : '<span class="cp-muted">-</span>'}</td><td><span>${esc(redemptionActionLabel(item))}</span>${preview ? `<small>${esc(preview).slice(0, 160)}</small>` : ''}</td><td>${redemptionStatusPill(item.status)}</td></tr>`;
-      }).join('') || '<tr><td colspan="6">Noch keine Einlösungen gespeichert.</td></tr>'}</tbody></table></div>
+      }).join('') || '<tr><td colspan="6">Keine Einlösungen für diese Filter.</td></tr>'}</tbody></table></div>
     </section>`;
   }
 
@@ -1302,6 +1329,11 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     root.querySelector('[data-cp-control="query"]')?.addEventListener('input', ev => { if (state.modal) syncDraftFromForm(); state.query = ev.target.value || ''; render(); });
     root.querySelector('[data-cp-control="categoryFilter"]')?.addEventListener('change', ev => { if (state.modal) syncDraftFromForm(); state.categoryFilter = ev.target.value || 'all'; render(); });
     root.querySelector('[data-cp-control="statusFilter"]')?.addEventListener('change', ev => { if (state.modal) syncDraftFromForm(); state.statusFilter = ev.target.value || 'all'; render(); });
+    root.querySelector('[data-cp-control="historyQuery"]')?.addEventListener('input', ev => { state.historyQuery = ev.target.value || ''; render(); });
+    root.querySelector('[data-cp-control="historyStatusFilter"]')?.addEventListener('change', ev => { state.historyStatusFilter = ev.target.value || 'all'; render(); });
+    root.querySelector('[data-cp-control="historyRewardFilter"]')?.addEventListener('change', ev => { state.historyRewardFilter = ev.target.value || 'all'; render(); });
+    root.querySelector('[data-cp-control="historyUserFilter"]')?.addEventListener('change', ev => { state.historyUserFilter = ev.target.value || 'all'; render(); });
+    root.querySelector('[data-cp-action="history-reset"]')?.addEventListener('click', () => { state.historyQuery = ''; state.historyStatusFilter = 'all'; state.historyRewardFilter = 'all'; state.historyUserFilter = 'all'; render(); });
     root.querySelector('[data-cp-control="directSelect"]')?.addEventListener('change', ev => { if (state.modal) syncDraftFromForm(); state.selectedKey = ev.target.value || ''; const card = root.querySelector(`[data-cp-card="${CSS.escape(state.selectedKey)}"]`); card?.scrollIntoView?.({ behavior:'smooth', block:'center' }); render(); });
     root.querySelector('[data-cp-control="redemptionTestReward"]')?.addEventListener('change', ev => { state.redemptionTestRewardKey = ev.target.value || ''; state.eventsubRedemptionPreview = null; state.eventsubRedemptionReceive = null; render(); });
     root.querySelectorAll('[data-cp-card]').forEach(card => card.addEventListener('click', ev => { if (ev.target.closest('button')) return; state.selectedKey = card.dataset.cpCard || ''; render(); }));
