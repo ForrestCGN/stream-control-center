@@ -1,14 +1,10 @@
 # CHANGELOG
 
-## 2026-05-26 - STEP494_CHANNELPOINTS_DASHBOARD_BASE
+## 2026-05-26 - STEP495_DASHBOARD_INTERACTION_SYSTEM_PATTERN
 
-- Erste Dashboard-Basis fuer Kanalpunkte ergaenzt.
-- Neue Dateien:
-  - `htdocs/dashboard/modules/channelpoints.js`
-  - `htdocs/dashboard/modules/channelpoints.css`
-- `htdocs/dashboard/index.html` um Kanalpunkte-CSS, Panel und Script erweitert.
-- Dashboard-Modul registriert sich selbst in der bestehenden CGN-Dashboard-Struktur.
-- Kategorien-/Reward-Liste, Editor, lokales Erstellen/Bearbeiten/Aktivieren/Deaktivieren umgesetzt.
-- Media-Auswahl nutzt bestehende `MediaField`/`MediaPicker`-Komponenten.
-- Keine Twitch-Schreibaktionen.
-- Keine DB-Migration.
+- Kanalpunkte-Dashboard in Tabs aufgeteilt.
+- Suche/Filter für Rewards ergänzt.
+- Reward-Liste und Detailbereich als Command-ähnliches Bedienmuster aufgebaut.
+- Editor-Abschnitte für Basis, Aktion, Medien und Regeln ergänzt.
+- Medien bleiben über bestehendes Media-System angebunden.
+- Keine Backend-/DB-/Twitch-Änderung.

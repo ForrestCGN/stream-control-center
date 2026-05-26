@@ -1,21 +1,20 @@
 # TODO
 
-Stand: 2026-05-26 / STEP494
+Stand: 2026-05-26 / STEP495
 
-## Kanalpunkte
+## Kanalpunkte Dashboard
 
-- [x] Backend-Skeleton.
-- [x] Model-/Media-Plan.
-- [x] DB-Schema-Preview.
-- [x] Sichere lokale DB-Migration.
-- [x] Lokale Reward-CRUD-API.
-- [x] Erste Dashboard-Basis.
-- [ ] Dashboard-UX pruefen/verfeinern.
-- [ ] Twitch-Read-Sync vorbereiten.
-- [ ] Twitch-Schreibaktionen erst spaeter und explizit.
-- [ ] Deaktivieren spaeter mit Twitch `is_enabled:false`.
+- [x] Tabs statt einer langen Seite.
+- [x] Suche/Filter ergänzen.
+- [x] Reward-Liste und Detailbereich trennen.
+- [x] Editorbereiche Basis/Aktion/Medien/Regeln.
+- [x] Bestehendes Media-System weiterverwenden.
+- [ ] Browser-Test durchführen.
+- [ ] Command-Dashboard als nächstes angleichen/prüfen.
 
-## Media
+## Weiterhin offen
 
-- [x] Bestehende MediaField/MediaPicker-Komponenten nutzen.
-- [x] Keine zweite Upload-Welt fuer Kanalpunkte.
+- [ ] Twitch-Sync lesen.
+- [ ] Twitch-Reward-Erstellung/Update/Disable.
+- [ ] Redemption/EventSub-Verarbeitung.
+- [ ] Dashboard für Einlösungen/Queue aktivieren.

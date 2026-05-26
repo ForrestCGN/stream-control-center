@@ -1,16 +1,11 @@
 # Modul-Dokus
 
-Stand: 2026-05-26 / STEP494_CHANNELPOINTS_DASHBOARD_BASE
+Stand: 2026-05-26 / STEP495
 
-## Wichtige Dokus
+## Aktualisiert
 
-- [`channelpoints-deep-dive.md`](./channelpoints-deep-dive.md)
-- [`core-communication-bus.md`](./core-communication-bus.md)
-- [`commands-deep-dive.md`](./commands-deep-dive.md)
-- [`commands-media-deep-dive.md`](./commands-media-deep-dive.md)
+- `channelpoints-deep-dive.md`
 
-## Pflegepflicht
+## Hinweis
 
-Neue oder geaenderte Module muessen dokumentiert werden.
-
-STEP494 ergaenzt die Dashboard-Basis fuer Kanalpunkte.
+Kanalpunkte-Dashboard und Commands-Dashboard sollen langfristig ein gemeinsames Bedienmuster nutzen: Suche, Kategorien/Filter, Liste links, Detailbereich rechts.

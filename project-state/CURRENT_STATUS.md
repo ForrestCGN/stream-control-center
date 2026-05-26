@@ -1,29 +1,22 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP494_CHANNELPOINTS_DASHBOARD_BASE
+Stand: 2026-05-26 / STEP495_DASHBOARD_INTERACTION_SYSTEM_PATTERN
 
 ## Aktueller Arbeitsstand
 
-STEP494 ergaenzt die erste Dashboard-Basis fuer das Kanalpunkte-System.
+STEP495 überarbeitet das Kanalpunkte-Dashboard als gemeinsames Interaktionsmuster mit dem Command-System.
 
 ## Kanalpunkte
 
-- Backend-Stand aus STEP493 bleibt Grundlage: `channelpoints.js` Version `0.5.0`.
-- Dashboard-Dateien:
-  - `htdocs/dashboard/modules/channelpoints.js`
-  - `htdocs/dashboard/modules/channelpoints.css`
-- `htdocs/dashboard/index.html` laedt das neue Dashboard-Modul.
-- Das Dashboard-Modul registriert sich selbst in `window.CGN.modules`, `moduleCatalog`, Community-Items und Favorites.
-- Kategorien und Rewards werden aus den vorhandenen API-Routen gelesen.
-- Lokale Reward-CRUD-Bedienung ist vorbereitet:
-  - erstellen
-  - bearbeiten
-  - lokal aktivieren
-  - lokal deaktivieren
-- Medienauswahl nutzt das bestehende Media-System (`MediaField`/`MediaPicker`).
+- Backend bleibt auf STEP493/0.5.0 und wurde nicht verändert.
+- Dashboard nutzt Tabs statt einer langen Einzelseite.
+- Suche und Filter wurden ergänzt.
+- Rewards werden links gelistet und rechts bearbeitet.
+- Editor ist in Basis, Aktion, Medien und Regeln unterteilt.
+- Medienauswahl nutzt weiterhin `MediaField`/`MediaPicker`.
 
-## Sicherheitsrahmen
+## Sicherheit
 
 - Keine Twitch-Schreibaktionen.
-- Keine neue Upload-Struktur.
-- Keine DB-Migration in STEP494.
+- Keine DB-Migration.
+- Keine Änderung am produktiven SQLite-Schema.

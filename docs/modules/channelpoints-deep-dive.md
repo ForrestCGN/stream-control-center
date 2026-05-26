@@ -1,56 +1,54 @@
-# channelpoints-deep-dive
+# Kanalpunkte-System Deep Dive
 
-Stand: 2026-05-26 / STEP494
+Stand: 2026-05-26 / STEP495
 
 ## Zweck
 
-Das Kanalpunkte-System verwaltet Twitch-Channel-Point-Rewards lokal und wird spaeter Twitch-Custom-Rewards synchronisieren.
+Kanalpunkte-System für lokale Twitch-Reward-Verwaltung, spätere Twitch-Synchronisierung und spätere Redemption-Verarbeitung.
 
-## Aktueller Stand
+## Backend
 
-- Backend-Modul: `backend/modules/channelpoints.js`
-- Dashboard-Modul:
-  - `htdocs/dashboard/modules/channelpoints.js`
-  - `htdocs/dashboard/modules/channelpoints.css`
-- Panel: `channelpointsModule`
-- API-Prefix: `/api/channelpoints`
+```text
+backend/modules/channelpoints.js
+```
 
-## Datenbank
+Aktueller Backend-Stand bleibt `0.5.0` aus STEP493.
 
-Tabellen aus STEP492:
+## Dashboard
 
-- `channelpoints_categories`
-- `channelpoints_rewards`
-- `channelpoints_redemptions`
+```text
+htdocs/dashboard/modules/channelpoints.js
+htdocs/dashboard/modules/channelpoints.css
+```
 
-## Dashboard STEP494
+STEP495 baut das Dashboard nicht mehr als lange Einzelseite, sondern als Command-ähnliches Bedienmuster:
 
-Funktionen:
+- Tabs: Übersicht, Rewards, Kategorien, Aktionen, Medien, Einlösungen, Twitch Sync
+- Suche und Filter
+- Reward-Liste links
+- Detail-/Editorbereich rechts
+- Editorbereiche: Basis, Aktion, Medien, Regeln
 
-- Status anzeigen
-- Kategorien anzeigen
-- Rewards anzeigen
-- Reward lokal erstellen
-- Reward lokal bearbeiten
-- Reward lokal aktivieren/deaktivieren
-- Media-Auswahl ueber bestehende `MediaField`/`MediaPicker`
+## Gemeinsames Muster mit Commands
 
-## Media-Regel
+Commands und Kanalpunkte sollen ähnlich funktionieren:
 
-Kanalpunkte duerfen keine eigene Upload-Struktur erhalten.
+| Commands | Kanalpunkte |
+|---|---|
+| Trigger/Befehl | Reward/Button |
+| Aliases | Twitch Reward ID später |
+| Permission | Kosten/User Input/Limit |
+| Cooldown | Cooldown/Max pro Stream |
+| Action-Typ | Action-Typ |
+| Medien | Medien |
+| Logs | Redemptions/History |
 
-Uploads und Auswahl laufen ueber:
+## Medienregel
 
-- `backend/modules/media.js`
-- `htdocs/dashboard/modules/media.js`
-- `htdocs/dashboard/components/media_picker.js`
-- `htdocs/dashboard/components/media_field.js`
+Kanalpunkte erzeugen kein eigenes Upload-System. Medien werden über `media.js`, `media_picker.js` und `media_field.js` ausgewählt.
 
-## Twitch-Regel
+## Nicht in STEP495
 
-STEP494 enthaelt keine Twitch-Schreibaktionen.
-
-Spaeter gilt:
-
-- Lokales `system_enabled` steuert interne Verarbeitung.
-- Twitch-Status `is_enabled:false` muss spaeter bei echter Deaktivierung ueber Twitch API gesetzt werden.
+- Keine Backend-Änderung.
+- Keine DB-Migration.
+- Keine Twitch-Schreibaktion.

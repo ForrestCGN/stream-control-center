@@ -1,22 +1,15 @@
 # CURRENT_SYSTEM_STATUS
 
-Stand: 2026-05-26 / STEP494
+Stand: 2026-05-26 / STEP495
 
-## Schwerpunkt
+## Kanalpunkte-System
 
-Kanalpunkte-System: erste Dashboard-Basis.
+- Backend-Stand bleibt `0.5.0`.
+- STEP495 ändert nur Dashboard/UX.
+- Dashboard ist in Tabs aufgeteilt.
+- Suche/Filter und Liste/Detail-Muster sind ergänzt.
+- Medien laufen weiter über das bestehende Media-System.
 
-## Kanalpunkte
+## Sicherheit
 
-- Backend API aus STEP493/492 aktiv.
-- Dashboard-Modul in STEP494 ergaenzt.
-- Lokale Rewards koennen sichtbar verwaltet werden.
-- Media-Auswahl nutzt bestehende Media-Komponenten.
-- Keine Twitch-Schreibaktionen.
-
-## Naechster Fokus
-
-Dashboard testen und anschliessend entscheiden:
-
-- UX-Verfeinerung
-- oder Twitch-Read-Sync
+Keine Twitch-Schreibaktionen, keine DB-Migration, kein neues Upload-System.
