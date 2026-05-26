@@ -1,6 +1,5 @@
 # Next Steps
 
-1. UI v0.1.8 testen.
-2. Prüfen, ob Song/Video-Auswahl mit dem bestehenden MediaPicker sauber funktioniert.
-3. Danach dasselbe Modal-/Safe-Edit-Pattern auf Kanalpunkte übertragen.
-4. Zentrale Textverwaltung als eigenes System planen.
+1. Deployen und Node-Server neu starten.
+2. `!vso` bearbeiten: Trigger zu `so`, Alias `vso`, speichern.
+3. Wenn `!so` bereits existiert, ist `command_trigger_already_exists` korrekt und muss im UI freundlich erklärt werden.

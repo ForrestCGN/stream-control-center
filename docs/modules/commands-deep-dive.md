@@ -1,51 +1,37 @@
-# Commands Dashboard v0.1.8 — Separated Action + Optional Chat Output
+# Commands — Backend v0.1.5 safe-edit-param-fix
 
-Dieser Stand korrigiert die Editor-Struktur nach dem Feedback aus dem UI-Test.
+## Zweck
 
-## UI-Version
+Behebt den Fehler `Unknown named parameter 'createdAt'` beim Bearbeiten bestehender Commands.
 
-- UI_VERSION: `0.1.8`
-- UI_BUILD: `separated-action-chat-media-picker`
-- Backend bleibt kompatibel mit Commands v0.1.4+ und der sicheren Edit-Logik per `id`/`originalTrigger`.
+## Ursache
 
-## Neue Struktur im Modal
+Beim sicheren Editieren wurde ein gemeinsames Parameter-Objekt für `UPDATE` und `INSERT` genutzt. Das Objekt enthielt `createdAt`, obwohl das `UPDATE`-SQL nur `updatedAt` verwendet. `node:sqlite` meldet ungenutzte benannte Parameter als Fehler.
 
-Der Editor ist jetzt klarer getrennt:
+## Fix
 
-1. Basis
-2. Aktion
-3. Optionale Chat-Ausgabe
-4. Erweitert / technische Details
+- `UPDATE` nutzt nun ein bereinigtes `updateParams` ohne `createdAt`.
+- `INSERT` nutzt nun ein bereinigtes `insertParams` ohne `id`.
+- Safe-Edit per `id/originalTrigger` bleibt erhalten.
+- Trigger-Kollisionen werden weiterhin mit `command_trigger_already_exists` geblockt.
+- Keine Datenbank-Migration, kein Schema-Touch, keine Funktionsentfernung.
 
-Die Chat-Ausgabe ist nicht mehr Teil des Aktionsblocks. Sie ist entweder die Hauptaktion `Text anzeigen` oder ein eigener optionaler Zusatzbereich.
+## Test
 
-## Neuer Command
+```bat
+node --check backend\modules\commands.js
+```
 
-Beim Erstellen stehen weiterhin die wichtigsten Aktionen oben:
+Nach Deploy/Restart:
 
-1. Song abspielen
-2. Video abspielen
-3. Text anzeigen
-4. Modul-Befehl ausführen
-5. Benutzerdefinierte Aktion
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status" |
+  Select-Object ok,module,moduleVersion,moduleBuild
+```
 
-Bei `Song abspielen` und `Video abspielen` erscheint direkt eine passende Medien-Maske mit Auswahl über den bestehenden MediaPicker.
+Erwartung:
 
-## Bestehender Command
-
-Beim Bearbeiten ist weiterhin der gespeicherte Zustand maßgeblich:
-
-- Die gespeicherte Aktionsart steht an erster Stelle.
-- Die passende Maske wird angezeigt.
-- Die Aktionsart kann geändert werden.
-- Technische Werte bleiben unter `Erweitert / technische Details`.
-
-## Medien
-
-Song/Video-Masken zeigen keine nackte technische Media-ID als normale Bedienung mehr. Stattdessen gibt es einen Auswahl-Button über den bestehenden MediaPicker. Die Media-ID bleibt intern gespeichert und wird beim Speichern weiter über die bestehende Sound-System-Brücke ausgeführt.
-
-## Textausgabe
-
-- `Text anzeigen` ist eine Hauptaktion.
-- Zusätzlicher Chattext zu Song/Video/Modul ist ein eigener optionaler Bereich.
-- Die zentrale Textverwaltung bleibt ein späteres eigenes System, nicht Teil der Medienverwaltung.
+```text
+moduleVersion = 0.1.5
+moduleBuild   = safe-edit-param-fix
+```

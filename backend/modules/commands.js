@@ -5,8 +5,8 @@ const database = require('../core/database');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.1.4';
-const MODULE_BUILD = 'safe-modal-editor';
+const MODULE_VERSION = '0.1.5';
+const MODULE_BUILD = 'safe-edit-param-fix';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -331,6 +331,8 @@ function saveCommand(input = {}, options = {}) {
   };
 
   if (editingExisting) {
+    const updateParams = { ...data };
+    delete updateParams.createdAt;
     const result = database.run(`
       UPDATE command_definitions SET
         trigger = :trigger,
@@ -348,11 +350,13 @@ function saveCommand(input = {}, options = {}) {
         config_json = :configJson,
         updated_at = :updatedAt
       WHERE id = :id
-    `, data);
+    `, updateParams);
     if (!result || Number(result.changes || 0) < 1) throw new Error('command_update_failed');
     return { ok: true, seed: !!options.seed, editMode: true, created: false, updated: true, command: rowToCommand(database.get('SELECT * FROM command_definitions WHERE id = :id', { id: data.id })) };
   }
 
+  const insertParams = { ...data };
+  delete insertParams.id;
   database.run(`
     INSERT INTO command_definitions (
       trigger, aliases_json, module_key, action_key, target_method, target_url,
@@ -377,7 +381,7 @@ function saveCommand(input = {}, options = {}) {
       response_mode = excluded.response_mode,
       config_json = excluded.config_json,
       updated_at = excluded.updated_at
-  `, data);
+  `, insertParams);
   return { ok: true, seed: !!options.seed, editMode: false, created: !current, updated: !!current, command: rowToCommand(database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger })) };
 }
 function upsertCommand(input = {}, options = {}) { ensureSchema(); return saveCommand(input, options); }

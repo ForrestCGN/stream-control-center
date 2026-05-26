@@ -1,19 +1,8 @@
 # Changelog
 
-## Commands Dashboard v0.1.8
+## Commands Backend v0.1.5 — safe-edit-param-fix
 
-- Chat-Ausgabe aus dem Aktionsblock herausgelöst.
-- Eigener Abschnitt `Optionale Chat-Ausgabe` ergänzt.
-- `Text anzeigen` bleibt eine eigene Hauptaktion.
-- Song-/Sound-Maske überarbeitet.
-- Video-Maske überarbeitet.
-- Medienauswahl direkt über bestehenden MediaPicker vorbereitet.
-- Technische Overlay-/Route-Felder bleiben unter Erweitert.
-
-## Commands Dashboard v0.1.7
-
-- Aktionsart-gesteuerter Editor eingeführt.
-- Neuer Command startet mit Song, Video, Text, Modul-Befehl, Benutzerdefiniert.
-- Bestehende Commands zeigen die gespeicherte Aktion als erste Auswahl.
-- Normalansicht zeigt keine technischen Sonderkästen mehr.
-- Buttontext von Defaults auf „Ausgewählte Aktion übernehmen“ geändert.
+- Fix für `Unknown named parameter 'createdAt'` beim Bearbeiten bestehender Commands.
+- UPDATE-Parameter werden jetzt ohne `createdAt` gesendet.
+- INSERT-Parameter werden jetzt ohne `id` gesendet.
+- Safe-Edit-Logik bleibt erhalten.
