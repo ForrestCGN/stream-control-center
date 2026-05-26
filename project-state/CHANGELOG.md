@@ -1,17 +1,14 @@
 # CHANGELOG
 
-## STEP470_SHOUTOUT_DASHBOARD_STATISTICS
+## STEP471_DOCS_RULES_AND_GENERAL_PROMPT
 
-- `clip_shoutout.js` auf Runtime-Version `0.2.10` erhöht.
-- Neue read-only Statistikroute `GET /api/clip-shoutout/stats` ergänzt.
-- Aliasroute `GET /api/clip-shoutout/stats/user` ergänzt.
-- Statistikdaten für Zielkanäle, Auslöser, Wer-zu-Wen, Streamtage, Official-History und offene Official-Queue ergänzt.
-- Dashboard-Modul `shoutout.js` um Statistikbereich erweitert.
-- Dropdown-Auswahl für einzelne Zielkanäle und einzelne Auslöser ergänzt.
-- `shoutout.css` um Statistik-/Detailansicht-Styles erweitert.
-- Keine Änderungen an Queue-Logik, Command, Chatmeldungen, Streamstatus oder Sound-System.
-
-## STEP469_SHOUTOUT_DASHBOARD_MODULE
-
-- Shoutout-System als eigenes Dashboard-Modul eingebunden.
-- Anzeige für Display-Queue, Official-Queue, Live-Gate, Timeline und Testauslösung ergänzt.
+- Zentrale Arbeitsregeln in `docs/current/PROJECT_WORKING_RULES.md` ergänzt.
+- Allgemeiner Projektprompt in `project-state/GENERAL_PROJECT_PROMPT.md` aktualisiert.
+- Neue Shell-/PowerShell-Ausgabe-Regel ergänzt:
+  - nur notwendige Befehle ausgeben
+  - gezielte Feldauswahl bevorzugen
+  - große JSON-Dumps nur bei echter Detailanalyse
+  - nach ZIP `node --check` nur für geänderte JS-Dateien nennen
+- Aktuellen Stand von `stream_status`, `clip_shoutout` und Shoutout-Dashboard dokumentiert.
+- Keine Runtime-Dateien geändert.
+- Keine Backend-, Dashboard- oder Datenbanklogik geändert.

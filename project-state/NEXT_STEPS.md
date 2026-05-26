@@ -1,38 +1,43 @@
 # NEXT_STEPS
 
-## STEP470 einbauen
+## Nach STEP471
 
 1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Syntax prüfen:
+2. Da keine JavaScript-Dateien geändert wurden, ist kein `node --check` nötig.
+3. `stepdone.cmd` ausführen:
 
 ```bat
-node --check backend\modules\clip_shoutout.js
-node --check htdocs\dashboard\modules\shoutout.js
+cd D:\Git\stream-control-center
+.\stepdone.cmd "STEP471 Docs Rules and General Prompt"
 ```
 
-3. Step abschließen:
+## Nächster fachlicher Schritt
 
-```bat
-.\stepdone.cmd "STEP470 Shoutout Dashboard Statistics"
-```
-
-4. Backend neu starten.
-5. API prüfen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/stats" | ConvertTo-Json -Depth 10
-```
-
-6. Dashboard hart neu laden und öffnen:
+Empfohlener nächster STEP:
 
 ```text
-http://127.0.0.1:8080/dashboard/
+STEP472_SHOUTOUT_DASHBOARD_TABS
 ```
 
-Dann `Community -> Shoutout-System` öffnen und Statistikbereich prüfen.
+Ziel:
 
-## Danach
+- Shoutout-Dashboard in Tabs/Unterbereiche aufteilen.
+- Nicht mehr alles auf einer Seite anzeigen.
+- Vorgeschlagene Tabs:
+  - Übersicht
+  - Queues
+  - Statistik
+  - Timeline
+  - Test/Settings
 
-- Live-Test bei aktivem Stream.
-- Prüfen, ob Official-Live-Gate weiterhin `upstreamSource: twitch_api` nutzt.
-- Später optional Statistik-Filter nach Streamtag ergänzen.
+Bewusst späterer eigener STEP:
+
+```text
+SHOUTOUT_INBOUND_EVENTSUB_LOGGING
+```
+
+Ziel später:
+
+- eingehende Twitch-Shoutouts loggen
+- im Dashboard separat und statistisch anzeigen
+- ausgehende und eingehende Shoutouts getrennt auswerten
