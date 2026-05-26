@@ -1,159 +1,77 @@
-# channelpoints-deep-dive
+# Channelpoints Deep Dive
 
-Stand: 2026-05-26 / STEP492_CHANNELPOINTS_DB_MIGRATION_SAFE
+Stand: 2026-05-26 / STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD
 
-## Modul
+## Ziel
 
-- Datei: `backend/modules/channelpoints.js`
-- Modul: `channelpoints`
-- Version: `0.4.0`
-- Prefix: `/api/channelpoints`
-- Modus: `backend_db_migration_safe`
+Das Kanalpunkte-System ist ein neues Fachmodul für Twitch Custom Rewards. STEP493 ergänzt die lokale Reward-CRUD-Grundlage auf der bestehenden SQLite-Datenbank.
 
-## Zweck
+## Version
 
-Das Kanalpunkte-System ist ein neues Fachmodul fuer Twitch Custom Rewards / Kanalpunkte. Es baut auf dem bestehenden Stream-Control-Center, dem Communication Bus, der zentralen SQLite-Schicht und dem vorhandenen Media-System auf.
+- Modul: `backend/modules/channelpoints.js`
+- `moduleVersion`: `0.5.0`
+- Modus: `backend_local_reward_crud`
 
-## STEP492
-
-STEP492 legt erstmals die lokale DB-Grundlage an. Die Migration ist bewusst additiv und sicher:
-
-- `CREATE TABLE IF NOT EXISTS`
-- `CREATE INDEX IF NOT EXISTS`
-- `INSERT OR IGNORE` fuer Default-Kategorien
-- Schema-Version ueber `schema_versions` / vorhandene DB-Mechanik
-- keine bestehenden Daten loeschen oder ersetzen
-- keine Twitch-Schreibaktionen
-- keine Dashboard-Aenderungen
-- kein neues Upload-System
-
-## Tabellen
-
-### channelpoints_categories
-
-Zweck: Dashboard-Gruppierung, Sortierung und Sichtbarkeit.
-
-Wichtige Felder:
-
-- `category_key`
-- `label`
-- `description`
-- `sort_order`
-- `enabled`
-- `created_at`
-- `updated_at`
-
-Default-Kategorien per Seed:
-
-- Allgemein
-- Sounds
-- Medien
-- Overlays
-- Challenges
-- Admin/Intern
-
-### channelpoints_rewards
-
-Zweck: lokale Reward-Konfiguration, Twitch-Mapping, Action-/Media-Zuordnung.
-
-Wichtige Felder:
-
-- `reward_key`
-- `twitch_reward_id`
-- `title`
-- `prompt`
-- `cost`
-- `category_key`
-- `system_enabled`
-- `twitch_is_enabled`
-- `action_type`
-- `action_key`
-- `action_payload_json`
-- `media_asset_id`
-- `media_role`
-- `queue_mode`
-- `cooldown_seconds`
-- `auto_fulfill`
-
-Wichtig: `system_enabled` ist nur der lokale Systemschalter. Spaeteres Deaktivieren fuer Zuschauer muss Twitch `is_enabled=false` setzen.
-
-### channelpoints_redemptions
-
-Zweck: spaetere Redemption-Historie, Queue-Status, Fulfill-/Cancel-/Fehlertracking.
-
-Wichtige Felder:
-
-- `twitch_redemption_id`
-- `twitch_reward_id`
-- `reward_key`
-- `user_id`
-- `user_login`
-- `user_display_name`
-- `user_input`
-- `status`
-- `queue_group`
-- `result_json`
-- `redeemed_at`
-
-## Media-System
-
-Kanalpunkte duerfen kein eigenes Upload-System bekommen.
-
-Feste Regel:
-
-- Uploads laufen ueber das bestehende `media.js`.
-- Dashboard-Auswahl erfolgt ueber vorhandene Komponenten:
-  - `htdocs/dashboard/components/media_picker.js`
-  - `htdocs/dashboard/components/media_field.js`
-- Kanalpunkte speichern nur Referenzen wie `media_asset_id`, `media_role` und strukturierte Payload-Daten.
-
-## Communication Bus
-
-Das Modul registriert sich am Bus und meldet Status/Heartbeat.
-
-Capabilities:
-
-- `channelpoints.status`
-- `channelpoints.model`
-- `channelpoints.media`
-- `channelpoints.schema`
-- `channelpoints.db`
-- `channelpoints.test.ping`
-
-## Routen
+## Aktive Routen
 
 - `GET /api/channelpoints/status`
 - `GET /api/channelpoints/model`
 - `GET /api/channelpoints/media-plan`
 - `GET /api/channelpoints/schema-preview`
 - `GET /api/channelpoints/db-status`
-- `GET /api/channelpoints/bus-test?message=hello`
+- `GET /api/channelpoints/categories`
+- `GET /api/channelpoints/rewards`
+- `GET /api/channelpoints/rewards/:idOrKey`
+- `POST /api/channelpoints/rewards`
+- `PUT /api/channelpoints/rewards/:idOrKey`
+- `PATCH /api/channelpoints/rewards/:idOrKey`
+- `POST /api/channelpoints/rewards/:idOrKey/enable`
+- `POST /api/channelpoints/rewards/:idOrKey/disable`
+- `GET /api/channelpoints/bus-test`
 
-## Tests
+## DB-Tabellen
 
-Nach Deploy + Server-Neustart:
+- `channelpoints_categories`
+- `channelpoints_rewards`
+- `channelpoints_redemptions`
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/db-status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/schema-preview"
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/bus-test?message=hello"
-```
+Die Migration ist additiv und nutzt ausschließlich `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS` und `INSERT OR IGNORE`.
 
-Erwartung:
+## Lokale CRUD-Regel
 
-- `moduleVersion = 0.4.0`
-- `mode = backend_db_migration_safe`
-- `/db-status.status = safe_local_tables_ready`
-- `schemaVersion >= 1`
-- Tabellen existieren
-- Default-Kategorien sind vorhanden
-- `bus-test.subscriberDeliveredCount >= 1`
+STEP493 schreibt nur lokale Reward-Konfigurationen in `channelpoints_rewards`.
 
-## Nicht in STEP492
+Deaktivieren in STEP493 bedeutet nur:
 
-- keine Twitch Reward API Reads/Writes
-- keine EventSub-Redemption-Verarbeitung
-- keine Reward-CRUD-API
-- kein Dashboard-Modul
-- keine Upload-Logik im Kanalpunkte-Modul
+- `system_enabled = 0`
+- optional `is_paused = 1`
+
+Es wird noch keine Twitch Custom Reward per API deaktiviert. Die spätere echte Twitch-Deaktivierung muss `is_enabled:false` über Twitch setzen.
+
+## Media-Regel
+
+Kanalpunkte verwenden das vorhandene Media-System:
+
+- Modul: `media.js`
+- Upload-Maske: bestehende Dashboard-Media-Upload-Maske
+- Picker: `htdocs/dashboard/components/media_picker.js`
+- Field-Komponente: `htdocs/dashboard/components/media_field.js`
+
+Kein neues Upload-System, keine zweite Media-Tabelle, keine Upload-Endpunkte in `channelpoints.js`.
+
+## EventBus
+
+Das Modul registriert sich am Communication Bus und veröffentlicht Status-Updates. Capabilities:
+
+- `channelpoints.status`
+- `channelpoints.schema`
+- `channelpoints.local_crud`
+- `channelpoints.test.ping`
+
+## Nicht in STEP493
+
+- keine Twitch-Schreibaktionen
+- keine Twitch Reward-Erstellung
+- keine Twitch Reward-Synchronisierung
+- kein Redemption-Handling
+- kein Dashboard-Umbau

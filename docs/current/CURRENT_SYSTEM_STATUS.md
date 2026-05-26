@@ -1,35 +1,18 @@
 # CURRENT_SYSTEM_STATUS
 
-Stand: 2026-05-26 / STEP492
+Stand: 2026-05-26 / STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD
 
-## Stream-Control-Center
+## Kanalpunkte-System
 
-Aktueller Schwerpunkt: Kanalpunkte-System als neues Fachmodul auf Communication Bus, zentraler SQLite-Schicht und bestehendem Media-System.
+STEP493 ergänzt lokale Reward-CRUD-Routen auf Basis der in STEP492 angelegten SQLite-Tabellen.
 
-## Kanalpunkte
+- `backend/modules/channelpoints.js` Version `0.5.0`
+- Modus `backend_local_reward_crud`
+- Kategorien und Rewards können lokal gelesen werden.
+- Rewards können lokal erstellt, geändert, aktiviert und deaktiviert werden.
+- Keine Twitch-Schreibaktionen.
+- Kein Dashboard-Umbau.
 
-STEP492 ist live-/deployfaehig vorbereitet:
+## Media-Regel
 
-- `backend/modules/channelpoints.js` Version `0.4.0`
-- sichere DB-Migration fuer lokale Grundlage
-- Tabellen:
-  - `channelpoints_categories`
-  - `channelpoints_rewards`
-  - `channelpoints_redemptions`
-- neue Route `/api/channelpoints/db-status`
-- keine Twitch-Schreibaktionen
-- keine Dashboard-Aenderungen
-
-## Media
-
-Kanalpunkte verwenden weiterhin das bestehende Media-System:
-
-- `backend/modules/media.js`
-- `htdocs/dashboard/components/media_picker.js`
-- `htdocs/dashboard/components/media_field.js`
-
-Keine zweite Upload-Welt.
-
-## Nächster sinnvoller Schritt
-
-`STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD_API`
+Kanalpunkte nutzen weiterhin das bestehende Media-System (`media.js`) und die vorhandenen Dashboard-Komponenten `media_picker.js` / `media_field.js`.

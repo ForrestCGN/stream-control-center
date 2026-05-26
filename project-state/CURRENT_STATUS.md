@@ -1,33 +1,17 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP492_CHANNELPOINTS_DB_MIGRATION_SAFE
+Stand: 2026-05-26 / STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD
 
-## Aktueller Arbeitsstand
+STEP493 ergänzt lokale Reward-CRUD-Routen im Kanalpunkte-System.
 
-STEP492 legt die sichere lokale DB-Grundlage fuer das Kanalpunkte-System an.
+## Kanalpunkte
 
-## Kanalpunkte-System
+- `channelpoints.js` Version `0.5.0`
+- Lokale DB-Grundlage aus STEP492 wird genutzt.
+- Neue APIs für Kategorien und Rewards.
+- Erstellen, Aktualisieren, Aktivieren und Deaktivieren sind lokal möglich.
+- Twitch-Schreibaktionen bleiben deaktiviert.
 
-- `backend/modules/channelpoints.js` steht auf Version `0.4.0`.
-- Modus: `backend_db_migration_safe`.
-- Neue Route: `GET /api/channelpoints/db-status`.
-- Schema-Version: `channelpoints = 1`.
-- Angelegte Tabellen:
-  - `channelpoints_categories`
-  - `channelpoints_rewards`
-  - `channelpoints_redemptions`
-- Default-Kategorien werden per `INSERT OR IGNORE` angelegt.
+## Nächster Schritt
 
-## Sicherheit
-
-- Migration ist additiv.
-- Produktive SQLite wird nicht ersetzt.
-- Keine Twitch-Schreibaktionen.
-- Keine Dashboard-Aenderungen.
-- Medien bleiben beim bestehenden `media.js` / Media-Picker-System.
-
-## Nächster sinnvoller Schritt
-
-`STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD_API`
-
-Ziel: lokale Reward-CRUD-/List-API auf den neuen Tabellen, noch ohne Twitch-Schreibaktionen.
+STEP494_CHANNELPOINTS_DASHBOARD_SHELL
