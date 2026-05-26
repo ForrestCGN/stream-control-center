@@ -1,27 +1,47 @@
 # NEXT_STEPS
 
-1. STEP467-ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Syntax prüfen: `node --check backend\modules\stream_status.js`.
-3. `stepdone.cmd` ausführen.
-4. Backend neu starten.
-5. Status prüfen:
+## Nach STEP469
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/stream-status/status" | ConvertTo-Json -Depth 10
-Invoke-RestMethod "http://127.0.0.1:8080/api/stream-status/refresh?forceApi=1" | ConvertTo-Json -Depth 10
+1. ZIP nach `D:\Git\stream-control-center` entpacken.
+2. Syntax prüfen:
+
+```bat
+node --check htdocs\dashboard\modules\shoutout.js
 ```
 
-6. Danach `clip_shoutout` Live-Gate prüfen:
+3. Step abschließen:
 
-```powershell
-$q = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/queue"
-$q.officialQueue.liveGate | ConvertTo-Json -Depth 10
+```bat
+.\stepdone.cmd "STEP469 Shoutout Dashboard Module"
 ```
 
-Wenn der Twitch-Backend-Endpunkt valide antwortet, soll `stream_status` nicht mehr `stale=true` aus der alten Datei melden, sondern `source=twitch_api` und `statusKnown=true`.
+4. Backend neu starten oder Dashboard hart neu laden, falls statische Dateien gecacht wurden.
+5. Dashboard öffnen:
 
-## Nach STEP468
+```text
+http://127.0.0.1:8080/dashboard/
+```
 
-1. Live/offline in `stream_status` gegen echten Streamstart testen.
-2. Prüfen, ob `clip_shoutout` im Live-Gate `upstreamSource: twitch_api`, `statusKnown: true` und `stale: false` sieht.
-3. Danach weitere Module schrittweise auf zentralen Stream-Status umstellen.
+6. Im Bereich `Community` das Modul `Shoutout-System` öffnen.
+7. API-Gegencheck:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/queue" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/timeline?limit=20" | ConvertTo-Json -Depth 8
+```
+
+8. Sichtprüfung im Dashboard:
+
+- Runtime-Version `0.2.9` sichtbar.
+- Command `!vso` sichtbar.
+- Display-Queue sichtbar.
+- Official-Queue sichtbar.
+- Live-Gate zeigt `source: stream_status` und `upstreamSource: twitch_api`.
+- Timeline lädt ohne Fehler.
+
+## Danach
+
+- Live-Test durchführen, wenn der Stream wirklich online ist.
+- Prüfen, ob Official-Queue bei live korrekt sendet und offline weiterhin sauber wartet.
+- Danach entscheiden, ob Shoutout-Settings editierbar ins Dashboard kommen sollen.

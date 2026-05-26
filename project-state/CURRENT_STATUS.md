@@ -1,17 +1,5 @@
 # CURRENT_STATUS
 
-## STEP467 aktiv
-
-Zentraler Stream-Live-Status wurde erweitert:
-
-- `backend/modules/stream_status.js` steht auf Runtime-Version `0.1.1`.
-- Dateiquelle `htdocs/data/twitch_stream_raw.json` bleibt erhalten.
-- Bei stale/fehlender Datei kann `/api/stream-status/status` und `/api/stream-status/refresh` den lokalen Twitch-Backend-Endpunkt abfragen.
-- Standard-Fallback: `http://127.0.0.1:8080/api/twitch/stream?login={login}`.
-- Der Status zeigt nun zusätzlich API-Quelle, API-Fehler, Datei-Alter und Stale-Zustand nachvollziehbar an.
-
-Clip-Shoutout bleibt unverändert bei Runtime-Version `0.2.9` und nutzt weiterhin den zentralen Streamstatus für Live-Gate und Streamtag-Logik.
-
 ## STEP468 - Stream Status Auto Refresh
 
 - `backend/modules/stream_status.js` steht auf Runtime-Version `0.1.2`.
@@ -20,3 +8,15 @@ Clip-Shoutout bleibt unverändert bei Runtime-Version `0.2.9` und nutzt weiterhi
 - Auto-Refresh läuft standardmäßig alle 60 Sekunden, bei live/grace alle 30 Sekunden.
 - Der Status wird im RAM und in SQLite gespeichert (`stream_status_state`, `stream_status_sessions`).
 - Synchrone Konsumenten wie `clip_shoutout` bekommen den letzten zentralen Stand, ohne ihn durch stale Datei-Lesung zu überschreiben.
+
+## STEP469 - Shoutout Dashboard Module
+
+- Das Shoutout-System ist jetzt als eigenes Dashboard-Modul sichtbar.
+- Neue Dashboard-Dateien:
+  - `htdocs/dashboard/modules/shoutout.js`
+  - `htdocs/dashboard/modules/shoutout.css`
+- `htdocs/dashboard/index.html` lädt CSS/JS und enthält das Panel `#shoutoutModule`.
+- Das Modul registriert sich im Community-Bereich und in den Favoriten.
+- Das Dashboard zeigt Display-Queue, Official-Queue, Official Live-Gate, zentralen Streamstatus und Timeline.
+- Kleine Testauslösung per Dashboard ist möglich, inklusive optionalem `--force` für das bestehende Streamtag-Limit.
+- Keine Backend-Logik wurde geändert.

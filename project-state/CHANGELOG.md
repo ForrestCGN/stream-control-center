@@ -16,3 +16,12 @@
 - Auto-Refresh mit konfigurierbaren Intervallen ergänzt.
 - Datei-basierte Twitch-Statusquellen bleiben als Fallback erhalten.
 - `getCurrentStatus()` für synchrone Modulnutzung stabilisiert, damit frischer API-Status nicht durch stale Datei-Refresh überschrieben wird.
+
+## STEP469 - Shoutout Dashboard Module
+
+- Eigenes Dashboard-Modul für `clip_shoutout` ergänzt.
+- `htdocs/dashboard/index.html` lädt `shoutout.css` und `shoutout.js` und enthält das Panel `#shoutoutModule`.
+- `shoutout.js` registriert sich dynamisch im Dashboard, ohne `app.js` zu ersetzen.
+- Dashboard zeigt Display-Queue, Official-Queue, Timeline und Official Live-Gate mit zentralem Streamstatus.
+- Kleine Dashboard-Testauslösung nutzt die vorhandene Route `/api/clip-shoutout/run`.
+- Keine Änderung an Backend, Streamstatus, Command-Logik, Chatmeldungen oder Sound-System.
