@@ -1,9 +1,0 @@
-/* Channelpoints Read-Only Sync Dashboard Add-on v0.8.1 */
-.cp-readonly-sync-panel{border-color:rgba(0,224,255,.28)!important;box-shadow:0 18px 42px rgba(0,0,0,.22),0 0 24px rgba(0,224,255,.10)!important}
-.cp-readonly-sync-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0 12px}
-.cp-readonly-sync-grid>div{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:16px;padding:12px;display:grid;gap:4px}
-.cp-readonly-sync-grid strong{font-size:14px}.cp-readonly-sync-grid span{color:var(--muted);font-size:12px;line-height:1.35}
-.cp-readonly-sync-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.cp-readonly-sync-actions button{border-radius:12px;padding:9px 13px}.cp-readonly-sync-actions button[data-cp-ro-action="sync"]{border-color:rgba(0,224,255,.45);box-shadow:0 0 18px rgba(0,224,255,.12)}
-.cp-readonly-sync-table{display:grid;gap:6px;margin-top:12px}.cp-readonly-sync-table .head,.cp-readonly-sync-table .row{display:grid;grid-template-columns:minmax(230px,1fr) 90px 150px 170px;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:9px 11px;background:rgba(255,255,255,.035)}
-.cp-readonly-sync-table .head{font-size:12px;font-weight:900;color:#c7a2ff;background:rgba(170,92,255,.10)}.cp-readonly-sync-table .row small{display:block;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cp-readonly-sync-details pre{max-height:340px;overflow:auto;font-size:12px;line-height:1.35}
-@media(max-width:900px){.cp-readonly-sync-table .head{display:none}.cp-readonly-sync-table .row{grid-template-columns:1fr}}
