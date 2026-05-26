@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.9.3';
-  const UI_BUILD = 'redemption-live-allowlist-guard';
+  const UI_VERSION = '0.9.4';
+  const UI_BUILD = 'simple-redemption-flow-cleanup';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -13,8 +13,6 @@ window.ChannelpointsModule = (function(){
     redemptions: '/api/channelpoints/redemptions',
     redemptionTest: '/api/channelpoints/redemptions/test',
     eventsubRedemptionStatus: '/api/channelpoints/eventsub/redemption/status',
-    eventsubRedemptionMode: '/api/channelpoints/eventsub/redemption/mode',
-    eventsubRedemptionLiveAllowlist: '/api/channelpoints/eventsub/redemption/live-allowlist',
     eventsubRedemptionPreview: '/api/channelpoints/eventsub/redemption/preview',
     eventsubRedemptionReceive: '/api/channelpoints/eventsub/redemption',
     twitchStatus: '/api/channelpoints/twitch-status',
@@ -609,39 +607,13 @@ window.ChannelpointsModule = (function(){
     render();
   }
 
-  async function setRedemptionAutoExecuteMode(mode) {
-    const cleanMode = String(mode || 'shadow').trim().toLowerCase();
-    if (cleanMode === 'live' && !window.confirm('AutoExecute LIVE aktivieren?\n\nEchte empfangene Redemptions werden nur dann automatisch ausgeführt, wenn der Reward lokal aktiv, vollständig konfiguriert UND für Live freigegeben ist. Twitch wird weiterhin nicht beschrieben.')) {
-      render();
-      return;
-    }
-    const data = await window.CGN.api(api.eventsubRedemptionMode, { method:'POST', body:JSON.stringify({ mode:cleanMode, updatedBy:'dashboard' }) });
-    state.eventsubRedemptionStatus = data;
-    state.notice = data.ok ? `AutoExecute-Modus gesetzt: ${data.autoExecuteMode || cleanMode}` : 'AutoExecute-Modus konnte nicht gesetzt werden.';
-    state.tab = 'redemptions';
-    render();
-  }
-
-  async function setRedemptionLiveAllowlistForSelected(allow, clear = false) {
-    const reward = selectedRedemptionTestReward();
-    const payload = clear ? { clear:true, updatedBy:'dashboard' } : { rewardKey: reward && reward.reward_key || '', allow: !!allow, updatedBy:'dashboard' };
-    if (!clear && !payload.rewardKey) throw new Error('Kein gemappter Reward ausgewählt.');
-    if (allow && !window.confirm(`Reward für Live-AutoExecute freigeben?\n\n${reward.title || reward.reward_key} (${reward.reward_key})\n\nNur dieser Reward wird dann im LIVE-Modus automatisch ausgeführt. Twitch wird weiterhin nicht beschrieben.`)) return;
-    if (clear && !window.confirm('Alle Live-Freigaben für Kanalpunkte entfernen?')) return;
-    const data = await window.CGN.api(api.eventsubRedemptionLiveAllowlist, { method:'POST', body:JSON.stringify(payload) });
-    state.eventsubRedemptionStatus = data;
-    state.notice = data.ok ? 'Live-Freigaben aktualisiert.' : 'Live-Freigaben konnten nicht aktualisiert werden.';
-    state.tab = 'redemptions';
-    render();
-  }
-
   async function previewDummyRedemption() {
     const reward = selectedRedemptionTestReward();
     if (!reward) throw new Error('Kein gemappter Reward mit twitch_reward_id gefunden. Bitte zuerst Twitch-Rewards lokal synchronisieren.');
     const payload = buildDummyRedemptionPayload(reward, 'dashboard_preview');
     const data = await window.CGN.api(api.eventsubRedemptionPreview, { method:'POST', body:JSON.stringify(payload) });
     state.eventsubRedemptionPreview = data;
-    state.notice = data.ok ? `Preview erzeugt: ${data.normalized?.reward_key || reward.reward_key} · mapped=${data.normalized?.mapped === true} · Shadow=${data.shadowExecution?.wouldExecute ? 'würde ausführen' : (data.shadowExecution?.reason || 'geprüft')}` : 'Preview konnte nicht erzeugt werden.';
+    state.notice = data.ok ? `Preview erzeugt: ${data.normalized?.reward_key || reward.reward_key} · mapped=${data.normalized?.mapped === true}` : 'Preview konnte nicht erzeugt werden.';
     state.tab = 'redemptions';
     render();
   }
@@ -651,11 +623,11 @@ window.ChannelpointsModule = (function(){
     if (!reward) throw new Error('Kein gemappter Reward mit twitch_reward_id gefunden. Bitte zuerst Twitch-Rewards lokal synchronisieren.');
     if (!window.confirm(`Dummy-Redemption für ${reward.title || reward.reward_key} lokal speichern?
 
-Aktueller AutoExecute-Modus: ${state.eventsubRedemptionStatus?.autoExecuteMode || 'shadow'}\n\nBei OFF/SHADOW wird nichts automatisch abgespielt. Bei LIVE startet nur ein ausführbarer Reward, der zusätzlich für Live freigegeben ist. Twitch wird weiterhin nicht beschrieben.`)) return;
+Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) return;
     const payload = buildDummyRedemptionPayload(reward, 'dashboard_receive');
     const data = await window.CGN.api(api.eventsubRedemptionReceive, { method:'POST', body:JSON.stringify(payload) });
     state.eventsubRedemptionReceive = data;
-    state.notice = data.ok ? `Dummy-Redemption lokal gespeichert: ${data.redemption?.reward_key || reward.reward_key}. Modus: ${data.liveExecution?.mode || data.shadowExecution?.mode || 'shadow'} · ${data.executed ? 'ausgeführt' : (data.shadowExecution?.wouldExecute ? 'würde ausführen' : (data.shadowExecution?.reason || 'nicht ausführbar'))}.` : 'Dummy-Redemption konnte nicht gespeichert werden.';
+    state.notice = data.ok ? `Dummy-Redemption lokal gespeichert: ${data.redemption?.reward_key || reward.reward_key}. Keine automatische Ausführung.` : 'Dummy-Redemption konnte nicht gespeichert werden.';
     state.tab = 'redemptions';
     await loadAll(true);
   }
@@ -727,12 +699,6 @@ Aktueller AutoExecute-Modus: ${state.eventsubRedemptionStatus?.autoExecuteMode |
     return '';
   }
 
-  function renderShadowExecutionBox(shadow, label = 'Shadow-Prüfung') {
-    if (!shadow || typeof shadow !== 'object') return '';
-    const mode = shadow.wouldExecute ? 'ok' : (shadow.blocked ? 'warn' : 'neutral');
-    return `<div class="cp-shadow-preview ${shadow.wouldExecute ? 'ok' : (shadow.blocked ? 'warn' : '')}"><strong>${esc(label)}</strong><div class="cp-mapping-preview-grid"><span>Ergebnis</span><b>${esc(shadow.wouldExecute ? 'würde ausführen' : (shadow.reason || 'geprüft'))}</b><span>Typ</span><code>${esc(shadow.executionType || '-')}</code><span>Aktion</span><code>${esc([shadow.actionType, shadow.actionKey].filter(Boolean).join(' · ') || '-')}</code><span>Medium</span><code>${esc(shadow.mediaAssetId || '-')}</code><span>Ziel</span><code>${esc(shadow.target || '-')}</code><span>Hinweis</span><code>${esc(shadow.note || '')}</code></div></div>`;
-  }
-
   function renderRedemptionEventSubTestBox() {
     const status = state.eventsubRedemptionStatus || {};
     const stats = status.stats || {};
@@ -742,21 +708,13 @@ Aktueller AutoExecute-Modus: ${state.eventsubRedemptionStatus?.autoExecuteMode |
     const receive = state.eventsubRedemptionReceive || null;
     const options = mapped.map(reward => `<option value="${esc(reward.reward_key)}" ${selected && reward.reward_key === selected.reward_key ? 'selected' : ''}>${esc(reward.title || reward.reward_key)} · ${esc(reward.reward_key)}</option>`).join('');
     const normalized = preview && preview.normalized ? preview.normalized : null;
-    const autoMode = status.autoExecuteMode || (status.autoExecuteEnabled ? 'live' : 'shadow');
-    const liveAllowlist = status.liveAllowlist || {};
-    const allowedKeys = asArray(liveAllowlist.allowedRewardKeys).map(String);
-    const selectedArmed = !!(selected && (liveAllowlist.allowAllRewards === true || allowedKeys.includes(String(selected.reward_key))));
     return `<div class="cp-eventsub-test-box">
-      <div class="cp-eventsub-head"><div><h4>EventSub-Redemption Test/Preview</h4><p>Testet kontrolliert: Twitch reward_id → lokaler reward_key → lokale Speicherung → AutoExecute-Modus. Twitch-Write bleibt aus.</p></div><div class="cp-eventsub-status">${pill(status.enabled === false ? 'EventSub Prep aus' : 'EventSub Prep bereit', status.enabled === false ? 'off' : 'ok')}${pill(`AutoExecute ${autoMode}`, autoMode === 'live' ? 'warn' : (autoMode === 'shadow' ? 'neutral' : 'off'))}${pill(status.autoExecuteModeSource || 'config', 'neutral')}${pill(selectedArmed ? 'Reward live freigegeben' : 'Reward nicht live freigegeben', selectedArmed ? 'ok' : 'warn')}</div></div>
-      <div class="cp-auto-mode-box"><div><strong>AutoExecute-Modus</strong><span>OFF speichert nur, SHADOW prüft nur, LIVE führt nur ausführbare und explizit freigegebene Rewards aus.</span></div><select data-cp-control="autoExecuteMode"><option value="off" ${autoMode === 'off' ? 'selected' : ''}>off · nur speichern</option><option value="shadow" ${autoMode === 'shadow' ? 'selected' : ''}>shadow · prüfen, nicht ausführen</option><option value="live" ${autoMode === 'live' ? 'selected' : ''}>live · nur freigegebene Rewards ausführen</option></select></div>
-      <div class="cp-live-allowlist-box"><div><strong>Live-Freigabe</strong><span>${liveAllowlist.allowAllRewards === true ? 'Alle Rewards sind per Config freigegeben.' : (allowedKeys.length ? `Freigegeben: ${esc(allowedKeys.join(', '))}` : 'Noch kein Reward für Live-AutoExecute freigegeben.')}</span></div><div class="cp-live-allowlist-actions"><button type="button" data-cp-action="live-allow-selected" ${selected ? '' : 'disabled'}>${selectedArmed ? 'Ausgewählten erneut freigeben' : 'Ausgewählten für Live freigeben'}</button><button type="button" data-cp-action="live-disallow-selected" ${selected && selectedArmed && liveAllowlist.allowAllRewards !== true ? '' : 'disabled'}>Freigabe entfernen</button><button type="button" data-cp-action="live-clear-allowlist" ${allowedKeys.length ? '' : 'disabled'}>Alle Freigaben löschen</button></div></div>
+      <div class="cp-eventsub-head"><div><h4>Einlösungen prüfen</h4><p>Einfache Regel: Aktiv + Aktion vollständig = ausführen. Inaktiv oder Aktion fehlt = nicht ausführen. Kein Twitch-Write.</p></div><div class="cp-eventsub-status">${pill(status.enabled === false ? 'Einlösungen aus' : 'Einlösungen bereit', status.enabled === false ? 'off' : 'ok')}</div></div>
       <div class="cp-form-grid cp-redemption-test-grid"><label>Gemappter Test-Reward<select data-cp-control="redemptionTestReward">${options || '<option value="">Kein gemappter Reward gefunden</option>'}</select></label><div class="cp-test-reward-info"><strong>${esc(selected ? selected.title : 'Kein Reward')}</strong><span>${selected ? `reward_key ${esc(selected.reward_key)} · twitch_reward_id ${esc(selected.twitch_reward_id)}` : 'Bitte zuerst Twitch-Rewards lokal synchronisieren.'}</span></div></div>
-      <div class="cp-actions"><button type="button" data-cp-action="eventsub-status">EventSub-Status</button><button type="button" data-cp-action="eventsub-preview" ${selected ? '' : 'disabled'}>Dummy-Preview + Shadow</button><button type="button" data-cp-action="eventsub-receive" ${selected ? '' : 'disabled'}>${autoMode === 'live' ? (selectedArmed ? 'Dummy speichern + Live ausführen' : 'Dummy speichern · Live blockiert') : 'Dummy lokal speichern'}</button></div>
-      <div class="cp-eventsub-stats"><span>Received: ${esc(stats.received ?? 0)}</span><span>Preview: ${esc(stats.previewed ?? 0)}</span><span>Stored: ${esc(stats.stored ?? 0)}</span><span>Duplicates: ${esc(stats.duplicates ?? 0)}</span><span>Unmapped: ${esc(stats.unmapped ?? 0)}</span><span>Shadow: ${esc(stats.shadowChecked ?? 0)}</span><span>Would execute: ${esc(stats.wouldExecute ?? 0)}</span><span>Blocked: ${esc(stats.blocked ?? 0)}</span><span>Live OK: ${esc(stats.liveExecuted ?? 0)}</span><span>Live Fehler: ${esc(stats.liveFailed ?? 0)}</span><span>Live geblockt: ${esc(stats.liveBlockedByAllowlist ?? 0)}</span></div>
+      <div class="cp-actions"><button type="button" data-cp-action="eventsub-status">EventSub-Status</button><button type="button" data-cp-action="eventsub-preview" ${selected ? '' : 'disabled'}>Dummy-Preview erzeugen</button><button type="button" data-cp-action="eventsub-receive" ${selected ? '' : 'disabled'}>Dummy lokal speichern</button></div>
+      <div class="cp-eventsub-stats"><span>Received: ${esc(stats.received ?? 0)}</span><span>Preview: ${esc(stats.previewed ?? 0)}</span><span>Stored: ${esc(stats.stored ?? 0)}</span><span>Duplicates: ${esc(stats.duplicates ?? 0)}</span><span>Unmapped: ${esc(stats.unmapped ?? 0)}</span></div>
       ${normalized ? `<div class="cp-mapping-preview"><strong>Preview-Mapping</strong><div class="cp-mapping-preview-grid"><span>Redemption</span><code>${esc(normalized.twitch_redemption_id || '-')}</code><span>Twitch Reward</span><code>${esc(normalized.twitch_reward_id || '-')}</code><span>Lokal</span><code>${esc(normalized.reward_key || '-')}</code><span>Status</span><b>${normalized.mapped ? 'gemappt' : 'unmapped'}</b></div></div>` : ''}
-      ${preview && preview.shadowExecution ? renderShadowExecutionBox(preview.shadowExecution, 'Preview Shadow-Prüfung') : ''}
-      ${receive && receive.redemption ? `<div class="cp-mapping-preview ok"><strong>Zuletzt gespeichert</strong><div class="cp-mapping-preview-grid"><span>Reward</span><code>${esc(receive.redemption.reward_key || '-')}</code><span>User</span><code>${esc(receive.redemption.user_display_name || receive.redemption.user_login || '-')}</code><span>Status</span><b>${esc(receive.redemption.status || '-')}</b><span>Ausführung</span><code>${esc(receive.executed ? 'live_executed' : (receive.executionSkipped || 'nicht automatisch'))}</code></div></div>` : ''}
-      ${receive && receive.shadowExecution ? renderShadowExecutionBox(receive.shadowExecution, 'Gespeicherte Redemption Shadow-Prüfung') : ''}${receive && receive.liveExecution ? `<div class="cp-mapping-preview ${receive.liveExecution.executed ? 'ok' : ''}"><strong>Live-Ausführung</strong><div class="cp-mapping-preview-grid"><span>Modus</span><code>${esc(receive.liveExecution.mode || '-')}</code><span>Status</span><b>${esc(receive.liveExecution.executed ? 'ausgeführt' : (receive.liveExecution.failed ? 'fehlgeschlagen' : 'übersprungen'))}</b><span>Grund</span><code>${esc(receive.liveExecution.reason || '-')}</code></div></div>` : ''}
+      ${receive && receive.redemption ? `<div class="cp-mapping-preview ok"><strong>Zuletzt gespeichert</strong><div class="cp-mapping-preview-grid"><span>Reward</span><code>${esc(receive.redemption.reward_key || '-')}</code><span>User</span><code>${esc(receive.redemption.user_display_name || receive.redemption.user_login || '-')}</code><span>Status</span><b>${esc(receive.redemption.status || '-')}</b><span>Ausführung</span><code>${esc(receive.executionSkipped || 'nicht automatisch')}</code></div></div>` : ''}
     </div>`;
   }
 
@@ -766,7 +724,7 @@ Aktueller AutoExecute-Modus: ${state.eventsubRedemptionStatus?.autoExecuteMode |
     return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Einlösungen / Testverlauf</h3><span>${esc(counts.total ?? list.length)} gesamt · ${esc(counts.executed ?? 0)} ausgeführt · ${esc(counts.failed ?? 0)} Fehler</span></div>
       ${renderRedemptionEventSubTestBox()}
       <div class="cp-redemption-list">${list.map(item => { const preview = redemptionResultPreview(item); return `<div class="cp-redemption-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}${preview ? ` · ${esc(preview).slice(0, 140)}` : ''}</small></div><div>${redemptionStatusPill(item.status)}</div></div>`; }).join('') || '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
-      <small class="cp-muted-line">EventSub-Tests speichern nur lokal. Der Shadow-Modus prüft, ob eine Redemption ausführbar wäre, führt aber nichts automatisch aus.</small>
+      <small class="cp-muted-line">EventSub-Tests speichern nur lokal und führen nicht automatisch aus. Text-Rewards speichern den vorbereiteten Chattext aktuell lokal im Ergebnis.</small>
     </section>`;
   }
 
@@ -1192,11 +1150,7 @@ Aktueller AutoExecute-Modus: ${state.eventsubRedemptionStatus?.autoExecuteMode |
     root.querySelector('[data-cp-action="twitch-readonly-preview"]')?.addEventListener('click', () => previewTwitchRewards().catch(showError));
     root.querySelector('[data-cp-action="twitch-readonly-sync"]')?.addEventListener('click', () => syncTwitchRewards().catch(showError));
     root.querySelector('[data-cp-action="eventsub-status"]')?.addEventListener('click', () => refreshRedemptionEventSubStatus().catch(showError));
-    root.querySelector('[data-cp-control="autoExecuteMode"]')?.addEventListener('change', ev => setRedemptionAutoExecuteMode(ev.target.value).catch(showError));
     root.querySelector('[data-cp-action="eventsub-preview"]')?.addEventListener('click', () => previewDummyRedemption().catch(showError));
-    root.querySelector('[data-cp-action="live-allow-selected"]')?.addEventListener('click', () => setRedemptionLiveAllowlistForSelected(true, false).catch(showError));
-    root.querySelector('[data-cp-action="live-disallow-selected"]')?.addEventListener('click', () => setRedemptionLiveAllowlistForSelected(false, false).catch(showError));
-    root.querySelector('[data-cp-action="live-clear-allowlist"]')?.addEventListener('click', () => setRedemptionLiveAllowlistForSelected(false, true).catch(showError));
     root.querySelector('[data-cp-action="eventsub-receive"]')?.addEventListener('click', () => receiveDummyRedemption().catch(showError));
     root.querySelectorAll('[data-cp-action="edit"]').forEach(btn => btn.addEventListener('click', () => { const r = rewardByKey(btn.dataset.key); if (r) openModal('edit', r); }));
     root.querySelectorAll('[data-cp-action="configure"]').forEach(btn => btn.addEventListener('click', () => configureReward(btn.dataset.key)));

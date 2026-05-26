@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.8.6";
-const MODULE_BUILD = "redemption-live-allowlist-guard";
+const MODULE_VERSION = "0.8.7";
+const MODULE_BUILD = "redemption-simple-active-flow";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -41,11 +41,6 @@ const DEFAULT_CONFIG = {
   twitchAuthValidateUrl: "/api/twitch/auth/validate",
   redemptionEventSubPreparationEnabled: true,
   redemptionEventSubStoreEnabled: true,
-  redemptionEventSubAutoExecuteEnabled: false,
-  redemptionEventSubAutoExecuteMode: "shadow",
-  redemptionEventSubShadowModeEnabled: true,
-  redemptionEventSubLiveAllowAllRewards: false,
-  redemptionEventSubLiveAllowedRewardKeys: [],
   importedRewardActionGuardEnabled: true
 };
 
@@ -222,32 +217,20 @@ let redemptionEventSubStats = {
   stored: 0,
   duplicates: 0,
   unmapped: 0,
-  shadowChecked: 0,
-  wouldExecute: 0,
+  executed: 0,
+  failed: 0,
   blocked: 0,
+  ignoredInactive: 0,
   missingAction: 0,
-  liveExecuted: 0,
-  liveFailed: 0,
-  liveSkipped: 0,
-  liveBlockedByAllowlist: 0,
-  lastLiveExecutionAt: null,
-  lastLiveExecutionResult: null,
-  lastShadowAt: null,
-  lastShadowResult: null,
   lastReceivedAt: null,
   lastStoredAt: null,
   lastPreviewAt: null,
   lastRedemptionId: "",
   lastRewardKey: "",
+  lastExecutionAt: null,
+  lastExecutionResult: null,
   lastError: ""
 };
-
-let redemptionAutoExecuteModeOverride = null;
-let redemptionAutoExecuteModeUpdatedAt = null;
-let redemptionAutoExecuteModeUpdatedBy = "";
-let redemptionLiveAllowedRewardKeysOverride = null;
-let redemptionLiveAllowlistUpdatedAt = null;
-let redemptionLiveAllowlistUpdatedBy = "";
 
 function nowIso() { return new Date().toISOString(); }
 function cleanString(value, fallback = "") { const clean = String(value ?? "").trim(); return clean || fallback; }
@@ -737,10 +720,8 @@ function buildBusEventSpec() {
     { channel: "channelpoints.reward", action: "channelpoints.reward.disabled", when: "Lokaler Reward wurde deaktiviert/pausiert." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.created", when: "Lokale/Test-Einlösung wurde gespeichert." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.received", when: "EventSub-Redemption wurde normalisiert und lokal gespeichert." },
-    { channel: "channelpoints.redemption", action: "channelpoints.redemption.shadow_checked", when: "Shadow-Modus hat geprüft, ob eine Redemption ausführbar wäre." },
-    { channel: "channelpoints.redemption", action: "channelpoints.redemption.auto_execute_mode_changed", when: "AutoExecute-Modus wurde lokal umgeschaltet." },
-    { channel: "channelpoints.redemption", action: "channelpoints.redemption.auto_executed", when: "Eine Redemption wurde im Live-Modus automatisch ausgeführt." },
-    { channel: "channelpoints.redemption", action: "channelpoints.redemption.auto_execute_failed", when: "Automatische Live-Ausführung ist fehlgeschlagen." },
+    { channel: "channelpoints.redemption", action: "channelpoints.redemption.executed_from_eventsub", when: "Aktiver lokaler Reward wurde durch eine Redemption ausgeführt." },
+    { channel: "channelpoints.redemption", action: "channelpoints.redemption.blocked", when: "Redemption wurde blockiert, weil Reward inaktiv ist oder keine Aktion hat." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.executed", when: "Einlösung wurde erfolgreich ausgeführt." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.failed", when: "Einlösung oder Ausführung ist fehlgeschlagen." },
     { channel: "channelpoints.twitch", action: "channelpoints.twitch.readiness", when: "Twitch-Readiness wurde abgefragt." },
@@ -1281,149 +1262,36 @@ function normalizeRedemptionPayload(input = {}) {
   };
 }
 
-
-function normalizeRedemptionAutoExecuteMode(value, fallback = "shadow") {
-  const raw = cleanString(value || fallback).toLowerCase();
-  if (["off", "disabled", "none", "aus"].includes(raw)) return "off";
-  if (["shadow", "dryrun", "dry-run", "preview", "test"].includes(raw)) return "shadow";
-  if (["live", "execute", "enabled", "an"].includes(raw)) return "live";
-  return normalizeRedemptionAutoExecuteMode(fallback, "shadow");
-}
-
-function getRedemptionAutoExecuteModeSource() {
-  const config = getConfig();
-  if (redemptionAutoExecuteModeOverride) return "runtime_override";
-  const configured = cleanString(config.redemptionEventSubAutoExecuteMode || "shadow").toLowerCase();
-  if (["live", "execute", "enabled"].includes(configured) && config.redemptionEventSubAutoExecuteEnabled !== true) return "config_live_requires_enable_flag_fallback_shadow";
-  return "config";
-}
-
-function getRedemptionAutoExecuteMode() {
-  const config = getConfig();
-  if (redemptionAutoExecuteModeOverride) return redemptionAutoExecuteModeOverride;
-  const configured = normalizeRedemptionAutoExecuteMode(config.redemptionEventSubAutoExecuteMode || "shadow", "shadow");
-  if (configured === "live" && config.redemptionEventSubAutoExecuteEnabled !== true) return "shadow";
-  return configured;
-}
-
-function setRedemptionAutoExecuteMode(value, updatedBy = "dashboard") {
-  const mode = normalizeRedemptionAutoExecuteMode(value, "shadow");
-  redemptionAutoExecuteModeOverride = mode;
-  redemptionAutoExecuteModeUpdatedAt = nowIso();
-  redemptionAutoExecuteModeUpdatedBy = cleanString(updatedBy, "dashboard");
-  emitDomainEvent("channelpoints.redemption.auto_execute_mode_changed", {
-    mode,
-    modeSource: "runtime_override",
-    updatedBy: redemptionAutoExecuteModeUpdatedBy,
-    noTwitchWrite: true,
-    timestamp: redemptionAutoExecuteModeUpdatedAt
-  }, { channel: "channelpoints.redemption" });
-  publishStatus("redemption_auto_execute_mode_changed");
-  return buildRedemptionEventSubStatus();
-}
-
-function configuredLiveAllowedRewardKeys() {
-  const config = getConfig();
-  const raw = Array.isArray(config.redemptionEventSubLiveAllowedRewardKeys) ? config.redemptionEventSubLiveAllowedRewardKeys : [];
-  return raw.map(item => cleanKey(item)).filter(Boolean);
-}
-
-function getRedemptionLiveAllowedRewardKeys() {
-  if (redemptionLiveAllowedRewardKeysOverride instanceof Set) return Array.from(redemptionLiveAllowedRewardKeysOverride).sort();
-  return configuredLiveAllowedRewardKeys().sort();
-}
-
-function getRedemptionLiveAllowlistSource() {
-  if (redemptionLiveAllowedRewardKeysOverride instanceof Set) return "runtime_override";
-  return "config";
-}
-
-function getRedemptionLiveAllowAllRewards() {
-  const config = getConfig();
-  return config.redemptionEventSubLiveAllowAllRewards === true;
-}
-
-function isRewardAllowedForLiveAutoExecute(rewardKey) {
-  const key = cleanKey(rewardKey);
-  if (!key) return false;
-  if (getRedemptionLiveAllowAllRewards()) return true;
-  return getRedemptionLiveAllowedRewardKeys().includes(key);
-}
-
-function setRedemptionLiveAllowlist(input = {}) {
-  const body = input && typeof input === "object" ? input : {};
-  const current = new Set(getRedemptionLiveAllowedRewardKeys());
-  if (body.clear === true) current.clear();
-  const rewardKey = cleanKey(body.rewardKey || body.reward_key || body.key || "");
-  if (rewardKey) {
-    const allow = boolValue(body.allow, true);
-    if (allow) current.add(rewardKey); else current.delete(rewardKey);
-  }
-  const keys = Array.from(current).sort();
-  redemptionLiveAllowedRewardKeysOverride = new Set(keys);
-  redemptionLiveAllowlistUpdatedAt = nowIso();
-  redemptionLiveAllowlistUpdatedBy = cleanString(body.updatedBy || body.updated_by || "dashboard", "dashboard");
-  emitDomainEvent("channelpoints.redemption.live_allowlist_changed", {
-    allowedRewardKeys: keys,
-    allowAllRewards: getRedemptionLiveAllowAllRewards(),
-    updatedBy: redemptionLiveAllowlistUpdatedBy,
-    timestamp: redemptionLiveAllowlistUpdatedAt,
-    noTwitchWrite: true
-  }, { channel: "channelpoints.redemption" });
-  publishStatus("redemption_live_allowlist_changed");
-  return buildRedemptionEventSubStatus();
-}
-
-function buildRedemptionShadowExecution(normalized) {
-  const mode = getRedemptionAutoExecuteMode();
+function buildSimpleRedemptionDecision(normalized) {
   const reward = normalized && normalized.local_reward ? normalized.local_reward : null;
   const base = {
-    mode,
-    checked: mode !== "off",
-    wouldExecute: false,
-    blocked: false,
-    reason: "shadow_mode_off",
+    mapped: !!(normalized && normalized.mapped && reward),
     rewardKey: normalized && normalized.reward_key || "",
     twitchRewardId: normalized && normalized.twitch_reward_id || "",
+    shouldExecute: false,
+    willExecute: false,
+    blocked: false,
+    reason: "not_checked",
+    status: "received",
     executionType: "none",
     actionType: reward && reward.action_type || "",
     actionKey: reward && reward.action_key || "",
     mediaAssetId: reward && reward.media_asset_id || "",
     mediaRole: reward && reward.media_role || "",
-    target: "none",
-    note: "Shadow-Modus prüft nur, ob ausgeführt würde. Es wird nichts automatisch abgespielt."
+    note: ""
   };
-  if (mode === "off") return base;
-
-  redemptionEventSubStats.shadowChecked += 1;
-  redemptionEventSubStats.lastShadowAt = nowIso();
-
   if (!normalized || !normalized.mapped || !reward) {
-    const result = { ...base, checked: true, blocked: true, reason: "unmapped_reward", note: "Keine lokale Reward-Zuordnung gefunden." };
-    redemptionEventSubStats.blocked += 1;
-    redemptionEventSubStats.lastShadowResult = result;
-    return result;
+    return { ...base, blocked: true, reason: "reward_not_mapped", status: "unmapped", note: "Keine lokale Reward-Zuordnung gefunden." };
   }
   if (!reward.system_enabled) {
-    const result = { ...base, checked: true, blocked: true, reason: "reward_disabled_local", note: "Reward ist lokal deaktiviert." };
-    redemptionEventSubStats.blocked += 1;
-    redemptionEventSubStats.lastShadowResult = result;
-    return result;
+    return { ...base, blocked: true, reason: "reward_inactive", status: "ignored", note: "Reward ist lokal inaktiv und wird deshalb nicht ausgeführt." };
   }
   if (reward.is_paused) {
-    const result = { ...base, checked: true, blocked: true, reason: "reward_paused_local", note: "Reward ist lokal pausiert." };
-    redemptionEventSubStats.blocked += 1;
-    redemptionEventSubStats.lastShadowResult = result;
-    return result;
+    return { ...base, blocked: true, reason: "reward_paused", status: "ignored", note: "Reward ist lokal pausiert und wird deshalb nicht ausgeführt." };
   }
   if (!isExecutableReward(reward)) {
-    const result = { ...base, checked: true, blocked: true, reason: "missing_executable_action", note: "Reward hat noch keine ausführbare Sound-/Media-/Text-Aktion." };
-    redemptionEventSubStats.blocked += 1;
-    redemptionEventSubStats.missingAction += 1;
-    redemptionEventSubStats.lastShadowResult = result;
-    return result;
+    return { ...base, blocked: true, reason: "reward_action_missing", status: "blocked", note: "Reward ist aktiv, hat aber keine vollständige Aktion." };
   }
-
   const check = buildExecutionCheck(reward, {
     userLogin: normalized.user_login,
     userDisplayName: normalized.user_display_name,
@@ -1431,24 +1299,21 @@ function buildRedemptionShadowExecution(normalized) {
     twitchRedemptionId: normalized.twitch_redemption_id,
     redeemedAt: normalized.redeemed_at
   });
-  const result = {
+  return {
     ...base,
-    checked: true,
-    wouldExecute: true,
+    shouldExecute: true,
+    willExecute: true,
     blocked: false,
-    reason: "would_execute_in_live_mode",
+    reason: "reward_active_and_executable",
+    status: "ready",
     executionType: check.executionType || "unknown",
     actionType: reward.action_type || "",
     actionKey: reward.action_key || "",
     mediaAssetId: rewardMediaId(reward),
     mediaRole: reward.media_role || "",
     target: check.effectiveTargetUrl || "local",
-    payloadPreview: check.payloadPreview || null,
-    note: "Shadow-Modus: Diese Einlösung wäre im Live-Modus ausführbar, wird aber jetzt nicht automatisch ausgeführt."
+    note: "Reward ist aktiv und hat eine vollständige Aktion. Eine echte Einlösung wird ausgeführt."
   };
-  redemptionEventSubStats.wouldExecute += 1;
-  redemptionEventSubStats.lastShadowResult = result;
-  return result;
 }
 
 function buildRedemptionEventSubStatus() {
@@ -1458,71 +1323,44 @@ function buildRedemptionEventSubStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "redemption_auto_execute_mode_control_ready",
+    status: "redemption_simple_active_flow_ready",
     enabled: config.redemptionEventSubPreparationEnabled !== false,
     storeEnabled: config.redemptionEventSubStoreEnabled !== false,
-    autoExecuteEnabled: getRedemptionAutoExecuteMode() === "live",
-    autoExecuteMode: getRedemptionAutoExecuteMode(),
-    autoExecuteModeSource: getRedemptionAutoExecuteModeSource(),
-    allowedAutoExecuteModes: ["off", "shadow", "live"],
-    liveAllowlist: {
-      allowAllRewards: getRedemptionLiveAllowAllRewards(),
-      allowedRewardKeys: getRedemptionLiveAllowedRewardKeys(),
-      source: getRedemptionLiveAllowlistSource(),
-      updatedAt: redemptionLiveAllowlistUpdatedAt,
-      updatedBy: redemptionLiveAllowlistUpdatedBy,
-      note: getRedemptionLiveAllowAllRewards() ? "Live-Modus darf alle lokal aktiven ausführbaren Rewards ausführen." : "Live-Modus führt nur ausdrücklich freigegebene Reward-Keys aus."
-    },
-    runtimeOverride: {
-      active: !!redemptionAutoExecuteModeOverride,
-      mode: redemptionAutoExecuteModeOverride || "",
-      updatedAt: redemptionAutoExecuteModeUpdatedAt,
-      updatedBy: redemptionAutoExecuteModeUpdatedBy
-    },
-    shadowModeEnabled: config.redemptionEventSubShadowModeEnabled !== false,
+    processingRule: "Reward aktiv + Aktion vollständig = ausführen; Reward inaktiv oder Aktion fehlt = nicht ausführen.",
     safety: {
       noTwitchWrite: true,
-      noAutoExecuteByDefault: config.redemptionEventSubAutoExecuteEnabled !== true && !redemptionAutoExecuteModeOverride,
-      shadowModeDoesNotExecute: getRedemptionAutoExecuteMode() !== "live",
-      liveModeRequiresExplicitRuntimeOrConfig: true,
-      liveModeRequiresRewardAllowlistUnlessAllowAll: true,
-      liveExecutesOnlyMappedEnabledExecutableAllowedRewards: true,
-      localDbWriteOnlyOnReceiveRoute: true,
+      noExtraDashboardModes: true,
+      activeFlagIsExecutionGate: true,
+      actionRequiredForActivation: true,
       usesExistingRedemptionsTable: true
     },
     stats: { ...redemptionEventSubStats },
     routes: [
       `${ROUTE_PREFIX}/eventsub/redemption/status`,
-      `${ROUTE_PREFIX}/eventsub/redemption/mode`,
-      `${ROUTE_PREFIX}/eventsub/redemption/live-allowlist`,
       `${ROUTE_PREFIX}/eventsub/redemption/preview`,
       `${ROUTE_PREFIX}/eventsub/redemption`
     ]
   };
 }
 
-function storeNormalizedRedemption(normalized, shadowExecution = null, liveExecution = null) {
+function storeNormalizedRedemption(normalized, decision = null, execution = null) {
   ensureDbReady();
   if (!normalized || !normalized.twitch_redemption_id) throw new Error("redemption_id_required");
   const now = nowIso();
   const existing = database.get("SELECT * FROM channelpoints_redemptions WHERE twitch_redemption_id = :id", { id: normalized.twitch_redemption_id });
-  const status = liveExecution && liveExecution.executed ? "executed" : (liveExecution && liveExecution.failed ? "failed" : (normalized.mapped ? "received" : "unmapped"));
+  const status = execution && execution.executed ? "executed" : (execution && execution.failed ? "failed" : (decision && decision.status ? decision.status : (normalized.mapped ? "received" : "unmapped")));
   const result = {
     source: normalized.source,
     mapped: normalized.mapped,
     rewardTitle: normalized.reward_title,
     rewardCost: normalized.reward_cost,
-    autoExecute: !!(liveExecution && (liveExecution.executed || liveExecution.failed || liveExecution.skipped)),
-    autoExecuteMode: getRedemptionAutoExecuteMode(),
-    shadowExecution: shadowExecution || null,
-    liveExecution: liveExecution || null,
-    note: liveExecution && liveExecution.executed
-      ? "Redemption wurde im Live-Modus automatisch ausgeführt und lokal gespeichert."
-      : (liveExecution && liveExecution.failed
-        ? "Redemption wurde im Live-Modus versucht, die Ausführung ist fehlgeschlagen."
-        : (normalized.mapped
-          ? "Redemption wurde vorbereitet und lokal gespeichert. Automatische Ausführung ist nicht aktiv."
-          : "Redemption wurde gespeichert, aber keinem lokalen Reward zugeordnet."))
+    decision: decision || null,
+    execution: execution || null,
+    note: execution && execution.executed
+      ? "Aktiver Reward wurde durch die Einlösung ausgeführt."
+      : (execution && execution.failed
+        ? "Reward sollte ausgeführt werden, ist aber fehlgeschlagen."
+        : (decision && decision.note ? decision.note : (normalized.mapped ? "Redemption wurde lokal gespeichert." : "Redemption wurde gespeichert, aber keinem lokalen Reward zugeordnet.")))
   };
   const params = {
     twitch_redemption_id: normalized.twitch_redemption_id,
@@ -1533,7 +1371,7 @@ function storeNormalizedRedemption(normalized, shadowExecution = null, liveExecu
     user_display_name: normalized.user_display_name,
     user_input: normalized.user_input,
     status,
-    queue_group: "eventsub_prepare",
+    queue_group: "eventsub_redemption",
     result_json: jsonString(result, {}),
     redeemed_at: normalized.redeemed_at,
     created_at: now,
@@ -1571,20 +1409,22 @@ function storeNormalizedRedemption(normalized, shadowExecution = null, liveExecu
   redemptionEventSubStats.lastRedemptionId = normalized.twitch_redemption_id;
   redemptionEventSubStats.lastRewardKey = normalized.reward_key;
   if (!normalized.mapped) redemptionEventSubStats.unmapped += 1;
+  if (decision && decision.blocked) {
+    redemptionEventSubStats.blocked += 1;
+    if (decision.reason === "reward_inactive" || decision.reason === "reward_paused") redemptionEventSubStats.ignoredInactive += 1;
+    if (decision.reason === "reward_action_missing") redemptionEventSubStats.missingAction += 1;
+  }
   emitDomainEvent("channelpoints.redemption.received", {
     redemption: stored,
     mapped: normalized.mapped,
     localReward: normalized.local_reward ? buildRewardEventPayload(normalized.local_reward).reward : null,
-    autoExecute: false,
-    shadowExecution: shadowExecution || null
+    decision: decision || null,
+    execution: execution || null
   }, { channel: "channelpoints.redemption" });
-  if (shadowExecution && shadowExecution.checked) {
-    emitDomainEvent("channelpoints.redemption.shadow_checked", {
-      redemption: stored,
-      mapped: normalized.mapped,
-      rewardKey: normalized.reward_key,
-      shadowExecution
-    }, { channel: "channelpoints.redemption" });
+  if (execution && execution.executed) {
+    emitDomainEvent("channelpoints.redemption.executed_from_eventsub", { redemption: stored, rewardKey: normalized.reward_key, execution }, { channel: "channelpoints.redemption" });
+  } else if (decision && decision.blocked) {
+    emitDomainEvent("channelpoints.redemption.blocked", { redemption: stored, rewardKey: normalized.reward_key, reason: decision.reason, decision }, { channel: "channelpoints.redemption" });
   }
   publishStatus("redemption_eventsub_received");
   return stored;
@@ -1592,7 +1432,7 @@ function storeNormalizedRedemption(normalized, shadowExecution = null, liveExecu
 
 function previewRedemptionEventSubPayload(input = {}) {
   const normalized = normalizeRedemptionPayload(input);
-  const shadowExecution = buildRedemptionShadowExecution(normalized);
+  const decision = buildSimpleRedemptionDecision(normalized);
   redemptionEventSubStats.previewed += 1;
   redemptionEventSubStats.lastPreviewAt = nowIso();
   return {
@@ -1602,84 +1442,48 @@ function previewRedemptionEventSubPayload(input = {}) {
     moduleBuild: MODULE_BUILD,
     action: "preview_redemption_eventsub_payload",
     normalized,
-    shadowExecution,
+    decision,
     willStore: false,
-    willExecute: false,
+    willExecute: decision.willExecute === true,
     twitchWrite: false
   };
-}
-
-async function executeRedemptionLiveIfAllowed(normalized, shadowExecution) {
-  const mode = getRedemptionAutoExecuteMode();
-  const base = { mode, executed: false, failed: false, skipped: true, reason: "auto_execute_not_live", result: null, error: "" };
-  if (mode !== "live") {
-    redemptionEventSubStats.liveSkipped += 1;
-    return base;
-  }
-  if (!shadowExecution || shadowExecution.wouldExecute !== true) {
-    redemptionEventSubStats.liveSkipped += 1;
-    return { ...base, reason: shadowExecution && shadowExecution.reason || "not_executable" };
-  }
-  if (!isRewardAllowedForLiveAutoExecute(normalized.reward_key)) {
-    redemptionEventSubStats.liveSkipped += 1;
-    redemptionEventSubStats.liveBlockedByAllowlist += 1;
-    const allowResult = { ...base, mode, executed: false, failed: false, skipped: true, reason: "reward_not_armed_for_live_auto_execute", result: { rewardKey: normalized.reward_key, allowedRewardKeys: getRedemptionLiveAllowedRewardKeys(), allowAllRewards: getRedemptionLiveAllowAllRewards() } };
-    redemptionEventSubStats.lastLiveExecutionAt = nowIso();
-    redemptionEventSubStats.lastLiveExecutionResult = { ok: false, skipped: true, rewardKey: normalized.reward_key, redemptionId: normalized.twitch_redemption_id, reason: allowResult.reason };
-    emitDomainEvent("channelpoints.redemption.auto_execute_blocked", {
-      rewardKey: normalized.reward_key,
-      twitchRedemptionId: normalized.twitch_redemption_id,
-      reason: allowResult.reason,
-      allowedRewardKeys: getRedemptionLiveAllowedRewardKeys(),
-      allowAllRewards: getRedemptionLiveAllowAllRewards()
-    }, { channel: "channelpoints.redemption" });
-    return allowResult;
-  }
-  try {
-    const result = await executeReward(normalized.reward_key, {
-      userLogin: normalized.user_login,
-      userDisplayName: normalized.user_display_name,
-      userInput: normalized.user_input,
-      twitchRedemptionId: normalized.twitch_redemption_id,
-      redeemedAt: normalized.redeemed_at,
-      source: "channelpoints_eventsub_live"
-    });
-    const liveResult = { mode, executed: true, failed: false, skipped: false, reason: "executed_live", result };
-    redemptionEventSubStats.liveExecuted += 1;
-    redemptionEventSubStats.lastLiveExecutionAt = nowIso();
-    redemptionEventSubStats.lastLiveExecutionResult = { ok: true, rewardKey: normalized.reward_key, redemptionId: normalized.twitch_redemption_id };
-    emitDomainEvent("channelpoints.redemption.auto_executed", {
-      rewardKey: normalized.reward_key,
-      twitchRedemptionId: normalized.twitch_redemption_id,
-      executionType: shadowExecution.executionType || "unknown",
-      result: { ok: true, action: result && result.action || "executed" }
-    }, { channel: "channelpoints.redemption" });
-    return liveResult;
-  } catch (err) {
-    const message = err && err.message ? err.message : String(err);
-    const liveResult = { mode, executed: false, failed: true, skipped: false, reason: "live_execution_failed", error: message, result: err && err.data || null };
-    redemptionEventSubStats.liveFailed += 1;
-    redemptionEventSubStats.lastLiveExecutionAt = nowIso();
-    redemptionEventSubStats.lastLiveExecutionResult = { ok: false, rewardKey: normalized.reward_key, redemptionId: normalized.twitch_redemption_id, error: message };
-    emitDomainEvent("channelpoints.redemption.auto_execute_failed", {
-      rewardKey: normalized.reward_key,
-      twitchRedemptionId: normalized.twitch_redemption_id,
-      error: message
-    }, { channel: "channelpoints.redemption" });
-    return liveResult;
-  }
 }
 
 async function receiveRedemptionEventSubPayload(input = {}) {
   const config = getConfig();
   if (config.redemptionEventSubPreparationEnabled === false) throw new Error("redemption_eventsub_preparation_disabled");
   const normalized = normalizeRedemptionPayload(input);
-  const shadowExecution = buildRedemptionShadowExecution(normalized);
-  const liveExecution = await executeRedemptionLiveIfAllowed(normalized, shadowExecution);
+  const decision = buildSimpleRedemptionDecision(normalized);
+  let execution = { executed: false, failed: false, skipped: true, reason: decision.reason || "not_executable" };
   redemptionEventSubStats.received += 1;
   redemptionEventSubStats.lastReceivedAt = nowIso();
   redemptionEventSubStats.lastRedemptionId = normalized.twitch_redemption_id;
   redemptionEventSubStats.lastRewardKey = normalized.reward_key;
+
+  if (decision.willExecute === true) {
+    try {
+      const result = await executeReward(normalized.reward_key, {
+        userLogin: normalized.user_login,
+        userDisplayName: normalized.user_display_name,
+        userInput: normalized.user_input,
+        twitchRedemptionId: normalized.twitch_redemption_id,
+        redeemedAt: normalized.redeemed_at,
+        source: "channelpoints_eventsub"
+      });
+      execution = { executed: true, failed: false, skipped: false, reason: "executed", result: { ok: true, action: result && result.action || "executed" } };
+      redemptionEventSubStats.executed += 1;
+      redemptionEventSubStats.lastExecutionAt = nowIso();
+      redemptionEventSubStats.lastExecutionResult = execution;
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      execution = { executed: false, failed: true, skipped: false, reason: "execution_failed", error: message };
+      redemptionEventSubStats.failed += 1;
+      redemptionEventSubStats.lastExecutionAt = nowIso();
+      redemptionEventSubStats.lastExecutionResult = execution;
+      redemptionEventSubStats.lastError = message;
+    }
+  }
+
   if (config.redemptionEventSubStoreEnabled === false) {
     return {
       ok: true,
@@ -1688,27 +1492,27 @@ async function receiveRedemptionEventSubPayload(input = {}) {
       moduleBuild: MODULE_BUILD,
       action: "received_redemption_eventsub_payload_store_disabled",
       normalized,
-      shadowExecution,
-      liveExecution,
+      decision,
+      execution,
       stored: false,
-      executed: liveExecution.executed === true,
+      executed: execution.executed === true,
       twitchWrite: false
     };
   }
-  const stored = storeNormalizedRedemption(normalized, shadowExecution, liveExecution);
+  const stored = storeNormalizedRedemption(normalized, decision, execution);
   return {
     ok: true,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    action: liveExecution.executed ? "received_redemption_eventsub_payload_stored_and_executed" : "received_redemption_eventsub_payload_stored",
+    action: execution.executed ? "received_redemption_eventsub_payload_stored_and_executed" : "received_redemption_eventsub_payload_stored",
     normalized: { ...normalized, raw_event: undefined, local_reward: normalized.local_reward ? buildRewardEventPayload(normalized.local_reward).reward : null },
+    decision,
+    execution,
     redemption: stored,
-    shadowExecution,
-    liveExecution,
     stored: true,
-    executed: liveExecution.executed === true,
-    executionSkipped: liveExecution.executed ? "" : (liveExecution.reason || (shadowExecution && shadowExecution.wouldExecute ? "shadow_mode_would_execute_only" : (shadowExecution && shadowExecution.reason || "auto_execute_disabled"))),
+    executed: execution.executed === true,
+    executionSkipped: execution.executed ? "" : (execution.reason || decision.reason || "not_executed"),
     twitchWrite: false
   };
 }
@@ -2027,8 +1831,6 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/redemptions`,
       `${ROUTE_PREFIX}/redemptions/test`,
       `${ROUTE_PREFIX}/eventsub/redemption/status`,
-      `${ROUTE_PREFIX}/eventsub/redemption/mode`,
-      `${ROUTE_PREFIX}/eventsub/redemption/live-allowlist`,
       `${ROUTE_PREFIX}/eventsub/redemption/preview`,
       `${ROUTE_PREFIX}/eventsub/redemption`,
       `${ROUTE_PREFIX}/text-execution-check`,
@@ -2220,22 +2022,6 @@ function init({ app }) {
 
   app.get(`${ROUTE_PREFIX}/eventsub/redemption/status`, (req, res) => {
     try { res.json(buildRedemptionEventSubStatus()); } catch (err) { sendError(res, 500, err); }
-  });
-
-  app.get(`${ROUTE_PREFIX}/eventsub/redemption/mode`, (req, res) => {
-    try { res.json(buildRedemptionEventSubStatus()); } catch (err) { sendError(res, 500, err); }
-  });
-
-  app.post(`${ROUTE_PREFIX}/eventsub/redemption/mode`, (req, res) => {
-    try { res.json(setRedemptionAutoExecuteMode(req.body && req.body.mode || req.query.mode || "shadow", req.body && req.body.updatedBy || req.query.updatedBy || "dashboard")); } catch (err) { sendError(res, 400, err); }
-  });
-
-  app.get(`${ROUTE_PREFIX}/eventsub/redemption/live-allowlist`, (req, res) => {
-    try { res.json(buildRedemptionEventSubStatus()); } catch (err) { sendError(res, 500, err); }
-  });
-
-  app.post(`${ROUTE_PREFIX}/eventsub/redemption/live-allowlist`, (req, res) => {
-    try { res.json(setRedemptionLiveAllowlist({ ...(req.body || {}), ...(req.query || {}) })); } catch (err) { sendError(res, 400, err); }
   });
 
   app.post(`${ROUTE_PREFIX}/eventsub/redemption/preview`, (req, res) => {
