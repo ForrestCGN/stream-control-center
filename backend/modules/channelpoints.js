@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.8.5";
-const MODULE_BUILD = "redemption-auto-execute-mode-control";
+const MODULE_VERSION = "0.8.6";
+const MODULE_BUILD = "redemption-live-allowlist-guard";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -44,6 +44,8 @@ const DEFAULT_CONFIG = {
   redemptionEventSubAutoExecuteEnabled: false,
   redemptionEventSubAutoExecuteMode: "shadow",
   redemptionEventSubShadowModeEnabled: true,
+  redemptionEventSubLiveAllowAllRewards: false,
+  redemptionEventSubLiveAllowedRewardKeys: [],
   importedRewardActionGuardEnabled: true
 };
 
@@ -227,6 +229,7 @@ let redemptionEventSubStats = {
   liveExecuted: 0,
   liveFailed: 0,
   liveSkipped: 0,
+  liveBlockedByAllowlist: 0,
   lastLiveExecutionAt: null,
   lastLiveExecutionResult: null,
   lastShadowAt: null,
@@ -242,6 +245,9 @@ let redemptionEventSubStats = {
 let redemptionAutoExecuteModeOverride = null;
 let redemptionAutoExecuteModeUpdatedAt = null;
 let redemptionAutoExecuteModeUpdatedBy = "";
+let redemptionLiveAllowedRewardKeysOverride = null;
+let redemptionLiveAllowlistUpdatedAt = null;
+let redemptionLiveAllowlistUpdatedBy = "";
 
 function nowIso() { return new Date().toISOString(); }
 function cleanString(value, fallback = "") { const clean = String(value ?? "").trim(); return clean || fallback; }
@@ -1316,6 +1322,58 @@ function setRedemptionAutoExecuteMode(value, updatedBy = "dashboard") {
   return buildRedemptionEventSubStatus();
 }
 
+function configuredLiveAllowedRewardKeys() {
+  const config = getConfig();
+  const raw = Array.isArray(config.redemptionEventSubLiveAllowedRewardKeys) ? config.redemptionEventSubLiveAllowedRewardKeys : [];
+  return raw.map(item => cleanKey(item)).filter(Boolean);
+}
+
+function getRedemptionLiveAllowedRewardKeys() {
+  if (redemptionLiveAllowedRewardKeysOverride instanceof Set) return Array.from(redemptionLiveAllowedRewardKeysOverride).sort();
+  return configuredLiveAllowedRewardKeys().sort();
+}
+
+function getRedemptionLiveAllowlistSource() {
+  if (redemptionLiveAllowedRewardKeysOverride instanceof Set) return "runtime_override";
+  return "config";
+}
+
+function getRedemptionLiveAllowAllRewards() {
+  const config = getConfig();
+  return config.redemptionEventSubLiveAllowAllRewards === true;
+}
+
+function isRewardAllowedForLiveAutoExecute(rewardKey) {
+  const key = cleanKey(rewardKey);
+  if (!key) return false;
+  if (getRedemptionLiveAllowAllRewards()) return true;
+  return getRedemptionLiveAllowedRewardKeys().includes(key);
+}
+
+function setRedemptionLiveAllowlist(input = {}) {
+  const body = input && typeof input === "object" ? input : {};
+  const current = new Set(getRedemptionLiveAllowedRewardKeys());
+  if (body.clear === true) current.clear();
+  const rewardKey = cleanKey(body.rewardKey || body.reward_key || body.key || "");
+  if (rewardKey) {
+    const allow = boolValue(body.allow, true);
+    if (allow) current.add(rewardKey); else current.delete(rewardKey);
+  }
+  const keys = Array.from(current).sort();
+  redemptionLiveAllowedRewardKeysOverride = new Set(keys);
+  redemptionLiveAllowlistUpdatedAt = nowIso();
+  redemptionLiveAllowlistUpdatedBy = cleanString(body.updatedBy || body.updated_by || "dashboard", "dashboard");
+  emitDomainEvent("channelpoints.redemption.live_allowlist_changed", {
+    allowedRewardKeys: keys,
+    allowAllRewards: getRedemptionLiveAllowAllRewards(),
+    updatedBy: redemptionLiveAllowlistUpdatedBy,
+    timestamp: redemptionLiveAllowlistUpdatedAt,
+    noTwitchWrite: true
+  }, { channel: "channelpoints.redemption" });
+  publishStatus("redemption_live_allowlist_changed");
+  return buildRedemptionEventSubStatus();
+}
+
 function buildRedemptionShadowExecution(normalized) {
   const mode = getRedemptionAutoExecuteMode();
   const reward = normalized && normalized.local_reward ? normalized.local_reward : null;
@@ -1407,6 +1465,14 @@ function buildRedemptionEventSubStatus() {
     autoExecuteMode: getRedemptionAutoExecuteMode(),
     autoExecuteModeSource: getRedemptionAutoExecuteModeSource(),
     allowedAutoExecuteModes: ["off", "shadow", "live"],
+    liveAllowlist: {
+      allowAllRewards: getRedemptionLiveAllowAllRewards(),
+      allowedRewardKeys: getRedemptionLiveAllowedRewardKeys(),
+      source: getRedemptionLiveAllowlistSource(),
+      updatedAt: redemptionLiveAllowlistUpdatedAt,
+      updatedBy: redemptionLiveAllowlistUpdatedBy,
+      note: getRedemptionLiveAllowAllRewards() ? "Live-Modus darf alle lokal aktiven ausführbaren Rewards ausführen." : "Live-Modus führt nur ausdrücklich freigegebene Reward-Keys aus."
+    },
     runtimeOverride: {
       active: !!redemptionAutoExecuteModeOverride,
       mode: redemptionAutoExecuteModeOverride || "",
@@ -1419,7 +1485,8 @@ function buildRedemptionEventSubStatus() {
       noAutoExecuteByDefault: config.redemptionEventSubAutoExecuteEnabled !== true && !redemptionAutoExecuteModeOverride,
       shadowModeDoesNotExecute: getRedemptionAutoExecuteMode() !== "live",
       liveModeRequiresExplicitRuntimeOrConfig: true,
-      liveExecutesOnlyMappedEnabledExecutableRewards: true,
+      liveModeRequiresRewardAllowlistUnlessAllowAll: true,
+      liveExecutesOnlyMappedEnabledExecutableAllowedRewards: true,
       localDbWriteOnlyOnReceiveRoute: true,
       usesExistingRedemptionsTable: true
     },
@@ -1427,6 +1494,7 @@ function buildRedemptionEventSubStatus() {
     routes: [
       `${ROUTE_PREFIX}/eventsub/redemption/status`,
       `${ROUTE_PREFIX}/eventsub/redemption/mode`,
+      `${ROUTE_PREFIX}/eventsub/redemption/live-allowlist`,
       `${ROUTE_PREFIX}/eventsub/redemption/preview`,
       `${ROUTE_PREFIX}/eventsub/redemption`
     ]
@@ -1551,6 +1619,21 @@ async function executeRedemptionLiveIfAllowed(normalized, shadowExecution) {
   if (!shadowExecution || shadowExecution.wouldExecute !== true) {
     redemptionEventSubStats.liveSkipped += 1;
     return { ...base, reason: shadowExecution && shadowExecution.reason || "not_executable" };
+  }
+  if (!isRewardAllowedForLiveAutoExecute(normalized.reward_key)) {
+    redemptionEventSubStats.liveSkipped += 1;
+    redemptionEventSubStats.liveBlockedByAllowlist += 1;
+    const allowResult = { ...base, mode, executed: false, failed: false, skipped: true, reason: "reward_not_armed_for_live_auto_execute", result: { rewardKey: normalized.reward_key, allowedRewardKeys: getRedemptionLiveAllowedRewardKeys(), allowAllRewards: getRedemptionLiveAllowAllRewards() } };
+    redemptionEventSubStats.lastLiveExecutionAt = nowIso();
+    redemptionEventSubStats.lastLiveExecutionResult = { ok: false, skipped: true, rewardKey: normalized.reward_key, redemptionId: normalized.twitch_redemption_id, reason: allowResult.reason };
+    emitDomainEvent("channelpoints.redemption.auto_execute_blocked", {
+      rewardKey: normalized.reward_key,
+      twitchRedemptionId: normalized.twitch_redemption_id,
+      reason: allowResult.reason,
+      allowedRewardKeys: getRedemptionLiveAllowedRewardKeys(),
+      allowAllRewards: getRedemptionLiveAllowAllRewards()
+    }, { channel: "channelpoints.redemption" });
+    return allowResult;
   }
   try {
     const result = await executeReward(normalized.reward_key, {
@@ -1945,6 +2028,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/redemptions/test`,
       `${ROUTE_PREFIX}/eventsub/redemption/status`,
       `${ROUTE_PREFIX}/eventsub/redemption/mode`,
+      `${ROUTE_PREFIX}/eventsub/redemption/live-allowlist`,
       `${ROUTE_PREFIX}/eventsub/redemption/preview`,
       `${ROUTE_PREFIX}/eventsub/redemption`,
       `${ROUTE_PREFIX}/text-execution-check`,
@@ -2144,6 +2228,14 @@ function init({ app }) {
 
   app.post(`${ROUTE_PREFIX}/eventsub/redemption/mode`, (req, res) => {
     try { res.json(setRedemptionAutoExecuteMode(req.body && req.body.mode || req.query.mode || "shadow", req.body && req.body.updatedBy || req.query.updatedBy || "dashboard")); } catch (err) { sendError(res, 400, err); }
+  });
+
+  app.get(`${ROUTE_PREFIX}/eventsub/redemption/live-allowlist`, (req, res) => {
+    try { res.json(buildRedemptionEventSubStatus()); } catch (err) { sendError(res, 500, err); }
+  });
+
+  app.post(`${ROUTE_PREFIX}/eventsub/redemption/live-allowlist`, (req, res) => {
+    try { res.json(setRedemptionLiveAllowlist({ ...(req.body || {}), ...(req.query || {}) })); } catch (err) { sendError(res, 400, err); }
   });
 
   app.post(`${ROUTE_PREFIX}/eventsub/redemption/preview`, (req, res) => {
