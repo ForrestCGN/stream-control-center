@@ -1,36 +1,29 @@
 # TODO
 
-Stand: 2026-05-26 / STEP491
+Stand: 2026-05-26 / STEP492
 
 ## Kanalpunkte-System
 
-- [x] `channelpoints.js` als neues Fachmodul erstellen.
-- [x] Modulversion und Meta sauber setzen.
-- [x] `/api/channelpoints/status` erstellen.
-- [x] Bus-Registrierung ueber `registerModule` nutzen.
-- [x] Status/Heartbeat ueber Bus veroeffentlichen.
-- [x] Datenmodell als Planroute bereitstellen.
-- [x] Media-Plan ueber bestehendes Media-System festlegen.
-- [x] Schema-Preview ohne DB-Schreibzugriff bereitstellen.
-- [ ] Echte additive DB-Migration erst nach explizitem Go.
-- [ ] Statusroute spaeter um echte DB-Counts erweitern.
-- [ ] Twitch Custom Rewards spaeter lesen/synchronisieren.
-- [ ] Deaktivieren muss spaeter Twitch `is_enabled:false` setzen.
-- [ ] Dashboard mit Kategorien, Sortierung, Aktiv/Inaktiv, Sync und Test vorbereiten.
+- [x] Backend-Skeleton erstellen.
+- [x] Modell-/Media-Plan ergaenzen.
+- [x] Schema-Preview ergaenzen.
+- [x] Sichere lokale DB-Migration ausfuehren.
+- [x] Default-Kategorien seedbar machen.
+- [x] `/api/channelpoints/db-status` ergaenzen.
+- [ ] Lokale Reward-CRUD-API erstellen.
+- [ ] Dashboard-Grundseite erstellen.
+- [ ] Twitch Reward Sync lesen.
+- [ ] Twitch Reward Create/Update/Disable nur nach separater Freigabe.
+- [ ] Redemption EventSub verarbeiten.
 
 ## Media-Regel
 
-- [x] Keine zweite Upload-Struktur fuer Kanalpunkte.
-- [x] Bestehendes `media.js` und bestehende Dashboard-Media-Picker/Upload-Maske nutzen.
-- [ ] Spaeter Reward-Felder im Dashboard an Media-Picker anbinden.
+- [x] Bestehendes Media-System verwenden.
+- [x] Kein neues Upload-System im Kanalpunkte-Modul.
+- [ ] Dashboard-Felder spaeter mit `media_picker.js` / `media_field.js` anbinden.
 
-## Communication Bus
+## Sicherheit
 
-- [x] Kanalpunkte-Modul am Bus registriert.
-- [x] Selftest-Subscription funktioniert.
-- [x] Capability `channelpoints.schema` ergaenzt.
-- [ ] Spaeter Reward-Ausfuehrung bevorzugt ueber Bus-Events planen.
-
-## Cleanup
-
-- [ ] Live-Ueberbleibsel `helper_communication_contract.js` entfernen, falls noch vorhanden.
+- [x] Produktive SQLite nicht ersetzen.
+- [x] Migration nur additiv.
+- [x] Keine Twitch-Schreibaktionen in STEP492.

@@ -1,163 +1,159 @@
-# Channelpoints Deep Dive
+# channelpoints-deep-dive
 
-Stand: 2026-05-26 / STEP491
+Stand: 2026-05-26 / STEP492_CHANNELPOINTS_DB_MIGRATION_SAFE
 
 ## Modul
 
-```text
-backend/modules/channelpoints.js
-```
-
-Version: `0.3.0`
+- Datei: `backend/modules/channelpoints.js`
+- Modul: `channelpoints`
+- Version: `0.4.0`
+- Prefix: `/api/channelpoints`
+- Modus: `backend_db_migration_safe`
 
 ## Zweck
 
-Das Kanalpunkte-System ist ein eigenes Fachmodul fuer Twitch Custom Rewards / Kanalpunkte-Belohnungen. Es soll langfristig Rewards lokal konfigurieren, mit Twitch synchronisieren, Redemptions verarbeiten und Aktionen ueber Backend, Streamer.bot, Media-System, Sound-System, Overlays und Communication Bus ausloesen.
+Das Kanalpunkte-System ist ein neues Fachmodul fuer Twitch Custom Rewards / Kanalpunkte. Es baut auf dem bestehenden Stream-Control-Center, dem Communication Bus, der zentralen SQLite-Schicht und dem vorhandenen Media-System auf.
 
-## Aktueller Stand
+## STEP492
 
-STEP491 ist weiterhin sicher und vorbereitend:
+STEP492 legt erstmals die lokale DB-Grundlage an. Die Migration ist bewusst additiv und sicher:
 
+- `CREATE TABLE IF NOT EXISTS`
+- `CREATE INDEX IF NOT EXISTS`
+- `INSERT OR IGNORE` fuer Default-Kategorien
+- Schema-Version ueber `schema_versions` / vorhandene DB-Mechanik
+- keine bestehenden Daten loeschen oder ersetzen
 - keine Twitch-Schreibaktionen
-- keine echte DB-Migration
-- keine Dashboard-Aenderung
-- keine zweite Upload-/Media-Struktur
+- keine Dashboard-Aenderungen
+- kein neues Upload-System
 
-## Routen
-
-```text
-GET /api/channelpoints/status
-GET /api/channelpoints/model
-GET /api/channelpoints/media-plan
-GET /api/channelpoints/schema-preview
-GET /api/channelpoints/bus-test
-```
-
-## Schema-Preview
-
-`GET /api/channelpoints/schema-preview` liefert geplante SQLite-kompatible SQL-Vorschauen fuer:
-
-```text
-channelpoints_categories
-channelpoints_rewards
-channelpoints_redemptions
-```
-
-Die Route darf in STEP491 keine DB-Schreiboperation ausfuehren. Sie dient nur zur Pruefung vor der echten Migration.
-
-## Geplante Tabellen
+## Tabellen
 
 ### channelpoints_categories
 
-Dashboard-Gruppierung, Sortierung und Sichtbarkeit.
+Zweck: Dashboard-Gruppierung, Sortierung und Sichtbarkeit.
 
 Wichtige Felder:
 
-```text
-id
-category_key
-label
-description
-sort_order
-enabled
-created_at
-updated_at
-```
+- `category_key`
+- `label`
+- `description`
+- `sort_order`
+- `enabled`
+- `created_at`
+- `updated_at`
+
+Default-Kategorien per Seed:
+
+- Allgemein
+- Sounds
+- Medien
+- Overlays
+- Challenges
+- Admin/Intern
 
 ### channelpoints_rewards
 
-Lokale Reward-Konfiguration, Twitch-Mapping, Action-Mapping und Media-Referenzen.
+Zweck: lokale Reward-Konfiguration, Twitch-Mapping, Action-/Media-Zuordnung.
 
 Wichtige Felder:
 
-```text
-reward_key
-twitch_reward_id
-title
-prompt
-cost
-category_key
-sort_order
-system_enabled
-twitch_is_enabled
-is_paused
-action_type
-action_key
-action_payload_json
-media_asset_id
-media_role
-queue_mode
-priority
-cooldown_seconds
-max_per_stream
-max_per_user_per_stream
-auto_fulfill
-```
+- `reward_key`
+- `twitch_reward_id`
+- `title`
+- `prompt`
+- `cost`
+- `category_key`
+- `system_enabled`
+- `twitch_is_enabled`
+- `action_type`
+- `action_key`
+- `action_payload_json`
+- `media_asset_id`
+- `media_role`
+- `queue_mode`
+- `cooldown_seconds`
+- `auto_fulfill`
+
+Wichtig: `system_enabled` ist nur der lokale Systemschalter. Spaeteres Deaktivieren fuer Zuschauer muss Twitch `is_enabled=false` setzen.
 
 ### channelpoints_redemptions
 
-Spaetere Redemption-Historie, Queue-Status und Fulfill-/Cancel-Tracking.
+Zweck: spaetere Redemption-Historie, Queue-Status, Fulfill-/Cancel-/Fehlertracking.
 
 Wichtige Felder:
 
-```text
-twitch_redemption_id
-twitch_reward_id
-reward_key
-user_id
-user_login
-user_display_name
-user_input
-status
-queue_group
-result_json
-redeemed_at
-created_at
-updated_at
-```
+- `twitch_redemption_id`
+- `twitch_reward_id`
+- `reward_key`
+- `user_id`
+- `user_login`
+- `user_display_name`
+- `user_input`
+- `status`
+- `queue_group`
+- `result_json`
+- `redeemed_at`
 
-## Media-Regel
+## Media-System
 
-Kanalpunkte duerfen kein eigenes Upload-System erhalten.
+Kanalpunkte duerfen kein eigenes Upload-System bekommen.
 
-Stattdessen:
+Feste Regel:
 
-```text
-backend/modules/media.js
-htdocs/dashboard/components/media_picker.js
-htdocs/dashboard/components/media_field.js
-bestehende Dashboard-Media-Upload-Maske
-```
-
-Reward-Felder fuer Media:
-
-```text
-media_asset_id
-media_role
-action_payload_json.media
-```
-
-## Twitch-Regel
-
-Spaeteres Deaktivieren darf nicht nur lokal passieren. Es muss Twitch Custom Reward `is_enabled=false` setzen.
-
-Dafuer werden spaeter benoetigt:
-
-```text
-channel:manage:redemptions
-channel:read:redemptions
-```
+- Uploads laufen ueber das bestehende `media.js`.
+- Dashboard-Auswahl erfolgt ueber vorhandene Komponenten:
+  - `htdocs/dashboard/components/media_picker.js`
+  - `htdocs/dashboard/components/media_field.js`
+- Kanalpunkte speichern nur Referenzen wie `media_asset_id`, `media_role` und strukturierte Payload-Daten.
 
 ## Communication Bus
 
-Das Modul registriert sich am Bus und nutzt Heartbeat/Status. Capability ab STEP491:
+Das Modul registriert sich am Bus und meldet Status/Heartbeat.
 
-```text
-channelpoints.schema
+Capabilities:
+
+- `channelpoints.status`
+- `channelpoints.model`
+- `channelpoints.media`
+- `channelpoints.schema`
+- `channelpoints.db`
+- `channelpoints.test.ping`
+
+## Routen
+
+- `GET /api/channelpoints/status`
+- `GET /api/channelpoints/model`
+- `GET /api/channelpoints/media-plan`
+- `GET /api/channelpoints/schema-preview`
+- `GET /api/channelpoints/db-status`
+- `GET /api/channelpoints/bus-test?message=hello`
+
+## Tests
+
+Nach Deploy + Server-Neustart:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/db-status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/schema-preview"
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/bus-test?message=hello"
 ```
 
-Reward-Ausfuehrung soll spaeter bevorzugt ueber Bus-Events entkoppelt werden.
+Erwartung:
 
-## Naechster Schritt
+- `moduleVersion = 0.4.0`
+- `mode = backend_db_migration_safe`
+- `/db-status.status = safe_local_tables_ready`
+- `schemaVersion >= 1`
+- Tabellen existieren
+- Default-Kategorien sind vorhanden
+- `bus-test.subscriberDeliveredCount >= 1`
 
-STEP492: echte additive DB-Migration nach explizitem Go.
+## Nicht in STEP492
+
+- keine Twitch Reward API Reads/Writes
+- keine EventSub-Redemption-Verarbeitung
+- keine Reward-CRUD-API
+- kein Dashboard-Modul
+- keine Upload-Logik im Kanalpunkte-Modul

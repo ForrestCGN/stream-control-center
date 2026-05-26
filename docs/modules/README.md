@@ -1,6 +1,6 @@
 # Modul-Dokus
 
-Stand: 2026-05-26 / STEP491_CHANNELPOINTS_DB_SCHEMA_PREP
+Stand: 2026-05-26 / STEP492_CHANNELPOINTS_DB_MIGRATION_SAFE
 
 Diese Uebersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetzen aber keine erneute Pruefung echter Dateien vor Aenderungen.
 
@@ -57,3 +57,8 @@ Vor Aenderungen an einem Modul:
 ```
 
 Neue oder angefasste Module sollen klare Versionsnummern nutzen (`version` oder `moduleVersion`).
+
+
+## STEP492 Hinweis
+
+Das Kanalpunkte-Modul besitzt jetzt eine sichere lokale DB-Grundlage. Migrationen bleiben additiv; Twitch-Schreibaktionen sind weiterhin nicht Bestandteil dieses Steps.

@@ -2,16 +2,17 @@
 
 const helperConfig = require('./helpers/helper_config');
 const communicationBus = require('./communication_bus');
+const database = require('../core/database');
 
 const MODULE_NAME = 'channelpoints';
-const MODULE_VERSION = '0.3.0';
+const MODULE_VERSION = '0.4.0';
 const ROUTE_PREFIX = '/api/channelpoints';
 
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
   routePrefix: ROUTE_PREFIX,
-  description: 'Twitch Channel Points DB schema preview with Communication Bus registration and Media-System integration plan'
+  description: 'Twitch Channel Points safe DB migration foundation with Communication Bus registration and Media-System integration plan'
 };
 
 const DEFAULT_CONFIG = {
@@ -21,9 +22,9 @@ const DEFAULT_CONFIG = {
   twitchRewardManagementEnabled: false,
   twitchRewardSyncEnabled: false,
   dashboardEnabled: false,
-  dbMigrationEnabled: false,
+  dbMigrationEnabled: true,
   schemaPreviewEnabled: true,
-  migrationExecutionEnabled: false,
+  migrationExecutionEnabled: true,
   mediaIntegrationPlanned: true,
   mediaSystem: {
     enabled: true,
@@ -35,8 +36,9 @@ const DEFAULT_CONFIG = {
   }
 };
 
-const CHANNELPOINTS_MODEL_VERSION = '0.2.0';
-const CHANNELPOINTS_SCHEMA_PREVIEW_VERSION = '0.1.0';
+const CHANNELPOINTS_MODEL_VERSION = '0.3.0';
+const CHANNELPOINTS_SCHEMA_PREVIEW_VERSION = '0.2.0';
+const CHANNELPOINTS_SCHEMA_TARGET_VERSION = 1;
 
 const REWARD_FIELDS = [
   { name: 'id', type: 'integer', source: 'local', purpose: 'Local primary key, later DB-managed.' },
@@ -180,8 +182,8 @@ const SCHEMA_TABLES = [
 ];
 
 const SCHEMA_RULES = [
-  'STEP491 only returns schema previews. It must not call database.exec/run/ensureSchema.',
-  'Real migration must stay disabled until an explicit later GO.',
+  'STEP492 executes only the reviewed local DB foundation migration.',
+  'Migration is additive only and uses CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS / INSERT OR IGNORE.',
   'All schema changes must be additive and use CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS.',
   'The productive SQLite database D:\\Streaming\\stramAssets\\data\\sqlite\\app.sqlite must never be replaced or overwritten.',
   'Media assets are referenced by media_asset_id and selected via the existing media system / media picker.',
@@ -201,6 +203,20 @@ let lastBusTestAt = null;
 let lastError = '';
 let receivedBusEvents = 0;
 let subscriptionIds = [];
+let dbMigrationState = {
+  attempted: false,
+  executed: false,
+  ok: false,
+  reason: '',
+  schemaVersionBefore: 0,
+  schemaVersionAfter: 0,
+  targetVersion: CHANNELPOINTS_SCHEMA_TARGET_VERSION,
+  lastRunAt: null,
+  lastError: '',
+  createdTables: [],
+  createdIndexes: [],
+  seededCategories: 0
+};
 
 function nowIso() {
   return new Date().toISOString();
@@ -310,20 +326,20 @@ function buildSchemaPreview() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     schemaPreviewVersion: CHANNELPOINTS_SCHEMA_PREVIEW_VERSION,
-    status: 'preview_only_no_db_write',
+    status: 'schema_ready_migration_available',
     dbMigrationEnabled: config.dbMigrationEnabled === true,
     migrationExecutionEnabled: config.migrationExecutionEnabled === true,
-    migrationExecutionImplemented: false,
+    migrationExecutionImplemented: true,
     sqliteCompatible: true,
     tables,
     seedPreview: {
       defaultCategories: buildSeedCategorySql(),
-      executionEnabled: false
+      executionEnabled: config.dbMigrationEnabled === true && config.migrationExecutionEnabled === true
     },
     safety: {
-      noDbWriteInStep491: true,
-      noTwitchWriteInStep491: true,
-      additiveOnlyLater: true,
+      noUnsafeDbWriteInStep492: true,
+      noTwitchWriteInStep492: true,
+      additiveOnly: true,
       productiveDbMustNotBeReplaced: 'D:\\Streaming\\stramAssets\\data\\sqlite\\app.sqlite'
     },
     mediaIntegration: buildMediaPlan().mediaSystem,
@@ -337,30 +353,32 @@ function buildModelPlan() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     modelVersion: CHANNELPOINTS_MODEL_VERSION,
-    status: 'schema_preview_only_no_db_migration',
+    status: 'safe_db_migration_foundation',
     dbMigrationEnabled: getConfig().dbMigrationEnabled === true,
     schemaPreviewAvailable: true,
-    migrationExecutionImplemented: false,
+    migrationExecutionImplemented: true,
+    schemaTargetVersion: CHANNELPOINTS_SCHEMA_TARGET_VERSION,
+    dbMigrationState,
     tablesPlanned: [
       {
         name: 'channelpoints_categories',
         planned: true,
         schemaPreviewCreated: true,
-        migrationCreated: false,
+        migrationCreated: true,
         purpose: 'Dashboard grouping, sorting and visibility.'
       },
       {
         name: 'channelpoints_rewards',
         planned: true,
         schemaPreviewCreated: true,
-        migrationCreated: false,
+        migrationCreated: true,
         purpose: 'Local reward configuration, Twitch mapping and action/media mapping.'
       },
       {
         name: 'channelpoints_redemptions',
         planned: true,
         schemaPreviewCreated: true,
-        migrationCreated: false,
+        migrationCreated: true,
         purpose: 'Later redemption history, queue status and fulfil/cancel tracking.'
       }
     ],
@@ -372,8 +390,8 @@ function buildModelPlan() {
     defaultCategories: DEFAULT_CATEGORIES,
     actionTypes: ACTION_TYPES,
     rules: [
-      'No Twitch write action in STEP491.',
-      'No database migration execution in STEP491.',
+      'No Twitch write action in STEP492.',
+      'Only additive local DB migration execution in STEP492.',
       'Deactivate later must update Twitch Custom Reward is_enabled=false, not only a local flag.',
       'Media files must use the existing media system/upload mask.',
       'Reward execution should later use Communication Bus events where possible.',
@@ -421,6 +439,155 @@ function buildMediaPlan() {
   };
 }
 
+
+function getDbCountSafe(tableName) {
+  try {
+    if (!database || typeof database.tableExists !== 'function' || !database.tableExists(tableName)) return 0;
+    return database.count(tableName);
+  } catch (_) {
+    return 0;
+  }
+}
+
+function getTableExistsSafe(tableName) {
+  try {
+    return !!(database && typeof database.tableExists === 'function' && database.tableExists(tableName));
+  } catch (_) {
+    return false;
+  }
+}
+
+function applyChannelpointsSchema() {
+  const createdTables = [];
+  const createdIndexes = [];
+
+  for (const table of SCHEMA_TABLES) {
+    database.exec(buildCreateTableSql(table));
+    createdTables.push(table.name);
+    for (const indexSql of buildIndexSql(table)) {
+      database.exec(indexSql);
+      createdIndexes.push(indexSql);
+    }
+  }
+
+  let seededCategories = 0;
+  for (const category of DEFAULT_CATEGORIES) {
+    const result = database.run(
+      `
+      INSERT OR IGNORE INTO channelpoints_categories
+        (category_key, label, description, sort_order, enabled, created_at, updated_at)
+      VALUES
+        (:category_key, :label, :description, :sort_order, :enabled, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `,
+      {
+        category_key: category.category_key,
+        label: category.label,
+        description: category.description || '',
+        sort_order: category.sort_order,
+        enabled: category.enabled === true ? 1 : 0
+      }
+    );
+    if (result && Number(result.changes || 0) > 0) seededCategories += Number(result.changes || 0);
+  }
+
+  return { createdTables, createdIndexes, seededCategories };
+}
+
+function runDbMigration(reason = 'init') {
+  const config = getConfig();
+  dbMigrationState.attempted = true;
+  dbMigrationState.reason = reason;
+  dbMigrationState.targetVersion = CHANNELPOINTS_SCHEMA_TARGET_VERSION;
+  dbMigrationState.lastRunAt = nowIso();
+
+  if (config.dbMigrationEnabled !== true || config.migrationExecutionEnabled !== true) {
+    dbMigrationState.executed = false;
+    dbMigrationState.ok = false;
+    dbMigrationState.reason = 'migration_disabled_by_config';
+    return { ok: false, reason: 'migration_disabled_by_config', state: dbMigrationState };
+  }
+
+  try {
+    database.ensureReady();
+    const before = database.getSchemaVersion(MODULE_NAME);
+    dbMigrationState.schemaVersionBefore = before;
+
+    if (before < CHANNELPOINTS_SCHEMA_TARGET_VERSION) {
+      const tx = database.transaction(() => {
+        const applied = applyChannelpointsSchema();
+        database.setSchemaVersion(MODULE_NAME, CHANNELPOINTS_SCHEMA_TARGET_VERSION);
+        dbMigrationState.createdTables = applied.createdTables;
+        dbMigrationState.createdIndexes = applied.createdIndexes;
+        dbMigrationState.seededCategories = applied.seededCategories;
+      });
+      tx();
+      dbMigrationState.executed = true;
+    } else {
+      const applied = applyChannelpointsSchema();
+      dbMigrationState.executed = false;
+      dbMigrationState.reason = 'schema_already_at_target_verified_idempotently';
+      dbMigrationState.createdTables = applied.createdTables;
+      dbMigrationState.createdIndexes = applied.createdIndexes;
+      dbMigrationState.seededCategories = applied.seededCategories;
+    }
+
+    const after = database.getSchemaVersion(MODULE_NAME);
+    dbMigrationState.schemaVersionAfter = after;
+    dbMigrationState.ok = after >= CHANNELPOINTS_SCHEMA_TARGET_VERSION;
+    dbMigrationState.lastError = '';
+    return { ok: dbMigrationState.ok, state: dbMigrationState };
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    dbMigrationState.ok = false;
+    dbMigrationState.lastError = msg;
+    lastError = msg;
+    return { ok: false, error: msg, state: dbMigrationState };
+  }
+}
+
+function buildDbStatus() {
+  let dbPath = null;
+  let schemaVersion = 0;
+  try {
+    database.ensureReady();
+    dbPath = typeof database.getDbPath === 'function' ? database.getDbPath() : null;
+    schemaVersion = database.getSchemaVersion(MODULE_NAME);
+  } catch (err) {
+    return {
+      ok: false,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      status: 'database_unavailable',
+      error: err && err.message ? err.message : String(err),
+      migration: dbMigrationState
+    };
+  }
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    status: 'safe_local_tables_ready',
+    databasePath: dbPath,
+    schemaVersion,
+    targetVersion: CHANNELPOINTS_SCHEMA_TARGET_VERSION,
+    migration: dbMigrationState,
+    tables: SCHEMA_TABLES.map(table => ({
+      name: table.name,
+      exists: getTableExistsSafe(table.name),
+      count: getDbCountSafe(table.name),
+      plannedFields: table.fields.length,
+      indexes: table.indexes || []
+    })),
+    safety: {
+      additiveOnly: true,
+      noTwitchWriteInStep492: true,
+      noDataReplacement: true,
+      productiveDbMustNotBeReplaced: 'D:\\Streaming\\stramAssets\\data\\sqlite\\app.sqlite'
+    }
+  };
+}
+
 function buildBusStatus() {
   const currentBus = getBus();
   const busStatus = currentBus && typeof currentBus.getStatus === 'function' ? currentBus.getStatus() : null;
@@ -457,10 +624,12 @@ function buildStatus(extra = {}) {
     moduleVersion: MODULE_VERSION,
     routePrefix: ROUTE_PREFIX,
     enabled: config.enabled !== false,
-    mode: 'backend_schema_prep',
+    mode: 'backend_db_migration_safe',
     model: {
       version: CHANNELPOINTS_MODEL_VERSION,
       schemaPreviewVersion: CHANNELPOINTS_SCHEMA_PREVIEW_VERSION,
+      schemaTargetVersion: CHANNELPOINTS_SCHEMA_TARGET_VERSION,
+      dbMigrationState,
       dbMigrationEnabled: config.dbMigrationEnabled === true,
       schemaPreviewEnabled: config.schemaPreviewEnabled !== false,
       migrationExecutionEnabled: config.migrationExecutionEnabled === true,
@@ -495,11 +664,11 @@ function buildStatus(extra = {}) {
       writeActionsEnabled: false,
       requiredManageScope: 'channel:manage:redemptions',
       requiredReadScope: 'channel:read:redemptions',
-      note: 'STEP491 is a DB schema preview step. Twitch reward reads/writes are planned for later steps.'
+      note: 'STEP492 is a safe local DB foundation step. Twitch reward reads/writes are planned for later steps.'
     },
     localState: {
-      rewardCount: 0,
-      redemptionCount: 0,
+      rewardCount: getDbCountSafe('channelpoints_rewards'),
+      redemptionCount: getDbCountSafe('channelpoints_redemptions'),
       queueSize: 0,
       lastBusTestAt,
       lastBusEvent,
@@ -511,6 +680,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/model`,
       `${ROUTE_PREFIX}/media-plan`,
       `${ROUTE_PREFIX}/schema-preview`,
+      `${ROUTE_PREFIX}/db-status`,
       `${ROUTE_PREFIX}/bus-test`
     ],
     ...extra
@@ -535,7 +705,7 @@ function publishStatus(reason = 'status') {
     reason,
     routePrefix: ROUTE_PREFIX,
     modelVersion: CHANNELPOINTS_MODEL_VERSION,
-    mode: 'backend_schema_prep',
+    mode: 'backend_db_migration_safe',
     rewardCount: 0,
     redemptionCount: 0,
     queueSize: 0,
@@ -543,8 +713,12 @@ function publishStatus(reason = 'status') {
     usesExistingMediaSystem: true,
     dbMigrationEnabled: config.dbMigrationEnabled === true,
     schemaPreviewEnabled: config.schemaPreviewEnabled !== false,
+    schemaTargetVersion: CHANNELPOINTS_SCHEMA_TARGET_VERSION,
+    dbMigrationState,
     migrationExecutionEnabled: config.migrationExecutionEnabled === true,
     twitchWritesEnabled: false,
+      dbMigrationOk: dbMigrationState.ok === true,
+      schemaVersion: dbMigrationState.schemaVersionAfter || dbMigrationState.schemaVersionBefore || 0,
     lastError,
     timestamp: nowIso()
   };
@@ -614,6 +788,7 @@ function registerAtCommunicationBus() {
       'channelpoints.model',
       'channelpoints.media',
       'channelpoints.schema',
+      'channelpoints.db',
       'channelpoints.test.ping'
     ],
     meta: {
@@ -621,7 +796,8 @@ function registerAtCommunicationBus() {
       skeleton: true,
       modelPlan: true,
       schemaPreview: true,
-      migrationExecutionImplemented: false,
+      migrationExecutionImplemented: true,
+      schemaTargetVersion: CHANNELPOINTS_SCHEMA_TARGET_VERSION,
       mediaIntegrationPlanned: true,
       usesExistingMediaSystem: true,
       twitchWritesEnabled: false
@@ -667,6 +843,7 @@ function heartbeatBus(reason = 'heartbeat') {
       'channelpoints.model',
       'channelpoints.media',
       'channelpoints.schema',
+      'channelpoints.db',
       'channelpoints.test.ping'
     ]
   });
@@ -725,6 +902,12 @@ function init({ app }) {
   if (!app) throw new Error('channelpoints.init: app fehlt.');
 
   loadConfig();
+
+  try {
+    runDbMigration('init');
+  } catch (err) {
+    lastError = err && err.message ? err.message : String(err);
+  }
 
   try {
     registerAtCommunicationBus();
@@ -796,6 +979,22 @@ function init({ app }) {
     }
   });
 
+  app.get(`${ROUTE_PREFIX}/db-status`, (req, res) => {
+    try {
+      heartbeatBus('db_status_route');
+      publishStatus('db_status_route');
+      res.json(buildDbStatus());
+    } catch (err) {
+      lastError = err && err.message ? err.message : String(err);
+      res.status(500).json({
+        ok: false,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        error: lastError
+      });
+    }
+  });
+
   app.get(`${ROUTE_PREFIX}/bus-test`, (req, res) => {
     try {
       const result = emitBusSelfTest(req);
@@ -832,6 +1031,8 @@ module.exports = {
   buildModelPlan,
   buildMediaPlan,
   buildSchemaPreview,
+  buildDbStatus,
+  runDbMigration,
   registerAtCommunicationBus,
   heartbeatBus,
   publishStatus

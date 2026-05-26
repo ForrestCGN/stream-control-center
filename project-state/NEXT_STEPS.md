@@ -1,47 +1,40 @@
 # NEXT_STEPS
 
-Stand: 2026-05-26 / nach STEP491
+Stand: 2026-05-26 / nach STEP492
 
-## Direkt pruefen
+## Direkt testen
 
 ```bat
 cd D:\Git\stream-control-center
 node --check backend\modules\channelpoints.js
 ```
 
-## Nach stepdone + Deploy + Server-Neustart testen
+Nach Deploy + Server-Neustart:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/model"
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/media-plan"
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/db-status"
 Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/schema-preview"
 Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/bus-test?message=hello"
 ```
 
 ## Erwartung
 
-```text
-moduleVersion = 0.3.0
-mode = backend_schema_prep
-/schema-preview.status = preview_only_no_db_write
-/schema-preview.migrationExecutionImplemented = false
-bus-test.subscriberDeliveredCount >= 1
-```
+- `moduleVersion = 0.4.0`
+- `mode = backend_db_migration_safe`
+- `/db-status.status = safe_local_tables_ready`
+- `schemaVersion >= 1`
+- `channelpoints_categories.count >= 6`
+- Bus-Test liefert `subscriberDeliveredCount >= 1`
 
-## Naechster sinnvoller STEP
+## Nächster Fach-STEP
 
-```text
-STEP492_CHANNELPOINTS_DB_MIGRATION_SAFE
-```
+`STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD_API`
 
 Ziel:
 
-```text
-- Echte additive Migration nur nach explizitem Go
-- CREATE TABLE IF NOT EXISTS
-- CREATE INDEX IF NOT EXISTS
-- Keine bestehende Datenbank ersetzen
-- Keine Twitch-Schreibaktionen
-- Danach Statusroute mit DB-Counts/Schema-Version erweitern
-```
+- lokale Reward-Liste aus DB
+- Reward anlegen/bearbeiten/deaktivieren nur lokal
+- Kategorien lesen
+- noch keine Twitch-Schreibaktionen
+- Media-Felder nur als Referenz auf bestehendes Media-System

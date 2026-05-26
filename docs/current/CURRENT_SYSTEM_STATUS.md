@@ -1,42 +1,35 @@
 # CURRENT_SYSTEM_STATUS
 
-Stand: 2026-05-26 / STEP491
+Stand: 2026-05-26 / STEP492
 
 ## Stream-Control-Center
 
-Aktueller Schwerpunkt: Kanalpunkte-System als neues Fachmodul auf Basis des Communication Bus.
+Aktueller Schwerpunkt: Kanalpunkte-System als neues Fachmodul auf Communication Bus, zentraler SQLite-Schicht und bestehendem Media-System.
 
-## Kanalpunkte-System
+## Kanalpunkte
 
-STEP491 fuegt eine sichere DB-Schema-Vorschau hinzu:
+STEP492 ist live-/deployfaehig vorbereitet:
 
-- `backend/modules/channelpoints.js` Version `0.3.0`
-- Modus `backend_schema_prep`
-- neue Route `GET /api/channelpoints/schema-preview`
-- geplante Tabellen:
+- `backend/modules/channelpoints.js` Version `0.4.0`
+- sichere DB-Migration fuer lokale Grundlage
+- Tabellen:
   - `channelpoints_categories`
   - `channelpoints_rewards`
   - `channelpoints_redemptions`
-- keine DB-Schreiboperation in STEP491
-- keine Twitch-Schreibaktion in STEP491
+- neue Route `/api/channelpoints/db-status`
+- keine Twitch-Schreibaktionen
+- keine Dashboard-Aenderungen
 
-## Media-Regel
+## Media
 
-Uploads/Medien fuer Kanalpunkte muessen ueber das bestehende Media-System laufen:
+Kanalpunkte verwenden weiterhin das bestehende Media-System:
 
 - `backend/modules/media.js`
-- bestehende Dashboard-Upload-Maske
 - `htdocs/dashboard/components/media_picker.js`
 - `htdocs/dashboard/components/media_field.js`
 
-Keine zweite Upload- oder Asset-Struktur fuer Kanalpunkte erstellen.
+Keine zweite Upload-Welt.
 
-## Communication Bus
+## Nächster sinnvoller Schritt
 
-Das Kanalpunkte-Modul registriert sich am Bus, sendet Heartbeat/Status und bietet einen Selftest. STEP491 ergaenzt die Capability `channelpoints.schema`.
-
-## Naechster Schritt
-
-`STEP492_CHANNELPOINTS_DB_MIGRATION_SAFE`
-
-Nur nach explizitem Go: additive Tabellenanlage ohne Datenverlust.
+`STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD_API`
