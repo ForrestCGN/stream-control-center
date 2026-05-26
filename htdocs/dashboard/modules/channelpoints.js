@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.8.3';
-  const UI_BUILD = 'sync-mapping-change-response-fix';
+  const UI_VERSION = '0.8.4';
+  const UI_BUILD = 'sync-local-dryrun-false-fix';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -415,7 +415,7 @@ window.ChannelpointsModule = (function(){
 
   async function syncTwitchRewards() {
     if (!window.confirm('Twitch-Rewards jetzt lokal synchronisieren?\n\nTwitch selbst wird NICHT verändert. Es werden nur lokale Daten im Kanalpunkte-System aktualisiert.')) return;
-    const data = await window.CGN.api(api.twitchReadonlySync, { method:'POST', body:'{}' });
+    const data = await window.CGN.api(api.twitchReadonlySync, { method:'POST', body:JSON.stringify({ dryRun:false }) });
     state.twitchReadonlySync = data;
     state.notice = data.ok ? `Lokaler Twitch-Reward-Sync abgeschlossen: ${data.rewardCount ?? asArray(data.rewards).length} Rewards.` : 'Lokaler Twitch-Reward-Sync konnte nicht abgeschlossen werden.';
     state.tab = 'twitch-sync';

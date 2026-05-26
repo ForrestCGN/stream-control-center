@@ -76,3 +76,5 @@ html[data-theme="light"] .cp-toolbar input,html[data-theme="light"] .cp-toolbar 
 @media(max-width:900px){.cp-sync-table{min-width:720px}.cp-sync-table th,.cp-sync-table td{padding:9px 10px}}
 
 /* v0.8.3 sync mapping response fix: table also supports preview changes[] payloads */
+
+/* v0.8.4 sync-local-dryrun-false-fix: JS-only behavior fix, styles unchanged. */
