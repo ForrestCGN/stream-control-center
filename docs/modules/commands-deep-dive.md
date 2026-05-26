@@ -1,29 +1,33 @@
 # Commands-System Deep Dive
 
 Stand: 2026-05-26  
-STEP: `STEP497_COMMANDS_STATUS_LIGHT`
+Modul-Version: `0.1.2`  
+Build: `status-no-schema-touch`
 
 ## Zweck
 
 Zentrales Command-System für definierbare Chatcommands, Ausführung, Cooldowns, Permissions und Logs.
 
-## Änderung in STEP497
+## Änderung
 
-`GET /api/commands/status` wurde bewusst leichtgewichtig gemacht. Vorher enthielt die Statusroute zusätzlich:
+`GET /api/commands/status` ist jetzt ein echter, leichtgewichtiger Runtime-Status.
 
-- komplette Command-Liste
-- kompletten Command-Catalog
-- letzte Logs
+Vorher bremsten zwei Dinge:
 
-Diese Daten werden weiterhin über eigene Endpunkte geladen:
+1. Status lieferte zusätzlich Command-Liste, Catalog und letzte Logs.
+2. Status rief weiterhin `ensureSchema()` auf.
+
+Jetzt gilt:
+
+- `/api/commands/status` ruft kein `ensureSchema()` mehr auf.
+- Status enthält `moduleVersion`, `moduleBuild`, `lightStatus=true` und `schemaTouchOnStatus=false`.
+- Command-Liste, Catalog und Logs bleiben über getrennte Endpunkte verfügbar.
 
 | Daten | Route |
 |---|---|
 | Commands | `/api/commands/list` |
 | Catalog | `/api/commands/catalog` |
 | Logs | `/api/commands/logs?limit=10` |
-
-Damit wird doppelte Arbeit im Dashboard vermieden, weil das Dashboard diese Endpunkte sowieso separat lädt.
 
 ## Datei
 
@@ -55,13 +59,14 @@ backend/modules/commands.js
 - Keine Command-Funktionalität entfernt.
 - Keine DB-Migration geändert.
 - Keine Dashboard-Logik geändert.
-- `/status` ist jetzt Status-only; Listen/Kataloge/Logs bleiben über eigene Routen abrufbar.
+- Schema-Schutz bleibt bei Init, List, Upsert, Delete, Logs, Test und Execute.
+- Status ist Status-only und berührt die DB nicht mehr über `ensureSchema()`.
 
 ## Tests
 
 ```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status" | Select-Object ok,module,moduleVersion,moduleBuild,lightStatus,schemaTouchOnStatus
 Measure-Command { Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status" | Out-Null }
-Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status"
 Invoke-RestMethod "http://127.0.0.1:8080/api/commands/list"
 Invoke-RestMethod "http://127.0.0.1:8080/api/commands/catalog"
 Invoke-RestMethod "http://127.0.0.1:8080/api/commands/logs?limit=10"

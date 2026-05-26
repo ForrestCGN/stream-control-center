@@ -1,18 +1,23 @@
 # Current System Status
 
-Stand: 2026-05-26  
-Aktueller STEP: `STEP497_COMMANDS_STATUS_LIGHT`
+Stand: 2026-05-26
 
 ## Commands
 
-`/api/commands/status` wurde optimiert und liefert nun nur noch schnellen Status. Schwere Daten werden weiterhin über getrennte Endpunkte geladen:
+Aktuelle Modul-Version: `0.1.2`  
+Build: `status-no-schema-touch`
 
-- `/api/commands/list`
-- `/api/commands/catalog`
-- `/api/commands/logs`
+`/api/commands/status` ist jetzt ein leichtgewichtiger Runtime-Status ohne schwere Datenfelder und ohne Schema-Touch.
 
-Grund: Messung zeigte ca. 7,55 Sekunden für `/api/commands/status`, während die Einzelendpunkte nur ca. 11-17 ms benötigten.
+Wichtig:
+
+- `lightStatus=true`
+- `schemaTouchOnStatus=false`
+- `commands`, `moduleCatalog` und `recent` sind nicht mehr Teil von `/status`
+- getrennte Endpunkte bleiben aktiv: `/list`, `/catalog`, `/logs`
+
+Grund: Messung zeigte vorher ca. 7,55 Sekunden für `/api/commands/status`, während die Einzelendpunkte schnell waren.
 
 ## Kanalpunkte
 
-Kanalpunkte-Dashboard und lokales CRUD bleiben unverändert aus STEP493-STEP495.
+Kanalpunkte-Dashboard und lokales CRUD bleiben unverändert. Commands und Kanalpunkte sollen langfristig als verwandte Interaction-Systeme mit ähnlicher Bedienstruktur aufgebaut werden.

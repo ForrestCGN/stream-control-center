@@ -5,7 +5,8 @@ const database = require('../core/database');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.1.1';
+const MODULE_VERSION = '0.1.2';
+const MODULE_BUILD = 'status-no-schema-touch';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -134,7 +135,7 @@ function buildCommandCatalog() {
     actions: (category.actions || []).map(action => ({ ...action, categoryId: action.categoryId || category.id }))
   }));
   const actions = categories.flatMap(category => category.actions.map(action => ({ ...action, categoryId: category.id, categoryLabel: category.label })));
-  return { ok: true, module: MODULE_NAME, version: 1, step: 'STEP273C2', note: 'Neue Module sollen ihren Command-Catalog pflegen oder hier zentral ergänzt werden.', categories, actions, updatedAt: nowIso() };
+  return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, catalogVersion: 1, catalogBuild: 'default-catalog-v1', note: 'Neue Module sollen ihren Command-Catalog pflegen oder hier zentral ergänzt werden.', categories, actions, updatedAt: nowIso() };
 }
 
 function ensureSchema() {
@@ -523,13 +524,12 @@ function buildRoutes() {
 }
 
 function statusPayload() {
-  ensureSchema();
   return {
     ok: true,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
     version: 1,
-    step: 'STEP497_STATUS_LIGHT',
     prefix: state.prefix,
     enabled: state.enabled,
     initialized: state.initialized,
@@ -545,6 +545,7 @@ function statusPayload() {
       recentLogs: `${API_PREFIX}/logs?limit=10`
     },
     lightStatus: true,
+    schemaTouchOnStatus: false,
     removedHeavyFields: ['commands', 'moduleCatalog', 'recent'],
     updatedAt: nowIso()
   };
@@ -558,6 +559,7 @@ function readUserFromReq(req) {
   return { login, displayName: displayName || login, userId: '', badges: role === 'mod' ? { moderator: '1' } : (role === 'vip' ? { vip: '1' } : (role === 'streamer' || role === 'owner' ? { broadcaster: '1' } : {})), isBroadcaster: role === 'streamer' || role === 'owner' || role === 'broadcaster', isMod: role === 'mod' || role === 'moderator', isVip: role === 'vip', isSubscriber: role === 'subscriber' || role === 'sub' };
 }
 
+module.exports.MODULE_META = { name: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD };
 module.exports.handleChatMessage = handleChatMessage;
 module.exports.processMessage = processMessage;
 module.exports.getStatus = statusPayload;

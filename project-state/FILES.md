@@ -1,6 +1,6 @@
 # FILES
 
-## STEP497_COMMANDS_STATUS_LIGHT
+## Commands v0.1.2 / status-no-schema-touch
 
 ```text
 backend/modules/commands.js
@@ -11,5 +11,5 @@ project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
-project-state/STEP497_COMMANDS_STATUS_LIGHT.md
+project-state/COMMANDS_STATUS_NO_SCHEMA_TOUCH_v0.1.2.md
 ```
