@@ -1,56 +1,25 @@
-# Channelpoints / Kanalpunkte – v0.7.0 Safe Modal Editor
+# Kanalpunkte-System — Deep Dive
 
-Stand: 2026-05-26
+Stand: UI v0.7.1 (`preserve-modal-draft-state`), Backend v0.7.0 (`safe-modal-editor`).
 
 ## Ziel
 
-Das Kanalpunkte-Dashboard folgt ab v0.7.0 dem Bedienmuster des Commands-Dashboards:
+Das Kanalpunkte-Dashboard folgt dem Commands-Pattern: Suche, Kategorien, direkte Auswahl, Modal-Editor, sichere Bearbeitung und lokale Löschung mit Rückfrage.
 
-- Rewards werden nach Kategorien gruppiert angezeigt.
-- Rewards können gesucht, direkt ausgewählt, erstellt, bearbeitet, kopiert, deaktiviert/aktiviert und lokal gelöscht werden.
-- Erstellen/Bearbeiten passiert in einem Modal mit eindeutigem Modus.
-- Gespeicherte Werte sind beim Bearbeiten maßgeblich.
-- Technische Felder liegen unter „Erweitert / technische Details“.
+## v0.7.1
 
-## Versionen
+v0.7.1 ist ein Dashboard-Sicherheitsfix für den Modal-Entwurf.
 
-- Backend: `moduleVersion = 0.7.0`
-- Backend: `moduleBuild = safe-modal-editor`
-- Dashboard: `UI_VERSION = 0.7.0`
-- Dashboard: `UI_BUILD = safe-modal-editor`
+- Formularfelder im offenen Modal werden fortlaufend im Draft-State gehalten.
+- Reward-Key, Titel, Prompt, Kosten, Kategorie, Regeln und Notizen bleiben erhalten, wenn MediaPicker oder UI-Refreshes ausgelöst werden.
+- Sound-/Video-Auswahl schreibt nur die Medien-/Payload-Daten und setzt keine Basisdaten zurück.
+- Aktionswechsel speichert den aktuellen Entwurf vor dem Re-Render.
+- MediaField-Initialisierung synchronisiert den Entwurf nach kurzer Verzögerung erneut.
 
-## Normale Aktionsauswahl
+## Wichtige Regeln
 
-Neue Rewards starten mit benutzerfreundlichen Hauptaktionen:
-
-1. Sound abspielen
-2. Video anzeigen
-3. Text anzeigen
-4. Nur verwalten
-5. Benutzerdefinierte Aktion
-
-Die passende Maske wird direkt unter der Auswahl angezeigt.
-
-## Medienausführung
-
-Sound/Video nutzen weiterhin die bestehende Brücke:
-
-`mediaId -> /api/sound/play`
-
-Die Medien selbst kommen aus der vorhandenen Medienverwaltung/MediaField. Es wird keine zweite Upload-Logik im Kanalpunkte-Modul eingeführt.
-
-## Löschen
-
-Neu:
-
-- `DELETE /api/channelpoints/rewards/:idOrKey`
-- `POST /api/channelpoints/rewards/:idOrKey/delete`
-
-Das Löschen ist lokal. Twitch wird dadurch nicht verändert.
-
-## Sicherheit
-
-- Produktive SQLite-Datenbank wird nicht ersetzt.
-- Keine destruktive Migration.
-- Twitch-Schreibzugriffe bleiben deaktiviert.
-- Deaktivieren/Löschen ist weiterhin lokal.
+- Keine Funktionalität entfernen.
+- Produktive SQLite-Datenbank nie ersetzen.
+- Medien laufen über das bestehende Media-/Sound-System.
+- Normale Nutzer sehen technische Felder nur unter „Erweitert“.
+- Twitch-Schreibzugriffe sind weiterhin nicht aktiv.

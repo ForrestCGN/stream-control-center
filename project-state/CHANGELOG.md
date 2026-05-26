@@ -1,7 +1,7 @@
-# Changelog – Channelpoints v0.7.0
+# Changelog
 
-- Added safe modal editor pattern to Channelpoints dashboard.
-- Added grouped reward list, search and direct select.
-- Added friendly actions: sound, video, text, manual, custom.
-- Added local delete route in backend.
-- Kept Twitch writes disabled.
+## Kanalpunkte UI v0.7.1
+
+- Modal-Draft-State ergänzt.
+- Eingaben bleiben bei MediaPicker-Auswahl und UI-Refresh erhalten.
+- Sound-/Video-/Text-Payload wird in den Entwurf synchronisiert.

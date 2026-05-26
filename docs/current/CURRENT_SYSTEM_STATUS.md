@@ -1,11 +1,8 @@
-# Current System Status – Channelpoints v0.7.0
+# Current System Status
 
-Kanalpunkte wurden auf das Commands-Bedienmuster umgebaut.
+## Kanalpunkte
 
-- Backend: `0.7.0` / `safe-modal-editor`
-- Dashboard: `0.7.0` / `safe-modal-editor`
-- Modal-Editor für Erstellen/Bearbeiten
-- Suche, Kategorien, Direkt-Auswahl
-- Lokal löschen mit Rückfrage im Dashboard
-- Sound/Video weiter über `mediaId -> /api/sound/play`
-- Twitch wird weiterhin nicht verändert
+- Backend: v0.7.0 `safe-modal-editor`
+- Dashboard: v0.7.1 `preserve-modal-draft-state`
+- Status: Modal-Editor analog Commands vorhanden; Draft-State-Fix ergänzt.
+- Wichtig: MediaPicker darf Reward-Key/Titel/Regeln beim Erstellen oder Bearbeiten nicht zurücksetzen.

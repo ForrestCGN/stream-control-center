@@ -1,6 +1,5 @@
-# TODO – Channelpoints
+# TODO
 
-- Zentrale Textverwaltung als eigenes Modul vorbereiten.
-- Twitch-Sync für Rewards später ergänzen.
-- Redemption/EventSub-Verarbeitung später anbinden.
-- Optional: Dashboard-UX nach Testfeedback weiter glätten.
+- Kanalpunkte v0.7.1 praktisch testen.
+- Zentrale Textverwaltung vorbereiten.
+- Twitch-Sync später mit Scope-/Sicherheitsprüfung ergänzen.

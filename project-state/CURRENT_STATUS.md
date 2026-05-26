@@ -1,3 +1,4 @@
-# Current Status – Channelpoints v0.7.0
+# Current Status
 
-Kanalpunkte-Dashboard ist analog zum Commands-Editor aufgebaut: gruppierte Liste, Suche, Direkt-Auswahl, Modal für Neu/Bearbeiten, Kopieren, lokales Löschen und benutzerfreundliche Aktionsmasken.
+Kanalpunkte-Dashboard steht auf UI v0.7.1 `preserve-modal-draft-state`.
+Backend bleibt v0.7.0 `safe-modal-editor`.

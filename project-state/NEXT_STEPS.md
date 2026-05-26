@@ -1,7 +1,5 @@
-# Next Steps – Channelpoints
+# Next Steps
 
-1. Dashboard testen: Neu, Bearbeiten, Kopieren, Löschen.
-2. Sound-Reward mit MediaPicker testen.
-3. Video-Reward mit MediaPicker testen.
-4. Danach zentrale Textverwaltung als eigenes Modul planen.
-5. Später Twitch-Sync/Reward-API mit Scope-Prüfung ergänzen.
+1. Kanalpunkte Modal testen: neuer Reward, Reward-Key eintragen, Sound/Video auswählen, prüfen ob Basisdaten erhalten bleiben.
+2. Danach zentrale Textverwaltung als eigenes System planen/umsetzen.
+3. Commands und Kanalpunkte später an Textgruppen/Textvarianten anbinden.

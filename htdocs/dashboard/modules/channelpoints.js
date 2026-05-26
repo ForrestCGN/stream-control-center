@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.7.0';
-  const UI_BUILD = 'safe-modal-editor';
+  const UI_VERSION = '0.7.1';
+  const UI_BUILD = 'preserve-modal-draft-state';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -174,30 +174,69 @@ window.ChannelpointsModule = (function(){
   function syncDraftFromForm() {
     if (!state.modal) return null;
     const d = state.modal.draft;
-    const payloadRaw = String(getField('action_payload_json')?.value || '').trim();
+    const payloadRaw = String(getField('action_payload_json')?.value || d.action_payload_json || '{}').trim();
+    const currentPayload = parseJson(payloadRaw || '{}', {});
+
     d.reward_key = cleanKey(getField('reward_key')?.value || d.reward_key || '');
-    d.title = String(getField('title')?.value || '').trim();
-    d.prompt = String(getField('prompt')?.value || '').trim();
-    d.cost = Number(getField('cost')?.value || 100);
-    d.category_key = String(getField('category_key')?.value || 'general');
-    d.sort_order = Number(getField('sort_order')?.value || 100);
-    d.system_enabled = !!getField('system_enabled')?.checked;
-    d.is_paused = !!getField('is_paused')?.checked;
-    d.require_user_input = !!getField('require_user_input')?.checked;
-    d.input_label = String(getField('input_label')?.value || '').trim();
-    d.cooldown_seconds = Number(getField('cooldown_seconds')?.value || 0);
-    d.max_per_stream = Number(getField('max_per_stream')?.value || 0);
-    d.max_per_user_per_stream = Number(getField('max_per_user_per_stream')?.value || 0);
-    d.auto_fulfill = !!getField('auto_fulfill')?.checked;
-    d.notes = String(getField('notes')?.value || '').trim();
+    d.title = String(getField('title')?.value || d.title || '').trim();
+    d.prompt = String(getField('prompt')?.value || d.prompt || '').trim();
+    d.cost = Number(getField('cost')?.value || d.cost || 100);
+    d.category_key = String(getField('category_key')?.value || d.category_key || 'general');
+    d.sort_order = Number(getField('sort_order')?.value || d.sort_order || 100);
+    d.system_enabled = getField('system_enabled') ? !!getField('system_enabled')?.checked : boolValue(d.system_enabled);
+    d.is_paused = getField('is_paused') ? !!getField('is_paused')?.checked : boolValue(d.is_paused);
+    d.require_user_input = getField('require_user_input') ? !!getField('require_user_input')?.checked : boolValue(d.require_user_input);
+    d.input_label = String(getField('input_label')?.value || d.input_label || '').trim();
+    d.cooldown_seconds = Number(getField('cooldown_seconds')?.value || d.cooldown_seconds || 0);
+    d.max_per_stream = Number(getField('max_per_stream')?.value || d.max_per_stream || 0);
+    d.max_per_user_per_stream = Number(getField('max_per_user_per_stream')?.value || d.max_per_user_per_stream || 0);
+    d.auto_fulfill = getField('auto_fulfill') ? !!getField('auto_fulfill')?.checked : boolValue(d.auto_fulfill);
+    d.notes = String(getField('notes')?.value || d.notes || '').trim();
     d._action = String(getField('action_choice')?.value || d._action || 'sound_play');
-    d.media_asset_id = String(getField('media_asset_id')?.value || '').trim();
+    d.media_asset_id = String(getField('media_asset_id')?.value || d.media_asset_id || '').trim();
     d.media_role = String(getField('media_role')?.value || d.media_role || 'none');
     d.action_type = String(getField('action_type')?.value || d.action_type || 'manual');
     d.action_key = String(getField('action_key')?.value || d.action_key || '');
     d.queue_mode = String(getField('queue_mode')?.value || d.queue_mode || 'none');
-    d.priority = Number(getField('priority')?.value || 0);
-    d.action_payload_json = payloadRaw || '{}';
+    d.priority = Number(getField('priority')?.value || d.priority || 0);
+
+    if (d._action === 'sound_play' || d._action === 'video_play') {
+      const action = actionById(d._action);
+      d.media_role = action.mediaRole;
+      d.action_type = 'media';
+      d.action_key = action.actionKey;
+      d.action_payload_json = JSON.stringify({
+        ...currentPayload,
+        mediaType: action.mediaType,
+        type: action.mediaType,
+        volume: Number(getField('media_volume')?.value || currentPayload.volume || 80),
+        target: String(getField('media_target')?.value || currentPayload.target || 'stream'),
+        outputTarget: String(getField('media_output_target')?.value || currentPayload.outputTarget || 'overlay'),
+        playBehavior: String(getField('play_behavior')?.value || currentPayload.playBehavior || 'immediate'),
+        queueIfBusy: String(getField('play_behavior')?.value || currentPayload.playBehavior || 'immediate') === 'queue'
+      });
+    } else if (d._action === 'text_only') {
+      d.media_asset_id = '';
+      d.media_role = 'none';
+      d.action_type = 'chat_message';
+      d.action_key = 'send_text';
+      d.action_payload_json = JSON.stringify({
+        ...currentPayload,
+        textMode: String(getField('text_mode')?.value || currentPayload.textMode || 'single'),
+        text: String(getField('text_value')?.value || currentPayload.text || ''),
+        textKey: String(getField('text_key')?.value || currentPayload.textKey || ''),
+        selection: String(getField('text_selection')?.value || currentPayload.selection || 'random')
+      });
+    } else if (d._action === 'manual') {
+      d.media_asset_id = '';
+      d.media_role = 'none';
+      d.action_type = 'manual';
+      d.action_key = '';
+      d.action_payload_json = '{}';
+    } else {
+      d.action_payload_json = payloadRaw || '{}';
+    }
+
     return d;
   }
 
@@ -464,7 +503,10 @@ window.ChannelpointsModule = (function(){
     if (state.loading) { root.innerHTML = '<div class="cp-loading">Kanalpunkte werden geladen...</div>'; return; }
     root.innerHTML = `<div class="cp-admin">${renderHeader()}${state.error ? `<div class="cp-alert error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cp-alert ok">${esc(state.notice)}</div>` : ''}${renderToolbar()}${renderOverview()}${renderRewardGroups()}${state.busResult ? `<details class="cp-panel"><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : ''}${renderModal()}</div>`;
     wireEvents();
-    if (state.modal) window.MediaField?.initAll?.(root);
+    if (state.modal) {
+      window.MediaField?.initAll?.(root);
+      window.setTimeout(() => { if (state.modal) syncDraftFromForm(); }, 80);
+    }
   }
 
   function wireEvents() {
@@ -478,12 +520,20 @@ window.ChannelpointsModule = (function(){
     root.querySelector('[data-cp-action="save"]')?.addEventListener('click', () => saveReward().catch(showError));
     root.querySelectorAll('[data-cp-action="modal-close"]').forEach(btn => btn.addEventListener('click', closeModal));
     root.querySelectorAll('[data-cp-action="open-media"]').forEach(btn => btn.addEventListener('click', () => window.CGN?.setActiveModule?.('media')));
-    root.querySelector('[data-cp-action="clear-media"]')?.addEventListener('click', () => { const f = getField('media_asset_id'); if (f) f.value = ''; syncDraftFromForm(); });
+    root.querySelector('[data-cp-action="clear-media"]')?.addEventListener('click', () => { const f = getField('media_asset_id'); if (f) f.value = ''; syncDraftFromForm(); render(); });
+    root.querySelectorAll('[data-cp-field]').forEach(field => {
+      if (field.dataset.cpDraftBound) return;
+      field.dataset.cpDraftBound = '1';
+      const eventName = field.tagName === 'SELECT' || field.type === 'checkbox' ? 'change' : 'input';
+      field.addEventListener(eventName, () => {
+        if (state.modal) syncDraftFromForm();
+      });
+    });
     root.querySelector('[data-cp-field="action_choice"]')?.addEventListener('change', () => { syncDraftFromForm(); render(); });
-    root.querySelector('[data-cp-control="query"]')?.addEventListener('input', ev => { state.query = ev.target.value || ''; render(); });
-    root.querySelector('[data-cp-control="categoryFilter"]')?.addEventListener('change', ev => { state.categoryFilter = ev.target.value || 'all'; render(); });
-    root.querySelector('[data-cp-control="statusFilter"]')?.addEventListener('change', ev => { state.statusFilter = ev.target.value || 'all'; render(); });
-    root.querySelector('[data-cp-control="directSelect"]')?.addEventListener('change', ev => { state.selectedKey = ev.target.value || ''; const card = root.querySelector(`[data-cp-card="${CSS.escape(state.selectedKey)}"]`); card?.scrollIntoView?.({ behavior:'smooth', block:'center' }); render(); });
+    root.querySelector('[data-cp-control="query"]')?.addEventListener('input', ev => { if (state.modal) syncDraftFromForm(); state.query = ev.target.value || ''; render(); });
+    root.querySelector('[data-cp-control="categoryFilter"]')?.addEventListener('change', ev => { if (state.modal) syncDraftFromForm(); state.categoryFilter = ev.target.value || 'all'; render(); });
+    root.querySelector('[data-cp-control="statusFilter"]')?.addEventListener('change', ev => { if (state.modal) syncDraftFromForm(); state.statusFilter = ev.target.value || 'all'; render(); });
+    root.querySelector('[data-cp-control="directSelect"]')?.addEventListener('change', ev => { if (state.modal) syncDraftFromForm(); state.selectedKey = ev.target.value || ''; const card = root.querySelector(`[data-cp-card="${CSS.escape(state.selectedKey)}"]`); card?.scrollIntoView?.({ behavior:'smooth', block:'center' }); render(); });
     root.querySelectorAll('[data-cp-card]').forEach(card => card.addEventListener('click', ev => { if (ev.target.closest('button')) return; state.selectedKey = card.dataset.cpCard || ''; render(); }));
   }
 
