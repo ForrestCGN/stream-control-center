@@ -164,8 +164,3 @@ Keine DB ersetzen. Keine neue DB für Kanalpunkte. Bestehende Tabellen additiv n
 - Completion Policy `FULFILLED`/`CANCELED` live gegen Twitch weiter prüfen.
 - UI-Hilfetexte final glätten.
 - Weitere Reward-Typen anbinden.
-
-
-## Deep-Dive-Hinweis
-
-Diese Datei konsolidiert den Stand nach STEP516. Für die Einzel-STEPs siehe die separaten `docs/modules/channelpoints_*` Dateien.

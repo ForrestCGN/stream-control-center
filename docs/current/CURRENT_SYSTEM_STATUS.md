@@ -1,98 +1,230 @@
-# CURRENT_SYSTEM_STATUS
+# CURRENT_SYSTEM_STATUS – stream-control-center
 
-Stand: 2026-05-26
+Stand: 2026-05-26  
+Arbeitsbereich: Kanalpunkte / Twitch Rewards / EventSub / EventBus / Dashboard
 
-## Commands
+## Aktueller stabiler Stand
 
-Backend:
+Das Kanalpunkte-System ist nach STEP516 in einem stabilen End-to-End-Stand.
 
-```text
-module = commands
-moduleVersion = 0.1.5
-moduleBuild = safe-edit-param-fix
-```
-
-Dashboard:
+Aktive Versionen:
 
 ```text
-UI_VERSION = 0.1.9
-UI_BUILD = preserve-modal-draft-state
+backend/modules/channelpoints.js              moduleVersion 0.9.4 · redemption-completion-policy
+htdocs/dashboard/modules/channelpoints.js     UI v1.0.3 · color-picker-presets-ui
+backend/modules/channelpoints_eventsub_bus_bridge.js  EventBus Bridge
 ```
 
-Status:
-
-- Modal-Editor vorhanden.
-- Safe-Edit vorhanden.
-- Draft-State funktioniert.
-- Sound/Video mit MediaPicker funktioniert.
-- Löschen vorhanden.
-- `Nur Live` aus normaler UI entfernt.
-
-## Kanalpunkte
-
-Backend:
+Wichtigster Live-Test:
 
 ```text
-module = channelpoints
-moduleVersion = 0.8.0
-moduleBuild = twitch-auth-scope-check
+Reward: Gewürzgurke
+Twitch reward_id: 0e129f37-20bf-456e-ab87-06fa0d6e08fd
+Reward-Key lokal: gewurzgurke
+User im echten Test: EngelCGN / engelcgn
+Status: executed
 ```
 
-Dashboard:
+Die komplette Kette wurde erfolgreich getestet:
 
 ```text
-UI_VERSION = 0.8.0
-UI_BUILD = twitch-auth-scope-check
+Twitch Reward eingelöst
+→ Twitch EventSub WebSocket
+→ EventSub-Audit/Cache in twitch.js
+→ channelpoints_eventsub_bus_bridge.js
+→ Communication Bus / EventBus
+→ channelpoints.js Subscriber
+→ lokale Redemption gespeichert
+→ Sound-System ausgeführt
+→ Status executed
 ```
 
-Status:
+## Abgeschlossene Kanalpunkte-Schritte
 
-- Lokale Reward-Verwaltung vorhanden.
-- Modal-Editor analog zu Commands vorhanden.
-- Sound/Video/Text-Aktionen lokal testbar.
-- Redemption-Test-Flow vorhanden.
-- Einlösungsverlauf vorhanden.
-- EventBus-Domain-Events aktiv/dokumentiert.
-- Twitch Auth-/Scope-Check vorhanden.
-- Read-only Sync möglich.
-- Twitch-Schreibzugriffe deaktiviert.
+### STEP484–490: ReadOnly Sync und Mapping
 
-## Letzte bestätigte Tests
+- Twitch Rewards wurden zunächst sicher read-only importiert.
+- Tokenstore-Problem wurde behoben.
+- Dashboard-Import-Tab wurde command-like in das bestehende Kanalpunkte-Modul integriert.
+- Mapping-Ansicht und lokale Sync-/DryRun-Probleme wurden bereinigt.
 
-### Kanalpunkte Status
+### STEP491–497: Importierte Rewards sicher konfigurieren
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status" |
-  Select-Object ok,module,moduleVersion,moduleBuild
-```
+- Importierte Rewards sind lokal standardmäßig inaktiv.
+- Importierte Rewards ohne Aktion können nicht aktiviert oder ausgeführt werden.
+- Backend- und Dashboard-Guards schützen vor leeren Aktionen.
+- Reward `Gewürzgurke` wurde als erster echter Test-Reward konfiguriert.
+- Sound-Test über Media-ID `1393` funktioniert.
 
-Ergebnis:
+### STEP498–508: Redemption-Vorbereitung und Vereinfachung
+
+- EventSub-Redemption-Routen wurden vorbereitet.
+- Frühere Shadow-/Live-/Allowlist-Bedienlogik wurde wieder aus dem normalen Bedienkonzept entfernt.
+- Endgültige Regel:
 
 ```text
-ok = True
-module = channelpoints
-moduleVersion = 0.8.0
-moduleBuild = twitch-auth-scope-check
+Reward inaktiv → nicht ausführen
+Reward aktiv + Aktion vollständig → ausführen
+Reward ohne Aktion → nicht aktivierbar / nicht ausführbar
 ```
 
-### Twitch Auth Check
+- Einlösungen, Verlauf, Statistik und Filter wurden im Dashboard aufgeräumt.
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/auth-check" |
-  Select-Object ok,module,moduleVersion,moduleBuild,status,auth,scopeCheck,readiness,safety
-```
+### STEP509–513: Twitch Write / Create / Update / Delete
 
-Ergebnis zusammengefasst:
+- Twitch Rewards können über die API erstellt/gepusht werden.
+- Stale lokale Twitch-IDs werden erkannt; bei `not found` kann mit `createIfMissing` neu erstellt werden.
+- `Gewürzgurke` wurde erfolgreich auf Twitch neu erstellt.
+- Aktivieren/Deaktivieren auf Twitch ist vorhanden.
+- Twitch-Delete ist vorhanden:
 
 ```text
-ok = True
-status = twitch_auth_scope_check
-auth.login = forrestcgn
-auth.userId = 127709954
-auth.broadcasterId = 127709954
-auth.tokenUserMatchesBroadcaster = True
-readiness.readyForReadOnlySync = True
-readiness.readyForFutureWriteActions = False
-safety.noTwitchWrite = True
+POST   /api/channelpoints/twitch/rewards/:idOrKey/delete
+DELETE /api/channelpoints/twitch/rewards/:idOrKey
 ```
 
+Sicherheitsbestätigung:
+
+```json
+{"confirm":"delete_from_twitch"}
+```
+
+Optionen:
+
+```text
+localAction=disable  → Twitch löschen, lokalen Reward deaktivieren und Twitch-Link entfernen
+localAction=keep     → Twitch löschen, lokalen Reward behalten und Twitch-Link entfernen
+localAction=delete   → Twitch löschen, lokalen Reward lokal ebenfalls löschen
+```
+
+### STEP511–512: EventBus-End-to-End-Flow
+
+- EventSub für Kanalpunkte ist aktiv:
+
+```text
+channel.channel_points_custom_reward_redemption.add
+status: enabled
+```
+
+- Der produktive Flow läuft über den EventBus, nicht über eine interne HTTP-Brücke.
+- `created_at` Bind-Fehler beim Redemption-Speichern wurde behoben.
+- Status nach erfolgreichem Test:
+
+```text
+receivedFromBus > 0
+acceptedFromBus > 0
+stored > 0
+executed > 0
+failed = 0
+lastError leer
+```
+
+### STEP515: Completion Policy
+
+Pro Reward sind Twitch-Redemption-Abschlussregeln vorgesehen:
+
+```text
+Sofort bei Twitch abschließen
+Nach erfolgreicher Ausführung abschließen
+Bei Fehler Punkte zurückgeben
+Twitch pausieren
+```
+
+Konzept:
+
+```text
+Sofort bei Twitch abschließen AN
+→ Twitch setzt Redemption direkt auf FULFILLED.
+
+Sofort bei Twitch abschließen AUS
++ Nach erfolgreicher Ausführung abschließen AN
+→ System setzt nach erfolgreicher Aktion FULFILLED.
+
+Bei Fehler Punkte zurückgeben AN
+→ System setzt bei Fehler/Blockierung CANCELED.
+```
+
+### STEP516: Farbauswahl im Dashboard
+
+- Farbauswahlfeld für Twitch Reward-Farbe eingebaut.
+- Hex-Feld bleibt sichtbar.
+- Live-Vorschau und Preset-Buttons eingebaut.
+- Jeder gültige Hex-Code im Format `#RRGGBB` kann genutzt werden.
+
+Presets:
+
+```text
+Twitch Lila      #9147FF
+CGN Neon Lila    #B000FF
+CGN Cyan         #00E5FF
+Türkis           #00E5CB
+Blau             #3B82F6
+Grün             #00FF7F
+Gold             #FFD700
+Orange           #FF7A00
+Rot              #FF3030
+Pink             #FF4FD8
+```
+
+## Aktuelle wichtige Routen
+
+### Lokale Rewards
+
+```text
+GET    /api/channelpoints/rewards
+POST   /api/channelpoints/rewards
+POST   /api/channelpoints/rewards/:idOrKey/enable
+POST   /api/channelpoints/rewards/:idOrKey/disable
+POST   /api/channelpoints/rewards/:idOrKey/execute
+DELETE /api/channelpoints/rewards/:idOrKey
+POST   /api/channelpoints/rewards/:idOrKey/delete
+```
+
+### Twitch Reward Management
+
+```text
+GET  /api/channelpoints/twitch/manage/status
+POST /api/channelpoints/twitch/rewards/:idOrKey/push
+POST /api/channelpoints/twitch/rewards/:idOrKey/enable
+POST /api/channelpoints/twitch/rewards/:idOrKey/disable
+POST /api/channelpoints/twitch/rewards/:idOrKey/delete
+DELETE /api/channelpoints/twitch/rewards/:idOrKey
+```
+
+### EventSub / Redemptions
+
+```text
+GET  /api/channelpoints/eventsub/redemption/status
+POST /api/channelpoints/eventsub/redemption/preview
+POST /api/channelpoints/eventsub/redemption
+GET  /api/channelpoints/redemptions?limit=...
+```
+
+### Twitch EventSub Status
+
+```text
+GET /api/twitch/eventsub/status
+GET /api/twitch/eventsub/subscriptions
+GET /api/twitch/eventsub/reconcile
+GET /api/twitch/eventsub/reconnect
+GET /api/twitch/eventsub/cleanup-disconnected
+```
+
+## Wichtige Regeln, die aus dieser Arbeitsphase bestätigt wurden
+
+```text
+Keine Shadow-/Live-/Allowlist-Bedienlogik im Kanalpunkte-Dashboard.
+Reward aktiv/inaktiv ist die zentrale Ausführungsfreigabe.
+Reward ohne Aktion darf nicht aktiviert oder ausgeführt werden.
+Twitch-Write braucht channel:manage:redemptions.
+EventSub-Redemptions laufen über EventBus, nicht über HTTP-Modulbrücke.
+Keine neue DB, keine Tabellen ersetzen, app.sqlite bleibt bestehen.
+```
+
+## Bekannte offene Punkte
+
+- Completion-Policy nach STEP515 mit echten `FULFILLED`/`CANCELED` Twitch-Statuswechseln weiter testen.
+- UI-Begriffe für Twitch-Abschlussoptionen im Live-Betrieb bewerten.
+- Alte Dashboard-Test-Redemptions bleiben historische Einträge; optional später eine Admin-Bereinigung/Filterung bauen.
+- Encoding-Anzeige bei Sound-Dateipfaden prüfen (`GewA_1_4rzGurke.mp3` / alte Umlautdarstellung).
+- Weitere Reward-Typen nach dem stabilen Gewürzgurke-Test Schritt für Schritt anbinden.

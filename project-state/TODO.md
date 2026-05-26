@@ -1,33 +1,38 @@
-# TODO — stream-control-center
+# TODO
 
-## Jetzt
+Stand: 2026-05-26
 
-- Kanalpunkte v0.8.1: Twitch Custom Rewards read-only abrufen.
-- Sync-Vorschau lokal/Twitch bauen.
-- Keine Twitch-Schreibzugriffe.
+## Kanalpunkte – offen / später prüfen
 
-## Bald
+### Hoch
 
-- Twitch Reward ID lokal verknüpfen.
-- Konfliktanzeige zwischen lokal und Twitch.
-- EventBus-Events für Twitch-Read und Sync-Preview ergänzen.
-- Dashboard-Sync-Panel weiter ausbauen.
+- Completion Policy live gegen Twitch vollständig verifizieren:
+  - Erfolgreiche Aktion → `FULFILLED`
+  - Fehler/Blockierung → optional `CANCELED`
+  - Punkte-Rückgabe in Twitch prüfen
+- Prüfen, ob bei sofort abgeschlossenen Twitch-Redemptions kein unnötiger Fulfill/Cancel-Versuch passiert.
 
-## Später
+### Mittel
 
-- Kontrolliertes Twitch Create/Update/Delete.
-- Twitch Deaktivieren mit klarer Rückfrage.
-- EventSub Redemption Ingest.
-- Redemption Fulfill/Cancel.
-- Zentrale Textverwaltung.
+- UI-Begriffe für Abschlussoptionen im Dashboard weiter schärfen:
+  - `Sofort bei Twitch abschließen`
+  - `Nach erfolgreicher Ausführung abschließen`
+  - `Bei Fehler Punkte zurückgeben`
+- Alte Dashboard-Test-Redemptions optional später aus normalen Verlaufsausgaben ausblendbar machen.
+- Encoding-/Dateipfad-Anzeige bei Umlauten prüfen:
+  - `GewA_1_4rzGurke.mp3`
+  - alte Anzeige `GewÃ¼rzGurke.mp3`
+- Weitere Reward-Typen planen und jeweils klein testen.
 
-## Dauerregeln
+### Niedrig
 
-- Keine Funktionalität entfernen.
-- Jede Änderung versionieren.
-- Neue Module/Helper dokumentieren.
-- Doku bei Chatwechsel aktualisieren.
-- EventBus als Kommunikations- und Monitoring-System nutzen.
-- SQLite niemals ersetzen.
-- Alles, was sinnvoll konfigurierbar ist, in Config/DB auslagern.
+- Dashboard-Hilfetexte für Twitch-Farbe/Farbpresets bei Bedarf kürzen.
+- EventBus-Diagnose für Kanalpunkte-Verarbeitung später im Bus-Dashboard sichtbarer machen.
+- Später prüfen, ob Channelpoints-Modul eine maschinenlesbare `meta`-Struktur für Loader/Monitoring bekommen soll.
 
+## Erledigt
+
+- Gewürzgurke als erster echter Twitch Reward end-to-end getestet.
+- EventBus-Flow für echte Twitch Redemptions funktioniert.
+- Twitch Create/Update/Delete Foundation vorhanden.
+- Farbauswahl mit Presets eingebaut.

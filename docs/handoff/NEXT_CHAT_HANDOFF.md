@@ -1,73 +1,88 @@
-# NEXT CHAT HANDOFF — Channelpoints STEP484
+# NEXT_CHAT_HANDOFF
 
-Aktueller Fokus:
+Stand: 2026-05-26
+
+## Kurzfassung
+
+Wir arbeiten am Projekt `stream-control-center`, Bereich Kanalpunkte/Twitch Rewards. Der aktuelle stabile Arbeitsstand ist STEP516.
+
+Aktueller Stand:
 
 ```text
-channelpoints v0.8.2 — Twitch Rewards Read-Only Sync TokenStore Fix
+Backend channelpoints.js: 0.9.4 · redemption-completion-policy
+Dashboard channelpoints.js: UI v1.0.3 · color-picker-presets-ui
+EventBus Bridge: channelpoints_eventsub_bus_bridge.js
 ```
 
-Geliefert wurde ein additives Backend-Modul:
+## Wichtigste Entscheidung
+
+Keine Shadow-/Live-/Allowlist-Bedienlogik mehr. Normale Regel:
 
 ```text
-backend/modules/channelpoints_twitch_readonly_sync.js
+Reward inaktiv → nicht ausführen
+Reward aktiv + Aktion vollständig → ausführen
+Reward ohne Aktion → nicht aktivierbar / nicht ausführbar
 ```
 
-Version:
+## Erfolgreicher End-to-End-Test
 
 ```text
-0.8.2
+Reward: Gewürzgurke
+reward_key: gewurzgurke
+Twitch reward_id: 0e129f37-20bf-456e-ab87-06fa0d6e08fd
+User: EngelCGN / engelcgn
+status: executed
+queue_group: eventsub_redemption
+execution.executed: true
+execution.failed: false
 ```
 
-Build:
+## Produktiver Flow
 
 ```text
-twitch-rewards-readonly-tokenstore-fix
+Twitch Reward eingelöst
+→ Twitch EventSub WebSocket
+→ twitch.js
+→ channelpoints_eventsub_bus_bridge.js
+→ EventBus channelpoints.redemption / received
+→ channelpoints.js
+→ Redemptions-Tabelle
+→ Sound-System
 ```
 
-Wichtig:
+## Letzte umgesetzte Features
+
+- Twitch Create/Update/Enable/Disable/Delete.
+- Stale-ID Create-Fallback.
+- EventBus-Redemption-Bridge.
+- Redemption Store Update Bind Fix.
+- Completion Policy:
+  - Sofort bei Twitch abschließen
+  - Nach erfolgreicher Ausführung abschließen
+  - Bei Fehler Punkte zurückgeben
+  - Twitch pausieren
+- Dashboard-Farbauswahl mit Presets.
+
+## Nächste sinnvolle Richtung
+
+Nicht direkt neu bauen. Erst Completion Policy gegen Twitch live verifizieren:
 
 ```text
-Keine Twitch-Schreibzugriffe.
-Keine bestehende Funktionalität entfernen.
-Produktive SQLite niemals ersetzen.
+UNFULFILLED → erfolgreiche Aktion → FULFILLED
+UNFULFILLED → Fehler/Blockierung → CANCELED
 ```
 
-Nächster sinnvoller Schritt:
+Danach weitere Reward-Typen anbinden.
+
+## Wichtige Dateien
 
 ```text
-STEP485_CHANNELPOINTS_DASHBOARD_READONLY_SYNC_TAB
-```
-
-Ziel:
-Das bestehende Dashboard-Modul `htdocs/dashboard/modules/channelpoints.js` vollständig aus aktuellem Stand ersetzen und um einen Tab/Block für Twitch Rewards Read-Only Sync TokenStore Fix erweitern.
-
-Vor STEP485 zuerst diese Dateien vollständig aus GitHub/dev oder lokalem aktuellen Stand prüfen:
-
-```text
+backend/modules/channelpoints.js
+backend/modules/channelpoints_eventsub_bus_bridge.js
 htdocs/dashboard/modules/channelpoints.js
 htdocs/dashboard/modules/channelpoints.css
-backend/modules/channelpoints.js
-backend/modules/channelpoints_twitch_readonly_sync.js
+docs/modules/channelpoints.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
 ```
-
-
-## Ergänzung v0.8.2
-
-Der Read-Only-Sync nutzt jetzt zuerst den bestehenden Twitch-OAuth-Flow des Projekts:
-
-```text
-GET /api/twitch/auth/validate
-D:\Streaming\stramAssets\tokens\twitch_user.json
-```
-
-Ablauf:
-
-```text
-1. Auth-Validate lokal aufrufen, damit der bestehende Twitch-Token bei Bedarf refresht.
-2. Token danach aus dem bestehenden Twitch-User-Tokenstore lesen.
-3. Scope `channel:read:redemptions` oder `channel:manage:redemptions` prüfen.
-4. Rewards per Helix GET lesen.
-5. Keine Twitch-Schreibzugriffe ausführen.
-```
-
-Neue Env-Tokens sind nicht mehr erforderlich. Optional bleibt ein Env-Fallback erhalten, falls der Tokenstore nicht vorhanden ist.

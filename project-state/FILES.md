@@ -1,97 +1,76 @@
-# FILES — wichtige Dateien
+# FILES
 
-## Backend
+Stand: 2026-05-26
+
+## Aktuell relevante Dateien – Kanalpunkte-System
+
+### Backend
 
 ```text
-backend/modules/commands.js
 backend/modules/channelpoints.js
+backend/modules/channelpoints_eventsub_bus_bridge.js
+backend/modules/channelpoints_twitch_readonly_sync.js
 backend/modules/twitch.js
-backend/modules/messages.js
 backend/modules/communication_bus.js
 backend/modules/helpers/helper_communication.js
 backend/core/database.js
-backend/modules/sqlite_core.js
 ```
 
-## Dashboard
+### Dashboard
 
 ```text
-htdocs/dashboard/modules/commands.js
-htdocs/dashboard/modules/commands.css
-htdocs/dashboard/modules/commands_media.js
 htdocs/dashboard/modules/channelpoints.js
 htdocs/dashboard/modules/channelpoints.css
-htdocs/dashboard/components/media_picker.js
-htdocs/dashboard/components/media_field.js
 ```
 
-## Datenbank
-
-Produktive Datenbank:
+### Dokumentation
 
 ```text
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
+docs/modules/channelpoints.md
+docs/modules/channelpoints-deep-dive.md
+docs/modules/channelpoints_eventbus_redemption_bridge.md
+docs/modules/channelpoints_redemption_store_update_bind_fix.md
+docs/modules/channelpoints_twitch_delete_and_create_params.md
+docs/modules/channelpoints_twitch_advanced_fields_ui.md
+docs/modules/channelpoints_redemption_completion_policy.md
+docs/modules/channelpoints_color_picker_presets.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md
+docs/handoff/NEXT_CHAT_HANDOFF.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/GENERAL_PROJECT_PROMPT.md
 ```
 
-Regel:
+## Letzte relevante ZIPs
 
 ```text
-niemals überschreiben oder ersetzen.
-Nur additive Migrationen/CREATE TABLE IF NOT EXISTS/ALTER TABLE sicher nutzen.
+STEP508_CHANNELPOINTS_OPERATION_CLEANUP_CONSOLIDATED_v1.0.0.zip
+STEP509_CHANNELPOINTS_TWITCH_REWARD_WRITE_FOUNDATION_SIMPLE_v0.8.9.zip
+STEP510_CHANNELPOINTS_TWITCH_PUSH_STALE_ID_CREATE_FALLBACK_v0.9.0.zip
+STEP511_CHANNELPOINTS_EVENTBUS_REDEMPTION_BRIDGE_v0.9.1.zip
+STEP512_CHANNELPOINTS_REDEMPTION_STORE_UPDATE_BIND_FIX_v0.9.2.zip
+STEP513_CHANNELPOINTS_TWITCH_DELETE_AND_CREATE_PARAMS_v0.9.3.zip
+STEP514_CHANNELPOINTS_TWITCH_ADVANCED_FIELDS_UI_v1.0.1.zip
+STEP515_CHANNELPOINTS_REDEMPTION_COMPLETION_POLICY_v0.9.4.zip
+STEP516_CHANNELPOINTS_COLOR_PICKER_PRESETS_v1.0.3.zip
 ```
 
-## Kanalpunkte-Tabellen
+## Live-/Repo-Pfade
 
 ```text
-channelpoints_categories
-channelpoints_rewards
-channelpoints_redemptions
+Repo: D:\Git\stream-control-center
+Live: D:\Streaming\stramAssets
+SQLite: D:\Streaming\stramAssets\data\sqlitepp.sqlite
 ```
 
-## Wichtige API-Routen — Kanalpunkte
+## Wichtige Runtime-/DB-Hinweise
 
-```text
-GET  /api/channelpoints/status
-GET  /api/channelpoints/categories
-GET  /api/channelpoints/rewards
-GET  /api/channelpoints/rewards/:idOrKey
-POST /api/channelpoints/rewards
-PUT  /api/channelpoints/rewards/:idOrKey
-PATCH /api/channelpoints/rewards/:idOrKey
-DELETE /api/channelpoints/rewards/:idOrKey
-POST /api/channelpoints/rewards/:idOrKey/delete
-POST /api/channelpoints/rewards/:idOrKey/enable
-POST /api/channelpoints/rewards/:idOrKey/disable
-POST /api/channelpoints/rewards/:idOrKey/execute
-GET  /api/channelpoints/redemptions
-POST /api/channelpoints/redemptions/test
-GET  /api/channelpoints/twitch-status
-GET  /api/channelpoints/twitch/readiness
-GET  /api/channelpoints/twitch/auth-check
-GET  /api/channelpoints/bus-events
-```
-
-## Wichtige API-Routen — Commands
-
-```text
-GET  /api/commands/status
-GET  /api/commands/list
-GET  /api/commands/catalog
-POST /api/commands/upsert
-POST /api/commands/delete
-GET  /api/commands/test
-GET  /api/commands/execute
-GET  /api/commands/logs
-GET  /api/commands/media-command-check
-```
-
-## Workflow-Dateien
-
-```text
-01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd
-02_LOKALE_AENDERUNGEN_ZU_GITHUB_HOCHLADEN.cmd
-03_NUR_STATUS_PRUEFEN.cmd
-04_BACKUP_ZURUECKSPIELEN.cmd
-stepdone.cmd
-```
-
+- `app.sqlite` niemals ersetzen oder überschreiben.
+- Redemptions werden in bestehender Tabelle `channelpoints_redemptions` gespeichert.
+- Reward-Konfigurationen nutzen bestehende Kanalpunkte-Tabellen/Felder.
+- Twitch-Farben werden als Hex `#RRGGBB` gespeichert.
+- Erweiterte Twitch-Optionen liegen teilweise in `action_payload_json.twitch`.

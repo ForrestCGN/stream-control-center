@@ -1,74 +1,93 @@
-# NEXT_STEPS — stream-control-center
+# NEXT_STEPS
 
-## Priorität 1 — Kanalpunkte fertigstellen
+Stand: 2026-05-26
 
-### Nächster Schritt: `channelpoints v0.8.1 — Twitch Rewards Read-Only Sync`
+## Direkt nach STEP516 prüfen
+
+1. Dashboard öffnen und prüfen, ob angezeigt wird:
+
+```text
+UI v1.0.3 · color-picker-presets-ui
+```
+
+2. Kanalpunkte-Status prüfen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/eventsub/redemption/status"
+```
+
+Erwartung:
+
+```text
+moduleVersion : 0.9.4
+moduleBuild   : redemption-completion-policy
+lastError leer
+```
+
+3. Twitch-Management-Status prüfen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/manage/status"
+```
+
+Erwartung:
+
+```text
+moduleVersion : 0.9.3 oder neuer
+moduleBuild   : twitch-delete-and-create-params oder neuer
+```
+
+4. Reward `Gewürzgurke` im Dashboard öffnen:
+
+- Farbe per Picker/Preset setzen.
+- `Sofort bei Twitch abschließen` bewusst prüfen.
+- `Nach erfolgreicher Ausführung abschließen` bewusst prüfen.
+- `Bei Fehler Punkte zurückgeben` bewusst prüfen.
+- Speichern.
+- Push zu Twitch testen.
+
+## Nächster sinnvoller Arbeitsblock
+
+### Option A: Completion Policy live gegen Twitch verifizieren
 
 Ziel:
 
-- Echte Twitch Custom Rewards abrufen.
-- Lokale Rewards gegen Twitch Rewards vergleichen.
-- Noch keine Twitch-Schreibaktionen.
-
-Geplante Routen:
-
 ```text
-GET /api/channelpoints/twitch/rewards
-GET /api/channelpoints/twitch/sync-preview
+UNFULFILLED → Aktion erfolgreich → FULFILLED
+UNFULFILLED → Aktion Fehler/Blockierung → CANCELED
 ```
 
-Dashboard:
+Dabei prüfen:
 
-- Twitch Rewards anzeigen.
-- Lokale Rewards anzeigen.
-- Sync-Vorschau anzeigen:
-  - verknüpft
-  - nur lokal
-  - nur Twitch
-  - Unterschiede bei Titel/Kosten/Prompt/Status
+- Wird Twitch-Redemption nach erfolgreichem Sound wirklich `FULFILLED`?
+- Werden Punkte bei Fehler wirklich zurückgegeben, wenn `CANCELED` gesetzt wird?
+- Wird kein Fulfill/Cancel versucht, wenn Twitch die Redemption bereits sofort abgeschlossen hat?
 
-Safety:
+### Option B: Dashboard-UX für Reward-Abschlussbegriffe finalisieren
 
-- `noTwitchWrite = true`
-- keine Create/Update/Delete Requests.
-- keine Redemption-Status-Updates.
+Aktuelle Begriffe:
 
-### Danach
+```text
+Sofort bei Twitch abschließen
+Nach erfolgreicher Ausführung abschließen
+Bei Fehler Punkte zurückgeben
+```
 
-#### `channelpoints v0.8.2 — Local/Twitch Link Preview`
+Diese Begriffe im realen Dashboard testen und ggf. Hilfetexte kürzen.
 
-- Manuelle Verknüpfung vorbereiten.
-- Twitch Reward ID lokal speichern, aber nur bewusst per Button.
-- Konflikte anzeigen.
+### Option C: Weitere Reward-Typen anbinden
 
-#### `channelpoints v0.8.3 — Controlled Twitch Create/Update`
+Nach stabilem Gewürzgurke-End-to-End-Test weitere Typen planen:
 
-- Twitch-Schreibaktionen nur nach expliziter Rückfrage.
-- Einzelreward, kein Massenupdate.
-- Audit/EventBus.
+- Sound/Musik-Rewards
+- Overlay-/Animation-Rewards
+- VIP-/Rollen-Rewards
+- manuell prüfbare Rewards
+- Rewards mit User-Input
 
-#### `channelpoints v0.8.4 — Twitch Disable Flow`
+## Nicht vergessen
 
-- Lokal deaktivieren vs. Twitch deaktivieren klar trennen.
-- Twitch `is_enabled=false` nur bewusst per Button.
-
-#### `channelpoints v0.9.0 — EventSub Redemption Ingest`
-
-- Echte Twitch-Redemptions empfangen.
-- Einlösung in DB speichern.
-- Reward-Aktion ausführen.
-- Später Fulfill/Cancel sauber umsetzen.
-
-## Parken
-
-### Zentrale Textverwaltung
-
-Aktuell bewusst zurückgestellt. Texte werden für Kanalpunkte vorerst nicht weiter vertieft, bis das Kanalpunkte-System fertig ist.
-
-Später:
-
-- zentrale Textgruppen.
-- Varianten.
-- Zufall/Rotation.
-- Commands und Kanalpunkte nutzen dasselbe Textsystem.
-
+- Keine neuen Modi/Allowlists einführen.
+- Aktiv/Inaktiv bleibt die Ausführungsfreigabe.
+- Bei neuen Moduländerungen Doku direkt mitpflegen.
+- Bei Chatwechsel erneut „dokumentieren und aktualisieren“ ausführen.

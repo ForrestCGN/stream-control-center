@@ -1389,3 +1389,61 @@ STEP482_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
 
 Ziel:
 Eingehende Twitch-Shoutouts loggen und im Dashboard/statistisch anzeigen.
+
+
+---
+
+## Aktueller Kanalpunkte-Stand nach STEP516 (2026-05-26)
+
+Wenn im neuen Chat am Kanalpunkte-System weitergearbeitet wird, gilt zusätzlich:
+
+```text
+Backend: backend/modules/channelpoints.js 0.9.4 · redemption-completion-policy
+Dashboard: htdocs/dashboard/modules/channelpoints.js UI v1.0.3 · color-picker-presets-ui
+Bridge: backend/modules/channelpoints_eventsub_bus_bridge.js
+```
+
+Stabil getesteter Referenz-Reward:
+
+```text
+Gewürzgurke
+reward_key: gewurzgurke
+Twitch reward_id: 0e129f37-20bf-456e-ab87-06fa0d6e08fd
+media_asset_id: 1393
+```
+
+Produktive Redemption-Kette:
+
+```text
+Twitch EventSub
+→ twitch.js
+→ channelpoints_eventsub_bus_bridge.js
+→ EventBus channelpoints.redemption / received
+→ channelpoints.js
+→ Sound-System
+```
+
+Kanalpunkte-Regel:
+
+```text
+Reward inaktiv → nicht ausführen
+Reward aktiv + Aktion vollständig → ausführen
+Reward ohne Aktion → nicht aktivierbar / nicht ausführbar
+```
+
+Nicht wieder einführen:
+
+```text
+Shadow-Modus als Bedienlogik
+Live-Modus als Bedienlogik
+Allowlist/Freigabe-Modus als Bedienlogik
+AutoExecute-Schalter als Dashboard-Konzept
+```
+
+Wichtige offene Prüfung:
+
+```text
+Completion Policy live gegen Twitch prüfen:
+Nach erfolgreicher Ausführung FULFILLED setzen.
+Bei Fehler optional CANCELED setzen und Punkte zurückgeben.
+```
