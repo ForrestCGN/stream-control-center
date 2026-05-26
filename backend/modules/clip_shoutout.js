@@ -13,7 +13,7 @@ let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.7";
+const MODULE_VERSION = "0.2.8";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -89,7 +89,9 @@ const DEFAULT_CONFIG = {
       workerIntervalMs: 5000,
       maxAttempts: 5,
       displayFinishPaddingMs: 1500,
-      streamWaitRetryMs: 60000,
+      streamWaitRetryMs: 120000,
+      liveGateEnabled: true,
+      liveGateRetryMs: 120000,
       broadcasterId: "",
       moderatorId: ""
     },
@@ -647,6 +649,44 @@ function isTwitchLiveWaitError(errorText) {
   return text.includes('not streaming live') || text.includes('does not have one or more viewers') || text.includes('broadcaster is not streaming');
 }
 
+function buildOfficialLiveGateState(cfg) {
+  const ocfg = officialConfig(cfg);
+  const streamState = readCurrentStreamState(cfg);
+  const enabled = ocfg.liveGateEnabled !== false;
+  return {
+    enabled,
+    live: !!(streamState && streamState.live),
+    source: streamState && streamState.source ? String(streamState.source) : 'unknown',
+    file: streamState && streamState.file ? String(streamState.file) : '',
+    streamId: streamState && streamState.streamId ? String(streamState.streamId) : '',
+    startedAt: streamState && streamState.startedAt ? String(streamState.startedAt) : '',
+    title: streamState && streamState.title ? String(streamState.title) : '',
+    gameName: streamState && streamState.gameName ? String(streamState.gameName) : ''
+  };
+}
+
+function markOfficialQueueWaitingLiveGate(row, cfg, reason = 'waiting_stream_live_offline') {
+  const ocfg = officialConfig(cfg);
+  const retryMs = Math.max(30000, Number(ocfg.liveGateRetryMs || ocfg.streamWaitRetryMs || ocfg.globalCooldownMs || 120000));
+  const next = isoFromMs(Date.now() + retryMs);
+  const error = reason;
+  database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, {
+    id: row.id,
+    next,
+    now: nowIso(),
+    error
+  });
+  state.officialShoutout.lastError = error;
+  emitShoutoutBus('shoutout.official.waiting_stream_live', {
+    queueId: row.id,
+    targetLogin: row.target_login,
+    error,
+    retryAt: next,
+    liveGate: true
+  }, cfg);
+  return { ok: true, waiting: true, reason: error, queueId: row.id, error, retryAt: next, liveGate: true };
+}
+
 function officialConfig(cfg) {
   return mergePlain(DEFAULT_CONFIG.clipShoutout.officialShoutout, (cfg && cfg.officialShoutout) || {});
 }
@@ -922,8 +962,14 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
     markOfficialQueueFailed(row, "max_attempts_reached", cfg);
     return { ok: false, failed: true, error: "max_attempts_reached" };
   }
+
+  const liveGate = buildOfficialLiveGateState(cfg);
+  if (liveGate.enabled && !liveGate.live) {
+    return markOfficialQueueWaitingLiveGate(row, cfg);
+  }
+
   try {
-    emitShoutoutBus("shoutout.official.sending", { queueId: row.id, targetLogin: row.target_login }, cfg);
+    emitShoutoutBus("shoutout.official.sending", { queueId: row.id, targetLogin: row.target_login, liveGate }, cfg);
     const result = await sendOfficialTwitchShoutout(env, row, cfg);
     markOfficialQueueSent(row, result, cfg);
     if (shouldSendOfficialChatMessages(cfg)) {
@@ -933,7 +979,7 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
   } catch (err) {
     const error = err && err.response && err.response.data ? JSON.stringify(err.response.data).slice(0, 500) : (err && err.message ? err.message : String(err));
     if (isTwitchLiveWaitError(error)) {
-      const next = isoFromMs(Date.now() + Math.max(15000, Number(ocfg.streamWaitRetryMs || 60000)));
+      const next = isoFromMs(Date.now() + Math.max(30000, Number(ocfg.streamWaitRetryMs || ocfg.liveGateRetryMs || ocfg.globalCooldownMs || 120000)));
       database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, next, now: nowIso(), error });
       state.officialShoutout.lastError = error;
       emitShoutoutBus("shoutout.official.waiting_stream_live", { queueId: row.id, targetLogin: row.target_login, error, retryAt: next }, cfg);
@@ -965,9 +1011,14 @@ function startOfficialShoutoutWorker(env, cfg) {
 function officialQueueStatus(cfg) {
   const queue = listOfficialQueue(50);
   const history = listOfficialHistory(20);
+  const ocfg = officialConfig(cfg);
   return {
-    enabled: officialConfig(cfg).enabled !== false,
+    enabled: ocfg.enabled !== false,
     workerStarted: state.officialShoutout.workerStarted,
+    liveGate: {
+      ...buildOfficialLiveGateState(cfg),
+      retryMs: Math.max(30000, Number(ocfg.liveGateRetryMs || ocfg.streamWaitRetryMs || ocfg.globalCooldownMs || 120000))
+    },
     pending: queue.length,
     queue,
     history,
@@ -1023,7 +1074,6 @@ function normalizeTimelineDisplayRow(row) {
 function buildShoutoutTimeline(options = {}) {
   ensureDisplayQueueSchema();
   ensureOfficialShoutoutSchema();
-  ensureStreamDaySchema();
   ensureStreamDaySchema();
   const limit = Math.max(1, Math.min(500, Number.parseInt(options.limit, 10) || 100));
   const targetLogin = cleanLogin(options.target || options.targetLogin || '');

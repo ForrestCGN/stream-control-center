@@ -1,6 +1,6 @@
 # FILES
 
-## STEP464_SHOUTOUT_TIMELINE_AND_STREAMDAY_LIMIT
+## STEP465
 
 ```text
 backend/modules/clip_shoutout.js
@@ -9,5 +9,5 @@ project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
-project-state/STEP464_SHOUTOUT_TIMELINE_AND_STREAMDAY_LIMIT.md
+project-state/STEP465_SHOUTOUT_OFFICIAL_LIVE_GATE.md
 ```

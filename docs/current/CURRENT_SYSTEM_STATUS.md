@@ -2,27 +2,21 @@
 
 ## Clip-Shoutout / VSO
 
-Aktueller Stand: STEP464
+Aktueller Stand: STEP465
 
-- `clip_shoutout.js` Runtime-Version: `0.2.7`
+- `clip_shoutout.js` Runtime-Version: `0.2.8`
 - Test-Command: `!vso`
 - Display-Queue: aktiv
 - Display-Cooldown: 120 Sekunden nach Anzeige-Ende
 - Event-Bus: `shoutout.system`
 - Direkter Chat-Command-Bypass: aktiv
-- Offizielle Twitch-Shoutout-Chatmeldungen: im Testmodus stumm
+- Chatmeldungen fuer offizielle Twitch-Shoutouts: stummgeschaltet
+- Timeline-Route: `GET /api/clip-shoutout/timeline`
+- Streamtag-Limit: aktiv, Override per `--force`
+- Official-Live-Gate: aktiv
 
-## STEP464
+## STEP465
 
-- Timeline-Tracking ergänzt: `/api/clip-shoutout/timeline`.
-- Display-Shouti und offizieller Twitch-Shoutout werden über `display_queue_id` verknüpft.
-- Streamtag-Limit ergänzt: ein Zielkanal standardmäßig nur einmal pro Streamtag.
-- Override möglich über `!vso @user --force`.
-- Streamtag ist Streamstart bis Streamende, mit Restart-Grace für Streamneustarts.
+Der offizielle Twitch-`/shoutout` wird nicht mehr gegen Twitch gesendet, wenn der Kanal laut lokaler Live-State-Dateien offline ist. Stattdessen bleibt der Eintrag in der offiziellen Queue im Status `waiting`, bekommt `last_error=waiting_stream_live_offline` und wird spaeter erneut geprueft.
 
-## Bewusst unverändert
-
-- Keine Umstellung von `!vso` auf `!so`.
-- Keine Sound-System-Änderung.
-- Keine Dashboard-Änderung.
-- Keine EventBus-Umstellung.
+Display-/Video-Shoutouts bleiben auch offline testbar.

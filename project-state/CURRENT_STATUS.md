@@ -1,35 +1,22 @@
 # CURRENT_STATUS
 
-## STEP464 aktiv
+## STEP465 aktiv
 
-Clip-Shoutout / VSO läuft mit Timeline-Tracking und Streamtag-Limit:
+Clip-Shoutout / VSO steht auf Runtime-Version `0.2.8`.
 
-- Modul: `clip_shoutout`
-- Runtime-Version: `0.2.7`
-- Test-Command bleibt: `!vso`
-- Display-Queue aktiv
-- Display-Cooldown: 120 Sekunden nach Ende der Anzeige
-- Direkter Chat-Command-Bypass aktiv
-- Offizielle Twitch-Shoutout-Chatmeldungen bleiben im Testmodus stumm
-- Event-Bus bleibt aktiv: `shoutout.system`
+Aktiv:
 
-## Neu in STEP464
+- Test-Command: `!vso`
+- Display-Queue mit 120 Sekunden Abstand nach Anzeige-Ende
+- reduzierte Chatmeldungen im Testmodus
+- direkte Chat-Command-Verarbeitung fuer `!vso`
+- Timeline-Route `/api/clip-shoutout/timeline`
+- Streamtag-Limit: ein Zielkanal pro Streamtag, Override per `!vso @user --force`
+- Official-Live-Gate: offizieller Twitch-`/shoutout` wird nur gesendet, wenn der Kanal live erkannt wird
 
-- `GET /api/clip-shoutout/timeline` zeigt pro Shouti:
-  - angefordert / queued
-  - Anzeige verfügbar / gestartet / beendet
-  - offizieller Twitch-Shoutout queued / gesendet / Fehler
-- `clip_shoutout_display_queue` speichert `stream_day_id` und Override-Infos.
-- `clip_shoutout_official_queue` und `clip_shoutout_official_history` speichern `display_queue_id`.
-- Pro Streamtag ist ein Zielkanal standardmäßig nur einmal erlaubt.
-- Override: `!vso @user --force`.
+Offline-Verhalten:
 
-## Nächster Test
-
-```text
-!vso @urlug
-!vso @urlug
-!vso @urlug --force
-```
-
-Danach Timeline prüfen.
+- Video-/Display-Shoutout kann getestet werden
+- offizieller Twitch-`/shoutout` wird nicht gegen Twitch versucht
+- offizielle Queue bleibt `waiting`
+- `last_error` zeigt `waiting_stream_live_offline`
