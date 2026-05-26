@@ -1,25 +1,37 @@
 # Kanalpunkte-System — Deep Dive
 
-Stand: UI v0.7.1 (`preserve-modal-draft-state`), Backend v0.7.0 (`safe-modal-editor`).
+Aktueller Stand: v0.7.2 / `redemption-execution-flow`
 
-## Ziel
+## Zweck
 
-Das Kanalpunkte-Dashboard folgt dem Commands-Pattern: Suche, Kategorien, direkte Auswahl, Modal-Editor, sichere Bearbeitung und lokale Löschung mit Rückfrage.
+Das Kanalpunkte-System verwaltet lokale Twitch-Kanalpunkte-Rewards analog zum Commands-System.
 
-## v0.7.1
+## Aktueller Funktionsumfang
 
-v0.7.1 ist ein Dashboard-Sicherheitsfix für den Modal-Entwurf.
+- lokale Kategorien
+- lokale Rewards
+- Modal-Editor im Dashboard
+- Sound-/Video-/Text-/Manual-Aktionen
+- bestehendes Media-System für Sound/Video-Auswahl
+- Media-Ausführung über `/api/sound/play`
+- lokale Einlösungen/Testeinlösungen
+- Verlauf in `channelpoints_redemptions`
 
-- Formularfelder im offenen Modal werden fortlaufend im Draft-State gehalten.
-- Reward-Key, Titel, Prompt, Kosten, Kategorie, Regeln und Notizen bleiben erhalten, wenn MediaPicker oder UI-Refreshes ausgelöst werden.
-- Sound-/Video-Auswahl schreibt nur die Medien-/Payload-Daten und setzt keine Basisdaten zurück.
-- Aktionswechsel speichert den aktuellen Entwurf vor dem Re-Render.
-- MediaField-Initialisierung synchronisiert den Entwurf nach kurzer Verzögerung erneut.
+## Wichtige Routen
 
-## Wichtige Regeln
+- `GET /api/channelpoints/status`
+- `GET /api/channelpoints/rewards`
+- `POST /api/channelpoints/rewards`
+- `PUT /api/channelpoints/rewards/:idOrKey`
+- `POST /api/channelpoints/rewards/:idOrKey/delete`
+- `POST /api/channelpoints/rewards/:idOrKey/execute`
+- `GET /api/channelpoints/media-execution-check?reward=<key>`
+- `GET /api/channelpoints/redemptions`
+- `POST /api/channelpoints/redemptions/test`
 
-- Keine Funktionalität entfernen.
-- Produktive SQLite-Datenbank nie ersetzen.
-- Medien laufen über das bestehende Media-/Sound-System.
-- Normale Nutzer sehen technische Felder nur unter „Erweitert“.
-- Twitch-Schreibzugriffe sind weiterhin nicht aktiv.
+## Noch nicht enthalten
+
+- echter Twitch Reward Sync
+- echte EventSub Redemption-Verarbeitung
+- Twitch Reward aktiv/deaktivieren per API
+- zentrale Textverwaltung für Textgruppen/Varianten

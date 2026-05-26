@@ -1,7 +1,8 @@
 # Changelog
 
-## Kanalpunkte UI v0.7.1
+## 2026-05-26 — Channelpoints v0.7.2
 
-- Modal-Draft-State ergänzt.
-- Eingaben bleiben bei MediaPicker-Auswahl und UI-Refresh erhalten.
-- Sound-/Video-/Text-Payload wird in den Entwurf synchronisiert.
+- lokale Redemption-Liste ergänzt
+- Testeinlösung per Dashboard/API ergänzt
+- Reward-Prüfen/Testen im Dashboard ergänzt
+- keine Twitch-Schreibzugriffe

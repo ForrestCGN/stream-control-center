@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.7.0";
-const MODULE_BUILD = "safe-modal-editor";
+const MODULE_VERSION = "0.7.2";
+const MODULE_BUILD = "redemption-execution-flow";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -185,6 +185,7 @@ let localCrudStats = {
   updated: 0,
   enabled: 0,
   disabled: 0,
+  deleted: 0,
   lastCrudAt: null,
   lastCrudAction: ""
 };
@@ -470,6 +471,59 @@ function mapCategoryRow(row) {
     created_at: row.created_at || "",
     updated_at: row.updated_at || ""
   };
+}
+
+function mapRedemptionRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    twitch_redemption_id: row.twitch_redemption_id || "",
+    twitch_reward_id: row.twitch_reward_id || "",
+    reward_key: row.reward_key || "",
+    user_id: row.user_id || "",
+    user_login: row.user_login || "",
+    user_display_name: row.user_display_name || "",
+    user_input: row.user_input || "",
+    status: row.status || "",
+    queue_group: row.queue_group || "",
+    result_json: row.result_json || "{}",
+    result: safeJsonParse(row.result_json, {}),
+    redeemed_at: row.redeemed_at || "",
+    created_at: row.created_at || "",
+    updated_at: row.updated_at || ""
+  };
+}
+
+function listRedemptions(req = {}) {
+  ensureDbReady();
+  const q = req.query || req || {};
+  const status = cleanString(q.status || "");
+  const rewardKey = cleanString(q.reward || q.reward_key || "");
+  const userLogin = cleanString(q.user || q.user_login || "").toLowerCase();
+  const limit = Math.max(1, Math.min(200, intValue(q.limit, 50)));
+  const rows = database.all(`
+    SELECT * FROM channelpoints_redemptions
+    WHERE (:status = '' OR status = :status)
+      AND (:rewardKey = '' OR reward_key = :rewardKey)
+      AND (:userLogin = '' OR user_login = :userLogin)
+    ORDER BY COALESCE(redeemed_at, created_at) DESC, id DESC
+    LIMIT :limit
+  `, { status, rewardKey, userLogin, limit }) || [];
+  return rows.map(mapRedemptionRow);
+}
+
+function buildRedemptionsStatus(req = {}) {
+  const rows = listRedemptions(req);
+  let counts = { total: 0, executed: 0, failed: 0, pending: 0, skipped: 0 };
+  try {
+    const countRows = database.all("SELECT status, COUNT(*) AS count FROM channelpoints_redemptions GROUP BY status") || [];
+    for (const row of countRows) {
+      const key = cleanString(row.status || "pending");
+      counts.total += Number(row.count || 0);
+      if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key] = Number(row.count || 0);
+    }
+  } catch (_) {}
+  return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, redemptions: rows, counts, twitchWrite: false };
 }
 
 function listCategories(req) {
@@ -968,7 +1022,7 @@ function buildStatus(extra = {}) {
     twitch: {
       rewardManagementImplemented: false,
       rewardSyncImplemented: false,
-      redemptionHandlingImplemented: false,
+      redemptionHandlingImplemented: true,
       writeActionsEnabled: false,
       requiredManageScope: "channel:manage:redemptions",
       requiredReadScope: "channel:read:redemptions",
@@ -994,6 +1048,8 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/db-status`,
       `${ROUTE_PREFIX}/categories`,
       `${ROUTE_PREFIX}/rewards`,
+      `${ROUTE_PREFIX}/redemptions`,
+      `${ROUTE_PREFIX}/redemptions/test`,
       `${ROUTE_PREFIX}/rewards/:idOrKey`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/enable`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/disable`,
@@ -1158,6 +1214,10 @@ function init({ app }) {
     try { res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, rewards: listRewards(req), localCrudStats: { ...localCrudStats } }); } catch (err) { sendError(res, 500, err); }
   });
 
+  app.get(`${ROUTE_PREFIX}/redemptions`, (req, res) => {
+    try { res.json(buildRedemptionsStatus(req)); } catch (err) { sendError(res, 500, err); }
+  });
+
   app.get(`${ROUTE_PREFIX}/rewards/:idOrKey`, (req, res) => {
     try {
       const reward = getRewardByIdOrKey(req.params.idOrKey);
@@ -1262,6 +1322,35 @@ function init({ app }) {
     } catch (err) { sendError(res, err && err.message === "reward_not_found" ? 404 : 400, err); }
   });
 
+  app.post(`${ROUTE_PREFIX}/redemptions/test`, async (req, res) => {
+    try {
+      const body = req.body || {};
+      const idOrKey = cleanString(body.reward || body.reward_key || body.id || req.query.reward || "");
+      const result = await executeReward(idOrKey, {
+        ...body,
+        userLogin: cleanString(body.userLogin || body.user || "dashboard"),
+        userDisplayName: cleanString(body.userDisplayName || body.displayName || "Dashboard"),
+        userInput: cleanString(body.userInput || body.input || ""),
+        redemptionId: cleanString(body.redemptionId || `dashboard_test_${Date.now()}`)
+      });
+      res.json({ ...result, action: "test_redemption_executed" });
+    } catch (err) { sendError(res, err && err.message === "reward_not_found" ? 404 : 400, err); }
+  });
+
+  app.get(`${ROUTE_PREFIX}/redemptions/test`, async (req, res) => {
+    try {
+      const idOrKey = cleanString(req.query.reward || req.query.reward_key || req.query.id || "");
+      const result = await executeReward(idOrKey, {
+        ...req.query,
+        userLogin: cleanString(req.query.userLogin || req.query.user || "dashboard"),
+        userDisplayName: cleanString(req.query.userDisplayName || req.query.displayName || "Dashboard"),
+        userInput: cleanString(req.query.userInput || req.query.input || ""),
+        redemptionId: cleanString(req.query.redemptionId || `dashboard_test_${Date.now()}`)
+      });
+      res.json({ ...result, action: "test_redemption_executed" });
+    } catch (err) { sendError(res, err && err.message === "reward_not_found" ? 404 : 400, err); }
+  });
+
   app.get(`${ROUTE_PREFIX}/bus-test`, (req, res) => {
     try { const result = emitBusSelfTest(req); res.json(buildStatus({ busTest: true, result })); } catch (err) {
       const currentBus = getBus();
@@ -1273,4 +1362,4 @@ function init({ app }) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} API routes registered (${ROUTE_PREFIX})`);
 }
 
-module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, registerAtCommunicationBus, heartbeatBus, publishStatus };
+module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, registerAtCommunicationBus, heartbeatBus, publishStatus };

@@ -1,5 +1,7 @@
 # Next Steps
 
-1. Kanalpunkte Modal testen: neuer Reward, Reward-Key eintragen, Sound/Video auswählen, prüfen ob Basisdaten erhalten bleiben.
-2. Danach zentrale Textverwaltung als eigenes System planen/umsetzen.
-3. Commands und Kanalpunkte später an Textgruppen/Textvarianten anbinden.
+1. Sound-Reward lokal testen
+2. Video-Reward lokal testen
+3. Redemption-Verlauf prüfen
+4. danach Twitch/EventSub-Anbindung planen
+5. danach zentrale Textverwaltung für Textgruppen/Varianten

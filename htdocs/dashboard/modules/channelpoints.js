@@ -1,15 +1,17 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.7.1';
-  const UI_BUILD = 'preserve-modal-draft-state';
+  const UI_VERSION = '0.7.2';
+  const UI_BUILD = 'redemption-execution-flow';
 
   const api = {
     status: '/api/channelpoints/status',
     categories: '/api/channelpoints/categories',
     rewards: '/api/channelpoints/rewards',
     busTest: '/api/channelpoints/bus-test',
-    mediaExecutionCheck: '/api/channelpoints/media-execution-check'
+    mediaExecutionCheck: '/api/channelpoints/media-execution-check',
+    redemptions: '/api/channelpoints/redemptions',
+    redemptionTest: '/api/channelpoints/redemptions/test'
   };
 
   const ACTIONS = [
@@ -31,6 +33,8 @@ window.ChannelpointsModule = (function(){
     status:null,
     categories:[],
     rewards:[],
+    redemptions:[],
+    redemptionCounts:null,
     busResult:null,
     modal:null
   };
@@ -320,14 +324,17 @@ window.ChannelpointsModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, cats, rewardsRes] = await Promise.all([
+      const [status, cats, rewardsRes, redemptionsRes] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.categories),
-        window.CGN.api(api.rewards)
+        window.CGN.api(api.rewards),
+        window.CGN.api(`${api.redemptions}?limit=25`).catch(err => ({ ok:false, redemptions:[], counts:null, error:err.message }))
       ]);
       state.status = status;
       state.categories = asArray(cats.categories);
       state.rewards = asArray(rewardsRes.rewards);
+      state.redemptions = asArray(redemptionsRes.redemptions);
+      state.redemptionCounts = redemptionsRes.counts || null;
       state.loading = false;
     } catch (err) {
       state.loading = false;
@@ -381,10 +388,24 @@ window.ChannelpointsModule = (function(){
   }
 
   async function executeReward(key) {
-    const data = await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/execute`, { method:'POST', body:JSON.stringify({ userLogin:'dashboard', userDisplayName:'Dashboard' }) });
+    const data = await window.CGN.api(api.redemptionTest, { method:'POST', body:JSON.stringify({ reward:key, userLogin:'dashboard', userDisplayName:'Dashboard' }) });
     state.busResult = data;
     state.notice = data.ok ? 'Reward-Test ausgeführt.' : 'Reward-Test konnte nicht ausgeführt werden.';
     await loadAll(true);
+  }
+
+  function redemptionStatusPill(status) {
+    const clean = String(status || 'pending');
+    const mode = clean === 'executed' ? 'ok' : (clean === 'failed' ? 'off' : (clean === 'skipped' ? 'warn' : 'neutral'));
+    return pill(clean, mode);
+  }
+
+  function renderRedemptionsPanel() {
+    const list = asArray(state.redemptions).slice(0, 25);
+    const counts = state.redemptionCounts || {};
+    return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Einlösungen / Testverlauf</h3><span>${esc(counts.total ?? list.length)} gesamt · ${esc(counts.executed ?? 0)} ausgeführt · ${esc(counts.failed ?? 0)} Fehler</span></div>
+      <div class="cp-redemption-list">${list.map(item => `<div class="cp-redemption-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}</small></div><div>${redemptionStatusPill(item.status)}</div></div>`).join('') || '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
+    </section>`;
   }
 
   function renderHeader() {
@@ -408,7 +429,7 @@ window.ChannelpointsModule = (function(){
     const active = rewards().filter(r => r.system_enabled).length;
     const paused = rewards().filter(r => r.is_paused).length;
     const executable = rewards().filter(r => ['sound_play','video_play'].includes(actionForReward(r)) && r.media_asset_id).length;
-    return `<div class="cp-grid cp-stats"><div class="cp-card"><small>Backend</small><strong>${esc(status.moduleVersion || '-')}</strong><span>${esc(status.moduleBuild || '-')}</span></div><div class="cp-card"><small>Rewards</small><strong>${rewards().length}</strong><span>${active} aktiv · ${paused} pausiert</span></div><div class="cp-card"><small>Medien-Rewards</small><strong>${executable}</strong><span>mit Media-ID</span></div><div class="cp-card"><small>Kategorien</small><strong>${categories().length}</strong><span>lokal</span></div></div>`;
+    return `<div class="cp-grid cp-stats"><div class="cp-card"><small>Backend</small><strong>${esc(status.moduleVersion || '-')}</strong><span>${esc(status.moduleBuild || '-')}</span></div><div class="cp-card"><small>Rewards</small><strong>${rewards().length}</strong><span>${active} aktiv · ${paused} pausiert</span></div><div class="cp-card"><small>Medien-Rewards</small><strong>${executable}</strong><span>mit Media-ID</span></div><div class="cp-card"><small>Kategorien</small><strong>${categories().length}</strong><span>lokal</span></div><div class="cp-card"><small>Einlösungen</small><strong>${esc((state.redemptionCounts && state.redemptionCounts.total) || state.redemptions.length || 0)}</strong><span>lokaler Verlauf</span></div></div>`;
   }
 
   function renderRewardCard(reward) {
@@ -418,6 +439,8 @@ window.ChannelpointsModule = (function(){
       <div class="cp-reward-badges">${pill(action.label.replace(/^..\s*/, ''), 'neutral')} ${statusPills(reward)}</div>
       <div class="cp-reward-actions">
         <button type="button" data-cp-action="edit" data-key="${esc(reward.reward_key)}">Bearbeiten</button>
+        <button type="button" data-cp-action="check" data-key="${esc(reward.reward_key)}">Prüfen</button>
+        <button type="button" data-cp-action="execute" data-key="${esc(reward.reward_key)}">Testen</button>
         <button type="button" data-cp-action="copy" data-key="${esc(reward.reward_key)}">Kopieren</button>
         ${reward.system_enabled ? `<button type="button" data-cp-action="disable" data-key="${esc(reward.reward_key)}">Deaktivieren</button>` : `<button type="button" data-cp-action="enable" data-key="${esc(reward.reward_key)}">Aktivieren</button>`}
         <button type="button" class="danger" data-cp-action="delete" data-key="${esc(reward.reward_key)}">Löschen</button>
@@ -501,7 +524,7 @@ window.ChannelpointsModule = (function(){
     if (!root) root = document.getElementById('channelpointsModule');
     if (!root) return;
     if (state.loading) { root.innerHTML = '<div class="cp-loading">Kanalpunkte werden geladen...</div>'; return; }
-    root.innerHTML = `<div class="cp-admin">${renderHeader()}${state.error ? `<div class="cp-alert error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cp-alert ok">${esc(state.notice)}</div>` : ''}${renderToolbar()}${renderOverview()}${renderRewardGroups()}${state.busResult ? `<details class="cp-panel"><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : ''}${renderModal()}</div>`;
+    root.innerHTML = `<div class="cp-admin">${renderHeader()}${state.error ? `<div class="cp-alert error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cp-alert ok">${esc(state.notice)}</div>` : ''}${renderToolbar()}${renderOverview()}${renderRewardGroups()}${renderRedemptionsPanel()}${state.busResult ? `<details class="cp-panel"><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : ''}${renderModal()}</div>`;
     wireEvents();
     if (state.modal) {
       window.MediaField?.initAll?.(root);
@@ -513,6 +536,8 @@ window.ChannelpointsModule = (function(){
     root.querySelector('[data-cp-action="reload"]')?.addEventListener('click', () => loadAll(true));
     root.querySelector('[data-cp-action="new"]')?.addEventListener('click', () => openModal('create'));
     root.querySelectorAll('[data-cp-action="edit"]').forEach(btn => btn.addEventListener('click', () => { const r = rewards().find(item => item.reward_key === btn.dataset.key); if (r) openModal('edit', r); }));
+    root.querySelectorAll('[data-cp-action="check"]').forEach(btn => btn.addEventListener('click', ev => { ev.stopPropagation(); checkReward(btn.dataset.key).catch(showError); }));
+    root.querySelectorAll('[data-cp-action="execute"]').forEach(btn => btn.addEventListener('click', ev => { ev.stopPropagation(); executeReward(btn.dataset.key).catch(showError); }));
     root.querySelectorAll('[data-cp-action="copy"]').forEach(btn => btn.addEventListener('click', () => { const r = rewards().find(item => item.reward_key === btn.dataset.key); if (r) openModal('copy', r); }));
     root.querySelectorAll('[data-cp-action="delete"]').forEach(btn => btn.addEventListener('click', () => deleteReward(btn.dataset.key || state.modal?.draft?.reward_key).catch(showError)));
     root.querySelectorAll('[data-cp-action="disable"]').forEach(btn => btn.addEventListener('click', () => toggleReward(btn.dataset.key, false).catch(showError)));
