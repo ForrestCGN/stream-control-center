@@ -1,27 +1,25 @@
 # CURRENT_STATUS
 
-## STEP471 - Doku, Regeln und allgemeiner Prompt
+## STEP472 - General Project Prompt Full Context
 
-STEP471 ist ein Doku-/Regel-Update ohne Runtime-Änderung.
+Der allgemeine Projektprompt wurde als umfassende Arbeitsgrundlage erweitert.
 
-Neu bzw. aktualisiert:
+Wichtigste Ergänzungen:
 
-- `docs/current/PROJECT_WORKING_RULES.md`
-- `project-state/GENERAL_PROJECT_PROMPT.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/STEP471_DOCS_RULES_AND_GENERAL_PROMPT.md`
+- klare Projektbasis mit GitHub/dev, lokalem Repo und Live-System
+- wichtige Doku-Einstiegspunkte
+- wichtige Repo-Dateien und Projektbereiche
+- Helper-/DB-/Dashboard-/EventBus-/Sound-Regeln
+- kurze Shell-/PowerShell-Ausgaben als verbindliche Arbeitsweise
+- zentrale Routen und aktuelle Modulstände
+- aktueller Shoutout-/Stream-Status-Kontext
+- Hinweis auf nächsten sinnvollen Schritt: Shoutout-Dashboard in Tabs aufteilen
 
-Wichtige neue Regel:
+Aktuell bekannte Modulstände:
 
-Shell-/PowerShell-Ausgaben sollen möglichst kurz und kopierfreundlich sein. Für normale Statusprüfungen sollen gezielte Properties per `Select-Object` verwendet werden. Vollständige JSON-Dumps nur anfordern, wenn sie wirklich nötig sind.
+- `stream_status`: `0.1.2`
+- `clip_shoutout`: `0.2.10`
 
-## Aktueller technischer Kontext
+Nächster sinnvoller technischer Schritt:
 
-- `stream_status`: Runtime-Version `0.1.2`, API-First, Auto-Refresh aktiv.
-- `clip_shoutout`: Runtime-Version `0.2.10`, Statistik-Routen vorhanden.
-- Shoutout-Dashboard vorhanden, aber nächster UX-Schritt ist Tab-Struktur.
-- Gewünschter späterer Ausbau: eingehende Twitch-Shoutouts per EventSub loggen und im Dashboard statistisch anzeigen.
+- `STEP473_SHOUTOUT_DASHBOARD_TABS`

@@ -1,52 +1,104 @@
 # CURRENT_SYSTEM_STATUS
 
-## Aktueller Stand nach STEP471
+## Aktueller Arbeitsstand
 
-STEP471 ist ein Doku-/Regel- und Prompt-Update. Es ändert keine Runtime-Logik.
+Aktuell relevant:
+
+- `stream_status` steht auf Runtime-Version `0.1.2`.
+- `stream_status` nutzt Twitch-API als Primärquelle und hat Auto-Refresh.
+- `clip_shoutout` steht auf Runtime-Version `0.2.10`.
+- Shoutout-Statistik-Routen sind vorhanden und getestet.
+- Shoutout-Dashboard ist vorhanden, aber UX muss in Tabs/Unterbereiche aufgeteilt werden.
+- Allgemeiner Projektprompt wurde mit STEP472 umfassend aktualisiert.
+
+## Zentrale Projektregeln
+
+Die verbindliche Arbeitsgrundlage steht in:
+
+```text
+project-state/GENERAL_PROJECT_PROMPT.md
+docs/current/PROJECT_WORKING_RULES.md
+```
+
+Wichtige Regeln:
+
+- Deutsch antworten.
+- Keine Funktionalität entfernen.
+- Keine Patches, Git-Patches, PowerShell-Regex- oder Inline-Patch-Scripte.
+- Änderungen nur als vollständige Ersatzdateien im ZIP.
+- ZIPs mit echten Zielpfaden ab Repo-Root.
+- ZIPs direkt nach `D:\Git\stream-control-center` entpackbar.
+- Produktive SQLite-Datenbank niemals ersetzen/überschreiben.
+- Nur notwendige Shell-/PowerShell-Ausgaben liefern.
+- Dashboard-Module nicht überladen; große Module in Tabs/Unterbereiche aufteilen.
 
 ## Stream Status Core
 
-- Modul: `stream_status`
-- Runtime-Version: `0.1.2`
-- Routen:
-  - `GET /api/stream-status/status`
-  - `GET /api/stream-status/current`
-  - `GET/POST /api/stream-status/refresh`
-  - `GET /api/stream-status/sessions`
+Modul:
+
+```text
+backend/modules/stream_status.js
+```
+
+Runtime-Version:
+
+```text
+0.1.2
+```
+
+Routen:
+
+```text
+GET      /api/stream-status/status
+GET      /api/stream-status/current
+GET/POST /api/stream-status/refresh
+GET      /api/stream-status/sessions
+```
+
+Status:
+
 - Twitch-API ist Primärquelle.
-- Legacy-Dateien `htdocs/data/twitch_stream_raw.json` und `htdocs/data/twitch_live_data.json` bleiben Fallback.
+- Legacy-Dateien bleiben Fallback.
 - Auto-Refresh läuft standardmäßig alle 60 Sekunden, bei live/grace alle 30 Sekunden.
-- Status wird im RAM und in SQLite gespeichert (`stream_status_state`, `stream_status_sessions`).
+- Status wird in RAM und SQLite gespeichert.
 
 ## Clip-Shoutout / VSO
 
-- Modul: `clip_shoutout`
-- Runtime-Version: `0.2.10`
-- Test-Command bleibt `!vso`.
-- Display-Queue bleibt aktiv.
-- Display-Cooldown bleibt 120 Sekunden nach Anzeige-Ende.
-- Offizielle Twitch-Shoutouts nutzen den zentralen `stream_status` als Live-Gate.
-- Streamtag-Limit und Override `--force` bleiben unverändert.
-- Statistik-Routen sind vorhanden:
-  - `GET /api/clip-shoutout/stats`
-  - `GET /api/clip-shoutout/stats/user`
+Modul:
 
-## Shoutout Dashboard
+```text
+backend/modules/clip_shoutout.js
+```
 
-- Dashboard-Modul: `Community -> Shoutout-System`
-- Enthält aktuell Status, Queues, Live-Gate, Timeline und Statistik.
-- UX-Folgepunkt: Modul in Tabs/Unterbereiche aufteilen, damit nicht alles auf einer Seite steht.
+Runtime-Version:
 
-## Dokumentations-/Arbeitsregeln
+```text
+0.2.10
+```
 
-Neue zentrale Regeldoku:
+Wichtige Routen:
 
-- `docs/current/PROJECT_WORKING_RULES.md`
-- `project-state/GENERAL_PROJECT_PROMPT.md`
+```text
+GET  /api/clip-shoutout/queue
+GET  /api/clip-shoutout/timeline
+GET  /api/clip-shoutout/stats
+GET  /api/clip-shoutout/stats/user
+POST /api/clip-shoutout/run
+```
 
-Wichtige Ergänzung aus STEP471:
+Aktueller Stand:
 
-- Shell-/PowerShell-Ausgaben sollen kurz und kopierfreundlich sein.
-- Bei Statusprüfungen gezielte Feldauswahl bevorzugen.
-- Große `ConvertTo-Json -Depth 10` Dumps nur anfordern, wenn Detailanalyse nötig ist.
-- Wenn keine JavaScript-Dateien geändert wurden, nach ZIP klar sagen: kein `node --check` nötig.
+- Testcommand bleibt `!vso`.
+- Keine produktive Umstellung auf `!so`.
+- Display-Queue aktiv.
+- Official Twitch-Shoutout nutzt `stream_status` als Live-Gate.
+- Streamtag-Limit aktiv.
+- Override per `--force`.
+- Statistik vorhanden.
+- Dashboard-Modul vorhanden, aber UX muss verbessert werden.
+
+## Nächster sinnvoller Schritt
+
+```text
+STEP473_SHOUTOUT_DASHBOARD_TABS
+```

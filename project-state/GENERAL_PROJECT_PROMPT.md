@@ -2,64 +2,394 @@
 
 Wir arbeiten am Projekt `stream-control-center` / Kommunikations-System für ForrestCGN.
 
+Ziel dieses Prompts:
+Dieser Prompt soll in neuen Chats als zentrale Arbeitsgrundlage dienen, damit ohne langes Nachfragen korrekt, vorsichtig und projektkonform weitergearbeitet werden kann.
+
 Bitte antworte auf Deutsch und halte dich strikt an diese Arbeitsweise.
 
-## Projektbasis
+---
 
-- Repo: `https://github.com/ForrestCGN/stream-control-center`
-- Branch: `dev`
-- Lokales Repo: `D:\Git\stream-control-center`
-- Live-Ziel: `D:\Streaming\stramAssets`
-- Produktive SQLite-Datenbank: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
+## 1. Projektbasis
 
-GitHub/dev und echte Projektdateien sind die Single Source of Truth. Wenn der lokale Teststand durch ZIPs neuer ist als GitHub/dev, nach den konkreten Dateien fragen.
+GitHub-Repo:
 
-## Verbindliche Grundregeln
+```text
+https://github.com/ForrestCGN/stream-control-center
+```
 
-- Keine Funktionalität entfernen.
-- Keine Patches.
-- Keine Git-Patches.
-- Keine PowerShell-Regex- oder Inline-Patch-Scripte.
-- Keine `Set-Content`-Workarounds.
-- Keine Teil-Dateien liefern.
-- Änderungen nur als vollständige Ersatzdateien im ZIP.
-- ZIPs müssen direkt nach `D:\Git\stream-control-center` entpackbar sein.
-- ZIPs enthalten echte Zielpfade ab Repo-Root.
-- Keine Secrets, `.env`, Tokens, Datenbanken, Backups, temporären Dateien, ZIPs oder 7z ins Repo.
-- Die produktive SQLite-Datenbank niemals ersetzen, überschreiben oder neu bauen.
-- Schemaänderungen nur additiv und sicher.
+Branch:
 
-## Vor jeder Änderung
+```text
+dev
+```
 
-Immer zuerst nennen:
+Lokales Repo:
 
+```text
+D:\Git\stream-control-center
+```
+
+Live-System:
+
+```text
+D:\Streaming\stramAssets
+```
+
+Produktive SQLite-Datenbank:
+
+```text
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
+```
+
+Wichtig:
+
+```text
+GitHub/dev und die echten Projektdateien sind die Single Source of Truth.
+```
+
+Wenn der lokale Teststand durch ZIPs neuer ist als GitHub/dev, muss nach den konkreten aktuellen Dateien gefragt werden.
+
+Wenn GitHub/dev nicht vollständig, aktuell oder zuverlässig lesbar ist:
+
+```text
+Ich brauche genau diese Datei:
+[Pfad]
+```
+
+Keine Annahmen über Dateien, Struktur, Helper, Configs, Routen, Datenbank, Dashboard, Overlays oder Live-Zustand treffen, ohne sie zu prüfen.
+
+---
+
+## 2. Wichtige Doku-Einstiegspunkte im Repo
+
+Diese Dateien zuerst beachten, wenn ein neuer Chat startet oder ein Modul weitergebaut wird:
+
+```text
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_WORKING_RULES.md
+project-state/GENERAL_PROJECT_PROMPT.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
+
+Weitere wichtige Doku-Bereiche:
+
+```text
+docs/backend/
+docs/dashboard/
+docs/database/
+docs/overlays/
+docs/system-inspection/
+project-state/
+```
+
+Doku-Regeln:
+
+```text
+Aktuelle Änderungen gehören nach docs/current/ und project-state/.
+Dokus nicht nach htdocs kopieren.
+Keine CURRENT_STATUS_APPEND_*.md erzeugen, wenn CURRENT_STATUS.md vorhanden ist.
+Append-Dateien nur nutzen, wenn die echte Zieldatei nicht verfügbar ist.
+Historische Snapshots dürfen helfen, aber nicht blind überschrieben werden.
+```
+
+---
+
+## 3. Wichtige Projektbereiche und Pfade
+
+Backend / Core:
+
+```text
+backend/server.js
+backend/core/database.js
+backend/modules/
+backend/modules/helpers/
+config/
+```
+
+Dashboard:
+
+```text
+htdocs/dashboard/
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+htdocs/dashboard/modules/
+htdocs/dashboard/components/
+backend/modules/dashboard_*.js
+```
+
+Overlays:
+
+```text
+htdocs/overlays/
+```
+
+Öffentliche Tools:
+
+```text
+htdocs/public/tools/
+```
+
+Assets:
+
+```text
+htdocs/assets/
+htdocs/assets/sounds/
+htdocs/assets/images/
+```
+
+Daten / Runtime-Dateien:
+
+```text
+htdocs/data/
+data/
+data/sqlite/
+secrets/
+```
+
+Wichtig:
+Runtime-Daten, Secrets, Datenbanken, Backups und temporäre Dateien dürfen nicht ins Repo.
+
+---
+
+## 4. Wichtige GitHub-/Repo-Dateien, die häufig geprüft werden müssen
+
+Vor Backend-Arbeiten häufig relevant:
+
+```text
+backend/server.js
+backend/core/database.js
+backend/modules/communication_bus.js
+backend/modules/sqlite_core.js
+backend/modules/twitch.js
+backend/modules/stream_status.js
+backend/modules/clip_shoutout.js
+backend/modules/sound_system.js
+backend/modules/alert_system.js
+backend/modules/vip_sound_overlay.js
+```
+
+Vor Dashboard-Arbeiten häufig relevant:
+
+```text
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+htdocs/dashboard/app.css
+htdocs/dashboard/modules/*.js
+htdocs/dashboard/modules/*.css
+htdocs/dashboard/components/*.js
+htdocs/dashboard/components/*.css
+```
+
+Vor Overlay-Arbeiten häufig relevant:
+
+```text
+htdocs/overlays/*.html
+htdocs/assets/
+htdocs/data/
+```
+
+Vor Config-/Text-Arbeiten häufig relevant:
+
+```text
+config/
+config/messages/
+backend/modules/helpers/helper_config.js
+backend/modules/helpers/helper_settings.js
+backend/modules/helpers/helper_messages.js
+backend/modules/helpers/helper_texts.js
+```
+
+Vor Doku-/Übergabe-Arbeiten relevant:
+
+```text
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_WORKING_RULES.md
+project-state/GENERAL_PROJECT_PROMPT.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
+
+---
+
+## 5. Vorhandene Helper und Muster bevorzugen
+
+Vor neuen Strukturen immer prüfen, ob passende Helper existieren.
+
+Typische Helper:
+
+```text
+backend/modules/helpers/helper_config.js
+backend/modules/helpers/helper_settings.js
+backend/modules/helpers/helper_messages.js
+backend/modules/helpers/helper_texts.js
+backend/modules/helpers/helper_media.js
+backend/modules/helpers/helper_routes.js
+backend/modules/helpers/helper_security.js
+backend/modules/helpers/helper_state.js
+backend/modules/helpers/helper_core.js
+backend/modules/helpers/helper_cooldown.js
+backend/modules/helpers/helper_queue.js
+backend/core/database.js
+```
+
+Regel:
+
+```text
+Keine neuen Parallelstrukturen bauen, wenn vorhandene Helper, Module, Configs, DB-Muster oder Dashboard-Muster genutzt werden können.
+```
+
+Wenn ein Helper fehlt oder unklar ist:
+Datei prüfen oder anfordern, nicht raten.
+
+---
+
+## 6. Datenbank-Regeln
+
+Produktive SQLite-Datenbank:
+
+```text
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
+```
+
+Verbindlich:
+
+```text
+SQLite niemals neu bauen.
+SQLite niemals überschreiben.
+SQLite niemals ersetzen.
+Keine Datenbank-Dateien committen.
+Keine Backups committen.
+Keine temporären DB-Kopien committen.
+```
+
+Schemaänderungen:
+
+```text
+Nur additiv und sicher.
+CREATE TABLE IF NOT EXISTS bevorzugen.
+ALTER TABLE nur vorsichtig und geprüft.
+Bestehende Tabellen und Daten nicht beschädigen.
+```
+
+Neue DB-Zugriffe bevorzugt über:
+
+```text
+backend/core/database.js
+```
+
+oder vorhandene DB-/Helper-Muster.
+
+MariaDB-Ziel:
+Neue Module möglichst DB-portabel planen, aber keine bestehende SQLite-Funktionalität für theoretische MariaDB-Vorbereitung brechen.
+
+---
+
+## 7. Verbindliche Arbeitsweise
+
+Vor jeder Änderung immer zuerst klar nennen:
+
+```text
 1. Ziel des STEPs
 2. Betroffene Dateien
 3. Was geändert wird
 4. Was bewusst nicht geändert wird
 5. Welche Tests danach nötig sind
+```
 
 Dann erst arbeiten.
 
-Wenn Analyse nötig ist: erst analysieren, dann Ergebnis nennen, dann einen kleinen STEP vorschlagen.
+Wenn Analyse nötig ist:
 
-## Bedeutung von `go`
+```text
+Erst analysieren.
+Dann Ergebnis nennen.
+Dann kleinen STEP vorschlagen.
+```
 
-Wenn ich `go` schreibe, mache exakt mit dem zuletzt gemeinsam bestätigten Schritt weiter.
+Keine Zieländerung ohne vorherige Ansage.
 
-Kein Richtungswechsel. Keine Zusatzideen. Keine ungeplanten Designänderungen. Keine ungeplanten Backendänderungen. Keine Workarounds.
+Kein:
 
-## Datei-/ZIP-Regel
+```text
+ich baue mal eben noch ...
+```
+
+Keine Designänderung, wenn es um Backend/EventBus geht.
+
+Keine Backendänderung, wenn nur Design besprochen wurde.
+
+Keine Doku-Only-STEPs nebenbei, außer sie sind ausdrücklich gewünscht oder gehören zum abgeschlossenen STEP.
+
+---
+
+## 8. Bedeutung von `go`
+
+Wenn Forrest `go` schreibt:
+
+```text
+Mach exakt mit dem zuletzt gemeinsam bestätigten Schritt weiter.
+```
+
+Das bedeutet:
+
+```text
+Keine neue Richtung.
+Keine neue Interpretation.
+Keine Zusatzideen.
+Keine ungeplanten Designänderungen.
+Keine ungeplanten Backendänderungen.
+Keine Workarounds.
+Keine zusätzlichen Modul-Umbauten.
+```
+
+Wenn die zuletzt bestätigte Richtung unklar ist:
+kurz sagen, was unklar ist, und den konkret angenommenen Schritt nennen.
+
+---
+
+## 9. Datei-Regeln
+
+Diese Regeln sind verbindlich:
+
+```text
+Keine Patches.
+Keine Git-Patches.
+Keine PowerShell-Textpatches.
+Keine Set-Content-/Regex-/Inline-Patch-Scripte.
+Keine Workarounds mit Teil-Dateien.
+Keine halben Ersatzlösungen.
+```
 
 Wenn eine Datei geändert werden soll:
 
+```text
 1. Datei vollständig aus GitHub/dev lesen.
-2. Wenn das nicht vollständig oder nicht aktuell ist, exakt die benötigte Datei anfordern.
+2. Wenn das nicht vollständig und zuverlässig geht:
+   sofort sagen, welche konkrete Datei benötigt wird.
 3. Nur vollständige echte Datei als Basis verwenden.
-4. Vollständige Ersatzdatei liefern.
+4. Vollständige geänderte Ersatzdatei liefern.
 5. ZIP mit echtem Zielpfad ab Repo-Root bauen.
+```
 
-Beispiele für gültige ZIP-Pfade:
+Wenn Live oder lokaler ZIP-Test aktueller sein könnte als GitHub/dev:
+gezielt nach der echten lokalen Datei fragen.
+
+---
+
+## 10. ZIP-Regeln
+
+ZIPs müssen direkt nach folgendem Pfad entpackbar sein:
+
+```text
+D:\Git\stream-control-center
+```
+
+ZIPs enthalten echte Zielpfade ab Repo-Root, z. B.:
 
 ```text
 backend/modules/example.js
@@ -75,18 +405,36 @@ project-state/NEXT_STEPS.md
 project-state/STEPxxx_NAME.md
 ```
 
-## Standardabschluss nach ZIP
+Nicht erlaubt:
 
-Nach einem ZIP nur den notwendigen Ablauf geben:
+```text
+lose Dateien
+verkürzte Teilpfade
+Copy-Item-Platzhalter
+ZIPs, die erst manuell sortiert werden müssen
+```
+
+---
+
+## 11. Standardabschluss nach ZIP
+
+Nach einem ZIP immer kurz und kopierfreundlich liefern:
 
 ```bat
 cd D:\Git\stream-control-center
 ```
 
-Nur für geänderte JavaScript-Dateien:
+Dann nur für tatsächlich geänderte JS-Dateien:
 
 ```bat
-node --check pfad\zur\datei.js
+node --check backend\modules\DATEI.js
+node --check htdocs\dashboard\modules\DATEI.js
+```
+
+Wenn keine JS-Dateien geändert wurden:
+
+```text
+Keine JS-Dateien geändert, daher kein node --check nötig.
 ```
 
 Danach:
@@ -95,22 +443,25 @@ Danach:
 .\stepdone.cmd "passende Beschreibung"
 ```
 
-Wenn keine JavaScript-Datei geändert wurde, ausdrücklich sagen:
-
-```text
-Keine JS-Dateien geändert, daher kein node --check nötig.
-```
-
 Keine langen manuellen Git-/Deploy-Ketten ausgeben, außer `stepdone.cmd` funktioniert nicht.
 
-## Shell-/PowerShell-Ausgaben
+Wenn `stepdone.cmd` fehlschlägt:
+Fehlerausgabe prüfen, gezielt reparieren, nicht blind neue Umwege bauen.
 
-Befehle und Tests kopierfreundlich kurz halten.
+---
 
-- Nur notwendige Befehle ausgeben.
-- Für Statusprüfungen gezielte Feldauswahl bevorzugen.
-- Große JSON-Dumps nur anfordern, wenn wirklich nötig.
-- Keine langen Diagnoseblöcke, wenn wenige Felder reichen.
+## 12. Shell-/PowerShell-Ausgaben kurz halten
+
+Forrest möchte nicht unnötig viel kopieren müssen.
+
+Regeln:
+
+```text
+Nur notwendige Befehle ausgeben.
+Statusprüfungen mit gezielter Feldauswahl bevorzugen.
+Große ConvertTo-Json -Depth 10 Dumps nur anfordern, wenn wirklich nötig.
+Keine langen Diagnoseblöcke, wenn wenige Felder reichen.
+```
 
 Bevorzugt:
 
@@ -125,39 +476,579 @@ Nur bei Detailanalyse:
 Invoke-RestMethod "http://127.0.0.1:8080/api/example/status" | ConvertTo-Json -Depth 10
 ```
 
-## Dashboard-Regeln
+URLs in PowerShell nicht nackt eintippen.
 
-- Dashboard greift immer über Backend-APIs zu.
-- Dashboard greift nicht direkt auf SQLite oder Dateien zu.
-- Vor Dashboard-Arbeiten vorhandene Module, Routen, CSS-/JS-Struktur, Settings-/Config-/Textmuster und Security-Muster prüfen.
-- UX praktisch, schlank und verständlich halten.
-- Große Dashboard-Module in Tabs/Unterbereiche aufteilen; nicht alles auf eine Seite packen.
-- Keine unnötigen Techniktexte oder Boxen.
+Richtig:
 
-## EventBus- und Sound-Regeln
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/..." 
+```
 
-- EventBus ersetzt produktive Abläufe nicht nebenbei.
-- EventBus-Umstellungen nur als eigener geplanter und getesteter STEP.
-- Sound-System ist zentrale Audio-/Medien-Schicht und darf nicht nebenbei umgebaut werden.
-- Stabile Queue-, Prioritäts-, TTS-, SoundAlert-, Discord-, Overlay- und Output-Logik nicht ungeprüft ändern.
+oder im Browser öffnen.
 
-## Versionsregel
+---
 
-Produktive Module und APIs verwenden Versionsnummern, nicht STEP-Nummern als Runtime-Kennung.
+## 13. Nach jeder Code- oder Strukturänderung
+
+Immer liefern:
+
+```text
+1. Syntaxprüfung
+2. relevante API-/Live-Tests
+3. ZIP mit echten Zielpfaden
+4. STEP-Doku unter project-state/
+5. Aktualisierung von docs/current/CURRENT_SYSTEM_STATUS.md, wenn zentraler Stand betroffen ist
+6. Aktualisierung von project-state/CURRENT_STATUS.md
+7. Aktualisierung von project-state/CHANGELOG.md
+8. Aktualisierung von project-state/FILES.md
+9. Aktualisierung von project-state/NEXT_STEPS.md
+10. kurze Abschlussübersicht
+```
+
+Abschlussübersicht:
+
+```text
+Was geändert wurde
+Was getestet werden soll
+Welche Dateien betroffen sind
+Was offen bleibt
+Nächster sinnvoller Schritt
+```
+
+---
+
+## 14. Dashboard-Regeln
+
+Dashboard greift immer über Backend-APIs zu.
+
+Dashboard greift nicht direkt auf SQLite oder Dateien zu.
+
+Vor Dashboard-Arbeiten prüfen:
+
+```text
+Gibt es bereits ein Dashboard-Modul?
+Gibt es Backend-Routen?
+Gibt es Settings-/Config-/Textmuster?
+Gibt es vorhandene CSS-/JS-Modulstruktur?
+Gibt es vorhandene Rechte-/Security-Muster?
+Gibt es schon Tabs oder Unterbereiche im Modul?
+```
+
+Dashboard-UX:
+
+```text
+praktisch
+schlank
+verständlich
+nicht zu technisch
+nicht alles auf eine Seite packen
+```
+
+Große Dashboard-Module müssen Tabs oder Unterbereiche bekommen, z. B.:
+
+```text
+Übersicht
+Queues
+Statistik
+Timeline
+Settings
+Test
+```
+
+Keine unnötigen Techniktexte, Boxen oder Hinweise.
+
+Wenn Screenshots oder UX-Feedback gegeben werden:
+erst bewerten, ob die Änderung wirklich besser wird, nicht einfach neue UI-Elemente hinzufügen.
+
+---
+
+## 15. EventBus / Communication Bus
+
+Der EventBus ist ein wichtiger zentraler Projektbestandteil.
+
+Wichtige Datei:
+
+```text
+backend/modules/communication_bus.js
+```
+
+Der EventBus ist die zentrale Event-, Status-, Diagnose- und ACK-Schicht für neue Modul-Anbindungen.
+
+Neue EventBus-Anbindungen müssen:
+
+```text
+klein und nachvollziehbar sein
+rückwärtskompatibel sein
+bestehende produktive Flows zunächst nur ergänzen
+sauber testbar sein
+keine bestehenden Systeme ungeprüft ersetzen
+```
+
+Der EventBus darf bestehende produktive Abläufe nicht ersetzen, solange das nicht ausdrücklich geplant, umgesetzt und getestet ist.
+
+Gute EventBus-Schritte:
+
+```text
+1. Status-/Diagnose-Events ergänzen
+2. Smoke-Test-Route ergänzen
+3. Status-/Reset-Routen ergänzen
+4. Live-Test mit echtem Flow
+5. Erst danach über produktive Bus-Ausgabe oder Bus-First nachdenken
+```
+
+EventBus-Events sollten sprechende Channels und Actions haben, z. B.:
+
+```text
+module.event
+module.status
+module.started
+module.finished
+module.failed
+module.queue.updated
+```
+
+Keine EventBus-Namen erfinden, ohne vorhandene Muster im Repo zu prüfen.
+
+---
+
+## 16. Sound-System-Regeln
+
+Das Sound-System ist die zentrale Audio-/Medien-Schicht im Projekt.
+
+Es kann von mehreren Systemen genutzt werden:
+
+```text
+Alerts
+TTS
+Kanalpunkte/SoundAlerts
+VIP-/Mod-Sounds
+Challenges
+Discord
+sonstige Stream-Sounds
+```
+
+Das Sound-System darf nicht nebenbei umgebaut werden.
+
+Wenn ein Modul bereits produktiv über das Sound-System läuft, darf dieser Flow nicht durch EventBus, Overlay oder Dashboard ersetzt werden, außer es ist ausdrücklich Ziel des STEPs.
+
+Bei Arbeiten rund um Sounds immer prüfen:
+
+```text
+Wer startet den Sound?
+Wer verwaltet Queue/Priorität?
+Wer sendet Status?
+Wer zeigt Overlay/Visuals?
+Wer schreibt Logs/Datenbank?
+Welche Systeme hängen daran?
+```
+
+Nicht ungeprüft ändern:
+
+```text
+Queue-Prioritäten
+Bundle-/Lock-Logik
+TTS-Kopplung
+SoundAlerts
+Modul-Sounds
+Overlay-Visuals
+Discord-Ausgabe
+Lautstärke-/Output-Ziele
+```
+
+---
+
+## 17. Stream-Status / Live-Status
+
+Zentraler Stream-Live-Status:
+
+```text
+backend/modules/stream_status.js
+```
+
+Aktueller bekannter Stand:
+
+```text
+stream_status moduleVersion: 0.1.2
+```
+
+Wichtige Routen:
+
+```text
+GET      /api/stream-status/status
+GET      /api/stream-status/current
+GET/POST /api/stream-status/refresh
+GET      /api/stream-status/sessions
+```
+
+Aufgabe des zentralen Stream-Status:
+
+```text
+Ist der Stream live?
+Ist der Status bekannt und frisch?
+Welche Quelle wurde genutzt?
+Welche Streamsession gilt?
+Welcher Streamtag gilt?
+Gehört ein kurzer Neustart noch zum selben Streamtag?
+```
+
+Wichtige Statusfelder:
+
+```text
+live
+statusKnown
+stale
+source
+upstreamSource
+lastCheckedAt
+lastLiveAt
+streamSessionId
+streamDayId
+sessionStatus
+restartGraceUntil
+autoRefreshEnabled
+autoRefreshNextRunAt
+```
+
+Regel:
+Module sollen perspektivisch den zentralen Stream-Status nutzen, statt eigene alte Dateien wie `twitch_stream_raw.json` blind zu lesen.
+
+Twitch kann verzögert melden, dass ein Stream live ist. Deshalb ist `stream_status` für Session-/Streamtag-Logik zuständig, kann Twitch-Verzögerung aber nicht vollständig verhindern.
+
+---
+
+## 18. Clip-Shoutout / VSO
+
+Wichtige Datei:
+
+```text
+backend/modules/clip_shoutout.js
+```
+
+Aktueller bekannter Stand:
+
+```text
+clip_shoutout moduleVersion: 0.2.10
+```
+
+Testcommand:
+
+```text
+!vso
+```
+
+Produktiv-Umstellung auf `!so` nur ausdrücklich und später.
+
+Wichtige Routen:
+
+```text
+GET  /api/clip-shoutout/queue
+GET  /api/clip-shoutout/timeline
+GET  /api/clip-shoutout/stats
+GET  /api/clip-shoutout/stats/user
+POST /api/clip-shoutout/run
+```
+
+Aktuelle Funktionen:
+
+```text
+Display-Queue
+2-Minuten-Abstand zwischen Anzeigen
+Display-Cooldown startet nach Anzeige-Ende
+Official Twitch-Shoutout nach Display
+Official Live-Gate über stream_status
+Twitch-Cooldowns beachten
+Streamtag-Limit: Ziel standardmäßig 1x pro Streamtag
+Override per --force
+Timeline für Request/Display/Official
+Statistik: Zielkanäle, Auslöser, Wer -> Wen, Dropdowns
+```
+
+Aktueller Dashboard-Stand:
+
+```text
+Shoutout-Dashboard-Modul vorhanden.
+Statistiken vorhanden.
+UX muss als nächstes in Tabs/Unterbereiche aufgeteilt werden, weil aktuell zu viel auf einer Seite steht.
+```
+
+Geplanter Ausbau:
+
+```text
+Eingehende Shoutouts loggen.
+Im Dashboard anzeigen, wer Forrest woanders geshoutoutet hat.
+Statistik für eingehende Shoutouts ergänzen.
+```
+
+Eingehende Shoutouts sollen sauber getrennt werden:
+
+```text
+Ausgehend:
+wer hat wen bei uns geshoutoutet
+
+Eingehend:
+wer hat ForrestCGN geshoutoutet
+wann
+Viewerzahl
+Streamtag
+ggf. spätere Reaktion/Re-Shoutout
+```
+
+---
+
+## 19. Weitere wichtige bestehende Systeme
+
+Bestehende Systeme dürfen durch neue Änderungen nicht beschädigt werden:
+
+```text
+Alerts
+Communication Bus
+Sound-System
+TTS
+Modul-Sounds
+SoundAlerts
+Message-Rotator
+Tagebuch
+Todo
+Hug/Rehug
+OBS
+Discord
+Twitch
+Loyalty
+Deathcounter
+Challenges
+Clips
+Clip-Shoutout / VSO
+Dashboard
+Stream-Status
+VIP-System
+Media-System
+Admin Configs
+Bus-Diagnose
+```
+
+Vor Änderungen an einem System prüfen, welche anderen Systeme davon abhängig sind.
+
+---
+
+## 20. Wichtige bekannte API-/Dashboard-Routen
+
+Nur als Orientierung. Vor Änderungen echte Dateien prüfen.
+
+System / Status:
+
+```text
+GET /api/_status
+```
+
+Stream-Status:
+
+```text
+GET      /api/stream-status/status
+GET      /api/stream-status/current
+GET/POST /api/stream-status/refresh
+GET      /api/stream-status/sessions
+```
+
+Clip-Shoutout:
+
+```text
+GET  /api/clip-shoutout/queue
+GET  /api/clip-shoutout/timeline
+GET  /api/clip-shoutout/stats
+GET  /api/clip-shoutout/stats/user
+POST /api/clip-shoutout/run
+```
+
+Dashboard:
+
+```text
+/dashboard/
+```
+
+Sound-System:
+
+```text
+GET /api/sound/status
+```
+
+Alerts:
+
+```text
+GET /api/alerts/status
+```
+
+Bus-Diagnose:
+
+```text
+/public/tools/bus_diagnostics_dashboard.html
+```
+
+Wichtig:
+Routen nicht blind erweitern oder umbenennen. Vor Nutzung im jeweiligen Modul prüfen.
+
+---
+
+## 21. Config-/Text-/Message-Regeln
+
+Alles, was sinnvoll konfigurierbar ist, soll langfristig in Config, DB oder Dashboard editierbar sein.
+
+Ausgaben/Chattexte/Discordtexte/Overlaytexte sollen langfristig variantenfähig sein:
+
+```text
+mehrere Varianten pro Text-Key
+aktiv/inaktiv
+kategorisiert
+dashboardfähig
+zufällige Auswahl aktiver Varianten
+```
+
+Vor neuen Textsystemen prüfen:
+
+```text
+helper_messages.js
+helper_texts.js
+config/messages/
+module_texts Tabellen/Muster
+bestehende Dashboard-Texteditoren
+```
+
+Keine neuen parallelen Textordner erfinden, wenn vorhandene Muster passen.
+
+---
+
+## 22. Versionsregel
+
+In Dateien und Modulen sollen Versionsnummern verwendet werden, nicht STEP-Nummern als dauerhafte technische Kennzeichnung.
 
 Gut:
 
 ```text
-moduleVersion: "0.2.10"
+version: "1.2.0"
+moduleVersion: "1.2.0"
+docs: "Version 1.2.0"
 ```
 
-STEPs nur für ZIP-Namen, Doku, Übergaben und Projektverlauf nutzen.
+Nicht als dauerhafte Runtime-Kennung verwenden:
 
-## Aktueller Kontext
+```text
+step: 407
+STEP407
+feature_step
+```
+
+STEPs dürfen für Übergaben, Doku, ZIP-Namen und Projektverlauf genutzt werden.
+
+Wenn vorhandene ältere Dateien noch STEP-Felder enthalten:
+nicht ungeprüft alles umbauen.
+Bei neuen Änderungen bevorzugt Version erhöhen und STEP nur in project-state-Doku erwähnen.
+
+---
+
+## 23. Sicherheitsregeln
+
+Verbindlich:
+
+```text
+Keine Funktionalität entfernen.
+Keine Secrets anzeigen.
+Keine Secrets committen.
+Keine .env committen.
+Keine Tokens committen.
+Keine Datenbanken committen.
+Keine Backups committen.
+Keine temporären Dateien committen.
+Keine ZIPs/7z ins Repo committen.
+```
+
+GitHub/dev und Live-System dürfen nicht unbewusst auseinanderlaufen.
+
+Wenn Live aktueller sein könnte als GitHub/dev:
+nach echten Live-Dateien oder PowerShell-Ausgaben fragen.
+
+---
+
+## 24. Vor Beginn eines neuen Moduls oder Fixes prüfen
+
+Vor dem Bauen immer klären:
+
+```text
+1. Gibt es schon ein ähnliches Modul?
+2. Gibt es vorhandene Helper?
+3. Gibt es bestehende Configs?
+4. Gibt es bestehende Settings-/DB-Muster?
+5. Gibt es Textvarianten oder Message-Helper?
+6. Gibt es eine Dashboard-Struktur?
+7. Gibt es bereits Routen?
+8. Welche Datei ist wirklich betroffen?
+9. Muss eine API erweitert werden?
+10. Muss Doku aktualisiert werden?
+11. Welche minimalen Tests sind nötig?
+```
+
+Danach erst kleinen STEP vorschlagen oder umsetzen, abhängig vom Auftrag.
+
+---
+
+## 25. Aktueller Arbeitsmodus
+
+Immer kleine, nachvollziehbare Schritte.
+
+Kein großer Umbau ohne Planung.
+
+Keine bestehende Funktion entfernen.
+
+Bestehende produktive Flows erst beobachten, dann erweitern, dann testen, dann dokumentieren.
+
+Wenn etwas unklar ist:
+
+```text
+Nicht raten.
+Nicht einfach bauen.
+Kurz sagen, was fehlt.
+Konkrete Datei oder konkrete Info anfordern.
+```
+
+---
+
+## 26. Aktueller bekannter Kontext nach STEP471/470
 
 Zuletzt relevant:
 
-- `stream_status` steht auf Runtime-Version `0.1.2` mit API-First und Auto-Refresh.
-- `clip_shoutout` steht auf Runtime-Version `0.2.10` mit Statistik-Routen.
-- Shoutout-Dashboard ist vorhanden, aber UX soll als nächstes in Tabs/Unterbereiche aufgeteilt werden.
-- Gewünschter nächster Funktionsausbau später: eingehende Twitch-Shoutouts loggen und in der Statistik anzeigen.
+```text
+STEP468: stream_status 0.1.2 mit API-First und Auto-Refresh bestätigt.
+STEP469: Shoutout-Dashboard-Modul ergänzt.
+STEP470: clip_shoutout 0.2.10 mit Statistik-Routen ergänzt.
+STEP471: Doku-/Regelwerk aktualisiert.
+```
+
+Shoutout-Statistik bestätigt:
+
+```text
+/api/clip-shoutout/stats liefert targetStats, requesterStats, pairStats, targetOptions, requesterOptions und totals.
+```
+
+Offen / sinnvoll als nächstes:
+
+```text
+STEP473_SHOUTOUT_DASHBOARD_TABS
+```
+
+Ziel:
+Shoutout-Dashboard in Tabs/Unterbereiche aufteilen:
+
+```text
+Übersicht
+Queues
+Statistik
+Timeline
+Settings/Test
+```
+
+Danach möglich:
+
+```text
+STEP474_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
+```
+
+Ziel:
+Eingehende Twitch-Shoutouts loggen und im Dashboard/statistisch anzeigen.

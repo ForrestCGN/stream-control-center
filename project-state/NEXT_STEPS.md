@@ -1,43 +1,44 @@
 # NEXT_STEPS
 
-## Nach STEP471
+## Nach STEP472
 
 1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Da keine JavaScript-Dateien geändert wurden, ist kein `node --check` nötig.
-3. `stepdone.cmd` ausführen:
+2. Da nur Markdown-Dateien geändert wurden: kein `node --check` nötig.
+3. STEP abschließen:
 
 ```bat
-cd D:\Git\stream-control-center
-.\stepdone.cmd "STEP471 Docs Rules and General Prompt"
+.\stepdone.cmd "STEP472 General Project Prompt Full Context"
 ```
 
-## Nächster fachlicher Schritt
-
-Empfohlener nächster STEP:
+## Nächster sinnvoller technischer Schritt
 
 ```text
-STEP472_SHOUTOUT_DASHBOARD_TABS
+STEP473_SHOUTOUT_DASHBOARD_TABS
 ```
 
 Ziel:
 
-- Shoutout-Dashboard in Tabs/Unterbereiche aufteilen.
-- Nicht mehr alles auf einer Seite anzeigen.
-- Vorgeschlagene Tabs:
-  - Übersicht
-  - Queues
-  - Statistik
-  - Timeline
-  - Test/Settings
+- Shoutout-Dashboard übersichtlicher machen.
+- Inhalte in Tabs/Unterbereiche aufteilen.
+- Keine Backend-Logik ändern, außer sie ist für die Anzeige zwingend nötig.
 
-Bewusst späterer eigener STEP:
+Geplante Tabs:
 
 ```text
-SHOUTOUT_INBOUND_EVENTSUB_LOGGING
+Übersicht
+Queues
+Statistik
+Timeline
+Settings/Test
 ```
 
-Ziel später:
+## Danach möglich
 
-- eingehende Twitch-Shoutouts loggen
-- im Dashboard separat und statistisch anzeigen
-- ausgehende und eingehende Shoutouts getrennt auswerten
+```text
+STEP474_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
+```
+
+Ziel:
+
+- Eingehende Twitch-Shoutouts loggen.
+- Statistik im Dashboard ergänzen: wer hat ForrestCGN woanders geshoutoutet.

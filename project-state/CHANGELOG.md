@@ -1,14 +1,15 @@
 # CHANGELOG
 
-## STEP471_DOCS_RULES_AND_GENERAL_PROMPT
+## STEP472_GENERAL_PROJECT_PROMPT_FULL_CONTEXT
 
-- Zentrale Arbeitsregeln in `docs/current/PROJECT_WORKING_RULES.md` ergänzt.
-- Allgemeiner Projektprompt in `project-state/GENERAL_PROJECT_PROMPT.md` aktualisiert.
-- Neue Shell-/PowerShell-Ausgabe-Regel ergänzt:
-  - nur notwendige Befehle ausgeben
-  - gezielte Feldauswahl bevorzugen
-  - große JSON-Dumps nur bei echter Detailanalyse
-  - nach ZIP `node --check` nur für geänderte JS-Dateien nennen
-- Aktuellen Stand von `stream_status`, `clip_shoutout` und Shoutout-Dashboard dokumentiert.
-- Keine Runtime-Dateien geändert.
-- Keine Backend-, Dashboard- oder Datenbanklogik geändert.
+- `project-state/GENERAL_PROJECT_PROMPT.md` vollständig erweitert.
+- Wichtige Arbeitsregeln, Pfade, Repo-Dateien, Helper, Routen und aktuelle Modulstände ergänzt.
+- Dashboard-Regel konkretisiert: große Module in Tabs/Unterbereiche aufteilen, nicht alles auf eine Seite packen.
+- Shell-/PowerShell-Regel konkretisiert: nur notwendige, kopierfreundliche Ausgaben; gezielte Feldabfragen bevorzugen.
+- Shoutout-/Stream-Status-Kontext aufgenommen:
+  - `stream_status` `0.1.2`
+  - `clip_shoutout` `0.2.10`
+  - Shoutout-Statistik vorhanden
+  - Shoutout-Dashboard braucht als nächstes Tabs
+  - eingehende Shoutouts sind als späterer Ausbau notiert.
+- Keine Backend-, Dashboard-, Overlay- oder Datenbanklogik geändert.
