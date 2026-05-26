@@ -1,5 +1,9 @@
-# Current System Status — Commands Backend v0.1.5
+# Current System Status
 
-Commands Backend wurde auf `0.1.5 / safe-edit-param-fix` gesetzt.
+## Commands Dashboard
+- UI Version: 0.1.9
+- UI Build: preserve-modal-draft-state
+- Status: Modal-Editor erhaelt ungespeicherte Eingaben bei MediaPicker-Auswahl.
 
-Fix: Editieren bestehender Commands erzeugt keinen `Unknown named parameter 'createdAt'` mehr.
+## Backend Commands
+- Backend bleibt beim zuletzt installierten Stand; diese Lieferung enthaelt keine Backend-Aenderung.

@@ -1,4 +1,5 @@
 # TODO
 
-- UI-Fehlermeldung für `command_trigger_already_exists` später freundlicher anzeigen.
-- Danach Kanalpunkte mit gleichem Safe-Edit-/Modal-Pattern umbauen.
+- Commands Modal weiter anhand Live-Feedback glätten.
+- Zentrale Textverwaltung separat planen/umsetzen.
+- Kanalpunkte-Editor analog zum stabilen Commands-Editor umbauen.

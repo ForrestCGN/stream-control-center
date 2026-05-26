@@ -1,5 +1,7 @@
 # Next Steps
 
-1. Deployen und Node-Server neu starten.
-2. `!vso` bearbeiten: Trigger zu `so`, Alias `vso`, speichern.
-3. Wenn `!so` bereits existiert, ist `command_trigger_already_exists` korrekt und muss im UI freundlich erklärt werden.
+1. Browser hart neu laden.
+2. Neuer Command -> Trigger eingeben -> Sound abspielen -> Audio waehlen.
+3. Pruefen, dass der Trigger erhalten bleibt.
+4. Speichern testen.
+5. Danach gleiches UI-Pattern auf Kanalpunkte uebertragen.

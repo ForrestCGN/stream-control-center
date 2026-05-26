@@ -1,3 +1,4 @@
-# Current Status
+# Current Status — Commands Dashboard v0.1.9
 
-Commands Backend v0.1.5 behebt den SQLite-Parameterfehler beim Editieren bestehender Commands.
+Commands Dashboard UI steht auf v0.1.9 / preserve-modal-draft-state.
+Der Modal-Editor erhaelt ungespeicherte Formularwerte, wenn im Sound-/Video-Bereich ein Medium ueber den MediaPicker ausgewaehlt wird.

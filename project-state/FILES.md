@@ -1,6 +1,6 @@
 # Files
 
-- `backend/modules/commands.js` — Backend v0.1.5 safe-edit-param-fix
-- `docs/modules/commands-deep-dive.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `project-state/*`
+- htdocs/dashboard/modules/commands.js — Commands Dashboard UI v0.1.9, Modal-Draft-State-Fix.
+- htdocs/dashboard/modules/commands.css — unveraendert aus v0.1.8.
+- docs/modules/commands-deep-dive.md — aktualisierte Kurzdoku.
+- docs/current/CURRENT_SYSTEM_STATUS.md — aktualisierter Status.

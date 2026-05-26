@@ -1,8 +1,8 @@
 window.CommandsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.1.8';
-  const UI_BUILD = 'separated-action-chat-media-picker';
+  const UI_VERSION = '0.1.9';
+  const UI_BUILD = 'preserve-modal-draft-state';
 
   const api = {
     status: '/api/commands/status',
@@ -270,6 +270,106 @@ window.CommandsModule = (function(){
 
   function closeModal() { state.modal = null; state.confirmDelete = null; render(); }
 
+  function syncModalDraftFromDom() {
+    if (!state.modal || !state.modal.data || !root) return false;
+    const data = state.modal.data;
+    const read = name => root.querySelector(`[data-cmd-modal-field="${name}"]`);
+    const readValue = (name, fallback = '') => {
+      const el = read(name);
+      return el ? String(el.value ?? '') : fallback;
+    };
+    const readChecked = (name, fallback = false) => {
+      const el = read(name);
+      return el ? el.checked !== false : fallback;
+    };
+    try {
+      const triggerField = read('trigger');
+      if (triggerField) data.trigger = cleanTrigger(triggerField.value || '');
+      const aliasesField = read('aliases');
+      if (aliasesField) data.aliases = String(aliasesField.value || '').split(/[\s,;]+/).map(cleanTrigger).filter(Boolean);
+      const permissionField = read('permissionLevel');
+      if (permissionField) data.permissionLevel = String(permissionField.value || 'everyone').trim() || 'everyone';
+      const globalField = read('cooldownGlobalMs');
+      if (globalField) data.cooldownGlobalMs = Math.max(0, Number(globalField.value || 0));
+      const userField = read('cooldownUserMs');
+      if (userField) data.cooldownUserMs = Math.max(0, Number(userField.value || 0));
+      const enabledField = read('enabled');
+      if (enabledField) data.enabled = enabledField.checked !== false;
+
+      data.moduleKey = readValue('moduleKey', data.moduleKey || '').trim();
+      data.actionKey = readValue('actionKey', data.actionKey || '').trim();
+      data.targetMethod = readValue('targetMethod', data.targetMethod || 'POST').trim().toUpperCase() || 'POST';
+      data.targetUrl = readValue('targetUrl', data.targetUrl || '').trim();
+      data.responseMode = readValue('responseMode', data.responseMode || 'module').trim() || 'module';
+
+      let cfg = { ...(data.config || {}) };
+      const configField = read('configJson');
+      if (configField) {
+        const raw = String(configField.value || '').trim();
+        if (raw) {
+          try { cfg = { ...JSON.parse(raw), ...cfg }; }
+          catch (_) { /* Entwurf nicht verwerfen, wenn JSON gerade unvollständig ist. */ }
+        }
+      }
+
+      const selected = readValue('friendlyAction', friendlyActionId(data));
+      const actionForConfig = selected === 'custom_action' || selected === 'text_plus_action' || selected === 'advanced' ? 'module_command' : selected;
+      if (actionForConfig) cfg.actionType = actionForConfig;
+
+      const chatField = read('chatMessage');
+      if (chatField) cfg.message = String(chatField.value || '');
+      const chatPrefer = read('chatPrefer');
+      if (chatPrefer) cfg.prefer = String(chatPrefer.value || 'bot');
+
+      const textMode = read('textOutputMode');
+      const textText = read('textOutputText');
+      const textKey = read('textOutputKey');
+      const textSelection = read('textOutputSelection');
+      if (textMode || textText || textKey || textSelection) {
+        const mode = String(textMode?.value || cfg.textOutput?.mode || 'none');
+        cfg.textOutput = {
+          ...(cfg.textOutput || {}),
+          enabled: mode !== 'none',
+          mode,
+          text: String(textText?.value ?? cfg.textOutput?.text ?? ''),
+          textKey: String(textKey?.value ?? cfg.textOutput?.textKey ?? ''),
+          selection: String(textSelection?.value || cfg.textOutput?.selection || 'random'),
+          source: 'commands_dashboard'
+        };
+      }
+
+      const soundMedia = read('soundMediaId');
+      if (soundMedia) {
+        cfg.mediaId = String(soundMedia.value || '').trim();
+        cfg.volume = Number(readValue('soundVolume', cfg.volume ?? 80) || 80);
+        cfg.target = readValue('soundTarget', cfg.target || 'stream').trim() || 'stream';
+        cfg.queueMode = readValue('soundQueueMode', cfg.queueMode || 'queue').trim() || 'queue';
+        cfg.queue = cfg.queueMode !== 'instant';
+        cfg.actionType = 'sound_play';
+      }
+
+      const videoMedia = read('videoMediaId');
+      if (videoMedia) {
+        cfg.mediaId = String(videoMedia.value || '').trim();
+        cfg.mediaType = 'video';
+        cfg.type = 'video';
+        cfg.volume = Number(readValue('videoVolume', cfg.volume ?? 80) || 80);
+        cfg.overlay = readValue('videoOverlay', cfg.overlay || 'command_video_overlay').trim() || 'command_video_overlay';
+        cfg.outputTarget = readValue('videoTarget', cfg.outputTarget || 'overlay').trim() || 'overlay';
+        cfg.queueMode = readValue('videoQueueMode', cfg.queueMode || 'queue').trim() || 'queue';
+        cfg.queue = cfg.queueMode !== 'instant';
+        cfg.withSound = readChecked('videoWithSound', cfg.withSound !== false);
+        cfg.actionType = 'video_play';
+      }
+
+      data.config = cfg;
+      state.modal.data = data;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function catalogActionById(id) { return catalogActions().find(a => a.id === id) || null; }
 
   function applyCatalogDefaultsInModal(actionId) {
@@ -447,6 +547,7 @@ window.CommandsModule = (function(){
   }
 
   async function saveModalCommand() {
+    syncModalDraftFromDom();
     const payload = readModalPayload();
     const result = await window.CGN.api(api.upsert, { method: 'POST', body: JSON.stringify(payload) });
     const cmd = result.command || result.data?.command || payload;
@@ -592,6 +693,7 @@ window.CommandsModule = (function(){
   }
 
   function applyModalMediaAsset(type, asset) {
+    syncModalDraftFromDom();
     if (!state.modal || !asset) return;
     const mediaId = String(asset.id || asset.mediaId || '').trim();
     if (!mediaId) return;
@@ -622,6 +724,7 @@ window.CommandsModule = (function(){
   }
 
   function openModalMediaPicker(type) {
+    syncModalDraftFromDom();
     if (!window.MediaPicker?.open) {
       state.error = 'MediaPicker ist nicht geladen.';
       render();
@@ -764,6 +867,7 @@ window.CommandsModule = (function(){
     root?.querySelector('[data-confirm-delete-yes]')?.addEventListener('click', () => deleteConfirmed().catch(showError));
     root?.querySelector('[data-cmd-modal-field="friendlyAction"]')?.addEventListener('change', ev => {
       if (!state.modal) return;
+      syncModalDraftFromDom();
       const selected = ev.target.value || 'custom_action';
       const actionTypeForConfig = selected === 'custom_action' || selected === 'text_plus_action' || selected === 'advanced' ? 'module_command' : selected;
       state.modal.data.config = { ...(state.modal.data.config || {}), actionType: actionTypeForConfig };
@@ -777,6 +881,7 @@ window.CommandsModule = (function(){
     });
     root?.querySelector('[data-cmd-modal-field="catalogAction"]')?.addEventListener('change', ev => {
       if (!state.modal) return;
+      syncModalDraftFromDom();
       const value = ev.target.value || '__stored__';
       if (value === '__text_only__') {
         state.modal.data.config = { ...(state.modal.data.config || {}), actionType: 'chat_message', message: state.modal.data.config?.message || '' };
