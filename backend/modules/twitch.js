@@ -1757,6 +1757,42 @@ module.exports.init = function init(ctx) {
   });
 
 
+
+  function isTwitchShoutoutEventType(subscriptionType) {
+    const type = String(subscriptionType || '').trim();
+    return type === 'channel.shoutout.receive' || type === 'channel.shoutout.create';
+  }
+
+  async function forwardTwitchShoutoutEventToClipShoutout(subscriptionType, event = {}, meta = {}, subscription = {}) {
+    if (!isTwitchShoutoutEventType(subscriptionType)) {
+      return { ok: true, skipped: true, reason: 'not_shoutout_event' };
+    }
+
+    try {
+      const clipShoutout = require('./clip_shoutout');
+      if (!clipShoutout || typeof clipShoutout.recordTwitchShoutoutEvent !== 'function') {
+        rememberEventSubState({ action: 'shoutout_event_record_skipped', type: subscriptionType, reason: 'clip_shoutout_recorder_unavailable' });
+        return { ok: true, skipped: true, reason: 'clip_shoutout_recorder_unavailable' };
+      }
+
+      const result = await Promise.resolve(clipShoutout.recordTwitchShoutoutEvent(subscriptionType, event, meta, subscription));
+      rememberEventSubState({
+        action: result && result.duplicate ? 'shoutout_event_duplicate' : 'shoutout_event_recorded',
+        type: subscriptionType,
+        direction: subscriptionType === 'channel.shoutout.receive' ? 'incoming' : 'outgoing',
+        ok: Boolean(result && result.ok !== false),
+        id: result && result.id ? result.id : 0,
+        error: result && result.error ? result.error : ''
+      });
+      return result || { ok: true };
+    } catch (e) {
+      const error = e && e.message ? e.message : String(e);
+      rememberEventSubState({ action: 'shoutout_event_record_failed', type: subscriptionType, error });
+      console.warn('[eventsub-shoutout] record failed:', error);
+      return { ok: false, error };
+    }
+  }
+
   // --------------------- EventSub WebSocket (erweitert für wichtige Stream-/Community-Events) ---------------------
   let ws = null;
   let reconnectCandidateWs = null;
@@ -2784,6 +2820,13 @@ function buildFakeTwitchAlertEvent(kind, query) {
         rememberEventSubState({ action: 'notification', type: sub.type || '', subscriptionId: sub.id || null });
 
         cacheGenericEvent(sub, event);
+
+        try {
+          await forwardTwitchShoutoutEventToClipShoutout(sub.type, event, meta, sub);
+        } catch (e) {
+          rememberEventSubState({ action: 'shoutout_event_record_failed', type: sub.type || '', error: e?.message || String(e) });
+          console.warn('[eventsub-shoutout] handler failed:', e?.message || e);
+        }
 
         try {
           await syncDeathcounterGameFromChannelUpdate(sub.type, event, meta, sub);

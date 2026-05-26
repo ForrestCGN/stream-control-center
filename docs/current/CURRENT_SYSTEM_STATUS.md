@@ -1,66 +1,27 @@
 # CURRENT_SYSTEM_STATUS
 
+Stand: 2026-05-26 / STEP484_SHOUTOUT_INBOUND_EVENTSUB_INTEGRATION
+
 ## Aktueller Arbeitsstand
 
-Aktuell relevant nach STEP483:
-
-- STEP483 hat das Shoutout-Dashboard im Control-Center in Tabs/Unterbereiche aufgeteilt.
-- Geändert wurden nur Dashboard-Dateien und Doku-/Projektstand-Dateien.
-- Es wurden keine Backend-, API-, Config-, Datenbank- oder Overlay-Dateien geändert.
-- `stream_status` bleibt als bekannter Stand bei Runtime-Version `0.1.2`.
-- `clip_shoutout` bleibt als bekannter Stand bei Runtime-Version `0.2.10`.
+- `stream_status` bleibt bekannter Stand bei Runtime-Version `0.1.2`.
+- `clip_shoutout` steht jetzt bei Runtime-Version `0.2.11`.
+- Shoutout-Dashboard ist in Tabs aufgeteilt.
+- Eingehende/erstellte Twitch-Shoutout-EventSub-Events werden im bestehenden Shoutout-System gespeichert.
 
 ## Zentrale Projektregeln
 
-Die verbindliche Arbeitsgrundlage steht in:
-
-```text
-project-state/GENERAL_PROJECT_PROMPT.md
-docs/current/PROJECT_WORKING_RULES.md
-```
-
-Wichtige Regeln:
+Verbindlich bleiben:
 
 - Deutsch antworten.
 - Keine Funktionalität entfernen.
-- Keine Patches, Git-Patches, PowerShell-Regex- oder Inline-Patch-Scripte.
+- Keine Patches, Git-Patches, PowerShell-Regex- oder Inline-Patch-Scripte als Lieferung.
 - Änderungen nur als vollständige Ersatzdateien im ZIP.
 - ZIPs mit echten Zielpfaden ab Repo-Root.
 - ZIPs direkt nach `D:\Git\stream-control-center` entpackbar.
 - Produktive SQLite-Datenbank niemals ersetzen/überschreiben.
 - Keine Runtime-Daten, Datenbanken, Backups, Secrets oder temporäre Dateien ins Repo.
-- Nur notwendige Shell-/PowerShell-Ausgaben liefern.
-- Dashboard-Module nicht überladen; große Module in Tabs/Unterbereiche aufteilen.
-
-## Stream Status Core
-
-Modul:
-
-```text
-backend/modules/stream_status.js
-```
-
-Runtime-Version:
-
-```text
-0.1.2
-```
-
-Routen:
-
-```text
-GET      /api/stream-status/status
-GET      /api/stream-status/current
-GET/POST /api/stream-status/refresh
-GET      /api/stream-status/sessions
-```
-
-Status:
-
-- Twitch-API ist Primärquelle.
-- Legacy-Dateien bleiben Fallback.
-- Auto-Refresh läuft standardmäßig alle 60 Sekunden, bei live/grace alle 30 Sekunden.
-- Status wird in RAM und SQLite gespeichert.
+- Vorhandene Module erweitern, wenn die Zuständigkeit passt; keine unnötigen Parallelmodule.
 
 ## Clip-Shoutout / VSO
 
@@ -73,7 +34,7 @@ backend/modules/clip_shoutout.js
 Runtime-Version:
 
 ```text
-0.2.10
+0.2.11
 ```
 
 Wichtige Routen:
@@ -83,54 +44,44 @@ GET  /api/clip-shoutout/status
 GET  /api/clip-shoutout/queue
 GET  /api/clip-shoutout/timeline
 GET  /api/clip-shoutout/stats
-GET  /api/clip-shoutout/stats/user
+GET  /api/clip-shoutout/inbound
+GET  /api/clip-shoutout/inbound/stats
 POST /api/clip-shoutout/run
+POST /api/clip-shoutout/inbound/debug
 ```
 
-Aktueller Stand:
+## STEP484 Integration
 
-- Testcommand bleibt `!vso`.
-- Keine produktive Umstellung auf `!so`.
-- Display-Queue aktiv.
-- Official Twitch-Shoutout nutzt `stream_status` als Live-Gate.
-- Streamtag-Limit aktiv.
-- Override per `--force`.
-- Statistik vorhanden.
-- Dashboard-Modul ist ab STEP483 in Tabs aufgeteilt.
-
-## Shoutout-Dashboard ab STEP483
-
-Dashboard-Dateien:
+`backend/modules/twitch.js` bleibt zuständig für Twitch/EventSub. Es empfängt weiterhin alle EventSub-Notifications und leitet nur die Shoutout-Events an `clip_shoutout.js` weiter:
 
 ```text
-htdocs/dashboard/modules/shoutout.js
-htdocs/dashboard/modules/shoutout.css
+channel.shoutout.receive
+channel.shoutout.create
 ```
 
-Tabs:
+`clip_shoutout.js` speichert diese Daten in:
 
 ```text
-Übersicht
-Queues
-Statistik
-Timeline
-Settings/Test
+clip_shoutout_inbound_events
 ```
 
-Wichtig:
+Dashboard-Tab:
 
-- Retry-/Remove-/Run-Aktionen bleiben erhalten.
-- Settings/Test zeigt Settings kompakt an, speichert aber keine Settings.
-- Backend wurde nicht geändert.
+```text
+Eingehend
+```
+
+## Tests
+
+```bat
+cd D:\Git\stream-control-center
+node --check backend\modules\twitch.js
+node --check backend\modules\clip_shoutout.js
+node --check htdocs\dashboard\modules\shoutout.js
+```
 
 ## Nächster sinnvoller Fach-STEP
 
 ```text
-STEP484_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
+STEP485_SHOUTOUT_INBOUND_UI_POLISH_OR_SO_PRODUCTION_CHECK
 ```
-
-Ziel:
-
-- Eingehende Twitch-Shoutouts separat loggen.
-- Ausgehende und eingehende Shoutouts sauber trennen.
-- Dashboard-/Statistik-Ausbau für eingehende Shoutouts vorbereiten.

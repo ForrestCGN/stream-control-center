@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+const crypto = require("crypto");
 const core = require("./helpers/helper_core");
 const configHelper = require("./helpers/helper_config");
 const database = require("../core/database");
@@ -15,7 +16,7 @@ let streamStatus = null;
 try { streamStatus = require("./stream_status"); } catch (_) { streamStatus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.10";
+const MODULE_VERSION = "0.2.11";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -65,6 +66,11 @@ const DEFAULT_CONFIG = {
     avatarLookupUrl: "http://127.0.0.1:8080/userinfo",
     gqlClientId: "kimne78kx3ncx6brgo4mv6wki5h1ko",
     eventBusEnabled: true,
+    inboundShoutout: {
+      enabled: true,
+      storeRawEvent: true,
+      recentLimit: 80
+    },
     displayQueue: {
       enabled: true,
       displayCooldownMs: 120000,
@@ -141,6 +147,9 @@ const state = {
     officialQueued: 0,
     officialSent: 0,
     officialFailed: 0,
+    inboundReceived: 0,
+    outboundCreated: 0,
+    inboundDuplicates: 0,
     busEmitted: 0,
     busErrors: 0
   },
@@ -160,6 +169,14 @@ const state = {
     lastSentAt: "",
     lastError: "",
     lastBusEvent: null
+  },
+  inboundShoutout: {
+    lastEventAt: "",
+    lastEventType: "",
+    lastDirection: "",
+    lastFromLogin: "",
+    lastToLogin: "",
+    lastError: ""
   }
 };
 
@@ -1437,6 +1454,318 @@ function buildShoutoutStats(options = {}) {
     requesterOptions,
     selectedTarget,
     selectedRequester
+  };
+}
+
+
+function inboundShoutoutConfig(cfg) {
+  return mergePlain(DEFAULT_CONFIG.clipShoutout.inboundShoutout, (cfg && cfg.inboundShoutout) || {});
+}
+
+function ensureInboundShoutoutSchema() {
+  database.ensureReady();
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS clip_shoutout_inbound_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_uid TEXT NOT NULL UNIQUE,
+      direction TEXT NOT NULL DEFAULT '',
+      event_type TEXT NOT NULL DEFAULT '',
+      subscription_id TEXT NOT NULL DEFAULT '',
+      message_id TEXT NOT NULL DEFAULT '',
+      message_timestamp TEXT NOT NULL DEFAULT '',
+      broadcaster_user_id TEXT NOT NULL DEFAULT '',
+      broadcaster_login TEXT NOT NULL DEFAULT '',
+      broadcaster_display TEXT NOT NULL DEFAULT '',
+      from_broadcaster_user_id TEXT NOT NULL DEFAULT '',
+      from_broadcaster_login TEXT NOT NULL DEFAULT '',
+      from_broadcaster_display TEXT NOT NULL DEFAULT '',
+      to_broadcaster_user_id TEXT NOT NULL DEFAULT '',
+      to_broadcaster_login TEXT NOT NULL DEFAULT '',
+      to_broadcaster_display TEXT NOT NULL DEFAULT '',
+      moderator_user_id TEXT NOT NULL DEFAULT '',
+      moderator_login TEXT NOT NULL DEFAULT '',
+      moderator_display TEXT NOT NULL DEFAULT '',
+      viewer_count INTEGER NOT NULL DEFAULT 0,
+      started_at TEXT NOT NULL DEFAULT '',
+      cooldown_ends_at TEXT NOT NULL DEFAULT '',
+      target_cooldown_ends_at TEXT NOT NULL DEFAULT '',
+      received_at TEXT NOT NULL,
+      raw_json TEXT NOT NULL DEFAULT '{}',
+      meta_json TEXT NOT NULL DEFAULT '{}'
+    );
+    CREATE INDEX IF NOT EXISTS idx_clip_so_inbound_direction_received ON clip_shoutout_inbound_events(direction, received_at);
+    CREATE INDEX IF NOT EXISTS idx_clip_so_inbound_from_login ON clip_shoutout_inbound_events(from_broadcaster_login, received_at);
+    CREATE INDEX IF NOT EXISTS idx_clip_so_inbound_to_login ON clip_shoutout_inbound_events(to_broadcaster_login, received_at);
+  `);
+}
+
+function isShoutoutEventType(value) {
+  const type = String(value || '').trim();
+  return type === 'channel.shoutout.receive' || type === 'channel.shoutout.create';
+}
+
+function makeInboundEventUid(eventType, event = {}, meta = {}, subscription = {}) {
+  const messageId = String(meta.message_id || meta.messageId || '').trim();
+  if (messageId) return `eventsub:${messageId}`;
+  const subId = String(subscription.id || '').trim();
+  const basis = JSON.stringify({ eventType, subId, event });
+  return `eventsub:${crypto.createHash('sha256').update(basis).digest('hex').slice(0, 40)}`;
+}
+
+function normalizeTwitchShoutoutEvent(eventType, event = {}, meta = {}, subscription = {}) {
+  const type = String(eventType || '').trim();
+  if (!isShoutoutEventType(type)) return null;
+
+  const isReceive = type === 'channel.shoutout.receive';
+  const direction = isReceive ? 'incoming' : 'outgoing';
+  const broadcasterLogin = cleanLogin(event.broadcaster_user_login || '');
+  const broadcasterDisplay = cleanDisplay(event.broadcaster_user_name || broadcasterLogin, broadcasterLogin);
+  const fromLogin = cleanLogin(isReceive ? event.from_broadcaster_user_login : event.broadcaster_user_login);
+  const fromDisplay = cleanDisplay(isReceive ? event.from_broadcaster_user_name : event.broadcaster_user_name, fromLogin);
+  const toLogin = cleanLogin(isReceive ? event.broadcaster_user_login : event.to_broadcaster_user_login);
+  const toDisplay = cleanDisplay(isReceive ? event.broadcaster_user_name : event.to_broadcaster_user_name, toLogin);
+
+  return {
+    eventUid: makeInboundEventUid(type, event, meta, subscription),
+    direction,
+    eventType: type,
+    subscriptionId: String(subscription.id || ''),
+    messageId: String(meta.message_id || meta.messageId || ''),
+    messageTimestamp: String(meta.message_timestamp || meta.messageTimestamp || ''),
+    broadcasterUserId: String(event.broadcaster_user_id || ''),
+    broadcasterLogin,
+    broadcasterDisplay,
+    fromBroadcasterUserId: String(isReceive ? (event.from_broadcaster_user_id || '') : (event.broadcaster_user_id || '')),
+    fromBroadcasterLogin: fromLogin,
+    fromBroadcasterDisplay: fromDisplay,
+    toBroadcasterUserId: String(isReceive ? (event.broadcaster_user_id || '') : (event.to_broadcaster_user_id || '')),
+    toBroadcasterLogin: toLogin,
+    toBroadcasterDisplay: toDisplay,
+    moderatorUserId: String(event.moderator_user_id || ''),
+    moderatorLogin: cleanLogin(event.moderator_user_login || ''),
+    moderatorDisplay: cleanDisplay(event.moderator_user_name || event.moderator_user_login || ''),
+    viewerCount: Number(event.viewer_count || event.viewers || 0) || 0,
+    startedAt: String(event.started_at || ''),
+    cooldownEndsAt: String(event.cooldown_ends_at || ''),
+    targetCooldownEndsAt: String(event.target_cooldown_ends_at || ''),
+    receivedAt: nowIso(),
+    rawEvent: event || {},
+    meta: { meta: meta || {}, subscription: subscription || {} }
+  };
+}
+
+function insertInboundShoutoutRecord(record, cfg = null) {
+  ensureInboundShoutoutSchema();
+  const currentCfg = cfg || shoutoutConfig();
+  const icfg = inboundShoutoutConfig(currentCfg);
+  if (icfg.enabled === false) return { ok: true, skipped: true, reason: 'inbound_shoutout_disabled' };
+
+  const params = {
+    eventUid: record.eventUid,
+    direction: record.direction,
+    eventType: record.eventType,
+    subscriptionId: record.subscriptionId,
+    messageId: record.messageId,
+    messageTimestamp: record.messageTimestamp,
+    broadcasterUserId: record.broadcasterUserId,
+    broadcasterLogin: record.broadcasterLogin,
+    broadcasterDisplay: record.broadcasterDisplay,
+    fromBroadcasterUserId: record.fromBroadcasterUserId,
+    fromBroadcasterLogin: record.fromBroadcasterLogin,
+    fromBroadcasterDisplay: record.fromBroadcasterDisplay,
+    toBroadcasterUserId: record.toBroadcasterUserId,
+    toBroadcasterLogin: record.toBroadcasterLogin,
+    toBroadcasterDisplay: record.toBroadcasterDisplay,
+    moderatorUserId: record.moderatorUserId,
+    moderatorLogin: record.moderatorLogin,
+    moderatorDisplay: record.moderatorDisplay,
+    viewerCount: Number(record.viewerCount || 0),
+    startedAt: record.startedAt,
+    cooldownEndsAt: record.cooldownEndsAt,
+    targetCooldownEndsAt: record.targetCooldownEndsAt,
+    receivedAt: record.receivedAt || nowIso(),
+    rawJson: icfg.storeRawEvent === false ? '{}' : JSON.stringify(record.rawEvent || {}),
+    metaJson: JSON.stringify(record.meta || {})
+  };
+
+  const existing = database.get(`SELECT id FROM clip_shoutout_inbound_events WHERE event_uid=:eventUid`, { eventUid: params.eventUid });
+  if (existing) {
+    state.stats.inboundDuplicates += 1;
+    return { ok: true, duplicate: true, id: existing.id, record };
+  }
+
+  const result = database.run(`
+    INSERT INTO clip_shoutout_inbound_events (
+      event_uid,direction,event_type,subscription_id,message_id,message_timestamp,
+      broadcaster_user_id,broadcaster_login,broadcaster_display,
+      from_broadcaster_user_id,from_broadcaster_login,from_broadcaster_display,
+      to_broadcaster_user_id,to_broadcaster_login,to_broadcaster_display,
+      moderator_user_id,moderator_login,moderator_display,
+      viewer_count,started_at,cooldown_ends_at,target_cooldown_ends_at,
+      received_at,raw_json,meta_json
+    ) VALUES (
+      :eventUid,:direction,:eventType,:subscriptionId,:messageId,:messageTimestamp,
+      :broadcasterUserId,:broadcasterLogin,:broadcasterDisplay,
+      :fromBroadcasterUserId,:fromBroadcasterLogin,:fromBroadcasterDisplay,
+      :toBroadcasterUserId,:toBroadcasterLogin,:toBroadcasterDisplay,
+      :moderatorUserId,:moderatorLogin,:moderatorDisplay,
+      :viewerCount,:startedAt,:cooldownEndsAt,:targetCooldownEndsAt,
+      :receivedAt,:rawJson,:metaJson
+    )
+  `, params);
+
+  const id = result && (result.lastInsertRowid || result.lastInsertRowId) ? (result.lastInsertRowid || result.lastInsertRowId) : 0;
+  if (record.direction === 'incoming') state.stats.inboundReceived += 1;
+  if (record.direction === 'outgoing') state.stats.outboundCreated += 1;
+  state.inboundShoutout.lastEventAt = params.receivedAt;
+  state.inboundShoutout.lastEventType = params.eventType;
+  state.inboundShoutout.lastDirection = params.direction;
+  state.inboundShoutout.lastFromLogin = params.fromBroadcasterLogin;
+  state.inboundShoutout.lastToLogin = params.toBroadcasterLogin;
+  state.inboundShoutout.lastError = '';
+
+  emitShoutoutBus(record.direction === 'incoming' ? 'shoutout.inbound.received' : 'shoutout.outbound.created', {
+    id,
+    eventUid: record.eventUid,
+    eventType: record.eventType,
+    direction: record.direction,
+    fromBroadcasterLogin: record.fromBroadcasterLogin,
+    fromBroadcasterDisplay: record.fromBroadcasterDisplay,
+    toBroadcasterLogin: record.toBroadcasterLogin,
+    toBroadcasterDisplay: record.toBroadcasterDisplay,
+    viewerCount: record.viewerCount,
+    startedAt: record.startedAt
+  }, currentCfg);
+
+  return { ok: true, id, record };
+}
+
+function recordTwitchShoutoutEvent(eventType, event = {}, meta = {}, subscription = {}) {
+  try {
+    const record = normalizeTwitchShoutoutEvent(eventType, event, meta, subscription);
+    if (!record) return { ok: true, skipped: true, reason: 'not_shoutout_event' };
+    return insertInboundShoutoutRecord(record, shoutoutConfig());
+  } catch (err) {
+    state.inboundShoutout.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, error: state.inboundShoutout.lastError };
+  }
+}
+
+function normalizeInboundDbRow(row = {}) {
+  return {
+    id: Number(row.id || 0),
+    eventUid: row.event_uid || '',
+    direction: row.direction || '',
+    eventType: row.event_type || '',
+    subscriptionId: row.subscription_id || '',
+    messageId: row.message_id || '',
+    messageTimestamp: row.message_timestamp || '',
+    broadcasterUserId: row.broadcaster_user_id || '',
+    broadcasterLogin: row.broadcaster_login || '',
+    broadcasterDisplay: row.broadcaster_display || row.broadcaster_login || '',
+    fromBroadcasterUserId: row.from_broadcaster_user_id || '',
+    fromBroadcasterLogin: row.from_broadcaster_login || '',
+    fromBroadcasterDisplay: row.from_broadcaster_display || row.from_broadcaster_login || '',
+    toBroadcasterUserId: row.to_broadcaster_user_id || '',
+    toBroadcasterLogin: row.to_broadcaster_login || '',
+    toBroadcasterDisplay: row.to_broadcaster_display || row.to_broadcaster_login || '',
+    moderatorUserId: row.moderator_user_id || '',
+    moderatorLogin: row.moderator_login || '',
+    moderatorDisplay: row.moderator_display || row.moderator_login || '',
+    viewerCount: Number(row.viewer_count || 0),
+    startedAt: row.started_at || '',
+    cooldownEndsAt: row.cooldown_ends_at || '',
+    targetCooldownEndsAt: row.target_cooldown_ends_at || '',
+    receivedAt: row.received_at || '',
+    raw: safeJsonParse(row.raw_json, {}),
+    meta: safeJsonParse(row.meta_json, {})
+  };
+}
+
+function listInboundShoutoutEvents(options = {}) {
+  ensureInboundShoutoutSchema();
+  const limit = Math.max(1, Math.min(500, Number.parseInt(options.limit, 10) || 80));
+  const direction = String(options.direction || '').trim().toLowerCase();
+  const login = cleanLogin(options.login || '');
+  const where = [];
+  const params = { limit };
+  if (direction === 'incoming' || direction === 'outgoing') {
+    where.push('direction=:direction');
+    params.direction = direction;
+  }
+  if (login) {
+    where.push('(from_broadcaster_login=:login OR to_broadcaster_login=:login OR broadcaster_login=:login)');
+    params.login = login;
+  }
+  const rows = database.all(`
+    SELECT * FROM clip_shoutout_inbound_events
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    ORDER BY received_at DESC, id DESC
+    LIMIT :limit
+  `, params);
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    generatedAt: nowIso(),
+    filters: { direction, login, limit },
+    count: rows.length,
+    items: rows.map(normalizeInboundDbRow)
+  };
+}
+
+function buildInboundShoutoutStats(options = {}) {
+  ensureInboundShoutoutSchema();
+  const limit = Math.max(1, Math.min(200, Number.parseInt(options.limit, 10) || 50));
+  const totals = normalizeStatsRow(database.get(`
+    SELECT
+      COUNT(*) AS totalEvents,
+      SUM(CASE WHEN direction='incoming' THEN 1 ELSE 0 END) AS incomingTotal,
+      SUM(CASE WHEN direction='outgoing' THEN 1 ELSE 0 END) AS outgoingTotal,
+      COUNT(DISTINCT NULLIF(from_broadcaster_login,'')) AS uniqueFromChannels,
+      COUNT(DISTINCT NULLIF(to_broadcaster_login,'')) AS uniqueToChannels,
+      SUM(viewer_count) AS viewerCountTotal,
+      MAX(received_at) AS lastReceivedAt
+    FROM clip_shoutout_inbound_events
+  `) || {});
+
+  const incomingByFrom = normalizeStatsRows(database.all(`
+    SELECT
+      from_broadcaster_login AS login,
+      COALESCE(NULLIF(MAX(from_broadcaster_display),''), from_broadcaster_login) AS display,
+      COUNT(*) AS total,
+      SUM(viewer_count) AS viewerCountTotal,
+      MAX(received_at) AS lastReceivedAt
+    FROM clip_shoutout_inbound_events
+    WHERE direction='incoming'
+    GROUP BY from_broadcaster_login
+    ORDER BY total DESC, lastReceivedAt DESC
+    LIMIT :limit
+  `, { limit }));
+
+  const outgoingByTarget = normalizeStatsRows(database.all(`
+    SELECT
+      to_broadcaster_login AS login,
+      COALESCE(NULLIF(MAX(to_broadcaster_display),''), to_broadcaster_login) AS display,
+      COUNT(*) AS total,
+      SUM(viewer_count) AS viewerCountTotal,
+      MAX(received_at) AS lastReceivedAt
+    FROM clip_shoutout_inbound_events
+    WHERE direction='outgoing'
+    GROUP BY to_broadcaster_login
+    ORDER BY total DESC, lastReceivedAt DESC
+    LIMIT :limit
+  `, { limit }));
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    generatedAt: nowIso(),
+    totals,
+    incomingByFrom,
+    outgoingByTarget,
+    recent: listInboundShoutoutEvents({ limit }).items
   };
 }
 
@@ -2798,11 +3127,15 @@ function installDirectChatCommandBypass(env) {
 
 
 
+module.exports.recordTwitchShoutoutEvent = recordTwitchShoutoutEvent;
+module.exports.buildInboundShoutoutStats = buildInboundShoutoutStats;
+
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
   const cfg = shoutoutConfig();
   ensureDisplayQueueSchema();
   ensureOfficialShoutoutSchema();
+  ensureInboundShoutoutSchema();
   resetStaleDisplayQueueActiveRows();
   registerCommand(cfg);
   installDirectChatCommandBypass(env);
@@ -2833,6 +3166,8 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${API_PREFIX}/timeline` },
         { method: "GET", path: `${API_PREFIX}/stats` },
         { method: "GET", path: `${API_PREFIX}/stats/user` },
+        { method: "GET", path: `${API_PREFIX}/inbound` },
+        { method: "GET", path: `${API_PREFIX}/inbound/stats` },
         { method: "GET", path: "/api/stream-status/status" },
         { method: "POST", path: `${API_PREFIX}/queue/remove` },
         { method: "POST", path: `${API_PREFIX}/queue/retry` }
@@ -2859,6 +3194,7 @@ module.exports.init = function init(ctx) {
         avatarLookupEnabled: currentCfg.avatarLookupEnabled,
         avatarLookupUrl: currentCfg.avatarLookupUrl,
         eventBusEnabled: currentCfg.eventBusEnabled !== false,
+        inboundShoutout: inboundShoutoutConfig(currentCfg),
         displayQueue: displayConfig(currentCfg),
         officialShoutout: officialConfig(currentCfg),
         streamDayLimit: streamDayLimitConfig(currentCfg),
@@ -2866,6 +3202,7 @@ module.exports.init = function init(ctx) {
       },
       displayQueue: displayQueueStatus(currentCfg),
       officialQueue: officialQueueStatus(currentCfg),
+      inboundShoutout: buildInboundShoutoutStats({ limit: 12 }),
       state
     });
   });
@@ -2894,6 +3231,7 @@ module.exports.init = function init(ctx) {
       if (body.officialShoutout && typeof body.officialShoutout === "object") allowed.officialShoutout = body.officialShoutout;
       if (body.streamDayLimit && typeof body.streamDayLimit === "object") allowed.streamDayLimit = body.streamDayLimit;
       if (body.streamStatus && typeof body.streamStatus === "object") allowed.streamStatus = body.streamStatus;
+      if (body.inboundShoutout && typeof body.inboundShoutout === "object") allowed.inboundShoutout = body.inboundShoutout;
       const settings = saveShoutoutConfig(allowed);
       const commandRegistration = registerCommand(settings);
       emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed), commandRegistration }, settings);
@@ -2962,6 +3300,64 @@ module.exports.init = function init(ctx) {
   });
 
 
+  app.get(`${API_PREFIX}/inbound`, (req, res) => {
+    try {
+      res.json(listInboundShoutoutEvents({
+        limit: req.query?.limit,
+        direction: req.query?.direction,
+        login: req.query?.login
+      }));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/inbound/stats`, (req, res) => {
+    try {
+      res.json(buildInboundShoutoutStats({ limit: req.query?.limit }));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/inbound/debug`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const direction = cleanLogin(body.direction || req.query?.direction || 'incoming') === 'outgoing' ? 'outgoing' : 'incoming';
+      const fromLogin = cleanLogin(body.from || body.fromLogin || req.query?.from || 'testsender');
+      const toLogin = cleanLogin(body.to || body.toLogin || req.query?.to || 'forrestcgn');
+      const eventType = direction === 'outgoing' ? 'channel.shoutout.create' : 'channel.shoutout.receive';
+      const event = direction === 'outgoing' ? {
+        broadcaster_user_id: String(body.fromId || '1000'),
+        broadcaster_user_login: fromLogin,
+        broadcaster_user_name: cleanDisplay(body.fromDisplay || fromLogin, fromLogin),
+        to_broadcaster_user_id: String(body.toId || '2000'),
+        to_broadcaster_user_login: toLogin,
+        to_broadcaster_user_name: cleanDisplay(body.toDisplay || toLogin, toLogin),
+        moderator_user_id: String(body.moderatorId || body.fromId || '1000'),
+        moderator_user_login: cleanLogin(body.moderator || fromLogin),
+        moderator_user_name: cleanDisplay(body.moderatorDisplay || body.moderator || fromLogin, fromLogin),
+        viewer_count: Number(body.viewerCount || req.query?.viewerCount || 0),
+        started_at: nowIso(),
+        cooldown_ends_at: '',
+        target_cooldown_ends_at: ''
+      } : {
+        broadcaster_user_id: String(body.toId || '2000'),
+        broadcaster_user_login: toLogin,
+        broadcaster_user_name: cleanDisplay(body.toDisplay || toLogin, toLogin),
+        from_broadcaster_user_id: String(body.fromId || '1000'),
+        from_broadcaster_user_login: fromLogin,
+        from_broadcaster_user_name: cleanDisplay(body.fromDisplay || fromLogin, fromLogin),
+        viewer_count: Number(body.viewerCount || req.query?.viewerCount || 0),
+        started_at: nowIso()
+      };
+      const result = recordTwitchShoutoutEvent(eventType, event, { message_id: `debug_shoutout_${Date.now()}`, message_timestamp: nowIso() }, { id: 'debug', type: eventType });
+      res.status(result && result.ok === false ? 500 : 200).json({ ok: result && result.ok !== false, eventType, event, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
   app.post(`${API_PREFIX}/display-queue/remove`, (req, res) => {
     try {
       ensureDisplayQueueSchema();
@@ -3021,5 +3417,5 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  console.log(`[${MODULE_NAME}] loaded: ${API_PREFIX}/run, ${API_PREFIX}/clips, ${API_PREFIX}/queue, /api/clip/shoutout`);
+  console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION}: ${API_PREFIX}/run, ${API_PREFIX}/clips, ${API_PREFIX}/queue, ${API_PREFIX}/inbound, /api/clip/shoutout`);
 };

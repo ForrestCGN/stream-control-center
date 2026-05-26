@@ -6,6 +6,8 @@ window.ShoutoutModule = (function(){
     queue: '/api/clip-shoutout/queue',
     timeline: '/api/clip-shoutout/timeline?limit=80',
     stats: '/api/clip-shoutout/stats?limit=80&detailLimit=160',
+    inbound: '/api/clip-shoutout/inbound?limit=80',
+    inboundStats: '/api/clip-shoutout/inbound/stats?limit=80',
     run: '/api/clip-shoutout/run',
     displayRemove: '/api/clip-shoutout/display-queue/remove',
     displayRetry: '/api/clip-shoutout/display-queue/retry',
@@ -16,6 +18,7 @@ window.ShoutoutModule = (function(){
 
   const TABS = [
     { id: 'overview', label: 'Übersicht' },
+    { id: 'inbound', label: 'Eingehend' },
     { id: 'queues', label: 'Queues' },
     { id: 'stats', label: 'Statistik' },
     { id: 'timeline', label: 'Timeline' },
@@ -30,6 +33,8 @@ window.ShoutoutModule = (function(){
     timeline: null,
     streamStatus: null,
     stats: null,
+    inbound: null,
+    inboundStats: null,
     selectedStatsTarget: '',
     selectedStatsRequester: '',
     activeTab: 'overview',
@@ -159,17 +164,21 @@ window.ShoutoutModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, queue, timeline, stats, streamStatus] = await Promise.all([
+      const [status, queue, timeline, stats, inbound, inboundStats, streamStatus] = await Promise.all([
         api(API.status),
         api(API.queue),
         api(API.timeline),
         api(statsUrl()).catch(err => ({ ok: false, error: err.message })),
+        api(API.inbound).catch(err => ({ ok: false, error: err.message, items: [] })),
+        api(API.inboundStats).catch(err => ({ ok: false, error: err.message, totals: {}, recent: [] })),
         api(API.streamStatus).catch(err => ({ ok: false, error: err.message }))
       ]);
       state.status = status;
       state.queue = queue;
       state.timeline = timeline;
       state.stats = stats;
+      state.inbound = inbound;
+      state.inboundStats = inboundStats;
       state.streamStatus = streamStatus;
     } catch (err) {
       state.error = err && err.message ? err.message : String(err);
@@ -244,6 +253,7 @@ window.ShoutoutModule = (function(){
           <div class="shoutout-metric"><small>Command</small><strong>!${esc(status.command || 'vso')}</strong><span>${esc((status.aliases || []).map(x => `!${x}`).join(', ') || '-')}</span></div>
           <div class="shoutout-metric"><small>Display offen</small><strong>${esc(display.pending ?? 0)}</strong><span>${display.cooldownRunning ? `Cooldown ${fmtMs(display.cooldownRemainingMs)}` : 'bereit'}</span></div>
           <div class="shoutout-metric"><small>Official offen</small><strong>${esc(official.pending ?? 0)}</strong><span>${statusBadge(liveGate.reason || (liveGate.live ? 'live' : 'offline'))}</span></div>
+          <div class="shoutout-metric"><small>Eingehend</small><strong>${esc(num(state.inboundStats?.totals?.incomingTotal))}</strong><span>${esc(num(state.inboundStats?.totals?.outgoingTotal))} erstellt</span></div>
           <div class="shoutout-metric"><small>Stream Status</small><strong>${liveGate.live ? 'LIVE' : 'OFFLINE'}</strong><span>${esc(liveGate.upstreamSource || ss.source || '-')} · ${liveGate.stale ? 'stale' : 'frisch'}</span></div>
         </div>
       </div>
@@ -293,6 +303,7 @@ window.ShoutoutModule = (function(){
             <div><small>Display aktiv</small><strong>${esc(display.activeTarget ? '@' + display.activeTarget : '-')}</strong></div>
             <div><small>Display Cooldown</small><strong>${display.cooldownRunning ? fmtMs(display.cooldownRemainingMs) : 'bereit'}</strong></div>
             <div><small>Official offen</small><strong>${esc(official.pending ?? 0)}</strong></div>
+            <div><small>Eingehend</small><strong>${esc(num(state.inboundStats?.totals?.incomingTotal))}</strong></div>
             <div><small>Live-Gate</small><strong>${statusBadge(liveGate.reason || (liveGate.live ? 'live' : 'offline'))}</strong></div>
             <div><small>Letzter Fehler</small><strong>${esc(display.lastError || official.lastError || status.lastError || '-')}</strong></div>
           </div>
@@ -304,12 +315,100 @@ window.ShoutoutModule = (function(){
             <div class="shoutout-stat"><small>Ziele</small><strong>${esc(num(totals.uniqueTargets))}</strong><span>einmalig</span></div>
             <div class="shoutout-stat"><small>Auslöser</small><strong>${esc(num(totals.uniqueRequesters))}</strong><span>einmalig</span></div>
             <div class="shoutout-stat"><small>Official</small><strong>${esc(num(totals.officialSent))}</strong><span>gesendet</span></div>
+            <div class="shoutout-stat"><small>Eingehend</small><strong>${esc(num(state.inboundStats?.totals?.incomingTotal))}</strong><span>erhalten</span></div>
           </div>
         </div>
         <div class="shoutout-card shoutout-wide">
           <div class="shoutout-card-head"><div><h3>Letzte Timeline</h3><p>Die letzten fünf Einträge. Vollständige Liste im Tab Timeline.</p></div></div>
           <div class="shoutout-mini-timeline">
             ${latest.length ? latest.map(row => `<span>#${esc(row.id)} · @${esc(row.targetDisplay || row.targetLogin || '-')} · ${statusBadge(row.status)} · ${fmtDate(row.requestedAt)}</span>`).join('') : '<span class="shoutout-empty-inline">Noch keine Timeline-Einträge.</span>'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderInbound(){
+    const inbound = state.inbound || {};
+    const inboundStats = state.inboundStats || {};
+    const totals = inboundStats.totals || {};
+    const incomingByFrom = Array.isArray(inboundStats.incomingByFrom) ? inboundStats.incomingByFrom : [];
+    const outgoingByTarget = Array.isArray(inboundStats.outgoingByTarget) ? inboundStats.outgoingByTarget : [];
+    const rows = Array.isArray(inbound.items) ? inbound.items : Array.isArray(inboundStats.recent) ? inboundStats.recent : [];
+
+    return `
+      <div class="shoutout-tab-panel shoutout-grid">
+        <div class="shoutout-card shoutout-wide">
+          <div class="shoutout-card-head">
+            <div><h3>Eingehende / erstellte Twitch-Shoutouts</h3><p>EventSub-Daten aus <code>channel.shoutout.receive</code> und <code>channel.shoutout.create</code>, gespeichert im Shoutout-System.</p></div>
+            <div>${statusBadge(inboundStats.ok === false || inbound.ok === false ? 'error' : 'ok')}</div>
+          </div>
+          <div class="shoutout-stat-grid">
+            <div class="shoutout-stat"><small>Events gesamt</small><strong>${esc(num(totals.totalEvents))}</strong><span>EventSub</span></div>
+            <div class="shoutout-stat"><small>Eingehend</small><strong>${esc(num(totals.incomingTotal))}</strong><span>wir wurden erwähnt</span></div>
+            <div class="shoutout-stat"><small>Ausgehend erstellt</small><strong>${esc(num(totals.outgoingTotal))}</strong><span>Twitch SO</span></div>
+            <div class="shoutout-stat"><small>Von Channels</small><strong>${esc(num(totals.uniqueFromChannels))}</strong><span>einmalig</span></div>
+            <div class="shoutout-stat"><small>Viewer Summe</small><strong>${esc(num(totals.viewerCountTotal))}</strong><span>gemeldet</span></div>
+          </div>
+        </div>
+
+        <div class="shoutout-card">
+          <div class="shoutout-card-head"><div><h3>Wer hat uns geshoutoutet?</h3><p>Top-Liste eingehender Shoutouts.</p></div></div>
+          <div class="shoutout-table-wrap">
+            <table class="shoutout-table shoutout-table-compact">
+              <thead><tr><th>Kanal</th><th>Anzahl</th><th>Viewer</th><th>Zuletzt</th></tr></thead>
+              <tbody>
+                ${incomingByFrom.length ? incomingByFrom.slice(0, 12).map(row => `
+                  <tr>
+                    <td><strong>@${esc(row.display || row.login || '-')}</strong></td>
+                    <td>${esc(row.total || 0)}</td>
+                    <td>${esc(row.viewerCountTotal || 0)}</td>
+                    <td>${fmtDate(row.lastReceivedAt)}</td>
+                  </tr>
+                `).join('') : '<tr><td colspan="4" class="shoutout-empty">Noch keine eingehenden Shoutouts.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="shoutout-card">
+          <div class="shoutout-card-head"><div><h3>Wen haben wir offiziell geshoutoutet?</h3><p>EventSub-Bestätigung für erstellte Twitch-Shoutouts.</p></div></div>
+          <div class="shoutout-table-wrap">
+            <table class="shoutout-table shoutout-table-compact">
+              <thead><tr><th>Kanal</th><th>Anzahl</th><th>Viewer</th><th>Zuletzt</th></tr></thead>
+              <tbody>
+                ${outgoingByTarget.length ? outgoingByTarget.slice(0, 12).map(row => `
+                  <tr>
+                    <td><strong>@${esc(row.display || row.login || '-')}</strong></td>
+                    <td>${esc(row.total || 0)}</td>
+                    <td>${esc(row.viewerCountTotal || 0)}</td>
+                    <td>${fmtDate(row.lastReceivedAt)}</td>
+                  </tr>
+                `).join('') : '<tr><td colspan="4" class="shoutout-empty">Noch keine EventSub-Bestätigungen.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="shoutout-card shoutout-wide">
+          <div class="shoutout-card-head"><div><h3>Letzte Shoutout-Events</h3><p>Roh-Timeline der gespeicherten Twitch-Shoutout-Events.</p></div></div>
+          <div class="shoutout-table-wrap">
+            <table class="shoutout-table">
+              <thead><tr><th>ID</th><th>Richtung</th><th>Von</th><th>An</th><th>Viewer</th><th>Gestartet</th><th>Empfangen</th></tr></thead>
+              <tbody>
+                ${rows.length ? rows.map(row => `
+                  <tr>
+                    <td>${esc(row.id)}</td>
+                    <td>${statusBadge(row.direction || '-')}</td>
+                    <td><strong>@${esc(row.fromBroadcasterDisplay || row.fromBroadcasterLogin || '-')}</strong><small>${esc(row.fromBroadcasterLogin || '')}</small></td>
+                    <td><strong>@${esc(row.toBroadcasterDisplay || row.toBroadcasterLogin || '-')}</strong><small>${esc(row.toBroadcasterLogin || '')}</small></td>
+                    <td>${esc(row.viewerCount || 0)}</td>
+                    <td>${fmtDate(row.startedAt)}</td>
+                    <td>${fmtDate(row.receivedAt)}</td>
+                  </tr>
+                `).join('') : '<tr><td colspan="7" class="shoutout-empty">Noch keine Shoutout-Events gespeichert.</td></tr>'}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -625,6 +724,7 @@ window.ShoutoutModule = (function(){
   }
 
   function renderActiveTab(){
+    if (state.activeTab === 'inbound') return renderInbound();
     if (state.activeTab === 'queues') return renderQueues();
     if (state.activeTab === 'stats') return `<div class="shoutout-tab-panel">${renderStats()}</div>`;
     if (state.activeTab === 'timeline') return `<div class="shoutout-tab-panel">${renderTimeline()}</div>`;

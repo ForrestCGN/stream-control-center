@@ -1,43 +1,38 @@
 # NEXT_STEPS
 
-Stand: 2026-05-26 / nach STEP483_SHOUTOUT_DASHBOARD_TABS
+Stand: 2026-05-26 / nach STEP484
 
-## Direkt nach Einbau testen
+## Direkt danach prüfen
 
 ```bat
 cd D:\Git\stream-control-center
+node --check backend\modules\twitch.js
+node --check backend\modules\clip_shoutout.js
 node --check htdocs\dashboard\modules\shoutout.js
 ```
 
-API-/Live-Checks:
+## Runtime-Test
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/queue"
-Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/timeline"
-Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/stats"
+```bat
+curl http://127.0.0.1:8080/api/clip-shoutout/status
+curl http://127.0.0.1:8080/api/clip-shoutout/inbound
+curl http://127.0.0.1:8080/api/clip-shoutout/inbound/stats
 ```
 
-Dashboard:
+Optionales Debug-Event:
 
-```text
-/dashboard/ öffnen -> Shoutout-System -> Tabs Übersicht, Queues, Statistik, Timeline, Settings/Test prüfen.
+```bat
+curl -X POST http://127.0.0.1:8080/api/clip-shoutout/inbound/debug -H "Content-Type: application/json" -d "{\"direction\":\"incoming\",\"from\":\"testsender\",\"to\":\"forrestcgn\",\"viewerCount\":12}"
 ```
 
 ## Nächster sinnvoller Fach-STEP
 
 ```text
-STEP484_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
+STEP485_SHOUTOUT_INBOUND_UI_POLISH_OR_SO_PRODUCTION_CHECK
 ```
 
-Ziel:
+Optionen:
 
-- Eingehende Twitch-Shoutouts separat loggen.
-- Sauber von ausgehenden Shoutouts trennen.
-- Später im Dashboard anzeigen, wer ForrestCGN woanders geshoutoutet hat.
-
-## Spätere offene Punkte
-
-- Settings-Bearbeitung im Shoutout-Dashboard nur gezielt planen, falls wirklich gewünscht.
-- EventBus-/Monitoring-Ausbau für Shoutout-Queue-Status später ergänzen.
-- Produktive Umstellung auf `!so` nur ausdrücklich und nach Test.
+1. `Eingehend`-Tab nach Live-Test weiter aufräumen.
+2. EventSub-Subscriptions/Scopes für Shoutout-Events prüfen.
+3. Erst nach Freigabe produktive `!so`-Umstellung planen.
