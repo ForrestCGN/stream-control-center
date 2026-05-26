@@ -14,6 +14,7 @@ const sharedApi = {
   getStoredBotToken: null,
   getBotAccessTokenWithRefresh: null,
   validateStoredUserToken: null,
+  getEventSubStatusSnapshot: null,
   createClipForBroadcaster: null,
   getClipById: null
 };
@@ -1857,6 +1858,43 @@ module.exports.init = function init(ctx) {
     eventSubState.recent = eventSubState.recent.slice(0, 30);
   }
 
+  function buildShoutoutEventSubReadinessSnapshot() {
+    const requiredTypes = ['channel.shoutout.create', 'channel.shoutout.receive'];
+    const known = Array.from(eventsubKnownSubscriptions).sort();
+    const configured = eventSubConfigs
+      .filter(cfg => requiredTypes.includes(cfg.type))
+      .map(cfg => ({ type: cfg.type, version: cfg.version, cacheKey: cfg.cacheKey }));
+    const byType = {};
+    for (const type of requiredTypes) {
+      byType[type] = {
+        configured: configured.some(cfg => cfg.type === type),
+        known: known.some(key => key.startsWith(`${type}|`)),
+        version: (configured.find(cfg => cfg.type === type) || {}).version || '1'
+      };
+    }
+    const missingConfigured = requiredTypes.filter(type => !byType[type].configured);
+    const missingKnown = requiredTypes.filter(type => !byType[type].known);
+    return {
+      requiredTypes,
+      requiredScopesAny: ['moderator:read:shoutouts', 'moderator:manage:shoutouts'],
+      requiredManageScopeForSending: 'moderator:manage:shoutouts',
+      broadcasterIdConfigured: Boolean(DEFAULT_BROADCASTER_ID),
+      broadcasterId: DEFAULT_BROADCASTER_ID || '',
+      websocketConnected: Boolean(ws && ws.readyState === WebSocket.OPEN),
+      lastSessionId: eventSubState.lastSessionId || '',
+      configured,
+      byType,
+      missingConfigured,
+      missingKnown,
+      configuredOk: missingConfigured.length === 0,
+      subscribedOk: missingKnown.length === 0,
+      lastSubscribeType: eventSubState.lastSubscribeType || '',
+      lastSubscribeError: eventSubState.lastSubscribeError || '',
+      lastBootstrapError: eventSubState.lastBootstrapError || '',
+      note: 'Scopes werden über /api/clip-shoutout/production-check gegen den gespeicherten User-OAuth-Token geprüft.'
+    };
+  }
+
   function getEventSubStatusSnapshot() {
     return {
       ok: true,
@@ -1876,6 +1914,7 @@ module.exports.init = function init(ctx) {
       knownSubscriptionsCount: eventsubKnownSubscriptions.size,
       knownSubscriptions: Array.from(eventsubKnownSubscriptions).sort(),
       state: { ...eventSubState, recent: eventSubState.recent.slice(0, 30) },
+      shoutoutReadiness: buildShoutoutEventSubReadinessSnapshot(),
       deathcounterSync: getDeathcounterSyncStatus(),
       alertBridge: {
         enabled: twitchAlertBridgeState.config?.enabled !== false,
@@ -3071,6 +3110,8 @@ function buildFakeTwitchAlertEvent(kind, query) {
 
   routes.registerGet(app, ['/eventsub/reconnect', '/twitch/eventsub/reconnect', '/api/twitch/eventsub/reconnect'], handleEventSubReconnect);
 
+  sharedApi.getEventSubStatusSnapshot = getEventSubStatusSnapshot;
+
   console.log('[twitch] OAuth + Helix-Routen aktiv (modular, erweitert)');
 };
 
@@ -3100,6 +3141,13 @@ module.exports.validateStoredUserToken = async function validateStoredUserTokenE
     throw new Error('twitch user token validate helper not initialized yet');
   }
   return await sharedApi.validateStoredUserToken();
+};
+
+module.exports.getEventSubStatusSnapshot = function getEventSubStatusSnapshotExport() {
+  if (typeof sharedApi.getEventSubStatusSnapshot !== 'function') {
+    return { ok: false, module: 'twitch_eventsub', error: 'twitch eventsub status helper not initialized yet' };
+  }
+  return sharedApi.getEventSubStatusSnapshot();
 };
 
 

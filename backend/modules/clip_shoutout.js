@@ -16,7 +16,7 @@ let streamStatus = null;
 try { streamStatus = require("./stream_status"); } catch (_) { streamStatus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.11";
+const MODULE_VERSION = "0.2.12";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -1769,6 +1769,118 @@ function buildInboundShoutoutStats(options = {}) {
   };
 }
 
+async function buildShoutoutProductionCheck() {
+  const requiredEventSubTypes = ['channel.shoutout.create', 'channel.shoutout.receive'];
+  const requiredEventSubScopesAny = ['moderator:read:shoutouts', 'moderator:manage:shoutouts'];
+  const requiredSendScope = 'moderator:manage:shoutouts';
+
+  let auth = null;
+  try {
+    auth = await twitch.validateStoredUserToken();
+  } catch (err) {
+    auth = { ok: false, error: err && err.message ? err.message : String(err), scopes: [] };
+  }
+
+  let eventSub = null;
+  try {
+    eventSub = typeof twitch.getEventSubStatusSnapshot === 'function'
+      ? twitch.getEventSubStatusSnapshot()
+      : { ok: false, error: 'twitch_eventsub_status_export_missing' };
+  } catch (err) {
+    eventSub = { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+
+  const scopes = Array.isArray(auth && auth.scopes) ? auth.scopes.map(String) : [];
+  const hasReadOrManage = requiredEventSubScopesAny.some(scope => scopes.includes(scope));
+  const hasManage = scopes.includes(requiredSendScope);
+  const knownSubscriptions = Array.isArray(eventSub && eventSub.knownSubscriptions) ? eventSub.knownSubscriptions.map(String) : [];
+  const configuredSubscriptions = Array.isArray(eventSub && eventSub.configuredSubscriptions) ? eventSub.configuredSubscriptions : [];
+  const subscriptionChecks = requiredEventSubTypes.map(type => ({
+    type,
+    configured: configuredSubscriptions.some(row => String(row && row.type || '') === type),
+    known: knownSubscriptions.some(key => key.startsWith(`${type}|`))
+  }));
+  const missingKnown = subscriptionChecks.filter(row => !row.known).map(row => row.type);
+  const missingConfigured = subscriptionChecks.filter(row => !row.configured).map(row => row.type);
+  const tokenUserMatchesBroadcaster = auth && Object.prototype.hasOwnProperty.call(auth, 'tokenUserMatchesBroadcaster')
+    ? auth.tokenUserMatchesBroadcaster === true
+    : Boolean(auth && auth.userId && eventSub && eventSub.broadcasterId && String(auth.userId) === String(eventSub.broadcasterId));
+
+  const checks = {
+    userTokenPresent: Boolean(auth && auth.ok),
+    broadcasterIdConfigured: Boolean(eventSub && eventSub.broadcasterIdConfigured),
+    tokenUserMatchesBroadcaster,
+    shoutoutReadScope: hasReadOrManage,
+    shoutoutManageScope: hasManage,
+    eventSubConnected: Boolean(eventSub && eventSub.connected),
+    shoutoutSubscriptionsConfigured: missingConfigured.length === 0,
+    shoutoutSubscriptionsKnown: missingKnown.length === 0
+  };
+
+  const blocking = [];
+  if (!checks.userTokenPresent) blocking.push('stored_user_token_missing_or_invalid');
+  if (!checks.broadcasterIdConfigured) blocking.push('twitch_broadcaster_id_missing');
+  if (!checks.tokenUserMatchesBroadcaster) blocking.push('websocket_moderator_user_id_must_match_user_token');
+  if (!checks.shoutoutReadScope) blocking.push('missing_moderator_read_or_manage_shoutouts_scope');
+  if (!checks.eventSubConnected) blocking.push('eventsub_websocket_not_connected');
+  if (!checks.shoutoutSubscriptionsConfigured) blocking.push('shoutout_subscription_types_not_configured');
+  if (!checks.shoutoutSubscriptionsKnown) blocking.push('shoutout_subscriptions_not_confirmed_in_current_session');
+
+  const warnings = [];
+  if (!checks.shoutoutManageScope) warnings.push('moderator_manage_shoutouts_missing_official_send_may_fail');
+  if (eventSub && eventSub.state && eventSub.state.lastSubscribeError) warnings.push(`last_subscribe_error: ${eventSub.state.lastSubscribeError}`);
+  if (eventSub && eventSub.state && eventSub.state.lastBootstrapError) warnings.push(`last_bootstrap_error: ${eventSub.state.lastBootstrapError}`);
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    generatedAt: nowIso(),
+    ready: blocking.length === 0,
+    sendReady: blocking.filter(item => item !== 'shoutout_subscriptions_not_confirmed_in_current_session').length === 0 && hasManage,
+    requiredEventSubTypes,
+    requiredEventSubScopesAny,
+    requiredSendScope,
+    checks,
+    blocking,
+    warnings,
+    auth: {
+      ok: Boolean(auth && auth.ok),
+      login: String(auth && auth.login || ''),
+      userId: String(auth && auth.userId || ''),
+      broadcasterId: String(auth && auth.broadcasterId || eventSub?.broadcasterId || ''),
+      tokenUserMatchesBroadcaster,
+      scopes,
+      hasShoutoutReadOrManage: hasReadOrManage,
+      hasModeratorManageShoutouts: hasManage,
+      error: String(auth && auth.error || '')
+    },
+    eventSub: {
+      ok: eventSub && eventSub.ok !== false,
+      connected: Boolean(eventSub && eventSub.connected),
+      readyState: String(eventSub && eventSub.readyState || ''),
+      broadcasterIdConfigured: Boolean(eventSub && eventSub.broadcasterIdConfigured),
+      broadcasterId: String(eventSub && eventSub.broadcasterId || ''),
+      lastSessionId: String(eventSub && eventSub.state && eventSub.state.lastSessionId || eventSub?.lastSessionId || ''),
+      lastNotificationAt: String(eventSub && eventSub.state && eventSub.state.lastNotificationAt || ''),
+      lastNotificationType: String(eventSub && eventSub.state && eventSub.state.lastNotificationType || ''),
+      lastSubscribeType: String(eventSub && eventSub.state && eventSub.state.lastSubscribeType || ''),
+      lastSubscribeError: String(eventSub && eventSub.state && eventSub.state.lastSubscribeError || ''),
+      lastBootstrapError: String(eventSub && eventSub.state && eventSub.state.lastBootstrapError || ''),
+      subscriptionChecks,
+      missingKnown,
+      missingConfigured,
+      shoutoutReadiness: eventSub && eventSub.shoutoutReadiness ? eventSub.shoutoutReadiness : null,
+      error: String(eventSub && eventSub.error || '')
+    },
+    notes: [
+      'EventSub WebSockets verlangen bei diesen Shoutout-Subscriptions, dass moderator_user_id zur User-ID des User-OAuth-Tokens passt.',
+      'Für eingehende/erstellte Shoutout-Events reicht moderator:read:shoutouts oder moderator:manage:shoutouts.',
+      'Für das aktive Senden offizieller Twitch-Shoutouts wird moderator:manage:shoutouts benötigt.'
+    ]
+  };
+}
+
 function resolveRootPath(inputPath) {
   const raw = String(inputPath || "").trim();
   if (!raw) return configHelper.resolveFromRoot("htdocs", "assets", "sounds", "clip_shoutout");
@@ -3168,6 +3280,8 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${API_PREFIX}/stats/user` },
         { method: "GET", path: `${API_PREFIX}/inbound` },
         { method: "GET", path: `${API_PREFIX}/inbound/stats` },
+        { method: "POST", path: `${API_PREFIX}/inbound/debug` },
+        { method: "GET", path: `${API_PREFIX}/production-check` },
         { method: "GET", path: "/api/stream-status/status" },
         { method: "POST", path: `${API_PREFIX}/queue/remove` },
         { method: "POST", path: `${API_PREFIX}/queue/retry` }
@@ -3296,6 +3410,16 @@ module.exports.init = function init(ctx) {
       }));
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+
+  app.get(`${API_PREFIX}/production-check`, async (req, res) => {
+    try {
+      const result = await buildShoutoutProductionCheck();
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) });
     }
   });
 

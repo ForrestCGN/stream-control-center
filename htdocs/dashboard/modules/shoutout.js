@@ -8,6 +8,7 @@ window.ShoutoutModule = (function(){
     stats: '/api/clip-shoutout/stats?limit=80&detailLimit=160',
     inbound: '/api/clip-shoutout/inbound?limit=80',
     inboundStats: '/api/clip-shoutout/inbound/stats?limit=80',
+    productionCheck: '/api/clip-shoutout/production-check',
     run: '/api/clip-shoutout/run',
     displayRemove: '/api/clip-shoutout/display-queue/remove',
     displayRetry: '/api/clip-shoutout/display-queue/retry',
@@ -22,6 +23,7 @@ window.ShoutoutModule = (function(){
     { id: 'queues', label: 'Queues' },
     { id: 'stats', label: 'Statistik' },
     { id: 'timeline', label: 'Timeline' },
+    { id: 'production', label: 'Produktion' },
     { id: 'settings', label: 'Settings/Test' }
   ];
 
@@ -35,6 +37,7 @@ window.ShoutoutModule = (function(){
     stats: null,
     inbound: null,
     inboundStats: null,
+    productionCheck: null,
     selectedStatsTarget: '',
     selectedStatsRequester: '',
     activeTab: 'overview',
@@ -164,13 +167,14 @@ window.ShoutoutModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, queue, timeline, stats, inbound, inboundStats, streamStatus] = await Promise.all([
+      const [status, queue, timeline, stats, inbound, inboundStats, productionCheck, streamStatus] = await Promise.all([
         api(API.status),
         api(API.queue),
         api(API.timeline),
         api(statsUrl()).catch(err => ({ ok: false, error: err.message })),
         api(API.inbound).catch(err => ({ ok: false, error: err.message, items: [] })),
         api(API.inboundStats).catch(err => ({ ok: false, error: err.message, totals: {}, recent: [] })),
+        api(API.productionCheck).catch(err => ({ ok: false, error: err.message, checks: {}, blocking: [], warnings: [] })),
         api(API.streamStatus).catch(err => ({ ok: false, error: err.message }))
       ]);
       state.status = status;
@@ -179,6 +183,7 @@ window.ShoutoutModule = (function(){
       state.stats = stats;
       state.inbound = inbound;
       state.inboundStats = inboundStats;
+      state.productionCheck = productionCheck;
       state.streamStatus = streamStatus;
     } catch (err) {
       state.error = err && err.message ? err.message : String(err);
@@ -695,6 +700,83 @@ window.ShoutoutModule = (function(){
     `;
   }
 
+  function renderCheckItem(label, value, help){
+    return `
+      <div class="shoutout-checkitem ${value ? 'ok' : 'bad'}">
+        <div>${statusBadge(value ? 'ok' : 'fehlt')}</div>
+        <div><strong>${esc(label)}</strong>${help ? `<small>${esc(help)}</small>` : ''}</div>
+      </div>
+    `;
+  }
+
+  function renderProductionCheck(){
+    const check = state.productionCheck || {};
+    const auth = check.auth || {};
+    const eventSub = check.eventSub || {};
+    const checks = check.checks || {};
+    const subscriptionChecks = Array.isArray(eventSub.subscriptionChecks) ? eventSub.subscriptionChecks : [];
+    const blocking = Array.isArray(check.blocking) ? check.blocking : [];
+    const warnings = Array.isArray(check.warnings) ? check.warnings : [];
+    const scopes = Array.isArray(auth.scopes) ? auth.scopes : [];
+
+    return `
+      <div class="shoutout-tab-panel shoutout-grid">
+        <div class="shoutout-card shoutout-wide">
+          <div class="shoutout-card-head">
+            <div><h3>Produktions-Check</h3><p>Prüft OAuth-Token, Shoutout-Scopes, EventSub-Verbindung und die beiden Twitch-Shoutout-Subscriptions.</p></div>
+            <div>${statusBadge(check.ready ? 'ready' : 'prüfen')}</div>
+          </div>
+          <div class="shoutout-stat-grid">
+            <div class="shoutout-stat"><small>Gesamtstatus</small><strong>${check.ready ? 'Bereit' : 'Nicht bereit'}</strong><span>${esc(blocking.length)} Blocker</span></div>
+            <div class="shoutout-stat"><small>User-Token</small><strong>${auth.ok ? 'OK' : 'Fehlt'}</strong><span>${esc(auth.login || '-')}</span></div>
+            <div class="shoutout-stat"><small>EventSub</small><strong>${eventSub.connected ? 'Verbunden' : 'Nicht verbunden'}</strong><span>${esc(eventSub.readyState || '-')}</span></div>
+            <div class="shoutout-stat"><small>Receive/Create</small><strong>${esc(subscriptionChecks.filter(row => row.known).length)}/${esc(subscriptionChecks.length || 2)}</strong><span>Subscriptions</span></div>
+            <div class="shoutout-stat"><small>Senden</small><strong>${check.sendReady ? 'OK' : 'Prüfen'}</strong><span>manage-Scope</span></div>
+          </div>
+        </div>
+
+        <div class="shoutout-card">
+          <div class="shoutout-card-head"><div><h3>Pflichtprüfungen</h3><p>Diese Punkte sollten grün sein, bevor echte Events bewertet werden.</p></div></div>
+          <div class="shoutout-checklist">
+            ${renderCheckItem('User-OAuth-Token gültig', checks.userTokenPresent, auth.error || auth.login || '')}
+            ${renderCheckItem('Broadcaster-ID gesetzt', checks.broadcasterIdConfigured, auth.broadcasterId || eventSub.broadcasterId || '')}
+            ${renderCheckItem('Token-User passt zu moderator_user_id', checks.tokenUserMatchesBroadcaster, 'Wichtig bei EventSub WebSocket.')}
+            ${renderCheckItem('Shoutout Read/Manage Scope vorhanden', checks.shoutoutReadScope, 'moderator:read:shoutouts oder moderator:manage:shoutouts')}
+            ${renderCheckItem('EventSub WebSocket verbunden', checks.eventSubConnected, eventSub.lastSessionId || eventSub.readyState || '')}
+            ${renderCheckItem('Shoutout-Subscriptions konfiguriert', checks.shoutoutSubscriptionsConfigured, (eventSub.missingConfigured || []).join(', '))}
+            ${renderCheckItem('Shoutout-Subscriptions aktiv bekannt', checks.shoutoutSubscriptionsKnown, (eventSub.missingKnown || []).join(', '))}
+          </div>
+        </div>
+
+        <div class="shoutout-card">
+          <div class="shoutout-card-head"><div><h3>Scopes & Subscription-Details</h3><p>Hilft bei OAuth-/EventSub-Fehlern.</p></div></div>
+          <div class="shoutout-facts">
+            <div><small>Login</small><strong>${esc(auth.login || '-')}</strong></div>
+            <div><small>User-ID</small><strong>${esc(auth.userId || '-')}</strong></div>
+            <div><small>Broadcaster-ID</small><strong>${esc(auth.broadcasterId || eventSub.broadcasterId || '-')}</strong></div>
+            <div><small>Read/Manage</small><strong>${boolBadge(auth.hasShoutoutReadOrManage, 'ja', 'nein')}</strong></div>
+            <div><small>Manage/Senden</small><strong>${boolBadge(auth.hasModeratorManageShoutouts, 'ja', 'nein')}</strong></div>
+            <div><small>Letztes Event</small><strong>${esc(eventSub.lastNotificationType || '-')}</strong></div>
+          </div>
+          <div class="shoutout-mini-timeline">
+            ${subscriptionChecks.length ? subscriptionChecks.map(row => `<span>${statusBadge(row.known ? 'ok' : 'fehlt')} <strong>${esc(row.type)}</strong> · konfiguriert: ${row.configured ? 'ja' : 'nein'}</span>`).join('') : '<span class="shoutout-empty-inline">Keine Subscription-Daten geladen.</span>'}
+          </div>
+          <div class="shoutout-mini-timeline">
+            <span><strong>Scopes:</strong> ${scopes.length ? esc(scopes.join(', ')) : '<span class="shoutout-muted">keine/unknown</span>'}</span>
+          </div>
+        </div>
+
+        <div class="shoutout-card shoutout-wide">
+          <div class="shoutout-card-head"><div><h3>Blocker & Warnungen</h3><p>Diese Liste zeigt, warum der Status noch nicht produktionsbereit ist.</p></div></div>
+          <div class="shoutout-mini-timeline">
+            ${blocking.length ? blocking.map(item => `<span>${statusBadge('fehlt')} ${esc(item)}</span>`).join('') : `<span>${statusBadge('ok')} Keine Blocker erkannt.</span>`}
+            ${warnings.length ? warnings.map(item => `<span>${statusBadge('warn')} ${esc(item)}</span>`).join('') : `<span class="shoutout-empty-inline">Keine Warnungen.</span>`}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderSettingsTest(){
     const status = state.status || {};
     const cfg = status.config || {};
@@ -728,6 +810,7 @@ window.ShoutoutModule = (function(){
     if (state.activeTab === 'queues') return renderQueues();
     if (state.activeTab === 'stats') return `<div class="shoutout-tab-panel">${renderStats()}</div>`;
     if (state.activeTab === 'timeline') return `<div class="shoutout-tab-panel">${renderTimeline()}</div>`;
+    if (state.activeTab === 'production') return renderProductionCheck();
     if (state.activeTab === 'settings') return renderSettingsTest();
     return renderOverview();
   }

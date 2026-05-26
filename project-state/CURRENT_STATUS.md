@@ -1,42 +1,29 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP484_SHOUTOUT_INBOUND_EVENTSUB_INTEGRATION
+Stand: 2026-05-26 / STEP485_SHOUTOUT_PRODUCTION_CHECK
 
-## Aktueller Fokus
+## Aktueller Arbeitsstand
 
-Shoutout-System weiter integrieren, ohne neue Parallelmodule zu erstellen.
+STEP485 ergänzt den Shoutout-Produktionscheck auf Basis von STEP484. Die vorhandenen Module wurden erweitert, ohne neue Parallelmodule zu erstellen.
 
-## Zuletzt erledigt
+## Shoutout-System
 
-- STEP483: Shoutout-Dashboard in Tabs/Unterbereiche aufgeteilt.
-- STEP484: Eingehende und erstellte offizielle Twitch-Shoutout-Events in bestehende Module integriert.
-
-## STEP484 Ergebnis
-
-- `twitch.js` bleibt allein für Twitch/EventSub zuständig.
-- `clip_shoutout.js` übernimmt Speicherung und Auswertung der Shoutout-Events.
-- Dashboard hat neuen Tab `Eingehend`.
-- Neue Tabelle: `clip_shoutout_inbound_events`.
-- Neue Routen:
-  - `GET /api/clip-shoutout/inbound`
-  - `GET /api/clip-shoutout/inbound/stats`
-  - `POST /api/clip-shoutout/inbound/debug`
+- `backend/modules/twitch.js` bleibt das zentrale Twitch-/EventSub-System.
+- `backend/modules/clip_shoutout.js` bleibt das zentrale Shoutout-System.
+- `clip_shoutout.js` steht jetzt auf Version `0.2.12`.
+- Eingehende und ausgehende Twitch-Shoutout-EventSub-Events werden weiter im Shoutout-System gespeichert.
+- Neu: `GET /api/clip-shoutout/production-check`.
+- Neu im Dashboard: Tab `Produktion`.
 
 ## Wichtig
 
-- Kein neues Twitch-System gebaut.
-- Keine bestehende Funktionalität entfernt.
-- Keine produktive `!so`-Umstellung.
-- SQLite wird nur sanft erweitert.
+- Keine produktive `!so`-Umstellung erfolgt.
+- Keine neue Twitch-/EventSub-Modulstruktur.
+- Keine SQLite-Datei ersetzt oder überschrieben.
+- Ziel ist zuerst Transparenz: Scopes, Token, WebSocket und Shoutout-Subscriptions sichtbar prüfen.
 
 ## Nächster sinnvoller Schritt
 
-```text
-STEP485_SHOUTOUT_INBOUND_UI_POLISH_OR_SO_PRODUCTION_CHECK
-```
+`STEP486_SHOUTOUT_LIVE_TEST_AND_DECISION_PREP`
 
-Mögliche Optionen:
-
-1. Eingehend-Tab visuell/inhaltlich weiter verfeinern.
-2. EventSub-Daten nach Live-Test prüfen.
-3. Offizielle produktive `!so`-Umstellung nur nach ausdrücklicher Freigabe planen.
+Dabei sollten die neuen Checks lokal geprüft werden. Erst wenn `production-check` grün ist, kann über die produktive `!so`-Entscheidung gesprochen werden.
