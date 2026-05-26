@@ -72,6 +72,7 @@ project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
+project-state/TODO.md
 ```
 
 Weitere wichtige Doku-Bereiche:
@@ -94,6 +95,52 @@ Keine CURRENT_STATUS_APPEND_*.md erzeugen, wenn CURRENT_STATUS.md vorhanden ist.
 Append-Dateien nur nutzen, wenn die echte Zieldatei nicht verfügbar ist.
 Historische Snapshots dürfen helfen, aber nicht blind überschrieben werden.
 ```
+
+
+### 2.1 ToDo-/Offene-Punkte-Regel
+
+Es muss dauerhaft eine zentrale ToDo-/Offene-Punkte-Datei gepflegt werden, damit Ideen, Bugs, bewusst verschobene Punkte, spätere Umbauten und offene Tests nicht verloren gehen.
+
+Primäre Datei:
+
+```text
+project-state/TODO.md
+```
+
+Zusätzlich muss bei jedem STEP weiterhin aktualisiert werden:
+
+```text
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+```
+
+Regel:
+
+```text
+TODO.md = längerfristige/offene Punkte, Backlog, spätere Modulideen, bekannte UX-/Technik-Schulden.
+NEXT_STEPS.md = unmittelbare nächste Prüf-/Einbau-/Testschritte nach dem aktuellen STEP.
+```
+
+Bei größeren Themen dürfen zusätzlich modulbezogene ToDo-Dateien entstehen, aber nur wenn es wirklich hilft:
+
+```text
+project-state/TODO_SHOUTOUT.md
+project-state/TODO_SOUND_SYSTEM.md
+project-state/TODO_DASHBOARD.md
+```
+
+Jeder STEP muss prüfen:
+
+```text
+1. Wurde ein offener Punkt erledigt?
+2. Muss ein neuer offener Punkt ergänzt werden?
+3. Muss ein bewusst verschobener Punkt dokumentiert werden?
+4. Muss project-state/TODO.md aktualisiert werden?
+5. Muss project-state/NEXT_STEPS.md aktualisiert werden?
+```
+
+Keine mündlich besprochenen späteren Aufgaben einfach vergessen.
+Wenn eine Idee nicht sofort umgesetzt wird, muss sie als offener Punkt dokumentiert werden.
 
 ---
 
@@ -212,6 +259,7 @@ project-state/CURRENT_STATUS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
+project-state/TODO.md
 ```
 
 ---
@@ -1010,7 +1058,7 @@ Konkrete Datei oder konkrete Info anfordern.
 
 ---
 
-## 26. Aktueller bekannter Kontext nach STEP471/470
+## 26. Aktueller bekannter Kontext nach STEP473/470
 
 Zuletzt relevant:
 
@@ -1019,6 +1067,8 @@ STEP468: stream_status 0.1.2 mit API-First und Auto-Refresh bestätigt.
 STEP469: Shoutout-Dashboard-Modul ergänzt.
 STEP470: clip_shoutout 0.2.10 mit Statistik-Routen ergänzt.
 STEP471: Doku-/Regelwerk aktualisiert.
+STEP472: Allgemeiner Projektprompt mit Vollkontext ergänzt.
+STEP473: ToDo-/Offene-Punkte-Regel in Prompt und project-state/TODO.md ergänzt.
 ```
 
 Shoutout-Statistik bestätigt:
@@ -1030,7 +1080,7 @@ Shoutout-Statistik bestätigt:
 Offen / sinnvoll als nächstes:
 
 ```text
-STEP473_SHOUTOUT_DASHBOARD_TABS
+STEP474_SHOUTOUT_DASHBOARD_TABS
 ```
 
 Ziel:

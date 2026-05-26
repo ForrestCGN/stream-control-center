@@ -13,3 +13,11 @@
   - Shoutout-Dashboard braucht als nächstes Tabs
   - eingehende Shoutouts sind als späterer Ausbau notiert.
 - Keine Backend-, Dashboard-, Overlay- oder Datenbanklogik geändert.
+
+## STEP473_TODO_RULE_IN_GENERAL_PROMPT
+
+- `project-state/GENERAL_PROJECT_PROMPT.md` um eine verbindliche ToDo-/Offene-Punkte-Regel erweitert.
+- `project-state/TODO.md` als zentrale Backlog-/Offene-Punkte-Datei ergänzt.
+- Zuständigkeit zwischen `TODO.md` und `NEXT_STEPS.md` klargestellt.
+- Aktuelle offene Punkte zu Shoutout-Dashboard-Tabs, Inbound-Shoutout-Logging und Stream-Status-Livetest dokumentiert.
+- Keine Backend-, Dashboard-, Overlay-, Datenbank- oder JavaScript-Änderungen.

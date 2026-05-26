@@ -23,3 +23,11 @@ Aktuell bekannte Modulstände:
 Nächster sinnvoller technischer Schritt:
 
 - `STEP473_SHOUTOUT_DASHBOARD_TABS`
+
+## STEP473 - ToDo-Regel ergänzt
+
+- Der allgemeine Projektprompt wurde um eine verbindliche ToDo-/Offene-Punkte-Regel erweitert.
+- Neue zentrale Datei: `project-state/TODO.md`.
+- `TODO.md` dokumentiert längerfristige offene Punkte und verschobene Aufgaben.
+- `NEXT_STEPS.md` bleibt für direkte nächste Tests/Einbauschritte zuständig.
+- Jeder STEP muss prüfen, ob offene Punkte ergänzt, erledigt oder verschoben dokumentiert werden müssen.

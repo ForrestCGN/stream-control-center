@@ -1,44 +1,35 @@
 # NEXT_STEPS
 
-## Nach STEP472
+## Nach STEP473
 
 1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Da nur Markdown-Dateien geändert wurden: kein `node --check` nötig.
+2. Keine JS-Dateien geändert, daher kein `node --check` nötig.
 3. STEP abschließen:
 
 ```bat
-.\stepdone.cmd "STEP472 General Project Prompt Full Context"
+.\stepdone.cmd "STEP473 Todo Rule in General Prompt"
 ```
 
-## Nächster sinnvoller technischer Schritt
+## Nächster sinnvoller Arbeitsstep
 
 ```text
-STEP473_SHOUTOUT_DASHBOARD_TABS
+STEP474_SHOUTOUT_DASHBOARD_TABS
 ```
 
 Ziel:
 
-- Shoutout-Dashboard übersichtlicher machen.
-- Inhalte in Tabs/Unterbereiche aufteilen.
-- Keine Backend-Logik ändern, außer sie ist für die Anzeige zwingend nötig.
+- Shoutout-Dashboard aufräumen.
+- Tabs/Unterbereiche ergänzen:
+  - Übersicht
+  - Queues
+  - Statistik
+  - Timeline
+  - Settings/Test
+- Keine Backend-Logik ändern, sofern nicht zwingend nötig.
 
-Geplante Tabs:
+## Danach offen
 
-```text
-Übersicht
-Queues
-Statistik
-Timeline
-Settings/Test
-```
-
-## Danach möglich
-
-```text
-STEP474_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
-```
-
-Ziel:
-
-- Eingehende Twitch-Shoutouts loggen.
-- Statistik im Dashboard ergänzen: wer hat ForrestCGN woanders geshoutoutet.
+- Eingehende Twitch-Shoutouts per EventSub loggen.
+- Inbound-Shoutouts getrennt in Statistik und Dashboard anzeigen.
+- `stream_status` bei echtem Streamstart/Streamende live testen.
+- Weitere Module schrittweise auf zentralen Stream-Status umstellen.
