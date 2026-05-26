@@ -1,7 +1,9 @@
 # CHANGELOG
 
-## STEP496 - Commands Dashboard Alignment
+## STEP497_COMMANDS_STATUS_LIGHT - 2026-05-26
 
-- `htdocs/dashboard/modules/commands.css` optisch an das Kanalpunkte-Dashboard-Muster angeglichen.
-- Gemeinsamer Bedienansatz dokumentiert: Trigger/Befehl bzw. Reward/Button links, Detail/Aktion rechts.
-- Keine Backend-, DB- oder Runtime-Logik geändert.
+- `backend/modules/commands.js` angepasst.
+- `/api/commands/status` liefert jetzt nur leichten Status.
+- Schwere Felder entfernt: `commands`, `moduleCatalog`, `recent`.
+- Daten bleiben über `/list`, `/catalog`, `/logs` verfügbar.
+- Keine DB-Änderung, keine Dashboard-Änderung.

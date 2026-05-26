@@ -1,11 +1,16 @@
 # CURRENT_STATUS
 
-Stand: STEP496
+Stand: 2026-05-26  
+STEP: `STEP497_COMMANDS_STATUS_LIGHT`
 
-Das Kanalpunkte-System hat eine lokale DB-Grundlage, lokale Reward-CRUD-API und ein tab-/filterbasiertes Dashboard. Das Command-Dashboard wurde in STEP496 optisch an das Kanalpunkte-Bedienmuster angenähert, ohne Command-Logik zu verändern.
+## Ergebnis
 
-## Wichtig
+Commands-Statusroute wurde leichtgewichtig gemacht. Die Dashboard-Ladezeit sollte dadurch deutlich sinken, weil `/api/commands/status` keine Command-Liste, keinen Catalog und keine Logs mehr mitliefert.
 
-- Commands und Kanalpunkte sollen künftig als verwandte Interaktionssysteme behandelt werden.
-- Beide brauchen Kategorien, Suche, Filter, Liste, Detailbereich, Aktion/Medien/Regeln/Logs.
-- Kanalpunkte bleibt weiterhin ohne Twitch-Schreibaktionen.
+## Unverändert
+
+- Command-Liste: `/api/commands/list`
+- Command-Catalog: `/api/commands/catalog`
+- Logs: `/api/commands/logs`
+- Command-Ausführung/Test/Upsert/Delete
+- DB-Schema

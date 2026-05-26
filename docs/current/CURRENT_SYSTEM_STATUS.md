@@ -1,16 +1,18 @@
-# CURRENT_SYSTEM_STATUS
+# Current System Status
 
-Stand: STEP496
+Stand: 2026-05-26  
+Aktueller STEP: `STEP497_COMMANDS_STATUS_LIGHT`
 
-## Interaction-Systeme
+## Commands
 
-Commands und Kanalpunkte werden künftig bewusst als gleichartige Bedienmodelle geführt:
+`/api/commands/status` wurde optimiert und liefert nun nur noch schnellen Status. Schwere Daten werden weiterhin über getrennte Endpunkte geladen:
 
-- Commands: Chat-Trigger.
-- Kanalpunkte: Twitch-Reward/Button.
-- Beide: Kategorien, Suche, Filter, Liste, Detailbereich, Aktion, Medien, Regeln, Logs.
+- `/api/commands/list`
+- `/api/commands/catalog`
+- `/api/commands/logs`
 
-## STEP496
+Grund: Messung zeigte ca. 7,55 Sekunden für `/api/commands/status`, während die Einzelendpunkte nur ca. 11-17 ms benötigten.
 
-- Command-Dashboard optisch an Kanalpunkte-Muster angepasst.
-- Keine Runtime- oder Backend-Änderung.
+## Kanalpunkte
+
+Kanalpunkte-Dashboard und lokales CRUD bleiben unverändert aus STEP493-STEP495.

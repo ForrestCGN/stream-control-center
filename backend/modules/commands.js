@@ -5,6 +5,7 @@ const database = require('../core/database');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands';
+const MODULE_VERSION = '0.1.1';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -12,110 +13,58 @@ const DEFAULT_PREFIX = '!';
 const DEFAULT_TARGET_HOST = '127.0.0.1';
 const DEFAULT_TARGET_PORT = 8080;
 
-const STEP273C2_COMMAND_CATALOG = [
+const COMMAND_CATALOG = [
   {
     id: 'deathcounter',
     label: 'Deathcounter',
     icon: '💀',
     description: 'Deathcounter V2 Chat-Commands und Overlay-Steuerung.',
     actions: [
-      { id: 'deathcounter.rip', categoryId: 'deathcounter', icon: '💀', label: 'RIP erhöhen', description: 'Erhöht den Tod-Zähler für den genannten Spieler.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'rip', defaultAliases: ['death', 'tod'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'rip', defaultArgs: [] }, examples: ['!rip @ForrestCGN'] },
-      { id: 'deathcounter.tode', categoryId: 'deathcounter', icon: '📊', label: 'Tode anzeigen', description: 'Gibt Deathcounter-Statistiken aus.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'tode', defaultAliases: ['deaths'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'tode', defaultArgs: [] }, examples: ['!tode', '!tode @ForrestCGN'] },
-      { id: 'deathcounter.dcount', categoryId: 'deathcounter', icon: '🛠️', label: 'Deathcounter Admin', description: 'Admin-/Mod-Command fuer Show, Hide, Reset, Add, Remove und Replace.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dcount', defaultAliases: ['deathcount', 'deathcounter'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: [] }, examples: ['!dcount show', '!dcount hide', '!dcount replace @alt @neu'] },
-      { id: 'deathcounter.show', categoryId: 'deathcounter', icon: '👁️', label: 'Overlay anzeigen', description: 'Zeigt das Deathcounter-Overlay an. Nutzt intern dcount show.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dcshow', defaultAliases: ['showdc'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['show'] }, examples: ['!dcshow'] },
-      { id: 'deathcounter.hide', categoryId: 'deathcounter', icon: '🙈', label: 'Overlay verstecken', description: 'Versteckt das Deathcounter-Overlay. Nutzt intern dcount hide.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dchide', defaultAliases: ['hidedc'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['hide'] }, examples: ['!dchide'] },
-      { id: 'deathcounter.reset', categoryId: 'deathcounter', icon: '♻️', label: 'Overlay-Spieler resetten', description: 'Setzt die sichtbaren Deathcounter-Spieler auf Standard zurück. Nutzt intern dcount reset.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dcreset', defaultAliases: ['resetdc'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['reset'] }, examples: ['!dcreset'] },
-      { id: 'deathcounter.replace', categoryId: 'deathcounter', icon: '🔁', label: 'Overlay-Spieler ersetzen', description: 'Ersetzt einen sichtbaren Deathcounter-Spieler. Nutzt intern dcount replace.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dcreplace', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['replace'] }, examples: ['!dcreplace @alt @neu'] }
+      { id: 'deathcounter.rip', icon: '💀', label: 'RIP erhöhen', description: 'Erhöht den Tod-Zähler für den genannten Spieler.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'rip', defaultAliases: ['death', 'tod'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'rip', defaultArgs: [] }, examples: ['!rip @ForrestCGN'] },
+      { id: 'deathcounter.tode', icon: '📊', label: 'Tode anzeigen', description: 'Gibt Deathcounter-Statistiken aus.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'tode', defaultAliases: ['deaths'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'tode', defaultArgs: [] }, examples: ['!tode', '!tode @ForrestCGN'] },
+      { id: 'deathcounter.dcount', icon: '🛠️', label: 'Deathcounter Admin', description: 'Admin-/Mod-Command fuer Show, Hide, Reset, Add, Remove und Replace.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dcount', defaultAliases: ['deathcount', 'deathcounter'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: [] }, examples: ['!dcount show', '!dcount hide', '!dcount replace @alt @neu'] },
+      { id: 'deathcounter.show', icon: '👁️', label: 'Overlay anzeigen', description: 'Zeigt das Deathcounter-Overlay an. Nutzt intern dcount show.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dcshow', defaultAliases: ['showdc'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['show'] }, examples: ['!dcshow'] },
+      { id: 'deathcounter.hide', icon: '🙈', label: 'Overlay verstecken', description: 'Versteckt das Deathcounter-Overlay. Nutzt intern dcount hide.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dchide', defaultAliases: ['hidedc'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['hide'] }, examples: ['!dchide'] },
+      { id: 'deathcounter.reset', icon: '♻️', label: 'Overlay-Spieler resetten', description: 'Setzt die sichtbaren Deathcounter-Spieler auf Standard zurück. Nutzt intern dcount reset.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dcreset', defaultAliases: ['resetdc'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['reset'] }, examples: ['!dcreset'] },
+      { id: 'deathcounter.replace', icon: '🔁', label: 'Overlay-Spieler ersetzen', description: 'Ersetzt einen sichtbaren Deathcounter-Spieler. Nutzt intern dcount replace.', moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', defaultTrigger: 'dcreplace', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'dcount', defaultArgs: ['replace'] }, examples: ['!dcreplace @alt @neu'] }
     ]
   },
   {
     id: 'hug',
     label: 'Hug-System',
     icon: '🤗',
-    description: 'Hug/Rehug-Commands ueber /api/hug/command. Hug.js stellt einen unified command endpoint bereit.',
+    description: 'Hug/Rehug-Commands ueber /api/hug/command.',
     actions: [
-      { id: 'hug.hug', categoryId: 'hug', icon: '🤗', label: 'Hug ausführen', description: 'Huggt einen User oder den Chat.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hug', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: [] }, examples: ['!hug @User', '!hug all'] },
-      { id: 'hug.rehug', categoryId: 'hug', icon: '💜', label: 'Rehug ausführen', description: 'Erwidert einen Hug innerhalb des Rehug-Fensters.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'rehug', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'rehug', defaultArgs: [] }, examples: ['!rehug @User'] },
-      { id: 'hug.stats', categoryId: 'hug', icon: '📊', label: 'Hug-Stats anzeigen', description: 'Zeigt Hug-Statistiken fuer sich oder einen User.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugstats', defaultAliases: ['hugs'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['stats'] }, examples: ['!hugstats', '!hugstats @User'] },
-      { id: 'hug.top', categoryId: 'hug', icon: '🏆', label: 'Top Hugs', description: 'Zeigt die Top-Liste der vergebenen Hugs.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugtop', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 8000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['top'] }, examples: ['!hugtop'] },
-      { id: 'hug.top_received', categoryId: 'hug', icon: '📥', label: 'Top erhaltene Hugs', description: 'Zeigt die Top-Liste der erhaltenen Hugs.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugtopreceived', defaultAliases: ['hugtopreceived'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 8000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['top', 'received'] }, examples: ['!hugtopreceived'] },
-      { id: 'hug.top_rehug', categoryId: 'hug', icon: '🔄', label: 'Top Rehugs', description: 'Zeigt die Top-Liste der Rehugs.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'rehugtop', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 8000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['top', 'rehug'] }, examples: ['!rehugtop'] },
-      { id: 'hug.on', categoryId: 'hug', icon: '✅', label: 'Hugs aktivieren', description: 'Aktiviert Hugs fuer den User.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugon', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['on'] }, examples: ['!hugon'] },
-      { id: 'hug.off', categoryId: 'hug', icon: '🚫', label: 'Hugs deaktivieren', description: 'Deaktiviert Hugs fuer den User.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugoff', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['off'] }, examples: ['!hugoff'] },
-      { id: 'hug.reload', categoryId: 'hug', icon: '🔄', label: 'Hug-System neu laden', description: 'Laedt Hug-Cache/Texte neu.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugreload', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['reload'] }, examples: ['!hugreload'] }
+      { id: 'hug.hug', icon: '🤗', label: 'Hug ausführen', description: 'Huggt einen User oder den Chat.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hug', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: [] }, examples: ['!hug @User', '!hug all'] },
+      { id: 'hug.rehug', icon: '💜', label: 'Rehug ausführen', description: 'Erwidert einen Hug innerhalb des Rehug-Fensters.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'rehug', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'rehug', defaultArgs: [] }, examples: ['!rehug @User'] },
+      { id: 'hug.stats', icon: '📊', label: 'Hug-Stats anzeigen', description: 'Zeigt Hug-Statistiken fuer sich oder einen User.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugstats', defaultAliases: ['hugs'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['stats'] }, examples: ['!hugstats', '!hugstats @User'] },
+      { id: 'hug.top', icon: '🏆', label: 'Top Hugs', description: 'Zeigt die Top-Liste der vergebenen Hugs.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugtop', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 8000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['top'] }, examples: ['!hugtop'] },
+      { id: 'hug.top_received', icon: '📥', label: 'Top erhaltene Hugs', description: 'Zeigt die Top-Liste der erhaltenen Hugs.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugtopreceived', defaultAliases: ['hugtopreceived'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 8000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['top', 'received'] }, examples: ['!hugtopreceived'] },
+      { id: 'hug.top_rehug', icon: '🔄', label: 'Top Rehugs', description: 'Zeigt die Top-Liste der Rehugs.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'rehugtop', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 8000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['top', 'rehug'] }, examples: ['!rehugtop'] },
+      { id: 'hug.on', icon: '✅', label: 'Hugs aktivieren', description: 'Aktiviert Hugs fuer den User.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugon', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['on'] }, examples: ['!hugon'] },
+      { id: 'hug.off', icon: '🚫', label: 'Hugs deaktivieren', description: 'Deaktiviert Hugs fuer den User.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugoff', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['off'] }, examples: ['!hugoff'] },
+      { id: 'hug.reload', icon: '🔄', label: 'Hug-System neu laden', description: 'Laedt Hug-Cache/Texte neu.', moduleKey: 'hug', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/hug/command', defaultTrigger: 'hugreload', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'hug', defaultArgs: ['reload'] }, examples: ['!hugreload'] }
     ]
   },
-  {
-    id: 'vip_sound',
-    label: 'VIP-Sound',
-    icon: '💎',
-    description: 'VIP-Sound-Command über das Node-Command-System. Zielroute ist der produktive VIP-Sound-Bus.',
-    actions: [
-      { id: 'vip_sound.vip', categoryId: 'vip_sound', icon: '💎', label: 'VIP-Sound abspielen', description: 'Spielt den VIP-Sound des genannten Users über /api/vip-sound/command und den Sound-Bus.', moduleKey: 'vip_sound_overlay', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip-sound/command', defaultTrigger: 'vip', defaultAliases: ['vipsound'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true, seededBy: 'STEP452' }, examples: ['!vip @adoredpenny', '!vip adoredpenny'] }
-    ]
-  },
-  {
-    id: 'clips',
-    label: 'Clips / Content',
-    icon: '✂️',
-    description: 'Clip- und Content-nahe Commands. Wird mit dem Clip-Modul weiter vervollständigt.',
-    actions: [
-      { id: 'clips.clip.prepared', categoryId: 'clips', icon: '✂️', label: 'Clip erstellen vorbereiten', description: 'Vorbereitet fuer Clip-Command. Die exakte Clip-Ausfuehrung wird mit dem Clip-Modul-Catalog nachgezogen.', moduleKey: 'clips', actionKey: 'command', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'clip', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 10000, responseMode: 'module', config: { actionType: 'module_command', catalogStatus: 'prepared' }, examples: ['!clip', '!clip eigener Titel'] }
-    ]
-  },
-  {
-    id: 'tagebuch',
-    label: 'Tagebuch',
-    icon: '📖',
-    description: 'Stream-Tagebuch. Getrennt von Todo, weil es ein eigenes Modul mit eigenen Routen/Settings/Texten ist.',
-    actions: [
-      { id: 'tagebuch.entry', categoryId: 'tagebuch', icon: '📖', label: 'Tagebuch-Eintrag', description: 'Schreibt einen Text ins Stream-Tagebuch.', moduleKey: 'tagebuch', actionKey: 'entry', targetMethod: 'POST', targetUrl: '/api/tagebuch/entry', defaultTrigger: 'tagebuch', defaultAliases: ['tb'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'tagebuch', defaultArgs: [] }, examples: ['!tagebuch besonderer Moment'] },
-      { id: 'tagebuch.stats_top', categoryId: 'tagebuch', icon: '🏆', label: 'Tagebuch Top', description: 'Zeigt die Top-User-Statistik des Tagebuchs.', moduleKey: 'tagebuch', actionKey: 'stats_top', targetMethod: 'GET', targetUrl: '/api/tagebuch/stats/top', defaultTrigger: 'tagebuchtop', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'tagebuchtop', defaultArgs: [] }, examples: ['!tagebuchtop'] },
-      { id: 'tagebuch.stats_today', categoryId: 'tagebuch', icon: '📅', label: 'Tagebuch heute', description: 'Zeigt die Tagesstatistik des Tagebuchs.', moduleKey: 'tagebuch', actionKey: 'stats_today', targetMethod: 'GET', targetUrl: '/api/tagebuch/stats/today', defaultTrigger: 'tagebuchheute', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'tagebuchheute', defaultArgs: [] }, examples: ['!tagebuchheute'] }
-    ]
-  },
-  {
-    id: 'todo',
-    label: 'Todo',
-    icon: '✅',
-    description: 'Todo-System. Getrennt vom Tagebuch, weil es ein eigenes Modul mit eigenen Routen/Settings/Texten ist.',
-    actions: [
-      { id: 'todo.add.prepared', categoryId: 'todo', icon: '✅', label: 'Todo hinzufügen vorbereiten', description: 'Vorbereitet fuer Todo-Command. Die exakte Todo-Route wird im Todo-Catalog-Step nachgezogen.', moduleKey: 'todo', actionKey: 'command', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'todo', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', catalogStatus: 'prepared' }, examples: ['!todo Text'] }
-    ]
-  },
-  {
-    id: 'system',
-    label: 'System / Medien',
-    icon: '🧩',
-    description: 'Vorbereitete Systemaktionen. Medien werden ab STEP274 zentral verwaltet.',
-    actions: [
-      { id: 'system.sound.prepared', categoryId: 'system', icon: '🔊', label: 'Sound abspielen vorbereiten', description: 'Wird nach der zentralen Medienverwaltung an Sound-System/Media-Assets angebunden.', moduleKey: 'media', actionKey: 'sound_play', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'sound', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'sound_play', catalogStatus: 'prepared' }, examples: ['!sound hype'] },
-      { id: 'system.video.prepared', categoryId: 'system', icon: '🎬', label: 'Video abspielen vorbereiten', description: 'Wird nach der zentralen Medienverwaltung an Overlay-/Video-Player angebunden.', moduleKey: 'media', actionKey: 'video_play', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'video', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'video_play', catalogStatus: 'prepared' }, examples: ['!video hype'] }
-    ]
-  }
+  { id: 'vip_sound', label: 'VIP-Sound', icon: '💎', description: 'VIP-Sound-Command über das Node-Command-System.', actions: [
+    { id: 'vip_sound.vip', icon: '💎', label: 'VIP-Sound abspielen', description: 'Spielt den VIP-Sound des genannten Users.', moduleKey: 'vip_sound_overlay', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip-sound/command', defaultTrigger: 'vip', defaultAliases: ['vipsound'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true, seededBy: 'STEP452' }, examples: ['!vip @adoredpenny'] }
+  ] },
+  { id: 'clips', label: 'Clips / Content', icon: '✂️', description: 'Clip- und Content-nahe Commands.', actions: [
+    { id: 'clips.clip.prepared', icon: '✂️', label: 'Clip erstellen vorbereiten', description: 'Vorbereitet fuer Clip-Command.', moduleKey: 'clips', actionKey: 'command', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'clip', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 10000, responseMode: 'module', config: { actionType: 'module_command', catalogStatus: 'prepared' }, examples: ['!clip'] }
+  ] },
+  { id: 'tagebuch', label: 'Tagebuch', icon: '📖', description: 'Stream-Tagebuch.', actions: [
+    { id: 'tagebuch.entry', icon: '📖', label: 'Tagebuch-Eintrag', description: 'Schreibt einen Text ins Stream-Tagebuch.', moduleKey: 'tagebuch', actionKey: 'entry', targetMethod: 'POST', targetUrl: '/api/tagebuch/entry', defaultTrigger: 'tagebuch', defaultAliases: ['tb'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'tagebuch', defaultArgs: [] }, examples: ['!tagebuch besonderer Moment'] },
+    { id: 'tagebuch.stats_top', icon: '🏆', label: 'Tagebuch Top', description: 'Zeigt die Top-User-Statistik des Tagebuchs.', moduleKey: 'tagebuch', actionKey: 'stats_top', targetMethod: 'GET', targetUrl: '/api/tagebuch/stats/top', defaultTrigger: 'tagebuchtop', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'tagebuchtop', defaultArgs: [] }, examples: ['!tagebuchtop'] },
+    { id: 'tagebuch.stats_today', icon: '📅', label: 'Tagebuch heute', description: 'Zeigt die Tagesstatistik des Tagebuchs.', moduleKey: 'tagebuch', actionKey: 'stats_today', targetMethod: 'GET', targetUrl: '/api/tagebuch/stats/today', defaultTrigger: 'tagebuchheute', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'tagebuchheute', defaultArgs: [] }, examples: ['!tagebuchheute'] }
+  ] },
+  { id: 'todo', label: 'Todo', icon: '✅', description: 'Todo-System.', actions: [
+    { id: 'todo.add.prepared', icon: '✅', label: 'Todo hinzufügen vorbereiten', description: 'Vorbereitet fuer Todo-Command.', moduleKey: 'todo', actionKey: 'command', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'todo', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', catalogStatus: 'prepared' }, examples: ['!todo Text'] }
+  ] },
+  { id: 'system', label: 'System / Medien', icon: '🧩', description: 'Vorbereitete Systemaktionen.', actions: [
+    { id: 'system.sound.prepared', icon: '🔊', label: 'Sound abspielen vorbereiten', description: 'Wird an Sound-System/Media-Assets angebunden.', moduleKey: 'media', actionKey: 'sound_play', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'sound', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'sound_play', catalogStatus: 'prepared' }, examples: ['!sound hype'] },
+    { id: 'system.video.prepared', icon: '🎬', label: 'Video abspielen vorbereiten', description: 'Wird an Overlay-/Video-Player angebunden.', moduleKey: 'media', actionKey: 'video_play', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'video', defaultAliases: [], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'video_play', catalogStatus: 'prepared' }, examples: ['!video hype'] }
+  ] }
 ];
-
-function buildCommandCatalog() {
-  const categories = STEP273C2_COMMAND_CATALOG.map(category => ({
-    id: category.id,
-    label: category.label,
-    icon: category.icon || '🧩',
-    description: category.description || '',
-    actions: (category.actions || []).map(action => ({ ...action, categoryId: action.categoryId || category.id }))
-  }));
-  const actions = categories.flatMap(category => category.actions.map(action => ({ ...action, categoryId: category.id, categoryLabel: category.label })));
-  return {
-    ok: true,
-    module: MODULE_NAME,
-    version: 1,
-    step: 'STEP273C2',
-    note: 'Neue Module sollen ihren Command-Catalog pflegen oder hier zentral ergänzt werden.',
-    categories,
-    actions,
-    updatedAt: nowIso()
-  };
-}
-
 
 const state = {
   initialized: false,
@@ -138,20 +87,19 @@ const state = {
   ctx: null
 };
 
-function nowIso() {
-  return core.nowIso();
-}
+function nowIso() { return core.nowIso(); }
+function cleanText(value) { return String(value ?? '').replace(/[\r\n]+/g, ' ').trim(); }
+function cleanLogin(value) { return String(value || '').trim().replace(/^@/, '').toLowerCase(); }
+function cleanTrigger(value) { return String(value || '').trim().replace(/^[!./]+/, '').toLowerCase(); }
+function int(value, fallback = 0) { const n = Number.parseInt(value, 10); return Number.isFinite(n) ? n : fallback; }
 
-function cleanText(value) {
-  return String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
-}
-
-function cleanLogin(value) {
-  return String(value || '').trim().replace(/^@/, '').toLowerCase();
-}
-
-function cleanTrigger(value) {
-  return String(value || '').trim().replace(/^[!./]+/, '').toLowerCase();
+function bool(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  const v = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'ja', 'on', 'y'].includes(v)) return true;
+  if (['0', 'false', 'no', 'nein', 'off', 'n'].includes(v)) return false;
+  return fallback;
 }
 
 function safeJsonEncode(value, fallback = '{}') {
@@ -170,36 +118,27 @@ function safeJsonEncode(value, fallback = '{}') {
     return fallback;
   }
 }
-
-function jsonEncode(value) {
-  return safeJsonEncode(value ?? null, 'null');
-}
-
+function jsonEncode(value) { return safeJsonEncode(value ?? null, 'null'); }
 function jsonDecode(value, fallback = null) {
   if (value === undefined || value === null || value === '') return fallback;
-  try {
-    if (typeof database.jsonDecode === 'function') return database.jsonDecode(value, fallback);
-  } catch (_) {}
+  try { if (typeof database.jsonDecode === 'function') return database.jsonDecode(value, fallback); } catch (_) {}
   return core.safeJsonParse(value, fallback);
 }
 
-function bool(value, fallback = false) {
-  if (value === undefined || value === null || value === '') return fallback;
-  if (typeof value === 'boolean') return value;
-  const v = String(value).trim().toLowerCase();
-  if (['1', 'true', 'yes', 'ja', 'on', 'y'].includes(v)) return true;
-  if (['0', 'false', 'no', 'nein', 'off', 'n'].includes(v)) return false;
-  return fallback;
-}
-
-function int(value, fallback = 0) {
-  const n = Number.parseInt(value, 10);
-  return Number.isFinite(n) ? n : fallback;
+function buildCommandCatalog() {
+  const categories = COMMAND_CATALOG.map(category => ({
+    id: category.id,
+    label: category.label,
+    icon: category.icon || '🧩',
+    description: category.description || '',
+    actions: (category.actions || []).map(action => ({ ...action, categoryId: action.categoryId || category.id }))
+  }));
+  const actions = categories.flatMap(category => category.actions.map(action => ({ ...action, categoryId: category.id, categoryLabel: category.label })));
+  return { ok: true, module: MODULE_NAME, version: 1, step: 'STEP273C2', note: 'Neue Module sollen ihren Command-Catalog pflegen oder hier zentral ergänzt werden.', categories, actions, updatedAt: nowIso() };
 }
 
 function ensureSchema() {
   if (state.schemaReady && state.schemaOk) return true;
-
   try {
     database.ensureReady();
     database.exec(`
@@ -247,15 +186,10 @@ function ensureSchema() {
     database.exec('CREATE INDEX IF NOT EXISTS idx_command_execution_log_trigger ON command_execution_log(trigger);');
     database.exec('CREATE INDEX IF NOT EXISTS idx_command_execution_log_user ON command_execution_log(user_login);');
     if (typeof database.setSchemaVersion === 'function') database.setSchemaVersion(SCHEMA_MODULE, SCHEMA_VERSION);
-
     state.schemaReady = true;
     state.schemaOk = true;
     state.schemaError = '';
-
-    if (!state.seeded && !state.seeding) {
-      seedDefaultCommands();
-    }
-
+    if (!state.seeded && !state.seeding) seedDefaultCommands();
     return true;
   } catch (err) {
     state.schemaOk = false;
@@ -271,65 +205,11 @@ function seedDefaultCommands() {
   state.seeding = true;
   try {
     const defaults = [
-      {
-        trigger: 'rip',
-        aliases: ['death', 'tod'],
-        moduleKey: 'deathcounter_v2',
-        actionKey: 'command',
-        targetMethod: 'POST',
-        targetUrl: '/api/deathcounter/v2/command',
-        permissionLevel: 'everyone',
-        cooldownGlobalMs: 1000,
-        cooldownUserMs: 3000,
-        liveOnly: false,
-        responseMode: 'module',
-        config: { seededBy: 'STEP273A', rawInputMode: true }
-      },
-      {
-        trigger: 'tode',
-        aliases: ['deaths'],
-        moduleKey: 'deathcounter_v2',
-        actionKey: 'command',
-        targetMethod: 'POST',
-        targetUrl: '/api/deathcounter/v2/command',
-        permissionLevel: 'everyone',
-        cooldownGlobalMs: 1000,
-        cooldownUserMs: 3000,
-        liveOnly: false,
-        responseMode: 'module',
-        config: { seededBy: 'STEP273A', rawInputMode: true }
-      },
-      {
-        trigger: 'dcount',
-        aliases: ['deathcount', 'deathcounter'],
-        moduleKey: 'deathcounter_v2',
-        actionKey: 'command',
-        targetMethod: 'POST',
-        targetUrl: '/api/deathcounter/v2/command',
-        permissionLevel: 'mod',
-        cooldownGlobalMs: 1000,
-        cooldownUserMs: 2500,
-        liveOnly: false,
-        responseMode: 'module',
-        config: { seededBy: 'STEP273A', rawInputMode: true }
-      }
-,
-      {
-        trigger: 'vip',
-        aliases: ['vipsound'],
-        moduleKey: 'vip_sound_overlay',
-        actionKey: 'command',
-        targetMethod: 'POST',
-        targetUrl: '/api/vip-sound/command',
-        permissionLevel: 'everyone',
-        cooldownGlobalMs: 1000,
-        cooldownUserMs: 3000,
-        liveOnly: false,
-        responseMode: 'module',
-        config: { seededBy: 'STEP452', actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true }
-      }
+      { trigger: 'rip', aliases: ['death', 'tod'], moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP273A', rawInputMode: true } },
+      { trigger: 'tode', aliases: ['deaths'], moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP273A', rawInputMode: true } },
+      { trigger: 'dcount', aliases: ['deathcount', 'deathcounter'], moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP273A', rawInputMode: true } },
+      { trigger: 'vip', aliases: ['vipsound'], moduleKey: 'vip_sound_overlay', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip-sound/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP452', actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true } }
     ];
-
     for (const item of defaults) {
       const existing = database.get('SELECT id FROM command_definitions WHERE trigger = :trigger', { trigger: item.trigger });
       if (existing?.id) continue;
@@ -381,13 +261,10 @@ function getCommandByTrigger(trigger) {
   if (!clean) return null;
   const direct = database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger: clean });
   if (direct) return { command: rowToCommand(direct), aliasTrigger: clean, matchedBy: 'trigger' };
-
   const rows = database.all('SELECT * FROM command_definitions WHERE enabled = 1');
   for (const row of rows) {
     const aliases = jsonDecode(row.aliases_json, []);
-    if (Array.isArray(aliases) && aliases.map(cleanTrigger).includes(clean)) {
-      return { command: rowToCommand(row), aliasTrigger: clean, matchedBy: 'alias' };
-    }
+    if (Array.isArray(aliases) && aliases.map(cleanTrigger).includes(clean)) return { command: rowToCommand(row), aliasTrigger: clean, matchedBy: 'alias' };
   }
   return null;
 }
@@ -398,7 +275,6 @@ function normalizeAliases(value) {
   if (!raw) return [];
   return raw.split(/[\s,;]+/).map(cleanTrigger).filter(Boolean);
 }
-
 function normalizeConfig(value) {
   if (!value) return {};
   if (typeof value === 'object' && !Array.isArray(value)) return value;
@@ -409,7 +285,6 @@ function saveCommand(input = {}, options = {}) {
   const now = nowIso();
   const trigger = cleanTrigger(input.trigger || input.command || input.name || '');
   if (!trigger) throw new Error('command_trigger_missing');
-
   const existing = database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger });
   const current = rowToCommand(existing);
   const data = {
@@ -429,7 +304,6 @@ function saveCommand(input = {}, options = {}) {
     createdAt: current?.createdAt || now,
     updatedAt: now
   };
-
   database.run(`
     INSERT INTO command_definitions (
       trigger, aliases_json, module_key, action_key, target_method, target_url,
@@ -455,51 +329,29 @@ function saveCommand(input = {}, options = {}) {
       config_json = excluded.config_json,
       updated_at = excluded.updated_at
   `, data);
-
-  const saved = rowToCommand(database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger }));
-  return { ok: true, seed: !!options.seed, command: saved };
+  return { ok: true, seed: !!options.seed, command: rowToCommand(database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger })) };
 }
-
-function upsertCommand(input = {}, options = {}) {
-  ensureSchema();
-  return saveCommand(input, options);
-}
-
+function upsertCommand(input = {}, options = {}) { ensureSchema(); return saveCommand(input, options); }
 function deleteCommand(triggerOrId) {
   ensureSchema();
   const raw = String(triggerOrId || '').trim();
   if (!raw) throw new Error('command_delete_target_missing');
-  let result;
-  if (/^\d+$/.test(raw)) {
-    result = database.run('DELETE FROM command_definitions WHERE id = :id', { id: Number(raw) });
-  } else {
-    result = database.run('DELETE FROM command_definitions WHERE trigger = :trigger', { trigger: cleanTrigger(raw) });
-  }
+  const result = /^\d+$/.test(raw)
+    ? database.run('DELETE FROM command_definitions WHERE id = :id', { id: Number(raw) })
+    : database.run('DELETE FROM command_definitions WHERE trigger = :trigger', { trigger: cleanTrigger(raw) });
   return { ok: true, deleted: Number(result?.changes || 0) };
 }
 
 function parseChatMessage(input = {}) {
   const rawMessage = cleanText(input.rawMessage || input.message || input.text || '');
   const prefix = cleanText(input.prefix || state.prefix || DEFAULT_PREFIX) || DEFAULT_PREFIX;
-  if (!rawMessage || !rawMessage.startsWith(prefix)) {
-    return { isCommand: false, rawMessage, prefix, reason: 'not_a_command' };
-  }
-
+  if (!rawMessage || !rawMessage.startsWith(prefix)) return { isCommand: false, rawMessage, prefix, reason: 'not_a_command' };
   const withoutPrefix = rawMessage.slice(prefix.length).trim();
   if (!withoutPrefix) return { isCommand: false, rawMessage, prefix, reason: 'empty_command' };
-
   const parts = withoutPrefix.split(/\s+/).filter(Boolean);
   const trigger = cleanTrigger(parts.shift() || '');
   const args = parts;
-  return {
-    isCommand: !!trigger,
-    prefix,
-    rawMessage,
-    trigger,
-    args,
-    rawInput: withoutPrefix,
-    argText: args.join(' ')
-  };
+  return { isCommand: !!trigger, prefix, rawMessage, trigger, args, rawInput: withoutPrefix, argText: args.join(' ') };
 }
 
 function userFromParsed(parsed = {}, override = {}) {
@@ -507,18 +359,8 @@ function userFromParsed(parsed = {}, override = {}) {
   const badges = parsed.badges || {};
   const login = cleanLogin(override.userLogin || override.login || parsed.login || tags.login || '');
   const displayName = cleanText(override.userDisplayName || override.displayName || parsed.displayName || tags['display-name'] || login);
-  return {
-    login,
-    displayName: displayName || login,
-    userId: cleanText(tags['user-id'] || override.userId || ''),
-    badges,
-    isBroadcaster: !!badges.broadcaster,
-    isMod: !!badges.moderator || tags.mod === '1',
-    isVip: !!badges.vip,
-    isSubscriber: !!badges.subscriber || !!badges.founder || tags.subscriber === '1'
-  };
+  return { login, displayName: displayName || login, userId: cleanText(tags['user-id'] || override.userId || ''), badges, isBroadcaster: !!badges.broadcaster, isMod: !!badges.moderator || tags.mod === '1', isVip: !!badges.vip, isSubscriber: !!badges.subscriber || !!badges.founder || tags.subscriber === '1' };
 }
-
 function hasPermission(command, user) {
   const level = String(command.permissionLevel || 'everyone').trim().toLowerCase();
   if (!level || level === 'everyone' || level === 'all') return true;
@@ -528,47 +370,26 @@ function hasPermission(command, user) {
   if (level === 'streamer' || level === 'broadcaster' || level === 'owner') return user.isBroadcaster;
   return false;
 }
-
-function cooldownKey(scope, command, userLogin = '') {
-  return `${scope}:${command.trigger}:${userLogin || '*'}`;
-}
-
+function cooldownKey(scope, command, userLogin = '') { return `${scope}:${command.trigger}:${userLogin || '*'}`; }
 function checkCooldown(command, user) {
   const now = Date.now();
   const globalMs = Math.max(0, Number(command.cooldownGlobalMs || 0));
   const userMs = Math.max(0, Number(command.cooldownUserMs || 0));
-
-  const globalKey = cooldownKey('global', command);
-  const userKey = cooldownKey('user', command, user.login || 'unknown');
-  const lastGlobal = Number(state.cooldowns.get(globalKey) || 0);
-  const lastUser = Number(state.cooldowns.get(userKey) || 0);
-
-  if (globalMs > 0 && now - lastGlobal < globalMs) {
-    return { ok: false, scope: 'global', waitMs: globalMs - (now - lastGlobal) };
-  }
-  if (userMs > 0 && now - lastUser < userMs) {
-    return { ok: false, scope: 'user', waitMs: userMs - (now - lastUser) };
-  }
+  const lastGlobal = Number(state.cooldowns.get(cooldownKey('global', command)) || 0);
+  const lastUser = Number(state.cooldowns.get(cooldownKey('user', command, user.login || 'unknown')) || 0);
+  if (globalMs > 0 && now - lastGlobal < globalMs) return { ok: false, scope: 'global', waitMs: globalMs - (now - lastGlobal) };
+  if (userMs > 0 && now - lastUser < userMs) return { ok: false, scope: 'user', waitMs: userMs - (now - lastUser) };
   return { ok: true };
 }
-
 function markCooldown(command, user) {
   const now = Date.now();
   state.cooldowns.set(cooldownKey('global', command), now);
   state.cooldowns.set(cooldownKey('user', command, user.login || 'unknown'), now);
 }
-
 function summarizeResultForLog(result) {
   if (!result || typeof result !== 'object') return result || {};
-  return {
-    ok: !!result.ok,
-    statusCode: result.statusCode || null,
-    dataOk: result.data && typeof result.data === 'object' ? !!result.data.ok : null,
-    message: result.data && typeof result.data === 'object' ? (result.data.message || '') : '',
-    error: result.data && typeof result.data === 'object' ? (result.data.error || '') : '',
-    module: result.data && typeof result.data === 'object' ? (result.data.module || result.data.data?.module || '') : '',
-    command: result.data && typeof result.data === 'object' ? (result.data.command || result.data.data?.command || '') : ''
-  };
+  const data = result.data && typeof result.data === 'object' ? result.data : null;
+  return { ok: !!result.ok, statusCode: result.statusCode || null, dataOk: data ? !!data.ok : null, message: data ? (data.message || '') : '', error: data ? (data.error || '') : '', module: data ? (data.module || data.data?.module || '') : '', command: data ? (data.command || data.data?.command || '') : '' };
 }
 
 function logExecution(entry = {}) {
@@ -583,49 +404,14 @@ function logExecution(entry = {}) {
         :moduleKey, :actionKey, :targetUrl, :success, :ignored, :error, :resultJson, :createdAt
       )
     `, {
-      trigger: entry.trigger || '',
-      aliasTrigger: entry.aliasTrigger || '',
-      userLogin: entry.userLogin || '',
-      userDisplayName: entry.userDisplayName || '',
-      rawMessage: entry.rawMessage || '',
-      argsJson: jsonEncode(entry.args || []),
-      moduleKey: entry.moduleKey || '',
-      actionKey: entry.actionKey || '',
-      targetUrl: entry.targetUrl || '',
-      success: entry.success ? 1 : 0,
-      ignored: entry.ignored ? 1 : 0,
-      error: entry.error || '',
-      resultJson: jsonEncode(entry.result || {}),
-      createdAt: nowIso()
+      trigger: entry.trigger || '', aliasTrigger: entry.aliasTrigger || '', userLogin: entry.userLogin || '', userDisplayName: entry.userDisplayName || '', rawMessage: entry.rawMessage || '', argsJson: jsonEncode(entry.args || []), moduleKey: entry.moduleKey || '', actionKey: entry.actionKey || '', targetUrl: entry.targetUrl || '', success: entry.success ? 1 : 0, ignored: entry.ignored ? 1 : 0, error: entry.error || '', resultJson: jsonEncode(entry.result || {}), createdAt: nowIso()
     });
-  } catch (err) {
-    state.lastError = err?.message || String(err);
-  }
+  } catch (err) { state.lastError = err?.message || String(err); }
 }
-
 function recentLogs(limit = 25) {
   ensureSchema();
-  return database.all(`
-    SELECT *
-    FROM command_execution_log
-    ORDER BY id DESC
-    LIMIT :limit
-  `, { limit: Math.max(1, Math.min(100, int(limit, 25))) }).map(row => ({
-    id: Number(row.id),
-    trigger: row.trigger || '',
-    aliasTrigger: row.alias_trigger || '',
-    userLogin: row.user_login || '',
-    userDisplayName: row.user_display_name || '',
-    rawMessage: row.raw_message || '',
-    args: jsonDecode(row.args_json, []),
-    moduleKey: row.module_key || '',
-    actionKey: row.action_key || '',
-    targetUrl: row.target_url || '',
-    success: Number(row.success || 0) === 1,
-    ignored: Number(row.ignored || 0) === 1,
-    error: row.error || '',
-    result: jsonDecode(row.result_json, {}),
-    createdAt: row.created_at || ''
+  return database.all(`SELECT * FROM command_execution_log ORDER BY id DESC LIMIT :limit`, { limit: Math.max(1, Math.min(100, int(limit, 25))) }).map(row => ({
+    id: Number(row.id), trigger: row.trigger || '', aliasTrigger: row.alias_trigger || '', userLogin: row.user_login || '', userDisplayName: row.user_display_name || '', rawMessage: row.raw_message || '', args: jsonDecode(row.args_json, []), moduleKey: row.module_key || '', actionKey: row.action_key || '', targetUrl: row.target_url || '', success: Number(row.success || 0) === 1, ignored: Number(row.ignored || 0) === 1, error: row.error || '', result: jsonDecode(row.result_json, {}), createdAt: row.created_at || ''
   }));
 }
 
@@ -633,17 +419,7 @@ function httpJsonRequest(method, targetUrl, payload = {}) {
   const cleanUrl = cleanText(targetUrl);
   if (!cleanUrl) return Promise.reject(new Error('target_url_missing'));
   const body = JSON.stringify(payload);
-  const options = {
-    hostname: process.env.COMMAND_TARGET_HOST || DEFAULT_TARGET_HOST,
-    port: Number(process.env.COMMAND_TARGET_PORT || DEFAULT_TARGET_PORT) || DEFAULT_TARGET_PORT,
-    path: cleanUrl.startsWith('/') ? cleanUrl : `/${cleanUrl}`,
-    method: String(method || 'POST').trim().toUpperCase() || 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body)
-    }
-  };
-
+  const options = { hostname: process.env.COMMAND_TARGET_HOST || DEFAULT_TARGET_HOST, port: Number(process.env.COMMAND_TARGET_PORT || DEFAULT_TARGET_PORT) || DEFAULT_TARGET_PORT, path: cleanUrl.startsWith('/') ? cleanUrl : `/${cleanUrl}`, method: String(method || 'POST').trim().toUpperCase() || 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } };
   return new Promise((resolve, reject) => {
     const req = http.request(options, res => {
       let data = '';
@@ -652,14 +428,8 @@ function httpJsonRequest(method, targetUrl, payload = {}) {
       res.on('end', () => {
         let parsed = data;
         try { parsed = data ? JSON.parse(data) : {}; } catch (_) {}
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve({ ok: true, statusCode: res.statusCode, data: parsed });
-        } else {
-          const err = new Error(`target_http_${res.statusCode}`);
-          err.statusCode = res.statusCode;
-          err.data = parsed;
-          reject(err);
-        }
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve({ ok: true, statusCode: res.statusCode, data: parsed });
+        else { const err = new Error(`target_http_${res.statusCode}`); err.statusCode = res.statusCode; err.data = parsed; reject(err); }
       });
     });
     req.on('error', reject);
@@ -674,193 +444,59 @@ function buildTargetPayload(command, parsedCommand, user, source = {}) {
   const defaultArgs = Array.isArray(config.defaultArgs) ? config.defaultArgs.map(item => String(item || '').trim()).filter(Boolean) : [];
   const effectiveArgs = parsedCommand.args.length ? parsedCommand.args : defaultArgs;
   const rawInput = `${moduleCommand}${effectiveArgs.length ? ` ${effectiveArgs.join(' ')}` : ''}`.trim();
-  const payload = {
-    command: moduleCommand,
-    cmd: moduleCommand,
-    rawInput,
-    input: rawInput,
-    rawMessage: parsedCommand.rawMessage,
-    message: parsedCommand.rawMessage,
-    args: effectiveArgs,
-    user: user.displayName || user.login,
-    userName: user.displayName || user.login,
-    userLogin: user.login,
-    login: user.login,
-    displayName: user.displayName || user.login,
-    userDisplayName: user.displayName || user.login,
-    userId: user.userId || '',
-    badges: user.badges || {},
-    isBroadcaster: !!user.isBroadcaster,
-    isOwner: !!user.isBroadcaster,
-    isMod: !!user.isMod,
-    isModerator: !!user.isMod,
-    isVip: !!user.isVip,
-    isSubscriber: !!user.isSubscriber,
-    source: source.source || 'command_system',
-    channel: source.channel || '',
-    chatOutput: true,
-    sendChat: true,
-    directSendEnabled: true,
-    fallbackToStreamerbot: true
-  };
-
-  effectiveArgs.slice(0, 10).forEach((arg, index) => {
-    payload[`input${index}`] = arg;
-  });
-
+  const payload = { command: moduleCommand, cmd: moduleCommand, rawInput, input: rawInput, rawMessage: parsedCommand.rawMessage, message: parsedCommand.rawMessage, args: effectiveArgs, user: user.displayName || user.login, userName: user.displayName || user.login, userLogin: user.login, login: user.login, displayName: user.displayName || user.login, userDisplayName: user.displayName || user.login, userId: user.userId || '', badges: user.badges || {}, isBroadcaster: !!user.isBroadcaster, isOwner: !!user.isBroadcaster, isMod: !!user.isMod, isModerator: !!user.isMod, isVip: !!user.isVip, isSubscriber: !!user.isSubscriber, source: source.source || 'command_system', channel: source.channel || '', chatOutput: true, sendChat: true, directSendEnabled: true, fallbackToStreamerbot: true };
+  effectiveArgs.slice(0, 10).forEach((arg, index) => { payload[`input${index}`] = arg; });
   return payload;
 }
-
 async function executeCommand(command, parsedCommand, user, source = {}) {
-  const payload = buildTargetPayload(command, parsedCommand, user, source);
   if (!command.targetUrl) throw new Error('command_target_url_missing');
-  const result = await httpJsonRequest(command.targetMethod || 'POST', command.targetUrl, payload);
-  return result;
+  return httpJsonRequest(command.targetMethod || 'POST', command.targetUrl, buildTargetPayload(command, parsedCommand, user, source));
 }
 
 async function processMessage(input = {}, options = {}) {
   ensureSchema();
-  if (state.enabled === false) {
-    state.ignored += 1;
-    return { ok: true, ignored: true, reason: 'command_system_disabled' };
-  }
-
+  if (state.enabled === false) { state.ignored += 1; return { ok: true, ignored: true, reason: 'command_system_disabled' }; }
   const parsedCommand = parseChatMessage(input);
-  if (!parsedCommand.isCommand) {
-    state.ignored += 1;
-    return { ok: true, ignored: true, reason: parsedCommand.reason || 'not_a_command' };
-  }
-
+  if (!parsedCommand.isCommand) { state.ignored += 1; return { ok: true, ignored: true, reason: parsedCommand.reason || 'not_a_command' }; }
   const match = getCommandByTrigger(parsedCommand.trigger);
   if (!match?.command) {
     state.ignored += 1;
-    logExecution({
-      trigger: parsedCommand.trigger,
-      aliasTrigger: parsedCommand.trigger,
-      rawMessage: parsedCommand.rawMessage,
-      args: parsedCommand.args,
-      ignored: true,
-      error: 'unknown_command'
-    });
+    logExecution({ trigger: parsedCommand.trigger, aliasTrigger: parsedCommand.trigger, rawMessage: parsedCommand.rawMessage, args: parsedCommand.args, ignored: true, error: 'unknown_command' });
     return { ok: true, ignored: true, reason: 'unknown_command', trigger: parsedCommand.trigger };
   }
-
   const command = match.command;
   const user = input.user || userFromParsed(input.parsed || {}, input);
-
   if (!command.enabled) {
     state.ignored += 1;
-    logExecution({
-      trigger: command.trigger,
-      aliasTrigger: match.aliasTrigger,
-      userLogin: user.login,
-      userDisplayName: user.displayName,
-      rawMessage: parsedCommand.rawMessage,
-      args: parsedCommand.args,
-      moduleKey: command.moduleKey,
-      actionKey: command.actionKey,
-      targetUrl: command.targetUrl,
-      ignored: true,
-      error: 'command_disabled'
-    });
+    logExecution({ trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, args: parsedCommand.args, moduleKey: command.moduleKey, actionKey: command.actionKey, targetUrl: command.targetUrl, ignored: true, error: 'command_disabled' });
     return { ok: true, ignored: true, reason: 'command_disabled', command };
   }
-
   if (!hasPermission(command, user)) {
     state.ignored += 1;
-    logExecution({
-      trigger: command.trigger,
-      aliasTrigger: match.aliasTrigger,
-      userLogin: user.login,
-      userDisplayName: user.displayName,
-      rawMessage: parsedCommand.rawMessage,
-      args: parsedCommand.args,
-      moduleKey: command.moduleKey,
-      actionKey: command.actionKey,
-      targetUrl: command.targetUrl,
-      ignored: true,
-      error: 'permission_denied'
-    });
+    logExecution({ trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, args: parsedCommand.args, moduleKey: command.moduleKey, actionKey: command.actionKey, targetUrl: command.targetUrl, ignored: true, error: 'permission_denied' });
     return { ok: false, ignored: true, reason: 'permission_denied', command: command.trigger };
   }
-
   const cooldown = checkCooldown(command, user);
   if (!cooldown.ok) {
     state.ignored += 1;
-    logExecution({
-      trigger: command.trigger,
-      aliasTrigger: match.aliasTrigger,
-      userLogin: user.login,
-      userDisplayName: user.displayName,
-      rawMessage: parsedCommand.rawMessage,
-      args: parsedCommand.args,
-      moduleKey: command.moduleKey,
-      actionKey: command.actionKey,
-      targetUrl: command.targetUrl,
-      ignored: true,
-      error: `cooldown_${cooldown.scope}`,
-      result: cooldown
-    });
+    logExecution({ trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, args: parsedCommand.args, moduleKey: command.moduleKey, actionKey: command.actionKey, targetUrl: command.targetUrl, ignored: true, error: `cooldown_${cooldown.scope}`, result: cooldown });
     return { ok: false, ignored: true, reason: 'cooldown', cooldown, command: command.trigger };
   }
-
-  if (options.dryRun) {
-    return {
-      ok: true,
-      dryRun: true,
-      parsed: parsedCommand,
-      command,
-      user,
-      targetPayload: buildTargetPayload(command, parsedCommand, user, options)
-    };
-  }
-
+  if (options.dryRun) return { ok: true, dryRun: true, parsed: parsedCommand, command, user, targetPayload: buildTargetPayload(command, parsedCommand, user, options) };
   try {
     markCooldown(command, user);
     const result = await executeCommand(command, parsedCommand, user, options);
     state.handled += 1;
     state.executed += 1;
     state.lastCommandAt = nowIso();
-    state.lastCommand = {
-      trigger: command.trigger,
-      aliasTrigger: match.aliasTrigger,
-      userLogin: user.login,
-      userDisplayName: user.displayName,
-      rawMessage: parsedCommand.rawMessage,
-      resultStatusCode: result.statusCode || null
-    };
+    state.lastCommand = { trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, resultStatusCode: result.statusCode || null };
     state.lastError = '';
-    logExecution({
-      trigger: command.trigger,
-      aliasTrigger: match.aliasTrigger,
-      userLogin: user.login,
-      userDisplayName: user.displayName,
-      rawMessage: parsedCommand.rawMessage,
-      args: parsedCommand.args,
-      moduleKey: command.moduleKey,
-      actionKey: command.actionKey,
-      targetUrl: command.targetUrl,
-      success: true,
-      result: summarizeResultForLog(result)
-    });
+    logExecution({ trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, args: parsedCommand.args, moduleKey: command.moduleKey, actionKey: command.actionKey, targetUrl: command.targetUrl, success: true, result: summarizeResultForLog(result) });
     return { ok: true, command: command.trigger, matchedBy: match.matchedBy, result: summarizeResultForLog(result) };
   } catch (err) {
     state.failed += 1;
     state.lastError = err?.message || String(err);
-    logExecution({
-      trigger: command.trigger,
-      aliasTrigger: match.aliasTrigger,
-      userLogin: user.login,
-      userDisplayName: user.displayName,
-      rawMessage: parsedCommand.rawMessage,
-      args: parsedCommand.args,
-      moduleKey: command.moduleKey,
-      actionKey: command.actionKey,
-      targetUrl: command.targetUrl,
-      success: false,
-      error: state.lastError,
-      result: { statusCode: err.statusCode || null, data: err.data || null }
-    });
+    logExecution({ trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, args: parsedCommand.args, moduleKey: command.moduleKey, actionKey: command.actionKey, targetUrl: command.targetUrl, success: false, error: state.lastError, result: { statusCode: err.statusCode || null, data: err.data || null } });
     return { ok: false, command: command.trigger, error: state.lastError };
   }
 }
@@ -872,40 +508,9 @@ async function handleChatMessage(parsed, source = {}) {
   return processMessage({ rawMessage, parsed, user }, { source: source.source || 'twitch_presence', channel: source.channel || '' });
 }
 
-function statusPayload() {
-  ensureSchema();
-  return {
-    ok: true,
-    module: MODULE_NAME,
-    version: 1,
-    step: 'STEP273C2',
-    prefix: state.prefix,
-    enabled: state.enabled,
-    initialized: state.initialized,
-    schemaOk: state.schemaOk,
-    schemaError: state.schemaError,
-    loadedAt: state.loadedAt,
-    stats: {
-      handled: state.handled,
-      ignored: state.ignored,
-      executed: state.executed,
-      failed: state.failed,
-      lastCommandAt: state.lastCommandAt,
-      lastCommand: state.lastCommand,
-      lastError: state.lastError
-    },
-    tables: ['command_definitions', 'command_execution_log'],
-    routes: buildRoutes(),
-    commands: listCommands({ includeDisabled: true }),
-    moduleCatalog: buildCommandCatalog(),
-    recent: recentLogs(10),
-    updatedAt: nowIso()
-  };
-}
-
 function buildRoutes() {
   return [
-    { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Command-System Status, Registry und letzte Logs' },
+    { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Schneller Command-System Status ohne schwere Listen/Kataloge/Logs' },
     { method: 'GET', path: `${API_PREFIX}/list`, purpose: 'Alle konfigurierten Commands auflisten' },
     { method: 'GET', path: `${API_PREFIX}/catalog`, purpose: 'Modul-Command-Catalog fuer Dashboard-Dropdowns' },
     { method: 'POST', path: `${API_PREFIX}/upsert`, purpose: 'Command anlegen oder aktualisieren' },
@@ -917,24 +522,40 @@ function buildRoutes() {
   ];
 }
 
-function readMessageFromReq(req) {
-  return cleanText(core.getParam(req, 'message', '') || core.getParam(req, 'rawMessage', '') || core.getParam(req, 'text', ''));
+function statusPayload() {
+  ensureSchema();
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    version: 1,
+    step: 'STEP497_STATUS_LIGHT',
+    prefix: state.prefix,
+    enabled: state.enabled,
+    initialized: state.initialized,
+    schemaOk: state.schemaOk,
+    schemaError: state.schemaError,
+    loadedAt: state.loadedAt,
+    stats: { handled: state.handled, ignored: state.ignored, executed: state.executed, failed: state.failed, lastCommandAt: state.lastCommandAt, lastCommand: state.lastCommand, lastError: state.lastError },
+    tables: ['command_definitions', 'command_execution_log'],
+    routes: buildRoutes(),
+    dataEndpoints: {
+      commands: `${API_PREFIX}/list`,
+      catalog: `${API_PREFIX}/catalog`,
+      recentLogs: `${API_PREFIX}/logs?limit=10`
+    },
+    lightStatus: true,
+    removedHeavyFields: ['commands', 'moduleCatalog', 'recent'],
+    updatedAt: nowIso()
+  };
 }
 
+function readMessageFromReq(req) { return cleanText(core.getParam(req, 'message', '') || core.getParam(req, 'rawMessage', '') || core.getParam(req, 'text', '')); }
 function readUserFromReq(req) {
   const login = cleanLogin(core.getParam(req, 'userLogin', '') || core.getParam(req, 'login', '') || core.getParam(req, 'user', 'testuser'));
   const displayName = cleanText(core.getParam(req, 'displayName', '') || core.getParam(req, 'userDisplayName', '') || login);
   const role = cleanText(core.getParam(req, 'role', 'everyone')).toLowerCase();
-  return {
-    login,
-    displayName: displayName || login,
-    userId: '',
-    badges: role === 'mod' ? { moderator: '1' } : (role === 'vip' ? { vip: '1' } : (role === 'streamer' || role === 'owner' ? { broadcaster: '1' } : {})),
-    isBroadcaster: role === 'streamer' || role === 'owner' || role === 'broadcaster',
-    isMod: role === 'mod' || role === 'moderator',
-    isVip: role === 'vip',
-    isSubscriber: role === 'subscriber' || role === 'sub'
-  };
+  return { login, displayName: displayName || login, userId: '', badges: role === 'mod' ? { moderator: '1' } : (role === 'vip' ? { vip: '1' } : (role === 'streamer' || role === 'owner' ? { broadcaster: '1' } : {})), isBroadcaster: role === 'streamer' || role === 'owner' || role === 'broadcaster', isMod: role === 'mod' || role === 'moderator', isVip: role === 'vip', isSubscriber: role === 'subscriber' || role === 'sub' };
 }
 
 module.exports.handleChatMessage = handleChatMessage;
@@ -954,60 +575,39 @@ module.exports.init = function init(ctx) {
     try { return res.json(statusPayload()); }
     catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
   });
-
   app.get(`${API_PREFIX}/list`, (req, res) => {
     try { return res.json(core.ok({ commands: listCommands({ includeDisabled: bool(core.getParam(req, 'includeDisabled', true), true) }) })); }
     catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
   });
-
   app.get(`${API_PREFIX}/catalog`, (req, res) => {
     try { return res.json(buildCommandCatalog()); }
     catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
   });
-
   app.post(`${API_PREFIX}/upsert`, (req, res) => {
     try { return res.json(core.ok(upsertCommand(req.body || req.query || {}))); }
     catch (err) { return res.status(400).json(core.fail(err.message || String(err))); }
   });
-
   app.post(`${API_PREFIX}/delete`, (req, res) => {
     try { return res.json(core.ok(deleteCommand(core.getParam(req, 'id', '') || core.getParam(req, 'trigger', '')))); }
     catch (err) { return res.status(400).json(core.fail(err.message || String(err))); }
   });
-
   async function handleTest(req, res) {
-    try {
-      const message = readMessageFromReq(req);
-      const user = readUserFromReq(req);
-      const result = await processMessage({ rawMessage: message, user }, { source: 'api_test', dryRun: true });
-      return res.json(core.ok(result));
-    } catch (err) {
-      return res.status(500).json(core.fail(err.message || String(err)));
-    }
+    try { return res.json(core.ok(await processMessage({ rawMessage: readMessageFromReq(req), user: readUserFromReq(req) }, { source: 'api_test', dryRun: true }))); }
+    catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
   }
-
   async function handleExecute(req, res) {
-    try {
-      const message = readMessageFromReq(req);
-      const user = readUserFromReq(req);
-      const result = await processMessage({ rawMessage: message, user }, { source: 'api_execute' });
-      return res.status(result.ok ? 200 : 409).json(result);
-    } catch (err) {
-      return res.status(500).json(core.fail(err.message || String(err)));
-    }
+    try { const result = await processMessage({ rawMessage: readMessageFromReq(req), user: readUserFromReq(req) }, { source: 'api_execute' }); return res.status(result.ok ? 200 : 409).json(result); }
+    catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
   }
-
   function handleLogs(req, res) {
     try { return res.json(core.ok({ logs: recentLogs(core.getParam(req, 'limit', 25)) })); }
     catch (err) { return res.status(500).json(core.fail(err.message || String(err))); }
   }
-
   app.get(`${API_PREFIX}/test`, handleTest);
   app.post(`${API_PREFIX}/test`, handleTest);
   app.get(`${API_PREFIX}/execute`, handleExecute);
   app.post(`${API_PREFIX}/execute`, handleExecute);
   app.get(`${API_PREFIX}/logs`, handleLogs);
   app.get(`${API_PREFIX}/history`, handleLogs);
-
-  console.log('[commands] routes active: /api/commands/*');
+  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, status light)`);
 };

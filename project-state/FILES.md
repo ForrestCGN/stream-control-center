@@ -1,12 +1,15 @@
 # FILES
 
-## STEP496 geändert
+## STEP497_COMMANDS_STATUS_LIGHT
 
 ```text
-htdocs/dashboard/modules/commands.css
-project-state/STEP496_COMMANDS_DASHBOARD_ALIGNMENT.md
-project-state/CHANGELOG.md
+backend/modules/commands.js
+docs/modules/commands-deep-dive.md
+docs/current/CURRENT_SYSTEM_STATUS.md
 project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
+project-state/STEP497_COMMANDS_STATUS_LIGHT.md
 ```
