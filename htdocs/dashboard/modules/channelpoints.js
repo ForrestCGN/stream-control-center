@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '1.0.2';
-  const UI_BUILD = 'redemption-completion-policy-ui';
+  const UI_VERSION = '1.0.3';
+  const UI_BUILD = 'color-picker-presets-ui';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -1218,6 +1218,35 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toUpperCase() : raw;
   }
 
+  const TWITCH_COLOR_PRESETS = [
+    ['Twitch Lila', '#9147FF'],
+    ['CGN Neon Lila', '#B000FF'],
+    ['CGN Cyan', '#00E5FF'],
+    ['Türkis', '#00E5CB'],
+    ['Blau', '#3B82F6'],
+    ['Grün', '#00FF7F'],
+    ['Gold', '#FFD700'],
+    ['Orange', '#FF7A00'],
+    ['Rot', '#FF3030'],
+    ['Pink', '#FF4FD8']
+  ];
+
+  function twitchColorForPicker(value) {
+    const color = normalizeTwitchColor(value);
+    return /^#[0-9A-F]{6}$/.test(color) ? color : '#9147FF';
+  }
+
+  function setTwitchColorFields(value) {
+    const color = normalizeTwitchColor(value);
+    const textField = getField('twitch_background_color');
+    const pickerField = getField('twitch_background_color_picker');
+    const preview = root?.querySelector('[data-cp-color-preview]');
+    if (textField) textField.value = color;
+    if (pickerField && /^#[0-9A-F]{6}$/.test(color)) pickerField.value = color;
+    if (preview) preview.style.setProperty('--cp-twitch-color', color || '#9147FF');
+    if (state.modal) syncDraftFromForm();
+  }
+
   function twitchOptionsFromPayload(payload) {
     const twitch = payload && typeof payload.twitch === 'object' && !Array.isArray(payload.twitch) ? payload.twitch : {};
     const skipQueue = twitch.should_redemptions_skip_request_queue === true || payload?.should_redemptions_skip_request_queue === true;
@@ -1262,9 +1291,14 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const fulfillAfterSuccess = autoFulfill ? false : boolValue(opts.fulfillAfterSuccess, true);
     const cancelOnFailure = autoFulfill ? false : boolValue(opts.cancelOnFailure, true);
     return `<section class="cp-editor-section cp-twitch-options-section"><h4>Twitch-Optionen</h4>
-      <div class="cp-form-grid">
-        <label>Twitch-Farbe <span class="cp-help" title="Optional: Farbe des Rewards auf Twitch, z. B. #9147FF. Leer lassen = Twitch/Standard behalten.">?</span><input data-cp-field="twitch_background_color" value="${esc(color)}" placeholder="#9147FF" maxlength="7"></label>
-        <label class="cp-color-preview-label">Vorschau <span class="cp-color-preview" style="--cp-twitch-color:${esc(color || '#9147FF')}"></span></label>
+      <div class="cp-color-picker-row">
+        <label>Twitch-Farbe <span class="cp-help" title="Optional: Farbe des Rewards auf Twitch. Farbwähler oder Hex-Code im Format #RRGGBB nutzen. Leer lassen = Twitch/Standard behalten.">?</span><input type="color" data-cp-field="twitch_background_color_picker" value="${esc(twitchColorForPicker(color))}" aria-label="Twitch-Farbe auswählen"></label>
+        <label>Hex-Code <input data-cp-field="twitch_background_color" value="${esc(color)}" placeholder="#9147FF" maxlength="7" spellcheck="false"></label>
+        <label class="cp-color-preview-label">Vorschau <span class="cp-color-preview" data-cp-color-preview style="--cp-twitch-color:${esc(color || '#9147FF')}"></span></label>
+        <button type="button" class="cp-color-clear" data-cp-action="twitch-color-clear">Standard</button>
+      </div>
+      <div class="cp-color-presets" aria-label="Twitch-Farbvorlagen">
+        ${TWITCH_COLOR_PRESETS.map(([label, preset]) => `<button type="button" data-cp-action="twitch-color-preset" data-color="${esc(preset)}" title="${esc(label)} ${esc(preset)}"><span style="--cp-preset-color:${esc(preset)}"></span>${esc(label)}</button>`).join('')}
       </div>
       <div class="cp-checks cp-twitch-checks">
         <label title="Twitch markiert die Einlösung direkt beim Einlösen als erledigt. Danach ist keine automatische Punkterückgabe per CANCELED mehr möglich."><input type="checkbox" data-cp-field="auto_fulfill" ${autoFulfill ? 'checked' : ''}> Sofort bei Twitch abschließen</label>
@@ -1388,6 +1422,16 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     root.querySelector('[data-cp-action="save-activate"]')?.addEventListener('click', () => saveReward({ activate:true }).catch(showError));
     root.querySelectorAll('[data-cp-action="modal-close"]').forEach(btn => btn.addEventListener('click', closeModal));
     root.querySelectorAll('[data-cp-action="open-media"]').forEach(btn => btn.addEventListener('click', () => window.CGN?.setActiveModule?.('media')));
+    root.querySelectorAll('[data-cp-action="twitch-color-preset"]').forEach(btn => btn.addEventListener('click', () => setTwitchColorFields(btn.dataset.color || '')));
+    root.querySelector('[data-cp-action="twitch-color-clear"]')?.addEventListener('click', () => setTwitchColorFields(''));
+    root.querySelector('[data-cp-field="twitch_background_color_picker"]')?.addEventListener('input', ev => setTwitchColorFields(ev.target.value || ''));
+    root.querySelector('[data-cp-field="twitch_background_color"]')?.addEventListener('input', ev => {
+      const color = normalizeTwitchColor(ev.target.value || '');
+      const preview = root?.querySelector('[data-cp-color-preview]');
+      if (preview && /^#[0-9A-F]{6}$/.test(color)) preview.style.setProperty('--cp-twitch-color', color);
+      const picker = getField('twitch_background_color_picker');
+      if (picker && /^#[0-9A-F]{6}$/.test(color)) picker.value = color;
+    });
     root.querySelector('[data-cp-action="clear-media"]')?.addEventListener('click', () => { const f = getField('media_asset_id'); if (f) f.value = ''; syncDraftFromForm(); render(); });
     root.querySelectorAll('[data-cp-field]').forEach(field => {
       if (field.dataset.cpDraftBound) return;

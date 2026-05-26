@@ -183,3 +183,17 @@ html[data-theme="light"] .cp-history-filters input,html[data-theme="light"] .cp-
 .cp-twitch-checks .cp-muted-option {
   opacity: 0.58;
 }
+
+/* STEP516 Twitch color picker presets */
+.cp-color-picker-row{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(150px,1fr) minmax(120px,.8fr) auto;gap:10px;align-items:end}
+.cp-color-picker-row label{display:grid;gap:6px;color:var(--muted);font-weight:900}
+.cp-color-picker-row input[type="color"]{width:100%;height:42px;padding:4px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.18);cursor:pointer}
+.cp-color-picker-row input:not([type="color"]){border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:9px 10px;color:var(--text);background:rgba(0,0,0,.18);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-transform:uppercase}
+html[data-theme="light"] .cp-color-picker-row input{background:rgba(255,255,255,.86)}
+.cp-color-clear{height:42px;border-radius:12px;padding:9px 12px;white-space:nowrap}
+.cp-color-presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cp-color-presets button{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12)}
+.cp-color-presets button span{width:16px;height:16px;border-radius:999px;background:var(--cp-preset-color,#9147FF);box-shadow:0 0 12px color-mix(in srgb,var(--cp-preset-color,#9147FF),transparent 45%);border:1px solid rgba(255,255,255,.28)}
+@supports not (color: color-mix(in srgb, red, blue)){.cp-color-presets button span{box-shadow:0 0 12px rgba(145,71,255,.35)}}
+@media(max-width:900px){.cp-color-picker-row{grid-template-columns:1fr 1fr}.cp-color-clear{width:100%}}
+@media(max-width:620px){.cp-color-picker-row{grid-template-columns:1fr}.cp-color-presets button{width:100%;justify-content:flex-start}}
