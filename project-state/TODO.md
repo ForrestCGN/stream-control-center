@@ -1,6 +1,30 @@
 # TODO
 
-Stand: 2026-05-26 / STEP486
+Stand: 2026-05-26 / STEP487
+
+## Communication Bus / EventBus
+
+- [x] Backend-Modul-zu-Modul-Contract vorbereiten.
+- [x] Modul-Anmeldung vorbereiten.
+- [x] Modul-Abmeldung vorbereiten.
+- [x] Heartbeat vorbereiten.
+- [x] Status-Event vorbereiten.
+- [x] Subscribe/Unsubscribe für Backend-Module vorbereiten.
+- [x] Subscriber-Fehler über Bus-Issues vorbereiten.
+- [ ] Erstes echtes Fachmodul an den Contract anbinden.
+- [ ] Prüfen, ob `communication_bus.js` den Contract später automatisch initialisieren soll.
+- [ ] Event-Namenskonventionen je Modul in Modul-Dokus pflegen.
+
+## Kanalpunkte-System
+
+- [ ] `channelpoints.js` Backend-Skeleton bauen.
+- [ ] `/api/channelpoints/status` ergänzen.
+- [ ] Communication-Bus-Contract für `channelpoints` nutzen.
+- [ ] Twitch-Scopes für Reward-Verwaltung prüfen.
+- [ ] Reward-Sync lesen vorbereiten.
+- [ ] Aktiv/Inaktiv über Twitch `is_enabled` umsetzen.
+- [ ] Dashboard-Kategorien und Sortierung planen.
+- [ ] Upload-/Medien-Anbindung erst nach Prüfung vorhandener Media-/Sound-Helper.
 
 ## Shoutout-System
 
@@ -19,7 +43,6 @@ Stand: 2026-05-26 / STEP486
 ## Architektur-Regel
 
 - [x] Vorhandene Module erweitern, wenn die Zuständigkeit passt.
-- [x] Keine neue Moduldatei für STEP486 erstellt.
+- [x] Keine Funktionalität entfernen.
+- [x] Doku nach Modul-STEP aktualisiert.
 - [ ] Neue Module nur erstellen, wenn es wirklich eine neue fachliche Zuständigkeit ist.
-- [ ] Keine Funktionalität entfernen.
-- [ ] Doku nach jedem Modul-STEP aktualisieren.

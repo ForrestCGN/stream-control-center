@@ -1,31 +1,39 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP486_SHOUTOUT_LIVE_TEST_AND_DECISION_PREP
+Stand: 2026-05-26 / STEP487_COMMUNICATION_BUS_MODULE_CONTRACT
 
 ## Aktueller Arbeitsstand
 
-STEP486 ergänzt die Live-Test- und Entscheidungs-Vorbereitung auf Basis von STEP485. Die vorhandenen Module wurden erweitert, ohne neue Parallelmodule zu erstellen.
+STEP487 ergänzt eine optionale Backend-Modul-zu-Modul-Vertragsschicht für den bestehenden Communication Bus.
 
-## Shoutout-System
+## Communication Bus / EventBus
 
-- `backend/modules/twitch.js` bleibt das zentrale Twitch-/EventSub-System.
-- `backend/modules/clip_shoutout.js` bleibt das zentrale Shoutout-System.
-- `clip_shoutout.js` steht jetzt auf Version `0.2.13`.
-- Eingehende und ausgehende Twitch-Shoutout-EventSub-Events werden weiter im Shoutout-System gespeichert.
-- Neu: `GET /api/clip-shoutout/live-test`.
-- Neu: `GET /api/clip-shoutout/decision-prep`.
-- Neu im Dashboard: Tab `Live-Test`.
+- Neuer Helper: `backend/modules/helpers/helper_communication_contract.js`.
+- Version: `0.1.0`.
+- Zweck: Module können sich anmelden, abmelden, Heartbeats/Status senden, Events senden und relevante Events abonnieren.
+- Bestehende produktive Bus-/WebSocket-/Replay-/ACK-Flows werden nicht ersetzt.
+- `communication_bus.js` und `helper_communication.js` wurden bewusst nicht geändert.
+- Der neue Contract ist Opt-in über `ensureModuleBus(bus)`.
 
 ## Wichtig
 
-- Keine produktive `!so`-Umstellung erfolgt.
-- Keine neue Twitch-/EventSub-Modulstruktur.
-- Keine neue Moduldatei.
-- Keine SQLite-Datei ersetzt oder überschrieben.
-- Ziel ist Entscheidungssicherheit: erst Debug-Test, dann echte Receive-/Create-Events, danach explizite Entscheidung.
+- Keine Datenbankänderung.
+- Keine neuen HTTP-Routen.
+- Kein Dashboard-Umbau.
+- Kein Command-System-Umbau.
+- Kein Sound-System-Umbau.
+- Kein Kanalpunkte-Modul gebaut.
+
+## Offene Shoutout-Punkte aus STEP486 bleiben bestehen
+
+- Produktionscheck lokal ausführen.
+- Live-Test lokal ausführen.
+- Debug-Inbound-Event lokal ausführen.
+- Echte Twitch-Shoutout-Events beobachten.
+- Produktive `!so`-Umstellung nur ausdrücklich und nach Prüfung.
 
 ## Nächster sinnvoller Schritt
 
-`STEP487_SHOUTOUT_REAL_EVENT_TEST_RESULTS`
+`STEP488_CHANNELPOINTS_BACKEND_SKELETON`
 
-Dabei sollten die neuen Checks lokal geprüft und echte Twitch-Shoutout-Events beobachtet werden.
+Dabei soll das neue Kanalpunkte-Modul als erstes Fachmodul den Communication-Bus-Contract nutzen.

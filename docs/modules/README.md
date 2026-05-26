@@ -1,8 +1,8 @@
 # Modul-Dokus
 
-Stand: 2026-05-26 / STEP475_DOCS_MODULES_AND_PROJECT_STATE_CLEANUP
+Stand: 2026-05-26 / STEP487_COMMUNICATION_BUS_MODULE_CONTRACT
 
-Diese Übersicht verweist auf die ersten Modul-Dokus. Sie wurden aus dem aktuellen Backend-Upload abgeleitet und sind bewusst als Doku-Basis gedacht, nicht als Ersatz für eine erneute Codeprüfung vor Änderungen.
+Diese Übersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, nicht Ersatz für erneute Codeprüfung vor Änderungen.
 
 ## Dateien
 
@@ -30,7 +30,7 @@ Diese Übersicht verweist auf die ersten Modul-Dokus. Sie wurden aus dem aktuell
 
 ## Vertiefte Modul-Dokus ab STEP476
 
-Diese Detailseiten sind tiefer als die ersten Übersichtsdateien und enthalten Routen, Exporte, Config-/DB-Hinweise, Funktionen, Tests und offene Punkte:
+Diese Detailseiten enthalten Routen, Exporte, Config-/DB-Hinweise, Funktionen, Tests und offene Punkte:
 
 - [`core-communication-bus.md`](./core-communication-bus.md)
 - [`core-stream-status.md`](./core-stream-status.md)
@@ -41,6 +41,25 @@ Diese Detailseiten sind tiefer als die ersten Übersichtsdateien und enthalten R
 - [`helper-texts-settings.md`](./helper-texts-settings.md)
 - [`helper-media-chat-twitch.md`](./helper-media-chat-twitch.md)
 
+## STEP487 - Communication Bus Module Contract
+
+Neue Detaildoku:
+
+- [`helper-communication-contract.md`](./helper-communication-contract.md)
+
+Der Contract-Helper bereitet Backend-Modul-zu-Modul-Kommunikation über den bestehenden Communication Bus vor:
+
+```text
+Modul-Anmeldung
+Modul-Abmeldung
+Heartbeat
+Status
+Events senden
+Events empfangen
+Subscriber-Fehler tracken
+```
+
+Der Helper ist additiv und muss von neuen Modulen ausdrücklich genutzt werden. Bestehende produktive Flows werden dadurch nicht ersetzt.
 
 ## Vertiefte Stream-/Media-Modul-Dokus ab STEP477
 
@@ -52,8 +71,6 @@ Diese Detailseiten sind tiefer als die ersten Übersichtsdateien und enthalten R
 - [`tts-system-deep-dive.md`](./tts-system-deep-dive.md)
 
 ## Deep-Dive Block 2026-05-26 / STEP478
-
-Neue Detaildokus für Integrationen und Community-Module:
 
 - `integrations-deep-dive-overview.md`
 - `twitch-deep-dive.md`
@@ -68,7 +85,7 @@ Neue Detaildokus für Integrationen und Community-Module:
 - `hug-deep-dive.md`
 - `birthday-deep-dive.md`
 
-Hinweis: Dashboard-/Overlay-Dateien waren im Backend-Upload nicht vollständig enthalten und müssen bei UI-/Overlay-Steps zusätzlich geprüft werden.
+Hinweis: Dashboard-/Overlay-Dateien müssen bei UI-/Overlay-Steps zusätzlich geprüft werden.
 
 ## STEP479 - Secondary Modules Deep Dive
 
@@ -112,8 +129,6 @@ Vor Änderungen an einem Modul zuerst die passende Modul-Doku lesen. Nach Änder
 Bei neuen/geänderten Routen, Configs, Datenbanktabellen, Statusfeldern, EventBus-Events, Dashboard-Dateien, Overlay-Dateien oder Runtime-Dateien muss die jeweilige Modul-Doku angepasst werden.
 
 Neue oder angefasste Module sollen klare Versionsnummern nutzen (`version` oder `moduleVersion`). Der Communication Bus / EventBus soll schrittweise als zentrale Kommunikations- und Überwachungsschicht ausgebaut werden.
-
-
 
 ## Modul-Meta / Server-Log / EventBus
 

@@ -1,10 +1,19 @@
 # CURRENT_SYSTEM_STATUS
 
-Stand: 2026-05-26 / STEP486
+Stand: 2026-05-26 / STEP487
 
 ## Stream-Control-Center
 
-Aktueller Schwerpunkt: Shoutout-System / Twitch-EventSub / Produktionscheck / Live-Test-Vorbereitung.
+Aktueller Schwerpunkt: Communication Bus / EventBus als zentrale Kommunikations- und Monitoring-Schicht vorbereiten, danach Kanalpunkte-System.
+
+## Communication Bus / EventBus
+
+- STEP487 ergänzt `backend/modules/helpers/helper_communication_contract.js`.
+- Der Helper ist eine optionale Backend-Modul-zu-Modul-Vertragsschicht für den bestehenden Communication Bus.
+- Ziel: Module können sich anmelden, abmelden, Heartbeats/Status senden, Events senden und relevante Events abonnieren.
+- Der Ansatz entspricht einer CAN-Bus-ähnlichen Architektur: Module senden auf eine gemeinsame Leitung, andere Module werten nur relevante Events aus.
+- Bestehende produktive WebSocket-/Replay-/ACK-/Diagnose-Flows bleiben unverändert.
+- `communication_bus.js` und `helper_communication.js` wurden in STEP487 bewusst nicht geändert.
 
 ## Shoutout
 
@@ -21,6 +30,14 @@ Aktive Zuständigkeiten:
 
 ## Wichtige Routen
 
+Communication Bus:
+
+- `/api/communication/status`
+- `/api/communication/test`
+- `/api/communication/watchdog`
+
+Shoutout:
+
 - `/api/clip-shoutout/status`
 - `/api/clip-shoutout/inbound`
 - `/api/clip-shoutout/inbound/stats`
@@ -31,6 +48,7 @@ Aktive Zuständigkeiten:
 
 ## Offene Punkte
 
+- Neues Kanalpunkte-Modul als erstes Fachmodul auf dem Communication-Bus-Contract aufbauen.
 - Produktionscheck lokal ausführen.
 - Debug-Inbound-Event lokal testen.
 - Echte EventSub-Shoutout-Events live testen.

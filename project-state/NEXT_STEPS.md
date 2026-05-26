@@ -1,45 +1,50 @@
 # NEXT_STEPS
 
-Stand: 2026-05-26 / nach STEP486
+Stand: 2026-05-26 / nach STEP487
 
 ## Direkt prüfen
 
 ```bat
 cd D:\Git\stream-control-center
-node --check backend\modules\clip_shoutout.js
-node --check htdocs\dashboard\modules\shoutout.js
+node --check backend\modules\helpers\helper_communication_contract.js
 ```
 
-## Runtime-Test
+## Optionaler Smoke-Test später
 
-```bat
-curl http://127.0.0.1:8080/api/clip-shoutout/status
-curl http://127.0.0.1:8080/api/clip-shoutout/production-check
-curl http://127.0.0.1:8080/api/clip-shoutout/live-test
-curl http://127.0.0.1:8080/api/twitch/eventsub/status
-curl http://127.0.0.1:8080/api/clip-shoutout/inbound
-curl http://127.0.0.1:8080/api/clip-shoutout/inbound/stats
+Wenn ein erstes Modul den Contract nutzt:
+
+```text
+1. Modul mit createModuleClient registrieren.
+2. Status über client.status senden.
+3. Test-Event abonnieren.
+4. Test-Event senden.
+5. Prüfen, ob Subscriber ausgeführt wird.
 ```
-
-## Debug-Inbound testen
-
-```bat
-curl -X POST http://127.0.0.1:8080/api/clip-shoutout/inbound/debug -H "Content-Type: application/json" -d "{\"direction\":\"incoming\",\"from\":\"testsender\",\"to\":\"forrestcgn\",\"viewerCount\":12}"
-curl http://127.0.0.1:8080/api/clip-shoutout/live-test
-```
-
-## Im Dashboard prüfen
-
-- Modul `Shoutout-System` öffnen.
-- Tab `Produktion` prüfen.
-- Tab `Live-Test` prüfen.
-- Empfohlene nächste Aktion beachten.
-- Keine produktive `!so`-Umstellung durchführen, bis echte Receive-/Create-Events geprüft wurden.
 
 ## Nächster sinnvoller Fach-STEP
 
 ```text
-STEP487_SHOUTOUT_REAL_EVENT_TEST_RESULTS
+STEP488_CHANNELPOINTS_BACKEND_SKELETON
 ```
 
-Ziel: echte Runtime-Ergebnisse aus Production-Check, Live-Test und Twitch-EventSub-Shoutouts auswerten und dokumentieren.
+Ziel:
+
+```text
+channelpoints.js Grundmodul
+moduleVersion 0.1.0
+/api/channelpoints/status
+Communication-Bus-Contract nutzen
+Modul-Registrierung/Status/Heartbeat vorbereiten
+noch keine Twitch-Schreibaktionen
+noch keine riskante DB-Migration
+```
+
+## Weiterhin offen aus STEP486
+
+```text
+GET /api/clip-shoutout/production-check lokal prüfen
+GET /api/clip-shoutout/live-test lokal prüfen
+Debug-Inbound-Event lokal ausführen
+Echte Twitch-Shoutout-Events beobachten
+Produktive !so-Umstellung nur ausdrücklich und nach Prüfung
+```
