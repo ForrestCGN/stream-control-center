@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.0";
-const MODULE_BUILD = "twitch-push-stale-id-create-fallback";
+const MODULE_VERSION = "0.9.1";
+const MODULE_BUILD = "eventbus-redemption-bridge";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -47,7 +47,8 @@ const DEFAULT_CONFIG = {
   twitchAuthValidateUrl: "/api/twitch/auth/validate",
   redemptionEventSubPreparationEnabled: true,
   redemptionEventSubStoreEnabled: true,
-  importedRewardActionGuardEnabled: true
+  importedRewardActionGuardEnabled: true,
+  redemptionEventBusReceiveEnabled: true
 };
 
 const DEFAULT_CATEGORIES = [
@@ -219,6 +220,8 @@ let executionStats = {
 
 let redemptionEventSubStats = {
   received: 0,
+  receivedFromBus: 0,
+  acceptedFromBus: 0,
   previewed: 0,
   stored: 0,
   duplicates: 0,
@@ -235,7 +238,9 @@ let redemptionEventSubStats = {
   lastRewardKey: "",
   lastExecutionAt: null,
   lastExecutionResult: null,
-  lastError: ""
+  lastError: "",
+  lastBusRedemptionEventAt: null,
+  lastBusRedemptionEventId: ""
 };
 
 function nowIso() { return new Date().toISOString(); }
@@ -766,6 +771,7 @@ function buildBusEventSpec() {
     { channel: "channelpoints.reward", action: "channelpoints.reward.enabled", when: "Lokaler Reward wurde aktiviert." },
     { channel: "channelpoints.reward", action: "channelpoints.reward.disabled", when: "Lokaler Reward wurde deaktiviert/pausiert." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.created", when: "Lokale/Test-Einlösung wurde gespeichert." },
+    { channel: "channelpoints.redemption", action: "received", when: "Twitch EventSub Redemption kommt über den Communication Bus rein." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.received", when: "EventSub-Redemption wurde normalisiert und lokal gespeichert." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.executed_from_eventsub", when: "Aktiver lokaler Reward wurde durch eine Redemption ausgeführt." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.blocked", when: "Redemption wurde blockiert, weil Reward inaktiv ist oder keine Aktion hat." },
@@ -1660,6 +1666,8 @@ function buildRedemptionEventSubStatus() {
     processingRule: "Reward aktiv + Aktion vollständig = ausführen; Reward inaktiv oder Aktion fehlt = nicht ausführen.",
     safety: {
       noTwitchWrite: true,
+      noHttpModuleBridge: true,
+      eventBusDriven: true,
       noExtraDashboardModes: true,
       activeFlagIsExecutionGate: true,
       actionRequiredForActivation: true,
@@ -1669,7 +1677,8 @@ function buildRedemptionEventSubStatus() {
     routes: [
       `${ROUTE_PREFIX}/eventsub/redemption/status`,
       `${ROUTE_PREFIX}/eventsub/redemption/preview`,
-      `${ROUTE_PREFIX}/eventsub/redemption`
+      `${ROUTE_PREFIX}/eventsub/redemption`,
+      "eventbus: channelpoints.redemption / received"
     ]
   };
 }
@@ -2062,7 +2071,8 @@ function buildTwitchSyncStatus() {
       `${ROUTE_PREFIX}/twitch/rewards`,
       `${ROUTE_PREFIX}/twitch/rewards/:id/enable`,
       `${ROUTE_PREFIX}/twitch/rewards/:id/disable`,
-      `${ROUTE_PREFIX}/eventsub/redemption`
+      `${ROUTE_PREFIX}/eventsub/redemption`,
+      "eventbus: channelpoints.redemption / received"
     ],
     nextSteps: [
       "Twitch Token-/Scope-Prüfung testen",
@@ -2224,8 +2234,20 @@ function publishStatus(reason = "status") {
   return result;
 }
 
-function registerBusSubscription() {
-  const currentBus = getBus();
+function rememberBusEvent(event, accepted = false) {
+  receivedBusEvents += 1;
+  lastBusEventAt = nowIso();
+  lastBusEvent = {
+    id: cleanString(event && (event.id || event.eventId)),
+    channel: cleanString(event && event.channel),
+    action: cleanString(event && event.action),
+    source: event && event.source ? event.source : null,
+    accepted,
+    payload: event && event.payload ? event.payload : {}
+  };
+}
+
+function registerSelfTestBusSubscription(currentBus) {
   if (!currentBus || typeof currentBus.subscribe !== "function") return { ok: false, reason: "bus_subscribe_unavailable" };
   if (subscriptionIds.includes("channelpoints:self-test")) return { ok: true, reason: "already_registered" };
   const result = currentBus.subscribe({
@@ -2234,21 +2256,69 @@ function registerBusSubscription() {
     channel: "channelpoints.test",
     action: "ping",
     capability: "channelpoints.test.ping",
-    meta: { purpose: "STEP493 bus receive smoke test" }
+    meta: { purpose: "channelpoints bus receive smoke test" }
   }, event => {
-    receivedBusEvents += 1;
-    lastBusEventAt = nowIso();
-    lastBusEvent = {
-      id: cleanString(event && event.id),
-      channel: cleanString(event && event.channel),
-      action: cleanString(event && event.action),
-      source: event && event.source ? event.source : null,
-      payload: event && event.payload ? event.payload : {}
-    };
+    rememberBusEvent(event, true);
     return { ok: true, module: MODULE_NAME, receivedAt: lastBusEventAt };
   });
   if (result && result.ok === true) subscriptionIds.push("channelpoints:self-test");
   return result;
+}
+
+function registerRedemptionBusSubscription(currentBus) {
+  const config = getConfig();
+  if (config.redemptionEventBusReceiveEnabled === false) return { ok: false, reason: "redemption_eventbus_receive_disabled" };
+  if (!currentBus || typeof currentBus.subscribe !== "function") return { ok: false, reason: "bus_subscribe_unavailable" };
+  if (subscriptionIds.includes("channelpoints:redemption:received")) return { ok: true, reason: "already_registered" };
+
+  const result = currentBus.subscribe({
+    id: "channelpoints:redemption:received",
+    module: MODULE_NAME,
+    channel: "channelpoints.redemption",
+    action: "received",
+    sourceModule: "twitch_eventsub",
+    capability: "channelpoints.redemption.received",
+    meta: { purpose: "Twitch EventSub Redemption via Communication Bus" }
+  }, event => {
+    rememberBusEvent(event, true);
+    redemptionEventSubStats.receivedFromBus += 1;
+    redemptionEventSubStats.acceptedFromBus += 1;
+    redemptionEventSubStats.lastBusRedemptionEventAt = nowIso();
+    redemptionEventSubStats.lastBusRedemptionEventId = cleanString(event && (event.id || event.eventId));
+
+    const payload = event && event.payload && typeof event.payload === "object" ? event.payload : {};
+    Promise.resolve()
+      .then(() => receiveRedemptionEventSubPayload(payload))
+      .then(result => {
+        emitDomainEvent("channelpoints.redemption.bus_processed", {
+          busEventId: cleanString(event && (event.id || event.eventId)),
+          result
+        }, { channel: "channelpoints.redemption" });
+      })
+      .catch(err => {
+        const message = err && err.message ? err.message : String(err);
+        redemptionEventSubStats.failed += 1;
+        redemptionEventSubStats.lastError = message;
+        lastError = message;
+        emitDomainEvent("channelpoints.redemption.bus_failed", {
+          busEventId: cleanString(event && (event.id || event.eventId)),
+          error: message
+        }, { channel: "channelpoints.redemption" });
+      });
+
+    return { ok: true, module: MODULE_NAME, accepted: true, asyncProcessing: true, receivedAt: lastBusEventAt };
+  });
+
+  if (result && result.ok === true) subscriptionIds.push("channelpoints:redemption:received");
+  return result;
+}
+
+function registerBusSubscription() {
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.subscribe !== "function") return { ok: false, reason: "bus_subscribe_unavailable" };
+  const selfTest = registerSelfTestBusSubscription(currentBus);
+  const redemption = registerRedemptionBusSubscription(currentBus);
+  return { ok: (selfTest && selfTest.ok === true) || (redemption && redemption.ok === true), selfTest, redemption };
 }
 
 function heartbeatBus(reason = "heartbeat") {
@@ -2263,7 +2333,7 @@ function heartbeatBus(reason = "heartbeat") {
     status: "online",
     health: lastError ? "warn" : "ok",
     reason,
-    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.eventsub_redemption", "channelpoints.domain_events", "channelpoints.test.ping"]
+    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.eventsub_redemption", "channelpoints.redemption.received", "channelpoints.domain_events", "channelpoints.test.ping"]
   });
   lastBusHeartbeatAt = nowIso();
   return result;
@@ -2279,8 +2349,8 @@ function registerAtCommunicationBus() {
     module: MODULE_NAME,
     name: "Kanalpunkte-System",
     version: MODULE_VERSION,
-    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.eventsub_redemption", "channelpoints.domain_events", "channelpoints.test.ping"],
-    meta: { routePrefix: ROUTE_PREFIX, localCrud: true, twitchWritesEnabled: false, mediaSystem: "existing_media_module", mediaExecutionBridge: "/api/sound/play", domainEvents: true }
+    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.eventsub_redemption", "channelpoints.redemption.received", "channelpoints.domain_events", "channelpoints.test.ping"],
+    meta: { routePrefix: ROUTE_PREFIX, localCrud: true, twitchWritesEnabled: false, mediaSystem: "existing_media_module", mediaExecutionBridge: "/api/sound/play", domainEvents: true, redemptionEventBus: true }
   });
   registeredAtBus = registerResult && registerResult.ok === true;
   lastBusRegisterAt = registeredAtBus ? nowIso() : lastBusRegisterAt;
@@ -2555,4 +2625,4 @@ function init({ app }) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} API routes registered (${ROUTE_PREFIX})`);
 }
 
-module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildRedemptionEventSubStatus, previewRedemptionEventSubPayload, receiveRedemptionEventSubPayload, buildBusEventSpec, buildTwitchAuthScopeStatus, buildTwitchRewardManagementStatus, pushRewardToTwitch, registerAtCommunicationBus, heartbeatBus, publishStatus, isImportedRewardMissingAction };
+module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildRedemptionEventSubStatus, previewRedemptionEventSubPayload, receiveRedemptionEventSubPayload, buildBusEventSpec, buildTwitchAuthScopeStatus, buildTwitchRewardManagementStatus, pushRewardToTwitch, registerAtCommunicationBus, registerBusSubscription, heartbeatBus, publishStatus, isImportedRewardMissingAction };
