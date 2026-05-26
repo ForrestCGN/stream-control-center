@@ -86,3 +86,11 @@ html[data-theme="light"] .cp-toolbar input,html[data-theme="light"] .cp-toolbar 
 .cp-reward-card.needs-setup{border-color:rgba(255,193,7,.48);box-shadow:0 0 18px rgba(255,193,7,.10),inset 0 0 0 1px rgba(255,193,7,.10)}
 .cp-reward-card.needs-setup .cp-reward-main strong:after{content:'  ⚠';color:#ffd166;font-size:14px}
 .cp-setup-hint{color:#ffdca3!important;white-space:normal!important;line-height:1.35;margin-top:4px}
+
+
+/* v0.8.7 imported reward activation guard */
+.cp-primary-setup{border-color:rgba(255,193,7,.60)!important;background:rgba(255,193,7,.14)!important;color:#ffe2a8!important;font-weight:950;box-shadow:0 0 16px rgba(255,193,7,.12)}
+.cp-disabled-action{opacity:.48;cursor:not-allowed!important;border-color:rgba(160,170,190,.22)!important;background:rgba(160,170,190,.08)!important;color:var(--muted)!important}
+.cp-reward-card.needs-setup .cp-reward-actions .cp-primary-setup:first-child{order:-2}
+.cp-reward-card.needs-setup .cp-reward-actions .cp-disabled-action{font-style:italic}
+.cp-setup-actions button[data-cp-action="configure-first-missing"]{border-color:rgba(255,193,7,.60);background:rgba(255,193,7,.13);font-weight:950}

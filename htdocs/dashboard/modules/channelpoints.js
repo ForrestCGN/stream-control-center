@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.8.6';
-  const UI_BUILD = 'imported-reward-setup-flow';
+  const UI_VERSION = '0.8.7';
+  const UI_BUILD = 'imported-reward-activation-guard';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -93,6 +93,10 @@ window.ChannelpointsModule = (function(){
   function selectedReward() {
     if (!state.selectedKey) return null;
     return rewards().find(item => String(item.reward_key) === state.selectedKey || String(item.id) === state.selectedKey) || null;
+  }
+
+  function rewardByKey(key) {
+    return rewards().find(item => String(item.reward_key) === String(key) || String(item.id) === String(key)) || null;
   }
 
   function actionForReward(reward) {
@@ -331,6 +335,19 @@ window.ChannelpointsModule = (function(){
       payload = {};
     }
 
+    const mediaAssetId = d._action === 'manual' || d._action === 'text_only' ? '' : d.media_asset_id;
+    const effectiveReward = {
+      ...d,
+      action_type: actionType,
+      action_key: actionKey,
+      action_payload_json: JSON.stringify(payload),
+      media_asset_id: mediaAssetId,
+      media_role: mediaRole
+    };
+    if (boolValue(effectiveReward.system_enabled) && rewardNeedsSetup(effectiveReward)) {
+      throw new Error('Importierte Twitch-Rewards können erst lokal aktiviert werden, wenn Sound, Video, Text oder Custom-Aktion konfiguriert ist.');
+    }
+
     return {
       reward_key:d.reward_key,
       title:d.title,
@@ -345,7 +362,7 @@ window.ChannelpointsModule = (function(){
       action_type:actionType,
       action_key:actionKey,
       action_payload_json:JSON.stringify(payload),
-      media_asset_id:d._action === 'manual' || d._action === 'text_only' ? '' : d.media_asset_id,
+      media_asset_id:mediaAssetId,
       media_role:mediaRole,
       queue_mode:d.queue_mode,
       priority:d.priority,
@@ -414,7 +431,31 @@ window.ChannelpointsModule = (function(){
     await loadAll(true);
   }
 
+  function configureReward(key) {
+    const reward = rewardByKey(key);
+    if (!reward) { state.error = 'Reward nicht gefunden.'; render(); return; }
+    state.tab = 'manage';
+    state.selectedKey = reward.reward_key || String(key);
+    state.error = '';
+    state.notice = rewardNeedsSetup(reward)
+      ? 'Bitte erst eine lokale Aktion konfigurieren. Danach kann der Reward bewusst aktiviert werden.'
+      : 'Reward zur Bearbeitung geöffnet.';
+    openModal('edit', reward);
+  }
+
+  function configureFirstMissingReward() {
+    const reward = rewards().find(rewardNeedsSetup);
+    if (!reward) { state.notice = 'Alle importierten Rewards haben bereits eine lokale Aktion oder sind nicht importiert.'; render(); return; }
+    configureReward(reward.reward_key || reward.id);
+  }
+
   async function toggleReward(key, enabled) {
+    const reward = rewardByKey(key);
+    if (enabled && reward && rewardNeedsSetup(reward)) {
+      state.error = 'Aktivieren gesperrt: Dieser importierte Twitch-Reward hat noch keine lokale Aktion. Bitte zuerst konfigurieren.';
+      configureReward(key);
+      return;
+    }
     await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/${enabled ? 'enable' : 'disable'}`, { method:'POST', body:'{}' });
     state.notice = enabled ? 'Reward lokal aktiviert.' : 'Reward lokal deaktiviert.';
     await loadAll(true);
@@ -460,6 +501,12 @@ window.ChannelpointsModule = (function(){
   }
 
   async function executeReward(key) {
+    const reward = rewardByKey(key);
+    if (reward && rewardNeedsSetup(reward)) {
+      state.error = 'Test gesperrt: Dieser importierte Twitch-Reward hat noch keine lokale Aktion.';
+      configureReward(key);
+      return;
+    }
     const data = await window.CGN.api(api.redemptionTest, { method:'POST', body:JSON.stringify({ reward:key, userLogin:'dashboard', userDisplayName:'Dashboard' }) });
     state.busResult = data;
     state.notice = data.ok ? 'Reward-Test ausgeführt.' : 'Reward-Test konnte nicht ausgeführt werden.';
@@ -699,7 +746,7 @@ window.ChannelpointsModule = (function(){
     if (!imported.length) return '';
     return `<section class="cp-panel cp-imported-setup-panel"><div class="cp-panel-head"><h3>Importierte Twitch-Rewards einrichten</h3><span>${pill(`${missing.length} Aktion fehlt`, missing.length ? 'warn' : 'ok')} ${pill(`${imported.length} importiert`, 'neutral')}</span></div>
       <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards bleiben lokal aus, bis du sie bewusst konfigurierst. Öffne einen Reward über „Bearbeiten“, wähle Sound, Video, Text oder Custom-Aktion, speichere und aktiviere ihn danach manuell.</div>
-      <div class="cp-actions cp-setup-actions"><button type="button" data-cp-action="filter-missing-action">Nur „Aktion fehlt“ anzeigen</button><button type="button" data-cp-action="filter-imported">Alle importierten anzeigen</button><button type="button" data-cp-action="filter-reset">Filter zurücksetzen</button></div>
+      <div class="cp-actions cp-setup-actions"><button type="button" data-cp-action="configure-first-missing">Ersten fehlenden konfigurieren</button><button type="button" data-cp-action="filter-missing-action">Nur „Aktion fehlt“ anzeigen</button><button type="button" data-cp-action="filter-imported">Alle importierten anzeigen</button><button type="button" data-cp-action="filter-reset">Filter zurücksetzen</button></div>
     </section>`;
   }
 
@@ -771,19 +818,31 @@ window.ChannelpointsModule = (function(){
 
   function renderRewardCard(reward) {
     const action = actionById(actionForReward(reward));
+    const needsSetup = rewardNeedsSetup(reward);
     const setupHint = rewardSetupHint(reward);
     const cardClasses = ['cp-reward-card'];
     if (state.selectedKey === reward.reward_key) cardClasses.push('active');
-    if (rewardNeedsSetup(reward)) cardClasses.push('needs-setup');
+    if (needsSetup) cardClasses.push('needs-setup');
+    const editButton = needsSetup
+      ? `<button type="button" class="cp-primary-setup" data-cp-action="configure" data-key="${esc(reward.reward_key)}">Konfigurieren</button>`
+      : `<button type="button" data-cp-action="edit" data-key="${esc(reward.reward_key)}">Bearbeiten</button>`;
+    const testButton = needsSetup
+      ? `<button type="button" class="cp-disabled-action" disabled title="Erst lokale Aktion konfigurieren">Test gesperrt</button>`
+      : `<button type="button" data-cp-action="execute" data-key="${esc(reward.reward_key)}">Testen</button>`;
+    const enableButton = reward.system_enabled
+      ? `<button type="button" data-cp-action="disable" data-key="${esc(reward.reward_key)}">Deaktivieren</button>`
+      : (needsSetup
+        ? `<button type="button" class="cp-disabled-action" disabled title="Erst lokale Aktion konfigurieren">Aktivieren gesperrt</button>`
+        : `<button type="button" data-cp-action="enable" data-key="${esc(reward.reward_key)}">Aktivieren</button>`);
     return `<article class="${cardClasses.join(' ')}" data-cp-card="${esc(reward.reward_key)}">
       <div class="cp-reward-main"><strong>${esc(reward.title || reward.reward_key)}</strong><small>${esc(reward.reward_key)} · ${esc(reward.cost)} Punkte · ${esc(categoryLabel(reward.category_key))}</small>${setupHint ? `<small class="cp-setup-hint">${esc(setupHint)}</small>` : ''}</div>
       <div class="cp-reward-badges">${pill(action.label.replace(/^..\s*/, ''), 'neutral')} ${statusPills(reward)}</div>
       <div class="cp-reward-actions">
-        <button type="button" data-cp-action="edit" data-key="${esc(reward.reward_key)}">Bearbeiten</button>
+        ${editButton}
         <button type="button" data-cp-action="check" data-key="${esc(reward.reward_key)}">Prüfen</button>
-        <button type="button" data-cp-action="execute" data-key="${esc(reward.reward_key)}">Testen</button>
+        ${testButton}
         <button type="button" data-cp-action="copy" data-key="${esc(reward.reward_key)}">Kopieren</button>
-        ${reward.system_enabled ? `<button type="button" data-cp-action="disable" data-key="${esc(reward.reward_key)}">Deaktivieren</button>` : `<button type="button" data-cp-action="enable" data-key="${esc(reward.reward_key)}">Aktivieren</button>`}
+        ${enableButton}
         <button type="button" class="danger" data-cp-action="delete" data-key="${esc(reward.reward_key)}">Löschen</button>
       </div>
     </article>`;
@@ -884,6 +943,7 @@ window.ChannelpointsModule = (function(){
     root.querySelectorAll('[data-cp-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.cpTab || 'manage'; state.error = ''; render(); }));
     root.querySelectorAll('[data-cp-action="reload"]').forEach(btn => btn.addEventListener('click', () => loadAll(true)));
     root.querySelector('[data-cp-action="new"]')?.addEventListener('click', () => openModal('create'));
+    root.querySelector('[data-cp-action="configure-first-missing"]')?.addEventListener('click', () => configureFirstMissingReward());
     root.querySelector('[data-cp-action="filter-missing-action"]')?.addEventListener('click', () => { state.statusFilter = 'missing_action'; render(); });
     root.querySelector('[data-cp-action="filter-imported"]')?.addEventListener('click', () => { state.statusFilter = 'imported'; render(); });
     root.querySelector('[data-cp-action="filter-reset"]')?.addEventListener('click', () => { state.statusFilter = 'all'; state.query = ''; render(); });
@@ -891,7 +951,8 @@ window.ChannelpointsModule = (function(){
     root.querySelector('[data-cp-action="twitch-readonly-status"]')?.addEventListener('click', () => refreshTwitchReadonlyStatus().catch(showError));
     root.querySelector('[data-cp-action="twitch-readonly-preview"]')?.addEventListener('click', () => previewTwitchRewards().catch(showError));
     root.querySelector('[data-cp-action="twitch-readonly-sync"]')?.addEventListener('click', () => syncTwitchRewards().catch(showError));
-    root.querySelectorAll('[data-cp-action="edit"]').forEach(btn => btn.addEventListener('click', () => { const r = rewards().find(item => item.reward_key === btn.dataset.key); if (r) openModal('edit', r); }));
+    root.querySelectorAll('[data-cp-action="edit"]').forEach(btn => btn.addEventListener('click', () => { const r = rewardByKey(btn.dataset.key); if (r) openModal('edit', r); }));
+    root.querySelectorAll('[data-cp-action="configure"]').forEach(btn => btn.addEventListener('click', () => configureReward(btn.dataset.key)));
     root.querySelectorAll('[data-cp-action="check"]').forEach(btn => btn.addEventListener('click', ev => { ev.stopPropagation(); checkReward(btn.dataset.key).catch(showError); }));
     root.querySelectorAll('[data-cp-action="execute"]').forEach(btn => btn.addEventListener('click', ev => { ev.stopPropagation(); executeReward(btn.dataset.key).catch(showError); }));
     root.querySelectorAll('[data-cp-action="copy"]').forEach(btn => btn.addEventListener('click', () => { const r = rewards().find(item => item.reward_key === btn.dataset.key); if (r) openModal('copy', r); }));
