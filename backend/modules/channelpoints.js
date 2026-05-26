@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.8.0";
-const MODULE_BUILD = "twitch-auth-scope-check";
+const MODULE_VERSION = "0.8.1";
+const MODULE_BUILD = "imported-reward-api-guard";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -38,7 +38,8 @@ const DEFAULT_CONFIG = {
   twitchSyncReadinessEnabled: true,
   busDomainEventsEnabled: true,
   twitchAuthScopeCheckEnabled: true,
-  twitchAuthValidateUrl: "/api/twitch/auth/validate"
+  twitchAuthValidateUrl: "/api/twitch/auth/validate",
+  importedRewardActionGuardEnabled: true
 };
 
 const DEFAULT_CATEGORIES = [
@@ -585,7 +586,7 @@ function normalizeRewardInput(input = {}, existing = null) {
     ? cleanString(payloadRaw, existing ? existing.action_payload_json : "{}")
     : jsonString(payloadObject, {});
 
-  return {
+  const data = {
     reward_key: rewardKey,
     twitch_reward_id: cleanString(input.twitch_reward_id, existing ? existing.twitch_reward_id : ""),
     title,
@@ -613,6 +614,9 @@ function normalizeRewardInput(input = {}, existing = null) {
     updated_at: now,
     created_at: existing && existing.created_at ? existing.created_at : now
   };
+
+  if (data.system_enabled === 1) assertImportedRewardCanActivate(data);
+  return data;
 }
 
 
@@ -793,6 +797,7 @@ function setRewardEnabled(idOrKey, enabled, paused = null) {
   ensureDbReady();
   const existing = getRewardByIdOrKey(idOrKey);
   if (!existing) return null;
+  if (enabled) assertImportedRewardCanActivate(existing);
   const now = nowIso();
   const isPaused = paused === null ? existing.is_paused : !!paused;
   database.run(`
@@ -862,6 +867,34 @@ function isTextReward(reward) {
 
 function isExecutableReward(reward) {
   return isExecutableMediaReward(reward) || isTextReward(reward);
+}
+
+function isImportedReward(reward) {
+  return !!(reward && cleanString(reward.twitch_reward_id || ""));
+}
+
+function isImportedRewardMissingAction(reward) {
+  return isImportedReward(reward) && !isExecutableReward(reward);
+}
+
+function assertImportedRewardCanActivate(reward) {
+  const config = getConfig();
+  if (config.importedRewardActionGuardEnabled === false) return true;
+  if (isImportedRewardMissingAction(reward)) {
+    const err = new Error("imported_reward_action_missing");
+    err.reason = "imported_reward_action_missing";
+    err.details = {
+      rewardKey: reward.reward_key || "",
+      title: reward.title || "",
+      twitchRewardId: reward.twitch_reward_id || "",
+      actionType: reward.action_type || "",
+      actionKey: reward.action_key || "",
+      mediaAssetId: reward.media_asset_id || "",
+      note: "Importierte Twitch-Rewards ohne konfigurierte Aktion bleiben lokal gesperrt. Erst Sound/Video/Text konfigurieren, dann aktivieren."
+    };
+    throw err;
+  }
+  return true;
 }
 
 function buildTextRewardResult(reward, input = {}) {
@@ -1060,7 +1093,9 @@ function buildExecutionCheck(reward, input = {}) {
     executionType: isMedia ? "media" : (isText ? "text" : "unsupported"),
     mediaId,
     mediaType,
-    executable: isExecutableReward(reward),
+    executable: isExecutableReward(reward) && !isImportedRewardMissingAction(reward),
+    importedReward: isImportedReward(reward),
+    importedRewardActionMissing: isImportedRewardMissingAction(reward),
     effectiveTargetUrl: isMedia ? targetUrl : "local_text_result",
     targetMethod: isMedia ? "POST" : "LOCAL",
     payloadPreview: isMedia ? buildRewardExecutionPayload(reward, input) : buildTextRewardResult(reward, input),
@@ -1069,7 +1104,8 @@ function buildExecutionCheck(reward, input = {}) {
       paused: reward.is_paused ? true : false,
       missingMediaId: isMedia && !mediaId ? true : false,
       missingText: isText && !buildTextRewardResult(reward, input).message ? true : false,
-      unsupportedAction: isExecutableReward(reward) ? false : true
+      importedRewardActionMissing: isImportedRewardMissingAction(reward),
+      unsupportedAction: isExecutableReward(reward) && !isImportedRewardMissingAction(reward) ? false : true
     },
     updatedAt: nowIso()
   };
@@ -1081,6 +1117,7 @@ async function executeReward(idOrKey, input = {}) {
   if (!reward) throw new Error("reward_not_found");
   if (!reward.system_enabled) throw new Error("reward_disabled_local");
   if (reward.is_paused) throw new Error("reward_paused_local");
+  assertImportedRewardCanActivate(reward);
 
   if (isTextReward(reward)) {
     if (config.textRewardExecutionEnabled === false) throw new Error("text_reward_execution_disabled");
@@ -1384,6 +1421,7 @@ function buildStatus(extra = {}) {
       schemaPreviewEnabled: config.schemaPreviewEnabled !== false,
       migrationExecutionEnabled: config.migrationExecutionEnabled !== false,
       localCrudEnabled: config.localCrudEnabled !== false,
+      importedRewardActionGuardEnabled: config.importedRewardActionGuardEnabled !== false,
       mediaExecutionBridgeEnabled: config.mediaExecutionBridgeEnabled !== false,
       tableCountPlanned: TABLES.length,
       rewardFieldCount: TABLES[1].fields.length,
@@ -1410,7 +1448,8 @@ function buildStatus(extra = {}) {
       dbMigrationEnabled: config.dbMigrationEnabled !== false,
       schemaPreviewEnabled: config.schemaPreviewEnabled !== false,
       migrationExecutionEnabled: config.migrationExecutionEnabled !== false,
-      localCrudEnabled: config.localCrudEnabled !== false
+      localCrudEnabled: config.localCrudEnabled !== false,
+      importedRewardActionGuardEnabled: config.importedRewardActionGuardEnabled !== false
     },
     twitch: {
       ...buildTwitchSyncStatus().readiness,
@@ -1587,7 +1626,8 @@ function emitBusSelfTest(req) {
 
 function sendError(res, statusCode, error, extra = {}) {
   lastError = error && error.message ? error.message : String(error);
-  res.status(statusCode).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, ...extra });
+  const details = error && error.details ? { details: error.details } : {};
+  res.status(statusCode).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: lastError, ...details, ...extra });
 }
 
 function init({ app }) {
@@ -1782,4 +1822,4 @@ function init({ app }) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} API routes registered (${ROUTE_PREFIX})`);
 }
 
-module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildBusEventSpec, buildTwitchAuthScopeStatus, registerAtCommunicationBus, heartbeatBus, publishStatus };
+module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildBusEventSpec, buildTwitchAuthScopeStatus, registerAtCommunicationBus, heartbeatBus, publishStatus, isImportedRewardMissingAction };
