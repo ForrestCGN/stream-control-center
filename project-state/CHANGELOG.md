@@ -1,8 +1,9 @@
-# Changelog
+# CHANGELOG
 
-## 2026-05-26 — Channelpoints v0.7.2
+## Channelpoints v0.7.3
 
-- lokale Redemption-Liste ergänzt
-- Testeinlösung per Dashboard/API ergänzt
-- Reward-Prüfen/Testen im Dashboard ergänzt
-- keine Twitch-Schreibzugriffe
+- Text-Reward-Ausführung ergänzt.
+- `text-execution-check` ergänzt.
+- Redemption-Verlauf zeigt Ergebnisvorschau.
+- Dashboard-Hinweis für Textgruppen/Zentrale Textverwaltung ergänzt.
+- Keine Twitch-Schreibzugriffe.

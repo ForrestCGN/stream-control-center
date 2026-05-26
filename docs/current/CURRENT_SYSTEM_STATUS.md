@@ -1,7 +1,14 @@
 # Current System Status
 
-## Kanalpunkte
+## Channelpoints
 
-Aktueller Stand: v0.7.2 / `redemption-execution-flow`.
+Aktueller Stand: **v0.7.3** / `text-reward-redemption-polish`.
 
-Kanalpunkte besitzen jetzt lokalen Reward-Editor, Media-Ausführung und lokalen Redemption-/Testverlauf. Twitch-Schreibzugriffe sind weiterhin deaktiviert.
+Bestätigte Basis:
+
+- Modal-Editor analog zu Commands.
+- Draft-State bleibt beim Medienauswählen erhalten.
+- Sound-/Video-Rewards können über MediaPicker konfiguriert werden.
+- Testeinlösungen werden lokal gespeichert.
+- Text-Rewards speichern Einzeltext als lokales Einlösungs-Ergebnis.
+- Twitch-Schreibzugriffe bleiben deaktiviert.

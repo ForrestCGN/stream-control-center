@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.7.2";
-const MODULE_BUILD = "redemption-execution-flow";
+const MODULE_VERSION = "0.7.3";
+const MODULE_BUILD = "text-reward-redemption-polish";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -33,7 +33,8 @@ const DEFAULT_CONFIG = {
   migrationExecutionEnabled: true,
   localCrudEnabled: true,
   mediaExecutionBridgeEnabled: true,
-  mediaExecutionTargetUrl: "/api/sound/play"
+  mediaExecutionTargetUrl: "/api/sound/play",
+  textRewardExecutionEnabled: true
 };
 
 const DEFAULT_CATEGORIES = [
@@ -737,6 +738,49 @@ function isExecutableMediaReward(reward) {
   return ["media", "sound", "video_play", "sound_play"].includes(actionType) || ["video", "audio"].includes(rewardMediaType(reward));
 }
 
+function isTextReward(reward) {
+  if (!reward) return false;
+  const payload = rewardActionPayload(reward);
+  const actionType = cleanString(reward.action_type || payload.actionType || "").toLowerCase();
+  const actionKey = cleanString(reward.action_key || payload.actionKey || "").toLowerCase();
+  return actionType === "chat_message" || actionKey === "send_text" || actionType === "text_only" || payload.textMode === "single" || payload.textMode === "textKey";
+}
+
+function isExecutableReward(reward) {
+  return isExecutableMediaReward(reward) || isTextReward(reward);
+}
+
+function buildTextRewardResult(reward, input = {}) {
+  const payload = rewardActionPayload(reward);
+  const textMode = cleanString(payload.textMode || payload.mode || "single");
+  const text = cleanString(payload.text || payload.message || "");
+  const textKey = cleanString(payload.textKey || payload.key || "");
+  const selection = cleanString(payload.selection || "random");
+  const userLogin = cleanString(input.userLogin || input.user || input.login || "testuser").toLowerCase();
+  const displayName = cleanString(input.userDisplayName || input.displayName || input.user || userLogin || "testuser");
+  const renderedText = textMode === "textKey"
+    ? cleanString(text || `[Textgruppe vorbereitet: ${textKey || "ohne_key"}]`)
+    : text;
+
+  return {
+    ok: !!(renderedText || textKey),
+    type: "text",
+    textMode,
+    text: renderedText,
+    textKey,
+    selection,
+    target: cleanString(payload.target || "twitch_chat"),
+    userLogin,
+    userDisplayName: displayName,
+    rewardKey: reward.reward_key,
+    rewardTitle: reward.title || reward.reward_key,
+    message: renderedText || (textKey ? `[Textgruppe vorbereitet: ${textKey}]` : ""),
+    note: textMode === "textKey" ? "Textgruppen-Auswahl ist vorbereitet; zentrale Textverwaltung folgt später." : "Einzeltext wurde lokal als Einlösungs-Ergebnis gespeichert.",
+    twitchWrite: false,
+    streamerbotPayloadPrepared: true
+  };
+}
+
 function buildRewardExecutionPayload(reward, input = {}) {
   const payload = rewardActionPayload(reward);
   const mediaId = rewardMediaId(reward);
@@ -878,6 +922,8 @@ function buildExecutionCheck(reward, input = {}) {
   const mediaId = rewardMediaId(reward);
   const mediaType = rewardMediaType(reward);
   const targetUrl = cleanString(config.mediaExecutionTargetUrl || "/api/sound/play");
+  const isMedia = isExecutableMediaReward(reward);
+  const isText = isTextReward(reward);
   executionStats.checked += 1;
   return {
     ok: true,
@@ -890,17 +936,19 @@ function buildExecutionCheck(reward, input = {}) {
     isPaused: !!reward.is_paused,
     actionType: reward.action_type,
     actionKey: reward.action_key,
+    executionType: isMedia ? "media" : (isText ? "text" : "unsupported"),
     mediaId,
     mediaType,
-    executable: isExecutableMediaReward(reward),
-    effectiveTargetUrl: targetUrl,
-    targetMethod: "POST",
-    payloadPreview: buildRewardExecutionPayload(reward, input),
+    executable: isExecutableReward(reward),
+    effectiveTargetUrl: isMedia ? targetUrl : "local_text_result",
+    targetMethod: isMedia ? "POST" : "LOCAL",
+    payloadPreview: isMedia ? buildRewardExecutionPayload(reward, input) : buildTextRewardResult(reward, input),
     warnings: {
       disabled: reward.system_enabled ? false : true,
       paused: reward.is_paused ? true : false,
-      missingMediaId: mediaId ? false : true,
-      unsupportedAction: isExecutableMediaReward(reward) ? false : true
+      missingMediaId: isMedia && !mediaId ? true : false,
+      missingText: isText && !buildTextRewardResult(reward, input).message ? true : false,
+      unsupportedAction: isExecutableReward(reward) ? false : true
     },
     updatedAt: nowIso()
   };
@@ -908,12 +956,28 @@ function buildExecutionCheck(reward, input = {}) {
 
 async function executeReward(idOrKey, input = {}) {
   const config = getConfig();
-  if (config.mediaExecutionBridgeEnabled === false) throw new Error("media_execution_bridge_disabled");
   const reward = getRewardByIdOrKey(idOrKey);
   if (!reward) throw new Error("reward_not_found");
   if (!reward.system_enabled) throw new Error("reward_disabled_local");
   if (reward.is_paused) throw new Error("reward_paused_local");
-  if (!isExecutableMediaReward(reward)) throw new Error("reward_not_executable_media");
+
+  if (isTextReward(reward)) {
+    if (config.textRewardExecutionEnabled === false) throw new Error("text_reward_execution_disabled");
+    const summary = buildTextRewardResult(reward, input);
+    if (!summary.message) throw new Error("text_reward_missing_text");
+    executionStats.executed += 1;
+    executionStats.lastExecutionAt = nowIso();
+    executionStats.lastExecutionAction = "execute_text_reward";
+    executionStats.lastExecutionReward = reward.reward_key;
+    executionStats.lastExecutionResult = summary;
+    executionStats.lastExecutionError = "";
+    recordRedemptionExecution(reward, input, "executed", summary);
+    publishStatus("reward_text_executed");
+    return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, action: "executed_text_reward", reward, result: summary, twitchWrite: false };
+  }
+
+  if (config.mediaExecutionBridgeEnabled === false) throw new Error("media_execution_bridge_disabled");
+  if (!isExecutableMediaReward(reward)) throw new Error("reward_not_executable");
   const targetUrl = cleanString(config.mediaExecutionTargetUrl || "/api/sound/play");
   const payload = buildRewardExecutionPayload(reward, input);
   try {
@@ -980,7 +1044,7 @@ function buildStatus(extra = {}) {
     moduleVersion: MODULE_VERSION,
     routePrefix: ROUTE_PREFIX,
     enabled: config.enabled !== false,
-    mode: "backend_local_reward_crud_media_execution_bridge",
+    mode: "backend_local_reward_crud_media_text_execution",
     moduleBuild: MODULE_BUILD,
     model: {
       version: "0.4.0",
@@ -1023,6 +1087,7 @@ function buildStatus(extra = {}) {
       rewardManagementImplemented: false,
       rewardSyncImplemented: false,
       redemptionHandlingImplemented: true,
+      textRewardExecutionImplemented: true,
       writeActionsEnabled: false,
       requiredManageScope: "channel:manage:redemptions",
       requiredReadScope: "channel:read:redemptions",
@@ -1050,6 +1115,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/rewards`,
       `${ROUTE_PREFIX}/redemptions`,
       `${ROUTE_PREFIX}/redemptions/test`,
+      `${ROUTE_PREFIX}/text-execution-check`,
       `${ROUTE_PREFIX}/rewards/:idOrKey`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/enable`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/disable`,
@@ -1291,6 +1357,15 @@ function init({ app }) {
   });
 
   app.get(`${ROUTE_PREFIX}/media-execution-check`, (req, res) => {
+    try {
+      const idOrKey = cleanString(req.query.reward || req.query.reward_key || req.query.id || "");
+      const reward = getRewardByIdOrKey(idOrKey);
+      if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "reward_not_found" });
+      res.json(buildExecutionCheck(reward, req.query || {}));
+    } catch (err) { sendError(res, 500, err); }
+  });
+
+  app.get(`${ROUTE_PREFIX}/text-execution-check`, (req, res) => {
     try {
       const idOrKey = cleanString(req.query.reward || req.query.reward_key || req.query.id || "");
       const reward = getRewardByIdOrKey(idOrKey);

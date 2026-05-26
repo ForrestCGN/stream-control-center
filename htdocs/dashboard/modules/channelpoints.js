@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.7.2';
-  const UI_BUILD = 'redemption-execution-flow';
+  const UI_VERSION = '0.7.3';
+  const UI_BUILD = 'text-reward-redemption-polish';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -383,7 +383,7 @@ window.ChannelpointsModule = (function(){
   async function checkReward(key) {
     const data = await window.CGN.api(`${api.mediaExecutionCheck}?reward=${encodeURIComponent(key)}`);
     state.busResult = data;
-    state.notice = data.executable ? 'Ausführung geprüft: Reward kann über /api/sound/play ausgeführt werden.' : 'Ausführung geprüft: Reward ist noch nicht ausführbar.';
+    state.notice = data.executable ? `Ausführung geprüft: ${data.executionType === 'text' ? 'Text-Reward kann lokal gespeichert werden.' : 'Reward kann über /api/sound/play ausgeführt werden.'}` : 'Ausführung geprüft: Reward ist noch nicht ausführbar.';
     render();
   }
 
@@ -400,11 +400,21 @@ window.ChannelpointsModule = (function(){
     return pill(clean, mode);
   }
 
+  function redemptionResultPreview(item) {
+    const result = item && item.result && typeof item.result === 'object' ? item.result : {};
+    if (result.type === 'text' || result.text || result.message) return result.message || result.text || '';
+    if (result.item && (result.item.label || result.item.mediaUrl || result.item.videoUrl)) return [result.item.label, result.item.mediaUrl || result.item.videoUrl].filter(Boolean).join(' · ');
+    if (result.message) return result.message;
+    if (result.error) return result.error;
+    return '';
+  }
+
   function renderRedemptionsPanel() {
     const list = asArray(state.redemptions).slice(0, 25);
     const counts = state.redemptionCounts || {};
     return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Einlösungen / Testverlauf</h3><span>${esc(counts.total ?? list.length)} gesamt · ${esc(counts.executed ?? 0)} ausgeführt · ${esc(counts.failed ?? 0)} Fehler</span></div>
-      <div class="cp-redemption-list">${list.map(item => `<div class="cp-redemption-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}</small></div><div>${redemptionStatusPill(item.status)}</div></div>`).join('') || '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
+      <div class="cp-redemption-list">${list.map(item => { const preview = redemptionResultPreview(item); return `<div class="cp-redemption-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}${preview ? ` · ${esc(preview).slice(0, 140)}` : ''}</small></div><div>${redemptionStatusPill(item.status)}</div></div>`; }).join('') || '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
+      <small class="cp-muted-line">Text-Rewards speichern den vorbereiteten Chattext aktuell lokal im Ergebnis. Zentrale Textverwaltung und echtes Senden folgen separat.</small>
     </section>`;
   }
 
@@ -508,7 +518,7 @@ window.ChannelpointsModule = (function(){
       </div><div class="cp-media-box"><div data-media-field data-module-key="channelpoints" data-allowed-types="${esc(action.allowedTypes)}" data-title="Kanalpunkte-Medium auswählen" data-value-input="#cpMediaAssetId"></div><button type="button" data-cp-action="open-media">Medienverwaltung öffnen</button><button type="button" data-cp-action="clear-media">Medium entfernen</button></div><small>Ausführung später: mediaId → /api/sound/play.</small>${renderAdvancedFields(d, payload)}</div>`;
     }
     if (action.id === 'text_only') {
-      return `<div class="cp-action-mask"><h5>${esc(action.label)}</h5><p>Textgruppen kommen später über die zentrale Textverwaltung. Einzeltext funktioniert bereits als gespeicherte Konfiguration.</p><div class="cp-form-grid"><label>Textmodus <select data-cp-field="text_mode"><option value="single" ${payload.textMode !== 'textKey' ? 'selected' : ''}>Einzeltext</option><option value="textKey" ${payload.textMode === 'textKey' ? 'selected' : ''}>Text-Key / Textgruppe später</option></select></label><label>Auswahl <select data-cp-field="text_selection"><option value="random" ${payload.selection !== 'first' && payload.selection !== 'rotation' ? 'selected' : ''}>Zufällig</option><option value="first" ${payload.selection === 'first' ? 'selected' : ''}>Erste Variante</option><option value="rotation" ${payload.selection === 'rotation' ? 'selected' : ''}>Rotation später</option></select></label></div><label class="cp-wide">Einzeltext<textarea rows="3" data-cp-field="text_value" placeholder="Text, der im Chat erscheinen soll...">${esc(payload.text || '')}</textarea></label><label class="cp-wide">Text-Key / Textgruppe<input data-cp-field="text_key" value="${esc(payload.textKey || 'channelpoints.mein_text')}"></label><input type="hidden" data-cp-field="media_asset_id" value=""><input type="hidden" data-cp-field="media_role" value="none">${renderAdvancedFields(d, payload)}</div>`;
+      return `<div class="cp-action-mask"><h5>${esc(action.label)}</h5><p>Einzeltext wird beim Test als Einlösungs-Ergebnis gespeichert. Textgruppen sind vorbereitet und werden später an die zentrale Textverwaltung angebunden.</p><div class="cp-form-grid"><label>Textmodus <select data-cp-field="text_mode"><option value="single" ${payload.textMode !== 'textKey' ? 'selected' : ''}>Einzeltext</option><option value="textKey" ${payload.textMode === 'textKey' ? 'selected' : ''}>Text-Key / Textgruppe vorbereitet</option></select></label><label>Auswahl <select data-cp-field="text_selection"><option value="random" ${payload.selection !== 'first' && payload.selection !== 'rotation' ? 'selected' : ''}>Zufällig</option><option value="first" ${payload.selection === 'first' ? 'selected' : ''}>Erste Variante</option><option value="rotation" ${payload.selection === 'rotation' ? 'selected' : ''}>Rotation später</option></select></label></div><label class="cp-wide">Einzeltext<textarea rows="3" data-cp-field="text_value" placeholder="Text, der im Chat erscheinen soll...">${esc(payload.text || '')}</textarea></label><label class="cp-wide">Text-Key / Textgruppe<input data-cp-field="text_key" value="${esc(payload.textKey || 'channelpoints.mein_text')}"></label><input type="hidden" data-cp-field="media_asset_id" value=""><input type="hidden" data-cp-field="media_role" value="none">${renderAdvancedFields(d, payload)}</div>`;
     }
     if (action.id === 'manual') {
       return `<div class="cp-action-mask"><h5>${esc(action.label)}</h5><p>Der Reward wird nur lokal verwaltet. Keine automatische Ausführung.</p><input type="hidden" data-cp-field="media_asset_id" value=""><input type="hidden" data-cp-field="media_role" value="none">${renderAdvancedFields(d, payload)}</div>`;

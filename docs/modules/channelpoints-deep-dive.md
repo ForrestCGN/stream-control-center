@@ -1,21 +1,15 @@
-# Kanalpunkte-System — Deep Dive
+# Channelpoints Deep Dive
 
-Aktueller Stand: v0.7.2 / `redemption-execution-flow`
+Aktueller Stand: **v0.7.3** / Build `text-reward-redemption-polish`.
 
-## Zweck
+## Ziele dieses Stands
 
-Das Kanalpunkte-System verwaltet lokale Twitch-Kanalpunkte-Rewards analog zum Commands-System.
-
-## Aktueller Funktionsumfang
-
-- lokale Kategorien
-- lokale Rewards
-- Modal-Editor im Dashboard
-- Sound-/Video-/Text-/Manual-Aktionen
-- bestehendes Media-System für Sound/Video-Auswahl
-- Media-Ausführung über `/api/sound/play`
-- lokale Einlösungen/Testeinlösungen
-- Verlauf in `channelpoints_redemptions`
+- Kanalpunkte-Editor analog zum Commands-Editor.
+- Rewards lokal erstellen, bearbeiten, kopieren, deaktivieren und löschen.
+- Sound-/Video-Rewards über bestehende Medienauswahl konfigurieren.
+- Testeinlösungen lokal ausführen und in `channelpoints_redemptions` speichern.
+- Text-Rewards lokal ausführbar machen: Einzeltext wird als Ergebnis der Einlösung gespeichert; Textgruppen sind vorbereitet.
+- Keine Twitch-Schreibzugriffe in diesem Stand.
 
 ## Wichtige Routen
 
@@ -26,12 +20,38 @@ Das Kanalpunkte-System verwaltet lokale Twitch-Kanalpunkte-Rewards analog zum Co
 - `POST /api/channelpoints/rewards/:idOrKey/delete`
 - `POST /api/channelpoints/rewards/:idOrKey/execute`
 - `GET /api/channelpoints/media-execution-check?reward=<key>`
-- `GET /api/channelpoints/redemptions`
+- `GET /api/channelpoints/text-execution-check?reward=<key>`
+- `GET /api/channelpoints/redemptions?limit=25`
 - `POST /api/channelpoints/redemptions/test`
 
-## Noch nicht enthalten
+## Ausführung
 
-- echter Twitch Reward Sync
-- echte EventSub Redemption-Verarbeitung
-- Twitch Reward aktiv/deaktivieren per API
-- zentrale Textverwaltung für Textgruppen/Varianten
+### Sound / Video
+
+Sound- und Video-Rewards werden weiterhin über die vorhandene Sound-System-Brücke ausgeführt:
+
+```text
+mediaId -> /api/sound/play
+```
+
+### Text
+
+Text-Rewards werden lokal als Test-/Einlösungs-Ergebnis gespeichert:
+
+```text
+Reward -> action_type chat_message -> result_json.type=text
+```
+
+Einzeltext funktioniert bereits als gespeicherte Konfiguration. Text-Key/Textgruppen sind vorbereitet und werden später an die zentrale Textverwaltung angebunden.
+
+## Datenbank
+
+Produktive DB bleibt unverändert: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+
+Genutzte Tabellen:
+
+- `channelpoints_categories`
+- `channelpoints_rewards`
+- `channelpoints_redemptions`
+
+Keine Tabelle wird ersetzt oder gelöscht.

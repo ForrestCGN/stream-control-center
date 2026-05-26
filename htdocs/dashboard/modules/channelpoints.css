@@ -22,3 +22,7 @@ html[data-theme="light"] .cp-toolbar input,html[data-theme="light"] .cp-toolbar 
 .cp-redemption-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid rgba(255,255,255,.10); border-radius: 14px; background: rgba(255,255,255,.035); }
 .cp-redemption-row small { display: block; color: var(--muted); margin-top: 3px; }
 @media(max-width:900px){ .cp-redemption-row { grid-template-columns: 1fr; } }
+
+/* v0.7.3 text reward + redemption polish */
+.cp-muted-line{display:block;color:var(--muted);margin-top:10px;line-height:1.45}
+.cp-redemption-row small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}

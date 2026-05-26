@@ -1,5 +1,3 @@
-# Current Status
+# CURRENT_STATUS
 
-- Channelpoints: v0.7.2 / redemption-execution-flow
-- Dashboard: UI v0.7.2
-- lokale Einlösungen/Testverlauf ergänzt
+Channelpoints steht bei v0.7.3 (`text-reward-redemption-polish`). Sound/Video-Testeinlösungen laufen über `/api/sound/play`; Text-Rewards speichern Einzeltext lokal im Redemption-Ergebnis.
