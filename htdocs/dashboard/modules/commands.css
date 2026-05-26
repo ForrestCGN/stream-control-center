@@ -16,3 +16,7 @@ html[data-theme="light"] .cmd-card,html[data-theme="light"] .cmd-toolbar,html[da
 .cmd-saved-route-preview span{display:block;font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
 .cmd-saved-route-preview strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px}
 @media(max-width:900px){.cmd-saved-route-preview{grid-template-columns:1fr}}
+
+/* v0.1.6 unified action dropdown + text output */
+.cmd-text-output-box{border-color:rgba(120,220,255,.32);background:rgba(120,220,255,.045)}
+.cmd-saved-route-preview.compact{margin:0;grid-template-columns:repeat(3,minmax(0,1fr))}

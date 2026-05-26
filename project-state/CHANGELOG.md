@@ -1,8 +1,9 @@
-# CHANGELOG
+# Changelog
 
-## Commands Dashboard v0.1.5
-- UI-Version auf `0.1.5` gesetzt.
-- Build auf `exact-saved-command-editor` gesetzt.
-- Katalog-Dropdown überschreibt gespeicherte Commands nicht mehr automatisch.
-- Benutzerdefinierte/gespeicherte Modul-Aktionen werden explizit angezeigt.
-- Gespeicherte Route wird im Editor sichtbar dargestellt.
+## Commands Dashboard v0.1.7
+
+- Aktionsart-gesteuerter Editor eingeführt.
+- Neuer Command startet mit Song, Video, Text, Modul-Befehl, Benutzerdefiniert.
+- Bestehende Commands zeigen die gespeicherte Aktion als erste Auswahl.
+- Normalansicht zeigt keine technischen Sonderkästen mehr.
+- Buttontext von Defaults auf „Ausgewählte Aktion übernehmen“ geändert.

@@ -1,8 +1,8 @@
 window.CommandsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.1.5';
-  const UI_BUILD = 'exact-saved-command-editor';
+  const UI_VERSION = '0.1.7';
+  const UI_BUILD = 'action-type-driven-editor';
 
   const api = {
     status: '/api/commands/status',
@@ -19,13 +19,14 @@ window.CommandsModule = (function(){
   };
 
   const FRIENDLY_ACTIONS = [
+    { id: 'sound_play', label: 'Song abspielen', icon: '🔊', help: 'Wählt einen Song/Sound aus der Medienverwaltung und führt ihn über /api/sound/play aus.' },
+    { id: 'video_play', label: 'Video abspielen', icon: '🎬', help: 'Wählt ein Video aus der Medienverwaltung und zeigt es über das Sound-/Overlay-System an.' },
+    { id: 'chat_message', label: 'Text anzeigen', icon: '💬', help: 'Der Command soll einen Chattext ausgeben. Später auch über zentrale Textgruppen mit mehreren Varianten.' },
     { id: 'module_command', label: 'Modul-Befehl ausführen', icon: '🧩', help: 'Wählt eine vorhandene Backend-Modulaktion aus dem Katalog, z. B. Deathcounter, Hug oder Tagebuch.' },
-    { id: 'chat_message', label: 'Chat-Nachricht senden', icon: '💬', help: 'Speichert einen festen Chattext als Command-Aktion. Die Ausführung wird später zentral angebunden.' },
-    { id: 'sound_play', label: 'Sound abspielen', icon: '🔊', help: 'Wählt einen Sound aus der Medienverwaltung und führt ihn über /api/sound/play aus.' },
-    { id: 'video_play', label: 'Video anzeigen', icon: '🎬', help: 'Wählt ein Video aus der Medienverwaltung und zeigt es über das Sound-/Overlay-System an.' },
+    { id: 'custom_action', label: 'Benutzerdefinierte Aktion', icon: '⚙️', help: 'Trage eine eigene Modul-/Route-Aktion ein. Technische Werte liegen unter Erweitert.' },
+    { id: 'text_plus_action', label: 'Text + Aktion ausführen', icon: '💬🧩', help: 'Optionalen Chattext ausgeben und danach die gespeicherte Aktion ausführen. Vorbereitung für zentrale Textverwaltung.' },
     { id: 'advanced', label: 'Erweitert / technische Aktion', icon: '⚙️', help: 'Zeigt technische Felder wie Modul, Route, Methode und JSON an.' }
   ];
-
   const DEFAULT_COMMAND = {
     id: 0,
     trigger: '',
@@ -40,7 +41,7 @@ window.CommandsModule = (function(){
     cooldownUserMs: 3000,
     liveOnly: false,
     responseMode: 'module',
-    config: { actionType: 'module_command' }
+    config: { actionType: 'sound_play' }
   };
 
   const state = {
@@ -87,12 +88,55 @@ window.CommandsModule = (function(){
     return 'module_command';
   }
 
-  function friendlyAction(cmd) {
+  function hasTextOutput(cmd) {
+    const output = cmd?.config?.textOutput || {};
+    return output.enabled === true || String(output.mode || 'none') !== 'none' || !!output.text || !!output.textKey;
+  }
+
+  function friendlyActionId(cmd) {
     const type = actionType(cmd);
-    if (type === 'sound_play') return FRIENDLY_ACTIONS.find(a => a.id === 'sound_play');
-    if (type === 'video_play') return FRIENDLY_ACTIONS.find(a => a.id === 'video_play');
-    if (type === 'chat_message') return FRIENDLY_ACTIONS.find(a => a.id === 'chat_message');
-    return FRIENDLY_ACTIONS.find(a => a.id === 'module_command');
+    if (type === 'sound_play') return 'sound_play';
+    if (type === 'video_play') return 'video_play';
+    if (type === 'chat_message') return 'chat_message';
+    if (hasTextOutput(cmd)) return 'text_plus_action';
+    if (type === 'module_command' && !matchedCatalogAction(cmd)) return 'custom_action';
+    return 'module_command';
+  }
+
+  function friendlyAction(cmd) {
+    return FRIENDLY_ACTIONS.find(a => a.id === friendlyActionId(cmd)) || FRIENDLY_ACTIONS[0];
+  }
+
+  function storedActionLabel(cmd) {
+    const id = friendlyActionId(cmd);
+    if (id === 'sound_play') return 'Song abspielen';
+    if (id === 'video_play') return 'Video abspielen';
+    if (id === 'chat_message') return 'Text anzeigen';
+    if (id === 'text_plus_action') return 'Text + Aktion ausführen';
+    if (id === 'module_command') {
+      const matched = matchedCatalogAction(cmd);
+      if (matched) return `Modul-Befehl: ${matched.label || matched.id}`;
+      const bits = [cmd?.moduleKey, cmd?.actionKey, cmd?.targetUrl].filter(Boolean).join(' · ');
+      return bits ? `Modul-Befehl: ${bits}` : 'Modul-Befehl ausführen';
+    }
+    const bits = [cmd?.moduleKey, cmd?.actionKey, cmd?.targetUrl].filter(Boolean).join(' · ');
+    return bits ? `Benutzerdefiniert: ${bits}` : 'Benutzerdefinierte Aktion';
+  }
+
+  function renderFriendlyActionOptions(cmd) {
+    const current = friendlyActionId(cmd);
+    const isEdit = state.modal?.mode === 'edit';
+    const used = new Set();
+    const rows = [];
+    if (isEdit) {
+      used.add(current);
+      rows.push(`<option value="${esc(current)}" selected>✓ Gespeichert: ${esc(storedActionLabel(cmd))}</option>`);
+    }
+    for (const action of FRIENDLY_ACTIONS) {
+      if (used.has(action.id)) continue;
+      rows.push(`<option value="${esc(action.id)}">${esc(action.icon)} ${esc(action.label)}</option>`);
+    }
+    return rows.join('');
   }
 
   function commandCategory(cmd) {
@@ -228,8 +272,26 @@ window.CommandsModule = (function(){
   function catalogActionById(id) { return catalogActions().find(a => a.id === id) || null; }
 
   function applyCatalogDefaultsInModal(actionId) {
-    const action = catalogActionById(actionId);
     if (!state.modal) return;
+    if (actionId === '__text_only__') {
+      state.modal.data.config = { ...(state.modal.data.config || {}), actionType: 'chat_message', message: state.modal.data.config?.message || '' };
+      render();
+      return;
+    }
+    if (actionId === '__new_custom__') {
+      state.modal.data.moduleKey = '';
+      state.modal.data.actionKey = '';
+      state.modal.data.targetUrl = '';
+      state.modal.data.config = { ...(state.modal.data.config || {}), actionType: 'module_command' };
+      render();
+      return;
+    }
+    if (actionId === '__stored__' || actionId === '__pick__') {
+      state.notice = 'Gespeicherte Aktion bleibt unverändert.';
+      render();
+      return;
+    }
+    const action = catalogActionById(actionId);
     if (!action) {
       state.notice = 'Keine Katalog-Vorlage übernommen. Gespeicherte Werte bleiben unverändert.';
       render();
@@ -247,13 +309,14 @@ window.CommandsModule = (function(){
     cmd.cooldownUserMs = Number(action.cooldownUserMs ?? cmd.cooldownUserMs ?? 3000);
     cmd.responseMode = action.responseMode || cmd.responseMode || 'module';
     cmd.config = { ...(cmd.config || {}), ...(action.config || {}), actionType: 'module_command', catalogActionId: action.id };
-    state.notice = `Defaults übernommen: ${action.label || action.id}`;
+    state.notice = `Ausgewählte Aktion übernommen: ${action.label || action.id}`;
     render();
   }
 
   function modalActionType() {
     const select = field('friendlyAction');
-    return String(select?.value || state.modal?.data?.config?.actionType || 'module_command');
+    if (select && select.value) return String(select.value);
+    return friendlyActionId(state.modal?.data || {});
   }
 
   function readJsonTextarea(name, fallback) {
@@ -263,11 +326,28 @@ window.CommandsModule = (function(){
     catch (err) { throw new Error(`${name}: JSON ist ungültig (${err.message})`); }
   }
 
+  function readTextOutputConfig() {
+    const mode = String(field('textOutputMode')?.value || 'none').trim();
+    const text = String(field('textOutputText')?.value || '').trim();
+    const textKey = String(field('textOutputKey')?.value || '').trim();
+    const selection = String(field('textOutputSelection')?.value || 'random').trim();
+    return {
+      enabled: mode !== 'none',
+      mode,
+      text,
+      textKey,
+      selection,
+      source: 'commands_dashboard',
+      note: 'Prepared for central text management; runtime execution will be wired in a later text-system step.'
+    };
+  }
+
   function readModalPayload() {
     if (!state.modal) throw new Error('Kein Editor geöffnet.');
     const mode = state.modal.mode;
     const original = state.modal.data || {};
-    const action = modalActionType();
+    const uiAction = modalActionType();
+    const action = uiAction === 'custom_action' || uiAction === 'text_plus_action' || uiAction === 'advanced' ? 'module_command' : uiAction;
     const trigger = cleanTrigger(field('trigger')?.value || '');
     if (!trigger) throw new Error('Trigger fehlt.');
 
@@ -280,11 +360,10 @@ window.CommandsModule = (function(){
     let responseMode = String(field('responseMode')?.value || original.responseMode || 'module').trim();
 
     if (action === 'module_command') {
-      // v0.1.5: Beim Bearbeiten sind die gespeicherten Werte maßgeblich.
-      // Der Katalog ist nur eine Vorlage und darf moduleKey/actionKey/targetUrl nicht automatisch überschreiben.
-      // Defaults werden nur durch den Button "Defaults übernehmen" in state.modal.data geschrieben.
+      // v0.1.6: Dropdown ist die zentrale Auswahl. Gespeicherte Werte bleiben maßgeblich.
+      // Der Katalog ist nur Vorlage und wird erst per Button bewusst übernommen.
       const originalCatalogActionId = String(original.config?.catalogActionId || '').trim();
-      if (originalCatalogActionId && catalogActionById(originalCatalogActionId)) {
+      if (uiAction === 'module_command' && originalCatalogActionId && catalogActionById(originalCatalogActionId)) {
         config.catalogActionId = originalCatalogActionId;
       } else {
         delete config.catalogActionId;
@@ -292,11 +371,23 @@ window.CommandsModule = (function(){
       config.actionType = 'module_command';
     }
 
+    if (uiAction === 'text_plus_action') {
+      config.textOutput = readTextOutputConfig();
+      config.textOutput.enabled = true;
+    } else if (uiAction !== 'chat_message') {
+      const textOutput = readTextOutputConfig();
+      if (textOutput.enabled) config.textOutput = textOutput;
+      else config.textOutput = { enabled: false, mode: 'none' };
+    }
+
     if (action === 'chat_message') {
       config.message = String(field('chatMessage')?.value || '').trim();
       config.prefer = String(field('chatPrefer')?.value || 'bot').trim();
+      config.textOutput = readTextOutputConfig();
+      config.textOutput.enabled = true;
       moduleKey = moduleKey || 'chat_output';
       actionKey = actionKey || 'send_message';
+      targetMethod = targetMethod || 'POST';
       responseMode = responseMode || 'module';
     }
 
@@ -475,11 +566,18 @@ window.CommandsModule = (function(){
 
   function renderCatalogOptions(cmd) {
     const matched = matchedCatalogAction(cmd);
-    const current = matched ? matched.id : '__custom__';
-    const customLabel = matched ? 'Gespeicherte Aktion beibehalten' : 'Benutzerdefiniert / gespeicherte Aktion';
-    const custom = `<option value="__custom__" ${current === '__custom__' ? 'selected' : ''}>⚙️ ${esc(customLabel)}</option>`;
+    const current = matched ? matched.id : '__stored__';
+    const rows = [];
+    if (state.modal?.mode === 'edit') {
+      const label = storedActionLabel(cmd);
+      rows.push(`<option value="__stored__" ${current === '__stored__' ? 'selected' : ''}>✓ Gespeichert: ${esc(label)}</option>`);
+    } else {
+      rows.push('<option value="__pick__" selected>Modul-Aktion auswählen...</option>');
+    }
+    rows.push('<option value="__new_custom__">⚙️ Benutzerdefinierte Aktion</option>');
+    rows.push('<option value="__text_only__">💬 Text anzeigen</option>');
     const groups = allCatalogGroups().map(group => `<optgroup label="${esc(group.label)}">${group.actions.map(a => `<option value="${esc(a.id)}" ${a.id === current ? 'selected' : ''}>${esc(a.icon || '🧩')} ${esc(a.label || a.id)}</option>`).join('')}</optgroup>`).join('');
-    return custom + groups;
+    return rows.join('') + groups;
   }
 
   function allCatalogGroups() {
@@ -488,29 +586,39 @@ window.CommandsModule = (function(){
     return [{ label: 'Modul-Aktionen', actions: catalogActions() }];
   }
 
+  function renderTextOutputFields(cmd, forceEnabled = false) {
+    const out = cmd.config?.textOutput || {};
+    const mode = forceEnabled ? (out.mode && out.mode !== 'none' ? out.mode : 'single') : (out.mode || 'none');
+    return `<div class="cmd-modal-box cmd-text-output-box"><h4>💬 Chat-Ausgabe</h4>
+      <div class="cmd-form-grid">
+        <label>${rowLabel('Textausgabe','Optionaler Chattext. Später wird das an die zentrale Textverwaltung angebunden.')}<select data-cmd-modal-field="textOutputMode"><option value="none" ${mode === 'none' ? 'selected' : ''}>Keine Textausgabe</option><option value="single" ${mode === 'single' ? 'selected' : ''}>Einzelner Text</option><option value="text_key" ${mode === 'text_key' ? 'selected' : ''}>Textgruppe / Text-Key</option></select></label>
+        <label>${rowLabel('Auswahl','Bei mehreren Varianten kann später zufällig oder der Reihe nach gewählt werden.')}<select data-cmd-modal-field="textOutputSelection"><option value="random" ${(out.selection || 'random') === 'random' ? 'selected' : ''}>Zufällig</option><option value="first" ${out.selection === 'first' ? 'selected' : ''}>Erste aktive Variante</option><option value="round_robin" ${out.selection === 'round_robin' ? 'selected' : ''}>Der Reihe nach</option></select></label>
+      </div>
+      <label>${rowLabel('Einzeltext','Direkter Text für diesen Command. Platzhalter wie {user} können später zentral unterstützt werden.')}<textarea data-cmd-modal-field="textOutputText" rows="3" placeholder="Text, der im Chat erscheinen soll...">${esc(out.text || cmd.config?.message || '')}</textarea></label>
+      <label>${rowLabel('Text-Key / Textgruppe','Geplanter Schlüssel für die zentrale Textverwaltung, z. B. commands.discord_hint.')}<input data-cmd-modal-field="textOutputKey" value="${esc(out.textKey || '')}" placeholder="commands.mein_text"></label>
+      <p class="cmd-muted">Zentrale Textverwaltung kommt als eigenes System: Kategorien, Text-Keys, mehrere Varianten, aktiv/inaktiv, Platzhalter und Zufallsauswahl. Nicht in die Medienverwaltung mischen.</p>
+    </div>`;
+  }
+
   function renderActionFields(cmd) {
-    const type = cmd.config?.actionType || 'module_command';
-    if (type === 'sound_play') {
-      return `<div class="cmd-modal-box"><h4>Sound</h4><div class="cmd-form-grid"><label>${rowLabel('Medium-ID','Wird über die Medienverwaltung gesetzt.')}<input data-cmd-modal-field="soundMediaId" value="${esc(cmd.config?.mediaId || '')}" placeholder="z. B. 1353"></label><label>${rowLabel('Lautstärke','0 bis 100 Prozent.')}<input type="number" min="0" max="100" data-cmd-modal-field="soundVolume" value="${esc(cmd.config?.volume ?? 80)}"></label></div></div>`;
+    const selected = modalActionType();
+    const type = selected === 'custom_action' || selected === 'text_plus_action' || selected === 'advanced' ? 'module_command' : (cmd.config?.actionType || selected || 'module_command');
+    if (selected === 'chat_message' || type === 'chat_message') {
+      return `<div class="cmd-modal-box"><h4>💬 Nur Text ausgeben</h4><label>${rowLabel('Nachricht','Text, der später in den Chat gesendet werden soll.')}<textarea data-cmd-modal-field="chatMessage" rows="3">${esc(cmd.config?.message || cmd.config?.textOutput?.text || '')}</textarea></label><label>${rowLabel('Senden als','Legt fest, ob Bot oder Streamer bevorzugt werden soll.')}<select data-cmd-modal-field="chatPrefer"><option value="bot" ${cmd.config?.prefer !== 'streamer' ? 'selected' : ''}>Bot</option><option value="streamer" ${cmd.config?.prefer === 'streamer' ? 'selected' : ''}>Streamer</option></select></label>${renderTextOutputFields(cmd, true)}</div>`;
     }
-    if (type === 'video_play') {
-      return `<div class="cmd-modal-box"><h4>Video</h4><div class="cmd-form-grid"><label>${rowLabel('Medium-ID','Wird über die Medienverwaltung gesetzt.')}<input data-cmd-modal-field="videoMediaId" value="${esc(cmd.config?.mediaId || '')}" placeholder="z. B. 1353"></label><label>${rowLabel('Overlay / Player','Interner Overlay-/Player-Name. Standard reicht normalerweise.')}<input data-cmd-modal-field="videoOverlay" value="${esc(cmd.config?.overlay || 'command_video_overlay')}"></label><label>${rowLabel('Lautstärke','0 bis 100 Prozent.')}<input type="number" min="0" max="100" data-cmd-modal-field="videoVolume" value="${esc(cmd.config?.volume ?? 80)}"></label><label class="cmd-check"><input type="checkbox" data-cmd-modal-field="videoWithSound" ${cmd.config?.withSound !== false ? 'checked' : ''}> Mit Ton</label></div></div>`;
+    if (selected === 'sound_play' || type === 'sound_play') {
+      return `${renderTextOutputFields(cmd, false)}<div class="cmd-modal-box"><h4>🔊 Song / Sound</h4><div class="cmd-form-grid"><label>${rowLabel('Medium-ID','Wird über die Medienverwaltung gesetzt.')}<input data-cmd-modal-field="soundMediaId" value="${esc(cmd.config?.mediaId || '')}" placeholder="z. B. 1353"></label><label>${rowLabel('Lautstärke','0 bis 100 Prozent.')}<input type="number" min="0" max="100" data-cmd-modal-field="soundVolume" value="${esc(cmd.config?.volume ?? 80)}"></label></div></div>`;
     }
-    if (type === 'chat_message') {
-      return `<div class="cmd-modal-box"><h4>Chat-Nachricht</h4><label>${rowLabel('Nachricht','Text, der später in den Chat gesendet werden soll.')}<textarea data-cmd-modal-field="chatMessage" rows="3">${esc(cmd.config?.message || '')}</textarea></label><label>${rowLabel('Senden als','Legt fest, ob Bot oder Streamer bevorzugt werden soll.')}<select data-cmd-modal-field="chatPrefer"><option value="bot" ${cmd.config?.prefer !== 'streamer' ? 'selected' : ''}>Bot</option><option value="streamer" ${cmd.config?.prefer === 'streamer' ? 'selected' : ''}>Streamer</option></select></label></div>`;
+    if (selected === 'video_play' || type === 'video_play') {
+      return `${renderTextOutputFields(cmd, false)}<div class="cmd-modal-box"><h4>🎬 Video</h4><div class="cmd-form-grid"><label>${rowLabel('Medium-ID','Wird über die Medienverwaltung gesetzt.')}<input data-cmd-modal-field="videoMediaId" value="${esc(cmd.config?.mediaId || '')}" placeholder="z. B. 1353"></label><label>${rowLabel('Overlay / Player','Interner Overlay-/Player-Name. Standard reicht normalerweise.')}<input data-cmd-modal-field="videoOverlay" value="${esc(cmd.config?.overlay || 'command_video_overlay')}"></label><label>${rowLabel('Lautstärke','0 bis 100 Prozent.')}<input type="number" min="0" max="100" data-cmd-modal-field="videoVolume" value="${esc(cmd.config?.volume ?? 80)}"></label><label class="cmd-check"><input type="checkbox" data-cmd-modal-field="videoWithSound" ${cmd.config?.withSound !== false ? 'checked' : ''}> Mit Ton</label></div></div>`;
     }
     if (type === 'module_command') {
       const matched = matchedCatalogAction(cmd);
-      const custom = !matched;
-      return `<div class="cmd-modal-box ${custom ? 'custom-saved-action' : ''}"><h4>${custom ? '⚙️ Benutzerdefinierte / gespeicherte Modul-Aktion' : '🧩 Modul-Befehl'}</h4>
-        <div class="cmd-saved-route-preview">
-          <div><span>Gespeichertes Modul</span><strong>${esc(cmd.moduleKey || '-')}</strong></div>
-          <div><span>Gespeicherter Action-Key</span><strong>${esc(cmd.actionKey || '-')}</strong></div>
-          <div><span>Gespeicherte Route</span><strong>${esc(cmd.targetUrl || '-')}</strong></div>
-        </div>
-        <p class="cmd-help">Beim Öffnen und Speichern bleiben diese gespeicherten Werte erhalten. Der Katalog unten ist nur eine Vorlage und überschreibt nichts automatisch.</p>
-        <label>${rowLabel('Vorlage aus Katalog','Optional: Wähle eine bekannte Backend-Aktion. Erst der Button „Defaults übernehmen“ schreibt diese Vorlage in den Command.')}<select data-cmd-modal-field="catalogAction">${renderCatalogOptions(cmd)}</select></label>
-        <div class="cmd-actions"><button type="button" data-apply-catalog-defaults-modal>Defaults bewusst übernehmen</button></div><p class="cmd-muted" data-catalog-template-note></p>
+      const custom = selected === 'custom_action' || !matched;
+      return `<div class="cmd-modal-box ${custom ? 'custom-saved-action' : ''}"><h4>${custom ? '⚙️ Benutzerdefinierte Aktion' : '🧩 Modul-Befehl'}</h4>
+        <label>${rowLabel('Modul-Befehl auswählen','Beim Bearbeiten steht die gespeicherte Aktion an erster Stelle. Katalogwerte ändern erst etwas, wenn du sie bewusst übernimmst.')}<select data-cmd-modal-field="catalogAction">${renderCatalogOptions(cmd)}</select></label>
+        ${selected === 'text_plus_action' ? renderTextOutputFields(cmd, true) : renderTextOutputFields(cmd, false)}
+        <div class="cmd-actions"><button type="button" data-apply-catalog-defaults-modal>Ausgewählte Aktion übernehmen</button></div><p class="cmd-muted" data-catalog-template-note>Auswahl geändert? Erst „Ausgewählte Aktion übernehmen“ schreibt eine Katalog-Vorlage in das Formular. Technische gespeicherte Werte siehst du unter „Erweitert“.</p>
       </div>`;
     }
     return '';
@@ -519,14 +627,14 @@ window.CommandsModule = (function(){
   function renderModal() {
     if (!state.modal) return '';
     const cmd = state.modal.data || clone(DEFAULT_COMMAND);
-    const type = cmd.config?.actionType || 'module_command';
+    const type = friendlyActionId(cmd);
     const configWithoutType = clone(cmd.config || {});
     delete configWithoutType.actionType;
-    const shouldOpenAdvanced = type === 'module_command' && !matchedCatalogAction(cmd);
+    const shouldOpenAdvanced = (type === 'custom_action' || type === 'advanced') || (actionType(cmd) === 'module_command' && !matchedCatalogAction(cmd));
     return `<div class="cmd-modal-backdrop" data-modal-backdrop><div class="cmd-modal" role="dialog" aria-modal="true">
       <div class="cmd-modal-head"><div><h3>${esc(state.modal.title)}</h3><p>${state.modal.mode === 'edit' ? 'Bearbeiten zeigt und speichert exakt die gespeicherten Daten. Katalogwerte sind nur Vorlagen.' : 'Erstellt einen neuen Command mit Standardwerten.'}</p></div><button type="button" data-modal-close>×</button></div>
       <div class="cmd-modal-body">
-        <section class="cmd-modal-section"><h4>Basis</h4><div class="cmd-form-grid"><label>${rowLabel('Trigger','Der Chat-Befehl ohne !, z. B. discord, test oder hug.')}<input data-cmd-modal-field="trigger" value="${esc(cmd.trigger || '')}" placeholder="test"></label><label>${rowLabel('Aliase','Weitere Auslöser für denselben Command, getrennt mit Komma oder Leerzeichen.')}<input data-cmd-modal-field="aliases" value="${esc(Array.isArray(cmd.aliases) ? cmd.aliases.join(', ') : '')}" placeholder="death, tod"></label><label>${rowLabel('Kategorie/Aktion','Normale Auswahl. Technische Details liegen unter Erweitert.')}<select data-cmd-modal-field="friendlyAction">${FRIENDLY_ACTIONS.map(a => `<option value="${a.id}" ${type === a.id || (a.id === 'advanced' && !['module_command','chat_message','sound_play','video_play'].includes(type)) ? 'selected' : ''}>${esc(a.icon)} ${esc(a.label)}</option>`).join('')}</select></label><label>${rowLabel('Rechte','Wer den Command im Chat ausführen darf.')}<select data-cmd-modal-field="permissionLevel">${['everyone','subscriber','vip','mod','streamer','owner'].map(level => `<option value="${level}" ${cmd.permissionLevel === level ? 'selected' : ''}>${level}</option>`).join('')}</select></label><label>${rowLabel('Global Cooldown ms','Pause für alle Nutzer nach Ausführung.')}<input type="number" min="0" data-cmd-modal-field="cooldownGlobalMs" value="${esc(cmd.cooldownGlobalMs ?? 1000)}"></label><label>${rowLabel('User Cooldown ms','Pause nur für denselben Nutzer.')}<input type="number" min="0" data-cmd-modal-field="cooldownUserMs" value="${esc(cmd.cooldownUserMs ?? 3000)}"></label><label class="cmd-check"><input type="checkbox" data-cmd-modal-field="enabled" ${cmd.enabled !== false ? 'checked' : ''}> Aktiv</label></div></section>
+        <section class="cmd-modal-section"><h4>Basis</h4><div class="cmd-form-grid"><label>${rowLabel('Trigger','Der Chat-Befehl ohne !, z. B. discord, test oder hug.')}<input data-cmd-modal-field="trigger" value="${esc(cmd.trigger || '')}" placeholder="test"></label><label>${rowLabel('Aliase','Weitere Auslöser für denselben Command, getrennt mit Komma oder Leerzeichen.')}<input data-cmd-modal-field="aliases" value="${esc(Array.isArray(cmd.aliases) ? cmd.aliases.join(', ') : '')}" placeholder="death, tod"></label><label>${rowLabel('Was soll passieren?','Beim neuen Command stehen Song, Video und Text oben. Beim Bearbeiten steht die gespeicherte Aktionsart an erster Stelle; du kannst sie hier ändern.')}<select data-cmd-modal-field="friendlyAction">${renderFriendlyActionOptions(cmd)}</select></label><label>${rowLabel('Rechte','Wer den Command im Chat ausführen darf.')}<select data-cmd-modal-field="permissionLevel">${['everyone','subscriber','vip','mod','streamer','owner'].map(level => `<option value="${level}" ${cmd.permissionLevel === level ? 'selected' : ''}>${level}</option>`).join('')}</select></label><label>${rowLabel('Global Cooldown ms','Pause für alle Nutzer nach Ausführung.')}<input type="number" min="0" data-cmd-modal-field="cooldownGlobalMs" value="${esc(cmd.cooldownGlobalMs ?? 1000)}"></label><label>${rowLabel('User Cooldown ms','Pause nur für denselben Nutzer.')}<input type="number" min="0" data-cmd-modal-field="cooldownUserMs" value="${esc(cmd.cooldownUserMs ?? 3000)}"></label><label class="cmd-check"><input type="checkbox" data-cmd-modal-field="enabled" ${cmd.enabled !== false ? 'checked' : ''}> Aktiv</label></div></section>
         <section class="cmd-modal-section"><h4>Aktion</h4>${renderActionFields(cmd)}</section>
         <details class="cmd-modal-section cmd-advanced" ${shouldOpenAdvanced ? 'open' : ''}><summary>Erweitert / technische Details</summary><div class="cmd-form-grid"><label>Modul<input data-cmd-modal-field="moduleKey" value="${esc(cmd.moduleKey || '')}"></label><label>Action-Key<input data-cmd-modal-field="actionKey" value="${esc(cmd.actionKey || '')}"></label><label>Methode<select data-cmd-modal-field="targetMethod"><option value="POST" ${cmd.targetMethod !== 'GET' ? 'selected' : ''}>POST</option><option value="GET" ${cmd.targetMethod === 'GET' ? 'selected' : ''}>GET</option></select></label><label>Ziel-URL<input data-cmd-modal-field="targetUrl" value="${esc(cmd.targetUrl || '')}"></label><label>Response-Mode<input data-cmd-modal-field="responseMode" value="${esc(cmd.responseMode || 'module')}"></label></div><label>Config JSON<textarea data-cmd-modal-field="configJson" rows="7">${esc(JSON.stringify(configWithoutType, null, 2))}</textarea></label><p class="cmd-muted">„Nur Live“ ist bewusst nicht in der normalen UI. Wenn der Bot nicht im Channel ist, kommen keine Chatbefehle an.</p></details>
       </div>
@@ -550,7 +658,7 @@ window.CommandsModule = (function(){
     root = document.getElementById('commandsModule');
     if (!root) return;
     const tabs = [['manage','Commands'],['overview','Übersicht'],['logs','Logs'],['diagnostics','Diagnose']];
-    root.innerHTML = `<div class="cmd-wrap cmd-v014">${renderHeader()}${state.error ? `<div class="cmd-error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cmd-notice">${esc(state.notice)}</div>` : ''}${state.loading ? '<section class="cmd-card">Lade Commands...</section>' : `<div class="cmd-tabs">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-cmd-tab="${id}">${esc(label)}</button>`).join('')}</div>${renderActiveTab()}`}${renderModal()}${renderConfirmDelete()}</div>`;
+    root.innerHTML = `<div class="cmd-wrap cmd-v017">${renderHeader()}${state.error ? `<div class="cmd-error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cmd-notice">${esc(state.notice)}</div>` : ''}${state.loading ? '<section class="cmd-card">Lade Commands...</section>' : `<div class="cmd-tabs">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-cmd-tab="${id}">${esc(label)}</button>`).join('')}</div>${renderActiveTab()}`}${renderModal()}${renderConfirmDelete()}</div>`;
     bind();
   }
 
@@ -568,13 +676,39 @@ window.CommandsModule = (function(){
     root?.querySelector('[data-save-modal-command]')?.addEventListener('click', () => saveModalCommand().catch(showError));
     root?.querySelector('[data-delete-from-modal]')?.addEventListener('click', () => { if (!state.modal) return; openDeleteConfirm({ id: state.modal.originalId, trigger: state.modal.originalTrigger }); });
     root?.querySelector('[data-confirm-delete-yes]')?.addEventListener('click', () => deleteConfirmed().catch(showError));
-    root?.querySelector('[data-cmd-modal-field="friendlyAction"]')?.addEventListener('change', ev => { if (!state.modal) return; const action = ev.target.value || 'module_command'; state.modal.data.config = { ...(state.modal.data.config || {}), actionType: action === 'advanced' ? 'module_command' : action }; render(); });
+    root?.querySelector('[data-cmd-modal-field="friendlyAction"]')?.addEventListener('change', ev => {
+      if (!state.modal) return;
+      const selected = ev.target.value || 'custom_action';
+      const actionTypeForConfig = selected === 'custom_action' || selected === 'text_plus_action' || selected === 'advanced' ? 'module_command' : selected;
+      state.modal.data.config = { ...(state.modal.data.config || {}), actionType: actionTypeForConfig };
+      if (selected === 'chat_message') {
+        state.modal.data.config.message = state.modal.data.config.message || state.modal.data.config.textOutput?.text || '';
+      }
+      if (selected === 'text_plus_action') {
+        state.modal.data.config.textOutput = { ...(state.modal.data.config.textOutput || {}), enabled: true, mode: state.modal.data.config.textOutput?.mode || 'single' };
+      }
+      render();
+    });
     root?.querySelector('[data-cmd-modal-field="catalogAction"]')?.addEventListener('change', ev => {
       if (!state.modal) return;
+      const value = ev.target.value || '__stored__';
+      if (value === '__text_only__') {
+        state.modal.data.config = { ...(state.modal.data.config || {}), actionType: 'chat_message', message: state.modal.data.config?.message || '' };
+        render();
+        return;
+      }
+      if (value === '__new_custom__') {
+        state.modal.data.config = { ...(state.modal.data.config || {}), actionType: 'module_command' };
+        state.modal.data.moduleKey = '';
+        state.modal.data.actionKey = '';
+        state.modal.data.targetUrl = '';
+        render();
+        return;
+      }
       const note = root.querySelector('[data-catalog-template-note]');
-      if (note) note.textContent = ev.target.value === '__custom__'
+      if (note) note.textContent = (value === '__stored__' || value === '__pick__')
         ? 'Gespeicherte Aktion bleibt unverändert.'
-        : 'Vorlage ausgewählt. Erst „Defaults bewusst übernehmen“ schreibt sie in den Command.';
+        : 'Vorlage ausgewählt. Erst „Ausgewählte Aktion übernehmen“ schreibt sie in den Command.';
     });
     root?.querySelector('[data-apply-catalog-defaults-modal]')?.addEventListener('click', () => applyCatalogDefaultsInModal(field('catalogAction')?.value || ''));
     root?.querySelectorAll('[data-presence-start]').forEach(btn => btn.addEventListener('click', () => window.CGN.api(api.presenceStart).then(() => loadAll(true)).catch(showError)));

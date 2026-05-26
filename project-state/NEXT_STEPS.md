@@ -1,7 +1,6 @@
-# NEXT_STEPS
+# Next Steps
 
-1. Commands Dashboard v0.1.5 testen:
-   - bestehenden Command `!so` öffnen
-   - prüfen, ob gespeicherter Modul-Key / Action-Key / Route korrekt angezeigt wird
-   - speichern, ohne dass Routing überschrieben wird
-2. Danach dasselbe Modal-/Safe-Edit-Prinzip auf Kanalpunkte übertragen.
+1. Commands Dashboard v0.1.7 im Browser testen.
+2. Bestehende Commands mit Audio/Video/Text/Modul-Aktion öffnen und speichern.
+3. Danach Kanalpunkte auf dasselbe Editor-Muster umbauen.
+4. Zentrale Textverwaltung als eigenes System planen.

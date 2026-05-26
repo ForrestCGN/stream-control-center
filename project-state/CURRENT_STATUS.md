@@ -1,5 +1,5 @@
-# CURRENT_STATUS
+# Current Status
 
-Aktueller Arbeitsstand: Commands Dashboard v0.1.5 `exact-saved-command-editor`.
+Commands Dashboard UI: `0.1.7` / `action-type-driven-editor`.
 
-Die Command-Bearbeitung zeigt gespeicherte Modul-/Action-/Route-Daten exakt an. Katalog-Defaults werden nur noch bewusst übernommen.
+Aktueller Fokus: benutzerfreundlicher Command-Editor mit klaren Aktionsarten, sicherem Bearbeiten, Löschen mit Rückfrage und Vorbereitung für zentrale Textverwaltung.

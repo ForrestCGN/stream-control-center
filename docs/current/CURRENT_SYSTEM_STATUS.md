@@ -1,7 +1,10 @@
-# Current System Status – Commands Dashboard v0.1.5
+# Current System Status — Commands
 
-Das Commands-Dashboard wurde auf `0.1.5 exact-saved-command-editor` aktualisiert.
+Commands Dashboard UI steht auf `0.1.7` (`action-type-driven-editor`).
 
-Schwerpunkt: Beim Editieren vorhandener Commands werden die gespeicherten Werte exakt angezeigt. Katalogwerte sind nur Vorlagen und überschreiben nichts automatisch.
+Der Command-Editor nutzt nun eine aktionsartgesteuerte Maske:
 
-Backend: keine zusätzliche DB-/API-Migration in diesem Schritt.
+- Neuer Command: Song abspielen, Video abspielen, Text anzeigen, Modul-Befehl, Benutzerdefiniert.
+- Bearbeiten: gespeicherte Aktionsart steht an erster Stelle und bestimmt die Maske.
+- Technische gespeicherte Werte liegen unter Erweitert.
+- Katalog-Vorlagen überschreiben nichts automatisch.
