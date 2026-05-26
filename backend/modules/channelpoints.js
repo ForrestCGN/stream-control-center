@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.7.5";
-const MODULE_BUILD = "eventbus-docs-final-polish";
+const MODULE_VERSION = "0.8.0";
+const MODULE_BUILD = "twitch-auth-scope-check";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -36,7 +36,9 @@ const DEFAULT_CONFIG = {
   mediaExecutionTargetUrl: "/api/sound/play",
   textRewardExecutionEnabled: true,
   twitchSyncReadinessEnabled: true,
-  busDomainEventsEnabled: true
+  busDomainEventsEnabled: true,
+  twitchAuthScopeCheckEnabled: true,
+  twitchAuthValidateUrl: "/api/twitch/auth/validate"
 };
 
 const DEFAULT_CATEGORIES = [
@@ -693,6 +695,7 @@ function buildBusEventSpec() {
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.executed", when: "Einlösung wurde erfolgreich ausgeführt." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.failed", when: "Einlösung oder Ausführung ist fehlgeschlagen." },
     { channel: "channelpoints.twitch", action: "channelpoints.twitch.readiness", when: "Twitch-Readiness wurde abgefragt." },
+    { channel: "channelpoints.twitch", action: "channelpoints.twitch.auth_scope_check", when: "Twitch-Auth-/Scope-Check wurde abgefragt." },
     { channel: "channelpoints.test", action: "ping", when: "Bus-Selbsttest." }
   ];
   return {
@@ -1152,6 +1155,133 @@ function buildBusStatus() {
 }
 
 
+
+function httpGetJson(targetUrl) {
+  const cleanUrl = cleanString(targetUrl);
+  if (!cleanUrl) return Promise.reject(new Error("target_url_missing"));
+  const options = {
+    hostname: process.env.CHANNELPOINTS_TARGET_HOST || DEFAULT_TARGET_HOST,
+    port: Number(process.env.CHANNELPOINTS_TARGET_PORT || DEFAULT_TARGET_PORT) || DEFAULT_TARGET_PORT,
+    path: cleanUrl.startsWith("/") ? cleanUrl : `/${cleanUrl}`,
+    method: "GET",
+    headers: { "Accept": "application/json" }
+  };
+  return new Promise((resolve, reject) => {
+    const request = http.request(options, response => {
+      let data = "";
+      response.setEncoding("utf8");
+      response.on("data", chunk => { data += chunk; });
+      response.on("end", () => {
+        let parsed = data;
+        try { parsed = data ? JSON.parse(data) : {}; } catch (_) {}
+        if (response.statusCode >= 200 && response.statusCode < 300) resolve({ ok: true, statusCode: response.statusCode, data: parsed });
+        else resolve({ ok: false, statusCode: response.statusCode, data: parsed });
+      });
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+function requiredTwitchScopes() {
+  return [
+    { scope: "channel:read:redemptions", purpose: "Rewards und Redemptions lesen", requiredFor: ["read_rewards", "read_redemptions"], alternative: "channel:manage:redemptions" },
+    { scope: "channel:manage:redemptions", purpose: "Rewards später erstellen/aktualisieren/deaktivieren und Redemptions erfüllen/abbrechen", requiredFor: ["manage_rewards", "update_redemption_status"], writeScope: true }
+  ];
+}
+
+function summarizeScopeCheck(validateResult = {}) {
+  const scopes = Array.isArray(validateResult.scopes) ? validateResult.scopes.map(item => String(item || "").trim()).filter(Boolean) : [];
+  const normalized = scopes.map(scope => scope.toLowerCase());
+  const hasRead = normalized.includes("channel:read:redemptions") || normalized.includes("channel:manage:redemptions");
+  const hasManage = normalized.includes("channel:manage:redemptions");
+  const broadcasterId = cleanString(validateResult.broadcasterId || process.env.TWITCH_BROADCASTER_ID || "");
+  const userId = cleanString(validateResult.userId || "");
+  const tokenUserMatchesBroadcaster = broadcasterId && userId ? broadcasterId === userId : validateResult.tokenUserMatchesBroadcaster === true;
+  const broadcasterMatchRelevant = Boolean(broadcasterId && userId);
+  const tokenOk = validateResult.ok === true;
+  return {
+    tokenOk,
+    tokenPresent: validateResult.present === true || tokenOk,
+    login: cleanString(validateResult.login || ""),
+    userId,
+    broadcasterId,
+    broadcasterMatchRelevant,
+    tokenUserMatchesBroadcaster,
+    scopes,
+    checks: {
+      hasReadRedemptions: hasRead,
+      hasManageRedemptions: hasManage,
+      readyForReadOnlySync: tokenOk && hasRead && (!broadcasterMatchRelevant || tokenUserMatchesBroadcaster),
+      readyForFutureWriteActions: tokenOk && hasManage && (!broadcasterMatchRelevant || tokenUserMatchesBroadcaster),
+      missingScopes: [
+        ...(hasRead ? [] : ["channel:read:redemptions oder channel:manage:redemptions"]),
+        ...(hasManage ? [] : ["channel:manage:redemptions"])
+      ]
+    },
+    expiresIn: Number(validateResult.expiresIn || 0),
+    store: cleanString(validateResult.store || "")
+  };
+}
+
+async function buildTwitchAuthScopeStatus() {
+  const config = getConfig();
+  const validateUrl = cleanString(config.twitchAuthValidateUrl || "/api/twitch/auth/validate");
+  const requiredScopes = requiredTwitchScopes();
+  const base = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: "twitch_auth_scope_check",
+    enabled: config.twitchAuthScopeCheckEnabled !== false,
+    validateUrl,
+    requiredScopes,
+    safety: {
+      noTwitchWrite: true,
+      checkOnly: true,
+      noRewardCreateUpdateDeleteOnTwitch: true,
+      noRedemptionStatusUpdate: true
+    }
+  };
+  if (config.twitchAuthScopeCheckEnabled === false) {
+    return { ...base, ok: true, auth: { ok: false, skipped: true, reason: "disabled_by_config" }, scopeCheck: summarizeScopeCheck({ ok: false }) };
+  }
+  try {
+    const response = await httpGetJson(validateUrl);
+    const authPayload = response && response.data && typeof response.data === "object" ? response.data : { ok: false, raw: response ? response.data : null };
+    const scopeCheck = summarizeScopeCheck(authPayload);
+    return {
+      ...base,
+      auth: {
+        ok: authPayload.ok === true,
+        httpStatus: response.statusCode || 0,
+        present: authPayload.present === true || authPayload.ok === true,
+        login: authPayload.login || "",
+        userId: authPayload.userId || "",
+        broadcasterId: authPayload.broadcasterId || process.env.TWITCH_BROADCASTER_ID || "",
+        tokenUserMatchesBroadcaster: authPayload.tokenUserMatchesBroadcaster === true,
+        expiresIn: Number(authPayload.expiresIn || 0),
+        error: authPayload.ok === true ? "" : (authPayload.error || authPayload.message || "auth_validate_not_ok")
+      },
+      scopeCheck,
+      readiness: {
+        tokenValidationImplemented: true,
+        readyForReadOnlySync: scopeCheck.checks.readyForReadOnlySync,
+        readyForFutureWriteActions: scopeCheck.checks.readyForFutureWriteActions,
+        writeActionsStillDisabled: true
+      }
+    };
+  } catch (err) {
+    return {
+      ...base,
+      auth: { ok: false, present: false, error: err && err.message ? err.message : String(err) },
+      scopeCheck: summarizeScopeCheck({ ok: false }),
+      readiness: { tokenValidationImplemented: true, readyForReadOnlySync: false, readyForFutureWriteActions: false, writeActionsStillDisabled: true }
+    };
+  }
+}
+
 function countRewardsWithTwitchId() {
   try {
     ensureDbReady();
@@ -1174,10 +1304,7 @@ function buildTwitchSyncStatus() {
     counts.redemptions = tableExists("channelpoints_redemptions") ? tableCount("channelpoints_redemptions") : 0;
   } catch (_) {}
 
-  const requiredScopes = [
-    { scope: "channel:read:redemptions", purpose: "Twitch-Custom-Rewards und Einlösungen lesen" },
-    { scope: "channel:manage:redemptions", purpose: "Einlösungen erfüllen/abbrechen und Rewards später verwalten" }
-  ];
+  const requiredScopes = requiredTwitchScopes();
 
   return {
     ok: true,
@@ -1194,7 +1321,7 @@ function buildTwitchSyncStatus() {
       twitchRewardSyncEnabled: config.twitchRewardSyncEnabled === true,
       writeActionsEnabled: false,
       eventSubImplemented: false,
-      tokenValidationImplemented: false
+      tokenValidationImplemented: true
     },
     counts,
     requiredScopes,
@@ -1220,7 +1347,7 @@ function buildTwitchSyncStatus() {
       `${ROUTE_PREFIX}/eventsub/redemption`
     ],
     nextSteps: [
-      "Twitch Token-/Scope-Prüfung anbinden",
+      "Twitch Token-/Scope-Prüfung testen",
       "Read-only Reward-Sync bauen",
       "Dashboard-Mapping lokal ↔ Twitch anzeigen",
       "EventSub-Redemption-Handler anbinden",
@@ -1316,6 +1443,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/text-execution-check`,
       `${ROUTE_PREFIX}/twitch-status`,
       `${ROUTE_PREFIX}/twitch/readiness`,
+      `${ROUTE_PREFIX}/twitch/auth-check`,
       `${ROUTE_PREFIX}/rewards/:idOrKey`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/enable`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/disable`,
@@ -1477,6 +1605,13 @@ function init({ app }) {
   app.get(`${ROUTE_PREFIX}/db-status`, (req, res) => { try { res.json(getDbStatus()); } catch (err) { sendError(res, 500, err); } });
   app.get(`${ROUTE_PREFIX}/twitch-status`, (req, res) => { try { const status = buildTwitchSyncStatus(); emitDomainEvent("channelpoints.twitch.readiness", { readiness: status }, { channel: "channelpoints.twitch" }); res.json(status); } catch (err) { sendError(res, 500, err); } });
   app.get(`${ROUTE_PREFIX}/twitch/readiness`, (req, res) => { try { const status = buildTwitchSyncStatus(); emitDomainEvent("channelpoints.twitch.readiness", { readiness: status }, { channel: "channelpoints.twitch" }); res.json(status); } catch (err) { sendError(res, 500, err); } });
+  app.get(`${ROUTE_PREFIX}/twitch/auth-check`, async (req, res) => {
+    try {
+      const status = await buildTwitchAuthScopeStatus();
+      emitDomainEvent("channelpoints.twitch.auth_scope_check", { authScope: status }, { channel: "channelpoints.twitch" });
+      res.json(status);
+    } catch (err) { sendError(res, 500, err); }
+  });
 
   app.get(`${ROUTE_PREFIX}/categories`, (req, res) => {
     try { res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, categories: listCategories(req) }); } catch (err) { sendError(res, 500, err); }
@@ -1647,4 +1782,4 @@ function init({ app }) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} API routes registered (${ROUTE_PREFIX})`);
 }
 
-module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildBusEventSpec, registerAtCommunicationBus, heartbeatBus, publishStatus };
+module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildBusEventSpec, buildTwitchAuthScopeStatus, registerAtCommunicationBus, heartbeatBus, publishStatus };

@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.7.5';
-  const UI_BUILD = 'eventbus-docs-final-polish';
+  const UI_VERSION = '0.8.0';
+  const UI_BUILD = 'twitch-auth-scope-check';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -12,7 +12,8 @@ window.ChannelpointsModule = (function(){
     mediaExecutionCheck: '/api/channelpoints/media-execution-check',
     redemptions: '/api/channelpoints/redemptions',
     redemptionTest: '/api/channelpoints/redemptions/test',
-    twitchStatus: '/api/channelpoints/twitch-status'
+    twitchStatus: '/api/channelpoints/twitch-status',
+    twitchAuthCheck: '/api/channelpoints/twitch/auth-check'
   };
 
   const ACTIONS = [
@@ -37,6 +38,7 @@ window.ChannelpointsModule = (function(){
     redemptions:[],
     redemptionCounts:null,
     twitchStatus:null,
+    twitchAuthCheck:null,
     busResult:null,
     modal:null
   };
@@ -326,12 +328,13 @@ window.ChannelpointsModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, cats, rewardsRes, redemptionsRes, twitchRes] = await Promise.all([
+      const [status, cats, rewardsRes, redemptionsRes, twitchRes, twitchAuthRes] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.categories),
         window.CGN.api(api.rewards),
         window.CGN.api(`${api.redemptions}?limit=25`).catch(err => ({ ok:false, redemptions:[], counts:null, error:err.message })),
-        window.CGN.api(api.twitchStatus).catch(err => ({ ok:false, error:err.message }))
+        window.CGN.api(api.twitchStatus).catch(err => ({ ok:false, error:err.message })),
+        window.CGN.api(api.twitchAuthCheck).catch(err => ({ ok:false, error:err.message }))
       ]);
       state.status = status;
       state.categories = asArray(cats.categories);
@@ -339,6 +342,7 @@ window.ChannelpointsModule = (function(){
       state.redemptions = asArray(redemptionsRes.redemptions);
       state.redemptionCounts = redemptionsRes.counts || null;
       state.twitchStatus = twitchRes || null;
+      state.twitchAuthCheck = twitchAuthRes || null;
       state.loading = false;
     } catch (err) {
       state.loading = false;
@@ -425,20 +429,30 @@ window.ChannelpointsModule = (function(){
 
   function renderTwitchReadinessPanel() {
     const tw = state.twitchStatus || (state.status && state.status.twitch) || {};
+    const auth = state.twitchAuthCheck || {};
     const readiness = tw.readiness || tw || {};
     const counts = tw.counts || {};
-    const scopes = asArray(tw.requiredScopes);
+    const scopes = asArray(tw.requiredScopes || auth.requiredScopes);
+    const scopeCheck = auth.scopeCheck || {};
+    const checks = scopeCheck.checks || {};
+    const authInfo = auth.auth || {};
     const writeMode = readiness.writeActionsEnabled ? pill('Twitch-Schreiben aktiv', 'warn') : pill('nur lokal / kein Twitch-Schreiben', 'ok');
+    const authMode = checks.readyForReadOnlySync ? pill('Token/Read-Scope bereit', 'ok') : pill('Token/Scopes prüfen', 'warn');
+    const manageMode = checks.readyForFutureWriteActions ? pill('Manage-Scope vorhanden', 'ok') : pill('Manage-Scope fehlt/optional', 'neutral');
     return `<section class="cp-panel cp-twitch-panel"><div class="cp-panel-head"><h3>Twitch-Sync Vorbereitung</h3><span>${writeMode}</span></div>
       <div class="cp-twitch-grid">
         <div><strong>Lokale Rewards</strong><span>${esc(counts.rewards ?? rewards().length)} gesamt · ${esc(counts.mappedRewards ?? 0)} mit Twitch-ID · ${esc(counts.unmappedRewards ?? Math.max(0, rewards().length - (counts.mappedRewards || 0)))} lokal/offen</span></div>
         <div><strong>Einlösungen</strong><span>${esc(counts.redemptions ?? state.redemptions.length)} lokal gespeichert</span></div>
-        <div><strong>Reward-Sync</strong><span>${readiness.twitchRewardSyncEnabled ? 'aktiviert' : 'deaktiviert / vorbereitet'}</span></div>
+        <div><strong>Auth/Scopes</strong><span>${authMode} ${manageMode}</span></div>
+        <div><strong>Token-User</strong><span>${esc(authInfo.login || scopeCheck.login || '-')} · ${esc(authInfo.userId || scopeCheck.userId || '-')}</span></div>
+        <div><strong>Broadcaster-Match</strong><span>${scopeCheck.broadcasterMatchRelevant ? (scopeCheck.tokenUserMatchesBroadcaster ? 'passt' : 'passt NICHT') : 'nicht geprüft / Broadcaster-ID fehlt'}</span></div>
         <div><strong>EventSub</strong><span>${readiness.eventSubImplemented ? 'angebunden' : 'noch nicht angebunden'}</span></div>
       </div>
-      <div class="cp-note cp-twitch-note"><strong>Sicher:</strong> Dieses Modul zeigt nur die Bereitschaft. Lokal löschen/deaktivieren verändert Twitch weiterhin nicht.</div>
-      <details class="cp-advanced-box"><summary>Benötigte Scopes und nächster Ablauf</summary>
-        <ul class="cp-scope-list">${scopes.map(item => `<li><code>${esc(item.scope || item)}</code><span>${esc(item.purpose || '')}</span></li>`).join('') || '<li><code>channel:read:redemptions</code><span>Rewards/Einlösungen lesen</span></li><li><code>channel:manage:redemptions</code><span>später erfüllen/abbrechen/verwalten</span></li>'}</ul>
+      <div class="cp-note cp-twitch-note"><strong>Sicher:</strong> Dieser Check validiert nur Token/Scopes über Twitch-Auth. Es werden keine Twitch-Rewards erstellt, geändert oder deaktiviert.</div>
+      ${authInfo.error ? `<div class="cp-alert error">Auth-Check: ${esc(typeof authInfo.error === 'string' ? authInfo.error : JSON.stringify(authInfo.error))}</div>` : ''}
+      <details class="cp-advanced-box" open><summary>Benötigte Scopes und nächster Ablauf</summary>
+        <ul class="cp-scope-list">${scopes.map(item => `<li><code>${esc(item.scope || item)}</code><span>${esc(item.purpose || '')}${item.alternative ? ` · Alternative: ${esc(item.alternative)}` : ''}</span></li>`).join('') || '<li><code>channel:read:redemptions</code><span>Rewards/Einlösungen lesen</span></li><li><code>channel:manage:redemptions</code><span>später erfüllen/abbrechen/verwalten</span></li>'}</ul>
+        <div class="cp-scope-summary"><strong>Vorhandene Scopes:</strong> ${asArray(scopeCheck.scopes).map(scope => `<code>${esc(scope)}</code>`).join(' ') || '<span>keine / nicht geladen</span>'}</div>
         <ol class="cp-next-flow">${asArray(tw.plannedFlow).map(item => `<li>${esc(item)}</li>`).join('') || '<li>Read-only Sync vorbereiten</li><li>EventSub anbinden</li><li>Schreibaktionen später gezielt freischalten</li>'}</ol>
       </details>
     </section>`;

@@ -38,3 +38,5 @@ html[data-theme="light"] .cp-toolbar input,html[data-theme="light"] .cp-toolbar 
 .cp-scope-list li { margin:6px 0; display:grid; grid-template-columns:minmax(190px,max-content) minmax(0,1fr); gap:10px; align-items:start; }
 .cp-scope-list code { color:#c7a2ff; }
 @media(max-width:760px){ .cp-scope-list li { grid-template-columns:1fr; } }
+.cp-scope-summary{margin-top:10px;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.04);display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted)}
+.cp-scope-summary code{color:#c7a2ff;background:rgba(170,92,255,.13);border:1px solid rgba(170,92,255,.20);border-radius:999px;padding:3px 7px}
