@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.8.0';
-  const UI_BUILD = 'twitch-auth-scope-check';
+  const UI_VERSION = '0.8.1';
+  const UI_BUILD = 'dashboard-command-like-tabs';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -13,7 +13,10 @@ window.ChannelpointsModule = (function(){
     redemptions: '/api/channelpoints/redemptions',
     redemptionTest: '/api/channelpoints/redemptions/test',
     twitchStatus: '/api/channelpoints/twitch-status',
-    twitchAuthCheck: '/api/channelpoints/twitch/auth-check'
+    twitchAuthCheck: '/api/channelpoints/twitch/auth-check',
+    twitchReadonlyStatus: '/api/channelpoints/twitch/rewards-readonly/status',
+    twitchReadonlyPreview: '/api/channelpoints/twitch/rewards-readonly/preview',
+    twitchReadonlySync: '/api/channelpoints/twitch/sync'
   };
 
   const ACTIONS = [
@@ -32,6 +35,7 @@ window.ChannelpointsModule = (function(){
     categoryFilter:'all',
     statusFilter:'all',
     selectedKey:'',
+    tab:'manage',
     status:null,
     categories:[],
     rewards:[],
@@ -39,6 +43,9 @@ window.ChannelpointsModule = (function(){
     redemptionCounts:null,
     twitchStatus:null,
     twitchAuthCheck:null,
+    twitchReadonlyStatus:null,
+    twitchReadonlyPreview:null,
+    twitchReadonlySync:null,
     busResult:null,
     modal:null
   };
@@ -328,13 +335,14 @@ window.ChannelpointsModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, cats, rewardsRes, redemptionsRes, twitchRes, twitchAuthRes] = await Promise.all([
+      const [status, cats, rewardsRes, redemptionsRes, twitchRes, twitchAuthRes, twitchReadonlyRes] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.categories),
         window.CGN.api(api.rewards),
         window.CGN.api(`${api.redemptions}?limit=25`).catch(err => ({ ok:false, redemptions:[], counts:null, error:err.message })),
         window.CGN.api(api.twitchStatus).catch(err => ({ ok:false, error:err.message })),
-        window.CGN.api(api.twitchAuthCheck).catch(err => ({ ok:false, error:err.message }))
+        window.CGN.api(api.twitchAuthCheck).catch(err => ({ ok:false, error:err.message })),
+        window.CGN.api(api.twitchReadonlyStatus).catch(err => ({ ok:false, error:err.message, enabled:false }))
       ]);
       state.status = status;
       state.categories = asArray(cats.categories);
@@ -343,6 +351,7 @@ window.ChannelpointsModule = (function(){
       state.redemptionCounts = redemptionsRes.counts || null;
       state.twitchStatus = twitchRes || null;
       state.twitchAuthCheck = twitchAuthRes || null;
+      state.twitchReadonlyStatus = twitchReadonlyRes || null;
       state.loading = false;
     } catch (err) {
       state.loading = false;
@@ -388,6 +397,31 @@ window.ChannelpointsModule = (function(){
     await loadAll(true);
   }
 
+  async function refreshTwitchReadonlyStatus() {
+    const data = await window.CGN.api(api.twitchReadonlyStatus);
+    state.twitchReadonlyStatus = data;
+    state.notice = data.ok ? 'Twitch-ReadOnly-Status aktualisiert.' : 'Twitch-ReadOnly-Status konnte nicht geladen werden.';
+    state.tab = 'twitch-sync';
+    render();
+  }
+
+  async function previewTwitchRewards() {
+    const data = await window.CGN.api(api.twitchReadonlyPreview);
+    state.twitchReadonlyPreview = data;
+    state.notice = data.ok ? `Twitch-Preview gelesen: ${data.rewardCount ?? asArray(data.rewards).length} Rewards.` : 'Twitch-Preview konnte nicht gelesen werden.';
+    state.tab = 'twitch-sync';
+    render();
+  }
+
+  async function syncTwitchRewards() {
+    if (!window.confirm('Twitch-Rewards jetzt lokal synchronisieren?\n\nTwitch selbst wird NICHT verändert. Es werden nur lokale Daten im Kanalpunkte-System aktualisiert.')) return;
+    const data = await window.CGN.api(api.twitchReadonlySync, { method:'POST', body:'{}' });
+    state.twitchReadonlySync = data;
+    state.notice = data.ok ? `Lokaler Twitch-Reward-Sync abgeschlossen: ${data.rewardCount ?? asArray(data.rewards).length} Rewards.` : 'Lokaler Twitch-Reward-Sync konnte nicht abgeschlossen werden.';
+    state.tab = 'twitch-sync';
+    await loadAll(true);
+  }
+
   async function checkReward(key) {
     const data = await window.CGN.api(`${api.mediaExecutionCheck}?reward=${encodeURIComponent(key)}`);
     state.busResult = data;
@@ -427,6 +461,66 @@ window.ChannelpointsModule = (function(){
   }
 
 
+  function twitchReadonlyRewardsFrom(data) {
+    if (!data || typeof data !== 'object') return [];
+    if (Array.isArray(data.rewards)) return data.rewards;
+    if (Array.isArray(data.data)) return data.data;
+    if (data.preview && Array.isArray(data.preview.rewards)) return data.preview.rewards;
+    if (data.result && Array.isArray(data.result.rewards)) return data.result.rewards;
+    return [];
+  }
+
+  function renderReadonlyRewardRow(reward) {
+    const title = reward.title || reward.name || reward.reward_title || reward.rewardTitle || '-';
+    const cost = reward.cost ?? reward.points ?? reward.reward_cost ?? '-';
+    const id = reward.id || reward.twitch_reward_id || reward.twitchRewardId || '-';
+    const enabled = reward.is_enabled ?? reward.enabled ?? reward.twitch_is_enabled;
+    const prompt = reward.prompt || reward.description || reward.reward_prompt || '';
+    return `<tr><td><strong>${esc(title)}</strong>${prompt ? `<small>${esc(prompt).slice(0, 110)}</small>` : ''}</td><td>${esc(cost)}</td><td>${enabled === false ? pill('Twitch aus','warn') : pill('Twitch aktiv','ok')}</td><td><code>${esc(id)}</code></td></tr>`;
+  }
+
+  function renderTwitchReadonlySyncPanel() {
+    const status = state.twitchReadonlyStatus || {};
+    const preview = state.twitchReadonlyPreview || {};
+    const sync = state.twitchReadonlySync || {};
+    const previewRewards = twitchReadonlyRewardsFrom(preview).slice(0, 12);
+    const statusMode = status.ok ? pill('ReadOnly-Modul bereit', 'ok') : pill('ReadOnly-Modul prüfen', 'warn');
+    const writeMode = (status.twitchWrite || preview.twitchWrite || sync.twitchWrite) ? pill('WARNUNG: Twitch-Write', 'off') : pill('kein Twitch-Write', 'ok');
+    const localMode = preview.localDbWrite ? pill('Preview schreibt lokal', 'warn') : pill('Preview ohne lokalen Write', 'ok');
+    return `<section class="cp-panel cp-twitch-sync-panel"><div class="cp-panel-head"><h3>Twitch Rewards Read-Only Sync</h3><span>${statusMode} ${writeMode}</span></div>
+      <div class="cp-twitch-grid cp-twitch-sync-grid">
+        <div><strong>Status</strong><span>Modul: ${esc(status.module || '-')} · v${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span></div>
+        <div><strong>Gelesene Rewards</strong><span>Preview: ${esc(preview.rewardCount ?? previewRewards.length ?? '-')} · letzter Statusfehler: ${esc(status.lastError || status.error || '-')}</span></div>
+        <div><strong>Sicherheit</strong><span>${writeMode} ${localMode}</span></div>
+        <div><strong>Letzter Sync</strong><span>${esc(sync.syncedAt || sync.readAt || sync.updatedAt || '-')} · Count: ${esc(sync.rewardCount ?? '-')}</span></div>
+      </div>
+      <div class="cp-actions cp-sync-actions"><button type="button" data-cp-action="twitch-readonly-status">Status prüfen</button><button type="button" data-cp-action="twitch-readonly-preview">Preview lesen</button><button type="button" data-cp-action="twitch-readonly-sync">Lokal synchronisieren</button></div>
+      <div class="cp-note cp-twitch-note"><strong>Wichtig:</strong> Dieser Bereich liest Twitch-Rewards nur read-only. Der Sync schreibt ausschließlich lokal in das Kanalpunkte-System. Twitch-Rewards werden hier nicht erstellt, geändert oder deaktiviert.</div>
+      ${preview.error ? `<div class="cp-alert error">Preview: ${esc(preview.error)}</div>` : ''}
+      ${sync.error ? `<div class="cp-alert error">Sync: ${esc(sync.error)}</div>` : ''}
+      <div class="cp-table-wrap"><table class="cp-sync-table"><thead><tr><th>Twitch-Reward</th><th>Kosten</th><th>Status</th><th>Twitch-ID</th></tr></thead><tbody>${previewRewards.map(renderReadonlyRewardRow).join('') || '<tr><td colspan="4">Noch keine Preview geladen. Bitte „Preview lesen“ klicken.</td></tr>'}</tbody></table></div>
+      ${state.twitchReadonlyPreview ? `<details class="cp-advanced-box"><summary>Letzte Preview-Antwort</summary><pre>${esc(JSON.stringify(state.twitchReadonlyPreview, null, 2))}</pre></details>` : ''}
+      ${state.twitchReadonlySync ? `<details class="cp-advanced-box"><summary>Letzte Sync-Antwort</summary><pre>${esc(JSON.stringify(state.twitchReadonlySync, null, 2))}</pre></details>` : ''}
+    </section>`;
+  }
+
+  function renderDiagnosticsPanel() {
+    return `<section class="cp-panel cp-diagnostics-panel"><div class="cp-panel-head"><h3>Diagnose</h3><span>EventBus / Ausführung</span></div>
+      <div class="cp-actions"><button type="button" data-cp-action="bus-test">EventBus-Test</button><button type="button" data-cp-action="reload">Neu laden</button></div>
+      <div class="cp-note">Hier bleiben Diagnose-Ausgaben und technische Ergebnisse gesammelt, statt die Hauptseite zu überladen.</div>
+      ${state.busResult ? `<details class="cp-advanced-box" open><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : '<div class="cp-empty">Noch kein Diagnose-Ergebnis.</div>'}
+    </section>`;
+  }
+
+  function renderActiveTab() {
+    if (state.tab === 'overview') return `${renderOverview()}${renderTwitchReadinessPanel()}`;
+    if (state.tab === 'redemptions') return renderRedemptionsPanel();
+    if (state.tab === 'twitch-sync') return renderTwitchReadonlySyncPanel();
+    if (state.tab === 'diagnostics') return renderDiagnosticsPanel();
+    return `${renderToolbar()}${renderRewardGroups()}`;
+  }
+
+
   function renderTwitchReadinessPanel() {
     const tw = state.twitchStatus || (state.status && state.status.twitch) || {};
     const auth = state.twitchAuthCheck || {};
@@ -460,7 +554,7 @@ window.ChannelpointsModule = (function(){
 
   function renderHeader() {
     const status = state.status || {};
-    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Analog zum Commands-Editor: suchen, gruppieren, neu erstellen, bearbeiten, löschen. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
+    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Analog zum Commands-Bereich: Tabs, Rewards, Übersicht, Einlösungen und Twitch-Sync getrennt verwalten. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
   }
 
   function renderToolbar() {
@@ -573,8 +667,15 @@ window.ChannelpointsModule = (function(){
   function render() {
     if (!root) root = document.getElementById('channelpointsModule');
     if (!root) return;
-    if (state.loading) { root.innerHTML = '<div class="cp-loading">Kanalpunkte werden geladen...</div>'; return; }
-    root.innerHTML = `<div class="cp-admin">${renderHeader()}${state.error ? `<div class="cp-alert error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cp-alert ok">${esc(state.notice)}</div>` : ''}${renderToolbar()}${renderOverview()}${renderRewardGroups()}${renderRedemptionsPanel()}${renderTwitchReadinessPanel()}${state.busResult ? `<details class="cp-panel"><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : ''}${renderModal()}</div>`;
+    const tabs = [
+      ['manage', 'Rewards'],
+      ['overview', 'Übersicht'],
+      ['redemptions', 'Einlösungen'],
+      ['twitch-sync', 'Twitch Sync'],
+      ['diagnostics', 'Diagnose']
+    ];
+    if (state.loading) { root.innerHTML = `<div class="cp-admin">${renderHeader()}<section class="cp-panel cp-loading">Kanalpunkte werden geladen...</section></div>`; return; }
+    root.innerHTML = `<div class="cp-admin cp-dashboard-tabs">${renderHeader()}${state.error ? `<div class="cp-alert error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cp-alert ok">${esc(state.notice)}</div>` : ''}<div class="cp-tabs">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-cp-tab="${id}">${esc(label)}</button>`).join('')}</div>${renderActiveTab()}${renderModal()}</div>`;
     wireEvents();
     if (state.modal) {
       window.MediaField?.initAll?.(root);
@@ -583,8 +684,13 @@ window.ChannelpointsModule = (function(){
   }
 
   function wireEvents() {
-    root.querySelector('[data-cp-action="reload"]')?.addEventListener('click', () => loadAll(true));
+    root.querySelectorAll('[data-cp-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.cpTab || 'manage'; state.error = ''; render(); }));
+    root.querySelectorAll('[data-cp-action="reload"]').forEach(btn => btn.addEventListener('click', () => loadAll(true)));
     root.querySelector('[data-cp-action="new"]')?.addEventListener('click', () => openModal('create'));
+    root.querySelector('[data-cp-action="bus-test"]')?.addEventListener('click', () => runBusTest().catch(showError));
+    root.querySelector('[data-cp-action="twitch-readonly-status"]')?.addEventListener('click', () => refreshTwitchReadonlyStatus().catch(showError));
+    root.querySelector('[data-cp-action="twitch-readonly-preview"]')?.addEventListener('click', () => previewTwitchRewards().catch(showError));
+    root.querySelector('[data-cp-action="twitch-readonly-sync"]')?.addEventListener('click', () => syncTwitchRewards().catch(showError));
     root.querySelectorAll('[data-cp-action="edit"]').forEach(btn => btn.addEventListener('click', () => { const r = rewards().find(item => item.reward_key === btn.dataset.key); if (r) openModal('edit', r); }));
     root.querySelectorAll('[data-cp-action="check"]').forEach(btn => btn.addEventListener('click', ev => { ev.stopPropagation(); checkReward(btn.dataset.key).catch(showError); }));
     root.querySelectorAll('[data-cp-action="execute"]').forEach(btn => btn.addEventListener('click', ev => { ev.stopPropagation(); executeReward(btn.dataset.key).catch(showError); }));
