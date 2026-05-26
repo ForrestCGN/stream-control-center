@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.7.4";
-const MODULE_BUILD = "twitch-sync-readiness";
+const MODULE_VERSION = "0.7.5";
+const MODULE_BUILD = "eventbus-docs-final-polish";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -35,7 +35,8 @@ const DEFAULT_CONFIG = {
   mediaExecutionBridgeEnabled: true,
   mediaExecutionTargetUrl: "/api/sound/play",
   textRewardExecutionEnabled: true,
-  twitchSyncReadinessEnabled: true
+  twitchSyncReadinessEnabled: true,
+  busDomainEventsEnabled: true
 };
 
 const DEFAULT_CATEGORIES = [
@@ -166,6 +167,9 @@ let lastBusEvent = null;
 let lastBusTestAt = null;
 let lastError = "";
 let receivedBusEvents = 0;
+let emittedDomainEvents = 0;
+let lastDomainEventAt = null;
+let lastDomainEvent = null;
 let subscriptionIds = [];
 let dbMigrationState = {
   attempted: false,
@@ -609,6 +613,109 @@ function normalizeRewardInput(input = {}, existing = null) {
   };
 }
 
+
+function buildRewardEventPayload(reward, extra = {}) {
+  const safeReward = reward || {};
+  return {
+    reward: safeReward ? {
+      id: safeReward.id || null,
+      rewardKey: safeReward.reward_key || "",
+      title: safeReward.title || "",
+      categoryKey: safeReward.category_key || "",
+      actionType: safeReward.action_type || "",
+      actionKey: safeReward.action_key || "",
+      mediaAssetId: safeReward.media_asset_id || "",
+      mediaRole: safeReward.media_role || "",
+      systemEnabled: safeReward.system_enabled === true || safeReward.system_enabled === 1,
+      isPaused: safeReward.is_paused === true || safeReward.is_paused === 1,
+      twitchRewardId: safeReward.twitch_reward_id || ""
+    } : null,
+    ...extra,
+    twitchWrite: false,
+    emittedAt: nowIso()
+  };
+}
+
+function emitDomainEvent(action, payload = {}, options = {}) {
+  const config = getConfig();
+  if (config.busEnabled === false || config.busDomainEventsEnabled === false) return { ok: false, reason: "bus_domain_events_disabled" };
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.emit !== "function") return { ok: false, reason: "bus_emit_unavailable" };
+  const channel = cleanString(options.channel || "channelpoints.events");
+  const eventAction = cleanString(action || "event");
+  const now = nowIso();
+  const eventPayload = {
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: eventAction,
+    ...payload,
+    timestamp: payload.timestamp || now
+  };
+  const result = currentBus.emit({
+    type: "event",
+    channel,
+    action: eventAction,
+    source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
+    target: { type: "all", id: "*" },
+    payload: eventPayload,
+    meta: {
+      requireAck: options.requireAck === true,
+      replayable: options.replayable !== false,
+      ttlMs: Math.max(1000, intValue(options.ttlMs, 60000)),
+      productionTarget: true,
+      localOnly: true,
+      twitchWrite: false
+    }
+  });
+  emittedDomainEvents += 1;
+  lastDomainEventAt = now;
+  lastDomainEvent = { channel, action: eventAction, ok: result && result.ok === true, payload: eventPayload };
+  return result;
+}
+
+function emitRewardEvent(eventName, reward, extra = {}) {
+  return emitDomainEvent(eventName, buildRewardEventPayload(reward, extra), { channel: "channelpoints.reward" });
+}
+
+function emitRedemptionEvent(eventName, reward, redemption, result = {}) {
+  return emitDomainEvent(eventName, buildRewardEventPayload(reward, { redemption: redemption || null, result: result || null }), { channel: "channelpoints.redemption" });
+}
+
+function buildBusEventSpec() {
+  const events = [
+    { channel: "channelpoints.reward", action: "channelpoints.reward.created", when: "Lokaler Reward wurde erstellt." },
+    { channel: "channelpoints.reward", action: "channelpoints.reward.updated", when: "Lokaler Reward wurde bearbeitet." },
+    { channel: "channelpoints.reward", action: "channelpoints.reward.deleted", when: "Lokaler Reward wurde gelöscht." },
+    { channel: "channelpoints.reward", action: "channelpoints.reward.enabled", when: "Lokaler Reward wurde aktiviert." },
+    { channel: "channelpoints.reward", action: "channelpoints.reward.disabled", when: "Lokaler Reward wurde deaktiviert/pausiert." },
+    { channel: "channelpoints.redemption", action: "channelpoints.redemption.created", when: "Lokale/Test-Einlösung wurde gespeichert." },
+    { channel: "channelpoints.redemption", action: "channelpoints.redemption.executed", when: "Einlösung wurde erfolgreich ausgeführt." },
+    { channel: "channelpoints.redemption", action: "channelpoints.redemption.failed", when: "Einlösung oder Ausführung ist fehlgeschlagen." },
+    { channel: "channelpoints.twitch", action: "channelpoints.twitch.readiness", when: "Twitch-Readiness wurde abgefragt." },
+    { channel: "channelpoints.test", action: "ping", when: "Bus-Selbsttest." }
+  ];
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: "eventbus_domain_events_documented",
+    domainEventsEnabled: getConfig().busDomainEventsEnabled !== false,
+    localOnly: true,
+    twitchWrite: false,
+    events,
+    stats: {
+      emittedDomainEvents,
+      receivedBusEvents,
+      lastDomainEventAt,
+      lastDomainEvent,
+      lastBusEventAt,
+      lastBusEvent
+    }
+  };
+}
+
 function createReward(input = {}) {
   ensureDbReady();
   const data = normalizeRewardInput(input, null);
@@ -632,6 +739,7 @@ function createReward(input = {}) {
   localCrudStats.lastCrudAction = "create_reward";
   const created = getRewardByIdOrKey(data.reward_key);
   publishStatus("reward_created");
+  emitRewardEvent("channelpoints.reward.created", created, { crudAction: "created" });
   return created;
 }
 
@@ -674,6 +782,7 @@ function updateReward(idOrKey, input = {}) {
   localCrudStats.lastCrudAction = "update_reward";
   const updated = getRewardByIdOrKey(data.reward_key);
   publishStatus("reward_updated");
+  emitRewardEvent("channelpoints.reward.updated", updated, { crudAction: "updated", previousRewardKey: existing.reward_key });
   return updated;
 }
 
@@ -695,6 +804,7 @@ function setRewardEnabled(idOrKey, enabled, paused = null) {
   localCrudStats.lastCrudAction = enabled ? "enable_reward" : "disable_reward";
   const updated = getRewardByIdOrKey(String(existing.id));
   publishStatus(enabled ? "reward_enabled_local" : "reward_disabled_local");
+  emitRewardEvent(enabled ? "channelpoints.reward.enabled" : "channelpoints.reward.disabled", updated, { crudAction: enabled ? "enabled" : "disabled", localOnly: true });
   return updated;
 }
 
@@ -873,7 +983,10 @@ function deleteReward(idOrKey) {
   localCrudStats.deleted += deleted;
   localCrudStats.lastCrudAt = nowIso();
   localCrudStats.lastCrudAction = "delete_reward";
-  if (deleted > 0) publishStatus("reward_deleted_local");
+  if (deleted > 0) {
+    publishStatus("reward_deleted_local");
+    emitRewardEvent("channelpoints.reward.deleted", existing, { crudAction: "deleted", deleted });
+  }
   return { reward: existing, deleted };
 }
 
@@ -893,12 +1006,7 @@ function recordRedemptionExecution(reward, input, status, result) {
   try {
     ensureDbReady();
     const now = nowIso();
-    database.run(`
-      INSERT INTO channelpoints_redemptions
-        (twitch_redemption_id, twitch_reward_id, reward_key, user_id, user_login, user_display_name, user_input, status, queue_group, result_json, redeemed_at, created_at, updated_at)
-      VALUES
-        (:twitch_redemption_id, :twitch_reward_id, :reward_key, :user_id, :user_login, :user_display_name, :user_input, :status, :queue_group, :result_json, :redeemed_at, :created_at, :updated_at)
-    `, {
+    const redemption = {
       twitch_redemption_id: cleanString(input.twitchRedemptionId || input.redemptionId || `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
       twitch_reward_id: reward.twitch_reward_id || "",
       reward_key: reward.reward_key,
@@ -912,9 +1020,18 @@ function recordRedemptionExecution(reward, input, status, result) {
       redeemed_at: cleanString(input.redeemedAt || now),
       created_at: now,
       updated_at: now
-    });
+    };
+    database.run(`
+      INSERT INTO channelpoints_redemptions
+        (twitch_redemption_id, twitch_reward_id, reward_key, user_id, user_login, user_display_name, user_input, status, queue_group, result_json, redeemed_at, created_at, updated_at)
+      VALUES
+        (:twitch_redemption_id, :twitch_reward_id, :reward_key, :user_id, :user_login, :user_display_name, :user_input, :status, :queue_group, :result_json, :redeemed_at, :created_at, :updated_at)
+    `, redemption);
+    emitRedemptionEvent("channelpoints.redemption.created", reward, redemption, result);
+    return redemption;
   } catch (err) {
     lastError = err && err.message ? err.message : String(err);
+    return null;
   }
 }
 
@@ -972,7 +1089,8 @@ async function executeReward(idOrKey, input = {}) {
     executionStats.lastExecutionReward = reward.reward_key;
     executionStats.lastExecutionResult = summary;
     executionStats.lastExecutionError = "";
-    recordRedemptionExecution(reward, input, "executed", summary);
+    const redemption = recordRedemptionExecution(reward, input, "executed", summary);
+    emitRedemptionEvent("channelpoints.redemption.executed", reward, redemption, summary);
     publishStatus("reward_text_executed");
     return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, action: "executed_text_reward", reward, result: summary, twitchWrite: false };
   }
@@ -990,7 +1108,8 @@ async function executeReward(idOrKey, input = {}) {
     executionStats.lastExecutionReward = reward.reward_key;
     executionStats.lastExecutionResult = summary;
     executionStats.lastExecutionError = "";
-    recordRedemptionExecution(reward, input, "executed", summary);
+    const redemption = recordRedemptionExecution(reward, input, "executed", summary);
+    emitRedemptionEvent("channelpoints.redemption.executed", reward, redemption, summary);
     publishStatus("reward_media_executed");
     return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, action: "executed_media_reward", reward, targetUrl, payload, result: summary, twitchWrite: false };
   } catch (err) {
@@ -1001,7 +1120,8 @@ async function executeReward(idOrKey, input = {}) {
     executionStats.lastExecutionReward = reward.reward_key;
     executionStats.lastExecutionResult = err && err.data ? err.data : null;
     executionStats.lastExecutionError = message;
-    recordRedemptionExecution(reward, input, "failed", { error: message, data: err && err.data || null });
+    const redemption = recordRedemptionExecution(reward, input, "failed", { error: message, data: err && err.data || null });
+    emitRedemptionEvent("channelpoints.redemption.failed", reward, redemption, { error: message, data: err && err.data || null });
     lastError = message;
     throw err;
   }
@@ -1024,6 +1144,9 @@ function buildBusStatus() {
     lastStatusAt: lastBusStatusAt,
     lastEventAt: lastBusEventAt,
     receivedEvents: receivedBusEvents,
+    emittedDomainEvents,
+    lastDomainEventAt,
+    lastDomainEvent,
     core: busStatus ? { ok: busStatus.ok === true, bus: busStatus.bus, version: busStatus.version, moduleMeta: busStatus.moduleMeta || null, stats: busStatus.stats || null } : null
   };
 }
@@ -1200,6 +1323,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/rewards/:idOrKey/execution-check`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/execute`,
       `${ROUTE_PREFIX}/execute`,
+      `${ROUTE_PREFIX}/bus-events`,
       `${ROUTE_PREFIX}/bus-test`
     ],
     ...extra
@@ -1232,6 +1356,9 @@ function publishStatus(reason = "status") {
     redemptionCount: counts.redemptions,
     categoryCount: counts.categories,
     queueSize: 0,
+    executionStats: { ...executionStats },
+    emittedDomainEvents,
+    lastDomainEventAt,
     localCrudEnabled: config.localCrudEnabled !== false,
     lastError,
     timestamp: nowIso()
@@ -1280,7 +1407,7 @@ function heartbeatBus(reason = "heartbeat") {
     status: "online",
     health: lastError ? "warn" : "ok",
     reason,
-    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.test.ping"]
+    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.domain_events", "channelpoints.test.ping"]
   });
   lastBusHeartbeatAt = nowIso();
   return result;
@@ -1296,8 +1423,8 @@ function registerAtCommunicationBus() {
     module: MODULE_NAME,
     name: "Kanalpunkte-System",
     version: MODULE_VERSION,
-    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.test.ping"],
-    meta: { routePrefix: ROUTE_PREFIX, localCrud: true, twitchWritesEnabled: false, mediaSystem: "existing_media_module", mediaExecutionBridge: "/api/sound/play" }
+    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.domain_events", "channelpoints.test.ping"],
+    meta: { routePrefix: ROUTE_PREFIX, localCrud: true, twitchWritesEnabled: false, mediaSystem: "existing_media_module", mediaExecutionBridge: "/api/sound/play", domainEvents: true }
   });
   registeredAtBus = registerResult && registerResult.ok === true;
   lastBusRegisterAt = registeredAtBus ? nowIso() : lastBusRegisterAt;
@@ -1348,8 +1475,8 @@ function init({ app }) {
   app.get(`${ROUTE_PREFIX}/media-plan`, (req, res) => { try { res.json(buildMediaPlan()); } catch (err) { sendError(res, 500, err); } });
   app.get(`${ROUTE_PREFIX}/schema-preview`, (req, res) => { try { res.json(buildSchemaPreview()); } catch (err) { sendError(res, 500, err); } });
   app.get(`${ROUTE_PREFIX}/db-status`, (req, res) => { try { res.json(getDbStatus()); } catch (err) { sendError(res, 500, err); } });
-  app.get(`${ROUTE_PREFIX}/twitch-status`, (req, res) => { try { res.json(buildTwitchSyncStatus()); } catch (err) { sendError(res, 500, err); } });
-  app.get(`${ROUTE_PREFIX}/twitch/readiness`, (req, res) => { try { res.json(buildTwitchSyncStatus()); } catch (err) { sendError(res, 500, err); } });
+  app.get(`${ROUTE_PREFIX}/twitch-status`, (req, res) => { try { const status = buildTwitchSyncStatus(); emitDomainEvent("channelpoints.twitch.readiness", { readiness: status }, { channel: "channelpoints.twitch" }); res.json(status); } catch (err) { sendError(res, 500, err); } });
+  app.get(`${ROUTE_PREFIX}/twitch/readiness`, (req, res) => { try { const status = buildTwitchSyncStatus(); emitDomainEvent("channelpoints.twitch.readiness", { readiness: status }, { channel: "channelpoints.twitch" }); res.json(status); } catch (err) { sendError(res, 500, err); } });
 
   app.get(`${ROUTE_PREFIX}/categories`, (req, res) => {
     try { res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, categories: listCategories(req) }); } catch (err) { sendError(res, 500, err); }
@@ -1505,6 +1632,10 @@ function init({ app }) {
     } catch (err) { sendError(res, err && err.message === "reward_not_found" ? 404 : 400, err); }
   });
 
+  app.get(`${ROUTE_PREFIX}/bus-events`, (req, res) => {
+    try { res.json(buildBusEventSpec()); } catch (err) { sendError(res, 500, err); }
+  });
+
   app.get(`${ROUTE_PREFIX}/bus-test`, (req, res) => {
     try { const result = emitBusSelfTest(req); res.json(buildStatus({ busTest: true, result })); } catch (err) {
       const currentBus = getBus();
@@ -1516,4 +1647,4 @@ function init({ app }) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} API routes registered (${ROUTE_PREFIX})`);
 }
 
-module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, registerAtCommunicationBus, heartbeatBus, publishStatus };
+module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildBusEventSpec, registerAtCommunicationBus, heartbeatBus, publishStatus };

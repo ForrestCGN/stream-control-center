@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.7.4';
-  const UI_BUILD = 'twitch-sync-readiness';
+  const UI_VERSION = '0.7.5';
+  const UI_BUILD = 'eventbus-docs-final-polish';
 
   const api = {
     status: '/api/channelpoints/status',
