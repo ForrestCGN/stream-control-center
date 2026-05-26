@@ -57,3 +57,20 @@ html[data-theme="light"] .cp-toolbar input,html[data-theme="light"] .cp-toolbar 
 .cp-sync-table code{font-size:11px;color:#c7a2ff;word-break:break-all}
 .cp-diagnostics-panel .cp-actions{margin:0 0 12px}
 .cp-diagnostics-panel pre,.cp-twitch-sync-panel pre{white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto}
+
+/* v0.8.2 twitch sync mapping view */
+.cp-mapping-legend{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 10px;align-items:center}
+.cp-table-wrap{overflow:auto;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(0,0,0,.12)}
+.cp-sync-table{width:100%;border-collapse:collapse;min-width:820px}
+.cp-sync-table th,.cp-sync-table td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}
+.cp-sync-table th{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#c79cff;background:rgba(170,92,255,.10)}
+.cp-sync-table tr:last-child td{border-bottom:0}
+.cp-sync-table td strong{display:block;font-size:14px;margin-bottom:3px}
+.cp-sync-table td small{display:block;color:var(--muted);font-size:12px;line-height:1.35;word-break:break-all}
+.cp-mapping-table .cp-map-flags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.cp-map-row.cp-map-mapped{background:rgba(46,204,113,.045)}
+.cp-map-row.cp-map-update{background:rgba(255,193,7,.055)}
+.cp-map-row.cp-map-title-match{background:rgba(160,170,190,.045)}
+.cp-map-row.cp-map-missing{background:rgba(255,95,95,.045)}
+.cp-twitch-sync-panel .cp-advanced-box pre{max-height:360px;overflow:auto;font-size:12px;line-height:1.35}
+@media(max-width:900px){.cp-sync-table{min-width:720px}.cp-sync-table th,.cp-sync-table td{padding:9px 10px}}

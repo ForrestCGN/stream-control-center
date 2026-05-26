@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.8.1';
-  const UI_BUILD = 'dashboard-command-like-tabs';
+  const UI_VERSION = '0.8.2';
+  const UI_BUILD = 'sync-mapping-view';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -470,37 +470,146 @@ window.ChannelpointsModule = (function(){
     return [];
   }
 
-  function renderReadonlyRewardRow(reward) {
-    const title = reward.title || reward.name || reward.reward_title || reward.rewardTitle || '-';
-    const cost = reward.cost ?? reward.points ?? reward.reward_cost ?? '-';
-    const id = reward.id || reward.twitch_reward_id || reward.twitchRewardId || '-';
-    const enabled = reward.is_enabled ?? reward.enabled ?? reward.twitch_is_enabled;
-    const prompt = reward.prompt || reward.description || reward.reward_prompt || '';
-    return `<tr><td><strong>${esc(title)}</strong>${prompt ? `<small>${esc(prompt).slice(0, 110)}</small>` : ''}</td><td>${esc(cost)}</td><td>${enabled === false ? pill('Twitch aus','warn') : pill('Twitch aktiv','ok')}</td><td><code>${esc(id)}</code></td></tr>`;
+  function normalizeComparable(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  function twitchRewardId(reward) {
+    return String(reward?.id || reward?.twitch_reward_id || reward?.twitchRewardId || reward?.reward_id || '').trim();
+  }
+
+  function twitchRewardTitle(reward) {
+    return String(reward?.title || reward?.name || reward?.reward_title || reward?.rewardTitle || '-');
+  }
+
+  function twitchRewardCost(reward) {
+    return reward?.cost ?? reward?.points ?? reward?.reward_cost ?? reward?.defaultCost ?? '-';
+  }
+
+  function twitchRewardEnabled(reward) {
+    const value = reward?.is_enabled ?? reward?.enabled ?? reward?.twitch_is_enabled;
+    return value !== false;
+  }
+
+  function localRewardTwitchId(reward) {
+    return String(reward?.twitch_reward_id || reward?.twitchRewardId || reward?.twitch_id || reward?.external_id || '').trim();
+  }
+
+  function localRewardTitle(reward) {
+    return String(reward?.title || reward?.reward_title || reward?.reward_key || '-');
+  }
+
+  function localRewardCost(reward) {
+    return reward?.cost ?? reward?.reward_cost ?? '-';
+  }
+
+  function localRewardKey(reward) {
+    return String(reward?.reward_key || reward?.key || reward?.id || '-');
+  }
+
+  function localRewardForTwitchReward(twitchReward) {
+    const twitchId = twitchRewardId(twitchReward);
+    const twitchTitle = normalizeComparable(twitchRewardTitle(twitchReward));
+    const all = rewards();
+    if (twitchId) {
+      const byId = all.find(item => localRewardTwitchId(item) === twitchId);
+      if (byId) return { reward: byId, mode: 'id' };
+    }
+    if (twitchTitle) {
+      const byTitle = all.find(item => normalizeComparable(localRewardTitle(item)) === twitchTitle || normalizeComparable(item.reward_key) === twitchTitle);
+      if (byTitle) return { reward: byTitle, mode: 'title' };
+    }
+    return { reward: null, mode: 'none' };
+  }
+
+  function mappingRowsFromPreview() {
+    return twitchReadonlyRewardsFrom(state.twitchReadonlyPreview).map(twitchReward => {
+      const mapped = localRewardForTwitchReward(twitchReward);
+      const local = mapped.reward;
+      const twitchId = twitchRewardId(twitchReward);
+      const localId = local ? localRewardTwitchId(local) : '';
+      const costChanged = local ? String(localRewardCost(local)) !== String(twitchRewardCost(twitchReward)) : false;
+      const titleChanged = local ? normalizeComparable(localRewardTitle(local)) !== normalizeComparable(twitchRewardTitle(twitchReward)) : false;
+      let status = 'missing';
+      if (mapped.mode === 'id') status = costChanged || titleChanged ? 'update' : 'mapped';
+      else if (mapped.mode === 'title') status = 'title-match';
+      return { twitchReward, local, mode: mapped.mode, status, twitchId, localId, costChanged, titleChanged };
+    });
+  }
+
+  function mappingSummary(rows) {
+    const summary = { total: rows.length, mapped: 0, titleMatch: 0, update: 0, missing: 0 };
+    for (const row of rows) {
+      if (row.status === 'mapped') summary.mapped += 1;
+      else if (row.status === 'title-match') summary.titleMatch += 1;
+      else if (row.status === 'update') summary.update += 1;
+      else summary.missing += 1;
+    }
+    return summary;
+  }
+
+  function resultSummary(data) {
+    const summary = data?.summary || data?.result?.summary || {};
+    return {
+      insert: summary.insert ?? summary.created ?? data?.created ?? '-',
+      update: summary.update ?? summary.updated ?? data?.updated ?? '-',
+      unchanged: summary.unchanged ?? data?.unchanged ?? '-'
+    };
+  }
+
+  function renderMappingStatus(row) {
+    if (row.status === 'mapped') return pill('gemappt', 'ok');
+    if (row.status === 'update') return pill('Update möglich', 'warn');
+    if (row.status === 'title-match') return pill('Titel-Match', 'neutral');
+    return pill('neu / fehlt lokal', 'off');
+  }
+
+  function renderMappingRow(row) {
+    const twitch = row.twitchReward;
+    const local = row.local;
+    const twitchEnabled = twitchRewardEnabled(twitch);
+    const twitchInfo = `<strong>${esc(twitchRewardTitle(twitch))}</strong><small>${esc(twitchRewardId(twitch) || '-')}</small>`;
+    const localInfo = local
+      ? `<strong>${esc(localRewardTitle(local))}</strong><small>${esc(localRewardKey(local))}${localRewardTwitchId(local) ? ` · ${esc(localRewardTwitchId(local))}` : ''}</small>`
+      : '<strong>-</strong><small>wird beim Sync lokal angelegt</small>';
+    const flags = [
+      twitchEnabled ? pill('Twitch aktiv', 'ok') : pill('Twitch aus', 'warn'),
+      local?.system_enabled === false ? pill('lokal aus', 'off') : (local ? pill('lokal aktiv/bereit', 'ok') : pill('lokal fehlt', 'neutral')),
+      row.costChanged ? pill('Kosten diff', 'warn') : '',
+      row.titleChanged ? pill('Titel diff', 'warn') : ''
+    ].filter(Boolean).join(' ');
+    return `<tr class="cp-map-row cp-map-${esc(row.status)}"><td>${twitchInfo}</td><td>${esc(twitchRewardCost(twitch))}</td><td>${localInfo}</td><td>${esc(local ? localRewardCost(local) : '-')}</td><td>${renderMappingStatus(row)}<div class="cp-map-flags">${flags}</div></td></tr>`;
   }
 
   function renderTwitchReadonlySyncPanel() {
     const status = state.twitchReadonlyStatus || {};
     const preview = state.twitchReadonlyPreview || {};
     const sync = state.twitchReadonlySync || {};
-    const previewRewards = twitchReadonlyRewardsFrom(preview).slice(0, 12);
+    const previewRewards = twitchReadonlyRewardsFrom(preview);
+    const rows = mappingRowsFromPreview();
+    const summary = mappingSummary(rows);
+    const previewSummary = resultSummary(preview);
+    const syncSummary = resultSummary(sync);
     const statusMode = status.ok ? pill('ReadOnly-Modul bereit', 'ok') : pill('ReadOnly-Modul prüfen', 'warn');
     const writeMode = (status.twitchWrite || preview.twitchWrite || sync.twitchWrite) ? pill('WARNUNG: Twitch-Write', 'off') : pill('kein Twitch-Write', 'ok');
     const localMode = preview.localDbWrite ? pill('Preview schreibt lokal', 'warn') : pill('Preview ohne lokalen Write', 'ok');
+    const mappingRows = rows.slice(0, 80);
     return `<section class="cp-panel cp-twitch-sync-panel"><div class="cp-panel-head"><h3>Twitch Rewards Read-Only Sync</h3><span>${statusMode} ${writeMode}</span></div>
       <div class="cp-twitch-grid cp-twitch-sync-grid">
         <div><strong>Status</strong><span>Modul: ${esc(status.module || '-')} · v${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span></div>
-        <div><strong>Gelesene Rewards</strong><span>Preview: ${esc(preview.rewardCount ?? previewRewards.length ?? '-')} · letzter Statusfehler: ${esc(status.lastError || status.error || '-')}</span></div>
-        <div><strong>Sicherheit</strong><span>${writeMode} ${localMode}</span></div>
-        <div><strong>Letzter Sync</strong><span>${esc(sync.syncedAt || sync.readAt || sync.updatedAt || '-')} · Count: ${esc(sync.rewardCount ?? '-')}</span></div>
+        <div><strong>Preview</strong><span>${esc(preview.rewardCount ?? previewRewards.length ?? '-')} gelesen · Insert ${esc(previewSummary.insert)} · Update ${esc(previewSummary.update)} · Unverändert ${esc(previewSummary.unchanged)}</span></div>
+        <div><strong>Mapping</strong><span>${esc(summary.total)} Twitch · ${esc(summary.mapped)} gemappt · ${esc(summary.update)} Update · ${esc(summary.titleMatch)} Titel-Match · ${esc(summary.missing)} fehlt lokal</span></div>
+        <div><strong>Letzter Sync</strong><span>${esc(sync.syncedAt || sync.readAt || sync.updatedAt || '-')} · Insert ${esc(syncSummary.insert)} · Update ${esc(syncSummary.update)} · Unverändert ${esc(syncSummary.unchanged)}</span></div>
       </div>
       <div class="cp-actions cp-sync-actions"><button type="button" data-cp-action="twitch-readonly-status">Status prüfen</button><button type="button" data-cp-action="twitch-readonly-preview">Preview lesen</button><button type="button" data-cp-action="twitch-readonly-sync">Lokal synchronisieren</button></div>
       <div class="cp-note cp-twitch-note"><strong>Wichtig:</strong> Dieser Bereich liest Twitch-Rewards nur read-only. Der Sync schreibt ausschließlich lokal in das Kanalpunkte-System. Twitch-Rewards werden hier nicht erstellt, geändert oder deaktiviert.</div>
       ${preview.error ? `<div class="cp-alert error">Preview: ${esc(preview.error)}</div>` : ''}
       ${sync.error ? `<div class="cp-alert error">Sync: ${esc(sync.error)}</div>` : ''}
-      <div class="cp-table-wrap"><table class="cp-sync-table"><thead><tr><th>Twitch-Reward</th><th>Kosten</th><th>Status</th><th>Twitch-ID</th></tr></thead><tbody>${previewRewards.map(renderReadonlyRewardRow).join('') || '<tr><td colspan="4">Noch keine Preview geladen. Bitte „Preview lesen“ klicken.</td></tr>'}</tbody></table></div>
-      ${state.twitchReadonlyPreview ? `<details class="cp-advanced-box"><summary>Letzte Preview-Antwort</summary><pre>${esc(JSON.stringify(state.twitchReadonlyPreview, null, 2))}</pre></details>` : ''}
-      ${state.twitchReadonlySync ? `<details class="cp-advanced-box"><summary>Letzte Sync-Antwort</summary><pre>${esc(JSON.stringify(state.twitchReadonlySync, null, 2))}</pre></details>` : ''}
+      <div class="cp-mapping-legend">${pill('gemappt','ok')} ${pill('Update möglich','warn')} ${pill('Titel-Match','neutral')} ${pill('neu / fehlt lokal','off')}</div>
+      <div class="cp-table-wrap"><table class="cp-sync-table cp-mapping-table"><thead><tr><th>Twitch-Reward</th><th>Twitch-Kosten</th><th>Lokaler Reward</th><th>Lokale Kosten</th><th>Mapping</th></tr></thead><tbody>${mappingRows.map(renderMappingRow).join('') || '<tr><td colspan="5">Noch keine Preview geladen. Bitte „Preview lesen“ klicken.</td></tr>'}</tbody></table></div>
+      ${rows.length > mappingRows.length ? `<div class="cp-muted-line">Anzeige gekürzt: ${esc(mappingRows.length)} von ${esc(rows.length)} Rewards sichtbar.</div>` : ''}
+      ${state.twitchReadonlyPreview ? `<details class="cp-advanced-box"><summary>Letzte Preview-Antwort / Rohdaten</summary><pre>${esc(JSON.stringify(state.twitchReadonlyPreview, null, 2))}</pre></details>` : ''}
+      ${state.twitchReadonlySync ? `<details class="cp-advanced-box"><summary>Letzte Sync-Antwort / Rohdaten</summary><pre>${esc(JSON.stringify(state.twitchReadonlySync, null, 2))}</pre></details>` : ''}
     </section>`;
   }
 
@@ -554,7 +663,7 @@ window.ChannelpointsModule = (function(){
 
   function renderHeader() {
     const status = state.status || {};
-    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Analog zum Commands-Bereich: Tabs, Rewards, Übersicht, Einlösungen und Twitch-Sync getrennt verwalten. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
+    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Analog zum Commands-Bereich: Tabs, Rewards, Übersicht, Einlösungen, Twitch-Sync und Mapping getrennt verwalten. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
   }
 
   function renderToolbar() {
