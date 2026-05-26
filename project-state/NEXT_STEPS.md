@@ -1,59 +1,65 @@
 # NEXT_STEPS
 
-Stand: 2026-05-26 / nach STEP489
+Stand: 2026-05-26 / nach STEP490
 
-## Direkt pruefen
+## Direkt prüfen
 
 ```bat
 cd D:\Git\stream-control-center
 node --check backend\modules\channelpoints.js
 ```
 
-Falls STEP487 bereits entpackt wurde:
-
-```bat
-del backend\modules\helpers\helper_communication_contract.js
-```
-
-Danach:
-
-```bat
-.\stepdone.cmd "STEP489 Channelpoints Backend Skeleton"
-```
-
-## Runtime-Test nach stepdone und Server-Neustart
+## Nach stepdone + Deploy + Server-Neustart testen
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/model"
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/media-plan"
 Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/bus-test?message=hello"
 Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status"
 ```
 
 ## Erwartung
 
-- `/api/channelpoints/status` liefert `ok=True`.
-- `moduleVersion` ist `0.1.0`.
-- `bus.registered` ist `True`.
-- `/api/channelpoints/bus-test` liefert `result.ok=True`.
-- `subscriberDeliveredCount` ist mindestens `1`.
-- `/api/communication/status` zeigt einen Modul-Client fuer `channelpoints` und mindestens eine `channelpoints`-Subscription.
+- `channelpoints.js` erscheint in `/api/_status`.
+- `moduleVersion` ist `0.2.0`.
+- `/api/channelpoints/model` meldet `planning_only_no_db_migration`.
+- `/api/channelpoints/media-plan` meldet `planning_only_uses_existing_media_system`.
+- Bus-Test liefert weiter `subscriberDeliveredCount >= 1`.
 
-## Offener Nachziehpunkt
+## Offener Cleanup
 
-`communication_bus.js` zeigt nach aussen noch `coreVersion 0.3.0`, waehrend der Helper-Core seit STEP488 `0.4.0` ist. Nicht nebenbei aendern; in einem kleinen Folge-STEP sauber nachziehen, falls gewuenscht.
+Falls noch vorhanden:
 
-## Naechster sinnvoller Fach-STEP
+```bat
+del backend\modules\helpers\helper_communication_contract.js
+```
+
+Live ggf.:
+
+```powershell
+Remove-Item D:\Streaming\stramAssets\backend\modules\helpers\helper_communication_contract.js -Force
+```
+
+## Nächster sinnvoller Fach-STEP
 
 ```text
-STEP490_CHANNELPOINTS_TWITCH_READINESS_CHECK
+STEP491_CHANNELPOINTS_DB_MIGRATION_PREP
 ```
 
 Ziel:
 
 ```text
-Twitch-Scopes und vorhandene Twitch-Helper pruefen
-Readiness-/Diagnose-Route fuer Kanalpunkte vorbereiten
-nur lesend/diagnostisch
-keine Reward-Schreibaktionen
-keine DB-Migration
+- DB-Schema für channelpoints_categories, channelpoints_rewards und channelpoints_redemptions vorbereiten
+- Migration sanft mit CREATE TABLE IF NOT EXISTS planen
+- keine Daten überschreiben
+- vor produktivem Einbau noch einmal bestätigen
 ```
+
+## Danach
+
+- STEP492: Read-only lokale Reward-Liste.
+- STEP493: Dashboard-Skeleton.
+- STEP494: Media-Picker an Rewards anbinden.
+- Später: Twitch Read-Sync.
+- Noch später: Twitch Write/Deactivate mit is_enabled=false.

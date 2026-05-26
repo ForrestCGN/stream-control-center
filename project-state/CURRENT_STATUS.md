@@ -1,60 +1,53 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP489_CHANNELPOINTS_BACKEND_SKELETON
+Stand: 2026-05-26 / STEP490_CHANNELPOINTS_MODEL_AND_MEDIA_PLAN
 
 ## Aktueller Arbeitsstand
 
-STEP489 erstellt das sichere Backend-Skelett fuer das neue Kanalpunkte-System.
+STEP490 erweitert das Kanalpunkte-System aus STEP489 um einen lesbaren Backend-Modellplan und eine verbindliche Media-Integrationsplanung.
 
 ## Kanalpunkte-System
 
-Neu:
+- `backend/modules/channelpoints.js` steht jetzt auf Version `0.2.0`.
+- Neue Routen:
+  - `GET /api/channelpoints/status`
+  - `GET /api/channelpoints/model`
+  - `GET /api/channelpoints/media-plan`
+  - `GET /api/channelpoints/bus-test`
+- Statusmodus: `backend_model_plan`.
+- Noch keine Datenbankmigration.
+- Noch keine Twitch-Schreibaktionen.
+- Noch keine Reward-Synchronisierung.
+- Noch keine produktive Redemption-Verarbeitung.
+- Noch kein Dashboard-Umbau.
 
-- `backend/modules/channelpoints.js`
-- Modulversion `0.1.0`
-- Route `GET /api/channelpoints/status`
-- Route `GET /api/channelpoints/bus-test`
-- Bus-Registrierung ueber `registerModule`
-- Heartbeat ueber `heartbeatModule`
-- Status-Publish ueber `publishModuleStatus`
-- Selftest-Subscription fuer `channelpoints.test/ping`
+## Media-Regel
 
-Bewusst nicht umgesetzt:
+Uploads und Medienauswahl für Kanalpunkte laufen über das bestehende Medien-System:
 
-- keine Twitch-Schreibaktionen
-- keine Twitch-Reward-Synchronisierung
-- keine DB-Migration
-- kein Dashboard-Modul
-- keine produktive Redemption-Verarbeitung
+- `backend/modules/media.js`
+- `htdocs/dashboard/components/media_picker.js`
+- `htdocs/dashboard/components/media_field.js`
+
+Es soll keine zweite Upload-Maske und keine eigene Asset-Verwaltung im Kanalpunkte-Modul entstehen.
 
 ## Communication Bus
 
-Der Stand aus STEP488 bleibt Grundlage:
+Das Kanalpunkte-Modul bleibt am integrierten Communication Bus registriert und erweitert seine Capabilities um:
 
-- `backend/modules/helpers/helper_communication.js` Version `0.4.0`
-- Modul-zu-Modul-Contract sitzt direkt im bestehenden Bus-Core
-- `channelpoints.js` nutzt diesen integrierten Contract direkt ueber `communication_bus.getBus()`
+- `channelpoints.model`
+- `channelpoints.media`
 
-Runtime-Hinweis aus lokalem Test:
+## Hinweis aus Runtime-Test STEP489
 
-- alte Communication-Routen laufen nach STEP488 weiter
-- `/api/communication/status` liefert Status inklusive `subscriptions[]`
-- `/api/communication/test` liefert Test-Events weiter aus
-- `/api/communication/watchdog` funktioniert weiter
-- `communication_bus.js` meldet nach aussen noch `coreVersion 0.3.0`, waehrend der Helper-Core seit STEP488 `0.4.0` ist; das ist als kleiner Nachziehpunkt dokumentiert
+STEP489 lief live korrekt:
 
-## Shoutout-System
+- `channelpoints.js` wurde geladen.
+- `/api/channelpoints/status` war `ok=True`.
+- `/api/channelpoints/bus-test` lieferte `subscriberDeliveredCount=1`.
 
-Der Stand aus STEP486 bleibt fachlich unveraendert.
+## Nächster sinnvoller Schritt
 
-## Naechster sinnvoller Schritt
+`STEP491_CHANNELPOINTS_DB_MIGRATION_PREP`
 
-`STEP490_CHANNELPOINTS_TWITCH_READINESS_CHECK`
-
-Ziel:
-
-```text
-Twitch-Scopes und vorhandene Twitch-Helper pruefen
-nur lesende Readiness-/Diagnose-Route fuer Kanalpunkte vorbereiten
-keine Reward-Schreibaktionen
-```
+Ziel: DB-Schema für Kategorien/Rewards/Redemptions als Migration vorbereiten, aber vor produktivem Einbau noch einmal prüfen/freigeben.

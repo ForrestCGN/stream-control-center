@@ -1,11 +1,12 @@
 # Modul-Dokus
 
-Stand: 2026-05-26 / STEP489_CHANNELPOINTS_BACKEND_SKELETON
+Stand: 2026-05-26 / STEP490_CHANNELPOINTS_MODEL_AND_MEDIA_PLAN
 
-Diese Uebersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetzen aber keine erneute Pruefung echter Dateien vor Aenderungen.
+Diese Übersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetzen aber keine erneute Prüfung echter Dateien vor Änderungen.
 
 ## Wichtige Dokus
 
+- [`channelpoints-deep-dive.md`](./channelpoints-deep-dive.md)
 - [`core-communication-bus.md`](./core-communication-bus.md)
 - [`core-stream-status.md`](./core-stream-status.md)
 - [`core-database-sqlite.md`](./core-database-sqlite.md)
@@ -14,7 +15,6 @@ Diese Uebersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetz
 - [`helper-config-core.md`](./helper-config-core.md)
 - [`helper-texts-settings.md`](./helper-texts-settings.md)
 - [`helper-media-chat-twitch.md`](./helper-media-chat-twitch.md)
-- [`channelpoints-deep-dive.md`](./channelpoints-deep-dive.md)
 - [`clip-shoutout-vso-deep-dive.md`](./clip-shoutout-vso-deep-dive.md)
 - [`alerts-deep-dive.md`](./alerts-deep-dive.md)
 - [`sound-system-deep-dive.md`](./sound-system-deep-dive.md)
@@ -34,39 +34,34 @@ Diese Uebersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetz
 - [`commands-media-deep-dive.md`](./commands-media-deep-dive.md)
 - [`bus-diagnostics-deep-dive.md`](./bus-diagnostics-deep-dive.md)
 
+## STEP490 Hinweis
+
+Das Kanalpunkte-System ist als neues Fachmodul dokumentiert.
+
+Wichtige Regel:
+
+```text
+Medien/Uploads für Kanalpunkte laufen über das bestehende Media-System und die vorhandene Upload-Maske.
+```
+
+Keine zweite Upload-Struktur bauen.
+
 ## STEP488 Hinweis
 
 Der Modul-zu-Modul-Contract wurde in `backend/modules/helpers/helper_communication.js` integriert.
 
 Keine dauerhafte zweite Bus-/Contract-Helper-Datei als Zielarchitektur verwenden.
 
-Wenn `helper_communication_contract.js` aus STEP487 bereits lokal entpackt wurde, soll diese Datei wieder entfernt werden, bevor weitergebaut wird.
-
-## STEP489 Hinweis
-
-`backend/modules/channelpoints.js` ist ab STEP489 als neues Fachmodul vorhanden.
-
-Das Modul ist aktuell ein sicheres Backend-Skelett:
-
-```text
-moduleVersion 0.1.0
-/api/channelpoints/status
-/api/channelpoints/bus-test
-Bus-Registrierung ueber registerModule
-Status/Heartbeat ueber publishModuleStatus/heartbeatModule
-keine Twitch-Schreibaktionen
-keine DB-Migration
-kein Dashboard-Umbau
-```
+Wenn `helper_communication_contract.js` aus STEP487 bereits lokal oder live vorhanden ist, soll diese Datei wieder entfernt werden.
 
 ## Pflegepflicht
 
-Vor Aenderungen an einem Modul:
+Vor Änderungen an einem Modul:
 
 ```text
 1. passende docs/modules/<modul>.md lesen
-2. echte Moduldateien pruefen
-3. Routen, Funktionen, Configs, DB-Tabellen, Events, Dashboard-/Overlay-Bezuege aktualisieren
+2. echte Moduldateien prüfen
+3. Routen, Funktionen, Configs, DB-Tabellen, Events, Dashboard-/Overlay-Bezüge aktualisieren
 4. offene Punkte in TODO.md/NEXT_STEPS.md nachziehen
 5. docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md aktualisieren
 ```

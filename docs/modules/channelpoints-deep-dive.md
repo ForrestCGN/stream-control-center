@@ -1,253 +1,173 @@
-# Modul-Doku: `channelpoints`
+# Channelpoints Deep Dive
 
-Stand: 2026-05-26 / STEP489_CHANNELPOINTS_BACKEND_SKELETON
+Stand: 2026-05-26 / STEP490_CHANNELPOINTS_MODEL_AND_MEDIA_PLAN
 
-## Zweck
+## Modul
 
-`channelpoints` ist das geplante zentrale Kanalpunkte-System fuer Twitch Custom Rewards.
+- Datei: `backend/modules/channelpoints.js`
+- Modulname: `channelpoints`
+- Version: `0.2.0`
+- Route-Prefix: `/api/channelpoints`
+- Status: Plan-/Skeleton-Modul, noch keine produktiven Twitch-Schreibaktionen.
 
-STEP489 erstellt nur das sichere Backend-Skelett:
+## Ziel
 
-- eigenes Fachmodul `backend/modules/channelpoints.js`
-- Statusroute unter `/api/channelpoints/status`
-- harmloser Bus-Selftest unter `/api/channelpoints/bus-test`
-- Modul-Registrierung am bestehenden Communication Bus
-- Status-/Heartbeat-Publish ueber den in STEP488 integrierten Bus-Contract
-- keine Twitch-Schreibaktionen
-- keine Datenbank-Migration
-- kein Dashboard-Umbau
+Das Kanalpunkte-System soll langfristig die Twitch-Kanalpunkte-Belohnungen im Control-Center verwalten und dabei dieselben Architekturregeln wie die anderen Module nutzen:
 
-## Hauptdateien
+- Fachmodul statt Parallel-Script.
+- Communication Bus für Status, Heartbeat und spätere Modulkommunikation.
+- Dashboardfähig.
+- DB-portabel geplant.
+- Keine eigene Medien-/Upload-Welt.
+- Keine Funktionalität entfernen.
+- Twitch-Schreibaktionen erst nach separater Freigabe.
 
-```text
-backend/modules/channelpoints.js
-docs/modules/channelpoints-deep-dive.md
-```
+## Routen
 
-## Version / Meta
+| Route | Zweck | Schreibend |
+|---|---|---:|
+| `GET /api/channelpoints/status` | Modulstatus, Busstatus, Modellkurzstatus | Nein |
+| `GET /api/channelpoints/model` | Geplantes Datenmodell für Kategorien, Rewards und Redemptions | Nein |
+| `GET /api/channelpoints/media-plan` | Geplante Integration mit bestehendem Media-System | Nein |
+| `GET /api/channelpoints/bus-test?message=hello` | Harmloser Bus-Selbsttest | Nein |
 
-```text
-module: channelpoints
-moduleVersion: 0.1.0
-routePrefix: /api/channelpoints
-```
+## Communication Bus
 
-Das Modul exportiert:
+Das Modul registriert sich beim bestehenden Communication Bus:
 
-```text
-MODULE_META
-init
-buildStatus
-registerAtCommunicationBus
-heartbeatBus
-publishStatus
-```
+- `registerModule`
+- `heartbeatModule`
+- `publishModuleStatus`
+- `subscribe`
 
-## HTTP-Routen
-
-| Methode | Route | Zweck |
-|---|---|---|
-| GET | `/api/channelpoints/status` | Status des Kanalpunkte-Skeletts, Bus-Status, geplante Twitch-Funktionen |
-| GET | `/api/channelpoints/bus-test` | Harmloses Test-Event `channelpoints.test/ping` in den Bus senden |
-
-## Statusfelder
-
-`/api/channelpoints/status` liefert u. a.:
-
-```text
-ok
-module
-moduleVersion
-routePrefix
-enabled
-mode
-config
-twitch
-localState
-bus
-routes
-```
-
-Wichtige Twitch-Felder im STEP489-Skelett:
-
-```text
-twitch.rewardManagementImplemented: false
-twitch.rewardSyncImplemented: false
-twitch.redemptionHandlingImplemented: false
-twitch.writeActionsEnabled: false
-twitch.requiredManageScope: channel:manage:redemptions
-twitch.requiredReadScope: channel:read:redemptions
-```
-
-## Communication Bus / Events
-
-Das Modul nutzt den bestehenden Bus aus:
-
-```text
-backend/modules/communication_bus.js -> getBus()
-backend/modules/helpers/helper_communication.js -> registerModule / heartbeatModule / publishModuleStatus / subscribe / emit
-```
-
-Beim Init:
-
-```text
-registerModule({ module: channelpoints, version: 0.1.0, capabilities: [...] })
-subscribe(channelpoints.test / ping)
-heartbeatModule(channelpoints)
-publishModuleStatus(channelpoints)
-```
-
-Capabilities:
+Aktuelle Capability-Liste:
 
 ```text
 module.lifecycle
 module.status
 channelpoints.status
+channelpoints.model
+channelpoints.media
 channelpoints.test.ping
 ```
 
-Gesendete Events:
-
-| Channel | Action | Ausloeser |
-|---|---|---|
-| `module.lifecycle` | `registered` | Bus-Core durch `registerModule` |
-| `module.status` | `updated` | `publishStatus()` |
-| `channelpoints.test` | `ping` | `/api/channelpoints/bus-test` |
-
-Empfangene Events:
-
-| Channel | Action | Zweck |
-|---|---|---|
-| `channelpoints.test` | `ping` | Selftest fuer in-process Subscriptions |
-
-## Config
-
-Das Modul versucht optional zu laden:
+Der Bus-Selftest nutzt:
 
 ```text
-config/channelpoints.json
+channel: channelpoints.test
+action: ping
+subscription: channelpoints:self-test
 ```
 
-Die Datei wird in STEP489 nicht angelegt und nicht erzwungen.
+## Twitch-Status in STEP490
 
-Default-Config im Modul:
+Noch nicht implementiert:
+
+- Custom Rewards lesen/synchronisieren.
+- Custom Rewards erstellen/ändern/löschen.
+- Redemptions verarbeiten.
+- Redemptions fulfill/cancel.
+- Twitch-Schreibaktionen.
+
+Wichtige spätere Regel:
 
 ```text
-enabled: true
-busEnabled: true
-busSelfTestEnabled: true
-twitchRewardManagementEnabled: false
-twitchRewardSyncEnabled: false
-dashboardEnabled: false
+Deaktivieren muss Twitch is_enabled=false setzen.
 ```
 
-## Datenbank
+Nur lokale Flags reichen nicht, weil die Belohnung sonst für Zuschauer weiterhin im Twitch-Kanalpunkte-Menü sichtbar bleiben kann.
 
-STEP489 legt keine Tabellen an.
+## Geplantes Datenmodell
 
-Geplante spaetere Tabellen, noch nicht umgesetzt:
+STEP490 legt noch keine DB-Tabellen an. Die Route `/api/channelpoints/model` beschreibt nur den Plan.
+
+Geplante Tabellen:
+
+| Tabelle | Zweck |
+|---|---|
+| `channelpoints_categories` | Kategorien, Sortierung, Sichtbarkeit |
+| `channelpoints_rewards` | Lokale Reward-Konfiguration, Twitch-Mapping, Action-/Media-Mapping |
+| `channelpoints_redemptions` | Spätere Redemption-Historie, Queue-Status, Fulfill-/Cancel-Tracking |
+
+Wichtige Reward-Felder:
+
+- `reward_key`
+- `twitch_reward_id`
+- `title`
+- `prompt`
+- `cost`
+- `category_key`
+- `sort_order`
+- `system_enabled`
+- `twitch_is_enabled`
+- `require_user_input`
+- `action_type`
+- `action_key`
+- `action_payload_json`
+- `media_asset_id`
+- `media_role`
+- `queue_mode`
+- `priority`
+- `cooldown_seconds`
+- `max_per_stream`
+- `max_per_user_per_stream`
+- `auto_fulfill`
+
+## Medien/Uploads
+
+Verbindliche Regel:
 
 ```text
-channelpoint_categories
-channelpoint_rewards
-channelpoint_redemptions
-channelpoint_sync_log
+Uploads und Medienauswahl laufen über das bestehende Medien-System.
 ```
 
-Regel bleibt: SQLite `D:\Streaming\stramAssets\data\sqlite\app.sqlite` niemals ersetzen oder ueberschreiben. Spaetere Schemaaenderungen nur additiv.
+Das Kanalpunkte-Modul soll keine eigenen Upload-Endpunkte, keine eigene Asset-Tabelle und keine separate Dateiverwaltung bauen.
 
-## Twitch / API-Zielbild
+Geplante Integration:
 
-Spaeter soll das Modul Twitch Custom Rewards verwalten:
+- Backend-Modul: `media.js`
+- Dashboard-Picker: `htdocs/dashboard/components/media_picker.js`
+- Dashboard-Feld: `htdocs/dashboard/components/media_field.js`
+- Reward-Felder:
+  - `media_asset_id`
+  - `media_role`
+  - `action_payload_json.media`
 
-```text
-Rewards lesen/synchronisieren
-Rewards erstellen
-Rewards bearbeiten
-Rewards aktivieren/deaktivieren
-Redemptions empfangen
-Redemptions erfuellen/abbrechen
-```
+Geplante Rollen:
 
-Verbindliche Fachregel:
+- `sound`
+- `image`
+- `video`
+- `overlay`
+- `icon`
 
-```text
-Deaktivieren = Twitch Custom Reward per API auf is_enabled:false setzen.
-```
+## Spätere Dashboard-Idee
 
-Nicht nur lokal abschalten.
+Noch nicht in STEP490 enthalten:
 
-## Dashboard-Zielbild
+- Modulseite `Kanalpunkte`.
+- Kategorien/Sortierung.
+- Reward-Liste.
+- Aktiv/Inaktiv lokal + Twitch-Sync-Status.
+- Media-Picker pro Reward.
+- Testauslösung.
+- Sync-/Import-Ansicht für Twitch Custom Rewards.
+- Warnhinweis bei lokal aktiv, aber Twitch deaktiviert oder umgekehrt.
+- Audit-Log für Änderungen.
 
-Noch nicht in STEP489 umgesetzt.
+## Nächste sinnvolle Schritte
 
-Geplante Tabs:
+1. STEP491: DB-Migration vorbereiten und vor Umsetzung bestätigen.
+2. STEP492: Read-only Reward-Liste aus lokaler DB.
+3. STEP493: Dashboard-Skeleton mit Kategorien und Reward-Liste.
+4. STEP494: Media-Picker im Dashboard anbinden.
+5. Später: Twitch-Read-Sync.
+6. Noch später und nur mit Freigabe: Twitch-Write-Aktionen.
 
-```text
-Uebersicht
-Rewards
-Kategorien
-Aktionen
-Queue
-Medien
-Texte
-Statistik
-Settings
-Test
-```
+## Nicht-Ziele in STEP490
 
-Geplante Dashboard-Funktionen:
-
-```text
-Reward-Liste
-Kategorien
-Sortierung
-Aktiv/Inaktiv
-Twitch-Sync
-Testbutton
-Upload-/Media-Zuordnung
-Action-Verknuepfung
-Statistik/History
-```
-
-## Bekannte Grenzen in STEP489
-
-- Keine Twitch-Scopes werden geprueft.
-- Keine Reward-Liste wird von Twitch gelesen.
-- Keine Rewards werden erstellt/geaendert/deaktiviert.
-- Keine Redemptions werden verarbeitet.
-- Keine DB-Tabellen werden angelegt.
-- Kein Dashboard-Modul wird erstellt.
-
-## Tests
-
-Syntax:
-
-```bat
-node --check backend\modules\channelpoints.js
-```
-
-Nach `stepdone.cmd` und Server-Neustart:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/bus-test?message=hello"
-Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status"
-```
-
-Erwartung:
-
-```text
-/api/channelpoints/status ok=True
-bus.registered=True
-/api/channelpoints/bus-test result.ok=True
-subscriberDeliveredCount >= 1
-/api/communication/status zeigt channelpoints als Modul-Client und eine channelpoints Subscription
-```
-
-## Offene Punkte
-
-- Nach Runtime-Test pruefen, ob `communication_bus.js` `coreVersion` noch von 0.3.0 auf 0.4.0 nachgezogen werden soll.
-- STEP490: Twitch-Readiness-/Scope-Check fuer Kanalpunkte planen.
-- STEP491: Reward-Sync nur lesend vorbereiten.
-- Spaeter: Dashboard-Modul mit Kategorien, Sortierung und Aktiv/Inaktiv.
+- Keine Datenbankänderung.
+- Keine Twitch-Schreibaktion.
+- Keine produktive Redemption-Verarbeitung.
+- Keine eigene Upload-Maske.
+- Keine Entfernung bestehender Funktionen.

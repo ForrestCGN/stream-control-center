@@ -1,41 +1,45 @@
 # FILES
 
-Stand: 2026-05-26 / STEP489
+Stand: 2026-05-26 / STEP490
 
-## Geaenderte / neue Dateien
+## Geänderte Dateien
 
 - `backend/modules/channelpoints.js`
-  - neues Fachmodul fuer das Kanalpunkte-System.
-  - Version `0.1.0`.
-  - Routen `/api/channelpoints/status` und `/api/channelpoints/bus-test`.
-  - nutzt den integrierten Communication-Bus-Contract aus STEP488.
+  - Version `0.2.0`.
+  - Neue Route `GET /api/channelpoints/model`.
+  - Neue Route `GET /api/channelpoints/media-plan`.
+  - Modell-/Media-Plan im Status ergänzt.
+  - Bus-Capabilities um `channelpoints.model` und `channelpoints.media` erweitert.
 
-## Dokumentation
+## Neue Dokumentation
 
-- `project-state/STEP489_CHANNELPOINTS_BACKEND_SKELETON.md`
+- `project-state/STEP490_CHANNELPOINTS_MODEL_AND_MEDIA_PLAN.md`
+- `docs/modules/channelpoints-deep-dive.md`
+
+## Aktualisierte Dokumentation
+
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
-- `docs/modules/channelpoints-deep-dive.md`
 - `docs/modules/README.md`
 - `docs/current/CURRENT_SYSTEM_STATUS.md`
 - `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md`
 
-## Nicht geaendert
+## Bewusst nicht geändert
 
-- `backend/modules/helpers/helper_communication.js`
-- `backend/modules/communication_bus.js`
-- `backend/modules/twitch.js`
-- `backend/modules/clip_shoutout.js`
-- `htdocs/dashboard/*`
-- `config/*`
 - Keine Datenbankdatei.
 - Keine `.env`.
 - Keine Secrets/Tokens.
-- Keine Twitch-Schreibaktionen.
+- Keine Twitch-Write-Logik.
+- Kein Dashboard-Modul.
+- Kein neues Upload-System.
 
-## Weiterhin entfernen, falls STEP487 lokal entpackt wurde
+## Live-Aufräumhinweis
+
+Falls noch vorhanden, lokal/live entfernen:
 
 - `backend/modules/helpers/helper_communication_contract.js`
+
+Diese Datei war nur ein verworfener STEP487-Zwischenstand.
