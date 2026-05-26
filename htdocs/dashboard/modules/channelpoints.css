@@ -78,3 +78,11 @@ html[data-theme="light"] .cp-toolbar input,html[data-theme="light"] .cp-toolbar 
 /* v0.8.3 sync mapping response fix: table also supports preview changes[] payloads */
 
 /* v0.8.4 sync-local-dryrun-false-fix: JS-only behavior fix, styles unchanged. */
+
+/* v0.8.6 imported reward setup flow */
+.cp-imported-setup-panel{border-color:rgba(255,193,7,.36);background:linear-gradient(135deg,rgba(255,193,7,.08),rgba(170,92,255,.05))}
+.cp-imported-setup-panel .cp-note{margin:8px 0 10px}
+.cp-setup-actions{margin-top:10px}
+.cp-reward-card.needs-setup{border-color:rgba(255,193,7,.48);box-shadow:0 0 18px rgba(255,193,7,.10),inset 0 0 0 1px rgba(255,193,7,.10)}
+.cp-reward-card.needs-setup .cp-reward-main strong:after{content:'  ⚠';color:#ffd166;font-size:14px}
+.cp-setup-hint{color:#ffdca3!important;white-space:normal!important;line-height:1.35;margin-top:4px}
