@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.8.9";
-const MODULE_BUILD = "twitch-reward-write-foundation-simple";
+const MODULE_VERSION = "0.9.0";
+const MODULE_BUILD = "twitch-push-stale-id-create-fallback";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1186,6 +1186,42 @@ async function buildTwitchWriteAuthContext(req = {}) {
   };
 }
 
+
+function isTwitchRewardNotFoundError(err) {
+  const statusCode = Number(err && err.statusCode || 0);
+  const message = cleanString(err && err.message || "").toLowerCase();
+  const dataMessage = cleanString(err && err.data && (err.data.message || err.data.error) || "").toLowerCase();
+  const combined = `${message} ${dataMessage}`;
+  return statusCode === 404 || combined.includes("not found") || combined.includes("custom reward specified in the id query parameter was not found");
+}
+
+function isTwitchClientOwnershipError(err) {
+  const message = cleanString(err && err.message || "").toLowerCase();
+  const dataMessage = cleanString(err && err.data && (err.data.message || err.data.error) || "").toLowerCase();
+  const combined = `${message} ${dataMessage}`;
+  return combined.includes("client-id") || combined.includes("client id used to create") || combined.includes("must match the client id");
+}
+
+function clearLocalTwitchRewardMapping(localReward, reason = "stale_twitch_reward_id") {
+  if (!localReward || !localReward.id) return localReward;
+  const now = nowIso();
+  database.run(`
+    UPDATE channelpoints_rewards SET
+      twitch_reward_id = '',
+      twitch_is_enabled = 0,
+      is_paused = 0,
+      updated_at = :updated_at
+    WHERE id = :id
+  `, { id: localReward.id, updated_at: now });
+  emitDomainEvent("channelpoints.twitch.reward.mapping_cleared", {
+    reward: buildRewardEventPayload(localReward).reward,
+    reason,
+    oldTwitchRewardId: localReward.twitch_reward_id || "",
+    twitchWrite: false
+  }, { channel: "channelpoints.twitch" });
+  return getRewardByIdOrKey(String(localReward.id));
+}
+
 function buildTwitchRewardWritePayload(reward, forcedEnabled = null) {
   if (!reward) throw new Error("reward_not_found");
   const isConfigured = isExecutableReward(reward);
@@ -1242,28 +1278,53 @@ async function pushRewardToTwitch(idOrKey, input = {}, req = {}) {
   const createIfMissing = boolValue(input.createIfMissing, true);
   const forcedEnabled = input.enabled === undefined ? null : boolValue(input.enabled, false);
   const payload = buildTwitchRewardWritePayload(reward, forcedEnabled);
-  const url = new URL("https://api.twitch.tv/helix/channel_points/custom_rewards");
-  url.searchParams.set("broadcaster_id", authContext.broadcasterId);
 
   let method = "POST";
   let action = "created_on_twitch";
+  let usedFallback = false;
+  let staleTwitchRewardId = "";
+  let workingReward = reward;
+
+  function buildUrl(twitchRewardId = "") {
+    const url = new URL("https://api.twitch.tv/helix/channel_points/custom_rewards");
+    url.searchParams.set("broadcaster_id", authContext.broadcasterId);
+    if (twitchRewardId) url.searchParams.set("id", twitchRewardId);
+    return url;
+  }
+
+  let url = buildUrl();
   if (reward.twitch_reward_id) {
     method = "PATCH";
     action = "updated_on_twitch";
-    url.searchParams.set("id", reward.twitch_reward_id);
+    url = buildUrl(reward.twitch_reward_id);
   } else if (!createIfMissing) {
     throw new Error("reward_not_mapped_to_twitch");
   }
 
-  const response = await twitchJsonRequest(method, url, authContext.token, authContext.clientId, payload);
+  let response;
+  try {
+    response = await twitchJsonRequest(method, url, authContext.token, authContext.clientId, payload);
+  } catch (err) {
+    if (method !== "PATCH" || !createIfMissing || !isTwitchRewardNotFoundError(err) || isTwitchClientOwnershipError(err)) throw err;
+    staleTwitchRewardId = reward.twitch_reward_id || "";
+    workingReward = clearLocalTwitchRewardMapping(reward, "stale_twitch_reward_id_not_found_on_twitch") || reward;
+    method = "POST";
+    action = "created_on_twitch_after_stale_id";
+    usedFallback = true;
+    url = buildUrl();
+    response = await twitchJsonRequest(method, url, authContext.token, authContext.clientId, payload);
+  }
+
   const writtenRaw = Array.isArray(response.data && response.data.data) ? response.data.data[0] : null;
   const twitchReward = normalizeTwitchWrittenReward(writtenRaw || {});
-  const updated = updateLocalRewardFromTwitchWrite(reward, twitchReward);
+  const updated = updateLocalRewardFromTwitchWrite(workingReward, twitchReward);
   emitDomainEvent("channelpoints.twitch.reward.pushed", {
     reward: buildRewardEventPayload(updated).reward,
     action,
     twitchStatusCode: response.statusCode,
     twitchRewardId: twitchReward.twitch_reward_id,
+    staleTwitchRewardId,
+    usedFallback,
     twitchWrite: true
   }, { channel: "channelpoints.twitch" });
   publishStatus("twitch_reward_pushed");
@@ -1275,10 +1336,14 @@ async function pushRewardToTwitch(idOrKey, input = {}, req = {}) {
     action,
     reward: updated,
     twitchReward,
+    staleTwitchRewardId,
+    usedFallback,
     twitchStatusCode: response.statusCode,
     twitchWrite: true,
     tokenSource: authContext.tokenSource,
-    note: reward.twitch_reward_id ? "Lokaler Reward wurde auf Twitch aktualisiert." : "Lokaler Reward wurde als Twitch-Kanalpunkte-Belohnung erstellt."
+    note: usedFallback
+      ? "Die lokale Twitch-ID war auf Twitch nicht mehr vorhanden. Sie wurde lokal entfernt und der Reward wurde neu auf Twitch erstellt."
+      : (reward.twitch_reward_id ? "Lokaler Reward wurde auf Twitch aktualisiert." : "Lokaler Reward wurde als Twitch-Kanalpunkte-Belohnung erstellt.")
   };
 }
 
@@ -1310,7 +1375,7 @@ function buildTwitchRewardManagementStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "twitch_reward_write_foundation_ready",
+    status: "twitch_push_stale_id_create_fallback_ready",
     enabled: config.twitchRewardManagementEnabled !== false,
     writeOnLocalToggle: config.twitchRewardWriteOnLocalToggle !== false,
     requireConfirmForPush: config.twitchRewardWriteRequireConfirm !== false,
