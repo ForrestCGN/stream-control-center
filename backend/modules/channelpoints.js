@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.1";
-const MODULE_BUILD = "eventbus-redemption-bridge";
+const MODULE_VERSION = "0.9.2";
+const MODULE_BUILD = "redemption-store-update-bind-fix";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1718,6 +1718,20 @@ function storeNormalizedRedemption(normalized, decision = null, execution = null
     updated_at: now
   };
   if (existing && existing.id) {
+    const updateParams = {
+      twitch_redemption_id: params.twitch_redemption_id,
+      twitch_reward_id: params.twitch_reward_id,
+      reward_key: params.reward_key,
+      user_id: params.user_id,
+      user_login: params.user_login,
+      user_display_name: params.user_display_name,
+      user_input: params.user_input,
+      status: params.status,
+      queue_group: params.queue_group,
+      result_json: params.result_json,
+      redeemed_at: params.redeemed_at,
+      updated_at: params.updated_at
+    };
     database.run(`
       UPDATE channelpoints_redemptions SET
         twitch_reward_id = :twitch_reward_id,
@@ -1732,7 +1746,7 @@ function storeNormalizedRedemption(normalized, decision = null, execution = null
         redeemed_at = :redeemed_at,
         updated_at = :updated_at
       WHERE twitch_redemption_id = :twitch_redemption_id
-    `, params);
+    `, updateParams);
     redemptionEventSubStats.duplicates += 1;
   } else {
     database.run(`
