@@ -1,16 +1,16 @@
-# Channelpoints Twitch Rewards Read-Only Sync
+# Channelpoints Twitch Rewards Read-Only Sync TokenStore Fix
 
 Stand: 2026-05-26  
 Modul: `channelpoints_twitch_readonly_sync`  
-Version: `0.8.1`  
-Build: `twitch-rewards-readonly-sync`
+Version: `0.8.2`  
+Build: `twitch-rewards-readonly-tokenstore-fix`
 
 ## Zweck
 
 Additives Backend-Modul für den nächsten Kanalpunkte-Schritt:
 
 ```text
-channelpoints v0.8.1 — Twitch Rewards Read-Only Sync
+channelpoints v0.8.2 — Twitch Rewards Read-Only Sync TokenStore Fix
 ```
 
 Das Modul liest Twitch Custom Rewards und kann sie lokal in die bestehende Tabelle `channelpoints_rewards` übernehmen. Es führt keine Twitch-Schreibzugriffe aus.
@@ -107,7 +107,7 @@ Registriert sich als eigenes Modul:
 
 ```text
 module: channelpoints_twitch_readonly_sync
-version: 0.8.1
+version: 0.8.2
 ```
 
 Capabilities:
@@ -183,3 +183,25 @@ Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/channelpoints/twitch/s
 - Dashboard-Datei `htdocs/dashboard/modules/channelpoints.js` sollte im nächsten Schritt vollständig und gezielt erweitert werden, damit der Read-Only-Sync im bestehenden Kanalpunkte-Dashboard sichtbar wird.
 - Bestehendes Hauptmodul `backend/modules/channelpoints.js` steht weiterhin auf `0.8.0`. Dieses Add-on ist absichtlich additiv, damit keine bestehende Funktionalität entfernt oder versehentlich überschrieben wird.
 - Später kann die Logik in das Hauptmodul integriert werden, sobald die vollständige lokale Datei als sichere Ersatzdatei bearbeitet wird.
+
+
+## Ergänzung v0.8.2
+
+Der Read-Only-Sync nutzt jetzt zuerst den bestehenden Twitch-OAuth-Flow des Projekts:
+
+```text
+GET /api/twitch/auth/validate
+D:\Streaming\stramAssets\tokens\twitch_user.json
+```
+
+Ablauf:
+
+```text
+1. Auth-Validate lokal aufrufen, damit der bestehende Twitch-Token bei Bedarf refresht.
+2. Token danach aus dem bestehenden Twitch-User-Tokenstore lesen.
+3. Scope `channel:read:redemptions` oder `channel:manage:redemptions` prüfen.
+4. Rewards per Helix GET lesen.
+5. Keine Twitch-Schreibzugriffe ausführen.
+```
+
+Neue Env-Tokens sind nicht mehr erforderlich. Optional bleibt ein Env-Fallback erhalten, falls der Tokenstore nicht vorhanden ist.

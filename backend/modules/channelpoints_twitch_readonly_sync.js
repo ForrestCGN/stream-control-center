@@ -1,5 +1,7 @@
 "use strict";
 
+const fs = require("fs");
+const path = require("path");
 const http = require("http");
 const https = require("https");
 const helperConfig = require("./helpers/helper_config");
@@ -7,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints_twitch_readonly_sync";
-const MODULE_VERSION = "0.8.1";
-const MODULE_BUILD = "twitch-rewards-readonly-sync";
+const MODULE_VERSION = "0.8.2";
+const MODULE_BUILD = "twitch-rewards-readonly-tokenstore-fix";
 const ROUTE_PREFIX = "/api/channelpoints";
 const DEFAULT_TARGET_HOST = "127.0.0.1";
 const DEFAULT_TARGET_PORT = 8080;
@@ -28,6 +30,7 @@ const DEFAULT_CONFIG = {
   twitchRewardsReadOnlySyncEnabled: true,
   twitchRewardsReadUrl: "",
   twitchAuthValidateUrl: "/api/twitch/auth/validate",
+  twitchTokenStore: "",
   dryRunDefault: true,
   allowLocalRewardUpsert: true,
   defaultCategoryKey: "general",
@@ -87,6 +90,31 @@ function getBus() {
 }
 function ensureDbReady() { database.ensureReady(); return true; }
 
+function getRootDirSafe() {
+  if (helperConfig && typeof helperConfig.getRootDir === "function") return helperConfig.getRootDir();
+  return process.cwd();
+}
+function resolveTokenStorePath() {
+  const config = getConfig();
+  const configured = cleanString(config.twitchTokenStore || process.env.TWITCH_TOKEN_STORE || "");
+  const rootDir = getRootDirSafe();
+  if (configured) return path.isAbsolute(configured) ? configured : path.join(rootDir, configured);
+  return path.join(rootDir, "tokens", "twitch_user.json");
+}
+function readJsonFile(filePath, fallback = null) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return fallback;
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (_) {
+    return fallback;
+  }
+}
+function getStoredUserTokenFromStore() {
+  const storePath = resolveTokenStorePath();
+  const data = readJsonFile(storePath, null);
+  if (!data || !data.access_token) return { token: "", storePath, present: false };
+  return { token: cleanString(data.access_token), storePath, present: true, expiresAt: Number(data.expires_at || 0) };
+}
 function getEnvToken() {
   return cleanString(process.env.CHANNELPOINTS_TWITCH_ACCESS_TOKEN || process.env.TWITCH_USER_ACCESS_TOKEN || process.env.TWITCH_ACCESS_TOKEN || "");
 }
@@ -95,6 +123,57 @@ function getEnvClientId() {
 }
 function getEnvBroadcasterId() {
   return cleanString(process.env.CHANNELPOINTS_TWITCH_BROADCASTER_ID || process.env.TWITCH_BROADCASTER_ID || "");
+}
+
+async function validateTwitchUserAuth(req = {}) {
+  const config = getConfig();
+  const validateUrl = cleanString(req.query?.authValidateUrl || config.twitchAuthValidateUrl || "/api/twitch/auth/validate");
+  const response = await localHttpGetJson(validateUrl);
+  const data = response && response.data && typeof response.data === "object" ? response.data : {};
+  return {
+    ok: response.ok === true && data.ok === true,
+    statusCode: response.statusCode || 0,
+    validateUrl,
+    data
+  };
+}
+
+async function buildTwitchReadAuthContext(req = {}) {
+  const validation = await validateTwitchUserAuth(req);
+  const auth = validation.data || {};
+  const scopes = Array.isArray(auth.scopes) ? auth.scopes.map(item => String(item || "")) : [];
+  const normalizedScopes = scopes.map(scope => scope.toLowerCase());
+  const hasReadScope = normalizedScopes.includes("channel:read:redemptions") || normalizedScopes.includes("channel:manage:redemptions");
+  const broadcasterId = cleanString(req.query?.broadcaster_id || auth.broadcasterId || getEnvBroadcasterId());
+  const clientId = cleanString(auth.clientId || getEnvClientId());
+  const stored = getStoredUserTokenFromStore();
+  const envToken = getEnvToken();
+  const token = stored.token || envToken;
+
+  if (!validation.ok) {
+    throw new Error(`twitch_auth_validate_failed:${auth.error && typeof auth.error === "string" ? auth.error : validation.statusCode}`);
+  }
+  if (!broadcasterId) throw new Error("missing_broadcaster_id");
+  if (!clientId) throw new Error("missing_client_id_env_or_validate_payload");
+  if (!token) throw new Error("missing_user_access_token_store");
+  if (!hasReadScope) throw new Error("missing_scope_channel_read_redemptions");
+  if (auth.broadcasterMatchRelevant === true && auth.tokenUserMatchesBroadcaster === false) throw new Error("token_user_does_not_match_broadcaster");
+
+  return {
+    broadcasterId,
+    clientId,
+    token,
+    tokenSource: stored.token ? "twitch_user_token_store" : "env_fallback",
+    tokenStorePath: stored.storePath,
+    auth: {
+      login: cleanString(auth.login || ""),
+      userId: cleanString(auth.userId || ""),
+      broadcasterId,
+      tokenUserMatchesBroadcaster: auth.tokenUserMatchesBroadcaster === true,
+      scopes,
+      expiresIn: Number(auth.expiresIn || 0)
+    }
+  };
 }
 
 function localHttpGetJson(targetUrl) {
@@ -187,18 +266,13 @@ async function readTwitchRewards(req = {}) {
         ? await twitchGetJson(configuredReadUrl)
         : await localHttpGetJson(configuredReadUrl);
     } else {
-      const broadcasterId = cleanString(req.query?.broadcaster_id || getEnvBroadcasterId());
-      const token = getEnvToken();
-      const clientId = getEnvClientId();
-      if (!broadcasterId) throw new Error("missing_broadcaster_id");
-      if (!token) throw new Error("missing_user_access_token_env");
-      if (!clientId) throw new Error("missing_client_id_env");
+      const authContext = await buildTwitchReadAuthContext(req);
       const url = new URL(TWITCH_REWARDS_URL);
-      url.searchParams.set("broadcaster_id", broadcasterId);
+      url.searchParams.set("broadcaster_id", authContext.broadcasterId);
       const ids = String(req.query?.id || "").split(",").map(item => item.trim()).filter(Boolean).slice(0, 50);
       for (const id of ids) url.searchParams.append("id", id);
-      source = "twitch_helix_direct_readonly";
-      response = await twitchGetJson(url, { "Client-Id": clientId, Authorization: `Bearer ${token}` });
+      source = `twitch_helix_direct_readonly_${authContext.tokenSource}`;
+      response = await twitchGetJson(url, { "Client-Id": authContext.clientId, Authorization: `Bearer ${authContext.token}` });
     }
 
     const rewards = normalizeTwitchRewardsPayload(response.data || {});
@@ -214,6 +288,7 @@ async function readTwitchRewards(req = {}) {
       rawReturned: req.query && boolValue(req.query.raw, false) ? response.data : undefined,
       twitchWrite: false,
       readOnly: true,
+      tokenSource: source.includes("token_store") ? "twitch_user_token_store" : (source.includes("env_fallback") ? "env_fallback" : "configured_url"),
       readAt: lastReadAt
     };
     if (!response.ok) {
@@ -550,6 +625,9 @@ function buildStatus(extra = {}) {
     config: {
       twitchRewardsReadOnlySyncEnabled: config.twitchRewardsReadOnlySyncEnabled !== false,
       twitchRewardsReadUrlConfigured: !!cleanString(config.twitchRewardsReadUrl),
+      twitchTokenStoreConfigured: !!cleanString(config.twitchTokenStore || process.env.TWITCH_TOKEN_STORE || ""),
+      tokenSource: "twitch_user_token_store_with_env_fallback",
+      authValidateUrl: cleanString(config.twitchAuthValidateUrl || "/api/twitch/auth/validate"),
       dryRunDefault: config.dryRunDefault !== false,
       allowLocalRewardUpsert: config.allowLocalRewardUpsert !== false,
       defaultCategoryKey: cleanString(config.defaultCategoryKey, "general")
