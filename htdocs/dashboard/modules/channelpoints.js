@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.8.2';
-  const UI_BUILD = 'sync-mapping-view';
+  const UI_VERSION = '0.8.3';
+  const UI_BUILD = 'sync-mapping-change-response-fix';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -467,7 +467,20 @@ window.ChannelpointsModule = (function(){
     if (Array.isArray(data.data)) return data.data;
     if (data.preview && Array.isArray(data.preview.rewards)) return data.preview.rewards;
     if (data.result && Array.isArray(data.result.rewards)) return data.result.rewards;
-    return [];
+    return syncChangesAsTwitchRewards(data);
+  }
+
+  function syncChangesAsTwitchRewards(data) {
+    const changes = Array.isArray(data?.changes) ? data.changes : (Array.isArray(data?.result?.changes) ? data.result.changes : []);
+    return changes.map(change => ({
+      ...change,
+      id: change.twitchRewardId || change.twitch_reward_id || change.id || '',
+      title: change.title || change.rewardTitle || change.reward_title || change.rewardKey || change.reward_key || '-',
+      cost: change.cost ?? change.twitchCost ?? change.twitch_cost ?? change.rewardCost ?? change.reward_cost ?? '-',
+      reward_key: change.rewardKey || change.reward_key || '',
+      _syncAction: change.action || '',
+      _syncChanged: change.changed === true
+    }));
   }
 
   function normalizeComparable(value) {
@@ -510,10 +523,15 @@ window.ChannelpointsModule = (function(){
   function localRewardForTwitchReward(twitchReward) {
     const twitchId = twitchRewardId(twitchReward);
     const twitchTitle = normalizeComparable(twitchRewardTitle(twitchReward));
+    const changeRewardKey = String(twitchReward?.rewardKey || twitchReward?.reward_key || '').trim();
     const all = rewards();
     if (twitchId) {
       const byId = all.find(item => localRewardTwitchId(item) === twitchId);
       if (byId) return { reward: byId, mode: 'id' };
+    }
+    if (changeRewardKey) {
+      const byKey = all.find(item => String(item.reward_key || '') === changeRewardKey);
+      if (byKey) return { reward: byKey, mode: 'key' };
     }
     if (twitchTitle) {
       const byTitle = all.find(item => normalizeComparable(localRewardTitle(item)) === twitchTitle || normalizeComparable(item.reward_key) === twitchTitle);
@@ -532,7 +550,9 @@ window.ChannelpointsModule = (function(){
       const titleChanged = local ? normalizeComparable(localRewardTitle(local)) !== normalizeComparable(twitchRewardTitle(twitchReward)) : false;
       let status = 'missing';
       if (mapped.mode === 'id') status = costChanged || titleChanged ? 'update' : 'mapped';
+      else if (mapped.mode === 'key') status = costChanged || titleChanged ? 'update' : 'mapped';
       else if (mapped.mode === 'title') status = 'title-match';
+      if (!local && String(twitchReward?._syncAction || '').toLowerCase() === 'insert') status = 'missing';
       return { twitchReward, local, mode: mapped.mode, status, twitchId, localId, costChanged, titleChanged };
     });
   }
@@ -575,6 +595,7 @@ window.ChannelpointsModule = (function(){
     const flags = [
       twitchEnabled ? pill('Twitch aktiv', 'ok') : pill('Twitch aus', 'warn'),
       local?.system_enabled === false ? pill('lokal aus', 'off') : (local ? pill('lokal aktiv/bereit', 'ok') : pill('lokal fehlt', 'neutral')),
+      twitch?._syncAction ? pill(`Sync: ${twitch._syncAction}`, twitch._syncAction === 'insert' ? 'off' : (twitch._syncAction === 'update' ? 'warn' : 'neutral')) : '',
       row.costChanged ? pill('Kosten diff', 'warn') : '',
       row.titleChanged ? pill('Titel diff', 'warn') : ''
     ].filter(Boolean).join(' ');
