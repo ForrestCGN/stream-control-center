@@ -1,30 +1,40 @@
 # NEXT_STEPS
 
-Stand: 2026-05-26 / nach STEP487
+Stand: 2026-05-26 / nach STEP488
 
 ## Direkt prüfen
 
 ```bat
 cd D:\Git\stream-control-center
-node --check backend\modules\helpers\helper_communication_contract.js
+node --check backend\modules\helpers\helper_communication.js
 ```
 
-## Optionaler Smoke-Test später
+Falls STEP487 bereits entpackt wurde:
 
-Wenn ein erstes Modul den Contract nutzt:
-
-```text
-1. Modul mit createModuleClient registrieren.
-2. Status über client.status senden.
-3. Test-Event abonnieren.
-4. Test-Event senden.
-5. Prüfen, ob Subscriber ausgeführt wird.
+```bat
+del backend\modules\helpers\helper_communication_contract.js
 ```
+
+## Runtime-Test Communication Bus
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/communication/test?channel=test&action=ping&message=hello"
+Invoke-RestMethod "http://127.0.0.1:8080/api/communication/watchdog"
+```
+
+## Alte Funktionen bewusst prüfen
+
+- `/api/communication/status` lädt ohne Fehler.
+- `/api/communication/test` erzeugt weiterhin Events.
+- `/api/communication/ack` funktioniert weiterhin mit bekannten Event-IDs.
+- `/api/communication/replay` funktioniert weiterhin mit registrierten Clients.
+- `/api/communication/watchdog` zeigt keine neuen unerwarteten Fehler.
 
 ## Nächster sinnvoller Fach-STEP
 
 ```text
-STEP488_CHANNELPOINTS_BACKEND_SKELETON
+STEP489_CHANNELPOINTS_BACKEND_SKELETON
 ```
 
 Ziel:
@@ -33,18 +43,8 @@ Ziel:
 channelpoints.js Grundmodul
 moduleVersion 0.1.0
 /api/channelpoints/status
-Communication-Bus-Contract nutzen
-Modul-Registrierung/Status/Heartbeat vorbereiten
+Bus-Registrierung über registerModule
+Status/Heartbeat über publishModuleStatus/heartbeatModule
 noch keine Twitch-Schreibaktionen
 noch keine riskante DB-Migration
-```
-
-## Weiterhin offen aus STEP486
-
-```text
-GET /api/clip-shoutout/production-check lokal prüfen
-GET /api/clip-shoutout/live-test lokal prüfen
-Debug-Inbound-Event lokal ausführen
-Echte Twitch-Shoutout-Events beobachten
-Produktive !so-Umstellung nur ausdrücklich und nach Prüfung
 ```

@@ -1,39 +1,35 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP487_COMMUNICATION_BUS_MODULE_CONTRACT
+Stand: 2026-05-26 / STEP488_COMMUNICATION_BUS_CORE_CONTRACT
 
 ## Aktueller Arbeitsstand
 
-STEP487 ergänzt eine optionale Backend-Modul-zu-Modul-Vertragsschicht für den bestehenden Communication Bus.
+STEP488 korrigiert die vorherige Contract-Idee: Der Modul-zu-Modul-Contract wird direkt im bestehenden Communication-Bus-Core `helper_communication.js` integriert, statt dauerhaft als separater Helper daneben zu liegen.
 
-## Communication Bus / EventBus
+## Communication Bus
 
-- Neuer Helper: `backend/modules/helpers/helper_communication_contract.js`.
-- Version: `0.1.0`.
-- Zweck: Module können sich anmelden, abmelden, Heartbeats/Status senden, Events senden und relevante Events abonnieren.
-- Bestehende produktive Bus-/WebSocket-/Replay-/ACK-Flows werden nicht ersetzt.
-- `communication_bus.js` und `helper_communication.js` wurden bewusst nicht geändert.
-- Der neue Contract ist Opt-in über `ensureModuleBus(bus)`.
+- `backend/modules/helpers/helper_communication.js` steht jetzt auf Version `0.4.0`.
+- Neue Bus-Core-Funktionen:
+  - `registerModule`
+  - `unregisterModule`
+  - `heartbeatModule`
+  - `publishModuleStatus`
+  - `subscribe`
+  - `unsubscribe`
+  - `getSubscriptions`
+- `getStatus()` zeigt zusätzlich `subscriptions[]` und Subscriber-Statistiken.
+- Bestehende Funktionen wie `emit`, `ack`, `replayForClient`, `trackIssue`, `registerClient` und WebSocket-Client-Flows bleiben erhalten.
 
-## Wichtig
+## Korrektur zu STEP487
 
-- Keine Datenbankänderung.
-- Keine neuen HTTP-Routen.
-- Kein Dashboard-Umbau.
-- Kein Command-System-Umbau.
-- Kein Sound-System-Umbau.
-- Kein Kanalpunkte-Modul gebaut.
+Falls `backend/modules/helpers/helper_communication_contract.js` aus STEP487 bereits entpackt wurde, soll diese Datei entfernt werden. Sie ist nicht mehr Zielarchitektur.
 
-## Offene Shoutout-Punkte aus STEP486 bleiben bestehen
+## Shoutout-System
 
-- Produktionscheck lokal ausführen.
-- Live-Test lokal ausführen.
-- Debug-Inbound-Event lokal ausführen.
-- Echte Twitch-Shoutout-Events beobachten.
-- Produktive `!so`-Umstellung nur ausdrücklich und nach Prüfung.
+Der Stand aus STEP486 bleibt unverändert.
 
 ## Nächster sinnvoller Schritt
 
-`STEP488_CHANNELPOINTS_BACKEND_SKELETON`
+`STEP489_CHANNELPOINTS_BACKEND_SKELETON`
 
-Dabei soll das neue Kanalpunkte-Modul als erstes Fachmodul den Communication-Bus-Contract nutzen.
+Dabei soll `channelpoints.js` als neues Fachmodul auf dem integrierten Bus-Contract aufbauen.

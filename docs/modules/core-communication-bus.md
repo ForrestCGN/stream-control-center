@@ -1,28 +1,21 @@
 # Modul-Doku: `communication_bus`
 
-Stand: 2026-05-26 / STEP487_COMMUNICATION_BUS_MODULE_CONTRACT  
-Quelle: `backend/modules/communication_bus.js`, `backend/modules/helpers/helper_communication.js`, `backend/modules/helpers/helper_communication_contract.js`, `backend/modules/helpers/helper_security_context.js`
+Stand: 2026-05-26 / STEP488_COMMUNICATION_BUS_CORE_CONTRACT
+Quelle: `backend/modules/communication_bus.js`, `backend/modules/helpers/helper_communication.js`, `backend/modules/helpers/helper_security_context.js`
 
 ## Zweck
 
-`communication_bus` stellt die zentrale Event-/Diagnose-/ACK-Schicht bereit. Das Modul registriert HTTP-Test-/Statusrouten und verarbeitet optionale WebSocket-Client-Meldungen wie `hello`, `heartbeat` und `ack`.
+`communication_bus` stellt die zentrale Event-, Diagnose-, ACK-, Replay- und Modul-Kommunikationsschicht bereit.
 
-Wichtig: Das Modul ersetzt laut Code-Kommentar **nicht** automatisch bestehende produktive Alert-/Sound-/TTS-/VIP-Flows und ersetzt auch nicht ungeprüft `server.js`-WebSocket-Broadcasts. Es ist aktuell Integrations-, Diagnose-, Replay-, Monitoring- und Übergabeschicht.
+Ab STEP488 ist der Modul-zu-Modul-Contract direkt im bestehenden Bus-Core `helper_communication.js` integriert. Es gibt keine dauerhafte zweite Bus-Implementierung und keinen separaten Contract-Helper als Zielarchitektur.
 
-Ab STEP487 ist zusätzlich eine optionale Backend-Modul-zu-Modul-Vertragsschicht vorbereitet:
-
-```text
-backend/modules/helpers/helper_communication_contract.js
-```
-
-Diese Schicht dekoriert eine vorhandene Bus-Instanz additiv. Bestehende Flows bleiben unverändert, solange Module den Contract nicht ausdrücklich nutzen.
+Der Bus bleibt schrittweise und rückwärtskompatibel: Bestehende produktive Flows werden nicht automatisch ersetzt.
 
 ## Hauptdateien
 
 ```text
 backend/modules/communication_bus.js
 backend/modules/helpers/helper_communication.js
-backend/modules/helpers/helper_communication_contract.js
 backend/modules/helpers/helper_security_context.js
 config/communication_bus.json
 ```
@@ -30,11 +23,9 @@ config/communication_bus.json
 ## Version / Meta
 
 ```text
-module: communication_bus
-moduleVersion: 0.8.1
-coreName: communication_core
-coreVersion: 0.3.0
-helper_communication_contract: 0.1.0
+communication_bus moduleVersion: 0.8.1
+helper_communication version: 0.4.0
+communication_core coreVersion: 0.4.0
 ```
 
 ## Exporte
@@ -60,22 +51,158 @@ normalizeTarget
 normalizeSource
 ```
 
-`helper_communication_contract.js` exportiert:
+## Bus-Core Funktionen
+
+Bestehende Funktionen bleiben erhalten:
 
 ```text
-MODULE_META
-ensureModuleBus
-normalizeModuleInfo
-normalizeSubscription
-publicModule
-publicSubscription
+registerClient
+unregisterClient
+forgetClient
+markClientError
+heartbeat
+updateClientStatuses
+getClients
+emit
+ack
+replayForClient
+trackIssue
+getStatus
+reset
+createEventId
+normalizeMessage
+```
+
+Neu ab STEP488 direkt im Bus-Core:
+
+```text
+registerModule
+unregisterModule
+heartbeatModule
+publishModuleStatus
+subscribe
+unsubscribe
+getSubscriptions
+```
+
+## Modul-zu-Modul Contract
+
+### Modul anmelden
+
+```js
+const result = bus.registerModule({
+  name: 'channelpoints',
+  version: '0.1.0',
+  capabilities: ['channelpoints.redemption.received']
+});
+```
+
+Das legt intern einen Backend-Client vom Typ `module` an und sendet ein Bus-Event:
+
+```text
+channel: module.lifecycle
+action: registered
+```
+
+### Modul abmelden
+
+```js
+bus.unregisterModule('channelpoints', 'module_shutdown');
+```
+
+Das markiert den Modul-Client offline und sendet:
+
+```text
+channel: module.lifecycle
+action: unregistered
+```
+
+### Modul-Heartbeat
+
+```js
+bus.heartbeatModule('channelpoints', {
+  module: 'channelpoints',
+  version: '0.1.0'
+});
+```
+
+### Modul-Status veröffentlichen
+
+```js
+bus.publishModuleStatus('channelpoints', {
+  module: 'channelpoints',
+  moduleVersion: '0.1.0',
+  enabled: true,
+  health: 'ok'
+});
+```
+
+Standard-Event:
+
+```text
+channel: module.status
+action: updated
+```
+
+### Events abonnieren
+
+```js
+const sub = bus.subscribe({
+  id: 'sound-system-channelpoints-redemption',
+  module: 'sound_system',
+  channel: 'channelpoints.redemption',
+  action: 'received'
+}, (event, context) => {
+  // nur relevante Events auswerten
+});
+```
+
+### Events senden
+
+```js
+bus.emit({
+  channel: 'channelpoints.redemption',
+  action: 'received',
+  source: { type: 'module', id: 'module:channelpoints', module: 'channelpoints' },
+  payload: { rewardId: '...', userName: '...' },
+  meta: { replayable: true, requireAck: false }
+});
+```
+
+## CAN-Bus-Regel
+
+Der Bus ist die zentrale Leitung. Module dürfen senden und gezielt hören.
+
+Regel:
+
+```text
+Alle können senden.
+Alle können theoretisch hören.
+Jedes Modul wertet nur Events aus, für die es einen passenden Subscriber registriert hat.
+```
+
+Nicht erlaubt als Zielbild:
+
+```text
+Modul A greift ungeprüft direkt in interne Funktionen von Modul B.
+```
+
+Bevorzugt:
+
+```text
+Modul A sendet Event.
+Modul B hört gezielt zu.
+Modul C hört gezielt zu.
+Dashboard/Diagnose sieht Status.
 ```
 
 ## HTTP-Routen
 
+Die bestehenden Routen bleiben unverändert:
+
 | Methode | Route | Zweck |
 |---|---|---|
-| GET | `/api/communication/status` | Bus-Status, Clients, Events, Issues, Config-Auszug |
+| GET | `/api/communication/status` | Bus-Status, Clients, Subscriptions, Events, Issues, Config-Auszug |
 | GET | `/api/communication/test` | generisches Test-Event erzeugen |
 | GET | `/api/communication/test-alert` | Test-Alert als Bus-Event `visual.alert/play` erzeugen |
 | GET | `/api/communication/mirror-alert` | Alert-Daten als Mirror-Event in den Bus geben |
@@ -88,202 +215,49 @@ publicSubscription
 | GET | `/api/communication/test-vip-overlay` | VIP-Overlay-Shadow-Test-Event |
 | GET | `/api/communication/reset` | Events/Issues optional Clients zurücksetzen; benötigt `confirm=1` |
 
-In STEP487 wurden keine neuen HTTP-Routen ergänzt.
+## Statusfelder
 
-## Bus-Event-Struktur
-
-Events werden im Modul typischerweise so aufgebaut:
+`getStatus()` enthält ab STEP488 zusätzlich:
 
 ```text
-type: event
-channel: z. B. visual.alert, vip.overlay, module.status, channelpoints.reward
-action: z. B. play, show, hide, update, test, enabled, disabled
-source: { type, id, module }
-target: { type, id, module, capability }
-payload: modulabhängige Nutzdaten
-meta: { requireAck, replayable, ttlMs, ... }
+stats.subscriptions
+stats.subscriberDeliveries
+stats.subscriberErrors
+subscriptions[]
 ```
-
-## Modul-zu-Modul-Contract ab STEP487
-
-Der neue Helper `helper_communication_contract.js` ergänzt den vorhandenen Bus um folgende Methoden, wenn ein Modul `ensureModuleBus(bus)` aufruft:
-
-```text
-registerModule
-unregisterModule
-heartbeatModule
-updateModuleStatus
-publishModuleStatus
-subscribe
-unsubscribe
-createModuleClient
-getModuleContractStatus
-```
-
-### Zielbild
-
-```text
-Module senden Events.
-Andere Module abonnieren nur relevante Events.
-Module bleiben fachlich entkoppelt.
-Der Bus dient als Kommunikations- und Monitoring-Schicht.
-```
-
-### Wichtiges Verhalten
-
-- `bus.emit` wird additiv dekoriert.
-- Der ursprüngliche Bus-Emit bleibt erhalten.
-- Danach werden Backend-Subscriber synchron benachrichtigt.
-- Subscriber-Fehler werden abgefangen und über `bus.trackIssue` gemeldet, falls verfügbar.
-- Keine Secrets oder langen Config-Dumps über den Bus senden.
-
-### Beispiel-Channel für kommende Kanalpunkte
-
-```text
-channelpoints.reward.created
-channelpoints.reward.updated
-channelpoints.reward.enabled
-channelpoints.reward.disabled
-channelpoints.redemption.received
-channelpoints.redemption.started
-channelpoints.redemption.finished
-channelpoints.redemption.failed
-```
-
-## Wichtige interne Funktionen
-
-Aus `communication_bus.js`:
-
-```text
-loadCommunicationConfig
-getBus
-parseWsMessage
-sendWsJson
-normalizeHelloPayload
-handleHello
-handleHeartbeat
-handleAck
-handleWsMessage
-addWatchdogEntry
-analyzeWatchdog
-buildModuleResponse
-init
-```
-
-Aus `helper_communication.js`:
-
-```text
-createCommunicationBus
-registerClient
-unregisterClient
-forgetClient
-markClientError
-heartbeat
-updateClientStatuses
-emit
-ack
-replayForClient
-trackIssue
-getStatus
-reset
-```
-
-Aus `helper_communication_contract.js`:
-
-```text
-ensureModuleBus
-registerModule
-unregisterModule
-heartbeatModule
-updateModuleStatus
-publishModuleStatus
-subscribe
-unsubscribe
-createModuleClient
-getModuleContractStatus
-```
-
-## Config
-
-Die Config wird über `helper_config.loadConfig('communication_bus.json', {}, { createIfMissing: false })` geladen.
-
-Default-Flags in `communication_bus.js`:
-
-```text
-enabled
-testEndpointEnabled
-testAlertEndpointEnabled
-mirrorAlertEndpointEnabled
-ackEndpointEnabled
-issueEndpointEnabled
-replayEndpointEnabled
-watchdogEndpointEnabled
-resetEndpointEnabled
-wsClientRegistrationEnabled
-wsAcksEnabled
-maxMessageLength
-```
-
-`helper_communication.js` ergänzt Bus-Core-Config wie Heartbeat-/Stale-/Offline-/TTL-/Replay-/Issue-/Monitoring-/Security-/Audit-Werte. Vor Änderungen immer die echte `config/communication_bus.json` prüfen.
-
-Der neue Contract-Helper aus STEP487 hat bewusst keine eigene Config-Datei.
 
 ## Datenbank
 
-Dieses Modul legt laut geprüftem Code keine eigenen SQLite-Tabellen an.
+Keine eigenen SQLite-Tabellen.
 
-Persistenz erfolgt im aktuellen Stand über In-Memory-Maps im Bus-Core:
+Persistenz bleibt In-Memory im Bus-Core:
 
 ```text
 clients
 events
 issues
-stats
-```
-
-Der neue Contract-Helper nutzt ebenfalls In-Memory-Strukturen:
-
-```text
-modules
 subscriptions
 stats
 ```
 
-## WebSocket / Clients
+## Risiken / Regeln
 
-`handleWsMessage` verarbeitet eingehende WS-Nachrichten. Relevante Message-Typen sind:
-
-```text
-hello
-heartbeat
-ack
-```
-
-Clients können mit Metadaten wie ID, Modul, Capability und Target registriert werden. Der Bus kann replayfähige Events für passende Clients nachliefern.
-
-Backend-Module können ab STEP487 optional über `helper_communication_contract.js` als `backend_module` registriert werden.
-
-## Abhängigkeiten
-
-```text
-helper_config
-helper_communication
-helper_communication_contract
-helper_security_context
-optional audit logger im Helper-Core
-WebSocket-Server/Client-Handling aus server.js-Kontext
-```
-
-## Bekannte Risiken / Regeln
-
-- Bus nicht ungeprüft als Ersatz für bestehende produktive Flows verwenden.
-- Replay/ACK nur für dafür vorgesehene Clients nutzen.
-- Reset-Routen nur bewusst mit `confirm=1` verwenden.
-- Test-/Mirror-Routen können echte Overlay-Clients erreichen, wenn Targets passen.
-- Eventnamen und Channels nicht frei neu erfinden, sondern pro Modul dokumentieren.
-- Modul-zu-Modul-Subscriber müssen defensiv filtern und dürfen Payloads nicht blind ausführen.
+- Bestehende produktive Flows nicht automatisch auf Bus-First umstellen.
+- In-Prozess-Subscriber müssen klein, robust und defensiv sein.
+- Subscriber-Fehler dürfen den eigentlichen `emit`-Flow nicht abbrechen.
+- Fehler werden über `trackIssue` sichtbar gemacht.
+- Keine Secrets oder großen Payloads loggen.
+- Eventnamen sprechend und dokumentiert halten.
 
 ## Tests
+
+Syntax:
+
+```bat
+node --check backend\modules\helpers\helper_communication.js
+```
+
+Runtime nach Einbau:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status"
@@ -291,22 +265,18 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/communication/test?channel=test&act
 Invoke-RestMethod "http://127.0.0.1:8080/api/communication/watchdog"
 ```
 
-Syntax für den Contract-Helper:
+Alte Funktionen explizit prüfen:
 
-```bat
-node --check backend\modules\helpers\helper_communication_contract.js
-```
-
-Reset nur bewusst:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/communication/reset?confirm=1"
+```text
+/api/communication/status
+/api/communication/test
+/api/communication/ack
+/api/communication/replay
+/api/communication/watchdog
 ```
 
 ## Offene Punkte
 
-- Echte produktive Bus-Nutzung je Modul einzeln dokumentieren.
-- Client-Capabilities für Overlay-/Dashboard-Clients sauber erfassen.
-- Alte STEP-/Preview-Felder in Test-VIP-Routen langfristig prüfen, aber nicht nebenbei entfernen.
-- Optional prüfen, ob `communication_bus.js` den Contract automatisch initialisieren soll.
-- Kanalpunkte-System als erstes neues Fachmodul auf diesem Contract aufbauen.
+- Nach Serverstart prüfen, ob alte Bus-/Overlay-/VIP-Test-Routen unverändert funktionieren.
+- Erst danach Kanalpunkte-Modul auf `registerModule`, `publishModuleStatus` und `subscribe` aufbauen.
+- Falls STEP487-ZIP bereits entpackt wurde: `backend/modules/helpers/helper_communication_contract.js` wieder entfernen, weil der Contract jetzt im Bus-Core sitzt.

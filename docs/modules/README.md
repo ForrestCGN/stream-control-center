@@ -1,36 +1,10 @@
 # Modul-Dokus
 
-Stand: 2026-05-26 / STEP487_COMMUNICATION_BUS_MODULE_CONTRACT
+Stand: 2026-05-26 / STEP488_COMMUNICATION_BUS_CORE_CONTRACT
 
-Diese Übersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, nicht Ersatz für erneute Codeprüfung vor Änderungen.
+Diese Übersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetzen aber keine erneute Prüfung echter Dateien vor Änderungen.
 
-## Dateien
-
-- [`alerts.md`](./alerts.md)
-- [`birthday.md`](./birthday.md)
-- [`clip-shoutout-vso.md`](./clip-shoutout-vso.md)
-- [`clips.md`](./clips.md)
-- [`community-systems.md`](./community-systems.md)
-- [`core-overview.md`](./core-overview.md)
-- [`dashboard-backend.md`](./dashboard-backend.md)
-- [`hug-rehug.md`](./hug-rehug.md)
-- [`message-rotator.md`](./message-rotator.md)
-- [`obs-scene-control.md`](./obs-scene-control.md)
-- [`sound-system.md`](./sound-system.md)
-- [`stream-status.md`](./stream-status.md)
-- [`tagebuch-todo.md`](./tagebuch-todo.md)
-- [`tts-system.md`](./tts-system.md)
-- [`twitch-discord.md`](./twitch-discord.md)
-
-## Regel
-
-- Vor jeder echten Änderung weiterhin die betroffenen echten Dateien vollständig prüfen.
-- Keine Funktionalität entfernen.
-- Doku nach Moduländerungen direkt aktualisieren.
-
-## Vertiefte Modul-Dokus ab STEP476
-
-Diese Detailseiten enthalten Routen, Exporte, Config-/DB-Hinweise, Funktionen, Tests und offene Punkte:
+## Wichtige Dokus
 
 - [`core-communication-bus.md`](./core-communication-bus.md)
 - [`core-stream-status.md`](./core-stream-status.md)
@@ -40,120 +14,43 @@ Diese Detailseiten enthalten Routen, Exporte, Config-/DB-Hinweise, Funktionen, T
 - [`helper-config-core.md`](./helper-config-core.md)
 - [`helper-texts-settings.md`](./helper-texts-settings.md)
 - [`helper-media-chat-twitch.md`](./helper-media-chat-twitch.md)
-
-## STEP487 - Communication Bus Module Contract
-
-Neue Detaildoku:
-
-- [`helper-communication-contract.md`](./helper-communication-contract.md)
-
-Der Contract-Helper bereitet Backend-Modul-zu-Modul-Kommunikation über den bestehenden Communication Bus vor:
-
-```text
-Modul-Anmeldung
-Modul-Abmeldung
-Heartbeat
-Status
-Events senden
-Events empfangen
-Subscriber-Fehler tracken
-```
-
-Der Helper ist additiv und muss von neuen Modulen ausdrücklich genutzt werden. Bestehende produktive Flows werden dadurch nicht ersetzt.
-
-## Vertiefte Stream-/Media-Modul-Dokus ab STEP477
-
 - [`clip-shoutout-vso-deep-dive.md`](./clip-shoutout-vso-deep-dive.md)
 - [`alerts-deep-dive.md`](./alerts-deep-dive.md)
 - [`sound-system-deep-dive.md`](./sound-system-deep-dive.md)
 - [`vip-sound-overlay-deep-dive.md`](./vip-sound-overlay-deep-dive.md)
 - [`clips-deep-dive.md`](./clips-deep-dive.md)
 - [`tts-system-deep-dive.md`](./tts-system-deep-dive.md)
-
-## Deep-Dive Block 2026-05-26 / STEP478
-
-- `integrations-deep-dive-overview.md`
-- `twitch-deep-dive.md`
-- `twitch-presence-deep-dive.md`
-- `discord-deep-dive.md`
-- `obs-deep-dive.md`
-- `scene-control-deep-dive.md`
-- `community-deep-dive-overview.md`
-- `tagebuch-deep-dive.md`
-- `todo-deep-dive.md`
-- `message-rotator-deep-dive.md`
-- `hug-deep-dive.md`
-- `birthday-deep-dive.md`
-
-Hinweis: Dashboard-/Overlay-Dateien müssen bei UI-/Overlay-Steps zusätzlich geprüft werden.
-
-## STEP479 - Secondary Modules Deep Dive
-
-Weitere technische Modul-Dokus aus STEP479:
-
-- [`secondary-modules-deep-dive-overview.md`](./secondary-modules-deep-dive-overview.md)
-- [`challenge-deep-dive.md`](./challenge-deep-dive.md)
-- [`deathcounter-v2-deep-dive.md`](./deathcounter-v2-deep-dive.md)
-- [`loyalty-deep-dive.md`](./loyalty-deep-dive.md)
+- [`twitch-deep-dive.md`](./twitch-deep-dive.md)
+- [`discord-deep-dive.md`](./discord-deep-dive.md)
+- [`obs-deep-dive.md`](./obs-deep-dive.md)
+- [`scene-control-deep-dive.md`](./scene-control-deep-dive.md)
+- [`tagebuch-deep-dive.md`](./tagebuch-deep-dive.md)
+- [`todo-deep-dive.md`](./todo-deep-dive.md)
+- [`message-rotator-deep-dive.md`](./message-rotator-deep-dive.md)
+- [`hug-deep-dive.md`](./hug-deep-dive.md)
+- [`birthday-deep-dive.md`](./birthday-deep-dive.md)
 - [`commands-deep-dive.md`](./commands-deep-dive.md)
 - [`commands-media-deep-dive.md`](./commands-media-deep-dive.md)
-- [`media-deep-dive.md`](./media-deep-dive.md)
-- [`soundalerts-bridge-deep-dive.md`](./soundalerts-bridge-deep-dive.md)
-- [`sound-output-config-deep-dive.md`](./sound-output-config-deep-dive.md)
-- [`sound-loudness-scanner-deep-dive.md`](./sound-loudness-scanner-deep-dive.md)
-- [`sound-media-bridge-deep-dive.md`](./sound-media-bridge-deep-dive.md)
-- [`video-media-bridge-deep-dive.md`](./video-media-bridge-deep-dive.md)
 - [`bus-diagnostics-deep-dive.md`](./bus-diagnostics-deep-dive.md)
-- [`diagnostics-deep-dive.md`](./diagnostics-deep-dive.md)
-- [`chat-output-deep-dive.md`](./chat-output-deep-dive.md)
-- [`messages-deep-dive.md`](./messages-deep-dive.md)
-- [`message-rotator-scheduler-deep-dive.md`](./message-rotator-scheduler-deep-dive.md)
-- [`credits-deep-dive.md`](./credits-deep-dive.md)
-- [`fireworks-api-deep-dive.md`](./fireworks-api-deep-dive.md)
-- [`kofi-deep-dive.md`](./kofi-deep-dive.md)
-- [`tipeee-deep-dive.md`](./tipeee-deep-dive.md)
-- [`overlay-data-deep-dive.md`](./overlay-data-deep-dive.md)
-- [`start-overlay-deep-dive.md`](./start-overlay-deep-dive.md)
-- [`twitch-chat-overlay-deep-dive.md`](./twitch-chat-overlay-deep-dive.md)
-- [`database-core-status-deep-dive.md`](./database-core-status-deep-dive.md)
-- [`security-status-deep-dive.md`](./security-status-deep-dive.md)
-- [`audit-log-deep-dive.md`](./audit-log-deep-dive.md)
-- [`hug-system-deep-dive.md`](./hug-system-deep-dive.md)
 
-## Pflegepflicht ab STEP480
+## STEP488 Hinweis
 
-Diese Modul-Dokus sind keine Ablage, sondern Arbeitsgrundlage.
+Der Modul-zu-Modul-Contract wurde in `backend/modules/helpers/helper_communication.js` integriert.
 
-Vor Änderungen an einem Modul zuerst die passende Modul-Doku lesen. Nach Änderungen die passende Modul-Doku im selben STEP aktualisieren.
+Keine dauerhafte zweite Bus-/Contract-Helper-Datei als Zielarchitektur verwenden.
 
-Bei neuen/geänderten Routen, Configs, Datenbanktabellen, Statusfeldern, EventBus-Events, Dashboard-Dateien, Overlay-Dateien oder Runtime-Dateien muss die jeweilige Modul-Doku angepasst werden.
+Wenn `helper_communication_contract.js` aus STEP487 bereits lokal entpackt wurde, soll diese Datei wieder entfernt werden, bevor weitergebaut wird.
 
-Neue oder angefasste Module sollen klare Versionsnummern nutzen (`version` oder `moduleVersion`). Der Communication Bus / EventBus soll schrittweise als zentrale Kommunikations- und Überwachungsschicht ausgebaut werden.
+## Pflegepflicht
 
-## Modul-Meta / Server-Log / EventBus
-
-Bei künftigen Moduländerungen soll die jeweilige Modul-Doku zusätzlich festhalten:
-
-- erkannte Modulversion / `moduleVersion`,
-- ob das Modul maschinenlesbare Meta-Daten exportiert,
-- ob/wie es sich beim EventBus registriert,
-- welche Status-/Health-/Heartbeat-Daten es liefert,
-- welche Server-Log-Meldungen beim Laden relevant sind.
-
-Ziel ist, dass der Node-Serverstart und der EventBus später klar anzeigen können, welches Modul in welcher Version aktiv ist.
-
-## Pflege bei Chatwechsel / Übergabe
-
-Wenn Forrest „dokumentieren und aktualisieren" schreibt oder ein neuer Chat vorbereitet wird, müssen die Modul-Dokus geprüft werden.
-
-Für jedes seit dem letzten Stand geänderte oder neu angelegte Modul gilt:
+Vor Änderungen an einem Modul:
 
 ```text
 1. passende docs/modules/<modul>.md lesen
 2. echte Moduldateien prüfen
 3. Routen, Funktionen, Configs, DB-Tabellen, Events, Dashboard-/Overlay-Bezüge aktualisieren
 4. offene Punkte in TODO.md/NEXT_STEPS.md nachziehen
-5. docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md aktualisieren oder neue Statusdatei anlegen
+5. docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md aktualisieren
 ```
 
-Keine Moduländerung gilt als abgeschlossen, wenn die zugehörige Modul-Doku veraltet bleibt.
+Neue oder angefasste Module sollen klare Versionsnummern nutzen (`version` oder `moduleVersion`).

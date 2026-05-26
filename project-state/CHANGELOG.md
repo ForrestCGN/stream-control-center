@@ -1,15 +1,22 @@
 # CHANGELOG
 
-## 2026-05-26 - STEP487_COMMUNICATION_BUS_MODULE_CONTRACT
+## 2026-05-26 - STEP488_COMMUNICATION_BUS_CORE_CONTRACT
 
-- Neuen Helper `backend/modules/helpers/helper_communication_contract.js` ergänzt.
-- Backend-Modul-zu-Modul-Contract für den bestehenden Communication Bus vorbereitet.
-- Ergänzt: Modul-Registrierung, Abmeldung, Heartbeat, Status, Subscribe/Unsubscribe, Modul-Client und Contract-Status.
-- `bus.emit` wird durch den Contract additiv dekoriert, wenn ein Modul `ensureModuleBus(bus)` nutzt.
-- Bestehende Bus-/WebSocket-/Replay-/ACK-Flows bleiben unverändert.
-- Keine Änderung an `communication_bus.js` oder `helper_communication.js`.
-- Keine neuen Routen, keine DB-Migration, kein Dashboard-Umbau.
-- Doku für Communication Bus und neuen Contract-Helper aktualisiert.
+- Modul-zu-Modul-Contract direkt in `backend/modules/helpers/helper_communication.js` integriert.
+- `helper_communication.js` auf Version `0.4.0` erhöht.
+- Neue Bus-Core-Funktionen:
+  - `registerModule`
+  - `unregisterModule`
+  - `heartbeatModule`
+  - `publishModuleStatus`
+  - `subscribe`
+  - `unsubscribe`
+  - `getSubscriptions`
+- `getStatus()` um `subscriptions[]` und Subscriber-Statistiken erweitert.
+- Subscriber-Fehler werden über `trackIssue` sichtbar gemacht und brechen den `emit`-Flow nicht ab.
+- Keine neue dauerhafte Contract-Helper-Datei als Zielarchitektur.
+- Keine produktiven Flows automatisch auf Bus-First umgestellt.
+- Doku und Projektstatus aktualisiert.
 
 ## 2026-05-26 - STEP486_SHOUTOUT_LIVE_TEST_AND_DECISION_PREP
 

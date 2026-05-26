@@ -1,16 +1,17 @@
 'use strict';
 
 /**
- * STEP278F - Central Communication Bus helper core.
+ * STEP278F / STEP488 - Central Communication Bus helper core.
  *
- * This helper is intentionally not wired into production modules yet.
- * It provides a reusable bus foundation for later steps:
+ * This helper provides the reusable bus foundation:
  * - client registry
  * - heartbeat tracking
- * - targeted event delivery
+ * - targeted WebSocket event delivery
  * - ack tracking
  * - replayable event memory
  * - repeated issue throttling
+ * - backend module registration
+ * - in-process module-to-module subscriptions
  * - optional security context / audit logger hooks
  *
  * Existing broadcastWS flows are not removed by this helper.
@@ -20,11 +21,11 @@ const core = require('./helper_core');
 
 const MODULE_META = {
   name: 'helper_communication',
-  version: '0.3.0',
-  build: 'STEP278F',
+  version: '0.4.0',
+  build: 'STEP488',
   coreName: 'communication_core',
-  coreVersion: '0.3.0',
-  description: 'Communication Bus helper core'
+  coreVersion: '0.4.0',
+  description: 'Communication Bus helper core with backend module contract and in-process subscriptions'
 };
 
 const DEFAULT_CONFIG = {
@@ -226,6 +227,62 @@ function publicEvent(event) {
   };
 }
 
+function normalizeSubscriptionInfo(rawInfo = {}, handler = null) {
+  const raw = isPlainObject(rawInfo) ? rawInfo : {};
+  const channel = cleanString(raw.channel || raw.topic || '');
+  const action = cleanString(raw.action || raw.event || '');
+  const moduleName = cleanString(raw.module || raw.moduleName || raw.sourceModule || '');
+  const id = sanitizeId(raw.id || raw.subscriptionId || `${moduleName || 'subscriber'}:${channel || '*'}:${action || '*'}`, 'subscription');
+  return {
+    id,
+    channel,
+    action,
+    module: moduleName,
+    sourceModule: cleanString(raw.sourceModule || ''),
+    targetModule: cleanString(raw.targetModule || ''),
+    capability: cleanString(raw.capability || ''),
+    enabled: raw.enabled !== false,
+    createdAt: nowIso(),
+    lastDeliveredAt: '',
+    delivered: 0,
+    errors: 0,
+    meta: isPlainObject(raw.meta) ? safeJson(raw.meta) || {} : {},
+    handler: typeof handler === 'function' ? handler : null
+  };
+}
+
+function publicSubscription(subscription) {
+  if (!subscription) return null;
+  return {
+    id: subscription.id,
+    channel: subscription.channel,
+    action: subscription.action,
+    module: subscription.module,
+    sourceModule: subscription.sourceModule,
+    targetModule: subscription.targetModule,
+    capability: subscription.capability,
+    enabled: subscription.enabled !== false,
+    createdAt: subscription.createdAt,
+    lastDeliveredAt: subscription.lastDeliveredAt || '',
+    delivered: subscription.delivered || 0,
+    errors: subscription.errors || 0,
+    meta: safeJson(subscription.meta) || {}
+  };
+}
+
+function subscriptionMatchesEvent(subscription, event) {
+  if (!subscription || subscription.enabled === false || !event) return false;
+  if (subscription.channel && subscription.channel !== event.channel) return false;
+  if (subscription.action && subscription.action !== event.action) return false;
+  if (subscription.sourceModule && (!event.source || event.source.module !== subscription.sourceModule)) return false;
+  if (subscription.targetModule && (!event.target || event.target.module !== subscription.targetModule)) return false;
+  if (subscription.capability) {
+    const eventCapability = `${event.channel || ''}.${event.action || ''}`.replace(/^\./, '').replace(/\.$/, '');
+    if (subscription.capability !== eventCapability) return false;
+  }
+  return true;
+}
+
 function createCommunicationBus(options = {}) {
   const config = deepMerge(DEFAULT_CONFIG, options.config || {});
   const security = options.security || null;
@@ -233,6 +290,7 @@ function createCommunicationBus(options = {}) {
   const clients = new Map();
   const events = new Map();
   const issues = new Map();
+  const subscriptions = new Map();
   const stats = {
     createdAt: nowIso(),
     emitted: 0,
@@ -241,6 +299,9 @@ function createCommunicationBus(options = {}) {
     replays: 0,
     dropped: 0,
     issues: 0,
+    subscriptions: 0,
+    subscriberDeliveries: 0,
+    subscriberErrors: 0,
     auditWrites: 0,
     auditSkipped: 0,
     auditErrors: 0
@@ -391,6 +452,88 @@ function createCommunicationBus(options = {}) {
     return publicClient(client);
   }
 
+  function registerModule(moduleInfo = {}) {
+    const raw = isPlainObject(moduleInfo) ? moduleInfo : {};
+    const moduleName = cleanString(raw.module || raw.name || raw.id, 'module');
+    const id = sanitizeId(raw.id || raw.clientId || `module:${moduleName}`, 'module');
+    const client = registerClient(null, {
+      id,
+      type: 'module',
+      mode: 'backend',
+      module: moduleName,
+      name: cleanString(raw.displayName || raw.name || moduleName, moduleName),
+      version: cleanString(raw.version || raw.moduleVersion || ''),
+      capabilities: toArray(raw.capabilities),
+      meta: isPlainObject(raw.meta) ? raw.meta : {}
+    });
+
+    emit({
+      type: 'event',
+      channel: 'module.lifecycle',
+      action: 'registered',
+      source: { type: 'module', id, module: moduleName },
+      target: { type: 'all', id: '*', module: '', capability: '' },
+      payload: { module: client },
+      meta: { requireAck: false, replayable: true, ttlMs: config.defaultTtlMs }
+    });
+
+    return { ok: true, client };
+  }
+
+  function unregisterModule(moduleIdOrName, reason = 'module_shutdown') {
+    const rawId = cleanString(moduleIdOrName);
+    if (!rawId) return { ok: false, reason: 'module_id_missing' };
+    const id = clients.has(rawId) ? rawId : sanitizeId(`module:${rawId}`, 'module');
+    const existing = clients.get(id) || [...clients.values()].find(client => client.module === rawId && client.type === 'module');
+    if (!existing) return { ok: false, reason: 'module_not_found', module: rawId };
+
+    const result = unregisterClient(existing.id, reason);
+    emit({
+      type: 'event',
+      channel: 'module.lifecycle',
+      action: 'unregistered',
+      source: { type: 'module', id: existing.id, module: existing.module || rawId },
+      target: { type: 'all', id: '*', module: '', capability: '' },
+      payload: { module: result.client || publicClient(existing), reason },
+      meta: { requireAck: false, replayable: true, ttlMs: config.defaultTtlMs }
+    });
+
+    return result;
+  }
+
+  function heartbeatModule(moduleIdOrName, payload = {}) {
+    const rawId = cleanString(moduleIdOrName || payload.module || payload.name || payload.id);
+    if (!rawId) return { ok: false, reason: 'module_id_missing' };
+    const id = clients.has(rawId) ? rawId : sanitizeId(`module:${rawId}`, 'module');
+    const result = heartbeat(id, {
+      ...payload,
+      id,
+      type: 'module',
+      mode: 'backend',
+      module: cleanString(payload.module || rawId)
+    });
+    return result;
+  }
+
+  function publishModuleStatus(moduleIdOrName, statusPayload = {}, options = {}) {
+    const moduleName = cleanString(moduleIdOrName || statusPayload.module || statusPayload.name, 'module');
+    const id = cleanString(statusPayload.id || options.id || `module:${moduleName}`);
+    const result = emit({
+      type: 'event',
+      channel: cleanString(options.channel, 'module.status'),
+      action: cleanString(options.action, 'updated'),
+      source: { type: 'module', id, module: moduleName },
+      target: normalizeTarget(options.target || { type: 'all', id: '*' }),
+      payload: safeJson(statusPayload) || {},
+      meta: {
+        requireAck: options.requireAck === true,
+        replayable: options.replayable !== false,
+        ttlMs: Number.isFinite(Number(options.ttlMs)) ? Number(options.ttlMs) : config.defaultTtlMs
+      }
+    });
+    return result;
+  }
+
   function unregisterClient(clientId, reason = 'disconnect') {
     const id = cleanString(clientId);
     const client = clients.get(id);
@@ -506,6 +649,86 @@ function createCommunicationBus(options = {}) {
     }
   }
 
+  function subscribe(subscriptionInfo = {}, handler = null) {
+    if (typeof handler !== 'function') {
+      return { ok: false, reason: 'handler_required' };
+    }
+
+    const subscription = normalizeSubscriptionInfo(subscriptionInfo, handler);
+    subscriptions.set(subscription.id, subscription);
+    stats.subscriptions = subscriptions.size;
+    return { ok: true, subscription: publicSubscription(subscription) };
+  }
+
+  function unsubscribe(subscriptionId) {
+    const id = cleanString(subscriptionId);
+    if (!id) return { ok: false, reason: 'subscription_id_missing' };
+    const existing = subscriptions.get(id);
+    if (!existing) return { ok: false, reason: 'subscription_not_found', subscriptionId: id };
+    subscriptions.delete(id);
+    stats.subscriptions = subscriptions.size;
+    return { ok: true, subscription: publicSubscription(existing) };
+  }
+
+  function getSubscriptions() {
+    return [...subscriptions.values()].map(publicSubscription);
+  }
+
+  function deliverToSubscribers(event) {
+    const delivered = [];
+    const failed = [];
+    const publicEvt = publicEvent(event);
+    const envelope = {
+      bus: event.bus,
+      version: event.version,
+      id: event.id,
+      type: event.type,
+      channel: event.channel,
+      action: event.action,
+      source: event.source,
+      target: event.target,
+      timestamp: event.timestamp,
+      payload: safeJson(event.payload) || {},
+      meta: safeJson(event.meta) || {},
+      event: publicEvt
+    };
+
+    for (const subscription of subscriptions.values()) {
+      if (!subscriptionMatchesEvent(subscription, event)) continue;
+      try {
+        const result = subscription.handler(envelope, {
+          bus: publicApi,
+          subscription: publicSubscription(subscription)
+        });
+        subscription.delivered += 1;
+        subscription.lastDeliveredAt = nowIso();
+        stats.subscriberDeliveries += 1;
+        delivered.push({ id: subscription.id, module: subscription.module, result: safeJson(result) });
+      } catch (err) {
+        subscription.errors += 1;
+        stats.subscriberErrors += 1;
+        failed.push({
+          id: subscription.id,
+          module: subscription.module,
+          error: err && err.message ? err.message : String(err)
+        });
+        trackIssue(`communication_subscriber_error_${subscription.id}`, `Communication subscriber failed: ${subscription.id}`, {
+          level: 'error',
+          details: {
+            subscriptionId: subscription.id,
+            module: subscription.module,
+            channel: event.channel,
+            action: event.action,
+            eventId: event.id,
+            error: err && err.message ? err.message : String(err)
+          }
+        });
+      }
+    }
+
+    return { delivered, failed };
+  }
+
   function emit(message = {}) {
     if (config.enabled === false) {
       stats.dropped += 1;
@@ -542,11 +765,17 @@ function createCommunicationBus(options = {}) {
       pruneEvents();
     }
 
+    const subscriberResult = deliverToSubscribers(event);
+
     const result = {
       ok: true,
       eventId: event.id,
       deliveredTo: delivered,
       deliveredCount: delivered.length,
+      subscriberDeliveredTo: subscriberResult.delivered,
+      subscriberDeliveredCount: subscriberResult.delivered.length,
+      subscriberFailed: subscriberResult.failed,
+      subscriberFailedCount: subscriberResult.failed.length,
       event: publicEvent(event)
     };
 
@@ -564,6 +793,8 @@ function createCommunicationBus(options = {}) {
         action: event.action,
         target: event.target,
         deliveredCount: delivered.length,
+        subscriberDeliveredCount: subscriberResult.delivered.length,
+        subscriberFailedCount: subscriberResult.failed.length,
         requireAck: event.meta.requireAck === true,
         replayable: event.meta.replayable === true
       },
@@ -754,7 +985,7 @@ function createCommunicationBus(options = {}) {
       enabled: config.enabled !== false,
       createdAt: stats.createdAt,
       now: nowIso(),
-      stats: { ...stats },
+      stats: { ...stats, subscriptions: subscriptions.size },
       config: {
         heartbeatIntervalMs: config.heartbeatIntervalMs,
         staleAfterMs: config.staleAfterMs,
@@ -774,6 +1005,7 @@ function createCommunicationBus(options = {}) {
         auditEnabled: !!(config.audit && config.audit.enabled === true)
       },
       clients: getClients(),
+      subscriptions: getSubscriptions(),
       events: [...events.values()].map(publicEvent),
       issues: [...issues.values()].map(issue => ({ ...issue }))
     };
@@ -781,6 +1013,7 @@ function createCommunicationBus(options = {}) {
 
   function reset(options = {}) {
     if (options.clients === true) clients.clear();
+    if (options.subscriptions === true) subscriptions.clear();
     if (options.events !== false) events.clear();
     if (options.issues !== false) issues.clear();
     stats.emitted = 0;
@@ -789,21 +1022,31 @@ function createCommunicationBus(options = {}) {
     stats.replays = 0;
     stats.dropped = 0;
     stats.issues = 0;
+    stats.subscriptions = subscriptions.size;
+    stats.subscriberDeliveries = 0;
+    stats.subscriberErrors = 0;
     stats.auditWrites = 0;
     stats.auditSkipped = 0;
     stats.auditErrors = 0;
     return getStatus();
   }
 
-  return {
+  const publicApi = {
     config,
     registerClient,
+    registerModule,
+    unregisterModule,
+    heartbeatModule,
+    publishModuleStatus,
     unregisterClient,
     forgetClient,
     markClientError,
     heartbeat,
     updateClientStatuses,
     getClients,
+    subscribe,
+    unsubscribe,
+    getSubscriptions,
     emit,
     ack,
     replayForClient,
@@ -813,6 +1056,8 @@ function createCommunicationBus(options = {}) {
     createEventId,
     normalizeMessage
   };
+
+  return publicApi;
 }
 
 module.exports = {
