@@ -1,8 +1,8 @@
 # Modul-Dokus
 
-Stand: 2026-05-26 / STEP488_COMMUNICATION_BUS_CORE_CONTRACT
+Stand: 2026-05-26 / STEP489_CHANNELPOINTS_BACKEND_SKELETON
 
-Diese Übersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetzen aber keine erneute Prüfung echter Dateien vor Änderungen.
+Diese Uebersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetzen aber keine erneute Pruefung echter Dateien vor Aenderungen.
 
 ## Wichtige Dokus
 
@@ -14,6 +14,7 @@ Diese Übersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetz
 - [`helper-config-core.md`](./helper-config-core.md)
 - [`helper-texts-settings.md`](./helper-texts-settings.md)
 - [`helper-media-chat-twitch.md`](./helper-media-chat-twitch.md)
+- [`channelpoints-deep-dive.md`](./channelpoints-deep-dive.md)
 - [`clip-shoutout-vso-deep-dive.md`](./clip-shoutout-vso-deep-dive.md)
 - [`alerts-deep-dive.md`](./alerts-deep-dive.md)
 - [`sound-system-deep-dive.md`](./sound-system-deep-dive.md)
@@ -41,14 +42,31 @@ Keine dauerhafte zweite Bus-/Contract-Helper-Datei als Zielarchitektur verwenden
 
 Wenn `helper_communication_contract.js` aus STEP487 bereits lokal entpackt wurde, soll diese Datei wieder entfernt werden, bevor weitergebaut wird.
 
+## STEP489 Hinweis
+
+`backend/modules/channelpoints.js` ist ab STEP489 als neues Fachmodul vorhanden.
+
+Das Modul ist aktuell ein sicheres Backend-Skelett:
+
+```text
+moduleVersion 0.1.0
+/api/channelpoints/status
+/api/channelpoints/bus-test
+Bus-Registrierung ueber registerModule
+Status/Heartbeat ueber publishModuleStatus/heartbeatModule
+keine Twitch-Schreibaktionen
+keine DB-Migration
+kein Dashboard-Umbau
+```
+
 ## Pflegepflicht
 
-Vor Änderungen an einem Modul:
+Vor Aenderungen an einem Modul:
 
 ```text
 1. passende docs/modules/<modul>.md lesen
-2. echte Moduldateien prüfen
-3. Routen, Funktionen, Configs, DB-Tabellen, Events, Dashboard-/Overlay-Bezüge aktualisieren
+2. echte Moduldateien pruefen
+3. Routen, Funktionen, Configs, DB-Tabellen, Events, Dashboard-/Overlay-Bezuege aktualisieren
 4. offene Punkte in TODO.md/NEXT_STEPS.md nachziehen
 5. docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md aktualisieren
 ```

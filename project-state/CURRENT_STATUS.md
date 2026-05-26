@@ -1,35 +1,60 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP488_COMMUNICATION_BUS_CORE_CONTRACT
+Stand: 2026-05-26 / STEP489_CHANNELPOINTS_BACKEND_SKELETON
 
 ## Aktueller Arbeitsstand
 
-STEP488 korrigiert die vorherige Contract-Idee: Der Modul-zu-Modul-Contract wird direkt im bestehenden Communication-Bus-Core `helper_communication.js` integriert, statt dauerhaft als separater Helper daneben zu liegen.
+STEP489 erstellt das sichere Backend-Skelett fuer das neue Kanalpunkte-System.
+
+## Kanalpunkte-System
+
+Neu:
+
+- `backend/modules/channelpoints.js`
+- Modulversion `0.1.0`
+- Route `GET /api/channelpoints/status`
+- Route `GET /api/channelpoints/bus-test`
+- Bus-Registrierung ueber `registerModule`
+- Heartbeat ueber `heartbeatModule`
+- Status-Publish ueber `publishModuleStatus`
+- Selftest-Subscription fuer `channelpoints.test/ping`
+
+Bewusst nicht umgesetzt:
+
+- keine Twitch-Schreibaktionen
+- keine Twitch-Reward-Synchronisierung
+- keine DB-Migration
+- kein Dashboard-Modul
+- keine produktive Redemption-Verarbeitung
 
 ## Communication Bus
 
-- `backend/modules/helpers/helper_communication.js` steht jetzt auf Version `0.4.0`.
-- Neue Bus-Core-Funktionen:
-  - `registerModule`
-  - `unregisterModule`
-  - `heartbeatModule`
-  - `publishModuleStatus`
-  - `subscribe`
-  - `unsubscribe`
-  - `getSubscriptions`
-- `getStatus()` zeigt zusätzlich `subscriptions[]` und Subscriber-Statistiken.
-- Bestehende Funktionen wie `emit`, `ack`, `replayForClient`, `trackIssue`, `registerClient` und WebSocket-Client-Flows bleiben erhalten.
+Der Stand aus STEP488 bleibt Grundlage:
 
-## Korrektur zu STEP487
+- `backend/modules/helpers/helper_communication.js` Version `0.4.0`
+- Modul-zu-Modul-Contract sitzt direkt im bestehenden Bus-Core
+- `channelpoints.js` nutzt diesen integrierten Contract direkt ueber `communication_bus.getBus()`
 
-Falls `backend/modules/helpers/helper_communication_contract.js` aus STEP487 bereits entpackt wurde, soll diese Datei entfernt werden. Sie ist nicht mehr Zielarchitektur.
+Runtime-Hinweis aus lokalem Test:
+
+- alte Communication-Routen laufen nach STEP488 weiter
+- `/api/communication/status` liefert Status inklusive `subscriptions[]`
+- `/api/communication/test` liefert Test-Events weiter aus
+- `/api/communication/watchdog` funktioniert weiter
+- `communication_bus.js` meldet nach aussen noch `coreVersion 0.3.0`, waehrend der Helper-Core seit STEP488 `0.4.0` ist; das ist als kleiner Nachziehpunkt dokumentiert
 
 ## Shoutout-System
 
-Der Stand aus STEP486 bleibt unverändert.
+Der Stand aus STEP486 bleibt fachlich unveraendert.
 
-## Nächster sinnvoller Schritt
+## Naechster sinnvoller Schritt
 
-`STEP489_CHANNELPOINTS_BACKEND_SKELETON`
+`STEP490_CHANNELPOINTS_TWITCH_READINESS_CHECK`
 
-Dabei soll `channelpoints.js` als neues Fachmodul auf dem integrierten Bus-Contract aufbauen.
+Ziel:
+
+```text
+Twitch-Scopes und vorhandene Twitch-Helper pruefen
+nur lesende Readiness-/Diagnose-Route fuer Kanalpunkte vorbereiten
+keine Reward-Schreibaktionen
+```
