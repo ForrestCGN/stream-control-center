@@ -1,6 +1,6 @@
 # Next Steps
 
-1. Commands Dashboard v0.1.7 im Browser testen.
-2. Bestehende Commands mit Audio/Video/Text/Modul-Aktion öffnen und speichern.
-3. Danach Kanalpunkte auf dasselbe Editor-Muster umbauen.
+1. UI v0.1.8 testen.
+2. Prüfen, ob Song/Video-Auswahl mit dem bestehenden MediaPicker sauber funktioniert.
+3. Danach dasselbe Modal-/Safe-Edit-Pattern auf Kanalpunkte übertragen.
 4. Zentrale Textverwaltung als eigenes System planen.

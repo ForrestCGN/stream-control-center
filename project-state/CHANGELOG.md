@@ -1,5 +1,15 @@
 # Changelog
 
+## Commands Dashboard v0.1.8
+
+- Chat-Ausgabe aus dem Aktionsblock herausgelöst.
+- Eigener Abschnitt `Optionale Chat-Ausgabe` ergänzt.
+- `Text anzeigen` bleibt eine eigene Hauptaktion.
+- Song-/Sound-Maske überarbeitet.
+- Video-Maske überarbeitet.
+- Medienauswahl direkt über bestehenden MediaPicker vorbereitet.
+- Technische Overlay-/Route-Felder bleiben unter Erweitert.
+
 ## Commands Dashboard v0.1.7
 
 - Aktionsart-gesteuerter Editor eingeführt.

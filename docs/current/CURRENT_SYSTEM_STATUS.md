@@ -1,10 +1,19 @@
 # Current System Status — Commands
 
-Commands Dashboard UI steht auf `0.1.7` (`action-type-driven-editor`).
+Commands Dashboard UI steht auf `0.1.8` (`separated-action-chat-media-picker`).
 
-Der Command-Editor nutzt nun eine aktionsartgesteuerte Maske:
+Der Command-Editor nutzt nun eine getrennte Struktur:
 
-- Neuer Command: Song abspielen, Video abspielen, Text anzeigen, Modul-Befehl, Benutzerdefiniert.
-- Bearbeiten: gespeicherte Aktionsart steht an erster Stelle und bestimmt die Maske.
-- Technische gespeicherte Werte liegen unter Erweitert.
-- Katalog-Vorlagen überschreiben nichts automatisch.
+- Basis
+- Aktion
+- Optionale Chat-Ausgabe
+- Erweitert / technische Details
+
+Wichtig:
+
+- Chat-Ausgabe hängt nicht mehr im Aktionsblock.
+- Song/Video zeigen eine eigene Medien-Maske.
+- Medienauswahl nutzt den bestehenden MediaPicker.
+- Text anzeigen ist eine eigene Hauptaktion.
+- Zusätzlicher Chattext ist nur ein optionaler Zusatzbereich.
+- Technische Werte bleiben unter Erweitert.

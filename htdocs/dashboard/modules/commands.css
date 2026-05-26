@@ -20,3 +20,11 @@ html[data-theme="light"] .cmd-card,html[data-theme="light"] .cmd-toolbar,html[da
 /* v0.1.6 unified action dropdown + text output */
 .cmd-text-output-box{border-color:rgba(120,220,255,.32);background:rgba(120,220,255,.045)}
 .cmd-saved-route-preview.compact{margin:0;grid-template-columns:repeat(3,minmax(0,1fr))}
+
+/* v0.1.8 separated action + optional chat output + direct media picker */
+.cmd-v018 .cmd-text-output-section{border-color:rgba(120,220,255,.32);background:rgba(120,220,255,.045)}
+.cmd-v018 .cmd-text-output-section summary{cursor:pointer;font-weight:950;color:#d9f4ff}
+.cmd-v018 .cmd-main-text-box{border-color:rgba(120,220,255,.35);background:rgba(120,220,255,.045)}
+.cmd-v018 .cmd-media-action-box{border-color:rgba(181,111,255,.35);background:rgba(181,111,255,.045)}
+.cmd-v018 .cmd-inline-btn{margin-top:8px;width:max-content;min-width:160px}
+.cmd-v018 .cmd-media-action-box input[readonly]{opacity:.95;cursor:default}

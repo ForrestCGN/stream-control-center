@@ -1,6 +1,14 @@
 # Files
 
-- `htdocs/dashboard/modules/commands.js` — Commands Dashboard UI v0.1.7
-- `htdocs/dashboard/modules/commands.css` — bestehendes Commands Dashboard Styling
-- `docs/modules/commands-deep-dive.md` — Modul-Doku
-- `docs/current/CURRENT_SYSTEM_STATUS.md` — aktueller Status
+Geändert in diesem Stand:
+
+- `htdocs/dashboard/modules/commands.js`
+- `htdocs/dashboard/modules/commands.css`
+- `docs/modules/commands-deep-dive.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/COMMANDS_SEPARATED_ACTION_CHAT_MEDIA_PICKER_v0.1.8.md`
