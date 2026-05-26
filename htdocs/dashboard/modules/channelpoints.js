@@ -1,94 +1,38 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.6.1';
-  const UI_BUILD = 'friendly-media-action-editor';
+  const UI_VERSION = '0.7.0';
+  const UI_BUILD = 'safe-modal-editor';
 
   const api = {
     status: '/api/channelpoints/status',
     categories: '/api/channelpoints/categories',
     rewards: '/api/channelpoints/rewards',
-    model: '/api/channelpoints/model',
-    mediaPlan: '/api/channelpoints/media-plan',
-    dbStatus: '/api/channelpoints/db-status',
     busTest: '/api/channelpoints/bus-test',
     mediaExecutionCheck: '/api/channelpoints/media-execution-check'
   };
 
-  const ACTION_TYPES = [
-    { id: 'manual', label: 'Manuell', hint: 'Nur lokal verwalten, keine automatische Ausführung.' },
-    { id: 'streamerbot_action', label: 'Streamer.bot Action', hint: 'Später Streamer.bot-Action/Bridge auslösen.' },
-    { id: 'backend_route', label: 'Backend Route', hint: 'Lokale API-Route ausführen.' },
-    { id: 'bus_event', label: 'Communication Bus Event', hint: 'Event an andere Module senden.' },
-    { id: 'media', label: 'Media-System', hint: 'Sound/Bild/Video über vorhandenes Media-System.' },
-    { id: 'overlay', label: 'Overlay', hint: 'Overlay-Aktion vorbereiten.' },
-    { id: 'multi_action', label: 'Multi-Action', hint: 'Später mehrere Schritte nacheinander.' }
-  ];
-
-
-
-  const FRIENDLY_ACTIONS = [
-    {
-      id: 'manual',
-      label: 'Keine Aktion / nur verwalten',
-      actionType: 'manual',
-      actionKey: '',
-      mediaRole: 'none',
-      mediaType: '',
-      allowedTypes: 'audio,video,image,animation',
-      hint: 'Der Reward wird nur lokal verwaltet. Es wird nichts automatisch abgespielt oder ausgelöst.',
-      needsMedia: false
-    },
-    {
-      id: 'sound_play',
-      label: 'Sound abspielen',
-      actionType: 'media',
-      actionKey: 'play_audio_media',
-      mediaRole: 'sound',
-      mediaType: 'audio',
-      allowedTypes: 'audio',
-      hint: 'Spielt ein ausgewähltes Audio-Medium über das Sound-System ab.',
-      needsMedia: true
-    },
-    {
-      id: 'video_play',
-      label: 'Video anzeigen',
-      actionType: 'media',
-      actionKey: 'play_video_media',
-      mediaRole: 'video',
-      mediaType: 'video',
-      allowedTypes: 'video,animation',
-      hint: 'Zeigt ein ausgewähltes Video oder eine Animation über das Sound-System-Overlay an.',
-      needsMedia: true
-    },
-    {
-      id: 'advanced',
-      label: 'Erweitert / technische Aktion',
-      actionType: '',
-      actionKey: '',
-      mediaRole: '',
-      mediaType: '',
-      allowedTypes: 'audio,video,image,animation',
-      hint: 'Technischer Modus für Backend-Route, Bus-Event, Overlay oder eigenes JSON.',
-      needsMedia: false
-    }
+  const ACTIONS = [
+    { id:'sound_play', label:'🔊 Sound abspielen', short:'Sound', needsMedia:true, mediaRole:'sound', mediaType:'audio', allowedTypes:'audio', actionType:'media', actionKey:'play_audio_media', hint:'Spielt ein Audio-Medium über das Sound-System ab.' },
+    { id:'video_play', label:'🎬 Video anzeigen', short:'Video', needsMedia:true, mediaRole:'video', mediaType:'video', allowedTypes:'video,animation', actionType:'media', actionKey:'play_video_media', hint:'Zeigt ein Video oder eine Animation im Overlay an.' },
+    { id:'text_only', label:'💬 Text anzeigen', short:'Text', needsMedia:false, mediaRole:'none', mediaType:'', allowedTypes:'', actionType:'chat_message', actionKey:'send_text', hint:'Gibt einen Chat-Text aus. Textgruppen kommen später über die zentrale Textverwaltung.' },
+    { id:'manual', label:'📝 Nur verwalten', short:'Manuell', needsMedia:false, mediaRole:'none', mediaType:'', allowedTypes:'audio,video,image,animation', actionType:'manual', actionKey:'', hint:'Reward lokal verwalten, ohne automatische Ausführung.' },
+    { id:'custom', label:'⚙️ Benutzerdefinierte Aktion', short:'Custom', needsMedia:false, mediaRole:'', mediaType:'', allowedTypes:'audio,video,image,animation', actionType:'manual', actionKey:'', hint:'Technische Aktion mit eigenen Feldern und JSON.' }
   ];
 
   const state = {
-    loading: false,
-    error: '',
-    notice: '',
-    tab: 'overview',
-    query: '',
-    categoryFilter: 'all',
-    statusFilter: 'all',
-    actionFilter: 'all',
-    status: null,
-    categories: [],
-    rewards: [],
-    selectedKey: '',
-    selected: null,
-    busResult: null
+    loading:false,
+    error:'',
+    notice:'',
+    query:'',
+    categoryFilter:'all',
+    statusFilter:'all',
+    selectedKey:'',
+    status:null,
+    categories:[],
+    rewards:[],
+    busResult:null,
+    modal:null
   };
 
   let root = null;
@@ -96,6 +40,15 @@ window.ChannelpointsModule = (function(){
   function esc(value) {
     return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
+  function asArray(value) { return Array.isArray(value) ? value : []; }
+  function boolValue(value) { return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true'; }
+  function cleanKey(value) { return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_\-]+/g, '_').replace(/^_+|_+$/g, ''); }
+  function rewards() { return asArray(state.rewards); }
+  function categories() { return asArray(state.categories); }
+  function pill(label, mode) { return `<span class="cp-pill ${esc(mode || '')}">${esc(label)}</span>`; }
+  function getField(name) { return root?.querySelector(`[data-cp-field="${name}"]`); }
+  function parseJson(value, fallback) { try { const parsed = typeof value === 'object' ? value : JSON.parse(String(value || '')); return parsed && typeof parsed === 'object' ? parsed : fallback; } catch (_) { return fallback; } }
+  function actionById(id) { return ACTIONS.find(item => item.id === id) || ACTIONS[0]; }
 
   function registerDashboardModule() {
     if (!window.CGN) return;
@@ -110,7 +63,7 @@ window.ChannelpointsModule = (function(){
       label: 'Kanalpunkte',
       icon: '🟣',
       enabled: true,
-      description: `Twitch-Kanalpunkte lokal verwalten; Dashboard v${UI_VERSION}.`
+      description: `Kanalpunkte verwalten · UI v${UI_VERSION}`
     };
     const communityItems = window.CGN.sections?.community?.items;
     if (Array.isArray(communityItems) && !communityItems.includes('channelpoints')) {
@@ -118,262 +71,205 @@ window.ChannelpointsModule = (function(){
       if (idx >= 0) communityItems.splice(idx, 0, 'channelpoints');
       else communityItems.push('channelpoints');
     }
-    if (Array.isArray(window.CGN.favorites) && !window.CGN.favorites.includes('channelpoints')) {
-      window.CGN.favorites.push('channelpoints');
-    }
   }
 
-  function asArray(value) { return Array.isArray(value) ? value : []; }
-  function rewards() { return asArray(state.rewards); }
-  function categories() { return asArray(state.categories); }
-
-  function boolValue(value) {
-    return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
+  function categoryByKey(key) { return categories().find(cat => String(cat.category_key) === String(key)) || null; }
+  function categoryLabel(key) { const cat = categoryByKey(key); return cat ? (cat.label || cat.category_key) : (key || 'Allgemein'); }
+  function selectedReward() {
+    if (!state.selectedKey) return null;
+    return rewards().find(item => String(item.reward_key) === state.selectedKey || String(item.id) === state.selectedKey) || null;
   }
 
-  function pill(label, mode) {
-    return `<span class="cp-pill ${esc(mode || '')}">${esc(label)}</span>`;
+  function actionForReward(reward) {
+    const actionType = String(reward?.action_type || 'manual');
+    const actionKey = String(reward?.action_key || '');
+    const mediaRole = String(reward?.media_role || '');
+    const payload = parseJson(reward?.action_payload || reward?.action_payload_json || '{}', {});
+    const mediaType = String(payload.mediaType || payload.type || '').toLowerCase();
+    if (actionType === 'media' && (actionKey.includes('video') || mediaRole === 'video' || mediaRole === 'animation' || mediaType === 'video')) return 'video_play';
+    if (actionType === 'media' && (actionKey.includes('audio') || actionKey.includes('sound') || mediaRole === 'sound' || mediaRole === 'audio' || mediaType === 'audio')) return 'sound_play';
+    if (actionType === 'chat_message' || actionKey === 'send_text') return 'text_only';
+    if (actionType === 'manual' && !actionKey && !mediaRole) return 'manual';
+    return 'custom';
   }
 
   function statusPills(reward) {
     return [
-      reward.system_enabled ? pill('lokal aktiv', 'ok') : pill('lokal aus', 'off'),
+      reward.system_enabled ? pill('aktiv', 'ok') : pill('aus', 'off'),
       reward.is_paused ? pill('pausiert', 'warn') : pill('bereit', 'neutral'),
       reward.twitch_is_enabled ? pill('Twitch aktiv', 'warn') : pill('Twitch aus', 'neutral')
     ].join('');
-  }
-
-  function actionMeta(type) {
-    return ACTION_TYPES.find(item => item.id === type) || ACTION_TYPES[0];
-  }
-
-  function categoryByKey(key) {
-    return categories().find(cat => String(cat.category_key) === String(key)) || null;
-  }
-
-  function selectedReward() {
-    const list = filteredRewards();
-    const all = rewards();
-    if (!all.length) return null;
-    if (state.selected && !state.selected.id) return state.selected;
-    if (state.selectedKey) {
-      const found = all.find(item => String(item.reward_key) === state.selectedKey || String(item.id) === state.selectedKey);
-      if (found) return found;
-    }
-    const fallback = list[0] || all[0];
-    state.selectedKey = String(fallback.reward_key || fallback.id || '');
-    return fallback;
-  }
-
-  function categoryOptions(selected) {
-    const cats = categories();
-    if (!cats.length) return '<option value="general">Allgemein</option>';
-    return cats.map(cat => `<option value="${esc(cat.category_key)}" ${cat.category_key === selected ? 'selected' : ''}>${esc(cat.label || cat.category_key)}</option>`).join('');
-  }
-
-  function filterOptions() {
-    const categoryItems = ['<option value="all">Alle Kategorien</option>']
-      .concat(categories().map(cat => `<option value="${esc(cat.category_key)}" ${state.categoryFilter === cat.category_key ? 'selected' : ''}>${esc(cat.label || cat.category_key)}</option>`));
-    const actionItems = ['<option value="all">Alle Aktionen</option>']
-      .concat(ACTION_TYPES.map(type => `<option value="${esc(type.id)}" ${state.actionFilter === type.id ? 'selected' : ''}>${esc(type.label)}</option>`));
-    return { categoryItems: categoryItems.join(''), actionItems: actionItems.join('') };
   }
 
   function filteredRewards() {
     const q = String(state.query || '').trim().toLowerCase();
     return rewards().filter(reward => {
       if (state.categoryFilter !== 'all' && String(reward.category_key) !== state.categoryFilter) return false;
-      if (state.actionFilter !== 'all' && String(reward.action_type || 'manual') !== state.actionFilter) return false;
       if (state.statusFilter === 'enabled' && !boolValue(reward.system_enabled)) return false;
       if (state.statusFilter === 'disabled' && boolValue(reward.system_enabled)) return false;
       if (state.statusFilter === 'paused' && !boolValue(reward.is_paused)) return false;
-      if (q) {
-        const haystack = [
-          reward.reward_key,
-          reward.title,
-          reward.prompt,
-          reward.category_key,
-          reward.action_type,
-          reward.action_key,
-          reward.notes
-        ].join(' ').toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      return true;
+      if (!q) return true;
+      const haystack = [reward.reward_key, reward.title, reward.prompt, reward.category_key, reward.action_type, reward.action_key, reward.notes].join(' ').toLowerCase();
+      return haystack.includes(q);
     });
   }
 
-  function getField(name) { return root?.querySelector(`[data-cp-field="${name}"]`); }
-
-  function friendlyActionById(id) {
-    return FRIENDLY_ACTIONS.find(item => item.id === id) || FRIENDLY_ACTIONS[0];
-  }
-
-  function friendlyActionForReward(reward) {
-    const actionType = String(reward?.action_type || 'manual').trim();
-    const actionKey = String(reward?.action_key || '').trim();
-    const mediaRole = String(reward?.media_role || '').trim();
-    const payload = parsePayloadObject(reward?.action_payload ?? reward?.action_payload_json, {});
-    const mediaType = String(payload.mediaType || payload.type || '').trim().toLowerCase();
-    if (actionType === 'manual' || (!actionType && !actionKey)) return 'manual';
-    if (actionType === 'media') {
-      if (actionKey.includes('video') || mediaRole === 'video' || mediaRole === 'animation' || mediaType === 'video') return 'video_play';
-      if (actionKey.includes('audio') || actionKey.includes('sound') || mediaRole === 'sound' || mediaRole === 'audio' || mediaType === 'audio') return 'sound_play';
+  function groupedRewards() {
+    const groups = new Map();
+    for (const reward of filteredRewards()) {
+      const key = reward.category_key || 'general';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(reward);
     }
-    return 'advanced';
+    return [...groups.entries()].sort((a, b) => String(categoryLabel(a[0])).localeCompare(String(categoryLabel(b[0]))));
   }
 
-  function friendlyActionOptions(selected) {
-    return FRIENDLY_ACTIONS.map(item => `<option value="${esc(item.id)}" ${item.id === selected ? 'selected' : ''}>${esc(item.label)}</option>`).join('');
+  function categoryOptions(selected, includeAll) {
+    const opts = includeAll ? [`<option value="all" ${selected === 'all' ? 'selected' : ''}>Alle Kategorien</option>`] : [];
+    const cats = categories().length ? categories() : [{ category_key:'general', label:'Allgemein' }];
+    return opts.concat(cats.map(cat => `<option value="${esc(cat.category_key)}" ${String(selected) === String(cat.category_key) ? 'selected' : ''}>${esc(cat.label || cat.category_key)}</option>`)).join('');
   }
 
-  function parsePayloadObject(value, fallback = {}) {
-    if (!value) return fallback;
-    if (typeof value === 'object') return value;
-    try {
-      const parsed = JSON.parse(String(value));
-      return parsed && typeof parsed === 'object' ? parsed : fallback;
-    } catch (_) {
-      return fallback;
-    }
-  }
-
-  function payloadFieldValue(name, fallback = '') {
-    const raw = String(getField('action_payload_json')?.value || '').trim();
-    const payload = parsePayloadObject(raw, {});
-    return payload[name] !== undefined && payload[name] !== null && payload[name] !== '' ? payload[name] : fallback;
-  }
-
-  function selectOptions(items, selected) {
-    return items.map(item => {
-      const value = typeof item === 'string' ? item : item.value;
-      const label = typeof item === 'string' ? item : item.label;
-      return `<option value="${esc(value)}" ${String(value) === String(selected) ? 'selected' : ''}>${esc(label)}</option>`;
-    }).join('');
-  }
-
-  function mediaBridgePayload(preset, basePayload = {}) {
-    if (!preset || !preset.needsMedia) return basePayload;
-    return {
-      ...basePayload,
-      mediaType: preset.mediaType,
-      type: preset.mediaType,
-      volume: Number(getField('media_volume')?.value || basePayload.volume || 80),
-      target: String(getField('media_target')?.value || basePayload.target || 'stream'),
-      outputTarget: String(getField('media_output_target')?.value || basePayload.outputTarget || 'overlay'),
-      queueIfBusy: String(getField('play_behavior')?.value || basePayload.playBehavior || 'immediate') !== 'immediate',
-      playBehavior: String(getField('play_behavior')?.value || basePayload.playBehavior || 'immediate')
-    };
-  }
-
-  function applyActionPresetToForm() {
-    const preset = friendlyActionById(String(getField('action_preset')?.value || 'manual'));
-    const technicalBox = root?.querySelector('[data-cp-technical-action]');
-    const mediaHelp = root?.querySelector('[data-cp-media-help]');
-    const executionHint = root?.querySelector('[data-cp-execution-hint]');
-    const mediaSettings = root?.querySelector('.cp-media-settings');
-    const mediaSection = root?.querySelector('#cp-media');
-    const actionType = getField('action_type');
-    const actionKey = getField('action_key');
-    const mediaRole = getField('media_role');
-    if (preset.id !== 'advanced') {
-      if (actionType) actionType.value = preset.actionType;
-      if (actionKey) actionKey.value = preset.actionKey;
-      if (mediaRole) mediaRole.value = preset.mediaRole;
-      const currentPayload = parsePayloadObject(getField('action_payload_json')?.value || '{}', {});
-      const nextPayload = mediaBridgePayload(preset, currentPayload);
-      if (preset.id === 'manual') {
-        getField('action_payload_json').value = '{}';
-      } else if (getField('action_payload_json')) {
-        getField('action_payload_json').value = JSON.stringify(nextPayload, null, 2);
-      }
-    }
-    if (technicalBox) technicalBox.hidden = preset.id !== 'advanced';
-    if (mediaHelp) {
-      mediaHelp.textContent = preset.needsMedia
-        ? `${preset.label}: Medium auswählen, der Rest wird automatisch als /api/sound/play Payload gespeichert.`
-        : preset.hint;
-    }
-    if (executionHint) executionHint.textContent = preset.needsMedia ? 'Ausführung: mediaId → /api/sound/play' : 'Keine automatische Medienausführung.';
-    if (mediaSettings) mediaSettings.hidden = !preset.needsMedia;
-    if (mediaSection) mediaSection.hidden = preset.id === 'manual';
-  }
-
-
-  function readForm() {
-    const preset = friendlyActionById(String(getField('action_preset')?.value || 'manual'));
-    const payloadRaw = String(getField('action_payload_json')?.value || '').trim();
-    let actionPayload = {};
-    if (payloadRaw) {
-      try { actionPayload = JSON.parse(payloadRaw); }
-      catch (err) { throw new Error(`Action-Payload JSON ungültig: ${err.message}`); }
-    }
-
-    let actionType = String(getField('action_type')?.value || 'manual').trim();
-    let actionKey = String(getField('action_key')?.value || '').trim();
-    let mediaRole = String(getField('media_role')?.value || 'none').trim();
-
-    if (preset.id !== 'advanced') {
-      actionType = preset.actionType;
-      actionKey = preset.actionKey;
-      mediaRole = preset.mediaRole;
-      actionPayload = preset.id === 'manual' ? {} : mediaBridgePayload(preset, actionPayload);
-    }
-
-    const mediaAssetId = String(getField('media_asset_id')?.value || '').trim();
-    if (preset.needsMedia && !mediaAssetId) throw new Error('Bitte zuerst ein Medium auswählen.');
-
-    return {
-      reward_key: String(getField('reward_key')?.value || '').trim(),
-      title: String(getField('title')?.value || '').trim(),
-      prompt: String(getField('prompt')?.value || '').trim(),
-      cost: Number(getField('cost')?.value || 0),
-      category_key: String(getField('category_key')?.value || 'general').trim(),
-      sort_order: Number(getField('sort_order')?.value || 100),
-      system_enabled: !!getField('system_enabled')?.checked,
-      is_paused: !!getField('is_paused')?.checked,
-      require_user_input: !!getField('require_user_input')?.checked,
-      input_label: String(getField('input_label')?.value || '').trim(),
-      action_type: actionType,
-      action_key: actionKey,
-      action_payload_json: JSON.stringify(actionPayload),
-      media_asset_id: mediaAssetId,
-      media_role: mediaRole,
-      queue_mode: String(getField('queue_mode')?.value || 'none').trim(),
-      priority: Number(getField('priority')?.value || 0),
-      cooldown_seconds: Number(getField('cooldown_seconds')?.value || 0),
-      max_per_stream: Number(getField('max_per_stream')?.value || 0),
-      max_per_user_per_stream: Number(getField('max_per_user_per_stream')?.value || 0),
-      auto_fulfill: !!getField('auto_fulfill')?.checked,
-      notes: String(getField('notes')?.value || '').trim()
-    };
+  function actionOptions(selected) {
+    const selectedAction = actionById(selected);
+    const normal = ACTIONS.map(item => `<option value="${esc(item.id)}" ${item.id === selected ? 'selected' : ''}>${esc(item.label)}</option>`).join('');
+    if (!ACTIONS.some(item => item.id === selected)) return `<option value="${esc(selected)}" selected>${esc(selectedAction.label)}</option>${normal}`;
+    return normal;
   }
 
   function blankReward() {
     return {
-      reward_key: '',
-      title: '',
-      prompt: '',
-      cost: 100,
-      category_key: 'general',
-      sort_order: 100,
-      system_enabled: true,
-      twitch_is_enabled: false,
-      is_paused: false,
-      require_user_input: false,
-      input_label: '',
-      action_type: 'manual',
-      action_key: '',
-      action_payload_json: '{}',
-      media_asset_id: '',
-      media_role: 'none',
-      queue_mode: 'none',
-      priority: 0,
-      cooldown_seconds: 0,
-      max_per_stream: 0,
-      max_per_user_per_stream: 0,
-      auto_fulfill: false,
-      notes: ''
+      reward_key:'', title:'', prompt:'', cost:100, category_key:'general', sort_order:100,
+      system_enabled:true, twitch_is_enabled:false, is_paused:false, require_user_input:false, input_label:'',
+      action_type:'media', action_key:'play_audio_media', action_payload_json:'{}', media_asset_id:'', media_role:'sound',
+      queue_mode:'none', priority:0, cooldown_seconds:0, max_per_stream:0, max_per_user_per_stream:0,
+      auto_fulfill:false, notes:'', _action:'sound_play'
+    };
+  }
+
+  function cloneReward(reward) {
+    const copy = JSON.parse(JSON.stringify(reward || blankReward()));
+    copy._action = actionForReward(copy);
+    return copy;
+  }
+
+  function openModal(mode, reward) {
+    const source = reward ? cloneReward(reward) : blankReward();
+    if (mode === 'copy') {
+      source.id = 0;
+      source.reward_key = `${source.reward_key || 'reward'}_kopie`;
+      source.title = `${source.title || 'Reward'} Kopie`;
+    }
+    state.modal = {
+      mode: mode === 'edit' ? 'edit' : 'create',
+      originalKey: reward?.reward_key || '',
+      originalId: reward?.id || 0,
+      draft: source
+    };
+    render();
+  }
+
+  function closeModal() { state.modal = null; render(); }
+
+  function syncDraftFromForm() {
+    if (!state.modal) return null;
+    const d = state.modal.draft;
+    const payloadRaw = String(getField('action_payload_json')?.value || '').trim();
+    d.reward_key = cleanKey(getField('reward_key')?.value || d.reward_key || '');
+    d.title = String(getField('title')?.value || '').trim();
+    d.prompt = String(getField('prompt')?.value || '').trim();
+    d.cost = Number(getField('cost')?.value || 100);
+    d.category_key = String(getField('category_key')?.value || 'general');
+    d.sort_order = Number(getField('sort_order')?.value || 100);
+    d.system_enabled = !!getField('system_enabled')?.checked;
+    d.is_paused = !!getField('is_paused')?.checked;
+    d.require_user_input = !!getField('require_user_input')?.checked;
+    d.input_label = String(getField('input_label')?.value || '').trim();
+    d.cooldown_seconds = Number(getField('cooldown_seconds')?.value || 0);
+    d.max_per_stream = Number(getField('max_per_stream')?.value || 0);
+    d.max_per_user_per_stream = Number(getField('max_per_user_per_stream')?.value || 0);
+    d.auto_fulfill = !!getField('auto_fulfill')?.checked;
+    d.notes = String(getField('notes')?.value || '').trim();
+    d._action = String(getField('action_choice')?.value || d._action || 'sound_play');
+    d.media_asset_id = String(getField('media_asset_id')?.value || '').trim();
+    d.media_role = String(getField('media_role')?.value || d.media_role || 'none');
+    d.action_type = String(getField('action_type')?.value || d.action_type || 'manual');
+    d.action_key = String(getField('action_key')?.value || d.action_key || '');
+    d.queue_mode = String(getField('queue_mode')?.value || d.queue_mode || 'none');
+    d.priority = Number(getField('priority')?.value || 0);
+    d.action_payload_json = payloadRaw || '{}';
+    return d;
+  }
+
+  function buildPayloadForSave() {
+    const d = syncDraftFromForm();
+    if (!d) throw new Error('Kein Reward geöffnet.');
+    if (!d.reward_key) throw new Error('Reward-Key fehlt.');
+    if (!d.title) throw new Error('Titel fehlt.');
+    if (!Number.isFinite(d.cost) || d.cost < 1) throw new Error('Kosten müssen mindestens 1 sein.');
+
+    const action = actionById(d._action);
+    let payload = parseJson(d.action_payload_json, {});
+    let actionType = d.action_type;
+    let actionKey = d.action_key;
+    let mediaRole = d.media_role;
+
+    if (d._action === 'sound_play' || d._action === 'video_play') {
+      if (!d.media_asset_id) throw new Error('Bitte zuerst ein Medium auswählen.');
+      actionType = 'media';
+      actionKey = action.actionKey;
+      mediaRole = action.mediaRole;
+      payload = {
+        ...payload,
+        mediaType: action.mediaType,
+        type: action.mediaType,
+        volume: Number(getField('media_volume')?.value || payload.volume || 80),
+        target: String(getField('media_target')?.value || payload.target || 'stream'),
+        outputTarget: String(getField('media_output_target')?.value || payload.outputTarget || 'overlay'),
+        playBehavior: String(getField('play_behavior')?.value || payload.playBehavior || 'immediate'),
+        queueIfBusy: String(getField('play_behavior')?.value || payload.playBehavior || 'immediate') === 'queue'
+      };
+    } else if (d._action === 'text_only') {
+      actionType = 'chat_message';
+      actionKey = 'send_text';
+      mediaRole = 'none';
+      payload = {
+        textMode: String(getField('text_mode')?.value || payload.textMode || 'single'),
+        text: String(getField('text_value')?.value || payload.text || ''),
+        textKey: String(getField('text_key')?.value || payload.textKey || ''),
+        selection: String(getField('text_selection')?.value || payload.selection || 'random')
+      };
+      if (payload.textMode === 'single' && !payload.text) throw new Error('Bitte einen Text eintragen.');
+    } else if (d._action === 'manual') {
+      actionType = 'manual';
+      actionKey = '';
+      mediaRole = 'none';
+      payload = {};
+    }
+
+    return {
+      reward_key:d.reward_key,
+      title:d.title,
+      prompt:d.prompt,
+      cost:d.cost,
+      category_key:d.category_key,
+      sort_order:d.sort_order,
+      system_enabled:d.system_enabled,
+      is_paused:d.is_paused,
+      require_user_input:d.require_user_input,
+      input_label:d.input_label,
+      action_type:actionType,
+      action_key:actionKey,
+      action_payload_json:JSON.stringify(payload),
+      media_asset_id:d._action === 'manual' || d._action === 'text_only' ? '' : d.media_asset_id,
+      media_role:mediaRole,
+      queue_mode:d.queue_mode,
+      priority:d.priority,
+      cooldown_seconds:d.cooldown_seconds,
+      max_per_stream:d.max_per_stream,
+      max_per_user_per_stream:d.max_per_user_per_stream,
+      auto_fulfill:d.auto_fulfill,
+      notes:d.notes
     };
   }
 
@@ -381,11 +277,9 @@ window.ChannelpointsModule = (function(){
     root = document.getElementById('channelpointsModule');
     if (!root || !window.CGN) return;
     if (!force && state.status) { render(); return; }
-
     state.loading = true;
     state.error = '';
     render();
-
     try {
       const [status, cats, rewardsRes] = await Promise.all([
         window.CGN.api(api.status),
@@ -400,40 +294,36 @@ window.ChannelpointsModule = (function(){
       state.loading = false;
       state.error = err.message || String(err);
     }
-
     render();
   }
 
   async function saveReward() {
-    const payload = readForm();
-    if (!payload.reward_key) throw new Error('reward_key fehlt.');
-    if (!payload.title) throw new Error('Titel fehlt.');
-    if (!Number.isFinite(payload.cost) || payload.cost < 1) throw new Error('Kosten müssen mindestens 1 sein.');
-
-    const exists = rewards().some(item => String(item.reward_key) === payload.reward_key);
-    const url = exists ? `${api.rewards}/${encodeURIComponent(payload.reward_key)}` : api.rewards;
-    const method = exists ? 'PUT' : 'POST';
-
+    const payload = buildPayloadForSave();
+    const isEdit = state.modal?.mode === 'edit';
+    const target = isEdit ? (state.modal.originalId || state.modal.originalKey || payload.reward_key) : '';
+    const url = isEdit ? `${api.rewards}/${encodeURIComponent(target)}` : api.rewards;
+    const method = isEdit ? 'PUT' : 'POST';
     const result = await window.CGN.api(url, { method, body: JSON.stringify(payload) });
-    state.notice = exists ? 'Reward lokal aktualisiert.' : 'Reward lokal erstellt.';
+    state.notice = isEdit ? `Reward ${payload.reward_key} aktualisiert.` : `Reward ${payload.reward_key} erstellt.`;
     state.selectedKey = result.reward?.reward_key || payload.reward_key;
-    state.selected = null;
+    state.modal = null;
     await loadAll(true);
   }
 
-  async function disableReward(key) {
-    await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/disable`, { method: 'POST', body: '{}' });
-    state.notice = 'Reward lokal deaktiviert. Twitch wird aktuell nicht verändert.';
-    state.selectedKey = key;
-    state.selected = null;
+  async function deleteReward(key) {
+    const reward = rewards().find(item => String(item.reward_key) === String(key) || String(item.id) === String(key));
+    const label = reward ? `${reward.title || reward.reward_key} (${reward.reward_key})` : key;
+    if (!window.confirm(`Reward wirklich lokal löschen?\n\n${label}\n\nTwitch wird dadurch nicht verändert.`)) return;
+    await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/delete`, { method:'POST', body:'{}' });
+    state.notice = `Reward ${label} lokal gelöscht.`;
+    if (state.selectedKey === key) state.selectedKey = '';
+    state.modal = null;
     await loadAll(true);
   }
 
-  async function enableReward(key) {
-    await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/enable`, { method: 'POST', body: '{}' });
-    state.notice = 'Reward lokal aktiviert. Twitch wird aktuell nicht verändert.';
-    state.selectedKey = key;
-    state.selected = null;
+  async function toggleReward(key, enabled) {
+    await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/${enabled ? 'enable' : 'disable'}`, { method:'POST', body:'{}' });
+    state.notice = enabled ? 'Reward lokal aktiviert.' : 'Reward lokal deaktiviert.';
     await loadAll(true);
   }
 
@@ -444,452 +334,162 @@ window.ChannelpointsModule = (function(){
     await loadAll(true);
   }
 
-
-  async function checkSelectedExecution() {
-    const reward = selectedReward();
-    const key = reward?.reward_key || state.selectedKey;
-    if (!key) throw new Error('Kein Reward ausgewählt.');
+  async function checkReward(key) {
     const data = await window.CGN.api(`${api.mediaExecutionCheck}?reward=${encodeURIComponent(key)}`);
-    state.notice = data.executable ? 'Ausführung geprüft: Reward kann über /api/sound/play ausgeführt werden.' : 'Ausführung geprüft: Reward ist noch nicht ausführbar.';
     state.busResult = data;
+    state.notice = data.executable ? 'Ausführung geprüft: Reward kann über /api/sound/play ausgeführt werden.' : 'Ausführung geprüft: Reward ist noch nicht ausführbar.';
     render();
   }
 
-  async function executeSelectedReward() {
-    const reward = selectedReward();
-    const key = reward?.reward_key || state.selectedKey;
-    if (!key) throw new Error('Kein Reward ausgewählt.');
-    const data = await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/execute`, {
-      method: 'POST',
-      body: JSON.stringify({ userLogin: 'dashboard', userDisplayName: 'Dashboard' })
-    });
-    state.notice = data.executed ? 'Reward-Test ausgeführt.' : 'Reward-Test konnte nicht ausgeführt werden.';
+  async function executeReward(key) {
+    const data = await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/execute`, { method:'POST', body:JSON.stringify({ userLogin:'dashboard', userDisplayName:'Dashboard' }) });
     state.busResult = data;
+    state.notice = data.ok ? 'Reward-Test ausgeführt.' : 'Reward-Test konnte nicht ausgeführt werden.';
     await loadAll(true);
   }
 
-  function setTab(tab) {
-    state.tab = tab;
-    render();
-  }
-
   function renderHeader() {
-    return `
-      <div class="cp-header">
-        <div>
-          <p class="cp-kicker">Kanalpunkte-System</p>
-          <h2>Twitch-Kanalpunkte</h2>
-          <p>Gleiches Bedienmuster wie Commands: suchen, filtern, links auswählen, rechts bearbeiten. Dashboard v${UI_VERSION} · ${UI_BUILD}</p>
-        </div>
-        <div class="cp-header-actions">
-          <button type="button" data-cp-action="reload">Neu laden</button>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderTabs() {
-    const tabs = [
-      ['overview', 'Übersicht'],
-      ['rewards', 'Rewards'],
-      ['categories', 'Kategorien'],
-      ['actions', 'Aktionen'],
-      ['media', 'Medien'],
-      ['redemptions', 'Einlösungen'],
-      ['twitch', 'Twitch Sync']
-    ];
-    return `
-      <div class="cp-tabs" role="tablist">
-        ${tabs.map(([id, label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-cp-tab="${id}">${esc(label)}</button>`).join('')}
-      </div>
-    `;
+    const status = state.status || {};
+    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Analog zum Commands-Editor: suchen, gruppieren, neu erstellen, bearbeiten, löschen. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
   }
 
   function renderToolbar() {
-    const filters = filterOptions();
-    return `
-      <section class="cp-toolbar">
-        <label>Suche
-          <input data-cp-control="query" type="search" placeholder="Reward, Key, Kategorie, Aktion suchen..." value="${esc(state.query)}">
-        </label>
-        <label>Kategorie
-          <select data-cp-control="categoryFilter">${filters.categoryItems}</select>
-        </label>
-        <label>Status
-          <select data-cp-control="statusFilter">
-            <option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle Status</option>
-            <option value="enabled" ${state.statusFilter === 'enabled' ? 'selected' : ''}>Lokal aktiv</option>
-            <option value="disabled" ${state.statusFilter === 'disabled' ? 'selected' : ''}>Lokal aus</option>
-            <option value="paused" ${state.statusFilter === 'paused' ? 'selected' : ''}>Pausiert</option>
-          </select>
-        </label>
-        <label>Aktion
-          <select data-cp-control="actionFilter">${filters.actionItems}</select>
-        </label>
-        <button type="button" data-cp-action="new">Neuer Reward</button>
-      </section>
-    `;
+    const direct = ['<option value="">Reward direkt wählen</option>'].concat(rewards().map(r => `<option value="${esc(r.reward_key)}" ${state.selectedKey === r.reward_key ? 'selected' : ''}>${esc(r.title || r.reward_key)} — ${esc(actionById(actionForReward(r)).short)}</option>`)).join('');
+    return `<section class="cp-toolbar cp-commandlike-toolbar">
+      <label>Reward suchen <span class="cp-help" title="Sucht in Key, Titel, Prompt, Kategorie, Aktion und Notizen.">?</span><input data-cp-control="query" type="search" placeholder="z. B. sound, video, vip, test..." value="${esc(state.query)}"></label>
+      <label>Kategorie <span class="cp-help" title="Filtert die Liste nach lokaler Kategorie.">?</span><select data-cp-control="categoryFilter">${categoryOptions(state.categoryFilter, true)}</select></label>
+      <label>Status <span class="cp-help" title="Filtert nach lokal aktiv, aus oder pausiert.">?</span><select data-cp-control="statusFilter"><option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle Status</option><option value="enabled" ${state.statusFilter === 'enabled' ? 'selected' : ''}>Lokal aktiv</option><option value="disabled" ${state.statusFilter === 'disabled' ? 'selected' : ''}>Lokal aus</option><option value="paused" ${state.statusFilter === 'paused' ? 'selected' : ''}>Pausiert</option></select></label>
+      <label>Reward direkt wählen <span class="cp-help" title="Springt direkt zum Reward in der Liste.">?</span><select data-cp-control="directSelect">${direct}</select></label>
+      <button type="button" data-cp-action="new">+ Neuer Reward</button>
+    </section>`;
   }
 
   function renderOverview() {
     const status = state.status || {};
-    const localState = status.localState || {};
-    const bus = status.bus || {};
-    const activeCount = rewards().filter(item => boolValue(item.system_enabled)).length;
-    const pausedCount = rewards().filter(item => boolValue(item.is_paused)).length;
-    return `
-      <div class="cp-grid cp-stats">
-        <div class="cp-card"><small>Backend</small><strong>${esc(status.moduleVersion || '-')}</strong><span>${esc(status.mode || '-')}</span></div>
-        <div class="cp-card"><small>Rewards</small><strong>${esc(localState.rewardCount ?? rewards().length)}</strong><span>${activeCount} lokal aktiv · ${pausedCount} pausiert</span></div>
-        <div class="cp-card"><small>Kategorien</small><strong>${esc(localState.categoryCount ?? categories().length)}</strong><span>lokal aus DB</span></div>
-        <div class="cp-card"><small>Bus</small><strong>${bus.registered ? 'OK' : 'Nein'}</strong><span>${esc(bus.subscriptionCount ?? 0)} Subscription(s)</span></div>
+    const active = rewards().filter(r => r.system_enabled).length;
+    const paused = rewards().filter(r => r.is_paused).length;
+    const executable = rewards().filter(r => ['sound_play','video_play'].includes(actionForReward(r)) && r.media_asset_id).length;
+    return `<div class="cp-grid cp-stats"><div class="cp-card"><small>Backend</small><strong>${esc(status.moduleVersion || '-')}</strong><span>${esc(status.moduleBuild || '-')}</span></div><div class="cp-card"><small>Rewards</small><strong>${rewards().length}</strong><span>${active} aktiv · ${paused} pausiert</span></div><div class="cp-card"><small>Medien-Rewards</small><strong>${executable}</strong><span>mit Media-ID</span></div><div class="cp-card"><small>Kategorien</small><strong>${categories().length}</strong><span>lokal</span></div></div>`;
+  }
+
+  function renderRewardCard(reward) {
+    const action = actionById(actionForReward(reward));
+    return `<article class="cp-reward-card ${state.selectedKey === reward.reward_key ? 'active' : ''}" data-cp-card="${esc(reward.reward_key)}">
+      <div class="cp-reward-main"><strong>${esc(reward.title || reward.reward_key)}</strong><small>${esc(reward.reward_key)} · ${esc(reward.cost)} Punkte · ${esc(categoryLabel(reward.category_key))}</small></div>
+      <div class="cp-reward-badges">${pill(action.label.replace(/^..\s*/, ''), 'neutral')} ${statusPills(reward)}</div>
+      <div class="cp-reward-actions">
+        <button type="button" data-cp-action="edit" data-key="${esc(reward.reward_key)}">Bearbeiten</button>
+        <button type="button" data-cp-action="copy" data-key="${esc(reward.reward_key)}">Kopieren</button>
+        ${reward.system_enabled ? `<button type="button" data-cp-action="disable" data-key="${esc(reward.reward_key)}">Deaktivieren</button>` : `<button type="button" data-cp-action="enable" data-key="${esc(reward.reward_key)}">Aktivieren</button>`}
+        <button type="button" class="danger" data-cp-action="delete" data-key="${esc(reward.reward_key)}">Löschen</button>
       </div>
-      <div class="cp-note">
-        <strong>Dashboard-Muster:</strong> Kanalpunkte und Commands sollen gleich aufgebaut sein. Links Suche/Liste, rechts Detailbearbeitung. Twitch-Schreibaktionen bleiben deaktiviert.
-      </div>
-    `;
+    </article>`;
   }
 
-  function renderRewardList() {
-    const list = filteredRewards();
-    return `
-      <section class="cp-panel cp-list-panel">
-        <div class="cp-panel-head">
-          <h3>Rewards</h3>
-          <span>${list.length}/${rewards().length}</span>
-        </div>
-        <div class="cp-reward-list">
-          ${list.map(reward => {
-            const action = actionMeta(reward.action_type || 'manual');
-            const cat = categoryByKey(reward.category_key);
-            return `
-              <button type="button" class="cp-reward ${state.selectedKey === reward.reward_key ? 'active' : ''}" data-cp-select="${esc(reward.reward_key)}">
-                <span>
-                  <strong>${esc(reward.title || reward.reward_key)}</strong>
-                  <small>${esc(reward.reward_key)} · ${esc(reward.cost)} Punkte · ${esc(cat?.label || reward.category_key || '-')}</small>
-                </span>
-                <span class="cp-reward-flags">
-                  ${pill(action.label, 'neutral')}
-                  ${statusPills(reward)}
-                </span>
-              </button>
-            `;
-          }).join('') || '<div class="cp-empty">Keine Rewards für diesen Filter.</div>'}
-        </div>
-      </section>
-    `;
+  function renderRewardGroups() {
+    const groups = groupedRewards();
+    const total = filteredRewards().length;
+    return `<section class="cp-panel"><div class="cp-panel-head"><h3>Rewards nach Kategorien</h3><span>${total}/${rewards().length} Rewards</span></div>
+      <div class="cp-group-list">${groups.map(([key, list]) => `<div class="cp-group"><h4>${esc(categoryLabel(key))}</h4>${list.map(renderRewardCard).join('')}</div>`).join('') || '<div class="cp-empty">Keine Rewards für diesen Filter.</div>'}</div>
+    </section>`;
   }
 
-  function renderCategories() {
-    return `
-      <section class="cp-panel">
-        <div class="cp-panel-head"><h3>Kategorien</h3><span>${categories().length} Einträge</span></div>
-        <div class="cp-category-grid">
-          ${categories().map(cat => {
-            const count = rewards().filter(item => item.category_key === cat.category_key).length;
-            return `
-              <div class="cp-category">
-                <strong>${esc(cat.label || cat.category_key)}</strong>
-                <small>${esc(cat.category_key)} · Sortierung ${esc(cat.sort_order)} · ${count} Reward(s)</small>
-                ${cat.enabled ? pill('aktiv', 'ok') : pill('inaktiv', 'off')}
-              </div>
-            `;
-          }).join('') || '<div class="cp-empty">Keine Kategorien gefunden.</div>'}
-        </div>
-      </section>
-    `;
+  function renderPayloadValue(name, fallback) {
+    const d = state.modal?.draft || {};
+    const payload = parseJson(d.action_payload || d.action_payload_json || '{}', {});
+    return payload[name] !== undefined && payload[name] !== null ? payload[name] : fallback;
   }
 
-  function renderActionGuide() {
-    return `
-      <section class="cp-panel">
-        <div class="cp-panel-head"><h3>Aktionen</h3><span>benutzerfreundliche Auswahl</span></div>
-        <div class="cp-action-grid">
-          ${FRIENDLY_ACTIONS.map(item => `
-            <div class="cp-action-card">
-              <strong>${esc(item.label)}</strong>
-              <code>${esc(item.id)}</code>
-              <small>${esc(item.hint)}</small>
-            </div>
-          `).join('')}
-        </div>
-      </section>
-    `;
+  function renderModal() {
+    if (!state.modal) return '';
+    const d = state.modal.draft || blankReward();
+    const actionId = d._action || actionForReward(d);
+    const action = actionById(actionId);
+    const isEdit = state.modal.mode === 'edit';
+    const payload = parseJson(d.action_payload || d.action_payload_json || '{}', {});
+    return `<div class="cp-modal-backdrop" role="dialog" aria-modal="true"><div class="cp-modal">
+      <div class="cp-modal-head"><div><p class="cp-kicker">${isEdit ? 'Reward bearbeiten' : 'Neuer Reward'}</p><h3>${esc(isEdit ? (d.title || d.reward_key) : 'Reward erstellen')}</h3></div><button type="button" class="cp-modal-close" data-cp-action="modal-close">×</button></div>
+
+      <section class="cp-editor-section"><h4>Basis</h4><div class="cp-form-grid">
+        <label>Reward-Key <span class="cp-help" title="Interner eindeutiger Schlüssel, z. B. sound_hype oder video_party.">?</span><input data-cp-field="reward_key" value="${esc(d.reward_key || '')}" placeholder="z. B. sound_hype"></label>
+        <label>Titel <span class="cp-help" title="Name, der im Dashboard und später bei Twitch sichtbar ist.">?</span><input data-cp-field="title" value="${esc(d.title || '')}" placeholder="z. B. Hype-Sound"></label>
+        <label>Kosten <span class="cp-help" title="Kanalpunkte-Kosten. Twitch-Sync kommt später.">?</span><input type="number" min="1" data-cp-field="cost" value="${esc(d.cost || 100)}"></label>
+        <label>Kategorie <span class="cp-help" title="Gruppiert Rewards im Dashboard.">?</span><select data-cp-field="category_key">${categoryOptions(d.category_key || 'general', false)}</select></label>
+        <label>Sortierung <span class="cp-help" title="Kleinere Zahl steht weiter oben.">?</span><input type="number" data-cp-field="sort_order" value="${esc(d.sort_order ?? 100)}"></label>
+        <label>Input-Label <span class="cp-help" title="Optionaler Hinweis, wenn User eine Eingabe machen sollen.">?</span><input data-cp-field="input_label" value="${esc(d.input_label || '')}"></label>
+      </div><label class="cp-wide">Prompt <span class="cp-help" title="Beschreibung/Hinweistext für den Reward.">?</span><textarea rows="2" data-cp-field="prompt">${esc(d.prompt || '')}</textarea></label></section>
+
+      <section class="cp-editor-section"><h4>Aktion</h4><div class="cp-form-grid">
+        <label>Was soll passieren? <span class="cp-help" title="Wähle die Hauptaktion. Die passende Maske erscheint direkt darunter.">?</span><select data-cp-field="action_choice">${actionOptions(actionId)}</select></label>
+      </div>${renderActionMask(action, d, payload)}</section>
+
+      <section class="cp-editor-section"><h4>Regeln</h4><div class="cp-form-grid">
+        <label>Cooldown Sekunden <span class="cp-help" title="Lokale Sperre nach Einlösung. 0 = aus.">?</span><input type="number" min="0" data-cp-field="cooldown_seconds" value="${esc(d.cooldown_seconds ?? 0)}"></label>
+        <label>Max pro Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_stream" value="${esc(d.max_per_stream ?? 0)}"></label>
+        <label>Max pro User/Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_user_per_stream" value="${esc(d.max_per_user_per_stream ?? 0)}"></label>
+      </div><div class="cp-checks"><label><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> lokal aktiv</label><label><input type="checkbox" data-cp-field="is_paused" ${boolValue(d.is_paused) ? 'checked' : ''}> pausiert</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label><label><input type="checkbox" data-cp-field="auto_fulfill" ${boolValue(d.auto_fulfill) ? 'checked' : ''}> später auto-fulfill</label></div></section>
+
+      <label class="cp-wide cp-notes-label">Notizen<textarea rows="2" data-cp-field="notes">${esc(d.notes || '')}</textarea></label>
+
+      <div class="cp-modal-actions"><button type="button" data-cp-action="save">${isEdit ? 'Speichern' : 'Erstellen'}</button>${isEdit ? `<button type="button" data-cp-action="delete" data-key="${esc(d.reward_key)}" class="danger">Löschen</button>` : ''}<button type="button" data-cp-action="modal-close">Abbrechen</button></div>
+    </div></div>`;
   }
 
-  function renderMediaGuide() {
-    return `
-      <section class="cp-panel">
-        <div class="cp-panel-head"><h3>Medien</h3><span>bestehendes Media-System</span></div>
-        <div class="cp-note">
-          Uploads laufen ausschließlich über die vorhandene Medienverwaltung. Kanalpunkte speichern nur <code>media_asset_id</code> und <code>media_role</code>.
-        </div>
-        <button type="button" data-cp-action="open-media">Medienverwaltung öffnen</button>
-      </section>
-    `;
-  }
-
-  function renderPreparedTab(title, text) {
-    return `
-      <section class="cp-panel">
-        <div class="cp-panel-head"><h3>${esc(title)}</h3><span>vorbereitet</span></div>
-        <div class="cp-empty">${esc(text)}</div>
-      </section>
-    `;
-  }
-
-  function renderEditor() {
-    const reward = state.selected || selectedReward() || blankReward();
-    const isNew = !reward.id;
-    const payload = typeof reward.action_payload === 'object' && reward.action_payload
-      ? JSON.stringify(reward.action_payload, null, 2)
-      : String(reward.action_payload_json || '{}');
-    const action = actionMeta(reward.action_type || 'manual');
-
-    return `
-      <section class="cp-panel cp-editor">
-        <div class="cp-panel-head">
-          <h3>${isNew ? 'Neuer Reward' : 'Reward bearbeiten'}</h3>
-          <span>${isNew ? 'lokal erstellen' : `ID ${esc(reward.id)}`}</span>
-        </div>
-
-        <div class="cp-subtabs">
-          <a href="#cp-core">Basis</a>
-          <a href="#cp-action">Aktion</a>
-          <a href="#cp-media">Medien</a>
-          <a href="#cp-rules">Regeln</a>
-        </div>
-
-        <div id="cp-core" class="cp-editor-section">
-          <h4>Basis</h4>
-          <div class="cp-form-grid">
-            <label>Key<input data-cp-field="reward_key" value="${esc(reward.reward_key)}" ${isNew ? '' : 'readonly'}></label>
-            <label>Titel<input data-cp-field="title" value="${esc(reward.title)}"></label>
-            <label>Kosten<input data-cp-field="cost" type="number" min="1" value="${esc(reward.cost || 100)}"></label>
-            <label>Kategorie<select data-cp-field="category_key">${categoryOptions(reward.category_key || 'general')}</select></label>
-            <label>Sortierung<input data-cp-field="sort_order" type="number" value="${esc(reward.sort_order ?? 100)}"></label>
-            <label>Input-Label<input data-cp-field="input_label" value="${esc(reward.input_label || '')}"></label>
-          </div>
-          <label class="cp-wide">Prompt<textarea data-cp-field="prompt" rows="2">${esc(reward.prompt || '')}</textarea></label>
-        </div>
-
-        <div id="cp-action" class="cp-editor-section cp-friendly-action">
-          <h4>Aktion</h4>
-          <div class="cp-action-choice">
-            <label>Was soll passieren?
-              <select data-cp-field="action_preset">
-                ${friendlyActionOptions(friendlyActionForReward(reward))}
-              </select>
-            </label>
-            <div class="cp-action-explain">
-              <strong data-cp-execution-hint>${friendlyActionById(friendlyActionForReward(reward)).needsMedia ? 'Ausführung: mediaId → /api/sound/play' : 'Keine automatische Medienausführung.'}</strong>
-              <span>${esc(friendlyActionById(friendlyActionForReward(reward)).hint)}</span>
-            </div>
-          </div>
-
-          <div class="cp-form-grid cp-media-settings">
-            <label>Lautstärke
-              <input data-cp-field="media_volume" type="number" min="0" max="100" value="${esc(payloadFieldValue('volume', 80))}">
-            </label>
-            <label>Ausgabe
-              <select data-cp-field="media_output_target">
-                ${selectOptions([{value:'overlay',label:'OBS Overlay'}, {value:'device',label:'Audiogerät'}, {value:'both',label:'Overlay + Gerät'}], payloadFieldValue('outputTarget', 'overlay'))}
-              </select>
-            </label>
-            <label>Ziel
-              <select data-cp-field="media_target">
-                ${selectOptions([{value:'stream',label:'Stream'}, {value:'discord',label:'Discord'}, {value:'both',label:'Stream + Discord'}], payloadFieldValue('target', 'stream'))}
-              </select>
-            </label>
-            <label>Verhalten
-              <select data-cp-field="play_behavior">
-                ${selectOptions([{value:'immediate',label:'Sofort starten'}, {value:'queue',label:'In Warteschlange'}, {value:'busy_only',label:'Nur wenn frei'}], payloadFieldValue('playBehavior', 'immediate'))}
-              </select>
-            </label>
-          </div>
-
-          <details class="cp-advanced-box" data-cp-technical-action ${friendlyActionForReward(reward) === 'advanced' ? 'open' : ''}>
-            <summary>Erweitert: technische Felder anzeigen</summary>
-            <div class="cp-form-grid">
-              <label>Action-Typ
-                <select data-cp-field="action_type">
-                  ${ACTION_TYPES.map(type => `<option value="${type.id}" ${reward.action_type === type.id ? 'selected' : ''}>${esc(type.label)}</option>`).join('')}
-                </select>
-              </label>
-              <label>Action-Key<input data-cp-field="action_key" value="${esc(reward.action_key || '')}"></label>
-              <label>Queue
-                <select data-cp-field="queue_mode">
-                  ${['none','single','queue','replace'].map(type => `<option value="${type}" ${reward.queue_mode === type ? 'selected' : ''}>${type}</option>`).join('')}
-                </select>
-              </label>
-              <label>Priorität<input data-cp-field="priority" type="number" value="${esc(reward.priority ?? 0)}"></label>
-            </div>
-            <label class="cp-wide">Action-Payload JSON<textarea data-cp-field="action_payload_json" rows="5">${esc(payload)}</textarea></label>
-          </details>
-        </div>
-
-        <div id="cp-media" class="cp-editor-section">
-          <h4>Medium</h4>
-          <p class="cp-inline-help" data-cp-media-help>${friendlyActionById(friendlyActionForReward(reward)).hint}</p>
-          <div class="cp-form-grid cp-media-id-row">
-            <label>Ausgewähltes Medium<input data-cp-field="media_asset_id" id="cpMediaAssetId" value="${esc(reward.media_asset_id || '')}" placeholder="Noch kein Medium ausgewählt" readonly></label>
-            <label>Media-Rolle
-              <select data-cp-field="media_role">
-                ${['none','sound','image','video','overlay','animation'].map(type => `<option value="${type}" ${reward.media_role === type ? 'selected' : ''}>${type}</option>`).join('')}
-              </select>
-            </label>
-          </div>
-          <div class="cp-media-box cp-friendly-media">
-            <div data-media-field data-module-key="channelpoints" data-allowed-types="${esc(friendlyActionById(friendlyActionForReward(reward)).allowedTypes)}" data-title="Kanalpunkte-Medium auswählen" data-value-input="#cpMediaAssetId"></div>
-            <div class="cp-media-actions">
-              <button type="button" data-cp-action="open-media">Medienverwaltung öffnen</button>
-              <button type="button" data-cp-action="clear-media">Medium entfernen</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="cp-rules" class="cp-editor-section">
-          <h4>Regeln</h4>
-          <div class="cp-form-grid">
-            <label>Cooldown Sekunden<input data-cp-field="cooldown_seconds" type="number" min="0" value="${esc(reward.cooldown_seconds ?? 0)}"></label>
-            <label>Max pro Stream<input data-cp-field="max_per_stream" type="number" min="0" value="${esc(reward.max_per_stream ?? 0)}"></label>
-            <label>Max pro User/Stream<input data-cp-field="max_per_user_per_stream" type="number" min="0" value="${esc(reward.max_per_user_per_stream ?? 0)}"></label>
-          </div>
-          <div class="cp-checks">
-            <label><input data-cp-field="system_enabled" type="checkbox" ${boolValue(reward.system_enabled) ? 'checked' : ''}> lokal aktiv</label>
-            <label><input data-cp-field="is_paused" type="checkbox" ${boolValue(reward.is_paused) ? 'checked' : ''}> pausiert</label>
-            <label><input data-cp-field="require_user_input" type="checkbox" ${boolValue(reward.require_user_input) ? 'checked' : ''}> User-Eingabe</label>
-            <label><input data-cp-field="auto_fulfill" type="checkbox" ${boolValue(reward.auto_fulfill) ? 'checked' : ''}> später auto-fulfill</label>
-          </div>
-        </div>
-
-        <label class="cp-wide">Notizen<textarea data-cp-field="notes" rows="2">${esc(reward.notes || '')}</textarea></label>
-
-        <div class="cp-actions">
-          <button type="button" data-cp-action="save">${isNew ? 'Lokal erstellen' : 'Speichern'}</button>
-          ${!isNew && reward.system_enabled ? `<button type="button" data-cp-action="disable" data-key="${esc(reward.reward_key)}">Lokal deaktivieren</button>` : ''}
-          ${!isNew && !reward.system_enabled ? `<button type="button" data-cp-action="enable" data-key="${esc(reward.reward_key)}">Lokal aktivieren</button>` : ''}
-          ${!isNew ? '<button type="button" data-cp-action="execution-check">Ausführung prüfen</button>' : ''}
-          ${!isNew ? '<button type="button" data-cp-action="execute-test">Reward testen</button>' : ''}
-          <button type="button" data-cp-action="bus-test">Bus-Test</button>
-        </div>
-        <div class="cp-note cp-warning">Twitch wird aktuell nicht verändert. Deaktivieren ist weiterhin nur lokal; Medienausführung läuft über /api/sound/play.</div>
-      </section>
-    `;
-  }
-
-  function renderActiveContent() {
-    if (state.tab === 'overview') return renderOverview();
-    if (state.tab === 'categories') return renderCategories();
-    if (state.tab === 'actions') return renderActionGuide();
-    if (state.tab === 'media') return renderMediaGuide();
-    if (state.tab === 'redemptions') return renderPreparedTab('Einlösungen / Queue', 'Redemption-History und Warteschlange kommen später nach Twitch/EventSub-Anbindung.');
-    if (state.tab === 'twitch') return renderPreparedTab('Twitch Sync', 'Twitch Rewards lesen/erstellen/aktualisieren/deaktivieren kommt erst in späteren Steps mit Scope-Prüfung.');
-    return '';
-  }
-
-  function renderWorkArea() {
-    if (state.tab === 'rewards' || state.tab === 'overview') {
-      return `
-        <div class="cp-layout">
-          <div>${renderRewardList()}</div>
-          ${renderEditor()}
-        </div>
-      `;
+  function renderActionMask(action, d, payload) {
+    if (action.id === 'sound_play' || action.id === 'video_play') {
+      return `<div class="cp-action-mask"><h5>${esc(action.label)}</h5><p>${esc(action.hint)}</p><div class="cp-form-grid">
+        <label>Medium <span class="cp-help" title="Wähle ein bestehendes Medium aus der zentralen Medienverwaltung.">?</span><input data-cp-field="media_asset_id" id="cpMediaAssetId" value="${esc(d.media_asset_id || '')}" placeholder="Noch kein Medium gewählt" readonly></label>
+        <label>Lautstärke <span class="cp-help" title="0-100 Prozent.">?</span><input type="number" min="0" max="100" data-cp-field="media_volume" value="${esc(payload.volume ?? 80)}"></label>
+        <label>Ziel <span class="cp-help" title="Wo soll das Medium ausgegeben werden?">?</span><select data-cp-field="media_target"><option value="stream" ${payload.target !== 'discord' && payload.target !== 'both' ? 'selected' : ''}>Stream</option><option value="discord" ${payload.target === 'discord' ? 'selected' : ''}>Discord</option><option value="both" ${payload.target === 'both' ? 'selected' : ''}>Stream + Discord</option></select></label>
+        <label>Verhalten <span class="cp-help" title="Sofort starten oder in Warteschlange einordnen.">?</span><select data-cp-field="play_behavior"><option value="immediate" ${payload.playBehavior !== 'queue' && payload.playBehavior !== 'busy_only' ? 'selected' : ''}>Sofort starten</option><option value="queue" ${payload.playBehavior === 'queue' ? 'selected' : ''}>In Warteschlange</option><option value="busy_only" ${payload.playBehavior === 'busy_only' ? 'selected' : ''}>Nur wenn frei</option></select></label>
+        <input type="hidden" data-cp-field="media_output_target" value="${esc(payload.outputTarget || 'overlay')}"><input type="hidden" data-cp-field="media_role" value="${esc(action.mediaRole)}">
+      </div><div class="cp-media-box"><div data-media-field data-module-key="channelpoints" data-allowed-types="${esc(action.allowedTypes)}" data-title="Kanalpunkte-Medium auswählen" data-value-input="#cpMediaAssetId"></div><button type="button" data-cp-action="open-media">Medienverwaltung öffnen</button><button type="button" data-cp-action="clear-media">Medium entfernen</button></div><small>Ausführung später: mediaId → /api/sound/play.</small>${renderAdvancedFields(d, payload)}</div>`;
     }
-    return renderActiveContent();
+    if (action.id === 'text_only') {
+      return `<div class="cp-action-mask"><h5>${esc(action.label)}</h5><p>Textgruppen kommen später über die zentrale Textverwaltung. Einzeltext funktioniert bereits als gespeicherte Konfiguration.</p><div class="cp-form-grid"><label>Textmodus <select data-cp-field="text_mode"><option value="single" ${payload.textMode !== 'textKey' ? 'selected' : ''}>Einzeltext</option><option value="textKey" ${payload.textMode === 'textKey' ? 'selected' : ''}>Text-Key / Textgruppe später</option></select></label><label>Auswahl <select data-cp-field="text_selection"><option value="random" ${payload.selection !== 'first' && payload.selection !== 'rotation' ? 'selected' : ''}>Zufällig</option><option value="first" ${payload.selection === 'first' ? 'selected' : ''}>Erste Variante</option><option value="rotation" ${payload.selection === 'rotation' ? 'selected' : ''}>Rotation später</option></select></label></div><label class="cp-wide">Einzeltext<textarea rows="3" data-cp-field="text_value" placeholder="Text, der im Chat erscheinen soll...">${esc(payload.text || '')}</textarea></label><label class="cp-wide">Text-Key / Textgruppe<input data-cp-field="text_key" value="${esc(payload.textKey || 'channelpoints.mein_text')}"></label><input type="hidden" data-cp-field="media_asset_id" value=""><input type="hidden" data-cp-field="media_role" value="none">${renderAdvancedFields(d, payload)}</div>`;
+    }
+    if (action.id === 'manual') {
+      return `<div class="cp-action-mask"><h5>${esc(action.label)}</h5><p>Der Reward wird nur lokal verwaltet. Keine automatische Ausführung.</p><input type="hidden" data-cp-field="media_asset_id" value=""><input type="hidden" data-cp-field="media_role" value="none">${renderAdvancedFields(d, payload)}</div>`;
+    }
+    return `<div class="cp-action-mask"><h5>${esc(action.label)}</h5><p>Technische Felder werden exakt gespeichert. Nur nutzen, wenn die Aktion bewusst manuell konfiguriert wird.</p>${renderAdvancedFields(d, payload, true)}</div>`;
+  }
+
+  function renderAdvancedFields(d, payload, open) {
+    return `<details class="cp-advanced-box" ${open ? 'open' : ''}><summary>Erweitert / technische Details</summary><div class="cp-form-grid"><label>Action-Typ<input data-cp-field="action_type" value="${esc(d.action_type || '')}"></label><label>Action-Key<input data-cp-field="action_key" value="${esc(d.action_key || '')}"></label><label>Queue<input data-cp-field="queue_mode" value="${esc(d.queue_mode || 'none')}"></label><label>Priorität<input type="number" data-cp-field="priority" value="${esc(d.priority || 0)}"></label></div><label class="cp-wide">Action-Payload JSON<textarea rows="5" data-cp-field="action_payload_json">${esc(JSON.stringify(payload || parseJson(d.action_payload_json || '{}', {}), null, 2))}</textarea></label></details>`;
   }
 
   function render() {
     if (!root) root = document.getElementById('channelpointsModule');
     if (!root) return;
-
-    if (state.loading) {
-      root.innerHTML = '<div class="cp-loading">Kanalpunkte werden geladen...</div>';
-      return;
-    }
-
-    root.innerHTML = `
-      <div class="cp-admin">
-        ${renderHeader()}
-        ${state.error ? `<div class="cp-alert error">${esc(state.error)}</div>` : ''}
-        ${state.notice ? `<div class="cp-alert ok">${esc(state.notice)}</div>` : ''}
-        ${renderTabs()}
-        ${renderToolbar()}
-        ${renderActiveContent()}
-        ${renderWorkArea()}
-      </div>
-    `;
-
+    if (state.loading) { root.innerHTML = '<div class="cp-loading">Kanalpunkte werden geladen...</div>'; return; }
+    root.innerHTML = `<div class="cp-admin">${renderHeader()}${state.error ? `<div class="cp-alert error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cp-alert ok">${esc(state.notice)}</div>` : ''}${renderToolbar()}${renderOverview()}${renderRewardGroups()}${state.busResult ? `<details class="cp-panel"><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : ''}${renderModal()}</div>`;
     wireEvents();
-    window.MediaField?.initAll?.(root);
-    applyActionPresetToForm();
+    if (state.modal) window.MediaField?.initAll?.(root);
   }
 
   function wireEvents() {
-    root.querySelectorAll('[data-cp-tab]').forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.cpTab || 'overview')));
-    root.querySelectorAll('[data-cp-select]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.selectedKey = btn.dataset.cpSelect || '';
-        state.selected = null;
-        state.tab = 'rewards';
-        render();
-      });
-    });
-
     root.querySelector('[data-cp-action="reload"]')?.addEventListener('click', () => loadAll(true));
-    root.querySelector('[data-cp-action="new"]')?.addEventListener('click', () => {
-      state.selectedKey = '';
-      state.selected = blankReward();
-      state.tab = 'rewards';
-      render();
-    });
+    root.querySelector('[data-cp-action="new"]')?.addEventListener('click', () => openModal('create'));
+    root.querySelectorAll('[data-cp-action="edit"]').forEach(btn => btn.addEventListener('click', () => { const r = rewards().find(item => item.reward_key === btn.dataset.key); if (r) openModal('edit', r); }));
+    root.querySelectorAll('[data-cp-action="copy"]').forEach(btn => btn.addEventListener('click', () => { const r = rewards().find(item => item.reward_key === btn.dataset.key); if (r) openModal('copy', r); }));
+    root.querySelectorAll('[data-cp-action="delete"]').forEach(btn => btn.addEventListener('click', () => deleteReward(btn.dataset.key || state.modal?.draft?.reward_key).catch(showError)));
+    root.querySelectorAll('[data-cp-action="disable"]').forEach(btn => btn.addEventListener('click', () => toggleReward(btn.dataset.key, false).catch(showError)));
+    root.querySelectorAll('[data-cp-action="enable"]').forEach(btn => btn.addEventListener('click', () => toggleReward(btn.dataset.key, true).catch(showError)));
+    root.querySelector('[data-cp-action="save"]')?.addEventListener('click', () => saveReward().catch(showError));
+    root.querySelectorAll('[data-cp-action="modal-close"]').forEach(btn => btn.addEventListener('click', closeModal));
     root.querySelectorAll('[data-cp-action="open-media"]').forEach(btn => btn.addEventListener('click', () => window.CGN?.setActiveModule?.('media')));
-    root.querySelector('[data-cp-action="clear-media"]')?.addEventListener('click', () => {
-      const field = getField('media_asset_id');
-      if (field) field.value = '';
-    });
-    root.querySelector('[data-cp-field="action_preset"]')?.addEventListener('change', applyActionPresetToForm);
-    ['media_volume','media_output_target','media_target','play_behavior'].forEach(name => {
-      getField(name)?.addEventListener('change', applyActionPresetToForm);
-      getField(name)?.addEventListener('input', applyActionPresetToForm);
-    });
-    root.querySelector('[data-cp-action="save"]')?.addEventListener('click', async () => {
-      try { state.error = ''; await saveReward(); }
-      catch (err) { state.error = err.message || String(err); render(); }
-    });
-    root.querySelector('[data-cp-action="bus-test"]')?.addEventListener('click', async () => {
-      try { state.error = ''; await runBusTest(); }
-      catch (err) { state.error = err.message || String(err); render(); }
-    });
-    root.querySelector('[data-cp-action="execution-check"]')?.addEventListener('click', async () => {
-      try { state.error = ''; await checkSelectedExecution(); }
-      catch (err) { state.error = err.message || String(err); render(); }
-    });
-    root.querySelector('[data-cp-action="execute-test"]')?.addEventListener('click', async () => {
-      try { state.error = ''; await executeSelectedReward(); }
-      catch (err) { state.error = err.message || String(err); render(); }
-    });
-    root.querySelectorAll('[data-cp-action="disable"]').forEach(btn => btn.addEventListener('click', async () => {
-      try { state.error = ''; await disableReward(btn.dataset.key || state.selectedKey); }
-      catch (err) { state.error = err.message || String(err); render(); }
-    }));
-    root.querySelectorAll('[data-cp-action="enable"]').forEach(btn => btn.addEventListener('click', async () => {
-      try { state.error = ''; await enableReward(btn.dataset.key || state.selectedKey); }
-      catch (err) { state.error = err.message || String(err); render(); }
-    }));
-
+    root.querySelector('[data-cp-action="clear-media"]')?.addEventListener('click', () => { const f = getField('media_asset_id'); if (f) f.value = ''; syncDraftFromForm(); });
+    root.querySelector('[data-cp-field="action_choice"]')?.addEventListener('change', () => { syncDraftFromForm(); render(); });
     root.querySelector('[data-cp-control="query"]')?.addEventListener('input', ev => { state.query = ev.target.value || ''; render(); });
     root.querySelector('[data-cp-control="categoryFilter"]')?.addEventListener('change', ev => { state.categoryFilter = ev.target.value || 'all'; render(); });
     root.querySelector('[data-cp-control="statusFilter"]')?.addEventListener('change', ev => { state.statusFilter = ev.target.value || 'all'; render(); });
-    root.querySelector('[data-cp-control="actionFilter"]')?.addEventListener('change', ev => { state.actionFilter = ev.target.value || 'all'; render(); });
+    root.querySelector('[data-cp-control="directSelect"]')?.addEventListener('change', ev => { state.selectedKey = ev.target.value || ''; const card = root.querySelector(`[data-cp-card="${CSS.escape(state.selectedKey)}"]`); card?.scrollIntoView?.({ behavior:'smooth', block:'center' }); render(); });
+    root.querySelectorAll('[data-cp-card]').forEach(card => card.addEventListener('click', ev => { if (ev.target.closest('button')) return; state.selectedKey = card.dataset.cpCard || ''; render(); }));
   }
 
+  function showError(err) { state.error = err.message || String(err); render(); }
+
   registerDashboardModule();
-
-  window.addEventListener('cgn:module-show', event => {
-    if (event?.detail?.module === 'channelpoints') loadAll(false);
-  });
-
-  return { loadAll, render, registerDashboardModule, uiVersion: UI_VERSION, uiBuild: UI_BUILD };
+  window.addEventListener('cgn:module-show', event => { if (event?.detail?.module === 'channelpoints') loadAll(false); });
+  return { loadAll, render, registerDashboardModule, uiVersion:UI_VERSION, uiBuild:UI_BUILD };
 })();

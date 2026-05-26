@@ -1,4 +1,3 @@
-# Current Status — Commands Dashboard v0.1.9
+# Current Status – Channelpoints v0.7.0
 
-Commands Dashboard UI steht auf v0.1.9 / preserve-modal-draft-state.
-Der Modal-Editor erhaelt ungespeicherte Formularwerte, wenn im Sound-/Video-Bereich ein Medium ueber den MediaPicker ausgewaehlt wird.
+Kanalpunkte-Dashboard ist analog zum Commands-Editor aufgebaut: gruppierte Liste, Suche, Direkt-Auswahl, Modal für Neu/Bearbeiten, Kopieren, lokales Löschen und benutzerfreundliche Aktionsmasken.

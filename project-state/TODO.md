@@ -1,5 +1,6 @@
-# TODO
+# TODO – Channelpoints
 
-- Commands Modal weiter anhand Live-Feedback glätten.
-- Zentrale Textverwaltung separat planen/umsetzen.
-- Kanalpunkte-Editor analog zum stabilen Commands-Editor umbauen.
+- Zentrale Textverwaltung als eigenes Modul vorbereiten.
+- Twitch-Sync für Rewards später ergänzen.
+- Redemption/EventSub-Verarbeitung später anbinden.
+- Optional: Dashboard-UX nach Testfeedback weiter glätten.

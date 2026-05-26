@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.6.0";
-const MODULE_BUILD = "media-execution-bridge";
+const MODULE_VERSION = "0.7.0";
+const MODULE_BUILD = "safe-modal-editor";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -765,6 +765,19 @@ function httpJsonRequest(method, targetUrl, payload = {}) {
   });
 }
 
+function deleteReward(idOrKey) {
+  ensureDbReady();
+  const existing = getRewardByIdOrKey(idOrKey);
+  if (!existing) return null;
+  const result = database.run("DELETE FROM channelpoints_rewards WHERE id = :id", { id: existing.id });
+  const deleted = Number(result && typeof result.changes === "number" ? result.changes : 0);
+  localCrudStats.deleted += deleted;
+  localCrudStats.lastCrudAt = nowIso();
+  localCrudStats.lastCrudAction = "delete_reward";
+  if (deleted > 0) publishStatus("reward_deleted_local");
+  return { reward: existing, deleted };
+}
+
 function summarizeExecutionResult(result) {
   const data = result && result.data ? result.data : {};
   return {
@@ -984,6 +997,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/rewards/:idOrKey`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/enable`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/disable`,
+      `${ROUTE_PREFIX}/rewards/:idOrKey/delete`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/execution-check`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/execute`,
       `${ROUTE_PREFIX}/execute`,
@@ -1193,6 +1207,19 @@ function init({ app }) {
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, action: "enabled_local_only", reward, twitchWrite: false });
     } catch (err) { sendError(res, 400, err); }
   });
+
+
+  function handleDeleteRewardRoute(req, res) {
+    try {
+      if (getConfig().localCrudEnabled === false) return res.status(403).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "local_crud_disabled" });
+      const result = deleteReward(req.params.idOrKey);
+      if (!result || !result.deleted) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "reward_not_found" });
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, action: "deleted_local_only", deleted: result.deleted, reward: result.reward, twitchWrite: false });
+    } catch (err) { sendError(res, 400, err); }
+  }
+
+  app.delete(`${ROUTE_PREFIX}/rewards/:idOrKey`, handleDeleteRewardRoute);
+  app.post(`${ROUTE_PREFIX}/rewards/:idOrKey/delete`, handleDeleteRewardRoute);
 
 
   app.get(`${ROUTE_PREFIX}/rewards/:idOrKey/execution-check`, (req, res) => {

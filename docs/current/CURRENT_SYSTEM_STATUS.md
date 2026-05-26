@@ -1,9 +1,11 @@
-# Current System Status
+# Current System Status – Channelpoints v0.7.0
 
-## Commands Dashboard
-- UI Version: 0.1.9
-- UI Build: preserve-modal-draft-state
-- Status: Modal-Editor erhaelt ungespeicherte Eingaben bei MediaPicker-Auswahl.
+Kanalpunkte wurden auf das Commands-Bedienmuster umgebaut.
 
-## Backend Commands
-- Backend bleibt beim zuletzt installierten Stand; diese Lieferung enthaelt keine Backend-Aenderung.
+- Backend: `0.7.0` / `safe-modal-editor`
+- Dashboard: `0.7.0` / `safe-modal-editor`
+- Modal-Editor für Erstellen/Bearbeiten
+- Suche, Kategorien, Direkt-Auswahl
+- Lokal löschen mit Rückfrage im Dashboard
+- Sound/Video weiter über `mediaId -> /api/sound/play`
+- Twitch wird weiterhin nicht verändert

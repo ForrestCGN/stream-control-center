@@ -1,7 +1,7 @@
-# Next Steps
+# Next Steps – Channelpoints
 
-1. Browser hart neu laden.
-2. Neuer Command -> Trigger eingeben -> Sound abspielen -> Audio waehlen.
-3. Pruefen, dass der Trigger erhalten bleibt.
-4. Speichern testen.
-5. Danach gleiches UI-Pattern auf Kanalpunkte uebertragen.
+1. Dashboard testen: Neu, Bearbeiten, Kopieren, Löschen.
+2. Sound-Reward mit MediaPicker testen.
+3. Video-Reward mit MediaPicker testen.
+4. Danach zentrale Textverwaltung als eigenes Modul planen.
+5. Später Twitch-Sync/Reward-API mit Scope-Prüfung ergänzen.

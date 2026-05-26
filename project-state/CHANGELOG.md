@@ -1,6 +1,7 @@
-# Changelog
+# Changelog – Channelpoints v0.7.0
 
-## Commands Dashboard v0.1.9 — Preserve Modal Draft State
-- Fix: Trigger/Aliase/Basisdaten verschwinden nicht mehr nach MediaPicker-Auswahl.
-- Modal-Entwurf wird vor MediaPicker, Aktionswechsel und Speichern synchronisiert.
-- Sound-/Video-Auswahl schreibt nur Medien-/Routingfelder in den Entwurf.
+- Added safe modal editor pattern to Channelpoints dashboard.
+- Added grouped reward list, search and direct select.
+- Added friendly actions: sound, video, text, manual, custom.
+- Added local delete route in backend.
+- Kept Twitch writes disabled.
