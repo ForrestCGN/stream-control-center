@@ -42,3 +42,12 @@
 - Sekundäre/ergänzende Backend-Module technisch dokumentiert.
 - `docs/modules/secondary-modules-deep-dive-overview.md` ergänzt.
 - Keine Code-, Config-, DB- oder Dashboardänderungen.
+
+## STEP480 - Prompt Module Docs Version EventBus Rules
+
+- `project-state/GENERAL_PROJECT_PROMPT.md` aktualisiert.
+- `docs/current/PROJECT_WORKING_RULES.md` ergänzt.
+- neue Regeldatei `docs/current/MODULE_DOCS_VERSION_EVENTBUS_RULES_2026-05-26.md` erstellt.
+- `docs/modules/README.md` um Pflegepflicht ergänzt.
+- Versionsnummern und EventBus-/Monitoring-Zielbild als verbindliche Arbeitsrichtung dokumentiert.
+

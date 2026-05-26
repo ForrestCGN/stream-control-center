@@ -35,3 +35,8 @@ Keine Code-, Dashboard-, Overlay-, Config- oder Datenbankänderungen.
 ## Stand nach STEP479
 
 Die Modul-Doku-Basis wurde um sekundäre/ergänzende Module erweitert. Die wichtigsten Backend-Module aus dem aktuellen Upload sind jetzt grundsätzlich unter `docs/modules/` dokumentiert. Die Dokus sind Bestandsaufnahmen und ersetzen keine Live-Dateiprüfung vor Änderungen.
+
+## STEP480 - Prompt-/Regelwerksupdate
+
+Der Standard-Prompt wurde erweitert: Modul-Dokus unter `docs/modules/` sind künftig Pflichtquelle vor Moduländerungen und müssen bei Änderungen aktualisiert werden. Außerdem wurden Versionsnummern und EventBus-/Monitoring-Zielbild als verbindliche Arbeitsrichtung ergänzt.
+

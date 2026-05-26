@@ -82,3 +82,19 @@ Stand: 2026-05-26 / STEP477
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
+
+## STEP480 geänderte Dateien
+
+```text
+project-state/GENERAL_PROJECT_PROMPT.md
+docs/current/PROJECT_WORKING_RULES.md
+docs/current/MODULE_DOCS_VERSION_EVENTBUS_RULES_2026-05-26.md
+docs/modules/README.md
+project-state/STEP480_PROMPT_MODULE_DOCS_VERSION_EVENTBUS_RULES.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+```
+

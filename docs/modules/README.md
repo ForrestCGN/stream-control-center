@@ -102,3 +102,14 @@ Weitere technische Modul-Dokus aus STEP479:
 - [`security-status-deep-dive.md`](./security-status-deep-dive.md)
 - [`audit-log-deep-dive.md`](./audit-log-deep-dive.md)
 - [`hug-system-deep-dive.md`](./hug-system-deep-dive.md)
+
+## Pflegepflicht ab STEP480
+
+Diese Modul-Dokus sind keine Ablage, sondern Arbeitsgrundlage.
+
+Vor Änderungen an einem Modul zuerst die passende Modul-Doku lesen. Nach Änderungen die passende Modul-Doku im selben STEP aktualisieren.
+
+Bei neuen/geänderten Routen, Configs, Datenbanktabellen, Statusfeldern, EventBus-Events, Dashboard-Dateien, Overlay-Dateien oder Runtime-Dateien muss die jeweilige Modul-Doku angepasst werden.
+
+Neue oder angefasste Module sollen klare Versionsnummern nutzen (`version` oder `moduleVersion`). Der Communication Bus / EventBus soll schrittweise als zentrale Kommunikations- und Überwachungsschicht ausgebaut werden.
+

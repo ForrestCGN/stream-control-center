@@ -271,3 +271,24 @@ Nicht committen oder anzeigen:
 - Backups
 - temporäre Dateien
 - ZIPs/7z
+
+---
+
+## Ergänzung ab STEP480: Modul-Doku, Versionsnummern und EventBus
+
+Vor Änderungen an Modulen müssen die passenden Dateien unter `docs/modules/` geprüft werden.
+
+Wenn ein Modul geändert wird, muss die jeweilige Modul-Doku im selben STEP aktualisiert werden. Das gilt besonders für Routen, Configs, Datenbanktabellen, Statusfelder, EventBus-Events, Dashboard-Dateien, Overlay-Dateien und Runtime-Dateien.
+
+Neue oder angefasste Module sollen eine klare `version` oder `moduleVersion` nutzen. STEP-Nummern bleiben Projekt-/Doku-/ZIP-Kennzeichnungen und sollen nicht als dauerhafte Runtime-Version verwendet werden.
+
+Der Communication Bus / EventBus soll schrittweise zur zentralen Kommunikations- und Überwachungsschicht werden. Module sollen perspektivisch Start/Stop, Status, Health, Heartbeats, Fehler, Warnungen und Queue-/Runtime-Zustände melden. Bestehende produktive Flows dürfen dadurch nicht ungeprüft ersetzt werden.
+
+Details stehen in:
+
+```text
+docs/current/MODULE_DOCS_VERSION_EVENTBUS_RULES_2026-05-26.md
+project-state/GENERAL_PROJECT_PROMPT.md
+docs/modules/README.md
+```
+

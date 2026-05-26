@@ -46,3 +46,12 @@ Stand: 2026-05-26 / STEP477
 - Modul-Dokus bei künftigen Facharbeiten gegen GitHub/dev und Live-Stand nachschärfen.
 - Dashboard-Dokus separat ergänzen, wenn die nächste Dashboard-Arbeit beginnt.
 - Unklare Doppelzuständigkeiten später prüfen: `hug.js` vs. `hug_system.js`, `message_rotator.js` vs. `message_rotator_scheduler.js`, Sound-/Media-Bridges vs. zentrale Sound-/Media-Module.
+
+## Offen ab STEP480 - Modul-Doku / Versionen / EventBus
+
+- Bei jedem Modul-STEP passende `docs/modules/*`-Doku aktualisieren.
+- Module schrittweise auf klare `version`/`moduleVersion` umstellen.
+- EventBus-Anbindungen schrittweise ergänzen: Anmeldung, Abmeldung, Status, Health, Heartbeat, Fehler/Warnungen, Queue-/Runtime-Zustände.
+- Zentrale Dashboard-/Diagnose-Übersicht für Bus-/Modulstatus später planen.
+- Bestehende produktive Flows erst ergänzend beobachten, nicht ungeprüft ersetzen.
+

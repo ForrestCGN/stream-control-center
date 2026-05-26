@@ -73,6 +73,9 @@ project-state/CHANGELOG.md
 project-state/FILES.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
+docs/modules/README.md
+docs/modules/*.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md
 ```
 
 Weitere wichtige Doku-Bereiche:
@@ -141,6 +144,68 @@ Jeder STEP muss prüfen:
 
 Keine mündlich besprochenen späteren Aufgaben einfach vergessen.
 Wenn eine Idee nicht sofort umgesetzt wird, muss sie als offener Punkt dokumentiert werden.
+
+---
+
+
+### 2.2 Modul-Doku als Pflichtquelle
+
+Die Modul-Dokus unter `docs/modules/` sind ab STEP480 verbindlicher Einstiegspunkt für Arbeiten an einzelnen Modulen.
+
+Vor jeder Änderung an einem Modul müssen geprüft werden:
+
+```text
+docs/modules/README.md
+docs/modules/<passende-modul-doku>.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md
+```
+
+Wenn keine passende Modul-Doku existiert oder die Doku offensichtlich veraltet ist:
+
+```text
+1. echte Moduldatei prüfen
+2. Doku im selben STEP ergänzen oder korrigieren
+3. offene Punkte in project-state/TODO.md oder NEXT_STEPS.md festhalten
+```
+
+Modul-Dokus sollen mindestens enthalten:
+
+```text
+Zweck
+Dateien
+Version / moduleVersion, soweit vorhanden
+API-Routen
+Exporte / Init-Funktionen
+wichtige interne Funktionen
+Config-Dateien / Env-Werte
+Datenbanktabellen
+Runtime-Dateien
+WebSocket / EventBus / Events
+Dashboard-Anbindung
+Overlay-Anbindung
+Abhängigkeiten zu anderen Modulen
+Status-/State-Felder
+bekannte Risiken / Altlasten
+Tests
+offene Punkte
+```
+
+Pflegeregel:
+
+```text
+Jede Änderung an Modulcode, Routen, Datenbank, Config, Texten, Events, Dashboard oder Overlay muss die jeweilige docs/modules/*-Doku aktualisieren.
+Keine Moduländerung gilt als abgeschlossen, wenn die zugehörige Modul-Doku veraltet bleibt.
+```
+
+Wenn ein neues Modul entsteht:
+
+```text
+1. neue Modul-Doku unter docs/modules/ anlegen
+2. docs/modules/README.md aktualisieren
+3. docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md aktualisieren oder neue Statusdatei anlegen
+4. project-state/FILES.md aktualisieren
+5. project-state/TODO.md und NEXT_STEPS.md prüfen
+```
 
 ---
 
@@ -550,7 +615,9 @@ Immer liefern:
 7. Aktualisierung von project-state/CHANGELOG.md
 8. Aktualisierung von project-state/FILES.md
 9. Aktualisierung von project-state/NEXT_STEPS.md
-10. kurze Abschlussübersicht
+10. passende docs/modules/*-Doku aktualisieren, wenn ein Modul betroffen ist
+11. EventBus-/Status-/Versionsdoku aktualisieren, wenn betroffen
+12. kurze Abschlussübersicht
 ```
 
 Abschlussübersicht:
@@ -656,6 +723,59 @@ module.queue.updated
 ```
 
 Keine EventBus-Namen erfinden, ohne vorhandene Muster im Repo zu prüfen.
+
+
+### 15.1 EventBus-Zielbild ab STEP480
+
+Der Communication Bus / EventBus soll perspektivisch als zentrale Kommunikations- und Überwachungsschicht für Module dienen.
+
+Zielbild:
+
+```text
+Module melden sich beim Start am Bus an.
+Module melden sich beim Stop/Shutdown wieder ab, soweit technisch möglich.
+Module geben regelmäßige oder ereignisbezogene Statusberichte ab.
+Module können Health-/Heartbeat-/Diagnose-Informationen bereitstellen.
+Der Bus sammelt Status, Fehler, Warnungen, Queue-Zustände und wichtige Laufzeitereignisse.
+Dashboards und Diagnose-Tools können daraus Modulzustände anzeigen.
+```
+
+Typische Bus-Informationen:
+
+```text
+module.name
+module.version
+module.enabled
+module.startedAt
+module.lastHeartbeatAt
+module.lastStatusAt
+module.health
+module.queueState
+module.lastError
+module.lastWarning
+module.dependencies
+```
+
+Wichtige Regel:
+
+```text
+EventBus-Anbindung ist ein schrittweiser Ausbau.
+Bestehende produktive Flows dürfen nicht ungeprüft auf Bus-First umgestellt werden.
+Zuerst ergänzen, beobachten, testen, dokumentieren; erst danach produktive Steuerung umstellen.
+```
+
+Bei jeder neuen oder erweiterten EventBus-Anbindung muss dokumentiert werden:
+
+```text
+Channel / Action
+Payload-Felder
+Auslöser
+Empfänger / Verbraucher
+Fehlerverhalten
+Tests
+```
+
+Diese Angaben gehören in die jeweilige `docs/modules/*`-Doku.
 
 ---
 
@@ -990,6 +1110,41 @@ Wenn vorhandene ältere Dateien noch STEP-Felder enthalten:
 nicht ungeprüft alles umbauen.
 Bei neuen Änderungen bevorzugt Version erhöhen und STEP nur in project-state-Doku erwähnen.
 
+
+### 22.1 Versionsnummern als Standard
+
+Ab STEP480 gilt für neue oder angefasste Module:
+
+```text
+Technische Modulstände sollen über version oder moduleVersion gepflegt werden.
+STEP-Nummern dienen nur für ZIPs, Doku, Übergaben und Projektverlauf.
+STEP-Nummern sind keine dauerhafte Runtime-Version.
+```
+
+Bei jeder Moduländerung prüfen:
+
+```text
+1. Hat das Modul bereits eine version/moduleVersion?
+2. Muss die Versionsnummer erhöht werden?
+3. Wird die neue Version im Status-Endpunkt ausgegeben?
+4. Ist die neue Version in der Modul-Doku dokumentiert?
+5. Ist CHANGELOG.md aktualisiert?
+```
+
+Bevorzugtes Muster:
+
+```text
+const MODULE_VERSION = "x.y.z";
+```
+
+oder vorhandenes Modul-Muster weiterverwenden, wenn das Repo dafür bereits einen Standard vorgibt.
+
+Nicht erlaubt:
+
+```text
+Neue dauerhafte Runtime-Felder wie STEP480, feature_step oder step als Versionsersatz einführen.
+```
+
 ---
 
 ## 23. Sicherheitsregeln
@@ -1058,29 +1213,48 @@ Konkrete Datei oder konkrete Info anfordern.
 
 ---
 
-## 26. Aktueller bekannter Kontext nach STEP473/470
+## 26. Aktueller bekannter Kontext nach STEP480/479
 
 Zuletzt relevant:
 
 ```text
-STEP468: stream_status 0.1.2 mit API-First und Auto-Refresh bestätigt.
-STEP469: Shoutout-Dashboard-Modul ergänzt.
-STEP470: clip_shoutout 0.2.10 mit Statistik-Routen ergänzt.
-STEP471: Doku-/Regelwerk aktualisiert.
-STEP472: Allgemeiner Projektprompt mit Vollkontext ergänzt.
-STEP473: ToDo-/Offene-Punkte-Regel in Prompt und project-state/TODO.md ergänzt.
+STEP474: Doku-/TODO-/Modul-Cleanup begonnen und zentrale Übersichten ergänzt.
+STEP475: docs/modules/ vorbereitet und project-state-Aufräumung vorbereitet.
+STEP476: Core-/Helper-Deep-Dive-Dokus ergänzt.
+STEP477: Stream-/Media-Modul-Dokus ergänzt.
+STEP478: Integrations- und Community-Modul-Dokus ergänzt.
+STEP479: Secondary-/Status-/Bridge-Modul-Dokus ergänzt.
+STEP480: Standard-Prompt und Arbeitsregeln auf Modul-Doku-Pflege, Versionsnummern und EventBus-/Monitoring-Zielbild aktualisiert.
 ```
 
-Shoutout-Statistik bestätigt:
+Aktueller Doku-Stand:
 
 ```text
-/api/clip-shoutout/stats liefert targetStats, requesterStats, pairStats, targetOptions, requesterOptions und totals.
+docs/modules/ enthält Modul-Dokus für Core, Helper, Stream-/Media-Module, Integrationen, Community-Module und sekundäre Module.
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md beschreibt den aktuellen Doku-Abdeckungsstand.
+project-state/TODO.md und project-state/NEXT_STEPS.md bleiben die zentralen offenen Punkte.
 ```
 
-Offen / sinnvoll als nächstes:
+Wichtig für neue Chats:
 
 ```text
-STEP474_SHOUTOUT_DASHBOARD_TABS
+Vor Änderungen an einem Modul immer zuerst die passende docs/modules/*-Doku lesen.
+Wenn ein Modul geändert, erweitert oder umgebaut wird, muss die jeweilige Modul-Doku im selben STEP aktualisiert werden.
+Wenn Routen, Configs, DB-Tabellen, EventBus-Events, Statusfelder, Dashboard-Dateien oder Overlays hinzukommen, müssen diese in der Modul-Doku ergänzt werden.
+```
+
+Aktuelles Zielbild:
+
+```text
+Module sollen schrittweise auf klare Versionsnummern umgestellt werden.
+Module sollen perspektivisch den Communication Bus / EventBus für Anmeldung, Abmeldung, Statusberichte, Diagnose, Heartbeats und Modul-Überwachung nutzen.
+Der Bus soll als zentrale Kommunikations- und Monitoring-Schicht dienen, ohne bestehende produktive Flows ungeprüft zu ersetzen.
+```
+
+Nächster fachlicher STEP nach der Doku-/Cleanup-Runde:
+
+```text
+STEP481_SHOUTOUT_DASHBOARD_TABS
 ```
 
 Ziel:
@@ -1097,7 +1271,7 @@ Settings/Test
 Danach möglich:
 
 ```text
-STEP474_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
+STEP482_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
 ```
 
 Ziel:
