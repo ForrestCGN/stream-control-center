@@ -108,3 +108,5 @@ project-state/TODO.md
 - `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md`
 - `docs/modules/README.md`
 - `project-state/STEP481_SERVER_LOG_MODULE_META_RULES.md`
+- `docs/current/HANDOFF_DOCUMENTATION_UPDATE_RULE_2026-05-26.md` - Regel für „dokumentieren und aktualisieren" vor Chatwechsel.
+- `project-state/STEP482_HANDOFF_DOCUMENTATION_UPDATE_RULE.md` - STEP-Doku für Übergabe-/Aktualisierungsregel.

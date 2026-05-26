@@ -126,3 +126,19 @@ Bei künftigen Moduländerungen soll die jeweilige Modul-Doku zusätzlich festha
 - welche Server-Log-Meldungen beim Laden relevant sind.
 
 Ziel ist, dass der Node-Serverstart und der EventBus später klar anzeigen können, welches Modul in welcher Version aktiv ist.
+
+## Pflege bei Chatwechsel / Übergabe
+
+Wenn Forrest „dokumentieren und aktualisieren" schreibt oder ein neuer Chat vorbereitet wird, müssen die Modul-Dokus geprüft werden.
+
+Für jedes seit dem letzten Stand geänderte oder neu angelegte Modul gilt:
+
+```text
+1. passende docs/modules/<modul>.md lesen
+2. echte Moduldateien prüfen
+3. Routen, Funktionen, Configs, DB-Tabellen, Events, Dashboard-/Overlay-Bezüge aktualisieren
+4. offene Punkte in TODO.md/NEXT_STEPS.md nachziehen
+5. docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md aktualisieren oder neue Statusdatei anlegen
+```
+
+Keine Moduländerung gilt als abgeschlossen, wenn die zugehörige Modul-Doku veraltet bleibt.

@@ -75,3 +75,25 @@ Neue Prüffelder für spätere Modul-Dokus:
 - Logausgabe beim Laden bekannt,
 - EventBus-Registrierung vorhanden/geplant,
 - Status-/Health-/Heartbeat-Daten vorhanden/geplant.
+
+## STEP482 Handoff-/Aktualisierungsregel
+
+Ergänzt wurde die verbindliche Regel, dass bei Forrests Auftrag „dokumentieren und aktualisieren" vor einem Chatwechsel alle zentralen Projektstand-Dateien und betroffenen Modul-Dokus geprüft und aktualisiert werden müssen.
+
+Betroffen sind insbesondere:
+
+```text
+project-state/GENERAL_PROJECT_PROMPT.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_WORKING_RULES.md
+docs/modules/README.md
+docs/modules/<betroffene-modul-dokus>.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md
+```
+
+Außerdem wurde festgelegt, dass immer die aktuellste `MODULE_DOCS_DEEP_DIVE_STATUS_*.md` genutzt oder bei Bedarf eine neue datierte Statusdatei angelegt wird.

@@ -63,3 +63,23 @@ Stand: 2026-05-26 / STEP477
 - Module schrittweise mit maschinenlesbarer Meta-Info ausstatten, sofern noch nicht vorhanden.
 - EventBus später als zentrale Monitoring-Schicht für Modulstatus, Versionen, Health, Heartbeat, Warnungen und Fehler nutzen.
 - Keine Secrets, Tokens, `.env`-Werte oder langen Config-Dumps loggen.
+
+## Handoff-/Chatwechsel-Doku aktuell halten
+
+Bei Forrests Auftrag „dokumentieren und aktualisieren" müssen spätestens vor dem Chatwechsel alle relevanten Projektstand-Dateien und betroffenen Modul-Dokus geprüft und aktualisiert werden.
+
+Prüfen:
+
+```text
+project-state/GENERAL_PROJECT_PROMPT.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_WORKING_RULES.md
+docs/modules/README.md
+docs/modules/<betroffene-modul-dokus>.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md
+```

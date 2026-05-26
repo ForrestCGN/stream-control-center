@@ -67,3 +67,20 @@ Zusätzlich als späterer Technik-Cleanup möglich:
 `STEP482_SERVER_MODULE_LOGGING_AND_META`
 
 Ziel: `backend/server.js` so erweitern, dass Modul-Ladezustand, Versionen und Prefixe kompakt geloggt werden und später an den EventBus/Monitoring angebunden werden können.
+
+## Nächster sinnvoller Fach-STEP
+
+```text
+STEP483_SHOUTOUT_DASHBOARD_TABS
+```
+
+Ziel: Nach der Doku-/Cleanup-Runde wieder am Shoutout-System weiterarbeiten und das Shoutout-Dashboard in Tabs/Unterbereiche aufteilen.
+
+Vor Beginn prüfen:
+
+```text
+docs/modules/clip-shoutout-vso-deep-dive.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md
+backend/modules/clip_shoutout.js
+htdocs/dashboard/modules/<Shoutout-Dateien>
+```

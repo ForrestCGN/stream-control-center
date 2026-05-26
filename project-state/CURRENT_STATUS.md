@@ -47,3 +47,11 @@ Der Standard-Prompt wurde erweitert: Modul-Dokus unter `docs/modules/` sind kün
 Der Standard-Prompt und die Arbeitsregeln wurden ergänzt: Der Node-Server soll künftig beim Start aussagekräftiger anzeigen, welche Module in welcher Version geladen wurden. Außerdem sollen Module schrittweise maschinenlesbare Meta-Daten liefern und perspektivisch EventBus-/Monitoring-Status bereitstellen.
 
 Keine Codeänderung in diesem STEP.
+
+## STEP482_HANDOFF_DOCUMENTATION_UPDATE_RULE
+
+Status: abgeschlossen als reiner Doku-/Regelwerks-STEP.
+
+Neu geregelt: Wenn Forrest „dokumentieren und aktualisieren" sagt oder einen neuen Chat vorbereiten möchte, müssen die zentralen Projektstand-Dateien und betroffenen Modul-Dokus geprüft und aktualisiert werden. Das gilt spätestens vor dem Chatwechsel, falls Doku während der laufenden Arbeit noch nicht vollständig mitgezogen wurde.
+
+Keine Code-, Backend-, Dashboard-, Config- oder Datenbankänderungen.

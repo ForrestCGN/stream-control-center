@@ -53,3 +53,12 @@
 
 
 - 2026-05-26 / STEP481: Server-Log-/Modul-Meta-/EventBus-Monitoring-Regeln ergänzt; keine Codeänderung.
+
+## STEP482_HANDOFF_DOCUMENTATION_UPDATE_RULE - 2026-05-26
+
+- `project-state/GENERAL_PROJECT_PROMPT.md` um verbindliche Übergabe-/Chatwechsel-Regel ergänzt.
+- `docs/current/PROJECT_WORKING_RULES.md` um dieselbe Regel ergänzt.
+- Neue Datei `docs/current/HANDOFF_DOCUMENTATION_UPDATE_RULE_2026-05-26.md` angelegt.
+- `docs/modules/README.md` um Pflegepflicht bei Chatwechsel ergänzt.
+- `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md` aktualisiert.
+- Keine Codeänderungen.

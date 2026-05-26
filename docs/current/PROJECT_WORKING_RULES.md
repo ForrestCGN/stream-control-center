@@ -303,3 +303,37 @@ Ab STEP481 gilt als Zielregel:
 - Das Ladeprotokoll soll kompakt bleiben und keine Secrets, Tokens, `.env`-Werte, Datenbankinhalte oder langen Config-Dumps ausgeben.
 - Die EventBus-/Monitoring-Schicht soll diese Informationen später zusätzlich sammeln können.
 - Umsetzung nur in einem eigenen Code-STEP nach Prüfung von `backend/server.js`, `communication_bus.js` und vorhandenen Modul-Exports.
+
+## Übergabe-/Chatwechsel-Regel: „dokumentieren und aktualisieren"
+
+Wenn Forrest „dokumentieren und aktualisieren" schreibt oder einen neuen Chat vorbereiten möchte, ist das ein verbindlicher Konsolidierungs-STEP.
+
+Vor dem Abschluss müssen geprüft und aktualisiert werden:
+
+```text
+project-state/GENERAL_PROJECT_PROMPT.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_WORKING_RULES.md
+docs/modules/README.md
+docs/modules/<betroffene-modul-dokus>.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md
+```
+
+Dabei gilt:
+
+```text
+- offene Punkte nicht verlieren
+- erledigte Punkte als erledigt markieren oder entfernen
+- bewusst verschobene Punkte in TODO.md dokumentieren
+- neue/geänderte Module in docs/modules/ dokumentieren
+- Routen, Configs, DB-Tabellen, Events, Dashboard- und Overlay-Bezüge nachziehen
+- NEXT_STEPS.md auf den tatsächlich nächsten sinnvollen STEP setzen
+- FILES.md mit neuen/geänderten Doku-/Code-Dateien aktualisieren
+```
+
+Kein Chatwechsel soll auf veralteter Doku passieren. Wenn während der Arbeit Doku nicht direkt gepflegt wurde, muss sie spätestens bei diesem Auftrag nachgezogen werden.

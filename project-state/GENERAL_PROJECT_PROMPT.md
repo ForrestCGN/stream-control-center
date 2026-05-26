@@ -75,7 +75,7 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 docs/modules/README.md
 docs/modules/*.md
-docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md
 ```
 
 Weitere wichtige Doku-Bereiche:
@@ -148,7 +148,64 @@ Wenn eine Idee nicht sofort umgesetzt wird, muss sie als offener Punkt dokumenti
 ---
 
 
-### 2.2 Modul-Doku als Pflichtquelle
+### 2.2 Übergabe-/Chatwechsel-Regel: „dokumentieren und aktualisieren"
+
+Wenn Forrest schreibt:
+
+```text
+dokumentieren und aktualisieren
+```
+
+oder klar sagt, dass er in einen neuen Chat wechseln möchte, gilt das als verbindlicher Konsolidierungsauftrag.
+
+Dann muss spätestens vor dem Wechsel geprüft und aktualisiert werden:
+
+```text
+project-state/GENERAL_PROJECT_PROMPT.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/PROJECT_WORKING_RULES.md
+docs/modules/README.md
+docs/modules/<betroffene-modul-dokus>.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md
+```
+
+Dabei muss dokumentiert werden:
+
+```text
+1. was seit dem letzten Stand geändert wurde
+2. welche Dateien betroffen sind
+3. welche Module neu/anders sind
+4. welche Routen, Configs, DB-Tabellen, Events, Dashboard- oder Overlay-Dateien betroffen sind
+5. welche offenen Punkte erledigt wurden
+6. welche offenen Punkte neu entstanden sind
+7. welche Punkte bewusst verschoben wurden
+8. welcher nächste sinnvolle STEP folgt
+```
+
+Regel:
+
+```text
+Kein Chatwechsel auf Basis veralteter Doku.
+Keine mündlich besprochenen offenen Punkte verlieren.
+Wenn vorher während der Arbeit Doku nicht mitgezogen wurde, muss sie spätestens bei „dokumentieren und aktualisieren" nachgezogen werden.
+```
+
+Wichtig:
+
+```text
+Die aktuellste docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md nutzen, nicht blind eine alte datierte Datei fortschreiben.
+Wenn keine aktuelle Statusdatei existiert, eine neue mit aktuellem Datum anlegen und README/FILES/NEXT_STEPS entsprechend verweisen.
+```
+
+---
+
+
+### 2.3 Modul-Doku als Pflichtquelle
 
 Die Modul-Dokus unter `docs/modules/` sind ab STEP480 verbindlicher Einstiegspunkt für Arbeiten an einzelnen Modulen.
 
@@ -157,7 +214,7 @@ Vor jeder Änderung an einem Modul müssen geprüft werden:
 ```text
 docs/modules/README.md
 docs/modules/<passende-modul-doku>.md
-docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md
 ```
 
 Wenn keine passende Modul-Doku existiert oder die Doku offensichtlich veraltet ist:
@@ -202,7 +259,7 @@ Wenn ein neues Modul entsteht:
 ```text
 1. neue Modul-Doku unter docs/modules/ anlegen
 2. docs/modules/README.md aktualisieren
-3. docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md aktualisieren oder neue Statusdatei anlegen
+3. aktuellste docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md aktualisieren oder neue Statusdatei mit aktuellem Datum anlegen
 4. project-state/FILES.md aktualisieren
 5. project-state/TODO.md und NEXT_STEPS.md prüfen
 ```
