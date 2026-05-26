@@ -19,3 +19,9 @@ $q.officialQueue.liveGate | ConvertTo-Json -Depth 10
 ```
 
 Wenn der Twitch-Backend-Endpunkt valide antwortet, soll `stream_status` nicht mehr `stale=true` aus der alten Datei melden, sondern `source=twitch_api` und `statusKnown=true`.
+
+## Nach STEP468
+
+1. Live/offline in `stream_status` gegen echten Streamstart testen.
+2. Prüfen, ob `clip_shoutout` im Live-Gate `upstreamSource: twitch_api`, `statusKnown: true` und `stale: false` sieht.
+3. Danach weitere Module schrittweise auf zentralen Stream-Status umstellen.

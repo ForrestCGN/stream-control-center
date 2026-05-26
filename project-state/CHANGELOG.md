@@ -8,3 +8,11 @@
 - Neue Statusfelder ergänzt: `apiUrl`, `apiEnabled`, `apiError`, `checkedViaApiAt`, `upstreamSource`.
 - Bestehende dateibasierte Quelle bleibt erhalten und wird bevorzugt, wenn sie frisch und bekannt ist.
 - Keine Änderung an `clip_shoutout.js`, Display-Queue, `!vso`, Streamtag-Limit oder Chatmeldungen.
+
+## STEP468 - Stream Status Auto Refresh
+
+- `stream_status` auf `0.1.2` angehoben.
+- Twitch-API als bevorzugte Live-Status-Quelle aktiviert.
+- Auto-Refresh mit konfigurierbaren Intervallen ergänzt.
+- Datei-basierte Twitch-Statusquellen bleiben als Fallback erhalten.
+- `getCurrentStatus()` für synchrone Modulnutzung stabilisiert, damit frischer API-Status nicht durch stale Datei-Refresh überschrieben wird.

@@ -9,7 +9,7 @@ const configHelper = require("./helpers/helper_config");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_status";
-const MODULE_VERSION = "0.1.1";
+const MODULE_VERSION = "0.1.2";
 const API_PREFIX = "/api/stream-status";
 
 const DEFAULT_FILES = [
@@ -25,7 +25,14 @@ const state = {
   lastStatus: null,
   refreshCount: 0,
   lastApiRefreshAt: "",
-  lastApiError: ""
+  lastApiError: "",
+  autoRefreshEnabled: false,
+  autoRefreshStartedAt: "",
+  autoRefreshLastRunAt: "",
+  autoRefreshNextRunAt: "",
+  autoRefreshIntervalMs: 0,
+  autoRefreshRunning: false,
+  autoRefreshTimer: null
 };
 
 function nowIso() {
@@ -68,7 +75,12 @@ function getConfig(env = process.env) {
     restartGraceMs: Math.max(0, Number(env.STREAM_STATUS_RESTART_GRACE_MS || 1800000) || 1800000),
     twitchApiEnabled: !/^(0|false|no|off)$/i.test(String(env.STREAM_STATUS_TWITCH_API_ENABLED || "true")),
     twitchApiUrl: String(env.STREAM_STATUS_TWITCH_API_URL || "http://127.0.0.1:8080/api/twitch/stream?login={login}").trim(),
-    twitchApiTimeoutMs: Math.max(1000, Number(env.STREAM_STATUS_TWITCH_API_TIMEOUT_MS || 5000) || 5000)
+    twitchApiTimeoutMs: Math.max(1000, Number(env.STREAM_STATUS_TWITCH_API_TIMEOUT_MS || 5000) || 5000),
+    apiFirst: !/^(0|false|no|off)$/i.test(String(env.STREAM_STATUS_API_FIRST || "true")),
+    autoRefreshEnabled: !/^(0|false|no|off)$/i.test(String(env.STREAM_STATUS_AUTO_REFRESH_ENABLED || "true")),
+    autoRefreshIdleMs: Math.max(10000, Number(env.STREAM_STATUS_AUTO_REFRESH_IDLE_MS || 60000) || 60000),
+    autoRefreshActiveMs: Math.max(10000, Number(env.STREAM_STATUS_AUTO_REFRESH_ACTIVE_MS || 30000) || 30000),
+    cacheMaxAgeMs: Math.max(5000, Number(env.STREAM_STATUS_CACHE_MAX_AGE_MS || 15000) || 15000)
   };
 }
 
@@ -265,28 +277,39 @@ async function readTwitchApiStatus(cfg) {
 async function selectSourceStatusAsync(cfg, options = {}) {
   const fileStatus = selectSourceStatus(cfg);
   const forceApi = options.forceApi === true;
+  const apiFirst = cfg.twitchApiEnabled !== false && cfg.apiFirst !== false;
   const fileUsable = fileStatus && fileStatus.statusKnown !== false && fileStatus.stale !== true;
 
-  if (!forceApi && fileUsable) return fileStatus;
-
-  try {
-    const apiStatus = await readTwitchApiStatus(cfg);
-    if (apiStatus) return apiStatus;
-  } catch (err) {
-    state.lastApiError = err && err.message ? err.message : String(err);
-    return {
-      ...(fileStatus || {}),
-      source: fileStatus && fileStatus.source ? fileStatus.source : "none",
-      apiEnabled: cfg.twitchApiEnabled,
-      apiUrl: buildTwitchApiUrl(cfg),
-      apiError: state.lastApiError,
-      lastError: fileStatus && fileStatus.lastError ? fileStatus.lastError : state.lastApiError,
-      statusKnown: fileStatus && fileStatus.statusKnown !== false && !fileStatus.stale,
-      stale: fileStatus ? !!fileStatus.stale : true
-    };
+  if ((apiFirst || forceApi || !fileUsable) && cfg.twitchApiEnabled !== false) {
+    try {
+      const apiStatus = await readTwitchApiStatus(cfg);
+      if (apiStatus) return apiStatus;
+    } catch (err) {
+      state.lastApiError = err && err.message ? err.message : String(err);
+      if (fileUsable) {
+        return {
+          ...fileStatus,
+          apiEnabled: cfg.twitchApiEnabled,
+          apiUrl: buildTwitchApiUrl(cfg),
+          apiError: state.lastApiError,
+          lastError: ""
+        };
+      }
+      return {
+        ...(fileStatus || {}),
+        source: fileStatus && fileStatus.source ? fileStatus.source : "none",
+        apiEnabled: cfg.twitchApiEnabled,
+        apiUrl: buildTwitchApiUrl(cfg),
+        apiError: state.lastApiError,
+        lastError: fileStatus && fileStatus.lastError ? fileStatus.lastError : state.lastApiError,
+        statusKnown: fileStatus && fileStatus.statusKnown !== false && !fileStatus.stale,
+        stale: fileStatus ? !!fileStatus.stale : true
+      };
+    }
   }
 
-  return fileStatus;
+  if (fileUsable) return fileStatus;
+  return fileStatus || { live: false, source: "none", file: "", fileModifiedAt: "", fileAgeSeconds: 0, stale: true, statusKnown: false, lastError: "stream_status_source_missing" };
 }
 
 function makeSessionIds(cfg, sourceStatus) {
@@ -405,6 +428,7 @@ function buildStatusFromSource(sourceStatus, session, cfg) {
     upstreamSource: String(sourceStatus.upstreamSource || ""),
     apiUrl: String(sourceStatus.apiUrl || ""),
     apiEnabled: cfg.twitchApiEnabled !== false,
+    apiFirst: cfg.apiFirst !== false,
     apiError: String(sourceStatus.apiError || state.lastApiError || ""),
     checkedViaApiAt: String(sourceStatus.checkedViaApiAt || state.lastApiRefreshAt || ""),
     file: String(sourceStatus.file || ""),
@@ -437,6 +461,80 @@ function persistRefreshedStatus(sourceStatus, cfg) {
   return status;
 }
 
+function getStatusAgeMs(status) {
+  const checked = msFromIso(status && status.lastCheckedAt);
+  return checked ? Math.max(0, Date.now() - checked) : Number.POSITIVE_INFINITY;
+}
+
+function shouldUseActiveRefresh(status) {
+  if (!status || typeof status !== "object") return false;
+  if (status.live === true) return true;
+  if (String(status.sessionStatus || "") === "active") return true;
+  if (String(status.sessionStatus || "") === "grace") return true;
+  const graceUntil = msFromIso(status.restartGraceUntil || "");
+  return graceUntil > Date.now();
+}
+
+function getAutoRefreshIntervalMs(cfg, status) {
+  return shouldUseActiveRefresh(status) ? cfg.autoRefreshActiveMs : cfg.autoRefreshIdleMs;
+}
+
+function scheduleAutoRefresh(env, delayMs) {
+  if (state.autoRefreshTimer) clearTimeout(state.autoRefreshTimer);
+  const delay = Math.max(1000, Number(delayMs || 0) || 1000);
+  state.autoRefreshNextRunAt = isoFromMs(Date.now() + delay);
+  state.autoRefreshTimer = setTimeout(() => {
+    runAutoRefresh(env).catch(err => {
+      state.lastError = err && err.message ? err.message : String(err);
+    });
+  }, delay);
+  if (typeof state.autoRefreshTimer.unref === "function") state.autoRefreshTimer.unref();
+}
+
+async function runAutoRefresh(env) {
+  const cfg = getConfig(env || process.env);
+  if (!cfg.autoRefreshEnabled) {
+    state.autoRefreshEnabled = false;
+    state.autoRefreshNextRunAt = "";
+    return;
+  }
+  if (state.autoRefreshRunning) return;
+
+  state.autoRefreshRunning = true;
+  state.autoRefreshLastRunAt = nowIso();
+  try {
+    const status = await refreshStatusAsync({ env, forceApi: cfg.apiFirst !== false, caller: "auto_refresh" });
+    state.autoRefreshIntervalMs = getAutoRefreshIntervalMs(cfg, status);
+  } finally {
+    state.autoRefreshRunning = false;
+    scheduleAutoRefresh(env, state.autoRefreshIntervalMs || cfg.autoRefreshIdleMs);
+  }
+}
+
+function startAutoRefresh(env) {
+  const cfg = getConfig(env || process.env);
+  if (!cfg.autoRefreshEnabled) {
+    state.autoRefreshEnabled = false;
+    return;
+  }
+  if (state.autoRefreshEnabled) return;
+  state.autoRefreshEnabled = true;
+  state.autoRefreshStartedAt = nowIso();
+  state.autoRefreshIntervalMs = cfg.autoRefreshIdleMs;
+  scheduleAutoRefresh(env, 1000);
+}
+
+function maybeTriggerAsyncRefresh(env, options = {}) {
+  const cfg = getConfig(env || process.env);
+  if (!cfg.autoRefreshEnabled && cfg.twitchApiEnabled === false) return;
+  const current = state.lastStatus || readStoredStatus();
+  if (options.forceAsync === true || getStatusAgeMs(current) > cfg.cacheMaxAgeMs) {
+    refreshStatusAsync({ env, forceApi: cfg.apiFirst !== false, caller: options.caller || "get_current" }).catch(err => {
+      state.lastError = err && err.message ? err.message : String(err);
+    });
+  }
+}
+
 function refreshStatus(options = {}) {
   const cfg = getConfig(options.env || process.env);
   try {
@@ -464,8 +562,11 @@ async function refreshStatusAsync(options = {}) {
 }
 
 function getCurrentStatus(options = {}) {
-  if (options.refresh !== false) return refreshStatus(options);
-  return state.lastStatus || readStoredStatus() || refreshStatus(options);
+  const env = options.env || process.env;
+  const current = state.lastStatus || readStoredStatus();
+  if (options.refresh !== false) maybeTriggerAsyncRefresh(env, options);
+  if (current) return current;
+  return refreshStatus(options);
 }
 
 function listSessions(limit = 20) {
@@ -487,6 +588,12 @@ function statusPayload(options = {}) {
       refreshCount: state.refreshCount,
       lastApiRefreshAt: state.lastApiRefreshAt,
       lastApiError: state.lastApiError,
+      autoRefreshEnabled: state.autoRefreshEnabled,
+      autoRefreshStartedAt: state.autoRefreshStartedAt,
+      autoRefreshLastRunAt: state.autoRefreshLastRunAt,
+      autoRefreshNextRunAt: state.autoRefreshNextRunAt,
+      autoRefreshIntervalMs: state.autoRefreshIntervalMs,
+      autoRefreshRunning: state.autoRefreshRunning,
       lastError: state.lastError
     },
     routes: [
@@ -502,11 +609,13 @@ module.exports.getCurrentStatus = getCurrentStatus;
 module.exports.refreshStatus = refreshStatus;
 module.exports.refreshStatusAsync = refreshStatusAsync;
 module.exports.statusPayload = statusPayload;
+module.exports.startAutoRefresh = startAutoRefresh;
 
 module.exports.init = function init(ctx = {}) {
   const { app, env } = ctx;
   state.initialized = true;
-  refreshStatusAsync({ env }).catch(err => { state.lastError = err && err.message ? err.message : String(err); });
+  refreshStatusAsync({ env, forceApi: getConfig(env || process.env).apiFirst !== false }).catch(err => { state.lastError = err && err.message ? err.message : String(err); });
+  startAutoRefresh(env);
 
   app.get(`${API_PREFIX}/status`, async (req, res) => {
     try {
