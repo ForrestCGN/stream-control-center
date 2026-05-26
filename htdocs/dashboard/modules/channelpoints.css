@@ -109,3 +109,10 @@ html[data-theme="light"] .cp-toolbar input,html[data-theme="light"] .cp-toolbar 
 .cp-action-readiness.blocked strong{color:#ffdca3}
 .cp-save-activate{border-color:rgba(46,204,113,.55)!important;background:rgba(46,204,113,.13)!important;color:#b7ffd7!important;font-weight:950}
 .cp-save-activate[disabled]{opacity:.45;cursor:not-allowed!important;border-color:rgba(160,170,190,.22)!important;background:rgba(160,170,190,.08)!important;color:var(--muted)!important}
+
+/* v0.8.9 configured reward status polish */
+.cp-reward-card.configured-action{border-color:rgba(46,204,113,.34);box-shadow:0 0 14px rgba(46,204,113,.08),inset 0 0 0 1px rgba(46,204,113,.08)}
+.cp-action-summary{color:#a7ffd0!important;white-space:normal!important;line-height:1.35;margin-top:2px;font-weight:800}
+.cp-reward-card.needs-setup .cp-action-summary{color:#ffdca3!important}
+.cp-reward-card.configured-action .cp-reward-main strong:after{content:'  ✓';color:#8dffbd;font-size:14px}
+.cp-setup-actions button[data-cp-action="filter-configured-action"]{border-color:rgba(46,204,113,.48);background:rgba(46,204,113,.11);font-weight:900}

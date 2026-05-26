@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.8.8';
-  const UI_BUILD = 'reward-configure-action-flow';
+  const UI_VERSION = '0.8.9';
+  const UI_BUILD = 'configured-reward-status-polish';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -137,6 +137,39 @@ window.ChannelpointsModule = (function(){
     return 'Importierter Twitch-Reward ohne lokale Aktion. Erst Sound, Video, Text oder Custom-Aktion zuweisen und danach bewusst aktivieren.';
   }
 
+  function rewardActionSummary(reward) {
+    const actionId = actionForReward(reward);
+    const action = actionById(actionId);
+    const payload = parseJson(reward?.action_payload || reward?.action_payload_json || '{}', {});
+    const mediaAssetId = String(reward?.media_asset_id || '').trim();
+    const parts = [];
+    if (actionId === 'sound_play' || actionId === 'video_play') {
+      parts.push(action.short);
+      if (mediaAssetId) parts.push(`mediaId ${mediaAssetId}`);
+      if (payload.target) parts.push(`Ziel ${payload.target}`);
+      if (payload.playBehavior) parts.push(payload.playBehavior === 'queue' ? 'Queue' : payload.playBehavior);
+      return parts.join(' · ') || action.short;
+    }
+    if (actionId === 'text_only') {
+      parts.push('Text');
+      if (payload.textKey) parts.push(`Key ${payload.textKey}`);
+      else if (payload.text) parts.push('Einzeltext');
+      return parts.join(' · ');
+    }
+    if (actionId === 'manual') return 'Manuell · keine automatische Ausführung';
+    const customParts = ['Custom'];
+    if (reward?.action_type) customParts.push(String(reward.action_type));
+    if (reward?.action_key) customParts.push(String(reward.action_key));
+    if (mediaAssetId) customParts.push(`mediaId ${mediaAssetId}`);
+    return customParts.join(' · ');
+  }
+
+  function rewardExecutionState(reward) {
+    if (rewardNeedsSetup(reward)) return { key:'missing', label:'Aktion fehlt', mode:'warn' };
+    if (rewardHasExecutableAction(reward)) return { key:'configured', label:'Aktion vollständig', mode:'ok' };
+    return { key:'manual', label:'nicht ausführbar', mode:'neutral' };
+  }
+
   function actionReadiness(reward) {
     const actionId = reward?._action || actionForReward(reward);
     const action = actionById(actionId);
@@ -177,13 +210,14 @@ window.ChannelpointsModule = (function(){
   }
 
   function statusPills(reward) {
+    const actionState = rewardExecutionState(reward);
     const list = [
       reward.system_enabled ? pill('aktiv', 'ok') : pill('aus', 'off'),
       reward.is_paused ? pill('pausiert', 'warn') : pill('bereit', 'neutral'),
       reward.twitch_is_enabled ? pill('Twitch aktiv', 'warn') : pill('Twitch aus', 'neutral')
     ];
     if (isImportedReward(reward)) list.push(pill('importiert', 'neutral'));
-    if (rewardNeedsSetup(reward)) list.push(pill('Aktion fehlt', 'warn'));
+    list.push(pill(actionState.label, actionState.mode));
     return list.join('');
   }
 
@@ -196,6 +230,7 @@ window.ChannelpointsModule = (function(){
       if (state.statusFilter === 'paused' && !boolValue(reward.is_paused)) return false;
       if (state.statusFilter === 'imported' && !isImportedReward(reward)) return false;
       if (state.statusFilter === 'missing_action' && !rewardNeedsSetup(reward)) return false;
+      if (state.statusFilter === 'configured_action' && !rewardHasExecutableAction(reward)) return false;
       if (!q) return true;
       const haystack = [reward.reward_key, reward.title, reward.prompt, reward.category_key, reward.action_type, reward.action_key, reward.notes].join(' ').toLowerCase();
       return haystack.includes(q);
@@ -804,10 +839,11 @@ window.ChannelpointsModule = (function(){
   function renderImportedSetupPanel() {
     const imported = rewards().filter(isImportedReward);
     const missing = imported.filter(rewardNeedsSetup);
+    const configured = imported.filter(rewardHasExecutableAction);
     if (!imported.length) return '';
-    return `<section class="cp-panel cp-imported-setup-panel"><div class="cp-panel-head"><h3>Importierte Twitch-Rewards einrichten</h3><span>${pill(`${missing.length} Aktion fehlt`, missing.length ? 'warn' : 'ok')} ${pill(`${imported.length} importiert`, 'neutral')}</span></div>
+    return `<section class="cp-panel cp-imported-setup-panel"><div class="cp-panel-head"><h3>Importierte Twitch-Rewards einrichten</h3><span>${pill(`${missing.length} Aktion fehlt`, missing.length ? 'warn' : 'ok')} ${pill(`${configured.length} Aktion vollständig`, configured.length ? 'ok' : 'neutral')} ${pill(`${imported.length} importiert`, 'neutral')}</span></div>
       <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards bleiben lokal aus, bis du sie bewusst konfigurierst. Öffne einen Reward über „Konfigurieren“, wähle Sound, Video, Text oder Custom-Aktion, speichere und aktiviere ihn danach bewusst. Vollständig konfigurierte Rewards können direkt über „Speichern & aktivieren“ freigeschaltet werden.</div>
-      <div class="cp-actions cp-setup-actions"><button type="button" data-cp-action="configure-first-missing">Ersten fehlenden konfigurieren</button><button type="button" data-cp-action="filter-missing-action">Nur „Aktion fehlt“ anzeigen</button><button type="button" data-cp-action="filter-imported">Alle importierten anzeigen</button><button type="button" data-cp-action="filter-reset">Filter zurücksetzen</button></div>
+      <div class="cp-actions cp-setup-actions"><button type="button" data-cp-action="configure-first-missing">Ersten fehlenden konfigurieren</button><button type="button" data-cp-action="filter-missing-action">Nur „Aktion fehlt“ anzeigen</button><button type="button" data-cp-action="filter-configured-action">Nur „Aktion vollständig“ anzeigen</button><button type="button" data-cp-action="filter-imported">Alle importierten anzeigen</button><button type="button" data-cp-action="filter-reset">Filter zurücksetzen</button></div>
     </section>`;
   }
 
@@ -861,7 +897,7 @@ window.ChannelpointsModule = (function(){
     return `<section class="cp-toolbar cp-commandlike-toolbar">
       <label>Reward suchen <span class="cp-help" title="Sucht in Key, Titel, Prompt, Kategorie, Aktion und Notizen.">?</span><input data-cp-control="query" type="search" placeholder="z. B. sound, video, vip, test..." value="${esc(state.query)}"></label>
       <label>Kategorie <span class="cp-help" title="Filtert die Liste nach lokaler Kategorie.">?</span><select data-cp-control="categoryFilter">${categoryOptions(state.categoryFilter, true)}</select></label>
-      <label>Status <span class="cp-help" title="Filtert nach lokal aktiv, aus, pausiert, importiert oder fehlender Aktion.">?</span><select data-cp-control="statusFilter"><option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle Status</option><option value="enabled" ${state.statusFilter === 'enabled' ? 'selected' : ''}>Lokal aktiv</option><option value="disabled" ${state.statusFilter === 'disabled' ? 'selected' : ''}>Lokal aus</option><option value="paused" ${state.statusFilter === 'paused' ? 'selected' : ''}>Pausiert</option><option value="imported" ${state.statusFilter === 'imported' ? 'selected' : ''}>Importiert</option><option value="missing_action" ${state.statusFilter === 'missing_action' ? 'selected' : ''}>Aktion fehlt</option></select></label>
+      <label>Status <span class="cp-help" title="Filtert nach lokal aktiv, aus, pausiert, importiert oder fehlender Aktion.">?</span><select data-cp-control="statusFilter"><option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle Status</option><option value="enabled" ${state.statusFilter === 'enabled' ? 'selected' : ''}>Lokal aktiv</option><option value="disabled" ${state.statusFilter === 'disabled' ? 'selected' : ''}>Lokal aus</option><option value="paused" ${state.statusFilter === 'paused' ? 'selected' : ''}>Pausiert</option><option value="imported" ${state.statusFilter === 'imported' ? 'selected' : ''}>Importiert</option><option value="missing_action" ${state.statusFilter === 'missing_action' ? 'selected' : ''}>Aktion fehlt</option><option value="configured_action" ${state.statusFilter === 'configured_action' ? 'selected' : ''}>Aktion vollständig</option></select></label>
       <label>Reward direkt wählen <span class="cp-help" title="Springt direkt zum Reward in der Liste.">?</span><select data-cp-control="directSelect">${direct}</select></label>
       <button type="button" data-cp-action="new">+ Neuer Reward</button>
     </section>`;
@@ -884,6 +920,7 @@ window.ChannelpointsModule = (function(){
     const cardClasses = ['cp-reward-card'];
     if (state.selectedKey === reward.reward_key) cardClasses.push('active');
     if (needsSetup) cardClasses.push('needs-setup');
+    if (!needsSetup && rewardHasExecutableAction(reward)) cardClasses.push('configured-action');
     const editButton = needsSetup
       ? `<button type="button" class="cp-primary-setup" data-cp-action="configure" data-key="${esc(reward.reward_key)}">Konfigurieren</button>`
       : `<button type="button" data-cp-action="edit" data-key="${esc(reward.reward_key)}">Bearbeiten</button>`;
@@ -896,7 +933,7 @@ window.ChannelpointsModule = (function(){
         ? `<button type="button" class="cp-disabled-action" disabled title="Erst lokale Aktion konfigurieren">Aktivieren gesperrt</button>`
         : `<button type="button" data-cp-action="enable" data-key="${esc(reward.reward_key)}">Aktivieren</button>`);
     return `<article class="${cardClasses.join(' ')}" data-cp-card="${esc(reward.reward_key)}">
-      <div class="cp-reward-main"><strong>${esc(reward.title || reward.reward_key)}</strong><small>${esc(reward.reward_key)} · ${esc(reward.cost)} Punkte · ${esc(categoryLabel(reward.category_key))}</small>${setupHint ? `<small class="cp-setup-hint">${esc(setupHint)}</small>` : ''}</div>
+      <div class="cp-reward-main"><strong>${esc(reward.title || reward.reward_key)}</strong><small>${esc(reward.reward_key)} · ${esc(reward.cost)} Punkte · ${esc(categoryLabel(reward.category_key))}</small><small class="cp-action-summary">${esc(rewardActionSummary(reward))}</small>${setupHint ? `<small class="cp-setup-hint">${esc(setupHint)}</small>` : ''}</div>
       <div class="cp-reward-badges">${pill(action.label.replace(/^..\s*/, ''), 'neutral')} ${statusPills(reward)}</div>
       <div class="cp-reward-actions">
         ${editButton}
@@ -1011,6 +1048,7 @@ window.ChannelpointsModule = (function(){
     root.querySelector('[data-cp-action="configure-first-missing"]')?.addEventListener('click', () => configureFirstMissingReward());
     root.querySelector('[data-cp-action="filter-missing-action"]')?.addEventListener('click', () => { state.statusFilter = 'missing_action'; render(); });
     root.querySelector('[data-cp-action="filter-imported"]')?.addEventListener('click', () => { state.statusFilter = 'imported'; render(); });
+    root.querySelector('[data-cp-action="filter-configured-action"]')?.addEventListener('click', () => { state.statusFilter = 'configured_action'; render(); });
     root.querySelector('[data-cp-action="filter-reset"]')?.addEventListener('click', () => { state.statusFilter = 'all'; state.query = ''; render(); });
     root.querySelector('[data-cp-action="bus-test"]')?.addEventListener('click', () => runBusTest().catch(showError));
     root.querySelector('[data-cp-action="twitch-readonly-status"]')?.addEventListener('click', () => refreshTwitchReadonlyStatus().catch(showError));
