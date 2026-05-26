@@ -1,11 +1,8 @@
-# CHANGELOG
+# Changelog
 
-## Commands v0.1.2 - 2026-05-26
+## 2026-05-26 - Commands v0.1.3
 
-- `backend/modules/commands.js` angepasst.
-- Modul-Version ergänzt/erhöht: `0.1.2`.
-- Runtime-Build: `status-no-schema-touch`.
-- `/api/commands/status` ruft kein `ensureSchema()` mehr auf.
-- Status enthält `schemaTouchOnStatus=false`.
-- Öffentliche Runtime nutzt Version/Build statt STEP als Modulkennung.
-- Keine DB-Änderung, keine Dashboard-Änderung, keine Command-Logik entfernt.
+- Media-Playback-Payload für `sound_play`/`video_play` ergänzt.
+- Legacy-Ziel `/api/sound/play-media` beim Execute auf `/api/sound/play` umgeschrieben.
+- Diagnose-Route `/api/commands/media-command-check` ergänzt.
+- Status bleibt leichtgewichtig und ohne Schema-Touch.

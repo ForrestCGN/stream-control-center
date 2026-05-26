@@ -5,8 +5,8 @@ const database = require('../core/database');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.1.2';
-const MODULE_BUILD = 'status-no-schema-touch';
+const MODULE_VERSION = '0.1.3';
+const MODULE_BUILD = 'media-playback-payload-bridge';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -439,6 +439,29 @@ function httpJsonRequest(method, targetUrl, payload = {}) {
   });
 }
 
+function commandActionType(command) {
+  const config = command && command.config && typeof command.config === 'object' ? command.config : {};
+  return cleanText(config.actionType || config.type || '').toLowerCase();
+}
+
+function isMediaPlaybackCommand(command) {
+  const actionType = commandActionType(command);
+  return actionType === 'sound_play' || actionType === 'video_play';
+}
+
+function commandMediaId(command) {
+  const config = command && command.config && typeof command.config === 'object' ? command.config : {};
+  return cleanText(config.mediaId || config.soundMediaId || config.videoMediaId || '');
+}
+
+function effectiveCommandTargetUrl(command) {
+  let targetUrl = cleanText(command && command.targetUrl || '');
+  if (isMediaPlaybackCommand(command)) {
+    if (!targetUrl || targetUrl.includes('/api/sound/play-media')) targetUrl = '/api/sound/play';
+  }
+  return targetUrl;
+}
+
 function buildTargetPayload(command, parsedCommand, user, source = {}) {
   const config = command.config && typeof command.config === 'object' ? command.config : {};
   const moduleCommand = cleanText(config.moduleCommand || config.internalCommand || command.trigger) || command.trigger;
@@ -447,11 +470,37 @@ function buildTargetPayload(command, parsedCommand, user, source = {}) {
   const rawInput = `${moduleCommand}${effectiveArgs.length ? ` ${effectiveArgs.join(' ')}` : ''}`.trim();
   const payload = { command: moduleCommand, cmd: moduleCommand, rawInput, input: rawInput, rawMessage: parsedCommand.rawMessage, message: parsedCommand.rawMessage, args: effectiveArgs, user: user.displayName || user.login, userName: user.displayName || user.login, userLogin: user.login, login: user.login, displayName: user.displayName || user.login, userDisplayName: user.displayName || user.login, userId: user.userId || '', badges: user.badges || {}, isBroadcaster: !!user.isBroadcaster, isOwner: !!user.isBroadcaster, isMod: !!user.isMod, isModerator: !!user.isMod, isVip: !!user.isVip, isSubscriber: !!user.isSubscriber, source: source.source || 'command_system', channel: source.channel || '', chatOutput: true, sendChat: true, directSendEnabled: true, fallbackToStreamerbot: true };
   effectiveArgs.slice(0, 10).forEach((arg, index) => { payload[`input${index}`] = arg; });
+
+  const actionType = commandActionType(command);
+  const mediaId = commandMediaId(command);
+  if ((actionType === 'sound_play' || actionType === 'video_play') && mediaId) {
+    const isVideo = actionType === 'video_play';
+    payload.command = isVideo ? 'play_video_media' : 'play_audio_media';
+    payload.cmd = payload.command;
+    payload.mediaId = mediaId;
+    payload.mediaType = isVideo ? 'video' : 'audio';
+    payload.type = isVideo ? 'video' : 'file';
+    payload.soundId = '';
+    payload.sound = '';
+    payload.volume = int(config.volume, isVideo ? 80 : 85);
+    payload.target = cleanText(config.target || 'stream') || 'stream';
+    payload.outputTarget = isVideo ? 'overlay' : (cleanText(config.outputTarget || config.output || 'overlay') || 'overlay');
+    payload.category = cleanText(config.category || 'fun') || 'fun';
+    payload.source = 'commands';
+    payload.requestedBy = user.login || user.displayName || '';
+    payload.label = cleanText(config.label || command.trigger || mediaId) || `command_media_${mediaId}`;
+    payload.queueIfBusy = config.queue !== false;
+    payload.parallelAllowed = config.parallelAllowed === true;
+    payload.meta = { commandTrigger: command.trigger, actionType, mediaId };
+  }
+
   return payload;
 }
+
 async function executeCommand(command, parsedCommand, user, source = {}) {
-  if (!command.targetUrl) throw new Error('command_target_url_missing');
-  return httpJsonRequest(command.targetMethod || 'POST', command.targetUrl, buildTargetPayload(command, parsedCommand, user, source));
+  const targetUrl = effectiveCommandTargetUrl(command);
+  if (!targetUrl) throw new Error('command_target_url_missing');
+  return httpJsonRequest(command.targetMethod || 'POST', targetUrl, buildTargetPayload(command, parsedCommand, user, source));
 }
 
 async function processMessage(input = {}, options = {}) {
@@ -518,6 +567,7 @@ function buildRoutes() {
     { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Command löschen' },
     { method: 'GET/POST', path: `${API_PREFIX}/test`, purpose: 'Chatnachricht trocken parsen und Zielpayload anzeigen' },
     { method: 'GET/POST', path: `${API_PREFIX}/execute`, purpose: 'Chatnachricht als Command ausführen' },
+    { method: 'GET', path: `${API_PREFIX}/media-command-check`, purpose: 'Media-Command Routing und Payload prüfen' },
     { method: 'GET', path: `${API_PREFIX}/logs`, purpose: 'Letzte Command-Ausführungen anzeigen' },
     { method: 'GET', path: `${API_PREFIX}/history`, purpose: 'Alias fuer /api/commands/logs' }
   ];
@@ -547,6 +597,7 @@ function statusPayload() {
     lightStatus: true,
     schemaTouchOnStatus: false,
     removedHeavyFields: ['commands', 'moduleCatalog', 'recent'],
+    mediaPlaybackBridge: { enabled: true, target: '/api/sound/play', legacyTargetRewritten: '/api/sound/play-media' },
     updatedAt: nowIso()
   };
 }
@@ -557,6 +608,34 @@ function readUserFromReq(req) {
   const displayName = cleanText(core.getParam(req, 'displayName', '') || core.getParam(req, 'userDisplayName', '') || login);
   const role = cleanText(core.getParam(req, 'role', 'everyone')).toLowerCase();
   return { login, displayName: displayName || login, userId: '', badges: role === 'mod' ? { moderator: '1' } : (role === 'vip' ? { vip: '1' } : (role === 'streamer' || role === 'owner' ? { broadcaster: '1' } : {})), isBroadcaster: role === 'streamer' || role === 'owner' || role === 'broadcaster', isMod: role === 'mod' || role === 'moderator', isVip: role === 'vip', isSubscriber: role === 'subscriber' || role === 'sub' };
+}
+
+
+function mediaCommandCheckPayload(trigger, req) {
+  ensureSchema();
+  const clean = cleanTrigger(trigger || '');
+  if (!clean) throw new Error('trigger_missing');
+  const match = getCommandByTrigger(clean);
+  if (!match || !match.command) throw new Error('command_not_found');
+  const command = match.command;
+  const user = readUserFromReq(req || { query: {} });
+  const parsedCommand = { rawMessage: `${state.prefix || DEFAULT_PREFIX}${command.trigger}`, args: [], trigger: command.trigger };
+  const payload = buildTargetPayload(command, parsedCommand, user, { source: 'media_command_check', dryRun: true });
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    trigger: command.trigger,
+    isMediaCommand: isMediaPlaybackCommand(command),
+    actionType: commandActionType(command),
+    mediaId: commandMediaId(command),
+    savedTargetUrl: command.targetUrl || '',
+    effectiveTargetUrl: effectiveCommandTargetUrl(command),
+    targetMethod: command.targetMethod || 'POST',
+    payloadPreview: payload,
+    warnings: isMediaPlaybackCommand(command) && !commandMediaId(command) ? ['media_id_missing'] : []
+  };
 }
 
 module.exports.MODULE_META = { name: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD };
@@ -609,7 +688,11 @@ module.exports.init = function init(ctx) {
   app.post(`${API_PREFIX}/test`, handleTest);
   app.get(`${API_PREFIX}/execute`, handleExecute);
   app.post(`${API_PREFIX}/execute`, handleExecute);
+  app.get(`${API_PREFIX}/media-command-check`, (req, res) => {
+    try { return res.json(mediaCommandCheckPayload(core.getParam(req, 'trigger', ''), req)); }
+    catch (err) { return res.status(400).json(core.fail(err.message || String(err))); }
+  });
   app.get(`${API_PREFIX}/logs`, handleLogs);
   app.get(`${API_PREFIX}/history`, handleLogs);
-  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, status light)`);
+  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, media playback bridge)`);
 };

@@ -4,20 +4,21 @@ Stand: 2026-05-26
 
 ## Commands
 
-Aktuelle Modul-Version: `0.1.2`  
-Build: `status-no-schema-touch`
+Das Commands-Modul läuft mit:
 
-`/api/commands/status` ist jetzt ein leichtgewichtiger Runtime-Status ohne schwere Datenfelder und ohne Schema-Touch.
+```text
+moduleVersion = 0.1.3
+moduleBuild = media-playback-payload-bridge
+```
 
-Wichtig:
+Der Status-Endpunkt ist weiterhin leichtgewichtig. Media-Commands leiten Sound/Video-Ausführung jetzt backendseitig korrekt an `/api/sound/play` weiter und erzeugen den nötigen Payload aus der gespeicherten Command-Config.
 
-- `lightStatus=true`
-- `schemaTouchOnStatus=false`
-- `commands`, `moduleCatalog` und `recent` sind nicht mehr Teil von `/status`
-- getrennte Endpunkte bleiben aktiv: `/list`, `/catalog`, `/logs`
+Neue Diagnose:
 
-Grund: Messung zeigte vorher ca. 7,55 Sekunden für `/api/commands/status`, während die Einzelendpunkte schnell waren.
+```text
+GET /api/commands/media-command-check?trigger=<trigger>
+```
 
 ## Kanalpunkte
 
-Kanalpunkte-Dashboard und lokales CRUD bleiben unverändert. Commands und Kanalpunkte sollen langfristig als verwandte Interaction-Systeme mit ähnlicher Bedienstruktur aufgebaut werden.
+Kanalpunkte bleiben auf lokaler CRUD-/Dashboard-Basis. Media- und Action-Pattern soll weiterhin am Commands-System gespiegelt werden.
