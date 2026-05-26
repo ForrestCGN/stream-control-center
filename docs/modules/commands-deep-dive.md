@@ -1,19 +1,58 @@
-# Commands Deep Dive — v0.1.9
+# Modul-Doku — Commands
 
-## Fokus
-Dashboard-Fix fuer den Modal-Editor.
+Stand: 2026-05-26
 
-## Problem
-Beim Erstellen eines neuen Commands konnte ein ungespeicherter Trigger verschwinden, wenn im Sound-/Video-Bereich ein Medium ueber den MediaPicker ausgewaehlt wurde.
+## Versionen
 
-## Ursache
-Die MediaPicker-Auswahl aktualisierte `state.modal.data` und renderte das Modal neu, ohne vorher die aktuellen Eingaben aus dem Formular in den Modal-Entwurf zu uebernehmen.
+Backend:
 
-## Loesung
-`syncModalDraftFromDom()` synchronisiert den aktuellen Formularstand vor:
-- MediaPicker-Auswahl
-- Action-Wechsel
-- Katalog-Wechsel
-- Speichern
+```text
+moduleVersion = 0.1.5
+moduleBuild = safe-edit-param-fix
+```
 
-Damit bleiben Trigger, Aliase, Rechte, Cooldowns, Aktiv-Status, Textfelder und technische Werte erhalten.
+Dashboard:
+
+```text
+UI_VERSION = 0.1.9
+UI_BUILD = preserve-modal-draft-state
+```
+
+## Ziel
+
+Zentrales Chat-Command-System mit benutzerfreundlicher Dashboard-Verwaltung und sicherem Editierverhalten.
+
+## Wichtige UI-Regeln
+
+- Neuer Command öffnet Modal mit Standardwerten.
+- Bestehender Command öffnet Modal mit gespeicherten Daten.
+- Bearbeiten speichert bestehenden Command, legt nicht versehentlich einen neuen an.
+- Löschen nur mit Rückfrage.
+- Technische Felder nur unter `Erweitert`.
+- `Nur Live` nicht in der normalen Oberfläche.
+- MediaPicker-Auswahl darf Formularentwurf nicht zurücksetzen.
+
+## Aktionen
+
+Normale Auswahl:
+
+```text
+Song abspielen
+Video abspielen
+Text anzeigen
+Modul-Befehl ausführen
+Benutzerdefinierte Aktion
+```
+
+## Bekannte Fixes
+
+- Duplikatfehler beim Speichern behoben.
+- `Unknown named parameter 'createdAt'` behoben.
+- Draft-State beim MediaPicker behoben.
+
+## Offene Punkte
+
+- Optional später zentrale Textverwaltung anbinden.
+- Optional UI-Feinschliff.
+- Neue Module sollen ihren Command-Katalog sauber dokumentieren.
+

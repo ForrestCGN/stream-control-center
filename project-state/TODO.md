@@ -1,18 +1,33 @@
-# TODO
+# TODO — stream-control-center
 
-- [ ] Channelpoints Twitch Token-/Scope-Check read-only
-- [ ] Channelpoints Read-only Reward-Sync
-- [ ] Channelpoints EventSub Redemption Handler
-- [ ] Twitch Fulfill/Cancel/Enable/Disable erst nach gesonderter Freigabe
-- [ ] Zentrale Textverwaltung für Commands/Kanalpunkte
+## Jetzt
 
+- Kanalpunkte v0.8.1: Twitch Custom Rewards read-only abrufen.
+- Sync-Vorschau lokal/Twitch bauen.
+- Keine Twitch-Schreibzugriffe.
 
-## Kanalpunkte v0.8.0 — Twitch Auth/Scope Check
+## Bald
 
-- Backend-Version `0.8.0`, Build `twitch-auth-scope-check`.
-- Dashboard-Version `0.8.0`, Build `twitch-auth-scope-check`.
-- Neue Route `GET /api/channelpoints/twitch/auth-check`.
-- Prüft vorhandenen Twitch-User-Token und Scopes über `/api/twitch/auth/validate`.
-- Benötigt für Read-only: `channel:read:redemptions` oder `channel:manage:redemptions`.
-- Benötigt für spätere Schreibaktionen: `channel:manage:redemptions`.
-- Keine Twitch-Schreibzugriffe, keine DB-Schemaänderung.
+- Twitch Reward ID lokal verknüpfen.
+- Konfliktanzeige zwischen lokal und Twitch.
+- EventBus-Events für Twitch-Read und Sync-Preview ergänzen.
+- Dashboard-Sync-Panel weiter ausbauen.
+
+## Später
+
+- Kontrolliertes Twitch Create/Update/Delete.
+- Twitch Deaktivieren mit klarer Rückfrage.
+- EventSub Redemption Ingest.
+- Redemption Fulfill/Cancel.
+- Zentrale Textverwaltung.
+
+## Dauerregeln
+
+- Keine Funktionalität entfernen.
+- Jede Änderung versionieren.
+- Neue Module/Helper dokumentieren.
+- Doku bei Chatwechsel aktualisieren.
+- EventBus als Kommunikations- und Monitoring-System nutzen.
+- SQLite niemals ersetzen.
+- Alles, was sinnvoll konfigurierbar ist, in Config/DB auslagern.
+

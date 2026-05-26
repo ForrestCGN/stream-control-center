@@ -1,14 +1,98 @@
-# Current System Status
+# CURRENT_SYSTEM_STATUS
 
-Channelpoints/Kanalpunkte: v0.7.5 (`eventbus-docs-final-polish`) ist der aktuelle lokale Basisstand. Lokaler Reward-/Redemption-Flow funktioniert, Sound/Video/Text sind vorbereitet/ausführbar, EventBus-Domain-Events sind dokumentiert und eingebunden. Twitch-Sync ist als Readiness-Panel vorbereitet, aber ohne Twitch-Schreibzugriffe.
+Stand: 2026-05-26
 
+## Commands
 
-## Kanalpunkte v0.8.0 — Twitch Auth/Scope Check
+Backend:
 
-- Backend-Version `0.8.0`, Build `twitch-auth-scope-check`.
-- Dashboard-Version `0.8.0`, Build `twitch-auth-scope-check`.
-- Neue Route `GET /api/channelpoints/twitch/auth-check`.
-- Prüft vorhandenen Twitch-User-Token und Scopes über `/api/twitch/auth/validate`.
-- Benötigt für Read-only: `channel:read:redemptions` oder `channel:manage:redemptions`.
-- Benötigt für spätere Schreibaktionen: `channel:manage:redemptions`.
-- Keine Twitch-Schreibzugriffe, keine DB-Schemaänderung.
+```text
+module = commands
+moduleVersion = 0.1.5
+moduleBuild = safe-edit-param-fix
+```
+
+Dashboard:
+
+```text
+UI_VERSION = 0.1.9
+UI_BUILD = preserve-modal-draft-state
+```
+
+Status:
+
+- Modal-Editor vorhanden.
+- Safe-Edit vorhanden.
+- Draft-State funktioniert.
+- Sound/Video mit MediaPicker funktioniert.
+- Löschen vorhanden.
+- `Nur Live` aus normaler UI entfernt.
+
+## Kanalpunkte
+
+Backend:
+
+```text
+module = channelpoints
+moduleVersion = 0.8.0
+moduleBuild = twitch-auth-scope-check
+```
+
+Dashboard:
+
+```text
+UI_VERSION = 0.8.0
+UI_BUILD = twitch-auth-scope-check
+```
+
+Status:
+
+- Lokale Reward-Verwaltung vorhanden.
+- Modal-Editor analog zu Commands vorhanden.
+- Sound/Video/Text-Aktionen lokal testbar.
+- Redemption-Test-Flow vorhanden.
+- Einlösungsverlauf vorhanden.
+- EventBus-Domain-Events aktiv/dokumentiert.
+- Twitch Auth-/Scope-Check vorhanden.
+- Read-only Sync möglich.
+- Twitch-Schreibzugriffe deaktiviert.
+
+## Letzte bestätigte Tests
+
+### Kanalpunkte Status
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status" |
+  Select-Object ok,module,moduleVersion,moduleBuild
+```
+
+Ergebnis:
+
+```text
+ok = True
+module = channelpoints
+moduleVersion = 0.8.0
+moduleBuild = twitch-auth-scope-check
+```
+
+### Twitch Auth Check
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/auth-check" |
+  Select-Object ok,module,moduleVersion,moduleBuild,status,auth,scopeCheck,readiness,safety
+```
+
+Ergebnis zusammengefasst:
+
+```text
+ok = True
+status = twitch_auth_scope_check
+auth.login = forrestcgn
+auth.userId = 127709954
+auth.broadcasterId = 127709954
+auth.tokenUserMatchesBroadcaster = True
+readiness.readyForReadOnlySync = True
+readiness.readyForFutureWriteActions = False
+safety.noTwitchWrite = True
+```
+
