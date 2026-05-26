@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.8.9';
-  const UI_BUILD = 'configured-reward-status-polish';
+  const UI_VERSION = '0.9.0';
+  const UI_BUILD = 'redemption-preview-test-ui';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -12,6 +12,9 @@ window.ChannelpointsModule = (function(){
     mediaExecutionCheck: '/api/channelpoints/media-execution-check',
     redemptions: '/api/channelpoints/redemptions',
     redemptionTest: '/api/channelpoints/redemptions/test',
+    eventsubRedemptionStatus: '/api/channelpoints/eventsub/redemption/status',
+    eventsubRedemptionPreview: '/api/channelpoints/eventsub/redemption/preview',
+    eventsubRedemptionReceive: '/api/channelpoints/eventsub/redemption',
     twitchStatus: '/api/channelpoints/twitch-status',
     twitchAuthCheck: '/api/channelpoints/twitch/auth-check',
     twitchReadonlyStatus: '/api/channelpoints/twitch/rewards-readonly/status',
@@ -41,6 +44,10 @@ window.ChannelpointsModule = (function(){
     rewards:[],
     redemptions:[],
     redemptionCounts:null,
+    eventsubRedemptionStatus:null,
+    eventsubRedemptionPreview:null,
+    eventsubRedemptionReceive:null,
+    redemptionTestRewardKey:'',
     twitchStatus:null,
     twitchAuthCheck:null,
     twitchReadonlyStatus:null,
@@ -468,11 +475,12 @@ window.ChannelpointsModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, cats, rewardsRes, redemptionsRes, twitchRes, twitchAuthRes, twitchReadonlyRes] = await Promise.all([
+      const [status, cats, rewardsRes, redemptionsRes, eventsubStatusRes, twitchRes, twitchAuthRes, twitchReadonlyRes] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.categories),
         window.CGN.api(api.rewards),
         window.CGN.api(`${api.redemptions}?limit=25`).catch(err => ({ ok:false, redemptions:[], counts:null, error:err.message })),
+        window.CGN.api(api.eventsubRedemptionStatus).catch(err => ({ ok:false, error:err.message, enabled:false })),
         window.CGN.api(api.twitchStatus).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.twitchAuthCheck).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.twitchReadonlyStatus).catch(err => ({ ok:false, error:err.message, enabled:false }))
@@ -482,6 +490,8 @@ window.ChannelpointsModule = (function(){
       state.rewards = asArray(rewardsRes.rewards);
       state.redemptions = asArray(redemptionsRes.redemptions);
       state.redemptionCounts = redemptionsRes.counts || null;
+      state.eventsubRedemptionStatus = eventsubStatusRes || null;
+      if (!state.redemptionTestRewardKey) { const firstMapped = asArray(rewardsRes.rewards).find(r => String(r.twitch_reward_id || '').trim()); state.redemptionTestRewardKey = firstMapped ? firstMapped.reward_key : ''; }
       state.twitchStatus = twitchRes || null;
       state.twitchAuthCheck = twitchAuthRes || null;
       state.twitchReadonlyStatus = twitchReadonlyRes || null;
@@ -557,6 +567,71 @@ window.ChannelpointsModule = (function(){
     await loadAll(true);
   }
 
+
+  function mappedRewards() {
+    return rewards().filter(reward => String(reward.twitch_reward_id || '').trim());
+  }
+
+  function selectedRedemptionTestReward() {
+    const mapped = mappedRewards();
+    if (!state.redemptionTestRewardKey && mapped.length) state.redemptionTestRewardKey = mapped[0].reward_key;
+    return mapped.find(reward => String(reward.reward_key) === String(state.redemptionTestRewardKey)) || mapped[0] || null;
+  }
+
+  function buildDummyRedemptionPayload(reward, idPrefix = 'dashboard_preview') {
+    const now = new Date().toISOString();
+    const suffix = Math.random().toString(36).slice(2, 8);
+    return {
+      event: {
+        id: `${idPrefix}_${Date.now()}_${suffix}`,
+        user_id: 'dashboard_user_001',
+        user_login: 'dashboard',
+        user_name: 'Dashboard',
+        user_input: '',
+        status: 'unfulfilled',
+        redeemed_at: now,
+        reward: {
+          id: reward && reward.twitch_reward_id || '',
+          title: reward && reward.title || '',
+          cost: reward && reward.cost || 0
+        }
+      }
+    };
+  }
+
+  async function refreshRedemptionEventSubStatus() {
+    const data = await window.CGN.api(api.eventsubRedemptionStatus);
+    state.eventsubRedemptionStatus = data;
+    state.notice = data.ok ? 'EventSub-Redemption-Status aktualisiert.' : 'EventSub-Status konnte nicht geladen werden.';
+    state.tab = 'redemptions';
+    render();
+  }
+
+  async function previewDummyRedemption() {
+    const reward = selectedRedemptionTestReward();
+    if (!reward) throw new Error('Kein gemappter Reward mit twitch_reward_id gefunden. Bitte zuerst Twitch-Rewards lokal synchronisieren.');
+    const payload = buildDummyRedemptionPayload(reward, 'dashboard_preview');
+    const data = await window.CGN.api(api.eventsubRedemptionPreview, { method:'POST', body:JSON.stringify(payload) });
+    state.eventsubRedemptionPreview = data;
+    state.notice = data.ok ? `Preview erzeugt: ${data.normalized?.reward_key || reward.reward_key} · mapped=${data.normalized?.mapped === true}` : 'Preview konnte nicht erzeugt werden.';
+    state.tab = 'redemptions';
+    render();
+  }
+
+  async function receiveDummyRedemption() {
+    const reward = selectedRedemptionTestReward();
+    if (!reward) throw new Error('Kein gemappter Reward mit twitch_reward_id gefunden. Bitte zuerst Twitch-Rewards lokal synchronisieren.');
+    if (!window.confirm(`Dummy-Redemption für ${reward.title || reward.reward_key} lokal speichern?
+
+Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) return;
+    const payload = buildDummyRedemptionPayload(reward, 'dashboard_receive');
+    const data = await window.CGN.api(api.eventsubRedemptionReceive, { method:'POST', body:JSON.stringify(payload) });
+    state.eventsubRedemptionReceive = data;
+    state.notice = data.ok ? `Dummy-Redemption lokal gespeichert: ${data.redemption?.reward_key || reward.reward_key}. Keine automatische Ausführung.` : 'Dummy-Redemption konnte nicht gespeichert werden.';
+    state.tab = 'redemptions';
+    await loadAll(true);
+  }
+
   async function runBusTest() {
     const data = await window.CGN.api(`${api.busTest}?message=dashboard`);
     state.busResult = data;
@@ -624,12 +699,32 @@ window.ChannelpointsModule = (function(){
     return '';
   }
 
+  function renderRedemptionEventSubTestBox() {
+    const status = state.eventsubRedemptionStatus || {};
+    const stats = status.stats || {};
+    const mapped = mappedRewards();
+    const selected = selectedRedemptionTestReward();
+    const preview = state.eventsubRedemptionPreview || null;
+    const receive = state.eventsubRedemptionReceive || null;
+    const options = mapped.map(reward => `<option value="${esc(reward.reward_key)}" ${selected && reward.reward_key === selected.reward_key ? 'selected' : ''}>${esc(reward.title || reward.reward_key)} · ${esc(reward.reward_key)}</option>`).join('');
+    const normalized = preview && preview.normalized ? preview.normalized : null;
+    return `<div class="cp-eventsub-test-box">
+      <div class="cp-eventsub-head"><div><h4>EventSub-Redemption Test/Preview</h4><p>Testet kontrolliert: Twitch reward_id → lokaler reward_key → lokale Speicherung. Keine automatische Ausführung, kein Twitch-Write.</p></div><div class="cp-eventsub-status">${pill(status.enabled === false ? 'EventSub Prep aus' : 'EventSub Prep bereit', status.enabled === false ? 'off' : 'ok')}${pill(status.autoExecuteEnabled ? 'AutoExecute an' : 'AutoExecute aus', status.autoExecuteEnabled ? 'warn' : 'neutral')}</div></div>
+      <div class="cp-form-grid cp-redemption-test-grid"><label>Gemappter Test-Reward<select data-cp-control="redemptionTestReward">${options || '<option value="">Kein gemappter Reward gefunden</option>'}</select></label><div class="cp-test-reward-info"><strong>${esc(selected ? selected.title : 'Kein Reward')}</strong><span>${selected ? `reward_key ${esc(selected.reward_key)} · twitch_reward_id ${esc(selected.twitch_reward_id)}` : 'Bitte zuerst Twitch-Rewards lokal synchronisieren.'}</span></div></div>
+      <div class="cp-actions"><button type="button" data-cp-action="eventsub-status">EventSub-Status</button><button type="button" data-cp-action="eventsub-preview" ${selected ? '' : 'disabled'}>Dummy-Preview erzeugen</button><button type="button" data-cp-action="eventsub-receive" ${selected ? '' : 'disabled'}>Dummy lokal speichern</button></div>
+      <div class="cp-eventsub-stats"><span>Received: ${esc(stats.received ?? 0)}</span><span>Preview: ${esc(stats.previewed ?? 0)}</span><span>Stored: ${esc(stats.stored ?? 0)}</span><span>Duplicates: ${esc(stats.duplicates ?? 0)}</span><span>Unmapped: ${esc(stats.unmapped ?? 0)}</span></div>
+      ${normalized ? `<div class="cp-mapping-preview"><strong>Preview-Mapping</strong><div class="cp-mapping-preview-grid"><span>Redemption</span><code>${esc(normalized.twitch_redemption_id || '-')}</code><span>Twitch Reward</span><code>${esc(normalized.twitch_reward_id || '-')}</code><span>Lokal</span><code>${esc(normalized.reward_key || '-')}</code><span>Status</span><b>${normalized.mapped ? 'gemappt' : 'unmapped'}</b></div></div>` : ''}
+      ${receive && receive.redemption ? `<div class="cp-mapping-preview ok"><strong>Zuletzt gespeichert</strong><div class="cp-mapping-preview-grid"><span>Reward</span><code>${esc(receive.redemption.reward_key || '-')}</code><span>User</span><code>${esc(receive.redemption.user_display_name || receive.redemption.user_login || '-')}</code><span>Status</span><b>${esc(receive.redemption.status || '-')}</b><span>Ausführung</span><code>${esc(receive.executionSkipped || 'nicht automatisch')}</code></div></div>` : ''}
+    </div>`;
+  }
+
   function renderRedemptionsPanel() {
     const list = asArray(state.redemptions).slice(0, 25);
     const counts = state.redemptionCounts || {};
     return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Einlösungen / Testverlauf</h3><span>${esc(counts.total ?? list.length)} gesamt · ${esc(counts.executed ?? 0)} ausgeführt · ${esc(counts.failed ?? 0)} Fehler</span></div>
+      ${renderRedemptionEventSubTestBox()}
       <div class="cp-redemption-list">${list.map(item => { const preview = redemptionResultPreview(item); return `<div class="cp-redemption-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}${preview ? ` · ${esc(preview).slice(0, 140)}` : ''}</small></div><div>${redemptionStatusPill(item.status)}</div></div>`; }).join('') || '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
-      <small class="cp-muted-line">Text-Rewards speichern den vorbereiteten Chattext aktuell lokal im Ergebnis. Zentrale Textverwaltung und echtes Senden folgen separat.</small>
+      <small class="cp-muted-line">EventSub-Tests speichern nur lokal und führen nicht automatisch aus. Text-Rewards speichern den vorbereiteten Chattext aktuell lokal im Ergebnis.</small>
     </section>`;
   }
 
@@ -1054,6 +1149,9 @@ window.ChannelpointsModule = (function(){
     root.querySelector('[data-cp-action="twitch-readonly-status"]')?.addEventListener('click', () => refreshTwitchReadonlyStatus().catch(showError));
     root.querySelector('[data-cp-action="twitch-readonly-preview"]')?.addEventListener('click', () => previewTwitchRewards().catch(showError));
     root.querySelector('[data-cp-action="twitch-readonly-sync"]')?.addEventListener('click', () => syncTwitchRewards().catch(showError));
+    root.querySelector('[data-cp-action="eventsub-status"]')?.addEventListener('click', () => refreshRedemptionEventSubStatus().catch(showError));
+    root.querySelector('[data-cp-action="eventsub-preview"]')?.addEventListener('click', () => previewDummyRedemption().catch(showError));
+    root.querySelector('[data-cp-action="eventsub-receive"]')?.addEventListener('click', () => receiveDummyRedemption().catch(showError));
     root.querySelectorAll('[data-cp-action="edit"]').forEach(btn => btn.addEventListener('click', () => { const r = rewardByKey(btn.dataset.key); if (r) openModal('edit', r); }));
     root.querySelectorAll('[data-cp-action="configure"]').forEach(btn => btn.addEventListener('click', () => configureReward(btn.dataset.key)));
     root.querySelectorAll('[data-cp-action="check"]').forEach(btn => btn.addEventListener('click', ev => { ev.stopPropagation(); checkReward(btn.dataset.key).catch(showError); }));
@@ -1080,6 +1178,7 @@ window.ChannelpointsModule = (function(){
     root.querySelector('[data-cp-control="categoryFilter"]')?.addEventListener('change', ev => { if (state.modal) syncDraftFromForm(); state.categoryFilter = ev.target.value || 'all'; render(); });
     root.querySelector('[data-cp-control="statusFilter"]')?.addEventListener('change', ev => { if (state.modal) syncDraftFromForm(); state.statusFilter = ev.target.value || 'all'; render(); });
     root.querySelector('[data-cp-control="directSelect"]')?.addEventListener('change', ev => { if (state.modal) syncDraftFromForm(); state.selectedKey = ev.target.value || ''; const card = root.querySelector(`[data-cp-card="${CSS.escape(state.selectedKey)}"]`); card?.scrollIntoView?.({ behavior:'smooth', block:'center' }); render(); });
+    root.querySelector('[data-cp-control="redemptionTestReward"]')?.addEventListener('change', ev => { state.redemptionTestRewardKey = ev.target.value || ''; state.eventsubRedemptionPreview = null; state.eventsubRedemptionReceive = null; render(); });
     root.querySelectorAll('[data-cp-card]').forEach(card => card.addEventListener('click', ev => { if (ev.target.closest('button')) return; state.selectedKey = card.dataset.cpCard || ''; render(); }));
   }
 
