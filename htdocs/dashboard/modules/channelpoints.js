@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.9.8';
-  const UI_BUILD = 'redemption-history-filters';
+  const UI_VERSION = '1.0.0';
+  const UI_BUILD = 'operation-cleanup-consolidated';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -1052,7 +1052,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const writeMode = (status.twitchWrite || preview.twitchWrite || sync.twitchWrite) ? pill('WARNUNG: Twitch-Write', 'off') : pill('kein Twitch-Write', 'ok');
     const localMode = preview.localDbWrite ? pill('Preview schreibt lokal', 'warn') : pill('Preview ohne lokalen Write', 'ok');
     const mappingRows = rows.slice(0, 80);
-    return `<section class="cp-panel cp-twitch-sync-panel"><div class="cp-panel-head"><h3>Twitch Rewards Read-Only Sync</h3><span>${statusMode} ${writeMode}</span></div>
+    return `<section class="cp-panel cp-twitch-sync-panel"><div class="cp-panel-head"><h3>Twitch-Rewards importieren</h3><span>${statusMode} ${writeMode}</span></div>
       <div class="cp-twitch-grid cp-twitch-sync-grid">
         <div><strong>Status</strong><span>Modul: ${esc(status.module || '-')} · v${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span></div>
         <div><strong>Preview</strong><span>${esc(preview.rewardCount ?? previewRewards.length ?? '-')} gelesen · Backend: Insert ${esc(previewSummary.insert)} · Update ${esc(previewSummary.update)} · Unverändert ${esc(previewSummary.unchanged)}</span></div>
@@ -1060,7 +1060,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
         <div><strong>Letzter Sync</strong><span>${esc(sync.syncedAt || sync.readAt || sync.updatedAt || '-')} · Insert ${esc(syncSummary.insert)} · Update ${esc(syncSummary.update)} · Unverändert ${esc(syncSummary.unchanged)}</span></div>
       </div>
       <div class="cp-actions cp-sync-actions"><button type="button" data-cp-action="twitch-readonly-status">Status prüfen</button><button type="button" data-cp-action="twitch-readonly-preview">Preview lesen</button><button type="button" data-cp-action="twitch-readonly-sync">Lokal synchronisieren</button></div>
-      <div class="cp-note cp-twitch-note"><strong>Wichtig:</strong> Dieser Bereich liest Twitch-Rewards nur read-only. Der Sync schreibt ausschließlich lokal in das Kanalpunkte-System. Twitch-Rewards werden hier nicht erstellt, geändert oder deaktiviert.</div>
+      <div class="cp-note cp-twitch-note"><strong>Wichtig:</strong> Dieser Bereich importiert vorhandene Twitch-Rewards lokal. Twitch selbst wird hier nicht verändert.</div>
       ${preview.error ? `<div class="cp-alert error">Preview: ${esc(preview.error)}</div>` : ''}
       ${sync.error ? `<div class="cp-alert error">Sync: ${esc(sync.error)}</div>` : ''}
       <div class="cp-mapping-legend">${pill('gemappt','ok')} ${pill('Update möglich','warn')} ${pill('Titel-Match','neutral')} ${pill('neu / fehlt lokal','off')}</div>
@@ -1072,9 +1072,9 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
   }
 
   function renderDiagnosticsPanel() {
-    return `<section class="cp-panel cp-diagnostics-panel"><div class="cp-panel-head"><h3>Diagnose</h3><span>Tests / EventBus / Rohdaten</span></div>
+    return `<section class="cp-panel cp-diagnostics-panel"><div class="cp-panel-head"><h3>Diagnose</h3><span>Diagnose / Tests / Rohdaten</span></div>
       <div class="cp-actions"><button type="button" data-cp-action="bus-test">EventBus-Test</button><button type="button" data-cp-action="reload">Neu laden</button></div>
-      <div class="cp-note">Test- und Preview-Werkzeuge liegen bewusst hier, damit Rewards und Einlösungen im normalen Betrieb simpel bleiben.</div>
+      <div class="cp-note">Tests liegen bewusst nur hier, damit die normale Bedienung simpel bleibt.</div>
       <details class="cp-advanced-box"><summary>EventSub-Diagnose / Dummy-Redemption testen</summary>${renderRedemptionEventSubTestBox()}</details>
       ${state.busResult ? `<details class="cp-advanced-box" open><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : '<div class="cp-empty">Noch kein Diagnose-Ergebnis.</div>'}
     </section>`;
@@ -1135,7 +1135,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
 
   function renderHeader() {
     const status = state.status || {};
-    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Analog zum Commands-Bereich: Tabs, Rewards, Übersicht, Einlösungen, Twitch-Sync und Mapping getrennt verwalten. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
+    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Kanalpunkte einfach verwalten: Rewards, Einlösungen, Statistik, Import und Diagnose. Aktiv/Inaktiv entscheidet. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
   }
 
   function renderToolbar() {
@@ -1237,7 +1237,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
         <label>Cooldown Sekunden <span class="cp-help" title="Lokale Sperre nach Einlösung. 0 = aus.">?</span><input type="number" min="0" data-cp-field="cooldown_seconds" value="${esc(d.cooldown_seconds ?? 0)}"></label>
         <label>Max pro Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_stream" value="${esc(d.max_per_stream ?? 0)}"></label>
         <label>Max pro User/Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_user_per_stream" value="${esc(d.max_per_user_per_stream ?? 0)}"></label>
-      </div><div class="cp-checks"><label title="Bei importierten Rewards nur aktivieren, wenn eine ausführbare Aktion vollständig konfiguriert ist."><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> lokal aktiv</label><label><input type="checkbox" data-cp-field="is_paused" ${boolValue(d.is_paused) ? 'checked' : ''}> pausiert</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label><label><input type="checkbox" data-cp-field="auto_fulfill" ${boolValue(d.auto_fulfill) ? 'checked' : ''}> später auto-fulfill</label></div></section>
+      </div><div class="cp-checks"><label title="Bei importierten Rewards nur aktivieren, wenn eine ausführbare Aktion vollständig konfiguriert ist."><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> lokal aktiv</label><label><input type="checkbox" data-cp-field="is_paused" ${boolValue(d.is_paused) ? 'checked' : ''}> pausiert</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label></div></section>
 
       <label class="cp-wide cp-notes-label">Notizen<textarea rows="2" data-cp-field="notes">${esc(d.notes || '')}</textarea></label>
 
@@ -1276,7 +1276,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
       ['overview', 'Übersicht'],
       ['redemptions', 'Einlösungen'],
       ['statistics', 'Statistik'],
-      ['twitch-sync', 'Twitch Sync'],
+      ['twitch-sync', 'Import'],
       ['diagnostics', 'Diagnose']
     ];
     if (state.loading) { root.innerHTML = `<div class="cp-admin">${renderHeader()}<section class="cp-panel cp-loading">Kanalpunkte werden geladen...</section></div>`; return; }
