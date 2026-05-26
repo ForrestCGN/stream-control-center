@@ -1,86 +1,43 @@
 # NEXT_STEPS
 
-Stand: 2026-05-26 / nach STEP477
+Stand: 2026-05-26 / nach STEP483_SHOUTOUT_DASHBOARD_TABS
 
-## Unmittelbar als nächstes
-
-`STEP478_MODULE_DOCS_INTEGRATIONS_COMMUNITY_DEEP_DIVE`
-
-Vorgeschlagene Module:
-
-1. `twitch.js`
-2. `twitch_presence.js`
-3. `discord.js`
-4. `obs.js`
-5. `scene_control.js`
-6. `tagebuch.js`
-7. `todo.js`
-8. `message_rotator.js`
-9. `hug.js`
-10. `birthday.js`
-
-## Danach
-
-`STEP479_SHOUTOUT_DASHBOARD_TABS`
-
-## Prüfhinweis
+## Direkt nach Einbau testen
 
 ```bat
 cd D:\Git\stream-control-center
-
-dir docs\modules\clip-shoutout-vso-deep-dive.md
-
-dir docs\moduleslerts-deep-dive.md
-
-dir docs\modules\sound-system-deep-dive.md
-
-dir docs\modulesip-sound-overlay-deep-dive.md
-
-dir docs\modules\clips-deep-dive.md
-
-dir docs\modules	ts-system-deep-dive.md
+node --check htdocs\dashboard\modules\shoutout.js
 ```
 
-Keine JS-Dateien geändert, daher kein `node --check` nötig.
+API-/Live-Checks:
 
-## Nach STEP478
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/queue"
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/timeline"
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/stats"
+```
 
-1. Optional weiter reine Doku: `STEP479_MODULE_DOCS_SECONDARY_MODULES_DEEP_DIVE` für kleinere/sekundäre Module.
-2. Danach Facharbeit am Shoutout-System: `STEP480_SHOUTOUT_DASHBOARD_TABS`.
-3. Vor Shoutout-UI-Arbeiten echte Dashboard-Dateien aus GitHub/dev prüfen.
-
-## Nächster Fach-STEP nach STEP479
+Dashboard:
 
 ```text
-STEP480_SHOUTOUT_DASHBOARD_TABS
+/dashboard/ öffnen -> Shoutout-System -> Tabs Übersicht, Queues, Statistik, Timeline, Settings/Test prüfen.
 ```
-
-Ziel: Shoutout-Dashboard in Tabs/Unterbereiche aufteilen, nachdem die Doku-/Cleanup-Runde abgeschlossen ist.
-
-
-## Nach STEP481
-
-Direkter Fach-STEP bleibt weiterhin das Shoutout-System.
-
-Zusätzlich als späterer Technik-Cleanup möglich:
-
-`STEP482_SERVER_MODULE_LOGGING_AND_META`
-
-Ziel: `backend/server.js` so erweitern, dass Modul-Ladezustand, Versionen und Prefixe kompakt geloggt werden und später an den EventBus/Monitoring angebunden werden können.
 
 ## Nächster sinnvoller Fach-STEP
 
 ```text
-STEP483_SHOUTOUT_DASHBOARD_TABS
+STEP484_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
 ```
 
-Ziel: Nach der Doku-/Cleanup-Runde wieder am Shoutout-System weiterarbeiten und das Shoutout-Dashboard in Tabs/Unterbereiche aufteilen.
+Ziel:
 
-Vor Beginn prüfen:
+- Eingehende Twitch-Shoutouts separat loggen.
+- Sauber von ausgehenden Shoutouts trennen.
+- Später im Dashboard anzeigen, wer ForrestCGN woanders geshoutoutet hat.
 
-```text
-docs/modules/clip-shoutout-vso-deep-dive.md
-docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md
-backend/modules/clip_shoutout.js
-htdocs/dashboard/modules/<Shoutout-Dateien>
-```
+## Spätere offene Punkte
+
+- Settings-Bearbeitung im Shoutout-Dashboard nur gezielt planen, falls wirklich gewünscht.
+- EventBus-/Monitoring-Ausbau für Shoutout-Queue-Status später ergänzen.
+- Produktive Umstellung auf `!so` nur ausdrücklich und nach Test.

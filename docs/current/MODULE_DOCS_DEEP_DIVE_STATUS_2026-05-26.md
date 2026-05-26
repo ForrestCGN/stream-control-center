@@ -1,34 +1,21 @@
 # Module Docs Deep Dive Status
 
-Stand: 2026-05-26
+Stand: 2026-05-26 / nach STEP483_SHOUTOUT_DASHBOARD_TABS
 
 ## Abgeschlossene Doku-Blöcke
 
 - STEP476: Core-/Basis-Module und Helper.
 - STEP477: Stream-/Media-Module.
 - STEP478: Integrations- und Community-Module.
-
-## In STEP478 ergänzt
-
-Integrationen:
-
-- Twitch
-- Twitch Presence
-- Discord
-- OBS
-- Scene Control
-
-Community:
-
-- Tagebuch
-- Todo
-- Message Rotator
-- Hug/Rehug
-- Birthday
+- STEP479: Sekundäre/ergänzende Module.
+- STEP480: Modul-Doku-/Versions-/EventBus-Regeln.
+- STEP481: Server-Log-/Modul-Meta-/EventBus-Monitoring-Regeln.
+- STEP482: Übergabe-/Chatwechsel-Doku-Regel.
+- STEP483: Shoutout-Dashboard-Tabs und zugehörige Modul-Doku aktualisiert.
 
 ## Aktueller Dokumentationsgrad
 
-Pro Modul sind jetzt dokumentiert:
+Pro Modul sollen dokumentiert werden:
 
 - Zweck
 - Datei
@@ -41,59 +28,44 @@ Pro Modul sind jetzt dokumentiert:
 - Risiken/Regeln
 - sinnvolle Tests
 - offene Punkte
+- erkannte Modulversion / `moduleVersion`
+- Modul-Meta-/Server-Log-/EventBus-Readiness, soweit vorhanden
+
+## STEP483 ergänzt
+
+Für `clip_shoutout` / VSO wurde die Deep-Dive-Doku aktualisiert:
+
+```text
+docs/modules/clip-shoutout-vso-deep-dive.md
+```
+
+Neu dokumentiert:
+
+- Dashboard-Dateien `htdocs/dashboard/modules/shoutout.js` und `htdocs/dashboard/modules/shoutout.css`.
+- Tab-Aufteilung: Übersicht, Queues, Statistik, Timeline, Settings/Test.
+- Dashboard-State `activeTab`.
+- Keine Backend-, API-, Config-, DB- oder EventBus-Änderung in STEP483.
+- Tests für Dashboard und API.
 
 ## Noch offen
 
-- Dashboard-Dateien und Overlay-Dateien aus dem echten Repo/Live-Stand nachziehen.
-- Kleinere/sekundäre Module dokumentieren: `challenge`, `deathcounter_v2`, `loyalty`, `commands`, `commands_media`, `media`, `soundalerts_bridge`, `sound_output_config`, `bus_diagnostics`, `diagnostics`, `credits`, `fireworks_api`, `kofi`, `tipeee`, `overlay_data`, `start_overlay`, `twitch_chat_overlay`.
-- Danach alte Projekt-State-Dateien bei Bedarf weiter archivieren.
+- Eingehende Shoutouts separat loggen und dokumentieren.
+- Dashboard-/Overlay-Dokus bei weiteren UI-/Overlay-STEPS gegen echte Dateien nachziehen.
+- Module schrittweise mit maschinenlesbarer Meta-Info ausstatten.
+- EventBus später als zentrale Monitoring-Schicht ausbauen.
 
-## STEP479 - Secondary Modules Deep Dive
+## Pflege bei Chatwechsel / Übergabe
 
-Ergänzt wurden Dokus für sekundäre/ergänzende Module:
+Wenn Forrest „dokumentieren und aktualisieren" schreibt oder ein neuer Chat vorbereitet wird, müssen die Modul-Dokus geprüft werden.
 
-```text
-challenge, deathcounter_v2, loyalty, commands, commands_media, media,
-soundalerts_bridge, sound_output_config, sound_loudness_scanner,
-sound_media_bridge, video_media_bridge, bus_diagnostics, diagnostics,
-chat_output, messages, message_rotator_scheduler, credits, fireworks_api,
-kofi, tipeee, overlay_data, start_overlay, twitch_chat_overlay,
-database_core, security, audit_log, hug_system
-```
-
-Damit sind die wichtigsten Backend-Module aus dem aktuellen Upload in `docs/modules/` grundsätzlich erfasst. Die Dokus sind technische Bestandsaufnahmen aus Datei-Analyse und müssen vor konkreten Codeänderungen gegen GitHub/dev bzw. Live-Dateien geprüft werden.
-
-
-## Ergänzung STEP481 - Server-Log und Modul-Meta
-
-Ab STEP481 ist zusätzlich dokumentiert, dass Modul-Dokus künftig auch die Server-Log-/Meta-/EventBus-Readiness eines Moduls festhalten sollen.
-
-Neue Prüffelder für spätere Modul-Dokus:
-
-- Modulversion erkannt,
-- maschinenlesbare Meta-Information vorhanden,
-- Logausgabe beim Laden bekannt,
-- EventBus-Registrierung vorhanden/geplant,
-- Status-/Health-/Heartbeat-Daten vorhanden/geplant.
-
-## STEP482 Handoff-/Aktualisierungsregel
-
-Ergänzt wurde die verbindliche Regel, dass bei Forrests Auftrag „dokumentieren und aktualisieren" vor einem Chatwechsel alle zentralen Projektstand-Dateien und betroffenen Modul-Dokus geprüft und aktualisiert werden müssen.
-
-Betroffen sind insbesondere:
+Für jedes seit dem letzten Stand geänderte oder neu angelegte Modul gilt:
 
 ```text
-project-state/GENERAL_PROJECT_PROMPT.md
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-docs/current/CURRENT_SYSTEM_STATUS.md
-docs/current/PROJECT_WORKING_RULES.md
-docs/modules/README.md
-docs/modules/<betroffene-modul-dokus>.md
-docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md
+1. passende docs/modules/<modul>.md lesen
+2. echte Moduldateien prüfen
+3. Routen, Funktionen, Configs, DB-Tabellen, Events, Dashboard-/Overlay-Bezüge aktualisieren
+4. offene Punkte in TODO.md/NEXT_STEPS.md nachziehen
+5. docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md aktualisieren oder neue Statusdatei anlegen
 ```
 
-Außerdem wurde festgelegt, dass immer die aktuellste `MODULE_DOCS_DEEP_DIVE_STATUS_*.md` genutzt oder bei Bedarf eine neue datierte Statusdatei angelegt wird.
+Keine Moduländerung gilt als abgeschlossen, wenn die zugehörige Modul-Doku veraltet bleibt.

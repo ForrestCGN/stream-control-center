@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP477_MODULE_DOCS_STREAM_MODULES_DEEP_DIVE
+Stand: 2026-05-26 / STEP483_SHOUTOUT_DASHBOARD_TABS
 
 ## Aktueller Fokus
 
-Reiner Doku-/Cleanup-Block. Ziel: Module und Helper nach und nach vollständig in die Doku bringen, bevor wieder am Shoutout-System weitergebaut wird.
+Nach der Doku-/Cleanup-Runde wurde wieder am Shoutout-System gearbeitet. Ziel von STEP483 war die UX-Aufteilung des Shoutout-Dashboards in Tabs/Unterbereiche.
 
 ## Zuletzt erledigt
 
@@ -12,46 +12,53 @@ Reiner Doku-/Cleanup-Block. Ziel: Module und Helper nach und nach vollständig i
 - STEP475: Modul-Doku-Struktur und project-state-Cleanup vorbereitet.
 - STEP476: Core-/Helper-Deep-Dive-Dokus erstellt.
 - STEP477: Stream-/Media-Modul-Dokus erstellt.
+- STEP478: Integrations- und Community-Module tief dokumentiert.
+- STEP479: Sekundäre/ergänzende Module tief dokumentiert.
+- STEP480: Standard-Prompt und Arbeitsregeln auf Modul-Doku-Pflege, Versionsnummern und EventBus-/Monitoring-Zielbild aktualisiert.
+- STEP481: Server-Log-/Modul-Meta-Regeln ergänzt.
+- STEP482: Übergabe-/Chatwechsel-Regel „dokumentieren und aktualisieren" ergänzt.
+- STEP483: Shoutout-Dashboard in Tabs aufgeteilt.
+
+## STEP483 Ergebnis
+
+Geändert wurden:
+
+```text
+htdocs/dashboard/modules/shoutout.js
+htdocs/dashboard/modules/shoutout.css
+docs/modules/clip-shoutout-vso-deep-dive.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md
+project-state/STEP483_SHOUTOUT_DASHBOARD_TABS.md
+project-state/CURRENT_STATUS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+```
+
+Dashboard-Tabs:
+
+```text
+Übersicht
+Queues
+Statistik
+Timeline
+Settings/Test
+```
 
 ## Wichtig
 
-Keine Code-, Dashboard-, Overlay-, Config- oder Datenbankänderungen.
+- Backend `clip_shoutout` bleibt bei Runtime-Version `0.2.10`.
+- Keine Backend-, API-, Config- oder Datenbankänderung in STEP483.
+- Keine produktive Umstellung von `!vso` auf `!so`.
+- Bestehende Retry-/Remove-/Run-Aktionen im Dashboard bleiben erhalten.
+- Settings/Test zeigt Settings kompakt an, speichert aber keine Settings.
 
-## Nächster Doku-Schritt
+## Nächster sinnvoller STEP
 
-`STEP478_MODULE_DOCS_INTEGRATIONS_COMMUNITY_DEEP_DIVE`
+```text
+STEP484_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
+```
 
-## Danach
-
-`STEP479_SHOUTOUT_DASHBOARD_TABS`
-
-## 2026-05-26 - STEP478 Integrations-/Community-Modul-Dokus
-
-- Integrationsmodule tief dokumentiert: Twitch, Twitch Presence, Discord, OBS, Scene Control.
-- Community-Module tief dokumentiert: Tagebuch, Todo, Message Rotator, Hug/Rehug, Birthday.
-- Keine Code-, Dashboard-, Overlay-, Config- oder Datenbankänderungen.
-- Nächster möglicher Doku-Block: sekundäre Module. Danach Facharbeit am Shoutout-System.
-
-## Stand nach STEP479
-
-Die Modul-Doku-Basis wurde um sekundäre/ergänzende Module erweitert. Die wichtigsten Backend-Module aus dem aktuellen Upload sind jetzt grundsätzlich unter `docs/modules/` dokumentiert. Die Dokus sind Bestandsaufnahmen und ersetzen keine Live-Dateiprüfung vor Änderungen.
-
-## STEP480 - Prompt-/Regelwerksupdate
-
-Der Standard-Prompt wurde erweitert: Modul-Dokus unter `docs/modules/` sind künftig Pflichtquelle vor Moduländerungen und müssen bei Änderungen aktualisiert werden. Außerdem wurden Versionsnummern und EventBus-/Monitoring-Zielbild als verbindliche Arbeitsrichtung ergänzt.
-
-
-
-## STEP481 - Server-Log-/Modul-Meta-Regeln
-
-Der Standard-Prompt und die Arbeitsregeln wurden ergänzt: Der Node-Server soll künftig beim Start aussagekräftiger anzeigen, welche Module in welcher Version geladen wurden. Außerdem sollen Module schrittweise maschinenlesbare Meta-Daten liefern und perspektivisch EventBus-/Monitoring-Status bereitstellen.
-
-Keine Codeänderung in diesem STEP.
-
-## STEP482_HANDOFF_DOCUMENTATION_UPDATE_RULE
-
-Status: abgeschlossen als reiner Doku-/Regelwerks-STEP.
-
-Neu geregelt: Wenn Forrest „dokumentieren und aktualisieren" sagt oder einen neuen Chat vorbereiten möchte, müssen die zentralen Projektstand-Dateien und betroffenen Modul-Dokus geprüft und aktualisiert werden. Das gilt spätestens vor dem Chatwechsel, falls Doku während der laufenden Arbeit noch nicht vollständig mitgezogen wurde.
-
-Keine Code-, Backend-, Dashboard-, Config- oder Datenbankänderungen.
+Ziel: Eingehende Twitch-Shoutouts separat loggen und später im Dashboard/statistisch anzeigen.

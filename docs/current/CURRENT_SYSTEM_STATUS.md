@@ -2,14 +2,13 @@
 
 ## Aktueller Arbeitsstand
 
-Aktuell relevant nach STEP474:
+Aktuell relevant nach STEP483:
 
-- STEP474 war ein reiner Aufraeum-/Doku-STEP.
-- Es wurden keine Backend-, Dashboard-, Overlay-, Config- oder Datenbankdateien geaendert.
-- Der hochgeladene Backend-Stand wurde fuer eine Modul-/Routen-/Cleanup-Uebersicht ausgewertet.
+- STEP483 hat das Shoutout-Dashboard im Control-Center in Tabs/Unterbereiche aufgeteilt.
+- Geändert wurden nur Dashboard-Dateien und Doku-/Projektstand-Dateien.
+- Es wurden keine Backend-, API-, Config-, Datenbank- oder Overlay-Dateien geändert.
 - `stream_status` bleibt als bekannter Stand bei Runtime-Version `0.1.2`.
 - `clip_shoutout` bleibt als bekannter Stand bei Runtime-Version `0.2.10`.
-- Shoutout-Dashboard ist weiterhin vorhanden, aber UX muss in Tabs/Unterbereiche aufgeteilt werden.
 
 ## Zentrale Projektregeln
 
@@ -23,44 +22,15 @@ docs/current/PROJECT_WORKING_RULES.md
 Wichtige Regeln:
 
 - Deutsch antworten.
-- Keine Funktionalitaet entfernen.
+- Keine Funktionalität entfernen.
 - Keine Patches, Git-Patches, PowerShell-Regex- oder Inline-Patch-Scripte.
-- Aenderungen nur als vollstaendige Ersatzdateien im ZIP.
+- Änderungen nur als vollständige Ersatzdateien im ZIP.
 - ZIPs mit echten Zielpfaden ab Repo-Root.
 - ZIPs direkt nach `D:\Git\stream-control-center` entpackbar.
-- Produktive SQLite-Datenbank niemals ersetzen/ueberschreiben.
-- Keine Runtime-Daten, Datenbanken, Backups, Secrets oder temporaere Dateien ins Repo.
+- Produktive SQLite-Datenbank niemals ersetzen/überschreiben.
+- Keine Runtime-Daten, Datenbanken, Backups, Secrets oder temporäre Dateien ins Repo.
 - Nur notwendige Shell-/PowerShell-Ausgaben liefern.
-- Dashboard-Module nicht ueberladen; grosse Module in Tabs/Unterbereiche aufteilen.
-
-## Doku-/Cleanup-Stand STEP474
-
-Neue/aktualisierte zentrale Doku:
-
-```text
-docs/current/PROJECT_BACKEND_MODULE_STATUS_2026-05-26.md
-docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-26.md
-docs/current/PROJECT_DOCS_CLEANUP_NOTES_2026-05-26.md
-project-state/STEP474_DOCS_TODO_MODULE_CLEANUP.md
-```
-
-Auswertung aus `backend.zip`:
-
-- Backend-Module ohne Helper: 49
-- Helper-Dateien: 18
-- erkannte Routen/Route-Hinweise: 527
-- Module mit erkannter Versionskennung: 12
-- Module ohne erkannte Versionskennung: 37
-
-Auffaelligkeiten fuer spaeteren Cleanup:
-
-```text
-backend/data/app.sqlite
-backend/data/deathcounter.v2.json
-backend/modules/twitch.js.bak_original_uploaded
-```
-
-Diese Dateien wurden nicht geaendert und nicht geloescht. Sie sind nur als pruefpflichtig dokumentiert.
+- Dashboard-Module nicht überladen; große Module in Tabs/Unterbereiche aufteilen.
 
 ## Stream Status Core
 
@@ -87,9 +57,9 @@ GET      /api/stream-status/sessions
 
 Status:
 
-- Twitch-API ist Primaerquelle.
+- Twitch-API ist Primärquelle.
 - Legacy-Dateien bleiben Fallback.
-- Auto-Refresh laeuft standardmaessig alle 60 Sekunden, bei live/grace alle 30 Sekunden.
+- Auto-Refresh läuft standardmäßig alle 60 Sekunden, bei live/grace alle 30 Sekunden.
 - Status wird in RAM und SQLite gespeichert.
 
 ## Clip-Shoutout / VSO
@@ -109,6 +79,7 @@ Runtime-Version:
 Wichtige Routen:
 
 ```text
+GET  /api/clip-shoutout/status
 GET  /api/clip-shoutout/queue
 GET  /api/clip-shoutout/timeline
 GET  /api/clip-shoutout/stats
@@ -125,40 +96,41 @@ Aktueller Stand:
 - Streamtag-Limit aktiv.
 - Override per `--force`.
 - Statistik vorhanden.
-- Dashboard-Modul vorhanden, aber UX muss verbessert werden.
+- Dashboard-Modul ist ab STEP483 in Tabs aufgeteilt.
 
-## Naechster sinnvoller Fach-STEP
+## Shoutout-Dashboard ab STEP483
+
+Dashboard-Dateien:
 
 ```text
-STEP475_SHOUTOUT_DASHBOARD_TABS
+htdocs/dashboard/modules/shoutout.js
+htdocs/dashboard/modules/shoutout.css
+```
+
+Tabs:
+
+```text
+Übersicht
+Queues
+Statistik
+Timeline
+Settings/Test
+```
+
+Wichtig:
+
+- Retry-/Remove-/Run-Aktionen bleiben erhalten.
+- Settings/Test zeigt Settings kompakt an, speichert aber keine Settings.
+- Backend wurde nicht geändert.
+
+## Nächster sinnvoller Fach-STEP
+
+```text
+STEP484_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
 ```
 
 Ziel:
 
-- Shoutout-Dashboard aufraeumen.
-- Tabs/Unterbereiche ergänzen: Übersicht, Queues, Statistik, Timeline, Settings/Test.
-- Keine Shoutout-Backendlogik ändern, sofern nicht zwingend noetig.
-
-
-## Doku-/Cleanup-Stand STEP475
-
-STEP475 ist weiterhin reine Doku-/Aufräum-Arbeit.
-
-Ergänzt wurde:
-
-- `docs/modules/` als erste strukturierte Modul-Doku-Ebene.
-- Modul-Dokus für Core, Stream-Status, Clip-Shoutout/VSO, Alerts, Sound-System, TTS, Message-Rotator, Tagebuch/ToDo, Hug/Rehug, Birthday, Clips, OBS/Scene-Control, Twitch/Discord, Dashboard-Backend und weitere Community-Systeme.
-- `docs/current/PROJECT_STATE_CLEANUP_PLAN_2026-05-26.md` als Plan zur Bereinigung von `project-state/`.
-- `project-state/PROJECT_STATE_ARCHIVE_MOVE_LIST_2026-05-26.csv` als Verschiebe-Manifest.
-- `tools/project_state_archive_step475.ps1` als optionales, gezieltes Move-Script für alte `project-state`-Dateien.
-
-Nicht geändert wurde:
-
-- keine Backend-Logik
-- keine Dashboard-Logik
-- keine Overlay-Dateien
-- keine Config-Dateien
-- keine Datenbankdateien
-- keine produktive Runtime-Dateien
-
-Wichtig: Das ZIP allein verschiebt keine bestehenden Root-Dateien aus `project-state/`. Das Aufräumen passiert erst, wenn das Move-Script ausgeführt wird.
+- Eingehende Twitch-Shoutouts separat loggen.
+- Ausgehende und eingehende Shoutouts sauber trennen.
+- Dashboard-/Statistik-Ausbau für eingehende Shoutouts vorbereiten.

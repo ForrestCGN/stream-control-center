@@ -51,8 +51,10 @@
 - `docs/modules/README.md` um Pflegepflicht ergänzt.
 - Versionsnummern und EventBus-/Monitoring-Zielbild als verbindliche Arbeitsrichtung dokumentiert.
 
+## 2026-05-26 - STEP481_SERVER_LOG_MODULE_META_RULES
 
-- 2026-05-26 / STEP481: Server-Log-/Modul-Meta-/EventBus-Monitoring-Regeln ergänzt; keine Codeänderung.
+- Server-Log-/Modul-Meta-/EventBus-Monitoring-Regeln ergänzt.
+- Keine Codeänderung.
 
 ## STEP482_HANDOFF_DOCUMENTATION_UPDATE_RULE - 2026-05-26
 
@@ -62,3 +64,25 @@
 - `docs/modules/README.md` um Pflegepflicht bei Chatwechsel ergänzt.
 - `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md` aktualisiert.
 - Keine Codeänderungen.
+
+## 2026-05-26 - STEP483_SHOUTOUT_DASHBOARD_TABS
+
+### Changed
+
+- `htdocs/dashboard/modules/shoutout.js` in Tabs/Unterbereiche aufgeteilt:
+  - Übersicht
+  - Queues
+  - Statistik
+  - Timeline
+  - Settings/Test
+- `htdocs/dashboard/modules/shoutout.css` um Tab-Styles und kompakte Übersichts-/Settings-Darstellung erweitert.
+- `docs/modules/clip-shoutout-vso-deep-dive.md` mit Dashboard-Tabs, Dateien und Tests aktualisiert.
+- Projektstatus, Files, Next Steps, TODO und Current-System-Status aktualisiert.
+
+### Not changed
+
+- Keine Backend-Logik geändert.
+- Keine API-Routen geändert.
+- Keine Config-Dateien geändert.
+- Keine Datenbanktabellen geändert.
+- Keine produktive Umstellung auf `!so`.

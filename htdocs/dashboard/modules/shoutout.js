@@ -14,6 +14,14 @@ window.ShoutoutModule = (function(){
     streamStatus: '/api/stream-status/status'
   };
 
+  const TABS = [
+    { id: 'overview', label: 'Übersicht' },
+    { id: 'queues', label: 'Queues' },
+    { id: 'stats', label: 'Statistik' },
+    { id: 'timeline', label: 'Timeline' },
+    { id: 'settings', label: 'Settings/Test' }
+  ];
+
   let root = null;
   let refreshTimer = null;
   const state = {
@@ -24,6 +32,7 @@ window.ShoutoutModule = (function(){
     stats: null,
     selectedStatsTarget: '',
     selectedStatsRequester: '',
+    activeTab: 'overview',
     loading: false,
     error: '',
     notice: '',
@@ -241,6 +250,16 @@ window.ShoutoutModule = (function(){
     `;
   }
 
+  function renderTabs(){
+    return `
+      <div class="shoutout-tabs" role="tablist" aria-label="Shoutout Bereiche">
+        ${TABS.map(tab => `
+          <button type="button" role="tab" aria-selected="${state.activeTab === tab.id ? 'true' : 'false'}" class="shoutout-tab ${state.activeTab === tab.id ? 'active' : ''}" data-shoutout-tab="${esc(tab.id)}">${esc(tab.label)}</button>
+        `).join('')}
+      </div>
+    `;
+  }
+
   function renderTestBox(){
     return `
       <div class="shoutout-card">
@@ -256,6 +275,46 @@ window.ShoutoutModule = (function(){
     `;
   }
 
+  function renderOverview(){
+    const status = state.status || {};
+    const display = state.queue?.displayQueue || status.displayQueue || {};
+    const official = state.queue?.officialQueue || status.officialQueue || {};
+    const liveGate = official.liveGate || {};
+    const stats = state.stats || {};
+    const totals = stats.totals || {};
+    const latest = timelineRows().slice(0, 5);
+
+    return `
+      <div class="shoutout-tab-panel shoutout-grid">
+        <div class="shoutout-card">
+          <div class="shoutout-card-head"><div><h3>Kurzstatus</h3><p>Alles Wichtige ohne die großen Tabellen.</p></div></div>
+          <div class="shoutout-facts">
+            <div><small>Display offen</small><strong>${esc(display.pending ?? 0)}</strong></div>
+            <div><small>Display aktiv</small><strong>${esc(display.activeTarget ? '@' + display.activeTarget : '-')}</strong></div>
+            <div><small>Display Cooldown</small><strong>${display.cooldownRunning ? fmtMs(display.cooldownRemainingMs) : 'bereit'}</strong></div>
+            <div><small>Official offen</small><strong>${esc(official.pending ?? 0)}</strong></div>
+            <div><small>Live-Gate</small><strong>${statusBadge(liveGate.reason || (liveGate.live ? 'live' : 'offline'))}</strong></div>
+            <div><small>Letzter Fehler</small><strong>${esc(display.lastError || official.lastError || status.lastError || '-')}</strong></div>
+          </div>
+        </div>
+        <div class="shoutout-card">
+          <div class="shoutout-card-head"><div><h3>Statistik kompakt</h3><p>Ausgehend, basierend auf den aktuellen Display-/Official-Daten.</p></div></div>
+          <div class="shoutout-stat-grid shoutout-stat-grid-small">
+            <div class="shoutout-stat"><small>Gesamt</small><strong>${esc(num(totals.totalRequests))}</strong><span>Requests</span></div>
+            <div class="shoutout-stat"><small>Ziele</small><strong>${esc(num(totals.uniqueTargets))}</strong><span>einmalig</span></div>
+            <div class="shoutout-stat"><small>Auslöser</small><strong>${esc(num(totals.uniqueRequesters))}</strong><span>einmalig</span></div>
+            <div class="shoutout-stat"><small>Official</small><strong>${esc(num(totals.officialSent))}</strong><span>gesendet</span></div>
+          </div>
+        </div>
+        <div class="shoutout-card shoutout-wide">
+          <div class="shoutout-card-head"><div><h3>Letzte Timeline</h3><p>Die letzten fünf Einträge. Vollständige Liste im Tab Timeline.</p></div></div>
+          <div class="shoutout-mini-timeline">
+            ${latest.length ? latest.map(row => `<span>#${esc(row.id)} · @${esc(row.targetDisplay || row.targetLogin || '-')} · ${statusBadge(row.status)} · ${fmtDate(row.requestedAt)}</span>`).join('') : '<span class="shoutout-empty-inline">Noch keine Timeline-Einträge.</span>'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
 
   function renderStats(){
     const stats = state.stats || {};
@@ -500,6 +559,15 @@ window.ShoutoutModule = (function(){
     `;
   }
 
+  function renderQueues(){
+    return `
+      <div class="shoutout-tab-panel shoutout-grid">
+        ${renderDisplayQueue()}
+        ${renderOfficialQueue()}
+      </div>
+    `;
+  }
+
   function renderTimeline(){
     const rows = timelineRows();
     return `
@@ -528,6 +596,42 @@ window.ShoutoutModule = (function(){
     `;
   }
 
+  function renderSettingsTest(){
+    const status = state.status || {};
+    const cfg = status.config || {};
+    const display = cfg.displayQueue || {};
+    const official = cfg.officialShoutout || {};
+    const streamDayLimit = cfg.streamDayLimit || {};
+
+    return `
+      <div class="shoutout-tab-panel shoutout-grid">
+        ${renderTestBox()}
+        ${renderLiveGate()}
+        <div class="shoutout-card shoutout-wide">
+          <div class="shoutout-card-head"><div><h3>Settings kompakt</h3><p>Nur Anzeige der wichtigsten Werte. Speichern bleibt unverändert über vorhandene Backend-Routen/Config-Flow.</p></div></div>
+          <div class="shoutout-facts shoutout-facts-wide">
+            <div><small>Clip-Lookback</small><strong>${esc(cfg.clipLookbackDays || '-')} Tage</strong></div>
+            <div><small>Suchbereiche</small><strong>${esc(Array.isArray(cfg.clipSearchRangesDays) ? cfg.clipSearchRangesDays.join(', ') : '-')}</strong></div>
+            <div><small>Display-Cooldown</small><strong>${fmtMs(display.displayCooldownMs || 0)}</strong></div>
+            <div><small>Cooldown nach Finish</small><strong>${boolBadge(display.cooldownStartsAfterFinish, 'ja', 'nein')}</strong></div>
+            <div><small>Official aktiv</small><strong>${boolBadge(official.enabled !== false, 'aktiv', 'aus')}</strong></div>
+            <div><small>Official Global-CD</small><strong>${fmtMs(official.globalCooldownMs || 0)}</strong></div>
+            <div><small>Streamtag-Limit</small><strong>${boolBadge(streamDayLimit.enabled !== false, 'aktiv', 'aus')}</strong></div>
+            <div><small>Override-Flag</small><strong>${esc(streamDayLimit.overrideFlag || '--force')}</strong></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderActiveTab(){
+    if (state.activeTab === 'queues') return renderQueues();
+    if (state.activeTab === 'stats') return `<div class="shoutout-tab-panel">${renderStats()}</div>`;
+    if (state.activeTab === 'timeline') return `<div class="shoutout-tab-panel">${renderTimeline()}</div>`;
+    if (state.activeTab === 'settings') return renderSettingsTest();
+    return renderOverview();
+  }
+
   function render(){
     root = document.getElementById('shoutoutModule');
     if (!root) return;
@@ -546,14 +650,8 @@ window.ShoutoutModule = (function(){
         ${state.error ? `<div class="shoutout-alert bad">${esc(state.error)}</div>` : ''}
         ${state.notice ? `<div class="shoutout-alert ok">${esc(state.notice)}</div>` : ''}
         ${renderHero()}
-        <div class="shoutout-grid">
-          ${renderTestBox()}
-          ${renderLiveGate()}
-          ${renderDisplayQueue()}
-          ${renderOfficialQueue()}
-          ${renderStats()}
-          ${renderTimeline()}
-        </div>
+        ${renderTabs()}
+        ${renderActiveTab()}
       </div>
     `;
   }
@@ -562,6 +660,13 @@ window.ShoutoutModule = (function(){
     document.addEventListener('click', ev => {
       const target = ev.target;
       if (!target) return;
+      const tabButton = target.closest('[data-shoutout-tab]');
+      if (tabButton) {
+        const nextTab = String(tabButton.dataset.shoutoutTab || 'overview');
+        state.activeTab = TABS.some(tab => tab.id === nextTab) ? nextTab : 'overview';
+        render();
+        return;
+      }
       if (target.closest('[data-shoutout-refresh]')) {
         loadAll(true);
         return;
