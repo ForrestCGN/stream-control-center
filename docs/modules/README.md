@@ -40,3 +40,13 @@ Diese Detailseiten sind tiefer als die ersten Übersichtsdateien und enthalten R
 - [`helper-config-core.md`](./helper-config-core.md)
 - [`helper-texts-settings.md`](./helper-texts-settings.md)
 - [`helper-media-chat-twitch.md`](./helper-media-chat-twitch.md)
+
+
+## Vertiefte Stream-/Media-Modul-Dokus ab STEP477
+
+- [`clip-shoutout-vso-deep-dive.md`](./clip-shoutout-vso-deep-dive.md)
+- [`alerts-deep-dive.md`](./alerts-deep-dive.md)
+- [`sound-system-deep-dive.md`](./sound-system-deep-dive.md)
+- [`vip-sound-overlay-deep-dive.md`](./vip-sound-overlay-deep-dive.md)
+- [`clips-deep-dive.md`](./clips-deep-dive.md)
+- [`tts-system-deep-dive.md`](./tts-system-deep-dive.md)

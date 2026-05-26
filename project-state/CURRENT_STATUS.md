@@ -1,45 +1,26 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP476_MODULE_DOCS_CORE_HELPERS_DEEP_DIVE
+Stand: 2026-05-26 / STEP477_MODULE_DOCS_STREAM_MODULES_DEEP_DIVE
 
-## Aktueller Arbeitsmodus
+## Aktueller Fokus
 
-Aktuell läuft ein reiner Doku-/Cleanup-Block. Es werden Module und Helper nach und nach technisch dokumentiert, bevor wieder am Shoutout-System weitergebaut wird.
+Reiner Doku-/Cleanup-Block. Ziel: Module und Helper nach und nach vollständig in die Doku bringen, bevor wieder am Shoutout-System weitergebaut wird.
 
-## Letzte abgeschlossene Doku-Arbeiten
+## Zuletzt erledigt
 
-- STEP474: zentrale Doku-/TODO-/Modulübersicht begonnen.
-- STEP475: `docs/modules/` vorbereitet und `project-state`-Archivplanung ergänzt.
+- STEP474: zentrale Doku-/TODO-/Modulübersicht aktualisiert.
+- STEP475: Modul-Doku-Struktur und project-state-Cleanup vorbereitet.
 - STEP476: Core-/Helper-Deep-Dive-Dokus erstellt.
+- STEP477: Stream-/Media-Modul-Dokus erstellt.
 
-## In STEP476 vertieft dokumentiert
+## Wichtig
 
-```text
-communication_bus
-stream_status
-Datenbank-Core / SQLite
-Security / Audit
-Helper-Übersicht
-Config/Core/Routes/State/Queue/Cooldown-Helper
-Texts/Settings/Messages-Helper
-Media/Chat/Twitch-Roles-Helper
-```
+Keine Code-, Dashboard-, Overlay-, Config- oder Datenbankänderungen.
 
-## Nicht geändert
+## Nächster Doku-Schritt
 
-```text
-Backend-Code
-Dashboard-Code
-Overlay-Code
-Config-Dateien
-Datenbank
-Shoutout-System
-```
+`STEP478_MODULE_DOCS_INTEGRATIONS_COMMUNITY_DEEP_DIVE`
 
-## Nächster sinnvoller Schritt
+## Danach
 
-```text
-STEP477_MODULE_DOCS_STREAM_MODULES_DEEP_DIVE
-```
-
-Danach weiter mit Community-/Integrationsdokus oder anschließend mit Shoutout-Dashboard-Tabs.
+`STEP479_SHOUTOUT_DASHBOARD_TABS`

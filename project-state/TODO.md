@@ -1,49 +1,30 @@
-# TODO / Offene Punkte
+# TODO
 
-## Doku-Aufräumung aktuell
+Stand: 2026-05-26 / STEP477
 
-- [x] STEP474: zentrale Doku-/TODO-/Modulübersicht begonnen.
-- [x] STEP475: `docs/modules/` vorbereitet und `project-state`-Cleanup-Plan erstellt.
-- [x] STEP476: Core-/Helper-Deep-Dive-Dokus begonnen.
-- [ ] Stream-Module tief dokumentieren:
-  - `clip_shoutout`
-  - `alert_system`
-  - `sound_system`
-  - `vip_sound_overlay`
-  - `clips`
-  - `tts_system`
-- [ ] Community-/Content-Module tief dokumentieren:
-  - `tagebuch`
-  - `todo`
-  - `message_rotator`
-  - `hug`
-  - `birthday`
-  - `commands`
-- [ ] Integrationsmodule tief dokumentieren:
-  - `twitch`
-  - `discord`
-  - `obs`
-  - `scene_control`
-  - `dashboard_auth`
-  - `dashboard_controlcenter`
-- [ ] Pro Modul echte DB-Tabellen, Config-Dateien, Runtime-Dateien und Dashboard-Dateien nachtragen.
-- [ ] Prüfen, ob `backend/data/app.sqlite`, `backend/data/deathcounter.v2.json` und `.bak`-Dateien im echten Repo liegen und ggf. aus dem Repo entfernen/ignorieren.
-- [ ] `project-state`-Root nach STEP475 optional physisch archivieren.
-- [ ] `docs/current/` später ebenfalls bereinigen, aber nicht blind löschen.
+## Doku-/Cleanup-Backlog
 
-## Shoutout-System offen
+- [ ] Integrations-/Community-Module tief dokumentieren.
+- [ ] Dashboard-Backend-Module tief dokumentieren.
+- [ ] Restliche Spezialmodule tief dokumentieren.
+- [ ] Alte `project-state`-Dateien weiter archivieren, nicht löschen.
+- [ ] Prüfen, ob alte APPEND-/STEP-Dateien noch relevante offene Punkte enthalten.
 
-- [ ] Shoutout-Dashboard in Tabs/Unterbereiche aufteilen:
-  - Übersicht
-  - Queues
-  - Statistik
-  - Timeline
-  - Settings/Test
-- [ ] Eingehende Twitch-Shoutouts später getrennt loggen und im Dashboard/statistisch anzeigen.
+## Shoutout-System
 
-## Dauerregeln
+- [ ] Shoutout-Dashboard in Tabs/Unterbereiche aufteilen.
+- [ ] Eingehende Shoutouts separat loggen und im Dashboard/statistisch anzeigen.
+- [ ] Produktive Umstellung auf `!so` nur ausdrücklich und nach Prüfung.
 
-- Keine Funktionalität entfernen.
-- Vor Änderungen echte Dateien prüfen.
-- Doku nach Moduländerungen direkt aktualisieren.
-- TODO.md und NEXT_STEPS.md bei jedem STEP pflegen.
+## Sound / Alerts / TTS / VIP
+
+- [ ] Sound-System als zentrale Audio-Schicht erhalten.
+- [ ] Alert-Dashboard weiter aufgeräumt strukturieren.
+- [ ] TTS-Readiness für Google/Piper lokal prüfen, ohne Secrets zu dokumentieren.
+- [ ] VIP-Sound-Dashboardbereiche sauber trennen.
+
+## Allgemein
+
+- [ ] Keine Funktionalität entfernen.
+- [ ] Vor Codeänderungen echte Dateien vollständig prüfen.
+- [ ] Doku nach jedem Modul-STEP aktualisieren.

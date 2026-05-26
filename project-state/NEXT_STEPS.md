@@ -1,51 +1,44 @@
 # NEXT_STEPS
 
-## Nach STEP476
+Stand: 2026-05-26 / nach STEP477
 
-1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Keine JS-Dateien geändert, daher kein `node --check` nötig.
-3. Neue Deep-Dive-Dokus prüfen:
+## Unmittelbar als nächstes
+
+`STEP478_MODULE_DOCS_INTEGRATIONS_COMMUNITY_DEEP_DIVE`
+
+Vorgeschlagene Module:
+
+1. `twitch.js`
+2. `twitch_presence.js`
+3. `discord.js`
+4. `obs.js`
+5. `scene_control.js`
+6. `tagebuch.js`
+7. `todo.js`
+8. `message_rotator.js`
+9. `hug.js`
+10. `birthday.js`
+
+## Danach
+
+`STEP479_SHOUTOUT_DASHBOARD_TABS`
+
+## Prüfhinweis
 
 ```bat
 cd D:\Git\stream-control-center
 
-dir docs\modules\core-communication-bus.md
+dir docs\modules\clip-shoutout-vso-deep-dive.md
 
-dir docs\modules\core-stream-status.md
+dir docs\moduleslerts-deep-dive.md
 
-dir docs\modules\core-database-sqlite.md
+dir docs\modules\sound-system-deep-dive.md
 
-dir docs\modules\core-security-audit.md
+dir docs\modulesip-sound-overlay-deep-dive.md
 
-dir docs\modules\helpers-overview.md
+dir docs\modules\clips-deep-dive.md
+
+dir docs\modules	ts-system-deep-dive.md
 ```
 
-4. STEP abschließen:
-
-```bat
-.\stepdone.cmd "STEP476 Module Docs Core Helpers Deep Dive"
-```
-
-## Nächster Doku-STEP
-
-```text
-STEP477_MODULE_DOCS_STREAM_MODULES_DEEP_DIVE
-```
-
-Ziel:
-
-- `clip_shoutout` vollständig dokumentieren.
-- `alert_system` vollständig dokumentieren.
-- `sound_system` vollständig dokumentieren.
-- `vip_sound_overlay` vollständig dokumentieren.
-- `clips` und `tts_system` mindestens technisch erfassen.
-
-## Späterer Fach-STEP
-
-Nach der Doku-Aufräumung weiter mit:
-
-```text
-STEP478_SHOUTOUT_DASHBOARD_TABS
-```
-
-oder entsprechend fortlaufender Nummer, falls vorher weitere Doku-Steps kommen.
+Keine JS-Dateien geändert, daher kein `node --check` nötig.

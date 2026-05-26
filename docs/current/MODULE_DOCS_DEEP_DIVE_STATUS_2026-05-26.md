@@ -1,71 +1,45 @@
-# Modul-Doku Deep-Dive Status
+# Module Docs Deep Dive Status
 
-Stand: 2026-05-26 / STEP476_MODULE_DOCS_CORE_HELPERS_DEEP_DIVE
+Stand: 2026-05-26 / nach STEP477
 
-## Ziel dieses STEPs
+## Erledigt
 
-Dieser STEP beginnt die echte Modul-/Helper-Dokumentation in Tiefe. Im Gegensatz zu STEP475 geht es nicht nur um Struktur, sondern um konkrete Informationen aus den geprüften Backend-Dateien:
+### STEP476 - Core / Helper
 
-```text
-Routen
-Exporte
-wichtige Funktionen
-Config-/Env-Werte
-Datenbanktabellen
-Statusfelder
-Abhängigkeiten
-Tests
-offene Punkte
-```
+- `communication_bus`
+- `stream_status`
+- Datenbank-Core / SQLite
+- Security / Audit
+- Helper-Übersichten
 
-## In diesem STEP vertieft dokumentiert
+### STEP477 - Stream-/Media-Module
 
-```text
-docs/modules/core-communication-bus.md
-docs/modules/core-stream-status.md
-docs/modules/core-database-sqlite.md
-docs/modules/core-security-audit.md
-docs/modules/helpers-overview.md
-docs/modules/helper-config-core.md
-docs/modules/helper-texts-settings.md
-docs/modules/helper-media-chat-twitch.md
-```
+- `clip_shoutout`
+- `alert_system`
+- `sound_system`
+- `vip_sound_overlay`
+- `clips`
+- `tts_system`
 
-## Bewusst nicht geändert
+## Noch offen
 
-```text
-Backend-Code
-Dashboard-Code
-Overlay-Code
-Config-Dateien
-Datenbank
-project-state Archiv-Move-Script
-Shoutout-System
-```
+Nächster sinnvoller Doku-Block:
 
-## Nächster Doku-Block
+`STEP478_MODULE_DOCS_INTEGRATIONS_COMMUNITY_DEEP_DIVE`
 
-Empfohlen:
+Vorgeschlagen:
 
-```text
-STEP477_MODULE_DOCS_STREAM_MODULES_DEEP_DIVE
-```
+- `twitch`
+- `twitch_presence`
+- `discord`
+- `obs`
+- `scene_control`
+- `tagebuch`
+- `todo`
+- `message_rotator`
+- `hug`
+- `birthday`
 
-Module:
+## Regel
 
-```text
-clip_shoutout
-alert_system
-sound_system
-vip_sound_overlay
-clips
-tts_system
-```
-
-Danach:
-
-```text
-STEP478_MODULE_DOCS_COMMUNITY_AND_INTEGRATIONS_DEEP_DIVE
-```
-
-Erst danach sollte wieder am Shoutout-Dashboard weitergebaut werden, falls die Doku-Aufräumung ausreichend ist.
+Vor Codeänderungen weiterhin die echte Datei aus GitHub/dev oder Live vollständig prüfen.

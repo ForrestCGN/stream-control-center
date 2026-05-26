@@ -1,34 +1,28 @@
 # FILES
 
-Stand: 2026-05-26 / STEP476_MODULE_DOCS_CORE_HELPERS_DEEP_DIVE
+Stand: 2026-05-26 / STEP477
 
-## In diesem STEP geändert/ergänzt
+## Neue/aktualisierte Dateien
 
-```text
-docs/modules/README.md
-docs/modules/core-communication-bus.md
-docs/modules/core-stream-status.md
-docs/modules/core-database-sqlite.md
-docs/modules/core-security-audit.md
-docs/modules/helpers-overview.md
-docs/modules/helper-config-core.md
-docs/modules/helper-texts-settings.md
-docs/modules/helper-media-chat-twitch.md
-docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md
-project-state/CURRENT_STATUS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/STEP476_MODULE_DOCS_CORE_HELPERS_DEEP_DIVE.md
-```
+- `docs/modules/clip-shoutout-vso-deep-dive.md`
+- `docs/modules/alerts-deep-dive.md`
+- `docs/modules/sound-system-deep-dive.md`
+- `docs/modules/vip-sound-overlay-deep-dive.md`
+- `docs/modules/clips-deep-dive.md`
+- `docs/modules/tts-system-deep-dive.md`
+- `docs/modules/README.md`
+- `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md`
+- `project-state/STEP477_MODULE_DOCS_STREAM_MODULES_DEEP_DIVE.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
 
 ## Nicht geändert
 
-```text
-backend/**
-htdocs/**
-config/**
-data/**
-secrets/**
-```
+- `backend/**`
+- `htdocs/**`
+- `config/**`
+- `data/**`
+- SQLite-Datenbanken
