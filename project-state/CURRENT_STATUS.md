@@ -1,22 +1,13 @@
 # CURRENT_STATUS
 
-## STEP466 aktiv
+## STEP467 aktiv
 
-Zentraler Stream-Live-Status wurde ergänzt.
+Zentraler Stream-Live-Status wurde erweitert:
 
-- Neues Modul: `stream_status`
-- Runtime-Version: `0.1.0`
-- Routen: `/api/stream-status/*`
-- Quelle: vorhandene Twitch-Dateien unter `htdocs/data/`
-- Frischeprüfung: `stale`, `fileAgeSeconds`, `fileModifiedAt`
-- Sessionlogik: `streamSessionId`, `streamDayId`, `restartGraceUntil`
-- Clip-Shoutout nutzt den zentralen Status bevorzugt für Live-Gate und Streamtag-Limit.
-- Clip-Shoutout Runtime-Version: `0.2.9`
-- Testcommand bleibt `!vso`.
+- `backend/modules/stream_status.js` steht auf Runtime-Version `0.1.1`.
+- Dateiquelle `htdocs/data/twitch_stream_raw.json` bleibt erhalten.
+- Bei stale/fehlender Datei kann `/api/stream-status/status` und `/api/stream-status/refresh` den lokalen Twitch-Backend-Endpunkt abfragen.
+- Standard-Fallback: `http://127.0.0.1:8080/api/twitch/stream?login={login}`.
+- Der Status zeigt nun zusätzlich API-Quelle, API-Fehler, Datei-Alter und Stale-Zustand nachvollziehbar an.
 
-## Nächster Test
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/stream-status/status" | ConvertTo-Json -Depth 10
-Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/queue" | ConvertTo-Json -Depth 10
-```
+Clip-Shoutout bleibt unverändert bei Runtime-Version `0.2.9` und nutzt weiterhin den zentralen Streamstatus für Live-Gate und Streamtag-Logik.

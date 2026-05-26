@@ -2,12 +2,14 @@
 
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
+const https = require("https");
 const core = require("./helpers/helper_core");
 const configHelper = require("./helpers/helper_config");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_status";
-const MODULE_VERSION = "0.1.0";
+const MODULE_VERSION = "0.1.1";
 const API_PREFIX = "/api/stream-status";
 
 const DEFAULT_FILES = [
@@ -21,7 +23,9 @@ const state = {
   lastCheckedAt: "",
   lastError: "",
   lastStatus: null,
-  refreshCount: 0
+  refreshCount: 0,
+  lastApiRefreshAt: "",
+  lastApiError: ""
 };
 
 function nowIso() {
@@ -61,7 +65,10 @@ function getConfig(env = process.env) {
     broadcasterLogin: cleanLogin(env.TWITCH_BOT_CHANNEL || env.TWITCH_CHANNEL || env.TWITCH_BROADCASTER_LOGIN || "forrestcgn") || "forrestcgn",
     files,
     staleAfterMs: Math.max(30000, Number(env.STREAM_STATUS_STALE_MS || 300000) || 300000),
-    restartGraceMs: Math.max(0, Number(env.STREAM_STATUS_RESTART_GRACE_MS || 1800000) || 1800000)
+    restartGraceMs: Math.max(0, Number(env.STREAM_STATUS_RESTART_GRACE_MS || 1800000) || 1800000),
+    twitchApiEnabled: !/^(0|false|no|off)$/i.test(String(env.STREAM_STATUS_TWITCH_API_ENABLED || "true")),
+    twitchApiUrl: String(env.STREAM_STATUS_TWITCH_API_URL || "http://127.0.0.1:8080/api/twitch/stream?login={login}").trim(),
+    twitchApiTimeoutMs: Math.max(1000, Number(env.STREAM_STATUS_TWITCH_API_TIMEOUT_MS || 5000) || 5000)
   };
 }
 
@@ -177,6 +184,111 @@ function selectSourceStatus(cfg) {
   return { live: false, source: "none", file: "", fileModifiedAt: "", fileAgeSeconds: 0, stale: true, statusKnown: false, lastError: "stream_status_source_missing" };
 }
 
+function buildTwitchApiUrl(cfg) {
+  const template = String(cfg.twitchApiUrl || "").trim();
+  if (!template) return "";
+  const login = encodeURIComponent(cfg.broadcasterLogin || "");
+  if (template.includes("{login}")) return template.replace(/\{login\}/g, login);
+  return template;
+}
+
+function requestJson(url, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const cleanUrl = String(url || "").trim();
+    if (!cleanUrl) {
+      reject(new Error("stream_status_twitch_api_url_missing"));
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = new URL(cleanUrl);
+    } catch (err) {
+      reject(new Error(`stream_status_twitch_api_url_invalid:${err.message || String(err)}`));
+      return;
+    }
+
+    const client = parsed.protocol === "https:" ? https : http;
+    const req = client.request(parsed, { method: "GET", timeout: Math.max(1000, Number(timeoutMs || 5000) || 5000) }, (res) => {
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", chunk => { body += chunk; });
+      res.on("end", () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`stream_status_twitch_api_http_${res.statusCode}`));
+          return;
+        }
+        try {
+          resolve(body ? JSON.parse(body) : {});
+        } catch (err) {
+          reject(new Error(`stream_status_twitch_api_json:${err.message || String(err)}`));
+        }
+      });
+    });
+
+    req.on("timeout", () => {
+      req.destroy(new Error("stream_status_twitch_api_timeout"));
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+function normalizeApiStatus(payload, cfg, url) {
+  const extracted = extractStatusFromPayload(payload) || { live: false };
+  return {
+    ...extracted,
+    source: "twitch_api",
+    upstreamSource: "api",
+    apiUrl: url,
+    file: "",
+    fileModifiedAt: "",
+    fileAgeSeconds: 0,
+    stale: false,
+    statusKnown: true,
+    rawDataCount: Array.isArray(payload && payload.data) ? payload.data.length : 0,
+    checkedViaApiAt: nowIso(),
+    broadcasterLogin: cfg.broadcasterLogin
+  };
+}
+
+async function readTwitchApiStatus(cfg) {
+  if (!cfg.twitchApiEnabled) return null;
+  const url = buildTwitchApiUrl(cfg);
+  if (!url) return null;
+  const payload = await requestJson(url, cfg.twitchApiTimeoutMs);
+  state.lastApiRefreshAt = nowIso();
+  state.lastApiError = "";
+  return normalizeApiStatus(payload, cfg, url);
+}
+
+async function selectSourceStatusAsync(cfg, options = {}) {
+  const fileStatus = selectSourceStatus(cfg);
+  const forceApi = options.forceApi === true;
+  const fileUsable = fileStatus && fileStatus.statusKnown !== false && fileStatus.stale !== true;
+
+  if (!forceApi && fileUsable) return fileStatus;
+
+  try {
+    const apiStatus = await readTwitchApiStatus(cfg);
+    if (apiStatus) return apiStatus;
+  } catch (err) {
+    state.lastApiError = err && err.message ? err.message : String(err);
+    return {
+      ...(fileStatus || {}),
+      source: fileStatus && fileStatus.source ? fileStatus.source : "none",
+      apiEnabled: cfg.twitchApiEnabled,
+      apiUrl: buildTwitchApiUrl(cfg),
+      apiError: state.lastApiError,
+      lastError: fileStatus && fileStatus.lastError ? fileStatus.lastError : state.lastApiError,
+      statusKnown: fileStatus && fileStatus.statusKnown !== false && !fileStatus.stale,
+      stale: fileStatus ? !!fileStatus.stale : true
+    };
+  }
+
+  return fileStatus;
+}
+
 function makeSessionIds(cfg, sourceStatus) {
   const baseStart = sourceStatus.startedAt || nowIso();
   const streamId = String(sourceStatus.streamId || "manual").replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 48) || "manual";
@@ -290,6 +402,11 @@ function buildStatusFromSource(sourceStatus, session, cfg) {
     lastCheckedAt: now,
     lastLiveAt: sourceStatus.live && !sourceStatus.stale ? now : (readStoredStatus()?.lastLiveAt || ""),
     source: String(sourceStatus.source || "unknown"),
+    upstreamSource: String(sourceStatus.upstreamSource || ""),
+    apiUrl: String(sourceStatus.apiUrl || ""),
+    apiEnabled: cfg.twitchApiEnabled !== false,
+    apiError: String(sourceStatus.apiError || state.lastApiError || ""),
+    checkedViaApiAt: String(sourceStatus.checkedViaApiAt || state.lastApiRefreshAt || ""),
     file: String(sourceStatus.file || ""),
     fileModifiedAt: String(sourceStatus.fileModifiedAt || ""),
     fileAgeSeconds: Number(sourceStatus.fileAgeSeconds || 0),
@@ -309,19 +426,36 @@ function buildStatusFromSource(sourceStatus, session, cfg) {
   return status;
 }
 
+function persistRefreshedStatus(sourceStatus, cfg) {
+  const session = updateSessionForStatus(cfg, sourceStatus);
+  const status = buildStatusFromSource(sourceStatus, session, cfg);
+  writeStoredStatus(status);
+  state.lastCheckedAt = status.lastCheckedAt;
+  state.lastStatus = status;
+  state.lastError = "";
+  state.refreshCount += 1;
+  return status;
+}
+
 function refreshStatus(options = {}) {
   const cfg = getConfig(options.env || process.env);
   try {
     ensureSchema();
     const sourceStatus = selectSourceStatus(cfg);
-    const session = updateSessionForStatus(cfg, sourceStatus);
-    const status = buildStatusFromSource(sourceStatus, session, cfg);
-    writeStoredStatus(status);
-    state.lastCheckedAt = status.lastCheckedAt;
-    state.lastStatus = status;
-    state.lastError = "";
-    state.refreshCount += 1;
-    return status;
+    return persistRefreshedStatus(sourceStatus, cfg);
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+    const previous = readStoredStatus();
+    return previous ? { ...previous, ok: false, lastError: state.lastError } : { ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, live: false, statusKnown: false, stale: true, lastError: state.lastError };
+  }
+}
+
+async function refreshStatusAsync(options = {}) {
+  const cfg = getConfig(options.env || process.env);
+  try {
+    ensureSchema();
+    const sourceStatus = await selectSourceStatusAsync(cfg, options);
+    return persistRefreshedStatus(sourceStatus, cfg);
   } catch (err) {
     state.lastError = err && err.message ? err.message : String(err);
     const previous = readStoredStatus();
@@ -351,6 +485,8 @@ function statusPayload(options = {}) {
       initialized: state.initialized,
       loadedAt: state.loadedAt,
       refreshCount: state.refreshCount,
+      lastApiRefreshAt: state.lastApiRefreshAt,
+      lastApiError: state.lastApiError,
       lastError: state.lastError
     },
     routes: [
@@ -364,15 +500,20 @@ function statusPayload(options = {}) {
 
 module.exports.getCurrentStatus = getCurrentStatus;
 module.exports.refreshStatus = refreshStatus;
+module.exports.refreshStatusAsync = refreshStatusAsync;
 module.exports.statusPayload = statusPayload;
 
 module.exports.init = function init(ctx = {}) {
   const { app, env } = ctx;
   state.initialized = true;
-  try { refreshStatus({ env }); } catch (err) { state.lastError = err && err.message ? err.message : String(err); }
+  refreshStatusAsync({ env }).catch(err => { state.lastError = err && err.message ? err.message : String(err); });
 
-  app.get(`${API_PREFIX}/status`, (req, res) => {
-    try { res.json(statusPayload({ env, refresh: true })); }
+  app.get(`${API_PREFIX}/status`, async (req, res) => {
+    try {
+      const forceApi = String((req.query && req.query.forceApi) || "").toLowerCase() === "1" || String((req.query && req.query.forceApi) || "").toLowerCase() === "true";
+      const current = await refreshStatusAsync({ env, forceApi });
+      res.json({ ...current, state: statusPayload({ env, refresh: false }).state, routes: statusPayload({ env, refresh: false }).routes });
+    }
     catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) }); }
   });
 
@@ -381,8 +522,12 @@ module.exports.init = function init(ctx = {}) {
     catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) }); }
   });
 
-  function handleRefresh(req, res) {
-    try { res.json(statusPayload({ env, refresh: true })); }
+  async function handleRefresh(req, res) {
+    try {
+      const forceApi = String((req.query && req.query.forceApi) || (req.body && req.body.forceApi) || "").toLowerCase() === "1" || String((req.query && req.query.forceApi) || (req.body && req.body.forceApi) || "").toLowerCase() === "true";
+      const current = await refreshStatusAsync({ env, forceApi });
+      res.json({ ...current, state: statusPayload({ env, refresh: false }).state, routes: statusPayload({ env, refresh: false }).routes });
+    }
     catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) }); }
   }
 
