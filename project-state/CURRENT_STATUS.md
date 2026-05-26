@@ -1,22 +1,22 @@
 # CURRENT_STATUS
 
-## STEP465 aktiv
+## STEP466 aktiv
 
-Clip-Shoutout / VSO steht auf Runtime-Version `0.2.8`.
+Zentraler Stream-Live-Status wurde ergänzt.
 
-Aktiv:
+- Neues Modul: `stream_status`
+- Runtime-Version: `0.1.0`
+- Routen: `/api/stream-status/*`
+- Quelle: vorhandene Twitch-Dateien unter `htdocs/data/`
+- Frischeprüfung: `stale`, `fileAgeSeconds`, `fileModifiedAt`
+- Sessionlogik: `streamSessionId`, `streamDayId`, `restartGraceUntil`
+- Clip-Shoutout nutzt den zentralen Status bevorzugt für Live-Gate und Streamtag-Limit.
+- Clip-Shoutout Runtime-Version: `0.2.9`
+- Testcommand bleibt `!vso`.
 
-- Test-Command: `!vso`
-- Display-Queue mit 120 Sekunden Abstand nach Anzeige-Ende
-- reduzierte Chatmeldungen im Testmodus
-- direkte Chat-Command-Verarbeitung fuer `!vso`
-- Timeline-Route `/api/clip-shoutout/timeline`
-- Streamtag-Limit: ein Zielkanal pro Streamtag, Override per `!vso @user --force`
-- Official-Live-Gate: offizieller Twitch-`/shoutout` wird nur gesendet, wenn der Kanal live erkannt wird
+## Nächster Test
 
-Offline-Verhalten:
-
-- Video-/Display-Shoutout kann getestet werden
-- offizieller Twitch-`/shoutout` wird nicht gegen Twitch versucht
-- offizielle Queue bleibt `waiting`
-- `last_error` zeigt `waiting_stream_live_offline`
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/stream-status/status" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/queue" | ConvertTo-Json -Depth 10
+```

@@ -1,22 +1,26 @@
 # CURRENT_SYSTEM_STATUS
 
-## Clip-Shoutout / VSO
+## STEP466_STREAM_LIVE_STATUS_CORE
 
-Aktueller Stand: STEP465
+Aktueller Stand: STEP466
 
-- `clip_shoutout.js` Runtime-Version: `0.2.8`
-- Test-Command: `!vso`
-- Display-Queue: aktiv
-- Display-Cooldown: 120 Sekunden nach Anzeige-Ende
-- Event-Bus: `shoutout.system`
-- Direkter Chat-Command-Bypass: aktiv
-- Chatmeldungen fuer offizielle Twitch-Shoutouts: stummgeschaltet
-- Timeline-Route: `GET /api/clip-shoutout/timeline`
-- Streamtag-Limit: aktiv, Override per `--force`
-- Official-Live-Gate: aktiv
+- Neues zentrales Modul: `backend/modules/stream_status.js`
+- Stream-Status Runtime-Version: `0.1.0`
+- Clip-Shoutout Runtime-Version: `0.2.9`
+- Test-Command bleibt: `!vso`
+- Display-Queue bleibt aktiv
+- Display-Cooldown bleibt 120 Sekunden nach Anzeige-Ende
+- Official-Shoutout-Live-Gate nutzt bevorzugt den zentralen Stream-Status
+- Streamtag-/Session-IDs werden zentral über `stream_status` bereitgestellt
+- Fallback auf vorhandene Live-Dateien bleibt erhalten
 
-## STEP465
+Neue zentrale Routen:
 
-Der offizielle Twitch-`/shoutout` wird nicht mehr gegen Twitch gesendet, wenn der Kanal laut lokaler Live-State-Dateien offline ist. Stattdessen bleibt der Eintrag in der offiziellen Queue im Status `waiting`, bekommt `last_error=waiting_stream_live_offline` und wird spaeter erneut geprueft.
+```text
+GET  /api/stream-status/status
+GET  /api/stream-status/current
+GET/POST /api/stream-status/refresh
+GET  /api/stream-status/sessions
+```
 
-Display-/Video-Shoutouts bleiben auch offline testbar.
+Der zentrale Stream-Status liest zunächst die vorhandenen Twitch-Dateien, bewertet deren Frische und hält Streamsession-/Streamtag-Daten mit Restart-Grace vor.

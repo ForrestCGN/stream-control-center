@@ -11,9 +11,11 @@ const twitchPresence = require("./twitch_presence");
 const commands = require("./commands");
 let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
+let streamStatus = null;
+try { streamStatus = require("./stream_status"); } catch (_) { streamStatus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.8";
+const MODULE_VERSION = "0.2.9";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -107,6 +109,10 @@ const DEFAULT_CONFIG = {
         "htdocs/data/twitch_stream_raw.json",
         "htdocs/data/twitch_live_data.json"
       ]
+    },
+    streamStatus: {
+      enabled: true,
+      preferCentralStatus: true
     }
   }
 };
@@ -328,7 +334,49 @@ function extractStreamStateFromPayload(payload) {
   };
 }
 
+function normalizeCentralStreamStatus(status) {
+  if (!status || typeof status !== "object") return null;
+  return {
+    live: status.live === true,
+    source: "stream_status",
+    upstreamSource: String(status.source || ""),
+    file: String(status.file || ""),
+    fileModifiedAt: String(status.fileModifiedAt || ""),
+    fileAgeSeconds: Number(status.fileAgeSeconds || 0),
+    stale: status.stale === true,
+    statusKnown: status.statusKnown !== false,
+    streamId: String(status.streamId || ""),
+    startedAt: String(status.startedAt || ""),
+    title: String(status.title || ""),
+    gameName: String(status.gameName || ""),
+    viewerCount: Number(status.viewerCount || 0),
+    streamSessionId: String(status.streamSessionId || ""),
+    streamDayId: String(status.streamDayId || ""),
+    sessionStatus: String(status.sessionStatus || ""),
+    restartGraceUntil: String(status.restartGraceUntil || ""),
+    lastCheckedAt: String(status.lastCheckedAt || ""),
+    lastLiveAt: String(status.lastLiveAt || ""),
+    error: String(status.lastError || status.error || "")
+  };
+}
+
+function readCentralStreamStatus() {
+  if (!streamStatus || typeof streamStatus.getCurrentStatus !== "function") return null;
+  try {
+    const status = streamStatus.getCurrentStatus({ refresh: true, caller: MODULE_NAME });
+    return normalizeCentralStreamStatus(status);
+  } catch (_) {
+    return null;
+  }
+}
+
 function readCurrentStreamState(cfg) {
+  const centralCfg = (cfg && cfg.streamStatus) || {};
+  if (centralCfg.enabled !== false && centralCfg.preferCentralStatus !== false) {
+    const central = readCentralStreamStatus();
+    if (central) return central;
+  }
+
   const scfg = streamDayLimitConfig(cfg);
   const files = Array.isArray(scfg.liveStateFiles) ? scfg.liveStateFiles : [];
   for (const file of files) {
@@ -341,7 +389,7 @@ function readCurrentStreamState(cfg) {
     const state = extractStreamStateFromPayload(payload);
     if (state) return { ...state, file: resolveRootFile(file) };
   }
-  return { live: false, source: "unknown", file: "" };
+  return { live: false, source: "unknown", file: "", statusKnown: false, stale: true };
 }
 
 function compactIsoForId(value) {
@@ -350,6 +398,7 @@ function compactIsoForId(value) {
 }
 
 function makeStreamDayId(env, streamState) {
+  if (streamState && streamState.streamDayId) return String(streamState.streamDayId).trim().toLowerCase();
   const channel = cleanLogin(env.TWITCH_BOT_CHANNEL || env.TWITCH_CHANNEL || env.TWITCH_BROADCASTER_LOGIN || "forrestcgn") || "stream";
   const startedAt = streamState && streamState.startedAt ? streamState.startedAt : nowIso();
   const streamId = String(streamState && streamState.streamId || "manual").replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 48) || "manual";
@@ -653,15 +702,34 @@ function buildOfficialLiveGateState(cfg) {
   const ocfg = officialConfig(cfg);
   const streamState = readCurrentStreamState(cfg);
   const enabled = ocfg.liveGateEnabled !== false;
+  const stale = !!(streamState && streamState.stale);
+  const statusKnown = streamState ? streamState.statusKnown !== false : false;
+  let reason = "";
+  if (enabled && stale) reason = "waiting_stream_status_stale";
+  else if (enabled && !statusKnown) reason = "waiting_stream_status_unknown";
+  else if (enabled && !(streamState && streamState.live)) reason = "waiting_stream_live_offline";
   return {
     enabled,
     live: !!(streamState && streamState.live),
+    statusKnown,
+    stale,
+    reason,
     source: streamState && streamState.source ? String(streamState.source) : 'unknown',
+    upstreamSource: streamState && streamState.upstreamSource ? String(streamState.upstreamSource) : '',
     file: streamState && streamState.file ? String(streamState.file) : '',
+    fileModifiedAt: streamState && streamState.fileModifiedAt ? String(streamState.fileModifiedAt) : '',
+    fileAgeSeconds: streamState && Number.isFinite(Number(streamState.fileAgeSeconds)) ? Number(streamState.fileAgeSeconds) : 0,
     streamId: streamState && streamState.streamId ? String(streamState.streamId) : '',
     startedAt: streamState && streamState.startedAt ? String(streamState.startedAt) : '',
     title: streamState && streamState.title ? String(streamState.title) : '',
-    gameName: streamState && streamState.gameName ? String(streamState.gameName) : ''
+    gameName: streamState && streamState.gameName ? String(streamState.gameName) : '',
+    viewerCount: streamState && Number.isFinite(Number(streamState.viewerCount)) ? Number(streamState.viewerCount) : 0,
+    streamSessionId: streamState && streamState.streamSessionId ? String(streamState.streamSessionId) : '',
+    streamDayId: streamState && streamState.streamDayId ? String(streamState.streamDayId) : '',
+    sessionStatus: streamState && streamState.sessionStatus ? String(streamState.sessionStatus) : '',
+    restartGraceUntil: streamState && streamState.restartGraceUntil ? String(streamState.restartGraceUntil) : '',
+    lastCheckedAt: streamState && streamState.lastCheckedAt ? String(streamState.lastCheckedAt) : '',
+    lastLiveAt: streamState && streamState.lastLiveAt ? String(streamState.lastLiveAt) : ''
   };
 }
 
@@ -965,7 +1033,7 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
 
   const liveGate = buildOfficialLiveGateState(cfg);
   if (liveGate.enabled && !liveGate.live) {
-    return markOfficialQueueWaitingLiveGate(row, cfg);
+    return markOfficialQueueWaitingLiveGate(row, cfg, liveGate.reason || 'waiting_stream_live_offline');
   }
 
   try {
@@ -2509,6 +2577,7 @@ module.exports.init = function init(ctx) {
         { method: "GET/POST", path: `${API_PREFIX}/settings` },
         { method: "GET", path: `${API_PREFIX}/queue` },
         { method: "GET", path: `${API_PREFIX}/timeline` },
+        { method: "GET", path: "/api/stream-status/status" },
         { method: "POST", path: `${API_PREFIX}/queue/remove` },
         { method: "POST", path: `${API_PREFIX}/queue/retry` }
       ],
@@ -2536,7 +2605,8 @@ module.exports.init = function init(ctx) {
         eventBusEnabled: currentCfg.eventBusEnabled !== false,
         displayQueue: displayConfig(currentCfg),
         officialShoutout: officialConfig(currentCfg),
-        streamDayLimit: streamDayLimitConfig(currentCfg)
+        streamDayLimit: streamDayLimitConfig(currentCfg),
+        streamStatus: currentCfg.streamStatus || {}
       },
       displayQueue: displayQueueStatus(currentCfg),
       officialQueue: officialQueueStatus(currentCfg),
@@ -2567,6 +2637,7 @@ module.exports.init = function init(ctx) {
       if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
       if (body.officialShoutout && typeof body.officialShoutout === "object") allowed.officialShoutout = body.officialShoutout;
       if (body.streamDayLimit && typeof body.streamDayLimit === "object") allowed.streamDayLimit = body.streamDayLimit;
+      if (body.streamStatus && typeof body.streamStatus === "object") allowed.streamStatus = body.streamStatus;
       const settings = saveShoutoutConfig(allowed);
       const commandRegistration = registerCommand(settings);
       emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed), commandRegistration }, settings);
