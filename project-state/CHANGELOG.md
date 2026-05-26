@@ -36,3 +36,9 @@
 ### Not changed
 
 - Kein produktiver Code geändert.
+
+## 2026-05-26 - STEP479 Module Docs Secondary Modules Deep Dive
+
+- Sekundäre/ergänzende Backend-Module technisch dokumentiert.
+- `docs/modules/secondary-modules-deep-dive-overview.md` ergänzt.
+- Keine Code-, Config-, DB- oder Dashboardänderungen.

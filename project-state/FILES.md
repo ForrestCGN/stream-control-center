@@ -43,3 +43,42 @@ Stand: 2026-05-26 / STEP477
 - `docs/modules/birthday-deep-dive.md`
 - `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md`
 - `project-state/STEP478_MODULE_DOCS_INTEGRATIONS_COMMUNITY_DEEP_DIVE.md`
+
+## STEP479 geänderte/ergänzte Dateien
+
+- `docs/modules/secondary-modules-deep-dive-overview.md`
+- `docs/modules/challenge-deep-dive.md`
+- `docs/modules/deathcounter-v2-deep-dive.md`
+- `docs/modules/loyalty-deep-dive.md`
+- `docs/modules/commands-deep-dive.md`
+- `docs/modules/commands-media-deep-dive.md`
+- `docs/modules/media-deep-dive.md`
+- `docs/modules/soundalerts-bridge-deep-dive.md`
+- `docs/modules/sound-output-config-deep-dive.md`
+- `docs/modules/sound-loudness-scanner-deep-dive.md`
+- `docs/modules/sound-media-bridge-deep-dive.md`
+- `docs/modules/video-media-bridge-deep-dive.md`
+- `docs/modules/bus-diagnostics-deep-dive.md`
+- `docs/modules/diagnostics-deep-dive.md`
+- `docs/modules/chat-output-deep-dive.md`
+- `docs/modules/messages-deep-dive.md`
+- `docs/modules/message-rotator-scheduler-deep-dive.md`
+- `docs/modules/credits-deep-dive.md`
+- `docs/modules/fireworks-api-deep-dive.md`
+- `docs/modules/kofi-deep-dive.md`
+- `docs/modules/tipeee-deep-dive.md`
+- `docs/modules/overlay-data-deep-dive.md`
+- `docs/modules/start-overlay-deep-dive.md`
+- `docs/modules/twitch-chat-overlay-deep-dive.md`
+- `docs/modules/database-core-status-deep-dive.md`
+- `docs/modules/security-status-deep-dive.md`
+- `docs/modules/audit-log-deep-dive.md`
+- `docs/modules/hug-system-deep-dive.md`
+- `docs/modules/README.md`
+- `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md`
+- `project-state/STEP479_MODULE_DOCS_SECONDARY_MODULES_DEEP_DIVE.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`

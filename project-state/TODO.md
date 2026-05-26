@@ -40,3 +40,9 @@ Stand: 2026-05-26 / STEP477
 ### Danach Shoutout
 
 - Shoutout-Dashboard in Tabs/Unterbereiche aufteilen.
+
+## Doku / Cleanup nach STEP479
+
+- Modul-Dokus bei künftigen Facharbeiten gegen GitHub/dev und Live-Stand nachschärfen.
+- Dashboard-Dokus separat ergänzen, wenn die nächste Dashboard-Arbeit beginnt.
+- Unklare Doppelzuständigkeiten später prüfen: `hug.js` vs. `hug_system.js`, `message_rotator.js` vs. `message_rotator_scheduler.js`, Sound-/Media-Bridges vs. zentrale Sound-/Media-Module.

@@ -69,3 +69,36 @@ Neue Detaildokus für Integrationen und Community-Module:
 - `birthday-deep-dive.md`
 
 Hinweis: Dashboard-/Overlay-Dateien waren im Backend-Upload nicht vollständig enthalten und müssen bei UI-/Overlay-Steps zusätzlich geprüft werden.
+
+## STEP479 - Secondary Modules Deep Dive
+
+Weitere technische Modul-Dokus aus STEP479:
+
+- [`secondary-modules-deep-dive-overview.md`](./secondary-modules-deep-dive-overview.md)
+- [`challenge-deep-dive.md`](./challenge-deep-dive.md)
+- [`deathcounter-v2-deep-dive.md`](./deathcounter-v2-deep-dive.md)
+- [`loyalty-deep-dive.md`](./loyalty-deep-dive.md)
+- [`commands-deep-dive.md`](./commands-deep-dive.md)
+- [`commands-media-deep-dive.md`](./commands-media-deep-dive.md)
+- [`media-deep-dive.md`](./media-deep-dive.md)
+- [`soundalerts-bridge-deep-dive.md`](./soundalerts-bridge-deep-dive.md)
+- [`sound-output-config-deep-dive.md`](./sound-output-config-deep-dive.md)
+- [`sound-loudness-scanner-deep-dive.md`](./sound-loudness-scanner-deep-dive.md)
+- [`sound-media-bridge-deep-dive.md`](./sound-media-bridge-deep-dive.md)
+- [`video-media-bridge-deep-dive.md`](./video-media-bridge-deep-dive.md)
+- [`bus-diagnostics-deep-dive.md`](./bus-diagnostics-deep-dive.md)
+- [`diagnostics-deep-dive.md`](./diagnostics-deep-dive.md)
+- [`chat-output-deep-dive.md`](./chat-output-deep-dive.md)
+- [`messages-deep-dive.md`](./messages-deep-dive.md)
+- [`message-rotator-scheduler-deep-dive.md`](./message-rotator-scheduler-deep-dive.md)
+- [`credits-deep-dive.md`](./credits-deep-dive.md)
+- [`fireworks-api-deep-dive.md`](./fireworks-api-deep-dive.md)
+- [`kofi-deep-dive.md`](./kofi-deep-dive.md)
+- [`tipeee-deep-dive.md`](./tipeee-deep-dive.md)
+- [`overlay-data-deep-dive.md`](./overlay-data-deep-dive.md)
+- [`start-overlay-deep-dive.md`](./start-overlay-deep-dive.md)
+- [`twitch-chat-overlay-deep-dive.md`](./twitch-chat-overlay-deep-dive.md)
+- [`database-core-status-deep-dive.md`](./database-core-status-deep-dive.md)
+- [`security-status-deep-dive.md`](./security-status-deep-dive.md)
+- [`audit-log-deep-dive.md`](./audit-log-deep-dive.md)
+- [`hug-system-deep-dive.md`](./hug-system-deep-dive.md)

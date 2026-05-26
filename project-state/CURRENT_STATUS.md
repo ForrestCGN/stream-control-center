@@ -31,3 +31,7 @@ Keine Code-, Dashboard-, Overlay-, Config- oder Datenbankänderungen.
 - Community-Module tief dokumentiert: Tagebuch, Todo, Message Rotator, Hug/Rehug, Birthday.
 - Keine Code-, Dashboard-, Overlay-, Config- oder Datenbankänderungen.
 - Nächster möglicher Doku-Block: sekundäre Module. Danach Facharbeit am Shoutout-System.
+
+## Stand nach STEP479
+
+Die Modul-Doku-Basis wurde um sekundäre/ergänzende Module erweitert. Die wichtigsten Backend-Module aus dem aktuellen Upload sind jetzt grundsätzlich unter `docs/modules/` dokumentiert. Die Dokus sind Bestandsaufnahmen und ersetzen keine Live-Dateiprüfung vor Änderungen.

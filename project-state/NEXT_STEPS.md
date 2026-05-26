@@ -48,3 +48,11 @@ Keine JS-Dateien geändert, daher kein `node --check` nötig.
 1. Optional weiter reine Doku: `STEP479_MODULE_DOCS_SECONDARY_MODULES_DEEP_DIVE` für kleinere/sekundäre Module.
 2. Danach Facharbeit am Shoutout-System: `STEP480_SHOUTOUT_DASHBOARD_TABS`.
 3. Vor Shoutout-UI-Arbeiten echte Dashboard-Dateien aus GitHub/dev prüfen.
+
+## Nächster Fach-STEP nach STEP479
+
+```text
+STEP480_SHOUTOUT_DASHBOARD_TABS
+```
+
+Ziel: Shoutout-Dashboard in Tabs/Unterbereiche aufteilen, nachdem die Doku-/Cleanup-Runde abgeschlossen ist.

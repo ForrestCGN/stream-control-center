@@ -47,3 +47,18 @@ Pro Modul sind jetzt dokumentiert:
 - Dashboard-Dateien und Overlay-Dateien aus dem echten Repo/Live-Stand nachziehen.
 - Kleinere/sekundäre Module dokumentieren: `challenge`, `deathcounter_v2`, `loyalty`, `commands`, `commands_media`, `media`, `soundalerts_bridge`, `sound_output_config`, `bus_diagnostics`, `diagnostics`, `credits`, `fireworks_api`, `kofi`, `tipeee`, `overlay_data`, `start_overlay`, `twitch_chat_overlay`.
 - Danach alte Projekt-State-Dateien bei Bedarf weiter archivieren.
+
+## STEP479 - Secondary Modules Deep Dive
+
+Ergänzt wurden Dokus für sekundäre/ergänzende Module:
+
+```text
+challenge, deathcounter_v2, loyalty, commands, commands_media, media,
+soundalerts_bridge, sound_output_config, sound_loudness_scanner,
+sound_media_bridge, video_media_bridge, bus_diagnostics, diagnostics,
+chat_output, messages, message_rotator_scheduler, credits, fireworks_api,
+kofi, tipeee, overlay_data, start_overlay, twitch_chat_overlay,
+database_core, security, audit_log, hug_system
+```
+
+Damit sind die wichtigsten Backend-Module aus dem aktuellen Upload in `docs/modules/` grundsätzlich erfasst. Die Dokus sind technische Bestandsaufnahmen aus Datei-Analyse und müssen vor konkreten Codeänderungen gegen GitHub/dev bzw. Live-Dateien geprüft werden.
