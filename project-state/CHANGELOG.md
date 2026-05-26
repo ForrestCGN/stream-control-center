@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-05-26 - STEP486_SHOUTOUT_LIVE_TEST_AND_DECISION_PREP
+
+- Live-Test-/Decision-Prep im bestehenden `clip_shoutout.js` ergänzt.
+- `clip_shoutout.js` auf Version `0.2.13` erhöht.
+- Neue Routen:
+  - `GET /api/clip-shoutout/live-test`
+  - `GET /api/clip-shoutout/decision-prep`
+- Dashboard-Tab `Live-Test` ergänzt.
+- Testplan und sichere Entscheidungsausgabe ergänzt.
+- Keine produktive `!so`-Umstellung.
+- Keine neuen Parallelmodule.
+
 ## 2026-05-26 - STEP485_SHOUTOUT_PRODUCTION_CHECK
 
 - Shoutout-Produktionscheck ergänzt.

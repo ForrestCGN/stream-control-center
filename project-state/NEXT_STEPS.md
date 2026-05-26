@@ -1,12 +1,11 @@
 # NEXT_STEPS
 
-Stand: 2026-05-26 / nach STEP485
+Stand: 2026-05-26 / nach STEP486
 
 ## Direkt prüfen
 
 ```bat
 cd D:\Git\stream-control-center
-node --check backend\modules\twitch.js
 node --check backend\modules\clip_shoutout.js
 node --check htdocs\dashboard\modules\shoutout.js
 ```
@@ -16,28 +15,31 @@ node --check htdocs\dashboard\modules\shoutout.js
 ```bat
 curl http://127.0.0.1:8080/api/clip-shoutout/status
 curl http://127.0.0.1:8080/api/clip-shoutout/production-check
+curl http://127.0.0.1:8080/api/clip-shoutout/live-test
 curl http://127.0.0.1:8080/api/twitch/eventsub/status
 curl http://127.0.0.1:8080/api/clip-shoutout/inbound
 curl http://127.0.0.1:8080/api/clip-shoutout/inbound/stats
+```
+
+## Debug-Inbound testen
+
+```bat
+curl -X POST http://127.0.0.1:8080/api/clip-shoutout/inbound/debug -H "Content-Type: application/json" -d "{\"direction\":\"incoming\",\"from\":\"testsender\",\"to\":\"forrestcgn\",\"viewerCount\":12}"
+curl http://127.0.0.1:8080/api/clip-shoutout/live-test
 ```
 
 ## Im Dashboard prüfen
 
 - Modul `Shoutout-System` öffnen.
 - Tab `Produktion` prüfen.
-- Blocker/Warnungen anschauen.
-- Tab `Eingehend` mit Debug-Event testen.
-
-Optionales Debug-Event:
-
-```bat
-curl -X POST http://127.0.0.1:8080/api/clip-shoutout/inbound/debug -H "Content-Type: application/json" -d "{\"direction\":\"incoming\",\"from\":\"testsender\",\"to\":\"forrestcgn\",\"viewerCount\":12}"
-```
+- Tab `Live-Test` prüfen.
+- Empfohlene nächste Aktion beachten.
+- Keine produktive `!so`-Umstellung durchführen, bis echte Receive-/Create-Events geprüft wurden.
 
 ## Nächster sinnvoller Fach-STEP
 
 ```text
-STEP486_SHOUTOUT_LIVE_TEST_AND_DECISION_PREP
+STEP487_SHOUTOUT_REAL_EVENT_TEST_RESULTS
 ```
 
-Ziel: Ergebnisse aus `production-check` bewerten, fehlende Scopes/Subscriptions gezielt korrigieren und erst danach über produktives `!so` entscheiden.
+Ziel: echte Runtime-Ergebnisse aus Production-Check, Live-Test und Twitch-EventSub-Shoutouts auswerten und dokumentieren.

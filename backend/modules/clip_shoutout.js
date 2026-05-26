@@ -16,7 +16,7 @@ let streamStatus = null;
 try { streamStatus = require("./stream_status"); } catch (_) { streamStatus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.12";
+const MODULE_VERSION = "0.2.13";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -1881,6 +1881,127 @@ async function buildShoutoutProductionCheck() {
   };
 }
 
+
+async function buildShoutoutLiveTestDecision() {
+  const production = await buildShoutoutProductionCheck();
+  ensureInboundShoutoutSchema();
+
+  const observation = normalizeStatsRow(database.get(`
+    SELECT
+      COUNT(*) AS totalEvents,
+      SUM(CASE WHEN subscription_id='debug' THEN 1 ELSE 0 END) AS debugTotal,
+      SUM(CASE WHEN subscription_id<>'debug' THEN 1 ELSE 0 END) AS realTotal,
+      SUM(CASE WHEN direction='incoming' THEN 1 ELSE 0 END) AS incomingTotal,
+      SUM(CASE WHEN direction='outgoing' THEN 1 ELSE 0 END) AS outgoingTotal,
+      SUM(CASE WHEN direction='incoming' AND subscription_id='debug' THEN 1 ELSE 0 END) AS debugIncomingTotal,
+      SUM(CASE WHEN direction='outgoing' AND subscription_id='debug' THEN 1 ELSE 0 END) AS debugOutgoingTotal,
+      SUM(CASE WHEN direction='incoming' AND subscription_id<>'debug' THEN 1 ELSE 0 END) AS realIncomingTotal,
+      SUM(CASE WHEN direction='outgoing' AND subscription_id<>'debug' THEN 1 ELSE 0 END) AS realOutgoingTotal,
+      MAX(received_at) AS lastObservedAt
+    FROM clip_shoutout_inbound_events
+  `) || {});
+
+  const recent = listInboundShoutoutEvents({ limit: 10 }).items || [];
+  const productionReady = production.ready === true;
+  const sendReady = production.sendReady === true;
+  const debugObserved = Number(observation.debugTotal || 0) > 0;
+  const realIncomingObserved = Number(observation.realIncomingTotal || 0) > 0;
+  const realOutgoingObserved = Number(observation.realOutgoingTotal || 0) > 0;
+  const realAnyObserved = Number(observation.realTotal || 0) > 0;
+
+  const blockers = [];
+  const warnings = [];
+  if (!productionReady) blockers.push('production_check_not_ready');
+  if (!debugObserved) warnings.push('debug_event_not_observed_yet');
+  if (!realIncomingObserved) warnings.push('real_channel_shoutout_receive_not_observed_yet');
+  if (!realOutgoingObserved) warnings.push('real_channel_shoutout_create_not_observed_yet');
+  if (!sendReady) warnings.push('official_send_not_fully_ready_or_manage_scope_missing');
+
+  const readyForReceiveLiveTest = productionReady;
+  const readyForCreateLiveTest = productionReady && sendReady;
+  const readyForProductionSwitch = productionReady && sendReady && realIncomingObserved && realOutgoingObserved;
+
+  let recommendedNextAction = 'run_production_check';
+  if (!productionReady) recommendedNextAction = 'fix_production_check_blockers_first';
+  else if (!debugObserved) recommendedNextAction = 'run_local_debug_inbound_event';
+  else if (!realIncomingObserved) recommendedNextAction = 'perform_real_receive_shoutout_test';
+  else if (!realOutgoingObserved) recommendedNextAction = sendReady ? 'perform_real_create_shoutout_test' : 'refresh_oauth_with_manage_scope_before_create_test';
+  else if (!readyForProductionSwitch) recommendedNextAction = 'review_remaining_warnings_before_switch';
+  else recommendedNextAction = 'ready_for_explicit_so_switch_decision';
+
+  const testPlan = [
+    {
+      id: 'production_check',
+      label: 'Produktions-Check prüfen',
+      ready: productionReady,
+      required: true,
+      route: `${API_PREFIX}/production-check`,
+      command: `curl http://127.0.0.1:8080${API_PREFIX}/production-check`,
+      note: 'Muss ohne Blocker sein, bevor echte EventSub-Shoutout-Tests sinnvoll sind.'
+    },
+    {
+      id: 'debug_inbound',
+      label: 'Lokales Debug-Event speichern',
+      ready: debugObserved,
+      required: true,
+      route: `${API_PREFIX}/inbound/debug`,
+      command: `curl -X POST http://127.0.0.1:8080${API_PREFIX}/inbound/debug -H "Content-Type: application/json" -d "{\"direction\":\"incoming\",\"from\":\"testsender\",\"to\":\"forrestcgn\",\"viewerCount\":12}"`,
+      note: 'Prüft nur DB-Route, Normalisierung, Dashboard und EventBus-Emit im Shoutout-System.'
+    },
+    {
+      id: 'real_receive',
+      label: 'Echtes channel.shoutout.receive beobachten',
+      ready: realIncomingObserved,
+      required: true,
+      route: `${API_PREFIX}/inbound?direction=incoming`,
+      command: `curl http://127.0.0.1:8080${API_PREFIX}/inbound?direction=incoming`,
+      note: 'Ein anderer Kanal muss ForrestCGN offiziell shoutouten. Danach sollte ein echter incoming-Datensatz erscheinen.'
+    },
+    {
+      id: 'real_create',
+      label: 'Echtes channel.shoutout.create beobachten',
+      ready: realOutgoingObserved,
+      required: true,
+      route: `${API_PREFIX}/inbound?direction=outgoing`,
+      command: `curl http://127.0.0.1:8080${API_PREFIX}/inbound?direction=outgoing`,
+      note: 'Erst testen, wenn manage-Scope vorhanden ist. Dies ist noch keine automatische !so-Produktivumstellung.'
+    },
+    {
+      id: 'decision',
+      label: 'Entscheidung zur produktiven !so-Nutzung treffen',
+      ready: readyForProductionSwitch,
+      required: true,
+      route: `${API_PREFIX}/live-test`,
+      command: `curl http://127.0.0.1:8080${API_PREFIX}/live-test`,
+      note: 'Nur eine Entscheidungsvorbereitung. Der produktive Wechsel passiert weiterhin nur ausdrücklich.'
+    }
+  ];
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    generatedAt: nowIso(),
+    productionReady,
+    sendReady,
+    readyForReceiveLiveTest,
+    readyForCreateLiveTest,
+    readyForProductionSwitch,
+    recommendedNextAction,
+    blockers,
+    warnings,
+    observation,
+    production,
+    testPlan,
+    recent,
+    safeDecision: {
+      automaticSwitchPerformed: false,
+      reason: 'STEP486 bereitet nur Live-Test und Entscheidung vor. Eine produktive !so-Umstellung erfolgt nicht automatisch.',
+      explicitUserDecisionRequired: true
+    }
+  };
+}
+
 function resolveRootPath(inputPath) {
   const raw = String(inputPath || "").trim();
   if (!raw) return configHelper.resolveFromRoot("htdocs", "assets", "sounds", "clip_shoutout");
@@ -3282,6 +3403,8 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${API_PREFIX}/inbound/stats` },
         { method: "POST", path: `${API_PREFIX}/inbound/debug` },
         { method: "GET", path: `${API_PREFIX}/production-check` },
+        { method: "GET", path: `${API_PREFIX}/live-test` },
+        { method: "GET", path: `${API_PREFIX}/decision-prep` },
         { method: "GET", path: "/api/stream-status/status" },
         { method: "POST", path: `${API_PREFIX}/queue/remove` },
         { method: "POST", path: `${API_PREFIX}/queue/retry` }
@@ -3422,6 +3545,18 @@ module.exports.init = function init(ctx) {
       res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) });
     }
   });
+
+  const handleLiveTestDecision = async (req, res) => {
+    try {
+      const result = await buildShoutoutLiveTestDecision();
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) });
+    }
+  };
+
+  app.get(`${API_PREFIX}/live-test`, handleLiveTestDecision);
+  app.get(`${API_PREFIX}/decision-prep`, handleLiveTestDecision);
 
 
   app.get(`${API_PREFIX}/inbound`, (req, res) => {

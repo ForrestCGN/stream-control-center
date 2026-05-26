@@ -9,6 +9,7 @@ window.ShoutoutModule = (function(){
     inbound: '/api/clip-shoutout/inbound?limit=80',
     inboundStats: '/api/clip-shoutout/inbound/stats?limit=80',
     productionCheck: '/api/clip-shoutout/production-check',
+    liveTest: '/api/clip-shoutout/live-test',
     run: '/api/clip-shoutout/run',
     displayRemove: '/api/clip-shoutout/display-queue/remove',
     displayRetry: '/api/clip-shoutout/display-queue/retry',
@@ -24,6 +25,7 @@ window.ShoutoutModule = (function(){
     { id: 'stats', label: 'Statistik' },
     { id: 'timeline', label: 'Timeline' },
     { id: 'production', label: 'Produktion' },
+    { id: 'liveTest', label: 'Live-Test' },
     { id: 'settings', label: 'Settings/Test' }
   ];
 
@@ -38,6 +40,7 @@ window.ShoutoutModule = (function(){
     inbound: null,
     inboundStats: null,
     productionCheck: null,
+    liveTest: null,
     selectedStatsTarget: '',
     selectedStatsRequester: '',
     activeTab: 'overview',
@@ -167,7 +170,7 @@ window.ShoutoutModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, queue, timeline, stats, inbound, inboundStats, productionCheck, streamStatus] = await Promise.all([
+      const [status, queue, timeline, stats, inbound, inboundStats, productionCheck, liveTest, streamStatus] = await Promise.all([
         api(API.status),
         api(API.queue),
         api(API.timeline),
@@ -175,6 +178,7 @@ window.ShoutoutModule = (function(){
         api(API.inbound).catch(err => ({ ok: false, error: err.message, items: [] })),
         api(API.inboundStats).catch(err => ({ ok: false, error: err.message, totals: {}, recent: [] })),
         api(API.productionCheck).catch(err => ({ ok: false, error: err.message, checks: {}, blocking: [], warnings: [] })),
+        api(API.liveTest).catch(err => ({ ok: false, error: err.message, testPlan: [], warnings: [], blockers: [] })),
         api(API.streamStatus).catch(err => ({ ok: false, error: err.message }))
       ]);
       state.status = status;
@@ -184,6 +188,7 @@ window.ShoutoutModule = (function(){
       state.inbound = inbound;
       state.inboundStats = inboundStats;
       state.productionCheck = productionCheck;
+      state.liveTest = liveTest;
       state.streamStatus = streamStatus;
     } catch (err) {
       state.error = err && err.message ? err.message : String(err);
@@ -777,6 +782,90 @@ window.ShoutoutModule = (function(){
     `;
   }
 
+
+  function renderLiveTest(){
+    const live = state.liveTest || {};
+    const decision = live.safeDecision || {};
+    const observation = live.observation || {};
+    const plan = Array.isArray(live.testPlan) ? live.testPlan : [];
+    const blockers = Array.isArray(live.blockers) ? live.blockers : [];
+    const warnings = Array.isArray(live.warnings) ? live.warnings : [];
+    const recent = Array.isArray(live.recent) ? live.recent : [];
+
+    return `
+      <div class="shoutout-tab-panel shoutout-grid">
+        <div class="shoutout-card shoutout-wide">
+          <div class="shoutout-card-head">
+            <div><h3>Live-Test & Entscheidungs-Vorbereitung</h3><p>Bewertet Produktionscheck, beobachtete echte Shoutout-Events und die nächste sichere Aktion. Es wird nichts automatisch produktiv umgestellt.</p></div>
+            <div>${statusBadge(live.readyForProductionSwitch ? 'bereit' : 'prüfen')}</div>
+          </div>
+          <div class="shoutout-stat-grid">
+            <div class="shoutout-stat"><small>Production</small><strong>${live.productionReady ? 'OK' : 'Blockiert'}</strong><span>${esc(blockers.length)} Blocker</span></div>
+            <div class="shoutout-stat"><small>Send Ready</small><strong>${live.sendReady ? 'OK' : 'Prüfen'}</strong><span>manage-Scope</span></div>
+            <div class="shoutout-stat"><small>Debug</small><strong>${esc(num(observation.debugTotal))}</strong><span>Events</span></div>
+            <div class="shoutout-stat"><small>Real Receive</small><strong>${esc(num(observation.realIncomingTotal))}</strong><span>incoming</span></div>
+            <div class="shoutout-stat"><small>Real Create</small><strong>${esc(num(observation.realOutgoingTotal))}</strong><span>outgoing</span></div>
+            <div class="shoutout-stat"><small>Empfehlung</small><strong>${esc(live.recommendedNextAction || '-')}</strong><span>nächste Aktion</span></div>
+          </div>
+        </div>
+
+        <div class="shoutout-card shoutout-wide">
+          <div class="shoutout-card-head"><div><h3>Testplan</h3><p>Schrittweise prüfen, bevor über produktives <code>!so</code> entschieden wird.</p></div></div>
+          <div class="shoutout-live-plan">
+            ${plan.length ? plan.map((item, index) => `
+              <div class="shoutout-plan-item ${item.ready ? 'ok' : 'pending'}">
+                <div class="shoutout-plan-index">${esc(index + 1)}</div>
+                <div>
+                  <strong>${esc(item.label || item.id || '-')}</strong>
+                  <small>${esc(item.note || '')}</small>
+                  ${item.command ? `<code>${esc(item.command)}</code>` : ''}
+                </div>
+                <div>${statusBadge(item.ready ? 'ok' : 'offen')}</div>
+              </div>
+            `).join('') : '<div class="shoutout-empty-inline">Kein Testplan geladen.</div>'}
+          </div>
+        </div>
+
+        <div class="shoutout-card">
+          <div class="shoutout-card-head"><div><h3>Sicherheitsentscheidung</h3><p>Der produktive Schalter bleibt bewusst manuell.</p></div></div>
+          <div class="shoutout-facts">
+            <div><small>Automatisch umgestellt</small><strong>${boolBadge(decision.automaticSwitchPerformed === true, 'ja', 'nein')}</strong></div>
+            <div><small>Explizite Entscheidung nötig</small><strong>${boolBadge(decision.explicitUserDecisionRequired !== false, 'ja', 'nein')}</strong></div>
+            <div><small>Letzte Beobachtung</small><strong>${fmtDate(observation.lastObservedAt || '')}</strong></div>
+          </div>
+          <div class="shoutout-mini-timeline"><span>${esc(decision.reason || 'Keine automatische Produktivumstellung.')}</span></div>
+        </div>
+
+        <div class="shoutout-card">
+          <div class="shoutout-card-head"><div><h3>Blocker & Warnungen</h3><p>Was vor der Entscheidung noch offen ist.</p></div></div>
+          <div class="shoutout-mini-timeline">
+            ${blockers.length ? blockers.map(item => `<span>${statusBadge('fehlt')} ${esc(item)}</span>`).join('') : `<span>${statusBadge('ok')} Keine Live-Test-Blocker erkannt.</span>`}
+            ${warnings.length ? warnings.map(item => `<span>${statusBadge('warn')} ${esc(item)}</span>`).join('') : `<span class="shoutout-empty-inline">Keine Warnungen.</span>`}
+          </div>
+        </div>
+
+        <div class="shoutout-card shoutout-wide">
+          <div class="shoutout-card-head"><div><h3>Letzte beobachtete Shoutout-Events</h3><p>Debug- und echte EventSub-Datensätze aus dem Shoutout-System.</p></div></div>
+          <table class="shoutout-table">
+            <thead><tr><th>Zeit</th><th>Richtung</th><th>Von</th><th>An</th><th>Typ</th><th>Viewer</th></tr></thead>
+            <tbody>
+              ${recent.length ? recent.map(row => `
+                <tr>
+                  <td>${fmtDate(row.receivedAt)}</td>
+                  <td>${statusBadge(row.direction)}</td>
+                  <td>${esc(row.fromBroadcasterDisplay || row.fromBroadcasterLogin || '-')}</td>
+                  <td>${esc(row.toBroadcasterDisplay || row.toBroadcasterLogin || '-')}</td>
+                  <td><code>${esc(row.eventType || '-')}</code></td>
+                  <td>${esc(num(row.viewerCount))}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="6" class="shoutout-muted">Noch keine Shoutout-Events gespeichert.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
   function renderSettingsTest(){
     const status = state.status || {};
     const cfg = status.config || {};
@@ -811,6 +900,7 @@ window.ShoutoutModule = (function(){
     if (state.activeTab === 'stats') return `<div class="shoutout-tab-panel">${renderStats()}</div>`;
     if (state.activeTab === 'timeline') return `<div class="shoutout-tab-panel">${renderTimeline()}</div>`;
     if (state.activeTab === 'production') return renderProductionCheck();
+    if (state.activeTab === 'liveTest') return renderLiveTest();
     if (state.activeTab === 'settings') return renderSettingsTest();
     return renderOverview();
   }

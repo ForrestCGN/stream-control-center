@@ -1,28 +1,25 @@
 # FILES
 
-Stand: 2026-05-26 / STEP485
+Stand: 2026-05-26 / STEP486
 
 ## Geänderte Dateien
 
-- `backend/modules/twitch.js`
-  - EventSub-Status um Shoutout-Readiness erweitert.
-  - Export `getEventSubStatusSnapshot()` ergänzt.
-
 - `backend/modules/clip_shoutout.js`
-  - Version `0.2.12`.
-  - Route `/api/clip-shoutout/production-check`.
-  - Produktionscheck für OAuth/Scopes/EventSub/Shoutout-Subscriptions.
+  - Version `0.2.13`.
+  - Neue Live-Test-/Decision-Prep-Auswertung.
+  - Neue Routen `/api/clip-shoutout/live-test` und `/api/clip-shoutout/decision-prep`.
 
 - `htdocs/dashboard/modules/shoutout.js`
-  - neuer Tab `Produktion`.
-  - lädt `/api/clip-shoutout/production-check`.
+  - neuer Tab `Live-Test`.
+  - lädt `/api/clip-shoutout/live-test`.
+  - zeigt Testplan, Beobachtungen und Entscheidungssicherheit.
 
 - `htdocs/dashboard/modules/shoutout.css`
-  - Checklisten-Styles für Produktionscheck.
+  - Styles für Live-Test-Plan ergänzt.
 
 ## Dokumentation
 
-- `project-state/STEP485_SHOUTOUT_PRODUCTION_CHECK.md`
+- `project-state/STEP486_SHOUTOUT_LIVE_TEST_AND_DECISION_PREP.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
@@ -34,6 +31,7 @@ Stand: 2026-05-26 / STEP485
 
 ## Nicht geändert
 
+- `backend/modules/twitch.js` in STEP486 nicht geändert.
 - Keine Datenbankdatei.
 - Keine `.env`.
 - Keine Secrets/Tokens.

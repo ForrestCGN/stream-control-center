@@ -1,16 +1,16 @@
 # Clip-Shoutout / VSO Deep Dive
 
-Stand: 2026-05-26 / STEP485_SHOUTOUT_PRODUCTION_CHECK
+Stand: 2026-05-26 / STEP486_SHOUTOUT_LIVE_TEST_AND_DECISION_PREP
 
 ## Zust채ndigkeit
 
-Das Modul `backend/modules/clip_shoutout.js` ist das zentrale Shoutout-System f체r ForrestCGN. Es verwaltet Video-/Clip-Shoutouts, Display-Queue, Official-Queue, Streamtag-Limit, eingehende Twitch-Shoutout-Events und den neuen Produktionscheck.
+Das Modul `backend/modules/clip_shoutout.js` ist das zentrale Shoutout-System f체r ForrestCGN. Es verwaltet Video-/Clip-Shoutouts, Display-Queue, Official-Queue, Streamtag-Limit, eingehende Twitch-Shoutout-Events, Produktionscheck und Live-Test-/Entscheidungsvorbereitung.
 
 `backend/modules/twitch.js` bleibt das zentrale Twitch-/EventSub-System und liefert den EventSub-Status an das Shoutout-System. Es wurde kein neues Twitch-Modul erstellt.
 
 ## Version
 
-- `clip_shoutout.js`: `0.2.12`
+- `clip_shoutout.js`: `0.2.13`
 
 ## Wichtige Routen
 
@@ -23,6 +23,8 @@ Das Modul `backend/modules/clip_shoutout.js` ist das zentrale Shoutout-System f�
 - `GET /api/clip-shoutout/inbound/stats`
 - `POST /api/clip-shoutout/inbound/debug`
 - `GET /api/clip-shoutout/production-check`
+- `GET /api/clip-shoutout/live-test`
+- `GET /api/clip-shoutout/decision-prep`
 - `GET /api/clip-shoutout/official/auth-status`
 
 ## Produktionscheck
@@ -36,6 +38,21 @@ Das Modul `backend/modules/clip_shoutout.js` ist das zentrale Shoutout-System f�
 - `moderator:manage:shoutouts` f체r das Senden offizieller Shoutouts vorhanden
 - EventSub-WebSocket verbunden
 - `channel.shoutout.create` und `channel.shoutout.receive` konfiguriert und bekannt
+
+## Live-Test / Decision Prep
+
+`GET /api/clip-shoutout/live-test` und `GET /api/clip-shoutout/decision-prep` bereiten die Entscheidung vor, ob das System sp채ter produktiv genutzt werden kann.
+
+Die Auswertung kombiniert:
+
+- Ergebnis aus `production-check`
+- gespeicherte Debug-Shoutout-Events
+- echte `channel.shoutout.receive` Events
+- echte `channel.shoutout.create` Events
+- Send-Readiness f체r offizielle Twitch-Shoutouts
+- empfohlene n채chste Aktion
+
+Wichtig: Diese Route stellt nichts automatisch um. Eine produktive `!so`-Umstellung bleibt eine explizite Entscheidung.
 
 ## Dashboard
 
@@ -52,19 +69,20 @@ Tabs:
 - `Statistik`
 - `Timeline`
 - `Produktion`
+- `Live-Test`
 - `Settings/Test`
 
 ## Tabellen
 
-Bestehende Tabellen bleiben erhalten. F체r Incoming-Shoutouts aus STEP484 existiert zus채tzlich:
+Bestehende Tabellen bleiben erhalten. F체r Incoming-/Outgoing-Shoutouts aus STEP484 existiert zus채tzlich:
 
 - `clip_shoutout_inbound_events`
 
-STEP485 erstellt keine neue Tabelle.
+STEP486 erstellt keine neue Tabelle.
 
 ## EventBus
 
-Bestehende Shoutout-EventBus-Actions bleiben erhalten. STEP485 erg채nzt keinen neuen EventBus-Flow, sondern verbessert den pr체fbaren Status.
+Bestehende Shoutout-EventBus-Actions bleiben erhalten. STEP486 erg채nzt keinen neuen EventBus-Flow, sondern verbessert die pr체fbare Live-Test-/Entscheidungslage.
 
 ## Nicht ge채ndert
 
