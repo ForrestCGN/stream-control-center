@@ -778,6 +778,60 @@ Tests
 Diese Angaben gehören in die jeweilige `docs/modules/*`-Doku.
 
 ---
+### 15.2 Server-Log und Modul-Ladeprotokoll
+
+Der Node-Server-Start soll perspektivisch ein aufschlussreiches, kompaktes Ladeprotokoll ausgeben.
+
+Zielbild beim Serverstart:
+
+```text
+[module] loading: <datei>
+[module] loaded: <moduleName> v<moduleVersion> routePrefix=<prefix> status=<ok>
+[module] skipped: <datei> reason=<reason>
+[module] failed: <datei> error=<message>
+[server] modules loaded: <count> ok, <count> skipped, <count> failed
+```
+
+Wenn ein Modul bereits `version`, `moduleVersion`, `MODULE_VERSION`, `VERSION`, `meta`, `MODULE_META` oder eine Statusfunktion bereitstellt, soll der Loader diese Information nutzen.
+
+Neue oder überarbeitete Module sollen künftig eine maschinenlesbare Modul-Meta-Information bereitstellen, z. B.:
+
+```js
+module.exports.meta = {
+  name: "example",
+  version: "1.2.0",
+  routePrefix: "/api/example",
+  description: "Kurzbeschreibung"
+};
+```
+
+Oder gleichwertig über vorhandene Projektmuster, falls das Repo bereits ein anderes Meta-Schema nutzt. Vor Einführung eines Standards muss `backend/server.js`, `communication_bus.js` und vorhandene Modul-Exports geprüft werden.
+
+Das Server-Log soll helfen bei:
+
+```text
+Welche Module wurden geladen?
+Welche Version wurde geladen?
+Welche Module wurden übersprungen?
+Welche Module sind fehlgeschlagen?
+Welche Route/Prefix gehört grob zu welchem Modul?
+Welche Module melden sich am EventBus/Monitoring an?
+```
+
+Wichtig:
+
+```text
+Keine Secrets loggen.
+Keine langen Config-Dumps loggen.
+Keine Runtime-Datenbanken oder Tokens im Log ausgeben.
+Log-Ausgaben knapp, lesbar und diagnostisch nützlich halten.
+Bestehendes Ladeverhalten nicht brechen.
+```
+
+Der EventBus soll diese Lade-/Statusinformationen später zusätzlich als zentrale Monitoring-Daten erhalten.
+
+---
+
 
 ## 16. Sound-System-Regeln
 
@@ -1225,6 +1279,7 @@ STEP477: Stream-/Media-Modul-Dokus ergänzt.
 STEP478: Integrations- und Community-Modul-Dokus ergänzt.
 STEP479: Secondary-/Status-/Bridge-Modul-Dokus ergänzt.
 STEP480: Standard-Prompt und Arbeitsregeln auf Modul-Doku-Pflege, Versionsnummern und EventBus-/Monitoring-Zielbild aktualisiert.
+STEP481: Server-Log-/Modul-Ladeprotokoll-Regel ergänzt: Module sollen beim Laden Name, Version, Prefix und Status ausgeben bzw. maschinenlesbare Meta-Daten bereitstellen.
 ```
 
 Aktueller Doku-Stand:
@@ -1248,6 +1303,7 @@ Aktuelles Zielbild:
 ```text
 Module sollen schrittweise auf klare Versionsnummern umgestellt werden.
 Module sollen perspektivisch den Communication Bus / EventBus für Anmeldung, Abmeldung, Statusberichte, Diagnose, Heartbeats und Modul-Überwachung nutzen.
+Der Node-Server-Start soll zusätzlich ein kompaktes Modul-Ladeprotokoll mit Modulname, Version, Prefix, geladen/übersprungen/fehlgeschlagen und Zusammenfassung ausgeben.
 Der Bus soll als zentrale Kommunikations- und Monitoring-Schicht dienen, ohne bestehende produktive Flows ungeprüft zu ersetzen.
 ```
 

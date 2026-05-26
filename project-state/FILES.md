@@ -98,3 +98,13 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 ```
 
+
+
+## STEP481 Dateien
+
+- `project-state/GENERAL_PROJECT_PROMPT.md`
+- `docs/current/PROJECT_WORKING_RULES.md`
+- `docs/current/SERVER_LOG_MODULE_LOADING_RULES_2026-05-26.md`
+- `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md`
+- `docs/modules/README.md`
+- `project-state/STEP481_SERVER_LOG_MODULE_META_RULES.md`

@@ -62,3 +62,16 @@ database_core, security, audit_log, hug_system
 ```
 
 Damit sind die wichtigsten Backend-Module aus dem aktuellen Upload in `docs/modules/` grundsätzlich erfasst. Die Dokus sind technische Bestandsaufnahmen aus Datei-Analyse und müssen vor konkreten Codeänderungen gegen GitHub/dev bzw. Live-Dateien geprüft werden.
+
+
+## Ergänzung STEP481 - Server-Log und Modul-Meta
+
+Ab STEP481 ist zusätzlich dokumentiert, dass Modul-Dokus künftig auch die Server-Log-/Meta-/EventBus-Readiness eines Moduls festhalten sollen.
+
+Neue Prüffelder für spätere Modul-Dokus:
+
+- Modulversion erkannt,
+- maschinenlesbare Meta-Information vorhanden,
+- Logausgabe beim Laden bekannt,
+- EventBus-Registrierung vorhanden/geplant,
+- Status-/Health-/Heartbeat-Daten vorhanden/geplant.

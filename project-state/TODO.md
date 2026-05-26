@@ -55,3 +55,11 @@ Stand: 2026-05-26 / STEP477
 - Zentrale Dashboard-/Diagnose-Übersicht für Bus-/Modulstatus später planen.
 - Bestehende produktive Flows erst ergänzend beobachten, nicht ungeprüft ersetzen.
 
+
+
+## Offen ab STEP481 - Server-Log / Modul-Meta / EventBus-Monitoring
+
+- Node-Server-Log später erweitern: Moduldatei, Modulname, Version, Route/Prefix, geladen/übersprungen/fehlgeschlagen.
+- Module schrittweise mit maschinenlesbarer Meta-Info ausstatten, sofern noch nicht vorhanden.
+- EventBus später als zentrale Monitoring-Schicht für Modulstatus, Versionen, Health, Heartbeat, Warnungen und Fehler nutzen.
+- Keine Secrets, Tokens, `.env`-Werte oder langen Config-Dumps loggen.

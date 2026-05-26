@@ -40,3 +40,10 @@ Die Modul-Doku-Basis wurde um sekundäre/ergänzende Module erweitert. Die wicht
 
 Der Standard-Prompt wurde erweitert: Modul-Dokus unter `docs/modules/` sind künftig Pflichtquelle vor Moduländerungen und müssen bei Änderungen aktualisiert werden. Außerdem wurden Versionsnummern und EventBus-/Monitoring-Zielbild als verbindliche Arbeitsrichtung ergänzt.
 
+
+
+## STEP481 - Server-Log-/Modul-Meta-Regeln
+
+Der Standard-Prompt und die Arbeitsregeln wurden ergänzt: Der Node-Server soll künftig beim Start aussagekräftiger anzeigen, welche Module in welcher Version geladen wurden. Außerdem sollen Module schrittweise maschinenlesbare Meta-Daten liefern und perspektivisch EventBus-/Monitoring-Status bereitstellen.
+
+Keine Codeänderung in diesem STEP.

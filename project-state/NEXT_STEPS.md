@@ -56,3 +56,14 @@ STEP480_SHOUTOUT_DASHBOARD_TABS
 ```
 
 Ziel: Shoutout-Dashboard in Tabs/Unterbereiche aufteilen, nachdem die Doku-/Cleanup-Runde abgeschlossen ist.
+
+
+## Nach STEP481
+
+Direkter Fach-STEP bleibt weiterhin das Shoutout-System.
+
+Zusätzlich als späterer Technik-Cleanup möglich:
+
+`STEP482_SERVER_MODULE_LOGGING_AND_META`
+
+Ziel: `backend/server.js` so erweitern, dass Modul-Ladezustand, Versionen und Prefixe kompakt geloggt werden und später an den EventBus/Monitoring angebunden werden können.

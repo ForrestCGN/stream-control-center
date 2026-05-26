@@ -51,3 +51,5 @@
 - `docs/modules/README.md` um Pflegepflicht ergänzt.
 - Versionsnummern und EventBus-/Monitoring-Zielbild als verbindliche Arbeitsrichtung dokumentiert.
 
+
+- 2026-05-26 / STEP481: Server-Log-/Modul-Meta-/EventBus-Monitoring-Regeln ergänzt; keine Codeänderung.

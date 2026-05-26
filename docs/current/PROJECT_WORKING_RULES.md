@@ -292,3 +292,14 @@ project-state/GENERAL_PROJECT_PROMPT.md
 docs/modules/README.md
 ```
 
+
+
+## Server-Log / Modul-Ladeprotokoll
+
+Ab STEP481 gilt als Zielregel:
+
+- `backend/server.js` soll beim Laden von Modulen perspektivisch aussagekräftig loggen: Datei, Modulname, Version, Route/Prefix, Status.
+- Module sollen bei künftigen Überarbeitungen eine maschinenlesbare Meta-Information bereitstellen, sofern noch nicht vorhanden.
+- Das Ladeprotokoll soll kompakt bleiben und keine Secrets, Tokens, `.env`-Werte, Datenbankinhalte oder langen Config-Dumps ausgeben.
+- Die EventBus-/Monitoring-Schicht soll diese Informationen später zusätzlich sammeln können.
+- Umsetzung nur in einem eigenen Code-STEP nach Prüfung von `backend/server.js`, `communication_bus.js` und vorhandenen Modul-Exports.

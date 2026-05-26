@@ -113,3 +113,16 @@ Bei neuen/geänderten Routen, Configs, Datenbanktabellen, Statusfeldern, EventBu
 
 Neue oder angefasste Module sollen klare Versionsnummern nutzen (`version` oder `moduleVersion`). Der Communication Bus / EventBus soll schrittweise als zentrale Kommunikations- und Überwachungsschicht ausgebaut werden.
 
+
+
+## Modul-Meta / Server-Log / EventBus
+
+Bei künftigen Moduländerungen soll die jeweilige Modul-Doku zusätzlich festhalten:
+
+- erkannte Modulversion / `moduleVersion`,
+- ob das Modul maschinenlesbare Meta-Daten exportiert,
+- ob/wie es sich beim EventBus registriert,
+- welche Status-/Health-/Heartbeat-Daten es liefert,
+- welche Server-Log-Meldungen beim Laden relevant sind.
+
+Ziel ist, dass der Node-Serverstart und der EventBus später klar anzeigen können, welches Modul in welcher Version aktiv ist.
