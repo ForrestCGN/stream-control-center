@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.8.1";
-const MODULE_BUILD = "imported-reward-api-guard";
+const MODULE_VERSION = "0.8.2";
+const MODULE_BUILD = "editor-save-bind-param-fix";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -755,6 +755,34 @@ function updateReward(idOrKey, input = {}) {
   const existing = getRewardByIdOrKey(idOrKey);
   if (!existing) return null;
   const data = normalizeRewardInput(input, existing);
+  const updateParams = {
+    reward_key: data.reward_key,
+    twitch_reward_id: data.twitch_reward_id,
+    title: data.title,
+    prompt: data.prompt,
+    cost: data.cost,
+    category_key: data.category_key,
+    sort_order: data.sort_order,
+    system_enabled: data.system_enabled,
+    twitch_is_enabled: data.twitch_is_enabled,
+    is_paused: data.is_paused,
+    require_user_input: data.require_user_input,
+    input_label: data.input_label,
+    action_type: data.action_type,
+    action_key: data.action_key,
+    action_payload_json: data.action_payload_json,
+    media_asset_id: data.media_asset_id,
+    media_role: data.media_role,
+    queue_mode: data.queue_mode,
+    priority: data.priority,
+    cooldown_seconds: data.cooldown_seconds,
+    max_per_stream: data.max_per_stream,
+    max_per_user_per_stream: data.max_per_user_per_stream,
+    auto_fulfill: data.auto_fulfill,
+    notes: data.notes,
+    updated_at: data.updated_at,
+    id: existing.id
+  };
   database.run(`
     UPDATE channelpoints_rewards SET
       reward_key = :reward_key,
@@ -783,7 +811,7 @@ function updateReward(idOrKey, input = {}) {
       notes = :notes,
       updated_at = :updated_at
     WHERE id = :id
-  `, { ...data, id: existing.id });
+  `, updateParams);
   localCrudStats.updated += 1;
   localCrudStats.lastCrudAt = nowIso();
   localCrudStats.lastCrudAction = "update_reward";
