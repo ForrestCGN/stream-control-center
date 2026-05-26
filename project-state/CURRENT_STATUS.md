@@ -1,53 +1,36 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP490_CHANNELPOINTS_MODEL_AND_MEDIA_PLAN
+Stand: 2026-05-26 / STEP491_CHANNELPOINTS_DB_SCHEMA_PREP
 
 ## Aktueller Arbeitsstand
 
-STEP490 erweitert das Kanalpunkte-System aus STEP489 um einen lesbaren Backend-Modellplan und eine verbindliche Media-Integrationsplanung.
+STEP491 erweitert das Kanalpunkte-Modul um eine sichere DB-Schema-Vorschau. Das Modul zeigt geplante Tabellen, Felder, Indexe und Seed-Kategorien, fuehrt aber noch keine Migration aus.
 
 ## Kanalpunkte-System
 
-- `backend/modules/channelpoints.js` steht jetzt auf Version `0.2.0`.
-- Neue Routen:
+- `backend/modules/channelpoints.js` steht jetzt auf Version `0.3.0`.
+- Modus: `backend_schema_prep`.
+- Bestehende Routen bleiben erhalten:
   - `GET /api/channelpoints/status`
   - `GET /api/channelpoints/model`
   - `GET /api/channelpoints/media-plan`
   - `GET /api/channelpoints/bus-test`
-- Statusmodus: `backend_model_plan`.
-- Noch keine Datenbankmigration.
-- Noch keine Twitch-Schreibaktionen.
-- Noch keine Reward-Synchronisierung.
-- Noch keine produktive Redemption-Verarbeitung.
-- Noch kein Dashboard-Umbau.
-
-## Media-Regel
-
-Uploads und Medienauswahl für Kanalpunkte laufen über das bestehende Medien-System:
-
-- `backend/modules/media.js`
-- `htdocs/dashboard/components/media_picker.js`
-- `htdocs/dashboard/components/media_field.js`
-
-Es soll keine zweite Upload-Maske und keine eigene Asset-Verwaltung im Kanalpunkte-Modul entstehen.
+- Neue Route:
+  - `GET /api/channelpoints/schema-preview`
+- Geplante Tabellen:
+  - `channelpoints_categories`
+  - `channelpoints_rewards`
+  - `channelpoints_redemptions`
+- Keine DB-Migration in STEP491.
+- Keine Twitch-Schreibaktionen in STEP491.
+- Media bleibt ueber das bestehende Media-System/Media-Picker geplant.
 
 ## Communication Bus
 
-Das Kanalpunkte-Modul bleibt am integrierten Communication Bus registriert und erweitert seine Capabilities um:
+Das Kanalpunkte-Modul bleibt am Communication Bus registriert und meldet Status/Heartbeat. Zusaetzliche Capability: `channelpoints.schema`.
 
-- `channelpoints.model`
-- `channelpoints.media`
+## Naechster sinnvoller Schritt
 
-## Hinweis aus Runtime-Test STEP489
+`STEP492_CHANNELPOINTS_DB_MIGRATION_SAFE`
 
-STEP489 lief live korrekt:
-
-- `channelpoints.js` wurde geladen.
-- `/api/channelpoints/status` war `ok=True`.
-- `/api/channelpoints/bus-test` lieferte `subscriberDeliveredCount=1`.
-
-## Nächster sinnvoller Schritt
-
-`STEP491_CHANNELPOINTS_DB_MIGRATION_PREP`
-
-Ziel: DB-Schema für Kategorien/Rewards/Redemptions als Migration vorbereiten, aber vor produktivem Einbau noch einmal prüfen/freigeben.
+Ziel: Nach explizitem Go additive Tabellenanlage mit `CREATE TABLE IF NOT EXISTS` und `CREATE INDEX IF NOT EXISTS`, ohne Datenverlust und ohne Twitch-Schreibaktionen.

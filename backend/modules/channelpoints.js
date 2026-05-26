@@ -4,14 +4,14 @@ const helperConfig = require('./helpers/helper_config');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'channelpoints';
-const MODULE_VERSION = '0.2.0';
+const MODULE_VERSION = '0.3.0';
 const ROUTE_PREFIX = '/api/channelpoints';
 
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
   routePrefix: ROUTE_PREFIX,
-  description: 'Twitch Channel Points backend model plan with Communication Bus registration and Media-System integration plan'
+  description: 'Twitch Channel Points DB schema preview with Communication Bus registration and Media-System integration plan'
 };
 
 const DEFAULT_CONFIG = {
@@ -22,6 +22,8 @@ const DEFAULT_CONFIG = {
   twitchRewardSyncEnabled: false,
   dashboardEnabled: false,
   dbMigrationEnabled: false,
+  schemaPreviewEnabled: true,
+  migrationExecutionEnabled: false,
   mediaIntegrationPlanned: true,
   mediaSystem: {
     enabled: true,
@@ -33,7 +35,8 @@ const DEFAULT_CONFIG = {
   }
 };
 
-const CHANNELPOINTS_MODEL_VERSION = '0.1.0';
+const CHANNELPOINTS_MODEL_VERSION = '0.2.0';
+const CHANNELPOINTS_SCHEMA_PREVIEW_VERSION = '0.1.0';
 
 const REWARD_FIELDS = [
   { name: 'id', type: 'integer', source: 'local', purpose: 'Local primary key, later DB-managed.' },
@@ -147,6 +150,45 @@ const DEFAULT_CATEGORIES = [
   { category_key: 'admin', label: 'Admin/Intern', sort_order: 90, enabled: false }
 ];
 
+const SCHEMA_TABLES = [
+  {
+    name: 'channelpoints_categories',
+    purpose: 'Dashboard grouping, sorting, visibility and later category permissions.',
+    source: 'local',
+    fields: CATEGORY_FIELDS,
+    primaryKey: 'id',
+    unique: ['category_key']
+  },
+  {
+    name: 'channelpoints_rewards',
+    purpose: 'Local reward configuration, Twitch mapping, action mapping and media references.',
+    source: 'local_and_twitch',
+    fields: REWARD_FIELDS,
+    primaryKey: 'id',
+    unique: ['reward_key'],
+    indexes: ['twitch_reward_id', 'category_key', 'system_enabled', 'twitch_is_enabled', 'action_type', 'media_asset_id']
+  },
+  {
+    name: 'channelpoints_redemptions',
+    purpose: 'Redemption history, queue status, execution result and later fulfil/cancel tracking.',
+    source: 'eventsub_and_local',
+    fields: REDEMPTION_FIELDS,
+    primaryKey: 'id',
+    unique: ['twitch_redemption_id'],
+    indexes: ['twitch_reward_id', 'reward_key', 'user_login', 'status', 'queue_group', 'redeemed_at']
+  }
+];
+
+const SCHEMA_RULES = [
+  'STEP491 only returns schema previews. It must not call database.exec/run/ensureSchema.',
+  'Real migration must stay disabled until an explicit later GO.',
+  'All schema changes must be additive and use CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS.',
+  'The productive SQLite database D:\\Streaming\\stramAssets\\data\\sqlite\\app.sqlite must never be replaced or overwritten.',
+  'Media assets are referenced by media_asset_id and selected via the existing media system / media picker.',
+  'Deactivate later must update Twitch Custom Reward is_enabled=false, not only a local system flag.',
+  'EventBus status/health should be used for module monitoring and later reward execution events.'
+];
+
 let loadedConfig = null;
 let bus = null;
 let registeredAtBus = false;
@@ -203,30 +245,121 @@ function getBus() {
   return bus;
 }
 
+
+function sqliteTypeForField(field) {
+  const type = cleanString(field && field.type, 'text').toLowerCase();
+  if (type === 'integer') return 'INTEGER';
+  if (type === 'boolean') return 'INTEGER';
+  if (type === 'json') return 'TEXT';
+  if (type === 'datetime') return 'TEXT';
+  return 'TEXT';
+}
+
+function buildColumnSql(field, table) {
+  const name = cleanString(field && field.name);
+  if (!name) return null;
+  if (name === table.primaryKey) return `  ${name} INTEGER PRIMARY KEY AUTOINCREMENT`;
+  const sqlType = sqliteTypeForField(field);
+  const constraints = [];
+  if (table.unique && table.unique.includes(name)) constraints.push('UNIQUE');
+  return `  ${name} ${sqlType}${constraints.length ? ' ' + constraints.join(' ') : ''}`;
+}
+
+function buildCreateTableSql(table) {
+  const columns = table.fields
+    .map(field => buildColumnSql(field, table))
+    .filter(Boolean)
+    .join(',\n');
+  return `CREATE TABLE IF NOT EXISTS ${table.name} (\n${columns}\n);`;
+}
+
+function buildIndexSql(table) {
+  const indexes = [];
+  for (const column of table.indexes || []) {
+    indexes.push(`CREATE INDEX IF NOT EXISTS idx_${table.name}_${column} ON ${table.name} (${column});`);
+  }
+  return indexes;
+}
+
+function buildSeedCategorySql() {
+  return DEFAULT_CATEGORIES.map(category => ({
+    category_key: category.category_key,
+    label: category.label,
+    sort_order: category.sort_order,
+    enabled: category.enabled === true ? 1 : 0,
+    previewSql: `INSERT OR IGNORE INTO channelpoints_categories (category_key, label, sort_order, enabled, created_at, updated_at) VALUES ('${category.category_key}', '${category.label.replace(/'/g, "''")}', ${category.sort_order}, ${category.enabled === true ? 1 : 0}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`
+  }));
+}
+
+function buildSchemaPreview() {
+  const config = getConfig();
+  const tables = SCHEMA_TABLES.map(table => ({
+    name: table.name,
+    purpose: table.purpose,
+    source: table.source,
+    primaryKey: table.primaryKey,
+    fieldCount: table.fields.length,
+    unique: table.unique || [],
+    indexes: table.indexes || [],
+    createTableSql: buildCreateTableSql(table),
+    createIndexSql: buildIndexSql(table)
+  }));
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    schemaPreviewVersion: CHANNELPOINTS_SCHEMA_PREVIEW_VERSION,
+    status: 'preview_only_no_db_write',
+    dbMigrationEnabled: config.dbMigrationEnabled === true,
+    migrationExecutionEnabled: config.migrationExecutionEnabled === true,
+    migrationExecutionImplemented: false,
+    sqliteCompatible: true,
+    tables,
+    seedPreview: {
+      defaultCategories: buildSeedCategorySql(),
+      executionEnabled: false
+    },
+    safety: {
+      noDbWriteInStep491: true,
+      noTwitchWriteInStep491: true,
+      additiveOnlyLater: true,
+      productiveDbMustNotBeReplaced: 'D:\\Streaming\\stramAssets\\data\\sqlite\\app.sqlite'
+    },
+    mediaIntegration: buildMediaPlan().mediaSystem,
+    rules: SCHEMA_RULES
+  };
+}
+
 function buildModelPlan() {
   return {
     ok: true,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     modelVersion: CHANNELPOINTS_MODEL_VERSION,
-    status: 'planning_only_no_db_migration',
+    status: 'schema_preview_only_no_db_migration',
     dbMigrationEnabled: getConfig().dbMigrationEnabled === true,
+    schemaPreviewAvailable: true,
+    migrationExecutionImplemented: false,
     tablesPlanned: [
       {
         name: 'channelpoints_categories',
         planned: true,
+        schemaPreviewCreated: true,
         migrationCreated: false,
         purpose: 'Dashboard grouping, sorting and visibility.'
       },
       {
         name: 'channelpoints_rewards',
         planned: true,
+        schemaPreviewCreated: true,
         migrationCreated: false,
         purpose: 'Local reward configuration, Twitch mapping and action/media mapping.'
       },
       {
         name: 'channelpoints_redemptions',
         planned: true,
+        schemaPreviewCreated: true,
         migrationCreated: false,
         purpose: 'Later redemption history, queue status and fulfil/cancel tracking.'
       }
@@ -239,8 +372,8 @@ function buildModelPlan() {
     defaultCategories: DEFAULT_CATEGORIES,
     actionTypes: ACTION_TYPES,
     rules: [
-      'No Twitch write action in STEP490.',
-      'No database migration in STEP490.',
+      'No Twitch write action in STEP491.',
+      'No database migration execution in STEP491.',
       'Deactivate later must update Twitch Custom Reward is_enabled=false, not only a local flag.',
       'Media files must use the existing media system/upload mask.',
       'Reward execution should later use Communication Bus events where possible.',
@@ -324,11 +457,14 @@ function buildStatus(extra = {}) {
     moduleVersion: MODULE_VERSION,
     routePrefix: ROUTE_PREFIX,
     enabled: config.enabled !== false,
-    mode: 'backend_model_plan',
+    mode: 'backend_schema_prep',
     model: {
       version: CHANNELPOINTS_MODEL_VERSION,
+      schemaPreviewVersion: CHANNELPOINTS_SCHEMA_PREVIEW_VERSION,
       dbMigrationEnabled: config.dbMigrationEnabled === true,
-      tableCountPlanned: 3,
+      schemaPreviewEnabled: config.schemaPreviewEnabled !== false,
+      migrationExecutionEnabled: config.migrationExecutionEnabled === true,
+      tableCountPlanned: SCHEMA_TABLES.length,
       rewardFieldCount: REWARD_FIELDS.length,
       categoryFieldCount: CATEGORY_FIELDS.length,
       redemptionFieldCount: REDEMPTION_FIELDS.length,
@@ -348,7 +484,9 @@ function buildStatus(extra = {}) {
       twitchRewardManagementEnabled: config.twitchRewardManagementEnabled === true,
       twitchRewardSyncEnabled: config.twitchRewardSyncEnabled === true,
       dashboardEnabled: config.dashboardEnabled === true,
-      dbMigrationEnabled: config.dbMigrationEnabled === true
+      dbMigrationEnabled: config.dbMigrationEnabled === true,
+      schemaPreviewEnabled: config.schemaPreviewEnabled !== false,
+      migrationExecutionEnabled: config.migrationExecutionEnabled === true
     },
     twitch: {
       rewardManagementImplemented: false,
@@ -357,7 +495,7 @@ function buildStatus(extra = {}) {
       writeActionsEnabled: false,
       requiredManageScope: 'channel:manage:redemptions',
       requiredReadScope: 'channel:read:redemptions',
-      note: 'STEP490 is a model/media planning step. Twitch reward reads/writes are planned for later steps.'
+      note: 'STEP491 is a DB schema preview step. Twitch reward reads/writes are planned for later steps.'
     },
     localState: {
       rewardCount: 0,
@@ -372,6 +510,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/model`,
       `${ROUTE_PREFIX}/media-plan`,
+      `${ROUTE_PREFIX}/schema-preview`,
       `${ROUTE_PREFIX}/bus-test`
     ],
     ...extra
@@ -396,13 +535,15 @@ function publishStatus(reason = 'status') {
     reason,
     routePrefix: ROUTE_PREFIX,
     modelVersion: CHANNELPOINTS_MODEL_VERSION,
-    mode: 'backend_model_plan',
+    mode: 'backend_schema_prep',
     rewardCount: 0,
     redemptionCount: 0,
     queueSize: 0,
     mediaIntegrationPlanned: config.mediaIntegrationPlanned !== false,
     usesExistingMediaSystem: true,
     dbMigrationEnabled: config.dbMigrationEnabled === true,
+    schemaPreviewEnabled: config.schemaPreviewEnabled !== false,
+    migrationExecutionEnabled: config.migrationExecutionEnabled === true,
     twitchWritesEnabled: false,
     lastError,
     timestamp: nowIso()
@@ -472,12 +613,15 @@ function registerAtCommunicationBus() {
       'channelpoints.status',
       'channelpoints.model',
       'channelpoints.media',
+      'channelpoints.schema',
       'channelpoints.test.ping'
     ],
     meta: {
       routePrefix: ROUTE_PREFIX,
       skeleton: true,
       modelPlan: true,
+      schemaPreview: true,
+      migrationExecutionImplemented: false,
       mediaIntegrationPlanned: true,
       usesExistingMediaSystem: true,
       twitchWritesEnabled: false
@@ -522,6 +666,7 @@ function heartbeatBus(reason = 'heartbeat') {
       'channelpoints.status',
       'channelpoints.model',
       'channelpoints.media',
+      'channelpoints.schema',
       'channelpoints.test.ping'
     ]
   });
@@ -635,6 +780,22 @@ function init({ app }) {
     }
   });
 
+  app.get(`${ROUTE_PREFIX}/schema-preview`, (req, res) => {
+    try {
+      heartbeatBus('schema_preview_route');
+      publishStatus('schema_preview_route');
+      res.json(buildSchemaPreview());
+    } catch (err) {
+      lastError = err && err.message ? err.message : String(err);
+      res.status(500).json({
+        ok: false,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        error: lastError
+      });
+    }
+  });
+
   app.get(`${ROUTE_PREFIX}/bus-test`, (req, res) => {
     try {
       const result = emitBusSelfTest(req);
@@ -670,6 +831,7 @@ module.exports = {
   buildStatus,
   buildModelPlan,
   buildMediaPlan,
+  buildSchemaPreview,
   registerAtCommunicationBus,
   heartbeatBus,
   publishStatus

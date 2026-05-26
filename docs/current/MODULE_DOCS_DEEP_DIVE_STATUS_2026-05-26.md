@@ -1,33 +1,30 @@
 # MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26
 
-## Aktualisiert in STEP490
+## Aktualisiert in STEP491
 
 - `docs/modules/channelpoints-deep-dive.md`
 - `docs/modules/README.md`
 
 ## Aktueller Stand
 
-- STEP483 Dashboard Tabs dokumentiert.
-- STEP484 Incoming-Shoutout-EventSub-Integration dokumentiert.
-- STEP485 Produktionscheck dokumentiert.
-- STEP486 Live-Test-/Decision-Prep dokumentiert.
-- STEP488 Communication-Bus-Modul-Contract direkt in `helper_communication.js` dokumentiert.
-- STEP489 Kanalpunkte-Backend-Skeleton erstellt.
-- STEP490 Kanalpunkte-Modellplan und Media-Integrationsplan dokumentiert.
+- STEP489 Kanalpunkte-Backend-Skeleton dokumentiert.
+- STEP490 Kanalpunkte-Modell und Media-Plan dokumentiert.
+- STEP491 Kanalpunkte-Schema-Preview dokumentiert.
 
-## Wichtiger Korrekturhinweis
+## Wichtige Architekturhinweise
 
-Ein separater `helper_communication_contract.js` soll nicht als dauerhafte Architektur genutzt werden. Der Contract sitzt ab STEP488 im bestehenden Bus-Core.
+- Kanalpunkte ist ein neues Fachmodul, keine Parallelwelt fuer Media/Uploads.
+- Medien muessen ueber das bestehende Media-System laufen.
+- DB-Migrationen duerfen nur additiv erfolgen und erst nach explizitem Go.
+- Twitch-Rewards duerfen erst in spaeteren Schritten geschrieben/geaendert werden.
 
-## Kanalpunkte-Doku-Regel
+## Naechster Doku-Fokus
 
-Für Kanalpunkte gilt:
+Nach STEP492 muss dokumentiert werden:
 
 ```text
-Medien/Uploads immer über bestehendes media.js / Media-Picker-System.
-Keine eigene Upload-Maske im Kanalpunkte-Modul.
+- echte Tabellen
+- echte Schema-Version
+- Statusroute mit DB-Counts
+- Rollback-/Safety-Hinweise
 ```
-
-## Nächster Doku-Fokus
-
-Nach STEP491 muss die DB-Migration in `docs/modules/channelpoints-deep-dive.md` ergänzt werden.

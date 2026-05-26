@@ -1,45 +1,39 @@
 # FILES
 
-Stand: 2026-05-26 / STEP490
+Stand: 2026-05-26 / STEP491
 
-## Geänderte Dateien
+## Geaenderte Dateien
 
 - `backend/modules/channelpoints.js`
-  - Version `0.2.0`.
-  - Neue Route `GET /api/channelpoints/model`.
-  - Neue Route `GET /api/channelpoints/media-plan`.
-  - Modell-/Media-Plan im Status ergänzt.
-  - Bus-Capabilities um `channelpoints.model` und `channelpoints.media` erweitert.
-
-## Neue Dokumentation
-
-- `project-state/STEP490_CHANNELPOINTS_MODEL_AND_MEDIA_PLAN.md`
+  - Version `0.3.0`
+  - neue Route `GET /api/channelpoints/schema-preview`
+  - Schema-Preview und Seed-Preview ohne DB-Schreibzugriff
 - `docs/modules/channelpoints-deep-dive.md`
-
-## Aktualisierte Dokumentation
-
+- `docs/modules/README.md`
+- `docs/current/CURRENT_SYSTEM_STATUS.md`
+- `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
-- `docs/modules/README.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md`
+- `project-state/STEP491_CHANNELPOINTS_DB_SCHEMA_PREP.md`
 
-## Bewusst nicht geändert
+## Nicht geaendert
 
-- Keine Datenbankdatei.
-- Keine `.env`.
-- Keine Secrets/Tokens.
-- Keine Twitch-Write-Logik.
-- Kein Dashboard-Modul.
-- Kein neues Upload-System.
+- Keine Datenbankdatei
+- Keine `.env`
+- Keine Secrets/Tokens
+- Keine Twitch-Schreiblogik
+- Kein Dashboard-Umbau
+- Keine Media-Upload-Parallelstruktur
 
-## Live-Aufräumhinweis
+## Live-Cleanup-Hinweis
 
-Falls noch vorhanden, lokal/live entfernen:
+Falls live noch vorhanden, entfernen:
 
-- `backend/modules/helpers/helper_communication_contract.js`
+```text
+D:\Streaming\stramAssets\backend\modules\helpers\helper_communication_contract.js
+```
 
-Diese Datei war nur ein verworfener STEP487-Zwischenstand.
+Diese Datei ist ein STEP487-Ueberbleibsel und nicht Zielarchitektur.

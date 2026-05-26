@@ -1,8 +1,8 @@
 # Modul-Dokus
 
-Stand: 2026-05-26 / STEP490_CHANNELPOINTS_MODEL_AND_MEDIA_PLAN
+Stand: 2026-05-26 / STEP491_CHANNELPOINTS_DB_SCHEMA_PREP
 
-Diese Übersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetzen aber keine erneute Prüfung echter Dateien vor Änderungen.
+Diese Uebersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetzen aber keine erneute Pruefung echter Dateien vor Aenderungen.
 
 ## Wichtige Dokus
 
@@ -34,34 +34,24 @@ Diese Übersicht verweist auf die Modul-Dokus. Sie sind Arbeitsgrundlage, ersetz
 - [`commands-media-deep-dive.md`](./commands-media-deep-dive.md)
 - [`bus-diagnostics-deep-dive.md`](./bus-diagnostics-deep-dive.md)
 
-## STEP490 Hinweis
+## STEP491 Hinweis
 
-Das Kanalpunkte-System ist als neues Fachmodul dokumentiert.
-
-Wichtige Regel:
+`channelpoints.js` bietet ab STEP491 eine Schema-Vorschau ueber:
 
 ```text
-Medien/Uploads für Kanalpunkte laufen über das bestehende Media-System und die vorhandene Upload-Maske.
+GET /api/channelpoints/schema-preview
 ```
 
-Keine zweite Upload-Struktur bauen.
-
-## STEP488 Hinweis
-
-Der Modul-zu-Modul-Contract wurde in `backend/modules/helpers/helper_communication.js` integriert.
-
-Keine dauerhafte zweite Bus-/Contract-Helper-Datei als Zielarchitektur verwenden.
-
-Wenn `helper_communication_contract.js` aus STEP487 bereits lokal oder live vorhanden ist, soll diese Datei wieder entfernt werden.
+Diese Route darf keine DB-Schreiboperation ausfuehren.
 
 ## Pflegepflicht
 
-Vor Änderungen an einem Modul:
+Vor Aenderungen an einem Modul:
 
 ```text
 1. passende docs/modules/<modul>.md lesen
-2. echte Moduldateien prüfen
-3. Routen, Funktionen, Configs, DB-Tabellen, Events, Dashboard-/Overlay-Bezüge aktualisieren
+2. echte Moduldateien pruefen
+3. Routen, Funktionen, Configs, DB-Tabellen, Events, Dashboard-/Overlay-Bezuege aktualisieren
 4. offene Punkte in TODO.md/NEXT_STEPS.md nachziehen
 5. docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_*.md aktualisieren
 ```

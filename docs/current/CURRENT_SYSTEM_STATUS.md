@@ -1,6 +1,6 @@
 # CURRENT_SYSTEM_STATUS
 
-Stand: 2026-05-26 / STEP490
+Stand: 2026-05-26 / STEP491
 
 ## Stream-Control-Center
 
@@ -8,49 +8,35 @@ Aktueller Schwerpunkt: Kanalpunkte-System als neues Fachmodul auf Basis des Comm
 
 ## Kanalpunkte-System
 
-STEP490 erweitert `backend/modules/channelpoints.js`:
+STEP491 fuegt eine sichere DB-Schema-Vorschau hinzu:
 
-- Version `0.2.0`.
-- Statusmodus `backend_model_plan`.
-- Neue Route `GET /api/channelpoints/model`.
-- Neue Route `GET /api/channelpoints/media-plan`.
-- Weiterhin Bus-Registrierung, Heartbeat und Status-Publish.
-- Keine Datenbankmigration.
-- Keine Twitch-Schreibaktionen.
-- Keine produktive Redemption-Verarbeitung.
+- `backend/modules/channelpoints.js` Version `0.3.0`
+- Modus `backend_schema_prep`
+- neue Route `GET /api/channelpoints/schema-preview`
+- geplante Tabellen:
+  - `channelpoints_categories`
+  - `channelpoints_rewards`
+  - `channelpoints_redemptions`
+- keine DB-Schreiboperation in STEP491
+- keine Twitch-Schreibaktion in STEP491
 
 ## Media-Regel
 
-Kanalpunkte dürfen kein eigenes Upload-System bauen.
-
-Verwendet werden soll:
+Uploads/Medien fuer Kanalpunkte muessen ueber das bestehende Media-System laufen:
 
 - `backend/modules/media.js`
+- bestehende Dashboard-Upload-Maske
 - `htdocs/dashboard/components/media_picker.js`
 - `htdocs/dashboard/components/media_field.js`
 
-Reward-Media-Verknüpfung soll später über `media_asset_id`, `media_role` und `action_payload_json` erfolgen.
+Keine zweite Upload- oder Asset-Struktur fuer Kanalpunkte erstellen.
 
 ## Communication Bus
 
-STEP488 bleibt Grundlage:
+Das Kanalpunkte-Modul registriert sich am Bus, sendet Heartbeat/Status und bietet einen Selftest. STEP491 ergaenzt die Capability `channelpoints.schema`.
 
-- `helper_communication.js` Version `0.4.0`.
-- Modul-zu-Modul-Contract direkt im bestehenden Bus-Core.
-- Kanalpunkte nutzt `registerModule`, `heartbeatModule`, `publishModuleStatus` und `subscribe`.
+## Naechster Schritt
 
-## Wichtig
+`STEP492_CHANNELPOINTS_DB_MIGRATION_SAFE`
 
-Falls noch vorhanden, entfernen:
-
-```text
-backend/modules/helpers/helper_communication_contract.js
-```
-
-Diese Datei war nur ein verworfener STEP487-Zwischenstand.
-
-## Nächster sinnvoller Schritt
-
-`STEP491_CHANNELPOINTS_DB_MIGRATION_PREP`
-
-Ziel: DB-Migration für Kategorien, Rewards und Redemptions vorbereiten, aber vor produktivem Einbau noch einmal prüfen/freigeben.
+Nur nach explizitem Go: additive Tabellenanlage ohne Datenverlust.
