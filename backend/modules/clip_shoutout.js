@@ -13,7 +13,7 @@ let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.6";
+const MODULE_VERSION = "0.2.7";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -92,6 +92,19 @@ const DEFAULT_CONFIG = {
       streamWaitRetryMs: 60000,
       broadcasterId: "",
       moderatorId: ""
+    },
+    streamDayLimit: {
+      enabled: true,
+      allowOverride: true,
+      overrideFlag: "--force",
+      duplicateMessage: "⚠️ @{displayName} hatte in diesem Stream bereits einen Shoutout. Nutze !vso @{login} --force, wenn du ihn trotzdem einreihen möchtest.",
+      restartGraceMs: 1800000,
+      fallbackWhenStreamUnknown: true,
+      fallbackSessionHours: 12,
+      liveStateFiles: [
+        "htdocs/data/twitch_stream_raw.json",
+        "htdocs/data/twitch_live_data.json"
+      ]
     }
   }
 };
@@ -260,6 +273,237 @@ function displayConfig(cfg) {
   return mergePlain(DEFAULT_CONFIG.clipShoutout.displayQueue, (cfg && cfg.displayQueue) || {});
 }
 
+function streamDayLimitConfig(cfg) {
+  return mergePlain(DEFAULT_CONFIG.clipShoutout.streamDayLimit, (cfg && cfg.streamDayLimit) || {});
+}
+
+function safeJsonParse(value, fallback = {}) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "object") return value;
+  try { return JSON.parse(String(value)); } catch (_) { return fallback; }
+}
+
+function ensureTableColumn(tableName, columnName, definition) {
+  const table = String(tableName || "").trim();
+  const column = String(columnName || "").trim();
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table) || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(column)) return false;
+  const rows = database.all(`PRAGMA table_info(${table})`);
+  if (rows.some(row => String(row.name || "") === column)) return true;
+  database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  return true;
+}
+
+function resolveRootFile(inputPath) {
+  const raw = String(inputPath || "").trim();
+  if (!raw) return "";
+  if (path.isAbsolute(raw)) return raw;
+  return configHelper.resolveFromRoot(raw);
+}
+
+function readJsonFileSafe(filePath, fallback = null) {
+  try {
+    const file = resolveRootFile(filePath);
+    if (!file || !fs.existsSync(file)) return fallback;
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function extractStreamStateFromPayload(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  const first = Array.isArray(payload.data) && payload.data.length ? payload.data[0] : null;
+  const source = first || payload.stream || payload.channel || payload;
+  const live = Boolean(first || source.live === true || source.isLive === true || source.online === true || source.type === "live");
+  if (!live) return { live: false, source: "file" };
+  return {
+    live: true,
+    source: "file",
+    streamId: String(source.id || source.stream_id || source.streamId || ""),
+    startedAt: String(source.started_at || source.startedAt || source.stream_started_at || source.streamStartedAt || ""),
+    title: String(source.title || ""),
+    gameName: String(source.game_name || source.gameName || "")
+  };
+}
+
+function readCurrentStreamState(cfg) {
+  const scfg = streamDayLimitConfig(cfg);
+  const files = Array.isArray(scfg.liveStateFiles) ? scfg.liveStateFiles : [];
+  for (const file of files) {
+    const payload = readJsonFileSafe(file, null);
+    const state = extractStreamStateFromPayload(payload);
+    if (state && state.live) return { ...state, file: resolveRootFile(file) };
+  }
+  for (const file of files) {
+    const payload = readJsonFileSafe(file, null);
+    const state = extractStreamStateFromPayload(payload);
+    if (state) return { ...state, file: resolveRootFile(file) };
+  }
+  return { live: false, source: "unknown", file: "" };
+}
+
+function compactIsoForId(value) {
+  const ms = msFromIso(value) || Date.now();
+  return new Date(ms).toISOString().replace(/[-:.]/g, "").replace(/Z$/, "Z");
+}
+
+function makeStreamDayId(env, streamState) {
+  const channel = cleanLogin(env.TWITCH_BOT_CHANNEL || env.TWITCH_CHANNEL || env.TWITCH_BROADCASTER_LOGIN || "forrestcgn") || "stream";
+  const startedAt = streamState && streamState.startedAt ? streamState.startedAt : nowIso();
+  const streamId = String(streamState && streamState.streamId || "manual").replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 48) || "manual";
+  return `${channel}_${compactIsoForId(startedAt)}_${streamId}`.toLowerCase();
+}
+
+function ensureStreamDaySchema() {
+  database.ensureReady();
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS clip_shoutout_stream_days (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      stream_day_id TEXT NOT NULL UNIQUE,
+      broadcaster_login TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'active',
+      stream_id TEXT NOT NULL DEFAULT '',
+      stream_started_at TEXT NOT NULL DEFAULT '',
+      first_seen_at TEXT NOT NULL,
+      last_seen_at TEXT NOT NULL,
+      ended_at TEXT NOT NULL DEFAULT '',
+      restart_grace_until TEXT NOT NULL DEFAULT '',
+      source TEXT NOT NULL DEFAULT '',
+      meta_json TEXT NOT NULL DEFAULT '{}'
+    );
+    CREATE INDEX IF NOT EXISTS idx_clip_so_stream_days_status ON clip_shoutout_stream_days(status, last_seen_at);
+  `);
+}
+
+function resolveCurrentStreamDay(env, cfg) {
+  ensureStreamDaySchema();
+  const scfg = streamDayLimitConfig(cfg);
+  const now = nowIso();
+  const nowMs = Date.now();
+  const graceMs = Math.max(0, Number(scfg.restartGraceMs || 1800000));
+  const broadcaster = cleanLogin(env.TWITCH_BOT_CHANNEL || env.TWITCH_CHANNEL || env.TWITCH_BROADCASTER_LOGIN || "forrestcgn") || "forrestcgn";
+  const streamState = readCurrentStreamState(cfg);
+
+  if (streamState.live) {
+    const recent = database.get(`
+      SELECT * FROM clip_shoutout_stream_days
+      WHERE broadcaster_login=:broadcaster AND status IN ('active','grace')
+      ORDER BY id DESC LIMIT 1
+    `, { broadcaster });
+    const recentGraceMs = msFromIso(recent && recent.restart_grace_until);
+    const sameStream = recent && streamState.streamId && String(recent.stream_id || "") === String(streamState.streamId || "");
+    const withinGrace = recent && recentGraceMs && recentGraceMs >= nowMs;
+    if (recent && (sameStream || withinGrace || recent.status === 'active')) {
+      database.run(`
+        UPDATE clip_shoutout_stream_days
+        SET status='active', stream_id=CASE WHEN :streamId='' THEN stream_id ELSE :streamId END,
+            last_seen_at=:now, restart_grace_until='', source=:source,
+            meta_json=:metaJson
+        WHERE id=:id
+      `, {
+        id: recent.id,
+        streamId: String(streamState.streamId || ""),
+        now,
+        source: streamState.source || "file",
+        metaJson: JSON.stringify({ ...(safeJsonParse(recent.meta_json, {})), lastObserved: streamState })
+      });
+      return { ok: true, streamDayId: recent.stream_day_id, row: database.get(`SELECT * FROM clip_shoutout_stream_days WHERE id=:id`, { id: recent.id }), streamState };
+    }
+
+    const streamDayId = makeStreamDayId(env, streamState);
+    database.run(`
+      INSERT INTO clip_shoutout_stream_days (
+        stream_day_id,broadcaster_login,status,stream_id,stream_started_at,
+        first_seen_at,last_seen_at,ended_at,restart_grace_until,source,meta_json
+      ) VALUES (
+        :streamDayId,:broadcaster,'active',:streamId,:startedAt,
+        :now,:now,'','',:source,:metaJson
+      )
+      ON CONFLICT(stream_day_id) DO UPDATE SET
+        status='active', last_seen_at=excluded.last_seen_at, restart_grace_until='', source=excluded.source, meta_json=excluded.meta_json
+    `, {
+      streamDayId,
+      broadcaster,
+      streamId: String(streamState.streamId || ""),
+      startedAt: String(streamState.startedAt || now),
+      now,
+      source: streamState.source || "file",
+      metaJson: JSON.stringify({ lastObserved: streamState })
+    });
+    return { ok: true, streamDayId, row: database.get(`SELECT * FROM clip_shoutout_stream_days WHERE stream_day_id=:streamDayId`, { streamDayId }), streamState };
+  }
+
+  const active = database.get(`
+    SELECT * FROM clip_shoutout_stream_days
+    WHERE broadcaster_login=:broadcaster AND status='active'
+    ORDER BY id DESC LIMIT 1
+  `, { broadcaster });
+  if (active) {
+    const graceUntil = isoFromMs(nowMs + graceMs);
+    database.run(`
+      UPDATE clip_shoutout_stream_days
+      SET status='grace', ended_at=CASE WHEN ended_at='' THEN :now ELSE ended_at END,
+          restart_grace_until=:graceUntil, last_seen_at=:now, source=:source
+      WHERE id=:id
+    `, { id: active.id, now, graceUntil, source: streamState.source || "offline" });
+    return { ok: true, streamDayId: active.stream_day_id, row: database.get(`SELECT * FROM clip_shoutout_stream_days WHERE id=:id`, { id: active.id }), streamState, grace: true };
+  }
+
+  const grace = database.get(`
+    SELECT * FROM clip_shoutout_stream_days
+    WHERE broadcaster_login=:broadcaster AND status='grace' AND restart_grace_until>=:now
+    ORDER BY id DESC LIMIT 1
+  `, { broadcaster, now });
+  if (grace) return { ok: true, streamDayId: grace.stream_day_id, row: grace, streamState, grace: true };
+
+  if (scfg.fallbackWhenStreamUnknown === false) return { ok: false, streamDayId: "", streamState, error: "stream_day_unknown" };
+  const fallbackHours = Math.max(1, Number(scfg.fallbackSessionHours || 12));
+  const fallbackFloor = isoFromMs(nowMs - fallbackHours * 60 * 60 * 1000);
+  const fallback = database.get(`
+    SELECT * FROM clip_shoutout_stream_days
+    WHERE broadcaster_login=:broadcaster AND source='fallback' AND last_seen_at>=:fallbackFloor
+    ORDER BY id DESC LIMIT 1
+  `, { broadcaster, fallbackFloor });
+  if (fallback) {
+    database.run(`UPDATE clip_shoutout_stream_days SET last_seen_at=:now WHERE id=:id`, { id: fallback.id, now });
+    return { ok: true, streamDayId: fallback.stream_day_id, row: database.get(`SELECT * FROM clip_shoutout_stream_days WHERE id=:id`, { id: fallback.id }), streamState, fallback: true };
+  }
+
+  const streamDayId = makeStreamDayId(env, { startedAt: now, streamId: "fallback" });
+  database.run(`
+    INSERT INTO clip_shoutout_stream_days (
+      stream_day_id,broadcaster_login,status,stream_id,stream_started_at,
+      first_seen_at,last_seen_at,ended_at,restart_grace_until,source,meta_json
+    ) VALUES (
+      :streamDayId,:broadcaster,'active','fallback',:now,
+      :now,:now,'','', 'fallback', :metaJson
+    )
+  `, { streamDayId, broadcaster, now, metaJson: JSON.stringify({ reason: "stream_state_unknown", streamState }) });
+  return { ok: true, streamDayId, row: database.get(`SELECT * FROM clip_shoutout_stream_days WHERE stream_day_id=:streamDayId`, { streamDayId }), streamState, fallback: true };
+}
+
+function hasForceOverride(input, cfg) {
+  const scfg = streamDayLimitConfig(cfg);
+  if (scfg.allowOverride === false) return false;
+  const flag = String(scfg.overrideFlag || "--force").trim().toLowerCase() || "--force";
+  const args = Array.isArray(input.args) ? input.args.map(v => String(v || "").trim().toLowerCase()) : [];
+  const raw = String(input.rawInput || input.input || input.message || "").toLowerCase();
+  return args.includes(flag) || raw.split(/\s+/).includes(flag);
+}
+
+function findExistingStreamDayShoutout(targetLogin, streamDayId) {
+  ensureDisplayQueueSchema();
+  const login = cleanLogin(targetLogin);
+  const id = String(streamDayId || "").trim();
+  if (!login || !id) return null;
+  return database.get(`
+    SELECT * FROM clip_shoutout_display_queue
+    WHERE target_login=:login AND stream_day_id=:streamDayId
+      AND status IN ('queued','waiting','active','done')
+    ORDER BY id ASC LIMIT 1
+  `, { login, streamDayId: id });
+}
+
 function ensureDisplayQueueSchema() {
   database.ensureReady();
   database.exec(`
@@ -282,6 +526,11 @@ function ensureDisplayQueueSchema() {
     );
     CREATE INDEX IF NOT EXISTS idx_clip_so_display_queue_status_available ON clip_shoutout_display_queue(status, available_at);
   `);
+  ensureTableColumn('clip_shoutout_display_queue', 'stream_day_id', "TEXT NOT NULL DEFAULT ''");
+  ensureTableColumn('clip_shoutout_display_queue', 'override_used', "INTEGER NOT NULL DEFAULT 0");
+  ensureTableColumn('clip_shoutout_display_queue', 'override_by_login', "TEXT NOT NULL DEFAULT ''");
+  ensureTableColumn('clip_shoutout_display_queue', 'override_reason', "TEXT NOT NULL DEFAULT ''");
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_so_display_stream_day_target ON clip_shoutout_display_queue(stream_day_id, target_login, status);`);
 }
 
 function resetStaleDisplayQueueActiveRows() {
@@ -324,16 +573,20 @@ function enqueueDisplayShoutout(job, cfg) {
     availableAt,
     createdAt: now,
     updatedAt: now,
+    streamDayId: String(job.streamDayId || ''),
+    overrideUsed: job.overrideUsed ? 1 : 0,
+    overrideByLogin: cleanLogin(job.overrideByLogin || ''),
+    overrideReason: String(job.overrideReason || ''),
     inputJson: JSON.stringify(job.input || {}),
     metaJson: JSON.stringify(job.meta || {})
   };
   const result = database.run(`
     INSERT INTO clip_shoutout_display_queue (
       target_login,target_display,requested_by_login,requested_by_display,
-      status,attempts,available_at,created_at,updated_at,input_json,meta_json
+      status,attempts,available_at,created_at,updated_at,stream_day_id,override_used,override_by_login,override_reason,input_json,meta_json
     ) VALUES (
       :targetLogin,:targetDisplay,:requestedByLogin,:requestedByDisplay,
-      'queued',0,:availableAt,:createdAt,:updatedAt,:inputJson,:metaJson
+      'queued',0,:availableAt,:createdAt,:updatedAt,:streamDayId,:overrideUsed,:overrideByLogin,:overrideReason,:inputJson,:metaJson
     )
   `, params);
   const rowId = result && (result.lastInsertRowid || result.lastInsertRowId) ? (result.lastInsertRowid || result.lastInsertRowId) : 0;
@@ -439,6 +692,10 @@ function ensureOfficialShoutoutSchema() {
       meta_json TEXT NOT NULL DEFAULT '{}'
     );
   `);
+  ensureTableColumn('clip_shoutout_official_queue', 'display_queue_id', 'INTEGER NOT NULL DEFAULT 0');
+  ensureTableColumn('clip_shoutout_official_history', 'display_queue_id', 'INTEGER NOT NULL DEFAULT 0');
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_so_official_display_queue ON clip_shoutout_official_queue(display_queue_id);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_clip_so_history_display_queue ON clip_shoutout_official_history(display_queue_id);`);
 }
 
 function isoFromMs(ms) { return new Date(Math.max(0, Number(ms || 0))).toISOString(); }
@@ -497,6 +754,7 @@ function enqueueOfficialShoutout(job, cfg) {
     clipId: String(job.clipId || ""),
     clipUrl: String(job.clipUrl || ""),
     bundleId: String(job.bundleId || ""),
+    displayQueueId: Number(job.displayQueueId || 0),
     availableAt,
     createdAt: now,
     updatedAt: now,
@@ -505,10 +763,10 @@ function enqueueOfficialShoutout(job, cfg) {
   const result = database.run(`
     INSERT INTO clip_shoutout_official_queue (
       target_login,target_display,target_user_id,requested_by_login,requested_by_display,
-      clip_id,clip_url,bundle_id,status,attempts,available_at,created_at,updated_at,meta_json
+      clip_id,clip_url,bundle_id,display_queue_id,status,attempts,available_at,created_at,updated_at,meta_json
     ) VALUES (
       :targetLogin,:targetDisplay,:targetUserId,:requestedByLogin,:requestedByDisplay,
-      :clipId,:clipUrl,:bundleId,'queued',0,:availableAt,:createdAt,:updatedAt,:metaJson
+      :clipId,:clipUrl,:bundleId,:displayQueueId,'queued',0,:availableAt,:createdAt,:updatedAt,:metaJson
     )
   `, params);
   const row = database.get(`SELECT * FROM clip_shoutout_official_queue WHERE id=:id`, { id: result && result.lastInsertRowid ? result.lastInsertRowid : result.lastInsertRowId });
@@ -522,11 +780,12 @@ function markOfficialQueueFailed(row, error, cfg) {
   ensureOfficialShoutoutSchema();
   const now = nowIso();
   database.run(`UPDATE clip_shoutout_official_queue SET status='failed', attempts=attempts+1, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, now, error: String(error || "") });
-  database.run(`INSERT INTO clip_shoutout_official_history (target_login,target_display,target_user_id,queue_id,result,error,sent_at,meta_json) VALUES (:login,:display,:userId,:queueId,'failed',:error,:sentAt,:metaJson)`, {
+  database.run(`INSERT INTO clip_shoutout_official_history (target_login,target_display,target_user_id,queue_id,display_queue_id,result,error,sent_at,meta_json) VALUES (:login,:display,:userId,:queueId,:displayQueueId,'failed',:error,:sentAt,:metaJson)`, {
     login: row.target_login,
     display: row.target_display || row.target_login,
     userId: row.target_user_id || "",
     queueId: row.id,
+    displayQueueId: Number(row.display_queue_id || 0),
     error: String(error || ""),
     sentAt: now,
     metaJson: row.meta_json || "{}"
@@ -540,11 +799,12 @@ function markOfficialQueueSent(row, result, cfg) {
   ensureOfficialShoutoutSchema();
   const now = nowIso();
   database.run(`UPDATE clip_shoutout_official_queue SET status='sent', updated_at=:now, sent_at=:now, last_error='' WHERE id=:id`, { id: row.id, now });
-  database.run(`INSERT INTO clip_shoutout_official_history (target_login,target_display,target_user_id,queue_id,result,error,sent_at,meta_json) VALUES (:login,:display,:userId,:queueId,'sent','',:sentAt,:metaJson)`, {
+  database.run(`INSERT INTO clip_shoutout_official_history (target_login,target_display,target_user_id,queue_id,display_queue_id,result,error,sent_at,meta_json) VALUES (:login,:display,:userId,:queueId,:displayQueueId,'sent','',:sentAt,:metaJson)`, {
     login: row.target_login,
     display: row.target_display || row.target_login,
     userId: row.target_user_id || "",
     queueId: row.id,
+    displayQueueId: Number(row.display_queue_id || 0),
     sentAt: now,
     metaJson: JSON.stringify({ result: result || {}, previousMeta: row.meta_json || "{}" })
   });
@@ -714,6 +974,97 @@ function officialQueueStatus(cfg) {
     nextGlobalAllowedAt: isoFromMs(nextGlobalAllowedAt(cfg)) || "",
     lastSentAt: state.officialShoutout.lastSentAt,
     lastError: state.officialShoutout.lastError
+  };
+}
+
+function normalizeTimelineDisplayRow(row) {
+  if (!row) return null;
+  const officialQueue = database.get(`
+    SELECT * FROM clip_shoutout_official_queue
+    WHERE display_queue_id=:displayQueueId
+    ORDER BY id DESC LIMIT 1
+  `, { displayQueueId: Number(row.id || 0) });
+  const officialHistory = database.get(`
+    SELECT * FROM clip_shoutout_official_history
+    WHERE display_queue_id=:displayQueueId
+    ORDER BY id DESC LIMIT 1
+  `, { displayQueueId: Number(row.id || 0) });
+  const meta = safeJsonParse(row.meta_json, {});
+  const input = safeJsonParse(row.input_json, {});
+  return {
+    id: Number(row.id || 0),
+    targetLogin: row.target_login || '',
+    targetDisplay: row.target_display || row.target_login || '',
+    requestedByLogin: row.requested_by_login || '',
+    requestedByDisplay: row.requested_by_display || '',
+    status: row.status || '',
+    streamDayId: row.stream_day_id || '',
+    overrideUsed: Number(row.override_used || 0) === 1,
+    overrideByLogin: row.override_by_login || '',
+    overrideReason: row.override_reason || '',
+    requestedAt: row.created_at || '',
+    displayQueuedAt: row.created_at || '',
+    displayAvailableAt: row.available_at || '',
+    displayStartedAt: row.started_at || '',
+    displayFinishedAt: row.finished_at || '',
+    displayLastError: row.last_error || '',
+    officialQueueId: officialQueue ? Number(officialQueue.id || 0) : 0,
+    officialQueuedAt: officialQueue ? (officialQueue.created_at || '') : '',
+    officialAvailableAt: officialQueue ? (officialQueue.available_at || '') : '',
+    officialSentAt: officialQueue ? (officialQueue.sent_at || '') : (officialHistory ? (officialHistory.sent_at || '') : ''),
+    officialStatus: officialQueue ? (officialQueue.status || '') : '',
+    officialResult: officialHistory ? (officialHistory.result || '') : '',
+    officialError: officialHistory ? (officialHistory.error || '') : (officialQueue ? (officialQueue.last_error || '') : ''),
+    meta,
+    inputSummary: summarizeInput(input)
+  };
+}
+
+function buildShoutoutTimeline(options = {}) {
+  ensureDisplayQueueSchema();
+  ensureOfficialShoutoutSchema();
+  ensureStreamDaySchema();
+  ensureStreamDaySchema();
+  const limit = Math.max(1, Math.min(500, Number.parseInt(options.limit, 10) || 100));
+  const targetLogin = cleanLogin(options.target || options.targetLogin || '');
+  const streamDayId = String(options.streamDayId || '').trim();
+  const where = [];
+  const params = { limit };
+  if (targetLogin) {
+    where.push('target_login=:targetLogin');
+    params.targetLogin = targetLogin;
+  }
+  if (streamDayId) {
+    where.push('stream_day_id=:streamDayId');
+    params.streamDayId = streamDayId;
+  }
+  if (options.since) {
+    where.push('created_at>=:since');
+    params.since = String(options.since);
+  }
+  if (options.until) {
+    where.push('created_at<:until');
+    params.until = String(options.until);
+  }
+  const rows = database.all(`
+    SELECT * FROM clip_shoutout_display_queue
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    ORDER BY id DESC
+    LIMIT :limit
+  `, params);
+  const items = rows.map(normalizeTimelineDisplayRow).filter(Boolean);
+  const streamDays = database.all(`
+    SELECT * FROM clip_shoutout_stream_days
+    ORDER BY id DESC
+    LIMIT 20
+  `);
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    count: items.length,
+    items,
+    streamDays
   };
 }
 
@@ -1673,6 +2024,7 @@ async function runDisplayJob(row, env, cfg) {
           clipId: clip.id,
           clipUrl: clip.url || '',
           bundleId: bundlePayload.bundleId,
+          displayQueueId: row.id,
           availableAt: nowIso(),
           meta: { source: MODULE_NAME, displayQueueId: row.id, clipTitle: clip.title || '' }
         }, cfg);
@@ -1799,6 +2151,45 @@ async function handleRun(req, res, env) {
       requestedByDisplay: cleanDisplay(input.displayName || input.userName || input.user || '')
     };
     const dcfg = displayConfig(cfg);
+    const scfg = streamDayLimitConfig(cfg);
+    const streamDay = resolveCurrentStreamDay(env, cfg);
+    const overrideUsed = hasForceOverride(input, cfg);
+    const existingStreamDayShoutout = scfg.enabled !== false && !overrideUsed
+      ? findExistingStreamDayShoutout(targetLogin, streamDay.streamDayId)
+      : null;
+
+    if (existingStreamDayShoutout) {
+      const message = renderTemplate(firstString(scfg.duplicateMessage), vars).trim();
+      if (message) await sendChatMessage(message, { targetLogin, streamDayId: streamDay.streamDayId, duplicate: true });
+      emitShoutoutBus('shoutout.streamday.duplicate_blocked', {
+        targetLogin,
+        streamDayId: streamDay.streamDayId,
+        existingDisplayQueueId: existingStreamDayShoutout.id,
+        requestedByLogin: vars.requestedByLogin
+      }, cfg);
+      return res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        queued: false,
+        blocked: true,
+        reason: 'already_had_shoutout_this_stream_day',
+        targetLogin,
+        streamDay,
+        existingDisplayQueue: {
+          id: existingStreamDayShoutout.id,
+          status: existingStreamDayShoutout.status,
+          createdAt: existingStreamDayShoutout.created_at,
+          startedAt: existingStreamDayShoutout.started_at,
+          finishedAt: existingStreamDayShoutout.finished_at
+        },
+        override: {
+          available: scfg.allowOverride !== false,
+          flag: String(scfg.overrideFlag || '--force')
+        }
+      });
+    }
+
     const queueResult = enqueueDisplayShoutout({
       targetLogin,
       targetDisplay: vars.displayName,
@@ -1806,7 +2197,11 @@ async function handleRun(req, res, env) {
       requestedByDisplay: vars.requestedByDisplay,
       input,
       availableAt: nowIso(),
-      meta: { source: MODULE_NAME, command: cfg.command || 'so' }
+      streamDayId: streamDay.streamDayId || '',
+      overrideUsed,
+      overrideByLogin: overrideUsed ? vars.requestedByLogin : '',
+      overrideReason: overrideUsed ? String(scfg.overrideFlag || '--force') : '',
+      meta: { source: MODULE_NAME, command: cfg.command || 'so', streamDay, overrideUsed }
     }, cfg);
 
     if (!queueResult.ok) return res.status(500).json({ ok: false, error: queueResult.error || 'display_queue_enqueue_failed' });
@@ -1831,8 +2226,11 @@ async function handleRun(req, res, env) {
         status: queueResult.row ? queueResult.row.status : 'queued',
         availableAt: queueResult.availableAt,
         displayCooldownMs: Math.max(0, Number(displayConfig(cfg).displayCooldownMs || 120000)),
-        cooldownStartsAfterFinish: true
+        cooldownStartsAfterFinish: true,
+        streamDayId: streamDay.streamDayId || '',
+        overrideUsed
       },
+      streamDay,
       officialShoutout: { queuedAfterDisplay: officialConfig(cfg).enabled !== false }
     });
   } catch (err) {
@@ -2060,6 +2458,7 @@ module.exports.init = function init(ctx) {
         { method: "GET/POST", path: "/api/clip/shoutout" },
         { method: "GET/POST", path: `${API_PREFIX}/settings` },
         { method: "GET", path: `${API_PREFIX}/queue` },
+        { method: "GET", path: `${API_PREFIX}/timeline` },
         { method: "POST", path: `${API_PREFIX}/queue/remove` },
         { method: "POST", path: `${API_PREFIX}/queue/retry` }
       ],
@@ -2086,7 +2485,8 @@ module.exports.init = function init(ctx) {
         avatarLookupUrl: currentCfg.avatarLookupUrl,
         eventBusEnabled: currentCfg.eventBusEnabled !== false,
         displayQueue: displayConfig(currentCfg),
-        officialShoutout: officialConfig(currentCfg)
+        officialShoutout: officialConfig(currentCfg),
+        streamDayLimit: streamDayLimitConfig(currentCfg)
       },
       displayQueue: displayQueueStatus(currentCfg),
       officialQueue: officialQueueStatus(currentCfg),
@@ -2116,6 +2516,7 @@ module.exports.init = function init(ctx) {
       for (const key of directKeys) if (Object.prototype.hasOwnProperty.call(body, key)) allowed[key] = body[key];
       if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
       if (body.officialShoutout && typeof body.officialShoutout === "object") allowed.officialShoutout = body.officialShoutout;
+      if (body.streamDayLimit && typeof body.streamDayLimit === "object") allowed.streamDayLimit = body.streamDayLimit;
       const settings = saveShoutoutConfig(allowed);
       const commandRegistration = registerCommand(settings);
       emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed), commandRegistration }, settings);
@@ -2129,6 +2530,21 @@ module.exports.init = function init(ctx) {
     try {
       const currentCfg = shoutoutConfig();
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, displayQueue: displayQueueStatus(currentCfg), officialQueue: officialQueueStatus(currentCfg) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/timeline`, (req, res) => {
+    try {
+      res.json(buildShoutoutTimeline({
+        limit: req.query?.limit,
+        target: req.query?.target,
+        targetLogin: req.query?.targetLogin,
+        streamDayId: req.query?.streamDayId,
+        since: req.query?.since,
+        until: req.query?.until
+      }));
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }

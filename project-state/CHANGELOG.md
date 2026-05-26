@@ -1,9 +1,12 @@
 # CHANGELOG
 
-## STEP463_SHOUTOUT_CHAT_MESSAGE_CLEANUP_TEST_MODE
+## STEP464_SHOUTOUT_TIMELINE_AND_STREAMDAY_LIMIT
 
-- `backend/modules/clip_shoutout.js` auf Runtime-Version `0.2.6` erhöht.
-- Direkten Chat-Command-Wrapper für Clip-Shoutout-Trigger ergänzt.
-- `!vso` wird im Testbetrieb direkt an den Clip-Shoutout-Modulablauf übergeben.
-- Command-System-Cooldowns können den zweiten `!vso` dadurch nicht mehr verschlucken.
-- Display-Queue bleibt allein zuständig für 2-Minuten-Abstand.
+- `backend/modules/clip_shoutout.js` auf Runtime-Version `0.2.7` erhöht.
+- Timeline-Route `GET /api/clip-shoutout/timeline` ergänzt.
+- Display-Queue speichert jetzt `stream_day_id`, Override-Status und Override-Quelle.
+- Official-Queue und Official-History speichern jetzt `display_queue_id` zur Zuordnung zum Display-Shouti.
+- Neue Tabelle `clip_shoutout_stream_days` ergänzt.
+- Streamtag-Limit ergänzt: Ein Zielkanal bekommt pro Streamtag standardmäßig nur einen Shouti.
+- Override per `!vso @user --force` ergänzt.
+- Keine Änderung am Sound-System, Dashboard oder EventBus-Flow.
