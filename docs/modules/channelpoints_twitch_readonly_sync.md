@@ -1,19 +1,21 @@
-# Channelpoints Twitch Rewards Read-Only Sync TokenStore Fix
+# Channelpoints Twitch Rewards Read-Only Sync Imported Rewards Inactive Default
 
 Stand: 2026-05-26  
 Modul: `channelpoints_twitch_readonly_sync`  
-Version: `0.8.2`  
-Build: `twitch-rewards-readonly-tokenstore-fix`
+Version: `0.8.3`  
+Build: `imported-rewards-inactive-default`
 
 ## Zweck
 
 Additives Backend-Modul für den nächsten Kanalpunkte-Schritt:
 
 ```text
-channelpoints v0.8.2 — Twitch Rewards Read-Only Sync TokenStore Fix
+channelpoints v0.8.3 — Twitch Rewards Read-Only Sync Imported Rewards Inactive Default
 ```
 
 Das Modul liest Twitch Custom Rewards und kann sie lokal in die bestehende Tabelle `channelpoints_rewards` übernehmen. Es führt keine Twitch-Schreibzugriffe aus.
+
+Seit v0.8.3 werden neu importierte Twitch-Rewards lokal standardmäßig **inaktiv** angelegt (`system_enabled = 0`). Dadurch kann kein frisch importierter Reward ausgeführt werden, bevor im Dashboard bewusst eine Aktion, ein Medium oder ein Text zugewiesen und der Reward manuell aktiviert wurde.
 
 ## Dateien
 
@@ -42,6 +44,7 @@ Keine Reward-Deaktivierung bei Twitch.
 Keine Redemption-Status-Updates bei Twitch.
 Keine destruktiven DB-Migrationen.
 Keine DB-Ersetzung.
+Neu importierte Rewards werden lokal inaktiv angelegt.
 ```
 
 `/api/channelpoints/twitch/rewards` liest nur.  

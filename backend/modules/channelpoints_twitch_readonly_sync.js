@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints_twitch_readonly_sync";
-const MODULE_VERSION = "0.8.2";
-const MODULE_BUILD = "twitch-rewards-readonly-tokenstore-fix";
+const MODULE_VERSION = "0.8.3";
+const MODULE_BUILD = "imported-rewards-inactive-default";
 const ROUTE_PREFIX = "/api/channelpoints";
 const DEFAULT_TARGET_HOST = "127.0.0.1";
 const DEFAULT_TARGET_PORT = 8080;
@@ -36,7 +36,9 @@ const DEFAULT_CONFIG = {
   defaultCategoryKey: "general",
   defaultSortOrder: 100,
   defaultActionType: "manual",
-  defaultActionPayloadJson: "{}"
+  defaultActionPayloadJson: "{}",
+  importedRewardSystemEnabled: false,
+  importedRewardNotes: "Imported by Twitch rewards read-only sync. Local execution disabled by default; configure action/media/text and enable manually."
 };
 
 let loadedConfig = null;
@@ -366,7 +368,7 @@ function upsertLocalRewardFromTwitch(reward, dryRun = true) {
         cost: reward.cost,
         category_key: cleanString(config.defaultCategoryKey, "general"),
         sort_order: intValue(config.defaultSortOrder, 100),
-        system_enabled: 1,
+        system_enabled: boolValue(config.importedRewardSystemEnabled, false) ? 1 : 0,
         twitch_is_enabled: reward.twitch_is_enabled ? 1 : 0,
         is_paused: reward.is_paused ? 1 : 0,
         require_user_input: reward.require_user_input ? 1 : 0,
@@ -382,12 +384,20 @@ function upsertLocalRewardFromTwitch(reward, dryRun = true) {
         max_per_stream: reward.max_per_stream,
         max_per_user_per_stream: reward.max_per_user_per_stream,
         auto_fulfill: 0,
-        notes: "Imported by Twitch rewards read-only sync.",
+        notes: cleanString(config.importedRewardNotes, "Imported by Twitch rewards read-only sync. Local execution disabled by default; configure action/media/text and enable manually."),
         created_at: now,
         updated_at: now
       });
     }
-    return { action: "insert", rewardKey: finalKey, twitchRewardId: reward.twitch_reward_id, title: reward.title, changed: true };
+    return {
+      action: "insert",
+      rewardKey: finalKey,
+      twitchRewardId: reward.twitch_reward_id,
+      title: reward.title,
+      changed: true,
+      systemEnabled: boolValue(config.importedRewardSystemEnabled, false),
+      importedActionMissing: true
+    };
   }
 
   if (!changed) return { action: "unchanged", rewardKey: finalKey, twitchRewardId: reward.twitch_reward_id, title: reward.title, changed: false };
@@ -620,7 +630,8 @@ function buildStatus(extra = {}) {
       noRewardCreateUpdateDeleteOnTwitch: true,
       noRedemptionStatusUpdate: true,
       noDestructiveDbMigration: true,
-      noDbReplacement: true
+      noDbReplacement: true,
+      importedRewardsInactiveByDefault: true
     },
     config: {
       twitchRewardsReadOnlySyncEnabled: config.twitchRewardsReadOnlySyncEnabled !== false,
@@ -630,7 +641,10 @@ function buildStatus(extra = {}) {
       authValidateUrl: cleanString(config.twitchAuthValidateUrl || "/api/twitch/auth/validate"),
       dryRunDefault: config.dryRunDefault !== false,
       allowLocalRewardUpsert: config.allowLocalRewardUpsert !== false,
-      defaultCategoryKey: cleanString(config.defaultCategoryKey, "general")
+      defaultCategoryKey: cleanString(config.defaultCategoryKey, "general"),
+      defaultActionType: cleanString(config.defaultActionType, "manual"),
+      importedRewardSystemEnabled: boolValue(config.importedRewardSystemEnabled, false),
+      importedRewardsNeedManualConfiguration: true
     },
     ...extra
   };
