@@ -138,3 +138,27 @@ Ziel:
 - Shoutout-Dashboard aufraeumen.
 - Tabs/Unterbereiche ergänzen: Übersicht, Queues, Statistik, Timeline, Settings/Test.
 - Keine Shoutout-Backendlogik ändern, sofern nicht zwingend noetig.
+
+
+## Doku-/Cleanup-Stand STEP475
+
+STEP475 ist weiterhin reine Doku-/Aufräum-Arbeit.
+
+Ergänzt wurde:
+
+- `docs/modules/` als erste strukturierte Modul-Doku-Ebene.
+- Modul-Dokus für Core, Stream-Status, Clip-Shoutout/VSO, Alerts, Sound-System, TTS, Message-Rotator, Tagebuch/ToDo, Hug/Rehug, Birthday, Clips, OBS/Scene-Control, Twitch/Discord, Dashboard-Backend und weitere Community-Systeme.
+- `docs/current/PROJECT_STATE_CLEANUP_PLAN_2026-05-26.md` als Plan zur Bereinigung von `project-state/`.
+- `project-state/PROJECT_STATE_ARCHIVE_MOVE_LIST_2026-05-26.csv` als Verschiebe-Manifest.
+- `tools/project_state_archive_step475.ps1` als optionales, gezieltes Move-Script für alte `project-state`-Dateien.
+
+Nicht geändert wurde:
+
+- keine Backend-Logik
+- keine Dashboard-Logik
+- keine Overlay-Dateien
+- keine Config-Dateien
+- keine Datenbankdateien
+- keine produktive Runtime-Dateien
+
+Wichtig: Das ZIP allein verschiebt keine bestehenden Root-Dateien aus `project-state/`. Das Aufräumen passiert erst, wenn das Move-Script ausgeführt wird.

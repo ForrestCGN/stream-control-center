@@ -1,47 +1,51 @@
 # NEXT_STEPS
 
-## Nach STEP474
+## Nach STEP476
 
 1. ZIP nach `D:\Git\stream-control-center` entpacken.
 2. Keine JS-Dateien geändert, daher kein `node --check` nötig.
-3. Doku-Dateien kurz prüfen:
+3. Neue Deep-Dive-Dokus prüfen:
 
 ```bat
-dir docs\current\PROJECT_BACKEND_MODULE_STATUS_2026-05-26.md
+cd D:\Git\stream-control-center
 
-dir docs\current\PROJECT_MODULE_AND_ROUTE_MAP_2026-05-26.md
+dir docs\modules\core-communication-bus.md
 
-dir project-state\STEP474_DOCS_TODO_MODULE_CLEANUP.md
+dir docs\modules\core-stream-status.md
+
+dir docs\modules\core-database-sqlite.md
+
+dir docs\modules\core-security-audit.md
+
+dir docs\modules\helpers-overview.md
 ```
 
 4. STEP abschließen:
 
 ```bat
-.\stepdone.cmd "STEP474 Docs Todo Module Cleanup"
+.\stepdone.cmd "STEP476 Module Docs Core Helpers Deep Dive"
 ```
 
-## Nächster sinnvoller Fach-STEP
+## Nächster Doku-STEP
 
 ```text
-STEP475_SHOUTOUT_DASHBOARD_TABS
+STEP477_MODULE_DOCS_STREAM_MODULES_DEEP_DIVE
 ```
 
 Ziel:
 
-- Shoutout-Dashboard aufräumen.
-- Tabs/Unterbereiche ergänzen:
-  - Übersicht
-  - Queues
-  - Statistik
-  - Timeline
-  - Settings/Test
-- Keine Backend-Logik ändern, sofern nicht zwingend nötig.
-- Vor Umsetzung echte Dashboard-Dateien und `clip_shoutout.js` erneut prüfen.
+- `clip_shoutout` vollständig dokumentieren.
+- `alert_system` vollständig dokumentieren.
+- `sound_system` vollständig dokumentieren.
+- `vip_sound_overlay` vollständig dokumentieren.
+- `clips` und `tts_system` mindestens technisch erfassen.
 
-## Danach offen
+## Späterer Fach-STEP
 
-- Eingehende Twitch-Shoutouts per EventSub loggen.
-- Inbound-Shoutouts getrennt in Statistik und Dashboard anzeigen.
-- `stream_status` bei echtem Streamstart/Streamende live testen.
-- Weitere Module schrittweise auf zentralen Stream-Status umstellen.
-- Später separaten Doku-/Archiv-Cleanup planen, falls alte STEP-/APPEND-Dateien wirklich verschoben werden sollen.
+Nach der Doku-Aufräumung weiter mit:
+
+```text
+STEP478_SHOUTOUT_DASHBOARD_TABS
+```
+
+oder entsprechend fortlaufender Nummer, falls vorher weitere Doku-Steps kommen.
