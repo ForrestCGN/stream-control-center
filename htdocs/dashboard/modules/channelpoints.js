@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.9.4';
-  const UI_BUILD = 'simple-redemption-flow-cleanup';
+  const UI_VERSION = '0.9.5';
+  const UI_BUILD = 'redemptions-page-cleanup';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -603,7 +603,7 @@ window.ChannelpointsModule = (function(){
     const data = await window.CGN.api(api.eventsubRedemptionStatus);
     state.eventsubRedemptionStatus = data;
     state.notice = data.ok ? 'EventSub-Redemption-Status aktualisiert.' : 'EventSub-Status konnte nicht geladen werden.';
-    state.tab = 'redemptions';
+    state.tab = 'diagnostics';
     render();
   }
 
@@ -613,8 +613,8 @@ window.ChannelpointsModule = (function(){
     const payload = buildDummyRedemptionPayload(reward, 'dashboard_preview');
     const data = await window.CGN.api(api.eventsubRedemptionPreview, { method:'POST', body:JSON.stringify(payload) });
     state.eventsubRedemptionPreview = data;
-    state.notice = data.ok ? `Preview erzeugt: ${data.normalized?.reward_key || reward.reward_key} · mapped=${data.normalized?.mapped === true}` : 'Preview konnte nicht erzeugt werden.';
-    state.tab = 'redemptions';
+    state.notice = data.ok ? `Diagnose-Preview erzeugt: ${data.normalized?.reward_key || reward.reward_key} · mapped=${data.normalized?.mapped === true}` : 'Preview konnte nicht erzeugt werden.';
+    state.tab = 'diagnostics';
     render();
   }
 
@@ -627,8 +627,8 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const payload = buildDummyRedemptionPayload(reward, 'dashboard_receive');
     const data = await window.CGN.api(api.eventsubRedemptionReceive, { method:'POST', body:JSON.stringify(payload) });
     state.eventsubRedemptionReceive = data;
-    state.notice = data.ok ? `Dummy-Redemption lokal gespeichert: ${data.redemption?.reward_key || reward.reward_key}. Keine automatische Ausführung.` : 'Dummy-Redemption konnte nicht gespeichert werden.';
-    state.tab = 'redemptions';
+    state.notice = data.ok ? `Diagnose-Dummy lokal gespeichert: ${data.redemption?.reward_key || reward.reward_key}.` : 'Dummy-Redemption konnte nicht gespeichert werden.';
+    state.tab = 'diagnostics';
     await loadAll(true);
   }
 
@@ -721,10 +721,22 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
   function renderRedemptionsPanel() {
     const list = asArray(state.redemptions).slice(0, 25);
     const counts = state.redemptionCounts || {};
-    return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Einlösungen / Testverlauf</h3><span>${esc(counts.total ?? list.length)} gesamt · ${esc(counts.executed ?? 0)} ausgeführt · ${esc(counts.failed ?? 0)} Fehler</span></div>
-      ${renderRedemptionEventSubTestBox()}
+    const total = counts.total ?? list.length;
+    const executed = counts.executed ?? 0;
+    const failed = counts.failed ?? 0;
+    const pending = counts.pending ?? 0;
+    const skipped = counts.skipped ?? 0;
+    return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Letzte Einlösungen</h3><span>${esc(total)} gesamt · ${esc(executed)} ausgeführt · ${esc(failed)} Fehler</span></div>
+      <div class="cp-redemption-summary-grid">
+        <div><strong>${esc(total)}</strong><span>Gesamt</span></div>
+        <div><strong>${esc(executed)}</strong><span>Ausgeführt</span></div>
+        <div><strong>${esc(pending)}</strong><span>Offen/empfangen</span></div>
+        <div><strong>${esc(skipped)}</strong><span>Blockiert/ignoriert</span></div>
+        <div><strong>${esc(failed)}</strong><span>Fehler</span></div>
+      </div>
+      <div class="cp-note"><strong>Einfache Regel:</strong> Aktiver Reward mit vollständiger Aktion wird ausgelöst. Inaktive Rewards oder Rewards ohne Aktion werden nicht ausgeführt.</div>
+      <div class="cp-actions"><button type="button" data-cp-action="reload">Aktualisieren</button></div>
       <div class="cp-redemption-list">${list.map(item => { const preview = redemptionResultPreview(item); return `<div class="cp-redemption-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}${preview ? ` · ${esc(preview).slice(0, 140)}` : ''}</small></div><div>${redemptionStatusPill(item.status)}</div></div>`; }).join('') || '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
-      <small class="cp-muted-line">EventSub-Tests speichern nur lokal und führen nicht automatisch aus. Text-Rewards speichern den vorbereiteten Chattext aktuell lokal im Ergebnis.</small>
     </section>`;
   }
 
@@ -923,9 +935,10 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
   }
 
   function renderDiagnosticsPanel() {
-    return `<section class="cp-panel cp-diagnostics-panel"><div class="cp-panel-head"><h3>Diagnose</h3><span>EventBus / Ausführung</span></div>
+    return `<section class="cp-panel cp-diagnostics-panel"><div class="cp-panel-head"><h3>Diagnose</h3><span>Tests / EventBus / Rohdaten</span></div>
       <div class="cp-actions"><button type="button" data-cp-action="bus-test">EventBus-Test</button><button type="button" data-cp-action="reload">Neu laden</button></div>
-      <div class="cp-note">Hier bleiben Diagnose-Ausgaben und technische Ergebnisse gesammelt, statt die Hauptseite zu überladen.</div>
+      <div class="cp-note">Test- und Preview-Werkzeuge liegen bewusst hier, damit Rewards und Einlösungen im normalen Betrieb simpel bleiben.</div>
+      <details class="cp-advanced-box"><summary>EventSub-Diagnose / Dummy-Redemption testen</summary>${renderRedemptionEventSubTestBox()}</details>
       ${state.busResult ? `<details class="cp-advanced-box" open><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : '<div class="cp-empty">Noch kein Diagnose-Ergebnis.</div>'}
     </section>`;
   }
