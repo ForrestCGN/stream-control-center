@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '1.0.0';
-  const UI_BUILD = 'operation-cleanup-consolidated';
+  const UI_VERSION = '1.0.2';
+  const UI_BUILD = 'redemption-completion-policy-ui';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -321,7 +321,7 @@ window.ChannelpointsModule = (function(){
     if (!state.modal) return null;
     const d = state.modal.draft;
     const payloadRaw = String(getField('action_payload_json')?.value || d.action_payload_json || '{}').trim();
-    const currentPayload = parseJson(payloadRaw || '{}', {});
+    const currentPayload = applyTwitchOptionsFromForm(parseJson(payloadRaw || '{}', {}), d);
 
     d.reward_key = cleanKey(getField('reward_key')?.value || d.reward_key || '');
     d.title = String(getField('title')?.value || d.title || '').trim();
@@ -378,11 +378,12 @@ window.ChannelpointsModule = (function(){
       d.media_role = 'none';
       d.action_type = 'manual';
       d.action_key = '';
-      d.action_payload_json = '{}';
+      d.action_payload_json = JSON.stringify(applyTwitchOptionsFromForm({}, d));
     } else {
       d.action_payload_json = payloadRaw || '{}';
     }
 
+    d.action_payload_json = JSON.stringify(applyTwitchOptionsFromForm(parseJson(d.action_payload_json || '{}', {}), d));
     return d;
   }
 
@@ -394,7 +395,7 @@ window.ChannelpointsModule = (function(){
     if (!Number.isFinite(d.cost) || d.cost < 1) throw new Error('Kosten müssen mindestens 1 sein.');
 
     const action = actionById(d._action);
-    let payload = parseJson(d.action_payload_json, {});
+    let payload = applyTwitchOptionsFromForm(parseJson(d.action_payload_json, {}), d);
     let actionType = d.action_type;
     let actionKey = d.action_key;
     let mediaRole = d.media_role;
@@ -418,19 +419,22 @@ window.ChannelpointsModule = (function(){
       actionType = 'chat_message';
       actionKey = 'send_text';
       mediaRole = 'none';
-      payload = {
+      payload = applyTwitchOptionsFromForm({
+        ...payload,
         textMode: String(getField('text_mode')?.value || payload.textMode || 'single'),
         text: String(getField('text_value')?.value || payload.text || ''),
         textKey: String(getField('text_key')?.value || payload.textKey || ''),
         selection: String(getField('text_selection')?.value || payload.selection || 'random')
-      };
+      }, d);
       if (payload.textMode === 'single' && !payload.text) throw new Error('Bitte einen Text eintragen.');
     } else if (d._action === 'manual') {
       actionType = 'manual';
       actionKey = '';
       mediaRole = 'none';
-      payload = {};
+      payload = applyTwitchOptionsFromForm({}, d);
     }
+
+    payload = applyTwitchOptionsFromForm(payload, d);
 
     const mediaAssetId = d._action === 'manual' || d._action === 'text_only' ? '' : d.media_asset_id;
     const effectiveReward = {
@@ -1206,6 +1210,72 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     return payload[name] !== undefined && payload[name] !== null ? payload[name] : fallback;
   }
 
+
+  function normalizeTwitchColor(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+    return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toUpperCase() : raw;
+  }
+
+  function twitchOptionsFromPayload(payload) {
+    const twitch = payload && typeof payload.twitch === 'object' && !Array.isArray(payload.twitch) ? payload.twitch : {};
+    const skipQueue = twitch.should_redemptions_skip_request_queue === true || payload?.should_redemptions_skip_request_queue === true;
+    return {
+      backgroundColor: String(twitch.background_color || payload?.background_color || '').trim(),
+      skipQueue,
+      fulfillAfterSuccess: twitch.fulfill_after_success !== undefined ? boolValue(twitch.fulfill_after_success) : !skipQueue,
+      cancelOnFailure: twitch.cancel_on_failure !== undefined ? boolValue(twitch.cancel_on_failure) : !skipQueue
+    };
+  }
+
+  function applyTwitchOptionsFromForm(payload, draft) {
+    const out = { ...(payload && typeof payload === 'object' ? payload : {}) };
+    const twitch = { ...(out.twitch && typeof out.twitch === 'object' && !Array.isArray(out.twitch) ? out.twitch : {}) };
+    const colorField = getField('twitch_background_color');
+    const color = normalizeTwitchColor(colorField ? colorField.value : (twitch.background_color || out.background_color || ''));
+    const skipQueue = getField('auto_fulfill') ? !!getField('auto_fulfill')?.checked : boolValue(draft?.auto_fulfill || twitch.should_redemptions_skip_request_queue || out.should_redemptions_skip_request_queue);
+    const fulfillAfterSuccess = getField('twitch_fulfill_after_success') ? !!getField('twitch_fulfill_after_success')?.checked : boolValue(twitch.fulfill_after_success, !skipQueue);
+    const cancelOnFailure = getField('twitch_cancel_on_failure') ? !!getField('twitch_cancel_on_failure')?.checked : boolValue(twitch.cancel_on_failure, !skipQueue);
+
+    if (color) twitch.background_color = color;
+    else delete twitch.background_color;
+
+    twitch.should_redemptions_skip_request_queue = skipQueue;
+    twitch.fulfill_after_success = skipQueue ? false : fulfillAfterSuccess;
+    twitch.cancel_on_failure = skipQueue ? false : cancelOnFailure;
+
+    if (Object.keys(twitch).length) out.twitch = twitch;
+    else delete out.twitch;
+
+    delete out.background_color;
+    delete out.should_redemptions_skip_request_queue;
+    delete out.fulfill_after_success;
+    delete out.cancel_on_failure;
+    return out;
+  }
+
+  function renderTwitchOptionsSection(d, payload) {
+    const opts = twitchOptionsFromPayload(payload || {});
+    const color = opts.backgroundColor || '';
+    const autoFulfill = boolValue(d.auto_fulfill) || opts.skipQueue;
+    const fulfillAfterSuccess = autoFulfill ? false : boolValue(opts.fulfillAfterSuccess, true);
+    const cancelOnFailure = autoFulfill ? false : boolValue(opts.cancelOnFailure, true);
+    return `<section class="cp-editor-section cp-twitch-options-section"><h4>Twitch-Optionen</h4>
+      <div class="cp-form-grid">
+        <label>Twitch-Farbe <span class="cp-help" title="Optional: Farbe des Rewards auf Twitch, z. B. #9147FF. Leer lassen = Twitch/Standard behalten.">?</span><input data-cp-field="twitch_background_color" value="${esc(color)}" placeholder="#9147FF" maxlength="7"></label>
+        <label class="cp-color-preview-label">Vorschau <span class="cp-color-preview" style="--cp-twitch-color:${esc(color || '#9147FF')}"></span></label>
+      </div>
+      <div class="cp-checks cp-twitch-checks">
+        <label title="Twitch markiert die Einlösung direkt beim Einlösen als erledigt. Danach ist keine automatische Punkterückgabe per CANCELED mehr möglich."><input type="checkbox" data-cp-field="auto_fulfill" ${autoFulfill ? 'checked' : ''}> Sofort bei Twitch abschließen</label>
+        <label title="Wenn die lokale Aktion erfolgreich war, setzt das System die Twitch-Einlösung auf FULFILLED." class="${autoFulfill ? 'cp-muted-option' : ''}"><input type="checkbox" data-cp-field="twitch_fulfill_after_success" ${fulfillAfterSuccess ? 'checked' : ''} ${autoFulfill ? 'disabled' : ''}> Nach erfolgreicher Ausführung abschließen</label>
+        <label title="Wenn die lokale Aktion fehlschlägt oder blockiert wird, setzt das System die Twitch-Einlösung auf CANCELED. Twitch gibt dann die Punkte zurück." class="${autoFulfill ? 'cp-muted-option' : ''}"><input type="checkbox" data-cp-field="twitch_cancel_on_failure" ${cancelOnFailure ? 'checked' : ''} ${autoFulfill ? 'disabled' : ''}> Bei Fehler Punkte zurückgeben</label>
+        <label title="Twitch-spezifisch: Reward bleibt vorhanden, ist aber pausiert/nicht einlösbar."><input type="checkbox" data-cp-field="is_paused" ${boolValue(d.is_paused) ? 'checked' : ''}> Twitch pausieren</label>
+      </div>
+      <p class="cp-twitch-options-note">Empfehlung für Sound-/Overlay-Rewards: nicht sofort abschließen, sondern nach erfolgreicher Ausführung abschließen und bei Fehlern Punkte zurückgeben.</p>
+    </section>`;
+  }
+
   function renderModal() {
     if (!state.modal) return '';
     const d = state.modal.draft || blankReward();
@@ -1237,7 +1307,9 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
         <label>Cooldown Sekunden <span class="cp-help" title="Lokale Sperre nach Einlösung. 0 = aus.">?</span><input type="number" min="0" data-cp-field="cooldown_seconds" value="${esc(d.cooldown_seconds ?? 0)}"></label>
         <label>Max pro Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_stream" value="${esc(d.max_per_stream ?? 0)}"></label>
         <label>Max pro User/Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_user_per_stream" value="${esc(d.max_per_user_per_stream ?? 0)}"></label>
-      </div><div class="cp-checks"><label title="Bei importierten Rewards nur aktivieren, wenn eine ausführbare Aktion vollständig konfiguriert ist."><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> lokal aktiv</label><label><input type="checkbox" data-cp-field="is_paused" ${boolValue(d.is_paused) ? 'checked' : ''}> pausiert</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label></div></section>
+      </div><div class="cp-checks"><label title="Bei importierten Rewards nur aktivieren, wenn eine ausführbare Aktion vollständig konfiguriert ist."><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> lokal aktiv</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label></div></section>
+
+      ${renderTwitchOptionsSection(d, payload)}
 
       <label class="cp-wide cp-notes-label">Notizen<textarea rows="2" data-cp-field="notes">${esc(d.notes || '')}</textarea></label>
 

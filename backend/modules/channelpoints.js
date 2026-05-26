@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.3";
-const MODULE_BUILD = "twitch-delete-and-create-params";
+const MODULE_VERSION = "0.9.4";
+const MODULE_BUILD = "redemption-completion-policy";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -48,7 +48,8 @@ const DEFAULT_CONFIG = {
   redemptionEventSubPreparationEnabled: true,
   redemptionEventSubStoreEnabled: true,
   importedRewardActionGuardEnabled: true,
-  redemptionEventBusReceiveEnabled: true
+  redemptionEventBusReceiveEnabled: true,
+  twitchRedemptionCompletionEnabled: true
 };
 
 const DEFAULT_CATEGORIES = [
@@ -1246,6 +1247,122 @@ function twitchRewardSettingsFromPayload(reward) {
   };
 }
 
+function twitchRedemptionCompletionPolicyFromPayload(reward) {
+  const payload = rewardActionPayload(reward);
+  const twitch = payload && typeof payload.twitch === "object" && payload.twitch !== null ? payload.twitch : {};
+  const skipQueue = boolValue(
+    twitch.should_redemptions_skip_request_queue ?? twitch.skipRequestQueue ?? payload.should_redemptions_skip_request_queue,
+    reward && reward.auto_fulfill === true
+  );
+
+  const hasFulfill = twitch.fulfill_after_success !== undefined || twitch.fulfillAfterSuccess !== undefined || payload.fulfill_after_success !== undefined;
+  const hasCancel = twitch.cancel_on_failure !== undefined || twitch.cancelOnFailure !== undefined || payload.cancel_on_failure !== undefined;
+  return {
+    skipQueue,
+    fulfillAfterSuccess: boolValue(
+      twitch.fulfill_after_success ?? twitch.fulfillAfterSuccess ?? payload.fulfill_after_success,
+      skipQueue ? false : true
+    ),
+    cancelOnFailure: boolValue(
+      twitch.cancel_on_failure ?? twitch.cancelOnFailure ?? payload.cancel_on_failure,
+      skipQueue ? false : true
+    ),
+    explicitFulfillAfterSuccess: hasFulfill,
+    explicitCancelOnFailure: hasCancel
+  };
+}
+
+function isRealTwitchRedemptionId(value) {
+  const clean = cleanString(value);
+  if (!clean) return false;
+  if (clean.startsWith("dashboard_") || clean.startsWith("local_") || clean.startsWith("eventsub_preview_")) return false;
+  return /^[0-9a-fA-F-]{20,}$/.test(clean);
+}
+
+async function updateTwitchRedemptionStatus(normalized, status, req = {}) {
+  if (!normalized || !normalized.twitch_reward_id || !normalized.twitch_redemption_id) throw new Error("redemption_status_ids_missing");
+  if (!isRealTwitchRedemptionId(normalized.twitch_redemption_id)) throw new Error("not_real_twitch_redemption_id");
+  const cleanStatus = cleanString(status).toUpperCase();
+  if (!["FULFILLED", "CANCELED"].includes(cleanStatus)) throw new Error("invalid_redemption_status");
+  const authContext = await buildTwitchWriteAuthContext(req);
+  const url = new URL("https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions");
+  url.searchParams.set("broadcaster_id", authContext.broadcasterId);
+  url.searchParams.set("reward_id", normalized.twitch_reward_id);
+  url.searchParams.set("id", normalized.twitch_redemption_id);
+  const response = await twitchJsonRequest("PATCH", url, authContext.token, authContext.clientId, { status: cleanStatus });
+  return { ok: true, status: cleanStatus, twitchStatusCode: response.statusCode, data: response.data || null, tokenSource: authContext.tokenSource, twitchWrite: true };
+}
+
+async function applyRedemptionCompletionPolicy(normalized, decision, execution) {
+  const config = getConfig();
+  const reward = normalized && normalized.local_reward ? normalized.local_reward : null;
+  const policy = twitchRedemptionCompletionPolicyFromPayload(reward);
+  const base = {
+    enabled: config.twitchRedemptionCompletionEnabled !== false,
+    policy,
+    attempted: false,
+    skipped: false,
+    action: "none",
+    status: "",
+    twitchWrite: false,
+    result: null,
+    error: ""
+  };
+
+  if (base.enabled === false) return { ...base, skipped: true, reason: "completion_disabled_by_config" };
+  if (!normalized || !normalized.mapped || !reward) return { ...base, skipped: true, reason: "unmapped_redemption" };
+  if (policy.skipQueue) return { ...base, skipped: true, reason: "twitch_skip_queue_enabled" };
+  if (!isRealTwitchRedemptionId(normalized.twitch_redemption_id)) return { ...base, skipped: true, reason: "not_real_twitch_redemption_id" };
+  if (!normalized.twitch_reward_id) return { ...base, skipped: true, reason: "missing_twitch_reward_id" };
+
+  let targetStatus = "";
+  let action = "none";
+  if (execution && execution.executed === true && policy.fulfillAfterSuccess === true) {
+    targetStatus = "FULFILLED";
+    action = "fulfilled_after_success";
+  } else if ((execution && execution.failed === true || decision && decision.blocked === true) && policy.cancelOnFailure === true) {
+    targetStatus = "CANCELED";
+    action = "canceled_after_failure";
+  } else {
+    return { ...base, skipped: true, reason: "policy_no_twitch_status_change" };
+  }
+
+  try {
+    const result = await updateTwitchRedemptionStatus(normalized, targetStatus);
+    const now = nowIso();
+    redemptionEventSubStats.lastCompletionAt = now;
+    redemptionEventSubStats.lastCompletionAction = action;
+    redemptionEventSubStats.lastCompletionStatus = targetStatus;
+    if (targetStatus === "FULFILLED") redemptionEventSubStats.fulfilledOnTwitch += 1;
+    if (targetStatus === "CANCELED") redemptionEventSubStats.canceledOnTwitch += 1;
+    emitDomainEvent(targetStatus === "FULFILLED" ? "channelpoints.redemption.fulfilled_on_twitch" : "channelpoints.redemption.canceled_on_twitch", {
+      redemptionId: normalized.twitch_redemption_id,
+      twitchRewardId: normalized.twitch_reward_id,
+      rewardKey: normalized.reward_key,
+      action,
+      status: targetStatus,
+      result
+    }, { channel: "channelpoints.redemption" });
+    return { ...base, attempted: true, action, status: targetStatus, twitchWrite: true, result };
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    redemptionEventSubStats.completionFailed += 1;
+    redemptionEventSubStats.lastCompletionAt = nowIso();
+    redemptionEventSubStats.lastCompletionAction = action;
+    redemptionEventSubStats.lastCompletionStatus = targetStatus;
+    redemptionEventSubStats.lastError = message;
+    emitDomainEvent("channelpoints.redemption.completion_failed", {
+      redemptionId: normalized.twitch_redemption_id,
+      twitchRewardId: normalized.twitch_reward_id,
+      rewardKey: normalized.reward_key,
+      action,
+      status: targetStatus,
+      error: message
+    }, { channel: "channelpoints.redemption" });
+    return { ...base, attempted: true, action, status: targetStatus, twitchWrite: true, error: message };
+  }
+}
+
 function buildTwitchRewardWritePayload(reward, forcedEnabled = null, options = {}) {
   if (!reward) throw new Error("reward_not_found");
   const isConfigured = isExecutableReward(reward);
@@ -1500,7 +1617,7 @@ function buildTwitchRewardManagementStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "twitch_delete_and_create_params_ready",
+    status: "redemption_completion_policy_ready",
     enabled: config.twitchRewardManagementEnabled !== false,
     writeOnLocalToggle: config.twitchRewardWriteOnLocalToggle !== false,
     requireConfirmForPush: config.twitchRewardWriteRequireConfirm !== false,
@@ -1511,14 +1628,16 @@ function buildTwitchRewardManagementStatus() {
       missingActionBlocksActivation: true,
       noExtraDashboardMode: true,
       twitchDeleteRequiresConfirm: true,
-      twitchCreateUpdateSupportsAdvancedRewardParams: true
+      twitchCreateUpdateSupportsAdvancedRewardParams: true,
+      redemptionCompletionPolicySupported: true
     },
     routes: [
       `${ROUTE_PREFIX}/twitch/manage/status`,
       `${ROUTE_PREFIX}/twitch/rewards/:idOrKey/push`,
       `${ROUTE_PREFIX}/twitch/rewards/:idOrKey/enable`,
       `${ROUTE_PREFIX}/twitch/rewards/:idOrKey/disable`,
-      `${ROUTE_PREFIX}/twitch/rewards/:idOrKey/delete`
+      `${ROUTE_PREFIX}/twitch/rewards/:idOrKey/delete`,
+      "redemption completion: FULFILLED/CANCELED after execution"
     ]
   };
 }
@@ -1782,12 +1901,13 @@ function buildRedemptionEventSubStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "channelpoints_simple_operation_ready",
+    status: "redemption_completion_policy_ready",
     enabled: config.redemptionEventSubPreparationEnabled !== false,
     storeEnabled: config.redemptionEventSubStoreEnabled !== false,
     processingRule: "Reward aktiv + Aktion vollständig = ausführen; Reward inaktiv oder Aktion fehlt = nicht ausführen.",
     safety: {
-      noTwitchWrite: true,
+      noRewardTwitchWriteInRedemptionFlow: true,
+      twitchWriteOnlyForCompletionStatus: config.twitchRedemptionCompletionEnabled !== false,
       noHttpModuleBridge: true,
       eventBusDriven: true,
       noExtraDashboardModes: true,
@@ -1818,6 +1938,7 @@ function storeNormalizedRedemption(normalized, decision = null, execution = null
     rewardCost: normalized.reward_cost,
     decision: decision || null,
     execution: execution || null,
+    completion: completion || null,
     note: execution && execution.executed
       ? "Aktiver Reward wurde durch die Einlösung ausgeführt."
       : (execution && execution.failed
@@ -1960,6 +2081,9 @@ async function receiveRedemptionEventSubPayload(input = {}) {
     }
   }
 
+  const completion = await applyRedemptionCompletionPolicy(normalized, decision, execution);
+  if (completion && completion.skipped) redemptionEventSubStats.completionSkipped += 1;
+
   if (config.redemptionEventSubStoreEnabled === false) {
     return {
       ok: true,
@@ -1970,12 +2094,13 @@ async function receiveRedemptionEventSubPayload(input = {}) {
       normalized,
       decision,
       execution,
+      completion,
       stored: false,
       executed: execution.executed === true,
       twitchWrite: false
     };
   }
-  const stored = storeNormalizedRedemption(normalized, decision, execution);
+  const stored = storeNormalizedRedemption(normalized, decision, execution, completion);
   return {
     ok: true,
     module: MODULE_NAME,
@@ -1985,6 +2110,7 @@ async function receiveRedemptionEventSubPayload(input = {}) {
     normalized: { ...normalized, raw_event: undefined, local_reward: normalized.local_reward ? buildRewardEventPayload(normalized.local_reward).reward : null },
     decision,
     execution,
+    completion,
     redemption: stored,
     stored: true,
     executed: execution.executed === true,
@@ -2249,6 +2375,7 @@ function buildStatus(extra = {}) {
       migrationExecutionEnabled: config.migrationExecutionEnabled !== false,
       localCrudEnabled: config.localCrudEnabled !== false,
       importedRewardActionGuardEnabled: config.importedRewardActionGuardEnabled !== false,
+      twitchRedemptionCompletionEnabled: config.twitchRedemptionCompletionEnabled !== false,
       mediaExecutionBridgeEnabled: config.mediaExecutionBridgeEnabled !== false,
       tableCountPlanned: TABLES.length,
       rewardFieldCount: TABLES[1].fields.length,
@@ -2276,7 +2403,8 @@ function buildStatus(extra = {}) {
       schemaPreviewEnabled: config.schemaPreviewEnabled !== false,
       migrationExecutionEnabled: config.migrationExecutionEnabled !== false,
       localCrudEnabled: config.localCrudEnabled !== false,
-      importedRewardActionGuardEnabled: config.importedRewardActionGuardEnabled !== false
+      importedRewardActionGuardEnabled: config.importedRewardActionGuardEnabled !== false,
+      twitchRedemptionCompletionEnabled: config.twitchRedemptionCompletionEnabled !== false
     },
     twitch: {
       ...buildTwitchSyncStatus().readiness,
