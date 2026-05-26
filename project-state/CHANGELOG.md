@@ -1,9 +1,10 @@
-# Changelog
+# CHANGELOG
 
-## Kanalpunkte Dashboard v0.6.1 - friendly-media-action-editor
+## Commands v0.1.4 - safe-modal-editor
 
-- Benutzerfreundlichen Medien-Aktionseditor ergänzt.
-- Auswahlfelder für `Sound abspielen` und `Video anzeigen` eingeführt.
-- Technische Felder in einen erweiterten Bereich verschoben.
-- Automatische Payload-Erzeugung für `/api/sound/play` ergänzt.
-- Buttons für Ausführungsprüfung und Reward-Test im Editor ergänzt.
+- Backend `commands.js` auf `MODULE_VERSION 0.1.4` gesetzt.
+- `MODULE_BUILD = safe-modal-editor`.
+- `POST /api/commands/upsert` unterstützt sicheres Bearbeiten per `id`/`originalTrigger`.
+- Dashboard `commands.js` durch Modal-Editor ersetzt.
+- Dashboard `commands.css` für Modal-/Karten-/Such-UI ergänzt.
+- `Nur Live` aus normaler Oberfläche entfernt.

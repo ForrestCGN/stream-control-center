@@ -1,63 +1,63 @@
-# Commands-System Deep Dive
+# Commands Modul
 
-Stand: 2026-05-26
+Stand: v0.1.4 (`safe-modal-editor`)
 
 ## Zweck
 
-Zentrales Chat-Command-System für definierbare Chatcommands, Ausführung, Cooldowns, Permissions, Logs und Medien-Aktionen.
+Das Commands-Modul verwaltet Chat-Commands zentral im Backend und stellt ein Dashboard bereit, mit dem Commands erstellt, bearbeitet, gelöscht, gesucht und nach Kategorien angezeigt werden können.
 
-## Runtime-Kennung
+## Aktueller Schwerpunkt v0.1.4
 
-```text
-module = commands
-moduleVersion = 0.1.3
-moduleBuild = media-playback-payload-bridge
+- Dashboard nutzt einen Modal-Editor für neue und bestehende Commands.
+- Bearbeiten speichert bestehende Commands eindeutig per `id`/`originalTrigger`.
+- Ein bearbeiteter Command darf nicht versehentlich als neuer Command angelegt werden.
+- Löschen erfolgt mit Ja/Nein-Rückfrage.
+- Kategorien, Suche und Direkt-Auswahl sind in der normalen UI vorhanden.
+- `Nur Live` ist nicht mehr Teil der normalen Oberfläche. Das Backend-Feld bleibt aus Kompatibilitätsgründen erhalten und wird in der UI standardmäßig auf `false` gesetzt.
+- Medien-Commands bleiben an die Media-Playback-Bridge angebunden: `mediaId -> /api/sound/play`.
+
+## Backend-Version
+
+- `MODULE_VERSION = 0.1.4`
+- `MODULE_BUILD = safe-modal-editor`
+
+## Wichtige Routen
+
+- `GET /api/commands/status`
+- `GET /api/commands/list`
+- `GET /api/commands/catalog`
+- `POST /api/commands/upsert`
+- `POST /api/commands/delete`
+- `GET|POST /api/commands/test`
+- `GET|POST /api/commands/execute`
+- `GET /api/commands/logs`
+- `GET /api/commands/media-command-check`
+
+## Sicheres Bearbeiten
+
+`POST /api/commands/upsert` unterstützt ab v0.1.4 zusätzlich sichere Edit-Parameter:
+
+```json
+{
+  "editMode": true,
+  "id": 123,
+  "originalId": 123,
+  "originalTrigger": "test",
+  "trigger": "test2"
+}
 ```
 
-## Wichtige Änderung v0.1.3
+Wenn ein bestehender Command bearbeitet wird, aktualisiert das Backend den Datensatz per ID. Falls der neue Trigger bereits von einem anderen Command belegt ist, wird `command_trigger_already_exists` zurückgegeben.
 
-Media-Commands (`sound_play`, `video_play`) bauen beim Ausführen jetzt einen echten Sound-System-Payload für `/api/sound/play`.
+## UI-Regeln
 
-Vorher konnte ein Command zwar eine Media-ID speichern, aber beim Ausführen wurde diese Media-ID nicht zuverlässig an das Sound-System übergeben. Zusätzlich existierte in alten Dashboard-Hinweisen noch die Legacy-Route `/api/sound/play-media`, während das Sound-System produktiv `/api/sound/play` nutzt.
+Normale Nutzer sehen zuerst:
 
-v0.1.3 korrigiert das im Backend:
+- Trigger
+- Aliase
+- Aktion auswählen
+- Rechte
+- Cooldowns
+- Aktiv
 
-- Media-Commands bekommen beim Execute `mediaId`, `mediaType`, `type`, `volume`, `target`, `outputTarget`, `source`, `requestedBy` und `meta` im Payload.
-- Legacy-Ziel `/api/sound/play-media` wird beim Ausführen auf `/api/sound/play` umgeschrieben.
-- `/api/commands/media-command-check?trigger=<name>` zeigt Routing und Payload-Vorschau.
-
-## API-Routen
-
-| Methode | Route |
-|---|---|
-| GET | `/api/commands/status` |
-| GET | `/api/commands/list` |
-| GET | `/api/commands/catalog` |
-| POST | `/api/commands/upsert` |
-| POST | `/api/commands/delete` |
-| GET/POST | `/api/commands/test` |
-| GET/POST | `/api/commands/execute` |
-| GET | `/api/commands/media-command-check` |
-| GET | `/api/commands/logs` |
-| GET | `/api/commands/history` |
-
-## Medien-Regel
-
-Commands und Kanalpunkte sollen dasselbe Bedienprinzip nutzen:
-
-```text
-Name/Trigger oder Reward -> Aktionstyp -> Medienauswahl -> zentrale Ausführung
-```
-
-Medien werden nicht direkt im Command-System hochgeladen. Auswahl und Upload bleiben Aufgabe der zentralen Medienverwaltung. Die Ausführung läuft für Sound/Video über das Sound-System.
-
-## Performance-Regel
-
-`/api/commands/status` bleibt leichtgewichtig:
-
-- keine Command-Liste
-- kein vollständiger Katalog
-- keine Recent Logs
-- kein Schema-Touch bei Status
-
-Die schweren Daten liegen auf getrennten Endpunkten.
+Technische Felder liegen im Bereich `Erweitert / technische Details`.

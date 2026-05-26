@@ -1,6 +1,9 @@
 window.CommandsModule = (function(){
   'use strict';
 
+  const UI_VERSION = '0.1.4';
+  const UI_BUILD = 'modal-safe-editor';
+
   const api = {
     status: '/api/commands/status',
     list: '/api/commands/list',
@@ -15,28 +18,33 @@ window.CommandsModule = (function(){
     presenceStop: '/api/twitch/presence/stop'
   };
 
-  const ACTION_TYPES = [
-    { id: 'module_command', icon: '🧩', label: 'Modul-Command', desc: 'Bestehendes Backend-Modul über Ziel-URL ausführen.' },
-    { id: 'chat_message', icon: '💬', label: 'Chat-Text posten', desc: 'Vorbereitet: fester Chattext als Command-Aktion.' },
-    { id: 'random_text', icon: '🎲', label: 'Zufallstext posten', desc: 'Vorbereitet: Textgruppe auswählen und zufällige Variante senden.' },
-    { id: 'sound_play', icon: '🔊', label: 'MP3 / Sound abspielen', desc: 'Vorbereitet: später Auswahl aus zentraler Medienverwaltung.' },
-    { id: 'video_play', icon: '🎬', label: 'Video abspielen', desc: 'Vorbereitet: später Auswahl aus zentraler Medienverwaltung und Overlay-Player.' },
-    { id: 'http_request', icon: '🌐', label: 'HTTP / API aufrufen', desc: 'Technischer API-Aufruf, ähnlich Modul-Command.' },
-    { id: 'multi_action', icon: '🧬', label: 'Multi-Action / Ablauf', desc: 'Vorbereitet: mehrere Schritte nacheinander ausführen.' }
+  const FRIENDLY_ACTIONS = [
+    { id: 'module_command', label: 'Modul-Befehl ausführen', icon: '🧩', help: 'Wählt eine vorhandene Backend-Modulaktion aus dem Katalog, z. B. Deathcounter, Hug oder Tagebuch.' },
+    { id: 'chat_message', label: 'Chat-Nachricht senden', icon: '💬', help: 'Speichert einen festen Chattext als Command-Aktion. Die Ausführung wird später zentral angebunden.' },
+    { id: 'sound_play', label: 'Sound abspielen', icon: '🔊', help: 'Wählt einen Sound aus der Medienverwaltung und führt ihn über /api/sound/play aus.' },
+    { id: 'video_play', label: 'Video anzeigen', icon: '🎬', help: 'Wählt ein Video aus der Medienverwaltung und zeigt es über das Sound-/Overlay-System an.' },
+    { id: 'advanced', label: 'Erweitert / technische Aktion', icon: '⚙️', help: 'Zeigt technische Felder wie Modul, Route, Methode und JSON an.' }
   ];
 
-  const DEFAULT_ACTION_CONFIGS = {
-    module_command: { actionType: 'module_command' },
-    chat_message: { actionType: 'chat_message', message: '', prefer: 'bot' },
-    random_text: { actionType: 'random_text', textGroup: '', prefer: 'bot' },
-    sound_play: { actionType: 'sound_play', mediaId: '', volume: 80, target: 'stream', queue: true, priority: 'normal' },
-    video_play: { actionType: 'video_play', mediaId: '', overlay: 'command_video_overlay', volume: 80, durationMode: 'auto', withSound: true },
-    http_request: { actionType: 'http_request' },
-    multi_action: { actionType: 'multi_action', steps: [] }
+  const DEFAULT_COMMAND = {
+    id: 0,
+    trigger: '',
+    aliases: [],
+    moduleKey: '',
+    actionKey: '',
+    targetMethod: 'POST',
+    targetUrl: '',
+    enabled: true,
+    permissionLevel: 'everyone',
+    cooldownGlobalMs: 1000,
+    cooldownUserMs: 3000,
+    liveOnly: false,
+    responseMode: 'module',
+    config: { actionType: 'module_command' }
   };
 
   const state = {
-    tab: 'overview',
+    tab: 'manage',
     loading: false,
     error: '',
     notice: '',
@@ -44,12 +52,16 @@ window.CommandsModule = (function(){
     list: null,
     logs: null,
     catalog: null,
-    selectedCatalogCategory: '',
     presence: null,
+    query: '',
+    categoryFilter: 'all',
     selectedTrigger: '',
-    testMessage: '!dcount show',
+    selectedCommandId: 0,
+    modal: null,
+    confirmDelete: null,
+    testMessage: '!test',
     testUser: 'forrestcgn',
-    testRole: 'mod',
+    testRole: 'owner',
     testResult: null
   };
 
@@ -59,163 +71,113 @@ window.CommandsModule = (function(){
     return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
 
-  function commands() {
-    const list = Array.isArray(state.list?.commands) ? state.list.commands : [];
-    const fallback = Array.isArray(state.status?.commands) ? state.status.commands : [];
-    return list.length ? list : fallback;
+  function clone(value) { return JSON.parse(JSON.stringify(value || {})); }
+  function cleanTrigger(value) { return String(value || '').trim().replace(/^[!./]+/, '').toLowerCase(); }
+  function commands() { return Array.isArray(state.list?.commands) ? state.list.commands : []; }
+  function logs() { return Array.isArray(state.logs?.logs) ? state.logs.logs : []; }
+  function catalogCategories() { return Array.isArray(state.catalog?.categories) ? state.catalog.categories : []; }
+  function catalogActions() { return Array.isArray(state.catalog?.actions) ? state.catalog.actions : []; }
+  function byId(id) { return document.getElementById(id); }
+  function field(id) { return root?.querySelector(`[data-cmd-modal-field="${id}"]`); }
+
+  function actionType(cmd) {
+    const raw = String(cmd?.config?.actionType || '').trim();
+    if (['sound_play','video_play','chat_message','module_command'].includes(raw)) return raw;
+    if (cmd?.targetUrl || cmd?.moduleKey) return 'module_command';
+    return 'module_command';
   }
 
-  function logs() {
-    const list = Array.isArray(state.logs?.logs) ? state.logs.logs : [];
-    const fallback = Array.isArray(state.status?.recent) ? state.status.recent : [];
-    return list.length ? list : fallback;
+  function friendlyAction(cmd) {
+    const type = actionType(cmd);
+    if (type === 'sound_play') return FRIENDLY_ACTIONS.find(a => a.id === 'sound_play');
+    if (type === 'video_play') return FRIENDLY_ACTIONS.find(a => a.id === 'video_play');
+    if (type === 'chat_message') return FRIENDLY_ACTIONS.find(a => a.id === 'chat_message');
+    return FRIENDLY_ACTIONS.find(a => a.id === 'module_command');
   }
 
-  function activeCommands() { return commands().filter(cmd => cmd.enabled !== false); }
-
-  function normalizeActionType(value) {
-    const clean = String(value || '').trim();
-    return ACTION_TYPES.some(item => item.id === clean) ? clean : 'module_command';
-  }
-
-  function commandActionType(cmd) {
-    return normalizeActionType(cmd?.config?.actionType || cmd?.config?.type || (cmd?.moduleKey || cmd?.targetUrl ? 'module_command' : 'module_command'));
-  }
-
-  function actionMeta(type) {
-    return ACTION_TYPES.find(item => item.id === normalizeActionType(type)) || ACTION_TYPES[0];
-  }
-
-  function catalogCategories() {
-    return Array.isArray(state.catalog?.categories) ? state.catalog.categories : [];
-  }
-
-  function catalogActions() {
-    return Array.isArray(state.catalog?.actions) ? state.catalog.actions : [];
-  }
-
-  function catalogActionById(id) {
-    const clean = String(id || '').trim();
-    if (!clean) return null;
-    return catalogActions().find(action => action.id === clean) || null;
-  }
-
-  function categoryForCatalogAction(actionId) {
-    const action = catalogActionById(actionId);
-    if (action?.categoryId) return action.categoryId;
-    for (const category of catalogCategories()) {
-      if ((category.actions || []).some(item => item.id === actionId)) return category.id;
+  function commandCategory(cmd) {
+    const actionId = String(cmd?.config?.catalogActionId || '').trim();
+    if (actionId) {
+      const found = catalogActions().find(a => a.id === actionId);
+      if (found?.categoryId) return found.categoryId;
+      for (const cat of catalogCategories()) {
+        if (Array.isArray(cat.actions) && cat.actions.some(a => a.id === actionId)) return cat.id;
+      }
     }
-    return '';
+    const type = actionType(cmd);
+    if (type === 'sound_play' || type === 'video_play') return 'media';
+    if (cmd?.moduleKey) return String(cmd.moduleKey).toLowerCase();
+    return 'general';
   }
 
-  function selectedCatalogCategory(cmd) {
-    const fromCommand = categoryForCatalogAction(cmd?.config?.catalogActionId || '');
-    if (fromCommand) {
-      state.selectedCatalogCategory = fromCommand;
-      return fromCommand;
+  function categoryLabel(categoryId) {
+    if (categoryId === 'media') return 'Medien';
+    if (categoryId === 'general') return 'Allgemein';
+    const found = catalogCategories().find(c => c.id === categoryId);
+    return found?.label || categoryId || 'Allgemein';
+  }
+
+  function allCategories() {
+    const map = new Map();
+    for (const cat of catalogCategories()) map.set(cat.id, cat.label || cat.id);
+    map.set('media', 'Medien');
+    map.set('general', 'Allgemein');
+    for (const cmd of commands()) {
+      const id = commandCategory(cmd);
+      if (!map.has(id)) map.set(id, categoryLabel(id));
     }
-    const categories = catalogCategories();
-    if (state.selectedCatalogCategory && categories.some(category => category.id === state.selectedCatalogCategory)) {
-      return state.selectedCatalogCategory;
+    return Array.from(map.entries()).map(([id,label]) => ({ id, label })).sort((a,b) => String(a.label).localeCompare(String(b.label), 'de'));
+  }
+
+  function filteredCommands() {
+    const q = String(state.query || '').trim().toLowerCase();
+    return commands().filter(cmd => {
+      const cat = commandCategory(cmd);
+      if (state.categoryFilter !== 'all' && cat !== state.categoryFilter) return false;
+      if (!q) return true;
+      const hay = [cmd.trigger, (cmd.aliases || []).join(' '), cmd.moduleKey, cmd.actionKey, cmd.targetUrl, cmd.permissionLevel, friendlyAction(cmd)?.label, categoryLabel(cat)].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function groupCommands(list) {
+    const groups = new Map();
+    for (const cmd of list) {
+      const cat = commandCategory(cmd);
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat).push(cmd);
     }
-    state.selectedCatalogCategory = categories[0]?.id || '';
-    return state.selectedCatalogCategory;
-  }
-
-  function catalogActionsForCategory(categoryId) {
-    const category = catalogCategories().find(item => item.id === categoryId);
-    if (category && Array.isArray(category.actions)) return category.actions;
-    return catalogActions().filter(action => action.categoryId === categoryId);
-  }
-
-  function selectedCatalogActionId(cmd) {
-    const configured = String(cmd?.config?.catalogActionId || '').trim();
-    if (configured && catalogActionById(configured)) return configured;
-    const actions = catalogActionsForCategory(selectedCatalogCategory(cmd));
-    return actions[0]?.id || '';
-  }
-
-  function applyCatalogActionDefaults(actionId) {
-    const action = catalogActionById(actionId);
-    if (!action) throw new Error('Keine Modul-Aktion ausgewählt.');
-    const current = selectedCommand() || {};
-    const nextConfig = {
-      ...(current.config || {}),
-      ...(action.config || {}),
-      actionType: 'module_command',
-      catalogActionId: action.id
-    };
-    const next = {
-      ...current,
-      trigger: action.defaultTrigger || current.trigger || '',
-      aliases: Array.isArray(action.defaultAliases) ? action.defaultAliases : (current.aliases || []),
-      moduleKey: action.moduleKey || current.moduleKey || '',
-      actionKey: action.actionKey || current.actionKey || 'command',
-      targetMethod: action.targetMethod || current.targetMethod || 'POST',
-      targetUrl: action.targetUrl || current.targetUrl || '',
-      permissionLevel: action.permissionLevel || current.permissionLevel || 'everyone',
-      cooldownGlobalMs: Number(action.cooldownGlobalMs ?? current.cooldownGlobalMs ?? 1000),
-      cooldownUserMs: Number(action.cooldownUserMs ?? current.cooldownUserMs ?? 3000),
-      responseMode: action.responseMode || current.responseMode || 'module',
-      config: nextConfig
-    };
-
-    const list = commands();
-    const replaced = list.some(cmd => cmd.trigger === current.trigger);
-    state.list = { commands: replaced ? list.map(cmd => cmd.trigger === current.trigger ? next : cmd) : [next, ...list] };
-    state.selectedTrigger = next.trigger || current.trigger || '';
-    state.selectedCatalogCategory = action.categoryId || state.selectedCatalogCategory;
-    state.notice = `Defaults übernommen: ${action.label || action.id}`;
-    render();
+    return Array.from(groups.entries()).map(([id, items]) => ({ id, label: categoryLabel(id), items: items.sort((a,b) => String(a.trigger).localeCompare(String(b.trigger), 'de')) })).sort((a,b) => a.label.localeCompare(b.label, 'de'));
   }
 
   function selectedCommand() {
-    const list = commands();
-    if (!list.length) return null;
-    if (!state.selectedTrigger || !list.some(cmd => cmd.trigger === state.selectedTrigger)) {
-      state.selectedTrigger = list[0].trigger;
+    if (state.selectedCommandId) {
+      const found = commands().find(c => Number(c.id || 0) === Number(state.selectedCommandId));
+      if (found) return found;
     }
-    return list.find(cmd => cmd.trigger === state.selectedTrigger) || list[0];
+    if (state.selectedTrigger) {
+      const found = commands().find(c => c.trigger === state.selectedTrigger);
+      if (found) return found;
+    }
+    return filteredCommands()[0] || commands()[0] || null;
   }
 
-  function pill(label, mode) {
-    return `<span class="cmd-pill ${esc(mode || '')}">${esc(label)}</span>`;
-  }
-
-  function iconButton(icon, label, attr, extraClass = '') {
-    return `<button type="button" class="cmd-icon-btn ${extraClass}" ${attr || ''} title="${esc(label)}" aria-label="${esc(label)}"><span>${esc(icon)}</span></button>`;
-  }
-
-  function valueOrDash(value) {
-    if (value === undefined || value === null || value === '') return '<span class="cmd-muted">-</span>';
-    return esc(value);
-  }
-
-  function aliasText(cmd) { return Array.isArray(cmd?.aliases) ? cmd.aliases.join(', ') : ''; }
-
-  function getField(name) { return root?.querySelector(`[data-cmd-field="${name}"]`); }
-
-  function readJSONField(name, fallback = {}) {
-    const raw = String(getField(name)?.value || '').trim();
-    if (!raw) return fallback;
-    try { return JSON.parse(raw); } catch (err) { throw new Error(`${name}-JSON ungültig: ${err.message}`); }
-  }
+  function pill(label, mode) { return `<span class="cmd-pill ${esc(mode || '')}">${esc(label)}</span>`; }
+  function help(text) { return `<span class="cmd-help-dot" title="${esc(text)}">?</span>`; }
+  function rowLabel(label, helpText) { return `${esc(label)} ${helpText ? help(helpText) : ''}`; }
 
   async function loadAll(force) {
     root = document.getElementById('commandsModule');
     if (!root || !window.CGN) return;
-    if (!force && state.status && state.list && state.logs && state.catalog && state.presence) { render(); return; }
-
+    if (!force && state.status && state.list && state.catalog) { render(); return; }
     state.loading = true;
     state.error = '';
     render();
-
     try {
       const [status, list, logsRes, catalog, presence] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.list),
-        window.CGN.api(`${api.logs}?limit=10`),
+        window.CGN.api(`${api.logs}?limit=15`).catch(err => ({ ok:false, logs:[], error: err.message })),
         window.CGN.api(api.catalog).catch(err => ({ ok:false, categories:[], actions:[], error: err.message })),
         window.CGN.api(api.presenceStatus).catch(err => ({ ok:false, error: err.message }))
       ]);
@@ -224,120 +186,249 @@ window.CommandsModule = (function(){
       state.logs = logsRes;
       state.catalog = catalog;
       state.presence = presence;
-      state.loading = false;
     } catch (err) {
-      state.loading = false;
       state.error = err.message || String(err);
+    } finally {
+      state.loading = false;
+      render();
     }
+  }
 
+  function openCreateModal() {
+    state.modal = {
+      mode: 'create',
+      title: 'Neuen Command erstellen',
+      originalId: 0,
+      originalTrigger: '',
+      data: clone(DEFAULT_COMMAND)
+    };
     render();
   }
 
-  async function refreshOnly() { await loadAll(true); }
+  function openEditModal(cmd) {
+    if (!cmd) return;
+    state.modal = {
+      mode: 'edit',
+      title: `Command !${cmd.trigger} bearbeiten`,
+      originalId: Number(cmd.id || 0),
+      originalTrigger: cmd.trigger,
+      data: clone(cmd)
+    };
+    render();
+  }
 
-  function readActionConfig(actionType) {
-    const type = normalizeActionType(actionType);
-    const base = { ...(DEFAULT_ACTION_CONFIGS[type] || DEFAULT_ACTION_CONFIGS.module_command) };
+  function openDeleteConfirm(cmd) {
+    if (!cmd) return;
+    state.confirmDelete = { id: Number(cmd.id || 0), trigger: cmd.trigger, label: `!${cmd.trigger}` };
+    render();
+  }
 
-    if (type === 'chat_message') {
-      base.message = String(getField('chatMessage')?.value || '').trim();
-      base.prefer = String(getField('chatPrefer')?.value || 'bot').trim();
-    } else if (type === 'random_text') {
-      base.textGroup = String(getField('textGroup')?.value || '').trim();
-      base.prefer = String(getField('textPrefer')?.value || 'bot').trim();
-    } else if (type === 'sound_play') {
-      base.mediaId = String(getField('soundMediaId')?.value || '').trim();
-      base.volume = Number(getField('soundVolume')?.value || 80);
-      base.target = String(getField('soundTarget')?.value || 'stream').trim();
-      base.queue = !!getField('soundQueue')?.checked;
-      base.priority = String(getField('soundPriority')?.value || 'normal').trim();
-    } else if (type === 'video_play') {
-      base.mediaId = String(getField('videoMediaId')?.value || '').trim();
-      base.overlay = String(getField('videoOverlay')?.value || 'command_video_overlay').trim();
-      base.volume = Number(getField('videoVolume')?.value || 80);
-      base.durationMode = String(getField('videoDurationMode')?.value || 'auto').trim();
-      base.withSound = !!getField('videoWithSound')?.checked;
-    } else if (type === 'multi_action') {
-      base.steps = readJSONField('multiSteps', []);
+  function closeModal() { state.modal = null; state.confirmDelete = null; render(); }
+
+  function catalogActionById(id) { return catalogActions().find(a => a.id === id) || null; }
+
+  function applyCatalogDefaultsInModal(actionId) {
+    const action = catalogActionById(actionId);
+    if (!action || !state.modal) return;
+    const cmd = state.modal.data;
+    cmd.trigger = action.defaultTrigger || cmd.trigger || '';
+    cmd.aliases = Array.isArray(action.defaultAliases) ? action.defaultAliases : (cmd.aliases || []);
+    cmd.moduleKey = action.moduleKey || cmd.moduleKey || '';
+    cmd.actionKey = action.actionKey || cmd.actionKey || 'command';
+    cmd.targetMethod = action.targetMethod || cmd.targetMethod || 'POST';
+    cmd.targetUrl = action.targetUrl || cmd.targetUrl || '';
+    cmd.permissionLevel = action.permissionLevel || cmd.permissionLevel || 'everyone';
+    cmd.cooldownGlobalMs = Number(action.cooldownGlobalMs ?? cmd.cooldownGlobalMs ?? 1000);
+    cmd.cooldownUserMs = Number(action.cooldownUserMs ?? cmd.cooldownUserMs ?? 3000);
+    cmd.responseMode = action.responseMode || cmd.responseMode || 'module';
+    cmd.config = { ...(cmd.config || {}), ...(action.config || {}), actionType: 'module_command', catalogActionId: action.id };
+    state.notice = `Defaults übernommen: ${action.label || action.id}`;
+    render();
+  }
+
+  function modalActionType() {
+    const select = field('friendlyAction');
+    return String(select?.value || state.modal?.data?.config?.actionType || 'module_command');
+  }
+
+  function readJsonTextarea(name, fallback) {
+    const raw = String(field(name)?.value || '').trim();
+    if (!raw) return fallback;
+    try { return JSON.parse(raw); }
+    catch (err) { throw new Error(`${name}: JSON ist ungültig (${err.message})`); }
+  }
+
+  function readModalPayload() {
+    if (!state.modal) throw new Error('Kein Editor geöffnet.');
+    const mode = state.modal.mode;
+    const original = state.modal.data || {};
+    const action = modalActionType();
+    const trigger = cleanTrigger(field('trigger')?.value || '');
+    if (!trigger) throw new Error('Trigger fehlt.');
+
+    const cfgAdvanced = readJsonTextarea('configJson', {});
+    let config = { ...cfgAdvanced, actionType: action };
+    let moduleKey = String(field('moduleKey')?.value || original.moduleKey || '').trim();
+    let actionKey = String(field('actionKey')?.value || original.actionKey || '').trim();
+    let targetUrl = String(field('targetUrl')?.value || original.targetUrl || '').trim();
+    let targetMethod = String(field('targetMethod')?.value || original.targetMethod || 'POST').trim().toUpperCase() || 'POST';
+    let responseMode = String(field('responseMode')?.value || original.responseMode || 'module').trim();
+
+    if (action === 'module_command') {
+      const catalogActionId = String(field('catalogAction')?.value || original.config?.catalogActionId || '').trim();
+      const catalogAction = catalogActionById(catalogActionId);
+      if (catalogAction) {
+        moduleKey = catalogAction.moduleKey || moduleKey;
+        actionKey = catalogAction.actionKey || actionKey || 'command';
+        targetUrl = catalogAction.targetUrl || targetUrl;
+        targetMethod = catalogAction.targetMethod || targetMethod;
+        responseMode = catalogAction.responseMode || responseMode;
+        config = { ...config, ...(catalogAction.config || {}), actionType: 'module_command', catalogActionId };
+      }
     }
 
-    const advancedConfig = readJSONField('config', {});
-    return { ...advancedConfig, ...base, actionType: type };
+    if (action === 'chat_message') {
+      config.message = String(field('chatMessage')?.value || '').trim();
+      config.prefer = String(field('chatPrefer')?.value || 'bot').trim();
+      moduleKey = moduleKey || 'chat_output';
+      actionKey = actionKey || 'send_message';
+      responseMode = responseMode || 'module';
+    }
+
+    if (action === 'sound_play') {
+      const mediaId = String(field('soundMediaId')?.value || '').trim();
+      config.mediaId = mediaId;
+      config.volume = Number(field('soundVolume')?.value || 80);
+      config.target = 'stream';
+      config.queue = true;
+      moduleKey = 'sound_media_bridge';
+      actionKey = 'play_audio_media';
+      targetMethod = 'POST';
+      targetUrl = mediaId ? `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}` : '/api/sound/play';
+      responseMode = 'module';
+    }
+
+    if (action === 'video_play') {
+      const mediaId = String(field('videoMediaId')?.value || '').trim();
+      config.mediaId = mediaId;
+      config.mediaType = 'video';
+      config.type = 'video';
+      config.volume = Number(field('videoVolume')?.value || 80);
+      config.overlay = String(field('videoOverlay')?.value || 'command_video_overlay').trim();
+      config.durationMode = 'auto';
+      config.withSound = field('videoWithSound')?.checked !== false;
+      moduleKey = 'sound_media_bridge';
+      actionKey = 'play_video_media';
+      targetMethod = 'POST';
+      targetUrl = mediaId ? `/api/sound/play-media?mediaId=${encodeURIComponent(mediaId)}` : '/api/sound/play';
+      responseMode = 'module';
+    }
+
+    return {
+      id: mode === 'edit' ? Number(state.modal.originalId || 0) : undefined,
+      originalId: mode === 'edit' ? Number(state.modal.originalId || 0) : undefined,
+      originalTrigger: mode === 'edit' ? state.modal.originalTrigger : undefined,
+      editMode: mode === 'edit',
+      trigger,
+      aliases: String(field('aliases')?.value || '').split(/[\s,;]+/).map(cleanTrigger).filter(Boolean),
+      moduleKey,
+      actionKey,
+      targetMethod,
+      targetUrl,
+      enabled: field('enabled')?.checked !== false,
+      permissionLevel: String(field('permissionLevel')?.value || 'everyone').trim(),
+      cooldownGlobalMs: Math.max(0, Number(field('cooldownGlobalMs')?.value || 0)),
+      cooldownUserMs: Math.max(0, Number(field('cooldownUserMs')?.value || 0)),
+      liveOnly: false,
+      responseMode,
+      config
+    };
   }
 
-  function readEditor() {
-    const enabled = !!getField('enabled')?.checked;
-    const liveOnly = !!getField('liveOnly')?.checked;
-    const trigger = String(getField('trigger')?.value || '').trim();
-    const aliases = String(getField('aliases')?.value || '').trim();
-    const actionType = normalizeActionType(getField('actionType')?.value || 'module_command');
-    const moduleKey = String(getField('moduleKey')?.value || '').trim();
-    const actionKey = String(getField('actionKey')?.value || '').trim();
-    const targetMethod = String(getField('targetMethod')?.value || 'POST').trim().toUpperCase();
-    const targetUrl = String(getField('targetUrl')?.value || '').trim();
-    const permissionLevel = String(getField('permissionLevel')?.value || 'everyone').trim();
-    const cooldownGlobalMs = Number(getField('cooldownGlobalMs')?.value || 0);
-    const cooldownUserMs = Number(getField('cooldownUserMs')?.value || 0);
-    const responseMode = String(getField('responseMode')?.value || 'module').trim();
-    const config = readActionConfig(actionType);
-    return { trigger, aliases, moduleKey, actionKey, targetMethod, targetUrl, enabled, permissionLevel, cooldownGlobalMs, cooldownUserMs, liveOnly, responseMode, config };
-  }
-
-  async function saveCommand() {
-    const payload = readEditor();
-    if (!payload.trigger) throw new Error('Trigger fehlt.');
-    await window.CGN.api(api.upsert, { method: 'POST', body: JSON.stringify(payload) });
-    state.notice = `Command !${payload.trigger} gespeichert.`;
-    state.selectedTrigger = payload.trigger.replace(/^[!./]+/, '').toLowerCase();
+  async function saveModalCommand() {
+    const payload = readModalPayload();
+    const result = await window.CGN.api(api.upsert, { method: 'POST', body: JSON.stringify(payload) });
+    const cmd = result.command || result.data?.command || payload;
+    state.notice = payload.editMode ? `Command !${cmd.trigger || payload.trigger} aktualisiert.` : `Command !${cmd.trigger || payload.trigger} erstellt.`;
+    state.selectedTrigger = cmd.trigger || payload.trigger;
+    state.selectedCommandId = Number(cmd.id || payload.id || 0);
+    state.modal = null;
     await loadAll(true);
   }
 
-  async function duplicateCommand() {
-    const cmd = selectedCommand();
-    if (!cmd) return;
-    const nextTrigger = `${cmd.trigger}_neu`;
-    await window.CGN.api(api.upsert, { method: 'POST', body: JSON.stringify({ ...cmd, trigger: nextTrigger, aliases: [] }) });
-    state.selectedTrigger = nextTrigger;
-    state.notice = `Command !${nextTrigger} als Kopie angelegt.`;
-    await loadAll(true);
-  }
-
-  async function deleteSelectedCommand() {
-    const cmd = selectedCommand();
-    if (!cmd) return;
-    if (!window.confirm(`Command !${cmd.trigger} wirklich löschen?`)) return;
-    await window.CGN.api(api.delete, { method: 'POST', body: JSON.stringify({ trigger: cmd.trigger }) });
-    state.notice = `Command !${cmd.trigger} gelöscht.`;
+  async function deleteConfirmed() {
+    const item = state.confirmDelete;
+    if (!item) return;
+    await window.CGN.api(api.delete, { method: 'POST', body: JSON.stringify({ id: item.id, trigger: item.trigger }) });
+    state.notice = `Command ${item.label} gelöscht.`;
     state.selectedTrigger = '';
+    state.selectedCommandId = 0;
+    state.confirmDelete = null;
+    state.modal = null;
     await loadAll(true);
   }
 
-  async function runCommandTest(execute) {
+  async function duplicateCommand(cmd) {
+    if (!cmd) return;
+    const copy = clone(cmd);
+    copy.id = 0;
+    copy.trigger = `${cmd.trigger}_kopie`;
+    copy.aliases = [];
+    state.modal = { mode: 'create', title: `Kopie von !${cmd.trigger} erstellen`, originalId: 0, originalTrigger: '', data: copy };
+    render();
+  }
+
+  async function runTest(execute) {
     const message = String(root?.querySelector('[data-test-message]')?.value || state.testMessage || '').trim();
     const user = String(root?.querySelector('[data-test-user]')?.value || state.testUser || 'forrestcgn').trim();
-    const role = String(root?.querySelector('[data-test-role]')?.value || state.testRole || 'mod').trim();
-    state.testMessage = message;
-    state.testUser = user;
-    state.testRole = role;
+    const role = String(root?.querySelector('[data-test-role]')?.value || state.testRole || 'owner').trim();
+    state.testMessage = message; state.testUser = user; state.testRole = role;
     const target = execute ? api.execute : api.test;
-    const url = `${target}?message=${encodeURIComponent(message)}&user=${encodeURIComponent(user)}&role=${encodeURIComponent(role)}`;
-    state.testResult = await window.CGN.api(url);
-    state.notice = execute ? 'Command ausgeführt.' : 'Command-Test ausgeführt.';
-    await loadAll(true);
+    state.testResult = await window.CGN.api(`${target}?message=${encodeURIComponent(message)}&user=${encodeURIComponent(user)}&role=${encodeURIComponent(role)}`);
+    state.notice = execute ? 'Command ausgeführt.' : 'Command getestet.';
     state.tab = 'diagnostics';
-    render();
-  }
-
-  async function presenceStart() {
-    const res = await window.CGN.api(api.presenceStart);
-    state.notice = res.ok ? 'Twitch-Presence gestartet.' : 'Twitch-Presence Start geprüft.';
     await loadAll(true);
   }
 
-  async function presenceStop() {
-    const res = await window.CGN.api(api.presenceStop);
-    state.notice = res.ok ? 'Twitch-Presence gestoppt.' : 'Twitch-Presence Stop geprüft.';
-    await loadAll(true);
+  function renderHeader() {
+    const status = state.status || {};
+    return `<section class="cmd-card cmd-hero">
+      <div><h2>⌨️ Commands</h2><p>Commands erstellen, bearbeiten, löschen und nach Kategorien verwalten. UI ${esc(UI_VERSION)} · ${esc(UI_BUILD)}</p></div>
+      <div class="cmd-actions"><button type="button" data-new-command>+ Neuer Command</button><button type="button" data-cmd-refresh>Neu laden</button></div>
+      <div class="cmd-mini-status">Backend: <strong>${esc(status.moduleVersion || status.version || '-')}</strong> ${status.moduleBuild ? `· ${esc(status.moduleBuild)}` : ''}</div>
+    </section>`;
+  }
+
+  function renderToolbar() {
+    return `<section class="cmd-toolbar">
+      <label>Command suchen ${help('Sucht in Trigger, Alias, Kategorie, Modul, Aktion und Rechten.')}<input data-cmd-search type="search" value="${esc(state.query)}" placeholder="z. B. test, hug, media, mod..."></label>
+      <label>Kategorie ${help('Filtert die Liste nach Command-Kategorie.')}<select data-cmd-category-filter><option value="all">Alle Kategorien</option>${allCategories().map(c => `<option value="${esc(c.id)}" ${state.categoryFilter === c.id ? 'selected' : ''}>${esc(c.label)}</option>`).join('')}</select></label>
+      <label>Command direkt wählen ${help('Springt direkt zu einem vorhandenen Command und öffnet ihn zum Bearbeiten.')}<select data-cmd-jump><option value="">Command auswählen...</option>${commands().map(c => `<option value="${esc(c.id)}" ${Number(c.id) === Number(state.selectedCommandId) ? 'selected' : ''}>!${esc(c.trigger)} — ${esc(friendlyAction(c)?.label || 'Command')}</option>`).join('')}</select></label>
+    </section>`;
+  }
+
+  function renderCommandCard(cmd) {
+    const action = friendlyAction(cmd);
+    const aliases = Array.isArray(cmd.aliases) && cmd.aliases.length ? `Alias: ${cmd.aliases.map(a => `!${a}`).join(', ')}` : 'Keine Aliase';
+    return `<article class="cmd-command-card ${Number(cmd.id) === Number(state.selectedCommandId) || cmd.trigger === state.selectedTrigger ? 'active' : ''}">
+      <button type="button" class="cmd-command-main" data-edit-command="${esc(cmd.id)}">
+        <span class="cmd-command-title">!${esc(cmd.trigger)}</span>
+        <span class="cmd-command-meta">${esc(aliases)} · ${esc(cmd.permissionLevel || 'everyone')} · ${esc(cmd.cooldownGlobalMs || 0)}ms / ${esc(cmd.cooldownUserMs || 0)}ms</span>
+      </button>
+      <div class="cmd-command-pills">${pill(`${action.icon} ${action.label}`, 'neutral')}${cmd.enabled !== false ? pill('aktiv','ok') : pill('aus','warn')}</div>
+      <div class="cmd-card-actions"><button type="button" data-edit-command="${esc(cmd.id)}">Bearbeiten</button><button type="button" data-duplicate-command="${esc(cmd.id)}">Kopieren</button><button type="button" class="danger" data-delete-command="${esc(cmd.id)}">Löschen</button></div>
+    </article>`;
+  }
+
+  function renderManage() {
+    const groups = groupCommands(filteredCommands());
+    return `<div class="cmd-manage-new">
+      ${renderToolbar()}
+      <section class="cmd-card">
+        <div class="cmd-section-head"><h3>Commands nach Kategorien</h3><span>${filteredCommands().length}/${commands().length} Commands</span></div>
+        ${groups.map(group => `<div class="cmd-category-block"><h4>${esc(group.label)}</h4><div class="cmd-command-grid">${group.items.map(renderCommandCard).join('')}</div></div>`).join('') || '<div class="cmd-empty">Keine Commands gefunden.</div>'}
+      </section>
+    </div>`;
   }
 
   function renderOverview() {
@@ -345,268 +436,106 @@ window.CommandsModule = (function(){
     const stats = st.stats || {};
     const presence = state.presence || {};
     const connected = !!(presence.connected && presence.joined);
-    return `
-      <div class="cmd-grid cmd-grid-main">
-        <section class="cmd-card cmd-card-main">
-          <div class="cmd-headline">
-            <div><h3>Übersicht</h3><p>Nur Status und Schnellaktionen. Verwaltung, Logs und Diagnose liegen in eigenen Tabs.</p></div>
-            ${pill(st.enabled ? 'Command-System aktiv' : 'Command-System aus', st.enabled ? 'ok' : 'warn')}
-          </div>
-          <div class="cmd-kpis">
-            <div><strong>${esc(activeCommands().length)}</strong><span>aktive Commands</span></div>
-            <div><strong>${esc(commands().length)}</strong><span>gesamt</span></div>
-            <div><strong>${esc(stats.executed || 0)}</strong><span>seit Neustart ausgeführt</span></div>
-            <div><strong>${esc(stats.failed || 0)}</strong><span>Fehler</span></div>
-          </div>
-          <div class="cmd-info-list">
-            <div><span>Core-Step</span><strong>${esc(st.step || '-')}</strong></div>
-            <div><span>Prefix</span><strong>${esc(st.prefix || '!')}</strong></div>
-            <div><span>Schema</span><strong>${st.schemaOk ? 'OK' : esc(st.schemaError || 'Fehler')}</strong></div>
-            <div><span>Letzter Fehler</span><strong>${valueOrDash(stats.lastError)}</strong></div>
-            <div><span>Letzter Command</span><strong>${valueOrDash(stats.lastCommand?.rawMessage || '')}</strong></div>
-          </div>
-        </section>
-        <section class="cmd-card">
-          <div class="cmd-headline compact"><div><h3>Twitch-Presence</h3><p>Ohne aktive Presence kommen keine echten Chatbefehle im Backend an.</p></div>${pill(connected ? 'verbunden' : 'nicht verbunden', connected ? 'ok' : 'bad')}</div>
-          <div class="cmd-info-list small">
-            <div><span>Bot</span><strong>${valueOrDash(presence.bot_username)}</strong></div>
-            <div><span>Channel</span><strong>${valueOrDash(presence.channel)}</strong></div>
-            <div><span>desired</span><strong>${String(!!presence.desiredActive)}</strong></div>
-            <div><span>joined</span><strong>${String(!!presence.joined)}</strong></div>
-            <div><span>lastError</span><strong>${valueOrDash(presence.last_error)}</strong></div>
-          </div>
-          <div class="cmd-actions">${iconButton('▶️','Presence starten','data-presence-start')} ${iconButton('⏹️','Presence stoppen','data-presence-stop')}</div>
-        </section>
-      </div>
-      <section class="cmd-card">
-        <div class="cmd-headline"><div><h3>Letzte Logs</h3><p>Nur die letzten 5 Einträge. Vollständige Ansicht im Tab Logs.</p></div>${iconButton('📜','Logs öffnen','data-cmd-tab-jump="logs"')}</div>
-        ${renderLogsTable(logs().slice(0, 5))}
-      </section>`;
-  }
-
-  function renderCommandList() {
-    const list = commands();
-    return `<div class="cmd-side-list">${list.map(cmd => {
-      const meta = actionMeta(commandActionType(cmd));
-      return `<button type="button" class="cmd-side-item ${cmd.trigger === state.selectedTrigger ? 'active' : ''}" data-select-command="${esc(cmd.trigger)}">
-        <span><strong>!${esc(cmd.trigger)}</strong><small>${esc(meta.icon)} ${esc(meta.label)}</small></span>
-        ${cmd.enabled ? pill('aktiv', 'ok') : pill('aus', 'warn')}
-      </button>`;
-    }).join('') || '<div class="cmd-empty">Keine Commands vorhanden.</div>'}</div>`;
-  }
-
-  function renderActionTypeSelect(cmd) {
-    const current = commandActionType(cmd);
-    return `<label>Action-Typ <select data-cmd-field="actionType" data-action-type-select>${ACTION_TYPES.map(item => `<option value="${esc(item.id)}" ${current === item.id ? 'selected' : ''}>${esc(item.icon)} ${esc(item.label)}</option>`).join('')}</select><small>${esc(actionMeta(current).desc)}</small></label>`;
-  }
-
-  function renderActionSpecificFields(cmd) {
-    const cfg = cmd.config || {};
-    const type = commandActionType(cmd);
-    if (type === 'chat_message') {
-      return `<div class="cmd-action-box"><h4>💬 Chat-Text posten</h4><label>Chattext<textarea data-cmd-field="chatMessage" placeholder="Text, der in den Chat gepostet werden soll...">${esc(cfg.message || '')}</textarea></label><label>Senden als<select data-cmd-field="chatPrefer"><option value="bot" ${cfg.prefer !== 'streamer' ? 'selected' : ''}>Bot bevorzugt</option><option value="streamer" ${cfg.prefer === 'streamer' ? 'selected' : ''}>Streamer bevorzugt</option></select></label><p class="cmd-help">Backend-Ausführung für diesen Action-Typ folgt in einem späteren Step. Aktuell wird die Konfiguration vorbereitet.</p></div>`;
-    }
-    if (type === 'random_text') {
-      return `<div class="cmd-action-box"><h4>🎲 Zufallstext posten</h4><label>Textgruppe<input data-cmd-field="textGroup" value="${esc(cfg.textGroup || '')}" placeholder="youtube_promo"></label><label>Senden als<select data-cmd-field="textPrefer"><option value="bot" ${cfg.prefer !== 'streamer' ? 'selected' : ''}>Bot bevorzugt</option><option value="streamer" ${cfg.prefer === 'streamer' ? 'selected' : ''}>Streamer bevorzugt</option></select></label><p class="cmd-help">Textgruppen bekommen einen eigenen Tab/Step, damit Zufallstexte nicht im Command-Formular versteckt werden.</p></div>`;
-    }
-    if (type === 'sound_play') {
-      return `<div class="cmd-action-box"><h4>🔊 MP3 / Sound abspielen</h4><div class="cmd-form-grid"><label>Medium-ID<input data-cmd-field="soundMediaId" value="${esc(cfg.mediaId || '')}" placeholder="kommt aus Medienverwaltung"></label><label>Lautstärke %<input type="number" min="0" max="100" data-cmd-field="soundVolume" value="${esc(cfg.volume ?? 80)}"></label><label>Ziel<select data-cmd-field="soundTarget"><option value="stream" ${cfg.target !== 'discord' && cfg.target !== 'both' ? 'selected' : ''}>Stream</option><option value="discord" ${cfg.target === 'discord' ? 'selected' : ''}>Discord</option><option value="both" ${cfg.target === 'both' ? 'selected' : ''}>Beides</option></select></label><label>Priorität<select data-cmd-field="soundPriority"><option value="normal" ${cfg.priority !== 'high' ? 'selected' : ''}>Normal</option><option value="high" ${cfg.priority === 'high' ? 'selected' : ''}>Hoch</option></select></label><label class="cmd-check"><input type="checkbox" data-cmd-field="soundQueue" ${cfg.queue !== false ? 'checked' : ''}> Queue verwenden</label></div><p class="cmd-help">Upload, Vorschau und Auswahl kommen über die zentrale Medienverwaltung. Commands sollen Medien nur verwenden, nicht selbst verwalten.</p></div>`;
-    }
-    if (type === 'video_play') {
-      return `<div class="cmd-action-box"><h4>🎬 Video abspielen</h4><div class="cmd-form-grid"><label>Medium-ID<input data-cmd-field="videoMediaId" value="${esc(cfg.mediaId || '')}" placeholder="kommt aus Medienverwaltung"></label><label>Overlay / Player<input data-cmd-field="videoOverlay" value="${esc(cfg.overlay || 'command_video_overlay')}"></label><label>Lautstärke %<input type="number" min="0" max="100" data-cmd-field="videoVolume" value="${esc(cfg.volume ?? 80)}"></label><label>Dauer<select data-cmd-field="videoDurationMode"><option value="auto" ${cfg.durationMode !== 'manual' ? 'selected' : ''}>Automatisch</option><option value="manual" ${cfg.durationMode === 'manual' ? 'selected' : ''}>Manuell</option></select></label><label class="cmd-check"><input type="checkbox" data-cmd-field="videoWithSound" ${cfg.withSound !== false ? 'checked' : ''}> Mit Ton</label></div><p class="cmd-help">Video-Upload, Vorschau und Overlay-Ausführung folgen in Medienverwaltung + Medien-Ausführung.</p></div>`;
-    }
-    if (type === 'multi_action') {
-      return `<div class="cmd-action-box"><h4>🧬 Multi-Action / Ablauf</h4><label>Steps JSON<textarea data-cmd-field="multiSteps" spellcheck="false">${esc(JSON.stringify(cfg.steps || [], null, 2))}</textarea></label><p class="cmd-help">Vorbereitung für spätere Abläufe wie: Text posten → Sound abspielen → Overlay zeigen.</p></div>`;
-    }
-    if (type === 'module_command') {
-      const categoryId = selectedCatalogCategory(cmd);
-      const categories = catalogCategories();
-      const actions = catalogActionsForCategory(categoryId);
-      const actionId = selectedCatalogActionId(cmd);
-      const action = catalogActionById(actionId);
-      const examples = Array.isArray(action?.examples) ? action.examples : [];
-      return `<div class="cmd-action-box cmd-catalog-box">
-        <h4>🧩 Modul-Command</h4>
-        <div class="cmd-form-grid">
-          <label>Kategorie
-            <select data-catalog-category>${categories.map(category => `<option value="${esc(category.id)}" ${category.id === categoryId ? 'selected' : ''}>${esc(category.label || category.id)}</option>`).join('')}</select>
-          </label>
-          <label>Modul-Aktion
-            <select data-catalog-action>${actions.map(item => `<option value="${esc(item.id)}" ${item.id === actionId ? 'selected' : ''}>${esc(item.icon || '🧩')} ${esc(item.label || item.id)}</option>`).join('')}</select>
-          </label>
-        </div>
-        <div class="cmd-catalog-info">
-          <div><span>Modul</span><strong>${valueOrDash(action?.moduleKey || cmd.moduleKey)}</strong></div>
-          <div><span>URL</span><strong>${valueOrDash(action?.targetUrl || cmd.targetUrl)}</strong></div>
-          <div><span>Beispiel</span><strong>${examples.length ? esc(examples.join(' · ')) : valueOrDash('')}</strong></div>
-          <div><span>Hinweis</span><strong>${valueOrDash(action?.description || 'Katalog auswählen und Defaults übernehmen.')}</strong></div>
-        </div>
-        <div class="cmd-actions">${iconButton('↩️', 'Defaults übernehmen', 'data-apply-catalog-defaults')}</div>
-        <p class="cmd-help">Neue Module sollen künftig ihren Modul-Command-Katalog pflegen. Bis dahin wird der zentrale Catalog im Command-System erweitert.</p>
-      </div>`;
-    }
-
-    return `<div class="cmd-action-box"><h4>🌐 HTTP / API aufrufen</h4><p class="cmd-help">Technischer API-Aufruf. Ziel-URL, Methode und Zusatzdaten liegen unter „Erweitert“.</p></div>`;
-  }
-
-  function renderManage() {
-    const cmd = selectedCommand() || { trigger:'', aliases:[], moduleKey:'', actionKey:'', targetMethod:'POST', targetUrl:'', enabled:true, permissionLevel:'everyone', cooldownGlobalMs:0, cooldownUserMs:0, liveOnly:false, responseMode:'module', config:{ actionType:'module_command' } };
-    const actionType = commandActionType(cmd);
-    const cfgNoAction = { ...(cmd.config || {}) };
-    delete cfgNoAction.actionType;
-    const configText = JSON.stringify(cfgNoAction, null, 2);
-    return `
-      <div class="cmd-manage-layout">
-        <section class="cmd-card cmd-side-card">
-          <div class="cmd-headline compact"><div><h3>Commands</h3><p>Auswahl links, Details rechts.</p></div></div>
-          ${renderCommandList()}
-          <div class="cmd-actions stack">${iconButton('➕','Neuen Command vorbereiten','data-new-command')} ${iconButton('⧉','Command kopieren','data-duplicate-command')}</div>
-        </section>
-        <section class="cmd-card">
-          <div class="cmd-headline"><div><h3>Command bearbeiten</h3><p>Standard-Aktion auswählen. Technische Router-Felder liegen unter „Erweitert“.</p></div><div class="cmd-actions">${iconButton('💾','Speichern','data-save-command')} ${iconButton('🗑️','Löschen','data-delete-command','danger')}</div></div>
-          <div class="cmd-form-grid">
-            <label>Trigger <input data-cmd-field="trigger" value="${esc(cmd.trigger)}" placeholder="rip"></label>
-            <label>Aliase <input data-cmd-field="aliases" value="${esc(aliasText(cmd))}" placeholder="death, tod"></label>
-            ${renderActionTypeSelect(cmd)}
-            <label>Rechte <select data-cmd-field="permissionLevel">${['everyone','subscriber','vip','mod','streamer','owner'].map(level => `<option value="${level}" ${cmd.permissionLevel === level ? 'selected' : ''}>${level}</option>`).join('')}</select></label>
-            <label>Global Cooldown ms <input type="number" min="0" data-cmd-field="cooldownGlobalMs" value="${esc(cmd.cooldownGlobalMs || 0)}"></label>
-            <label>User Cooldown ms <input type="number" min="0" data-cmd-field="cooldownUserMs" value="${esc(cmd.cooldownUserMs || 0)}"></label>
-            <label class="cmd-check"><input type="checkbox" data-cmd-field="enabled" ${cmd.enabled !== false ? 'checked' : ''}> Aktiv</label>
-            <label class="cmd-check"><input type="checkbox" data-cmd-field="liveOnly" ${cmd.liveOnly ? 'checked' : ''}> Nur live</label>
-          </div>
-          ${renderActionSpecificFields({ ...cmd, config: { ...(cmd.config || {}), actionType } })}
-          <details class="cmd-advanced"><summary>⚙️ Erweitert / technische Router-Felder</summary>
-            <div class="cmd-form-grid">
-              <label>Modul <input data-cmd-field="moduleKey" value="${esc(cmd.moduleKey || '')}" placeholder="deathcounter_v2"></label>
-              <label>Action intern <input data-cmd-field="actionKey" value="${esc(cmd.actionKey || '')}" placeholder="command"></label>
-              <label>Methode <select data-cmd-field="targetMethod"><option value="POST" ${cmd.targetMethod === 'POST' ? 'selected' : ''}>POST</option><option value="GET" ${cmd.targetMethod === 'GET' ? 'selected' : ''}>GET</option></select></label>
-              <label>Ziel-URL <input data-cmd-field="targetUrl" value="${esc(cmd.targetUrl || '')}" placeholder="/api/deathcounter/v2/command"></label>
-              <label>Response <input data-cmd-field="responseMode" value="${esc(cmd.responseMode || 'module')}"></label>
-            </div>
-            <label class="cmd-json-label">Zusatz-Config JSON<textarea data-cmd-field="config" spellcheck="false">${esc(configText)}</textarea></label>
-          </details>
-        </section>
-      </div>`;
-  }
-
-  function renderPermissions() {
-    const list = commands();
-    return `<section class="cmd-card"><div class="cmd-headline"><div><h3>Rechte & Cooldowns</h3><p>Kompakte Massenübersicht. Details im Verwaltungs-Tab ändern.</p></div></div>
-      <div class="cmd-table-wrap"><table class="cmd-table"><thead><tr><th>Command</th><th>Action-Typ</th><th>Rechte</th><th>Global</th><th>User</th><th>Live only</th><th>Status</th><th></th></tr></thead><tbody>${list.map(cmd => { const meta = actionMeta(commandActionType(cmd)); return `
-        <tr><td><strong>!${esc(cmd.trigger)}</strong></td><td>${esc(meta.icon)} ${esc(meta.label)}</td><td>${esc(cmd.permissionLevel || 'everyone')}</td><td>${esc(cmd.cooldownGlobalMs || 0)} ms</td><td>${esc(cmd.cooldownUserMs || 0)} ms</td><td>${cmd.liveOnly ? 'Ja' : 'Nein'}</td><td>${cmd.enabled ? pill('aktiv','ok') : pill('aus','warn')}</td><td>${iconButton('✏️','Bearbeiten',`data-select-and-edit="${esc(cmd.trigger)}"`)}</td></tr>`; }).join('')}</tbody></table></div>
-    </section>`;
-  }
-
-  function renderLogsTable(list) {
-    if (!list.length) return '<div class="cmd-empty">Noch keine Logs vorhanden.</div>';
-    return `<div class="cmd-table-wrap"><table class="cmd-table"><thead><tr><th>ID</th><th>Zeit</th><th>Command</th><th>User</th><th>Message</th><th>Status</th><th>Fehler</th></tr></thead><tbody>${list.map(row => `
-      <tr><td>${esc(row.id)}</td><td>${esc(row.createdAt || '')}</td><td><strong>!${esc(row.trigger || '')}</strong></td><td>${esc(row.userDisplayName || row.userLogin || '')}</td><td><code>${esc(row.rawMessage || '')}</code></td><td>${row.success ? pill('ok','ok') : row.ignored ? pill('ignoriert','warn') : pill('fehler','bad')}</td><td>${valueOrDash(row.error)}</td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="cmd-grid cmd-grid-main">
+      <section class="cmd-card"><h3>Übersicht</h3><div class="cmd-kpis"><div><strong>${commands().filter(c => c.enabled !== false).length}</strong><span>aktiv</span></div><div><strong>${commands().length}</strong><span>gesamt</span></div><div><strong>${stats.executed || 0}</strong><span>ausgeführt</span></div><div><strong>${stats.failed || 0}</strong><span>Fehler</span></div></div></section>
+      <section class="cmd-card"><h3>Twitch-Presence</h3><p>${connected ? 'Bot ist verbunden.' : 'Bot ist aktuell nicht verbunden.'}</p><div class="cmd-actions"><button type="button" data-presence-start>Presence starten</button><button type="button" data-presence-stop>Presence stoppen</button></div></section>
+    </div>`;
   }
 
   function renderLogs() {
-    return `<section class="cmd-card"><div class="cmd-headline"><div><h3>Logs</h3><p>Letzte Command-Ausführungen aus command_execution_log.</p></div>${iconButton('🔄','Aktualisieren','data-cmd-refresh')}</div>${renderLogsTable(logs())}</section>`;
+    return `<section class="cmd-card"><h3>Logs</h3><div class="cmd-table-wrap"><table class="cmd-table"><thead><tr><th>Zeit</th><th>Command</th><th>User</th><th>Status</th><th>Fehler</th></tr></thead><tbody>${logs().map(row => `<tr><td>${esc(row.created_at || row.createdAt || '')}</td><td>!${esc(row.trigger || '')}</td><td>${esc(row.user_login || row.userLogin || '')}</td><td>${Number(row.success || 0) === 1 ? 'OK' : (Number(row.ignored || 0) === 1 ? 'ignoriert' : 'Fehler')}</td><td>${esc(row.error || '')}</td></tr>`).join('') || '<tr><td colspan="5">Keine Logs.</td></tr>'}</tbody></table></div></section>`;
   }
 
   function renderDiagnostics() {
-    const presence = state.presence || {};
-    const st = state.status || {};
-    return `
-      <div class="cmd-grid">
-        <section class="cmd-card">
-          <div class="cmd-headline"><div><h3>Command testen</h3><p>Test parst nur. Execute führt wirklich aus.</p></div></div>
-          <div class="cmd-test-row">
-            <label>Message <input data-test-message value="${esc(state.testMessage)}"></label>
-            <label>User <input data-test-user value="${esc(state.testUser)}"></label>
-            <label>Rolle <select data-test-role>${['everyone','subscriber','vip','mod','streamer','owner'].map(role => `<option value="${role}" ${state.testRole === role ? 'selected' : ''}>${role}</option>`).join('')}</select></label>
-          </div>
-          <div class="cmd-actions">${iconButton('🧪','Dry-Run testen','data-run-test')} ${iconButton('▶️','Wirklich ausführen','data-run-execute')}</div>
-          ${state.testResult ? `<details open><summary>Letztes Testergebnis</summary><pre class="cmd-json">${esc(JSON.stringify(state.testResult, null, 2))}</pre></details>` : ''}
-        </section>
-        <section class="cmd-card">
-          <div class="cmd-headline"><div><h3>Diagnose</h3><p>Rohdaten nur aufklappbar, damit die Seite übersichtlich bleibt.</p></div></div>
-          <div class="cmd-info-list small"><div><span>Schema</span><strong>${st.schemaOk ? 'OK' : esc(st.schemaError || 'Fehler')}</strong></div><div><span>Presence</span><strong>${presence.connected && presence.joined ? 'verbunden' : 'nicht verbunden'}</strong></div><div><span>Bot</span><strong>${valueOrDash(presence.bot_username)}</strong></div></div>
-          <details><summary>Command-Status Rohdaten</summary><pre class="cmd-json">${esc(JSON.stringify(st, null, 2))}</pre></details>
-          <details><summary>Twitch-Presence Rohdaten</summary><pre class="cmd-json">${esc(JSON.stringify(presence, null, 2))}</pre></details>
-        </section>
-      </div>`;
+    return `<div class="cmd-grid"><section class="cmd-card"><h3>Testen</h3><div class="cmd-form-grid"><label>Nachricht<input data-test-message value="${esc(state.testMessage)}"></label><label>User<input data-test-user value="${esc(state.testUser)}"></label><label>Rolle<select data-test-role>${['everyone','subscriber','vip','mod','streamer','owner'].map(r => `<option value="${r}" ${state.testRole === r ? 'selected' : ''}>${r}</option>`).join('')}</select></label></div><div class="cmd-actions"><button type="button" data-run-test>Dry-Run</button><button type="button" data-run-execute>Ausführen</button></div>${state.testResult ? `<pre class="cmd-json">${esc(JSON.stringify(state.testResult, null, 2))}</pre>` : ''}</section><section class="cmd-card"><h3>Rohdaten</h3><details><summary>Status</summary><pre class="cmd-json">${esc(JSON.stringify(state.status || {}, null, 2))}</pre></details><details><summary>Presence</summary><pre class="cmd-json">${esc(JSON.stringify(state.presence || {}, null, 2))}</pre></details></section></div>`;
+  }
+
+  function renderCatalogOptions(cmd) {
+    const current = cmd.config?.catalogActionId || '';
+    return allCatalogGroups().map(group => `<optgroup label="${esc(group.label)}">${group.actions.map(a => `<option value="${esc(a.id)}" ${a.id === current ? 'selected' : ''}>${esc(a.icon || '🧩')} ${esc(a.label || a.id)}</option>`).join('')}</optgroup>`).join('');
+  }
+
+  function allCatalogGroups() {
+    const cats = catalogCategories();
+    if (cats.length) return cats.map(cat => ({ label: cat.label || cat.id, actions: Array.isArray(cat.actions) ? cat.actions : catalogActions().filter(a => a.categoryId === cat.id) }));
+    return [{ label: 'Modul-Aktionen', actions: catalogActions() }];
+  }
+
+  function renderActionFields(cmd) {
+    const type = cmd.config?.actionType || 'module_command';
+    if (type === 'sound_play') {
+      return `<div class="cmd-modal-box"><h4>Sound</h4><div class="cmd-form-grid"><label>${rowLabel('Medium-ID','Wird über die Medienverwaltung gesetzt.')}<input data-cmd-modal-field="soundMediaId" value="${esc(cmd.config?.mediaId || '')}" placeholder="z. B. 1353"></label><label>${rowLabel('Lautstärke','0 bis 100 Prozent.')}<input type="number" min="0" max="100" data-cmd-modal-field="soundVolume" value="${esc(cmd.config?.volume ?? 80)}"></label></div></div>`;
+    }
+    if (type === 'video_play') {
+      return `<div class="cmd-modal-box"><h4>Video</h4><div class="cmd-form-grid"><label>${rowLabel('Medium-ID','Wird über die Medienverwaltung gesetzt.')}<input data-cmd-modal-field="videoMediaId" value="${esc(cmd.config?.mediaId || '')}" placeholder="z. B. 1353"></label><label>${rowLabel('Overlay / Player','Interner Overlay-/Player-Name. Standard reicht normalerweise.')}<input data-cmd-modal-field="videoOverlay" value="${esc(cmd.config?.overlay || 'command_video_overlay')}"></label><label>${rowLabel('Lautstärke','0 bis 100 Prozent.')}<input type="number" min="0" max="100" data-cmd-modal-field="videoVolume" value="${esc(cmd.config?.volume ?? 80)}"></label><label class="cmd-check"><input type="checkbox" data-cmd-modal-field="videoWithSound" ${cmd.config?.withSound !== false ? 'checked' : ''}> Mit Ton</label></div></div>`;
+    }
+    if (type === 'chat_message') {
+      return `<div class="cmd-modal-box"><h4>Chat-Nachricht</h4><label>${rowLabel('Nachricht','Text, der später in den Chat gesendet werden soll.')}<textarea data-cmd-modal-field="chatMessage" rows="3">${esc(cmd.config?.message || '')}</textarea></label><label>${rowLabel('Senden als','Legt fest, ob Bot oder Streamer bevorzugt werden soll.')}<select data-cmd-modal-field="chatPrefer"><option value="bot" ${cmd.config?.prefer !== 'streamer' ? 'selected' : ''}>Bot</option><option value="streamer" ${cmd.config?.prefer === 'streamer' ? 'selected' : ''}>Streamer</option></select></label></div>`;
+    }
+    if (type === 'module_command') {
+      return `<div class="cmd-modal-box"><h4>Modul-Befehl</h4><label>${rowLabel('Befehl auswählen','Wähle eine bekannte Backend-Aktion aus dem Katalog.')}<select data-cmd-modal-field="catalogAction">${renderCatalogOptions(cmd)}</select></label><div class="cmd-actions"><button type="button" data-apply-catalog-defaults-modal>Defaults übernehmen</button></div></div>`;
+    }
+    return '';
+  }
+
+  function renderModal() {
+    if (!state.modal) return '';
+    const cmd = state.modal.data || clone(DEFAULT_COMMAND);
+    const type = cmd.config?.actionType || 'module_command';
+    const configWithoutType = clone(cmd.config || {});
+    delete configWithoutType.actionType;
+    return `<div class="cmd-modal-backdrop" data-modal-backdrop><div class="cmd-modal" role="dialog" aria-modal="true">
+      <div class="cmd-modal-head"><div><h3>${esc(state.modal.title)}</h3><p>${state.modal.mode === 'edit' ? 'Bearbeiten speichert immer diesen bestehenden Command per ID.' : 'Erstellt einen neuen Command mit Standardwerten.'}</p></div><button type="button" data-modal-close>×</button></div>
+      <div class="cmd-modal-body">
+        <section class="cmd-modal-section"><h4>Basis</h4><div class="cmd-form-grid"><label>${rowLabel('Trigger','Der Chat-Befehl ohne !, z. B. discord, test oder hug.')}<input data-cmd-modal-field="trigger" value="${esc(cmd.trigger || '')}" placeholder="test"></label><label>${rowLabel('Aliase','Weitere Auslöser für denselben Command, getrennt mit Komma oder Leerzeichen.')}<input data-cmd-modal-field="aliases" value="${esc(Array.isArray(cmd.aliases) ? cmd.aliases.join(', ') : '')}" placeholder="death, tod"></label><label>${rowLabel('Kategorie/Aktion','Normale Auswahl. Technische Details liegen unter Erweitert.')}<select data-cmd-modal-field="friendlyAction">${FRIENDLY_ACTIONS.map(a => `<option value="${a.id}" ${type === a.id || (a.id === 'advanced' && !['module_command','chat_message','sound_play','video_play'].includes(type)) ? 'selected' : ''}>${esc(a.icon)} ${esc(a.label)}</option>`).join('')}</select></label><label>${rowLabel('Rechte','Wer den Command im Chat ausführen darf.')}<select data-cmd-modal-field="permissionLevel">${['everyone','subscriber','vip','mod','streamer','owner'].map(level => `<option value="${level}" ${cmd.permissionLevel === level ? 'selected' : ''}>${level}</option>`).join('')}</select></label><label>${rowLabel('Global Cooldown ms','Pause für alle Nutzer nach Ausführung.')}<input type="number" min="0" data-cmd-modal-field="cooldownGlobalMs" value="${esc(cmd.cooldownGlobalMs ?? 1000)}"></label><label>${rowLabel('User Cooldown ms','Pause nur für denselben Nutzer.')}<input type="number" min="0" data-cmd-modal-field="cooldownUserMs" value="${esc(cmd.cooldownUserMs ?? 3000)}"></label><label class="cmd-check"><input type="checkbox" data-cmd-modal-field="enabled" ${cmd.enabled !== false ? 'checked' : ''}> Aktiv</label></div></section>
+        <section class="cmd-modal-section"><h4>Aktion</h4>${renderActionFields(cmd)}</section>
+        <details class="cmd-modal-section cmd-advanced"><summary>Erweitert / technische Details</summary><div class="cmd-form-grid"><label>Modul<input data-cmd-modal-field="moduleKey" value="${esc(cmd.moduleKey || '')}"></label><label>Action-Key<input data-cmd-modal-field="actionKey" value="${esc(cmd.actionKey || '')}"></label><label>Methode<select data-cmd-modal-field="targetMethod"><option value="POST" ${cmd.targetMethod !== 'GET' ? 'selected' : ''}>POST</option><option value="GET" ${cmd.targetMethod === 'GET' ? 'selected' : ''}>GET</option></select></label><label>Ziel-URL<input data-cmd-modal-field="targetUrl" value="${esc(cmd.targetUrl || '')}"></label><label>Response-Mode<input data-cmd-modal-field="responseMode" value="${esc(cmd.responseMode || 'module')}"></label></div><label>Config JSON<textarea data-cmd-modal-field="configJson" rows="7">${esc(JSON.stringify(configWithoutType, null, 2))}</textarea></label><p class="cmd-muted">„Nur Live“ ist bewusst nicht in der normalen UI. Wenn der Bot nicht im Channel ist, kommen keine Chatbefehle an.</p></details>
+      </div>
+      <div class="cmd-modal-actions"><button type="button" data-save-modal-command>${state.modal.mode === 'edit' ? 'Änderungen speichern' : 'Command erstellen'}</button>${state.modal.mode === 'edit' ? `<button type="button" class="danger" data-delete-from-modal>Löschen</button>` : ''}<button type="button" data-modal-close>Abbrechen</button></div>
+    </div></div>`;
+  }
+
+  function renderConfirmDelete() {
+    if (!state.confirmDelete) return '';
+    return `<div class="cmd-modal-backdrop"><div class="cmd-confirm"><h3>Command löschen?</h3><p>${esc(state.confirmDelete.label)} wirklich löschen?</p><div class="cmd-actions"><button type="button" data-confirm-delete-yes class="danger">Ja, löschen</button><button type="button" data-modal-close>Nein, abbrechen</button></div></div></div>`;
   }
 
   function renderActiveTab() {
-    if (state.tab === 'manage') return renderManage();
-    if (state.tab === 'permissions') return renderPermissions();
+    if (state.tab === 'overview') return renderOverview();
     if (state.tab === 'logs') return renderLogs();
     if (state.tab === 'diagnostics') return renderDiagnostics();
-    return renderOverview();
+    return renderManage();
   }
 
   function render() {
     root = document.getElementById('commandsModule');
     if (!root) return;
-    const tabs = [
-      ['overview', 'Übersicht'],
-      ['manage', 'Commands'],
-      ['permissions', 'Rechte & Cooldowns'],
-      ['logs', 'Logs'],
-      ['diagnostics', 'Diagnose']
-    ];
-
-    root.innerHTML = `
-      <div class="cmd-wrap">
-        <section class="cmd-card cmd-hero">
-          <div><h2>⌨️ Commands</h2><p>Zentrales Chat-Command-System. Action-Typen sind vorbereitet; Medien werden zentral verwaltet.</p></div>
-          <div class="cmd-actions">${iconButton('🔄','Aktualisieren','data-cmd-refresh')}</div>
-        </section>
-        ${state.error ? `<div class="cmd-error">${esc(state.error)}</div>` : ''}
-        ${state.notice ? `<div class="cmd-notice">${esc(state.notice)}</div>` : ''}
-        ${state.loading ? '<section class="cmd-card">Lade Commands...</section>' : `<div class="cmd-tabs">${tabs.map(([id, label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-cmd-tab="${id}">${esc(label)}</button>`).join('')}</div>${renderActiveTab()}`}
-      </div>`;
+    const tabs = [['manage','Commands'],['overview','Übersicht'],['logs','Logs'],['diagnostics','Diagnose']];
+    root.innerHTML = `<div class="cmd-wrap cmd-v014">${renderHeader()}${state.error ? `<div class="cmd-error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cmd-notice">${esc(state.notice)}</div>` : ''}${state.loading ? '<section class="cmd-card">Lade Commands...</section>' : `<div class="cmd-tabs">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-cmd-tab="${id}">${esc(label)}</button>`).join('')}</div>${renderActiveTab()}`}${renderModal()}${renderConfirmDelete()}</div>`;
     bind();
   }
 
   function bind() {
-    root?.querySelectorAll('[data-cmd-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.cmdTab || 'overview'; state.error = ''; state.notice = ''; render(); }));
-    root?.querySelectorAll('[data-cmd-tab-jump]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.cmdTabJump || 'overview'; render(); }));
-    root?.querySelectorAll('[data-cmd-refresh]').forEach(btn => btn.addEventListener('click', () => refreshOnly().catch(showError)));
-    root?.querySelectorAll('[data-presence-start]').forEach(btn => btn.addEventListener('click', () => presenceStart().catch(showError)));
-    root?.querySelectorAll('[data-presence-stop]').forEach(btn => btn.addEventListener('click', () => presenceStop().catch(showError)));
-    root?.querySelectorAll('[data-select-command]').forEach(btn => btn.addEventListener('click', () => { state.selectedTrigger = btn.dataset.selectCommand || ''; render(); }));
-    root?.querySelectorAll('[data-select-and-edit]').forEach(btn => btn.addEventListener('click', () => { state.selectedTrigger = btn.dataset.selectAndEdit || ''; state.tab = 'manage'; render(); }));
-    root?.querySelector('[data-save-command]')?.addEventListener('click', () => saveCommand().catch(showError));
-    root?.querySelector('[data-delete-command]')?.addEventListener('click', () => deleteSelectedCommand().catch(showError));
-    root?.querySelector('[data-duplicate-command]')?.addEventListener('click', () => duplicateCommand().catch(showError));
-    root?.querySelector('[data-new-command]')?.addEventListener('click', () => { state.selectedTrigger = '__new__'; renderNewCommand(); });
-    root?.querySelectorAll('[data-run-test]').forEach(btn => btn.addEventListener('click', () => runCommandTest(false).catch(showError)));
-    root?.querySelectorAll('[data-run-execute]').forEach(btn => btn.addEventListener('click', () => runCommandTest(true).catch(showError)));
-    root?.querySelector('[data-catalog-category]')?.addEventListener('change', ev => {
-      state.selectedCatalogCategory = ev.target.value || '';
-      render();
-    });
-    root?.querySelector('[data-catalog-action]')?.addEventListener('change', ev => {
-      const action = catalogActionById(ev.target.value);
-      if (action?.categoryId) state.selectedCatalogCategory = action.categoryId;
-      render();
-    });
-    root?.querySelector('[data-apply-catalog-defaults]')?.addEventListener('click', () => {
-      const actionId = root?.querySelector('[data-catalog-action]')?.value || '';
-      try { applyCatalogActionDefaults(actionId); } catch (err) { showError(err); }
-    });
-    root?.querySelector('[data-action-type-select]')?.addEventListener('change', () => {
-      try {
-        const payload = readEditor();
-        const current = selectedCommand() || {};
-        const temp = { ...current, ...payload, config: payload.config };
-        const list = commands().map(cmd => cmd.trigger === current.trigger ? temp : cmd);
-        state.list = { commands: list.length ? list : [temp] };
-        render();
-      } catch (err) { showError(err); }
-    });
-  }
-
-  function renderNewCommand() {
-    const fallback = commands()[0] || {};
-    state.list = { commands: [{ ...fallback, id: 0, trigger: '', aliases: [], enabled: true, permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, moduleKey: '', actionKey: '', targetMethod: 'POST', targetUrl: '', responseMode: 'module', config: { actionType: 'module_command', createdFromDashboard: true } }, ...commands()] };
-    state.selectedTrigger = '';
-    render();
+    root?.querySelectorAll('[data-cmd-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.cmdTab || 'manage'; state.error=''; render(); }));
+    root?.querySelectorAll('[data-cmd-refresh]').forEach(btn => btn.addEventListener('click', () => loadAll(true).catch(showError)));
+    root?.querySelectorAll('[data-new-command]').forEach(btn => btn.addEventListener('click', openCreateModal));
+    root?.querySelector('[data-cmd-search]')?.addEventListener('input', ev => { state.query = ev.target.value || ''; render(); });
+    root?.querySelector('[data-cmd-category-filter]')?.addEventListener('change', ev => { state.categoryFilter = ev.target.value || 'all'; render(); });
+    root?.querySelector('[data-cmd-jump]')?.addEventListener('change', ev => { const id = Number(ev.target.value || 0); const cmd = commands().find(c => Number(c.id) === id); if (cmd) openEditModal(cmd); });
+    root?.querySelectorAll('[data-edit-command]').forEach(btn => btn.addEventListener('click', () => { const cmd = commands().find(c => Number(c.id) === Number(btn.dataset.editCommand)); state.selectedCommandId = Number(cmd?.id || 0); state.selectedTrigger = cmd?.trigger || ''; openEditModal(cmd); }));
+    root?.querySelectorAll('[data-delete-command]').forEach(btn => btn.addEventListener('click', () => { const cmd = commands().find(c => Number(c.id) === Number(btn.dataset.deleteCommand)); openDeleteConfirm(cmd); }));
+    root?.querySelectorAll('[data-duplicate-command]').forEach(btn => btn.addEventListener('click', () => { const cmd = commands().find(c => Number(c.id) === Number(btn.dataset.duplicateCommand)); duplicateCommand(cmd).catch(showError); }));
+    root?.querySelectorAll('[data-modal-close]').forEach(btn => btn.addEventListener('click', closeModal));
+    root?.querySelector('[data-save-modal-command]')?.addEventListener('click', () => saveModalCommand().catch(showError));
+    root?.querySelector('[data-delete-from-modal]')?.addEventListener('click', () => { if (!state.modal) return; openDeleteConfirm({ id: state.modal.originalId, trigger: state.modal.originalTrigger }); });
+    root?.querySelector('[data-confirm-delete-yes]')?.addEventListener('click', () => deleteConfirmed().catch(showError));
+    root?.querySelector('[data-cmd-modal-field="friendlyAction"]')?.addEventListener('change', ev => { if (!state.modal) return; const action = ev.target.value || 'module_command'; state.modal.data.config = { ...(state.modal.data.config || {}), actionType: action === 'advanced' ? 'module_command' : action }; render(); });
+    root?.querySelector('[data-apply-catalog-defaults-modal]')?.addEventListener('click', () => applyCatalogDefaultsInModal(field('catalogAction')?.value || ''));
+    root?.querySelectorAll('[data-presence-start]').forEach(btn => btn.addEventListener('click', () => window.CGN.api(api.presenceStart).then(() => loadAll(true)).catch(showError)));
+    root?.querySelectorAll('[data-presence-stop]').forEach(btn => btn.addEventListener('click', () => window.CGN.api(api.presenceStop).then(() => loadAll(true)).catch(showError)));
+    root?.querySelectorAll('[data-run-test]').forEach(btn => btn.addEventListener('click', () => runTest(false).catch(showError)));
+    root?.querySelectorAll('[data-run-execute]').forEach(btn => btn.addEventListener('click', () => runTest(true).catch(showError)));
+    window.CommandsMediaBridge?.activate?.(false).catch?.(() => {});
   }
 
   function showError(err) { state.error = err.message || String(err); render(); }

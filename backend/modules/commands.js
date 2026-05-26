@@ -5,8 +5,8 @@ const database = require('../core/database');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.1.3';
-const MODULE_BUILD = 'media-playback-payload-bridge';
+const MODULE_VERSION = '0.1.4';
+const MODULE_BUILD = 'safe-modal-editor';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -282,13 +282,37 @@ function normalizeConfig(value) {
   return core.safeJsonParse(value, {});
 }
 
+function findCommandForSafeEdit(input = {}) {
+  const id = int(input.id ?? input.commandId ?? input.originalId ?? input.original_id, 0);
+  if (id > 0) {
+    const row = database.get('SELECT * FROM command_definitions WHERE id = :id', { id });
+    if (row) return rowToCommand(row);
+  }
+  const originalTrigger = cleanTrigger(input.originalTrigger || input.original_trigger || input.editOriginalTrigger || input.edit_original_trigger || '');
+  if (originalTrigger) {
+    const row = database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger: originalTrigger });
+    if (row) return rowToCommand(row);
+  }
+  return null;
+}
+
 function saveCommand(input = {}, options = {}) {
   const now = nowIso();
   const trigger = cleanTrigger(input.trigger || input.command || input.name || '');
   if (!trigger) throw new Error('command_trigger_missing');
-  const existing = database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger });
+
+  const editMode = bool(input.editMode || input.edit_mode, false) || !!input.originalTrigger || !!input.original_trigger || !!input.originalId || !!input.original_id || !!input.id || !!input.commandId;
+  const editingExisting = editMode ? findCommandForSafeEdit(input) : null;
+  const byNewTrigger = database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger });
+  const existing = editingExisting ? database.get('SELECT * FROM command_definitions WHERE id = :id', { id: editingExisting.id }) : byNewTrigger;
   const current = rowToCommand(existing);
+
+  if (editingExisting && byNewTrigger && Number(byNewTrigger.id) !== Number(editingExisting.id)) {
+    throw new Error('command_trigger_already_exists');
+  }
+
   const data = {
+    id: editingExisting ? Number(editingExisting.id) : 0,
     trigger,
     aliasesJson: jsonEncode(normalizeAliases(input.aliases ?? current?.aliases ?? [])),
     moduleKey: cleanText(input.moduleKey ?? input.module_key ?? current?.moduleKey ?? ''),
@@ -305,6 +329,30 @@ function saveCommand(input = {}, options = {}) {
     createdAt: current?.createdAt || now,
     updatedAt: now
   };
+
+  if (editingExisting) {
+    const result = database.run(`
+      UPDATE command_definitions SET
+        trigger = :trigger,
+        aliases_json = :aliasesJson,
+        module_key = :moduleKey,
+        action_key = :actionKey,
+        target_method = :targetMethod,
+        target_url = :targetUrl,
+        enabled = :enabled,
+        permission_level = :permissionLevel,
+        cooldown_global_ms = :cooldownGlobalMs,
+        cooldown_user_ms = :cooldownUserMs,
+        live_only = :liveOnly,
+        response_mode = :responseMode,
+        config_json = :configJson,
+        updated_at = :updatedAt
+      WHERE id = :id
+    `, data);
+    if (!result || Number(result.changes || 0) < 1) throw new Error('command_update_failed');
+    return { ok: true, seed: !!options.seed, editMode: true, created: false, updated: true, command: rowToCommand(database.get('SELECT * FROM command_definitions WHERE id = :id', { id: data.id })) };
+  }
+
   database.run(`
     INSERT INTO command_definitions (
       trigger, aliases_json, module_key, action_key, target_method, target_url,
@@ -330,7 +378,7 @@ function saveCommand(input = {}, options = {}) {
       config_json = excluded.config_json,
       updated_at = excluded.updated_at
   `, data);
-  return { ok: true, seed: !!options.seed, command: rowToCommand(database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger })) };
+  return { ok: true, seed: !!options.seed, editMode: false, created: !current, updated: !!current, command: rowToCommand(database.get('SELECT * FROM command_definitions WHERE trigger = :trigger', { trigger })) };
 }
 function upsertCommand(input = {}, options = {}) { ensureSchema(); return saveCommand(input, options); }
 function deleteCommand(triggerOrId) {
@@ -694,5 +742,5 @@ module.exports.init = function init(ctx) {
   });
   app.get(`${API_PREFIX}/logs`, handleLogs);
   app.get(`${API_PREFIX}/history`, handleLogs);
-  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, media playback bridge)`);
+  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, safe modal editor)`);
 };

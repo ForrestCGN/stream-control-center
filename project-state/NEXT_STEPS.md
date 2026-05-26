@@ -1,6 +1,8 @@
-# Next Steps
+# NEXT_STEPS
 
-1. Dashboard v0.6.1 testen: Reward öffnen, Aktion `Video anzeigen` wählen, Medium auswählen, speichern.
-2. `Ausführung prüfen` und `Reward testen` im Dashboard testen.
-3. Danach ggf. gleiche UX-Verbesserung auf weitere Action-Typen ausweiten.
-4. Später Twitch-Sync/Redemption-Handling ergänzen, ohne die lokale sichere Basis zu entfernen.
+1. Commands v0.1.4 testen:
+   - vorhandenen Command öffnen, ändern, speichern.
+   - prüfen, dass kein Duplikat entsteht.
+   - Command löschen mit Rückfrage testen.
+   - Command neu erstellen testen.
+2. Danach Kanalpunkte-Dashboard analog auf Modal-Editor umbauen.
