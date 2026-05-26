@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.9.5';
-  const UI_BUILD = 'redemptions-page-cleanup';
+  const UI_VERSION = '0.9.6';
+  const UI_BUILD = 'simple-stats-page';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -741,6 +741,53 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
   }
 
 
+  function renderStatisticsPanel() {
+    const allRewards = rewards();
+    const allRedemptions = asArray(state.redemptions);
+    const counts = state.redemptionCounts || {};
+    const active = allRewards.filter(r => r.system_enabled).length;
+    const inactive = allRewards.length - active;
+    const configured = allRewards.filter(rewardHasExecutableAction).length;
+    const missingAction = allRewards.filter(rewardNeedsSetup).length;
+    const imported = allRewards.filter(isImportedReward).length;
+    const totalRedemptions = counts.total ?? allRedemptions.length;
+    const executed = counts.executed ?? allRedemptions.filter(r => String(r.status) === 'executed').length;
+    const failed = counts.failed ?? allRedemptions.filter(r => String(r.status) === 'failed').length;
+    const pending = counts.pending ?? allRedemptions.filter(r => String(r.status) === 'pending' || String(r.status) === 'received').length;
+    const skipped = counts.skipped ?? allRedemptions.filter(r => String(r.status) === 'skipped').length;
+
+    const rewardMap = new Map();
+    for (const reward of allRewards) rewardMap.set(String(reward.reward_key || ''), reward);
+    const byReward = new Map();
+    for (const item of allRedemptions) {
+      const key = String(item.reward_key || '-');
+      if (!byReward.has(key)) byReward.set(key, { key, title: rewardMap.get(key)?.title || key, total:0, executed:0, failed:0, skipped:0, pending:0 });
+      const row = byReward.get(key);
+      row.total += 1;
+      const status = String(item.status || 'pending');
+      if (status === 'executed') row.executed += 1;
+      else if (status === 'failed') row.failed += 1;
+      else if (status === 'skipped') row.skipped += 1;
+      else row.pending += 1;
+    }
+    const topRows = Array.from(byReward.values()).sort((a,b) => b.total - a.total || a.title.localeCompare(b.title)).slice(0, 10);
+    const newest = allRedemptions.slice(0, 8);
+
+    return `<section class="cp-panel cp-statistics-panel"><div class="cp-panel-head"><h3>Statistik</h3><span>einfacher Überblick ohne Test-Modi</span></div>
+      <div class="cp-stat-grid">
+        <div><small>Rewards</small><strong>${esc(allRewards.length)}</strong><span>${esc(active)} aktiv · ${esc(inactive)} inaktiv</span></div>
+        <div><small>Aktionen</small><strong>${esc(configured)}</strong><span>${esc(missingAction)} Aktion fehlt · ${esc(imported)} importiert</span></div>
+        <div><small>Einlösungen</small><strong>${esc(totalRedemptions)}</strong><span>${esc(executed)} ausgeführt · ${esc(failed)} Fehler</span></div>
+        <div><small>Offen/blockiert</small><strong>${esc(Number(pending || 0) + Number(skipped || 0))}</strong><span>${esc(pending)} offen · ${esc(skipped)} blockiert/ignoriert</span></div>
+      </div>
+      <div class="cp-stat-columns">
+        <div class="cp-stat-box"><h4>Top-Rewards</h4>${topRows.length ? `<div class="cp-stat-list">${topRows.map(row => `<div class="cp-stat-row"><div><strong>${esc(row.title)}</strong><small>${esc(row.key)}</small></div><span>${esc(row.total)}x</span></div>`).join('')}</div>` : '<div class="cp-empty">Noch keine Einlösungen für eine Top-Liste.</div>'}</div>
+        <div class="cp-stat-box"><h4>Letzte Aktionen</h4>${newest.length ? `<div class="cp-stat-list">${newest.map(item => `<div class="cp-stat-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}</small></div>${redemptionStatusPill(item.status)}</div>`).join('')}</div>` : '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
+      </div>
+    </section>`;
+  }
+
+
   function twitchReadonlyRewardsFrom(data) {
     if (!data || typeof data !== 'object') return [];
     if (Array.isArray(data.rewards)) return data.rewards;
@@ -958,6 +1005,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
   function renderActiveTab() {
     if (state.tab === 'overview') return `${renderOverview()}${renderTwitchReadinessPanel()}`;
     if (state.tab === 'redemptions') return renderRedemptionsPanel();
+    if (state.tab === 'statistics') return renderStatisticsPanel();
     if (state.tab === 'twitch-sync') return renderTwitchReadonlySyncPanel();
     if (state.tab === 'diagnostics') return renderDiagnosticsPanel();
     return `${renderImportedSetupPanel()}${renderToolbar()}${renderRewardGroups()}`;
@@ -1137,6 +1185,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
       ['manage', 'Rewards'],
       ['overview', 'Übersicht'],
       ['redemptions', 'Einlösungen'],
+      ['statistics', 'Statistik'],
       ['twitch-sync', 'Twitch Sync'],
       ['diagnostics', 'Diagnose']
     ];
