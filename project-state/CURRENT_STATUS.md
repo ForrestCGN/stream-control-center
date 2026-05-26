@@ -2,4 +2,16 @@
 
 Stand: 2026-05-26
 
-Commands v0.1.3 ergänzt den Media-Playback-Payload-Bridge-Fix. Media-Commands mit `sound_play` oder `video_play` können gespeicherte Media-IDs nun korrekt an `/api/sound/play` weitergeben. Legacy `/api/sound/play-media` wird beim Execute kompatibel umgeschrieben.
+## Kanalpunkte-System
+
+`backend/modules/channelpoints.js` steht jetzt auf Version `0.6.0`, Build `media-execution-bridge`.
+
+Neu:
+
+- lokale Medien-Ausführungsbrücke für Kanalpunkte-Rewards
+- Diagnose-Routen für Media-Execution
+- lokale Test-Ausführung über `/api/sound/play`
+- Execution-Stats im Status
+- lokale Redemption-Protokollierung bei Testausführung
+
+Twitch-Reads/Writes bleiben geplant, aber weiterhin deaktiviert.

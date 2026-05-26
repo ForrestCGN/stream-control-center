@@ -2,23 +2,16 @@
 
 Stand: 2026-05-26
 
-## Commands
+## Channelpoints / Kanalpunkte
 
-Das Commands-Modul läuft mit:
+Aktueller Modulstand: `channelpoints` Version `0.6.0`, Build `media-execution-bridge`.
 
-```text
-moduleVersion = 0.1.3
-moduleBuild = media-playback-payload-bridge
-```
+Das Kanalpunkte-System besitzt jetzt zusätzlich zur lokalen Reward-CRUD-Basis eine lokale Medien-Ausführungsbrücke. Damit können Rewards mit `media_asset_id` bzw. `action_payload.mediaId` testweise über das zentrale Sound-System ausgeführt werden.
 
-Der Status-Endpunkt ist weiterhin leichtgewichtig. Media-Commands leiten Sound/Video-Ausführung jetzt backendseitig korrekt an `/api/sound/play` weiter und erzeugen den nötigen Payload aus der gespeicherten Command-Config.
-
-Neue Diagnose:
+Wichtige Regel: Commands und Kanalpunkte verwenden dieselbe Ausführungskette für Medien:
 
 ```text
-GET /api/commands/media-command-check?trigger=<trigger>
+mediaId -> /api/sound/play Payload
 ```
 
-## Kanalpunkte
-
-Kanalpunkte bleiben auf lokaler CRUD-/Dashboard-Basis. Media- und Action-Pattern soll weiterhin am Commands-System gespiegelt werden.
+Twitch-Schreibzugriffe bleiben weiterhin deaktiviert. Diese Version verändert keine echten Twitch-Rewards.

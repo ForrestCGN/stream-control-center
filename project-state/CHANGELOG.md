@@ -1,8 +1,15 @@
 # Changelog
 
-## 2026-05-26 - Commands v0.1.3
+## 2026-05-26 — channelpoints v0.6.0 media-execution-bridge
 
-- Media-Playback-Payload für `sound_play`/`video_play` ergänzt.
-- Legacy-Ziel `/api/sound/play-media` beim Execute auf `/api/sound/play` umgeschrieben.
-- Diagnose-Route `/api/commands/media-command-check` ergänzt.
-- Status bleibt leichtgewichtig und ohne Schema-Touch.
+- `channelpoints` von `0.5.0` auf `0.6.0` erhöht.
+- Build-Kennung `media-execution-bridge` ergänzt.
+- Medien-Rewards können lokal über `/api/sound/play` ausgeführt werden.
+- Neue Diagnose-Routen:
+  - `GET /api/channelpoints/rewards/:idOrKey/execution-check`
+  - `GET /api/channelpoints/media-execution-check?reward=<keyOderId>`
+- Neue Ausführungs-Routen:
+  - `POST /api/channelpoints/rewards/:idOrKey/execute`
+  - `GET/POST /api/channelpoints/execute`
+- Keine Twitch-Schreibzugriffe eingeführt.
+- Keine bestehende Funktionalität entfernt.

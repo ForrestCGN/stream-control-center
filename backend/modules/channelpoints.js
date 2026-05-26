@@ -1,19 +1,24 @@
 "use strict";
 
+const http = require("http");
 const helperConfig = require("./helpers/helper_config");
 const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.5.0";
+const MODULE_VERSION = "0.6.0";
+const MODULE_BUILD = "media-execution-bridge";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
+const DEFAULT_TARGET_HOST = "127.0.0.1";
+const DEFAULT_TARGET_PORT = 8080;
 
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
   routePrefix: ROUTE_PREFIX,
-  description: "Twitch Channel Points local reward CRUD foundation with Communication Bus registration"
+  description: "Twitch Channel Points local reward CRUD foundation with Communication Bus registration",
+  build: MODULE_BUILD
 };
 
 const DEFAULT_CONFIG = {
@@ -26,7 +31,9 @@ const DEFAULT_CONFIG = {
   dbMigrationEnabled: true,
   schemaPreviewEnabled: true,
   migrationExecutionEnabled: true,
-  localCrudEnabled: true
+  localCrudEnabled: true,
+  mediaExecutionBridgeEnabled: true,
+  mediaExecutionTargetUrl: "/api/sound/play"
 };
 
 const DEFAULT_CATEGORIES = [
@@ -42,8 +49,8 @@ const ACTION_TYPES = [
   { key: "streamerbot_action", label: "Streamer.bot Action", planned: true, description: "Call a configured Streamer.bot action/bridge route later. No direct implementation in STEP493." },
   { key: "backend_route", label: "Backend Route", planned: true, description: "Call a local backend route/action with safe payload." },
   { key: "bus_event", label: "Communication Bus Event", planned: true, description: "Emit an event to another module through the Communication Bus." },
-  { key: "media", label: "Media-System Asset", planned: true, description: "Use an asset selected through existing media.js/dashboard media picker." },
-  { key: "sound", label: "Sound-System", planned: true, description: "Use sound system/media bridge later." },
+  { key: "media", label: "Media-System Asset", planned: false, description: "Use an asset selected through existing media.js/dashboard media picker and execute it via /api/sound/play." },
+  { key: "sound", label: "Sound-System", planned: false, description: "Execute selected media through the central Sound-System media bridge." },
   { key: "overlay", label: "Overlay", planned: true, description: "Trigger overlay state/event later." },
   { key: "manual", label: "Manual/Moderation", planned: true, description: "Store reward locally for manual handling." }
 ];
@@ -181,6 +188,16 @@ let localCrudStats = {
   lastCrudAt: null,
   lastCrudAction: ""
 };
+let executionStats = {
+  checked: 0,
+  executed: 0,
+  failed: 0,
+  lastExecutionAt: null,
+  lastExecutionAction: "",
+  lastExecutionReward: "",
+  lastExecutionResult: null,
+  lastExecutionError: ""
+};
 
 function nowIso() { return new Date().toISOString(); }
 function cleanString(value, fallback = "") { const clean = String(value ?? "").trim(); return clean || fallback; }
@@ -306,7 +323,7 @@ function getDbStatus() {
     })),
     safety: {
       additiveOnly: true,
-      noTwitchWriteInStep493: true,
+      noTwitchWriteInThisVersion: true,
       noDataReplacement: true,
       productiveDbMustNotBeReplaced: "D:\\Streaming\\stramAssets\\data\\sqlite\\app.sqlite"
     }
@@ -338,15 +355,15 @@ function buildSchemaPreview() {
     })),
     seedPreview: { defaultCategories: DEFAULT_CATEGORIES, executionEnabled: true },
     safety: {
-      noUnsafeDbWriteInStep493: true,
-      noTwitchWriteInStep493: true,
+      noUnsafeDbWriteInThisVersion: true,
+      noTwitchWriteInThisVersion: true,
       additiveOnly: true,
       productiveDbMustNotBeReplaced: "D:\\Streaming\\stramAssets\\data\\sqlite\\app.sqlite"
     },
     mediaIntegration: buildMediaPlan().mediaSystem,
     rules: [
-      "STEP493 writes only local reward/category rows in the existing SQLite database.",
-      "STEP493 must not call Twitch reward create/update/delete APIs.",
+      "This version writes only local reward/category/redemption rows in the existing SQLite database.",
+      "This version must not call Twitch reward create/update/delete APIs.",
       "Deactivate in STEP493 only changes local system_enabled/is_paused state.",
       "Real Twitch is_enabled=false comes in a later Twitch sync/API step.",
       "Media references must point to the existing media system; no new upload endpoint."
@@ -374,7 +391,7 @@ function buildModel() {
     defaultCategories: DEFAULT_CATEGORIES,
     actionTypes: ACTION_TYPES,
     rules: [
-      "No Twitch write action in STEP493.",
+      "No Twitch write action in this local CRUD/media execution version.",
       "Local reward CRUD is SQLite-only.",
       "Deactivate later must update Twitch Custom Reward is_enabled=false, not only a local flag.",
       "Media files must use the existing media system/upload mask.",
@@ -625,6 +642,239 @@ function setRewardEnabled(idOrKey, enabled, paused = null) {
   return updated;
 }
 
+function rewardActionPayload(reward) {
+  if (!reward) return {};
+  return reward.action_payload && typeof reward.action_payload === "object" ? reward.action_payload : safeJsonParse(reward.action_payload_json, {});
+}
+
+function rewardMediaId(reward) {
+  const payload = rewardActionPayload(reward);
+  return cleanString(
+    reward && reward.media_asset_id ||
+    payload.mediaId ||
+    payload.media_asset_id ||
+    payload.soundMediaId ||
+    payload.videoMediaId ||
+    payload.media && payload.media.id ||
+    ""
+  );
+}
+
+function rewardMediaType(reward) {
+  const payload = rewardActionPayload(reward);
+  const actionType = cleanString(reward && reward.action_type || payload.actionType || payload.type || "").toLowerCase();
+  const role = cleanString(reward && reward.media_role || payload.mediaRole || payload.role || "").toLowerCase();
+  const explicit = cleanString(payload.mediaType || payload.kind || payload.assetType || "").toLowerCase();
+  const actionKey = cleanString(reward && reward.action_key || payload.actionKey || "").toLowerCase();
+  if (["video", "animation"].includes(explicit)) return "video";
+  if (["audio", "sound"].includes(explicit)) return "audio";
+  if (["video", "animation", "overlay"].includes(role)) return "video";
+  if (["sound", "audio"].includes(role)) return "audio";
+  if (actionType.includes("video") || actionKey.includes("video")) return "video";
+  if (actionType.includes("sound") || actionType.includes("audio") || actionKey.includes("audio") || actionKey.includes("sound")) return "audio";
+  return reward && reward.action_type === "media" ? "video" : "audio";
+}
+
+function isExecutableMediaReward(reward) {
+  if (!reward) return false;
+  const actionType = cleanString(reward.action_type || "").toLowerCase();
+  const mediaId = rewardMediaId(reward);
+  if (!mediaId) return false;
+  return ["media", "sound", "video_play", "sound_play"].includes(actionType) || ["video", "audio"].includes(rewardMediaType(reward));
+}
+
+function buildRewardExecutionPayload(reward, input = {}) {
+  const payload = rewardActionPayload(reward);
+  const mediaId = rewardMediaId(reward);
+  const mediaType = rewardMediaType(reward);
+  const isVideo = mediaType === "video";
+  const userLogin = cleanString(input.userLogin || input.user || input.login || payload.userLogin || "testuser").toLowerCase();
+  const displayName = cleanString(input.userDisplayName || input.displayName || input.userName || input.user || userLogin || "testuser");
+  return {
+    command: isVideo ? "play_video_media" : "play_audio_media",
+    cmd: isVideo ? "play_video_media" : "play_audio_media",
+    rawInput: cleanString(input.rawInput || input.userInput || ""),
+    input: cleanString(input.userInput || input.input || ""),
+    rawMessage: cleanString(input.rawMessage || `channelpoints:${reward.reward_key}`),
+    message: cleanString(input.message || `channelpoints:${reward.reward_key}`),
+    args: Array.isArray(input.args) ? input.args : [],
+    user: displayName,
+    userName: displayName,
+    userLogin,
+    login: userLogin,
+    displayName,
+    userDisplayName: displayName,
+    userId: cleanString(input.userId || input.twitchUserId || ""),
+    source: "channelpoints",
+    channel: cleanString(input.channel || ""),
+    mediaId,
+    mediaType,
+    type: isVideo ? "video" : "file",
+    soundId: "",
+    sound: "",
+    volume: intValue(payload.volume, isVideo ? 80 : 85),
+    target: cleanString(payload.target || "stream"),
+    outputTarget: isVideo ? "overlay" : cleanString(payload.outputTarget || payload.output || "overlay"),
+    category: cleanString(payload.category || "channel_reward"),
+    requestedBy: userLogin || displayName,
+    label: cleanString(payload.label || reward.title || reward.reward_key || mediaId),
+    queueIfBusy: reward.queue_mode !== "drop" && payload.queueIfBusy !== false,
+    parallelAllowed: payload.parallelAllowed === true,
+    meta: {
+      rewardId: reward.id,
+      rewardKey: reward.reward_key,
+      twitchRewardId: reward.twitch_reward_id || "",
+      actionType: reward.action_type || "",
+      mediaId,
+      source: "channelpoints"
+    }
+  };
+}
+
+function httpJsonRequest(method, targetUrl, payload = {}) {
+  const cleanUrl = cleanString(targetUrl);
+  if (!cleanUrl) return Promise.reject(new Error("target_url_missing"));
+  const body = JSON.stringify(payload);
+  const options = {
+    hostname: process.env.CHANNELPOINTS_TARGET_HOST || DEFAULT_TARGET_HOST,
+    port: Number(process.env.CHANNELPOINTS_TARGET_PORT || DEFAULT_TARGET_PORT) || DEFAULT_TARGET_PORT,
+    path: cleanUrl.startsWith("/") ? cleanUrl : `/${cleanUrl}`,
+    method: String(method || "POST").trim().toUpperCase() || "POST",
+    headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }
+  };
+  return new Promise((resolve, reject) => {
+    const request = http.request(options, response => {
+      let data = "";
+      response.setEncoding("utf8");
+      response.on("data", chunk => { data += chunk; });
+      response.on("end", () => {
+        let parsed = data;
+        try { parsed = data ? JSON.parse(data) : {}; } catch (_) {}
+        if (response.statusCode >= 200 && response.statusCode < 300) resolve({ ok: true, statusCode: response.statusCode, data: parsed });
+        else {
+          const err = new Error(`target_http_${response.statusCode}`);
+          err.statusCode = response.statusCode;
+          err.data = parsed;
+          reject(err);
+        }
+      });
+    });
+    request.on("error", reject);
+    request.write(body);
+    request.end();
+  });
+}
+
+function summarizeExecutionResult(result) {
+  const data = result && result.data ? result.data : {};
+  return {
+    ok: !!(result && result.ok),
+    statusCode: result && result.statusCode || 0,
+    dataOk: data && data.ok === true,
+    message: data && data.message || "",
+    result: data && data.result || null,
+    item: data && data.item ? { requestId: data.item.requestId, soundId: data.item.soundId, label: data.item.label, mediaType: data.item.mediaType, mediaUrl: data.item.mediaUrl, videoUrl: data.item.videoUrl, outputTarget: data.item.outputTarget } : null
+  };
+}
+
+function recordRedemptionExecution(reward, input, status, result) {
+  try {
+    ensureDbReady();
+    const now = nowIso();
+    database.run(`
+      INSERT INTO channelpoints_redemptions
+        (twitch_redemption_id, twitch_reward_id, reward_key, user_id, user_login, user_display_name, user_input, status, queue_group, result_json, redeemed_at, created_at, updated_at)
+      VALUES
+        (:twitch_redemption_id, :twitch_reward_id, :reward_key, :user_id, :user_login, :user_display_name, :user_input, :status, :queue_group, :result_json, :redeemed_at, :created_at, :updated_at)
+    `, {
+      twitch_redemption_id: cleanString(input.twitchRedemptionId || input.redemptionId || `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+      twitch_reward_id: reward.twitch_reward_id || "",
+      reward_key: reward.reward_key,
+      user_id: cleanString(input.userId || ""),
+      user_login: cleanString(input.userLogin || input.user || input.login || "testuser").toLowerCase(),
+      user_display_name: cleanString(input.userDisplayName || input.displayName || input.user || "testuser"),
+      user_input: cleanString(input.userInput || input.input || ""),
+      status,
+      queue_group: cleanString(input.queueGroup || reward.queue_mode || ""),
+      result_json: jsonString(result, {}),
+      redeemed_at: cleanString(input.redeemedAt || now),
+      created_at: now,
+      updated_at: now
+    });
+  } catch (err) {
+    lastError = err && err.message ? err.message : String(err);
+  }
+}
+
+function buildExecutionCheck(reward, input = {}) {
+  const config = getConfig();
+  const mediaId = rewardMediaId(reward);
+  const mediaType = rewardMediaType(reward);
+  const targetUrl = cleanString(config.mediaExecutionTargetUrl || "/api/sound/play");
+  executionStats.checked += 1;
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    rewardKey: reward.reward_key,
+    rewardTitle: reward.title,
+    systemEnabled: !!reward.system_enabled,
+    isPaused: !!reward.is_paused,
+    actionType: reward.action_type,
+    actionKey: reward.action_key,
+    mediaId,
+    mediaType,
+    executable: isExecutableMediaReward(reward),
+    effectiveTargetUrl: targetUrl,
+    targetMethod: "POST",
+    payloadPreview: buildRewardExecutionPayload(reward, input),
+    warnings: {
+      disabled: reward.system_enabled ? false : true,
+      paused: reward.is_paused ? true : false,
+      missingMediaId: mediaId ? false : true,
+      unsupportedAction: isExecutableMediaReward(reward) ? false : true
+    },
+    updatedAt: nowIso()
+  };
+}
+
+async function executeReward(idOrKey, input = {}) {
+  const config = getConfig();
+  if (config.mediaExecutionBridgeEnabled === false) throw new Error("media_execution_bridge_disabled");
+  const reward = getRewardByIdOrKey(idOrKey);
+  if (!reward) throw new Error("reward_not_found");
+  if (!reward.system_enabled) throw new Error("reward_disabled_local");
+  if (reward.is_paused) throw new Error("reward_paused_local");
+  if (!isExecutableMediaReward(reward)) throw new Error("reward_not_executable_media");
+  const targetUrl = cleanString(config.mediaExecutionTargetUrl || "/api/sound/play");
+  const payload = buildRewardExecutionPayload(reward, input);
+  try {
+    const result = await httpJsonRequest("POST", targetUrl, payload);
+    const summary = summarizeExecutionResult(result);
+    executionStats.executed += 1;
+    executionStats.lastExecutionAt = nowIso();
+    executionStats.lastExecutionAction = "execute_media_reward";
+    executionStats.lastExecutionReward = reward.reward_key;
+    executionStats.lastExecutionResult = summary;
+    executionStats.lastExecutionError = "";
+    recordRedemptionExecution(reward, input, "executed", summary);
+    publishStatus("reward_media_executed");
+    return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, action: "executed_media_reward", reward, targetUrl, payload, result: summary, twitchWrite: false };
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    executionStats.failed += 1;
+    executionStats.lastExecutionAt = nowIso();
+    executionStats.lastExecutionAction = "execute_media_reward_failed";
+    executionStats.lastExecutionReward = reward.reward_key;
+    executionStats.lastExecutionResult = err && err.data ? err.data : null;
+    executionStats.lastExecutionError = message;
+    recordRedemptionExecution(reward, input, "failed", { error: message, data: err && err.data || null });
+    lastError = message;
+    throw err;
+  }
+}
+
 function buildBusStatus() {
   const currentBus = getBus();
   const busStatus = currentBus && typeof currentBus.getStatus === "function" ? currentBus.getStatus() : null;
@@ -663,7 +913,8 @@ function buildStatus(extra = {}) {
     moduleVersion: MODULE_VERSION,
     routePrefix: ROUTE_PREFIX,
     enabled: config.enabled !== false,
-    mode: "backend_local_reward_crud",
+    mode: "backend_local_reward_crud_media_execution_bridge",
+    moduleBuild: MODULE_BUILD,
     model: {
       version: "0.4.0",
       schemaPreviewVersion: "0.3.0",
@@ -673,6 +924,7 @@ function buildStatus(extra = {}) {
       schemaPreviewEnabled: config.schemaPreviewEnabled !== false,
       migrationExecutionEnabled: config.migrationExecutionEnabled !== false,
       localCrudEnabled: config.localCrudEnabled !== false,
+      mediaExecutionBridgeEnabled: config.mediaExecutionBridgeEnabled !== false,
       tableCountPlanned: TABLES.length,
       rewardFieldCount: TABLES[1].fields.length,
       categoryFieldCount: TABLES[0].fields.length,
@@ -682,10 +934,12 @@ function buildStatus(extra = {}) {
     },
     media: {
       integrationPlanned: true,
+      executionBridgeImplemented: true,
       usesExistingMediaSystem: true,
       module: "media",
       uploadUi: "existing_dashboard_media_upload_mask",
-      pickerComponent: "htdocs/dashboard/components/media_picker.js"
+      pickerComponent: "htdocs/dashboard/components/media_picker.js",
+      executionBridge: { enabled: config.mediaExecutionBridgeEnabled !== false, target: config.mediaExecutionTargetUrl || "/api/sound/play", payloadRule: "mediaId_to_sound_system_payload" }
     },
     config: {
       busEnabled: config.busEnabled !== false,
@@ -705,7 +959,7 @@ function buildStatus(extra = {}) {
       writeActionsEnabled: false,
       requiredManageScope: "channel:manage:redemptions",
       requiredReadScope: "channel:read:redemptions",
-      note: "STEP493 is a local reward CRUD step. Twitch reward reads/writes are planned for later steps."
+      note: "This version is local reward CRUD plus local media execution bridge. Twitch reward reads/writes are planned later."
     },
     localState: {
       rewardCount: counts.rewards,
@@ -713,6 +967,7 @@ function buildStatus(extra = {}) {
       redemptionCount: counts.redemptions,
       queueSize: 0,
       crudStats: { ...localCrudStats },
+      executionStats: { ...executionStats },
       lastBusTestAt,
       lastBusEvent,
       lastError
@@ -729,6 +984,9 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/rewards/:idOrKey`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/enable`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/disable`,
+      `${ROUTE_PREFIX}/rewards/:idOrKey/execution-check`,
+      `${ROUTE_PREFIX}/rewards/:idOrKey/execute`,
+      `${ROUTE_PREFIX}/execute`,
       `${ROUTE_PREFIX}/bus-test`
     ],
     ...extra
@@ -751,6 +1009,7 @@ function publishStatus(reason = "status") {
   const payload = {
     module: MODULE_NAME,
     version: MODULE_VERSION,
+    build: MODULE_BUILD,
     enabled: config.enabled !== false,
     health: lastError ? "warn" : "ok",
     status: "online",
@@ -808,7 +1067,7 @@ function heartbeatBus(reason = "heartbeat") {
     status: "online",
     health: lastError ? "warn" : "ok",
     reason,
-    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.test.ping"]
+    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.test.ping"]
   });
   lastBusHeartbeatAt = nowIso();
   return result;
@@ -824,8 +1083,8 @@ function registerAtCommunicationBus() {
     module: MODULE_NAME,
     name: "Kanalpunkte-System",
     version: MODULE_VERSION,
-    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.test.ping"],
-    meta: { routePrefix: ROUTE_PREFIX, localCrud: true, twitchWritesEnabled: false, mediaSystem: "existing_media_module" }
+    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.test.ping"],
+    meta: { routePrefix: ROUTE_PREFIX, localCrud: true, twitchWritesEnabled: false, mediaSystem: "existing_media_module", mediaExecutionBridge: "/api/sound/play" }
   });
   registeredAtBus = registerResult && registerResult.ok === true;
   lastBusRegisterAt = registeredAtBus ? nowIso() : lastBusRegisterAt;
@@ -923,7 +1182,7 @@ function init({ app }) {
     try {
       const reward = setRewardEnabled(req.params.idOrKey, false, boolValue(req.body && req.body.is_paused, true));
       if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: "reward_not_found" });
-      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, action: "disabled_local_only", reward, twitchWrite: false, note: "STEP493 disables only local system_enabled/is_paused. Twitch is_enabled=false comes later." });
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, action: "disabled_local_only", reward, twitchWrite: false, note: "Diese Version deaktiviert nur lokal system_enabled/is_paused. Twitch is_enabled=false kommt in einem späteren Twitch-Sync/API-Ausbau." });
     } catch (err) { sendError(res, 400, err); }
   });
 
@@ -933,6 +1192,47 @@ function init({ app }) {
       if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: "reward_not_found" });
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, action: "enabled_local_only", reward, twitchWrite: false });
     } catch (err) { sendError(res, 400, err); }
+  });
+
+
+  app.get(`${ROUTE_PREFIX}/rewards/:idOrKey/execution-check`, (req, res) => {
+    try {
+      const reward = getRewardByIdOrKey(req.params.idOrKey);
+      if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "reward_not_found" });
+      res.json(buildExecutionCheck(reward, req.query || {}));
+    } catch (err) { sendError(res, 500, err); }
+  });
+
+  app.get(`${ROUTE_PREFIX}/media-execution-check`, (req, res) => {
+    try {
+      const idOrKey = cleanString(req.query.reward || req.query.reward_key || req.query.id || "");
+      const reward = getRewardByIdOrKey(idOrKey);
+      if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "reward_not_found" });
+      res.json(buildExecutionCheck(reward, req.query || {}));
+    } catch (err) { sendError(res, 500, err); }
+  });
+
+  app.post(`${ROUTE_PREFIX}/rewards/:idOrKey/execute`, async (req, res) => {
+    try {
+      const result = await executeReward(req.params.idOrKey, req.body || {});
+      res.json(result);
+    } catch (err) { sendError(res, err && err.message === "reward_not_found" ? 404 : 400, err); }
+  });
+
+  app.get(`${ROUTE_PREFIX}/execute`, async (req, res) => {
+    try {
+      const idOrKey = cleanString(req.query.reward || req.query.reward_key || req.query.id || "");
+      const result = await executeReward(idOrKey, req.query || {});
+      res.json(result);
+    } catch (err) { sendError(res, err && err.message === "reward_not_found" ? 404 : 400, err); }
+  });
+
+  app.post(`${ROUTE_PREFIX}/execute`, async (req, res) => {
+    try {
+      const idOrKey = cleanString(req.body && (req.body.reward || req.body.reward_key || req.body.id) || req.query.reward || "");
+      const result = await executeReward(idOrKey, req.body || {});
+      res.json(result);
+    } catch (err) { sendError(res, err && err.message === "reward_not_found" ? 404 : 400, err); }
   });
 
   app.get(`${ROUTE_PREFIX}/bus-test`, (req, res) => {
@@ -946,4 +1246,4 @@ function init({ app }) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} API routes registered (${ROUTE_PREFIX})`);
 }
 
-module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, registerAtCommunicationBus, heartbeatBus, publishStatus };
+module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, registerAtCommunicationBus, heartbeatBus, publishStatus };
