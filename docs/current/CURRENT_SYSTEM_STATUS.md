@@ -2,14 +2,14 @@
 
 ## Aktueller Arbeitsstand
 
-Aktuell relevant:
+Aktuell relevant nach STEP474:
 
-- `stream_status` steht auf Runtime-Version `0.1.2`.
-- `stream_status` nutzt Twitch-API als Primärquelle und hat Auto-Refresh.
-- `clip_shoutout` steht auf Runtime-Version `0.2.10`.
-- Shoutout-Statistik-Routen sind vorhanden und getestet.
-- Shoutout-Dashboard ist vorhanden, aber UX muss in Tabs/Unterbereiche aufgeteilt werden.
-- Allgemeiner Projektprompt wurde mit STEP472 umfassend aktualisiert.
+- STEP474 war ein reiner Aufraeum-/Doku-STEP.
+- Es wurden keine Backend-, Dashboard-, Overlay-, Config- oder Datenbankdateien geaendert.
+- Der hochgeladene Backend-Stand wurde fuer eine Modul-/Routen-/Cleanup-Uebersicht ausgewertet.
+- `stream_status` bleibt als bekannter Stand bei Runtime-Version `0.1.2`.
+- `clip_shoutout` bleibt als bekannter Stand bei Runtime-Version `0.2.10`.
+- Shoutout-Dashboard ist weiterhin vorhanden, aber UX muss in Tabs/Unterbereiche aufgeteilt werden.
 
 ## Zentrale Projektregeln
 
@@ -23,14 +23,44 @@ docs/current/PROJECT_WORKING_RULES.md
 Wichtige Regeln:
 
 - Deutsch antworten.
-- Keine Funktionalität entfernen.
+- Keine Funktionalitaet entfernen.
 - Keine Patches, Git-Patches, PowerShell-Regex- oder Inline-Patch-Scripte.
-- Änderungen nur als vollständige Ersatzdateien im ZIP.
+- Aenderungen nur als vollstaendige Ersatzdateien im ZIP.
 - ZIPs mit echten Zielpfaden ab Repo-Root.
 - ZIPs direkt nach `D:\Git\stream-control-center` entpackbar.
-- Produktive SQLite-Datenbank niemals ersetzen/überschreiben.
+- Produktive SQLite-Datenbank niemals ersetzen/ueberschreiben.
+- Keine Runtime-Daten, Datenbanken, Backups, Secrets oder temporaere Dateien ins Repo.
 - Nur notwendige Shell-/PowerShell-Ausgaben liefern.
-- Dashboard-Module nicht überladen; große Module in Tabs/Unterbereiche aufteilen.
+- Dashboard-Module nicht ueberladen; grosse Module in Tabs/Unterbereiche aufteilen.
+
+## Doku-/Cleanup-Stand STEP474
+
+Neue/aktualisierte zentrale Doku:
+
+```text
+docs/current/PROJECT_BACKEND_MODULE_STATUS_2026-05-26.md
+docs/current/PROJECT_MODULE_AND_ROUTE_MAP_2026-05-26.md
+docs/current/PROJECT_DOCS_CLEANUP_NOTES_2026-05-26.md
+project-state/STEP474_DOCS_TODO_MODULE_CLEANUP.md
+```
+
+Auswertung aus `backend.zip`:
+
+- Backend-Module ohne Helper: 49
+- Helper-Dateien: 18
+- erkannte Routen/Route-Hinweise: 527
+- Module mit erkannter Versionskennung: 12
+- Module ohne erkannte Versionskennung: 37
+
+Auffaelligkeiten fuer spaeteren Cleanup:
+
+```text
+backend/data/app.sqlite
+backend/data/deathcounter.v2.json
+backend/modules/twitch.js.bak_original_uploaded
+```
+
+Diese Dateien wurden nicht geaendert und nicht geloescht. Sie sind nur als pruefpflichtig dokumentiert.
 
 ## Stream Status Core
 
@@ -57,9 +87,9 @@ GET      /api/stream-status/sessions
 
 Status:
 
-- Twitch-API ist Primärquelle.
+- Twitch-API ist Primaerquelle.
 - Legacy-Dateien bleiben Fallback.
-- Auto-Refresh läuft standardmäßig alle 60 Sekunden, bei live/grace alle 30 Sekunden.
+- Auto-Refresh laeuft standardmaessig alle 60 Sekunden, bei live/grace alle 30 Sekunden.
 - Status wird in RAM und SQLite gespeichert.
 
 ## Clip-Shoutout / VSO
@@ -97,16 +127,14 @@ Aktueller Stand:
 - Statistik vorhanden.
 - Dashboard-Modul vorhanden, aber UX muss verbessert werden.
 
-## Nächster sinnvoller Schritt
+## Naechster sinnvoller Fach-STEP
 
 ```text
-STEP473_SHOUTOUT_DASHBOARD_TABS
+STEP475_SHOUTOUT_DASHBOARD_TABS
 ```
 
-## STEP473 - ToDo-Regel und allgemeiner Prompt
+Ziel:
 
-- `project-state/GENERAL_PROJECT_PROMPT.md` enthält jetzt eine verbindliche ToDo-/Offene-Punkte-Regel.
-- Neue zentrale Datei: `project-state/TODO.md`.
-- `TODO.md` hält längerfristige offene Punkte, spätere Ideen, bewusst verschobene Aufgaben und bekannte UX-/Technik-Schulden fest.
-- `NEXT_STEPS.md` bleibt für unmittelbare Einbau-, Prüf- und Testschritte zuständig.
-- Jeder STEP muss prüfen, ob `TODO.md` und/oder `NEXT_STEPS.md` aktualisiert werden müssen.
+- Shoutout-Dashboard aufraeumen.
+- Tabs/Unterbereiche ergänzen: Übersicht, Queues, Statistik, Timeline, Settings/Test.
+- Keine Shoutout-Backendlogik ändern, sofern nicht zwingend noetig.
