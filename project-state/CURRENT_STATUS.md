@@ -1,17 +1,10 @@
 # Current Status
 
-Stand: 2026-05-26
+## Kanalpunkte Dashboard v0.6.1
 
-## Kanalpunkte-System
+Der Reward-Editor wurde auf eine freundlichere Bedienung umgestellt:
 
-`backend/modules/channelpoints.js` steht jetzt auf Version `0.6.0`, Build `media-execution-bridge`.
-
-Neu:
-
-- lokale Medien-Ausführungsbrücke für Kanalpunkte-Rewards
-- Diagnose-Routen für Media-Execution
-- lokale Test-Ausführung über `/api/sound/play`
-- Execution-Stats im Status
-- lokale Redemption-Protokollierung bei Testausführung
-
-Twitch-Reads/Writes bleiben geplant, aber weiterhin deaktiviert.
+- Aktion über verständliche Auswahl statt technischer Action-Typ/JSON-Ansicht.
+- Sound/Video setzen technische Felder automatisch.
+- JSON/Action-Key/Queue/Priorität sind nur im erweiterten Bereich sichtbar.
+- Medienausführung bleibt kompatibel zur Backend-Brücke v0.6.0.

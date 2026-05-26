@@ -1,15 +1,9 @@
 # Changelog
 
-## 2026-05-26 — channelpoints v0.6.0 media-execution-bridge
+## Kanalpunkte Dashboard v0.6.1 - friendly-media-action-editor
 
-- `channelpoints` von `0.5.0` auf `0.6.0` erhöht.
-- Build-Kennung `media-execution-bridge` ergänzt.
-- Medien-Rewards können lokal über `/api/sound/play` ausgeführt werden.
-- Neue Diagnose-Routen:
-  - `GET /api/channelpoints/rewards/:idOrKey/execution-check`
-  - `GET /api/channelpoints/media-execution-check?reward=<keyOderId>`
-- Neue Ausführungs-Routen:
-  - `POST /api/channelpoints/rewards/:idOrKey/execute`
-  - `GET/POST /api/channelpoints/execute`
-- Keine Twitch-Schreibzugriffe eingeführt.
-- Keine bestehende Funktionalität entfernt.
+- Benutzerfreundlichen Medien-Aktionseditor ergänzt.
+- Auswahlfelder für `Sound abspielen` und `Video anzeigen` eingeführt.
+- Technische Felder in einen erweiterten Bereich verschoben.
+- Automatische Payload-Erzeugung für `/api/sound/play` ergänzt.
+- Buttons für Ausführungsprüfung und Reward-Test im Editor ergänzt.

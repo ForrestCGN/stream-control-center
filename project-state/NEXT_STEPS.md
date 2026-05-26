@@ -1,21 +1,6 @@
 # Next Steps
 
-## Kanalpunkte
-
-1. `channelpoints v0.6.0` deployen und Server neu starten.
-2. Status prüfen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status" |
-  Select-Object ok,module,moduleVersion,moduleBuild,media
-```
-
-3. Einen Reward mit `media_asset_id` oder `action_payload.mediaId` testen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/media-execution-check?reward=<rewardKey>"
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/rewards/<rewardKey>/execute" -Method Post -ContentType "application/json" -Body '{"userLogin":"forrestcgn","userDisplayName":"ForrestCGN"}'
-```
-
-4. Danach Dashboard-UI anpassen, damit Kanalpunkte-Rewards dieselbe Medien-Ausführungslogik sichtbar nutzen.
-5. Später Twitch-Sync/EventSub/Redemption-Verarbeitung ergänzen.
+1. Dashboard v0.6.1 testen: Reward öffnen, Aktion `Video anzeigen` wählen, Medium auswählen, speichern.
+2. `Ausführung prüfen` und `Reward testen` im Dashboard testen.
+3. Danach ggf. gleiche UX-Verbesserung auf weitere Action-Typen ausweiten.
+4. Später Twitch-Sync/Redemption-Handling ergänzen, ohne die lokale sichere Basis zu entfernen.

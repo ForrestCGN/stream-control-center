@@ -1,6 +1,9 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
+  const UI_VERSION = '0.6.1';
+  const UI_BUILD = 'friendly-media-action-editor';
+
   const api = {
     status: '/api/channelpoints/status',
     categories: '/api/channelpoints/categories',
@@ -8,7 +11,8 @@ window.ChannelpointsModule = (function(){
     model: '/api/channelpoints/model',
     mediaPlan: '/api/channelpoints/media-plan',
     dbStatus: '/api/channelpoints/db-status',
-    busTest: '/api/channelpoints/bus-test'
+    busTest: '/api/channelpoints/bus-test',
+    mediaExecutionCheck: '/api/channelpoints/media-execution-check'
   };
 
   const ACTION_TYPES = [
@@ -19,6 +23,55 @@ window.ChannelpointsModule = (function(){
     { id: 'media', label: 'Media-System', hint: 'Sound/Bild/Video über vorhandenes Media-System.' },
     { id: 'overlay', label: 'Overlay', hint: 'Overlay-Aktion vorbereiten.' },
     { id: 'multi_action', label: 'Multi-Action', hint: 'Später mehrere Schritte nacheinander.' }
+  ];
+
+
+
+  const FRIENDLY_ACTIONS = [
+    {
+      id: 'manual',
+      label: 'Keine Aktion / nur verwalten',
+      actionType: 'manual',
+      actionKey: '',
+      mediaRole: 'none',
+      mediaType: '',
+      allowedTypes: 'audio,video,image,animation',
+      hint: 'Der Reward wird nur lokal verwaltet. Es wird nichts automatisch abgespielt oder ausgelöst.',
+      needsMedia: false
+    },
+    {
+      id: 'sound_play',
+      label: 'Sound abspielen',
+      actionType: 'media',
+      actionKey: 'play_audio_media',
+      mediaRole: 'sound',
+      mediaType: 'audio',
+      allowedTypes: 'audio',
+      hint: 'Spielt ein ausgewähltes Audio-Medium über das Sound-System ab.',
+      needsMedia: true
+    },
+    {
+      id: 'video_play',
+      label: 'Video anzeigen',
+      actionType: 'media',
+      actionKey: 'play_video_media',
+      mediaRole: 'video',
+      mediaType: 'video',
+      allowedTypes: 'video,animation',
+      hint: 'Zeigt ein ausgewähltes Video oder eine Animation über das Sound-System-Overlay an.',
+      needsMedia: true
+    },
+    {
+      id: 'advanced',
+      label: 'Erweitert / technische Aktion',
+      actionType: '',
+      actionKey: '',
+      mediaRole: '',
+      mediaType: '',
+      allowedTypes: 'audio,video,image,animation',
+      hint: 'Technischer Modus für Backend-Route, Bus-Event, Overlay oder eigenes JSON.',
+      needsMedia: false
+    }
   ];
 
   const state = {
@@ -57,7 +110,7 @@ window.ChannelpointsModule = (function(){
       label: 'Kanalpunkte',
       icon: '🟣',
       enabled: true,
-      description: 'Twitch-Kanalpunkte lokal verwalten; Twitch-Sync folgt später.'
+      description: `Twitch-Kanalpunkte lokal verwalten; Dashboard v${UI_VERSION}.`
     };
     const communityItems = window.CGN.sections?.community?.items;
     if (Array.isArray(communityItems) && !communityItems.includes('channelpoints')) {
@@ -152,13 +205,123 @@ window.ChannelpointsModule = (function(){
 
   function getField(name) { return root?.querySelector(`[data-cp-field="${name}"]`); }
 
+  function friendlyActionById(id) {
+    return FRIENDLY_ACTIONS.find(item => item.id === id) || FRIENDLY_ACTIONS[0];
+  }
+
+  function friendlyActionForReward(reward) {
+    const actionType = String(reward?.action_type || 'manual').trim();
+    const actionKey = String(reward?.action_key || '').trim();
+    const mediaRole = String(reward?.media_role || '').trim();
+    const payload = parsePayloadObject(reward?.action_payload ?? reward?.action_payload_json, {});
+    const mediaType = String(payload.mediaType || payload.type || '').trim().toLowerCase();
+    if (actionType === 'manual' || (!actionType && !actionKey)) return 'manual';
+    if (actionType === 'media') {
+      if (actionKey.includes('video') || mediaRole === 'video' || mediaRole === 'animation' || mediaType === 'video') return 'video_play';
+      if (actionKey.includes('audio') || actionKey.includes('sound') || mediaRole === 'sound' || mediaRole === 'audio' || mediaType === 'audio') return 'sound_play';
+    }
+    return 'advanced';
+  }
+
+  function friendlyActionOptions(selected) {
+    return FRIENDLY_ACTIONS.map(item => `<option value="${esc(item.id)}" ${item.id === selected ? 'selected' : ''}>${esc(item.label)}</option>`).join('');
+  }
+
+  function parsePayloadObject(value, fallback = {}) {
+    if (!value) return fallback;
+    if (typeof value === 'object') return value;
+    try {
+      const parsed = JSON.parse(String(value));
+      return parsed && typeof parsed === 'object' ? parsed : fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function payloadFieldValue(name, fallback = '') {
+    const raw = String(getField('action_payload_json')?.value || '').trim();
+    const payload = parsePayloadObject(raw, {});
+    return payload[name] !== undefined && payload[name] !== null && payload[name] !== '' ? payload[name] : fallback;
+  }
+
+  function selectOptions(items, selected) {
+    return items.map(item => {
+      const value = typeof item === 'string' ? item : item.value;
+      const label = typeof item === 'string' ? item : item.label;
+      return `<option value="${esc(value)}" ${String(value) === String(selected) ? 'selected' : ''}>${esc(label)}</option>`;
+    }).join('');
+  }
+
+  function mediaBridgePayload(preset, basePayload = {}) {
+    if (!preset || !preset.needsMedia) return basePayload;
+    return {
+      ...basePayload,
+      mediaType: preset.mediaType,
+      type: preset.mediaType,
+      volume: Number(getField('media_volume')?.value || basePayload.volume || 80),
+      target: String(getField('media_target')?.value || basePayload.target || 'stream'),
+      outputTarget: String(getField('media_output_target')?.value || basePayload.outputTarget || 'overlay'),
+      queueIfBusy: String(getField('play_behavior')?.value || basePayload.playBehavior || 'immediate') !== 'immediate',
+      playBehavior: String(getField('play_behavior')?.value || basePayload.playBehavior || 'immediate')
+    };
+  }
+
+  function applyActionPresetToForm() {
+    const preset = friendlyActionById(String(getField('action_preset')?.value || 'manual'));
+    const technicalBox = root?.querySelector('[data-cp-technical-action]');
+    const mediaHelp = root?.querySelector('[data-cp-media-help]');
+    const executionHint = root?.querySelector('[data-cp-execution-hint]');
+    const mediaSettings = root?.querySelector('.cp-media-settings');
+    const mediaSection = root?.querySelector('#cp-media');
+    const actionType = getField('action_type');
+    const actionKey = getField('action_key');
+    const mediaRole = getField('media_role');
+    if (preset.id !== 'advanced') {
+      if (actionType) actionType.value = preset.actionType;
+      if (actionKey) actionKey.value = preset.actionKey;
+      if (mediaRole) mediaRole.value = preset.mediaRole;
+      const currentPayload = parsePayloadObject(getField('action_payload_json')?.value || '{}', {});
+      const nextPayload = mediaBridgePayload(preset, currentPayload);
+      if (preset.id === 'manual') {
+        getField('action_payload_json').value = '{}';
+      } else if (getField('action_payload_json')) {
+        getField('action_payload_json').value = JSON.stringify(nextPayload, null, 2);
+      }
+    }
+    if (technicalBox) technicalBox.hidden = preset.id !== 'advanced';
+    if (mediaHelp) {
+      mediaHelp.textContent = preset.needsMedia
+        ? `${preset.label}: Medium auswählen, der Rest wird automatisch als /api/sound/play Payload gespeichert.`
+        : preset.hint;
+    }
+    if (executionHint) executionHint.textContent = preset.needsMedia ? 'Ausführung: mediaId → /api/sound/play' : 'Keine automatische Medienausführung.';
+    if (mediaSettings) mediaSettings.hidden = !preset.needsMedia;
+    if (mediaSection) mediaSection.hidden = preset.id === 'manual';
+  }
+
+
   function readForm() {
+    const preset = friendlyActionById(String(getField('action_preset')?.value || 'manual'));
     const payloadRaw = String(getField('action_payload_json')?.value || '').trim();
     let actionPayload = {};
     if (payloadRaw) {
       try { actionPayload = JSON.parse(payloadRaw); }
       catch (err) { throw new Error(`Action-Payload JSON ungültig: ${err.message}`); }
     }
+
+    let actionType = String(getField('action_type')?.value || 'manual').trim();
+    let actionKey = String(getField('action_key')?.value || '').trim();
+    let mediaRole = String(getField('media_role')?.value || 'none').trim();
+
+    if (preset.id !== 'advanced') {
+      actionType = preset.actionType;
+      actionKey = preset.actionKey;
+      mediaRole = preset.mediaRole;
+      actionPayload = preset.id === 'manual' ? {} : mediaBridgePayload(preset, actionPayload);
+    }
+
+    const mediaAssetId = String(getField('media_asset_id')?.value || '').trim();
+    if (preset.needsMedia && !mediaAssetId) throw new Error('Bitte zuerst ein Medium auswählen.');
 
     return {
       reward_key: String(getField('reward_key')?.value || '').trim(),
@@ -171,11 +334,11 @@ window.ChannelpointsModule = (function(){
       is_paused: !!getField('is_paused')?.checked,
       require_user_input: !!getField('require_user_input')?.checked,
       input_label: String(getField('input_label')?.value || '').trim(),
-      action_type: String(getField('action_type')?.value || 'manual').trim(),
-      action_key: String(getField('action_key')?.value || '').trim(),
+      action_type: actionType,
+      action_key: actionKey,
       action_payload_json: JSON.stringify(actionPayload),
-      media_asset_id: String(getField('media_asset_id')?.value || '').trim(),
-      media_role: String(getField('media_role')?.value || 'none').trim(),
+      media_asset_id: mediaAssetId,
+      media_role: mediaRole,
       queue_mode: String(getField('queue_mode')?.value || 'none').trim(),
       priority: Number(getField('priority')?.value || 0),
       cooldown_seconds: Number(getField('cooldown_seconds')?.value || 0),
@@ -260,7 +423,7 @@ window.ChannelpointsModule = (function(){
 
   async function disableReward(key) {
     await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/disable`, { method: 'POST', body: '{}' });
-    state.notice = 'Reward lokal deaktiviert. Twitch wird in STEP495 nicht verändert.';
+    state.notice = 'Reward lokal deaktiviert. Twitch wird aktuell nicht verändert.';
     state.selectedKey = key;
     state.selected = null;
     await loadAll(true);
@@ -268,7 +431,7 @@ window.ChannelpointsModule = (function(){
 
   async function enableReward(key) {
     await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/enable`, { method: 'POST', body: '{}' });
-    state.notice = 'Reward lokal aktiviert. Twitch wird in STEP495 nicht verändert.';
+    state.notice = 'Reward lokal aktiviert. Twitch wird aktuell nicht verändert.';
     state.selectedKey = key;
     state.selected = null;
     await loadAll(true);
@@ -278,6 +441,30 @@ window.ChannelpointsModule = (function(){
     const data = await window.CGN.api(`${api.busTest}?message=dashboard`);
     state.busResult = data;
     state.notice = 'Bus-Test ausgeführt.';
+    await loadAll(true);
+  }
+
+
+  async function checkSelectedExecution() {
+    const reward = selectedReward();
+    const key = reward?.reward_key || state.selectedKey;
+    if (!key) throw new Error('Kein Reward ausgewählt.');
+    const data = await window.CGN.api(`${api.mediaExecutionCheck}?reward=${encodeURIComponent(key)}`);
+    state.notice = data.executable ? 'Ausführung geprüft: Reward kann über /api/sound/play ausgeführt werden.' : 'Ausführung geprüft: Reward ist noch nicht ausführbar.';
+    state.busResult = data;
+    render();
+  }
+
+  async function executeSelectedReward() {
+    const reward = selectedReward();
+    const key = reward?.reward_key || state.selectedKey;
+    if (!key) throw new Error('Kein Reward ausgewählt.');
+    const data = await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/execute`, {
+      method: 'POST',
+      body: JSON.stringify({ userLogin: 'dashboard', userDisplayName: 'Dashboard' })
+    });
+    state.notice = data.executed ? 'Reward-Test ausgeführt.' : 'Reward-Test konnte nicht ausgeführt werden.';
+    state.busResult = data;
     await loadAll(true);
   }
 
@@ -292,7 +479,7 @@ window.ChannelpointsModule = (function(){
         <div>
           <p class="cp-kicker">Kanalpunkte-System</p>
           <h2>Twitch-Kanalpunkte</h2>
-          <p>Gleiches Bedienmuster wie Commands: suchen, filtern, links auswählen, rechts bearbeiten.</p>
+          <p>Gleiches Bedienmuster wie Commands: suchen, filtern, links auswählen, rechts bearbeiten. Dashboard v${UI_VERSION} · ${UI_BUILD}</p>
         </div>
         <div class="cp-header-actions">
           <button type="button" data-cp-action="reload">Neu laden</button>
@@ -416,9 +603,9 @@ window.ChannelpointsModule = (function(){
   function renderActionGuide() {
     return `
       <section class="cp-panel">
-        <div class="cp-panel-head"><h3>Aktionen</h3><span>geplant wie Command-Aktionen</span></div>
+        <div class="cp-panel-head"><h3>Aktionen</h3><span>benutzerfreundliche Auswahl</span></div>
         <div class="cp-action-grid">
-          ${ACTION_TYPES.map(item => `
+          ${FRIENDLY_ACTIONS.map(item => `
             <div class="cp-action-card">
               <strong>${esc(item.label)}</strong>
               <code>${esc(item.id)}</code>
@@ -486,39 +673,78 @@ window.ChannelpointsModule = (function(){
           <label class="cp-wide">Prompt<textarea data-cp-field="prompt" rows="2">${esc(reward.prompt || '')}</textarea></label>
         </div>
 
-        <div id="cp-action" class="cp-editor-section">
+        <div id="cp-action" class="cp-editor-section cp-friendly-action">
           <h4>Aktion</h4>
-          <div class="cp-form-grid">
-            <label>Action-Typ
-              <select data-cp-field="action_type">
-                ${ACTION_TYPES.map(type => `<option value="${type.id}" ${reward.action_type === type.id ? 'selected' : ''}>${esc(type.label)}</option>`).join('')}
+          <div class="cp-action-choice">
+            <label>Was soll passieren?
+              <select data-cp-field="action_preset">
+                ${friendlyActionOptions(friendlyActionForReward(reward))}
               </select>
             </label>
-            <label>Action-Key<input data-cp-field="action_key" value="${esc(reward.action_key || '')}"></label>
-            <label>Queue
-              <select data-cp-field="queue_mode">
-                ${['none','single','queue','replace'].map(type => `<option value="${type}" ${reward.queue_mode === type ? 'selected' : ''}>${type}</option>`).join('')}
-              </select>
-            </label>
-            <label>Priorität<input data-cp-field="priority" type="number" value="${esc(reward.priority ?? 0)}"></label>
+            <div class="cp-action-explain">
+              <strong data-cp-execution-hint>${friendlyActionById(friendlyActionForReward(reward)).needsMedia ? 'Ausführung: mediaId → /api/sound/play' : 'Keine automatische Medienausführung.'}</strong>
+              <span>${esc(friendlyActionById(friendlyActionForReward(reward)).hint)}</span>
+            </div>
           </div>
-          <div class="cp-note">${esc(action.hint)}</div>
-          <label class="cp-wide">Action-Payload JSON<textarea data-cp-field="action_payload_json" rows="5">${esc(payload)}</textarea></label>
+
+          <div class="cp-form-grid cp-media-settings">
+            <label>Lautstärke
+              <input data-cp-field="media_volume" type="number" min="0" max="100" value="${esc(payloadFieldValue('volume', 80))}">
+            </label>
+            <label>Ausgabe
+              <select data-cp-field="media_output_target">
+                ${selectOptions([{value:'overlay',label:'OBS Overlay'}, {value:'device',label:'Audiogerät'}, {value:'both',label:'Overlay + Gerät'}], payloadFieldValue('outputTarget', 'overlay'))}
+              </select>
+            </label>
+            <label>Ziel
+              <select data-cp-field="media_target">
+                ${selectOptions([{value:'stream',label:'Stream'}, {value:'discord',label:'Discord'}, {value:'both',label:'Stream + Discord'}], payloadFieldValue('target', 'stream'))}
+              </select>
+            </label>
+            <label>Verhalten
+              <select data-cp-field="play_behavior">
+                ${selectOptions([{value:'immediate',label:'Sofort starten'}, {value:'queue',label:'In Warteschlange'}, {value:'busy_only',label:'Nur wenn frei'}], payloadFieldValue('playBehavior', 'immediate'))}
+              </select>
+            </label>
+          </div>
+
+          <details class="cp-advanced-box" data-cp-technical-action ${friendlyActionForReward(reward) === 'advanced' ? 'open' : ''}>
+            <summary>Erweitert: technische Felder anzeigen</summary>
+            <div class="cp-form-grid">
+              <label>Action-Typ
+                <select data-cp-field="action_type">
+                  ${ACTION_TYPES.map(type => `<option value="${type.id}" ${reward.action_type === type.id ? 'selected' : ''}>${esc(type.label)}</option>`).join('')}
+                </select>
+              </label>
+              <label>Action-Key<input data-cp-field="action_key" value="${esc(reward.action_key || '')}"></label>
+              <label>Queue
+                <select data-cp-field="queue_mode">
+                  ${['none','single','queue','replace'].map(type => `<option value="${type}" ${reward.queue_mode === type ? 'selected' : ''}>${type}</option>`).join('')}
+                </select>
+              </label>
+              <label>Priorität<input data-cp-field="priority" type="number" value="${esc(reward.priority ?? 0)}"></label>
+            </div>
+            <label class="cp-wide">Action-Payload JSON<textarea data-cp-field="action_payload_json" rows="5">${esc(payload)}</textarea></label>
+          </details>
         </div>
 
         <div id="cp-media" class="cp-editor-section">
-          <h4>Medien</h4>
-          <div class="cp-form-grid">
+          <h4>Medium</h4>
+          <p class="cp-inline-help" data-cp-media-help>${friendlyActionById(friendlyActionForReward(reward)).hint}</p>
+          <div class="cp-form-grid cp-media-id-row">
+            <label>Ausgewähltes Medium<input data-cp-field="media_asset_id" id="cpMediaAssetId" value="${esc(reward.media_asset_id || '')}" placeholder="Noch kein Medium ausgewählt" readonly></label>
             <label>Media-Rolle
               <select data-cp-field="media_role">
                 ${['none','sound','image','video','overlay','animation'].map(type => `<option value="${type}" ${reward.media_role === type ? 'selected' : ''}>${type}</option>`).join('')}
               </select>
             </label>
-            <label>Media-ID<input data-cp-field="media_asset_id" id="cpMediaAssetId" value="${esc(reward.media_asset_id || '')}" readonly></label>
           </div>
-          <div class="cp-media-box">
-            <div data-media-field data-module-key="channelpoints" data-allowed-types="audio,video,image,animation" data-title="Kanalpunkte-Medium auswählen" data-value-input="#cpMediaAssetId"></div>
-            <button type="button" data-cp-action="open-media">Medienverwaltung öffnen</button>
+          <div class="cp-media-box cp-friendly-media">
+            <div data-media-field data-module-key="channelpoints" data-allowed-types="${esc(friendlyActionById(friendlyActionForReward(reward)).allowedTypes)}" data-title="Kanalpunkte-Medium auswählen" data-value-input="#cpMediaAssetId"></div>
+            <div class="cp-media-actions">
+              <button type="button" data-cp-action="open-media">Medienverwaltung öffnen</button>
+              <button type="button" data-cp-action="clear-media">Medium entfernen</button>
+            </div>
           </div>
         </div>
 
@@ -543,9 +769,11 @@ window.ChannelpointsModule = (function(){
           <button type="button" data-cp-action="save">${isNew ? 'Lokal erstellen' : 'Speichern'}</button>
           ${!isNew && reward.system_enabled ? `<button type="button" data-cp-action="disable" data-key="${esc(reward.reward_key)}">Lokal deaktivieren</button>` : ''}
           ${!isNew && !reward.system_enabled ? `<button type="button" data-cp-action="enable" data-key="${esc(reward.reward_key)}">Lokal aktivieren</button>` : ''}
+          ${!isNew ? '<button type="button" data-cp-action="execution-check">Ausführung prüfen</button>' : ''}
+          ${!isNew ? '<button type="button" data-cp-action="execute-test">Reward testen</button>' : ''}
           <button type="button" data-cp-action="bus-test">Bus-Test</button>
         </div>
-        <div class="cp-note cp-warning">Twitch wird in STEP495 nicht verändert. Deaktivieren ist nur lokal.</div>
+        <div class="cp-note cp-warning">Twitch wird aktuell nicht verändert. Deaktivieren ist weiterhin nur lokal; Medienausführung läuft über /api/sound/play.</div>
       </section>
     `;
   }
@@ -595,6 +823,7 @@ window.ChannelpointsModule = (function(){
 
     wireEvents();
     window.MediaField?.initAll?.(root);
+    applyActionPresetToForm();
   }
 
   function wireEvents() {
@@ -616,12 +845,29 @@ window.ChannelpointsModule = (function(){
       render();
     });
     root.querySelectorAll('[data-cp-action="open-media"]').forEach(btn => btn.addEventListener('click', () => window.CGN?.setActiveModule?.('media')));
+    root.querySelector('[data-cp-action="clear-media"]')?.addEventListener('click', () => {
+      const field = getField('media_asset_id');
+      if (field) field.value = '';
+    });
+    root.querySelector('[data-cp-field="action_preset"]')?.addEventListener('change', applyActionPresetToForm);
+    ['media_volume','media_output_target','media_target','play_behavior'].forEach(name => {
+      getField(name)?.addEventListener('change', applyActionPresetToForm);
+      getField(name)?.addEventListener('input', applyActionPresetToForm);
+    });
     root.querySelector('[data-cp-action="save"]')?.addEventListener('click', async () => {
       try { state.error = ''; await saveReward(); }
       catch (err) { state.error = err.message || String(err); render(); }
     });
     root.querySelector('[data-cp-action="bus-test"]')?.addEventListener('click', async () => {
       try { state.error = ''; await runBusTest(); }
+      catch (err) { state.error = err.message || String(err); render(); }
+    });
+    root.querySelector('[data-cp-action="execution-check"]')?.addEventListener('click', async () => {
+      try { state.error = ''; await checkSelectedExecution(); }
+      catch (err) { state.error = err.message || String(err); render(); }
+    });
+    root.querySelector('[data-cp-action="execute-test"]')?.addEventListener('click', async () => {
+      try { state.error = ''; await executeSelectedReward(); }
       catch (err) { state.error = err.message || String(err); render(); }
     });
     root.querySelectorAll('[data-cp-action="disable"]').forEach(btn => btn.addEventListener('click', async () => {
@@ -645,5 +891,5 @@ window.ChannelpointsModule = (function(){
     if (event?.detail?.module === 'channelpoints') loadAll(false);
   });
 
-  return { loadAll, render, registerDashboardModule };
+  return { loadAll, render, registerDashboardModule, uiVersion: UI_VERSION, uiBuild: UI_BUILD };
 })();
