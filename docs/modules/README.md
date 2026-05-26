@@ -50,3 +50,22 @@ Diese Detailseiten sind tiefer als die ersten Übersichtsdateien und enthalten R
 - [`vip-sound-overlay-deep-dive.md`](./vip-sound-overlay-deep-dive.md)
 - [`clips-deep-dive.md`](./clips-deep-dive.md)
 - [`tts-system-deep-dive.md`](./tts-system-deep-dive.md)
+
+## Deep-Dive Block 2026-05-26 / STEP478
+
+Neue Detaildokus für Integrationen und Community-Module:
+
+- `integrations-deep-dive-overview.md`
+- `twitch-deep-dive.md`
+- `twitch-presence-deep-dive.md`
+- `discord-deep-dive.md`
+- `obs-deep-dive.md`
+- `scene-control-deep-dive.md`
+- `community-deep-dive-overview.md`
+- `tagebuch-deep-dive.md`
+- `todo-deep-dive.md`
+- `message-rotator-deep-dive.md`
+- `hug-deep-dive.md`
+- `birthday-deep-dive.md`
+
+Hinweis: Dashboard-/Overlay-Dateien waren im Backend-Upload nicht vollständig enthalten und müssen bei UI-/Overlay-Steps zusätzlich geprüft werden.

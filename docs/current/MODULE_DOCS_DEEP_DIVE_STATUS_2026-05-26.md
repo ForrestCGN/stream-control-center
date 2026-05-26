@@ -1,45 +1,49 @@
 # Module Docs Deep Dive Status
 
-Stand: 2026-05-26 / nach STEP477
+Stand: 2026-05-26
 
-## Erledigt
+## Abgeschlossene Doku-Blöcke
 
-### STEP476 - Core / Helper
+- STEP476: Core-/Basis-Module und Helper.
+- STEP477: Stream-/Media-Module.
+- STEP478: Integrations- und Community-Module.
 
-- `communication_bus`
-- `stream_status`
-- Datenbank-Core / SQLite
-- Security / Audit
-- Helper-Übersichten
+## In STEP478 ergänzt
 
-### STEP477 - Stream-/Media-Module
+Integrationen:
 
-- `clip_shoutout`
-- `alert_system`
-- `sound_system`
-- `vip_sound_overlay`
-- `clips`
-- `tts_system`
+- Twitch
+- Twitch Presence
+- Discord
+- OBS
+- Scene Control
+
+Community:
+
+- Tagebuch
+- Todo
+- Message Rotator
+- Hug/Rehug
+- Birthday
+
+## Aktueller Dokumentationsgrad
+
+Pro Modul sind jetzt dokumentiert:
+
+- Zweck
+- Datei
+- erkannte API-Routen
+- erkannte Hauptfunktionen/interne Bereiche
+- erkannte Datenbanktabellen
+- wichtige Abhängigkeiten
+- Runtime-/State-Themen
+- Dashboard-/Overlay-Hinweise
+- Risiken/Regeln
+- sinnvolle Tests
+- offene Punkte
 
 ## Noch offen
 
-Nächster sinnvoller Doku-Block:
-
-`STEP478_MODULE_DOCS_INTEGRATIONS_COMMUNITY_DEEP_DIVE`
-
-Vorgeschlagen:
-
-- `twitch`
-- `twitch_presence`
-- `discord`
-- `obs`
-- `scene_control`
-- `tagebuch`
-- `todo`
-- `message_rotator`
-- `hug`
-- `birthday`
-
-## Regel
-
-Vor Codeänderungen weiterhin die echte Datei aus GitHub/dev oder Live vollständig prüfen.
+- Dashboard-Dateien und Overlay-Dateien aus dem echten Repo/Live-Stand nachziehen.
+- Kleinere/sekundäre Module dokumentieren: `challenge`, `deathcounter_v2`, `loyalty`, `commands`, `commands_media`, `media`, `soundalerts_bridge`, `sound_output_config`, `bus_diagnostics`, `diagnostics`, `credits`, `fireworks_api`, `kofi`, `tipeee`, `overlay_data`, `start_overlay`, `twitch_chat_overlay`.
+- Danach alte Projekt-State-Dateien bei Bedarf weiter archivieren.

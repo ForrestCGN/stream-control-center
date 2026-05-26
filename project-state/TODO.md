@@ -28,3 +28,15 @@ Stand: 2026-05-26 / STEP477
 - [ ] Keine Funktionalität entfernen.
 - [ ] Vor Codeänderungen echte Dateien vollständig prüfen.
 - [ ] Doku nach jedem Modul-STEP aktualisieren.
+
+## Ergänzung nach STEP478
+
+### Doku offen
+
+- Sekundäre Module tief dokumentieren: `challenge`, `deathcounter_v2`, `loyalty`, `commands`, `commands_media`, `media`, `soundalerts_bridge`, `sound_output_config`, `bus_diagnostics`, `diagnostics`, `credits`, `fireworks_api`, `kofi`, `tipeee`, `overlay_data`, `start_overlay`, `twitch_chat_overlay`.
+- Dashboard-/Overlay-Dokus mit echten Dateien nachziehen.
+- Config-/Message-Dateien für die dokumentierten Module gegen echten Repo-/Live-Stand prüfen.
+
+### Danach Shoutout
+
+- Shoutout-Dashboard in Tabs/Unterbereiche aufteilen.

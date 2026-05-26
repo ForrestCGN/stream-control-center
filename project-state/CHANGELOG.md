@@ -20,3 +20,19 @@
 ### Not changed
 
 - Keine Code-, Config- oder Datenbankänderungen.
+
+## 2026-05-26 - STEP478_MODULE_DOCS_INTEGRATIONS_COMMUNITY_DEEP_DIVE
+
+### Added
+
+- Deep-Dive-Dokus für Integrationsmodule.
+- Deep-Dive-Dokus für Community-Module.
+- Aktualisierte Modul-Doku-Übersicht.
+
+### Changed
+
+- Doku-Status und Projektstatus auf STEP478 aktualisiert.
+
+### Not changed
+
+- Kein produktiver Code geändert.

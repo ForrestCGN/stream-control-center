@@ -42,3 +42,9 @@ dir docs\modules	ts-system-deep-dive.md
 ```
 
 Keine JS-Dateien geändert, daher kein `node --check` nötig.
+
+## Nach STEP478
+
+1. Optional weiter reine Doku: `STEP479_MODULE_DOCS_SECONDARY_MODULES_DEEP_DIVE` für kleinere/sekundäre Module.
+2. Danach Facharbeit am Shoutout-System: `STEP480_SHOUTOUT_DASHBOARD_TABS`.
+3. Vor Shoutout-UI-Arbeiten echte Dashboard-Dateien aus GitHub/dev prüfen.

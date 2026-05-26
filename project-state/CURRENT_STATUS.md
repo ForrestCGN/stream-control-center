@@ -24,3 +24,10 @@ Keine Code-, Dashboard-, Overlay-, Config- oder Datenbankänderungen.
 ## Danach
 
 `STEP479_SHOUTOUT_DASHBOARD_TABS`
+
+## 2026-05-26 - STEP478 Integrations-/Community-Modul-Dokus
+
+- Integrationsmodule tief dokumentiert: Twitch, Twitch Presence, Discord, OBS, Scene Control.
+- Community-Module tief dokumentiert: Tagebuch, Todo, Message Rotator, Hug/Rehug, Birthday.
+- Keine Code-, Dashboard-, Overlay-, Config- oder Datenbankänderungen.
+- Nächster möglicher Doku-Block: sekundäre Module. Danach Facharbeit am Shoutout-System.
