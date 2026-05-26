@@ -1,14 +1,3 @@
 # Current System Status
 
-## Channelpoints
-
-Aktueller Stand: **v0.7.3** / `text-reward-redemption-polish`.
-
-Bestätigte Basis:
-
-- Modal-Editor analog zu Commands.
-- Draft-State bleibt beim Medienauswählen erhalten.
-- Sound-/Video-Rewards können über MediaPicker konfiguriert werden.
-- Testeinlösungen werden lokal gespeichert.
-- Text-Rewards speichern Einzeltext als lokales Einlösungs-Ergebnis.
-- Twitch-Schreibzugriffe bleiben deaktiviert.
+Channelpoints/Kanalpunkte: v0.7.4 (`twitch-sync-readiness`) ist der aktuelle Stand. Lokaler Reward-/Redemption-Flow funktioniert, Sound/Video/Text sind vorbereitet/ausführbar. Twitch-Sync ist als Readiness-Panel vorbereitet, aber ohne Twitch-Schreibzugriffe.

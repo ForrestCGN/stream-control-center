@@ -1,8 +1,7 @@
 # NEXT_STEPS
 
-1. Kanalpunkte v0.7.3 testen:
-   - Text-Reward erstellen und testen.
-   - Sound-/Video-Test weiter prüfen.
-   - Einlösungsverlauf prüfen.
-2. Danach Twitch/EventSub-Anbindung planen.
-3. Danach zentrale Textverwaltung als eigenes Modul planen/bauen.
+1. Twitch Token-/Scope-Check read-only anbinden.
+2. Read-only Twitch Reward-Sync bauen.
+3. Lokale Rewards mit Twitch Reward-IDs mappen.
+4. EventSub-Redemption-Handler anbinden.
+5. Danach erst Fulfill/Cancel/Enable/Disable als echte Twitch-Schreibaktionen planen.

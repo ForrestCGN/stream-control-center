@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.7.3';
-  const UI_BUILD = 'text-reward-redemption-polish';
+  const UI_VERSION = '0.7.4';
+  const UI_BUILD = 'twitch-sync-readiness';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -11,7 +11,8 @@ window.ChannelpointsModule = (function(){
     busTest: '/api/channelpoints/bus-test',
     mediaExecutionCheck: '/api/channelpoints/media-execution-check',
     redemptions: '/api/channelpoints/redemptions',
-    redemptionTest: '/api/channelpoints/redemptions/test'
+    redemptionTest: '/api/channelpoints/redemptions/test',
+    twitchStatus: '/api/channelpoints/twitch-status'
   };
 
   const ACTIONS = [
@@ -35,6 +36,7 @@ window.ChannelpointsModule = (function(){
     rewards:[],
     redemptions:[],
     redemptionCounts:null,
+    twitchStatus:null,
     busResult:null,
     modal:null
   };
@@ -324,17 +326,19 @@ window.ChannelpointsModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, cats, rewardsRes, redemptionsRes] = await Promise.all([
+      const [status, cats, rewardsRes, redemptionsRes, twitchRes] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.categories),
         window.CGN.api(api.rewards),
-        window.CGN.api(`${api.redemptions}?limit=25`).catch(err => ({ ok:false, redemptions:[], counts:null, error:err.message }))
+        window.CGN.api(`${api.redemptions}?limit=25`).catch(err => ({ ok:false, redemptions:[], counts:null, error:err.message })),
+        window.CGN.api(api.twitchStatus).catch(err => ({ ok:false, error:err.message }))
       ]);
       state.status = status;
       state.categories = asArray(cats.categories);
       state.rewards = asArray(rewardsRes.rewards);
       state.redemptions = asArray(redemptionsRes.redemptions);
       state.redemptionCounts = redemptionsRes.counts || null;
+      state.twitchStatus = twitchRes || null;
       state.loading = false;
     } catch (err) {
       state.loading = false;
@@ -415,6 +419,28 @@ window.ChannelpointsModule = (function(){
     return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Einlösungen / Testverlauf</h3><span>${esc(counts.total ?? list.length)} gesamt · ${esc(counts.executed ?? 0)} ausgeführt · ${esc(counts.failed ?? 0)} Fehler</span></div>
       <div class="cp-redemption-list">${list.map(item => { const preview = redemptionResultPreview(item); return `<div class="cp-redemption-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}${preview ? ` · ${esc(preview).slice(0, 140)}` : ''}</small></div><div>${redemptionStatusPill(item.status)}</div></div>`; }).join('') || '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
       <small class="cp-muted-line">Text-Rewards speichern den vorbereiteten Chattext aktuell lokal im Ergebnis. Zentrale Textverwaltung und echtes Senden folgen separat.</small>
+    </section>`;
+  }
+
+
+  function renderTwitchReadinessPanel() {
+    const tw = state.twitchStatus || (state.status && state.status.twitch) || {};
+    const readiness = tw.readiness || tw || {};
+    const counts = tw.counts || {};
+    const scopes = asArray(tw.requiredScopes);
+    const writeMode = readiness.writeActionsEnabled ? pill('Twitch-Schreiben aktiv', 'warn') : pill('nur lokal / kein Twitch-Schreiben', 'ok');
+    return `<section class="cp-panel cp-twitch-panel"><div class="cp-panel-head"><h3>Twitch-Sync Vorbereitung</h3><span>${writeMode}</span></div>
+      <div class="cp-twitch-grid">
+        <div><strong>Lokale Rewards</strong><span>${esc(counts.rewards ?? rewards().length)} gesamt · ${esc(counts.mappedRewards ?? 0)} mit Twitch-ID · ${esc(counts.unmappedRewards ?? Math.max(0, rewards().length - (counts.mappedRewards || 0)))} lokal/offen</span></div>
+        <div><strong>Einlösungen</strong><span>${esc(counts.redemptions ?? state.redemptions.length)} lokal gespeichert</span></div>
+        <div><strong>Reward-Sync</strong><span>${readiness.twitchRewardSyncEnabled ? 'aktiviert' : 'deaktiviert / vorbereitet'}</span></div>
+        <div><strong>EventSub</strong><span>${readiness.eventSubImplemented ? 'angebunden' : 'noch nicht angebunden'}</span></div>
+      </div>
+      <div class="cp-note cp-twitch-note"><strong>Sicher:</strong> Dieses Modul zeigt nur die Bereitschaft. Lokal löschen/deaktivieren verändert Twitch weiterhin nicht.</div>
+      <details class="cp-advanced-box"><summary>Benötigte Scopes und nächster Ablauf</summary>
+        <ul class="cp-scope-list">${scopes.map(item => `<li><code>${esc(item.scope || item)}</code><span>${esc(item.purpose || '')}</span></li>`).join('') || '<li><code>channel:read:redemptions</code><span>Rewards/Einlösungen lesen</span></li><li><code>channel:manage:redemptions</code><span>später erfüllen/abbrechen/verwalten</span></li>'}</ul>
+        <ol class="cp-next-flow">${asArray(tw.plannedFlow).map(item => `<li>${esc(item)}</li>`).join('') || '<li>Read-only Sync vorbereiten</li><li>EventSub anbinden</li><li>Schreibaktionen später gezielt freischalten</li>'}</ol>
+      </details>
     </section>`;
   }
 
@@ -534,7 +560,7 @@ window.ChannelpointsModule = (function(){
     if (!root) root = document.getElementById('channelpointsModule');
     if (!root) return;
     if (state.loading) { root.innerHTML = '<div class="cp-loading">Kanalpunkte werden geladen...</div>'; return; }
-    root.innerHTML = `<div class="cp-admin">${renderHeader()}${state.error ? `<div class="cp-alert error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cp-alert ok">${esc(state.notice)}</div>` : ''}${renderToolbar()}${renderOverview()}${renderRewardGroups()}${renderRedemptionsPanel()}${state.busResult ? `<details class="cp-panel"><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : ''}${renderModal()}</div>`;
+    root.innerHTML = `<div class="cp-admin">${renderHeader()}${state.error ? `<div class="cp-alert error">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="cp-alert ok">${esc(state.notice)}</div>` : ''}${renderToolbar()}${renderOverview()}${renderRewardGroups()}${renderRedemptionsPanel()}${renderTwitchReadinessPanel()}${state.busResult ? `<details class="cp-panel"><summary>Letztes Ergebnis</summary><pre>${esc(JSON.stringify(state.busResult, null, 2))}</pre></details>` : ''}${renderModal()}</div>`;
     wireEvents();
     if (state.modal) {
       window.MediaField?.initAll?.(root);

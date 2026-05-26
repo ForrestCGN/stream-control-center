@@ -1,6 +1,6 @@
 # TODO
 
-- Twitch-Scopes prüfen und Statusseite erweitern.
-- EventSub-Redemptions anbinden.
-- Echte Twitch-Reward-Sync-Funktionen später nur mit klarer Rechteprüfung.
-- Zentrale Textverwaltung für Textgruppen/Varianten bauen.
+- [ ] Channelpoints Twitch Token-/Scope-Check read-only
+- [ ] Channelpoints Read-only Reward-Sync
+- [ ] Channelpoints EventSub Redemption Handler
+- [ ] Zentrale Textverwaltung für Commands/Kanalpunkte

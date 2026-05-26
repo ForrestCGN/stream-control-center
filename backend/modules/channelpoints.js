@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.7.3";
-const MODULE_BUILD = "text-reward-redemption-polish";
+const MODULE_VERSION = "0.7.4";
+const MODULE_BUILD = "twitch-sync-readiness";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -34,7 +34,8 @@ const DEFAULT_CONFIG = {
   localCrudEnabled: true,
   mediaExecutionBridgeEnabled: true,
   mediaExecutionTargetUrl: "/api/sound/play",
-  textRewardExecutionEnabled: true
+  textRewardExecutionEnabled: true,
+  twitchSyncReadinessEnabled: true
 };
 
 const DEFAULT_CATEGORIES = [
@@ -1027,6 +1028,84 @@ function buildBusStatus() {
   };
 }
 
+
+function countRewardsWithTwitchId() {
+  try {
+    ensureDbReady();
+    if (!tableExists("channelpoints_rewards")) return 0;
+    const row = database.get("SELECT COUNT(*) AS count FROM channelpoints_rewards WHERE twitch_reward_id IS NOT NULL AND twitch_reward_id <> ''") || {};
+    return Number(row.count || 0);
+  } catch (_) {
+    return 0;
+  }
+}
+
+function buildTwitchSyncStatus() {
+  const config = getConfig();
+  let counts = { rewards: 0, mappedRewards: 0, unmappedRewards: 0, redemptions: 0 };
+  try {
+    ensureDbReady();
+    counts.rewards = tableExists("channelpoints_rewards") ? tableCount("channelpoints_rewards") : 0;
+    counts.mappedRewards = countRewardsWithTwitchId();
+    counts.unmappedRewards = Math.max(0, counts.rewards - counts.mappedRewards);
+    counts.redemptions = tableExists("channelpoints_redemptions") ? tableCount("channelpoints_redemptions") : 0;
+  } catch (_) {}
+
+  const requiredScopes = [
+    { scope: "channel:read:redemptions", purpose: "Twitch-Custom-Rewards und Einlösungen lesen" },
+    { scope: "channel:manage:redemptions", purpose: "Einlösungen erfüllen/abbrechen und Rewards später verwalten" }
+  ];
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: "readiness_only_no_twitch_write",
+    readiness: {
+      localRewardsReady: counts.rewards >= 0,
+      localRedemptionsReady: true,
+      mediaExecutionReady: config.mediaExecutionBridgeEnabled !== false,
+      textExecutionReady: config.textRewardExecutionEnabled !== false,
+      twitchRewardManagementEnabled: config.twitchRewardManagementEnabled === true,
+      twitchRewardSyncEnabled: config.twitchRewardSyncEnabled === true,
+      writeActionsEnabled: false,
+      eventSubImplemented: false,
+      tokenValidationImplemented: false
+    },
+    counts,
+    requiredScopes,
+    plannedFlow: [
+      "Twitch Reward lesen/synchronisieren",
+      "twitch_reward_id lokal mappen",
+      "EventSub Redemption empfangen",
+      "lokale Redemption speichern",
+      "lokale Reward-Aktion ausführen",
+      "später Fulfill/Cancel an Twitch zurückmelden"
+    ],
+    safety: {
+      noTwitchWrite: true,
+      localOnly: true,
+      noRewardCreateUpdateDeleteOnTwitch: true,
+      deactivationStillLocalOnly: true
+    },
+    routesPlannedLater: [
+      `${ROUTE_PREFIX}/twitch/sync`,
+      `${ROUTE_PREFIX}/twitch/rewards`,
+      `${ROUTE_PREFIX}/twitch/rewards/:id/enable`,
+      `${ROUTE_PREFIX}/twitch/rewards/:id/disable`,
+      `${ROUTE_PREFIX}/eventsub/redemption`
+    ],
+    nextSteps: [
+      "Twitch Token-/Scope-Prüfung anbinden",
+      "Read-only Reward-Sync bauen",
+      "Dashboard-Mapping lokal ↔ Twitch anzeigen",
+      "EventSub-Redemption-Handler anbinden",
+      "erst danach Twitch-Schreibaktionen gezielt freischalten"
+    ]
+  };
+}
+
 function buildStatus(extra = {}) {
   const config = getConfig();
   let counts = { rewards: 0, categories: 0, redemptions: 0 };
@@ -1084,14 +1163,10 @@ function buildStatus(extra = {}) {
       localCrudEnabled: config.localCrudEnabled !== false
     },
     twitch: {
-      rewardManagementImplemented: false,
-      rewardSyncImplemented: false,
-      redemptionHandlingImplemented: true,
-      textRewardExecutionImplemented: true,
-      writeActionsEnabled: false,
-      requiredManageScope: "channel:manage:redemptions",
-      requiredReadScope: "channel:read:redemptions",
-      note: "This version is local reward CRUD plus local media execution bridge. Twitch reward reads/writes are planned later."
+      ...buildTwitchSyncStatus().readiness,
+      counts: buildTwitchSyncStatus().counts,
+      requiredScopes: buildTwitchSyncStatus().requiredScopes,
+      note: "Readiness-only: lokale Rewards/Einlösungen sind vorbereitet, Twitch-Schreibzugriffe bleiben deaktiviert."
     },
     localState: {
       rewardCount: counts.rewards,
@@ -1116,6 +1191,8 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/redemptions`,
       `${ROUTE_PREFIX}/redemptions/test`,
       `${ROUTE_PREFIX}/text-execution-check`,
+      `${ROUTE_PREFIX}/twitch-status`,
+      `${ROUTE_PREFIX}/twitch/readiness`,
       `${ROUTE_PREFIX}/rewards/:idOrKey`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/enable`,
       `${ROUTE_PREFIX}/rewards/:idOrKey/disable`,
@@ -1271,6 +1348,8 @@ function init({ app }) {
   app.get(`${ROUTE_PREFIX}/media-plan`, (req, res) => { try { res.json(buildMediaPlan()); } catch (err) { sendError(res, 500, err); } });
   app.get(`${ROUTE_PREFIX}/schema-preview`, (req, res) => { try { res.json(buildSchemaPreview()); } catch (err) { sendError(res, 500, err); } });
   app.get(`${ROUTE_PREFIX}/db-status`, (req, res) => { try { res.json(getDbStatus()); } catch (err) { sendError(res, 500, err); } });
+  app.get(`${ROUTE_PREFIX}/twitch-status`, (req, res) => { try { res.json(buildTwitchSyncStatus()); } catch (err) { sendError(res, 500, err); } });
+  app.get(`${ROUTE_PREFIX}/twitch/readiness`, (req, res) => { try { res.json(buildTwitchSyncStatus()); } catch (err) { sendError(res, 500, err); } });
 
   app.get(`${ROUTE_PREFIX}/categories`, (req, res) => {
     try { res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, categories: listCategories(req) }); } catch (err) { sendError(res, 500, err); }

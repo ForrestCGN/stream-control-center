@@ -1,3 +1,3 @@
 # CURRENT_STATUS
 
-Channelpoints steht bei v0.7.3 (`text-reward-redemption-polish`). Sound/Video-Testeinlösungen laufen über `/api/sound/play`; Text-Rewards speichern Einzeltext lokal im Redemption-Ergebnis.
+Channelpoints v0.7.4: Safe Modal Editor + Draft-State + Redemption Flow + Text Reward + Twitch-Sync-Readiness. Keine Twitch-Schreibzugriffe.

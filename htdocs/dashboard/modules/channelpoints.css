@@ -26,3 +26,15 @@ html[data-theme="light"] .cp-toolbar input,html[data-theme="light"] .cp-toolbar 
 /* v0.7.3 text reward + redemption polish */
 .cp-muted-line{display:block;color:var(--muted);margin-top:10px;line-height:1.45}
 .cp-redemption-row small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+
+
+.cp-twitch-panel .cp-panel-head span { display:flex; gap:6px; align-items:center; }
+.cp-twitch-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px; margin:10px 0 12px; }
+.cp-twitch-grid > div { border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.04); border-radius:16px; padding:12px; display:grid; gap:4px; }
+.cp-twitch-grid strong { font-size:14px; }
+.cp-twitch-grid span { color:var(--muted); font-size:12px; line-height:1.35; }
+.cp-twitch-note { margin:8px 0 10px; }
+.cp-scope-list, .cp-next-flow { margin:10px 0 0; padding-left:20px; color:var(--muted); }
+.cp-scope-list li { margin:6px 0; display:grid; grid-template-columns:minmax(190px,max-content) minmax(0,1fr); gap:10px; align-items:start; }
+.cp-scope-list code { color:#c7a2ff; }
+@media(max-width:760px){ .cp-scope-list li { grid-template-columns:1fr; } }
