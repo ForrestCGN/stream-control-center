@@ -1,17 +1,16 @@
 # Modul-Dokus
 
-Stand: 2026-05-26 / STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD
+Stand: 2026-05-26 / STEP494_CHANNELPOINTS_DASHBOARD_BASE
 
 ## Wichtige Dokus
 
 - [`channelpoints-deep-dive.md`](./channelpoints-deep-dive.md)
 - [`core-communication-bus.md`](./core-communication-bus.md)
-- [`helpers-overview.md`](./helpers-overview.md)
 - [`commands-deep-dive.md`](./commands-deep-dive.md)
 - [`commands-media-deep-dive.md`](./commands-media-deep-dive.md)
 
-## STEP493 Hinweis
+## Pflegepflicht
 
-Das Kanalpunkte-System hat jetzt lokale Reward-CRUD-Routen. Twitch-Schreibaktionen sind weiterhin bewusst deaktiviert.
+Neue oder geaenderte Module muessen dokumentiert werden.
 
-Medien/Uploads laufen ausschließlich über das bestehende Media-System und die vorhandene Upload-Maske.
+STEP494 ergaenzt die Dashboard-Basis fuer Kanalpunkte.

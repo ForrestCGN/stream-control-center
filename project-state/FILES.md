@@ -1,19 +1,23 @@
 # FILES
 
-Stand: 2026-05-26 / STEP493
+Stand: 2026-05-26 / STEP494
 
-## Geändert
+## Geaendert
+
+- `htdocs/dashboard/index.html`
+  - Kanalpunkte-CSS geladen.
+  - Panel `channelpointsModule` ergaenzt.
+  - Script `channelpoints.js` geladen.
+
+## Neu
+
+- `htdocs/dashboard/modules/channelpoints.js`
+- `htdocs/dashboard/modules/channelpoints.css`
+- `project-state/STEP494_CHANNELPOINTS_DASHBOARD_BASE.md`
+
+## Nicht geaendert
 
 - `backend/modules/channelpoints.js`
-- `docs/modules/channelpoints-deep-dive.md`
-- `docs/modules/README.md`
-- `docs/current/CURRENT_SYSTEM_STATUS.md`
-- `docs/current/MODULE_DOCS_DEEP_DIVE_STATUS_2026-05-26.md`
-- `project-state/*`
-
-## Nicht geändert
-
-- Keine `.env`
-- Keine Secrets/Tokens
-- Keine bestehende DB ersetzt
-- Kein Dashboard-Code
+- Produktive SQLite-Datei
+- `.env`
+- Secrets/Tokens

@@ -1,77 +1,56 @@
-# Channelpoints Deep Dive
+# channelpoints-deep-dive
 
-Stand: 2026-05-26 / STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD
+Stand: 2026-05-26 / STEP494
 
-## Ziel
+## Zweck
 
-Das Kanalpunkte-System ist ein neues Fachmodul für Twitch Custom Rewards. STEP493 ergänzt die lokale Reward-CRUD-Grundlage auf der bestehenden SQLite-Datenbank.
+Das Kanalpunkte-System verwaltet Twitch-Channel-Point-Rewards lokal und wird spaeter Twitch-Custom-Rewards synchronisieren.
 
-## Version
+## Aktueller Stand
 
-- Modul: `backend/modules/channelpoints.js`
-- `moduleVersion`: `0.5.0`
-- Modus: `backend_local_reward_crud`
+- Backend-Modul: `backend/modules/channelpoints.js`
+- Dashboard-Modul:
+  - `htdocs/dashboard/modules/channelpoints.js`
+  - `htdocs/dashboard/modules/channelpoints.css`
+- Panel: `channelpointsModule`
+- API-Prefix: `/api/channelpoints`
 
-## Aktive Routen
+## Datenbank
 
-- `GET /api/channelpoints/status`
-- `GET /api/channelpoints/model`
-- `GET /api/channelpoints/media-plan`
-- `GET /api/channelpoints/schema-preview`
-- `GET /api/channelpoints/db-status`
-- `GET /api/channelpoints/categories`
-- `GET /api/channelpoints/rewards`
-- `GET /api/channelpoints/rewards/:idOrKey`
-- `POST /api/channelpoints/rewards`
-- `PUT /api/channelpoints/rewards/:idOrKey`
-- `PATCH /api/channelpoints/rewards/:idOrKey`
-- `POST /api/channelpoints/rewards/:idOrKey/enable`
-- `POST /api/channelpoints/rewards/:idOrKey/disable`
-- `GET /api/channelpoints/bus-test`
-
-## DB-Tabellen
+Tabellen aus STEP492:
 
 - `channelpoints_categories`
 - `channelpoints_rewards`
 - `channelpoints_redemptions`
 
-Die Migration ist additiv und nutzt ausschließlich `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS` und `INSERT OR IGNORE`.
+## Dashboard STEP494
 
-## Lokale CRUD-Regel
+Funktionen:
 
-STEP493 schreibt nur lokale Reward-Konfigurationen in `channelpoints_rewards`.
-
-Deaktivieren in STEP493 bedeutet nur:
-
-- `system_enabled = 0`
-- optional `is_paused = 1`
-
-Es wird noch keine Twitch Custom Reward per API deaktiviert. Die spätere echte Twitch-Deaktivierung muss `is_enabled:false` über Twitch setzen.
+- Status anzeigen
+- Kategorien anzeigen
+- Rewards anzeigen
+- Reward lokal erstellen
+- Reward lokal bearbeiten
+- Reward lokal aktivieren/deaktivieren
+- Media-Auswahl ueber bestehende `MediaField`/`MediaPicker`
 
 ## Media-Regel
 
-Kanalpunkte verwenden das vorhandene Media-System:
+Kanalpunkte duerfen keine eigene Upload-Struktur erhalten.
 
-- Modul: `media.js`
-- Upload-Maske: bestehende Dashboard-Media-Upload-Maske
-- Picker: `htdocs/dashboard/components/media_picker.js`
-- Field-Komponente: `htdocs/dashboard/components/media_field.js`
+Uploads und Auswahl laufen ueber:
 
-Kein neues Upload-System, keine zweite Media-Tabelle, keine Upload-Endpunkte in `channelpoints.js`.
+- `backend/modules/media.js`
+- `htdocs/dashboard/modules/media.js`
+- `htdocs/dashboard/components/media_picker.js`
+- `htdocs/dashboard/components/media_field.js`
 
-## EventBus
+## Twitch-Regel
 
-Das Modul registriert sich am Communication Bus und veröffentlicht Status-Updates. Capabilities:
+STEP494 enthaelt keine Twitch-Schreibaktionen.
 
-- `channelpoints.status`
-- `channelpoints.schema`
-- `channelpoints.local_crud`
-- `channelpoints.test.ping`
+Spaeter gilt:
 
-## Nicht in STEP493
-
-- keine Twitch-Schreibaktionen
-- keine Twitch Reward-Erstellung
-- keine Twitch Reward-Synchronisierung
-- kein Redemption-Handling
-- kein Dashboard-Umbau
+- Lokales `system_enabled` steuert interne Verarbeitung.
+- Twitch-Status `is_enabled:false` muss spaeter bei echter Deaktivierung ueber Twitch API gesetzt werden.

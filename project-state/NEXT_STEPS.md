@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: 2026-05-26 / nach STEP493
+Stand: 2026-05-26 / nach STEP494
 
 ## Direkt testen
 
@@ -10,11 +10,21 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/categories"
 Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/rewards"
 ```
 
-## Nächster sinnvoller STEP
+Dashboard:
 
-STEP494_CHANNELPOINTS_DASHBOARD_SHELL
+```text
+http://127.0.0.1:8080/dashboard/
+```
 
-- Dashboard-Grundseite für Kanalpunkte
-- Kategorien/Rewards anzeigen
-- Noch keine Twitch-Schreibaktionen
-- Media-Picker vorbereiten, aber Upload weiterhin über Media-System
+- Community -> Kanalpunkte oeffnen.
+- Kategorien und Rewards pruefen.
+- Test-Reward bearbeiten.
+- Lokal aktivieren/deaktivieren.
+- Media-Picker oeffnen.
+
+## Naechster sinnvoller Schritt
+
+STEP495_CHANNELPOINTS_DASHBOARD_REFINEMENT_OR_TWITCH_READ_SYNC
+
+Empfehlung:
+- Erst Dashboard-UX verfeinern, dann Twitch-Read-Sync.

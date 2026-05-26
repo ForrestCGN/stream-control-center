@@ -1,16 +1,21 @@
 # TODO
 
-Stand: 2026-05-26 / STEP493
+Stand: 2026-05-26 / STEP494
 
-## Kanalpunkte-System
+## Kanalpunkte
 
-- [x] DB-Grundlage lokal anlegen.
-- [x] Lokale Reward-CRUD-API erstellen.
-- [x] Kategorien lesen.
-- [x] Rewards lesen.
-- [x] Rewards lokal erstellen/ändern.
-- [x] Rewards lokal aktivieren/deaktivieren.
-- [ ] Dashboard-Shell erstellen.
-- [ ] Media-Picker im Dashboard anbinden.
-- [ ] Twitch Reward Sync vorbereiten.
-- [ ] Twitch Deaktivieren muss später `is_enabled:false` setzen.
+- [x] Backend-Skeleton.
+- [x] Model-/Media-Plan.
+- [x] DB-Schema-Preview.
+- [x] Sichere lokale DB-Migration.
+- [x] Lokale Reward-CRUD-API.
+- [x] Erste Dashboard-Basis.
+- [ ] Dashboard-UX pruefen/verfeinern.
+- [ ] Twitch-Read-Sync vorbereiten.
+- [ ] Twitch-Schreibaktionen erst spaeter und explizit.
+- [ ] Deaktivieren spaeter mit Twitch `is_enabled:false`.
+
+## Media
+
+- [x] Bestehende MediaField/MediaPicker-Komponenten nutzen.
+- [x] Keine zweite Upload-Welt fuer Kanalpunkte.

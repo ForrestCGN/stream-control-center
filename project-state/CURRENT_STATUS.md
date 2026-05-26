@@ -1,17 +1,29 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP493_CHANNELPOINTS_LOCAL_REWARD_CRUD
+Stand: 2026-05-26 / STEP494_CHANNELPOINTS_DASHBOARD_BASE
 
-STEP493 ergänzt lokale Reward-CRUD-Routen im Kanalpunkte-System.
+## Aktueller Arbeitsstand
+
+STEP494 ergaenzt die erste Dashboard-Basis fuer das Kanalpunkte-System.
 
 ## Kanalpunkte
 
-- `channelpoints.js` Version `0.5.0`
-- Lokale DB-Grundlage aus STEP492 wird genutzt.
-- Neue APIs für Kategorien und Rewards.
-- Erstellen, Aktualisieren, Aktivieren und Deaktivieren sind lokal möglich.
-- Twitch-Schreibaktionen bleiben deaktiviert.
+- Backend-Stand aus STEP493 bleibt Grundlage: `channelpoints.js` Version `0.5.0`.
+- Dashboard-Dateien:
+  - `htdocs/dashboard/modules/channelpoints.js`
+  - `htdocs/dashboard/modules/channelpoints.css`
+- `htdocs/dashboard/index.html` laedt das neue Dashboard-Modul.
+- Das Dashboard-Modul registriert sich selbst in `window.CGN.modules`, `moduleCatalog`, Community-Items und Favorites.
+- Kategorien und Rewards werden aus den vorhandenen API-Routen gelesen.
+- Lokale Reward-CRUD-Bedienung ist vorbereitet:
+  - erstellen
+  - bearbeiten
+  - lokal aktivieren
+  - lokal deaktivieren
+- Medienauswahl nutzt das bestehende Media-System (`MediaField`/`MediaPicker`).
 
-## Nächster Schritt
+## Sicherheitsrahmen
 
-STEP494_CHANNELPOINTS_DASHBOARD_SHELL
+- Keine Twitch-Schreibaktionen.
+- Keine neue Upload-Struktur.
+- Keine DB-Migration in STEP494.
