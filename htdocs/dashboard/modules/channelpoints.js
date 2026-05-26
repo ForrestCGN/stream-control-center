@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.8.7';
-  const UI_BUILD = 'imported-reward-activation-guard';
+  const UI_VERSION = '0.8.8';
+  const UI_BUILD = 'reward-configure-action-flow';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -137,6 +137,45 @@ window.ChannelpointsModule = (function(){
     return 'Importierter Twitch-Reward ohne lokale Aktion. Erst Sound, Video, Text oder Custom-Aktion zuweisen und danach bewusst aktivieren.';
   }
 
+  function actionReadiness(reward) {
+    const actionId = reward?._action || actionForReward(reward);
+    const action = actionById(actionId);
+    const payload = parseJson(reward?.action_payload || reward?.action_payload_json || '{}', {});
+    const mediaAssetId = String(reward?.media_asset_id || '').trim();
+    const actionType = String(reward?.action_type || '').trim();
+    const actionKey = String(reward?.action_key || '').trim();
+    if (actionId === 'sound_play' || actionId === 'video_play') {
+      return mediaAssetId
+        ? { ok:true, label:`${action.short} konfiguriert`, detail:'Medium ist zugewiesen. Aktivieren/Testen ist nach dem Speichern möglich.' }
+        : { ok:false, label:`${action.short} unvollständig`, detail:'Bitte zuerst ein Medium aus der Medienverwaltung auswählen.' };
+    }
+    if (actionId === 'text_only') {
+      const textMode = String(payload.textMode || 'single');
+      const hasText = !!String(payload.text || '').trim();
+      const hasTextKey = !!String(payload.textKey || '').trim();
+      if (textMode === 'textKey') return hasTextKey
+        ? { ok:true, label:'Text-Key konfiguriert', detail:'Text-Key ist gesetzt. Aktivieren/Testen ist nach dem Speichern möglich.' }
+        : { ok:false, label:'Text-Key fehlt', detail:'Bitte einen Text-Key oder eine Textgruppe eintragen.' };
+      return hasText
+        ? { ok:true, label:'Text konfiguriert', detail:'Einzeltext ist gesetzt. Aktivieren/Testen ist nach dem Speichern möglich.' }
+        : { ok:false, label:'Text fehlt', detail:'Bitte einen Chat-Text eintragen oder auf Text-Key umstellen.' };
+    }
+    if (actionId === 'manual') {
+      return { ok:false, label:'Manuell / nicht ausführbar', detail:'Manuelle Rewards bleiben ohne automatische Ausführung gesperrt und werden nicht getestet.' };
+    }
+    if (actionType && actionType !== 'manual' && (actionKey || mediaAssetId)) {
+      return { ok:true, label:'Custom-Aktion konfiguriert', detail:'Technische Aktion hat Action-Typ und Action-Key/Medium. Aktivieren ist möglich.' };
+    }
+    return { ok:false, label:'Custom-Aktion unvollständig', detail:'Bitte mindestens Action-Typ und Action-Key oder Medium bewusst eintragen.' };
+  }
+
+  function renderActionReadinessBox(d) {
+    const ready = actionReadiness(d);
+    const imported = isImportedReward(d);
+    const mode = ready.ok ? 'ok' : (imported ? 'warn' : 'neutral');
+    return `<div class="cp-action-readiness ${ready.ok ? 'ready' : 'blocked'}"><strong>${esc(ready.label)}</strong><span>${esc(ready.detail)}</span>${imported ? `<small>${ready.ok ? 'Importierter Twitch-Reward kann nach dem Speichern bewusst aktiviert werden.' : 'Importierter Twitch-Reward bleibt durch Dashboard und Backend gesperrt, bis diese Aktion vollständig ist.'}</small>` : ''}</div>`;
+  }
+
   function statusPills(reward) {
     const list = [
       reward.system_enabled ? pill('aktiv', 'ok') : pill('aus', 'off'),
@@ -204,13 +243,25 @@ window.ChannelpointsModule = (function(){
 
   function openModal(mode, reward) {
     const source = reward ? cloneReward(reward) : blankReward();
+    const configureMode = mode === 'configure';
+    if (configureMode && rewardNeedsSetup(source)) {
+      source._action = 'sound_play';
+      source.action_type = 'media';
+      source.action_key = 'play_audio_media';
+      source.media_role = 'sound';
+      source.system_enabled = false;
+      source.is_paused = false;
+    }
     if (mode === 'copy') {
       source.id = 0;
+      source.twitch_reward_id = '';
       source.reward_key = `${source.reward_key || 'reward'}_kopie`;
       source.title = `${source.title || 'Reward'} Kopie`;
+      source.system_enabled = false;
     }
     state.modal = {
-      mode: mode === 'edit' ? 'edit' : 'create',
+      mode: (mode === 'edit' || configureMode) ? 'edit' : 'create',
+      configureMode,
       originalKey: reward?.reward_key || '',
       originalId: reward?.id || 0,
       draft: source
@@ -407,14 +458,24 @@ window.ChannelpointsModule = (function(){
     render();
   }
 
-  async function saveReward() {
+  async function saveReward(options = {}) {
     const payload = buildPayloadForSave();
+    if (options.activate === true) {
+      payload.system_enabled = true;
+      payload.is_paused = false;
+    }
+    const effectiveReward = { ...(state.modal?.draft || {}), ...payload, action_payload: parseJson(payload.action_payload_json, {}) };
+    if (options.activate === true && !rewardHasExecutableAction(effectiveReward)) {
+      throw new Error('Speichern & aktivieren ist erst möglich, wenn eine ausführbare Aktion vollständig konfiguriert ist.');
+    }
     const isEdit = state.modal?.mode === 'edit';
     const target = isEdit ? (state.modal.originalId || state.modal.originalKey || payload.reward_key) : '';
     const url = isEdit ? `${api.rewards}/${encodeURIComponent(target)}` : api.rewards;
     const method = isEdit ? 'PUT' : 'POST';
     const result = await window.CGN.api(url, { method, body: JSON.stringify(payload) });
-    state.notice = isEdit ? `Reward ${payload.reward_key} aktualisiert.` : `Reward ${payload.reward_key} erstellt.`;
+    state.notice = options.activate === true
+      ? `Reward ${payload.reward_key} gespeichert und lokal aktiviert.`
+      : (isEdit ? `Reward ${payload.reward_key} aktualisiert. ${rewardHasExecutableAction(effectiveReward) ? 'Aktion ist vollständig; Aktivieren/Testen ist möglich.' : ''}` : `Reward ${payload.reward_key} erstellt.`);
     state.selectedKey = result.reward?.reward_key || payload.reward_key;
     state.modal = null;
     await loadAll(true);
@@ -440,7 +501,7 @@ window.ChannelpointsModule = (function(){
     state.notice = rewardNeedsSetup(reward)
       ? 'Bitte erst eine lokale Aktion konfigurieren. Danach kann der Reward bewusst aktiviert werden.'
       : 'Reward zur Bearbeitung geöffnet.';
-    openModal('edit', reward);
+    openModal('configure', reward);
   }
 
   function configureFirstMissingReward() {
@@ -745,7 +806,7 @@ window.ChannelpointsModule = (function(){
     const missing = imported.filter(rewardNeedsSetup);
     if (!imported.length) return '';
     return `<section class="cp-panel cp-imported-setup-panel"><div class="cp-panel-head"><h3>Importierte Twitch-Rewards einrichten</h3><span>${pill(`${missing.length} Aktion fehlt`, missing.length ? 'warn' : 'ok')} ${pill(`${imported.length} importiert`, 'neutral')}</span></div>
-      <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards bleiben lokal aus, bis du sie bewusst konfigurierst. Öffne einen Reward über „Bearbeiten“, wähle Sound, Video, Text oder Custom-Aktion, speichere und aktiviere ihn danach manuell.</div>
+      <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards bleiben lokal aus, bis du sie bewusst konfigurierst. Öffne einen Reward über „Konfigurieren“, wähle Sound, Video, Text oder Custom-Aktion, speichere und aktiviere ihn danach bewusst. Vollständig konfigurierte Rewards können direkt über „Speichern & aktivieren“ freigeschaltet werden.</div>
       <div class="cp-actions cp-setup-actions"><button type="button" data-cp-action="configure-first-missing">Ersten fehlenden konfigurieren</button><button type="button" data-cp-action="filter-missing-action">Nur „Aktion fehlt“ anzeigen</button><button type="button" data-cp-action="filter-imported">Alle importierten anzeigen</button><button type="button" data-cp-action="filter-reset">Filter zurücksetzen</button></div>
     </section>`;
   }
@@ -869,8 +930,12 @@ window.ChannelpointsModule = (function(){
     const action = actionById(actionId);
     const isEdit = state.modal.mode === 'edit';
     const payload = parseJson(d.action_payload || d.action_payload_json || '{}', {});
+    const imported = isImportedReward(d);
+    const readiness = actionReadiness(d);
+    const modalKicker = state.modal.configureMode ? 'Reward konfigurieren' : (isEdit ? 'Reward bearbeiten' : 'Neuer Reward');
     return `<div class="cp-modal-backdrop" role="dialog" aria-modal="true"><div class="cp-modal">
-      <div class="cp-modal-head"><div><p class="cp-kicker">${isEdit ? 'Reward bearbeiten' : 'Neuer Reward'}</p><h3>${esc(isEdit ? (d.title || d.reward_key) : 'Reward erstellen')}</h3></div><button type="button" class="cp-modal-close" data-cp-action="modal-close">×</button></div>
+      <div class="cp-modal-head"><div><p class="cp-kicker">${modalKicker}</p><h3>${esc(isEdit ? (d.title || d.reward_key) : 'Reward erstellen')}</h3></div><button type="button" class="cp-modal-close" data-cp-action="modal-close">×</button></div>
+      ${imported ? `<div class="cp-configure-flow-note"><strong>Importierter Twitch-Reward</strong><span>${readiness.ok ? 'Aktion vollständig: Speichern, danach aktivieren/testen oder direkt „Speichern & aktivieren“ nutzen.' : 'Aktion fehlt noch: Der Reward bleibt lokal gesperrt, bis Sound/Video/Text/Custom vollständig konfiguriert ist.'}</span></div>` : ''}
 
       <section class="cp-editor-section"><h4>Basis</h4><div class="cp-form-grid">
         <label>Reward-Key <span class="cp-help" title="Interner eindeutiger Schlüssel, z. B. sound_hype oder video_party.">?</span><input data-cp-field="reward_key" value="${esc(d.reward_key || '')}" placeholder="z. B. sound_hype"></label>
@@ -883,17 +948,17 @@ window.ChannelpointsModule = (function(){
 
       <section class="cp-editor-section"><h4>Aktion</h4><div class="cp-form-grid">
         <label>Was soll passieren? <span class="cp-help" title="Wähle die Hauptaktion. Die passende Maske erscheint direkt darunter.">?</span><select data-cp-field="action_choice">${actionOptions(actionId)}</select></label>
-      </div>${renderActionMask(action, d, payload)}</section>
+      </div>${renderActionMask(action, d, payload)}${renderActionReadinessBox(d)}</section>
 
       <section class="cp-editor-section"><h4>Regeln</h4><div class="cp-form-grid">
         <label>Cooldown Sekunden <span class="cp-help" title="Lokale Sperre nach Einlösung. 0 = aus.">?</span><input type="number" min="0" data-cp-field="cooldown_seconds" value="${esc(d.cooldown_seconds ?? 0)}"></label>
         <label>Max pro Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_stream" value="${esc(d.max_per_stream ?? 0)}"></label>
         <label>Max pro User/Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_user_per_stream" value="${esc(d.max_per_user_per_stream ?? 0)}"></label>
-      </div><div class="cp-checks"><label><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> lokal aktiv</label><label><input type="checkbox" data-cp-field="is_paused" ${boolValue(d.is_paused) ? 'checked' : ''}> pausiert</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label><label><input type="checkbox" data-cp-field="auto_fulfill" ${boolValue(d.auto_fulfill) ? 'checked' : ''}> später auto-fulfill</label></div></section>
+      </div><div class="cp-checks"><label title="Bei importierten Rewards nur aktivieren, wenn eine ausführbare Aktion vollständig konfiguriert ist."><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> lokal aktiv</label><label><input type="checkbox" data-cp-field="is_paused" ${boolValue(d.is_paused) ? 'checked' : ''}> pausiert</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label><label><input type="checkbox" data-cp-field="auto_fulfill" ${boolValue(d.auto_fulfill) ? 'checked' : ''}> später auto-fulfill</label></div></section>
 
       <label class="cp-wide cp-notes-label">Notizen<textarea rows="2" data-cp-field="notes">${esc(d.notes || '')}</textarea></label>
 
-      <div class="cp-modal-actions"><button type="button" data-cp-action="save">${isEdit ? 'Speichern' : 'Erstellen'}</button>${isEdit ? `<button type="button" data-cp-action="delete" data-key="${esc(d.reward_key)}" class="danger">Löschen</button>` : ''}<button type="button" data-cp-action="modal-close">Abbrechen</button></div>
+      <div class="cp-modal-actions"><button type="button" data-cp-action="save">${isEdit ? 'Speichern' : 'Erstellen'}</button>${isEdit && imported ? `<button type="button" data-cp-action="save-activate" class="cp-save-activate" ${readiness.ok ? '' : 'disabled title="Erst Aktion vollständig konfigurieren"'}>Speichern & aktivieren</button>` : ''}${isEdit ? `<button type="button" data-cp-action="delete" data-key="${esc(d.reward_key)}" class="danger">Löschen</button>` : ''}<button type="button" data-cp-action="modal-close">Abbrechen</button></div>
     </div></div>`;
   }
 
@@ -960,6 +1025,7 @@ window.ChannelpointsModule = (function(){
     root.querySelectorAll('[data-cp-action="disable"]').forEach(btn => btn.addEventListener('click', () => toggleReward(btn.dataset.key, false).catch(showError)));
     root.querySelectorAll('[data-cp-action="enable"]').forEach(btn => btn.addEventListener('click', () => toggleReward(btn.dataset.key, true).catch(showError)));
     root.querySelector('[data-cp-action="save"]')?.addEventListener('click', () => saveReward().catch(showError));
+    root.querySelector('[data-cp-action="save-activate"]')?.addEventListener('click', () => saveReward({ activate:true }).catch(showError));
     root.querySelectorAll('[data-cp-action="modal-close"]').forEach(btn => btn.addEventListener('click', closeModal));
     root.querySelectorAll('[data-cp-action="open-media"]').forEach(btn => btn.addEventListener('click', () => window.CGN?.setActiveModule?.('media')));
     root.querySelector('[data-cp-action="clear-media"]')?.addEventListener('click', () => { const f = getField('media_asset_id'); if (f) f.value = ''; syncDraftFromForm(); render(); });
