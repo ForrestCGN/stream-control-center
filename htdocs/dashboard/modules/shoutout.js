@@ -5,6 +5,7 @@ window.ShoutoutModule = (function(){
     status: '/api/clip-shoutout/status',
     queue: '/api/clip-shoutout/queue',
     timeline: '/api/clip-shoutout/timeline?limit=80',
+    stats: '/api/clip-shoutout/stats?limit=80&detailLimit=160',
     run: '/api/clip-shoutout/run',
     displayRemove: '/api/clip-shoutout/display-queue/remove',
     displayRetry: '/api/clip-shoutout/display-queue/retry',
@@ -20,6 +21,9 @@ window.ShoutoutModule = (function(){
     queue: null,
     timeline: null,
     streamStatus: null,
+    stats: null,
+    selectedStatsTarget: '',
+    selectedStatsRequester: '',
     loading: false,
     error: '',
     notice: '',
@@ -112,6 +116,24 @@ window.ShoutoutModule = (function(){
     return Array.isArray(state.timeline?.items) ? state.timeline.items : [];
   }
 
+  function statsRows(key){
+    return Array.isArray(state.stats?.[key]) ? state.stats[key] : [];
+  }
+
+  function num(v){
+    const n = Number(v || 0);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function statsUrl(){
+    const params = new URLSearchParams();
+    params.set('limit', '80');
+    params.set('detailLimit', '160');
+    if (state.selectedStatsTarget) params.set('target', state.selectedStatsTarget);
+    if (state.selectedStatsRequester) params.set('requester', state.selectedStatsRequester);
+    return `${API.stats}&${params.toString()}`;
+  }
+
   async function api(path, options = {}){
     if (window.CGN?.api) return window.CGN.api(path, options);
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
@@ -128,15 +150,17 @@ window.ShoutoutModule = (function(){
     state.error = '';
     render();
     try {
-      const [status, queue, timeline, streamStatus] = await Promise.all([
+      const [status, queue, timeline, stats, streamStatus] = await Promise.all([
         api(API.status),
         api(API.queue),
         api(API.timeline),
+        api(statsUrl()).catch(err => ({ ok: false, error: err.message })),
         api(API.streamStatus).catch(err => ({ ok: false, error: err.message }))
       ]);
       state.status = status;
       state.queue = queue;
       state.timeline = timeline;
+      state.stats = stats;
       state.streamStatus = streamStatus;
     } catch (err) {
       state.error = err && err.message ? err.message : String(err);
@@ -227,6 +251,166 @@ window.ShoutoutModule = (function(){
           <input data-shoutout-target type="text" placeholder="Twitch-Kanal, z. B. urlug" autocomplete="off" />
           <label class="shoutout-check"><input data-shoutout-force type="checkbox" /> --force</label>
           <button type="button" data-shoutout-run>Shoutout aufnehmen</button>
+        </div>
+      </div>
+    `;
+  }
+
+
+  function renderStats(){
+    const stats = state.stats || {};
+    const totals = stats.totals || {};
+    const targetOptions = Array.isArray(stats.targetOptions) ? stats.targetOptions : [];
+    const requesterOptions = Array.isArray(stats.requesterOptions) ? stats.requesterOptions : [];
+    const targetStats = statsRows('targetStats');
+    const requesterStats = statsRows('requesterStats');
+    const pairStats = statsRows('pairStats');
+    const selectedTarget = stats.selectedTarget || null;
+    const selectedRequester = stats.selectedRequester || null;
+
+    return `
+      <div class="shoutout-card shoutout-wide">
+        <div class="shoutout-card-head">
+          <div><h3>Statistik</h3><p>Wer hat wie oft wen geshoutoutet? Einzelne Ziele oder Auslöser können per Dropdown geöffnet werden.</p></div>
+          <div>${statusBadge(stats.ok === false ? 'error' : 'ok')}</div>
+        </div>
+
+        <div class="shoutout-stat-grid">
+          <div class="shoutout-stat"><small>Shoutouts gesamt</small><strong>${esc(num(totals.totalRequests))}</strong><span>Display-Anfragen</span></div>
+          <div class="shoutout-stat"><small>Zielkanäle</small><strong>${esc(num(totals.uniqueTargets))}</strong><span>einmalig</span></div>
+          <div class="shoutout-stat"><small>Auslöser</small><strong>${esc(num(totals.uniqueRequesters))}</strong><span>einmalig</span></div>
+          <div class="shoutout-stat"><small>Official sent</small><strong>${esc(num(totals.officialSent))}</strong><span>${esc(num(totals.officialFailed))} failed</span></div>
+          <div class="shoutout-stat"><small>Overrides</small><strong>${esc(num(totals.overrideCount))}</strong><span>--force</span></div>
+        </div>
+
+        <div class="shoutout-filter-row">
+          <label>
+            <span>Zielkanal</span>
+            <select data-shoutout-stats-target>
+              <option value="">Alle Zielkanäle</option>
+              ${targetOptions.map(row => `<option value="${esc(row.login)}" ${state.selectedStatsTarget === row.login ? 'selected' : ''}>@${esc(row.display || row.login)} (${esc(row.total || 0)})</option>`).join('')}
+            </select>
+          </label>
+          <label>
+            <span>Auslöser</span>
+            <select data-shoutout-stats-requester>
+              <option value="">Alle Auslöser</option>
+              ${requesterOptions.map(row => `<option value="${esc(row.login)}" ${state.selectedStatsRequester === row.login ? 'selected' : ''}>${esc(row.display || row.login)} (${esc(row.total || 0)})</option>`).join('')}
+            </select>
+          </label>
+        </div>
+
+        ${selectedTarget ? renderSelectedTarget(selectedTarget) : ''}
+        ${selectedRequester ? renderSelectedRequester(selectedRequester) : ''}
+
+        <div class="shoutout-stats-columns">
+          <div>
+            <h4>Zielkanäle</h4>
+            <div class="shoutout-table-wrap">
+              <table class="shoutout-table shoutout-table-compact">
+                <thead><tr><th>Ziel</th><th>Anzahl</th><th>Done</th><th>Auslöser</th><th>Zuletzt</th></tr></thead>
+                <tbody>
+                  ${targetStats.length ? targetStats.slice(0, 12).map(row => `
+                    <tr>
+                      <td><strong>@${esc(row.targetDisplay || row.targetLogin || '-')}</strong></td>
+                      <td>${esc(row.total || 0)}</td>
+                      <td>${esc(row.displayDone || 0)}</td>
+                      <td>${esc(row.uniqueRequesters || 0)}</td>
+                      <td>${fmtDate(row.lastRequestedAt)}</td>
+                    </tr>
+                  `).join('') : '<tr><td colspan="5" class="shoutout-empty">Keine Daten.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h4>Auslöser</h4>
+            <div class="shoutout-table-wrap">
+              <table class="shoutout-table shoutout-table-compact">
+                <thead><tr><th>Auslöser</th><th>Anzahl</th><th>Ziele</th><th>Force</th><th>Zuletzt</th></tr></thead>
+                <tbody>
+                  ${requesterStats.length ? requesterStats.slice(0, 12).map(row => `
+                    <tr>
+                      <td><strong>${esc(row.requesterDisplay || row.requesterLogin || '-')}</strong></td>
+                      <td>${esc(row.total || 0)}</td>
+                      <td>${esc(row.uniqueTargets || 0)}</td>
+                      <td>${esc(row.overrideCount || 0)}</td>
+                      <td>${fmtDate(row.lastRequestedAt)}</td>
+                    </tr>
+                  `).join('') : '<tr><td colspan="5" class="shoutout-empty">Keine Daten.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <h4>Wer → Wen</h4>
+        <div class="shoutout-table-wrap">
+          <table class="shoutout-table shoutout-table-compact">
+            <thead><tr><th>Auslöser</th><th>Ziel</th><th>Anzahl</th><th>Done</th><th>Force</th><th>Zuletzt</th></tr></thead>
+            <tbody>
+              ${pairStats.length ? pairStats.slice(0, 30).map(row => `
+                <tr>
+                  <td><strong>${esc(row.requesterDisplay || row.requesterLogin || '-')}</strong></td>
+                  <td><strong>@${esc(row.targetDisplay || row.targetLogin || '-')}</strong></td>
+                  <td>${esc(row.total || 0)}</td>
+                  <td>${esc(row.displayDone || 0)}</td>
+                  <td>${esc(row.overrideCount || 0)}</td>
+                  <td>${fmtDate(row.lastRequestedAt)}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="6" class="shoutout-empty">Keine Paar-Statistik vorhanden.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderSelectedTarget(selected){
+    const summary = selected.summary || {};
+    const rows = Array.isArray(selected.byRequester) ? selected.byRequester : [];
+    const timeline = Array.isArray(selected.timeline) ? selected.timeline : [];
+    return `
+      <div class="shoutout-detail-box">
+        <h4>Einzelansicht Ziel: @${esc(summary.targetDisplay || summary.targetLogin || state.selectedStatsTarget)}</h4>
+        <div class="shoutout-mini-metrics">
+          <span>${esc(summary.total || 0)} Gesamt</span>
+          <span>${esc(summary.uniqueRequesters || 0)} Auslöser</span>
+          <span>${esc(summary.overrideCount || 0)} Force</span>
+          <span>Zuletzt: ${fmtDate(summary.lastRequestedAt)}</span>
+        </div>
+        <div class="shoutout-table-wrap">
+          <table class="shoutout-table shoutout-table-compact">
+            <thead><tr><th>Auslöser</th><th>Anzahl</th><th>Force</th><th>Zuletzt</th></tr></thead>
+            <tbody>
+              ${rows.length ? rows.map(row => `<tr><td><strong>${esc(row.requesterDisplay || row.requesterLogin || '-')}</strong></td><td>${esc(row.total || 0)}</td><td>${esc(row.overrideCount || 0)}</td><td>${fmtDate(row.lastRequestedAt)}</td></tr>`).join('') : '<tr><td colspan="4" class="shoutout-empty">Keine Detaildaten.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+        <div class="shoutout-detail-timeline">${timeline.slice(0, 8).map(row => `<span>#${esc(row.id)} · ${fmtDate(row.requestedAt)} · ${esc(row.requestedByDisplay || row.requestedByLogin || '-')} · ${esc(row.status || '-')}</span>`).join('')}</div>
+      </div>
+    `;
+  }
+
+  function renderSelectedRequester(selected){
+    const summary = selected.summary || {};
+    const rows = Array.isArray(selected.byTarget) ? selected.byTarget : [];
+    return `
+      <div class="shoutout-detail-box">
+        <h4>Einzelansicht Auslöser: ${esc(summary.requesterDisplay || summary.requesterLogin || state.selectedStatsRequester)}</h4>
+        <div class="shoutout-mini-metrics">
+          <span>${esc(summary.total || 0)} Gesamt</span>
+          <span>${esc(summary.uniqueTargets || 0)} Ziele</span>
+          <span>${esc(summary.overrideCount || 0)} Force</span>
+          <span>Zuletzt: ${fmtDate(summary.lastRequestedAt)}</span>
+        </div>
+        <div class="shoutout-table-wrap">
+          <table class="shoutout-table shoutout-table-compact">
+            <thead><tr><th>Ziel</th><th>Anzahl</th><th>Force</th><th>Zuletzt</th></tr></thead>
+            <tbody>
+              ${rows.length ? rows.map(row => `<tr><td><strong>@${esc(row.targetDisplay || row.targetLogin || '-')}</strong></td><td>${esc(row.total || 0)}</td><td>${esc(row.overrideCount || 0)}</td><td>${fmtDate(row.lastRequestedAt)}</td></tr>`).join('') : '<tr><td colspan="4" class="shoutout-empty">Keine Detaildaten.</td></tr>'}
+            </tbody>
+          </table>
         </div>
       </div>
     `;
@@ -367,6 +551,7 @@ window.ShoutoutModule = (function(){
           ${renderLiveGate()}
           ${renderDisplayQueue()}
           ${renderOfficialQueue()}
+          ${renderStats()}
           ${renderTimeline()}
         </div>
       </div>
@@ -399,6 +584,16 @@ window.ShoutoutModule = (function(){
       if (ev.target?.matches?.('[data-shoutout-auto]')) {
         state.autoRefresh = ev.target.checked === true;
         scheduleRefresh();
+        return;
+      }
+      if (ev.target?.matches?.('[data-shoutout-stats-target]')) {
+        state.selectedStatsTarget = String(ev.target.value || '');
+        loadAll(true);
+        return;
+      }
+      if (ev.target?.matches?.('[data-shoutout-stats-requester]')) {
+        state.selectedStatsRequester = String(ev.target.value || '');
+        loadAll(true);
       }
     });
 

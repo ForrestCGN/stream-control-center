@@ -15,7 +15,7 @@ let streamStatus = null;
 try { streamStatus = require("./stream_status"); } catch (_) { streamStatus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.9";
+const MODULE_VERSION = "0.2.10";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -1183,6 +1183,260 @@ function buildShoutoutTimeline(options = {}) {
     count: items.length,
     items,
     streamDays
+  };
+}
+
+
+function normalizeStatsRow(row = {}) {
+  const out = {};
+  for (const [key, value] of Object.entries(row || {})) {
+    if (typeof value === 'bigint') out[key] = Number(value);
+    else out[key] = value;
+  }
+  return out;
+}
+
+function normalizeStatsRows(rows) {
+  return Array.isArray(rows) ? rows.map(normalizeStatsRow) : [];
+}
+
+function buildShoutoutStats(options = {}) {
+  ensureDisplayQueueSchema();
+  ensureOfficialShoutoutSchema();
+  ensureStreamDaySchema();
+
+  const limit = Math.max(1, Math.min(200, Number.parseInt(options.limit, 10) || 50));
+  const detailLimit = Math.max(1, Math.min(300, Number.parseInt(options.detailLimit, 10) || 120));
+  const targetLogin = cleanLogin(options.target || options.targetLogin || '');
+  const requesterLogin = cleanLogin(options.requester || options.requestedBy || options.requestedByLogin || '');
+  const streamDayId = String(options.streamDayId || '').trim();
+
+  const baseWhere = ["status<>'removed'"];
+  const baseParams = {};
+  if (streamDayId) {
+    baseWhere.push('stream_day_id=:streamDayId');
+    baseParams.streamDayId = streamDayId;
+  }
+  const baseWhereSql = baseWhere.length ? `WHERE ${baseWhere.join(' AND ')}` : '';
+
+  const totals = normalizeStatsRow(database.get(`
+    SELECT
+      COUNT(*) AS totalRequests,
+      COUNT(DISTINCT NULLIF(target_login,'')) AS uniqueTargets,
+      COUNT(DISTINCT NULLIF(requested_by_login,'')) AS uniqueRequesters,
+      SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS displayDone,
+      SUM(CASE WHEN status IN ('queued','waiting','active') THEN 1 ELSE 0 END) AS displayPending,
+      SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS displayFailed,
+      SUM(CASE WHEN override_used=1 THEN 1 ELSE 0 END) AS overrideCount,
+      MIN(created_at) AS firstRequestedAt,
+      MAX(created_at) AS lastRequestedAt
+    FROM clip_shoutout_display_queue
+    ${baseWhereSql}
+  `, baseParams) || {});
+
+  const officialTotals = normalizeStatsRow(database.get(`
+    SELECT
+      COUNT(*) AS officialHistoryTotal,
+      SUM(CASE WHEN result='sent' THEN 1 ELSE 0 END) AS officialSent,
+      SUM(CASE WHEN result='failed' THEN 1 ELSE 0 END) AS officialFailed,
+      MAX(sent_at) AS lastOfficialAt
+    FROM clip_shoutout_official_history
+  `) || {});
+
+  const officialQueueTotals = normalizeStatsRow(database.get(`
+    SELECT
+      COUNT(*) AS officialQueueOpen,
+      SUM(CASE WHEN status='queued' THEN 1 ELSE 0 END) AS officialQueued,
+      SUM(CASE WHEN status='waiting' THEN 1 ELSE 0 END) AS officialWaiting,
+      SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS officialOpenFailed
+    FROM clip_shoutout_official_queue
+    WHERE status IN ('queued','waiting','failed')
+  `) || {});
+
+  const targetStats = normalizeStatsRows(database.all(`
+    SELECT
+      target_login AS targetLogin,
+      COALESCE(NULLIF(MAX(target_display),''), target_login) AS targetDisplay,
+      COUNT(*) AS total,
+      SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS displayDone,
+      SUM(CASE WHEN status IN ('queued','waiting','active') THEN 1 ELSE 0 END) AS displayPending,
+      SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS displayFailed,
+      SUM(CASE WHEN override_used=1 THEN 1 ELSE 0 END) AS overrideCount,
+      COUNT(DISTINCT NULLIF(requested_by_login,'')) AS uniqueRequesters,
+      MIN(created_at) AS firstRequestedAt,
+      MAX(created_at) AS lastRequestedAt
+    FROM clip_shoutout_display_queue
+    ${baseWhereSql}
+    GROUP BY target_login
+    ORDER BY total DESC, lastRequestedAt DESC
+    LIMIT :limit
+  `, { ...baseParams, limit }));
+
+  const requesterStats = normalizeStatsRows(database.all(`
+    SELECT
+      requested_by_login AS requesterLogin,
+      COALESCE(NULLIF(MAX(requested_by_display),''), requested_by_login) AS requesterDisplay,
+      COUNT(*) AS total,
+      COUNT(DISTINCT NULLIF(target_login,'')) AS uniqueTargets,
+      SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS displayDone,
+      SUM(CASE WHEN override_used=1 THEN 1 ELSE 0 END) AS overrideCount,
+      MIN(created_at) AS firstRequestedAt,
+      MAX(created_at) AS lastRequestedAt
+    FROM clip_shoutout_display_queue
+    ${baseWhereSql}
+    GROUP BY requested_by_login
+    ORDER BY total DESC, lastRequestedAt DESC
+    LIMIT :limit
+  `, { ...baseParams, limit }));
+
+  const pairStats = normalizeStatsRows(database.all(`
+    SELECT
+      requested_by_login AS requesterLogin,
+      COALESCE(NULLIF(MAX(requested_by_display),''), requested_by_login) AS requesterDisplay,
+      target_login AS targetLogin,
+      COALESCE(NULLIF(MAX(target_display),''), target_login) AS targetDisplay,
+      COUNT(*) AS total,
+      SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS displayDone,
+      SUM(CASE WHEN override_used=1 THEN 1 ELSE 0 END) AS overrideCount,
+      MAX(created_at) AS lastRequestedAt
+    FROM clip_shoutout_display_queue
+    ${baseWhereSql}
+    GROUP BY requested_by_login, target_login
+    ORDER BY total DESC, lastRequestedAt DESC
+    LIMIT :limit
+  `, { ...baseParams, limit }));
+
+  const streamDayStats = normalizeStatsRows(database.all(`
+    SELECT
+      stream_day_id AS streamDayId,
+      COUNT(*) AS total,
+      COUNT(DISTINCT NULLIF(target_login,'')) AS uniqueTargets,
+      COUNT(DISTINCT NULLIF(requested_by_login,'')) AS uniqueRequesters,
+      SUM(CASE WHEN override_used=1 THEN 1 ELSE 0 END) AS overrideCount,
+      MIN(created_at) AS firstRequestedAt,
+      MAX(created_at) AS lastRequestedAt
+    FROM clip_shoutout_display_queue
+    WHERE status<>'removed' AND stream_day_id<>''
+    GROUP BY stream_day_id
+    ORDER BY lastRequestedAt DESC
+    LIMIT 20
+  `));
+
+  const targetOptions = normalizeStatsRows(database.all(`
+    SELECT
+      target_login AS login,
+      COALESCE(NULLIF(MAX(target_display),''), target_login) AS display,
+      COUNT(*) AS total,
+      MAX(created_at) AS lastRequestedAt
+    FROM clip_shoutout_display_queue
+    WHERE status<>'removed' AND target_login<>''
+    GROUP BY target_login
+    ORDER BY display COLLATE NOCASE ASC
+  `));
+
+  const requesterOptions = normalizeStatsRows(database.all(`
+    SELECT
+      requested_by_login AS login,
+      COALESCE(NULLIF(MAX(requested_by_display),''), requested_by_login) AS display,
+      COUNT(*) AS total,
+      MAX(created_at) AS lastRequestedAt
+    FROM clip_shoutout_display_queue
+    WHERE status<>'removed' AND requested_by_login<>''
+    GROUP BY requested_by_login
+    ORDER BY display COLLATE NOCASE ASC
+  `));
+
+  let selectedTarget = null;
+  if (targetLogin) {
+    const summary = normalizeStatsRow(database.get(`
+      SELECT
+        target_login AS targetLogin,
+        COALESCE(NULLIF(MAX(target_display),''), target_login) AS targetDisplay,
+        COUNT(*) AS total,
+        COUNT(DISTINCT NULLIF(requested_by_login,'')) AS uniqueRequesters,
+        SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS displayDone,
+        SUM(CASE WHEN status IN ('queued','waiting','active') THEN 1 ELSE 0 END) AS displayPending,
+        SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS displayFailed,
+        SUM(CASE WHEN override_used=1 THEN 1 ELSE 0 END) AS overrideCount,
+        MIN(created_at) AS firstRequestedAt,
+        MAX(created_at) AS lastRequestedAt
+      FROM clip_shoutout_display_queue
+      WHERE status<>'removed' AND target_login=:targetLogin
+      ${streamDayId ? 'AND stream_day_id=:streamDayId' : ''}
+      GROUP BY target_login
+    `, { targetLogin, ...(streamDayId ? { streamDayId } : {}) }) || { targetLogin, targetDisplay: targetLogin });
+    selectedTarget = {
+      summary,
+      byRequester: normalizeStatsRows(database.all(`
+        SELECT
+          requested_by_login AS requesterLogin,
+          COALESCE(NULLIF(MAX(requested_by_display),''), requested_by_login) AS requesterDisplay,
+          COUNT(*) AS total,
+          SUM(CASE WHEN override_used=1 THEN 1 ELSE 0 END) AS overrideCount,
+          MAX(created_at) AS lastRequestedAt
+        FROM clip_shoutout_display_queue
+        WHERE status<>'removed' AND target_login=:targetLogin
+        ${streamDayId ? 'AND stream_day_id=:streamDayId' : ''}
+        GROUP BY requested_by_login
+        ORDER BY total DESC, lastRequestedAt DESC
+        LIMIT :limit
+      `, { targetLogin, ...(streamDayId ? { streamDayId } : {}), limit })),
+      timeline: buildShoutoutTimeline({ targetLogin, streamDayId, limit: detailLimit }).items || []
+    };
+  }
+
+  let selectedRequester = null;
+  if (requesterLogin) {
+    const summary = normalizeStatsRow(database.get(`
+      SELECT
+        requested_by_login AS requesterLogin,
+        COALESCE(NULLIF(MAX(requested_by_display),''), requested_by_login) AS requesterDisplay,
+        COUNT(*) AS total,
+        COUNT(DISTINCT NULLIF(target_login,'')) AS uniqueTargets,
+        SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS displayDone,
+        SUM(CASE WHEN override_used=1 THEN 1 ELSE 0 END) AS overrideCount,
+        MIN(created_at) AS firstRequestedAt,
+        MAX(created_at) AS lastRequestedAt
+      FROM clip_shoutout_display_queue
+      WHERE status<>'removed' AND requested_by_login=:requesterLogin
+      ${streamDayId ? 'AND stream_day_id=:streamDayId' : ''}
+      GROUP BY requested_by_login
+    `, { requesterLogin, ...(streamDayId ? { streamDayId } : {}) }) || { requesterLogin, requesterDisplay: requesterLogin });
+    selectedRequester = {
+      summary,
+      byTarget: normalizeStatsRows(database.all(`
+        SELECT
+          target_login AS targetLogin,
+          COALESCE(NULLIF(MAX(target_display),''), target_login) AS targetDisplay,
+          COUNT(*) AS total,
+          SUM(CASE WHEN override_used=1 THEN 1 ELSE 0 END) AS overrideCount,
+          MAX(created_at) AS lastRequestedAt
+        FROM clip_shoutout_display_queue
+        WHERE status<>'removed' AND requested_by_login=:requesterLogin
+        ${streamDayId ? 'AND stream_day_id=:streamDayId' : ''}
+        GROUP BY target_login
+        ORDER BY total DESC, lastRequestedAt DESC
+        LIMIT :limit
+      `, { requesterLogin, ...(streamDayId ? { streamDayId } : {}), limit })),
+      timeline: buildShoutoutTimeline({ limit: detailLimit, streamDayId }).items.filter(item => cleanLogin(item.requestedByLogin) === requesterLogin)
+    };
+  }
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    generatedAt: nowIso(),
+    filters: { targetLogin, requesterLogin, streamDayId, limit, detailLimit },
+    totals: { ...totals, ...officialTotals, ...officialQueueTotals },
+    targetStats,
+    requesterStats,
+    pairStats,
+    streamDayStats,
+    targetOptions,
+    requesterOptions,
+    selectedTarget,
+    selectedRequester
   };
 }
 
@@ -2577,6 +2831,8 @@ module.exports.init = function init(ctx) {
         { method: "GET/POST", path: `${API_PREFIX}/settings` },
         { method: "GET", path: `${API_PREFIX}/queue` },
         { method: "GET", path: `${API_PREFIX}/timeline` },
+        { method: "GET", path: `${API_PREFIX}/stats` },
+        { method: "GET", path: `${API_PREFIX}/stats/user` },
         { method: "GET", path: "/api/stream-status/status" },
         { method: "POST", path: `${API_PREFIX}/queue/remove` },
         { method: "POST", path: `${API_PREFIX}/queue/retry` }
@@ -2665,6 +2921,40 @@ module.exports.init = function init(ctx) {
         streamDayId: req.query?.streamDayId,
         since: req.query?.since,
         until: req.query?.until
+      }));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/stats`, (req, res) => {
+    try {
+      res.json(buildShoutoutStats({
+        limit: req.query?.limit,
+        detailLimit: req.query?.detailLimit,
+        target: req.query?.target,
+        targetLogin: req.query?.targetLogin,
+        requester: req.query?.requester,
+        requestedBy: req.query?.requestedBy,
+        requestedByLogin: req.query?.requestedByLogin,
+        streamDayId: req.query?.streamDayId
+      }));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/stats/user`, (req, res) => {
+    try {
+      res.json(buildShoutoutStats({
+        limit: req.query?.limit,
+        detailLimit: req.query?.detailLimit,
+        target: req.query?.target,
+        targetLogin: req.query?.targetLogin,
+        requester: req.query?.requester,
+        requestedBy: req.query?.requestedBy,
+        requestedByLogin: req.query?.requestedByLogin,
+        streamDayId: req.query?.streamDayId
       }));
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });

@@ -1,27 +1,17 @@
 # CHANGELOG
 
-## STEP467_STREAM_STATUS_REFRESH_SOURCE
+## STEP470_SHOUTOUT_DASHBOARD_STATISTICS
 
-- `backend/modules/stream_status.js` auf Runtime-Version `0.1.1` erhöht.
-- HTTP/HTTPS-Fallback für stale oder fehlende Live-Status-Dateien ergänzt.
-- `/api/stream-status/status` und `/api/stream-status/refresh` können den lokalen Twitch-Backend-Endpunkt aktiv abfragen.
-- Neue Statusfelder ergänzt: `apiUrl`, `apiEnabled`, `apiError`, `checkedViaApiAt`, `upstreamSource`.
-- Bestehende dateibasierte Quelle bleibt erhalten und wird bevorzugt, wenn sie frisch und bekannt ist.
-- Keine Änderung an `clip_shoutout.js`, Display-Queue, `!vso`, Streamtag-Limit oder Chatmeldungen.
+- `clip_shoutout.js` auf Runtime-Version `0.2.10` erhöht.
+- Neue read-only Statistikroute `GET /api/clip-shoutout/stats` ergänzt.
+- Aliasroute `GET /api/clip-shoutout/stats/user` ergänzt.
+- Statistikdaten für Zielkanäle, Auslöser, Wer-zu-Wen, Streamtage, Official-History und offene Official-Queue ergänzt.
+- Dashboard-Modul `shoutout.js` um Statistikbereich erweitert.
+- Dropdown-Auswahl für einzelne Zielkanäle und einzelne Auslöser ergänzt.
+- `shoutout.css` um Statistik-/Detailansicht-Styles erweitert.
+- Keine Änderungen an Queue-Logik, Command, Chatmeldungen, Streamstatus oder Sound-System.
 
-## STEP468 - Stream Status Auto Refresh
+## STEP469_SHOUTOUT_DASHBOARD_MODULE
 
-- `stream_status` auf `0.1.2` angehoben.
-- Twitch-API als bevorzugte Live-Status-Quelle aktiviert.
-- Auto-Refresh mit konfigurierbaren Intervallen ergänzt.
-- Datei-basierte Twitch-Statusquellen bleiben als Fallback erhalten.
-- `getCurrentStatus()` für synchrone Modulnutzung stabilisiert, damit frischer API-Status nicht durch stale Datei-Refresh überschrieben wird.
-
-## STEP469 - Shoutout Dashboard Module
-
-- Eigenes Dashboard-Modul für `clip_shoutout` ergänzt.
-- `htdocs/dashboard/index.html` lädt `shoutout.css` und `shoutout.js` und enthält das Panel `#shoutoutModule`.
-- `shoutout.js` registriert sich dynamisch im Dashboard, ohne `app.js` zu ersetzen.
-- Dashboard zeigt Display-Queue, Official-Queue, Timeline und Official Live-Gate mit zentralem Streamstatus.
-- Kleine Dashboard-Testauslösung nutzt die vorhandene Route `/api/clip-shoutout/run`.
-- Keine Änderung an Backend, Streamstatus, Command-Logik, Chatmeldungen oder Sound-System.
+- Shoutout-System als eigenes Dashboard-Modul eingebunden.
+- Anzeige für Display-Queue, Official-Queue, Live-Gate, Timeline und Testauslösung ergänzt.
