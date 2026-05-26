@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.8.2";
-const MODULE_BUILD = "editor-save-bind-param-fix";
+const MODULE_VERSION = "0.8.3";
+const MODULE_BUILD = "redemption-eventsub-preparation";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -39,6 +39,9 @@ const DEFAULT_CONFIG = {
   busDomainEventsEnabled: true,
   twitchAuthScopeCheckEnabled: true,
   twitchAuthValidateUrl: "/api/twitch/auth/validate",
+  redemptionEventSubPreparationEnabled: true,
+  redemptionEventSubStoreEnabled: true,
+  redemptionEventSubAutoExecuteEnabled: false,
   importedRewardActionGuardEnabled: true
 };
 
@@ -207,6 +210,20 @@ let executionStats = {
   lastExecutionReward: "",
   lastExecutionResult: null,
   lastExecutionError: ""
+};
+
+let redemptionEventSubStats = {
+  received: 0,
+  previewed: 0,
+  stored: 0,
+  duplicates: 0,
+  unmapped: 0,
+  lastReceivedAt: null,
+  lastStoredAt: null,
+  lastPreviewAt: null,
+  lastRedemptionId: "",
+  lastRewardKey: "",
+  lastError: ""
 };
 
 function nowIso() { return new Date().toISOString(); }
@@ -696,6 +713,7 @@ function buildBusEventSpec() {
     { channel: "channelpoints.reward", action: "channelpoints.reward.enabled", when: "Lokaler Reward wurde aktiviert." },
     { channel: "channelpoints.reward", action: "channelpoints.reward.disabled", when: "Lokaler Reward wurde deaktiviert/pausiert." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.created", when: "Lokale/Test-Einlösung wurde gespeichert." },
+    { channel: "channelpoints.redemption", action: "channelpoints.redemption.received", when: "EventSub-Redemption wurde normalisiert und lokal gespeichert." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.executed", when: "Einlösung wurde erfolgreich ausgeführt." },
     { channel: "channelpoints.redemption", action: "channelpoints.redemption.failed", when: "Einlösung oder Ausführung ist fehlgeschlagen." },
     { channel: "channelpoints.twitch", action: "channelpoints.twitch.readiness", when: "Twitch-Readiness wurde abgefragt." },
@@ -1195,6 +1213,200 @@ async function executeReward(idOrKey, input = {}) {
   }
 }
 
+
+function getRewardByTwitchRewardId(twitchRewardId) {
+  ensureDbReady();
+  const id = cleanString(twitchRewardId);
+  if (!id) return null;
+  const row = database.get("SELECT * FROM channelpoints_rewards WHERE twitch_reward_id = :id", { id });
+  return mapRewardRow(row);
+}
+
+function normalizeRedemptionPayload(input = {}) {
+  const body = input && typeof input === "object" ? input : {};
+  const event = body.event && typeof body.event === "object" ? body.event : body;
+  const reward = event.reward && typeof event.reward === "object" ? event.reward : {};
+  const now = nowIso();
+  const twitchRewardId = cleanString(event.reward_id || event.rewardId || reward.id || body.reward_id || "");
+  const twitchRedemptionId = cleanString(event.id || event.redemption_id || event.redemptionId || body.redemption_id || `eventsub_preview_${Date.now()}`);
+  const userLogin = cleanString(event.user_login || event.userLogin || event.user || "").toLowerCase();
+  const userDisplayName = cleanString(event.user_name || event.userDisplayName || event.user_display_name || event.user || userLogin || "");
+  const localReward = getRewardByTwitchRewardId(twitchRewardId);
+  const fallbackRewardKey = cleanString(event.reward_key || event.rewardKey || slugify(reward.title || event.reward_title || "reward"));
+  return {
+    ok: true,
+    source: body.event ? "twitch_eventsub_event" : "local_payload",
+    twitch_redemption_id: twitchRedemptionId,
+    twitch_reward_id: twitchRewardId,
+    reward_key: localReward ? localReward.reward_key : fallbackRewardKey,
+    mapped: !!localReward,
+    local_reward: localReward,
+    reward_title: cleanString(reward.title || event.reward_title || event.title || (localReward && localReward.title) || ""),
+    reward_cost: intValue(reward.cost || event.reward_cost || event.cost || (localReward && localReward.cost), 0),
+    user_id: cleanString(event.user_id || event.userId || body.user_id || ""),
+    user_login: userLogin,
+    user_display_name: userDisplayName,
+    user_input: cleanString(event.user_input || event.userInput || event.input || ""),
+    status: cleanString(event.status || "received"),
+    redeemed_at: cleanString(event.redeemed_at || event.redeemedAt || now),
+    normalized_at: now,
+    raw_event: event
+  };
+}
+
+function buildRedemptionEventSubStatus() {
+  const config = getConfig();
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: "redemption_eventsub_preparation_ready",
+    enabled: config.redemptionEventSubPreparationEnabled !== false,
+    storeEnabled: config.redemptionEventSubStoreEnabled !== false,
+    autoExecuteEnabled: config.redemptionEventSubAutoExecuteEnabled === true,
+    safety: {
+      noTwitchWrite: true,
+      noAutoExecuteByDefault: config.redemptionEventSubAutoExecuteEnabled !== true,
+      localDbWriteOnlyOnReceiveRoute: true,
+      usesExistingRedemptionsTable: true
+    },
+    stats: { ...redemptionEventSubStats },
+    routes: [
+      `${ROUTE_PREFIX}/eventsub/redemption/status`,
+      `${ROUTE_PREFIX}/eventsub/redemption/preview`,
+      `${ROUTE_PREFIX}/eventsub/redemption`
+    ]
+  };
+}
+
+function storeNormalizedRedemption(normalized) {
+  ensureDbReady();
+  if (!normalized || !normalized.twitch_redemption_id) throw new Error("redemption_id_required");
+  const now = nowIso();
+  const existing = database.get("SELECT * FROM channelpoints_redemptions WHERE twitch_redemption_id = :id", { id: normalized.twitch_redemption_id });
+  const status = normalized.mapped ? "received" : "unmapped";
+  const result = {
+    source: normalized.source,
+    mapped: normalized.mapped,
+    rewardTitle: normalized.reward_title,
+    rewardCost: normalized.reward_cost,
+    autoExecute: false,
+    note: normalized.mapped
+      ? "Redemption wurde vorbereitet und lokal gespeichert. Automatische Ausführung ist in diesem Step deaktiviert."
+      : "Redemption wurde gespeichert, aber keinem lokalen Reward zugeordnet."
+  };
+  const params = {
+    twitch_redemption_id: normalized.twitch_redemption_id,
+    twitch_reward_id: normalized.twitch_reward_id,
+    reward_key: normalized.reward_key,
+    user_id: normalized.user_id,
+    user_login: normalized.user_login,
+    user_display_name: normalized.user_display_name,
+    user_input: normalized.user_input,
+    status,
+    queue_group: "eventsub_prepare",
+    result_json: jsonString(result, {}),
+    redeemed_at: normalized.redeemed_at,
+    created_at: now,
+    updated_at: now
+  };
+  if (existing && existing.id) {
+    database.run(`
+      UPDATE channelpoints_redemptions SET
+        twitch_reward_id = :twitch_reward_id,
+        reward_key = :reward_key,
+        user_id = :user_id,
+        user_login = :user_login,
+        user_display_name = :user_display_name,
+        user_input = :user_input,
+        status = :status,
+        queue_group = :queue_group,
+        result_json = :result_json,
+        redeemed_at = :redeemed_at,
+        updated_at = :updated_at
+      WHERE twitch_redemption_id = :twitch_redemption_id
+    `, params);
+    redemptionEventSubStats.duplicates += 1;
+  } else {
+    database.run(`
+      INSERT INTO channelpoints_redemptions
+        (twitch_redemption_id, twitch_reward_id, reward_key, user_id, user_login, user_display_name, user_input, status, queue_group, result_json, redeemed_at, created_at, updated_at)
+      VALUES
+        (:twitch_redemption_id, :twitch_reward_id, :reward_key, :user_id, :user_login, :user_display_name, :user_input, :status, :queue_group, :result_json, :redeemed_at, :created_at, :updated_at)
+    `, params);
+  }
+  const row = database.get("SELECT * FROM channelpoints_redemptions WHERE twitch_redemption_id = :id", { id: normalized.twitch_redemption_id });
+  const stored = mapRedemptionRow(row);
+  redemptionEventSubStats.stored += 1;
+  redemptionEventSubStats.lastStoredAt = now;
+  redemptionEventSubStats.lastRedemptionId = normalized.twitch_redemption_id;
+  redemptionEventSubStats.lastRewardKey = normalized.reward_key;
+  if (!normalized.mapped) redemptionEventSubStats.unmapped += 1;
+  emitDomainEvent("channelpoints.redemption.received", {
+    redemption: stored,
+    mapped: normalized.mapped,
+    localReward: normalized.local_reward ? buildRewardEventPayload(normalized.local_reward).reward : null,
+    autoExecute: false
+  }, { channel: "channelpoints.redemption" });
+  publishStatus("redemption_eventsub_received");
+  return stored;
+}
+
+function previewRedemptionEventSubPayload(input = {}) {
+  const normalized = normalizeRedemptionPayload(input);
+  redemptionEventSubStats.previewed += 1;
+  redemptionEventSubStats.lastPreviewAt = nowIso();
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "preview_redemption_eventsub_payload",
+    normalized,
+    willStore: false,
+    willExecute: false,
+    twitchWrite: false
+  };
+}
+
+function receiveRedemptionEventSubPayload(input = {}) {
+  const config = getConfig();
+  if (config.redemptionEventSubPreparationEnabled === false) throw new Error("redemption_eventsub_preparation_disabled");
+  const normalized = normalizeRedemptionPayload(input);
+  redemptionEventSubStats.received += 1;
+  redemptionEventSubStats.lastReceivedAt = nowIso();
+  redemptionEventSubStats.lastRedemptionId = normalized.twitch_redemption_id;
+  redemptionEventSubStats.lastRewardKey = normalized.reward_key;
+  if (config.redemptionEventSubStoreEnabled === false) {
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      action: "received_redemption_eventsub_payload_store_disabled",
+      normalized,
+      stored: false,
+      executed: false,
+      twitchWrite: false
+    };
+  }
+  const stored = storeNormalizedRedemption(normalized);
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "received_redemption_eventsub_payload_stored",
+    normalized: { ...normalized, raw_event: undefined, local_reward: normalized.local_reward ? buildRewardEventPayload(normalized.local_reward).reward : null },
+    redemption: stored,
+    stored: true,
+    executed: false,
+    executionSkipped: "auto_execute_disabled_in_step498",
+    twitchWrite: false
+  };
+}
+
 function buildBusStatus() {
   const currentBus = getBus();
   const busStatus = currentBus && typeof currentBus.getStatus === "function" ? currentBus.getStatus() : null;
@@ -1492,6 +1704,7 @@ function buildStatus(extra = {}) {
       queueSize: 0,
       crudStats: { ...localCrudStats },
       executionStats: { ...executionStats },
+      redemptionEventSubStats: { ...redemptionEventSubStats },
       lastBusTestAt,
       lastBusEvent,
       lastError
@@ -1507,6 +1720,9 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/rewards`,
       `${ROUTE_PREFIX}/redemptions`,
       `${ROUTE_PREFIX}/redemptions/test`,
+      `${ROUTE_PREFIX}/eventsub/redemption/status`,
+      `${ROUTE_PREFIX}/eventsub/redemption/preview`,
+      `${ROUTE_PREFIX}/eventsub/redemption`,
       `${ROUTE_PREFIX}/text-execution-check`,
       `${ROUTE_PREFIX}/twitch-status`,
       `${ROUTE_PREFIX}/twitch/readiness`,
@@ -1602,7 +1818,7 @@ function heartbeatBus(reason = "heartbeat") {
     status: "online",
     health: lastError ? "warn" : "ok",
     reason,
-    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.domain_events", "channelpoints.test.ping"]
+    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.eventsub_redemption", "channelpoints.domain_events", "channelpoints.test.ping"]
   });
   lastBusHeartbeatAt = nowIso();
   return result;
@@ -1618,7 +1834,7 @@ function registerAtCommunicationBus() {
     module: MODULE_NAME,
     name: "Kanalpunkte-System",
     version: MODULE_VERSION,
-    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.domain_events", "channelpoints.test.ping"],
+    capabilities: ["module.lifecycle", "module.status", "channelpoints.status", "channelpoints.schema", "channelpoints.local_crud", "channelpoints.media_execution", "channelpoints.redemption", "channelpoints.eventsub_redemption", "channelpoints.domain_events", "channelpoints.test.ping"],
     meta: { routePrefix: ROUTE_PREFIX, localCrud: true, twitchWritesEnabled: false, mediaSystem: "existing_media_module", mediaExecutionBridge: "/api/sound/play", domainEvents: true }
   });
   registeredAtBus = registerResult && registerResult.ok === true;
@@ -1691,6 +1907,19 @@ function init({ app }) {
 
   app.get(`${ROUTE_PREFIX}/redemptions`, (req, res) => {
     try { res.json(buildRedemptionsStatus(req)); } catch (err) { sendError(res, 500, err); }
+  });
+
+
+  app.get(`${ROUTE_PREFIX}/eventsub/redemption/status`, (req, res) => {
+    try { res.json(buildRedemptionEventSubStatus()); } catch (err) { sendError(res, 500, err); }
+  });
+
+  app.post(`${ROUTE_PREFIX}/eventsub/redemption/preview`, (req, res) => {
+    try { res.json(previewRedemptionEventSubPayload(req.body || {})); } catch (err) { sendError(res, 400, err); }
+  });
+
+  app.post(`${ROUTE_PREFIX}/eventsub/redemption`, (req, res) => {
+    try { res.json(receiveRedemptionEventSubPayload(req.body || {})); } catch (err) { sendError(res, 400, err); }
   });
 
   app.get(`${ROUTE_PREFIX}/rewards/:idOrKey`, (req, res) => {
@@ -1850,4 +2079,4 @@ function init({ app }) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} API routes registered (${ROUTE_PREFIX})`);
 }
 
-module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildBusEventSpec, buildTwitchAuthScopeStatus, registerAtCommunicationBus, heartbeatBus, publishStatus, isImportedRewardMissingAction };
+module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildRedemptionEventSubStatus, previewRedemptionEventSubPayload, receiveRedemptionEventSubPayload, buildBusEventSpec, buildTwitchAuthScopeStatus, registerAtCommunicationBus, heartbeatBus, publishStatus, isImportedRewardMissingAction };
