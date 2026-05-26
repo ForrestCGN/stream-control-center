@@ -1,8 +1,7 @@
 # NEXT_STEPS
 
-1. Commands v0.1.4 testen:
-   - vorhandenen Command öffnen, ändern, speichern.
-   - prüfen, dass kein Duplikat entsteht.
-   - Command löschen mit Rückfrage testen.
-   - Command neu erstellen testen.
-2. Danach Kanalpunkte-Dashboard analog auf Modal-Editor umbauen.
+1. Commands Dashboard v0.1.5 testen:
+   - bestehenden Command `!so` öffnen
+   - prüfen, ob gespeicherter Modul-Key / Action-Key / Route korrekt angezeigt wird
+   - speichern, ohne dass Routing überschrieben wird
+2. Danach dasselbe Modal-/Safe-Edit-Prinzip auf Kanalpunkte übertragen.
