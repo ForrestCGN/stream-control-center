@@ -1,15 +1,16 @@
 # CURRENT_SYSTEM_STATUS
 
-Stand: 2026-05-26 / STEP495
+Stand: STEP496
 
-## Kanalpunkte-System
+## Interaction-Systeme
 
-- Backend-Stand bleibt `0.5.0`.
-- STEP495 ändert nur Dashboard/UX.
-- Dashboard ist in Tabs aufgeteilt.
-- Suche/Filter und Liste/Detail-Muster sind ergänzt.
-- Medien laufen weiter über das bestehende Media-System.
+Commands und Kanalpunkte werden künftig bewusst als gleichartige Bedienmodelle geführt:
 
-## Sicherheit
+- Commands: Chat-Trigger.
+- Kanalpunkte: Twitch-Reward/Button.
+- Beide: Kategorien, Suche, Filter, Liste, Detailbereich, Aktion, Medien, Regeln, Logs.
 
-Keine Twitch-Schreibaktionen, keine DB-Migration, kein neues Upload-System.
+## STEP496
+
+- Command-Dashboard optisch an Kanalpunkte-Muster angepasst.
+- Keine Runtime- oder Backend-Änderung.

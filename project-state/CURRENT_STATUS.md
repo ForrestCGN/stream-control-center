@@ -1,22 +1,11 @@
 # CURRENT_STATUS
 
-Stand: 2026-05-26 / STEP495_DASHBOARD_INTERACTION_SYSTEM_PATTERN
+Stand: STEP496
 
-## Aktueller Arbeitsstand
+Das Kanalpunkte-System hat eine lokale DB-Grundlage, lokale Reward-CRUD-API und ein tab-/filterbasiertes Dashboard. Das Command-Dashboard wurde in STEP496 optisch an das Kanalpunkte-Bedienmuster angenähert, ohne Command-Logik zu verändern.
 
-STEP495 überarbeitet das Kanalpunkte-Dashboard als gemeinsames Interaktionsmuster mit dem Command-System.
+## Wichtig
 
-## Kanalpunkte
-
-- Backend bleibt auf STEP493/0.5.0 und wurde nicht verändert.
-- Dashboard nutzt Tabs statt einer langen Einzelseite.
-- Suche und Filter wurden ergänzt.
-- Rewards werden links gelistet und rechts bearbeitet.
-- Editor ist in Basis, Aktion, Medien und Regeln unterteilt.
-- Medienauswahl nutzt weiterhin `MediaField`/`MediaPicker`.
-
-## Sicherheit
-
-- Keine Twitch-Schreibaktionen.
-- Keine DB-Migration.
-- Keine Änderung am produktiven SQLite-Schema.
+- Commands und Kanalpunkte sollen künftig als verwandte Interaktionssysteme behandelt werden.
+- Beide brauchen Kategorien, Suche, Filter, Liste, Detailbereich, Aktion/Medien/Regeln/Logs.
+- Kanalpunkte bleibt weiterhin ohne Twitch-Schreibaktionen.
