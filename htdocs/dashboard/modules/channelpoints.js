@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '0.9.6';
-  const UI_BUILD = 'simple-stats-page';
+  const UI_VERSION = '0.9.7';
+  const UI_BUILD = 'redemption-history-user-tracking';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -479,7 +479,7 @@ window.ChannelpointsModule = (function(){
         window.CGN.api(api.status),
         window.CGN.api(api.categories),
         window.CGN.api(api.rewards),
-        window.CGN.api(`${api.redemptions}?limit=25`).catch(err => ({ ok:false, redemptions:[], counts:null, error:err.message })),
+        window.CGN.api(`${api.redemptions}?limit=100`).catch(err => ({ ok:false, redemptions:[], counts:null, error:err.message })),
         window.CGN.api(api.eventsubRedemptionStatus).catch(err => ({ ok:false, error:err.message, enabled:false })),
         window.CGN.api(api.twitchStatus).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.twitchAuthCheck).catch(err => ({ ok:false, error:err.message })),
@@ -699,6 +699,47 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     return '';
   }
 
+  function redemptionTimeLabel(item) {
+    const raw = item && (item.redeemed_at || item.created_at || item.updated_at);
+    if (!raw) return '-';
+    const date = new Date(raw);
+    if (!Number.isFinite(date.getTime())) return String(raw);
+    return date.toLocaleString('de-DE', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }
+
+  function redemptionUserLabel(item) {
+    const display = String(item && (item.user_display_name || item.user_login || '') || '').trim();
+    const login = String(item && item.user_login || '').trim();
+    if (display && login && display.toLowerCase() !== login.toLowerCase()) return `${display} (@${login})`;
+    return display || (login ? `@${login}` : '-');
+  }
+
+  function redemptionUserKey(item) {
+    return String(item && (item.user_login || item.user_id || item.user_display_name || '-') || '-').trim().toLowerCase() || '-';
+  }
+
+  function rewardTitleForKey(key) {
+    const reward = rewardByKey(key);
+    return reward && reward.title ? reward.title : (key || '-');
+  }
+
+  function redemptionActionLabel(item) {
+    const reward = rewardByKey(item && item.reward_key);
+    const result = item && item.result && typeof item.result === 'object' ? item.result : {};
+    if (reward && reward.action_type) {
+      const mediaId = reward.media_asset_id || '';
+      if (mediaId) return `${reward.action_type} · mediaId ${mediaId}`;
+      return reward.action_type;
+    }
+    if (result.type) return result.type;
+    if (result.action) return result.action;
+    return '-';
+  }
+
+  function redemptionInputLabel(item) {
+    return String(item && item.user_input || '').trim();
+  }
+
   function renderRedemptionEventSubTestBox() {
     const status = state.eventsubRedemptionStatus || {};
     const stats = status.stats || {};
@@ -719,26 +760,33 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
   }
 
   function renderRedemptionsPanel() {
-    const list = asArray(state.redemptions).slice(0, 25);
+    const list = asArray(state.redemptions).slice(0, 100);
     const counts = state.redemptionCounts || {};
     const total = counts.total ?? list.length;
     const executed = counts.executed ?? 0;
     const failed = counts.failed ?? 0;
     const pending = counts.pending ?? 0;
     const skipped = counts.skipped ?? 0;
-    return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Letzte Einlösungen</h3><span>${esc(total)} gesamt · ${esc(executed)} ausgeführt · ${esc(failed)} Fehler</span></div>
+    const uniqueUsers = new Set(list.map(redemptionUserKey).filter(key => key && key !== '-')).size;
+    return `<section class="cp-panel cp-redemptions-panel"><div class="cp-panel-head"><h3>Einlösungsverlauf</h3><span>wer · wann · was · Status</span></div>
       <div class="cp-redemption-summary-grid">
         <div><strong>${esc(total)}</strong><span>Gesamt</span></div>
         <div><strong>${esc(executed)}</strong><span>Ausgeführt</span></div>
         <div><strong>${esc(pending)}</strong><span>Offen/empfangen</span></div>
         <div><strong>${esc(skipped)}</strong><span>Blockiert/ignoriert</span></div>
         <div><strong>${esc(failed)}</strong><span>Fehler</span></div>
+        <div><strong>${esc(uniqueUsers)}</strong><span>User im Verlauf</span></div>
       </div>
-      <div class="cp-note"><strong>Einfache Regel:</strong> Aktiver Reward mit vollständiger Aktion wird ausgelöst. Inaktive Rewards oder Rewards ohne Aktion werden nicht ausgeführt.</div>
+      <div class="cp-note"><strong>Verlauf:</strong> Das System speichert User, Zeitpunkt, Reward, Eingabetext, Status und Ergebnis in der bestehenden Tabelle <code>channelpoints_redemptions</code>. Keine neue DB, keine eigene SQLite-Anbindung.</div>
       <div class="cp-actions"><button type="button" data-cp-action="reload">Aktualisieren</button></div>
-      <div class="cp-redemption-list">${list.map(item => { const preview = redemptionResultPreview(item); return `<div class="cp-redemption-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}${preview ? ` · ${esc(preview).slice(0, 140)}` : ''}</small></div><div>${redemptionStatusPill(item.status)}</div></div>`; }).join('') || '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
+      <div class="cp-history-table-wrap"><table class="cp-history-table"><thead><tr><th>Zeit</th><th>User</th><th>Reward</th><th>Eingabe</th><th>Aktion/Ergebnis</th><th>Status</th></tr></thead><tbody>${list.map(item => {
+        const preview = redemptionResultPreview(item);
+        const input = redemptionInputLabel(item);
+        return `<tr><td>${esc(redemptionTimeLabel(item))}</td><td><strong>${esc(redemptionUserLabel(item))}</strong><small>${esc(item.user_id || '')}</small></td><td><strong>${esc(rewardTitleForKey(item.reward_key))}</strong><small>${esc(item.reward_key || '-')}</small></td><td>${input ? esc(input) : '<span class="cp-muted">-</span>'}</td><td><span>${esc(redemptionActionLabel(item))}</span>${preview ? `<small>${esc(preview).slice(0, 160)}</small>` : ''}</td><td>${redemptionStatusPill(item.status)}</td></tr>`;
+      }).join('') || '<tr><td colspan="6">Noch keine Einlösungen gespeichert.</td></tr>'}</tbody></table></div>
     </section>`;
   }
+
 
 
   function renderStatisticsPanel() {
@@ -759,6 +807,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const rewardMap = new Map();
     for (const reward of allRewards) rewardMap.set(String(reward.reward_key || ''), reward);
     const byReward = new Map();
+    const byUser = new Map();
     for (const item of allRedemptions) {
       const key = String(item.reward_key || '-');
       if (!byReward.has(key)) byReward.set(key, { key, title: rewardMap.get(key)?.title || key, total:0, executed:0, failed:0, skipped:0, pending:0 });
@@ -769,20 +818,34 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
       else if (status === 'failed') row.failed += 1;
       else if (status === 'skipped') row.skipped += 1;
       else row.pending += 1;
+
+      const userKey = redemptionUserKey(item);
+      if (!byUser.has(userKey)) byUser.set(userKey, { key:userKey, label:redemptionUserLabel(item), total:0, executed:0, failed:0, skipped:0, pending:0, lastAt:item.redeemed_at || item.created_at || '' });
+      const userRow = byUser.get(userKey);
+      userRow.total += 1;
+      if (status === 'executed') userRow.executed += 1;
+      else if (status === 'failed') userRow.failed += 1;
+      else if (status === 'skipped') userRow.skipped += 1;
+      else userRow.pending += 1;
+      const itemAt = item.redeemed_at || item.created_at || '';
+      if (itemAt && (!userRow.lastAt || String(itemAt) > String(userRow.lastAt))) userRow.lastAt = itemAt;
     }
     const topRows = Array.from(byReward.values()).sort((a,b) => b.total - a.total || a.title.localeCompare(b.title)).slice(0, 10);
+    const topUsers = Array.from(byUser.values()).filter(row => row.key !== '-').sort((a,b) => b.total - a.total || a.label.localeCompare(b.label)).slice(0, 10);
     const newest = allRedemptions.slice(0, 8);
 
-    return `<section class="cp-panel cp-statistics-panel"><div class="cp-panel-head"><h3>Statistik</h3><span>einfacher Überblick ohne Test-Modi</span></div>
+    return `<section class="cp-panel cp-statistics-panel"><div class="cp-panel-head"><h3>Statistik</h3><span>Rewards · User · letzte Aktionen</span></div>
       <div class="cp-stat-grid">
         <div><small>Rewards</small><strong>${esc(allRewards.length)}</strong><span>${esc(active)} aktiv · ${esc(inactive)} inaktiv</span></div>
         <div><small>Aktionen</small><strong>${esc(configured)}</strong><span>${esc(missingAction)} Aktion fehlt · ${esc(imported)} importiert</span></div>
         <div><small>Einlösungen</small><strong>${esc(totalRedemptions)}</strong><span>${esc(executed)} ausgeführt · ${esc(failed)} Fehler</span></div>
+        <div><small>User</small><strong>${esc(topUsers.length)}</strong><span>im geladenen Verlauf sichtbar</span></div>
         <div><small>Offen/blockiert</small><strong>${esc(Number(pending || 0) + Number(skipped || 0))}</strong><span>${esc(pending)} offen · ${esc(skipped)} blockiert/ignoriert</span></div>
       </div>
-      <div class="cp-stat-columns">
-        <div class="cp-stat-box"><h4>Top-Rewards</h4>${topRows.length ? `<div class="cp-stat-list">${topRows.map(row => `<div class="cp-stat-row"><div><strong>${esc(row.title)}</strong><small>${esc(row.key)}</small></div><span>${esc(row.total)}x</span></div>`).join('')}</div>` : '<div class="cp-empty">Noch keine Einlösungen für eine Top-Liste.</div>'}</div>
-        <div class="cp-stat-box"><h4>Letzte Aktionen</h4>${newest.length ? `<div class="cp-stat-list">${newest.map(item => `<div class="cp-stat-row"><div><strong>${esc(item.reward_key || '-')}</strong><small>${esc(item.user_display_name || item.user_login || '-')} · ${esc(item.redeemed_at || item.created_at || '')}</small></div>${redemptionStatusPill(item.status)}</div>`).join('')}</div>` : '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
+      <div class="cp-stat-columns cp-stat-columns-three">
+        <div class="cp-stat-box"><h4>Top-Rewards</h4>${topRows.length ? `<div class="cp-stat-list">${topRows.map(row => `<div class="cp-stat-row"><div><strong>${esc(row.title)}</strong><small>${esc(row.key)} · ${esc(row.executed)} ausgeführt · ${esc(row.failed)} Fehler</small></div><span>${esc(row.total)}x</span></div>`).join('')}</div>` : '<div class="cp-empty">Noch keine Einlösungen für eine Top-Liste.</div>'}</div>
+        <div class="cp-stat-box"><h4>Top-User</h4>${topUsers.length ? `<div class="cp-stat-list">${topUsers.map(row => `<div class="cp-stat-row"><div><strong>${esc(row.label)}</strong><small>${esc(row.executed)} ausgeführt · ${esc(row.failed)} Fehler · zuletzt ${esc(redemptionTimeLabel({ redeemed_at: row.lastAt }))}</small></div><span>${esc(row.total)}x</span></div>`).join('')}</div>` : '<div class="cp-empty">Noch keine User-Historie vorhanden.</div>'}</div>
+        <div class="cp-stat-box"><h4>Letzte Aktionen</h4>${newest.length ? `<div class="cp-stat-list">${newest.map(item => `<div class="cp-stat-row"><div><strong>${esc(rewardTitleForKey(item.reward_key))}</strong><small>${esc(redemptionUserLabel(item))} · ${esc(redemptionTimeLabel(item))}</small></div>${redemptionStatusPill(item.status)}</div>`).join('')}</div>` : '<div class="cp-empty">Noch keine Einlösungen gespeichert.</div>'}</div>
       </div>
     </section>`;
   }
