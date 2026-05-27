@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '1.0.4';
-  const UI_BUILD = 'unified-activation-ui';
+  const UI_VERSION = '1.0.5';
+  const UI_BUILD = 'defer-output-target-ui';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -74,6 +74,34 @@ window.ChannelpointsModule = (function(){
   function pill(label, mode) { return `<span class="cp-pill ${esc(mode || '')}">${esc(label)}</span>`; }
   function getField(name) { return root?.querySelector(`[data-cp-field="${name}"]`); }
   function parseJson(value, fallback) { try { const parsed = typeof value === 'object' ? value : JSON.parse(String(value || '')); return parsed && typeof parsed === 'object' ? parsed : fallback; } catch (_) { return fallback; } }
+
+  function readMediaOutputTargetPayload(basePayload, fieldValue) {
+    const next = { ...(basePayload || {}) };
+    const raw = String(fieldValue || 'auto').trim().toLowerCase();
+    delete next.output;
+    if (!raw || raw === 'auto' || raw === 'default' || raw === 'sound_system') {
+      delete next.outputTarget;
+      delete next.outputTargetExplicit;
+      next.outputTargetMode = 'auto';
+      return next;
+    }
+    if (['overlay', 'device', 'both'].includes(raw)) {
+      next.outputTarget = raw;
+      next.outputTargetExplicit = true;
+      next.outputTargetMode = 'explicit';
+      return next;
+    }
+    delete next.outputTarget;
+    delete next.outputTargetExplicit;
+    next.outputTargetMode = 'auto';
+    return next;
+  }
+
+  function selectedMediaOutputTarget(payload) {
+    if (!payload || payload.outputTargetMode !== 'explicit') return 'auto';
+    const raw = String(payload.outputTarget || '').toLowerCase();
+    return ['overlay', 'device', 'both'].includes(raw) ? raw : 'auto';
+  }
   function actionById(id) { return ACTIONS.find(item => item.id === id) || ACTIONS[0]; }
 
   function registerDashboardModule() {
@@ -351,16 +379,15 @@ window.ChannelpointsModule = (function(){
       d.media_role = action.mediaRole;
       d.action_type = 'media';
       d.action_key = action.actionKey;
-      d.action_payload_json = JSON.stringify({
+      d.action_payload_json = JSON.stringify(readMediaOutputTargetPayload({
         ...currentPayload,
         mediaType: action.mediaType,
         type: action.mediaType,
         volume: Number(getField('media_volume')?.value || currentPayload.volume || 80),
         target: String(getField('media_target')?.value || currentPayload.target || 'stream'),
-        outputTarget: String(getField('media_output_target')?.value || currentPayload.outputTarget || 'overlay'),
         playBehavior: String(getField('play_behavior')?.value || currentPayload.playBehavior || 'queue'),
         queueIfBusy: String(getField('play_behavior')?.value || currentPayload.playBehavior || 'queue') === 'queue'
-      });
+      }, getField('media_output_target')?.value || selectedMediaOutputTarget(currentPayload)));
     } else if (d._action === 'text_only') {
       d.media_asset_id = '';
       d.media_role = 'none';
@@ -405,16 +432,15 @@ window.ChannelpointsModule = (function(){
       actionType = 'media';
       actionKey = action.actionKey;
       mediaRole = action.mediaRole;
-      payload = {
+      payload = readMediaOutputTargetPayload({
         ...payload,
         mediaType: action.mediaType,
         type: action.mediaType,
         volume: Number(getField('media_volume')?.value || payload.volume || 80),
         target: String(getField('media_target')?.value || payload.target || 'stream'),
-        outputTarget: String(getField('media_output_target')?.value || payload.outputTarget || 'overlay'),
         playBehavior: String(getField('play_behavior')?.value || payload.playBehavior || 'queue'),
         queueIfBusy: String(getField('play_behavior')?.value || payload.playBehavior || 'queue') === 'queue'
-      };
+      }, getField('media_output_target')?.value || selectedMediaOutputTarget(payload));
     } else if (d._action === 'text_only') {
       actionType = 'chat_message';
       actionKey = 'send_text';
@@ -1363,7 +1389,8 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
         <label>Lautstärke <span class="cp-help" title="0-100 Prozent.">?</span><input type="number" min="0" max="100" data-cp-field="media_volume" value="${esc(payload.volume ?? 80)}"></label>
         <label>Ziel <span class="cp-help" title="Wo soll das Medium ausgegeben werden?">?</span><select data-cp-field="media_target"><option value="stream" ${payload.target !== 'discord' && payload.target !== 'both' ? 'selected' : ''}>Stream</option><option value="discord" ${payload.target === 'discord' ? 'selected' : ''}>Discord</option><option value="both" ${payload.target === 'both' ? 'selected' : ''}>Stream + Discord</option></select></label>
         <label>Sound-System Queue <span class="cp-help" title="Sound/Video-Rewards werden normalerweise in die Sound-System-Warteschlange gelegt, statt bei belegtem System verworfen zu werden.">?</span><select data-cp-field="play_behavior"><option value="queue" ${payload.playBehavior !== 'immediate' && payload.playBehavior !== 'busy_only' ? 'selected' : ''}>Bei belegtem Sound-System einreihen</option><option value="immediate" ${payload.playBehavior === 'immediate' ? 'selected' : ''}>Sofort versuchen</option><option value="busy_only" ${payload.playBehavior === 'busy_only' ? 'selected' : ''}>Nur wenn frei</option></select></label>
-        <input type="hidden" data-cp-field="media_output_target" value="${esc(payload.outputTarget || 'overlay')}"><input type="hidden" data-cp-field="media_role" value="${esc(action.mediaRole)}">
+        <label>Ausgabe <span class="cp-help" title="Auto bedeutet: Channelpoints setzt kein festes Output-Ziel. Das Sound-System entscheidet nach Media-Typ, Device-/Overlay-Konfiguration und Discord-Routing.">?</span><select data-cp-field="media_output_target"><option value="auto" ${selectedMediaOutputTarget(payload) === 'auto' ? 'selected' : ''}>Auto – Sound-System entscheidet</option><option value="device" ${selectedMediaOutputTarget(payload) === 'device' ? 'selected' : ''}>Device erzwingen</option><option value="overlay" ${selectedMediaOutputTarget(payload) === 'overlay' ? 'selected' : ''}>Overlay erzwingen</option><option value="both" ${selectedMediaOutputTarget(payload) === 'both' ? 'selected' : ''}>Device + Overlay erzwingen</option></select></label>
+        <input type="hidden" data-cp-field="media_role" value="${esc(action.mediaRole)}">
       </div><div class="cp-media-box"><div data-media-field data-module-key="channelpoints" data-allowed-types="${esc(action.allowedTypes)}" data-title="Kanalpunkte-Medium auswählen" data-value-input="#cpMediaAssetId"></div><button type="button" data-cp-action="open-media">Medienverwaltung öffnen</button><button type="button" data-cp-action="clear-media">Medium entfernen</button></div><small>Ausführung später: mediaId → /api/sound/play.</small>${renderAdvancedFields(d, payload)}</div>`;
     }
     if (action.id === 'text_only') {

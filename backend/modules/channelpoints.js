@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.8";
-const MODULE_BUILD = "media-queue-policy-strict-result";
+const MODULE_VERSION = "0.9.9";
+const MODULE_BUILD = "defer-output-target-to-sound-system";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1036,6 +1036,19 @@ function buildTextRewardResult(reward, input = {}) {
   };
 }
 
+function explicitMediaOutputTarget(payload) {
+  const raw = cleanString(payload && (payload.outputTarget || payload.output || "")).toLowerCase();
+  if (!raw || raw === "auto" || raw === "default" || raw === "sound_system") return "";
+  const explicit = payload && (
+    payload.outputTargetExplicit === true ||
+    payload.explicitOutputTarget === true ||
+    payload.outputTargetMode === "explicit" ||
+    payload.outputMode === "explicit"
+  );
+  if (!explicit) return "";
+  return ["overlay", "device", "both"].includes(raw) ? raw : "";
+}
+
 function buildRewardExecutionPayload(reward, input = {}) {
   const payload = rewardActionPayload(reward);
   const mediaId = rewardMediaId(reward);
@@ -1043,7 +1056,8 @@ function buildRewardExecutionPayload(reward, input = {}) {
   const isVideo = mediaType === "video";
   const userLogin = cleanString(input.userLogin || input.user || input.login || payload.userLogin || "testuser").toLowerCase();
   const displayName = cleanString(input.userDisplayName || input.displayName || input.userName || input.user || userLogin || "testuser");
-  return {
+  const outputTarget = explicitMediaOutputTarget(payload);
+  const executionPayload = {
     command: isVideo ? "play_video_media" : "play_audio_media",
     cmd: isVideo ? "play_video_media" : "play_audio_media",
     rawInput: cleanString(input.rawInput || input.userInput || ""),
@@ -1067,22 +1081,25 @@ function buildRewardExecutionPayload(reward, input = {}) {
     sound: "",
     volume: intValue(payload.volume, isVideo ? 80 : 85),
     target: cleanString(payload.target || "stream"),
-    outputTarget: isVideo ? "overlay" : cleanString(payload.outputTarget || payload.output || "overlay"),
     category: cleanString(payload.category || "channel_reward"),
     requestedBy: userLogin || displayName,
     label: cleanString(payload.label || reward.title || reward.reward_key || mediaId),
     playBehavior: cleanString(payload.playBehavior || (mediaType === "audio" || mediaType === "video" ? "queue" : "immediate")),
     queueIfBusy: reward.queue_mode !== "drop",
     parallelAllowed: payload.parallelAllowed === true,
+    outputTargetMode: outputTarget ? "explicit" : "auto",
     meta: {
       rewardId: reward.id,
       rewardKey: reward.reward_key,
       twitchRewardId: reward.twitch_reward_id || "",
       actionType: reward.action_type || "",
       mediaId,
-      source: "channelpoints"
+      source: "channelpoints",
+      outputTargetMode: outputTarget ? "explicit" : "auto"
     }
   };
+  if (outputTarget) executionPayload.outputTarget = outputTarget;
+  return executionPayload;
 }
 
 function httpJsonRequest(method, targetUrl, payload = {}) {
@@ -1711,7 +1728,7 @@ function buildTwitchRewardManagementStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "media_queue_policy_strict_result_ready",
+    status: "defer_output_target_to_sound_system_ready",
     enabled: config.twitchRewardManagementEnabled !== false,
     writeOnLocalToggle: config.twitchRewardWriteOnLocalToggle !== false,
     requireConfirmForPush: config.twitchRewardWriteRequireConfirm !== false,
@@ -2023,7 +2040,7 @@ function buildRedemptionEventSubStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "media_queue_policy_strict_result_ready",
+    status: "defer_output_target_to_sound_system_ready",
     enabled: config.redemptionEventSubPreparationEnabled !== false,
     storeEnabled: config.redemptionEventSubStoreEnabled !== false,
     processingRule: "Reward aktiv + Aktion vollständig = ausführen; Reward inaktiv oder Aktion fehlt = nicht ausführen.",
