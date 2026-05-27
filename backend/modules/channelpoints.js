@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.5";
-const MODULE_BUILD = "unified-activation-twitch-sync";
+const MODULE_VERSION = "0.9.6";
+const MODULE_BUILD = "unified-activation-action-helper-fix";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1531,7 +1531,7 @@ async function pushRewardEnabledStateToTwitch(reward, enabled, req = {}) {
 async function activateRewardSystemAndTwitch(idOrKey, input = {}, req = {}) {
   const reward = getRewardByIdOrKey(idOrKey);
   if (!reward) throw new Error("reward_not_found");
-  if (isImportedRewardMissingAction(reward) || !rewardHasExecutableAction(reward)) throw new Error("reward_action_missing");
+  if (isImportedRewardMissingAction(reward) || !isExecutableReward(reward)) throw new Error("reward_action_missing");
 
   const pushInput = {
     ...(input || {}),
@@ -1710,7 +1710,7 @@ function buildTwitchRewardManagementStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "unified_activation_twitch_sync_ready",
+    status: "unified_activation_action_helper_fix_ready",
     enabled: config.twitchRewardManagementEnabled !== false,
     writeOnLocalToggle: config.twitchRewardWriteOnLocalToggle !== false,
     requireConfirmForPush: config.twitchRewardWriteRequireConfirm !== false,
@@ -1998,7 +1998,7 @@ function buildRedemptionEventSubStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "unified_activation_twitch_sync_ready",
+    status: "unified_activation_action_helper_fix_ready",
     enabled: config.redemptionEventSubPreparationEnabled !== false,
     storeEnabled: config.redemptionEventSubStoreEnabled !== false,
     processingRule: "Reward aktiv + Aktion vollständig = ausführen; Reward inaktiv oder Aktion fehlt = nicht ausführen.",
