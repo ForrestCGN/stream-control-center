@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '1.0.3';
-  const UI_BUILD = 'color-picker-presets-ui';
+  const UI_VERSION = '1.0.4';
+  const UI_BUILD = 'unified-activation-ui';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -526,10 +526,15 @@ window.ChannelpointsModule = (function(){
     const url = isEdit ? `${api.rewards}/${encodeURIComponent(target)}` : api.rewards;
     const method = isEdit ? 'PUT' : 'POST';
     const result = await window.CGN.api(url, { method, body: JSON.stringify(payload) });
+    let activationResult = null;
+    if (options.activate === true) {
+      const activationKey = result.reward?.reward_key || payload.reward_key;
+      activationResult = await window.CGN.api(`${api.rewards}/${encodeURIComponent(activationKey)}/enable`, { method:'POST', body:'{}' });
+    }
     state.notice = options.activate === true
-      ? `Reward ${payload.reward_key} gespeichert und lokal aktiviert.`
+      ? `Reward ${payload.reward_key} gespeichert, aktiviert und mit Twitch synchronisiert.`
       : (isEdit ? `Reward ${payload.reward_key} aktualisiert. ${rewardHasExecutableAction(effectiveReward) ? 'Aktion ist vollständig; Aktivieren/Testen ist möglich.' : ''}` : `Reward ${payload.reward_key} erstellt.`);
-    state.selectedKey = result.reward?.reward_key || payload.reward_key;
+    state.selectedKey = activationResult?.reward?.reward_key || result.reward?.reward_key || payload.reward_key;
     state.modal = null;
     await loadAll(true);
   }
@@ -566,12 +571,12 @@ window.ChannelpointsModule = (function(){
   async function toggleReward(key, enabled) {
     const reward = rewardByKey(key);
     if (enabled && reward && rewardNeedsSetup(reward)) {
-      state.error = 'Aktivieren gesperrt: Dieser importierte Twitch-Reward hat noch keine lokale Aktion. Bitte zuerst konfigurieren.';
+      state.error = 'Aktivieren gesperrt: Dieser Twitch-Reward hat noch keine Aktion. Bitte zuerst konfigurieren. Aktiv bedeutet System + Twitch.';
       configureReward(key);
       return;
     }
     await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/${enabled ? 'enable' : 'disable'}`, { method:'POST', body:'{}' });
-    state.notice = enabled ? 'Reward lokal aktiviert.' : 'Reward lokal deaktiviert.';
+    state.notice = enabled ? 'Reward aktiviert und mit Twitch synchronisiert.' : 'Reward deaktiviert und mit Twitch synchronisiert.';
     await loadAll(true);
   }
 
@@ -1034,7 +1039,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
       : '<strong>-</strong><small>wird beim Sync lokal angelegt</small>';
     const flags = [
       twitchEnabled ? pill('Twitch aktiv', 'ok') : pill('Twitch aus', 'warn'),
-      local?.system_enabled === false ? pill('lokal aus', 'off') : (local ? pill('lokal aktiv/bereit', 'ok') : pill('lokal fehlt', 'neutral')),
+      local?.system_enabled === false ? pill('inaktiv', 'off') : (local ? pill('aktiv/bereit', 'ok') : pill('lokal fehlt', 'neutral')),
       row.effectiveSyncAction ? pill(`Sync: ${row.effectiveSyncAction}`, row.effectiveSyncAction === 'insert' ? 'off' : (row.effectiveSyncAction === 'update' ? 'warn' : 'neutral')) : '',
       !row.hasTwitchCost && local ? pill('Kosten aus lokalem Sync', 'neutral') : '',
       row.costChanged ? pill('Kosten diff', 'warn') : '',
@@ -1091,7 +1096,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const configured = imported.filter(rewardHasExecutableAction);
     if (!imported.length) return '';
     return `<section class="cp-panel cp-imported-setup-panel"><div class="cp-panel-head"><h3>Importierte Twitch-Rewards einrichten</h3><span>${pill(`${missing.length} Aktion fehlt`, missing.length ? 'warn' : 'ok')} ${pill(`${configured.length} Aktion vollständig`, configured.length ? 'ok' : 'neutral')} ${pill(`${imported.length} importiert`, 'neutral')}</span></div>
-      <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards bleiben lokal aus, bis du sie bewusst konfigurierst. Öffne einen Reward über „Konfigurieren“, wähle Sound, Video, Text oder Custom-Aktion, speichere und aktiviere ihn danach bewusst. Vollständig konfigurierte Rewards können direkt über „Speichern & aktivieren“ freigeschaltet werden.</div>
+      <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards bleiben inaktiv, bis du sie bewusst konfigurierst. Öffne einen Reward über „Konfigurieren“, wähle Sound, Video, Text oder Custom-Aktion, speichere und aktiviere ihn danach bewusst. Vollständig konfigurierte Rewards können direkt über „Speichern & aktivieren“ freigeschaltet werden.</div>
       <div class="cp-actions cp-setup-actions"><button type="button" data-cp-action="configure-first-missing">Ersten fehlenden konfigurieren</button><button type="button" data-cp-action="filter-missing-action">Nur „Aktion fehlt“ anzeigen</button><button type="button" data-cp-action="filter-configured-action">Nur „Aktion vollständig“ anzeigen</button><button type="button" data-cp-action="filter-imported">Alle importierten anzeigen</button><button type="button" data-cp-action="filter-reset">Filter zurücksetzen</button></div>
     </section>`;
   }
@@ -1147,7 +1152,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     return `<section class="cp-toolbar cp-commandlike-toolbar">
       <label>Reward suchen <span class="cp-help" title="Sucht in Key, Titel, Prompt, Kategorie, Aktion und Notizen.">?</span><input data-cp-control="query" type="search" placeholder="z. B. sound, video, vip, test..." value="${esc(state.query)}"></label>
       <label>Kategorie <span class="cp-help" title="Filtert die Liste nach lokaler Kategorie.">?</span><select data-cp-control="categoryFilter">${categoryOptions(state.categoryFilter, true)}</select></label>
-      <label>Status <span class="cp-help" title="Filtert nach lokal aktiv, aus, pausiert, importiert oder fehlender Aktion.">?</span><select data-cp-control="statusFilter"><option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle Status</option><option value="enabled" ${state.statusFilter === 'enabled' ? 'selected' : ''}>Lokal aktiv</option><option value="disabled" ${state.statusFilter === 'disabled' ? 'selected' : ''}>Lokal aus</option><option value="paused" ${state.statusFilter === 'paused' ? 'selected' : ''}>Pausiert</option><option value="imported" ${state.statusFilter === 'imported' ? 'selected' : ''}>Importiert</option><option value="missing_action" ${state.statusFilter === 'missing_action' ? 'selected' : ''}>Aktion fehlt</option><option value="configured_action" ${state.statusFilter === 'configured_action' ? 'selected' : ''}>Aktion vollständig</option></select></label>
+      <label>Status <span class="cp-help" title="Filtert nach lokal aktiv, aus, pausiert, importiert oder fehlender Aktion.">?</span><select data-cp-control="statusFilter"><option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle Status</option><option value="enabled" ${state.statusFilter === 'enabled' ? 'selected' : ''}>Aktiv</option><option value="disabled" ${state.statusFilter === 'disabled' ? 'selected' : ''}>Inaktiv</option><option value="paused" ${state.statusFilter === 'paused' ? 'selected' : ''}>Pausiert</option><option value="imported" ${state.statusFilter === 'imported' ? 'selected' : ''}>Importiert</option><option value="missing_action" ${state.statusFilter === 'missing_action' ? 'selected' : ''}>Aktion fehlt</option><option value="configured_action" ${state.statusFilter === 'configured_action' ? 'selected' : ''}>Aktion vollständig</option></select></label>
       <label>Reward direkt wählen <span class="cp-help" title="Springt direkt zum Reward in der Liste.">?</span><select data-cp-control="directSelect">${direct}</select></label>
       <button type="button" data-cp-action="new">+ Neuer Reward</button>
     </section>`;
@@ -1341,7 +1346,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
         <label>Cooldown Sekunden <span class="cp-help" title="Lokale Sperre nach Einlösung. 0 = aus.">?</span><input type="number" min="0" data-cp-field="cooldown_seconds" value="${esc(d.cooldown_seconds ?? 0)}"></label>
         <label>Max pro Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_stream" value="${esc(d.max_per_stream ?? 0)}"></label>
         <label>Max pro User/Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_user_per_stream" value="${esc(d.max_per_user_per_stream ?? 0)}"></label>
-      </div><div class="cp-checks"><label title="Bei importierten Rewards nur aktivieren, wenn eine ausführbare Aktion vollständig konfiguriert ist."><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> lokal aktiv</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label></div></section>
+      </div><div class="cp-checks"><label title="Aktiv bedeutet: im System ausführbar und bei Aktivierung mit Twitch synchronisiert. Bei importierten Rewards nur aktivieren, wenn eine ausführbare Aktion vollständig konfiguriert ist."><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> Aktiv</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label></div></section>
 
       ${renderTwitchOptionsSection(d, payload)}
 
