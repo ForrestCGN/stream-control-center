@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "version": "0.1.11",
+  "version": "0.1.12",
   "routes": {
     "prefix": "/api/sound"
   },
@@ -19,7 +19,7 @@
     "gapBetweenSoundsMs": 750
   },
   "output": {
-    "defaultTarget": "overlay",
+    "defaultTarget": "device",
     "allowPerSoundOverride": true,
     "targets": {
       "overlay": {
@@ -44,7 +44,7 @@
         }
       },
       "both": {
-        "enabled": false,
+        "enabled": true,
         "label": "Overlay + Audiogerät",
         "mode": "combined",
         "defaultVolume": 85
@@ -101,13 +101,39 @@
       "defaultVolume": 85
     },
     "discord": {
-      "enabled": false,
+      "enabled": true,
       "defaultVolume": 80
     },
     "both": {
-      "enabled": false,
+      "enabled": true,
       "defaultVolume": 85
     }
+  },
+  "discordRouting": {
+    "enabled": true,
+    "mode": "category_or_source",
+    "target": "both",
+    "overrideExplicitTarget": false,
+    "categories": [
+      "alert",
+      "alert_critical",
+      "channel_reward",
+      "vip",
+      "crew",
+      "special",
+      "tts"
+    ],
+    "sources": [
+      "alert_system",
+      "alert_tts",
+      "soundalerts",
+      "sound_alerts",
+      "channel_reward",
+      "vip_mod",
+      "vip_sound_overlay",
+      "tts_system",
+      "tts"
+    ]
   },
   "priorities": {
     "admin": 100,
@@ -125,7 +151,7 @@
   },
   "defaults": {
     "target": "stream",
-    "outputTarget": "overlay",
+    "outputTarget": "device",
     "category": "fun",
     "priority": 50,
     "volume": 85,
@@ -211,7 +237,7 @@
       "category": "system",
       "priority": 100,
       "target": "stream",
-      "outputTarget": "overlay",
+      "outputTarget": "device",
       "volume": 80,
       "durationMs": 350,
       "frequency": 880,
