@@ -1,38 +1,23 @@
 # TODO
 
-Stand: 2026-05-26
+Stand: 2026-05-27
 
-## Kanalpunkte – offen / später prüfen
+## Channelpoints
 
-### Hoch
+- [ ] Nach STEP527 prüfen, ob `channelpoints.js` wieder geladen wird.
+- [ ] Neuen Reward anlegen und bestätigen: Twitch wird erstellt, aber inaktiv.
+- [ ] Twitch Aktiv/Inaktiv-Schalter in Übersicht testen.
+- [ ] Bestehenden aktiven Reward bearbeiten und prüfen: Aktivstatus bleibt erhalten.
+- [ ] Bestehenden inaktiven Reward bearbeiten und prüfen: bleibt inaktiv.
+- [ ] Offline-Twitch-Meldung bei Rewards mit `max_per_stream > 0` dokumentiert halten.
 
-- Completion Policy live gegen Twitch vollständig verifizieren:
-  - Erfolgreiche Aktion → `FULFILLED`
-  - Fehler/Blockierung → optional `CANCELED`
-  - Punkte-Rückgabe in Twitch prüfen
-- Prüfen, ob bei sofort abgeschlossenen Twitch-Redemptions kein unnötiger Fulfill/Cancel-Versuch passiert.
+## Sound / Media
 
-### Mittel
+- [ ] `/api/sound/status` prüfen: `defaults.outputTarget=device`.
+- [ ] Media-Dateinamen-Fix nur mit Real-STEP524 verwenden.
+- [ ] Alte mojibake-Dateinamen nur gezielt reparieren, nicht pauschal löschen/verschieben.
 
-- UI-Begriffe für Abschlussoptionen im Dashboard weiter schärfen:
-  - `Sofort bei Twitch abschließen`
-  - `Nach erfolgreicher Ausführung abschließen`
-  - `Bei Fehler Punkte zurückgeben`
-- Alte Dashboard-Test-Redemptions optional später aus normalen Verlaufsausgaben ausblendbar machen.
-- Encoding-/Dateipfad-Anzeige bei Umlauten prüfen:
-  - `GewA_1_4rzGurke.mp3`
-  - alte Anzeige `GewÃ¼rzGurke.mp3`
-- Weitere Reward-Typen planen und jeweils klein testen.
+## Doku / Projektstand
 
-### Niedrig
-
-- Dashboard-Hilfetexte für Twitch-Farbe/Farbpresets bei Bedarf kürzen.
-- EventBus-Diagnose für Kanalpunkte-Verarbeitung später im Bus-Dashboard sichtbarer machen.
-- Später prüfen, ob Channelpoints-Modul eine maschinenlesbare `meta`-Struktur für Loader/Monitoring bekommen soll.
-
-## Erledigt
-
-- Gewürzgurke als erster echter Twitch Reward end-to-end getestet.
-- EventBus-Flow für echte Twitch Redemptions funktioniert.
-- Twitch Create/Update/Delete Foundation vorhanden.
-- Farbauswahl mit Presets eingebaut.
+- [ ] Diese Doku nach erfolgreichem Test ggf. mit finalen Testergebnissen ergänzen.
+- [ ] Bei Chatwechsel erneut `dokumentieren und aktualisieren` durchführen.

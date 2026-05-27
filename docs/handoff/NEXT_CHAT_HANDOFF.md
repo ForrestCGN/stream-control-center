@@ -1,88 +1,82 @@
-# NEXT_CHAT_HANDOFF
+# NEXT CHAT HANDOFF – Channelpoints / Sound / Media
 
-Stand: 2026-05-26
+Stand: 2026-05-27
 
-## Kurzfassung
+## Wichtigster aktueller Stand
 
-Wir arbeiten am Projekt `stream-control-center`, Bereich Kanalpunkte/Twitch Rewards. Der aktuelle stabile Arbeitsstand ist STEP516.
-
-Aktueller Stand:
+Aktueller gültiger Channelpoints-Step:
 
 ```text
-Backend channelpoints.js: 0.9.4 · redemption-completion-policy
-Dashboard channelpoints.js: UI v1.0.3 · color-picker-presets-ui
-EventBus Bridge: channelpoints_eventsub_bus_bridge.js
+STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
 ```
 
-## Wichtigste Entscheidung
+Der vorige STEP526 hat den Startfehler behoben, STEP527 enthält zusätzlich das gewünschte neue Verhalten für neue Rewards.
 
-Keine Shadow-/Live-/Allowlist-Bedienlogik mehr. Normale Regel:
+## Nicht verwenden
 
 ```text
-Reward inaktiv → nicht ausführen
-Reward aktiv + Aktion vollständig → ausführen
-Reward ohne Aktion → nicht aktivierbar / nicht ausführbar
+STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0
+STEP525_CHANNELPOINTS_SAVE_ACTIVE_SYNCS_TWITCH_v0.9.11
+STEP525_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_FLOW_v0.9.11
 ```
 
-## Erfolgreicher End-to-End-Test
+STEP526 ist durch STEP527 ersetzt.
+
+## Bedienkonzept Channelpoints
 
 ```text
-Reward: Gewürzgurke
-reward_key: gewurzgurke
-Twitch reward_id: 0e129f37-20bf-456e-ab87-06fa0d6e08fd
-User: EngelCGN / engelcgn
-status: executed
-queue_group: eventsub_redemption
-execution.executed: true
-execution.failed: false
+Editor:
+- kein Aktiv-Häkchen
+- Speichern legt lokal an/ändert lokal
+- Speichern erstellt/aktualisiert Twitch
+- neuer Twitch-Reward standardmäßig inaktiv
+
+Übersicht:
+- Aktiv/Inaktiv-Schalter betrifft nur Twitch sichtbar/einlösbar
 ```
 
-## Produktiver Flow
+## Kritischer letzter Fehler
+
+Beim Serverstart fehlte `channelpoints.js` in `/api/_status`, obwohl Datei existierte. Ursache im Log:
 
 ```text
-Twitch Reward eingelöst
-→ Twitch EventSub WebSocket
-→ twitch.js
-→ channelpoints_eventsub_bus_bridge.js
-→ EventBus channelpoints.redemption / received
-→ channelpoints.js
-→ Redemptions-Tabelle
-→ Sound-System
+[module] FAILED: channelpoints.js
+deleteRewardFromTwitch is not defined
 ```
 
-## Letzte umgesetzte Features
+Nach STEP527 muss `/api/_status` `channelpoints.js` wieder in der Modulliste zeigen.
 
-- Twitch Create/Update/Enable/Disable/Delete.
-- Stale-ID Create-Fallback.
-- EventBus-Redemption-Bridge.
-- Redemption Store Update Bind Fix.
-- Completion Policy:
-  - Sofort bei Twitch abschließen
-  - Nach erfolgreicher Ausführung abschließen
-  - Bei Fehler Punkte zurückgeben
-  - Twitch pausieren
-- Dashboard-Farbauswahl mit Presets.
+## Direkt nach Start prüfen
 
-## Nächste sinnvolle Richtung
-
-Nicht direkt neu bauen. Erst Completion Policy gegen Twitch live verifizieren:
-
-```text
-UNFULFILLED → erfolgreiche Aktion → FULFILLED
-UNFULFILLED → Fehler/Blockierung → CANCELED
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/_status" | ConvertTo-Json -Depth 5
 ```
 
-Danach weitere Reward-Typen anbinden.
+Dann:
 
-## Wichtige Dateien
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status" | ConvertTo-Json -Depth 6
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/manage/status" | ConvertTo-Json -Depth 6
+```
+
+## Bekannte Twitch-Sache
+
+Wenn Twitch offline meldet, Reward könne nur während eines Streams eingelöst werden, `max_per_stream` prüfen. Bei `max_per_stream > 0` ist die Belohnung streamgebunden.
+
+## Sound-System
+
+Aktueller Standard:
 
 ```text
-backend/modules/channelpoints.js
-backend/modules/channelpoints_eventsub_bus_bridge.js
-htdocs/dashboard/modules/channelpoints.js
-htdocs/dashboard/modules/channelpoints.css
-docs/modules/channelpoints.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
+Channelpoints: Auto / Sound-System entscheidet
+Sound-System: Device für Audio
+Ziel: Stream + Discord
+```
+
+## Arbeitsregel
+
+Vor jedem neuen Fix echte Dateien prüfen. Keine neuen ZIPs auf Basis von Annahmen. Wenn Dateien benötigt werden, konkret anfordern:
+
+```text
+Ich brauche genau diese Datei: [Pfad]
 ```

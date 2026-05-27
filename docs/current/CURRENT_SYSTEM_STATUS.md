@@ -1,230 +1,192 @@
-# CURRENT_SYSTEM_STATUS – stream-control-center
+# Aktueller Systemstatus – stream-control-center
 
-Stand: 2026-05-26  
-Arbeitsbereich: Kanalpunkte / Twitch Rewards / EventSub / EventBus / Dashboard
+Stand: 2026-05-27  
+Fokus: Channelpoints-System, Twitch-Sync, Redemption-Flow, Sound-System-Routing, Media-Dateinamen
 
-## Aktueller stabiler Stand
+## Single Source of Truth
 
-Das Kanalpunkte-System ist nach STEP516 in einem stabilen End-to-End-Stand.
-
-Aktive Versionen:
+Projekt:
 
 ```text
-backend/modules/channelpoints.js              moduleVersion 0.9.4 · redemption-completion-policy
-htdocs/dashboard/modules/channelpoints.js     UI v1.0.3 · color-picker-presets-ui
-backend/modules/channelpoints_eventsub_bus_bridge.js  EventBus Bridge
+D:\Git\stream-control-center
 ```
 
-Wichtigster Live-Test:
+Live-System:
 
 ```text
-Reward: Gewürzgurke
-Twitch reward_id: 0e129f37-20bf-456e-ab87-06fa0d6e08fd
-Reward-Key lokal: gewurzgurke
-User im echten Test: EngelCGN / engelcgn
-Status: executed
+D:\Streaming\stramAssets
 ```
 
-Die komplette Kette wurde erfolgreich getestet:
+Produktive Datenbank:
 
 ```text
-Twitch Reward eingelöst
-→ Twitch EventSub WebSocket
-→ EventSub-Audit/Cache in twitch.js
-→ channelpoints_eventsub_bus_bridge.js
-→ Communication Bus / EventBus
-→ channelpoints.js Subscriber
-→ lokale Redemption gespeichert
-→ Sound-System ausgeführt
-→ Status executed
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
-## Abgeschlossene Kanalpunkte-Schritte
+Regel: Die produktive SQLite-Datenbank wird niemals ersetzt oder neu gebaut. Schemaänderungen nur über migrationssichere `CREATE TABLE IF NOT EXISTS`/Helper-Logik.
 
-### STEP484–490: ReadOnly Sync und Mapping
+## Aktueller relevanter STEP-Stand
 
-- Twitch Rewards wurden zunächst sicher read-only importiert.
-- Tokenstore-Problem wurde behoben.
-- Dashboard-Import-Tab wurde command-like in das bestehende Kanalpunkte-Modul integriert.
-- Mapping-Ansicht und lokale Sync-/DryRun-Probleme wurden bereinigt.
-
-### STEP491–497: Importierte Rewards sicher konfigurieren
-
-- Importierte Rewards sind lokal standardmäßig inaktiv.
-- Importierte Rewards ohne Aktion können nicht aktiviert oder ausgeführt werden.
-- Backend- und Dashboard-Guards schützen vor leeren Aktionen.
-- Reward `Gewürzgurke` wurde als erster echter Test-Reward konfiguriert.
-- Sound-Test über Media-ID `1393` funktioniert.
-
-### STEP498–508: Redemption-Vorbereitung und Vereinfachung
-
-- EventSub-Redemption-Routen wurden vorbereitet.
-- Frühere Shadow-/Live-/Allowlist-Bedienlogik wurde wieder aus dem normalen Bedienkonzept entfernt.
-- Endgültige Regel:
+Aktueller Channelpoints-Stand:
 
 ```text
-Reward inaktiv → nicht ausführen
-Reward aktiv + Aktion vollständig → ausführen
-Reward ohne Aktion → nicht aktivierbar / nicht ausführbar
+STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
 ```
 
-- Einlösungen, Verlauf, Statistik und Filter wurden im Dashboard aufgeräumt.
-
-### STEP509–513: Twitch Write / Create / Update / Delete
-
-- Twitch Rewards können über die API erstellt/gepusht werden.
-- Stale lokale Twitch-IDs werden erkannt; bei `not found` kann mit `createIfMissing` neu erstellt werden.
-- `Gewürzgurke` wurde erfolgreich auf Twitch neu erstellt.
-- Aktivieren/Deaktivieren auf Twitch ist vorhanden.
-- Twitch-Delete ist vorhanden:
+Dieser Stand ersetzt/superseded:
 
 ```text
-POST   /api/channelpoints/twitch/rewards/:idOrKey/delete
-DELETE /api/channelpoints/twitch/rewards/:idOrKey
+STEP525_CHANNELPOINTS_SAVE_ACTIVE_SYNCS_TWITCH_v0.9.11      -> nicht benutzen
+STEP525_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_FLOW_v0.9.11 -> nicht benutzen
+STEP526_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_HOTFIX_v0.9.12 -> durch STEP527 ersetzt
 ```
 
-Sicherheitsbestätigung:
-
-```json
-{"confirm":"delete_from_twitch"}
-```
-
-Optionen:
+Aktueller Sound-/Routing-Stand:
 
 ```text
-localAction=disable  → Twitch löschen, lokalen Reward deaktivieren und Twitch-Link entfernen
-localAction=keep     → Twitch löschen, lokalen Reward behalten und Twitch-Link entfernen
-localAction=delete   → Twitch löschen, lokalen Reward lokal ebenfalls löschen
+STEP523_SOUND_SYSTEM_AUTO_OUTPUT_DEFAULTS_FIX_v0.1.12
 ```
 
-### STEP511–512: EventBus-End-to-End-Flow
-
-- EventSub für Kanalpunkte ist aktiv:
+Aktueller Media-Dateinamen-Stand:
 
 ```text
-channel.channel_points_custom_reward_redemption.add
-status: enabled
+STEP524_MEDIA_ASSET_UTF8_FILENAME_CLEANUP_REAL_v0.1.0
 ```
 
-- Der produktive Flow läuft über den EventBus, nicht über eine interne HTTP-Brücke.
-- `created_at` Bind-Fehler beim Redemption-Speichern wurde behoben.
-- Status nach erfolgreichem Test:
+Zurückgezogen/nicht benutzen:
 
 ```text
-receivedFromBus > 0
-acceptedFromBus > 0
-stored > 0
-executed > 0
-failed = 0
-lastError leer
+STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0
 ```
 
-### STEP515: Completion Policy
+## Channelpoints – aktuelles Bedienkonzept
 
-Pro Reward sind Twitch-Redemption-Abschlussregeln vorgesehen:
+Das alte lokale „Aktiv“-Häkchen im Editor wird nicht mehr als Bedienlogik verwendet.
+
+Aktueller gewünschter Ablauf:
 
 ```text
-Sofort bei Twitch abschließen
-Nach erfolgreicher Ausführung abschließen
-Bei Fehler Punkte zurückgeben
-Twitch pausieren
+Editor:
+- kein Aktiv-Häkchen
+- Speichern legt lokal an oder ändert lokal
+- Speichern erstellt/aktualisiert den Twitch-Reward
+- neuer Twitch-Reward wird standardmäßig NICHT aktiv/sichtbar auf Twitch erstellt
+
+Übersicht:
+- Twitch Aktiv/Inaktiv-Schalter
+- betrifft nur Twitch sichtbar/einlösbar
+- Aktiv = Twitch Reward aktivieren
+- Inaktiv = Twitch Reward deaktivieren
+
+Bestehender Reward:
+- Bearbeiten + Speichern aktualisiert lokal und Twitch
+- bisheriger Twitch-Aktivstatus bleibt erhalten
 ```
 
-Konzept:
+Intern darf `system_enabled` als technische Kompatibilitätsspalte weiter existieren, soll aber nicht als normale Dashboard-Bedienlogik sichtbar sein.
+
+## Wichtige Standardwerte für neue Rewards
+
+Neue Rewards dürfen nicht automatisch streamgebunden werden.
+
+Standard:
 
 ```text
-Sofort bei Twitch abschließen AN
-→ Twitch setzt Redemption direkt auf FULFILLED.
-
-Sofort bei Twitch abschließen AUS
-+ Nach erfolgreicher Ausführung abschließen AN
-→ System setzt nach erfolgreicher Aktion FULFILLED.
-
-Bei Fehler Punkte zurückgeben AN
-→ System setzt bei Fehler/Blockierung CANCELED.
+cooldown_seconds = 0
+max_per_stream = 0
+max_per_user_per_stream = 0
 ```
 
-### STEP516: Farbauswahl im Dashboard
-
-- Farbauswahlfeld für Twitch Reward-Farbe eingebaut.
-- Hex-Feld bleibt sichtbar.
-- Live-Vorschau und Preset-Buttons eingebaut.
-- Jeder gültige Hex-Code im Format `#RRGGBB` kann genutzt werden.
-
-Presets:
+Wenn `max_per_stream > 0` gesetzt ist, zeigt Twitch offline ggf. sinngemäß:
 
 ```text
-Twitch Lila      #9147FF
-CGN Neon Lila    #B000FF
-CGN Cyan         #00E5FF
-Türkis           #00E5CB
-Blau             #3B82F6
-Grün             #00FF7F
-Gold             #FFD700
-Orange           #FF7A00
-Rot              #FF3030
-Pink             #FF4FD8
+Du kannst diese Belohnung nur während eines Streams einlösen.
 ```
 
-## Aktuelle wichtige Routen
+Das ist dann eine Twitch-Einschränkung wegen streamgebundener Einlöse-Limits.
 
-### Lokale Rewards
+## Sound-/Media-Routing
+
+Channelpoints entscheidet nicht selbst, ob Sound über Device oder Overlay läuft.
+
+Standard:
 
 ```text
-GET    /api/channelpoints/rewards
-POST   /api/channelpoints/rewards
-POST   /api/channelpoints/rewards/:idOrKey/enable
-POST   /api/channelpoints/rewards/:idOrKey/disable
-POST   /api/channelpoints/rewards/:idOrKey/execute
-DELETE /api/channelpoints/rewards/:idOrKey
-POST   /api/channelpoints/rewards/:idOrKey/delete
+Channelpoints: Auto / Sound-System entscheidet
+Sound-System: Device für Audio, Overlay nur wenn nötig/gewollt
+Ziel-Standard: Stream + Discord
+Queue: Sound-System entscheidet
+Video: Overlay/Media-Pfad über Sound-/Media-Bridge möglich
 ```
 
-### Twitch Reward Management
+Aktueller Sound-System-Fix:
 
 ```text
-GET  /api/channelpoints/twitch/manage/status
-POST /api/channelpoints/twitch/rewards/:idOrKey/push
-POST /api/channelpoints/twitch/rewards/:idOrKey/enable
-POST /api/channelpoints/twitch/rewards/:idOrKey/disable
-POST /api/channelpoints/twitch/rewards/:idOrKey/delete
-DELETE /api/channelpoints/twitch/rewards/:idOrKey
+config/sound_system.json
+output.defaultTarget  = device
+defaults.outputTarget = device
+targets.discord       = enabled
+targets.both          = enabled
+output.targets.both   = enabled
 ```
 
-### EventSub / Redemptions
+Falls `/api/sound/status` trotzdem `defaults.outputTarget: overlay` meldet, überschreibt vermutlich die DB-/Runtime-Config den JSON-Wert.
+
+## Media-Dateinamen
+
+UTF-8-/Mojibake-Problem trat z. B. auf als:
 
 ```text
-GET  /api/channelpoints/eventsub/redemption/status
-POST /api/channelpoints/eventsub/redemption/preview
-POST /api/channelpoints/eventsub/redemption
-GET  /api/channelpoints/redemptions?limit=...
+GewA_1_4rzGurke.mp3
 ```
 
-### Twitch EventSub Status
+Korrekte Richtung:
 
 ```text
-GET /api/twitch/eventsub/status
-GET /api/twitch/eventsub/subscriptions
-GET /api/twitch/eventsub/reconcile
-GET /api/twitch/eventsub/reconnect
-GET /api/twitch/eventsub/cleanup-disconnected
+Anzeige: lesbar, z. B. GewürzGurke
+Technischer Dateiname: ASCII-sicher, z. B. GewuerzGurke.mp3
 ```
 
-## Wichtige Regeln, die aus dieser Arbeitsphase bestätigt wurden
+Aktueller Real-Fix basiert auf echter `backend/modules/media.js` und nicht auf dem zurückgezogenen Tool-Script.
+
+## Bekannte Diagnose aus letzter Sitzung
+
+`Cannot GET /api/channelpoints/status` bedeutete nicht automatisch Dashboard-Fehler. In einem konkreten Fall wurde `backend/modules/channelpoints.js` nicht geladen.
+
+Startlog zeigte:
 
 ```text
-Keine Shadow-/Live-/Allowlist-Bedienlogik im Kanalpunkte-Dashboard.
-Reward aktiv/inaktiv ist die zentrale Ausführungsfreigabe.
-Reward ohne Aktion darf nicht aktiviert oder ausgeführt werden.
-Twitch-Write braucht channel:manage:redemptions.
-EventSub-Redemptions laufen über EventBus, nicht über HTTP-Modulbrücke.
-Keine neue DB, keine Tabellen ersetzen, app.sqlite bleibt bestehen.
+[module] FAILED: channelpoints.js
+deleteRewardFromTwitch is not defined
 ```
 
-## Bekannte offene Punkte
+Dadurch fehlten alle `/api/channelpoints/*`-Routen. Das wurde in STEP526/STEP527 berücksichtigt.
 
-- Completion-Policy nach STEP515 mit echten `FULFILLED`/`CANCELED` Twitch-Statuswechseln weiter testen.
-- UI-Begriffe für Twitch-Abschlussoptionen im Live-Betrieb bewerten.
-- Alte Dashboard-Test-Redemptions bleiben historische Einträge; optional später eine Admin-Bereinigung/Filterung bauen.
-- Encoding-Anzeige bei Sound-Dateipfaden prüfen (`GewA_1_4rzGurke.mp3` / alte Umlautdarstellung).
-- Weitere Reward-Typen nach dem stabilen Gewürzgurke-Test Schritt für Schritt anbinden.
+## Prüfbefehle
+
+Backend-Modulliste:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/_status" | ConvertTo-Json -Depth 5
+```
+
+Channelpoints-Status muss nach korrektem Laden wieder funktionieren:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status" | ConvertTo-Json -Depth 6
+```
+
+Twitch-Manage-Status:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/manage/status" | ConvertTo-Json -Depth 6
+```
+
+Reward-Liste:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/rewards" |
+  Select-Object -ExpandProperty rewards |
+  Select-Object reward_key,title,system_enabled,twitch_is_enabled,twitch_reward_id,action_type,action_key,media_asset_id,media_role,cooldown_seconds,max_per_stream,max_per_user_per_stream |
+  Format-Table -AutoSize
+```

@@ -1390,60 +1390,60 @@ STEP482_SHOUTOUT_INBOUND_EVENTSUB_LOGGING
 Ziel:
 Eingehende Twitch-Shoutouts loggen und im Dashboard/statistisch anzeigen.
 
-
 ---
 
-## Aktueller Kanalpunkte-Stand nach STEP516 (2026-05-26)
+## Aktualisierung 2026-05-27 – Channelpoints STEP527
 
-Wenn im neuen Chat am Kanalpunkte-System weitergearbeitet wird, gilt zusätzlich:
-
-```text
-Backend: backend/modules/channelpoints.js 0.9.4 · redemption-completion-policy
-Dashboard: htdocs/dashboard/modules/channelpoints.js UI v1.0.3 · color-picker-presets-ui
-Bridge: backend/modules/channelpoints_eventsub_bus_bridge.js
-```
-
-Stabil getesteter Referenz-Reward:
+Aktueller Channelpoints-Stand:
 
 ```text
-Gewürzgurke
-reward_key: gewurzgurke
-Twitch reward_id: 0e129f37-20bf-456e-ab87-06fa0d6e08fd
-media_asset_id: 1393
+STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
 ```
 
-Produktive Redemption-Kette:
+Beim Channelpoints-System gilt ab diesem Stand:
 
 ```text
-Twitch EventSub
-→ twitch.js
-→ channelpoints_eventsub_bus_bridge.js
-→ EventBus channelpoints.redemption / received
-→ channelpoints.js
-→ Sound-System
+Editor:
+- kein normales lokales Aktiv-Häkchen
+- Speichern legt Reward lokal an oder ändert ihn lokal
+- Speichern erstellt/aktualisiert den passenden Twitch-Reward
+- neu erstellte Twitch-Rewards sind standardmäßig NICHT aktiv/sichtbar
+
+Übersicht:
+- Aktiv/Inaktiv-Schalter steuert nur Twitch sichtbar/einlösbar
+- lokale Aktiv-Logik nicht mehr als Bedienlogik verwenden
 ```
 
-Kanalpunkte-Regel:
+Wichtig:
 
 ```text
-Reward inaktiv → nicht ausführen
-Reward aktiv + Aktion vollständig → ausführen
-Reward ohne Aktion → nicht aktivierbar / nicht ausführbar
+system_enabled darf intern aus Kompatibilitätsgründen weiter existieren,
+soll aber im Dashboard nicht mehr als normale Bedienebene erklärt werden.
 ```
 
-Nicht wieder einführen:
+Neue Reward-Defaults:
 
 ```text
-Shadow-Modus als Bedienlogik
-Live-Modus als Bedienlogik
-Allowlist/Freigabe-Modus als Bedienlogik
-AutoExecute-Schalter als Dashboard-Konzept
+cooldown_seconds = 0
+max_per_stream = 0
+max_per_user_per_stream = 0
 ```
 
-Wichtige offene Prüfung:
+Wenn Twitch offline meldet, ein Reward könne nur während eines Streams eingelöst werden, zuerst `max_per_stream` prüfen. Bei `max_per_stream > 0` ist der Reward streamgebunden.
+
+Nicht mehr verwenden:
 
 ```text
-Completion Policy live gegen Twitch prüfen:
-Nach erfolgreicher Ausführung FULFILLED setzen.
-Bei Fehler optional CANCELED setzen und Punkte zurückgeben.
+STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0
+STEP525_CHANNELPOINTS_SAVE_ACTIVE_SYNCS_TWITCH_v0.9.11
+STEP525_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_FLOW_v0.9.11
 ```
+
+Bei `Cannot GET /api/channelpoints/status` zuerst prüfen, ob `backend/modules/channelpoints.js` im Serverstart geladen wurde. Konkreter Fehler aus der letzten Debug-Phase:
+
+```text
+[module] FAILED: channelpoints.js
+deleteRewardFromTwitch is not defined
+```
+
+Nach Fix muss `/api/_status` wieder `channelpoints.js` in der Modulliste zeigen.
