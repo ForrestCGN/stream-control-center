@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '1.0.8';
-  const UI_BUILD = 'simplified-twitch-activation-hotfix-ui';
+  const UI_VERSION = '1.0.9';
+  const UI_BUILD = 'create-save-twitch-inactive-default-ui';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -288,7 +288,7 @@ window.ChannelpointsModule = (function(){
   function blankReward() {
     return {
       reward_key:'', title:'', prompt:'', cost:100, category_key:'general', sort_order:100,
-      system_enabled:true, twitch_is_enabled:true, is_paused:false, require_user_input:false, input_label:'',
+      system_enabled:true, twitch_is_enabled:false, is_paused:false, require_user_input:false, input_label:'',
       action_type:'media', action_key:'play_audio_media', action_payload_json:'{}', media_asset_id:'', media_role:'sound',
       queue_mode:'none', priority:0, cooldown_seconds:0, max_per_stream:0, max_per_user_per_stream:0,
       auto_fulfill:false, notes:'', _action:'sound_play'
@@ -318,7 +318,7 @@ window.ChannelpointsModule = (function(){
       source.reward_key = `${source.reward_key || 'reward'}_kopie`;
       source.title = `${source.title || 'Reward'} Kopie`;
       source.system_enabled = true;
-      source.twitch_is_enabled = true;
+      source.twitch_is_enabled = false;
     }
     state.modal = {
       mode: (mode === 'edit' || configureMode) ? 'edit' : 'create',
@@ -466,7 +466,7 @@ window.ChannelpointsModule = (function(){
       category_key:d.category_key,
       sort_order:d.sort_order,
       system_enabled:true,
-      twitch_is_enabled: boolValue(d.twitch_is_enabled),
+      twitch_is_enabled: state.modal?.mode === 'create' ? false : boolValue(d.twitch_is_enabled),
       is_paused:d.is_paused,
       require_user_input:d.require_user_input,
       input_label:d.input_label,
@@ -534,7 +534,7 @@ window.ChannelpointsModule = (function(){
     state.notice = failed
       ? `Reward ${payload.reward_key} lokal gespeichert, aber Twitch-Sync fehlgeschlagen: ${sync.error || 'unbekannter Fehler'}`
       : (synced
-        ? `Reward ${payload.reward_key} gespeichert und zu Twitch synchronisiert.`
+        ? `Reward ${payload.reward_key} gespeichert und zu Twitch synchronisiert. Neue Rewards bleiben zuerst Twitch-inaktiv.`
         : `Reward ${payload.reward_key} gespeichert.`);
     state.selectedKey = result.reward?.reward_key || payload.reward_key;
     state.modal = null;
@@ -1140,7 +1140,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
 
   function renderHeader() {
     const status = state.status || {};
-    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Kanalpunkte einfach verwalten: Speichern erstellt/aktualisiert Twitch; Aktiv/Inaktiv steuert nur Twitch. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
+    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Kanalpunkte einfach verwalten: Speichern erstellt/aktualisiert Twitch; neue Rewards bleiben zuerst Twitch-inaktiv; Aktiv/Inaktiv steuert nur Twitch. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
   }
 
   function renderToolbar() {

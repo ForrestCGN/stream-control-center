@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.12";
-const MODULE_BUILD = "simplified-twitch-activation-flow-hotfix";
+const MODULE_VERSION = "0.9.13";
+const MODULE_BUILD = "create-save-twitch-inactive-default";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1576,7 +1576,10 @@ async function syncSavedRewardToTwitch(reward, input = {}, req = {}, reason = "s
   if (getConfig().twitchRewardWriteOnLocalToggle === false) {
     return { ok: true, skipped: true, reason: "twitch_write_disabled", reward, twitchWrite: false };
   }
-  const enabled = desiredTwitchEnabledForSave(reward, input);
+  // STEP527: Neue Rewards werden beim Speichern zwar auf Twitch angelegt,
+  // aber immer zuerst inaktiv erstellt. Aktiv/Inaktiv wird ausschliesslich
+  // ueber den Uebersichts-Schalter gesteuert.
+  const enabled = reason === "created" ? false : desiredTwitchEnabledForSave(reward, input);
   try {
     const twitch = await pushRewardToTwitch(String(reward.id || reward.reward_key), {
       confirm: "push_to_twitch",
