@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.6";
-const MODULE_BUILD = "unified-activation-action-helper-fix";
+const MODULE_VERSION = "0.9.7";
+const MODULE_BUILD = "redemption-completion-store-scope-fix";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -2022,7 +2022,7 @@ function buildRedemptionEventSubStatus() {
   };
 }
 
-function storeNormalizedRedemption(normalized, decision = null, execution = null) {
+function storeNormalizedRedemption(normalized, decision = null, execution = null, completion = null) {
   ensureDbReady();
   if (!normalized || !normalized.twitch_redemption_id) throw new Error("redemption_id_required");
   const now = nowIso();
@@ -2113,7 +2113,8 @@ function storeNormalizedRedemption(normalized, decision = null, execution = null
     mapped: normalized.mapped,
     localReward: normalized.local_reward ? buildRewardEventPayload(normalized.local_reward).reward : null,
     decision: decision || null,
-    execution: execution || null
+    execution: execution || null,
+    completion: completion || null
   }, { channel: "channelpoints.redemption" });
   if (execution && execution.executed) {
     emitDomainEvent("channelpoints.redemption.executed_from_eventsub", { redemption: stored, rewardKey: normalized.reward_key, execution }, { channel: "channelpoints.redemption" });
