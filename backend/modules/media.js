@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * STEP274K - Media Module Categories + Recent Uploads
+ * STEP524 - Media Module UTF-8 Filename/DisplayName Cleanup
  *
  * Zentrale Medien-Registry fuer Audio/Video/Bilder/Animationen.
  * Wichtig:
@@ -23,7 +23,7 @@ const mediaHelper = require('./helpers/helper_media');
 const MODULE_NAME = 'media';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/media';
-const MEDIA_STEP = 'STEP274K';
+const MEDIA_STEP = 'STEP524';
 
 const MEDIA_TYPES = {
   audio: {
@@ -95,6 +95,229 @@ function nowIso() {
 
 function clean(value) {
   return String(value ?? '').trim();
+}
+
+// STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP
+// Multer/Browser/Windows-Dateinamen koennen bei Umlauten als Mojibake ankommen
+// (z. B. GewÃ¼rzGurke, GewA_1_4rzGurke, GummibA_renbande).
+// Anzeige-Namen werden als lesbares UTF-8 erhalten, technische Dateinamen werden
+// stabil ASCII/transliteriert gespeichert. Bestehende IDs bleiben unveraendert.
+function looksLikeMojibake(value) {
+  return /(?:Ã|Â|â|�|A_1_4|A_ren|A_)/.test(String(value || ''));
+}
+
+function scoreTextQuality(value) {
+  const text = String(value || '');
+  let score = 0;
+  score -= (text.match(/(?:Ã|Â|â|�|A_1_4|A_ren|A_)/g) || []).length * 8;
+  score -= (text.match(/_/g) || []).length;
+  score += (text.match(/[äöüÄÖÜß]/g) || []).length * 3;
+  score += (text.match(/[a-zA-Z0-9]/g) || []).length * 0.1;
+  return score;
+}
+
+function repairKnownGermanArtifacts(value) {
+  let text = String(value || '');
+  text = text.replace(/A_1_4/g, 'ü');
+  text = text.replace(/A_1_6/g, 'ö');
+  text = text.replace(/A_1_3/g, 'ß');
+  text = text.replace(/GummibA_renbande/gi, match => match[0] === 'g' ? 'gummibärenbande' : 'Gummibärenbande');
+  text = text.replace(/([A-Za-z])A_([A-Za-z])/g, '$1ä$2');
+  return text;
+}
+
+function repairTextEncoding(value) {
+  const original = String(value || '');
+  if (!original) return '';
+  const candidates = new Set([original, repairKnownGermanArtifacts(original)]);
+  if (looksLikeMojibake(original)) {
+    try { candidates.add(Buffer.from(original, 'latin1').toString('utf8')); } catch (_) {}
+    try { candidates.add(Buffer.from(repairKnownGermanArtifacts(original), 'latin1').toString('utf8')); } catch (_) {}
+  }
+  let best = original;
+  let bestScore = scoreTextQuality(original);
+  for (const candidate of candidates) {
+    const normalized = String(candidate || '').normalize('NFC');
+    const score = scoreTextQuality(normalized);
+    if (score > bestScore) {
+      best = normalized;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+function transliterateGerman(value) {
+  return String(value || '')
+    .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
+}
+
+function safeDisplayNameFromFileName(fileName) {
+  const parsed = path.parse(String(fileName || ''));
+  return clean(repairTextEncoding(parsed.name || fileName));
+}
+
+function safeAsciiFileName(fileName) {
+  const parsed = path.parse(repairTextEncoding(String(fileName || 'upload')));
+  const repairedBase = transliterateGerman(parsed.name || 'media')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80) || 'media';
+  const ext = String(parsed.ext || path.extname(fileName) || '').toLowerCase();
+  return `${repairedBase}${ext}`;
+}
+
+function safeUniquePath(dir, fileName) {
+  const cleanName = safeAsciiFileName(fileName);
+  const parsed = path.parse(cleanName);
+  let candidate = path.join(dir, cleanName);
+  let index = 2;
+  while (fs.existsSync(candidate)) {
+    candidate = path.join(dir, `${parsed.name}_${index}${parsed.ext}`);
+    index += 1;
+  }
+  return candidate;
+}
+
+function safeIdList(value) {
+  return String(value || '')
+    .split(',')
+    .map(item => Number(String(item).trim()))
+    .filter(id => Number.isInteger(id) && id > 0);
+}
+
+function boolValue(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback;
+  return ['1', 'true', 'yes', 'ja', 'on'].includes(String(value).trim().toLowerCase());
+}
+
+function safeSqlInPlaceholders(ids, prefix = 'id') {
+  const params = {};
+  const placeholders = ids.map((id, index) => {
+    const key = `${prefix}${index}`;
+    params[key] = id;
+    return `:${key}`;
+  });
+  return { params, placeholders: placeholders.join(', ') };
+}
+
+function safeAssetName(asset) {
+  const fileName = clean(asset.fileName || path.basename(asset.relativePath || ''));
+  const currentDisplay = clean(asset.displayName || '');
+  const repairedDisplay = clean(repairTextEncoding(currentDisplay || safeDisplayNameFromFileName(fileName)));
+  const ext = path.extname(fileName || asset.relativePath || '').toLowerCase();
+  const safeFileName = safeAsciiFileName(`${repairedDisplay || safeDisplayNameFromFileName(fileName) || 'media'}${ext}`);
+  return {
+    displayName: repairedDisplay || path.parse(safeFileName).name,
+    fileName: safeFileName
+  };
+}
+
+function safeAssetById(id) {
+  return rowToAsset(db.get('SELECT * FROM media_assets WHERE id = :id', { id }));
+}
+
+function repairMediaAssetNames(options = {}) {
+  ensureSchema();
+  const ids = Array.isArray(options.ids) ? options.ids.filter(Boolean).map(Number) : safeIdList(options.ids || '');
+  const apply = options.apply === true;
+  const renameFiles = options.renameFiles === true;
+  const params = {};
+  let where = "status = 'active'";
+  if (ids.length) {
+    const sqlIn = safeSqlInPlaceholders(ids);
+    Object.assign(params, sqlIn.params);
+    where += ` AND id IN (${sqlIn.placeholders})`;
+  } else {
+    where += " AND (display_name LIKE '%Ã%' OR display_name LIKE '%Â%' OR display_name LIKE '%A_%' OR file_name LIKE '%Ã%' OR file_name LIKE '%Â%' OR file_name LIKE '%A_%' OR relative_path LIKE '%Ã%' OR relative_path LIKE '%Â%' OR relative_path LIKE '%A_%')";
+  }
+
+  const rows = db.all(`SELECT * FROM media_assets WHERE ${where} ORDER BY id ASC`, params);
+  const assetsDir = path.resolve(getAssetsDir());
+  const now = nowIso();
+  const results = [];
+
+  for (const row of rows) {
+    const asset = rowToAsset(row);
+    if (!asset) continue;
+    const currentAbs = path.resolve(asset.absolutePath || path.join(assetsDir, asset.relativePath || ''));
+    const currentRel = normalizeSlashes(asset.relativePath || '');
+    const currentFile = clean(asset.fileName || path.basename(currentRel));
+    const safeName = safeAssetName(asset);
+    const currentDisplay = clean(asset.displayName || '');
+    let nextAbs = currentAbs;
+    let nextRel = currentRel;
+    let nextWebPath = asset.webPath || (currentRel ? `/assets/${currentRel}` : '');
+    let nextFileName = currentFile;
+    let renamed = false;
+    let error = '';
+
+    const displayChanged = safeName.displayName && safeName.displayName !== currentDisplay;
+    const fileNameChanged = safeName.fileName && safeName.fileName !== currentFile;
+
+    try {
+      if (renameFiles && fileNameChanged) {
+        if (!isPathInside(assetsDir, currentAbs)) throw new Error('unsafe_asset_path');
+        if (!fs.existsSync(currentAbs)) throw new Error('asset_file_missing');
+        const targetDir = path.dirname(currentAbs);
+        nextAbs = safeUniquePath(targetDir, safeName.fileName);
+        nextFileName = path.basename(nextAbs);
+        nextRel = normalizeSlashes(path.relative(assetsDir, nextAbs));
+        nextWebPath = `/assets/${nextRel}`;
+        if (apply) fs.renameSync(currentAbs, nextAbs);
+        renamed = true;
+      } else if (fileNameChanged && !renameFiles) {
+        nextFileName = currentFile;
+      }
+
+      if (apply && (displayChanged || renamed)) {
+        db.run(`
+          UPDATE media_assets
+          SET display_name = :displayName, file_name = :fileName, relative_path = :relativePath, web_path = :webPath, absolute_path = :absolutePath, updated_at = :updatedAt
+          WHERE id = :id
+        `, {
+          id: asset.id,
+          displayName: safeName.displayName || currentDisplay,
+          fileName: nextFileName,
+          relativePath: nextRel,
+          webPath: nextWebPath,
+          absolutePath: nextAbs,
+          updatedAt: now
+        });
+      }
+    } catch (err) {
+      error = err.message || String(err);
+    }
+
+    results.push({
+      id: asset.id,
+      changed: !!(displayChanged || renamed),
+      applied: apply && !error,
+      renamed: apply && renamed && !error,
+      error,
+      before: { displayName: currentDisplay, fileName: currentFile, relativePath: currentRel, absolutePath: currentAbs },
+      after: { displayName: safeName.displayName || currentDisplay, fileName: nextFileName, relativePath: nextRel, absolutePath: nextAbs, webPath: nextWebPath }
+    });
+  }
+
+  if (apply) state.lastChangeAt = now;
+  return {
+    ok: results.every(item => !item.error),
+    module: MODULE_NAME,
+    step: MEDIA_STEP,
+    dryRun: !apply,
+    apply,
+    renameFiles,
+    count: results.length,
+    changed: results.filter(item => item.changed).length,
+    results,
+    updatedAt: nowIso()
+  };
 }
 
 function safeJsonEncode(value) {
@@ -417,19 +640,11 @@ function extensionAllowedForType(fileName, type) {
 }
 
 function sanitizeFileName(fileName) {
-  const parsed = path.parse(String(fileName || 'upload'));
-  const base = parsed.name
-    .normalize('NFKD')
-    .replace(/[^\w.-]+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 80) || 'media';
-  const ext = parsed.ext.toLowerCase();
-  return `${base}${ext}`;
+  return safeAsciiFileName(fileName);
 }
 
 function makeUniqueTarget(dir, fileName) {
-  const cleanName = sanitizeFileName(fileName);
+  const cleanName = sanitizeFileName(repairTextEncoding(fileName));
   const parsed = path.parse(cleanName);
   let candidate = path.join(dir, cleanName);
   let index = 2;
@@ -773,7 +988,7 @@ function scanFile(absPath, source, category = 'general', preferredType = '', con
     category: inferredContext.categoryKey,
     moduleKey: inferredContext.moduleKey,
     categoryKey: inferredContext.categoryKey,
-    displayName: path.parse(target).name,
+    displayName: safeDisplayNameFromFileName(path.basename(target)),
     fileName: path.basename(target),
     relativePath: rel,
     webPath: `/assets/${rel}`,
@@ -903,7 +1118,8 @@ function uploadOne(req, res) {
       const context = resolveUploadContext(req);
       ensureCategory({ moduleKey: context.moduleKey, categoryKey: context.categoryKey });
       const category = context.categoryKey;
-      const displayName = clean(param(req, 'displayName', '')) || path.parse(req.file.originalname).name;
+      const originalName = repairTextEncoding(req.file.originalname);
+      const displayName = clean(param(req, 'displayName', '')) || safeDisplayNameFromFileName(originalName);
       const asset = scanFile(req.file.path, 'upload', category, uploadType, context);
       if (!asset) return res.status(400).json({ ok: false, error: 'asset_registration_failed' });
       const saved = upsertAsset({ ...asset, displayName, category, moduleKey: context.moduleKey, categoryKey: context.categoryKey, source: 'upload' });
@@ -1006,7 +1222,8 @@ function statusPayload() {
       { method: 'GET/POST', path: `${API_PREFIX}/scan`, purpose: 'Bestehende Medienordner scannen' },
       { method: 'POST', path: `${API_PREFIX}/upload`, purpose: 'Medium hochladen und registrieren' },
       { method: 'POST', path: `${API_PREFIX}/update`, purpose: 'Metadaten aendern' },
-      { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei loeschen' }
+      { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei loeschen' },
+      { method: 'GET/POST', path: `${API_PREFIX}/repair-names`, purpose: 'Mediennamen/Dateinamen mit Umlaut-/Mojibake-Artefakten pruefen oder reparieren' }
     ],
     note: 'STEP274K bereitet Modul-Kategorien, frei waehlbare Zusatzkategorien und die virtuelle Ansicht Neueste Uploads vor. Neue Uploads landen unter htdocs/assets/media/<module>/<category>/.',
     updatedAt: nowIso()
@@ -1114,6 +1331,29 @@ function init(ctx) {
     catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
   });
 
+  app.get(`${API_PREFIX}/repair-names`, (req, res) => {
+    try {
+      const result = repairMediaAssetNames({
+        ids: param(req, 'ids', ''),
+        apply: boolValue(param(req, 'apply', 'false'), false),
+        renameFiles: boolValue(param(req, 'renameFiles', 'false'), false)
+      });
+      return res.status(result.ok ? 200 : 400).json(result);
+    } catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
+  app.post(`${API_PREFIX}/repair-names`, (req, res) => {
+    try {
+      const body = readBody(req);
+      const result = repairMediaAssetNames({
+        ids: Array.isArray(body.ids) ? body.ids : (body.ids || param(req, 'ids', '')),
+        apply: boolValue(body.apply ?? param(req, 'apply', 'false'), false),
+        renameFiles: boolValue(body.renameFiles ?? body.rename_files ?? param(req, 'renameFiles', 'false'), false)
+      });
+      return res.status(result.ok ? 200 : 400).json(result);
+    } catch (err) { return res.status(500).json({ ok: false, error: err.message || String(err) }); }
+  });
+
   app.post(`${API_PREFIX}/upload`, uploadOne);
   app.post(`${API_PREFIX}/update`, updateAsset);
   app.post(`${API_PREFIX}/delete`, deleteAsset);
@@ -1122,4 +1362,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: MEDIA_STEP };
 }
 
-module.exports = { init, statusPayload, listAssets, scanAssets, upsertAsset, getAsset, resolveAssetForUse, mediaOptionFromAsset, soundSystemFileFor, listCategories, ensureCategory, resolveUploadContextFromValues };
+module.exports = { init, statusPayload, listAssets, scanAssets, upsertAsset, getAsset, resolveAssetForUse, mediaOptionFromAsset, soundSystemFileFor, listCategories, ensureCategory, resolveUploadContextFromValues, repairMediaAssetNames, repairTextEncoding, safeAsciiFileName };
