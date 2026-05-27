@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '1.0.6';
-  const UI_BUILD = 'sound-system-routing-defaults-ui';
+  const UI_VERSION = '1.0.7';
+  const UI_BUILD = 'simplified-twitch-activation-ui';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -231,15 +231,15 @@ window.ChannelpointsModule = (function(){
     const ready = actionReadiness(d);
     const imported = isImportedReward(d);
     const mode = ready.ok ? 'ok' : (imported ? 'warn' : 'neutral');
-    return `<div class="cp-action-readiness ${ready.ok ? 'ready' : 'blocked'}"><strong>${esc(ready.label)}</strong><span>${esc(ready.detail)}</span>${imported ? `<small>${ready.ok ? 'Importierter Twitch-Reward kann nach dem Speichern bewusst aktiviert werden.' : 'Importierter Twitch-Reward bleibt durch Dashboard und Backend gesperrt, bis diese Aktion vollständig ist.'}</small>` : ''}</div>`;
+    return `<div class="cp-action-readiness ${ready.ok ? 'ready' : 'blocked'}"><strong>${esc(ready.label)}</strong><span>${esc(ready.detail)}</span>${imported ? `<small>${ready.ok ? 'Importierter Twitch-Reward kann nach dem Speichern in der Übersicht auf Twitch aktiviert/deaktiviert werden.' : 'Importierter Twitch-Reward bleibt durch Dashboard und Backend gesperrt, bis diese Aktion vollständig ist.'}</small>` : ''}</div>`;
   }
 
   function statusPills(reward) {
     const actionState = rewardExecutionState(reward);
     const list = [
-      reward.system_enabled ? pill('aktiv', 'ok') : pill('aus', 'off'),
+      reward.twitch_is_enabled ? pill('Twitch aktiv', 'ok') : pill('Twitch inaktiv', 'off'),
       reward.is_paused ? pill('pausiert', 'warn') : pill('bereit', 'neutral'),
-      reward.twitch_is_enabled ? pill('Twitch aktiv', 'warn') : pill('Twitch aus', 'neutral')
+      reward.twitch_reward_id ? pill('Twitch verknüpft', 'neutral') : pill('noch nicht auf Twitch', 'warn')
     ];
     if (isImportedReward(reward)) list.push(pill('importiert', 'neutral'));
     list.push(pill(actionState.label, actionState.mode));
@@ -250,8 +250,8 @@ window.ChannelpointsModule = (function(){
     const q = String(state.query || '').trim().toLowerCase();
     return rewards().filter(reward => {
       if (state.categoryFilter !== 'all' && String(reward.category_key) !== state.categoryFilter) return false;
-      if (state.statusFilter === 'enabled' && !boolValue(reward.system_enabled)) return false;
-      if (state.statusFilter === 'disabled' && boolValue(reward.system_enabled)) return false;
+      if (state.statusFilter === 'enabled' && !boolValue(reward.twitch_is_enabled)) return false;
+      if (state.statusFilter === 'disabled' && boolValue(reward.twitch_is_enabled)) return false;
       if (state.statusFilter === 'paused' && !boolValue(reward.is_paused)) return false;
       if (state.statusFilter === 'imported' && !isImportedReward(reward)) return false;
       if (state.statusFilter === 'missing_action' && !rewardNeedsSetup(reward)) return false;
@@ -288,7 +288,7 @@ window.ChannelpointsModule = (function(){
   function blankReward() {
     return {
       reward_key:'', title:'', prompt:'', cost:100, category_key:'general', sort_order:100,
-      system_enabled:true, twitch_is_enabled:false, is_paused:false, require_user_input:false, input_label:'',
+      system_enabled:true, twitch_is_enabled:true, is_paused:false, require_user_input:false, input_label:'',
       action_type:'media', action_key:'play_audio_media', action_payload_json:'{}', media_asset_id:'', media_role:'sound',
       queue_mode:'none', priority:0, cooldown_seconds:0, max_per_stream:0, max_per_user_per_stream:0,
       auto_fulfill:false, notes:'', _action:'sound_play'
@@ -309,7 +309,7 @@ window.ChannelpointsModule = (function(){
       source.action_type = 'media';
       source.action_key = 'play_audio_media';
       source.media_role = 'sound';
-      source.system_enabled = false;
+      source.system_enabled = true;
       source.is_paused = false;
     }
     if (mode === 'copy') {
@@ -317,7 +317,8 @@ window.ChannelpointsModule = (function(){
       source.twitch_reward_id = '';
       source.reward_key = `${source.reward_key || 'reward'}_kopie`;
       source.title = `${source.title || 'Reward'} Kopie`;
-      source.system_enabled = false;
+      source.system_enabled = true;
+      source.twitch_is_enabled = true;
     }
     state.modal = {
       mode: (mode === 'edit' || configureMode) ? 'edit' : 'create',
@@ -343,7 +344,7 @@ window.ChannelpointsModule = (function(){
     d.cost = Number(getField('cost')?.value || d.cost || 100);
     d.category_key = String(getField('category_key')?.value || d.category_key || 'general');
     d.sort_order = Number(getField('sort_order')?.value || d.sort_order || 100);
-    d.system_enabled = getField('system_enabled') ? !!getField('system_enabled')?.checked : boolValue(d.system_enabled);
+    d.system_enabled = true;
     d.is_paused = getField('is_paused') ? !!getField('is_paused')?.checked : boolValue(d.is_paused);
     d.require_user_input = getField('require_user_input') ? !!getField('require_user_input')?.checked : boolValue(d.require_user_input);
     d.input_label = String(getField('input_label')?.value || d.input_label || '').trim();
@@ -457,10 +458,6 @@ window.ChannelpointsModule = (function(){
       media_asset_id: mediaAssetId,
       media_role: mediaRole
     };
-    if (boolValue(effectiveReward.system_enabled) && rewardNeedsSetup(effectiveReward)) {
-      throw new Error('Importierte Twitch-Rewards können erst lokal aktiviert werden, wenn Sound, Video, Text oder Custom-Aktion konfiguriert ist.');
-    }
-
     return {
       reward_key:d.reward_key,
       title:d.title,
@@ -468,7 +465,8 @@ window.ChannelpointsModule = (function(){
       cost:d.cost,
       category_key:d.category_key,
       sort_order:d.sort_order,
-      system_enabled:d.system_enabled,
+      system_enabled:true,
+      twitch_is_enabled: boolValue(d.twitch_is_enabled),
       is_paused:d.is_paused,
       require_user_input:d.require_user_input,
       input_label:d.input_label,
@@ -523,30 +521,22 @@ window.ChannelpointsModule = (function(){
     render();
   }
 
-  async function saveReward(options = {}) {
+  async function saveReward() {
     const payload = buildPayloadForSave();
-    if (options.activate === true) {
-      payload.system_enabled = true;
-      payload.is_paused = false;
-    }
-    const effectiveReward = { ...(state.modal?.draft || {}), ...payload, action_payload: parseJson(payload.action_payload_json, {}) };
-    if (options.activate === true && !rewardHasExecutableAction(effectiveReward)) {
-      throw new Error('Speichern & aktivieren ist erst möglich, wenn eine ausführbare Aktion vollständig konfiguriert ist.');
-    }
     const isEdit = state.modal?.mode === 'edit';
     const target = isEdit ? (state.modal.originalId || state.modal.originalKey || payload.reward_key) : '';
     const url = isEdit ? `${api.rewards}/${encodeURIComponent(target)}` : api.rewards;
     const method = isEdit ? 'PUT' : 'POST';
     const result = await window.CGN.api(url, { method, body: JSON.stringify(payload) });
-    let activationResult = null;
-    if (options.activate === true) {
-      const activationKey = result.reward?.reward_key || payload.reward_key;
-      activationResult = await window.CGN.api(`${api.rewards}/${encodeURIComponent(activationKey)}/enable`, { method:'POST', body:'{}' });
-    }
-    state.notice = options.activate === true
-      ? `Reward ${payload.reward_key} gespeichert, aktiviert und mit Twitch synchronisiert.`
-      : (isEdit ? `Reward ${payload.reward_key} aktualisiert. ${rewardHasExecutableAction(effectiveReward) ? 'Aktion ist vollständig; Aktivieren/Testen ist möglich.' : ''}` : `Reward ${payload.reward_key} erstellt.`);
-    state.selectedKey = activationResult?.reward?.reward_key || result.reward?.reward_key || payload.reward_key;
+    const sync = result.twitchSync || null;
+    const synced = sync && sync.ok === true;
+    const failed = sync && sync.ok === false;
+    state.notice = failed
+      ? `Reward ${payload.reward_key} lokal gespeichert, aber Twitch-Sync fehlgeschlagen: ${sync.error || 'unbekannter Fehler'}`
+      : (synced
+        ? `Reward ${payload.reward_key} gespeichert und zu Twitch synchronisiert.`
+        : `Reward ${payload.reward_key} gespeichert.`);
+    state.selectedKey = result.reward?.reward_key || payload.reward_key;
     state.modal = null;
     await loadAll(true);
   }
@@ -569,7 +559,7 @@ window.ChannelpointsModule = (function(){
     state.selectedKey = reward.reward_key || String(key);
     state.error = '';
     state.notice = rewardNeedsSetup(reward)
-      ? 'Bitte erst eine lokale Aktion konfigurieren. Danach kann der Reward bewusst aktiviert werden.'
+      ? 'Reward zur Bearbeitung geöffnet. Speichern synchronisiert zu Twitch.'
       : 'Reward zur Bearbeitung geöffnet.';
     openModal('configure', reward);
   }
@@ -581,14 +571,8 @@ window.ChannelpointsModule = (function(){
   }
 
   async function toggleReward(key, enabled) {
-    const reward = rewardByKey(key);
-    if (enabled && reward && rewardNeedsSetup(reward)) {
-      state.error = 'Aktivieren gesperrt: Dieser Twitch-Reward hat noch keine Aktion. Bitte zuerst konfigurieren. Aktiv bedeutet System + Twitch.';
-      configureReward(key);
-      return;
-    }
     await window.CGN.api(`${api.rewards}/${encodeURIComponent(key)}/${enabled ? 'enable' : 'disable'}`, { method:'POST', body:'{}' });
-    state.notice = enabled ? 'Reward aktiviert und mit Twitch synchronisiert.' : 'Reward deaktiviert und mit Twitch synchronisiert.';
+    state.notice = enabled ? 'Reward auf Twitch aktiviert.' : 'Reward auf Twitch deaktiviert.';
     await loadAll(true);
   }
 
@@ -775,7 +759,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const options = mapped.map(reward => `<option value="${esc(reward.reward_key)}" ${selected && reward.reward_key === selected.reward_key ? 'selected' : ''}>${esc(reward.title || reward.reward_key)} · ${esc(reward.reward_key)}</option>`).join('');
     const normalized = preview && preview.normalized ? preview.normalized : null;
     return `<div class="cp-eventsub-test-box">
-      <div class="cp-eventsub-head"><div><h4>Einlösungen prüfen</h4><p>Einfache Regel: Aktiv + Aktion vollständig = ausführen. Inaktiv oder Aktion fehlt = nicht ausführen. Kein Twitch-Write.</p></div><div class="cp-eventsub-status">${pill(status.enabled === false ? 'Einlösungen aus' : 'Einlösungen bereit', status.enabled === false ? 'off' : 'ok')}</div></div>
+      <div class="cp-eventsub-head"><div><h4>Einlösungen prüfen</h4><p>Einfache Regel: Twitch-Redemption + Aktion vollständig = lokal ausführen. Aktion fehlt = nicht ausführen. Kein Twitch-Write.</p></div><div class="cp-eventsub-status">${pill(status.enabled === false ? 'Einlösungen aus' : 'Einlösungen bereit', status.enabled === false ? 'off' : 'ok')}</div></div>
       <div class="cp-form-grid cp-redemption-test-grid"><label>Gemappter Test-Reward<select data-cp-control="redemptionTestReward">${options || '<option value="">Kein gemappter Reward gefunden</option>'}</select></label><div class="cp-test-reward-info"><strong>${esc(selected ? selected.title : 'Kein Reward')}</strong><span>${selected ? `reward_key ${esc(selected.reward_key)} · twitch_reward_id ${esc(selected.twitch_reward_id)}` : 'Bitte zuerst Twitch-Rewards lokal synchronisieren.'}</span></div></div>
       <div class="cp-actions"><button type="button" data-cp-action="eventsub-status">EventSub-Status</button><button type="button" data-cp-action="eventsub-preview" ${selected ? '' : 'disabled'}>Dummy-Preview erzeugen</button><button type="button" data-cp-action="eventsub-receive" ${selected ? '' : 'disabled'}>Dummy lokal speichern</button></div>
       <div class="cp-eventsub-stats"><span>Received: ${esc(stats.received ?? 0)}</span><span>Preview: ${esc(stats.previewed ?? 0)}</span><span>Stored: ${esc(stats.stored ?? 0)}</span><span>Duplicates: ${esc(stats.duplicates ?? 0)}</span><span>Unmapped: ${esc(stats.unmapped ?? 0)}</span></div>
@@ -841,7 +825,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const allRewards = rewards();
     const allRedemptions = asArray(state.redemptions);
     const counts = state.redemptionCounts || {};
-    const active = allRewards.filter(r => r.system_enabled).length;
+    const active = allRewards.filter(r => r.twitch_is_enabled).length;
     const inactive = allRewards.length - active;
     const configured = allRewards.filter(rewardHasExecutableAction).length;
     const missingAction = allRewards.filter(rewardNeedsSetup).length;
@@ -1051,7 +1035,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
       : '<strong>-</strong><small>wird beim Sync lokal angelegt</small>';
     const flags = [
       twitchEnabled ? pill('Twitch aktiv', 'ok') : pill('Twitch aus', 'warn'),
-      local?.system_enabled === false ? pill('inaktiv', 'off') : (local ? pill('aktiv/bereit', 'ok') : pill('lokal fehlt', 'neutral')),
+      local ? pill('lokal vorhanden', 'neutral') : pill('lokal fehlt', 'neutral'),
       row.effectiveSyncAction ? pill(`Sync: ${row.effectiveSyncAction}`, row.effectiveSyncAction === 'insert' ? 'off' : (row.effectiveSyncAction === 'update' ? 'warn' : 'neutral')) : '',
       !row.hasTwitchCost && local ? pill('Kosten aus lokalem Sync', 'neutral') : '',
       row.costChanged ? pill('Kosten diff', 'warn') : '',
@@ -1108,7 +1092,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const configured = imported.filter(rewardHasExecutableAction);
     if (!imported.length) return '';
     return `<section class="cp-panel cp-imported-setup-panel"><div class="cp-panel-head"><h3>Importierte Twitch-Rewards einrichten</h3><span>${pill(`${missing.length} Aktion fehlt`, missing.length ? 'warn' : 'ok')} ${pill(`${configured.length} Aktion vollständig`, configured.length ? 'ok' : 'neutral')} ${pill(`${imported.length} importiert`, 'neutral')}</span></div>
-      <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards bleiben inaktiv, bis du sie bewusst konfigurierst. Öffne einen Reward über „Konfigurieren“, wähle Sound, Video, Text oder Custom-Aktion, speichere und aktiviere ihn danach bewusst. Vollständig konfigurierte Rewards können direkt über „Speichern & aktivieren“ freigeschaltet werden.</div>
+      <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards können über „Konfigurieren“ mit Sound, Video, Text oder Custom-Aktion verbunden werden. Speichern synchronisiert den Reward zu Twitch; Aktiv/Inaktiv steuerst du danach in der Übersicht direkt auf Twitch.</div>
       <div class="cp-actions cp-setup-actions"><button type="button" data-cp-action="configure-first-missing">Ersten fehlenden konfigurieren</button><button type="button" data-cp-action="filter-missing-action">Nur „Aktion fehlt“ anzeigen</button><button type="button" data-cp-action="filter-configured-action">Nur „Aktion vollständig“ anzeigen</button><button type="button" data-cp-action="filter-imported">Alle importierten anzeigen</button><button type="button" data-cp-action="filter-reset">Filter zurücksetzen</button></div>
     </section>`;
   }
@@ -1156,7 +1140,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
 
   function renderHeader() {
     const status = state.status || {};
-    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Kanalpunkte einfach verwalten: Rewards, Einlösungen, Statistik, Import und Diagnose. Aktiv/Inaktiv entscheidet. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
+    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Kanalpunkte einfach verwalten: Speichern synchronisiert zu Twitch, Aktiv/Inaktiv steuert nur Twitch. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
   }
 
   function renderToolbar() {
@@ -1164,7 +1148,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     return `<section class="cp-toolbar cp-commandlike-toolbar">
       <label>Reward suchen <span class="cp-help" title="Sucht in Key, Titel, Prompt, Kategorie, Aktion und Notizen.">?</span><input data-cp-control="query" type="search" placeholder="z. B. sound, video, vip, test..." value="${esc(state.query)}"></label>
       <label>Kategorie <span class="cp-help" title="Filtert die Liste nach lokaler Kategorie.">?</span><select data-cp-control="categoryFilter">${categoryOptions(state.categoryFilter, true)}</select></label>
-      <label>Status <span class="cp-help" title="Filtert nach lokal aktiv, aus, pausiert, importiert oder fehlender Aktion.">?</span><select data-cp-control="statusFilter"><option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle Status</option><option value="enabled" ${state.statusFilter === 'enabled' ? 'selected' : ''}>Aktiv</option><option value="disabled" ${state.statusFilter === 'disabled' ? 'selected' : ''}>Inaktiv</option><option value="paused" ${state.statusFilter === 'paused' ? 'selected' : ''}>Pausiert</option><option value="imported" ${state.statusFilter === 'imported' ? 'selected' : ''}>Importiert</option><option value="missing_action" ${state.statusFilter === 'missing_action' ? 'selected' : ''}>Aktion fehlt</option><option value="configured_action" ${state.statusFilter === 'configured_action' ? 'selected' : ''}>Aktion vollständig</option></select></label>
+      <label>Status <span class="cp-help" title="Filtert nach Twitch aktiv, Twitch inaktiv, pausiert, importiert oder fehlender Aktion.">?</span><select data-cp-control="statusFilter"><option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle Status</option><option value="enabled" ${state.statusFilter === 'enabled' ? 'selected' : ''}>Twitch aktiv</option><option value="disabled" ${state.statusFilter === 'disabled' ? 'selected' : ''}>Twitch inaktiv</option><option value="paused" ${state.statusFilter === 'paused' ? 'selected' : ''}>Pausiert</option><option value="imported" ${state.statusFilter === 'imported' ? 'selected' : ''}>Importiert</option><option value="missing_action" ${state.statusFilter === 'missing_action' ? 'selected' : ''}>Aktion fehlt</option><option value="configured_action" ${state.statusFilter === 'configured_action' ? 'selected' : ''}>Aktion vollständig</option></select></label>
       <label>Reward direkt wählen <span class="cp-help" title="Springt direkt zum Reward in der Liste.">?</span><select data-cp-control="directSelect">${direct}</select></label>
       <button type="button" data-cp-action="new">+ Neuer Reward</button>
     </section>`;
@@ -1172,12 +1156,12 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
 
   function renderOverview() {
     const status = state.status || {};
-    const active = rewards().filter(r => r.system_enabled).length;
+    const active = rewards().filter(r => r.twitch_is_enabled).length;
     const paused = rewards().filter(r => r.is_paused).length;
     const imported = rewards().filter(isImportedReward).length;
     const missingAction = rewards().filter(rewardNeedsSetup).length;
     const executable = rewards().filter(rewardHasExecutableAction).length;
-    return `<div class="cp-grid cp-stats"><div class="cp-card"><small>Backend</small><strong>${esc(status.moduleVersion || '-')}</strong><span>${esc(status.moduleBuild || '-')}</span></div><div class="cp-card"><small>Rewards</small><strong>${rewards().length}</strong><span>${active} aktiv · ${paused} pausiert</span></div><div class="cp-card"><small>Ausführbar</small><strong>${executable}</strong><span>${missingAction} Aktion fehlt</span></div><div class="cp-card"><small>Importiert</small><strong>${imported}</strong><span>aus Twitch / lokal prüfbar</span></div><div class="cp-card"><small>Kategorien</small><strong>${categories().length}</strong><span>lokal</span></div><div class="cp-card"><small>Einlösungen</small><strong>${esc((state.redemptionCounts && state.redemptionCounts.total) || state.redemptions.length || 0)}</strong><span>lokaler Verlauf</span></div></div>`;
+    return `<div class="cp-grid cp-stats"><div class="cp-card"><small>Backend</small><strong>${esc(status.moduleVersion || '-')}</strong><span>${esc(status.moduleBuild || '-')}</span></div><div class="cp-card"><small>Rewards</small><strong>${rewards().length}</strong><span>${active} Twitch aktiv · ${paused} pausiert</span></div><div class="cp-card"><small>Ausführbar</small><strong>${executable}</strong><span>${missingAction} Aktion fehlt</span></div><div class="cp-card"><small>Importiert</small><strong>${imported}</strong><span>aus Twitch / lokal prüfbar</span></div><div class="cp-card"><small>Kategorien</small><strong>${categories().length}</strong><span>lokal</span></div><div class="cp-card"><small>Einlösungen</small><strong>${esc((state.redemptionCounts && state.redemptionCounts.total) || state.redemptions.length || 0)}</strong><span>lokaler Verlauf</span></div></div>`;
   }
 
   function renderRewardCard(reward) {
@@ -1194,11 +1178,9 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const testButton = needsSetup
       ? `<button type="button" class="cp-disabled-action" disabled title="Erst lokale Aktion konfigurieren">Test gesperrt</button>`
       : `<button type="button" data-cp-action="execute" data-key="${esc(reward.reward_key)}">Testen</button>`;
-    const enableButton = reward.system_enabled
-      ? `<button type="button" data-cp-action="disable" data-key="${esc(reward.reward_key)}">Deaktivieren</button>`
-      : (needsSetup
-        ? `<button type="button" class="cp-disabled-action" disabled title="Erst lokale Aktion konfigurieren">Aktivieren gesperrt</button>`
-        : `<button type="button" data-cp-action="enable" data-key="${esc(reward.reward_key)}">Aktivieren</button>`);
+    const enableButton = reward.twitch_is_enabled
+      ? `<button type="button" data-cp-action="disable" data-key="${esc(reward.reward_key)}">Twitch deaktivieren</button>`
+      : `<button type="button" data-cp-action="enable" data-key="${esc(reward.reward_key)}">Twitch aktivieren</button>`;
     return `<article class="${cardClasses.join(' ')}" data-cp-card="${esc(reward.reward_key)}">
       <div class="cp-reward-main"><strong>${esc(reward.title || reward.reward_key)}</strong><small>${esc(reward.reward_key)} · ${esc(reward.cost)} Punkte · ${esc(categoryLabel(reward.category_key))}</small><small class="cp-action-summary">${esc(rewardActionSummary(reward))}</small>${setupHint ? `<small class="cp-setup-hint">${esc(setupHint)}</small>` : ''}</div>
       <div class="cp-reward-badges">${pill(action.label.replace(/^..\s*/, ''), 'neutral')} ${statusPills(reward)}</div>
@@ -1339,12 +1321,12 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const modalKicker = state.modal.configureMode ? 'Reward konfigurieren' : (isEdit ? 'Reward bearbeiten' : 'Neuer Reward');
     return `<div class="cp-modal-backdrop" role="dialog" aria-modal="true"><div class="cp-modal">
       <div class="cp-modal-head"><div><p class="cp-kicker">${modalKicker}</p><h3>${esc(isEdit ? (d.title || d.reward_key) : 'Reward erstellen')}</h3></div><button type="button" class="cp-modal-close" data-cp-action="modal-close">×</button></div>
-      ${imported ? `<div class="cp-configure-flow-note"><strong>Importierter Twitch-Reward</strong><span>${readiness.ok ? 'Aktion vollständig: Speichern, danach aktivieren/testen oder direkt „Speichern & aktivieren“ nutzen.' : 'Aktion fehlt noch: Der Reward bleibt lokal gesperrt, bis Sound/Video/Text/Custom vollständig konfiguriert ist.'}</span></div>` : ''}
+      ${imported ? `<div class="cp-configure-flow-note"><strong>Importierter Twitch-Reward</strong><span>${readiness.ok ? 'Aktion vollständig: Speichern synchronisiert den Reward zu Twitch.' : 'Aktion fehlt noch: Speichern synchronisiert den Reward zu Twitch; Einlösungen werden lokal erst mit vollständiger Aktion ausgeführt.'}</span></div>` : ''}
 
       <section class="cp-editor-section"><h4>Basis</h4><div class="cp-form-grid">
         <label>Reward-Key <span class="cp-help" title="Interner eindeutiger Schlüssel, z. B. sound_hype oder video_party.">?</span><input data-cp-field="reward_key" value="${esc(d.reward_key || '')}" placeholder="z. B. sound_hype"></label>
         <label>Titel <span class="cp-help" title="Name, der im Dashboard und später bei Twitch sichtbar ist.">?</span><input data-cp-field="title" value="${esc(d.title || '')}" placeholder="z. B. Hype-Sound"></label>
-        <label>Kosten <span class="cp-help" title="Kanalpunkte-Kosten. Twitch-Sync kommt später.">?</span><input type="number" min="1" data-cp-field="cost" value="${esc(d.cost || 100)}"></label>
+        <label>Kosten <span class="cp-help" title="Kanalpunkte-Kosten. Speichern synchronisiert zu Twitch.">?</span><input type="number" min="1" data-cp-field="cost" value="${esc(d.cost || 100)}"></label>
         <label>Kategorie <span class="cp-help" title="Gruppiert Rewards im Dashboard.">?</span><select data-cp-field="category_key">${categoryOptions(d.category_key || 'general', false)}</select></label>
         <label>Sortierung <span class="cp-help" title="Kleinere Zahl steht weiter oben.">?</span><input type="number" data-cp-field="sort_order" value="${esc(d.sort_order ?? 100)}"></label>
         <label>Input-Label <span class="cp-help" title="Optionaler Hinweis, wenn User eine Eingabe machen sollen.">?</span><input data-cp-field="input_label" value="${esc(d.input_label || '')}"></label>
@@ -1358,13 +1340,13 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
         <label>Cooldown Sekunden <span class="cp-help" title="Lokale Sperre nach Einlösung. 0 = aus.">?</span><input type="number" min="0" data-cp-field="cooldown_seconds" value="${esc(d.cooldown_seconds ?? 0)}"></label>
         <label>Max pro Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_stream" value="${esc(d.max_per_stream ?? 0)}"></label>
         <label>Max pro User/Stream <span class="cp-help" title="0 = keine lokale Grenze.">?</span><input type="number" min="0" data-cp-field="max_per_user_per_stream" value="${esc(d.max_per_user_per_stream ?? 0)}"></label>
-      </div><div class="cp-checks"><label title="Aktiv bedeutet: im System ausführbar und bei Aktivierung mit Twitch synchronisiert. Bei importierten Rewards nur aktivieren, wenn eine ausführbare Aktion vollständig konfiguriert ist."><input type="checkbox" data-cp-field="system_enabled" ${boolValue(d.system_enabled) ? 'checked' : ''}> Aktiv</label><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label></div></section>
+      </div><div class="cp-checks"><label><input type="checkbox" data-cp-field="require_user_input" ${boolValue(d.require_user_input) ? 'checked' : ''}> User-Eingabe</label><span class="cp-inline-note">Aktiv/Inaktiv wird in der Übersicht direkt auf Twitch geschaltet.</span></div></section>
 
       ${renderTwitchOptionsSection(d, payload)}
 
       <label class="cp-wide cp-notes-label">Notizen<textarea rows="2" data-cp-field="notes">${esc(d.notes || '')}</textarea></label>
 
-      <div class="cp-modal-actions"><button type="button" data-cp-action="save">${isEdit ? 'Speichern' : 'Erstellen'}</button>${isEdit && imported ? `<button type="button" data-cp-action="save-activate" class="cp-save-activate" ${readiness.ok ? '' : 'disabled title="Erst Aktion vollständig konfigurieren"'}>Speichern & aktivieren</button>` : ''}${isEdit ? `<button type="button" data-cp-action="delete" data-key="${esc(d.reward_key)}" class="danger">Löschen</button>` : ''}<button type="button" data-cp-action="modal-close">Abbrechen</button></div>
+      <div class="cp-modal-actions"><button type="button" data-cp-action="save">${isEdit ? 'Speichern & zu Twitch synchronisieren' : 'Erstellen & zu Twitch synchronisieren'}</button>${isEdit ? `<button type="button" data-cp-action="delete" data-key="${esc(d.reward_key)}" class="danger">Löschen</button>` : ''}<button type="button" data-cp-action="modal-close">Abbrechen</button></div>
     </div></div>`;
   }
 
@@ -1436,7 +1418,6 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     root.querySelectorAll('[data-cp-action="disable"]').forEach(btn => btn.addEventListener('click', () => toggleReward(btn.dataset.key, false).catch(showError)));
     root.querySelectorAll('[data-cp-action="enable"]').forEach(btn => btn.addEventListener('click', () => toggleReward(btn.dataset.key, true).catch(showError)));
     root.querySelector('[data-cp-action="save"]')?.addEventListener('click', () => saveReward().catch(showError));
-    root.querySelector('[data-cp-action="save-activate"]')?.addEventListener('click', () => saveReward({ activate:true }).catch(showError));
     root.querySelectorAll('[data-cp-action="modal-close"]').forEach(btn => btn.addEventListener('click', closeModal));
     root.querySelectorAll('[data-cp-action="open-media"]').forEach(btn => btn.addEventListener('click', () => window.CGN?.setActiveModule?.('media')));
     root.querySelectorAll('[data-cp-action="twitch-color-preset"]').forEach(btn => btn.addEventListener('click', () => setTwitchColorFields(btn.dataset.color || '')));

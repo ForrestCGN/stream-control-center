@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.10";
-const MODULE_BUILD = "sound-system-routing-defaults";
+const MODULE_VERSION = "0.9.11";
+const MODULE_BUILD = "simplified-twitch-activation-flow";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -691,7 +691,6 @@ function normalizeRewardInput(input = {}, existing = null) {
     created_at: existing && existing.created_at ? existing.created_at : now
   };
 
-  if (data.system_enabled === 1) assertImportedRewardCanActivate(data);
   return data;
 }
 
@@ -1379,8 +1378,10 @@ async function applyRedemptionCompletionPolicy(normalized, decision, execution) 
 function buildTwitchRewardWritePayload(reward, forcedEnabled = null, options = {}) {
   if (!reward) throw new Error("reward_not_found");
   const isConfigured = isExecutableReward(reward);
-  const enabled = forcedEnabled === null ? (reward.system_enabled === true && isConfigured && reward.is_paused !== true) : !!forcedEnabled;
-  if (enabled && !isConfigured) assertImportedRewardCanActivate(reward);
+  const enabled = forcedEnabled === null ? (reward.twitch_is_enabled === true && reward.is_paused !== true) : !!forcedEnabled;
+  // STEP525: Twitch-Aktiv/Inaktiv ist reine Twitch-Sichtbarkeit.
+  // Lokale Aktion ist fuer Twitch-Anlegen/Aktualisieren nicht erforderlich;
+  // fehlende Aktionen blockieren spaeter nur die lokale Ausfuehrung einer Einloesung.
 
   const settings = twitchRewardSettingsFromPayload(reward);
   const maxPerStream = Math.max(0, intValue(reward.max_per_stream, 0));
@@ -1541,44 +1542,103 @@ async function pushRewardEnabledStateToTwitch(reward, enabled, req = {}) {
   return { ok: true, action: enabled ? "enabled_on_twitch" : "disabled_on_twitch", reward: updated, twitchReward, twitchStatusCode: response.statusCode, twitchWrite: true, tokenSource: authContext.tokenSource };
 }
 
+async function setLocalTwitchEnabledFlag(idOrKey, enabled, paused = null) {
+  ensureDbReady();
+  const reward = getRewardByIdOrKey(idOrKey);
+  if (!reward) return null;
+  const now = nowIso();
+  const isPaused = paused === null ? reward.is_paused === true : !!paused;
+  database.run(`
+    UPDATE channelpoints_rewards
+    SET twitch_is_enabled = :twitch_is_enabled,
+        is_paused = :is_paused,
+        updated_at = :updated_at
+    WHERE id = :id
+  `, {
+    id: reward.id,
+    twitch_is_enabled: enabled ? 1 : 0,
+    is_paused: isPaused ? 1 : 0,
+    updated_at: now
+  });
+  return getRewardByIdOrKey(String(reward.id));
+}
+
+function desiredTwitchEnabledForSave(reward, input = {}) {
+  if (Object.prototype.hasOwnProperty.call(input || {}, "twitch_is_enabled")) return boolValue(input.twitch_is_enabled, true);
+  if (Object.prototype.hasOwnProperty.call(input || {}, "is_enabled")) return boolValue(input.is_enabled, true);
+  if (Object.prototype.hasOwnProperty.call(input || {}, "enabled")) return boolValue(input.enabled, true);
+  if (reward && reward.twitch_reward_id) return reward.twitch_is_enabled !== false;
+  return true;
+}
+
+async function syncSavedRewardToTwitch(reward, input = {}, req = {}, reason = "saved") {
+  if (!reward) return { ok: false, skipped: true, reason: "reward_missing_after_save", twitchWrite: false };
+  if (getConfig().twitchRewardWriteOnLocalToggle === false) {
+    return { ok: true, skipped: true, reason: "twitch_write_disabled", reward, twitchWrite: false };
+  }
+  const enabled = desiredTwitchEnabledForSave(reward, input);
+  try {
+    const twitch = await pushRewardToTwitch(String(reward.id || reward.reward_key), {
+      confirm: "push_to_twitch",
+      createIfMissing: true,
+      enabled
+    }, req);
+    const current = twitch && twitch.reward ? twitch.reward : (getRewardByIdOrKey(String(reward.id)) || reward);
+    emitDomainEvent("channelpoints.reward.saved_to_twitch", {
+      reward: buildRewardEventPayload(current).reward,
+      saveReason: reason,
+      enabled,
+      twitchWrite: twitch && twitch.twitchWrite === true,
+      twitchRewardId: current.twitch_reward_id || ""
+    }, { channel: "channelpoints.reward" });
+    return { ok: true, action: "saved_to_twitch", saveReason: reason, enabled, reward: current, twitch, twitchWrite: twitch && twitch.twitchWrite === true };
+  } catch (err) {
+    return {
+      ok: false,
+      action: "save_to_twitch_failed",
+      saveReason: reason,
+      enabled,
+      reward,
+      error: err && err.message ? err.message : String(err),
+      twitchWrite: false
+    };
+  }
+}
+
 async function activateRewardSystemAndTwitch(idOrKey, input = {}, req = {}) {
   const reward = getRewardByIdOrKey(idOrKey);
   if (!reward) throw new Error("reward_not_found");
-  if (isImportedRewardMissingAction(reward) || !isExecutableReward(reward)) throw new Error("reward_action_missing");
 
-  const pushInput = {
+  const twitch = await pushRewardToTwitch(idOrKey, {
     ...(input || {}),
     confirm: "push_to_twitch",
     createIfMissing: true,
     enabled: true
-  };
-  const twitch = await pushRewardToTwitch(idOrKey, pushInput, req);
-  const twitchRewardId = twitch && twitch.reward && twitch.reward.twitch_reward_id ? twitch.reward.twitch_reward_id : reward.twitch_reward_id;
-  const local = setRewardEnabled(twitchRewardId ? String((twitch.reward && twitch.reward.id) || reward.id || idOrKey) : idOrKey, true, false);
-  const current = getRewardByIdOrKey(String((local && local.id) || (twitch.reward && twitch.reward.id) || reward.id || idOrKey)) || local || twitch.reward || reward;
+  }, req);
+  const current = twitch && twitch.reward ? twitch.reward : setLocalTwitchEnabledFlag(idOrKey, true, false) || reward;
 
-  emitDomainEvent("channelpoints.reward.activated", {
+  emitDomainEvent("channelpoints.reward.twitch_enabled", {
     reward: buildRewardEventPayload(current).reward,
     twitch: {
       action: twitch.action || "pushed_to_twitch",
-      twitchRewardId: current.twitch_reward_id || twitchRewardId || "",
+      twitchRewardId: current.twitch_reward_id || "",
       twitchWrite: twitch.twitchWrite === true,
       usedFallback: twitch.usedFallback === true,
       staleTwitchRewardId: twitch.staleTwitchRewardId || ""
     }
   }, { channel: "channelpoints.reward" });
-  publishStatus("reward_activated_system_and_twitch");
+  publishStatus("reward_enabled_on_twitch");
 
   return {
     ok: true,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    action: "activated_system_and_twitch",
+    action: "enabled_on_twitch",
     reward: current,
     twitch,
     twitchWrite: twitch && twitch.twitchWrite === true,
-    note: "Reward wurde im System aktiviert und auf Twitch erstellt/aktualisiert/aktiviert."
+    note: "Reward wurde auf Twitch erstellt/aktualisiert und aktiviert. Lokale Aktivierung wird nicht separat verwendet."
   };
 }
 
@@ -1602,117 +1662,34 @@ async function deactivateRewardSystemAndTwitch(idOrKey, input = {}, req = {}) {
         reason: "stale_twitch_reward_id_removed",
         staleTwitchRewardId,
         twitchWrite: false,
-        note: "Die lokale Twitch-ID war auf Twitch nicht mehr vorhanden. Sie wurde lokal entfernt; der Reward wurde lokal deaktiviert."
+        note: "Die lokale Twitch-ID war auf Twitch nicht mehr vorhanden. Sie wurde lokal entfernt."
       };
     }
   }
 
-  const local = setRewardEnabled(String((workingReward && workingReward.id) || reward.id || idOrKey), false, boolValue(input && input.is_paused, true));
-  const current = getRewardByIdOrKey(String((local && local.id) || reward.id || idOrKey)) || local || workingReward || reward;
+  const current = setLocalTwitchEnabledFlag(String((workingReward && workingReward.id) || reward.id || idOrKey), false, boolValue(input && input.is_paused, false)) || workingReward || reward;
 
-  emitDomainEvent("channelpoints.reward.deactivated", {
+  emitDomainEvent("channelpoints.reward.twitch_disabled", {
     reward: buildRewardEventPayload(current).reward,
     twitch: {
-      action: twitch.action || twitch.reason || "disabled_or_unmapped",
-      twitchRewardId: current.twitch_reward_id || reward.twitch_reward_id || "",
+      action: twitch.action || twitch.reason || "disabled_on_twitch",
+      twitchRewardId: current.twitch_reward_id || "",
       twitchWrite: twitch.twitchWrite === true,
       staleTwitchRewardId: twitch.staleTwitchRewardId || ""
     }
   }, { channel: "channelpoints.reward" });
-  publishStatus("reward_deactivated_system_and_twitch");
+  publishStatus("reward_disabled_on_twitch");
 
   return {
     ok: true,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    action: "deactivated_system_and_twitch",
+    action: "disabled_on_twitch",
     reward: current,
     twitch,
     twitchWrite: twitch && twitch.twitchWrite === true,
-    note: "Reward wurde im System deaktiviert und auf Twitch deaktiviert, sofern er dort verknüpft war."
-  };
-}
-
-function twitchDeleteConfirmOk(input = {}) {
-  return cleanString(input.confirm || input.confirmation || "") === "delete_from_twitch";
-}
-
-function markLocalRewardAfterTwitchDelete(reward, localAction = "disable") {
-  if (!reward) return null;
-  const action = cleanString(localAction || "disable").toLowerCase();
-  if (action === "delete" || action === "remove") {
-    const result = deleteReward(String(reward.id || reward.reward_key));
-    return { action: "deleted_local", reward: result && result.reward ? result.reward : reward, deleted: result && result.deleted ? result.deleted : 0, currentReward: null };
-  }
-
-  const now = nowIso();
-  const disable = action !== "keep";
-  database.run(`
-    UPDATE channelpoints_rewards SET
-      twitch_reward_id = '',
-      twitch_is_enabled = 0,
-      system_enabled = CASE WHEN :disable = 1 THEN 0 ELSE system_enabled END,
-      is_paused = CASE WHEN :disable = 1 THEN 1 ELSE is_paused END,
-      updated_at = :updated_at
-    WHERE id = :id
-  `, {
-    id: reward.id,
-    disable: disable ? 1 : 0,
-    updated_at: now
-  });
-  const currentReward = getRewardByIdOrKey(String(reward.id));
-  if (disable) {
-    localCrudStats.disabled += 1;
-    localCrudStats.lastCrudAt = now;
-    localCrudStats.lastCrudAction = "disable_after_twitch_delete";
-  }
-  return { action: disable ? "unmapped_and_disabled_local" : "unmapped_local", reward, deleted: 0, currentReward };
-}
-
-async function deleteRewardFromTwitch(idOrKey, input = {}, req = {}) {
-  const reward = getRewardByIdOrKey(idOrKey);
-  if (!reward) throw new Error("reward_not_found");
-  if (!twitchDeleteConfirmOk(input)) throw new Error("twitch_delete_confirmation_required");
-  if (!reward.twitch_reward_id) throw new Error("reward_not_mapped_to_twitch");
-
-  const authContext = await buildTwitchWriteAuthContext(req);
-  const url = new URL("https://api.twitch.tv/helix/channel_points/custom_rewards");
-  url.searchParams.set("broadcaster_id", authContext.broadcasterId);
-  url.searchParams.set("id", reward.twitch_reward_id);
-
-  const response = await twitchJsonRequest("DELETE", url, authContext.token, authContext.clientId, null);
-  const localAction = cleanString(input.localAction || (boolValue(input.deleteLocal, false) ? "delete" : "disable"), "disable").toLowerCase();
-  const localResult = markLocalRewardAfterTwitchDelete(reward, localAction);
-  const currentReward = localResult && localResult.currentReward ? localResult.currentReward : null;
-
-  emitDomainEvent("channelpoints.twitch.reward.deleted", {
-    reward: buildRewardEventPayload(currentReward || reward).reward,
-    deletedReward: buildRewardEventPayload(reward).reward,
-    twitchStatusCode: response.statusCode,
-    twitchRewardId: reward.twitch_reward_id,
-    localAction: localResult ? localResult.action : localAction,
-    twitchWrite: true
-  }, { channel: "channelpoints.twitch" });
-  publishStatus("twitch_reward_deleted");
-
-  return {
-    ok: true,
-    module: MODULE_NAME,
-    moduleVersion: MODULE_VERSION,
-    moduleBuild: MODULE_BUILD,
-    action: localResult && localResult.action === "deleted_local" ? "deleted_on_twitch_and_local" : "deleted_on_twitch",
-    twitchRewardId: reward.twitch_reward_id,
-    reward: currentReward,
-    deletedReward: reward,
-    localAction: localResult ? localResult.action : localAction,
-    localDeleted: localResult ? localResult.deleted : 0,
-    twitchStatusCode: response.statusCode,
-    twitchWrite: true,
-    tokenSource: authContext.tokenSource,
-    note: localResult && localResult.action === "deleted_local"
-      ? "Twitch-Reward wurde gelöscht und der lokale Reward wurde entfernt."
-      : "Twitch-Reward wurde gelöscht. Lokal wurde die Twitch-Verknüpfung entfernt und der Reward standardmäßig deaktiviert."
+    note: "Reward wurde auf Twitch deaktiviert. Lokale Aktivierung wird nicht separat verwendet."
   };
 }
 
@@ -1729,14 +1706,15 @@ function buildTwitchRewardManagementStatus() {
     requireConfirmForPush: config.twitchRewardWriteRequireConfirm !== false,
     requiredScope: "channel:manage:redemptions",
     rules: {
-      activeLocalRewardCanBeEnabledOnTwitch: true,
-      inactiveLocalRewardDisablesTwitchReward: true,
-      missingActionBlocksActivation: true,
+      saveCreatesOrUpdatesTwitchReward: true,
+      overviewToggleControlsTwitchOnly: true,
+      localSystemEnabledHiddenInDashboard: true,
+      missingActionDoesNotBlockTwitchSave: true,
       noExtraDashboardMode: true,
       twitchDeleteRequiresConfirm: true,
       twitchCreateUpdateSupportsAdvancedRewardParams: true,
       redemptionCompletionPolicySupported: true,
-      activationIsSystemAndTwitch: true,
+      activationIsTwitchOnly: true,
       activationCreatesOrRepairsTwitchReward: true
     },
     routes: [
@@ -1746,8 +1724,8 @@ function buildTwitchRewardManagementStatus() {
       `${ROUTE_PREFIX}/twitch/rewards/:idOrKey/disable`,
       `${ROUTE_PREFIX}/twitch/rewards/:idOrKey/delete`,
       "redemption completion: FULFILLED/CANCELED after execution",
-      "unified activation: local + Twitch create/update/enable",
-      "unified deactivation: local + Twitch disable when mapped"
+      "save reward: local create/update + Twitch create/update",
+      "overview toggle: Twitch enable/disable only"
     ]
   };
 }
@@ -2873,29 +2851,35 @@ function init({ app }) {
     } catch (err) { sendError(res, 500, err); }
   });
 
-  app.post(`${ROUTE_PREFIX}/rewards`, (req, res) => {
+  app.post(`${ROUTE_PREFIX}/rewards`, async (req, res) => {
     try {
-      if (getConfig().localCrudEnabled === false) return res.status(403).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: "local_crud_disabled" });
-      const reward = createReward(req.body || {});
-      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, action: "created", reward, twitchWrite: false });
+      if (getConfig().localCrudEnabled === false) return res.status(403).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "local_crud_disabled" });
+      const reward = createReward({ ...(req.body || {}), system_enabled: true });
+      const sync = await syncSavedRewardToTwitch(reward, req.body || {}, req, "created");
+      const current = sync && sync.reward ? sync.reward : reward;
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, action: "created_and_synced_to_twitch", reward: current, twitchWrite: sync.twitchWrite === true, twitchSync: sync });
     } catch (err) { sendError(res, 400, err); }
   });
 
-  app.put(`${ROUTE_PREFIX}/rewards/:idOrKey`, (req, res) => {
+  app.put(`${ROUTE_PREFIX}/rewards/:idOrKey`, async (req, res) => {
     try {
-      if (getConfig().localCrudEnabled === false) return res.status(403).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: "local_crud_disabled" });
-      const reward = updateReward(req.params.idOrKey, req.body || {});
-      if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: "reward_not_found" });
-      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, action: "updated", reward, twitchWrite: false });
+      if (getConfig().localCrudEnabled === false) return res.status(403).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "local_crud_disabled" });
+      const reward = updateReward(req.params.idOrKey, { ...(req.body || {}), system_enabled: true });
+      if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "reward_not_found" });
+      const sync = await syncSavedRewardToTwitch(reward, req.body || {}, req, "updated");
+      const current = sync && sync.reward ? sync.reward : reward;
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, action: "updated_and_synced_to_twitch", reward: current, twitchWrite: sync.twitchWrite === true, twitchSync: sync });
     } catch (err) { sendError(res, 400, err); }
   });
 
-  app.patch(`${ROUTE_PREFIX}/rewards/:idOrKey`, (req, res) => {
+  app.patch(`${ROUTE_PREFIX}/rewards/:idOrKey`, async (req, res) => {
     try {
-      if (getConfig().localCrudEnabled === false) return res.status(403).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: "local_crud_disabled" });
-      const reward = updateReward(req.params.idOrKey, req.body || {});
-      if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: "reward_not_found" });
-      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, action: "patched", reward, twitchWrite: false });
+      if (getConfig().localCrudEnabled === false) return res.status(403).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "local_crud_disabled" });
+      const reward = updateReward(req.params.idOrKey, { ...(req.body || {}), system_enabled: true });
+      if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: "reward_not_found" });
+      const sync = await syncSavedRewardToTwitch(reward, req.body || {}, req, "patched");
+      const current = sync && sync.reward ? sync.reward : reward;
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, action: "patched_and_synced_to_twitch", reward: current, twitchWrite: sync.twitchWrite === true, twitchSync: sync });
     } catch (err) { sendError(res, 400, err); }
   });
 
