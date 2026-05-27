@@ -358,8 +358,8 @@ window.ChannelpointsModule = (function(){
         volume: Number(getField('media_volume')?.value || currentPayload.volume || 80),
         target: String(getField('media_target')?.value || currentPayload.target || 'stream'),
         outputTarget: String(getField('media_output_target')?.value || currentPayload.outputTarget || 'overlay'),
-        playBehavior: String(getField('play_behavior')?.value || currentPayload.playBehavior || 'immediate'),
-        queueIfBusy: String(getField('play_behavior')?.value || currentPayload.playBehavior || 'immediate') === 'queue'
+        playBehavior: String(getField('play_behavior')?.value || currentPayload.playBehavior || 'queue'),
+        queueIfBusy: String(getField('play_behavior')?.value || currentPayload.playBehavior || 'queue') === 'queue'
       });
     } else if (d._action === 'text_only') {
       d.media_asset_id = '';
@@ -412,8 +412,8 @@ window.ChannelpointsModule = (function(){
         volume: Number(getField('media_volume')?.value || payload.volume || 80),
         target: String(getField('media_target')?.value || payload.target || 'stream'),
         outputTarget: String(getField('media_output_target')?.value || payload.outputTarget || 'overlay'),
-        playBehavior: String(getField('play_behavior')?.value || payload.playBehavior || 'immediate'),
-        queueIfBusy: String(getField('play_behavior')?.value || payload.playBehavior || 'immediate') === 'queue'
+        playBehavior: String(getField('play_behavior')?.value || payload.playBehavior || 'queue'),
+        queueIfBusy: String(getField('play_behavior')?.value || payload.playBehavior || 'queue') === 'queue'
       };
     } else if (d._action === 'text_only') {
       actionType = 'chat_message';
@@ -1362,7 +1362,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
         <label>Medium <span class="cp-help" title="Wähle ein bestehendes Medium aus der zentralen Medienverwaltung.">?</span><input data-cp-field="media_asset_id" id="cpMediaAssetId" value="${esc(d.media_asset_id || '')}" placeholder="Noch kein Medium gewählt" readonly></label>
         <label>Lautstärke <span class="cp-help" title="0-100 Prozent.">?</span><input type="number" min="0" max="100" data-cp-field="media_volume" value="${esc(payload.volume ?? 80)}"></label>
         <label>Ziel <span class="cp-help" title="Wo soll das Medium ausgegeben werden?">?</span><select data-cp-field="media_target"><option value="stream" ${payload.target !== 'discord' && payload.target !== 'both' ? 'selected' : ''}>Stream</option><option value="discord" ${payload.target === 'discord' ? 'selected' : ''}>Discord</option><option value="both" ${payload.target === 'both' ? 'selected' : ''}>Stream + Discord</option></select></label>
-        <label>Verhalten <span class="cp-help" title="Sofort starten oder in Warteschlange einordnen.">?</span><select data-cp-field="play_behavior"><option value="immediate" ${payload.playBehavior !== 'queue' && payload.playBehavior !== 'busy_only' ? 'selected' : ''}>Sofort starten</option><option value="queue" ${payload.playBehavior === 'queue' ? 'selected' : ''}>In Warteschlange</option><option value="busy_only" ${payload.playBehavior === 'busy_only' ? 'selected' : ''}>Nur wenn frei</option></select></label>
+        <label>Sound-System Queue <span class="cp-help" title="Sound/Video-Rewards werden normalerweise in die Sound-System-Warteschlange gelegt, statt bei belegtem System verworfen zu werden.">?</span><select data-cp-field="play_behavior"><option value="queue" ${payload.playBehavior !== 'immediate' && payload.playBehavior !== 'busy_only' ? 'selected' : ''}>Bei belegtem Sound-System einreihen</option><option value="immediate" ${payload.playBehavior === 'immediate' ? 'selected' : ''}>Sofort versuchen</option><option value="busy_only" ${payload.playBehavior === 'busy_only' ? 'selected' : ''}>Nur wenn frei</option></select></label>
         <input type="hidden" data-cp-field="media_output_target" value="${esc(payload.outputTarget || 'overlay')}"><input type="hidden" data-cp-field="media_role" value="${esc(action.mediaRole)}">
       </div><div class="cp-media-box"><div data-media-field data-module-key="channelpoints" data-allowed-types="${esc(action.allowedTypes)}" data-title="Kanalpunkte-Medium auswählen" data-value-input="#cpMediaAssetId"></div><button type="button" data-cp-action="open-media">Medienverwaltung öffnen</button><button type="button" data-cp-action="clear-media">Medium entfernen</button></div><small>Ausführung später: mediaId → /api/sound/play.</small>${renderAdvancedFields(d, payload)}</div>`;
     }

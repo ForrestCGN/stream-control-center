@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.7";
-const MODULE_BUILD = "redemption-completion-store-scope-fix";
+const MODULE_VERSION = "0.9.8";
+const MODULE_BUILD = "media-queue-policy-strict-result";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1071,7 +1071,8 @@ function buildRewardExecutionPayload(reward, input = {}) {
     category: cleanString(payload.category || "channel_reward"),
     requestedBy: userLogin || displayName,
     label: cleanString(payload.label || reward.title || reward.reward_key || mediaId),
-    queueIfBusy: reward.queue_mode !== "drop" && payload.queueIfBusy !== false,
+    playBehavior: cleanString(payload.playBehavior || (mediaType === "audio" || mediaType === "video" ? "queue" : "immediate")),
+    queueIfBusy: reward.queue_mode !== "drop",
     parallelAllowed: payload.parallelAllowed === true,
     meta: {
       rewardId: reward.id,
@@ -1710,7 +1711,7 @@ function buildTwitchRewardManagementStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "unified_activation_action_helper_fix_ready",
+    status: "media_queue_policy_strict_result_ready",
     enabled: config.twitchRewardManagementEnabled !== false,
     writeOnLocalToggle: config.twitchRewardWriteOnLocalToggle !== false,
     requireConfirmForPush: config.twitchRewardWriteRequireConfirm !== false,
@@ -1757,14 +1758,36 @@ function deleteReward(idOrKey) {
 
 function summarizeExecutionResult(result) {
   const data = result && result.data ? result.data : {};
+  const inner = data && data.result && typeof data.result === "object" ? data.result : {};
+  const dropped = inner.dropped === true;
+  const started = inner.started === true;
+  const queued = inner.queued === true;
+  const failed = data && data.ok === false || inner.failed === true || dropped === true;
+  const success = !!(result && result.ok) && data && data.ok === true && !failed && (started || queued || inner.parallel === true);
   return {
     ok: !!(result && result.ok),
     statusCode: result && result.statusCode || 0,
     dataOk: data && data.ok === true,
+    mediaSuccess: success,
+    started,
+    queued,
+    dropped,
+    failed,
+    reason: inner.reason || (dropped ? "dropped_by_sound_system" : ""),
     message: data && data.message || "",
     result: data && data.result || null,
     item: data && data.item ? { requestId: data.item.requestId, soundId: data.item.soundId, label: data.item.label, mediaType: data.item.mediaType, mediaUrl: data.item.mediaUrl, videoUrl: data.item.videoUrl, outputTarget: data.item.outputTarget } : null
   };
+}
+
+function assertMediaExecutionAccepted(summary) {
+  if (!summary || summary.mediaSuccess !== true) {
+    const reason = cleanString(summary && summary.reason || summary && summary.message || "media_execution_not_accepted");
+    const err = new Error(reason || "media_execution_not_accepted");
+    err.summary = summary || null;
+    err.data = summary || null;
+    throw err;
+  }
 }
 
 function recordRedemptionExecution(reward, input, status, result) {
@@ -1871,6 +1894,7 @@ async function executeReward(idOrKey, input = {}) {
   try {
     const result = await httpJsonRequest("POST", targetUrl, payload);
     const summary = summarizeExecutionResult(result);
+    assertMediaExecutionAccepted(summary);
     executionStats.executed += 1;
     executionStats.lastExecutionAt = nowIso();
     executionStats.lastExecutionAction = "execute_media_reward";
@@ -1889,8 +1913,9 @@ async function executeReward(idOrKey, input = {}) {
     executionStats.lastExecutionReward = reward.reward_key;
     executionStats.lastExecutionResult = err && err.data ? err.data : null;
     executionStats.lastExecutionError = message;
-    const redemption = recordRedemptionExecution(reward, input, "failed", { error: message, data: err && err.data || null });
-    emitRedemptionEvent("channelpoints.redemption.failed", reward, redemption, { error: message, data: err && err.data || null });
+    const failedSummary = err && err.summary ? err.summary : (err && err.data ? err.data : null);
+    const redemption = recordRedemptionExecution(reward, input, "failed", { error: message, data: failedSummary });
+    emitRedemptionEvent("channelpoints.redemption.failed", reward, redemption, { error: message, data: failedSummary });
     lastError = message;
     throw err;
   }
@@ -1998,7 +2023,7 @@ function buildRedemptionEventSubStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "unified_activation_action_helper_fix_ready",
+    status: "media_queue_policy_strict_result_ready",
     enabled: config.redemptionEventSubPreparationEnabled !== false,
     storeEnabled: config.redemptionEventSubStoreEnabled !== false,
     processingRule: "Reward aktiv + Aktion vollständig = ausführen; Reward inaktiv oder Aktion fehlt = nicht ausführen.",
@@ -2010,7 +2035,9 @@ function buildRedemptionEventSubStatus() {
       noExtraDashboardModes: true,
       activeFlagIsExecutionGate: true,
       actionRequiredForActivation: true,
-      usesExistingRedemptionsTable: true
+      usesExistingRedemptionsTable: true,
+      mediaRewardsUseSoundSystemQueue: true,
+      droppedMediaIsFailure: true
     },
     stats: { ...redemptionEventSubStats },
     routes: [
