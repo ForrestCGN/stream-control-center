@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.11";
-const MODULE_BUILD = "simplified-twitch-activation-flow";
+const MODULE_VERSION = "0.9.12";
+const MODULE_BUILD = "simplified-twitch-activation-flow-hotfix";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1564,11 +1564,11 @@ async function setLocalTwitchEnabledFlag(idOrKey, enabled, paused = null) {
 }
 
 function desiredTwitchEnabledForSave(reward, input = {}) {
-  if (Object.prototype.hasOwnProperty.call(input || {}, "twitch_is_enabled")) return boolValue(input.twitch_is_enabled, true);
-  if (Object.prototype.hasOwnProperty.call(input || {}, "is_enabled")) return boolValue(input.is_enabled, true);
-  if (Object.prototype.hasOwnProperty.call(input || {}, "enabled")) return boolValue(input.enabled, true);
-  if (reward && reward.twitch_reward_id) return reward.twitch_is_enabled !== false;
-  return true;
+  if (Object.prototype.hasOwnProperty.call(input || {}, "twitch_is_enabled")) return boolValue(input.twitch_is_enabled, false);
+  if (Object.prototype.hasOwnProperty.call(input || {}, "is_enabled")) return boolValue(input.is_enabled, false);
+  if (Object.prototype.hasOwnProperty.call(input || {}, "enabled")) return boolValue(input.enabled, false);
+  if (reward && reward.twitch_reward_id) return reward.twitch_is_enabled === true;
+  return false;
 }
 
 async function syncSavedRewardToTwitch(reward, input = {}, req = {}, reason = "saved") {
@@ -1693,6 +1693,89 @@ async function deactivateRewardSystemAndTwitch(idOrKey, input = {}, req = {}) {
   };
 }
 
+function twitchDeleteConfirmOk(input = {}) {
+  return cleanString(input.confirm || input.confirmation || "") === "delete_from_twitch";
+}
+
+function markLocalRewardAfterTwitchDelete(reward, localAction = "disable") {
+  if (!reward) return null;
+  const action = cleanString(localAction || "disable").toLowerCase();
+  if (action === "delete" || action === "remove") {
+    const result = deleteReward(String(reward.id || reward.reward_key));
+    return { action: "deleted_local", reward: result && result.reward ? result.reward : reward, deleted: result && result.deleted ? result.deleted : 0, currentReward: null };
+  }
+
+  const now = nowIso();
+  const disable = action !== "keep";
+  database.run(`
+    UPDATE channelpoints_rewards SET
+      twitch_reward_id = '',
+      twitch_is_enabled = 0,
+      system_enabled = CASE WHEN :disable = 1 THEN 0 ELSE system_enabled END,
+      is_paused = CASE WHEN :disable = 1 THEN 1 ELSE is_paused END,
+      updated_at = :updated_at
+    WHERE id = :id
+  `, {
+    id: reward.id,
+    disable: disable ? 1 : 0,
+    updated_at: now
+  });
+  const currentReward = getRewardByIdOrKey(String(reward.id));
+  if (disable) {
+    localCrudStats.disabled += 1;
+    localCrudStats.lastCrudAt = now;
+    localCrudStats.lastCrudAction = "disable_after_twitch_delete";
+  }
+  return { action: disable ? "unmapped_and_disabled_local" : "unmapped_local", reward, deleted: 0, currentReward };
+}
+
+async function deleteRewardFromTwitch(idOrKey, input = {}, req = {}) {
+  const reward = getRewardByIdOrKey(idOrKey);
+  if (!reward) throw new Error("reward_not_found");
+  if (!twitchDeleteConfirmOk(input)) throw new Error("twitch_delete_confirmation_required");
+  if (!reward.twitch_reward_id) throw new Error("reward_not_mapped_to_twitch");
+
+  const authContext = await buildTwitchWriteAuthContext(req);
+  const url = new URL("https://api.twitch.tv/helix/channel_points/custom_rewards");
+  url.searchParams.set("broadcaster_id", authContext.broadcasterId);
+  url.searchParams.set("id", reward.twitch_reward_id);
+
+  const response = await twitchJsonRequest("DELETE", url, authContext.token, authContext.clientId, null);
+  const localAction = cleanString(input.localAction || (boolValue(input.deleteLocal, false) ? "delete" : "disable"), "disable").toLowerCase();
+  const localResult = markLocalRewardAfterTwitchDelete(reward, localAction);
+  const currentReward = localResult && localResult.currentReward ? localResult.currentReward : null;
+
+  emitDomainEvent("channelpoints.twitch.reward.deleted", {
+    reward: buildRewardEventPayload(currentReward || reward).reward,
+    deletedReward: buildRewardEventPayload(reward).reward,
+    twitchStatusCode: response.statusCode,
+    twitchRewardId: reward.twitch_reward_id,
+    localAction: localResult ? localResult.action : localAction,
+    twitchWrite: true
+  }, { channel: "channelpoints.twitch" });
+  publishStatus("twitch_reward_deleted");
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: localResult && localResult.action === "deleted_local" ? "deleted_on_twitch_and_local" : "deleted_on_twitch",
+    twitchRewardId: reward.twitch_reward_id,
+    reward: currentReward,
+    deletedReward: reward,
+    localAction: localResult ? localResult.action : localAction,
+    localDeleted: localResult ? localResult.deleted : 0,
+    twitchStatusCode: response.statusCode,
+    twitchWrite: true,
+    tokenSource: authContext.tokenSource,
+    note: localResult && localResult.action === "deleted_local"
+      ? "Twitch-Reward wurde gelöscht und der lokale Reward wurde entfernt."
+      : "Twitch-Reward wurde gelöscht. Lokal wurde die Twitch-Verknüpfung entfernt und der Reward standardmäßig deaktiviert."
+  };
+}
+
+
 function buildTwitchRewardManagementStatus() {
   const config = getConfig();
   return {
@@ -1707,6 +1790,7 @@ function buildTwitchRewardManagementStatus() {
     requiredScope: "channel:manage:redemptions",
     rules: {
       saveCreatesOrUpdatesTwitchReward: true,
+      newRewardSaveCreatesTwitchRewardInactive: true,
       overviewToggleControlsTwitchOnly: true,
       localSystemEnabledHiddenInDashboard: true,
       missingActionDoesNotBlockTwitchSave: true,
@@ -1724,7 +1808,7 @@ function buildTwitchRewardManagementStatus() {
       `${ROUTE_PREFIX}/twitch/rewards/:idOrKey/disable`,
       `${ROUTE_PREFIX}/twitch/rewards/:idOrKey/delete`,
       "redemption completion: FULFILLED/CANCELED after execution",
-      "save reward: local create/update + Twitch create/update",
+      "save reward: local create/update + Twitch create/update; new rewards default inactive on Twitch",
       "overview toggle: Twitch enable/disable only"
     ]
   };

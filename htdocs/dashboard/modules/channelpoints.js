@@ -1,8 +1,8 @@
 window.ChannelpointsModule = (function(){
   'use strict';
 
-  const UI_VERSION = '1.0.7';
-  const UI_BUILD = 'simplified-twitch-activation-ui';
+  const UI_VERSION = '1.0.8';
+  const UI_BUILD = 'simplified-twitch-activation-hotfix-ui';
 
   const api = {
     status: '/api/channelpoints/status',
@@ -559,7 +559,7 @@ window.ChannelpointsModule = (function(){
     state.selectedKey = reward.reward_key || String(key);
     state.error = '';
     state.notice = rewardNeedsSetup(reward)
-      ? 'Reward zur Bearbeitung geöffnet. Speichern synchronisiert zu Twitch.'
+      ? 'Reward zur Bearbeitung geöffnet. Speichern aktualisiert auch den Twitch-Reward.'
       : 'Reward zur Bearbeitung geöffnet.';
     openModal('configure', reward);
   }
@@ -1092,7 +1092,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const configured = imported.filter(rewardHasExecutableAction);
     if (!imported.length) return '';
     return `<section class="cp-panel cp-imported-setup-panel"><div class="cp-panel-head"><h3>Importierte Twitch-Rewards einrichten</h3><span>${pill(`${missing.length} Aktion fehlt`, missing.length ? 'warn' : 'ok')} ${pill(`${configured.length} Aktion vollständig`, configured.length ? 'ok' : 'neutral')} ${pill(`${imported.length} importiert`, 'neutral')}</span></div>
-      <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards können über „Konfigurieren“ mit Sound, Video, Text oder Custom-Aktion verbunden werden. Speichern synchronisiert den Reward zu Twitch; Aktiv/Inaktiv steuerst du danach in der Übersicht direkt auf Twitch.</div>
+      <div class="cp-note"><strong>Sicherer Ablauf:</strong> Importierte Twitch-Rewards können über „Konfigurieren“ mit Sound, Video, Text oder Custom-Aktion verbunden werden. Speichern erstellt/aktualisiert den Twitch-Reward. Neue Rewards bleiben auf Twitch zuerst inaktiv; Aktiv/Inaktiv steuerst du danach in der Übersicht direkt auf Twitch.</div>
       <div class="cp-actions cp-setup-actions"><button type="button" data-cp-action="configure-first-missing">Ersten fehlenden konfigurieren</button><button type="button" data-cp-action="filter-missing-action">Nur „Aktion fehlt“ anzeigen</button><button type="button" data-cp-action="filter-configured-action">Nur „Aktion vollständig“ anzeigen</button><button type="button" data-cp-action="filter-imported">Alle importierten anzeigen</button><button type="button" data-cp-action="filter-reset">Filter zurücksetzen</button></div>
     </section>`;
   }
@@ -1140,7 +1140,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
 
   function renderHeader() {
     const status = state.status || {};
-    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Kanalpunkte einfach verwalten: Speichern synchronisiert zu Twitch, Aktiv/Inaktiv steuert nur Twitch. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
+    return `<div class="cp-header"><div><p class="cp-kicker">Kanalpunkte-System</p><h2>Twitch-Kanalpunkte</h2><p>Kanalpunkte einfach verwalten: Speichern erstellt/aktualisiert Twitch; Aktiv/Inaktiv steuert nur Twitch. UI v${UI_VERSION} · ${UI_BUILD}</p></div><div class="cp-header-actions"><span class="cp-version">Backend: ${esc(status.moduleVersion || '-')} · ${esc(status.moduleBuild || '-')}</span><button type="button" data-cp-action="reload">Neu laden</button></div></div>`;
   }
 
   function renderToolbar() {
@@ -1321,7 +1321,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
     const modalKicker = state.modal.configureMode ? 'Reward konfigurieren' : (isEdit ? 'Reward bearbeiten' : 'Neuer Reward');
     return `<div class="cp-modal-backdrop" role="dialog" aria-modal="true"><div class="cp-modal">
       <div class="cp-modal-head"><div><p class="cp-kicker">${modalKicker}</p><h3>${esc(isEdit ? (d.title || d.reward_key) : 'Reward erstellen')}</h3></div><button type="button" class="cp-modal-close" data-cp-action="modal-close">×</button></div>
-      ${imported ? `<div class="cp-configure-flow-note"><strong>Importierter Twitch-Reward</strong><span>${readiness.ok ? 'Aktion vollständig: Speichern synchronisiert den Reward zu Twitch.' : 'Aktion fehlt noch: Speichern synchronisiert den Reward zu Twitch; Einlösungen werden lokal erst mit vollständiger Aktion ausgeführt.'}</span></div>` : ''}
+      ${imported ? `<div class="cp-configure-flow-note"><strong>Importierter Twitch-Reward</strong><span>${readiness.ok ? 'Aktion vollständig: Speichern aktualisiert den Reward auf Twitch.' : 'Aktion fehlt noch: Speichern erstellt/aktualisiert den Reward auf Twitch; Einlösungen werden lokal erst mit vollständiger Aktion ausgeführt.'}</span></div>` : ''}
 
       <section class="cp-editor-section"><h4>Basis</h4><div class="cp-form-grid">
         <label>Reward-Key <span class="cp-help" title="Interner eindeutiger Schlüssel, z. B. sound_hype oder video_party.">?</span><input data-cp-field="reward_key" value="${esc(d.reward_key || '')}" placeholder="z. B. sound_hype"></label>
@@ -1346,7 +1346,7 @@ Es wird NICHT automatisch ausgeführt und Twitch wird NICHT verändert.`)) retur
 
       <label class="cp-wide cp-notes-label">Notizen<textarea rows="2" data-cp-field="notes">${esc(d.notes || '')}</textarea></label>
 
-      <div class="cp-modal-actions"><button type="button" data-cp-action="save">${isEdit ? 'Speichern & zu Twitch synchronisieren' : 'Erstellen & zu Twitch synchronisieren'}</button>${isEdit ? `<button type="button" data-cp-action="delete" data-key="${esc(d.reward_key)}" class="danger">Löschen</button>` : ''}<button type="button" data-cp-action="modal-close">Abbrechen</button></div>
+      <div class="cp-inline-note cp-twitch-save-note">Neue Rewards werden nach dem Speichern auf Twitch angelegt, bleiben aber zunächst inaktiv.</div><div class="cp-modal-actions"><button type="button" data-cp-action="save">${isEdit ? 'Speichern' : 'Erstellen'}</button>${isEdit ? `<button type="button" data-cp-action="delete" data-key="${esc(d.reward_key)}" class="danger">Löschen</button>` : ''}<button type="button" data-cp-action="modal-close">Abbrechen</button></div>
     </div></div>`;
   }
 
