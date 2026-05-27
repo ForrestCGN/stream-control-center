@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "channelpoints";
-const MODULE_VERSION = "0.9.9";
-const MODULE_BUILD = "defer-output-target-to-sound-system";
+const MODULE_VERSION = "0.9.10";
+const MODULE_BUILD = "sound-system-routing-defaults";
 const ROUTE_PREFIX = "/api/channelpoints";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1036,17 +1036,12 @@ function buildTextRewardResult(reward, input = {}) {
   };
 }
 
-function explicitMediaOutputTarget(payload) {
-  const raw = cleanString(payload && (payload.outputTarget || payload.output || "")).toLowerCase();
-  if (!raw || raw === "auto" || raw === "default" || raw === "sound_system") return "";
-  const explicit = payload && (
-    payload.outputTargetExplicit === true ||
-    payload.explicitOutputTarget === true ||
-    payload.outputTargetMode === "explicit" ||
-    payload.outputMode === "explicit"
-  );
-  if (!explicit) return "";
-  return ["overlay", "device", "both"].includes(raw) ? raw : "";
+function explicitMediaOutputTarget(_payload) {
+  // STEP522: Channelpoints does not force Device/Overlay/Both for media rewards.
+  // The Sound-System is the central audio/media layer and decides the effective output
+  // based on media type, configured device/overlay availability and Discord routing.
+  // Manual output overrides will be reintroduced later through the Sound-System rules.
+  return "";
 }
 
 function buildRewardExecutionPayload(reward, input = {}) {
@@ -1080,14 +1075,14 @@ function buildRewardExecutionPayload(reward, input = {}) {
     soundId: "",
     sound: "",
     volume: intValue(payload.volume, isVideo ? 80 : 85),
-    target: cleanString(payload.target || "stream"),
+    target: cleanString(payload.target || "both"),
     category: cleanString(payload.category || "channel_reward"),
     requestedBy: userLogin || displayName,
     label: cleanString(payload.label || reward.title || reward.reward_key || mediaId),
-    playBehavior: cleanString(payload.playBehavior || (mediaType === "audio" || mediaType === "video" ? "queue" : "immediate")),
-    queueIfBusy: reward.queue_mode !== "drop",
+    playBehavior: "queue",
+    queueIfBusy: true,
     parallelAllowed: payload.parallelAllowed === true,
-    outputTargetMode: outputTarget ? "explicit" : "auto",
+    outputTargetMode: "sound_system",
     meta: {
       rewardId: reward.id,
       rewardKey: reward.reward_key,
@@ -1095,7 +1090,7 @@ function buildRewardExecutionPayload(reward, input = {}) {
       actionType: reward.action_type || "",
       mediaId,
       source: "channelpoints",
-      outputTargetMode: outputTarget ? "explicit" : "auto"
+      outputTargetMode: "sound_system"
     }
   };
   if (outputTarget) executionPayload.outputTarget = outputTarget;
@@ -1728,7 +1723,7 @@ function buildTwitchRewardManagementStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "defer_output_target_to_sound_system_ready",
+    status: "sound_system_routing_defaults_ready",
     enabled: config.twitchRewardManagementEnabled !== false,
     writeOnLocalToggle: config.twitchRewardWriteOnLocalToggle !== false,
     requireConfirmForPush: config.twitchRewardWriteRequireConfirm !== false,
@@ -2040,7 +2035,7 @@ function buildRedemptionEventSubStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: "defer_output_target_to_sound_system_ready",
+    status: "sound_system_routing_defaults_ready",
     enabled: config.redemptionEventSubPreparationEnabled !== false,
     storeEnabled: config.redemptionEventSubStoreEnabled !== false,
     processingRule: "Reward aktiv + Aktion vollständig = ausführen; Reward inaktiv oder Aktion fehlt = nicht ausführen.",

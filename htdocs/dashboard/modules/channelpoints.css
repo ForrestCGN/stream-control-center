@@ -197,3 +197,7 @@ html[data-theme="light"] .cp-color-picker-row input{background:rgba(255,255,255,
 @supports not (color: color-mix(in srgb, red, blue)){.cp-color-presets button span{box-shadow:0 0 12px rgba(145,71,255,.35)}}
 @media(max-width:900px){.cp-color-picker-row{grid-template-columns:1fr 1fr}.cp-color-clear{width:100%}}
 @media(max-width:620px){.cp-color-picker-row{grid-template-columns:1fr}.cp-color-presets button{width:100%;justify-content:flex-start}}
+
+.cp-routing-info{border:1px solid rgba(139,92,246,.35);background:rgba(15,23,42,.72);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;color:#dbeafe}
+.cp-routing-info strong{color:#f5f3ff;font-size:13px}
+.cp-routing-info span{color:#aab4c8;font-size:12px;line-height:1.35}
