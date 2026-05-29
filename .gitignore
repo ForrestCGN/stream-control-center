@@ -34,6 +34,10 @@ logs/
 *.7z
 *.rar
 
+# System inspection / cleanup runtime output
+system-scan-output/
+_cleanup_quarantine/
+
 # OS / editor
 .DS_Store
 Thumbs.db
