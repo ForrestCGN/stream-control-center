@@ -1,7 +1,7 @@
 # Aktueller Systemstatus – stream-control-center
 
-Stand: 2026-05-27  
-Fokus: Channelpoints-System, Twitch-Sync, Redemption-Flow, Sound-System-Routing, Media-Dateinamen
+Stand: 2026-05-29  
+Fokus: Channelpoints-System, Twitch-Sync, Redemption-Flow, Sound-System-Routing, Media-Dateinamen, Alert-Overlay-Stabilität, Doku-Cleanup
 
 ## Single Source of Truth
 
@@ -57,6 +57,15 @@ Zurückgezogen/nicht benutzen:
 
 ```text
 STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0
+```
+
+Doku-/Cleanup-Stand:
+
+```text
+STEP530_BACKUP_AND_SAFE_CLEANUP_BATCH1
+STEP531_DOCS_TODO_AND_CLEANUP_SCAN
+STEP532_TODO_RESCUE_AND_DOC_CLEANUP_TRIAGE
+STEP533_CURRENT_APPEND_DOCS_CONSOLIDATION_BATCH1
 ```
 
 ## Channelpoints – aktuelles Bedienkonzept
@@ -149,6 +158,141 @@ Technischer Dateiname: ASCII-sicher, z. B. GewuerzGurke.mp3
 
 Aktueller Real-Fix basiert auf echter `backend/modules/media.js` und nicht auf dem zurückgezogenen Tool-Script.
 
+## Alert-Overlay / SoundBus – konsolidierter Stand
+
+Die früheren `CURRENT_SYSTEM_STATUS_STEP*_APPEND.md`-Dateien zu STEP363 bis STEP396 wurden in diesen Abschnitt zusammengeführt.
+
+### Produktiver Alert-Pfad
+
+Produktiv ist das direkte Alert-Overlay:
+
+```text
+http://127.0.0.1:8080/overlays/_overlay-alerts-v2.html
+```
+
+Der produktive Alert-Pfad bleibt:
+
+```text
+alert_system.js
+→ legacy WebSocket
+→ _overlay-alerts-v2.html
+→ overlay finished ack
+```
+
+Der Communication-Bus ist vorbereitet und der direkte Bus-Shadow-Client im echten Overlay ist online:
+
+```text
+clientId=alert_overlay_v2_shadow
+module=alert_system
+type=overlay
+status=online
+```
+
+Wichtig: Das ist derzeit Shadow-/Vorbereitungsstand. Es ist keine produktive Umschaltung auf Bus.
+
+### Nicht produktiv verwenden
+
+Nicht als produktiven Alert-Pfad verwenden:
+
+```text
+http://127.0.0.1:8080/overlays/_overlay-alerts-v2-bus.html?debug=1&mode=bridge
+```
+
+Die iframe-/Bridge-Variante ist nicht Produktionspfad.
+
+Ebenfalls nicht verwenden:
+
+```text
+STEP376
+STEP386
+```
+
+außer sie werden ausdrücklich als verworfen/archiviert dokumentiert.
+
+### Bestätigte Reconnect-/Reload-Fixes
+
+Bestätigter Ablauf:
+
+```text
+- laufender Alert aktiv
+- OBS-Alert-Browserquelle wird währenddessen aktualisiert
+- Overlay meldet hello
+- Alert-System sendet laufenden Alert an reconnecteten Overlay-Client
+- Sound/TTS startet nicht erneut
+- Queue bleibt stabil
+- Alert-Lifecycle wird nach Ende sauber geleert
+```
+
+Der Reconnect-Replay nutzt die verbleibende Restlaufzeit (`remainingMs`) statt der vollen `durationMs`. Dadurch verlängert ein OBS-Browserquellen-Reload die visuelle Alert-Anzeige nicht künstlich.
+
+Bestätigter späterer Status:
+
+```text
+OverlayUrlStatus=200
+overlayClients=1
+OverlayWatchdog issues=0
+missingFinishAck=0
+noClient=0
+CommunicationClients=alert_overlay_v2_shadow:alert_system:overlay:online
+DirectOverlayBusClientOnline=True
+BridgeClientOnline=False
+CommunicationWatchdog issueCount=0
+```
+
+### Bus-/Shadow-Adapter-Stand
+
+Der Alert-Bus-Adapter darf nicht direkt produktiv geschaltet werden.
+
+Zukünftiger Bus-Pfad braucht vorher einen stabilen Adaptervertrag:
+
+```text
+communication_bus
+→ channel visual.alert
+→ action play/clear
+→ payload.alert
+→ overlay bus ack
+```
+
+Vorbereiteter Shadow-Stand:
+
+```text
+channel=visual.alert
+action=play
+action=clear
+payload.alert
+bus_ack received/finished
+```
+
+Offene Folgearbeit bleibt: Shadow-/Bus-Test und erst danach Entscheidung, ob produktiver Bus-Modus vorbereitet wird.
+
+### Offenes Feintuning
+
+Das Timing zwischen Visual, Sound und TTS soll später optional geprüft werden.
+
+Keine akute Fehlfunktion: Der zuletzt dokumentierte echte Alert-Flow war visuell stabil.
+
+## Bekannte offene Issues
+
+### Sound-System: verwaister `activeBundleLock`
+
+Sound-System kann nach Birthday-Bundle/Manual-Stop in einen Zustand geraten, in dem `activeBundleLock` gesetzt bleibt, obwohl `current` und `currentBundle` leer sind.
+
+Effekt:
+
+```text
+Neue Birthday-/VIP-Sounds landen in der Queue, starten aber nicht.
+```
+
+Live-Workaround:
+
+```text
+POST /api/sound/clear
+```
+
+Das löst Queue und Lock.
+
+Status: bekanntes separates Sound-System-Issue, nicht Teil der Alert-Reconnect-/Bus-Arbeiten.
+
 ## Bekannte Diagnose aus letzter Sitzung
 
 `Cannot GET /api/channelpoints/status` bedeutete nicht automatisch Dashboard-Fehler. In einem konkreten Fall wurde `backend/modules/channelpoints.js` nicht geladen.
@@ -189,4 +333,17 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/rewards" |
   Select-Object -ExpandProperty rewards |
   Select-Object reward_key,title,system_enabled,twitch_is_enabled,twitch_reward_id,action_type,action_key,media_asset_id,media_role,cooldown_seconds,max_per_stream,max_per_user_per_stream |
   Format-Table -AutoSize
+```
+
+Alert-/Overlay-Status:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status" | ConvertTo-Json -Depth 8
+```
+
+Sound-Status:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 8
 ```
