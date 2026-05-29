@@ -64,3 +64,22 @@ Dann:
 Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status" | ConvertTo-Json -Depth 6
 Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/manage/status" | ConvertTo-Json -Depth 6
 ```
+
+
+## Ergänzung 2026-05-27 Abend
+
+Aktueller stabiler Kanalpunkte-Stand bleibt:
+
+```text
+STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
+```
+
+Nach STEP527 wurde besprochen, als nächsten eigenständigen Arbeitsblock ein Overlay-Health-/Refresh-System zu bauen. Noch keine Umsetzung erfolgt.
+
+Geplanter nächster Step:
+
+```text
+STEP528_OVERLAY_HEALTH_AND_REFRESH_CONTROL
+```
+
+Ziel: Overlays und OBS-Browserquellen über das System diagnosefähig und refreshbar machen.

@@ -36,3 +36,11 @@ STEP525_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_FLOW_v0.9.11
 ```text
 STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
 ```
+
+
+## 2026-05-27 – Planung STEP528 Overlay Health/Refresh
+
+- Nach STEP527 keine Code-Änderung mehr umgesetzt.
+- Geplant: neues Overlay-Health-/Refresh-Control-System.
+- Ziel: unterscheiden, ob Overlay-JS, OBS-Browserquelle oder OBS-WebSocket/OBS selbst hängt.
+- Start im nächsten Chat erst nach Prüfung der echten OBS-/Overlay-/WebSocket-Dateien.

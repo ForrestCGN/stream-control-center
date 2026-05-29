@@ -56,3 +56,20 @@ STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0.zip
 STEP525_CHANNELPOINTS_SAVE_ACTIVE_SYNCS_TWITCH_v0.9.11.zip
 STEP525_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_FLOW_v0.9.11.zip
 ```
+
+
+## Für STEP528 voraussichtlich relevante Dateien
+
+Noch nicht geändert, zuerst prüfen:
+
+```text
+backend/modules/obs.js
+backend/modules/scene_control.js
+backend/modules/overlay_data.js
+backend/modules/sound_system.js
+htdocs/ws-client.js
+htdocs/overlays/*.html
+htdocs/dashboard/modules/*.js
+htdocs/dashboard/modules/*.css
+config/overlay_refresh.json (geplant, noch nicht vorhanden)
+```

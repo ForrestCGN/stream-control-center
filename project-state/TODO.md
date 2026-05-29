@@ -21,3 +21,14 @@ Stand: 2026-05-27
 
 - [ ] Diese Doku nach erfolgreichem Test ggf. mit finalen Testergebnissen ergänzen.
 - [ ] Bei Chatwechsel erneut `dokumentieren und aktualisieren` durchführen.
+
+
+## TODO – STEP528 Overlay Health/Refresh
+
+- [ ] Echte aktuelle Dateien prüfen: obs.js, scene_control.js, overlay_data.js, sound_system.js, ws-client.js, relevante Overlays.
+- [ ] Vorhandene OBS-Refresh-Möglichkeiten ermitteln.
+- [ ] Overlay-Heartbeat-Konzept definieren.
+- [ ] Dashboard-Statuskarte für Overlay-Gesundheit planen.
+- [ ] Refresh-Routen für einzelne Sources und Gruppen planen.
+- [ ] Konfiguration für Overlay-Gruppen statt hart codierter Namen planen.
+- [ ] Streamer.bot-kompatible GET-Fallbacks prüfen.
