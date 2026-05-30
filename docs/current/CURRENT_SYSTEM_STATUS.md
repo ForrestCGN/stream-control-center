@@ -1,4 +1,4 @@
-# Aktueller Systemstatus – stream-control-center
+﻿# Aktueller Systemstatus – stream-control-center
 
 Stand: 2026-05-30  
 Fokus: Channelpoints-System, Twitch-Sync, Redemption-Flow, Sound-System-Routing, Media-Dateinamen, Alert-Overlay-Stabilität, Doku-/Project-State-Cleanup, Routen-/Modul-Doku-Verifikation
@@ -315,3 +315,59 @@ Dashboard-/Overlay-/Streamer.bot-relevante APIs markieren
 gegen docs/modules/*.md und docs/current/CURRENT_SYSTEM_STATUS.md vergleichen
 fehlende/veraltete Routen-Doku melden
 ```
+
+<!-- STEP601_CURRENT_STATUS_CROSSMODULE_BATCH_START -->
+
+## STEP601 Crossmodule Route Documentation Batch
+
+Stand: 2026-05-30
+
+Dieser Abschnitt dokumentiert den aus STEP600 ausgewaehlten echten Modul-/Status-Doku-Batch.
+
+Ziel ist eine zentrale Status-Einordnung fuer Module, deren Routen laut Scan/Triage aktuell eher in CURRENT_SYSTEM_STATUS.md als in einer neuen Einzel-Doku zusammengefasst werden sollen.
+
+### Batch
+
+Batch: F_current_status_crossmodule
+Ziel-Doku: docs/current/CURRENT_SYSTEM_STATUS.md
+Module im Batch: 8
+High Priority: 4
+Review Priority: 0
+Route Hits: 394
+Quelle: system-scan-output/step600_next_real_module_doc_batch_rows.tsv
+Generated: 2026-05-30 11:23:23
+
+### Arbeitsregel
+
+1. Diese Liste ist scan-/triagebasiert.
+2. Sie beschreibt Doku-Bedarf und Status-Einordnung, keine neue Funktionalitaet.
+3. Keine produktive Route ungeprueft aus Scan-Treffern ableiten.
+4. Moduldatei und Router-Kontext bleiben fuer fachliche Aussagen massgeblich.
+
+### Module in diesem Crossmodule-Batch
+
+| Priority | Module | File | Route Hits | Action |
+|---|---|---|---:|---|
+| high | alert_system | backend/modules/alert_system.js | 203 | update_target_doc_first |
+| high | obs | backend/modules/obs.js | 83 | update_target_doc_first |
+| high | scene_control | backend/modules/scene_control.js | 42 | update_target_doc_first |
+| high | twitch_chat_overlay | backend/modules/twitch_chat_overlay.js | 41 | update_target_doc_first |
+| normal | kofi | backend/modules/kofi.js | 5 | review_existing_doc_section |
+| normal | overlay_data | backend/modules/overlay_data.js | 3 | review_existing_doc_section |
+| normal | start_overlay | backend/modules/start_overlay.js | 8 | review_existing_doc_section |
+| normal | tipeee | backend/modules/tipeee.js | 9 | review_existing_doc_section |
+
+### Bedeutung fuer den aktuellen Systemstatus
+
+Dieser Batch zeigt, dass mehrere route-tragende Module zwar in der zentralen Inventur erfasst sind, aber fuer die operative Projektuebergabe weiterhin einen kompakten Status-/Doku-Hinweis brauchen.
+
+Die Eintraege bleiben bewusst als Doku-/Review-Liste formuliert. Eine spaetere Detail-Doku darf daraus nur nach gezielter Pruefung der echten Dateien entstehen.
+
+### Naechster Schritt
+
+STEP602 - Current Status Crossmodule Batch Verification
+
+Ziel: Pruefen, ob CURRENT_SYSTEM_STATUS.md sauber ergaenzt wurde und danach den naechsten echten Modul-Doku-Batch bestimmen.
+
+<!-- STEP601_CURRENT_STATUS_CROSSMODULE_BATCH_END -->
+
