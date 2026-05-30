@@ -920,3 +920,62 @@ Ziel: Aus bestaetigbaren Routen und den STEP595-Zielbereichen kleine Modul-Doku-
 
 <!-- STEP597_FALSE_POSITIVE_REVIEW_END -->
 
+<!-- STEP599_MODULE_ROUTE_DOCS_BATCH_A_START -->
+
+## STEP599 Module Route Docs Batch A
+
+Stand: 2026-05-30
+
+Dieser Abschnitt ist ein gezielter Doku-Batch aus STEP598. Er dokumentiert nur den aktuell hoechstpriorisierten Modul-Routen-Batch und erzeugt keine Einzel-Dokus pro Modul.
+
+### Batch
+
+Batch: Z_backend_routes_inventory
+Ziel-Doku: docs/backend/ROUTES.md
+Module im Batch: 20
+High Priority: 14
+Review Priority: 1
+Route Hits: 831
+Quelle: system-scan-output/step598_module_route_docs_batch_rows.tsv
+Generated: 2026-05-30 11:16:53
+
+### Arbeitsregel
+
+1. Diese Eintraege sind aus Scan-/Triage-Ergebnissen abgeleitet.
+2. Ein Modul gilt dadurch nicht automatisch als vollstaendig dokumentiert.
+3. Vor funktionalen Entscheidungen immer echte Moduldatei und Router-Kontext pruefen.
+4. Keine produktive Route ungeprueft aus Scan-Treffern ableiten.
+
+### Module in diesem Batch
+
+| Priority | Module | File | Route Hits | Action |
+|---|---|---|---:|---|
+| high | audit_log | backend/modules/audit_log.js | 10 | keep_in_routes_inventory_until_verified |
+| high | challenge | backend/modules/challenge.js | 30 | keep_in_routes_inventory_until_verified |
+| high | commands | backend/modules/commands.js | 27 | keep_in_routes_inventory_until_verified |
+| high | deathcounter_v2 | backend/modules/deathcounter_v2.js | 68 | keep_in_routes_inventory_until_verified |
+| high | discord | backend/modules/discord.js | 55 | keep_in_routes_inventory_until_verified |
+| high | hug | backend/modules/hug.js | 83 | keep_in_routes_inventory_until_verified |
+| high | loyalty | backend/modules/loyalty.js | 80 | keep_in_routes_inventory_until_verified |
+| high | message_rotator | backend/modules/message_rotator.js | 110 | keep_in_routes_inventory_until_verified |
+| high | message_rotator_scheduler | backend/modules/message_rotator_scheduler.js | 25 | keep_in_routes_inventory_until_verified |
+| high | messages | backend/modules/messages.js | 76 | keep_in_routes_inventory_until_verified |
+| high | tagebuch | backend/modules/tagebuch.js | 78 | keep_in_routes_inventory_until_verified |
+| high | todo | backend/modules/todo.js | 64 | keep_in_routes_inventory_until_verified |
+| high | twitch | backend/modules/twitch.js | 57 | keep_in_routes_inventory_until_verified |
+| high | twitch_presence | backend/modules/twitch_presence.js | 53 | keep_in_routes_inventory_until_verified |
+| normal | chat_output | backend/modules/chat_output.js | 3 | keep_in_routes_inventory_until_verified |
+| normal | credits | backend/modules/credits.js | 1 | keep_in_routes_inventory_until_verified |
+| normal | diagnostics | backend/modules/diagnostics.js | 3 | keep_in_routes_inventory_until_verified |
+| normal | fireworks_api | backend/modules/fireworks_api.js | 6 | keep_in_routes_inventory_until_verified |
+| normal | stream_status | backend/modules/stream_status.js | 1 | keep_in_routes_inventory_until_verified |
+| review | database_core | backend/modules/database_core.js | 1 | keep_in_routes_inventory_until_verified |
+
+### Naechster Schritt
+
+STEP600 - Module Route Docs Batch A Verification
+
+Ziel: Pruefen, ob dieser Batch in der Ziel-Doku sauber ergaenzt wurde und ob weitere Batch-Bereiche separat geplant werden muessen.
+
+<!-- STEP599_MODULE_ROUTE_DOCS_BATCH_A_END -->
+
