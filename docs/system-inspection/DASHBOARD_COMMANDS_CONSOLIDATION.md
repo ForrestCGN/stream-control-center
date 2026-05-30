@@ -1,4 +1,4 @@
-# DASHBOARD_COMMANDS_CONSOLIDATION
+﻿# DASHBOARD_COMMANDS_CONSOLIDATION
 
 Version: 0.1.0  
 Stand: 2026-05-30  
@@ -264,3 +264,53 @@ project-state/archive/2026-05-30-step578-dashboard-commands-state/
 ## Keine Funktionalitaet entfernen
 
 Bestehende Dashboard-, Commands-, Channelpoints-, API-, Backend-, DB-, Twitch-, Streamer.bot- und Media-Funktionalitaet darf durch diese Konsolidierung nicht entfernt oder ungeprueft ersetzt werden.
+
+<!-- STEP605_DASHBOARD_COMMANDS_MODULE_DOCS_BATCH_START -->
+
+## STEP605 Dashboard Commands Module Docs Batch
+
+Stand: 2026-05-30
+
+Dieser Abschnitt dokumentiert den Dashboard-/Commands-Anteil aus dem von STEP604 bestimmten naechsten Modul-Doku-Batch.
+
+### Batch
+
+Batch: D_dashboard_commands
+Ziel-Doku: docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
+Module im Batch: 3
+High Priority: 2
+Review Priority: 0
+Route Hits: 42
+Quelle: system-scan-output/step604_next_real_module_doc_batch_rows.tsv
+Generated: 2026-05-30 11:41:18
+
+### Arbeitsregel
+
+1. Diese Eintraege sind scan-/triagebasiert.
+2. Dashboard-/Command-Routen duerfen nur als Doku-Hinweis verstanden werden, nicht als neue Funktionalitaet.
+3. Dashboard muss weiterhin ueber Backend-APIs arbeiten und darf keine SQLite-/Datei-Direktzugriffe etablieren.
+4. Security-/Auth-/Admin-Kontext immer gesondert pruefen.
+5. Keine produktive Route ungeprueft aus Scan-Treffern ableiten.
+
+### Dashboard-/Commands-nahe Module in diesem Batch
+
+| Priority | Module | File | Route Hits | Action |
+|---|---|---|---:|---|
+| high | dashboard_auth | backend/modules/dashboard_auth.js | 18 | update_target_doc_first |
+| high | dashboard_controlcenter | backend/modules/dashboard_controlcenter.js | 22 | update_target_doc_first |
+| normal | security | backend/modules/security.js | 2 | review_existing_doc_section |
+
+### Abgrenzung
+
+Dieser Abschnitt ist eine Doku-/Review-Zwischenablage fuer Dashboard-/Commands-nahe Scan-Kandidaten.
+
+Er ersetzt keine Sicherheitspruefung, keine Rollen-/Rechtepruefung und keine fachliche Dashboard-Routen-Doku.
+
+### Naechster Schritt
+
+STEP606 - Dashboard Commands Batch Verification
+
+Ziel: Pruefen, ob der STEP605-Abschnitt sauber in der Dashboard-Commands-Konsolidierungsdoku steht und danach den naechsten Modul-Doku-Batch bestimmen.
+
+<!-- STEP605_DASHBOARD_COMMANDS_MODULE_DOCS_BATCH_END -->
+
