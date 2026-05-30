@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CGN Overlay Bus Test</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, Helvetica, sans-serif;
+      background: transparent;
+      color: #ffffff;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    .wrap {
+      position: fixed;
+      left: 24px;
+      top: 24px;
+      width: 420px;
+      padding: 18px 20px;
+      border: 1px solid rgba(160, 90, 255, 0.8);
+      border-radius: 18px;
+      background: rgba(10, 12, 28, 0.88);
+      box-shadow: 0 0 24px rgba(137, 73, 255, 0.55), inset 0 0 18px rgba(48, 213, 255, 0.08);
+      backdrop-filter: blur(6px);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 10px;
+      padding: 7px 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 14px;
+    }
+
+    .label {
+      color: #9fb0c8;
+    }
+
+    .value {
+      font-family: Consolas, monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #ef4444;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+    }
+
+    .online .dot {
+      background: #22c55e;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap" id="app">
+    <h1>Overlay Bus Test</h1>
+    <p>Dieses Test-Overlay meldet sich beim bestehenden Communication Bus an und sendet Heartbeats.</p>
+    <div class="row"><span class="label">Status</span><span class="value status" id="status"><span class="dot"></span><span>verbinde…</span></span></div>
+    <div class="row"><span class="label">Client</span><span class="value">overlay:bus_test</span></div>
+    <div class="row"><span class="label">Modul</span><span class="value">bus_test</span></div>
+    <div class="row"><span class="label">Hello ACK</span><span class="value" id="helloAck">-</span></div>
+    <div class="row"><span class="label">Heartbeat ACK</span><span class="value" id="heartbeatAck">-</span></div>
+    <div class="row"><span class="label">Reconnects</span><span class="value" id="reconnects">0</span></div>
+    <div class="row"><span class="label">Fehler</span><span class="value" id="error">-</span></div>
+  </main>
+
+  <script
+    src="/overlays/shared/overlay_bus_client.js"
+    data-overlay-id="overlay:bus_test"
+    data-client-type="overlay"
+    data-mode="obs"
+    data-module="bus_test"
+    data-name="Overlay Bus Test"
+    data-version="0.1.0"
+    data-heartbeat-ms="5000"
+    data-debug="0"></script>
+
+  <script>
+    (function(){
+      const root = document.getElementById('app');
+      const status = document.getElementById('status');
+      const helloAck = document.getElementById('helloAck');
+      const heartbeatAck = document.getElementById('heartbeatAck');
+      const reconnects = document.getElementById('reconnects');
+      const error = document.getElementById('error');
+
+      function render(){
+        const s = window.CGNOverlayBusClient ? window.CGNOverlayBusClient.status() : {};
+        root.classList.toggle('online', !!s.connected);
+        status.querySelector('span:last-child').textContent = s.connected ? 'online' : 'offline / reconnect';
+        helloAck.textContent = s.lastHelloAckAt || '-';
+        heartbeatAck.textContent = s.lastHeartbeatAckAt || '-';
+        reconnects.textContent = String(s.reconnectAttempts || 0);
+        error.textContent = s.lastError || '-';
+      }
+
+      window.addEventListener('cgn:overlay-bus-open', render);
+      window.addEventListener('cgn:overlay-bus-close', render);
+      window.addEventListener('cgn:overlay-bus-message', render);
+      setInterval(render, 1000);
+      render();
+    })();
+  </script>
+</body>
+</html>
