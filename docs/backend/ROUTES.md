@@ -775,3 +775,148 @@ Ziel: Die 357 False-Positive-Kandidaten aus STEP595 nicht blind uebernehmen, son
 
 <!-- STEP596_MISSING_ROUTES_DOC_BATCH_END -->
 
+<!-- STEP597_FALSE_POSITIVE_REVIEW_START -->
+
+## STEP597 False-Positive Review Hinweise
+
+Stand: 2026-05-30
+
+Dieser Abschnitt dokumentiert die aus STEP595 erkannten False-Positive-Kandidaten der scanbasierten Routen-Inventur.
+
+Wichtig: Diese Kandidaten duerfen nicht automatisch als echte produktive Routen behandelt werden.
+
+### Zusammenfassung
+
+False-positive candidates total: 357
+Risiko-Gruppen: 4
+Bereiche: 11
+Quelle: system-scan-output/step595_false_positive_candidates.tsv
+Generated: 2026-05-30 11:11:05
+
+### Risiko-Gruppen
+
+| Risiko | Count | High Priority | Review Priority | Missing Doc Mention |
+|---|---:|---:|---:|---:|
+| unknown_method | 331 | 0 | 331 | 26 |
+| dynamic_or_pattern | 22 | 0 | 22 | 0 |
+| possible_example | 3 | 0 | 0 | 0 |
+| many_hits | 1 | 0 | 0 | 0 |
+
+### Bereiche
+
+| Bereich | Count | Dynamic/Pattern | Unknown Method | Many Hits |
+|---|---:|---:|---:|---:|
+| alerts | 84 | 13 | 71 | 0 |
+| obs_overlay | 45 | 0 | 45 | 0 |
+| stream_features | 43 | 1 | 41 | 1 |
+| twitch_chat | 42 | 0 | 42 | 0 |
+| discord_tagebuch_todo | 41 | 0 | 38 | 0 |
+| sound_media | 37 | 3 | 34 | 0 |
+| other | 33 | 3 | 30 | 0 |
+| dashboard_admin_security | 13 | 1 | 12 | 0 |
+| diagnostics | 10 | 0 | 10 | 0 |
+| communication_bus | 5 | 1 | 4 | 0 |
+| channelpoints | 4 | 0 | 4 | 0 |
+
+### Review-Auszug
+
+Die folgende Liste ist bewusst begrenzt. Vollstaendige Details liegen in system-scan-output/step595_false_positive_candidates.tsv.
+
+| Risk | Area | Route | Methods | Files | Note |
+|---|---|---|---|---|---|
+| dynamic_or_pattern | alerts | /api/alerts/assets/:id | DELETE, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/assets/:id/usage | GET, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/chat-blocks/:id | DELETE, PUT, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/chat-outbox/:id/consumed | POST, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/chat-outbox/:id/error | POST, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/chat-outbox/:id/sent | POST, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/display-profiles/:id | DELETE, PUT, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/display-profiles/:id/play | POST, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/events/:eventUid/replay | POST, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/rules/:id | DELETE, PUT, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/test-presets/:id | DELETE, PUT, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/test-presets/:id/play | POST, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | alerts | /api/alerts/text-variants/:id | DELETE, PUT, UNKNOWN | backend/modules/alert_system.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | communication_bus | /api/loyalty/events/test/:type | GET | backend/modules/loyalty.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | dashboard_admin_security | /api/dashboard/controlcenter/config/:id | GET, POST | backend/modules/dashboard_controlcenter.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | other | /api/loyalty/balance/:login | GET | backend/modules/loyalty.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | other | /api/loyalty/ignored-users/:login | DELETE | backend/modules/loyalty.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | other | /api/loyalty/users/:login | GET | backend/modules/loyalty.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | sound_media | /api/soundalerts/entries/:entryKey | DELETE | backend/modules/soundalerts_bridge.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | sound_media | /api/soundalerts/entries/:entryKey/delete | POST | backend/modules/soundalerts_bridge.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | sound_media | /api/soundalerts/entries/:entryKey/ignore | POST | backend/modules/soundalerts_bridge.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| dynamic_or_pattern | stream_features | /api/clip/job/:jobId | GET | backend/modules/clips.js | Route contains dynamic/pattern-like tokens; verify in source. |
+| many_hits | stream_features | /api/deathcounter/v2/command | GET, POST | backend/modules/commands.js, backend/modules/deathcounter_v2.js | Many hits for same route; could be reused constant or repeated mention. |
+| possible_example | discord_tagebuch_todo | /api/todo/stats/top | GET | backend/modules/todo.js | Looks like example/placeholder; verify before documenting as real. |
+| possible_example | discord_tagebuch_todo | /discord/todo | GET, POST | backend/modules/todo.js | Looks like example/placeholder; verify before documenting as real. |
+| possible_example | discord_tagebuch_todo | /discord/todo/status | GET | backend/modules/todo.js | Looks like example/placeholder; verify before documenting as real. |
+| unknown_method | alerts | /api/alerts | UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/assets | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/assets/scan-durations | POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/assets/upload | POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/bus-mirror/disable | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/bus-mirror/enable | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/bus-mirror/enable?confirm=1 | UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/bus-mirror/status | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/chat-blocks | GET, POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/chat-outbox | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/clear | POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/config | GET, POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/display-profiles | GET, POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/enqueue | POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/eventbus/correlation/check | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/eventbus/correlation/status | GET, UNKNOWN | backend/modules/alert_system.js, backend/modules/bus_diagnostics.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/eventbus/reset | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/eventbus/status | GET, UNKNOWN | backend/modules/alert_system.js, backend/modules/bus_diagnostics.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/eventbus/test | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/events | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/health | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/integration-check | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/kofi/config | UNKNOWN | backend/modules/kofi.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/kofi/reload | UNKNOWN | backend/modules/kofi.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/kofi/status | UNKNOWN | backend/modules/kofi.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/kofi/test | UNKNOWN | backend/modules/kofi.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/kofi/webhook | UNKNOWN | backend/modules/kofi.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/overlay-watchdog/check | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/overlay-watchdog/recover | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/overlay-watchdog/recover?confirm=1 | UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/overlay-watchdog/reset | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/overlay-watchdog/reset?confirm=1 | UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/overlay-watchdog/status | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/queue | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/reload | POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/routes | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/rules | GET, POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/rules/validate | POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/settings | GET, POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/status | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/test | POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/test-presets | GET, POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/text-variants | GET, POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/tipeee/config | UNKNOWN | backend/modules/tipeee.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/tipeee/connect | UNKNOWN | backend/modules/tipeee.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/tipeee/disconnect | UNKNOWN | backend/modules/tipeee.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/tipeee/events/recent | UNKNOWN | backend/modules/tipeee.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/tipeee/reconnect | UNKNOWN | backend/modules/tipeee.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/tipeee/reload | UNKNOWN | backend/modules/tipeee.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/tipeee/status | UNKNOWN | backend/modules/tipeee.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/tipeee/test | UNKNOWN | backend/modules/tipeee.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/tipeee/webhook | UNKNOWN | backend/modules/tipeee.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/twitch | POST, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| unknown_method | alerts | /api/alerts/twitch/bits | GET, UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+
+### Arbeitsregel fuer folgende Doku-Steps
+
+1. Ein Kandidat mit unknown_method, dynamic_or_pattern oder many_hits wird nicht automatisch als Route dokumentiert.
+2. Zuerst die echte Moduldatei und den Express-/Router-Kontext pruefen.
+3. Nur bestaetigte Routen in Modul-Dokus uebernehmen.
+4. Unbestaetigte Kandidaten bleiben als Scan-Hinweis in dieser Inventur.
+
+### Naechster Schritt
+
+STEP598 - Module Route Docs Batch Plan
+
+Ziel: Aus bestaetigbaren Routen und den STEP595-Zielbereichen kleine Modul-Doku-Batches planen.
+
+<!-- STEP597_FALSE_POSITIVE_REVIEW_END -->
+
