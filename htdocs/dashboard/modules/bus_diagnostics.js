@@ -57,15 +57,71 @@
   function getEvents(){ return asList(getBusStatus().events); }
   function getIssues(){ return asList(getBusStatus().issues); }
 
+  function classifyClient(client){
+    const id = String(client?.id || '').toLowerCase();
+    const type = String(client?.type || '').toLowerCase();
+    const mode = String(client?.mode || '').toLowerCase();
+    const moduleName = String(client?.module || '').toLowerCase();
+    if (type === 'overlay' || id.startsWith('overlay:') || mode === 'overlay' || moduleName.includes('overlay')) return 'overlays';
+    if (type === 'module' || id.startsWith('module:') || mode === 'backend') return 'modules';
+    if (['debug','tool','dashboard'].includes(type) || mode.includes('debug') || id.includes('debug')) return 'tools';
+    return 'unknown';
+  }
+
   function splitClients(){
     const clients = getClients();
     return {
       all: clients,
-      modules: clients.filter(c => c.type === 'module' || String(c.id || '').startsWith('module:')),
-      overlays: clients.filter(c => c.type === 'overlay' || String(c.id || '').startsWith('overlay:')),
-      tools: clients.filter(c => ['debug','tool','dashboard'].includes(String(c.type || '').toLowerCase()) || String(c.mode || '').includes('debug')),
-      unknown: clients.filter(c => !c.type || c.type === 'unknown')
+      modules: clients.filter(c => classifyClient(c) === 'modules'),
+      overlays: clients.filter(c => classifyClient(c) === 'overlays'),
+      tools: clients.filter(c => classifyClient(c) === 'tools'),
+      unknown: clients.filter(c => classifyClient(c) === 'unknown')
     };
+  }
+
+  function clientStatus(client){
+    return String(client?.status || (client?.connected ? 'online' : 'offline') || 'unknown').toLowerCase();
+  }
+
+  function countByStatus(clients){
+    const result = { online: 0, stale: 0, offline: 0, dead: 0, ignored: 0, other: 0 };
+    for (const client of asList(clients)) {
+      const s = clientStatus(client);
+      if (s === 'online' || s === 'connected' || s === 'ok') result.online += 1;
+      else if (s === 'stale') result.stale += 1;
+      else if (s === 'offline') result.offline += 1;
+      else if (s === 'dead') result.dead += 1;
+      else if (s === 'ignored') result.ignored += 1;
+      else result.other += 1;
+    }
+    return result;
+  }
+
+  function newestClientTime(clients, fields = ['lastHeartbeatAt','lastSeenAt','connectedAt','registeredAt']){
+    let newest = '';
+    let newestMs = 0;
+    for (const client of asList(clients)) {
+      for (const field of fields) {
+        const raw = client && client[field];
+        if (!raw) continue;
+        const ms = new Date(raw).getTime();
+        if (Number.isFinite(ms) && ms > newestMs) {
+          newestMs = ms;
+          newest = raw;
+        }
+      }
+    }
+    return newest;
+  }
+
+  function sortClientsForDisplay(clients){
+    const order = { online: 0, connected: 0, ok: 0, stale: 1, offline: 2, ignored: 3, dead: 4 };
+    return asList(clients).slice().sort((a, b) => {
+      const as = order[clientStatus(a)] ?? 9;
+      const bs = order[clientStatus(b)] ?? 9;
+      if (as !== bs) return as - bs;
+      return String(a.id || '').localeCompare(String(b.id || ''), 'de');
+    });
   }
 
   function updateLiveStatus(){
@@ -238,6 +294,14 @@
     bindConfigActions();
   }
 
+  function renderOverlayOverviewCard(overlays){
+    const counts = countByStatus(overlays);
+    const problemCount = counts.stale + counts.offline + counts.dead;
+    const status = overlays.length === 0 ? 'warning' : (problemCount > 0 ? 'warning' : 'ok');
+    const note = overlays.length === 0 ? 'keine Overlay-Clients registriert' : `${counts.online} online / ${problemCount} auffällig`;
+    return card('Overlay-Clients', `<div class="busdiag-status-line">${badge(status === 'ok' ? 'ok' : 'prüfen', status)}<span>${esc(note)}</span></div><div class="busdiag-metrics">${metric('Gesamt', overlays.length)}${metric('Online', counts.online)}${metric('Stale/Offline/Dead', problemCount)}${metric('Letzter Heartbeat', fmtTime(newestClientTime(overlays, ['lastHeartbeatAt','lastSeenAt'])))}</div>`, 'busdiag-overlay-card');
+  }
+
   function renderOverview(){
     const data = getStatus();
     const summary = getSummary();
@@ -253,6 +317,7 @@
         ${card('Communication Bus', `<div class="busdiag-status-line">${badge(communication.ok ? 'ok' : 'error', communication.ok ? 'ok' : 'error')}<span>${esc(value(communication.module))} ${esc(value(communication.version))}</span></div><div class="busdiag-metrics">${metric('Bus', bus.name || 'cgn', bus.version ? `v${bus.version}` : '')}${metric('Emitted', stats.emitted ?? '-')}${metric('Delivered', stats.delivered ?? '-')}${metric('ACKs', stats.acks ?? '-')}</div>`)}
       </div>
       <div class="busdiag-grid">
+        ${renderOverlayOverviewCard(split.overlays)}
         ${card('Client-Kategorien', `<div class="busdiag-metrics">${metric('Backend-Module', split.modules.length)}${metric('Overlays', split.overlays.length)}${metric('Tools/Debug', split.tools.length)}${metric('Unbekannt', split.unknown.length)}</div>`)}
         ${card('Event-Speicher', `<div class="busdiag-metrics">${metric('Replay Events', events.filter(e => e.replayable).length)}${metric('ACK Pflicht', events.filter(e => e.requireAck).length)}${metric('Abgelaufen', events.filter(e => e.expired).length)}${metric('Nicht geliefert', events.filter(e => !asList(e.deliveredTo).length).length)}</div>`)}
         ${card('Schutz', `<div class="busdiag-metrics">${metric('Flow touched', bool(data.flowTouched))}${metric('Queue touched', bool(data.queueTouched))}${metric('Sound touched', bool(data.soundSystemTouched))}${metric('Overlay touched', bool(data.overlayTouched))}</div>`)}
@@ -261,13 +326,31 @@
     `;
   }
 
-  function renderClientTable(title, clients, emptyText){
-    return card(title, clients.length ? `<div class="busdiag-table busdiag-table-clients"><div class="busdiag-table-head"><span>ID</span><span>Name/Modul</span><span>Status</span><span>Letzter Kontakt</span><span>Capabilities</span></div>${clients.map(client => `<div class="busdiag-table-row"><span><strong>${esc(client.id)}</strong><small>${esc(client.type || '-')} / ${esc(client.mode || '-')}</small></span><span><strong>${esc(client.name || '-')}</strong><small>${esc(client.module || '-')} ${client.version ? '· ' + esc(client.version) : ''}</small></span><span>${badge(client.status || (client.connected ? 'online' : 'offline'), client.status || (client.connected ? 'online' : 'offline'))}<small>${client.connected ? 'verbunden' : 'getrennt'}</small></span><span><strong>${esc(fmtTime(client.lastHeartbeatAt || client.lastSeenAt))}</strong><small>${esc(client.disconnectReason || '')}</small></span><span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span></div>`).join('')}</div>` : `<p class="busdiag-muted">${esc(emptyText || 'Keine Clients in dieser Kategorie.')}</p>`, 'busdiag-wide');
+  function renderClientTable(title, clients, emptyText, options = {}){
+    const sorted = sortClientsForDisplay(clients);
+    const tableClass = options.overlay === true ? 'busdiag-table-clients busdiag-table-overlays' : 'busdiag-table-clients';
+    const header = options.overlay === true
+      ? '<span>Overlay-ID</span><span>Status</span><span>Modul/Version</span><span>Heartbeat</span><span>Kontakt/Grund</span><span>Capabilities</span>'
+      : '<span>ID</span><span>Name/Modul</span><span>Status</span><span>Letzter Kontakt</span><span>Capabilities</span>';
+    const rows = sorted.map(client => {
+      const status = client.status || (client.connected ? 'online' : 'offline');
+      if (options.overlay === true) {
+        return `<div class="busdiag-table-row"><span><strong>${esc(client.id || '-')}</strong><small>${esc(client.name || '-')}</small></span><span>${badge(status, status)}<small>${client.connected ? 'verbunden' : 'getrennt'}</small></span><span><strong>${esc(client.module || '-')}</strong><small>${esc(client.version || '-')}</small></span><span><strong>${esc(fmtTime(client.lastHeartbeatAt))}</strong><small>Heartbeat</small></span><span><strong>${esc(fmtTime(client.lastSeenAt || client.connectedAt || client.registeredAt))}</strong><small>${esc(client.disconnectReason || client.mode || '')}</small></span><span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span></div>`;
+      }
+      return `<div class="busdiag-table-row"><span><strong>${esc(client.id)}</strong><small>${esc(client.type || '-')} / ${esc(client.mode || '-')}</small></span><span><strong>${esc(client.name || '-')}</strong><small>${esc(client.module || '-')} ${client.version ? '· ' + esc(client.version) : ''}</small></span><span>${badge(status, status)}<small>${client.connected ? 'verbunden' : 'getrennt'}</small></span><span><strong>${esc(fmtTime(client.lastHeartbeatAt || client.lastSeenAt))}</strong><small>${esc(client.disconnectReason || '')}</small></span><span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span></div>`;
+    }).join('');
+    return card(title, sorted.length ? `<div class="busdiag-table ${tableClass}"><div class="busdiag-table-head">${header}</div>${rows}</div>` : `<p class="busdiag-muted">${esc(emptyText || 'Keine Clients in dieser Kategorie.')}</p>`, options.extraClass || 'busdiag-wide');
+  }
+
+  function renderOverlaySummary(overlays){
+    const counts = countByStatus(overlays);
+    const problemCount = counts.stale + counts.offline + counts.dead;
+    return card('Overlay-Verbindungen', `<div class="busdiag-overlay-summary"><div>${metric('Overlays gesamt', overlays.length)}${metric('Online', counts.online)}${metric('Stale', counts.stale)}${metric('Offline', counts.offline)}${metric('Dead', counts.dead)}${metric('Ignored/Sonstige', counts.ignored + counts.other)}</div><p class="busdiag-muted">Quelle: Communication-Bus Client-Registry. Ein Overlay gilt hier als Overlay, wenn <code>type=overlay</code>, <code>id=overlay:*</code>, <code>mode=overlay</code> oder das Modul einen Overlay-Hinweis enthält.</p></div>`, 'busdiag-wide busdiag-overlay-summary-card');
   }
 
   function renderClientsTab(){
     const split = splitClients();
-    return `${renderClientTable('Backend-Module', split.modules, 'Keine Backend-Module registriert.')}${renderClientTable('Overlay-Clients', split.overlays, 'Keine Overlay-Clients registriert.')}${renderClientTable('Tools / Debug / Dashboard', split.tools, 'Keine Tool- oder Debug-Clients registriert.')}${renderClientTable('Unbekannte Clients', split.unknown, 'Keine unbekannten Clients.')}`;
+    return `${renderOverlaySummary(split.overlays)}${renderClientTable('Overlay-Clients', split.overlays, 'Keine Overlay-Clients registriert.', { overlay: true, extraClass: 'busdiag-wide busdiag-overlay-table-card' })}${renderClientTable('Backend-Module', split.modules, 'Keine Backend-Module registriert.')}${renderClientTable('Tools / Debug / Dashboard', split.tools, 'Keine Tool- oder Debug-Clients registriert.')}${renderClientTable('Unbekannte Clients', split.unknown, 'Keine unbekannten Clients.')}`;
   }
 
   function renderEventsTab(){
