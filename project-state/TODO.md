@@ -1,6 +1,15 @@
 # TODO
 
-Stand: 2026-05-27
+Stand: 2026-05-30
+
+## Doku / Projektstand
+
+- [x] Project-State-/Dokumentations-Cleanup STEP553–STEP588 abschließen.
+- [x] `project-state/GENERAL_PROJECT_PROMPT.md` auf neue Arbeitsweise aktualisieren.
+- [x] Zentrale Statusdateien auf STEP588/STEP589 nachziehen.
+- [ ] Routen-/Modul-Doku mit echten Backend-Dateien verifizieren.
+- [ ] Bei Chatwechsel erneut `dokumentieren und aktualisieren` durchführen.
+- [ ] Nach Routenprüfung ggf. `docs/backend/ROUTES.md` oder Modul-Dokus aktualisieren.
 
 ## Channelpoints
 
@@ -15,15 +24,24 @@ Stand: 2026-05-27
 
 - [ ] `/api/sound/status` prüfen: `defaults.outputTarget=device`.
 - [ ] Media-Dateinamen-Fix nur mit Real-STEP524 verwenden.
-- [ ] Alte mojibake-Dateinamen nur gezielt reparieren, nicht pauschal löschen/verschieben.
+- [ ] Alte Mojibake-Dateinamen nur gezielt reparieren, nicht pauschal löschen/verschieben.
+- [ ] Verwaisten `activeBundleLock` im Sound-System als separaten Fix-Block planen/testen.
 
-## Doku / Projektstand
+## Routen / Module
 
-- [ ] Diese Doku nach erfolgreichem Test ggf. mit finalen Testergebnissen ergänzen.
-- [ ] Bei Chatwechsel erneut `dokumentieren und aktualisieren` durchführen.
+- [ ] STEP591 Routes and Module Docs Verification Scan durchführen.
+- [ ] Fehlende Modul-Dokus ergänzen.
+- [ ] Veraltete Routen in docs/modules/*.md korrigieren.
+- [ ] Dashboard-/Overlay-/Streamer.bot-relevante Routen markieren.
+- [ ] PowerShell-Testausgaben künftig kurz und feldgenau halten.
 
+## EventBus / Communication Bus
 
-## TODO – STEP528 Overlay Health/Refresh
+- [ ] Communication-Bus-Vertrag bei neuen Modulanbindungen zuerst prüfen.
+- [ ] EventBus nur ergänzend nutzen, produktive Flows nicht ungeplant ersetzen.
+- [ ] Bus-/Shadow-Adapter für Alerts später separat testen, bevor produktive Umschaltung geplant wird.
+
+## Overlay Health/Refresh
 
 - [ ] Echte aktuelle Dateien prüfen: obs.js, scene_control.js, overlay_data.js, sound_system.js, ws-client.js, relevante Overlays.
 - [ ] Vorhandene OBS-Refresh-Möglichkeiten ermitteln.

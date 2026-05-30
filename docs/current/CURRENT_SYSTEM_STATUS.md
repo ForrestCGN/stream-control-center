@@ -1,7 +1,7 @@
 # Aktueller Systemstatus – stream-control-center
 
-Stand: 2026-05-29  
-Fokus: Channelpoints-System, Twitch-Sync, Redemption-Flow, Sound-System-Routing, Media-Dateinamen, Alert-Overlay-Stabilität, Doku-Cleanup
+Stand: 2026-05-30  
+Fokus: Channelpoints-System, Twitch-Sync, Redemption-Flow, Sound-System-Routing, Media-Dateinamen, Alert-Overlay-Stabilität, Doku-/Project-State-Cleanup, Routen-/Modul-Doku-Verifikation
 
 ## Single Source of Truth
 
@@ -9,6 +9,13 @@ Projekt:
 
 ```text
 D:\Git\stream-control-center
+```
+
+GitHub:
+
+```text
+https://github.com/ForrestCGN/stream-control-center
+Branch: dev
 ```
 
 Live-System:
@@ -23,31 +30,78 @@ Produktive Datenbank:
 D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
-Regel: Die produktive SQLite-Datenbank wird niemals ersetzt oder neu gebaut. Schemaänderungen nur über migrationssichere `CREATE TABLE IF NOT EXISTS`/Helper-Logik.
+Regel:
+Die produktive SQLite-Datenbank wird niemals ersetzt oder neu gebaut. Schemaänderungen nur migrationssicher/additiv. MariaDB/MySQL wird langfristig berücksichtigt, aber erst mit echtem Adapter und eigenem Migrations-/Test-/Rollback-Plan aktiv genutzt.
 
-## Aktueller relevanter STEP-Stand
+## Aktueller Doku-/Cleanup-Stand
 
-Aktueller Channelpoints-Stand:
+Abgeschlossen:
+
+```text
+STEP553–STEP588 Project-State / Dokumentations-Cleanup
+STEP589 General Project Prompt Update
+STEP590 Central Status Docs Update
+```
+
+Ergebnis:
+
+```text
+project-state Root bereinigt
+keine unerwarteten STEP-/NEXT_STEPS_STEP-Dateien im Root
+fachliche Inhalte in docs/system-inspection/ konsolidiert
+alte Run-/Arbeitsdokumente archiviert, nicht gelöscht
+GENERAL_PROJECT_PROMPT.md aktualisiert
+zentrale Statusdateien aktualisiert
+```
+
+Aktive Konsolidierungsdateien:
+
+```text
+docs/system-inspection/MODULE_AND_META_RULES_CONSOLIDATION.md
+docs/system-inspection/COMMUNICATION_BUS_CONTRACT_CONSOLIDATION.md
+docs/system-inspection/SHOUTOUT_SYSTEM_CONSOLIDATION.md
+docs/system-inspection/CHANNELPOINTS_BUILD_CONSOLIDATION.md
+docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
+docs/system-inspection/PROJECT_STATE_CLEANUP_RUN_HISTORY.md
+```
+
+## Verbindliche Arbeitsweise
+
+Vor Änderungen:
+
+```text
+echte Dateien aus GitHub/dev prüfen
+keine Annahmen über Routen/Helper/Configs/DB/Live-Zustand
+fehlende Dateien konkret anfordern
+keine Patches / keine Teil-Datei-Workarounds
+vollständige Ersatzdateien liefern
+ZIPs mit echten Zielpfaden ab Repo-Root bauen
+```
+
+PowerShell-/API-Ausgaben:
+
+```text
+kurz und feldgenau halten
+keine langen ConvertTo-Json -Depth 10 Dumps, außer Detailanalyse braucht es
+bei langen Routenlisten nur relevante Felder/Counts ausgeben
+COPY_THIS_RESULT-Blöcke bevorzugen
+```
+
+## Aktueller relevanter Feature-Stand
+
+Channelpoints:
 
 ```text
 STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
 ```
 
-Dieser Stand ersetzt/superseded:
-
-```text
-STEP525_CHANNELPOINTS_SAVE_ACTIVE_SYNCS_TWITCH_v0.9.11      -> nicht benutzen
-STEP525_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_FLOW_v0.9.11 -> nicht benutzen
-STEP526_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_HOTFIX_v0.9.12 -> durch STEP527 ersetzt
-```
-
-Aktueller Sound-/Routing-Stand:
+Sound-/Routing:
 
 ```text
 STEP523_SOUND_SYSTEM_AUTO_OUTPUT_DEFAULTS_FIX_v0.1.12
 ```
 
-Aktueller Media-Dateinamen-Stand:
+Media-Dateinamen:
 
 ```text
 STEP524_MEDIA_ASSET_UTF8_FILENAME_CLEANUP_REAL_v0.1.0
@@ -57,62 +111,36 @@ Zurückgezogen/nicht benutzen:
 
 ```text
 STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0
-```
-
-Doku-/Cleanup-Stand:
-
-```text
-STEP530_BACKUP_AND_SAFE_CLEANUP_BATCH1
-STEP531_DOCS_TODO_AND_CLEANUP_SCAN
-STEP532_TODO_RESCUE_AND_DOC_CLEANUP_TRIAGE
-STEP533_CURRENT_APPEND_DOCS_CONSOLIDATION_BATCH1
+STEP525_CHANNELPOINTS_SAVE_ACTIVE_SYNCS_TWITCH_v0.9.11
+STEP525_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_FLOW_v0.9.11
+STEP526_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_HOTFIX_v0.9.12
 ```
 
 ## Channelpoints – aktuelles Bedienkonzept
 
-Das alte lokale „Aktiv“-Häkchen im Editor wird nicht mehr als Bedienlogik verwendet.
-
-Aktueller gewünschter Ablauf:
+Editor:
 
 ```text
-Editor:
-- kein Aktiv-Häkchen
-- Speichern legt lokal an oder ändert lokal
-- Speichern erstellt/aktualisiert den Twitch-Reward
-- neuer Twitch-Reward wird standardmäßig NICHT aktiv/sichtbar auf Twitch erstellt
+kein Aktiv-Häkchen als normale Bedienlogik
+Speichern legt lokal an oder ändert lokal
+Speichern erstellt/aktualisiert Twitch Reward
+neuer Twitch Reward wird standardmäßig NICHT aktiv/sichtbar auf Twitch erstellt
+```
 
 Übersicht:
-- Twitch Aktiv/Inaktiv-Schalter
-- betrifft nur Twitch sichtbar/einlösbar
-- Aktiv = Twitch Reward aktivieren
-- Inaktiv = Twitch Reward deaktivieren
+
+```text
+Twitch Aktiv/Inaktiv steuert nur Twitch sichtbar/einlösbar
+```
 
 Bestehender Reward:
-- Bearbeiten + Speichern aktualisiert lokal und Twitch
-- bisheriger Twitch-Aktivstatus bleibt erhalten
+
+```text
+Bearbeiten + Speichern aktualisiert lokal und Twitch
+bisheriger Twitch-Aktivstatus bleibt erhalten
 ```
 
 Intern darf `system_enabled` als technische Kompatibilitätsspalte weiter existieren, soll aber nicht als normale Dashboard-Bedienlogik sichtbar sein.
-
-## Wichtige Standardwerte für neue Rewards
-
-Neue Rewards dürfen nicht automatisch streamgebunden werden.
-
-Standard:
-
-```text
-cooldown_seconds = 0
-max_per_stream = 0
-max_per_user_per_stream = 0
-```
-
-Wenn `max_per_stream > 0` gesetzt ist, zeigt Twitch offline ggf. sinngemäß:
-
-```text
-Du kannst diese Belohnung nur während eines Streams einlösen.
-```
-
-Das ist dann eine Twitch-Einschränkung wegen streamgebundener Einlöse-Limits.
 
 ## Sound-/Media-Routing
 
@@ -160,17 +188,13 @@ Aktueller Real-Fix basiert auf echter `backend/modules/media.js` und nicht auf d
 
 ## Alert-Overlay / SoundBus – konsolidierter Stand
 
-Die früheren `CURRENT_SYSTEM_STATUS_STEP*_APPEND.md`-Dateien zu STEP363 bis STEP396 wurden in diesen Abschnitt zusammengeführt.
-
-### Produktiver Alert-Pfad
-
 Produktiv ist das direkte Alert-Overlay:
 
 ```text
 http://127.0.0.1:8080/overlays/_overlay-alerts-v2.html
 ```
 
-Der produktive Alert-Pfad bleibt:
+Produktiver Alert-Pfad:
 
 ```text
 alert_system.js
@@ -188,9 +212,8 @@ type=overlay
 status=online
 ```
 
-Wichtig: Das ist derzeit Shadow-/Vorbereitungsstand. Es ist keine produktive Umschaltung auf Bus.
-
-### Nicht produktiv verwenden
+Wichtig:
+Das ist derzeit Shadow-/Vorbereitungsstand. Es ist keine produktive Umschaltung auf Bus.
 
 Nicht als produktiven Alert-Pfad verwenden:
 
@@ -200,50 +223,7 @@ http://127.0.0.1:8080/overlays/_overlay-alerts-v2-bus.html?debug=1&mode=bridge
 
 Die iframe-/Bridge-Variante ist nicht Produktionspfad.
 
-Ebenfalls nicht verwenden:
-
-```text
-STEP376
-STEP386
-```
-
-außer sie werden ausdrücklich als verworfen/archiviert dokumentiert.
-
-### Bestätigte Reconnect-/Reload-Fixes
-
-Bestätigter Ablauf:
-
-```text
-- laufender Alert aktiv
-- OBS-Alert-Browserquelle wird währenddessen aktualisiert
-- Overlay meldet hello
-- Alert-System sendet laufenden Alert an reconnecteten Overlay-Client
-- Sound/TTS startet nicht erneut
-- Queue bleibt stabil
-- Alert-Lifecycle wird nach Ende sauber geleert
-```
-
-Der Reconnect-Replay nutzt die verbleibende Restlaufzeit (`remainingMs`) statt der vollen `durationMs`. Dadurch verlängert ein OBS-Browserquellen-Reload die visuelle Alert-Anzeige nicht künstlich.
-
-Bestätigter späterer Status:
-
-```text
-OverlayUrlStatus=200
-overlayClients=1
-OverlayWatchdog issues=0
-missingFinishAck=0
-noClient=0
-CommunicationClients=alert_overlay_v2_shadow:alert_system:overlay:online
-DirectOverlayBusClientOnline=True
-BridgeClientOnline=False
-CommunicationWatchdog issueCount=0
-```
-
-### Bus-/Shadow-Adapter-Stand
-
-Der Alert-Bus-Adapter darf nicht direkt produktiv geschaltet werden.
-
-Zukünftiger Bus-Pfad braucht vorher einen stabilen Adaptervertrag:
+Der Alert-Bus-Adapter darf nicht direkt produktiv geschaltet werden. Zukünftiger Bus-Pfad braucht vorher einen stabilen Adaptervertrag:
 
 ```text
 communication_bus
@@ -253,23 +233,8 @@ communication_bus
 → overlay bus ack
 ```
 
-Vorbereiteter Shadow-Stand:
-
-```text
-channel=visual.alert
-action=play
-action=clear
-payload.alert
-bus_ack received/finished
-```
-
-Offene Folgearbeit bleibt: Shadow-/Bus-Test und erst danach Entscheidung, ob produktiver Bus-Modus vorbereitet wird.
-
-### Offenes Feintuning
-
-Das Timing zwischen Visual, Sound und TTS soll später optional geprüft werden.
-
-Keine akute Fehlfunktion: Der zuletzt dokumentierte echte Alert-Flow war visuell stabil.
+Offene Folgearbeit:
+Shadow-/Bus-Test und erst danach Entscheidung, ob produktiver Bus-Modus vorbereitet wird.
 
 ## Bekannte offene Issues
 
@@ -289,61 +254,64 @@ Live-Workaround:
 POST /api/sound/clear
 ```
 
-Das löst Queue und Lock.
-
-Status: bekanntes separates Sound-System-Issue, nicht Teil der Alert-Reconnect-/Bus-Arbeiten.
-
-## Bekannte Diagnose aus letzter Sitzung
-
-`Cannot GET /api/channelpoints/status` bedeutete nicht automatisch Dashboard-Fehler. In einem konkreten Fall wurde `backend/modules/channelpoints.js` nicht geladen.
-
-Startlog zeigte:
-
-```text
-[module] FAILED: channelpoints.js
-deleteRewardFromTwitch is not defined
-```
-
-Dadurch fehlten alle `/api/channelpoints/*`-Routen. Das wurde in STEP526/STEP527 berücksichtigt.
+Status:
+Bekanntes separates Sound-System-Issue, nicht Teil der Alert-Reconnect-/Bus-Arbeiten.
 
 ## Prüfbefehle
 
-Backend-Modulliste:
+Backend-Modulliste kurz prüfen:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/_status" | ConvertTo-Json -Depth 5
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/_status"
+$s.modules | Select-Object name,loaded,version,lastError | Format-Table -AutoSize
 ```
 
-Channelpoints-Status muss nach korrektem Laden wieder funktionieren:
+Channelpoints-Status:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status" | ConvertTo-Json -Depth 6
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status"
+$s | Select-Object ok,module,moduleVersion,enabled,lastError
 ```
 
 Twitch-Manage-Status:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/manage/status" | ConvertTo-Json -Depth 6
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/manage/status"
+$s | Select-Object ok,module,moduleVersion,enabled,lastError
 ```
 
-Reward-Liste:
+Reward-Liste kompakt:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/rewards" |
-  Select-Object -ExpandProperty rewards |
-  Select-Object reward_key,title,system_enabled,twitch_is_enabled,twitch_reward_id,action_type,action_key,media_asset_id,media_role,cooldown_seconds,max_per_stream,max_per_user_per_stream |
-  Format-Table -AutoSize
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/rewards"
+$r.rewards | Select-Object reward_key,title,system_enabled,twitch_is_enabled,twitch_reward_id,action_type,action_key,media_asset_id,media_role,cooldown_seconds,max_per_stream,max_per_user_per_stream | Format-Table -AutoSize
 ```
 
-Alert-/Overlay-Status:
+Alert-/Overlay-Status nur bei Detailanalyse groß ausgeben. Sonst relevante Felder auswählen:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/status" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status" | ConvertTo-Json -Depth 8
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/status"
+$s | Select-Object ok,module,moduleVersion,enabled,lastError
 ```
 
 Sound-Status:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status" | ConvertTo-Json -Depth 8
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status"
+$s | Select-Object ok,module,moduleVersion,enabled,lastError
+```
+
+## Nächster sinnvoller Schritt
+
+```text
+STEP591 – Routes and Module Docs Verification Scan
+```
+
+Ziel:
+
+```text
+echte Backend-Routen aus Modulen erfassen
+Dashboard-/Overlay-/Streamer.bot-relevante APIs markieren
+gegen docs/modules/*.md und docs/current/CURRENT_SYSTEM_STATUS.md vergleichen
+fehlende/veraltete Routen-Doku melden
 ```

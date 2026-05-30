@@ -1,74 +1,106 @@
 # NEXT_STEPS
 
-Stand: 2026-05-27
+Stand: 2026-05-30
 
-## Sofort nach STEP527 prüfen
+## Sofort erledigt / aktueller Abschluss
 
-1. Server neu starten.
-2. Prüfen, ob `channelpoints.js` geladen ist:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/_status" | ConvertTo-Json -Depth 5
-```
-
-3. Channelpoints-Routen prüfen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status" | ConvertTo-Json -Depth 6
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/manage/status" | ConvertTo-Json -Depth 6
-```
-
-4. Neuen Test-Reward anlegen:
+Der Project-State-/Dokumentations-Cleanup ist abgeschlossen.
 
 ```text
-Speichern -> lokal angelegt + Twitch erstellt + Twitch inaktiv
+STEP553–STEP588 Project-State / Dokumentations-Cleanup
+STEP589 GENERAL_PROJECT_PROMPT aktualisiert
+STEP590 zentrale Statusdateien aktualisiert
 ```
 
-5. Übersichtsschalter testen:
+Sauber verifiziert:
 
 ```text
-Twitch aktivieren -> sichtbar/einlösbar
-Twitch deaktivieren -> nicht sichtbar/einlösbar
+Unexpected STEP/NEXT_STEPS_STEP root files: 0
+Archive groups checked: 6
+Archive groups OK: 6
+Warnings: 0
+Errors: 0
 ```
 
-## Danach offen
+## Nächster empfohlener STEP
 
-- UI-Polish für Twitch-Aktiv/Inaktiv-Schalter.
-- Prüfen, ob Status-Badges eindeutig genug sind.
-- Historie/Statistik für neue Rewards weiter testen.
-- Redemptions im echten Live-Stream erneut end-to-end testen.
-- EventBus-Statusmeldungen für Channelpoints ggf. ausbauen.
-- Sound-System-Routing im Dashboard später zentraler steuerbar machen.
-
-## Arbeitsregel für nächste Schritte
-
-Vor jedem Fix echte Datei prüfen oder Upload anfordern. Keine ZIPs aus Annahmen bauen.
-
-
-## Nächster geplanter Block: STEP528 Overlay Health + Refresh Control
-
-Noch nicht umgesetzt. Erst im nächsten Chat starten.
+```text
+STEP591 – Routes and Module Docs Verification Scan
+```
 
 Ziel:
 
 ```text
-- Overlays sollen über das Control-Center/Backend refreshbar werden.
-- Zusätzlich soll sichtbar werden, ob ein Overlay selbst noch lebt oder ob OBS/Browserquelle hängt.
+- echte Backend-Routen aus den Modulen erfassen
+- Dashboard-/Overlay-/Streamer.bot-relevante APIs markieren
+- vorhandene docs/modules/*.md gegen echte Routen prüfen
+- fehlende oder veraltete Routen-Doku melden
+- kompakte Reports erzeugen, damit Forrest nur COPY_THIS_RESULT kopieren muss
 ```
 
-Geplanter Funktionsumfang:
+Wichtig:
+Routen nicht aus Erinnerung dokumentieren. Echte Dateien prüfen.
+
+## Danach offen
+
+Nach STEP591 je nach Ergebnis:
 
 ```text
-1. Overlay-Heartbeat per WebSocket/Event an Backend
-2. Dashboard-Anzeige pro Overlay: online/offline/letzter Kontakt
-3. Refresh einzelner Overlays
-4. Refresh vordefinierter Gruppen, z. B. all, sound, alerts, chat
-5. OBS-Browserquelle über bestehende OBS-Verbindung neu laden
-6. optional Quelle kurz aus/an als härtere Reparatur
-7. optional GET-Endpunkte für Streamer.bot
+STEP592 – Routes Documentation Consolidation
 ```
 
-Vor Umsetzung prüfen:
+Mögliche Ziel-Dateien:
+
+```text
+docs/backend/ROUTES.md
+docs/modules/<betroffene-module>.md
+docs/current/CURRENT_SYSTEM_STATUS.md
+project-state/FILES.md
+project-state/NEXT_STEPS.md
+```
+
+## Weiterhin offene Tests aus STEP527
+
+Channelpoints nach Deploy/Backend-Neustart prüfen:
+
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/_status"
+$s.modules | Select-Object name,loaded,version,lastError | Format-Table -AutoSize
+```
+
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status"
+$s | Select-Object ok,module,moduleVersion,enabled,lastError
+```
+
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/manage/status"
+$s | Select-Object ok,module,moduleVersion,enabled,lastError
+```
+
+Live-/Funktionsprüfung:
+
+```text
+- neuen Reward anlegen
+- bestätigen: Twitch Reward wird erstellt, aber inaktiv
+- Twitch Aktiv/Inaktiv-Schalter in Übersicht testen
+- bestehenden aktiven Reward bearbeiten und prüfen: Aktivstatus bleibt erhalten
+- bestehenden inaktiven Reward bearbeiten und prüfen: bleibt inaktiv
+```
+
+## Sound / Media offen
+
+```text
+- /api/sound/status prüfen: defaults.outputTarget=device
+- Media-Dateinamen-Fix nur mit Real-STEP524 verwenden
+- alte Mojibake-Dateinamen nur gezielt reparieren, nicht pauschal löschen/verschieben
+```
+
+## Späterer Block: Overlay Health / Refresh Control
+
+Noch nicht umgesetzt.
+
+Vor Umsetzung echte aktuelle Dateien prüfen:
 
 ```text
 backend/modules/obs.js
@@ -80,8 +112,16 @@ htdocs/overlays/*.html
 Dashboard Control-Center Modulstruktur
 ```
 
-Wichtig:
+Ziel bleibt:
 
 ```text
-Keine Parallelstruktur bauen. Bestehende OBS-/WebSocket-/Dashboard-Systeme wiederverwenden.
+- Overlay-Heartbeat per WebSocket/Event an Backend
+- Dashboard-Anzeige pro Overlay: online/offline/letzter Kontakt
+- Refresh einzelner Overlays
+- Refresh vordefinierter Gruppen, z. B. all, sound, alerts, chat
+- OBS-Browserquelle über bestehende OBS-Verbindung neu laden
+- optional Quelle kurz aus/an als härtere Reparatur
+- optional GET-Endpunkte für Streamer.bot
 ```
+
+Keine Parallelstruktur bauen. Bestehende OBS-/WebSocket-/Dashboard-Systeme wiederverwenden.
