@@ -4,7 +4,9 @@
   const state = {
     loading: false,
     lastData: null,
+    lastSettings: null,
     lastError: '',
+    activeTab: localStorage.getItem('cgn-busdiag-tab') || 'overview',
     autoTimer: null,
     countdownTimer: null,
     autoRefresh: localStorage.getItem('cgn-busdiag-auto-refresh') === '1',
@@ -13,35 +15,55 @@
     visible: !document.hidden
   };
 
+  const TABS = [
+    { id: 'overview', label: 'Übersicht' },
+    { id: 'clients', label: 'Clients' },
+    { id: 'events', label: 'Events & ACKs' },
+    { id: 'integrations', label: 'Integrationen' },
+    { id: 'issues', label: 'Issues' },
+    { id: 'config', label: 'Config' },
+    { id: 'raw', label: 'Rohdaten' }
+  ];
+
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
   function panel(){ return document.getElementById(panelId); }
   function bool(v){ return v ? 'ja' : 'nein'; }
   function num(v){ return Number.isFinite(Number(v)) ? Number(v).toLocaleString('de-DE') : '0'; }
   function value(v, fallback = '-'){ return v === undefined || v === null || v === '' ? fallback : String(v); }
-  function compactJson(obj){
-    try { return JSON.stringify(obj || {}, null, 2); }
-    catch (_) { return '{}'; }
-  }
+  function compactJson(obj){ try { return JSON.stringify(obj || {}, null, 2); } catch (_) { return '{}'; } }
+  function asList(value){ return Array.isArray(value) ? value : []; }
+  function fmtTime(value){ if (!value) return '-'; try { return new Date(value).toLocaleString('de-DE'); } catch (_) { return String(value); } }
+
   function statusClass(status){
     const s = String(status || '').toLowerCase();
-    if (s === 'ok') return 'ok';
-    if (s === 'online') return 'ok';
-    if (s === 'warning') return 'warning';
-    if (s === 'stale') return 'warning';
-    if (s === 'offline') return 'warning';
-    if (s === 'error' || s === 'failed' || s === 'dead') return 'error';
+    if (['ok','online','connected','true','ready'].includes(s)) return 'ok';
+    if (['warning','warn','stale','offline','false'].includes(s)) return 'warning';
+    if (['error','failed','dead'].includes(s)) return 'error';
     return 'neutral';
   }
   function badge(text, status){ return `<span class="busdiag-badge ${statusClass(status || text)}">${esc(text)}</span>`; }
-  function metric(label, val, note, extraClass = ''){
-    return `<div class="busdiag-metric ${esc(extraClass)}"><span>${esc(label)}</span><strong title="${esc(value(val))}">${esc(value(val))}</strong>${note ? `<small>${esc(note)}</small>` : ''}</div>`;
-  }
-  function card(title, body, extraClass = ''){
-    return `<article class="busdiag-card ${extraClass}"><h3>${esc(title)}</h3>${body}</article>`;
-  }
+  function metric(label, val, note, extraClass = ''){ return `<div class="busdiag-metric ${esc(extraClass)}"><span>${esc(label)}</span><strong title="${esc(value(val))}">${esc(value(val))}</strong>${note ? `<small>${esc(note)}</small>` : ''}</div>`; }
+  function card(title, body, extraClass = ''){ return `<article class="busdiag-card ${extraClass}"><h3>${esc(title)}</h3>${body}</article>`; }
 
-  function refreshLabel(){
-    return state.autoRefresh ? `Auto: an (${Math.round(state.refreshEveryMs / 1000)}s)` : 'Auto: aus';
+  function refreshLabel(){ return state.autoRefresh ? `Auto: an (${Math.round(state.refreshEveryMs / 1000)}s)` : 'Auto: aus'; }
+
+  function getStatus(){ return state.lastData || {}; }
+  function getCommunication(){ return getStatus().communication || {}; }
+  function getBusStatus(){ return getCommunication().statusBody || {}; }
+  function getSummary(){ return getStatus().summary || {}; }
+  function getClients(){ return asList(getBusStatus().clients); }
+  function getEvents(){ return asList(getBusStatus().events); }
+  function getIssues(){ return asList(getBusStatus().issues); }
+
+  function splitClients(){
+    const clients = getClients();
+    return {
+      all: clients,
+      modules: clients.filter(c => c.type === 'module' || String(c.id || '').startsWith('module:')),
+      overlays: clients.filter(c => c.type === 'overlay' || String(c.id || '').startsWith('overlay:')),
+      tools: clients.filter(c => ['debug','tool','dashboard'].includes(String(c.type || '').toLowerCase()) || String(c.mode || '').includes('debug')),
+      unknown: clients.filter(c => !c.type || c.type === 'unknown')
+    };
   }
 
   function updateLiveStatus(){
@@ -54,18 +76,9 @@
     const last = state.lastData?.fetchedAt ? new Date(state.lastData.fetchedAt).toLocaleTimeString('de-DE') : '-';
     const status = state.lastError ? 'Fehler' : (state.loading ? 'Lädt…' : 'Bereit');
     let next = '-';
-    if (state.autoRefresh && state.nextRefreshAt && state.visible) {
-      const left = Math.max(0, Math.ceil((state.nextRefreshAt - Date.now()) / 1000));
-      next = `${left}s`;
-    } else if (state.autoRefresh && !state.visible) {
-      next = 'pausiert';
-    }
-    live.innerHTML = `
-      <span>${esc(status)}</span>
-      <span>Letztes Laden: ${esc(last)}</span>
-      <span>Auto: ${state.autoRefresh ? 'an' : 'aus'}</span>
-      <span>Nächstes Laden: ${esc(next)}</span>
-    `;
+    if (state.autoRefresh && state.nextRefreshAt && state.visible) next = `${Math.max(0, Math.ceil((state.nextRefreshAt - Date.now()) / 1000))}s`;
+    else if (state.autoRefresh && !state.visible) next = 'pausiert';
+    live.innerHTML = `<span>${esc(status)}</span><span>Letztes Laden: ${esc(last)}</span><span>Auto: ${state.autoRefresh ? 'an' : 'aus'}</span><span>Nächstes Laden: ${esc(next)}</span>`;
   }
 
   function renderSkeleton(){
@@ -75,34 +88,29 @@
       <div class="busdiag-shell">
         <div class="busdiag-hero glass">
           <div>
-            <p class="busdiag-kicker">Communication Bus</p>
-            <h2>Bus-Diagnose</h2>
-            <p>Read-only Übersicht für Communication-, Sound-, Alert- und VIP-Bus inklusive Alert/Sound-Korrelation.</p>
+            <p class="busdiag-kicker">Event-Bus</p>
+            <h2>Event-Bus / Communication Bus</h2>
+            <p>Strukturierte Übersicht für Bus-Status, Clients, Events, Integrationen, Issues und DB-basierte Bus-Config.</p>
           </div>
           <div class="busdiag-actions">
             <button type="button" data-busdiag-action="refresh">Status laden</button>
             <button type="button" class="secondary" data-busdiag-action="check">Check ausführen</button>
             <button type="button" class="secondary" data-busdiag-action="toggle-auto">${esc(refreshLabel())}</button>
             <select class="busdiag-select" data-busdiag-refresh-ms title="Auto-Refresh Intervall">
-              <option value="5000">5s</option>
-              <option value="10000">10s</option>
-              <option value="30000">30s</option>
-              <option value="60000">60s</option>
+              <option value="5000">5s</option><option value="10000">10s</option><option value="30000">30s</option><option value="60000">60s</option>
             </select>
             <a class="ghost-link" href="/public/tools/bus_diagnostics_dashboard.html" target="_blank">Standalone</a>
-            <a class="ghost-link" href="/public/tools/sound_eventbus_debug.html" target="_blank">Sound Debug</a>
-            <a class="ghost-link" href="/public/tools/alert_eventbus_debug.html" target="_blank">Alert Debug</a>
-            <a class="ghost-link" href="/overlays/vip_sound_overlay_v2.html" target="_blank">VIP Overlay</a>
           </div>
         </div>
         <div class="busdiag-livebar" data-busdiag-live aria-live="polite"></div>
-        <div class="busdiag-content" data-busdiag-content>
-          <div class="busdiag-empty glass">Noch keine Daten geladen.</div>
-        </div>
+        <nav class="busdiag-tabs" data-busdiag-tabs>${renderTabs()}</nav>
+        <div class="busdiag-content" data-busdiag-content><div class="busdiag-empty glass">Noch keine Daten geladen.</div></div>
       </div>
     `;
     root.querySelector('[data-busdiag-action="refresh"]')?.addEventListener('click', () => loadAll(false));
     root.querySelector('[data-busdiag-action="check"]')?.addEventListener('click', () => loadAll(true));
+    root.querySelector('[data-busdiag-action="toggle-auto"]')?.addEventListener('click', toggleAutoRefresh);
+    root.querySelectorAll('[data-busdiag-tab]').forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.busdiagTab)));
     const refreshSelect = root.querySelector('[data-busdiag-refresh-ms]');
     if (refreshSelect) {
       refreshSelect.value = String(state.refreshEveryMs);
@@ -113,9 +121,26 @@
         updateLiveStatus();
       });
     }
-    root.querySelector('[data-busdiag-action="toggle-auto"]')?.addEventListener('click', toggleAutoRefresh);
     restartAutoTimer();
     updateLiveStatus();
+  }
+
+  function renderTabs(){
+    return TABS.map(tab => `<button type="button" data-busdiag-tab="${esc(tab.id)}" class="${tab.id === state.activeTab ? 'active' : ''}">${esc(tab.label)}</button>`).join('');
+  }
+
+  function refreshTabs(){
+    const nav = panel()?.querySelector('[data-busdiag-tabs]');
+    if (nav) nav.innerHTML = renderTabs();
+    nav?.querySelectorAll('[data-busdiag-tab]').forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.busdiagTab)));
+  }
+
+  function setTab(tabId){
+    if (!TABS.some(t => t.id === tabId)) return;
+    state.activeTab = tabId;
+    localStorage.setItem('cgn-busdiag-tab', tabId);
+    refreshTabs();
+    renderCurrentTab();
   }
 
   async function loadAll(check){
@@ -126,7 +151,8 @@
     try {
       const data = await window.CGN.api(check ? '/api/bus-diagnostics/check' : '/api/bus-diagnostics/status');
       state.lastData = data;
-      renderData(data);
+      try { state.lastSettings = await window.CGN.api('/api/communication/settings'); } catch (_) { state.lastSettings = null; }
+      renderCurrentTab();
       scheduleNextRefresh();
     } catch (err) {
       state.lastError = err.message || String(err);
@@ -160,11 +186,7 @@
     state.autoTimer = null;
     if (state.countdownTimer) clearInterval(state.countdownTimer);
     state.countdownTimer = null;
-    if (!state.autoRefresh) {
-      state.nextRefreshAt = 0;
-      updateLiveStatus();
-      return;
-    }
+    if (!state.autoRefresh) { state.nextRefreshAt = 0; updateLiveStatus(); return; }
     state.countdownTimer = setInterval(updateLiveStatus, 1000);
     scheduleNextRefresh();
   }
@@ -172,11 +194,7 @@
   function scheduleNextRefresh(){
     if (state.autoTimer) clearTimeout(state.autoTimer);
     state.autoTimer = null;
-    if (!state.autoRefresh || !state.visible) {
-      state.nextRefreshAt = 0;
-      updateLiveStatus();
-      return;
-    }
+    if (!state.autoRefresh || !state.visible) { state.nextRefreshAt = 0; updateLiveStatus(); return; }
     state.nextRefreshAt = Date.now() + state.refreshEveryMs;
     state.autoTimer = setTimeout(() => loadAll(false), state.refreshEveryMs);
     updateLiveStatus();
@@ -185,316 +203,135 @@
   function renderError(message){
     const content = panel()?.querySelector('[data-busdiag-content]');
     if (!content) return;
-    updateLiveStatus();
-    updateLiveStatus();
     content.innerHTML = `<div class="busdiag-error glass"><strong>Fehler beim Laden</strong><p>${esc(message)}</p></div>`;
   }
 
-  function renderData(data){
+  function renderCurrentTab(){
     const content = panel()?.querySelector('[data-busdiag-content]');
     if (!content) return;
-    const summary = data.summary || {};
-    const communication = data.communication || {};
-    const sound = data.soundEventBus || {};
-    const alert = data.alertEventBus || {};
-    const correlation = data.alertSoundCorrelation || {};
-    const vip = data.vipStatus || {};
-    const vipIntegration = data.vipIntegration || {};
-    const comparison = correlation.comparison || {};
-    const warnings = Array.isArray(data.warnings) ? data.warnings : [];
-    const errors = Array.isArray(data.errors) ? data.errors : [];
-    const busClients = communication.statusBody?.clients || [];
+    if (!state.lastData) { content.innerHTML = '<div class="busdiag-empty glass">Noch keine Daten geladen.</div>'; return; }
+    const renderers = { overview: renderOverview, clients: renderClientsTab, events: renderEventsTab, integrations: renderIntegrationsTab, issues: renderIssuesTab, config: renderConfigTab, raw: renderRawTab };
+    content.innerHTML = (renderers[state.activeTab] || renderOverview)();
+    bindConfigActions();
+  }
 
-    content.innerHTML = `
+  function renderOverview(){
+    const data = getStatus();
+    const summary = getSummary();
+    const communication = getCommunication();
+    const bus = getBusStatus().bus || {};
+    const stats = getBusStatus().stats || {};
+    const split = splitClients();
+    const events = getEvents();
+    const issues = getIssues();
+    return `
       <div class="busdiag-grid busdiag-grid-top">
-        ${card('Gesamtstatus', `
-          <div class="busdiag-status-line">${badge(summary.status || (data.ok ? 'ok' : 'error'), summary.status || (data.ok ? 'ok' : 'error'))}<span>${esc(value(data.fetchedAt))}</span></div>
-          <div class="busdiag-metrics">
-            ${metric('Clients online', `${num(summary.connectedClients)} / ${num(summary.totalClients)}`)}
-            ${metric('Sound Debug', bool(summary.soundDebugConnected), summary.soundDebugConnected ? 'verbunden' : 'Debug-Seite öffnen')}
-            ${metric('Alert Debug', bool(summary.alertDebugConnected), summary.alertDebugConnected ? 'verbunden' : 'Debug-Seite öffnen')}
-            ${metric('VIP Overlay', bool(summary.vipOverlayConnected), summary.vipOverlayConnected ? 'verbunden' : 'Overlay öffnen')}
-            ${metric('Read-only', bool(data.readOnly))}
-          </div>
-        `)}
-        ${card('Schutz', `
-          <div class="busdiag-metrics">
-            ${metric('Flow touched', bool(data.flowTouched))}
-            ${metric('Queue touched', bool(data.queueTouched))}
-            ${metric('Sound touched', bool(data.soundSystemTouched))}
-            ${metric('VIP touched', bool(data.vipSystemTouched))}
-            ${metric('Overlay touched', bool(data.overlayTouched))}
-          </div>
-        `)}
+        ${card('Gesamtstatus', `<div class="busdiag-status-line">${badge(summary.status || (data.ok ? 'ok' : 'error'), summary.status || (data.ok ? 'ok' : 'error'))}<span>${esc(value(data.fetchedAt))}</span></div><div class="busdiag-metrics">${metric('Clients online', `${num(summary.connectedClients)} / ${num(summary.totalClients)}`)}${metric('Events', events.length)}${metric('Issues', issues.length)}${metric('Read-only', bool(data.readOnly))}</div>`)}
+        ${card('Communication Bus', `<div class="busdiag-status-line">${badge(communication.ok ? 'ok' : 'error', communication.ok ? 'ok' : 'error')}<span>${esc(value(communication.module))} ${esc(value(communication.version))}</span></div><div class="busdiag-metrics">${metric('Bus', bus.name || 'cgn', bus.version ? `v${bus.version}` : '')}${metric('Emitted', stats.emitted ?? '-')}${metric('Delivered', stats.delivered ?? '-')}${metric('ACKs', stats.acks ?? '-')}</div>`)}
       </div>
-
       <div class="busdiag-grid">
-        ${card('Communication Bus', `
-          <div class="busdiag-status-line">${badge(communication.ok ? 'ok' : 'error', communication.ok ? 'ok' : 'error')}<span>${esc(value(communication.module))} ${esc(value(communication.version))}</span></div>
-          <div class="busdiag-metrics">
-            ${metric('Fetch', communication.fetchOk ? 'ok' : 'fehler')}
-            ${metric('Clients', `${num(summary.connectedClients)} / ${num(summary.totalClients)}`)}
-            ${metric('Emitted', communication.statusBody?.stats?.emitted ?? '-')}
-            ${metric('Delivered', communication.statusBody?.stats?.delivered ?? '-')}
-          </div>
-        `)}
-        ${card('Sound EventBus', `
-          <div class="busdiag-status-line">${badge(sound.ok ? 'ok' : 'error', sound.ok ? 'ok' : 'error')}<span>${esc(value(sound.module))} ${esc(value(sound.version))}</span></div>
-          <div class="busdiag-metrics">
-            ${metric('Capability', sound.capability || '-', '', 'busdiag-metric-code busdiag-metric-wide')}
-            ${metric('Emitted', summary.soundEmitted)}
-            ${metric('Errors', summary.soundErrors)}
-            ${metric('Last action', summary.soundLastAction || '-')}
-          </div>
-        `)}
-        ${card('Alert EventBus', `
-          <div class="busdiag-status-line">${badge(alert.ok ? 'ok' : 'error', alert.ok ? 'ok' : 'error')}<span>${esc(value(alert.module))} ${esc(value(alert.version))}</span></div>
-          <div class="busdiag-metrics">
-            ${metric('Capability', alert.capability || '-', '', 'busdiag-metric-code busdiag-metric-wide')}
-            ${metric('Emitted', summary.alertEmitted)}
-            ${metric('Errors', summary.alertErrors)}
-            ${metric('Last action', summary.alertLastAction || '-')}
-          </div>
-        `)}
-        ${card('VIP-System', `
-          <div class="busdiag-status-line">${badge(vip.ok ? 'ok' : 'warning', vip.ok ? 'ok' : 'warning')}<span>${esc(value(vip.module || 'vip_sound_overlay'))} ${esc(value(summary.vipVersion || vip.version))}</span></div>
-          <div class="busdiag-metrics">
-            ${metric('Overlay Client', bool(summary.vipOverlayConnected), summary.vipOverlayConnected ? 'Bus verbunden' : 'nicht verbunden')}
-            ${metric('Status API', vip.fetchOk ? 'ok' : 'fehler')}
-            ${metric('Phase', summary.vipPhase || vip.phase || '-')}
-            ${metric('Queue', summary.vipQueuedCount ?? vip.queuedCount ?? 0)}
-            ${metric('Aktiv', bool(summary.vipActive))}
-            ${metric('Sichtbar', bool(summary.vipVisible))}
-          </div>
-        `)}
-        ${card('VIP Integration', `
-          <div class="busdiag-status-line">${badge(vipIntegration.ok ? 'ok' : 'warning', vipIntegration.ok ? 'ok' : 'warning')}<span>${esc(value(vipIntegration.module || 'vip_sound_overlay'))}</span></div>
-          <div class="busdiag-metrics">
-            ${metric('Fetch', vipIntegration.fetchOk ? 'ok' : 'fehler')}
-            ${metric('DB', bool(summary.vipDbInitialized))}
-            ${metric('Errors', summary.vipIntegrationErrors ?? 0)}
-            ${metric('Client Event', summary.vipClientLastEvent || '-')}
-          </div>
-        `)}
-        ${card('Alert/Sound-Korrelation', `
-          <div class="busdiag-status-line">${badge(correlation.ok ? 'ok' : 'error', correlation.ok ? 'ok' : 'error')}<span>${esc(value(correlation.feature))}</span></div>
-          <div class="busdiag-metrics">
-            ${metric('Matched', summary.correlationMatched ?? comparison.matched)}
-            ${metric('Unmatched', summary.correlationUnmatched ?? comparison.unmatched)}
-            ${metric('Alert Rows', comparison.alertRows ?? '-')}
-            ${metric('Sound Rows', comparison.soundRows ?? '-')}
-          </div>
-        `)}
+        ${card('Client-Kategorien', `<div class="busdiag-metrics">${metric('Backend-Module', split.modules.length)}${metric('Overlays', split.overlays.length)}${metric('Tools/Debug', split.tools.length)}${metric('Unbekannt', split.unknown.length)}</div>`)}
+        ${card('Event-Speicher', `<div class="busdiag-metrics">${metric('Replay Events', events.filter(e => e.replayable).length)}${metric('ACK Pflicht', events.filter(e => e.requireAck).length)}${metric('Abgelaufen', events.filter(e => e.expired).length)}${metric('Nicht geliefert', events.filter(e => !asList(e.deliveredTo).length).length)}</div>`)}
+        ${card('Schutz', `<div class="busdiag-metrics">${metric('Flow touched', bool(data.flowTouched))}${metric('Queue touched', bool(data.queueTouched))}${metric('Sound touched', bool(data.soundSystemTouched))}${metric('Overlay touched', bool(data.overlayTouched))}</div>`)}
+        ${card('Config', `<div class="busdiag-metrics">${metric('Speicher', state.lastSettings?.storage || 'nicht geladen')}${metric('Adapter', state.lastSettings?.adapter || '-')}${metric('Settings', asList(state.lastSettings?.settings).length)}${metric('Runtime sofort', bool(state.lastSettings?.runtimeAppliedImmediately))}</div>`)}
       </div>
-
-      ${renderWarnings(warnings, errors)}
-      ${renderQuickActions(summary)}
-      ${renderCorrelationDetails(comparison)}
-      ${renderOverlayClients(busClients)}
-      ${renderClients(busClients)}
-      ${renderRecent('Sound Events', sound.recentEvents || [])}
-      ${renderRecent('Alert Events', alert.recentEvents || [])}
-      ${renderRawDiagnostics(data)}
     `;
   }
 
-  function renderWarnings(warnings, errors){
-    if (!warnings.length && !errors.length) return '';
-    return `
-      <section class="busdiag-card busdiag-wide">
-        <h3>Hinweise</h3>
-        <div class="busdiag-list">
-          ${errors.map(e => `<div class="busdiag-row error"><strong>Error</strong><span>${esc(e)}</span></div>`).join('')}
-          ${warnings.map(w => `<div class="busdiag-row warning"><strong>Warning</strong><span>${esc(w)}</span></div>`).join('')}
-        </div>
-      </section>
-    `;
+  function renderClientTable(title, clients, emptyText){
+    return card(title, clients.length ? `<div class="busdiag-table busdiag-table-clients"><div class="busdiag-table-head"><span>ID</span><span>Name/Modul</span><span>Status</span><span>Letzter Kontakt</span><span>Capabilities</span></div>${clients.map(client => `<div class="busdiag-table-row"><span><strong>${esc(client.id)}</strong><small>${esc(client.type || '-')} / ${esc(client.mode || '-')}</small></span><span><strong>${esc(client.name || '-')}</strong><small>${esc(client.module || '-')} ${client.version ? '· ' + esc(client.version) : ''}</small></span><span>${badge(client.status || (client.connected ? 'online' : 'offline'), client.status || (client.connected ? 'online' : 'offline'))}<small>${client.connected ? 'verbunden' : 'getrennt'}</small></span><span><strong>${esc(fmtTime(client.lastHeartbeatAt || client.lastSeenAt))}</strong><small>${esc(client.disconnectReason || '')}</small></span><span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span></div>`).join('')}</div>` : `<p class="busdiag-muted">${esc(emptyText || 'Keine Clients in dieser Kategorie.')}</p>`, 'busdiag-wide');
   }
 
-  function renderQuickActions(summary){
-    return `
-      <section class="busdiag-card busdiag-wide busdiag-help">
-        <h3>Schnellzugriff</h3>
-        <div class="busdiag-quick-grid">
-          <a href="/public/tools/sound_eventbus_debug.html" target="_blank"><strong>Sound Debug öffnen</strong><span>${summary.soundDebugConnected ? 'aktuell verbunden' : 'nicht verbunden'}</span></a>
-          <a href="/public/tools/alert_eventbus_debug.html" target="_blank"><strong>Alert Debug öffnen</strong><span>${summary.alertDebugConnected ? 'aktuell verbunden' : 'nicht verbunden'}</span></a>
-          <a href="/public/tools/bus_diagnostics_dashboard.html" target="_blank"><strong>Standalone Bus-Diagnose</strong><span>separate Diagnoseansicht</span></a>
-          <a href="/overlays/vip_sound_overlay_v2.html" target="_blank"><strong>VIP Overlay öffnen</strong><span>${summary.vipOverlayConnected ? 'Bus-Client verbunden' : 'Overlay nicht verbunden'}</span></a>
-          <a href="/overlays/_overlay-bus-test.html?debug=1" target="_blank"><strong>Overlay Bus Test</strong><span>Testclient öffnen</span></a>
-        </div>
-      </section>
-    `;
+  function renderClientsTab(){
+    const split = splitClients();
+    return `${renderClientTable('Backend-Module', split.modules, 'Keine Backend-Module registriert.')}${renderClientTable('Overlay-Clients', split.overlays, 'Keine Overlay-Clients registriert.')}${renderClientTable('Tools / Debug / Dashboard', split.tools, 'Keine Tool- oder Debug-Clients registriert.')}${renderClientTable('Unbekannte Clients', split.unknown, 'Keine unbekannten Clients.')}`;
   }
 
-
-  function renderCapabilityChips(capabilities){
-    const list = Array.isArray(capabilities) ? capabilities : [];
-    if (!list.length) return '-';
-    return list.map(cap => `<span class="busdiag-chip">${esc(cap)}</span>`).join('');
+  function renderEventsTab(){
+    const events = getEvents().slice(0, 40);
+    return card('Events & ACKs', events.length ? `<div class="busdiag-table busdiag-table-events"><div class="busdiag-table-head"><span>Zeit</span><span>Channel/Action</span><span>Ziel</span><span>ACK</span><span>Delivery</span></div>${events.map(event => `<div class="busdiag-table-row"><span>${esc(fmtTime(event.createdAt))}<small>${esc(event.id || '-')}</small></span><span><strong>${esc(event.channel || '-')}</strong><small>${esc(event.action || '-')}</small></span><span><strong>${esc(event.target?.type || '-')}</strong><small>${esc(event.target?.id || event.target?.module || '')}</small></span><span>${badge(event.requireAck ? 'ACK Pflicht' : 'kein ACK', event.requireAck && !event.ackCount ? 'warning' : 'ok')}<small>${esc(event.ackCount ?? 0)} ACKs</small></span><span><strong>${esc(asList(event.deliveredTo).length)}</strong><small>${event.expired ? 'expired' : esc(event.expiresAt || '')}</small></span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine Events im Bus-Speicher.</p>', 'busdiag-wide');
   }
 
-  function getOverlayClients(clients){
-    const list = Array.isArray(clients) ? clients : [];
-    return list.filter(client => {
-      if (!client) return false;
-      const type = String(client.type || '').toLowerCase();
-      const id = String(client.id || '').toLowerCase();
-      return type === 'overlay' || id.startsWith('overlay:');
-    });
+  function renderIntegrationsTab(){
+    const summary = getSummary();
+    const sound = getStatus().soundEventBus || {};
+    const alert = getStatus().alertEventBus || {};
+    const vip = getStatus().vipStatus || {};
+    const vipIntegration = getStatus().vipIntegration || {};
+    const correlation = getStatus().alertSoundCorrelation || {};
+    const comparison = correlation.comparison || {};
+    return `<div class="busdiag-grid">${card('Sound EventBus', `<div class="busdiag-status-line">${badge(sound.ok ? 'ok' : 'error', sound.ok ? 'ok' : 'error')}<span>${esc(value(sound.module))} ${esc(value(sound.version))}</span></div><div class="busdiag-metrics">${metric('Capability', sound.capability || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Emitted', summary.soundEmitted)}${metric('Errors', summary.soundErrors)}${metric('Last action', summary.soundLastAction || '-')}</div>`)}${card('Alert EventBus', `<div class="busdiag-status-line">${badge(alert.ok ? 'ok' : 'error', alert.ok ? 'ok' : 'error')}<span>${esc(value(alert.module))} ${esc(value(alert.version))}</span></div><div class="busdiag-metrics">${metric('Capability', alert.capability || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Emitted', summary.alertEmitted)}${metric('Errors', summary.alertErrors)}${metric('Last action', summary.alertLastAction || '-')}</div>`)}${card('VIP-System', `<div class="busdiag-status-line">${badge(vip.ok ? 'ok' : 'warning', vip.ok ? 'ok' : 'warning')}<span>${esc(value(vip.module || 'vip_sound_overlay'))} ${esc(value(summary.vipVersion || vip.version))}</span></div><div class="busdiag-metrics">${metric('Overlay Client', bool(summary.vipOverlayConnected), summary.vipOverlayConnected ? 'Bus verbunden' : 'nicht verbunden')}${metric('Status API', vip.fetchOk ? 'ok' : 'fehler')}${metric('Phase', summary.vipPhase || vip.phase || '-')}${metric('Queue', summary.vipQueuedCount ?? vip.queuedCount ?? 0)}</div>`)}${card('Alert/Sound-Korrelation', `<div class="busdiag-status-line">${badge(correlation.ok ? 'ok' : 'error', correlation.ok ? 'ok' : 'error')}<span>${esc(value(correlation.feature))}</span></div><div class="busdiag-metrics">${metric('Matched', summary.correlationMatched ?? comparison.matched)}${metric('Unmatched', summary.correlationUnmatched ?? comparison.unmatched)}${metric('Alert Rows', comparison.alertRows ?? '-')}${metric('Sound Rows', comparison.soundRows ?? '-')}</div>`)}</div>${renderRecent('Sound Events', sound.recentEvents || [])}${renderRecent('Alert Events', alert.recentEvents || [])}${renderCorrelationDetails(comparison)}`;
   }
 
-  function ageText(value){
-    if (!value) return '-';
-    const time = Date.parse(value);
-    if (!Number.isFinite(time)) return '-';
-    const diff = Math.max(0, Date.now() - time);
-    const sec = Math.floor(diff / 1000);
-    if (sec < 60) return `${sec}s`;
-    const min = Math.floor(sec / 60);
-    if (min < 60) return `${min}m ${sec % 60}s`;
-    const hours = Math.floor(min / 60);
-    return `${hours}h ${min % 60}m`;
+  function renderIssuesTab(){
+    const warnings = asList(getStatus().warnings);
+    const errors = asList(getStatus().errors);
+    const issues = getIssues();
+    const watchdog = getStatus().watchdog || {};
+    return `${card('Hinweise / Errors', (!warnings.length && !errors.length) ? '<p class="busdiag-muted">Keine Hinweise oder Fehler.</p>' : `<div class="busdiag-list">${errors.map(e => `<div class="busdiag-row error"><strong>Error</strong><span>${esc(e)}</span></div>`).join('')}${warnings.map(w => `<div class="busdiag-row warning"><strong>Warning</strong><span>${esc(w)}</span></div>`).join('')}</div>`, 'busdiag-wide')}${card('Bus-Issues', issues.length ? `<div class="busdiag-table busdiag-table-issues"><div class="busdiag-table-head"><span>Key</span><span>Level</span><span>Count</span><span>Zuletzt</span></div>${issues.map(issue => `<div class="busdiag-table-row"><span><strong>${esc(issue.key || '-')}</strong><small>${esc(issue.message || '')}</small></span><span>${badge(issue.level || 'info', issue.level || 'info')}</span><span>${esc(issue.count ?? issue.suppressed ?? '-')}</span><span>${esc(fmtTime(issue.lastSeenAt || issue.firstSeenAt))}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine Bus-Issues im Speicher.</p>', 'busdiag-wide')}${watchdog.diagnosis ? card('Watchdog', `<details class="busdiag-details" open><summary>Watchdog-Diagnose</summary><pre>${esc(compactJson(watchdog.diagnosis))}</pre></details>`, 'busdiag-wide') : ''}`;
   }
 
-  function clientStatusLabel(client){
-    const status = String(client?.status || '').trim();
-    if (status) return status;
-    return client && client.connected ? 'online' : 'offline';
+  function renderConfigTab(){
+    const settings = state.lastSettings;
+    if (!settings) return card('Bus-Config', '<p class="busdiag-muted">Die DB-basierte Bus-Config-API ist noch nicht erreichbar. Nach Einbau von <code>communication_bus_settings.js</code> Backend neu starten.</p>', 'busdiag-wide');
+    const categories = asList(settings.categories);
+    return `${card('Bus-Config Speicher', `<div class="busdiag-status-line">${badge(settings.ok ? 'ok' : 'error', settings.ok ? 'ok' : 'error')}<span>${esc(settings.module || 'communication_bus_settings')} ${esc(settings.moduleVersion || '')}</span></div><div class="busdiag-metrics">${metric('Speicher', settings.storage || '-')}${metric('Adapter', settings.adapter || '-')}${metric('Tabelle', settings.table || '-')}${metric('Runtime sofort', bool(settings.runtimeAppliedImmediately), settings.runtimeApplyNote || '')}</div>`, 'busdiag-wide busdiag-config-intro')}${categories.map(category => `<section class="busdiag-card busdiag-wide busdiag-config-category"><h3>${esc(category.name)}</h3><div class="busdiag-config-grid">${asList(category.settings).map(renderSettingInput).join('')}</div></section>`).join('')}<section class="busdiag-card busdiag-wide"><div class="busdiag-config-actions"><button type="button" data-busdiag-save-settings>Bus-Config speichern</button><button type="button" class="secondary" data-busdiag-reload-settings>Config neu laden</button></div><p class="busdiag-muted">Schreibziel ist die zentrale DB. Produktive Runtime-Uebernahme bleibt bewusst ein separater Schritt.</p></section>`;
   }
 
-  function renderOverlayClients(clients){
-    const overlays = getOverlayClients(clients);
-    if (!overlays.length) {
-      return `
-        <section class="busdiag-card busdiag-wide busdiag-overlay-card">
-          <h3>Overlay-Clients</h3>
-          <div class="busdiag-empty-inline">Keine Overlay-Clients im Communication Bus registriert.</div>
-        </section>
-      `;
+  function renderSettingInput(setting){
+    const key = setting.key;
+    const disabled = setting.editable === false ? 'disabled' : '';
+    if (setting.type === 'boolean') {
+      return `<label class="busdiag-setting busdiag-setting-bool"><span><strong>${esc(setting.label)}</strong><small>${esc(setting.description || key)}</small></span><input type="checkbox" data-busdiag-setting="${esc(key)}" ${setting.value ? 'checked' : ''} ${disabled}></label>`;
     }
+    if (setting.type === 'number') {
+      return `<label class="busdiag-setting"><span><strong>${esc(setting.label)}</strong><small>${esc(setting.description || key)}</small></span><input type="number" data-busdiag-setting="${esc(key)}" value="${esc(setting.value)}" min="${esc(setting.min ?? '')}" max="${esc(setting.max ?? '')}" ${disabled}></label>`;
+    }
+    return `<label class="busdiag-setting"><span><strong>${esc(setting.label)}</strong><small>${esc(setting.description || key)}</small></span><input type="text" data-busdiag-setting="${esc(key)}" value="${esc(setting.value)}" ${disabled}></label>`;
+  }
 
-    const counts = overlays.reduce((acc, client) => {
-      const status = clientStatusLabel(client).toLowerCase();
-      if (status === 'online') acc.online += 1;
-      else if (status === 'stale') acc.stale += 1;
-      else if (status === 'dead') acc.dead += 1;
-      else acc.offline += 1;
-      return acc;
-    }, { online: 0, stale: 0, offline: 0, dead: 0 });
+  function bindConfigActions(){
+    panel()?.querySelector('[data-busdiag-save-settings]')?.addEventListener('click', saveSettings);
+    panel()?.querySelector('[data-busdiag-reload-settings]')?.addEventListener('click', async () => { state.lastSettings = await window.CGN.api('/api/communication/settings'); renderCurrentTab(); });
+  }
 
-    return `
-      <section class="busdiag-card busdiag-wide busdiag-overlay-card">
-        <h3>Overlay-Clients</h3>
-        <div class="busdiag-overlay-summary">
-          ${badge(`${counts.online} online`, counts.online ? 'ok' : 'neutral')}
-          ${badge(`${counts.stale} stale`, counts.stale ? 'warning' : 'neutral')}
-          ${badge(`${counts.offline} offline`, counts.offline ? 'warning' : 'neutral')}
-          ${badge(`${counts.dead} dead`, counts.dead ? 'error' : 'neutral')}
-        </div>
-        <div class="busdiag-table busdiag-table-overlays">
-          <div class="busdiag-table-head"><span>Overlay</span><span>Status</span><span>Heartbeat</span><span>Capabilities</span></div>
-          ${overlays.map(client => {
-            const status = clientStatusLabel(client);
-            return `
-              <div class="busdiag-table-row">
-                <span><strong>${esc(client.name || client.id || '-')}</strong><small>${esc(client.id || '-')} / ${esc(client.module || '-')}</small></span>
-                <span>${badge(status, status)}<small>${client.connected ? 'verbunden' : 'getrennt'}</small></span>
-                <span><strong>${esc(ageText(client.lastHeartbeatAt || client.lastSeenAt))}</strong><small>${esc(client.lastHeartbeatAt || client.lastSeenAt || '-')}</small></span>
-                <span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </section>
-    `;
+  async function saveSettings(){
+    const root = panel();
+    if (!root) return;
+    const settings = {};
+    root.querySelectorAll('[data-busdiag-setting]').forEach(input => {
+      const key = input.dataset.busdiagSetting;
+      if (!key || input.disabled) return;
+      settings[key] = input.type === 'checkbox' ? input.checked : (input.type === 'number' ? Number(input.value) : input.value);
+    });
+    await window.CGN.api('/api/communication/settings', { method:'POST', body: JSON.stringify({ updatedBy:'dashboard.bus_diagnostics', settings }) });
+    state.lastSettings = await window.CGN.api('/api/communication/settings');
+    renderCurrentTab();
+  }
+
+  function renderRawTab(){
+    return `${card('Komplette Bus-Diagnose', `<details class="busdiag-details" open><summary>Diagnose anzeigen</summary><pre>${esc(compactJson(state.lastData))}</pre></details>`, 'busdiag-wide')}${card('Bus-Config Rohdaten', `<details class="busdiag-details"><summary>Settings anzeigen</summary><pre>${esc(compactJson(state.lastSettings || {}))}</pre></details>`, 'busdiag-wide')}`;
+  }
+
+  function renderCapabilityChips(capabilities){ const list = asList(capabilities); return list.length ? list.map(cap => `<span class="busdiag-chip">${esc(cap)}</span>`).join('') : '-'; }
+
+  function renderRecent(title, events){
+    events = asList(events).slice(0, 10);
+    if (!events.length) return '';
+    return card(title, `<div class="busdiag-table busdiag-table-events"><div class="busdiag-table-head"><span>Zeit</span><span>Action</span><span>Event</span><span>Delivered</span><span>Details</span></div>${events.map(event => `<div class="busdiag-table-row"><span>${esc(event.at || '-')}</span><span><strong>${esc(event.action || '-')}</strong><small>${esc(event.reason || '')}</small></span><span><strong>${esc(event.eventId || '-')}</strong></span><span>${esc(event.deliveredCount ?? '-')}</span><span><details class="busdiag-inline-details"><summary>Details</summary><pre>${esc(compactJson(event))}</pre></details></span></div>`).join('')}</div>`, 'busdiag-wide');
   }
 
   function renderCorrelationDetails(comparison){
-    const matches = Array.isArray(comparison.matches) ? comparison.matches : [];
-    const unmatched = Array.isArray(comparison.unmatchedAlerts) ? comparison.unmatchedAlerts : [];
+    const matches = asList(comparison.matches);
+    const unmatched = asList(comparison.unmatchedAlerts);
     if (!matches.length && !unmatched.length) return '';
-    return `
-      <section class="busdiag-card busdiag-wide">
-        <h3>Korrelation Details</h3>
-        <div class="busdiag-correlation-grid">
-          ${matches.map(match => `
-            <div class="busdiag-correlation-row ok">
-              <div><strong>${esc(match.eventUid || '-')}</strong><small>${esc(match.bundleId || '-')}</small></div>
-              <div><span>Matched by</span><strong>${esc(match.matchedBy || '-')}</strong></div>
-              <div><span>Sound Action</span><strong>${esc(match.soundLastAction || '-')}</strong></div>
-              <div><span>Errors</span><strong>${esc(match.soundErrorCount ?? 0)}</strong></div>
-            </div>
-          `).join('')}
-          ${unmatched.map(row => `
-            <div class="busdiag-correlation-row warning">
-              <div><strong>${esc(row.eventUid || '-')}</strong><small>${esc(row.bundleId || '-')}</small></div>
-              <div><span>Status</span><strong>unmatched</strong></div>
-              <div><span>Phase</span><strong>${esc(row.phase || '-')}</strong></div>
-              <div><span>Hinweis</span><strong>prüfen</strong></div>
-            </div>
-          `).join('')}
-        </div>
-      </section>
-    `;
-  }
-
-  function renderRawDiagnostics(data){
-    return `
-      <section class="busdiag-card busdiag-wide busdiag-raw-card">
-        <h3>Rohdaten</h3>
-        <p class="busdiag-muted">Nur Anzeige. Hilft beim Weitergeben von Diagnoseausgaben, ohne zusätzliche PowerShell-Abfragen.</p>
-        <details class="busdiag-details"><summary>Komplette Diagnose anzeigen</summary><pre>${esc(compactJson(data))}</pre></details>
-      </section>
-    `;
-  }
-
-  function renderClients(clients){
-    if (!clients.length) return '';
-    return `
-      <section class="busdiag-card busdiag-wide">
-        <h3>Bus-Clients</h3>
-        <div class="busdiag-table">
-          <div class="busdiag-table-head"><span>ID</span><span>Modul</span><span>Status</span><span>Capabilities</span></div>
-          ${clients.map(client => `
-            <div class="busdiag-table-row">
-              <span><strong>${esc(client.id)}</strong><small>${esc(client.type || '-')} / ${esc(client.mode || '-')}</small></span>
-              <span>${esc(client.module || '-')}</span>
-              <span>${badge(client.connected ? 'online' : 'offline', client.connected ? 'ok' : 'warning')}</span>
-              <span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span>
-            </div>
-          `).join('')}
-        </div>
-      </section>
-    `;
-  }
-
-  function renderRecent(title, events){
-    if (!events.length) return '';
-    return `
-      <section class="busdiag-card busdiag-wide">
-        <h3>${esc(title)}</h3>
-        <div class="busdiag-table busdiag-table-events">
-          <div class="busdiag-table-head"><span>Zeit</span><span>Action</span><span>Event</span><span>Delivered</span></div>
-          ${events.slice(0, 10).map(event => `
-            <div class="busdiag-table-row busdiag-event-row">
-              <span>${esc(event.at || '-')}</span>
-              <span><strong>${esc(event.action || '-')}</strong><small>${esc(event.reason || '')}</small></span>
-              <span><strong>${esc(event.eventId || '-')}</strong><details class="busdiag-inline-details"><summary>Details</summary><pre>${esc(compactJson(event))}</pre></details></span>
-              <span>${esc(event.deliveredCount ?? '-')}</span>
-            </div>
-          `).join('')}
-        </div>
-      </section>
-    `;
+    return card('Korrelation Details', `<div class="busdiag-correlation-grid">${matches.map(match => `<div class="busdiag-correlation-row ok"><div><strong>${esc(match.eventUid || '-')}</strong><small>${esc(match.bundleId || '-')}</small></div><div><span>Matched by</span><strong>${esc(match.matchedBy || '-')}</strong></div><div><span>Sound Action</span><strong>${esc(match.soundLastAction || '-')}</strong></div><div><span>Errors</span><strong>${esc(match.soundErrorCount ?? 0)}</strong></div></div>`).join('')}${unmatched.map(row => `<div class="busdiag-correlation-row warning"><div><strong>${esc(row.eventUid || '-')}</strong><small>${esc(row.bundleId || '-')}</small></div><div><span>Status</span><strong>unmatched</strong></div><div><span>Phase</span><strong>${esc(row.phase || '-')}</strong></div><div><span>Hinweis</span><strong>prüfen</strong></div></div>`).join('')}</div>`, 'busdiag-wide');
   }
 
   function loadWhenShown(event){
     if (event.detail?.module !== 'bus_diagnostics') return;
     state.visible = !document.hidden;
-    if (!panel()?.dataset.rendered) {
-      renderSkeleton();
-      panel().dataset.rendered = '1';
-    }
+    if (!panel()?.dataset.rendered) { renderSkeleton(); panel().dataset.rendered = '1'; }
     loadAll(false);
     restartAutoTimer();
   }
