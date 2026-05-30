@@ -1,4 +1,4 @@
-# SHOUTOUT_SYSTEM_CONSOLIDATION
+﻿# SHOUTOUT_SYSTEM_CONSOLIDATION
 
 Version: 0.1.0  
 Stand: 2026-05-30  
@@ -250,3 +250,51 @@ Tokens
 ## Keine Funktionalitaet entfernen
 
 Bestehende Shoutout-, Twitch-, EventSub-, Dashboard-, Queue-, Timeline-, Statistik- und Debug-Funktionalitaet darf durch diese Konsolidierung nicht entfernt oder ungeprueft ersetzt werden.
+
+<!-- STEP609_SHOUTOUT_CLIP_FEATURES_DOCS_BATCH_START -->
+
+## STEP609 Shoutout / Clip Features Module Docs Batch
+
+Stand: 2026-05-30
+
+Dieser Abschnitt dokumentiert den Shoutout-/Clip-Feature-Anteil aus dem von STEP608 bestimmten naechsten Modul-Doku-Batch.
+
+### Batch
+
+Batch: E_shoutout_clip_features
+Ziel-Doku: docs/system-inspection/SHOUTOUT_SYSTEM_CONSOLIDATION.md
+Module im Batch: 1
+High Priority: 0
+Review Priority: 0
+Route Hits: 8
+Quelle: system-scan-output/step608_next_real_module_doc_batch_rows.tsv
+Generated: 2026-05-30 11:56:01
+
+### Arbeitsregel
+
+1. Diese Eintraege sind scan-/triagebasiert.
+2. Sie beschreiben Doku-Bedarf fuer Shoutout-/Clip-nahe Module, keine neue Funktionalitaet.
+3. Bestehende produktive Shoutout-/Clip-Flows duerfen dadurch nicht geaendert werden.
+4. Keine produktive Route ungeprueft aus Scan-Treffern ableiten.
+5. Echte Moduldatei und Router-Kontext bleiben massgeblich.
+
+### Shoutout-/Clip-nahe Module in diesem Batch
+
+| Priority | Module | File | Route Hits | Action |
+|---|---|---|---:|---|
+| normal | clip_shoutout | backend/modules/clip_shoutout.js | 8 | review_existing_doc_section |
+
+### Abgrenzung
+
+Dieser Abschnitt ist eine Doku-/Review-Zwischenablage fuer Shoutout-/Clip-nahe Scan-Kandidaten.
+
+Er ersetzt keine fachliche Shoutout- oder Clip-System-Doku und trifft keine Aussage darueber, ob eine Route produktiv, intern, diagnostisch oder historisch ist.
+
+### Naechster Schritt
+
+STEP610 - Shoutout / Clip Features Batch Verification
+
+Ziel: Pruefen, ob der STEP609-Abschnitt sauber in der Shoutout-System-Konsolidierungsdoku steht und danach die verbleibenden Doku-Batches bestimmen.
+
+<!-- STEP609_SHOUTOUT_CLIP_FEATURES_DOCS_BATCH_END -->
+
