@@ -692,3 +692,86 @@ Generated: 2026-05-30 11:02:36
 STEP595 - Routes Inventory Review and Docs Update Plan
 
 Ziel: Die Routen-Inventur fachlich pruefen, offensichtliche False-Positives markieren und anschliessend gezielt Modul-Dokus aktualisieren.
+
+<!-- STEP596_MISSING_ROUTES_DOC_BATCH_START -->
+
+## STEP596 Missing Routes Documentation Batch
+
+Stand: 2026-05-30
+
+Dieser Abschnitt dokumentiert gezielt die in STEP591 bis STEP595 gefundenen Routen, die im bisherigen Doku-Text noch nicht erwaehnt wurden.
+
+Wichtig: Auch diese Liste ist scanbasiert. Jede Route muss vor produktiven Entscheidungen in der echten Moduldatei geprueft werden.
+
+### Zusammenfassung
+
+Missing routes total: 26
+Bereiche: 7
+Quelle: system-scan-output/step595_missing_routes_review.tsv
+Generated: 2026-05-30 11:08:27
+
+### Missing Routes nach Bereichen
+
+| Bereich | Routes | High Priority | Review Priority |
+|---|---:|---:|---:|
+| obs_overlay | 12 | 0 | 12 |
+| twitch_chat | 5 | 0 | 5 |
+| sound_media | 3 | 0 | 3 |
+| other | 2 | 0 | 2 |
+| discord_tagebuch_todo | 2 | 0 | 2 |
+| alerts | 1 | 0 | 1 |
+| stream_features | 1 | 0 | 1 |
+
+### Detail-Liste
+
+| Priority | Bereich | Risk | Route | Methods | Files | Hinweis |
+|---|---|---|---|---|---|---|
+| review | alerts | unknown_method | /api/alerts/bus-mirror/enable?confirm=1 | UNKNOWN | backend/modules/alert_system.js | Method not clearly detected; verify whether this is a real route. |
+| review | discord_tagebuch_todo | unknown_method | /api/tagebuch/config und /api/tagebuch/settings sind read-only Standard-Aliase. | UNKNOWN | backend/modules/tagebuch.js | Method not clearly detected; verify whether this is a real route. |
+| review | discord_tagebuch_todo | unknown_method | /api/todo/config und /api/todo/settings sind read-only Standard-Aliase. | UNKNOWN | backend/modules/todo.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/chat-overlay | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/clear-live | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/debug | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/emotes/lookup | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/emotes/reload | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/emotes/status | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/irc | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/irc/reconnect | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/irc/start | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/irc/status | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/overlay/start-chat/irc/stop | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | obs_overlay | unknown_method | /api/twitch-chat-overlay | UNKNOWN | backend/modules/twitch_chat_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | other | unknown_method | /api/message-rotator/config und /api/message-rotator/settings sind read-only Standard-Aliase. | UNKNOWN | backend/modules/message_rotator.js | Method not clearly detected; verify whether this is a real route. |
+| review | other | unknown_method | /api/messages/config und /api/messages/settings sind read-only Standard-Aliase. | UNKNOWN | backend/modules/messages.js | Method not clearly detected; verify whether this is a real route. |
+| review | sound_media | unknown_method | /api/soundalerts/integration-check ist als Read-only Diagnose-Endpunkt vorhanden. | UNKNOWN | backend/modules/soundalerts_bridge.js | Method not clearly detected; verify whether this is a real route. |
+| review | sound_media | unknown_method | /api/twitch/vips | UNKNOWN | backend/modules/twitch.js | Method not clearly detected; verify whether this is a real route. |
+| review | sound_media | unknown_method | /api/vip is intentionally not registered. | UNKNOWN | backend/modules/vip_sound_overlay.js | Method not clearly detected; verify whether this is a real route. |
+| review | stream_features | unknown_method | /api/clips is intentionally not registered; productive prefix remains /api/clip. | UNKNOWN | backend/modules/clips.js | Method not clearly detected; verify whether this is a real route. |
+| review | twitch_chat | unknown_method | /api/twitch/badges | UNKNOWN | backend/modules/twitch.js | Method not clearly detected; verify whether this is a real route. |
+| review | twitch_chat | unknown_method | /api/twitch/clips | UNKNOWN | backend/modules/twitch.js | Method not clearly detected; verify whether this is a real route. |
+| review | twitch_chat | unknown_method | /api/twitch/moderators | UNKNOWN | backend/modules/twitch.js | Method not clearly detected; verify whether this is a real route. |
+| review | twitch_chat | unknown_method | /api/twitch/raids | UNKNOWN | backend/modules/twitch.js | Method not clearly detected; verify whether this is a real route. |
+| review | twitch_chat | unknown_method | /api/twitch/videos | UNKNOWN | backend/modules/twitch.js | Method not clearly detected; verify whether this is a real route. |
+
+### Doku-Zielbereiche aus STEP595
+
+Diese Zielbereiche sind nur eine Planungsgrundlage. Es werden mit diesem STEP keine Modul-Dokus automatisch geaendert.
+
+| Ziel-Doku | Module | High Priority Modules | Route Hits |
+|---|---:|---:|---:|
+| docs/backend/ROUTES.md | 20 | 14 | 831 |
+| docs/modules/sound_system_channelpoints_routing.md | 10 | 3 | 200 |
+| docs/current/CURRENT_SYSTEM_STATUS.md | 8 | 4 | 394 |
+| docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md | 3 | 2 | 42 |
+| docs/system-inspection/COMMUNICATION_BUS_CONTRACT_CONSOLIDATION.md | 2 | 2 | 39 |
+| docs/modules/channelpoints.md | 1 | 0 | 1 |
+| docs/system-inspection/SHOUTOUT_SYSTEM_CONSOLIDATION.md | 1 | 0 | 8 |
+
+### Naechster Schritt
+
+STEP597 - Route Inventory False-Positive Review
+
+Ziel: Die 357 False-Positive-Kandidaten aus STEP595 nicht blind uebernehmen, sondern nach Risiko gruppieren und nur sinnvolle Doku-Hinweise ableiten.
+
+<!-- STEP596_MISSING_ROUTES_DOC_BATCH_END -->
+
