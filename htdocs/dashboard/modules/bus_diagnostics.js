@@ -5,6 +5,8 @@
     loading: false,
     lastData: null,
     lastSettings: null,
+    settingsLoading: false,
+    settingsError: '',
     lastError: '',
     activeTab: localStorage.getItem('cgn-busdiag-tab') || 'overview',
     autoTimer: null,
@@ -141,6 +143,27 @@
     localStorage.setItem('cgn-busdiag-tab', tabId);
     refreshTabs();
     renderCurrentTab();
+    if (tabId === 'config') loadSettings(false);
+  }
+
+  async function loadSettings(force){
+    if (state.settingsLoading) return state.lastSettings;
+    if (!force && state.lastSettings && state.lastSettings.ok === true) return state.lastSettings;
+    state.settingsLoading = true;
+    state.settingsError = '';
+    if (state.activeTab === 'config') renderCurrentTab();
+    try {
+      state.lastSettings = await window.CGN.api('/api/communication/settings');
+      state.settingsError = '';
+      return state.lastSettings;
+    } catch (err) {
+      state.settingsError = err.message || String(err);
+      state.lastSettings = null;
+      return null;
+    } finally {
+      state.settingsLoading = false;
+      if (state.activeTab === 'config') renderCurrentTab();
+    }
   }
 
   async function loadAll(check){
@@ -151,7 +174,7 @@
     try {
       const data = await window.CGN.api(check ? '/api/bus-diagnostics/check' : '/api/bus-diagnostics/status');
       state.lastData = data;
-      try { state.lastSettings = await window.CGN.api('/api/communication/settings'); } catch (_) { state.lastSettings = null; }
+      await loadSettings(true);
       renderCurrentTab();
       scheduleNextRefresh();
     } catch (err) {
@@ -273,7 +296,18 @@
 
   function renderConfigTab(){
     const settings = state.lastSettings;
-    if (!settings) return card('Bus-Config', '<p class="busdiag-muted">Die DB-basierte Bus-Config-API ist noch nicht erreichbar. Nach Einbau von <code>communication_bus_settings.js</code> Backend neu starten.</p>', 'busdiag-wide');
+    if (!settings && !state.settingsLoading && !state.settingsError) {
+      setTimeout(() => loadSettings(false), 0);
+    }
+    if (state.settingsLoading) {
+      return card('Bus-Config', '<p class="busdiag-muted">DB-basierte Bus-Config wird geladen…</p>', 'busdiag-wide');
+    }
+    if (!settings) {
+      const msg = state.settingsError
+        ? `Bus-Config konnte nicht geladen werden: ${esc(state.settingsError)}`
+        : 'Noch keine Bus-Config geladen.';
+      return card('Bus-Config', `<p class="busdiag-muted">${msg}</p><div class="busdiag-config-actions"><button type="button" data-busdiag-reload-settings>Config neu laden</button></div>`, 'busdiag-wide');
+    }
     const categories = asList(settings.categories);
     return `${card('Bus-Config Speicher', `<div class="busdiag-status-line">${badge(settings.ok ? 'ok' : 'error', settings.ok ? 'ok' : 'error')}<span>${esc(settings.module || 'communication_bus_settings')} ${esc(settings.moduleVersion || '')}</span></div><div class="busdiag-metrics">${metric('Speicher', settings.storage || '-')}${metric('Adapter', settings.adapter || '-')}${metric('Tabelle', settings.table || '-')}${metric('Runtime sofort', bool(settings.runtimeAppliedImmediately), settings.runtimeApplyNote || '')}</div>`, 'busdiag-wide busdiag-config-intro')}${categories.map(category => `<section class="busdiag-card busdiag-wide busdiag-config-category"><h3>${esc(category.name)}</h3><div class="busdiag-config-grid">${asList(category.settings).map(renderSettingInput).join('')}</div></section>`).join('')}<section class="busdiag-card busdiag-wide"><div class="busdiag-config-actions"><button type="button" data-busdiag-save-settings>Bus-Config speichern</button><button type="button" class="secondary" data-busdiag-reload-settings>Config neu laden</button></div><p class="busdiag-muted">Schreibziel ist die zentrale DB. Produktive Runtime-Uebernahme bleibt bewusst ein separater Schritt.</p></section>`;
   }
@@ -292,7 +326,7 @@
 
   function bindConfigActions(){
     panel()?.querySelector('[data-busdiag-save-settings]')?.addEventListener('click', saveSettings);
-    panel()?.querySelector('[data-busdiag-reload-settings]')?.addEventListener('click', async () => { state.lastSettings = await window.CGN.api('/api/communication/settings'); renderCurrentTab(); });
+    panel()?.querySelector('[data-busdiag-reload-settings]')?.addEventListener('click', async () => { await loadSettings(true); });
   }
 
   async function saveSettings(){
@@ -305,8 +339,7 @@
       settings[key] = input.type === 'checkbox' ? input.checked : (input.type === 'number' ? Number(input.value) : input.value);
     });
     await window.CGN.api('/api/communication/settings', { method:'POST', body: JSON.stringify({ updatedBy:'dashboard.bus_diagnostics', settings }) });
-    state.lastSettings = await window.CGN.api('/api/communication/settings');
-    renderCurrentTab();
+    await loadSettings(true);
   }
 
   function renderRawTab(){

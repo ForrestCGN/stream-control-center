@@ -13,7 +13,7 @@ const database = require('../core/database');
 const routes = require('./helpers/helper_routes');
 
 const MODULE = 'communication_bus_settings';
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const SCHEMA_VERSION = 1;
 const TABLE = 'communication_bus_settings';
 
@@ -109,19 +109,24 @@ function ensureSchema() {
   database.ensureReady();
   database.ensureSchema(MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
     if (toVersion !== 1) return;
+    const table = database.quoteIdentifier(TABLE);
+    const text = database.textTypeSql();
+    const longText = database.textTypeSql({ long: true });
+    const boolType = database.boolTypeSql();
+    const dateType = database.dateTimeTypeSql();
     db.exec(`
-      CREATE TABLE IF NOT EXISTS ${TABLE} (
-        setting_key TEXT PRIMARY KEY,
-        value_json TEXT NOT NULL,
-        value_type TEXT NOT NULL DEFAULT 'json',
-        category TEXT NOT NULL DEFAULT '',
-        label TEXT NOT NULL DEFAULT '',
-        description TEXT NOT NULL DEFAULT '',
-        is_editable INTEGER NOT NULL DEFAULT 1,
-        is_sensitive INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        updated_by TEXT NOT NULL DEFAULT 'system'
+      CREATE TABLE IF NOT EXISTS ${table} (
+        setting_key ${text} PRIMARY KEY,
+        value_json ${longText} NOT NULL,
+        value_type ${text} NOT NULL DEFAULT 'json',
+        category ${text} NOT NULL DEFAULT '',
+        label ${text} NOT NULL DEFAULT '',
+        description ${longText} NOT NULL DEFAULT '',
+        is_editable ${boolType} NOT NULL DEFAULT 1,
+        is_sensitive ${boolType} NOT NULL DEFAULT 0,
+        created_at ${dateType} NOT NULL,
+        updated_at ${dateType} NOT NULL,
+        updated_by ${text} NOT NULL DEFAULT 'system'
       );
     `);
   });
@@ -153,7 +158,7 @@ function definitionMap() {
 
 function getRows() {
   seedDefaults();
-  return database.all(`SELECT * FROM ${TABLE} ORDER BY category ASC, setting_key ASC`) || [];
+  return database.all(`SELECT * FROM ${database.quoteIdentifier(TABLE)} ORDER BY ${database.quoteIdentifier('category')} ASC, ${database.quoteIdentifier('setting_key')} ASC`) || [];
 }
 
 function rowToSetting(row) {
@@ -244,7 +249,7 @@ function updateSettings(input = {}, updatedBy = 'dashboard') {
 
 function resetDefaults() {
   ensureSchema();
-  database.exec(`DELETE FROM ${TABLE}`);
+  database.exec(`DELETE FROM ${database.quoteIdentifier(TABLE)}`);
   seedDefaults();
   return buildSettingsResponse();
 }
