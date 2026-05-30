@@ -1,0 +1,41 @@
+# NEXT_STEPS_APPEND - STEP558
+
+Stand: 2026-05-29
+
+## Naechster Schritt
+
+```text
+STEP559 - Batch B Content Rescue Draft
+```
+
+## Aufgabe
+
+Inhalte aus Batch B sichern/konsolidieren:
+
+```text
+STEP476_MODULE_DOCS_CORE_HELPERS_DEEP_DIVE.md
+STEP477_MODULE_DOCS_STREAM_MODULES_DEEP_DIVE.md
+STEP478_MODULE_DOCS_INTEGRATIONS_COMMUNITY_DEEP_DIVE.md
+STEP479_MODULE_DOCS_SECONDARY_MODULES_DEEP_DIVE.md
+STEP480_PROMPT_MODULE_DOCS_VERSION_EVENTBUS_RULES.md
+STEP481_SERVER_LOG_MODULE_META_RULES.md
+STEP482_HANDOFF_DOCUMENTATION_UPDATE_RULE.md
+```
+
+## Ziel-Dokumente
+
+```text
+docs/system-inspection/MODULE_AND_META_RULES_CONSOLIDATION.md
+docs/system-inspection/PROJECT_STATE_CLEANUP_RUN_HISTORY.md
+project-state/GENERAL_PROJECT_PROMPT.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+```
+
+## Danach
+
+```text
+STEP560 - Batch B Archive Dry-Run
+STEP561 - Batch B Archive Apply
+STEP562 - Post Batch B Verification
+```
