@@ -57,12 +57,18 @@
   function getEvents(){ return asList(getBusStatus().events); }
   function getIssues(){ return asList(getBusStatus().issues); }
 
+  function isOverlayClient(client){
+    const id = String(client?.id || '').toLowerCase();
+    const type = String(client?.type || '').toLowerCase();
+    const mode = String(client?.mode || '').toLowerCase();
+    return type === 'overlay' || id.startsWith('overlay:') || mode === 'overlay';
+  }
+
   function classifyClient(client){
     const id = String(client?.id || '').toLowerCase();
     const type = String(client?.type || '').toLowerCase();
     const mode = String(client?.mode || '').toLowerCase();
-    const moduleName = String(client?.module || '').toLowerCase();
-    if (type === 'overlay' || id.startsWith('overlay:') || mode === 'overlay' || moduleName.includes('overlay')) return 'overlays';
+    if (isOverlayClient(client)) return 'overlays';
     if (type === 'module' || id.startsWith('module:') || mode === 'backend') return 'modules';
     if (['debug','tool','dashboard'].includes(type) || mode.includes('debug') || id.includes('debug')) return 'tools';
     return 'unknown';
@@ -345,7 +351,7 @@
   function renderOverlaySummary(overlays){
     const counts = countByStatus(overlays);
     const problemCount = counts.stale + counts.offline + counts.dead;
-    return card('Overlay-Verbindungen', `<div class="busdiag-overlay-summary"><div>${metric('Overlays gesamt', overlays.length)}${metric('Online', counts.online)}${metric('Stale', counts.stale)}${metric('Offline', counts.offline)}${metric('Dead', counts.dead)}${metric('Ignored/Sonstige', counts.ignored + counts.other)}</div><p class="busdiag-muted">Quelle: Communication-Bus Client-Registry. Ein Overlay gilt hier als Overlay, wenn <code>type=overlay</code>, <code>id=overlay:*</code>, <code>mode=overlay</code> oder das Modul einen Overlay-Hinweis enthält.</p></div>`, 'busdiag-wide busdiag-overlay-summary-card');
+    return card('Overlay-Verbindungen', `<div class="busdiag-overlay-summary"><div>${metric('Overlays gesamt', overlays.length)}${metric('Online', counts.online)}${metric('Stale', counts.stale)}${metric('Offline', counts.offline)}${metric('Dead', counts.dead)}${metric('Ignored/Sonstige', counts.ignored + counts.other)}</div><p class="busdiag-muted">Quelle: Communication-Bus Client-Registry. Ein Overlay gilt hier nur als echter Overlay-Client, wenn <code>type=overlay</code>, <code>id=overlay:*</code> oder <code>mode=overlay</code>. Backend-Module mit Overlay im Namen werden nicht als Overlay gezählt.</p></div>`, 'busdiag-wide busdiag-overlay-summary-card');
   }
 
   function renderClientsTab(){
