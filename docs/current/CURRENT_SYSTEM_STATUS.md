@@ -394,3 +394,24 @@ Wichtig:
 - STEP611A bis STEP611D klaerten und korrigierten nur zu strenge Verification-/Marker-Mappings.
 <!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_END -->
 
+<!-- STEP615_CLEANUP_FREEZE_START -->
+## STEP615 Cleanup Freeze & Return to Productive Work
+
+Stand: 2026-05-30
+
+Die Cleanup-/Doku-Konsolidierungsrunde ist eingefroren. Route-/Modul-Doku STEP591 bis STEP613 ist abgeschlossen und STEP614 hat eine Uebergabe plus Fresh-SystemScan-Prep erstellt.
+
+Frischer Scan als Referenz:
+
+- Files: 1122
+- Backend modules: 69
+- Helpers: 18
+- Dashboard files: 67
+- Overlay files: 34
+- Config files: 58
+- Docs files: 250
+- Cleanup candidates: 550
+
+Entscheidung: Cleanup-Kandidaten werden nicht weiter kleinteilig verfolgt. Weitere Cleanup-Arbeit nur noch bei echtem Bedarf und dann als groesserer, sicher geplanter Batch.
+<!-- STEP615_CLEANUP_FREEZE_END -->
+

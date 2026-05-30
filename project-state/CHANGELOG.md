@@ -111,3 +111,14 @@ STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
 - STEP611/STEP611B Mapping-Probleme wurden ueber STEP611A/STEP611C triagiert und in STEP611D korrekt verifiziert.
 <!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_END -->
 
+<!-- STEP615_CLEANUP_FREEZE_START -->
+## 2026-05-30 - STEP615 Cleanup Freeze & Return to Productive Work
+
+- Cleanup-/Doku-Konsolidierungsrunde eingefroren.
+- STEP591 bis STEP614 als abgeschlossene Doku-/Routen-/Status-Arbeitslinie eingeordnet.
+- Frischer SystemScan als Referenz uebernommen.
+- Cleanup-Kandidaten werden nur als Kandidaten behandelt, nicht als automatische Loeschliste.
+- Weitere Cleanup-Arbeit nur noch bei Bedarf und nur als bewusst geplanter Grossbatch.
+- Fokus wird wieder auf produktive Projektarbeit gelegt.
+<!-- STEP615_CLEANUP_FREEZE_END -->
+

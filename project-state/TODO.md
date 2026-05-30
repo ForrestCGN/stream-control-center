@@ -1,4 +1,4 @@
-# TODO
+﻿# TODO
 
 Stand: 2026-05-30
 
@@ -50,3 +50,21 @@ Stand: 2026-05-30
 - [ ] Refresh-Routen für einzelne Sources und Gruppen planen.
 - [ ] Konfiguration für Overlay-Gruppen statt hart codierter Namen planen.
 - [ ] Streamer.bot-kompatible GET-Fallbacks prüfen.
+
+<!-- STEP615_CLEANUP_FREEZE_START -->
+## STEP615 Cleanup Freeze
+
+Status: abgeschlossen / eingefroren
+
+Keine weiteren Mini-Cleanup-Steps fuer reine Ordnungsfragen.
+
+Nur noch bei konkretem Bedarf:
+
+- FINAL_CLEANUP_SCAN
+- FINAL_ARCHIVE_PLAN
+- FINAL_ARCHIVE_APPLY
+- FINAL_VERIFY
+
+Aktueller Fokus: produktive Projektarbeit.
+<!-- STEP615_CLEANUP_FREEZE_END -->
+
