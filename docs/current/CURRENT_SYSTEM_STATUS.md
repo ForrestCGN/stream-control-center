@@ -371,3 +371,26 @@ Ziel: Pruefen, ob CURRENT_SYSTEM_STATUS.md sauber ergaenzt wurde und danach den 
 
 <!-- STEP601_CURRENT_STATUS_CROSSMODULE_BATCH_END -->
 
+<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_START -->
+## STEP612 Route-/Modul-Doku-Konsolidierung abgeschlossen
+
+Stand: 2026-05-30
+
+Die Route-/Modul-Doku-Konsolidierung aus STEP591 bis STEP611D ist abgeschlossen und final verifiziert.
+
+Abschlusspruefung:
+
+- Completion OK: True
+- Docs checked: 7
+- Report groups checked: 24
+- STEP610 remaining all batches: 0
+- Warnings/Errors in STEP611D: 0/0
+
+Wichtig:
+
+- Es wurden keine produktiven Flows umgebaut.
+- Die Arbeiten waren Doku-/Scan-/Konsolidierungsarbeit.
+- Zentrale Zielbereiche wurden ergaenzt: ROUTES, Current Status, Channelpoints, Sound Routing, Dashboard Commands, Communication Bus, Shoutout System.
+- STEP611A bis STEP611D klaerten und korrigierten nur zu strenge Verification-/Marker-Mappings.
+<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_END -->
+

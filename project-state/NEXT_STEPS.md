@@ -1,4 +1,4 @@
-# NEXT_STEPS
+﻿# NEXT_STEPS
 
 Stand: 2026-05-30
 
@@ -125,3 +125,19 @@ Ziel bleibt:
 ```
 
 Keine Parallelstruktur bauen. Bestehende OBS-/WebSocket-/Dashboard-Systeme wiederverwenden.
+
+<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_START -->
+## Nach STEP612 - naechste sinnvolle Arbeiten
+
+Stand: 2026-05-30
+
+Die Route-/Modul-Doku-Batch-Reihe ist abgeschlossen.
+
+Empfohlene naechste Schritte:
+
+1. Einen frischen SystemScan laufen lassen, um den neuen Dokumentationsstand zu validieren.
+2. Danach gezielt die naechste offene Projektlinie waehlen, z. B. Modul-Doku-Detailpflege, Dashboard-/Admin-Konfiguration oder konkrete Feature-Arbeit.
+3. Bei weiterem Doku-Cleanup wieder mit Scan -> Triage -> Plan -> Dryrun -> Apply -> Verification arbeiten.
+4. Keine produktive Route oder Funktionalitaet aus Doku-Scan-Treffern ableiten, ohne echten Code-Kontext zu pruefen.
+<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_END -->
+

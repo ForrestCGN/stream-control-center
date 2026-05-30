@@ -1,4 +1,4 @@
-# FILES – relevante Dateien
+﻿# FILES – relevante Dateien
 
 Stand: 2026-05-30
 
@@ -157,3 +157,23 @@ docs/modules/*.md
 docs/current/CURRENT_SYSTEM_STATUS.md
 project-state/FILES.md
 ```
+
+<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_START -->
+## STEP591-STEP612 Doku-/Routen-Konsolidierung
+
+Wichtige Dateien/Reports aus dieser Arbeitslinie:
+
+- docs/backend/ROUTES.md
+- docs/current/CURRENT_SYSTEM_STATUS.md
+- docs/modules/channelpoints.md
+- docs/modules/sound_system_channelpoints_routing.md
+- docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
+- docs/system-inspection/COMMUNICATION_BUS_CONTRACT_CONSOLIDATION.md
+- docs/system-inspection/SHOUTOUT_SYSTEM_CONSOLIDATION.md
+- system-scan-output/step611d_fixed_final_completion_verification_v2_summary.txt
+- system-scan-output/step611d_fixed_final_completion_verification_v2.json
+- project-state/STEP611D_FIXED_FINAL_COMPLETION_VERIFICATION_V2.md
+
+Abschlussstatus: Completion OK True.
+<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_END -->
+

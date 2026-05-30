@@ -1,4 +1,4 @@
-# CHANGELOG
+﻿# CHANGELOG
 
 ## 2026-05-30 – STEP590 zentrale Statusdateien aktualisiert
 
@@ -99,3 +99,15 @@ STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
 - Geplant: neues Overlay-Health-/Refresh-Control-System.
 - Ziel: unterscheiden, ob Overlay-JS, OBS-Browserquelle oder OBS-WebSocket/OBS selbst hängt.
 - Start erst nach Prüfung der echten OBS-/Overlay-/WebSocket-Dateien.
+
+<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_START -->
+## 2026-05-30 - STEP612 Route-/Modul-Doku-Konsolidierung abgeschlossen
+
+- STEP591 bis STEP611D abgeschlossen.
+- Backend-Routen gescannt, triagiert und zentral dokumentiert.
+- Fehlende Route-Erwaehnungen und False-Positive-Kontext dokumentiert.
+- Modul-Doku-Batches fuer Current Status, Channelpoints, Sound Routing, Dashboard Commands, Communication Bus und Shoutout System konsolidiert.
+- Final Verification durch STEP611D erfolgreich: Completion OK True, 0 Warnings, 0 Errors.
+- STEP611/STEP611B Mapping-Probleme wurden ueber STEP611A/STEP611C triagiert und in STEP611D korrekt verifiziert.
+<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_END -->
+
