@@ -1,4 +1,4 @@
-# Modul: Channelpoints
+﻿# Modul: Channelpoints
 
 Stand: STEP527 / 2026-05-27  
 Aktuelle Zielversion: `0.9.13` / `create-save-twitch-inactive-default`
@@ -213,3 +213,50 @@ Durch STEP527 ersetzt:
 ```text
 STEP526_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_HOTFIX_v0.9.12
 ```
+
+<!-- STEP603A_CHANNELPOINTS_MODULE_DOCS_BATCH_START -->
+
+## STEP603A Channelpoints Module Route Docs Batch
+
+Stand: 2026-05-30
+
+Dieser Abschnitt dokumentiert den Channelpoints-Anteil aus dem von STEP602 ermittelten Batch A_channelpoints.
+
+Sound-System-/Routing-Zeilen werden in diesem STEP bewusst nicht vermischt; sie gehoeren in STEP603B.
+
+### Batch
+
+Batch: A_channelpoints
+Ziel-Doku: docs/modules/channelpoints.md
+Module im Batch: 1
+High Priority: 0
+Review Priority: 0
+Route Hits: 1
+Quelle: system-scan-output/step602_next_real_module_doc_batch_rows.tsv
+Generated: 2026-05-30 11:29:28
+
+### Arbeitsregel
+
+1. Diese Eintraege sind scan-/triagebasiert.
+2. Sie beschreiben Doku-Bedarf fuer Channelpoints-nahe Module, keine neue Funktionalitaet.
+3. Keine produktive Route ungeprueft aus Scan-Treffern ableiten.
+4. Echte Moduldatei und Router-Kontext bleiben massgeblich.
+
+### Channelpoints-nahe Module in diesem Batch
+
+| Priority | Module | File | Route Hits | Action |
+|---|---|---|---:|---|
+| normal | channelpoints_eventsub_bus_bridge | backend/modules/channelpoints_eventsub_bus_bridge.js | 1 | review_existing_doc_section |
+
+### Abgrenzung
+
+Dieser Abschnitt ist kein Ersatz fuer eine spaetere fachliche Channelpoints-Doku. Er ist eine gesicherte Zwischenablage fuer die aus dem Routes-/Docs-Scan ermittelten Kandidaten.
+
+### Naechster Schritt
+
+STEP603B - Sound System Routing Docs Batch
+
+Ziel: Die Sound-/Routing-Zeilen aus Batch A_channelpoints getrennt in docs/modules/sound_system_channelpoints_routing.md dokumentieren.
+
+<!-- STEP603A_CHANNELPOINTS_MODULE_DOCS_BATCH_END -->
+
