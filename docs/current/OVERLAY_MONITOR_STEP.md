@@ -1,55 +1,112 @@
-# Overlay Monitor STEP 1 – Read-only Bus-Anmeldung
+# Overlay Monitor – Read-only Bus-Anmeldung und Dashboard-Sicht
+
+Stand: 2026-05-30
+Version: 0.1.0
 
 ## Ziel
 
-Dieser STEP ergänzt eine sichere Read-only-Grundlage für Overlay-Überwachung über den vorhandenen Communication Bus.
+Das Overlay-Monitoring nutzt den vorhandenen Communication Bus als zentrale CAN-Bus-artige Kommunikationsschicht. Overlays melden sich als Bus-Clients an und senden Heartbeats. Der Overlay Monitor und die Bus-Diagnose werten diesen Zustand read-only aus.
 
-## Neue Dateien
+## Vorhandene Dateien
 
-- `backend/modules/overlay_monitor.js`
-- `htdocs/overlays/shared/overlay_bus_client.js`
-- `htdocs/overlays/_overlay-bus-test.html`
+```text
+backend/modules/overlay_monitor.js
+htdocs/overlays/shared/overlay_bus_client.js
+htdocs/overlays/_overlay-bus-test.html
+htdocs/dashboard/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.css
+```
 
-## Was geändert wird
+## Backend-Grundlage
 
-- Ein neues Backend-Modul `overlay_monitor.js` wird automatisch von `backend/server.js` geladen.
-- Das Modul nutzt den vorhandenen `communication_bus.js` und dessen `helper_communication.js`.
-- Es baut keine eigene WebSocket-Registry.
-- Es stellt read-only Statusrouten bereit:
-  - `GET /api/overlay-monitor/status`
-  - `GET /api/overlay-monitor/events`
-  - `GET /api/overlay-monitor/routes`
-- Das Test-Overlay meldet sich per `bus_hello` beim Communication Bus an.
-- Das Test-Overlay sendet alle 5 Sekunden `bus_heartbeat`.
+`overlay_monitor.js` ist ein read-only Fachmodul über dem vorhandenen `communication_bus.js`.
 
-## Was ausdrücklich nicht gemacht wird
+Es baut keine eigene WebSocket-Registry und ändert keine OBS-Quellen.
 
-- Kein OBS-Refresh.
-- Keine OBS-Szenenprüfung.
-- Keine automatische Reparatur.
-- Keine Änderung an bestehenden Overlays.
-- Keine Änderung an Alerts, VIP, Sound, TTS oder Deathcounter.
-- Keine Änderung an Datenbanken.
+Routen:
 
-## Testablauf
+```text
+GET /api/overlay-monitor/status
+GET /api/overlay-monitor/events
+GET /api/overlay-monitor/routes
+```
 
-1. ZIP in das Repo/Livesystem entpacken.
-2. Node-Server neu starten.
-3. Prüfen:
-   - `http://127.0.0.1:8080/api/_status`
-   - `http://127.0.0.1:8080/api/overlay-monitor/routes`
-4. Test-Overlay im Browser öffnen:
-   - `http://127.0.0.1:8080/overlays/_overlay-bus-test.html?debug=1`
-5. Status prüfen:
-   - `http://127.0.0.1:8080/api/communication/status`
-   - `http://127.0.0.1:8080/api/overlay-monitor/status`
+## Test-Overlay
 
-Erwartung:
+Das Test-Overlay:
 
-- In `/api/communication/status` erscheint ein Client `overlay:bus_test`.
-- In `/api/overlay-monitor/status` erscheint unter `overlays` ebenfalls `overlay:bus_test`.
-- Status sollte nach wenigen Sekunden `online` sein.
+```text
+/overlays/_overlay-bus-test.html?debug=1
+```
 
-## Nächster STEP
+meldet sich als Client `overlay:bus_test` beim Communication Bus an und sendet Heartbeats.
 
-Wenn der Test stabil läuft, können wir danach das Dashboard gezielt um eine Overlay-Monitor-Anzeige erweitern oder einzelne echte Overlays nacheinander mit `overlay_bus_client.js` verbinden.
+## Dashboard-Sicht
+
+Die bestehende Bus-Diagnose zeigt Overlay-Clients jetzt in einer eigenen Sektion `Overlay-Clients` an.
+
+Die Anzeige filtert:
+
+```text
+client.type === "overlay"
+oder
+client.id beginnt mit "overlay:"
+```
+
+Angezeigt werden:
+
+```text
+Overlay-Name
+Client-ID
+Modul
+Status
+Verbindungsstatus
+letzter Heartbeat
+Capabilities
+```
+
+## Bewusst nicht enthalten
+
+```text
+kein OBS-Refresh
+keine OBS-Szenenprüfung
+keine automatische Reparatur
+keine Änderung produktiver Overlay-Flows
+keine Änderung an Alerts/VIP/Sound/TTS/Deathcounter
+keine DB-Änderung
+```
+
+## Kurzer Test
+
+```powershell
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/overlay-monitor/status"
+$r.overlays | Select-Object id,module,name,connected,status,lastHeartbeatAt
+```
+
+Erwartung bei geöffnetem Test-Overlay:
+
+```text
+overlay:bus_test
+connected=True
+status=online
+```
+
+Erwartung nach geschlossenem Test-Overlay und kurzer Wartezeit:
+
+```text
+overlay:bus_test
+connected=False
+status=offline
+```
+
+## Nächster sinnvoller Schritt
+
+Echte Overlays nur einzeln und kontrolliert anbinden. Vor jedem echten Overlay prüfen:
+
+```text
+bestehende Overlay-Datei
+bestehender WebSocket-/API-Flow
+bestehende OBS-Browserquelle
+Risiko für produktive Anzeige
+Rollback-Möglichkeit
+```

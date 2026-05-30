@@ -13,7 +13,7 @@
     visible: !document.hidden
   };
 
-  function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
+  function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
   function panel(){ return document.getElementById(panelId); }
   function bool(v){ return v ? 'ja' : 'nein'; }
   function num(v){ return Number.isFinite(Number(v)) ? Number(v).toLocaleString('de-DE') : '0'; }
@@ -25,8 +25,11 @@
   function statusClass(status){
     const s = String(status || '').toLowerCase();
     if (s === 'ok') return 'ok';
+    if (s === 'online') return 'ok';
     if (s === 'warning') return 'warning';
-    if (s === 'error' || s === 'failed') return 'error';
+    if (s === 'stale') return 'warning';
+    if (s === 'offline') return 'warning';
+    if (s === 'error' || s === 'failed' || s === 'dead') return 'error';
     return 'neutral';
   }
   function badge(text, status){ return `<span class="busdiag-badge ${statusClass(status || text)}">${esc(text)}</span>`; }
@@ -200,6 +203,7 @@
     const comparison = correlation.comparison || {};
     const warnings = Array.isArray(data.warnings) ? data.warnings : [];
     const errors = Array.isArray(data.errors) ? data.errors : [];
+    const busClients = communication.statusBody?.clients || [];
 
     content.innerHTML = `
       <div class="busdiag-grid busdiag-grid-top">
@@ -286,7 +290,8 @@
       ${renderWarnings(warnings, errors)}
       ${renderQuickActions(summary)}
       ${renderCorrelationDetails(comparison)}
-      ${renderClients(communication.statusBody?.clients || [])}
+      ${renderOverlayClients(busClients)}
+      ${renderClients(busClients)}
       ${renderRecent('Sound Events', sound.recentEvents || [])}
       ${renderRecent('Alert Events', alert.recentEvents || [])}
       ${renderRawDiagnostics(data)}
@@ -315,6 +320,7 @@
           <a href="/public/tools/alert_eventbus_debug.html" target="_blank"><strong>Alert Debug öffnen</strong><span>${summary.alertDebugConnected ? 'aktuell verbunden' : 'nicht verbunden'}</span></a>
           <a href="/public/tools/bus_diagnostics_dashboard.html" target="_blank"><strong>Standalone Bus-Diagnose</strong><span>separate Diagnoseansicht</span></a>
           <a href="/overlays/vip_sound_overlay_v2.html" target="_blank"><strong>VIP Overlay öffnen</strong><span>${summary.vipOverlayConnected ? 'Bus-Client verbunden' : 'Overlay nicht verbunden'}</span></a>
+          <a href="/overlays/_overlay-bus-test.html?debug=1" target="_blank"><strong>Overlay Bus Test</strong><span>Testclient öffnen</span></a>
         </div>
       </section>
     `;
@@ -325,6 +331,82 @@
     const list = Array.isArray(capabilities) ? capabilities : [];
     if (!list.length) return '-';
     return list.map(cap => `<span class="busdiag-chip">${esc(cap)}</span>`).join('');
+  }
+
+  function getOverlayClients(clients){
+    const list = Array.isArray(clients) ? clients : [];
+    return list.filter(client => {
+      if (!client) return false;
+      const type = String(client.type || '').toLowerCase();
+      const id = String(client.id || '').toLowerCase();
+      return type === 'overlay' || id.startsWith('overlay:');
+    });
+  }
+
+  function ageText(value){
+    if (!value) return '-';
+    const time = Date.parse(value);
+    if (!Number.isFinite(time)) return '-';
+    const diff = Math.max(0, Date.now() - time);
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return `${sec}s`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min}m ${sec % 60}s`;
+    const hours = Math.floor(min / 60);
+    return `${hours}h ${min % 60}m`;
+  }
+
+  function clientStatusLabel(client){
+    const status = String(client?.status || '').trim();
+    if (status) return status;
+    return client && client.connected ? 'online' : 'offline';
+  }
+
+  function renderOverlayClients(clients){
+    const overlays = getOverlayClients(clients);
+    if (!overlays.length) {
+      return `
+        <section class="busdiag-card busdiag-wide busdiag-overlay-card">
+          <h3>Overlay-Clients</h3>
+          <div class="busdiag-empty-inline">Keine Overlay-Clients im Communication Bus registriert.</div>
+        </section>
+      `;
+    }
+
+    const counts = overlays.reduce((acc, client) => {
+      const status = clientStatusLabel(client).toLowerCase();
+      if (status === 'online') acc.online += 1;
+      else if (status === 'stale') acc.stale += 1;
+      else if (status === 'dead') acc.dead += 1;
+      else acc.offline += 1;
+      return acc;
+    }, { online: 0, stale: 0, offline: 0, dead: 0 });
+
+    return `
+      <section class="busdiag-card busdiag-wide busdiag-overlay-card">
+        <h3>Overlay-Clients</h3>
+        <div class="busdiag-overlay-summary">
+          ${badge(`${counts.online} online`, counts.online ? 'ok' : 'neutral')}
+          ${badge(`${counts.stale} stale`, counts.stale ? 'warning' : 'neutral')}
+          ${badge(`${counts.offline} offline`, counts.offline ? 'warning' : 'neutral')}
+          ${badge(`${counts.dead} dead`, counts.dead ? 'error' : 'neutral')}
+        </div>
+        <div class="busdiag-table busdiag-table-overlays">
+          <div class="busdiag-table-head"><span>Overlay</span><span>Status</span><span>Heartbeat</span><span>Capabilities</span></div>
+          ${overlays.map(client => {
+            const status = clientStatusLabel(client);
+            return `
+              <div class="busdiag-table-row">
+                <span><strong>${esc(client.name || client.id || '-')}</strong><small>${esc(client.id || '-')} / ${esc(client.module || '-')}</small></span>
+                <span>${badge(status, status)}<small>${client.connected ? 'verbunden' : 'getrennt'}</small></span>
+                <span><strong>${esc(ageText(client.lastHeartbeatAt || client.lastSeenAt))}</strong><small>${esc(client.lastHeartbeatAt || client.lastSeenAt || '-')}</small></span>
+                <span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </section>
+    `;
   }
 
   function renderCorrelationDetails(comparison){
