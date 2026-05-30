@@ -1,4 +1,4 @@
-# COMMUNICATION_BUS_CONTRACT_CONSOLIDATION
+﻿# COMMUNICATION_BUS_CONTRACT_CONSOLIDATION
 
 Version: 0.1.0  
 Stand: 2026-05-30  
@@ -218,3 +218,54 @@ Secrets/Tokens
 ## Keine Funktionalitaet entfernen
 
 Bestehende Funktionalitaet darf durch den Communication-Bus-Contract nicht entfernt oder ungeprueft ersetzt werden.
+
+<!-- STEP607_COMMUNICATION_BUS_CONTRACT_BATCH_START -->
+
+## STEP607 Communication Bus Contract Module Docs Batch
+
+Stand: 2026-05-30
+
+Dieser Abschnitt dokumentiert den Communication-Bus-/EventBus-Anteil aus dem von STEP606 bestimmten naechsten Modul-Doku-Batch.
+
+Der Communication Bus bleibt eine zentrale Status-, Event-, Diagnose- und ACK-Schicht. Dieser Doku-Batch aendert keine produktiven Flows.
+
+### Batch
+
+Batch: C_communication_bus
+Ziel-Doku: docs/system-inspection/COMMUNICATION_BUS_CONTRACT_CONSOLIDATION.md
+Module im Batch: 2
+High Priority: 2
+Review Priority: 0
+Route Hits: 39
+Quelle: system-scan-output/step606_next_real_module_doc_batch_rows.tsv
+Generated: 2026-05-30 11:48:29
+
+### Arbeitsregel
+
+1. Diese Eintraege sind scan-/triagebasiert.
+2. Communication-Bus-/EventBus-Routen duerfen nur als Doku-Hinweis verstanden werden, nicht als Umbauanweisung.
+3. Produktive Flows duerfen nicht ungeprueft auf den Bus umgestellt werden.
+4. ACK-/Status-/Diagnose-Vertraege muessen vor jeder Code-Aenderung separat geprueft werden.
+5. Keine produktive Route ungeprueft aus Scan-Treffern ableiten.
+
+### Communication-Bus-nahe Module in diesem Batch
+
+| Priority | Module | File | Route Hits | Action |
+|---|---|---|---:|---|
+| high | bus_diagnostics | backend/modules/bus_diagnostics.js | 15 | update_target_doc_first |
+| high | communication_bus | backend/modules/communication_bus.js | 24 | update_target_doc_first |
+
+### Abgrenzung
+
+Dieser Abschnitt ist eine Doku-/Review-Zwischenablage fuer Communication-Bus-nahe Scan-Kandidaten.
+
+Er ersetzt keine technische Vertragspruefung und keine Entscheidung, ob ein produktiver Ablauf ueber EventBus/Communication Bus laufen soll.
+
+### Naechster Schritt
+
+STEP608 - Communication Bus Batch Verification
+
+Ziel: Pruefen, ob der STEP607-Abschnitt sauber in der Communication-Bus-Konsolidierungsdoku steht und danach den naechsten Modul-Doku-Batch bestimmen.
+
+<!-- STEP607_COMMUNICATION_BUS_CONTRACT_BATCH_END -->
+
