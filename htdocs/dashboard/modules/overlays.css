@@ -191,3 +191,6 @@
   .ovm-source-head { display: grid; }
   .ovm-source-facts { grid-template-columns: 1fr; }
 }
+
+/* STEP624 scene-focused overlay monitor */
+.ovm-scene-panel{padding:16px;border:1px solid var(--ovm-border);border-radius:22px;background:linear-gradient(135deg,rgba(15,23,42,.76),rgba(42,18,74,.38));display:grid;gap:10px}.ovm-scene-main{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.ovm-scene-main strong{display:block;font-size:22px;margin:3px 0 4px}.ovm-scene-main small{color:var(--ovm-muted)}.ovm-scene-select{display:grid;gap:6px;min-width:280px;color:var(--ovm-muted);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.ovm-scene-select select{min-height:38px;border:1px solid rgba(167,139,250,.42);border-radius:14px;background:rgba(15,23,42,.94);color:var(--ovm-text);font-weight:850;padding:0 12px}.ovm-scene-hint{color:var(--ovm-muted);font-size:13px}.ovm-source-card{order:2}.ovm-source-card:has(.ovm-source-facts strong){order:1}@media(max-width:760px){.ovm-scene-main{display:grid}.ovm-scene-select{min-width:0;width:100%}}

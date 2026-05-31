@@ -13,6 +13,9 @@
     error: '',
     filter: 'all',
     sourceFilter: 'all',
+    selectedSceneMode: 'current',
+    selectedSceneName: '',
+    lastCurrentSceneName: '',
     tab: 'overview',
     autoRefresh: true,
     timer: null,
@@ -60,6 +63,12 @@
   function apiMessage(data, fallback = '') {
     if (!data || typeof data !== 'object') return fallback;
     return clean(data.message || data.error?.message || data.error?.code || data.error || data.reason || fallback);
+  }
+
+  function unwrapApiData(raw) {
+    if (!raw || typeof raw !== 'object') return raw;
+    if (raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) return raw.data;
+    return raw;
   }
 
   function clean(value) {
@@ -127,16 +136,34 @@
     return 'kein Heartbeat';
   }
 
+  function obsPayload() {
+    return unwrapApiData(state.obsStatus || {}) || {};
+  }
+
   function obsConnected() {
-    const obs = state.obsStatus || {};
-    return obs.connected === true || (obs.ok === true && obs.connected !== false && obs.obsConnected !== false);
+    const obs = obsPayload();
+    return obs.connected === true || obs.obsConnected === true || (state.obsStatus && state.obsStatus.ok === true && obs.connected !== false && obs.obsConnected !== false);
+  }
+
+  function currentProgramSceneName() {
+    const obs = obsPayload();
+    const fromObs = clean(obs.currentProgramSceneName || obs.programSceneName || obs.currentScene || obs.sceneName);
+    if (fromObs) return fromObs;
+    const scenesRaw = unwrapApiData(state._lastScenesRaw || {}) || {};
+    return clean(scenesRaw.currentProgramSceneName || scenesRaw.programSceneName || '');
+  }
+
+  function selectedSceneName() {
+    if (state.selectedSceneMode === 'manual' && state.selectedSceneName) return state.selectedSceneName;
+    return currentProgramSceneName();
   }
 
   function normalizeList(raw, keys) {
-    if (Array.isArray(raw)) return raw;
-    if (!raw || typeof raw !== 'object') return [];
+    const data = unwrapApiData(raw);
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== 'object') return [];
     for (const itemKey of keys) {
-      if (Array.isArray(raw[itemKey])) return raw[itemKey];
+      if (Array.isArray(data[itemKey])) return data[itemKey];
     }
     return [];
   }
@@ -170,8 +197,11 @@
 
     try {
       const scenesRaw = await api(API_OBS_SCENES);
+      state._lastScenesRaw = scenesRaw;
       const scenes = normalizeObsScenes(scenesRaw);
       state.obsScenes = scenes;
+      const currentScene = currentProgramSceneName();
+      if (currentScene && state.selectedSceneMode !== 'manual') state.selectedSceneName = currentScene;
       if (!scenes.length) return;
 
       const results = await Promise.allSettled(scenes.map(scene => api(`/api/obs/scene-items?scene=${encodeURIComponent(scene.sceneName)}`)));
@@ -199,6 +229,18 @@
     const wanted = key(name);
     if (!wanted) return [];
     return state.obsSceneItems.filter(item => key(item.sourceName) === wanted);
+  }
+
+  function sceneItemsForSelectedScene() {
+    const scene = selectedSceneName();
+    if (!scene) return [];
+    return state.obsSceneItems.filter(item => item.sceneName === scene);
+  }
+
+  function sourceIsInSelectedScene(src) {
+    const name = key(sourceName(src));
+    if (!name) return false;
+    return sceneItemsForSelectedScene().some(item => key(item.sourceName) === name);
   }
 
   function busClients() {
@@ -258,7 +300,7 @@
   function evaluateSource(row) {
     const obsOk = obsConnected();
     const inObs = true;
-    const inScene = row.scenes.length > 0;
+    const inScene = row.inSelectedScene === true || row.scenes.length > 0;
     const visible = row.visible === true;
     const client = row.client;
     const busStatus = String(client?.status || '').toLowerCase();
@@ -282,26 +324,37 @@
   }
 
   function buildSourceRows() {
-    return state.obsSources.map(src => {
-      const scenes = findScenesForSource(src);
-      const match = findClientForSource(src);
-      const row = {
-        raw: src,
-        name: sourceName(src),
-        kind: clean(src.inputKind || src.unversionedInputKind || src.kind || 'browser_source'),
-        url: sourceUrl(src),
-        local: src.is_local_file === true || !!src.local_file,
-        width: src.width || '—',
-        height: src.height || '—',
-        fps: src.fps || '—',
-        scenes,
-        visible: scenes.some(item => item.enabled === true),
-        client: match.client,
-        matchScore: match.score
-      };
-      row.evaluation = evaluateSource(row);
-      return row;
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    const selectedScene = selectedSceneName();
+    return state.obsSources
+      .filter(src => !selectedScene || sourceIsInSelectedScene(src))
+      .map(src => {
+        const scenes = findScenesForSource(src);
+        const selectedItems = selectedScene ? scenes.filter(item => item.sceneName === selectedScene) : scenes;
+        const match = findClientForSource(src);
+        const row = {
+          raw: src,
+          name: sourceName(src),
+          kind: clean(src.inputKind || src.unversionedInputKind || src.kind || 'browser_source'),
+          url: sourceUrl(src),
+          local: src.is_local_file === true || !!src.local_file,
+          width: src.width || '—',
+          height: src.height || '—',
+          fps: src.fps || '—',
+          selectedScene,
+          scenes,
+          selectedItems,
+          visible: selectedItems.some(item => item.enabled === true),
+          inSelectedScene: selectedItems.length > 0,
+          client: match.client,
+          matchScore: match.score
+        };
+        row.evaluation = evaluateSource(row);
+        return row;
+      })
+      .sort((a, b) => {
+        if (a.visible !== b.visible) return a.visible ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
   }
 
   function filteredSourceRows() {
@@ -370,6 +423,8 @@
         <span>Bus-Clients gesamt: <strong>${esc(c.clientCount ?? 0)}</strong></span>
         <span>OBS-Browserquellen: <strong>${esc(state.obsSources.length)}</strong></span>
         <span>OBS-Szenen: <strong>${esc(state.obsScenes.length)}</strong></span>
+        <span>Aktuelle Szene: <strong>${esc(currentProgramSceneName() || '—')}</strong></span>
+        <span>Auswahl: <strong>${esc(selectedSceneName() || '—')}</strong></span>
         <span>Letzter Scan: <strong>${esc(fmtDateTime(state.data?.lastScanAt))}</strong></span>
         <span>Console-Logs unterdrückt: <strong>${esc(state.data?.stats?.consoleLogsSuppressed ?? 0)}</strong></span>
       </div>
@@ -389,6 +444,33 @@
       <div class="ovm-tabs" role="tablist" aria-label="Overlay-Monitor Bereiche">
         ${tabs.map(([tabKey, label]) => `<button type="button" class="ovm-tab ${state.tab === tabKey ? 'active' : ''}" data-ovm-tab="${esc(tabKey)}">${esc(label)}</button>`).join('')}
       </div>
+    `;
+  }
+
+  function renderSceneSelector() {
+    const current = currentProgramSceneName();
+    const selected = selectedSceneName();
+    const scenes = state.obsScenes.map(scene => scene.sceneName).filter(Boolean);
+    const uniqueScenes = [...new Set(scenes)];
+    const auto = state.selectedSceneMode !== 'manual';
+    return `
+      <section class="ovm-scene-panel">
+        <div class="ovm-scene-main">
+          <div>
+            <span class="ovm-kicker">OBS-Szene</span>
+            <strong>${esc(selected || 'Keine Szene erkannt')}</strong>
+            <small>Aktuelle Program-Szene: ${esc(current || 'unbekannt')}${auto ? ' · folgt automatisch' : ' · manuell gewählt'}</small>
+          </div>
+          <label class="ovm-scene-select">
+            <span>Szene anzeigen</span>
+            <select data-ovm-scene-select>
+              <option value="__current__" ${auto ? 'selected' : ''}>Aktuelle Szene automatisch folgen</option>
+              ${uniqueScenes.map(scene => `<option value="${esc(scene)}" ${!auto && scene === state.selectedSceneName ? 'selected' : ''}>${esc(scene)}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+        <div class="ovm-scene-hint">Gezeigt werden alle Browser-/Overlayquellen der ausgewählten Szene. Sichtbare Quellen stehen oben.</div>
+      </section>
     `;
   }
 
@@ -451,8 +533,8 @@
         <div class="ovm-overview-grid">
           <div class="ovm-status-box is-${counts.error ? 'bad' : (counts.warning ? 'warn' : 'ok')}">
             <span>Overlay-Quellen</span>
-            <strong>${esc(counts.total)} gefunden</strong>
-            <small>${esc(counts.visible)} sichtbar, ${esc(counts.hidden)} ausgeblendet, ${esc(counts.warning + counts.error)} mit Warnung/Fehler.</small>
+            <strong>${esc(counts.total)} in Szene</strong>
+            <small>${esc(counts.visible)} sichtbar, ${esc(counts.hidden)} ausgeblendet · ${esc(selectedSceneName() || 'keine Szene')}, ${esc(counts.warning + counts.error)} mit Warnung/Fehler.</small>
           </div>
           <div class="ovm-status-box is-${obsOk ? 'ok' : 'warn'}">
             <span>OBS-Verbindung</span>
@@ -481,9 +563,10 @@
   function renderSourceCards() {
     const rows = filteredSourceRows();
     if (!rows.length) {
-      return `<div class="ovm-empty"><strong>Keine passenden OBS-Overlayquellen gefunden.</strong><span>Prüfe OBS-Verbindung oder Filter.</span></div>`;
+      return `${renderSceneSelector()}<div class="ovm-empty"><strong>Keine passenden OBS-Overlayquellen in dieser Szene gefunden.</strong><span>Prüfe OBS-Verbindung, ausgewählte Szene oder Filter.</span></div>`;
     }
     return `
+      ${renderSceneSelector()}
       ${renderSourceToolbar()}
       <div class="ovm-source-grid">
         ${rows.map(row => {
@@ -508,7 +591,7 @@
               </div>
               <div class="ovm-source-detail">
                 <span>${esc(ev.detail)}</span>
-                <span>Szene: ${esc(scenes)}</span>
+                <span>Ausgewählte Szene: ${esc(row.selectedScene || '—')} · ${row.visible ? 'sichtbar' : 'ausgeblendet'}</span><span>Alle Szenen: ${esc(scenes)}</span>
                 <span>Bus-Client: ${client ? esc(client.id) : '<span class="ovm-muted">—</span>'}</span>
                 <span>Letzter Hello: ${client ? esc(fmtTime(client.lastHelloAt)) : '<span class="ovm-muted">—</span>'}</span>
                 <span>Letzter Heartbeat: ${client && client.lastHeartbeatAt ? esc(fmtTime(client.lastHeartbeatAt)) : '<span class="ovm-muted">kein echter Heartbeat</span>'}</span>
@@ -747,6 +830,17 @@
         state.sourceFilter = btn.dataset.ovmSourceFilter || 'all';
         render();
       });
+    });
+    root.querySelector('[data-ovm-scene-select]')?.addEventListener('change', event => {
+      const value = event.target.value || '__current__';
+      if (value === '__current__') {
+        state.selectedSceneMode = 'current';
+        state.selectedSceneName = currentProgramSceneName();
+      } else {
+        state.selectedSceneMode = 'manual';
+        state.selectedSceneName = value;
+      }
+      render();
     });
     root.querySelector('[data-ovm-refresh]')?.addEventListener('click', () => loadAll(true));
     root.querySelector('[data-ovm-auto]')?.addEventListener('change', event => {
