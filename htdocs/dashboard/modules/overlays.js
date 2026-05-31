@@ -15,6 +15,7 @@
     error: '',
     filter: 'all',
     sourceFilter: 'all',
+    selectedOverlayKey: '',
     selectedSceneMode: 'current',
     selectedSceneName: '',
     lastCurrentSceneName: '',
@@ -254,6 +255,58 @@
 
   function sourceName(src) {
     return clean(src.inputName || src.sourceName || src.name || src.id || 'OBS Browser Source');
+  }
+
+  function overlayDisplayNameFromText(value, fallback = 'Overlay') {
+    const raw = clean(value);
+    const normalized = key(raw);
+    const known = [
+      ['vipsound', 'VIP Sound Overlay'],
+      ['vipoverlay', 'VIP Sound Overlay'],
+      ['vip', 'VIP Sound Overlay'],
+      ['alertsv2', 'Alerts V2'],
+      ['alertoverlayv2', 'Alerts V2'],
+      ['alert', 'Alerts V2'],
+      ['soundsystemoverlay', 'Sound-System Overlay'],
+      ['soundoverlay', 'Sound-System Overlay'],
+      ['soundsystem', 'Sound-System Overlay'],
+      ['tts', 'TTS Overlay'],
+      ['deathcounterv2', 'Deathcounter V2'],
+      ['deathcounter', 'Deathcounter V2'],
+      ['challengestatus', 'Challenge Status'],
+      ['challenge', 'Challenge Status'],
+      ['firework', 'Firework Overlay'],
+      ['fireworks', 'Firework Overlay'],
+      ['eventbustest', 'EventBus Test Overlay']
+    ];
+    for (const [needle, label] of known) {
+      if (normalized.includes(needle)) return label;
+    }
+    if (!raw) return fallback;
+    return raw
+      .replace(/^overlay[:_-]?/i, '')
+      .replace(/^_+/, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\.html?$/i, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, c => c.toUpperCase()) || fallback;
+  }
+
+  function overlayFileNameFromUrl(url) {
+    const base = basename(url);
+    return base && base !== url ? base : (base || '—');
+  }
+
+  function overlayFriendlyName(rowOrClient) {
+    if (!rowOrClient) return 'Overlay';
+    if (rowOrClient.external) return overlayDisplayNameFromText(rowOrClient.name || rowOrClient.url, rowOrClient.name || 'Externe Browserquelle');
+    const parts = [rowOrClient.name, rowOrClient.url, rowOrClient.client?.name, rowOrClient.client?.id, rowOrClient.client?.module].filter(Boolean).join(' ');
+    return overlayDisplayNameFromText(parts, rowOrClient.name || rowOrClient.client?.name || rowOrClient.client?.id || 'CGN Overlay');
+  }
+
+  function overlayKeyForEntry(entry) {
+    return key([entry.type, entry.name, entry.obsSourceName, entry.busClientId, entry.fileName, entry.url].filter(Boolean).join('|'));
   }
 
   function findScenesForSource(src) {
@@ -575,6 +628,7 @@
     const tabs = [
       ['overview', 'Übersicht'],
       ['sources', 'Quellenstatus'],
+      ['details', 'Overlay-Details'],
       ['bus', 'Bus-Clients'],
       ['obs', 'OBS-Rohquellen'],
       ['issues', `Probleme${problemCount() ? ` (${problemCount()})` : ''}`],
@@ -704,7 +758,7 @@
 
   function sourceTitle(row) {
     if (!row) return 'Overlay-Quelle';
-    return clean(row.name || row.inputName || 'Overlay-Quelle');
+    return overlayFriendlyName(row);
   }
 
   function sourceStatusText(row) {
@@ -781,6 +835,178 @@
             </article>
           `;
         }).join('')}
+      </div>
+    `;
+  }
+
+  function buildOverlayDetailEntries() {
+    const rows = buildSourceRows();
+    const entries = [];
+    const usedClientIds = new Set();
+
+    for (const row of rows) {
+      const client = row.client || null;
+      if (client && client.id) usedClientIds.add(client.id);
+      const entry = {
+        type: row.external ? 'external' : 'cgn',
+        name: overlayFriendlyName(row),
+        obsSourceName: row.name,
+        fileName: overlayFileNameFromUrl(row.url),
+        url: row.url,
+        pathText: row.pathText || '',
+        containerPath: row.containerPath || '',
+        sceneName: row.selectedScene || row.sceneName || '',
+        directVisible: row.directVisible === true,
+        effectiveVisible: row.effectiveVisible === true,
+        external: row.external === true,
+        busExpected: row.busExpected === true,
+        busClientId: client ? clean(client.id) : '',
+        busClientName: client ? clean(client.name) : '',
+        module: client ? clean(client.module) : '',
+        mode: client ? clean(client.mode) : '',
+        version: client ? clean(client.version) : '',
+        connected: client ? client.connected === true : false,
+        hasHeartbeat: client ? (client.hasHeartbeat === true || !!client.lastHeartbeatAt) : false,
+        lastHelloAt: client ? clean(client.lastHelloAt) : '',
+        lastHeartbeatAt: client ? clean(client.lastHeartbeatAt) : '',
+        heartbeatAgeSeconds: client ? client.heartbeatAgeSeconds : null,
+        heartbeatCount: client ? client.heartbeatCount : 0,
+        capabilities: client && Array.isArray(client.capabilities) ? client.capabilities : [],
+        evaluation: row.evaluation || { status: 'unknown', label: 'Unbekannt', detail: '' },
+        matchScore: row.matchScore || 0,
+        sourceRow: row
+      };
+      entry.key = overlayKeyForEntry(entry);
+      entries.push(entry);
+    }
+
+    for (const client of busClients()) {
+      if (!client || !client.id || usedClientIds.has(client.id)) continue;
+      const entry = {
+        type: 'bus_only',
+        name: overlayDisplayNameFromText([client.name, client.id, client.module].filter(Boolean).join(' '), client.name || client.id || 'Bus-Client'),
+        obsSourceName: '',
+        fileName: '—',
+        url: '',
+        pathText: '',
+        containerPath: '',
+        sceneName: '',
+        directVisible: false,
+        effectiveVisible: false,
+        external: false,
+        busExpected: true,
+        busClientId: clean(client.id),
+        busClientName: clean(client.name),
+        module: clean(client.module),
+        mode: clean(client.mode),
+        version: clean(client.version),
+        connected: client.connected === true,
+        hasHeartbeat: client.hasHeartbeat === true || !!client.lastHeartbeatAt,
+        lastHelloAt: clean(client.lastHelloAt),
+        lastHeartbeatAt: clean(client.lastHeartbeatAt),
+        heartbeatAgeSeconds: client.heartbeatAgeSeconds,
+        heartbeatCount: client.heartbeatCount || 0,
+        capabilities: Array.isArray(client.capabilities) ? client.capabilities : [],
+        evaluation: client.connected === true
+          ? (client.hasHeartbeat || client.lastHeartbeatAt ? { status: 'ok', label: 'Bus-Client aktiv', detail: 'Der Client sendet Heartbeats, ist aber keiner OBS-Quelle zugeordnet.' } : { status: 'warning', label: 'Bus-Client ohne Heartbeat', detail: 'Der Client ist angemeldet, aber keiner OBS-Quelle zugeordnet oder sendet keinen echten Heartbeat.' })
+          : { status: 'waiting', label: 'Bus-Client offline', detail: 'Der Client ist aktuell nicht verbunden.' },
+        matchScore: 0,
+        sourceRow: null
+      };
+      entry.key = overlayKeyForEntry(entry);
+      entries.push(entry);
+    }
+
+    return entries.sort((a, b) => {
+      const rank = value => value.effectiveVisible ? 0 : value.external ? 2 : value.busClientId ? 1 : 3;
+      const r = rank(a) - rank(b);
+      if (r) return r;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  function issueMatchesEntry(issue, entry) {
+    const hay = key([issue.issueKey, issue.targetName, issue.message, issue.resolvedMessage, JSON.stringify(issue.details || {})].filter(Boolean).join('|'));
+    const tokens = [entry.obsSourceName, entry.busClientId, entry.fileName, entry.name, entry.module].map(key).filter(Boolean);
+    return tokens.some(token => token && hay.includes(token));
+  }
+
+  function selectedOverlayEntry(entries) {
+    if (!entries.length) return null;
+    const wanted = state.selectedOverlayKey;
+    const found = wanted ? entries.find(entry => entry.key === wanted) : null;
+    return found || entries[0];
+  }
+
+  function renderOverlayDetails() {
+    const entries = buildOverlayDetailEntries();
+    if (!entries.length) {
+      return `<div class="ovm-empty"><strong>Keine Overlay-Details verfügbar.</strong><span>Es wurden weder OBS-Browserquellen noch Bus-Overlay-Clients erkannt.</span></div>`;
+    }
+    const selected = selectedOverlayEntry(entries);
+    if (selected && state.selectedOverlayKey !== selected.key) state.selectedOverlayKey = selected.key;
+    const storedIssues = Array.isArray(state.issueLog?.issues) ? state.issueLog.issues : [];
+    const relatedIssues = selected ? storedIssues.filter(issue => issueMatchesEntry(issue, selected)) : [];
+    const activeIssues = relatedIssues.filter(issue => clean(issue.status).toLowerCase() === 'active');
+    const resolvedIssues = relatedIssues.filter(issue => clean(issue.status).toLowerCase() === 'resolved');
+    const ev = selected.evaluation || {};
+    return `
+      <div class="ovm-detail-layout">
+        <aside class="ovm-detail-list" aria-label="Overlay-Auswahl">
+          ${entries.map(entry => {
+            const selectedClass = selected && selected.key === entry.key ? 'active' : '';
+            const evStatus = entry.evaluation?.status || 'unknown';
+            return `
+              <button type="button" class="ovm-detail-item ${selectedClass}" data-ovm-overlay-key="${esc(entry.key)}">
+                <strong>${esc(entry.name)}</strong>
+                <span>${esc(entry.obsSourceName || entry.busClientId || entry.fileName || '—')}</span>
+                <small>${esc(entry.fileName || '—')}</small>
+                <em class="ovm-dot is-${statusClass(evStatus)}"></em>
+              </button>
+            `;
+          }).join('')}
+        </aside>
+        <section class="ovm-detail-panel">
+          <div class="ovm-detail-head">
+            <div>
+              <span class="ovm-kicker">Overlay-Details</span>
+              <h3>${esc(selected.name)}</h3>
+              <p>${esc(ev.label || 'Status unbekannt')} · ${esc(ev.detail || '')}</p>
+            </div>
+            <span class="ovm-badge is-${statusClass(ev.status)}">${esc(ev.label || ev.status || 'unbekannt')}</span>
+          </div>
+          <div class="ovm-detail-grid">
+            <div><span>Anzeigename</span><strong>${esc(selected.name)}</strong></div>
+            <div><span>OBS-Quelle</span><strong>${esc(selected.obsSourceName || '—')}</strong></div>
+            <div><span>Dateiname</span><strong>${esc(selected.fileName || '—')}</strong></div>
+            <div><span>Typ</span><strong>${selected.external ? 'Externe Quelle' : selected.type === 'bus_only' ? 'Nur Bus-Client' : 'CGN Overlay'}</strong></div>
+            <div><span>Szene/Pfad</span><strong>${esc(selected.pathText || selected.sceneName || '—')}</strong></div>
+            <div><span>Container</span><strong>${esc(selected.containerPath || '—')}</strong></div>
+            <div><span>Direkt sichtbar</span><strong>${selected.directVisible ? 'ja' : 'nein'}</strong></div>
+            <div><span>Effektiv sichtbar</span><strong>${selected.effectiveVisible ? 'ja' : 'nein'}</strong></div>
+            <div><span>Bus-Client</span><strong>${selected.external ? 'nicht erwartet' : esc(selected.busClientId || '—')}</strong></div>
+            <div><span>Modul</span><strong>${esc(selected.module || '—')}</strong></div>
+            <div><span>Mode / Version</span><strong>${esc([selected.mode, selected.version].filter(Boolean).join(' / ') || '—')}</strong></div>
+            <div><span>Verbunden</span><strong>${selected.external ? 'extern' : (selected.connected ? 'ja' : 'nein')}</strong></div>
+            <div><span>Letzter Hello</span><strong>${selected.external ? 'nicht erwartet' : esc(fmtDateTime(selected.lastHelloAt))}</strong></div>
+            <div><span>Letzter Heartbeat</span><strong>${selected.external ? 'nicht erwartet' : (selected.lastHeartbeatAt ? `${esc(fmtDateTime(selected.lastHeartbeatAt))} · ${esc(fmtAge(selected.heartbeatAgeSeconds))}` : 'kein Heartbeat')}</strong></div>
+            <div><span>Heartbeat-Zähler</span><strong>${selected.external ? '—' : esc(selected.heartbeatCount || 0)}</strong></div>
+            <div><span>Match-Score</span><strong>${selected.external ? 'extern' : esc(selected.matchScore || 0)}</strong></div>
+          </div>
+          <section class="ovm-card compact">
+            <h3>URL / Datei</h3>
+            <code class="ovm-inline-code">${esc(selected.url || '—')}</code>
+          </section>
+          <section class="ovm-card compact">
+            <h3>Capabilities</h3>
+            ${selected.capabilities.length ? `<div>${selected.capabilities.map(cap => `<span class="ovm-chip">${esc(cap)}</span>`).join('')}</div>` : '<span class="ovm-muted">Keine Capabilities gemeldet.</span>'}
+          </section>
+          <section class="ovm-card compact">
+            <h3>Monitoring-Issues zu diesem Overlay</h3>
+            ${activeIssues.length ? `<h4>Aktiv</h4><div class="ovm-issues">${activeIssues.map(renderStoredIssue).join('')}</div>` : '<div class="ovm-ok-note">Keine aktiven Issues für dieses Overlay.</div>'}
+            ${resolvedIssues.length ? `<h4>Erledigt</h4><div class="ovm-issues">${resolvedIssues.slice(0, 10).map(renderStoredIssue).join('')}</div>` : '<div class="ovm-muted">Keine erledigten Issues für dieses Overlay.</div>'}
+          </section>
+        </section>
       </div>
     `;
   }
@@ -998,6 +1224,7 @@
 
   function renderTabContent() {
     if (state.tab === 'sources') return renderSourceCards();
+    if (state.tab === 'details') return renderOverlayDetails();
     if (state.tab === 'bus') return renderBusClients();
     if (state.tab === 'obs') return renderObsSources();
     if (state.tab === 'issues') return `<section class="ovm-card"><h3>Aktuelle Hinweise</h3>${renderIssues()}</section>`;
@@ -1064,6 +1291,12 @@
     root.querySelectorAll('[data-ovm-source-filter]').forEach(btn => {
       btn.addEventListener('click', () => {
         state.sourceFilter = btn.dataset.ovmSourceFilter || 'all';
+        render();
+      });
+    });
+    root.querySelectorAll('[data-ovm-overlay-key]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.selectedOverlayKey = btn.dataset.ovmOverlayKey || '';
         render();
       });
     });
