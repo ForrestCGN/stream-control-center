@@ -1429,12 +1429,15 @@
     if (!ctx) return '';
     const compact = options.compact === true ? ' is-compact' : '';
     const note = !ctx.active && !compact ? '<span class="ovm-repair-note" title="Diese Quelle liegt nicht im aktiven Program-Pfad. Die Aktion betrifft trotzdem das OBS-SceneItem.">inaktiv</span>' : '';
+    const visibilityIcon = ctx.visible ? '🙈' : '👁️';
+    const visibilityTitle = ctx.visible ? 'Quelle ausblenden' : 'Quelle einblenden';
+    const visibilityClass = ctx.visible ? 'is-danger' : 'is-success';
     return `
       <div class="ovm-repair-actions${compact}" aria-label="OBS-Reparaturaktionen für ${esc(ctx.displayName)}">
         ${note}
         ${repairButton('refresh', '↻', 'Browserquelle neu laden', ctx)}
         ${repairButton('refresh-cache', '🧹', 'Browsercache neu laden', ctx)}
-        ${repairButton('toggle', '⏻', ctx.visible ? 'Quelle ausblenden' : 'Quelle einblenden', ctx, ctx.visible ? 'is-danger' : '')}
+        ${repairButton('toggle', visibilityIcon, visibilityTitle, ctx, visibilityClass)}
         ${repairButton('cycle', '⚡', 'Quelle kurz aus/an', ctx)}
       </div>
     `;
