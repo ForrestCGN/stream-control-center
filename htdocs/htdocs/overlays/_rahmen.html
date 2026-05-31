@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bildrahmen Overlay</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #frame-container {
+      width: 778px;
+      height: 436px;
+      border: 6px solid #5a3fc0;
+      border-radius: 32px;
+      box-shadow: 0 0 28px #5a3fc0, 0 0 56px #1e90ff, inset 0 0 16px #5a3fc0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+    }
+
+    #obs-image-slot {
+      width: 768px;
+      height: 432px;
+      border-radius: 14px;
+      background: transparent;
+      position: relative;
+      z-index: 1;
+    }
+
+    #frame-overlay {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      pointer-events: none;
+      border-radius: 34px;
+      box-shadow:
+        inset 0 0 0 8px #5a3fc0,
+        0 0 30px #5a3fc0,
+        0 0 60px #1e90ff,
+        inset 0 0 18px #5a3fc0;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <div id="frame-container">
+    <div id="obs-image-slot"></div>
+    <div id="frame-overlay"></div>
+  </div>
+<!-- CGN EventBus Heartbeat (STEP626B) -->
+<script
+  src="/overlays/shared/overlay_bus_client.js"
+  data-overlay-id="rahmen_overlay"
+  data-client-type="overlay"
+  data-mode="obs_overlay"
+  data-module="rahmen_overlay"
+  data-name="Rahmen Overlay"
+  data-version="0.1.0"
+  data-heartbeat-ms="5000"
+></script>
+
+</body>
+</html>
+
