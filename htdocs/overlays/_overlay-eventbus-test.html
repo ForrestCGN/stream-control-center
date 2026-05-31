@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1920,height=1080,initial-scale=1" />
+  <title>CGN EventBus Test Overlay</title>
+  <style>
+    :root {
+      --bg: rgba(5, 8, 22, 0.92);
+      --panel: rgba(15, 23, 42, 0.82);
+      --panel-soft: rgba(30, 41, 59, 0.62);
+      --border: rgba(148, 163, 184, 0.28);
+      --purple: #a855f7;
+      --cyan: #22d3ee;
+      --green: #34d399;
+      --yellow: #facc15;
+      --red: #fb7185;
+      --text: #f8fafc;
+      --muted: #aab8d0;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      color: var(--text);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 44px;
+    }
+
+    .shell {
+      width: min(1400px, calc(100vw - 88px));
+      min-height: 720px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 14% 12%, rgba(168, 85, 247, 0.24), transparent 32%),
+        radial-gradient(circle at 86% 10%, rgba(34, 211, 238, 0.18), transparent 30%),
+        linear-gradient(135deg, var(--bg), rgba(17, 24, 39, 0.92));
+      box-shadow: 0 0 42px rgba(168, 85, 247, 0.22), inset 0 0 24px rgba(255,255,255,0.04);
+      padding: 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .kicker {
+      color: #c084fc;
+      letter-spacing: 0.18em;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 6px 0 8px;
+      font-size: 34px;
+      line-height: 1.1;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      max-width: 880px;
+      line-height: 1.45;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.72);
+      color: var(--muted);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--yellow);
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.6);
+    }
+
+    .pill.ok .dot { background: var(--green); box-shadow: 0 0 14px rgba(52, 211, 153, 0.7); }
+    .pill.bad .dot { background: var(--red); box-shadow: 0 0 14px rgba(251, 113, 133, 0.7); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--panel);
+      padding: 16px;
+      min-height: 112px;
+      overflow: hidden;
+    }
+
+    .card strong {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-size: 25px;
+      font-weight: 950;
+      line-height: 1.1;
+      word-break: break-word;
+    }
+
+    .small {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .wide {
+      grid-column: span 2;
+    }
+
+    .log {
+      height: 260px;
+      overflow: auto;
+      font: 13px/1.45 Consolas, "Courier New", monospace;
+      background: rgba(2, 6, 23, 0.64);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 16px;
+      padding: 12px;
+      color: #dbeafe;
+      white-space: pre-wrap;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      border: 1px solid rgba(168, 85, 247, 0.52);
+      background: rgba(88, 28, 135, 0.46);
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 0 18px rgba(168, 85, 247, 0.12);
+    }
+
+    button:hover { border-color: rgba(34, 211, 238, 0.72); }
+
+    code {
+      color: #bae6fd;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="head">
+      <div>
+        <div class="kicker">CGN Overlay EventBus Referenz</div>
+        <h1>EventBus Test Overlay</h1>
+        <p class="sub">Technisches Referenz-Overlay für OBS/Browser-Tests. Es nutzt den gemeinsamen <code>shared/overlay_bus_client.js</code>, sendet echte Heartbeats und zeigt Hello-, Heartbeat-, ACK- und Event-Zustände live an.</p>
+      </div>
+      <div class="pill" id="statusPill"><span class="dot"></span><span id="statusText">startet</span></div>
+    </header>
+
+    <section class="grid">
+      <div class="card">
+        <strong>Client-ID</strong>
+        <span class="value" id="clientId">—</span>
+        <span class="small">Typ: <span id="clientType">—</span></span>
+      </div>
+      <div class="card">
+        <strong>Modul / Version</strong>
+        <span class="value" id="moduleVersion">—</span>
+        <span class="small">Mode: <span id="mode">—</span></span>
+      </div>
+      <div class="card">
+        <strong>Hello ACK</strong>
+        <span class="value" id="helloAck">—</span>
+        <span class="small">letzte Anmeldung am Bus</span>
+      </div>
+      <div class="card">
+        <strong>Heartbeat ACK</strong>
+        <span class="value" id="heartbeatAck">—</span>
+        <span class="small"><span id="heartbeatCount">0</span> echte Heartbeats</span>
+      </div>
+      <div class="card">
+        <strong>Page Visibility</strong>
+        <span class="value" id="visibility">—</span>
+        <span class="small">OBS kann Quellen bei Ausblendung deaktivieren.</span>
+      </div>
+      <div class="card">
+        <strong>WebSocket</strong>
+        <span class="value" id="wsState">—</span>
+        <span class="small">Reconnects: <span id="reconnects">0</span></span>
+      </div>
+      <div class="card wide">
+        <strong>Capabilities</strong>
+        <span class="value" id="capabilities">—</span>
+        <span class="small">Dieses Overlay bestätigt requireAck-Events automatisch über den shared Client.</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <strong>Test-Aktionen</strong>
+      <div class="actions">
+        <button type="button" id="sendPing">Bus-Ping senden</button>
+        <button type="button" id="sendIssue">Test-Issue senden</button>
+        <button type="button" id="clearLog">Log leeren</button>
+      </div>
+      <span class="small">Die Buttons senden Diagnose-Events über dieselbe WebSocket-Verbindung. Sie verändern keine OBS-Quellen.</span>
+    </section>
+
+    <section class="card">
+      <strong>Live-Log</strong>
+      <div class="log" id="log"></div>
+    </section>
+  </main>
+
+  <script>
+    window.CGN_OVERLAY_BUS = {
+      clientId: 'overlay:eventbus_test',
+      clientType: 'overlay',
+      mode: 'test_overlay',
+      module: 'eventbus_test_overlay',
+      name: 'EventBus Test Overlay',
+      version: 'STEP622',
+      heartbeatIntervalMs: 5000,
+      capabilities: [
+        'overlay.heartbeat',
+        'overlay.test.ping',
+        'overlay.test.event',
+        'overlay.test.ack',
+        'overlay.diagnostics'
+      ],
+      meta: {
+        role: 'debug_test',
+        purpose: 'overlay_eventbus_reference',
+        obsSourceHint: '_EventBusTest',
+        standard: 'CGN_OVERLAY_BUS_STANDARD_STEP622'
+      }
+    };
+  </script>
+  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="overlay:eventbus_test" data-client-type="overlay" data-mode="test_overlay" data-module="eventbus_test_overlay" data-name="EventBus Test Overlay" data-version="STEP622" data-heartbeat-ms="5000"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const cfg = window.CGN_OVERLAY_BUS || {};
+      const els = {
+        statusPill: document.getElementById('statusPill'),
+        statusText: document.getElementById('statusText'),
+        clientId: document.getElementById('clientId'),
+        clientType: document.getElementById('clientType'),
+        moduleVersion: document.getElementById('moduleVersion'),
+        mode: document.getElementById('mode'),
+        helloAck: document.getElementById('helloAck'),
+        heartbeatAck: document.getElementById('heartbeatAck'),
+        heartbeatCount: document.getElementById('heartbeatCount'),
+        visibility: document.getElementById('visibility'),
+        wsState: document.getElementById('wsState'),
+        reconnects: document.getElementById('reconnects'),
+        capabilities: document.getElementById('capabilities'),
+        log: document.getElementById('log'),
+        sendPing: document.getElementById('sendPing'),
+        sendIssue: document.getElementById('sendIssue'),
+        clearLog: document.getElementById('clearLog')
+      };
+
+      let heartbeatCount = 0;
+      let lastHeartbeatAck = '';
+      let lastHelloAck = '';
+
+      function nowTime() {
+        return new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+
+      function safe(value, fallback = '—') {
+        const text = String(value == null ? '' : value).trim();
+        return text || fallback;
+      }
+
+      function log(message, data) {
+        const line = '[' + nowTime() + '] ' + message + (data ? '\n' + JSON.stringify(data, null, 2) : '');
+        els.log.textContent = line + '\n\n' + els.log.textContent;
+      }
+
+      function setStatus(status, cls) {
+        els.statusText.textContent = status;
+        els.statusPill.classList.remove('ok', 'bad');
+        if (cls) els.statusPill.classList.add(cls);
+      }
+
+      function refreshStatus() {
+        const status = window.CGNOverlayBusClient && window.CGNOverlayBusClient.status ? window.CGNOverlayBusClient.status() : null;
+        const connected = status && status.connected === true;
+        els.clientId.textContent = safe(status && status.clientId, safe(cfg.clientId));
+        els.clientType.textContent = safe(status && status.clientType, safe(cfg.clientType));
+        els.moduleVersion.textContent = safe(status && status.module, safe(cfg.module)) + ' / ' + safe(cfg.version);
+        els.mode.textContent = safe(cfg.mode);
+        els.helloAck.textContent = lastHelloAck || safe(status && status.lastHelloAckAt);
+        els.heartbeatAck.textContent = lastHeartbeatAck || safe(status && status.lastHeartbeatAckAt);
+        els.heartbeatCount.textContent = String(heartbeatCount);
+        els.visibility.textContent = document.hidden ? 'hidden' : 'visible';
+        els.wsState.textContent = connected ? 'verbunden' : 'getrennt';
+        els.reconnects.textContent = String(status && status.reconnectAttempts || 0);
+        els.capabilities.textContent = Array.isArray(cfg.capabilities) ? cfg.capabilities.join(', ') : '—';
+        setStatus(connected ? 'verbunden' : 'getrennt', connected ? 'ok' : 'bad');
+      }
+
+      window.addEventListener('cgn:overlay-bus-open', event => {
+        log('WebSocket offen / bus_hello gesendet', event.detail || null);
+        refreshStatus();
+      });
+
+      window.addEventListener('cgn:overlay-bus-close', event => {
+        log('WebSocket geschlossen', event.detail || null);
+        refreshStatus();
+      });
+
+      window.addEventListener('cgn:overlay-bus-message', event => {
+        const data = event.detail || {};
+        if (data.type === 'hello_ack') {
+          lastHelloAck = nowTime();
+          log('hello_ack empfangen', data);
+        } else if (data.type === 'heartbeat_ack') {
+          heartbeatCount += 1;
+          lastHeartbeatAck = nowTime();
+          log('heartbeat_ack empfangen', { clientId: data.clientId, ok: data.ok });
+        } else {
+          log('Bus-Event empfangen', data);
+        }
+        refreshStatus();
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        log('visibilitychange: ' + (document.hidden ? 'hidden' : 'visible'));
+        refreshStatus();
+      });
+
+      els.sendPing.addEventListener('click', () => {
+        const ok = window.CGNOverlayBusClient && window.CGNOverlayBusClient.send && window.CGNOverlayBusClient.send({
+          type: 'event',
+          channel: 'overlay.test',
+          action: 'ping',
+          source: { type: 'overlay', id: cfg.clientId, module: cfg.module },
+          target: { type: 'all', id: '*' },
+          timestamp: new Date().toISOString(),
+          payload: {
+            message: 'Ping vom EventBus Test Overlay',
+            visible: !document.hidden,
+            at: new Date().toISOString()
+          },
+          meta: { requireAck: false, replayable: true, ttlMs: 15000 }
+        });
+        log(ok ? 'Test-Ping gesendet' : 'Test-Ping konnte nicht gesendet werden');
+      });
+
+      els.sendIssue.addEventListener('click', () => {
+        const ok = window.CGNOverlayBusClient && window.CGNOverlayBusClient.send && window.CGNOverlayBusClient.send({
+          type: 'event',
+          channel: 'overlay.test',
+          action: 'issue',
+          source: { type: 'overlay', id: cfg.clientId, module: cfg.module },
+          target: { type: 'all', id: '*' },
+          timestamp: new Date().toISOString(),
+          payload: {
+            level: 'info',
+            message: 'Manueller Test-Issue vom EventBus Test Overlay',
+            at: new Date().toISOString()
+          },
+          meta: { requireAck: false, replayable: true, ttlMs: 15000 }
+        });
+        log(ok ? 'Test-Issue gesendet' : 'Test-Issue konnte nicht gesendet werden');
+      });
+
+      els.clearLog.addEventListener('click', () => {
+        els.log.textContent = '';
+      });
+
+      log('EventBus Test Overlay gestartet', {
+        clientId: cfg.clientId,
+        module: cfg.module,
+        mode: cfg.mode,
+        path: location.pathname + location.search
+      });
+
+      refreshStatus();
+      setInterval(refreshStatus, 1000);
+    })();
+  </script>
+</body>
+</html>
