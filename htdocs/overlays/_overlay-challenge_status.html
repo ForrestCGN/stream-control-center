@@ -299,5 +299,27 @@ if (typeof createOverlaySocket === "function") {
     } catch (e) {}
 }
 </script>
+
+<!-- STEP623: unified Overlay EventBus reference client. -->
+<script>
+  window.CGN_OVERLAY_BUS = Object.assign({}, window.CGN_OVERLAY_BUS || {}, {
+    clientId: "overlay:challenge_status",
+    clientType: 'overlay',
+    mode: "obs_overlay",
+    module: "challenge_status",
+    name: "Challenge Status Overlay",
+    version: "STEP623",
+    heartbeatIntervalMs: 5000,
+    capabilities: ["overlay.heartbeat", "challenge.overlay.ready", "challenge.overlay.update", "challenge.status_events", "ack"],
+    meta: {
+      role: "challenge_status_overlay",
+      overlayFile: "/overlays/_overlay-challenge_status.html",
+      standard: 'STEP623',
+      expectedHost: 'OBS Browser Source'
+    }
+  });
+</script>
+<script src="/overlays/shared/overlay_bus_client.js"></script>
+
 </body>
 </html>

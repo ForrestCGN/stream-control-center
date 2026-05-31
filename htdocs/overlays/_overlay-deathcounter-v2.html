@@ -784,5 +784,27 @@
       });
     });
   </script>
+
+<!-- STEP623: unified Overlay EventBus reference client. -->
+<script>
+  window.CGN_OVERLAY_BUS = Object.assign({}, window.CGN_OVERLAY_BUS || {}, {
+    clientId: "overlay:deathcounter_v2",
+    clientType: 'overlay',
+    mode: "obs_overlay",
+    module: "deathcounter_v2",
+    name: "Deathcounter V2 Overlay",
+    version: "STEP623",
+    heartbeatIntervalMs: 5000,
+    capabilities: ["overlay.heartbeat", "deathcounter.overlay.ready", "deathcounter.overlay.update", "deathcounter.overlay.visible", "ack"],
+    meta: {
+      role: "persistent_status_overlay",
+      overlayFile: "/overlays/_overlay-deathcounter-v2.html",
+      standard: 'STEP623',
+      expectedHost: 'OBS Browser Source'
+    }
+  });
+</script>
+<script src="/overlays/shared/overlay_bus_client.js"></script>
+
 </body>
 </html>
