@@ -3,9 +3,9 @@
 /**
  * Overlay Monitor
  *
- * Read-only Fachmodul für Overlay-Clients auf Basis des vorhandenen
+ * Read-only Fachmodul fuer Overlay-Clients auf Basis des vorhandenen
  * Communication Bus. Dieses Modul baut keine eigene WebSocket-Registry,
- * ändert keine OBS-Quellen und refresht keine Browserquellen.
+ * aendert keine OBS-Quellen und refresht keine Browserquellen.
  */
 
 let routes = null;
@@ -17,8 +17,8 @@ try { helperConfig = require('./helpers/helper_config'); } catch (_) { helperCon
 try { communicationBusModule = require('./communication_bus'); } catch (_) { communicationBusModule = null; }
 
 const MODULE = 'overlay_monitor';
-const VERSION = '0.1.1';
-const STATUS_API_VERSION = '1.0.1';
+const VERSION = '0.1.2';
+const STATUS_API_VERSION = '1.0.2';
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -33,6 +33,14 @@ const DEFAULT_CONFIG = {
     staleAfterMs: 15000,
     offlineAfterMs: 30000,
     deadAfterMs: 60000
+  },
+  logging: {
+    consoleEnabled: true,
+    seenConsole: false,
+    suppressOnlineStaleConsole: true,
+    statusChangeThrottleMs: 60000,
+    alwaysLogStatuses: ['offline', 'dead'],
+    alwaysLogTypes: ['overlay_missing']
   }
 };
 
@@ -42,11 +50,13 @@ const state = {
   lastPublishAtMs: 0,
   scanTimer: null,
   lastStatuses: new Map(),
+  consoleLogThrottle: new Map(),
   events: [],
   stats: {
     scans: 0,
     statusChanges: 0,
     busErrors: 0,
+    consoleLogsSuppressed: 0,
     lastError: ''
   }
 };
@@ -91,6 +101,12 @@ function mergeConfig(base, override) {
   return result;
 }
 
+function toStringArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).map(String);
+  if (value === undefined || value === null || value === '') return [];
+  return [String(value)];
+}
+
 function loadConfig() {
   let loaded = null;
   if (helperConfig && typeof helperConfig.loadConfig === 'function') {
@@ -113,6 +129,11 @@ function loadConfig() {
   config.thresholds.offlineAfterMs = Math.max(config.thresholds.staleAfterMs, asInt(config.thresholds.offlineAfterMs, DEFAULT_CONFIG.thresholds.offlineAfterMs));
   config.thresholds.deadAfterMs = Math.max(config.thresholds.offlineAfterMs, asInt(config.thresholds.deadAfterMs, DEFAULT_CONFIG.thresholds.deadAfterMs));
 
+  config.logging = mergeConfig(DEFAULT_CONFIG.logging, isPlainObject(config.logging) ? config.logging : {});
+  config.logging.statusChangeThrottleMs = Math.max(0, asInt(config.logging.statusChangeThrottleMs, DEFAULT_CONFIG.logging.statusChangeThrottleMs));
+  config.logging.alwaysLogStatuses = toStringArray(config.logging.alwaysLogStatuses).map(item => item.toLowerCase());
+  config.logging.alwaysLogTypes = toStringArray(config.logging.alwaysLogTypes);
+
   return config;
 }
 
@@ -134,6 +155,53 @@ function registerGet(app, routePath, handler) {
   app.get(routePath, handler);
 }
 
+function shouldWriteConsole(entry) {
+  const logging = config.logging || {};
+  if (logging.consoleEnabled === false) return false;
+
+  if (entry.level === 'error') return true;
+  if ((logging.alwaysLogTypes || []).includes(entry.type)) return true;
+
+  const details = isPlainObject(entry.details) ? entry.details : {};
+  const status = cleanString(details.status).toLowerCase();
+  const previousStatus = cleanString(details.previousStatus).toLowerCase();
+
+  if ((logging.alwaysLogStatuses || []).includes(status)) return true;
+
+  if (entry.type === 'overlay_seen' && logging.seenConsole !== true) return false;
+
+  if (entry.type === 'overlay_status_changed' && logging.suppressOnlineStaleConsole !== false) {
+    const pair = [previousStatus, status].sort().join(':');
+    if (pair === 'online:stale') return false;
+  }
+
+  if (entry.type === 'overlay_status_changed') {
+    const throttleMs = Math.max(0, asInt(logging.statusChangeThrottleMs, 0));
+    if (throttleMs > 0) {
+      const overlayId = cleanString(details.overlayId, 'unknown');
+      const key = `${entry.type}:${overlayId}:${previousStatus}->${status}`;
+      const current = nowMs();
+      const last = state.consoleLogThrottle.get(key) || 0;
+      if (current - last < throttleMs) return false;
+      state.consoleLogThrottle.set(key, current);
+    }
+  }
+
+  return true;
+}
+
+function writeConsole(entry) {
+  if (!shouldWriteConsole(entry)) {
+    state.stats.consoleLogsSuppressed += 1;
+    return;
+  }
+
+  const logMessage = `[${MODULE}] ${entry.type}: ${entry.message}`;
+  if (entry.level === 'error') console.error(logMessage);
+  else if (entry.level === 'warn') console.warn(logMessage);
+  else console.log(logMessage);
+}
+
 function pushEvent(level, type, message, details = {}) {
   const entry = {
     at: nowIso(),
@@ -146,11 +214,7 @@ function pushEvent(level, type, message, details = {}) {
   state.events.unshift(entry);
   if (state.events.length > config.maxEvents) state.events.length = config.maxEvents;
 
-  const logMessage = `[${MODULE}] ${entry.type}: ${entry.message}`;
-  if (entry.level === 'error') console.error(logMessage);
-  else if (entry.level === 'warn') console.warn(logMessage);
-  else console.log(logMessage);
-
+  writeConsole(entry);
   return entry;
 }
 
@@ -305,6 +369,7 @@ function getOverlayStatus(options = {}) {
     config: options.includeConfig ? safeJson(config) || {} : {
       monitorIntervalMs: config.monitorIntervalMs,
       thresholds: safeJson(config.thresholds) || {},
+      logging: safeJson(config.logging) || {},
       publishStatusToBus: config.publishStatusToBus === true,
       emitStatusChangesToBus: config.emitStatusChangesToBus === true
     },
@@ -504,8 +569,8 @@ function init({ app }) {
       readOnly: true,
       routes: [
         { method: 'GET', path: '/api/overlay-monitor/status', description: 'Read-only Overlay-Monitor Status aus dem Communication Bus.' },
-        { method: 'GET', path: '/api/overlay-monitor/events', description: 'Read-only Statuswechsel/Auffälligkeiten des Overlay-Monitors.' },
-        { method: 'GET', path: '/api/overlay-monitor/routes', description: 'Routenübersicht.' }
+        { method: 'GET', path: '/api/overlay-monitor/events', description: 'Read-only Statuswechsel/Auffaelligkeiten des Overlay-Monitors.' },
+        { method: 'GET', path: '/api/overlay-monitor/routes', description: 'Routenuebersicht.' }
       ]
     });
   });

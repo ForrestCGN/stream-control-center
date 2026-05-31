@@ -29,27 +29,19 @@
 .ovm-head-meta { display: grid; gap: 6px; justify-items: end; color: var(--ovm-muted); font-size: 12px; }
 
 .ovm-summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
-.ovm-summary-card { padding: 14px; border: 1px solid var(--ovm-border); border-radius: 18px; background: var(--ovm-panel); display: grid; gap: 6px; min-height: 74px; }
+.ovm-summary-card { padding: 14px; border: 1px solid var(--ovm-border); border-radius: 18px; background: var(--ovm-panel); display: grid; gap: 6px; }
 .ovm-summary-card span { color: var(--ovm-muted); font-size: 12px; }
-.ovm-summary-card strong { font-size: 23px; line-height: 1.1; overflow-wrap: anywhere; }
+.ovm-summary-card strong { font-size: 25px; }
 .ovm-summary-card.is-ok { border-color: rgba(53, 211, 153, .42); }
 .ovm-summary-card.is-warn { border-color: rgba(251, 191, 36, .48); }
 .ovm-summary-card.is-bad { border-color: rgba(251, 113, 133, .48); }
-.ovm-summary-card.is-muted { border-color: rgba(148, 163, 184, .22); }
 
 .ovm-meta-line { display: flex; flex-wrap: wrap; gap: 10px; color: var(--ovm-muted); font-size: 12px; }
 .ovm-meta-line span { padding: 8px 10px; border: 1px solid var(--ovm-border); border-radius: 999px; background: rgba(15, 23, 42, .45); }
 
-.ovm-warning-box {
-  display: grid;
-  gap: 4px;
-  padding: 12px 14px;
-  border: 1px solid rgba(251, 191, 36, .38);
-  border-radius: 18px;
-  background: rgba(251, 191, 36, .10);
-  color: #fde68a;
-}
-.ovm-warning-box span { color: #f8e6a5; }
+.ovm-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; border: 1px solid var(--ovm-border); border-radius: 999px; background: rgba(15, 23, 42, .48); width: fit-content; max-width: 100%; }
+.ovm-tab { border: 1px solid transparent; background: transparent; color: var(--ovm-muted); border-radius: 999px; padding: 9px 14px; font-weight: 900; cursor: pointer; }
+.ovm-tab.active, .ovm-tab:hover { color: var(--ovm-text); border-color: rgba(167, 139, 250, .72); background: rgba(139, 92, 246, .14); box-shadow: 0 0 16px rgba(139, 92, 246, .16); }
 
 .ovm-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .ovm-filters, .ovm-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -57,8 +49,8 @@
 .ovm-filter.active, .ovm-btn:hover { border-color: rgba(167, 139, 250, .75); box-shadow: 0 0 18px rgba(139, 92, 246, .18); }
 .ovm-toggle { display: flex; gap: 8px; align-items: center; color: var(--ovm-muted); font-weight: 800; }
 
-.ovm-table-wrap { overflow: auto; border: 1px solid var(--ovm-border); border-radius: 18px; background: rgba(15, 23, 42, .62); }
-.ovm-table { width: 100%; border-collapse: collapse; min-width: 1080px; }
+.ovm-table-wrap { overflow: auto; border: 1px solid var(--ovm-border); border-radius: 22px; background: rgba(15, 23, 42, .62); }
+.ovm-table { width: 100%; border-collapse: collapse; min-width: 980px; }
 .ovm-table th, .ovm-table td { padding: 12px 11px; text-align: left; border-bottom: 1px solid rgba(148, 163, 184, .14); vertical-align: top; }
 .ovm-table th { color: #cbd5e1; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; background: rgba(15, 23, 42, .55); }
 .ovm-table td small { display: block; color: var(--ovm-muted); font-size: 11px; margin-top: 4px; }
@@ -68,48 +60,50 @@
 .ovm-badge.is-warn { color: #fde68a; background: rgba(251, 191, 36, .13); border-color: rgba(251, 191, 36, .34); }
 .ovm-badge.is-bad { color: #fecdd3; background: rgba(251, 113, 133, .13); border-color: rgba(251, 113, 133, .34); }
 .ovm-badge.is-muted { color: #cbd5e1; background: rgba(148, 163, 184, .10); border-color: rgba(148, 163, 184, .22); }
-
 .ovm-chip { display: inline-flex; margin: 2px 4px 2px 0; padding: 4px 7px; border-radius: 999px; background: rgba(59, 130, 246, .13); border: 1px solid rgba(96, 165, 250, .25); font-size: 11px; color: #bfdbfe; }
 .ovm-muted { color: var(--ovm-muted); }
-.ovm-warn-text { color: #fde68a; }
 
 .ovm-card, .ovm-empty, .ovm-error { padding: 16px; border: 1px solid var(--ovm-border); border-radius: 22px; background: var(--ovm-panel); }
-.ovm-card h3 { margin: 0 0 6px; }
-.ovm-card p { margin: 0; color: var(--ovm-muted); }
+.ovm-card h3 { margin: 0 0 10px; }
 .ovm-empty { display: grid; gap: 6px; color: var(--ovm-muted); }
-.ovm-empty.compact { padding: 12px; border-radius: 16px; }
 .ovm-empty strong { color: var(--ovm-text); }
 .ovm-error { border-color: rgba(251, 113, 133, .38); color: #fecdd3; }
-.ovm-error-inline { margin-top: 10px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(251, 113, 133, .35); background: rgba(251, 113, 133, .10); color: #fecdd3; }
 .ovm-ok-note { color: #bbf7d0; }
+.ovm-warning-line { margin-top: 12px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(251, 191, 36, .34); background: rgba(251, 191, 36, .10); color: #fde68a; font-weight: 800; }
 
-.ovm-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
-.ovm-info-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-.ovm-info-grid > div { display: grid; gap: 4px; padding: 12px; border: 1px solid rgba(148, 163, 184, .18); border-radius: 16px; background: rgba(15, 23, 42, .44); }
-.ovm-info-grid span { color: var(--ovm-muted); font-size: 12px; }
-.ovm-info-grid strong { color: var(--ovm-text); overflow-wrap: anywhere; }
+.ovm-overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ovm-status-box { display: grid; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid var(--ovm-border); background: rgba(15, 23, 42, .52); }
+.ovm-status-box span { color: var(--ovm-muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.ovm-status-box strong { font-size: 22px; }
+.ovm-status-box small { color: var(--ovm-muted); line-height: 1.35; }
+.ovm-status-box.is-ok { border-color: rgba(53, 211, 153, .36); }
+.ovm-status-box.is-warn { border-color: rgba(251, 191, 36, .36); }
+.ovm-status-box.is-bad { border-color: rgba(251, 113, 133, .36); }
+.ovm-status-box.is-muted { border-color: rgba(148, 163, 184, .22); }
 
-.ovm-source-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-.ovm-source-card { display: grid; gap: 5px; padding: 13px; border: 1px solid rgba(148, 163, 184, .18); border-radius: 18px; background: rgba(15, 23, 42, .46); }
-.ovm-source-card strong { color: var(--ovm-text); overflow-wrap: anywhere; }
-.ovm-source-card span { color: #bfdbfe; font-size: 12px; }
-.ovm-source-card small { color: var(--ovm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ovm-next-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ovm-next-grid div { display: grid; gap: 6px; padding: 12px; border: 1px solid rgba(148, 163, 184, .18); border-radius: 16px; background: rgba(15, 23, 42, .45); }
+.ovm-next-grid span { color: var(--ovm-muted); font-size: 13px; line-height: 1.35; }
 
 .ovm-issues { display: grid; gap: 8px; }
 .ovm-issue { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 16px; border: 1px solid var(--ovm-border); background: rgba(15, 23, 42, .52); }
+.ovm-issue div { display: grid; gap: 4px; }
+.ovm-issue span:not(.ovm-badge) { color: var(--ovm-muted); }
 .ovm-issue.is-warn { border-color: rgba(251, 191, 36, .34); }
 .ovm-issue.is-bad { border-color: rgba(251, 113, 133, .34); }
+.ovm-warn-text { color: #fde68a; }
+.ovm-raw { max-height: 520px; overflow: auto; padding: 12px; border-radius: 16px; border: 1px solid rgba(148, 163, 184, .18); background: rgba(2, 6, 23, .72); color: #cbd5e1; font-size: 12px; line-height: 1.45; }
 
-@media (max-width: 1200px) {
+@media (max-width: 1100px) {
   .ovm-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .ovm-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ovm-head { display: grid; }
   .ovm-head-meta { justify-items: start; }
+  .ovm-overview-grid, .ovm-next-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
-  .ovm-summary-grid, .ovm-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ovm-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ovm-toolbar { display: grid; }
   .ovm-actions { justify-content: space-between; }
-  .ovm-section-head { display: grid; }
+  .ovm-tabs { border-radius: 18px; width: auto; }
 }

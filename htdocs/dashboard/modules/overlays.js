@@ -5,11 +5,11 @@
     loading: false,
     data: null,
     obsStatus: null,
-    browserSources: null,
+    obsSources: [],
     obsError: '',
-    browserSourcesError: '',
     error: '',
     filter: 'all',
+    tab: 'overview',
     autoRefresh: true,
     timer: null,
     lastLoadedAt: ''
@@ -21,7 +21,7 @@
   const AUTO_REFRESH_MS = 5000;
 
   function esc(value) {
-    return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
   function panel() {
@@ -33,16 +33,11 @@
     return fetch(path, options).then(r => r.json());
   }
 
-  function dataPayload(response) {
-    if (!response || typeof response !== 'object') return response;
-    return response.data && typeof response.data === 'object' ? response.data : response;
-  }
-
   function statusClass(status) {
     const s = String(status || 'unknown').toLowerCase();
-    if (s === 'online' || s === 'connected' || s === 'ok') return 'ok';
-    if (s === 'stale' || s === 'warn' || s === 'warning') return 'warn';
-    if (s === 'offline' || s === 'dead' || s === 'error' || s === 'bad') return 'bad';
+    if (s === 'online' || s === 'ok' || s === 'connected') return 'ok';
+    if (s === 'stale' || s === 'warning' || s === 'warn') return 'warn';
+    if (s === 'offline' || s === 'dead' || s === 'error' || s === 'bad' || s === 'disconnected') return 'bad';
     return 'muted';
   }
 
@@ -71,38 +66,35 @@
     return `${h}h ${min % 60}m`;
   }
 
+  function shortText(value, max = 90) {
+    const text = String(value || '').trim();
+    if (!text) return '—';
+    if (text.length <= max) return text;
+    return `${text.slice(0, Math.max(1, max - 1))}…`;
+  }
+
   function lastContact(overlay) {
     return overlay.lastHeartbeatAt || overlay.lastSeenAt || overlay.connectedAt || overlay.registeredAt || '';
   }
 
   function obsConnected() {
-    const status = state.obsStatus || {};
-    return status.obsConnected === true || status.connected === true;
+    const obs = state.obsStatus || {};
+    return obs.connected === true || obs.ok === true && (obs.connected !== false && obs.obsConnected !== false);
   }
 
-  function obsDetected() {
-    const status = state.obsStatus || {};
-    return status.obsDetected === true || status.detected === true || obsConnected();
-  }
-
-  function browserSources() {
-    const payload = state.browserSources || {};
-    if (Array.isArray(payload.browserSources)) return payload.browserSources;
-    if (Array.isArray(payload.sources)) return payload.sources;
-    if (Array.isArray(payload.inputs)) return payload.inputs;
+  function normalizeObsSources(raw) {
+    if (!raw || typeof raw !== 'object') return [];
+    const candidates = [
+      raw.browserSources,
+      raw.sources,
+      raw.inputs,
+      raw.data,
+      raw.items
+    ];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) return candidate;
+    }
     return [];
-  }
-
-  function sourceUrl(source) {
-    return source.url || source.local_file || source.localFile || source.inputSettings?.url || source.inputSettings?.local_file || '';
-  }
-
-  function sourceName(source) {
-    return source.inputName || source.sourceName || source.name || 'Browserquelle';
-  }
-
-  function sourceKind(source) {
-    return source.inputKind || source.unversionedInputKind || source.kind || 'browser_source';
   }
 
   function filteredOverlays() {
@@ -112,19 +104,21 @@
     return overlays.filter(o => String(o.status || '').toLowerCase() === state.filter);
   }
 
-  function renderSummary() {
+  function problemCount() {
+    return Array.isArray(state.data?.issues) ? state.data.issues.length : 0;
+  }
+
+  function renderSummaryCards() {
     const s = state.data?.summary || {};
     const c = state.data?.communication || {};
-    const obsLabel = state.obsError ? 'Fehler' : (obsConnected() ? 'verbunden' : (obsDetected() ? 'erkannt' : 'offline'));
-    const obsClass = obsConnected() ? 'ok' : (obsDetected() ? 'warn' : 'bad');
-    const browserCount = browserSources().length;
+    const obsOk = obsConnected();
     const rows = [
       ['Bus-Overlays', s.total ?? 0, ''],
       ['Bus online', s.online ?? 0, 'ok'],
       ['Stale', s.stale ?? 0, 'warn'],
-      ['Offline/Dead', Number(s.offline ?? 0) + Number(s.dead ?? 0), 'bad'],
-      ['OBS', obsLabel, obsClass],
-      ['OBS-Browserquellen', browserCount, browserCount ? 'ok' : 'muted']
+      ['Offline/Dead', (s.offline ?? 0) + (s.dead ?? 0), 'bad'],
+      ['OBS', obsOk ? 'verbunden' : 'offline', obsOk ? 'ok' : 'warn'],
+      ['OBS Quellen', state.obsSources.length, '']
     ];
 
     return `
@@ -140,19 +134,28 @@
         <span>Communication Bus: <strong>${c.available ? 'verfügbar' : 'nicht verfügbar'}</strong></span>
         <span>Bus-Clients gesamt: <strong>${esc(c.clientCount ?? 0)}</strong></span>
         <span>Overlay-Monitor: <strong>${esc(state.data?.version || '—')}</strong></span>
-        <span>OBS: <strong>${esc(obsLabel)}</strong></span>
         <span>Letzter Scan: <strong>${esc(fmtDateTime(state.data?.lastScanAt))}</strong></span>
+        <span>Console-Logs unterdrückt: <strong>${esc(state.data?.stats?.consoleLogsSuppressed ?? 0)}</strong></span>
       </div>
-      ${!obsConnected() && (s.online || 0) > 0 ? `
-        <div class="ovm-warning-box">
-          <strong>OBS ist nicht verbunden, aber Bus-Overlay-Clients melden sich.</strong>
-          <span>Das bedeutet: Diese Clients leben irgendwo am WebSocket/Bus, sind aber dadurch noch nicht als aktive OBS-Browserquellen bestätigt.</span>
-        </div>
-      ` : ''}
     `;
   }
 
-  function renderFilters() {
+  function renderTabs() {
+    const tabs = [
+      ['overview', 'Übersicht'],
+      ['bus', 'Bus-Clients'],
+      ['obs', 'OBS-Quellen'],
+      ['issues', `Probleme${problemCount() ? ` (${problemCount()})` : ''}`],
+      ['raw', 'Rohdaten']
+    ];
+    return `
+      <div class="ovm-tabs" role="tablist" aria-label="Overlay-Monitor Bereiche">
+        ${tabs.map(([key, label]) => `<button type="button" class="ovm-tab ${state.tab === key ? 'active' : ''}" data-ovm-tab="${esc(key)}">${esc(label)}</button>`).join('')}
+      </div>
+    `;
+  }
+
+  function renderToolbar() {
     const filters = [
       ['all', 'Alle'],
       ['online', 'Online'],
@@ -174,101 +177,67 @@
     `;
   }
 
-  function renderObsStatus() {
-    const status = state.obsStatus || {};
-    const connected = obsConnected();
-    const detected = obsDetected();
-    const currentProgram = status.currentProgramSceneName || status.currentScene || '';
-    const currentPreview = status.currentPreviewSceneName || '';
-
-    return `
-      <section class="ovm-card ovm-obs-card">
-        <div class="ovm-section-head">
-          <div>
-            <h3>OBS Status</h3>
-            <p>Read-only. Wird nur zur Einordnung der Overlay-Quellen genutzt.</p>
-          </div>
-          <span class="ovm-badge is-${connected ? 'ok' : (detected ? 'warn' : 'bad')}">${connected ? 'verbunden' : (detected ? 'erkannt' : 'offline')}</span>
-        </div>
-        ${state.obsError ? `<div class="ovm-error-inline">${esc(state.obsError)}</div>` : ''}
-        <div class="ovm-info-grid">
-          <div><span>Program Scene</span><strong>${esc(currentProgram || '—')}</strong></div>
-          <div><span>Preview Scene</span><strong>${esc(currentPreview || '—')}</strong></div>
-          <div><span>Stream</span><strong>${status.streamActive ? 'aktiv' : 'inaktiv/unklar'}</strong></div>
-          <div><span>Aufnahme</span><strong>${status.recordActive ? 'aktiv' : 'inaktiv/unklar'}</strong></div>
-        </div>
-      </section>
-    `;
-  }
-
-  function renderBrowserSources() {
-    const sources = browserSources();
-    if (state.browserSourcesError) {
-      return `
-        <section class="ovm-card">
-          <div class="ovm-section-head"><div><h3>OBS Browserquellen</h3><p>Konnten nicht geladen werden.</p></div></div>
-          <div class="ovm-error-inline">${esc(state.browserSourcesError)}</div>
-        </section>
-      `;
-    }
-
-    if (!sources.length) {
-      return `
-        <section class="ovm-card">
-          <div class="ovm-section-head"><div><h3>OBS Browserquellen</h3><p>Noch keine Browserquellen aus OBS gelesen oder OBS ist offline.</p></div></div>
-          <div class="ovm-empty compact"><strong>Keine OBS-Browserquellen gefunden.</strong><span>Das ist bei ausgeschaltetem OBS normal.</span></div>
-        </section>
-      `;
-    }
-
+  function renderOverview() {
+    const s = state.data?.summary || {};
+    const issues = Array.isArray(state.data?.issues) ? state.data.issues : [];
+    const obsOk = obsConnected();
+    const busOnlineButObsOffline = !obsOk && Number(s.online || 0) > 0;
     return `
       <section class="ovm-card">
-        <div class="ovm-section-head">
-          <div>
-            <h3>OBS Browserquellen</h3>
-            <p>Alle aktuell von OBS gemeldeten Browserquellen. Noch ohne feste Zuordnung zu Bus-Clients.</p>
+        <h3>Gesamtbewertung</h3>
+        <div class="ovm-overview-grid">
+          <div class="ovm-status-box is-${statusClass(state.data?.summary?.status)}">
+            <span>Bus-Overlay-Status</span>
+            <strong>${esc(state.data?.summary?.status || 'unbekannt')}</strong>
+            <small>Aktuell basiert diese Seite auf Bus- und OBS-Read-only-Daten. Mapping folgt später.</small>
           </div>
-          <span class="ovm-badge is-ok">${esc(sources.length)} Quellen</span>
+          <div class="ovm-status-box is-${obsOk ? 'ok' : 'warn'}">
+            <span>OBS-Verbindung</span>
+            <strong>${obsOk ? 'verbunden' : 'offline / unbekannt'}</strong>
+            <small>${esc(state.obsError || 'OBS-Status wird nur gelesen, nicht verändert.')}</small>
+          </div>
+          <div class="ovm-status-box is-${issues.length ? 'warn' : 'ok'}">
+            <span>Hinweise</span>
+            <strong>${esc(issues.length)}</strong>
+            <small>${issues.length ? 'Details im Tab Probleme.' : 'Keine aktiven Overlay-Probleme gemeldet.'}</small>
+          </div>
         </div>
-        <div class="ovm-source-grid">
-          ${sources.map(source => {
-            const url = sourceUrl(source);
-            return `
-              <article class="ovm-source-card">
-                <strong>${esc(sourceName(source))}</strong>
-                <span>${esc(sourceKind(source))}</span>
-                <small title="${esc(url)}">${esc(url || 'keine URL/Datei gemeldet')}</small>
-              </article>
-            `;
-          }).join('')}
+        ${busOnlineButObsOffline ? `<div class="ovm-warning-line">Bus-Clients melden sich aktiv, obwohl OBS offline/unbekannt ist. Das ist aktuell kein Beweis für eine laufende OBS-Quelle.</div>` : ''}
+      </section>
+      <section class="ovm-card">
+        <h3>Kritische nächste Baustellen</h3>
+        <div class="ovm-next-grid">
+          <div><strong>Hello ≠ Heartbeat</strong><span>Der Bus muss echte Heartbeats sauberer von bloßer Anmeldung trennen.</span></div>
+          <div><strong>OBS ↔ Bus Mapping</strong><span>OBS-Quellen und Bus-Client-IDs brauchen später eine Zuordnung.</span></div>
+          <div><strong>Wartende Overlays</strong><span>Alerts, Sound, VIP, Deathcounter usw. müssen als bereit statt sichtbar bewertet werden.</span></div>
         </div>
       </section>
     `;
   }
 
-  function renderOverlayRows() {
+  function renderBusClients() {
     const overlays = filteredOverlays();
     if (!overlays.length) {
       return `
         <div class="ovm-empty">
           <strong>Keine passenden Overlay-Clients gefunden.</strong>
-          <span>Ein Overlay erscheint hier, sobald es sich per Overlay-Bus-Client mit type=overlay, mode=overlay oder id=overlay:* registriert.</span>
+          <span>Ein Overlay erscheint hier, sobald es sich per Bus als Overlay-Client registriert.</span>
         </div>
       `;
     }
 
     return `
+      ${renderToolbar()}
       <div class="ovm-table-wrap">
         <table class="ovm-table">
           <thead>
             <tr>
-              <th>Overlay / Bus-Client</th>
-              <th>Bus-Status</th>
+              <th>Overlay</th>
+              <th>Status</th>
               <th>Verbunden</th>
               <th>Heartbeat</th>
               <th>Letzter Kontakt</th>
               <th>Modul / Version</th>
-              <th>Mode</th>
               <th>Capabilities</th>
               <th>Grund / Fehler</th>
             </tr>
@@ -283,13 +252,13 @@
                   <td>
                     <strong>${esc(overlay.name || overlay.id || 'Overlay')}</strong>
                     <small>${esc(overlay.id || '—')}</small>
+                    <small>Mode: ${esc(overlay.mode || '—')}</small>
                   </td>
-                  <td><span class="ovm-badge is-${statusClass(status)}">${esc(status)}</span>${!obsConnected() && status === 'online' ? '<small class="ovm-warn-text">Bus online, OBS offline</small>' : ''}</td>
+                  <td><span class="ovm-badge is-${statusClass(status)}">${esc(status)}</span></td>
                   <td>${overlay.connected ? '<span class="ovm-badge is-ok">ja</span>' : '<span class="ovm-badge is-muted">nein</span>'}</td>
                   <td><strong>${esc(fmtTime(overlay.lastHeartbeatAt))}</strong><small>${esc(fmtAge(overlay.ageSeconds))}</small></td>
                   <td>${esc(fmtDateTime(lastContact(overlay)))}</td>
                   <td><strong>${esc(overlay.module || '—')}</strong><small>${esc(overlay.version || '—')}</small></td>
-                  <td>${esc(overlay.mode || '—')}</td>
                   <td>${caps.length ? caps.map(cap => `<span class="ovm-chip">${esc(cap)}</span>`).join('') : '<span class="ovm-muted">—</span>'}</td>
                   <td>${reason ? esc(reason) : '<span class="ovm-muted">—</span>'}</td>
                 </tr>
@@ -301,25 +270,98 @@
     `;
   }
 
+  function renderObsSources() {
+    const obsOk = obsConnected();
+    if (state.obsError && !state.obsSources.length) {
+      return `<div class="ovm-error">OBS-Browserquellen konnten nicht gelesen werden: ${esc(state.obsError)}</div>`;
+    }
+    if (!state.obsSources.length) {
+      return `
+        <div class="ovm-empty">
+          <strong>Keine OBS-Browserquellen gefunden.</strong>
+          <span>${obsOk ? 'OBS ist erreichbar, liefert aber keine Browserquellen.' : 'OBS ist offline oder der OBS-Status ist unbekannt.'}</span>
+        </div>
+      `;
+    }
+
+    return `
+      <section class="ovm-card">
+        <h3>OBS-Browserquellen</h3>
+        <p class="ovm-muted">Read-only: Diese Liste kommt aus /api/obs/browser-sources. Es wird nichts ein- oder ausgeblendet.</p>
+      </section>
+      <div class="ovm-table-wrap">
+        <table class="ovm-table">
+          <thead>
+            <tr>
+              <th>Quelle</th>
+              <th>Typ</th>
+              <th>URL / Datei</th>
+              <th>Größe</th>
+              <th>FPS</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${state.obsSources.map(src => {
+              const name = src.inputName || src.sourceName || src.name || 'OBS Browser Source';
+              const kind = src.inputKind || src.unversionedInputKind || src.kind || 'browser_source';
+              const url = src.url || src.local_file || src.file || src.path || '';
+              const local = src.is_local_file === true || !!src.local_file;
+              return `
+                <tr>
+                  <td><strong>${esc(name)}</strong></td>
+                  <td><span class="ovm-badge is-muted">${esc(kind)}</span></td>
+                  <td><span title="${esc(url)}">${esc(shortText(url, 120))}</span><small>${local ? 'lokale Datei' : 'URL'}</small></td>
+                  <td>${esc(src.width || '—')} × ${esc(src.height || '—')}</td>
+                  <td>${esc(src.fps || '—')}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
   function renderIssues() {
     const issues = Array.isArray(state.data?.issues) ? state.data.issues : [];
-    const synthetic = [];
-    const summary = state.data?.summary || {};
-    if (!obsConnected() && Number(summary.online || 0) > 0) {
-      synthetic.push({ level: 'warn', overlayId: 'OBS offline', message: 'Bus-Clients melden sich, obwohl OBS nicht verbunden ist. Das ist aktuell nur Bus-Status, keine OBS-Bestätigung.' });
-    }
-    const allIssues = synthetic.concat(issues);
-    if (!allIssues.length) return '<div class="ovm-ok-note">Keine Overlay-Probleme gemeldet.</div>';
+    if (!issues.length) return '<div class="ovm-ok-note">Keine Overlay-Probleme gemeldet.</div>';
     return `
       <div class="ovm-issues">
-        ${allIssues.slice(0, 10).map(issue => `
+        ${issues.map(issue => `
           <div class="ovm-issue is-${issue.level === 'warn' ? 'warn' : 'bad'}">
-            <strong>${esc(issue.overlayId || issue.key || 'Overlay')}</strong>
-            <span>${esc(issue.message || issue.status || 'Problem')}</span>
+            <div>
+              <strong>${esc(issue.overlayId || issue.key || 'Overlay')}</strong>
+              <span>${esc(issue.message || issue.status || 'Problem')}</span>
+            </div>
+            <span class="ovm-badge is-${issue.level === 'warn' ? 'warn' : 'bad'}">${esc(issue.status || issue.level || 'problem')}</span>
           </div>
         `).join('')}
       </div>
     `;
+  }
+
+  function renderRaw() {
+    const raw = {
+      overlayMonitor: state.data,
+      obsStatus: state.obsStatus,
+      obsSources: state.obsSources,
+      obsError: state.obsError
+    };
+    return `
+      <section class="ovm-card">
+        <h3>Rohdaten</h3>
+        <p class="ovm-muted">Nur zur Diagnose. Später kann das bei Bedarf weiter aufgeteilt werden.</p>
+        <pre class="ovm-raw">${esc(JSON.stringify(raw, null, 2))}</pre>
+      </section>
+    `;
+  }
+
+  function renderTabContent() {
+    if (state.tab === 'bus') return renderBusClients();
+    if (state.tab === 'obs') return renderObsSources();
+    if (state.tab === 'issues') return `<section class="ovm-card"><h3>Aktuelle Hinweise</h3>${renderIssues()}</section>`;
+    if (state.tab === 'raw') return renderRaw();
+    return renderOverview();
   }
 
   function render() {
@@ -348,31 +390,29 @@
           <div>
             <span class="ovm-kicker">Control / Overlays</span>
             <h2>Overlay-Monitor</h2>
-            <p>Read-only Übersicht: Bus-Overlay-Clients plus OBS-Browserquellen. Zuordnung, Aktionen und Automatik kommen erst in späteren Steps.</p>
+            <p>Read-only Übersicht. Bus-Clients und OBS-Browserquellen werden getrennt angezeigt; Aktionen, Mapping und Automatik folgen später.</p>
           </div>
           <div class="ovm-head-meta">
             <span>Stand: ${esc(fmtDateTime(state.lastLoadedAt || state.data?.fetchedAt))}</span>
-            ${state.error ? `<span class="ovm-warn-text">Letzter Fehler: ${esc(state.error)}</span>` : ''}
+            ${state.error ? `<span class="ovm-warn-text">Monitor-Fehler: ${esc(state.error)}</span>` : ''}
+            ${state.obsError ? `<span class="ovm-warn-text">OBS-Hinweis: ${esc(state.obsError)}</span>` : ''}
           </div>
         </div>
-        ${renderSummary()}
-        ${renderFilters()}
-        ${renderObsStatus()}
-        ${renderBrowserSources()}
-        <section class="ovm-card">
-          <div class="ovm-section-head"><div><h3>Bus-Overlay-Clients</h3><p>Diese Liste zeigt Clients, die sich am Communication-Bus melden. Das ist noch keine bestätigte OBS-Quelle.</p></div></div>
-          ${renderOverlayRows()}
-        </section>
-        <section class="ovm-card">
-          <h3>Aktuelle Hinweise</h3>
-          ${renderIssues()}
-        </section>
+        ${renderSummaryCards()}
+        ${renderTabs()}
+        ${renderTabContent()}
       </div>
     `;
     bind(root);
   }
 
   function bind(root) {
+    root.querySelectorAll('[data-ovm-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.tab = btn.dataset.ovmTab || 'overview';
+        render();
+      });
+    });
     root.querySelectorAll('[data-ovm-filter]').forEach(btn => {
       btn.addEventListener('click', () => {
         state.filter = btn.dataset.ovmFilter || 'all';
@@ -391,38 +431,41 @@
     state.loading = true;
     state.error = '';
     state.obsError = '';
-    state.browserSourcesError = '';
     render();
+    try {
+      const [monitorResult, obsStatusResult, obsSourcesResult] = await Promise.allSettled([
+        api(API_STATUS),
+        api(API_OBS_STATUS),
+        api(API_OBS_BROWSER_SOURCES)
+      ]);
 
-    const [monitorResult, obsResult, sourcesResult] = await Promise.allSettled([
-      api(API_STATUS),
-      api(API_OBS_STATUS),
-      api(API_OBS_BROWSER_SOURCES)
-    ]);
+      if (monitorResult.status === 'fulfilled') {
+        state.data = monitorResult.value;
+      } else {
+        state.error = monitorResult.reason?.message || String(monitorResult.reason || 'Overlay-Monitor konnte nicht geladen werden.');
+      }
 
-    if (monitorResult.status === 'fulfilled') {
-      state.data = monitorResult.value;
+      if (obsStatusResult.status === 'fulfilled') {
+        state.obsStatus = obsStatusResult.value;
+      } else {
+        state.obsStatus = null;
+        state.obsError = obsStatusResult.reason?.message || String(obsStatusResult.reason || 'OBS-Status konnte nicht geladen werden.');
+      }
+
+      if (obsSourcesResult.status === 'fulfilled') {
+        state.obsSources = normalizeObsSources(obsSourcesResult.value);
+      } else {
+        state.obsSources = [];
+        state.obsError = state.obsError || obsSourcesResult.reason?.message || String(obsSourcesResult.reason || 'OBS-Browserquellen konnten nicht geladen werden.');
+      }
+
       state.lastLoadedAt = new Date().toISOString();
-    } else {
-      state.error = monitorResult.reason?.message || String(monitorResult.reason || 'Overlay-Monitor konnte nicht geladen werden.');
+    } catch (err) {
+      state.error = err?.message || String(err || 'Overlay-Monitor konnte nicht geladen werden.');
+    } finally {
+      state.loading = false;
+      render();
     }
-
-    if (obsResult.status === 'fulfilled') {
-      state.obsStatus = dataPayload(obsResult.value) || {};
-    } else {
-      state.obsStatus = null;
-      state.obsError = obsResult.reason?.message || String(obsResult.reason || 'OBS-Status konnte nicht geladen werden.');
-    }
-
-    if (sourcesResult.status === 'fulfilled') {
-      state.browserSources = dataPayload(sourcesResult.value) || {};
-    } else {
-      state.browserSources = null;
-      state.browserSourcesError = sourcesResult.reason?.message || String(sourcesResult.reason || 'OBS-Browserquellen konnten nicht geladen werden.');
-    }
-
-    state.loading = false;
-    render();
   }
 
   function setupTimer() {
