@@ -1311,7 +1311,7 @@
   function inventoryStatusLabel(node) {
     const status = clean(node?.status || node?.sourceType || node?.kind || 'unknown');
     if (status === 'ok') return 'OK';
-    if (status === 'standby') return 'Wartet';
+    if (status === 'standby') return node?.activeInProgram === false ? 'Inaktiv' : 'Wartet';
     if (status === 'external') return 'Extern';
     if (status === 'placeholder') return 'Platzhalter';
     if (status === 'warning') return 'Warnung';
@@ -1334,6 +1334,7 @@
       if (node.sourceType === 'external') bits.push('extern · kein Bus nötig');
       if (node.sourceType === 'placeholder') bits.push('Platzhalter · kein Bus nötig');
       bits.push(node.effectiveVisible ? 'sichtbar' : 'aus');
+      if (node.activeInProgram === false) bits.push('nicht aktuelle Program-Szene');
       return bits.filter(Boolean).join(' · ');
     }
     return node.obsSourceName || node.displayName || '';
@@ -1368,6 +1369,7 @@
           </div>
           <div class="ovm-inventory-tags">
             ${node.kind === 'source' ? `<span class="ovm-mini-badge ${node.effectiveVisible ? 'is-ok' : 'is-muted'}">${node.effectiveVisible ? 'sichtbar' : 'aus'}</span>` : ''}
+            ${node.kind === 'source' && node.activeInProgram === false ? '<span class="ovm-mini-badge is-muted">inaktiv</span>' : ''}
             ${node.kind === 'source' && node.sourceType === 'cgn' ? `<span class="ovm-mini-badge ${node.hasHeartbeat ? 'is-ok' : (node.busClientId ? 'is-warn' : 'is-warn')}">${node.hasHeartbeat ? 'HB OK' : (node.busClientId ? 'kein HB' : 'kein Bus')}</span>` : ''}
             ${node.kind === 'source' && node.sourceType === 'external' ? '<span class="ovm-mini-badge is-muted">extern</span>' : ''}
             ${node.kind === 'source' && node.sourceType === 'placeholder' ? '<span class="ovm-mini-badge is-muted">Platzhalter</span>' : ''}

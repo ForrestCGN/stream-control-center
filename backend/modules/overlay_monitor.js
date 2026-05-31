@@ -627,16 +627,22 @@ function evaluateInventoryNode(node) {
   if (node.placeholder) return 'placeholder';
   if (node.external) return 'external';
   if (!node.busExpected) return 'ok';
-  if (!node.effectiveVisible) {
-    if (node.busClient && node.hasHeartbeat) return 'standby';
-    return 'standby';
-  }
+
+  // Nur Quellen, die in der aktuellen Program-Szene effektiv erreichbar sind,
+  // dürfen echte Warnungen erzeugen. Quellen in anderen Szenen sind Inventar,
+  // aber gerade nicht aktiv im Live-Pfad.
+  if (node.activeInProgram !== true) return 'standby';
+  if (node.effectiveVisible !== true) return 'standby';
+
   if (!node.busClient) return 'warning';
   if (!node.hasHeartbeat) return 'warning';
+
   const status = cleanString(node.busStatus).toLowerCase();
-  if (status === 'online') return 'ok';
-  if (status === 'stale' || status === 'registered') return 'warning';
   if (status === 'offline' || status === 'dead') return 'error';
+  if (status === 'stale') return 'warning';
+
+  // Wenn ein echter Heartbeat vorliegt, ist der Inventarstatus OK. Das verhindert
+  // falsche Warnungen bei Clients, deren letzter Hello-/Statuswert noch anders lautet.
   return 'ok';
 }
 
@@ -710,10 +716,11 @@ async function collectObsInventory(env = {}, options = {}) {
     if (sourceKey && !sourceMap.has(sourceKey)) sourceMap.set(sourceKey, src);
   }
   const sceneSet = new Set(sceneNames.map(inventoryKey).filter(Boolean));
+  const currentProgramSceneName = cleanString(publicStatus.currentProgramSceneName || (sceneNames[0] || ''));
   const overlayStatus = getOverlayStatus({ limitEvents: 0 });
   const allSources = [];
 
-  function sourceNode(src, item, sceneName, pathParts, parentVisible, depth) {
+  function sourceNode(src, item, sceneName, pathParts, parentVisible, activePath, depth) {
     const url = inventorySourceUrl(src);
     const placeholder = inventoryIsPlaceholder(src);
     const external = inventoryIsExternal(src);
@@ -721,6 +728,7 @@ async function collectObsInventory(env = {}, options = {}) {
     const client = match.client || null;
     const hasHeartbeat = !!(client && (client.hasHeartbeat === true || client.lastHeartbeatAt));
     const effectiveVisible = parentVisible && item.enabled === true;
+    const activeInProgram = activePath === true && effectiveVisible === true;
     const sourceType = placeholder ? 'placeholder' : (external ? 'external' : 'cgn');
     const node = {
       kind: 'source',
@@ -735,6 +743,7 @@ async function collectObsInventory(env = {}, options = {}) {
       url,
       directVisible: item.enabled === true,
       effectiveVisible,
+      activeInProgram,
       parentVisible,
       external,
       placeholder,
@@ -758,7 +767,7 @@ async function collectObsInventory(env = {}, options = {}) {
     return node;
   }
 
-  function sceneNode(sceneName, parentVisible, pathParts, visited, depth) {
+  function sceneNode(sceneName, parentVisible, activePath, pathParts, visited, depth) {
     const currentKey = inventoryKey(sceneName);
     const node = {
       kind: 'scene',
@@ -768,6 +777,7 @@ async function collectObsInventory(env = {}, options = {}) {
       pathText: pathParts.join(' → '),
       directVisible: true,
       effectiveVisible: parentVisible,
+      activeInProgram: activePath === true && parentVisible === true,
       depth,
       children: []
     };
@@ -781,9 +791,9 @@ async function collectObsInventory(env = {}, options = {}) {
       const effectiveVisible = parentVisible && item.enabled === true;
       const nextPath = [...pathParts, itemName];
       if (sourceMap.has(itemKey)) {
-        node.children.push(sourceNode(sourceMap.get(itemKey), item, sceneName, nextPath, parentVisible, depth + 1));
+        node.children.push(sourceNode(sourceMap.get(itemKey), item, sceneName, nextPath, parentVisible, activePath, depth + 1));
       } else if (sceneSet.has(itemKey)) {
-        const child = sceneNode(itemName, effectiveVisible, nextPath, nextVisited, depth + 1);
+        const child = sceneNode(itemName, effectiveVisible, activePath === true && effectiveVisible === true, nextPath, nextVisited, depth + 1);
         child.directVisible = item.enabled === true;
         child.effectiveVisible = effectiveVisible;
         node.children.push(child);
@@ -797,6 +807,7 @@ async function collectObsInventory(env = {}, options = {}) {
           pathText: nextPath.join(' → '),
           directVisible: item.enabled === true,
           effectiveVisible,
+          activeInProgram: activePath === true && effectiveVisible === true,
           status: 'other',
           children: []
         });
@@ -805,8 +816,10 @@ async function collectObsInventory(env = {}, options = {}) {
     return node;
   }
 
-  const sceneTrees = sceneNames.map(sceneName => sceneNode(sceneName, true, [sceneName], new Set(), 0));
-  const currentProgramSceneName = cleanString(publicStatus.currentProgramSceneName || (sceneNames[0] || ''));
+  const sceneTrees = sceneNames.map(sceneName => {
+    const rootActive = inventoryKey(sceneName) === inventoryKey(currentProgramSceneName);
+    return sceneNode(sceneName, true, rootActive, [sceneName], new Set(), 0);
+  });
   const currentSceneTree = sceneTrees.find(tree => inventoryKey(tree.sceneName) === inventoryKey(currentProgramSceneName)) || null;
 
   const inventory = {
