@@ -903,6 +903,7 @@
                   </div>
                   <div class="ovm-source-subline">${esc(shortText(row.url, 95))}</div>
                   <div class="ovm-source-badges">${sourceCardBadges(row)}</div>
+                  ${renderSourceRepairActions(row, { compact: true })}
                 </div>
                 <div class="ovm-source-quick">
                   <span><b>OBS</b>${row.effectiveVisible ? 'sichtbar' : 'aus'}</span>
@@ -1068,6 +1069,7 @@
             </div>
             <span class="ovm-badge is-${statusClass(ev.status)}">${esc(ev.label || ev.status || 'unbekannt')}</span>
           </div>
+          ${renderSourceRepairActions(selected, { compact: true })}
           <div class="ovm-detail-grid">
             <div><span>Anzeigename</span><strong>${esc(selected.name)}</strong></div>
             <div><span>OBS-Quelle</span><strong>${esc(selected.obsSourceName || '—')}</strong></div>
@@ -1386,34 +1388,54 @@
     return statusClass(status);
   }
 
+  function repairContextForNode(node) {
+    if (!node) return null;
+    const sourceRow = node.sourceRow || node;
+    const placeholder = node.placeholder === true || sourceRow.placeholder === true || sourceRow.sourceType === 'placeholder';
+    if (placeholder) return null;
+
+    const obsSourceName = clean(node.obsSourceName || node.name || sourceRow.obsSourceName || sourceRow.name || sourceName(sourceRow.raw || {}));
+    if (!obsSourceName) return null;
+
+    const selectedItem = Array.isArray(sourceRow.selectedItems) && sourceRow.selectedItems.length ? sourceRow.selectedItems[0] : null;
+    const sceneName = clean(node.sceneName || sourceRow.sceneName || selectedItem?.sceneName || sourceRow.selectedScene || '');
+    const sceneItemId = clean(node.sceneItemId ?? sourceRow.sceneItemId ?? selectedItem?.sceneItemId ?? '');
+    const visible = node.effectiveVisible === true || sourceRow.effectiveVisible === true || sourceRow.visible === true;
+    const active = node.activeInProgram !== false && sourceRow.activeInProgram !== false;
+    const displayName = clean(node.displayName || node.name || sourceRow.displayName || sourceTitle(sourceRow) || obsSourceName);
+
+    return {
+      sceneName,
+      sourceName: obsSourceName,
+      inputName: obsSourceName,
+      sceneItemId,
+      visible,
+      active,
+      displayName
+    };
+  }
+
   function canRepairInventoryNode(node) {
-    return !!node && node.kind === 'source' && !node.placeholder && node.obsSourceName;
+    return !!repairContextForNode(node);
   }
 
-  function repairConfirmText(action, node) {
-    const name = node?.displayName || node?.obsSourceName || 'OBS-Quelle';
-    if (action === 'hide') return `Quelle "${name}" wirklich deaktivieren?`;
-    if (action === 'cycle') return `Quelle "${name}" kurz aus- und wieder einschalten?`;
-    if (action === 'refresh-cache') return `Browser-Cache der Quelle "${name}" neu laden?`;
-    return '';
+  function repairButton(action, icon, title, ctx, extraClass = '') {
+    const attrs = `data-scene="${esc(ctx.sceneName)}" data-source="${esc(ctx.sourceName)}" data-input="${esc(ctx.inputName)}" data-scene-item-id="${esc(ctx.sceneItemId)}" data-visible="${ctx.visible ? '1' : '0'}" data-active="${ctx.active ? '1' : '0'}"`;
+    return `<button type="button" class="ovm-icon-action ${esc(extraClass)}" data-ovm-source-action="${esc(action)}" ${attrs} title="${esc(title)}" aria-label="${esc(title)}"><span aria-hidden="true">${icon}</span></button>`;
   }
 
-  function renderSourceRepairActions(node) {
-    if (!canRepairInventoryNode(node)) return '';
-    const visible = node.effectiveVisible === true;
-    const active = node.activeInProgram === true;
-    const sceneName = node.sceneName || '';
-    const sourceName = node.obsSourceName || '';
-    const inputName = node.obsSourceName || '';
-    const sceneItemId = node.sceneItemId || '';
-    const attrs = `data-scene="${esc(sceneName)}" data-source="${esc(sourceName)}" data-input="${esc(inputName)}" data-scene-item-id="${esc(sceneItemId)}" data-visible="${visible ? '1' : '0'}" data-active="${active ? '1' : '0'}"`;
+  function renderSourceRepairActions(node, options = {}) {
+    const ctx = repairContextForNode(node);
+    if (!ctx) return '';
+    const compact = options.compact === true ? ' is-compact' : '';
+    const note = !ctx.active && !compact ? '<span class="ovm-repair-note" title="Diese Quelle liegt nicht im aktiven Program-Pfad. Die Aktion betrifft trotzdem das OBS-SceneItem.">inaktiv</span>' : '';
     return `
-      <div class="ovm-repair-actions" aria-label="OBS-Reparaturaktionen">
-        ${!active ? '<span class="ovm-repair-note">nicht im aktiven Program-Pfad</span>' : ''}
-        <button type="button" class="ovm-mini-action" data-ovm-source-action="refresh" ${attrs}>Neu laden</button>
-        <button type="button" class="ovm-mini-action" data-ovm-source-action="refresh-cache" ${attrs}>Cache neu laden</button>
-        <button type="button" class="ovm-mini-action" data-ovm-source-action="cycle" ${attrs}>Kurz aus/an</button>
-        <button type="button" class="ovm-mini-action ${visible ? 'is-danger' : ''}" data-ovm-source-action="toggle" ${attrs}>${visible ? 'Ausblenden' : 'Einblenden'}</button>
+      <div class="ovm-repair-actions${compact}" aria-label="OBS-Reparaturaktionen für ${esc(ctx.displayName)}">
+        ${note}
+        ${repairButton('refresh', '↻', 'Browserquelle neu laden', ctx)}
+        ${repairButton('refresh-cache', '🧹', 'Browsercache neu laden', ctx)}
+        ${repairButton('toggle', '⏻', ctx.visible ? 'Quelle ausblenden' : 'Quelle einblenden', ctx, ctx.visible ? 'is-danger' : '')}
+        ${repairButton('cycle', '⚡', 'Quelle kurz aus/an', ctx)}
       </div>
     `;
   }
@@ -1467,7 +1489,7 @@
                 <td>${src.sourceType === 'cgn' ? esc(src.busClientId || 'fehlt') : 'nicht erwartet'}</td>
                 <td><span class="ovm-badge is-${esc(inventoryNodeClass(src))}">${esc(inventoryStatusLabel(src))}</span></td>
                 <td>${esc(shortText(src.pathText || src.sceneName || '—', 90))}</td>
-                <td>${renderSourceRepairActions(src)}</td>
+                <td>${renderSourceRepairActions(src, { compact: true })}</td>
               </tr>
             `).join('')}
           </tbody>
