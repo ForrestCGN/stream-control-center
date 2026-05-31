@@ -5,7 +5,7 @@
  *
  * Read-only Fachmodul fuer Overlay-Clients auf Basis des vorhandenen
  * Communication Bus. Dieses Modul baut keine eigene WebSocket-Registry,
- * aendert keine OBS-Quellen und refresht keine Browserquellen.
+ * fuehrt OBS-Reparaturaktionen nur manuell aus und refresht Browserquellen nicht automatisch.
  */
 
 let routes = null;
@@ -21,8 +21,8 @@ try { database = require('../core/database'); } catch (_) { database = null; }
 try { obsSharedModule = require('./obs_shared'); } catch (_) { obsSharedModule = null; }
 
 const MODULE = 'overlay_monitor';
-const VERSION = '0.1.5';
-const STATUS_API_VERSION = '1.0.5';
+const VERSION = '0.1.6';
+const STATUS_API_VERSION = '1.0.6';
 
 const ISSUE_TABLE = 'monitoring_issues';
 const ISSUE_SCHEMA_VERSION = 1;
@@ -72,6 +72,7 @@ const state = {
     inventoryDbErrors: 0,
     inventoryRefreshes: 0,
     inventoryCacheHits: 0,
+    obsRepairActions: 0,
     issuesActivated: 0,
     issuesResolved: 0,
     issuesTouched: 0,
@@ -172,6 +173,18 @@ function registerGet(app, routePath, handler) {
     return;
   }
   app.get(routePath, handler);
+}
+
+function registerPost(app, routePath, handler) {
+  if (routes && typeof routes.registerPost === 'function') {
+    routes.registerPost(app, routePath, handler);
+    return;
+  }
+  app.post(routePath, handler);
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
 }
 
 
@@ -1309,6 +1322,147 @@ function startTimer() {
   if (state.scanTimer && typeof state.scanTimer.unref === 'function') state.scanTimer.unref();
 }
 
+async function pressBrowserSourceButton(shared, inputName, propertyNames) {
+  let lastError = null;
+  const tried = [];
+  for (const propertyName of propertyNames) {
+    if (!propertyName) continue;
+    tried.push(propertyName);
+    try {
+      await shared.call('PressInputPropertiesButton', { inputName, propertyName });
+      return { ok: true, propertyName, tried };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  const error = new Error(lastError && lastError.message ? lastError.message : 'Browser-Refresh konnte nicht ausgefuehrt werden.');
+  error.tried = tried;
+  throw error;
+}
+
+async function performObsSourceRepairAction(env, payload = {}) {
+  const action = cleanString(payload.action || payload.mode || payload.repairAction).toLowerCase();
+  const sceneName = cleanString(payload.sceneName || payload.scene || payload.parentScene);
+  const sourceName = cleanString(payload.sourceName || payload.source || payload.obsSourceName || payload.inputName);
+  const inputName = cleanString(payload.inputName || payload.sourceName || payload.source || payload.obsSourceName);
+  const shared = getSharedObsInstance(env);
+
+  if (!shared || typeof shared.call !== 'function') {
+    const err = new Error('OBS-Shared-Modul ist nicht verfuegbar.');
+    err.code = 'OBS_SHARED_UNAVAILABLE';
+    throw err;
+  }
+
+  if (!action) {
+    const err = new Error('Es fehlt action.');
+    err.code = 'MISSING_ACTION';
+    throw err;
+  }
+
+  const result = {
+    ok: true,
+    action,
+    sceneName,
+    sourceName,
+    inputName,
+    before: null,
+    after: null,
+    propertyName: '',
+    message: ''
+  };
+
+  if (action === 'refresh' || action === 'reload') {
+    if (!inputName) {
+      const err = new Error('Es fehlt inputName/sourceName fuer Browser-Refresh.');
+      err.code = 'MISSING_INPUT';
+      throw err;
+    }
+    const pressed = await pressBrowserSourceButton(shared, inputName, ['refresh']);
+    result.propertyName = pressed.propertyName;
+    result.message = `Browserquelle '${inputName}' wurde neu geladen.`;
+    return result;
+  }
+
+  if (action === 'refresh-cache' || action === 'cache' || action === 'nocache') {
+    if (!inputName) {
+      const err = new Error('Es fehlt inputName/sourceName fuer Browser-Cache-Refresh.');
+      err.code = 'MISSING_INPUT';
+      throw err;
+    }
+    const pressed = await pressBrowserSourceButton(shared, inputName, ['refreshnocache', 'refresh']);
+    result.propertyName = pressed.propertyName;
+    result.message = pressed.propertyName === 'refreshnocache'
+      ? `Browserquelle '${inputName}' wurde mit Cache-Refresh neu geladen.`
+      : `Browserquelle '${inputName}' wurde neu geladen. Cache-Button war nicht verfuegbar.`;
+    return result;
+  }
+
+  if (!sceneName) {
+    const err = new Error('Es fehlt sceneName fuer Sichtbarkeits-Aktion.');
+    err.code = 'MISSING_SCENE';
+    throw err;
+  }
+  if (!sourceName) {
+    const err = new Error('Es fehlt sourceName fuer Sichtbarkeits-Aktion.');
+    err.code = 'MISSING_SOURCE';
+    throw err;
+  }
+  if (typeof shared.findSceneItem !== 'function' || typeof shared.setSceneItemEnabled !== 'function') {
+    const err = new Error('OBS-Sichtbarkeitsfunktionen sind nicht verfuegbar.');
+    err.code = 'OBS_VISIBILITY_UNAVAILABLE';
+    throw err;
+  }
+
+  const item = await shared.findSceneItem(sceneName, sourceName);
+  if (!item) {
+    const err = new Error(`Source '${sourceName}' wurde in Scene '${sceneName}' nicht gefunden.`);
+    err.code = 'SCENE_ITEM_NOT_FOUND';
+    throw err;
+  }
+
+  const before = item.sceneItemEnabled === true;
+  result.before = before;
+  result.sceneItemId = item.sceneItemId;
+  result.sourceName = cleanString(item.sourceName, sourceName);
+
+  if (action === 'show' || action === 'enable') {
+    await shared.setSceneItemEnabled(sceneName, item.sceneItemId, true);
+    result.after = true;
+    result.message = `Quelle '${result.sourceName}' wurde aktiviert.`;
+    return result;
+  }
+
+  if (action === 'hide' || action === 'disable') {
+    await shared.setSceneItemEnabled(sceneName, item.sceneItemId, false);
+    result.after = false;
+    result.message = `Quelle '${result.sourceName}' wurde deaktiviert.`;
+    return result;
+  }
+
+  if (action === 'toggle') {
+    const after = !before;
+    await shared.setSceneItemEnabled(sceneName, item.sceneItemId, after);
+    result.after = after;
+    result.message = `Quelle '${result.sourceName}' wurde umgeschaltet.`;
+    return result;
+  }
+
+  if (action === 'cycle' || action === 'restart' || action === 'hide-show') {
+    const delayMs = Math.max(100, Math.min(3000, asInt(payload.delayMs, 350)));
+    await shared.setSceneItemEnabled(sceneName, item.sceneItemId, false);
+    await sleep(delayMs);
+    await shared.setSceneItemEnabled(sceneName, item.sceneItemId, true);
+    result.after = true;
+    result.delayMs = delayMs;
+    result.message = `Quelle '${result.sourceName}' wurde kurz deaktiviert und wieder aktiviert.`;
+    return result;
+  }
+
+  const err = new Error(`Unbekannte Reparaturaktion '${action}'.`);
+  err.code = 'UNKNOWN_ACTION';
+  throw err;
+}
+
 function init({ app, env } = {}) {
   if (!app) throw new Error(`${MODULE}.init: app fehlt.`);
 
@@ -1323,8 +1477,8 @@ function init({ app, env } = {}) {
         module: MODULE,
         name: 'Overlay Monitor',
         version: VERSION,
-        capabilities: ['overlay.monitor.status', 'overlay.monitor.events'],
-        meta: { readOnly: true, obsTouched: false, overlayTouched: false }
+        capabilities: ['overlay.monitor.status', 'overlay.monitor.events', 'overlay.monitor.obs_repair'],
+        meta: { readOnly: false, obsTouched: true, overlayTouched: false, manualOnly: true }
       });
       busModuleRegistered = true;
     } catch (err) {
@@ -1354,13 +1508,42 @@ function init({ app, env } = {}) {
     res.json(result);
   });
 
+  registerPost(app, '/api/overlay-monitor/obs-source/action', async (req, res) => {
+    try {
+      const payload = req && req.body && typeof req.body === 'object' ? req.body : {};
+      const result = await performObsSourceRepairAction(env || process.env || {}, payload);
+      state.stats.obsRepairActions += 1;
+      pushEvent('info', 'obs_source_repair', result.message || 'OBS-Quelle wurde manuell repariert.', {
+        action: result.action,
+        sceneName: result.sceneName,
+        sourceName: result.sourceName,
+        inputName: result.inputName,
+        propertyName: result.propertyName || '',
+        before: result.before,
+        after: result.after
+      });
+      await getObsInventory(env || process.env || {}, { force: true }).catch(() => null);
+      res.json({ ok: true, module: MODULE, version: VERSION, result });
+    } catch (err) {
+      const status = err && err.code === 'OBS_NOT_CONNECTED' ? 503 : (err && err.code === 'SCENE_ITEM_NOT_FOUND' ? 404 : 400);
+      state.stats.lastError = err && err.message ? err.message : String(err);
+      res.status(status).json({
+        ok: false,
+        module: MODULE,
+        version: VERSION,
+        error: { code: err && err.code ? err.code : 'OBS_SOURCE_ACTION_FAILED', message: err && err.message ? err.message : String(err) }
+      });
+    }
+  });
+
   registerGet(app, '/api/overlay-monitor/events', (req, res) => {
     const limit = Math.max(1, Math.min(100, asInt(req.query.limit, 50)));
     res.json({
       ok: true,
       module: MODULE,
       version: VERSION,
-      readOnly: true,
+      readOnly: false,
+      manualActions: true,
       events: state.events.slice(0, limit),
       stats: { ...state.stats }
     });
@@ -1371,12 +1554,14 @@ function init({ app, env } = {}) {
       ok: true,
       module: MODULE,
       version: VERSION,
-      readOnly: true,
+      readOnly: false,
+      manualActions: true,
       routes: [
         { method: 'GET', path: '/api/overlay-monitor/status', description: 'Read-only Overlay-Monitor Status aus dem Communication Bus.' },
         { method: 'GET', path: '/api/overlay-monitor/events', description: 'Read-only Statuswechsel/Auffaelligkeiten des Overlay-Monitors.' },
         { method: 'GET', path: '/api/overlay-monitor/issues', description: 'Persistierte Monitoring-Issues mit active/resolved Status.' },
         { method: 'GET', path: '/api/overlay-monitor/obs-inventory', description: 'Persistiertes/aktuelles OBS-Overlay-Inventar als rekursive Struktur.' },
+        { method: 'POST', path: '/api/overlay-monitor/obs-source/action', description: 'Manuelle OBS-Reparaturaktion fuer Browserquellen: refresh/cache/show/hide/toggle/cycle.' },
         { method: 'GET', path: '/api/overlay-monitor/routes', description: 'Routenuebersicht.' }
       ]
     });
@@ -1387,7 +1572,7 @@ function init({ app, env } = {}) {
     state.stats.lastError = err && err.message ? err.message : String(err);
   });
   startTimer();
-  console.log(`[${MODULE}] v${VERSION} read-only overlay monitor registered`);
+  console.log(`[${MODULE}] v${VERSION} overlay monitor registered`);
 }
 
 module.exports = {

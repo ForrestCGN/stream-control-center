@@ -14,6 +14,9 @@
     issueLogError: '',
     obsInventory: null,
     obsInventoryError: '',
+    actionNotice: '',
+    actionError: '',
+    actionBusy: false,
     error: '',
     filter: 'all',
     sourceFilter: 'all',
@@ -33,6 +36,7 @@
   const API_OBS_SCENES = '/api/obs/scenes';
   const API_ISSUES = '/api/overlay-monitor/issues?status=all&limit=150';
   const API_OBS_INVENTORY = '/api/overlay-monitor/obs-inventory';
+  const API_OBS_SOURCE_ACTION = '/api/overlay-monitor/obs-source/action';
   const AUTO_REFRESH_MS = 5000;
 
   function esc(value) {
@@ -1382,6 +1386,37 @@
     return statusClass(status);
   }
 
+  function canRepairInventoryNode(node) {
+    return !!node && node.kind === 'source' && !node.placeholder && node.obsSourceName;
+  }
+
+  function repairConfirmText(action, node) {
+    const name = node?.displayName || node?.obsSourceName || 'OBS-Quelle';
+    if (action === 'hide') return `Quelle "${name}" wirklich deaktivieren?`;
+    if (action === 'cycle') return `Quelle "${name}" kurz aus- und wieder einschalten?`;
+    if (action === 'refresh-cache') return `Browser-Cache der Quelle "${name}" neu laden?`;
+    return '';
+  }
+
+  function renderSourceRepairActions(node) {
+    if (!canRepairInventoryNode(node)) return '';
+    const visible = node.effectiveVisible === true;
+    const sceneName = node.sceneName || '';
+    const sourceName = node.obsSourceName || '';
+    const inputName = node.obsSourceName || '';
+    const attrs = `data-scene="${esc(sceneName)}" data-source="${esc(sourceName)}" data-input="${esc(inputName)}" data-visible="${visible ? '1' : '0'}"`;
+    return `
+      <div class="ovm-repair-actions" aria-label="OBS-Reparaturaktionen">
+        <button type="button" class="ovm-mini-action" data-ovm-source-action="refresh" ${attrs}>Neu laden</button>
+        <button type="button" class="ovm-mini-action" data-ovm-source-action="refresh-cache" ${attrs}>Cache</button>
+        <button type="button" class="ovm-mini-action" data-ovm-source-action="cycle" ${attrs}>Aus/An</button>
+        ${visible
+          ? `<button type="button" class="ovm-mini-action is-danger" data-ovm-source-action="hide" ${attrs}>Aus</button>`
+          : `<button type="button" class="ovm-mini-action" data-ovm-source-action="show" ${attrs}>An</button>`}
+      </div>
+    `;
+  }
+
   function renderInventoryNode(node, depth = 0) {
     if (!node) return '';
     const children = Array.isArray(node.children) ? node.children : [];
@@ -1398,6 +1433,7 @@
             <strong>${esc(title)}</strong>
             <span>${esc(meta)}</span>
             ${url}
+            ${!isScene ? renderSourceRepairActions(node) : ''}
           </div>
           <div class="ovm-inventory-tags">
             ${node.kind === 'source' ? `<span class="ovm-mini-badge ${node.effectiveVisible ? 'is-ok' : 'is-muted'}">${node.effectiveVisible ? 'sichtbar' : 'aus'}</span>` : ''}
@@ -1420,7 +1456,7 @@
     return `
       <div class="ovm-table-wrap compact">
         <table class="ovm-table">
-          <thead><tr><th>Overlay</th><th>OBS-Quelle</th><th>Typ</th><th>Bus</th><th>Status</th><th>Pfad</th></tr></thead>
+          <thead><tr><th>Overlay</th><th>OBS-Quelle</th><th>Typ</th><th>Bus</th><th>Status</th><th>Pfad</th><th>Aktionen</th></tr></thead>
           <tbody>
             ${sources.map(src => `
               <tr>
@@ -1430,6 +1466,7 @@
                 <td>${src.sourceType === 'cgn' ? esc(src.busClientId || 'fehlt') : 'nicht erwartet'}</td>
                 <td><span class="ovm-badge is-${esc(inventoryNodeClass(src))}">${esc(inventoryStatusLabel(src))}</span></td>
                 <td>${esc(shortText(src.pathText || src.sceneName || '—', 90))}</td>
+                <td>${renderSourceRepairActions(src)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -1508,6 +1545,45 @@
     return renderOverview();
   }
 
+  async function runSourceAction(button) {
+    if (!button || state.actionBusy) return;
+    const action = button.dataset.ovmSourceAction || '';
+    const sceneName = button.dataset.scene || '';
+    const sourceName = button.dataset.source || '';
+    const inputName = button.dataset.input || sourceName;
+    const visible = button.dataset.visible === '1';
+    const label = sourceName || inputName || 'OBS-Quelle';
+
+    if ((visible && ['hide', 'cycle', 'refresh-cache'].includes(action)) || action === 'hide') {
+      const question = action === 'hide'
+        ? `Quelle "${label}" wirklich deaktivieren?`
+        : action === 'cycle'
+          ? `Quelle "${label}" kurz aus- und wieder einschalten?`
+          : `Browser-Cache der Quelle "${label}" neu laden?`;
+      if (!window.confirm(question)) return;
+    }
+
+    state.actionBusy = true;
+    state.actionNotice = '';
+    state.actionError = '';
+    render();
+    try {
+      const result = await api(API_OBS_SOURCE_ACTION, {
+        method: 'POST',
+        body: JSON.stringify({ action, sceneName, sourceName, inputName })
+      });
+      const message = result?.result?.message || 'OBS-Aktion ausgeführt.';
+      state.actionNotice = message;
+      await loadAll(true);
+      state.actionNotice = message;
+    } catch (err) {
+      state.actionError = err?.message || String(err || 'OBS-Aktion fehlgeschlagen.');
+      render();
+    } finally {
+      state.actionBusy = false;
+    }
+  }
+
   function render() {
     const root = panel();
     if (!root) return;
@@ -1534,7 +1610,7 @@
           <div>
             <span class="ovm-kicker">Control / Overlays</span>
             <h2>Overlay-Monitor</h2>
-            <p>Read-only Quellenstatus: OBS-Sichtbarkeit, Browserquelle, Bus-Anmeldung und echter Heartbeat werden getrennt bewertet. Reparaturaktionen folgen im nächsten Step.</p>
+            <p>Quellenstatus: OBS-Sichtbarkeit, Browserquelle, Bus-Anmeldung und echter Heartbeat werden getrennt bewertet. Reparaturaktionen sind manuell verfügbar.</p>
           </div>
           <div class="ovm-head-meta">
             <span>Stand: ${esc(fmtDateTime(state.lastLoadedAt || state.data?.fetchedAt))}</span>
@@ -1543,6 +1619,8 @@
             ${state.sceneError ? `<span class="ovm-warn-text">Szenen-Hinweis: ${esc(state.sceneError)}</span>` : ''}
           </div>
         </div>
+        ${state.actionNotice ? `<div class="ovm-notice is-ok">${esc(state.actionNotice)}</div>` : ''}
+        ${state.actionError ? `<div class="ovm-notice is-warn">${esc(state.actionError)}</div>` : ''}
         ${renderSummaryCards()}
         ${renderTabs()}
         ${renderTabContent()}
@@ -1589,6 +1667,9 @@
     });
     root.querySelector('[data-ovm-refresh]')?.addEventListener('click', () => loadAll(true));
     root.querySelector('[data-ovm-inventory-refresh]')?.addEventListener('click', () => loadAll(true));
+    root.querySelectorAll('[data-ovm-source-action]').forEach(btn => {
+      btn.addEventListener('click', () => runSourceAction(btn));
+    });
     root.querySelector('[data-ovm-auto]')?.addEventListener('change', event => {
       state.autoRefresh = !!event.target.checked;
       setupTimer();
@@ -1603,6 +1684,8 @@
     state.sceneError = '';
     state.issueLogError = '';
     state.obsInventoryError = '';
+    if (!force) state.actionNotice = '';
+    state.actionError = '';
     render();
     try {
       const [monitorResult, obsStatusResult, obsSourcesResult, issueLogResult, inventoryResult] = await Promise.allSettled([
