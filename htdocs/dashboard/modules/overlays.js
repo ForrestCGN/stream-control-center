@@ -86,7 +86,7 @@
 
   function statusClass(status) {
     const s = String(status || 'unknown').toLowerCase();
-    if (s === 'online' || s === 'ok' || s === 'connected' || s === 'ready') return 'ok';
+    if (s === 'online' || s === 'ok' || s === 'connected' || s === 'ready' || s === 'external') return 'ok';
     if (s === 'waiting' || s === 'hidden' || s === 'standby' || s === 'inactive') return 'muted';
     if (s === 'registered' || s === 'no_heartbeat' || s === 'no-heartbeat' || s === 'stale' || s === 'warning' || s === 'warn' || s === 'needs_attention') return 'warn';
     if (s === 'offline' || s === 'dead' || s === 'error' || s === 'bad' || s === 'disconnected') return 'bad';
@@ -220,6 +220,35 @@
     return clean(src.url || src.local_file || src.file || src.path || src.inputSettings?.url || src.inputSettings?.local_file || '');
   }
 
+  function sourceHost(url) {
+    const value = clean(url);
+    if (!value) return '';
+    try {
+      const parsed = new URL(value, window.location.origin);
+      return clean(parsed.hostname).toLowerCase();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function isLocalOverlayUrl(url, src = {}) {
+    const value = clean(url);
+    if (!value) return false;
+    if (src && (src.is_local_file === true || src.local_file)) return true;
+    if (value.startsWith('/overlays/') || value.startsWith('overlays/')) return true;
+    const host = sourceHost(value);
+    if (!host) return false;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  }
+
+  function isExternalBrowserSource(src) {
+    const url = sourceUrl(src);
+    if (!url) return false;
+    if (isLocalOverlayUrl(url, src)) return false;
+    const host = sourceHost(url);
+    return !!host;
+  }
+
   function sourceName(src) {
     return clean(src.inputName || src.sourceName || src.name || src.id || 'OBS Browser Source');
   }
@@ -319,9 +348,15 @@
     const client = row.client;
     const busStatus = String(client?.status || '').toLowerCase();
     const connected = client?.connected === true;
+    const external = row.external === true;
 
     if (!obsOk) return { status: 'warning', label: 'OBS offline/unbekannt', detail: 'OBS liefert keine sichere Laufzeitbewertung.' };
     if (!row.inSelectedScene) return { status: 'warning', label: 'Nicht in Szene', detail: 'Browserquelle wurde nicht in der ausgewählten Szene oder ihren Unter-Szenen gefunden.' };
+
+    if (external) {
+      if (visible) return { status: 'external', label: 'Extern sichtbar', detail: 'Externe Browserquelle: kein CGN-EventBus-Heartbeat erwartet.' };
+      return { status: 'waiting', label: 'Extern ausgeblendet', detail: 'Externe Browserquelle ist effektiv ausgeblendet. Kein CGN-EventBus-Heartbeat erwartet.' };
+    }
 
     if (!visible) {
       if (connected && (client.hasHeartbeat === true || client.lastHeartbeatAt)) return { status: 'waiting', label: 'Bereit / ausgeblendet', detail: 'Quelle ist effektiv nicht sichtbar, der Bus-Client sendet aber echte Heartbeats.' };
@@ -360,13 +395,17 @@
         if (sourceMap.has(itemKey)) {
           const src = sourceMap.get(itemKey);
           const pathText = nextPath.join(' → ');
-          const match = findClientForSource(src, pathText);
+          const external = isExternalBrowserSource(src);
+          const match = external ? { client: null, score: 0 } : findClientForSource(src, pathText);
           const row = {
             raw: src,
             name: sourceName(src),
             kind: clean(src.inputKind || src.unversionedInputKind || src.kind || 'browser_source'),
             url: sourceUrl(src),
             local: src.is_local_file === true || !!src.local_file,
+            external,
+            busExpected: !external,
+            sourceRole: external ? 'external_browser_source' : 'cgn_overlay_source',
             width: src.width || '—',
             height: src.height || '—',
             fps: src.fps || '—',
@@ -415,13 +454,17 @@
     }
 
     return state.obsSources.map(src => {
-      const match = findClientForSource(src, '');
+      const external = isExternalBrowserSource(src);
+      const match = external ? { client: null, score: 0 } : findClientForSource(src, '');
       const row = {
         raw: src,
         name: sourceName(src),
         kind: clean(src.inputKind || src.unversionedInputKind || src.kind || 'browser_source'),
         url: sourceUrl(src),
         local: src.is_local_file === true || !!src.local_file,
+        external,
+        busExpected: !external,
+        sourceRole: external ? 'external_browser_source' : 'cgn_overlay_source',
         width: src.width || '—',
         height: src.height || '—',
         fps: src.fps || '—',
@@ -454,6 +497,7 @@
     if (state.sourceFilter === 'problem') return rows.filter(row => ['warning', 'error'].includes(row.evaluation.status));
     if (state.sourceFilter === 'ok') return rows.filter(row => row.evaluation.status === 'ok');
     if (state.sourceFilter === 'waiting') return rows.filter(row => row.evaluation.status === 'waiting');
+    if (state.sourceFilter === 'external') return rows.filter(row => row.external === true);
     return rows;
   }
 
@@ -466,7 +510,8 @@
       ok: rows.filter(row => row.evaluation.status === 'ok').length,
       waiting: rows.filter(row => row.evaluation.status === 'waiting').length,
       warning: rows.filter(row => row.evaluation.status === 'warning').length,
-      error: rows.filter(row => row.evaluation.status === 'error').length
+      error: rows.filter(row => row.evaluation.status === 'error').length,
+      external: rows.filter(row => row.external === true).length
     };
   }
 
@@ -492,6 +537,7 @@
       ['Quellen', counts.total, ''],
       ['Sichtbar', counts.visible, counts.visible ? 'ok' : 'muted'],
       ['Wartend', counts.waiting + counts.hidden, 'muted'],
+      ['Extern', counts.external, counts.external ? 'ok' : 'muted'],
       ['Warnung/Fehler', counts.warning + counts.error, counts.error ? 'bad' : (counts.warning ? 'warn' : 'ok')],
       ['OK Heartbeat', s.withHeartbeat ?? 0, (s.withHeartbeat ?? 0) ? 'ok' : 'warn'],
       ['Ohne Heartbeat', s.registered ?? s.withoutHeartbeat ?? 0, (s.registered ?? s.withoutHeartbeat ?? 0) ? 'warn' : 'ok'],
@@ -590,6 +636,7 @@
       ['hidden', 'Ausgeblendet'],
       ['ok', 'OK'],
       ['waiting', 'Wartet'],
+      ['external', 'Extern'],
       ['problem', 'Warnung/Fehler']
     ];
     return `
@@ -623,7 +670,7 @@
           <div class="ovm-status-box is-${counts.error ? 'bad' : (counts.warning ? 'warn' : 'ok')}">
             <span>Overlay-Quellen</span>
             <strong>${esc(counts.total)} in Szene</strong>
-            <small>${esc(counts.visible)} effektiv sichtbar, ${esc(counts.hidden)} ausgeblendet · ${esc(selectedSceneName() || 'keine Szene')}, ${esc(counts.warning + counts.error)} mit Warnung/Fehler.</small>
+            <small>${esc(counts.visible)} effektiv sichtbar, ${esc(counts.hidden)} ausgeblendet, ${esc(counts.external)} extern · ${esc(selectedSceneName() || 'keine Szene')}, ${esc(counts.warning + counts.error)} mit Warnung/Fehler.</small>
           </div>
           <div class="ovm-status-box is-${obsOk ? 'ok' : 'warn'}">
             <span>OBS-Verbindung</span>
@@ -642,7 +689,8 @@
         <h3>Wichtig für Event-Overlays</h3>
         <div class="ovm-next-grid">
           <div><strong>Ausgeblendet ist nicht kaputt</strong><span>Sound, VIP, Alerts oder Deathcounter können warten, bis ein Event kommt.</span></div>
-          <div><strong>Sichtbar + kein Heartbeat</strong><span>Wichtigster Warnfall: Quelle ist in OBS aktiv, aber der Client sendet kein echtes Lebenszeichen.</span></div>
+          <div><strong>Externe Quellen</strong><span>SoundAlerts, StreamStickers oder ViewerAttack erwarten keinen CGN-Bus-Heartbeat.</span></div>
+          <div><strong>Sichtbar + kein Heartbeat</strong><span>Wichtigster Warnfall: lokale CGN-Quelle ist in OBS aktiv, aber der Client sendet kein echtes Lebenszeichen.</span></div>
           <div><strong>Reparatur folgt später</strong><span>Cache neu laden und Quelle aus/ein kommt im nächsten Step als manuelle Aktion.</span></div>
         </div>
       </section>
@@ -676,17 +724,18 @@
                 <span>Sichtbar: ${row.visible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
                 <span>Direkt sichtbar: ${row.directVisible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
                 <span>Effektiv sichtbar: ${row.effectiveVisible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
-                <span>Bus: <strong>${esc(client ? (client.status || 'verbunden') : 'nicht erkannt')}</strong></span>
-                <span>Heartbeat: <strong>${esc(client ? heartbeatLabel(client) : '—')}</strong></span>
+                <span>Quelle: <strong>${row.external ? 'extern' : 'CGN'}</strong></span>
+                <span>Bus: <strong>${esc(row.external ? 'nicht erwartet' : (client ? (client.status || 'verbunden') : 'nicht erkannt'))}</strong></span>
+                <span>Heartbeat: <strong>${esc(row.external ? 'nicht erwartet' : (client ? heartbeatLabel(client) : '—'))}</strong></span>
               </div>
               <div class="ovm-source-detail">
                 <span>${esc(ev.detail)}</span>
                 <span>Pfad: ${esc(row.pathText || row.selectedScene || '—')}</span>
                 <span>Container: ${esc(row.containerPath || '—')}</span>
                 <span>Aktive Bewertung: ${row.effectiveVisible ? 'effektiv sichtbar' : 'effektiv ausgeblendet'}</span><span>Alle direkten Szenen: ${esc(scenes)}</span>
-                <span>Bus-Client: ${client ? esc(client.id) : '<span class="ovm-muted">—</span>'}</span>
-                <span>Letzter Hello: ${client ? esc(fmtTime(client.lastHelloAt)) : '<span class="ovm-muted">—</span>'}</span>
-                <span>Letzter Heartbeat: ${client && client.lastHeartbeatAt ? esc(fmtTime(client.lastHeartbeatAt)) : '<span class="ovm-muted">kein echter Heartbeat</span>'}</span>
+                <span>Bus-Client: ${row.external ? '<span class="ovm-muted">externe Quelle</span>' : (client ? esc(client.id) : '<span class="ovm-muted">—</span>')}</span>
+                <span>Letzter Hello: ${row.external ? '<span class="ovm-muted">nicht erwartet</span>' : (client ? esc(fmtTime(client.lastHelloAt)) : '<span class="ovm-muted">—</span>')}</span>
+                <span>Letzter Heartbeat: ${row.external ? '<span class="ovm-muted">nicht erwartet</span>' : (client && client.lastHeartbeatAt ? esc(fmtTime(client.lastHeartbeatAt)) : '<span class="ovm-muted">kein echter Heartbeat</span>')}</span>
               </div>
             </article>
           `;
