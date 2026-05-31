@@ -1296,7 +1296,18 @@
 
   function inventorySummary() {
     const inv = inventoryData();
-    return inv && inv.summary && typeof inv.summary === 'object' ? inv.summary : {};
+    const base = inv && inv.summary && typeof inv.summary === 'object' ? { ...inv.summary } : {};
+    const rows = Array.isArray(inv?.sources) ? inv.sources : [];
+    if (rows.length) {
+      base.sources = rows.length;
+      base.visible = rows.filter(row => row.effectiveVisible).length;
+      base.cgn = rows.filter(row => row.sourceType === 'cgn').length;
+      base.external = rows.filter(row => row.sourceType === 'external').length;
+      base.placeholder = rows.filter(row => row.sourceType === 'placeholder').length;
+      base.withBus = rows.filter(row => !!row.busClientId).length;
+      base.warnings = rows.filter(row => ['warning', 'error'].includes(inventoryEffectiveStatus(row))).length;
+    }
+    return base;
   }
 
   function inventorySceneTree() {
@@ -1308,8 +1319,28 @@
     return found || inv.currentSceneTree || trees[0] || null;
   }
 
+  function inventoryEffectiveStatus(node) {
+    if (!node) return 'unknown';
+    const raw = clean(node.status || node.sourceType || node.kind || 'unknown');
+    if (node.kind === 'scene') return 'scene';
+    if (node.placeholder || node.sourceType === 'placeholder') return 'placeholder';
+    if (node.external || node.sourceType === 'external') return 'external';
+    if (node.sourceType === 'cgn') {
+      const hasBus = !!(node.busClientId || node.busClientName || node.module);
+      const hasHeartbeat = !!(node.hasHeartbeat || node.lastHeartbeatAt);
+      const busStatus = clean(node.busStatus).toLowerCase();
+      if (node.activeInProgram === false || node.effectiveVisible !== true) return 'standby';
+      if (!hasBus) return 'warning';
+      if (!hasHeartbeat) return 'warning';
+      if (busStatus === 'offline' || busStatus === 'dead') return 'error';
+      if (busStatus === 'stale') return 'warning';
+      return 'ok';
+    }
+    return raw;
+  }
+
   function inventoryStatusLabel(node) {
-    const status = clean(node?.status || node?.sourceType || node?.kind || 'unknown');
+    const status = inventoryEffectiveStatus(node);
     if (status === 'ok') return 'OK';
     if (status === 'standby') return node?.activeInProgram === false ? 'Inaktiv' : 'Wartet';
     if (status === 'external') return 'Extern';
@@ -1343,11 +1374,12 @@
   function inventoryNodeClass(node) {
     if (!node) return 'muted';
     if (node.kind === 'scene') return node.effectiveVisible ? 'ok' : 'muted';
-    if (node.status === 'ok' || node.status === 'external') return 'ok';
-    if (node.status === 'standby' || node.status === 'placeholder' || node.status === 'other') return 'muted';
-    if (node.status === 'warning') return 'warn';
-    if (node.status === 'error') return 'bad';
-    return statusClass(node.status);
+    const status = inventoryEffectiveStatus(node);
+    if (status === 'ok' || status === 'external') return 'ok';
+    if (status === 'standby' || status === 'placeholder' || status === 'other') return 'muted';
+    if (status === 'warning') return 'warn';
+    if (status === 'error') return 'bad';
+    return statusClass(status);
   }
 
   function renderInventoryNode(node, depth = 0) {

@@ -475,7 +475,7 @@ function loadInventoryCache() {
     data.fromCache = true;
     data.cacheUpdatedAt = cleanString(row.updated_at || data.updatedAt);
     state.stats.inventoryCacheHits += 1;
-    return data;
+    return normalizeInventoryStatuses(data);
   } catch (err) {
     state.stats.inventoryDbErrors += 1;
     state.stats.lastError = err && err.message ? err.message : String(err);
@@ -543,6 +543,7 @@ function inventoryDisplayName(value, fallback = 'Overlay') {
   const raw = cleanString(value);
   const normalized = inventoryKey(raw);
   const known = [
+    ['soundalerts', 'SoundAlerts'], ['streamstickers', 'StreamStickers'], ['viewerattack', 'ViewerAttack'],
     ['vipsound', 'VIP Sound Overlay'], ['vipoverlay', 'VIP Sound Overlay'], ['vip', 'VIP Sound Overlay'],
     ['alertsv2', 'Alerts V2'], ['alertoverlayv2', 'Alerts V2'], ['alert', 'Alerts V2'],
     ['soundsystemoverlay', 'Sound-System Overlay'], ['soundoverlay', 'Sound-System Overlay'], ['soundsystem', 'Sound-System Overlay'],
@@ -634,7 +635,8 @@ function evaluateInventoryNode(node) {
   if (node.activeInProgram !== true) return 'standby';
   if (node.effectiveVisible !== true) return 'standby';
 
-  if (!node.busClient) return 'warning';
+  const hasBusClient = !!node.busClient || !!node.busClientId;
+  if (!hasBusClient) return 'warning';
   if (!node.hasHeartbeat) return 'warning';
 
   const status = cleanString(node.busStatus).toLowerCase();
@@ -644,6 +646,28 @@ function evaluateInventoryNode(node) {
   // Wenn ein echter Heartbeat vorliegt, ist der Inventarstatus OK. Das verhindert
   // falsche Warnungen bei Clients, deren letzter Hello-/Statuswert noch anders lautet.
   return 'ok';
+}
+
+function normalizeInventoryStatuses(inventory) {
+  if (!inventory || typeof inventory !== 'object') return inventory;
+  const seen = new Set();
+  const normalizeNode = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.kind === 'source') {
+      node.status = evaluateInventoryNode(node);
+      seen.add(node);
+    }
+    if (Array.isArray(node.children)) node.children.forEach(normalizeNode);
+  };
+  if (Array.isArray(inventory.sceneTrees)) inventory.sceneTrees.forEach(normalizeNode);
+  if (inventory.currentSceneTree) normalizeNode(inventory.currentSceneTree);
+  if (Array.isArray(inventory.sources)) {
+    inventory.sources.forEach(node => {
+      if (!seen.has(node) && node && typeof node === 'object') node.status = evaluateInventoryNode(node);
+    });
+  }
+  inventory.summary = buildInventorySummary(inventory);
+  return inventory;
 }
 
 function buildInventorySummary(inventory) {
@@ -849,24 +873,25 @@ async function collectObsInventory(env = {}, options = {}) {
 
 async function getObsInventory(env = {}, options = {}) {
   if (options.force !== true && state.obsInventory && options.cacheOnly !== true) {
-    return { ...safeJson(state.obsInventory), fromMemory: true };
+    return normalizeInventoryStatuses({ ...safeJson(state.obsInventory), fromMemory: true });
   }
   if (options.cacheOnly === true) {
-    return state.obsInventory || loadInventoryCache() || { ok: false, reason: 'inventory_cache_empty', sources: [], scenes: [], sceneTrees: [], summary: {} };
+    return normalizeInventoryStatuses(state.obsInventory || loadInventoryCache()) || { ok: false, reason: 'inventory_cache_empty', sources: [], scenes: [], sceneTrees: [], summary: {} };
   }
   if (state.obsInventoryRefreshing) {
-    return state.obsInventory || loadInventoryCache() || { ok: false, reason: 'inventory_refresh_running', sources: [], scenes: [], sceneTrees: [], summary: {} };
+    return normalizeInventoryStatuses(state.obsInventory || loadInventoryCache()) || { ok: false, reason: 'inventory_refresh_running', sources: [], scenes: [], sceneTrees: [], summary: {} };
   }
 
   state.obsInventoryRefreshing = true;
   try {
     const inventory = await collectObsInventory(env, options);
+    normalizeInventoryStatuses(inventory);
     state.obsInventory = inventory;
     state.stats.inventoryRefreshes += 1;
     saveInventoryCache(inventory);
     return inventory;
   } catch (err) {
-    const cached = state.obsInventory || loadInventoryCache();
+    const cached = normalizeInventoryStatuses(state.obsInventory || loadInventoryCache());
     if (cached) {
       cached.ok = true;
       cached.fromCache = true;
