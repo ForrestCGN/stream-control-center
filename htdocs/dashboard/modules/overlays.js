@@ -33,9 +33,33 @@
     return document.getElementById('overlaysModule');
   }
 
-  function api(path, options) {
-    if (window.CGN?.api) return window.CGN.api(path, options);
-    return fetch(path, options).then(r => r.json());
+  async function api(path, options = {}) {
+    const res = await fetch(path, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options
+    });
+    const contentType = res.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+      ? await res.json().catch(() => ({}))
+      : await res.text().catch(() => '');
+
+    if (!res.ok) {
+      const detail = data && typeof data === 'object'
+        ? (data.message || data.error?.message || data.error?.code || data.error || '')
+        : data;
+      throw new Error(detail || `HTTP ${res.status}`);
+    }
+
+    return data;
+  }
+
+  function apiOk(data) {
+    return !(data && typeof data === 'object' && data.ok === false);
+  }
+
+  function apiMessage(data, fallback = '') {
+    if (!data || typeof data !== 'object') return fallback;
+    return clean(data.message || data.error?.message || data.error?.code || data.error || data.reason || fallback);
   }
 
   function clean(value) {
