@@ -697,6 +697,36 @@
     `;
   }
 
+  function sourceTitle(row) {
+    if (!row) return 'Overlay-Quelle';
+    return clean(row.name || row.inputName || 'Overlay-Quelle');
+  }
+
+  function sourceStatusText(row) {
+    if (!row || !row.evaluation) return 'Unbekannt';
+    if (row.external) return row.effectiveVisible ? 'Extern sichtbar' : 'Extern ausgeblendet';
+    if (row.evaluation.status === 'ok') return row.effectiveVisible ? 'Sichtbar + Heartbeat' : 'Bereit / ausgeblendet';
+    if (row.evaluation.status === 'waiting') return 'Wartet';
+    if (row.evaluation.status === 'warning') return 'Warnung';
+    if (row.evaluation.status === 'error') return 'Fehler';
+    return row.evaluation.label || row.evaluation.status || 'Unbekannt';
+  }
+
+  function sourceCardBadges(row) {
+    const badges = [];
+    badges.push(`<span class="ovm-mini-badge ${row.effectiveVisible ? 'is-ok' : 'is-muted'}">${row.effectiveVisible ? 'sichtbar' : 'aus'}</span>`);
+    if (row.external) {
+      badges.push('<span class="ovm-mini-badge is-muted">extern</span>');
+    } else if (row.client) {
+      const hbOk = row.client.hasHeartbeat === true || !!row.client.lastHeartbeatAt;
+      badges.push(`<span class="ovm-mini-badge ${hbOk ? 'is-ok' : 'is-warn'}">${hbOk ? 'Heartbeat' : 'kein HB'}</span>`);
+    } else {
+      badges.push('<span class="ovm-mini-badge is-warn">kein Bus</span>');
+    }
+    if (row.nested) badges.push('<span class="ovm-mini-badge is-muted">verschachtelt</span>');
+    return badges.join('');
+  }
+
   function renderSourceCards() {
     const rows = filteredSourceRows();
     if (!rows.length) {
@@ -705,38 +735,44 @@
     return `
       ${renderSceneSelector()}
       ${renderSourceToolbar()}
-      <div class="ovm-source-grid">
+      <div class="ovm-source-list">
         ${rows.map(row => {
-          const ev = row.evaluation;
+          const ev = row.evaluation || {};
           const client = row.client;
+          const status = sourceStatusText(row);
           const scenes = row.scenes.length ? row.scenes.map(item => `${item.sceneName}${item.enabled ? ' sichtbar' : ' aus'}`).join(' · ') : 'in keiner gelesenen Szene';
+          const hbText = row.external ? 'nicht erwartet' : (client ? heartbeatLabel(client) : 'kein Bus-Client');
           return `
-            <article class="ovm-source-card is-${statusClass(ev.status)}">
-              <div class="ovm-source-head">
-                <div>
-                  <strong>${esc(row.name)}</strong>
-                  <small>${esc(shortText(row.url, 120))}</small>
+            <article class="ovm-source-row is-${statusClass(ev.status)}">
+              <div class="ovm-source-row-main">
+                <div class="ovm-source-title-block">
+                  <div class="ovm-source-title-line">
+                    <strong>${esc(sourceTitle(row))}</strong>
+                    <span class="ovm-badge is-${statusClass(ev.status)}">${esc(status)}</span>
+                  </div>
+                  <div class="ovm-source-subline">${esc(shortText(row.url, 95))}</div>
+                  <div class="ovm-source-badges">${sourceCardBadges(row)}</div>
                 </div>
-                <span class="ovm-badge is-${statusClass(ev.status)}">${esc(ev.label)}</span>
+                <div class="ovm-source-quick">
+                  <span><b>OBS</b>${row.effectiveVisible ? 'sichtbar' : 'aus'}</span>
+                  <span><b>Bus</b>${row.external ? 'extern' : (client ? (client.status || 'online') : 'fehlt')}</span>
+                  <span><b>HB</b>${row.external ? '—' : (client && client.lastHeartbeatAt ? fmtAge(client.heartbeatAgeSeconds ?? client.ageSeconds) : 'fehlt')}</span>
+                </div>
               </div>
-              <div class="ovm-source-facts">
-                <span>OBS: <strong>gefunden</strong></span>
-                <span>Sichtbar: ${row.visible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
-                <span>Direkt sichtbar: ${row.directVisible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
-                <span>Effektiv sichtbar: ${row.effectiveVisible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
-                <span>Quelle: <strong>${row.external ? 'extern' : 'CGN'}</strong></span>
-                <span>Bus: <strong>${esc(row.external ? 'nicht erwartet' : (client ? (client.status || 'verbunden') : 'nicht erkannt'))}</strong></span>
-                <span>Heartbeat: <strong>${esc(row.external ? 'nicht erwartet' : (client ? heartbeatLabel(client) : '—'))}</strong></span>
-              </div>
-              <div class="ovm-source-detail">
-                <span>${esc(ev.detail)}</span>
-                <span>Pfad: ${esc(row.pathText || row.selectedScene || '—')}</span>
-                <span>Container: ${esc(row.containerPath || '—')}</span>
-                <span>Aktive Bewertung: ${row.effectiveVisible ? 'effektiv sichtbar' : 'effektiv ausgeblendet'}</span><span>Alle direkten Szenen: ${esc(scenes)}</span>
-                <span>Bus-Client: ${row.external ? '<span class="ovm-muted">externe Quelle</span>' : (client ? esc(client.id) : '<span class="ovm-muted">—</span>')}</span>
-                <span>Letzter Hello: ${row.external ? '<span class="ovm-muted">nicht erwartet</span>' : (client ? esc(fmtTime(client.lastHelloAt)) : '<span class="ovm-muted">—</span>')}</span>
-                <span>Letzter Heartbeat: ${row.external ? '<span class="ovm-muted">nicht erwartet</span>' : (client && client.lastHeartbeatAt ? esc(fmtTime(client.lastHeartbeatAt)) : '<span class="ovm-muted">kein echter Heartbeat</span>')}</span>
-              </div>
+              <details class="ovm-source-more">
+                <summary>Details anzeigen</summary>
+                <div class="ovm-source-detail compact">
+                  <span>${esc(ev.detail || '')}</span>
+                  <span>Pfad: ${esc(row.pathText || row.selectedScene || '—')}</span>
+                  <span>Container: ${esc(row.containerPath || '—')}</span>
+                  <span>Direkt sichtbar: ${row.directVisible ? 'ja' : 'nein'} · Effektiv sichtbar: ${row.effectiveVisible ? 'ja' : 'nein'}</span>
+                  <span>Alle direkten Szenen: ${esc(scenes)}</span>
+                  <span>Bus-Client: ${row.external ? 'externe Quelle' : (client ? esc(client.id) : '—')}</span>
+                  <span>Heartbeat: ${esc(hbText)}</span>
+                  <span>Letzter Hello: ${row.external ? 'nicht erwartet' : (client ? esc(fmtTime(client.lastHelloAt)) : '—')}</span>
+                  <span>Letzter Heartbeat: ${row.external ? 'nicht erwartet' : (client && client.lastHeartbeatAt ? esc(fmtTime(client.lastHeartbeatAt)) : 'kein echter Heartbeat')}</span>
+                </div>
+              </details>
             </article>
           `;
         }).join('')}
