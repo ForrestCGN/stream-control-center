@@ -1,159 +1,61 @@
-﻿# NEXT_STEPS
+# NEXT STEPS – STEP278
 
-Stand: 2026-05-30
+## Nicht sofort umbauen
 
-## Sofort erledigt / aktueller Abschluss
+Vor der Umsetzung erst Ist-Zustand prüfen:
 
-Der Project-State-/Dokumentations-Cleanup ist abgeschlossen.
+- `backend/server.js`
+- `backend/modules/alert_system.js`
+- `backend/modules/sound_system.js`
+- `backend/modules/clip_shoutout.js`
+- `backend/modules/twitch.js`
+- `backend/modules/twitch_presence.js`
+- `htdocs/overlays/_overlay-alerts-v2.html`
+- `htdocs/overlays/sound_system_overlay.html`
+- `config/alert_system.json`
+- `config/sound_system.json`
+- `config/clip_system.json`
 
-```text
-STEP553–STEP588 Project-State / Dokumentations-Cleanup
-STEP589 GENERAL_PROJECT_PROMPT aktualisiert
-STEP590 zentrale Statusdateien aktualisiert
-```
+Falls vorhanden zusätzlich:
 
-Sauber verifiziert:
+- `backend/modules/helpers/helper_state.js`
+- `backend/modules/helpers/helper_routes.js`
+- `backend/modules/helpers/helper_core.js`
+- `backend/modules/helpers/helper_config.js`
 
-```text
-Unexpected STEP/NEXT_STEPS_STEP root files: 0
-Archive groups checked: 6
-Archive groups OK: 6
-Warnings: 0
-Errors: 0
-```
+## STEP278 Analyseziele
 
-## Nächster empfohlener STEP
+1. Welche Module senden welche Events?
+2. Welche Module empfangen welche Events?
+3. Wie werden Overlays per WebSocket registriert?
+4. Wie wird Sound-System-Start/Ende an andere Module gemeldet?
+5. Wie wird ein Clip-/Sound-Bundle abgeschlossen?
+6. Wie erkennt Alert-System, dass Sound wirklich gestartet ist?
+7. Was passiert bei OBS-Reload / Browser-Reconnect?
+8. Was passiert bei Offline/Live-Wechsel?
+9. Was passiert bei `active_bundle_lock`?
+10. Warum existiert `Unknown named parameter 'trigger'`?
+11. Warum ist `registeredCommand: false`, aber `directChatCommandBypassInstalled: true`?
 
-```text
-STEP591 – Routes and Module Docs Verification Scan
-```
+## Zielarchitektur
 
-Ziel:
+Ein einheitlicher Kommunikationsvertrag für Queue- und Overlay-Systeme:
 
-```text
-- echte Backend-Routen aus den Modulen erfassen
-- Dashboard-/Overlay-/Streamer.bot-relevante APIs markieren
-- vorhandene docs/modules/*.md gegen echte Routen prüfen
-- fehlende oder veraltete Routen-Doku melden
-- kompakte Reports erzeugen, damit Forrest nur COPY_THIS_RESULT kopieren muss
-```
+- accepted
+- queued
+- started
+- running
+- finished
+- failed
+- skipped
+- blocked
 
-Wichtig:
-Routen nicht aus Erinnerung dokumentieren. Echte Dateien prüfen.
+Jedes Modul sollte im Status klar zeigen:
 
-## Danach offen
-
-Nach STEP591 je nach Ergebnis:
-
-```text
-STEP592 – Routes Documentation Consolidation
-```
-
-Mögliche Ziel-Dateien:
-
-```text
-docs/backend/ROUTES.md
-docs/modules/<betroffene-module>.md
-docs/current/CURRENT_SYSTEM_STATUS.md
-project-state/FILES.md
-project-state/NEXT_STEPS.md
-```
-
-## Weiterhin offene Tests aus STEP527
-
-Channelpoints nach Deploy/Backend-Neustart prüfen:
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/_status"
-$s.modules | Select-Object name,loaded,version,lastError | Format-Table -AutoSize
-```
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/status"
-$s | Select-Object ok,module,moduleVersion,enabled,lastError
-```
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/twitch/manage/status"
-$s | Select-Object ok,module,moduleVersion,enabled,lastError
-```
-
-Live-/Funktionsprüfung:
-
-```text
-- neuen Reward anlegen
-- bestätigen: Twitch Reward wird erstellt, aber inaktiv
-- Twitch Aktiv/Inaktiv-Schalter in Übersicht testen
-- bestehenden aktiven Reward bearbeiten und prüfen: Aktivstatus bleibt erhalten
-- bestehenden inaktiven Reward bearbeiten und prüfen: bleibt inaktiv
-```
-
-## Sound / Media offen
-
-```text
-- /api/sound/status prüfen: defaults.outputTarget=device
-- Media-Dateinamen-Fix nur mit Real-STEP524 verwenden
-- alte Mojibake-Dateinamen nur gezielt reparieren, nicht pauschal löschen/verschieben
-```
-
-## Späterer Block: Overlay Health / Refresh Control
-
-Noch nicht umgesetzt.
-
-Vor Umsetzung echte aktuelle Dateien prüfen:
-
-```text
-backend/modules/obs.js
-backend/modules/scene_control.js
-backend/modules/overlay_data.js
-backend/modules/sound_system.js
-htdocs/ws-client.js
-htdocs/overlays/*.html
-Dashboard Control-Center Modulstruktur
-```
-
-Ziel bleibt:
-
-```text
-- Overlay-Heartbeat per WebSocket/Event an Backend
-- Dashboard-Anzeige pro Overlay: online/offline/letzter Kontakt
-- Refresh einzelner Overlays
-- Refresh vordefinierter Gruppen, z. B. all, sound, alerts, chat
-- OBS-Browserquelle über bestehende OBS-Verbindung neu laden
-- optional Quelle kurz aus/an als härtere Reparatur
-- optional GET-Endpunkte für Streamer.bot
-```
-
-Keine Parallelstruktur bauen. Bestehende OBS-/WebSocket-/Dashboard-Systeme wiederverwenden.
-
-<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_START -->
-## Nach STEP612 - naechste sinnvolle Arbeiten
-
-Stand: 2026-05-30
-
-Die Route-/Modul-Doku-Batch-Reihe ist abgeschlossen.
-
-Empfohlene naechste Schritte:
-
-1. Einen frischen SystemScan laufen lassen, um den neuen Dokumentationsstand zu validieren.
-2. Danach gezielt die naechste offene Projektlinie waehlen, z. B. Modul-Doku-Detailpflege, Dashboard-/Admin-Konfiguration oder konkrete Feature-Arbeit.
-3. Bei weiterem Doku-Cleanup wieder mit Scan -> Triage -> Plan -> Dryrun -> Apply -> Verification arbeiten.
-4. Keine produktive Route oder Funktionalitaet aus Doku-Scan-Treffern ableiten, ohne echten Code-Kontext zu pruefen.
-<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_END -->
-
-<!-- STEP615_CLEANUP_FREEZE_START -->
-## Nach STEP615 - Fokus wieder auf produktive Arbeit
-
-Stand: 2026-05-30
-
-Cleanup ist eingefroren. Empfohlene naechste Schritte sind produktive Projektlinien:
-
-1. Channelpoints / Rewards / Dashboard weiter stabilisieren.
-2. Sound-System / Routing gezielt testen.
-3. Dashboard Admin-/Config-Bereiche weiter ausbauen.
-4. Alert-System oder Shoutout/Clip-System gezielt fortsetzen.
-5. Neues Feature mit echtem Bedarf starten.
-
-Keine weiteren Mini-Cleanup-Steps, solange kein konkretes Problem vorliegt.
-<!-- STEP615_CLEANUP_FREEZE_END -->
-
+- aktueller Zustand
+- letzter Event
+- letzter Fehler
+- nächste Prüfung
+- Grund für Warten
+- aktive Queue-ID / Bundle-ID
+- beteiligtes Overlay / Sound-System

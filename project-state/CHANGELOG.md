@@ -1,124 +1,31 @@
-﻿# CHANGELOG
+# CHANGELOG – STEP278 Vorbereitung
 
-## 2026-05-30 – STEP590 zentrale Statusdateien aktualisiert
+Stand: 2026-05-31 08:14 UTC
 
-### Geändert
+## Geändert
 
-- `project-state/CURRENT_STATUS.md` auf STEP588/STEP589-Stand nachgezogen.
-- `project-state/FILES.md` auf aktive Konsolidierungsdateien, Archive und nächste Prüfbereiche aktualisiert.
-- `project-state/NEXT_STEPS.md` auf STEP591 Routes/Module-Docs-Verifikation ausgerichtet.
-- `project-state/TODO.md` aktualisiert und Doku-Cleanup als erledigt markiert.
-- `docs/current/CURRENT_SYSTEM_STATUS.md` auf aktuellen Doku-/Cleanup-Stand ergänzt.
-- `docs/modules/README.md` auf aktuelle Modul-/Konsolidierungsdoku erweitert.
+- `clip_system.json` für heutigen Test angepasst:
+  - `clipShoutout.officialShoutout.enabled = true`
+  - `clipShoutout.officialShoutout.liveGateEnabled = false`
 
-### Hintergrund
+## Nicht geändert
 
-Der Project-State-/Dokumentations-Cleanup STEP553–STEP588 wurde abgeschlossen und STEP589 hat den General Project Prompt aktualisiert.
+- Keine Script-Dateien geändert.
+- Kein Overlay-Design geändert.
+- Keine Datenbank geändert.
+- Keine Queue gelöscht.
+- Keine Funktionalität entfernt.
 
-### Nächster sinnvoller Schritt
+## Grund
 
-```text
-STEP591 – Routes and Module Docs Verification Scan
-```
+Die Official-Queue blieb auf `waiting_stream_live_offline`, obwohl Shoutouts während des Streams beobachtet werden sollen. Für den heutigen Test wird die interne Live-Gate-Sperre deaktiviert. Twitch selbst kann weiterhin ablehnen, wenn ein offizieller Shoutout nicht erlaubt ist.
 
-## 2026-05-30 – STEP589 General Project Prompt aktualisiert
+## Beobachtung
 
-### Geändert
+Nach der Änderung zeigte der Status:
 
-- `project-state/GENERAL_PROJECT_PROMPT.md` auf neuen Arbeitsstand aktualisiert.
-- Regeln ergänzt für:
-  - GitHub/dev als Single Source of Truth
-  - fehlende Dateien konkret anfordern
-  - keine Patches / keine Teil-Datei-Workarounds
-  - EventBus / Communication Bus
-  - SQLite + spätere MariaDB-/MySQL-Portabilität
-  - kurze PowerShell-/Routen-Ausgaben
-  - `COPY_THIS_RESULT`-Muster
-
-## 2026-05-30 – STEP553–STEP588 Project-State-/Doku-Cleanup abgeschlossen
-
-### Ergebnis
-
-- `project-state` Root bereinigt.
-- Alte Arbeits-/Run-Dokumente archiviert, nicht gelöscht.
-- Relevante Archivgruppen geprüft.
-- Fachliche Inhalte in `docs/system-inspection/` konsolidiert.
-- Abschluss in `docs/system-inspection/PROJECT_STATE_CLEANUP_RUN_HISTORY.md` dokumentiert.
-
-### Aktive Konsolidierungen
-
-```text
-docs/system-inspection/MODULE_AND_META_RULES_CONSOLIDATION.md
-docs/system-inspection/COMMUNICATION_BUS_CONTRACT_CONSOLIDATION.md
-docs/system-inspection/SHOUTOUT_SYSTEM_CONSOLIDATION.md
-docs/system-inspection/CHANNELPOINTS_BUILD_CONSOLIDATION.md
-docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
-docs/system-inspection/PROJECT_STATE_CLEANUP_RUN_HISTORY.md
-```
-
-## 2026-05-27 – Channelpoints STEP527 dokumentiert
-
-### Geändert
-
-- Channelpoints-Bedienkonzept vereinfacht.
-- Editor nutzt kein normales lokales „Aktiv“-Häkchen mehr.
-- Speichern legt lokal an/ändert lokal und erstellt/aktualisiert Twitch.
-- Neue Twitch Rewards werden standardmäßig inaktiv erstellt.
-- Übersichtsschalter steuert nur Twitch sichtbar/einlösbar.
-- Doku zu Sound-System-Routing und Media-Dateinamen ergänzt.
-
-### Behoben / dokumentiert
-
-- `Cannot GET /api/channelpoints/status` wurde auf nicht geladenes `channelpoints.js` zurückgeführt.
-- Serverstart-Fehler dokumentiert:
-
-```text
-[module] FAILED: channelpoints.js
-deleteRewardFromTwitch is not defined
-```
-
-- STEP526/STEP527 als relevante Korrekturlinie dokumentiert.
-
-### Zurückgezogen
-
-```text
-STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0
-STEP525_CHANNELPOINTS_SAVE_ACTIVE_SYNCS_TWITCH_v0.9.11
-STEP525_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_FLOW_v0.9.11
-```
-
-### Aktuell gültig
-
-```text
-STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
-```
-
-## 2026-05-27 – Planung STEP528 Overlay Health/Refresh
-
-- Nach STEP527 keine Code-Änderung mehr umgesetzt.
-- Geplant: neues Overlay-Health-/Refresh-Control-System.
-- Ziel: unterscheiden, ob Overlay-JS, OBS-Browserquelle oder OBS-WebSocket/OBS selbst hängt.
-- Start erst nach Prüfung der echten OBS-/Overlay-/WebSocket-Dateien.
-
-<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_START -->
-## 2026-05-30 - STEP612 Route-/Modul-Doku-Konsolidierung abgeschlossen
-
-- STEP591 bis STEP611D abgeschlossen.
-- Backend-Routen gescannt, triagiert und zentral dokumentiert.
-- Fehlende Route-Erwaehnungen und False-Positive-Kontext dokumentiert.
-- Modul-Doku-Batches fuer Current Status, Channelpoints, Sound Routing, Dashboard Commands, Communication Bus und Shoutout System konsolidiert.
-- Final Verification durch STEP611D erfolgreich: Completion OK True, 0 Warnings, 0 Errors.
-- STEP611/STEP611B Mapping-Probleme wurden ueber STEP611A/STEP611C triagiert und in STEP611D korrekt verifiziert.
-<!-- STEP612_ROUTE_MODULE_DOCS_COMPLETION_STATUS_END -->
-
-<!-- STEP615_CLEANUP_FREEZE_START -->
-## 2026-05-30 - STEP615 Cleanup Freeze & Return to Productive Work
-
-- Cleanup-/Doku-Konsolidierungsrunde eingefroren.
-- STEP591 bis STEP614 als abgeschlossene Doku-/Routen-/Status-Arbeitslinie eingeordnet.
-- Frischer SystemScan als Referenz uebernommen.
-- Cleanup-Kandidaten werden nur als Kandidaten behandelt, nicht als automatische Loeschliste.
-- Weitere Cleanup-Arbeit nur noch bei Bedarf und nur als bewusst geplanter Grossbatch.
-- Fokus wird wieder auf produktive Projektarbeit gelegt.
-<!-- STEP615_CLEANUP_FREEZE_END -->
-
+- `officialQueue.liveGate.enabled = false`
+- `officialQueue.pending = 10`
+- `officialShoutout.globalCooldownMs = 120000`
+- `officialShoutout.targetCooldownMs = 3600000`
+- `state.officialShoutout.lastBusEvent.action = shoutout.official.waiting_cooldown`

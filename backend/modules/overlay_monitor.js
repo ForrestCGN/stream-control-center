@@ -17,8 +17,8 @@ try { helperConfig = require('./helpers/helper_config'); } catch (_) { helperCon
 try { communicationBusModule = require('./communication_bus'); } catch (_) { communicationBusModule = null; }
 
 const MODULE = 'overlay_monitor';
-const VERSION = '0.1.0';
-const STATUS_API_VERSION = '1.0.0';
+const VERSION = '0.1.1';
+const STATUS_API_VERSION = '1.0.1';
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -183,10 +183,11 @@ function deriveOverlayStatus(client, currentMs) {
 function isOverlayClient(client) {
   if (!client) return false;
   const type = cleanString(client.type).toLowerCase();
-  if (type === cleanString(config.overlayClientType, 'overlay').toLowerCase()) return true;
-  if (type.includes('overlay')) return true;
   const id = cleanString(client.id).toLowerCase();
-  return id.startsWith('overlay:') || id.startsWith('overlay_');
+  const mode = cleanString(client.mode).toLowerCase();
+  const configuredType = cleanString(config.overlayClientType, 'overlay').toLowerCase();
+
+  return type === configuredType || type === 'overlay' || id.startsWith('overlay:') || mode === 'overlay';
 }
 
 function normalizeOverlayClient(client, currentMs) {

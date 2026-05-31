@@ -5,8 +5,8 @@ const database = require('../core/database');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.1.5';
-const MODULE_BUILD = 'safe-edit-param-fix';
+const MODULE_VERSION = '0.1.6';
+const MODULE_BUILD = 'channel-guard';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -91,6 +91,7 @@ const state = {
 function nowIso() { return core.nowIso(); }
 function cleanText(value) { return String(value ?? '').replace(/[\r\n]+/g, ' ').trim(); }
 function cleanLogin(value) { return String(value || '').trim().replace(/^@/, '').toLowerCase(); }
+function cleanChannel(value) { return cleanLogin(String(value || '').trim().replace(/^#/, '')); }
 function cleanTrigger(value) { return String(value || '').trim().replace(/^[!./]+/, '').toLowerCase(); }
 function int(value, fallback = 0) { const n = Number.parseInt(value, 10); return Number.isFinite(n) ? n : fallback; }
 
@@ -605,9 +606,23 @@ async function processMessage(input = {}, options = {}) {
 
 async function handleChatMessage(parsed, source = {}) {
   if (!parsed || String(parsed.command || '').toUpperCase() !== 'PRIVMSG') return { ok: true, ignored: true, reason: 'not_privmsg' };
+
+  const expectedChannel = cleanChannel(source.channel || process.env.TWITCH_BOT_CHANNEL || '');
+  const messageChannel = cleanChannel(parsed.params?.[0] || parsed.channel || '');
+
+  if (expectedChannel && !messageChannel) {
+    state.ignored += 1;
+    return { ok: true, ignored: true, reason: 'channel_missing', expectedChannel };
+  }
+
+  if (expectedChannel && messageChannel && messageChannel !== expectedChannel) {
+    state.ignored += 1;
+    return { ok: true, ignored: true, reason: 'channel_mismatch', channel: messageChannel, expectedChannel };
+  }
+
   const rawMessage = cleanText(parsed.params?.[1] || parsed.params?.[parsed.params.length - 1] || '');
   const user = userFromParsed(parsed, {});
-  return processMessage({ rawMessage, parsed, user }, { source: source.source || 'twitch_presence', channel: source.channel || '' });
+  return processMessage({ rawMessage, parsed, user }, { source: source.source || 'twitch_presence', channel: expectedChannel || source.channel || '' });
 }
 
 function buildRoutes() {
@@ -650,6 +665,7 @@ function statusPayload() {
     schemaTouchOnStatus: false,
     removedHeavyFields: ['commands', 'moduleCatalog', 'recent'],
     mediaPlaybackBridge: { enabled: true, target: '/api/sound/play', legacyTargetRewritten: '/api/sound/play-media' },
+    commandChannelGuard: { enabled: true, expectedChannel: cleanChannel(process.env.TWITCH_BOT_CHANNEL || ''), mismatchReason: 'channel_mismatch' },
     updatedAt: nowIso()
   };
 }
@@ -746,5 +762,5 @@ module.exports.init = function init(ctx) {
   });
   app.get(`${API_PREFIX}/logs`, handleLogs);
   app.get(`${API_PREFIX}/history`, handleLogs);
-  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, safe modal editor)`);
+  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, channel guard)`);
 };

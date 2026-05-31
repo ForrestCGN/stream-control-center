@@ -55,6 +55,14 @@ window.CGN = {
       overlayLabel: '',
       reload() { return window.OBSModule?.loadAll?.(); }
     },
+    overlays: {
+      title: 'Overlay-Monitor',
+      panelId: 'overlaysModule',
+      group: 'control',
+      overlayLink: '',
+      overlayLabel: '',
+      reload() { return window.OverlaysModule?.loadAll?.(true); }
+    },
     sound_system: {
       title: 'Sound-System',
       panelId: 'soundModule',
@@ -168,7 +176,7 @@ window.CGN = {
     alerts: { label: 'Alerts V2', icon: '⚡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
     twitch_events: { label: 'Twitch Events', icon: '🧪', enabled: true, description: 'Twitch-EventSub-Events lokal simulieren und Alert-Mapping prüfen.' },
     obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
-    overlays: { label: 'Overlays', icon: '🖼', enabled: false, description: 'Overlay-Verwaltung vorbereitet.' },
+    overlays: { label: 'Overlays', icon: '🖼', enabled: true, description: 'Overlay-Status, Heartbeats und Monitor-Readiness anzeigen.' },
     stream_control: { label: 'Stream-Steuerung', icon: '📺', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },
     vip: { label: 'VIP-System', icon: '💎', enabled: true, description: 'VIP-/Mod-Sounds, DB-Texte, Rollen, Daily-Usage und Events.' },
     hug: { label: 'Hug-System', icon: '🤗', enabled: true, description: 'Hug/Rehug-Statistiken, Texte, Typen und Diagnose.' },
@@ -198,7 +206,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
+  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'overlays', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
