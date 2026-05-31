@@ -248,9 +248,16 @@
   function isExternalBrowserSource(src) {
     const url = sourceUrl(src);
     if (!url) return false;
+    if (isPlaceholderBrowserSource(src)) return false;
     if (isLocalOverlayUrl(url, src)) return false;
     const host = sourceHost(url);
     return !!host;
+  }
+
+  function isPlaceholderBrowserSource(src) {
+    const url = sourceUrl(src).toLowerCase();
+    if (!url) return true;
+    return url === 'about:blank' || url === 'about:srcdoc' || url === 'blank';
   }
 
   function sourceName(src) {
@@ -277,6 +284,16 @@
       ['challenge', 'Challenge Status'],
       ['firework', 'Firework Overlay'],
       ['fireworks', 'Firework Overlay'],
+      ['rahmen', 'Rahmen Overlay'],
+      ['frameoverlay', 'Rahmen Overlay'],
+      ['birthday', 'Birthday Overlay'],
+      ['geburtstag', 'Birthday Overlay'],
+      ['eastereggwinner', 'Easteregg Winner Overlay'],
+      ['easteregg', 'Easteregg Winner Overlay'],
+      ['clipshoutout', 'Clip-Shoutout Platzhalter'],
+      ['clipplayer', 'Clip-Player Overlay'],
+      ['mediaplayer', 'Media-Player Overlay'],
+      ['megashoutout', 'Mega-Shoutout Overlay'],
       ['eventbustest', 'EventBus Test Overlay']
     ];
     for (const [needle, label] of known) {
@@ -357,6 +374,22 @@
     const clientName = key(client.name);
     let score = 0;
 
+    const aliases = [
+      ['rahmen', 'rahmen'],
+      ['rahmen', 'frameoverlay'],
+      ['rahmen', 'frame'],
+      ['overlaybirthday', 'birthday'],
+      ['overlaybirthday', 'geburtstag'],
+      ['birthday', 'birthday'],
+      ['birthday', 'geburtstag'],
+      ['eastereggwinner', 'easteregg'],
+      ['eastereggwinner', 'winner'],
+      ['clipshoutout', 'clip']
+    ];
+    for (const [sourceToken, clientToken] of aliases) {
+      if (hay.includes(sourceToken) && (clientId.includes(clientToken) || module.includes(clientToken) || clientName.includes(clientToken))) score += 80;
+    }
+
     if (clientId && hay.includes(clientId)) score += 100;
     if (clientId && clientId.includes(key(base))) score += 60;
     if (module && hay.includes(module)) score += 50;
@@ -373,6 +406,15 @@
       ['deathcounter', 'death'],
       ['challenge', 'challenge'],
       ['firework', 'firework'],
+      ['rahmen', 'rahmen'],
+      ['rahmen', 'frame'],
+      ['frame', 'rahmen'],
+      ['frame', 'frame'],
+      ['birthday', 'birthday'],
+      ['birthday', 'geburtstag'],
+      ['geburtstag', 'birthday'],
+      ['clip', 'clip'],
+      ['easteregg', 'easteregg'],
       ['start', 'start'],
       ['end', 'end']
     ];
@@ -384,8 +426,37 @@
     return score;
   }
 
+  function forcedClientTokenForSource(src, pathText = '') {
+    const srcName = sourceName(src);
+    const url = sourceUrl(src);
+    const base = basename(url);
+    const hay = [srcName, url, base, pathText].map(key).filter(Boolean).join('|');
+
+    if (hay.includes('rahmen') || hay.includes('frameoverlay')) {
+      return ['frameoverlay', 'rahmenoverlay'];
+    }
+
+    if (hay.includes('overlaybirthday') || hay.includes('birthday') || hay.includes('geburtstag')) {
+      return ['birthdayoverlay', 'birthday', 'geburtstag'];
+    }
+
+    return [];
+  }
+
+  function clientMatchesForcedToken(client, token) {
+    const clientText = [client?.id, client?.module, client?.name].map(key).filter(Boolean).join('|');
+    return token && clientText.includes(token);
+  }
+
   function findClientForSource(src, pathText = '') {
     const clients = busClients();
+    const forcedTokens = forcedClientTokenForSource(src, pathText);
+
+    for (const token of forcedTokens) {
+      const forced = clients.find(client => clientMatchesForcedToken(client, token));
+      if (forced) return { client: forced, score: 250 };
+    }
+
     let best = null;
     let bestScore = 0;
     for (const client of clients) {
@@ -405,9 +476,15 @@
     const busStatus = String(client?.status || '').toLowerCase();
     const connected = client?.connected === true;
     const external = row.external === true;
+    const placeholder = row.placeholder === true;
 
     if (!obsOk) return { status: 'warning', label: 'OBS offline/unbekannt', detail: 'OBS liefert keine sichere Laufzeitbewertung.' };
     if (!row.inSelectedScene) return { status: 'warning', label: 'Nicht in Szene', detail: 'Browserquelle wurde nicht in der ausgewählten Szene oder ihren Unter-Szenen gefunden.' };
+
+    if (placeholder) {
+      if (visible) return { status: 'waiting', label: 'Platzhalter sichtbar', detail: 'OBS-Browserquelle ist about:blank/leer. Kein CGN-EventBus-Heartbeat erwartet.' };
+      return { status: 'waiting', label: 'Platzhalter', detail: 'Leere OBS-Browserquelle / Platzhalter. Kein CGN-EventBus-Heartbeat erwartet.' };
+    }
 
     if (external) {
       if (visible) return { status: 'external', label: 'Extern sichtbar', detail: 'Externe Browserquelle: kein CGN-EventBus-Heartbeat erwartet.' };
@@ -451,8 +528,9 @@
         if (sourceMap.has(itemKey)) {
           const src = sourceMap.get(itemKey);
           const pathText = nextPath.join(' → ');
+          const placeholder = isPlaceholderBrowserSource(src);
           const external = isExternalBrowserSource(src);
-          const match = external ? { client: null, score: 0 } : findClientForSource(src, pathText);
+          const match = (external || placeholder) ? { client: null, score: 0 } : findClientForSource(src, pathText);
           const row = {
             raw: src,
             name: sourceName(src),
@@ -460,8 +538,9 @@
             url: sourceUrl(src),
             local: src.is_local_file === true || !!src.local_file,
             external,
-            busExpected: !external,
-            sourceRole: external ? 'external_browser_source' : 'cgn_overlay_source',
+            placeholder,
+            busExpected: !(external || placeholder),
+            sourceRole: placeholder ? 'placeholder_browser_source' : (external ? 'external_browser_source' : 'cgn_overlay_source'),
             width: src.width || '—',
             height: src.height || '—',
             fps: src.fps || '—',
@@ -510,8 +589,9 @@
     }
 
     return state.obsSources.map(src => {
+      const placeholder = isPlaceholderBrowserSource(src);
       const external = isExternalBrowserSource(src);
-      const match = external ? { client: null, score: 0 } : findClientForSource(src, '');
+      const match = (external || placeholder) ? { client: null, score: 0 } : findClientForSource(src, '');
       const row = {
         raw: src,
         name: sourceName(src),
@@ -519,8 +599,9 @@
         url: sourceUrl(src),
         local: src.is_local_file === true || !!src.local_file,
         external,
-        busExpected: !external,
-        sourceRole: external ? 'external_browser_source' : 'cgn_overlay_source',
+        placeholder,
+        busExpected: !(external || placeholder),
+        sourceRole: placeholder ? 'placeholder_browser_source' : (external ? 'external_browser_source' : 'cgn_overlay_source'),
         width: src.width || '—',
         height: src.height || '—',
         fps: src.fps || '—',
@@ -763,6 +844,7 @@
 
   function sourceStatusText(row) {
     if (!row || !row.evaluation) return 'Unbekannt';
+    if (row.placeholder) return row.effectiveVisible ? 'Platzhalter sichtbar' : 'Platzhalter';
     if (row.external) return row.effectiveVisible ? 'Extern sichtbar' : 'Extern ausgeblendet';
     if (row.evaluation.status === 'ok') return row.effectiveVisible ? 'Sichtbar + Heartbeat' : 'Bereit / ausgeblendet';
     if (row.evaluation.status === 'waiting') return 'Wartet';
@@ -774,7 +856,9 @@
   function sourceCardBadges(row) {
     const badges = [];
     badges.push(`<span class="ovm-mini-badge ${row.effectiveVisible ? 'is-ok' : 'is-muted'}">${row.effectiveVisible ? 'sichtbar' : 'aus'}</span>`);
-    if (row.external) {
+    if (row.placeholder) {
+      badges.push('<span class="ovm-mini-badge is-muted">Platzhalter</span>');
+    } else if (row.external) {
       badges.push('<span class="ovm-mini-badge is-muted">extern</span>');
     } else if (row.client) {
       const hbOk = row.client.hasHeartbeat === true || !!row.client.lastHeartbeatAt;
@@ -800,7 +884,7 @@
           const client = row.client;
           const status = sourceStatusText(row);
           const scenes = row.scenes.length ? row.scenes.map(item => `${item.sceneName}${item.enabled ? ' sichtbar' : ' aus'}`).join(' · ') : 'in keiner gelesenen Szene';
-          const hbText = row.external ? 'nicht erwartet' : (client ? heartbeatLabel(client) : 'kein Bus-Client');
+          const hbText = (row.external || row.placeholder) ? 'nicht erwartet' : (client ? heartbeatLabel(client) : 'kein Bus-Client');
           return `
             <article class="ovm-source-row is-${statusClass(ev.status)}">
               <div class="ovm-source-row-main">
@@ -814,8 +898,8 @@
                 </div>
                 <div class="ovm-source-quick">
                   <span><b>OBS</b>${row.effectiveVisible ? 'sichtbar' : 'aus'}</span>
-                  <span><b>Bus</b>${row.external ? 'extern' : (client ? (client.status || 'online') : 'fehlt')}</span>
-                  <span><b>HB</b>${row.external ? '—' : (client && client.lastHeartbeatAt ? fmtAge(client.heartbeatAgeSeconds ?? client.ageSeconds) : 'fehlt')}</span>
+                  <span><b>Bus</b>${row.placeholder ? 'Platzhalter' : (row.external ? 'extern' : (client ? (client.status || 'online') : 'fehlt'))}</span>
+                  <span><b>HB</b>${(row.external || row.placeholder) ? '—' : (client && client.lastHeartbeatAt ? fmtAge(client.heartbeatAgeSeconds ?? client.ageSeconds) : 'fehlt')}</span>
                 </div>
               </div>
               <details class="ovm-source-more">
@@ -826,10 +910,10 @@
                   <span>Container: ${esc(row.containerPath || '—')}</span>
                   <span>Direkt sichtbar: ${row.directVisible ? 'ja' : 'nein'} · Effektiv sichtbar: ${row.effectiveVisible ? 'ja' : 'nein'}</span>
                   <span>Alle direkten Szenen: ${esc(scenes)}</span>
-                  <span>Bus-Client: ${row.external ? 'externe Quelle' : (client ? esc(client.id) : '—')}</span>
+                  <span>Bus-Client: ${row.placeholder ? 'Platzhalter / keiner erwartet' : (row.external ? 'externe Quelle' : (client ? esc(client.id) : '—'))}</span>
                   <span>Heartbeat: ${esc(hbText)}</span>
-                  <span>Letzter Hello: ${row.external ? 'nicht erwartet' : (client ? esc(fmtTime(client.lastHelloAt)) : '—')}</span>
-                  <span>Letzter Heartbeat: ${row.external ? 'nicht erwartet' : (client && client.lastHeartbeatAt ? esc(fmtTime(client.lastHeartbeatAt)) : 'kein echter Heartbeat')}</span>
+                  <span>Letzter Hello: ${(row.external || row.placeholder) ? 'nicht erwartet' : (client ? esc(fmtTime(client.lastHelloAt)) : '—')}</span>
+                  <span>Letzter Heartbeat: ${(row.external || row.placeholder) ? 'nicht erwartet' : (client && client.lastHeartbeatAt ? esc(fmtTime(client.lastHeartbeatAt)) : 'kein echter Heartbeat')}</span>
                 </div>
               </details>
             </article>
@@ -848,7 +932,7 @@
       const client = row.client || null;
       if (client && client.id) usedClientIds.add(client.id);
       const entry = {
-        type: row.external ? 'external' : 'cgn',
+        type: row.placeholder ? 'placeholder' : (row.external ? 'external' : 'cgn'),
         name: overlayFriendlyName(row),
         obsSourceName: row.name,
         fileName: overlayFileNameFromUrl(row.url),
@@ -859,6 +943,7 @@
         directVisible: row.directVisible === true,
         effectiveVisible: row.effectiveVisible === true,
         external: row.external === true,
+        placeholder: row.placeholder === true,
         busExpected: row.busExpected === true,
         busClientId: client ? clean(client.id) : '',
         busClientName: client ? clean(client.name) : '',
