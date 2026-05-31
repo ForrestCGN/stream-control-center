@@ -1401,18 +1401,19 @@
   function renderSourceRepairActions(node) {
     if (!canRepairInventoryNode(node)) return '';
     const visible = node.effectiveVisible === true;
+    const active = node.activeInProgram === true;
     const sceneName = node.sceneName || '';
     const sourceName = node.obsSourceName || '';
     const inputName = node.obsSourceName || '';
-    const attrs = `data-scene="${esc(sceneName)}" data-source="${esc(sourceName)}" data-input="${esc(inputName)}" data-visible="${visible ? '1' : '0'}"`;
+    const sceneItemId = node.sceneItemId || '';
+    const attrs = `data-scene="${esc(sceneName)}" data-source="${esc(sourceName)}" data-input="${esc(inputName)}" data-scene-item-id="${esc(sceneItemId)}" data-visible="${visible ? '1' : '0'}" data-active="${active ? '1' : '0'}"`;
     return `
       <div class="ovm-repair-actions" aria-label="OBS-Reparaturaktionen">
+        ${!active ? '<span class="ovm-repair-note">nicht im aktiven Program-Pfad</span>' : ''}
         <button type="button" class="ovm-mini-action" data-ovm-source-action="refresh" ${attrs}>Neu laden</button>
-        <button type="button" class="ovm-mini-action" data-ovm-source-action="refresh-cache" ${attrs}>Cache</button>
-        <button type="button" class="ovm-mini-action" data-ovm-source-action="cycle" ${attrs}>Aus/An</button>
-        ${visible
-          ? `<button type="button" class="ovm-mini-action is-danger" data-ovm-source-action="hide" ${attrs}>Aus</button>`
-          : `<button type="button" class="ovm-mini-action" data-ovm-source-action="show" ${attrs}>An</button>`}
+        <button type="button" class="ovm-mini-action" data-ovm-source-action="refresh-cache" ${attrs}>Cache neu laden</button>
+        <button type="button" class="ovm-mini-action" data-ovm-source-action="cycle" ${attrs}>Kurz aus/an</button>
+        <button type="button" class="ovm-mini-action ${visible ? 'is-danger' : ''}" data-ovm-source-action="toggle" ${attrs}>${visible ? 'Ausblenden' : 'Einblenden'}</button>
       </div>
     `;
   }
@@ -1551,15 +1552,20 @@
     const sceneName = button.dataset.scene || '';
     const sourceName = button.dataset.source || '';
     const inputName = button.dataset.input || sourceName;
+    const sceneItemId = button.dataset.sceneItemId || '';
     const visible = button.dataset.visible === '1';
+    const active = button.dataset.active === '1';
     const label = sourceName || inputName || 'OBS-Quelle';
 
-    if ((visible && ['hide', 'cycle', 'refresh-cache'].includes(action)) || action === 'hide') {
-      const question = action === 'hide'
-        ? `Quelle "${label}" wirklich deaktivieren?`
+    if ((visible && ['toggle', 'cycle', 'refresh-cache'].includes(action)) || action === 'hide') {
+      const locationHint = active ? '' : ' Die Quelle liegt nicht im aktiven Program-Pfad, die Aktion betrifft trotzdem das OBS-SceneItem.';
+      const question = action === 'toggle'
+        ? `Quelle "${label}" wirklich ausblenden?${locationHint}`
         : action === 'cycle'
-          ? `Quelle "${label}" kurz aus- und wieder einschalten?`
-          : `Browser-Cache der Quelle "${label}" neu laden?`;
+          ? `Quelle "${label}" kurz aus- und wieder einschalten?${locationHint}`
+          : action === 'hide'
+            ? `Quelle "${label}" wirklich deaktivieren?${locationHint}`
+            : `Browser-Cache der Quelle "${label}" neu laden?${locationHint}`;
       if (!window.confirm(question)) return;
     }
 
@@ -1570,7 +1576,7 @@
     try {
       const result = await api(API_OBS_SOURCE_ACTION, {
         method: 'POST',
-        body: JSON.stringify({ action, sceneName, sourceName, inputName })
+        body: JSON.stringify({ action, sceneName, sourceName, inputName, sceneItemId })
       });
       const message = result?.result?.message || 'OBS-Aktion ausgeführt.';
       state.actionNotice = message;

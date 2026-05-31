@@ -664,9 +664,20 @@ function evaluateInventoryNode(node) {
 function normalizeInventoryStatuses(inventory) {
   if (!inventory || typeof inventory !== 'object') return inventory;
   const seen = new Set();
+  const currentKey = inventoryKey(inventory.currentProgramSceneName || '');
   const normalizeNode = (node) => {
     if (!node || typeof node !== 'object') return;
+    if (node.kind === 'scene') {
+      const rootKey = inventoryKey(Array.isArray(node.path) && node.path.length ? node.path[0] : node.sceneName);
+      if (currentKey && rootKey) {
+        node.activeInProgram = rootKey === currentKey && node.effectiveVisible === true;
+      }
+    }
     if (node.kind === 'source') {
+      const rootKey = inventoryKey(Array.isArray(node.path) && node.path.length ? node.path[0] : node.sceneName);
+      if (currentKey && rootKey) {
+        node.activeInProgram = rootKey === currentKey && node.effectiveVisible === true;
+      }
       node.status = evaluateInventoryNode(node);
       seen.add(node);
     }
@@ -676,7 +687,12 @@ function normalizeInventoryStatuses(inventory) {
   if (inventory.currentSceneTree) normalizeNode(inventory.currentSceneTree);
   if (Array.isArray(inventory.sources)) {
     inventory.sources.forEach(node => {
-      if (!seen.has(node) && node && typeof node === 'object') node.status = evaluateInventoryNode(node);
+      if (!node || typeof node !== 'object') return;
+      const rootKey = inventoryKey(Array.isArray(node.path) && node.path.length ? node.path[0] : node.sceneName);
+      if (currentKey && rootKey) {
+        node.activeInProgram = rootKey === currentKey && node.effectiveVisible === true;
+      }
+      if (!seen.has(node)) node.status = evaluateInventoryNode(node);
     });
   }
   inventory.summary = buildInventorySummary(inventory);
@@ -1345,6 +1361,7 @@ async function performObsSourceRepairAction(env, payload = {}) {
   const sceneName = cleanString(payload.sceneName || payload.scene || payload.parentScene);
   const sourceName = cleanString(payload.sourceName || payload.source || payload.obsSourceName || payload.inputName);
   const inputName = cleanString(payload.inputName || payload.sourceName || payload.source || payload.obsSourceName);
+  const requestedSceneItemId = asInt(payload.sceneItemId, 0);
   const shared = getSharedObsInstance(env);
 
   if (!shared || typeof shared.call !== 'function') {
@@ -1413,7 +1430,14 @@ async function performObsSourceRepairAction(env, payload = {}) {
     throw err;
   }
 
-  const item = await shared.findSceneItem(sceneName, sourceName);
+  let item = null;
+  if (requestedSceneItemId > 0 && typeof shared.getSceneItemList === 'function') {
+    const items = await shared.getSceneItemList(sceneName);
+    item = (Array.isArray(items) ? items : []).find(candidate => asInt(candidate.sceneItemId, 0) === requestedSceneItemId) || null;
+  }
+  if (!item) {
+    item = await shared.findSceneItem(sceneName, sourceName);
+  }
   if (!item) {
     const err = new Error(`Source '${sourceName}' wurde in Scene '${sceneName}' nicht gefunden.`);
     err.code = 'SCENE_ITEM_NOT_FOUND';
