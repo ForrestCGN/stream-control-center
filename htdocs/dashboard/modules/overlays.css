@@ -376,3 +376,96 @@
   .ovm-detail-grid { grid-template-columns: 1fr; }
   .ovm-detail-head { display: grid; }
 }
+
+.ovm-inventory-tree {
+  display: grid;
+  gap: 8px;
+}
+
+.ovm-inventory-node {
+  margin-left: calc(var(--ovm-depth, 0) * 18px);
+}
+
+.ovm-inventory-line {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 15px;
+  background: rgba(15, 23, 42, .48);
+}
+
+.ovm-inventory-node.is-scene > .ovm-inventory-line {
+  background: linear-gradient(135deg, rgba(88, 28, 135, .26), rgba(15, 23, 42, .58));
+  border-color: rgba(168, 85, 247, .28);
+}
+
+.ovm-inventory-node.is-ok > .ovm-inventory-line { border-color: rgba(34, 197, 94, .28); }
+.ovm-inventory-node.is-warn > .ovm-inventory-line { border-color: rgba(251, 191, 36, .38); }
+.ovm-inventory-node.is-bad > .ovm-inventory-line { border-color: rgba(248, 113, 113, .42); }
+
+.ovm-inventory-branch {
+  color: #a78bfa;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.ovm-inventory-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.ovm-inventory-main strong {
+  color: var(--ovm-text);
+  font-size: 14px;
+}
+
+.ovm-inventory-main span {
+  color: var(--ovm-muted);
+  font-size: 12px;
+}
+
+.ovm-inventory-main code {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  color: #bfdbfe;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovm-inventory-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+  max-width: 320px;
+}
+
+.ovm-inventory-children {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ovm-table-wrap.compact .ovm-table td,
+.ovm-table-wrap.compact .ovm-table th {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+@media (max-width: 900px) {
+  .ovm-inventory-line {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+  .ovm-inventory-tags {
+    grid-column: 2;
+    justify-content: flex-start;
+    max-width: none;
+  }
+  .ovm-inventory-node { margin-left: calc(var(--ovm-depth, 0) * 10px); }
+}

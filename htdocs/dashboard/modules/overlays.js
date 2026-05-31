@@ -12,6 +12,8 @@
     sceneError: '',
     issueLog: null,
     issueLogError: '',
+    obsInventory: null,
+    obsInventoryError: '',
     error: '',
     filter: 'all',
     sourceFilter: 'all',
@@ -30,6 +32,7 @@
   const API_OBS_BROWSER_SOURCES = '/api/obs/browser-sources';
   const API_OBS_SCENES = '/api/obs/scenes';
   const API_ISSUES = '/api/overlay-monitor/issues?status=all&limit=150';
+  const API_OBS_INVENTORY = '/api/overlay-monitor/obs-inventory';
   const AUTO_REFRESH_MS = 5000;
 
   function esc(value) {
@@ -710,6 +713,7 @@
       ['overview', 'Übersicht'],
       ['sources', 'Quellenstatus'],
       ['details', 'Overlay-Details'],
+      ['inventory', 'OBS-Inventar'],
       ['bus', 'Bus-Clients'],
       ['obs', 'OBS-Rohquellen'],
       ['issues', `Probleme${problemCount() ? ` (${problemCount()})` : ''}`],
@@ -1285,9 +1289,161 @@
     `;
   }
 
+
+  function inventoryData() {
+    return state.obsInventory && typeof state.obsInventory === 'object' ? state.obsInventory : null;
+  }
+
+  function inventorySummary() {
+    const inv = inventoryData();
+    return inv && inv.summary && typeof inv.summary === 'object' ? inv.summary : {};
+  }
+
+  function inventorySceneTree() {
+    const inv = inventoryData();
+    if (!inv) return null;
+    const wanted = selectedSceneName() || inv.currentProgramSceneName || '';
+    const trees = Array.isArray(inv.sceneTrees) ? inv.sceneTrees : [];
+    const found = wanted ? trees.find(tree => key(tree.sceneName || tree.displayName) === key(wanted)) : null;
+    return found || inv.currentSceneTree || trees[0] || null;
+  }
+
+  function inventoryStatusLabel(node) {
+    const status = clean(node?.status || node?.sourceType || node?.kind || 'unknown');
+    if (status === 'ok') return 'OK';
+    if (status === 'standby') return 'Wartet';
+    if (status === 'external') return 'Extern';
+    if (status === 'placeholder') return 'Platzhalter';
+    if (status === 'warning') return 'Warnung';
+    if (status === 'error') return 'Fehler';
+    if (status === 'scene') return 'Szene';
+    if (status === 'other') return 'Quelle';
+    return status || 'Unbekannt';
+  }
+
+  function inventoryNodeMeta(node) {
+    if (!node) return '';
+    if (node.kind === 'scene') {
+      const count = Array.isArray(node.children) ? node.children.length : 0;
+      return `${count} Einträge · ${node.effectiveVisible ? 'sichtbar erreichbar' : 'ausgeblendet'}`;
+    }
+    if (node.kind === 'source') {
+      const bits = [];
+      bits.push(node.fileName || node.obsSourceName || 'Browserquelle');
+      if (node.sourceType === 'cgn') bits.push(node.busClientId ? `Bus: ${node.busClientId}` : 'Bus fehlt');
+      if (node.sourceType === 'external') bits.push('extern · kein Bus nötig');
+      if (node.sourceType === 'placeholder') bits.push('Platzhalter · kein Bus nötig');
+      bits.push(node.effectiveVisible ? 'sichtbar' : 'aus');
+      return bits.filter(Boolean).join(' · ');
+    }
+    return node.obsSourceName || node.displayName || '';
+  }
+
+  function inventoryNodeClass(node) {
+    if (!node) return 'muted';
+    if (node.kind === 'scene') return node.effectiveVisible ? 'ok' : 'muted';
+    if (node.status === 'ok' || node.status === 'external') return 'ok';
+    if (node.status === 'standby' || node.status === 'placeholder' || node.status === 'other') return 'muted';
+    if (node.status === 'warning') return 'warn';
+    if (node.status === 'error') return 'bad';
+    return statusClass(node.status);
+  }
+
+  function renderInventoryNode(node, depth = 0) {
+    if (!node) return '';
+    const children = Array.isArray(node.children) ? node.children : [];
+    const isScene = node.kind === 'scene';
+    const cls = inventoryNodeClass(node);
+    const title = node.displayName || node.sceneName || node.obsSourceName || 'OBS-Eintrag';
+    const meta = inventoryNodeMeta(node);
+    const url = node.url ? `<code>${esc(shortText(node.url, 120))}</code>` : '';
+    return `
+      <div class="ovm-inventory-node is-${esc(cls)} ${isScene ? 'is-scene' : 'is-source'}" style="--ovm-depth:${Math.min(8, Math.max(0, depth))}">
+        <div class="ovm-inventory-line">
+          <span class="ovm-inventory-branch">${isScene ? '▸' : '•'}</span>
+          <div class="ovm-inventory-main">
+            <strong>${esc(title)}</strong>
+            <span>${esc(meta)}</span>
+            ${url}
+          </div>
+          <div class="ovm-inventory-tags">
+            ${node.kind === 'source' ? `<span class="ovm-mini-badge ${node.effectiveVisible ? 'is-ok' : 'is-muted'}">${node.effectiveVisible ? 'sichtbar' : 'aus'}</span>` : ''}
+            ${node.kind === 'source' && node.sourceType === 'cgn' ? `<span class="ovm-mini-badge ${node.hasHeartbeat ? 'is-ok' : (node.busClientId ? 'is-warn' : 'is-warn')}">${node.hasHeartbeat ? 'HB OK' : (node.busClientId ? 'kein HB' : 'kein Bus')}</span>` : ''}
+            ${node.kind === 'source' && node.sourceType === 'external' ? '<span class="ovm-mini-badge is-muted">extern</span>' : ''}
+            ${node.kind === 'source' && node.sourceType === 'placeholder' ? '<span class="ovm-mini-badge is-muted">Platzhalter</span>' : ''}
+            <span class="ovm-badge is-${esc(cls)}">${esc(inventoryStatusLabel(node))}</span>
+          </div>
+        </div>
+        ${children.length ? `<div class="ovm-inventory-children">${children.map(child => renderInventoryNode(child, depth + 1)).join('')}</div>` : ''}
+      </div>
+    `;
+  }
+
+  function renderInventorySourcesTable() {
+    const inv = inventoryData();
+    const sources = Array.isArray(inv?.sources) ? inv.sources : [];
+    if (!sources.length) return '<div class="ovm-muted">Keine Browser-/Overlayquellen im Inventar.</div>';
+    return `
+      <div class="ovm-table-wrap compact">
+        <table class="ovm-table">
+          <thead><tr><th>Overlay</th><th>OBS-Quelle</th><th>Typ</th><th>Bus</th><th>Status</th><th>Pfad</th></tr></thead>
+          <tbody>
+            ${sources.map(src => `
+              <tr>
+                <td><strong>${esc(src.displayName || src.obsSourceName || '—')}</strong><br><small>${esc(src.fileName || '—')}</small></td>
+                <td>${esc(src.obsSourceName || '—')}</td>
+                <td>${esc(src.sourceType || '—')}</td>
+                <td>${src.sourceType === 'cgn' ? esc(src.busClientId || 'fehlt') : 'nicht erwartet'}</td>
+                <td><span class="ovm-badge is-${esc(inventoryNodeClass(src))}">${esc(inventoryStatusLabel(src))}</span></td>
+                <td>${esc(shortText(src.pathText || src.sceneName || '—', 90))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderObsInventory() {
+    const inv = inventoryData();
+    const summary = inventorySummary();
+    const tree = inventorySceneTree();
+    if (!inv) {
+      return `<section class="ovm-card"><h3>OBS-Inventar</h3><div class="ovm-empty"><strong>Noch kein Inventar geladen.</strong><span>${esc(state.obsInventoryError || 'Bitte aktualisieren.')}</span></div></section>`;
+    }
+    return `
+      ${renderSceneSelector()}
+      <section class="ovm-card">
+        <div class="ovm-detail-head">
+          <div>
+            <span class="ovm-kicker">OBS-Inventar</span>
+            <h3>${esc(tree?.sceneName || inv.currentProgramSceneName || 'OBS-Struktur')}</h3>
+            <p>${inv.fromCache ? 'Letzter gespeicherter Stand' : 'Aktueller OBS-Stand'} · aktualisiert ${esc(fmtDateTime(inv.updatedAt || inv.cacheUpdatedAt))}${inv.refreshError ? ` · Hinweis: ${esc(inv.refreshError)}` : ''}</p>
+          </div>
+          <button type="button" class="ovm-btn" data-ovm-inventory-refresh>OBS-Inventar aktualisieren</button>
+        </div>
+        <div class="ovm-overview-grid">
+          <div class="ovm-status-box is-ok"><span>Szenen</span><strong>${esc(summary.scenes ?? inv.sceneCount ?? 0)}</strong><small>rekursiv aus OBS gelesen</small></div>
+          <div class="ovm-status-box is-ok"><span>Overlay-/Browserquellen</span><strong>${esc(summary.sources ?? 0)}</strong><small>${esc(summary.visible ?? 0)} sichtbar · ${esc(summary.cgn ?? 0)} CGN</small></div>
+          <div class="ovm-status-box is-${Number(summary.warnings || 0) ? 'warn' : 'ok'}"><span>Warnungen</span><strong>${esc(summary.warnings ?? 0)}</strong><small>${esc(summary.external ?? 0)} extern · ${esc(summary.placeholder ?? 0)} Platzhalter</small></div>
+        </div>
+      </section>
+      <section class="ovm-card">
+        <h3>Logische OBS-Struktur</h3>
+        <p class="ovm-muted">Baum der ausgewählten Szene inklusive Unter-Szenen. CGN-Overlays zeigen Bus/Heartbeat, externe Quellen und Platzhalter erwarten keinen Bus.</p>
+        <div class="ovm-inventory-tree">${tree ? renderInventoryNode(tree, 0) : '<div class="ovm-muted">Keine Struktur für diese Szene gefunden.</div>'}</div>
+      </section>
+      <section class="ovm-card">
+        <h3>Alle im Inventar gefundenen Browserquellen</h3>
+        ${renderInventorySourcesTable()}
+      </section>
+    `;
+  }
+
   function renderRaw() {
     const raw = {
       overlayMonitor: state.data,
+      obsInventory: state.obsInventory,
       obsStatus: state.obsStatus,
       obsSources: state.obsSources,
       obsScenes: state.obsScenes,
@@ -1310,6 +1466,7 @@
   function renderTabContent() {
     if (state.tab === 'sources') return renderSourceCards();
     if (state.tab === 'details') return renderOverlayDetails();
+    if (state.tab === 'inventory') return renderObsInventory();
     if (state.tab === 'bus') return renderBusClients();
     if (state.tab === 'obs') return renderObsSources();
     if (state.tab === 'issues') return `<section class="ovm-card"><h3>Aktuelle Hinweise</h3>${renderIssues()}</section>`;
@@ -1397,6 +1554,7 @@
       render();
     });
     root.querySelector('[data-ovm-refresh]')?.addEventListener('click', () => loadAll(true));
+    root.querySelector('[data-ovm-inventory-refresh]')?.addEventListener('click', () => loadAll(true));
     root.querySelector('[data-ovm-auto]')?.addEventListener('change', event => {
       state.autoRefresh = !!event.target.checked;
       setupTimer();
@@ -1410,13 +1568,15 @@
     state.obsError = '';
     state.sceneError = '';
     state.issueLogError = '';
+    state.obsInventoryError = '';
     render();
     try {
-      const [monitorResult, obsStatusResult, obsSourcesResult, issueLogResult] = await Promise.allSettled([
+      const [monitorResult, obsStatusResult, obsSourcesResult, issueLogResult, inventoryResult] = await Promise.allSettled([
         api(API_STATUS),
         api(API_OBS_STATUS),
         api(API_OBS_BROWSER_SOURCES),
-        api(API_ISSUES)
+        api(API_ISSUES),
+        api(`${API_OBS_INVENTORY}?refresh=${force ? '1' : '0'}`)
       ]);
 
       if (monitorResult.status === 'fulfilled') {
@@ -1444,6 +1604,13 @@
       } else {
         state.issueLog = null;
         state.issueLogError = issueLogResult.reason?.message || String(issueLogResult.reason || 'Monitoring-Issue-Log konnte nicht geladen werden.');
+      }
+
+      if (inventoryResult.status === 'fulfilled') {
+        state.obsInventory = inventoryResult.value;
+        if (state.obsInventory && state.obsInventory.ok === false) state.obsInventoryError = apiMessage(state.obsInventory, 'OBS-Inventar konnte nicht aktualisiert werden.');
+      } else {
+        state.obsInventoryError = inventoryResult.reason?.message || String(inventoryResult.reason || 'OBS-Inventar konnte nicht geladen werden.');
       }
 
       if (obsConnected()) await loadObsSceneItems();

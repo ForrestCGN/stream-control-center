@@ -12,18 +12,22 @@ let routes = null;
 let helperConfig = null;
 let communicationBusModule = null;
 let database = null;
+let obsSharedModule = null;
 
 try { routes = require('./helpers/helper_routes'); } catch (_) { routes = null; }
 try { helperConfig = require('./helpers/helper_config'); } catch (_) { helperConfig = null; }
 try { communicationBusModule = require('./communication_bus'); } catch (_) { communicationBusModule = null; }
 try { database = require('../core/database'); } catch (_) { database = null; }
+try { obsSharedModule = require('./obs_shared'); } catch (_) { obsSharedModule = null; }
 
 const MODULE = 'overlay_monitor';
-const VERSION = '0.1.4';
-const STATUS_API_VERSION = '1.0.4';
+const VERSION = '0.1.5';
+const STATUS_API_VERSION = '1.0.5';
 
 const ISSUE_TABLE = 'monitoring_issues';
 const ISSUE_SCHEMA_VERSION = 1;
+const INVENTORY_TABLE = 'monitoring_obs_inventory_cache';
+const INVENTORY_SCHEMA_VERSION = 1;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -57,12 +61,17 @@ const state = {
   lastStatuses: new Map(),
   consoleLogThrottle: new Map(),
   events: [],
+  obsInventory: null,
+  obsInventoryRefreshing: false,
   stats: {
     scans: 0,
     statusChanges: 0,
     busErrors: 0,
     consoleLogsSuppressed: 0,
     issueDbErrors: 0,
+    inventoryDbErrors: 0,
+    inventoryRefreshes: 0,
+    inventoryCacheHits: 0,
     issuesActivated: 0,
     issuesResolved: 0,
     issuesTouched: 0,
@@ -72,6 +81,7 @@ const state = {
 
 let config = { ...DEFAULT_CONFIG };
 let busModuleRegistered = false;
+let sharedObs = null;
 
 function nowMs() { return Date.now(); }
 function nowIso() { return new Date().toISOString(); }
@@ -403,6 +413,473 @@ function syncMonitoringIssues(runtimeIssues) {
     touchIssue(runtimeIssue, seenAt);
   }
   resolveInactiveIssues(activeKeys, seenAt);
+}
+
+
+function getSharedObsInstance(env = {}) {
+  if (!obsSharedModule || typeof obsSharedModule.getSharedObs !== 'function') return null;
+  if (!sharedObs) {
+    try { sharedObs = obsSharedModule.getSharedObs(env || process.env || {}, console); }
+    catch (err) {
+      state.stats.lastError = err && err.message ? err.message : String(err);
+      return null;
+    }
+  }
+  return sharedObs;
+}
+
+function ensureInventorySchema() {
+  if (!issueDbAvailable()) return { ok: false, reason: 'database_unavailable' };
+  try {
+    database.ensureReady();
+    database.ensureSchema(MODULE + '_obs_inventory', INVENTORY_SCHEMA_VERSION, () => {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS ${INVENTORY_TABLE} (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          updated_at TEXT NOT NULL,
+          data_json TEXT NOT NULL
+        )
+      `);
+    });
+    return { ok: true };
+  } catch (err) {
+    state.stats.inventoryDbErrors += 1;
+    state.stats.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, reason: 'inventory_schema_failed', error: state.stats.lastError };
+  }
+}
+
+function saveInventoryCache(inventory) {
+  const schema = ensureInventorySchema();
+  if (!schema.ok) return;
+  try {
+    database.run(`
+      INSERT INTO ${INVENTORY_TABLE} (id, updated_at, data_json)
+      VALUES (1, :updatedAt, :dataJson)
+      ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at, data_json = excluded.data_json
+    `, { updatedAt: cleanString(inventory.updatedAt || nowIso()), dataJson: encodeIssueDetails(inventory) });
+  } catch (err) {
+    state.stats.inventoryDbErrors += 1;
+    state.stats.lastError = err && err.message ? err.message : String(err);
+  }
+}
+
+function loadInventoryCache() {
+  const schema = ensureInventorySchema();
+  if (!schema.ok) return null;
+  try {
+    const row = database.get(`SELECT updated_at, data_json FROM ${INVENTORY_TABLE} WHERE id = 1 LIMIT 1`) || null;
+    if (!row || !row.data_json) return null;
+    const data = decodeIssueDetails(row.data_json);
+    if (!data || typeof data !== 'object') return null;
+    data.fromCache = true;
+    data.cacheUpdatedAt = cleanString(row.updated_at || data.updatedAt);
+    state.stats.inventoryCacheHits += 1;
+    return data;
+  } catch (err) {
+    state.stats.inventoryDbErrors += 1;
+    state.stats.lastError = err && err.message ? err.message : String(err);
+    return null;
+  }
+}
+
+function normalizeObsList(raw, keys) {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== 'object') return [];
+  const data = raw.data && typeof raw.data === 'object' ? raw.data : raw;
+  if (Array.isArray(data)) return data;
+  for (const itemKey of keys) {
+    if (Array.isArray(data[itemKey])) return data[itemKey];
+  }
+  return [];
+}
+
+function inventoryKey(value) {
+  return cleanString(value).toLowerCase().replace(/\.html?$/i, '').replace(/[^a-z0-9]+/g, '');
+}
+
+function inventoryBasename(value) {
+  const text = cleanString(value).split('?')[0].replace(/\\/g, '/');
+  return text.split('/').filter(Boolean).pop() || text;
+}
+
+function inventorySourceUrl(src) {
+  return cleanString(src.url || src.local_file || src.file || src.path || src.inputSettings?.url || src.inputSettings?.local_file || '');
+}
+
+function inventoryHost(url) {
+  const value = cleanString(url);
+  if (!value) return '';
+  try {
+    const parsed = new URL(value, 'http://localhost');
+    return cleanString(parsed.hostname).toLowerCase();
+  } catch (_) {
+    return '';
+  }
+}
+
+function inventoryIsPlaceholder(src) {
+  const url = inventorySourceUrl(src).toLowerCase();
+  return !url || url === 'about:blank' || url === 'about:srcdoc' || url === 'blank';
+}
+
+function inventoryIsLocalOverlay(src) {
+  const url = inventorySourceUrl(src);
+  const lower = url.toLowerCase();
+  if (!url) return false;
+  if (src && (src.is_local_file === true || src.local_file)) return true;
+  if (lower.startsWith('/overlays/') || lower.startsWith('overlays/') || lower.includes('/overlays/')) return true;
+  const host = inventoryHost(url);
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+}
+
+function inventoryIsExternal(src) {
+  if (inventoryIsPlaceholder(src)) return false;
+  if (inventoryIsLocalOverlay(src)) return false;
+  return !!inventoryHost(inventorySourceUrl(src));
+}
+
+function inventoryDisplayName(value, fallback = 'Overlay') {
+  const raw = cleanString(value);
+  const normalized = inventoryKey(raw);
+  const known = [
+    ['vipsound', 'VIP Sound Overlay'], ['vipoverlay', 'VIP Sound Overlay'], ['vip', 'VIP Sound Overlay'],
+    ['alertsv2', 'Alerts V2'], ['alertoverlayv2', 'Alerts V2'], ['alert', 'Alerts V2'],
+    ['soundsystemoverlay', 'Sound-System Overlay'], ['soundoverlay', 'Sound-System Overlay'], ['soundsystem', 'Sound-System Overlay'],
+    ['tts', 'TTS Overlay'], ['deathcounterv2', 'Deathcounter V2'], ['deathcounter', 'Deathcounter V2'],
+    ['challengestatus', 'Challenge Status'], ['challenge', 'Challenge Status'],
+    ['fireworks', 'Firework Overlay'], ['firework', 'Firework Overlay'],
+    ['rahmen', 'Rahmen Overlay'], ['frameoverlay', 'Rahmen Overlay'],
+    ['birthday', 'Birthday Overlay'], ['geburtstag', 'Birthday Overlay'],
+    ['eastereggwinner', 'Easteregg Winner Overlay'], ['easteregg', 'Easteregg Winner Overlay'],
+    ['clipshoutout', 'Clip-Shoutout Platzhalter'], ['clipplayer', 'Clip-Player Overlay'],
+    ['mediaplayer', 'Media-Player Overlay'], ['megashoutout', 'Mega-Shoutout Overlay'],
+    ['pause', 'Pause Overlay'], ['startv2neongalaxy', 'Start Overlay Neon Galaxy'], ['startv2', 'Start Overlay V2'], ['start', 'Start Overlay'],
+    ['ende', 'Ende Overlay'], ['eventbustest', 'EventBus Test Overlay']
+  ];
+  for (const [needle, label] of known) {
+    if (normalized.includes(needle)) return label;
+  }
+  if (!raw) return fallback;
+  return raw.replace(/^overlay[:_-]?/i, '').replace(/^_+/, '').replace(/[-_]+/g, ' ').replace(/\.html?$/i, '').replace(/\s+/g, ' ').trim().replace(/\b\w/g, c => c.toUpperCase()) || fallback;
+}
+
+function scoreInventoryClientForSource(client, src, pathText = '') {
+  const srcName = cleanString(src.inputName || src.sourceName || src.name || src.id);
+  const url = inventorySourceUrl(src);
+  const base = inventoryBasename(url);
+  const hay = [srcName, url, base, pathText].map(inventoryKey).filter(Boolean).join('|');
+  const clientId = inventoryKey(client.id);
+  const module = inventoryKey(client.module);
+  const clientName = inventoryKey(client.name);
+  let score = 0;
+
+  const aliases = [
+    ['rahmen', 'frameoverlay'], ['rahmen', 'rahmen'], ['frame', 'frameoverlay'],
+    ['overlaybirthday', 'birthday'], ['birthday', 'birthday'], ['geburtstag', 'birthday'],
+    ['eastereggwinner', 'easteregg'], ['clipshoutout', 'clip']
+  ];
+  for (const [sourceToken, clientToken] of aliases) {
+    if (hay.includes(sourceToken) && (clientId.includes(clientToken) || module.includes(clientToken) || clientName.includes(clientToken))) score += 85;
+  }
+
+  if (clientId && hay.includes(clientId)) score += 100;
+  if (clientId && clientId.includes(inventoryKey(base))) score += 60;
+  if (module && hay.includes(module)) score += 50;
+  if (clientName && hay.includes(clientName)) score += 35;
+
+  const loose = ['vip','alert','sound','tts','death','deathcounter','challenge','firework','rahmen','frame','birthday','geburtstag','clip','easteregg','start','ende','pause','media','megashoutout'];
+  for (const token of loose) {
+    if (hay.includes(token) && (clientId.includes(token) || module.includes(token) || clientName.includes(token))) score += 18;
+  }
+
+  return score;
+}
+
+function findInventoryClientForSource(src, pathText = '', overlayStatus = null) {
+  const clients = Array.isArray(overlayStatus?.overlays) ? overlayStatus.overlays : [];
+  const srcName = cleanString(src.inputName || src.sourceName || src.name || src.id);
+  const url = inventorySourceUrl(src);
+  const forcedHay = [srcName, url, inventoryBasename(url), pathText].map(inventoryKey).filter(Boolean).join('|');
+  const forcedTokens = [];
+  if (forcedHay.includes('rahmen') || forcedHay.includes('frameoverlay')) forcedTokens.push('frameoverlay', 'rahmenoverlay');
+  if (forcedHay.includes('overlaybirthday') || forcedHay.includes('birthday') || forcedHay.includes('geburtstag')) forcedTokens.push('birthdayoverlay', 'birthday', 'geburtstag');
+
+  for (const token of forcedTokens) {
+    const forced = clients.find(client => [client.id, client.module, client.name].map(inventoryKey).join('|').includes(token));
+    if (forced) return { client: forced, score: 250 };
+  }
+
+  let best = null;
+  let bestScore = 0;
+  for (const client of clients) {
+    const score = scoreInventoryClientForSource(client, src, pathText);
+    if (score > bestScore) {
+      best = client;
+      bestScore = score;
+    }
+  }
+  return bestScore >= 18 ? { client: best, score: bestScore } : { client: null, score: 0 };
+}
+
+function evaluateInventoryNode(node) {
+  if (node.kind === 'scene') return 'scene';
+  if (node.placeholder) return 'placeholder';
+  if (node.external) return 'external';
+  if (!node.busExpected) return 'ok';
+  if (!node.effectiveVisible) {
+    if (node.busClient && node.hasHeartbeat) return 'standby';
+    return 'standby';
+  }
+  if (!node.busClient) return 'warning';
+  if (!node.hasHeartbeat) return 'warning';
+  const status = cleanString(node.busStatus).toLowerCase();
+  if (status === 'online') return 'ok';
+  if (status === 'stale' || status === 'registered') return 'warning';
+  if (status === 'offline' || status === 'dead') return 'error';
+  return 'ok';
+}
+
+function buildInventorySummary(inventory) {
+  const rows = inventory.sources || [];
+  return {
+    scenes: inventory.scenes.length,
+    sources: rows.length,
+    visible: rows.filter(row => row.effectiveVisible).length,
+    cgn: rows.filter(row => row.sourceType === 'cgn').length,
+    external: rows.filter(row => row.sourceType === 'external').length,
+    placeholder: rows.filter(row => row.sourceType === 'placeholder').length,
+    withBus: rows.filter(row => !!row.busClientId).length,
+    warnings: rows.filter(row => row.status === 'warning' || row.status === 'error').length
+  };
+}
+
+async function collectObsInventory(env = {}, options = {}) {
+  const shared = getSharedObsInstance(env);
+  if (!shared) throw new Error('OBS-Shared-Modul ist nicht verfügbar.');
+  if (typeof shared.refreshSnapshot === 'function') {
+    await shared.refreshSnapshot();
+  }
+  const publicStatus = typeof shared.getPublicStatus === 'function' ? shared.getPublicStatus() : {};
+  const sceneNames = typeof shared.refreshScenes === 'function' ? await shared.refreshScenes() : [];
+  const inputs = typeof shared.getInputList === 'function' ? await shared.getInputList() : [];
+  const browserInputs = inputs.filter(input => String(input.inputKind || input.unversionedInputKind || '').toLowerCase().includes('browser'));
+  const browserSources = [];
+
+  for (const input of browserInputs) {
+    let settings = {};
+    try {
+      const result = await shared.getInputSettings(input.inputName);
+      settings = result.inputSettings || result.settings || result || {};
+    } catch (err) {
+      settings = { error: err && err.message ? err.message : String(err) };
+    }
+    browserSources.push({
+      inputName: cleanString(input.inputName),
+      inputKind: cleanString(input.inputKind),
+      unversionedInputKind: cleanString(input.unversionedInputKind),
+      url: cleanString(settings.url),
+      local_file: cleanString(settings.local_file),
+      is_local_file: !!settings.is_local_file,
+      width: settings.width || '',
+      height: settings.height || '',
+      fps: settings.fps || '',
+      settingsError: cleanString(settings.error)
+    });
+  }
+
+  const sceneItemsByScene = {};
+  for (const sceneName of sceneNames) {
+    try {
+      const items = await shared.getSceneItemList(sceneName);
+      sceneItemsByScene[sceneName] = (Array.isArray(items) ? items : []).map(item => ({
+        sceneItemId: item.sceneItemId,
+        sourceName: cleanString(item.sourceName),
+        enabled: item.sceneItemEnabled === true,
+        locked: item.sceneItemLocked === true,
+        raw: safeJson(item) || {}
+      })).filter(item => item.sourceName);
+    } catch (err) {
+      sceneItemsByScene[sceneName] = [];
+    }
+  }
+
+  const sourceMap = new Map();
+  for (const src of browserSources) {
+    const sourceKey = inventoryKey(src.inputName);
+    if (sourceKey && !sourceMap.has(sourceKey)) sourceMap.set(sourceKey, src);
+  }
+  const sceneSet = new Set(sceneNames.map(inventoryKey).filter(Boolean));
+  const overlayStatus = getOverlayStatus({ limitEvents: 0 });
+  const allSources = [];
+
+  function sourceNode(src, item, sceneName, pathParts, parentVisible, depth) {
+    const url = inventorySourceUrl(src);
+    const placeholder = inventoryIsPlaceholder(src);
+    const external = inventoryIsExternal(src);
+    const match = (external || placeholder) ? { client: null, score: 0 } : findInventoryClientForSource(src, pathParts.join(' → '), overlayStatus);
+    const client = match.client || null;
+    const hasHeartbeat = !!(client && (client.hasHeartbeat === true || client.lastHeartbeatAt));
+    const effectiveVisible = parentVisible && item.enabled === true;
+    const sourceType = placeholder ? 'placeholder' : (external ? 'external' : 'cgn');
+    const node = {
+      kind: 'source',
+      sourceType,
+      displayName: sourceType === 'external' ? inventoryDisplayName(src.inputName || url, src.inputName || 'Externe Browserquelle') : inventoryDisplayName([src.inputName, url, client?.name, client?.id, client?.module].filter(Boolean).join(' '), src.inputName || 'CGN Overlay'),
+      obsSourceName: cleanString(src.inputName),
+      sceneName,
+      sceneItemId: item.sceneItemId || '',
+      path: [...pathParts],
+      pathText: pathParts.join(' → '),
+      fileName: inventoryBasename(url),
+      url,
+      directVisible: item.enabled === true,
+      effectiveVisible,
+      parentVisible,
+      external,
+      placeholder,
+      busExpected: !(external || placeholder),
+      busClientId: cleanString(client?.id),
+      busClientName: cleanString(client?.name),
+      module: cleanString(client?.module),
+      mode: cleanString(client?.mode),
+      version: cleanString(client?.version),
+      busStatus: cleanString(client?.status),
+      connected: client ? client.connected === true : false,
+      hasHeartbeat,
+      heartbeatAgeSeconds: client ? client.heartbeatAgeSeconds : null,
+      lastHeartbeatAt: cleanString(client?.lastHeartbeatAt),
+      lastHelloAt: cleanString(client?.lastHelloAt),
+      matchScore: match.score || 0,
+      children: []
+    };
+    node.status = evaluateInventoryNode(node);
+    allSources.push(node);
+    return node;
+  }
+
+  function sceneNode(sceneName, parentVisible, pathParts, visited, depth) {
+    const currentKey = inventoryKey(sceneName);
+    const node = {
+      kind: 'scene',
+      sceneName,
+      displayName: sceneName,
+      path: [...pathParts],
+      pathText: pathParts.join(' → '),
+      directVisible: true,
+      effectiveVisible: parentVisible,
+      depth,
+      children: []
+    };
+    if (!currentKey || visited.has(currentKey) || depth > 12) return node;
+    const nextVisited = new Set(visited);
+    nextVisited.add(currentKey);
+    const items = sceneItemsByScene[sceneName] || [];
+    for (const item of items) {
+      const itemName = cleanString(item.sourceName);
+      const itemKey = inventoryKey(itemName);
+      const effectiveVisible = parentVisible && item.enabled === true;
+      const nextPath = [...pathParts, itemName];
+      if (sourceMap.has(itemKey)) {
+        node.children.push(sourceNode(sourceMap.get(itemKey), item, sceneName, nextPath, parentVisible, depth + 1));
+      } else if (sceneSet.has(itemKey)) {
+        const child = sceneNode(itemName, effectiveVisible, nextPath, nextVisited, depth + 1);
+        child.directVisible = item.enabled === true;
+        child.effectiveVisible = effectiveVisible;
+        node.children.push(child);
+      } else {
+        node.children.push({
+          kind: 'other',
+          displayName: itemName,
+          obsSourceName: itemName,
+          sceneName,
+          path: nextPath,
+          pathText: nextPath.join(' → '),
+          directVisible: item.enabled === true,
+          effectiveVisible,
+          status: 'other',
+          children: []
+        });
+      }
+    }
+    return node;
+  }
+
+  const sceneTrees = sceneNames.map(sceneName => sceneNode(sceneName, true, [sceneName], new Set(), 0));
+  const currentProgramSceneName = cleanString(publicStatus.currentProgramSceneName || (sceneNames[0] || ''));
+  const currentSceneTree = sceneTrees.find(tree => inventoryKey(tree.sceneName) === inventoryKey(currentProgramSceneName)) || null;
+
+  const inventory = {
+    ok: true,
+    module: MODULE,
+    version: VERSION,
+    feature: 'obs_overlay_inventory',
+    readOnly: true,
+    refreshed: true,
+    fromCache: false,
+    updatedAt: nowIso(),
+    currentProgramSceneName,
+    currentPreviewSceneName: cleanString(publicStatus.currentPreviewSceneName),
+    obsConnected: publicStatus.obsConnected === true,
+    sceneCount: sceneNames.length,
+    browserSourceCount: browserSources.length,
+    scenes: sceneNames.map(name => ({ sceneName: name })),
+    browserSources,
+    sceneItemsByScene,
+    sceneTrees,
+    currentSceneTree,
+    sources: allSources
+  };
+  inventory.summary = buildInventorySummary(inventory);
+  return inventory;
+}
+
+async function getObsInventory(env = {}, options = {}) {
+  if (options.force !== true && state.obsInventory && options.cacheOnly !== true) {
+    return { ...safeJson(state.obsInventory), fromMemory: true };
+  }
+  if (options.cacheOnly === true) {
+    return state.obsInventory || loadInventoryCache() || { ok: false, reason: 'inventory_cache_empty', sources: [], scenes: [], sceneTrees: [], summary: {} };
+  }
+  if (state.obsInventoryRefreshing) {
+    return state.obsInventory || loadInventoryCache() || { ok: false, reason: 'inventory_refresh_running', sources: [], scenes: [], sceneTrees: [], summary: {} };
+  }
+
+  state.obsInventoryRefreshing = true;
+  try {
+    const inventory = await collectObsInventory(env, options);
+    state.obsInventory = inventory;
+    state.stats.inventoryRefreshes += 1;
+    saveInventoryCache(inventory);
+    return inventory;
+  } catch (err) {
+    const cached = state.obsInventory || loadInventoryCache();
+    if (cached) {
+      cached.ok = true;
+      cached.fromCache = true;
+      cached.refreshError = err && err.message ? err.message : String(err);
+      return cached;
+    }
+    return {
+      ok: false,
+      module: MODULE,
+      version: VERSION,
+      feature: 'obs_overlay_inventory',
+      readOnly: true,
+      reason: 'inventory_refresh_failed',
+      error: err && err.message ? err.message : String(err),
+      updatedAt: '',
+      currentProgramSceneName: '',
+      scenes: [],
+      browserSources: [],
+      sceneTrees: [],
+      currentSceneTree: null,
+      sources: [],
+      summary: {}
+    };
+  } finally {
+    state.obsInventoryRefreshing = false;
+  }
 }
 
 function shouldWriteConsole(entry) {
@@ -794,11 +1271,12 @@ function startTimer() {
   if (state.scanTimer && typeof state.scanTimer.unref === 'function') state.scanTimer.unref();
 }
 
-function init({ app }) {
+function init({ app, env } = {}) {
   if (!app) throw new Error(`${MODULE}.init: app fehlt.`);
 
   loadConfig();
   ensureIssueSchema();
+  ensureInventorySchema();
 
   const bus = getBus();
   if (bus && typeof bus.registerModule === 'function' && !busModuleRegistered) {
@@ -831,6 +1309,13 @@ function init({ app }) {
     res.json(result);
   });
 
+  registerGet(app, '/api/overlay-monitor/obs-inventory', async (req, res) => {
+    const refresh = String(req.query.refresh || '') === '1' || String(req.query.force || '') === '1';
+    const cacheOnly = String(req.query.cache || '') === '1';
+    const result = await getObsInventory(env || process.env || {}, { force: refresh, cacheOnly });
+    res.json(result);
+  });
+
   registerGet(app, '/api/overlay-monitor/events', (req, res) => {
     const limit = Math.max(1, Math.min(100, asInt(req.query.limit, 50)));
     res.json({
@@ -853,12 +1338,16 @@ function init({ app }) {
         { method: 'GET', path: '/api/overlay-monitor/status', description: 'Read-only Overlay-Monitor Status aus dem Communication Bus.' },
         { method: 'GET', path: '/api/overlay-monitor/events', description: 'Read-only Statuswechsel/Auffaelligkeiten des Overlay-Monitors.' },
         { method: 'GET', path: '/api/overlay-monitor/issues', description: 'Persistierte Monitoring-Issues mit active/resolved Status.' },
+        { method: 'GET', path: '/api/overlay-monitor/obs-inventory', description: 'Persistiertes/aktuelles OBS-Overlay-Inventar als rekursive Struktur.' },
         { method: 'GET', path: '/api/overlay-monitor/routes', description: 'Routenuebersicht.' }
       ]
     });
   });
 
   scan();
+  getObsInventory(env || process.env || {}, { force: true }).catch(err => {
+    state.stats.lastError = err && err.message ? err.message : String(err);
+  });
   startTimer();
   console.log(`[${MODULE}] v${VERSION} read-only overlay monitor registered`);
 }
@@ -867,5 +1356,6 @@ module.exports = {
   init,
   getOverlayStatus,
   scan,
-  listStoredIssues
+  listStoredIssues,
+  getObsInventory
 };
