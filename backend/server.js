@@ -19,6 +19,125 @@ const wss = new WebSocket.Server({ server });
 
 const PORT = 8080;
 
+const SERVER_VERSION = "0.1.0-step278-loader-diagnostics";
+const MODULE_LOADER_DIAGNOSTICS_VERSION = "0.1.0";
+
+// --------------------------------------------------
+// STEP278 loader/route diagnostics
+// --------------------------------------------------
+// Diagnostic-only layer. It does not change module loading behaviour.
+// It records which owner registered which HTTP route and warns about duplicates.
+const routeRegistry = [];
+const duplicateRoutes = [];
+const moduleDiagnostics = [];
+let currentRouteOwner = "server.js";
+
+function routePathToList(routePath) {
+  if (Array.isArray(routePath)) return routePath.flatMap(routePathToList);
+  if (typeof routePath === "string") return [routePath];
+  if (routePath instanceof RegExp) return [routePath.toString()];
+  return [];
+}
+
+function normalizeRoutePath(routePath) {
+  return String(routePath || "").replace(/\/+$/, "") || "/";
+}
+
+function registerRouteDiagnostic(method, routePath, owner) {
+  const paths = routePathToList(routePath);
+  if (!paths.length) return;
+
+  for (const rawPath of paths) {
+    const normalizedPath = normalizeRoutePath(rawPath);
+    const normalizedMethod = String(method || "").toUpperCase();
+    const existing = routeRegistry.find(item => item.method === normalizedMethod && item.path === normalizedPath);
+    const entry = {
+      method: normalizedMethod,
+      path: normalizedPath,
+      owner: owner || currentRouteOwner || "unknown",
+      rawPath: String(rawPath)
+    };
+
+    routeRegistry.push(entry);
+
+    if (existing && existing.owner !== entry.owner) {
+      const duplicate = {
+        method: normalizedMethod,
+        path: normalizedPath,
+        firstOwner: existing.owner,
+        secondOwner: entry.owner
+      };
+      duplicateRoutes.push(duplicate);
+      console.warn(`[route-warning] duplicate ${duplicate.method} ${duplicate.path}: ${duplicate.firstOwner} -> ${duplicate.secondOwner}`);
+    }
+  }
+}
+
+function installRouteDiagnostics(expressApp) {
+  const methods = ["get", "post", "put", "patch", "delete", "all"];
+
+  for (const method of methods) {
+    const original = expressApp[method];
+    if (typeof original !== "function") continue;
+
+    expressApp[method] = function patchedRouteMethod(routePath, ...handlers) {
+      // app.get("env") and similar Express setting getters must stay untouched.
+      if (handlers.length > 0) {
+        registerRouteDiagnostic(method, routePath, currentRouteOwner);
+      }
+      return original.call(this, routePath, ...handlers);
+    };
+  }
+}
+
+function readModuleMeta(mod, file) {
+  const meta = mod && typeof mod.MODULE_META === "object" ? mod.MODULE_META : null;
+  const version =
+    (meta && meta.version) ||
+    (mod && mod.MODULE_VERSION) ||
+    (mod && mod.version) ||
+    "unknown";
+
+  const name =
+    (meta && meta.name) ||
+    (mod && mod.moduleName) ||
+    path.basename(file, ".js");
+
+  return {
+    name,
+    version,
+    hasModuleMeta: Boolean(meta),
+    type: meta && meta.type ? meta.type : "unknown",
+    legacy: Boolean(meta && meta.legacy),
+    routesPrefix: meta && meta.routesPrefix ? meta.routesPrefix : null
+  };
+}
+
+function logModuleDiagnostic(file, meta, status, extra = {}) {
+  const entry = {
+    file,
+    name: meta.name,
+    version: meta.version,
+    hasModuleMeta: meta.hasModuleMeta,
+    type: meta.type,
+    legacy: meta.legacy,
+    status,
+    ...extra
+  };
+
+  moduleDiagnostics.push(entry);
+
+  const metaFlag = meta.hasModuleMeta ? "meta=yes" : "meta=no";
+  const legacyFlag = meta.legacy ? " legacy=yes" : "";
+  console.log(`[module] ${status}: ${file} name=${meta.name} version=${meta.version} ${metaFlag}${legacyFlag}`);
+
+  if (!meta.hasModuleMeta) console.warn(`[module-warning] ${file} has no exported MODULE_META`);
+  if (!meta.version || meta.version === "unknown") console.warn(`[module-warning] ${file} has no exported version`);
+  if (meta.legacy) console.warn(`[module-warning] ${file} is marked as legacy but was loaded`);
+}
+
+installRouteDiagnostics(app);
+
 // --------------------------------------------------
 // Basic Express setup
 // --------------------------------------------------
@@ -88,12 +207,19 @@ app.get("/api/_status", (req, res) => {
     ok: true,
     host: "localhost",
     port: PORT,
+    serverVersion: SERVER_VERSION,
+    loaderDiagnosticsVersion: MODULE_LOADER_DIAGNOSTICS_VERSION,
     envLoadedFrom: paths.ENV_FILE,
     rootDir: paths.ROOT_DIR,
     webrootDir: paths.WEBROOT_DIR,
     modulesDir,
     modules: loadedModules,
+    moduleDiagnostics,
     skippedModules: skippedModules,
+    routeDiagnostics: {
+      totalRoutes: routeRegistry.length,
+      duplicateRoutes
+    },
     wsClients: wss.clients.size
   });
 });
@@ -194,7 +320,10 @@ if (fs.existsSync(modulesDir)) {
 
     try {
       const mod = require(path.join(modulesDir, file));
+      const meta = readModuleMeta(mod, file);
+
       if (typeof mod.init === "function") {
+        currentRouteOwner = file;
         mod.init({
           app,
           server,
@@ -203,13 +332,24 @@ if (fs.existsSync(modulesDir)) {
           broadcastWS,
           getLoadedModules: () => [...loadedModules]
         });
+        currentRouteOwner = "server.js";
+
         loadedModules.push(file);
         loadedModuleInstances.push({ file, mod });
-        console.log(`[module] loaded: ${file}`);
+        logModuleDiagnostic(file, meta, "loaded");
+      } else {
+        skippedModules.push({ file, reason: "no_init_export" });
+        logModuleDiagnostic(file, meta, "skipped", { reason: "no_init_export" });
       }
     } catch (err) {
+      currentRouteOwner = "server.js";
+      skippedModules.push({
+        file,
+        reason: "load_failed",
+        error: err && err.message ? err.message : String(err)
+      });
       console.error(`[module] FAILED: ${file}`);
-      console.error(err.message);
+      console.error(err && err.message ? err.message : err);
     }
   });
 }
