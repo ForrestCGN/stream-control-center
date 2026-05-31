@@ -11,14 +11,19 @@
 let routes = null;
 let helperConfig = null;
 let communicationBusModule = null;
+let database = null;
 
 try { routes = require('./helpers/helper_routes'); } catch (_) { routes = null; }
 try { helperConfig = require('./helpers/helper_config'); } catch (_) { helperConfig = null; }
 try { communicationBusModule = require('./communication_bus'); } catch (_) { communicationBusModule = null; }
+try { database = require('../core/database'); } catch (_) { database = null; }
 
 const MODULE = 'overlay_monitor';
-const VERSION = '0.1.3';
-const STATUS_API_VERSION = '1.0.3';
+const VERSION = '0.1.4';
+const STATUS_API_VERSION = '1.0.4';
+
+const ISSUE_TABLE = 'monitoring_issues';
+const ISSUE_SCHEMA_VERSION = 1;
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -57,6 +62,10 @@ const state = {
     statusChanges: 0,
     busErrors: 0,
     consoleLogsSuppressed: 0,
+    issueDbErrors: 0,
+    issuesActivated: 0,
+    issuesResolved: 0,
+    issuesTouched: 0,
     lastError: ''
   }
 };
@@ -153,6 +162,247 @@ function registerGet(app, routePath, handler) {
     return;
   }
   app.get(routePath, handler);
+}
+
+
+function issueDbAvailable() {
+  return !!database && typeof database.ensureReady === 'function';
+}
+
+function ensureIssueSchema() {
+  if (!issueDbAvailable()) return { ok: false, reason: 'database_unavailable' };
+  try {
+    database.ensureReady();
+    database.ensureSchema(MODULE + '_issues', ISSUE_SCHEMA_VERSION, () => {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS ${ISSUE_TABLE} (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          issue_key TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          target_type TEXT NOT NULL,
+          target_name TEXT NOT NULL,
+          severity TEXT NOT NULL,
+          status TEXT NOT NULL,
+          first_seen_at TEXT NOT NULL,
+          last_seen_at TEXT NOT NULL,
+          resolved_at TEXT,
+          seen_count INTEGER NOT NULL DEFAULT 1,
+          message TEXT NOT NULL,
+          resolved_message TEXT,
+          details_json TEXT
+        )
+      `);
+      database.exec(`CREATE INDEX IF NOT EXISTS idx_monitoring_issues_status ON ${ISSUE_TABLE} (status)`);
+      database.exec(`CREATE INDEX IF NOT EXISTS idx_monitoring_issues_key_status ON ${ISSUE_TABLE} (issue_key, status)`);
+      database.exec(`CREATE INDEX IF NOT EXISTS idx_monitoring_issues_scope_status ON ${ISSUE_TABLE} (scope, status)`);
+    });
+    return { ok: true };
+  } catch (err) {
+    state.stats.issueDbErrors += 1;
+    state.stats.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, reason: 'issue_schema_failed', error: state.stats.lastError };
+  }
+}
+
+function encodeIssueDetails(details) {
+  try { return JSON.stringify(details || {}); }
+  catch (_) { return '{}'; }
+}
+
+function decodeIssueDetails(value) {
+  if (!value) return {};
+  try { return JSON.parse(String(value)); }
+  catch (_) { return {}; }
+}
+
+function normalizeIssueRow(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id || 0),
+    issueKey: cleanString(row.issue_key),
+    scope: cleanString(row.scope),
+    targetType: cleanString(row.target_type),
+    targetName: cleanString(row.target_name),
+    severity: cleanString(row.severity),
+    status: cleanString(row.status),
+    firstSeenAt: cleanString(row.first_seen_at),
+    lastSeenAt: cleanString(row.last_seen_at),
+    resolvedAt: cleanString(row.resolved_at),
+    seenCount: Number(row.seen_count || 0),
+    message: cleanString(row.message),
+    resolvedMessage: cleanString(row.resolved_message),
+    details: decodeIssueDetails(row.details_json)
+  };
+}
+
+function listStoredIssues(options = {}) {
+  const schema = ensureIssueSchema();
+  if (!schema.ok) return { ok: false, reason: schema.reason, error: schema.error || '', issues: [], summary: { active: 0, resolved: 0, total: 0 } };
+
+  const status = cleanString(options.status, 'active').toLowerCase();
+  const limit = Math.max(1, Math.min(500, asInt(options.limit, 100)));
+  const params = { limit };
+  let where = '';
+  if (status === 'active' || status === 'resolved') {
+    where = 'WHERE status = :status';
+    params.status = status;
+  }
+
+  try {
+    const rows = database.all(`
+      SELECT *
+      FROM ${ISSUE_TABLE}
+      ${where}
+      ORDER BY
+        CASE WHEN status = 'active' THEN 0 ELSE 1 END ASC,
+        COALESCE(last_seen_at, first_seen_at) DESC,
+        id DESC
+      LIMIT :limit
+    `, params) || [];
+    const counts = database.get(`
+      SELECT
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
+        SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) AS resolved,
+        COUNT(*) AS total
+      FROM ${ISSUE_TABLE}
+    `) || {};
+    return {
+      ok: true,
+      module: MODULE,
+      version: VERSION,
+      table: ISSUE_TABLE,
+      status,
+      issues: rows.map(normalizeIssueRow).filter(Boolean),
+      summary: {
+        active: Number(counts.active || 0),
+        resolved: Number(counts.resolved || 0),
+        total: Number(counts.total || 0)
+      }
+    };
+  } catch (err) {
+    state.stats.issueDbErrors += 1;
+    state.stats.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, reason: 'issue_query_failed', error: state.stats.lastError, issues: [], summary: { active: 0, resolved: 0, total: 0 } };
+  }
+}
+
+function issueFromRuntimeIssue(issue) {
+  const overlayId = cleanString(issue.overlayId || issue.clientId || issue.key, 'overlay');
+  const status = cleanString(issue.status || 'problem').toLowerCase();
+  return {
+    issueKey: cleanString(issue.key || `overlay_${status}_${overlayId.replace(/[^a-zA-Z0-9_.:-]/g, '_')}`),
+    scope: 'overlay_monitor',
+    targetType: 'overlay_client',
+    targetName: overlayId,
+    severity: cleanString(issue.level, status === 'registered' || status === 'stale' ? 'warn' : 'error'),
+    message: cleanString(issue.message, `Overlay ${overlayId}: ${status}`),
+    details: safeJson(issue) || {}
+  };
+}
+
+function touchIssue(runtimeIssue, seenAt) {
+  const schema = ensureIssueSchema();
+  if (!schema.ok) return;
+  const issue = issueFromRuntimeIssue(runtimeIssue);
+  try {
+    const active = database.get(`
+      SELECT id, seen_count
+      FROM ${ISSUE_TABLE}
+      WHERE issue_key = :issueKey AND status = 'active'
+      ORDER BY id DESC
+      LIMIT 1
+    `, { issueKey: issue.issueKey });
+
+    if (active) {
+      database.run(`
+        UPDATE ${ISSUE_TABLE}
+        SET last_seen_at = :lastSeenAt,
+            seen_count = :seenCount,
+            severity = :severity,
+            message = :message,
+            details_json = :detailsJson
+        WHERE id = :id
+      `, {
+        id: active.id,
+        lastSeenAt: seenAt,
+        seenCount: Number(active.seen_count || 0) + 1,
+        severity: issue.severity,
+        message: issue.message,
+        detailsJson: encodeIssueDetails(issue.details)
+      });
+      state.stats.issuesTouched += 1;
+      return;
+    }
+
+    database.run(`
+      INSERT INTO ${ISSUE_TABLE} (
+        issue_key, scope, target_type, target_name, severity, status,
+        first_seen_at, last_seen_at, resolved_at, seen_count,
+        message, resolved_message, details_json
+      ) VALUES (
+        :issueKey, :scope, :targetType, :targetName, :severity, 'active',
+        :firstSeenAt, :lastSeenAt, NULL, 1,
+        :message, '', :detailsJson
+      )
+    `, {
+      issueKey: issue.issueKey,
+      scope: issue.scope,
+      targetType: issue.targetType,
+      targetName: issue.targetName,
+      severity: issue.severity,
+      firstSeenAt: seenAt,
+      lastSeenAt: seenAt,
+      message: issue.message,
+      detailsJson: encodeIssueDetails(issue.details)
+    });
+    state.stats.issuesActivated += 1;
+    pushEvent(issue.severity === 'error' ? 'error' : 'warn', 'monitoring_issue_active', issue.message, { issueKey: issue.issueKey, targetName: issue.targetName });
+  } catch (err) {
+    state.stats.issueDbErrors += 1;
+    state.stats.lastError = err && err.message ? err.message : String(err);
+  }
+}
+
+function resolveInactiveIssues(activeKeys, resolvedAt) {
+  const schema = ensureIssueSchema();
+  if (!schema.ok) return;
+  try {
+    const activeRows = database.all(`
+      SELECT id, issue_key, target_name
+      FROM ${ISSUE_TABLE}
+      WHERE scope = 'overlay_monitor' AND status = 'active'
+    `) || [];
+    for (const row of activeRows) {
+      if (activeKeys.has(row.issue_key)) continue;
+      const resolvedMessage = `Problem behoben: ${row.target_name || row.issue_key}`;
+      database.run(`
+        UPDATE ${ISSUE_TABLE}
+        SET status = 'resolved',
+            resolved_at = :resolvedAt,
+            last_seen_at = :resolvedAt,
+            resolved_message = :resolvedMessage
+        WHERE id = :id
+      `, { id: row.id, resolvedAt, resolvedMessage });
+      state.stats.issuesResolved += 1;
+      pushEvent('info', 'monitoring_issue_resolved', resolvedMessage, { issueKey: row.issue_key, targetName: row.target_name });
+    }
+  } catch (err) {
+    state.stats.issueDbErrors += 1;
+    state.stats.lastError = err && err.message ? err.message : String(err);
+  }
+}
+
+function syncMonitoringIssues(runtimeIssues) {
+  if (!Array.isArray(runtimeIssues)) return;
+  const seenAt = nowIso();
+  const activeKeys = new Set();
+  for (const runtimeIssue of runtimeIssues) {
+    const issue = issueFromRuntimeIssue(runtimeIssue);
+    if (!issue.issueKey) continue;
+    activeKeys.add(issue.issueKey);
+    touchIssue(runtimeIssue, seenAt);
+  }
+  resolveInactiveIssues(activeKeys, seenAt);
 }
 
 function shouldWriteConsole(entry) {
@@ -533,6 +783,7 @@ function scan() {
   publishModuleHeartbeat();
   const status = getOverlayStatus({ limitEvents: 10 });
   processStatusChanges(status);
+  syncMonitoringIssues(status.issues);
   maybePublishStatus(status);
   return status;
 }
@@ -547,6 +798,7 @@ function init({ app }) {
   if (!app) throw new Error(`${MODULE}.init: app fehlt.`);
 
   loadConfig();
+  ensureIssueSchema();
 
   const bus = getBus();
   if (bus && typeof bus.registerModule === 'function' && !busModuleRegistered) {
@@ -572,6 +824,13 @@ function init({ app }) {
     res.json(status);
   });
 
+  registerGet(app, '/api/overlay-monitor/issues', (req, res) => {
+    const status = cleanString(req.query.status || 'all', 'all').toLowerCase();
+    const limit = Math.max(1, Math.min(500, asInt(req.query.limit, 100)));
+    const result = listStoredIssues({ status, limit });
+    res.json(result);
+  });
+
   registerGet(app, '/api/overlay-monitor/events', (req, res) => {
     const limit = Math.max(1, Math.min(100, asInt(req.query.limit, 50)));
     res.json({
@@ -593,6 +852,7 @@ function init({ app }) {
       routes: [
         { method: 'GET', path: '/api/overlay-monitor/status', description: 'Read-only Overlay-Monitor Status aus dem Communication Bus.' },
         { method: 'GET', path: '/api/overlay-monitor/events', description: 'Read-only Statuswechsel/Auffaelligkeiten des Overlay-Monitors.' },
+        { method: 'GET', path: '/api/overlay-monitor/issues', description: 'Persistierte Monitoring-Issues mit active/resolved Status.' },
         { method: 'GET', path: '/api/overlay-monitor/routes', description: 'Routenuebersicht.' }
       ]
     });
@@ -606,5 +866,6 @@ function init({ app }) {
 module.exports = {
   init,
   getOverlayStatus,
-  scan
+  scan,
+  listStoredIssues
 };

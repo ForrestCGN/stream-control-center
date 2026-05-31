@@ -10,6 +10,8 @@
     obsSceneItems: [],
     obsError: '',
     sceneError: '',
+    issueLog: null,
+    issueLogError: '',
     error: '',
     filter: 'all',
     sourceFilter: 'all',
@@ -26,6 +28,7 @@
   const API_OBS_STATUS = '/api/obs/status';
   const API_OBS_BROWSER_SOURCES = '/api/obs/browser-sources';
   const API_OBS_SCENES = '/api/obs/scenes';
+  const API_ISSUES = '/api/overlay-monitor/issues?status=all&limit=150';
   const AUTO_REFRESH_MS = 5000;
 
   function esc(value) {
@@ -524,8 +527,9 @@
 
   function problemCount() {
     const issues = Array.isArray(state.data?.issues) ? state.data.issues.length : 0;
+    const persistedActive = Number(state.issueLog?.summary?.active || 0);
     const counts = sourceCounts();
-    return issues + counts.warning + counts.error;
+    return issues + persistedActive + counts.warning + counts.error;
   }
 
   function renderSummaryCards() {
@@ -562,6 +566,7 @@
         <span>Auswahl: <strong>${esc(selectedSceneName() || '—')}</strong></span>
         <span>Letzter Scan: <strong>${esc(fmtDateTime(state.data?.lastScanAt))}</strong></span>
         <span>Console-Logs unterdrückt: <strong>${esc(state.data?.stats?.consoleLogsSuppressed ?? 0)}</strong></span>
+        <span>Monitoring-Issues: <strong>${esc(state.issueLog?.summary?.active ?? 0)} aktiv / ${esc(state.issueLog?.summary?.resolved ?? 0)} erledigt</strong></span>
       </div>
     `;
   }
@@ -889,30 +894,82 @@
     `;
   }
 
-  function renderIssues() {
-    const issues = Array.isArray(state.data?.issues) ? state.data.issues : [];
-    const sourceProblems = buildSourceRows().filter(row => ['warning', 'error'].includes(row.evaluation.status));
-    if (!issues.length && !sourceProblems.length) return '<div class="ovm-ok-note">Keine Overlay-Probleme gemeldet.</div>';
+  function issueSeverityClass(value) {
+    const s = clean(value).toLowerCase();
+    if (s === 'error' || s === 'bad') return 'bad';
+    if (s === 'warn' || s === 'warning') return 'warn';
+    return 'muted';
+  }
+
+  function renderStoredIssue(issue) {
+    const active = clean(issue.status).toLowerCase() === 'active';
+    const sev = issueSeverityClass(issue.severity);
+    const details = issue.details && typeof issue.details === 'object' ? issue.details : {};
+    const durationText = active
+      ? `aktiv seit ${fmtDateTime(issue.firstSeenAt)}`
+      : `erledigt ${fmtDateTime(issue.resolvedAt)}`;
     return `
-      <div class="ovm-issues">
-        ${sourceProblems.map(row => `
-          <div class="ovm-issue is-${row.evaluation.status === 'warning' ? 'warn' : 'bad'}">
-            <div>
-              <strong>${esc(row.name)}</strong>
-              <span>${esc(row.evaluation.label)} – ${esc(row.evaluation.detail)}</span>
+      <div class="ovm-issue is-${active ? sev : 'muted'}">
+        <div>
+          <strong>${esc(issue.targetName || issue.issueKey || 'Monitoring-Issue')}</strong>
+          <span>${esc(active ? issue.message : (issue.resolvedMessage || issue.message || 'Problem erledigt'))}</span>
+          <small class="ovm-issue-meta">
+            ${esc(durationText)} · zuletzt gesehen ${esc(fmtDateTime(issue.lastSeenAt))} · ${esc(issue.seenCount || 0)}x
+            ${details.status ? ` · Status ${esc(details.status)}` : ''}
+          </small>
+        </div>
+        <span class="ovm-badge is-${active ? sev : 'muted'}">${esc(active ? issue.severity : 'resolved')}</span>
+      </div>
+    `;
+  }
+
+  function renderIssues() {
+    const runtimeIssues = Array.isArray(state.data?.issues) ? state.data.issues : [];
+    const sourceProblems = buildSourceRows().filter(row => ['warning', 'error'].includes(row.evaluation.status));
+    const storedIssues = Array.isArray(state.issueLog?.issues) ? state.issueLog.issues : [];
+    const activeStored = storedIssues.filter(issue => clean(issue.status).toLowerCase() === 'active');
+    const resolvedStored = storedIssues.filter(issue => clean(issue.status).toLowerCase() === 'resolved');
+
+    if (!runtimeIssues.length && !sourceProblems.length && !activeStored.length && !resolvedStored.length && !state.issueLogError) {
+      return '<div class="ovm-ok-note">Keine Overlay-Probleme gemeldet.</div>';
+    }
+
+    return `
+      <div class="ovm-issue-sections">
+        ${state.issueLogError ? `<div class="ovm-error">Monitoring-Issue-Log konnte nicht geladen werden: ${esc(state.issueLogError)}</div>` : ''}
+        <section class="ovm-card compact">
+          <h3>Aktive Monitoring-Issues</h3>
+          ${activeStored.length ? `<div class="ovm-issues">${activeStored.map(renderStoredIssue).join('')}</div>` : '<div class="ovm-ok-note">Keine aktiven gespeicherten Monitoring-Issues.</div>'}
+        </section>
+        <section class="ovm-card compact">
+          <h3>Aktuelle Laufzeit-Hinweise</h3>
+          ${(!runtimeIssues.length && !sourceProblems.length) ? '<div class="ovm-ok-note">Keine aktuellen Laufzeit-Hinweise.</div>' : `
+            <div class="ovm-issues">
+              ${sourceProblems.map(row => `
+                <div class="ovm-issue is-${row.evaluation.status === 'warning' ? 'warn' : 'bad'}">
+                  <div>
+                    <strong>${esc(row.name)}</strong>
+                    <span>${esc(row.evaluation.label)} – ${esc(row.evaluation.detail)}</span>
+                  </div>
+                  <span class="ovm-badge is-${row.evaluation.status === 'warning' ? 'warn' : 'bad'}">Quelle</span>
+                </div>
+              `).join('')}
+              ${runtimeIssues.map(issue => `
+                <div class="ovm-issue is-${issue.level === 'warn' ? 'warn' : 'bad'}">
+                  <div>
+                    <strong>${esc(issue.overlayId || issue.key || 'Overlay')}</strong>
+                    <span>${esc(issue.message || issue.status || 'Problem')}</span>
+                  </div>
+                  <span class="ovm-badge is-${issue.level === 'warn' ? 'warn' : 'bad'}">${esc(issue.status || issue.level || 'problem')}</span>
+                </div>
+              `).join('')}
             </div>
-            <span class="ovm-badge is-${row.evaluation.status === 'warning' ? 'warn' : 'bad'}">Quelle</span>
-          </div>
-        `).join('')}
-        ${issues.map(issue => `
-          <div class="ovm-issue is-${issue.level === 'warn' ? 'warn' : 'bad'}">
-            <div>
-              <strong>${esc(issue.overlayId || issue.key || 'Overlay')}</strong>
-              <span>${esc(issue.message || issue.status || 'Problem')}</span>
-            </div>
-            <span class="ovm-badge is-${issue.level === 'warn' ? 'warn' : 'bad'}">${esc(issue.status || issue.level || 'problem')}</span>
-          </div>
-        `).join('')}
+          `}
+        </section>
+        <section class="ovm-card compact">
+          <h3>Erledigte Monitoring-Issues</h3>
+          ${resolvedStored.length ? `<div class="ovm-issues">${resolvedStored.slice(0, 40).map(renderStoredIssue).join('')}</div>` : '<div class="ovm-muted">Noch keine erledigten Monitoring-Issues.</div>'}
+        </section>
       </div>
     `;
   }
@@ -926,6 +983,8 @@
       obsSceneItems: state.obsSceneItems,
       obsError: state.obsError,
       sceneError: state.sceneError,
+      issueLog: state.issueLog,
+      issueLogError: state.issueLogError,
       evaluatedSources: buildSourceRows()
     };
     return `
@@ -1032,12 +1091,14 @@
     state.error = '';
     state.obsError = '';
     state.sceneError = '';
+    state.issueLogError = '';
     render();
     try {
-      const [monitorResult, obsStatusResult, obsSourcesResult] = await Promise.allSettled([
+      const [monitorResult, obsStatusResult, obsSourcesResult, issueLogResult] = await Promise.allSettled([
         api(API_STATUS),
         api(API_OBS_STATUS),
-        api(API_OBS_BROWSER_SOURCES)
+        api(API_OBS_BROWSER_SOURCES),
+        api(API_ISSUES)
       ]);
 
       if (monitorResult.status === 'fulfilled') {
@@ -1058,6 +1119,13 @@
       } else {
         state.obsSources = [];
         state.obsError = state.obsError || obsSourcesResult.reason?.message || String(obsSourcesResult.reason || 'OBS-Browserquellen konnten nicht geladen werden.');
+      }
+
+      if (issueLogResult.status === 'fulfilled') {
+        state.issueLog = issueLogResult.value;
+      } else {
+        state.issueLog = null;
+        state.issueLogError = issueLogResult.reason?.message || String(issueLogResult.reason || 'Monitoring-Issue-Log konnte nicht geladen werden.');
       }
 
       if (obsConnected()) await loadObsSceneItems();

@@ -227,3 +227,9 @@
 .ovm-source-more[open] summary::before{content:'▾ '}
 .ovm-source-detail.compact{margin-top:6px;padding:8px;border:1px solid rgba(148,163,184,.12);border-radius:12px;background:rgba(2,6,23,.22);grid-template-columns:repeat(2,minmax(0,1fr));display:grid;gap:5px 10px}
 @media(max-width:900px){.ovm-source-row-main{grid-template-columns:1fr}.ovm-source-quick{grid-template-columns:repeat(3,minmax(0,1fr));}.ovm-source-title-line strong{max-width:100%}.ovm-source-detail.compact{grid-template-columns:1fr}}
+
+/* STEP625B persisted monitoring issue log */
+.ovm-issue-sections{display:grid;gap:12px}
+.ovm-card.compact{padding:13px 14px}
+.ovm-card.compact h3{margin:0 0 8px;font-size:15px}
+.ovm-issue-meta{display:block;margin-top:4px;color:var(--ovm-muted);font-size:11px;line-height:1.35}
