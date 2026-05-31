@@ -231,27 +231,42 @@
     return state.obsSceneItems.filter(item => key(item.sourceName) === wanted);
   }
 
-  function sceneItemsForSelectedScene() {
-    const scene = selectedSceneName();
-    if (!scene) return [];
-    return state.obsSceneItems.filter(item => item.sceneName === scene);
+  function sceneItemsForScene(sceneName) {
+    const wanted = key(sceneName);
+    if (!wanted) return [];
+    return state.obsSceneItems.filter(item => key(item.sceneName) === wanted);
   }
 
-  function sourceIsInSelectedScene(src) {
-    const name = key(sourceName(src));
-    if (!name) return false;
-    return sceneItemsForSelectedScene().some(item => key(item.sourceName) === name);
+  function sceneNameSet() {
+    return new Set(state.obsScenes.map(scene => key(scene.sceneName)).filter(Boolean));
+  }
+
+  function browserSourceMap() {
+    const map = new Map();
+    for (const src of state.obsSources) {
+      const nameKey = key(sourceName(src));
+      if (nameKey && !map.has(nameKey)) map.set(nameKey, src);
+    }
+    return map;
+  }
+
+  function sourceIsSceneLike(sourceNameValue) {
+    return sceneNameSet().has(key(sourceNameValue));
+  }
+
+  function sourceIsBrowserLike(sourceNameValue) {
+    return browserSourceMap().has(key(sourceNameValue));
   }
 
   function busClients() {
     return Array.isArray(state.data?.overlays) ? state.data.overlays : [];
   }
 
-  function scoreClientForSource(client, src) {
+  function scoreClientForSource(client, src, extraText = '') {
     const srcName = sourceName(src);
     const url = sourceUrl(src);
     const base = basename(url);
-    const hay = [srcName, url, base].map(key).filter(Boolean).join('|');
+    const hay = [srcName, url, base, extraText].map(key).filter(Boolean).join('|');
     const clientId = key(client.id);
     const module = key(client.module);
     const clientName = key(client.name);
@@ -267,6 +282,7 @@
       ['alert', 'alert'],
       ['alerts', 'alert'],
       ['sound', 'sound'],
+      ['tts', 'tts'],
       ['tts', 'sound'],
       ['death', 'death'],
       ['deathcounter', 'death'],
@@ -283,12 +299,12 @@
     return score;
   }
 
-  function findClientForSource(src) {
+  function findClientForSource(src, pathText = '') {
     const clients = busClients();
     let best = null;
     let bestScore = 0;
     for (const client of clients) {
-      const score = scoreClientForSource(client, src);
+      const score = scoreClientForSource(client, src, pathText);
       if (score > bestScore) {
         best = client;
         bestScore = score;
@@ -299,62 +315,135 @@
 
   function evaluateSource(row) {
     const obsOk = obsConnected();
-    const inObs = true;
-    const inScene = row.inSelectedScene === true || row.scenes.length > 0;
-    const visible = row.visible === true;
+    const visible = row.effectiveVisible === true;
     const client = row.client;
     const busStatus = String(client?.status || '').toLowerCase();
     const connected = client?.connected === true;
 
     if (!obsOk) return { status: 'warning', label: 'OBS offline/unbekannt', detail: 'OBS liefert keine sichere Laufzeitbewertung.' };
-    if (!inObs) return { status: 'error', label: 'OBS-Quelle fehlt', detail: 'Diese Quelle wurde nicht in OBS gefunden.' };
-    if (!inScene) return { status: 'warning', label: 'Nicht eingebunden', detail: 'Browserquelle gefunden, aber in keiner gelesenen Szene.' };
+    if (!row.inSelectedScene) return { status: 'warning', label: 'Nicht in Szene', detail: 'Browserquelle wurde nicht in der ausgewählten Szene oder ihren Unter-Szenen gefunden.' };
 
     if (!visible) {
-      if (connected && (client.hasHeartbeat === true || client.lastHeartbeatAt)) return { status: 'waiting', label: 'Ausgeblendet, Heartbeat aktiv', detail: 'Quelle ist nicht sichtbar. Bus-Client sendet trotzdem echte Heartbeats.' };
-      if (connected) return { status: 'waiting', label: 'Ausgeblendet, nur angemeldet', detail: 'Quelle ist nicht sichtbar. Client ist angemeldet, aber ohne echten Heartbeat.' };
+      if (connected && (client.hasHeartbeat === true || client.lastHeartbeatAt)) return { status: 'waiting', label: 'Bereit / ausgeblendet', detail: 'Quelle ist effektiv nicht sichtbar, der Bus-Client sendet aber echte Heartbeats.' };
+      if (connected) return { status: 'warning', label: 'Ausgeblendet, kein Heartbeat', detail: 'Quelle ist effektiv nicht sichtbar. Client ist angemeldet, aber ohne echten Heartbeat.' };
       return { status: 'waiting', label: 'Ausgeblendet / wartet', detail: 'Für Event-Overlays ist das ein normaler Zustand.' };
     }
 
-    if (!client) return { status: 'warning', label: 'Sichtbar, kein Bus-Client', detail: 'Quelle ist sichtbar, aber kein passender Overlay-Client wurde erkannt.' };
-    if (!(client.hasHeartbeat === true || client.lastHeartbeatAt)) return { status: 'warning', label: 'Sichtbar, nur angemeldet', detail: 'Quelle ist sichtbar, aber es gibt keinen echten bus_heartbeat.' };
-    if (busStatus === 'online') return { status: 'ok', label: 'Sichtbar + Heartbeat', detail: 'OBS-Quelle ist sichtbar und der Bus-Client sendet echte Heartbeats.' };
+    if (!client) return { status: 'warning', label: 'Sichtbar, kein Bus-Client', detail: 'Quelle ist effektiv sichtbar, aber kein passender Overlay-Client wurde erkannt.' };
+    if (!(client.hasHeartbeat === true || client.lastHeartbeatAt)) return { status: 'warning', label: 'Sichtbar, kein Heartbeat', detail: 'Quelle ist effektiv sichtbar, aber es gibt keinen echten bus_heartbeat.' };
+    if (busStatus === 'online') return { status: 'ok', label: 'Sichtbar + Heartbeat', detail: 'OBS-Quelle ist effektiv sichtbar und der Bus-Client sendet echte Heartbeats.' };
     if (busStatus === 'stale') return { status: 'warning', label: 'Sichtbar, Heartbeat stale', detail: 'Quelle ist sichtbar, aber der letzte Heartbeat ist zu alt.' };
     return { status: 'error', label: `Sichtbar, Bus ${busStatus || 'unbekannt'}`, detail: 'Quelle ist sichtbar, aber der Overlay-Client wirkt nicht bereit.' };
   }
 
+  function buildNestedSourceRowsForScene(sceneName) {
+    const sourceMap = browserSourceMap();
+    const sceneSet = sceneNameSet();
+    const rows = [];
+    const maxDepth = 10;
+
+    function walk(currentSceneName, parentEffectiveVisible, pathParts, visited, depth) {
+      const currentKey = key(currentSceneName);
+      if (!currentKey || visited.has(currentKey) || depth > maxDepth) return;
+      const nextVisited = new Set(visited);
+      nextVisited.add(currentKey);
+
+      const items = sceneItemsForScene(currentSceneName);
+      for (const item of items) {
+        const itemName = clean(item.sourceName);
+        if (!itemName) continue;
+        const directVisible = item.enabled === true;
+        const effectiveVisible = parentEffectiveVisible && directVisible;
+        const itemKey = key(itemName);
+        const nextPath = [...pathParts, itemName];
+
+        if (sourceMap.has(itemKey)) {
+          const src = sourceMap.get(itemKey);
+          const pathText = nextPath.join(' → ');
+          const match = findClientForSource(src, pathText);
+          const row = {
+            raw: src,
+            name: sourceName(src),
+            kind: clean(src.inputKind || src.unversionedInputKind || src.kind || 'browser_source'),
+            url: sourceUrl(src),
+            local: src.is_local_file === true || !!src.local_file,
+            width: src.width || '—',
+            height: src.height || '—',
+            fps: src.fps || '—',
+            selectedScene: sceneName,
+            sceneName: currentSceneName,
+            scenes: findScenesForSource(src),
+            selectedItems: [item],
+            visible: effectiveVisible,
+            directVisible,
+            parentVisible: parentEffectiveVisible,
+            effectiveVisible,
+            inSelectedScene: true,
+            nested: pathParts.length > 1,
+            depth,
+            path: nextPath,
+            pathText,
+            containerPath: pathParts.join(' → '),
+            client: match.client,
+            matchScore: match.score
+          };
+          row.evaluation = evaluateSource(row);
+          rows.push(row);
+          continue;
+        }
+
+        if (sceneSet.has(itemKey)) {
+          walk(itemName, effectiveVisible, nextPath, nextVisited, depth + 1);
+        }
+      }
+    }
+
+    if (sceneName) walk(sceneName, true, [sceneName], new Set(), 0);
+
+    return rows;
+  }
+
   function buildSourceRows() {
     const selectedScene = selectedSceneName();
-    return state.obsSources
-      .filter(src => !selectedScene || sourceIsInSelectedScene(src))
-      .map(src => {
-        const scenes = findScenesForSource(src);
-        const selectedItems = selectedScene ? scenes.filter(item => item.sceneName === selectedScene) : scenes;
-        const match = findClientForSource(src);
-        const row = {
-          raw: src,
-          name: sourceName(src),
-          kind: clean(src.inputKind || src.unversionedInputKind || src.kind || 'browser_source'),
-          url: sourceUrl(src),
-          local: src.is_local_file === true || !!src.local_file,
-          width: src.width || '—',
-          height: src.height || '—',
-          fps: src.fps || '—',
-          selectedScene,
-          scenes,
-          selectedItems,
-          visible: selectedItems.some(item => item.enabled === true),
-          inSelectedScene: selectedItems.length > 0,
-          client: match.client,
-          matchScore: match.score
-        };
-        row.evaluation = evaluateSource(row);
-        return row;
-      })
-      .sort((a, b) => {
-        if (a.visible !== b.visible) return a.visible ? -1 : 1;
+    const nestedRows = buildNestedSourceRowsForScene(selectedScene);
+    if (nestedRows.length > 0 || selectedScene) {
+      return nestedRows.sort((a, b) => {
+        if (a.effectiveVisible !== b.effectiveVisible) return a.effectiveVisible ? -1 : 1;
+        if ((a.depth || 0) !== (b.depth || 0)) return (a.depth || 0) - (b.depth || 0);
         return a.name.localeCompare(b.name);
       });
+    }
+
+    return state.obsSources.map(src => {
+      const match = findClientForSource(src, '');
+      const row = {
+        raw: src,
+        name: sourceName(src),
+        kind: clean(src.inputKind || src.unversionedInputKind || src.kind || 'browser_source'),
+        url: sourceUrl(src),
+        local: src.is_local_file === true || !!src.local_file,
+        width: src.width || '—',
+        height: src.height || '—',
+        fps: src.fps || '—',
+        selectedScene: '',
+        scenes: findScenesForSource(src),
+        selectedItems: [],
+        visible: false,
+        directVisible: false,
+        parentVisible: true,
+        effectiveVisible: false,
+        inSelectedScene: false,
+        nested: false,
+        depth: 0,
+        path: [],
+        pathText: '',
+        containerPath: '',
+        client: match.client,
+        matchScore: match.score
+      };
+      row.evaluation = evaluateSource(row);
+      return row;
+    });
   }
 
   function filteredSourceRows() {
@@ -469,7 +558,7 @@
             </select>
           </label>
         </div>
-        <div class="ovm-scene-hint">Gezeigt werden alle Browser-/Overlayquellen der ausgewählten Szene. Sichtbare Quellen stehen oben.</div>
+        <div class="ovm-scene-hint">Gezeigt werden alle Browser-/Overlayquellen der ausgewählten Szene inklusive eingebundener Unter-Szenen. Sichtbare Quellen stehen oben.</div>
       </section>
     `;
   }
@@ -534,7 +623,7 @@
           <div class="ovm-status-box is-${counts.error ? 'bad' : (counts.warning ? 'warn' : 'ok')}">
             <span>Overlay-Quellen</span>
             <strong>${esc(counts.total)} in Szene</strong>
-            <small>${esc(counts.visible)} sichtbar, ${esc(counts.hidden)} ausgeblendet · ${esc(selectedSceneName() || 'keine Szene')}, ${esc(counts.warning + counts.error)} mit Warnung/Fehler.</small>
+            <small>${esc(counts.visible)} effektiv sichtbar, ${esc(counts.hidden)} ausgeblendet · ${esc(selectedSceneName() || 'keine Szene')}, ${esc(counts.warning + counts.error)} mit Warnung/Fehler.</small>
           </div>
           <div class="ovm-status-box is-${obsOk ? 'ok' : 'warn'}">
             <span>OBS-Verbindung</span>
@@ -585,13 +674,16 @@
               <div class="ovm-source-facts">
                 <span>OBS: <strong>gefunden</strong></span>
                 <span>Sichtbar: ${row.visible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
-                <span>Szenen: <strong>${esc(row.scenes.length)}</strong></span>
+                <span>Direkt sichtbar: ${row.directVisible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
+                <span>Effektiv sichtbar: ${row.effectiveVisible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
                 <span>Bus: <strong>${esc(client ? (client.status || 'verbunden') : 'nicht erkannt')}</strong></span>
                 <span>Heartbeat: <strong>${esc(client ? heartbeatLabel(client) : '—')}</strong></span>
               </div>
               <div class="ovm-source-detail">
                 <span>${esc(ev.detail)}</span>
-                <span>Ausgewählte Szene: ${esc(row.selectedScene || '—')} · ${row.visible ? 'sichtbar' : 'ausgeblendet'}</span><span>Alle Szenen: ${esc(scenes)}</span>
+                <span>Pfad: ${esc(row.pathText || row.selectedScene || '—')}</span>
+                <span>Container: ${esc(row.containerPath || '—')}</span>
+                <span>Aktive Bewertung: ${row.effectiveVisible ? 'effektiv sichtbar' : 'effektiv ausgeblendet'}</span><span>Alle direkten Szenen: ${esc(scenes)}</span>
                 <span>Bus-Client: ${client ? esc(client.id) : '<span class="ovm-muted">—</span>'}</span>
                 <span>Letzter Hello: ${client ? esc(fmtTime(client.lastHelloAt)) : '<span class="ovm-muted">—</span>'}</span>
                 <span>Letzter Heartbeat: ${client && client.lastHeartbeatAt ? esc(fmtTime(client.lastHeartbeatAt)) : '<span class="ovm-muted">kein echter Heartbeat</span>'}</span>
