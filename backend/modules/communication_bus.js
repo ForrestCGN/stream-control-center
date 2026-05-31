@@ -17,10 +17,10 @@ const database = require('../core/database');
 
 const MODULE_META = {
   name: 'communication_bus',
-  version: '0.8.2',
+  version: '0.8.3',
   coreName: 'communication_core',
   coreVersion: '0.3.0',
-  description: 'Communication Bus API, WebSocket client registration, controlled replay, watchdog diagnostics, alert mirror tests and real alert mirror transport and shared bus access'
+  description: 'Communication Bus API with separated hello and heartbeat metadata for overlay monitoring'
 };
 
 const DEFAULT_CONFIG = {
@@ -158,6 +158,7 @@ function sendWsJson(ws, payload) {
 function normalizeHelloPayload(data = {}) {
   const clientId = cleanString(data.clientId || data.id || data.name || data.client?.id, 'ws_client');
   const clientType = cleanString(data.clientType || data.typeName || data.client?.type, 'unknown');
+  const incomingMeta = data.meta && typeof data.meta === 'object' ? data.meta : {};
   return {
     id: clientId,
     clientId,
@@ -169,8 +170,10 @@ function normalizeHelloPayload(data = {}) {
     version: cleanString(data.version || data.client?.version, ''),
     capabilities: toArray(data.capabilities || data.client?.capabilities),
     meta: {
+      ...incomingMeta,
       via: 'websocket',
-      helloType: cleanString(data.type, 'hello')
+      helloType: cleanString(data.type, 'hello'),
+      lastHelloPayloadAt: new Date().toISOString()
     }
   };
 }
@@ -202,9 +205,14 @@ function handleHeartbeat(ws, data) {
   const result = currentBus.heartbeat(clientId, {
     id: clientId,
     type: cleanString(data.clientType || data.typeName || ''),
+    mode: cleanString(data.mode || ''),
+    hostId: cleanString(data.hostId || data.host_id || ''),
     module: cleanString(data.module || ''),
+    name: cleanString(data.name || ''),
     capabilities: Array.isArray(data.capabilities) ? data.capabilities : undefined,
-    version: cleanString(data.version || '')
+    version: cleanString(data.version || ''),
+    lastError: cleanString(data.lastError || ''),
+    meta: data.meta && typeof data.meta === 'object' ? data.meta : {}
   });
 
   sendWsJson(ws, {

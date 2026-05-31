@@ -79,7 +79,7 @@
     const s = String(status || 'unknown').toLowerCase();
     if (s === 'online' || s === 'ok' || s === 'connected' || s === 'ready') return 'ok';
     if (s === 'waiting' || s === 'hidden' || s === 'standby' || s === 'inactive') return 'muted';
-    if (s === 'stale' || s === 'warning' || s === 'warn' || s === 'needs_attention') return 'warn';
+    if (s === 'registered' || s === 'no_heartbeat' || s === 'no-heartbeat' || s === 'stale' || s === 'warning' || s === 'warn' || s === 'needs_attention') return 'warn';
     if (s === 'offline' || s === 'dead' || s === 'error' || s === 'bad' || s === 'disconnected') return 'bad';
     return 'muted';
   }
@@ -117,7 +117,14 @@
   }
 
   function lastContact(overlay) {
-    return overlay.lastHeartbeatAt || overlay.lastSeenAt || overlay.connectedAt || overlay.registeredAt || '';
+    return overlay.lastHeartbeatAt || overlay.lastHelloAt || overlay.lastSeenAt || overlay.connectedAt || overlay.registeredAt || '';
+  }
+
+  function heartbeatLabel(client) {
+    if (!client) return 'kein Client';
+    if (client.hasHeartbeat === true || client.lastHeartbeatAt) return `Heartbeat ${fmtAge(client.heartbeatAgeSeconds ?? client.ageSeconds)}`;
+    if (client.connected === true) return 'nur angemeldet';
+    return 'kein Heartbeat';
   }
 
   function obsConnected() {
@@ -262,13 +269,15 @@
     if (!inScene) return { status: 'warning', label: 'Nicht eingebunden', detail: 'Browserquelle gefunden, aber in keiner gelesenen Szene.' };
 
     if (!visible) {
-      if (connected && busStatus === 'online') return { status: 'waiting', label: 'Ausgeblendet, Bus aktiv', detail: 'Quelle ist nicht sichtbar. Bus-Client lebt trotzdem.' };
+      if (connected && (client.hasHeartbeat === true || client.lastHeartbeatAt)) return { status: 'waiting', label: 'Ausgeblendet, Heartbeat aktiv', detail: 'Quelle ist nicht sichtbar. Bus-Client sendet trotzdem echte Heartbeats.' };
+      if (connected) return { status: 'waiting', label: 'Ausgeblendet, nur angemeldet', detail: 'Quelle ist nicht sichtbar. Client ist angemeldet, aber ohne echten Heartbeat.' };
       return { status: 'waiting', label: 'Ausgeblendet / wartet', detail: 'Für Event-Overlays ist das ein normaler Zustand.' };
     }
 
     if (!client) return { status: 'warning', label: 'Sichtbar, kein Bus-Client', detail: 'Quelle ist sichtbar, aber kein passender Overlay-Client wurde erkannt.' };
-    if (busStatus === 'online') return { status: 'ok', label: 'Sichtbar + verbunden', detail: 'OBS-Quelle ist sichtbar und der Bus-Client meldet sich.' };
-    if (busStatus === 'stale') return { status: 'warning', label: 'Sichtbar, Heartbeat stale', detail: 'Quelle ist sichtbar, aber der letzte Kontakt ist zu alt.' };
+    if (!(client.hasHeartbeat === true || client.lastHeartbeatAt)) return { status: 'warning', label: 'Sichtbar, nur angemeldet', detail: 'Quelle ist sichtbar, aber es gibt keinen echten bus_heartbeat.' };
+    if (busStatus === 'online') return { status: 'ok', label: 'Sichtbar + Heartbeat', detail: 'OBS-Quelle ist sichtbar und der Bus-Client sendet echte Heartbeats.' };
+    if (busStatus === 'stale') return { status: 'warning', label: 'Sichtbar, Heartbeat stale', detail: 'Quelle ist sichtbar, aber der letzte Heartbeat ist zu alt.' };
     return { status: 'error', label: `Sichtbar, Bus ${busStatus || 'unbekannt'}`, detail: 'Quelle ist sichtbar, aber der Overlay-Client wirkt nicht bereit.' };
   }
 
@@ -342,7 +351,8 @@
       ['Sichtbar', counts.visible, counts.visible ? 'ok' : 'muted'],
       ['Wartend', counts.waiting + counts.hidden, 'muted'],
       ['Warnung/Fehler', counts.warning + counts.error, counts.error ? 'bad' : (counts.warning ? 'warn' : 'ok')],
-      ['Bus online', s.online ?? 0, 'ok'],
+      ['Echte Heartbeats', s.withHeartbeat ?? 0, (s.withHeartbeat ?? 0) ? 'ok' : 'warn'],
+      ['Nur angemeldet', s.registered ?? s.withoutHeartbeat ?? 0, (s.registered ?? s.withoutHeartbeat ?? 0) ? 'warn' : 'ok'],
       ['OBS', obsOk ? 'verbunden' : 'offline', obsOk ? 'ok' : 'warn']
     ];
 
@@ -386,6 +396,7 @@
     const filters = [
       ['all', 'Alle'],
       ['online', 'Online'],
+      ['registered', 'Nur angemeldet'],
       ['stale', 'Stale'],
       ['offline', 'Offline'],
       ['dead', 'Dead'],
@@ -460,7 +471,7 @@
         <h3>Wichtig für Event-Overlays</h3>
         <div class="ovm-next-grid">
           <div><strong>Ausgeblendet ist nicht kaputt</strong><span>Sound, VIP, Alerts oder Deathcounter können warten, bis ein Event kommt.</span></div>
-          <div><strong>Sichtbar + kein Bus</strong><span>Das ist der wichtigste Warnfall: Quelle ist in OBS aktiv, meldet sich aber nicht passend.</span></div>
+          <div><strong>Sichtbar + kein Heartbeat</strong><span>Wichtigster Warnfall: Quelle ist in OBS aktiv, aber der Client sendet kein echtes Lebenszeichen.</span></div>
           <div><strong>Reparatur folgt später</strong><span>Cache neu laden und Quelle aus/ein kommt im nächsten Step als manuelle Aktion.</span></div>
         </div>
       </section>
@@ -493,12 +504,14 @@
                 <span>Sichtbar: ${row.visible ? '<strong>ja</strong>' : '<strong>nein</strong>'}</span>
                 <span>Szenen: <strong>${esc(row.scenes.length)}</strong></span>
                 <span>Bus: <strong>${esc(client ? (client.status || 'verbunden') : 'nicht erkannt')}</strong></span>
+                <span>Heartbeat: <strong>${esc(client ? heartbeatLabel(client) : '—')}</strong></span>
               </div>
               <div class="ovm-source-detail">
                 <span>${esc(ev.detail)}</span>
                 <span>Szene: ${esc(scenes)}</span>
                 <span>Bus-Client: ${client ? esc(client.id) : '<span class="ovm-muted">—</span>'}</span>
-                <span>Letzter Kontakt: ${client ? esc(fmtAge(client.ageSeconds)) : '<span class="ovm-muted">—</span>'}</span>
+                <span>Letzter Hello: ${client ? esc(fmtTime(client.lastHelloAt)) : '<span class="ovm-muted">—</span>'}</span>
+                <span>Letzter Heartbeat: ${client && client.lastHeartbeatAt ? esc(fmtTime(client.lastHeartbeatAt)) : '<span class="ovm-muted">kein echter Heartbeat</span>'}</span>
               </div>
             </article>
           `;
@@ -527,6 +540,7 @@
               <th>Overlay</th>
               <th>Status</th>
               <th>Verbunden</th>
+              <th>Hello</th>
               <th>Heartbeat</th>
               <th>Letzter Kontakt</th>
               <th>Modul / Version</th>
@@ -548,7 +562,8 @@
                   </td>
                   <td><span class="ovm-badge is-${statusClass(status)}">${esc(status)}</span></td>
                   <td>${overlay.connected ? '<span class="ovm-badge is-ok">ja</span>' : '<span class="ovm-badge is-muted">nein</span>'}</td>
-                  <td><strong>${esc(fmtTime(overlay.lastHeartbeatAt))}</strong><small>${esc(fmtAge(overlay.ageSeconds))}</small></td>
+                  <td><strong>${esc(fmtTime(overlay.lastHelloAt))}</strong><small>${esc(fmtAge(overlay.helloAgeSeconds))}</small></td>
+                  <td>${overlay.hasHeartbeat ? `<strong>${esc(fmtTime(overlay.lastHeartbeatAt))}</strong><small>${esc(fmtAge(overlay.heartbeatAgeSeconds))} · ${esc(overlay.heartbeatCount || 0)}x</small>` : '<span class="ovm-badge is-warn">kein echter Heartbeat</span>'}</td>
                   <td>${esc(fmtDateTime(lastContact(overlay)))}</td>
                   <td><strong>${esc(overlay.module || '—')}</strong><small>${esc(overlay.version || '—')}</small></td>
                   <td>${caps.length ? caps.map(cap => `<span class="ovm-chip">${esc(cap)}</span>`).join('') : '<span class="ovm-muted">—</span>'}</td>
@@ -697,7 +712,7 @@
           <div>
             <span class="ovm-kicker">Control / Overlays</span>
             <h2>Overlay-Monitor</h2>
-            <p>Read-only Quellenstatus: OBS-Sichtbarkeit, Browserquelle und passender Bus-Client werden zusammen bewertet. Reparaturaktionen folgen im nächsten Step.</p>
+            <p>Read-only Quellenstatus: OBS-Sichtbarkeit, Browserquelle, Bus-Anmeldung und echter Heartbeat werden getrennt bewertet. Reparaturaktionen folgen im nächsten Step.</p>
           </div>
           <div class="ovm-head-meta">
             <span>Stand: ${esc(fmtDateTime(state.lastLoadedAt || state.data?.fetchedAt))}</span>

@@ -17,8 +17,8 @@ try { helperConfig = require('./helpers/helper_config'); } catch (_) { helperCon
 try { communicationBusModule = require('./communication_bus'); } catch (_) { communicationBusModule = null; }
 
 const MODULE = 'overlay_monitor';
-const VERSION = '0.1.2';
-const STATUS_API_VERSION = '1.0.2';
+const VERSION = '0.1.3';
+const STATUS_API_VERSION = '1.0.3';
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -226,6 +226,7 @@ function parseTimeMs(value) {
 function getClientLastSeenMs(client) {
   return Math.max(
     parseTimeMs(client.lastHeartbeatAt),
+    parseTimeMs(client.lastHelloAt),
     parseTimeMs(client.lastSeenAt),
     parseTimeMs(client.connectedAt),
     parseTimeMs(client.registeredAt)
@@ -233,15 +234,21 @@ function getClientLastSeenMs(client) {
 }
 
 function deriveOverlayStatus(client, currentMs) {
+  const heartbeatMs = parseTimeMs(client.lastHeartbeatAt);
+  const helloMs = parseTimeMs(client.lastHelloAt);
   const lastMs = getClientLastSeenMs(client);
-  const ageMs = lastMs > 0 ? currentMs - lastMs : Number.MAX_SAFE_INTEGER;
+  const ageMs = heartbeatMs > 0 ? currentMs - heartbeatMs : (lastMs > 0 ? currentMs - lastMs : Number.MAX_SAFE_INTEGER);
+  const heartbeatAgeMs = heartbeatMs > 0 ? currentMs - heartbeatMs : null;
+  const helloAgeMs = helloMs > 0 ? currentMs - helloMs : null;
   const connected = client.connected === true;
+  const hasHeartbeat = heartbeatMs > 0;
 
-  if (ageMs >= config.thresholds.deadAfterMs) return { status: 'dead', ageMs, lastMs };
-  if (!connected) return { status: 'offline', ageMs, lastMs };
-  if (ageMs >= config.thresholds.offlineAfterMs) return { status: 'offline', ageMs, lastMs };
-  if (ageMs >= config.thresholds.staleAfterMs) return { status: 'stale', ageMs, lastMs };
-  return { status: 'online', ageMs, lastMs };
+  if (!connected) return { status: 'offline', ageMs, heartbeatAgeMs, helloAgeMs, lastMs, heartbeatMs, helloMs, hasHeartbeat };
+  if (!hasHeartbeat) return { status: 'registered', ageMs, heartbeatAgeMs, helloAgeMs, lastMs, heartbeatMs, helloMs, hasHeartbeat };
+  if (heartbeatAgeMs >= config.thresholds.deadAfterMs) return { status: 'dead', ageMs, heartbeatAgeMs, helloAgeMs, lastMs, heartbeatMs, helloMs, hasHeartbeat };
+  if (heartbeatAgeMs >= config.thresholds.offlineAfterMs) return { status: 'offline', ageMs, heartbeatAgeMs, helloAgeMs, lastMs, heartbeatMs, helloMs, hasHeartbeat };
+  if (heartbeatAgeMs >= config.thresholds.staleAfterMs) return { status: 'stale', ageMs, heartbeatAgeMs, helloAgeMs, lastMs, heartbeatMs, helloMs, hasHeartbeat };
+  return { status: 'online', ageMs, heartbeatAgeMs, helloAgeMs, lastMs, heartbeatMs, helloMs, hasHeartbeat };
 }
 
 function isOverlayClient(client) {
@@ -257,6 +264,8 @@ function isOverlayClient(client) {
 function normalizeOverlayClient(client, currentMs) {
   const derived = deriveOverlayStatus(client, currentMs);
   const ageSeconds = Number.isFinite(derived.ageMs) ? Math.max(0, Math.round(derived.ageMs / 1000)) : null;
+  const heartbeatAgeSeconds = Number.isFinite(derived.heartbeatAgeMs) ? Math.max(0, Math.round(derived.heartbeatAgeMs / 1000)) : null;
+  const helloAgeSeconds = Number.isFinite(derived.helloAgeMs) ? Math.max(0, Math.round(derived.helloAgeMs / 1000)) : null;
 
   return {
     id: cleanString(client.id),
@@ -272,9 +281,16 @@ function normalizeOverlayClient(client, currentMs) {
     status: derived.status,
     ageMs: Number.isFinite(derived.ageMs) ? derived.ageMs : null,
     ageSeconds,
+    hasHeartbeat: derived.hasHeartbeat === true,
+    heartbeatAgeMs: Number.isFinite(derived.heartbeatAgeMs) ? derived.heartbeatAgeMs : null,
+    heartbeatAgeSeconds,
+    helloAgeMs: Number.isFinite(derived.helloAgeMs) ? derived.helloAgeMs : null,
+    helloAgeSeconds,
+    heartbeatCount: Number.isFinite(Number(client.heartbeatCount)) ? Number(client.heartbeatCount) : 0,
     registeredAt: cleanString(client.registeredAt),
     connectedAt: cleanString(client.connectedAt),
     disconnectedAt: cleanString(client.disconnectedAt),
+    lastHelloAt: cleanString(client.lastHelloAt),
     lastHeartbeatAt: cleanString(client.lastHeartbeatAt),
     lastSeenAt: cleanString(client.lastSeenAt),
     lastAckAt: cleanString(client.lastAckAt),
@@ -288,9 +304,12 @@ function buildSummary(overlays) {
   const summary = {
     total: overlays.length,
     online: 0,
+    registered: 0,
     stale: 0,
     offline: 0,
     dead: 0,
+    withHeartbeat: 0,
+    withoutHeartbeat: 0,
     connected: 0,
     disconnected: 0,
     withErrors: 0
@@ -300,10 +319,12 @@ function buildSummary(overlays) {
     if (Object.prototype.hasOwnProperty.call(summary, overlay.status)) summary[overlay.status] += 1;
     if (overlay.connected) summary.connected += 1;
     else summary.disconnected += 1;
+    if (overlay.hasHeartbeat) summary.withHeartbeat += 1;
+    else summary.withoutHeartbeat += 1;
     if (overlay.lastErrorAt || overlay.disconnectReason) summary.withErrors += 1;
   }
 
-  summary.status = summary.dead > 0 || summary.offline > 0 ? 'error' : (summary.stale > 0 || summary.withErrors > 0 ? 'warning' : 'ok');
+  summary.status = summary.dead > 0 || summary.offline > 0 ? 'error' : (summary.stale > 0 || summary.withoutHeartbeat > 0 || summary.withErrors > 0 ? 'warning' : 'ok');
   return summary;
 }
 
@@ -311,14 +332,16 @@ function buildIssues(overlays) {
   const issues = [];
   for (const overlay of overlays) {
     if (overlay.status === 'online') continue;
-    const level = overlay.status === 'stale' ? 'warn' : 'error';
+    const level = overlay.status === 'stale' || overlay.status === 'registered' ? 'warn' : 'error';
     issues.push({
       key: `overlay_${overlay.status}_${overlay.id.replace(/[^a-zA-Z0-9_.:-]/g, '_')}`,
       level,
       overlayId: overlay.id,
       status: overlay.status,
-      message: `Overlay ${overlay.id} ist ${overlay.status}.`,
+      message: overlay.status === 'registered' ? `Overlay ${overlay.id} ist nur angemeldet, aber ohne echten Heartbeat.` : `Overlay ${overlay.id} ist ${overlay.status}.`,
       ageSeconds: overlay.ageSeconds,
+      hasHeartbeat: overlay.hasHeartbeat,
+      lastHelloAt: overlay.lastHelloAt,
       lastHeartbeatAt: overlay.lastHeartbeatAt,
       connected: overlay.connected,
       disconnectReason: overlay.disconnectReason

@@ -21,11 +21,11 @@ const core = require('./helper_core');
 
 const MODULE_META = {
   name: 'helper_communication',
-  version: '0.4.0',
+  version: '0.4.1',
   build: 'STEP488',
   coreName: 'communication_core',
-  coreVersion: '0.4.0',
-  description: 'Communication Bus helper core with backend module contract and in-process subscriptions'
+  coreVersion: '0.4.1',
+  description: 'Communication Bus helper core with separated hello and heartbeat timestamps'
 };
 
 const DEFAULT_CONFIG = {
@@ -198,7 +198,10 @@ function publicClient(client) {
     registeredAt: client.registeredAt,
     connectedAt: client.connectedAt,
     disconnectedAt: client.disconnectedAt,
-    lastHeartbeatAt: client.lastHeartbeatAt,
+    lastHelloAt: client.lastHelloAt || '',
+    lastHeartbeatAt: client.lastHeartbeatAt || '',
+    hasHeartbeat: !!client.lastHeartbeatAt,
+    heartbeatCount: Number.isFinite(Number(client.heartbeatCount)) ? Number(client.heartbeatCount) : 0,
     lastSeenAt: client.lastSeenAt,
     lastAckAt: client.lastAckAt,
     lastErrorAt: client.lastErrorAt,
@@ -432,7 +435,9 @@ function createCommunicationBus(options = {}) {
       registeredAt: existing ? existing.registeredAt : nowIso(),
       connectedAt: nowIso(),
       disconnectedAt: '',
-      lastHeartbeatAt: nowIso(),
+      lastHelloAt: nowIso(),
+      lastHeartbeatAt: existing ? existing.lastHeartbeatAt || '' : '',
+      heartbeatCount: existing ? Number(existing.heartbeatCount || 0) : 0,
       lastSeenAt: nowIso(),
       lastAckAt: existing ? existing.lastAckAt || '' : '',
       lastErrorAt: existing ? existing.lastErrorAt || '' : '',
@@ -582,10 +587,17 @@ function createCommunicationBus(options = {}) {
     client.status = 'online';
     client.lastHeartbeatAt = nowIso();
     client.lastSeenAt = nowIso();
+    client.heartbeatCount = Number(client.heartbeatCount || 0) + 1;
 
+    if (payload.type) client.type = cleanString(payload.type, client.type);
+    if (payload.mode) client.mode = cleanString(payload.mode, client.mode);
+    if (payload.hostId) client.hostId = cleanString(payload.hostId, client.hostId);
+    if (payload.name) client.name = cleanString(payload.name, client.name);
     if (Array.isArray(payload.capabilities)) client.capabilities = toArray(payload.capabilities);
     if (payload.version) client.version = cleanString(payload.version);
     if (payload.module) client.module = cleanString(payload.module);
+    if (payload.lastError) client.disconnectReason = cleanString(payload.lastError, client.disconnectReason || '');
+    if (isPlainObject(payload.meta)) client.meta = { ...(client.meta || {}), ...(safeJson(payload.meta) || {}) };
 
     return { ok: true, client: publicClient(client) };
   }
