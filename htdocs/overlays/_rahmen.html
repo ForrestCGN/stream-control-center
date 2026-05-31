@@ -9,11 +9,10 @@
       --frame-width: 778px;
       --frame-height: 436px;
       --radius: 24px;
-      --line: 4px;
+      --line: 6px;
       --neon-purple: #a855f7;
       --neon-blue: #38bdf8;
       --neon-cyan: #22d3ee;
-      --edge-white: rgba(255, 255, 255, 0.86);
     }
 
     * {
@@ -43,11 +42,11 @@
       isolation: isolate;
       pointer-events: none;
       filter:
-        drop-shadow(0 0 7px rgba(168, 85, 247, 0.72))
-        drop-shadow(0 0 14px rgba(56, 189, 248, 0.34));
+        drop-shadow(0 0 8px rgba(168, 85, 247, 0.72))
+        drop-shadow(0 0 16px rgba(56, 189, 248, 0.34));
     }
 
-    /* Hauptkante: schlicht, ohne Panel-Deko. Etwas kräftiger als die Deathcounter-Linie. */
+    /* Gleichmäßige Hauptkante: überall dieselbe Stärke, keine extra Unterkante. */
     #frame-container::before {
       content: "";
       position: absolute;
@@ -56,11 +55,11 @@
       padding: var(--line);
       background:
         linear-gradient(135deg,
-          rgba(168, 85, 247, 0.96) 0%,
-          rgba(132, 92, 246, 0.92) 22%,
-          rgba(56, 189, 248, 0.88) 48%,
-          rgba(34, 211, 238, 0.88) 72%,
-          rgba(168, 85, 247, 0.96) 100%);
+          rgba(168, 85, 247, 0.98) 0%,
+          rgba(132, 92, 246, 0.94) 23%,
+          rgba(56, 189, 248, 0.90) 50%,
+          rgba(34, 211, 238, 0.90) 73%,
+          rgba(168, 85, 247, 0.98) 100%);
       -webkit-mask:
         linear-gradient(#fff 0 0) content-box,
         linear-gradient(#fff 0 0);
@@ -70,13 +69,13 @@
       z-index: 3;
     }
 
-    /* Dezente helle Innenkante für mehr Lesbarkeit auf dunklem und hellem Content. */
+    /* Dezente helle Innenkante für saubere Abgrenzung auf dunklem und hellem Content. */
     #frame-container::after {
       content: "";
       position: absolute;
-      inset: 6px;
-      border-radius: calc(var(--radius) - 6px);
-      border: 1px solid rgba(255, 255, 255, 0.28);
+      inset: 8px;
+      border-radius: calc(var(--radius) - 8px);
+      border: 1px solid rgba(255, 255, 255, 0.30);
       box-shadow:
         inset 0 0 0 1px rgba(168, 85, 247, 0.18),
         inset 0 0 14px rgba(34, 211, 238, 0.10);
@@ -84,46 +83,23 @@
       z-index: 4;
     }
 
-    /* Untere Begrenzung bewusst etwas stärker, da sie das Spielfenster nach unten sauber abschließt. */
-    .bottom-weight {
-      position: absolute;
-      left: 18px;
-      right: 18px;
-      bottom: 1px;
-      height: 6px;
-      border-radius: 999px;
-      background:
-        linear-gradient(90deg,
-          rgba(168, 85, 247, 0.12),
-          rgba(168, 85, 247, 0.82) 18%,
-          rgba(255, 255, 255, 0.72) 50%,
-          rgba(34, 211, 238, 0.82) 82%,
-          rgba(34, 211, 238, 0.12));
-      box-shadow:
-        0 0 10px rgba(168, 85, 247, 0.62),
-        0 0 16px rgba(34, 211, 238, 0.34);
-      pointer-events: none;
-      z-index: 5;
-      opacity: 0.86;
-    }
-
     .outer-glow {
       position: absolute;
       inset: -2px;
       border-radius: calc(var(--radius) + 2px);
-      border: 1px solid rgba(168, 85, 247, 0.26);
+      border: 1px solid rgba(168, 85, 247, 0.28);
       box-shadow:
         0 0 18px rgba(168, 85, 247, 0.44),
-        0 0 32px rgba(56, 189, 248, 0.18),
-        inset 0 0 16px rgba(168, 85, 247, 0.16);
+        0 0 32px rgba(56, 189, 248, 0.20),
+        inset 0 0 16px rgba(168, 85, 247, 0.14);
       pointer-events: none;
       z-index: 2;
     }
 
     .inner-soften {
       position: absolute;
-      inset: 10px;
-      border-radius: calc(var(--radius) - 10px);
+      inset: 12px;
+      border-radius: calc(var(--radius) - 12px);
       box-shadow:
         inset 0 0 18px rgba(0, 0, 0, 0.12),
         inset 0 0 26px rgba(168, 85, 247, 0.06);
@@ -136,7 +112,6 @@
   <div id="frame-container" aria-label="ForrestCGN Rahmen Overlay">
     <div class="inner-soften"></div>
     <div class="outer-glow"></div>
-    <div class="bottom-weight"></div>
   </div>
 
   <script
@@ -146,7 +121,7 @@
     data-mode="obs_overlay"
     data-module="frame_overlay"
     data-name="Rahmen Overlay"
-    data-version="0.2.1"
+    data-version="0.2.2"
     data-heartbeat-ms="5000"
   ></script>
 </body>
