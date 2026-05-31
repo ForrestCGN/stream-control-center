@@ -361,6 +361,7 @@
 
     const SOUND_STATUS_URL = "/api/sound/status";
     const SOUND_POLL_MS = 500;
+    const BUS_HEARTBEAT_MS = 5000;
     const INTRO_MS = 520;
     const OUTRO_MS = 420;
 
@@ -380,6 +381,7 @@
     let ws = null;
     let reconnectTimer = null;
     let pollTimer = null;
+    let busHeartbeatTimer = null;
     let hideTimer = null;
     let currentRequestId = "";
     let visible = false;
@@ -711,6 +713,41 @@
       } catch (_) {}
     }
 
+    function sendVipBusHeartbeat() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      try {
+        ws.send(JSON.stringify({
+          type: "bus_heartbeat",
+          clientId: VIP_OVERLAY_CLIENT_ID,
+          clientType: "overlay",
+          module: VIP_OVERLAY_CLIENT_MODULE,
+          mode: VIP_OVERLAY_CLIENT_MODE,
+          capabilities: VIP_OVERLAY_CLIENT_CAPABILITIES,
+          version: VIP_OVERLAY_CLIENT_VERSION,
+          state: document.hidden ? "hidden" : "visible",
+          meta: {
+            overlay: "vip_sound_overlay_v2.html",
+            path: location.pathname,
+            visible: !document.hidden,
+            overlayVisible: visible,
+            currentRequestId: currentRequestId || "",
+            heartbeatAt: new Date().toISOString()
+          }
+        }));
+      } catch (_) {}
+    }
+
+    function startVipBusHeartbeat() {
+      stopVipBusHeartbeat();
+      sendVipBusHeartbeat();
+      busHeartbeatTimer = setInterval(sendVipBusHeartbeat, BUS_HEARTBEAT_MS);
+    }
+
+    function stopVipBusHeartbeat() {
+      if (busHeartbeatTimer) clearInterval(busHeartbeatTimer);
+      busHeartbeatTimer = null;
+    }
+
     function connectWs() {
       clearTimeout(reconnectTimer);
       const protocol = location.protocol === "https:" ? "wss:" : "ws:";
@@ -720,6 +757,7 @@
 
       ws.addEventListener("open", () => {
         sendVipBusHello();
+        startVipBusHeartbeat();
         setDebug([
           "VIP V2 WS open",
           "host=" + location.host,
@@ -739,11 +777,13 @@
       });
 
       ws.addEventListener("close", () => {
+        stopVipBusHeartbeat();
         setDebug(["VIP V2 WS closed", "reconnect in 1500ms"]);
         reconnectTimer = setTimeout(connectWs, 1500);
       });
 
       ws.addEventListener("error", () => {
+        stopVipBusHeartbeat();
         try { ws.close(); } catch (_) {}
       });
     }
@@ -757,6 +797,7 @@
     window.addEventListener("beforeunload", () => {
       clearTimeout(reconnectTimer);
       clearInterval(pollTimer);
+      stopVipBusHeartbeat();
       clearTimeout(hideTimer);
       try { if (ws) ws.close(); } catch (_) {}
     });

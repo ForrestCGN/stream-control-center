@@ -122,8 +122,8 @@
 
   function heartbeatLabel(client) {
     if (!client) return 'kein Client';
-    if (client.hasHeartbeat === true || client.lastHeartbeatAt) return `Heartbeat ${fmtAge(client.heartbeatAgeSeconds ?? client.ageSeconds)}`;
-    if (client.connected === true) return 'nur angemeldet';
+    if (client.hasHeartbeat === true || client.lastHeartbeatAt) return `OK · Heartbeat ${fmtAge(client.heartbeatAgeSeconds ?? client.ageSeconds)}`;
+    if (client.connected === true) return 'Warnung · kein Heartbeat';
     return 'kein Heartbeat';
   }
 
@@ -351,8 +351,8 @@
       ['Sichtbar', counts.visible, counts.visible ? 'ok' : 'muted'],
       ['Wartend', counts.waiting + counts.hidden, 'muted'],
       ['Warnung/Fehler', counts.warning + counts.error, counts.error ? 'bad' : (counts.warning ? 'warn' : 'ok')],
-      ['Echte Heartbeats', s.withHeartbeat ?? 0, (s.withHeartbeat ?? 0) ? 'ok' : 'warn'],
-      ['Nur angemeldet', s.registered ?? s.withoutHeartbeat ?? 0, (s.registered ?? s.withoutHeartbeat ?? 0) ? 'warn' : 'ok'],
+      ['OK Heartbeat', s.withHeartbeat ?? 0, (s.withHeartbeat ?? 0) ? 'ok' : 'warn'],
+      ['Ohne Heartbeat', s.registered ?? s.withoutHeartbeat ?? 0, (s.registered ?? s.withoutHeartbeat ?? 0) ? 'warn' : 'ok'],
       ['OBS', obsOk ? 'verbunden' : 'offline', obsOk ? 'ok' : 'warn']
     ];
 
@@ -396,7 +396,7 @@
     const filters = [
       ['all', 'Alle'],
       ['online', 'Online'],
-      ['registered', 'Nur angemeldet'],
+      ['registered', 'Ohne Heartbeat'],
       ['stale', 'Stale'],
       ['offline', 'Offline'],
       ['dead', 'Dead'],
@@ -563,7 +563,7 @@
                   <td><span class="ovm-badge is-${statusClass(status)}">${esc(status)}</span></td>
                   <td>${overlay.connected ? '<span class="ovm-badge is-ok">ja</span>' : '<span class="ovm-badge is-muted">nein</span>'}</td>
                   <td><strong>${esc(fmtTime(overlay.lastHelloAt))}</strong><small>${esc(fmtAge(overlay.helloAgeSeconds))}</small></td>
-                  <td>${overlay.hasHeartbeat ? `<strong>${esc(fmtTime(overlay.lastHeartbeatAt))}</strong><small>${esc(fmtAge(overlay.heartbeatAgeSeconds))} · ${esc(overlay.heartbeatCount || 0)}x</small>` : '<span class="ovm-badge is-warn">kein echter Heartbeat</span>'}</td>
+                  <td>${overlay.hasHeartbeat ? `<strong>${esc(fmtTime(overlay.lastHeartbeatAt))}</strong><small>${esc(fmtAge(overlay.heartbeatAgeSeconds))} · ${esc(overlay.heartbeatCount || 0)}x</small>` : '<span class="ovm-badge is-warn">Warnung · kein Heartbeat</span>'}</td>
                   <td>${esc(fmtDateTime(lastContact(overlay)))}</td>
                   <td><strong>${esc(overlay.module || '—')}</strong><small>${esc(overlay.version || '—')}</small></td>
                   <td>${caps.length ? caps.map(cap => `<span class="ovm-chip">${esc(cap)}</span>`).join('') : '<span class="ovm-muted">—</span>'}</td>

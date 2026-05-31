@@ -238,6 +238,7 @@
       // für den Sound-System-Ausgang. Der alte op:sound_system-Weg und das
       // /api/sound/status-Polling bleiben als Sicherheitsnetz erhalten.
       const BUS_CLIENT_ID = 'sound_system_overlay_bus_consumer';
+      const BUS_HEARTBEAT_MS = 5000;
       const BUS_CHANNEL = 'sound';
       const BUS_CAPABILITIES = [
         'sound.event_output',
@@ -255,6 +256,7 @@
       let lastSeenRequestId = '';
       let ws = null;
       let reconnectTimer = null;
+      let busHeartbeatTimer = null;
       let audioContext = null;
       let beepNodes = [];
       let audioUnlocked = false;
@@ -863,6 +865,38 @@
         if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
       }
 
+      function sendBusHeartbeat() {
+        send({
+          type: 'bus_heartbeat',
+          clientId: BUS_CLIENT_ID,
+          clientType: 'overlay',
+          module: 'sound_system',
+          mode: 'bus_consumer_with_legacy_fallback',
+          capabilities: BUS_CAPABILITIES,
+          version: 'STEP455',
+          state: document.hidden ? 'hidden' : 'visible',
+          meta: {
+            overlay: 'sound_system_overlay.html',
+            path: location.pathname,
+            visible: !document.hidden,
+            audioUnlocked,
+            currentRequestId: currentRequestId || '',
+            heartbeatAt: new Date().toISOString()
+          }
+        });
+      }
+
+      function startBusHeartbeat() {
+        stopBusHeartbeat();
+        sendBusHeartbeat();
+        busHeartbeatTimer = setInterval(sendBusHeartbeat, BUS_HEARTBEAT_MS);
+      }
+
+      function stopBusHeartbeat() {
+        if (busHeartbeatTimer) clearInterval(busHeartbeatTimer);
+        busHeartbeatTimer = null;
+      }
+
       function shouldStartFromReason(reason) {
         const clean = String(reason || '').toLowerCase();
         return clean === 'started' || clean === 'item_started' || clean === 'play_stream' ||
@@ -936,15 +970,19 @@
             capabilities: BUS_CAPABILITIES,
             version: 'STEP455'
           });
+          startBusHeartbeat();
           post('/client/ready', { overlay: 'sound_system_overlay', busConsumer: true });
         });
         ws.addEventListener('message', (event) => { try { handleMessage(JSON.parse(event.data)); } catch (_) {} });
-        ws.addEventListener('close', () => { setStatus('Getrennt - reconnect'); reconnectTimer = setTimeout(connect, 1500); });
-        ws.addEventListener('error', () => { try { ws.close(); } catch (_) {} });
+        ws.addEventListener('close', () => { stopBusHeartbeat(); setStatus('Getrennt - reconnect'); reconnectTimer = setTimeout(connect, 1500); });
+        ws.addEventListener('error', () => { stopBusHeartbeat(); try { ws.close(); } catch (_) {} });
       }
 
       unlockBtn?.addEventListener('click', unlockAudio);
       document.body.addEventListener('pointerdown', () => { if (!audioUnlocked) unlockAudio(); }, { passive: true });
+
+      window.addEventListener('beforeunload', stopBusHeartbeat);
+      window.addEventListener('pagehide', stopBusHeartbeat);
 
       connect();
       post('/client/ready', { overlay: 'sound_system_overlay', boot: true });

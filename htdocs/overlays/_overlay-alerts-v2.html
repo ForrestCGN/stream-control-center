@@ -1832,6 +1832,9 @@
     const stage = document.getElementById('stage');
     const audio = document.getElementById('sound');
     let ws;
+    let busHeartbeatTimer = null;
+    const BUS_CLIENT_ID = 'alert_overlay_v2_shadow';
+    const BUS_HEARTBEAT_MS = 5000;
     let currentTimer = null;
     let currentAlertId = null;
     let currentBusEventId = null; // STEP371_ALERT_BUS_SHADOW_ADAPTER: only set for communication-bus shadow events.
@@ -1926,7 +1929,7 @@
       send({
         type: 'bus_ack',
         eventId: id,
-        clientId: 'alert_overlay_v2_shadow',
+        clientId: BUS_CLIENT_ID,
         status: String(status || 'received'),
         details: {
           module: 'alert_system',
@@ -1946,13 +1949,14 @@
         // STEP371_ALERT_BUS_SHADOW_ADAPTER: bus client registration for shadow-mode delivery tests.
         send({
           type: 'bus_hello',
-          clientId: 'alert_overlay_v2_shadow',
+          clientId: BUS_CLIENT_ID,
           clientType: 'overlay',
           module: 'alert_system',
           mode: 'shadow',
           capabilities: ['visual.alert.play', 'visual.alert.clear'],
           version: 'STEP371'
         });
+        startBusHeartbeat();
       });
       ws.addEventListener('message', ev => {
         let data;
@@ -1965,12 +1969,46 @@
           clearAlert('clear');
         }
       });
-      ws.addEventListener('close', () => setTimeout(connect, 1500));
+      ws.addEventListener('close', () => { stopBusHeartbeat(); setTimeout(connect, 1500); });
+      ws.addEventListener('error', () => { stopBusHeartbeat(); try { ws.close(); } catch (_) {} });
     }
 
     function send(payload) {
       if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
     }
+
+    function sendBusHeartbeat() {
+      send({
+        type: 'bus_heartbeat',
+        clientId: BUS_CLIENT_ID,
+        clientType: 'overlay',
+        module: 'alert_system',
+        mode: 'shadow',
+        capabilities: ['visual.alert.play', 'visual.alert.clear'],
+        version: 'STEP371',
+        state: document.hidden ? 'hidden' : 'visible',
+        meta: {
+          overlay: '_overlay-alerts-v2.html',
+          path: location.pathname,
+          visible: !document.hidden,
+          heartbeatAt: new Date().toISOString()
+        }
+      });
+    }
+
+    function startBusHeartbeat() {
+      stopBusHeartbeat();
+      sendBusHeartbeat();
+      busHeartbeatTimer = setInterval(sendBusHeartbeat, BUS_HEARTBEAT_MS);
+    }
+
+    function stopBusHeartbeat() {
+      if (busHeartbeatTimer) clearInterval(busHeartbeatTimer);
+      busHeartbeatTimer = null;
+    }
+
+    window.addEventListener('beforeunload', stopBusHeartbeat);
+    window.addEventListener('pagehide', stopBusHeartbeat);
 
     function soundSystemPlaybackStarted(soundSystem) {
       if (!soundSystem || typeof soundSystem !== 'object') return false;
