@@ -8,12 +8,12 @@
     :root {
       --frame-width: 778px;
       --frame-height: 436px;
-      --radius: 32px;
+      --radius: 24px;
+      --line: 4px;
       --neon-purple: #a855f7;
       --neon-blue: #38bdf8;
       --neon-cyan: #22d3ee;
-      --deep-purple: rgba(44, 19, 84, 0.38);
-      --glass: rgba(7, 10, 25, 0.08);
+      --edge-white: rgba(255, 255, 255, 0.86);
     }
 
     * {
@@ -38,35 +38,29 @@
       width: var(--frame-width);
       height: var(--frame-height);
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background:
-        radial-gradient(circle at 12% 14%, rgba(168, 85, 247, 0.20), transparent 24%),
-        radial-gradient(circle at 88% 86%, rgba(34, 211, 238, 0.18), transparent 26%),
-        linear-gradient(135deg, rgba(14, 18, 38, 0.12), rgba(8, 10, 24, 0.04));
+      background: transparent;
       border-radius: var(--radius);
-      box-shadow:
-        0 0 18px rgba(168, 85, 247, 0.58),
-        0 0 34px rgba(56, 189, 248, 0.34),
-        0 0 70px rgba(168, 85, 247, 0.18),
-        inset 0 0 18px rgba(34, 211, 238, 0.18);
       isolation: isolate;
+      pointer-events: none;
+      filter:
+        drop-shadow(0 0 7px rgba(168, 85, 247, 0.72))
+        drop-shadow(0 0 14px rgba(56, 189, 248, 0.34));
     }
 
+    /* Hauptkante: schlicht, ohne Panel-Deko. Etwas kräftiger als die Deathcounter-Linie. */
     #frame-container::before {
       content: "";
       position: absolute;
       inset: 0;
       border-radius: inherit;
-      padding: 3px;
+      padding: var(--line);
       background:
         linear-gradient(135deg,
-          rgba(168, 85, 247, 0.96),
-          rgba(56, 189, 248, 0.92) 34%,
-          rgba(255, 255, 255, 0.84) 50%,
-          rgba(34, 211, 238, 0.90) 66%,
-          rgba(168, 85, 247, 0.96));
+          rgba(168, 85, 247, 0.96) 0%,
+          rgba(132, 92, 246, 0.92) 22%,
+          rgba(56, 189, 248, 0.88) 48%,
+          rgba(34, 211, 238, 0.88) 72%,
+          rgba(168, 85, 247, 0.96) 100%);
       -webkit-mask:
         linear-gradient(#fff 0 0) content-box,
         linear-gradient(#fff 0 0);
@@ -76,128 +70,73 @@
       z-index: 3;
     }
 
+    /* Dezente helle Innenkante für mehr Lesbarkeit auf dunklem und hellem Content. */
     #frame-container::after {
       content: "";
       position: absolute;
-      inset: 9px;
-      border-radius: calc(var(--radius) - 9px);
-      border: 1px solid rgba(255, 255, 255, 0.16);
+      inset: 6px;
+      border-radius: calc(var(--radius) - 6px);
+      border: 1px solid rgba(255, 255, 255, 0.28);
       box-shadow:
-        inset 0 0 0 1px rgba(168, 85, 247, 0.20),
-        inset 0 0 20px rgba(34, 211, 238, 0.10);
+        inset 0 0 0 1px rgba(168, 85, 247, 0.18),
+        inset 0 0 14px rgba(34, 211, 238, 0.10);
       pointer-events: none;
-      z-index: 3;
+      z-index: 4;
     }
 
-    #obs-image-slot {
+    /* Untere Begrenzung bewusst etwas stärker, da sie das Spielfenster nach unten sauber abschließt. */
+    .bottom-weight {
       position: absolute;
-      inset: 12px;
-      border-radius: 22px;
-      background: transparent;
-      z-index: 1;
+      left: 18px;
+      right: 18px;
+      bottom: 1px;
+      height: 6px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg,
+          rgba(168, 85, 247, 0.12),
+          rgba(168, 85, 247, 0.82) 18%,
+          rgba(255, 255, 255, 0.72) 50%,
+          rgba(34, 211, 238, 0.82) 82%,
+          rgba(34, 211, 238, 0.12));
+      box-shadow:
+        0 0 10px rgba(168, 85, 247, 0.62),
+        0 0 16px rgba(34, 211, 238, 0.34);
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0.86;
     }
 
-    #frame-overlay {
+    .outer-glow {
       position: absolute;
       inset: -2px;
       border-radius: calc(var(--radius) + 2px);
-      pointer-events: none;
-      z-index: 4;
+      border: 1px solid rgba(168, 85, 247, 0.26);
       box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-        inset 0 0 18px rgba(168, 85, 247, 0.32),
-        0 0 20px rgba(168, 85, 247, 0.42),
-        0 0 42px rgba(34, 211, 238, 0.24);
-    }
-
-    .corner-dot {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 999px;
-      background: #fff;
-      pointer-events: none;
-      z-index: 5;
-      box-shadow:
-        0 0 10px rgba(255, 255, 255, 0.95),
-        0 0 18px rgba(168, 85, 247, 0.95),
-        0 0 30px rgba(34, 211, 238, 0.70);
-    }
-
-    .corner-dot.top-left {
-      top: -5px;
-      left: 32px;
-    }
-
-    .corner-dot.bottom-right {
-      right: 32px;
-      bottom: -5px;
-    }
-
-    .runner {
-      position: absolute;
-      inset: -1px;
-      border-radius: calc(var(--radius) + 1px);
+        0 0 18px rgba(168, 85, 247, 0.44),
+        0 0 32px rgba(56, 189, 248, 0.18),
+        inset 0 0 16px rgba(168, 85, 247, 0.16);
       pointer-events: none;
       z-index: 2;
-      background:
-        conic-gradient(from var(--runner-angle),
-          transparent 0deg,
-          transparent 42deg,
-          rgba(34, 211, 238, 0.00) 58deg,
-          rgba(34, 211, 238, 0.72) 70deg,
-          rgba(255, 255, 255, 0.90) 78deg,
-          rgba(168, 85, 247, 0.74) 88deg,
-          transparent 106deg,
-          transparent 360deg);
-      padding: 2px;
-      -webkit-mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      opacity: 0.72;
-      animation: cgnRunner 8s linear infinite;
     }
 
-    .soft-vignette {
+    .inner-soften {
       position: absolute;
-      inset: 12px;
-      border-radius: 22px;
-      pointer-events: none;
-      z-index: 2;
+      inset: 10px;
+      border-radius: calc(var(--radius) - 10px);
       box-shadow:
-        inset 0 0 26px rgba(0, 0, 0, 0.20),
-        inset 0 0 52px rgba(7, 10, 25, 0.12);
-    }
-
-    @property --runner-angle {
-      syntax: "<angle>";
-      initial-value: 0deg;
-      inherits: false;
-    }
-
-    @keyframes cgnRunner {
-      to {
-        --runner-angle: 360deg;
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .runner {
-        animation: none;
-      }
+        inset 0 0 18px rgba(0, 0, 0, 0.12),
+        inset 0 0 26px rgba(168, 85, 247, 0.06);
+      pointer-events: none;
+      z-index: 1;
     }
   </style>
 </head>
 <body>
   <div id="frame-container" aria-label="ForrestCGN Rahmen Overlay">
-    <div id="obs-image-slot"></div>
-    <div class="runner"></div>
-    <div class="soft-vignette"></div>
-    <div id="frame-overlay"></div>
-    <div class="corner-dot top-left"></div>
-    <div class="corner-dot bottom-right"></div>
+    <div class="inner-soften"></div>
+    <div class="outer-glow"></div>
+    <div class="bottom-weight"></div>
   </div>
 
   <script
@@ -207,7 +146,7 @@
     data-mode="obs_overlay"
     data-module="frame_overlay"
     data-name="Rahmen Overlay"
-    data-version="0.2.0"
+    data-version="0.2.1"
     data-heartbeat-ms="5000"
   ></script>
 </body>
