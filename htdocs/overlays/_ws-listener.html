@@ -18,5 +18,17 @@
     ws.onerror = () => box.textContent = "ERROR";
     ws.onclose = () => box.textContent = "CLOSED";
   </script>
+<!-- CGN EventBus Heartbeat (STEP626B) -->
+<script
+  src="/overlays/shared/overlay_bus_client.js"
+  data-overlay-id="ws_listener_overlay"
+  data-client-type="overlay"
+  data-mode="obs_overlay"
+  data-module="ws_listener"
+  data-name="WS Listener Overlay"
+  data-version="0.1.0"
+  data-heartbeat-ms="5000"
+></script>
+
 </body>
 </html>
