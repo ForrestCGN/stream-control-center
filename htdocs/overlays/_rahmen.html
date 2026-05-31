@@ -3,76 +3,212 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bildrahmen Overlay</title>
+  <title>Rahmen Overlay</title>
   <style>
-    html, body {
+    :root {
+      --frame-width: 778px;
+      --frame-height: 436px;
+      --radius: 32px;
+      --neon-purple: #a855f7;
+      --neon-blue: #38bdf8;
+      --neon-cyan: #22d3ee;
+      --deep-purple: rgba(44, 19, 84, 0.38);
+      --glass: rgba(7, 10, 25, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
       margin: 0;
       padding: 0;
       width: 100vw;
       height: 100vh;
+      overflow: hidden;
       background: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     #frame-container {
-      width: 778px;
-      height: 436px;
-      border: 6px solid #5a3fc0;
-      border-radius: 32px;
-      box-shadow: 0 0 28px #5a3fc0, 0 0 56px #1e90ff, inset 0 0 16px #5a3fc0;
+      width: var(--frame-width);
+      height: var(--frame-height);
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: transparent;
+      background:
+        radial-gradient(circle at 12% 14%, rgba(168, 85, 247, 0.20), transparent 24%),
+        radial-gradient(circle at 88% 86%, rgba(34, 211, 238, 0.18), transparent 26%),
+        linear-gradient(135deg, rgba(14, 18, 38, 0.12), rgba(8, 10, 24, 0.04));
+      border-radius: var(--radius);
+      box-shadow:
+        0 0 18px rgba(168, 85, 247, 0.58),
+        0 0 34px rgba(56, 189, 248, 0.34),
+        0 0 70px rgba(168, 85, 247, 0.18),
+        inset 0 0 18px rgba(34, 211, 238, 0.18);
+      isolation: isolate;
+    }
+
+    #frame-container::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 3px;
+      background:
+        linear-gradient(135deg,
+          rgba(168, 85, 247, 0.96),
+          rgba(56, 189, 248, 0.92) 34%,
+          rgba(255, 255, 255, 0.84) 50%,
+          rgba(34, 211, 238, 0.90) 66%,
+          rgba(168, 85, 247, 0.96));
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    #frame-container::after {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: calc(var(--radius) - 9px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow:
+        inset 0 0 0 1px rgba(168, 85, 247, 0.20),
+        inset 0 0 20px rgba(34, 211, 238, 0.10);
+      pointer-events: none;
+      z-index: 3;
     }
 
     #obs-image-slot {
-      width: 768px;
-      height: 432px;
-      border-radius: 14px;
+      position: absolute;
+      inset: 12px;
+      border-radius: 22px;
       background: transparent;
-      position: relative;
       z-index: 1;
     }
 
     #frame-overlay {
-      content: "";
       position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
+      inset: -2px;
+      border-radius: calc(var(--radius) + 2px);
       pointer-events: none;
-      border-radius: 34px;
+      z-index: 4;
       box-shadow:
-        inset 0 0 0 8px #5a3fc0,
-        0 0 30px #5a3fc0,
-        0 0 60px #1e90ff,
-        inset 0 0 18px #5a3fc0;
+        inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+        inset 0 0 18px rgba(168, 85, 247, 0.32),
+        0 0 20px rgba(168, 85, 247, 0.42),
+        0 0 42px rgba(34, 211, 238, 0.24);
+    }
+
+    .corner-dot {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: #fff;
+      pointer-events: none;
+      z-index: 5;
+      box-shadow:
+        0 0 10px rgba(255, 255, 255, 0.95),
+        0 0 18px rgba(168, 85, 247, 0.95),
+        0 0 30px rgba(34, 211, 238, 0.70);
+    }
+
+    .corner-dot.top-left {
+      top: -5px;
+      left: 32px;
+    }
+
+    .corner-dot.bottom-right {
+      right: 32px;
+      bottom: -5px;
+    }
+
+    .runner {
+      position: absolute;
+      inset: -1px;
+      border-radius: calc(var(--radius) + 1px);
+      pointer-events: none;
       z-index: 2;
+      background:
+        conic-gradient(from var(--runner-angle),
+          transparent 0deg,
+          transparent 42deg,
+          rgba(34, 211, 238, 0.00) 58deg,
+          rgba(34, 211, 238, 0.72) 70deg,
+          rgba(255, 255, 255, 0.90) 78deg,
+          rgba(168, 85, 247, 0.74) 88deg,
+          transparent 106deg,
+          transparent 360deg);
+      padding: 2px;
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0.72;
+      animation: cgnRunner 8s linear infinite;
+    }
+
+    .soft-vignette {
+      position: absolute;
+      inset: 12px;
+      border-radius: 22px;
+      pointer-events: none;
+      z-index: 2;
+      box-shadow:
+        inset 0 0 26px rgba(0, 0, 0, 0.20),
+        inset 0 0 52px rgba(7, 10, 25, 0.12);
+    }
+
+    @property --runner-angle {
+      syntax: "<angle>";
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    @keyframes cgnRunner {
+      to {
+        --runner-angle: 360deg;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .runner {
+        animation: none;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="frame-container">
+  <div id="frame-container" aria-label="ForrestCGN Rahmen Overlay">
     <div id="obs-image-slot"></div>
+    <div class="runner"></div>
+    <div class="soft-vignette"></div>
     <div id="frame-overlay"></div>
+    <div class="corner-dot top-left"></div>
+    <div class="corner-dot bottom-right"></div>
   </div>
-<!-- CGN EventBus Heartbeat (STEP626B) -->
-<script
-  src="/overlays/shared/overlay_bus_client.js"
-  data-overlay-id="frame_overlay"
-  data-client-type="overlay"
-  data-mode="obs_overlay"
-  data-module="frame_overlay"
-  data-name="Rahmen Overlay"
-  data-version="0.1.0"
-  data-heartbeat-ms="5000"
-></script>
 
+  <script
+    src="/overlays/shared/overlay_bus_client.js"
+    data-overlay-id="frame_overlay"
+    data-client-type="overlay"
+    data-mode="obs_overlay"
+    data-module="frame_overlay"
+    data-name="Rahmen Overlay"
+    data-version="0.2.0"
+    data-heartbeat-ms="5000"
+  ></script>
 </body>
 </html>
-
