@@ -1,3 +1,23 @@
+## Nach STEP CAN-8.5.1
+
+Marker: STEP_CAN8_5_1_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-8.6: Preflight-Dashboard-Anzeige live testen und abnehmen
+~~~
+
+Zu prüfen:
+
+~~~text
+Recovery -> Preflight klickbar
+Preflight-Daten sichtbar
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Keine produktive Aktion
+~~~
+
 ## Nach STEP CAN-8.5
 
 Marker: STEP_CAN8_5_NEXT_STEPS

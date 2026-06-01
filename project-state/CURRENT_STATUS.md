@@ -1,3 +1,14 @@
+## STEP CAN-8.5.1 Preflight-Untertab Klick-Fix
+
+Stand: 2026-06-01
+Marker: STEP_CAN8_5_1_PREFLIGHT_SUBTAB_CLICK_FIX
+
+Der Recovery-Untertab `Preflight` war sichtbar, aber nicht klickbar, weil `preflight` in der erlaubten internen Subtab-Liste fehlte. Der Fix ergänzt ausschließlich diesen Eintrag in `htdocs/dashboard/modules/bus_diagnostics.js`.
+
+Nicht geändert: Backend, API, Config, DB, Recovery-Ausführung, Recovery-Buttons, Simulation-Buttons, produktive Flows.
+
+Details: `docs/system-inspection/EVENTBUS_CAN8_5_1_PREFLIGHT_SUBTAB_CLICK_FIX.md`
+
 ## STEP CAN-8.5 Recovery-Preflight Dashboard Read-only Anzeige umgesetzt
 
 Stand: 2026-06-01

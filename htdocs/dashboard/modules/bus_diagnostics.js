@@ -211,7 +211,7 @@
   }
 
   function setRecoverySubTab(tabId){
-    const allowed = ['overview', 'details', 'readiness', 'locks'];
+    const allowed = ['overview', 'details', 'readiness', 'preflight', 'locks'];
     if (!allowed.includes(tabId)) return;
     state.recoverySubTab = tabId;
     localStorage.setItem('cgn-busdiag-recovery-tab', tabId);

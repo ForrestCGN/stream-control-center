@@ -1,3 +1,8 @@
+## CAN-8.5.1 / Preflight-Untertab
+
+- [x] Klick auf Recovery-Untertab `Preflight` reparieren.
+- [ ] CAN-8.6 Live-Test/Abnahme der Preflight-Dashboard-Anzeige dokumentieren.
+
 # TODO – CAN-8.5
 
 - [x] `recoveryPreflight` im Dashboard read-only anzeigen.

@@ -1,3 +1,15 @@
+# FILES – CAN-8.5.1 Preflight-Untertab Klick-Fix
+
+## Geändert
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - interner Recovery-Untertab `preflight` ist jetzt klickbar.
+
+## Doku
+
+- `docs/system-inspection/EVENTBUS_CAN8_5_1_PREFLIGHT_SUBTAB_CLICK_FIX.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_5_1.md`
+
 # FILES – CAN-8.5 Recovery-Preflight Dashboard Read-only Anzeige
 
 ## Geändert

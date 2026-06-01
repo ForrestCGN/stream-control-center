@@ -1,3 +1,21 @@
+# CHANGELOG – CAN-8.5.1 Preflight-Untertab Klick-Fix
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`: `preflight` in erlaubte Recovery-Untertabs aufgenommen.
+- Doku/Projekt-State fuer CAN-8.5.1 ergänzt.
+
+## Nicht geändert
+
+- Keine Backend-Logik.
+- Keine API-Route.
+- Keine Recovery-Ausführung.
+- Keine Recovery-Buttons.
+- Keine Simulation-Buttons.
+- Keine produktive Flow-Aenderung.
+
 # CHANGELOG – CAN-8.5 Recovery-Preflight Dashboard Read-only Anzeige
 
 Stand: 2026-06-01
