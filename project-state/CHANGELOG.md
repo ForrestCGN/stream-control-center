@@ -1,20 +1,20 @@
-# CHANGELOG – CAN-8.12
+# CHANGELOG – CAN-8.13
 
 Stand: 2026-06-01
 
-## Geändert
+## Geaendert
 
-- CAN-8.12 als Live-Test-/Abnahmedokumentation ergänzt.
-- Erfolgreiche Dashboard-Prüfung von `Recovery -> Preflight` dokumentiert.
-- Sichtbare Preflight-Werte dokumentiert: READY, read_only, Checks 13, Prepare nein, Execute nein.
-- Sicherheitsgrenze dokumentiert: keine produktive Berührung, keine Buttons, keine Recovery-Ausführung.
+- CAN-8.x Recovery-Preflight-Dashboard-Strang als read-only abgeschlossen dokumentiert.
+- CAN-8.0 bis CAN-8.12 zusammengefasst.
+- CAN-9.0 Startgrenze fuer Preflight-Routenplanung definiert.
+- Harte Blockaden fuer Recovery-/Replay-/Execute-Aktionen bestaetigt.
 
-## Nicht geändert
+## Nicht geaendert
 
-- Keine Backend-Datei geändert.
-- Keine Dashboard-Datei geändert.
-- Keine API-Route ergänzt.
-- Keine Recovery-Ausführung.
+- Keine Backend-Datei geaendert.
+- Keine Dashboard-Datei geaendert.
+- Keine API-Route ergaenzt.
+- Keine Recovery-Ausfuehrung.
 - Keine Recovery-/Simulation-Buttons.
-- Keine Config-/DB-Änderung.
-- Keine produktive Flow-Änderung.
+- Keine Config-/DB-Aenderung.
+- Keine produktive Flow-Aenderung.

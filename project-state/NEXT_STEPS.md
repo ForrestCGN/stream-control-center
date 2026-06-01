@@ -1,24 +1,32 @@
-## Nach STEP CAN-8.12
+## Nach STEP CAN-8.13
 
-Marker: STEP_CAN8_12_NEXT_STEPS
+Marker: STEP_CAN8_13_NEXT_STEPS
 
-Nächster sinnvoller Schritt:
+Naechster sinnvoller Arbeitsblock:
 
 ~~~text
-CAN-8.13: Recovery-Preflight Dashboard Read-only Abschluss und CAN-9.0 Startgrenze definieren
+CAN-9.0: Recovery-Preflight Route Startgrenze / Sicherheitsplanung
 ~~~
 
-Zu klären:
+CAN-9.0 darf noch keine produktive Recovery aktivieren.
+
+Zu klaeren:
 
 ~~~text
-Bleibt CAN-8 vollständig read-only abgeschlossen?
-Startet CAN-9.0 mit Preflight-Routenplanung?
-Bleibt jede POST-/Command-Route weiter blockiert?
-Welche erste CAN-9-Grenze ist erlaubt: Planung oder read-only Preflight-Route?
+Welche read-only Preflight-Route ist spaeter maximal erlaubt?
+Welche Guard-Reihenfolge muss vor einer Route feststehen?
+Welche Auth-/Owner-/Admin-Grenze gilt?
+Welche Audit-Felder werden spaeter Pflicht?
+Welche Response-Felder muss eine reine GET-Preflight-Route liefern?
+Wie bleibt canPrepare/canExecute bis zur echten Freigabe false?
 ~~~
 
-Optionaler UX-Zwischenschritt:
+Weiterhin blockiert:
 
 ~~~text
-CAN-8.12.1: Readiness/Preflight im Dashboard klarer beschriften, damit CAN-7-Readiness und CAN-8-Preflight nicht verwechselt werden.
+Keine POST-/Command-Route
+Keine Recovery-Ausfuehrung
+Keine Dashboard-Aktionsbuttons
+Keine Alert-/Sound-/Overlay-Replays
+Keine Queue-Manipulation
 ~~~
