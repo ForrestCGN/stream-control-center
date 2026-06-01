@@ -1,3 +1,33 @@
+## Nach STEP CAN-8.2
+
+Marker: STEP_CAN8_2_NEXT_STEPS
+
+CAN-8.2 hat die konkrete read-only Preflight-Statusfeld-Grenze geplant.
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-8.3: recoveryPreflight read-only Statusfelder in backend/modules/bus_diagnostics.js additiv umsetzen.
+~~~
+
+Vor CAN-8.3:
+
+~~~text
+Vollständige echte Datei verwenden:
+backend/modules/bus_diagnostics.js
+~~~
+
+Grenzen für CAN-8.3:
+
+~~~text
+Nur GET-Statusantwort erweitern
+Keine neue Route
+Keine POST-/Command-Route
+Keine Dashboard-Aktionsbuttons
+Keine Recovery-Ausführung
+Keine produktive Flow-Änderung
+~~~
+
 ## Nach STEP CAN-8.1
 
 Marker: STEP_CAN8_1_NEXT_STEPS

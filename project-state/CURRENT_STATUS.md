@@ -1,3 +1,30 @@
+## STEP CAN-8.2 Recovery-Preflight Read-only Statusfelder Plan
+
+Stand: 2026-06-01
+Marker: STEP_CAN8_2_RECOVERY_PREFLIGHT_READONLY_STATUS_FIELDS_PLAN
+
+CAN-8.2 plant die spaetere technische Minimalgrenze fuer `recoveryPreflight` im Bus-Diagnostics-Status.
+
+Wichtig: CAN-8.2 ist nur Planung.
+
+~~~text
+Keine Backend-Datei geaendert
+Keine Dashboard-Datei geaendert
+Keine API-Route geaendert
+Keine Config geaendert
+Keine DB geaendert
+Keine Recovery-Ausfuehrung
+Keine produktive Flow-Aenderung
+~~~
+
+Naechster Schritt:
+
+~~~text
+CAN-8.3: echte backend/modules/bus_diagnostics.js vollstaendig pruefen und recoveryPreflight read-only Statusfelder additiv umsetzen.
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN8_2_RECOVERY_PREFLIGHT_READONLY_STATUS_FIELDS_PLAN.md`
+
 ## STEP CAN-8.1 Recovery-Preflight Read-only Datenmodell
 
 Stand: 2026-06-01

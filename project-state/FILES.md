@@ -1,3 +1,34 @@
+# FILES – CAN-8.2 Recovery-Preflight Read-only Statusfelder Plan
+
+Stand: 2026-06-01
+
+## Neue Doku
+
+- `docs/system-inspection/EVENTBUS_CAN8_2_RECOVERY_PREFLIGHT_READONLY_STATUS_FIELDS_PLAN.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_2.md`
+- `docs/current/README_CAN8_2_FILE_ZIP.md`
+
+## Projekt-State
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
+## Fuer CAN-8.3 relevant
+
+- `backend/modules/bus_diagnostics.js`
+  - spaeteres Ziel fuer additive read-only `recoveryPreflight`-Statusfelder
+
+## Nicht anfassen ohne separates Go
+
+- Keine Recovery-Buttons ergaenzen.
+- Keine Simulation-Buttons ergaenzen.
+- Keine POST-/Command-Route bauen.
+- Keine Alert-/Sound-Replays erlauben.
+- Keine produktive Queue-/Sound-/Overlay-Logik umbauen.
+
 # FILES – CAN-8.1 Recovery-Preflight Read-only Datenmodell
 
 ## Neue Doku

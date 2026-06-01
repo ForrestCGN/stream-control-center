@@ -1,3 +1,28 @@
+# CHANGELOG – CAN-8.2 Recovery-Preflight Read-only Statusfelder Plan
+
+Stand: 2026-06-01
+
+## Geändert
+
+- Konkrete read-only Statusfeld-Grenze fuer `recoveryPreflight` dokumentiert.
+- Minimal erlaubten CAN-8.3-Code-Scope festgelegt.
+- Testbefehle fuer spaeteren CAN-8.3-Code-Step definiert.
+- Projekt-State auf CAN-8.3 vorbereitet.
+
+## Nicht geändert
+
+- Keine Backend-Datei geändert.
+- Keine Dashboard-Datei geändert.
+- Keine API-Route geändert.
+- Keine Config geändert.
+- Keine DB geändert.
+- Keine Recovery-Ausführung ergänzt.
+- Keine produktive Flow-Änderung.
+
+## Nächster Block
+
+- CAN-8.3: `recoveryPreflight` read-only Statusfelder additiv in `backend/modules/bus_diagnostics.js` umsetzen.
+
 # CHANGELOG – CAN-8.1 Recovery-Preflight Read-only Datenmodell
 
 Stand: 2026-06-01

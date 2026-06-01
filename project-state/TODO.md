@@ -1,3 +1,12 @@
+## CAN-8.2 / CAN-8.3 Recovery-Preflight
+
+- [x] CAN-8.2 read-only Preflight-Statusfelder planen.
+- [x] CAN-8.3 Minimalgrenze definieren: nur `backend/modules/bus_diagnostics.js`.
+- [ ] Vor CAN-8.3 echte aktuelle `backend/modules/bus_diagnostics.js` vollständig prüfen.
+- [ ] CAN-8.3 `recoveryPreflight` nur additiv und read-only ergänzen.
+- [ ] Keine neue Route, keine POST-/Command-Route, keine Recovery-Ausführung.
+- [ ] Nach CAN-8.3 testen: `node -c backend\modules\bus_diagnostics.js`.
+
 ## CAN-8 / Recovery-Preflight
 
 - [x] CAN-8.0 Recovery-Preflight Startgrenze dokumentieren.
