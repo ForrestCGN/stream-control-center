@@ -1,3 +1,14 @@
+## CAN-6.3 / Audit und Confirm-Token
+
+- [x] CAN-6.2 Backend-Schutzvertrag fuer manuelle Recovery dokumentieren.
+- [ ] CAN-6.3 Recovery-Audit- und Confirm-Token-Konzept planen.
+- [ ] Audit-Eventtypen fuer Preflight, Confirm, Block, Erfolg und Fehler definieren.
+- [ ] Confirm-Token-Lebenszyklus definieren: erzeugen, binden, anzeigen, bestaetigen, verbrauchen, ablaufen lassen.
+- [ ] Pflichtfelder fuer Preflight-Antwort festlegen.
+- [ ] Token-Wiederverwendung hart blockieren.
+- [ ] Rollen-/User-/Action-/ID-Bindung fuer Confirm-Token festlegen.
+- [ ] Spaetere DB-/Storage-Struktur nur planen, keine produktive DB blind migrieren.
+
 # TODO
 
 Stand: 2026-06-01

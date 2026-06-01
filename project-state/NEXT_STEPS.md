@@ -1,3 +1,46 @@
+## Nach Dokumentationsabschluss CAN-6.2
+
+Marker: STEP_CAN6_2_DOCUMENTATION_NEXT_STEPS
+
+Nächster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-6.3: Recovery-Audit- und Confirm-Token-Konzept planen
+~~~
+
+Ziel von CAN-6.3:
+
+~~~text
+Noch kein produktiver Code.
+Noch keine Dashboard-Buttons.
+Noch keine Recovery-Ausführung.
+Nur Konzept: Audit-Events -> Confirm-Token -> Preflight-Felder -> Token-Bindung -> Token-Ablauf -> Token-Wiederverwendung verhindern.
+~~~
+
+Pflichtfragen vor Umsetzung:
+
+~~~text
+Welche Audit-Events braucht Recovery genau?
+Wie sieht ein Confirm-Token-Lebenszyklus aus?
+Welche Preflight-Felder muss das Backend liefern?
+Wie wird Token-Wiederverwendung verhindert?
+Wie werden Rollen, Aktion, IDs und Ablaufzeit an das Token gebunden?
+Welche Audit-Fehler blockieren Aktionen hart?
+Welche DB-/Storage-Struktur waere spaeter noetig, ohne produktive DB blind zu migrieren?
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine produktive Flow-Änderung
+Kein Alert-Replay
+Kein Sound-Replay
+Keine neuen Routen ohne separaten Code-Step
+~~~
+
 ## Nach Dokumentationsabschluss CAN-6.1
 
 Marker: STEP_CAN6_1_DOCUMENTATION_NEXT_STEPS

@@ -1,3 +1,38 @@
+# CHANGELOG – CAN-6.2 Backend-Schutzvertrag
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN6_2_BACKEND_RECOVERY_GUARD_CONTRACT.md` neu ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_2.md` neu ergänzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.2 Abschluss-/Übergabestand ergänzt.
+- `project-state/NEXT_STEPS.md` um CAN-6.3 als nächsten Arbeitsblock ergänzt.
+- `project-state/TODO.md` um CAN-6.3 Audit-/Confirm-Token-Aufgaben ergänzt.
+- `project-state/FILES.md` um CAN-6.2 relevante Dateien ergänzt.
+
+## Bestätigter Stand
+
+- CAN-6.2 definiert nur den Backend-Schutzvertrag.
+- Guard-Kette definiert: Auth, Matrix, Confirm, State, Safety-Stop, Status, Duplicate, RateLimit, Audit, Rollback.
+- Keine produktive Recovery aktiviert.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Logik geändert.
+- Keine Dashboard-Buttons ergänzt.
+- Keine neuen Routen ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+
+## Nächster Block
+
+- CAN-6.3: Recovery-Audit- und Confirm-Token-Konzept planen.
+
+---
+
 # CHANGELOG – CAN-6.1 Manuelle Recovery-Aktionsmatrix
 
 Stand: 2026-06-01

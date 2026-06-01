@@ -1,3 +1,57 @@
+## Abschluss-/Übergabestand CAN-6.2
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_2_BACKEND_RECOVERY_GUARD_CONTRACT
+
+CAN-6.2 definiert den Backend-Schutzvertrag fuer spaetere manuelle Recovery-Aktionen.
+
+Aktueller Fokus:
+
+~~~text
+Communication-Bus / EventBus Diagnose
+Recovery-Strategy-State
+Manuelle Recovery-Aktionsmatrix
+Backend-Schutzvertrag fuer spaetere Recovery-Aktionen
+~~~
+
+Definierte Schutzschichten:
+
+~~~text
+AuthGuard
+ActionMatrixGuard
+ConfirmGuard
+RecoveryStateGuard
+SafetyStopGuard
+StatusGuard
+DuplicateGuard
+RateLimitGuard
+AuditGuard
+RollbackGuard
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine neuen Routen
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine produktive Flow-Änderung
+Keine DB-/Config-Migration
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-6.3: Recovery-Audit- und Confirm-Token-Konzept planen
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN6_2_BACKEND_RECOVERY_GUARD_CONTRACT.md`
+Übergabe: `docs/current/CURRENT_CHAT_HANDOFF_CAN6_2.md`
+
 ## Abschluss-/Übergabestand CAN-6.1
 
 Stand: 2026-06-01
