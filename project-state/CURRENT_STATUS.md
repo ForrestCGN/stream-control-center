@@ -1,3 +1,44 @@
+## STEP CAN-5.10 Recovery-Dashboard stabil dokumentiert
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_10_RECOVERY_DASHBOARD_STABLE
+
+CAN-5.10 dokumentiert den stabilen Abnahmestand des Recovery-Tabs im Bus-Diagnostics-Dashboard.
+
+~~~text
+Recovery-Strategie sichtbar
+Sicherheitsstatus sichtbar
+Recovery-Quelle lesbar
+Blockierte Aktionen sichtbar
+Erlaubte Aktionen sichtbar
+Gründe sichtbar
+Simulation-Harness sichtbar
+Read-only-Hinweise sichtbar
+~~~
+
+Bestätigt bleibt:
+
+~~~text
+Keine Simulation-Buttons sichtbar
+Keine Simulation per Dashboard auslösbar
+Keine Recovery-Automatik sichtbar
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine produktive Flow-Änderung
+~~~
+
+CAN-5.10 ist nur Dokumentation/Stable-Status.
+
+~~~text
+Keine Backend-Änderung
+Keine API-Änderung
+Keine Dashboard-Code-Änderung
+Keine Queue-/Sound-/Overlay-Logik geändert
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN5_10_RECOVERY_DASHBOARD_STABLE.md`
+
 ## STEP CAN-5.9.3 Recovery-Dashboard aufgeräumtes Layout
 
 Stand: 2026-06-01

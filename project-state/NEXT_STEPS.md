@@ -1,3 +1,41 @@
+## Nach STEP CAN-5.10
+
+Marker: STEP_CAN5_10_NEXT_STEPS
+
+CAN-5.5 bis CAN-5.10 bilden jetzt einen stabilen read-only Diagnose-Stand:
+
+~~~text
+Recovery-Strategy-State read-only
+Simulation-Harness synthetisch/read-only
+Dashboard-Anzeige read-only
+Keine Simulation-Buttons
+Keine Recovery-Automatik
+Keine produktive Flow-Änderung
+~~~
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-6.0: Abgesicherte manuelle Recovery-Planung vorbereiten
+~~~
+
+Vor jeder Umsetzung klären:
+
+~~~text
+Welche Recovery-Aktionen bleiben weiterhin nur Diagnose?
+Welche Aktionen dürfen später manuell ausgelöst werden?
+Welche Duplikat-Sperren verhindern Alert-/Sound-Replays?
+Welche Rechte braucht ein Dashboard-Button?
+Welche Audit-Logs sind Pflicht?
+Wie sieht ein Rollback/Safety-Stop aus?
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery ohne separate Planung, Tests und klare Schutzmechanik.
+~~~
+
 ## Nach STEP CAN-5.9.3
 
 Marker: STEP_CAN5_9_3_NEXT_STEPS
