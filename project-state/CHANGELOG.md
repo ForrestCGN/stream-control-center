@@ -60,3 +60,11 @@
 - Niedrigrisiko-Kandidaten fuer spaetere read-only Planung identifiziert.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
+
+## CAN-13.6
+
+- CAN-13 Sicherheitsplanung abgeschlossen.
+- Audit, Rollen/Rechte, Confirm, SafetyStop/Cancel und Kandidatenmatrix zusammengefasst.
+- CAN-14.0 als naechster read-only Safety Status View Planning Schritt festgelegt.
+- Keine Code-Aenderungen.
+- Keine Recovery-Ausfuehrung.

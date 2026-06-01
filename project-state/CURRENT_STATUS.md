@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-## Stand: CAN-13.5 abgeschlossen
+## Stand: CAN-13.6 abgeschlossen
 
 Der Recovery-/Preflight-/Guard-Framework-Strang ist weiterhin read-only abgeschlossen.
 
-Der CAN-13-Strang ist weiterhin reine Planung fuer spaetere manuelle Recovery-Sicherheit.
+Der CAN-13-Strang ist als Sicherheitsplanung fuer spaetere manuelle Recovery abgeschlossen.
 
 Abgeschlossen:
 
@@ -19,6 +19,7 @@ Abgeschlossen:
 - CAN-13.3 Confirm-/Bestaetigungs-Konzept
 - CAN-13.4 SafetyStop-/Cancel-Konzept
 - CAN-13.5 Recovery-Kandidatenmatrix
+- CAN-13.6 Recovery Safety Planning Closure
 
 ## Aktuelle read-only Funktionen
 
@@ -41,7 +42,7 @@ Errors: 0
 Blocking Failed: 0
 ```
 
-## CAN-13.5 Sicherheitsstand
+## CAN-13.6 Sicherheitsstand
 
 Weiterhin keine Recovery-Ausfuehrung.
 
@@ -55,16 +56,23 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 candidateApi: false
-dashboardCandidateButtons: false
+safetyStopApi: false
+cancelApi: false
+auditApi: false
+rightsApi: false
+confirmApi: false
+dashboardRecoveryButtons: false
 ```
 
-## CAN-13.5 Ergebnis
+## CAN-13 Abschluss
 
 ```text
-Recovery-Kandidaten wurden bewertet.
-Read-only Diagnosekandidaten sind die einzigen niedrigen Risiken.
-Sicherheitsstatus-Mutationen bleiben blockiert.
-Produktive Recovery-Mutationen bleiben hart blockiert.
+Audit-Konzept dokumentiert.
+Rollen-/Rechte-Konzept dokumentiert.
+Confirm-Konzept dokumentiert.
+SafetyStop-/Cancel-Konzept dokumentiert.
+Recovery-Kandidatenmatrix dokumentiert.
+CAN-13 Sicherheitsplanung abgeschlossen.
 ```
 
 ## Niedriges Risiko / spaeter zuerst betrachtbar
@@ -90,4 +98,10 @@ Auto Recovery
 Auto Retry Overlay
 Streamer.bot Action Retry
 OBS Source Refresh
+```
+
+## Naechster sinnvoller Strang
+
+```text
+CAN-14.0 - Read-only Safety Status View Planning
 ```

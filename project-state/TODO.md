@@ -19,4 +19,5 @@
 - [x] CAN-13.3 Manual Recovery Confirm Concept
 - [x] CAN-13.4 Manual Recovery SafetyStop Cancel Concept
 - [x] CAN-13.5 Recovery Candidate Matrix
-- [ ] CAN-13.6 Recovery Safety Planning Closure / Handoff
+- [x] CAN-13.6 Recovery Safety Planning Closure / Handoff
+- [ ] CAN-14.0 Read-only Safety Status View Planning
