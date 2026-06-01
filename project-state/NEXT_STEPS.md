@@ -1,3 +1,36 @@
+## Nach Dokumentationsabschluss CAN-6.0
+
+Marker: STEP_CAN6_0_DOCUMENTATION_NEXT_STEPS
+
+Nächster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-6.1: Manuelle Recovery-Aktionsmatrix definieren
+~~~
+
+Ziel von CAN-6.1:
+
+~~~text
+Noch kein Code.
+Noch keine Buttons.
+Noch keine Recovery-Ausführung.
+Nur Matrix: Zustand -> erlaubte manuelle Aktion -> Schutzmechanik -> Audit -> Rollback.
+~~~
+
+Pflichtfragen vor Umsetzung:
+
+~~~text
+Welche Zustände bleiben reine Diagnose?
+Welche Zustände dürfen eine manuelle Recovery anbieten?
+Welche Aktionen bleiben hart blockiert?
+Welche Rechte braucht jede Aktion?
+Welche Audit-Logs sind Pflicht?
+Welche Duplikat-Sperren verhindern Alert-/Sound-Replays?
+Wie wird Safety-Stop/Rollback umgesetzt?
+Wie wird verhindert, dass Recovery doppelt feuert?
+~~~
+
+
 ## Nach STEP CAN-6.0
 
 Marker: STEP_CAN6_0_NEXT_STEPS

@@ -1,4 +1,4 @@
-﻿# TODO
+# TODO
 
 Stand: 2026-05-30
 
@@ -10,6 +10,20 @@ Stand: 2026-05-30
 - [ ] Routen-/Modul-Doku mit echten Backend-Dateien verifizieren.
 - [ ] Bei Chatwechsel erneut `dokumentieren und aktualisieren` durchführen.
 - [ ] Nach Routenprüfung ggf. `docs/backend/ROUTES.md` oder Modul-Dokus aktualisieren.
+
+## CAN-6 / Manuelle Recovery
+
+- [x] CAN-5.5 bis CAN-5.10 als stabilen read-only Diagnose-Stand dokumentieren.
+- [x] CAN-6.0 als reine Planung für abgesicherte manuelle Recovery dokumentieren.
+- [ ] CAN-6.1 manuelle Recovery-Aktionsmatrix definieren.
+- [ ] Pro Recovery-Zustand festlegen: Diagnose-only, manuell erlaubt oder hart blockiert.
+- [ ] Pflichtrechte pro späterer manueller Aktion festlegen: Owner/Admin.
+- [ ] Bestätigungsdialoge für spätere manuelle Aktionen planen.
+- [ ] Audit-Log-Pflicht pro Aktion definieren.
+- [ ] Duplikat-Sperren für Alert-/Sound-/Overlay-Recovery entwerfen.
+- [ ] Safety-Stop/Rollback/Clear-Regel definieren.
+- [ ] Vor jedem Code-Step prüfen: keine automatische Recovery, kein Auto-Retry, kein Replay ohne harte Schutzmechanik.
+
 
 ## Channelpoints
 

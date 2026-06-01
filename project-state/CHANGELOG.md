@@ -1,3 +1,36 @@
+# CHANGELOG – CAN-6.0 Dokumentationsabschluss
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `project-state/CURRENT_STATUS.md` um konsolidierten CAN-6.0 Übergabestand ergänzt.
+- `project-state/NEXT_STEPS.md` um nächsten Arbeitsblock CAN-6.1 ergänzt.
+- `TODO.md` um offene CAN-6.1 Aufgaben ergänzt.
+- `FILES.md` um relevante CAN-5/CAN-6 Diagnose- und Dashboard-Dateien ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_0.md` als Übergabedatei für den nächsten Chat ergänzt.
+
+## Bestätigter Stand
+
+- CAN-5.5 bis CAN-5.10 bilden einen stabilen read-only Diagnose-Stand.
+- CAN-6.0 ist reine Planung für später mögliche manuelle Recovery.
+- Es wurden keine produktiven Flows freigeschaltet.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Logik geändert.
+- Keine Dashboard-Buttons ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+
+## Nächster Block
+
+- CAN-6.1: Manuelle Recovery-Aktionsmatrix definieren.
+
+---
+
 # CHANGELOG – STEP278 Vorbereitung
 
 Stand: 2026-05-31 08:14 UTC

@@ -1,3 +1,48 @@
+## Abschluss-/Übergabestand CAN-6.0
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_0_DOCUMENTATION_CONSOLIDATED
+
+Der aktuelle Dokumentationsstand wurde nach CAN-6.0 konsolidiert.
+
+Aktueller Fokus:
+
+~~~text
+Communication-Bus / EventBus Diagnose
+Recovery-Strategy-State
+Recovery-Simulation-Harness
+Bus-Diagnostics-Dashboard Recovery-Tab
+Manuelle Recovery-Planung
+~~~
+
+Stabiler Stand:
+
+~~~text
+CAN-5.5 bis CAN-5.10: read-only Diagnose stabil
+CAN-6.0: manuelle Recovery nur geplant, nicht umgesetzt
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine produktive Flow-Änderung
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-6.1: Manuelle Recovery-Aktionsmatrix definieren
+~~~
+
+Details/Übergabe: `docs/current/CURRENT_CHAT_HANDOFF_CAN6_0.md`
+
+
 ## STEP CAN-6.0 Manuelle Recovery-Planung
 
 Stand: 2026-06-01

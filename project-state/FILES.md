@@ -1,3 +1,52 @@
+# FILES – CAN-6.0 / Recovery-Diagnose aktueller Arbeitsstand
+
+Stand: 2026-06-01
+
+## Aktueller Dokumentationsstand
+
+- `project-state/CURRENT_STATUS.md`
+  - aktueller CAN-6.0 Status und konsolidierter Übergabestand
+- `project-state/NEXT_STEPS.md`
+  - nächster Arbeitsblock CAN-6.1
+- `TODO.md`
+  - offene Aufgaben für Doku, Recovery-Matrix und spätere sichere Umsetzung
+- `CHANGELOG.md`
+  - Dokumentationsabschluss CAN-6.0
+- `FILES.md`
+  - diese Datei
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_0.md`
+  - kompakte Übergabe für neuen Chat
+
+## Relevante CAN-5/CAN-6 Dokumente
+
+- `docs/system-inspection/EVENTBUS_CAN5_7_SIMULATION_HARNESS_LIVE_TEST_STABLE.md`
+- `docs/system-inspection/EVENTBUS_CAN5_8_RECOVERY_DASHBOARD_PLAN.md`
+- `docs/system-inspection/EVENTBUS_CAN5_9_RECOVERY_DASHBOARD_READONLY_DISPLAY.md`
+- `docs/system-inspection/EVENTBUS_CAN5_9_1_RECOVERY_DASHBOARD_LAYOUT_FIX.md`
+- `docs/system-inspection/EVENTBUS_CAN5_9_2_RECOVERY_DASHBOARD_COMPACT_LAYOUT.md`
+- `docs/system-inspection/EVENTBUS_CAN5_9_3_RECOVERY_DASHBOARD_CLEANUP_LAYOUT.md`
+- `docs/system-inspection/EVENTBUS_CAN5_10_RECOVERY_DASHBOARD_STABLE.md`
+- `docs/system-inspection/EVENTBUS_CAN6_0_MANUAL_RECOVERY_PLANNING.md`
+
+## Relevante Code-Dateien
+
+- `backend/modules/bus_diagnostics.js`
+  - Recovery-Strategy-State
+  - Recovery-Simulation-Harness
+  - read-only Diagnose-Endpunkte
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - Bus-Diagnostics-Dashboard
+  - Recovery-Tab read-only Anzeige
+
+## Nicht anfassen ohne separates Go
+
+- Keine Recovery-Automatik aktivieren.
+- Keine Simulation-Buttons im Dashboard ergänzen.
+- Keine Alert-/Sound-Replays erlauben.
+- Keine produktive Queue-/Sound-/Overlay-Logik umbauen.
+
+---
+
 # FILES – STEP278 Vorbereitung
 
 ## Direkt relevant für heutigen Test
