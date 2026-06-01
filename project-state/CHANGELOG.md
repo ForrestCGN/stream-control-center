@@ -76,3 +76,12 @@
 - CAN-14.1 Safety Status Contract read-only als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
+
+## CAN-14.1
+
+- Safety Status Contract read-only definiert.
+- Root-Struktur, Summary, Statusgruppen, Level-Enum und HardBlockedAction Contract festgelegt.
+- Bedeutung von false, unknown und blocked fuer spaetere Anzeige dokumentiert.
+- CAN-14.2 Backend Status Shape read-only Planning als naechster Schritt festgelegt.
+- Keine Code-Aenderungen.
+- Keine Recovery-Ausfuehrung.

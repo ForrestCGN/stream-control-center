@@ -5,7 +5,7 @@
 Empfohlener Start:
 
 ```text
-CAN-14.1 - Safety Status Contract read-only
+CAN-14.2 - Backend Status Shape read-only planen
 ```
 
 ## CAN-14 Zielrichtung
@@ -18,22 +18,21 @@ Sinnvolle Richtung:
 Read-only Safety Status View
 ```
 
-## CAN-14.1 Ziel
+## CAN-14.2 Ziel
 
-CAN-14.1 soll den read-only Safety Status Contract definieren.
+CAN-14.2 soll planen, wie ein spaeterer Backend Status Shape read-only aussehen darf.
 
-Der Contract soll festlegen:
+Dabei wird noch keine Route und kein Code umgesetzt.
+
+Zu klaeren:
 
 ```text
-Feldnamen
-Bedeutung
-Datentypen
-Statusgruppen
-Ampel-Logik
-was false bedeutet
-was blocked bedeutet
-was read-only bedeutet
-welche Aktionen weiterhin hart blockiert sind
+welches bestehende Modul spaeter liefern duerfte
+welche vorhandenen Datenquellen read-only genutzt werden duerfen
+welche Felder statisch/hart gesetzt werden duerfen
+welche Felder aus bestehendem Status kommen duerfen
+welche Felder unknown bleiben muessen
+welche Tests fuer read-only no-mutation noetig sind
 ```
 
 ## Moegliche CAN-14 Reihenfolge

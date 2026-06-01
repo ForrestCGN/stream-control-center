@@ -1,11 +1,11 @@
 # FILES
 
-## CAN14.0 Planungs-ZIP
+## CAN14.1 Planungs-ZIP
 
 Enthaltene Dateien:
 
-- `docs/system-inspection/EVENTBUS_CAN14_0_READONLY_SAFETY_STATUS_VIEW_PLANNING.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN14_0.md`
+- `docs/system-inspection/EVENTBUS_CAN14_1_SAFETY_STATUS_CONTRACT_READONLY.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN14_1.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -15,7 +15,9 @@ Enthaltene Dateien:
 ## CAN14 Dokumente
 
 - `docs/system-inspection/EVENTBUS_CAN14_0_READONLY_SAFETY_STATUS_VIEW_PLANNING.md`
+- `docs/system-inspection/EVENTBUS_CAN14_1_SAFETY_STATUS_CONTRACT_READONLY.md`
 - `docs/current/CURRENT_CHAT_HANDOFF_CAN14_0.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN14_1.md`
 
 ## Wichtige vorherige Dokumente
 
@@ -24,7 +26,7 @@ Enthaltene Dateien:
 
 ## Wichtige technische Dateien
 
-Technisch relevant, aber in CAN-14.0 nicht geaendert:
+Technisch relevant, aber in CAN-14.1 nicht geaendert:
 
 - `backend/modules/bus_diagnostics.js`
 - `htdocs/dashboard/modules/bus_diagnostics.js`
