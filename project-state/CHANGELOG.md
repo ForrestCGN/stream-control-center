@@ -1,3 +1,29 @@
+# CHANGELOG – CAN-7.2 Recovery-Readiness Live-Test und Abnahmegrenze
+
+Stand: 2026-06-01
+
+## Geändert
+
+- CAN-7.2 Test-/Abnahmedokument ergänzt.
+- Aktuelle Projekt-State-Dateien für CAN-7.2 aktualisiert.
+- Übergabedatei `docs/current/CURRENT_CHAT_HANDOFF_CAN7_2.md` ergänzt.
+
+## Nicht geändert
+
+- Keine Backend-Datei geändert.
+- Keine Dashboard-Datei geändert.
+- Keine API-Route ergänzt.
+- Keine Config geändert.
+- Keine DB geändert.
+- Keine Recovery ausgeführt.
+- Keine produktive Flow-Änderung.
+
+## Nächster Block
+
+- CAN-7.3: Dashboard-Read-only-Anzeige von `recoveryReadiness`, erst nach Live-Test und vollständiger Datei-Prüfung.
+
+---
+
 # CHANGELOG – CAN-7.1 Recovery-Readiness Statusfelder
 
 Stand: 2026-06-01

@@ -1,3 +1,12 @@
+## CAN-7.2 / CAN-7.3
+
+- [ ] CAN-7.2 Live-Test ausführen: `node -c backend\modules\bus_diagnostics.js`.
+- [ ] `/api/bus-diagnostics/status` auf `version=1.2.5` prüfen.
+- [ ] `recoveryReadiness` im Status prüfen.
+- [ ] Alle produktiven Touch-Flags müssen false bleiben.
+- [ ] Vor CAN-7.3 vollständige echte Datei `htdocs/dashboard/modules/bus_diagnostics.js` prüfen oder anfordern.
+- [ ] CAN-7.3 nur read-only Dashboard-Anzeige planen/umsetzen, keine Buttons.
+
 # TODO – CAN-7.1 / CAN-7.2 Übergang
 
 Stand: 2026-06-01

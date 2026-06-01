@@ -1,3 +1,28 @@
+# FILES – CAN-7.2 Recovery-Readiness Live-Test und Abnahmegrenze
+
+Stand: 2026-06-01
+
+## Neue/aktualisierte Doku
+
+- `docs/system-inspection/EVENTBUS_CAN7_2_RECOVERY_READINESS_LIVE_TEST_ACCEPTANCE.md`
+  - Test-/Abnahmeplan für CAN-7.1 `recoveryReadiness`.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_2.md`
+  - Übergabe für nächsten Schritt.
+- `docs/current/README_CAN7_2_FILE_ZIP.md`
+  - ZIP-Hinweise.
+
+## Technisch relevant für den Live-Test
+
+- `backend/modules/bus_diagnostics.js`
+  - durch CAN-7.1 geändert, in CAN-7.2 nicht erneut geändert.
+
+## Für CAN-7.3 benötigt
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - vollständige echte Datei vor jeder Änderung prüfen oder anfordern.
+
+---
+
 # FILES – CAN-7.1 / Recovery-Readiness Statusfelder
 
 Stand: 2026-06-01

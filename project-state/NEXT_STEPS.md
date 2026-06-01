@@ -1,3 +1,24 @@
+## Nach STEP CAN-7.2
+
+Marker: STEP_CAN7_2_NEXT_STEPS
+
+Zuerst CAN-7.2 live prüfen:
+
+~~~powershell
+node -c backend\modules\bus_diagnostics.js
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/status"
+$s.recoveryReadiness | Select-Object enabled,mode,ready,stage,nextStep,canProceedToDashboard,requiresExplicitGo
+$s.recoveryReadiness.safety | Select-Object readOnly,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched,automationEnabled,productiveActions
+~~~
+
+Danach möglicher nächster Schritt:
+
+~~~text
+CAN-7.3: Dashboard-Read-only-Anzeige von recoveryReadiness
+~~~
+
+Vor CAN-7.3 muss die vollständige echte Datei `htdocs/dashboard/modules/bus_diagnostics.js` geprüft werden.
+
 ## Nach STEP CAN-7.1
 
 Marker: STEP_CAN7_1_NEXT_STEPS

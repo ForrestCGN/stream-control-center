@@ -1,3 +1,20 @@
+## STEP CAN-7.2 Recovery-Readiness Live-Test und Abnahmegrenze
+
+Stand: 2026-06-01
+Marker: STEP_CAN7_2_RECOVERY_READINESS_LIVE_TEST_ACCEPTANCE
+
+CAN-7.2 dokumentiert die Abnahme der in CAN-7.1 ergänzten `recoveryReadiness`-Statusfelder.
+
+~~~text
+Nur Test-/Abnahmeplan
+Keine Backend-Änderung
+Keine Dashboard-Änderung
+Keine neue API-Route
+Keine produktive Flow-Änderung
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN7_2_RECOVERY_READINESS_LIVE_TEST_ACCEPTANCE.md`
+
 ## STEP CAN-7.1 Recovery-Readiness Statusfelder
 
 Stand: 2026-06-01
