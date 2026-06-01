@@ -1,15 +1,15 @@
 # CHANGELOG
 
-## CAN-15.2
+## CAN-15.3
 
-- Audit-Boundary no-write geplant.
-- Audit-Phasen Request / Decision / Result definiert.
-- Spaetere Pflichtfelder dokumentiert.
-- Secrets-/Datenschutz- und Maskierungsgrenzen festgelegt.
-- Read-only und high-risk Audit-Kandidaten getrennt.
-- CAN-15.3 Audit Event Catalog no-write Planning als naechster Schritt festgelegt.
+- Audit-Event-Katalog no-write geplant.
+- Event-Namensschema `audit.<domain>.<subject>.<action>.<phase>` definiert.
+- Read-only Events, blocked High-Risk Events, Cancel Events und Failed Events katalogisiert.
+- Pflichtfelder je Event und No-Secret-Regeln dokumentiert.
+- CAN-15.4 Audit Data Minimization Policy no-write Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
 - Keine DB.
+- Kein EventBus-Emit.
 - Keine Recovery-Ausfuehrung.

@@ -3,24 +3,25 @@
 ## Naechster Schritt
 
 ```text
-CAN-15.3 - Audit Event Catalog no-write Planning
+CAN-15.4 - Audit Data Minimization Policy no-write Planning
 ```
 
-## Ziel CAN-15.3
+## Ziel CAN-15.4
 
-Audit-Ereignisse katalogisieren, aber weiterhin ohne Speicherung und ohne API.
+Festlegen, welche Daten spaeter in Audit-Kontexten erlaubt, maskiert, gehasht oder verboten sind.
 
-## CAN-15.3 darf klaeren
+## CAN-15.4 darf klaeren
 
 ```text
-welche read-only Events spaeter auditierbar sein koennten
-welche blocked Events spaeter auditierbar sein muessen
-welche Event-Namen stabil sein sollten
-welche Kategorie/Risiko-Stufe jedes Event hat
-welche Events weiterhin hart blockiert bleiben
+erlaubte Audit-Felder
+verbotene Audit-Felder
+Maskierungsregeln
+Hash-/Pseudonymisierungsregeln
+Retention-Grundsaetze als Planung
+Secret-Erkennung als Konzept
 ```
 
-## CAN-15.3 darf NICHT enthalten
+## CAN-15.4 darf NICHT enthalten
 
 ```text
 CREATE TABLE

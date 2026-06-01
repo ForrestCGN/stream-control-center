@@ -1,23 +1,19 @@
 # CURRENT_STATUS
 
-## Stand: CAN-15.2 abgeschlossen
+## Stand: CAN-15.3 abgeschlossen
 
-CAN-15.2 hat die Audit-Boundary no-write geplant.
+CAN-15.3 hat den Audit-Event-Katalog no-write geplant.
 
-## Aktueller stabiler Stand
-
-```text
-read-only Recovery/Safety Diagnose- und Anzeige-Strang
-```
-
-## Audit-Boundary Status
+## Audit-Status
 
 ```text
 auditPlanning: true
+auditEventCatalog: true
 auditWrite: false
 auditApi: false
 auditDb: false
 auditDashboard: false
+eventBusEmit: false
 ```
 
 ## Sicherheitsstand
@@ -31,18 +27,16 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
-safetyStatusApi: false
-backendSafetyStatusShapeImplemented: false
 ```
 
-## CAN-15.2 Ergebnis
+## CAN-15.3 Ergebnis
 
 ```text
-Audit-Boundary no-write geplant.
-Audit-Phasen Request/Decision/Result definiert.
-Pflichtfelder geplant.
-Secrets-/Datenschutzgrenzen festgelegt.
-Write-Phase bleibt hart blockiert.
+Event-Namensschema definiert.
+Read-only Events katalogisiert.
+High-Risk Blocked Events katalogisiert.
+Cancel-/Failed-Events fuer spaeter geplant.
+No-Secret-Regeln bestaetigt.
 ```
 
 ## Weiterhin hart blockiert
