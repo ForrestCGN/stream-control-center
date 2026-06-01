@@ -1,3 +1,46 @@
+## Nach Dokumentationsabschluss CAN-6.4
+
+Marker: STEP_CAN6_4_DOCUMENTATION_NEXT_STEPS
+
+Nächster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-6.5: Dashboard-Preflight-Anzeige und UX-Regeln planen
+~~~
+
+Ziel von CAN-6.5:
+
+~~~text
+Noch kein produktiver Code.
+Noch keine Recovery-Buttons.
+Noch keine Recovery-Ausführung.
+Nur Konzept: Wie spätere Preflight-Daten im Dashboard eindeutig, read-only und sicher angezeigt werden duerfen.
+~~~
+
+Pflichtfragen vor Umsetzung:
+
+~~~text
+Welche Preflight-Felder werden im Dashboard sichtbar?
+Wie werden Blockaden, Warnungen und erlaubte Zustände getrennt dargestellt?
+Wie wird read-only unmissverständlich markiert?
+Welche Texte verhindern Fehlbedienung?
+Welche Rollen-/Rechte-Hinweise werden angezeigt?
+Wie wird verhindert, dass aus Anzeige versehentlich Aktion wird?
+Welche UI-Elemente bleiben explizit verboten?
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine produktive Flow-Änderung
+Kein Alert-Replay
+Kein Sound-Replay
+Keine neuen Dashboard-Aktionen ohne separaten Code-Step
+~~~
+
 ## Nach Dokumentationsabschluss CAN-6.3
 
 Marker: STEP_CAN6_3_DOCUMENTATION_NEXT_STEPS

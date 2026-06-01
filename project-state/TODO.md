@@ -1,3 +1,25 @@
+## CAN-6.5 / Dashboard-Preflight-Anzeige und UX-Regeln
+
+- [x] CAN-6.4 Read-only Recovery-Preflight-API-Konzept dokumentieren.
+- [ ] CAN-6.5 Dashboard-Preflight-Anzeige und UX-Regeln planen.
+- [ ] Sichtbare Preflight-Felder fuer Dashboard festlegen.
+- [ ] Darstellung fuer blockiert/erlaubt/Warnung definieren.
+- [ ] Read-only-Hinweise und Sicherheitsformulierungen definieren.
+- [ ] Verbotene UI-Elemente fuer CAN-6.5 festlegen.
+- [ ] Rollen-/Rechte-Hinweise fuer Dashboard planen.
+- [ ] Sicherstellen: keine Recovery-Buttons, keine Simulation-Buttons, keine produktiven Aktionen.
+
+## CAN-6.4 / Read-only Recovery-Preflight-API-Konzept
+
+- [x] CAN-6.3 Recovery-Audit- und Bestätigungs-Code-Konzept dokumentieren.
+- [x] CAN-6.4 Read-only Recovery-Preflight-API-Konzept planen.
+- [x] Preflight-Antwortfelder fuer spaetere API finalisieren.
+- [x] Guard-Pruefungen fuer read-only Preflight definieren.
+- [x] Bestätigungs-Code-Erzeugung im Preflight konzeptionell abgrenzen.
+- [x] Blockierungsgruende fuer Preflight-Antworten definieren.
+- [x] Sicherstellen: Preflight aendert keine Queues, Locks, Sounds, Alerts oder Overlays.
+- [x] Sicherstellen: keine neue Route ohne separaten Code-Step.
+
 ## CAN-6.4 / Read-only Recovery-Preflight-API-Konzept
 
 - [x] CAN-6.3 Recovery-Audit- und Bestätigungs-Code-Konzept dokumentieren.

@@ -1,3 +1,40 @@
+# CHANGELOG – CAN-6.4 Read-only Recovery-Preflight-API-Konzept
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN6_4_READONLY_RECOVERY_PREFLIGHT_API_CONCEPT.md` ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_4.md` ergänzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.4 Abschlussstand erweitert.
+- `project-state/NEXT_STEPS.md` um CAN-6.5 als nächsten Arbeitsblock erweitert.
+- `project-state/TODO.md` um CAN-6.4/CAN-6.5 Aufgaben erweitert.
+- `project-state/FILES.md` um CAN-6.4 Dateien erweitert.
+
+## Definiert
+
+- Konzept einer späteren read-only Recovery-Preflight-API.
+- Request-/Response-Felder.
+- Read-only Guard-Prüfungen.
+- Blockierungs- und Warnungsgründe.
+- Bestätigungs-Code-Verfügbarkeit im Preflight.
+- Read-only-Garantie ohne Queue-/Lock-/Sound-/Alert-/Overlay-Mutation.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Route ergänzt.
+- Keine Dashboard-Buttons ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+
+## Nächster Block
+
+- CAN-6.5: Dashboard-Preflight-Anzeige und UX-Regeln planen.
+
+---
+
 # CHANGELOG – CAN-6.3 Recovery-Audit- und Bestätigungs-Code-Konzept
 
 Stand: 2026-06-01

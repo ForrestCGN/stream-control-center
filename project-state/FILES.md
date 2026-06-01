@@ -1,3 +1,37 @@
+# FILES – CAN-6.4 / Recovery Preflight API Concept
+
+Stand: 2026-06-01
+
+## Aktueller Dokumentationsstand
+
+- `docs/system-inspection/EVENTBUS_CAN6_4_READONLY_RECOVERY_PREFLIGHT_API_CONCEPT.md`
+  - Konzept fuer spaetere read-only Recovery-Preflight-API
+  - Request-/Response-Felder
+  - Guard-Pruefungen
+  - Blockierungsgruende
+  - Read-only-Garantie
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_4.md`
+  - Übergabe fuer den naechsten Chat/Step
+- `docs/current/README_CAN6_4_FILE_ZIP.md`
+  - Entpack-/Abschluss-Hinweise fuer dieses Datei-ZIP
+
+## Weiterhin relevante Vorgänger-Dokumente
+
+- `docs/system-inspection/EVENTBUS_CAN6_1_MANUAL_RECOVERY_ACTION_MATRIX.md`
+- `docs/system-inspection/EVENTBUS_CAN6_2_BACKEND_RECOVERY_GUARD_CONTRACT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_3_RECOVERY_AUDIT_CONFIRMATION_CONCEPT.md`
+
+## Weiterhin nicht anfassen ohne separates Go
+
+- Keine Recovery-Automatik aktivieren.
+- Keine Simulation-Buttons im Dashboard ergänzen.
+- Keine Recovery-Buttons im Dashboard ergänzen.
+- Keine Alert-/Sound-Replays erlauben.
+- Keine produktive Queue-/Sound-/Overlay-Logik umbauen.
+- Keine neue API-Route ohne separaten Code-Step bauen.
+
+---
+
 # FILES – CAN-6.3 / Recovery-Audit- und Bestätigungs-Code-Konzept aktueller Arbeitsstand
 
 Stand: 2026-06-01

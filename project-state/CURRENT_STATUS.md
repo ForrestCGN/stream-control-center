@@ -1,3 +1,59 @@
+## Abschluss-/Übergabestand CAN-6.4
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_4_READONLY_RECOVERY_PREFLIGHT_API_CONCEPT
+
+CAN-6.4 definiert das Konzept fuer eine spaetere read-only Recovery-Preflight-API.
+
+Aktueller Fokus:
+
+~~~text
+Communication-Bus / EventBus Diagnose
+Recovery-Strategy-State
+Manuelle Recovery-Aktionsmatrix
+Backend-Schutzvertrag fuer spaetere Recovery-Aktionen
+Audit- und Bestätigungs-Code-Konzept
+Read-only Recovery-Preflight-API-Konzept
+~~~
+
+Definiert wurde:
+
+~~~text
+spätere Preflight-Route nur als Konzept
+Request-Felder
+Response-Felder
+read-only Guard-Prüfungen
+Blockierungsgründe
+Warnungsgründe
+Bestätigungs-Code-Verfügbarkeit im Preflight
+Read-only-Garantie
+Dashboard-Anzeigefelder
+Preflight-Einstufung der CAN-6.1-Aktionen
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine neuen Routen
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine produktive Flow-Änderung
+Keine DB-/Config-Migration
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-6.5: Dashboard-Preflight-Anzeige und UX-Regeln planen
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN6_4_READONLY_RECOVERY_PREFLIGHT_API_CONCEPT.md`
+Übergabe: `docs/current/CURRENT_CHAT_HANDOFF_CAN6_4.md`
+
 ## Abschluss-/Übergabestand CAN-6.3
 
 Stand: 2026-06-01
