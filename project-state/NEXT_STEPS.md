@@ -1,3 +1,34 @@
+## Nach STEP CAN-5.7
+
+Marker: STEP_CAN5_7_NEXT_STEPS
+
+CAN-5.5/5.6/5.7 bestätigen den read-only Simulation-Harness als stabilen Diagnose-Stand.
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-5.8: Recovery-Diagnose ins Dashboard sichtbar machen oder Dashboard-Plan erstellen
+~~~
+
+Regeln bleiben:
+
+~~~text
+Keine automatische Recovery
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine produktive Flow-Änderung
+~~~
+
+Vor Code zuerst entscheiden:
+
+~~~text
+Nur Anzeige im bestehenden Bus-Diagnostics-Dashboard?
+Oder erst Dashboard-Plan dokumentieren?
+Welche Szenarien sollen im Dashboard sichtbar sein?
+Wie wird klar markiert, dass alles synthetic/read-only ist?
+~~~
+
 ## Nach STEP CAN-5.5
 
 Marker: STEP_CAN5_5_NEXT_STEPS

@@ -1,3 +1,44 @@
+## STEP CAN-5.7 Simulation-Harness Live-Test stabil bestätigt
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_7_SIMULATION_HARNESS_LIVE_TEST_STABLE
+
+CAN-5.6 wurde live mit dem CAN-5.5 read-only Recovery-Simulation-Harness geprüft.
+
+~~~text
+bus_diagnostics: 1.2.4
+feature: recovery_simulation_harness
+simulationVersion: CAN-5.5
+readOnly: true
+automationEnabled: false
+productiveActions: false
+flowTouched: false
+queueTouched: false
+soundSystemTouched: false
+alertSystemTouched: false
+overlayTouched: false
+~~~
+
+Geprüfte Szenarien:
+
+~~~text
+missingAck -> blocked_missing_visual_ack
+noClient   -> blocked_no_overlay_client
+unmatched  -> blocked_unmatched_alert_sound
+~~~
+
+Bestätigung:
+
+~~~text
+Simulationen sind synthetisch.
+Keine echten Alerts wurden ausgelöst.
+Keine Sounds wurden gestartet.
+Keine Overlays wurden gesteuert.
+Keine Recovery-Automatik wurde aktiviert.
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN5_7_SIMULATION_HARNESS_LIVE_TEST_STABLE.md`
+
 ## STEP CAN-5.5 Read-only Recovery Simulation Harness
 
 Stand: 2026-06-01
