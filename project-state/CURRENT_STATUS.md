@@ -1,12 +1,12 @@
 # CURRENT_STATUS
 
-## Stand: CAN-14.3 abgeschlossen
+## Stand: CAN-14.4 abgeschlossen
 
 Der Recovery-/Preflight-/Guard-Framework-Strang ist weiterhin read-only abgeschlossen.
 
 Der CAN-13-Strang ist als Sicherheitsplanung fuer spaetere manuelle Recovery abgeschlossen.
 
-Der CAN-14-Strang ist weiterhin read-only Safety Status View Planung.
+Der CAN-14-Strang hat jetzt eine erste read-only Dashboard Safety Status Anzeige.
 
 Abgeschlossen:
 
@@ -20,6 +20,7 @@ Abgeschlossen:
 - CAN-14.1 Safety Status Contract read-only
 - CAN-14.2 Backend Status Shape read-only Planning
 - CAN-14.3 Dashboard Safety Status Anzeige Planning
+- CAN-14.4 Dashboard Safety Status View read-only Implementation
 
 ## Aktuelle read-only Funktionen
 
@@ -29,20 +30,10 @@ GET /api/bus-diagnostics/recovery-preflight
 Button: Preflight neu laden
 Button: Status neu synchronisieren
 Karte: Recovery Guards
+Subtab: Safety Status
 ```
 
-## Aktueller Live-Test-Stand Recovery Guards
-
-```text
-Guards: 16
-OK: 16
-Warnings: 0
-Blocked: 0
-Errors: 0
-Blocking Failed: 0
-```
-
-## CAN-14.3 Sicherheitsstand
+## CAN-14.4 Sicherheitsstand
 
 Weiterhin keine Recovery-Ausfuehrung.
 
@@ -56,20 +47,20 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 safetyStatusApi: false
-dashboardSafetyStatusView: false
+dashboardSafetyStatusView: true
 dashboardRecoveryButtons: false
 backendSafetyStatusShapeImplemented: false
-dashboardSafetyStatusPlanned: true
 ```
 
-## CAN-14.3 Ergebnis
+## CAN-14.4 Ergebnis
 
 ```text
-Dashboard Safety Status Anzeige geplant.
-Kartenstruktur und UI-Bedeutung festgelegt.
-False, unknown und blocked werden kontextabhaengig angezeigt.
-Keine Buttons in der ersten Safety-Status-Anzeige.
-Naechster Schritt ist CAN-14.4 Dashboard Safety Status Anzeige umsetzen, falls freigegeben.
+Dashboard Safety Status Anzeige umgesetzt.
+Keine Backend-Aenderung.
+Keine neue API.
+Keine neuen produktiven Buttons.
+Keine Recovery-Ausfuehrung.
+Naechster Schritt ist CAN-14.5 Live-Test read-only.
 ```
 
 ## Weiterhin hart blockiert

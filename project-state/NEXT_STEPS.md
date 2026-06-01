@@ -5,46 +5,40 @@
 Empfohlener Start:
 
 ```text
-CAN-14.4 - Dashboard Safety Status Anzeige umsetzen, falls freigegeben
+CAN-14.5 - Dashboard Safety Status View Live-Test read-only
 ```
 
-## Wichtig vor CAN-14.4
+## CAN-14.5 Ziel
 
-Vor Umsetzung zuerst:
+CAN-14.5 soll den neuen Safety-Status-Subtab live pruefen.
+
+Zu pruefen:
 
 ```text
-GitHub/dev bzw. echte Dateien pruefen.
-Ziel kurz zusammenfassen.
-Betroffene Dateien nennen.
-Geplante Aenderung nennen.
-Explizit nennen, was NICHT geaendert wird.
-Tests nennen.
-Auf Forrests go warten.
+Dashboard laedt ohne JS-Fehler
+Recovery-Tab laedt
+Subtab Safety Status sichtbar
+Keine produktiven Buttons im Safety Status
+Hard-Blocker sichtbar
+Bestehende Subtabs funktionieren weiter
+Keine neue API erforderlich
+Keine POST-/Mutation-Aufrufe
 ```
 
-## Voraussichtlich relevante Dateien fuer CAN-14.4
+## Empfohlene Tests
 
-Vor jeder Umsetzung pruefen:
-
-```text
-htdocs/dashboard/modules/bus_diagnostics.js
-backend/modules/bus_diagnostics.js
-backend/modules/communication_bus.js
-docs/system-inspection/EVENTBUS_CAN14_1_SAFETY_STATUS_CONTRACT_READONLY.md
-docs/system-inspection/EVENTBUS_CAN14_2_BACKEND_STATUS_SHAPE_READONLY_PLANNING.md
-docs/system-inspection/EVENTBUS_CAN14_3_DASHBOARD_SAFETY_STATUS_VIEW_PLANNING.md
+```bat
+node -c htdocs\dashboard\modules\bus_diagnostics.js
 ```
 
-## CAN-14.4 Zielrichtung
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/status"
+$s | Select-Object ok,module,version,readOnly,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched
+```
 
-Nur falls freigegeben:
-
-```text
-Dashboard Safety Status Anzeige read-only umsetzen
-keine Buttons
-keine Recovery
-keine Mutation
-keine POST-Aufrufe
+```powershell
+$p = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/recovery-preflight"
+$p | Select-Object ok,module,version,readOnly,canPrepare,canExecute
 ```
 
 ## Weiterhin nicht direkt umsetzen

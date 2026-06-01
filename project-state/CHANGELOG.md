@@ -103,3 +103,13 @@
 - CAN-14.4 Dashboard Safety Status Anzeige Implementation read-only als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
+
+## CAN-14.4
+
+- Dashboard Safety Status Anzeige read-only umgesetzt.
+- Neuer Recovery-Subtab `Safety Status` in `htdocs/dashboard/modules/bus_diagnostics.js`.
+- Lokale Safety-Auswertung aus vorhandenen GET-Daten ergaenzt.
+- Keine Backend-Aenderung.
+- Keine neue API.
+- Keine produktiven Buttons.
+- Keine Recovery-Ausfuehrung.

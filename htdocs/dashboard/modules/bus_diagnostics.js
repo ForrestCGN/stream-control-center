@@ -238,7 +238,7 @@
   }
 
   function setRecoverySubTab(tabId){
-    const allowed = ['overview', 'details', 'readiness', 'preflight', 'locks'];
+    const allowed = ['overview', 'details', 'readiness', 'preflight', 'safety', 'locks'];
     if (!allowed.includes(tabId)) return;
     state.recoverySubTab = tabId;
     localStorage.setItem('cgn-busdiag-recovery-tab', tabId);
@@ -670,6 +670,190 @@
   }
 
 
+
+  function uniqueStrings(values){
+    const seen = new Set();
+    const result = [];
+    for (const value of asList(values)) {
+      const text = String(value || '').trim();
+      if (!text || seen.has(text)) continue;
+      seen.add(text);
+      result.push(text);
+    }
+    return result;
+  }
+
+  function safetyLevelLabel(level){
+    const labels = { green: 'grün', yellow: 'gelb', red: 'rot', gray: 'grau' };
+    return labels[level] || level || 'unbekannt';
+  }
+
+  function safetyBoolText(value, trueText, falseText){
+    return value ? trueText : falseText;
+  }
+
+  function safetyRow(label, status, text, note){
+    return `<div class="busdiag-row ${status === 'error' ? 'error' : (status === 'warning' ? 'warning' : '')}"><strong>${esc(label)}</strong><span>${esc(text)}${note ? `<small>${esc(note)}</small>` : ''}</span></div>`;
+  }
+
+  function hardBlockedActionLabel(action){
+    const labels = {
+      auto_replay_alert: 'Auto Alert Replay',
+      manual_replay_alert: 'Manual Alert Replay',
+      alert_replay: 'Alert Replay',
+      auto_replay_sound: 'Auto Sound Replay',
+      manual_replay_sound: 'Manual Sound Replay',
+      sound_replay: 'Sound Replay',
+      queue_clear: 'Queue Clear',
+      queue_state_clear: 'Queue Clear',
+      overlay_state_repair: 'Overlay State Repair',
+      auto_retry_overlay: 'Auto Retry Overlay',
+      auto_recovery: 'Auto Recovery',
+      execute_recovery: 'Execute Recovery',
+      manual_recovery_execution: 'Manual Recovery Execution',
+      streamerbot_action_retry: 'Streamer.bot Action Retry',
+      obs_source_refresh: 'OBS Source Refresh'
+    };
+    return labels[action] || action;
+  }
+
+  function buildSafetyStatusModel(){
+    const data = getStatus();
+    const summary = getEffectiveRecoveryPreflightSummary();
+    const routePreflight = getRecoveryPreflightRoute();
+    const routeSafety = routePreflight.routeSafety || {};
+    const preflight = getEffectiveRecoveryPreflight();
+    const preflightSafety = preflight.safety || {};
+    const readiness = data.recoveryReadiness || {};
+    const preflightCheckSummary = preflight.checkSummary || {};
+    const preflightChecks = asList(preflight.checks);
+    const requiredHardBlocked = [
+      'alert_replay',
+      'sound_replay',
+      'queue_state_clear',
+      'overlay_state_repair',
+      'execute_recovery',
+      'auto_recovery',
+      'auto_retry_overlay',
+      'streamerbot_action_retry',
+      'obs_source_refresh'
+    ];
+    const hardBlockedActions = uniqueStrings([
+      ...requiredHardBlocked,
+      ...asList(readiness.hardBlockedActions),
+      ...asList(preflight.hardBlockedActions)
+    ]);
+    const dangerousRoutesPresent = routeSafety.commandRoute === true
+      || routeSafety.prepareRoute === true
+      || routeSafety.executeRoute === true
+      || routeSafety.method === 'POST'
+      || routeSafety.postRoutePresent === true;
+    const productiveMutationPresent = data.productiveActions === true
+      || data.flowTouched === true
+      || data.queueTouched === true
+      || data.soundSystemTouched === true
+      || data.alertSystemTouched === true
+      || data.overlayTouched === true
+      || readiness.productiveActions === true
+      || readiness.queueTouched === true
+      || readiness.soundSystemTouched === true
+      || readiness.alertSystemTouched === true
+      || readiness.overlayTouched === true
+      || preflightSafety.productiveActions === true
+      || preflightSafety.flowTouched === true
+      || preflightSafety.queueTouched === true
+      || preflightSafety.soundSystemTouched === true
+      || preflightSafety.alertSystemTouched === true
+      || preflightSafety.overlayTouched === true;
+    const recoveryExecution = routeSafety.recoveryExecution === true;
+    const canPrepare = preflight.canPrepare === true || routePreflight.canPrepare === true;
+    const canExecute = preflight.canExecute === true || routePreflight.canExecute === true;
+    const readOnly = data.readOnly !== false && routePreflight.readOnly !== false && preflight.readOnly !== false && routeSafety.readOnly !== false;
+    const guardCount = Number(preflightCheckSummary.total ?? summary.recoveryPreflightCheckCount ?? preflightChecks.length ?? 0);
+    const guardWarnings = Number(preflightCheckSummary.warnings ?? summary.recoveryPreflightWarningCheckCount ?? 0);
+    const guardBlocked = Number(preflightCheckSummary.blocked ?? 0);
+    const guardBlocking = Number(preflightCheckSummary.blocking ?? summary.recoveryPreflightBlockingCheckCount ?? 0);
+    const guardErrors = asList(data.errors).length;
+    let overallLevel = 'green';
+    if (!readOnly || recoveryExecution || canExecute || dangerousRoutesPresent || productiveMutationPresent) overallLevel = 'red';
+    else if (canPrepare || guardWarnings > 0 || guardBlocked > 0 || guardBlocking > 0 || guardErrors > 0) overallLevel = 'yellow';
+    else overallLevel = 'green';
+    return {
+      generatedAt: data.fetchedAt || routePreflight.checkedAt || new Date().toISOString(),
+      overallLevel,
+      readOnly,
+      canPrepare,
+      canExecute,
+      recoveryExecution,
+      dangerousRoutesPresent,
+      productiveMutationPresent,
+      routeSafetyMethod: routeSafety.method || 'GET',
+      commandRoute: routeSafety.commandRoute === true,
+      prepareRoute: routeSafety.prepareRoute === true,
+      executeRoute: routeSafety.executeRoute === true,
+      postRoutePresent: routeSafety.postRoutePresent === true || routeSafety.method === 'POST',
+      guardCount,
+      guardOk: Number(preflightCheckSummary.ok ?? Math.max(0, guardCount - guardWarnings - guardBlocked - guardErrors)),
+      guardWarnings,
+      guardBlocked,
+      guardBlocking,
+      guardErrors,
+      preflightKnown: !!(preflight && Object.keys(preflight).length),
+      preflightOk: preflight.readOnly === true && preflight.canExecute === false && preflightSafety.productiveActions === false,
+      auditReady: false,
+      rightsReady: false,
+      confirmReady: false,
+      safetyStopReady: false,
+      cancelReady: false,
+      duplicateLockReady: false,
+      hardBlockedActions
+    };
+  }
+
+  function renderSafetyStatusView(){
+    const model = buildSafetyStatusModel();
+    const overallStatus = model.overallLevel === 'red' ? 'error' : (model.overallLevel === 'yellow' ? 'warning' : 'ok');
+    const executionRows = [
+      safetyRow('Read-only', model.readOnly ? 'ok' : 'error', safetyBoolText(model.readOnly, 'ja / sicher', 'nein / prüfen')),
+      safetyRow('Prepare', model.canPrepare ? 'warning' : 'ok', safetyBoolText(model.canPrepare, 'ja / prüfen', 'nein / sicher')),
+      safetyRow('Execute', model.canExecute ? 'error' : 'ok', safetyBoolText(model.canExecute, 'ja / Gefahr', 'nein / sicher')),
+      safetyRow('Recovery-Ausführung', model.recoveryExecution ? 'error' : 'ok', safetyBoolText(model.recoveryExecution, 'aktiv / Gefahr', 'nein / sicher')),
+      safetyRow('Produktive Mutation', model.productiveMutationPresent ? 'error' : 'ok', safetyBoolText(model.productiveMutationPresent, 'erkannt / Gefahr', 'nein / sicher'))
+    ].join('');
+    const routeRows = [
+      safetyRow('Methode', model.routeSafetyMethod === 'GET' ? 'ok' : 'error', model.routeSafetyMethod || 'unbekannt'),
+      safetyRow('Command Route', model.commandRoute ? 'error' : 'ok', safetyBoolText(model.commandRoute, 'vorhanden / Gefahr', 'nein / sicher')),
+      safetyRow('Prepare Route', model.prepareRoute ? 'error' : 'ok', safetyBoolText(model.prepareRoute, 'vorhanden / Gefahr', 'nein / sicher')),
+      safetyRow('Execute Route', model.executeRoute ? 'error' : 'ok', safetyBoolText(model.executeRoute, 'vorhanden / Gefahr', 'nein / sicher')),
+      safetyRow('POST Route', model.postRoutePresent ? 'error' : 'ok', safetyBoolText(model.postRoutePresent, 'vorhanden / Gefahr', 'nein / sicher'))
+    ].join('');
+    const prerequisiteRows = [
+      safetyRow('Audit', 'warning', 'noch nicht aktiv', 'geplant, keine Implementierung'),
+      safetyRow('Rollen/Rechte', 'warning', 'noch nicht aktiv', 'geplant, keine Implementierung'),
+      safetyRow('Confirm', 'warning', 'noch nicht aktiv', 'geplant, keine Implementierung'),
+      safetyRow('SafetyStop', 'warning', 'noch nicht aktiv', 'geplant, keine Implementierung'),
+      safetyRow('Cancel', 'warning', 'noch nicht aktiv', 'geplant, keine Implementierung'),
+      safetyRow('Duplikat-Sperre', 'warning', 'noch nicht aktiv', 'geplant, keine Implementierung')
+    ].join('');
+    const hardBlockedList = model.hardBlockedActions.length
+      ? `<div class="busdiag-list">${model.hardBlockedActions.map(action => safetyRow(hardBlockedActionLabel(action), 'warning', 'bewusst blockiert', action)).join('')}</div>`
+      : '<p class="busdiag-muted">Keine hart blockierten Aktionen gemeldet. Das sollte geprüft werden.</p>';
+    return `
+      <div class="busdiag-grid busdiag-grid-top">
+        ${card('Safety Status Gesamt', `<div class="busdiag-status-line">${badge(safetyLevelLabel(model.overallLevel), overallStatus)}<span>read-only Anzeige / keine Aktion</span></div><div class="busdiag-metrics">${metric('Read-only', bool(model.readOnly), model.readOnly ? 'sicher' : 'prüfen')}${metric('Prepare', bool(model.canPrepare), model.canPrepare ? 'prüfen' : 'sicher')}${metric('Execute', bool(model.canExecute), model.canExecute ? 'Gefahr' : 'sicher')}${metric('Recovery Exec', bool(model.recoveryExecution), model.recoveryExecution ? 'Gefahr' : 'sicher')}${metric('Letzte Auswertung', fmtTime(model.generatedAt))}</div>`, 'busdiag-wide')}
+      </div>
+      <div class="busdiag-grid">
+        ${card('Recovery-Ausführung', `<div class="busdiag-list">${executionRows}</div>`)}
+        ${card('Routen-Sicherheit', `<div class="busdiag-list">${routeRows}</div>`)}
+        ${card('Guards / Preflight', `<div class="busdiag-status-line">${badge(model.guardErrors > 0 || model.guardBlocked > 0 || model.guardBlocking > 0 ? 'prüfen' : 'ok', model.guardErrors > 0 ? 'error' : (model.guardWarnings > 0 || model.guardBlocked > 0 || model.guardBlocking > 0 ? 'warning' : 'ok'))}<span>nur vorhandene Diagnosewerte</span></div><div class="busdiag-metrics">${metric('Checks', model.guardCount)}${metric('OK', model.guardOk)}${metric('Warnings', model.guardWarnings)}${metric('Blocked', model.guardBlocked)}${metric('Blocking', model.guardBlocking)}${metric('Errors', model.guardErrors)}${metric('Preflight bekannt', bool(model.preflightKnown))}</div>`)}
+        ${card('Sicherheitsbausteine', `<div class="busdiag-status-line">${badge('geplant', 'warning')}<span>false bedeutet hier: noch nicht technisch aktiv</span></div><div class="busdiag-list">${prerequisiteRows}</div>`, 'busdiag-wide')}
+        ${card('Harte Blocker', hardBlockedList, 'busdiag-wide')}
+        ${card('Hinweis', '<p class="busdiag-muted">Diese Karte ist bewusst passiv. Es gibt hier keine Buttons, keine POST-Aufrufe, keine Recovery-Ausführung und keine Änderungen an Queue, Sound, Alert oder Overlay.</p>', 'busdiag-wide')}
+      </div>
+    `;
+  }
+
+
   function renderRecoveryTab(){
     const data = getStatus();
     const routePreflight = getRecoveryPreflightRoute();
@@ -775,6 +959,7 @@
       { id: 'details', label: 'Details' },
       { id: 'readiness', label: 'Readiness' },
       { id: 'preflight', label: 'Preflight' },
+      { id: 'safety', label: 'Safety Status' },
       { id: 'locks', label: 'Sperren & Simulation' }
     ];
     if (!recoverySubTabs.some(tab => tab.id === state.recoverySubTab)) state.recoverySubTab = 'overview';
@@ -838,7 +1023,9 @@
       </div>
     `;
 
-    const views = { overview: overviewView, details: detailsView, readiness: readinessView, preflight: preflightView, locks: locksView };
+    const safetyView = renderSafetyStatusView();
+
+    const views = { overview: overviewView, details: detailsView, readiness: readinessView, preflight: preflightView, safety: safetyView, locks: locksView };
 
     return `
       ${subNav}
