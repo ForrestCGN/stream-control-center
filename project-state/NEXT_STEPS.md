@@ -2,11 +2,12 @@
 
 ## Naechster Schritt
 
-CAN-10.1 - Manual Diagnostics Refresh UI/Route Contract Plan
+CAN-10.2 - Manual Diagnostics Refresh Dashboard Button
 
-Ziel:
+Erlaubter Scope:
 
-- Button-/UI-Idee nur planen
-- Route-/Refresh-Vertrag nur planen
-- keine Code-Aenderung
+- nur `htdocs/dashboard/modules/bus_diagnostics.js`
+- additiver Button `Preflight neu laden`
+- nur bestehende GET-Routen neu abrufen
+- keine Backend-Aenderung
 - keine Recovery-Ausfuehrung

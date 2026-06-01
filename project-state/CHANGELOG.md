@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## CAN-10.0
+## CAN-10.1
 
-- Startgrenze fuer den ersten manuellen Recovery-Block dokumentiert.
-- Erste erlaubte Richtung auf `manual_diagnostics_refresh` begrenzt.
+- Vertrag fuer `manual_diagnostics_refresh` dokumentiert.
+- Erlaubte GET-Routen definiert.
+- Verbotene POST-/Command-/Prepare-/Execute-Routen dokumentiert.
+- CAN-10.2 Umsetzungsgrenze fuer Dashboard-Button definiert.
 - Keine Code-Aenderungen.
-- Keine Recovery-Ausfuehrung.
