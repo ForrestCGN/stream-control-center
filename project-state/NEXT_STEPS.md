@@ -1,26 +1,25 @@
 # NEXT_STEPS
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-18.0 - Confirm Boundary no-action Planning
+CAN-18.1 - Confirm Action Matrix no-action Planning
 ```
 
-## Ziel CAN-18.0
+## Ziel CAN-18.1
 
-Confirm-/Bestaetigungsgrenzen fuer spaetere high-risk Aktionen planen.
+Planen, welche Aktionen spaeter welche Confirm-Art brauchen wuerden, ohne Confirm technisch umzusetzen.
 
-## CAN-18.0 darf klaeren
+## CAN-18.1 darf klaeren
 
 ```text
-welche Confirm-Arten spaeter denkbar sind
-welche Aktionen Confirm brauchen wuerden
-warum Confirm Rechte nicht ersetzt
-welche TTL-/Timeout-Grenzen spaeter sinnvoll waeren
-welche Cancel-/Audit-Bezuege bestehen
+welche Aktionen kein Confirm brauchen
+welche Aktionen info/risk/destructive/typed/owner Confirm brauchen wuerden
+welche Aktionen trotz Confirm blockiert bleiben
+welche Aktionen separate Planung brauchen
 ```
 
-## CAN-18.0 darf NICHT enthalten
+## CAN-18.1 darf NICHT enthalten
 
 ```text
 Confirm API

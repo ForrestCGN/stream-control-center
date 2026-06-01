@@ -1,11 +1,12 @@
 # CHANGELOG
 
-## CAN-17.4
+## CAN-18.0
 
-- CAN-17 Rollen-/Rechte-Planungsstrang abgeschlossen.
-- Roles/Rights Planning als no-mutation/no-implementation final dokumentiert.
-- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN17_4_FINAL.md` erstellt.
-- CAN-18.0 Confirm Boundary no-action Planning als naechster empfohlener Schritt festgelegt.
+- Confirm Boundary no-action geplant.
+- Confirm-Grundregel, Confirm-Arten, State-Modell und TTL-/Timeout-Planung dokumentiert.
+- Audit-/Roles-/SafetyStop-/Preflight-Abgrenzung festgelegt.
+- Confirm als Bestaetigung, nicht als Ausfuehrung definiert.
+- CAN-18.1 Confirm Action Matrix no-action Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

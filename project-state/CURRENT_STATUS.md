@@ -1,12 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-17.4 abgeschlossen
+## Stand: CAN-18.0 abgeschlossen
 
-CAN-17 ist abgeschlossen als:
-
-```text
-Roles/Rights Planning no-mutation / no-implementation
-```
+CAN-18.0 hat die Confirm Boundary no-action geplant.
 
 ## Aktueller stabiler Stand
 
@@ -16,23 +12,20 @@ Safety Status View read-only
 Audit Planning no-write/no-data
 SafetyStop Planning read-only/no-api
 Roles/Rights Planning no-mutation/no-implementation
+Confirm Boundary no-action
 ```
 
-## Roles/Rights-Status
+## Confirm-Status
 
 ```text
-rolesRightsPlanning: true
-rolesRightsActionMatrix: true
-rolesRightsBackendBoundary: true
-rolesRightsDisplayBoundary: true
-rolesApi: false
-rightsApi: false
-authSystem: false
-userSystem: false
-rolesDb: false
-dashboardRightsEnforcement: false
-rightsMiddleware: false
-rightsMutation: false
+confirmPlanning: true
+confirmActionMatrix: false
+confirmApi: false
+confirmToken: false
+confirmDb: false
+confirmRoute: false
+confirmButton: false
+confirmExecution: false
 eventBusEmit: false
 ```
 
@@ -47,8 +40,6 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
-safetyStatusApi: false
-backendSafetyStatusShapeImplemented: false
 ```
 
 ## Weiterhin hart blockiert
@@ -68,14 +59,15 @@ SafetyStop Reset
 Audit Write Route
 Audit Read Route
 Confirm API
+Confirm Execution
 Rollen-/Rechte-Mutation
 Prepare Route
 Execute Route
 POST Command Route
 ```
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-18.0 - Confirm Boundary no-action Planning
+CAN-18.1 - Confirm Action Matrix no-action Planning
 ```
