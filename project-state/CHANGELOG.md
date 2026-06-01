@@ -1,20 +1,12 @@
 # CHANGELOG
 
-## CAN-14.5.1
+## CAN-15.0
 
-- Safety Status UI-Cleanup umgesetzt.
-- Hard-Blocker-Zeilen trennen Status-Text und technische ID lesbar.
-- Keine Backend-Aenderung.
+- Recovery-/Safety-Strecke CAN-8 bis CAN-14 konsolidiert.
+- Aktuellen read-only Sicherheitsstand dokumentiert.
+- Harte Blocker und weiterhin nicht vorhandene produktive Recovery-Komponenten bestaetigt.
+- CAN-15.1 Recovery/Safety Next Candidate Decision als naechster Schritt festgelegt.
+- Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
-- Keine Buttons.
-- Keine Recovery-Ausfuehrung.
-
-## CAN-14.6
-
-- CAN-14 Safety Status View read-only abgeschlossen.
-- Lokale Abnahme als `accepted_local_test` dokumentiert.
-- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN14_6_FINAL.md` erstellt.
-- CAN-15.0 Recovery/Safety Documentation Consolidation als naechster empfohlener Schritt festgelegt.
-- Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.

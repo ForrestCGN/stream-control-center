@@ -1,40 +1,35 @@
 # NEXT_STEPS
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-15.0 - Recovery/Safety Documentation Consolidation
+CAN-15.1 - Recovery/Safety Next Candidate Decision
 ```
 
-## Ziel CAN-15.0
+## Ziel CAN-15.1
+
+Entscheiden, welcher sichere naechste Schritt nach der CAN-8 bis CAN-14 Konsolidierung folgt.
+
+## Erlaubte Richtungen
 
 ```text
-CAN-8 bis CAN-14 zusammenfassen
-aktuellen Sicherheitsstand dokumentieren
-harte Grenzen bestaetigen
-naechste Recovery-nahe Richtung festlegen
+Dokumentation/Struktur weiter konsolidieren
+Audit-Konzept weiter planen, aber no-write
+Rollen-/Rechte-Konzept weiter planen, aber no-mutation
+SafetyStop Anzeige read-only planen, aber keine API/Mutation
 ```
 
-## Wichtige Grundlage
-
-Aktueller Handoff:
+## Nicht direkt umsetzen
 
 ```text
-docs/current/CURRENT_CHAT_HANDOFF_CAN14_6_FINAL.md
+Produktive Recovery
+Alert Replay
+Sound Replay
+Queue Clear
+Overlay Repair
+SafetyStop Clear
+Audit Write Route
+Confirm API
+Rollen-/Rechte-Mutation
+Prepare/Execute Route
 ```
-
-## Weiterhin nicht direkt umsetzen
-
-- Alert Replay
-- Sound Replay
-- Queue Clear
-- Overlay State Repair
-- Execute Recovery
-- Auto Recovery
-- Auto Retry Overlay
-- Streamer.bot Action Retry
-- OBS Source Refresh
-- SafetyStop Clear
-- Audit Write Route
-- Confirm API
-- Rollen-/Rechte-Mutation

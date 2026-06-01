@@ -1,11 +1,13 @@
 # CURRENT_STATUS
 
-## Stand: CAN-14.6 abgeschlossen
+## Stand: CAN-15.0 abgeschlossen
 
-Der CAN-14-Strang ist abgeschlossen als:
+CAN-15.0 konsolidiert die Recovery-/Safety-Strecke von CAN-8 bis CAN-14.
+
+## Aktueller stabiler Stand
 
 ```text
-read-only Safety Status View
+read-only Recovery/Safety Diagnose- und Anzeige-Strang
 ```
 
 ## Aktuelle read-only Funktionen
@@ -19,47 +21,19 @@ Karte: Recovery Guards
 Subtab: Safety Status
 ```
 
-## Lokale Abnahme
-
-```text
-accepted_local_test
-```
-
-## Technisch geaendert
-
-```text
-htdocs/dashboard/modules/bus_diagnostics.js
-```
-
 ## Sicherheitsstand
 
-Weiterhin keine Recovery-Ausfuehrung.
-
 ```text
+readOnly: true
 canPrepare: false
 canExecute: false
-readOnly: true
-routeSafety.method: GET
 commandRoute: false
 prepareRoute: false
 executeRoute: false
 recoveryExecution: false
-safetyStatusApi: false
-dashboardSafetyStatusView: true
 dashboardRecoveryButtons: false
+safetyStatusApi: false
 backendSafetyStatusShapeImplemented: false
-```
-
-## CAN-14 Ergebnis
-
-```text
-Safety Status View sichtbar.
-Safety Status View ist read-only.
-Hard-Blocker sichtbar.
-Keine produktiven Buttons.
-Keine Backend-Aenderung.
-Keine neue API.
-Keine Recovery-Ausfuehrung.
 ```
 
 ## Weiterhin hart blockiert
@@ -74,10 +48,17 @@ Auto Recovery
 Auto Retry Overlay
 Streamer.bot Action Retry
 OBS Source Refresh
+SafetyStop Clear
+Audit Write Route
+Confirm API
+Rollen-/Rechte-Mutation
 ```
 
-## Naechster empfohlener Schritt
+## CAN-15.0 Ergebnis
 
 ```text
-CAN-15.0 - Recovery/Safety Documentation Consolidation
+CAN-8 bis CAN-14 zusammengefasst.
+Harte Grenzen bestaetigt.
+Aktueller Safety-/Recovery-Status dokumentiert.
+Naechster Schritt: CAN-15.1 Recovery/Safety Next Candidate Decision.
 ```
