@@ -31,7 +31,7 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.6';
+const MODULE_VERSION = '3.1.7';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 const ALERT_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
@@ -1842,17 +1842,26 @@ function alertSoundEventBusStatusUrl() {
 
 function collectAlertCorrelationKeys() {
   const rows = Array.isArray(state.alertSoundCorrelation && state.alertSoundCorrelation.recent) ? state.alertSoundCorrelation.recent : [];
-  return rows.slice(0, 40).map(row => ({
-    at: row.at || '',
-    phase: cleanKey(row.phase || ''),
-    eventUid: cleanText(row.eventUid || ''),
-    bundleId: cleanText(row.bundleId || ''),
-    source: cleanKey(row.source || ''),
-    type: cleanKey(row.type || ''),
-    user: cleanText(row.user || ''),
-    ok: row.ok === true,
-    error: cleanText(row.error || '')
-  }));
+  return rows.slice(0, 40).map(row => {
+    const eventUid = cleanText(row.eventUid || '');
+    const requestId = cleanText(row.requestId || (row.traceIds && row.traceIds.requestId) || '');
+    const correlationId = cleanText(row.correlationId || (row.traceIds && row.traceIds.correlationId) || '');
+    const bundleId = cleanText(row.bundleId || (row.traceIds && row.traceIds.bundleId) || '');
+    return {
+      at: row.at || '',
+      phase: cleanKey(row.phase || ''),
+      eventUid,
+      requestId,
+      correlationId,
+      bundleId,
+      traceIds: { eventUid, requestId, correlationId, bundleId },
+      source: cleanKey(row.source || ''),
+      type: cleanKey(row.type || ''),
+      user: cleanText(row.user || ''),
+      ok: row.ok === true,
+      error: cleanText(row.error || '')
+    };
+  });
 }
 
 function collectSoundCorrelationKeys(soundStatus = {}) {
@@ -1861,13 +1870,19 @@ function collectSoundCorrelationKeys(soundStatus = {}) {
   const byKey = new Map();
 
   for (const row of soundCorrelationRows) {
-    const eventUid = cleanText(row.alertEventUid || '');
-    const bundleId = cleanText(row.bundleId || '');
-    const key = eventUid || bundleId;
+    const trace = row.traceIds && typeof row.traceIds === 'object' ? row.traceIds : {};
+    const eventUid = cleanText(row.alertEventUid || trace.alertEventUid || trace.eventUid || '');
+    const requestId = cleanText(row.requestId || trace.requestId || '');
+    const correlationId = cleanText(row.correlationId || trace.correlationId || '');
+    const bundleId = cleanText(row.bundleId || trace.bundleId || '');
+    const key = eventUid || requestId || correlationId || bundleId;
     if (!key) continue;
     byKey.set(key, {
       alertEventUid: eventUid,
+      requestId,
+      correlationId,
       bundleId,
+      traceIds: { alertEventUid: eventUid, requestId, correlationId, bundleId },
       alertSource: cleanKey(row.alertSource || ''),
       alertType: cleanKey(row.alertType || ''),
       requestedBy: cleanText(row.requestedBy || ''),
@@ -1882,13 +1897,19 @@ function collectSoundCorrelationKeys(soundStatus = {}) {
 
   for (const ev of recentEvents) {
     const ctx = ev && ev.context && typeof ev.context === 'object' ? ev.context : {};
-    const eventUid = cleanText(ctx.alertEventUid || '');
-    const bundleId = cleanText(ctx.bundleId || '');
-    const key = eventUid || bundleId;
+    const trace = ctx.traceIds && typeof ctx.traceIds === 'object' ? ctx.traceIds : {};
+    const eventUid = cleanText(ctx.alertEventUid || trace.alertEventUid || trace.eventUid || '');
+    const requestId = cleanText(ctx.requestId || trace.requestId || '');
+    const correlationId = cleanText(ctx.correlationId || trace.correlationId || '');
+    const bundleId = cleanText(ctx.bundleId || trace.bundleId || '');
+    const key = eventUid || requestId || correlationId || bundleId;
     if (!key) continue;
     const existing = byKey.get(key) || {
       alertEventUid: eventUid,
+      requestId,
+      correlationId,
       bundleId,
+      traceIds: { alertEventUid: eventUid, requestId, correlationId, bundleId },
       alertSource: cleanKey(ctx.alertSource || ''),
       alertType: cleanKey(ctx.alertType || ''),
       requestedBy: cleanText(ctx.requestedBy || ''),
@@ -1914,9 +1935,13 @@ function collectSoundCorrelationKeys(soundStatus = {}) {
 
 function compareAlertSoundCorrelation(alertRows, soundRows) {
   const soundByEvent = new Map();
+  const soundByRequest = new Map();
+  const soundByCorrelation = new Map();
   const soundByBundle = new Map();
   for (const row of soundRows) {
     if (row.alertEventUid) soundByEvent.set(row.alertEventUid, row);
+    if (row.requestId) soundByRequest.set(row.requestId, row);
+    if (row.correlationId) soundByCorrelation.set(row.correlationId, row);
     if (row.bundleId) soundByBundle.set(row.bundleId, row);
   }
 
@@ -1924,20 +1949,26 @@ function compareAlertSoundCorrelation(alertRows, soundRows) {
   const unmatchedAlerts = [];
   for (const row of alertRows) {
     const byEvent = row.eventUid ? soundByEvent.get(row.eventUid) : null;
+    const byRequest = row.requestId ? soundByRequest.get(row.requestId) : null;
+    const byCorrelation = row.correlationId ? soundByCorrelation.get(row.correlationId) : null;
     const byBundle = row.bundleId ? soundByBundle.get(row.bundleId) : null;
-    const match = byEvent || byBundle || null;
+    const match = byEvent || byRequest || byCorrelation || byBundle || null;
+    const matchedBy = byEvent ? 'eventUid' : (byRequest ? 'requestId' : (byCorrelation ? 'correlationId' : (byBundle ? 'bundleId' : '')));
     if (match) {
       matches.push({
         eventUid: row.eventUid,
+        requestId: row.requestId,
+        correlationId: row.correlationId,
         bundleId: row.bundleId,
+        traceIds: row.traceIds || { eventUid: row.eventUid, requestId: row.requestId, correlationId: row.correlationId, bundleId: row.bundleId },
         phase: row.phase,
-        matchedBy: byEvent ? 'eventUid' : 'bundleId',
+        matchedBy,
         soundLastAction: match.lastAction || '',
         soundRoles: match.roles || {},
         soundActions: match.actions || {},
         soundErrorCount: Number(match.errorCount || 0)
       });
-    } else if (row.eventUid || row.bundleId) {
+    } else if (row.eventUid || row.requestId || row.correlationId || row.bundleId) {
       unmatchedAlerts.push(row);
     }
   }
@@ -1947,6 +1978,7 @@ function compareAlertSoundCorrelation(alertRows, soundRows) {
     soundRows: soundRows.length,
     matched: matches.length,
     unmatched: unmatchedAlerts.length,
+    matchingKeys: ['eventUid', 'requestId', 'correlationId', 'bundleId'],
     matches: matches.slice(0, 20),
     unmatchedAlerts: unmatchedAlerts.slice(0, 20)
   };
@@ -1986,6 +2018,8 @@ async function buildAlertSoundEventBusCorrelationStatus(query = {}) {
     version: MODULE_VERSION,
     feature: 'alert_sound_eventbus_correlation',
     statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
+    traceCorrelationVersion: 'CAN-3.2',
+    matchingKeys: ['eventUid', 'requestId', 'correlationId', 'bundleId'],
     readOnly: true,
     flowTouched: false,
     queueTouched: false,
