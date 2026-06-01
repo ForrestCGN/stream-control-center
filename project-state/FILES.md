@@ -1,3 +1,31 @@
+# FILES – CAN-8.4 Recovery-Preflight Dashboard Read-only Anzeige geplant
+
+Stand: 2026-06-01
+
+## Neu / aktualisiert
+
+- `docs/system-inspection/EVENTBUS_CAN8_4_RECOVERY_PREFLIGHT_DASHBOARD_READONLY_DISPLAY_PLAN.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_4.md`
+- `docs/current/README_CAN8_4_FILE_ZIP.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
+## Für CAN-8.5 relevant
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+
+## Nicht anfassen ohne separates Go
+
+- Keine Backend-Datei.
+- Keine API-Route.
+- Keine Recovery-Ausführung.
+- Keine produktive Flow-Änderung.
+
+---
+
 # FILES – CAN-8.3 Recovery-Preflight Statusfelder
 
 Stand: 2026-06-01

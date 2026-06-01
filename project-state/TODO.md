@@ -1,3 +1,9 @@
+## CAN-8 / Recovery-Preflight Dashboard
+
+- [x] CAN-8.4 Dashboard-Preflight read-only Anzeige planen.
+- [ ] CAN-8.5 Dashboard-Preflight read-only Anzeige umsetzen.
+- [ ] Nach CAN-8.5 prüfen: Preflight-Daten sichtbar, keine Buttons, keine Recovery-Ausführung.
+
 ## CAN-8 / Recovery-Preflight
 
 - [x] CAN-8.3 Recovery-Preflight read-only Statusfelder additiv umgesetzt.

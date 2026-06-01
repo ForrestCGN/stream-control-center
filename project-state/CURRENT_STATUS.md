@@ -1,3 +1,21 @@
+## STEP CAN-8.4 Recovery-Preflight Dashboard Read-only Anzeige geplant
+
+Stand: 2026-06-01
+Marker: STEP_CAN8_4_RECOVERY_PREFLIGHT_DASHBOARD_READONLY_DISPLAY_PLAN
+
+CAN-8.4 plant die spätere reine Dashboard-Anzeige des seit CAN-8.3 vorhandenen Feldes `recoveryPreflight`.
+
+~~~text
+Keine Backend-Änderung
+Keine Dashboard-Code-Änderung
+Keine API-Route
+Keine Recovery-Ausführung
+Keine produktive Flow-Änderung
+~~~
+
+Nächster Schritt: CAN-8.5 Dashboard-Preflight read-only Anzeige umsetzen.
+Details: `docs/system-inspection/EVENTBUS_CAN8_4_RECOVERY_PREFLIGHT_DASHBOARD_READONLY_DISPLAY_PLAN.md`
+
 ## STEP CAN-8.3 Recovery-Preflight Read-only Statusfelder
 
 Stand: 2026-06-01

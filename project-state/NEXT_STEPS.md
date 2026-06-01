@@ -1,3 +1,24 @@
+## Nach STEP CAN-8.4
+
+Marker: STEP_CAN8_4_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-8.5: Dashboard-Preflight read-only Anzeige umsetzen
+~~~
+
+Erlaubter Scope:
+
+~~~text
+Nur htdocs/dashboard/modules/bus_diagnostics.js
+Nur Anzeige der vorhandenen recoveryPreflight-Daten
+Keine Buttons
+Keine API-Änderung
+Keine Backend-Änderung
+Keine Recovery-Ausführung
+~~~
+
 ## Nach STEP CAN-8.3
 
 Marker: STEP_CAN8_3_NEXT_STEPS

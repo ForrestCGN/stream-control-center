@@ -1,3 +1,29 @@
+# CHANGELOG – CAN-8.4 Recovery-Preflight Dashboard Read-only Anzeige geplant
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN8_4_RECOVERY_PREFLIGHT_DASHBOARD_READONLY_DISPLAY_PLAN.md` ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_4.md` ergänzt.
+- Projekt-State-Dateien auf CAN-8.4 nachgezogen.
+
+## Nicht geändert
+
+- Keine Backend-Datei.
+- Keine Dashboard-Datei.
+- Keine API-Route.
+- Keine Config.
+- Keine DB.
+- Keine Recovery-Ausführung.
+- Keine produktive Flow-Änderung.
+
+## Nächster Block
+
+- CAN-8.5: Dashboard-Preflight read-only Anzeige umsetzen.
+
+---
+
 # CHANGELOG – CAN-8.3 Recovery-Preflight Statusfelder
 
 Stand: 2026-06-01
