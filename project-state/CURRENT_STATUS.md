@@ -1,9 +1,7 @@
 # CURRENT_STATUS
 
-## CAN-10.1
+## CAN-10.2
 
-Der Vertrag fuer `manual_diagnostics_refresh` ist geplant.
+Der Dashboard-Button `Preflight neu laden` wurde additiv umgesetzt.
 
-Die spaetere Aktion darf nur Diagnose-/Preflight-Daten neu laden und im Dashboard anzeigen.
-
-Keine produktive Recovery.
+Er fuehrt nur einen read-only Diagnose-/Preflight-Refresh aus und beruehrt keine produktiven Systeme.

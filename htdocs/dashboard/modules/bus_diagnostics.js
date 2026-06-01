@@ -15,7 +15,11 @@
     autoRefresh: localStorage.getItem('cgn-busdiag-auto-refresh') === '1',
     refreshEveryMs: Number(localStorage.getItem('cgn-busdiag-refresh-ms') || 10000),
     nextRefreshAt: 0,
-    visible: !document.hidden
+    visible: !document.hidden,
+    manualDiagnosticsRefreshLoading: false,
+    manualDiagnosticsRefreshLastAt: '',
+    manualDiagnosticsRefreshLastResult: '',
+    manualDiagnosticsRefreshError: ''
   };
 
   const TABS = [
@@ -270,6 +274,26 @@
     }
   }
 
+  async function manualDiagnosticsRefresh(){
+    if (state.loading || state.manualDiagnosticsRefreshLoading) return;
+    state.manualDiagnosticsRefreshLoading = true;
+    state.manualDiagnosticsRefreshError = '';
+    state.manualDiagnosticsRefreshLastResult = 'running';
+    renderCurrentTab();
+    await loadAll(false);
+    if (state.lastError) {
+      state.manualDiagnosticsRefreshLastResult = 'error';
+      state.manualDiagnosticsRefreshError = state.lastError;
+    } else {
+      state.manualDiagnosticsRefreshLastResult = 'ok';
+      state.manualDiagnosticsRefreshLastAt = new Date().toISOString();
+      state.manualDiagnosticsRefreshError = '';
+    }
+    state.manualDiagnosticsRefreshLoading = false;
+    renderCurrentTab();
+    updateLiveStatus();
+  }
+
   async function loadAll(check){
     if (state.loading) return;
     state.loading = true;
@@ -305,7 +329,7 @@
   function setBusy(busy){
     const root = panel();
     if (!root) return;
-    root.querySelectorAll('[data-busdiag-action="refresh"],[data-busdiag-action="check"]').forEach(btn => { btn.disabled = !!busy; });
+    root.querySelectorAll('[data-busdiag-action="refresh"],[data-busdiag-action="check"],[data-busdiag-action="manual-diagnostics-refresh"]').forEach(btn => { btn.disabled = !!busy || state.manualDiagnosticsRefreshLoading; });
     root.classList.toggle('is-loading', !!busy);
     updateLiveStatus();
   }
@@ -512,6 +536,9 @@
     const preflightSummaryCard = `<div class="busdiag-status-line">${badge(preflightCheckSummary.blocked || preflightCheckSummary.blocking ? 'prüfen' : 'ok', preflightCheckSummary.blocked || preflightCheckSummary.blocking ? 'warning' : 'ok')}<span>Check-Matrix nur Anzeige</span></div><div class="busdiag-metrics">${metric('Checks', preflightCheckSummary.total ?? summary.recoveryPreflightCheckCount ?? preflightChecks.length)}${metric('OK', preflightCheckSummary.ok ?? '-')}${metric('Warnings', preflightCheckSummary.warnings ?? summary.recoveryPreflightWarningCheckCount ?? 0)}${metric('Blocking', preflightCheckSummary.blocking ?? summary.recoveryPreflightBlockingCheckCount ?? 0)}${metric('Blocked', preflightCheckSummary.blocked ?? 0)}${metric('Scope', preflightScope.length || summary.recoveryPreflightScopeCount || 0)}</div>`;
     const routeContextCard = `<div class="busdiag-status-line">${badge(preflightRouteOk ? 'ok' : 'prüfen', preflightRouteOk ? 'ok' : 'warning')}<span>GET /api/bus-diagnostics/recovery-preflight</span></div><div class="busdiag-metrics">${metric('Route Version', routePreflight.routeVersion || '-', '', 'busdiag-metric-code')}${metric('Route Step', routeContext.currentStep || routePreflight.currentStep || '-', '', 'busdiag-metric-code')}${metric('Route Next', routeContext.nextAllowedStep || routePreflight.nextAllowedStep || summary.recoveryPreflightNextStep || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Source Step', routeContext.sourcePreflightCurrentStep || preflight.currentStep || '-', '', 'busdiag-metric-code')}${metric('Source Next', routeContext.sourcePreflightNextAllowedStep || summary.recoveryPreflightSourceNextStep || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Route only', bool(routeContext.routeOnly))}${metric('Read-only', bool(routePreflight.readOnly))}</div>`;
     const routeSafetyCard = `<div class="busdiag-status-line">${badge(preflightRouteOk ? 'ok' : 'prüfen', preflightRouteOk ? 'ok' : 'warning')}<span>Route-Safety nur Anzeige</span></div><div class="busdiag-metrics">${metric('Method', routeSafety.method || 'GET')}${metric('Read-only', bool(routeSafety.readOnly))}${metric('Command Route', bool(routeSafety.commandRoute))}${metric('Prepare Route', bool(routeSafety.prepareRoute))}${metric('Execute Route', bool(routeSafety.executeRoute))}${metric('Recovery Exec', bool(routeSafety.recoveryExecution))}</div>`;
+    const manualRefreshStatus = state.manualDiagnosticsRefreshLoading ? 'läuft' : (state.manualDiagnosticsRefreshLastResult === 'ok' ? 'ok' : (state.manualDiagnosticsRefreshLastResult === 'error' ? 'fehler' : 'bereit'));
+    const manualRefreshBadge = state.manualDiagnosticsRefreshLoading ? 'warning' : (state.manualDiagnosticsRefreshLastResult === 'error' ? 'error' : 'ok');
+    const manualRefreshCard = `<div class="busdiag-status-line">${badge(manualRefreshStatus, manualRefreshBadge)}<span>nur GET / Anzeige neu laden</span></div><div class="busdiag-metrics">${metric('Action', 'manual_diagnostics_refresh', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Route', 'GET recovery-preflight', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Letzter Refresh', fmtTime(state.manualDiagnosticsRefreshLastAt))}${metric('Produktiv', 'nein')}${metric('Prepare', 'nein')}${metric('Execute', 'nein')}</div><div class="busdiag-actions busdiag-inline-actions"><button type="button" class="secondary" data-busdiag-action="manual-diagnostics-refresh" ${state.manualDiagnosticsRefreshLoading || state.loading ? 'disabled' : ''}>Preflight neu laden</button>${state.manualDiagnosticsRefreshError ? `<p class="busdiag-muted">Fehler: ${esc(state.manualDiagnosticsRefreshError)}</p>` : '<p class="busdiag-muted">Lädt nur bestehende read-only GET-Daten neu. Keine Recovery-Ausführung.</p>'}</div>`;
     const recoverySubTabs = [
       { id: 'overview', label: 'Übersicht' },
       { id: 'details', label: 'Details' },
@@ -559,6 +586,7 @@
         ${card('Preflight-Safety', `<div class="busdiag-status-line">${badge(preflightOk ? 'ok' : 'prüfen', preflightBadgeStatus)}<span>Produktive Aktionen müssen aus bleiben</span></div><div class="busdiag-metrics">${metric('Automation', bool(preflightSafety.automationEnabled))}${metric('Productive', bool(preflightSafety.productiveActions))}${metric('Flow touched', bool(preflightSafety.flowTouched))}${metric('Queue touched', bool(preflightSafety.queueTouched))}${metric('Sound touched', bool(preflightSafety.soundSystemTouched))}${metric('Alert touched', bool(preflightSafety.alertSystemTouched))}${metric('Overlay touched', bool(preflightSafety.overlayTouched))}</div>`)}
       </div>
       <div class="busdiag-grid">
+        ${card('Manueller Diagnose-Refresh', manualRefreshCard, 'busdiag-wide')}
         ${card('Preflight-Route-Kontext', routeContextCard, 'busdiag-wide')}
         ${card('Preflight-Route-Safety', routeSafetyCard, 'busdiag-wide')}
         ${card('Preflight-Check-Matrix', preflightSummaryCard, 'busdiag-wide')}
@@ -627,6 +655,7 @@
     panel()?.querySelectorAll('[data-busdiag-recovery-tab]').forEach(btn => {
       btn.addEventListener('click', () => setRecoverySubTab(btn.dataset.busdiagRecoveryTab));
     });
+    panel()?.querySelector('[data-busdiag-action="manual-diagnostics-refresh"]')?.addEventListener('click', manualDiagnosticsRefresh);
   }
 
   function bindConfigActions(){

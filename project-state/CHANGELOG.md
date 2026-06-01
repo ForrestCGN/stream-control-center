@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## CAN-10.1
+## CAN-10.2
 
-- Vertrag fuer `manual_diagnostics_refresh` dokumentiert.
-- Erlaubte GET-Routen definiert.
-- Verbotene POST-/Command-/Prepare-/Execute-Routen dokumentiert.
-- CAN-10.2 Umsetzungsgrenze fuer Dashboard-Button definiert.
-- Keine Code-Aenderungen.
+- Dashboard-Karte `Manueller Diagnose-Refresh` im Preflight-Bereich ergaenzt.
+- Button `Preflight neu laden` ergaenzt.
+- Button ruft nur bestehende read-only GET-Daten neu ab.
+- Keine Backend-Aenderung.
+- Keine Recovery-Ausfuehrung.
