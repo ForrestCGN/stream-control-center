@@ -1,12 +1,25 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Naechster Chat
 
-CAN-12.5 - Manual Recovery Guard Display Dashboard UI Live-Test Acceptance
+Empfohlener Start:
 
-Ziel:
+```text
+CAN-13.0 - Recovery Guard Framework Closure / Next Recovery Candidate Planning Start
+```
 
-- Dashboard-Sichtpruefung dokumentieren
-- Guard-Fallback pruefen
-- Guard-Anzeige nach Refresh/Resync pruefen
-- keine Code-Aenderung
+## Vor produktiver Recovery zuerst klaeren
+
+- Audit-Konzept
+- Rollen-/Rechte-Konzept
+- Confirm-/Bestaetigungs-Konzept
+- SafetyStop-/Cancel-Konzept
+- Kandidatenmatrix fuer produktive Recovery-Aktionen
+
+## Weiterhin nicht direkt umsetzen
+
+- Alert Replay
+- Sound Replay
+- Queue Clear
+- Overlay State Repair
+- Execute Recovery
