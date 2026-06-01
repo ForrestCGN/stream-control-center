@@ -1,35 +1,40 @@
-# NEXT_STEPS
+## Nach STEP CAN-8.8
 
-## Nach STEP CAN-8.7
-
-Marker: STEP_CAN8_7_NEXT_STEPS
+Marker: STEP_CAN8_8_NEXT_STEPS
 
 Naechster sinnvoller Schritt:
 
 ~~~text
-CAN-8.8: Recovery-Preflight Check-Matrix read-only Statusfelder planen
+CAN-8.9: Recovery-Preflight Check-Matrix read-only Statusfelder im Backend umsetzen
 ~~~
 
-Ziel von CAN-8.8:
+Erlaubter Scope:
 
 ~~~text
-Noch kein Code.
-Noch keine Preflight-Route.
-Nur konkrete Minimal-Checks und Summary-Felder fuer einen spaeteren Backend-Code-Step festlegen.
+Nur backend/modules/bus_diagnostics.js
+Nur additive read-only recoveryPreflight-Felder
+Keine neue API-Route
+Keine POST-/Command-Route
+Keine Recovery-Ausfuehrung
+Keine Dashboard-Code-Aenderung
+Keine Config-/DB-Aenderung
+Keine produktive Flow-Aenderung
 ~~~
 
-Zu klaeren:
+Vor CAN-8.9:
 
 ~~~text
-Welche Checks kommen minimal in recoveryPreflight.checks[]?
-Welche Checks sind blocking=true?
-Welche Checks sind nur info/warning?
-Welche Summary-Felder werden benoetigt?
-Wie bleibt die Ausgabe read-only?
+Vollstaendige echte backend/modules/bus_diagnostics.js verwenden.
+Version gezielt erhoehen.
+Build-Marker gezielt aktualisieren.
+node -c backend\modules\bus_diagnostics.js ausfuehren.
 ~~~
 
-Regel bleibt:
+Nach CAN-8.9 testen:
 
-~~~text
-Keine Prepare-/Execute-Logik und keine Recovery-Ausfuehrung ohne separate Planung, Owner/Admin, Audit, Bestaetigung, Duplikat-Sperre, Safety-Stop und Rollback-Regel.
+~~~powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/status"
+$s.recoveryPreflight.checkSummary | Select-Object total,ok,warning,blocked,error,hasBlockingChecks
+$s.recoveryPreflight.checks | Select-Object key,category,ok,severity,blocking,reason | Format-Table -AutoSize
+$s.summary | Select-Object recoveryPreflightCheckCount,recoveryPreflightCheckOkCount,recoveryPreflightCheckWarningCount,recoveryPreflightCheckBlockedCount,recoveryPreflightCheckErrorCount,recoveryPreflightHasBlockingChecks
 ~~~

@@ -1,38 +1,34 @@
-# FILES – CAN-8.7 Recovery-Preflight Check-Matrix Plan
+# FILES – CAN-8.8 Recovery-Preflight Check-Matrix Statusfelder Plan
 
 Stand: 2026-06-01
 
-## Aktueller Dokumentationsstand
+## Dieses ZIP
 
-- `docs/system-inspection/EVENTBUS_CAN8_7_RECOVERY_PREFLIGHT_CHECK_MATRIX_PLAN.md`
-  - Check-Matrix-Plan fuer spaetere read-only Preflight-Diagnose
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_7.md`
-  - kompakte Uebergabe fuer weiteren Chat/naechsten Step
-- `docs/current/README_CAN8_7_FILE_ZIP.md`
-  - ZIP-Hinweise
+- `docs/system-inspection/EVENTBUS_CAN8_8_RECOVERY_PREFLIGHT_CHECK_MATRIX_STATUS_FIELDS_PLAN.md`
+  - Plan fuer CAN-8.9 Backend-Minimalchecks.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_8.md`
+  - Uebergabe fuer den naechsten Schritt.
+- `docs/current/README_CAN8_8_FILE_ZIP.md`
+  - Entpack-/Abschluss-Hinweise.
 - `project-state/CURRENT_STATUS.md`
-  - aktueller Status CAN-8.7
 - `project-state/NEXT_STEPS.md`
-  - naechster Schritt CAN-8.8
 - `project-state/TODO.md`
-  - offene CAN-8 Aufgaben
 - `project-state/CHANGELOG.md`
-  - Aenderungsnotiz CAN-8.7
 - `project-state/FILES.md`
-  - diese Datei
 
-## Relevante Code-Dateien fuer spaetere Schritte
+## Fuer CAN-8.9 relevant
 
 - `backend/modules/bus_diagnostics.js`
-  - liefert `recoveryReadiness` und `recoveryPreflight` read-only Statusfelder
-  - spaeterer Kandidat fuer additive Preflight-Check-Matrix
-- `htdocs/dashboard/modules/bus_diagnostics.js`
-  - zeigt Recovery-/Readiness-/Preflight-Daten read-only im Dashboard
+  - Darf in CAN-8.9 additiv erweitert werden.
+  - Nur read-only Statusfelder.
+  - Keine neue Route.
+  - Keine produktive Flow-Beruehrung.
 
 ## Nicht anfassen ohne separates Go
 
-- Keine Recovery-Ausfuehrung aktivieren.
-- Keine Prepare-/Execute-Route ergaenzen.
-- Keine Recovery-Buttons im Dashboard ergaenzen.
-- Keine Simulation-Buttons ergaenzen.
-- Keine Alert-/Sound-Replays erlauben.
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+- `backend/modules/communication_bus.js`
+- `backend/modules/alert_system.js`
+- `backend/modules/sound_system.js`
+- `config/*`
+- Datenbank-Dateien
