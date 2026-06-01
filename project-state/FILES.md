@@ -1,3 +1,56 @@
+# FILES – CAN-7.0 / Recovery-Readiness aktueller Arbeitsstand
+
+Stand: 2026-06-01
+
+## Neuer Dokumentationsstand
+
+- `docs/system-inspection/EVENTBUS_CAN7_0_REAL_FILE_INSPECTION_READINESS_BOUNDARY.md`
+  - echte Datei-Pruefung und CAN-7.1 Startgrenze
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_0.md`
+  - kompakte Uebergabe fuer CAN-7.1
+- `docs/current/README_CAN7_0_FILE_ZIP.md`
+  - ZIP-Hinweis
+
+## Fuer CAN-7.1 direkt relevant
+
+- `backend/modules/bus_diagnostics.js`
+  - einziger erlaubter erster Code-Kandidat
+  - nur additive read-only `recoveryReadiness`-Felder
+  - keine neue produktive Route
+  - keine Recovery-Ausfuehrung
+
+## In CAN-7.0 geprueft, aber nicht zu aendern
+
+- `backend/modules/communication_bus.js`
+  - Status-/Settings-/Test-/Mirror-/Replay-/Watchdog-Faehigkeiten vorhanden
+  - fuer CAN-7.1 nicht anfassen
+- `backend/modules/alert_system.js`
+  - Alert-Queue, Output, Overlay-Watchdog, Korrelation vorhanden
+  - fuer CAN-7.1 nicht anfassen
+- `backend/modules/sound_system.js`
+  - Sound-Queue, Bus, dry-run Command-Pfad vorhanden
+  - fuer CAN-7.1 nicht anfassen
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - Recovery-Tab zeigt read-only Daten
+  - fuer CAN-7.1 keine Buttons / keine UI-Aktion ergaenzen
+
+## Weiter relevant fuer spaetere CAN-7.x Pruefung
+
+- `htdocs/overlays/_overlay-alerts-v2.html`
+- `htdocs/overlays/sound_system_overlay.html`
+- `config/alert_system.json`
+- `config/sound_system.json`
+
+## Nicht anfassen ohne separates Go
+
+- Keine Recovery-Automatik aktivieren.
+- Keine Simulation-Buttons im Dashboard ergaenzen.
+- Keine Recovery-Buttons im Dashboard ergaenzen.
+- Keine Alert-/Sound-Replays erlauben.
+- Keine Queue-/Sound-/Overlay-/Alert-Logik produktiv beruehren.
+
+---
+
 # FILES – CAN-6.10 / Recovery-Planungsabschluss
 
 Stand: 2026-06-01

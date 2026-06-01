@@ -1,3 +1,55 @@
+## STEP CAN-7.0 Echte Dateien geprüft und Recovery-Readiness-Grenze dokumentiert
+
+Stand: 2026-06-01
+Marker: STEP_CAN7_0_REAL_FILE_INSPECTION_READINESS_BOUNDARY
+
+CAN-7.0 hat die echten relevanten Dateien aus GitHub/dev geprueft und die erste erlaubte technische Grenze fuer CAN-7.1 definiert.
+
+Geprueft:
+
+~~~text
+backend/modules/bus_diagnostics.js
+backend/modules/communication_bus.js
+backend/modules/alert_system.js
+backend/modules/sound_system.js
+htdocs/dashboard/modules/bus_diagnostics.js
+~~~
+
+Festgestellt:
+
+~~~text
+bus_diagnostics.js: Version 1.2.4, read-only Diagnose
+communication_bus.js: Version 0.8.3, ersetzt keine produktiven Alert/Sound-Flows
+alert_system.js: Version 3.1.9, additive read-only visual delivery diagnostics
+sound_system.js: Version 0.1.20, dry_run Command-Pfad ohne Queue-/Audio-Beruehrung
+Dashboard Recovery-Tab: Anzeige, keine Aktion
+~~~
+
+Naechste erlaubte Grenze:
+
+~~~text
+CAN-7.1: Nur backend/modules/bus_diagnostics.js.
+Nur additive read-only recoveryReadiness-Felder.
+Keine produktive Aktion.
+Keine Buttons.
+Keine DB-/Config-Migration.
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine Backend-Aenderung in CAN-7.0
+Keine API-Aenderung
+Keine Dashboard-Code-Aenderung
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Keine Recovery-Automatik
+Keine produktive Flow-Aenderung
+Keine DB-/Config-Migration
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN7_0_REAL_FILE_INSPECTION_READINESS_BOUNDARY.md`
+
 ## STEP CAN-6.10 Recovery-Planungsabschluss und CAN-7.0 Startgrenze
 
 Stand: 2026-06-01

@@ -197,6 +197,17 @@ Stand: 2026-06-01
 - [ ] Bei Chatwechsel erneut `dokumentieren und aktualisieren` durchführen.
 - [ ] Nach Routenprüfung ggf. `docs/backend/ROUTES.md` oder Modul-Dokus aktualisieren.
 
+## CAN-7 / Recovery-Readiness
+
+- [x] CAN-7.0 echte relevante Dateien fuer Recovery-Readiness geprueft.
+- [x] CAN-7.0 Startgrenze fuer CAN-7.1 dokumentiert.
+- [ ] CAN-7.1 `backend/modules/bus_diagnostics.js` vollstaendig lesen.
+- [ ] CAN-7.1 additive `recoveryReadiness`-Felder planen.
+- [ ] CAN-7.1 Versionserhoehung pruefen, aber nicht blind aendern.
+- [ ] CAN-7.1 Tests vor Umsetzung nennen.
+- [ ] Weiterhin pruefen: keine POST-/Command-Route, keine Buttons, keine produktive Flow-Aenderung.
+
+
 ## CAN-6 / Manuelle Recovery
 
 - [x] CAN-5.5 bis CAN-5.10 als stabilen read-only Diagnose-Stand dokumentieren.

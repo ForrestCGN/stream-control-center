@@ -1,3 +1,41 @@
+# CHANGELOG – CAN-7.0 Echte Datei-Pruefung und Readiness-Grenze
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN7_0_REAL_FILE_INSPECTION_READINESS_BOUNDARY.md` ergaenzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_0.md` ergaenzt.
+- `project-state/CURRENT_STATUS.md` um CAN-7.0 Stand ergaenzt.
+- `project-state/NEXT_STEPS.md` um CAN-7.1 Startgrenze ergaenzt.
+- `project-state/TODO.md` um CAN-7.1 Aufgaben ergaenzt.
+- `project-state/FILES.md` um CAN-7.0/CAN-7.1 Dateien ergaenzt.
+
+## Geprüft
+
+- `backend/modules/bus_diagnostics.js`
+- `backend/modules/communication_bus.js`
+- `backend/modules/alert_system.js`
+- `backend/modules/sound_system.js`
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+
+## Nicht geändert
+
+- Keine Backend-Datei geaendert.
+- Keine API-Route geaendert.
+- Keine Dashboard-Datei geaendert.
+- Keine Overlay-Datei geaendert.
+- Keine Config-Datei geaendert.
+- Keine Datenbank geaendert.
+- Keine Recovery-Automatik aktiviert.
+- Keine produktiven Flows geaendert.
+
+## Nächster Block
+
+- CAN-7.1: `bus_diagnostics.js` um additive read-only `recoveryReadiness`-Felder erweitern.
+
+---
+
 # CHANGELOG – CAN-6.10 Recovery-Planungsabschluss
 
 Stand: 2026-06-01

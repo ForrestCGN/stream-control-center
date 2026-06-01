@@ -1,3 +1,54 @@
+## Nach STEP CAN-7.0
+
+Marker: STEP_CAN7_0_NEXT_STEPS
+
+Naechster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-7.1: bus_diagnostics.js um additive read-only recoveryReadiness-Felder erweitern
+~~~
+
+CAN-7.1 darf maximal:
+
+~~~text
+backend/modules/bus_diagnostics.js vollstaendig lesen
+Version gezielt pruefen
+additives recoveryReadiness-Objekt in /api/bus-diagnostics/status und /check ausgeben
+keine produktive Aktion ermoeglichen
+keine bestehende Funktionalitaet entfernen
+~~~
+
+Pflichtgrenzen:
+
+~~~text
+Keine neue POST-/Command-Route
+Keine Recovery-Ausfuehrung
+Keine Bestätigungs-Code-Erstellung
+Keine Dashboard-Buttons
+Keine Alert-/Sound-/Overlay-/Queue-Beruehrung
+Keine DB-/Config-Migration
+~~~
+
+Tests fuer CAN-7.1:
+
+~~~powershell
+node -c backend\modules\bus_diagnostics.js
+
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/status"
+$s | Select-Object ok,module,version,readOnly,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched
+
+$s.recoveryReadiness | ConvertTo-Json -Depth 8
+$s.recoveryStrategyState | Select-Object mode,state,severity,readOnly,automationEnabled
+~~~
+
+Regel bleibt:
+
+~~~text
+Nur read-only Diagnose.
+Keine produktive Flow-Aenderung.
+Vor Umsetzung Ziel/Datei/Aenderung/Nicht geaendert/Tests nennen und auf Go warten.
+~~~
+
 ## Nach STEP CAN-6.10
 
 Marker: STEP_CAN6_10_NEXT_STEPS
