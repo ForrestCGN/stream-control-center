@@ -1,26 +1,14 @@
-# Next Steps
+# NEXT STEPS
 
-## CAN-9.7
+## CAN-9.8
 
-Implement dashboard consumption of the dedicated read-only route:
+Recovery-Preflight Dashboard Route Consumption live testen und abnehmen.
 
-```text
-GET /api/bus-diagnostics/recovery-preflight
-```
+Prüfen:
 
-Allowed file:
-
-```text
-htdocs/dashboard/modules/bus_diagnostics.js
-```
-
-Forbidden:
-
-```text
-No recovery execution.
-No POST route.
-No command route.
-No prepare route.
-No execute route.
-No action buttons.
-```
+- Preflight-Untertab öffnet korrekt.
+- Route-Kontext ist sichtbar.
+- Route-Safety ist sichtbar.
+- Prepare bleibt nein.
+- Execute bleibt nein.
+- Keine Recovery-/Simulation-/Execute-Buttons sichtbar.

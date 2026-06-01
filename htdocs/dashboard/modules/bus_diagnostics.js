@@ -52,6 +52,15 @@
   function refreshLabel(){ return state.autoRefresh ? `Auto: an (${Math.round(state.refreshEveryMs / 1000)}s)` : 'Auto: aus'; }
 
   function getStatus(){ return state.lastData || {}; }
+  function getRecoveryPreflightRoute(){ return getStatus().recoveryPreflightRoute || {}; }
+  function getEffectiveRecoveryPreflight(){
+    const route = getRecoveryPreflightRoute();
+    return route.recoveryPreflight || getStatus().recoveryPreflight || {};
+  }
+  function getEffectiveRecoveryPreflightSummary(){
+    const routeSummary = getRecoveryPreflightRoute().summary || {};
+    return Object.assign({}, getSummary(), routeSummary);
+  }
   function getCommunication(){ return getStatus().communication || {}; }
   function getBusStatus(){ return getCommunication().statusBody || {}; }
   function getSummary(){ return getStatus().summary || {}; }
@@ -238,6 +247,29 @@
     }
   }
 
+  async function loadRecoveryPreflightRoute(){
+    try {
+      return await window.CGN.api('/api/bus-diagnostics/recovery-preflight');
+    } catch (err) {
+      return {
+        ok: false,
+        fetchOk: false,
+        readOnly: true,
+        feature: 'recovery_preflight',
+        routeVersion: 'unavailable',
+        error: err.message || String(err),
+        routeSafety: {
+          method: 'GET',
+          readOnly: true,
+          commandRoute: false,
+          executeRoute: false,
+          prepareRoute: false,
+          recoveryExecution: false
+        }
+      };
+    }
+  }
+
   async function loadAll(check){
     if (state.loading) return;
     state.loading = true;
@@ -245,6 +277,16 @@
     setBusy(true);
     try {
       const data = await window.CGN.api(check ? '/api/bus-diagnostics/check' : '/api/bus-diagnostics/status');
+      const preflightRoute = await loadRecoveryPreflightRoute();
+      data.recoveryPreflightRoute = preflightRoute;
+      if (preflightRoute && preflightRoute.recoveryPreflight) data.recoveryPreflight = preflightRoute.recoveryPreflight;
+      if (preflightRoute && preflightRoute.summary) {
+        data.summary = Object.assign({}, data.summary || {}, preflightRoute.summary, {
+          recoveryPreflightRouteVersion: preflightRoute.routeVersion || '-',
+          recoveryPreflightRouteReadOnly: preflightRoute.readOnly === true,
+          recoveryPreflightRouteFetchOk: preflightRoute.fetchOk !== false
+        });
+      }
       state.lastData = data;
       await loadSettings(true);
       renderCurrentTab();
@@ -389,7 +431,8 @@
 
   function renderRecoveryTab(){
     const data = getStatus();
-    const summary = getSummary();
+    const routePreflight = getRecoveryPreflightRoute();
+    const summary = getEffectiveRecoveryPreflightSummary();
     const recovery = data.recoveryStrategyState || {};
     const source = recovery.source || {};
     const reasons = asList(recovery.reasons);
@@ -437,7 +480,10 @@
     const readinessBlockerList = readinessBlockers.length
       ? `<div class="busdiag-list">${readinessBlockers.map(blocker => `<div class="busdiag-row warning"><strong>Blocker</strong><span>${esc(blocker)}</span></div>`).join('')}</div>`
       : '<p class="busdiag-muted">Keine Recovery-Readiness-Blocker gemeldet.</p>';
-    const preflight = data.recoveryPreflight || {};
+    const preflight = getEffectiveRecoveryPreflight();
+    const routeContext = routePreflight.routeContext || {};
+    const routeSafety = routePreflight.routeSafety || {};
+    const preflightRouteOk = routePreflight.fetchOk !== false && routePreflight.readOnly === true && routeSafety.commandRoute === false && routeSafety.executeRoute === false && routeSafety.prepareRoute === false && routeSafety.recoveryExecution === false;
     const preflightSafety = preflight.safety || {};
     const preflightChecks = asList(preflight.checks);
     const preflightBlockers = asList(preflight.blockers);
@@ -464,6 +510,8 @@
       ? `<div class="busdiag-list">${preflightScope.map(scope => `<div class="busdiag-row"><strong>Scope</strong><span>${esc(scope)}</span></div>`).join('')}</div>`
       : '<p class="busdiag-muted">Kein Preflight-Scope gemeldet.</p>';
     const preflightSummaryCard = `<div class="busdiag-status-line">${badge(preflightCheckSummary.blocked || preflightCheckSummary.blocking ? 'prüfen' : 'ok', preflightCheckSummary.blocked || preflightCheckSummary.blocking ? 'warning' : 'ok')}<span>Check-Matrix nur Anzeige</span></div><div class="busdiag-metrics">${metric('Checks', preflightCheckSummary.total ?? summary.recoveryPreflightCheckCount ?? preflightChecks.length)}${metric('OK', preflightCheckSummary.ok ?? '-')}${metric('Warnings', preflightCheckSummary.warnings ?? summary.recoveryPreflightWarningCheckCount ?? 0)}${metric('Blocking', preflightCheckSummary.blocking ?? summary.recoveryPreflightBlockingCheckCount ?? 0)}${metric('Blocked', preflightCheckSummary.blocked ?? 0)}${metric('Scope', preflightScope.length || summary.recoveryPreflightScopeCount || 0)}</div>`;
+    const routeContextCard = `<div class="busdiag-status-line">${badge(preflightRouteOk ? 'ok' : 'prüfen', preflightRouteOk ? 'ok' : 'warning')}<span>GET /api/bus-diagnostics/recovery-preflight</span></div><div class="busdiag-metrics">${metric('Route Version', routePreflight.routeVersion || '-', '', 'busdiag-metric-code')}${metric('Route Step', routeContext.currentStep || routePreflight.currentStep || '-', '', 'busdiag-metric-code')}${metric('Route Next', routeContext.nextAllowedStep || routePreflight.nextAllowedStep || summary.recoveryPreflightNextStep || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Source Step', routeContext.sourcePreflightCurrentStep || preflight.currentStep || '-', '', 'busdiag-metric-code')}${metric('Source Next', routeContext.sourcePreflightNextAllowedStep || summary.recoveryPreflightSourceNextStep || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Route only', bool(routeContext.routeOnly))}${metric('Read-only', bool(routePreflight.readOnly))}</div>`;
+    const routeSafetyCard = `<div class="busdiag-status-line">${badge(preflightRouteOk ? 'ok' : 'prüfen', preflightRouteOk ? 'ok' : 'warning')}<span>Route-Safety nur Anzeige</span></div><div class="busdiag-metrics">${metric('Method', routeSafety.method || 'GET')}${metric('Read-only', bool(routeSafety.readOnly))}${metric('Command Route', bool(routeSafety.commandRoute))}${metric('Prepare Route', bool(routeSafety.prepareRoute))}${metric('Execute Route', bool(routeSafety.executeRoute))}${metric('Recovery Exec', bool(routeSafety.recoveryExecution))}</div>`;
     const recoverySubTabs = [
       { id: 'overview', label: 'Übersicht' },
       { id: 'details', label: 'Details' },
@@ -511,6 +559,8 @@
         ${card('Preflight-Safety', `<div class="busdiag-status-line">${badge(preflightOk ? 'ok' : 'prüfen', preflightBadgeStatus)}<span>Produktive Aktionen müssen aus bleiben</span></div><div class="busdiag-metrics">${metric('Automation', bool(preflightSafety.automationEnabled))}${metric('Productive', bool(preflightSafety.productiveActions))}${metric('Flow touched', bool(preflightSafety.flowTouched))}${metric('Queue touched', bool(preflightSafety.queueTouched))}${metric('Sound touched', bool(preflightSafety.soundSystemTouched))}${metric('Alert touched', bool(preflightSafety.alertSystemTouched))}${metric('Overlay touched', bool(preflightSafety.overlayTouched))}</div>`)}
       </div>
       <div class="busdiag-grid">
+        ${card('Preflight-Route-Kontext', routeContextCard, 'busdiag-wide')}
+        ${card('Preflight-Route-Safety', routeSafetyCard, 'busdiag-wide')}
         ${card('Preflight-Check-Matrix', preflightSummaryCard, 'busdiag-wide')}
         ${card('Preflight-Scope', preflightScopeList)}
         ${card('Preflight-Blocker', preflightBlockerList)}

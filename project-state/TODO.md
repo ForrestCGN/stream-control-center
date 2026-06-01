@@ -1,7 +1,5 @@
 # TODO
 
-## Recovery / Preflight
-
-- [ ] CAN-9.7: Dashboard Preflight subtab should prefer the dedicated read-only route.
-- [ ] Keep fallback to the full status route.
-- [ ] Keep dashboard display-only.
+- CAN-9.8 Live-Test Dashboard Route Consumption durchführen.
+- Keine Recovery-Ausführung planen, bevor die read-only Route- und Dashboard-Strecke vollständig dokumentiert ist.
+- CAN-10.x frühestens nach separater Startgrenze planen.

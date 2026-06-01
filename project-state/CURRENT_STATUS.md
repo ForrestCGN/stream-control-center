@@ -1,18 +1,9 @@
-# Current Status
+# CURRENT STATUS
 
-## CAN-9.6
+Stand: CAN-9.7
 
-Recovery-Preflight Dashboard Route Consumption has been planned.
+Recovery-Preflight ist weiterhin read-only. Die dedizierte Route `GET /api/bus-diagnostics/recovery-preflight` existiert seit CAN-9.2 und wurde in CAN-9.4 um Route-Kontext/NextStep bereinigt.
 
-The dedicated read-only route is live and accepted from CAN-9.4/CAN-9.5:
+Mit CAN-9.7 konsumiert das Dashboard diese Route gezielt und zeigt Route-Kontext sowie Route-Safety im Preflight-Untertab an.
 
-```text
-GET /api/bus-diagnostics/recovery-preflight
-version: 1.2.9
-routeVersion: CAN-9.4
-readOnly: true
-canPrepare: false
-canExecute: false
-```
-
-CAN-9.6 made no code changes.
+Keine Recovery-Ausführung ist implementiert.

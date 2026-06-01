@@ -1,8 +1,9 @@
-# Changelog
+# CHANGELOG
 
-## CAN-9.6
+## CAN-9.7
 
-- Planned dashboard consumption of the dedicated read-only Recovery-Preflight route.
-- No code changes.
-- No API changes.
-- No database changes.
+- Dashboard-Modul lädt zusätzlich die read-only Route `/api/bus-diagnostics/recovery-preflight`.
+- Preflight-Anzeige bevorzugt Routendaten.
+- Fallback auf bestehenden Status bleibt erhalten.
+- Preflight-Route-Kontext und Preflight-Route-Safety im Dashboard ergänzt.
+- Keine produktive Flow-Änderung.
