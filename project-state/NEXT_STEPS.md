@@ -1,3 +1,15 @@
+## Nach STEP CAN-5.0
+
+Marker: STEP_CAN5_0_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+```text
+CAN-5.1: Recovery-Strategy-Status read-only in Bus-Diagnostics ergänzen
+```
+
+Ziel: Im Diagnose-Status sichtbar machen, welche Recovery-Aktionen theoretisch erlaubt oder bewusst blockiert sind, ohne etwas automatisch auszuführen.
+
 ## Nach STEP CAN-4.3
 
 Marker: STEP_CAN4_3_NEXT_STEPS

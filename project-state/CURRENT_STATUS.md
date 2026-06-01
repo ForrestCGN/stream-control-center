@@ -1,3 +1,23 @@
+## STEP CAN-5.0 Recovery-/Timeout-Strategie geplant
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_0_RECOVERY_TIMEOUT_PLAN
+
+CAN-5.0 dokumentiert nur die Strategie für spätere Recovery-/Timeout-Behandlung.
+
+```text
+Status: Plan / read-only
+Keine Recovery-Automatik
+Keine Backend-Modul-Code-Änderung
+Keine Flow-Änderung
+```
+
+Wichtigste Regel:
+
+```text
+Keine doppelte Alert- oder Sound-Auslösung durch Recovery.
+```
+
 ## STEP CAN-4.3 Overlay ACK stabil dokumentiert
 
 Stand: 2026-06-01
