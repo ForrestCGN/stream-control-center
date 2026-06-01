@@ -1,9 +1,8 @@
-# CHANGELOG
+# Changelog
 
-## CAN-9.4
+## CAN-9.5
 
-- `backend/modules/bus_diagnostics.js` auf Version 1.2.9 / STEP_CAN9_4 erhoeht.
-- `GET /api/bus-diagnostics/recovery-preflight` um eigenen Routenkontext ergaenzt.
-- `summary.recoveryPreflightNextStep` zeigt nun den CAN-9.x-Routen-NextStep.
-- Eingebetteter CAN-8.x-Quell-NextStep bleibt als `summary.recoveryPreflightSourceNextStep` erhalten.
-- Keine produktive Flow-Aenderung.
+- Live-Test und Abnahme des CAN-9.4 Recovery-Preflight Route-Kontext-Fixes dokumentiert.
+- Keine Codeänderungen.
+- Keine API-Änderungen.
+- Keine produktiven Änderungen.

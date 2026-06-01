@@ -1,18 +1,20 @@
-# CURRENT_STATUS
+# Current Status
 
-## Aktueller Stand: CAN-9.4
+## Aktueller Stand
 
-Recovery-Preflight read-only Route ist vorhanden und der CAN-9.x-Routenkontext wurde bereinigt.
+CAN-9.5 abgeschlossen.
 
-```text
-GET /api/bus-diagnostics/recovery-preflight
-version: 1.2.9
-routeVersion: CAN-9.4
-currentStep: CAN-9.4
-nextAllowedStep: CAN-9.5_recovery_preflight_route_context_live_test_acceptance
-readOnly: true
-canPrepare: false
-canExecute: false
-```
+Die read-only Route `/api/bus-diagnostics/recovery-preflight` wurde nach dem CAN-9.4 Route-Kontext-/NextStep-Fix live getestet und abgenommen.
 
-Keine Recovery-Ausfuehrung, keine Command-Route, keine POST-Route.
+## Bestätigt
+
+- Version 1.2.9
+- routeVersion CAN-9.4
+- currentStep CAN-9.4
+- nextAllowedStep CAN-9.5_recovery_preflight_route_context_live_test_acceptance
+- readOnly true
+- canPrepare false
+- canExecute false
+- routeContext vorhanden
+- routeOnly true
+- keine Command-/Prepare-/Execute-/Recovery-Ausführung

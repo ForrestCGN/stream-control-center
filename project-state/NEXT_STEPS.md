@@ -1,15 +1,19 @@
-# NEXT_STEPS
+# Next Steps
 
-## Naechster Schritt
+## Nächster Schritt
 
-CAN-9.5: Recovery-Preflight Route-Kontext / NextStep Live-Test abnehmen und dokumentieren.
+CAN-9.6 planen.
 
-## Erwartete Pruefung
+## Mögliche Richtung
 
-```powershell
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/recovery-preflight"
-$r | Select-Object module,version,feature,routeVersion,mode,readOnly,currentStep,nextAllowedStep,canPrepare,canExecute
-$r.routeContext | Select-Object currentStep,nextAllowedStep,sourcePreflightCurrentStep,sourcePreflightNextAllowedStep,sourceReadinessCurrentStep,sourceReadinessNextAllowedStep,routeOnly,readOnly
-$r.summary | Select-Object recoveryPreflightStatus,recoveryPreflightCheckCount,recoveryPreflightBlockingCheckCount,recoveryPreflightWarningCheckCount,recoveryPreflightSourceNextStep,recoveryPreflightNextStep
-$r.routeSafety | Select-Object method,readOnly,commandRoute,executeRoute,prepareRoute,recoveryExecution
-```
+Dashboard-Anbindung oder Dashboard-Anzeige auf die neue read-only Route `/api/bus-diagnostics/recovery-preflight` vorbereiten.
+
+## Grenzen
+
+- Keine POST-Route
+- Keine Command-Route
+- Keine Prepare-Route
+- Keine Execute-Route
+- Keine Recovery-Ausführung
+- Keine produktive Flow-Änderung
+- Keine Queue-/Sound-/Alert-/Overlay-Steuerung
