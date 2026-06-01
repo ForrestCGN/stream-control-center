@@ -52,3 +52,11 @@
 - SafetyStop Clear-Regeln und Dashboard-/Backend-Grenzen beschrieben.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
+
+## CAN-13.5
+
+- Recovery-Kandidatenmatrix fuer spaetere manuelle Recovery dokumentiert.
+- Kandidaten in read-only Diagnose, blockierte Sicherheitsstatus-Mutation und hart blockierte produktive Recovery-Mutation gruppiert.
+- Niedrigrisiko-Kandidaten fuer spaetere read-only Planung identifiziert.
+- Keine Code-Aenderungen.
+- Keine Recovery-Ausfuehrung.

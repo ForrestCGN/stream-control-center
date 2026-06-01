@@ -5,7 +5,7 @@
 Empfohlener Start:
 
 ```text
-CAN-13.5 - Recovery-Kandidatenmatrix fuer spaetere manuelle Recovery
+CAN-13.6 - Abschluss/Handoff fuer CAN-13 Sicherheitsplanung
 ```
 
 ## Bereits in CAN-13 geplant
@@ -15,23 +15,28 @@ CAN-13.5 - Recovery-Kandidatenmatrix fuer spaetere manuelle Recovery
 - CAN-13.2 Rollen-/Rechte-Konzept
 - CAN-13.3 Confirm-/Bestaetigungs-Konzept
 - CAN-13.4 SafetyStop-/Cancel-Konzept
+- CAN-13.5 Recovery-Kandidatenmatrix
 
-## CAN-13.5 Ziel
+## CAN-13.6 Ziel
 
-CAN-13.5 soll eine Kandidatenmatrix definieren.
-
-Die Matrix soll festlegen:
+CAN-13.6 soll den CAN-13-Strang sauber abschliessen:
 
 ```text
-Recovery-Kandidat
-aktueller Status
-Risiko
-erforderliche Rolle
-erforderlicher Confirm-Typ
-Audit-Pflicht
-SafetyStop-Verhalten
-Duplikat-Sperre
-weiterhin hart blockiert ja/nein
+CAN-13 Sicherheitsplanung zusammenfassen
+offene harte Blocker bestaetigen
+naechste sichere CAN-14 Richtung festlegen
+aktuelles Handoff erstellen
+Projektstate aktualisieren
+```
+
+## Empfohlene Richtung danach
+
+Nicht direkt produktive Recovery.
+
+Sinnvoller CAN-14-Start:
+
+```text
+CAN-14.0 - Read-only Safety Status View Planning
 ```
 
 ## Weiterhin nicht direkt umsetzen
@@ -42,4 +47,6 @@ weiterhin hart blockiert ja/nein
 - Overlay State Repair
 - Execute Recovery
 - Auto Recovery
-- Auto Retry
+- Auto Retry Overlay
+- Streamer.bot Action Retry
+- OBS Source Refresh

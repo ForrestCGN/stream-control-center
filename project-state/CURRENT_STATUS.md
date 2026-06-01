@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-## Stand: CAN-13.4 abgeschlossen
+## Stand: CAN-13.5 abgeschlossen
 
 Der Recovery-/Preflight-/Guard-Framework-Strang ist weiterhin read-only abgeschlossen.
 
@@ -18,6 +18,7 @@ Abgeschlossen:
 - CAN-13.2 Rollen-/Rechte-Konzept
 - CAN-13.3 Confirm-/Bestaetigungs-Konzept
 - CAN-13.4 SafetyStop-/Cancel-Konzept
+- CAN-13.5 Recovery-Kandidatenmatrix
 
 ## Aktuelle read-only Funktionen
 
@@ -40,7 +41,7 @@ Errors: 0
 Blocking Failed: 0
 ```
 
-## CAN-13.4 Sicherheitsstand
+## CAN-13.5 Sicherheitsstand
 
 Weiterhin keine Recovery-Ausfuehrung.
 
@@ -53,18 +54,28 @@ commandRoute: false
 prepareRoute: false
 executeRoute: false
 recoveryExecution: false
-safetyStopApi: false
-cancelApi: false
+candidateApi: false
+dashboardCandidateButtons: false
 ```
 
-## CAN-13.4 Ergebnis
+## CAN-13.5 Ergebnis
 
 ```text
-SafetyStop ist Pflichtschutz fuer spaetere Recovery-nahe Aktionen.
-Cancel ist ein auditpflichtiger Abbruchzustand.
-SafetyStop Clear darf spaeter nicht automatisch oder still passieren.
-Dashboard darf SafetyStop/Cancel zunaechst nur anzeigen.
-Backend muss SafetyStop spaeter serverseitig pruefen.
+Recovery-Kandidaten wurden bewertet.
+Read-only Diagnosekandidaten sind die einzigen niedrigen Risiken.
+Sicherheitsstatus-Mutationen bleiben blockiert.
+Produktive Recovery-Mutationen bleiben hart blockiert.
+```
+
+## Niedriges Risiko / spaeter zuerst betrachtbar
+
+```text
+diagnostics_refresh
+status_resync_readonly
+preflight_recheck
+guard_recheck
+safety_state_view
+overlay_client_ping_recheck
 ```
 
 ## Weiterhin hart blockiert
@@ -76,5 +87,7 @@ Queue Clear
 Overlay State Repair
 Execute Recovery
 Auto Recovery
-Auto Retry
+Auto Retry Overlay
+Streamer.bot Action Retry
+OBS Source Refresh
 ```
