@@ -1,9 +1,7 @@
 # CHANGELOG
 
-## CAN-11.4
+## CAN-11.5
 
-- Dashboard-Karte `Manueller Status-Resync` additiv umgesetzt.
-- Button `Status neu synchronisieren` additiv umgesetzt.
-- Lokale read-only Guard-Auswertung eingebaut.
-- Keine Backend-Aenderung.
+- Live-Test-Abnahme fuer die Dashboard-UI `Manueller Status-Resync` dokumentiert.
+- Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.

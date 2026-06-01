@@ -1,19 +1,7 @@
 # CURRENT_STATUS
 
-## CAN-11.4
+## CAN-11.5
 
-Die Dashboard-UI fuer `manual_status_resync_request` ist umgesetzt.
+Der Live-Test fuer die Dashboard-UI `Manueller Status-Resync` ist als Abnahmeschritt dokumentiert.
 
-Neue Karte:
-
-```text
-Manueller Status-Resync
-```
-
-Button:
-
-```text
-Status neu synchronisieren
-```
-
-Keine Backend-Aenderung, keine Recovery-Ausfuehrung.
+Der Button bleibt weiterhin nur read-only Diagnose-/Status-Resync und keine Recovery-Ausfuehrung.

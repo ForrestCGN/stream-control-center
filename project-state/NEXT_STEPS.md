@@ -2,10 +2,10 @@
 
 ## Naechster Schritt
 
-CAN-11.5 - Manual Status Resync Dashboard UI Live-Test Acceptance
+Nach bestaetigtem Dashboard-Test:
 
-Ziel:
+- CAN-11.6 Manual Status Resync Block Closure / CAN-12 Start Gate
 
-- Dashboard-Test dokumentieren
-- keine Code-Aenderung
-- keine Recovery-Ausfuehrung
+Alternative:
+
+- kleiner CAN-11.5.x Fix, falls der Status-Resync nicht sauber angezeigt wird

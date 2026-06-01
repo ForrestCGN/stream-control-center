@@ -1,15 +1,16 @@
 # FILES
 
-## CAN-11.4
+## CAN-11.5
 
 Enthaltene Dateien:
 
-- `htdocs/dashboard/modules/bus_diagnostics.js`
-- `docs/system-inspection/EVENTBUS_CAN11_4_MANUAL_STATUS_RESYNC_DASHBOARD_UI.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN11_4.md`
-- `docs/current/README_CAN11_4_FILE_ZIP.md`
+- `docs/system-inspection/EVENTBUS_CAN11_5_MANUAL_STATUS_RESYNC_DASHBOARD_UI_LIVE_TEST_ACCEPTANCE.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN11_5.md`
+- `docs/current/README_CAN11_5_FILE_ZIP.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
+
+Keine JS-Dateien enthalten.
