@@ -1,3 +1,31 @@
+## Nach STEP CAN-8.1
+
+Marker: STEP_CAN8_1_NEXT_STEPS
+
+CAN-8.1 hat das read-only Preflight-Datenmodell definiert.
+
+Nächster sinnvoller Schritt:
+
+```text
+CAN-8.2: Echte Dateien pruefen und konkrete read-only Preflight-Statusfelder fuer bus_diagnostics planen.
+```
+
+Vor CAN-8.2 pruefen/anfordern:
+
+```text
+backend/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.js
+```
+
+Grenze bleibt:
+
+```text
+Keine Command-Route
+Keine Recovery-Ausfuehrung
+Keine Dashboard-Aktionsbuttons
+Keine produktive Flow-Aenderung
+```
+
 ## Nach STEP CAN-7.6
 
 Marker: STEP_CAN7_6_NEXT_STEPS

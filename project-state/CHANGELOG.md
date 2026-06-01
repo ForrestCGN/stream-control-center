@@ -1,3 +1,28 @@
+# CHANGELOG – CAN-8.1 Recovery-Preflight Read-only Datenmodell
+
+Stand: 2026-06-01
+
+## Geändert
+
+- Read-only Preflight-Datenmodell dokumentiert.
+- Geplantes Feld `recoveryPreflight` definiert.
+- Guard-/Safety-/Dashboard-Grenzen fuer spaetere Schritte festgelegt.
+- Projekt-State auf CAN-8.2 vorbereitet.
+
+## Nicht geändert
+
+- Keine Backend-Datei geändert.
+- Keine Dashboard-Datei geändert.
+- Keine API-Route geändert.
+- Keine Config geändert.
+- Keine DB geändert.
+- Keine Recovery-Ausführung ergänzt.
+- Keine produktive Flow-Änderung.
+
+## Nächster Block
+
+- CAN-8.2: Echte Dateien prüfen und konkrete read-only Preflight-Statusfelder planen.
+
 # CHANGELOG – CAN-7.6 Recovery-Dashboard Read-only Abschluss
 
 Stand: 2026-06-01

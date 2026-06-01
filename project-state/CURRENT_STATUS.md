@@ -1,3 +1,35 @@
+## STEP CAN-8.1 Recovery-Preflight Read-only Datenmodell
+
+Stand: 2026-06-01
+Marker: STEP_CAN8_1_RECOVERY_PREFLIGHT_READONLY_DATA_MODEL
+
+CAN-8.1 definiert nur das spaetere read-only Datenmodell fuer Recovery-Preflight.
+
+Geplantes Feld:
+
+```text
+recoveryPreflight
+```
+
+Bestätigt bleibt:
+
+```text
+Keine Backend-Aenderung
+Keine Dashboard-Aenderung
+Keine API-Route
+Keine POST-/Command-Route
+Keine Recovery-Ausfuehrung
+Keine produktive Flow-Aenderung
+```
+
+Nächster sinnvoller Schritt:
+
+```text
+CAN-8.2: Echte Dateien pruefen und konkrete read-only Preflight-Statusfelder fuer bus_diagnostics planen.
+```
+
+Details: `docs/system-inspection/EVENTBUS_CAN8_1_RECOVERY_PREFLIGHT_READONLY_DATA_MODEL.md`
+
 ## STEP CAN-7.6 Recovery-Dashboard Read-only Abschluss und CAN-8.0 Startgrenze
 
 Stand: 2026-06-01

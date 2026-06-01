@@ -1,3 +1,30 @@
+# FILES – CAN-8.1 Recovery-Preflight Read-only Datenmodell
+
+## Neue Doku
+
+- `docs/system-inspection/EVENTBUS_CAN8_1_RECOVERY_PREFLIGHT_READONLY_DATA_MODEL.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_1.md`
+- `docs/current/README_CAN8_1_FILE_ZIP.md`
+
+## Projekt-State aktualisiert
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
+## Technisch nicht geändert
+
+- `backend/modules/bus_diagnostics.js`
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+- keine API-/Config-/DB-Dateien
+
+## Für CAN-8.2 relevant
+
+- `backend/modules/bus_diagnostics.js`
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+
 # FILES – CAN-7.6 Recovery-Dashboard Read-only Abschluss
 
 ## Neue Doku

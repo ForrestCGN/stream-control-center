@@ -1,3 +1,12 @@
+## CAN-8 / Recovery-Preflight
+
+- [x] CAN-8.0 Recovery-Preflight Startgrenze dokumentieren.
+- [x] CAN-8.1 Read-only Preflight-Datenmodell definieren.
+- [ ] CAN-8.2 echte Dateien pruefen: `backend/modules/bus_diagnostics.js` und `htdocs/dashboard/modules/bus_diagnostics.js`.
+- [ ] CAN-8.2 konkrete read-only Preflight-Statusfelder planen.
+- [ ] Vor jedem Code-Step sicherstellen: keine POST-/Command-Route, keine Recovery-Ausfuehrung, keine produktive Flow-Aenderung.
+- [ ] Dashboard darf Preflight spaeter nur anzeigen, keine Aktionsbuttons.
+
 ## CAN-8.0 / Preflight-Backend-Startgrenze
 
 - [ ] Vor CAN-8.0 echte aktuelle Dateien erneut prüfen.
