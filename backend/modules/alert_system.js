@@ -31,9 +31,13 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.4';
+const MODULE_VERSION = '3.1.5';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
+const ALERT_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
+const ALERT_CANBUS_STATUS_INTERVAL_MS = 10000;
+let alertCanBusHeartbeatTimer = null;
+let alertCanBusLastStatusMs = 0;
 const MODULE_META = {
   name: MODULE,
   version: MODULE_VERSION,
@@ -43,8 +47,8 @@ const MODULE_META = {
   statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
   routesPrefix: ['/api/alerts'],
   capabilities: [ALERT_EVENTBUS_CAPABILITY],
-  bus: { emits: true, registered: false, heartbeat: false },
-  note: 'STEP278 Block 23: Loader-readable metadata only; runtime flow unchanged.'
+  bus: { emits: true, registered: true, heartbeat: true, status: true },
+  note: 'STEP CAN-1: additive Communication Bus participant registration and heartbeat; runtime flow unchanged.'
 };
 
 const DEFAULT_CONFIG = {
@@ -219,6 +223,15 @@ const state = {
     lastResult: null,
     lastError: '',
     lastTiming: null
+  },
+  canBus: {
+    registered: false,
+    heartbeatCount: 0,
+    statusPublished: 0,
+    lastRegisteredAt: '',
+    lastHeartbeatAt: '',
+    lastStatusAt: '',
+    lastError: ''
   },
   alertEventBus: {
     emitted: 0,
@@ -419,6 +432,8 @@ module.exports.init = function init(ctx) {
   routes.registerPost(app, '/api/alerts/settings', guard, (req, res) => res.json(saveSettings(req.body || {})));
   routes.registerGet(app, '/api/alerts/config', guard, (req, res) => res.json({ ok: true, config: publicConfig() }));
   routes.registerPost(app, '/api/alerts/config', guard, (req, res) => res.json(saveAlertConfig(req.body || {})));
+
+  startAlertCanBusParticipant();
 
   console.log('[alert_system] STEP126 Preview-Overlay Unified aktiv');
 };
@@ -940,6 +955,162 @@ function getAlertCommunicationBus() {
   } catch (_) {
     return null;
   }
+}
+
+
+function buildAlertCanBusStatus(phase = 'updated') {
+  return {
+    module: MODULE,
+    version: MODULE_VERSION,
+    step: MODULE_STEP,
+    enabled: state.config.enabled !== false,
+    initialized: true,
+    healthy: state.config.enabled !== false,
+    phase: cleanKey(phase || (state.current ? 'running' : (state.queue.length > 0 ? 'queued' : 'idle'))),
+    queueLength: state.queue.length,
+    current: state.current ? {
+      eventUid: cleanText(state.current.eventUid || ''),
+      source: cleanKey(state.current.source || ''),
+      type: cleanKey(state.current.type_key || state.current.type || ''),
+      user: cleanText(state.current.user_display || state.current.user_login || '')
+    } : null,
+    overlayClients: state.overlayClients.size,
+    processing: !!state.processing,
+    alertOutput: {
+      emittedBus: Number(state.alertOutput.emittedBus || 0),
+      emittedLegacy: Number(state.alertOutput.emittedLegacy || 0),
+      errors: Number(state.alertOutput.errors || 0),
+      lastMode: cleanText(state.alertOutput.lastMode || ''),
+      lastError: cleanText(state.alertOutput.lastError || '')
+    },
+    alertEventBus: {
+      emitted: Number(state.alertEventBus.emitted || 0),
+      errors: Number(state.alertEventBus.errors || 0),
+      lastAction: cleanText(state.alertEventBus.lastAction || ''),
+      lastError: cleanText(state.alertEventBus.lastError || '')
+    },
+    overlayWatchdog: {
+      checked: Number(state.alertOverlayWatchdog.checked || 0),
+      issues: Number(state.alertOverlayWatchdog.issues || 0),
+      noClient: Number(state.alertOverlayWatchdog.noClient || 0),
+      missingFinishAck: Number(state.alertOverlayWatchdog.missingFinishAck || 0),
+      lastIssue: cleanText(state.alertOverlayWatchdog.lastIssue || '')
+    },
+    canBus: { ...state.canBus },
+    updatedAt: nowIso()
+  };
+}
+
+function publishAlertCanBusStatus(phase = 'updated') {
+  const bus = getAlertCommunicationBus();
+  if (!bus || typeof bus.publishModuleStatus !== 'function') {
+    state.canBus.lastError = 'communication_bus_unavailable';
+    return { ok: false, skipped: true, reason: state.canBus.lastError };
+  }
+
+  try {
+    const result = bus.publishModuleStatus(MODULE, buildAlertCanBusStatus(phase), {
+      id: `module:${MODULE}`,
+      channel: 'module.status',
+      action: 'updated',
+      replayable: true,
+      requireAck: false,
+      ttlMs: ALERT_CANBUS_STATUS_INTERVAL_MS * 3
+    });
+    state.canBus.statusPublished += 1;
+    state.canBus.lastStatusAt = nowIso();
+    state.canBus.lastError = '';
+    alertCanBusLastStatusMs = Date.now();
+    return result;
+  } catch (err) {
+    state.canBus.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, error: state.canBus.lastError };
+  }
+}
+
+function registerAlertCanBusParticipant() {
+  const bus = getAlertCommunicationBus();
+  if (!bus || typeof bus.registerModule !== 'function') {
+    state.canBus.lastError = 'communication_bus_unavailable';
+    return { ok: false, skipped: true, reason: state.canBus.lastError };
+  }
+
+  try {
+    const result = bus.registerModule({
+      id: `module:${MODULE}`,
+      module: MODULE,
+      name: MODULE,
+      version: MODULE_VERSION,
+      capabilities: [ALERT_EVENTBUS_CAPABILITY, 'visual.alert.play'],
+      meta: {
+        canBusParticipant: true,
+        statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
+        routesPrefix: '/api/alerts',
+        productiveFlowsTouched: false,
+        queueTouched: false,
+        soundSystemFlow: 'unchanged',
+        legacyOverlayFlow: 'unchanged',
+        bundleFlow: 'unchanged'
+      }
+    });
+    state.canBus.registered = result && result.ok === true;
+    state.canBus.lastRegisteredAt = nowIso();
+    state.canBus.lastError = result && result.ok === true ? '' : 'register_module_failed';
+    publishAlertCanBusStatus('registered');
+    return result;
+  } catch (err) {
+    state.canBus.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, error: state.canBus.lastError };
+  }
+}
+
+function heartbeatAlertCanBusParticipant() {
+  const bus = getAlertCommunicationBus();
+  if (!bus || typeof bus.heartbeatModule !== 'function') {
+    state.canBus.lastError = 'communication_bus_unavailable';
+    return { ok: false, skipped: true, reason: state.canBus.lastError };
+  }
+
+  try {
+    const phase = state.current ? 'running' : (state.queue.length > 0 ? 'queued' : 'idle');
+    const result = bus.heartbeatModule(MODULE, {
+      id: `module:${MODULE}`,
+      module: MODULE,
+      name: MODULE,
+      version: MODULE_VERSION,
+      capabilities: [ALERT_EVENTBUS_CAPABILITY, 'visual.alert.play'],
+      lastError: state.canBus.lastError || '',
+      meta: {
+        canBusParticipant: true,
+        phase,
+        enabled: state.config.enabled !== false,
+        healthy: state.config.enabled !== false,
+        queueLength: state.queue.length,
+        currentEventUid: state.current ? state.current.eventUid || '' : '',
+        overlayClients: state.overlayClients.size,
+        processing: !!state.processing
+      }
+    });
+
+    state.canBus.heartbeatCount += 1;
+    state.canBus.lastHeartbeatAt = nowIso();
+    state.canBus.lastError = '';
+    if (Date.now() - alertCanBusLastStatusMs >= ALERT_CANBUS_STATUS_INTERVAL_MS) {
+      publishAlertCanBusStatus(phase);
+    }
+    return result;
+  } catch (err) {
+    state.canBus.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, error: state.canBus.lastError };
+  }
+}
+
+function startAlertCanBusParticipant() {
+  registerAlertCanBusParticipant();
+  heartbeatAlertCanBusParticipant();
+  if (alertCanBusHeartbeatTimer) return;
+  alertCanBusHeartbeatTimer = setInterval(heartbeatAlertCanBusParticipant, ALERT_CANBUS_HEARTBEAT_INTERVAL_MS);
+  if (alertCanBusHeartbeatTimer && typeof alertCanBusHeartbeatTimer.unref === 'function') alertCanBusHeartbeatTimer.unref();
 }
 
 function pushAlertEventBusRecentEvent(entry) {
@@ -2148,6 +2319,7 @@ function buildStatus(req = null) {
     alertOutput: buildAlertOutputStatus(),
     alertBusMirror: buildAlertBusMirrorStatus(),
     alertEventBus: buildAlertEventBusStatus({ includeRecentEvents: false }),
+    canBus: { ...state.canBus },
     alertSoundCorrelation: buildAlertSoundCorrelationStatus(),
     alertDashboardCorrelation: {
       ok: true,

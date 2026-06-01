@@ -16,7 +16,7 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.18";
+const MODULE_VERSION = "0.1.19";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -24,6 +24,8 @@ const SOUND_BUS_COMMAND_API_VERSION = "1.0.0";
 const SOUND_BUS_DELIVERY_CLASSIFICATION = "capability_scoped_bus_first_with_legacy_websocket_fallback";
 const SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION = "module_scoped_command_dry_run_plus_play_test_stream";
 const SOUND_BUS_TARGET_CAPABILITY = "sound.event_output";
+const SOUND_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
+const SOUND_CANBUS_STATUS_INTERVAL_MS = 10000;
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
 const MODULE_META = {
@@ -37,8 +39,8 @@ const MODULE_META = {
   capabilities: [SOUND_BUS_CAPABILITY, SOUND_BUS_COMMAND_CAPABILITY],
   deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
   commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
-  bus: { emits: true, registered: false, heartbeat: false },
-  note: "STEP278 Block 23: Loader-readable metadata only; runtime flow unchanged."
+  bus: { emits: true, registered: true, heartbeat: true, status: true },
+  note: "STEP CAN-1: additive Communication Bus participant registration and heartbeat; runtime flow unchanged."
 };
 
 const DEFAULT_OUTPUT = {
@@ -262,6 +264,15 @@ module.exports.init = function init(ctx) {
       lastAt: "",
       recentEvents: []
     },
+    canBus: {
+      registered: false,
+      heartbeatCount: 0,
+      statusPublished: 0,
+      lastRegisteredAt: "",
+      lastHeartbeatAt: "",
+      lastStatusAt: "",
+      lastError: ""
+    },
     soundBusCommand: {
       emitted: 0,
       skipped: 0,
@@ -283,6 +294,8 @@ module.exports.init = function init(ctx) {
   let config = DEFAULT_CONFIG;
   let messages = DEFAULT_MESSAGES;
   let finishTimer = null;
+  let soundCanBusHeartbeatTimer = null;
+  let soundCanBusLastStatusMs = 0;
   const recent = { sounds: new Map(), categories: new Map(), users: new Map(), userSounds: new Map() };
   const SOUND_SETTINGS_SCHEMA_MODULE = "sound_system_settings";
   const SOUND_SETTINGS_SCHEMA_VERSION = 1;
@@ -651,6 +664,161 @@ module.exports.init = function init(ctx) {
     try { return communicationBus.getBus(); } catch (_) { return null; }
   }
 
+
+  function buildSoundCanBusStatus(phase = "updated") {
+    const current = state.current ? publicItem(state.current) : null;
+    return {
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      enabled: state.enabled !== false,
+      initialized: true,
+      healthy: state.enabled !== false && state.configOk !== false,
+      phase: String(phase || (current ? "running" : (state.queue.length > 0 ? "queued" : "idle"))),
+      queueLength: state.queue.length,
+      parallelCount: state.parallel.length,
+      current: current ? {
+        requestId: current.requestId || "",
+        soundId: current.soundId || "",
+        type: current.type || "",
+        category: current.category || "",
+        source: current.source || "",
+        requestedBy: current.requestedBy || ""
+      } : null,
+      activeBundleLock: state.activeBundleLock ? { ...state.activeBundleLock } : null,
+      client: {
+        connected: !!state.client.connected,
+        lastEvent: state.client.lastEvent || "",
+        lastSeenAt: state.client.lastSeenAt || 0
+      },
+      device: {
+        lastOk: !!state.device.lastOk,
+        lastAt: state.device.lastAt || 0,
+        lastError: state.device.lastError || ""
+      },
+      discord: {
+        lastOk: !!state.discord.lastOk,
+        lastAt: state.discord.lastAt || 0,
+        lastError: state.discord.lastError || ""
+      },
+      stats: { ...state.stats },
+      canBus: { ...state.canBus },
+      updatedAt: state.updatedAt,
+      checkedAt: core.nowIso()
+    };
+  }
+
+  function publishSoundCanBusStatus(phase = "updated") {
+    const bus = getCommunicationBus();
+    if (!bus || typeof bus.publishModuleStatus !== "function") {
+      state.canBus.lastError = "communication_bus_unavailable";
+      return { ok: false, skipped: true, reason: state.canBus.lastError };
+    }
+
+    try {
+      const result = bus.publishModuleStatus(MODULE_NAME, buildSoundCanBusStatus(phase), {
+        id: `module:${MODULE_NAME}`,
+        channel: "module.status",
+        action: "updated",
+        replayable: true,
+        requireAck: false,
+        ttlMs: SOUND_CANBUS_STATUS_INTERVAL_MS * 3
+      });
+      state.canBus.statusPublished += 1;
+      state.canBus.lastStatusAt = core.nowIso();
+      state.canBus.lastError = "";
+      soundCanBusLastStatusMs = Date.now();
+      return result;
+    } catch (err) {
+      state.canBus.lastError = err && err.message ? err.message : String(err);
+      return { ok: false, error: state.canBus.lastError };
+    }
+  }
+
+  function registerSoundCanBusParticipant() {
+    const bus = getCommunicationBus();
+    if (!bus || typeof bus.registerModule !== "function") {
+      state.canBus.lastError = "communication_bus_unavailable";
+      return { ok: false, skipped: true, reason: state.canBus.lastError };
+    }
+
+    try {
+      const result = bus.registerModule({
+        id: `module:${MODULE_NAME}`,
+        module: MODULE_NAME,
+        name: MODULE_NAME,
+        version: MODULE_VERSION,
+        capabilities: [SOUND_BUS_CAPABILITY, SOUND_BUS_COMMAND_CAPABILITY],
+        meta: {
+          canBusParticipant: true,
+          statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
+          commandApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+          routesPrefix: "/api/sound",
+          productiveFlowsTouched: false,
+          queueTouched: false,
+          soundSystemTouched: false,
+          legacyFlow: "unchanged"
+        }
+      });
+      state.canBus.registered = result && result.ok === true;
+      state.canBus.lastRegisteredAt = core.nowIso();
+      state.canBus.lastError = result && result.ok === true ? "" : "register_module_failed";
+      publishSoundCanBusStatus("registered");
+      return result;
+    } catch (err) {
+      state.canBus.lastError = err && err.message ? err.message : String(err);
+      return { ok: false, error: state.canBus.lastError };
+    }
+  }
+
+  function heartbeatSoundCanBusParticipant() {
+    const bus = getCommunicationBus();
+    if (!bus || typeof bus.heartbeatModule !== "function") {
+      state.canBus.lastError = "communication_bus_unavailable";
+      return { ok: false, skipped: true, reason: state.canBus.lastError };
+    }
+
+    try {
+      const phase = state.current ? "running" : (state.queue.length > 0 ? "queued" : "idle");
+      const result = bus.heartbeatModule(MODULE_NAME, {
+        id: `module:${MODULE_NAME}`,
+        module: MODULE_NAME,
+        name: MODULE_NAME,
+        version: MODULE_VERSION,
+        capabilities: [SOUND_BUS_CAPABILITY, SOUND_BUS_COMMAND_CAPABILITY],
+        lastError: state.canBus.lastError || "",
+        meta: {
+          canBusParticipant: true,
+          phase,
+          enabled: state.enabled !== false,
+          healthy: state.enabled !== false && state.configOk !== false,
+          queueLength: state.queue.length,
+          parallelCount: state.parallel.length,
+          currentRequestId: state.current ? state.current.requestId || "" : "",
+          activeBundleLock: !!state.activeBundleLock
+        }
+      });
+
+      state.canBus.heartbeatCount += 1;
+      state.canBus.lastHeartbeatAt = core.nowIso();
+      state.canBus.lastError = "";
+      if (Date.now() - soundCanBusLastStatusMs >= SOUND_CANBUS_STATUS_INTERVAL_MS) {
+        publishSoundCanBusStatus(phase);
+      }
+      return result;
+    } catch (err) {
+      state.canBus.lastError = err && err.message ? err.message : String(err);
+      return { ok: false, error: state.canBus.lastError };
+    }
+  }
+
+  function startSoundCanBusParticipant() {
+    registerSoundCanBusParticipant();
+    heartbeatSoundCanBusParticipant();
+    if (soundCanBusHeartbeatTimer) return;
+    soundCanBusHeartbeatTimer = setInterval(heartbeatSoundCanBusParticipant, SOUND_CANBUS_HEARTBEAT_INTERVAL_MS);
+    if (soundCanBusHeartbeatTimer && typeof soundCanBusHeartbeatTimer.unref === "function") soundCanBusHeartbeatTimer.unref();
+  }
+
   function soundBusActionForReason(reason) {
     const clean = String(reason || "state");
     const actions = soundBusConfig().actions || {};
@@ -694,6 +862,7 @@ module.exports.init = function init(ctx) {
       device: { ...state.device },
       discord: { ...state.discord },
       soundBus: publicSoundBusStatus({ includeRecentEvents: false }),
+      canBus: { ...state.canBus },
       stats: { ...state.stats },
       updatedAt: state.updatedAt
     };
@@ -1727,6 +1896,7 @@ module.exports.init = function init(ctx) {
       discord: { ...state.discord },
       soundBus: publicSoundBusStatus(),
       soundBusCommand: publicSoundBusCommandStatus({ includeRecentCommands: false }),
+      canBus: { ...state.canBus },
       stats: { ...state.stats },
       config: {
         path: state.configPath,
@@ -3315,6 +3485,8 @@ module.exports.init = function init(ctx) {
     if (clientRequestMatchesCurrent(req)) finishCurrent("client_error");
     return res.json(core.ok({ status: publicState() }));
   });
+
+  startSoundCanBusParticipant();
 
   console.log(`[${MODULE_NAME}] loaded prefix=${prefix}`);
 };
