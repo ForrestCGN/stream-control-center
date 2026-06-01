@@ -1,3 +1,32 @@
+# TODO – CAN-6.10 / CAN-7.0 Übergang
+
+Stand: 2026-06-01
+
+## CAN-6.x Abschluss
+
+- [x] CAN-6.1 manuelle Recovery-Aktionsmatrix definiert.
+- [x] CAN-6.2 Backend-Schutzvertrag dokumentiert.
+- [x] CAN-6.3 Audit- und Bestaetigungs-Code-Konzept dokumentiert.
+- [x] CAN-6.4 Read-only Preflight-API-Konzept dokumentiert.
+- [x] CAN-6.5 Dashboard-Read-only-UX dokumentiert.
+- [x] CAN-6.6 Recovery-Ausfuehrungs-Command-Konzept dokumentiert.
+- [x] CAN-6.7 Recovery-Command-Audit-State-Mapping dokumentiert.
+- [x] CAN-6.8 Safety-Stop- und Clear-Regelwerk dokumentiert.
+- [x] CAN-6.9 Implementierungsreihenfolge und Code-Grenzen dokumentiert.
+- [x] CAN-6.10 Abschlusscheck und CAN-7.0 Startgrenze dokumentiert.
+
+## CAN-7.0 offen
+
+- [ ] Echte aktuelle Dateien aus GitHub/dev erneut pruefen.
+- [ ] `backend/modules/bus_diagnostics.js` vollstaendig lesen.
+- [ ] `backend/modules/communication_bus.js` vollstaendig lesen.
+- [ ] Relevante Alert-/Sound-/Overlay-Dateien nur read-only pruefen.
+- [ ] Read-only Recovery-Readiness-Felder konkret planen.
+- [ ] Tests fuer `productiveActions=false` und `automationEnabled=false` festlegen.
+- [ ] Vor jeder Umsetzung erneut Ziel/Dateien/Aenderung/Nicht geaendert/Tests nennen und auf Go warten.
+
+---
+
 ## CAN-6.10 / Abschlusscheck und Übergabe nach CAN-7.0
 
 - [x] CAN-6.9 Recovery-Implementierungsreihenfolge und Code-Grenzen dokumentieren.

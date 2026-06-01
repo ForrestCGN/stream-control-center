@@ -1,3 +1,51 @@
+# FILES – CAN-6.10 / Recovery-Planungsabschluss
+
+Stand: 2026-06-01
+
+## Neu in CAN-6.10
+
+- `docs/system-inspection/EVENTBUS_CAN6_10_RECOVERY_PLANNING_CLOSURE_CAN7_START_GATE.md`
+  - Abschlusscheck der CAN-6.x-Planungsreihe
+  - harte Startgrenze fuer CAN-7.0
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_10.md`
+  - kompakte Uebergabe fuer den naechsten Chat / CAN-7.0
+- `docs/current/README_CAN6_10_FILE_ZIP.md`
+  - Entpack-/Abschluss-Hinweis fuer dieses ZIP
+
+## Weiterhin relevante CAN-6 Dokumente
+
+- `docs/system-inspection/EVENTBUS_CAN6_1_MANUAL_RECOVERY_ACTION_MATRIX.md`
+- `docs/system-inspection/EVENTBUS_CAN6_2_BACKEND_RECOVERY_GUARD_CONTRACT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_3_RECOVERY_AUDIT_CONFIRMATION_CONCEPT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_4_READONLY_RECOVERY_PREFLIGHT_API_CONCEPT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_5_DASHBOARD_PREFLIGHT_READONLY_UX_CONCEPT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_6_RECOVERY_EXECUTION_COMMAND_CONCEPT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_7_RECOVERY_COMMAND_AUDIT_STATE_MAPPING.md`
+- `docs/system-inspection/EVENTBUS_CAN6_8_RECOVERY_SAFETY_STOP_CLEAR_RULESET.md`
+- `docs/system-inspection/EVENTBUS_CAN6_9_RECOVERY_IMPLEMENTATION_SEQUENCE_GATES.md`
+
+## Vor CAN-7.0 technisch pruefen
+
+- `backend/modules/bus_diagnostics.js`
+- `backend/modules/communication_bus.js`
+- `backend/modules/alert_system.js`
+- `backend/modules/sound_system.js`
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+- `htdocs/overlays/_overlay-alerts-v2.html`
+- `htdocs/overlays/sound_system_overlay.html`
+- `config/alert_system.json`
+- `config/sound_system.json`
+
+## Nicht anfassen ohne separates Go
+
+- Keine Recovery-Automatik aktivieren.
+- Keine Recovery-Buttons im Dashboard ergaenzen.
+- Keine Simulation-Buttons im Dashboard ergaenzen.
+- Keine Alert-/Sound-Replays erlauben.
+- Keine produktive Queue-/Sound-/Overlay-Logik umbauen.
+
+---
+
 # FILES – CAN-6.9 / Recovery Implementation Sequence Gates
 
 Stand: 2026-06-01

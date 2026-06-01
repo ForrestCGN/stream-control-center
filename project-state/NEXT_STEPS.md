@@ -1,3 +1,49 @@
+## Nach STEP CAN-6.10
+
+Marker: STEP_CAN6_10_NEXT_STEPS
+
+Naechster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-7.0: Echte Dateien pruefen und read-only Recovery-Readiness-Status vorbereiten
+~~~
+
+CAN-7.0 darf maximal vorbereiten:
+
+~~~text
+echte Dateien erneut lesen
+bestehende Bus-/Recovery-Diagnose aufnehmen
+read-only Recovery-Readiness-Felder definieren
+Tests festlegen
+auf Go warten
+~~~
+
+Weiterhin verboten:
+
+~~~text
+Recovery ausfuehren
+Command-Route bauen
+Recovery-Button bauen
+Simulation-Button bauen
+Alert/Sound/Overlay wiederholen
+Queue/Sound/Alert/Overlay produktiv beruehren
+DB-/Config-Migration starten
+~~~
+
+Vor CAN-7.0 zu pruefen:
+
+~~~text
+backend/modules/bus_diagnostics.js
+backend/modules/communication_bus.js
+backend/modules/alert_system.js
+backend/modules/sound_system.js
+htdocs/dashboard/modules/bus_diagnostics.js
+htdocs/overlays/_overlay-alerts-v2.html
+htdocs/overlays/sound_system_overlay.html
+config/alert_system.json
+config/sound_system.json
+~~~
+
 ## Nach STEP CAN-6.9
 
 Marker: STEP_CAN6_9_NEXT_STEPS

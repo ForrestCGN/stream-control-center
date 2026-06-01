@@ -1,3 +1,34 @@
+# CHANGELOG – CAN-6.10 Recovery-Planungsabschluss
+
+Stand: 2026-06-01
+
+## Geaendert
+
+- `docs/system-inspection/EVENTBUS_CAN6_10_RECOVERY_PLANNING_CLOSURE_CAN7_START_GATE.md` ergaenzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_10.md` ergaenzt.
+- `docs/current/README_CAN6_10_FILE_ZIP.md` ergaenzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.10 Abschlussstand erweitert.
+- `project-state/NEXT_STEPS.md` auf CAN-7.0 Startgrenze aktualisiert.
+- `project-state/TODO.md` um CAN-6.x Abschluss und CAN-7.0 offene Punkte erweitert.
+- `project-state/FILES.md` um CAN-6.10 und CAN-7.0-Pruefdateien erweitert.
+
+## Nicht geaendert
+
+- Keine Backend-Dateien geaendert.
+- Keine API-Routen geaendert.
+- Keine Dashboard-Dateien geaendert.
+- Keine Overlay-Dateien geaendert.
+- Keine Config-Dateien geaendert.
+- Keine DB-Dateien geaendert.
+- Keine produktiven Flows geaendert.
+- Keine Recovery-Buttons oder Simulation-Buttons ergaenzt.
+
+## Naechster Block
+
+- CAN-7.0: Echte Dateien pruefen und read-only Recovery-Readiness-Status vorbereiten.
+
+---
+
 # CHANGELOG – CAN-6.9 Recovery-Implementierungsreihenfolge und Code-Grenzen
 
 Stand: 2026-06-01

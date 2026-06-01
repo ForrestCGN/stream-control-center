@@ -1,3 +1,38 @@
+## STEP CAN-6.10 Recovery-Planungsabschluss und CAN-7.0 Startgrenze
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_10_RECOVERY_PLANNING_CLOSURE_CAN7_START_GATE
+
+CAN-6.x wurde als reine Planungs- und Sicherheitsreihe abgeschlossen.
+
+Zusammenfassung:
+
+~~~text
+CAN-6.1 bis CAN-6.9 definieren Aktionsmatrix, Guards, Audit, Preflight, Dashboard-UX, Command-Konzept, State-Mapping, Safety-Stop/Clear und Implementierungs-Gates.
+CAN-6.10 definiert die Abschlussgrenze und den erlaubten Startbereich fuer CAN-7.0.
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine Backend-Aenderung
+Keine API-Aenderung
+Keine Dashboard-Code-Aenderung
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Keine Recovery-Automatik
+Keine produktive Flow-Aenderung
+Keine DB-/Config-Migration
+~~~
+
+Naechster sinnvoller Schritt:
+
+~~~text
+CAN-7.0: Echte Dateien pruefen und read-only Recovery-Readiness-Status vorbereiten
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN6_10_RECOVERY_PLANNING_CLOSURE_CAN7_START_GATE.md`
+
 ## Abschluss-/Übergabestand CAN-6.9
 
 Stand: 2026-06-01
