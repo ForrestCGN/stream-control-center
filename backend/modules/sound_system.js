@@ -26,6 +26,20 @@ const SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION = "module_scoped_command_dry_run
 const SOUND_BUS_TARGET_CAPABILITY = "sound.event_output";
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: "runtime",
+  legacy: false,
+  statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
+  commandApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+  routesPrefix: ["/api/sound"],
+  capabilities: [SOUND_BUS_CAPABILITY, SOUND_BUS_COMMAND_CAPABILITY],
+  deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
+  commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
+  bus: { emits: true, registered: false, heartbeat: false },
+  note: "STEP278 Block 23: Loader-readable metadata only; runtime flow unchanged."
+};
 
 const DEFAULT_OUTPUT = {
   defaultTarget: "overlay",
@@ -206,6 +220,10 @@ const DEFAULT_MESSAGES = {
   targetDisabled: "Dieses Sound-Ziel ist deaktiviert.",
   clientMissing: "Sound-Overlay ist noch nicht verbunden."
 };
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 module.exports.init = function init(ctx) {
   const { app, broadcastWS } = ctx;

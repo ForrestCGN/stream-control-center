@@ -20,6 +20,16 @@ const MODULE_VERSION = "0.2.13";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: "runtime",
+  legacy: false,
+  routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
+  capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
+  bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
+  note: "STEP278 Block 23: Loader-readable metadata only; runtime flow unchanged."
+};
 
 const DEFAULT_CONFIG = {
   clipShoutout: {
@@ -3359,6 +3369,10 @@ function installDirectChatCommandBypass(env) {
 }
 
 
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 module.exports.recordTwitchShoutoutEvent = recordTwitchShoutoutEvent;
 module.exports.buildInboundShoutoutStats = buildInboundShoutoutStats;

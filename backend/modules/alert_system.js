@@ -34,6 +34,18 @@ const MODULE_STEP = 365;
 const MODULE_VERSION = '3.1.4';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
+const MODULE_META = {
+  name: MODULE,
+  version: MODULE_VERSION,
+  step: MODULE_STEP,
+  type: 'runtime',
+  legacy: false,
+  statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
+  routesPrefix: ['/api/alerts'],
+  capabilities: [ALERT_EVENTBUS_CAPABILITY],
+  bus: { emits: true, registered: false, heartbeat: false },
+  note: 'STEP278 Block 23: Loader-readable metadata only; runtime flow unchanged.'
+};
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -242,6 +254,10 @@ const state = {
   },
   overlayDeliveryByEvent: new Map()
 };
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 module.exports.init = function init(ctx) {
   const { app, wss, broadcastWS } = ctx;
