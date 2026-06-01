@@ -31,7 +31,7 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.7';
+const MODULE_VERSION = '3.1.8';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 const ALERT_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
@@ -48,7 +48,7 @@ const MODULE_META = {
   routesPrefix: ['/api/alerts'],
   capabilities: [ALERT_EVENTBUS_CAPABILITY],
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: 'STEP CAN-3.1: additive trace/correlation diagnostics; runtime flow unchanged.'
+  note: 'STEP CAN-3.4: additive read-only handshake state diagnostics; runtime flow unchanged.'
 };
 
 const DEFAULT_CONFIG = {
@@ -1933,6 +1933,44 @@ function collectSoundCorrelationKeys(soundStatus = {}) {
   return Array.from(byKey.values()).slice(0, 40);
 }
 
+function handshakeStateFromComparison(alertRows, soundRows, comparison, soundFetch) {
+  const soundFetchOk = !!(soundFetch && soundFetch.ok === true);
+  const alertCount = Array.isArray(alertRows) ? alertRows.length : 0;
+  const soundCount = Array.isArray(soundRows) ? soundRows.length : 0;
+  const matched = Number((comparison && comparison.matched) || 0);
+  const unmatched = Number((comparison && comparison.unmatched) || 0);
+  const soundUnavailable = !soundFetchOk;
+  const stateName = soundUnavailable
+    ? 'sound_eventbus_unavailable'
+    : alertCount <= 0 && soundCount <= 0
+      ? 'idle_no_recent_handshake'
+      : matched > 0 && unmatched <= 0
+        ? 'matched'
+        : matched > 0 && unmatched > 0
+          ? 'partial_match'
+          : alertCount > 0 && soundCount <= 0
+            ? 'awaiting_sound_rows'
+            : unmatched > 0
+              ? 'unmatched_alert_rows'
+              : 'observed';
+  const ok = !soundUnavailable && unmatched <= 0;
+  const warning = !soundUnavailable && (stateName === 'partial_match' || stateName === 'awaiting_sound_rows' || stateName === 'unmatched_alert_rows');
+  return {
+    ok,
+    warning,
+    state: stateName,
+    readOnly: true,
+    flowTouched: false,
+    alertRows: alertCount,
+    soundRows: soundCount,
+    matched,
+    unmatched,
+    soundFetchOk,
+    nextAction: warning ? 'observe_or_test_live_alert' : '',
+    checkedAt: nowIso()
+  };
+}
+
 function compareAlertSoundCorrelation(alertRows, soundRows) {
   const soundByEvent = new Map();
   const soundByRequest = new Map();
@@ -2008,6 +2046,7 @@ async function buildAlertSoundEventBusCorrelationStatus(query = {}) {
   const soundStatus = soundFetch && soundFetch.data ? soundFetch.data : null;
   const soundRows = soundStatus ? collectSoundCorrelationKeys(soundStatus) : [];
   const comparison = compareAlertSoundCorrelation(alertRows, soundRows);
+  const handshakeState = handshakeStateFromComparison(alertRows, soundRows, comparison, soundFetch);
   const warnings = [];
   if (!soundFetch.ok) warnings.push('sound_eventbus_status_unavailable');
   if (alertRows.length > 0 && soundRows.length === 0 && soundFetch.ok) warnings.push('no_sound_alert_correlation_rows_seen_yet');
@@ -2018,7 +2057,7 @@ async function buildAlertSoundEventBusCorrelationStatus(query = {}) {
     version: MODULE_VERSION,
     feature: 'alert_sound_eventbus_correlation',
     statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
-    traceCorrelationVersion: 'CAN-3.2',
+    traceCorrelationVersion: 'CAN-3.4',
     matchingKeys: ['eventUid', 'requestId', 'correlationId', 'bundleId'],
     readOnly: true,
     flowTouched: false,
@@ -2044,6 +2083,7 @@ async function buildAlertSoundEventBusCorrelationStatus(query = {}) {
       correlation: soundStatus.correlation || null
     } : null,
     comparison,
+    handshakeState,
     warnings,
     checkedAt: nowIso()
   };
