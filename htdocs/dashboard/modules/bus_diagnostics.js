@@ -390,14 +390,22 @@
     const safetyOk = data.readOnly === true && recovery.readOnly !== false && recovery.automationEnabled === false && data.flowTouched === false && data.queueTouched === false && data.soundSystemTouched === false && data.alertSystemTouched === false && data.overlayTouched === false;
     const safetyStatus = safetyOk ? 'ok' : 'warning';
     const safetyText = safetyOk ? 'read-only / keine produktive Berührung' : 'prüfen';
+    const sourceRows = [
+      ['Handshake', source.handshakeState || summary.handshakeState || '-'],
+      ['Visual Delivery', source.visualDeliveryState || '-'],
+      ['Unmatched', source.unmatched ?? summary.correlationUnmatched ?? 0],
+      ['Missing ACK', source.missingAck ?? 0],
+      ['No Client', source.noClient ?? 0],
+      ['Waiting', source.waiting ?? 0]
+    ];
 
     return `
       <div class="busdiag-grid busdiag-grid-top">
-        ${card('Recovery-Strategie', `<div class="busdiag-status-line">${badge(stateLabel, status)}<span>${esc(recovery.mode || summary.recoveryStrategyMode || 'read_only')}</span></div><div class="busdiag-metrics">${metric('State', stateLabel)}${metric('Severity', recovery.severity || '-')}${metric('Next Action', recovery.nextAction || '-')}${metric('Automation', bool(recovery.automationEnabled), 'muss aus bleiben')}</div>`)}
+        ${card('Recovery-Strategie', `<div class="busdiag-status-line">${badge(stateLabel, status)}<span>${esc(recovery.mode || summary.recoveryStrategyMode || 'read_only')}</span></div><div class="busdiag-metrics">${metric('State', stateLabel, '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Severity', recovery.severity || '-')}${metric('Next Action', recovery.nextAction || '-', '', 'busdiag-metric-code')}${metric('Automation', bool(recovery.automationEnabled), 'muss aus bleiben')}</div>`)}
         ${card('Sicherheitsstatus', `<div class="busdiag-status-line">${badge(safetyStatus === 'ok' ? 'ok' : 'prüfen', safetyStatus)}<span>${esc(safetyText)}</span></div><div class="busdiag-metrics">${metric('Read-only', bool(data.readOnly && recovery.readOnly !== false))}${metric('Productive Actions', bool(data.productiveActions))}${metric('Flow touched', bool(data.flowTouched))}${metric('Overlay touched', bool(data.overlayTouched))}</div>`)}
       </div>
       <div class="busdiag-grid">
-        ${card('Recovery-Quelle', `<div class="busdiag-metrics">${metric('Handshake', source.handshakeState || summary.handshakeState || '-')}${metric('Visual Delivery', source.visualDeliveryState || '-')}${metric('Unmatched', source.unmatched ?? summary.correlationUnmatched ?? 0)}${metric('Missing ACK', source.missingAck ?? 0)}${metric('No Client', source.noClient ?? 0)}${metric('Waiting', source.waiting ?? 0)}</div>`)}
+        ${card('Recovery-Quelle', `<div class="busdiag-list">${sourceRows.map(row => `<div class="busdiag-row"><strong>${esc(row[0])}</strong><span class="busdiag-chip">${esc(row[1])}</span></div>`).join('')}</div>`, 'busdiag-wide')}
         ${card('Blockierte Aktionen', blockedActions.length ? `<div class="busdiag-list">${blockedActions.map(action => `<div class="busdiag-row warning"><strong>blockiert</strong><span>${esc(action)}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine blockierten Aktionen gemeldet.</p>')}
         ${card('Erlaubte Aktionen', allowedActions.length ? `<div class="busdiag-list">${allowedActions.map(action => `<div class="busdiag-row"><strong>erlaubt</strong><span>${esc(action)}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine aktiven Aktionen erlaubt.</p>')}
         ${card('Gründe', reasons.length ? `<div class="busdiag-list">${reasons.map(reason => `<div class="busdiag-row"><strong>Grund</strong><span>${esc(reason)}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine Gründe gemeldet.</p>')}

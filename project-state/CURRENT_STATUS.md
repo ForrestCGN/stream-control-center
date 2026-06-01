@@ -1,3 +1,21 @@
+## STEP CAN-5.9.1 Recovery-Dashboard Layout-Fix
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_9_1_RECOVERY_DASHBOARD_LAYOUT_FIX
+
+CAN-5.9.1 verbessert nur die Lesbarkeit im Recovery-Tab des Bus-Diagnostics-Dashboards.
+
+~~~text
+Dashboard-Datei: htdocs/dashboard/modules/bus_diagnostics.js
+Recovery-Quelle breiter/als Liste dargestellt
+lange State-Werte besser lesbar
+Keine Simulation-Buttons
+Keine Recovery-Automatik
+Keine produktive Flow-Änderung
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN5_9_1_RECOVERY_DASHBOARD_LAYOUT_FIX.md`
+
 ## STEP CAN-5.9 Recovery-Diagnose im Dashboard read-only sichtbar
 
 Stand: 2026-06-01

@@ -1,3 +1,32 @@
+## Nach STEP CAN-5.9.1
+
+Marker: STEP_CAN5_9_1_NEXT_STEPS
+
+CAN-5.9.1 verbessert die Lesbarkeit des Recovery-Tabs, ohne produktive Logik zu ändern.
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-5.10: Dashboard-Recovery-Tab live prüfen und stabil dokumentieren
+~~~
+
+Zu prüfen:
+
+~~~text
+Tab Recovery sichtbar
+Recovery-Quelle lesbar
+lange State-Werte brechen nicht störend um
+Keine Simulation-Buttons sichtbar
+Keine Recovery-Automatik vorhanden
+~~~
+
+Regel bleibt:
+
+~~~text
+Nur Anzeige-Logik
+Keine produktive Flow-Änderung
+~~~
+
 ## Nach STEP CAN-5.9
 
 Marker: STEP_CAN5_9_NEXT_STEPS
