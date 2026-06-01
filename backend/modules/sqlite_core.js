@@ -5,6 +5,21 @@ const core = require("./helpers/helper_core");
 const config = require("./helpers/helper_config");
 const { DatabaseSync } = require("node:sqlite");
 
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: 'sqlite_core',
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'core',
+  routesPrefix: [],
+  bus: {
+    emits: [],
+    listens: [],
+    heartbeat: false
+  },
+  legacy: false
+};
+
 let db = null;
 let dbPath = null;
 let initialized = false;
@@ -39,7 +54,7 @@ function initDatabase(dataDir) {
   `);
 
   initialized = true;
-  console.log(`[sqlite_core] ready: ${dbPath}`);
+  console.log(`[${MODULE_META.name}] v${MODULE_VERSION} ready: ${dbPath}`);
   return db;
 }
 
@@ -175,6 +190,9 @@ function init(ctx) {
 }
 
 module.exports = {
+  MODULE_META,
+  MODULE_VERSION,
+  version: MODULE_VERSION,
   init,
   getDb,
   getDbPath,

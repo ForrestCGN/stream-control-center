@@ -4,6 +4,21 @@
 const security = require('./helpers/helper_security');
 const routes = require('./helpers/helper_routes');
 
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: 'security',
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'security',
+  routesPrefix: ['/api/security/status'],
+  bus: {
+    emits: [],
+    listens: [],
+    heartbeat: false
+  },
+  legacy: false
+};
+
 function buildSecurityStatus(req) {
   const cfg = security.loadSecurityConfig();
   const clientIp = security.getClientIp(req, cfg);
@@ -13,7 +28,7 @@ function buildSecurityStatus(req) {
 
   return {
     ok: true,
-    module: 'security',
+    module: MODULE_META.name,
     route: '/api/security/status',
     ts: Date.now(),
     config: {
@@ -52,5 +67,9 @@ module.exports.init = function init(ctx) {
     res.json(buildSecurityStatus(req));
   });
 
-  console.log('[security] /api/security/status aktiv');
+  console.log(`[${MODULE_META.name}] v${MODULE_VERSION} /api/security/status aktiv`);
 };
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;

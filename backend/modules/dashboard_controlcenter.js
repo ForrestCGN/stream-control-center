@@ -9,6 +9,21 @@
 const fs = require('fs');
 const path = require('path');
 
+const MODULE_VERSION = '0.0.7';
+const MODULE_META = {
+  name: 'dashboard_controlcenter',
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'dashboard',
+  routesPrefix: ['/api/dashboard/controlcenter'],
+  bus: {
+    emits: [],
+    listens: [],
+    heartbeat: false
+  },
+  legacy: false
+};
+
 function readJsonSafe(filePath, fallback) {
   try {
     if (!fs.existsSync(filePath)) return fallback;
@@ -34,7 +49,7 @@ function register(app, options = {}) {
   app.get('/api/dashboard/controlcenter/status', (req, res) => {
     res.json({
       ok: true,
-      module: 'dashboard_controlcenter',
+      module: MODULE_META.name,
       step: '007',
       configDir,
       files: {
@@ -105,11 +120,11 @@ function register(app, options = {}) {
     res.status(403).json({ ok:false, error:'config_write_not_enabled', message:'Config-Schreiben ist vorbereitet, aber noch nicht live aktiviert.' });
   });
 
-  return { name: 'dashboard_controlcenter', step: '007' };
+  return { name: MODULE_META.name, version: MODULE_VERSION, step: '007' };
 }
 
 function init(ctx) {
   return register(ctx.app, ctx);
 }
 
-module.exports = { register, init };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, register, init };

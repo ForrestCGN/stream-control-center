@@ -9,6 +9,21 @@
 const database = require("../core/database");
 const routes = require("./helpers/helper_routes");
 
+const MODULE_VERSION = '0.1.3';
+const MODULE_META = {
+  name: 'database_core',
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'core',
+  routesPrefix: ['/api/database/status', '/api/system/database/status'],
+  bus: {
+    emits: [],
+    listens: [],
+    heartbeat: false
+  },
+  legacy: false
+};
+
 function init(ctx) {
   database.init(ctx);
 
@@ -16,7 +31,7 @@ function init(ctx) {
     res.json(database.status());
   });
 
-  return { name: "database_core", step: "013" };
+  return { name: MODULE_META.name, version: MODULE_VERSION, step: "013" };
 }
 
-module.exports = { init };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init };

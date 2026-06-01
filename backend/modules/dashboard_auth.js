@@ -4,6 +4,20 @@ const crypto = require("crypto");
 const database = require("../core/database");
 
 const MODULE_NAME = "dashboard_auth";
+const MODULE_VERSION = '2.0.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'dashboard',
+  routesPrefix: ['/api/auth/status', '/api/auth/session', '/api/auth/login/twitch', '/api/auth/callback/twitch', '/api/auth/logout'],
+  bus: {
+    emits: [],
+    listens: [],
+    heartbeat: false
+  },
+  legacy: false
+};
 const SCHEMA_MODULE = "dashboard_auth";
 const SCHEMA_VERSION = 1;
 
@@ -840,3 +854,7 @@ function safeTwitchRaw(user) {
 
 
 
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;

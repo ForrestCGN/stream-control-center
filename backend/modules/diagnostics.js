@@ -2,6 +2,21 @@
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: 'diagnostics',
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'diagnostics',
+  routesPrefix: ['/diag', '/api/diag'],
+  bus: {
+    emits: [],
+    listens: [],
+    heartbeat: false
+  },
+  legacy: false
+};
+
 module.exports.init = function init(ctx) {
   const { app, env, getLoadedModules, wss } = ctx;
 
@@ -15,5 +30,9 @@ module.exports.init = function init(ctx) {
   }));
   routes.registerGet(app, ['/diag/ws', '/api/diag/ws'], (req, res) => res.json({ clients: wss.clients.size, ts: Date.now(), isoTs: core.nowIso() }));
 
-  console.log('[diag] /diag/* und /api/diag/* aktiv');
+  console.log(`[${MODULE_META.name}] v${MODULE_VERSION} /diag/* und /api/diag/* aktiv`);
 };
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
