@@ -905,3 +905,33 @@ Keine Simulation per Dashboard auslösen
 Keine produktive Flow-Änderung
 ~~~
 
+## Nach STEP CAN-8.0
+
+Marker: STEP_CAN8_0_NEXT_STEPS
+
+Naechster sinnvoller Schritt:
+
+~~~text
+CAN-8.1: Read-only Preflight-Datenmodell fuer bus_diagnostics planen oder vorbereiten
+~~~
+
+Vor jedem CAN-8.1 Code-Step:
+
+~~~text
+Echte aktuelle Dateien pruefen
+Nur vollstaendige Ersatzdateien bauen
+Keine POST-/Command-Route
+Keine Dashboard-Aktionsbuttons
+Keine Recovery-Ausfuehrung
+Keine produktive Flow-Aenderung
+~~~
+
+Pflichtdateien bei Code-Step:
+
+~~~text
+backend/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.js
+backend/modules/communication_bus.js
+backend/modules/alert_system.js
+backend/modules/sound_system.js
+~~~

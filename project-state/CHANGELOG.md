@@ -689,3 +689,24 @@ Nach der Änderung zeigte der Status:
 - `officialShoutout.targetCooldownMs = 3600000`
 - `state.officialShoutout.lastBusEvent.action = shoutout.official.waiting_cooldown`
 
+---
+
+# CHANGELOG – CAN-8.0 Recovery-Preflight Startgrenze
+
+Stand: 2026-06-01
+
+## Geaendert
+
+- CAN-8.0 als reine Startgrenze fuer spaetere Recovery-Preflight-Arbeiten dokumentiert.
+- CAN-8.1-Grenze definiert: maximal read-only Preflight-Datenmodell, keine Ausfuehrung.
+- Projekt-State auf naechsten Schritt CAN-8.1 aktualisiert.
+
+## Nicht geaendert
+
+- Keine Backend-Datei geaendert.
+- Keine Dashboard-Datei geaendert.
+- Keine API-Route ergaenzt.
+- Keine Config geaendert.
+- Keine DB geaendert.
+- Keine Recovery-Ausfuehrung aktiviert.
+- Keine produktive Flow-Aenderung.

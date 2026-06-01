@@ -1104,3 +1104,37 @@ Marker: STEP_CAN5_7_SIMULATION_HARNESS_LIVE_TEST_STABLE
 
 CAN-5.6 wurde live mit dem CAN-5.5 read-only Recovery-Simulation-Harness geprüft.
 
+## STEP CAN-8.0 Recovery-Preflight Startgrenze
+
+Stand: 2026-06-01
+Marker: STEP_CAN8_0_RECOVERY_PREFLIGHT_START_BOUNDARY
+
+CAN-8.0 startet die Preflight-Phase nur als Doku-/Planungsgrenze.
+
+Bestaetigter Ausgangspunkt:
+
+~~~text
+CAN-7.x abgeschlossen
+Recovery-Readiness Backend read-only aktiv
+Recovery-Readiness Dashboard read-only sichtbar
+Recovery-Tab per Untertabs aufgeraeumt
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Keine Recovery-Ausfuehrung
+~~~
+
+CAN-8.1 darf maximal ein read-only Preflight-Datenmodell planen/vorbereiten.
+
+Weiterhin nicht erlaubt:
+
+~~~text
+POST-/Command-Route
+Recovery-Ausfuehrung
+Alert-/Sound-Replay
+Overlay-Retry
+Auto-Recovery
+Dashboard-Aktionsbuttons
+produktive Flow-Aenderung
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN8_0_RECOVERY_PREFLIGHT_START_BOUNDARY.md`

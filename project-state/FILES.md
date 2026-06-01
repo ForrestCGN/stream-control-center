@@ -781,3 +781,32 @@ Stand: 2026-06-01
 - `backend/modules/helpers/helper_core.js`
 - `backend/modules/helpers/helper_config.js`
 
+## CAN-8.0 Recovery-Preflight Startgrenze
+
+Neu/relevant:
+
+~~~text
+docs/system-inspection/EVENTBUS_CAN8_0_RECOVERY_PREFLIGHT_START_BOUNDARY.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN8_0.md
+docs/current/README_CAN8_0_FILE_ZIP.md
+~~~
+
+Fuer spaetere CAN-8.1 Code-Arbeiten erneut pruefen:
+
+~~~text
+backend/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.js
+backend/modules/communication_bus.js
+backend/modules/alert_system.js
+backend/modules/sound_system.js
+~~~
+
+Nicht ohne separates Go anfassen:
+
+~~~text
+Keine Recovery-Ausfuehrung
+Keine POST-/Command-Route
+Keine Dashboard-Aktionsbuttons
+Keine Alert-/Sound-Replays
+Keine produktive Queue-/Sound-/Overlay-Logik
+~~~

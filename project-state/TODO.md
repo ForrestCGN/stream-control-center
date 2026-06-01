@@ -381,3 +381,13 @@ Nur noch bei konkretem Bedarf:
 Aktueller Fokus: produktive Projektarbeit.
 <!-- STEP615_CLEANUP_FREEZE_END -->
 
+## CAN-8 / Recovery Preflight
+
+- [x] CAN-8.0 Recovery-Preflight Startgrenze dokumentieren.
+- [ ] CAN-8.1 Read-only Preflight-Datenmodell fuer `bus_diagnostics` planen/vorbereiten.
+- [ ] Vor CAN-8.1 Code echte aktuelle Dateien pruefen/anfordern.
+- [ ] Sicherstellen: keine POST-/Command-Route.
+- [ ] Sicherstellen: keine Recovery-Ausfuehrung.
+- [ ] Sicherstellen: keine Dashboard-Aktionsbuttons.
+- [ ] Sicherstellen: keine Alert-/Sound-Replays und kein Overlay-Retry.
+- [ ] Preflight-Felder nur read-only anzeigen.
