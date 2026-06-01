@@ -2,12 +2,13 @@
 
 ## Naechster Schritt
 
-CAN-11.0 - Manual Recovery Candidate Selection Start Boundary
+CAN-11.1 - Manual Recovery Candidate Matrix Plan
 
 Ziel:
 
-- Kandidaten fuer spaetere manuelle Recovery sammeln
-- nach Risiko sortieren
-- harte Blockaden erhalten
-- noch kein Code
-- keine Recovery-Ausfuehrung
+- Kandidaten sammeln
+- Risiko bewerten
+- Guards definieren
+- Audit-Bedarf definieren
+- erlaubte/blockierte Kandidaten trennen
+- keine Code-Aenderung

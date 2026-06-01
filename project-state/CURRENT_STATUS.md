@@ -1,13 +1,13 @@
 # CURRENT_STATUS
 
-## CAN-10.7
+## CAN-11.0
 
-Der CAN-10.x Block `manual_diagnostics_refresh` ist abgeschlossen.
+CAN-11.0 startet die Auswahl moeglicher manueller Recovery-Kandidaten.
 
-Der Button `Preflight neu laden` bleibt eine reine read-only Diagnose-Aktualisierung.
+Noch kein Code, keine Ausfuehrung.
 
-Naechster empfohlener Block:
+Naechster Schritt:
 
 ```text
-CAN-11.0 Manual Recovery Candidate Selection Start Boundary
+CAN-11.1 Manual Recovery Candidate Matrix Plan
 ```

@@ -1,12 +1,12 @@
 # FILES
 
-## CAN-10.7
+## CAN-11.0
 
 Enthaltene Dateien:
 
-- `docs/system-inspection/EVENTBUS_CAN10_7_MANUAL_DIAGNOSTICS_REFRESH_CLOSURE_CAN11_START_GATE.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN10_7.md`
-- `docs/current/README_CAN10_7_FILE_ZIP.md`
+- `docs/system-inspection/EVENTBUS_CAN11_0_MANUAL_RECOVERY_CANDIDATE_SELECTION_START_BOUNDARY.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN11_0.md`
+- `docs/current/README_CAN11_0_FILE_ZIP.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`

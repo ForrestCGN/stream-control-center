@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## CAN-10.7
+## CAN-11.0
 
-- CAN-10.x Block `manual_diagnostics_refresh` abgeschlossen.
-- CAN-11 Startgrenze fuer Recovery-Kandidatenauswahl dokumentiert.
+- CAN-11 Block fuer manuelle Recovery-Kandidatenauswahl gestartet.
+- Kandidatenklassen grob definiert.
+- Harte Blockaden bestaetigt.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
