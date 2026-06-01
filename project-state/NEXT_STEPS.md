@@ -1,19 +1,26 @@
 # Next Steps
 
-## Nächster Schritt
+## CAN-9.7
 
-CAN-9.6 planen.
+Implement dashboard consumption of the dedicated read-only route:
 
-## Mögliche Richtung
+```text
+GET /api/bus-diagnostics/recovery-preflight
+```
 
-Dashboard-Anbindung oder Dashboard-Anzeige auf die neue read-only Route `/api/bus-diagnostics/recovery-preflight` vorbereiten.
+Allowed file:
 
-## Grenzen
+```text
+htdocs/dashboard/modules/bus_diagnostics.js
+```
 
-- Keine POST-Route
-- Keine Command-Route
-- Keine Prepare-Route
-- Keine Execute-Route
-- Keine Recovery-Ausführung
-- Keine produktive Flow-Änderung
-- Keine Queue-/Sound-/Alert-/Overlay-Steuerung
+Forbidden:
+
+```text
+No recovery execution.
+No POST route.
+No command route.
+No prepare route.
+No execute route.
+No action buttons.
+```

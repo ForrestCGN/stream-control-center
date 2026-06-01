@@ -1,8 +1,8 @@
 # Changelog
 
-## CAN-9.5
+## CAN-9.6
 
-- Live-Test und Abnahme des CAN-9.4 Recovery-Preflight Route-Kontext-Fixes dokumentiert.
-- Keine Codeänderungen.
-- Keine API-Änderungen.
-- Keine produktiven Änderungen.
+- Planned dashboard consumption of the dedicated read-only Recovery-Preflight route.
+- No code changes.
+- No API changes.
+- No database changes.
