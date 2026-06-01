@@ -1,24 +1,20 @@
-# FILES – CAN-8.10
+# FILES – CAN-8.11
 
-Stand: 2026-06-01
+## Geänderte Datei
 
-## In dieser ZIP enthalten
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - zeigt Recovery-Preflight Check-Matrix read-only im Dashboard an
 
-- `docs/system-inspection/EVENTBUS_CAN8_10_RECOVERY_PREFLIGHT_CHECK_MATRIX_LIVE_TEST_ACCEPTANCE.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_10.md`
-- `docs/current/README_CAN8_10_FILE_ZIP.md`
+## Dokumentation
+
+- `docs/system-inspection/EVENTBUS_CAN8_11_RECOVERY_PREFLIGHT_CHECK_MATRIX_DASHBOARD_DISPLAY.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_11.md`
+- `docs/current/README_CAN8_11_FILE_ZIP.md`
+
+## Projektstand
+
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
-
-## Für nächsten technischen Schritt relevant
-
-- `htdocs/dashboard/modules/bus_diagnostics.js`
-
-## Nicht enthalten
-
-- Keine JS-Dateien.
-- Keine Config-Dateien.
-- Keine DB-Dateien.

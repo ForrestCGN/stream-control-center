@@ -1,25 +1,20 @@
-## Nach STEP CAN-8.10
+## Nach STEP CAN-8.11
 
-Marker: STEP_CAN8_10_NEXT_STEPS
+Marker: STEP_CAN8_11_NEXT_STEPS
 
 Nächster sinnvoller Schritt:
 
 ~~~text
-CAN-8.11: Dashboard-Anzeige fuer echte recoveryPreflight.checks und recoveryPreflight.scope verbessern
+CAN-8.12: Recovery-Preflight Check-Matrix Dashboard Live-Test und Abnahme dokumentieren
 ~~~
 
-Ziel von CAN-8.11:
+Zu prüfen:
 
 ~~~text
-Preflight-Untertab zeigt die echte Check-Matrix und den echten Scope übersichtlicher an.
-Keine Buttons.
-Keine API.
-Keine Backend-Änderung.
-Keine Recovery-Ausführung.
-~~~
-
-Dafür benötigt:
-
-~~~text
-htdocs/dashboard/modules/bus_diagnostics.js
+Preflight-Untertab öffnet
+Check-Matrix-Karte sichtbar
+Scope sichtbar
+Checks als Tabelle sichtbar
+keine Aktionsbuttons sichtbar
+canPrepare/canExecute bleiben false
 ~~~

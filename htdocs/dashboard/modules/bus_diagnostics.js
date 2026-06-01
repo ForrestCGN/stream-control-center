@@ -443,12 +443,13 @@
     const preflightBlockers = asList(preflight.blockers);
     const preflightWarnings = asList(preflight.warnings);
     const preflightHardBlocked = asList(preflight.hardBlockedActions);
-    const preflightAllowedScope = asList(preflight.allowedScope);
+    const preflightScope = asList(preflight.scope || preflight.allowedScope);
+    const preflightCheckSummary = preflight.checkSummary || {};
     const preflightStatus = preflight.status || summary.recoveryPreflightStatus || 'nicht geladen';
     const preflightOk = preflight.readOnly === true && preflight.canExecute === false && preflightSafety.automationEnabled === false && preflightSafety.productiveActions === false && preflightSafety.flowTouched === false && preflightSafety.queueTouched === false && preflightSafety.soundSystemTouched === false && preflightSafety.alertSystemTouched === false && preflightSafety.overlayTouched === false;
     const preflightBadgeStatus = preflightOk ? 'ok' : 'warning';
     const preflightCheckList = preflightChecks.length
-      ? `<div class="busdiag-list">${preflightChecks.map(check => `<div class="busdiag-row ${check.ok === false ? 'warning' : ''}"><strong>${esc(check.key || 'check')}</strong><span>${esc(check.ok === false ? (check.reason || 'prüfen') : 'ok')}</span></div>`).join('')}</div>`
+      ? `<div class="busdiag-table busdiag-table-events"><div class="busdiag-table-head"><span>Check</span><span>Kategorie</span><span>Status</span><span>Blockierend</span><span>Grund</span></div>${preflightChecks.map(check => { const severity = check.severity || (check.ok === false ? 'warning' : 'ok'); return `<div class="busdiag-table-row"><span><strong>${esc(check.key || 'check')}</strong><small>${esc(check.details ? compactJson(check.details).slice(0, 180) : '')}</small></span><span>${esc(check.category || '-')}</span><span>${badge(check.ok === false ? 'prüfen' : 'ok', severity)}</span><span>${esc(bool(check.blocking))}</span><span>${esc(check.reason || '-')}</span></div>`; }).join('')}</div>`
       : '<p class="busdiag-muted">Noch keine Recovery-Preflight-Checks geladen.</p>';
     const preflightBlockerList = preflightBlockers.length
       ? `<div class="busdiag-list">${preflightBlockers.map(blocker => `<div class="busdiag-row warning"><strong>Blocker</strong><span>${esc(blocker)}</span></div>`).join('')}</div>`
@@ -459,9 +460,10 @@
     const preflightHardBlockedList = preflightHardBlocked.length
       ? `<div class="busdiag-list">${preflightHardBlocked.map(action => `<div class="busdiag-row warning"><strong>hart blockiert</strong><span>${esc(action)}</span></div>`).join('')}</div>`
       : '<p class="busdiag-muted">Keine hart blockierten Preflight-Aktionen gemeldet.</p>';
-    const preflightScopeList = preflightAllowedScope.length
-      ? `<div class="busdiag-list">${preflightAllowedScope.map(scope => `<div class="busdiag-row"><strong>Scope</strong><span>${esc(scope)}</span></div>`).join('')}</div>`
+    const preflightScopeList = preflightScope.length
+      ? `<div class="busdiag-list">${preflightScope.map(scope => `<div class="busdiag-row"><strong>Scope</strong><span>${esc(scope)}</span></div>`).join('')}</div>`
       : '<p class="busdiag-muted">Kein Preflight-Scope gemeldet.</p>';
+    const preflightSummaryCard = `<div class="busdiag-status-line">${badge(preflightCheckSummary.blocked || preflightCheckSummary.blocking ? 'prüfen' : 'ok', preflightCheckSummary.blocked || preflightCheckSummary.blocking ? 'warning' : 'ok')}<span>Check-Matrix nur Anzeige</span></div><div class="busdiag-metrics">${metric('Checks', preflightCheckSummary.total ?? summary.recoveryPreflightCheckCount ?? preflightChecks.length)}${metric('OK', preflightCheckSummary.ok ?? '-')}${metric('Warnings', preflightCheckSummary.warnings ?? summary.recoveryPreflightWarningCheckCount ?? 0)}${metric('Blocking', preflightCheckSummary.blocking ?? summary.recoveryPreflightBlockingCheckCount ?? 0)}${metric('Blocked', preflightCheckSummary.blocked ?? 0)}${metric('Scope', preflightScope.length || summary.recoveryPreflightScopeCount || 0)}</div>`;
     const recoverySubTabs = [
       { id: 'overview', label: 'Übersicht' },
       { id: 'details', label: 'Details' },
@@ -479,7 +481,7 @@
       </div>
       <div class="busdiag-grid busdiag-grid-top">
         ${card('Recovery-Readiness', `<div class="busdiag-status-line">${badge(readinessStatus, readinessBadgeStatus)}<span>nur Anzeige / keine Aktion</span></div><div class="busdiag-metrics">${metric('CAN Start', bool(readiness.canStartReadOnlyCode), 'nur read-only')}${metric('Current Step', readiness.currentStep || '-', '', 'busdiag-metric-code')}${metric('Next Step', readiness.nextAllowedStep || summary.recoveryReadinessNextStep || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Checked', fmtTime(readiness.checkedAt))}</div>`)}
-        ${card('Recovery-Preflight', `<div class="busdiag-status-line">${badge(preflightStatus, preflightBadgeStatus)}<span>nur Anzeige / keine Aktion</span></div><div class="busdiag-metrics">${metric('Prepare', bool(preflight.canPrepare), 'muss aktuell aus bleiben')}${metric('Execute', bool(preflight.canExecute), 'muss aus bleiben')}${metric('Current Step', preflight.currentStep || '-', '', 'busdiag-metric-code')}${metric('Next Step', preflight.nextAllowedStep || summary.recoveryPreflightNextStep || '-', '', 'busdiag-metric-code busdiag-metric-wide')}</div>`)}
+        ${card('Recovery-Preflight', `<div class="busdiag-status-line">${badge(preflightStatus, preflightBadgeStatus)}<span>nur Anzeige / keine Aktion</span></div><div class="busdiag-metrics">${metric('Prepare', bool(preflight.canPrepare), 'muss aktuell aus bleiben')}${metric('Execute', bool(preflight.canExecute), 'muss aus bleiben')}${metric('Checks', preflightCheckSummary.total ?? summary.recoveryPreflightCheckCount ?? preflightChecks.length)}${metric('Current Step', preflight.currentStep || '-', '', 'busdiag-metric-code')}${metric('Next Step', preflight.nextAllowedStep || summary.recoveryPreflightNextStep || '-', '', 'busdiag-metric-code busdiag-metric-wide')}</div>`)}
         ${card('Sicherheitskurzfassung', `<div class="busdiag-status-line">${badge(readinessOk && preflightOk ? 'ok' : 'prüfen', readinessOk && preflightOk ? 'ok' : 'warning')}<span>keine produktive Berührung</span></div><div class="busdiag-metrics">${metric('Read-only', bool(readiness.readOnly && preflight.readOnly))}${metric('Automation', bool(readiness.automationEnabled || preflightSafety.automationEnabled))}${metric('Productive', bool(readiness.productiveActions || preflightSafety.productiveActions))}${metric('Blocker', readinessBlockers.length + preflightBlockers.length)}</div>`)}
       </div>
     `;
@@ -509,6 +511,7 @@
         ${card('Preflight-Safety', `<div class="busdiag-status-line">${badge(preflightOk ? 'ok' : 'prüfen', preflightBadgeStatus)}<span>Produktive Aktionen müssen aus bleiben</span></div><div class="busdiag-metrics">${metric('Automation', bool(preflightSafety.automationEnabled))}${metric('Productive', bool(preflightSafety.productiveActions))}${metric('Flow touched', bool(preflightSafety.flowTouched))}${metric('Queue touched', bool(preflightSafety.queueTouched))}${metric('Sound touched', bool(preflightSafety.soundSystemTouched))}${metric('Alert touched', bool(preflightSafety.alertSystemTouched))}${metric('Overlay touched', bool(preflightSafety.overlayTouched))}</div>`)}
       </div>
       <div class="busdiag-grid">
+        ${card('Preflight-Check-Matrix', preflightSummaryCard, 'busdiag-wide')}
         ${card('Preflight-Scope', preflightScopeList)}
         ${card('Preflight-Blocker', preflightBlockerList)}
         ${card('Preflight-Warnungen', preflightWarningList)}

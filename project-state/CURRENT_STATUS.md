@@ -1,32 +1,28 @@
-## STEP CAN-8.10 Recovery-Preflight Check-Matrix Live-Test abgenommen
+## STEP CAN-8.11 Recovery-Preflight Check-Matrix Dashboard-Anzeige
 
 Stand: 2026-06-01
-Marker: STEP_CAN8_10_RECOVERY_PREFLIGHT_CHECK_MATRIX_LIVE_TEST_ACCEPTANCE
+Marker: STEP_CAN8_11_RECOVERY_PREFLIGHT_CHECK_MATRIX_DASHBOARD_DISPLAY
 
-CAN-8.10 dokumentiert die erfolgreiche Live-Abnahme der CAN-8.9 Recovery-Preflight-Check-Matrix.
+CAN-8.11 zeigt die in CAN-8.9 eingeführte `recoveryPreflight` Check-Matrix im bestehenden Dashboard-Recovery-Untertab `Preflight` übersichtlicher an.
 
-Bestätigter Live-Stand:
+Geändert:
 
 ~~~text
-recoveryPreflightStatus = ready
-recoveryPreflightCanPrepare = false
-recoveryPreflightCanExecute = false
-recoveryPreflightCheckCount = 13
-recoveryPreflightBlockingCheckCount = 0
-recoveryPreflightWarningCheckCount = 0
-recoveryPreflightScopeCount = 6
+htdocs/dashboard/modules/bus_diagnostics.js
 ~~~
 
-Nicht geändert:
+Bestätigte Grenze:
 
 ~~~text
-Keine Backend-Datei
-Keine Dashboard-Datei
+Nur Anzeige vorhandener read-only Daten
+Keine Backend-Änderung
 Keine API-Route
-Keine Config
-Keine DB
 Keine Recovery-Ausführung
 Keine produktive Flow-Änderung
 ~~~
 
-Details: `docs/system-inspection/EVENTBUS_CAN8_10_RECOVERY_PREFLIGHT_CHECK_MATRIX_LIVE_TEST_ACCEPTANCE.md`
+Nächster Schritt:
+
+~~~text
+CAN-8.12: Dashboard-Live-Test und Abnahme dokumentieren
+~~~
