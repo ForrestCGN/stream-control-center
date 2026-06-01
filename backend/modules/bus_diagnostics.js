@@ -11,17 +11,17 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.2.7';
+const VERSION = '1.2.8';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP_CAN8_9',
+  build: 'STEP_CAN9_2',
   type: 'runtime',
   category: 'diagnostics',
-  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy, recovery-simulation, recovery-readiness and recovery-preflight check matrix aggregator.',
+  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy, recovery-simulation, recovery-readiness, recovery-preflight check matrix aggregator and read-only preflight route.',
   routesPrefix: ['/api/bus-diagnostics'],
   bus: {
     registered: false,
@@ -68,6 +68,14 @@ function init(ctx) {
     buildStatus(req.query || {}, true).then(result => res.json(result)).catch(err => res.status(500).json(errorResponse(err)));
   });
 
+  registerGet(app, '/api/bus-diagnostics/recovery-preflight', (req, res) => {
+    const query = req.query || {};
+    const requestedCheck = String(query.check || '').trim() === '1';
+    buildStatus(query, requestedCheck)
+      .then(result => res.json(buildRecoveryPreflightRouteResponse(result, requestedCheck)))
+      .catch(err => res.status(500).json(errorResponse(err)));
+  });
+
   registerGet(app, '/api/bus-diagnostics/recovery-simulation/status', (req, res) => {
     res.json(buildRecoverySimulationStatus());
   });
@@ -84,6 +92,7 @@ function init(ctx) {
       routes: [
         { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Read-only Bus-Diagnose Aggregatstatus.' },
         { method: 'GET', path: '/api/bus-diagnostics/check', description: 'Read-only Bus-Diagnose Aktualisierung.' },
+        { method: 'GET', path: '/api/bus-diagnostics/recovery-preflight', description: 'Read-only Recovery-Preflight Status. Fuehrt keine Aktionen aus.' },
         { method: 'GET', path: '/api/bus-diagnostics/routes', description: 'Read-only Routenübersicht inklusive CAN-5.5 Recovery-Simulation.' },
         { method: 'GET', path: '/api/bus-diagnostics/recovery-simulation/status', description: 'Read-only Recovery-Simulation Status. Fuehrt keine Aktionen aus.' },
         { method: 'GET', path: '/api/bus-diagnostics/recovery-simulation/test?scenario=missingAck', description: 'Read-only synthetischer Recovery-Simulationstest. Fuehrt keine Aktionen aus.' }
@@ -95,7 +104,7 @@ function init(ctx) {
     });
   });
 
-  console.log('[bus_diagnostics] STEP_CAN7_1 Dashboard diagnostics, resilience matrix, optional diagnostics, handshake state, recovery strategy, simulation harness and read-only recovery readiness prepared');
+  console.log('[bus_diagnostics] STEP_CAN9_2 Dashboard diagnostics, recovery readiness, recovery preflight check matrix and read-only preflight route prepared');
 }
 
 function registerGet(app, routePath, handler) {
@@ -178,6 +187,62 @@ async function buildStatus(query, requestedCheck) {
   state.stats.lastError = result.errors[0] || '';
 
   return result;
+}
+
+function buildRecoveryPreflightRouteResponse(statusResult, requestedCheck) {
+  const summary = (statusResult && statusResult.summary) || {};
+  const recoveryPreflight = (statusResult && statusResult.recoveryPreflight) || {};
+  const recoveryReadiness = (statusResult && statusResult.recoveryReadiness) || {};
+  const recoveryStrategyState = (statusResult && statusResult.recoveryStrategyState) || {};
+
+  return {
+    ok: statusResult && statusResult.ok === true && recoveryPreflight.ok !== false,
+    module: MODULE,
+    version: VERSION,
+    statusApiVersion: STATUS_API_VERSION,
+    feature: 'recovery_preflight',
+    routeVersion: 'CAN-9.2',
+    mode: 'read_only_preflight_route',
+    readOnly: true,
+    requestedCheck: !!requestedCheck,
+    flowTouched: false,
+    queueTouched: false,
+    soundSystemTouched: false,
+    alertSystemTouched: false,
+    vipSystemTouched: false,
+    overlayTouched: false,
+    automationEnabled: false,
+    productiveActions: false,
+    canPrepare: false,
+    canExecute: false,
+    routeSafety: {
+      method: 'GET',
+      readOnly: true,
+      commandRoute: false,
+      executeRoute: false,
+      prepareRoute: false,
+      recoveryExecution: false,
+      dashboardActionButtonRequired: false
+    },
+    summary: {
+      recoveryPreflightStatus: summary.recoveryPreflightStatus || recoveryPreflight.status || '',
+      recoveryPreflightCanPrepare: summary.recoveryPreflightCanPrepare === true,
+      recoveryPreflightCanExecute: summary.recoveryPreflightCanExecute === true,
+      recoveryPreflightCheckCount: Number(summary.recoveryPreflightCheckCount || ((recoveryPreflight.checkSummary || {}).total) || 0),
+      recoveryPreflightBlockingCheckCount: Number(summary.recoveryPreflightBlockingCheckCount || ((recoveryPreflight.checkSummary || {}).blocking) || 0),
+      recoveryPreflightWarningCheckCount: Number(summary.recoveryPreflightWarningCheckCount || ((recoveryPreflight.checkSummary || {}).warnings) || 0),
+      recoveryPreflightScopeCount: Number(summary.recoveryPreflightScopeCount || (Array.isArray(recoveryPreflight.scope) ? recoveryPreflight.scope.length : 0)),
+      recoveryPreflightNextStep: summary.recoveryPreflightNextStep || recoveryPreflight.nextAllowedStep || ''
+    },
+    recoveryPreflight,
+    recoveryReadiness,
+    recoveryStrategyState,
+    warnings: (statusResult && statusResult.warnings) || [],
+    optionalInfo: (statusResult && statusResult.optionalInfo) || [],
+    errors: (statusResult && statusResult.errors) || [],
+    fetchedAt: statusResult && statusResult.fetchedAt ? statusResult.fetchedAt : '',
+    checkedAt: new Date().toISOString()
+  };
 }
 
 function analyze(parts) {

@@ -1,45 +1,25 @@
-## STEP CAN-9.1 Recovery-Preflight Route-Vertrag
+## STEP CAN-9.2 Recovery-Preflight read-only Route
 
 Stand: 2026-06-01
-Marker: STEP_CAN9_1_RECOVERY_PREFLIGHT_ROUTE_CONTRACT_PLAN
+Marker: STEP_CAN9_2_RECOVERY_PREFLIGHT_READONLY_ROUTE
 
-CAN-9.1 definiert den Sicherheitsvertrag fuer eine spaetere read-only Recovery-Preflight-Route.
+Umgesetzt wurde eine eigene read-only Route:
 
-Geplante spaetere Route:
-
-~~~text
+```text
 GET /api/bus-diagnostics/recovery-preflight
-~~~
+```
 
-Diese Route darf nur vorhandene Diagnose ausgeben.
+`bus_diagnostics` wurde auf Version `1.2.8` / Build `STEP_CAN9_2` gesetzt.
 
-Weiterhin nicht aktiv:
+Nicht geaendert:
 
-~~~text
-Keine Backend-Aenderung
-Keine API-Route
-Keine Dashboard-Aenderung
+```text
+Keine POST-Route
+Keine Command-Route
+Keine Execute-Route
+Keine Dashboard-Datei
 Keine Config
 Keine DB
 Keine Recovery-Ausfuehrung
 Keine produktive Flow-Aenderung
-~~~
-
-Harte Sperren bleiben:
-
-~~~text
-Keine POST-/Command-Route
-Keine Prepare-/Execute-Route
-Keine Alert-/Sound-Replays
-Keine Overlay-Retry-Aktion
-Keine Auto-Recovery
-Keine Dashboard-Aktionsbuttons
-~~~
-
-Naechster Schritt:
-
-~~~text
-CAN-9.2: Recovery-Preflight GET-Route minimal read-only planen oder umsetzen.
-~~~
-
-Details: `docs/system-inspection/EVENTBUS_CAN9_1_RECOVERY_PREFLIGHT_ROUTE_CONTRACT_PLAN.md`
+```
