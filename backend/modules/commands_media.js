@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 /**
  * STEP274J - Command Media Practice Check via Official Sound-System Playback Hub
@@ -18,6 +18,7 @@ const database = require('../core/database');
 const MODULE_NAME = 'commands_media';
 const MODULE_VERSION = '0.1.0';
 const STEP = 'STEP274J';
+const API_PREFIX = '/api/commands';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -34,7 +35,6 @@ const MODULE_META = {
   },
   legacy: false
 };
-const API_PREFIX = '/api/commands';
 const SOUND_PLAY_MEDIA_URL = '/api/sound/play-media';
 const VIDEO_PLAY_MEDIA_URL = SOUND_PLAY_MEDIA_URL;
 
