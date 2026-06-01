@@ -13,3 +13,13 @@
 - Projektstate-Dateien aktualisiert.
 - Keine Recovery-Ausfuehrung.
 - Keine produktive Flow-Aenderung.
+
+## CAN-13.0
+
+- Next Recovery Candidate Planning Start dokumentiert.
+- Sicherheitsreihenfolge fuer CAN-13.x festgelegt.
+- Naechster Schritt als Audit-Konzept definiert.
+- Weiterhin keine Recovery-Ausfuehrung.
+- Weiterhin keine POST-/Command-/Prepare-/Execute-Route.
+- Keine Code-Aenderungen.
+- Keine produktive Flow-Aenderung.
