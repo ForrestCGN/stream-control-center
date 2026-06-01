@@ -1,8 +1,8 @@
 # CHANGELOG
 
-## CAN-10.4
+## CAN-10.5
 
-- Status-/UX-Cleanup fuer `manual_diagnostics_refresh` geplant.
-- Lokale Dashboard-State-Felder fuer CAN-10.5 definiert.
-- Keine Code-Aenderungen.
+- Dashboard-Karte `Manueller Diagnose-Refresh` erweitert.
+- Lokaler Status, letzter Refresh, Route, Read-only und produktive Beruehrung sichtbar gemacht.
+- Keine Backend-Aenderung.
 - Keine Recovery-Ausfuehrung.

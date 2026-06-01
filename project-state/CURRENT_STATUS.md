@@ -1,14 +1,7 @@
 # CURRENT_STATUS
 
-## CAN-10.4
+## CAN-10.5
 
-Der Status-/UX-Cleanup fuer `Preflight neu laden` ist geplant.
+Der Dashboard-Status-/UX-Cleanup fuer `Preflight neu laden` ist umgesetzt.
 
-Ziel fuer CAN-10.5:
-
-- lokaler Dashboard-Refresh-Status
-- letzter Refresh-Zeitpunkt
-- verwendete GET-Route
-- Erfolg-/Fehleranzeige
-
-Keine produktive Recovery.
+Die Umsetzung ist rein dashboardseitig und read-only.
