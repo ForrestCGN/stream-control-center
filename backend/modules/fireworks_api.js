@@ -1,7 +1,25 @@
+'use strict';
+
 // modules/fireworks_api.js — /api/fireworks -> wsBroadcast({op:"fireworks", ...})
 const core = require('./helpers/helper_core');
 
-module.exports.init = function init(ctx) {
+const MODULE_VERSION = '0.1.0';
+
+const MODULE_META = {
+  name: 'fireworks_api',
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'effects',
+  legacy: false,
+  description: 'Fireworks API bridge for Streamer.bot GET triggers and overlay WebSocket broadcasts.',
+  routesPrefix: ['/api/fireworks'],
+  bus: {
+    publishes: ['fireworks', 'fireworks_stop', 'fireworks_clear'],
+    subscribes: []
+  }
+};
+
+function init(ctx) {
   const { app, wsBroadcast } = ctx;
 
   function clampInt(v, min, max, fallback) {
@@ -37,5 +55,12 @@ module.exports.init = function init(ctx) {
     res.json({ ok: true });
   });
 
-  console.log("[fireworks_api] /api/fireworks ready");
+  console.log(`[${MODULE_META.name}] v${MODULE_VERSION} /api/fireworks ready`);
+}
+
+module.exports = {
+  MODULE_META,
+  MODULE_VERSION,
+  version: MODULE_VERSION,
+  init
 };
