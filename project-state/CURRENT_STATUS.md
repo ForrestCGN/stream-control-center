@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-## Stand: CAN-13.2 abgeschlossen
+## Stand: CAN-13.3 abgeschlossen
 
 Der Recovery-/Preflight-/Guard-Framework-Strang ist read-only abgeschlossen.
 
@@ -9,6 +9,8 @@ CAN-13.0 hat den naechsten Recovery-Planungsstrang gestartet.
 CAN-13.1 hat das Audit-Konzept fuer spaetere manuelle Recovery-Aktionen geplant.
 
 CAN-13.2 hat das Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery-Aktionen geplant.
+
+CAN-13.3 hat das Confirm-/Bestaetigungs-Konzept fuer spaetere manuelle Recovery-Aktionen geplant.
 
 Abgeschlossen:
 
@@ -20,6 +22,7 @@ Abgeschlossen:
 - CAN-13.0 Next Recovery Candidate Planning Start
 - CAN-13.1 Audit-Konzept fuer spaetere manuelle Recovery
 - CAN-13.2 Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery
+- CAN-13.3 Confirm-/Bestaetigungs-Konzept fuer spaetere manuelle Recovery
 
 ## Aktuelle read-only Funktionen
 
@@ -57,32 +60,35 @@ executeRoute: false
 recoveryExecution: false
 ```
 
-## CAN-13.2 Ergebnis
+## CAN-13.3 Ergebnis
 
-CAN-13.2 ist ein reiner Doku-/Planungsstand.
+CAN-13.3 ist ein reiner Doku-/Planungsstand.
 
 Festgelegt:
 
 ```text
-Rollen: Viewer / Moderator / Admin / Owner / System
-Dashboard-Sichtbarkeit ist keine Berechtigung
-Backend-Pflichtpruefung fuer spaetere Aktionen
-Denied-/Blocked-Audit-Bezug
-Owner/Admin-Grenzen fuer spaetere Recovery-nahe Aktionen
-System darf keine stille produktive Recovery ausloesen
+Confirm ist Zusatzschutz, keine Berechtigung
+Confirm ersetzt keine Backend-Rechtepruefung
+Confirm ersetzt keine Audit-Pflicht
+Confirm ersetzt keine Guards
+Confirm ersetzt keinen SafetyStop
+Confirm ersetzt keine Duplikat-Sperre
+Confirm-Arten: Info / Risk / Destructive / Typed
+Confirm muss actor-/operation-/request-bezogen sein
+Confirm muss zeitlich begrenzt sein
+Confirm darf nicht wiederverwendet werden
 ```
 
 Entscheidung:
 
 ```text
 Keine produktive Recovery als naechster Schritt.
-Naechster Schritt: CAN-13.3 Confirm-/Bestaetigungs-Konzept.
+Naechster Schritt: CAN-13.4 SafetyStop-/Cancel-Konzept.
 ```
 
 Geplante Reihenfolge:
 
 ```text
-CAN-13.3 Confirm-/Bestaetigungs-Konzept fuer spaetere manuelle Recovery
 CAN-13.4 SafetyStop-/Cancel-Konzept
 CAN-13.5 Recovery-Kandidatenmatrix
 CAN-13.6 Abschluss/Handoff, weiterhin ohne produktive Recovery
@@ -104,4 +110,7 @@ Audit-Schreibroute
 Rechte-API
 Rollen-DB-Migration
 produktive Rechtepruefung im Code
+Confirm-API
+Confirm-DB-Migration
+produktive Confirm-Dialoge
 ```

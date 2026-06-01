@@ -5,23 +5,24 @@
 Empfohlener Start:
 
 ```text
-CAN-13.3 - Confirm-/Bestaetigungs-Konzept fuer spaetere manuelle Recovery
+CAN-13.4 - SafetyStop-/Cancel-Konzept fuer spaetere manuelle Recovery
 ```
 
-## Ziel CAN-13.3
+## Ziel CAN-13.4
 
-CAN-13.3 soll das Confirm-/Bestaetigungs-Konzept fuer spaetere manuelle Recovery-Aktionen planen.
+CAN-13.4 soll das SafetyStop-/Cancel-Konzept fuer spaetere manuelle Recovery-Aktionen planen.
 
 Klaeren:
 
-- Welche Aktionen brauchen spaeter eine explizite Bestaetigung?
-- Welche Confirm-Arten gibt es?
-- Welche Aktionen bleiben trotz Confirm hart blockiert?
-- Wie lange ist ein Confirm gueltig?
-- Wie wird Confirm mit Audit Request / Decision / Result verknuepft?
-- Wie wird verhindert, dass Confirm Backend-Rechte ersetzt?
-- Wie wird verhindert, dass Confirm Guards oder SafetyStop ersetzt?
-- Welche Confirm-Texte muessen eindeutig vor Risiko und Wirkung warnen?
+- Was ist SafetyStop im Recovery-Kontext?
+- Wer darf SafetyStop spaeter sehen?
+- Wer darf SafetyStop spaeter setzen oder loesen?
+- Welche Aktionen blockiert SafetyStop immer?
+- Wie verhaelt sich SafetyStop zu Confirm?
+- Wie verhaelt sich SafetyStop zu Audit Request / Decision / Result?
+- Wie wird ein laufender oder geplanter Recovery-Vorgang spaeter abgebrochen?
+- Welche Rollback-/Clear-Grenzen muessen schon planerisch festgelegt werden?
+- Welche Aktionen bleiben trotz SafetyStop-Konzept hart blockiert?
 
 ## Weiterhin nicht direkt umsetzen
 
@@ -35,14 +36,15 @@ Klaeren:
 - produktive Recovery-Buttons
 - Rechte-API ohne separaten Plan
 - Confirm-API ohne separaten Plan
+- SafetyStop-API ohne separaten Plan
+- Cancel-API ohne separaten Plan
 - DB-Migration ohne separaten Plan
 - Config-Schreibzugriffe
 
 ## CAN-13.x geplante Reihenfolge
 
 ```text
-CAN-13.3 Confirm-/Bestaetigungs-Konzept fuer spaetere manuelle Recovery
-CAN-13.4 SafetyStop-/Cancel-Konzept
+CAN-13.4 SafetyStop-/Cancel-Konzept fuer spaetere manuelle Recovery
 CAN-13.5 Recovery-Kandidatenmatrix
 CAN-13.6 Abschluss/Handoff, weiterhin ohne produktive Recovery
 ```

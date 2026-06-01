@@ -1,29 +1,30 @@
 # FILES
 
-## CAN13.2 Planungs-ZIP
+## CAN13.3 Planungs-ZIP
 
 Enthaltene Dateien:
 
-- `docs/system-inspection/EVENTBUS_CAN13_2_MANUAL_RECOVERY_ROLES_RIGHTS_CONCEPT.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN13_2.md`
+- `docs/system-inspection/EVENTBUS_CAN13_3_MANUAL_RECOVERY_CONFIRM_CONCEPT.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN13_3.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## Bezug zu CAN13.0 / CAN13.1
+## Bezug zu CAN13.0 / CAN13.1 / CAN13.2
 
-CAN-13.2 baut auf folgenden vorherigen Dokumenten auf:
+CAN-13.3 baut auf folgenden vorherigen Dokumenten auf:
 
 - `docs/system-inspection/EVENTBUS_CAN13_0_NEXT_RECOVERY_CANDIDATE_PLANNING.md`
 - `docs/system-inspection/EVENTBUS_CAN13_1_MANUAL_RECOVERY_AUDIT_CONCEPT.md`
+- `docs/system-inspection/EVENTBUS_CAN13_2_MANUAL_RECOVERY_ROLES_RIGHTS_CONCEPT.md`
 
-Diese Dateien sind nicht erneut in diesem ZIP enthalten, wenn sie bereits mit CAN-13.0 und CAN-13.1 eingespielt wurden.
+Diese Dateien sind nicht erneut in diesem ZIP enthalten, wenn sie bereits mit CAN-13.0, CAN-13.1 und CAN-13.2 eingespielt wurden.
 
 ## Zweck
 
-CAN-13.2 ist ein reiner Doku-/Planungsstand.
+CAN-13.3 ist ein reiner Doku-/Planungsstand.
 
 Enthalten sind keine Code-Dateien und keine produktiven Recovery-Mechaniken.
 
@@ -48,3 +49,6 @@ Enthalten sind keine Code-Dateien und keine produktiven Recovery-Mechaniken.
 - keine Rechte-API
 - keine Rollen-DB-Migration
 - keine produktive Rechtepruefung im Code
+- keine Confirm-API
+- keine Confirm-DB-Migration
+- keine produktiven Confirm-Dialoge
