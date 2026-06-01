@@ -1,3 +1,30 @@
+## STEP CAN-7.6 Recovery-Dashboard Read-only Abschluss und CAN-8.0 Startgrenze
+
+Stand: 2026-06-01
+Marker: STEP_CAN7_6_RECOVERY_DASHBOARD_READONLY_CLOSURE_CAN8_START_GATE
+
+CAN-7.6 schliesst den CAN-7.x-Strang ab.
+
+Bestätigt bleibt:
+
+```text
+Recovery-Diagnose im Backend read-only
+Recovery-Readiness im Dashboard sichtbar
+Recovery-Tab mit internen Untertabs aufgeraeumt
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Keine Recovery-Ausfuehrung
+Keine produktive Flow-Aenderung
+```
+
+Nächster sinnvoller Schritt:
+
+```text
+CAN-8.0: Preflight-Backend-Readiness-Grenze anhand echter Dateien pruefen und dokumentieren
+```
+
+Details: `docs/system-inspection/EVENTBUS_CAN7_6_RECOVERY_DASHBOARD_READONLY_CLOSURE_CAN8_START_GATE.md`
+
 ## STEP CAN-7.5 Recovery-Tab UX Live-Test und Abnahme
 
 Stand: 2026-06-01

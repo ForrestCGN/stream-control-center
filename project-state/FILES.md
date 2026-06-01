@@ -1,3 +1,25 @@
+# FILES – CAN-7.6 Recovery-Dashboard Read-only Abschluss
+
+## Neue Doku
+
+- `docs/system-inspection/EVENTBUS_CAN7_6_RECOVERY_DASHBOARD_READONLY_CLOSURE_CAN8_START_GATE.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_6.md`
+- `docs/current/README_CAN7_6_FILE_ZIP.md`
+
+## Projekt-State aktualisiert
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
+## Technisch nicht geändert
+
+- `backend/modules/bus_diagnostics.js`
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+- keine API-/Config-/DB-Dateien
+
 # FILES – CAN-7.5 Recovery-Tab UX Live-Test
 
 Stand: 2026-06-01

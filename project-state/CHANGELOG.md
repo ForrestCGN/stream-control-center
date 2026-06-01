@@ -1,3 +1,27 @@
+# CHANGELOG – CAN-7.6 Recovery-Dashboard Read-only Abschluss
+
+Stand: 2026-06-01
+
+## Geändert
+
+- CAN-7.x Abschluss dokumentiert.
+- CAN-8.0 Startgrenze dokumentiert.
+- Projekt-State-Dateien auf nächsten Preflight-Block vorbereitet.
+
+## Nicht geändert
+
+- Keine Backend-Datei geändert.
+- Keine Dashboard-Datei geändert.
+- Keine API-Route geändert.
+- Keine Config geändert.
+- Keine DB geändert.
+- Keine Recovery-Ausführung ergänzt.
+- Keine produktive Flow-Änderung.
+
+## Nächster Block
+
+- CAN-8.0: Preflight-Backend-Readiness-Grenze anhand echter Dateien prüfen und dokumentieren.
+
 # CHANGELOG – CAN-7.5 Recovery-Tab UX Live-Test
 
 Stand: 2026-06-01

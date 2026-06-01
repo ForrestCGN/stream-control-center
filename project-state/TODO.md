@@ -1,3 +1,20 @@
+## CAN-8.0 / Preflight-Backend-Startgrenze
+
+- [ ] Vor CAN-8.0 echte aktuelle Dateien erneut prüfen.
+- [ ] Preflight-Backend-Grenze anhand realer Module festlegen.
+- [ ] Prüfen, ob `bus_diagnostics.js` oder ein separates Modul besser geeignet ist.
+- [ ] Keine Recovery-Ausführung bauen.
+- [ ] Keine Command-Route bauen.
+- [ ] Keine Dashboard-Buttons bauen.
+- [ ] Keine DB-/Config-Migration ohne separaten Step.
+
+## CAN-7.6 / Abschluss
+
+- [x] CAN-7.x Recovery-Dashboard read-only Abschluss dokumentiert.
+- [x] CAN-8.0 Startgrenze dokumentiert.
+- [x] Hart blockierte Aktionen bleiben dokumentiert.
+- [x] Keine produktiven Flows geändert.
+
 ## CAN-7.5 / Recovery-Tab UX-Abnahme
 
 - [ ] Dashboard Recovery-Tab nach CAN-7.4 live pruefen.

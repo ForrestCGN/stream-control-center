@@ -1,3 +1,35 @@
+## Nach STEP CAN-7.6
+
+Marker: STEP_CAN7_6_NEXT_STEPS
+
+CAN-7.x ist als Recovery-Dashboard-Read-only-Strang abgeschlossen.
+
+Nächster sinnvoller Block:
+
+```text
+CAN-8.0: Preflight-Backend-Readiness-Grenze pruefen und dokumentieren
+```
+
+Vor CAN-8.0 erneut echte Dateien prüfen:
+
+```text
+backend/modules/bus_diagnostics.js
+backend/modules/communication_bus.js
+backend/modules/alert_system.js
+backend/modules/sound_system.js
+htdocs/dashboard/modules/bus_diagnostics.js
+```
+
+CAN-8.0 Grenze:
+
+```text
+Noch keine Recovery-Ausfuehrung
+Noch keine Command-Route
+Noch keine Recovery-Buttons
+Noch keine Simulation-Buttons
+Nur Preflight-/Read-only-Grenze pruefen und dokumentieren
+```
+
 ## Nach STEP CAN-7.5
 
 Marker: STEP_CAN7_5_NEXT_STEPS
