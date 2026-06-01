@@ -31,7 +31,7 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.5';
+const MODULE_VERSION = '3.1.6';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 const ALERT_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
@@ -48,7 +48,7 @@ const MODULE_META = {
   routesPrefix: ['/api/alerts'],
   capabilities: [ALERT_EVENTBUS_CAPABILITY],
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: 'STEP CAN-1: additive Communication Bus participant registration and heartbeat; runtime flow unchanged.'
+  note: 'STEP CAN-3.1: additive trace/correlation diagnostics; runtime flow unchanged.'
 };
 
 const DEFAULT_CONFIG = {
@@ -1273,13 +1273,25 @@ function emitAlertEventBusTest(query = {}) {
 }
 
 
+function buildAlertTraceIds(event = {}, extra = {}, soundSystem = {}, prequeue = {}) {
+  const eventUid = cleanText(event.eventUid || extra.eventUid || '');
+  const bundleId = cleanText(extra.bundleId || soundSystem.bundleId || prequeue.bundleId || '');
+  const requestId = cleanText(extra.requestId || soundSystem.requestId || prequeue.requestId || event.requestId || eventUid || bundleId || '');
+  const correlationId = cleanText(extra.correlationId || soundSystem.correlationId || prequeue.correlationId || event.correlationId || eventUid || bundleId || requestId || '');
+  return { eventUid, requestId, correlationId, bundleId };
+}
+
 function publicAlertBusEventContext(event = {}, extra = {}) {
   const rule = event && event.rule ? event.rule : {};
   const soundSystem = event && event.soundSystem ? event.soundSystem : {};
   const alertTts = event && event.alertTts ? event.alertTts : {};
   const prequeue = event && event.alertBundlePrequeue ? event.alertBundlePrequeue : {};
+  const traceIds = buildAlertTraceIds(event, extra, soundSystem, prequeue);
   return {
-    eventUid: cleanText(event.eventUid || extra.eventUid || ''),
+    eventUid: traceIds.eventUid,
+    requestId: traceIds.requestId,
+    correlationId: traceIds.correlationId,
+    traceIds,
     phase: cleanKey(extra.phase || extra.action || ''),
     status: cleanKey(event.status || extra.status || ''),
     source: cleanKey(event.source || extra.source || ''),
@@ -1756,13 +1768,18 @@ function recordAlertSoundCorrelation(event, phase, data = {}) {
   if (!state.alertSoundCorrelation) return null;
   const eventUid = cleanText((event && event.eventUid) || data.alertEventUid || '');
   const bundleId = cleanText(data.bundleId || (event && event.soundSystem && event.soundSystem.bundleId) || '');
+  const requestId = cleanText(data.requestId || (event && event.requestId) || eventUid || bundleId || '');
+  const correlationId = cleanText(data.correlationId || (event && event.correlationId) || eventUid || bundleId || requestId || '');
   const error = cleanText(data.error || '');
   const items = Array.isArray(data.items) ? data.items.length : Number(data.itemsPrepared || 0);
   const entry = {
     at: nowIso(),
     phase: cleanKey(phase || 'unknown') || 'unknown',
     eventUid,
+    requestId,
+    correlationId,
     bundleId,
+    traceIds: { eventUid, requestId, correlationId, bundleId },
     source: cleanKey((event && event.source) || data.alertSource || ''),
     type: cleanKey((event && event.type_key) || data.alertType || ''),
     user: cleanText((event && (event.user_display || event.user_login)) || data.user || ''),

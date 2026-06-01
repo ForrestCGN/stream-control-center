@@ -16,7 +16,7 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.19";
+const MODULE_VERSION = "0.1.20";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -40,7 +40,7 @@ const MODULE_META = {
   deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
   commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: "STEP CAN-1: additive Communication Bus participant registration and heartbeat; runtime flow unchanged."
+  note: "STEP CAN-3.1: additive trace/correlation diagnostics; runtime flow unchanged."
 };
 
 const DEFAULT_OUTPUT = {
@@ -880,11 +880,15 @@ module.exports.init = function init(ctx) {
     const bundle = item && isPlainObject(item.bundle) ? item.bundle : {};
     const lifecycle = item && isPlainObject(item.lifecycle) ? item.lifecycle : {};
     const extra = isPlainObject(options.extra) ? options.extra : {};
+    const requestId = item ? compactMetaValue(item.requestId || meta.requestId || visual.requestId || extra.requestId) : compactMetaValue(extra.requestId);
+    const bundleId = compactMetaValue(bundle.bundleId || meta.bundleId || extra.bundleId);
+    const alertEventUid = compactMetaValue(meta.alertEventUid || visual.alertEventUid || extra.alertEventUid);
+    const correlationId = compactMetaValue(meta.correlationId || visual.correlationId || extra.correlationId || alertEventUid || bundleId || requestId);
     const context = {
       reason: String(reason || "state"),
       action: String(action || ""),
       kind: String(options.kind || (item ? "item" : "state")),
-      requestId: item ? compactMetaValue(item.requestId) : "",
+      requestId,
       soundId: item ? compactMetaValue(item.soundId) : "",
       label: item ? compactMetaValue(item.label || item.soundId) : "",
       category: item ? compactMetaValue(item.category) : "",
@@ -897,12 +901,12 @@ module.exports.init = function init(ctx) {
       file: item ? compactMetaValue(item.file) : "",
       durationMs: item ? Number(item.durationMs || 0) : 0,
       priority: item ? Number(item.priority || 0) : 0,
-      bundleId: compactMetaValue(bundle.bundleId || meta.bundleId || extra.bundleId),
+      bundleId,
       bundleType: compactMetaValue(bundle.bundleType || meta.bundleType || extra.bundleType),
       bundleRole: compactMetaValue(bundle.bundleRole || meta.bundleRole || visual.bundleRole),
       bundleOrder: Number(bundle.bundleOrder || meta.bundleOrder || 0),
       bundleSize: Number(bundle.bundleSize || meta.bundleSize || 0),
-      alertEventUid: compactMetaValue(meta.alertEventUid || visual.alertEventUid),
+      alertEventUid,
       alertSource: compactMetaValue(meta.alertSource || visual.alertSource),
       alertType: compactMetaValue(meta.alertType || visual.alertType),
       vipRequestId: compactMetaValue(meta.requestId || visual.requestId),
@@ -911,7 +915,8 @@ module.exports.init = function init(ctx) {
       error: compactMetaValue(extra.error || lifecycle.error || ""),
       queuedCount: state.queue.length,
       activeBundleLockId: state.activeBundleLock ? compactMetaValue(state.activeBundleLock.bundleId) : "",
-      correlationId: compactMetaValue(meta.alertEventUid || (bundle && bundle.bundleId) || visual.alertEventUid || "")
+      correlationId,
+      traceIds: { requestId, correlationId, alertEventUid, bundleId }
     };
     return context;
   }
