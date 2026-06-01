@@ -1,3 +1,48 @@
+## STEP CAN-7.1 Recovery-Readiness Statusfelder
+
+Stand: 2026-06-01
+Marker: STEP_CAN7_1_RECOVERY_READINESS_STATUS_FIELDS
+
+CAN-7.1 setzt den ersten technischen read-only Backend-Step aus der CAN-7.0-Grenze um.
+
+Geaendert:
+
+~~~text
+backend/modules/bus_diagnostics.js
+~~~
+
+Technische Aenderung:
+
+~~~text
+bus_diagnostics Version 1.2.5
+Build STEP_CAN7_1
+neues Statusfeld recoveryReadiness
+nur additive read-only Diagnose
+~~~
+
+Nicht geaendert:
+
+~~~text
+Keine neue API-Route
+Keine POST-/Command-Route
+Keine Dashboard-Datei
+Keine Overlay-Datei
+Keine Config-Datei
+Keine DB-Datei
+Keine Recovery-Ausfuehrung
+Keine produktive Flow-Aenderung
+~~~
+
+Naechster sinnvoller Schritt:
+
+~~~text
+CAN-7.2: recoveryReadiness im Dashboard read-only anzeigen
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN7_1_RECOVERY_READINESS_STATUS_FIELDS.md`
+
+---
+
 ## STEP CAN-7.0 Echte Dateien geprüft und Recovery-Readiness-Grenze dokumentiert
 
 Stand: 2026-06-01
@@ -866,3 +911,4 @@ Stand: 2026-06-01
 Marker: STEP_CAN5_7_SIMULATION_HARNESS_LIVE_TEST_STABLE
 
 CAN-5.6 wurde live mit dem CAN-5.5 read-only Recovery-Simulation-Harness geprüft.
+

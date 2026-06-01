@@ -1,3 +1,42 @@
+# CHANGELOG – CAN-7.1 Recovery-Readiness Statusfelder
+
+Stand: 2026-06-01
+
+## Geaendert
+
+- `backend/modules/bus_diagnostics.js` als vollstaendige Ersatzdatei aktualisiert.
+- Modulversion `bus_diagnostics` von `1.2.4` auf `1.2.5` erhoeht.
+- Build-Marker auf `STEP_CAN7_1` gesetzt.
+- Neues read-only Statusfeld `recoveryReadiness` ergaenzt.
+- `docs/system-inspection/EVENTBUS_CAN7_1_RECOVERY_READINESS_STATUS_FIELDS.md` ergaenzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_1.md` ergaenzt.
+- `docs/current/README_CAN7_1_FILE_ZIP.md` ergaenzt.
+- Projekt-State-Dateien auf CAN-7.1 aktualisiert.
+
+## Nicht geaendert
+
+- Keine neue API-Route.
+- Keine POST-/Command-Route.
+- Keine Dashboard-Datei.
+- Keine Overlay-Datei.
+- Keine Config-Datei.
+- Keine DB-Datei.
+- Keine Recovery-Ausfuehrung.
+- Keine Recovery-Buttons oder Simulation-Buttons.
+- Keine produktive Flow-Aenderung.
+
+## Test
+
+~~~cmd
+node -c backend\modulesus_diagnostics.js
+~~~
+
+## Naechster Block
+
+- CAN-7.2: `recoveryReadiness` im bestehenden Bus-Diagnostics-Dashboard read-only anzeigen.
+
+---
+
 # CHANGELOG – CAN-7.0 Echte Datei-Pruefung und Readiness-Grenze
 
 Stand: 2026-06-01
@@ -485,3 +524,4 @@ Nach der Änderung zeigte der Status:
 - `officialShoutout.globalCooldownMs = 120000`
 - `officialShoutout.targetCooldownMs = 3600000`
 - `state.officialShoutout.lastBusEvent.action = shoutout.official.waiting_cooldown`
+

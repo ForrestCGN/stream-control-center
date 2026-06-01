@@ -1,3 +1,52 @@
+## Nach STEP CAN-7.1
+
+Marker: STEP_CAN7_1_NEXT_STEPS
+
+Naechster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-7.2: recoveryReadiness im bestehenden Bus-Diagnostics-Dashboard read-only anzeigen
+~~~
+
+CAN-7.2 darf maximal:
+
+~~~text
+echte Dashboard-Datei vollstaendig pruefen
+bestehenden Recovery-Tab erweitern
+recoveryReadiness anzeigen
+keine Buttons bauen
+keine Aktionen ausloesen
+keine Recovery starten
+~~~
+
+Vor CAN-7.2 zu pruefen:
+
+~~~text
+htdocs/dashboard/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.css falls vorhanden/relevant
+~~~
+
+Tests fuer CAN-7.2:
+
+~~~powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/status"
+$s.recoveryReadiness | Select-Object ok,status,canStartReadOnlyCode,readOnly,automationEnabled,productiveActions,currentStep,nextAllowedStep
+~~~
+
+Weiterhin verboten:
+
+~~~text
+Recovery ausfuehren
+Command-Route bauen
+Recovery-Button bauen
+Simulation-Button bauen
+Alert/Sound/Overlay wiederholen
+Queue/Sound/Alert/Overlay produktiv beruehren
+DB-/Config-Migration starten
+~~~
+
+---
+
 ## Nach STEP CAN-7.0
 
 Marker: STEP_CAN7_0_NEXT_STEPS
@@ -690,3 +739,4 @@ Regel bleibt:
 Keine Simulation per Dashboard auslösen
 Keine produktive Flow-Änderung
 ~~~
+

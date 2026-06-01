@@ -1,3 +1,36 @@
+# TODO – CAN-7.1 / CAN-7.2 Übergang
+
+Stand: 2026-06-01
+
+## CAN-7.1 erledigt
+
+- [x] `backend/modules/bus_diagnostics.js` vollstaendig gelesen.
+- [x] Version auf `1.2.5` erhoeht.
+- [x] Build-Marker `STEP_CAN7_1` gesetzt.
+- [x] `recoveryReadiness` als read-only Statusfeld ergaenzt.
+- [x] Keine neuen Routen gebaut.
+- [x] Keine Recovery-Ausfuehrung gebaut.
+- [x] Syntax mit `node -c` geprueft.
+
+## CAN-7.2 offen
+
+- [ ] Echte aktuelle `htdocs/dashboard/modules/bus_diagnostics.js` vollstaendig pruefen.
+- [ ] Bestehenden Recovery-Tab als Single Source nehmen.
+- [ ] `recoveryReadiness` nur anzeigen.
+- [ ] Keine Buttons ergaenzen.
+- [ ] Keine Actions/POST/Command-Aufrufe ergaenzen.
+- [ ] Dashboard-Test mit bestehender Statusroute planen.
+
+## Dauerhaft blockiert
+
+- [ ] Keine automatische Recovery.
+- [ ] Kein Alert-Replay.
+- [ ] Kein Sound-Replay.
+- [ ] Kein Auto-Retry.
+- [ ] Keine produktive Queue-/Sound-/Overlay-Beruehrung.
+
+---
+
 # TODO – CAN-6.10 / CAN-7.0 Übergang
 
 Stand: 2026-06-01
@@ -284,3 +317,4 @@ Nur noch bei konkretem Bedarf:
 
 Aktueller Fokus: produktive Projektarbeit.
 <!-- STEP615_CLEANUP_FREEZE_END -->
+

@@ -1,3 +1,43 @@
+# FILES – CAN-7.1 / Recovery-Readiness Statusfelder
+
+Stand: 2026-06-01
+
+## Geaendert in CAN-7.1
+
+- `backend/modules/bus_diagnostics.js`
+  - Version `1.2.5`
+  - Build `STEP_CAN7_1`
+  - neues read-only Statusfeld `recoveryReadiness`
+
+## Neu in CAN-7.1
+
+- `docs/system-inspection/EVENTBUS_CAN7_1_RECOVERY_READINESS_STATUS_FIELDS.md`
+  - technische Beschreibung der additiven Readiness-Felder
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_1.md`
+  - kompakte Uebergabe fuer CAN-7.2
+- `docs/current/README_CAN7_1_FILE_ZIP.md`
+  - Entpack-/Test-Hinweis fuer dieses ZIP
+
+## Fuer CAN-7.2 relevant
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - bestehender Recovery-Tab
+  - nur Anzeige erweitern
+  - keine Buttons / keine Aktionen
+
+## Nicht anfassen ohne separates Go
+
+- `backend/modules/communication_bus.js`
+- `backend/modules/alert_system.js`
+- `backend/modules/sound_system.js`
+- `htdocs/overlays/_overlay-alerts-v2.html`
+- `htdocs/overlays/sound_system_overlay.html`
+- `config/alert_system.json`
+- `config/sound_system.json`
+- produktive SQLite-Datenbank
+
+---
+
 # FILES – CAN-7.0 / Recovery-Readiness aktueller Arbeitsstand
 
 Stand: 2026-06-01
@@ -579,3 +619,4 @@ Stand: 2026-06-01
 - `backend/modules/helpers/helper_routes.js`
 - `backend/modules/helpers/helper_core.js`
 - `backend/modules/helpers/helper_config.js`
+

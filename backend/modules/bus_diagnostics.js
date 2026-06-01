@@ -11,17 +11,17 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.2.4';
+const VERSION = '1.2.5';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP_CAN5_5',
+  build: 'STEP_CAN7_1',
   type: 'runtime',
   category: 'diagnostics',
-  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy and recovery-simulation aggregator.',
+  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy, recovery-simulation and recovery-readiness aggregator.',
   routesPrefix: ['/api/bus-diagnostics'],
   bus: {
     registered: false,
@@ -95,7 +95,7 @@ function init(ctx) {
     });
   });
 
-  console.log('[bus_diagnostics] STEP_CAN5_5 Dashboard diagnostics, resilience matrix, optional diagnostics, handshake state, recovery strategy and simulation harness prepared');
+  console.log('[bus_diagnostics] STEP_CAN7_1 Dashboard diagnostics, resilience matrix, optional diagnostics, handshake state, recovery strategy, simulation harness and read-only recovery readiness prepared');
 }
 
 function registerGet(app, routePath, handler) {
@@ -152,6 +152,7 @@ async function buildStatus(query, requestedCheck) {
     alertStatus: compactFetch(alertStatus),
     alertSoundCorrelation: compactFetch(correlation),
     recoveryStrategyState: diagnostics.recoveryStrategyState,
+    recoveryReadiness: diagnostics.recoveryReadiness,
     vipStatus: compactFetch(vip),
     vipIntegration: compactFetch(vipIntegration),
     resilienceMatrix: diagnostics.resilienceMatrix,
@@ -239,6 +240,17 @@ function analyze(parts) {
   if (Number(alertStats.errors || 0) > 0) errors.push('alert_eventbus_reports_errors');
   if (comparison && Number(comparison.unmatched || 0) > 0) warnings.push('alert_sound_correlation_has_unmatched_alerts');
 
+  const recoveryReadiness = buildRecoveryReadiness({
+    errors,
+    warnings,
+    recoveryStrategyState,
+    resilienceMatrix,
+    communicationBody,
+    soundStatusBody,
+    alertStatusBody,
+    correlationBody
+  });
+
   const summary = {
     communicationOk: !!parts.communication.ok && !!((communicationBody || {}).ok),
     soundBusOk: !!parts.sound.ok && !!((soundBody || {}).ok),
@@ -281,12 +293,134 @@ function analyze(parts) {
     recoveryStrategyState: recoveryStrategyState.state,
     recoveryAllowedActions: recoveryStrategyState.allowedActions.length,
     recoveryBlockedActions: recoveryStrategyState.blockedActions.length,
+    recoveryReadinessStatus: recoveryReadiness.status,
+    recoveryReadinessCanStartReadOnlyCode: recoveryReadiness.canStartReadOnlyCode,
+    recoveryReadinessNextStep: recoveryReadiness.nextAllowedStep,
     optionalInfoCount: optionalInfo.length,
     optionalInfo,
     status: errors.length ? 'error' : (warnings.length ? 'warning' : 'ok')
   };
 
-  return { summary, warnings, optionalInfo, errors, resilienceMatrix, recoveryStrategyState };
+  return { summary, warnings, optionalInfo, errors, resilienceMatrix, recoveryStrategyState, recoveryReadiness };
+}
+
+function buildRecoveryReadiness(input) {
+  const errors = Array.isArray(input && input.errors) ? input.errors : [];
+  const warnings = Array.isArray(input && input.warnings) ? input.warnings : [];
+  const recoveryStrategyState = (input && input.recoveryStrategyState) || {};
+  const resilienceMatrix = (input && input.resilienceMatrix) || {};
+  const matrixSummary = resilienceMatrix.summary || {};
+  const checks = [];
+  const blockers = [];
+  const notes = [];
+
+  addReadinessCheck(checks, blockers, {
+    key: 'diagnostics_routes_available',
+    ok: errors.length === 0,
+    severity: errors.length === 0 ? 'ok' : 'blocked',
+    reason: errors.length === 0 ? '' : 'diagnostics_errors_present',
+    details: errors
+  });
+
+  addReadinessCheck(checks, blockers, {
+    key: 'recovery_strategy_read_only',
+    ok: recoveryStrategyState.mode === 'read_only' && recoveryStrategyState.readOnly === true,
+    severity: recoveryStrategyState.mode === 'read_only' && recoveryStrategyState.readOnly === true ? 'ok' : 'blocked',
+    reason: 'recovery_strategy_not_read_only',
+    details: { mode: recoveryStrategyState.mode || '', readOnly: recoveryStrategyState.readOnly === true }
+  });
+
+  addReadinessCheck(checks, blockers, {
+    key: 'automation_disabled',
+    ok: recoveryStrategyState.automationEnabled === false,
+    severity: recoveryStrategyState.automationEnabled === false ? 'ok' : 'blocked',
+    reason: 'automation_enabled_or_unknown',
+    details: { automationEnabled: recoveryStrategyState.automationEnabled }
+  });
+
+  addReadinessCheck(checks, blockers, {
+    key: 'resilience_matrix_no_errors',
+    ok: Number(matrixSummary.errorCount || 0) === 0,
+    severity: Number(matrixSummary.errorCount || 0) === 0 ? 'ok' : 'blocked',
+    reason: 'resilience_matrix_errors_present',
+    details: matrixSummary.errorKeys || []
+  });
+
+  addReadinessCheck(checks, blockers, {
+    key: 'productive_actions_disabled',
+    ok: true,
+    severity: 'ok',
+    reason: '',
+    details: {
+      productiveActions: false,
+      flowTouched: false,
+      queueTouched: false,
+      soundSystemTouched: false,
+      alertSystemTouched: false,
+      overlayTouched: false
+    }
+  });
+
+  const warningCount = warnings.length + Number(matrixSummary.warningCount || 0);
+  if (warningCount > 0) notes.push('warnings_present_review_before_next_step');
+
+  const canStartReadOnlyCode = blockers.length === 0;
+  const status = canStartReadOnlyCode ? (warningCount > 0 ? 'ready_with_warnings' : 'ready') : 'blocked';
+
+  return {
+    ok: canStartReadOnlyCode,
+    status,
+    canStartReadOnlyCode,
+    readOnly: true,
+    automationEnabled: false,
+    productiveActions: false,
+    flowTouched: false,
+    queueTouched: false,
+    soundSystemTouched: false,
+    alertSystemTouched: false,
+    overlayTouched: false,
+    currentStep: 'CAN-7.1',
+    nextAllowedStep: 'CAN-7.2_read_only_dashboard_display_planning',
+    allowedScope: [
+      'read_only_status_fields',
+      'dashboard_display_only',
+      'no_command_route',
+      'no_recovery_execution'
+    ],
+    hardBlockedActions: [
+      'auto_replay_alert',
+      'manual_replay_alert',
+      'auto_replay_sound',
+      'manual_replay_sound',
+      'auto_retry_overlay',
+      'auto_recovery',
+      'manual_recovery_execution'
+    ],
+    blockers,
+    notes,
+    checks,
+    source: {
+      recoveryState: recoveryStrategyState.state || '',
+      recoverySeverity: recoveryStrategyState.severity || '',
+      matrixWarnings: Number(matrixSummary.warningCount || 0),
+      matrixErrors: Number(matrixSummary.errorCount || 0),
+      diagnosticsWarnings: warnings.length,
+      diagnosticsErrors: errors.length
+    },
+    checkedAt: new Date().toISOString()
+  };
+}
+
+function addReadinessCheck(checks, blockers, input) {
+  const item = {
+    key: input.key,
+    ok: input.ok === true,
+    severity: input.severity || (input.ok === true ? 'ok' : 'blocked'),
+    reason: input.ok === true ? '' : (input.reason || 'readiness_check_failed'),
+    details: input.details === undefined ? null : input.details
+  };
+  checks.push(item);
+  if (!item.ok && item.severity === 'blocked') blockers.push({ key: item.key, reason: item.reason, details: item.details });
 }
 
 function buildRecoverySimulationStatus() {
