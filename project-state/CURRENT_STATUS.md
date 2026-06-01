@@ -1,21 +1,27 @@
-## STEP CAN-8.11 Recovery-Preflight Check-Matrix Dashboard-Anzeige
+## STEP CAN-8.12 Recovery-Preflight Check-Matrix Dashboard Live-Test
 
 Stand: 2026-06-01
-Marker: STEP_CAN8_11_RECOVERY_PREFLIGHT_CHECK_MATRIX_DASHBOARD_DISPLAY
+Marker: STEP_CAN8_12_RECOVERY_PREFLIGHT_CHECK_MATRIX_DASHBOARD_LIVE_TEST_ACCEPTANCE
 
-CAN-8.11 zeigt die in CAN-8.9 eingeführte `recoveryPreflight` Check-Matrix im bestehenden Dashboard-Recovery-Untertab `Preflight` übersichtlicher an.
+CAN-8.12 dokumentiert die Live-Abnahme der in CAN-8.11 ergänzten Dashboard-Anzeige für die Recovery-Preflight-Check-Matrix.
 
-Geändert:
+Bestätigt:
 
 ~~~text
-htdocs/dashboard/modules/bus_diagnostics.js
+Recovery -> Preflight öffnet korrekt
+Recovery-Preflight Status READY sichtbar
+Checks: 13 sichtbar
+Prepare bleibt nein
+Execute bleibt nein
+Safety-Felder bleiben ohne produktive Berührung
+Keine Recovery-/Simulation-/Execute-Buttons sichtbar
 ~~~
 
-Bestätigte Grenze:
+Nicht geändert:
 
 ~~~text
-Nur Anzeige vorhandener read-only Daten
-Keine Backend-Änderung
+Keine Backend-Datei
+Keine Dashboard-Datei
 Keine API-Route
 Keine Recovery-Ausführung
 Keine produktive Flow-Änderung
@@ -24,5 +30,5 @@ Keine produktive Flow-Änderung
 Nächster Schritt:
 
 ~~~text
-CAN-8.12: Dashboard-Live-Test und Abnahme dokumentieren
+CAN-8.13: Recovery-Preflight Dashboard Read-only Abschluss und CAN-9.0 Startgrenze definieren
 ~~~

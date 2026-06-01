@@ -1,15 +1,10 @@
-# FILES – CAN-8.11
+# FILES – CAN-8.12
 
-## Geänderte Datei
+## Neue Dokumentation
 
-- `htdocs/dashboard/modules/bus_diagnostics.js`
-  - zeigt Recovery-Preflight Check-Matrix read-only im Dashboard an
-
-## Dokumentation
-
-- `docs/system-inspection/EVENTBUS_CAN8_11_RECOVERY_PREFLIGHT_CHECK_MATRIX_DASHBOARD_DISPLAY.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_11.md`
-- `docs/current/README_CAN8_11_FILE_ZIP.md`
+- `docs/system-inspection/EVENTBUS_CAN8_12_RECOVERY_PREFLIGHT_CHECK_MATRIX_DASHBOARD_LIVE_TEST_ACCEPTANCE.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_12.md`
+- `docs/current/README_CAN8_12_FILE_ZIP.md`
 
 ## Projektstand
 
@@ -18,3 +13,7 @@
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
+
+## Code
+
+Keine Code-Datei geändert.
