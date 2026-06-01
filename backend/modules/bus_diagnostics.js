@@ -11,14 +11,14 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.2.5';
+const VERSION = '1.2.6';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP_CAN7_1',
+  build: 'STEP_CAN8_3',
   type: 'runtime',
   category: 'diagnostics',
   description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy, recovery-simulation and recovery-readiness aggregator.',
@@ -153,6 +153,7 @@ async function buildStatus(query, requestedCheck) {
     alertSoundCorrelation: compactFetch(correlation),
     recoveryStrategyState: diagnostics.recoveryStrategyState,
     recoveryReadiness: diagnostics.recoveryReadiness,
+    recoveryPreflight: diagnostics.recoveryPreflight,
     vipStatus: compactFetch(vip),
     vipIntegration: compactFetch(vipIntegration),
     resilienceMatrix: diagnostics.resilienceMatrix,
@@ -250,6 +251,13 @@ function analyze(parts) {
     alertStatusBody,
     correlationBody
   });
+  const recoveryPreflight = buildRecoveryPreflight({
+    errors,
+    warnings,
+    recoveryReadiness,
+    recoveryStrategyState,
+    resilienceMatrix
+  });
 
   const summary = {
     communicationOk: !!parts.communication.ok && !!((communicationBody || {}).ok),
@@ -296,12 +304,16 @@ function analyze(parts) {
     recoveryReadinessStatus: recoveryReadiness.status,
     recoveryReadinessCanStartReadOnlyCode: recoveryReadiness.canStartReadOnlyCode,
     recoveryReadinessNextStep: recoveryReadiness.nextAllowedStep,
+    recoveryPreflightStatus: recoveryPreflight.status,
+    recoveryPreflightCanPrepare: recoveryPreflight.canPrepare,
+    recoveryPreflightCanExecute: recoveryPreflight.canExecute,
+    recoveryPreflightNextStep: recoveryPreflight.nextAllowedStep,
     optionalInfoCount: optionalInfo.length,
     optionalInfo,
     status: errors.length ? 'error' : (warnings.length ? 'warning' : 'ok')
   };
 
-  return { summary, warnings, optionalInfo, errors, resilienceMatrix, recoveryStrategyState, recoveryReadiness };
+  return { summary, warnings, optionalInfo, errors, resilienceMatrix, recoveryStrategyState, recoveryReadiness, recoveryPreflight };
 }
 
 function buildRecoveryReadiness(input) {
@@ -421,6 +433,97 @@ function addReadinessCheck(checks, blockers, input) {
   };
   checks.push(item);
   if (!item.ok && item.severity === 'blocked') blockers.push({ key: item.key, reason: item.reason, details: item.details });
+}
+
+
+function buildRecoveryPreflight(input) {
+  const errors = Array.isArray(input && input.errors) ? input.errors : [];
+  const warnings = Array.isArray(input && input.warnings) ? input.warnings : [];
+  const recoveryReadiness = (input && input.recoveryReadiness) || {};
+  const recoveryStrategyState = (input && input.recoveryStrategyState) || {};
+  const resilienceMatrix = (input && input.resilienceMatrix) || {};
+  const matrixSummary = resilienceMatrix.summary || {};
+  const blockers = [];
+  const preflightWarnings = [];
+
+  if (errors.length > 0) blockers.push({ key: 'diagnostics_errors_present', reason: 'diagnostics_errors_present', details: errors });
+  if (recoveryReadiness.ok !== true) blockers.push({ key: 'recovery_readiness_not_ready', reason: 'recovery_readiness_not_ready', details: recoveryReadiness.blockers || [] });
+  if (recoveryStrategyState.mode !== 'read_only' || recoveryStrategyState.readOnly !== true) {
+    blockers.push({
+      key: 'recovery_strategy_not_read_only',
+      reason: 'recovery_strategy_not_read_only',
+      details: { mode: recoveryStrategyState.mode || '', readOnly: recoveryStrategyState.readOnly === true }
+    });
+  }
+  if (Number(matrixSummary.errorCount || 0) > 0) blockers.push({ key: 'resilience_matrix_errors_present', reason: 'resilience_matrix_errors_present', details: matrixSummary.errorKeys || [] });
+
+  if (warnings.length > 0) preflightWarnings.push({ key: 'diagnostics_warnings_present', details: warnings });
+  if (Number(matrixSummary.warningCount || 0) > 0) preflightWarnings.push({ key: 'resilience_matrix_warnings_present', details: matrixSummary.warningKeys || [] });
+
+  const status = blockers.length > 0 ? 'blocked' : (preflightWarnings.length > 0 ? 'observe' : 'ready');
+
+  return {
+    ok: blockers.length === 0,
+    status,
+    mode: 'read_only',
+    readOnly: true,
+    canPrepare: false,
+    canExecute: false,
+    requiresExplicitGo: true,
+    currentStep: 'CAN-8.3',
+    nextAllowedStep: 'CAN-8.4_dashboard_preflight_readonly_display_planning',
+    requestedAction: 'none',
+    actionClass: 'diagnostic_only',
+    requiredGuards: [
+      'auth_guard',
+      'action_matrix_guard',
+      'confirm_guard',
+      'recovery_state_guard',
+      'safety_stop_guard',
+      'duplicate_guard',
+      'audit_guard',
+      'rollback_guard'
+    ],
+    passedGuards: [
+      'read_only_guard',
+      'no_command_route_guard',
+      'no_productive_touch_guard'
+    ],
+    missingGuards: [],
+    blockers,
+    warnings: preflightWarnings,
+    hardBlockedActions: [
+      'auto_replay_alert',
+      'manual_replay_alert',
+      'auto_replay_sound',
+      'manual_replay_sound',
+      'auto_retry_overlay',
+      'auto_recovery',
+      'manual_recovery_execution',
+      'manual_unlock_stale_bundle',
+      'clear_stale_visual_wait',
+      'refresh_overlay_state'
+    ],
+    safety: {
+      automationEnabled: false,
+      productiveActions: false,
+      flowTouched: false,
+      queueTouched: false,
+      soundSystemTouched: false,
+      alertSystemTouched: false,
+      overlayTouched: false
+    },
+    source: {
+      recoveryReadinessStatus: recoveryReadiness.status || 'unavailable',
+      recoveryStrategyState: recoveryStrategyState.state || '',
+      recoveryStrategySeverity: recoveryStrategyState.severity || '',
+      matrixWarnings: Number(matrixSummary.warningCount || 0),
+      matrixErrors: Number(matrixSummary.errorCount || 0),
+      diagnosticsWarnings: warnings.length,
+      diagnosticsErrors: errors.length
+    },
+    checkedAt: new Date().toISOString()
+  };
 }
 
 function buildRecoverySimulationStatus() {

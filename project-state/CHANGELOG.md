@@ -1,3 +1,21 @@
+# CHANGELOG – CAN-8.3 Recovery-Preflight Statusfelder
+
+Stand: 2026-06-01
+
+## Geaendert
+
+- `backend/modules/bus_diagnostics.js` auf Version `1.2.6` erhoeht.
+- `recoveryPreflight` als read-only Statusfeld ergaenzt.
+- Summary-Felder fuer Recovery-Preflight ergaenzt.
+
+## Nicht geaendert
+
+- Keine neue Route.
+- Keine POST-/Command-Route.
+- Keine Dashboard-Datei.
+- Keine Recovery-Ausfuehrung.
+- Keine produktive Flow-Aenderung.
+
 # CHANGELOG – CAN-8.2 Recovery-Preflight Read-only Statusfelder Plan
 
 Stand: 2026-06-01

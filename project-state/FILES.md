@@ -1,3 +1,28 @@
+# FILES – CAN-8.3 Recovery-Preflight Statusfelder
+
+Stand: 2026-06-01
+
+## Geaendert
+
+- `backend/modules/bus_diagnostics.js`
+  - Version 1.2.6
+  - Build STEP_CAN8_3
+  - neues read-only Feld `recoveryPreflight`
+
+## Doku
+
+- `docs/system-inspection/EVENTBUS_CAN8_3_RECOVERY_PREFLIGHT_READONLY_STATUS_FIELDS.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_3.md`
+- `docs/current/README_CAN8_3_FILE_ZIP.md`
+
+## Nicht geaendert
+
+- Dashboard-Dateien
+- API-Routenstruktur
+- Config
+- DB
+- produktive Flows
+
 # FILES – CAN-8.2 Recovery-Preflight Read-only Statusfelder Plan
 
 Stand: 2026-06-01

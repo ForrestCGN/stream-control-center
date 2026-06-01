@@ -1,3 +1,21 @@
+## STEP CAN-8.3 Recovery-Preflight Read-only Statusfelder
+
+Stand: 2026-06-01
+Marker: STEP_CAN8_3_RECOVERY_PREFLIGHT_READONLY_STATUS_FIELDS
+
+CAN-8.3 ergaenzt `recoveryPreflight` additiv in `backend/modules/bus_diagnostics.js`.
+
+~~~text
+Version: bus_diagnostics 1.2.6
+Build: STEP_CAN8_3
+Read-only: ja
+canPrepare: false
+canExecute: false
+Keine Recovery-Ausfuehrung
+~~~
+
+Naechster Schritt: CAN-8.4 Live-Test/Abnahme und Dashboard-Anzeigegrenze.
+
 ## STEP CAN-8.2 Recovery-Preflight Read-only Statusfelder Plan
 
 Stand: 2026-06-01

@@ -1,3 +1,10 @@
+## CAN-8 / Recovery-Preflight
+
+- [x] CAN-8.3 Recovery-Preflight read-only Statusfelder additiv umgesetzt.
+- [ ] CAN-8.3 Live-Test ausfuehren und bestaetigen.
+- [ ] CAN-8.4 Live-Test/Abnahme dokumentieren.
+- [ ] Danach Dashboard-Read-only-Anzeige fuer `recoveryPreflight` separat planen.
+
 ## CAN-8.2 / CAN-8.3 Recovery-Preflight
 
 - [x] CAN-8.2 read-only Preflight-Statusfelder planen.

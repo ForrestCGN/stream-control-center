@@ -1,3 +1,22 @@
+## Nach STEP CAN-8.3
+
+Marker: STEP_CAN8_3_NEXT_STEPS
+
+Naechster sinnvoller Schritt:
+
+~~~text
+CAN-8.4: Recovery-Preflight read-only Live-Test und Dashboard-Anzeigegrenze dokumentieren
+~~~
+
+Zu pruefen:
+
+~~~powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/status"
+$s.recoveryPreflight | Select-Object status,mode,readOnly,canPrepare,canExecute,currentStep,nextAllowedStep
+$s.recoveryPreflight.safety | Select-Object automationEnabled,productiveActions,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched
+$s.summary | Select-Object recoveryPreflightStatus,recoveryPreflightCanPrepare,recoveryPreflightCanExecute,recoveryPreflightNextStep
+~~~
+
 ## Nach STEP CAN-8.2
 
 Marker: STEP_CAN8_2_NEXT_STEPS
