@@ -1,3 +1,34 @@
+## Nach STEP CAN-5.9
+
+Marker: STEP_CAN5_9_NEXT_STEPS
+
+CAN-5.9 macht die Recovery-Diagnose im Bus-Diagnostics-Dashboard read-only sichtbar.
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-5.10: Dashboard-Recovery-Tab live prüfen und stabil dokumentieren
+~~~
+
+Zu prüfen:
+
+~~~text
+Bus-Diagnostics-Dashboard lädt
+Tab Recovery sichtbar
+Recovery-State wird angezeigt
+blockedActions werden angezeigt
+Sicherheitsflags bleiben false/aus
+Keine Simulation-Buttons vorhanden
+Keine Recovery-Automatik vorhanden
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine Simulation per Dashboard auslösen
+Keine produktive Flow-Änderung
+~~~
+
 ## Nach STEP CAN-5.8
 
 Marker: STEP_CAN5_8_NEXT_STEPS

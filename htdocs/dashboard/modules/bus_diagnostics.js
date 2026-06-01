@@ -22,6 +22,7 @@
     { id: 'clients', label: 'Clients' },
     { id: 'events', label: 'Events & ACKs' },
     { id: 'integrations', label: 'Integrationen' },
+    { id: 'recovery', label: 'Recovery' },
     { id: 'issues', label: 'Issues' },
     { id: 'config', label: 'Config' },
     { id: 'raw', label: 'Rohdaten' }
@@ -295,7 +296,7 @@
     const content = panel()?.querySelector('[data-busdiag-content]');
     if (!content) return;
     if (!state.lastData) { content.innerHTML = '<div class="busdiag-empty glass">Noch keine Daten geladen.</div>'; return; }
-    const renderers = { overview: renderOverview, clients: renderClientsTab, events: renderEventsTab, integrations: renderIntegrationsTab, issues: renderIssuesTab, config: renderConfigTab, raw: renderRawTab };
+    const renderers = { overview: renderOverview, clients: renderClientsTab, events: renderEventsTab, integrations: renderIntegrationsTab, recovery: renderRecoveryTab, issues: renderIssuesTab, config: renderConfigTab, raw: renderRawTab };
     content.innerHTML = (renderers[state.activeTab] || renderOverview)();
     bindConfigActions();
   }
@@ -373,6 +374,36 @@
     const correlation = getStatus().alertSoundCorrelation || {};
     const comparison = correlation.comparison || {};
     return `<div class="busdiag-grid">${card('Sound EventBus', `<div class="busdiag-status-line">${badge(sound.ok ? 'ok' : 'error', sound.ok ? 'ok' : 'error')}<span>${esc(value(sound.module))} ${esc(value(sound.version))}</span></div><div class="busdiag-metrics">${metric('Capability', sound.capability || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Emitted', summary.soundEmitted)}${metric('Errors', summary.soundErrors)}${metric('Last action', summary.soundLastAction || '-')}</div>`)}${card('Alert EventBus', `<div class="busdiag-status-line">${badge(alert.ok ? 'ok' : 'error', alert.ok ? 'ok' : 'error')}<span>${esc(value(alert.module))} ${esc(value(alert.version))}</span></div><div class="busdiag-metrics">${metric('Capability', alert.capability || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Emitted', summary.alertEmitted)}${metric('Errors', summary.alertErrors)}${metric('Last action', summary.alertLastAction || '-')}</div>`)}${card('VIP-System', `<div class="busdiag-status-line">${badge(vip.ok ? 'ok' : 'warning', vip.ok ? 'ok' : 'warning')}<span>${esc(value(vip.module || 'vip_sound_overlay'))} ${esc(value(summary.vipVersion || vip.version))}</span></div><div class="busdiag-metrics">${metric('Overlay Client', bool(summary.vipOverlayConnected), summary.vipOverlayConnected ? 'Bus verbunden' : 'nicht verbunden')}${metric('Status API', vip.fetchOk ? 'ok' : 'fehler')}${metric('Phase', summary.vipPhase || vip.phase || '-')}${metric('Queue', summary.vipQueuedCount ?? vip.queuedCount ?? 0)}</div>`)}${card('Alert/Sound-Korrelation', `<div class="busdiag-status-line">${badge(correlation.ok ? 'ok' : 'error', correlation.ok ? 'ok' : 'error')}<span>${esc(value(correlation.feature))}</span></div><div class="busdiag-metrics">${metric('Matched', summary.correlationMatched ?? comparison.matched)}${metric('Unmatched', summary.correlationUnmatched ?? comparison.unmatched)}${metric('Alert Rows', comparison.alertRows ?? '-')}${metric('Sound Rows', comparison.soundRows ?? '-')}</div>`)}</div>${renderRecent('Sound Events', sound.recentEvents || [])}${renderRecent('Alert Events', alert.recentEvents || [])}${renderCorrelationDetails(comparison)}`;
+  }
+
+
+  function renderRecoveryTab(){
+    const data = getStatus();
+    const summary = getSummary();
+    const recovery = data.recoveryStrategyState || {};
+    const source = recovery.source || {};
+    const reasons = asList(recovery.reasons);
+    const blockedActions = asList(recovery.blockedActions);
+    const allowedActions = asList(recovery.allowedActions);
+    const status = recovery.severity || (recovery.warning ? 'warning' : (recovery.ok === false ? 'warning' : 'ok'));
+    const stateLabel = recovery.state || summary.recoveryStrategyState || 'nicht geladen';
+    const safetyOk = data.readOnly === true && recovery.readOnly !== false && recovery.automationEnabled === false && data.flowTouched === false && data.queueTouched === false && data.soundSystemTouched === false && data.alertSystemTouched === false && data.overlayTouched === false;
+    const safetyStatus = safetyOk ? 'ok' : 'warning';
+    const safetyText = safetyOk ? 'read-only / keine produktive Berührung' : 'prüfen';
+
+    return `
+      <div class="busdiag-grid busdiag-grid-top">
+        ${card('Recovery-Strategie', `<div class="busdiag-status-line">${badge(stateLabel, status)}<span>${esc(recovery.mode || summary.recoveryStrategyMode || 'read_only')}</span></div><div class="busdiag-metrics">${metric('State', stateLabel)}${metric('Severity', recovery.severity || '-')}${metric('Next Action', recovery.nextAction || '-')}${metric('Automation', bool(recovery.automationEnabled), 'muss aus bleiben')}</div>`)}
+        ${card('Sicherheitsstatus', `<div class="busdiag-status-line">${badge(safetyStatus === 'ok' ? 'ok' : 'prüfen', safetyStatus)}<span>${esc(safetyText)}</span></div><div class="busdiag-metrics">${metric('Read-only', bool(data.readOnly && recovery.readOnly !== false))}${metric('Productive Actions', bool(data.productiveActions))}${metric('Flow touched', bool(data.flowTouched))}${metric('Overlay touched', bool(data.overlayTouched))}</div>`)}
+      </div>
+      <div class="busdiag-grid">
+        ${card('Recovery-Quelle', `<div class="busdiag-metrics">${metric('Handshake', source.handshakeState || summary.handshakeState || '-')}${metric('Visual Delivery', source.visualDeliveryState || '-')}${metric('Unmatched', source.unmatched ?? summary.correlationUnmatched ?? 0)}${metric('Missing ACK', source.missingAck ?? 0)}${metric('No Client', source.noClient ?? 0)}${metric('Waiting', source.waiting ?? 0)}</div>`)}
+        ${card('Blockierte Aktionen', blockedActions.length ? `<div class="busdiag-list">${blockedActions.map(action => `<div class="busdiag-row warning"><strong>blockiert</strong><span>${esc(action)}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine blockierten Aktionen gemeldet.</p>')}
+        ${card('Erlaubte Aktionen', allowedActions.length ? `<div class="busdiag-list">${allowedActions.map(action => `<div class="busdiag-row"><strong>erlaubt</strong><span>${esc(action)}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine aktiven Aktionen erlaubt.</p>')}
+        ${card('Gründe', reasons.length ? `<div class="busdiag-list">${reasons.map(reason => `<div class="busdiag-row"><strong>Grund</strong><span>${esc(reason)}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine Gründe gemeldet.</p>')}
+        ${card('Simulation-Harness', `<div class="busdiag-status-line">${badge('read-only', 'ok')}<span>Anzeige nur Diagnose, keine Test-Buttons</span></div><div class="busdiag-metrics">${metric('Status Route', '/api/bus-diagnostics/recovery-simulation/status', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Test Trigger', 'nicht im Dashboard', 'bewusst nicht auslösbar')}${metric('Auto-Recovery', 'aus')}${metric('Replay', 'aus')}</div>`, 'busdiag-wide')}
+      </div>
+    `;
   }
 
   function renderIssuesTab(){

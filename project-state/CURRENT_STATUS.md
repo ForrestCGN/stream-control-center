@@ -1,3 +1,23 @@
+## STEP CAN-5.9 Recovery-Diagnose im Dashboard read-only sichtbar
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_9_RECOVERY_DASHBOARD_READONLY_DISPLAY
+
+CAN-5.9 ergänzt im bestehenden Bus-Diagnostics-Dashboard einen read-only Recovery-Tab.
+
+~~~text
+Dashboard-Datei: htdocs/dashboard/modules/bus_diagnostics.js
+Tab: Recovery
+Nur Anzeige-Logik
+Keine Simulation-Buttons
+Keine Recovery-Automatik
+Keine produktive Flow-Änderung
+~~~
+
+Angezeigt werden Recovery-Strategy-State, Gründe, blockierte Aktionen, Quellwerte und Sicherheitsflags.
+
+Details: `docs/system-inspection/EVENTBUS_CAN5_9_RECOVERY_DASHBOARD_READONLY_DISPLAY.md`
+
 ## STEP CAN-5.8 Recovery-Diagnose Dashboard-Plan
 
 Stand: 2026-06-01
