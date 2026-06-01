@@ -14,9 +14,8 @@
 - [x] CAN-12.5 Recovery Guard Display Live-Test abgenommen
 - [x] CAN-12.6 Recovery Guard Framework read-only abgeschlossen und Next-Chat-Handoff dokumentiert
 - [x] CAN-13.0 Next Recovery Candidate Planning Start
-- [x] CAN-13.1 Audit-Konzept fuer spaetere manuelle Recovery planen
-- [x] CAN-13.2 Rollen-/Rechte-Konzept planen
-- [x] CAN-13.3 Confirm-/Bestaetigungs-Konzept planen
-- [ ] CAN-13.4 SafetyStop-/Cancel-Konzept planen
-- [ ] CAN-13.5 Recovery-Kandidatenmatrix planen
-- [ ] CAN-13.6 Abschluss/Handoff ohne produktive Recovery dokumentieren
+- [x] CAN-13.1 Manual Recovery Audit Concept
+- [x] CAN-13.2 Manual Recovery Roles Rights Concept
+- [x] CAN-13.3 Manual Recovery Confirm Concept
+- [x] CAN-13.4 Manual Recovery SafetyStop Cancel Concept
+- [ ] CAN-13.5 Recovery Candidate Matrix

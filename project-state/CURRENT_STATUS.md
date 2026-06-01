@@ -1,16 +1,10 @@
 # CURRENT_STATUS
 
-## Stand: CAN-13.3 abgeschlossen
+## Stand: CAN-13.4 abgeschlossen
 
-Der Recovery-/Preflight-/Guard-Framework-Strang ist read-only abgeschlossen.
+Der Recovery-/Preflight-/Guard-Framework-Strang ist weiterhin read-only abgeschlossen.
 
-CAN-13.0 hat den naechsten Recovery-Planungsstrang gestartet.
-
-CAN-13.1 hat das Audit-Konzept fuer spaetere manuelle Recovery-Aktionen geplant.
-
-CAN-13.2 hat das Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery-Aktionen geplant.
-
-CAN-13.3 hat das Confirm-/Bestaetigungs-Konzept fuer spaetere manuelle Recovery-Aktionen geplant.
+Der CAN-13-Strang ist weiterhin reine Planung fuer spaetere manuelle Recovery-Sicherheit.
 
 Abgeschlossen:
 
@@ -20,9 +14,10 @@ Abgeschlossen:
 - CAN-11.x Manual Status Resync
 - CAN-12.x Manual Recovery Guard Framework / Recovery Guards Dashboard-Karte
 - CAN-13.0 Next Recovery Candidate Planning Start
-- CAN-13.1 Audit-Konzept fuer spaetere manuelle Recovery
-- CAN-13.2 Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery
-- CAN-13.3 Confirm-/Bestaetigungs-Konzept fuer spaetere manuelle Recovery
+- CAN-13.1 Audit-Konzept
+- CAN-13.2 Rollen-/Rechte-Konzept
+- CAN-13.3 Confirm-/Bestaetigungs-Konzept
+- CAN-13.4 SafetyStop-/Cancel-Konzept
 
 ## Aktuelle read-only Funktionen
 
@@ -45,7 +40,7 @@ Errors: 0
 Blocking Failed: 0
 ```
 
-## Sicherheitsstand
+## CAN-13.4 Sicherheitsstand
 
 Weiterhin keine Recovery-Ausfuehrung.
 
@@ -58,43 +53,21 @@ commandRoute: false
 prepareRoute: false
 executeRoute: false
 recoveryExecution: false
+safetyStopApi: false
+cancelApi: false
 ```
 
-## CAN-13.3 Ergebnis
-
-CAN-13.3 ist ein reiner Doku-/Planungsstand.
-
-Festgelegt:
+## CAN-13.4 Ergebnis
 
 ```text
-Confirm ist Zusatzschutz, keine Berechtigung
-Confirm ersetzt keine Backend-Rechtepruefung
-Confirm ersetzt keine Audit-Pflicht
-Confirm ersetzt keine Guards
-Confirm ersetzt keinen SafetyStop
-Confirm ersetzt keine Duplikat-Sperre
-Confirm-Arten: Info / Risk / Destructive / Typed
-Confirm muss actor-/operation-/request-bezogen sein
-Confirm muss zeitlich begrenzt sein
-Confirm darf nicht wiederverwendet werden
+SafetyStop ist Pflichtschutz fuer spaetere Recovery-nahe Aktionen.
+Cancel ist ein auditpflichtiger Abbruchzustand.
+SafetyStop Clear darf spaeter nicht automatisch oder still passieren.
+Dashboard darf SafetyStop/Cancel zunaechst nur anzeigen.
+Backend muss SafetyStop spaeter serverseitig pruefen.
 ```
 
-Entscheidung:
-
-```text
-Keine produktive Recovery als naechster Schritt.
-Naechster Schritt: CAN-13.4 SafetyStop-/Cancel-Konzept.
-```
-
-Geplante Reihenfolge:
-
-```text
-CAN-13.4 SafetyStop-/Cancel-Konzept
-CAN-13.5 Recovery-Kandidatenmatrix
-CAN-13.6 Abschluss/Handoff, weiterhin ohne produktive Recovery
-```
-
-Weiterhin hart blockiert:
+## Weiterhin hart blockiert
 
 ```text
 Alert Replay
@@ -102,15 +75,6 @@ Sound Replay
 Queue Clear
 Overlay State Repair
 Execute Recovery
-Auto-Recovery
-POST-/Command-/Prepare-/Execute-Routen
-produktive Dashboard-Recovery-Buttons
-Audit-DB-Migration
-Audit-Schreibroute
-Rechte-API
-Rollen-DB-Migration
-produktive Rechtepruefung im Code
-Confirm-API
-Confirm-DB-Migration
-produktive Confirm-Dialoge
+Auto Recovery
+Auto Retry
 ```
