@@ -1,3 +1,40 @@
+# CHANGELOG – CAN-7.2.1 Recovery-Readiness Testfeld-Fix
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN7_2_RECOVERY_READINESS_LIVE_TEST_ACCEPTANCE.md` korrigiert.
+- `docs/system-inspection/EVENTBUS_CAN7_2_1_RECOVERY_READINESS_TEST_FIELD_FIX.md` ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_2.md` korrigiert.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_2_1.md` ergänzt.
+- Projekt-State-Dateien auf CAN-7.2.1 nachgezogen.
+
+## Grund
+
+Die CAN-7.2-Doku enthielt falsche Select-Object-Felder für `recoveryReadiness`. Die API war korrekt; die Testdoku wurde korrigiert.
+
+## Bestätigt
+
+- `bus_diagnostics` läuft mit Version `1.2.5`.
+- `recoveryReadiness.status = ready`.
+- Alle produktiven Touch-Flags bleiben `False`.
+
+## Nicht geändert
+
+- Keine Backend-Datei geändert.
+- Keine Dashboard-Datei geändert.
+- Keine API-Route ergänzt.
+- Keine Config/DB geändert.
+- Keine Recovery ausgeführt.
+- Keine produktive Flow-Änderung.
+
+## Nächster Block
+
+- CAN-7.3: Dashboard-Read-only-Anzeige von `recoveryReadiness`.
+
+---
+
 # CHANGELOG – CAN-7.2 Recovery-Readiness Live-Test und Abnahmegrenze
 
 Stand: 2026-06-01

@@ -1,3 +1,12 @@
+## CAN-7 / Recovery-Readiness Dashboard
+
+- [x] CAN-7.1 Recovery-Readiness Statusfelder backendseitig read-only ergänzen.
+- [x] CAN-7.1 live testen und abnehmen.
+- [x] CAN-7.2 Test-/Abnahme-Doku korrigieren.
+- [ ] Für CAN-7.3 vollständige echte Datei `htdocs/dashboard/modules/bus_diagnostics.js` prüfen.
+- [ ] CAN-7.3 Dashboard-Read-only-Anzeige von `recoveryReadiness` planen/umsetzen.
+- [ ] Sicherstellen: keine Buttons, keine POSTs, keine Commands, keine Recovery-Auslösung.
+
 ## CAN-7.2 / CAN-7.3
 
 - [ ] CAN-7.2 Live-Test ausführen: `node -c backend\modules\bus_diagnostics.js`.

@@ -1,3 +1,34 @@
+## Nach STEP CAN-7.2.1
+
+Marker: STEP_CAN7_2_1_NEXT_STEPS
+
+CAN-7.1 ist live abgenommen. CAN-7.2.1 hat die Testdoku korrigiert.
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-7.3: Dashboard-Read-only-Anzeige von recoveryReadiness planen/umsetzen
+~~~
+
+Vor Umsetzung:
+
+~~~text
+Vollständige echte Datei prüfen:
+htdocs/dashboard/modules/bus_diagnostics.js
+~~~
+
+Grenzen für CAN-7.3:
+
+~~~text
+Nur Dashboard-Anzeige
+Nur vorhandenes recoveryReadiness-Feld aus /api/bus-diagnostics/status anzeigen
+Keine Buttons
+Keine POSTs
+Keine Commands
+Keine Recovery-Auslösung
+Keine produktive Flow-Änderung
+~~~
+
 ## Nach STEP CAN-7.2
 
 Marker: STEP_CAN7_2_NEXT_STEPS

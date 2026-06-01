@@ -1,3 +1,40 @@
+# FILES – CAN-7.2.1 Recovery-Readiness Testfeld-Fix
+
+Stand: 2026-06-01
+
+## Geänderte Doku-/Projektdateien
+
+- `docs/system-inspection/EVENTBUS_CAN7_2_RECOVERY_READINESS_LIVE_TEST_ACCEPTANCE.md`
+  - korrigierte Testbefehle und Live-Abnahme
+- `docs/system-inspection/EVENTBUS_CAN7_2_1_RECOVERY_READINESS_TEST_FIELD_FIX.md`
+  - eigener Fix-Step für falsche Testfelder
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_2.md`
+  - korrigierte Übergabe
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_2_1.md`
+  - Übergabe für nächsten Schritt
+- `docs/current/README_CAN7_2_1_FILE_ZIP.md`
+  - ZIP-Hinweise
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
+## Nicht enthalten
+
+- `backend/modules/bus_diagnostics.js`
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+- Config-Dateien
+- DB-Dateien
+
+## Nächste relevante Datei
+
+Vor CAN-7.3 prüfen:
+
+~~~text
+htdocs/dashboard/modules/bus_diagnostics.js
+~~~
+
 # FILES – CAN-7.2 Recovery-Readiness Live-Test und Abnahmegrenze
 
 Stand: 2026-06-01

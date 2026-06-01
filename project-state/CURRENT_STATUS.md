@@ -1,3 +1,55 @@
+## STEP CAN-7.2.1 Recovery-Readiness Testfeld-Fix und Live-Abnahme
+
+Stand: 2026-06-01
+Marker: STEP_CAN7_2_1_RECOVERY_READINESS_TEST_FIELD_FIX
+
+CAN-7.1 wurde live geprüft und abgenommen.
+
+Bestätigt:
+
+~~~text
+bus_diagnostics version = 1.2.5
+recoveryReadiness.status = ready
+recoveryReadiness.canStartReadOnlyCode = True
+recoveryReadiness.readOnly = True
+recoveryReadiness.currentStep = CAN-7.1
+recoveryReadiness.nextAllowedStep = CAN-7.2_read_only_dashboard_display_planning
+~~~
+
+Sicherheitsflags bestätigt:
+
+~~~text
+automationEnabled = False
+productiveActions = False
+flowTouched = False
+queueTouched = False
+soundSystemTouched = False
+alertSystemTouched = False
+overlayTouched = False
+~~~
+
+CAN-7.2.1 korrigiert nur die Doku-Testfelder aus CAN-7.2 und dokumentiert die Live-Abnahme.
+
+Nicht geändert:
+
+~~~text
+Keine Backend-Datei
+Keine Dashboard-Datei
+Keine API-Route
+Keine Config
+Keine DB
+Keine Recovery-Ausführung
+Keine produktive Flow-Änderung
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-7.3: Dashboard-Read-only-Anzeige von recoveryReadiness planen/umsetzen
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN7_2_1_RECOVERY_READINESS_TEST_FIELD_FIX.md`
+
 ## STEP CAN-7.2 Recovery-Readiness Live-Test und Abnahmegrenze
 
 Stand: 2026-06-01

@@ -23,14 +23,34 @@ CAN-7.2 ist ein Test-/Abnahmeplan für CAN-7.1.
 
 Geändert wurde nur Doku/Projekt-State.
 
-## Wichtigste Tests
+CAN-7.2.1 hat anschließend die Testfelder korrigiert und den echten Live-Test als bestanden dokumentiert.
+
+## Korrigierte Tests
 
 ~~~powershell
-node -c backend\modulesus_diagnostics.js
+node -c backend\modules\bus_diagnostics.js
 
 $s = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/status"
-$s.recoveryReadiness | Select-Object enabled,mode,ready,stage,nextStep,canProceedToDashboard,requiresExplicitGo
-$s.recoveryReadiness.safety | Select-Object readOnly,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched,automationEnabled,productiveActions
+$s.recoveryReadiness | Select-Object status,canStartReadOnlyCode,readOnly,currentStep,nextAllowedStep
+$s.recoveryReadiness | Select-Object automationEnabled,productiveActions,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched
+$s.summary | Select-Object recoveryReadinessStatus,recoveryReadinessCanStartReadOnlyCode,recoveryReadinessNextStep
+~~~
+
+## Live bestätigt
+
+~~~text
+status = ready
+canStartReadOnlyCode = True
+readOnly = True
+currentStep = CAN-7.1
+nextAllowedStep = CAN-7.2_read_only_dashboard_display_planning
+automationEnabled = False
+productiveActions = False
+flowTouched = False
+queueTouched = False
+soundSystemTouched = False
+alertSystemTouched = False
+overlayTouched = False
 ~~~
 
 ## Weiterhin verboten
@@ -46,8 +66,6 @@ Keine POST-/Command-Route
 ~~~
 
 ## Nächster sinnvoller Schritt
-
-Nach erfolgreichem Live-Test:
 
 ~~~text
 CAN-7.3: Dashboard-Read-only-Anzeige von recoveryReadiness planen/umsetzen

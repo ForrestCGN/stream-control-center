@@ -1,7 +1,7 @@
 # EVENTBUS CAN-7.2 RECOVERY READINESS LIVE-TEST UND ABNAHMEGRENZE
 
 Stand: 2026-06-01
-Status: Test-/Abnahmeplan / keine Umsetzung
+Status: Live-Test abgenommen / Doku korrigiert durch CAN-7.2.1
 
 ## Zweck
 
@@ -43,58 +43,101 @@ Zu prüfen sind nur bestehende GET-Routen:
 ### Syntax
 
 ~~~powershell
-node -c backend\modulesus_diagnostics.js
+node -c backend\modules\bus_diagnostics.js
 ~~~
 
 ### Status kurz prüfen
 
 ~~~powershell
 $s = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/status"
-$s | Select-Object ok,module,version,statusApiVersion,readOnly,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched
+$s | Select-Object ok,module,version,statusApiVersion,feature,mode,readOnly
 ~~~
 
 ### Recovery-Readiness prüfen
 
 ~~~powershell
-$s.recoveryReadiness | Select-Object enabled,mode,ready,stage,nextStep,canProceedToDashboard,requiresExplicitGo
+$s.recoveryReadiness | Select-Object status,canStartReadOnlyCode,readOnly,currentStep,nextAllowedStep
 ~~~
 
 ### Sicherheitsflags prüfen
 
 ~~~powershell
-$s.recoveryReadiness.safety | Select-Object readOnly,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched,automationEnabled,productiveActions
+$s.recoveryReadiness | Select-Object automationEnabled,productiveActions,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched
+~~~
+
+### Summary-Felder prüfen
+
+~~~powershell
+$s.summary | Select-Object recoveryReadinessStatus,recoveryReadinessCanStartReadOnlyCode,recoveryReadinessNextStep
+~~~
+
+### Detailausgabe nur bei Bedarf
+
+~~~powershell
+$s.recoveryReadiness | ConvertTo-Json -Depth 10
 ~~~
 
 ### Blockierte Aktionen prüfen
 
 ~~~powershell
-$s.recoveryReadiness.blockedActions
+$s.recoveryReadiness.hardBlockedActions
 ~~~
 
 ### Check-Route prüfen
 
 ~~~powershell
 $c = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/check"
-$c.recoveryReadiness | Select-Object enabled,mode,ready,stage,nextStep,canProceedToDashboard,requiresExplicitGo
+$c.recoveryReadiness | Select-Object status,canStartReadOnlyCode,readOnly,currentStep,nextAllowedStep
 ~~~
 
-## Erwartetes Ergebnis
+## Tatsächlich getestetes Ergebnis
+
+Forrest hat den Live-Test am 2026-06-01 ausgeführt.
+
+Bestätigte Statuswerte:
 
 ~~~text
+module = bus_diagnostics
 version = 1.2.5
+statusApiVersion = 1.0.0
+feature = bus_dashboard_diagnostics
+mode = read_only_dashboard_preparation
 readOnly = True
+~~~
+
+Bestätigte Recovery-Readiness-Werte:
+
+~~~text
+status = ready
+canStartReadOnlyCode = True
+readOnly = True
+currentStep = CAN-7.1
+nextAllowedStep = CAN-7.2_read_only_dashboard_display_planning
+~~~
+
+Bestätigte Sicherheitsflags:
+
+~~~text
+automationEnabled = False
+productiveActions = False
 flowTouched = False
 queueTouched = False
 soundSystemTouched = False
 alertSystemTouched = False
 overlayTouched = False
-recoveryReadiness.mode = read_only
-recoveryReadiness.requiresExplicitGo = True
+~~~
+
+Bestätigte Summary-Werte:
+
+~~~text
+recoveryReadinessStatus = ready
+recoveryReadinessCanStartReadOnlyCode = True
+recoveryReadinessNextStep = CAN-7.2_read_only_dashboard_display_planning
 ~~~
 
 ## Harte Abnahmekriterien
 
-CAN-7.2 gilt nur als bestanden, wenn:
+CAN-7.2 gilt als bestanden, wenn:
 
 ~~~text
 node -c besteht
@@ -102,9 +145,13 @@ node -c besteht
 /api/bus-diagnostics/check antwortet
 version ist 1.2.5
 recoveryReadiness ist vorhanden
+recoveryReadiness.status ist ready
+recoveryReadiness.canStartReadOnlyCode ist true
 alle produktiven Touch-Flags bleiben false
-blockedActions enthalten weiterhin keine erlaubte Replay-/Auto-Recovery-Freigabe
+hardBlockedActions enthalten weiterhin keine erlaubte Replay-/Auto-Recovery-Freigabe
 ~~~
+
+Stand nach Live-Test: bestanden.
 
 ## Nicht geändert
 
@@ -121,7 +168,7 @@ Keine produktiven Flows geändert
 
 ## Grenze für CAN-7.3
 
-CAN-7.3 darf erst nach erfolgreicher CAN-7.2-Abnahme geplant werden.
+CAN-7.3 darf nach erfolgreicher CAN-7.2-Abnahme geplant werden.
 
 Erste sinnvolle CAN-7.3-Grenze:
 
