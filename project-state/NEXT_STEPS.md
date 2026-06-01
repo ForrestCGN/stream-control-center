@@ -3,39 +3,20 @@
 ## Naechster Schritt
 
 ```text
-CAN-14.5 lokal testen
+CAN-14.5 Safety Status View nach UI-Cleanup lokal erneut pruefen
 ```
 
-## Wenn CAN-14.5 lokal bestanden ist
+## Wenn lokal OK
 
 Dann:
 
 ```text
 CAN-14.5 accepted_local_test dokumentieren
-CAN-14.6 - Handoff / Abschluss Safety Status View read-only
+CAN-14.6 Handoff / Abschluss Safety Status View read-only
 ```
 
-## Wenn CAN-14.5 nicht bestanden ist
+## Wenn weiter UI-Probleme sichtbar sind
 
-Dann zuerst Fehler beheben.
+Dann Screenshot senden und nur UI/Lesbarkeit korrigieren.
 
-Benötigt:
-
-```text
-Browser-Konsole
-Network-Auffaelligkeiten
-Node-Log
-betroffener Subtab
-```
-
-## Weiterhin nicht direkt umsetzen
-
-- Alert Replay
-- Sound Replay
-- Queue Clear
-- Overlay State Repair
-- Execute Recovery
-- Auto Recovery
-- Auto Retry Overlay
-- Streamer.bot Action Retry
-- OBS Source Refresh
+Weiterhin keine Recovery-Funktion bauen.

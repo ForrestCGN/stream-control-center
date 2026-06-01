@@ -1,19 +1,19 @@
 # FILES
 
-## CAN14.5 Live-Test-Doku-ZIP
+## CAN14.5.1 UI-Cleanup-ZIP
 
 Enthaltene Dateien:
 
-- `docs/system-inspection/EVENTBUS_CAN14_5_DASHBOARD_SAFETY_STATUS_VIEW_LIVETEST_READONLY.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN14_5_PENDING.md`
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+- `docs/system-inspection/EVENTBUS_CAN14_5_1_SAFETY_STATUS_UI_CLEANUP.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN14_5_1.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## Technisch relevant, aber in CAN-14.5 nicht geaendert
+## Technisch relevant, aber nicht geaendert
 
-- `htdocs/dashboard/modules/bus_diagnostics.js`
 - `backend/modules/bus_diagnostics.js`
 - `backend/modules/communication_bus.js`

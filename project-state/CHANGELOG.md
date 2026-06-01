@@ -1,8 +1,13 @@
 # CHANGELOG
 
-## CAN-14.5
+## CAN-14.5.1
 
-- Live-Test-Dokumentation fuer Dashboard Safety Status View read-only erstellt.
-- Status bewusst auf `pending_local_test` gesetzt.
-- Keine Code-Aenderungen.
+- Safety Status UI-Cleanup umgesetzt.
+- Hard-Blocker-Zeilen trennen Status-Text und technische ID jetzt lesbar.
+- `safetyRow()` zeigt Notes blockweise unter dem Haupttext.
+- Neue lokale Renderhilfe `safetyHardBlockerRow()`.
+- Keine Backend-Aenderung.
+- Keine API.
+- Keine Route.
+- Keine Buttons.
 - Keine Recovery-Ausfuehrung.

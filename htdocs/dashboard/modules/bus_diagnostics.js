@@ -693,7 +693,13 @@
   }
 
   function safetyRow(label, status, text, note){
-    return `<div class="busdiag-row ${status === 'error' ? 'error' : (status === 'warning' ? 'warning' : '')}"><strong>${esc(label)}</strong><span>${esc(text)}${note ? `<small>${esc(note)}</small>` : ''}</span></div>`;
+    const rowClass = status === 'error' ? 'error' : (status === 'warning' ? 'warning' : '');
+    const noteHtml = note ? `<small style="display:block;opacity:.72;margin-top:3px;line-height:1.25;">${esc(note)}</small>` : '';
+    return `<div class="busdiag-row ${rowClass}"><strong>${esc(label)}</strong><span><span>${esc(text)}</span>${noteHtml}</span></div>`;
+  }
+
+  function safetyHardBlockerRow(action){
+    return `<div class="busdiag-row warning"><strong>${esc(hardBlockedActionLabel(action))}</strong><span><span>bewusst blockiert</span><small style="display:block;opacity:.72;margin-top:3px;line-height:1.25;font-family:monospace;">${esc(action)}</small></span></div>`;
   }
 
   function hardBlockedActionLabel(action){
@@ -836,7 +842,7 @@
       safetyRow('Duplikat-Sperre', 'warning', 'noch nicht aktiv', 'geplant, keine Implementierung')
     ].join('');
     const hardBlockedList = model.hardBlockedActions.length
-      ? `<div class="busdiag-list">${model.hardBlockedActions.map(action => safetyRow(hardBlockedActionLabel(action), 'warning', 'bewusst blockiert', action)).join('')}</div>`
+      ? `<div class="busdiag-list">${model.hardBlockedActions.map(safetyHardBlockerRow).join('')}</div>`
       : '<p class="busdiag-muted">Keine hart blockierten Aktionen gemeldet. Das sollte geprüft werden.</p>';
     return `
       <div class="busdiag-grid busdiag-grid-top">
