@@ -1,27 +1,15 @@
-# CURRENT STATUS
+# CURRENT_STATUS
 
-Stand: CAN-9.9
+## CAN-10.0
 
-Der Recovery-Preflight Route/Dashboard read-only Strang ist abgeschlossen.
+Recovery-Preflight Route/Dashboard read-only wurde in CAN-9.9 abgeschlossen.
 
-Die dedizierte Route existiert:
+CAN-10.0 definiert die Startgrenze fuer den ersten manuellen Recovery-Block.
 
-```text
-GET /api/bus-diagnostics/recovery-preflight
-```
-
-Sie ist read-only und wird im Dashboard im Recovery/Preflight-Untertab genutzt.
-
-Bestätigt:
+Erste erlaubte Richtung:
 
 ```text
-Route Version: CAN-9.4
-Route Safety: GET/read-only
-Checks: 13/13 ok
-Warnings: 0
-Blocking: 0
-Blocked: 0
-Scope: 6
+manual_diagnostics_refresh
 ```
 
-Keine Recovery-Ausführung ist implementiert.
+Nur Diagnose/Preflight neu laden, keine produktive Recovery.

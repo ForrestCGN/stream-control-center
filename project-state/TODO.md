@@ -1,15 +1,8 @@
 # TODO
 
-## Nächster Block
+## Recovery / Communication Bus
 
-- [ ] CAN-10.0 Manual Diagnostic Refresh Start Boundary planen.
-- [ ] Definieren, ob ein späterer Button nur Status/Preflight neu lädt oder auch Backend-Diagnose neu auslöst.
-- [ ] Sicherstellen, dass die erste Aktion keinerlei Queue-/Sound-/Alert-/Overlay-State verändert.
-
-## Weiterhin gesperrt
-
-- [ ] Keine echte Recovery-Ausführung.
-- [ ] Kein Alert-Replay.
-- [ ] Kein Sound-Replay.
-- [ ] Kein Overlay-Retry.
-- [ ] Kein Queue-Reset.
+- [x] CAN-8.x read-only Preflight Dashboard abgeschlossen
+- [x] CAN-9.x read-only Preflight Route/Dashboard abgeschlossen
+- [x] CAN-10.0 Startgrenze fuer sichere erste manuelle Diagnose-Aktion dokumentiert
+- [ ] CAN-10.1 UI-/Route-Vertrag fuer manual_diagnostics_refresh planen

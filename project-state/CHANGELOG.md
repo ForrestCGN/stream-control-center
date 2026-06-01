@@ -1,9 +1,8 @@
 # CHANGELOG
 
-## CAN-9.9
+## CAN-10.0
 
-- Recovery-Preflight Route/Dashboard read-only Strang abgeschlossen.
-- CAN-10.0 Startgrenze dokumentiert.
-- Keine Code-Dateien geändert.
-- Keine API-Route geändert.
-- Keine Recovery-Ausführung ergänzt.
+- Startgrenze fuer den ersten manuellen Recovery-Block dokumentiert.
+- Erste erlaubte Richtung auf `manual_diagnostics_refresh` begrenzt.
+- Keine Code-Aenderungen.
+- Keine Recovery-Ausfuehrung.
