@@ -3,23 +3,25 @@
 ## Naechster Schritt
 
 ```text
-CAN-16.2 - SafetyStop Display Contract read-only/no-api Planning
+CAN-16.3 - SafetyStop Integration Boundary read-only/no-api Planning
 ```
 
-## Ziel CAN-16.2
+## Ziel CAN-16.3
 
-Einen reinen Anzeige-/Contract-Entwurf fuer SafetyStop in der Safety Status View planen.
+Planen, an welchen bestehenden Safety-/Recovery-Anzeigen SafetyStop spaeter andocken duerfte, ohne API/Mutation.
 
-## CAN-16.2 darf klaeren
+## CAN-16.3 darf klaeren
 
 ```text
-welche Felder eine spaetere SafetyStop-Anzeige zeigen koennte
-welche Labels/Status-Level sinnvoll sind
-wie unknown/degraded/widerspruechlich dargestellt werden
-wie klar angezeigt wird, dass Clear nicht erlaubt ist
+Bezug zu Safety Status View
+Bezug zu Recovery Guards
+Bezug zu Preflight
+Bezug zu Audit Planning
+Bezug zu Confirm/Rights Planning
+harte Integrationsgrenzen
 ```
 
-## CAN-16.2 darf NICHT enthalten
+## CAN-16.3 darf NICHT enthalten
 
 ```text
 SafetyStop API

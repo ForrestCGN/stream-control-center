@@ -1,11 +1,12 @@
 # CHANGELOG
 
-## CAN-16.1
+## CAN-16.2
 
-- SafetyStop State Matrix read-only/no-api geplant.
-- Hauptmatrix, Widerspruchsregeln, Clear-Matrix, Recovery-Blockiermatrix und High-Risk-Aktionsmatrix dokumentiert.
-- Fail-safe-Default bestaetigt: unbekannt, degraded oder widerspruechlich blockiert.
-- CAN-16.2 SafetyStop Display Contract read-only/no-api Planning als naechster Schritt festgelegt.
+- SafetyStop Display Contract read-only/no-api geplant.
+- Display Contract Root, Pflichtfelder, optionale Felder und Feldregeln dokumentiert.
+- Anzeige-Mapping fuer inactive/active/unknown/degraded/contradictory geplant.
+- No-data Default und UX-Regeln dokumentiert.
+- CAN-16.3 SafetyStop Integration Boundary read-only/no-api Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
