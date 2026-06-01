@@ -298,4 +298,27 @@ function init({ app }) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} active (${MODULE_BUILD})`);
 }
 
-module.exports = { init, buildStatus, emitRedemption, MODULE_META: { name: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD } };
+module.exports = {
+  MODULE_META: {
+    name: MODULE_NAME,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    type: "runtime",
+    category: "channelpoints",
+    routePrefix: ROUTE_PREFIX,
+    routesPrefix: [ROUTE_PREFIX],
+    description: "EventSub Redemption Bridge fuer Channelpoints ueber Communication Bus.",
+    bus: {
+      registered: true,
+      heartbeat: false,
+      emits: ["channelpoints.redemption"],
+      listens: []
+    },
+    legacy: false
+  },
+  MODULE_VERSION,
+  version: MODULE_VERSION,
+  init,
+  buildStatus,
+  emitRedemption
+};

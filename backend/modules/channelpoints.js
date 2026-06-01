@@ -19,9 +19,19 @@ const DEFAULT_TARGET_PORT = 8080;
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
+  type: "runtime",
+  category: "channelpoints",
   routePrefix: ROUTE_PREFIX,
+  routesPrefix: [ROUTE_PREFIX],
   description: "Twitch Channel Points local reward CRUD foundation with Communication Bus registration",
-  build: MODULE_BUILD
+  bus: {
+    registered: true,
+    heartbeat: true,
+    emits: ["channelpoints.status", "channelpoints.redemption"],
+    listens: ["channelpoints.redemption"]
+  },
+  legacy: false
 };
 
 const DEFAULT_CONFIG = {
@@ -3087,4 +3097,4 @@ function init({ app }) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} API routes registered (${ROUTE_PREFIX})`);
 }
 
-module.exports = { MODULE_META, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildRedemptionEventSubStatus, previewRedemptionEventSubPayload, receiveRedemptionEventSubPayload, buildBusEventSpec, buildTwitchAuthScopeStatus, buildTwitchRewardManagementStatus, pushRewardToTwitch, deleteRewardFromTwitch, activateRewardSystemAndTwitch, deactivateRewardSystemAndTwitch, registerAtCommunicationBus, registerBusSubscription, heartbeatBus, publishStatus, isImportedRewardMissingAction };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, buildStatus, buildModel, buildMediaPlan, buildSchemaPreview, getDbStatus, buildExecutionCheck, executeReward, listRedemptions, buildRedemptionsStatus, buildRedemptionEventSubStatus, previewRedemptionEventSubPayload, receiveRedemptionEventSubPayload, buildBusEventSpec, buildTwitchAuthScopeStatus, buildTwitchRewardManagementStatus, pushRewardToTwitch, deleteRewardFromTwitch, activateRewardSystemAndTwitch, deactivateRewardSystemAndTwitch, registerAtCommunicationBus, registerBusSubscription, heartbeatBus, publishStatus, isImportedRewardMissingAction };

@@ -19,9 +19,19 @@ const TWITCH_REWARDS_URL = "https://api.twitch.tv/helix/channel_points/custom_re
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
+  type: "runtime",
+  category: "channelpoints",
   routePrefix: `${ROUTE_PREFIX}/twitch`,
+  routesPrefix: [`${ROUTE_PREFIX}/twitch`],
   description: "Read-only Twitch Custom Rewards sync add-on for the Channelpoints system",
-  build: MODULE_BUILD
+  bus: {
+    registered: true,
+    heartbeat: true,
+    emits: ["channelpoints.twitch_readonly_sync.status"],
+    listens: []
+  },
+  legacy: false
 };
 
 const DEFAULT_CONFIG = {
@@ -690,6 +700,8 @@ function init({ app }) {
 
 module.exports = {
   MODULE_META,
+  MODULE_VERSION,
+  version: MODULE_VERSION,
   init,
   buildStatus,
   readTwitchRewards,
