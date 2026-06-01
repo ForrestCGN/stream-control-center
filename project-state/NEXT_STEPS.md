@@ -1,3 +1,43 @@
+## Nach STEP CAN-6.7
+
+Marker: STEP_CAN6_7_NEXT_STEPS
+
+Nächster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-6.8: Recovery-Safety-Stop- und Clear-Regelwerk planen
+~~~
+
+Ziel von CAN-6.8:
+
+~~~text
+Noch kein Code.
+Noch keine Buttons.
+Noch keine Recovery-Ausführung.
+Nur Regelwerk: Safety-Stop -> Modul-Stop -> Clear-Hinweis -> Review-Hinweis -> Rollback-Hinweis.
+~~~
+
+Pflichtfragen vor Umsetzung:
+
+~~~text
+Welche Safety-Stop-Arten braucht es?
+Welche Stopps sind global, welche modulbezogen?
+Wer darf spaeter einen Clear anfordern?
+Welche Clear-Aktion bleibt nur Diagnose?
+Welche Clear-Aktion waere spaeter Low-Risk?
+Welche Rollback-Hinweise muessen angezeigt werden?
+Wie wird verhindert, dass Clear automatisch produktive Aktionen ausloest?
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery.
+Keine Recovery-Buttons.
+Keine produktive Flow-Änderung.
+Keine Replay-/Retry-Aktion.
+~~~
+
 ## Nach STEP CAN-6.6
 
 Marker: STEP_CAN6_6_NEXT_STEPS

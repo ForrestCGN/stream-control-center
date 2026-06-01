@@ -1,3 +1,61 @@
+## Abschluss-/Übergabestand CAN-6.7
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_7_RECOVERY_COMMAND_AUDIT_STATE_MAPPING
+
+CAN-6.7 definiert das Mapping fuer spaetere Recovery-Command-Zustaende, Audit-Ereignisse, Diagnose-State-Felder und Dashboard-Anzeige.
+
+Aktueller Fokus:
+
+~~~text
+Communication-Bus / EventBus Diagnose
+Recovery-Strategy-State
+Manuelle Recovery-Aktionsmatrix
+Backend-Schutzvertrag fuer spaetere Recovery-Aktionen
+Audit- und Bestätigungs-Code-Konzept
+Read-only Recovery-Preflight-API-Konzept
+Dashboard-Preflight-Anzeige und UX-Regeln
+Recovery-Ausfuehrungs-Command-Konzept
+Recovery-Command-Audit-/State-Mapping
+~~~
+
+Definiert wurde:
+
+~~~text
+Command-Zustaende
+Audit-Ereignisse pro Zustand
+Mapping Zustand -> Audit -> Anzeige
+geplante State-Felder
+standardisierte Blockierungsgruende
+Dashboard-Anzeige ohne Aktion
+Rollback-/Clear-Hinweise ohne Automatik
+Testregeln fuer spaetere Code-Steps
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine neuen Routen
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine Dashboard-Code-Änderung
+Keine produktive Flow-Änderung
+Keine DB-/Config-Migration
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-6.8: Recovery-Safety-Stop- und Clear-Regelwerk planen
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN6_7_RECOVERY_COMMAND_AUDIT_STATE_MAPPING.md`
+Übergabe: `docs/current/CURRENT_CHAT_HANDOFF_CAN6_7.md`
+
 ## Abschluss-/Übergabestand CAN-6.6
 
 Stand: 2026-06-01

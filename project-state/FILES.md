@@ -1,3 +1,42 @@
+# FILES – CAN-6.7 / Recovery Command Audit-State Mapping
+
+Stand: 2026-06-01
+
+## Aktueller Dokumentationsstand
+
+- `docs/system-inspection/EVENTBUS_CAN6_7_RECOVERY_COMMAND_AUDIT_STATE_MAPPING.md`
+  - Command-Zustaende
+  - Audit-Ereignisse
+  - Mapping Zustand -> Audit -> Anzeige
+  - geplante State-Felder
+  - standardisierte Blockierungsgruende
+  - Rollback-/Clear-Hinweise
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_7.md`
+  - Übergabe fuer den naechsten Chat/Step
+- `docs/current/README_CAN6_7_FILE_ZIP.md`
+  - Entpack-/Abschluss-Hinweise fuer dieses Datei-ZIP
+
+## Weiterhin relevante Vorgänger-Dokumente
+
+- `docs/system-inspection/EVENTBUS_CAN6_1_MANUAL_RECOVERY_ACTION_MATRIX.md`
+- `docs/system-inspection/EVENTBUS_CAN6_2_BACKEND_RECOVERY_GUARD_CONTRACT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_3_RECOVERY_AUDIT_CONFIRMATION_CONCEPT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_4_READONLY_RECOVERY_PREFLIGHT_API_CONCEPT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_5_DASHBOARD_PREFLIGHT_READONLY_UX_CONCEPT.md`
+- `docs/system-inspection/EVENTBUS_CAN6_6_RECOVERY_EXECUTION_COMMAND_CONCEPT.md`
+
+## Weiterhin nicht anfassen ohne separates Go
+
+- Keine Recovery-Automatik aktivieren.
+- Keine Simulation-Buttons im Dashboard ergänzen.
+- Keine Recovery-Buttons im Dashboard ergänzen.
+- Keine Alert-/Sound-Replays erlauben.
+- Keine produktive Queue-/Sound-/Overlay-Logik umbauen.
+- Keine neue API-Route ohne separaten Code-Step bauen.
+- Keine Dashboard-Code-Datei ohne echte Datei-Prüfung ändern.
+
+---
+
 # FILES – CAN-6.6 / Recovery Execution Command Concept
 
 Stand: 2026-06-01

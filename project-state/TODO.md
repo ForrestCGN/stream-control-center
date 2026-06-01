@@ -1,3 +1,26 @@
+## CAN-6.8 / Recovery-Safety-Stop- und Clear-Regelwerk
+
+- [x] CAN-6.7 Recovery-Command-Audit-/State-Mapping dokumentieren.
+- [ ] CAN-6.8 Recovery-Safety-Stop- und Clear-Regelwerk planen.
+- [ ] Globale Safety-Stop-Arten definieren.
+- [ ] Modulbezogene Stopps definieren.
+- [ ] Clear-/Review-/Rollback-Hinweise voneinander trennen.
+- [ ] Low-Risk-Clear-Aktionen konzeptionell abgrenzen.
+- [ ] Weiterhin hart blockierte Clear-/Recovery-Aktionen definieren.
+- [ ] Sicherstellen: Clear darf keine produktive Ausgabe automatisch starten.
+
+## CAN-6.7 / Recovery-Command-Audit-/State-Mapping
+
+- [x] CAN-6.6 Recovery-Ausfuehrungs-Command-Konzept dokumentieren.
+- [x] CAN-6.7 Recovery-Command-Audit-/State-Mapping planen.
+- [x] Command-Zustaende definieren.
+- [x] Audit-Events pro Command-Zustand definieren.
+- [x] State-Felder fuer spaetere Anzeige und Diagnose festlegen.
+- [x] Blockierungsgruende standardisieren.
+- [x] Dashboard-Anzeige nach blockiertem Command planen.
+- [x] Rollback-/Clear-Anzeige ohne automatische Ausfuehrung planen.
+- [x] Sicherstellen: keine produktive Recovery ohne separaten Code-Step.
+
 ## CAN-6.7 / Recovery-Command-Audit-/State-Mapping
 
 - [x] CAN-6.6 Recovery-Ausfuehrungs-Command-Konzept dokumentieren.

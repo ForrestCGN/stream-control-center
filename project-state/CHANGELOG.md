@@ -1,3 +1,44 @@
+# CHANGELOG – CAN-6.7 Recovery-Command-Audit-/State-Mapping
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN6_7_RECOVERY_COMMAND_AUDIT_STATE_MAPPING.md` ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_7.md` ergänzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.7 Abschlussstand erweitert.
+- `project-state/NEXT_STEPS.md` um CAN-6.8 als nächsten Arbeitsblock erweitert.
+- `project-state/TODO.md` um CAN-6.7/CAN-6.8 Aufgaben erweitert.
+- `project-state/FILES.md` um CAN-6.7 Dateien erweitert.
+
+## Definiert
+
+- Command-Zustaende fuer spaetere Recovery-Commands.
+- Audit-Ereignisse pro Zustand.
+- Mapping von Zustand zu Audit-Ereignis und Dashboard-Anzeige.
+- Geplante Diagnose-State-Felder.
+- Standardisierte Blockierungsgruende.
+- Dashboard-Anzeige ohne Aktion.
+- Rollback-/Clear-Hinweise ohne Automatik.
+- Testregeln fuer spaetere Code-Steps.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Route ergänzt.
+- Keine Dashboard-Datei geändert.
+- Keine Recovery-Buttons ergänzt.
+- Keine Simulation-Buttons ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+
+## Nächster Block
+
+- CAN-6.8: Recovery-Safety-Stop- und Clear-Regelwerk planen.
+
+---
+
 # CHANGELOG – CAN-6.6 Recovery-Ausfuehrungs-Command-Konzept
 
 Stand: 2026-06-01
