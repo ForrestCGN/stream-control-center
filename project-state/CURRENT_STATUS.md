@@ -1,3 +1,20 @@
+## STEP CAN-5.1 Recovery Strategy State read-only
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_1_RECOVERY_STRATEGY_STATE
+
+Bus-Diagnostics zeigt jetzt zusätzlich einen read-only Recovery-Strategy-Status.
+
+```text
+bus_diagnostics: 1.2.3
+recoveryStrategyState.mode: read_only
+automationEnabled: false
+flowTouched: false
+blockedActions: auto_replay_alert, auto_replay_sound, auto_retry_overlay, auto_recovery
+```
+
+Keine produktive Recovery-Automatik wurde aktiviert.
+
 ## STEP CAN-5.0 Recovery-/Timeout-Strategie geplant
 
 Stand: 2026-06-01

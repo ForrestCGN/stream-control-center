@@ -11,17 +11,17 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.2.2';
+const VERSION = '1.2.3';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP_CAN3_5',
+  build: 'STEP_CAN5_1',
   type: 'runtime',
   category: 'diagnostics',
-  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics and handshake-state aggregator.',
+  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state and recovery-strategy aggregator.',
   routesPrefix: ['/api/bus-diagnostics'],
   bus: {
     registered: false,
@@ -77,7 +77,7 @@ function init(ctx) {
       routes: [
         { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Read-only Bus-Diagnose Aggregatstatus.' },
         { method: 'GET', path: '/api/bus-diagnostics/check', description: 'Read-only Bus-Diagnose Aktualisierung.' },
-        { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Enthaelt STEP CAN-2 resilienceMatrix, STEP CAN-2.2 optionalDiagnostics und STEP CAN-3.5 handshakeState.' },
+        { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Enthaelt STEP CAN-2 resilienceMatrix, STEP CAN-2.2 optionalDiagnostics, STEP CAN-3.5 handshakeState und STEP CAN-5.1 recoveryStrategyState.' },
         { method: 'GET', path: '/api/bus-diagnostics/routes', description: 'Read-only Routenübersicht.' }
       ],
       dashboard: {
@@ -87,7 +87,7 @@ function init(ctx) {
     });
   });
 
-  console.log('[bus_diagnostics] STEP_CAN3_5 Dashboard diagnostics, resilience matrix, optional diagnostics and handshake state prepared');
+  console.log('[bus_diagnostics] STEP_CAN5_1 Dashboard diagnostics, resilience matrix, optional diagnostics, handshake state and recovery strategy prepared');
 }
 
 function registerGet(app, routePath, handler) {
@@ -143,6 +143,7 @@ async function buildStatus(query, requestedCheck) {
     alertEventBus: compactFetch(alert),
     alertStatus: compactFetch(alertStatus),
     alertSoundCorrelation: compactFetch(correlation),
+    recoveryStrategyState: diagnostics.recoveryStrategyState,
     vipStatus: compactFetch(vip),
     vipIntegration: compactFetch(vipIntegration),
     resilienceMatrix: diagnostics.resilienceMatrix,
@@ -221,6 +222,7 @@ function analyze(parts) {
     vipBody,
     vipIntegrationBody
   });
+  const recoveryStrategyState = buildRecoveryStrategyState(correlationBody);
   if (vipIntegrationErrors > 0) warnings.push('vip_integration_reports_errors');
   resilienceMatrix.summary.warningKeys.forEach(key => { if (!warnings.includes(key)) warnings.push(key); });
   resilienceMatrix.summary.errorKeys.forEach(key => { if (!errors.includes(key)) errors.push(key); });
@@ -267,12 +269,106 @@ function analyze(parts) {
     matrixOk: resilienceMatrix.summary.ok,
     matrixWarnings: resilienceMatrix.summary.warningCount,
     matrixErrors: resilienceMatrix.summary.errorCount,
+    recoveryStrategyMode: recoveryStrategyState.mode,
+    recoveryStrategyState: recoveryStrategyState.state,
+    recoveryAllowedActions: recoveryStrategyState.allowedActions.length,
+    recoveryBlockedActions: recoveryStrategyState.blockedActions.length,
     optionalInfoCount: optionalInfo.length,
     optionalInfo,
     status: errors.length ? 'error' : (warnings.length ? 'warning' : 'ok')
   };
 
-  return { summary, warnings, optionalInfo, errors, resilienceMatrix };
+  return { summary, warnings, optionalInfo, errors, resilienceMatrix, recoveryStrategyState };
+}
+
+function buildRecoveryStrategyState(correlationBody) {
+  const handshake = (correlationBody || {}).handshakeState || {};
+  const visual = (correlationBody || {}).visualDeliveryState || {};
+  const comparison = (correlationBody || {}).comparison || {};
+  const warnings = Array.isArray((correlationBody || {}).warnings) ? (correlationBody || {}).warnings : [];
+  const reasons = [];
+  const allowedActions = [];
+  const blockedActions = ['auto_replay_alert', 'auto_replay_sound', 'auto_retry_overlay', 'auto_recovery'];
+
+  const handshakeState = String(handshake.state || '').trim();
+  const visualState = String(visual.state || '').trim();
+  const unmatched = Number(comparison.unmatched || handshake.unmatched || 0);
+  const missingAck = Number(visual.missingAck || 0);
+  const noClient = Number(visual.noClient || 0);
+  const waiting = Number(visual.waiting || 0);
+
+  let stateName = 'observe';
+  let severity = 'info';
+  let nextAction = '';
+
+  if (!correlationBody || correlationBody.ok === false) {
+    stateName = 'correlation_status_unavailable';
+    severity = 'warning';
+    reasons.push('correlation_status_unavailable');
+    nextAction = 'check_alert_sound_correlation_route';
+  } else if (unmatched > 0) {
+    stateName = 'blocked_unmatched_alert_sound';
+    severity = 'warning';
+    reasons.push('unmatched_alert_sound_rows');
+    nextAction = 'manual_trace_review';
+  } else if (missingAck > 0 || visualState === 'matched_but_visual_ack_missing') {
+    stateName = 'blocked_missing_visual_ack';
+    severity = 'warning';
+    reasons.push('missing_visual_finish_ack');
+    nextAction = 'manual_overlay_review';
+  } else if (noClient > 0 || visualState === 'matched_but_no_overlay_client') {
+    stateName = 'blocked_no_overlay_client';
+    severity = 'warning';
+    reasons.push('no_overlay_client_at_send');
+    nextAction = 'check_obs_browser_source';
+  } else if (waiting > 0 || visualState === 'matched_waiting_for_visual_ack') {
+    stateName = 'observe_waiting_for_ack';
+    severity = 'info';
+    reasons.push('visual_ack_still_inside_expected_window');
+    nextAction = 'wait_until_expected_ack_deadline';
+  } else if (handshakeState === 'matched' && visualState === 'matched_and_visual_acknowledged') {
+    stateName = 'ok_no_recovery_needed';
+    severity = 'ok';
+    reasons.push('handshake_and_visual_acknowledged');
+    allowedActions.push('none');
+  } else if (handshakeState === 'idle_no_recent_handshake' && visualState === 'idle_no_recent_visual_delivery') {
+    stateName = 'idle';
+    severity = 'ok';
+    reasons.push('no_recent_alert_to_recover');
+    allowedActions.push('none');
+  } else if (warnings.length > 0) {
+    stateName = 'observe_warning';
+    severity = 'warning';
+    reasons.push('correlation_warnings_present');
+    nextAction = 'manual_warning_review';
+  } else {
+    reasons.push('read_only_no_action_required');
+    allowedActions.push('none');
+  }
+
+  return {
+    ok: severity !== 'warning' && severity !== 'error',
+    warning: severity === 'warning',
+    mode: 'read_only',
+    state: stateName,
+    severity,
+    readOnly: true,
+    flowTouched: false,
+    automationEnabled: false,
+    allowedActions,
+    blockedActions,
+    reasons,
+    nextAction,
+    source: {
+      handshakeState,
+      visualDeliveryState: visualState,
+      unmatched,
+      missingAck,
+      noClient,
+      waiting
+    },
+    checkedAt: new Date().toISOString()
+  };
 }
 
 function buildResilienceMatrix(parts) {

@@ -1,3 +1,15 @@
+## Nach STEP CAN-5.1
+
+Marker: STEP_CAN5_1_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+```text
+CAN-5.2: Recovery Strategy Live-Test mit Normalfall und ggf. fehlendem ACK/noClient planen
+```
+
+Weiterhin keine automatische Recovery aktivieren, bevor Fehlerfälle bewusst simuliert und dokumentiert sind.
+
 ## Nach STEP CAN-5.0
 
 Marker: STEP_CAN5_0_NEXT_STEPS
