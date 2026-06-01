@@ -2,12 +2,13 @@
 
 ## Naechster Schritt
 
-CAN-12.0 - Manual Recovery Guard Framework Start Boundary
+CAN-12.1 - Manual Recovery Guard Catalog Plan
 
 Ziel:
 
-- Guard-Begriffe vereinheitlichen
-- Guard-Auswertung strukturieren
-- Dashboard-Darstellung fuer Guards planen
-- weiterhin keine produktive Recovery
-- noch kein Code
+- Guard-Katalog erstellen
+- Input-Felder je Guard definieren
+- Erfolg-/Fehlerkriterien definieren
+- Blocking-Verhalten definieren
+- Dashboard-Labels definieren
+- keine Code-Aenderung

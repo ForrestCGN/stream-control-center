@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## CAN-11.6
+## CAN-12.0
 
-- CAN-11.x Block `manual_status_resync_request` abgeschlossen.
-- CAN-12 Startgrenze fuer ein Manual Recovery Guard Framework dokumentiert.
+- CAN-12 Block fuer Manual-Recovery-Guard-Framework gestartet.
+- Guard-Kategorien grob definiert.
+- Minimaler Guard-Ergebnisvertrag geplant.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
