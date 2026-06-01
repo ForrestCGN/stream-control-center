@@ -23,3 +23,17 @@
 - Weiterhin keine POST-/Command-/Prepare-/Execute-Route.
 - Keine Code-Aenderungen.
 - Keine produktive Flow-Aenderung.
+
+## CAN-13.1
+
+- Audit-Konzept fuer spaetere manuelle Recovery-Aktionen dokumentiert.
+- Audit-Stufen Request / Decision / Result definiert.
+- Pflichtfelder, Audit-Zeitpunkte und Audit-Ergebnisse geplant.
+- Harte Audit-Regeln und Datenschutz-/Secrets-Grenzen dokumentiert.
+- Naechster Schritt als Rollen-/Rechte-Konzept definiert.
+- Weiterhin keine Recovery-Ausfuehrung.
+- Weiterhin keine POST-/Command-/Prepare-/Execute-Route.
+- Keine DB-Migration.
+- Keine Audit-Schreibroute.
+- Keine Code-Aenderungen.
+- Keine produktive Flow-Aenderung.

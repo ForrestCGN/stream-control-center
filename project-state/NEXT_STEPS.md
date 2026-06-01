@@ -5,24 +5,23 @@
 Empfohlener Start:
 
 ```text
-CAN-13.1 - Audit-Konzept fuer spaetere manuelle Recovery
+CAN-13.2 - Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery
 ```
 
-## Ziel CAN-13.1
+## Ziel CAN-13.2
 
-CAN-13.1 soll das Audit-Konzept fuer spaetere manuelle Recovery-Aktionen planen.
+CAN-13.2 soll das Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery-Aktionen planen.
 
 Klaeren:
 
-- Welche Audit-Felder sind Pflicht?
-- Wann wird spaeter geloggt?
-- Wer ist der Actor?
-- Welche Rolle/Berechtigung wird gespeichert?
-- Welcher Recovery-Kandidat wurde angefragt?
-- Welche Guards wurden geprueft?
-- Welches Ergebnis wurde erreicht?
-- Wie werden Abbrueche und Fehler dokumentiert?
-- Wie wird spaeter verhindert, dass Recovery-Aktionen ohne Audit laufen?
+- Welche Rollen duerfen spaeter Recovery-Diagnose sehen?
+- Welche Rollen duerfen spaeter Recovery vorbereiten?
+- Welche Rollen duerfen spaeter Recovery ausfuehren, falls ueberhaupt?
+- Welche Aktionen bleiben fuer alle Rollen hart blockiert?
+- Wie muss das Backend Rechte serverseitig pruefen?
+- Wie darf das Dashboard Aktionen sichtbar machen?
+- Wie werden Denied-/Blocked-Entscheidungen spaeter auditiert?
+- Wie wird verhindert, dass Dashboard-Sichtbarkeit allein als Berechtigung gilt?
 
 ## Weiterhin nicht direkt umsetzen
 
@@ -34,14 +33,14 @@ Klaeren:
 - Auto-Recovery
 - POST-/Command-/Prepare-/Execute-Route
 - produktive Recovery-Buttons
+- Rechte-API ohne separaten Plan
 - DB-Migration ohne separaten Plan
 - Config-Schreibzugriffe
 
 ## CAN-13.x geplante Reihenfolge
 
 ```text
-CAN-13.1 Audit-Konzept fuer spaetere manuelle Recovery
-CAN-13.2 Rollen-/Rechte-Konzept
+CAN-13.2 Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery
 CAN-13.3 Confirm-/Bestaetigungs-Konzept
 CAN-13.4 SafetyStop-/Cancel-Konzept
 CAN-13.5 Recovery-Kandidatenmatrix
