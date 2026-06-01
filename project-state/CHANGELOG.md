@@ -94,3 +94,12 @@
 - CAN-14.3 Dashboard Safety Status Anzeige Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
+
+## CAN-14.3
+
+- Dashboard Safety Status Anzeige read-only geplant.
+- Kartenstruktur, Level-Logik und False-/Unknown-/Blocked-Anzeige dokumentiert.
+- Festgelegt: keine Buttons in der ersten Safety-Status-Anzeige.
+- CAN-14.4 Dashboard Safety Status Anzeige Implementation read-only als naechster Schritt festgelegt.
+- Keine Code-Aenderungen.
+- Keine Recovery-Ausfuehrung.

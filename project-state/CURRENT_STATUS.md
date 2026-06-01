@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-## Stand: CAN-14.2 abgeschlossen
+## Stand: CAN-14.3 abgeschlossen
 
 Der Recovery-/Preflight-/Guard-Framework-Strang ist weiterhin read-only abgeschlossen.
 
@@ -19,6 +19,7 @@ Abgeschlossen:
 - CAN-14.0 Read-only Safety Status View Planning
 - CAN-14.1 Safety Status Contract read-only
 - CAN-14.2 Backend Status Shape read-only Planning
+- CAN-14.3 Dashboard Safety Status Anzeige Planning
 
 ## Aktuelle read-only Funktionen
 
@@ -41,7 +42,7 @@ Errors: 0
 Blocking Failed: 0
 ```
 
-## CAN-14.2 Sicherheitsstand
+## CAN-14.3 Sicherheitsstand
 
 Weiterhin keine Recovery-Ausfuehrung.
 
@@ -58,16 +59,17 @@ safetyStatusApi: false
 dashboardSafetyStatusView: false
 dashboardRecoveryButtons: false
 backendSafetyStatusShapeImplemented: false
+dashboardSafetyStatusPlanned: true
 ```
 
-## CAN-14.2 Ergebnis
+## CAN-14.3 Ergebnis
 
 ```text
-Backend Status Shape read-only geplant.
-bus_diagnostics ist spaeter naheliegender Modul-Kandidat.
-MutationCheck als Pflichtbestandteil geplant.
-Feldherkunft und unknown-Regeln festgelegt.
-Naechster Schritt ist CAN-14.3 Dashboard Safety Status Anzeige planen.
+Dashboard Safety Status Anzeige geplant.
+Kartenstruktur und UI-Bedeutung festgelegt.
+False, unknown und blocked werden kontextabhaengig angezeigt.
+Keine Buttons in der ersten Safety-Status-Anzeige.
+Naechster Schritt ist CAN-14.4 Dashboard Safety Status Anzeige umsetzen, falls freigegeben.
 ```
 
 ## Weiterhin hart blockiert

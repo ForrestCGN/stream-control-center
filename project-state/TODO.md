@@ -23,4 +23,5 @@
 - [x] CAN-14.0 Read-only Safety Status View Planning
 - [x] CAN-14.1 Safety Status Contract read-only
 - [x] CAN-14.2 Backend Status Shape read-only Planning
-- [ ] CAN-14.3 Dashboard Safety Status Anzeige Planning
+- [x] CAN-14.3 Dashboard Safety Status Anzeige Planning
+- [ ] CAN-14.4 Dashboard Safety Status Anzeige Implementation read-only
