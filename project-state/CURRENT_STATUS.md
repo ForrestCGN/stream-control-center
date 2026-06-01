@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-16.2 abgeschlossen
+## Stand: CAN-16.3 abgeschlossen
 
-CAN-16.2 hat den SafetyStop Display Contract read-only/no-api geplant.
+CAN-16.3 hat die SafetyStop Integration Boundary read-only/no-api geplant.
 
 ## SafetyStop-Status
 
@@ -10,6 +10,7 @@ CAN-16.2 hat den SafetyStop Display Contract read-only/no-api geplant.
 safetyStopPlanning: true
 safetyStopStateMatrix: true
 safetyStopDisplayContract: true
+safetyStopIntegrationBoundary: true
 safetyStopApi: false
 safetyStopDb: false
 safetyStopDashboard: false
@@ -32,14 +33,13 @@ recoveryExecution: false
 dashboardRecoveryButtons: false
 ```
 
-## CAN-16.2 Ergebnis
+## CAN-16.3 Ergebnis
 
 ```text
-SafetyStop-Anzeigevertrag geplant.
-No-data Default definiert.
-unknown/degraded duerfen nicht als OK erscheinen.
-Clear bleibt unsichtbar/nicht erlaubt.
-Keine Karte/Route/API gebaut.
+SafetyStop darf spaeter nur als read-only Status/Blockierinformation andocken.
+Keine Datenrichtung darf SafetyStop veraendern.
+unknown/degraded/widerspruechlich blockiert.
+Keine API, keine Route, keine Karte, kein Button.
 ```
 
 ## Weiterhin hart blockiert
@@ -68,5 +68,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-16.3 - SafetyStop Integration Boundary read-only/no-api Planning
+CAN-16.4 - SafetyStop Planning Closure / Handoff
 ```

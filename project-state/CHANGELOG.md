@@ -1,12 +1,12 @@
 # CHANGELOG
 
-## CAN-16.2
+## CAN-16.3
 
-- SafetyStop Display Contract read-only/no-api geplant.
-- Display Contract Root, Pflichtfelder, optionale Felder und Feldregeln dokumentiert.
-- Anzeige-Mapping fuer inactive/active/unknown/degraded/contradictory geplant.
-- No-data Default und UX-Regeln dokumentiert.
-- CAN-16.3 SafetyStop Integration Boundary read-only/no-api Planning als naechster Schritt festgelegt.
+- SafetyStop Integration Boundary read-only/no-api geplant.
+- Integrationsgrenzen zu Safety Status View, Recovery Guards, Preflight, Audit, Confirm, Rights/Roles und Candidate Matrix dokumentiert.
+- Erlaubte Datenrichtung und No-Mutation-Regel festgelegt.
+- API-/Dashboard-/EventBus-/DB-Grenzen dokumentiert.
+- CAN-16.4 SafetyStop Planning Closure / Handoff als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

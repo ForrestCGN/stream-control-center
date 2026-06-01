@@ -3,25 +3,23 @@
 ## Naechster Schritt
 
 ```text
-CAN-16.3 - SafetyStop Integration Boundary read-only/no-api Planning
+CAN-16.4 - SafetyStop Planning Closure / Handoff
 ```
 
-## Ziel CAN-16.3
+## Ziel CAN-16.4
 
-Planen, an welchen bestehenden Safety-/Recovery-Anzeigen SafetyStop spaeter andocken duerfte, ohne API/Mutation.
+Den CAN-16 SafetyStop-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
 
-## CAN-16.3 darf klaeren
+## CAN-16.4 soll zusammenfassen
 
 ```text
-Bezug zu Safety Status View
-Bezug zu Recovery Guards
-Bezug zu Preflight
-Bezug zu Audit Planning
-Bezug zu Confirm/Rights Planning
-harte Integrationsgrenzen
+CAN-16.0 SafetyStop Status Concept
+CAN-16.1 SafetyStop State Matrix
+CAN-16.2 SafetyStop Display Contract
+CAN-16.3 SafetyStop Integration Boundary
 ```
 
-## CAN-16.3 darf NICHT enthalten
+## CAN-16.4 darf NICHT enthalten
 
 ```text
 SafetyStop API
