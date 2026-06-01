@@ -1,3 +1,25 @@
+## CAN-6.10 / Abschlusscheck und Übergabe nach CAN-7.0
+
+- [x] CAN-6.9 Recovery-Implementierungsreihenfolge und Code-Grenzen dokumentieren.
+- [ ] CAN-6.10 CAN-6.x Abschlusscheck vorbereiten.
+- [ ] CAN-6.1 bis CAN-6.9 zusammenfassen.
+- [ ] Weiterhin hart blockierte Aktionen erneut bestaetigen.
+- [ ] CAN-7.0 Startbedingungen definieren.
+- [ ] Echte Dateien fuer CAN-7.0 Pruefung benennen.
+- [ ] Sicherstellen: CAN-7.0 startet maximal read-only.
+- [ ] Chat-Handoff fuer CAN-7.0 vorbereiten.
+
+## CAN-6.9 / Recovery-Implementierungsreihenfolge und erste Code-Step-Grenzen
+
+- [x] CAN-6.8 Recovery-Safety-Stop- und Clear-Regelwerk dokumentieren.
+- [x] CAN-6.9 Implementierungsreihenfolge und erste Code-Step-Grenzen planen.
+- [x] Echte Backend-Dateien fuer spaetere Pruefung benennen.
+- [x] Ersten maximal erlaubten read-only Code-Step abgrenzen.
+- [x] Spaeter betroffene Dashboard-Datei benennen.
+- [x] Tests vor jedem Code-Step festlegen.
+- [x] Verbotene erste Code-Schritte explizit dokumentieren.
+- [x] Sicherstellen: keine Recovery-Ausfuehrung im ersten Code-Step.
+
 ## CAN-6.9 / Recovery-Implementierungsreihenfolge und erste Code-Step-Grenzen
 
 - [x] CAN-6.8 Recovery-Safety-Stop- und Clear-Regelwerk dokumentieren.

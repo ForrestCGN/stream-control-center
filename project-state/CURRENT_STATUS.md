@@ -1,3 +1,64 @@
+## Abschluss-/Übergabestand CAN-6.9
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_9_RECOVERY_IMPLEMENTATION_SEQUENCE_GATES
+
+CAN-6.9 definiert die verbindliche Implementierungsreihenfolge und die harten Code-Grenzen fuer spaetere manuelle Recovery-Arbeiten.
+
+Aktueller Fokus:
+
+~~~text
+Communication-Bus / EventBus Diagnose
+Recovery-Strategy-State
+Manuelle Recovery-Aktionsmatrix
+Backend-Schutzvertrag fuer spaetere Recovery-Aktionen
+Audit- und Bestätigungs-Code-Konzept
+Read-only Recovery-Preflight-API-Konzept
+Dashboard-Preflight-Anzeige und UX-Regeln
+Recovery-Ausfuehrungs-Command-Konzept
+Recovery-Command-Audit-/State-Mapping
+Recovery-Safety-Stop- und Clear-Regelwerk
+Recovery-Implementierungsreihenfolge und Code-Grenzen
+~~~
+
+Definiert wurde:
+
+~~~text
+verbindliche Implementierungsreihenfolge
+Phase 0 echte Dateien pruefen
+Phase 1 read-only Backend-Diagnose
+Phase 2 read-only Statusroute
+Phase 3 Dashboard nur Anzeige
+Phase 4 Preflight nur nach separatem Go
+Phase 5 Command-Konzept bleibt gesperrt
+harte Gates vor jedem Code-Step
+Testregeln fuer den ersten spaeteren Code-Step
+CAN-7.0 Startgrenze
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine neuen Routen
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine Dashboard-Code-Änderung
+Keine produktive Flow-Änderung
+Keine DB-/Config-Migration
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-6.10: CAN-6.x Abschlusscheck und Übergabe nach CAN-7.0 vorbereiten
+~~~
+
+Details/Übergabe: `docs/current/CURRENT_CHAT_HANDOFF_CAN6_9.md`
+
 ## Abschluss-/Übergabestand CAN-6.8
 
 Stand: 2026-06-01

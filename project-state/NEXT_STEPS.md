@@ -1,3 +1,42 @@
+## Nach STEP CAN-6.9
+
+Marker: STEP_CAN6_9_NEXT_STEPS
+
+Nächster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-6.10: CAN-6.x Abschlusscheck und Übergabe nach CAN-7.0 vorbereiten
+~~~
+
+Ziel von CAN-6.10:
+
+~~~text
+Noch kein Code.
+Noch keine Buttons.
+Noch keine Recovery-Ausführung.
+Nur Abschlusscheck: CAN-6.1 bis CAN-6.9 zusammenfassen, Sperren bestaetigen, CAN-7.0 Startbedingungen definieren.
+~~~
+
+Pflichtfragen vor Umsetzung:
+
+~~~text
+Sind alle CAN-6.x Sicherheitsdokumente in FILES.md verlinkt?
+Sind alle hart blockierten Aktionen weiterhin dokumentiert?
+Sind die ersten erlaubten CAN-7.0 Grenzen klar?
+Welche echten Dateien muessen vor CAN-7.0 gelesen werden?
+Welche Tests muessen vor dem ersten read-only Code-Step feststehen?
+Welche Doku ist fuer den Chatwechsel relevant?
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery.
+Keine Recovery-Buttons.
+Keine produktive Flow-Änderung.
+Keine Replay-/Retry-Aktion.
+~~~
+
 ## Nach STEP CAN-6.8
 
 Marker: STEP_CAN6_8_NEXT_STEPS

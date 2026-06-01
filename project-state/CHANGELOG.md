@@ -1,3 +1,46 @@
+# CHANGELOG – CAN-6.9 Recovery-Implementierungsreihenfolge und Code-Grenzen
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN6_9_RECOVERY_IMPLEMENTATION_SEQUENCE_GATES.md` ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_9.md` ergänzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.9 Abschlussstand erweitert.
+- `project-state/NEXT_STEPS.md` um CAN-6.10 als nächsten Arbeitsblock erweitert.
+- `project-state/TODO.md` um CAN-6.9/CAN-6.10 Aufgaben erweitert.
+- `project-state/FILES.md` um CAN-6.9 Dateien erweitert.
+
+## Definiert
+
+- Verbindliche Implementierungsreihenfolge.
+- Phase 0: echte Dateien pruefen.
+- Phase 1: read-only Backend-Diagnose.
+- Phase 2: read-only Statusroute.
+- Phase 3: Dashboard nur Anzeige.
+- Phase 4: Preflight nur nach separatem Go.
+- Phase 5: Command-Konzept bleibt gesperrt.
+- Harte Gates vor jedem Code-Step.
+- Testregeln fuer den ersten spaeteren Code-Step.
+- CAN-7.0 Startgrenze.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Route ergänzt.
+- Keine Dashboard-Datei geändert.
+- Keine Recovery-Buttons ergänzt.
+- Keine Simulation-Buttons ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+
+## Nächster Block
+
+- CAN-6.10: CAN-6.x Abschlusscheck und Übergabe nach CAN-7.0 vorbereiten.
+
+---
+
 # CHANGELOG – CAN-6.8 Recovery-Safety-Stop- und Clear-Regelwerk
 
 Stand: 2026-06-01
