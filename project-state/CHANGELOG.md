@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## CAN-12.3
+## CAN-12.4
 
-- UI-/Implementation-Boundary fuer Guard-Display dokumentiert.
-- CAN-12.4 Scope auf additive Dashboard-Aenderung begrenzt.
-- Keine Code-Aenderungen.
+- Dashboard-Karte `Recovery Guards` additiv umgesetzt.
+- Lokale Guard-Normalisierung, Summary und Tabelle ergaenzt.
+- Keine Backend-Aenderung.
+- Keine neue Route.
 - Keine Recovery-Ausfuehrung.

@@ -335,6 +335,139 @@
     };
   }
 
+  function guardLabel(key){
+    const labels = {
+      readOnlyGuard: 'Read-only',
+      noMutationGuard: 'Keine Mutation',
+      routeSafetyGuard: 'Route-Safety',
+      noPrepareExecuteGuard: 'Prepare/Execute gesperrt',
+      dashboardOnlyGuard: 'Nur Dashboard',
+      noAutoRetryGuard: 'Kein Auto-Retry',
+      noTimerGuard: 'Kein Timer',
+      manualOnlyGuard: 'Nur manuell'
+    };
+    return labels[key] || key;
+  }
+
+  function guardCategory(key){
+    if (['readOnlyGuard','noMutationGuard','routeSafetyGuard','noPrepareExecuteGuard','dashboardOnlyGuard'].includes(key)) return 'read_only';
+    if (['noAutoRetryGuard','noTimerGuard','manualOnlyGuard'].includes(key)) return 'timing_loop';
+    return 'unknown';
+  }
+
+  function normalizeGuard(input){
+    const now = new Date().toISOString();
+    const guard = input || {};
+    const key = guard.key || 'unknownGuard';
+    const ok = guard.ok === true;
+    const blocking = guard.blocking !== false;
+    const severity = guard.severity || (ok ? 'ok' : (blocking ? 'blocked' : 'warning'));
+    return {
+      key,
+      label: guard.label || guardLabel(key),
+      category: guard.category || guardCategory(key),
+      ok,
+      severity,
+      blocking,
+      reason: guard.reason || '',
+      details: guard.details || {},
+      source: guard.source || 'dashboard',
+      checkedAt: guard.checkedAt || now
+    };
+  }
+
+  function summarizeGuards(guards){
+    const list = asList(guards).map(normalizeGuard);
+    const summary = {
+      total: list.length,
+      ok: 0,
+      info: 0,
+      warning: 0,
+      blocked: 0,
+      error: 0,
+      blockingFailed: 0,
+      hasBlockingFailure: false,
+      generatedAt: new Date().toISOString()
+    };
+    for (const guard of list) {
+      if (guard.ok) summary.ok += 1;
+      if (guard.severity === 'info') summary.info += 1;
+      if (guard.severity === 'warning') summary.warning += 1;
+      if (guard.severity === 'blocked') summary.blocked += 1;
+      if (guard.severity === 'error') summary.error += 1;
+      if (guard.blocking && !guard.ok) summary.blockingFailed += 1;
+    }
+    summary.hasBlockingFailure = summary.blockingFailed > 0;
+    return summary;
+  }
+
+  function sortGuards(guards){
+    const severityOrder = { error: 1, blocked: 2, warning: 3, info: 4, ok: 5 };
+    return asList(guards).map(normalizeGuard).sort((a, b) => {
+      const ab = a.blocking && !a.ok ? 0 : 1;
+      const bb = b.blocking && !b.ok ? 0 : 1;
+      if (ab !== bb) return ab - bb;
+      const as = severityOrder[a.severity] || 9;
+      const bs = severityOrder[b.severity] || 9;
+      if (as !== bs) return as - bs;
+      const ac = String(a.category || '').localeCompare(String(b.category || ''), 'de');
+      if (ac !== 0) return ac;
+      return String(a.label || a.key || '').localeCompare(String(b.label || b.key || ''), 'de');
+    });
+  }
+
+  function guardRow(guard){
+    const status = guard.ok ? 'OK' : 'Nicht OK';
+    const blocking = guard.blocking ? 'blockierend' : 'informativ';
+    const rowClass = guard.ok ? '' : (guard.blocking ? 'error' : 'warning');
+    return `<div class="busdiag-table-row ${rowClass}"><span><strong>${esc(guard.label)}</strong><small>${esc(guard.key)}</small></span><span>${esc(guard.category)}</span><span>${badge(status, guard.ok ? 'ok' : guard.severity)}</span><span>${esc(blocking)}</span><span>${esc(guard.severity)}</span><span>${esc(guard.source)}</span><span>${esc(guard.reason || '-')}</span></div>`;
+  }
+
+  function buildManualDiagnosticsRefreshGuards(){
+    const route = getRecoveryPreflightRoute();
+    const routeSafety = route?.routeSafety || {};
+    const routeSafetyOk = routeSafety.method === 'GET'
+      && routeSafety.readOnly !== false
+      && routeSafety.commandRoute === false
+      && routeSafety.prepareRoute === false
+      && routeSafety.executeRoute === false
+      && routeSafety.recoveryExecution === false;
+    const checkedAt = state.manualDiagnosticsRefreshLastAt || new Date().toISOString();
+    return [
+      { key: 'readOnlyGuard', ok: state.manualDiagnosticsRefreshReadOnly === true, blocking: true, source: 'manual_diagnostics_refresh', checkedAt },
+      { key: 'noMutationGuard', ok: state.manualDiagnosticsRefreshProductiveTouch === false, blocking: true, source: 'manual_diagnostics_refresh', checkedAt },
+      { key: 'routeSafetyGuard', ok: routeSafetyOk, blocking: true, source: 'manual_diagnostics_refresh', checkedAt },
+      { key: 'noPrepareExecuteGuard', ok: true, blocking: true, source: 'manual_diagnostics_refresh', checkedAt },
+      { key: 'dashboardOnlyGuard', ok: true, blocking: true, source: 'manual_diagnostics_refresh', checkedAt },
+      { key: 'noAutoRetryGuard', ok: true, blocking: true, source: 'manual_diagnostics_refresh', checkedAt },
+      { key: 'noTimerGuard', ok: true, blocking: true, source: 'manual_diagnostics_refresh', checkedAt },
+      { key: 'manualOnlyGuard', ok: true, blocking: true, source: 'manual_diagnostics_refresh', checkedAt }
+    ];
+  }
+
+  function buildManualStatusResyncGuardList(){
+    const checkedAt = state.manualStatusResyncLastAt || new Date().toISOString();
+    const guards = state.manualStatusResyncGuards || {};
+    const keys = ['readOnlyGuard','noMutationGuard','routeSafetyGuard','noPrepareExecuteGuard','dashboardOnlyGuard'];
+    const result = keys.map(key => ({ key, ok: guards[key] === true, blocking: true, source: 'manual_status_resync_request', checkedAt }));
+    result.push({ key: 'noAutoRetryGuard', ok: true, blocking: true, source: 'manual_status_resync_request', checkedAt });
+    result.push({ key: 'noTimerGuard', ok: true, blocking: true, source: 'manual_status_resync_request', checkedAt });
+    result.push({ key: 'manualOnlyGuard', ok: true, blocking: true, source: 'manual_status_resync_request', checkedAt });
+    return result;
+  }
+
+  function buildRecoveryGuardDisplay(){
+    const guards = [];
+    if (state.manualDiagnosticsRefreshLastResult) guards.push(...buildManualDiagnosticsRefreshGuards());
+    if (state.manualStatusResyncLastResult) guards.push(...buildManualStatusResyncGuardList());
+    const normalized = sortGuards(guards);
+    const summary = summarizeGuards(normalized);
+    if (!normalized.length) {
+      return `<div class="busdiag-status-line">${badge('bereit', 'ok')}<span>Noch keine Guard-Daten geladen.</span></div><p class="busdiag-muted">Klicke zuerst auf „Preflight neu laden“ oder „Status neu synchronisieren“. Es wird nur lokaler Dashboard-State ausgewertet.</p>`;
+    }
+    return `<div class="busdiag-status-line">${badge(summary.hasBlockingFailure ? 'prüfen' : 'ok', summary.hasBlockingFailure ? 'warning' : 'ok')}<span>lokale Guard-Anzeige / keine Recovery</span></div><div class="busdiag-metrics">${metric('Guards', summary.total)}${metric('OK', summary.ok)}${metric('Warnings', summary.warning)}${metric('Blocked', summary.blocked)}${metric('Errors', summary.error)}${metric('Blocking Failed', summary.blockingFailed)}</div><div class="busdiag-table busdiag-table-events"><div class="busdiag-table-head"><span>Guard</span><span>Kategorie</span><span>Status</span><span>Blocking</span><span>Severity</span><span>Quelle</span><span>Grund</span></div>${normalized.map(guardRow).join('')}</div>`;
+  }
+
   async function manualStatusResyncRequest(){
     if (state.loading || state.manualStatusResyncLoading) return;
     state.manualStatusResyncLoading = true;
@@ -686,6 +819,7 @@
       <div class="busdiag-grid">
         ${card('Manueller Diagnose-Refresh', manualRefreshCard, 'busdiag-wide')}
         ${card('Manueller Status-Resync', manualStatusResyncCard, 'busdiag-wide')}
+        ${card('Recovery Guards', buildRecoveryGuardDisplay(), 'busdiag-wide')}
         ${card('Preflight-Route-Kontext', routeContextCard, 'busdiag-wide')}
         ${card('Preflight-Route-Safety', routeSafetyCard, 'busdiag-wide')}
         ${card('Preflight-Check-Matrix', preflightSummaryCard, 'busdiag-wide')}

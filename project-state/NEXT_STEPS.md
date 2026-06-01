@@ -2,13 +2,11 @@
 
 ## Naechster Schritt
 
-CAN-12.4 - Manual Recovery Guard Display Dashboard UI
+CAN-12.5 - Manual Recovery Guard Display Dashboard UI Live-Test Acceptance
 
-Erlaubter Scope:
+Ziel:
 
-- nur `htdocs/dashboard/modules/bus_diagnostics.js`
-- Karte `Recovery Guards`
-- lokale Guard-Normalisierung
-- lokale GuardSummary
-- keine Backend-Aenderung
-- keine Recovery-Ausfuehrung
+- Dashboard-Sichtpruefung dokumentieren
+- Guard-Fallback pruefen
+- Guard-Anzeige nach Refresh/Resync pruefen
+- keine Code-Aenderung

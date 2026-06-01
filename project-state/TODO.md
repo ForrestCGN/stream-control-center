@@ -6,4 +6,5 @@
 - [x] CAN-12.1 Manual Recovery Guard Catalog geplant
 - [x] CAN-12.2 Manual Recovery Guard Display Vertrag geplant
 - [x] CAN-12.3 Manual Recovery Guard Display UI Implementation Boundary dokumentiert
-- [ ] CAN-12.4 Manual Recovery Guard Display Dashboard UI umsetzen
+- [x] CAN-12.4 Manual Recovery Guard Display Dashboard UI umgesetzt
+- [ ] CAN-12.5 Guard Display Dashboard UI Live-Test-Abnahme dokumentieren

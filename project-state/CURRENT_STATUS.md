@@ -1,13 +1,9 @@
 # CURRENT_STATUS
 
-## CAN-12.3
+## CAN-12.4
 
-Die UI-/Implementation-Boundary fuer die Guard-Anzeige ist dokumentiert.
+Die Dashboard-Karte `Recovery Guards` wurde additiv umgesetzt.
 
-CAN-12.4 darf nur additiv die Dashboard-Datei aendern:
-
-```text
-htdocs/dashboard/modules/bus_diagnostics.js
-```
+Die Anzeige ist rein lokal/read-only und nutzt vorhandene Dashboard-State-Daten.
 
 Keine Backend-Aenderung, keine Recovery-Ausfuehrung.
