@@ -1,10 +1,12 @@
 # CURRENT_STATUS
 
-## Stand: CAN-13.6 abgeschlossen
+## Stand: CAN-14.0 abgeschlossen
 
 Der Recovery-/Preflight-/Guard-Framework-Strang ist weiterhin read-only abgeschlossen.
 
 Der CAN-13-Strang ist als Sicherheitsplanung fuer spaetere manuelle Recovery abgeschlossen.
+
+Der CAN-14-Strang wurde als read-only Safety Status View Planning gestartet.
 
 Abgeschlossen:
 
@@ -13,13 +15,8 @@ Abgeschlossen:
 - CAN-10.x Manual Diagnostics Refresh
 - CAN-11.x Manual Status Resync
 - CAN-12.x Manual Recovery Guard Framework / Recovery Guards Dashboard-Karte
-- CAN-13.0 Next Recovery Candidate Planning Start
-- CAN-13.1 Audit-Konzept
-- CAN-13.2 Rollen-/Rechte-Konzept
-- CAN-13.3 Confirm-/Bestaetigungs-Konzept
-- CAN-13.4 SafetyStop-/Cancel-Konzept
-- CAN-13.5 Recovery-Kandidatenmatrix
-- CAN-13.6 Recovery Safety Planning Closure
+- CAN-13.x Recovery Safety Planning abgeschlossen
+- CAN-14.0 Read-only Safety Status View Planning
 
 ## Aktuelle read-only Funktionen
 
@@ -42,7 +39,7 @@ Errors: 0
 Blocking Failed: 0
 ```
 
-## CAN-13.6 Sicherheitsstand
+## CAN-14.0 Sicherheitsstand
 
 Weiterhin keine Recovery-Ausfuehrung.
 
@@ -55,35 +52,19 @@ commandRoute: false
 prepareRoute: false
 executeRoute: false
 recoveryExecution: false
-candidateApi: false
-safetyStopApi: false
-cancelApi: false
-auditApi: false
-rightsApi: false
-confirmApi: false
+safetyStatusApi: false
+dashboardSafetyStatusView: false
 dashboardRecoveryButtons: false
 ```
 
-## CAN-13 Abschluss
+## CAN-14.0 Ergebnis
 
 ```text
-Audit-Konzept dokumentiert.
-Rollen-/Rechte-Konzept dokumentiert.
-Confirm-Konzept dokumentiert.
-SafetyStop-/Cancel-Konzept dokumentiert.
-Recovery-Kandidatenmatrix dokumentiert.
-CAN-13 Sicherheitsplanung abgeschlossen.
-```
-
-## Niedriges Risiko / spaeter zuerst betrachtbar
-
-```text
-diagnostics_refresh
-status_resync_readonly
-preflight_recheck
-guard_recheck
-safety_state_view
-overlay_client_ping_recheck
+CAN-14 bleibt zunaechst read-only.
+Safety Status View soll nur anzeigen.
+Keine produktiven Aktionen.
+Keine Mutationen.
+Naechster Schritt ist CAN-14.1 Safety Status Contract read-only.
 ```
 
 ## Weiterhin hart blockiert
@@ -98,10 +79,4 @@ Auto Recovery
 Auto Retry Overlay
 Streamer.bot Action Retry
 OBS Source Refresh
-```
-
-## Naechster sinnvoller Strang
-
-```text
-CAN-14.0 - Read-only Safety Status View Planning
 ```

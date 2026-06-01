@@ -5,18 +5,8 @@
 Empfohlener Start:
 
 ```text
-CAN-14.0 - Read-only Safety Status View Planning
+CAN-14.1 - Safety Status Contract read-only
 ```
-
-## CAN-13 abgeschlossen
-
-- CAN-13.0 Next Recovery Candidate Planning Start
-- CAN-13.1 Audit-Konzept
-- CAN-13.2 Rollen-/Rechte-Konzept
-- CAN-13.3 Confirm-/Bestaetigungs-Konzept
-- CAN-13.4 SafetyStop-/Cancel-Konzept
-- CAN-13.5 Recovery-Kandidatenmatrix
-- CAN-13.6 Recovery Safety Planning Closure
 
 ## CAN-14 Zielrichtung
 
@@ -28,7 +18,25 @@ Sinnvolle Richtung:
 Read-only Safety Status View
 ```
 
-Moegliche CAN-14 Reihenfolge:
+## CAN-14.1 Ziel
+
+CAN-14.1 soll den read-only Safety Status Contract definieren.
+
+Der Contract soll festlegen:
+
+```text
+Feldnamen
+Bedeutung
+Datentypen
+Statusgruppen
+Ampel-Logik
+was false bedeutet
+was blocked bedeutet
+was read-only bedeutet
+welche Aktionen weiterhin hart blockiert sind
+```
+
+## Moegliche CAN-14 Reihenfolge
 
 ```text
 CAN-14.0 - Read-only Safety Status View Planning

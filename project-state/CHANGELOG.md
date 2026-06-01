@@ -68,3 +68,11 @@
 - CAN-14.0 als naechster read-only Safety Status View Planning Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
+
+## CAN-14.0
+
+- Read-only Safety Status View Planning gestartet.
+- Statusgruppen, Ampel-Logik und Grenzen fuer spaetere Safety-Status-Anzeige geplant.
+- CAN-14.1 Safety Status Contract read-only als naechster Schritt festgelegt.
+- Keine Code-Aenderungen.
+- Keine Recovery-Ausfuehrung.
