@@ -1,3 +1,31 @@
+## Nach STEP CAN-5.9.2
+
+Marker: STEP_CAN5_9_2_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-5.10: Recovery-Dashboard optisch prüfen und stabil dokumentieren
+~~~
+
+Zu prüfen:
+
+~~~text
+Recovery-Quelle wirkt kompakt
+State-Werte sind lesbar
+Keine Test-Buttons sichtbar
+Read-only-Hinweis ist sichtbar
+Dashboard wirkt nicht mehr wie Debug-Output
+~~~
+
+Regeln bleiben:
+
+~~~text
+Keine Simulation per Dashboard
+Keine Recovery-Automatik
+Keine produktive Flow-Änderung
+~~~
+
 ## Nach STEP CAN-5.9.1
 
 Marker: STEP_CAN5_9_1_NEXT_STEPS

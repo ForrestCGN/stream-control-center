@@ -1,3 +1,28 @@
+## STEP CAN-5.9.2 Recovery-Dashboard kompakter Layout-Fix
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_9_2_RECOVERY_DASHBOARD_COMPACT_LAYOUT
+
+Die Recovery-Ansicht im Bus-Diagnostics-Dashboard wurde optisch kompakter gemacht.
+
+~~~text
+Recovery-Quelle als kompakte Kachelgruppe
+Blockierte Aktionen, erlaubte Aktionen und Gründe bleiben sichtbar
+Simulation-Harness bleibt read-only sichtbar
+Keine Test-Buttons
+Keine Recovery-Automatik
+~~~
+
+Nicht geändert:
+
+~~~text
+Keine Backend-Änderung
+Keine produktive Flow-Änderung
+Keine Queue-/Sound-/Overlay-Logik geändert
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN5_9_2_RECOVERY_DASHBOARD_COMPACT_LAYOUT.md`
+
 ## STEP CAN-5.9.1 Recovery-Dashboard Layout-Fix
 
 Stand: 2026-06-01

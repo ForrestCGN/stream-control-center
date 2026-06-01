@@ -398,6 +398,16 @@
       ['No Client', source.noClient ?? 0],
       ['Waiting', source.waiting ?? 0]
     ];
+    const sourceMetrics = sourceRows.map(row => metric(row[0], row[1], '', 'busdiag-metric-code')).join('');
+    const blockedList = blockedActions.length
+      ? `<div class="busdiag-list">${blockedActions.map(action => `<div class="busdiag-row warning"><strong>blockiert</strong><span>${esc(action)}</span></div>`).join('')}</div>`
+      : '<p class="busdiag-muted">Keine blockierten Aktionen gemeldet.</p>';
+    const allowedList = allowedActions.length
+      ? `<div class="busdiag-list">${allowedActions.map(action => `<div class="busdiag-row"><strong>erlaubt</strong><span>${esc(action)}</span></div>`).join('')}</div>`
+      : '<p class="busdiag-muted">Keine aktiven Aktionen erlaubt.</p>';
+    const reasonList = reasons.length
+      ? `<div class="busdiag-list">${reasons.map(reason => `<div class="busdiag-row"><strong>Grund</strong><span>${esc(reason)}</span></div>`).join('')}</div>`
+      : '<p class="busdiag-muted">Keine Gründe gemeldet.</p>';
 
     return `
       <div class="busdiag-grid busdiag-grid-top">
@@ -405,10 +415,10 @@
         ${card('Sicherheitsstatus', `<div class="busdiag-status-line">${badge(safetyStatus === 'ok' ? 'ok' : 'prüfen', safetyStatus)}<span>${esc(safetyText)}</span></div><div class="busdiag-metrics">${metric('Read-only', bool(data.readOnly && recovery.readOnly !== false))}${metric('Productive Actions', bool(data.productiveActions))}${metric('Flow touched', bool(data.flowTouched))}${metric('Overlay touched', bool(data.overlayTouched))}</div>`)}
       </div>
       <div class="busdiag-grid">
-        ${card('Recovery-Quelle', `<div class="busdiag-list">${sourceRows.map(row => `<div class="busdiag-row"><strong>${esc(row[0])}</strong><span class="busdiag-chip">${esc(row[1])}</span></div>`).join('')}</div>`, 'busdiag-wide')}
-        ${card('Blockierte Aktionen', blockedActions.length ? `<div class="busdiag-list">${blockedActions.map(action => `<div class="busdiag-row warning"><strong>blockiert</strong><span>${esc(action)}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine blockierten Aktionen gemeldet.</p>')}
-        ${card('Erlaubte Aktionen', allowedActions.length ? `<div class="busdiag-list">${allowedActions.map(action => `<div class="busdiag-row"><strong>erlaubt</strong><span>${esc(action)}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine aktiven Aktionen erlaubt.</p>')}
-        ${card('Gründe', reasons.length ? `<div class="busdiag-list">${reasons.map(reason => `<div class="busdiag-row"><strong>Grund</strong><span>${esc(reason)}</span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine Gründe gemeldet.</p>')}
+        ${card('Recovery-Quelle', `<div class="busdiag-metrics">${sourceMetrics}</div>`)}
+        ${card('Blockierte Aktionen', blockedList)}
+        ${card('Erlaubte Aktionen', allowedList)}
+        ${card('Gründe', reasonList)}
         ${card('Simulation-Harness', `<div class="busdiag-status-line">${badge('read-only', 'ok')}<span>Anzeige nur Diagnose, keine Test-Buttons</span></div><div class="busdiag-metrics">${metric('Status Route', '/api/bus-diagnostics/recovery-simulation/status', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Test Trigger', 'nicht im Dashboard', 'bewusst nicht auslösbar')}${metric('Auto-Recovery', 'aus')}${metric('Replay', 'aus')}</div>`, 'busdiag-wide')}
       </div>
     `;
