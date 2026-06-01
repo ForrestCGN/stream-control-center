@@ -7,7 +7,23 @@ const core = require("./helpers/helper_core");
 const cfg = require("./helpers/helper_config");
 
 const MODULE_NAME = "sound_output_config";
+const MODULE_VERSION = "0.1.0";
 const CONFIG_FILE = "sound_system.json";
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: "runtime",
+  category: "sound_config",
+  description: "Sound-System Ausgabe-Konfiguration fuer Overlay, Device und Kombi-Ausgabe.",
+  routesPrefix: ["/api/sound"],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 
 const DEFAULT_OUTPUT = {
   defaultTarget: "overlay",
@@ -42,6 +58,10 @@ const DEFAULT_OUTPUT = {
     }
   }
 };
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 module.exports.init = function init(ctx) {
   const { app } = ctx;

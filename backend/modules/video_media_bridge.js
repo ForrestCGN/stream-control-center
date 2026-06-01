@@ -18,8 +18,25 @@ const media = require('./media');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'video_media_bridge';
+const MODULE_VERSION = '0.1.0';
 const STEP = 'STEP274I_DEPRECATED';
 const API_PREFIX = '/api/video';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: STEP,
+  type: 'runtime',
+  category: 'media_bridge',
+  description: 'Deprecated kompatibler Video-Media-Test-Bridge; offizieller Weg ist /api/sound/play-media.',
+  routesPrefix: [API_PREFIX],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 const OVERLAY_URL = '/overlays/_overlay-media-player.html';
 
 const state = {
@@ -287,4 +304,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: STEP };
 }
 
-module.exports = { init, statusPayload, playMedia };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, statusPayload, playMedia };

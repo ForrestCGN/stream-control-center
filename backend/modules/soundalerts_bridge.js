@@ -21,7 +21,23 @@ try {
 
 const MODULE_NAME = 'soundalerts_bridge';
 const VERSION = '0.1.14';
+const MODULE_VERSION = VERSION;
 const CONFIG_FILE = 'soundalerts_bridge.json';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'sound_bridge',
+  description: 'Bridge fuer SoundAlerts-Chat-/Upload-/Media-Integration zum Sound-System.',
+  routesPrefix: ['/api/soundalerts'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 const SCHEMA_MODULE = 'soundalerts_bridge';
 const SCHEMA_VERSION = 2;
 const SETTINGS_TABLE = 'soundalerts_bridge_settings';
@@ -1924,6 +1940,9 @@ module.exports.init = function init(ctx) {
   console.log(`[${MODULE_NAME}] aktiv → /api/soundalerts/*`);
 };
 
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 module.exports.handleChatItem = handleChatItem;
 module.exports.parseSoundAlertsText = parseSoundAlertsText;
 module.exports.ensureAutoEntryForParsed = ensureAutoEntryForParsed;

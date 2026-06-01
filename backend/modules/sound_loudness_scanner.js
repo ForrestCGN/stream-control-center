@@ -9,9 +9,27 @@ const media = require("./helpers/helper_media");
 const settingsHelper = require("./helpers/helper_settings");
 
 const MODULE_NAME = "sound_loudness_scanner";
+const MODULE_VERSION = "0.1.0";
 const SCHEMA_MODULE = "sound_loudness_scanner";
 const SCHEMA_VERSION = 2;
 const ROUTE_PREFIX = "/api/sound/loudness";
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  schemaModule: SCHEMA_MODULE,
+  schemaVersion: SCHEMA_VERSION,
+  type: "runtime",
+  category: "sound_analysis",
+  description: "Sound-Lautheitsanalyse und vorbereitete Korrektur-/Normalisierungsdiagnostik.",
+  routesPrefix: [ROUTE_PREFIX],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 
 const DEFAULT_ALLOWED_EXTENSIONS = [".mp3", ".wav", ".ogg", ".webm", ".m4a", ".mp4"];
 const DEFAULT_TARGET_LUFS = -18;
@@ -87,6 +105,10 @@ const DEFAULT_LEVEL_CONFIG = {
   updatedAt: "",
   updatedBy: ""
 };
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 module.exports.init = function init(ctx) {
   const { app } = ctx;

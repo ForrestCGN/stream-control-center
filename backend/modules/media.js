@@ -21,9 +21,26 @@ const config = require('./helpers/helper_config');
 const mediaHelper = require('./helpers/helper_media');
 
 const MODULE_NAME = 'media';
+const MODULE_VERSION = '0.1.0';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/media';
 const MEDIA_STEP = 'STEP524';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: MEDIA_STEP,
+  type: 'runtime',
+  category: 'media',
+  description: 'Zentrale Medien-Registry fuer Audio, Video, Bilder und Animationen.',
+  routesPrefix: [API_PREFIX],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 
 const MEDIA_TYPES = {
   audio: {
@@ -1362,4 +1379,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: MEDIA_STEP };
 }
 
-module.exports = { init, statusPayload, listAssets, scanAssets, upsertAsset, getAsset, resolveAssetForUse, mediaOptionFromAsset, soundSystemFileFor, listCategories, ensureCategory, resolveUploadContextFromValues, repairMediaAssetNames, repairTextEncoding, safeAsciiFileName };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, statusPayload, listAssets, scanAssets, upsertAsset, getAsset, resolveAssetForUse, mediaOptionFromAsset, soundSystemFileFor, listCategories, ensureCategory, resolveUploadContextFromValues, repairMediaAssetNames, repairTextEncoding, safeAsciiFileName };

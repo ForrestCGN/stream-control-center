@@ -28,8 +28,25 @@ const config = require('./helpers/helper_config');
 const media = require('./media');
 
 const MODULE_NAME = 'sound_media_bridge';
+const MODULE_VERSION = '0.1.0';
 const STEP = 'STEP274L-FIX4';
 const API_PREFIX = '/api/sound';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: STEP,
+  type: 'runtime',
+  category: 'media_bridge',
+  description: 'Bridge von Media-Registry zum Sound-System Playback-Hub.',
+  routesPrefix: [API_PREFIX],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 const CACHE_DIR_NAME = '_media_registry';
 const DEFAULT_MEDIA_TARGET = process.env.MEDIA_BRIDGE_DEFAULT_TARGET || 'both';
 const DEFAULT_MEDIA_OUTPUT_TARGET = process.env.MEDIA_BRIDGE_DEFAULT_OUTPUT_TARGET || 'device';
@@ -320,4 +337,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: STEP };
 }
 
-module.exports = { init, statusPayload };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, statusPayload };
