@@ -11,6 +11,22 @@ const settings = require('./helpers/helper_settings');
 const texts = require('./helpers/helper_texts');
 
 const MODULE_NAME = 'tagebuch';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'content',
+  description: 'Streamtagebuch API, Discord-Posting und Text-/Settings-Verwaltung.',
+  routesPrefix: ['/api/tagebuch', '/tagebuch', '/discord/tagebuch'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 const SCHEMA_VERSION = 5;
 const SETTINGS_TABLE = 'tagebuch_settings';
 const TEXTS_MODULE = 'tagebuch';
@@ -1540,6 +1556,9 @@ function init(ctx) {
 }
 
 module.exports = {
+  MODULE_META,
+  MODULE_VERSION,
+  version: MODULE_VERSION,
   init,
   buildStatus,
   reloadRuntime,

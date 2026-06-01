@@ -4,6 +4,24 @@ const routes = require('./helpers/helper_routes');
 const chatOutput = require('./helpers/helper_chat_output');
 const messages = require('./helpers/helper_messages');
 
+const MODULE_NAME = 'chat_output';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'messages',
+  description: 'Chat-Ausgabe-API ueber helper_chat_output.',
+  routesPrefix: ['/api/chat-output'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
+
 function init(ctx) {
   const app = ctx.app;
   chatOutput.loadConfig();
@@ -41,7 +59,7 @@ function init(ctx) {
     res.json({ ok: true, reloaded: true, status: chatOutput.getStatus() });
   });
 
-  return { name: 'chat_output', step: '001' };
+  return { name: MODULE_NAME, version: MODULE_VERSION, step: '001' };
 }
 
-module.exports = { init };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init };

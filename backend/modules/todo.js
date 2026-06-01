@@ -11,6 +11,22 @@ const texts = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "todo";
+const MODULE_VERSION = "0.1.0";
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: "runtime",
+  category: "content",
+  description: "Todo API, Discord-Posting und Text-/Settings-Verwaltung.",
+  routesPrefix: ["/api/todo", "/todo", "/discord/todo"],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 const SCHEMA_VERSION = 1;
 const SETTINGS_TABLE = "todo_settings";
 const TEXTS_MODULE = "todo";
@@ -1182,6 +1198,9 @@ function init(ctx) {
 }
 
 module.exports = {
+  MODULE_META,
+  MODULE_VERSION,
+  version: MODULE_VERSION,
   init,
   buildStatus,
   reloadRuntime: loadRuntime,

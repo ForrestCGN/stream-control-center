@@ -7,6 +7,24 @@ const security = require('./helpers/helper_security');
 const textHelper = require('./helpers/helper_texts');
 const msgHelper = require('./helpers/helper_messages');
 
+const MODULE_NAME = 'messages';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'messages',
+  description: 'Zentrale Message-/Text-API mit Render-, Send- und Scheduler-Endpunkten.',
+  routesPrefix: ['/api/messages', '/messages'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
+
 const cooldownState = new Map();
 const schedulerState = {
   enabled: false,
@@ -588,4 +606,4 @@ function init(ctx) {
   console.log('[messages] /messages/* und /api/messages/* aktiv');
 }
 
-module.exports = { init };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init };

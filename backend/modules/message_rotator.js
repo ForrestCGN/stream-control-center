@@ -13,6 +13,22 @@ const fs = require('fs');
 const path = require('path');
 
 const MODULE_NAME = 'message_rotator';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'messages',
+  description: 'Message-Rotator API fuer automatische und manuelle Chat-Hinweise.',
+  routesPrefix: ['/api/message-rotator', '/message-rotator'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 const SETTINGS_TABLE = 'message_rotator_settings';
 const TEXTS_MODULE = 'message_rotator';
 
@@ -1739,4 +1755,4 @@ function init(ctx) {
   console.log('[message_rotator] /message-rotator/* und /api/message-rotator/* aktiv');
 }
 
-module.exports = { init };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init };
