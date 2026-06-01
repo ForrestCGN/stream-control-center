@@ -1,7 +1,13 @@
 # CURRENT_STATUS
 
-## CAN-11.5
+## CAN-11.6
 
-Der Live-Test fuer die Dashboard-UI `Manueller Status-Resync` ist als Abnahmeschritt dokumentiert.
+Der CAN-11.x Block `manual_status_resync_request` ist abgeschlossen.
 
-Der Button bleibt weiterhin nur read-only Diagnose-/Status-Resync und keine Recovery-Ausfuehrung.
+Der Button `Status neu synchronisieren` bleibt eine reine read-only Diagnose-/Status-Aktualisierung.
+
+Naechster empfohlener Block:
+
+```text
+CAN-12.0 Manual Recovery Guard Framework Start Boundary
+```

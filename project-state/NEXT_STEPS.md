@@ -2,10 +2,12 @@
 
 ## Naechster Schritt
 
-Nach bestaetigtem Dashboard-Test:
+CAN-12.0 - Manual Recovery Guard Framework Start Boundary
 
-- CAN-11.6 Manual Status Resync Block Closure / CAN-12 Start Gate
+Ziel:
 
-Alternative:
-
-- kleiner CAN-11.5.x Fix, falls der Status-Resync nicht sauber angezeigt wird
+- Guard-Begriffe vereinheitlichen
+- Guard-Auswertung strukturieren
+- Dashboard-Darstellung fuer Guards planen
+- weiterhin keine produktive Recovery
+- noch kein Code
