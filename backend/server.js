@@ -259,37 +259,12 @@ function dispatchWsMessage(ws, rawMessage) {
 }
 
 // --------------------------------------------------
-// Fireworks API (used by Streamer.bot Fetch URL)
+// Fireworks API
 // --------------------------------------------------
-app.get("/api/fireworks", (req, res) => {
-  const intensity = Number(req.query.intensity || 10);
-  const duration_ms = Number(req.query.duration_ms || 8000);
-  const mode = String(req.query.mode || "burst");
-
-  broadcastWS({
-    op: "fireworks",
-    intensity,
-    duration_ms,
-    mode
-  });
-
-  res.json({
-    ok: true,
-    intensity,
-    duration_ms,
-    mode
-  });
-});
-
-app.get("/api/fireworks/stop", (req, res) => {
-  broadcastWS({ op: "fireworks_stop" });
-  res.json({ ok: true });
-});
-
-app.get("/api/fireworks/clear", (req, res) => {
-  broadcastWS({ op: "fireworks_clear" });
-  res.json({ ok: true });
-});
+// STEP278 Block 34b:
+// The /api/fireworks routes are owned by backend/modules/fireworks_api.js.
+// Keeping them only in the module avoids duplicate route registration while
+// preserving the same public URLs for Streamer.bot and overlays.
 
 // --------------------------------------------------
 // WebSocket connection logging
