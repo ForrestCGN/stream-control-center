@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-17.2 abgeschlossen
+## Stand: CAN-17.3 abgeschlossen
 
-CAN-17.2 hat die Roles/Rights Backend Boundary no-implementation geplant.
+CAN-17.3 hat die Roles/Rights Display Boundary no-implementation geplant.
 
 ## Roles/Rights-Status
 
@@ -10,7 +10,7 @@ CAN-17.2 hat die Roles/Rights Backend Boundary no-implementation geplant.
 rolesRightsPlanning: true
 rolesRightsActionMatrix: true
 rolesRightsBackendBoundary: true
-rolesRightsDisplayBoundary: false
+rolesRightsDisplayBoundary: true
 rolesApi: false
 rightsApi: false
 authSystem: false
@@ -35,13 +35,14 @@ recoveryExecution: false
 dashboardRecoveryButtons: false
 ```
 
-## CAN-17.2 Ergebnis
+## CAN-17.3 Ergebnis
 
 ```text
-Serverseitige Rechtepruefung ist spaeter Pflicht.
-Client/UI ist keine Autoritaet.
-Keine Rechte-Routen, keine Middleware, keine DB, keine Config.
+Rollen-/Rechte-Anzeige nur geplant.
+Keine API, keine Route, keine Rechtepruefung.
+UI darf Rechte nicht ersetzen.
 High-risk bleibt blockiert.
+Keine Mock-/Fake-Rechte.
 ```
 
 ## Weiterhin hart blockiert
@@ -70,5 +71,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-17.3 - Roles/Rights Display Boundary no-implementation Planning
+CAN-17.4 - Roles/Rights Planning Closure / Handoff
 ```
