@@ -1,7 +1,14 @@
 # CURRENT_STATUS
 
-## CAN-10.3
+## CAN-10.4
 
-Der Live-Test fuer den Dashboard-Button `Preflight neu laden` ist als Abnahmeschritt dokumentiert.
+Der Status-/UX-Cleanup fuer `Preflight neu laden` ist geplant.
 
-Der Button ist weiterhin nur Diagnose-Refresh und keine Recovery-Ausfuehrung.
+Ziel fuer CAN-10.5:
+
+- lokaler Dashboard-Refresh-Status
+- letzter Refresh-Zeitpunkt
+- verwendete GET-Route
+- Erfolg-/Fehleranzeige
+
+Keine produktive Recovery.

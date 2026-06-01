@@ -6,4 +6,5 @@
 - [x] CAN-10.1 Vertrag fuer manual_diagnostics_refresh geplant
 - [x] CAN-10.2 Dashboard-Button fuer Preflight neu laden additiv umgesetzt
 - [x] CAN-10.3 Live-Test-Abnahme fuer Dashboard-Button dokumentiert
-- [ ] CAN-10.4 Status-/UX-Cleanup planen oder CAN-10 Block abschliessen
+- [x] CAN-10.4 Status-/UX-Cleanup geplant
+- [ ] CAN-10.5 Status-/UX-Cleanup im Dashboard umsetzen

@@ -2,10 +2,12 @@
 
 ## Naechster Schritt
 
-Nach bestaetigtem Dashboard-Test:
+CAN-10.5 - Manual Diagnostics Refresh Dashboard Status UX Cleanup
 
-- CAN-10.4 Status-/UX-Cleanup fuer den Diagnose-Refresh planen
+Erlaubter Scope:
 
-Alternative:
-
-- CAN-10 Diagnose-Refresh-Block abschliessen
+- nur `htdocs/dashboard/modules/bus_diagnostics.js`
+- lokale UI-State-Felder
+- keine Backend-Aenderung
+- keine neue Route
+- keine Recovery-Ausfuehrung
