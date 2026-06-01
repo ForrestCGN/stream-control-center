@@ -11,17 +11,17 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.2.1';
+const VERSION = '1.2.2';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP_CAN2_2',
+  build: 'STEP_CAN3_5',
   type: 'runtime',
   category: 'diagnostics',
-  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix and optional-diagnostics aggregator.',
+  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics and handshake-state aggregator.',
   routesPrefix: ['/api/bus-diagnostics'],
   bus: {
     registered: false,
@@ -77,7 +77,7 @@ function init(ctx) {
       routes: [
         { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Read-only Bus-Diagnose Aggregatstatus.' },
         { method: 'GET', path: '/api/bus-diagnostics/check', description: 'Read-only Bus-Diagnose Aktualisierung.' },
-        { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Enthaelt STEP CAN-2 resilienceMatrix und STEP CAN-2.2 optionalDiagnostics.' },
+        { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Enthaelt STEP CAN-2 resilienceMatrix, STEP CAN-2.2 optionalDiagnostics und STEP CAN-3.5 handshakeState.' },
         { method: 'GET', path: '/api/bus-diagnostics/routes', description: 'Read-only Routenübersicht.' }
       ],
       dashboard: {
@@ -87,7 +87,7 @@ function init(ctx) {
     });
   });
 
-  console.log('[bus_diagnostics] STEP_CAN2_2 Dashboard diagnostics, resilience matrix and optional diagnostics prepared');
+  console.log('[bus_diagnostics] STEP_CAN3_5 Dashboard diagnostics, resilience matrix, optional diagnostics and handshake state prepared');
 }
 
 function registerGet(app, routePath, handler) {
@@ -204,6 +204,7 @@ function analyze(parts) {
   const soundStats = (soundBody || {}).stats || {};
   const alertStats = (alertBody || {}).stats || {};
   const comparison = (correlationBody || {}).comparison || {};
+  const handshakeState = (correlationBody || {}).handshakeState || {};
   const vipClient = (vipBody || {}).client || {};
   const vipDb = (vipBody || {}).db || {};
   const vipOverlayVisible = !!(vipBody || {}).visible;
@@ -258,6 +259,10 @@ function analyze(parts) {
     vipIntegrationErrors,
     correlationMatched: Number(comparison.matched || 0),
     correlationUnmatched: Number(comparison.unmatched || 0),
+    handshakeState: handshakeState.state || '',
+    handshakeOk: handshakeState.ok === true,
+    handshakeWarning: handshakeState.warning === true,
+    handshakeNextAction: handshakeState.nextAction || '',
     matrixRows: resilienceMatrix.rows.length,
     matrixOk: resilienceMatrix.summary.ok,
     matrixWarnings: resilienceMatrix.summary.warningCount,
@@ -511,6 +516,9 @@ function compactFetch(fetchResult) {
     stats: body && body.stats ? body.stats : undefined,
     summary: body && body.summary ? body.summary : undefined,
     comparison: body && body.comparison ? body.comparison : undefined,
+    handshakeState: body && body.handshakeState ? body.handshakeState : undefined,
+    traceCorrelationVersion: body && body.traceCorrelationVersion ? body.traceCorrelationVersion : undefined,
+    matchingKeys: body && body.matchingKeys ? body.matchingKeys : undefined,
     recentEvents: body && body.recentEvents ? body.recentEvents : undefined,
     phase: body && body.phase ? body.phase : undefined,
     visible: body && Object.prototype.hasOwnProperty.call(body, 'visible') ? body.visible : undefined,
