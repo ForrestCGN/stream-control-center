@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## CAN-11.3
+## CAN-11.4
 
-- UI-/Implementation-Boundary fuer `manual_status_resync_request` dokumentiert.
-- CAN-11.4 Scope auf additive Dashboard-Aenderung begrenzt.
-- Keine Code-Aenderungen.
+- Dashboard-Karte `Manueller Status-Resync` additiv umgesetzt.
+- Button `Status neu synchronisieren` additiv umgesetzt.
+- Lokale read-only Guard-Auswertung eingebaut.
+- Keine Backend-Aenderung.
 - Keine Recovery-Ausfuehrung.

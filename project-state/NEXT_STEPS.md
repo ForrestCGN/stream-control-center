@@ -2,13 +2,10 @@
 
 ## Naechster Schritt
 
-CAN-11.4 - Manual Status Resync Dashboard UI
+CAN-11.5 - Manual Status Resync Dashboard UI Live-Test Acceptance
 
-Erlaubter Scope:
+Ziel:
 
-- nur `htdocs/dashboard/modules/bus_diagnostics.js`
-- neue read-only Karte `Manueller Status-Resync`
-- Button `Status neu synchronisieren`
-- nur bestehende GET-Routen
-- keine Backend-Aenderung
+- Dashboard-Test dokumentieren
+- keine Code-Aenderung
 - keine Recovery-Ausfuehrung

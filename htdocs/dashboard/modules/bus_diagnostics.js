@@ -22,7 +22,18 @@
     manualDiagnosticsRefreshError: '',
     manualDiagnosticsRefreshLastRoute: '',
     manualDiagnosticsRefreshReadOnly: true,
-    manualDiagnosticsRefreshProductiveTouch: false
+    manualDiagnosticsRefreshProductiveTouch: false,
+    manualStatusResyncLoading: false,
+    manualStatusResyncLastAt: '',
+    manualStatusResyncStartedAt: '',
+    manualStatusResyncLastResult: '',
+    manualStatusResyncError: '',
+    manualStatusResyncReadOnly: true,
+    manualStatusResyncProductiveTouch: false,
+    manualStatusResyncCanPrepare: false,
+    manualStatusResyncCanExecute: false,
+    manualStatusResyncSources: [],
+    manualStatusResyncGuards: {}
   };
 
   const TABS = [
@@ -305,6 +316,68 @@
     updateLiveStatus();
   }
 
+  function buildManualStatusResyncGuards(route, preflight){
+    const routeSafety = route?.routeSafety || {};
+    const readOnlyGuard = route?.readOnly === true && preflight?.readOnly === true;
+    const routeSafetyGuard = routeSafety.method === 'GET'
+      && routeSafety.readOnly === true
+      && routeSafety.commandRoute === false
+      && routeSafety.prepareRoute === false
+      && routeSafety.executeRoute === false
+      && routeSafety.recoveryExecution === false;
+    const noPrepareExecuteGuard = preflight?.canPrepare === false && preflight?.canExecute === false;
+    return {
+      readOnlyGuard,
+      noMutationGuard: true,
+      routeSafetyGuard,
+      noPrepareExecuteGuard,
+      dashboardOnlyGuard: true
+    };
+  }
+
+  async function manualStatusResyncRequest(){
+    if (state.loading || state.manualStatusResyncLoading) return;
+    state.manualStatusResyncLoading = true;
+    state.manualStatusResyncError = '';
+    state.manualStatusResyncLastResult = 'running';
+    state.manualStatusResyncStartedAt = new Date().toISOString();
+    state.manualStatusResyncReadOnly = true;
+    state.manualStatusResyncProductiveTouch = false;
+    state.manualStatusResyncCanPrepare = false;
+    state.manualStatusResyncCanExecute = false;
+    state.manualStatusResyncSources = ['GET /api/bus-diagnostics/status', 'GET /api/bus-diagnostics/recovery-preflight'];
+    state.manualStatusResyncGuards = {
+      readOnlyGuard: true,
+      noMutationGuard: true,
+      routeSafetyGuard: true,
+      noPrepareExecuteGuard: true,
+      dashboardOnlyGuard: true
+    };
+    renderCurrentTab();
+    await loadAll(false);
+    const route = getRecoveryPreflightRoute();
+    const preflight = getEffectiveRecoveryPreflight();
+    const guards = buildManualStatusResyncGuards(route, preflight);
+    const guardsOk = Object.values(guards).every(Boolean);
+    const routeOk = route && route.fetchOk !== false && route.readOnly === true;
+    state.manualStatusResyncGuards = guards;
+    state.manualStatusResyncLastAt = new Date().toISOString();
+    state.manualStatusResyncReadOnly = guards.readOnlyGuard === true;
+    state.manualStatusResyncProductiveTouch = false;
+    state.manualStatusResyncCanPrepare = preflight?.canPrepare === true;
+    state.manualStatusResyncCanExecute = preflight?.canExecute === true;
+    if (state.lastError || !routeOk || !guardsOk) {
+      state.manualStatusResyncLastResult = 'error';
+      state.manualStatusResyncError = state.lastError || route?.error || 'Status-Resync konnte nicht sauber read-only bewertet werden.';
+    } else {
+      state.manualStatusResyncLastResult = 'ok';
+      state.manualStatusResyncError = '';
+    }
+    state.manualStatusResyncLoading = false;
+    renderCurrentTab();
+    updateLiveStatus();
+  }
+
   async function loadAll(check){
     if (state.loading) return;
     state.loading = true;
@@ -340,7 +413,7 @@
   function setBusy(busy){
     const root = panel();
     if (!root) return;
-    root.querySelectorAll('[data-busdiag-action="refresh"],[data-busdiag-action="check"],[data-busdiag-action="manual-diagnostics-refresh"]').forEach(btn => { btn.disabled = !!busy || state.manualDiagnosticsRefreshLoading; });
+    root.querySelectorAll('[data-busdiag-action="refresh"],[data-busdiag-action="check"],[data-busdiag-action="manual-diagnostics-refresh"],[data-busdiag-action="manual-status-resync"]').forEach(btn => { btn.disabled = !!busy || state.manualDiagnosticsRefreshLoading || state.manualStatusResyncLoading; });
     root.classList.toggle('is-loading', !!busy);
     updateLiveStatus();
   }
@@ -554,6 +627,16 @@
       ? `<p class="busdiag-muted">Fehler: ${esc(state.manualDiagnosticsRefreshError)}</p>`
       : '<p class="busdiag-muted">Lädt nur bestehende read-only GET-Daten neu. Keine Recovery-Ausführung.</p>';
     const manualRefreshCard = `<div class="busdiag-status-line">${badge(manualRefreshStatus, manualRefreshBadge)}<span>nur Diagnose-Refresh / keine Recovery</span></div><div class="busdiag-metrics">${metric('Action', 'manual_diagnostics_refresh', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Status', manualRefreshStatus)}${metric('Letzter Refresh', fmtTime(state.manualDiagnosticsRefreshLastAt))}${metric('Route', state.manualDiagnosticsRefreshLastRoute || 'GET /api/bus-diagnostics/recovery-preflight', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Read-only', bool(state.manualDiagnosticsRefreshReadOnly))}${metric('Produktive Berührung', bool(state.manualDiagnosticsRefreshProductiveTouch))}${metric('Prepare', 'nein')}${metric('Execute', 'nein')}</div><div class="busdiag-actions busdiag-inline-actions"><button type="button" class="secondary" data-busdiag-action="manual-diagnostics-refresh" ${state.manualDiagnosticsRefreshLoading || state.loading ? 'disabled' : ''}>${esc(manualRefreshButtonLabel)}</button>${manualRefreshHelp}</div>`;
+    const manualStatusResyncStatus = state.manualStatusResyncLoading ? 'läuft' : (state.manualStatusResyncLastResult === 'ok' ? 'erfolgreich' : (state.manualStatusResyncLastResult === 'error' ? 'fehlgeschlagen' : 'noch nicht ausgeführt'));
+    const manualStatusResyncBadge = state.manualStatusResyncLoading ? 'warning' : (state.manualStatusResyncLastResult === 'error' ? 'error' : 'ok');
+    const manualStatusResyncButtonLabel = state.manualStatusResyncLoading ? 'Synchronisiere Status...' : (state.manualStatusResyncLastResult === 'ok' ? 'Status synchronisiert' : 'Status neu synchronisieren');
+    const manualStatusResyncHelp = state.manualStatusResyncError
+      ? `<p class="busdiag-muted">Fehler: ${esc(state.manualStatusResyncError)}</p>`
+      : '<p class="busdiag-muted">Read-only Status-Resync: liest nur bestehende Diagnosequellen und bewertet lokale Guards.</p>';
+    const manualStatusResyncSources = state.manualStatusResyncSources.length ? state.manualStatusResyncSources : ['GET /api/bus-diagnostics/status', 'GET /api/bus-diagnostics/recovery-preflight'];
+    const manualStatusResyncSourceList = `<div class="busdiag-list">${manualStatusResyncSources.map(src => `<div class="busdiag-row"><strong>Quelle</strong><span>${esc(src)}</span></div>`).join('')}</div>`;
+    const manualStatusResyncGuardList = `<div class="busdiag-list">${Object.entries(state.manualStatusResyncGuards || {}).map(([key, ok]) => `<div class="busdiag-row ${ok ? '' : 'warning'}"><strong>${esc(key)}</strong><span>${esc(ok ? 'ok' : 'prüfen')}</span></div>`).join('') || '<div class="busdiag-row"><strong>Guards</strong><span>noch nicht ausgeführt</span></div>'}</div>`;
+    const manualStatusResyncCard = `<div class="busdiag-status-line">${badge(manualStatusResyncStatus, manualStatusResyncBadge)}<span>read-only Status-Resync / keine Recovery</span></div><div class="busdiag-metrics">${metric('Action', 'manual_status_resync_request', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Status', manualStatusResyncStatus)}${metric('Letzter Resync', fmtTime(state.manualStatusResyncLastAt))}${metric('Read-only', bool(state.manualStatusResyncReadOnly))}${metric('Produktive Berührung', bool(state.manualStatusResyncProductiveTouch))}${metric('Prepare', bool(state.manualStatusResyncCanPrepare))}${metric('Execute', bool(state.manualStatusResyncCanExecute))}</div>${manualStatusResyncSourceList}${manualStatusResyncGuardList}<div class="busdiag-actions busdiag-inline-actions"><button type="button" class="secondary" data-busdiag-action="manual-status-resync" ${state.manualStatusResyncLoading || state.loading ? 'disabled' : ''}>${esc(manualStatusResyncButtonLabel)}</button>${manualStatusResyncHelp}</div>`;
     const recoverySubTabs = [
       { id: 'overview', label: 'Übersicht' },
       { id: 'details', label: 'Details' },
@@ -602,6 +685,7 @@
       </div>
       <div class="busdiag-grid">
         ${card('Manueller Diagnose-Refresh', manualRefreshCard, 'busdiag-wide')}
+        ${card('Manueller Status-Resync', manualStatusResyncCard, 'busdiag-wide')}
         ${card('Preflight-Route-Kontext', routeContextCard, 'busdiag-wide')}
         ${card('Preflight-Route-Safety', routeSafetyCard, 'busdiag-wide')}
         ${card('Preflight-Check-Matrix', preflightSummaryCard, 'busdiag-wide')}
@@ -671,6 +755,7 @@
       btn.addEventListener('click', () => setRecoverySubTab(btn.dataset.busdiagRecoveryTab));
     });
     panel()?.querySelector('[data-busdiag-action="manual-diagnostics-refresh"]')?.addEventListener('click', manualDiagnosticsRefresh);
+    panel()?.querySelector('[data-busdiag-action="manual-status-resync"]')?.addEventListener('click', manualStatusResyncRequest);
   }
 
   function bindConfigActions(){
