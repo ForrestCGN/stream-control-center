@@ -1,11 +1,15 @@
 # CHANGELOG
 
-## CAN-15.1
+## CAN-15.2
 
-- Naechsten sicheren Recovery-/Safety-Kandidaten bewertet.
-- Kandidaten Doku-Konsolidierung, Audit no-write, Rollen/Rechte no-mutation und SafetyStop read-only bewertet.
-- Entscheidung: CAN-15.2 Audit Boundary no-write Planning.
+- Audit-Boundary no-write geplant.
+- Audit-Phasen Request / Decision / Result definiert.
+- Spaetere Pflichtfelder dokumentiert.
+- Secrets-/Datenschutz- und Maskierungsgrenzen festgelegt.
+- Read-only und high-risk Audit-Kandidaten getrennt.
+- CAN-15.3 Audit Event Catalog no-write Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
+- Keine DB.
 - Keine Recovery-Ausfuehrung.

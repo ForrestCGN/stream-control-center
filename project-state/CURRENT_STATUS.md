@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-15.1 abgeschlossen
+## Stand: CAN-15.2 abgeschlossen
 
-CAN-15.1 hat den naechsten sicheren Recovery-/Safety-Kandidaten entschieden.
+CAN-15.2 hat die Audit-Boundary no-write geplant.
 
 ## Aktueller stabiler Stand
 
@@ -10,12 +10,14 @@ CAN-15.1 hat den naechsten sicheren Recovery-/Safety-Kandidaten entschieden.
 read-only Recovery/Safety Diagnose- und Anzeige-Strang
 ```
 
-## Entscheidung
-
-Naechster Kandidat:
+## Audit-Boundary Status
 
 ```text
-CAN-15.2 - Audit Boundary no-write Planning
+auditPlanning: true
+auditWrite: false
+auditApi: false
+auditDb: false
+auditDashboard: false
 ```
 
 ## Sicherheitsstand
@@ -31,6 +33,16 @@ recoveryExecution: false
 dashboardRecoveryButtons: false
 safetyStatusApi: false
 backendSafetyStatusShapeImplemented: false
+```
+
+## CAN-15.2 Ergebnis
+
+```text
+Audit-Boundary no-write geplant.
+Audit-Phasen Request/Decision/Result definiert.
+Pflichtfelder geplant.
+Secrets-/Datenschutzgrenzen festgelegt.
+Write-Phase bleibt hart blockiert.
 ```
 
 ## Weiterhin hart blockiert
@@ -49,14 +61,4 @@ SafetyStop Clear
 Audit Write Route
 Confirm API
 Rollen-/Rechte-Mutation
-```
-
-## CAN-15.1 Ergebnis
-
-```text
-Audit Boundary no-write Planning als naechster Schritt festgelegt.
-Keine Code-Aenderungen.
-Keine API.
-Keine Route.
-Keine Recovery.
 ```

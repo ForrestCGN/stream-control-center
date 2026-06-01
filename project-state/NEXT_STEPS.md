@@ -3,24 +3,24 @@
 ## Naechster Schritt
 
 ```text
-CAN-15.2 - Audit Boundary no-write Planning
+CAN-15.3 - Audit Event Catalog no-write Planning
 ```
 
-## Ziel CAN-15.2
+## Ziel CAN-15.3
 
-Audit-Struktur weiter planen, aber strikt ohne Speicherung und ohne API.
+Audit-Ereignisse katalogisieren, aber weiterhin ohne Speicherung und ohne API.
 
-## CAN-15.2 darf nur klaeren
+## CAN-15.3 darf klaeren
 
 ```text
-welche Audit-Ereignisse spaeter benoetigt werden
-welche Felder spaeter Pflicht waeren
-welche Daten niemals gespeichert werden duerfen
-welche Entscheidungs-/Abbruchfaelle spaeter auditierbar sein muessen
-welche Grenzen fuer eine spaetere Write-Phase gelten
+welche read-only Events spaeter auditierbar sein koennten
+welche blocked Events spaeter auditierbar sein muessen
+welche Event-Namen stabil sein sollten
+welche Kategorie/Risiko-Stufe jedes Event hat
+welche Events weiterhin hart blockiert bleiben
 ```
 
-## CAN-15.2 darf NICHT enthalten
+## CAN-15.3 darf NICHT enthalten
 
 ```text
 CREATE TABLE
@@ -30,23 +30,9 @@ DELETE
 POST /audit
 API-Route
 Dashboard-Button
+EventBus-Emit
 Recovery-Ausfuehrung
 SafetyStop Clear
 Confirm Trigger
 Rechte-Mutation
-```
-
-## Weiterhin nicht direkt umsetzen
-
-```text
-Produktive Recovery
-Alert Replay
-Sound Replay
-Queue Clear
-Overlay Repair
-SafetyStop Clear
-Audit Write Route
-Confirm API
-Rollen-/Rechte-Mutation
-Prepare/Execute Route
 ```
