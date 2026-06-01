@@ -1,3 +1,24 @@
+## Nach STEP CAN-8.9
+
+Marker: STEP_CAN8_9_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+```text
+CAN-8.10: Recovery-Preflight Check-Matrix Live-Test und Abnahme dokumentieren
+```
+
+Zu prüfen:
+
+```text
+recoveryPreflight.checks[] wird geliefert
+recoveryPreflight.checkSummary wird geliefert
+recoveryPreflight.scope[] wird geliefert
+canPrepare bleibt false
+canExecute bleibt false
+Safety-Felder bleiben ohne produktive Berührung
+```
+
 ## Nach STEP CAN-8.8
 
 Marker: STEP_CAN8_8_NEXT_STEPS

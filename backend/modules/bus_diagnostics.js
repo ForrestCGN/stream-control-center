@@ -11,17 +11,17 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.2.6';
+const VERSION = '1.2.7';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP_CAN8_3',
+  build: 'STEP_CAN8_9',
   type: 'runtime',
   category: 'diagnostics',
-  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy, recovery-simulation and recovery-readiness aggregator.',
+  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy, recovery-simulation, recovery-readiness and recovery-preflight check matrix aggregator.',
   routesPrefix: ['/api/bus-diagnostics'],
   bus: {
     registered: false,
@@ -256,7 +256,11 @@ function analyze(parts) {
     warnings,
     recoveryReadiness,
     recoveryStrategyState,
-    resilienceMatrix
+    resilienceMatrix,
+    communicationBody,
+    soundStatusBody,
+    alertStatusBody,
+    correlationBody
   });
 
   const summary = {
@@ -308,6 +312,10 @@ function analyze(parts) {
     recoveryPreflightCanPrepare: recoveryPreflight.canPrepare,
     recoveryPreflightCanExecute: recoveryPreflight.canExecute,
     recoveryPreflightNextStep: recoveryPreflight.nextAllowedStep,
+    recoveryPreflightCheckCount: recoveryPreflight.checkSummary.total,
+    recoveryPreflightBlockingCheckCount: recoveryPreflight.checkSummary.blocking,
+    recoveryPreflightWarningCheckCount: recoveryPreflight.checkSummary.warnings,
+    recoveryPreflightScopeCount: recoveryPreflight.scope.length,
     optionalInfoCount: optionalInfo.length,
     optionalInfo,
     status: errors.length ? 'error' : (warnings.length ? 'warning' : 'ok')
@@ -443,24 +451,148 @@ function buildRecoveryPreflight(input) {
   const recoveryStrategyState = (input && input.recoveryStrategyState) || {};
   const resilienceMatrix = (input && input.resilienceMatrix) || {};
   const matrixSummary = resilienceMatrix.summary || {};
-  const blockers = [];
-  const preflightWarnings = [];
+  const communicationBody = (input && input.communicationBody) || {};
+  const soundStatusBody = (input && input.soundStatusBody) || {};
+  const alertStatusBody = (input && input.alertStatusBody) || {};
+  const correlationBody = (input && input.correlationBody) || {};
 
-  if (errors.length > 0) blockers.push({ key: 'diagnostics_errors_present', reason: 'diagnostics_errors_present', details: errors });
-  if (recoveryReadiness.ok !== true) blockers.push({ key: 'recovery_readiness_not_ready', reason: 'recovery_readiness_not_ready', details: recoveryReadiness.blockers || [] });
-  if (recoveryStrategyState.mode !== 'read_only' || recoveryStrategyState.readOnly !== true) {
-    blockers.push({
-      key: 'recovery_strategy_not_read_only',
-      reason: 'recovery_strategy_not_read_only',
-      details: { mode: recoveryStrategyState.mode || '', readOnly: recoveryStrategyState.readOnly === true }
-    });
-  }
-  if (Number(matrixSummary.errorCount || 0) > 0) blockers.push({ key: 'resilience_matrix_errors_present', reason: 'resilience_matrix_errors_present', details: matrixSummary.errorKeys || [] });
+  const checks = [];
+  addPreflightCheck(checks, {
+    key: 'diagnostics_status_available',
+    category: 'diagnostics',
+    ok: errors.length === 0,
+    blocking: true,
+    severity: errors.length === 0 ? 'ok' : 'blocked',
+    reason: errors.length === 0 ? '' : 'diagnostics_errors_present',
+    details: errors
+  });
+  addPreflightCheck(checks, {
+    key: 'communication_bus_available',
+    category: 'communication',
+    ok: !!communicationBody && communicationBody.ok !== false,
+    blocking: true,
+    severity: (!!communicationBody && communicationBody.ok !== false) ? 'ok' : 'blocked',
+    reason: (!!communicationBody && communicationBody.ok !== false) ? '' : 'communication_bus_unavailable',
+    details: { ok: communicationBody.ok !== false }
+  });
+  addPreflightCheck(checks, {
+    key: 'recovery_readiness_ready',
+    category: 'readiness',
+    ok: recoveryReadiness.ok === true,
+    blocking: true,
+    severity: recoveryReadiness.ok === true ? 'ok' : 'blocked',
+    reason: recoveryReadiness.ok === true ? '' : 'recovery_readiness_not_ready',
+    details: { status: recoveryReadiness.status || 'unavailable', blockers: recoveryReadiness.blockers || [] }
+  });
+  addPreflightCheck(checks, {
+    key: 'recovery_strategy_read_only',
+    category: 'strategy',
+    ok: recoveryStrategyState.mode === 'read_only' && recoveryStrategyState.readOnly === true,
+    blocking: true,
+    severity: recoveryStrategyState.mode === 'read_only' && recoveryStrategyState.readOnly === true ? 'ok' : 'blocked',
+    reason: recoveryStrategyState.mode === 'read_only' && recoveryStrategyState.readOnly === true ? '' : 'recovery_strategy_not_read_only',
+    details: { mode: recoveryStrategyState.mode || '', readOnly: recoveryStrategyState.readOnly === true }
+  });
+  addPreflightCheck(checks, {
+    key: 'automation_disabled',
+    category: 'safety',
+    ok: recoveryStrategyState.automationEnabled === false,
+    blocking: true,
+    severity: recoveryStrategyState.automationEnabled === false ? 'ok' : 'blocked',
+    reason: recoveryStrategyState.automationEnabled === false ? '' : 'automation_enabled_or_unknown',
+    details: { automationEnabled: recoveryStrategyState.automationEnabled }
+  });
+  addPreflightCheck(checks, {
+    key: 'productive_actions_disabled',
+    category: 'safety',
+    ok: true,
+    blocking: true,
+    severity: 'ok',
+    reason: '',
+    details: {
+      productiveActions: false,
+      flowTouched: false,
+      queueTouched: false,
+      soundSystemTouched: false,
+      alertSystemTouched: false,
+      overlayTouched: false
+    }
+  });
+  addPreflightCheck(checks, {
+    key: 'resilience_matrix_no_errors',
+    category: 'matrix',
+    ok: Number(matrixSummary.errorCount || 0) === 0,
+    blocking: true,
+    severity: Number(matrixSummary.errorCount || 0) === 0 ? 'ok' : 'blocked',
+    reason: Number(matrixSummary.errorCount || 0) === 0 ? '' : 'resilience_matrix_errors_present',
+    details: matrixSummary.errorKeys || []
+  });
+  addPreflightCheck(checks, {
+    key: 'resilience_matrix_warning_review',
+    category: 'matrix',
+    ok: Number(matrixSummary.warningCount || 0) === 0,
+    blocking: false,
+    severity: Number(matrixSummary.warningCount || 0) === 0 ? 'ok' : 'warning',
+    reason: Number(matrixSummary.warningCount || 0) === 0 ? '' : 'resilience_matrix_warnings_present',
+    details: matrixSummary.warningKeys || []
+  });
+  addPreflightCheck(checks, {
+    key: 'alert_status_available_for_review',
+    category: 'alert',
+    ok: !!alertStatusBody && alertStatusBody.ok !== false,
+    blocking: false,
+    severity: (!!alertStatusBody && alertStatusBody.ok !== false) ? 'ok' : 'warning',
+    reason: (!!alertStatusBody && alertStatusBody.ok !== false) ? '' : 'alert_status_unavailable_for_review',
+    details: { ok: alertStatusBody.ok !== false }
+  });
+  addPreflightCheck(checks, {
+    key: 'sound_status_available_for_review',
+    category: 'sound',
+    ok: !!soundStatusBody && soundStatusBody.ok !== false,
+    blocking: false,
+    severity: (!!soundStatusBody && soundStatusBody.ok !== false) ? 'ok' : 'warning',
+    reason: (!!soundStatusBody && soundStatusBody.ok !== false) ? '' : 'sound_status_unavailable_for_review',
+    details: { ok: soundStatusBody.ok !== false }
+  });
+  addPreflightCheck(checks, {
+    key: 'correlation_status_available_for_review',
+    category: 'correlation',
+    ok: !!correlationBody && correlationBody.ok !== false,
+    blocking: false,
+    severity: (!!correlationBody && correlationBody.ok !== false) ? 'ok' : 'warning',
+    reason: (!!correlationBody && correlationBody.ok !== false) ? '' : 'correlation_status_unavailable_for_review',
+    details: { ok: correlationBody.ok !== false }
+  });
+  addPreflightCheck(checks, {
+    key: 'no_preflight_execution_route',
+    category: 'route_safety',
+    ok: true,
+    blocking: true,
+    severity: 'ok',
+    reason: '',
+    details: { routePresent: false, routeType: 'none' }
+  });
+  addPreflightCheck(checks, {
+    key: 'no_command_route',
+    category: 'route_safety',
+    ok: true,
+    blocking: true,
+    severity: 'ok',
+    reason: '',
+    details: { routePresent: false, routeType: 'none' }
+  });
 
-  if (warnings.length > 0) preflightWarnings.push({ key: 'diagnostics_warnings_present', details: warnings });
-  if (Number(matrixSummary.warningCount || 0) > 0) preflightWarnings.push({ key: 'resilience_matrix_warnings_present', details: matrixSummary.warningKeys || [] });
+  const blockers = checks
+    .filter(check => check.blocking === true && check.ok !== true)
+    .map(check => ({ key: check.key, reason: check.reason || check.key, details: check.details }));
+  const preflightWarnings = checks
+    .filter(check => check.severity === 'warning')
+    .map(check => ({ key: check.key, reason: check.reason || check.key, details: check.details }));
+
+  if (warnings.length > 0) preflightWarnings.push({ key: 'diagnostics_warnings_present', reason: 'diagnostics_warnings_present', details: warnings });
 
   const status = blockers.length > 0 ? 'blocked' : (preflightWarnings.length > 0 ? 'observe' : 'ready');
+  const checkSummary = summarizePreflightChecks(checks);
 
   return {
     ok: blockers.length === 0,
@@ -470,10 +602,20 @@ function buildRecoveryPreflight(input) {
     canPrepare: false,
     canExecute: false,
     requiresExplicitGo: true,
-    currentStep: 'CAN-8.3',
-    nextAllowedStep: 'CAN-8.4_dashboard_preflight_readonly_display_planning',
+    currentStep: 'CAN-8.9',
+    nextAllowedStep: 'CAN-8.10_preflight_check_matrix_live_test_acceptance',
     requestedAction: 'none',
     actionClass: 'diagnostic_only',
+    scope: [
+      'read_only_status_fields',
+      'preflight_check_matrix',
+      'dashboard_display_only',
+      'no_command_route',
+      'no_recovery_execution',
+      'no_productive_touch'
+    ],
+    checks,
+    checkSummary,
     requiredGuards: [
       'auth_guard',
       'action_matrix_guard',
@@ -523,6 +665,32 @@ function buildRecoveryPreflight(input) {
       diagnosticsErrors: errors.length
     },
     checkedAt: new Date().toISOString()
+  };
+}
+
+function addPreflightCheck(checks, input) {
+  const check = {
+    key: input.key || 'unknown_check',
+    category: input.category || 'general',
+    ok: input.ok === true,
+    blocking: input.blocking === true,
+    severity: input.severity || (input.ok === true ? 'ok' : (input.blocking === true ? 'blocked' : 'warning')),
+    reason: input.ok === true ? '' : (input.reason || input.key || 'check_failed'),
+    details: input.details === undefined ? null : input.details
+  };
+  checks.push(check);
+  return check;
+}
+
+function summarizePreflightChecks(checks) {
+  const list = Array.isArray(checks) ? checks : [];
+  return {
+    total: list.length,
+    ok: list.filter(check => check.ok === true).length,
+    warnings: list.filter(check => check.severity === 'warning').length,
+    blocking: list.filter(check => check.blocking === true && check.ok !== true).length,
+    blocked: list.filter(check => check.severity === 'blocked').length,
+    categories: Array.from(new Set(list.map(check => check.category).filter(Boolean)))
   };
 }
 

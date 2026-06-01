@@ -1,27 +1,21 @@
-# CHANGELOG – CAN-8.8 Recovery-Preflight Check-Matrix Statusfelder Plan
+# CHANGELOG – CAN-8.9 Recovery-Preflight Check-Matrix Statusfelder
 
 Stand: 2026-06-01
 
-## Geaendert
+## Geändert
 
-- `docs/system-inspection/EVENTBUS_CAN8_8_RECOVERY_PREFLIGHT_CHECK_MATRIX_STATUS_FIELDS_PLAN.md` ergaenzt.
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_8.md` ergaenzt.
-- `project-state/*` auf CAN-8.8 nachgezogen.
+- `backend/modules/bus_diagnostics.js` auf Version `1.2.7` erhöht.
+- `recoveryPreflight.checks[]` ergänzt.
+- `recoveryPreflight.checkSummary` ergänzt.
+- `recoveryPreflight.scope[]` ergänzt.
+- Summary-Felder für Check-/Scope-Zähler ergänzt.
 
-## Dokumentiert
+## Nicht geändert
 
-- Minimal-Checks fuer CAN-8.9.
-- Check-Struktur fuer `recoveryPreflight.checks[]`.
-- `checkSummary`-Felder.
-- Summary-Felder fuer `/api/bus-diagnostics/status`.
-- Harte read-only Grenze fuer CAN-8.9.
+- Keine neue API-Route.
+- Keine POST-/Command-Route.
+- Keine Dashboard-Datei geändert.
+- Keine Config/DB geändert.
+- Keine Recovery-Ausführung.
+- Keine produktive Flow-Änderung.
 
-## Nicht geaendert
-
-- Keine Backend-Datei geaendert.
-- Keine Dashboard-Datei geaendert.
-- Keine API-Route geaendert.
-- Keine Config geaendert.
-- Keine DB geaendert.
-- Keine Recovery-Ausfuehrung aktiviert.
-- Keine produktive Flow-Aenderung.
