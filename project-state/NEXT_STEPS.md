@@ -1,3 +1,43 @@
+## Nach STEP CAN-6.6
+
+Marker: STEP_CAN6_6_NEXT_STEPS
+
+Nächster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-6.7: Recovery-Command-Audit-/State-Mapping planen
+~~~
+
+Ziel von CAN-6.7:
+
+~~~text
+Noch kein Code.
+Noch keine Buttons.
+Noch keine Recovery-Ausführung.
+Nur Mapping: Command-Zustand -> Audit-Event -> State-Feld -> Dashboard-Anzeige -> Rollback-Hinweis.
+~~~
+
+Pflichtfragen vor Umsetzung:
+
+~~~text
+Welche Command-Zustaende braucht das System?
+Welche Audit-Events gehoeren zu welchem Zustand?
+Welche State-Felder duerfen spaeter geschrieben werden?
+Welche Werte bleiben read-only Diagnose?
+Welche Blockierungsgruende muessen standardisiert werden?
+Wie sieht die Dashboard-Anzeige nach einem blockierten Command aus?
+Wie wird Rollback/Clear angezeigt, ohne automatisch auszufuehren?
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery.
+Keine Recovery-Buttons.
+Keine produktive Flow-Änderung.
+Keine Replay-/Retry-Aktion.
+~~~
+
 ## Nach Dokumentationsabschluss CAN-6.5
 
 Marker: STEP_CAN6_5_DOCUMENTATION_NEXT_STEPS

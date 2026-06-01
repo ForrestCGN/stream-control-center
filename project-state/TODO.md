@@ -1,3 +1,28 @@
+## CAN-6.7 / Recovery-Command-Audit-/State-Mapping
+
+- [x] CAN-6.6 Recovery-Ausfuehrungs-Command-Konzept dokumentieren.
+- [ ] CAN-6.7 Recovery-Command-Audit-/State-Mapping planen.
+- [ ] Command-Zustaende definieren.
+- [ ] Audit-Events pro Command-Zustand definieren.
+- [ ] State-Felder fuer spaetere Anzeige und Diagnose festlegen.
+- [ ] Blockierungsgruende standardisieren.
+- [ ] Dashboard-Anzeige nach blockiertem Command planen.
+- [ ] Rollback-/Clear-Anzeige ohne automatische Ausfuehrung planen.
+- [ ] Sicherstellen: keine produktive Recovery ohne separaten Code-Step.
+
+## CAN-6.6 / Recovery-Ausfuehrungs-Command-Konzept
+
+- [x] CAN-6.5 Dashboard-Preflight-Anzeige und UX-Regeln dokumentieren.
+- [x] CAN-6.6 Recovery-Ausfuehrungs-Command-Konzept planen.
+- [x] Preflight und Command strikt trennen.
+- [x] Command-Request- und Response-Felder definieren.
+- [x] Guard-Reihenfolge fuer spaetere Ausfuehrung definieren.
+- [x] Low-Risk-Aktionen von hart blockierten Aktionen abgrenzen.
+- [x] Idempotenz und Duplikat-Sperre planen.
+- [x] Audit-Pflichtpunkte fuer Command-Versuche definieren.
+- [x] Rollback-/Clear-Regeln planen.
+- [x] Sicherstellen: keine Route, keine Buttons, keine produktive Aktion.
+
 ## CAN-6.6 / Read-only Dashboard-Preflight-Anzeige Code-Step planen
 
 - [x] CAN-6.5 Dashboard-Preflight-Anzeige und UX-Regeln dokumentieren.

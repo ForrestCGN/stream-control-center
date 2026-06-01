@@ -1,3 +1,45 @@
+# CHANGELOG – CAN-6.6 Recovery-Ausfuehrungs-Command-Konzept
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN6_6_RECOVERY_EXECUTION_COMMAND_CONCEPT.md` ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_6.md` ergänzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.6 Abschlussstand erweitert.
+- `project-state/NEXT_STEPS.md` um CAN-6.7 als nächsten Arbeitsblock erweitert.
+- `project-state/TODO.md` um CAN-6.6/CAN-6.7 Aufgaben erweitert.
+- `project-state/FILES.md` um CAN-6.6 Dateien erweitert.
+
+## Definiert
+
+- Strikte Trennung von read-only Preflight und spaeterem Command.
+- Geplante Command-Request- und Response-Felder.
+- Guard-Reihenfolge fuer spaetere manuelle Ausfuehrung.
+- Low-Risk-Aktionsgrenzen und weiterhin hart blockierte Aktionen.
+- Idempotenz- und Duplikat-Sperren.
+- Audit-Pflichtpunkte fuer Command-Versuche.
+- Rollback-/Clear-Regeln.
+- Safety-Stop-Regeln.
+- Testregeln fuer einen spaeteren Code-Step.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Route ergänzt.
+- Keine Dashboard-Datei geändert.
+- Keine Recovery-Buttons ergänzt.
+- Keine Simulation-Buttons ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+
+## Nächster Block
+
+- CAN-6.7: Recovery-Command-Audit-/State-Mapping planen.
+
+---
+
 # CHANGELOG – CAN-6.5 Dashboard-Preflight-Anzeige und UX-Regeln
 
 Stand: 2026-06-01

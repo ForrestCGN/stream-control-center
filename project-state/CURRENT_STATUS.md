@@ -1,3 +1,63 @@
+## Abschluss-/Übergabestand CAN-6.6
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_6_RECOVERY_EXECUTION_COMMAND_CONCEPT
+
+CAN-6.6 definiert das Konzept fuer einen spaeteren manuellen Recovery-Ausfuehrungs-Command.
+
+Aktueller Fokus:
+
+~~~text
+Communication-Bus / EventBus Diagnose
+Recovery-Strategy-State
+Manuelle Recovery-Aktionsmatrix
+Backend-Schutzvertrag fuer spaetere Recovery-Aktionen
+Audit- und Bestätigungs-Code-Konzept
+Read-only Recovery-Preflight-API-Konzept
+Dashboard-Preflight-Anzeige und UX-Regeln
+Recovery-Ausfuehrungs-Command-Konzept
+~~~
+
+Definiert wurde:
+
+~~~text
+strikte Trennung von Preflight und Command
+Command-Request-Felder
+Command-Response-Felder
+Guard-Reihenfolge fuer spaetere Ausfuehrung
+Low-Risk-Aktionsgrenzen
+hart blockierte Aktionen
+Idempotenz und Duplikat-Sperre
+Audit-Pflichtpunkte
+Rollback-/Clear-Regeln
+Safety-Stop-Regeln
+Testregeln fuer spaeteren Code-Step
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine neuen Routen
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine Dashboard-Code-Änderung
+Keine produktive Flow-Änderung
+Keine DB-/Config-Migration
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-6.7: Recovery-Command-Audit-/State-Mapping planen
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN6_6_RECOVERY_EXECUTION_COMMAND_CONCEPT.md`
+Übergabe: `docs/current/CURRENT_CHAT_HANDOFF_CAN6_6.md`
+
 ## Abschluss-/Übergabestand CAN-6.5
 
 Stand: 2026-06-01
