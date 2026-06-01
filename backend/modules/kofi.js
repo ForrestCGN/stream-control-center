@@ -10,6 +10,21 @@ const database = require('../core/database');
 const routes = require('./helpers/helper_routes');
 
 const MODULE = 'kofi';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'payment',
+  legacy: false,
+  description: 'Ko-fi webhook provider for the alert system.',
+  routesPrefix: ['/api/alerts/kofi'],
+  bus: {
+    publishes: false,
+    subscribes: false,
+    heartbeat: false
+  }
+};
 const SCHEMA_VERSION = 1;
 const SETTINGS_KEY = 'provider_kofi_webhook';
 
@@ -705,3 +720,7 @@ function formatAmount(n) { return Number(n || 0).toFixed(2).replace(/\.00$/, '')
 function parseJson(v, fallback) { try { return JSON.parse(v || ''); } catch (_) { return fallback; } }
 function nowIso() { return new Date().toISOString(); }
 function errorMessage(err) { return err && err.message ? err.message : String(err); }
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;

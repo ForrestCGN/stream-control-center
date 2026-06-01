@@ -1,3 +1,20 @@
+
+const MODULE_META = {
+  name: 'tts_system',
+  version: '0.1.0',
+  type: 'runtime',
+  category: 'tts',
+  legacy: false,
+  description: 'TTS command, voice preparation, generated audio management and dashboard endpoints.',
+  routesPrefix: ['/api/tts'],
+  bus: {
+    publishes: false,
+    subscribes: false,
+    heartbeat: false
+  }
+};
+const MODULE_VERSION = MODULE_META.version;
+
 /**
  * ForrestCGN TTS System V2
  * - One chat command: !tts <text|subcommand>
@@ -2200,4 +2217,4 @@ function init(ctx) {
   console.log(`[TTS] config dir: ${CONFIG_DIR}`);
 }
 
-module.exports = { init };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init };

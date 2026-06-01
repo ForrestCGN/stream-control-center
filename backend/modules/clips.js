@@ -38,6 +38,21 @@ try {
 }
 
 const MODULE_NAME = 'clips';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'clips',
+  legacy: false,
+  description: 'Clip backend, Twitch clip preparation, local OBS replay handling and clip history endpoints.',
+  routesPrefix: ['/api/clip', '/api/clips'],
+  bus: {
+    publishes: false,
+    subscribes: false,
+    heartbeat: false
+  }
+};
 const CLIP_SCHEMA_VERSION = 3;
 const CLIP_HISTORY_TABLE = 'clip_history';
 const CLIP_SETTINGS_TABLE = 'clip_settings';
@@ -2278,3 +2293,7 @@ function safeJson(value) {
     return '{}';
   }
 }
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;

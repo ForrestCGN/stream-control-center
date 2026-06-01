@@ -13,6 +13,22 @@ const database = require("../core/database");
 const twitchRoles = require("./helpers/helper_twitch_roles");
 const media = require("./helpers/helper_media");
 
+const MODULE_META = {
+  name: 'vip_sound_overlay',
+  version: '0.1.0',
+  type: 'runtime',
+  category: 'vip_sound',
+  legacy: false,
+  description: 'VIP sound overlay runtime, queue, client state and dashboard/API endpoints.',
+  routesPrefix: ['/api/vip-sound'],
+  bus: {
+    publishes: true,
+    subscribes: false,
+    heartbeat: true
+  }
+};
+const MODULE_VERSION = MODULE_META.version;
+
 let communicationBus = null;
 try {
   communicationBus = require("./communication_bus");
@@ -5809,3 +5825,7 @@ module.exports.init = function init(ctx) {
   console.log(`[${MODULE_NAME}] webRoot=${webRoot}`);
   console.log(`[${MODULE_NAME}] userInfoBaseUrl=${userInfoBaseUrl}`);
 };
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;

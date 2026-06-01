@@ -18,6 +18,23 @@ const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const configHelper = require('./helpers/helper_config');
 
+const MODULE_NAME = 'discord';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'integration',
+  legacy: false,
+  description: 'Discord bridge for channel posts, webhooks, voice and sound forwarding.',
+  routesPrefix: ['/api/discord', '/discord'],
+  bus: {
+    publishes: false,
+    subscribes: false,
+    heartbeat: false
+  }
+};
+
 // --------------------------------------------------
 // TOOLS / FFMPEG SETUP
 // --------------------------------------------------
@@ -1092,6 +1109,9 @@ function init(ctx) {
 }
 
 module.exports = {
+  MODULE_META,
+  MODULE_VERSION,
+  version: MODULE_VERSION,
   init,
   getBridgeService,
   postToChannel,
