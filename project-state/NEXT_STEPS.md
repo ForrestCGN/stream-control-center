@@ -1,3 +1,36 @@
+## Nach STEP CAN-6.0
+
+Marker: STEP_CAN6_0_NEXT_STEPS
+
+CAN-6.0 ist nur Planung für eine spätere abgesicherte manuelle Recovery.
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine produktive Flow-Änderung
+~~~
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-6.1: Manuelle Recovery-Aktionsmatrix definieren
+~~~
+
+Vor Code zuerst festlegen:
+
+~~~text
+Welche Zustände bleiben reine Diagnose?
+Welche Aktionen dürfen später manuell bestätigt werden?
+Welche Aktionen bleiben hart blockiert?
+Welche Rechte sind nötig?
+Welche Audit-Logs sind Pflicht?
+Welche Duplikat-Sperren schützen Alert/Sound/Overlay?
+Wie wird Safety-Stop/Rollback umgesetzt?
+~~~
+
 ## Nach STEP CAN-5.10
 
 Marker: STEP_CAN5_10_NEXT_STEPS

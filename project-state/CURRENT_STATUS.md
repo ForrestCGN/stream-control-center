@@ -1,3 +1,46 @@
+## STEP CAN-6.0 Manuelle Recovery-Planung
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_0_MANUAL_RECOVERY_PLANNING
+
+CAN-6.0 plant den Wechsel von reiner read-only Diagnose zu einer später möglichen, abgesicherten manuellen Recovery.
+
+Wichtig: CAN-6.0 ist nur Planung und Sicherheitskonzept.
+
+~~~text
+Keine Backend-Änderung
+Keine API-Änderung
+Keine Dashboard-Code-Änderung
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine Recovery-Automatik
+Keine produktive Flow-Änderung
+~~~
+
+Weiterhin blockiert:
+
+~~~text
+auto_replay_alert
+manual_replay_alert
+auto_replay_sound
+manual_replay_sound
+auto_retry_overlay
+auto_recovery
+~~~
+
+Pflicht vor späteren manuellen Aktionen:
+
+~~~text
+Owner/Admin-Rechte
+Bestätigungsdialog
+Audit-Log
+Duplikat-Sperre
+Safety-Stop
+Rollback-/Clear-Regel
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN6_0_MANUAL_RECOVERY_PLANNING.md`
+
 ## STEP CAN-5.10 Recovery-Dashboard stabil dokumentiert
 
 Stand: 2026-06-01
