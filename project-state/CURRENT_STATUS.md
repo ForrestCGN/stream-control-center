@@ -1,3 +1,36 @@
+## STEP CAN-7.3 Dashboard Recovery-Readiness read-only Anzeige
+
+Stand: 2026-06-01
+Marker: STEP_CAN7_3_DASHBOARD_RECOVERY_READINESS_READONLY_DISPLAY
+
+CAN-7.3 zeigt die mit CAN-7.1 eingefuehrten `recoveryReadiness`-Daten im bestehenden Bus-Diagnostics-Dashboard im Tab Recovery an.
+
+Geaendert:
+
+```text
+htdocs/dashboard/modules/bus_diagnostics.js
+```
+
+Nicht geaendert:
+
+```text
+Keine Backend-Aenderung
+Keine API-Aenderung
+Keine neue Route
+Keine Recovery-Ausfuehrung
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Keine produktive Flow-Aenderung
+```
+
+Naechster Schritt:
+
+```text
+CAN-7.4: Dashboard-Anzeige live testen und abnehmen
+```
+
+Details: `docs/system-inspection/EVENTBUS_CAN7_3_DASHBOARD_RECOVERY_READINESS_READONLY_DISPLAY.md`
+
 ## STEP CAN-7.2.1 Recovery-Readiness Testfeld-Fix und Live-Abnahme
 
 Stand: 2026-06-01

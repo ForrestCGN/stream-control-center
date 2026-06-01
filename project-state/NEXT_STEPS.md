@@ -1,3 +1,32 @@
+## Nach STEP CAN-7.3
+
+Marker: STEP_CAN7_3_NEXT_STEPS
+
+Naechster sinnvoller Schritt:
+
+```text
+CAN-7.4: Dashboard-Recovery-Readiness-Anzeige live testen und abnehmen
+```
+
+Zu pruefen:
+
+```text
+Dashboard laedt
+Tab Recovery laedt
+Recovery-Readiness ist sichtbar
+Readiness-Safety ist sichtbar
+Readiness-Checks sind sichtbar
+Hart blockierte Aktionen sind sichtbar
+Keine Recovery-Buttons sichtbar
+Keine Simulation-Buttons sichtbar
+```
+
+Regel bleibt:
+
+```text
+Nur Anzeige. Keine produktive Flow-Aenderung.
+```
+
 ## Nach STEP CAN-7.2.1
 
 Marker: STEP_CAN7_2_1_NEXT_STEPS

@@ -1,3 +1,32 @@
+# CHANGELOG – CAN-7.3 Dashboard Recovery-Readiness Anzeige
+
+Stand: 2026-06-01
+
+## Geaendert
+
+- `htdocs/dashboard/modules/bus_diagnostics.js` zeigt `recoveryReadiness` im bestehenden Recovery-Tab an.
+- Anzeigegruppen ergaenzt:
+  - Recovery-Readiness
+  - Readiness-Safety
+  - Readiness-Checks
+  - Readiness-Blocker
+  - Hart blockierte Recovery-Aktionen
+
+## Nicht geaendert
+
+- Keine Backend-Logik geaendert.
+- Keine API-Route geaendert.
+- Keine Dashboard-Buttons fuer Recovery ergaenzt.
+- Keine Recovery-Ausfuehrung aktiviert.
+- Keine produktive Queue-/Sound-/Overlay-Logik geaendert.
+- Keine DB-/Config-Migration.
+
+## Naechster Block
+
+- CAN-7.4: Dashboard-Anzeige live testen und abnehmen.
+
+---
+
 # CHANGELOG – CAN-7.2.1 Recovery-Readiness Testfeld-Fix
 
 Stand: 2026-06-01

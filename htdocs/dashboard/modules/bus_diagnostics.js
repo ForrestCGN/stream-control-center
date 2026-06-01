@@ -411,17 +411,40 @@
     const reasonList = reasons.length
       ? `<div class="busdiag-list">${reasons.map(reason => `<div class="busdiag-row"><strong>Grund</strong><span>${esc(reason)}</span></div>`).join('')}</div>`
       : '<p class="busdiag-muted">Keine Gründe gemeldet.</p>';
+    const readiness = data.recoveryReadiness || {};
+    const readinessChecks = asList(readiness.checks);
+    const readinessHardBlocked = asList(readiness.hardBlockedActions);
+    const readinessBlockers = asList(readiness.blockers);
+    const readinessStatus = readiness.status || summary.recoveryReadinessStatus || 'nicht geladen';
+    const readinessOk = readiness.ok === true && readiness.readOnly === true && readiness.automationEnabled === false && readiness.productiveActions === false && readiness.flowTouched === false && readiness.queueTouched === false && readiness.soundSystemTouched === false && readiness.alertSystemTouched === false && readiness.overlayTouched === false;
+    const readinessBadgeStatus = readinessOk ? 'ok' : 'warning';
+    const readinessCheckList = readinessChecks.length
+      ? `<div class="busdiag-list">${readinessChecks.map(check => `<div class="busdiag-row ${check.ok === false ? 'warning' : ''}"><strong>${esc(check.key || 'check')}</strong><span>${esc(check.ok === false ? (check.reason || 'prüfen') : 'ok')}</span></div>`).join('')}</div>`
+      : '<p class="busdiag-muted">Noch keine Recovery-Readiness-Checks geladen.</p>';
+    const readinessHardBlockedList = readinessHardBlocked.length
+      ? `<div class="busdiag-list">${readinessHardBlocked.map(action => `<div class="busdiag-row warning"><strong>hart blockiert</strong><span>${esc(action)}</span></div>`).join('')}</div>`
+      : '<p class="busdiag-muted">Keine hart blockierten Aktionen gemeldet.</p>';
+    const readinessBlockerList = readinessBlockers.length
+      ? `<div class="busdiag-list">${readinessBlockers.map(blocker => `<div class="busdiag-row warning"><strong>Blocker</strong><span>${esc(blocker)}</span></div>`).join('')}</div>`
+      : '<p class="busdiag-muted">Keine Recovery-Readiness-Blocker gemeldet.</p>';
 
     return `
       <div class="busdiag-grid busdiag-grid-top">
         ${card('Recovery-Strategie', `<div class="busdiag-status-line">${badge(stateLabel, status)}<span>${esc(recovery.mode || summary.recoveryStrategyMode || 'read_only')}</span></div><div class="busdiag-metrics">${metric('State', stateLabel, '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Severity', recovery.severity || '-')}${metric('Next Action', recovery.nextAction || '-', '', 'busdiag-metric-code')}${metric('Automation', bool(recovery.automationEnabled), 'muss aus bleiben')}</div>`)}
         ${card('Sicherheitsstatus', `<div class="busdiag-status-line">${badge(safetyStatus === 'ok' ? 'ok' : 'prüfen', safetyStatus)}<span>${esc(safetyText)}</span></div><div class="busdiag-metrics">${metric('Read-only', bool(data.readOnly && recovery.readOnly !== false))}${metric('Productive Actions', bool(data.productiveActions))}${metric('Flow touched', bool(data.flowTouched))}${metric('Overlay touched', bool(data.overlayTouched))}</div>`)}
       </div>
+      <div class="busdiag-grid busdiag-grid-top">
+        ${card('Recovery-Readiness', `<div class="busdiag-status-line">${badge(readinessStatus, readinessBadgeStatus)}<span>nur Anzeige / keine Aktion</span></div><div class="busdiag-metrics">${metric('CAN Start', bool(readiness.canStartReadOnlyCode), 'nur read-only')}${metric('Current Step', readiness.currentStep || '-', '', 'busdiag-metric-code')}${metric('Next Step', readiness.nextAllowedStep || summary.recoveryReadinessNextStep || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Checked', fmtTime(readiness.checkedAt))}</div>`)}
+        ${card('Readiness-Safety', `<div class="busdiag-status-line">${badge(readinessOk ? 'ok' : 'prüfen', readinessBadgeStatus)}<span>Produktive Aktionen müssen aus bleiben</span></div><div class="busdiag-metrics">${metric('Read-only', bool(readiness.readOnly))}${metric('Automation', bool(readiness.automationEnabled))}${metric('Productive', bool(readiness.productiveActions))}${metric('Queue touched', bool(readiness.queueTouched))}${metric('Sound touched', bool(readiness.soundSystemTouched))}${metric('Alert touched', bool(readiness.alertSystemTouched))}${metric('Overlay touched', bool(readiness.overlayTouched))}</div>`)}
+      </div>
       <div class="busdiag-grid">
         ${card('Recovery-Quelle', `<div class="busdiag-list" style="display:grid;gap:8px;">${sourceTiles}</div>`)}
         ${card('Blockierte Aktionen', blockedList)}
         ${card('Erlaubte Aktionen', allowedList)}
         ${card('Gründe', reasonList)}
+        ${card('Readiness-Checks', readinessCheckList)}
+        ${card('Readiness-Blocker', readinessBlockerList)}
+        ${card('Hart blockierte Recovery-Aktionen', readinessHardBlockedList, 'busdiag-wide')}
         ${card('Simulation-Harness', `<div class="busdiag-status-line">${badge('read-only', 'ok')}<span>Anzeige nur Diagnose, keine Test-Buttons</span></div><div class="busdiag-metrics">${metric('Status Route', '/api/bus-diagnostics/recovery-simulation/status', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Test Trigger', 'nicht im Dashboard', 'bewusst nicht auslösbar')}${metric('Auto-Recovery', 'aus')}${metric('Replay', 'aus')}</div>`, 'busdiag-wide')}
       </div>
     `;

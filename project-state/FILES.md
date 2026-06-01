@@ -1,3 +1,36 @@
+# FILES – CAN-7.3 Dashboard Recovery-Readiness Anzeige
+
+Stand: 2026-06-01
+
+## Geaendert
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - zeigt `recoveryReadiness` im Recovery-Tab read-only an
+  - keine neuen Buttons
+  - keine Command-/Recovery-Ausloesung
+
+## Neue Doku
+
+- `docs/system-inspection/EVENTBUS_CAN7_3_DASHBOARD_RECOVERY_READINESS_READONLY_DISPLAY.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_3.md`
+- `docs/current/README_CAN7_3_FILE_ZIP.md`
+
+## Weiterhin relevant
+
+- `backend/modules/bus_diagnostics.js`
+  - liefert `recoveryReadiness`
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - zeigt Diagnose und Recovery-Readiness an
+
+## Nicht anfassen ohne separates Go
+
+- Keine Recovery-Buttons ergaenzen.
+- Keine Simulation-Buttons ergaenzen.
+- Keine Alert-/Sound-Replays erlauben.
+- Keine produktive Queue-/Sound-/Overlay-Logik umbauen.
+
+---
+
 # FILES – CAN-7.2.1 Recovery-Readiness Testfeld-Fix
 
 Stand: 2026-06-01

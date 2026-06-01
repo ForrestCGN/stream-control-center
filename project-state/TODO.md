@@ -1,5 +1,14 @@
 ## CAN-7 / Recovery-Readiness Dashboard
 
+- [x] CAN-7.1 Recovery-Readiness Statusfelder im Backend read-only ergaenzen.
+- [x] CAN-7.2 Live-Test und Abnahmegrenze dokumentieren.
+- [x] CAN-7.2.1 Testfelder korrigieren.
+- [x] CAN-7.3 Recovery-Readiness im Dashboard read-only anzeigen.
+- [ ] CAN-7.4 Dashboard-Anzeige live testen und dokumentieren.
+- [ ] Keine Recovery-Buttons ohne separaten Planungs- und Sicherheitsstep.
+
+## CAN-7 / Recovery-Readiness Dashboard
+
 - [x] CAN-7.1 Recovery-Readiness Statusfelder backendseitig read-only ergänzen.
 - [x] CAN-7.1 live testen und abnehmen.
 - [x] CAN-7.2 Test-/Abnahme-Doku korrigieren.
