@@ -31,7 +31,7 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.8';
+const MODULE_VERSION = '3.1.9';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 const ALERT_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
@@ -48,7 +48,7 @@ const MODULE_META = {
   routesPrefix: ['/api/alerts'],
   capabilities: [ALERT_EVENTBUS_CAPABILITY],
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: 'STEP CAN-3.4: additive read-only handshake state diagnostics; runtime flow unchanged.'
+  note: 'STEP CAN-4.1: additive read-only visual delivery state diagnostics; runtime flow unchanged.'
 };
 
 const DEFAULT_CONFIG = {
@@ -1971,6 +1971,66 @@ function handshakeStateFromComparison(alertRows, soundRows, comparison, soundFet
   };
 }
 
+function visualDeliveryStateFromComparison(alertRows, comparison) {
+  const now = Date.now();
+  const alertCount = Array.isArray(alertRows) ? alertRows.length : 0;
+  const matched = Number((comparison && comparison.matched) || 0);
+  const matchedEventUids = new Set((comparison && Array.isArray(comparison.matches) ? comparison.matches : [])
+    .map(row => cleanText(row && row.eventUid || ''))
+    .filter(Boolean));
+  const alertEventUids = new Set((alertRows || [])
+    .map(row => cleanText(row && row.eventUid || ''))
+    .filter(Boolean));
+  const allDeliveries = Array.from(state.overlayDeliveryByEvent.values())
+    .map(record => publicOverlayDelivery(record, now))
+    .filter(Boolean);
+  const relevantDeliveries = allDeliveries.filter(row => {
+    const uid = cleanText(row.eventUid || row.alertId || '');
+    return uid && (matchedEventUids.has(uid) || alertEventUids.has(uid));
+  });
+  const rows = (relevantDeliveries.length ? relevantDeliveries : allDeliveries).slice(0, 20);
+  const acknowledged = rows.filter(row => row.status === 'acknowledged').length;
+  const waiting = rows.filter(row => row.status === 'waiting_for_finish_ack').length;
+  const missingAck = rows.filter(row => row.status === 'missing_finish_ack').length;
+  const noClient = rows.filter(row => row.status === 'no_overlay_client').length;
+  const stateName = alertCount <= 0 && rows.length <= 0
+    ? 'idle_no_recent_visual_delivery'
+    : matched <= 0 && alertCount > 0
+      ? 'sound_not_matched_yet'
+      : rows.length <= 0
+        ? 'visual_delivery_not_seen'
+        : missingAck > 0
+          ? 'matched_but_visual_ack_missing'
+          : noClient > 0
+            ? 'matched_but_no_overlay_client'
+            : waiting > 0
+              ? 'matched_waiting_for_visual_ack'
+              : acknowledged > 0
+                ? 'matched_and_visual_acknowledged'
+                : 'visual_delivery_observed';
+  const warning = stateName === 'visual_delivery_not_seen'
+    || stateName === 'matched_but_visual_ack_missing'
+    || stateName === 'matched_but_no_overlay_client';
+  return {
+    ok: !warning,
+    warning,
+    state: stateName,
+    readOnly: true,
+    flowTouched: false,
+    alertRows: alertCount,
+    soundMatched: matched,
+    overlayRows: rows.length,
+    acknowledged,
+    waiting,
+    missingAck,
+    noClient,
+    overlayClients: state.overlayClients.size,
+    nextAction: warning ? 'check_overlay_client_or_finish_ack' : '',
+    recent: rows,
+    checkedAt: nowIso()
+  };
+}
+
 function compareAlertSoundCorrelation(alertRows, soundRows) {
   const soundByEvent = new Map();
   const soundByRequest = new Map();
@@ -2047,17 +2107,20 @@ async function buildAlertSoundEventBusCorrelationStatus(query = {}) {
   const soundRows = soundStatus ? collectSoundCorrelationKeys(soundStatus) : [];
   const comparison = compareAlertSoundCorrelation(alertRows, soundRows);
   const handshakeState = handshakeStateFromComparison(alertRows, soundRows, comparison, soundFetch);
+  const visualDeliveryState = visualDeliveryStateFromComparison(alertRows, comparison);
   const warnings = [];
   if (!soundFetch.ok) warnings.push('sound_eventbus_status_unavailable');
   if (alertRows.length > 0 && soundRows.length === 0 && soundFetch.ok) warnings.push('no_sound_alert_correlation_rows_seen_yet');
   if (comparison.unmatched > 0 && comparison.matched === 0 && alertRows.length > 0 && soundRows.length > 0) warnings.push('alert_rows_not_matched_to_sound_rows');
+  if (visualDeliveryState.warning) warnings.push('visual_delivery_' + visualDeliveryState.state);
   return {
     ok: true,
     module: MODULE,
     version: MODULE_VERSION,
     feature: 'alert_sound_eventbus_correlation',
     statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
-    traceCorrelationVersion: 'CAN-3.4',
+    traceCorrelationVersion: 'CAN-4.1',
+    visualDeliveryVersion: 'CAN-4.1',
     matchingKeys: ['eventUid', 'requestId', 'correlationId', 'bundleId'],
     readOnly: true,
     flowTouched: false,
@@ -2084,6 +2147,7 @@ async function buildAlertSoundEventBusCorrelationStatus(query = {}) {
     } : null,
     comparison,
     handshakeState,
+    visualDeliveryState,
     warnings,
     checkedAt: nowIso()
   };
