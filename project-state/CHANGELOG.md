@@ -1,9 +1,8 @@
 # CHANGELOG
 
-## CAN-12.0
+## CAN-12.1
 
-- CAN-12 Block fuer Manual-Recovery-Guard-Framework gestartet.
-- Guard-Kategorien grob definiert.
-- Minimaler Guard-Ergebnisvertrag geplant.
+- Guard-Katalog fuer Manual-Recovery-Guard-Framework erstellt.
+- Guard-Kategorien, Inputs, Erfolgskriterien, Blocking-Verhalten und Dashboard-Labels geplant.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.

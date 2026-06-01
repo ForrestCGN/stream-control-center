@@ -2,13 +2,12 @@
 
 ## Naechster Schritt
 
-CAN-12.1 - Manual Recovery Guard Catalog Plan
+CAN-12.2 - Manual Recovery Guard Display Contract Plan
 
 Ziel:
 
-- Guard-Katalog erstellen
-- Input-Felder je Guard definieren
-- Erfolg-/Fehlerkriterien definieren
-- Blocking-Verhalten definieren
-- Dashboard-Labels definieren
+- GuardSummary planen
+- Guard-Tabelle planen
+- Dashboard-Labels planen
+- Status-/Severity-Darstellung planen
 - keine Code-Aenderung
