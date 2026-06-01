@@ -3,23 +3,25 @@
 ## Naechster Schritt
 
 ```text
-CAN-17.1 - Roles/Rights Action Matrix no-mutation Planning
+CAN-17.2 - Roles/Rights Backend Boundary no-implementation Planning
 ```
 
-## Ziel CAN-17.1
+## Ziel CAN-17.2
 
-Eine detailliertere Aktionsmatrix fuer Rollen/Rechte planen, ohne Rechte technisch umzusetzen.
+Planen, welche Backend-Grenzen ein spaeteres Rollen-/Rechte-System haben muss, ohne Backend-Code zu bauen.
 
-## CAN-17.1 darf klaeren
+## CAN-17.2 darf klaeren
 
 ```text
-welche read-only Aktionen spaeter welche Rolle brauchen koennten
-welche high-risk Aktionen unabhaengig von Rollen blockiert bleiben
-welche Aktionen eigene separate Planung brauchen
-welche Aktionen niemals durch UI-Only freigegeben werden duerfen
+serverseitige Pruefung als Pflicht
+kein Trust auf Client
+no-implementation Grenzen
+welche Module spaeter betroffen waeren
+welche Routen weiterhin nicht existieren
+welche Entscheidungen spaeter auditierbar sein muessen
 ```
 
-## CAN-17.1 darf NICHT enthalten
+## CAN-17.2 darf NICHT enthalten
 
 ```text
 Rollen-API
@@ -27,6 +29,7 @@ Rechte-API
 Login-/User-System
 DB-Tabelle
 Dashboard-Rechte-Durchsetzung
+Middleware
 Mutation
 Recovery-Ausfuehrung
 POST-Route

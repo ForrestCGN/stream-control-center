@@ -1,24 +1,15 @@
 # CURRENT_STATUS
 
-## Stand: CAN-17.0 abgeschlossen
+## Stand: CAN-17.1 abgeschlossen
 
-CAN-17.0 hat die Roles/Rights Boundary no-mutation geplant.
-
-## Aktueller stabiler Stand
-
-```text
-read-only Recovery/Safety Diagnose- und Anzeige-Strang
-Safety Status View read-only
-Audit Planning no-write/no-data
-SafetyStop Planning read-only/no-api
-Roles/Rights Boundary no-mutation
-```
+CAN-17.1 hat die Roles/Rights Action Matrix no-mutation geplant.
 
 ## Roles/Rights-Status
 
 ```text
 rolesRightsPlanning: true
-rolesRightsActionMatrix: false
+rolesRightsActionMatrix: true
+rolesRightsBackendBoundary: false
 rolesApi: false
 rightsApi: false
 authSystem: false
@@ -40,6 +31,16 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
+```
+
+## CAN-17.1 Ergebnis
+
+```text
+Rollen-/Rechte-Aktionsmatrix geplant.
+High-risk Aktionen bleiben unabhaengig von Rollen blockiert.
+Rolle allein reicht nie.
+System darf nie still produktiv handeln.
+UI ist keine Autoritaet.
 ```
 
 ## Weiterhin hart blockiert
@@ -68,5 +69,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-17.1 - Roles/Rights Action Matrix no-mutation Planning
+CAN-17.2 - Roles/Rights Backend Boundary no-implementation Planning
 ```

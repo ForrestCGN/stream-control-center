@@ -1,13 +1,12 @@
 # CHANGELOG
 
-## CAN-17.0
+## CAN-17.1
 
-- Roles/Rights Boundary no-mutation geplant.
-- Rollen viewer/moderator/admin/owner/system definiert.
-- Grundregel Backend statt UI-Trust dokumentiert.
-- Rechte-Kategorien und erste Matrix geplant.
-- High-risk Blocker unabhaengig von Rollen bestaetigt.
-- CAN-17.1 Roles/Rights Action Matrix no-mutation Planning als naechster Schritt festgelegt.
+- Roles/Rights Action Matrix no-mutation geplant.
+- Read-only Anzeige-, Diagnose-, High-risk-, Audit-, Rollenverwaltungs- und Dashboard-Konfigurationsaktionen bewertet.
+- Sicherheitsregeln fuer Rollen dokumentiert.
+- Fail-safe-Regel bestaetigt.
+- CAN-17.2 Roles/Rights Backend Boundary no-implementation Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
