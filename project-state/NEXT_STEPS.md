@@ -1,37 +1,35 @@
 # NEXT_STEPS
 
-## Nach STEP CAN-8.6
+## Nach STEP CAN-8.7
 
-Marker: STEP_CAN8_6_NEXT_STEPS
+Marker: STEP_CAN8_7_NEXT_STEPS
 
 Naechster sinnvoller Schritt:
 
 ~~~text
-CAN-8.7: Recovery-Preflight Check-Matrix planen
+CAN-8.8: Recovery-Preflight Check-Matrix read-only Statusfelder planen
 ~~~
 
-Ziel von CAN-8.7:
+Ziel von CAN-8.8:
 
 ~~~text
-Noch kein produktiver Code.
+Noch kein Code.
 Noch keine Preflight-Route.
-Noch kein Prepare/Execute.
-Nur festlegen, welche read-only Checks spaeter geliefert werden sollen.
+Nur konkrete Minimal-Checks und Summary-Felder fuer einen spaeteren Backend-Code-Step festlegen.
 ~~~
 
 Zu klaeren:
 
 ~~~text
-Welche Checks pruefen RecoveryReadiness?
-Welche Checks pruefen Safety-Flags?
-Welche Checks pruefen Dashboard/Auth/Audit-Basis?
-Welche Checks pruefen Queue/Sound/Alert/Overlay-Zustand?
-Welche Checks blockieren spaetere Prepare-/Execute-Stufen?
-Welche Felder braucht das Dashboard?
+Welche Checks kommen minimal in recoveryPreflight.checks[]?
+Welche Checks sind blocking=true?
+Welche Checks sind nur info/warning?
+Welche Summary-Felder werden benoetigt?
+Wie bleibt die Ausgabe read-only?
 ~~~
 
 Regel bleibt:
 
 ~~~text
-Keine Recovery-Ausfuehrung ohne separate Planung, Owner/Admin, Audit, Bestaetigung, Duplikat-Sperre, Safety-Stop und Rollback-Regel.
+Keine Prepare-/Execute-Logik und keine Recovery-Ausfuehrung ohne separate Planung, Owner/Admin, Audit, Bestaetigung, Duplikat-Sperre, Safety-Stop und Rollback-Regel.
 ~~~

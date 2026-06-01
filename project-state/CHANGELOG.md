@@ -1,21 +1,13 @@
-# CHANGELOG – CAN-8.6 Recovery-Preflight Dashboard Live-Test
+# CHANGELOG – CAN-8.7 Recovery-Preflight Check-Matrix Plan
 
 Stand: 2026-06-01
 
 ## Geaendert
 
-- CAN-8.6 Live-Test-Abnahme dokumentiert.
-- Sichtbaren Dashboard-Zustand des Preflight-Untertabs festgehalten.
-- Projekt-State auf CAN-8.6 aktualisiert.
-
-## Bestaetigt
-
-- Preflight-Untertab ist anklickbar.
-- Recovery-Preflight wird read-only angezeigt.
-- Prepare bleibt `nein`.
-- Execute bleibt `nein`.
-- Safety-Felder bleiben ohne produktive Beruehrung.
-- Keine Recovery-/Simulation-/Execute-Buttons sichtbar.
+- CAN-8.7 Check-Matrix-Plan dokumentiert.
+- Geplante Check-Kategorien festgelegt.
+- Geplante Check-Felder und Severity-/Blocking-Regeln beschrieben.
+- Projekt-State auf CAN-8.7 aktualisiert.
 
 ## Nicht geaendert
 
@@ -28,4 +20,4 @@ Stand: 2026-06-01
 
 ## Naechster Block
 
-- CAN-8.7: Recovery-Preflight Check-Matrix planen.
+- CAN-8.8: Recovery-Preflight Check-Matrix read-only Statusfelder planen.

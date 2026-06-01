@@ -12,7 +12,9 @@ Stand: 2026-06-01
 - [x] CAN-8.5 Recovery-Preflight Dashboard Read-only Anzeige umsetzen.
 - [x] CAN-8.5.1 Preflight-Untertab-Klick reparieren.
 - [x] CAN-8.6 Recovery-Preflight Dashboard Live-Test abnehmen.
-- [ ] CAN-8.7 Recovery-Preflight Check-Matrix planen.
+- [x] CAN-8.7 Recovery-Preflight Check-Matrix planen.
+- [ ] CAN-8.8 Recovery-Preflight Check-Matrix read-only Statusfelder planen.
+- [ ] Spaeteren Code-Step nur additiv in `backend/modules/bus_diagnostics.js` planen.
 - [ ] Vor jeder spaeteren Route pruefen: keine POST-/Command-Route, kein Execute, kein Prepare ohne separate Gates.
 
 ## Sicherheitsregeln
