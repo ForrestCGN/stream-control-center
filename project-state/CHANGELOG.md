@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## CAN-12.1
+## CAN-12.2
 
-- Guard-Katalog fuer Manual-Recovery-Guard-Framework erstellt.
-- Guard-Kategorien, Inputs, Erfolgskriterien, Blocking-Verhalten und Dashboard-Labels geplant.
+- Anzeigevertrag fuer Guard-Ergebnisse geplant.
+- GuardSummary-Struktur definiert.
+- Dashboard-Tabellenformat und Fallbacks geplant.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.

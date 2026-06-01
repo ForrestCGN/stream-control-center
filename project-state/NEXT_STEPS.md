@@ -2,12 +2,12 @@
 
 ## Naechster Schritt
 
-CAN-12.2 - Manual Recovery Guard Display Contract Plan
+CAN-12.3 - Manual Recovery Guard Display UI Implementation Boundary
 
 Ziel:
 
-- GuardSummary planen
-- Guard-Tabelle planen
-- Dashboard-Labels planen
-- Status-/Severity-Darstellung planen
-- keine Code-Aenderung
+- technische Grenze fuer Dashboard-Umsetzung planen
+- nur Dashboard-Hilfsfunktionen erlauben
+- keine Backend-Aenderung
+- keine neue Route
+- keine Recovery-Ausfuehrung

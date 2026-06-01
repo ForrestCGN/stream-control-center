@@ -1,13 +1,13 @@
 # CURRENT_STATUS
 
-## CAN-12.1
+## CAN-12.2
 
-Der Guard-Katalog fuer das Manual-Recovery-Guard-Framework ist geplant.
+Der Anzeigevertrag fuer Guard-Ergebnisse ist geplant.
 
 Noch kein Code, keine Recovery-Ausfuehrung.
 
 Naechster Schritt:
 
 ```text
-CAN-12.2 Manual Recovery Guard Display Contract Plan
+CAN-12.3 Manual Recovery Guard Display UI Implementation Boundary
 ```

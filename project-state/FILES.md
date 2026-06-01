@@ -1,12 +1,12 @@
 # FILES
 
-## CAN-12.1
+## CAN-12.2
 
 Enthaltene Dateien:
 
-- `docs/system-inspection/EVENTBUS_CAN12_1_MANUAL_RECOVERY_GUARD_CATALOG_PLAN.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN12_1.md`
-- `docs/current/README_CAN12_1_FILE_ZIP.md`
+- `docs/system-inspection/EVENTBUS_CAN12_2_MANUAL_RECOVERY_GUARD_DISPLAY_CONTRACT_PLAN.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN12_2.md`
+- `docs/current/README_CAN12_2_FILE_ZIP.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
