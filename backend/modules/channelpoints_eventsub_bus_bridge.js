@@ -6,14 +6,16 @@ const helperConfig = require("./helpers/helper_config");
 const communicationBus = require("./communication_bus");
 
 const MODULE_NAME = "channelpoints_eventsub_bus_bridge";
-const MODULE_VERSION = "0.9.1";
-const MODULE_BUILD = "eventbus-redemption-bridge";
+const MODULE_VERSION = "0.9.2";
+const MODULE_BUILD = "eventbus-redemption-bridge-heartbeat";
 const ROUTE_PREFIX = "/api/channelpoints/eventbus/redemption-bridge";
 const CHANNELPOINTS_EVENTSUB_TYPE = "channel.channel_points_custom_reward_redemption.add";
 
 const DEFAULT_CONFIG = {
   enabled: true,
   pollIntervalMs: 1000,
+  heartbeatIntervalMs: 5000,
+  statusPublishIntervalMs: 30000,
   auditLogPath: "data/logs/twitch_eventsub_audit.jsonl",
   cachePath: "tokens/eventsub_channel.channel_points_custom_reward_redemption.add.json",
   seekAuditEndOnStart: true,
@@ -25,6 +27,7 @@ const DEFAULT_CONFIG = {
 let loadedConfig = null;
 let bus = null;
 let timer = null;
+let heartbeatTimer = null;
 let auditOffset = 0;
 let startedAt = null;
 let lastPollAt = null;
@@ -32,6 +35,15 @@ let lastEmitAt = null;
 let lastError = "";
 let seenIds = [];
 let seenIdSet = new Set();
+let canBus = {
+  registered: false,
+  heartbeatCount: 0,
+  statusPublished: 0,
+  lastRegisteredAt: "",
+  lastHeartbeatAt: "",
+  lastStatusAt: "",
+  lastError: ""
+};
 let stats = {
   polls: 0,
   auditLinesRead: 0,
@@ -57,6 +69,8 @@ function loadConfig() {
   const loaded = helperConfig.loadConfig("channelpoints_eventsub_bus_bridge.json", {}, { createIfMissing: false });
   loadedConfig = { ...DEFAULT_CONFIG, ...(loaded && loaded.data && typeof loaded.data === "object" ? loaded.data : {}) };
   loadedConfig.pollIntervalMs = Math.max(250, Math.min(10000, intValue(loadedConfig.pollIntervalMs, DEFAULT_CONFIG.pollIntervalMs)));
+  loadedConfig.heartbeatIntervalMs = Math.max(1000, Math.min(60000, intValue(loadedConfig.heartbeatIntervalMs, DEFAULT_CONFIG.heartbeatIntervalMs)));
+  loadedConfig.statusPublishIntervalMs = Math.max(5000, Math.min(300000, intValue(loadedConfig.statusPublishIntervalMs, DEFAULT_CONFIG.statusPublishIntervalMs)));
   loadedConfig.eventTtlMs = Math.max(10000, Math.min(600000, intValue(loadedConfig.eventTtlMs, DEFAULT_CONFIG.eventTtlMs)));
   loadedConfig.maxSeenIds = Math.max(50, Math.min(5000, intValue(loadedConfig.maxSeenIds, DEFAULT_CONFIG.maxSeenIds)));
   return loadedConfig;
@@ -165,6 +179,7 @@ function emitRedemption(rawEvent = {}, meta = {}, subscription = {}, source = "a
   stats.lastUserLogin = payload.userLogin;
   lastEmitAt = nowIso();
   lastError = "";
+  publishBridgeStatus("redemption_emitted");
   return { ok: result && result.ok === true, busResult: result, payload };
 }
 function handleAuditRecord(record) {
@@ -252,8 +267,65 @@ function buildStatus() {
     lastError,
     stats: { ...stats },
     seenCount: seenIds.length,
-    routes: [ROUTE_PREFIX + "/status"]
+    canBus: { ...canBus },
+    routes: [ROUTE_PREFIX + "/status", ROUTE_PREFIX + "/poll-now"]
   };
+}
+function buildBridgeHeartbeatPayload(reason = "heartbeat") {
+  const config = getConfig();
+  return {
+    module: MODULE_NAME,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    phase: config.enabled === false ? "disabled" : "watching",
+    reason,
+    enabled: config.enabled !== false,
+    healthy: !lastError,
+    lastError,
+    lastPollAt,
+    lastEmitAt,
+    polls: stats.polls,
+    emitted: stats.emitted,
+    duplicates: stats.duplicates,
+    skipped: stats.skipped,
+    errors: stats.errors,
+    seenCount: seenIds.length,
+    eventsubType: CHANNELPOINTS_EVENTSUB_TYPE
+  };
+}
+function publishBridgeStatus(reason = "updated") {
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.publishModuleStatus !== "function") return;
+  try {
+    currentBus.publishModuleStatus(MODULE_NAME, buildStatus(), { action: "updated", replayable: true, requireAck: false, reason });
+    canBus.statusPublished += 1;
+    canBus.lastStatusAt = nowIso();
+    canBus.lastError = "";
+  } catch (err) {
+    canBus.lastError = err && err.message ? err.message : String(err);
+  }
+}
+function heartbeatBridge(reason = "heartbeat") {
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.heartbeatModule !== "function") return;
+  try {
+    currentBus.heartbeatModule(MODULE_NAME, buildBridgeHeartbeatPayload(reason));
+    canBus.heartbeatCount += 1;
+    canBus.lastHeartbeatAt = nowIso();
+    canBus.lastError = "";
+  } catch (err) {
+    canBus.lastError = err && err.message ? err.message : String(err);
+  }
+}
+function startHeartbeatTimer() {
+  if (heartbeatTimer) return;
+  heartbeatTimer = setInterval(() => {
+    heartbeatBridge("interval");
+    const interval = getConfig().statusPublishIntervalMs;
+    const lastStatus = canBus.lastStatusAt ? Date.parse(canBus.lastStatusAt) : 0;
+    if (!lastStatus || Date.now() - lastStatus >= interval) publishBridgeStatus("heartbeat_interval");
+  }, getConfig().heartbeatIntervalMs);
+  if (heartbeatTimer && typeof heartbeatTimer.unref === "function") heartbeatTimer.unref();
 }
 function init({ app }) {
   loadConfig();
@@ -275,9 +347,13 @@ function init({ app }) {
       name: "Kanalpunkte EventSub EventBus Bridge",
       version: MODULE_VERSION,
       capabilities: ["channelpoints.redemption.received", "twitch.eventsub.audit.watch"],
-      meta: { eventBusDriven: true, noHttpModuleBridge: true, eventsubType: CHANNELPOINTS_EVENTSUB_TYPE }
+      meta: { eventBusDriven: true, noHttpModuleBridge: true, eventsubType: CHANNELPOINTS_EVENTSUB_TYPE, heartbeat: true }
     });
-    currentBus.publishModuleStatus(MODULE_NAME, buildStatus(), { action: "updated", replayable: true, requireAck: false });
+    canBus.registered = true;
+    canBus.lastRegisteredAt = nowIso();
+    publishBridgeStatus("registered");
+    heartbeatBridge("registered");
+    startHeartbeatTimer();
   }
 
   if (getConfig().enabled !== false) {
@@ -291,6 +367,7 @@ function init({ app }) {
     });
     app.get(`${ROUTE_PREFIX}/poll-now`, (req, res) => {
       pollOnce();
+      publishBridgeStatus("manual_poll_now");
       res.json(buildStatus());
     });
   }
@@ -310,8 +387,8 @@ module.exports = {
     description: "EventSub Redemption Bridge fuer Channelpoints ueber Communication Bus.",
     bus: {
       registered: true,
-      heartbeat: false,
-      emits: ["channelpoints.redemption"],
+      heartbeat: true,
+      emits: ["channelpoints.redemption", "module.status"],
       listens: []
     },
     legacy: false
