@@ -1,13 +1,26 @@
 # CURRENT_STATUS
 
-## Stand: CAN-15.5 abgeschlossen
+## Stand: CAN-15.6 abgeschlossen
 
-CAN-15.5 hat die Audit Display Planning read-only/no-data geplant.
+CAN-15 ist abgeschlossen als:
+
+```text
+Audit Planning no-write / no-data
+```
+
+## Aktueller stabiler Stand
+
+```text
+read-only Recovery/Safety Diagnose- und Anzeige-Strang
+Safety Status View read-only
+Audit Planning no-write/no-data
+```
 
 ## Audit-Status
 
 ```text
 auditPlanning: true
+auditBoundaryNoWrite: true
 auditEventCatalog: true
 auditDataMinimizationPolicy: true
 auditDisplayPlanning: true
@@ -31,16 +44,8 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
-```
-
-## CAN-15.5 Ergebnis
-
-```text
-Audit-Anzeige nur geplant.
-Keine Datenquelle.
-Keine API.
-Keine Mock-Daten.
-Keine Dashboard-Aenderung.
+safetyStatusApi: false
+backendSafetyStatusShapeImplemented: false
 ```
 
 ## Weiterhin hart blockiert
@@ -60,4 +65,13 @@ Audit Write Route
 Audit Read Route
 Confirm API
 Rollen-/Rechte-Mutation
+Prepare Route
+Execute Route
+POST Command Route
+```
+
+## Naechster empfohlener Schritt
+
+```text
+CAN-16.0 - SafetyStop Status Concept read-only/no-api Planning
 ```

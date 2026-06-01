@@ -1,39 +1,42 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-15.6 - Audit Planning Closure / Handoff
+CAN-16.0 - SafetyStop Status Concept read-only/no-api Planning
 ```
 
-## Ziel CAN-15.6
+## Ziel CAN-16.0
 
-Den CAN-15 Audit-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
+SafetyStop als reines Status-/Blockierkonzept planen.
 
-## CAN-15.6 soll zusammenfassen
+## CAN-16.0 darf klaeren
 
 ```text
-CAN-15.1 Candidate Decision
-CAN-15.2 Audit Boundary no-write
-CAN-15.3 Audit Event Catalog no-write
-CAN-15.4 Data Minimization Policy no-write
-CAN-15.5 Audit Display Planning read-only/no-data
+welche SafetyStop-Zustaende es spaeter geben koennte
+welche Gruende/Quellen SafetyStop haben koennte
+wie SafetyStop in Safety Status View spaeter angezeigt werden koennte
+welche Abbruch-/Blockierregeln gelten
+welche Grenzen fuer Clear/Reset gelten
 ```
 
-## CAN-15.6 darf NICHT enthalten
+## CAN-16.0 darf NICHT enthalten
 
 ```text
-CREATE TABLE
-INSERT
-UPDATE
-DELETE
-POST /audit
-GET /audit
-API-Route
+SafetyStop API
+SafetyStop setzen
+SafetyStop clearen
 Dashboard-Button
-EventBus-Emit
+DB-Tabelle
+POST-Route
 Recovery-Ausfuehrung
-SafetyStop Clear
-Confirm Trigger
-Rechte-Mutation
+Queue-/Sound-/Alert-/Overlay-Mutation
 ```
+
+## Alternative spaetere Option
+
+```text
+Roles/Rights Boundary no-mutation Planning
+```
+
+Diese Option bleibt sinnvoll, aber Empfehlung ist zuerst SafetyStop-Konzept.

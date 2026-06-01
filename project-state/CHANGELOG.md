@@ -1,12 +1,11 @@
 # CHANGELOG
 
-## CAN-15.5
+## CAN-15.6
 
-- Audit Display Planning read-only/no-data geplant.
-- Moeglichen spaeteren Dashboard-Ort, Anzeigezustaende, Filter, Spalten und Detailansicht dokumentiert.
-- No-data/no-mock/no-route-Grenze festgelegt.
-- Export- und Retention-Abgrenzung dokumentiert.
-- CAN-15.6 Audit Planning Closure / Handoff als naechster Schritt festgelegt.
+- CAN-15 Audit-Planungsstrang abgeschlossen.
+- Audit Planning als no-write/no-data final dokumentiert.
+- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN15_6_FINAL.md` erstellt.
+- CAN-16.0 SafetyStop Status Concept read-only/no-api Planning als naechster empfohlener Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
