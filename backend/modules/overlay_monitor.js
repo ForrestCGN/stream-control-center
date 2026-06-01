@@ -24,6 +24,23 @@ const MODULE = 'overlay_monitor';
 const VERSION = '0.1.6';
 const STATUS_API_VERSION = '1.0.6';
 
+const MODULE_META = {
+  name: MODULE,
+  version: VERSION,
+  build: 'STEP278',
+  type: 'runtime',
+  category: 'diagnostics',
+  description: 'Read-only Overlay-Monitor mit OBS-Inventar und manuellen Reparaturaktionen.',
+  routesPrefix: ['/api/overlay-monitor'],
+  bus: {
+    registered: true,
+    heartbeat: true,
+    emits: ['overlay_monitor.status', 'overlay_monitor.issue'],
+    listens: ['communication.clients']
+  },
+  legacy: false
+};
+
 const ISSUE_TABLE = 'monitoring_issues';
 const ISSUE_SCHEMA_VERSION = 1;
 const INVENTORY_TABLE = 'monitoring_obs_inventory_cache';
@@ -1600,6 +1617,9 @@ function init({ app, env } = {}) {
 }
 
 module.exports = {
+  MODULE_META,
+  MODULE_VERSION: VERSION,
+  version: VERSION,
   init,
   getOverlayStatus,
   scan,

@@ -17,9 +17,19 @@ const MODULE_META = {
   name: 'audit_log',
   version: '0.2.0',
   build: 'STEP278E',
+  type: 'runtime',
+  category: 'diagnostics',
   coreName: 'audit_core',
   coreVersion: '0.2.0',
-  description: 'Audit Log API status, recent, test and memory endpoints'
+  description: 'Audit Log API status, recent, test and memory endpoints',
+  routesPrefix: ['/api/audit'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
 };
 
 const DEFAULT_CONFIG = {
@@ -247,4 +257,4 @@ function init({ app }) {
   console.log(`[${MODULE_META.name}] v${MODULE_META.version} / ${MODULE_META.build} API routes registered`);
 }
 
-module.exports = { MODULE_META, init };
+module.exports = { MODULE_META, MODULE_VERSION: MODULE_META.version, version: MODULE_META.version, init };

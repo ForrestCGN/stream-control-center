@@ -18,9 +18,20 @@ const database = require('../core/database');
 const MODULE_META = {
   name: 'communication_bus',
   version: '0.8.3',
+  build: 'STEP278',
+  type: 'runtime',
+  category: 'communication',
   coreName: 'communication_core',
   coreVersion: '0.3.0',
-  description: 'Communication Bus API with separated hello and heartbeat metadata for overlay monitoring'
+  description: 'Communication Bus API with separated hello and heartbeat metadata for overlay monitoring',
+  routesPrefix: ['/api/communication'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: ['communication.status', 'communication.test', 'communication.replay'],
+    listens: ['ws.hello', 'ws.heartbeat', 'ws.ack']
+  },
+  legacy: false
 };
 
 const DEFAULT_CONFIG = {
@@ -1207,6 +1218,8 @@ function init({ app }) {
 
 module.exports = {
   MODULE_META,
+  MODULE_VERSION: MODULE_META.version,
+  version: MODULE_META.version,
   init,
   handleWsMessage,
   getBus,

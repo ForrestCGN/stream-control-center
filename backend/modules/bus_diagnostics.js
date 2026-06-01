@@ -15,6 +15,23 @@ const VERSION = '1.1.0';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
+const MODULE_META = {
+  name: MODULE,
+  version: VERSION,
+  build: 'STEP420',
+  type: 'runtime',
+  category: 'diagnostics',
+  description: 'Read-only Communication-Bus, Alert/Sound and VIP diagnostics aggregator.',
+  routesPrefix: ['/api/bus-diagnostics'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
+
 const ENDPOINTS = {
   communication: '/api/communication/status',
   sound: '/api/sound/eventbus/status',
@@ -37,7 +54,7 @@ const state = {
   }
 };
 
-module.exports.init = function init(ctx) {
+function init(ctx) {
   const app = ctx && ctx.app;
   if (!app) return;
 
@@ -68,7 +85,7 @@ module.exports.init = function init(ctx) {
   });
 
   console.log('[bus_diagnostics] STEP420 Dashboard diagnostics prepared');
-};
+}
 
 function registerGet(app, routePath, handler) {
   if (routes && typeof routes.registerGet === 'function') {
@@ -300,3 +317,6 @@ function errorResponse(err) {
     overlayTouched: false
   };
 }
+
+
+module.exports = { MODULE_META, MODULE_VERSION: VERSION, version: VERSION, init };
