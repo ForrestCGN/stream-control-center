@@ -1,18 +1,18 @@
 # FILES
 
-## CAN16.4 Closure-/Handoff-ZIP
+## CAN17.0 Roles/Rights-Boundary-ZIP
 
 Enthaltene Dateien:
 
-- `docs/system-inspection/EVENTBUS_CAN16_4_SAFETYSTOP_PLANNING_CLOSURE_HANDOFF.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN16_4_FINAL.md`
+- `docs/system-inspection/EVENTBUS_CAN17_0_ROLES_RIGHTS_BOUNDARY_NOMUTATION_PLANNING.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN17_0.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## Technisch relevant, aber in CAN-16.4 nicht geaendert
+## Technisch relevant, aber in CAN-17.0 nicht geaendert
 
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `backend/modules/bus_diagnostics.js`

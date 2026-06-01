@@ -1,12 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-16.4 abgeschlossen
+## Stand: CAN-17.0 abgeschlossen
 
-CAN-16 ist abgeschlossen als:
-
-```text
-SafetyStop Planning read-only / no-api
-```
+CAN-17.0 hat die Roles/Rights Boundary no-mutation geplant.
 
 ## Aktueller stabiler Stand
 
@@ -15,21 +11,21 @@ read-only Recovery/Safety Diagnose- und Anzeige-Strang
 Safety Status View read-only
 Audit Planning no-write/no-data
 SafetyStop Planning read-only/no-api
+Roles/Rights Boundary no-mutation
 ```
 
-## SafetyStop-Status
+## Roles/Rights-Status
 
 ```text
-safetyStopPlanning: true
-safetyStopStateMatrix: true
-safetyStopDisplayContract: true
-safetyStopIntegrationBoundary: true
-safetyStopApi: false
-safetyStopDb: false
-safetyStopDashboard: false
-safetyStopSet: false
-safetyStopClear: false
-safetyStopReset: false
+rolesRightsPlanning: true
+rolesRightsActionMatrix: false
+rolesApi: false
+rightsApi: false
+authSystem: false
+userSystem: false
+rolesDb: false
+dashboardRightsEnforcement: false
+rightsMutation: false
 eventBusEmit: false
 ```
 
@@ -44,8 +40,6 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
-safetyStatusApi: false
-backendSafetyStatusShapeImplemented: false
 ```
 
 ## Weiterhin hart blockiert
@@ -71,8 +65,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-17.0 - Roles/Rights Boundary no-mutation Planning
+CAN-17.1 - Roles/Rights Action Matrix no-mutation Planning
 ```

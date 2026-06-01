@@ -1,11 +1,13 @@
 # CHANGELOG
 
-## CAN-16.4
+## CAN-17.0
 
-- CAN-16 SafetyStop-Planungsstrang abgeschlossen.
-- SafetyStop Planning als read-only/no-api final dokumentiert.
-- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN16_4_FINAL.md` erstellt.
-- CAN-17.0 Roles/Rights Boundary no-mutation Planning als naechster empfohlener Schritt festgelegt.
+- Roles/Rights Boundary no-mutation geplant.
+- Rollen viewer/moderator/admin/owner/system definiert.
+- Grundregel Backend statt UI-Trust dokumentiert.
+- Rechte-Kategorien und erste Matrix geplant.
+- High-risk Blocker unabhaengig von Rollen bestaetigt.
+- CAN-17.1 Roles/Rights Action Matrix no-mutation Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

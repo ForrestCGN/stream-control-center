@@ -1,26 +1,25 @@
 # NEXT_STEPS
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-17.0 - Roles/Rights Boundary no-mutation Planning
+CAN-17.1 - Roles/Rights Action Matrix no-mutation Planning
 ```
 
-## Ziel CAN-17.0
+## Ziel CAN-17.1
 
-Rollen-/Rechte-Grenzen fuer spaetere Dashboard-/Recovery-nahe Aktionen planen.
+Eine detailliertere Aktionsmatrix fuer Rollen/Rechte planen, ohne Rechte technisch umzusetzen.
 
-## CAN-17.0 darf klaeren
+## CAN-17.1 darf klaeren
 
 ```text
-welche Rollen spaeter relevant sind
-welche Aktionen spaeter welche Rolle brauchen
-welche Aktionen weiterhin blockiert bleiben
-wie Rechte in Safety-/Recovery-Entscheidungen einfliessen koennten
-welche Grenzen fuer spaetere technische Durchsetzung gelten
+welche read-only Aktionen spaeter welche Rolle brauchen koennten
+welche high-risk Aktionen unabhaengig von Rollen blockiert bleiben
+welche Aktionen eigene separate Planung brauchen
+welche Aktionen niemals durch UI-Only freigegeben werden duerfen
 ```
 
-## CAN-17.0 darf NICHT enthalten
+## CAN-17.1 darf NICHT enthalten
 
 ```text
 Rollen-API
