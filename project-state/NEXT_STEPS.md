@@ -1,3 +1,26 @@
+## Nach STEP CAN-4.3
+
+Marker: STEP_CAN4_3_NEXT_STEPS
+
+CAN-3 und CAN-4 sind als Diagnose-Zwischenstand stabil dokumentiert.
+
+Nächster sinnvoller Schritt:
+
+```text
+CAN-5.0: Recovery-/Timeout-Strategie planen, read-only
+```
+
+Vor jeder Recovery-Automatik zuerst definieren:
+
+```text
+missingAck -> nur Diagnose oder manuelle Recovery?
+noClient -> kein Auto-Retry ohne Schutz?
+unmatched -> keine doppelte Sound-/Alert-Auslösung?
+waiting zu lange -> Timeout sichtbar, aber Flow unverändert?
+```
+
+Regel bleibt: keine Funktionalität entfernen und keine produktiven Flows umbauen, bevor Tests und Rollback klar sind.
+
 # NEXT STEPS – STEP278
 
 <!-- CAN-3.7-NEXT-STEPS:START -->

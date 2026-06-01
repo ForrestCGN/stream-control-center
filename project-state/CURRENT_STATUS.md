@@ -1,3 +1,33 @@
+## STEP CAN-4.3 Overlay ACK stabil dokumentiert
+
+Stand: 2026-06-01
+Marker: STEP_CAN4_3_OVERLAY_ACK_STABLE
+
+CAN-4.2 wurde live erfolgreich geprüft.
+
+```text
+alert_system: 3.1.9
+handshakeState: matched
+visualDeliveryState: matched_and_visual_acknowledged
+overlayRows: 1
+acknowledged: 1
+waiting: 0
+missingAck: 0
+noClient: 0
+warnings: []
+ackEvent: finished
+ackReason: finished
+ackLatencyMs: 25867
+```
+
+Bestätigte Kette:
+
+```text
+Alert -> Sound -> Visual Overlay -> Finish-ACK
+```
+
+Keine produktive Flow-Änderung in diesem Dokumentations-Step.
+
 # CURRENT SYSTEM STATUS – STEP278 Vorbereitung
 
 <!-- CAN-3.7-STABLE-STATUS:START -->
