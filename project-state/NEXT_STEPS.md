@@ -1,3 +1,33 @@
+## Nach STEP CAN-7.4
+
+Marker: STEP_CAN7_4_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+```text
+CAN-7.5: Recovery-Tab UX live testen und abnehmen
+```
+
+Zu prüfen:
+
+```text
+Recovery-Tab lädt
+Interne Untertabs sind sichtbar
+Übersicht ist kompakt
+Details bleiben erreichbar
+Readiness bleibt erreichbar
+Sperren & Simulation bleiben erreichbar
+Keine Recovery-Buttons sichtbar
+Keine Simulation-Buttons sichtbar
+```
+
+Regel bleibt:
+
+```text
+Keine produktive Flow-Aenderung.
+Keine Recovery-Ausfuehrung.
+```
+
 ## Nach STEP CAN-7.3
 
 Marker: STEP_CAN7_3_NEXT_STEPS

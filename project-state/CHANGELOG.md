@@ -1,3 +1,30 @@
+# CHANGELOG – CAN-7.4 Recovery-Tab UX-Cleanup
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - Recovery-Tab in interne Untertabs aufgeteilt:
+    - Übersicht
+    - Details
+    - Readiness
+    - Sperren & Simulation
+  - Gewählte Unteransicht wird in `localStorage` gespeichert.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Route ergänzt.
+- Keine Recovery-Ausführung ergänzt.
+- Keine Recovery-Buttons ergänzt.
+- Keine Simulation-Buttons ergänzt.
+- Keine produktive Flow-Änderung.
+
+## Test
+
+- `node -c htdocs\dashboard\modules\bus_diagnostics.js` bestanden.
+
 # CHANGELOG – CAN-7.3 Dashboard Recovery-Readiness Anzeige
 
 Stand: 2026-06-01

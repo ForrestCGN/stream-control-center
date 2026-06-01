@@ -1,3 +1,46 @@
+## STEP CAN-7.4 Recovery-Tab UX-Cleanup mit internen Untertabs
+
+Stand: 2026-06-01
+Marker: STEP_CAN7_4_RECOVERY_TAB_UX_CLEANUP_SUBTABS
+
+CAN-7.4 räumt den bestehenden Recovery-Tab im Bus-Diagnostics-Dashboard auf.
+
+Geändert:
+
+```text
+htdocs/dashboard/modules/bus_diagnostics.js
+```
+
+Ergebnis:
+
+```text
+Recovery-Tab hat interne Untertabs:
+- Übersicht
+- Details
+- Readiness
+- Sperren & Simulation
+```
+
+Nicht geändert:
+
+```text
+Keine Backend-Aenderung
+Keine API-Aenderung
+Keine neue Route
+Keine Recovery-Ausfuehrung
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Keine produktive Flow-Aenderung
+```
+
+Nächster Schritt:
+
+```text
+CAN-7.5: Recovery-Tab UX live testen und abnehmen.
+```
+
+Details: `docs/system-inspection/EVENTBUS_CAN7_4_RECOVERY_TAB_UX_CLEANUP_SUBTABS.md`
+
 ## STEP CAN-7.3 Dashboard Recovery-Readiness read-only Anzeige
 
 Stand: 2026-06-01

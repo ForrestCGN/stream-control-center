@@ -1,3 +1,27 @@
+# FILES – CAN-7.4 Recovery-Tab UX-Cleanup
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - Recovery-Tab UX-Cleanup mit internen Untertabs
+
+## Neue Doku
+
+- `docs/system-inspection/EVENTBUS_CAN7_4_RECOVERY_TAB_UX_CLEANUP_SUBTABS.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_4.md`
+- `docs/current/README_CAN7_4_FILE_ZIP.md`
+
+## Nicht geändert
+
+- `backend/modules/bus_diagnostics.js`
+- `backend/modules/communication_bus.js`
+- API-Routen
+- Config-Dateien
+- DB-Dateien
+- produktive Alert-/Sound-/Overlay-Flows
+
 # FILES – CAN-7.3 Dashboard Recovery-Readiness Anzeige
 
 Stand: 2026-06-01

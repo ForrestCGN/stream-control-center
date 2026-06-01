@@ -9,6 +9,7 @@
     settingsError: '',
     lastError: '',
     activeTab: localStorage.getItem('cgn-busdiag-tab') || 'overview',
+    recoverySubTab: localStorage.getItem('cgn-busdiag-recovery-tab') || 'overview',
     autoTimer: null,
     countdownTimer: null,
     autoRefresh: localStorage.getItem('cgn-busdiag-auto-refresh') === '1',
@@ -209,6 +210,14 @@
     if (tabId === 'config') loadSettings(false);
   }
 
+  function setRecoverySubTab(tabId){
+    const allowed = ['overview', 'details', 'readiness', 'locks'];
+    if (!allowed.includes(tabId)) return;
+    state.recoverySubTab = tabId;
+    localStorage.setItem('cgn-busdiag-recovery-tab', tabId);
+    renderCurrentTab();
+  }
+
   async function loadSettings(force){
     if (state.settingsLoading) return state.lastSettings;
     if (!force && state.lastSettings && state.lastSettings.ok === true) return state.lastSettings;
@@ -299,6 +308,7 @@
     const renderers = { overview: renderOverview, clients: renderClientsTab, events: renderEventsTab, integrations: renderIntegrationsTab, recovery: renderRecoveryTab, issues: renderIssuesTab, config: renderConfigTab, raw: renderRawTab };
     content.innerHTML = (renderers[state.activeTab] || renderOverview)();
     bindConfigActions();
+    bindRecoveryActions();
   }
 
   function renderOverlayOverviewCard(overlays){
@@ -427,26 +437,57 @@
     const readinessBlockerList = readinessBlockers.length
       ? `<div class="busdiag-list">${readinessBlockers.map(blocker => `<div class="busdiag-row warning"><strong>Blocker</strong><span>${esc(blocker)}</span></div>`).join('')}</div>`
       : '<p class="busdiag-muted">Keine Recovery-Readiness-Blocker gemeldet.</p>';
+    const recoverySubTabs = [
+      { id: 'overview', label: 'Übersicht' },
+      { id: 'details', label: 'Details' },
+      { id: 'readiness', label: 'Readiness' },
+      { id: 'locks', label: 'Sperren & Simulation' }
+    ];
+    if (!recoverySubTabs.some(tab => tab.id === state.recoverySubTab)) state.recoverySubTab = 'overview';
+    const subNav = `<nav class="busdiag-tabs busdiag-recovery-tabs" data-busdiag-recovery-tabs>${recoverySubTabs.map(tab => `<button type="button" data-busdiag-recovery-tab="${esc(tab.id)}" class="${tab.id === state.recoverySubTab ? 'active' : ''}">${esc(tab.label)}</button>`).join('')}</nav>`;
 
-    return `
+    const overviewView = `
       <div class="busdiag-grid busdiag-grid-top">
         ${card('Recovery-Strategie', `<div class="busdiag-status-line">${badge(stateLabel, status)}<span>${esc(recovery.mode || summary.recoveryStrategyMode || 'read_only')}</span></div><div class="busdiag-metrics">${metric('State', stateLabel, '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Severity', recovery.severity || '-')}${metric('Next Action', recovery.nextAction || '-', '', 'busdiag-metric-code')}${metric('Automation', bool(recovery.automationEnabled), 'muss aus bleiben')}</div>`)}
         ${card('Sicherheitsstatus', `<div class="busdiag-status-line">${badge(safetyStatus === 'ok' ? 'ok' : 'prüfen', safetyStatus)}<span>${esc(safetyText)}</span></div><div class="busdiag-metrics">${metric('Read-only', bool(data.readOnly && recovery.readOnly !== false))}${metric('Productive Actions', bool(data.productiveActions))}${metric('Flow touched', bool(data.flowTouched))}${metric('Overlay touched', bool(data.overlayTouched))}</div>`)}
       </div>
       <div class="busdiag-grid busdiag-grid-top">
         ${card('Recovery-Readiness', `<div class="busdiag-status-line">${badge(readinessStatus, readinessBadgeStatus)}<span>nur Anzeige / keine Aktion</span></div><div class="busdiag-metrics">${metric('CAN Start', bool(readiness.canStartReadOnlyCode), 'nur read-only')}${metric('Current Step', readiness.currentStep || '-', '', 'busdiag-metric-code')}${metric('Next Step', readiness.nextAllowedStep || summary.recoveryReadinessNextStep || '-', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Checked', fmtTime(readiness.checkedAt))}</div>`)}
-        ${card('Readiness-Safety', `<div class="busdiag-status-line">${badge(readinessOk ? 'ok' : 'prüfen', readinessBadgeStatus)}<span>Produktive Aktionen müssen aus bleiben</span></div><div class="busdiag-metrics">${metric('Read-only', bool(readiness.readOnly))}${metric('Automation', bool(readiness.automationEnabled))}${metric('Productive', bool(readiness.productiveActions))}${metric('Queue touched', bool(readiness.queueTouched))}${metric('Sound touched', bool(readiness.soundSystemTouched))}${metric('Alert touched', bool(readiness.alertSystemTouched))}${metric('Overlay touched', bool(readiness.overlayTouched))}</div>`)}
+        ${card('Sicherheitskurzfassung', `<div class="busdiag-status-line">${badge(readinessOk ? 'ok' : 'prüfen', readinessBadgeStatus)}<span>keine produktive Berührung</span></div><div class="busdiag-metrics">${metric('Read-only', bool(readiness.readOnly))}${metric('Automation', bool(readiness.automationEnabled))}${metric('Productive', bool(readiness.productiveActions))}${metric('Blocker', readinessBlockers.length)}</div>`)}
       </div>
+    `;
+
+    const detailsView = `
       <div class="busdiag-grid">
         ${card('Recovery-Quelle', `<div class="busdiag-list" style="display:grid;gap:8px;">${sourceTiles}</div>`)}
         ${card('Blockierte Aktionen', blockedList)}
         ${card('Erlaubte Aktionen', allowedList)}
         ${card('Gründe', reasonList)}
-        ${card('Readiness-Checks', readinessCheckList)}
+      </div>
+    `;
+
+    const readinessView = `
+      <div class="busdiag-grid busdiag-grid-top">
+        ${card('Readiness-Safety', `<div class="busdiag-status-line">${badge(readinessOk ? 'ok' : 'prüfen', readinessBadgeStatus)}<span>Produktive Aktionen müssen aus bleiben</span></div><div class="busdiag-metrics">${metric('Read-only', bool(readiness.readOnly))}${metric('Automation', bool(readiness.automationEnabled))}${metric('Productive', bool(readiness.productiveActions))}${metric('Queue touched', bool(readiness.queueTouched))}${metric('Sound touched', bool(readiness.soundSystemTouched))}${metric('Alert touched', bool(readiness.alertSystemTouched))}${metric('Overlay touched', bool(readiness.overlayTouched))}</div>`)}
         ${card('Readiness-Blocker', readinessBlockerList)}
+      </div>
+      <div class="busdiag-grid">
+        ${card('Readiness-Checks', readinessCheckList, 'busdiag-wide')}
+      </div>
+    `;
+
+    const locksView = `
+      <div class="busdiag-grid">
         ${card('Hart blockierte Recovery-Aktionen', readinessHardBlockedList, 'busdiag-wide')}
         ${card('Simulation-Harness', `<div class="busdiag-status-line">${badge('read-only', 'ok')}<span>Anzeige nur Diagnose, keine Test-Buttons</span></div><div class="busdiag-metrics">${metric('Status Route', '/api/bus-diagnostics/recovery-simulation/status', '', 'busdiag-metric-code busdiag-metric-wide')}${metric('Test Trigger', 'nicht im Dashboard', 'bewusst nicht auslösbar')}${metric('Auto-Recovery', 'aus')}${metric('Replay', 'aus')}</div>`, 'busdiag-wide')}
       </div>
+    `;
+
+    const views = { overview: overviewView, details: detailsView, readiness: readinessView, locks: locksView };
+
+    return `
+      ${subNav}
+      ${views[state.recoverySubTab] || overviewView}
     `;
   }
 
@@ -486,6 +527,12 @@
       return `<label class="busdiag-setting"><span><strong>${esc(setting.label)}</strong><small>${esc(setting.description || key)}</small></span><input type="number" data-busdiag-setting="${esc(key)}" value="${esc(setting.value)}" min="${esc(setting.min ?? '')}" max="${esc(setting.max ?? '')}" ${disabled}></label>`;
     }
     return `<label class="busdiag-setting"><span><strong>${esc(setting.label)}</strong><small>${esc(setting.description || key)}</small></span><input type="text" data-busdiag-setting="${esc(key)}" value="${esc(setting.value)}" ${disabled}></label>`;
+  }
+
+  function bindRecoveryActions(){
+    panel()?.querySelectorAll('[data-busdiag-recovery-tab]').forEach(btn => {
+      btn.addEventListener('click', () => setRecoverySubTab(btn.dataset.busdiagRecoveryTab));
+    });
   }
 
   function bindConfigActions(){

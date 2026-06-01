@@ -1,3 +1,13 @@
+## CAN-7.4 / CAN-7.5 Recovery-UX
+
+- [x] Recovery-Tab mit internen Untertabs aufräumen.
+- [x] Alle CAN-7.3-Informationen erhalten.
+- [x] Keine Recovery-Buttons ergänzen.
+- [x] Keine Simulation-Buttons ergänzen.
+- [ ] CAN-7.5 Live-Test im Dashboard durchführen.
+- [ ] Prüfen: Übersicht, Details, Readiness, Sperren & Simulation.
+- [ ] Prüfen: Keine produktive Flow-Änderung.
+
 ## CAN-7 / Recovery-Readiness Dashboard
 
 - [x] CAN-7.1 Recovery-Readiness Statusfelder im Backend read-only ergaenzen.
