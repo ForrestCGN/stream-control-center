@@ -3,25 +3,24 @@
 ## Naechster Schritt
 
 ```text
-CAN-15.4 - Audit Data Minimization Policy no-write Planning
+CAN-15.5 - Audit Display Planning read-only/no-data Planning
 ```
 
-## Ziel CAN-15.4
+## Ziel CAN-15.5
 
-Festlegen, welche Daten spaeter in Audit-Kontexten erlaubt, maskiert, gehasht oder verboten sind.
+Eine spaetere Audit-Anzeige planen, aber ohne echte Daten, ohne API, ohne DB und ohne Speicherung.
 
-## CAN-15.4 darf klaeren
+## CAN-15.5 darf klaeren
 
 ```text
-erlaubte Audit-Felder
-verbotene Audit-Felder
-Maskierungsregeln
-Hash-/Pseudonymisierungsregeln
-Retention-Grundsaetze als Planung
-Secret-Erkennung als Konzept
+wo Audit spaeter angezeigt werden koennte
+welche leeren/Mock-freien Anzeigezustaende noetig sind
+welche Rechtehinweise sichtbar sein sollen
+welche Filter spaeter sinnvoll waeren
+wie keine Daten geladen werden
 ```
 
-## CAN-15.4 darf NICHT enthalten
+## CAN-15.5 darf NICHT enthalten
 
 ```text
 CREATE TABLE
@@ -29,8 +28,9 @@ INSERT
 UPDATE
 DELETE
 POST /audit
+GET /audit
 API-Route
-Dashboard-Button
+Dashboard-Button mit Datenabruf
 EventBus-Emit
 Recovery-Ausfuehrung
 SafetyStop Clear

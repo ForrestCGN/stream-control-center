@@ -6,4 +6,5 @@
 - [x] CAN-15.1 Recovery/Safety Next Candidate Decision
 - [x] CAN-15.2 Audit Boundary no-write Planning
 - [x] CAN-15.3 Audit Event Catalog no-write Planning
-- [ ] CAN-15.4 Audit Data Minimization Policy no-write Planning
+- [x] CAN-15.4 Audit Data Minimization Policy no-write Planning
+- [ ] CAN-15.5 Audit Display Planning read-only/no-data Planning

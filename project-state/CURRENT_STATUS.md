@@ -1,14 +1,15 @@
 # CURRENT_STATUS
 
-## Stand: CAN-15.3 abgeschlossen
+## Stand: CAN-15.4 abgeschlossen
 
-CAN-15.3 hat den Audit-Event-Katalog no-write geplant.
+CAN-15.4 hat die Audit Data Minimization Policy no-write geplant.
 
 ## Audit-Status
 
 ```text
 auditPlanning: true
 auditEventCatalog: true
+auditDataMinimizationPolicy: true
 auditWrite: false
 auditApi: false
 auditDb: false
@@ -29,14 +30,16 @@ recoveryExecution: false
 dashboardRecoveryButtons: false
 ```
 
-## CAN-15.3 Ergebnis
+## CAN-15.4 Ergebnis
 
 ```text
-Event-Namensschema definiert.
-Read-only Events katalogisiert.
-High-Risk Blocked Events katalogisiert.
-Cancel-/Failed-Events fuer spaeter geplant.
-No-Secret-Regeln bestaetigt.
+Datenklassen definiert.
+Secrets verboten.
+Maskierung/Hashing geplant.
+Raw Payloads begrenzt/verboten.
+Retention muss spaeter konfigurierbar sein.
+Audit-Anzeige braucht spaeter Rechte.
+Export braucht eigene Planung.
 ```
 
 ## Weiterhin hart blockiert
