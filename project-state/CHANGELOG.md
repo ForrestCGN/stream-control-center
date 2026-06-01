@@ -1,12 +1,11 @@
 # CHANGELOG
 
-## CAN-18.0
+## CAN-18.1
 
-- Confirm Boundary no-action geplant.
-- Confirm-Grundregel, Confirm-Arten, State-Modell und TTL-/Timeout-Planung dokumentiert.
-- Audit-/Roles-/SafetyStop-/Preflight-Abgrenzung festgelegt.
-- Confirm als Bestaetigung, nicht als Ausfuehrung definiert.
-- CAN-18.1 Confirm Action Matrix no-action Planning als naechster Schritt festgelegt.
+- Confirm Action Matrix no-action geplant.
+- Read-only, Diagnose-, High-risk-, Audit-, Rollen-/Rechte- und Dashboard-/Config-Aktionen bewertet.
+- Confirm-Reihenfolge und Fail-safe-Regeln dokumentiert.
+- CAN-18.2 Confirm Display Boundary no-action Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

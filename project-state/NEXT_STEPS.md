@@ -3,23 +3,24 @@
 ## Naechster Schritt
 
 ```text
-CAN-18.1 - Confirm Action Matrix no-action Planning
+CAN-18.2 - Confirm Display Boundary no-action Planning
 ```
 
-## Ziel CAN-18.1
+## Ziel CAN-18.2
 
-Planen, welche Aktionen spaeter welche Confirm-Art brauchen wuerden, ohne Confirm technisch umzusetzen.
+Planen, wie Confirm-Status spaeter angezeigt werden duerfte, ohne Confirm technisch umzusetzen.
 
-## CAN-18.1 darf klaeren
+## CAN-18.2 darf klaeren
 
 ```text
-welche Aktionen kein Confirm brauchen
-welche Aktionen info/risk/destructive/typed/owner Confirm brauchen wuerden
-welche Aktionen trotz Confirm blockiert bleiben
-welche Aktionen separate Planung brauchen
+moegliche Anzeigezustaende
+Confirm nicht implementiert
+Confirm erforderlich aber nicht verfuegbar
+Confirm abgelaufen/abgebrochen/fehlgeschlagen
+High-risk bleibt blockiert
 ```
 
-## CAN-18.1 darf NICHT enthalten
+## CAN-18.2 darf NICHT enthalten
 
 ```text
 Confirm API
