@@ -5,11 +5,11 @@ Stand: 2026-06-01
 ## CAN-9 / Recovery-Preflight Route
 
 - [x] CAN-9.0 Recovery-Preflight Route Startgrenze dokumentieren.
-- [ ] CAN-9.1 Route-Datenmodell und Sicherheitsvertrag planen.
+- [x] CAN-9.1 Route-Datenmodell und Sicherheitsvertrag planen.
 - [ ] Vor erstem CAN-9 Code-Step echte `backend/modules/bus_diagnostics.js` pruefen.
-- [ ] Read-only GET-Grenze definieren.
+- [ ] CAN-9.2 minimale read-only GET-Route planen/umsetzen.
 - [ ] Keine POST-/Command-/Execute-Route freigeben.
-- [ ] Safety-Felder und Testbefehle fuer spaetere Route festlegen.
+- [ ] Safety-Felder und Testbefehle fuer spaetere Route pruefen.
 - [ ] Dashboard-Aktionsbuttons weiterhin blockieren.
 
 ## Harte Recovery-Sperren

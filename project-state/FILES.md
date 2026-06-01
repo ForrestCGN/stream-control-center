@@ -1,14 +1,14 @@
-# FILES – CAN-9.0 Recovery-Preflight Route Startgrenze
+# FILES – CAN-9.1 Recovery-Preflight Route-Vertrag
 
 Stand: 2026-06-01
 
 ## Diese ZIP
 
-- `docs/system-inspection/EVENTBUS_CAN9_0_RECOVERY_PREFLIGHT_ROUTE_START_BOUNDARY.md`
-  - Startgrenze fuer spaetere read-only Preflight-Route.
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN9_0.md`
-  - Uebergabe fuer CAN-9.0/CAN-9.1.
-- `docs/current/README_CAN9_0_FILE_ZIP.md`
+- `docs/system-inspection/EVENTBUS_CAN9_1_RECOVERY_PREFLIGHT_ROUTE_CONTRACT_PLAN.md`
+  - Sicherheitsvertrag fuer spaetere read-only Preflight-Route.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN9_1.md`
+  - Uebergabe fuer CAN-9.1/CAN-9.2.
+- `docs/current/README_CAN9_1_FILE_ZIP.md`
   - Entpack-/Stepdone-Hinweis.
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`

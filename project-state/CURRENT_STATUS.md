@@ -1,20 +1,17 @@
-## STEP CAN-9.0 Recovery-Preflight Route Startgrenze
+## STEP CAN-9.1 Recovery-Preflight Route-Vertrag
 
 Stand: 2026-06-01
-Marker: STEP_CAN9_0_RECOVERY_PREFLIGHT_ROUTE_START_BOUNDARY
+Marker: STEP_CAN9_1_RECOVERY_PREFLIGHT_ROUTE_CONTRACT_PLAN
 
-CAN-9.0 startet den naechsten Recovery-Preflight-Arbeitsblock nur als Planung.
+CAN-9.1 definiert den Sicherheitsvertrag fuer eine spaetere read-only Recovery-Preflight-Route.
 
-Stabiler Stand vor CAN-9.0:
+Geplante spaetere Route:
 
 ~~~text
-CAN-7.x: Recovery-Readiness read-only im Backend/Dashboard sichtbar.
-CAN-8.x: Recovery-Preflight read-only im Backend/Dashboard sichtbar.
-CAN-8.9: Check-Matrix live bestaetigt.
-CAN-8.11/CAN-8.12: Check-Matrix im Dashboard sichtbar und abgenommen.
+GET /api/bus-diagnostics/recovery-preflight
 ~~~
 
-CAN-9.0 definiert die Grenze fuer eine spaetere read-only Preflight-Route.
+Diese Route darf nur vorhandene Diagnose ausgeben.
 
 Weiterhin nicht aktiv:
 
@@ -28,10 +25,21 @@ Keine Recovery-Ausfuehrung
 Keine produktive Flow-Aenderung
 ~~~
 
+Harte Sperren bleiben:
+
+~~~text
+Keine POST-/Command-Route
+Keine Prepare-/Execute-Route
+Keine Alert-/Sound-Replays
+Keine Overlay-Retry-Aktion
+Keine Auto-Recovery
+Keine Dashboard-Aktionsbuttons
+~~~
+
 Naechster Schritt:
 
 ~~~text
-CAN-9.1: Recovery-Preflight Route Datenmodell und Sicherheitsvertrag planen.
+CAN-9.2: Recovery-Preflight GET-Route minimal read-only planen oder umsetzen.
 ~~~
 
-Details: `docs/system-inspection/EVENTBUS_CAN9_0_RECOVERY_PREFLIGHT_ROUTE_START_BOUNDARY.md`
+Details: `docs/system-inspection/EVENTBUS_CAN9_1_RECOVERY_PREFLIGHT_ROUTE_CONTRACT_PLAN.md`
