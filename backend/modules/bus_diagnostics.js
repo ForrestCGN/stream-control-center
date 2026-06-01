@@ -11,17 +11,17 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.2.8';
+const VERSION = '1.2.9';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP_CAN9_2',
+  build: 'STEP_CAN9_4',
   type: 'runtime',
   category: 'diagnostics',
-  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy, recovery-simulation, recovery-readiness, recovery-preflight check matrix aggregator and read-only preflight route.',
+  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy, recovery-simulation, recovery-readiness, recovery-preflight check matrix aggregator and read-only preflight route with route-context next-step diagnostics.',
   routesPrefix: ['/api/bus-diagnostics'],
   bus: {
     registered: false,
@@ -104,7 +104,7 @@ function init(ctx) {
     });
   });
 
-  console.log('[bus_diagnostics] STEP_CAN9_2 Dashboard diagnostics, recovery readiness, recovery preflight check matrix and read-only preflight route prepared');
+  console.log('[bus_diagnostics] STEP_CAN9_4 Dashboard diagnostics, recovery readiness, recovery preflight check matrix and read-only preflight route context prepared');
 }
 
 function registerGet(app, routePath, handler) {
@@ -194,6 +194,21 @@ function buildRecoveryPreflightRouteResponse(statusResult, requestedCheck) {
   const recoveryPreflight = (statusResult && statusResult.recoveryPreflight) || {};
   const recoveryReadiness = (statusResult && statusResult.recoveryReadiness) || {};
   const recoveryStrategyState = (statusResult && statusResult.recoveryStrategyState) || {};
+  const routeCurrentStep = 'CAN-9.4';
+  const routeNextAllowedStep = 'CAN-9.5_recovery_preflight_route_context_live_test_acceptance';
+  const routeContext = {
+    currentStep: routeCurrentStep,
+    nextAllowedStep: routeNextAllowedStep,
+    routeVersion: routeCurrentStep,
+    mode: 'read_only_preflight_route',
+    sourcePreflightCurrentStep: recoveryPreflight.currentStep || '',
+    sourcePreflightNextAllowedStep: recoveryPreflight.nextAllowedStep || '',
+    sourceReadinessCurrentStep: recoveryReadiness.currentStep || '',
+    sourceReadinessNextAllowedStep: recoveryReadiness.nextAllowedStep || '',
+    routeOnly: true,
+    readOnly: true,
+    note: 'Route context keeps the dedicated GET route progression separate from the embedded status/preflight source object.'
+  };
 
   return {
     ok: statusResult && statusResult.ok === true && recoveryPreflight.ok !== false,
@@ -201,9 +216,11 @@ function buildRecoveryPreflightRouteResponse(statusResult, requestedCheck) {
     version: VERSION,
     statusApiVersion: STATUS_API_VERSION,
     feature: 'recovery_preflight',
-    routeVersion: 'CAN-9.2',
+    routeVersion: routeCurrentStep,
     mode: 'read_only_preflight_route',
     readOnly: true,
+    currentStep: routeCurrentStep,
+    nextAllowedStep: routeNextAllowedStep,
     requestedCheck: !!requestedCheck,
     flowTouched: false,
     queueTouched: false,
@@ -224,15 +241,17 @@ function buildRecoveryPreflightRouteResponse(statusResult, requestedCheck) {
       recoveryExecution: false,
       dashboardActionButtonRequired: false
     },
+    routeContext,
     summary: {
       recoveryPreflightStatus: summary.recoveryPreflightStatus || recoveryPreflight.status || '',
-      recoveryPreflightCanPrepare: summary.recoveryPreflightCanPrepare === true,
-      recoveryPreflightCanExecute: summary.recoveryPreflightCanExecute === true,
+      recoveryPreflightCanPrepare: false,
+      recoveryPreflightCanExecute: false,
       recoveryPreflightCheckCount: Number(summary.recoveryPreflightCheckCount || ((recoveryPreflight.checkSummary || {}).total) || 0),
       recoveryPreflightBlockingCheckCount: Number(summary.recoveryPreflightBlockingCheckCount || ((recoveryPreflight.checkSummary || {}).blocking) || 0),
       recoveryPreflightWarningCheckCount: Number(summary.recoveryPreflightWarningCheckCount || ((recoveryPreflight.checkSummary || {}).warnings) || 0),
       recoveryPreflightScopeCount: Number(summary.recoveryPreflightScopeCount || (Array.isArray(recoveryPreflight.scope) ? recoveryPreflight.scope.length : 0)),
-      recoveryPreflightNextStep: summary.recoveryPreflightNextStep || recoveryPreflight.nextAllowedStep || ''
+      recoveryPreflightSourceNextStep: summary.recoveryPreflightNextStep || recoveryPreflight.nextAllowedStep || '',
+      recoveryPreflightNextStep: routeNextAllowedStep
     },
     recoveryPreflight,
     recoveryReadiness,

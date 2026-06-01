@@ -1,13 +1,5 @@
-# TODO – nach CAN-9.3
+# TODO
 
-## Naechster Block
-
-- [ ] CAN-9.4 planen/umsetzen: Route-Kontext/NextStep read-only bereinigen.
-
-## Weiterhin gesperrt
-
-- [ ] Keine POST-/Command-Route ergaenzen.
-- [ ] Keine Prepare-/Execute-Route ergaenzen.
-- [ ] Keine Recovery-Ausfuehrung aktivieren.
-- [ ] Keine Dashboard-Aktionsbuttons ergaenzen.
-- [ ] Keine produktiven Queue-/Sound-/Alert-/Overlay-Flows beruehren.
+- [ ] CAN-9.5 Live-Test fuer Route-Kontext / NextStep dokumentieren.
+- [ ] Danach entscheiden, ob Dashboard die dedizierte Preflight-Route nutzt oder weiter den Sammelstatus.
+- [ ] Keine Recovery-Ausfuehrung ohne separaten CAN-Start und explizites Go.
