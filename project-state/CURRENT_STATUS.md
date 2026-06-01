@@ -1,13 +1,9 @@
 # CURRENT_STATUS
 
-## CAN-11.1
+## CAN-11.2
 
-Die Manual-Recovery-Kandidatenmatrix ist geplant.
+Der Vertrag fuer `manual_status_resync_request` ist geplant.
 
-Empfohlener naechster Kandidat:
-
-```text
-manual_status_resync_request
-```
+Der Kandidat bleibt read-only und darf nur bestehende GET-Diagnosequellen neu lesen.
 
 Noch kein Code, keine Ausfuehrung.

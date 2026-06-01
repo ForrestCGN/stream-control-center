@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## CAN-11.1
+## CAN-11.2
 
-- Detaillierte Kandidatenmatrix fuer manuelle Recovery-Kandidaten erstellt.
-- Kandidaten nach Risiko und Status sortiert.
-- `manual_status_resync_request` als naechster Planungs-Kandidat empfohlen.
+- Vertrag fuer `manual_status_resync_request` dokumentiert.
+- Erlaubte GET-Quellen und verbotene Mutationen definiert.
+- Guards und Audit-Grenzen geplant.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
