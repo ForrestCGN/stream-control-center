@@ -1,22 +1,14 @@
 # CURRENT_STATUS
 
-## Stand: CAN-16.0 abgeschlossen
+## Stand: CAN-16.1 abgeschlossen
 
-CAN-16.0 hat das SafetyStop Status Concept read-only/no-api geplant.
-
-## Aktueller stabiler Stand
-
-```text
-read-only Recovery/Safety Diagnose- und Anzeige-Strang
-Safety Status View read-only
-Audit Planning no-write/no-data
-SafetyStop Status Concept read-only/no-api
-```
+CAN-16.1 hat die SafetyStop State Matrix read-only/no-api geplant.
 
 ## SafetyStop-Status
 
 ```text
 safetyStopPlanning: true
+safetyStopStateMatrix: true
 safetyStopApi: false
 safetyStopDb: false
 safetyStopDashboard: false
@@ -37,6 +29,15 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
+```
+
+## CAN-16.1 Ergebnis
+
+```text
+Nur known=true, state=inactive, active=false ist SafetyStop-seitig nicht blockierend.
+unknown/degraded/widerspruechlich blockieren.
+SafetyStop Clear bleibt hart blockiert.
+High-risk Aktionen bleiben auch bei inactive blockiert.
 ```
 
 ## Weiterhin hart blockiert
@@ -65,5 +66,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-16.1 - SafetyStop State Matrix read-only/no-api Planning
+CAN-16.2 - SafetyStop Display Contract read-only/no-api Planning
 ```

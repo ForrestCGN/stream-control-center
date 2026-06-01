@@ -3,26 +3,23 @@
 ## Naechster Schritt
 
 ```text
-CAN-16.1 - SafetyStop State Matrix read-only/no-api Planning
+CAN-16.2 - SafetyStop Display Contract read-only/no-api Planning
 ```
 
-## Ziel CAN-16.1
+## Ziel CAN-16.2
 
-SafetyStop-Zustaende und daraus folgende Blockierentscheidungen als Matrix planen.
+Einen reinen Anzeige-/Contract-Entwurf fuer SafetyStop in der Safety Status View planen.
 
-## CAN-16.1 darf klaeren
+## CAN-16.2 darf klaeren
 
 ```text
-state inactive/active/unknown/degraded
-known true/false
-active true/false
-blocksRecovery true/false
-blocksHighRiskActions true/false
-welche Kombinationen sicher/unsicher sind
-welche Kombinationen blockieren muessen
+welche Felder eine spaetere SafetyStop-Anzeige zeigen koennte
+welche Labels/Status-Level sinnvoll sind
+wie unknown/degraded/widerspruechlich dargestellt werden
+wie klar angezeigt wird, dass Clear nicht erlaubt ist
 ```
 
-## CAN-16.1 darf NICHT enthalten
+## CAN-16.2 darf NICHT enthalten
 
 ```text
 SafetyStop API

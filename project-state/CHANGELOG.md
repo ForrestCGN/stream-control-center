@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-16.0
+## CAN-16.1
 
-- SafetyStop Status Concept read-only/no-api geplant.
-- SafetyStop-Grundidee, Statusmodell, Reason Codes, Sources und Fail-safe-Regel dokumentiert.
-- Clear-/Reset-Grenze bestaetigt.
-- CAN-16.1 SafetyStop State Matrix read-only/no-api Planning als naechster Schritt festgelegt.
+- SafetyStop State Matrix read-only/no-api geplant.
+- Hauptmatrix, Widerspruchsregeln, Clear-Matrix, Recovery-Blockiermatrix und High-Risk-Aktionsmatrix dokumentiert.
+- Fail-safe-Default bestaetigt: unbekannt, degraded oder widerspruechlich blockiert.
+- CAN-16.2 SafetyStop Display Contract read-only/no-api Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
