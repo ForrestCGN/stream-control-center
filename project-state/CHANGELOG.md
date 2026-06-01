@@ -1,3 +1,40 @@
+# CHANGELOG – CAN-6.3 Recovery-Audit- und Bestätigungs-Code-Konzept
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN6_3_RECOVERY_AUDIT_CONFIRMATION_CONCEPT.md` neu ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_3.md` neu ergänzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.3 Abschluss-/Übergabestand ergänzt.
+- `project-state/NEXT_STEPS.md` um CAN-6.4 als nächsten Arbeitsblock ergänzt.
+- `project-state/TODO.md` um CAN-6.4 Preflight-Konzept-Aufgaben ergänzt.
+- `project-state/FILES.md` um CAN-6.3 relevante Dateien ergänzt.
+
+## Bestätigter Stand
+
+- CAN-6.3 definiert nur Audit- und Bestätigungs-Code-Konzept.
+- Bestätigungs-Code ersetzen keine Guard-Pruefungen.
+- Preflight ist nur Vorschau und darf nicht produktiv wirken.
+- Keine produktive Recovery aktiviert.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Logik geändert.
+- Keine Dashboard-Buttons ergänzt.
+- Keine neuen Routen ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+- Keine Code-Dateien geändert.
+
+## Nächster Block
+
+- CAN-6.4: Read-only Recovery-Preflight-API-Konzept planen.
+
+---
+
 # CHANGELOG – CAN-6.2 Backend-Schutzvertrag
 
 Stand: 2026-06-01
@@ -8,7 +45,7 @@ Stand: 2026-06-01
 - `docs/current/CURRENT_CHAT_HANDOFF_CAN6_2.md` neu ergänzt.
 - `project-state/CURRENT_STATUS.md` um CAN-6.2 Abschluss-/Übergabestand ergänzt.
 - `project-state/NEXT_STEPS.md` um CAN-6.3 als nächsten Arbeitsblock ergänzt.
-- `project-state/TODO.md` um CAN-6.3 Audit-/Confirm-Token-Aufgaben ergänzt.
+- `project-state/TODO.md` um CAN-6.3 Audit-/Bestätigungs-Code-Aufgaben ergänzt.
 - `project-state/FILES.md` um CAN-6.2 relevante Dateien ergänzt.
 
 ## Bestätigter Stand
@@ -29,7 +66,7 @@ Stand: 2026-06-01
 
 ## Nächster Block
 
-- CAN-6.3: Recovery-Audit- und Confirm-Token-Konzept planen.
+- CAN-6.3: Recovery-Audit- und Bestätigungs-Code-Konzept planen.
 
 ---
 

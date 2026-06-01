@@ -1,3 +1,48 @@
+## Nach Dokumentationsabschluss CAN-6.3
+
+Marker: STEP_CAN6_3_DOCUMENTATION_NEXT_STEPS
+
+Nächster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-6.4: Read-only Recovery-Preflight-API-Konzept planen
+~~~
+
+Ziel von CAN-6.4:
+
+~~~text
+Noch kein produktiver Code.
+Noch keine Dashboard-Buttons.
+Noch keine Recovery-Ausführung.
+Noch keine Route aktivieren.
+Nur Konzept: Welche read-only Preflight-Daten spaeter geliefert werden duerften und welche Guards nur pruefend laufen.
+~~~
+
+Pflichtfragen vor Umsetzung:
+
+~~~text
+Welche Preflight-Daten duerfte eine spaetere API read-only liefern?
+Welche Guards laufen im Preflight nur pruefend?
+Welche Felder muessen fuer Dashboard-Anzeige vorhanden sein?
+Welche Fehler duerfen nur Anzeige sein?
+Welche Fehler blockieren Bestätigungs-Code-Erzeugung?
+Wie bleibt Preflight garantiert ohne produktive Wirkung?
+Wie wird verhindert, dass Preflight bereits Locks, Queues, Sounds oder Overlays veraendert?
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine produktive Flow-Änderung
+Kein Alert-Replay
+Kein Sound-Replay
+Keine neuen Routen ohne separaten Code-Step
+Keine DB-/Config-Migration ohne echte Pruefung
+~~~
+
 ## Nach Dokumentationsabschluss CAN-6.2
 
 Marker: STEP_CAN6_2_DOCUMENTATION_NEXT_STEPS
@@ -5,7 +50,7 @@ Marker: STEP_CAN6_2_DOCUMENTATION_NEXT_STEPS
 Nächster sinnvoller Arbeitsblock:
 
 ~~~text
-CAN-6.3: Recovery-Audit- und Confirm-Token-Konzept planen
+CAN-6.3: Recovery-Audit- und Bestätigungs-Code-Konzept planen
 ~~~
 
 Ziel von CAN-6.3:
@@ -14,17 +59,17 @@ Ziel von CAN-6.3:
 Noch kein produktiver Code.
 Noch keine Dashboard-Buttons.
 Noch keine Recovery-Ausführung.
-Nur Konzept: Audit-Events -> Confirm-Token -> Preflight-Felder -> Token-Bindung -> Token-Ablauf -> Token-Wiederverwendung verhindern.
+Nur Konzept: Audit-Events -> Bestätigungs-Code -> Preflight-Felder -> Bestätigungs-Code-Bindung -> Bestätigungs-Code-Ablauf -> Bestätigungs-Code-Wiederverwendung verhindern.
 ~~~
 
 Pflichtfragen vor Umsetzung:
 
 ~~~text
 Welche Audit-Events braucht Recovery genau?
-Wie sieht ein Confirm-Token-Lebenszyklus aus?
+Wie sieht ein Bestätigungs-Code-Lebenszyklus aus?
 Welche Preflight-Felder muss das Backend liefern?
-Wie wird Token-Wiederverwendung verhindert?
-Wie werden Rollen, Aktion, IDs und Ablaufzeit an das Token gebunden?
+Wie wird Bestätigungs-Code-Wiederverwendung verhindert?
+Wie werden Rollen, Aktion, IDs und Ablaufzeit an das Bestätigungs-Code gebunden?
 Welche Audit-Fehler blockieren Aktionen hart?
 Welche DB-/Storage-Struktur waere spaeter noetig, ohne produktive DB blind zu migrieren?
 ~~~
@@ -70,7 +115,7 @@ Welche Modul-Safety-Stops braucht Alert/Sound/Overlay?
 Welche Status-Guards pruefen laufende Alerts, Sounds, Queues und Bundle-Locks?
 Wie werden traceId/alertId/eventId/bundleId/soundJobId gegen doppelte Ausfuehrung geschuetzt?
 Welche Routen bleiben read-only?
-Welche spaeteren Routen duerften nur mit Confirm-Token laufen?
+Welche spaeteren Routen duerften nur mit Bestätigungs-Code laufen?
 ~~~
 
 Regel bleibt:

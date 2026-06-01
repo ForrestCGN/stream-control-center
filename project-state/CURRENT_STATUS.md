@@ -1,3 +1,56 @@
+## Abschluss-/Übergabestand CAN-6.3
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_3_RECOVERY_AUDIT_CONFIRMATION_CONCEPT
+
+CAN-6.3 definiert das Recovery-Audit- und Bestätigungs-Code-Konzept fuer spaetere manuelle Recovery-Aktionen.
+
+Aktueller Fokus:
+
+~~~text
+Communication-Bus / EventBus Diagnose
+Recovery-Strategy-State
+Manuelle Recovery-Aktionsmatrix
+Backend-Schutzvertrag fuer spaetere Recovery-Aktionen
+Audit- und Bestätigungs-Code-Konzept
+~~~
+
+Definiert wurde:
+
+~~~text
+Audit-Eventtypen
+Audit-Pflichtfelder
+Bestätigungs-Code-Lebenszyklus
+Bestätigungs-Code-Bindung an User/Rolle/Aktion/IDs
+Preflight-Antwortfelder
+Bestätigungs-Code-Wiederverwendungsschutz
+blockierende Audit-Fehler
+konzeptionelle Storage-/DB-Struktur
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine neuen Routen
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine produktive Flow-Änderung
+Keine DB-/Config-Migration
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-6.4: Read-only Recovery-Preflight-API-Konzept planen
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN6_3_RECOVERY_AUDIT_CONFIRMATION_CONCEPT.md`
+Übergabe: `docs/current/CURRENT_CHAT_HANDOFF_CAN6_3.md`
+
 ## Abschluss-/Übergabestand CAN-6.2
 
 Stand: 2026-06-01
@@ -46,7 +99,7 @@ Keine DB-/Config-Migration
 Nächster Schritt:
 
 ~~~text
-CAN-6.3: Recovery-Audit- und Confirm-Token-Konzept planen
+CAN-6.3: Recovery-Audit- und Bestätigungs-Code-Konzept planen
 ~~~
 
 Details: `docs/system-inspection/EVENTBUS_CAN6_2_BACKEND_RECOVERY_GUARD_CONTRACT.md`

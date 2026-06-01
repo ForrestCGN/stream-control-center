@@ -1,13 +1,24 @@
-## CAN-6.3 / Audit und Confirm-Token
+## CAN-6.4 / Read-only Recovery-Preflight-API-Konzept
+
+- [x] CAN-6.3 Recovery-Audit- und Bestätigungs-Code-Konzept dokumentieren.
+- [ ] CAN-6.4 Read-only Recovery-Preflight-API-Konzept planen.
+- [ ] Preflight-Antwortfelder fuer spaetere API finalisieren.
+- [ ] Guard-Pruefungen fuer read-only Preflight definieren.
+- [ ] Bestätigungs-Code-Erzeugung im Preflight konzeptionell abgrenzen.
+- [ ] Blockierungsgruende fuer Preflight-Antworten definieren.
+- [ ] Sicherstellen: Preflight aendert keine Queues, Locks, Sounds, Alerts oder Overlays.
+- [ ] Sicherstellen: keine neue Route ohne separaten Code-Step.
+
+## CAN-6.3 / Audit und Bestätigungs-Code
 
 - [x] CAN-6.2 Backend-Schutzvertrag fuer manuelle Recovery dokumentieren.
-- [ ] CAN-6.3 Recovery-Audit- und Confirm-Token-Konzept planen.
-- [ ] Audit-Eventtypen fuer Preflight, Confirm, Block, Erfolg und Fehler definieren.
-- [ ] Confirm-Token-Lebenszyklus definieren: erzeugen, binden, anzeigen, bestaetigen, verbrauchen, ablaufen lassen.
-- [ ] Pflichtfelder fuer Preflight-Antwort festlegen.
-- [ ] Token-Wiederverwendung hart blockieren.
-- [ ] Rollen-/User-/Action-/ID-Bindung fuer Confirm-Token festlegen.
-- [ ] Spaetere DB-/Storage-Struktur nur planen, keine produktive DB blind migrieren.
+- [x] CAN-6.3 Recovery-Audit- und Bestätigungs-Code-Konzept planen.
+- [x] Audit-Eventtypen fuer Preflight, Confirm, Block, Erfolg und Fehler definieren.
+- [x] Bestätigungs-Code-Lebenszyklus definieren: erzeugen, binden, anzeigen, bestaetigen, verbrauchen, ablaufen lassen.
+- [x] Pflichtfelder fuer Preflight-Antwort festlegen.
+- [x] Bestätigungs-Code-Wiederverwendung hart blockieren.
+- [x] Rollen-/User-/Action-/ID-Bindung fuer Bestätigungs-Code festlegen.
+- [x] Spaetere DB-/Storage-Struktur nur planen, keine produktive DB blind migrieren.
 
 # TODO
 
@@ -33,12 +44,12 @@ Stand: 2026-06-01
 - [x] Audit-Log-Pflicht pro Aktion definieren.
 - [x] Duplikat-Sperren für Alert-/Sound-/Overlay-Recovery entwerfen.
 - [x] Safety-Stop/Rollback/Clear-Regel definieren.
-- [ ] CAN-6.2 Backend-Schutzvertrag fuer manuelle Recovery planen.
-- [ ] Auth-/Owner-Admin-Pruefung fuer spaetere Recovery-Aktionen festlegen.
-- [ ] Audit-Log-Anbindung fuer Recovery-Aktionen technisch planen.
-- [ ] Globalen Recovery-Safety-Stop und Modul-Safety-Stops planen.
-- [ ] Status-Guards fuer Alert/Sound/Overlay/Bundle/Queue definieren.
-- [ ] Confirm-/Bestätigungsmechanik fuer spaetere Dashboard-Aktionen planen.
+- [x] CAN-6.2 Backend-Schutzvertrag fuer manuelle Recovery planen.
+- [x] Auth-/Owner-Admin-Pruefung fuer spaetere Recovery-Aktionen festlegen.
+- [x] Audit-Log-Anbindung fuer Recovery-Aktionen technisch planen.
+- [x] Globalen Recovery-Safety-Stop und Modul-Safety-Stops planen.
+- [x] Status-Guards fuer Alert/Sound/Overlay/Bundle/Queue definieren.
+- [x] Confirm-/Bestätigungsmechanik fuer spaetere Dashboard-Aktionen planen.
 - [ ] Vor jedem Code-Step prüfen: keine automatische Recovery, kein Auto-Retry, kein Replay ohne harte Schutzmechanik.
 
 
