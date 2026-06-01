@@ -1,5 +1,15 @@
 # TODO
 
-- CAN-9.9 Abschluss/Startgrenze für den nächsten Block erstellen.
-- Für CAN-10.x nur harmlose Diagnose-/Refresh-Aktion planen.
-- Keine produktive Recovery-Ausführung ohne separate Startgrenze und Live-Abnahme.
+## Nächster Block
+
+- [ ] CAN-10.0 Manual Diagnostic Refresh Start Boundary planen.
+- [ ] Definieren, ob ein späterer Button nur Status/Preflight neu lädt oder auch Backend-Diagnose neu auslöst.
+- [ ] Sicherstellen, dass die erste Aktion keinerlei Queue-/Sound-/Alert-/Overlay-State verändert.
+
+## Weiterhin gesperrt
+
+- [ ] Keine echte Recovery-Ausführung.
+- [ ] Kein Alert-Replay.
+- [ ] Kein Sound-Replay.
+- [ ] Kein Overlay-Retry.
+- [ ] Kein Queue-Reset.

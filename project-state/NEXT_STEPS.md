@@ -1,18 +1,21 @@
 # NEXT STEPS
 
-## CAN-9.9
+## CAN-10.0
 
-Recovery-Preflight Dashboard/Route read-only Strang abschließen und Startgrenze für CAN-10.x dokumentieren.
-
-## CAN-10.x Vorschlag
-
-Erste harmlose manuelle Recovery-nahe Aktion planen.
+Startgrenze für erste harmlose manuelle Recovery-nahe Aktion planen.
 
 Empfohlener Kandidat:
 
 ```text
 Diagnose neu bewerten / Preflight refresh / Status reload
 ```
+
+Ziel für CAN-10.0:
+
+- Vertrag definieren
+- erlaubte Wirkung begrenzen
+- Dashboard-Verhalten planen
+- Sicherheitsgrenzen dokumentieren
 
 Weiterhin verboten bis separat freigegeben:
 
@@ -22,3 +25,4 @@ Weiterhin verboten bis separat freigegeben:
 - Queue-Reset
 - Recovery-Ausführung
 - Prepare-/Execute-Commands
+- produktive Flow-Änderungen

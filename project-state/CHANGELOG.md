@@ -1,10 +1,9 @@
 # CHANGELOG
 
-## CAN-9.8
+## CAN-9.9
 
-- Dashboard Route Consumption aus CAN-9.7 live geprüft und dokumentiert.
-- Preflight-Route-Kontext sichtbar bestätigt.
-- Preflight-Route-Safety sichtbar bestätigt.
-- Check-Matrix mit 13/13 OK bestätigt.
-- Keine Code-Änderung.
-- Keine produktive Flow-Änderung.
+- Recovery-Preflight Route/Dashboard read-only Strang abgeschlossen.
+- CAN-10.0 Startgrenze dokumentiert.
+- Keine Code-Dateien geändert.
+- Keine API-Route geändert.
+- Keine Recovery-Ausführung ergänzt.
