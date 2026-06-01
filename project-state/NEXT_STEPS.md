@@ -3,25 +3,24 @@
 ## Naechster Schritt
 
 ```text
-CAN-17.2 - Roles/Rights Backend Boundary no-implementation Planning
+CAN-17.3 - Roles/Rights Display Boundary no-implementation Planning
 ```
 
-## Ziel CAN-17.2
+## Ziel CAN-17.3
 
-Planen, welche Backend-Grenzen ein spaeteres Rollen-/Rechte-System haben muss, ohne Backend-Code zu bauen.
+Planen, wie Rollen-/Rechte-Informationen spaeter angezeigt werden duerften, ohne Anzeige technisch zu bauen.
 
-## CAN-17.2 darf klaeren
+## CAN-17.3 darf klaeren
 
 ```text
-serverseitige Pruefung als Pflicht
-kein Trust auf Client
-no-implementation Grenzen
-welche Module spaeter betroffen waeren
-welche Routen weiterhin nicht existieren
-welche Entscheidungen spaeter auditierbar sein muessen
+moegliche Anzeigezustaende
+keine-Berechtigung-Hinweise
+unknown-role-Hinweise
+High-risk-blockiert-Hinweise
+UI darf Rechte nicht ersetzen
 ```
 
-## CAN-17.2 darf NICHT enthalten
+## CAN-17.3 darf NICHT enthalten
 
 ```text
 Rollen-API

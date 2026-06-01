@@ -1,16 +1,17 @@
 # CHANGELOG
 
-## CAN-17.1
+## CAN-17.2
 
-- Roles/Rights Action Matrix no-mutation geplant.
-- Read-only Anzeige-, Diagnose-, High-risk-, Audit-, Rollenverwaltungs- und Dashboard-Konfigurationsaktionen bewertet.
-- Sicherheitsregeln fuer Rollen dokumentiert.
-- Fail-safe-Regel bestaetigt.
-- CAN-17.2 Roles/Rights Backend Boundary no-implementation Planning als naechster Schritt festgelegt.
+- Roles/Rights Backend Boundary no-implementation geplant.
+- Serverseitige Rechtepruefung als spaetere Pflicht dokumentiert.
+- Client-/UI-Trust ausgeschlossen.
+- Routen-, Middleware-, DB-, Config- und Dashboard-Grenzen dokumentiert.
+- CAN-17.3 Roles/Rights Display Boundary no-implementation Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
 - Keine DB.
+- Keine Middleware.
 - Kein EventBus-Emit.
 - Keine Dashboard-Aenderung.
 - Keine Recovery-Ausfuehrung.
