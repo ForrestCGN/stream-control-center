@@ -1,25 +1,51 @@
-## STEP CAN-9.2 Recovery-Preflight read-only Route
+## STEP CAN-9.3 Recovery-Preflight read-only Route Live-Test
 
-Stand: 2026-06-01
-Marker: STEP_CAN9_2_RECOVERY_PREFLIGHT_READONLY_ROUTE
+Stand: 2026-06-01  
+Marker: STEP_CAN9_3_RECOVERY_PREFLIGHT_READONLY_ROUTE_LIVE_TEST_ACCEPTANCE
 
-Umgesetzt wurde eine eigene read-only Route:
+CAN-9.3 dokumentiert den erfolgreichen Live-Test der Route:
 
 ```text
 GET /api/bus-diagnostics/recovery-preflight
 ```
 
-`bus_diagnostics` wurde auf Version `1.2.8` / Build `STEP_CAN9_2` gesetzt.
+Live bestaetigt:
+
+```text
+version: 1.2.8
+routeVersion: CAN-9.2
+mode: read_only_preflight_route
+readOnly: true
+canPrepare: false
+canExecute: false
+method: GET
+commandRoute: false
+executeRoute: false
+prepareRoute: false
+recoveryExecution: false
+checks: 13
+ok: 13
+warnings: 0
+blocking: 0
+blocked: 0
+```
 
 Nicht geaendert:
 
 ```text
-Keine POST-Route
-Keine Command-Route
-Keine Execute-Route
+Keine Backend-Datei
 Keine Dashboard-Datei
+Keine API-Route
 Keine Config
 Keine DB
 Keine Recovery-Ausfuehrung
 Keine produktive Flow-Aenderung
 ```
+
+Naechster Schritt:
+
+```text
+CAN-9.4: Route-Kontext/NextStep read-only bereinigen und dokumentieren.
+```
+
+Details: `docs/system-inspection/EVENTBUS_CAN9_3_RECOVERY_PREFLIGHT_READONLY_ROUTE_LIVE_TEST_ACCEPTANCE.md`
