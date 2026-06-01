@@ -1,22 +1,40 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-14.5 Safety Status View nach UI-Cleanup lokal erneut pruefen
+CAN-15.0 - Recovery/Safety Documentation Consolidation
 ```
 
-## Wenn lokal OK
-
-Dann:
+## Ziel CAN-15.0
 
 ```text
-CAN-14.5 accepted_local_test dokumentieren
-CAN-14.6 Handoff / Abschluss Safety Status View read-only
+CAN-8 bis CAN-14 zusammenfassen
+aktuellen Sicherheitsstand dokumentieren
+harte Grenzen bestaetigen
+naechste Recovery-nahe Richtung festlegen
 ```
 
-## Wenn weiter UI-Probleme sichtbar sind
+## Wichtige Grundlage
 
-Dann Screenshot senden und nur UI/Lesbarkeit korrigieren.
+Aktueller Handoff:
 
-Weiterhin keine Recovery-Funktion bauen.
+```text
+docs/current/CURRENT_CHAT_HANDOFF_CAN14_6_FINAL.md
+```
+
+## Weiterhin nicht direkt umsetzen
+
+- Alert Replay
+- Sound Replay
+- Queue Clear
+- Overlay State Repair
+- Execute Recovery
+- Auto Recovery
+- Auto Retry Overlay
+- Streamer.bot Action Retry
+- OBS Source Refresh
+- SafetyStop Clear
+- Audit Write Route
+- Confirm API
+- Rollen-/Rechte-Mutation
