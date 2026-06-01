@@ -1,5 +1,38 @@
 # CURRENT SYSTEM STATUS – STEP278 Vorbereitung
 
+<!-- CAN-3.7-STABLE-STATUS:START -->
+## CAN-3.7 stabiler Zwischenstand
+
+Stand: 2026-06-01
+
+### Ergebnis
+
+CAN-3 ist bis einschließlich CAN-3.6 erfolgreich geprüft.
+
+```text
+alert_system: 3.1.8
+sound_system: 0.1.20
+bus_diagnostics: 1.2.2
+handshakeState: matched
+matched: 2
+unmatched: 0
+warnings: []
+```
+
+### Bestätigte Kette
+
+```text
+Alert -> Bundle -> Sound-System -> Matching -> Handshake-State
+```
+
+### Wichtig
+
+Dieser Stand ist ein Diagnose-/Stabilitätsstand. Es wurden keine produktiven Flow-Umbauten an Queue, Sound-Playback, Overlay, TTS, DB oder Config vorgenommen.
+
+Details: `docs/system-inspection/EVENTBUS_CAN3_7_STABLE_STATUS.md`
+<!-- CAN-3.7-STABLE-STATUS:END -->
+
+
 Stand: 2026-05-31 08:14 UTC
 
 ## Kontext

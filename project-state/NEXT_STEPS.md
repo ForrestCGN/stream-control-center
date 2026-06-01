@@ -1,5 +1,32 @@
 # NEXT STEPS – STEP278
 
+<!-- CAN-3.7-NEXT-STEPS:START -->
+## Nächste Schritte nach CAN-3.7
+
+### Nächster sinnvoller Schritt
+
+```text
+CAN-4.0: Overlay ACK / Visual Delivery Diagnose konsolidieren
+```
+
+### Ziel
+
+- Visual-Overlay-ACK/Finish sauber sichtbar machen.
+- Prüfen, ob Sound/Bundle gematched ist, aber Overlay-Finish fehlt.
+- Keine produktive Flow-Änderung ohne separaten Test.
+- Keine Queue-, Sound-, Overlay-, TTS-, DB- oder Config-Logik entfernen.
+
+### Prüfbasis
+
+```text
+alert_system 3.1.8
+sound_system 0.1.20
+bus_diagnostics 1.2.2
+CAN-3.6 Live-Test: matched / warnings []
+```
+<!-- CAN-3.7-NEXT-STEPS:END -->
+
+
 ## Nicht sofort umbauen
 
 Vor der Umsetzung erst Ist-Zustand prüfen:
