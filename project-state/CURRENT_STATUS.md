@@ -1,13 +1,13 @@
 # CURRENT_STATUS
 
-## CAN-12.2
+## CAN-12.3
 
-Der Anzeigevertrag fuer Guard-Ergebnisse ist geplant.
+Die UI-/Implementation-Boundary fuer die Guard-Anzeige ist dokumentiert.
 
-Noch kein Code, keine Recovery-Ausfuehrung.
-
-Naechster Schritt:
+CAN-12.4 darf nur additiv die Dashboard-Datei aendern:
 
 ```text
-CAN-12.3 Manual Recovery Guard Display UI Implementation Boundary
+htdocs/dashboard/modules/bus_diagnostics.js
 ```
+
+Keine Backend-Aenderung, keine Recovery-Ausfuehrung.

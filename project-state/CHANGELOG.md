@@ -1,9 +1,8 @@
 # CHANGELOG
 
-## CAN-12.2
+## CAN-12.3
 
-- Anzeigevertrag fuer Guard-Ergebnisse geplant.
-- GuardSummary-Struktur definiert.
-- Dashboard-Tabellenformat und Fallbacks geplant.
+- UI-/Implementation-Boundary fuer Guard-Display dokumentiert.
+- CAN-12.4 Scope auf additive Dashboard-Aenderung begrenzt.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.

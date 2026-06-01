@@ -2,12 +2,13 @@
 
 ## Naechster Schritt
 
-CAN-12.3 - Manual Recovery Guard Display UI Implementation Boundary
+CAN-12.4 - Manual Recovery Guard Display Dashboard UI
 
-Ziel:
+Erlaubter Scope:
 
-- technische Grenze fuer Dashboard-Umsetzung planen
-- nur Dashboard-Hilfsfunktionen erlauben
+- nur `htdocs/dashboard/modules/bus_diagnostics.js`
+- Karte `Recovery Guards`
+- lokale Guard-Normalisierung
+- lokale GuardSummary
 - keine Backend-Aenderung
-- keine neue Route
 - keine Recovery-Ausfuehrung
