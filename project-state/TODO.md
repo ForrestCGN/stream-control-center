@@ -1,3 +1,24 @@
+## CAN-6.6 / Read-only Dashboard-Preflight-Anzeige Code-Step planen
+
+- [x] CAN-6.5 Dashboard-Preflight-Anzeige und UX-Regeln dokumentieren.
+- [ ] Echte aktuelle Dashboard-Datei `htdocs/dashboard/modules/bus_diagnostics.js` prüfen.
+- [ ] Echte aktuelle Backend-Datei `backend/modules/bus_diagnostics.js` prüfen.
+- [ ] Bestehende Tab-/Render-Muster im Dashboard prüfen.
+- [ ] Festlegen, ob CAN-6.6 nur Planung bleibt oder erster read-only UI-Code-Step wird.
+- [ ] Sicherstellen: keine Recovery-Buttons, keine Simulation-Buttons, keine produktiven Actions.
+- [ ] Tests fuer Dashboard-Laden und fehlende Action-Handler definieren.
+
+## CAN-6.5 / Dashboard-Preflight-Anzeige und UX-Regeln
+
+- [x] CAN-6.4 Read-only Recovery-Preflight-API-Konzept dokumentieren.
+- [x] CAN-6.5 Dashboard-Preflight-Anzeige und UX-Regeln planen.
+- [x] Sichtbare Preflight-Felder fuer Dashboard festlegen.
+- [x] Darstellung fuer blockiert/erlaubt/Warnung definieren.
+- [x] Read-only-Hinweise und Sicherheitsformulierungen definieren.
+- [x] Verbotene UI-Elemente fuer CAN-6.5 festlegen.
+- [x] Rollen-/Rechte-Hinweise fuer Dashboard planen.
+- [x] Sicherstellen: keine Recovery-Buttons, keine Simulation-Buttons, keine produktiven Aktionen.
+
 ## CAN-6.5 / Dashboard-Preflight-Anzeige und UX-Regeln
 
 - [x] CAN-6.4 Read-only Recovery-Preflight-API-Konzept dokumentieren.

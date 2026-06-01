@@ -1,3 +1,46 @@
+## Nach Dokumentationsabschluss CAN-6.5
+
+Marker: STEP_CAN6_5_DOCUMENTATION_NEXT_STEPS
+
+Nächster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-6.6: Read-only Dashboard-Preflight-Anzeige als Code-Step planen
+~~~
+
+Ziel von CAN-6.6:
+
+~~~text
+Noch kein produktiver Code ohne separate Datei-Prüfung.
+Noch keine Recovery-Buttons.
+Noch keine Recovery-Ausführung.
+Nur Planung des ersten möglichen Dashboard-Code-Steps: Anzeigebereich read-only, ohne Aktionen.
+~~~
+
+Pflichtfragen vor Umsetzung:
+
+~~~text
+Welche echte Dashboard-Datei ist betroffen?
+Welche bestehenden Render-/Tab-Muster gibt es?
+Welche Statusdaten sind bereits vorhanden?
+Braucht es vorher eine echte read-only API oder nur bestehende Statusdaten?
+Wie bleibt der UI-Code ohne produktive Handler?
+Welche Tests zeigen, dass keine Buttons/Aktionen vorhanden sind?
+Welche Doku-/Projekt-State-Dateien werden beim Code-Step aktualisiert?
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine produktive Flow-Änderung
+Kein Alert-Replay
+Kein Sound-Replay
+Keine neuen Dashboard-Aktionen ohne separates Go
+~~~
+
 ## Nach Dokumentationsabschluss CAN-6.4
 
 Marker: STEP_CAN6_4_DOCUMENTATION_NEXT_STEPS

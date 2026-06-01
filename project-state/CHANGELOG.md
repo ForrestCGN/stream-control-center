@@ -1,3 +1,43 @@
+# CHANGELOG – CAN-6.5 Dashboard-Preflight-Anzeige und UX-Regeln
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN6_5_DASHBOARD_PREFLIGHT_READONLY_UX_CONCEPT.md` ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_5.md` ergänzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.5 Abschlussstand erweitert.
+- `project-state/NEXT_STEPS.md` um CAN-6.6 als nächsten Arbeitsblock erweitert.
+- `project-state/TODO.md` um CAN-6.5/CAN-6.6 Aufgaben erweitert.
+- `project-state/FILES.md` um CAN-6.5 Dateien erweitert.
+
+## Definiert
+
+- Sichtbare Preflight-Felder fuer eine spaetere Dashboard-Anzeige.
+- Anzeigegruppen fuer Kopfbereich, Sicherheitsstatus, Rechte/Freigabe, Blockaden, Warnungen und Read-only-Hinweise.
+- Status-Einstufungen: diagnose_only, blocked, warning, preflight_ok, not_available, unknown.
+- Pflichttexte gegen Fehlbedienung.
+- Verbotene UI-Elemente fuer CAN-6.5.
+- Regeln fuer Bestätigungs-Code nur als Verfügbarkeitsstatus.
+- CAN-6.1-Aktionen aus Dashboard-Sicht.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Route ergänzt.
+- Keine Dashboard-Datei geändert.
+- Keine Recovery-Buttons ergänzt.
+- Keine Simulation-Buttons ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+
+## Nächster Block
+
+- CAN-6.6: Read-only Dashboard-Preflight-Anzeige als Code-Step planen.
+
+---
+
 # CHANGELOG – CAN-6.4 Read-only Recovery-Preflight-API-Konzept
 
 Stand: 2026-06-01

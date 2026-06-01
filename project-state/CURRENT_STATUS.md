@@ -1,3 +1,61 @@
+## Abschluss-/Übergabestand CAN-6.5
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_5_DASHBOARD_PREFLIGHT_READONLY_UX_CONCEPT
+
+CAN-6.5 definiert das Konzept fuer eine spaetere read-only Dashboard-Anzeige von Recovery-Preflight-Daten.
+
+Aktueller Fokus:
+
+~~~text
+Communication-Bus / EventBus Diagnose
+Recovery-Strategy-State
+Manuelle Recovery-Aktionsmatrix
+Backend-Schutzvertrag fuer spaetere Recovery-Aktionen
+Audit- und Bestätigungs-Code-Konzept
+Read-only Recovery-Preflight-API-Konzept
+Dashboard-Preflight-Anzeige und UX-Regeln
+~~~
+
+Definiert wurde:
+
+~~~text
+sichtbare Preflight-Felder
+Dashboard-Anzeigegruppen
+Status-Einstufungen
+Pflichttexte gegen Fehlbedienung
+verbotene UI-Elemente
+Rollen-/Rechte-Hinweise
+Bestätigungs-Code nur als Verfügbarkeitsstatus
+Dashboard-Datenmodell als Konzept
+CAN-6.1-Aktionen aus Dashboard-Sicht
+Testregeln fuer spaeteren Code-Step
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine neuen Routen
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine Dashboard-Code-Änderung
+Keine produktive Flow-Änderung
+Keine DB-/Config-Migration
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-6.6: Read-only Dashboard-Preflight-Anzeige als Code-Step planen
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN6_5_DASHBOARD_PREFLIGHT_READONLY_UX_CONCEPT.md`
+Übergabe: `docs/current/CURRENT_CHAT_HANDOFF_CAN6_5.md`
+
 ## Abschluss-/Übergabestand CAN-6.4
 
 Stand: 2026-06-01
