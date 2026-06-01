@@ -1,3 +1,29 @@
+## STEP CAN-5.4 Fehler-/Timeout-Simulation geplant
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_4_ERROR_TIMEOUT_SIMULATION_PLAN
+
+CAN-5.4 definiert die geplanten read-only Fehler- und Timeout-Simulationen.
+
+~~~text
+missingAck
+noClient
+unmatched
+waiting_too_long
+sound_fetch_failed
+bundle_wait_timeout
+overlay_watchdog_issue
+~~~
+
+Regel bleibt:
+
+~~~text
+Recovery bleibt read-only
+automationEnabled bleibt false
+keine produktive Wiederholung
+keine Flow-Änderung
+~~~
+
 ## STEP CAN-5.3 Recovery read-only stabil bestätigt
 
 Stand: 2026-06-01

@@ -1,3 +1,23 @@
+## Nach STEP CAN-5.4
+
+Marker: STEP_CAN5_4_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-5.5: Read-only Simulation Harness planen oder minimal ergänzen
+~~~
+
+Vor Code muss klar sein:
+
+~~~text
+Simulationen sind synthetisch
+Simulationen lösen keine echten Alerts/Sounds/Overlays aus
+automationEnabled bleibt false
+blockedActions bleiben aktiv
+Flow bleibt unverändert
+~~~
+
 ## Nach STEP CAN-5.3
 
 Marker: STEP_CAN5_3_NEXT_STEPS
