@@ -1,3 +1,43 @@
+## Nach STEP CAN-6.8
+
+Marker: STEP_CAN6_8_NEXT_STEPS
+
+Nächster sinnvoller Arbeitsblock:
+
+~~~text
+CAN-6.9: Recovery-Implementierungsreihenfolge und erste Code-Step-Grenzen planen
+~~~
+
+Ziel von CAN-6.9:
+
+~~~text
+Noch kein Code.
+Noch keine Buttons.
+Noch keine Recovery-Ausführung.
+Nur Reihenfolge: echte Dateien pruefen -> minimaler read-only Step -> Statusroute -> Dashboard-Anzeige -> erst spaeter Command.
+~~~
+
+Pflichtfragen vor Umsetzung:
+
+~~~text
+Welche echte Backend-Datei waere zuerst zu pruefen?
+Welche bestehende Route darf read-only erweitert werden?
+Welche neue Route waere spaeter denkbar, aber jetzt noch verboten?
+Welche Dashboard-Datei waere spaeter betroffen?
+Welche Tests muessen vor dem ersten Code-Step stehen?
+Welche Code-Grenzen verhindern Recovery-Ausfuehrung?
+Wie bleibt alles rueckwärtskompatibel?
+~~~
+
+Regel bleibt:
+
+~~~text
+Keine automatische Recovery.
+Keine Recovery-Buttons.
+Keine produktive Flow-Änderung.
+Keine Replay-/Retry-Aktion.
+~~~
+
 ## Nach STEP CAN-6.7
 
 Marker: STEP_CAN6_7_NEXT_STEPS

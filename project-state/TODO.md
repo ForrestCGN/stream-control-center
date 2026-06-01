@@ -1,3 +1,25 @@
+## CAN-6.9 / Recovery-Implementierungsreihenfolge und erste Code-Step-Grenzen
+
+- [x] CAN-6.8 Recovery-Safety-Stop- und Clear-Regelwerk dokumentieren.
+- [ ] CAN-6.9 Implementierungsreihenfolge und erste Code-Step-Grenzen planen.
+- [ ] Echte Backend-Dateien fuer spaetere Pruefung benennen.
+- [ ] Ersten maximal erlaubten read-only Code-Step abgrenzen.
+- [ ] Spaeter betroffene Dashboard-Datei benennen.
+- [ ] Tests vor jedem Code-Step festlegen.
+- [ ] Verbotene erste Code-Schritte explizit dokumentieren.
+- [ ] Sicherstellen: keine Recovery-Ausfuehrung im ersten Code-Step.
+
+## CAN-6.8 / Recovery-Safety-Stop- und Clear-Regelwerk
+
+- [x] CAN-6.7 Recovery-Command-Audit-/State-Mapping dokumentieren.
+- [x] CAN-6.8 Recovery-Safety-Stop- und Clear-Regelwerk planen.
+- [x] Globale Safety-Stop-Arten definieren.
+- [x] Modulbezogene Stopps definieren.
+- [x] Clear-/Review-/Rollback-Hinweise voneinander trennen.
+- [x] Low-Risk-Clear-Aktionen konzeptionell abgrenzen.
+- [x] Weiterhin hart blockierte Clear-/Recovery-Aktionen definieren.
+- [x] Sicherstellen: Clear darf keine produktive Ausgabe automatisch starten.
+
 ## CAN-6.8 / Recovery-Safety-Stop- und Clear-Regelwerk
 
 - [x] CAN-6.7 Recovery-Command-Audit-/State-Mapping dokumentieren.

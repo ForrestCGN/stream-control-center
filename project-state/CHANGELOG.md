@@ -1,3 +1,45 @@
+# CHANGELOG – CAN-6.8 Recovery-Safety-Stop- und Clear-Regelwerk
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN6_8_RECOVERY_SAFETY_STOP_CLEAR_RULESET.md` ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_8.md` ergänzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.8 Abschlussstand erweitert.
+- `project-state/NEXT_STEPS.md` um CAN-6.9 als nächsten Arbeitsblock erweitert.
+- `project-state/TODO.md` um CAN-6.8/CAN-6.9 Aufgaben erweitert.
+- `project-state/FILES.md` um CAN-6.8 Dateien erweitert.
+
+## Definiert
+
+- Safety-Stop-Arten.
+- Globale Stopps.
+- Modulbezogene Stopps.
+- Clear-/Review-/Rollback-Trennung.
+- Low-Risk-Clear-Grenzen.
+- Hart blockierte Clear-/Recovery-Aktionen.
+- Dashboard-Hinweise ohne Aktion.
+- Standardisierte Blockierungsgruende.
+- Testregeln fuer spaetere Code-Steps.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Route ergänzt.
+- Keine Dashboard-Datei geändert.
+- Keine Recovery-Buttons ergänzt.
+- Keine Simulation-Buttons ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+
+## Nächster Block
+
+- CAN-6.9: Recovery-Implementierungsreihenfolge und erste Code-Step-Grenzen planen.
+
+---
+
 # CHANGELOG – CAN-6.7 Recovery-Command-Audit-/State-Mapping
 
 Stand: 2026-06-01

@@ -1,3 +1,63 @@
+## Abschluss-/Übergabestand CAN-6.8
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_8_RECOVERY_SAFETY_STOP_CLEAR_RULESET
+
+CAN-6.8 definiert das Regelwerk fuer Safety-Stop, Modul-Stop, Clear, Review und Rollback-Hinweise im spaeteren manuellen Recovery-Kontext.
+
+Aktueller Fokus:
+
+~~~text
+Communication-Bus / EventBus Diagnose
+Recovery-Strategy-State
+Manuelle Recovery-Aktionsmatrix
+Backend-Schutzvertrag fuer spaetere Recovery-Aktionen
+Audit- und Bestätigungs-Code-Konzept
+Read-only Recovery-Preflight-API-Konzept
+Dashboard-Preflight-Anzeige und UX-Regeln
+Recovery-Ausfuehrungs-Command-Konzept
+Recovery-Command-Audit-/State-Mapping
+Recovery-Safety-Stop- und Clear-Regelwerk
+~~~
+
+Definiert wurde:
+
+~~~text
+Safety-Stop-Arten
+Globale Stopps
+Modulbezogene Stopps
+Clear-/Review-/Rollback-Trennung
+Low-Risk-Clear-Grenzen
+hart blockierte Clear-/Recovery-Aktionen
+Dashboard-Hinweise ohne Aktion
+standardisierte Blockierungsgruende
+Testregeln fuer spaetere Code-Steps
+~~~
+
+Weiterhin nicht aktiv:
+
+~~~text
+Keine automatische Recovery
+Keine Simulation-Buttons
+Keine Recovery-Buttons
+Keine neuen Routen
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine Dashboard-Code-Änderung
+Keine produktive Flow-Änderung
+Keine DB-/Config-Migration
+~~~
+
+Nächster Schritt:
+
+~~~text
+CAN-6.9: Recovery-Implementierungsreihenfolge und erste Code-Step-Grenzen planen
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN6_8_RECOVERY_SAFETY_STOP_CLEAR_RULESET.md`
+Übergabe: `docs/current/CURRENT_CHAT_HANDOFF_CAN6_8.md`
+
 ## Abschluss-/Übergabestand CAN-6.7
 
 Stand: 2026-06-01
