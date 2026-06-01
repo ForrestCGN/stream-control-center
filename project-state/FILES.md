@@ -1,18 +1,18 @@
 # FILES
 
-## CAN16.3 SafetyStop-Integration-Boundary-ZIP
+## CAN16.4 Closure-/Handoff-ZIP
 
 Enthaltene Dateien:
 
-- `docs/system-inspection/EVENTBUS_CAN16_3_SAFETYSTOP_INTEGRATION_BOUNDARY_READONLY_NOAPI_PLANNING.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN16_3.md`
+- `docs/system-inspection/EVENTBUS_CAN16_4_SAFETYSTOP_PLANNING_CLOSURE_HANDOFF.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN16_4_FINAL.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## Technisch relevant, aber in CAN-16.3 nicht geaendert
+## Technisch relevant, aber in CAN-16.4 nicht geaendert
 
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `backend/modules/bus_diagnostics.js`

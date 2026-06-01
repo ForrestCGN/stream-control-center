@@ -1,35 +1,37 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-16.4 - SafetyStop Planning Closure / Handoff
+CAN-17.0 - Roles/Rights Boundary no-mutation Planning
 ```
 
-## Ziel CAN-16.4
+## Ziel CAN-17.0
 
-Den CAN-16 SafetyStop-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
+Rollen-/Rechte-Grenzen fuer spaetere Dashboard-/Recovery-nahe Aktionen planen.
 
-## CAN-16.4 soll zusammenfassen
+## CAN-17.0 darf klaeren
 
 ```text
-CAN-16.0 SafetyStop Status Concept
-CAN-16.1 SafetyStop State Matrix
-CAN-16.2 SafetyStop Display Contract
-CAN-16.3 SafetyStop Integration Boundary
+welche Rollen spaeter relevant sind
+welche Aktionen spaeter welche Rolle brauchen
+welche Aktionen weiterhin blockiert bleiben
+wie Rechte in Safety-/Recovery-Entscheidungen einfliessen koennten
+welche Grenzen fuer spaetere technische Durchsetzung gelten
 ```
 
-## CAN-16.4 darf NICHT enthalten
+## CAN-17.0 darf NICHT enthalten
 
 ```text
-SafetyStop API
-SafetyStop setzen
-SafetyStop clearen
-SafetyStop resetten
-Dashboard-Button
+Rollen-API
+Rechte-API
+Login-/User-System
 DB-Tabelle
-GET-/POST-Route
-EventBus-Emit
+Dashboard-Rechte-Durchsetzung
+Mutation
 Recovery-Ausfuehrung
+POST-Route
+SafetyStop Clear
+Confirm Trigger
 Queue-/Sound-/Alert-/Overlay-Mutation
 ```

@@ -1,8 +1,21 @@
 # CURRENT_STATUS
 
-## Stand: CAN-16.3 abgeschlossen
+## Stand: CAN-16.4 abgeschlossen
 
-CAN-16.3 hat die SafetyStop Integration Boundary read-only/no-api geplant.
+CAN-16 ist abgeschlossen als:
+
+```text
+SafetyStop Planning read-only / no-api
+```
+
+## Aktueller stabiler Stand
+
+```text
+read-only Recovery/Safety Diagnose- und Anzeige-Strang
+Safety Status View read-only
+Audit Planning no-write/no-data
+SafetyStop Planning read-only/no-api
+```
 
 ## SafetyStop-Status
 
@@ -31,15 +44,8 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
-```
-
-## CAN-16.3 Ergebnis
-
-```text
-SafetyStop darf spaeter nur als read-only Status/Blockierinformation andocken.
-Keine Datenrichtung darf SafetyStop veraendern.
-unknown/degraded/widerspruechlich blockiert.
-Keine API, keine Route, keine Karte, kein Button.
+safetyStatusApi: false
+backendSafetyStatusShapeImplemented: false
 ```
 
 ## Weiterhin hart blockiert
@@ -65,8 +71,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-16.4 - SafetyStop Planning Closure / Handoff
+CAN-17.0 - Roles/Rights Boundary no-mutation Planning
 ```
