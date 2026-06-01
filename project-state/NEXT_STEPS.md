@@ -1,3 +1,31 @@
+## Nach STEP CAN-5.9.3
+
+Marker: STEP_CAN5_9_3_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-5.10: Recovery-Dashboard live abnehmen und stabil dokumentieren
+~~~
+
+Zu prüfen:
+
+~~~text
+Recovery-Quelle ist kompakt und lesbar
+lange State-Werte brechen nicht störend um
+keine Test-Buttons sichtbar
+Read-only-Hinweis sichtbar
+Dashboard wirkt aufgeräumt
+~~~
+
+Regeln bleiben:
+
+~~~text
+Keine Simulation per Dashboard
+Keine Recovery-Automatik
+Keine produktive Flow-Änderung
+~~~
+
 ## Nach STEP CAN-5.9.2
 
 Marker: STEP_CAN5_9_2_NEXT_STEPS

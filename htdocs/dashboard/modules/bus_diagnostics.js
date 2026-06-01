@@ -398,7 +398,10 @@
       ['No Client', source.noClient ?? 0],
       ['Waiting', source.waiting ?? 0]
     ];
-    const sourceMetrics = sourceRows.map(row => metric(row[0], row[1], '', 'busdiag-metric-code')).join('');
+    const sourceTiles = sourceRows.map(row => {
+      const raw = value(row[1]);
+      return `<div class="busdiag-row" style="display:grid;grid-template-columns:112px minmax(0,1fr);align-items:center;gap:10px;padding:9px 11px;"><strong>${esc(row[0])}</strong><span title="${esc(raw)}" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(raw)}</span></div>`;
+    }).join('');
     const blockedList = blockedActions.length
       ? `<div class="busdiag-list">${blockedActions.map(action => `<div class="busdiag-row warning"><strong>blockiert</strong><span>${esc(action)}</span></div>`).join('')}</div>`
       : '<p class="busdiag-muted">Keine blockierten Aktionen gemeldet.</p>';
@@ -415,7 +418,7 @@
         ${card('Sicherheitsstatus', `<div class="busdiag-status-line">${badge(safetyStatus === 'ok' ? 'ok' : 'prüfen', safetyStatus)}<span>${esc(safetyText)}</span></div><div class="busdiag-metrics">${metric('Read-only', bool(data.readOnly && recovery.readOnly !== false))}${metric('Productive Actions', bool(data.productiveActions))}${metric('Flow touched', bool(data.flowTouched))}${metric('Overlay touched', bool(data.overlayTouched))}</div>`)}
       </div>
       <div class="busdiag-grid">
-        ${card('Recovery-Quelle', `<div class="busdiag-metrics">${sourceMetrics}</div>`)}
+        ${card('Recovery-Quelle', `<div class="busdiag-list" style="display:grid;gap:8px;">${sourceTiles}</div>`)}
         ${card('Blockierte Aktionen', blockedList)}
         ${card('Erlaubte Aktionen', allowedList)}
         ${card('Gründe', reasonList)}

@@ -1,3 +1,31 @@
+## STEP CAN-5.9.3 Recovery-Dashboard aufgeräumtes Layout
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_9_3_RECOVERY_DASHBOARD_CLEANUP_LAYOUT
+
+CAN-5.9.3 räumt nur die Darstellung im Recovery-Tab des Bus-Diagnostics-Dashboards auf.
+
+~~~text
+Recovery-Quelle kompakter als Zeilenliste
+lange State-Werte ohne harten Wortumbruch
+Tooltip mit vollständigem Wert
+Blockierte Aktionen / Erlaubte Aktionen / Gründe bleiben sichtbar
+Simulation-Harness bleibt read-only sichtbar
+~~~
+
+Nicht geändert:
+
+~~~text
+Keine Backend-Änderung
+Keine API-Änderung
+Keine Simulation-Buttons
+Keine Recovery-Automatik
+Keine produktive Flow-Änderung
+Keine Queue-/Sound-/Overlay-Logik geändert
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN5_9_3_RECOVERY_DASHBOARD_CLEANUP_LAYOUT.md`
+
 ## STEP CAN-5.9.2 Recovery-Dashboard kompakter Layout-Fix
 
 Stand: 2026-06-01
