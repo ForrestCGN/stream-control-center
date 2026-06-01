@@ -1,24 +1,24 @@
-# FILES – CAN-8.9 Recovery-Preflight Check-Matrix Statusfelder
+# FILES – CAN-8.10
 
 Stand: 2026-06-01
 
-## Geändert
+## In dieser ZIP enthalten
 
-- `backend/modules/bus_diagnostics.js`
-  - Version `1.2.7`
-  - Build `STEP_CAN8_9`
-  - read-only `recoveryPreflight.checks[]`, `checkSummary`, `scope[]`
+- `docs/system-inspection/EVENTBUS_CAN8_10_RECOVERY_PREFLIGHT_CHECK_MATRIX_LIVE_TEST_ACCEPTANCE.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_10.md`
+- `docs/current/README_CAN8_10_FILE_ZIP.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
 
-## Dokumentation
-
-- `docs/system-inspection/EVENTBUS_CAN8_9_RECOVERY_PREFLIGHT_CHECK_MATRIX_STATUS_FIELDS.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_9.md`
-- `docs/current/README_CAN8_9_FILE_ZIP.md`
-
-## Nicht geändert
+## Für nächsten technischen Schritt relevant
 
 - `htdocs/dashboard/modules/bus_diagnostics.js`
-- Configs
-- DB
-- Overlays
 
+## Nicht enthalten
+
+- Keine JS-Dateien.
+- Keine Config-Dateien.
+- Keine DB-Dateien.
