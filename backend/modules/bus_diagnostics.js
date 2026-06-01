@@ -87,6 +87,8 @@ function init(ctx) {
         { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Enthaelt STEP CAN-2 resilienceMatrix, STEP CAN-2.2 optionalDiagnostics, STEP CAN-3.5 handshakeState und STEP CAN-5.1 recoveryStrategyState.' },
         { method: 'GET', path: '/api/bus-diagnostics/routes', description: 'Read-only Routenübersicht.' },
         { method: 'GET', path: '/api/bus-diagnostics/recovery-simulation/status', description: 'Read-only Recovery-Simulation Status. Fuehrt keine Aktionen aus.' },
+        { method: 'GET', path: '/api/bus-diagnostics/recovery-simulation/test', description: 'Read-only synthetischer Recovery-Simulationstest. Fuehrt keine Aktionen aus.' },
+        { method: 'GET', path: '/api/bus-diagnostics/recovery-simulation/status', description: 'Read-only Recovery-Simulation Status. Fuehrt keine Aktionen aus.' },
         { method: 'GET', path: '/api/bus-diagnostics/recovery-simulation/test', description: 'Read-only synthetischer Recovery-Simulationstest. Fuehrt keine Aktionen aus.' }
       ],
       dashboard: {
