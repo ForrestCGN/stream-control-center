@@ -1,12 +1,14 @@
 # CURRENT_STATUS
 
-## Stand: CAN-13.1 abgeschlossen
+## Stand: CAN-13.2 abgeschlossen
 
 Der Recovery-/Preflight-/Guard-Framework-Strang ist read-only abgeschlossen.
 
 CAN-13.0 hat den naechsten Recovery-Planungsstrang gestartet.
 
 CAN-13.1 hat das Audit-Konzept fuer spaetere manuelle Recovery-Aktionen geplant.
+
+CAN-13.2 hat das Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery-Aktionen geplant.
 
 Abgeschlossen:
 
@@ -17,6 +19,7 @@ Abgeschlossen:
 - CAN-12.x Manual Recovery Guard Framework / Recovery Guards Dashboard-Karte
 - CAN-13.0 Next Recovery Candidate Planning Start
 - CAN-13.1 Audit-Konzept fuer spaetere manuelle Recovery
+- CAN-13.2 Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery
 
 ## Aktuelle read-only Funktionen
 
@@ -54,34 +57,32 @@ executeRoute: false
 recoveryExecution: false
 ```
 
-## CAN-13.1 Ergebnis
+## CAN-13.2 Ergebnis
 
-CAN-13.1 ist ein reiner Doku-/Planungsstand.
+CAN-13.2 ist ein reiner Doku-/Planungsstand.
 
 Festgelegt:
 
 ```text
-Audit-Stufen: Request / Decision / Result
-Pflichtfelder fuer spaetere Audit-Eintraege
-Audit-Zeitpunkte
-Audit-Ergebnisse
-harte Audit-Regeln
-Datenschutz-/Secrets-Grenzen
-spaetere Dashboard-/Backend-Grenzen
+Rollen: Viewer / Moderator / Admin / Owner / System
+Dashboard-Sichtbarkeit ist keine Berechtigung
+Backend-Pflichtpruefung fuer spaetere Aktionen
+Denied-/Blocked-Audit-Bezug
+Owner/Admin-Grenzen fuer spaetere Recovery-nahe Aktionen
+System darf keine stille produktive Recovery ausloesen
 ```
 
 Entscheidung:
 
 ```text
 Keine produktive Recovery als naechster Schritt.
-Naechster Schritt: CAN-13.2 Rollen-/Rechte-Konzept.
+Naechster Schritt: CAN-13.3 Confirm-/Bestaetigungs-Konzept.
 ```
 
 Geplante Reihenfolge:
 
 ```text
-CAN-13.2 Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery
-CAN-13.3 Confirm-/Bestaetigungs-Konzept
+CAN-13.3 Confirm-/Bestaetigungs-Konzept fuer spaetere manuelle Recovery
 CAN-13.4 SafetyStop-/Cancel-Konzept
 CAN-13.5 Recovery-Kandidatenmatrix
 CAN-13.6 Abschluss/Handoff, weiterhin ohne produktive Recovery
@@ -100,4 +101,7 @@ POST-/Command-/Prepare-/Execute-Routen
 produktive Dashboard-Recovery-Buttons
 Audit-DB-Migration
 Audit-Schreibroute
+Rechte-API
+Rollen-DB-Migration
+produktive Rechtepruefung im Code
 ```

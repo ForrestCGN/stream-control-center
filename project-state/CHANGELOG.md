@@ -37,3 +37,19 @@
 - Keine Audit-Schreibroute.
 - Keine Code-Aenderungen.
 - Keine produktive Flow-Aenderung.
+
+## CAN-13.2
+
+- Rollen-/Rechte-Konzept fuer spaetere manuelle Recovery-Aktionen dokumentiert.
+- Rollen Viewer / Moderator / Admin / Owner / System geplant.
+- Grundsatz festgelegt: Dashboard-Sichtbarkeit ist keine Berechtigung.
+- Backend-Pflichtpruefung fuer spaetere Aktionen dokumentiert.
+- Denied-/Blocked-Audit-Bezug geplant.
+- Naechster Schritt als Confirm-/Bestaetigungs-Konzept definiert.
+- Weiterhin keine Recovery-Ausfuehrung.
+- Weiterhin keine POST-/Command-/Prepare-/Execute-Route.
+- Keine Rechte-API.
+- Keine Rollen-DB-Migration.
+- Keine produktive Rechtepruefung im Code.
+- Keine Code-Aenderungen.
+- Keine produktive Flow-Aenderung.
