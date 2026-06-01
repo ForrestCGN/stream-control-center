@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-18.1
+## CAN-18.2
 
-- Confirm Action Matrix no-action geplant.
-- Read-only, Diagnose-, High-risk-, Audit-, Rollen-/Rechte- und Dashboard-/Config-Aktionen bewertet.
-- Confirm-Reihenfolge und Fail-safe-Regeln dokumentiert.
-- CAN-18.2 Confirm Display Boundary no-action Planning als naechster Schritt festgelegt.
+- Confirm Display Boundary no-action geplant.
+- Anzeigezustaende, Anzeige-Level und Display Contract dokumentiert.
+- Confirm-Typ-Anzeige, UX-Regeln und Datenschutzregel festgelegt.
+- CAN-18.3 Confirm Planning Closure / Handoff als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

@@ -3,24 +3,22 @@
 ## Naechster Schritt
 
 ```text
-CAN-18.2 - Confirm Display Boundary no-action Planning
+CAN-18.3 - Confirm Planning Closure / Handoff
 ```
 
-## Ziel CAN-18.2
+## Ziel CAN-18.3
 
-Planen, wie Confirm-Status spaeter angezeigt werden duerfte, ohne Confirm technisch umzusetzen.
+Den CAN-18 Confirm-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
 
-## CAN-18.2 darf klaeren
+## CAN-18.3 soll zusammenfassen
 
 ```text
-moegliche Anzeigezustaende
-Confirm nicht implementiert
-Confirm erforderlich aber nicht verfuegbar
-Confirm abgelaufen/abgebrochen/fehlgeschlagen
-High-risk bleibt blockiert
+CAN-18.0 Confirm Boundary
+CAN-18.1 Confirm Action Matrix
+CAN-18.2 Confirm Display Boundary
 ```
 
-## CAN-18.2 darf NICHT enthalten
+## CAN-18.3 darf NICHT enthalten
 
 ```text
 Confirm API

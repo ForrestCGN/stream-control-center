@@ -1,15 +1,15 @@
 # CURRENT_STATUS
 
-## Stand: CAN-18.1 abgeschlossen
+## Stand: CAN-18.2 abgeschlossen
 
-CAN-18.1 hat die Confirm Action Matrix no-action geplant.
+CAN-18.2 hat die Confirm Display Boundary no-action geplant.
 
 ## Confirm-Status
 
 ```text
 confirmPlanning: true
 confirmActionMatrix: true
-confirmDisplayBoundary: false
+confirmDisplayBoundary: true
 confirmApi: false
 confirmToken: false
 confirmDb: false
@@ -32,13 +32,13 @@ recoveryExecution: false
 dashboardRecoveryButtons: false
 ```
 
-## CAN-18.1 Ergebnis
+## CAN-18.2 Ergebnis
 
 ```text
-Confirm-Matrix geplant.
-High-risk Aktionen bleiben trotz Confirm blockiert.
-Confirm ist keine Ausfuehrung.
-Confirm darf Rechte/SafetyStop/Guards/Preflight/Audit nicht ersetzen.
+Confirm-Anzeige nur geplant.
+Keine API, keine Route, keine Datenquelle.
+Confirm-Anzeige darf keine Aktion starten.
+Confirm ersetzt keine Rechte, SafetyStop, Guards, Preflight oder Audit.
 ```
 
 ## Weiterhin hart blockiert
@@ -68,5 +68,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-18.2 - Confirm Display Boundary no-action Planning
+CAN-18.3 - Confirm Planning Closure / Handoff
 ```
