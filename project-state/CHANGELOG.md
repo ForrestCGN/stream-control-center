@@ -1,3 +1,24 @@
+# CHANGELOG – CAN-7.5 Recovery-Tab UX Live-Test
+
+Stand: 2026-06-01
+
+## Geaendert
+
+- Live-Test-/Abnahmedoku fuer CAN-7.4 Recovery-Tab UX-Cleanup ergaenzt.
+- Projekt-State auf CAN-7.5 fortgeschrieben.
+
+## Nicht geaendert
+
+- Keine Backend-Datei.
+- Keine Dashboard-Datei.
+- Keine API-Route.
+- Keine Config.
+- Keine DB.
+- Keine Recovery-Ausfuehrung.
+- Keine Recovery-Buttons.
+- Keine Simulation-Buttons.
+- Keine produktive Flow-Aenderung.
+
 # CHANGELOG – CAN-7.4 Recovery-Tab UX-Cleanup
 
 Stand: 2026-06-01

@@ -1,3 +1,23 @@
+## STEP CAN-7.5 Recovery-Tab UX Live-Test und Abnahme
+
+Stand: 2026-06-01
+Marker: STEP_CAN7_5_RECOVERY_TAB_UX_LIVE_TEST_ACCEPTANCE
+
+CAN-7.5 dokumentiert die Live-Abnahme des in CAN-7.4 aufgeraeumten Recovery-Tabs.
+
+Geprueft werden sollen:
+
+```text
+Untertabs sichtbar
+Recovery-Readiness weiterhin sichtbar
+Sicherheitsflags weiterhin read-only
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Keine produktive Flow-Aenderung
+```
+
+Details: `docs/system-inspection/EVENTBUS_CAN7_5_RECOVERY_TAB_UX_LIVE_TEST_ACCEPTANCE.md`
+
 ## STEP CAN-7.4 Recovery-Tab UX-Cleanup mit internen Untertabs
 
 Stand: 2026-06-01

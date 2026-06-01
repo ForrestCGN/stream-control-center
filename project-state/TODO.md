@@ -1,3 +1,12 @@
+## CAN-7.5 / Recovery-Tab UX-Abnahme
+
+- [ ] Dashboard Recovery-Tab nach CAN-7.4 live pruefen.
+- [ ] Untertabs Uebersicht / Details / Readiness / Sperren & Simulation pruefen.
+- [ ] Sicherstellen, dass keine Recovery-Buttons sichtbar sind.
+- [ ] Sicherstellen, dass keine Simulation-Buttons sichtbar sind.
+- [ ] Recovery-Readiness Safety-Flags erneut pruefen.
+- [ ] Danach entscheiden: CAN-7.6 UX-Feinschliff oder CAN-8.0 Preflight-Planung.
+
 ## CAN-7.4 / CAN-7.5 Recovery-UX
 
 - [x] Recovery-Tab mit internen Untertabs aufräumen.

@@ -1,3 +1,23 @@
+# FILES – CAN-7.5 Recovery-Tab UX Live-Test
+
+Stand: 2026-06-01
+
+## Neue / aktualisierte Doku
+
+- `docs/system-inspection/EVENTBUS_CAN7_5_RECOVERY_TAB_UX_LIVE_TEST_ACCEPTANCE.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN7_5.md`
+- `docs/current/README_CAN7_5_FILE_ZIP.md`
+
+## Weiterhin technisch relevant
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - wurde in CAN-7.4 geaendert
+  - in CAN-7.5 nicht erneut geaendert
+
+- `backend/modules/bus_diagnostics.js`
+  - Recovery-Readiness Statusfelder aus CAN-7.1
+  - in CAN-7.5 nicht geaendert
+
 # FILES – CAN-7.4 Recovery-Tab UX-Cleanup
 
 Stand: 2026-06-01

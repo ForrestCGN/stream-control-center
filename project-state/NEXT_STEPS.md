@@ -1,3 +1,25 @@
+## Nach STEP CAN-7.5
+
+Marker: STEP_CAN7_5_NEXT_STEPS
+
+Nach der Live-Abnahme des Recovery-Tab UX-Cleanups:
+
+```text
+CAN-7.6: optionaler UX-Feinschliff
+oder
+CAN-8.0: erste Preflight-Backend-Planung vorbereiten
+```
+
+Vor CAN-8.0 erneut pruefen:
+
+```text
+Keine Recovery-Ausfuehrung
+Keine Command-Route
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Nur explizit freigegebener read-only/preflight Scope
+```
+
 ## Nach STEP CAN-7.4
 
 Marker: STEP_CAN7_4_NEXT_STEPS
