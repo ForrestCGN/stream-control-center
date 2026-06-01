@@ -1,9 +1,8 @@
 # CHANGELOG
 
-## CAN-11.2
+## CAN-11.3
 
-- Vertrag fuer `manual_status_resync_request` dokumentiert.
-- Erlaubte GET-Quellen und verbotene Mutationen definiert.
-- Guards und Audit-Grenzen geplant.
+- UI-/Implementation-Boundary fuer `manual_status_resync_request` dokumentiert.
+- CAN-11.4 Scope auf additive Dashboard-Aenderung begrenzt.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.

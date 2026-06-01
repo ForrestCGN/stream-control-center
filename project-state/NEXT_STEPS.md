@@ -2,11 +2,13 @@
 
 ## Naechster Schritt
 
-CAN-11.3 - Manual Status Resync Request UI/Implementation Boundary
+CAN-11.4 - Manual Status Resync Dashboard UI
 
-Ziel:
+Erlaubter Scope:
 
-- klaeren, ob eigene Karte oder Erweiterung bestehender Karte
-- klaeren, ob nur Dashboard-State reicht
-- keine Code-Aenderung
+- nur `htdocs/dashboard/modules/bus_diagnostics.js`
+- neue read-only Karte `Manueller Status-Resync`
+- Button `Status neu synchronisieren`
+- nur bestehende GET-Routen
+- keine Backend-Aenderung
 - keine Recovery-Ausfuehrung

@@ -1,9 +1,13 @@
 # CURRENT_STATUS
 
-## CAN-11.2
+## CAN-11.3
 
-Der Vertrag fuer `manual_status_resync_request` ist geplant.
+Die UI-/Implementation-Boundary fuer `manual_status_resync_request` ist dokumentiert.
 
-Der Kandidat bleibt read-only und darf nur bestehende GET-Diagnosequellen neu lesen.
+CAN-11.4 darf nur additiv die Dashboard-Datei aendern:
 
-Noch kein Code, keine Ausfuehrung.
+```text
+htdocs/dashboard/modules/bus_diagnostics.js
+```
+
+Keine Backend-Aenderung, keine Recovery-Ausfuehrung.
