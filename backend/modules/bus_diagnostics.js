@@ -11,17 +11,17 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.2.3';
+const VERSION = '1.2.4';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP_CAN5_1',
+  build: 'STEP_CAN5_5',
   type: 'runtime',
   category: 'diagnostics',
-  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state and recovery-strategy aggregator.',
+  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix, optional-diagnostics, handshake-state, recovery-strategy and recovery-simulation aggregator.',
   routesPrefix: ['/api/bus-diagnostics'],
   bus: {
     registered: false,
@@ -68,6 +68,13 @@ function init(ctx) {
     buildStatus(req.query || {}, true).then(result => res.json(result)).catch(err => res.status(500).json(errorResponse(err)));
   });
 
+  registerGet(app, '/api/bus-diagnostics/recovery-simulation/status', (req, res) => {
+    res.json(buildRecoverySimulationStatus());
+  });
+
+  registerGet(app, '/api/bus-diagnostics/recovery-simulation/test', (req, res) => {
+    res.json(buildRecoverySimulationTest(req.query || {}));
+  });
   registerGet(app, '/api/bus-diagnostics/routes', (req, res) => {
     res.json({
       ok: true,
@@ -78,7 +85,9 @@ function init(ctx) {
         { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Read-only Bus-Diagnose Aggregatstatus.' },
         { method: 'GET', path: '/api/bus-diagnostics/check', description: 'Read-only Bus-Diagnose Aktualisierung.' },
         { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Enthaelt STEP CAN-2 resilienceMatrix, STEP CAN-2.2 optionalDiagnostics, STEP CAN-3.5 handshakeState und STEP CAN-5.1 recoveryStrategyState.' },
-        { method: 'GET', path: '/api/bus-diagnostics/routes', description: 'Read-only Routenübersicht.' }
+        { method: 'GET', path: '/api/bus-diagnostics/routes', description: 'Read-only Routenübersicht.' },
+        { method: 'GET', path: '/api/bus-diagnostics/recovery-simulation/status', description: 'Read-only Recovery-Simulation Status. Fuehrt keine Aktionen aus.' },
+        { method: 'GET', path: '/api/bus-diagnostics/recovery-simulation/test', description: 'Read-only synthetischer Recovery-Simulationstest. Fuehrt keine Aktionen aus.' }
       ],
       dashboard: {
         url: '/public/tools/bus_diagnostics_dashboard.html',
@@ -87,7 +96,7 @@ function init(ctx) {
     });
   });
 
-  console.log('[bus_diagnostics] STEP_CAN5_1 Dashboard diagnostics, resilience matrix, optional diagnostics, handshake state and recovery strategy prepared');
+  console.log('[bus_diagnostics] STEP_CAN5_5 Dashboard diagnostics, resilience matrix, optional diagnostics, handshake state, recovery strategy and simulation harness prepared');
 }
 
 function registerGet(app, routePath, handler) {
@@ -279,6 +288,112 @@ function analyze(parts) {
   };
 
   return { summary, warnings, optionalInfo, errors, resilienceMatrix, recoveryStrategyState };
+}
+
+function buildRecoverySimulationStatus() {
+  return {
+    ok: true,
+    module: MODULE,
+    version: VERSION,
+    feature: 'recovery_simulation_harness',
+    statusApiVersion: STATUS_API_VERSION,
+    simulationVersion: 'CAN-5.5',
+    readOnly: true,
+    flowTouched: false,
+    queueTouched: false,
+    soundSystemTouched: false,
+    alertSystemTouched: false,
+    overlayTouched: false,
+    automationEnabled: false,
+    productiveActions: false,
+    allowedScenarios: ['ok', 'missingAck', 'noClient', 'unmatched', 'waitingTooLong', 'soundFetchFailed'],
+    blockedActions: ['auto_replay_alert', 'auto_replay_sound', 'auto_retry_overlay', 'auto_recovery'],
+    routes: {
+      status: '/api/bus-diagnostics/recovery-simulation/status',
+      test: '/api/bus-diagnostics/recovery-simulation/test?scenario=missingAck'
+    },
+    notes: [
+      'Synthetic diagnostics only.',
+      'Does not enqueue alerts.',
+      'Does not start sounds.',
+      'Does not control overlays.',
+      'Does not call recovery routes.'
+    ],
+    checkedAt: new Date().toISOString()
+  };
+}
+
+function buildRecoverySimulationTest(query) {
+  const scenarioRaw = String((query && query.scenario) || 'ok').trim();
+  const scenario = normalizeSimulationScenario(scenarioRaw);
+  const syntheticCorrelation = buildSyntheticCorrelationForScenario(scenario);
+  const recoveryStrategyState = buildRecoveryStrategyState(syntheticCorrelation);
+  return {
+    ok: true,
+    module: MODULE,
+    version: VERSION,
+    feature: 'recovery_simulation_test',
+    simulationVersion: 'CAN-5.5',
+    scenario,
+    requestedScenario: scenarioRaw,
+    synthetic: true,
+    readOnly: true,
+    flowTouched: false,
+    queueTouched: false,
+    soundSystemTouched: false,
+    alertSystemTouched: false,
+    overlayTouched: false,
+    automationEnabled: false,
+    productiveActions: false,
+    blockedActions: recoveryStrategyState.blockedActions,
+    recoveryStrategyState,
+    syntheticCorrelation: {
+      handshakeState: syntheticCorrelation.handshakeState,
+      visualDeliveryState: syntheticCorrelation.visualDeliveryState,
+      comparison: syntheticCorrelation.comparison,
+      warnings: syntheticCorrelation.warnings || []
+    },
+    checkedAt: new Date().toISOString()
+  };
+}
+
+function normalizeSimulationScenario(value) {
+  const key = String(value || '').trim().toLowerCase();
+  if (key === 'missingack' || key === 'missing_ack') return 'missingAck';
+  if (key === 'noclient' || key === 'no_client') return 'noClient';
+  if (key === 'unmatched') return 'unmatched';
+  if (key === 'waitingtoolong' || key === 'waiting_too_long' || key === 'waiting') return 'waitingTooLong';
+  if (key === 'soundfetchfailed' || key === 'sound_fetch_failed') return 'soundFetchFailed';
+  return 'ok';
+}
+
+function buildSyntheticCorrelationForScenario(scenario) {
+  const base = {
+    ok: true,
+    warnings: [],
+    comparison: { matched: 2, unmatched: 0 },
+    handshakeState: { ok: true, warning: false, state: 'matched', unmatched: 0 },
+    visualDeliveryState: { ok: true, warning: false, state: 'matched_and_visual_acknowledged', missingAck: 0, noClient: 0, waiting: 0 }
+  };
+
+  if (scenario === 'missingAck') {
+    base.visualDeliveryState = { ok: false, warning: true, state: 'matched_but_visual_ack_missing', missingAck: 1, noClient: 0, waiting: 0 };
+  } else if (scenario === 'noClient') {
+    base.visualDeliveryState = { ok: false, warning: true, state: 'matched_but_no_overlay_client', missingAck: 0, noClient: 1, waiting: 0 };
+  } else if (scenario === 'unmatched') {
+    base.comparison = { matched: 0, unmatched: 1 };
+    base.handshakeState = { ok: false, warning: true, state: 'unmatched_alert_rows', unmatched: 1 };
+    base.visualDeliveryState = { ok: true, warning: false, state: 'sound_not_matched_yet', missingAck: 0, noClient: 0, waiting: 0 };
+  } else if (scenario === 'waitingTooLong') {
+    base.visualDeliveryState = { ok: true, warning: false, state: 'matched_waiting_for_visual_ack', missingAck: 0, noClient: 0, waiting: 1 };
+  } else if (scenario === 'soundFetchFailed') {
+    base.ok = false;
+    base.warnings = ['sound_eventbus_unavailable'];
+    base.handshakeState = { ok: false, warning: true, state: 'sound_eventbus_unavailable', unmatched: 0 };
+    base.visualDeliveryState = { ok: true, warning: false, state: 'sound_not_matched_yet', missingAck: 0, noClient: 0, waiting: 0 };
+  }
+
+  return base;
 }
 
 function buildRecoveryStrategyState(correlationBody) {

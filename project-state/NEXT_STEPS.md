@@ -1,3 +1,25 @@
+## Nach STEP CAN-5.5
+
+Marker: STEP_CAN5_5_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-5.6: Simulation-Harness live testen
+~~~
+
+Zu prüfen:
+
+~~~text
+status route vorhanden
+missingAck -> blocked_missing_visual_ack
+noClient -> blocked_no_overlay_client
+unmatched -> blocked_unmatched_alert_sound
+automationEnabled bleibt false
+productiveActions bleibt false
+~~~
+
+
 ## Nach STEP CAN-5.4
 
 Marker: STEP_CAN5_4_NEXT_STEPS

@@ -1,3 +1,22 @@
+## STEP CAN-5.5 Read-only Recovery Simulation Harness
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_5_READONLY_RECOVERY_SIMULATION_HARNESS
+
+CAN-5.5 ergänzt isolierte Recovery-Simulationen in bus_diagnostics.
+
+~~~text
+bus_diagnostics: 1.2.4
+/api/bus-diagnostics/recovery-simulation/status
+/api/bus-diagnostics/recovery-simulation/test?scenario=missingAck
+readOnly: true
+automationEnabled: false
+productiveActions: false
+~~~
+
+Keine echten Alerts/Sounds/Overlays werden ausgelöst.
+
+
 ## STEP CAN-5.4 Fehler-/Timeout-Simulation geplant
 
 Stand: 2026-06-01
