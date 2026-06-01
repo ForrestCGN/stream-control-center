@@ -2,6 +2,10 @@
 
 ## Naechster Schritt
 
-CAN-10.6 - Manual Diagnostics Refresh Dashboard Status UX Live-Test Acceptance
+Nach bestaetigtem Dashboard-Test:
 
-Nur Doku/Abnahme nach Sichttest im Dashboard.
+- CAN-10.7 Manual Diagnostics Refresh Block Closure / CAN-11 Start Gate
+
+Alternative:
+
+- kleiner CAN-10.6.x Fix, falls der Refresh-Status nicht sauber angezeigt wird

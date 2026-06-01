@@ -1,7 +1,7 @@
 # CURRENT_STATUS
 
-## CAN-10.5
+## CAN-10.6
 
-Der Dashboard-Status-/UX-Cleanup fuer `Preflight neu laden` ist umgesetzt.
+Der Live-Test fuer den Status-/UX-Cleanup des Buttons `Preflight neu laden` ist als Abnahmeschritt dokumentiert.
 
-Die Umsetzung ist rein dashboardseitig und read-only.
+Der Button bleibt weiterhin nur Diagnose-Refresh und keine Recovery-Ausfuehrung.
