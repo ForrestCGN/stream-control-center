@@ -3,24 +3,24 @@
 ## Naechster Schritt
 
 ```text
-CAN-15.5 - Audit Display Planning read-only/no-data Planning
+CAN-15.6 - Audit Planning Closure / Handoff
 ```
 
-## Ziel CAN-15.5
+## Ziel CAN-15.6
 
-Eine spaetere Audit-Anzeige planen, aber ohne echte Daten, ohne API, ohne DB und ohne Speicherung.
+Den CAN-15 Audit-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
 
-## CAN-15.5 darf klaeren
+## CAN-15.6 soll zusammenfassen
 
 ```text
-wo Audit spaeter angezeigt werden koennte
-welche leeren/Mock-freien Anzeigezustaende noetig sind
-welche Rechtehinweise sichtbar sein sollen
-welche Filter spaeter sinnvoll waeren
-wie keine Daten geladen werden
+CAN-15.1 Candidate Decision
+CAN-15.2 Audit Boundary no-write
+CAN-15.3 Audit Event Catalog no-write
+CAN-15.4 Data Minimization Policy no-write
+CAN-15.5 Audit Display Planning read-only/no-data
 ```
 
-## CAN-15.5 darf NICHT enthalten
+## CAN-15.6 darf NICHT enthalten
 
 ```text
 CREATE TABLE
@@ -30,7 +30,7 @@ DELETE
 POST /audit
 GET /audit
 API-Route
-Dashboard-Button mit Datenabruf
+Dashboard-Button
 EventBus-Emit
 Recovery-Ausfuehrung
 SafetyStop Clear

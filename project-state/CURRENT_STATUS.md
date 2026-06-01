@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-15.4 abgeschlossen
+## Stand: CAN-15.5 abgeschlossen
 
-CAN-15.4 hat die Audit Data Minimization Policy no-write geplant.
+CAN-15.5 hat die Audit Display Planning read-only/no-data geplant.
 
 ## Audit-Status
 
@@ -10,11 +10,14 @@ CAN-15.4 hat die Audit Data Minimization Policy no-write geplant.
 auditPlanning: true
 auditEventCatalog: true
 auditDataMinimizationPolicy: true
+auditDisplayPlanning: true
 auditWrite: false
 auditApi: false
+auditReadApi: false
 auditDb: false
 auditDashboard: false
 eventBusEmit: false
+mockData: false
 ```
 
 ## Sicherheitsstand
@@ -30,16 +33,14 @@ recoveryExecution: false
 dashboardRecoveryButtons: false
 ```
 
-## CAN-15.4 Ergebnis
+## CAN-15.5 Ergebnis
 
 ```text
-Datenklassen definiert.
-Secrets verboten.
-Maskierung/Hashing geplant.
-Raw Payloads begrenzt/verboten.
-Retention muss spaeter konfigurierbar sein.
-Audit-Anzeige braucht spaeter Rechte.
-Export braucht eigene Planung.
+Audit-Anzeige nur geplant.
+Keine Datenquelle.
+Keine API.
+Keine Mock-Daten.
+Keine Dashboard-Aenderung.
 ```
 
 ## Weiterhin hart blockiert
@@ -56,6 +57,7 @@ Streamer.bot Action Retry
 OBS Source Refresh
 SafetyStop Clear
 Audit Write Route
+Audit Read Route
 Confirm API
 Rollen-/Rechte-Mutation
 ```

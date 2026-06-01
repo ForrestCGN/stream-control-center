@@ -7,4 +7,5 @@
 - [x] CAN-15.2 Audit Boundary no-write Planning
 - [x] CAN-15.3 Audit Event Catalog no-write Planning
 - [x] CAN-15.4 Audit Data Minimization Policy no-write Planning
-- [ ] CAN-15.5 Audit Display Planning read-only/no-data Planning
+- [x] CAN-15.5 Audit Display Planning read-only/no-data Planning
+- [ ] CAN-15.6 Audit Planning Closure / Handoff
