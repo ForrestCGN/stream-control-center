@@ -20,6 +20,20 @@ try {
 const database = require("../core/database");
 
 const MODULE = "challenge";
+const MODULE_VERSION = "2.0.0";
+const MODULE_META = {
+  name: MODULE,
+  version: MODULE_VERSION,
+  type: "runtime",
+  category: "community",
+  legacy: false,
+  routesPrefix: ["/api/challenge", "/scripts/challenge"],
+  bus: {
+    publishes: ["challenge.status", "challenge.event"],
+    consumes: ["channelpoints.reward", "twitch.chat.command"]
+  },
+  description: "Challenge runtime with queue, countdown state and overlay broadcasts"
+};
 const DEFAULT_CONFIG = {
   enabled: true,
   version: 2,
@@ -110,6 +124,10 @@ const DEFAULT_MESSAGES = {
     reset: ["Challenge-System wurde zurückgesetzt. Alle Rentnerkekse wieder einsortiert."]
   }
 };
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 module.exports.init = function init(ctx) {
   const { app } = ctx;

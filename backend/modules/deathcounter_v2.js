@@ -20,6 +20,21 @@ const STORAGE_SCHEMA_VERSION = 1;
 const STORAGE_IMPORT_CONFIRM_TOKEN = 'IMPORT_DEATHCOUNTER_V2';
 const ACTIVE_STORAGE = 'database';
 const FALLBACK_STORAGE = 'json_backup_export_file';
+const MODULE_NAME = 'deathcounter_v2';
+const MODULE_VERSION = '2.0.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'community',
+  legacy: false,
+  routesPrefix: ['/api/deathcounter/v2'],
+  bus: {
+    publishes: ['deathcounter.status', 'deathcounter.event'],
+    consumes: ['stream.status', 'twitch.chat.command']
+  },
+  description: 'DeathCounter V2 runtime, overlay state, player counts and chat commands'
+};
 const STORAGE_TABLES = Object.freeze({
   players: 'deathcounter_players',
   games: 'deathcounter_games',
@@ -90,6 +105,10 @@ const DEFAULT_DEATHCOUNTER_TEXTS = {
   tode_summary_player: ['{displayName}: {session}/{gameAllTime}'],
   tode_player_detail: ['{displayName} | {game}: Heute {session}, Spiel gesamt {gameAllTime} | AllTime: {allTime}']
 };
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 module.exports.init = function init(ctx) {
   const { app } = ctx;

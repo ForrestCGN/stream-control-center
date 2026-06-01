@@ -4,6 +4,26 @@ const axios = require('axios');
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 
+const MODULE_NAME = 'credits';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'community',
+  legacy: false,
+  routesPrefix: ['/credits', '/api/credits'],
+  bus: {
+    publishes: [],
+    consumes: []
+  },
+  description: 'Credits proxy runtime for legacy credits service'
+};
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
+
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
   const CREDITS_URL = core.pickFirst(env.CREDITS_URL, 'http://127.0.0.1:7474/GetCredits');

@@ -19,6 +19,20 @@ const SCHEMA_VERSION = 7;
 const SETTINGS_TABLE = 'birthday_settings';
 const TEXTS_MODULE = 'birthday';
 const API_PREFIX = '/api/birthday';
+const MODULE_VERSION = '0.6.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'community',
+  legacy: false,
+  routesPrefix: [API_PREFIX],
+  bus: {
+    publishes: ['birthday.status', 'birthday.show'],
+    consumes: ['twitch.chat.activity', 'sound.status']
+  },
+  description: 'Birthday registration, greetings, dashboard administration and manual show runtime'
+};
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -3542,6 +3556,9 @@ function init(ctx) {
 }
 
 module.exports = {
+  MODULE_META,
+  MODULE_VERSION,
+  version: MODULE_VERSION,
   init,
   getStatus: buildStatus,
   handleCommand: handleBirthdayCommand,

@@ -32,6 +32,20 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
 const VERSION = "0.1.11";
+const MODULE_VERSION = VERSION;
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: "runtime",
+  category: "loyalty",
+  legacy: false,
+  routesPrefix: ["/api/loyalty"],
+  bus: {
+    publishes: ["loyalty.status", "loyalty.event"],
+    consumes: ["stream.status"]
+  },
+  description: "Loyalty/Kekskruemel runtime, points, events and auto-runner"
+};
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 3;
@@ -3061,6 +3075,9 @@ function init(ctx = {}) {
 }
 
 module.exports = {
+  MODULE_META,
+  MODULE_VERSION,
+  version: MODULE_VERSION,
   init,
   _private: {
     DEFAULT_CONFIG,

@@ -20,6 +20,20 @@ const chatOutput = require("./helpers/helper_chat_output");
 
 const MODULE_NAME = "hug";
 const SCHEMA_VERSION = 3;
+const MODULE_VERSION = "0.1.0";
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: "runtime",
+  category: "community",
+  legacy: false,
+  routesPrefix: ["/api/hug", "/hug", "/api/dashboard/community/hug"],
+  bus: {
+    publishes: ["hug.status", "hug.command"],
+    consumes: ["twitch.chat.command"]
+  },
+  description: "Hug/Rehug runtime, dashboard endpoints and chat command handling"
+};
 
 let appRef = null;
 let systemConfigPath = "";
@@ -1177,4 +1191,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: "181.1" };
 }
 
-module.exports = { init, loadCache, getDashboardStatus, setOutputMode, getTextPairEditorPayload, getHugAllTextEditorPayload, getResponseTextEditorPayload, getTopTitleTextEditorPayload };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, loadCache, getDashboardStatus, setOutputMode, getTextPairEditorPayload, getHugAllTextEditorPayload, getResponseTextEditorPayload, getTopTitleTextEditorPayload };
