@@ -1,7 +1,7 @@
 # CURRENT_STATUS
 
-## CAN-10.2
+## CAN-10.3
 
-Der Dashboard-Button `Preflight neu laden` wurde additiv umgesetzt.
+Der Live-Test fuer den Dashboard-Button `Preflight neu laden` ist als Abnahmeschritt dokumentiert.
 
-Er fuehrt nur einen read-only Diagnose-/Preflight-Refresh aus und beruehrt keine produktiven Systeme.
+Der Button ist weiterhin nur Diagnose-Refresh und keine Recovery-Ausfuehrung.

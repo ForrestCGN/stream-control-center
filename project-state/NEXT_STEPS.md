@@ -2,10 +2,10 @@
 
 ## Naechster Schritt
 
-CAN-10.3 - Manual Diagnostics Refresh Dashboard Live-Test Acceptance
+Nach bestaetigtem Dashboard-Test:
 
-Ziel:
+- CAN-10.4 Status-/UX-Cleanup fuer den Diagnose-Refresh planen
 
-- Sichttest dokumentieren
-- Klicktest dokumentieren
-- bestaetigen, dass keine Recovery-Aktion erscheint oder ausgefuehrt wird
+Alternative:
+
+- CAN-10 Diagnose-Refresh-Block abschliessen
