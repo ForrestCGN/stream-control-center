@@ -1,20 +1,28 @@
-# CHANGELOG – CAN-8.13
+# CHANGELOG – CAN-9.0 Recovery-Preflight Route Startgrenze
 
 Stand: 2026-06-01
 
 ## Geaendert
 
-- CAN-8.x Recovery-Preflight-Dashboard-Strang als read-only abgeschlossen dokumentiert.
-- CAN-8.0 bis CAN-8.12 zusammengefasst.
-- CAN-9.0 Startgrenze fuer Preflight-Routenplanung definiert.
-- Harte Blockaden fuer Recovery-/Replay-/Execute-Aktionen bestaetigt.
+- `docs/system-inspection/EVENTBUS_CAN9_0_RECOVERY_PREFLIGHT_ROUTE_START_BOUNDARY.md` ergaenzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN9_0.md` ergaenzt.
+- Projekt-State-Dateien auf CAN-9.0 nachgezogen.
+
+## Ergebnis
+
+- CAN-9.0 definiert die Startgrenze fuer eine spaetere read-only Preflight-Route.
+- Die Route ist noch nicht umgesetzt.
+- Es wurden keine produktiven Flows geaendert.
 
 ## Nicht geaendert
 
 - Keine Backend-Datei geaendert.
 - Keine Dashboard-Datei geaendert.
 - Keine API-Route ergaenzt.
-- Keine Recovery-Ausfuehrung.
-- Keine Recovery-/Simulation-Buttons.
-- Keine Config-/DB-Aenderung.
-- Keine produktive Flow-Aenderung.
+- Keine Config geaendert.
+- Keine DB geaendert.
+- Keine Recovery-Ausfuehrung aktiviert.
+
+## Naechster Block
+
+- CAN-9.1: Recovery-Preflight Route Datenmodell und Sicherheitsvertrag planen.
