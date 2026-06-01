@@ -1,7 +1,8 @@
 # CHANGELOG
 
-## CAN-10.6
+## CAN-10.7
 
-- Live-Test-Abnahme fuer den Status-/UX-Cleanup von `Preflight neu laden` dokumentiert.
+- CAN-10.x Block `manual_diagnostics_refresh` abgeschlossen.
+- CAN-11 Startgrenze fuer Recovery-Kandidatenauswahl dokumentiert.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.

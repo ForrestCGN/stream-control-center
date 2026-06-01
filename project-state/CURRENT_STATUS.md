@@ -1,7 +1,13 @@
 # CURRENT_STATUS
 
-## CAN-10.6
+## CAN-10.7
 
-Der Live-Test fuer den Status-/UX-Cleanup des Buttons `Preflight neu laden` ist als Abnahmeschritt dokumentiert.
+Der CAN-10.x Block `manual_diagnostics_refresh` ist abgeschlossen.
 
-Der Button bleibt weiterhin nur Diagnose-Refresh und keine Recovery-Ausfuehrung.
+Der Button `Preflight neu laden` bleibt eine reine read-only Diagnose-Aktualisierung.
+
+Naechster empfohlener Block:
+
+```text
+CAN-11.0 Manual Recovery Candidate Selection Start Boundary
+```

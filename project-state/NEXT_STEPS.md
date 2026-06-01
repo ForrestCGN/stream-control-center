@@ -2,10 +2,12 @@
 
 ## Naechster Schritt
 
-Nach bestaetigtem Dashboard-Test:
+CAN-11.0 - Manual Recovery Candidate Selection Start Boundary
 
-- CAN-10.7 Manual Diagnostics Refresh Block Closure / CAN-11 Start Gate
+Ziel:
 
-Alternative:
-
-- kleiner CAN-10.6.x Fix, falls der Refresh-Status nicht sauber angezeigt wird
+- Kandidaten fuer spaetere manuelle Recovery sammeln
+- nach Risiko sortieren
+- harte Blockaden erhalten
+- noch kein Code
+- keine Recovery-Ausfuehrung

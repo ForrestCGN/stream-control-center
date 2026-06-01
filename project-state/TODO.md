@@ -9,4 +9,5 @@
 - [x] CAN-10.4 Status-/UX-Cleanup geplant
 - [x] CAN-10.5 Status-/UX-Cleanup im Dashboard umgesetzt
 - [x] CAN-10.6 Status-/UX-Cleanup Live-Test-Abnahme dokumentiert
-- [ ] CAN-10.7 Diagnose-Refresh-Block abschliessen und CAN-11 Startgrenze definieren
+- [x] CAN-10.7 Diagnose-Refresh-Block abgeschlossen und CAN-11 Startgrenze definiert
+- [ ] CAN-11.0 Manual Recovery Candidate Selection Start Boundary
