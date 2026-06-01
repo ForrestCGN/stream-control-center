@@ -10,7 +10,19 @@ const database = require("../core/database");
 
 const MODULE_NAME = "stream_status";
 const MODULE_VERSION = "0.1.2";
+const MODULE_BUILD = "step278-meta";
 const API_PREFIX = "/api/stream-status";
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: MODULE_BUILD,
+  type: "runtime",
+  category: "stream",
+  description: "Central stream live/session status and refresh routes.",
+  routesPrefix: [API_PREFIX],
+  bus: { registered: false, heartbeat: false, emits: [], listens: [] },
+  legacy: false
+};
 
 const DEFAULT_FILES = [
   "htdocs/data/twitch_stream_raw.json",
@@ -605,6 +617,9 @@ function statusPayload(options = {}) {
   };
 }
 
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 module.exports.getCurrentStatus = getCurrentStatus;
 module.exports.refreshStatus = refreshStatus;
 module.exports.refreshStatusAsync = refreshStatusAsync;

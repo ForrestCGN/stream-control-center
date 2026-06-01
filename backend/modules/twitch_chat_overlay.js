@@ -9,6 +9,23 @@ const messageHelper = require('./helpers/helper_messages');
 
 const MODULE_NAME = 'twitch_chat_overlay';
 const VERSION = '0.5.0';
+const MODULE_VERSION = VERSION;
+const MODULE_BUILD = 'step278-meta';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: MODULE_BUILD,
+  type: 'runtime',
+  category: 'overlay',
+  description: 'Twitch chat overlay with IRC connection and emote handling.',
+  routesPrefix: ['/api/overlay/chat'],
+  bus: { registered: false, heartbeat: false, emits: [], listens: [] },
+  legacy: false
+};
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 module.exports.init = function init(ctx) {
   const { app, env, broadcastWS, wss } = ctx;

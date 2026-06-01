@@ -5,6 +5,25 @@ const { getSharedObs } = require("./obs_shared");
 const core = require("./helpers/helper_core");
 const configHelper = require("./helpers/helper_config");
 
+const MODULE_NAME = "obs";
+const MODULE_VERSION = "0.1.0";
+const MODULE_BUILD = "step278-meta";
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: MODULE_BUILD,
+  type: "runtime",
+  category: "obs",
+  description: "OBS API routes, dashboard status and source/scene control helpers.",
+  routesPrefix: ["/api/obs", "/obs"],
+  bus: { registered: false, heartbeat: false, emits: [], listens: [] },
+  legacy: false
+};
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
+
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
   const shared = getSharedObs(env, console);

@@ -8,6 +8,19 @@ const textHelper = require('./helpers/helper_texts');
 
 const MODULE_NAME = 'start_overlay';
 const VERSION = '0.3.0';
+const MODULE_VERSION = VERSION;
+const MODULE_BUILD = 'step278-meta';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: MODULE_BUILD,
+  type: 'runtime',
+  category: 'overlay',
+  description: 'Start overlay configuration, chat snapshot and rotator endpoints.',
+  routesPrefix: ['/api/overlay/start'],
+  bus: { registered: false, heartbeat: false, emits: [], listens: [] },
+  legacy: false
+};
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -489,4 +502,4 @@ function init(ctx) {
   console.log(`[${MODULE_NAME}] aktiv → /api/overlay/start/*`);
 }
 
-module.exports = { init };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init };

@@ -1,5 +1,20 @@
-﻿const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
+
+const MODULE_NAME = "overlay_data";
+const MODULE_VERSION = "0.1.0";
+const MODULE_BUILD = "step278-meta";
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: MODULE_BUILD,
+  type: "runtime",
+  category: "overlay",
+  description: "Start overlay data endpoint for stream and game background data.",
+  routesPrefix: ["/api/overlay/start-data"],
+  bus: { registered: false, heartbeat: false, emits: [], listens: [] },
+  legacy: false
+};
 
 function readJsonSafe(file, fallback) {
   try {
@@ -35,8 +50,8 @@ function init({ app, paths }) {
     });
   });
 
-  console.log("[overlay_data] /api/overlay/start-data aktiv");
+  console.log(`[${MODULE_NAME}] /api/overlay/start-data aktiv`);
 }
 
-module.exports = { init };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init };
 
