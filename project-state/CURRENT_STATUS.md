@@ -1,12 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-15.6 abgeschlossen
+## Stand: CAN-16.0 abgeschlossen
 
-CAN-15 ist abgeschlossen als:
-
-```text
-Audit Planning no-write / no-data
-```
+CAN-16.0 hat das SafetyStop Status Concept read-only/no-api geplant.
 
 ## Aktueller stabiler Stand
 
@@ -14,23 +10,20 @@ Audit Planning no-write / no-data
 read-only Recovery/Safety Diagnose- und Anzeige-Strang
 Safety Status View read-only
 Audit Planning no-write/no-data
+SafetyStop Status Concept read-only/no-api
 ```
 
-## Audit-Status
+## SafetyStop-Status
 
 ```text
-auditPlanning: true
-auditBoundaryNoWrite: true
-auditEventCatalog: true
-auditDataMinimizationPolicy: true
-auditDisplayPlanning: true
-auditWrite: false
-auditApi: false
-auditReadApi: false
-auditDb: false
-auditDashboard: false
+safetyStopPlanning: true
+safetyStopApi: false
+safetyStopDb: false
+safetyStopDashboard: false
+safetyStopSet: false
+safetyStopClear: false
+safetyStopReset: false
 eventBusEmit: false
-mockData: false
 ```
 
 ## Sicherheitsstand
@@ -44,8 +37,6 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
-safetyStatusApi: false
-backendSafetyStatusShapeImplemented: false
 ```
 
 ## Weiterhin hart blockiert
@@ -61,6 +52,7 @@ Auto Retry Overlay
 Streamer.bot Action Retry
 OBS Source Refresh
 SafetyStop Clear
+SafetyStop Reset
 Audit Write Route
 Audit Read Route
 Confirm API
@@ -70,8 +62,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-16.0 - SafetyStop Status Concept read-only/no-api Planning
+CAN-16.1 - SafetyStop State Matrix read-only/no-api Planning
 ```

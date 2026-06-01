@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-15.6
+## CAN-16.0
 
-- CAN-15 Audit-Planungsstrang abgeschlossen.
-- Audit Planning als no-write/no-data final dokumentiert.
-- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN15_6_FINAL.md` erstellt.
-- CAN-16.0 SafetyStop Status Concept read-only/no-api Planning als naechster empfohlener Schritt festgelegt.
+- SafetyStop Status Concept read-only/no-api geplant.
+- SafetyStop-Grundidee, Statusmodell, Reason Codes, Sources und Fail-safe-Regel dokumentiert.
+- Clear-/Reset-Grenze bestaetigt.
+- CAN-16.1 SafetyStop State Matrix read-only/no-api Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

@@ -2,11 +2,6 @@
 
 ## Recovery / Communication Bus
 
-- [x] CAN-15.0 Recovery/Safety Documentation Consolidation
-- [x] CAN-15.1 Recovery/Safety Next Candidate Decision
-- [x] CAN-15.2 Audit Boundary no-write Planning
-- [x] CAN-15.3 Audit Event Catalog no-write Planning
-- [x] CAN-15.4 Audit Data Minimization Policy no-write Planning
-- [x] CAN-15.5 Audit Display Planning read-only/no-data Planning
 - [x] CAN-15.6 Audit Planning Closure / Handoff
-- [ ] CAN-16.0 SafetyStop Status Concept read-only/no-api Planning
+- [x] CAN-16.0 SafetyStop Status Concept read-only/no-api Planning
+- [ ] CAN-16.1 SafetyStop State Matrix read-only/no-api Planning
