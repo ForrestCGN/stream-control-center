@@ -1,0 +1,6 @@
+STEP278 Block 24 patch wird per PowerShell-Script angewendet:
+tools/easy/apply_STEP278_block24_module_meta_twitch_commands.ps1
+
+Grund:
+Die betroffenen Dateien sind groß; der Script-Patch ersetzt nur kleine, exakt definierte Textblöcke und bricht ab,
+wenn der erwartete Stand nicht gefunden wird. Dadurch wird nichts blind gepatcht.

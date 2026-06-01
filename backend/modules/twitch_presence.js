@@ -1,4 +1,4 @@
-const path = require('path');
+﻿const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 const WebSocket = require('ws');
@@ -6,6 +6,28 @@ const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const database = require('../core/database');
 const commands = require('./commands');
+
+const MODULE_NAME = 'twitch_presence';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'integration',
+  description: 'Twitch IRC Presence, Chat-Ausgabe und Chat-Command-Eingang.',
+  routesPrefix: ['/api/twitch/presence', '/twitch/presence'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 let twitchPresenceService = null;
 

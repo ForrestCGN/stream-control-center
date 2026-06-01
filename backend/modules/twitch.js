@@ -1,4 +1,4 @@
-// modules/twitch.js — exakt an dein funktionierendes Muster angelehnt, in Modul-Form
+﻿// modules/twitch.js — exakt an dein funktionierendes Muster angelehnt, in Modul-Form
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
@@ -8,6 +8,28 @@ const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const configHelper = require('./helpers/helper_config');
 const database = require('../core/database');
+
+const MODULE_NAME = 'twitch';
+const MODULE_VERSION = '0.1.0';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  type: 'runtime',
+  category: 'integration',
+  description: 'Twitch OAuth, Helix API und EventSub WebSocket Kernmodul.',
+  routesPrefix: ['/api/twitch', '/twitch', '/eventsub'],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
+
+module.exports.MODULE_META = MODULE_META;
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 
 const sharedApi = {
   resolveUserByLogin: null,

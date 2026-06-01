@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const http = require('http');
 const database = require('../core/database');
@@ -706,7 +706,24 @@ function mediaCommandCheckPayload(trigger, req) {
   };
 }
 
-module.exports.MODULE_META = { name: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD };
+module.exports.MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: MODULE_BUILD,
+  type: 'runtime',
+  category: 'commands',
+  description: 'Zentrales Chat-Command-System mit Registry, Katalog, Test, Execute und Logs.',
+  routesPrefix: [API_PREFIX],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
+module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.version = MODULE_VERSION;
 module.exports.handleChatMessage = handleChatMessage;
 module.exports.processMessage = processMessage;
 module.exports.getStatus = statusPayload;

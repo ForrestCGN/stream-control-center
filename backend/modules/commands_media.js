@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 /**
  * STEP274J - Command Media Practice Check via Official Sound-System Playback Hub
@@ -16,7 +16,24 @@ const core = require('./helpers/helper_core');
 const database = require('../core/database');
 
 const MODULE_NAME = 'commands_media';
+const MODULE_VERSION = '0.1.0';
 const STEP = 'STEP274J';
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: STEP,
+  type: 'runtime',
+  category: 'commands',
+  description: 'Command-Media-Bruecke fuer Media-Auswahl und Sound-System-Praxischeck.',
+  routesPrefix: [API_PREFIX],
+  bus: {
+    registered: false,
+    heartbeat: false,
+    emits: [],
+    listens: []
+  },
+  legacy: false
+};
 const API_PREFIX = '/api/commands';
 const SOUND_PLAY_MEDIA_URL = '/api/sound/play-media';
 const VIDEO_PLAY_MEDIA_URL = SOUND_PLAY_MEDIA_URL;
@@ -291,4 +308,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: STEP };
 }
 
-module.exports = { init, statusPayload, listMediaOptions, checkStoredMediaCommand };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, statusPayload, listMediaOptions, checkStoredMediaCommand };
