@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-17.3
+## CAN-17.4
 
-- Roles/Rights Display Boundary no-implementation geplant.
-- Display-Grundregel, Anzeigezustaende, Anzeige-Level und Display Contract dokumentiert.
-- No-Button-/No-Mock-Regeln und UX-Regeln festgelegt.
-- CAN-17.4 Roles/Rights Planning Closure / Handoff als naechster Schritt festgelegt.
+- CAN-17 Rollen-/Rechte-Planungsstrang abgeschlossen.
+- Roles/Rights Planning als no-mutation/no-implementation final dokumentiert.
+- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN17_4_FINAL.md` erstellt.
+- CAN-18.0 Confirm Boundary no-action Planning als naechster empfohlener Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

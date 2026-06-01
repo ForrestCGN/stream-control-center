@@ -1,37 +1,37 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-17.4 - Roles/Rights Planning Closure / Handoff
+CAN-18.0 - Confirm Boundary no-action Planning
 ```
 
-## Ziel CAN-17.4
+## Ziel CAN-18.0
 
-Den CAN-17 Rollen-/Rechte-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
+Confirm-/Bestaetigungsgrenzen fuer spaetere high-risk Aktionen planen.
 
-## CAN-17.4 soll zusammenfassen
+## CAN-18.0 darf klaeren
 
 ```text
-CAN-17.0 Roles/Rights Boundary
-CAN-17.1 Roles/Rights Action Matrix
-CAN-17.2 Roles/Rights Backend Boundary
-CAN-17.3 Roles/Rights Display Boundary
+welche Confirm-Arten spaeter denkbar sind
+welche Aktionen Confirm brauchen wuerden
+warum Confirm Rechte nicht ersetzt
+welche TTL-/Timeout-Grenzen spaeter sinnvoll waeren
+welche Cancel-/Audit-Bezuege bestehen
 ```
 
-## CAN-17.4 darf NICHT enthalten
+## CAN-18.0 darf NICHT enthalten
 
 ```text
-Rollen-API
-Rechte-API
-Login-/User-System
-DB-Tabelle
-Dashboard-Rechte-Durchsetzung
-Middleware
-Mutation
+Confirm API
+Confirm Token
+Confirm DB
+Confirm Route
+Confirm Button
+Confirm Ausfuehrung
 Recovery-Ausfuehrung
 POST-Route
 SafetyStop Clear
-Confirm Trigger
+Rollen-/Rechte-Mutation
 Queue-/Sound-/Alert-/Overlay-Mutation
 ```

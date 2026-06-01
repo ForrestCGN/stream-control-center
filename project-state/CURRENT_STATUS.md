@@ -1,8 +1,22 @@
 # CURRENT_STATUS
 
-## Stand: CAN-17.3 abgeschlossen
+## Stand: CAN-17.4 abgeschlossen
 
-CAN-17.3 hat die Roles/Rights Display Boundary no-implementation geplant.
+CAN-17 ist abgeschlossen als:
+
+```text
+Roles/Rights Planning no-mutation / no-implementation
+```
+
+## Aktueller stabiler Stand
+
+```text
+read-only Recovery/Safety Diagnose- und Anzeige-Strang
+Safety Status View read-only
+Audit Planning no-write/no-data
+SafetyStop Planning read-only/no-api
+Roles/Rights Planning no-mutation/no-implementation
+```
 
 ## Roles/Rights-Status
 
@@ -33,16 +47,8 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
-```
-
-## CAN-17.3 Ergebnis
-
-```text
-Rollen-/Rechte-Anzeige nur geplant.
-Keine API, keine Route, keine Rechtepruefung.
-UI darf Rechte nicht ersetzen.
-High-risk bleibt blockiert.
-Keine Mock-/Fake-Rechte.
+safetyStatusApi: false
+backendSafetyStatusShapeImplemented: false
 ```
 
 ## Weiterhin hart blockiert
@@ -68,8 +74,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-17.4 - Roles/Rights Planning Closure / Handoff
+CAN-18.0 - Confirm Boundary no-action Planning
 ```
