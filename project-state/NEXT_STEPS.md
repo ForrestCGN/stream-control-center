@@ -1,3 +1,26 @@
+## Nach STEP CAN-5.3
+
+Marker: STEP_CAN5_3_NEXT_STEPS
+
+CAN-5.1 und CAN-5.2 bestätigen den Recovery-Strategy-State als read-only Diagnose.
+
+Nächster sinnvoller Schritt:
+
+```text
+CAN-5.4: Fehler-/Timeout-Simulation planen, weiterhin read-only
+```
+
+Vor jedem Test festlegen:
+
+```text
+Wie wird missingAck erzeugt, ohne Live-Alerts zu beschädigen?
+Wie wird noClient geprüft, ohne OBS dauerhaft zu verändern?
+Wie wird unmatched simuliert, ohne Sound/Alert doppelt auszulösen?
+Welche Tests sind nur lokal/manuell erlaubt?
+```
+
+Regel bleibt: keine Recovery-Automatik ohne Schutzfenster, Tests und Rollback.
+
 ## Nach STEP CAN-5.1
 
 Marker: STEP_CAN5_1_NEXT_STEPS

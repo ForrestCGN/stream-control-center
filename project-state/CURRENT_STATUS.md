@@ -1,3 +1,36 @@
+## STEP CAN-5.3 Recovery read-only stabil bestätigt
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_3_RECOVERY_READONLY_STABLE
+
+CAN-5.2 wurde live mit einem Test-Alert erfolgreich geprüft.
+
+```text
+bus_diagnostics: 1.2.3
+summary.status: ok
+handshakeState: matched
+correlationMatched: 2
+correlationUnmatched: 0
+recoveryStrategyMode: read_only
+recoveryStrategyState: ok_no_recovery_needed
+automationEnabled: false
+warnings: []
+errors: []
+flowTouched: false
+```
+
+Bestätigt:
+
+```text
+Alert erfolgreich
+Sound erfolgreich
+Visual ACK erfolgreich
+Recovery bleibt read-only
+keine Automatik ausgelöst
+```
+
+Keine produktive Flow-Änderung in diesem Dokumentations-Step.
+
 ## STEP CAN-5.1 Recovery Strategy State read-only
 
 Stand: 2026-06-01
