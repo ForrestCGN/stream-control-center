@@ -2,13 +2,12 @@
 
 ## Naechster Schritt
 
-CAN-11.1 - Manual Recovery Candidate Matrix Plan
+CAN-11.2 - Manual Status Resync Request Contract Plan
 
 Ziel:
 
-- Kandidaten sammeln
-- Risiko bewerten
-- Guards definieren
-- Audit-Bedarf definieren
-- erlaubte/blockierte Kandidaten trennen
+- Kandidat `manual_status_resync_request` genauer definieren
+- read-only Grenze festlegen
+- Guards planen
+- Dashboard-Anzeige planen
 - keine Code-Aenderung

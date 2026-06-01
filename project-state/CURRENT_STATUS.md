@@ -1,13 +1,13 @@
 # CURRENT_STATUS
 
-## CAN-11.0
+## CAN-11.1
 
-CAN-11.0 startet die Auswahl moeglicher manueller Recovery-Kandidaten.
+Die Manual-Recovery-Kandidatenmatrix ist geplant.
 
-Noch kein Code, keine Ausfuehrung.
-
-Naechster Schritt:
+Empfohlener naechster Kandidat:
 
 ```text
-CAN-11.1 Manual Recovery Candidate Matrix Plan
+manual_status_resync_request
 ```
+
+Noch kein Code, keine Ausfuehrung.
