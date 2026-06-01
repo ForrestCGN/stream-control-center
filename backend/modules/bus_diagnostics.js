@@ -11,17 +11,17 @@ try {
 }
 
 const MODULE = 'bus_diagnostics';
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
 const STATUS_API_VERSION = '1.0.0';
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP_CAN2',
+  build: 'STEP_CAN2_2',
   type: 'runtime',
   category: 'diagnostics',
-  description: 'Read-only Communication-Bus, Alert/Sound, VIP and resilience-matrix diagnostics aggregator.',
+  description: 'Read-only Communication-Bus, Alert/Sound, VIP, resilience-matrix and optional-diagnostics aggregator.',
   routesPrefix: ['/api/bus-diagnostics'],
   bus: {
     registered: false,
@@ -77,7 +77,7 @@ function init(ctx) {
       routes: [
         { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Read-only Bus-Diagnose Aggregatstatus.' },
         { method: 'GET', path: '/api/bus-diagnostics/check', description: 'Read-only Bus-Diagnose Aktualisierung.' },
-        { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Enthaelt STEP CAN-2 resilienceMatrix.' },
+        { method: 'GET', path: '/api/bus-diagnostics/status', description: 'Enthaelt STEP CAN-2 resilienceMatrix und STEP CAN-2.2 optionalDiagnostics.' },
         { method: 'GET', path: '/api/bus-diagnostics/routes', description: 'Read-only Routenübersicht.' }
       ],
       dashboard: {
@@ -87,7 +87,7 @@ function init(ctx) {
     });
   });
 
-  console.log('[bus_diagnostics] STEP_CAN2 Dashboard diagnostics and resilience matrix prepared');
+  console.log('[bus_diagnostics] STEP_CAN2_2 Dashboard diagnostics, resilience matrix and optional diagnostics prepared');
 }
 
 function registerGet(app, routePath, handler) {
@@ -135,6 +135,7 @@ async function buildStatus(query, requestedCheck) {
     endpoints: ENDPOINTS,
     summary: diagnostics.summary,
     warnings: diagnostics.warnings,
+    optionalInfo: diagnostics.optionalInfo,
     errors: diagnostics.errors,
     communication: compactFetch(communication),
     soundEventBus: compactFetch(sound),
@@ -170,6 +171,7 @@ async function buildStatus(query, requestedCheck) {
 
 function analyze(parts) {
   const warnings = [];
+  const optionalInfo = [];
   const errors = [];
 
   const communicationBody = bodyOf(parts.communication);
@@ -195,9 +197,9 @@ function analyze(parts) {
   const alertDebug = clients.find(client => client && client.id === 'alert_eventbus_debug');
   const vipOverlay = clients.find(client => client && client.id === 'vip_sound_overlay_v2');
 
-  if (!soundDebug || !soundDebug.connected) warnings.push('sound_eventbus_debug_not_connected');
-  if (!alertDebug || !alertDebug.connected) warnings.push('alert_eventbus_debug_not_connected');
-  if (!vipOverlay || !vipOverlay.connected) warnings.push('vip_sound_overlay_v2_not_connected');
+  if (!soundDebug || !soundDebug.connected) optionalInfo.push('sound_eventbus_debug_not_connected_optional');
+  if (!alertDebug || !alertDebug.connected) optionalInfo.push('alert_eventbus_debug_not_connected_optional');
+  if (!vipOverlay || !vipOverlay.connected) optionalInfo.push('vip_sound_overlay_v2_not_connected_optional');
 
   const soundStats = (soundBody || {}).stats || {};
   const alertStats = (alertBody || {}).stats || {};
@@ -260,10 +262,12 @@ function analyze(parts) {
     matrixOk: resilienceMatrix.summary.ok,
     matrixWarnings: resilienceMatrix.summary.warningCount,
     matrixErrors: resilienceMatrix.summary.errorCount,
+    optionalInfoCount: optionalInfo.length,
+    optionalInfo,
     status: errors.length ? 'error' : (warnings.length ? 'warning' : 'ok')
   };
 
-  return { summary, warnings, errors, resilienceMatrix };
+  return { summary, warnings, optionalInfo, errors, resilienceMatrix };
 }
 
 function buildResilienceMatrix(parts) {
@@ -330,7 +334,7 @@ function buildResilienceMatrix(parts) {
       overlayState: 'n/a',
       recoveryRoute: '',
       risk: riskFromClientOnly(channelpointsBridgeClient),
-      notes: 'Bridge sichtbar; Heartbeat fehlt aktuell oder ist nicht vorgesehen.'
+      notes: 'Bridge sichtbar; Heartbeat aktiv seit CAN-2.1.'
     }),
     buildMatrixRow({
       module: 'channelpoints_twitch_readonly_sync',
