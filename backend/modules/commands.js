@@ -634,7 +634,7 @@ function buildRoutes() {
     { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Command löschen' },
     { method: 'GET/POST', path: `${API_PREFIX}/test`, purpose: 'Chatnachricht trocken parsen und Zielpayload anzeigen' },
     { method: 'GET/POST', path: `${API_PREFIX}/execute`, purpose: 'Chatnachricht als Command ausführen' },
-    { method: 'GET', path: `${API_PREFIX}/media-command-check`, purpose: 'Media-Command Routing und Payload prüfen' },
+    { method: 'GET', path: `${API_PREFIX}/media-command-preview`, purpose: 'Command-System Preview fuer Media-Command Routing und Payload' },
     { method: 'GET', path: `${API_PREFIX}/logs`, purpose: 'Letzte Command-Ausführungen anzeigen' },
     { method: 'GET', path: `${API_PREFIX}/history`, purpose: 'Alias fuer /api/commands/logs' }
   ];
@@ -756,7 +756,7 @@ module.exports.init = function init(ctx) {
   app.post(`${API_PREFIX}/test`, handleTest);
   app.get(`${API_PREFIX}/execute`, handleExecute);
   app.post(`${API_PREFIX}/execute`, handleExecute);
-  app.get(`${API_PREFIX}/media-command-check`, (req, res) => {
+  app.get(`${API_PREFIX}/media-command-preview`, (req, res) => {
     try { return res.json(mediaCommandCheckPayload(core.getParam(req, 'trigger', ''), req)); }
     catch (err) { return res.status(400).json(core.fail(err.message || String(err))); }
   });
