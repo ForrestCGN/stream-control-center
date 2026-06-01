@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-15.0 abgeschlossen
+## Stand: CAN-15.1 abgeschlossen
 
-CAN-15.0 konsolidiert die Recovery-/Safety-Strecke von CAN-8 bis CAN-14.
+CAN-15.1 hat den naechsten sicheren Recovery-/Safety-Kandidaten entschieden.
 
 ## Aktueller stabiler Stand
 
@@ -10,15 +10,12 @@ CAN-15.0 konsolidiert die Recovery-/Safety-Strecke von CAN-8 bis CAN-14.
 read-only Recovery/Safety Diagnose- und Anzeige-Strang
 ```
 
-## Aktuelle read-only Funktionen
+## Entscheidung
+
+Naechster Kandidat:
 
 ```text
-GET /api/bus-diagnostics/status
-GET /api/bus-diagnostics/recovery-preflight
-Button: Preflight neu laden
-Button: Status neu synchronisieren
-Karte: Recovery Guards
-Subtab: Safety Status
+CAN-15.2 - Audit Boundary no-write Planning
 ```
 
 ## Sicherheitsstand
@@ -54,11 +51,12 @@ Confirm API
 Rollen-/Rechte-Mutation
 ```
 
-## CAN-15.0 Ergebnis
+## CAN-15.1 Ergebnis
 
 ```text
-CAN-8 bis CAN-14 zusammengefasst.
-Harte Grenzen bestaetigt.
-Aktueller Safety-/Recovery-Status dokumentiert.
-Naechster Schritt: CAN-15.1 Recovery/Safety Next Candidate Decision.
+Audit Boundary no-write Planning als naechster Schritt festgelegt.
+Keine Code-Aenderungen.
+Keine API.
+Keine Route.
+Keine Recovery.
 ```

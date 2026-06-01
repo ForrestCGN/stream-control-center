@@ -3,23 +3,40 @@
 ## Naechster Schritt
 
 ```text
-CAN-15.1 - Recovery/Safety Next Candidate Decision
+CAN-15.2 - Audit Boundary no-write Planning
 ```
 
-## Ziel CAN-15.1
+## Ziel CAN-15.2
 
-Entscheiden, welcher sichere naechste Schritt nach der CAN-8 bis CAN-14 Konsolidierung folgt.
+Audit-Struktur weiter planen, aber strikt ohne Speicherung und ohne API.
 
-## Erlaubte Richtungen
+## CAN-15.2 darf nur klaeren
 
 ```text
-Dokumentation/Struktur weiter konsolidieren
-Audit-Konzept weiter planen, aber no-write
-Rollen-/Rechte-Konzept weiter planen, aber no-mutation
-SafetyStop Anzeige read-only planen, aber keine API/Mutation
+welche Audit-Ereignisse spaeter benoetigt werden
+welche Felder spaeter Pflicht waeren
+welche Daten niemals gespeichert werden duerfen
+welche Entscheidungs-/Abbruchfaelle spaeter auditierbar sein muessen
+welche Grenzen fuer eine spaetere Write-Phase gelten
 ```
 
-## Nicht direkt umsetzen
+## CAN-15.2 darf NICHT enthalten
+
+```text
+CREATE TABLE
+INSERT
+UPDATE
+DELETE
+POST /audit
+API-Route
+Dashboard-Button
+Recovery-Ausfuehrung
+SafetyStop Clear
+Confirm Trigger
+Rechte-Mutation
+```
+
+## Weiterhin nicht direkt umsetzen
 
 ```text
 Produktive Recovery

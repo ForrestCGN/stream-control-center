@@ -1,11 +1,10 @@
 # CHANGELOG
 
-## CAN-15.0
+## CAN-15.1
 
-- Recovery-/Safety-Strecke CAN-8 bis CAN-14 konsolidiert.
-- Aktuellen read-only Sicherheitsstand dokumentiert.
-- Harte Blocker und weiterhin nicht vorhandene produktive Recovery-Komponenten bestaetigt.
-- CAN-15.1 Recovery/Safety Next Candidate Decision als naechster Schritt festgelegt.
+- Naechsten sicheren Recovery-/Safety-Kandidaten bewertet.
+- Kandidaten Doku-Konsolidierung, Audit no-write, Rollen/Rechte no-mutation und SafetyStop read-only bewertet.
+- Entscheidung: CAN-15.2 Audit Boundary no-write Planning.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
