@@ -1,3 +1,36 @@
+## Nach STEP CAN-5.8
+
+Marker: STEP_CAN5_8_NEXT_STEPS
+
+CAN-5.8 ist nur der Dashboard-Plan für Recovery-Diagnose.
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-5.9: Read-only Recovery-Diagnose im Bus-Diagnostics-Dashboard anzeigen
+~~~
+
+Regeln für CAN-5.9:
+
+~~~text
+Nur Anzeige-Logik
+Keine Simulation per Dashboard auslösen
+Keine Recovery-Automatik
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine produktive Flow-Änderung
+~~~
+
+Vor Code prüfen:
+
+~~~text
+Wo wird recoveryStrategyState bereits im Dashboard sinnvoll angezeigt?
+Soll es ein eigener Recovery-Tab werden oder Teil von Integrationen/Issues?
+Welche Felder werden kompakt und verständlich angezeigt?
+Wie wird eindeutig markiert, dass alles read-only ist?
+~~~
+
 ## Nach STEP CAN-5.7
 
 Marker: STEP_CAN5_7_NEXT_STEPS

@@ -1,3 +1,36 @@
+## STEP CAN-5.8 Recovery-Diagnose Dashboard-Plan
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_8_RECOVERY_DASHBOARD_PLAN
+
+CAN-5.8 plant die spätere read-only Anzeige der Recovery-Diagnose im bestehenden Bus-Diagnostics-Dashboard.
+
+~~~text
+Nur read-only anzeigen
+Keine Simulation per Dashboard auslösen
+Keine automatische Recovery
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine produktive Flow-Änderung
+~~~
+
+Geplante Anzeige:
+
+~~~text
+recoveryStrategyState.mode
+recoveryStrategyState.state
+recoveryStrategyState.severity
+recoveryStrategyState.nextAction
+recoveryStrategyState.reasons
+recoveryStrategyState.blockedActions
+automationEnabled
+productiveActions
+flowTouched / queueTouched / soundSystemTouched / alertSystemTouched / overlayTouched
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN5_8_RECOVERY_DASHBOARD_PLAN.md`
+
 ## STEP CAN-5.7 Simulation-Harness Live-Test stabil bestätigt
 
 Stand: 2026-06-01
