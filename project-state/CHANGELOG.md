@@ -1,3 +1,40 @@
+# CHANGELOG – CAN-6.1 Manuelle Recovery-Aktionsmatrix
+
+Stand: 2026-06-01
+Marker: STEP_CAN6_1_MANUAL_RECOVERY_ACTION_MATRIX
+
+## Geändert
+
+- `docs/system-inspection/EVENTBUS_CAN6_1_MANUAL_RECOVERY_ACTION_MATRIX.md` neu ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN6_1.md` neu ergänzt.
+- `project-state/CURRENT_STATUS.md` um CAN-6.1 Abschluss-/Übergabestand ergänzt.
+- `project-state/NEXT_STEPS.md` auf nächsten Arbeitsblock CAN-6.2 aktualisiert.
+- `project-state/TODO.md` CAN-6.1 Aufgaben abgeschlossen und CAN-6.2 Aufgaben ergänzt.
+- `project-state/FILES.md` um CAN-6.1 Dateien ergänzt.
+
+## Bestätigter Stand
+
+- CAN-6.1 ist reine Planung/Dokumentation.
+- Die manuelle Recovery-Aktionsmatrix ist definiert.
+- Es wurden keine produktiven Flows freigeschaltet.
+- Das Dashboard bleibt read-only.
+
+## Nicht geändert
+
+- Keine Backend-Logik geändert.
+- Keine API-Logik geändert.
+- Keine Dashboard-Buttons ergänzt.
+- Keine Recovery-Automatik aktiviert.
+- Keine Queue-/Sound-/Overlay-Logik geändert.
+- Keine DB-/Config-Migration.
+- Keine Code-Dateien geändert.
+
+## Nächster Block
+
+- CAN-6.2: Backend-Schutzvertrag fuer manuelle Recovery planen.
+
+---
+
 # CHANGELOG – CAN-6.0 Dokumentationsabschluss
 
 Stand: 2026-06-01

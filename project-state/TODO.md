@@ -1,6 +1,6 @@
 # TODO
 
-Stand: 2026-05-30
+Stand: 2026-06-01
 
 ## Doku / Projektstand
 
@@ -15,13 +15,19 @@ Stand: 2026-05-30
 
 - [x] CAN-5.5 bis CAN-5.10 als stabilen read-only Diagnose-Stand dokumentieren.
 - [x] CAN-6.0 als reine Planung für abgesicherte manuelle Recovery dokumentieren.
-- [ ] CAN-6.1 manuelle Recovery-Aktionsmatrix definieren.
-- [ ] Pro Recovery-Zustand festlegen: Diagnose-only, manuell erlaubt oder hart blockiert.
-- [ ] Pflichtrechte pro späterer manueller Aktion festlegen: Owner/Admin.
-- [ ] Bestätigungsdialoge für spätere manuelle Aktionen planen.
-- [ ] Audit-Log-Pflicht pro Aktion definieren.
-- [ ] Duplikat-Sperren für Alert-/Sound-/Overlay-Recovery entwerfen.
-- [ ] Safety-Stop/Rollback/Clear-Regel definieren.
+- [x] CAN-6.1 manuelle Recovery-Aktionsmatrix definieren.
+- [x] Pro Recovery-Zustand festlegen: Diagnose-only, manuell erlaubt oder hart blockiert.
+- [x] Pflichtrechte pro späterer manueller Aktion festlegen: Owner/Admin.
+- [x] Bestätigungsdialoge für spätere manuelle Aktionen planen.
+- [x] Audit-Log-Pflicht pro Aktion definieren.
+- [x] Duplikat-Sperren für Alert-/Sound-/Overlay-Recovery entwerfen.
+- [x] Safety-Stop/Rollback/Clear-Regel definieren.
+- [ ] CAN-6.2 Backend-Schutzvertrag fuer manuelle Recovery planen.
+- [ ] Auth-/Owner-Admin-Pruefung fuer spaetere Recovery-Aktionen festlegen.
+- [ ] Audit-Log-Anbindung fuer Recovery-Aktionen technisch planen.
+- [ ] Globalen Recovery-Safety-Stop und Modul-Safety-Stops planen.
+- [ ] Status-Guards fuer Alert/Sound/Overlay/Bundle/Queue definieren.
+- [ ] Confirm-/Bestätigungsmechanik fuer spaetere Dashboard-Aktionen planen.
 - [ ] Vor jedem Code-Step prüfen: keine automatische Recovery, kein Auto-Retry, kein Replay ohne harte Schutzmechanik.
 
 
@@ -81,4 +87,3 @@ Nur noch bei konkretem Bedarf:
 
 Aktueller Fokus: produktive Projektarbeit.
 <!-- STEP615_CLEANUP_FREEZE_END -->
-
