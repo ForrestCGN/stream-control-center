@@ -85,3 +85,12 @@
 - CAN-14.2 Backend Status Shape read-only Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine Recovery-Ausfuehrung.
+
+## CAN-14.2
+
+- Backend Status Shape read-only geplant.
+- bus_diagnostics als spaeter naheliegender Modul-Kandidat dokumentiert.
+- MutationCheck, Feldherkunft und unknown-Regeln geplant.
+- CAN-14.3 Dashboard Safety Status Anzeige Planning als naechster Schritt festgelegt.
+- Keine Code-Aenderungen.
+- Keine Recovery-Ausfuehrung.

@@ -5,7 +5,7 @@
 Empfohlener Start:
 
 ```text
-CAN-14.2 - Backend Status Shape read-only planen
+CAN-14.3 - Dashboard Safety Status Anzeige planen
 ```
 
 ## CAN-14 Zielrichtung
@@ -18,21 +18,21 @@ Sinnvolle Richtung:
 Read-only Safety Status View
 ```
 
-## CAN-14.2 Ziel
+## CAN-14.3 Ziel
 
-CAN-14.2 soll planen, wie ein spaeterer Backend Status Shape read-only aussehen darf.
+CAN-14.3 soll planen, wie eine spaetere Dashboard Safety Status Anzeige aussehen darf.
 
-Dabei wird noch keine Route und kein Code umgesetzt.
+Dabei wird noch keine Dashboard-Datei umgesetzt.
 
 Zu klaeren:
 
 ```text
-welches bestehende Modul spaeter liefern duerfte
-welche vorhandenen Datenquellen read-only genutzt werden duerfen
-welche Felder statisch/hart gesetzt werden duerfen
-welche Felder aus bestehendem Status kommen duerfen
-welche Felder unknown bleiben muessen
-welche Tests fuer read-only no-mutation noetig sind
+welche Karten/Abschnitte sichtbar sein sollen
+wie green/yellow/red/gray angezeigt werden
+wie false/unknown/blocked erklaert wird
+welche Buttons ausdruecklich nicht vorkommen
+wie harte Blocker angezeigt werden
+welche Tests fuer read-only Dashboard noetig sind
 ```
 
 ## Moegliche CAN-14 Reihenfolge

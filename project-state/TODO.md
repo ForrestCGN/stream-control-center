@@ -22,4 +22,5 @@
 - [x] CAN-13.6 Recovery Safety Planning Closure / Handoff
 - [x] CAN-14.0 Read-only Safety Status View Planning
 - [x] CAN-14.1 Safety Status Contract read-only
-- [ ] CAN-14.2 Backend Status Shape read-only Planning
+- [x] CAN-14.2 Backend Status Shape read-only Planning
+- [ ] CAN-14.3 Dashboard Safety Status Anzeige Planning
