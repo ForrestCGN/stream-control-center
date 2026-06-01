@@ -1,26 +1,18 @@
 # CURRENT_STATUS
 
-## Stand: CAN-14.4 abgeschlossen
+## Stand: CAN-14.5 Live-Test vorbereitet
 
 Der Recovery-/Preflight-/Guard-Framework-Strang ist weiterhin read-only abgeschlossen.
 
-Der CAN-13-Strang ist als Sicherheitsplanung fuer spaetere manuelle Recovery abgeschlossen.
+CAN-14.4 hat die Dashboard Safety Status View read-only umgesetzt.
 
-Der CAN-14-Strang hat jetzt eine erste read-only Dashboard Safety Status Anzeige.
+CAN-14.5 ist als lokaler Live-Test vorbereitet.
 
-Abgeschlossen:
+Status:
 
-- CAN-8.x Recovery-Preflight Statusfelder und Dashboard
-- CAN-9.x dedizierte read-only Preflight-Route
-- CAN-10.x Manual Diagnostics Refresh
-- CAN-11.x Manual Status Resync
-- CAN-12.x Manual Recovery Guard Framework / Recovery Guards Dashboard-Karte
-- CAN-13.x Recovery Safety Planning abgeschlossen
-- CAN-14.0 Read-only Safety Status View Planning
-- CAN-14.1 Safety Status Contract read-only
-- CAN-14.2 Backend Status Shape read-only Planning
-- CAN-14.3 Dashboard Safety Status Anzeige Planning
-- CAN-14.4 Dashboard Safety Status View read-only Implementation
+```text
+pending_local_test
+```
 
 ## Aktuelle read-only Funktionen
 
@@ -33,7 +25,7 @@ Karte: Recovery Guards
 Subtab: Safety Status
 ```
 
-## CAN-14.4 Sicherheitsstand
+## CAN-14.5 Sicherheitsstand
 
 Weiterhin keine Recovery-Ausfuehrung.
 
@@ -50,17 +42,15 @@ safetyStatusApi: false
 dashboardSafetyStatusView: true
 dashboardRecoveryButtons: false
 backendSafetyStatusShapeImplemented: false
+localLiveTest: pending
 ```
 
-## CAN-14.4 Ergebnis
+## CAN-14.5 Ergebnis
 
 ```text
-Dashboard Safety Status Anzeige umgesetzt.
-Keine Backend-Aenderung.
-Keine neue API.
-Keine neuen produktiven Buttons.
-Keine Recovery-Ausfuehrung.
-Naechster Schritt ist CAN-14.5 Live-Test read-only.
+Live-Test-Checkliste erstellt.
+Test ist lokal ausstehend.
+Nicht als bestanden markiert.
 ```
 
 ## Weiterhin hart blockiert

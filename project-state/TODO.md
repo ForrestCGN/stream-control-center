@@ -25,4 +25,5 @@
 - [x] CAN-14.2 Backend Status Shape read-only Planning
 - [x] CAN-14.3 Dashboard Safety Status Anzeige Planning
 - [x] CAN-14.4 Dashboard Safety Status Anzeige Implementation read-only
-- [ ] CAN-14.5 Dashboard Safety Status View Live-Test read-only
+- [ ] CAN-14.5 Dashboard Safety Status View Live-Test read-only lokal bestaetigen
+- [ ] CAN-14.6 Handoff / Abschluss Safety Status View read-only

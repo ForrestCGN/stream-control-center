@@ -2,43 +2,30 @@
 
 ## Naechster Schritt
 
-Empfohlener Start:
+```text
+CAN-14.5 lokal testen
+```
+
+## Wenn CAN-14.5 lokal bestanden ist
+
+Dann:
 
 ```text
-CAN-14.5 - Dashboard Safety Status View Live-Test read-only
+CAN-14.5 accepted_local_test dokumentieren
+CAN-14.6 - Handoff / Abschluss Safety Status View read-only
 ```
 
-## CAN-14.5 Ziel
+## Wenn CAN-14.5 nicht bestanden ist
 
-CAN-14.5 soll den neuen Safety-Status-Subtab live pruefen.
+Dann zuerst Fehler beheben.
 
-Zu pruefen:
+Benötigt:
 
 ```text
-Dashboard laedt ohne JS-Fehler
-Recovery-Tab laedt
-Subtab Safety Status sichtbar
-Keine produktiven Buttons im Safety Status
-Hard-Blocker sichtbar
-Bestehende Subtabs funktionieren weiter
-Keine neue API erforderlich
-Keine POST-/Mutation-Aufrufe
-```
-
-## Empfohlene Tests
-
-```bat
-node -c htdocs\dashboard\modules\bus_diagnostics.js
-```
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/status"
-$s | Select-Object ok,module,version,readOnly,flowTouched,queueTouched,soundSystemTouched,alertSystemTouched,overlayTouched
-```
-
-```powershell
-$p = Invoke-RestMethod "http://127.0.0.1:8080/api/bus-diagnostics/recovery-preflight"
-$p | Select-Object ok,module,version,readOnly,canPrepare,canExecute
+Browser-Konsole
+Network-Auffaelligkeiten
+Node-Log
+betroffener Subtab
 ```
 
 ## Weiterhin nicht direkt umsetzen
