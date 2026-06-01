@@ -86,3 +86,28 @@ Jedes Modul sollte im Status klar zeigen:
 - Grund für Warten
 - aktive Queue-ID / Bundle-ID
 - beteiligtes Overlay / Sound-System
+
+## CAN-4.0 Overlay ACK / Visual Delivery Diagnose
+
+Status: geplant / naechster Diagnose-Step
+
+Ziel:
+
+```text
+Erkennen, ob Alert + Sound sauber matchen, aber das visuelle Overlay kein Finish/ACK liefert.
+```
+
+Naechster Code-Step:
+
+```text
+CAN-4.1: Read-only visualDeliveryState in /api/alerts/eventbus/correlation/status
+```
+
+Nicht aendern:
+
+```text
+Keine Queue-Logik
+Keine Sound-Playback-Logik
+Keine Overlay-Ausgabe
+Keine Recovery-Automatik
+```

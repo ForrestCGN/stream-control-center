@@ -173,3 +173,21 @@ Ziel:
 - Verhindern, dass Queues in Zwischenzuständen hängen.
 - Live-/Offline-Status robuster und transparenter machen.
 - Dashboard-Status verbessern.
+
+## CAN-4.0 Plan erstellt
+
+Stand: 2026-06-01
+
+CAN-3 ist stabil dokumentiert. CAN-4 beginnt als reiner Plan-/Diagnoseabschnitt.
+
+```text
+CAN-4.0: Overlay ACK / Visual Delivery Diagnose konsolidieren
+```
+
+Ziel ist, den naechsten Fehlerbereich sichtbar zu machen: Alert/Sound kann sauber gematcht sein, waehrend das visuelle Overlay eventuell kein Finish/ACK liefert.
+
+Dokument:
+
+```text
+docs/system-inspection/EVENTBUS_CAN4_0_OVERLAY_ACK_VISUAL_DELIVERY_PLAN.md
+```
