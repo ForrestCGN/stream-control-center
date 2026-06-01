@@ -1,3 +1,25 @@
+## Nach STEP CAN-8.5
+
+Marker: STEP_CAN8_5_NEXT_STEPS
+
+Nächster sinnvoller Schritt:
+
+~~~text
+CAN-8.6: Dashboard-Preflight Read-only Anzeige live testen und abnehmen
+~~~
+
+Zu prüfen:
+
+~~~text
+Recovery-Tab lädt
+Interner Untertab Preflight sichtbar
+Recovery-Preflight zeigt status/mode/readOnly/canPrepare/canExecute
+Preflight-Safety zeigt alle produktiven Flags false
+Keine Recovery-Buttons sichtbar
+Keine Simulation-Buttons sichtbar
+Keine POST-/Command-Route entstanden
+~~~
+
 ## Nach STEP CAN-8.4
 
 Marker: STEP_CAN8_4_NEXT_STEPS

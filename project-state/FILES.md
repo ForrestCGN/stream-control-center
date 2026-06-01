@@ -1,3 +1,27 @@
+# FILES – CAN-8.5 Recovery-Preflight Dashboard Read-only Anzeige
+
+## Geändert
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+  - zeigt `recoveryPreflight` im bestehenden Recovery-Tab read-only an
+  - ergänzt den internen Untertab `Preflight`
+
+## Dokumentation
+
+- `docs/system-inspection/EVENTBUS_CAN8_5_RECOVERY_PREFLIGHT_DASHBOARD_READONLY_DISPLAY.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN8_5.md`
+- `docs/current/README_CAN8_5_FILE_ZIP.md`
+
+## Nicht geändert
+
+- Keine Backend-Datei
+- Keine API-Route
+- Keine Config
+- Keine DB
+- Keine produktive Flow-Änderung
+
+---
+
 # FILES – CAN-8.4 Recovery-Preflight Dashboard Read-only Anzeige geplant
 
 Stand: 2026-06-01

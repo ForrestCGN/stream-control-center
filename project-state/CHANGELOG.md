@@ -1,3 +1,22 @@
+# CHANGELOG – CAN-8.5 Recovery-Preflight Dashboard Read-only Anzeige
+
+Stand: 2026-06-01
+
+## Geändert
+
+- `htdocs/dashboard/modules/bus_diagnostics.js` erweitert.
+- Im Recovery-Tab wurde ein interner Untertab `Preflight` ergänzt.
+- `recoveryPreflight` wird nur lesend angezeigt.
+
+## Nicht geändert
+
+- Keine Backend-Datei geändert.
+- Keine API-Route ergänzt.
+- Keine Recovery-Ausführung ergänzt.
+- Keine Recovery-Buttons ergänzt.
+- Keine Simulation-Buttons ergänzt.
+- Keine produktive Flow-Änderung.
+
 # CHANGELOG – CAN-8.4 Recovery-Preflight Dashboard Read-only Anzeige geplant
 
 Stand: 2026-06-01

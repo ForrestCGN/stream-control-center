@@ -1,3 +1,24 @@
+## STEP CAN-8.5 Recovery-Preflight Dashboard Read-only Anzeige umgesetzt
+
+Stand: 2026-06-01
+Marker: STEP_CAN8_5_RECOVERY_PREFLIGHT_DASHBOARD_READONLY_DISPLAY
+
+CAN-8.5 erweitert den bestehenden Bus-Diagnostics-Recovery-Tab nur additiv um die Anzeige von `recoveryPreflight`.
+
+~~~text
+Dashboard-Datei: htdocs/dashboard/modules/bus_diagnostics.js
+Neuer interner Recovery-Untertab: Preflight
+Keine Backend-Änderung
+Keine API-Route
+Keine Recovery-Ausführung
+Keine Recovery-Buttons
+Keine Simulation-Buttons
+Keine produktive Flow-Änderung
+~~~
+
+Nächster Schritt: CAN-8.6 Dashboard-Preflight Live-Test und Abnahme.
+Details: `docs/system-inspection/EVENTBUS_CAN8_5_RECOVERY_PREFLIGHT_DASHBOARD_READONLY_DISPLAY.md`
+
 ## STEP CAN-8.4 Recovery-Preflight Dashboard Read-only Anzeige geplant
 
 Stand: 2026-06-01

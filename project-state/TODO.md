@@ -1,3 +1,10 @@
+# TODO – CAN-8.5
+
+- [x] `recoveryPreflight` im Dashboard read-only anzeigen.
+- [x] Internen Recovery-Untertab `Preflight` ergänzen.
+- [x] Keine Buttons / keine Aktionen / keine Recovery-Ausführung ergänzen.
+- [ ] CAN-8.6 Live-Test und Abnahme durchführen.
+
 ## CAN-8 / Recovery-Preflight Dashboard
 
 - [x] CAN-8.4 Dashboard-Preflight read-only Anzeige planen.
