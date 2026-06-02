@@ -1,50 +1,80 @@
 # CURRENT_STATUS
 
-## Stand: CAN-26.2 vorbereitet
+## Stand: CAN-26.3 vorbereitet
 
-CAN-26.0/26.1 wurden im Chat gegen Live getestet. CAN-26.2 liefert einen kleinen Diagnose-Cleanup fuer den Overlay-Monitor.
+Dokumentation, TODO, Next Steps, FILES, CHANGELOG und Handoff wurden auf den abgeschlossenen CAN-26 Stand aktualisiert.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-26: Abschluss-/Qualitaetscheck fuer Bus-Diagnose, Git/Live-Synchronisation und Overlay-Monitor Scene-Awareness
+CAN-26: Git/Live-Abgleich, Overlay-Monitor Scene-Awareness, Bus-Diagnose und Dashboard-Sichtpruefung
 ```
 
 ## Aktueller stabiler Stand
 
-CAN-25 wurde von der Sound-Shadow Summary Card ueber Bus-Matrix-/Alert-/Overlay-Diagnose bis zur scene-aware Overlay-Monitor-Anzeige weitergefuehrt.
+CAN-26 wurde nach CAN-25.25b als Abschluss-/Qualitaetscheck fuer Bus-Diagnose und Overlay-Monitor durchgefuehrt.
 
-CAN-26.0 pruefte GitHub/dev gegen Live und bestaetigte, dass die relevanten technischen Dateien fuer Bus-/Overlay-Diagnose identisch waren.
-
-CAN-26.1 reparierte die Overlay-Monitor Scene-Awareness:
+Abgeschlossen und live getestet:
 
 ```text
-- currentProgramSceneName faellt nicht mehr blind auf sceneNames[0] zurueck.
-- Wenn keine echte OBS-Program-Szene bekannt ist, wird kein Overlay als activeExpected markiert.
-- Der Test mit Szene "Live Gameplay Engel" bestaetigte:
-  frame_overlay -> expected_inactive / activeExpected false / warning 0 / error 0
+CAN-26.0 GitHub/dev und Live-System bewusst abgeglichen.
+CAN-26.1 Overlay-Monitor Scene-Awareness Diagnose-Fix.
+CAN-26.2 Overlay-Monitor client-control Top-Level Diagnosefelder.
+CAN-26.3 Doku- und Handoff-Aktualisierung inkl. Dashboard-Sichtpruefung.
 ```
 
-CAN-26.2 ergaenzt Diagnosefelder auf Top-Level von `/api/overlay-monitor/client-control/status`, damit PowerShell-/Dashboard-Diagnosen nicht nur pro Client, sondern auch direkt auf der Route sehen, welche Program-Szene und welchen Scene-Awareness-Modus der Monitor verwendet.
+## Technischer Stand Overlay-Monitor
 
-## Letztes Testergebnis
+```text
+backend/modules/overlay_monitor.js
+Version: 0.1.8
+Status API: 1.0.8
+Build: CAN-26.2
+```
 
-CAN-26.1 Test in Szene ohne Rahmen:
+CAN-26.1 hat verhindert, dass bei fehlender/unklarer Program-Szene blind `sceneNames[0]` als aktive Szene verwendet wird. Bei unbekannter Program-Szene wird safe-inactive bewertet und kein Overlay automatisch als `activeExpected` markiert.
+
+CAN-26.2 hat die Top-Level-Diagnosefelder in `/api/overlay-monitor/client-control/status` sichtbar gemacht:
+
+```text
+currentProgramSceneName
+currentPreviewSceneName
+currentProgramSceneKnown
+sceneAwarenessMode
+inventoryUpdatedAt
+inventoryFromCache
+inventoryFromMemory
+```
+
+## Letzte bestaetigte Testergebnisse
+
+API-Test ohne Rahmen in Program-Szene `Live Gameplay Engel`:
 
 ```text
 currentProgramSceneName  : Live Gameplay Engel
+currentProgramSceneKnown : True
+sceneAwarenessMode       : program_scene_known
+inventoryFromCache       : False
+inventoryFromMemory      : False
+```
+
+Frame-Overlay in Szene ohne Rahmen:
+
+```text
 id                       : overlay:frame_overlay
+name                     : Rahmen Overlay
 rawStatus                : online
 status                   : expected_inactive
 monitorStatus            : expected_inactive
 activeExpected           : False
 expectedInactive         : True
 expectedNotActive        : True
+currentProgramSceneName  : Live Gameplay Engel
 currentProgramSceneKnown : True
 sceneAwarenessMode       : program_scene_known
 ```
 
-Summary nach CAN-26.1:
+Overlay-Monitor Summary nach CAN-26.1/26.2:
 
 ```text
 total             : 10
@@ -61,13 +91,26 @@ expectedNotActive : 3
 activeExpected    : 8
 ```
 
+Dashboard-Sichtpruefung:
+
+```text
+SYSTEME-Bereich lesbar: ja
+Lange Detailbloecke in Tabellenzellen: nein
+Overlay-Monitor Summary: 0 Warnungen / 0 Fehler
+Rahmen Overlay: EXPECTED_INACTIVE korrekt
+Bus-Matrix: read-only aktiv
+Sicherheitsgrenze: keine Aktion wird ausgefuehrt
+Sound-Bus Dry-Run: bereit, aber kein Play/Sound/Queue-Touch
+```
+
 ## Wichtige Erkenntnisse
 
 ```text
-Overlay-HTMLs senden Heartbeats korrekt.
-Scene-Awareness muss immer nach echter OBS-Program-Szene bewerten.
-Ein online Overlay kann korrekt expected_inactive sein, wenn seine OBS-Quelle in der aktuellen Program-Szene nicht aktiv erwartet wird.
-Top-Level-Diagnosefelder auf client-control/status erleichtern weitere Pruefung.
+Overlay-Clients koennen technisch online sein, ohne in der aktuellen Program-Szene aktiv erwartet zu werden.
+rawStatus bleibt sichtbar, monitorStatus bewertet scene-aware.
+currentProgramSceneName ist die entscheidende Diagnosequelle, nicht Preview.
+Ohne Studio-Modus kann currentPreviewSceneName leer sein; das ist nicht kritisch.
+OBS-Inventar-Refresh ueber /api/overlay-monitor/obs-inventory?refresh=1 bleibt read-only und fuehrt keine Reparatur aus.
 ```
 
 ## Weiterhin verboten / nicht passiert
@@ -82,11 +125,12 @@ Kein Sound-Play.
 Keine Queue-Aktion.
 Keine Twitch-/Redemption-Write-Aktion.
 Keine produktive Sound-Bus-Migration.
+Keine Dashboard-Buttons fuer produktive Aktionen.
 ```
 
 ## Naechster Schritt
 
 ```text
-CAN-26.2 ZIP entpacken, node -c pruefen, stepdone ausfuehren, Node neu starten und /api/overlay-monitor/client-control/status Top-Level-Felder pruefen.
-Danach CAN-26.3 planen: naechsten technischen Kandidaten oder Doku-/Dashboard-Feinschliff entscheiden.
+CAN-27.0 erst planen, wenn Repo/dev und Live wieder sauber abgeglichen sind.
+Empfohlener Fokus: naechsten technischen Kandidaten bewusst waehlen, z. B. Doku-Feinschliff, Dashboard-Kosmetik oder neuer separater Modulbereich.
 ```

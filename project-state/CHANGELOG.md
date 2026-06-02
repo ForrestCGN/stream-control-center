@@ -1,10 +1,21 @@
 # CHANGELOG
 
+## CAN-26.3
+
+- Dokumentation und Handoff auf abgeschlossenen CAN-26 Stand aktualisiert.
+- Dashboard-Sichtpruefung dokumentiert.
+- SYSTEME-Bereich ist lesbar.
+- Keine langen Detailbloecke in Tabellenzellen sichtbar.
+- Overlay-Monitor zeigt 0 Warnungen / 0 Fehler.
+- `overlay:frame_overlay` wird in Szene ohne Rahmen korrekt als `EXPECTED_INACTIVE` angezeigt.
+- Sicherheitsgrenze weiterhin read-only: keine Aktion wird ausgefuehrt.
+- Keine Code-Logik geaendert.
+- Keine produktive Aktion ausgefuehrt.
+
 ## CAN-26.2
 
-- Overlay-Monitor `backend/modules/overlay_monitor.js` auf Version 0.1.8 / Status API 1.0.8 erhoeht.
-- `/api/overlay-monitor/client-control/status` liefert Scene-Awareness-Diagnose jetzt auch auf Top-Level:
-  - `sceneAwareness`
+- Overlay-Monitor `client-control/status` um Top-Level-Diagnosefelder ergaenzt.
+- Sichtbar sind jetzt u. a.:
   - `currentProgramSceneName`
   - `currentPreviewSceneName`
   - `currentProgramSceneKnown`
@@ -12,15 +23,26 @@
   - `inventoryUpdatedAt`
   - `inventoryFromCache`
   - `inventoryFromMemory`
-- Keine OBS-Reparatur, kein Source-Refresh, keine DB-Migration, keine produktive Aktion.
+- `overlay_monitor` Version auf 0.1.8 / Status API 1.0.8 erhoeht.
+- Keine OBS-Reparatur, kein Source-Refresh, keine DB-Migration.
 
 ## CAN-26.1
 
-- Overlay-Monitor `backend/modules/overlay_monitor.js` auf Version 0.1.7 / Status API 1.0.7 erhoeht.
+- Overlay-Monitor Scene-Awareness robuster gemacht.
 - `currentProgramSceneName` faellt nicht mehr blind auf `sceneNames[0]` zurueck.
-- Wenn keine echte Program-Szene bekannt ist, wird kein Overlay als `activeExpected` markiert.
-- Test mit Szene ohne Rahmen bestaetigte: `frame_overlay` wird `expected_inactive`, `warning=0`, `error=0`.
-- Keine OBS-Reparatur, kein Source-Refresh, keine DB-Migration, keine produktive Aktion.
+- Bei fehlender/unklarer Program-Szene wird safe-inactive bewertet und kein Overlay automatisch als `activeExpected` markiert.
+- `overlay:frame_overlay` wurde in einer Szene ohne Rahmen korrekt als `expected_inactive` getestet.
+- `overlay_monitor` Version auf 0.1.7 / Status API 1.0.7 erhoeht.
+- Keine produktive Aktion ausgefuehrt.
+
+## CAN-26.0
+
+- GitHub/dev und Live-System bewusst abgeglichen.
+- Runtime-relevante Dateien fuer Bus-/Overlay-Diagnose waren identisch.
+- Doku-Dateien im Live-System wichen ab bzw. Handoff fehlte dort; Doku-Stand wird mit CAN-26.3 aktualisiert.
+- Bus-Diagnose und Overlay-Monitor final gegenprueft.
+- Urspruenglicher Befund: Rahmen-Overlay wurde bei unklarer Szenen-/Inventarbewertung als activeExpected behandelt.
+- Daraus entstanden CAN-26.1 und CAN-26.2.
 
 ## CAN-25.25b
 
