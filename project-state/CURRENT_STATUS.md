@@ -1,8 +1,12 @@
 # CURRENT_STATUS
 
-## Stand: CAN-20.1 abgeschlossen
+## Stand: CAN-20.2 abgeschlossen
 
-CAN-20.1 hat Safety Architecture Backend Shape Validation geplant.
+CAN-20 ist abgeschlossen als:
+
+```text
+Safety Architecture Backend Shape Planning read-only / no-route / no-code
+```
 
 ## Aktueller stabiler Stand
 
@@ -14,8 +18,7 @@ SafetyStop Planning read-only/no-api
 Roles/Rights Planning no-mutation/no-implementation
 Confirm Planning no-action/no-implementation
 Recovery Safety Architecture Planning / Consolidation
-Safety Architecture Backend Shape read-only/no-route Planning
-Safety Architecture Backend Shape Validation Planning
+Safety Architecture Backend Shape Planning read-only/no-route/no-code
 ```
 
 ## Backend-Shape-Status
@@ -23,13 +26,14 @@ Safety Architecture Backend Shape Validation Planning
 ```text
 backendShapePlanning: true
 backendShapeValidationPlanning: true
-backendShapePlanningClosure: false
+backendShapePlanningClosure: true
 safetyArchitectureApi: false
 safetyArchitectureRoute: false
 safetyArchitectureDb: false
 safetyArchitectureMiddleware: false
 dashboardMutation: false
 eventBusEmit: false
+validationCode: false
 ```
 
 ## Technischer Sicherheitsstand
@@ -71,8 +75,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-20.2 - Safety Architecture Backend Shape Planning Closure / Handoff
+CAN-21.0 - Recovery Safety Master Documentation Consolidation
 ```

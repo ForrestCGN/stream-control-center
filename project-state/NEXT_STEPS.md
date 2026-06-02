@@ -1,23 +1,29 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-20.2 - Safety Architecture Backend Shape Planning Closure / Handoff
+CAN-21.0 - Recovery Safety Master Documentation Consolidation
 ```
 
-## Ziel CAN-20.2
+## Ziel CAN-21.0
 
-Den CAN-20 Backend-Shape-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
+Alle Recovery-/Safety-Planungen von CAN-13 bis CAN-20 zusammenfassen.
 
-## CAN-20.2 soll zusammenfassen
+## CAN-21.0 soll zusammenfassen
 
 ```text
-CAN-20.0 Backend Shape read-only/no-route
-CAN-20.1 Backend Shape Validation Planning
+CAN-13 Recovery Safety Planning
+CAN-14 Safety Status View read-only
+CAN-15 Audit Planning no-write/no-data
+CAN-16 SafetyStop Planning read-only/no-api
+CAN-17 Roles/Rights Planning no-mutation/no-implementation
+CAN-18 Confirm Planning no-action/no-implementation
+CAN-19 Recovery Safety Architecture Planning / Consolidation
+CAN-20 Safety Architecture Backend Shape Planning read-only/no-route/no-code
 ```
 
-## CAN-20.2 darf NICHT enthalten
+## CAN-21.0 darf NICHT enthalten
 
 ```text
 API

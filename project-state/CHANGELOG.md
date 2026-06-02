@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-20.1
+## CAN-20.2
 
-- Safety Architecture Backend Shape Validation geplant.
-- Pflichtfelder, Typregeln, Root-, Overall-, Module-, RecoveryExecution-, HardBlocker- und TechnicalBoundaries-Checks dokumentiert.
-- Fail-safe-Regeln fuer spaetere Validierung festgelegt.
-- CAN-20.2 Safety Architecture Backend Shape Planning Closure / Handoff als naechster Schritt festgelegt.
+- CAN-20 Safety-Architecture-Backend-Shape-Planungsstrang abgeschlossen.
+- Backend Shape Planning als read-only/no-route/no-code final dokumentiert.
+- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN20_2_FINAL.md` erstellt.
+- CAN-21.0 Recovery Safety Master Documentation Consolidation als naechster empfohlener Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
