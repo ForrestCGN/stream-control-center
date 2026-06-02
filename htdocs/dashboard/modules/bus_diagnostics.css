@@ -26,3 +26,16 @@
   .busdiag-table-busmatrix .busdiag-table-head{display:none}
   .busdiag-table-busmatrix .busdiag-table-row{grid-template-columns:1fr}
 }
+
+/* CAN-23.6 Sound Dry-Run */
+.busdiag-actions-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:10px 0;
+}
+.busdiag-btn[disabled]{
+  opacity:.55;
+  cursor:not-allowed;
+}

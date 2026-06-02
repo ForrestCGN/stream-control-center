@@ -1,29 +1,27 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.5 abgeschlossen
+## Stand: CAN-23.6 abgeschlossen
 
-CAN-23.5 hat den Sound-Bus-Lifecycle-/ACK-Status als read-only Route sichtbar gemacht.
+CAN-23.6 hat den Sound-Bus-Dry-Run im Dashboard manuell pruefbar gemacht.
 
 ## Neu
 
 ```text
-GET /api/sound/eventbus/command/lifecycle
+Bus-Diagnostics -> Bus-Matrix -> Sound-Bus Dry-Run
 ```
 
 ## Sicherheitsstatus
 
 ```text
-readOnly: true
+dryRunOnly: true
 soundPlayed: false
 queueTouched: false
-dryRunExecuted: false
 playTestExecuted: false
-eventBusEmit: false
 recoveryExecution: false
 ```
 
 ## Naechster Schritt
 
 ```text
-Sound-System: Dry-Run im Dashboard manuell pruefbar machen, ohne Queue/Audio.
+Produktive /api/sound/play Logik auf Bus-Request-Kompatibilitaet pruefen.
 ```

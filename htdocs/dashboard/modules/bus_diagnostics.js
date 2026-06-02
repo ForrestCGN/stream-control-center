@@ -36,7 +36,10 @@
     manualStatusResyncGuards: {},
     busMatrix: null,
     busMatrixLoading: false,
-    busMatrixError: ''
+    busMatrixError: '',
+    soundDryRunResult: null,
+    soundDryRunRunning: false,
+    soundDryRunError: ''
   };
 
   const TABS = [
@@ -206,6 +209,7 @@
     `;
     root.querySelector('[data-busdiag-action="refresh"]')?.addEventListener('click', () => loadAll(false));
     root.querySelector('[data-busdiag-action="check"]')?.addEventListener('click', () => loadAll(true));
+    root.querySelector('[data-busdiag-action="sound-dry-run"]')?.addEventListener('click', runSoundBusDryRun);
     root.querySelector('[data-busdiag-action="toggle-auto"]')?.addEventListener('click', toggleAutoRefresh);
     root.querySelectorAll('[data-busdiag-tab]').forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.busdiagTab)));
     const refreshSelect = root.querySelector('[data-busdiag-refresh-ms]');
@@ -695,6 +699,95 @@
     return card('Events & ACKs', events.length ? `<div class="busdiag-table busdiag-table-events"><div class="busdiag-table-head"><span>Zeit</span><span>Channel/Action</span><span>Ziel</span><span>ACK</span><span>Delivery</span></div>${events.map(event => `<div class="busdiag-table-row"><span>${esc(fmtTime(event.createdAt))}<small>${esc(event.id || '-')}</small></span><span><strong>${esc(event.channel || '-')}</strong><small>${esc(event.action || '-')}</small></span><span><strong>${esc(event.target?.type || '-')}</strong><small>${esc(event.target?.id || event.target?.module || '')}</small></span><span>${badge(event.requireAck ? 'ACK Pflicht' : 'kein ACK', event.requireAck && !event.ackCount ? 'warning' : 'ok')}<small>${esc(event.ackCount ?? 0)} ACKs</small></span><span><strong>${esc(asList(event.deliveredTo).length)}</strong><small>${event.expired ? 'expired' : esc(event.expiresAt || '')}</small></span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine Events im Bus-Speicher.</p>', 'busdiag-wide');
   }
 
+  async function runSoundBusDryRun(){
+    if (state.soundDryRunRunning) return;
+    state.soundDryRunRunning = true;
+    state.soundDryRunError = '';
+    render();
+    try {
+      const requestId = `dash_dry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const payload = {
+        command: 'sound.play.request',
+        requestId,
+        soundId: 'dashboard_dry_run',
+        label: 'Dashboard Dry-Run',
+        category: 'system',
+        target: 'stream',
+        outputTarget: 'overlay',
+        requestedBy: 'dashboard',
+        source: 'bus_diagnostics_dashboard',
+        reason: 'manual_dashboard_dry_run',
+        meta: {
+          can23: 'CAN-23.6',
+          dryRunOnly: true,
+          queueTouchedExpected: false,
+          audioTouchedExpected: false
+        }
+      };
+      const result = await window.CGN.api('/api/sound/eventbus/command/dry-run', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      state.soundDryRunResult = result;
+      state.soundDryRunError = '';
+      await loadBusIntegrationMatrix();
+    } catch (err) {
+      state.soundDryRunError = err.message || String(err);
+      state.soundDryRunResult = {
+        ok: false,
+        error: state.soundDryRunError,
+        dryRunOnly: true,
+        queueTouched: false,
+        audioTouched: false
+      };
+    } finally {
+      state.soundDryRunRunning = false;
+      render();
+    }
+  }
+
+  function renderSoundDryRunCard(matrix){
+    const soundRow = asList(matrix && matrix.rows).find(row => row && row.id === 'sound_system') || {};
+    const result = state.soundDryRunResult || {};
+    const resultResult = result.result || {};
+    const protection = result.protection || {};
+    const commandOk = soundRow.commandOk === true;
+    const contractOk = soundRow.contractOk === true;
+    const lifecycleOk = soundRow.lifecycleOk === true;
+    const canRun = commandOk || !!soundRow.commandRoute;
+    const resultHtml = state.soundDryRunResult ? `
+      <div class="busdiag-metrics">
+        ${metric('Dry-Run OK', bool(result.ok))}
+        ${metric('Accepted', bool(result.accepted))}
+        ${metric('Queue touched', bool(result.queueTouched || protection.queueTouched || resultResult.queueTouched))}
+        ${metric('Audio touched', bool(result.audioTouched || protection.audioTouched || resultResult.audioTouched))}
+      </div>
+      <details class="busdiag-details" open>
+        <summary>Dry-Run Ergebnis</summary>
+        <pre>${esc(compactJson(result))}</pre>
+      </details>
+    ` : `<p class="busdiag-muted">Noch kein Dry-Run ausgeführt. Der Test validiert nur einen Command-Payload und darf keine Queue und kein Audio anfassen.</p>`;
+
+    return card('Sound-Bus Dry-Run', `
+      <div class="busdiag-status-line">
+        ${badge(state.soundDryRunRunning ? 'läuft' : (canRun ? 'bereit' : 'nicht bereit'), state.soundDryRunRunning ? 'warning' : (canRun ? 'ok' : 'warning'))}
+        <span>POST /api/sound/eventbus/command/dry-run</span>
+      </div>
+      <div class="busdiag-metrics">
+        ${metric('Command', bool(commandOk))}
+        ${metric('Contract', bool(contractOk))}
+        ${metric('Lifecycle', bool(lifecycleOk))}
+        ${metric('Queue/Audio', 'nein')}
+      </div>
+      <div class="busdiag-actions-row">
+        <button class="busdiag-btn busdiag-btn-primary" data-busdiag-action="sound-dry-run" ${state.soundDryRunRunning || !canRun ? 'disabled' : ''}>Dry-Run testen</button>
+        <span class="busdiag-muted">Nur Diagnose: kein Play-Test, kein Sound, keine Queue.</span>
+      </div>
+      ${state.soundDryRunError ? `<div class="busdiag-alert warn">${esc(state.soundDryRunError)}</div>` : ''}
+      ${resultHtml}
+    `, 'busdiag-wide');
+  }
+
   function renderBusMatrixTab(){
     const matrix = state.busMatrix || getStatus().busIntegrationMatrix || {};
     const summary = matrix.summary || {};
@@ -728,6 +821,7 @@
         ${card('Sicherheitsgrenze', `<div class="busdiag-status-line">${badge('read-only', 'ok')}<span>keine Aktion wird ausgeführt</span></div><div class="busdiag-metrics">${metric('Queue touch', bool(matrix.queueTouched))}${metric('Sound touch', bool(matrix.soundSystemTouched))}${metric('Alert touch', bool(matrix.alertSystemTouched))}${metric('Overlay touch', bool(matrix.overlayTouched))}</div>`)}
       </div>
       ${setupHint}
+      ${renderSoundDryRunCard(matrix)}
       ${card('Systeme', `<div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
       ${todoHtml}
       ${card('Rohdaten Matrix', `<details class="busdiag-details"><summary>Matrix anzeigen</summary><pre>${esc(compactJson(matrix))}</pre></details>`, 'busdiag-wide')}
