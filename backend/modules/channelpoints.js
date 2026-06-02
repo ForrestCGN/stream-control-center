@@ -2806,10 +2806,10 @@ function buildChannelpointsSoundShadowDryRunAutoStatus() {
       noProductiveMigration: true
     },
     nextSteps: [
-      'Configure exactly one rewardKey only if the candidate is known.',
+      'Execute hook is installed but disabled by default.',
       'Keep enabled=false until the next explicit GO step decides otherwise.',
-      'Do not hook into EventSub/Execute in this CAN step.',
-      'Next step may add a guarded shadow-run hook for this one reward only.'
+      'Only rewardKey bauernweisheit is allowed for the shadow dry-run hook.',
+      'Next step may allow enabled=true for one controlled local test only.'
     ],
     updatedAt: nowIso()
   };

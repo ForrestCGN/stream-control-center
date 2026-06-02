@@ -1,13 +1,11 @@
 # CHANGELOG
 
-## CAN-24.14
+## CAN-24.15
 
-- Shadow-Hook im Channelpoints-Execute-Pfad vorbereitet.
-- Hook ist hart auf `rewardKey=bauernweisheit` begrenzt.
-- Hook ist default deaktiviert.
-- Auto-Status um Hook-/Counter-/LastResult-Felder erweitert.
-- Manuelle Auto-Test-Route ergaenzt.
-- Dashboard/Matrix zeigt Hook-Status und Counters.
+- Erfolgreichen Shadow-Hook Disabled-Test dokumentiert.
+- Veraltete `nextSteps` im Auto-Status korrigiert.
+- Kein `enabled=true`.
 - Keine produktive Migration.
 - Kein Sound-Play.
 - Keine Queue.
+- Keine Twitch-/Redemption-Aenderung.

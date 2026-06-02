@@ -3,8 +3,9 @@
 ## CAN-24
 
 - [x] CAN-24.14 Shadow-Hook fuer `bauernweisheit` vorbereiten.
-- [ ] CAN-24.15 Lokalen Shadow-Hook-Status testen.
-- [ ] Danach entscheiden, ob `enabled=true` fuer genau `bauernweisheit` testweise erlaubt ist.
+- [x] CAN-24.15 Lokalen Shadow-Hook Disabled-Test dokumentieren und Status-Text korrigieren.
+- [ ] CAN-24.16 Entscheidung, ob `enabled=true` fuer genau `bauernweisheit` und einen kontrollierten lokalen Shadow-DryRun-Test erlaubt ist.
+- [ ] Danach ggf. `enabled=true` Test vorbereiten.
 - [ ] Danach echten Redemption-/Execute-Shadow-Test planen.
 
 ## Weiterhin hart blockiert

@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.14 ZIP
+## CAN24.15 ZIP
 
 Enthaltene Dateien:
 
@@ -20,7 +20,8 @@ Enthaltene Dateien:
 - `docs/system-inspection/CAN24_12_MEDIAID_DRYRUN_SUCCESS.md`
 - `docs/system-inspection/CAN24_13_SHADOW_HOOK_DECISION_BOUNDARY.md`
 - `docs/system-inspection/CAN24_14_SHADOW_HOOK_ONE_REWARD_PREP.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_14.md`
+- `docs/system-inspection/CAN24_15_SHADOW_HOOK_DISABLED_TEST_SUCCESS.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_15.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
