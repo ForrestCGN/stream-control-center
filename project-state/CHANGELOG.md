@@ -1,8 +1,11 @@
 # CHANGELOG
 
-## CAN-25.3
+## CAN-25.4
 
-- Read-only Dashboard-/Backend-Checkscript fuer Sound-Shadow Summary Card ergaenzt.
-- Checkliste fuer lokale Sichtpruefung dokumentiert.
-- Keine Dashboard-Logik geaendert.
+- Dokumentation fuer Chatwechsel konsolidiert.
+- CAN-25.3 Testergebnis dokumentiert.
+- Bekannten Fehler der Sound-Shadow Summary Card dokumentiert.
+- TODO, NEXT_STEPS, CURRENT_STATUS und FILES aktualisiert.
+- Neue Chat-Handoff-Datei erstellt.
+- Keine Code-Logik geaendert.
 - Keine produktive Aktion ausgefuehrt.

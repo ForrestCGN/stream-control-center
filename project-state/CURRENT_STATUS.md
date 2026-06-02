@@ -1,22 +1,53 @@
 # CURRENT_STATUS
 
-## Stand: CAN-25.3 abgeschlossen
+## Stand: CAN-25.4 abgeschlossen
 
-CAN-25.3 stellt einen lokalen read-only Check fuer die Sound-Shadow Summary Card bereit.
+Dokumentation, TODO, Next Steps und Handoff wurden fuer einen neuen Chat aktualisiert.
 
-## Neu
+## Aktueller Arbeitsbereich
 
 ```text
-tools/can25_3_dashboard_shadow_check.cmd
+CAN-25: Dashboard/Bus-Diagnose fuer Sound-Shadow verbessern
 ```
 
-## Status
+## Letztes Testergebnis
 
-Dashboard-Check ist pending, weil lokale Sichtpruefung noetig ist.
+Der CAN-25.3 read-only Check lief sauber.
+
+Bestaetigt:
+
+```text
+Backend ok
+Bus-Matrix ok
+Channelpoints Shadow-Daten vorhanden
+keine produktive Aktion
+kein Sound-Play
+keine Queue-Aktion
+kein Enable/Disable
+```
+
+## Bekannter Fehler
+
+Die Sound-Shadow Summary Card zeigt aktuell `keine Daten`.
+
+Grund:
+
+```text
+Die Card liest nicht aus matrix.rows[id="channelpoints"].
+```
 
 ## Naechster Schritt
 
 ```text
-Script ausfuehren und Dashboard pruefen.
-Danach CAN-25.4 Ergebnis dokumentieren oder UI-Cleanup.
+CAN-25.5: Sound-Shadow Summary Card an echte Bus-Matrix-Row-Struktur anpassen.
+```
+
+## Weiterhin blockiert
+
+```text
+Produktive Sound-Bus-Migration
+Produktiver Sound-Bus-Play
+Hook fuer alle Rewards
+EventSub-/Twitch-Redemption-Test
+Schreibbuttons im Dashboard fuer Shadow
 ```

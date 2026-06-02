@@ -1,12 +1,11 @@
 # FILES
 
-## CAN25.3 ZIP
+## CAN25.4 ZIP
 
-Enthaltene/veraenderte Dateien:
+Enthaltene/aktualisierte Dateien:
 
-- `tools/can25_3_dashboard_shadow_check.cmd`
-- `docs/system-inspection/CAN25_3_DASHBOARD_SHADOW_CHECK_PENDING.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN25_3.md`
+- `docs/system-inspection/CAN25_4_DOCUMENTATION_AND_CHAT_HANDOFF.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN25_4.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -26,7 +25,8 @@ Weiter enthaltene Referenzdateien:
 - `tools/can24_8_check_routes.cmd`
 - `tools/can24_17_shadow_enabled_test.cmd`
 - `tools/can24_21_execute_shadow_test.cmd`
+- `tools/can25_3_dashboard_shadow_check.cmd`
 
 ## Hinweis
 
-CAN-25.3 ist ein lokaler Check-/Pending-Schritt. Keine Produktivlogik wurde geaendert.
+CAN-25.4 ist eine Dokumentations-/Handoff-Aktualisierung fuer einen neuen Chat. Keine Produktivlogik wurde geaendert.
