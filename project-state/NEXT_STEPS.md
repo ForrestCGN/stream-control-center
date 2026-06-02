@@ -3,12 +3,10 @@
 ## Naechster Schritt
 
 ```text
-CAN-25.1: vorhandene Dashboard-/Bus-Diagnose-Daten fuer Sound-Shadow inspizieren.
+CAN-25.2: Dashboard Sound-Shadow Summary Card read-only verbessern.
 ```
 
-## Ziel von CAN-25.1
-
-Festlegen, ob und wo im Dashboard noch folgende Felder besser sichtbar werden sollen:
+## Soll sichtbar werden
 
 ```text
 enabled
@@ -23,17 +21,17 @@ okCount
 failedCount
 lastAutoResult.accepted
 lastAutoResult.skipped
-lastAutoResult.reason
+lastSkipReason
 queueTouched
 audioTouched
 productiveMigration
 ```
 
-## Weiterhin blockiert
+## Nicht bauen
 
 ```text
-Keine produktive Sound-Bus-Migration.
-Kein produktiver Sound-Bus-Play.
-Kein Hook fuer alle Rewards.
-Kein EventSub-/Twitch-Redemption-Test.
+Keine Schreibbuttons.
+Kein Test-Button.
+Kein Migration-Button.
+Kein Sound-Play.
 ```

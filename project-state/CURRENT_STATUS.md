@@ -1,26 +1,20 @@
 # CURRENT_STATUS
 
-## Stand: CAN-25.0 abgeschlossen
+## Stand: CAN-25.1 abgeschlossen
 
-CAN-24 Sound-Shadow-Stufe ist abgeschlossen.
-
-CAN-25 startet mit der sicheren Richtung:
-
-```text
-Dashboard/Bus-Diagnose fuer Sound-Shadow verbessern.
-```
-
-## Keine produktive Migration
-
-```text
-Produktive Sound-Bus-Migration: nein
-Produktiver Sound-Bus-Play: nein
-Hook fuer alle Rewards: nein
-EventSub-/Twitch-Redemption-Test: nein
-```
+CAN-25.1 hat die vorhandenen Sound-Shadow-Diagnosefelder inspiziert und die sichtbaren Felder fuer eine Dashboard-Summary definiert.
 
 ## Naechster Schritt
 
 ```text
-CAN-25.1: vorhandene Dashboard-/Bus-Diagnose-Daten inspizieren und fehlende Sichtfelder festlegen.
+CAN-25.2: Dashboard Sound-Shadow Summary Card read-only verbessern.
+```
+
+## Sicherheitsgrenze
+
+```text
+Nur read-only UI.
+Keine Schreibbuttons.
+Keine Produktiv-Migration.
+Kein Sound-Bus-Play.
 ```

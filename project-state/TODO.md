@@ -2,10 +2,10 @@
 
 ## CAN-25
 
-- [x] CAN-25.0 Entscheidung: Dashboard/Bus-Diagnose fuer Sound-Shadow verbessern.
-- [ ] CAN-25.1 vorhandene Dashboard-/Bus-Diagnose-Daten inspizieren.
-- [ ] CAN-25.2 ggf. Sound-Shadow Summary Card verbessern.
-- [ ] Danach entscheiden, ob weiterer Reward, Dashboard-Verfeinerung oder produktive Migration separat geplant wird.
+- [x] CAN-25.1 vorhandene Dashboard-/Bus-Diagnose-Daten inspizieren.
+- [ ] CAN-25.2 Dashboard Sound-Shadow Summary Card read-only verbessern.
+- [ ] Danach lokal Dashboard pruefen.
+- [ ] Danach ggf. UI-Cleanup dokumentieren.
 
 ## Weiterhin hart blockiert
 
