@@ -72,8 +72,9 @@
 
 - [x] CAN-33.0 neuen Arbeitsblock bewusst auswählen.
 - [x] CAN-33.1 Commands-Modul analysieren.
-- [ ] CAN-33.2 Commands-Modul Doku und Read-only Diagnose-Regeln ergänzen.
-- [ ] CAN-33.3 optional: Commands Dashboard Read-only Diagnosekarte planen.
+- [x] CAN-33.2 Commands-Modul Doku und Read-only Diagnose-Regeln ergänzen.
+- [ ] CAN-33.3 Commands Dashboard Read-only Diagnosekarte anwenden und prüfen.
+- [ ] CAN-33.4 Testergebnis dokumentieren.
 
 ## Offene/zu beobachtende Punkte
 

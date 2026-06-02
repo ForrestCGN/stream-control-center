@@ -1,47 +1,43 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-33.2
+## Aktueller Arbeitsstand CAN-33.3
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
 ```text
-docs/modules/commands.md
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/commands_readonly_diagnostics.js
+htdocs/dashboard/modules/commands_readonly_diagnostics.css
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN33_2.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN33_3.md
 ```
 
 ## CAN-33 ZIPs aus dem Chat
 
 ```text
 CAN-33.2_commands_module_docs_readonly_rules.zip
+CAN-33.3_commands_dashboard_readonly_diagnostics.zip
 ```
 
-## CAN-33 Analyse-relevante Dateien
+## Wichtige Sicherheitsnotiz
 
 ```text
-backend/modules/commands.js
-backend/modules/commands_media.js
-htdocs/dashboard/modules/commands.js
-htdocs/dashboard/modules/commands.css
+htdocs/dashboard/modules/commands.js bleibt unverändert.
+backend/modules/commands.js bleibt unverändert.
+Die neue Karte nutzt nur read-only GET-Routen.
 ```
 
-## Neue Doku
+## Prüfung
 
 ```text
-docs/modules/commands.md
-```
-
-## Sicherheitsnotiz
-
-```text
-CAN-33.2 ändert keinen Runtime-Code.
-Keine Execute-/Upsert-/Delete-Tests.
-Keine Command-Ausführung.
-Keine DB-Migration.
+Dashboard > Commands > Diagnose
+Commands Read-only Diagnose sichtbar.
+Produktive Routen als gesperrt markiert.
+Keine Execute-/Upsert-/Delete-Buttons.
 ```
 
 ## Lokale Pfade

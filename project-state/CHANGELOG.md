@@ -1,25 +1,32 @@
 # CHANGELOG
 
+## CAN-33.3
+
+- Commands-Dashboard Read-only-Diagnosekarte vorbereitet.
+- Neue Dateien:
+  - `htdocs/dashboard/modules/commands_readonly_diagnostics.js`
+  - `htdocs/dashboard/modules/commands_readonly_diagnostics.css`
+- Geändert:
+  - `htdocs/dashboard/index.html` lädt CSS/JS nach dem bestehenden Commands-Modul.
+- Nicht geändert:
+  - `htdocs/dashboard/modules/commands.js`
+  - `backend/modules/commands.js`
+- Die Karte nutzt nur:
+  - `GET /api/commands/status`
+  - `GET /api/commands/list`
+  - `GET /api/commands/logs?limit=15`
+  - `GET /api/commands/catalog`
+- Gesperrt/nicht genutzt:
+  - `/api/commands/execute`
+  - `/api/commands/upsert`
+  - `/api/commands/delete`
+- Keine produktiven Aktionen, keine Command-Ausführung, keine DB-Migration.
+
 ## CAN-33.2
 
-- Commands-Modul-Doku vorbereitet:
+- Commands-Modul-Doku ergänzt:
   - `docs/modules/commands.md`
-- Dokumentiert:
-  - Modulzweck
-  - MODULE_META / Version / Build
-  - Backend-Routen
-  - Dashboard-Routen
-  - Status-Endpunkt
-  - DryRun/Test vs Execute
-  - Read-only Routen
-  - produktive/potenziell produktive Routen
-  - Sicherheitsregeln für spätere Diagnosekarten
-- Keine Codeänderung.
-- Keine Command-Funktion geändert.
-- Keine Chat-Ausgaben geändert.
-- Keine DB-Migration.
-- Keine produktiven Buttons.
-- Keine Execute-/Upsert-/Delete-Tests.
+- Read-only-/Produktiv-Regeln dokumentiert.
 
 ## CAN-33.1
 
@@ -32,9 +39,3 @@
 ## CAN-32.2
 
 - Erfolgreiche Dashboard-Sichtprüfung von CAN-32.1 dokumentiert.
-- Bus-Diagnose Read-only-Sicherheitskarte sichtbar geprüft.
-
-## CAN-31.2
-
-- Erfolgreichen Live-Test von CAN-31.1 dokumentiert.
-- WebSocket-Connect-Spam wurde durch Summary-Zeilen ersetzt.

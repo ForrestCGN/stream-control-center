@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-33.2 vorbereitet
+## Stand: CAN-33.3 vorbereitet
 
-CAN-33.2 ergänzt eine dedizierte Commands-Modul-Doku mit Read-only-/Produktiv-Regeln.
+CAN-33.3 ergänzt eine nachgeladene Read-only-Diagnosekarte im Commands-Dashboard.
 
 ## Aktueller Arbeitsbereich
 
@@ -10,90 +10,85 @@ CAN-33.2 ergänzt eine dedizierte Commands-Modul-Doku mit Read-only-/Produktiv-R
 CAN-33: Commands-Modul Status/Doku/Diagnose prüfen und glätten
 ```
 
-## Ergebnis CAN-33.1 Analyse
+## Änderung CAN-33.3
 
-Das Commands-Modul ist grundsätzlich sauber aufgestellt:
-
-```text
-backend/modules/commands.js
-MODULE_NAME = commands
-MODULE_VERSION = 0.1.6
-MODULE_BUILD = channel-guard
-API_PREFIX = /api/commands
-```
-
-Vorhanden:
+Betroffene Dateien:
 
 ```text
-MODULE_META
-MODULE_VERSION Export
-getStatus/statusPayload
-Routenliste via buildRoutes()
-Dashboard-Anbindung
-DryRun/Testpfad
-Execution-Log
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/commands_readonly_diagnostics.js
+htdocs/dashboard/modules/commands_readonly_diagnostics.css
+project-state/*
+docs/current/CURRENT_CHAT_HANDOFF_CAN33_3.md
 ```
 
-Nicht vorhanden war bisher:
+Wichtig:
 
 ```text
-docs/modules/commands.md
+htdocs/dashboard/modules/commands.js bleibt unverändert.
+backend/modules/commands.js bleibt unverändert.
 ```
 
-## Änderung CAN-33.2
+## Neue Dashboard-Karte
 
-Neu:
+Ort:
 
 ```text
-docs/modules/commands.md
+Dashboard > Commands > Diagnose
 ```
 
-Darin festgehalten:
+Karte:
 
 ```text
-- Modulzweck
-- Backend-Routen
-- Dashboard-Routen
-- Status-Endpunkt
-- DryRun/Test vs Execute
-- Read-only Routen
-- Produktive Routen
-- Sicherheitsregeln für spätere Diagnosekarten
+Commands Read-only Diagnose
 ```
 
-## Wichtigste Sicherheitsentscheidung
+Sie zeigt:
 
-Read-only Diagnose darf nur lesende bzw. sichere Diagnose-Endpunkte nutzen:
+```text
+Modulversion
+Build
+Status OK
+Schema OK
+Light Status
+Schema Touch
+Command-Anzahl
+Log-Anzahl
+Katalog-Kategorien
+Katalog-Aktionen
+Read-only Routen erlaubt
+Produktive Routen gesperrt
+```
+
+## Sicherheit
+
+Die Karte nutzt nur:
 
 ```text
 GET /api/commands/status
 GET /api/commands/list
+GET /api/commands/logs?limit=15
 GET /api/commands/catalog
-GET /api/commands/logs
-GET /api/commands/history
-GET /api/commands/media-command-preview
 ```
 
-Nicht automatisch verwenden:
+Nicht genutzt:
 
 ```text
-POST /api/commands/upsert
-POST /api/commands/delete
-GET/POST /api/commands/execute
+/api/commands/execute
+/api/commands/upsert
+/api/commands/delete
 ```
-
-`/api/commands/test` nur als DryRun/Parse-Test.
 
 ## Nicht geändert
 
 ```text
-Keine Codeänderung.
-Keine Command-Funktion geändert.
-Keine Chat-Ausgaben geändert.
-Keine Twitch-/Streamer.bot-Aktion.
-Keine DB-Migration.
-Keine produktiven Buttons.
+Keine Backend-Dateien.
+Keine API-Routen.
+Keine Command-Funktion.
+Keine Chat-Ausgaben.
 Keine Execute-/Upsert-/Delete-Tests.
+Keine DB-Migration.
+Keine Twitch-/Streamer.bot-Aktion.
 Keine OBS-/Sound-/Queue-Aktion.
 Keine Funktionalität entfernt.
 ```
@@ -101,6 +96,5 @@ Keine Funktionalität entfernt.
 ## Nächster Schritt
 
 ```text
-CAN-33.2 anwenden.
-Danach optional CAN-33.3 Commands Dashboard Read-only Diagnosekarte planen.
+CAN-33.3 anwenden und Dashboard-Sichtprüfung machen.
 ```

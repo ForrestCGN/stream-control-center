@@ -3,34 +3,39 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-33.2 anwenden.
+CAN-33.3 anwenden und Dashboard-Sichtprüfung machen.
+```
+
+## Prüfung
+
+```text
+Dashboard > Commands > Diagnose
+```
+
+Erwartung:
+
+```text
+Commands Read-only Diagnose sichtbar.
+READ-ONLY OK oder prüfen sichtbar.
+Modulversion/Build sichtbar.
+Read-only Routen als erlaubt sichtbar.
+Produktive Routen als gesperrt sichtbar.
+Keine Execute-/Upsert-/Delete-Buttons.
 ```
 
 ## Danach sinnvoll
 
 ```text
-CAN-33.3 - Commands Dashboard Read-only Diagnosekarte planen
+CAN-33.4 Testergebnis dokumentieren.
 ```
 
-Möglicher Inhalt:
+## Mögliche Kandidaten danach
 
 ```text
-- Modulversion anzeigen
-- Status ok/schema ok anzeigen
-- Anzahl Commands anzeigen
-- Anzahl Logs anzeigen
-- Produktive Routen sichtbar als gesperrt markieren
-- Keine Execute-/Upsert-/Delete-Buttons
-```
-
-## Zuletzt abgeschlossen
-
-```text
-CAN-29: Discord ready/clientReady DeprecationWarning behoben.
-CAN-30: SQLite ExperimentalWarning analysiert und dokumentiert/akzeptiert.
-CAN-31: WS connect/disconnect Log durch Summary entschärft und live bestätigt.
-CAN-32: Bus-Diagnose Übersicht um read-only Sicherheits-Zusammenfassung erweitert und sichtbar geprüft.
-CAN-33.1: Commands-Modul analysiert.
+1. Commands-Diagnosekarte bei Bedarf optisch glätten.
+2. Nächstes Modul an Status-/Doku-Regeln anpassen.
+3. EventBus read-only Diagnose weiter ausbauen.
+4. Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
