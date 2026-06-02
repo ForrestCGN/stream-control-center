@@ -1,38 +1,29 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.2 abgeschlossen
+## Stand: CAN-23.3 abgeschlossen
 
-CAN-23.2 hat die read-only Bus-Integration-Matrix im Dashboard sichtbar gemacht.
+CAN-23.3 hat die Bus-Integration-Matrix um Sound-Bus-Command-Readiness erweitert.
 
 ## Neu
 
 ```text
-backend/modules/bus_integration_matrix.js
-htdocs/dashboard/modules/bus_diagnostics.js
-htdocs/dashboard/modules/bus_diagnostics.css
+GET /api/sound/eventbus/command/status
 ```
 
-## Dashboard
-
-```text
-Bus-Diagnostics -> Tab "Bus-Matrix"
-```
+wird read-only durch `backend/modules/bus_integration_matrix.js` ausgewertet.
 
 ## Sicherheitsstatus
 
 ```text
 readOnly: true
-dbChanged: false
+soundPlayed: false
+queueTouched: false
 eventBusEmit: false
 recoveryExecution: false
-queueTouched: false
-soundSystemTouched: false
-alertSystemTouched: false
-overlayTouched: false
 ```
 
 ## Naechster Schritt
 
 ```text
-Sound-System ueber Bus-Request/ACK/Fehler/Queue-Status vorbereiten
+Sound-Request/ACK/Fehler/Queue-Status sauber definieren und produktionssicher vorbereiten.
 ```

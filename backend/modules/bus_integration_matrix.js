@@ -36,6 +36,7 @@ const ENDPOINTS = {
   communication: '/api/communication/status',
   soundEventBus: '/api/sound/eventbus/status',
   soundStatus: '/api/sound/status',
+  soundCommandStatus: '/api/sound/eventbus/command/status',
   alertEventBus: '/api/alerts/eventbus/status',
   alertStatus: '/api/alerts/status',
   alertCorrelation: '/api/alerts/eventbus/correlation/status',
@@ -68,6 +69,8 @@ const SYSTEMS = [
     statusRoute: ENDPOINTS.soundStatus,
     eventBusKey: 'soundEventBus',
     eventBusRoute: ENDPOINTS.soundEventBus,
+    commandKey: 'soundCommandStatus',
+    commandRoute: ENDPOINTS.soundCommandStatus,
     commandStatus: 'partial',
     legacyDirect: true,
     nextStep: 'Als erstes Modul sauber ueber Bus-Requests/ACKs steuerbar machen.'
@@ -271,10 +274,12 @@ function buildSystemRow(system, clients, fetched) {
   const statusFetch = system.statusKey ? fetched[system.statusKey] : null;
   const eventBusFetch = system.eventBusKey ? fetched[system.eventBusKey] : null;
   const integrationFetch = system.integrationKey ? fetched[system.integrationKey] : null;
+  const commandFetch = system.commandKey ? fetched[system.commandKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
   const integrationBody = bodyOf(integrationFetch);
+  const commandBody = bodyOf(commandFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -282,6 +287,7 @@ function buildSystemRow(system, clients, fetched) {
   const statusOk = statusFetch ? statusFetch.ok === true && (!statusBody || statusBody.ok !== false) : null;
   const eventBusOk = eventBusFetch ? eventBusFetch.ok === true && (!eventBusBody || eventBusBody.ok !== false) : null;
   const integrationOk = integrationFetch ? integrationFetch.ok === true && (!integrationBody || integrationBody.ok !== false) : null;
+  const commandOk = commandFetch ? commandFetch.ok === true && (!commandBody || commandBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -295,7 +301,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk });
 
   return {
     id: system.id,
@@ -314,6 +320,13 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     integrationRoute: system.integrationRoute || '',
     integrationOk,
+    commandRoute: system.commandRoute || '',
+    commandOk,
+    commandFeature: commandBody && commandBody.feature ? commandBody.feature : '',
+    commandMode: commandBody && commandBody.mode ? commandBody.mode : '',
+    commandDryRunAvailable: !!(commandBody && commandBody.commandRoutes && commandBody.commandRoutes.dryRun),
+    commandPlayTestAvailable: !!(commandBody && commandBody.commandRoutes && commandBody.commandRoutes.playTest),
+    commandQueueTouchAllowed: !!(commandBody && commandBody.safety && commandBody.safety.allowQueueTouch),
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -338,7 +351,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false) return 'warning';
   return 'ok';
 }
 

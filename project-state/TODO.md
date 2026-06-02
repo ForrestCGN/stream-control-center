@@ -5,8 +5,11 @@
 - [x] CAN-23.0 Read-only Bus-Integration-Matrix als Backend-Modul ergaenzen.
 - [x] CAN-23.1 Upload-Stand gegen Bus-Integration pruefen.
 - [x] CAN-23.2 Dashboard-Anzeige fuer `/api/bus-integration-matrix/status` bauen.
-- [x] Bus-Diagnostics Dashboard um Tab `Bus-Matrix` erweitern.
-- [ ] Sound-System: Bus-Request/ACK/Fehler/Queue-Status als erster echter Kommunikationsschritt.
+- [x] CAN-23.3 Sound-Bus-Command-Readiness in Bus-Matrix aufnehmen.
+- [ ] Sound-System: Request/ACK/Fehler/Queue-Status-Vertrag definieren.
+- [ ] Sound-System: produktive `/api/sound/play`-Logik auf Bus-Request-Kompatibilitaet pruefen.
+- [ ] Sound-System: ACK/Started/Queued/Failed/Finished Events vereinheitlichen.
+- [ ] Sound-System: Queue-Status in Bus-Matrix/Status sauber sichtbar machen.
 - [ ] Alert-System: Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus vereinheitlichen.
 - [ ] VIP-Sound-Overlay: Show/Hide/Update/ACK ueber Bus pruefen und danach anbinden.
 - [ ] Overlay-Monitor: Overlay-Clients/Heartbeat als Kontrollsicht fuer aktive Szenen nutzen.

@@ -3,15 +3,33 @@
 ## Naechster Schritt
 
 ```text
-Sound-System ueber Bus-Request/ACK/Fehler/Queue-Status vorbereiten
+Sound-Request/ACK/Fehler/Queue-Status sauber definieren und produktionssicher vorbereiten.
+```
+
+## Ziel
+
+Nicht sofort Sound abspielen, sondern zuerst den Bus-Kommunikationsvertrag fuer Sound klaeren:
+
+```text
+Request-ID
+Command
+Source
+RequestedBy
+Priority
+Queue-Status
+ACK/Accepted
+Started
+Queued
+Failed
+Finished
+Timeout
 ```
 
 ## Danach
 
 ```text
-Alert-System ueber Bus-Request/Overlay-ACK/Sound-ACK/Finish-ACK
-VIP-Sound-Overlay Show/Hide/Update/ACK
-Overlay-Monitor als Kontrollsicht
-Channelpoints schrittweise ueber Bus-Requests
+Alert-System an Sound-Bus-Status koppeln
+VIP/Overlay nachziehen
+Channelpoints nachziehen
 Recovery/Selbstheilung spaeter
 ```
