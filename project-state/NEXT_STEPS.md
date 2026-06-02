@@ -3,27 +3,25 @@
 ## Naechster Schritt
 
 ```text
-CAN-22.3 - Safety Architecture Backend Shape Internal Function Code Plan no-code
+CAN-22.4 - Safety Architecture Backend Shape Test and Rollback Plan no-code
 ```
 
-## Ziel CAN-22.3
+## Ziel CAN-22.4
 
-Konkret planen, wie eine spaetere interne Funktion in `backend/modules/bus_diagnostics.js` aussehen duerfte, ohne Code zu schreiben.
+Planen, welche Tests, Abnahmen und Rollback-Grenzen fuer eine spaetere echte Implementierung noetig waeren.
 
-## CAN-22.3 darf klaeren
+## CAN-22.4 darf klaeren
 
 ```text
-moegliche Position in der Datei
-Funktionsname
-Eingaben
-Ausgabe
-genutzte bestehende Felder
-harte Default-Werte
-No-Mutation-Grenzen
-spaetere Tests
+Syntax-Tests
+Runtime-Checks
+Negative Checks
+Rollback-Regeln
+Abnahme-Kriterien
+Welche Dateien bei echtem Code-Step betroffen sein duerfen
 ```
 
-## CAN-22.3 darf NICHT enthalten
+## CAN-22.4 darf NICHT enthalten
 
 ```text
 Code-Aenderung
