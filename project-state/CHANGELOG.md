@@ -1,12 +1,11 @@
 # CHANGELOG
 
-## CAN-20.0
+## CAN-20.1
 
-- Safety Architecture Backend Shape read-only/no-route geplant.
-- Root, Overall, Module, Audit, SafetyStop, Roles/Rights, Confirm und RecoveryExecution Shapes dokumentiert.
-- HardBlockedActions, TechnicalBoundaries, Warning und Notes Shapes geplant.
-- No-route-/No-code-/No-mock-Regeln festgelegt.
-- CAN-20.1 Safety Architecture Backend Shape Validation Planning als naechster Schritt festgelegt.
+- Safety Architecture Backend Shape Validation geplant.
+- Pflichtfelder, Typregeln, Root-, Overall-, Module-, RecoveryExecution-, HardBlocker- und TechnicalBoundaries-Checks dokumentiert.
+- Fail-safe-Regeln fuer spaetere Validierung festgelegt.
+- CAN-20.2 Safety Architecture Backend Shape Planning Closure / Handoff als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

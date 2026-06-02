@@ -3,26 +3,21 @@
 ## Naechster Schritt
 
 ```text
-CAN-20.1 - Safety Architecture Backend Shape Validation Planning
+CAN-20.2 - Safety Architecture Backend Shape Planning Closure / Handoff
 ```
 
-## Ziel CAN-20.1
+## Ziel CAN-20.2
 
-Planen, wie ein spaeteres internes Backend-Shape validiert werden muesste, ohne Code oder Route zu bauen.
+Den CAN-20 Backend-Shape-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
 
-## CAN-20.1 darf klaeren
+## CAN-20.2 soll zusammenfassen
 
 ```text
-Pflichtfelder
-Typregeln
-Fail-safe Checks
-Mutation Checks
-HardBlocker Checks
-Module Checks
-Warning/Error-Regeln
+CAN-20.0 Backend Shape read-only/no-route
+CAN-20.1 Backend Shape Validation Planning
 ```
 
-## CAN-20.1 darf NICHT enthalten
+## CAN-20.2 darf NICHT enthalten
 
 ```text
 API
@@ -36,4 +31,5 @@ SafetyStop Clear
 Confirm Trigger
 Rollen-/Rechte-Mutation
 Queue-/Sound-/Alert-/Overlay-Mutation
+Validation-Code
 ```
