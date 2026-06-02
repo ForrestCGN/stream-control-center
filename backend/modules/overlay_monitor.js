@@ -853,9 +853,11 @@ function buildOverlaySceneAwarenessMap(overlays = []) {
 function applyOverlaySceneAwareness(overlay = {}, awarenessRecord = null) {
   const record = awarenessRecord || null;
   const rawStatus = cleanString(overlay.status || 'unknown').toLowerCase();
-  const expectedInactive = !!(record && record.expectedInactive === true);
+  const expectedInactiveAny = !!(record && record.expectedInactive === true);
   const expectedIdle = !!(record && record.expectedIdle === true);
-  const monitorStatus = expectedInactive ? 'expected_inactive' : (expectedIdle ? 'expected_idle' : rawStatus);
+  const expectedInactive = expectedInactiveAny && !expectedIdle;
+  const expectedNotActive = expectedInactiveAny || expectedIdle;
+  const monitorStatus = expectedIdle ? 'expected_idle' : (expectedInactive ? 'expected_inactive' : rawStatus);
   const monitorRisk = overlayMonitorRiskFromStatus(monitorStatus);
 
   return {
@@ -866,6 +868,7 @@ function applyOverlaySceneAwareness(overlay = {}, awarenessRecord = null) {
     activeExpected: record ? record.activeExpected === true : null,
     expectedInactive,
     expectedIdle,
+    expectedNotActive,
     sceneAwareness: record ? {
       known: record.known === true,
       currentProgramSceneName: cleanString(record.currentProgramSceneName),
@@ -875,6 +878,8 @@ function applyOverlaySceneAwareness(overlay = {}, awarenessRecord = null) {
       activeExpected: record.activeExpected === true,
       expectedInactive,
       expectedIdle,
+      expectedNotActive,
+      expectedInactiveRaw: expectedInactiveAny,
       sources: Array.isArray(record.sources) ? record.sources.slice(0, 10) : []
     } : {
       known: false,
@@ -885,6 +890,8 @@ function applyOverlaySceneAwareness(overlay = {}, awarenessRecord = null) {
       activeExpected: null,
       expectedInactive: false,
       expectedIdle: false,
+      expectedNotActive: false,
+      expectedInactiveRaw: false,
       sources: []
     }
   };
@@ -1281,6 +1288,7 @@ function buildSummary(overlays) {
     dead: 0,
     expectedInactive: 0,
     expectedIdle: 0,
+    expectedNotActive: 0,
     withHeartbeat: 0,
     withoutHeartbeat: 0,
     connected: 0,
@@ -1292,15 +1300,21 @@ function buildSummary(overlays) {
 
   for (const overlay of overlays) {
     const monitorStatus = cleanString(overlay.monitorStatus || overlay.status || 'unknown').replace(/_([a-z])/g, (_, chr) => chr.toUpperCase());
-    const summaryKey = monitorStatus === 'expectedInactive' ? 'expectedInactive' : (monitorStatus === 'expectedIdle' ? 'expectedIdle' : monitorStatus);
+    const expectedIdle = overlay.expectedIdle === true;
+    const expectedInactive = overlay.expectedInactive === true && !expectedIdle;
+    const expectedNotActive = expectedIdle || expectedInactive || overlay.expectedNotActive === true;
+    const summaryKey = expectedIdle ? 'expectedIdle' : (expectedInactive ? 'expectedInactive' : monitorStatus);
     if (Object.prototype.hasOwnProperty.call(summary, summaryKey)) summary[summaryKey] += 1;
     if (overlay.connected) summary.connected += 1;
     else summary.disconnected += 1;
     if (overlay.hasHeartbeat) summary.withHeartbeat += 1;
     else summary.withoutHeartbeat += 1;
     if (overlay.activeExpected === true) summary.activeExpected += 1;
-    if (overlay.expectedInactive === true) summary.inactiveExpected += 1;
-    if (!overlay.expectedInactive && !overlay.expectedIdle && (overlay.lastErrorAt || overlay.disconnectReason)) summary.withErrors += 1;
+    if (expectedNotActive) {
+      summary.expectedNotActive += 1;
+      summary.inactiveExpected += 1;
+    }
+    if (!expectedNotActive && (overlay.lastErrorAt || overlay.disconnectReason)) summary.withErrors += 1;
   }
 
   summary.status = summary.dead > 0 || summary.offline > 0 ? 'error' : (summary.stale > 0 || summary.registered > 0 || summary.withoutHeartbeat > 0 || summary.withErrors > 0 ? 'warning' : 'ok');
@@ -1682,9 +1696,10 @@ function buildOverlayClientControlStatus() {
     const rawEffectiveStatus = !connected
       ? 'offline'
       : (dead ? 'dead' : (stale ? 'stale' : (hasHeartbeat ? 'online' : (clientStatus || 'unknown'))));
-    const expectedInactive = client.expectedInactive === true;
     const expectedIdle = client.expectedIdle === true;
-    const effectiveStatus = expectedInactive ? 'expected_inactive' : (expectedIdle ? 'expected_idle' : rawEffectiveStatus);
+    const expectedInactive = client.expectedInactive === true && !expectedIdle;
+    const expectedNotActive = expectedIdle || expectedInactive || client.expectedNotActive === true;
+    const effectiveStatus = expectedIdle ? 'expected_idle' : (expectedInactive ? 'expected_inactive' : rawEffectiveStatus);
     const risk = overlayMonitorRiskFromStatus(effectiveStatus);
     const productiveHint = !/test|debug|demo|preview|sample|old|alt/i.test([
       client.id,
@@ -1706,6 +1721,7 @@ function buildOverlayClientControlStatus() {
       activeExpected: client.activeExpected,
       expectedInactive,
       expectedIdle,
+      expectedNotActive,
       sceneAwareness: client.sceneAwareness || null,
       hasHeartbeat,
       lastHeartbeatAt,
@@ -1731,8 +1747,9 @@ function buildOverlayClientControlStatus() {
     heartbeat: rows.filter(row => row.hasHeartbeat).length,
     stale: rows.filter(row => row.stale && row.expectedInactive !== true && row.expectedIdle !== true).length,
     dead: rows.filter(row => row.dead && row.expectedInactive !== true && row.expectedIdle !== true).length,
-    expectedInactive: rows.filter(row => row.expectedInactive === true).length,
+    expectedInactive: rows.filter(row => row.expectedInactive === true && row.expectedIdle !== true).length,
     expectedIdle: rows.filter(row => row.expectedIdle === true).length,
+    expectedNotActive: rows.filter(row => row.expectedNotActive === true || row.expectedInactive === true || row.expectedIdle === true).length,
     activeExpected: rows.filter(row => row.activeExpected === true).length,
     productiveHint: rows.filter(row => row.productiveHint).length,
     testOrLegacyHint: rows.filter(row => row.testOrLegacyHint).length
