@@ -1121,6 +1121,31 @@ function renderSoundMigrationCandidateCard(matrix){
         <div class="busdiag-note-item">Keine produktive Aktion erforderlich: Diese Zusammenfassung ist rein lokal/read-only und veraendert keine Queue, keinen Sound, keine Redemption und Twitch nicht.</div>
       </div>
     `, 'busdiag-wide');
+    const alertRow = allRows.find(row => row && row.id === 'alert_system') || null;
+    const alertWarningActive = !!(alertRow && rowRisk(alertRow) === 'warning');
+    const alertLegacyCount = Number(alertRow && alertRow.legacyDirectSummary && alertRow.legacyDirectSummary.total || 0);
+    const alertLegacyProductive = Number(alertRow && alertRow.legacyDirectSummary && alertRow.legacyDirectSummary.productive || 0);
+    const alertAckSummary = alertRow ? `Overlay ${String(alertRow.overlayAckCount || 0)} · Missing ${String(alertRow.overlayMissingAckCount || 0)} · Sound ${String(alertRow.soundMatchedCount || 0)} · Finish Missing ${String(alertRow.finishAckMissingCount || 0)}` : '-';
+    const alertDiagnosisHtml = alertRow ? card('Alert-System Diagnose-Zusammenfassung', `
+      <div class="busdiag-status-line">
+        ${badge(alertWarningActive ? 'warning sichtbar' : 'read-only Diagnose', alertWarningActive ? 'warning' : 'ok')}
+        <span>${esc(alertRow.statusRoute || '/api/alerts/status')}</span>
+      </div>
+      <div class="busdiag-metrics">
+        ${metric('EventBus', alertRow.eventBusOk === null ? '-' : bool(alertRow.eventBusOk))}
+        ${metric('ACK Status', alertRow.ackStatusOk === null ? '-' : bool(alertRow.ackStatusOk))}
+        ${metric('ACK Werte', alertAckSummary, '', 'busdiag-metric-wide')}
+        ${metric('Contract', alertRow.alertContractOk === null ? '-' : bool(alertRow.alertContractOk))}
+        ${metric('Dry-Run', alertRow.alertDryRunOk === null ? '-' : bool(alertRow.alertDryRunOk))}
+        ${metric('Legacy/direct', `${String(alertLegacyCount)} Pfade · produktiv ${String(alertLegacyProductive)}`, '', 'busdiag-metric-wide')}
+      </div>
+      <div class="busdiag-note-list" style="margin-top:10px;">
+        <div class="busdiag-note-item"><strong>Bewertung:</strong> Alert-System ist erreichbar, aber ACK-/Finish-ACK-/Legacy-direct-Status muss vor spaeterer Automatik sauber bewertet werden.</div>
+        <div class="busdiag-note-item"><strong>Naechster Fokus:</strong> Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus sauber definieren.</div>
+        <div class="busdiag-note-item">Keine produktive Aktion erforderlich: Diese Diagnose startet keinen Alert, keinen Sound, keine Queue und aendert keine OBS-/Twitch-/Redemption-Daten.</div>
+      </div>
+    `, 'busdiag-wide') : '';
+
     const filterItems = [
       ['all', 'Alle'],
       ['warnings', 'Warnungen'],
@@ -1251,6 +1276,7 @@ function renderSoundMigrationCandidateCard(matrix){
       </div>
       ${setupHint}
       ${diagnosisHtml}
+      ${alertDiagnosisHtml}
       ${renderSoundDryRunCard(matrix)}
       ${renderSoundShadowSummaryCard(matrix)}
 ${renderSoundMigrationCandidateCard(matrix)}
