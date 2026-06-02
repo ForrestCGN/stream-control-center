@@ -6212,6 +6212,7 @@ function sanitizeFilename(name) {
 }
 function safeExt(ext) { return /^[.][a-z0-9]{1,8}$/i.test(ext) ? ext.toLowerCase() : ''; }
 function cleanText(v) { return String(v ?? '').trim().slice(0, 500); }
+function objectValue(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 function validateCelebration(value) {
   const v = normalizeCelebrationAlias(value);
   return ['none','heart_rain','sparkle_rain'].includes(v) ? v : 'none';
