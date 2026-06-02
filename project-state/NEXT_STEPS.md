@@ -3,23 +3,26 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.6: Abschluss/Entscheidung, ob ein produktiver Caller spaeter testweise mit Shadow-DryRun mitlaufen darf.
+CAN-24.7: Channelpoints Sound Shadow-DryRun Mitlauf fuer genau einen Reward vorbereiten
 ```
 
-## Entscheidungsfragen
+## Ziel
+
+Ein einzelner explizit ausgewaehlter Channelpoints-Sound-Reward darf spaeter beim echten produktiven Legacy-Flow zusaetzlich einen diagnostischen Shadow-DryRun erzeugen.
+
+## Wichtig
 
 ```text
-Soll Shadow-DryRun beim echten EventSub-Redemption-Eingang mitlaufen?
-Nur fuer genau einen Reward?
-Default aus?
-Dashboard-Config noetig?
-Welche Logs/Audit-Eintraege muessen vorher sichtbar sein?
-```
-
-## Weiter blockiert
-
-```text
-Keine produktive Migration ohne eigenen kleinen Go-Schritt.
-Kein Sound-Play ueber Testbutton.
+Default aus.
+Nur ein Reward-Key.
+Legacy-Flow bleibt unveraendert.
+Kein Sound-Play ueber Bus.
+Keine Queue.
 Keine Redemption-/Twitch-Aenderung.
+```
+
+## Danach
+
+```text
+CAN-24.8: Live-Test-Auswertung des Shadow-DryRun-Mitulaufs.
 ```

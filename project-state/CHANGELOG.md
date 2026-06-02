@@ -1,12 +1,9 @@
 # CHANGELOG
 
-## CAN-24.5
+## CAN-24.6
 
-- Shadow-DryRun Evaluation Helper ergaenzt.
-- `GET /api/channelpoints/bus/sound-shadow-dry-run/evaluation` ergaenzt.
-- Bus-Matrix liest Shadow-DryRun Safety-Felder mit aus.
-- Dashboard-Candidate-Card zeigt Shadow safe, Queue/Sound/Reward/Redemption/Twitch Safety.
-- Kein Sound-Play.
-- Keine Queue.
-- Keine Reward-/Redemption-/Twitch-Aenderung.
-- Keine produktive Migration.
+- CAN-24 Decision Closure dokumentiert.
+- Produktive Sound-Migration weiterhin nicht freigegeben.
+- Naechster Schritt auf Shadow-DryRun-Mitulauf fuer genau einen Reward begrenzt.
+- Keine Code-Logik geaendert.
+- Keine produktive Aktion ausgefuehrt.
