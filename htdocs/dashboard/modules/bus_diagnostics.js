@@ -805,19 +805,80 @@ function textValue(value, fallback = '—') {
 }
 
 function pickSoundShadowStatus(matrix) {
-  return (
-    matrix?.channelpoints?.soundShadowAuto ||
-    matrix?.channelpoints?.soundShadowDryRunAuto ||
-    matrix?.channelpoints?.soundShadow ||
-    matrix?.channelpoints?.sound_shadow ||
-    matrix?.channelpoints_sound_shadow ||
-    matrix?.soundShadow ||
-    matrix?.sound_shadow ||
-    matrix?.modules?.channelpoints?.soundShadowAuto ||
-    matrix?.modules?.channelpoints?.soundShadowDryRunAuto ||
-    matrix?.modules?.channelpoints?.soundShadow ||
-    null
-  );
+  const channelpointsRow = asList(matrix && matrix.rows).find(row => row && row.id === 'channelpoints') || null;
+  if (!channelpointsRow) return null;
+
+  const hasShadowData = [
+    'channelpointsSoundShadowAutoEnabled',
+    'channelpointsSoundShadowAutoRewardKey',
+    'channelpointsSoundShadowAutoCandidateFound',
+    'channelpointsSoundShadowAutoHookInstalled',
+    'channelpointsSoundShadowAutoAttempts',
+    'channelpointsSoundShadowAutoOkCount',
+    'channelpointsSoundShadowAutoFailedCount',
+    'channelpointsSoundShadowAutoLastAccepted',
+    'channelpointsSoundShadowQueueTouched',
+    'channelpointsSoundShadowSoundTouched',
+    'channelpointsSoundShadowRewardExecuted',
+    'channelpointsSoundShadowRedemptionChanged',
+    'channelpointsSoundShadowTwitchTouched',
+    'channelpointsSoundDryRunResult'
+  ].some(key => Object.prototype.hasOwnProperty.call(channelpointsRow, key));
+
+  if (!hasShadowData) return null;
+
+  const dryRunResult = channelpointsRow.channelpointsSoundDryRunResult || {};
+  const soundDryRun = dryRunResult.soundDryRun || {};
+  const soundResult = soundDryRun.result || {};
+  const normalizedItem = soundResult.normalizedItem || {};
+  const payload = channelpointsRow.channelpointsFirstCandidatePayload || {};
+
+  return {
+    enabled: channelpointsRow.channelpointsSoundShadowAutoEnabled === true,
+    rewardKey: channelpointsRow.channelpointsSoundShadowAutoRewardKey || channelpointsRow.channelpointsSoundShadowSelectedRewardKey || channelpointsRow.channelpointsFirstCandidateRewardKey || '',
+    candidateFound: channelpointsRow.channelpointsSoundShadowAutoCandidateFound,
+    autoHookInstalled: channelpointsRow.channelpointsSoundShadowAutoHookInstalled,
+    executeHookInstalled: false,
+    eventSubHookInstalled: false,
+    legacyFlowUnchanged: true,
+    attempts: channelpointsRow.channelpointsSoundShadowAutoAttempts,
+    okCount: channelpointsRow.channelpointsSoundShadowAutoOkCount,
+    failedCount: channelpointsRow.channelpointsSoundShadowAutoFailedCount,
+    skipped: channelpointsRow.channelpointsSoundShadowAutoSkipped,
+    lastSkipReason: channelpointsRow.channelpointsSoundShadowAutoLastSkipReason,
+    queueTouched: channelpointsRow.channelpointsSoundShadowQueueTouched,
+    audioTouched: channelpointsRow.channelpointsSoundShadowSoundTouched,
+    soundTouched: channelpointsRow.channelpointsSoundShadowSoundTouched,
+    rewardExecuted: channelpointsRow.channelpointsSoundShadowRewardExecuted,
+    redemptionChanged: channelpointsRow.channelpointsSoundShadowRedemptionChanged,
+    twitchTouched: channelpointsRow.channelpointsSoundShadowTwitchTouched,
+    productiveMigration: false,
+    updatedAt: channelpointsRow.channelpointsSoundShadowAutoUpdatedAt || channelpointsRow.channelpointsSoundShadowUpdatedAt || '',
+    selectedCandidate: {
+      rewardKey: channelpointsRow.channelpointsFirstCandidateRewardKey || channelpointsRow.channelpointsSoundShadowAutoRewardKey || '',
+      title: channelpointsRow.channelpointsFirstCandidateTitle || payload.title || '',
+      mediaAssetId: channelpointsRow.channelpointsFirstCandidateMediaAssetId || payload.mediaAssetId || payload.media_asset_id || '',
+      currentExecutionTarget: channelpointsRow.channelpointsFirstCandidateExecutionTarget || payload.currentExecutionTarget || ''
+    },
+    candidate: payload,
+    lastAutoResult: {
+      accepted: channelpointsRow.channelpointsSoundShadowAutoLastAccepted,
+      skipped: channelpointsRow.channelpointsSoundShadowAutoLastAccepted === false,
+      dryRunOnly: true,
+      updatedAt: channelpointsRow.channelpointsSoundShadowAutoUpdatedAt || '',
+      dryRun: dryRunResult
+    },
+    safety: {
+      queueTouched: channelpointsRow.channelpointsSoundShadowQueueTouched,
+      audioTouched: channelpointsRow.channelpointsSoundShadowSoundTouched,
+      soundTouched: channelpointsRow.channelpointsSoundShadowSoundTouched,
+      rewardExecuted: channelpointsRow.channelpointsSoundShadowRewardExecuted,
+      redemptionChanged: channelpointsRow.channelpointsSoundShadowRedemptionChanged,
+      twitchTouched: channelpointsRow.channelpointsSoundShadowTwitchTouched
+    },
+    dryRunResult,
+    normalizedItem
+  };
 }
 
 function renderSoundShadowSummaryCard(matrix) {
