@@ -1,13 +1,13 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.7 abgeschlossen
+## Stand: CAN-23.8 abgeschlossen
 
-CAN-23.7 hat die produktive `/api/sound/play`-Logik read-only auf Bus-Request-Kompatibilitaet sichtbar gemacht.
+CAN-23.8 hat den Sound-Queue-Status read-only sichtbar gemacht.
 
 ## Neu
 
 ```text
-GET /api/sound/eventbus/command/play-compatibility
+GET /api/sound/eventbus/command/queue-status
 ```
 
 ## Sicherheitsstatus
@@ -16,15 +16,15 @@ GET /api/sound/eventbus/command/play-compatibility
 readOnly: true
 soundPlayed: false
 queueTouched: false
+queueCleared: false
 dryRunExecuted: false
 playTestExecuted: false
 eventBusEmit: false
 recoveryExecution: false
-productiveEntryPointChanged: false
 ```
 
 ## Naechster Schritt
 
 ```text
-Sound-System: Queue-Status in Bus-Matrix/Status sauber sichtbar machen.
+Alert-System: Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus vereinheitlichen.
 ```

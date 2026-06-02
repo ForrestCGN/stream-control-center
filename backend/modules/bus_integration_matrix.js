@@ -40,6 +40,7 @@ const ENDPOINTS = {
   soundCommandContract: '/api/sound/eventbus/command/contract',
   soundCommandLifecycle: '/api/sound/eventbus/command/lifecycle',
   soundPlayCompatibility: '/api/sound/eventbus/command/play-compatibility',
+  soundQueueStatus: '/api/sound/eventbus/command/queue-status',
   alertEventBus: '/api/alerts/eventbus/status',
   alertStatus: '/api/alerts/status',
   alertCorrelation: '/api/alerts/eventbus/correlation/status',
@@ -80,6 +81,8 @@ const SYSTEMS = [
     lifecycleRoute: ENDPOINTS.soundCommandLifecycle,
     compatibilityKey: 'soundPlayCompatibility',
     compatibilityRoute: ENDPOINTS.soundPlayCompatibility,
+    queueStatusKey: 'soundQueueStatus',
+    queueStatusRoute: ENDPOINTS.soundQueueStatus,
     commandStatus: 'partial',
     legacyDirect: true,
     nextStep: 'Als erstes Modul sauber ueber Bus-Requests/ACKs steuerbar machen.'
@@ -287,6 +290,7 @@ function buildSystemRow(system, clients, fetched) {
   const contractFetch = system.contractKey ? fetched[system.contractKey] : null;
   const lifecycleFetch = system.lifecycleKey ? fetched[system.lifecycleKey] : null;
   const compatibilityFetch = system.compatibilityKey ? fetched[system.compatibilityKey] : null;
+  const queueStatusFetch = system.queueStatusKey ? fetched[system.queueStatusKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
@@ -295,6 +299,7 @@ function buildSystemRow(system, clients, fetched) {
   const contractBody = bodyOf(contractFetch);
   const lifecycleBody = bodyOf(lifecycleFetch);
   const compatibilityBody = bodyOf(compatibilityFetch);
+  const queueStatusBody = bodyOf(queueStatusFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -306,6 +311,7 @@ function buildSystemRow(system, clients, fetched) {
   const contractOk = contractFetch ? contractFetch.ok === true && (!contractBody || contractBody.ok !== false) : null;
   const lifecycleOk = lifecycleFetch ? lifecycleFetch.ok === true && (!lifecycleBody || lifecycleBody.ok !== false) : null;
   const compatibilityOk = compatibilityFetch ? compatibilityFetch.ok === true && (!compatibilityBody || compatibilityBody.ok !== false) : null;
+  const queueStatusOk = queueStatusFetch ? queueStatusFetch.ok === true && (!queueStatusBody || queueStatusBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -319,7 +325,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk });
 
   return {
     id: system.id,
@@ -362,6 +368,15 @@ function buildSystemRow(system, clients, fetched) {
     productiveEntryPoint: compatibilityBody && compatibilityBody.productiveEntryPoint ? compatibilityBody.productiveEntryPoint : '',
     productiveEntryPointChanged: !!(compatibilityBody && compatibilityBody.productiveEntryPointChanged),
     usesSharedNormalizer: !!(compatibilityBody && compatibilityBody.usesSharedNormalizer),
+    queueStatusRoute: system.queueStatusRoute || '',
+    queueStatusOk,
+    queueBusy: !!(queueStatusBody && queueStatusBody.summary && queueStatusBody.summary.busy),
+    queueIdle: !!(queueStatusBody && queueStatusBody.summary && queueStatusBody.summary.idle),
+    queuedCount: Number(queueStatusBody && queueStatusBody.summary ? queueStatusBody.summary.queuedCount || 0 : 0),
+    queueMaxLength: Number(queueStatusBody && queueStatusBody.summary ? queueStatusBody.summary.maxLength || 0 : 0),
+    queueFull: !!(queueStatusBody && queueStatusBody.summary && queueStatusBody.summary.full),
+    currentRequestId: queueStatusBody && queueStatusBody.summary ? (queueStatusBody.summary.currentRequestId || '') : '',
+    currentSoundId: queueStatusBody && queueStatusBody.summary ? (queueStatusBody.summary.currentSoundId || '') : '',
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -386,7 +401,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false) return 'warning';
   return 'ok';
 }
 

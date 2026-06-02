@@ -3,26 +3,24 @@
 ## Naechster Schritt
 
 ```text
-Sound-System: Queue-Status in Bus-Matrix/Status sauber sichtbar machen.
+Alert-System: Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus vereinheitlichen.
 ```
 
 ## Ziel
 
-Die Bus-Matrix soll beim Sound-System klar zeigen:
+Beim Alert-System sichtbar machen:
 
 ```text
-current
-queuedCount
-queueLength
-busy/idle
-active requestId
-queue capacity/risk
+Alert-Request
+Overlay-ACK
+Sound-ACK
+Finish-ACK
+Korrelation Alert/Sound
 ```
 
 ## Danach
 
 ```text
-Alert-System an Sound-Bus-Status koppeln
 VIP/Overlay nachziehen
 Channelpoints nachziehen
 Recovery/Selbstheilung spaeter

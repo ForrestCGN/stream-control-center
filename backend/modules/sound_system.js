@@ -1234,6 +1234,69 @@ module.exports.init = function init(ctx) {
     return "unknown";
   }
 
+  function publicSoundBusQueueStatus() {
+    const current = state.current ? publicItem(state.current) : null;
+    const queueItems = Array.isArray(state.queue) ? state.queue.map(publicItem) : [];
+    const parallelItems = Array.isArray(state.parallel) ? state.parallel.map(publicItem) : [];
+    const queueConfig = config.queue || {};
+    const maxLength = Number(queueConfig.maxLength || 0);
+    const queuedCount = queueItems.length;
+    const busy = !!current || parallelItems.length > 0;
+    const full = maxLength > 0 && queuedCount >= maxLength;
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      capability: SOUND_BUS_COMMAND_CAPABILITY,
+      statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+      feature: "sound_bus_queue_status",
+      mode: "read_only_queue_status",
+      readOnly: true,
+      soundSystemTouched: false,
+      queueTouched: false,
+      audioTouched: false,
+      dryRunExecuted: false,
+      playTestExecuted: false,
+      eventBusEmit: false,
+      current,
+      parallel: parallelItems,
+      queue: queueItems,
+      summary: {
+        busy,
+        idle: !busy && queuedCount === 0,
+        currentRequestId: current && current.requestId ? current.requestId : "",
+        currentSoundId: current && (current.soundId || current.sound) ? (current.soundId || current.sound) : "",
+        queuedCount,
+        parallelCount: parallelItems.length,
+        maxLength,
+        full,
+        hasActiveBundleLock: !!state.activeBundleLock,
+        activeBundleLock: state.activeBundleLock || "",
+        sortByPriority: queueConfig.sortByPriority !== false,
+        queueIfBusyDefault: queueConfig.queueIfBusy !== false,
+        dropWhenFull: queueConfig.dropWhenFull !== false
+      },
+      stats: {
+        started: Number((state.stats || {}).started || 0),
+        queued: Number((state.stats || {}).queued || 0),
+        stopped: Number((state.stats || {}).stopped || 0),
+        skipped: Number((state.stats || {}).skipped || 0),
+        cleared: Number((state.stats || {}).cleared || 0),
+        failed: Number((state.stats || {}).failed || 0),
+        bundlesQueued: Number((state.stats || {}).bundlesQueued || 0),
+        bundleItemsQueued: Number((state.stats || {}).bundleItemsQueued || 0)
+      },
+      nextSteps: [
+        "Use this route for status visibility before migrating callers to bus requests.",
+        "Do not clear or manipulate queue from this diagnostic route.",
+        "Keep queue clear/replay actions behind Confirm/SafetyStop later.",
+        "Use queuedCount/full/busy as dashboard indicators only."
+      ],
+      updatedAt: core.nowIso()
+    };
+  }
+
   function publicSoundPlayCompatibilityStatus() {
     const prefix = config.routes?.prefix || "/api/sound";
     const commandConfig = soundBusCommandConfig();
@@ -3590,6 +3653,7 @@ module.exports.init = function init(ctx) {
   app.get(`${prefix}/eventbus/command/contract`, (req, res) => res.json(publicSoundBusCommandContract()));
   app.get(`${prefix}/eventbus/command/lifecycle`, (req, res) => res.json(publicSoundBusCommandLifecycleStatus()));
   app.get(`${prefix}/eventbus/command/play-compatibility`, (req, res) => res.json(publicSoundPlayCompatibilityStatus()));
+  app.get(`${prefix}/eventbus/command/queue-status`, (req, res) => res.json(publicSoundBusQueueStatus()));
   app.get(`${prefix}/eventbus/command/reset`, (req, res) => res.json({ ...resetSoundBusCommandRuntime(), reset: true, resetAt: core.nowIso() }));
   app.get(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.query || {})));
   app.post(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.body || {})));

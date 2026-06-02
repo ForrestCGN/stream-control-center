@@ -10,7 +10,7 @@
 - [x] CAN-23.5 Sound-Bus-Lifecycle-/ACK-Status als read-only Route sichtbar machen.
 - [x] CAN-23.6 Sound-System: Dry-Run im Dashboard manuell pruefbar machen, ohne Queue/Audio.
 - [x] CAN-23.7 Sound-System: produktive `/api/sound/play`-Logik auf Bus-Request-Kompatibilitaet sichtbar machen.
-- [ ] Sound-System: Queue-Status in Bus-Matrix/Status sauber sichtbar machen.
+- [x] CAN-23.8 Sound-System: Queue-Status in Bus-Matrix/Status sauber sichtbar machen.
 - [ ] Alert-System: Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus vereinheitlichen.
 - [ ] VIP-Sound-Overlay: Show/Hide/Update/ACK ueber Bus pruefen und danach anbinden.
 - [ ] Overlay-Monitor: Overlay-Clients/Heartbeat als Kontrollsicht fuer aktive Szenen nutzen.
