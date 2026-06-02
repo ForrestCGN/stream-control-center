@@ -3,9 +3,10 @@
 ## CAN-24
 
 - [x] CAN-24.17 `enabled=true` Testscript fuer genau `bauernweisheit` vorbereiten.
-- [ ] Lokalen Test mit `tools\can24_17_shadow_enabled_test.cmd` ausfuehren.
-- [ ] CAN-24.18 Testergebnis dokumentieren.
-- [ ] Danach entscheiden, ob ein echter Execute-/Redemption-Shadow-Test erlaubt wird.
+- [x] CAN-24.18 Testergebnis enabled=true Shadow-DryRun als pending dokumentieren.
+- [x] CAN-24.19 Erfolgreichen enabled=true Shadow-DryRun-Test dokumentieren.
+- [ ] CAN-24.20 Entscheidung, ob ein echter Execute-/Redemption-Shadow-Test fuer `bauernweisheit` erlaubt wird.
+- [ ] Danach ggf. echten Execute-/Redemption-Shadow-Test vorbereiten.
 
 ## Weiterhin hart blockiert
 

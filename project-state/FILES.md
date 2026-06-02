@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.17 ZIP
+## CAN24.19 ZIP
 
 Enthaltene Dateien:
 
@@ -24,7 +24,9 @@ Enthaltene Dateien:
 - `docs/system-inspection/CAN24_15_SHADOW_HOOK_DISABLED_TEST_SUCCESS.md`
 - `docs/system-inspection/CAN24_16_SHADOW_HOOK_ENABLE_TEST_DECISION.md`
 - `docs/system-inspection/CAN24_17_SHADOW_HOOK_ENABLED_TEST_PREP.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_17.md`
+- `docs/system-inspection/CAN24_18_SHADOW_ENABLED_TEST_RESULT_PENDING.md`
+- `docs/system-inspection/CAN24_19_SHADOW_ENABLED_TEST_SUCCESS.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_19.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -33,4 +35,4 @@ Enthaltene Dateien:
 
 ## Hinweis
 
-Die Code-Dateien entsprechen dem CAN-24.16/CAN-24.15 Stand. CAN-24.17 ergaenzt ein lokales Testscript und Dokumentation.
+Die Code-Dateien entsprechen dem CAN-24.18/CAN-24.17 Stand. CAN-24.19 dokumentiert den erfolgreichen lokalen Test.

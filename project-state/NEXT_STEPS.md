@@ -1,33 +1,38 @@
 # NEXT_STEPS
 
-## Sofort testen
-
-```bat
-tools\can24_17_shadow_enabled_test.cmd
-```
-
-## Erwartung
+## Naechster Schritt
 
 ```text
-enabled wird temporaer true
-Auto-Test accepted true
-queueTouched false
-audioTouched false
-productiveMigration false
-enabled danach wieder false
+CAN-24.20: Entscheidung, ob ein echter Execute-/Redemption-Shadow-Test fuer bauernweisheit erlaubt wird.
 ```
 
-## Danach
+## Entscheidungsbasis
 
 ```text
-CAN-24.18: Testergebnis dokumentieren.
+Shadow-Hook vorbereitet
+Disabled-Test erfolgreich
+mediaId-DryRun erfolgreich
+enabled=true Auto-Test erfolgreich
+Auto-Deaktivierung erfolgreich
+kein Sound/Queue-Touch im DryRun
+```
+
+## Moegliche Bedingungen fuer Freigabe
+
+```text
+Nur rewardKey bauernweisheit
+Nur ein kontrollierter lokaler Test
+Legacy-Flow bleibt produktiv
+Shadow-Hook schreibt nur Diagnose
+Kein produktiver Sound-Bus-Play
+Kein Queue-Touch durch Shadow
+Keine Twitch-/Redemption-Aenderung
 ```
 
 ## Weiterhin blockiert
 
 ```text
 Keine produktive Sound-Migration.
-Kein echter Sound-Bus-Play.
 Kein Hook fuer alle Rewards.
-Keine Twitch-/Redemption-Aenderung.
+Kein echter Sound-Bus-Play.
 ```

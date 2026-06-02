@@ -1,30 +1,46 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.17 abgeschlossen
+## Stand: CAN-24.19 abgeschlossen
 
-CAN-24.17 stellt ein lokales Testscript fuer den kontrollierten `enabled=true` Shadow-DryRun-Test bereit.
+CAN-24.19 dokumentiert den erfolgreichen enabled=true Shadow-DryRun-Test.
 
-## Neu
+## Bestaetigt
 
 ```text
-tools/can24_17_shadow_enabled_test.cmd
+enabled temporaer true
+rewardKey bauernweisheit
+auto-test accepted true
+skipped false
+queueTouched false
+audioTouched false
+productiveMigration false
+enabled danach wieder false
 ```
 
-## Sicherheitsstatus
+## Endstatus
 
 ```text
-Default enabled: false
-Test aktiviert nur temporaer
-Auto-Deaktivierung am Ende
-kein Sound-Play
-keine Queue
-keine Redemption-/Twitch-Aenderung
-keine produktive Migration
+enabled: false
+attempts: 1
+okCount: 1
+failedCount: 0
+eventSubHookInstalled: false
+executeHookInstalled: true
+```
+
+## Weiter blockiert
+
+```text
+Echter Execute-/Redemption-Shadow-Test: nein
+Produktive Sound-Migration: nein
+Sound-Play ueber Bus: nein
+Queue-Aktion: nein
+Redemption-/Twitch-Aenderung: nein
+Hook fuer alle Rewards: nein
 ```
 
 ## Naechster Schritt
 
 ```text
-Lokalen Test ausfuehren.
-CAN-24.18 Testergebnis dokumentieren.
+CAN-24.20: Entscheidung ueber echten Execute-/Redemption-Shadow-Test fuer bauernweisheit.
 ```

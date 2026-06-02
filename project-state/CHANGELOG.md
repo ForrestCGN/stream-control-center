@@ -1,11 +1,10 @@
 # CHANGELOG
 
-## CAN-24.17
+## CAN-24.19
 
-- Kontrolliertes lokales Testscript fuer `enabled=true` Shadow-DryRun ergaenzt.
-- Script aktiviert nur `bauernweisheit`, fuehrt Auto-Test aus und deaktiviert danach wieder.
-- Keine Backend-Produktivlogik geaendert.
-- Kein Sound-Play.
-- Keine Queue.
-- Keine Twitch-/Redemption-Aenderung.
-- Keine produktive Migration.
+- Erfolgreichen enabled=true Shadow-DryRun-Test dokumentiert.
+- Testergebnis `accepted:true`, `skipped:false`, `queueTouched:false`, `audioTouched:false` festgehalten.
+- Auto-Deaktivierung auf `enabled:false` dokumentiert.
+- Status/NEXT_STEPS/TODO aktualisiert.
+- Keine Code-Logik geaendert.
+- Keine produktive Aktion ausgefuehrt.
