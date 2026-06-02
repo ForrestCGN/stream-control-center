@@ -1223,6 +1223,95 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function canonicalSoundBusLifecycleEvent(entry = {}) {
+    const action = String(entry.action || entry.event || "").toLowerCase();
+    if (entry.error || entry.accepted === false || action.includes("failed") || action.includes("rejected")) return "failed";
+    if (action.includes("timeout") || action.includes("fallback")) return "timeout";
+    if (action.includes("finished") || action.includes("ended")) return "finished";
+    if (action.includes("queued")) return "queued";
+    if (action.includes("started") || action.includes("play_test")) return "started";
+    if (entry.accepted === true || action.includes("dry_run") || action.includes("accepted")) return "accepted";
+    return "unknown";
+  }
+
+  function publicSoundBusCommandLifecycleStatus() {
+    const recent = Array.isArray(state.soundBusCommand && state.soundBusCommand.recentCommands)
+      ? state.soundBusCommand.recentCommands
+      : [];
+
+    const events = recent.map(entry => ({
+      at: entry.at || "",
+      requestId: entry.requestId || "",
+      command: entry.command || "",
+      action: entry.action || "",
+      soundId: entry.soundId || "",
+      requestedBy: entry.requestedBy || "",
+      source: entry.source || "",
+      accepted: entry.accepted === true,
+      queueTouched: entry.queueTouched === true,
+      audioTouched: entry.audioTouched === true,
+      error: entry.error || "",
+      canonicalEvent: canonicalSoundBusLifecycleEvent(entry)
+    }));
+
+    const counts = events.reduce((acc, entry) => {
+      acc[entry.canonicalEvent] = Number(acc[entry.canonicalEvent] || 0) + 1;
+      return acc;
+    }, {});
+
+    const lifecycle = [
+      { event: "accepted", required: true, meaning: "Payload was accepted by the command layer." },
+      { event: "queued", required: true, meaning: "Request is queued because playback is busy or queueing is requested." },
+      { event: "started", required: true, meaning: "Request started playback or explicit play-test execution." },
+      { event: "failed", required: true, meaning: "Request was rejected or failed before/while processing." },
+      { event: "finished", required: true, meaning: "Playback or overlay lifecycle finished." },
+      { event: "timeout", required: true, meaning: "Overlay/client did not finish before fallback timeout." }
+    ];
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      capability: SOUND_BUS_COMMAND_CAPABILITY,
+      statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+      feature: "sound_bus_command_lifecycle_status",
+      mode: "read_only_lifecycle_status",
+      readOnly: true,
+      soundSystemTouched: false,
+      queueTouched: false,
+      audioTouched: false,
+      eventBusEmit: false,
+      canonicalLifecycle: lifecycle,
+      acknowledgement: {
+        requiredNow: false,
+        planned: true,
+        recommendedAckFields: ["requestId", "clientId", "event", "receivedAt", "accepted", "error"],
+        currentAckSource: "recent command diagnostics only"
+      },
+      recent: events,
+      counts,
+      stats: {
+        emitted: Number((state.soundBusCommand || {}).emitted || 0),
+        consumed: Number((state.soundBusCommand || {}).consumed || 0),
+        dryRunOk: Number((state.soundBusCommand || {}).dryRunOk || 0),
+        dryRunFailed: Number((state.soundBusCommand || {}).dryRunFailed || 0),
+        playTestOk: Number((state.soundBusCommand || {}).playTestOk || 0),
+        playTestFailed: Number((state.soundBusCommand || {}).playTestFailed || 0),
+        errors: Number((state.soundBusCommand || {}).errors || 0),
+        lastAction: (state.soundBusCommand || {}).lastAction || "",
+        lastError: (state.soundBusCommand || {}).lastError || "",
+        lastAt: (state.soundBusCommand || {}).lastAt || ""
+      },
+      nextSteps: [
+        "Keep lifecycle event names stable before wiring productive bus commands.",
+        "Use accepted/queued/started/failed/finished/timeout as canonical labels in dashboards and follow-up modules.",
+        "Do not require ACK for productive sound flow until overlay/client ACK behaviour is verified.",
+        "Keep /api/sound/play unchanged until the bus command lifecycle is accepted."
+      ],
+      updatedAt: core.nowIso()
+    };
+  }
+
   function publicSoundBusCommandContract() {
     const commandConfig = soundBusCommandConfig();
     const prefix = config.routes?.prefix || "/api/sound";
@@ -3398,6 +3487,7 @@ module.exports.init = function init(ctx) {
   app.post(`${prefix}/eventbus/test`, (req, res) => res.json(emitSoundBusTest(req.body || {})));
   app.get(`${prefix}/eventbus/command/status`, (req, res) => res.json(publicSoundBusCommandStatus({ includeRecentCommands: true })));
   app.get(`${prefix}/eventbus/command/contract`, (req, res) => res.json(publicSoundBusCommandContract()));
+  app.get(`${prefix}/eventbus/command/lifecycle`, (req, res) => res.json(publicSoundBusCommandLifecycleStatus()));
   app.get(`${prefix}/eventbus/command/reset`, (req, res) => res.json({ ...resetSoundBusCommandRuntime(), reset: true, resetAt: core.nowIso() }));
   app.get(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.query || {})));
   app.post(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.body || {})));

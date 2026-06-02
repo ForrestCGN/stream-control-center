@@ -38,6 +38,7 @@ const ENDPOINTS = {
   soundStatus: '/api/sound/status',
   soundCommandStatus: '/api/sound/eventbus/command/status',
   soundCommandContract: '/api/sound/eventbus/command/contract',
+  soundCommandLifecycle: '/api/sound/eventbus/command/lifecycle',
   alertEventBus: '/api/alerts/eventbus/status',
   alertStatus: '/api/alerts/status',
   alertCorrelation: '/api/alerts/eventbus/correlation/status',
@@ -74,6 +75,8 @@ const SYSTEMS = [
     commandRoute: ENDPOINTS.soundCommandStatus,
     contractKey: 'soundCommandContract',
     contractRoute: ENDPOINTS.soundCommandContract,
+    lifecycleKey: 'soundCommandLifecycle',
+    lifecycleRoute: ENDPOINTS.soundCommandLifecycle,
     commandStatus: 'partial',
     legacyDirect: true,
     nextStep: 'Als erstes Modul sauber ueber Bus-Requests/ACKs steuerbar machen.'
@@ -279,12 +282,14 @@ function buildSystemRow(system, clients, fetched) {
   const integrationFetch = system.integrationKey ? fetched[system.integrationKey] : null;
   const commandFetch = system.commandKey ? fetched[system.commandKey] : null;
   const contractFetch = system.contractKey ? fetched[system.contractKey] : null;
+  const lifecycleFetch = system.lifecycleKey ? fetched[system.lifecycleKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
   const integrationBody = bodyOf(integrationFetch);
   const commandBody = bodyOf(commandFetch);
   const contractBody = bodyOf(contractFetch);
+  const lifecycleBody = bodyOf(lifecycleFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -294,6 +299,7 @@ function buildSystemRow(system, clients, fetched) {
   const integrationOk = integrationFetch ? integrationFetch.ok === true && (!integrationBody || integrationBody.ok !== false) : null;
   const commandOk = commandFetch ? commandFetch.ok === true && (!commandBody || commandBody.ok !== false) : null;
   const contractOk = contractFetch ? contractFetch.ok === true && (!contractBody || contractBody.ok !== false) : null;
+  const lifecycleOk = lifecycleFetch ? lifecycleFetch.ok === true && (!lifecycleBody || lifecycleBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -307,7 +313,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk });
 
   return {
     id: system.id,
@@ -340,6 +346,10 @@ function buildSystemRow(system, clients, fetched) {
     contractLifecycle: contractBody && contractBody.contract && Array.isArray(contractBody.contract.lifecycle) ? contractBody.contract.lifecycle.map(item => item && item.event).filter(Boolean) : [],
     ackPlanned: !!(contractBody && contractBody.contract && contractBody.contract.acknowledgement && contractBody.contract.acknowledgement.planned),
     ackRequiredNow: !!(contractBody && contractBody.contract && contractBody.contract.acknowledgement && contractBody.contract.acknowledgement.requiredNow),
+    lifecycleRoute: system.lifecycleRoute || '',
+    lifecycleOk,
+    lifecycleEvents: lifecycleBody && Array.isArray(lifecycleBody.canonicalLifecycle) ? lifecycleBody.canonicalLifecycle.map(item => item && item.event).filter(Boolean) : [],
+    lifecycleCounts: lifecycleBody && lifecycleBody.counts ? lifecycleBody.counts : {},
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -364,7 +374,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false) return 'warning';
   return 'ok';
 }
 

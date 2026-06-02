@@ -1,10 +1,11 @@
 # CHANGELOG
 
-## CAN-23.4
+## CAN-23.5
 
-- `GET /api/sound/eventbus/command/contract` als read-only Route in `sound_system.js` ergaenzt.
-- Bus-Integration-Matrix liest den Sound-Command-Contract mit aus.
-- Dashboard-Bus-Matrix zeigt Contract-Status/Route beim Sound-System.
+- `GET /api/sound/eventbus/command/lifecycle` als read-only Route in `sound_system.js` ergaenzt.
+- Canonical Lifecycle definiert: accepted, queued, started, failed, finished, timeout.
+- Bus-Integration-Matrix liest den Sound-Lifecycle mit aus.
+- Dashboard-Bus-Matrix zeigt Lifecycle-Status/Route beim Sound-System.
 - Kein Sound-Play.
 - Keine Queue-Mutation.
 - Kein Dry-Run.

@@ -3,13 +3,17 @@
 ## Naechster Schritt
 
 ```text
-Sound-System: ACK/accepted/queued/started/failed/finished Event-Namen vereinheitlichen und pruefen.
+Sound-System: Dry-Run im Dashboard manuell pruefbar machen, ohne Queue/Audio.
 ```
+
+## Ziel
+
+Einen manuellen Diagnose-Test anbieten, der nur `/api/sound/eventbus/command/dry-run` nutzt.
 
 ## Danach
 
 ```text
-Sound-Bus-Dry-Run im Dashboard manuell pruefbar machen
+Produktive /api/sound/play Kompatibilitaet pruefen
 Alert-System an Sound-Bus-Status koppeln
 VIP/Overlay nachziehen
 Channelpoints nachziehen

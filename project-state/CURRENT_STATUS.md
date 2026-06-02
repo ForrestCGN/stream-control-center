@@ -1,13 +1,13 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.4 abgeschlossen
+## Stand: CAN-23.5 abgeschlossen
 
-CAN-23.4 hat den Sound-Bus-Command-Vertrag als read-only Route sichtbar gemacht.
+CAN-23.5 hat den Sound-Bus-Lifecycle-/ACK-Status als read-only Route sichtbar gemacht.
 
 ## Neu
 
 ```text
-GET /api/sound/eventbus/command/contract
+GET /api/sound/eventbus/command/lifecycle
 ```
 
 ## Sicherheitsstatus
@@ -25,5 +25,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-Sound-System: ACK/accepted/queued/started/failed/finished Event-Namen vereinheitlichen und pruefen.
+Sound-System: Dry-Run im Dashboard manuell pruefbar machen, ohne Queue/Audio.
 ```
