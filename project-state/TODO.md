@@ -2,8 +2,7 @@
 
 ## CAN-23 Bus-Integration
 
-- [x] CAN-23.15 Produktive Overlays von Test-/Alt-Overlays in der Matrix unterscheidbar machen.
-- [ ] Overlay-Client-IDs und Capabilities vereinheitlichen.
+- [x] CAN-23.16 Overlay-Client-IDs und Capabilities vereinheitlicht sichtbar machen.
 - [ ] Legacy/direct REST-/broadcastWS-Wege pro Modul sichtbar markieren.
 - [ ] Recovery/Selbstheilung spaeter planen, erst wenn Bus-Kommunikation stabil und sichtbar ist.
 

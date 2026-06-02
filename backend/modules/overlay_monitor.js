@@ -1287,6 +1287,136 @@ function classifyOverlayClientPurpose(client = {}) {
   };
 }
 
+function normalizeOverlayClientIdentity(client = {}) {
+  const rawId = cleanString(client.id || client.clientId || client.name || client.module || 'unknown');
+  const moduleName = cleanString(client.module || client.name || rawId || 'overlay');
+  const safeModule = moduleName.toLowerCase().replace(/[^a-z0-9_.:-]+/g, '_').replace(/^_+|_+$/g, '') || 'overlay';
+  const safeId = rawId.toLowerCase().replace(/[^a-z0-9_.:-]+/g, '_').replace(/^_+|_+$/g, '') || safeModule;
+  const normalizedId = safeId.includes(':') ? safeId : `overlay:${safeId}`;
+  const clientType = cleanString(client.type || client.clientType || 'overlay').toLowerCase() || 'overlay';
+  const classification = classifyOverlayClientPurpose(client);
+  const caps = Array.isArray(client.capabilities) ? client.capabilities.map(value => cleanString(value)).filter(Boolean) : [];
+  const capabilitySet = new Set(caps);
+  capabilitySet.add('overlay.client');
+  if (client.hasHeartbeat === true || client.heartbeat === true || client.lastHeartbeatAt || client.lastSeenAt) capabilitySet.add('overlay.heartbeat');
+  if (classification.purpose === 'productive_candidate') capabilitySet.add('overlay.productive_candidate');
+  if (classification.purpose === 'test_or_legacy') capabilitySet.add('overlay.test_or_legacy');
+  if (cleanString(client.module).toLowerCase().includes('alert')) capabilitySet.add('overlay.alert');
+  if (cleanString(client.module).toLowerCase().includes('vip')) capabilitySet.add('overlay.vip');
+  if (cleanString(client.module).toLowerCase().includes('sound')) capabilitySet.add('overlay.sound');
+
+  return {
+    rawId,
+    normalizedId,
+    module: safeModule,
+    clientType,
+    classification,
+    capabilities: Array.from(capabilitySet).sort(),
+    displayName: cleanString(client.name || client.id || normalizedId),
+    scene: cleanString(client.scene || client.sceneName || ''),
+    source: cleanString(client.source || client.sourceName || ''),
+    path: cleanString(client.path || client.url || ''),
+    recommendedEventSource: {
+      type: 'overlay',
+      id: normalizedId,
+      module: safeModule
+    },
+    recommendedHeartbeatPayload: {
+      clientId: normalizedId,
+      module: safeModule,
+      clientType,
+      capabilities: Array.from(capabilitySet).sort()
+    }
+  };
+}
+
+function buildOverlayClientIdentityContractStatus() {
+  const classification = buildOverlayClientClassificationStatus();
+  const clients = Array.isArray(classification.clients) ? classification.clients.map(client => normalizeOverlayClientIdentity(client)) : [];
+  const duplicateMap = new Map();
+  for (const client of clients) {
+    const key = client.normalizedId;
+    duplicateMap.set(key, (duplicateMap.get(key) || 0) + 1);
+  }
+  const duplicates = Array.from(duplicateMap.entries())
+    .filter(([, count]) => count > 1)
+    .map(([normalizedId, count]) => ({ normalizedId, count }));
+
+  const capabilityCounts = {};
+  for (const client of clients) {
+    for (const cap of client.capabilities || []) {
+      capabilityCounts[cap] = (capabilityCounts[cap] || 0) + 1;
+    }
+  }
+
+  return {
+    ok: true,
+    module: MODULE,
+    version: MODULE_VERSION,
+    statusApiVersion: STATUS_API_VERSION,
+    feature: 'overlay_client_identity_contract_status',
+    mode: 'read_only_identity_contract',
+    readOnly: true,
+    overlayTouched: false,
+    obsTouched: false,
+    obsRefreshTriggered: false,
+    obsRepairTriggered: false,
+    eventBusEmit: false,
+    recoveryTriggered: false,
+    contract: {
+      idFormat: 'overlay:<stable-id>',
+      requiredHeartbeatFields: ['clientId', 'module', 'clientType', 'capabilities'],
+      recommendedSourceShape: { type: 'overlay', id: 'overlay:<stable-id>', module: '<module-name>' },
+      capabilityNaming: [
+        'overlay.client',
+        'overlay.heartbeat',
+        'overlay.productive_candidate',
+        'overlay.test_or_legacy',
+        'overlay.alert',
+        'overlay.vip',
+        'overlay.sound'
+      ],
+      notes: [
+        'Normalized IDs are read-only recommendations in this step.',
+        'Existing overlay clients are not renamed here.',
+        'Do not use duplicates as automatic cleanup trigger without confirmation.'
+      ]
+    },
+    summary: {
+      total: clients.length,
+      normalized: clients.filter(client => client.normalizedId).length,
+      duplicates: duplicates.length,
+      productiveCandidates: clients.filter(client => client.classification && client.classification.purpose === 'productive_candidate').length,
+      testOrLegacy: clients.filter(client => client.classification && client.classification.purpose === 'test_or_legacy').length,
+      unknown: clients.filter(client => !client.classification || client.classification.purpose === 'unknown').length,
+      capabilityKinds: Object.keys(capabilityCounts).length
+    },
+    duplicates,
+    capabilityCounts,
+    clients,
+    routes: {
+      clientControl: '/api/overlay-monitor/client-control/status',
+      classification: '/api/overlay-monitor/client-control/classification',
+      identityContract: '/api/overlay-monitor/client-control/identity-contract'
+    },
+    safety: {
+      identityContractTouchesObs: false,
+      identityContractRenamesClients: false,
+      identityContractRefreshesBrowserSources: false,
+      identityContractRepairsObs: false,
+      automaticRecovery: false,
+      destructiveActionAllowed: false
+    },
+    nextSteps: [
+      'Use this route as a naming/capability reference before changing overlay clients.',
+      'Apply normalized clientId/capabilities inside overlay HTML files one by one later.',
+      'Keep legacy IDs accepted until every productive overlay has a stable normalized ID.',
+      'Mark legacy/direct REST and broadcastWS paths next.'
+    ],
+    updatedAt: nowIso()
+  };
+}
+
 function buildOverlayClientClassificationStatus() {
   const control = buildOverlayClientControlStatus();
   const rows = Array.isArray(control.clients) ? control.clients.map(client => {
@@ -1744,6 +1874,10 @@ function init({ app, env } = {}) {
 
   registerGet(app, '/api/overlay-monitor/client-control/classification', (req, res) => {
     res.json(buildOverlayClientClassificationStatus());
+  });
+
+  registerGet(app, '/api/overlay-monitor/client-control/identity-contract', (req, res) => {
+    res.json(buildOverlayClientIdentityContractStatus());
   });
 
   registerGet(app, '/api/overlay-monitor/issues', (req, res) => {

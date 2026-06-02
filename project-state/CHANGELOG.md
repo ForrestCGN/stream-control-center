@@ -1,13 +1,13 @@
 # CHANGELOG
 
-## CAN-23.15
+## CAN-23.16
 
-- `GET /api/overlay-monitor/client-control/classification` als read-only Route in `overlay_monitor.js` ergaenzt.
-- Bus-Integration-Matrix liest Overlay-Produktiv/Test/Alt-Klassifikation mit aus.
-- Dashboard-Bus-Matrix zeigt produktive/test/alt/unbekannt Zahlen.
-- Keine OBS-Aktion.
-- Kein Browser-Source-Refresh.
-- Keine Reparatur.
-- Kein Ausblenden/Entfernen.
+- `GET /api/overlay-monitor/client-control/identity-contract` als read-only Route in `overlay_monitor.js` ergaenzt.
+- Normalisierte Overlay-ID-Empfehlung `overlay:<stable-id>` sichtbar gemacht.
+- Capability-Empfehlungen und duplicate normalized IDs sichtbar gemacht.
+- Bus-Integration-Matrix liest Overlay-ID-/Capability-Vertrag mit aus.
+- Dashboard-Bus-Matrix zeigt ID-Format, Duplikate und Capability-Anzahl.
+- Keine Client-Umbenennung.
+- Keine Overlay-/OBS-Aktion.
 - Kein EventBus-Emit.
 - Keine Recovery.

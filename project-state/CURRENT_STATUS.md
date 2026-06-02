@@ -1,24 +1,23 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.15 abgeschlossen
+## Stand: CAN-23.16 abgeschlossen
 
-CAN-23.15 hat produktive Overlays von Test-/Alt-Overlays read-only unterscheidbar gemacht.
+CAN-23.16 hat Overlay-Client-ID-/Capability-Vertrag read-only sichtbar gemacht.
 
 ## Neu
 
 ```text
-GET /api/overlay-monitor/client-control/classification
+GET /api/overlay-monitor/client-control/identity-contract
 ```
 
 ## Sicherheitsstatus
 
 ```text
 readOnly: true
+clientRenamed: false
+overlayChanged: false
 obsTouched: false
 browserSourceRefresh: false
-obsRepair: false
-overlayHidden: false
-overlayRemoved: false
 eventBusEmit: false
 recoveryExecution: false
 ```
@@ -26,5 +25,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-Overlay-Client-IDs und Capabilities vereinheitlichen.
+Legacy/direct REST-/broadcastWS-Wege pro Modul sichtbar markieren.
 ```

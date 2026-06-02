@@ -53,6 +53,7 @@ const ENDPOINTS = {
   overlayMonitor: '/api/overlay-monitor/status',
   overlayClientControl: '/api/overlay-monitor/client-control/status',
   overlayClientClassification: '/api/overlay-monitor/client-control/classification',
+  overlayClientIdentityContract: '/api/overlay-monitor/client-control/identity-contract',
   vipStatus: '/api/vip-sound/status',
   vipOverlayBusStatus: '/api/vip-sound/eventbus/overlay/status',
   vipIntegration: '/api/vip-sound/integration-check'
@@ -174,6 +175,8 @@ const SYSTEMS = [
     overlayClientControlRoute: ENDPOINTS.overlayClientControl,
     overlayClientClassificationKey: 'overlayClientClassification',
     overlayClientClassificationRoute: ENDPOINTS.overlayClientClassification,
+    overlayClientIdentityKey: 'overlayClientIdentityContract',
+    overlayClientIdentityRoute: ENDPOINTS.overlayClientIdentityContract,
     eventBusKey: '',
     commandStatus: 'status_only',
     legacyDirect: false,
@@ -319,6 +322,7 @@ function buildSystemRow(system, clients, fetched) {
   const overlayClientControlFetch = system.overlayClientControlKey ? fetched[system.overlayClientControlKey] : null;
   const channelpointsReadinessFetch = system.channelpointsReadinessKey ? fetched[system.channelpointsReadinessKey] : null;
   const overlayClientClassificationFetch = system.overlayClientClassificationKey ? fetched[system.overlayClientClassificationKey] : null;
+  const overlayClientIdentityFetch = system.overlayClientIdentityKey ? fetched[system.overlayClientIdentityKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
@@ -335,6 +339,7 @@ function buildSystemRow(system, clients, fetched) {
   const overlayClientControlBody = bodyOf(overlayClientControlFetch);
   const channelpointsReadinessBody = bodyOf(channelpointsReadinessFetch);
   const overlayClientClassificationBody = bodyOf(overlayClientClassificationFetch);
+  const overlayClientIdentityBody = bodyOf(overlayClientIdentityFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -354,6 +359,7 @@ function buildSystemRow(system, clients, fetched) {
   const overlayClientControlOk = overlayClientControlFetch ? overlayClientControlFetch.ok === true && (!overlayClientControlBody || overlayClientControlBody.ok !== false) : null;
   const channelpointsReadinessOk = channelpointsReadinessFetch ? channelpointsReadinessFetch.ok === true && (!channelpointsReadinessBody || channelpointsReadinessBody.ok !== false) : null;
   const overlayClientClassificationOk = overlayClientClassificationFetch ? overlayClientClassificationFetch.ok === true && (!overlayClientClassificationBody || overlayClientClassificationBody.ok !== false) : null;
+  const overlayClientIdentityOk = overlayClientIdentityFetch ? overlayClientIdentityFetch.ok === true && (!overlayClientIdentityBody || overlayClientIdentityBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -367,7 +373,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk, overlayClientControlOk, channelpointsReadinessOk, overlayClientClassificationOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk, overlayClientControlOk, channelpointsReadinessOk, overlayClientClassificationOk, overlayClientIdentityOk });
 
   return {
     id: system.id,
@@ -468,6 +474,12 @@ function buildSystemRow(system, clients, fetched) {
     overlayTestOrLegacy: Number(overlayClientClassificationBody && overlayClientClassificationBody.summary ? overlayClientClassificationBody.summary.testOrLegacy || 0 : 0),
     overlayUnknown: Number(overlayClientClassificationBody && overlayClientClassificationBody.summary ? overlayClientClassificationBody.summary.unknown || 0 : 0),
     overlayClassificationHighConfidence: Number(overlayClientClassificationBody && overlayClientClassificationBody.summary ? overlayClientClassificationBody.summary.highConfidence || 0 : 0),
+    overlayClientIdentityRoute: system.overlayClientIdentityRoute || '',
+    overlayClientIdentityOk,
+    overlayIdentityTotal: Number(overlayClientIdentityBody && overlayClientIdentityBody.summary ? overlayClientIdentityBody.summary.total || 0 : 0),
+    overlayIdentityDuplicates: Number(overlayClientIdentityBody && overlayClientIdentityBody.summary ? overlayClientIdentityBody.summary.duplicates || 0 : 0),
+    overlayCapabilityKinds: Number(overlayClientIdentityBody && overlayClientIdentityBody.summary ? overlayClientIdentityBody.summary.capabilityKinds || 0 : 0),
+    overlayIdentityContractFormat: overlayClientIdentityBody && overlayClientIdentityBody.contract ? (overlayClientIdentityBody.contract.idFormat || '') : '',
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -492,7 +504,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false || input.overlayClientControlOk === false || input.channelpointsReadinessOk === false || input.overlayClientClassificationOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false || input.overlayClientControlOk === false || input.channelpointsReadinessOk === false || input.overlayClientClassificationOk === false || input.overlayClientIdentityOk === false) return 'warning';
   return 'ok';
 }
 
