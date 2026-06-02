@@ -1,6 +1,6 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-29.2
+## Aktueller Arbeitsstand CAN-30.1
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
@@ -10,28 +10,42 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN29_2.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN30_1.md
 ```
 
-## CAN-29 ZIPs aus dem Chat
+## CAN-30 ZIPs aus dem Chat
 
 ```text
-CAN-29.1_discord_clientReady_deprecation_fix.zip
-CAN-29.2_document_discord_clientReady_test.zip
+CAN-30.1_document_sqlite_experimental_warning.zip
 ```
 
-## Bestätigter CAN-29.1 Live-Test
+## CAN-30 relevante Runtime-Datei
 
 ```text
-[module] loaded: discord.js name=discord version=0.1.1 meta=yes
-[discord] ready as Erschreck-Bär#5808
-[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
+backend/modules/sqlite_core.js
 ```
 
-Nicht mehr vorhanden:
+CAN-30.1 selbst ändert keine Runtime-Datei.
+
+## SQLite Warning Ursache
 
 ```text
-DeprecationWarning: The ready event has been renamed to clientReady
+const { DatabaseSync } = require("node:sqlite");
+db = new DatabaseSync(dbPath);
+```
+
+## Produktive DB
+
+```text
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
+```
+
+## Entscheidung
+
+```text
+Warning bekannt und dokumentiert.
+Aktuell keine Änderung an DB-Core.
+Kein DB-Treiberwechsel ohne eigenen Plan mit Backup/Rollback.
 ```
 
 ## Lokale Pfade
@@ -39,6 +53,6 @@ DeprecationWarning: The ready event has been renamed to clientReady
 ```text
 Repo: D:\Git\stream-control-center
 Live: D:\Streaming\stramAssets
-Discord Modul: D:\Streaming\stramAssets\backend\modules\discord.js
+SQLite Core: D:\Streaming\stramAssets\backend\modules\sqlite_core.js
 Produktive SQLite-DB: D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```

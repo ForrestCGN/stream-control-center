@@ -51,13 +51,19 @@
 - [x] CAN-29.1 Discord clientReady Deprecation Fix anwenden und live prüfen.
 - [x] CAN-29.2 Testergebnis dokumentieren.
 
-## CAN-30
+## CAN-30 abgeschlossen
 
-- [ ] CAN-30.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-30.0 SQLite ExperimentalWarning analysieren.
+- [x] CAN-30.1 SQLite ExperimentalWarning dokumentieren und akzeptieren.
+
+## CAN-31
+
+- [ ] CAN-31.0 neuen Arbeitsblock bewusst auswählen.
 
 ## Offene/zu beobachtende Punkte
 
-- [ ] SQLite ExperimentalWarning separat bewerten, ohne DB-Logik anzufassen.
+- [ ] SQLite ExperimentalWarning ist bekannt und akzeptiert; kein DB-Core-Umbau ohne eigenen Plan.
 - [ ] Optional: WS connect/disconnect Log prüfen, falls zu laut.
 - [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
+- [ ] Optional: EventBus read-only Diagnose weiter ausbauen.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.
