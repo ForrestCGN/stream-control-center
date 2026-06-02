@@ -3,25 +3,28 @@
 ## Naechster Schritt
 
 ```text
-CAN-21.2 - Recovery Safety Master Closure / Next Technical Candidate Decision
+CAN-22.0 - Safety Architecture Backend Shape Implementation Planning no-code
 ```
 
-## Ziel CAN-21.2
+## Ziel CAN-22.0
 
-Den Master-Doku-Strang abschliessen und entscheiden, ob der naechste Schritt weiterhin Planung bleibt oder ob eine echte read-only technische Umsetzung vorbereitet werden soll.
+Planen, welche echten Dateien spaeter fuer ein internes Safety Architecture Backend Shape betroffen waeren und welche Tests/Grenzen gelten muessen.
 
-## CAN-21.2 darf klaeren
+## CAN-22.0 darf klaeren
 
 ```text
-ob die Master-Doku als abgeschlossen gilt
-welche Option als naechster sicherer Kandidat gilt
-welche technischen Dateien betroffen waeren, falls spaeter Umsetzung geplant wird
-welche No-Go-Grenzen weiter gelten
+betroffene echte Dateien
+notwendige Funktionen
+no-code Implementierungsgrenzen
+spaetere Tests
+spaetere Rollback-/Abnahmegrenzen
+weiterhin blockierte Bereiche
 ```
 
-## CAN-21.2 darf NICHT enthalten
+## CAN-22.0 darf NICHT enthalten
 
 ```text
+Code-Aenderung
 API
 Route
 DB
