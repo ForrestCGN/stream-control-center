@@ -1,39 +1,41 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.22 abgeschlossen
+## Stand: CAN-24.24 abgeschlossen
 
-CAN-24.22 dokumentiert den erfolgreichen lokalen Execute-Shadow-Test.
+Die Sound-Shadow-Stufe fuer Channelpoints-Soundmigration ist abgeschlossen und dokumentiert.
 
-## Bestaetigt
+## Erfolgreich bestaetigt
 
 ```text
-Legacy Execute: ok
-Legacy Sound ueber /api/sound/play: gestartet
-Shadow lastAutoResult.accepted: true
-Shadow skipped: false
-Shadow queueTouched: false
-Shadow audioTouched: false
-Shadow productiveMigration: false
-Endstatus enabled: false
+mediaId-DryRun erfolgreich
+Shadow-Hook Disabled-Test erfolgreich
+enabled=true Auto-Test erfolgreich
+Execute-Shadow-Test erfolgreich
+Legacy-Flow weiterhin ok
+Shadow-Hook ohne Queue/Audio-Touch
+Endstatus enabled=false
 ```
 
-## Korrigiert
+## Getesteter Reward
 
 ```text
-Veralteter Config-Note-Text im Shadow-Auto-Status wurde aktualisiert.
+rewardKey: bauernweisheit
+mediaAssetId: 1423
+file: media/channelpoints/general/bauernweisheit.mp3
 ```
 
 ## Weiter blockiert
 
 ```text
-EventSub-/Twitch-Redemption-Test: nein
-Produktive Sound-Bus-Migration: nein
-Produktiver Sound-Bus-Play: nein
-Hook fuer alle Rewards: nein
+Produktive Sound-Bus-Migration
+Produktiver Sound-Bus-Play
+Hook fuer alle Rewards
+EventSub-/Twitch-Redemption-Test
 ```
 
-## Naechster Schritt
+## Naechste Entscheidung
 
 ```text
-CAN-24.23: Entscheidung ueber EventSub-/Redemption-Test oder Abschluss der Shadow-Stufe.
+Naechste Projekt-Richtung waehlen:
+Sound-Migration pausieren, Dashboard verbessern, zweiter Reward, produktive Migration separat planen oder EventSub-Test separat planen.
 ```

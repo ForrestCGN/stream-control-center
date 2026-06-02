@@ -1,31 +1,31 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## CAN-24 abgeschlossen
+
+Die Sound-Shadow-Stufe ist abgeschlossen.
+
+## Naechste moegliche Richtungen
 
 ```text
-CAN-24.23: Entscheidung, ob ein EventSub-/Redemption-Test noetig und sicher ist oder ob die Sound-Migration zunaechst als Shadow-Stufe abgeschlossen wird.
+A) Sound-Migration pausieren und ein anderes Modul bearbeiten
+B) Dashboard/Bus-Diagnose fuer Sound-Shadow verbessern
+C) zweiten Sound-Reward als Shadow-Kandidat vorbereiten
+D) produktive Migration fuer genau einen Reward separat planen
+E) EventSub-/Twitch-Redemption-Test separat planen
 ```
 
-## Entscheidungsbasis
+## Empfehlung
 
 ```text
-mediaId-DryRun erfolgreich
-Shadow-Hook Disabled-Test erfolgreich
-enabled=true Auto-Test erfolgreich
-Execute-Shadow-Test erfolgreich
-Legacy-Flow weiterhin funktionsfaehig
-Shadow-Hook ohne Queue/Audio-Touch
+Nicht direkt produktiv migrieren.
+Erst bewusst entscheiden, welche Richtung als naechstes sinnvoll ist.
 ```
-
-## Vorsicht
-
-Ein EventSub-/Redemption-Test ist riskanter als der lokale Execute-Test, weil je nach Config Completion-/Statuslogik greifen kann.
 
 ## Weiterhin blockiert
 
 ```text
-Keine produktive Sound-Bus-Migration.
-Kein produktiver Sound-Bus-Play.
+Keine produktive Sound-Bus-Migration ohne eigenen kleinen Go-Schritt.
 Kein Hook fuer alle Rewards.
-Keine Twitch-Write-Aktion durch Shadow.
+Kein produktiver Sound-Bus-Play.
+Kein EventSub-/Twitch-Redemption-Test ohne separate Freigabe.
 ```

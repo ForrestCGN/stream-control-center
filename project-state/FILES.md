@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.22 ZIP
+## CAN24.24 ZIP
 
 Enthaltene Dateien:
 
@@ -30,7 +30,9 @@ Enthaltene Dateien:
 - `docs/system-inspection/CAN24_20_EXECUTE_REDEMPTION_SHADOW_TEST_DECISION.md`
 - `docs/system-inspection/CAN24_21_EXECUTE_SHADOW_TEST_PLAN.md`
 - `docs/system-inspection/CAN24_22_EXECUTE_SHADOW_TEST_SUCCESS.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_22.md`
+- `docs/system-inspection/CAN24_23_SHADOW_STAGE_CLOSURE_DECISION.md`
+- `docs/system-inspection/CAN24_24_SOUND_SHADOW_STAGE_CLOSURE.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_24.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -39,4 +41,4 @@ Enthaltene Dateien:
 
 ## Hinweis
 
-CAN-24.22 enthaelt eine Text-/Statuskorrektur in `backend/modules/channelpoints.js` und Dokumentation des erfolgreichen Tests.
+Die Code-Dateien entsprechen dem CAN-24.23/CAN-24.22 Stand. CAN-24.24 ist Abschlussdokumentation der Sound-Shadow-Stufe.

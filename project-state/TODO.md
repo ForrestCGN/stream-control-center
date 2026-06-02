@@ -2,11 +2,16 @@
 
 ## CAN-24
 
-- [x] CAN-24.21 Testplan/Script fuer genau einen lokalen Execute-Shadow-Test vorbereiten.
-- [x] CAN-24.22 Execute-Shadow-Test Ergebnis dokumentieren und Config-Note korrigieren.
-- [ ] CAN-24.23 Entscheidung, ob ein EventSub-/Redemption-Test noetig und sicher ist oder ob die Shadow-Stufe abgeschlossen wird.
-- [ ] Danach ggf. EventSub-/Redemption-Test separat planen.
-- [ ] Danach ggf. Abschlussdokumentation fuer Sound-Shadow-Stufe erstellen.
+- [x] CAN-24.24 Sound-Shadow-Stufe Abschlussdokumentation erstellen.
+- [ ] Naechste Richtung entscheiden.
+
+## Offene Optionen
+
+- [ ] Sound-Migration pausieren und anderes Modul bearbeiten.
+- [ ] Dashboard/Bus-Diagnose fuer Sound-Shadow verbessern.
+- [ ] Zweiten Sound-Reward als Shadow-Kandidat vorbereiten.
+- [ ] Produktive Migration fuer genau einen Reward separat planen.
+- [ ] EventSub-/Twitch-Redemption-Test separat planen.
 
 ## Weiterhin hart blockiert
 
@@ -15,3 +20,4 @@
 - [ ] Kein Queue-Clear.
 - [ ] Keine Twitch-/Redemption-Write-Aktion durch Shadow.
 - [ ] Kein automatischer Shadow-Mitulauf fuer alle Rewards.
+- [ ] Kein EventSub-/Twitch-Redemption-Test ohne separate Freigabe.

@@ -1,10 +1,10 @@
 # CHANGELOG
 
-## CAN-24.22
+## CAN-24.24
 
-- Erfolgreichen lokalen Execute-Shadow-Test dokumentiert.
-- Bestaetigt: Legacy Execute ok, Shadow accepted true, keine Queue/Audio-Beruehrung durch Shadow.
-- Endstatus `enabled:false` dokumentiert.
-- Veralteten Config-Note-Text korrigiert.
-- Keine produktive Sound-Bus-Migration.
-- Kein produktiver Sound-Bus-Play.
+- Sound-Shadow-Stufe Abschlussdokumentation erstellt.
+- Getestete Routen, Scripts, Ergebnisse und Sicherheitsgrenzen dokumentiert.
+- Deaktivierung/Rollback-Hinweise dokumentiert.
+- Naechste Optionen festgehalten.
+- Keine Code-Logik geaendert.
+- Keine produktive Aktion ausgefuehrt.
