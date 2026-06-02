@@ -3,37 +3,39 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-34.2 anwenden.
+CAN-34.3 anwenden und Dashboard-Sichtprüfung machen.
+```
+
+## Prüfung
+
+```text
+Dashboard > Todo > Übersicht
+```
+
+Erwartung:
+
+```text
+Todo Read-only Diagnose sichtbar.
+READ-ONLY OK oder PRÜFEN sichtbar.
+Status OK / Schema OK / Integration OK sichtbar.
+Read-only Routen als erlaubt sichtbar.
+Produktive Routen als gesperrt sichtbar.
+Keine Add-/Reload-/Admin-POST-Buttons in der Karte.
 ```
 
 ## Danach sinnvoll
 
 ```text
-CAN-34.3 - Todo Dashboard Read-only Diagnosekarte planen
+CAN-34.4 Testergebnis dokumentieren.
 ```
 
-Möglicher Inhalt:
+## Mögliche Kandidaten danach
 
 ```text
-- Modulversion anzeigen
-- Schema OK anzeigen
-- Integration-Check OK anzeigen
-- Ziel-/Channel-Status anzeigen
-- Statistik-Tabellen-Zähler anzeigen
-- Textvarianten-Zähler anzeigen
-- Read-only Routen als erlaubt markieren
-- Add/Reload/Admin-POST-Routen als gesperrt markieren
-```
-
-## Zuletzt abgeschlossen
-
-```text
-CAN-29: Discord ready/clientReady DeprecationWarning behoben.
-CAN-30: SQLite ExperimentalWarning analysiert und dokumentiert/akzeptiert.
-CAN-31: WS connect/disconnect Log durch Summary entschärft und live bestätigt.
-CAN-32: Bus-Diagnose Übersicht um read-only Sicherheits-Zusammenfassung erweitert und sichtbar geprüft.
-CAN-33: Commands-Modul dokumentiert und Dashboard Read-only Diagnosekarte sichtbar geprüft.
-CAN-34.1: Todo-Modul analysiert.
+1. Todo-Diagnosekarte bei Bedarf optisch glätten.
+2. Nächstes Modul an Status-/Doku-Regeln anpassen.
+3. EventBus read-only Diagnose weiter ausbauen.
+4. Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt

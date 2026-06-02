@@ -80,8 +80,9 @@
 
 - [x] CAN-34.0 neuen Arbeitsblock bewusst auswählen.
 - [x] CAN-34.1 Todo-Modul analysieren.
-- [ ] CAN-34.2 Todo-Modul Doku und Read-only/Write-Regeln ergänzen.
-- [ ] CAN-34.3 optional: Todo Dashboard Read-only Diagnosekarte planen.
+- [x] CAN-34.2 Todo-Modul Doku und Read-only/Write-Regeln ergänzen.
+- [ ] CAN-34.3 Todo Dashboard Read-only Diagnosekarte anwenden und prüfen.
+- [ ] CAN-34.4 Testergebnis dokumentieren.
 
 ## Offene/zu beobachtende Punkte
 

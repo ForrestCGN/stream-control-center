@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-34.2 vorbereitet
+## Stand: CAN-34.3 vorbereitet
 
-CAN-34.2 ergänzt eine dedizierte Todo-Modul-Doku mit Read-only-/Write-Regeln.
+CAN-34.3 ergänzt eine nachgeladene Read-only-Diagnosekarte im Todo-Dashboard.
 
 ## Aktueller Arbeitsbereich
 
@@ -10,79 +10,70 @@ CAN-34.2 ergänzt eine dedizierte Todo-Modul-Doku mit Read-only-/Write-Regeln.
 CAN-34: Todo-Modul Status/Doku/Diagnose prüfen und glätten
 ```
 
-## Ergebnis CAN-34.1 Analyse
+## Änderung CAN-34.3
 
-Das Todo-Modul ist technisch schon weit aufgestellt:
-
-```text
-backend/modules/todo.js
-MODULE_NAME = todo
-MODULE_VERSION = 0.1.0
-SCHEMA_VERSION = 1
-routesPrefix = /api/todo, /todo, /discord/todo
-```
-
-Vorhanden:
+Betroffene Dateien:
 
 ```text
-MODULE_META
-buildStatus()
-/api/todo/status
-/api/todo/routes
-/api/todo/integration-check
-read-only Integration-Check
-Dashboard-Anbindung
-DB-Settings
-DB-Textvarianten
-Statistiken
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/todo_readonly_diagnostics.js
+htdocs/dashboard/modules/todo_readonly_diagnostics.css
+project-state/*
+docs/current/CURRENT_CHAT_HANDOFF_CAN34_3.md
 ```
 
-Nicht vorhanden war bisher:
+Wichtig:
 
 ```text
-docs/modules/todo.md
+htdocs/dashboard/modules/todo.js bleibt unverändert.
+backend/modules/todo.js bleibt unverändert.
 ```
 
-## Änderung CAN-34.2
+## Neue Dashboard-Karte
 
-Neu:
+Ort:
 
 ```text
-docs/modules/todo.md
+Dashboard > Todo > Übersicht
 ```
 
-Darin festgehalten:
+Karte:
 
 ```text
-- Modulzweck
-- MODULE_META / Version / Routenprefix
-- Status-Endpunkt
-- Read-only Routen
-- produktive/schreibende Routen
-- Dashboard-Schreibfunktionen
-- Integration-Check als sichere Diagnose
-- Regeln für spätere Todo-Diagnosekarten
+Todo Read-only Diagnose
 ```
 
-## Wichtigste Sicherheitsentscheidung
+Sie zeigt:
 
-Read-only Diagnose darf nutzen:
+```text
+Modulversion / Schema-Version
+Status OK
+Schema OK
+Integration OK
+Targets/Ziele
+konfigurierte Discord-Channels
+fehlende Discord-Channels
+User-Stats-Zähler
+Daily-Stats-Zähler
+Settings-Zähler
+Textvarianten-Zähler
+Legacy-Texte-Zähler
+DB-Status
+Read-only Routen erlaubt
+Produktive Routen gesperrt
+```
+
+## Sicherheit
+
+Die Karte nutzt nur:
 
 ```text
 GET /api/todo/status
-GET /api/todo/config
-GET /api/todo/settings
 GET /api/todo/routes
 GET /api/todo/integration-check
-GET /api/todo/stats
-GET /api/todo/stats/top
-GET /api/todo/stats/today
-GET /api/todo/admin/settings
-GET /api/todo/admin/texts
-GET /discord/todo/status
 ```
 
-Nicht automatisch verwenden:
+Nicht genutzt:
 
 ```text
 GET/POST /api/todo/add
@@ -95,14 +86,18 @@ POST /api/todo/admin/texts
 ## Nicht geändert
 
 ```text
-Keine Codeänderung.
-Keine Todo-Funktion geändert.
-Keine Todo-Einträge erstellt/geändert/gelöscht.
+Keine Backend-Dateien.
+Keine Todo-Moduldatei.
+Keine API-Routen.
+Keine Todo-Funktion.
+Keine Todo-Einträge.
 Keine Settings gespeichert.
-Keine Texte/Varianten gespeichert/gelöscht.
+Keine Texte/Varianten gespeichert oder gelöscht.
 Kein Reload ausgelöst.
 Keine DB-Migration.
 Keine Dashboard-Write-Buttons getestet.
+Keine Discord-Nachricht gepostet.
+Keine Statistik erhöht.
 Keine Twitch-/Streamer.bot-Aktion.
 Keine OBS-/Sound-/Queue-Aktion.
 Keine Funktionalität entfernt.
@@ -111,6 +106,5 @@ Keine Funktionalität entfernt.
 ## Nächster Schritt
 
 ```text
-CAN-34.2 anwenden.
-Danach optional CAN-34.3 Todo Dashboard Read-only Diagnosekarte planen.
+CAN-34.3 anwenden und Dashboard-Sichtprüfung machen.
 ```
