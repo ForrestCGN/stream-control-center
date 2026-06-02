@@ -731,6 +731,165 @@ function buildInventorySummary(inventory) {
   };
 }
 
+function overlayMonitorRiskFromStatus(status) {
+  const value = cleanString(status).toLowerCase();
+  if (value === 'dead' || value === 'offline') return 'error';
+  if (value === 'stale' || value === 'registered' || value === 'unknown' || !value) return 'warning';
+  if (value === 'expected_inactive' || value === 'expected_idle') return 'info';
+  return 'ok';
+}
+
+function isExpectedIdleOverlayClient(client = {}, sources = []) {
+  const hay = [
+    client.id,
+    client.clientId,
+    client.name,
+    client.module,
+    client.scene,
+    client.sceneName,
+    client.source,
+    client.sourceName,
+    client.path,
+    client.url,
+    ...sources.map(src => [src.obsSourceName, src.url, src.pathText, src.displayName].join('|'))
+  ].map(value => inventoryKey(value)).filter(Boolean).join('|');
+
+  // Event-/OneShot-Overlays sind im OBS-Inventar vorhanden, muessen aber im Idle
+  // nicht dauerhaft aktiv rendern. Das bleibt rein diagnostisch: rawStatus bleibt sichtbar.
+  return [
+    'easteregg', 'eastereggwinner', 'winneroverlay',
+    'birthdayoverlay', 'geburtstagoverlay',
+    'clipshoutout', 'megashoutout', 'msooverlay'
+  ].some(token => hay.includes(token));
+}
+
+function buildOverlaySceneAwarenessMap(overlays = []) {
+  const awareness = new Map();
+  const inventory = normalizeInventoryStatuses(state.obsInventory || loadInventoryCache());
+  const sources = inventory && Array.isArray(inventory.sources) ? inventory.sources : [];
+  const currentProgramSceneName = cleanString(inventory && inventory.currentProgramSceneName);
+  const overlayList = Array.isArray(overlays) ? overlays : [];
+
+  function ensure(id, overlay = null) {
+    const key = cleanString(id);
+    if (!key) return null;
+    if (!awareness.has(key)) {
+      awareness.set(key, {
+        known: false,
+        currentProgramSceneName,
+        sourceCount: 0,
+        activeInProgramCount: 0,
+        inactiveCount: 0,
+        activeExpected: false,
+        expectedInactive: false,
+        expectedIdle: false,
+        sources: [],
+        overlay
+      });
+    }
+    const record = awareness.get(key);
+    if (overlay && !record.overlay) record.overlay = overlay;
+    return record;
+  }
+
+  for (const overlay of overlayList) {
+    ensure(overlay.id || overlay.clientId || overlay.name, overlay);
+  }
+
+  for (const source of sources) {
+    if (!source || source.kind !== 'source') continue;
+    if (source.external === true || source.placeholder === true) continue;
+
+    let clientId = cleanString(source.busClientId);
+    if (!clientId) {
+      let best = null;
+      let bestScore = 0;
+      for (const overlay of overlayList) {
+        const score = scoreInventoryClientForSource(overlay, {
+          inputName: source.obsSourceName || source.displayName || '',
+          url: source.url || '',
+          local_file: source.url || ''
+        }, source.pathText || '');
+        if (score > bestScore) {
+          best = overlay;
+          bestScore = score;
+        }
+      }
+      if (best && bestScore >= 18) clientId = cleanString(best.id || best.clientId || best.name);
+    }
+
+    const record = ensure(clientId);
+    if (!record) continue;
+
+    const sourceInfo = {
+      obsSourceName: cleanString(source.obsSourceName || source.displayName),
+      sceneName: cleanString(source.sceneName),
+      pathText: cleanString(source.pathText),
+      url: cleanString(source.url),
+      effectiveVisible: source.effectiveVisible === true,
+      activeInProgram: source.activeInProgram === true,
+      status: cleanString(source.status)
+    };
+
+    record.known = true;
+    record.sourceCount += 1;
+    record.sources.push(sourceInfo);
+    if (sourceInfo.activeInProgram === true && sourceInfo.effectiveVisible === true) {
+      record.activeInProgramCount += 1;
+      record.activeExpected = true;
+    } else {
+      record.inactiveCount += 1;
+    }
+  }
+
+  for (const record of awareness.values()) {
+    record.expectedInactive = record.known === true && record.sourceCount > 0 && record.activeExpected !== true;
+    record.expectedIdle = isExpectedIdleOverlayClient(record.overlay || {}, record.sources);
+  }
+
+  return awareness;
+}
+
+function applyOverlaySceneAwareness(overlay = {}, awarenessRecord = null) {
+  const record = awarenessRecord || null;
+  const rawStatus = cleanString(overlay.status || 'unknown').toLowerCase();
+  const expectedInactive = !!(record && record.expectedInactive === true);
+  const expectedIdle = !!(record && record.expectedIdle === true);
+  const monitorStatus = expectedInactive ? 'expected_inactive' : (expectedIdle ? 'expected_idle' : rawStatus);
+  const monitorRisk = overlayMonitorRiskFromStatus(monitorStatus);
+
+  return {
+    ...overlay,
+    rawStatus,
+    monitorStatus,
+    monitorRisk,
+    activeExpected: record ? record.activeExpected === true : null,
+    expectedInactive,
+    expectedIdle,
+    sceneAwareness: record ? {
+      known: record.known === true,
+      currentProgramSceneName: cleanString(record.currentProgramSceneName),
+      sourceCount: Number(record.sourceCount || 0),
+      activeInProgramCount: Number(record.activeInProgramCount || 0),
+      inactiveCount: Number(record.inactiveCount || 0),
+      activeExpected: record.activeExpected === true,
+      expectedInactive,
+      expectedIdle,
+      sources: Array.isArray(record.sources) ? record.sources.slice(0, 10) : []
+    } : {
+      known: false,
+      currentProgramSceneName: '',
+      sourceCount: 0,
+      activeInProgramCount: 0,
+      inactiveCount: 0,
+      activeExpected: null,
+      expectedInactive: false,
+      expectedIdle: false,
+      sources: []
+    }
+  };
+}
+
 async function collectObsInventory(env = {}, options = {}) {
   const shared = getSharedObsInstance(env);
   if (!shared) throw new Error('OBS-Shared-Modul ist nicht verfügbar.');
@@ -1120,37 +1279,53 @@ function buildSummary(overlays) {
     stale: 0,
     offline: 0,
     dead: 0,
+    expectedInactive: 0,
+    expectedIdle: 0,
     withHeartbeat: 0,
     withoutHeartbeat: 0,
     connected: 0,
     disconnected: 0,
+    activeExpected: 0,
+    inactiveExpected: 0,
     withErrors: 0
   };
 
   for (const overlay of overlays) {
-    if (Object.prototype.hasOwnProperty.call(summary, overlay.status)) summary[overlay.status] += 1;
+    const monitorStatus = cleanString(overlay.monitorStatus || overlay.status || 'unknown').replace(/_([a-z])/g, (_, chr) => chr.toUpperCase());
+    const summaryKey = monitorStatus === 'expectedInactive' ? 'expectedInactive' : (monitorStatus === 'expectedIdle' ? 'expectedIdle' : monitorStatus);
+    if (Object.prototype.hasOwnProperty.call(summary, summaryKey)) summary[summaryKey] += 1;
     if (overlay.connected) summary.connected += 1;
     else summary.disconnected += 1;
     if (overlay.hasHeartbeat) summary.withHeartbeat += 1;
     else summary.withoutHeartbeat += 1;
-    if (overlay.lastErrorAt || overlay.disconnectReason) summary.withErrors += 1;
+    if (overlay.activeExpected === true) summary.activeExpected += 1;
+    if (overlay.expectedInactive === true) summary.inactiveExpected += 1;
+    if (!overlay.expectedInactive && !overlay.expectedIdle && (overlay.lastErrorAt || overlay.disconnectReason)) summary.withErrors += 1;
   }
 
-  summary.status = summary.dead > 0 || summary.offline > 0 ? 'error' : (summary.stale > 0 || summary.withoutHeartbeat > 0 || summary.withErrors > 0 ? 'warning' : 'ok');
+  summary.status = summary.dead > 0 || summary.offline > 0 ? 'error' : (summary.stale > 0 || summary.registered > 0 || summary.withoutHeartbeat > 0 || summary.withErrors > 0 ? 'warning' : 'ok');
   return summary;
 }
 
 function buildIssues(overlays) {
   const issues = [];
   for (const overlay of overlays) {
-    if (overlay.status === 'online') continue;
-    const level = overlay.status === 'stale' || overlay.status === 'registered' ? 'warn' : 'error';
+    const status = cleanString(overlay.monitorStatus || overlay.status || 'unknown').toLowerCase();
+    if (status === 'online' || status === 'expected_inactive' || status === 'expected_idle') continue;
+    const level = status === 'stale' || status === 'registered' ? 'warn' : 'error';
     issues.push({
-      key: `overlay_${overlay.status}_${overlay.id.replace(/[^a-zA-Z0-9_.:-]/g, '_')}`,
+      key: `overlay_${status}_${overlay.id.replace(/[^a-zA-Z0-9_.:-]/g, '_')}`,
       level,
       overlayId: overlay.id,
-      status: overlay.status,
-      message: overlay.status === 'registered' ? `Overlay ${overlay.id} ist nur angemeldet, aber ohne echten Heartbeat.` : `Overlay ${overlay.id} ist ${overlay.status}.`,
+      status,
+      rawStatus: overlay.rawStatus || overlay.status,
+      monitorStatus: status,
+      monitorRisk: overlay.monitorRisk || overlayMonitorRiskFromStatus(status),
+      expectedInactive: overlay.expectedInactive === true,
+      expectedIdle: overlay.expectedIdle === true,
+      activeExpected: overlay.activeExpected,
+      sceneAwareness: overlay.sceneAwareness || null,
+      message: status === 'registered' ? `Overlay ${overlay.id} ist nur angemeldet, aber ohne echten Heartbeat.` : `Overlay ${overlay.id} ist ${status}.`,
       ageSeconds: overlay.ageSeconds,
       hasHeartbeat: overlay.hasHeartbeat,
       lastHelloAt: overlay.lastHelloAt,
@@ -1173,10 +1348,12 @@ function getOverlayStatus(options = {}) {
     clients = Array.isArray(busStatus.clients) ? busStatus.clients : [];
   }
 
-  const overlays = clients
+  const rawOverlays = clients
     .filter(isOverlayClient)
     .map(client => normalizeOverlayClient(client, currentMs))
     .sort((a, b) => a.id.localeCompare(b.id));
+  const sceneAwareness = buildOverlaySceneAwarenessMap(rawOverlays);
+  const overlays = rawOverlays.map(overlay => applyOverlaySceneAwareness(overlay, sceneAwareness.get(overlay.id)));
 
   const summary = buildSummary(overlays);
   const issues = buildIssues(overlays);
@@ -1502,12 +1679,13 @@ function buildOverlayClientControlStatus() {
     const stale = hasHeartbeat && ageMs > staleAfterMs;
     const dead = hasHeartbeat && ageMs > deadAfterMs;
     const connected = client.connected !== false;
-    const effectiveStatus = !connected
+    const rawEffectiveStatus = !connected
       ? 'offline'
       : (dead ? 'dead' : (stale ? 'stale' : (hasHeartbeat ? 'online' : (clientStatus || 'unknown'))));
-    const risk = effectiveStatus === 'dead' || effectiveStatus === 'offline'
-      ? 'error'
-      : (effectiveStatus === 'stale' || effectiveStatus === 'registered' || effectiveStatus === 'unknown' || !hasHeartbeat ? 'warning' : 'ok');
+    const expectedInactive = client.expectedInactive === true;
+    const expectedIdle = client.expectedIdle === true;
+    const effectiveStatus = expectedInactive ? 'expected_inactive' : (expectedIdle ? 'expected_idle' : rawEffectiveStatus);
+    const risk = overlayMonitorRiskFromStatus(effectiveStatus);
     const productiveHint = !/test|debug|demo|preview|sample|old|alt/i.test([
       client.id,
       client.name,
@@ -1521,8 +1699,14 @@ function buildOverlayClientControlStatus() {
       name: cleanString(client.name || client.id || ''),
       module: cleanString(client.module || ''),
       status: effectiveStatus,
+      monitorStatus: effectiveStatus,
       busStatus,
-      rawStatus: clientStatus,
+      rawStatus: client.rawStatus || clientStatus || rawEffectiveStatus,
+      rawEffectiveStatus,
+      activeExpected: client.activeExpected,
+      expectedInactive,
+      expectedIdle,
+      sceneAwareness: client.sceneAwareness || null,
       hasHeartbeat,
       lastHeartbeatAt,
       ageMs,
@@ -1541,11 +1725,15 @@ function buildOverlayClientControlStatus() {
   const summary = {
     total: rows.length,
     online: rows.filter(row => row.risk === 'ok').length,
+    info: rows.filter(row => row.risk === 'info').length,
     warning: rows.filter(row => row.risk === 'warning').length,
     error: rows.filter(row => row.risk === 'error').length,
     heartbeat: rows.filter(row => row.hasHeartbeat).length,
-    stale: rows.filter(row => row.stale).length,
-    dead: rows.filter(row => row.dead).length,
+    stale: rows.filter(row => row.stale && row.expectedInactive !== true && row.expectedIdle !== true).length,
+    dead: rows.filter(row => row.dead && row.expectedInactive !== true && row.expectedIdle !== true).length,
+    expectedInactive: rows.filter(row => row.expectedInactive === true).length,
+    expectedIdle: rows.filter(row => row.expectedIdle === true).length,
+    activeExpected: rows.filter(row => row.activeExpected === true).length,
     productiveHint: rows.filter(row => row.productiveHint).length,
     testOrLegacyHint: rows.filter(row => row.testOrLegacyHint).length
   };
@@ -1644,32 +1832,43 @@ function processStatusChanges(status) {
   const seen = new Set();
 
   for (const overlay of status.overlays) {
+    const monitorStatus = cleanString(overlay.monitorStatus || overlay.status || 'unknown').toLowerCase();
     seen.add(overlay.id);
     const previous = state.lastStatuses.get(overlay.id);
     if (!previous) {
-      state.lastStatuses.set(overlay.id, overlay.status);
-      pushEvent('info', 'overlay_seen', `Overlay erkannt: ${overlay.id} (${overlay.status})`, { overlay });
+      state.lastStatuses.set(overlay.id, monitorStatus);
+      pushEvent('info', 'overlay_seen', `Overlay erkannt: ${overlay.id} (${monitorStatus})`, { overlay, monitorStatus, rawStatus: overlay.rawStatus || overlay.status });
       if (config.emitStatusChangesToBus === true) {
         emitBusEvent('overlay.monitor', 'seen', { overlay }, { replayable: true, requireAck: false });
       }
       continue;
     }
 
-    if (previous !== overlay.status) {
+    if (previous !== monitorStatus) {
       state.stats.statusChanges += 1;
-      state.lastStatuses.set(overlay.id, overlay.status);
-      const level = overlay.status === 'online' ? 'info' : (overlay.status === 'stale' ? 'warn' : 'error');
-      pushEvent(level, 'overlay_status_changed', `Overlay ${overlay.id}: ${previous} -> ${overlay.status}`, {
+      state.lastStatuses.set(overlay.id, monitorStatus);
+      const level = monitorStatus === 'online' || monitorStatus === 'expected_inactive' || monitorStatus === 'expected_idle'
+        ? 'info'
+        : (monitorStatus === 'stale' ? 'warn' : 'error');
+      pushEvent(level, 'overlay_status_changed', `Overlay ${overlay.id}: ${previous} -> ${monitorStatus}`, {
         overlayId: overlay.id,
         previousStatus: previous,
-        status: overlay.status,
+        status: monitorStatus,
+        rawStatus: overlay.rawStatus || overlay.status,
+        activeExpected: overlay.activeExpected,
+        expectedInactive: overlay.expectedInactive === true,
+        expectedIdle: overlay.expectedIdle === true,
         overlay
       });
       if (config.emitStatusChangesToBus === true) {
         emitBusEvent('overlay.monitor', 'status_changed', {
           overlayId: overlay.id,
           previousStatus: previous,
-          status: overlay.status,
+          status: monitorStatus,
+          rawStatus: overlay.rawStatus || overlay.status,
+          activeExpected: overlay.activeExpected,
+          expectedInactive: overlay.expectedInactive === true,
+          expectedIdle: overlay.expectedIdle === true,
           overlay
         }, { replayable: true, requireAck: false });
       }
