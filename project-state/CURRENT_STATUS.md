@@ -1,13 +1,21 @@
 # CURRENT_STATUS
 
-## Stand: CAN-26.5 vorbereitet
+## Stand: CAN-27.1 vorbereitet
 
-Deploy-Doku-Sync wurde als eigener Mini-Schritt vorbereitet. CAN-26.4 hatte die Doku-/Projektstandsdateien im Repo aktualisiert, aber der bestehende Deploy-Workflow kopierte `docs` und `project-state` nicht ins Live-System.
+CAN-26.5 wurde live bestaetigt: `docs/current` und `project-state` werden durch das Deploy-Script nach `D:\Streaming\stramAssets` synchronisiert.
+
+CAN-27.0 hat die doppelte lokale Struktur `htdocs\htdocs\...` geprueft. Ergebnis: Der Ordner ist Git-getrackt, wird aber nicht produktiv referenziert. Drei Dateien liegen dort:
+
+```text
+htdocs/htdocs/dashboard/modules/overlays.js
+htdocs/htdocs/overlays/Overlay Birthday.html
+htdocs/htdocs/overlays/_rahmen.html
+```
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-26: Git/Live-Abgleich, Overlay-Monitor Scene-Awareness, Bus-Diagnose, Dashboard-Sichtpruefung und Deploy-Doku-Sync
+CAN-27: Repo-Struktur bereinigen, ohne produktive Funktionalitaet zu entfernen.
 ```
 
 ## Aktueller stabiler Stand
@@ -22,12 +30,14 @@ CAN-26.1 Overlay-Monitor Scene-Awareness Diagnose-Fix.
 CAN-26.2 Overlay-Monitor client-control Top-Level Diagnosefelder.
 CAN-26.3 Doku- und Handoff-Aktualisierung inkl. Dashboard-Sichtpruefung.
 CAN-26.4 Live-Doku-Sync und NEXT_STEPS-Bereinigung im Repo vorbereitet.
+CAN-26.5 Deploy-Script um docs/project-state-Sync erweitert und live bestaetigt.
 ```
 
-CAN-26.5 vorbereitet:
+CAN-27.0 / CAN-27.1:
 
 ```text
-tools/deploy_repo_to_streamassets.ps1 soll docs/current, docs/system-inspection, docs/modules und project-state mit nach Live deployen.
+CAN-27.0 htdocs/htdocs-Struktur analysiert.
+CAN-27.1 soll den getrackten Doppelordner htdocs/htdocs sauber aus Git entfernen.
 ```
 
 ## Technischer Stand Overlay-Monitor
@@ -39,105 +49,39 @@ Status API: 1.0.8
 Build: CAN-26.2
 ```
 
-CAN-26.1 hat verhindert, dass bei fehlender/unklarer Program-Szene blind `sceneNames[0]` als aktive Szene verwendet wird. Bei unbekannter Program-Szene wird safe-inactive bewertet und kein Overlay automatisch als `activeExpected` markiert.
-
-CAN-26.2 hat die Top-Level-Diagnosefelder in `/api/overlay-monitor/client-control/status` sichtbar gemacht:
+## CAN-27.0 Befund htdocs/htdocs
 
 ```text
-currentProgramSceneName
-currentPreviewSceneName
-currentProgramSceneKnown
-sceneAwarenessMode
-inventoryUpdatedAt
-inventoryFromCache
-inventoryFromMemory
+- htdocs/htdocs existiert.
+- Enthalten sind dashboard/modules/overlays.js, overlays/Overlay Birthday.html und overlays/_rahmen.html.
+- Alle drei Dateien sind Git-getrackt.
+- Es gibt keine Runtime-Referenzen auf htdocs/htdocs.
+- Referenzen existieren nur in Doku-/Projektstandsdateien.
 ```
 
-## Letzte bestaetigte Testergebnisse
-
-API-Test ohne Rahmen in Program-Szene `Live Gameplay Engel`:
+Bewertung:
 
 ```text
-currentProgramSceneName  : Live Gameplay Engel
-currentProgramSceneKnown : True
-sceneAwarenessMode       : program_scene_known
-inventoryFromCache       : False
-inventoryFromMemory      : False
-```
-
-Frame-Overlay in Szene ohne Rahmen:
-
-```text
-id                       : overlay:frame_overlay
-name                     : Rahmen Overlay
-rawStatus                : online
-status                   : expected_inactive
-monitorStatus            : expected_inactive
-activeExpected           : False
-expectedInactive         : True
-expectedNotActive        : True
-currentProgramSceneName  : Live Gameplay Engel
-currentProgramSceneKnown : True
-sceneAwarenessMode       : program_scene_known
-```
-
-Overlay-Monitor Summary nach CAN-26.1/26.2:
-
-```text
-total             : 10
-online            : 7
-info              : 3
-warning           : 0
-error             : 0
-heartbeat         : 10
-stale             : 0
-dead              : 0
-expectedInactive  : 1
-expectedIdle      : 2
-expectedNotActive : 3
-activeExpected    : 8
-```
-
-Dashboard-Sichtpruefung:
-
-```text
-SYSTEME-Bereich lesbar: ja
-Lange Detailbloecke in Tabellenzellen: nein
-Overlay-Monitor Summary: 0 Warnungen / 0 Fehler
-Rahmen Overlay: EXPECTED_INACTIVE korrekt
-Bus-Matrix: read-only aktiv
-Sicherheitsgrenze: keine Aktion wird ausgefuehrt
-Sound-Bus Dry-Run: bereit, aber kein Play/Sound/Queue-Touch
-```
-
-## Wichtige Erkenntnisse
-
-```text
-Overlay-Clients koennen technisch online sein, ohne in der aktuellen Program-Szene aktiv erwartet zu werden.
-rawStatus bleibt sichtbar, monitorStatus bewertet scene-aware.
-currentProgramSceneName ist die entscheidende Diagnosequelle, nicht Preview.
-Ohne Studio-Modus kann currentPreviewSceneName leer sein; das ist nicht kritisch.
-OBS-Inventar-Refresh ueber /api/overlay-monitor/obs-inventory?refresh=1 bleibt read-only und fuehrt keine Reparatur aus.
-stepdone.cmd staged docs/project-state, aber deploy_repo_to_streamassets.ps1 muss diese Pfade explizit nach Live kopieren.
+htdocs/htdocs/dashboard/modules/overlays.js ist ein alter/abweichender Stand der echten Datei htdocs/dashboard/modules/overlays.js.
+htdocs/htdocs/overlays/Overlay Birthday.html ist ein Duplikat von htdocs/overlays/_overlay-birthday.html.
+htdocs/htdocs/overlays/_rahmen.html ist ein alter/abweichender Stand der echten Datei htdocs/overlays/_rahmen.html.
 ```
 
 ## Weiterhin verboten / nicht passiert
 
 ```text
-Keine OBS-Reparatur.
-Kein Source-Refresh.
-Keine automatische Recovery.
+Keine echten htdocs/dashboard-Dateien geaendert.
+Keine echten htdocs/overlays-Dateien geaendert.
+Keine Backend-Module geaendert.
+Keine Dashboard-Logik geaendert.
 Keine DB-Migration.
-Kein Overlay-HTML-Umbau.
-Kein Sound-Play.
-Keine Queue-Aktion.
-Keine Twitch-/Redemption-Write-Aktion.
-Keine produktive Sound-Bus-Migration.
-Keine Dashboard-Buttons fuer produktive Aktionen.
+Keine OBS-Aktion.
+Keine produktiven Flows.
+Keine Funktionalitaet entfernt.
 ```
 
 ## Naechster Schritt
 
 ```text
-CAN-26.5 ZIP entpacken, stepdone ausfuehren und danach Hash-Abgleich fuer docs/project-state pruefen. Danach CAN-27.0 planen.
+CAN-27.1 anwenden: getrackte Altlast htdocs/htdocs per git rm entfernen, Doku-ZIP entpacken, stepdone ausfuehren, danach pruefen.
 ```

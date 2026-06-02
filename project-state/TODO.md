@@ -24,7 +24,7 @@
 - [x] CAN-25.24 Overlay-Monitor Dashboard Scene-Aware.
 - [x] CAN-25.25b Bus-Matrix Systeme wirklich kompakt.
 
-## CAN-26 abgeschlossen / vorbereitet
+## CAN-26 abgeschlossen
 
 - [x] CAN-26.0 GitHub/dev und Live-Ziel abgleichen.
 - [x] CAN-26.0 Dashboard Bus-Diagnose nach Strg+F5 final visuell pruefen.
@@ -33,19 +33,17 @@
 - [x] CAN-26.2 Overlay-Monitor client-control Top-Level Diagnosefelder.
 - [x] CAN-26.3 Doku- und Handoff-Aktualisierung inkl. Dashboard-Sichtpruefung.
 - [x] CAN-26.4 Live-Doku-Sync und NEXT_STEPS-Bereinigung im Repo vorbereitet.
-- [ ] CAN-26.5 Deploy-Script um docs/project-state-Sync erweitern und live pruefen.
+- [x] CAN-26.5 Deploy-Script um docs/project-state-Sync erweitert und live bestaetigt.
 
-## Naechster Block
+## CAN-27
 
-- [ ] CAN-27.0 neuen Arbeitsblock planen.
-- [ ] Vor CAN-27.0 Repo/dev und Live erneut bewusst abgleichen.
-- [ ] Bei Code-Aenderung immer vollstaendige echte Dateien verwenden.
-- [ ] Bei Doku-Step Projektdateien und docs/current aktualisieren.
+- [x] CAN-27.0 Doppelte lokale Struktur `htdocs\htdocs\...` analysieren.
+- [ ] CAN-27.1 Getrackten Doppelordner `htdocs/htdocs` sauber entfernen und dokumentieren.
+- [ ] CAN-27.2 Repo/Live nach Entfernen erneut bewusst abgleichen.
 
 ## Offene/zu beobachtende Punkte
 
 - [ ] Node-Log beobachten: Overlay-Flap-Spam sollte durch scene-aware Bewertung nicht mehr als echte Warnlogik eskalieren.
-- [ ] Doppelte lokale Struktur `htdocs\htdocs\...` spaeter separat pruefen, nicht blind loeschen.
 - [ ] OBS-Browserquellen koennen je nach Szene erwartbar pausieren/entladen; nicht automatisch reparieren.
 - [ ] Dashboard SYSTEME-Bereich kann spaeter optisch noch flacher/feiner werden, ist aber nach CAN-25.25b/CAN-26 lesbar.
 - [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen, falls gewuenscht.
