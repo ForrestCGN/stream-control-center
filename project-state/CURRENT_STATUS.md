@@ -1,30 +1,43 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.11 abgeschlossen
+## Stand: CAN-24.12 abgeschlossen
 
-CAN-24.11 macht Sound-Bus-DryRun mediaId/mediaAssetId-kompatibel.
+CAN-24.12 dokumentiert den erfolgreichen mediaId-DryRun.
 
-## Korrigiertes Problem
+## Erfolgreich bestaetigt
 
 ```text
-mediaAssetId 1423 wurde vorher als soundId 1423 behandelt.
-Jetzt kann der DryRun Media-Registry Assets ueber mediaId/mediaAssetId validieren.
+Channelpoints Candidate DryRun: ok
+accepted: true
+statusCode: 200
+mediaId/mediaAssetId Mapping: funktioniert
+queueTouched: false
+audioTouched: false
+```
+
+## Getesteter Kandidat
+
+```text
+rewardKey: bauernweisheit
+mediaAssetId: 1423
+file: media/channelpoints/general/bauernweisheit.mp3
+durationMs: 6168
 ```
 
 ## Sicherheitsstatus
 
 ```text
-dryRunOnly: true
+productiveMigration: false
+eventSubHook: false
+executeHook: false
 soundPlay: false
 queueTouched: false
-rewardExecutedViaBus: false
 redemptionChanged: false
 twitchTouched: false
-productiveMigration: false
 ```
 
 ## Naechster Schritt
 
 ```text
-Lokalen DryRun erneut testen und Ergebnis dokumentieren.
+CAN-24.13: Entscheidung fuer streng begrenzten Shadow-Hook fuer genau einen Reward.
 ```

@@ -1,21 +1,36 @@
 # NEXT_STEPS
 
-## Sofort testen
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/bus/sound-migration-candidates/dry-run" | ConvertTo-Json -Depth 10
-```
-
-## Danach
+## Naechster Schritt
 
 ```text
-CAN-24.12: Testergebnis mediaId-DryRun dokumentieren.
+CAN-24.13: Entscheidung treffen, ob ein streng begrenzter Shadow-Hook fuer genau einen Reward gebaut werden darf.
+```
+
+## Entscheidungsbasis
+
+```text
+DryRun funktioniert erfolgreich mit mediaId/mediaAssetId.
+Der Kandidat bauernweisheit ist validierbar.
+Keine Queue/Audio-Aktion im DryRun.
+```
+
+## Sicherheitsanforderungen fuer einen moeglichen Hook
+
+```text
+Nur ein Reward-Key: bauernweisheit
+Default aus oder explizit aktiviert
+Legacy-Flow bleibt unveraendert
+Shadow-DryRun nur Diagnose
+Kein Sound-Play
+Keine Queue
+Keine Redemption-/Twitch-Aenderung
+Sofort abschaltbar
 ```
 
 ## Weiter blockiert
 
 ```text
 Keine produktive Sound-Migration.
-Kein EventSub-/Execute-Hook.
 Kein Sound-Play ueber Bus.
+Kein automatischer Shadow-Mitulauf fuer alle Rewards.
 ```

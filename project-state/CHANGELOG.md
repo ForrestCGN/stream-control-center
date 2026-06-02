@@ -1,11 +1,9 @@
 # CHANGELOG
 
-## CAN-24.11
+## CAN-24.12
 
-- Channelpoints Sound-Migration-Payload ergaenzt `mediaId` und `mediaAssetId`.
-- Sound-Bus-DryRun akzeptiert jetzt `mediaId`/`mediaAssetId` als Alternative zu Sound-Preset-`soundId`.
-- DryRun nutzt Sound-Preset-Weg nur, wenn `soundId` als Preset existiert.
-- Andernfalls wird bei vorhandener Media-ID der Media-Registry-Weg verwendet.
-- Kein Sound-Play.
-- Keine Queue.
-- Keine produktive Migration.
+- Erfolgreichen lokalen mediaId-DryRun dokumentiert.
+- Testergebnis `accepted:true`, `statusCode:200` fuer `bauernweisheit` / `mediaAssetId 1423` festgehalten.
+- Sicherheitsstatus dokumentiert: keine Queue, kein Audio, keine Twitch-/Redemption-Aenderung.
+- Keine Code-Logik geaendert.
+- Keine produktive Aktion ausgefuehrt.
