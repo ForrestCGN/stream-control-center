@@ -3,33 +3,37 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-31.0 neuen Arbeitsblock bewusst auswählen.
+CAN-31.1 anwenden und Live-Log prüfen.
 ```
 
-## Mögliche Kandidaten
+## Tests
+
+```powershell
+cd D:\Git\stream-control-center
+node -c backend\server.js
+.\stepdone.cmd "CAN-31.1 WS Connect Log Summary"
+```
+
+Danach Node neu starten und prüfen:
 
 ```text
-1. WS connect/disconnect Log optional drosseln oder zusammenfassen.
-2. Dashboard-Kosmetik Overlay-Monitor / Bus-Diagnose weiter glätten.
-3. EventBus read-only Diagnose weiter ausbauen.
-4. Ein konkretes Modul als nächstes an Bus-/Status-/Doku-Regeln anpassen.
-5. Langfristigen DB-Core-Treiberwechsel separat planen, aber nicht direkt umsetzen.
+[WS] clients=... connectedDelta=... disconnectedDelta=... connectedTotal=... disconnectedTotal=...
 ```
 
-## Status der letzten Warnungen
+## Danach sinnvoll
 
 ```text
-Discord ready/clientReady DeprecationWarning: behoben und dokumentiert.
-SQLite ExperimentalWarning: Ursache bekannt, aktuell akzeptiert/dokumentiert.
+CAN-31.2 Testergebnis dokumentieren.
 ```
 
-## Empfehlung
+## Mögliche Kandidaten danach
 
 ```text
-CAN-31.0: WS connect/disconnect Log prüfen, falls es im Startlog zu laut bleibt.
+1. Dashboard-Kosmetik Overlay-Monitor / Bus-Diagnose weiter glätten.
+2. EventBus read-only Diagnose weiter ausbauen.
+3. Ein konkretes Modul als nächstes an Bus-/Status-/Doku-Regeln anpassen.
+4. Langfristigen DB-Core-Treiberwechsel separat planen, aber nicht direkt umsetzen.
 ```
-
-Alternativ kann der nächste Block wieder Dashboard/EventBus-fokussiert sein.
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
 

@@ -1,51 +1,36 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-30.1
+## Aktueller Arbeitsstand CAN-31.1
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
 ```text
+backend/server.js
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN30_1.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN31_1.md
 ```
 
-## CAN-30 ZIPs aus dem Chat
+## CAN-31 ZIPs aus dem Chat
 
 ```text
-CAN-30.1_document_sqlite_experimental_warning.zip
+CAN-31.1_ws_connect_log_summary.zip
 ```
 
-## CAN-30 relevante Runtime-Datei
+## CAN-31 relevante Tests
 
-```text
-backend/modules/sqlite_core.js
+```powershell
+node -c backend\server.js
+.\stepdone.cmd "CAN-31.1 WS Connect Log Summary"
 ```
 
-CAN-30.1 selbst ändert keine Runtime-Datei.
-
-## SQLite Warning Ursache
+Nach Node-Neustart:
 
 ```text
-const { DatabaseSync } = require("node:sqlite");
-db = new DatabaseSync(dbPath);
-```
-
-## Produktive DB
-
-```text
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
-```
-
-## Entscheidung
-
-```text
-Warning bekannt und dokumentiert.
-Aktuell keine Änderung an DB-Core.
-Kein DB-Treiberwechsel ohne eigenen Plan mit Backup/Rollback.
+[WS] clients=... connectedDelta=... disconnectedDelta=... connectedTotal=... disconnectedTotal=...
 ```
 
 ## Lokale Pfade
@@ -53,6 +38,6 @@ Kein DB-Treiberwechsel ohne eigenen Plan mit Backup/Rollback.
 ```text
 Repo: D:\Git\stream-control-center
 Live: D:\Streaming\stramAssets
-SQLite Core: D:\Streaming\stramAssets\backend\modules\sqlite_core.js
+Server: D:\Streaming\stramAssets\backend\server.js
 Produktive SQLite-DB: D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```

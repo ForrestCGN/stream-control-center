@@ -19,8 +19,9 @@ const wss = new WebSocket.Server({ server });
 
 const PORT = 8080;
 
-const SERVER_VERSION = "0.1.1-can28-1-loader-log-summary";
+const SERVER_VERSION = "0.1.2-can31-1-ws-log-summary";
 const MODULE_LOADER_DIAGNOSTICS_VERSION = "0.1.1";
+const WS_LOG_SUMMARY_VERSION = "0.1.0";
 
 // --------------------------------------------------
 // STEP278 / CAN-28.1 loader/route diagnostics
@@ -258,6 +259,7 @@ app.get("/api/_status", (req, res) => {
     port: PORT,
     serverVersion: SERVER_VERSION,
     loaderDiagnosticsVersion: MODULE_LOADER_DIAGNOSTICS_VERSION,
+    wsLogSummaryVersion: WS_LOG_SUMMARY_VERSION,
     envLoadedFrom: paths.ENV_FILE,
     rootDir: paths.ROOT_DIR,
     webrootDir: paths.WEBROOT_DIR,
@@ -269,7 +271,14 @@ app.get("/api/_status", (req, res) => {
       totalRoutes: routeRegistry.length,
       duplicateRoutes
     },
-    wsClients: wss.clients.size
+    wsClients: wss.clients.size,
+    wsLogSummary: {
+      version: WS_LOG_SUMMARY_VERSION,
+      connectedTotal: wsLogSummary.connectedTotal,
+      disconnectedTotal: wsLogSummary.disconnectedTotal,
+      pendingConnected: wsLogSummary.pendingConnected,
+      pendingDisconnected: wsLogSummary.pendingDisconnected
+    }
   });
 });
 
@@ -318,15 +327,54 @@ function dispatchWsMessage(ws, rawMessage) {
 // --------------------------------------------------
 // WebSocket connection logging
 // --------------------------------------------------
+// CAN-31.1: Summarize fast connect/disconnect bursts instead of logging every
+// single browser/overlay client. This is diagnostic-only and does not alter
+// WebSocket behaviour, dispatch, handlers or broadcasts.
+const WS_LOG_DEBOUNCE_MS = 1000;
+const wsLogSummary = {
+  connectedTotal: 0,
+  disconnectedTotal: 0,
+  pendingConnected: 0,
+  pendingDisconnected: 0,
+  timer: null
+};
+
+function scheduleWsLogSummary() {
+  if (wsLogSummary.timer) return;
+
+  wsLogSummary.timer = setTimeout(() => {
+    wsLogSummary.timer = null;
+
+    const connected = wsLogSummary.pendingConnected;
+    const disconnected = wsLogSummary.pendingDisconnected;
+    wsLogSummary.pendingConnected = 0;
+    wsLogSummary.pendingDisconnected = 0;
+
+    console.log(`[WS] clients=${wss.clients.size} connectedDelta=${connected} disconnectedDelta=${disconnected} connectedTotal=${wsLogSummary.connectedTotal} disconnectedTotal=${wsLogSummary.disconnectedTotal}`);
+  }, WS_LOG_DEBOUNCE_MS);
+}
+
+function recordWsConnected() {
+  wsLogSummary.connectedTotal += 1;
+  wsLogSummary.pendingConnected += 1;
+  scheduleWsLogSummary();
+}
+
+function recordWsDisconnected() {
+  wsLogSummary.disconnectedTotal += 1;
+  wsLogSummary.pendingDisconnected += 1;
+  scheduleWsLogSummary();
+}
+
 wss.on("connection", ws => {
-  console.log("[WS] client connected");
+  recordWsConnected();
 
   ws.on("message", rawMessage => {
     dispatchWsMessage(ws, rawMessage);
   });
 
   ws.on("close", () => {
-    console.log("[WS] client disconnected");
+    recordWsDisconnected();
   });
 });
 

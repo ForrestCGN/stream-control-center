@@ -1,79 +1,83 @@
 # CURRENT_STATUS
 
-## Stand: CAN-30.1 abgeschlossen
+## Stand: CAN-31.1 vorbereitet
 
-CAN-30.1 dokumentiert die SQLite ExperimentalWarning als bekannte Runtime-Warnung ohne akuten Handlungsbedarf.
+CAN-31.1 reduziert das laute WebSocket connect/disconnect Log durch eine kurze Summary.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-30: SQLite ExperimentalWarning bewerten
+CAN-31: WS connect/disconnect Log prüfen und drosseln
 ```
 
-## Analyseergebnis CAN-30.0
+## Änderung CAN-31.1
 
-Die Warnung kommt aus:
+Betroffene Datei:
 
 ```text
-backend/modules/sqlite_core.js
+backend/server.js
 ```
 
-Ursache:
+Änderung:
 
 ```text
-sqlite_core.js nutzt Node-Core-Modul node:sqlite und DatabaseSync.
+Einzelne [WS] client connected / disconnected Zeilen werden durch eine gedrosselte Summary ersetzt.
 ```
 
-Relevante Code-Stellen:
+Neues erwartetes Format:
 
 ```text
-const { DatabaseSync } = require("node:sqlite");
-dbPath = path.join(dataDir, "app.sqlite");
-db = new DatabaseSync(dbPath);
+[WS] clients=14 connectedDelta=14 disconnectedDelta=0 connectedTotal=14 disconnectedTotal=0
 ```
 
-## Live-Zustand
-
-Die produktive DB startet sauber:
+Zusätzlich in `/api/_status`:
 
 ```text
-[sqlite_core] v0.1.0 ready: D:\Streaming\stramAssets\data\sqlite\app.sqlite
+wsLogSummaryVersion
+wsLogSummary.connectedTotal
+wsLogSummary.disconnectedTotal
+wsLogSummary.pendingConnected
+wsLogSummary.pendingDisconnected
 ```
 
-Die Warning ist eine Node-Runtime-Warnung:
+## Nicht geändert
 
 ```text
-ExperimentalWarning: SQLite is an experimental feature and might change at any time
+Keine WebSocket-Routen.
+Kein dispatchWsMessage.
+Keine Modul-Handler.
+Keine Broadcast-Logik.
+Keine Overlay-Logik.
+Keine Dashboard-Dateien.
+Keine DB.
+Keine OBS-Aktion.
+Keine produktiven Flows.
+Keine Funktionalität entfernt.
 ```
 
-## Entscheidung CAN-30.1
+## Erwartete Tests
+
+```powershell
+cd D:\Git\stream-control-center
+node -c backend\server.js
+.\stepdone.cmd "CAN-31.1 WS Connect Log Summary"
+```
+
+Danach Node neu starten und prüfen:
 
 ```text
-Keine Codeänderung.
-Keine DB-Änderung.
-Kein Treiberwechsel.
-Keine Warning-Unterdrückung per Startscript.
-Keine Migration.
+[WS] clients=... connectedDelta=... disconnectedDelta=... connectedTotal=... disconnectedTotal=...
 ```
 
-Begründung:
+statt vieler einzelner:
 
 ```text
-sqlite_core.js ist zentraler DB-Core.
-Die produktive DB liegt unter D:\Streaming\stramAssets\data\sqlite\app.sqlite.
-Ein DB-Core-Umbau braucht eigenen Plan mit Backup, Rollback und Tests.
+[WS] client connected
+[WS] client connected
 ```
-
-## Späterer Kandidat
-
-```text
-Optional später: DB-Core sauber planen, falls node:sqlite ersetzt werden soll.
-```
-
-Das wäre ein eigener größerer Schritt, nicht Teil von CAN-30.1.
 
 ## Nächster Schritt
 
 ```text
-CAN-31.0 neuen Arbeitsblock bewusst auswählen.
+CAN-31.1 anwenden und Live-Log prüfen.
 ```

@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## CAN-31.1
+
+- `backend/server.js` WebSocket connect/disconnect Logging vorbereitet:
+  - Einzelne `[WS] client connected` / `[WS] client disconnected` Zeilen werden nicht mehr pro Client ausgegeben.
+  - Neue gedrosselte Summary:
+    - `[WS] clients=... connectedDelta=... disconnectedDelta=... connectedTotal=... disconnectedTotal=...`
+  - `/api/_status` ergänzt um `wsLogSummaryVersion` und `wsLogSummary`.
+  - `SERVER_VERSION` auf `0.1.2-can31-1-ws-log-summary` erhöht.
+- Keine WebSocket-Funktionalität geändert:
+  - Dispatch bleibt unverändert.
+  - Broadcast bleibt unverändert.
+  - Modul-Handler bleiben unverändert.
+  - Routen bleiben unverändert.
+
 ## CAN-30.1
 
 - SQLite ExperimentalWarning dokumentiert.
@@ -7,35 +21,14 @@
   - `backend/modules/sqlite_core.js`
   - `require("node:sqlite")`
   - `DatabaseSync`
-- Status festgehalten:
-  - DB startet sauber.
-  - Warning ist Node-Runtime-Hinweis wegen experimentellem Core-Modul.
-- Entscheidung festgehalten:
-  - Keine Codeänderung.
-  - Keine DB-Änderung.
-  - Keine Warning-Unterdrückung.
-  - Kein Treiberwechsel.
-  - Kein DB-Core-Umbau ohne eigenen Plan mit Backup/Rollback.
-- Nächster Block: CAN-31.0 neuen Arbeitsblock bewusst auswählen.
+- Keine Codeänderung, keine DB-Änderung, kein Treiberwechsel.
 
 ## CAN-29.2
 
 - Erfolgreichen Live-Test von CAN-29.1 dokumentiert.
-- `discord.js` wird als Version `0.1.1` geladen.
-- `[discord] ready as ...` erscheint weiterhin.
-- Die Discord.js DeprecationWarning `ready -> clientReady` erscheint nicht mehr.
-- Modul-Loader bleibt sauber mit `loaded=52`, `skipped=1`, `failed=0`, `warnings=0`, `duplicateRoutes=0`.
-- Keine Codeänderung in CAN-29.2.
-
-## CAN-29.1
-
-- `backend/modules/discord.js` Discord.js DeprecationWarning behoben:
-  - `client.once('ready', ...)` auf `client.once('clientReady', ...)` umgestellt.
-  - `MODULE_VERSION` von `0.1.0` auf `0.1.1` erhöht.
-- Keine Login-Logik, Routen, Voice-/Sound-Funktionen, Queue-Funktionen, DB oder produktiven Flows geändert.
+- Discord.js DeprecationWarning `ready -> clientReady` erscheint nicht mehr.
 
 ## CAN-28.2
 
 - Erfolgreichen Live-Test von CAN-28.1 dokumentiert.
 - `obs_shared.js` wird korrekt als Shared-Helper ohne init geloggt.
-- Keine irritierenden `module-warning`-Zeilen fuer `obs_shared.js` mehr.
