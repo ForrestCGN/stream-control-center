@@ -2,12 +2,10 @@
 
 ## CAN-24
 
-- [x] CAN-24.19 Erfolgreichen enabled=true Shadow-DryRun-Test dokumentieren.
-- [x] CAN-24.20 Entscheidung fuer echten Execute-/Redemption-Shadow-Test treffen.
-- [ ] CAN-24.21 Testplan/Script fuer genau einen lokalen Execute-/Redemption-Shadow-Test vorbereiten.
-- [ ] Danach lokalen Test ausfuehren.
-- [ ] Danach Testergebnis dokumentieren.
-- [ ] Danach entscheiden, ob der Shadow-Hook fuer einen echten Stream-/Reward-Test geeignet ist.
+- [x] CAN-24.21 Testplan/Script fuer genau einen lokalen Execute-Shadow-Test vorbereiten.
+- [ ] Lokalen Test mit `tools\can24_21_execute_shadow_test.cmd` ausfuehren.
+- [ ] CAN-24.22 Testergebnis auswerten und dokumentieren.
+- [ ] Danach entscheiden, ob ein echter EventSub-/Redemption-Test ueberhaupt noetig und sicher ist.
 
 ## Weiterhin hart blockiert
 

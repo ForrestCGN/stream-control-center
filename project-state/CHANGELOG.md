@@ -1,9 +1,10 @@
 # CHANGELOG
 
-## CAN-24.20
+## CAN-24.21
 
-- Entscheidung fuer einen echten lokalen Execute-/Redemption-Shadow-Test dokumentiert.
-- Grenze auf genau `rewardKey=bauernweisheit` festgelegt.
-- Wichtige Unterscheidung zwischen Legacy-Sound-Pfad und Sound-Bus-Play dokumentiert.
-- Keine Code-Logik geaendert.
-- Keine produktive Aktion ausgefuehrt.
+- Lokales Execute-Shadow-Testscript fuer `bauernweisheit` ergaenzt.
+- Script aktiviert Shadow temporaer, ruft Legacy-Execute auf und deaktiviert danach wieder.
+- Script enthaelt bestaetigende Abfrage vor dem echten Execute-Test.
+- Dokumentiert, dass Legacy-Sound ueber `/api/sound/play` moeglich ist.
+- Kein produktiver Sound-Bus-Play.
+- Keine produktive Sound-Bus-Migration.

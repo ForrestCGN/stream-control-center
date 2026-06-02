@@ -1,36 +1,35 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Sofortiger naechster Schritt
 
-```text
-CAN-24.21: Testplan/Script fuer genau einen lokalen Execute-/Redemption-Shadow-Test vorbereiten.
-```
+Lokalen Execute-Shadow-Test ausfuehren:
 
-## Testziel
-
-```text
-enabled=true temporaer setzen
-bauernweisheit lokal ueber kontrollierten Execute-/Redemption-Test ausloesen
-Shadow-Hook schreibt parallel DryRun-Diagnose
-enabled danach wieder false
-Status danach pruefen
+```bat
+tools\can24_21_execute_shadow_test.cmd
 ```
 
 ## Erwartung
 
 ```text
-Shadow lastAutoResult.accepted true
+Legacy Execute ok
+Shadow lastAutoResult accepted true
 Shadow queueTouched false
 Shadow audioTouched false
 Shadow productiveMigration false
-enabled nach Test false
+enabled danach false
+```
+
+## Danach
+
+```text
+CAN-24.22: Testergebnis auswerten und dokumentieren.
 ```
 
 ## Weiterhin blockiert
 
 ```text
+Kein EventSub-/Twitch-Redemption-Test.
 Keine produktive Sound-Bus-Migration.
-Kein produktiver Sound-Bus-Play.
 Kein Hook fuer alle Rewards.
-Keine Twitch-Write-Aktion.
+Keine Twitch-Write-Aktion durch Shadow.
 ```

@@ -1,31 +1,33 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.20 abgeschlossen
+## Stand: CAN-24.21 abgeschlossen
 
-CAN-24.20 trifft die Entscheidung fuer den naechsten Testschritt.
+CAN-24.21 stellt ein lokales Testscript fuer den kontrollierten Execute-Shadow-Test bereit.
 
-## Freigegeben fuer naechsten Schritt
+## Neu
 
 ```text
-Ein kontrollierter lokaler Execute-/Redemption-Shadow-Test fuer genau bauernweisheit darf vorbereitet werden.
+tools/can24_21_execute_shadow_test.cmd
 ```
 
-## Wichtige Grenze
+## Sicherheitsstatus
 
 ```text
-Shadow-Hook bleibt DryRun/Diagnose
-Kein produktiver Sound-Bus-Play
-Kein Queue-Touch durch Shadow
-Keine Twitch-/Redemption-Aenderung durch Shadow
-Kein Hook fuer alle Rewards
+Nur bauernweisheit
+Shadow bleibt DryRun/Diagnose
+Auto-Deaktivierung danach
+kein produktiver Sound-Bus-Play
+keine Sound-Bus-Migration
+kein Hook fuer alle Rewards
 ```
 
 ## Hinweis
 
-Ein echter Execute-Test kann den bestehenden Legacy-Sound-Pfad `/api/sound/play` nutzen. Das ist kein Sound-Bus-Play und keine Migration.
+Der lokale Execute-Test kann den bestehenden Legacy-Sound ueber `/api/sound/play` ausloesen.
 
 ## Naechster Schritt
 
 ```text
-CAN-24.21: Testplan/Script fuer genau einen lokalen Execute-/Redemption-Shadow-Test vorbereiten.
+Lokalen Test ausfuehren.
+CAN-24.22 Testergebnis dokumentieren.
 ```
