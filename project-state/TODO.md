@@ -2,11 +2,9 @@
 
 ## CAN-24
 
-- [x] CAN-24.14 Shadow-Hook fuer `bauernweisheit` vorbereiten.
-- [x] CAN-24.15 Lokalen Shadow-Hook Disabled-Test dokumentieren und Status-Text korrigieren.
-- [x] CAN-24.16 Entscheidung fuer `enabled=true` Test fuer genau `bauernweisheit` treffen.
-- [ ] CAN-24.17 `enabled=true` fuer genau `bauernweisheit` vorbereiten und Auto-Test lokal ausfuehren.
-- [ ] Danach Testergebnis dokumentieren.
+- [x] CAN-24.17 `enabled=true` Testscript fuer genau `bauernweisheit` vorbereiten.
+- [ ] Lokalen Test mit `tools\can24_17_shadow_enabled_test.cmd` ausfuehren.
+- [ ] CAN-24.18 Testergebnis dokumentieren.
 - [ ] Danach entscheiden, ob ein echter Execute-/Redemption-Shadow-Test erlaubt wird.
 
 ## Weiterhin hart blockiert

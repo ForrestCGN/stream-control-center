@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.16 ZIP
+## CAN24.17 ZIP
 
 Enthaltene Dateien:
 
@@ -13,6 +13,7 @@ Enthaltene Dateien:
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `htdocs/dashboard/modules/bus_diagnostics.css`
 - `tools/can24_8_check_routes.cmd`
+- `tools/can24_17_shadow_enabled_test.cmd`
 - `docs/system-inspection/CAN24_8_LOCAL_TEST_PLAN.md`
 - `docs/system-inspection/CAN24_9_TEST_RESULT_PENDING.md`
 - `docs/system-inspection/CAN24_10_TEST_RESULT_AND_SOUND_ID_DIAGNOSIS.md`
@@ -22,7 +23,8 @@ Enthaltene Dateien:
 - `docs/system-inspection/CAN24_14_SHADOW_HOOK_ONE_REWARD_PREP.md`
 - `docs/system-inspection/CAN24_15_SHADOW_HOOK_DISABLED_TEST_SUCCESS.md`
 - `docs/system-inspection/CAN24_16_SHADOW_HOOK_ENABLE_TEST_DECISION.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_16.md`
+- `docs/system-inspection/CAN24_17_SHADOW_HOOK_ENABLED_TEST_PREP.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_17.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -31,4 +33,4 @@ Enthaltene Dateien:
 
 ## Hinweis
 
-Die Code-Dateien entsprechen dem CAN-24.15 Stand. CAN-24.16 ist Entscheidung/Boundary-Dokumentation.
+Die Code-Dateien entsprechen dem CAN-24.16/CAN-24.15 Stand. CAN-24.17 ergaenzt ein lokales Testscript und Dokumentation.

@@ -1,9 +1,11 @@
 # CHANGELOG
 
-## CAN-24.16
+## CAN-24.17
 
-- Entscheidung fuer einen kontrollierten `enabled=true` Shadow-DryRun-Test dokumentiert.
-- Grenze auf genau `rewardKey=bauernweisheit` festgelegt.
-- Sicherheitsgrenzen erneut dokumentiert.
-- Keine Code-Logik geaendert.
-- Keine produktive Aktion ausgefuehrt.
+- Kontrolliertes lokales Testscript fuer `enabled=true` Shadow-DryRun ergaenzt.
+- Script aktiviert nur `bauernweisheit`, fuehrt Auto-Test aus und deaktiviert danach wieder.
+- Keine Backend-Produktivlogik geaendert.
+- Kein Sound-Play.
+- Keine Queue.
+- Keine Twitch-/Redemption-Aenderung.
+- Keine produktive Migration.

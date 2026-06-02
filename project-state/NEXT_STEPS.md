@@ -1,20 +1,26 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Sofort testen
 
-```text
-CAN-24.17: enabled=true fuer genau bauernweisheit vorbereiten und lokalen Auto-Test ausfuehren lassen.
+```bat
+tools\can24_17_shadow_enabled_test.cmd
 ```
 
-## Erwartung nach Aktivierung
+## Erwartung
 
 ```text
-enabled: true
-rewardKey: bauernweisheit
-auto-test accepted: true
-queueTouched: false
-audioTouched: false
-productiveMigration: false
+enabled wird temporaer true
+Auto-Test accepted true
+queueTouched false
+audioTouched false
+productiveMigration false
+enabled danach wieder false
+```
+
+## Danach
+
+```text
+CAN-24.18: Testergebnis dokumentieren.
 ```
 
 ## Weiterhin blockiert

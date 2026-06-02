@@ -1,30 +1,30 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.16 abgeschlossen
+## Stand: CAN-24.17 abgeschlossen
 
-CAN-24.16 trifft die Entscheidung fuer einen kontrollierten `enabled=true` Shadow-DryRun-Test.
+CAN-24.17 stellt ein lokales Testscript fuer den kontrollierten `enabled=true` Shadow-DryRun-Test bereit.
 
-## Freigegeben fuer naechsten Schritt
+## Neu
 
 ```text
-enabled=true fuer genau rewardKey bauernweisheit
-nur lokaler Shadow-DryRun-Test
+tools/can24_17_shadow_enabled_test.cmd
 ```
 
-## Nicht freigegeben
+## Sicherheitsstatus
 
 ```text
-Produktive Sound-Migration
-Sound-Play ueber Bus
-Queue-Aktion
-Redemption-Aenderung
-Twitch-Aktion
-Hook fuer alle Rewards
-Legacy-Flow ersetzen
+Default enabled: false
+Test aktiviert nur temporaer
+Auto-Deaktivierung am Ende
+kein Sound-Play
+keine Queue
+keine Redemption-/Twitch-Aenderung
+keine produktive Migration
 ```
 
 ## Naechster Schritt
 
 ```text
-CAN-24.17: enabled=true fuer genau bauernweisheit vorbereiten und lokal testen.
+Lokalen Test ausfuehren.
+CAN-24.18 Testergebnis dokumentieren.
 ```
