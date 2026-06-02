@@ -1240,6 +1240,99 @@ function emitBusEvent(channel, action, payload, options = {}) {
   }
 }
 
+function buildOverlayClientControlStatus() {
+  const status = getOverlayStatus({ includeConfig: false, limitEvents: 30 });
+  const overlays = Array.isArray(status.overlays) ? status.overlays : [];
+  const now = Date.now();
+
+  const rows = overlays.map(client => {
+    const lastHeartbeatAt = Number(client.lastHeartbeatAt || client.lastSeenAt || client.lastAt || 0);
+    const ageMs = lastHeartbeatAt ? Math.max(0, now - lastHeartbeatAt) : 0;
+    const clientStatus = cleanString(client.status || client.busStatus || '').toLowerCase();
+    const heartbeatOk = client.hasHeartbeat === true || client.heartbeat === true || (lastHeartbeatAt && ageMs <= config.staleAfterMs);
+    const productiveHint = !/test|debug|demo|preview|sample|old|alt/i.test([
+      client.id,
+      client.name,
+      client.module,
+      client.path,
+      client.url
+    ].map(v => cleanString(v)).join('|'));
+
+    return {
+      id: cleanString(client.id || client.clientId || client.name || 'unknown'),
+      name: cleanString(client.name || client.id || ''),
+      module: cleanString(client.module || ''),
+      status: clientStatus || (heartbeatOk ? 'online' : 'unknown'),
+      hasHeartbeat: !!heartbeatOk,
+      lastHeartbeatAt,
+      ageMs,
+      stale: ageMs > config.staleAfterMs,
+      dead: ageMs > config.deadAfterMs,
+      capabilities: Array.isArray(client.capabilities) ? client.capabilities : [],
+      scene: cleanString(client.scene || client.sceneName || ''),
+      source: cleanString(client.source || client.sourceName || ''),
+      path: cleanString(client.path || client.url || ''),
+      productiveHint,
+      testOrLegacyHint: !productiveHint,
+      risk: clientStatus === 'dead' || ageMs > config.deadAfterMs ? 'error' : (clientStatus === 'stale' || ageMs > config.staleAfterMs || !heartbeatOk ? 'warning' : 'ok')
+    };
+  });
+
+  const summary = {
+    total: rows.length,
+    online: rows.filter(row => row.risk === 'ok').length,
+    warning: rows.filter(row => row.risk === 'warning').length,
+    error: rows.filter(row => row.risk === 'error').length,
+    heartbeat: rows.filter(row => row.hasHeartbeat).length,
+    stale: rows.filter(row => row.stale).length,
+    dead: rows.filter(row => row.dead).length,
+    productiveHint: rows.filter(row => row.productiveHint).length,
+    testOrLegacyHint: rows.filter(row => row.testOrLegacyHint).length
+  };
+
+  return {
+    ok: true,
+    module: MODULE,
+    version: MODULE_VERSION,
+    statusApiVersion: STATUS_API_VERSION,
+    feature: 'overlay_client_control_status',
+    mode: 'read_only_overlay_clients',
+    readOnly: true,
+    overlayTouched: false,
+    obsTouched: false,
+    obsRefreshTriggered: false,
+    obsRepairTriggered: false,
+    eventBusEmit: false,
+    recoveryTriggered: false,
+    summary,
+    clients: rows,
+    thresholds: {
+      staleAfterMs: config.staleAfterMs,
+      deadAfterMs: config.deadAfterMs
+    },
+    routes: {
+      status: '/api/overlay-monitor/status',
+      clientControl: '/api/overlay-monitor/client-control/status',
+      obsInventory: '/api/overlay-monitor/obs-inventory',
+      manualRepair: '/api/overlay-monitor/obs-source/action'
+    },
+    safety: {
+      clientControlTouchesObs: false,
+      clientControlRefreshesBrowserSources: false,
+      clientControlRepairsObs: false,
+      manualRepairRouteExistsButNotUsedHere: true,
+      automaticRecovery: false
+    },
+    nextSteps: [
+      'Use this route as dashboard/control visibility only.',
+      'Do not trigger OBS refresh or repair from this status route.',
+      'Use productiveHint/testOrLegacyHint only as a first-pass classification; confirm before hiding or moving overlays.',
+      'Later align overlay client IDs and capabilities across productive overlays.'
+    ],
+    updatedAt: nowIso()
+  };
+}
+
 function publishModuleHeartbeat() {
   const bus = getBus();
   if (!bus || typeof bus.heartbeatModule !== 'function') return;
@@ -1533,6 +1626,10 @@ function init({ app, env } = {}) {
     const limitEvents = Math.max(0, Math.min(100, asInt(req.query.events, 20)));
     const status = getOverlayStatus({ includeConfig, limitEvents });
     res.json(status);
+  });
+
+  registerGet(app, '/api/overlay-monitor/client-control/status', (req, res) => {
+    res.json(buildOverlayClientControlStatus());
   });
 
   registerGet(app, '/api/overlay-monitor/issues', (req, res) => {

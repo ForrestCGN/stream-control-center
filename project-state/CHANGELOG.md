@@ -1,13 +1,12 @@
 # CHANGELOG
 
-## CAN-23.12
+## CAN-23.13
 
-- `GET /api/vip-sound/eventbus/overlay/status` als read-only Route in `vip_sound_overlay.js` ergaenzt.
-- Bus-Integration-Matrix liest VIP-Overlay-Status mit aus.
-- Dashboard-Bus-Matrix zeigt VIP-Overlay visible/client/queue Status.
-- Kein VIP-Overlay-Reset.
-- Keine Queue-Mutation.
-- Kein Sound.
-- Kein Overlay-Send.
+- `GET /api/overlay-monitor/client-control/status` als read-only Route in `overlay_monitor.js` ergaenzt.
+- Bus-Integration-Matrix liest Overlay-Client-Kontrollstatus mit aus.
+- Dashboard-Bus-Matrix zeigt Overlay-Client online/warning/error Status.
+- Kein OBS-Refresh.
+- Keine OBS-Reparatur.
+- Kein Browser-Source-Refresh.
 - Kein EventBus-Emit.
 - Keine Recovery.

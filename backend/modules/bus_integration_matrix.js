@@ -50,6 +50,7 @@ const ENDPOINTS = {
   channelpointsStatus: '/api/channelpoints/status',
   channelpointsReadonlySync: '/api/channelpoints/twitch/manage/status',
   overlayMonitor: '/api/overlay-monitor/status',
+  overlayClientControl: '/api/overlay-monitor/client-control/status',
   vipStatus: '/api/vip-sound/status',
   vipOverlayBusStatus: '/api/vip-sound/eventbus/overlay/status',
   vipIntegration: '/api/vip-sound/integration-check'
@@ -165,6 +166,8 @@ const SYSTEMS = [
     busClientIds: ['module:overlay_monitor'],
     statusKey: 'overlayMonitor',
     statusRoute: ENDPOINTS.overlayMonitor,
+    overlayClientControlKey: 'overlayClientControl',
+    overlayClientControlRoute: ENDPOINTS.overlayClientControl,
     eventBusKey: '',
     commandStatus: 'status_only',
     legacyDirect: false,
@@ -307,6 +310,7 @@ function buildSystemRow(system, clients, fetched) {
   const alertContractFetch = system.alertContractKey ? fetched[system.alertContractKey] : null;
   const alertDryRunFetch = system.alertDryRunKey ? fetched[system.alertDryRunKey] : null;
   const vipOverlayFetch = system.vipOverlayKey ? fetched[system.vipOverlayKey] : null;
+  const overlayClientControlFetch = system.overlayClientControlKey ? fetched[system.overlayClientControlKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
@@ -320,6 +324,7 @@ function buildSystemRow(system, clients, fetched) {
   const alertContractBody = bodyOf(alertContractFetch);
   const alertDryRunBody = bodyOf(alertDryRunFetch);
   const vipOverlayBody = bodyOf(vipOverlayFetch);
+  const overlayClientControlBody = bodyOf(overlayClientControlFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -336,6 +341,7 @@ function buildSystemRow(system, clients, fetched) {
   const alertContractOk = alertContractFetch ? alertContractFetch.ok === true && (!alertContractBody || alertContractBody.ok !== false) : null;
   const alertDryRunOk = alertDryRunFetch ? alertDryRunFetch.ok === true && (!alertDryRunBody || alertDryRunBody.ok !== false) : null;
   const vipOverlayOk = vipOverlayFetch ? vipOverlayFetch.ok === true && (!vipOverlayBody || vipOverlayBody.ok !== false) : null;
+  const overlayClientControlOk = overlayClientControlFetch ? overlayClientControlFetch.ok === true && (!overlayClientControlBody || overlayClientControlBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -349,7 +355,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk, overlayClientControlOk });
 
   return {
     id: system.id,
@@ -428,6 +434,15 @@ function buildSystemRow(system, clients, fetched) {
     vipClientAgeMs: Number(vipOverlayBody && vipOverlayBody.summary ? vipOverlayBody.summary.clientAgeMs || 0 : 0),
     vipQueueLength: Number(vipOverlayBody && vipOverlayBody.summary ? vipOverlayBody.summary.queueLength || 0 : 0),
     vipContractName: vipOverlayBody && vipOverlayBody.contract ? (vipOverlayBody.contract.name || '') : '',
+    overlayClientControlRoute: system.overlayClientControlRoute || '',
+    overlayClientControlOk,
+    overlayClientTotal: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.total || 0 : 0),
+    overlayClientOnline: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.online || 0 : 0),
+    overlayClientWarning: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.warning || 0 : 0),
+    overlayClientError: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.error || 0 : 0),
+    overlayClientHeartbeat: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.heartbeat || 0 : 0),
+    overlayClientProductiveHint: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.productiveHint || 0 : 0),
+    overlayClientTestOrLegacyHint: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.testOrLegacyHint || 0 : 0),
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -452,7 +467,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false || input.overlayClientControlOk === false) return 'warning';
   return 'ok';
 }
 

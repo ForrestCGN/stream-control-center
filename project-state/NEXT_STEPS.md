@@ -3,17 +3,17 @@
 ## Naechster Schritt
 
 ```text
-Overlay-Monitor: Overlay-Clients/Heartbeat als Kontrollsicht fuer aktive Szenen nutzen.
+Channelpoints: Rewards nach Sound/Alert schrittweise ueber Bus-Requests fuehren.
 ```
 
 ## Ziel
 
-Overlay-Monitor-Status in der Bus-Matrix so sichtbar machen, dass produktive Overlays und Test-/Alt-Overlays spaeter unterschieden werden koennen.
+Channelpoints-Status, Reward-Redemption und Sound-/Alert-Abhaengigkeiten sichtbar machen, ohne produktive Reward-Ausfuehrung zu veraendern.
 
 ## Danach
 
 ```text
-Channelpoints nachziehen
-Produktive Overlays von Test-/Alt-Dateien trennen
+Produktive Overlays von Test-/Alt-Overlays trennen
+Overlay-Client-IDs und Capabilities vereinheitlichen
 Recovery/Selbstheilung spaeter
 ```

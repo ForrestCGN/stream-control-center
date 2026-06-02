@@ -15,7 +15,7 @@
 - [x] CAN-23.10 Alert-System: Alert-Bus-Command-Vertrag read-only sichtbar machen.
 - [x] CAN-23.11 Alert-System: Alert-Dry-Run ohne Queue/Sound/Overlay.
 - [x] CAN-23.12 VIP-Sound-Overlay: Show/Hide/Update/ACK read-only sichtbar machen.
-- [ ] Overlay-Monitor: Overlay-Clients/Heartbeat als Kontrollsicht fuer aktive Szenen nutzen.
+- [x] CAN-23.13 Overlay-Monitor: Overlay-Clients/Heartbeat als Kontrollsicht fuer aktive Szenen sichtbar machen.
 - [ ] Channelpoints: Rewards nach Sound/Alert schrittweise ueber Bus-Requests fuehren.
 - [ ] Produktive Overlays von Test-/Alt-Overlays in der Matrix unterscheidbar machen.
 - [ ] Overlay-Client-IDs und Capabilities vereinheitlichen.
