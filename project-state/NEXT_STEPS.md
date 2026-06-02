@@ -1,29 +1,26 @@
 # NEXT_STEPS
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-21.0 - Recovery Safety Master Documentation Consolidation
+CAN-21.1 - Recovery Safety Master Index / File Map Consolidation
 ```
 
-## Ziel CAN-21.0
+## Ziel CAN-21.1
 
-Alle Recovery-/Safety-Planungen von CAN-13 bis CAN-20 zusammenfassen.
+Alle relevanten Safety-Dokumente und Handoffs von CAN-13 bis CAN-21 in einer strukturierten Datei-Landkarte zusammenfassen.
 
-## CAN-21.0 soll zusammenfassen
+## CAN-21.1 darf klaeren
 
 ```text
-CAN-13 Recovery Safety Planning
-CAN-14 Safety Status View read-only
-CAN-15 Audit Planning no-write/no-data
-CAN-16 SafetyStop Planning read-only/no-api
-CAN-17 Roles/Rights Planning no-mutation/no-implementation
-CAN-18 Confirm Planning no-action/no-implementation
-CAN-19 Recovery Safety Architecture Planning / Consolidation
-CAN-20 Safety Architecture Backend Shape Planning read-only/no-route/no-code
+welche Dokumente zu welchem CAN-Schritt gehoeren
+welche Handoff-Dateien relevant sind
+welche Projektstatusdateien aktualisiert wurden
+welche technischen Dateien bewusst unveraendert blieben
+welche Datei als Einstieg im neuen Chat gilt
 ```
 
-## CAN-21.0 darf NICHT enthalten
+## CAN-21.1 darf NICHT enthalten
 
 ```text
 API

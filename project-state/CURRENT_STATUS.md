@@ -1,12 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-20.2 abgeschlossen
+## Stand: CAN-21.0 abgeschlossen
 
-CAN-20 ist abgeschlossen als:
-
-```text
-Safety Architecture Backend Shape Planning read-only / no-route / no-code
-```
+CAN-21.0 hat die Recovery Safety Master Documentation konsolidiert.
 
 ## Aktueller stabiler Stand
 
@@ -19,21 +15,14 @@ Roles/Rights Planning no-mutation/no-implementation
 Confirm Planning no-action/no-implementation
 Recovery Safety Architecture Planning / Consolidation
 Safety Architecture Backend Shape Planning read-only/no-route/no-code
+Recovery Safety Master Documentation Consolidation
 ```
 
-## Backend-Shape-Status
+## Master-Dokumentationsstatus
 
 ```text
-backendShapePlanning: true
-backendShapeValidationPlanning: true
-backendShapePlanningClosure: true
-safetyArchitectureApi: false
-safetyArchitectureRoute: false
-safetyArchitectureDb: false
-safetyArchitectureMiddleware: false
-dashboardMutation: false
-eventBusEmit: false
-validationCode: false
+masterDocumentationConsolidation: true
+masterIndexFileMap: false
 ```
 
 ## Technischer Sicherheitsstand
@@ -75,8 +64,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-21.0 - Recovery Safety Master Documentation Consolidation
+CAN-21.1 - Recovery Safety Master Index / File Map Consolidation
 ```

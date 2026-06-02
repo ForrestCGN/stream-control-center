@@ -1,18 +1,18 @@
 # FILES
 
-## CAN20.2 Closure-/Handoff-ZIP
+## CAN21.0 Master-Documentation-Consolidation-ZIP
 
 Enthaltene Dateien:
 
-- `docs/system-inspection/EVENTBUS_CAN20_2_SAFETY_ARCHITECTURE_BACKEND_SHAPE_PLANNING_CLOSURE_HANDOFF.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN20_2_FINAL.md`
+- `docs/system-inspection/EVENTBUS_CAN21_0_RECOVERY_SAFETY_MASTER_DOCUMENTATION_CONSOLIDATION.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN21_0.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## Technisch relevant, aber in CAN-20.2 nicht geaendert
+## Technisch relevant, aber in CAN-21.0 nicht geaendert
 
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `backend/modules/bus_diagnostics.js`

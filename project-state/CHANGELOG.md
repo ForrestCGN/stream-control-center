@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-20.2
+## CAN-21.0
 
-- CAN-20 Safety-Architecture-Backend-Shape-Planungsstrang abgeschlossen.
-- Backend Shape Planning als read-only/no-route/no-code final dokumentiert.
-- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN20_2_FINAL.md` erstellt.
-- CAN-21.0 Recovery Safety Master Documentation Consolidation als naechster empfohlener Schritt festgelegt.
+- Recovery Safety Master Documentation von CAN-13 bis CAN-20 konsolidiert.
+- Safety Planning, Safety Status View, Audit, SafetyStop, Roles/Rights, Confirm, Safety Architecture und Backend Shape zusammengefuehrt.
+- Gemeinsame Sicherheitsreihenfolge, Fail-safe-Regel und harte Blocker erneut bestaetigt.
+- CAN-21.1 Recovery Safety Master Index / File Map Consolidation als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
