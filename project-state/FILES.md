@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.12 ZIP
+## CAN24.13 ZIP
 
 Enthaltene Dateien:
 
@@ -18,7 +18,8 @@ Enthaltene Dateien:
 - `docs/system-inspection/CAN24_10_TEST_RESULT_AND_SOUND_ID_DIAGNOSIS.md`
 - `docs/system-inspection/CAN24_11_SOUND_BUS_MEDIAID_DRYRUN_COMPAT.md`
 - `docs/system-inspection/CAN24_12_MEDIAID_DRYRUN_SUCCESS.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_12.md`
+- `docs/system-inspection/CAN24_13_SHADOW_HOOK_DECISION_BOUNDARY.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_13.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -27,4 +28,4 @@ Enthaltene Dateien:
 
 ## Hinweis
 
-Die Code-Dateien entsprechen dem CAN-24.11 Stand. CAN-24.12 ist Dokumentation des erfolgreichen lokalen Tests.
+Die Code-Dateien entsprechen dem CAN-24.12/CAN-24.11 Stand. CAN-24.13 ist Entscheidung/Boundary-Dokumentation.

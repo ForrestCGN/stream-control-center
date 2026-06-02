@@ -3,34 +3,26 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.13: Entscheidung treffen, ob ein streng begrenzter Shadow-Hook fuer genau einen Reward gebaut werden darf.
+CAN-24.14: Shadow-Hook fuer genau rewardKey bauernweisheit vorbereiten.
 ```
 
-## Entscheidungsbasis
+## Anforderungen
 
 ```text
-DryRun funktioniert erfolgreich mit mediaId/mediaAssetId.
-Der Kandidat bauernweisheit ist validierbar.
-Keine Queue/Audio-Aktion im DryRun.
-```
-
-## Sicherheitsanforderungen fuer einen moeglichen Hook
-
-```text
-Nur ein Reward-Key: bauernweisheit
-Default aus oder explizit aktiviert
+Default sicher
+Nur bauernweisheit
+Nur DryRun
 Legacy-Flow bleibt unveraendert
-Shadow-DryRun nur Diagnose
-Kein Sound-Play
-Keine Queue
-Keine Redemption-/Twitch-Aenderung
+Status/Matrix/Dashboard sichtbar
 Sofort abschaltbar
+Fehler nur als Diagnose-State speichern
 ```
 
-## Weiter blockiert
+## Weiterhin blockiert
 
 ```text
-Keine produktive Sound-Migration.
+Keine produktive Migration.
 Kein Sound-Play ueber Bus.
-Kein automatischer Shadow-Mitulauf fuer alle Rewards.
+Kein Queue-Touch.
+Kein automatischer Hook fuer alle Rewards.
 ```

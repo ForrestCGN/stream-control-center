@@ -1,43 +1,29 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.12 abgeschlossen
+## Stand: CAN-24.13 abgeschlossen
 
-CAN-24.12 dokumentiert den erfolgreichen mediaId-DryRun.
+CAN-24.13 trifft die Entscheidung fuer den naechsten technischen Schritt.
 
-## Erfolgreich bestaetigt
+## Freigegeben fuer den naechsten kleinen Schritt
 
 ```text
-Channelpoints Candidate DryRun: ok
-accepted: true
-statusCode: 200
-mediaId/mediaAssetId Mapping: funktioniert
-queueTouched: false
-audioTouched: false
+Streng begrenzter Shadow-Hook fuer genau einen Reward-Key: bauernweisheit
 ```
 
-## Getesteter Kandidat
+## Nicht freigegeben
 
 ```text
-rewardKey: bauernweisheit
-mediaAssetId: 1423
-file: media/channelpoints/general/bauernweisheit.mp3
-durationMs: 6168
-```
-
-## Sicherheitsstatus
-
-```text
-productiveMigration: false
-eventSubHook: false
-executeHook: false
-soundPlay: false
-queueTouched: false
-redemptionChanged: false
-twitchTouched: false
+Produktive Sound-Migration
+Sound-Play ueber Bus
+Queue-Aktion
+Redemption-Aenderung
+Twitch-Aktion
+Hook fuer alle Rewards
+Ersatz des Legacy-Flows
 ```
 
 ## Naechster Schritt
 
 ```text
-CAN-24.13: Entscheidung fuer streng begrenzten Shadow-Hook fuer genau einen Reward.
+CAN-24.14: Shadow-Hook fuer bauernweisheit vorbereiten.
 ```

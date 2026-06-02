@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## CAN-24.12
+## CAN-24.13
 
-- Erfolgreichen lokalen mediaId-DryRun dokumentiert.
-- Testergebnis `accepted:true`, `statusCode:200` fuer `bauernweisheit` / `mediaAssetId 1423` festgehalten.
-- Sicherheitsstatus dokumentiert: keine Queue, kein Audio, keine Twitch-/Redemption-Aenderung.
+- Entscheidung fuer naechsten Schritt dokumentiert.
+- Streng begrenzter Shadow-Hook fuer genau `bauernweisheit` als naechster technischer Kandidat freigegeben.
+- Sicherheitsgrenzen erneut festgehalten.
 - Keine Code-Logik geaendert.
 - Keine produktive Aktion ausgefuehrt.
